@@ -402,9 +402,75 @@ const SK = {
   attachments: 'ledger_attachments',
   brokerOffset: 'ledger_brokerOffset',
   riskRules: 'ledger_riskRules',
+  deviceId: 'ledger_deviceId',
+  lastExportAt: 'ledger_lastExportAt',
+  lastImportAt: 'ledger_lastImportAt',
+  lastDirty: 'ledger_lastDirty',
+  syncFolderHandle: 'ledger_syncFolderHandle', // stored in IndexedDB, this is just a marker
+  deviceName: 'ledger_deviceName',
 };
 const lsGet = (k, fallback) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { console.error(e); } };
+
+// ═══════════════ SYNC HELPERS ═══════════════
+// Get or create a persistent device ID — random 8-char string, never leaves localStorage
+function getDeviceId() {
+  let id = lsGet(SK.deviceId, null);
+  if (!id) { id = 'dev_' + Math.random().toString(36).slice(2, 10); lsSet(SK.deviceId, id); }
+  return id;
+}
+// Sniff a friendly default name from the user agent
+function defaultDeviceName() {
+  const ua = navigator.userAgent || '';
+  if (/iPhone/i.test(ua)) return 'iPhone';
+  if (/iPad/i.test(ua)) return 'iPad';
+  if (/Android/i.test(ua)) return 'Android phone';
+  if (/Macintosh/i.test(ua)) return 'Mac';
+  if (/Windows/i.test(ua)) return 'PC';
+  if (/Linux/i.test(ua)) return 'Linux PC';
+  return 'This device';
+}
+// Detect if File System Access API is supported (Chrome/Edge desktop, Opera). NOT iOS/Firefox/Safari.
+function hasFileSystemAccess() {
+  return typeof window !== 'undefined' && 'showSaveFilePicker' in window && 'showDirectoryPicker' in window;
+}
+// Tiny IndexedDB wrapper to persist a FileSystemFileHandle (it can't go in localStorage)
+const SYNC_DB = 'ramanfx_sync', SYNC_STORE = 'handles', SYNC_KEY = 'syncFile';
+function idbOpen() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(SYNC_DB, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(SYNC_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbSetHandle(handle) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(SYNC_STORE, 'readwrite');
+    tx.objectStore(SYNC_STORE).put(handle, SYNC_KEY);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function idbGetHandle() {
+  const db = await idbOpen();
+  return new Promise((resolve) => {
+    const tx = db.transaction(SYNC_STORE, 'readonly');
+    const req = tx.objectStore(SYNC_STORE).get(SYNC_KEY);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => resolve(null);
+  });
+}
+async function idbClearHandle() {
+  const db = await idbOpen();
+  return new Promise((resolve) => {
+    const tx = db.transaction(SYNC_STORE, 'readwrite');
+    tx.objectStore(SYNC_STORE).delete(SYNC_KEY);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => resolve();
+  });
+}
 
 // ═══════════════ ANALYTICS ═══════════════
 function computeStats(trades) {
@@ -3111,7 +3177,19 @@ function App() {
   const [dateRange, setDateRange] = useState({ from: null, to: null, label: 'All time' });
   const [riskRules, setRiskRules] = useState(() => ({ ...DEFAULT_RISK_RULES, ...lsGet(SK.riskRules, {}) }));
   const [gateOpen, setGateOpen] = useState(false);
-  const saveRiskRules = (r) => { setRiskRules(r); lsSet(SK.riskRules, r); };
+  const saveRiskRules = (r) => { setRiskRules(r); lsSet(SK.riskRules, r); markDirty(); };
+  const [lastExportAt, setLastExportAt] = useState(() => lsGet(SK.lastExportAt, null));
+  const [lastImportAt, setLastImportAt] = useState(() => lsGet(SK.lastImportAt, null));
+  const [lastDirty, setLastDirty] = useState(() => lsGet(SK.lastDirty, null));
+  const [deviceName, setDeviceName] = useState(() => lsGet(SK.deviceName, null) || defaultDeviceName());
+  const [syncStatus, setSyncStatus] = useState(''); // transient banner: e.g. "Synced ✓"
+  const [hasSyncHandle, setHasSyncHandle] = useState(false);
+  useEffect(() => { (async () => { const h = await idbGetHandle(); setHasSyncHandle(!!h); })(); }, []);
+  function markDirty() {
+    const now = Date.now();
+    setLastDirty(now); lsSet(SK.lastDirty, now);
+  }
+  const updateDeviceName = (n) => { setDeviceName(n); lsSet(SK.deviceName, n); };
   const riskStatus = useMemo(() => computeRiskStatus(trades, riskRules), [trades, riskRules]);
   const [tab, setTabRaw] = useState('dashboard');
   const setTab = (t) => { setDetailTrade(null); setDaySummary(null); setTabRaw(t); };
@@ -3141,20 +3219,21 @@ function App() {
     for (const d of (accountInfo.deposits || [])) depMap.set(depKey(d), { ...d, account: accountInfo.id });
     const dep = Array.from(depMap.values());
     setDeposits(dep); lsSet(SK.deposits, dep);
+    markDirty();
     return { added, updated, skipped };
   };
-  const saveNote = (id, n) => { const next = { ...notes, [id]: n }; setNotes(next); lsSet(SK.notes, next); };
-  const saveDayNote = (date, text) => { const next = { ...dayNotes }; if (text.trim()) next[date] = text; else delete next[date]; setDayNotes(next); lsSet(SK.dayNotes, next); };
-  const saveStrategy = (pb) => { const id = pb.id || `pb_${Date.now()}`; const next = pb.id ? strategies.map(p => p.id === pb.id ? { ...pb } : p) : [...strategies, { ...pb, id }]; setStrategies(next); lsSet(SK.strategies, next); };
-  const deleteStrategy = (id) => { const next = strategies.filter(p => p.id !== id); setStrategies(next); lsSet(SK.strategies, next); const nn = { ...notes }; for (const k of Object.keys(nn)) if (nn[k]?.strategyId === id) nn[k] = { ...nn[k], strategyId: null }; setNotes(nn); lsSet(SK.notes, nn); };
+  const saveNote = (id, n) => { const next = { ...notes, [id]: n }; setNotes(next); lsSet(SK.notes, next); markDirty(); };
+  const saveDayNote = (date, text) => { const next = { ...dayNotes }; if (text.trim()) next[date] = text; else delete next[date]; setDayNotes(next); lsSet(SK.dayNotes, next); markDirty(); };
+  const saveStrategy = (pb) => { const id = pb.id || `pb_${Date.now()}`; const next = pb.id ? strategies.map(p => p.id === pb.id ? { ...pb } : p) : [...strategies, { ...pb, id }]; setStrategies(next); lsSet(SK.strategies, next); markDirty(); };
+  const deleteStrategy = (id) => { const next = strategies.filter(p => p.id !== id); setStrategies(next); lsSet(SK.strategies, next); const nn = { ...notes }; for (const k of Object.keys(nn)) if (nn[k]?.strategyId === id) nn[k] = { ...nn[k], strategyId: null }; setNotes(nn); lsSet(SK.notes, nn); markDirty(); };
   const switchAccount = (id) => { setActiveAccount(id); lsSet(SK.activeAccount, id); };
-  const toggleChecklist = (item) => { const today = dayKey(new Date()); const next = { ...checklistDays }; if (!next[today]) next[today] = {}; next[today] = { ...next[today], [item]: !next[today][item] }; setChecklistDays(next); lsSet(SK.checklistDays, next); };
-  const editChecklist = (items) => { setChecklist(items); lsSet(SK.checklist, items); };
+  const toggleChecklist = (item) => { const today = dayKey(new Date()); const next = { ...checklistDays }; if (!next[today]) next[today] = {}; next[today] = { ...next[today], [item]: !next[today][item] }; setChecklistDays(next); lsSet(SK.checklistDays, next); markDirty(); };
+  const editChecklist = (items) => { setChecklist(items); lsSet(SK.checklist, items); markDirty(); };
   // FIXED: notebook save/delete properly persist
-  const saveNotebookEntry = (e) => { const exists = notebook.find(n => n.id === e.id); const next = exists ? notebook.map(n => n.id === e.id ? e : n) : [...notebook, e]; setNotebook(next); lsSet(SK.notebook, next); };
-  const deleteNotebookEntry = (id) => { const next = notebook.filter(n => n.id !== id); setNotebook(next); lsSet(SK.notebook, next); };
-  const savePlaybookState = (s) => { setPlaybookState(s); lsSet(SK.playbook, s); };
-  const saveAttachments = (tradeId, atts) => { const next = { ...attachments, [tradeId]: atts }; if (!atts.length) delete next[tradeId]; setAttachments(next); lsSet(SK.attachments, next); };
+  const saveNotebookEntry = (e) => { const exists = notebook.find(n => n.id === e.id); const next = exists ? notebook.map(n => n.id === e.id ? e : n) : [...notebook, e]; setNotebook(next); lsSet(SK.notebook, next); markDirty(); };
+  const deleteNotebookEntry = (id) => { const next = notebook.filter(n => n.id !== id); setNotebook(next); lsSet(SK.notebook, next); markDirty(); };
+  const savePlaybookState = (s) => { setPlaybookState(s); lsSet(SK.playbook, s); markDirty(); };
+  const saveAttachments = (tradeId, atts) => { const next = { ...attachments, [tradeId]: atts }; if (!atts.length) delete next[tradeId]; setAttachments(next); lsSet(SK.attachments, next); markDirty(); };
   const handleDayClick = (date) => { setDaySummary(date); };
   const handleDayDetails = (date) => { setDaySummary(null); setFocusDate(date); setTab('dayweek'); };
   const handleDayAddNote = () => { if (daySummary) { setFocusDate(daySummary); setTab('dayweek'); setDaySummary(null); } };
@@ -3176,10 +3255,150 @@ function App() {
     alert(`Converted ${newTrades.length} trades, ${newOp.length} open positions, ${newWo.length} working orders, ${newDep.length} deposits.`);
   };
 
+  const buildBackup = () => ({
+    trades, notes, dayNotes, accounts, strategies, checklist, checklistDays, notebook, playbookState,
+    openPositions, workingOrders, deposits, attachments, riskRules,
+    exportedAt: new Date().toISOString(),
+    deviceId: getDeviceId(),
+    deviceName,
+    schemaVersion: 1,
+  });
   const exportJSON = () => {
-    const blob = new Blob([JSON.stringify({ trades, notes, dayNotes, accounts, strategies, checklist, checklistDays, notebook, playbookState, openPositions, workingOrders, deposits, attachments, riskRules, exportedAt: new Date().toISOString() }, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(buildBackup(), null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${BRAND.toLowerCase()}-backup-${new Date().toISOString().split('T')[0]}.json`; a.click(); URL.revokeObjectURL(url);
+    const now = Date.now(); setLastExportAt(now); lsSet(SK.lastExportAt, now);
   };
+
+  // ━━━━━━━━━━━━━━━━ SYNC EXPORT ━━━━━━━━━━━━━━━━
+  // Filename is always the same — "ramanfx-sync.json" — so each export overwrites the previous one in
+  // your cloud-synced folder. Uses File System Access API where supported (Chrome/Edge desktop): silent
+  // write to the folder you picked once. On other browsers it triggers a standard download.
+  const SYNC_FILENAME = `${BRAND.toLowerCase()}-sync.json`;
+  const flashStatus = (msg) => { setSyncStatus(msg); setTimeout(() => setSyncStatus(''), 3500); };
+  const syncExport = async () => {
+    const json = JSON.stringify(buildBackup(), null, 2);
+    // Path A: silent save via stored file handle (Chrome/Edge desktop, after one-time pick)
+    if (hasFileSystemAccess()) {
+      try {
+        let handle = await idbGetHandle();
+        if (!handle) {
+          // First time: prompt user to pick where the sync file should live
+          handle = await window.showSaveFilePicker({
+            suggestedName: SYNC_FILENAME,
+            types: [{ description: 'RamanFX backup', accept: { 'application/json': ['.json'] } }],
+          });
+          await idbSetHandle(handle); setHasSyncHandle(true);
+        } else {
+          // Verify we still have write permission (Chrome revokes after some time)
+          const perm = await handle.queryPermission({ mode: 'readwrite' });
+          if (perm !== 'granted') {
+            const req = await handle.requestPermission({ mode: 'readwrite' });
+            if (req !== 'granted') throw new Error('permission denied');
+          }
+        }
+        const writable = await handle.createWritable();
+        await writable.write(json); await writable.close();
+        const now = Date.now(); setLastExportAt(now); lsSet(SK.lastExportAt, now);
+        flashStatus(`✓ Synced to ${handle.name}`);
+        return;
+      } catch (err) {
+        if (err?.name === 'AbortError') return; // user cancelled
+        console.warn('FileSystemAccess save failed, falling back to download:', err);
+        // fall through to download path below
+      }
+    }
+    // Path B: standard download with fixed filename — works on all browsers including iOS
+    try {
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = SYNC_FILENAME; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      const now = Date.now(); setLastExportAt(now); lsSet(SK.lastExportAt, now);
+      flashStatus(`✓ Downloaded ${SYNC_FILENAME}`);
+    } catch (err) {
+      alert('Could not export: ' + err.message);
+    }
+  };
+  const resetSyncFolder = async () => {
+    await idbClearHandle(); setHasSyncHandle(false);
+    flashStatus('Sync folder cleared — next export will ask again');
+  };
+
+  // ━━━━━━━━━━━━━━━━ SYNC IMPORT ━━━━━━━━━━━━━━━━
+  const syncImportInputRef = useRef();
+  const syncImport = () => syncImportInputRef.current?.click();
+  const onSyncImportFile = (e) => {
+    const file = e.target.files?.[0]; if (!file) { return; }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const d = JSON.parse(ev.target.result);
+        if (!d || typeof d !== 'object') { alert('That does not look like a valid backup file.'); return; }
+        const looksValid = Array.isArray(d.trades) || d.notes || d.notebook || d.dayNotes || d.strategies;
+        if (!looksValid) { alert('That does not look like a RamanFX backup file.'); return; }
+        // Conflict detection: warn if the incoming file is OLDER than the most recent local change
+        const incomingTime = d.exportedAt ? new Date(d.exportedAt).getTime() : 0;
+        const localDirty = lastDirty || 0;
+        if (incomingTime && localDirty && localDirty > incomingTime) {
+          const minsBehind = Math.round((localDirty - incomingTime) / 60000);
+          if (!confirm(
+            `⚠ The file you're importing is OLDER than your local changes by about ${minsBehind} minute${minsBehind !== 1 ? 's' : ''}.\n\n`
+            + `Local last modified: ${new Date(localDirty).toLocaleString()}\n`
+            + `File exported: ${new Date(incomingTime).toLocaleString()}${d.deviceName ? ` from "${d.deviceName}"` : ''}\n\n`
+            + `Importing will OVERWRITE your local data with this older snapshot. Continue?`
+          )) { e.target.value = ''; return; }
+        } else {
+          const counts = {
+            trades: (d.trades || []).length,
+            tradeNotes: Object.keys(d.notes || {}).length,
+            dayNotes: Object.keys(d.dayNotes || {}).length,
+            notebook: (d.notebook || []).length,
+            attachments: Object.values(d.attachments || {}).reduce((a, arr) => a + (Array.isArray(arr) ? arr.length : 0), 0),
+          };
+          if (!confirm(
+            `Sync from ${d.deviceName || 'another device'}?\n\n`
+            + `• ${counts.trades} trades · ${counts.tradeNotes} notes · ${counts.dayNotes} day notes\n`
+            + `• ${counts.notebook} notebook entries · ${counts.attachments} attached images\n`
+            + `${d.exportedAt ? `Exported ${new Date(d.exportedAt).toLocaleString()}` : ''}\n\n`
+            + `This REPLACES current data on this device.`
+          )) { e.target.value = ''; return; }
+        }
+        const t = d.trades || [], n = d.notes || {}, dn = d.dayNotes || {}, ac = d.accounts || {}, st = d.strategies || [], cl = d.checklist || checklist, cd = d.checklistDays || {}, nb = d.notebook || [];
+        setTrades(t); lsSet(SK.trades, t);
+        setNotes(n); lsSet(SK.notes, n);
+        setDayNotes(dn); lsSet(SK.dayNotes, dn);
+        setAccounts(ac); lsSet(SK.accounts, ac);
+        setStrategies(st); lsSet(SK.strategies, st);
+        setChecklist(cl); lsSet(SK.checklist, cl);
+        setChecklistDays(cd); lsSet(SK.checklistDays, cd);
+        setNotebook(nb); lsSet(SK.notebook, nb);
+        if (d.playbookState) { setPlaybookState(d.playbookState); lsSet(SK.playbook, d.playbookState); }
+        const op = d.openPositions || [], wo = d.workingOrders || [], dep = d.deposits || [];
+        setOpenPositions(op); lsSet(SK.openPositions, op);
+        setWorkingOrders(wo); lsSet(SK.workingOrders, wo);
+        setDeposits(dep); lsSet(SK.deposits, dep);
+        const at = d.attachments || {}; setAttachments(at); lsSet(SK.attachments, at);
+        if (d.riskRules) { const rr = { ...DEFAULT_RISK_RULES, ...d.riskRules }; setRiskRules(rr); lsSet(SK.riskRules, rr); }
+        setActiveAccount('all'); lsSet(SK.activeAccount, 'all');
+        const now = Date.now();
+        setLastImportAt(now); lsSet(SK.lastImportAt, now);
+        // After import the local state matches the imported file, so clear dirty marker to incomingTime
+        setLastDirty(incomingTime || now); lsSet(SK.lastDirty, incomingTime || now);
+        flashStatus(`✓ Synced from ${d.deviceName || 'backup'}`);
+      } catch (err) { alert('Could not read that file: ' + err.message); }
+      finally { e.target.value = ''; }
+    };
+    reader.readAsText(file);
+  };
+
+  // beforeunload: warn if there are unsynced local changes
+  useEffect(() => {
+    const isDirty = lastDirty && (!lastExportAt || lastDirty > lastExportAt);
+    if (!isDirty) return;
+    const handler = (e) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [lastDirty, lastExportAt]);
   const importInputRef = useRef();
   const importJSON = (e) => {
     const file = e.target.files?.[0]; if (!file) return;
@@ -3294,6 +3513,7 @@ function App() {
     const newAccts = { ...accounts }; delete newAccts[id];
     setAccounts(newAccts); lsSet(SK.accounts, newAccts);
     if (activeAccount === id) { setActiveAccount('all'); lsSet(SK.activeAccount, 'all'); }
+    markDirty();
   };
   const filteredOpenPositions = useMemo(() => activeAccount === 'all' ? openPositions : openPositions.filter(p => p.account === activeAccount), [openPositions, activeAccount]);
   const filteredWorkingOrders = useMemo(() => activeAccount === 'all' ? workingOrders : workingOrders.filter(o => o.account === activeAccount), [workingOrders, activeAccount]);
@@ -3393,6 +3613,50 @@ function App() {
                   </div>
                 </div>
               )}
+              {/* Sync section */}
+              <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+                  <div>
+                    <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>Sync across devices</div>
+                    <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>This device: <span style={{ color: 'var(--text2)' }}>{deviceName}</span> <span style={{ color: 'var(--border2)' }}>· {getDeviceId()}</span></div>
+                  </div>
+                  <input value={deviceName} onChange={e => updateDeviceName(e.target.value)} placeholder="Device name" style={{ ...inputStyle, width: 160 }} />
+                </div>
+                <div style={{ background: 'var(--panel2)', borderRadius: 10, padding: 14, marginBottom: 10 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 12, lineHeight: 1.6 }}>
+                    <strong style={{ color: 'var(--text)' }}>How sync works</strong> — tap <strong>Sync now</strong> on the device you traded on; it saves a file named <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 3, fontFamily: 'ui-monospace,monospace' }}>ramanfx-sync.json</code>. Place that file in a cloud-synced folder (iCloud, Google Drive, OneDrive, Dropbox). On your other device, tap <strong>Sync from file</strong> and pick the same file. Your data stays private — the cloud provider just stores the file; only your devices read it.
+                    {hasFileSystemAccess() && (
+                      <div style={{ marginTop: 8, color: 'var(--violet-light)' }}>
+                        💡 On this browser the app can write silently to one folder after you pick it once.
+                        {hasSyncHandle ? <span> Currently pointing at your chosen folder.</span> : <span> First sync will ask where.</span>}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 12, marginBottom: 12 }}>
+                    <div>
+                      <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)', fontWeight: 600 }}>Last exported</div>
+                      <div style={{ fontSize: 12, marginTop: 2 }}>{lastExportAt ? new Date(lastExportAt).toLocaleString() : '— never'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)', fontWeight: 600 }}>Last imported</div>
+                      <div style={{ fontSize: 12, marginTop: 2 }}>{lastImportAt ? new Date(lastImportAt).toLocaleString() : '— never'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)', fontWeight: 600 }}>Unsynced changes</div>
+                      <div style={{ fontSize: 12, marginTop: 2, color: (lastDirty && (!lastExportAt || lastDirty > lastExportAt)) ? '#fbbf24' : 'var(--text2)' }}>
+                        {lastDirty && (!lastExportAt || lastDirty > lastExportAt) ? `Yes (since ${new Date(lastDirty).toLocaleString()})` : 'No — up to date'}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    <button style={btnStyle('primary')} onClick={syncExport}>📤 Sync now</button>
+                    <button style={btnStyle('secondary')} onClick={syncImport}>📥 Sync from file</button>
+                    <input ref={syncImportInputRef} type="file" accept=".json,application/json" style={{ display: 'none' }} onChange={onSyncImportFile} />
+                    {hasSyncHandle && <button style={btnStyle('ghost')} onClick={resetSyncFolder}>Change sync folder</button>}
+                  </div>
+                </div>
+              </div>
+
               {/* Backup section */}
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
                 <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, marginBottom: 8 }}>Backup</div>
@@ -3446,6 +3710,21 @@ function App() {
         return <DaySummaryPopup dayKey={daySummary} stats={stats} existingNote={dayNotes[daySummary]} onClose={() => setDaySummary(null)} onViewDetails={handleDayDetails} onAddNote={handleDayAddNote} />;
       })()}
       <PreTradeGate open={gateOpen} onClose={() => setGateOpen(false)} status={riskStatus} rules={riskRules} />
+      {/* Floating sync button — always reachable; shows amber dot when unsynced changes */}
+      {(() => {
+        const isDirty = lastDirty && (!lastExportAt || lastDirty > lastExportAt);
+        return (
+          <div style={{ position: 'fixed', bottom: isMobile ? 18 : 26, left: isMobile ? 18 : 26, zIndex: 40, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
+            {syncStatus && (
+              <div className="fade-in" style={{ background: 'var(--panel)', border: '1px solid var(--green)', color: 'var(--green-bright)', borderRadius: 8, padding: '8px 14px', fontSize: 12, fontWeight: 600, boxShadow: '0 6px 20px rgba(0,0,0,0.5)' }}>{syncStatus}</div>
+            )}
+            <button onClick={syncExport} title={isDirty ? 'You have unsynced changes — tap to sync' : 'Sync now'}
+              style={{ position: 'relative', padding: '10px 16px', borderRadius: 999, border: 'none', cursor: 'pointer', background: isDirty ? '#fbbf24' : 'var(--panel2)', color: isDirty ? '#000' : 'var(--text)', fontWeight: 600, fontSize: 12, boxShadow: '0 6px 18px rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 14 }}>📤</span>{isDirty ? 'Sync (unsaved)' : 'Sync'}
+            </button>
+          </div>
+        );
+      })()}
       {/* Floating gate button — always reachable */}
       {trades.length > 0 && !gateOpen && (
         <button onClick={() => setGateOpen(true)} title="Pre-trade gate"
