@@ -2925,16 +2925,44 @@ function RiskRules({ rules, onSave }) {
 
 // ═══════════════ DATE RANGE FILTER ═══════════════
 function DateRangeFilter({ value, onChange }) {
+  const isMobile = useMobile();
   const [open, setOpen] = useState(false);
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 'auto' });
   const ref = useRef(null);
+  const btnRef = useRef(null);
+  const computePos = () => {
+    const el = btnRef.current; if (!el) return;
+    const r = el.getBoundingClientRect();
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const DROPDOWN_W = isMobile ? Math.min(vw - 16, 340) : 300;
+    const margin = 8;
+    let left = r.right - DROPDOWN_W;          // right-align to button by default
+    if (left < margin) left = margin;          // clamp left
+    if (left + DROPDOWN_W > vw - margin) left = vw - DROPDOWN_W - margin; // clamp right
+    let top = r.bottom + 6;
+    // If too close to bottom, flip above
+    if (top + 380 > vh && r.top > 380) top = r.top - 380 - 6;
+    if (top < margin) top = margin;
+    setPos({ top, left, width: DROPDOWN_W });
+  };
   useEffect(() => {
     if (!open) return;
-    const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    computePos();
+    const onScrollOrResize = () => computePos();
+    const close = (e) => { if (ref.current && !ref.current.contains(e.target) && btnRef.current && !btnRef.current.contains(e.target)) setOpen(false); };
     document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, [open]);
+    document.addEventListener('touchstart', close);
+    window.addEventListener('resize', onScrollOrResize);
+    window.addEventListener('scroll', onScrollOrResize, true);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('touchstart', close);
+      window.removeEventListener('resize', onScrollOrResize);
+      window.removeEventListener('scroll', onScrollOrResize, true);
+    };
+  }, [open, isMobile]);
 
   const startOfDay = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
   const endOfDay = (d) => { const x = new Date(d); x.setHours(23, 59, 59, 999); return x; };
@@ -2979,8 +3007,8 @@ function DateRangeFilter({ value, onChange }) {
   })();
   const subLabel = isActive && value.label && value.label !== buttonText ? value.label : null;
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
-      <button onClick={() => setOpen(!open)}
+    <Fragment>
+      <button ref={btnRef} onClick={() => setOpen(!open)}
         style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 12px', fontSize: 12, fontWeight: 500, borderRadius: 8, border: `1px solid ${isActive ? 'var(--violet)' : 'var(--border2)'}`, background: isActive ? 'rgba(124,92,252,0.12)' : 'var(--panel2)', color: isActive ? 'var(--violet-light)' : 'var(--text)', cursor: 'pointer', transition: 'all 0.15s', textAlign: 'left', lineHeight: 1.2 }}>
         <span style={{ fontSize: 13 }}>📅</span>
         <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
@@ -2990,7 +3018,7 @@ function DateRangeFilter({ value, onChange }) {
         <span style={{ marginLeft: 2, opacity: 0.7 }}>▾</span>
       </button>
       {open && (
-        <div className="fade-in" style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, background: 'var(--panel)', border: '1px solid var(--border2)', borderRadius: 10, padding: 12, minWidth: 280, zIndex: 100, boxShadow: '0 14px 40px rgba(0,0,0,0.6)' }}>
+        <div ref={ref} className="fade-in" style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, background: 'var(--panel)', border: '1px solid var(--border2)', borderRadius: 10, padding: 12, zIndex: 1000, boxShadow: '0 14px 40px rgba(0,0,0,0.7)', maxHeight: 'calc(100vh - 20px)', overflowY: 'auto' }}>
           <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, marginBottom: 8, paddingLeft: 4 }}>Quick select</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             {presets.map(p => {
@@ -3008,15 +3036,15 @@ function DateRangeFilter({ value, onChange }) {
           <div style={{ borderTop: '1px solid var(--border)', marginTop: 8, paddingTop: 12 }}>
             <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, marginBottom: 8, paddingLeft: 4 }}>Custom range</div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
-              <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
+              <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} style={{ ...inputStyle, flex: 1, minWidth: 0 }} />
               <span style={{ color: 'var(--text3)' }}>→</span>
-              <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
+              <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} style={{ ...inputStyle, flex: 1, minWidth: 0 }} />
             </div>
             <button style={{ ...btnStyle('primary'), width: '100%', justifyContent: 'center' }} onClick={applyCustom}>Apply</button>
           </div>
         </div>
       )}
-    </div>
+    </Fragment>
   );
 }
 
