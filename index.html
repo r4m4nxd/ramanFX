@@ -2271,17 +2271,53 @@ const inputStyle = { fontSize: 12, background: 'var(--panel2)', border: '1px sol
 
 // ═══════════════ MODAL ═══════════════
 function Modal({ open, onClose, children, width = 720 }) {
+  // iOS-safe scroll lock: setting body { overflow: hidden } isn't enough on Safari — the page still scrolls.
+  // The proven fix is to position-fix the body at a negative top equal to the current scrollY when the modal
+  // opens, then restore on close. This freezes the underlying scroll and keeps the modal anchored to the
+  // viewport regardless of where the user had scrolled to before tapping the image.
   useEffect(() => {
     if (!open) return;
     const onEsc = (e) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onEsc);
+    const scrollY = window.scrollY || window.pageYOffset || 0;
+    const prev = {
+      bodyPosition: document.body.style.position,
+      bodyTop: document.body.style.top,
+      bodyLeft: document.body.style.left,
+      bodyRight: document.body.style.right,
+      bodyWidth: document.body.style.width,
+      bodyOverflow: document.body.style.overflow,
+      htmlOverflow: document.documentElement.style.overflow,
+    };
+    // Freeze the body in place at the current scroll position
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
     document.body.style.overflow = 'hidden';
-    return () => { document.removeEventListener('keydown', onEsc); document.body.style.overflow = ''; };
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onEsc);
+      // Restore body styles
+      document.body.style.position = prev.bodyPosition;
+      document.body.style.top = prev.bodyTop;
+      document.body.style.left = prev.bodyLeft;
+      document.body.style.right = prev.bodyRight;
+      document.body.style.width = prev.bodyWidth;
+      document.body.style.overflow = prev.bodyOverflow;
+      document.documentElement.style.overflow = prev.htmlOverflow;
+      // Restore the scroll position the user was at
+      window.scrollTo(0, scrollY);
+    };
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div onClick={e => e.stopPropagation()} className="fade-in" style={{ background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 14, maxWidth: width, width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.7)' }}>
+    // Overlay uses 100dvh (dynamic viewport height) so iOS Safari's collapsing URL bar doesn't push the
+    // modal offscreen. `inset: 0` plus fixed body above ensures the modal renders at the actual visible viewport.
+    // Safe-area insets ensure modal content (especially the close button at top) is reachable in iOS standalone mode.
+    <div onClick={onClose} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, height: '100dvh', background: 'rgba(0,0,0,0.78)', WebkitBackdropFilter: 'blur(4px)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 'max(16px, env(safe-area-inset-top))', paddingBottom: 'max(16px, env(safe-area-inset-bottom))', paddingLeft: 'max(16px, env(safe-area-inset-left))', paddingRight: 'max(16px, env(safe-area-inset-right))', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+      <div onClick={e => e.stopPropagation()} className="fade-in" style={{ background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 14, maxWidth: width, width: '100%', maxHeight: 'calc(100dvh - max(32px, env(safe-area-inset-top) + env(safe-area-inset-bottom)))', overflowY: 'auto', WebkitOverflowScrolling: 'touch', boxShadow: '0 20px 60px rgba(0,0,0,0.7)' }}>
         {children}
       </div>
     </div>
@@ -2780,8 +2816,8 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                 <button style={btnStyle('ghost')} onClick={() => setLightbox(null)}>✕</button>
               </div>
             </div>
-            <div style={{ padding: 16, background: '#0a0a0b', display: 'flex', alignItems: 'center', justifyContent: 'center', maxHeight: '80vh', overflow: 'auto' }}>
-              <img src={lightbox.dataUrl} alt={lightbox.name} style={{ maxWidth: '100%', maxHeight: '76vh', borderRadius: 8, boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }} />
+            <div style={{ padding: 16, background: '#0a0a0b', display: 'flex', alignItems: 'center', justifyContent: 'center', maxHeight: '80dvh', overflow: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <img src={lightbox.dataUrl} alt={lightbox.name} style={{ maxWidth: '100%', maxHeight: '70dvh', borderRadius: 8, boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }} />
             </div>
           </div>
         )}
