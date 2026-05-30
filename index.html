@@ -97,6 +97,28 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     /* Tooltips can be wider on mobile */
     .recharts-default-tooltip { max-width: 260px !important; }
   }
+
+  /* ──── iOS / mobile safe areas ──── */
+  /* Top safe area: when added to home screen, iOS hides Safari chrome but the status bar / notch
+     still occupies the top of the viewport. Push the sticky header below it. */
+  header[data-rfx-header] {
+    padding-top: env(safe-area-inset-top, 0px) !important;
+  }
+  /* Bottom safe area + clearance for floating buttons (Sync left, Pre-trade gate right).
+     The floats are ~44px tall + 18px bottom offset, so reserve ~90px scroll headroom plus
+     the iOS home-bar inset. Applies to the main scrolling area. */
+  main[data-rfx-main] {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px) !important;
+  }
+  /* Side insets so content doesn't hug a notched edge in landscape */
+  main[data-rfx-main] {
+    padding-left: max(env(safe-area-inset-left, 0px), 14px) !important;
+    padding-right: max(env(safe-area-inset-right, 0px), 14px) !important;
+  }
+  /* Floating buttons themselves should sit above the iOS home indicator */
+  .rfx-float-bottom {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + var(--rfx-float-offset, 18px)) !important;
+  }
 </style>
 </head>
 <body>
@@ -1090,24 +1112,34 @@ function ScoreCard({ stats }) {
   const { score, axes } = useMemo(() => computeScore(stats), [stats]);
   const animScore = useCountUp(score, 800);
   const scoreColor = score >= 70 ? 'var(--green-bright)' : score >= 40 ? '#fbbf24' : 'var(--red)';
-  // Shorten axis labels on mobile so they don't clip off the canvas
-  const data = axes.map(a => ({ axis: isMobile ? a.axis.split(' ')[0].slice(0, 8) : a.axis, value: a.value }));
+  // Aggressively shorten axis labels on mobile so they don't clip off the chart canvas.
+  // Map known long labels to compact forms; otherwise take first word truncated to 7 chars.
+  const shortLabel = (raw) => {
+    const map = { 'Win Rate': 'Win%', 'Profit Factor': 'PF', 'Avg Win/Loss': 'W/L', 'Consistency': 'Const.', 'Discipline': 'Discp.', 'Risk Mgmt': 'Risk', 'Volume': 'Vol', 'Recovery': 'Rec.' };
+    if (map[raw]) return map[raw];
+    return raw.split(' ')[0].slice(0, 7);
+  };
+  const data = axes.map(a => ({ axis: isMobile ? shortLabel(a.axis) : a.axis, value: a.value }));
   return (
     <Card style={{ padding: 18 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 4 }}>
         <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 7 }}>✦ Performance score</div>
         <div style={{ fontSize: 12, color: 'var(--text3)' }}>Composite metric</div>
       </div>
-      <div className="force-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 130px', gap: 16, alignItems: 'center' }}>
-        <ResponsiveContainer width="100%" height={isMobile ? 250 : 210}>
-          <RadarChart data={data} outerRadius={isMobile ? 78 : 72} margin={{ top: 18, right: 36, bottom: 18, left: 36 }}>
-            <PolarGrid stroke="#303038" />
-            <PolarAngleAxis dataKey="axis" tick={{ fontSize: isMobile ? 11 : 10, fill: '#a1a1ab' }} />
-            <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
-            <Radar dataKey="value" stroke="#9d7eff" fill="#7c5cfc" fillOpacity={0.35} strokeWidth={2} />
-          </RadarChart>
-        </ResponsiveContainer>
-        <div style={{ textAlign: 'center' }}>
+      {/* On mobile: stack the radar above the score (chart gets full width = labels fit).
+          On desktop: side-by-side as before. */}
+      <div style={{ display: isMobile ? 'flex' : 'grid', flexDirection: 'column', gridTemplateColumns: '1fr 130px', gap: isMobile ? 18 : 16, alignItems: 'center' }}>
+        <div style={{ width: '100%', minWidth: 0 }}>
+          <ResponsiveContainer width="100%" height={isMobile ? 280 : 210}>
+            <RadarChart data={data} outerRadius={isMobile ? 70 : 72} margin={{ top: 26, right: 50, bottom: 26, left: 50 }}>
+              <PolarGrid stroke="#303038" />
+              <PolarAngleAxis dataKey="axis" tick={{ fontSize: isMobile ? 11 : 10, fill: '#a1a1ab' }} />
+              <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
+              <Radar dataKey="value" stroke="#9d7eff" fill="#7c5cfc" fillOpacity={0.35} strokeWidth={2} />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+        <div style={{ textAlign: 'center', width: isMobile ? '100%' : 'auto' }}>
           <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: 4 }}>Your score</div>
           <div className="tabnum" style={{ fontSize: 46, fontWeight: 700, color: scoreColor, lineHeight: 1 }}>{animScore.toFixed(1)}</div>
           <div style={{ marginTop: 12, width: '100%', height: 8, background: '#26262c', borderRadius: 99, overflow: 'hidden', position: 'relative' }}>
@@ -3952,7 +3984,7 @@ function App() {
     <div style={{ minHeight: '100vh' }}>
       <Sidebar tab={tab} setTab={setTab} hasData={trades.length > 0} mobileOpen={mobileNavOpen} setMobileOpen={setMobileNavOpen} />
       <div style={{ marginLeft: isMobile ? 0 : 220 }}>
-        <header style={{ position: 'sticky', top: 0, zIndex: 20, background: 'rgba(10,10,11,0.92)', backdropFilter: 'blur(14px)', borderBottom: '1px solid var(--border)' }}>
+        <header data-rfx-header style={{ position: 'sticky', top: 0, zIndex: 20, background: 'rgba(10,10,11,0.92)', backdropFilter: 'blur(14px)', borderBottom: '1px solid var(--border)' }}>
           <div style={{ padding: isMobile ? '10px 14px' : '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
               {isMobile && (
@@ -3979,7 +4011,7 @@ function App() {
             </div>
           )}
         </header>
-        <main style={{ padding: isMobile ? '14px 12px' : '20px 24px' }}>
+        <main data-rfx-main style={{ padding: isMobile ? '14px 12px 110px 12px' : '20px 24px 110px 24px' }}>
           {showSettings && (
             <Card style={{ padding: 18, marginBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
@@ -4128,7 +4160,7 @@ function App() {
       {(() => {
         const isDirty = lastDirty && (!lastExportAt || lastDirty > lastExportAt);
         return (
-          <div style={{ position: 'fixed', bottom: isMobile ? 18 : 26, left: isMobile ? 18 : 26, zIndex: 40, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
+          <div className="rfx-float-bottom" style={{ '--rfx-float-offset': isMobile ? '18px' : '26px', position: 'fixed', left: isMobile ? 18 : 26, zIndex: 40, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
             {syncStatus && (
               <div className="fade-in" style={{ background: 'var(--panel)', border: '1px solid var(--green)', color: 'var(--green-bright)', borderRadius: 8, padding: '8px 14px', fontSize: 12, fontWeight: 600, boxShadow: '0 6px 20px rgba(0,0,0,0.5)' }}>{syncStatus}</div>
             )}
@@ -4141,8 +4173,8 @@ function App() {
       })()}
       {/* Floating gate button — always reachable */}
       {trades.length > 0 && !gateOpen && (
-        <button onClick={() => setGateOpen(true)} title="Pre-trade gate"
-          style={{ position: 'fixed', bottom: isMobile ? 18 : 26, right: isMobile ? 18 : 26, zIndex: 40, padding: '12px 18px', borderRadius: 999, border: 'none', cursor: 'pointer', background: riskStatus.locked ? 'var(--red)' : 'var(--violet)', color: '#fff', fontWeight: 700, fontSize: 13, boxShadow: '0 8px 22px rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <button onClick={() => setGateOpen(true)} title="Pre-trade gate" className="rfx-float-bottom"
+          style={{ '--rfx-float-offset': isMobile ? '18px' : '26px', position: 'fixed', right: isMobile ? 18 : 26, zIndex: 40, padding: '12px 18px', borderRadius: 999, border: 'none', cursor: 'pointer', background: riskStatus.locked ? 'var(--red)' : 'var(--violet)', color: '#fff', fontWeight: 700, fontSize: 13, boxShadow: '0 8px 22px rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 16 }}>{riskStatus.locked ? '🛑' : '🛡'}</span>{riskStatus.locked ? 'LOCKED' : 'Pre-trade gate'}
         </button>
       )}
