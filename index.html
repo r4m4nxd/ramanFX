@@ -2065,15 +2065,17 @@ function ColumnPickerModal({ open, onClose, selected, onSave }) {
   const groups = ['Timing', 'Instrument', 'Prices', 'P&L', 'Risk', 'Notes', 'Performance', 'Unavailable'];
   return (
     <Modal open={open} onClose={onClose} width={680}>
-      <div style={{ padding: '16px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Three-row flex layout inside the modal panel: fixed header, scrollable body, fixed footer.
+          This guarantees the Apply/Cancel buttons are always reachable no matter how long the list. */}
+      <div style={{ padding: '16px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
         <div>
           <div style={{ fontWeight: 700, fontSize: 16 }}>Customize columns</div>
           <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Choose which columns to show in the trade list</div>
         </div>
         <button style={btnStyle('ghost')} onClick={onClose}>✕</button>
       </div>
-      <div style={{ padding: 18 }}>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+      <div style={{ padding: 18, flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
           <button style={btnStyle('ghost')} onClick={() => setDraft(TRADE_COLUMNS.filter(c => c.available).map(c => c.id))}>All available</button>
           <button style={btnStyle('ghost')} onClick={() => setDraft([])}>None</button>
           <button style={btnStyle('ghost')} onClick={() => setDraft(DEFAULT_TRADE_COLUMNS)}>Default</button>
@@ -2095,10 +2097,8 @@ function ColumnPickerModal({ open, onClose, selected, onSave }) {
                   return (
                     <label key={col.id}
                       title={col.reason || ''}
-                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, cursor: col.available ? 'pointer' : 'not-allowed', opacity: col.available ? 1 : 0.4, background: checked && col.available ? 'rgba(124,92,252,0.08)' : 'transparent', transition: 'background 0.12s' }}
-                      onMouseEnter={e => { if (col.available && !checked) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
-                      onMouseLeave={e => { if (col.available && !checked) e.currentTarget.style.background = 'transparent'; }}>
-                      <input type="checkbox" checked={checked} disabled={!col.available} onChange={() => col.available && toggle(col.id)} style={{ accentColor: 'var(--violet)', cursor: col.available ? 'pointer' : 'not-allowed' }} />
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 6, cursor: col.available ? 'pointer' : 'not-allowed', opacity: col.available ? 1 : 0.4, background: checked && col.available ? 'rgba(124,92,252,0.08)' : 'transparent', transition: 'background 0.12s', minHeight: 36 }}>
+                      <input type="checkbox" checked={checked} disabled={!col.available} onChange={() => col.available && toggle(col.id)} style={{ accentColor: 'var(--violet)', cursor: col.available ? 'pointer' : 'not-allowed', width: 18, height: 18, flexShrink: 0 }} />
                       <span style={{ fontSize: 13, color: col.available ? 'var(--text2)' : 'var(--text3)' }}>{col.label}</span>
                     </label>
                   );
@@ -2108,9 +2108,9 @@ function ColumnPickerModal({ open, onClose, selected, onSave }) {
           );
         })}
       </div>
-      <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+      <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 8, flexShrink: 0, background: 'var(--panel)' }}>
         <button style={btnStyle('ghost')} onClick={onClose}>Cancel</button>
-        <button style={btnStyle('primary')} onClick={() => { onSave(draft); onClose(); }}>Apply</button>
+        <button style={{ ...btnStyle('primary'), opacity: draft.length === 0 ? 0.5 : 1, cursor: draft.length === 0 ? 'not-allowed' : 'pointer' }} disabled={draft.length === 0} onClick={() => { if (draft.length > 0) { onSave(draft); onClose(); } }}>Apply ({draft.length})</button>
       </div>
     </Modal>
   );
@@ -2163,7 +2163,7 @@ function TradeView({ trades, notes, strategies, onSaveNote, onOpenTradeDetail })
         <select value={filter} onChange={e => setFilter(e.target.value)} style={sel}><option value="all">All trades</option><option value="wins">Wins</option><option value="losses">Losses</option><option value="untagged">Untagged</option></select>
         <select value={symFilter} onChange={e => setSymFilter(e.target.value)} style={sel}>{symbols.map(s => <option key={s} value={s}>{s === 'all' ? 'All symbols' : s}</option>)}</select>
         <select value={stratFilter} onChange={e => setStratFilter(e.target.value)} style={sel}><option value="all">All strategies</option>{strategies.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
-        {!isMobile && <button style={{ ...sel, padding: '6px 10px', display: 'inline-flex', alignItems: 'center', gap: 5 }} onClick={() => setPickerOpen(true)} title="Customize columns">⚙ Columns ({activeCols.length})</button>}
+        <button style={{ ...sel, padding: '6px 10px', display: 'inline-flex', alignItems: 'center', gap: 5 }} onClick={() => setPickerOpen(true)} title="Customize columns">⚙ Columns ({activeCols.length})</button>
         <div style={{ fontSize: 12, color: 'var(--text3)' }}>{filtered.length} trades</div>
       </Card>
       <ColumnPickerModal open={pickerOpen} onClose={() => setPickerOpen(false)} selected={selectedCols} onSave={saveSelectedCols} />
@@ -2172,23 +2172,30 @@ function TradeView({ trades, notes, strategies, onSaveNote, onOpenTradeDetail })
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {filtered.map(t => {
               const note = notes[t.id] || {}, pos = t.net >= 0;
+              // Columns to show in the body of the card. Skip those that are already in the prominent
+              // header row (symbol+side+status+net) and ones that don't fit a label-value mobile layout (scale).
+              const headerColIds = new Set(['symbol', 'side', 'status', 'net']);
+              const bodyCols = activeCols.filter(c => !headerColIds.has(c.id) && c.id !== 'scale');
               return (
                 <div key={t.id} onClick={() => onOpenTradeDetail?.(t.id)} style={{ padding: 14, borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, gap: 8, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                       <span style={{ fontFamily: 'ui-monospace,monospace', color: 'var(--text)', fontWeight: 600 }}>{t.symbol}</span>
                       <Pill color={t.type === 'buy' ? 'blue' : 'amber'}>{t.type}</Pill>
                       <Pill color={pos ? 'green' : t.net === 0 ? 'zinc' : 'red'}>{pos ? 'WIN' : t.net === 0 ? 'SCR' : 'LOSS'}</Pill>
                     </div>
                     <div className="tabnum" style={{ fontWeight: 700, fontSize: 15, color: pos ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(t.net, true)}</div>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 4, fontSize: 11, color: 'var(--text3)' }}>
-                    <span>Open: <span className="tabnum" style={{ color: 'var(--text2)' }}>{t.openTime?.split(' ')[0]}</span></span>
-                    <span>Close: <span className="tabnum" style={{ color: 'var(--text2)' }}>{t.closeTime?.split(' ')[0]}</span></span>
-                    <span>Entry: <span className="tabnum" style={{ color: 'var(--text2)' }}>{t.openPrice}</span></span>
-                    <span>Exit: <span className="tabnum" style={{ color: 'var(--text2)' }}>{t.closePrice}</span></span>
-                  </div>
-                  {note.note && <div style={{ marginTop: 6, fontSize: 11, color: 'var(--violet-light)' }}>✎ {note.note.slice(0, 70)}{note.note.length > 70 ? '…' : ''}</div>}
+                  {bodyCols.length > 0 && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', columnGap: 10, rowGap: 4, fontSize: 11, color: 'var(--text3)' }}>
+                      {bodyCols.map(col => (
+                        <div key={col.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 6, minWidth: 0 }}>
+                          <span style={{ flexShrink: 0 }}>{col.label}:</span>
+                          <span style={{ color: 'var(--text2)', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{col.render(t, note, ctx)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -2270,58 +2277,51 @@ const SummaryStat = ({ label, value, sub, accent }) => (
 const inputStyle = { fontSize: 12, background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 7, padding: '6px 8px', color: 'var(--text)', outline: 'none', fontFamily: 'inherit' };
 
 // ═══════════════ MODAL ═══════════════
+// Render modal into a portal at document.body so it's not constrained by ancestor stacking contexts,
+// transforms, filters, or overflow. This is the standard pattern for production modals.
 function Modal({ open, onClose, children, width = 720 }) {
-  // iOS-safe scroll lock: setting body { overflow: hidden } isn't enough on Safari — the page still scrolls.
-  // The proven fix is to position-fix the body at a negative top equal to the current scrollY when the modal
-  // opens, then restore on close. This freezes the underlying scroll and keeps the modal anchored to the
-  // viewport regardless of where the user had scrolled to before tapping the image.
+  // iOS-safe scroll lock with portal: lock html overflow + remember scroll, restore on close.
+  // We avoid the position-fixed-body trick because portals already escape ancestor stacking quirks,
+  // and the html-overflow approach restores cleanly without scroll-jump.
   useEffect(() => {
     if (!open) return;
     const onEsc = (e) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onEsc);
     const scrollY = window.scrollY || window.pageYOffset || 0;
-    const prev = {
-      bodyPosition: document.body.style.position,
-      bodyTop: document.body.style.top,
-      bodyLeft: document.body.style.left,
-      bodyRight: document.body.style.right,
-      bodyWidth: document.body.style.width,
-      bodyOverflow: document.body.style.overflow,
-      htmlOverflow: document.documentElement.style.overflow,
-    };
-    // Freeze the body in place at the current scroll position
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevBodyPosition = document.body.style.position;
+    const prevBodyTop = document.body.style.top;
+    const prevBodyWidth = document.body.style.width;
+    // Position-fixed-body is still required on iOS Safari to actually freeze scroll under the modal.
+    // Combined with the portal, the modal is rendered as a sibling of #root, outside the fixed body,
+    // so it always anchors correctly to the viewport.
     document.body.style.position = 'fixed';
     document.body.style.top = `-${scrollY}px`;
-    document.body.style.left = '0';
-    document.body.style.right = '0';
     document.body.style.width = '100%';
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
     return () => {
       document.removeEventListener('keydown', onEsc);
-      // Restore body styles
-      document.body.style.position = prev.bodyPosition;
-      document.body.style.top = prev.bodyTop;
-      document.body.style.left = prev.bodyLeft;
-      document.body.style.right = prev.bodyRight;
-      document.body.style.width = prev.bodyWidth;
-      document.body.style.overflow = prev.bodyOverflow;
-      document.documentElement.style.overflow = prev.htmlOverflow;
-      // Restore the scroll position the user was at
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.body.style.overflow = prevBodyOverflow;
+      document.body.style.position = prevBodyPosition;
+      document.body.style.top = prevBodyTop;
+      document.body.style.width = prevBodyWidth;
       window.scrollTo(0, scrollY);
     };
   }, [open, onClose]);
   if (!open) return null;
-  return (
-    // Overlay uses 100dvh (dynamic viewport height) so iOS Safari's collapsing URL bar doesn't push the
-    // modal offscreen. `inset: 0` plus fixed body above ensures the modal renders at the actual visible viewport.
-    // Safe-area insets ensure modal content (especially the close button at top) is reachable in iOS standalone mode.
-    <div onClick={onClose} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, height: '100dvh', background: 'rgba(0,0,0,0.78)', WebkitBackdropFilter: 'blur(4px)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 'max(16px, env(safe-area-inset-top))', paddingBottom: 'max(16px, env(safe-area-inset-bottom))', paddingLeft: 'max(16px, env(safe-area-inset-left))', paddingRight: 'max(16px, env(safe-area-inset-right))', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
-      <div onClick={e => e.stopPropagation()} className="fade-in" style={{ background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 14, maxWidth: width, width: '100%', maxHeight: 'calc(100dvh - max(32px, env(safe-area-inset-top) + env(safe-area-inset-bottom)))', overflowY: 'auto', WebkitOverflowScrolling: 'touch', boxShadow: '0 20px 60px rgba(0,0,0,0.7)' }}>
+  // Note: ReactDOM.createPortal renders children into a DOM node OUTSIDE the React tree.
+  // We use document.body so the modal is a top-level sibling of #root.
+  const modalContent = (
+    <div onClick={onClose} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, height: '100dvh', background: 'rgba(0,0,0,0.78)', WebkitBackdropFilter: 'blur(4px)', backdropFilter: 'blur(4px)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 'max(16px, env(safe-area-inset-top))', paddingBottom: 'max(16px, env(safe-area-inset-bottom))', paddingLeft: 'max(16px, env(safe-area-inset-left))', paddingRight: 'max(16px, env(safe-area-inset-right))', WebkitOverflowScrolling: 'touch' }}>
+      <div onClick={e => e.stopPropagation()} className="fade-in" style={{ background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 14, maxWidth: width, width: '100%', maxHeight: '100%', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.7)', overflow: 'hidden' }}>
         {children}
       </div>
     </div>
   );
+  return ReactDOM.createPortal(modalContent, document.body);
 }
 
 // ═══════════════ DAY SUMMARY POPUP (calendar click) ═══════════════
@@ -2379,7 +2379,7 @@ function DaySummaryPopup({ dayKey: dk, stats, onClose, onViewDetails, onAddNote,
   const equityData = (() => { let cum = 0; return [...day.items].sort((a, b) => parseMT5Date(a.closeTime) - parseMT5Date(b.closeTime)).map((t, i) => { cum += netPnL(t); return { i: i + 1, cum }; }); })();
   return (
     <Modal open={true} onClose={onClose} width={680}>
-      <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+      <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, flexShrink: 0 }}>
         <div>
           <div style={{ fontWeight: 600, fontSize: 16 }}>{niceDate} <span style={{ color: profit ? 'var(--green-bright)' : 'var(--red)', marginLeft: 8 }}>Net P&L {fmtMoney(day.pnl, true)}</span></div>
         </div>
@@ -2388,33 +2388,35 @@ function DaySummaryPopup({ dayKey: dk, stats, onClose, onViewDetails, onAddNote,
           <button style={btnStyle('ghost')} onClick={onClose}>✕</button>
         </div>
       </div>
-      <div className="force-stack" style={{ padding: 22, display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1.6fr)', gap: 18 }}>
-        <ResponsiveContainer width="100%" height={150}>
-          <AreaChart data={equityData}>
-            <defs><linearGradient id="dayPopG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={profit ? '#26a69a' : '#ef5350'} stopOpacity={0.4} /><stop offset="100%" stopColor={profit ? '#26a69a' : '#ef5350'} stopOpacity={0} /></linearGradient></defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#26262c" />
-            <XAxis dataKey="i" tick={{ fontSize: 9, fill: '#a1a1ab' }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 9, fill: '#a1a1ab' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
-            <ReferenceLine y={0} stroke="#52525b" />
-            <Tooltip contentStyle={{ background: '#1a1a1f', border: '1px solid #3f3f46', borderRadius: 8, fontSize: 12, color: '#f4f4f5' }} labelStyle={{ color: '#fff', fontWeight: 600 }} itemStyle={{ color: '#f4f4f5' }} formatter={v => fmtMoney(v)} />
-            <Area type="monotone" dataKey="cum" stroke={profit ? '#26a69a' : '#ef5350'} fill="url(#dayPopG)" strokeWidth={2} />
-          </AreaChart>
-        </ResponsiveContainer>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))', gap: 14 }}>
-          <SummaryStat label="Total Trades" value={day.trades} />
-          <SummaryStat label="Winners" value={day.wins} accent="var(--green-bright)" />
-          <SummaryStat label="Losers" value={day.losses} accent="var(--red)" />
-          <SummaryStat label="Gross P&L" value={fmtMoney(grossPnL, true)} accent={grossPnL >= 0 ? 'var(--green-bright)' : 'var(--red)'} />
-          <SummaryStat label="Commissions" value={fmtMoney(commissions)} />
-          <SummaryStat label="Volume" value={day.volume.toFixed(2)} />
-          <SummaryStat label="Win Rate" value={`${winRate.toFixed(0)}%`} />
-          <SummaryStat label="Profit Factor" value={pf === Infinity ? '∞' : pf.toFixed(2)} accent={pf >= 1 ? 'var(--green-bright)' : 'var(--red)'} />
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <div className="force-stack" style={{ padding: 22, display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1.6fr)', gap: 18 }}>
+          <ResponsiveContainer width="100%" height={150}>
+            <AreaChart data={equityData}>
+              <defs><linearGradient id="dayPopG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={profit ? '#26a69a' : '#ef5350'} stopOpacity={0.4} /><stop offset="100%" stopColor={profit ? '#26a69a' : '#ef5350'} stopOpacity={0} /></linearGradient></defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#26262c" />
+              <XAxis dataKey="i" tick={{ fontSize: 9, fill: '#a1a1ab' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 9, fill: '#a1a1ab' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
+              <ReferenceLine y={0} stroke="#52525b" />
+              <Tooltip contentStyle={{ background: '#1a1a1f', border: '1px solid #3f3f46', borderRadius: 8, fontSize: 12, color: '#f4f4f5' }} labelStyle={{ color: '#fff', fontWeight: 600 }} itemStyle={{ color: '#f4f4f5' }} formatter={v => fmtMoney(v)} />
+              <Area type="monotone" dataKey="cum" stroke={profit ? '#26a69a' : '#ef5350'} fill="url(#dayPopG)" strokeWidth={2} />
+            </AreaChart>
+          </ResponsiveContainer>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))', gap: 14 }}>
+            <SummaryStat label="Total Trades" value={day.trades} />
+            <SummaryStat label="Winners" value={day.wins} accent="var(--green-bright)" />
+            <SummaryStat label="Losers" value={day.losses} accent="var(--red)" />
+            <SummaryStat label="Gross P&L" value={fmtMoney(grossPnL, true)} accent={grossPnL >= 0 ? 'var(--green-bright)' : 'var(--red)'} />
+            <SummaryStat label="Commissions" value={fmtMoney(commissions)} />
+            <SummaryStat label="Volume" value={day.volume.toFixed(2)} />
+            <SummaryStat label="Win Rate" value={`${winRate.toFixed(0)}%`} />
+            <SummaryStat label="Profit Factor" value={pf === Infinity ? '∞' : pf.toFixed(2)} accent={pf >= 1 ? 'var(--green-bright)' : 'var(--red)'} />
+          </div>
         </div>
+        {existingNote && (
+          <div style={{ margin: '0 22px 14px', padding: 12, background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, color: 'var(--text2)', whiteSpace: 'pre-wrap' }}>{existingNote}</div>
+        )}
       </div>
-      {existingNote && (
-        <div style={{ margin: '0 22px 14px', padding: 12, background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, color: 'var(--text2)', whiteSpace: 'pre-wrap' }}>{existingNote}</div>
-      )}
-      <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, flexWrap: 'wrap', gap: 8 }}>
         <div style={{ fontSize: 12, color: 'var(--text3)' }}>{day.items.length} trades — click View Details for the full breakdown</div>
         <button style={btnStyle('primary')} onClick={() => onViewDetails(dk)}>View details →</button>
       </div>
@@ -2802,8 +2804,8 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
       </div>
       <Modal open={!!lightbox} onClose={() => setLightbox(null)} width={1100}>
         {lightbox && (
-          <div>
-            <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <Fragment>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
                 <span style={{ fontSize: 16 }}>🖼</span>
                 <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -2816,10 +2818,10 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                 <button style={btnStyle('ghost')} onClick={() => setLightbox(null)}>✕</button>
               </div>
             </div>
-            <div style={{ padding: 16, background: '#0a0a0b', display: 'flex', alignItems: 'center', justifyContent: 'center', maxHeight: '80dvh', overflow: 'auto', WebkitOverflowScrolling: 'touch' }}>
-              <img src={lightbox.dataUrl} alt={lightbox.name} style={{ maxWidth: '100%', maxHeight: '70dvh', borderRadius: 8, boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }} />
+            <div style={{ padding: 16, background: '#0a0a0b', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, minHeight: 0, overflow: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <img src={lightbox.dataUrl} alt={lightbox.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8, boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }} />
             </div>
-          </div>
+          </Fragment>
         )}
       </Modal>
     </div>
@@ -3863,14 +3865,14 @@ function PreTradeGate({ open, onClose, status, rules }) {
   );
   return (
     <Modal open={open} onClose={onClose} width={680}>
-      <div style={{ padding: '16px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ padding: '16px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
         <div>
           <div style={{ fontWeight: 700, fontSize: 16 }}>Pre-trade gate</div>
           <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Affirm every item before clicking buy / sell in your terminal</div>
         </div>
         <button style={btnStyle('ghost')} onClick={onClose}>✕</button>
       </div>
-      <div style={{ padding: 22 }}>
+      <div style={{ padding: 22, flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
         {status.locked && (
           <div style={{ padding: 14, background: 'rgba(239,83,80,0.1)', border: '1px solid var(--red)', borderRadius: 10, marginBottom: 16 }}>
             <div style={{ fontWeight: 700, color: 'var(--red)', marginBottom: 6 }}>🛑 You are locked out for today</div>
