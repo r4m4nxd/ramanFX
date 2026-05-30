@@ -305,6 +305,7 @@ const TIMEFRAME_PAIRS = [
   { htf: 'Daily', mtf: '4H', ltf: '1H' },
   { htf: '4H', mtf: '1H', ltf: '15m' },
   { htf: '1H', mtf: '15m', ltf: '5m' },
+  { htf: '15m', mtf: '5m', ltf: '1m' },
 ];
 
 // Pre-trade checklist derived from the user's S&D + trendline rules.
@@ -754,8 +755,8 @@ const fmtMoney = (n, signed = false) => {
 const fmtCompact = (n) => {
   if (n == null || isNaN(n)) return '–';
   const abs = Math.abs(n); const sign = n < 0 ? '-' : '';
-  if (abs >= 1000) return `${sign}$${(abs / 1000).toFixed(1)}k`;
-  return `${sign}$${abs.toFixed(0)}`;
+  if (abs >= 1000) return `${sign}$${(abs / 1000).toFixed(2)}k`;
+  return `${sign}$${abs.toFixed(2)}`;
 };
 const parseMT5Date = (s) => {
   if (!s) return null;
@@ -1041,25 +1042,40 @@ const Pill = ({ children, color = 'zinc' }) => {
   return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 7px', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', borderRadius: 6, background: c[0], color: c[1], border: `1px solid ${c[2]}` }}>{children}</span>;
 };
 
-// Tooltip wrapper for hover hints
+// Tooltip wrapper that works on both desktop hover and mobile tap.
+// On hover: tooltip tracks the cursor as it moves. On tap (mobile): tooltip shows on touch and stays
+// briefly. We use a global "active hint" so only one shows at a time.
 const Hint = ({ text, children }) => {
   const [show, setShow] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0, transform: 'translate(-50%, -100%)' });
-  const onEnter = (e) => {
-    // Anchor tooltip directly above the cursor for a natural, tight feel
-    const x = e.clientX, y = e.clientY;
-    const TIP_W = 230;
+  const hideTimer = useRef(null);
+  const computePos = (clientX, clientY) => {
+    const TIP_W = 240, TIP_H = 56;
+    let top = clientY - 10; // sit just above cursor / touch
     let transform = 'translate(-50%, -100%)';
-    if (x - TIP_W / 2 < 8) transform = 'translate(0%, -100%)';
-    else if (x + TIP_W / 2 > window.innerWidth - 8) transform = 'translate(-100%, -100%)';
-    setPos({ top: y - 8, left: x, transform });
-    setShow(true);
+    // Clamp horizontally
+    if (clientX - TIP_W / 2 < 8) transform = 'translate(0%, -100%)';
+    else if (clientX + TIP_W / 2 > window.innerWidth - 8) transform = 'translate(-100%, -100%)';
+    // If too close to viewport top, flip below
+    if (top - TIP_H < 8) { top = clientY + 16; transform = transform.replace('-100%', '0%'); }
+    setPos({ top, left: clientX, transform });
   };
+  const onMove = (e) => { computePos(e.clientX, e.clientY); if (!show) setShow(true); };
+  const onLeave = () => { setShow(false); };
+  const onTouch = (e) => {
+    if (!text) return;
+    const touch = e.touches?.[0] || e.changedTouches?.[0]; if (!touch) return;
+    computePos(touch.clientX, touch.clientY);
+    setShow(true);
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    hideTimer.current = setTimeout(() => setShow(false), 2200);
+  };
+  useEffect(() => () => { if (hideTimer.current) clearTimeout(hideTimer.current); }, []);
   return (
     <Fragment>
-      <span onMouseEnter={onEnter} onMouseLeave={() => setShow(false)} style={{ display: 'inline-flex' }}>{children}</span>
+      <span onMouseMove={onMove} onMouseLeave={onLeave} onTouchStart={onTouch} style={{ display: 'inline-flex' }}>{children}</span>
       {show && text && (
-        <div style={{ position: 'fixed', top: pos.top, left: pos.left, transform: pos.transform, background: '#1f1f25', border: '1px solid var(--border2)', borderRadius: 7, padding: '7px 10px', fontSize: 11.5, lineHeight: 1.45, color: '#f4f4f5', whiteSpace: 'normal', width: 'max-content', maxWidth: 230, zIndex: 9999, pointerEvents: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.6)' }}>{text}</div>
+        <div style={{ position: 'fixed', top: pos.top, left: pos.left, transform: pos.transform, background: '#1f1f25', border: '1px solid var(--border2)', borderRadius: 7, padding: '7px 10px', fontSize: 11.5, lineHeight: 1.45, color: '#f4f4f5', whiteSpace: 'normal', width: 'max-content', maxWidth: 240, zIndex: 9999, pointerEvents: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.6)' }}>{text}</div>
       )}
     </Fragment>
   );
@@ -1277,17 +1293,20 @@ function CalendarView({ stats, onDayClick }) {
 }
 
 // ═══════════════ PROGRESS HEATMAP ═══════════════
-function ProgressHeatmap({ stats, months = 5, cell = 12 }) {
+function ProgressHeatmap({ stats, months = 6, cell = 12 }) {
   const weeks = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const start = new Date(today); start.setMonth(start.getMonth() - months);
     while (start.getDay() !== 0) start.setDate(start.getDate() - 1);
     const cols = []; const cursor = new Date(start);
     while (cursor <= today) { const week = []; for (let d = 0; d < 7; d++) { const k = dayKey(cursor); week.push({ date: new Date(cursor), key: k, day: stats?.byDay?.[k] }); cursor.setDate(cursor.getDate() + 1); } cols.push(week); }
-    return cols;
+    // User wants latest month on the LEFT, older months stretching to the right.
+    // Reverse the column order so the most recent week is column 0.
+    return cols.reverse();
   }, [stats, months]);
   const maxAbs = useMemo(() => Math.max(...(stats?.daily || []).map(d => Math.abs(d.pnl)), 100), [stats]);
   const colorFor = (pnl) => { if (pnl == null || pnl === 0) return '#1c1c20'; const a = 0.3 + Math.min(1, Math.abs(pnl) / maxAbs) * 0.7; return pnl > 0 ? `rgba(38,166,154,${a})` : `rgba(239,83,80,${a})`; };
+  // Month labels — derived from the new (reversed) column order so labels line up
   const monthLabels = useMemo(() => { const labels = []; let lm = -1; weeks.forEach((w, i) => { const m = w[0].date.getMonth(); if (m !== lm) { labels.push({ index: i, label: w[0].date.toLocaleString('default', { month: 'short' }) }); lm = m; } }); return labels; }, [weeks]);
   const gap = 3;
   return (
@@ -1303,7 +1322,7 @@ function ProgressHeatmap({ stats, months = 5, cell = 12 }) {
           {weeks.map((week, wi) => (
             <div key={wi} style={{ display: 'flex', flexDirection: 'column', gap }}>
               {week.map((d, di) => (
-                <Hint key={di} text={d.day ? `${d.key}: ${fmtMoney(d.day.pnl, true)} · ${d.day.trades} trades` : d.key}>
+                <Hint key={di} text={d.day ? `${d.key}: ${fmtMoney(d.day.pnl, true)} · ${d.day.trades} trade${d.day.trades !== 1 ? 's' : ''}` : d.key}>
                   <div style={{ width: cell, height: cell, borderRadius: 3, background: d.day ? colorFor(d.day.pnl) : '#141417', border: '1px solid rgba(38,38,44,0.4)', cursor: d.day ? 'pointer' : 'default' }} />
                 </Hint>
               ))}
@@ -1366,6 +1385,24 @@ function ScatterCard({ stats, kind }) {
   const [timeMode, setTimeMode] = useState('entry'); // 'entry' or 'exit'
   const data = isTime ? (timeMode === 'entry' ? stats.timeScatter : stats.exitTimeScatter) : stats.durationScatter;
   const winData = data.filter(d => d.win), lossData = data.filter(d => !d.win);
+  const chartWrapRef = useRef(null);
+  // Bridge touch events on the chart to synthetic mouse events so Recharts shows
+  // tooltips while the user drags a finger across the chart on mobile.
+  useEffect(() => {
+    const el = chartWrapRef.current; if (!el) return;
+    const dispatch = (typeStr, touch) => {
+      const ev = new MouseEvent(typeStr, { clientX: touch.clientX, clientY: touch.clientY, bubbles: true, cancelable: true, view: window });
+      const target = document.elementFromPoint(touch.clientX, touch.clientY) || el;
+      target.dispatchEvent(ev);
+    };
+    const onStart = (e) => { const t = e.touches[0]; if (t) dispatch('mousemove', t); };
+    const onMove  = (e) => { const t = e.touches[0]; if (t) { e.preventDefault(); dispatch('mousemove', t); } };
+    const onEnd   = () => { dispatch('mouseleave', { clientX: 0, clientY: 0 }); };
+    el.addEventListener('touchstart', onStart, { passive: true });
+    el.addEventListener('touchmove', onMove, { passive: false });
+    el.addEventListener('touchend', onEnd);
+    return () => { el.removeEventListener('touchstart', onStart); el.removeEventListener('touchmove', onMove); el.removeEventListener('touchend', onEnd); };
+  }, []);
   const toggleBtn = (v, label) => (
     <button key={v} onClick={() => setTimeMode(v)} style={{ padding: '3px 10px', fontSize: 11, fontWeight: 500, borderRadius: 5, border: 'none', cursor: 'pointer', background: timeMode === v ? 'var(--violet)' : 'transparent', color: timeMode === v ? '#fff' : 'var(--text3)', transition: 'all 0.15s' }}>{label}</button>
   );
@@ -1374,7 +1411,7 @@ function ScatterCard({ stats, kind }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, gap: 8, flexWrap: 'wrap' }}>
         <div>
           <div style={{ fontWeight: 600 }}>{isTime ? 'Trade time performance' : 'Trade duration performance'}</div>
-          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>{isTime ? `P&L vs ${timeMode === 'entry' ? 'entry' : 'exit'} hour of day` : 'P&L vs hold time (log scale)'}</div>
+          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>{isTime ? `P&L vs ${timeMode === 'entry' ? 'entry' : 'exit'} hour of day` : 'P&L vs hold time (log scale)'} · drag across to inspect</div>
         </div>
         {isTime && (
           <div style={{ display: 'inline-flex', background: 'var(--panel2)', borderRadius: 6, padding: 2, gap: 1 }}>
@@ -1383,20 +1420,22 @@ function ScatterCard({ stats, kind }) {
           </div>
         )}
       </div>
-      <ResponsiveContainer width="100%" height={230}>
-        <ScatterChart margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#26262c" />
-          {isTime
-            ? <XAxis type="number" dataKey="hour" domain={[0, 24]} ticks={[0, 4, 8, 12, 16, 20, 24]} tickFormatter={h => `${h}:00`} tick={{ fontSize: 10, fill: '#a1a1ab' }} axisLine={{ stroke: '#303038' }} tickLine={false} />
-            : <XAxis type="number" dataKey="hold" scale="log" domain={['auto', 'auto']} tickFormatter={v => fmtHold(v)} tick={{ fontSize: 10, fill: '#a1a1ab' }} axisLine={{ stroke: '#303038' }} tickLine={false} />}
-          <YAxis type="number" dataKey="pnl" tick={{ fontSize: 10, fill: '#a1a1ab' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
-          <ReferenceLine y={0} stroke="#52525b" strokeDasharray="2 2" />
-          <Tooltip cursor={{ strokeDasharray: '3 3', stroke: '#52525b' }} contentStyle={{ background: '#1a1a1f', border: '1px solid #3f3f46', borderRadius: 8, fontSize: 12, color: '#f4f4f5' }} labelStyle={{ color: '#ffffff', fontWeight: 600 }} itemStyle={{ color: '#f4f4f5' }}
-            formatter={(v, n) => n === 'pnl' ? [fmtMoney(v), 'P&L'] : [isTime ? `${Math.floor(v)}:00` : fmtHold(v), isTime ? (timeMode === 'entry' ? 'Entry' : 'Exit') : 'Hold']} />
-          <Scatter data={winData} fill="#26a69a" fillOpacity={0.75} />
-          <Scatter data={lossData} fill="#ef5350" fillOpacity={0.75} />
-        </ScatterChart>
-      </ResponsiveContainer>
+      <div ref={chartWrapRef} style={{ touchAction: 'pan-y' }}>
+        <ResponsiveContainer width="100%" height={230}>
+          <ScatterChart margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#26262c" />
+            {isTime
+              ? <XAxis type="number" dataKey="hour" domain={[0, 24]} ticks={[0, 4, 8, 12, 16, 20, 24]} tickFormatter={h => `${h}:00`} tick={{ fontSize: 10, fill: '#a1a1ab' }} axisLine={{ stroke: '#303038' }} tickLine={false} />
+              : <XAxis type="number" dataKey="hold" scale="log" domain={['auto', 'auto']} tickFormatter={v => fmtHold(v)} tick={{ fontSize: 10, fill: '#a1a1ab' }} axisLine={{ stroke: '#303038' }} tickLine={false} />}
+            <YAxis type="number" dataKey="pnl" tick={{ fontSize: 10, fill: '#a1a1ab' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
+            <ReferenceLine y={0} stroke="#52525b" strokeDasharray="2 2" />
+            <Tooltip cursor={{ strokeDasharray: '3 3', stroke: '#52525b' }} contentStyle={{ background: '#1a1a1f', border: '1px solid #3f3f46', borderRadius: 8, fontSize: 12, color: '#f4f4f5' }} labelStyle={{ color: '#ffffff', fontWeight: 600 }} itemStyle={{ color: '#f4f4f5' }}
+              formatter={(v, n) => n === 'pnl' ? [fmtMoney(v), 'P&L'] : [isTime ? `${Math.floor(v)}:00` : fmtHold(v), isTime ? (timeMode === 'entry' ? 'Entry' : 'Exit') : 'Hold']} />
+            <Scatter data={winData} fill="#26a69a" fillOpacity={0.75} />
+            <Scatter data={lossData} fill="#ef5350" fillOpacity={0.75} />
+          </ScatterChart>
+        </ResponsiveContainer>
+      </div>
     </Card>
   );
 }
@@ -1618,7 +1657,7 @@ function Dashboard({ trades, onDayClick, checklist, checklistDays, onChecklistTo
         <ScoreCard stats={stats} />
         <Card style={{ padding: 18 }}>
           <div style={{ marginBottom: 12 }}><div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 7 }}>🚀 Progress tracker</div><div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>{stats.daily.length} active days · {stats.profDays} profitable</div></div>
-          <ProgressHeatmap stats={stats} months={4} cell={13} />
+          <ProgressHeatmap stats={stats} months={6} cell={13} />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, fontSize: 10, color: 'var(--text3)' }}>
             <span>Less</span>
             <div style={{ display: 'flex', gap: 3 }}>{['#1c1c20', 'rgba(38,166,154,0.4)', 'rgba(38,166,154,0.7)', 'rgba(38,166,154,1)'].map((c, i) => <div key={i} style={{ width: 11, height: 11, borderRadius: 3, background: c }} />)}</div>
@@ -1849,6 +1888,8 @@ function WeekView({ stats, allTrades }) {
     }
     return Object.values(map).sort((a, b) => b.weekStart - a.weekStart);
   }, [stats]);
+  // Most recent week expanded by default, all others collapsed
+  const [expandedKey, setExpandedKey] = useState(weeks[0]?.weekStart?.toISOString() || null);
   const dayNames = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'], dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1856,6 +1897,8 @@ function WeekView({ stats, allTrades }) {
         const start = w.weekStart, end = new Date(start); end.setDate(start.getDate() + 6);
         const range = `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
         const profit = w.totalPnL >= 0;
+        const key = w.weekStart.toISOString();
+        const expanded = expandedKey === key;
         // 60-day history ending the day before the week started
         const histStart = new Date(start); histStart.setDate(start.getDate() - 60);
         const history = (allTrades || []).filter(t => {
@@ -1863,51 +1906,61 @@ function WeekView({ stats, allTrades }) {
           return ct >= histStart && ct < start;
         });
         return (
-          <Card key={w.weekStart.toISOString()} style={{ padding: 18 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 6 }}>
-              <div style={{ fontWeight: 600 }}>{range}</div>
+          <Card key={key} style={{ padding: 0, overflow: 'hidden' }}>
+            <div onClick={() => setExpandedKey(expanded ? null : key)} style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                <span style={{ color: 'var(--text3)', fontSize: 14, transition: 'transform 0.2s', transform: expanded ? 'rotate(90deg)' : 'none' }}>›</span>
+                <div style={{ fontWeight: 600 }}>{range}</div>
+                <span style={{ fontSize: 11, color: 'var(--text3)' }}>{w.totalTrades} trade{w.totalTrades !== 1 ? 's' : ''}</span>
+              </div>
               <div className="tabnum" style={{ fontWeight: 600, color: profit ? 'var(--green-bright)' : 'var(--red)' }}>Net P&L {fmtMoney(w.totalPnL, true)}</div>
             </div>
-            {isMobile ? (
-              // Mobile: stacked rows, one per day. No horizontal scroll.
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {dayNames.map((dn, i) => {
-                  const day = w.days[dn]; const isP = day?.pnl >= 0; const dd = new Date(start); dd.setDate(start.getDate() + i);
-                  return (
-                    <div key={dn} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 8, background: day ? (isP ? 'rgba(38,166,154,0.08)' : 'rgba(239,83,80,0.08)') : 'var(--panel2)', border: `1px solid ${day ? (isP ? 'rgba(38,166,154,0.3)' : 'rgba(239,83,80,0.3)') : 'var(--border)'}`, gap: 12 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                        <div style={{ width: 36, textAlign: 'center' }}>
-                          <div style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--text3)', fontWeight: 600 }}>{dayLabels[i]}</div>
-                          <div className="tabnum" style={{ fontSize: 13, color: 'var(--text)', fontWeight: 600 }}>{dd.getDate()}</div>
-                        </div>
-                        {day ? <div style={{ fontSize: 11, color: 'var(--text3)' }}>{day.trades} trade{day.trades !== 1 ? 's' : ''}</div> : <div style={{ fontSize: 11, color: 'var(--border2)' }}>—</div>}
-                      </div>
-                      {day && <div className="tabnum" style={{ fontSize: 14, fontWeight: 600, color: isP ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(day.pnl, true)}</div>}
+            {expanded && (
+              <div style={{ padding: '0 18px 18px 18px', borderTop: '1px solid var(--border)' }}>
+                <div style={{ paddingTop: 14 }}>
+                  {isMobile ? (
+                    // Mobile: stacked rows, one per day. No horizontal scroll.
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {dayNames.map((dn, i) => {
+                        const day = w.days[dn]; const isP = day?.pnl >= 0; const dd = new Date(start); dd.setDate(start.getDate() + i);
+                        return (
+                          <div key={dn} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 8, background: day ? (isP ? 'rgba(38,166,154,0.08)' : 'rgba(239,83,80,0.08)') : 'var(--panel2)', border: `1px solid ${day ? (isP ? 'rgba(38,166,154,0.3)' : 'rgba(239,83,80,0.3)') : 'var(--border)'}`, gap: 12 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                              <div style={{ width: 36, textAlign: 'center' }}>
+                                <div style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--text3)', fontWeight: 600 }}>{dayLabels[i]}</div>
+                                <div className="tabnum" style={{ fontSize: 13, color: 'var(--text)', fontWeight: 600 }}>{dd.getDate()}</div>
+                              </div>
+                              {day ? <div style={{ fontSize: 11, color: 'var(--text3)' }}>{day.trades} trade{day.trades !== 1 ? 's' : ''}</div> : <div style={{ fontSize: 11, color: 'var(--border2)' }}>—</div>}
+                            </div>
+                            {day && <div className="tabnum" style={{ fontSize: 14, fontWeight: 600, color: isP ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(day.pnl, true)}</div>}
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 8 }}>
-                {dayNames.map((dn, i) => {
-                  const day = w.days[dn]; const isP = day?.pnl >= 0; const dd = new Date(start); dd.setDate(start.getDate() + i);
-                  return (
-                    <div key={dn} style={{ borderRadius: 10, border: `1px solid ${day ? (isP ? 'rgba(38,166,154,0.3)' : 'rgba(239,83,80,0.3)') : 'var(--border)'}`, background: day ? (isP ? 'rgba(38,166,154,0.08)' : 'rgba(239,83,80,0.08)') : 'var(--panel2)', padding: 12, textAlign: 'center', minHeight: 78, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                      <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text3)', marginBottom: 4 }}>{dayLabels[i]} {dd.getDate()}</div>
-                      {day ? <Fragment><div className="tabnum" style={{ fontSize: 14, fontWeight: 600, color: isP ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(day.pnl, true)}</div><div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 3 }}>{day.trades} trades</div></Fragment> : <div style={{ fontSize: 10, color: 'var(--border2)' }}>—</div>}
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 8 }}>
+                      {dayNames.map((dn, i) => {
+                        const day = w.days[dn]; const isP = day?.pnl >= 0; const dd = new Date(start); dd.setDate(start.getDate() + i);
+                        return (
+                          <div key={dn} style={{ borderRadius: 10, border: `1px solid ${day ? (isP ? 'rgba(38,166,154,0.3)' : 'rgba(239,83,80,0.3)') : 'var(--border)'}`, background: day ? (isP ? 'rgba(38,166,154,0.08)' : 'rgba(239,83,80,0.08)') : 'var(--panel2)', padding: 12, textAlign: 'center', minHeight: 78, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text3)', marginBottom: 4 }}>{dayLabels[i]} {dd.getDate()}</div>
+                            {day ? <Fragment><div className="tabnum" style={{ fontSize: 14, fontWeight: 600, color: isP ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(day.pnl, true)}</div><div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 3 }}>{day.trades} trades</div></Fragment> : <div style={{ fontSize: 10, color: 'var(--border2)' }}>—</div>}
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-              </div>
-            )}
-            {/* Weekly insights — patterns from the 7 days vs 60-day baseline */}
-            {w.weekItems.length >= 3 && (
-              <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
-                  <span style={{ color: 'var(--violet-light)', fontSize: 13 }}>✦</span>
-                  <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>RamanFX weekly insights</div>
+                  )}
                 </div>
-                <InsightsPanel windowTrades={w.weekItems} historyTrades={history} scope="week" />
+                {/* Weekly insights — patterns from the 7 days vs 60-day baseline */}
+                {w.weekItems.length >= 3 && (
+                  <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
+                      <span style={{ color: 'var(--violet-light)', fontSize: 13 }}>✦</span>
+                      <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>RamanFX weekly insights</div>
+                    </div>
+                    <InsightsPanel windowTrades={w.weekItems} historyTrades={history} scope="week" />
+                  </div>
+                )}
               </div>
             )}
           </Card>
@@ -1992,7 +2045,7 @@ const TRADE_COLUMNS = [
       const notional = parseFloat(t.openPrice) * (t.volume || 0) * 100000; // standard forex unit
       if (!notional) return <span style={{ color: 'var(--text3)' }}>—</span>;
       const roi = (t.net / notional) * 100;
-      return <span className="tabnum" style={{ color: roi >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{roi >= 0 ? '+' : ''}{roi.toFixed(3)}%</span>;
+      return <span className="tabnum" style={{ color: roi >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{roi >= 0 ? '+' : ''}{roi.toFixed(2)}%</span>;
     }
   },
   { id: 'pips',      label: 'Pips',        group: 'Risk', align: 'right', available: true, defaultOn: false,
@@ -2142,18 +2195,51 @@ function TradeView({ trades, notes, strategies, onSaveNote, onOpenTradeDetail })
       .sort((a, b) => { const dir = sortBy.dir === 'desc' ? -1 : 1; if (sortBy.key === 'closeDate') return dir * ((a.closeDate?.getTime() || 0) - (b.closeDate?.getTime() || 0)); if (sortBy.key === 'net') return dir * (a.net - b.net); if (sortBy.key === 'symbol') return dir * a.symbol.localeCompare(b.symbol); return 0; });
   }, [stats, notes, search, filter, symFilter, stratFilter, sortBy]);
   if (!stats) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--text3)' }}>No trades yet.</div>;
+  // KPIs should reflect only the trades currently shown after filters/search.
+  // Note `filtered` is the enriched & sorted trade slice; we recompute the relevant stats from it.
+  const filteredStats = useMemo(() => {
+    if (!filtered || filtered.length === 0) {
+      return { totalNet: 0, total: 0, profitFactor: 0, winRate: 0, wins: 0, losses: 0, avgWin: 0, avgLoss: 0, largestWin: 0, largestLoss: 0 };
+    }
+    let totalNet = 0, wins = 0, losses = 0, grossWin = 0, grossLoss = 0, largestWin = 0, largestLoss = 0;
+    for (const t of filtered) {
+      totalNet += t.net;
+      if (t.net > 0) { wins++; grossWin += t.net; if (t.net > largestWin) largestWin = t.net; }
+      else if (t.net < 0) { losses++; grossLoss += Math.abs(t.net); if (t.net < largestLoss) largestLoss = t.net; }
+    }
+    const total = filtered.length;
+    const completed = wins + losses;
+    return {
+      totalNet, total, wins, losses,
+      profitFactor: grossLoss > 0 ? grossWin / grossLoss : (grossWin > 0 ? Infinity : 0),
+      winRate: completed > 0 ? (wins / completed) * 100 : 0,
+      avgWin: wins > 0 ? grossWin / wins : 0,
+      avgLoss: losses > 0 ? -grossLoss / losses : 0,
+      largestWin, largestLoss,
+    };
+  }, [filtered]);
   const sortIcon = k => sortBy.key === k ? (sortBy.dir === 'desc' ? ' ↓' : ' ↑') : '';
   const toggleSort = k => setSortBy(sortBy.key === k ? { key: k, dir: sortBy.dir === 'desc' ? 'asc' : 'desc' } : { key: k, dir: 'desc' });
   const sel = { fontSize: 12, background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 7, padding: '6px 8px', color: 'var(--text)', cursor: 'pointer' };
-  const ctx = { stats, strategies };
+  // ctx supplies stats for column renderers (used by 'scale' column for largestWin/loss normalisation).
+  // Pass filteredStats so the scale bar normalises against what's currently visible.
+  const ctx = { stats: filteredStats, strategies };
+
+  // Whether any filter is currently narrowing the view
+  const isFiltering = search.trim() !== '' || filter !== 'all' || symFilter !== 'all' || stratFilter !== 'all';
 
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {isFiltering && (
+        <div style={{ padding: '8px 14px', background: 'rgba(124,92,252,0.08)', border: '1px solid rgba(124,92,252,0.3)', borderRadius: 8, fontSize: 12, color: 'var(--violet-light)' }}>
+          Showing {filteredStats.total} of {stats.total} trades — KPIs below reflect the filtered set.
+        </div>
+      )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12 }}>
-        <MetricGauge label="Net cumulative P&L" value={fmtMoney(stats.totalNet, true)} sub={`${stats.total} trades`} accent={stats.totalNet >= 0 ? 'var(--green-bright)' : 'var(--red)'} />
-        <MetricGauge label="Profit factor" value={stats.profitFactor === Infinity ? '∞' : stats.profitFactor.toFixed(2)} donutValue={Math.min(100, (stats.profitFactor === Infinity ? 100 : stats.profitFactor) * 40)} color={stats.profitFactor >= 1 ? '#26a69a' : '#ef5350'} />
-        <MetricGauge label="Trade win %" value={`${stats.winRate.toFixed(2)}%`} donutValue={stats.winRate} color="#26a69a" donutCenter={<div className="tabnum" style={{ fontSize: 13, fontWeight: 700 }}>{stats.wins}/{stats.losses}</div>} />
-        <WinLossBar avgWin={stats.avgWin} avgLoss={stats.avgLoss} label="Avg win/loss trade" />
+        <MetricGauge label="Net cumulative P&L" value={fmtMoney(filteredStats.totalNet, true)} sub={`${filteredStats.total} trade${filteredStats.total !== 1 ? 's' : ''}`} accent={filteredStats.totalNet >= 0 ? 'var(--green-bright)' : 'var(--red)'} />
+        <MetricGauge label="Profit factor" value={filteredStats.profitFactor === Infinity ? '∞' : filteredStats.profitFactor.toFixed(2)} donutValue={Math.min(100, (filteredStats.profitFactor === Infinity ? 100 : filteredStats.profitFactor) * 40)} color={filteredStats.profitFactor >= 1 ? '#26a69a' : '#ef5350'} />
+        <MetricGauge label="Trade win %" value={`${filteredStats.winRate.toFixed(2)}%`} donutValue={filteredStats.winRate} color="#26a69a" donutCenter={<div className="tabnum" style={{ fontSize: 13, fontWeight: 700 }}>{filteredStats.wins}/{filteredStats.losses}</div>} />
+        <WinLossBar avgWin={filteredStats.avgWin} avgLoss={filteredStats.avgLoss} label="Avg win/loss trade" />
       </div>
       <Card style={{ padding: 12, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200 }}>
@@ -2486,7 +2572,7 @@ function RecentOpenCard({ recentTrades, openPositions, setTab }) {
 // - value: array of currently-selected tags for THIS trade
 // - onChange(nextArray): called when selection changes
 // - accent: 'violet' (tags) or 'red' (mistakes) for visual distinction
-function TagPicker({ allTags, value, onChange, accent = 'violet', placeholder = 'Type to search or add new…', emptyText = 'No tags yet — type one below to start.' }) {
+function TagPicker({ allTags, value, onChange, accent = 'violet', placeholder = 'Type to search or add new…', emptyText = 'No tags yet — type one below to start.', onPurgeTag = null }) {
   const [input, setInput] = useState('');
   const norm = (s) => s.trim().toLowerCase().replace(/\s+/g, '-');
   const selected = value || [];
@@ -2498,6 +2584,14 @@ function TagPicker({ allTags, value, onChange, accent = 'violet', placeholder = 
     setInput('');
   };
   const removeTag = (t) => onChange(selected.filter(x => x !== t));
+  const purgeFromLibrary = (e, tag, count) => {
+    e.stopPropagation();
+    if (!onPurgeTag) return;
+    if (!confirm(`Remove "${tag}" from the library?\n\nIt is used on ${count} trade${count !== 1 ? 's' : ''}. This will delete it from all of them — you can't undo this.`)) return;
+    onPurgeTag(tag);
+    // Also remove from current selection if it's there
+    if (selected.includes(tag)) onChange(selected.filter(x => x !== tag));
+  };
   // Filter suggestions to those matching the typed text, excluding already-selected
   const filter = norm(input);
   const suggestions = (allTags || []).filter(({ tag }) => !isPicked(tag) && (filter === '' || tag.includes(filter)));
@@ -2520,7 +2614,7 @@ function TagPicker({ allTags, value, onChange, accent = 'violet', placeholder = 
         {selected.map(t => (
           <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '3px 4px 3px 9px', borderRadius: 6, background: accentColor, border: `1px solid ${accentBorder}`, color: accentText, fontWeight: 500 }}>
             {t}
-            <button onClick={() => removeTag(t)} title="Remove tag" style={{ background: 'transparent', border: 'none', color: accentText, cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: '0 4px', borderRadius: 3, opacity: 0.7 }}
+            <button onClick={() => removeTag(t)} title="Remove from this trade" style={{ background: 'transparent', border: 'none', color: accentText, cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: '0 4px', borderRadius: 3, opacity: 0.7 }}
               onMouseEnter={e => { e.currentTarget.style.opacity = '1'; }} onMouseLeave={e => { e.currentTarget.style.opacity = '0.7'; }}>×</button>
           </span>
         ))}
@@ -2536,8 +2630,9 @@ function TagPicker({ allTags, value, onChange, accent = 'violet', placeholder = 
             <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, marginBottom: 5 }}>
               {filter ? `Matches "${filter}"` : `Existing (${allTags.length})`}
               {canCreateNew && <span style={{ marginLeft: 8, fontStyle: 'italic', textTransform: 'none', letterSpacing: 0, color: accentText }}>· press Enter to create new</span>}
+              {onPurgeTag && !filter && allTags.length > 0 && <span style={{ marginLeft: 8, fontStyle: 'italic', textTransform: 'none', letterSpacing: 0, color: 'var(--text3)' }}>· tap × on a chip to delete from library</span>}
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxHeight: 100, overflowY: 'auto' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxHeight: 130, overflowY: 'auto' }}>
               {suggestions.length === 0 && filter && (
                 <div style={{ fontSize: 11, color: 'var(--text3)', padding: '2px 4px' }}>No match — press Enter to add "{filter}" as new.</div>
               )}
@@ -2545,12 +2640,20 @@ function TagPicker({ allTags, value, onChange, accent = 'violet', placeholder = 
                 <div style={{ fontSize: 11, color: 'var(--text3)', padding: '2px 4px', fontStyle: 'italic' }}>All existing tags already selected.</div>
               )}
               {suggestions.slice(0, 30).map(({ tag, count }) => (
-                <button key={tag} onClick={() => addTag(tag)} title={`Used in ${count} trade${count !== 1 ? 's' : ''}`}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11.5, padding: '3px 8px', borderRadius: 5, background: 'transparent', border: '1px solid var(--border2)', color: 'var(--text2)', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = accentColor; e.currentTarget.style.borderColor = accentBorder; e.currentTarget.style.color = accentText; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.color = 'var(--text2)'; }}>
-                  + {tag}<span style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 400 }}>×{count}</span>
-                </button>
+                <div key={tag} style={{ display: 'inline-flex', alignItems: 'stretch', borderRadius: 5, border: '1px solid var(--border2)', overflow: 'hidden' }}>
+                  <button onClick={() => addTag(tag)} title={`Add to this trade · used in ${count} trade${count !== 1 ? 's' : ''}`}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11.5, padding: '3px 8px', background: 'transparent', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = accentColor; e.currentTarget.style.color = accentText; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text2)'; }}>
+                    + {tag}<span style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 400 }}>×{count}</span>
+                  </button>
+                  {onPurgeTag && (
+                    <button onClick={(e) => purgeFromLibrary(e, tag, count)} title={`Delete "${tag}" from library (removes from all ${count} trades)`}
+                      style={{ padding: '0 6px', fontSize: 13, background: 'transparent', border: 'none', borderLeft: '1px solid var(--border2)', color: 'var(--text3)', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,83,80,0.12)'; e.currentTarget.style.color = '#ff8a87'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text3)'; }}>×</button>
+                  )}
+                </div>
               ))}
               {suggestions.length > 30 && <span style={{ fontSize: 11, color: 'var(--text3)', padding: '3px 6px' }}>+{suggestions.length - 30} more — keep typing to narrow</span>}
             </div>
@@ -2576,7 +2679,7 @@ function gatherTagUniverse(allNotes, key = 'tags') {
 }
 
 // ═══════════════ DETAILED TRADE PAGE ═══════════════
-function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onSaveNote, onSaveAttachments, onClose }) {
+function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onSaveNote, onSaveAttachments, onClose, onPurgeTag }) {
   // Compute MAE/MFE estimation. (We don't have tick data, so approximate from open/close and SL/TP.)
   const net = netPnL(trade);
   const profit = net >= 0;
@@ -2692,12 +2795,12 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
 
           <div style={{ marginTop: 14 }}>
             <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>Setups / Tags</label>
-            <TagPicker allTags={allTags} value={tags} onChange={setTags} accent="violet" placeholder="Type a tag, press Enter…" emptyText="No tags yet — type one to start your tag library." />
+            <TagPicker allTags={allTags} value={tags} onChange={setTags} accent="violet" placeholder="Type a tag, press Enter…" emptyText="No tags yet — type one to start your tag library." onPurgeTag={onPurgeTag ? (t) => onPurgeTag(t, 'tags') : null} />
           </div>
 
           <div style={{ marginTop: 14 }}>
             <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>Mistakes</label>
-            <TagPicker allTags={allMistakes} value={mistakes} onChange={setMistakes} accent="red" placeholder="Type a mistake, press Enter…" emptyText="No mistakes logged yet (a good problem to have)." />
+            <TagPicker allTags={allMistakes} value={mistakes} onChange={setMistakes} accent="red" placeholder="Type a mistake, press Enter…" emptyText="No mistakes logged yet (a good problem to have)." onPurgeTag={onPurgeTag ? (t) => onPurgeTag(t, 'mistakes') : null} />
           </div>
 
           <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -4099,16 +4202,79 @@ function DateRangeFilter({ value, onChange }) {
 // ═══════════════ SIDEBAR ═══════════════
 function Sidebar({ tab, setTab, hasData, mobileOpen, setMobileOpen }) {
   const isMobile = useMobile();
+  // When the mobile drawer is open, freeze the page underneath so taps and finger drags
+  // don't scroll the content behind the drawer.
+  useEffect(() => {
+    if (!(isMobile && mobileOpen)) return;
+    const scrollY = window.scrollY || window.pageYOffset || 0;
+    const prev = {
+      position: document.body.style.position,
+      top: document.body.style.top,
+      width: document.body.style.width,
+      overflow: document.body.style.overflow,
+      htmlOverflow: document.documentElement.style.overflow,
+    };
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      document.body.style.position = prev.position;
+      document.body.style.top = prev.top;
+      document.body.style.width = prev.width;
+      document.body.style.overflow = prev.overflow;
+      document.documentElement.style.overflow = prev.htmlOverflow;
+      window.scrollTo(0, scrollY);
+    };
+  }, [isMobile, mobileOpen]);
   const items = [
     ['dashboard', 'Dashboard', '◧'], ['dayweek', 'Day/Week View', '◰'], ['trade', 'Trade View', '☰'],
     ['positions', 'Positions & Orders', '◳'], ['rules', 'Risk Rules', '🛡'], ['playbook', 'Playbook', '◎'], ['notebook', 'Notebook', '✎'],
     ['reports', 'Reports', '▦'], ['strategies', 'Strategies', '◈'], ['calendar', 'Calendar', '▤'], ['progress', 'Progress Tracker', '➚'],
   ];
   const aside = (
-    <aside style={{ width: isMobile ? 260 : 220, background: '#0c0c0e', borderRight: '1px solid var(--border)', position: 'fixed', left: isMobile ? (mobileOpen ? 0 : -280) : 0, top: 0, bottom: 0, display: 'flex', flexDirection: 'column', padding: 12, zIndex: 50, transition: isMobile ? 'left 0.25s ease' : 'none', boxShadow: isMobile && mobileOpen ? '4px 0 24px rgba(0,0,0,0.6)' : 'none' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 8px', marginBottom: 8 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 9, background: 'linear-gradient(135deg,#7c5cfc,#c026d3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#fff' }}>{BRAND[0]}</div>
-        <div style={{ flex: 1 }}><div style={{ fontWeight: 600, fontSize: 14, lineHeight: 1.1 }}>{BRAND}</div><div style={{ fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Trading journal</div></div>
+    <aside style={{ width: isMobile ? 260 : 220, background: '#0c0c0e', borderRight: '1px solid var(--border)', position: 'fixed', left: isMobile ? (mobileOpen ? 0 : -280) : 0, top: 0, bottom: 0, display: 'flex', flexDirection: 'column', padding: 12, paddingTop: isMobile ? `calc(env(safe-area-inset-top, 0px) + 14px)` : 12, zIndex: 50, transition: isMobile ? 'left 0.25s ease' : 'none', boxShadow: isMobile && mobileOpen ? '4px 0 24px rgba(0,0,0,0.6)' : 'none' }}>
+      {/* Branding stamp — embossed look using inset shadow + gradient border */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 10px', marginBottom: 10, borderRadius: 12, background: 'linear-gradient(135deg, rgba(124,92,252,0.06), rgba(192,38,211,0.04))', border: '1px solid rgba(124,92,252,0.18)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -1px 0 rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.5)' }}>
+        {/* Mini bull/bear/sword icon — same composition as the loader, scaled down */}
+        <svg width="32" height="32" viewBox="0 0 100 100" fill="none" style={{ filter: 'drop-shadow(0 0 8px rgba(124,92,252,0.4))', flexShrink: 0 }}>
+          <defs>
+            <linearGradient id="sbSword" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#c4b5fd"/><stop offset="50%" stopColor="#a78bfa"/><stop offset="100%" stopColor="#7c5cfc"/>
+            </linearGradient>
+            <linearGradient id="sbBull" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#c4b5fd"/><stop offset="100%" stopColor="#8b5cf6"/>
+            </linearGradient>
+            <linearGradient id="sbBear" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#d4d4d8"/><stop offset="100%" stopColor="#71717a"/>
+            </linearGradient>
+          </defs>
+          <circle cx="50" cy="55" r="40" fill="rgba(124,92,252,0.18)"/>
+          <path d="M 9 76 Q 18 46 32 35 Q 42 28 50 36" stroke="#ef5350" strokeWidth="2" fill="none" strokeLinecap="round"/>
+          <path d="M 91 76 Q 82 46 68 35 Q 58 28 50 36" stroke="#ef5350" strokeWidth="2" fill="none" strokeLinecap="round"/>
+          <path d="M 9 65 Q 18 84 32 89 Q 42 91 50 86" stroke="#26a69a" strokeWidth="2" fill="none" strokeLinecap="round"/>
+          <path d="M 91 65 Q 82 84 68 89 Q 58 91 50 86" stroke="#26a69a" strokeWidth="2" fill="none" strokeLinecap="round"/>
+          <g transform="translate(13, 22)">
+            <path d="M 3 14 Q 1 8 5 6 Q 9 1 16 2 L 21 -3 L 24 1 L 24 7 Q 26 11 23 15 L 21 17 Q 16 19 11 17 L 6 18 Q 2 17 3 14 Z" fill="url(#sbBull)"/>
+            <path d="M 4 7 L 1 1 L 5 4 L 8 -1 L 10 5" fill="url(#sbBull)" stroke="#7c5cfc" strokeWidth="0.5"/>
+            <g fill="#fcd34d"><polygon points="10,-4 12,-7 14,-4 16,-7 18,-4 20,-7 22,-4"/><rect x="10" y="-4" width="12" height="1.6"/></g>
+          </g>
+          <g transform="translate(65, 22)">
+            <path d="M 4 14 Q 3 7 8 5 Q 14 1 20 3 L 24 6 L 23 16 Q 18 19 12 17 L 6 18 Q 3 16 4 14 Z" fill="url(#sbBear)"/>
+            <path d="M 8 4 Q 6 -1 10 -1 Q 12 3 10 5" fill="url(#sbBear)"/>
+            <path d="M 16 3 Q 14 -2 18 -2 Q 20 2 18 4" fill="url(#sbBear)"/>
+            <g fill="#fcd34d" transform="translate(5, 0)"><polygon points="0,-3 2,-7 5,-3 8,-7 11,-3"/><rect x="0" y="-3" width="11" height="1.6"/></g>
+          </g>
+          <path d="M 50 22 L 47.5 27 L 47.5 70 L 50 76 L 52.5 70 L 52.5 27 Z" fill="url(#sbSword)" stroke="#7c5cfc" strokeWidth="0.4"/>
+          <circle cx="50" cy="20" r="3" fill="url(#sbSword)"/><circle cx="50" cy="20" r="1.3" fill="#fff"/>
+          <rect x="45.5" y="27" width="9" height="1.6" fill="#7c5cfc"/>
+        </svg>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Embossed text — dual text-shadow for the inset stamp look */}
+          <div style={{ fontWeight: 700, fontSize: 14, lineHeight: 1.1, color: '#e9d5ff', textShadow: '0 1px 0 rgba(0,0,0,0.6), 0 -1px 0 rgba(255,255,255,0.08)', letterSpacing: '0.01em' }}>{BRAND}</div>
+          <div style={{ fontSize: 8.5, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.14em', marginTop: 2, textShadow: '0 1px 0 rgba(0,0,0,0.6)' }}>Trading journal</div>
+        </div>
         {isMobile && <button onClick={() => setMobileOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: 18, padding: 4 }}>✕</button>}
       </div>
       <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto' }}>
@@ -4205,6 +4371,18 @@ function App() {
     return { added, updated, skipped };
   };
   const saveNote = (id, n) => { const next = { ...notes, [id]: n }; setNotes(next); lsSet(SK.notes, next); markDirty(); };
+  // Remove a tag or mistake from EVERY note that contains it. Used by the TagPicker × button
+  // to clean up the universal library.
+  const purgeTagFromAllNotes = (tag, kind = 'tags') => {
+    const target = (tag || '').toLowerCase();
+    const next = {};
+    for (const [id, n] of Object.entries(notes)) {
+      const arr = Array.isArray(n?.[kind]) ? n[kind] : [];
+      const filtered = arr.filter(x => (x || '').toLowerCase() !== target);
+      next[id] = { ...n, [kind]: filtered, updatedAt: Date.now() };
+    }
+    setNotes(next); lsSet(SK.notes, next); markDirty();
+  };
   const saveDayNote = (date, text) => { const next = { ...dayNotes }; if (text.trim()) next[date] = text; else delete next[date]; setDayNotes(next); lsSet(SK.dayNotes, next); markDirty(); };
   const saveStrategy = (pb) => { const id = pb.id || `pb_${Date.now()}`; const next = pb.id ? strategies.map(p => p.id === pb.id ? { ...pb } : p) : [...strategies, { ...pb, id }]; setStrategies(next); lsSet(SK.strategies, next); markDirty(); };
   const deleteStrategy = (id) => { const next = strategies.filter(p => p.id !== id); setStrategies(next); lsSet(SK.strategies, next); const nn = { ...notes }; for (const k of Object.keys(nn)) if (nn[k]?.strategyId === id) nn[k] = { ...nn[k], strategyId: null }; setNotes(nn); lsSet(SK.notes, nn); markDirty(); };
@@ -4639,15 +4817,11 @@ function App() {
                 </div>
               </div>
 
-              {/* Backup section */}
+              {/* Data summary — Sync replaces the old Export/Import flow (same JSON payload) */}
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, marginBottom: 8 }}>Backup</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
-                  <button style={{ ...btnStyle('secondary'), opacity: trades.length ? 1 : 0.4 }} disabled={!trades.length} onClick={exportJSON}>⬇ Export backup (JSON)</button>
-                  <button style={btnStyle('secondary')} onClick={() => importInputRef.current?.click()}>⬆ Import backup (JSON)</button>
-                  <input ref={importInputRef} type="file" accept=".json,application/json" style={{ display: 'none' }} onChange={importJSON} />
-                  <div style={{ fontSize: 12, color: 'var(--text3)' }}>{trades.length} trades · {Object.keys(notes).length} notes · {strategies.length} strategies · {notebook.length} notebook entries · {Object.values(attachments).reduce((a, arr) => a + (arr?.length || 0), 0)} images</div>
-                </div>
+                <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, marginBottom: 8 }}>Data</div>
+                <div style={{ fontSize: 12, color: 'var(--text3)' }}>{trades.length} trades · {Object.keys(notes).length} notes · {strategies.length} strategies · {notebook.length} notebook entries · {Object.values(attachments).reduce((a, arr) => a + (arr?.length || 0), 0)} images</div>
+                <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6, fontStyle: 'italic' }}>To back up or restore your data, use <strong style={{ color: 'var(--text2)' }}>Sync now</strong> / <strong style={{ color: 'var(--text2)' }}>Sync from file</strong> above. Same JSON format.</div>
               </div>
               {/* Danger zone */}
               <div>
@@ -4670,7 +4844,7 @@ function App() {
               {detailTrade && (() => {
                 const t = trades.find(x => x.id === detailTrade);
                 if (!t) return null;
-                return <DetailedTradePage trade={t} note={notes[t.id] || {}} strategies={strategies} attachments={attachments} allNotes={notes} onSaveNote={n => saveNote(t.id, n)} onSaveAttachments={saveAttachments} onClose={() => setDetailTrade(null)} />;
+                return <DetailedTradePage trade={t} note={notes[t.id] || {}} strategies={strategies} attachments={attachments} allNotes={notes} onSaveNote={n => saveNote(t.id, n)} onSaveAttachments={saveAttachments} onClose={() => setDetailTrade(null)} onPurgeTag={purgeTagFromAllNotes} />;
               })()}
               {!detailTrade && tab === 'dashboard' && <Dashboard trades={dateFilteredTrades} onDayClick={handleDayClick} checklist={checklist} checklistDays={checklistDays} onChecklistToggle={toggleChecklist} onChecklistEdit={editChecklist} setTab={setTab} snapshot={activeSnapshot} openPositions={filteredOpenPositions} workingOrders={filteredWorkingOrders} riskStatus={riskStatus} riskRules={riskRules} onOpenGate={() => setGateOpen(true)} deposits={dateFilteredDeposits} />}
               {!detailTrade && tab === 'dayweek' && <DayWeekView trades={dateFilteredTrades} dayNotes={dayNotes} onSaveDayNote={saveDayNote} focusDate={focusDate} />}
