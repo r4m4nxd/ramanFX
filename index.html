@@ -1334,6 +1334,84 @@ function ProgressHeatmap({ stats, months = 6, cell = 12 }) {
   );
 }
 // ═══════════════ SCORE RADAR ═══════════════
+// ═══════════════ HERO SCORE CARD ═══════════════
+// Big composite score + current streak + 4 headline KPIs. Sits at the top of the Dashboard
+// as the visual anchor. Inspired by PNLog and Tradinjournal — but uses your own data and
+// the same composite computation as the existing radar ScoreCard (so the numbers tie out).
+function HeroScoreCard({ stats }) {
+  const isMobile = useMobile();
+  const { score } = useMemo(() => computeScore(stats), [stats]);
+  const animScore = useCountUp(score, 900);
+  const scoreColor = score >= 70 ? 'var(--green-bright)' : score >= 40 ? '#fbbf24' : 'var(--red)';
+  const scoreLabel = score >= 80 ? 'Excellent' : score >= 65 ? 'Strong' : score >= 50 ? 'Developing' : score >= 35 ? 'Needs work' : 'Critical';
+  // Current streak — fed directly from computeStats (curStreak count + curStreakSign 1/-1/0)
+  const streakCount = stats?.curStreak || 0;
+  const streakSign = stats?.curStreakSign || 0; // 1 = winning, -1 = losing, 0 = none
+  const streakLabel = streakSign === 0 ? null : `${streakSign > 0 ? 'W' : 'L'}${streakCount}`;
+  const streakColor = streakSign > 0 ? 'var(--green-bright)' : 'var(--red)';
+  const streakBg = streakSign > 0 ? 'rgba(38,166,154,0.12)' : 'rgba(239,83,80,0.12)';
+  const streakBorder = streakSign > 0 ? 'rgba(38,166,154,0.4)' : 'rgba(239,83,80,0.4)';
+  // KPI tile renderer
+  const kpi = (label, value, sub, color) => (
+    <div style={{ padding: '12px 14px', background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 10, minWidth: 0 }}>
+      <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', fontWeight: 600, marginBottom: 6 }}>{label}</div>
+      <div className="tabnum" style={{ fontSize: 20, fontWeight: 700, color: color || 'var(--text)', lineHeight: 1, marginBottom: sub ? 3 : 0 }}>{value}</div>
+      {sub && <div style={{ fontSize: 10.5, color: 'var(--text3)' }}>{sub}</div>}
+    </div>
+  );
+  // Format helpers
+  const fmtRR = (rr) => rr > 0 ? `1 : ${rr.toFixed(2)}` : '—';
+  const fmtSharpe = (s) => (s == null || isNaN(s) || !isFinite(s)) ? '—' : s.toFixed(2);
+  const sharpeColor = stats?.sharpe == null ? 'var(--text3)' : stats.sharpe >= 1 ? 'var(--green-bright)' : stats.sharpe >= 0 ? '#fbbf24' : 'var(--red)';
+  const sharpeNote = stats?.sharpe == null || stats?.daily?.length < 5 ? 'Need 5+ days' : stats.sharpe >= 1 ? 'Smooth returns' : stats.sharpe >= 0.5 ? 'Acceptable' : stats.sharpe >= 0 ? 'Choppy' : 'Negative';
+  const rrColor = stats?.avgRR >= 2 ? 'var(--green-bright)' : stats?.avgRR >= 1 ? 'var(--text)' : 'var(--red)';
+  const pfColor = stats?.profitFactor >= 1.5 ? 'var(--green-bright)' : stats?.profitFactor >= 1 ? 'var(--text)' : 'var(--red)';
+  const wrColor = stats?.winRate >= 50 ? 'var(--green-bright)' : stats?.winRate >= 40 ? 'var(--text)' : 'var(--red)';
+  return (
+    <Card style={{ padding: 0, overflow: 'hidden', background: `linear-gradient(135deg, rgba(124,92,252,0.06) 0%, transparent 60%), var(--panel)` }}>
+      {/* Top section: hero score + streak */}
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 14 : 24, padding: isMobile ? '20px 18px 16px' : '22px 24px 18px', borderBottom: '1px solid var(--border)' }}>
+        {/* Big score */}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flex: '0 0 auto' }}>
+          <div>
+            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', fontWeight: 700, marginBottom: 4 }}>RamanFX score</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+              <span className="tabnum" style={{ fontSize: isMobile ? 56 : 64, fontWeight: 800, color: scoreColor, lineHeight: 1, letterSpacing: '-0.02em', textShadow: `0 0 30px ${scoreColor}33` }}>{Math.round(animScore)}</span>
+              <span style={{ fontSize: 18, color: 'var(--text3)', fontWeight: 500 }}>/ 100</span>
+            </div>
+            <div style={{ fontSize: 11.5, color: scoreColor, fontWeight: 600, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{scoreLabel}</div>
+          </div>
+        </div>
+        {/* Vertical divider on desktop */}
+        {!isMobile && <div style={{ width: 1, alignSelf: 'stretch', background: 'var(--border)' }} />}
+        {/* Right side: streak + context line */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, justifyContent: 'center' }}>
+          {streakLabel && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', fontWeight: 600 }}>Current streak</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 700, padding: '3px 10px', borderRadius: 6, background: streakBg, border: `1px solid ${streakBorder}`, color: streakColor }}>
+                <span style={{ fontSize: 11 }}>{streakSign > 0 ? '↑' : '↓'}</span>
+                {streakLabel}
+              </span>
+              <span style={{ fontSize: 11, color: 'var(--text3)' }}>{streakSign > 0 ? `${streakCount} win${streakCount !== 1 ? 's' : ''} in a row` : `${streakCount} loss${streakCount !== 1 ? 'es' : ''} in a row`}</span>
+            </div>
+          )}
+          <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>
+            {stats?.total > 0 ? <Fragment>Across <strong style={{ color: 'var(--text)' }}>{stats.total} trades</strong> · {stats.profDays} profitable {stats.profDays === 1 ? 'day' : 'days'}, {stats.losingDays} losing {stats.losingDays === 1 ? 'day' : 'days'} ({stats.dayWinRate.toFixed(0)}% day win rate)</Fragment> : 'Import trades to see your score.'}
+          </div>
+        </div>
+      </div>
+      {/* Bottom KPIs */}
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${isMobile ? 2 : 4}, 1fr)`, gap: 10, padding: isMobile ? 14 : 18 }}>
+        {kpi('Win rate', `${stats?.winRate?.toFixed(0) || 0}%`, `${stats?.wins || 0}W · ${stats?.losses || 0}L`, wrColor)}
+        {kpi('Profit factor', stats?.profitFactor === Infinity ? '∞' : (stats?.profitFactor?.toFixed(2) || '0.00'), stats?.profitFactor >= 1 ? 'Profitable edge' : 'Below breakeven', pfColor)}
+        {kpi('Avg R/R', fmtRR(stats?.avgRR || 0), stats?.avgRR >= 2 ? 'Strong asymmetry' : stats?.avgRR >= 1 ? 'Wins beat losses' : 'Losses outpace wins', rrColor)}
+        {kpi('Sharpe', fmtSharpe(stats?.sharpe), sharpeNote, sharpeColor)}
+      </div>
+    </Card>
+  );
+}
+
 function ScoreCard({ stats }) {
   const isMobile = useMobile();
   const { score, axes } = useMemo(() => computeScore(stats), [stats]);
@@ -1644,6 +1722,8 @@ function Dashboard({ trades, onDayClick, checklist, checklistDays, onChecklistTo
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {riskStatus && <TodayStatusBanner status={riskStatus} rules={riskRules} onOpenGate={onOpenGate} onOpenRules={() => setTab('rules')} />}
       {snapshot && snapshot.balance != null && <AccountSummaryBar snapshot={snapshot} openPositions={openPositions} />}
+      {/* Hero score card — visual anchor showing composite /100 score, current streak, and headline KPIs */}
+      <HeroScoreCard stats={stats} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12 }}>
         <MetricGauge label="Net P&L" hint="Total net profit/loss including commission & swap" value={fmtMoney(stats.totalNet, true)} sub={`${stats.total} trades`} accent={stats.totalNet >= 0 ? 'var(--green-bright)' : 'var(--red)'} onClick={() => setTab('reports')} />
         <MetricGauge label="Trade win %" value={`${stats.winRate.toFixed(2)}%`} donutValue={stats.winRate} color="#26a69a" onClick={() => setTab('trade')}
