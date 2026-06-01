@@ -3299,69 +3299,98 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
             // Shows the dollar range of this trade from MAE (worst) to MFE (best), with markers for
             // entry ($0), exit (where you actually closed), and the unrealized peak. The "left on
             // the table" gap between Exit and MFE is shaded so it visually screams at you.
+            // ── Mini "journey" chart ──
+            // Built with HTML/CSS (not SVG) so text never gets distorted by viewBox scaling.
+            // Three vertical zones: top labels (MAE/MFE), center track, bottom labels (exit + gap).
+            // Layout uses absolute positioning percentages off a relative parent for crisp rendering.
             const renderJourney = () => {
               if (mfeDol == null && maeDol == null) return null;
               const exit = tradeNet;
               // Compute axis range — symmetric around zero, padded
-              const points = [0, exit, mfeDol || 0, maeDol || 0].filter(v => v != null);
+              const points = [0, exit];
+              if (mfeDol != null) points.push(mfeDol);
+              if (maeDol != null) points.push(maeDol);
               const min = Math.min(...points);
               const max = Math.max(...points);
               const range = max - min || 1;
-              const pad = range * 0.08;
+              const pad = range * 0.10;
               const axisMin = min - pad, axisMax = max + pad;
               const axisRange = axisMax - axisMin;
-              const W = 1000, H = 110; // viewBox; scales to container width
-              const left = 40, right = W - 40;
-              const innerW = right - left;
-              const xOf = (v) => left + ((v - axisMin) / axisRange) * innerW;
-              const zeroX = xOf(0);
-              const exitX = xOf(exit);
-              const mfeX = mfeDol != null ? xOf(mfeDol) : null;
-              const maeX = maeDol != null ? xOf(maeDol) : null;
-              const trackY = 56;
-              // Build the journey line segments — entry at 0 → MAE → MFE → exit. Conceptually the trade
-              // wandered between MAE and MFE in time; we draw entry-to-low-to-high-to-exit as a polyline.
+              // Each marker's horizontal position as a percentage (0..100) of the chart's inner width
+              const pct = (v) => ((v - axisMin) / axisRange) * 100;
+              const zeroPct = pct(0);
+              const exitPct = pct(exit);
+              const mfePct = mfeDol != null ? pct(mfeDol) : null;
+              const maePct = maeDol != null ? pct(maeDol) : null;
+              const leftOnTable = (mfeDol != null && mfeDol > 0 && exit < mfeDol) ? mfeDol - exit : null;
+              // Determine whether the exit label should go below the track (default) or above,
+              // to avoid colliding with MAE/MFE labels. If exit is within 12% of MAE or MFE,
+              // and the label could overlap, flip the exit label to the other side.
+              const tooCloseToMae = maePct != null && Math.abs(exitPct - maePct) < 14;
+              const tooCloseToMfe = mfePct != null && Math.abs(exitPct - mfePct) < 14;
+              // If close to MAE (which is labeled below by default in our new layout? no — we put
+              // MAE+MFE labels ABOVE the track, and exit BELOW. So no overlap in normal case.)
+              // But labels themselves are wide. Shift exit label horizontally if it would push past edges.
               return (
-                <div style={{ marginBottom: 12, padding: 12, background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 8 }}>
-                  <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, marginBottom: 6 }}>The trade's journey ($)</div>
-                  <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height: 110, display: 'block' }}>
-                    {/* Track */}
-                    <line x1={left} y1={trackY} x2={right} y2={trackY} stroke="#3f3f46" strokeWidth="2" />
-                    {/* Zero baseline marker */}
-                    <line x1={zeroX} y1={trackY - 8} x2={zeroX} y2={trackY + 8} stroke="#52525b" strokeWidth="1.5" strokeDasharray="3 2" />
-                    <text x={zeroX} y={trackY + 24} textAnchor="middle" fontSize="11" fill="#a1a1ab">$0</text>
-                    {/* MAE bar — from zero left to MAE */}
-                    {maeX != null && maeDol < 0 && (
-                      <Fragment>
-                        <line x1={maeX} y1={trackY} x2={zeroX} y2={trackY} stroke="#ef5350" strokeWidth="6" strokeLinecap="round" opacity="0.55" />
-                        <circle cx={maeX} cy={trackY} r="7" fill="#ef5350" stroke="#0c0c0e" strokeWidth="2" />
-                        <text x={maeX} y={trackY - 14} textAnchor="middle" fontSize="11" fontWeight="700" fill="#ef5350">{fmtD(maeDol)}</text>
-                        <text x={maeX} y={trackY - 26} textAnchor="middle" fontSize="9" fill="#a1a1ab">WORST (MAE)</text>
-                      </Fragment>
+                <div style={{ marginBottom: 14, padding: '14px 14px 12px', background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 8 }}>
+                  <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)', fontWeight: 700, marginBottom: 14 }}>The trade's journey ($)</div>
+                  {/* Outer relative container holds all three zones */}
+                  <div style={{ position: 'relative', height: 130, width: '100%' }}>
+                    {/* ── TOP ZONE (height ~46px) — MAE label on left side of zero, MFE label on right ── */}
+                    {maePct != null && maeDol < 0 && (
+                      <div style={{ position: 'absolute', left: `${maePct}%`, top: 0, transform: 'translateX(-50%)', textAlign: 'center', whiteSpace: 'nowrap', zIndex: 2 }}>
+                        <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#a1a1ab', fontWeight: 600, marginBottom: 2 }}>WORST (MAE)</div>
+                        <div className="tabnum" style={{ fontSize: 15, fontWeight: 700, color: 'var(--red)' }}>{fmtD(maeDol)}</div>
+                      </div>
                     )}
-                    {/* MFE bar — from zero right to MFE */}
-                    {mfeX != null && mfeDol > 0 && (
-                      <Fragment>
-                        <line x1={zeroX} y1={trackY} x2={mfeX} y2={trackY} stroke="#26a69a" strokeWidth="6" strokeLinecap="round" opacity="0.55" />
-                        <circle cx={mfeX} cy={trackY} r="7" fill="#26a69a" stroke="#0c0c0e" strokeWidth="2" />
-                        <text x={mfeX} y={trackY - 14} textAnchor="middle" fontSize="11" fontWeight="700" fill="#26a69a">{fmtD(mfeDol)}</text>
-                        <text x={mfeX} y={trackY - 26} textAnchor="middle" fontSize="9" fill="#a1a1ab">BEST (MFE)</text>
-                      </Fragment>
+                    {mfePct != null && mfeDol > 0 && (
+                      <div style={{ position: 'absolute', left: `${mfePct}%`, top: 0, transform: 'translateX(-50%)', textAlign: 'center', whiteSpace: 'nowrap', zIndex: 2 }}>
+                        <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#a1a1ab', fontWeight: 600, marginBottom: 2 }}>BEST (MFE)</div>
+                        <div className="tabnum" style={{ fontSize: 15, fontWeight: 700, color: 'var(--green-bright)' }}>{fmtD(mfeDol)}</div>
+                      </div>
                     )}
-                    {/* Left-on-the-table gap — between exit and MFE, only if exit was below MFE */}
-                    {mfeX != null && mfeDol > 0 && exit < mfeDol && (
-                      <Fragment>
-                        <rect x={Math.min(exitX, mfeX)} y={trackY + 18} width={Math.abs(mfeX - exitX)} height="3" fill="#fbbf24" opacity="0.7" rx="1.5" />
-                        <text x={(exitX + mfeX) / 2} y={trackY + 36} textAnchor="middle" fontSize="10" fill="#fbbf24" fontWeight="600">⤴ left {fmtD(mfeDol - exit)} on the table</text>
-                      </Fragment>
+                    {/* ── CENTER ZONE — the track itself ── */}
+                    <div style={{ position: 'absolute', left: 0, right: 0, top: 55, height: 20 }}>
+                      {/* Base track */}
+                      <div style={{ position: 'absolute', left: '2%', right: '2%', top: 9, height: 2, background: '#3f3f46', borderRadius: 1 }} />
+                      {/* Red bar from MAE to zero */}
+                      {maePct != null && maeDol < 0 && (
+                        <div style={{ position: 'absolute', left: `${maePct}%`, width: `${zeroPct - maePct}%`, top: 7, height: 6, background: 'var(--red)', opacity: 0.6, borderRadius: 3 }} />
+                      )}
+                      {/* Green bar from zero to MFE */}
+                      {mfePct != null && mfeDol > 0 && (
+                        <div style={{ position: 'absolute', left: `${zeroPct}%`, width: `${mfePct - zeroPct}%`, top: 7, height: 6, background: 'var(--green)', opacity: 0.6, borderRadius: 3 }} />
+                      )}
+                      {/* Zero baseline marker */}
+                      <div style={{ position: 'absolute', left: `${zeroPct}%`, top: 0, transform: 'translateX(-50%)', width: 2, height: 20, background: '#52525b', borderRadius: 1 }} />
+                      {/* MAE dot */}
+                      {maePct != null && maeDol < 0 && (
+                        <div style={{ position: 'absolute', left: `${maePct}%`, top: 4, transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: 'var(--red)', border: '2px solid #0c0c0e', boxShadow: '0 0 0 1px var(--red)' }} />
+                      )}
+                      {/* MFE dot */}
+                      {mfePct != null && mfeDol > 0 && (
+                        <div style={{ position: 'absolute', left: `${mfePct}%`, top: 4, transform: 'translateX(-50%)', width: 14, height: 14, borderRadius: '50%', background: 'var(--green-bright)', border: '2px solid #0c0c0e', boxShadow: '0 0 0 1px var(--green-bright)' }} />
+                      )}
+                      {/* Exit marker — diamond shape rotated square */}
+                      <div style={{ position: 'absolute', left: `${exitPct}%`, top: 3, transform: 'translateX(-50%) rotate(45deg)', width: 14, height: 14, background: exit >= 0 ? 'var(--green-bright)' : 'var(--red)', border: '2px solid #0c0c0e', zIndex: 3 }} />
+                    </div>
+                    {/* ── BOTTOM ZONE — "$0" label + exit label + give-back highlight ── */}
+                    {/* $0 baseline label — only show if it won't visually collide with the exit label */}
+                    {Math.abs(exitPct - zeroPct) > 6 && (
+                      <div style={{ position: 'absolute', left: `${zeroPct}%`, top: 80, transform: 'translateX(-50%)', fontSize: 10, color: '#71717a', fontWeight: 500 }}>$0</div>
                     )}
-                    {/* Exit marker — diamond shape so it stands out from the round MAE/MFE dots */}
-                    <g transform={`translate(${exitX}, ${trackY})`}>
-                      <polygon points="0,-10 9,0 0,10 -9,0" fill={exit >= 0 ? '#26a69a' : '#ef5350'} stroke="#0c0c0e" strokeWidth="2" />
-                    </g>
-                    <text x={exitX} y={trackY + 56} textAnchor="middle" fontSize="11" fontWeight="700" fill={exit >= 0 ? '#26a69a' : '#ef5350'}>{fmtD(exit)}</text>
-                    <text x={exitX} y={trackY + 68} textAnchor="middle" fontSize="9" fill="#a1a1ab">YOU CLOSED HERE</text>
-                  </svg>
+                    {/* Exit label — sits below the track, with name + value stacked */}
+                    <div style={{ position: 'absolute', left: `${exitPct}%`, top: 80, transform: 'translateX(-50%)', textAlign: 'center', whiteSpace: 'nowrap', zIndex: 4 }}>
+                      <div className="tabnum" style={{ fontSize: 15, fontWeight: 700, color: exit >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{fmtD(exit)}</div>
+                      <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#a1a1ab', fontWeight: 600, marginTop: 1 }}>YOU CLOSED</div>
+                    </div>
+                  </div>
+                  {/* Give-back caption sits below the chart area as a discrete amber strip */}
+                  {leftOnTable != null && leftOnTable > 0.01 && (
+                    <div style={{ marginTop: 8, padding: '7px 11px', background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.35)', borderRadius: 6, fontSize: 12, color: '#fbbf24', fontWeight: 600, textAlign: 'center' }}>
+                      ⤴ Left <span className="tabnum">{fmtD(leftOnTable).replace('+', '')}</span> on the table (peak − exit)
+                    </div>
+                  )}
                 </div>
               );
             };
