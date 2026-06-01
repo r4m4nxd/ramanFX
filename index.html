@@ -1208,10 +1208,18 @@ function UploadBtn({ onUpload, primary }) {
 // ═══════════════ CALENDAR ═══════════════
 function CalendarView({ stats, onDayClick }) {
   const isMobile = useMobile();
-  const [monthDate, setMonthDate] = useState(() => {
-    if (stats?.daily?.length) { const last = stats.daily[stats.daily.length - 1]; const [y, m] = last.date.split('-').map(Number); return new Date(y, m - 1, 1); }
-    return new Date();
-  });
+  // Use compact layout (no weekly column, tighter cells) below 960px so iPad landscape and
+  // narrow PC windows don't squeeze the day cells until content overflows.
+  const [windowW, setWindowW] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+  useEffect(() => {
+    const onResize = () => setWindowW(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  const compact = isMobile || windowW < 960;
+  // Always default to the current calendar month so opening the app on June 1 shows June,
+  // not the month of the last imported trade (which might be weeks behind).
+  const [monthDate, setMonthDate] = useState(() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), 1); });
   const { year, month, monthName, weeks, monthStats } = useMemo(() => {
     const year = monthDate.getFullYear(), month = monthDate.getMonth();
     const monthName = monthDate.toLocaleString('default', { month: 'long' });
@@ -1229,57 +1237,62 @@ function CalendarView({ stats, onDayClick }) {
   const maxAbs = useMemo(() => Math.max(...(stats?.daily || []).map(d => Math.abs(d.pnl)), 100), [stats]);
   const colorFor = (pnl) => { if (pnl == null) return null; const a = 0.18 + Math.min(1, Math.abs(pnl) / maxAbs) * 0.7; return pnl >= 0 ? `rgba(38,166,154,${a})` : `rgba(239,83,80,${a})`; };
   const navBtn = { padding: 6, borderRadius: 7, background: 'transparent', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: 16, lineHeight: 1 };
+  // Highlight today's cell so it's easy to spot
+  const todayKey = dayKey(new Date());
 
   return (
-    <Card style={{ padding: 18 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+    <Card style={{ padding: compact ? 12 : 18 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <button style={navBtn} onClick={() => setMonthDate(new Date(year, month - 1, 1))} onMouseEnter={e => e.currentTarget.style.background = 'var(--panel2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>‹</button>
           <div style={{ fontWeight: 600, fontSize: 15, minWidth: 130, textAlign: 'center' }}>{monthName} {year}</div>
           <button style={navBtn} onClick={() => setMonthDate(new Date(year, month + 1, 1))} onMouseEnter={e => e.currentTarget.style.background = 'var(--panel2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>›</button>
           <button style={{ ...btnStyle('secondary'), padding: '4px 10px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }} onClick={() => setMonthDate(new Date())}>This month</button>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, flexWrap: 'wrap' }}>
           <span style={{ color: 'var(--text3)' }}>Monthly:</span>
           <span className="tabnum" style={{ fontWeight: 600, padding: '3px 9px', borderRadius: 7, background: monthStats.pnl >= 0 ? 'rgba(38,166,154,0.12)' : 'rgba(239,83,80,0.12)', color: monthStats.pnl >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(monthStats.pnl, true)}</span>
           <span style={{ color: 'var(--text2)', padding: '3px 9px', borderRadius: 7, background: 'var(--panel2)' }}>{monthStats.days} days</span>
         </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(7, 1fr)' : 'repeat(7, 1fr) 88px', gap: isMobile ? 3 : 6, gridAutoRows: isMobile ? 'minmax(48px, auto)' : 'minmax(58px, auto)' }}>
-        {/* Header row: 7 weekday labels + Weekly label */}
+      {/* Compact layout (mobile / narrow window): 7 equal columns, no weekly sidebar.
+          Wide layout (≥960px): 7 day columns + 78px weekly summary column. */}
+      <div style={{ display: 'grid', gridTemplateColumns: compact ? 'repeat(7, minmax(0, 1fr))' : 'repeat(7, minmax(0, 1fr)) 78px', gap: compact ? 3 : 6, gridAutoRows: compact ? 'minmax(54px, auto)' : 'minmax(62px, auto)' }}>
+        {/* Header row: 7 weekday labels (+ Weekly label on wide) */}
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
           <div key={d} style={{ fontSize: 10, color: 'var(--text3)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, height: 16, lineHeight: '16px' }}>{d}</div>
         ))}
-        {!isMobile && <div style={{ fontSize: 9, color: 'var(--text3)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, height: 16, lineHeight: '16px' }}>Weekly</div>}
+        {!compact && <div style={{ fontSize: 9, color: 'var(--text3)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, height: 16, lineHeight: '16px' }}>Weekly</div>}
 
-        {/* Each calendar row = 7 day cells + 1 weekly cell, all sharing the same auto-row height */}
+        {/* Each calendar row = 7 day cells (+ weekly cell on wide) */}
         {weeks.map((week, wi) => (
           <Fragment key={wi}>
             {week.map((cell, i) => {
-              if (!cell) return <div key={i} style={{ borderRadius: 9, background: 'rgba(19,19,22,0.25)', border: '1px solid rgba(38,38,44,0.4)' }} />;
+              if (!cell) return <div key={i} style={{ borderRadius: 9, background: 'rgba(19,19,22,0.25)', border: '1px solid rgba(38,38,44,0.4)', minWidth: 0 }} />;
               const c = cell.data ? colorFor(cell.data.pnl) : null;
+              const isToday = cell.key === todayKey;
               return (
                 <button key={i} onClick={() => cell.data && onDayClick?.(cell.key)} disabled={!cell.data}
-                  style={{ borderRadius: 9, border: cell.data ? '1px solid var(--border2)' : '1px solid rgba(38,38,44,0.5)', background: c || 'rgba(19,19,22,0.4)', textAlign: 'left', padding: 7, cursor: cell.data ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', transition: 'all 0.15s', position: 'relative', minHeight: 58 }}
-                  onMouseEnter={e => { if (cell.data) { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.borderColor = 'var(--violet)'; e.currentTarget.style.zIndex = '5'; } }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = cell.data ? 'var(--border2)' : 'rgba(38,38,44,0.5)'; e.currentTarget.style.zIndex = 'auto'; }}>
-                  <div style={{ fontSize: 11, color: cell.data ? 'var(--text)' : 'var(--text3)', fontWeight: 600 }}>{cell.day}</div>
+                  style={{ borderRadius: 9, border: isToday ? '1.5px solid var(--violet-light)' : (cell.data ? '1px solid var(--border2)' : '1px solid rgba(38,38,44,0.5)'), background: c || 'rgba(19,19,22,0.4)', textAlign: 'left', padding: compact ? 5 : 7, cursor: cell.data ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', transition: 'all 0.15s', position: 'relative', minHeight: compact ? 54 : 62, minWidth: 0, overflow: 'hidden' }}
+                  onMouseEnter={e => { if (cell.data) { e.currentTarget.style.transform = 'scale(1.04)'; e.currentTarget.style.borderColor = 'var(--violet)'; e.currentTarget.style.zIndex = '5'; } }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = isToday ? 'var(--violet-light)' : (cell.data ? 'var(--border2)' : 'rgba(38,38,44,0.5)'); e.currentTarget.style.zIndex = 'auto'; }}>
+                  <div style={{ fontSize: compact ? 10 : 11, color: cell.data ? 'var(--text)' : 'var(--text3)', fontWeight: 600 }}>{cell.day}</div>
                   {cell.data && (
-                    <div style={{ marginTop: 'auto' }}>
-                      <div className="tabnum" style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.2, color: cell.data.pnl >= 0 ? '#d1fae5' : '#fecaca' }}>{fmtCompact(cell.data.pnl)}</div>
-                      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', lineHeight: 1.3 }}>{cell.data.trades} trades</div>
+                    <div style={{ marginTop: 'auto', minWidth: 0, overflow: 'hidden' }}>
+                      <div className="tabnum" style={{ fontSize: compact ? 10.5 : 12, fontWeight: 600, lineHeight: 1.2, color: cell.data.pnl >= 0 ? '#d1fae5' : '#fecaca', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fmtCompact(cell.data.pnl)}</div>
+                      <div style={{ fontSize: compact ? 8.5 : 9, color: 'rgba(255,255,255,0.5)', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cell.data.trades}t</div>
                     </div>
                   )}
                 </button>
               );
             })}
-            {/* Weekly summary box for this row — hidden on mobile to give day cells more room */}
-            {!isMobile && (() => { const w = monthStats.weeklyAgg[wi]; return (
-              <div style={{ borderRadius: 9, border: '1px solid var(--border)', background: 'var(--panel2)', padding: '6px 8px', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 58 }}>
+            {/* Weekly summary box for this row — only on wide layouts */}
+            {!compact && (() => { const w = monthStats.weeklyAgg[wi]; return (
+              <div style={{ borderRadius: 9, border: '1px solid var(--border)', background: 'var(--panel2)', padding: '6px 8px', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 62, minWidth: 0, overflow: 'hidden' }}>
                 <div style={{ fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Wk {w.week}</div>
                 {w.trades > 0 ? (
                   <Fragment>
-                    <div className="tabnum" style={{ fontSize: 13, fontWeight: 600, color: w.pnl >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{fmtCompact(w.pnl)}</div>
+                    <div className="tabnum" style={{ fontSize: 13, fontWeight: 600, color: w.pnl >= 0 ? 'var(--green-bright)' : 'var(--red)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fmtCompact(w.pnl)}</div>
                     <div style={{ fontSize: 9, color: 'var(--text3)' }}>{w.days}d · {w.trades}t</div>
                   </Fragment>
                 ) : <div style={{ fontSize: 11, color: 'var(--border2)' }}>—</div>}
@@ -1294,23 +1307,28 @@ function CalendarView({ stats, onDayClick }) {
 
 // ═══════════════ PROGRESS HEATMAP ═══════════════
 function ProgressHeatmap({ stats, months = 6, cell = 12 }) {
+  const scrollRef = useRef(null);
   const weeks = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const start = new Date(today); start.setMonth(start.getMonth() - months);
     while (start.getDay() !== 0) start.setDate(start.getDate() - 1);
     const cols = []; const cursor = new Date(start);
     while (cursor <= today) { const week = []; for (let d = 0; d < 7; d++) { const k = dayKey(cursor); week.push({ date: new Date(cursor), key: k, day: stats?.byDay?.[k] }); cursor.setDate(cursor.getDate() + 1); } cols.push(week); }
-    // User wants latest month on the LEFT, older months stretching to the right.
-    // Reverse the column order so the most recent week is column 0.
-    return cols.reverse();
+    // Chronological order: oldest column on the LEFT, most recent on the RIGHT.
+    return cols;
   }, [stats, months]);
+  // After mount, scroll the container all the way right so the latest weeks are visible without manual scrolling.
+  useEffect(() => {
+    const el = scrollRef.current; if (!el) return;
+    // Use requestAnimationFrame to ensure layout has settled before scrolling
+    requestAnimationFrame(() => { el.scrollLeft = el.scrollWidth; });
+  }, [weeks]);
   const maxAbs = useMemo(() => Math.max(...(stats?.daily || []).map(d => Math.abs(d.pnl)), 100), [stats]);
   const colorFor = (pnl) => { if (pnl == null || pnl === 0) return '#1c1c20'; const a = 0.3 + Math.min(1, Math.abs(pnl) / maxAbs) * 0.7; return pnl > 0 ? `rgba(38,166,154,${a})` : `rgba(239,83,80,${a})`; };
-  // Month labels — derived from the new (reversed) column order so labels line up
   const monthLabels = useMemo(() => { const labels = []; let lm = -1; weeks.forEach((w, i) => { const m = w[0].date.getMonth(); if (m !== lm) { labels.push({ index: i, label: w[0].date.toLocaleString('default', { month: 'short' }) }); lm = m; } }); return labels; }, [weeks]);
   const gap = 3;
   return (
-    <div style={{ overflowX: 'auto' }}>
+    <div ref={scrollRef} style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <div style={{ display: 'inline-block' }}>
         <div style={{ display: 'flex', gap, marginBottom: 4, paddingLeft: 26 }}>
           {weeks.map((_, i) => { const l = monthLabels.find(x => x.index === i); return <div key={i} style={{ width: cell, fontSize: 9, color: 'var(--text3)' }}>{l?.label || ''}</div>; })}
