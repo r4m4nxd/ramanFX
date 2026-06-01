@@ -2468,49 +2468,87 @@ function WeekView({ stats, allTrades, exitData }) {
 // `defaultOn` is whether the column shows out of the box.
 //
 // Sort keys correspond to enriched trade fields. We only allow sorting on a subset.
+// Helper: convert MT5 date string "YYYY.MM.DD HH:MM:SS" to a sortable number (ms since epoch).
+// Used by every timing column's sortValue. Returns null for missing/invalid strings.
+const _toTs = (s) => { const d = parseMT5Date(s); return d ? d.getTime() : null; };
+// Helper: pull a possibly-string number safely
+const _num = (v) => { if (v == null || v === '') return null; const n = parseFloat(v); return isNaN(n) ? null : n; };
+
 const TRADE_COLUMNS = [
   // ── Identity & timing ──
+  // Every column declares sortValue so it can be clicked to sort. Returns:
+  //   • a Number for numeric columns (use null for missing → sorts last)
+  //   • a String for text columns (use '' for missing → sorts first asc / last desc)
   { id: 'openDate',  label: 'Open date',   group: 'Timing',  align: 'left',  available: true, defaultOn: true,
-    sortKey: 'openDate',  render: t => t.openTime?.split(' ')[0] || '—' },
+    sortValue: t => _toTs(t.openTime),
+    render: t => t.openTime?.split(' ')[0] || '—' },
   { id: 'openTimeFull',  label: 'Open time',   group: 'Timing',  align: 'left',  available: true, defaultOn: false,
+    sortValue: t => _toTs(t.openTime),
     render: t => t.openTime?.split(' ')[1] || '—' },
   { id: 'closeDate', label: 'Close date',  group: 'Timing',  align: 'left',  available: true, defaultOn: true,
-    sortKey: 'closeDate', render: t => t.closeTime?.split(' ')[0] || '—' },
+    sortValue: t => _toTs(t.closeTime),
+    render: t => t.closeTime?.split(' ')[0] || '—' },
   { id: 'closeTimeFull', label: 'Close time',  group: 'Timing',  align: 'left',  available: true, defaultOn: false,
+    sortValue: t => _toTs(t.closeTime),
     render: t => t.closeTime?.split(' ')[1] || '—' },
   { id: 'holdTime',  label: 'Hold time',   group: 'Timing',  align: 'right', available: true, defaultOn: false,
+    sortValue: t => t.holdSec || 0,
     render: t => fmtHold(t.holdSec || 0) },
   // ── Instrument & direction ──
   { id: 'symbol',    label: 'Symbol',      group: 'Instrument', align: 'left', available: true, defaultOn: true,
-    sortKey: 'symbol',    render: t => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{t.symbol} <Pill color={t.type === 'buy' ? 'blue' : 'amber'}>{t.type}</Pill></span> },
+    sortValue: t => (t.symbol || '').toLowerCase(),
+    render: t => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{t.symbol} <Pill color={t.type === 'buy' ? 'blue' : 'amber'}>{t.type}</Pill></span> },
   { id: 'side',      label: 'Side',        group: 'Instrument', align: 'left', available: true, defaultOn: false,
+    sortValue: t => (t.type || '').toLowerCase(),
     render: t => <Pill color={t.type === 'buy' ? 'blue' : 'amber'}>{(t.type || '').toUpperCase()}</Pill> },
   { id: 'volume',    label: 'Volume (lots)', group: 'Instrument', align: 'right', available: true, defaultOn: false,
+    sortValue: t => t.volume || 0,
     render: t => <span className="tabnum">{(t.volume || 0).toFixed(2)}</span> },
   { id: 'account',   label: 'Account',     group: 'Instrument', align: 'left', available: true, defaultOn: false,
+    sortValue: t => (t.account || '').toLowerCase(),
     render: t => <span style={{ color: 'var(--text3)', fontSize: 12 }}>{t.account || '—'}</span> },
   // ── Prices ──
   { id: 'entry',     label: 'Avg Entry',   group: 'Prices', align: 'right', available: true, defaultOn: true,
+    sortValue: t => _num(t.openPrice),
     render: t => <span className="tabnum">{t.openPrice ?? '—'}</span> },
   { id: 'exit',      label: 'Avg Exit',    group: 'Prices', align: 'right', available: true, defaultOn: true,
+    sortValue: t => _num(t.closePrice),
     render: t => <span className="tabnum">{t.closePrice ?? '—'}</span> },
   { id: 'sl',        label: 'Stop Loss',   group: 'Prices', align: 'right', available: true, defaultOn: false,
+    sortValue: t => _num(t.sl),
     render: t => <span className="tabnum" style={{ color: t.sl ? 'var(--red)' : 'var(--text3)' }}>{t.sl || '—'}</span> },
   { id: 'tp',        label: 'Take Profit', group: 'Prices', align: 'right', available: true, defaultOn: false,
+    sortValue: t => _num(t.tp),
     render: t => <span className="tabnum" style={{ color: t.tp ? 'var(--green-bright)' : 'var(--text3)' }}>{t.tp || '—'}</span> },
   // ── P&L breakdown ──
   { id: 'gross',     label: 'Gross P&L',   group: 'P&L', align: 'right', available: true, defaultOn: false,
+    sortValue: t => t.profit || 0,
     render: t => <span className="tabnum" style={{ color: t.profit >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(t.profit || 0, true)}</span> },
   { id: 'commission', label: 'Commission', group: 'P&L', align: 'right', available: true, defaultOn: false,
+    sortValue: t => t.commission || 0,
     render: t => <span className="tabnum" style={{ color: 'var(--text3)' }}>{fmtMoney(t.commission || 0)}</span> },
   { id: 'swap',      label: 'Swap',        group: 'P&L', align: 'right', available: true, defaultOn: false,
+    sortValue: t => t.swap || 0,
     render: t => <span className="tabnum" style={{ color: 'var(--text3)' }}>{fmtMoney(t.swap || 0)}</span> },
   { id: 'net',       label: 'Net P&L',     group: 'P&L', align: 'right', available: true, defaultOn: true,
-    sortKey: 'net',  render: t => <span className="tabnum" style={{ fontWeight: 600, color: t.net >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(t.net, true)}</span> },
+    sortValue: t => t.net,
+    render: t => <span className="tabnum" style={{ fontWeight: 600, color: t.net >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(t.net, true)}</span> },
   { id: 'status',    label: 'Status',      group: 'P&L', align: 'left', available: true, defaultOn: true,
+    sortValue: t => t.net > 0 ? 2 : t.net === 0 ? 1 : 0,
     render: t => <Pill color={t.net > 0 ? 'green' : t.net === 0 ? 'zinc' : 'red'}>{t.net > 0 ? 'WIN' : t.net === 0 ? 'SCRATCH' : 'LOSS'}</Pill> },
   // ── Risk-adjusted (derived) ──
   { id: 'rMultiple', label: 'R-Multiple',  group: 'Risk', align: 'right', available: true, defaultOn: false,
+    // Compute the R-multiple as a sortable number; null if can't derive
+    sortValue: t => {
+      if (!t.sl || !t.openPrice) return null;
+      const sl = parseFloat(t.sl), entry = parseFloat(t.openPrice);
+      if (!sl || !entry) return null;
+      const pipDist = Math.abs(entry - sl); if (pipDist === 0) return null;
+      const priceMove = Math.abs((parseFloat(t.closePrice) || entry) - entry); if (priceMove === 0) return null;
+      const dollarPerUnit = Math.abs((t.profit || 0)) / priceMove;
+      const risk = dollarPerUnit * pipDist; if (risk === 0) return null;
+      return t.net / risk;
+    },
     render: t => {
       // R = net / risked amount; risked = |entry - SL| * volume * contract size approx
       if (!t.sl || !t.openPrice) return <span style={{ color: 'var(--text3)' }}>—</span>;
@@ -2529,20 +2567,33 @@ const TRADE_COLUMNS = [
     }
   },
   { id: 'roi',       label: 'ROI %',       group: 'Risk', align: 'right', available: true, defaultOn: false,
+    sortValue: t => {
+      if (!t.openPrice || !t.volume) return null;
+      const notional = parseFloat(t.openPrice) * (t.volume || 0) * 100000;
+      if (!notional) return null;
+      return (t.net / notional) * 100;
+    },
     render: t => {
       // ROI estimated as net / (entry * volume) — rough proxy for forex without margin info
       if (!t.openPrice || !t.volume) return <span style={{ color: 'var(--text3)' }}>—</span>;
-      const notional = parseFloat(t.openPrice) * (t.volume || 0) * 100000; // standard forex unit
+      const notional = parseFloat(t.openPrice) * (t.volume || 0) * 100000;
       if (!notional) return <span style={{ color: 'var(--text3)' }}>—</span>;
       const roi = (t.net / notional) * 100;
       return <span className="tabnum" style={{ color: roi >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{roi >= 0 ? '+' : ''}{roi.toFixed(2)}%</span>;
     }
   },
   { id: 'pips',      label: 'Pips',        group: 'Risk', align: 'right', available: true, defaultOn: false,
+    sortValue: t => {
+      if (!t.openPrice || !t.closePrice) return null;
+      const entry = parseFloat(t.openPrice), exit = parseFloat(t.closePrice);
+      const sym = (t.symbol || '').toUpperCase();
+      const pipSize = sym.includes('JPY') ? 0.01 : (sym.includes('XAU') || sym.includes('XAG')) ? 0.1 : 0.0001;
+      const dir = t.type === 'buy' ? 1 : -1;
+      return ((exit - entry) / pipSize) * dir;
+    },
     render: t => {
       if (!t.openPrice || !t.closePrice) return <span style={{ color: 'var(--text3)' }}>—</span>;
       const entry = parseFloat(t.openPrice), exit = parseFloat(t.closePrice);
-      // Pip size: JPY pairs use 0.01, others 0.0001; XAU uses 0.1
       const sym = (t.symbol || '').toUpperCase();
       const pipSize = sym.includes('JPY') ? 0.01 : (sym.includes('XAU') || sym.includes('XAG')) ? 0.1 : 0.0001;
       const dir = t.type === 'buy' ? 1 : -1;
@@ -2552,12 +2603,18 @@ const TRADE_COLUMNS = [
   },
   // ── User-entered metadata ──
   { id: 'strategy',  label: 'Strategy',    group: 'Notes', align: 'left', available: true, defaultOn: false,
+    sortValue: (t, note, ctx) => {
+      const s = ctx.strategies?.find(s => s.id === note?.strategyId);
+      return (s?.name || '').toLowerCase();
+    },
     render: (t, note, ctx) => {
       const s = ctx.strategies?.find(s => s.id === note?.strategyId);
       return s ? <span style={{ color: 'var(--violet-light)', fontSize: 12 }}>{s.name}</span> : <span style={{ color: 'var(--text3)' }}>—</span>;
     }
   },
   { id: 'tags',      label: 'Tags',        group: 'Notes', align: 'left', available: true, defaultOn: false,
+    // Sort by count of tags; secondary by first tag alphabetically
+    sortValue: (t, note) => (note?.tags || []).length,
     render: (t, note) => {
       const tags = note?.tags || [];
       if (!tags.length) return <span style={{ color: 'var(--text3)' }}>—</span>;
@@ -2565,6 +2622,7 @@ const TRADE_COLUMNS = [
     }
   },
   { id: 'mistakes',  label: 'Mistakes',    group: 'Notes', align: 'left', available: true, defaultOn: false,
+    sortValue: (t, note) => (note?.mistakes || []).length,
     render: (t, note) => {
       const m = note?.mistakes || [];
       if (!m.length) return <span style={{ color: 'var(--text3)' }}>—</span>;
@@ -2572,6 +2630,7 @@ const TRADE_COLUMNS = [
     }
   },
   { id: 'rating',    label: 'Setup rating', group: 'Notes', align: 'left', available: true, defaultOn: false,
+    sortValue: (t, note) => note?.rating || 0,
     render: (t, note) => {
       const r = note?.rating || 0;
       if (!r) return <span style={{ color: 'var(--text3)' }}>—</span>;
@@ -2579,9 +2638,11 @@ const TRADE_COLUMNS = [
     }
   },
   { id: 'note',      label: 'Note',        group: 'Notes', align: 'left', available: true, defaultOn: true,
+    sortValue: (t, note) => note?.note ? 1 : 0,
     render: (t, note) => note?.note ? <span style={{ color: 'var(--violet-light)' }}>✎</span> : <span style={{ color: 'var(--border2)' }}>—</span> },
   // ── Performance bar ──
   { id: 'scale',     label: 'Scale',       group: 'Performance', align: 'right', available: true, defaultOn: true,
+    sortValue: t => t.net,
     render: (t, note, ctx) => {
       const maxAbs = Math.max(ctx.stats.largestWin, Math.abs(ctx.stats.largestLoss)) || 1;
       const scalePct = Math.min(100, Math.abs(t.net) / maxAbs * 50);
@@ -2591,6 +2652,10 @@ const TRADE_COLUMNS = [
   },
   // ── Exit-quality (from MQL5 CSV import) ──
   { id: 'mae',  label: 'MAE ($)', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
+    sortValue: (t, note, ctx) => {
+      const ed = ctx.exitData?.[t.id]; if (!ed || ed.mae == null) return null;
+      return ed.dollarPerPt != null ? ed.mae * ed.dollarPerPt : ed.mae;
+    },
     render: (t, note, ctx) => {
       const ed = ctx.exitData?.[t.id];
       if (!ed || ed.mae == null) return <span style={{ color: 'var(--text3)' }}>—</span>;
@@ -2600,6 +2665,10 @@ const TRADE_COLUMNS = [
     }
   },
   { id: 'mfe',  label: 'MFE ($)', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
+    sortValue: (t, note, ctx) => {
+      const ed = ctx.exitData?.[t.id]; if (!ed || ed.mfe == null) return null;
+      return ed.dollarPerPt != null ? ed.mfe * ed.dollarPerPt : ed.mfe;
+    },
     render: (t, note, ctx) => {
       const ed = ctx.exitData?.[t.id];
       if (!ed || ed.mfe == null) return <span style={{ color: 'var(--text3)' }}>—</span>;
@@ -2609,6 +2678,11 @@ const TRADE_COLUMNS = [
     }
   },
   { id: 'capture', label: 'Capture %', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
+    sortValue: (t, note, ctx) => {
+      const ed = ctx.exitData?.[t.id];
+      if (!ed || ed.mfe == null || ed.mfe <= 0 || ed.profitPts == null || ed.profitPts <= 0) return null;
+      return (ed.profitPts / ed.mfe) * 100;
+    },
     render: (t, note, ctx) => {
       const ed = ctx.exitData?.[t.id];
       if (!ed || ed.mfe == null || ed.mfe <= 0 || ed.profitPts == null || ed.profitPts <= 0) return <span style={{ color: 'var(--text3)' }}>—</span>;
@@ -2618,6 +2692,13 @@ const TRADE_COLUMNS = [
     }
   },
   { id: 'leftOnTable', label: 'Left on table ($)', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
+    sortValue: (t, note, ctx) => {
+      const ed = ctx.exitData?.[t.id]; if (!ed || ed.mfe == null || ed.dollarPerPt == null) return null;
+      const mfeDol = ed.mfe * ed.dollarPerPt;
+      const net = (t.profit || 0) + (t.commission || 0) + (t.swap || 0);
+      if (mfeDol <= 0 || net <= 0 || net >= mfeDol) return null;
+      return mfeDol - net;
+    },
     render: (t, note, ctx) => {
       const ed = ctx.exitData?.[t.id];
       if (!ed || ed.mfe == null || ed.dollarPerPt == null) return <span style={{ color: 'var(--text3)' }}>—</span>;
@@ -2630,6 +2711,13 @@ const TRADE_COLUMNS = [
     }
   },
   { id: 'missedEscape', label: 'Missed escape ($)', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
+    sortValue: (t, note, ctx) => {
+      const ed = ctx.exitData?.[t.id]; if (!ed || ed.mfe == null || ed.dollarPerPt == null) return null;
+      const mfeDol = ed.mfe * ed.dollarPerPt;
+      const net = (t.profit || 0) + (t.commission || 0) + (t.swap || 0);
+      if (mfeDol <= 0 || net > 0) return null;
+      return mfeDol;
+    },
     render: (t, note, ctx) => {
       const ed = ctx.exitData?.[t.id];
       if (!ed || ed.mfe == null || ed.dollarPerPt == null) return <span style={{ color: 'var(--text3)' }}>—</span>;
@@ -2641,6 +2729,10 @@ const TRADE_COLUMNS = [
     }
   },
   { id: 't1h', label: 'If +1h held ($)', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
+    sortValue: (t, note, ctx) => {
+      const ed = ctx.exitData?.[t.id]; if (!ed || ed.t1h == null) return null;
+      return ed.dollarPerPt != null ? ed.t1h * ed.dollarPerPt : ed.t1h;
+    },
     render: (t, note, ctx) => {
       const ed = ctx.exitData?.[t.id];
       if (!ed || ed.t1h == null) return <span style={{ color: 'var(--text3)' }}>—</span>;
@@ -2651,6 +2743,10 @@ const TRADE_COLUMNS = [
     }
   },
   { id: 't4h', label: 'If +4h held ($)', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
+    sortValue: (t, note, ctx) => {
+      const ed = ctx.exitData?.[t.id]; if (!ed || ed.t4h == null) return null;
+      return ed.dollarPerPt != null ? ed.t4h * ed.dollarPerPt : ed.t4h;
+    },
     render: (t, note, ctx) => {
       const ed = ctx.exitData?.[t.id];
       if (!ed || ed.t4h == null) return <span style={{ color: 'var(--text3)' }}>—</span>;
@@ -2661,6 +2757,10 @@ const TRADE_COLUMNS = [
     }
   },
   { id: 't1d', label: 'If +1d held ($)', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
+    sortValue: (t, note, ctx) => {
+      const ed = ctx.exitData?.[t.id]; if (!ed || ed.t1d == null) return null;
+      return ed.dollarPerPt != null ? ed.t1d * ed.dollarPerPt : ed.t1d;
+    },
     render: (t, note, ctx) => {
       const ed = ctx.exitData?.[t.id];
       if (!ed || ed.t1d == null) return <span style={{ color: 'var(--text3)' }}>—</span>;
@@ -2761,8 +2861,29 @@ function TradeView({ trades, notes, strategies, exitData, onSaveNote, onOpenTrad
       .filter(t => filter === 'all' ? true : filter === 'wins' ? t.net > 0 : filter === 'losses' ? t.net < 0 : (!notes[t.id]?.note && !notes[t.id]?.tags?.length && !notes[t.id]?.strategyId))
       .filter(t => stratFilter === 'all' || notes[t.id]?.strategyId === stratFilter)
       .filter(t => { if (!search) return true; const s = search.toLowerCase(); return t.symbol.toLowerCase().includes(s) || t.id.includes(s) || (notes[t.id]?.note || '').toLowerCase().includes(s) || (notes[t.id]?.tags || []).some(tag => tag.toLowerCase().includes(s)); })
-      .sort((a, b) => { const dir = sortBy.dir === 'desc' ? -1 : 1; if (sortBy.key === 'closeDate') return dir * ((a.closeDate?.getTime() || 0) - (b.closeDate?.getTime() || 0)); if (sortBy.key === 'net') return dir * (a.net - b.net); if (sortBy.key === 'symbol') return dir * a.symbol.localeCompare(b.symbol); return 0; });
-  }, [stats, notes, search, filter, symFilter, stratFilter, sortBy]);
+      .sort((a, b) => {
+        // Uniform comparator that uses each column's sortValue function. Handles:
+        //   • numbers and strings (auto-detects type from first non-null value)
+        //   • missing data — nulls always sort last regardless of direction (consistent UX)
+        //   • case-insensitive string comparison (already lowercased by sortValue)
+        const col = TRADE_COLUMNS.find(c => c.id === sortBy.key);
+        if (!col?.sortValue) return 0;
+        const dir = sortBy.dir === 'desc' ? -1 : 1;
+        // Lightweight ctx for sort — exit-quality columns need exitData, strategy column needs strategies
+        const sortCtx = { exitData: exitData || {}, strategies: strategies || [] };
+        const va = col.sortValue(a, notes[a.id] || {}, sortCtx);
+        const vb = col.sortValue(b, notes[b.id] || {}, sortCtx);
+        // Nulls always go to the bottom regardless of sort direction
+        if (va == null && vb == null) return 0;
+        if (va == null) return 1;
+        if (vb == null) return -1;
+        // Type-aware comparison
+        if (typeof va === 'string' || typeof vb === 'string') {
+          return dir * String(va).localeCompare(String(vb));
+        }
+        return dir * (va - vb);
+      });
+  }, [stats, notes, search, filter, symFilter, stratFilter, sortBy, exitData, strategies]);
   if (!stats) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--text3)' }}>No trades yet.</div>;
   // KPIs should reflect only the trades currently shown after filters/search.
   // Note `filtered` is the enriched & sorted trade slice; we recompute the relevant stats from it.
@@ -2825,6 +2946,19 @@ function TradeView({ trades, notes, strategies, exitData, onSaveNote, onOpenTrad
       <Card style={{ overflow: 'hidden' }}>
         {isMobile ? (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {/* Mobile sort selector — replaces clickable column headers (which don't exist in card view).
+                Includes only currently-active columns that have a sortValue. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderBottom: '1px solid var(--border)', background: 'var(--panel2)' }}>
+              <span style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Sort</span>
+              <select value={sortBy.key} onChange={e => setSortBy({ key: e.target.value, dir: sortBy.dir })}
+                style={{ flex: 1, padding: '6px 8px', fontSize: 12, background: 'var(--panel)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>
+                {activeCols.filter(c => c.sortValue).map(col => <option key={col.id} value={col.id}>{col.label}</option>)}
+              </select>
+              <button onClick={() => setSortBy({ key: sortBy.key, dir: sortBy.dir === 'desc' ? 'asc' : 'desc' })}
+                style={{ padding: '6px 10px', fontSize: 12, background: 'var(--panel)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                {sortBy.dir === 'desc' ? '↓ Desc' : '↑ Asc'}
+              </button>
+            </div>
             {filtered.map(t => {
               const note = notes[t.id] || {}, pos = t.net >= 0;
               // Columns to show in the body of the card. Skip those that are already in the prominent
@@ -2860,15 +2994,19 @@ function TradeView({ trades, notes, strategies, exitData, onSaveNote, onOpenTrad
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
               <thead><tr style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', borderBottom: '1px solid var(--border)' }}>
-                {activeCols.map(col => (
-                  <th key={col.id}
-                    onClick={col.sortKey ? () => toggleSort(col.sortKey) : undefined}
-                    style={{ textAlign: col.align, padding: 12, cursor: col.sortKey ? 'pointer' : 'default', userSelect: 'none', whiteSpace: 'nowrap' }}
-                    onMouseEnter={col.sortKey ? e => e.currentTarget.style.color = 'var(--text)' : undefined}
-                    onMouseLeave={col.sortKey ? e => e.currentTarget.style.color = 'var(--text3)' : undefined}>
-                    {col.label}{col.sortKey ? sortIcon(col.sortKey) : ''}
-                  </th>
-                ))}
+                {activeCols.map(col => {
+                  // Every column with a sortValue function is clickable. Use the column id as the sort key.
+                  const canSort = !!col.sortValue;
+                  return (
+                    <th key={col.id}
+                      onClick={canSort ? () => toggleSort(col.id) : undefined}
+                      style={{ textAlign: col.align, padding: 12, cursor: canSort ? 'pointer' : 'default', userSelect: 'none', whiteSpace: 'nowrap' }}
+                      onMouseEnter={canSort ? e => e.currentTarget.style.color = 'var(--text)' : undefined}
+                      onMouseLeave={canSort ? e => e.currentTarget.style.color = 'var(--text3)' : undefined}>
+                      {col.label}{canSort ? sortIcon(col.id) : ''}
+                    </th>
+                  );
+                })}
               </tr></thead>
               <tbody>
                 {filtered.map(t => {
