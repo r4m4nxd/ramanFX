@@ -887,7 +887,10 @@ function computeExitStats(enrichedTrades, exitDataMap) {
         wonByMFE++;
         captureRates.push((profitPts / mfe) * 100);
       }
-      if (profitPts < mfe) {
+      // True give-back: winner that took less than its peak. Counted in dollars and trade count.
+      // Losers-that-were-up are excluded from this metric — they belong to the "turned-loss" stat
+      // because the MFE was unrealized, not realized profit they left behind.
+      if (profitPts > 0 && profitPts < mfe) {
         giveBackCount++;
         giveBackPts += (mfe - profitPts);
         bySymbol[t.symbol].giveBack++;
@@ -2571,9 +2574,21 @@ const TRADE_COLUMNS = [
       if (!ed || ed.mfe == null || ed.dollarPerPt == null) return <span style={{ color: 'var(--text3)' }}>—</span>;
       const mfeDol = ed.mfe * ed.dollarPerPt;
       const net = (t.profit || 0) + (t.commission || 0) + (t.swap || 0);
-      if (mfeDol <= 0 || net >= mfeDol) return <span style={{ color: 'var(--text3)' }}>—</span>;
+      // Only meaningful for trades that closed in profit — "left on table" implies realized profit foregone
+      if (mfeDol <= 0 || net <= 0 || net >= mfeDol) return <span style={{ color: 'var(--text3)' }}>—</span>;
       const gap = mfeDol - net;
       return <span className="tabnum" style={{ color: '#fbbf24', fontWeight: 600 }}>-${gap.toFixed(2)}</span>;
+    }
+  },
+  { id: 'missedEscape', label: 'Missed escape ($)', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
+    render: (t, note, ctx) => {
+      const ed = ctx.exitData?.[t.id];
+      if (!ed || ed.mfe == null || ed.dollarPerPt == null) return <span style={{ color: 'var(--text3)' }}>—</span>;
+      const mfeDol = ed.mfe * ed.dollarPerPt;
+      const net = (t.profit || 0) + (t.commission || 0) + (t.swap || 0);
+      // Only meaningful for losers that were up at some point
+      if (mfeDol <= 0 || net > 0) return <span style={{ color: 'var(--text3)' }}>—</span>;
+      return <span className="tabnum" style={{ color: '#fbbf24', fontWeight: 600 }}>+${mfeDol.toFixed(2)}</span>;
     }
   },
   { id: 't1h', label: 'If +1h held ($)', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
@@ -3323,6 +3338,15 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
               const mfePct = mfeDol != null ? pct(mfeDol) : null;
               const maePct = maeDol != null ? pct(maeDol) : null;
               const leftOnTable = (mfeDol != null && mfeDol > 0 && exit < mfeDol) ? mfeDol - exit : null;
+              // Determine the FRAMING of the give-back caption.
+              // Case A — closed in profit but below MFE: classic "left money on the table"
+              //          (you really did leave realized profit behind that you could have taken).
+              // Case B — closed in loss but MFE was positive at some point: NOT "left on the table"
+              //          (the +$X was unrealized; the trade reversed and stopped out). The honest
+              //          framing is "could have escaped with +$mfe instead of taking the loss."
+              const giveBackMode = leftOnTable == null ? null
+                : exit > 0 ? 'left' // closed positive → really did leave profit
+                : 'missed';        // closed negative → missed an escape window
               // Determine whether the exit label should go below the track (default) or above,
               // to avoid colliding with MAE/MFE labels. If exit is within 12% of MAE or MFE,
               // and the label could overlap, flip the exit label to the other side.
@@ -3385,10 +3409,15 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                       <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#a1a1ab', fontWeight: 600, marginTop: 1 }}>YOU CLOSED</div>
                     </div>
                   </div>
-                  {/* Give-back caption sits below the chart area as a discrete amber strip */}
-                  {leftOnTable != null && leftOnTable > 0.01 && (
+                  {/* Give-back caption — different language for winners (truly left profit) vs losers (missed an escape) */}
+                  {leftOnTable != null && leftOnTable > 0.01 && giveBackMode === 'left' && (
                     <div style={{ marginTop: 8, padding: '7px 11px', background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.35)', borderRadius: 6, fontSize: 12, color: '#fbbf24', fontWeight: 600, textAlign: 'center' }}>
                       ⤴ Left <span className="tabnum">{fmtD(leftOnTable).replace('+', '')}</span> on the table (peak − exit)
+                    </div>
+                  )}
+                  {leftOnTable != null && leftOnTable > 0.01 && giveBackMode === 'missed' && (
+                    <div style={{ marginTop: 8, padding: '7px 11px', background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.35)', borderRadius: 6, fontSize: 12, color: '#fbbf24', fontWeight: 600, textAlign: 'center' }}>
+                      ⚠ Could have escaped with <span className="tabnum" style={{ color: 'var(--green-bright)' }}>+${(mfeDol || 0).toFixed(2)}</span> · instead took <span className="tabnum" style={{ color: 'var(--red)' }}>{fmtD(exit)}</span>
                     </div>
                   )}
                 </div>
@@ -3425,11 +3454,19 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                       <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>of peak kept</div>
                     </div>
                   )}
-                  {mfeDol != null && mfeDol > 0 && tradeNet < mfeDol && (
+                  {/* Tile changes meaning based on whether the trade closed positive or negative. */}
+                  {mfeDol != null && mfeDol > 0 && tradeNet < mfeDol && tradeNet > 0 && (
                     <div style={{ padding: '8px 10px', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 7 }}>
                       <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>Left on table</div>
                       <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24' }}>{fmtD(mfeDol - tradeNet)}</div>
-                      <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>peak − exit</div>
+                      <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>peak − exit profit</div>
+                    </div>
+                  )}
+                  {mfeDol != null && mfeDol > 0 && tradeNet <= 0 && (
+                    <div style={{ padding: '8px 10px', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 7 }}>
+                      <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>Missed escape</div>
+                      <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24' }}>+${mfeDol.toFixed(2)}</div>
+                      <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>could have exited here</div>
                     </div>
                   )}
                 </div>
@@ -5084,8 +5121,8 @@ function ExitAnalysisPage({ trades, exitData, onOpenTrade }) {
         <Card style={{ padding: 14 }}>
           <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)', fontWeight: 700, marginBottom: 6 }}>$ Left on table</div>
           <div className="tabnum" style={{ fontSize: 22, fontWeight: 700, color: 'var(--red)', lineHeight: 1 }}>{fmtMoney(stats.giveBackDollars)}</div>
-          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>across {stats.giveBackCount} trades</div>
-          <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 3 }}>Unrealized profit watched evaporate</div>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>across {stats.giveBackCount} winners</div>
+          <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 3 }}>Profit you took less than the peak (winners only)</div>
         </Card>
         <Card style={{ padding: 14 }}>
           <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)', fontWeight: 700, marginBottom: 6 }}>Best exit window</div>
