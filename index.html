@@ -604,16 +604,22 @@ function generateDailyInsights(windowTrades, historyTrades, scope, exitDataMap) 
   // to loss: that's the headline failure mode.
   if (exitDataMap && Object.keys(exitDataMap).length > 0) {
     let totalMfe = 0, totalCaptured = 0, captureCount = 0;
-    let turnedLossCount = 0, turnedLossMfe = 0;
-    let leftOnTable = 0;
+    let turnedLossCount = 0, turnedLossMfeDol = 0;
+    let leftOnTableDol = 0;
     for (const t of windowTrades) {
       const ed = exitDataMap[t.id]; if (!ed) continue;
-      const mfe = ed.mfe, profitPts = ed.profitPts;
+      const mfe = ed.mfe, profitPts = ed.profitPts, dpp = ed.dollarPerPt;
       if (mfe == null || profitPts == null) continue;
       if (mfe > 0) {
         totalMfe += mfe;
-        if (profitPts > 0) { totalCaptured += profitPts; captureCount++; leftOnTable += (mfe - profitPts); }
-        if (mfe > 50 && profitPts < 0) { turnedLossCount++; turnedLossMfe += mfe; }
+        if (profitPts > 0) {
+          totalCaptured += profitPts; captureCount++;
+          if (dpp != null) leftOnTableDol += (mfe - profitPts) * dpp;
+        }
+        if (mfe > 50 && profitPts < 0) {
+          turnedLossCount++;
+          if (dpp != null) turnedLossMfeDol += mfe * dpp;
+        }
       }
     }
     if (turnedLossCount > 0) {
@@ -621,17 +627,17 @@ function generateDailyInsights(windowTrades, historyTrades, scope, exitDataMap) 
         level: 'warning',
         icon: '⤵',
         title: `${turnedLossCount} winner${turnedLossCount !== 1 ? 's' : ''} turned into loss${turnedLossCount !== 1 ? 'es' : ''}`,
-        body: `${turnedLossCount} trade${turnedLossCount !== 1 ? 's' : ''} ${scope === 'day' ? 'today' : 'this week'} ${turnedLossCount !== 1 ? 'were' : 'was'} in profit at some point (combined peak +${turnedLossMfe.toLocaleString()} points) but held until the stop hit. Move stop to breakeven once you're up meaningfully — don't give it all back.`,
+        body: `${turnedLossCount} trade${turnedLossCount !== 1 ? 's' : ''} ${scope === 'day' ? 'today' : 'this week'} ${turnedLossCount !== 1 ? 'were' : 'was'} in profit at some point (combined peak ${turnedLossMfeDol > 0 ? '+$' + turnedLossMfeDol.toFixed(2) : turnedLossMfeDol.toLocaleString() + 'pt'}) but held until the stop hit. Move stop to breakeven once you're up meaningfully — don't give it all back.`,
       });
     }
     if (captureCount >= 2 && totalMfe > 0) {
       const captureRate = (totalCaptured / totalMfe) * 100;
-      if (captureRate < 40 && leftOnTable > 100) {
+      if (captureRate < 40 && leftOnTableDol > 1) {
         out.push({
           level: 'caution',
           icon: '✂',
           title: 'Closing winners too early',
-          body: `On your ${captureCount} winners ${scope === 'day' ? 'today' : 'this period'}, you only captured ${captureRate.toFixed(0)}% of the peak (left ${leftOnTable.toLocaleString()} points on the table). Either trail your stop or scale out — but stop cutting clean trends.`,
+          body: `On your ${captureCount} winners ${scope === 'day' ? 'today' : 'this period'}, you only captured ${captureRate.toFixed(0)}% of the peak (left $${leftOnTableDol.toFixed(2)} on the table). Either trail your stop or scale out — but stop cutting clean trends.`,
         });
       } else if (captureRate >= 75) {
         out.push({
@@ -670,6 +676,7 @@ function parseExitCSV(text) {
   const iOpen = idx('Open Time');
   const iClose = idx('Close Time');
   const iDur = idx('Duration (Hrs)');
+  const iProfitDol = idx('Profit ($)');
   const iProfitPts = idx('Profit (Pts)');
   const iMAE = idx('MAE (Pts)');
   const iMFE = idx('MFE (Pts)');
@@ -706,6 +713,7 @@ function parseExitCSV(text) {
       openTime: cells[iOpen] || null,
       closeTime: cells[iClose] || null,
       durationHrs: num(cells[iDur]),
+      profitDol: iProfitDol >= 0 ? num(cells[iProfitDol]) : null,
       profitPts: num(cells[iProfitPts]),
       mae: num(cells[iMAE]),
       mfe: mfe,
@@ -718,7 +726,42 @@ function parseExitCSV(text) {
       t1wMin: num(cells[iT1wMin]),
     };
   }
+  // Second pass: compute $-per-point for every position. Primary source: that position's own
+  // profit$ / profitPts ratio (most accurate because volume + symbol are baked in). Fallback:
+  // symbol-level median ratio, used only when this position closed at exactly 0 points.
+  const symbolRatios = {};
+  for (const k in out) {
+    const e = out[k];
+    if (e.profitDol != null && e.profitPts != null && e.profitPts !== 0) {
+      const r = e.profitDol / e.profitPts;
+      if (isFinite(r) && r > 0) {
+        if (!symbolRatios[e.symbol]) symbolRatios[e.symbol] = [];
+        symbolRatios[e.symbol].push(r);
+      }
+    }
+  }
+  const symbolMedian = {};
+  for (const s in symbolRatios) {
+    const arr = symbolRatios[s].sort((a, b) => a - b);
+    symbolMedian[s] = arr[Math.floor(arr.length / 2)];
+  }
+  for (const k in out) {
+    const e = out[k];
+    if (e.profitDol != null && e.profitPts != null && e.profitPts !== 0) {
+      e.dollarPerPt = Math.abs(e.profitDol / e.profitPts);
+    } else if (symbolMedian[e.symbol]) {
+      e.dollarPerPt = symbolMedian[e.symbol];
+    } else {
+      e.dollarPerPt = null;
+    }
+  }
   return out;
+}
+
+// Convert a points value to dollars using a position's dollarPerPt. Returns null if no ratio.
+function ptsToDollars(pts, dollarPerPt) {
+  if (pts == null || dollarPerPt == null) return null;
+  return pts * dollarPerPt;
 }
 
 // ═══════════════ EXIT ANALYSIS HELPERS ═══════════════
@@ -727,75 +770,82 @@ function parseExitCSV(text) {
 // and what the right exit would have looked like.
 function generateExitInsights(trade, exitData) {
   if (!exitData) return [];
-  const { mae, mfe, profitPts, t30m, t1h, t4h, t12h, t1d } = exitData;
+  const { mae, mfe, profitPts, t30m, t1h, t4h, t12h, t1d, dollarPerPt, profitDol } = exitData;
   if (mae == null && mfe == null) return [];
   const insights = [];
-  // Was the trade ever in profit?
-  const wasInProfit = mfe != null && mfe > 0;
-  const closedNet = profitPts != null ? profitPts : 0;
-  const closedWin = closedNet > 0;
+  // Helper: convert pts to dollars using this position's ratio; falls back to pts if no ratio
+  const toD = (pts) => pts == null ? null : (dollarPerPt != null ? pts * dollarPerPt : pts);
+  // Helper: format a $ value with sign — minus/plus prefix and 2 decimals
+  const fmtD = (d) => d == null ? '—' : (d >= 0 ? '+$' : '-$') + Math.abs(d).toFixed(2);
+  // Use the trade's actual closed P&L from the parent record if available (more accurate than
+  // the CSV's profitDol because the journal includes commissions+swap)
+  const tradeNet = (trade.profit || 0) + (trade.commission || 0) + (trade.swap || 0);
+  const closedDol = tradeNet || profitDol || 0;
+  const closedWin = closedDol > 0;
+  const mfeDol = toD(mfe);
+  const maeDol = toD(mae);
   // Capture rate
   if (mfe != null && mfe > 0) {
-    const captureRate = (closedNet / mfe) * 100;
+    const captureRate = (profitPts / mfe) * 100;
     if (closedWin) {
       if (captureRate >= 80) {
         insights.push({ level: 'good', title: 'Strong exit',
-          body: `You captured ${captureRate.toFixed(0)}% of this trade's peak (MFE was ${mfe.toLocaleString()}pt, you took ${closedNet.toLocaleString()}pt). This is what good profit-taking looks like — repeat the setup that allowed you to hold this long.` });
+          body: `You captured ${captureRate.toFixed(0)}% of this trade's peak (it was up ${fmtD(mfeDol)} at one point, you took ${fmtD(closedDol)}). This is what good profit-taking looks like — repeat the setup that allowed you to hold this long.` });
       } else if (captureRate >= 50) {
         insights.push({ level: 'caution', title: 'Decent exit, room for more',
-          body: `You captured ${captureRate.toFixed(0)}% of the peak (closed at ${closedNet.toLocaleString()}pt out of ${mfe.toLocaleString()}pt MFE). A trailing stop or partial scale-out would have let more of that run.` });
+          body: `You captured ${captureRate.toFixed(0)}% of the peak (was up ${fmtD(mfeDol)}, closed at ${fmtD(closedDol)} — left ${fmtD((mfeDol||0) - closedDol)} on the table). A trailing stop or partial scale-out would have let more of that run.` });
       } else {
         insights.push({ level: 'warning', title: 'Closed too early',
-          body: `You only kept ${captureRate.toFixed(0)}% of this trade's peak. MFE hit ${mfe.toLocaleString()}pt but you exited at ${closedNet.toLocaleString()}pt. You called it right but didn't let it work.` });
+          body: `You only kept ${captureRate.toFixed(0)}% of this trade's peak. It was up ${fmtD(mfeDol)} but you exited with just ${fmtD(closedDol)}. You called the direction right but didn't let the trade work.` });
       }
-    } else if (closedNet < 0) {
+    } else if (closedDol < 0) {
       // You were up, then closed in loss
+      const breakevenAt = Math.round((mfeDol || 0) * 0.4 * 100) / 100;
       insights.push({ level: 'warning', title: 'Winner turned into loser',
-        body: `This trade was up ${mfe.toLocaleString()}pt at one point. You closed it at ${closedNet.toLocaleString()}pt — gave back the entire ${mfe.toLocaleString()}pt and then took an additional ${Math.abs(closedNet).toLocaleString()}pt loss on top. Either move stop to breakeven once you're +${Math.round(mfe*0.4).toLocaleString()}pt, or take partial profits sooner.` });
+        body: `This trade was up ${fmtD(mfeDol)} at one point. You closed it at ${fmtD(closedDol)} — you gave back the entire +${(mfeDol||0).toFixed(2)} unrealized profit and then took an additional ${fmtD(closedDol)} loss on top. Either move stop to breakeven once you're up around +$${breakevenAt.toFixed(2)}, or take partial profits sooner.` });
     }
   }
-  // MAE analysis — how close did it come to the stop / how much pain absorbed
-  if (mae != null && mae < 0) {
-    if (closedWin && Math.abs(mae) > closedNet * 1.5) {
-      // Won, but took on significant pain first
+  // MAE analysis
+  if (mae != null && mae < 0 && maeDol != null) {
+    if (closedWin && Math.abs(maeDol) > closedDol * 1.5) {
       insights.push({ level: 'caution', title: 'Bumpy ride to win',
-        body: `Before this winner paid out, it was down ${Math.abs(mae).toLocaleString()}pt (worse than your eventual gain of ${closedNet.toLocaleString()}pt). Your entry timing was off — consider waiting for a better confirmation level, or you might be entering before the setup completes.` });
-    } else if (!closedWin && mae < -100) {
+        body: `Before this winner paid out, it was down ${fmtD(maeDol)} — more than your eventual gain of ${fmtD(closedDol)}. Your entry timing was off — consider waiting for a better confirmation level, or you might be entering before the setup completes.` });
+    } else if (!closedWin && maeDol < -10) {
       insights.push({ level: 'caution', title: 'Trade went against you immediately',
-        body: `Worst drawdown was ${Math.abs(mae).toLocaleString()}pt against you. The market told you fast — your entry zone wasn't valid.` });
+        body: `Worst drawdown was ${fmtD(maeDol)} against you. The market told you fast — your entry zone wasn't valid.` });
     }
   }
-  // Forward-time analysis — would patience have helped or hurt?
+  // Forward-time analysis — convert each to dollars
   const forward = [
-    { label: '30 minutes', val: t30m },
-    { label: '1 hour', val: t1h },
-    { label: '4 hours', val: t4h },
-    { label: '12 hours', val: t12h },
-    { label: '1 day', val: t1d },
+    { label: '30 minutes', val: t30m, dol: toD(t30m) },
+    { label: '1 hour', val: t1h, dol: toD(t1h) },
+    { label: '4 hours', val: t4h, dol: toD(t4h) },
+    { label: '12 hours', val: t12h, dol: toD(t12h) },
+    { label: '1 day', val: t1d, dol: toD(t1d) },
   ].filter(f => f.val != null);
-  if (forward.length > 0 && closedNet < 0) {
-    // For losing trades: did any held-to-X window save it?
+  if (forward.length > 0 && closedDol < 0) {
     const wouldHaveWon = forward.filter(f => f.val > 0);
     if (wouldHaveWon.length > 0) {
       const best = wouldHaveWon.reduce((a, b) => a.val > b.val ? a : b);
       insights.push({ level: 'caution', title: `Patience would have helped`,
-        body: `If you had held this trade ${best.label} longer, it would have been ${best.val > 0 ? '+' : ''}${best.val.toLocaleString()}pt instead of ${closedNet.toLocaleString()}pt. This setup may have needed more time to mature.` });
+        body: `If you had held this trade ${best.label} longer, it would have been ${fmtD(best.dol)} instead of ${fmtD(closedDol)}. This setup may have needed more time to mature.` });
     } else {
-      const allWorse = forward.every(f => f.val < closedNet);
+      const allWorse = forward.every(f => f.val < profitPts);
       if (allWorse) {
+        const t30mDol = toD(t30m), t1hDol = toD(t1h), t4hDol = toD(t4h);
         insights.push({ level: 'good', title: 'Right call to cut',
-          body: `Holding longer would have hurt more at every interval (T+30m: ${(t30m||0).toLocaleString()}pt, T+1h: ${(t1h||0).toLocaleString()}pt, T+4h: ${(t4h||0).toLocaleString()}pt). Cutting the loss was the correct decision.` });
+          body: `Holding longer would have hurt more at every interval (at +30m: ${fmtD(t30mDol)}, at +1h: ${fmtD(t1hDol)}, at +4h: ${fmtD(t4hDol)}). Cutting the loss was the correct decision.` });
       }
     }
   }
   if (forward.length > 0 && closedWin && t1d != null) {
-    // For winning trades: would more patience have made more?
-    if (t1d > closedNet * 1.5) {
+    const t1dDol = toD(t1d);
+    if (t1d > profitPts * 1.5) {
       insights.push({ level: 'caution', title: 'Could have ridden further',
-        body: `One day after your entry, the trade was at ${t1d.toLocaleString()}pt — ${((t1d/closedNet - 1)*100).toFixed(0)}% more than what you took (${closedNet.toLocaleString()}pt). Setups that move this clean often have more in them; consider a runner.` });
-    } else if (t1d < closedNet * 0.5) {
+        body: `One day after your entry, the trade was worth ${fmtD(t1dDol)} — ${((t1d/profitPts - 1)*100).toFixed(0)}% more than what you took (${fmtD(closedDol)}). Setups that move this clean often have more in them; consider a runner.` });
+    } else if (t1d < profitPts * 0.5) {
       insights.push({ level: 'good', title: 'Good exit before reversal',
-        body: `One day later the trade had given back to ${t1d.toLocaleString()}pt. You exited near the peak — that's skill, not luck. Note the timing.` });
+        body: `One day later the trade had given back to ${fmtD(t1dDol)}. You exited near the peak — that's skill, not luck. Note the timing.` });
     }
   }
   return insights;
@@ -808,10 +858,12 @@ function computeExitStats(enrichedTrades, exitDataMap) {
   let turnedLossCount = 0, turnedLossDollars = 0;
   let captureRates = [];
   // Forward-time aggregates
+  let giveBackDollars = 0;
   const forwardSums = { actual: 0, t30m: 0, t1h: 0, t4h: 0, t12h: 0, t1d: 0 };
   const forwardCounts = { actual: 0, t30m: 0, t1h: 0, t4h: 0, t12h: 0, t1d: 0 };
+  const forwardSumsDol = { actual: 0, t30m: 0, t1h: 0, t4h: 0, t12h: 0, t1d: 0 };
   const bySymbol = {};
-  const scatterData = []; // for MFE-vs-Profit chart
+  const scatterData = []; // for MFE-vs-Profit chart (now in dollars)
   for (const t of enrichedTrades) {
     const ed = exitDataMap[t.id];
     if (!ed) continue;
@@ -819,7 +871,8 @@ function computeExitStats(enrichedTrades, exitDataMap) {
     const profitPts = ed.profitPts ?? 0;
     const mfe = ed.mfe;
     const mae = ed.mae;
-    if (!bySymbol[t.symbol]) bySymbol[t.symbol] = { count: 0, mfeSum: 0, profitSum: 0, giveBack: 0, turnedLoss: 0, dollars: 0 };
+    const dpp = ed.dollarPerPt; // dollar-per-point ratio for this position
+    if (!bySymbol[t.symbol]) bySymbol[t.symbol] = { count: 0, mfeSum: 0, profitSum: 0, mfeSumDol: 0, profitSumDol: 0, giveBack: 0, turnedLoss: 0, dollars: 0, giveBackDol: 0 };
     bySymbol[t.symbol].count++;
     bySymbol[t.symbol].dollars += t.net;
     if (mfe != null && mfe > 0) {
@@ -828,6 +881,8 @@ function computeExitStats(enrichedTrades, exitDataMap) {
       totalProfit += profitPts;
       bySymbol[t.symbol].mfeSum += mfe;
       bySymbol[t.symbol].profitSum += profitPts;
+      const mfeDol = dpp != null ? mfe * dpp : null;
+      if (mfeDol != null) bySymbol[t.symbol].mfeSumDol += mfeDol;
       if (profitPts > 0) {
         wonByMFE++;
         captureRates.push((profitPts / mfe) * 100);
@@ -836,18 +891,35 @@ function computeExitStats(enrichedTrades, exitDataMap) {
         giveBackCount++;
         giveBackPts += (mfe - profitPts);
         bySymbol[t.symbol].giveBack++;
+        if (dpp != null) {
+          const gb = (mfe - profitPts) * dpp;
+          giveBackDollars += gb;
+          bySymbol[t.symbol].giveBackDol += gb;
+        }
       }
       if (mfe > 50 && profitPts < 0) {
         turnedLossCount++;
         turnedLossDollars += t.net;
         bySymbol[t.symbol].turnedLoss++;
       }
-      scatterData.push({ id: t.id, symbol: t.symbol, mfe, profit: profitPts, mae: mae || 0, net: t.net });
+      // Scatter data uses dollars when available, else points (fallback labelled in UI)
+      scatterData.push({
+        id: t.id, symbol: t.symbol,
+        mfe, profit: profitPts, mae: mae || 0, net: t.net,
+        mfeDol: dpp != null ? mfe * dpp : null,
+        profitDol: dpp != null ? profitPts * dpp : null,
+        maeDol: dpp != null && mae != null ? mae * dpp : null,
+      });
     }
-    // Forward sums
+    // Forward sums in points
     forwardSums.actual += profitPts; forwardCounts.actual++;
+    if (dpp != null) forwardSumsDol.actual += profitPts * dpp;
     for (const k of ['t30m', 't1h', 't4h', 't12h', 't1d']) {
-      if (ed[k] != null) { forwardSums[k] += ed[k]; forwardCounts[k]++; }
+      if (ed[k] != null) {
+        forwardSums[k] += ed[k];
+        forwardCounts[k]++;
+        if (dpp != null) forwardSumsDol[k] += ed[k] * dpp;
+      }
     }
   }
   const avgCapture = captureRates.length ? captureRates.reduce((a, b) => a + b, 0) / captureRates.length : 0;
@@ -859,13 +931,14 @@ function computeExitStats(enrichedTrades, exitDataMap) {
     turnedLoss: s.turnedLoss,
     giveBack: s.giveBack,
     dollars: s.dollars,
+    giveBackDol: s.giveBackDol,
   })).sort((a, b) => b.count - a.count);
   return {
     total, withMFE, wonByMFE,
     avgCapture, medianCapture,
-    giveBackCount, giveBackPts,
+    giveBackCount, giveBackPts, giveBackDollars,
     turnedLossCount, turnedLossDollars,
-    forwardSums, forwardCounts,
+    forwardSums, forwardCounts, forwardSumsDol,
     symbolStats, scatterData,
   };
 }
@@ -2465,18 +2538,22 @@ const TRADE_COLUMNS = [
     }
   },
   // ── Exit-quality (from MQL5 CSV import) ──
-  { id: 'mae',  label: 'MAE (pts)', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
+  { id: 'mae',  label: 'MAE ($)', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
     render: (t, note, ctx) => {
       const ed = ctx.exitData?.[t.id];
       if (!ed || ed.mae == null) return <span style={{ color: 'var(--text3)' }}>—</span>;
-      return <span className="tabnum" style={{ color: 'var(--red)' }}>{ed.mae.toLocaleString()}</span>;
+      const dol = ed.dollarPerPt != null ? ed.mae * ed.dollarPerPt : null;
+      if (dol == null) return <span className="tabnum" style={{ color: 'var(--red)' }}>{ed.mae.toLocaleString()}pt</span>;
+      return <span className="tabnum" style={{ color: 'var(--red)' }}>-${Math.abs(dol).toFixed(2)}</span>;
     }
   },
-  { id: 'mfe',  label: 'MFE (pts)', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
+  { id: 'mfe',  label: 'MFE ($)', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
     render: (t, note, ctx) => {
       const ed = ctx.exitData?.[t.id];
       if (!ed || ed.mfe == null) return <span style={{ color: 'var(--text3)' }}>—</span>;
-      return <span className="tabnum" style={{ color: 'var(--green-bright)' }}>+{ed.mfe.toLocaleString()}</span>;
+      const dol = ed.dollarPerPt != null ? ed.mfe * ed.dollarPerPt : null;
+      if (dol == null) return <span className="tabnum" style={{ color: 'var(--green-bright)' }}>+{ed.mfe.toLocaleString()}pt</span>;
+      return <span className="tabnum" style={{ color: 'var(--green-bright)' }}>+${dol.toFixed(2)}</span>;
     }
   },
   { id: 'capture', label: 'Capture %', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
@@ -2488,25 +2565,45 @@ const TRADE_COLUMNS = [
       return <span className="tabnum" style={{ color, fontWeight: 600 }}>{pct.toFixed(0)}%</span>;
     }
   },
-  { id: 't1h', label: 'If +1h held', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
+  { id: 'leftOnTable', label: 'Left on table ($)', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
+    render: (t, note, ctx) => {
+      const ed = ctx.exitData?.[t.id];
+      if (!ed || ed.mfe == null || ed.dollarPerPt == null) return <span style={{ color: 'var(--text3)' }}>—</span>;
+      const mfeDol = ed.mfe * ed.dollarPerPt;
+      const net = (t.profit || 0) + (t.commission || 0) + (t.swap || 0);
+      if (mfeDol <= 0 || net >= mfeDol) return <span style={{ color: 'var(--text3)' }}>—</span>;
+      const gap = mfeDol - net;
+      return <span className="tabnum" style={{ color: '#fbbf24', fontWeight: 600 }}>-${gap.toFixed(2)}</span>;
+    }
+  },
+  { id: 't1h', label: 'If +1h held ($)', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
     render: (t, note, ctx) => {
       const ed = ctx.exitData?.[t.id];
       if (!ed || ed.t1h == null) return <span style={{ color: 'var(--text3)' }}>—</span>;
-      return <span className="tabnum" style={{ color: ed.t1h >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{ed.t1h >= 0 ? '+' : ''}{ed.t1h.toLocaleString()}</span>;
+      const dol = ed.dollarPerPt != null ? ed.t1h * ed.dollarPerPt : null;
+      const color = ed.t1h >= 0 ? 'var(--green-bright)' : 'var(--red)';
+      if (dol == null) return <span className="tabnum" style={{ color }}>{ed.t1h >= 0 ? '+' : ''}{ed.t1h.toLocaleString()}pt</span>;
+      return <span className="tabnum" style={{ color }}>{dol >= 0 ? '+$' : '-$'}{Math.abs(dol).toFixed(2)}</span>;
     }
   },
-  { id: 't4h', label: 'If +4h held', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
+  { id: 't4h', label: 'If +4h held ($)', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
     render: (t, note, ctx) => {
       const ed = ctx.exitData?.[t.id];
       if (!ed || ed.t4h == null) return <span style={{ color: 'var(--text3)' }}>—</span>;
-      return <span className="tabnum" style={{ color: ed.t4h >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{ed.t4h >= 0 ? '+' : ''}{ed.t4h.toLocaleString()}</span>;
+      const dol = ed.dollarPerPt != null ? ed.t4h * ed.dollarPerPt : null;
+      const color = ed.t4h >= 0 ? 'var(--green-bright)' : 'var(--red)';
+      if (dol == null) return <span className="tabnum" style={{ color }}>{ed.t4h >= 0 ? '+' : ''}{ed.t4h.toLocaleString()}pt</span>;
+      return <span className="tabnum" style={{ color }}>{dol >= 0 ? '+$' : '-$'}{Math.abs(dol).toFixed(2)}</span>;
     }
   },
-  { id: 't1d', label: 'If +1d held', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
+  { id: 't1d', label: 'If +1d held ($)', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
     render: (t, note, ctx) => {
       const ed = ctx.exitData?.[t.id];
       if (!ed || ed.t1d == null) return <span style={{ color: 'var(--text3)' }}>—</span>;
-      return <span className="tabnum" style={{ color: ed.t1d >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{ed.t1d >= 0 ? '+' : ''}{ed.t1d.toLocaleString()}</span>;
+      const dol = ed.dollarPerPt != null ? ed.t1d * ed.dollarPerPt : null;
+      const color = ed.t1d >= 0 ? 'var(--green-bright)' : 'var(--red)';
+      if (dol == null) return <span className="tabnum" style={{ color }}>{ed.t1d >= 0 ? '+' : ''}{ed.t1d.toLocaleString()}pt</span>;
+      return <span className="tabnum" style={{ color }}>{dol >= 0 ? '+$' : '-$'}{Math.abs(dol).toFixed(2)}</span>;
     }
   },
   // ── Truly unavailable columns ──
@@ -3185,11 +3282,88 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
           {/* Exit-quality insights — auto-generated from MAE/MFE/forward-time data if present */}
           {exitData && (() => {
             const insights = generateExitInsights(trade, exitData);
-            const { mae, mfe, profitPts, t30m, t1h, t4h, t12h, t1d } = exitData;
+            const { mae, mfe, profitPts, t30m, t1h, t4h, t12h, t1d, dollarPerPt } = exitData;
+            // Convert points to dollars using this position's specific ratio
+            const toD = (pts) => pts != null && dollarPerPt != null ? pts * dollarPerPt : null;
+            const mfeDol = toD(mfe);
+            const maeDol = toD(mae);
+            const tradeNet = (trade.profit || 0) + (trade.commission || 0) + (trade.swap || 0);
+            const t30mDol = toD(t30m), t1hDol = toD(t1h), t4hDol = toD(t4h), t12hDol = toD(t12h), t1dDol = toD(t1d);
+            const fmtD = (d) => d == null ? '—' : (d >= 0 ? '+$' : '-$') + Math.abs(d).toFixed(2);
             const levelStyle = {
               warning: { border: 'rgba(239,83,80,0.35)', bg: 'rgba(239,83,80,0.06)', accent: 'var(--red)' },
               caution: { border: 'rgba(251,191,36,0.35)', bg: 'rgba(251,191,36,0.05)', accent: '#fbbf24' },
               good:    { border: 'rgba(38,166,154,0.35)', bg: 'rgba(38,166,154,0.06)', accent: 'var(--green-bright)' },
+            };
+            // ── Mini "journey" chart ──
+            // Shows the dollar range of this trade from MAE (worst) to MFE (best), with markers for
+            // entry ($0), exit (where you actually closed), and the unrealized peak. The "left on
+            // the table" gap between Exit and MFE is shaded so it visually screams at you.
+            const renderJourney = () => {
+              if (mfeDol == null && maeDol == null) return null;
+              const exit = tradeNet;
+              // Compute axis range — symmetric around zero, padded
+              const points = [0, exit, mfeDol || 0, maeDol || 0].filter(v => v != null);
+              const min = Math.min(...points);
+              const max = Math.max(...points);
+              const range = max - min || 1;
+              const pad = range * 0.08;
+              const axisMin = min - pad, axisMax = max + pad;
+              const axisRange = axisMax - axisMin;
+              const W = 1000, H = 110; // viewBox; scales to container width
+              const left = 40, right = W - 40;
+              const innerW = right - left;
+              const xOf = (v) => left + ((v - axisMin) / axisRange) * innerW;
+              const zeroX = xOf(0);
+              const exitX = xOf(exit);
+              const mfeX = mfeDol != null ? xOf(mfeDol) : null;
+              const maeX = maeDol != null ? xOf(maeDol) : null;
+              const trackY = 56;
+              // Build the journey line segments — entry at 0 → MAE → MFE → exit. Conceptually the trade
+              // wandered between MAE and MFE in time; we draw entry-to-low-to-high-to-exit as a polyline.
+              return (
+                <div style={{ marginBottom: 12, padding: 12, background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 8 }}>
+                  <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, marginBottom: 6 }}>The trade's journey ($)</div>
+                  <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height: 110, display: 'block' }}>
+                    {/* Track */}
+                    <line x1={left} y1={trackY} x2={right} y2={trackY} stroke="#3f3f46" strokeWidth="2" />
+                    {/* Zero baseline marker */}
+                    <line x1={zeroX} y1={trackY - 8} x2={zeroX} y2={trackY + 8} stroke="#52525b" strokeWidth="1.5" strokeDasharray="3 2" />
+                    <text x={zeroX} y={trackY + 24} textAnchor="middle" fontSize="11" fill="#a1a1ab">$0</text>
+                    {/* MAE bar — from zero left to MAE */}
+                    {maeX != null && maeDol < 0 && (
+                      <Fragment>
+                        <line x1={maeX} y1={trackY} x2={zeroX} y2={trackY} stroke="#ef5350" strokeWidth="6" strokeLinecap="round" opacity="0.55" />
+                        <circle cx={maeX} cy={trackY} r="7" fill="#ef5350" stroke="#0c0c0e" strokeWidth="2" />
+                        <text x={maeX} y={trackY - 14} textAnchor="middle" fontSize="11" fontWeight="700" fill="#ef5350">{fmtD(maeDol)}</text>
+                        <text x={maeX} y={trackY - 26} textAnchor="middle" fontSize="9" fill="#a1a1ab">WORST (MAE)</text>
+                      </Fragment>
+                    )}
+                    {/* MFE bar — from zero right to MFE */}
+                    {mfeX != null && mfeDol > 0 && (
+                      <Fragment>
+                        <line x1={zeroX} y1={trackY} x2={mfeX} y2={trackY} stroke="#26a69a" strokeWidth="6" strokeLinecap="round" opacity="0.55" />
+                        <circle cx={mfeX} cy={trackY} r="7" fill="#26a69a" stroke="#0c0c0e" strokeWidth="2" />
+                        <text x={mfeX} y={trackY - 14} textAnchor="middle" fontSize="11" fontWeight="700" fill="#26a69a">{fmtD(mfeDol)}</text>
+                        <text x={mfeX} y={trackY - 26} textAnchor="middle" fontSize="9" fill="#a1a1ab">BEST (MFE)</text>
+                      </Fragment>
+                    )}
+                    {/* Left-on-the-table gap — between exit and MFE, only if exit was below MFE */}
+                    {mfeX != null && mfeDol > 0 && exit < mfeDol && (
+                      <Fragment>
+                        <rect x={Math.min(exitX, mfeX)} y={trackY + 18} width={Math.abs(mfeX - exitX)} height="3" fill="#fbbf24" opacity="0.7" rx="1.5" />
+                        <text x={(exitX + mfeX) / 2} y={trackY + 36} textAnchor="middle" fontSize="10" fill="#fbbf24" fontWeight="600">⤴ left {fmtD(mfeDol - exit)} on the table</text>
+                      </Fragment>
+                    )}
+                    {/* Exit marker — diamond shape so it stands out from the round MAE/MFE dots */}
+                    <g transform={`translate(${exitX}, ${trackY})`}>
+                      <polygon points="0,-10 9,0 0,10 -9,0" fill={exit >= 0 ? '#26a69a' : '#ef5350'} stroke="#0c0c0e" strokeWidth="2" />
+                    </g>
+                    <text x={exitX} y={trackY + 56} textAnchor="middle" fontSize="11" fontWeight="700" fill={exit >= 0 ? '#26a69a' : '#ef5350'}>{fmtD(exit)}</text>
+                    <text x={exitX} y={trackY + 68} textAnchor="middle" fontSize="9" fill="#a1a1ab">YOU CLOSED HERE</text>
+                  </svg>
+                </div>
+              );
             };
             return (
               <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
@@ -3197,36 +3371,48 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                   <span style={{ color: 'var(--violet-light)', fontSize: 13 }}>◐</span>
                   <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>Exit quality (MAE / MFE data)</div>
                 </div>
-                {/* The numbers */}
+                {/* The mini journey chart */}
+                {renderJourney()}
+                {/* The numbers — now in DOLLARS */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 8, marginBottom: 12 }}>
-                  {mfe != null && (
+                  {mfeDol != null && (
                     <div style={{ padding: '8px 10px', background: 'rgba(38,166,154,0.06)', border: '1px solid rgba(38,166,154,0.25)', borderRadius: 7 }}>
-                      <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>MFE (best)</div>
-                      <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: 'var(--green-bright)' }}>+{mfe.toLocaleString()}pt</div>
+                      <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>MFE — best point</div>
+                      <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: 'var(--green-bright)' }}>{fmtD(mfeDol)}</div>
+                      <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>{mfe?.toLocaleString()}pt</div>
                     </div>
                   )}
-                  {mae != null && (
+                  {maeDol != null && (
                     <div style={{ padding: '8px 10px', background: 'rgba(239,83,80,0.06)', border: '1px solid rgba(239,83,80,0.25)', borderRadius: 7 }}>
-                      <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>MAE (worst)</div>
-                      <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: 'var(--red)' }}>{mae.toLocaleString()}pt</div>
+                      <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>MAE — worst point</div>
+                      <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: 'var(--red)' }}>{fmtD(maeDol)}</div>
+                      <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>{mae?.toLocaleString()}pt</div>
                     </div>
                   )}
                   {profitPts != null && mfe != null && mfe > 0 && profitPts > 0 && (
                     <div style={{ padding: '8px 10px', background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 7 }}>
-                      <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>Capture</div>
+                      <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>Capture rate</div>
                       <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{((profitPts / mfe) * 100).toFixed(0)}%</div>
+                      <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>of peak kept</div>
+                    </div>
+                  )}
+                  {mfeDol != null && mfeDol > 0 && tradeNet < mfeDol && (
+                    <div style={{ padding: '8px 10px', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 7 }}>
+                      <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>Left on table</div>
+                      <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24' }}>{fmtD(mfeDol - tradeNet)}</div>
+                      <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>peak − exit</div>
                     </div>
                   )}
                 </div>
-                {/* Forward-time mini ladder */}
-                {(t30m != null || t1h != null || t4h != null || t12h != null || t1d != null) && (
+                {/* Forward-time mini ladder — also in dollars now */}
+                {(t30mDol != null || t1hDol != null || t4hDol != null || t12hDol != null || t1dDol != null) && (
                   <div style={{ padding: 10, background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 7, marginBottom: 12 }}>
-                    <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, marginBottom: 8 }}>What if you'd held longer?</div>
+                    <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, marginBottom: 8 }}>What if you'd held longer? ($ value)</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4, fontSize: 11 }}>
-                      {[['+30m', t30m], ['+1h', t1h], ['+4h', t4h], ['+12h', t12h], ['+1d', t1d]].map(([label, val]) => (
+                      {[['+30m', t30mDol], ['+1h', t1hDol], ['+4h', t4hDol], ['+12h', t12hDol], ['+1d', t1dDol]].map(([label, val]) => (
                         <div key={label} style={{ textAlign: 'center', minWidth: 0, flex: 1 }}>
                           <div style={{ color: 'var(--text3)', fontSize: 10 }}>{label}</div>
-                          <div className="tabnum" style={{ color: val == null ? 'var(--text3)' : val >= 0 ? 'var(--green-bright)' : 'var(--red)', fontWeight: 600 }}>{val == null ? '—' : (val >= 0 ? '+' : '') + val.toLocaleString()}</div>
+                          <div className="tabnum" style={{ color: val == null ? 'var(--text3)' : val >= 0 ? 'var(--green-bright)' : 'var(--red)', fontWeight: 600 }}>{fmtD(val)}</div>
                         </div>
                       ))}
                     </div>
@@ -4807,11 +4993,11 @@ function ExitAnalysisPage({ trades, exitData, onOpenTrade }) {
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
             <div style={{ padding: 14, background: 'rgba(38,166,154,0.06)', border: '1px solid rgba(38,166,154,0.25)', borderRadius: 10 }}>
               <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--green-bright)', fontWeight: 700, marginBottom: 6 }}>MFE — Maximum Favorable Excursion</div>
-              <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.55 }}>The <strong style={{ color: 'var(--text)' }}>best point</strong> a trade reached in your favor before you closed it. If you bought at 100, the price ran to 120, then dropped, and you closed at 105 — your MFE is 20 points.</div>
+              <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.55 }}>The <strong style={{ color: 'var(--text)' }}>best point</strong> a trade reached in your favor before you closed it. Example: you bought XAUUSD at $4500. Price ran up to $4550 (you were up <strong style={{ color: 'var(--green-bright)' }}>+$50 unrealized</strong>), then dropped back. You closed at $4520 with only +$20 — your MFE was +$50.</div>
             </div>
             <div style={{ padding: 14, background: 'rgba(239,83,80,0.06)', border: '1px solid rgba(239,83,80,0.25)', borderRadius: 10 }}>
               <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--red)', fontWeight: 700, marginBottom: 6 }}>MAE — Maximum Adverse Excursion</div>
-              <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.55 }}>The <strong style={{ color: 'var(--text)' }}>worst point</strong> a trade was against you before you closed it. If you bought at 100, the price dropped to 90, then recovered and you closed at 105 — your MAE is −10 points.</div>
+              <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.55 }}>The <strong style={{ color: 'var(--text)' }}>worst point</strong> a trade was against you before you closed it. Example: you bought XAUUSD at $4500. Price dropped to $4480 (you were down <strong style={{ color: 'var(--red)' }}>-$20 unrealized</strong>), then recovered. You closed at $4515 with +$15 — your MAE was -$20.</div>
             </div>
           </div>
           <div style={{ marginTop: 14, padding: 12, background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6 }}>
@@ -4828,17 +5014,17 @@ function ExitAnalysisPage({ trades, exitData, onOpenTrade }) {
   // Calculate the dollar leak — sum of money lost on trades that were profitable but turned into losses
   const dollarLeak = stats.turnedLossDollars;
 
-  // Forward-time bar data
+  // Forward-time bar data — using dollar aggregates (computed by computeExitStats)
   const forwardBars = [
-    { label: 'Actually closed', pts: stats.forwardSums.actual, n: stats.forwardCounts.actual, key: 'actual' },
-    { label: 'Held to T+30m', pts: stats.forwardSums.t30m, n: stats.forwardCounts.t30m, key: 't30m' },
-    { label: 'Held to T+1h', pts: stats.forwardSums.t1h, n: stats.forwardCounts.t1h, key: 't1h' },
-    { label: 'Held to T+4h', pts: stats.forwardSums.t4h, n: stats.forwardCounts.t4h, key: 't4h' },
-    { label: 'Held to T+12h', pts: stats.forwardSums.t12h, n: stats.forwardCounts.t12h, key: 't12h' },
-    { label: 'Held to T+1d', pts: stats.forwardSums.t1d, n: stats.forwardCounts.t1d, key: 't1d' },
+    { label: 'Actually closed', dol: stats.forwardSumsDol.actual, n: stats.forwardCounts.actual, key: 'actual' },
+    { label: 'Held to T+30m', dol: stats.forwardSumsDol.t30m, n: stats.forwardCounts.t30m, key: 't30m' },
+    { label: 'Held to T+1h', dol: stats.forwardSumsDol.t1h, n: stats.forwardCounts.t1h, key: 't1h' },
+    { label: 'Held to T+4h', dol: stats.forwardSumsDol.t4h, n: stats.forwardCounts.t4h, key: 't4h' },
+    { label: 'Held to T+12h', dol: stats.forwardSumsDol.t12h, n: stats.forwardCounts.t12h, key: 't12h' },
+    { label: 'Held to T+1d', dol: stats.forwardSumsDol.t1d, n: stats.forwardCounts.t1d, key: 't1d' },
   ];
-  const maxForwardAbs = Math.max(...forwardBars.map(b => Math.abs(b.pts)), 1);
-  const bestForward = forwardBars.reduce((a, b) => b.pts > a.pts ? b : a);
+  const maxForwardAbs = Math.max(...forwardBars.map(b => Math.abs(b.dol)), 1);
+  const bestForward = forwardBars.reduce((a, b) => b.dol > a.dol ? b : a);
   const actualForward = forwardBars[0];
 
   return (
@@ -4849,7 +5035,7 @@ function ExitAnalysisPage({ trades, exitData, onOpenTrade }) {
           <div style={{ fontSize: 17, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>◐ Exit Analysis</div>
           <div style={{ fontSize: 12, color: 'var(--text3)' }}>Analyzing {stats.total} trades with MAE/MFE data</div>
         </div>
-        <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 2 }}>Answers the question: "When should I have closed?"</div>
+        <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 2 }}>Answers the question: "When should I have closed?" — all values shown in dollars</div>
       </Card>
 
       {/* Headline KPIs */}
@@ -4864,18 +5050,18 @@ function ExitAnalysisPage({ trades, exitData, onOpenTrade }) {
           <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)', fontWeight: 700, marginBottom: 6 }}>Winners → Losers</div>
           <div className="tabnum" style={{ fontSize: 28, fontWeight: 700, color: stats.turnedLossCount > 0 ? 'var(--red)' : 'var(--green-bright)', lineHeight: 1 }}>{stats.turnedLossCount}</div>
           <div style={{ fontSize: 11, color: stats.turnedLossCount > 0 ? 'var(--red)' : 'var(--text3)', marginTop: 4 }}>{stats.turnedLossCount > 0 ? `${fmtMoney(Math.abs(dollarLeak))} bled` : 'Clean record'}</div>
-          <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 3 }}>Trades up &gt; 50pt then closed in loss</div>
+          <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 3 }}>Was up &gt; 0, closed in loss</div>
         </Card>
         <Card style={{ padding: 14 }}>
-          <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)', fontWeight: 700, marginBottom: 6 }}>Pts left on table</div>
-          <div className="tabnum" style={{ fontSize: 22, fontWeight: 700, color: 'var(--red)', lineHeight: 1 }}>{(stats.giveBackPts / 1000).toFixed(1)}k</div>
+          <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)', fontWeight: 700, marginBottom: 6 }}>$ Left on table</div>
+          <div className="tabnum" style={{ fontSize: 22, fontWeight: 700, color: 'var(--red)', lineHeight: 1 }}>{fmtMoney(stats.giveBackDollars)}</div>
           <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>across {stats.giveBackCount} trades</div>
           <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 3 }}>Unrealized profit watched evaporate</div>
         </Card>
         <Card style={{ padding: 14 }}>
           <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)', fontWeight: 700, marginBottom: 6 }}>Best exit window</div>
           <div className="tabnum" style={{ fontSize: 22, fontWeight: 700, color: 'var(--violet-light)', lineHeight: 1 }}>{bestForward.label.replace('Held to ', '').replace('Actually closed', 'Now')}</div>
-          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>{(bestForward.pts / 1000).toFixed(1)}k pts total</div>
+          <div style={{ fontSize: 11, color: bestForward.dol >= 0 ? 'var(--green-bright)' : 'var(--red)', marginTop: 4 }}>{fmtMoney(bestForward.dol, true)} total</div>
           <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 3 }}>If you mechanically held that long</div>
         </Card>
       </div>
@@ -4884,29 +5070,29 @@ function ExitAnalysisPage({ trades, exitData, onOpenTrade }) {
       <Card style={{ padding: 18 }}>
         <div style={{ marginBottom: 6 }}>
           <div style={{ fontWeight: 600 }}>What if you had held mechanically?</div>
-          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Total points if every trade had been closed at the same time interval after entry. Compare to your actual closing decisions.</div>
+          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Total dollars across all trades if every one had been closed at the same time interval after entry. Compare to your actual closing decisions.</div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
           {forwardBars.map((b, i) => {
-            const pct = (Math.abs(b.pts) / maxForwardAbs) * 100;
+            const pct = (Math.abs(b.dol) / maxForwardAbs) * 100;
             const isActual = b.key === 'actual';
             const isBest = b.key === bestForward.key && !isActual;
-            const positive = b.pts >= 0;
+            const positive = b.dol >= 0;
             return (
-              <div key={b.key} style={{ display: 'grid', gridTemplateColumns: isMobile ? '110px 1fr 90px' : '140px 1fr 110px', alignItems: 'center', gap: 10 }}>
+              <div key={b.key} style={{ display: 'grid', gridTemplateColumns: isMobile ? '110px 1fr 90px' : '140px 1fr 120px', alignItems: 'center', gap: 10 }}>
                 <div style={{ fontSize: 12, color: isActual ? 'var(--violet-light)' : 'var(--text2)', fontWeight: isActual ? 700 : 500 }}>{b.label}{isBest && <span style={{ marginLeft: 6, fontSize: 9, padding: '1px 6px', background: 'rgba(38,166,154,0.18)', color: 'var(--green-bright)', borderRadius: 4, fontWeight: 700 }}>BEST</span>}</div>
                 <div style={{ height: 22, background: 'var(--panel2)', borderRadius: 6, position: 'relative', overflow: 'hidden' }}>
                   <div style={{ position: 'absolute', top: 0, bottom: 0, left: '50%', width: 1, background: 'var(--border2)' }} />
                   <div style={{ position: 'absolute', top: 0, bottom: 0, [positive ? 'left' : 'right']: '50%', width: `${pct / 2}%`, background: positive ? 'var(--green)' : 'var(--red)', opacity: isActual ? 1 : 0.75, borderRadius: 3 }} />
                 </div>
-                <div className="tabnum" style={{ fontSize: 12, fontWeight: 600, color: positive ? 'var(--green-bright)' : 'var(--red)', textAlign: 'right' }}>{positive ? '+' : ''}{(b.pts / 1000).toFixed(1)}k</div>
+                <div className="tabnum" style={{ fontSize: 12, fontWeight: 600, color: positive ? 'var(--green-bright)' : 'var(--red)', textAlign: 'right' }}>{fmtMoney(b.dol, true)}</div>
               </div>
             );
           })}
         </div>
-        {bestForward.key !== 'actual' && bestForward.pts > actualForward.pts && (
+        {bestForward.key !== 'actual' && bestForward.dol > actualForward.dol && (
           <div style={{ marginTop: 14, padding: 11, background: 'rgba(124,92,252,0.06)', border: '1px solid rgba(124,92,252,0.25)', borderRadius: 8, fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6 }}>
-            <strong style={{ color: 'var(--violet-light)' }}>Insight:</strong> Mechanically holding every trade for <strong>{bestForward.label.replace('Held to ', '')}</strong> would have produced <strong>{((bestForward.pts - actualForward.pts) / 1000).toFixed(1)}k more points</strong> than your actual closing decisions. This doesn't mean "always hold longer" — it means your bias is to close too early. Consider trailing stops or partial scale-outs to capture more of these trends.
+            <strong style={{ color: 'var(--violet-light)' }}>Insight:</strong> Mechanically holding every trade for <strong>{bestForward.label.replace('Held to ', '')}</strong> would have produced <strong>{fmtMoney(bestForward.dol - actualForward.dol, true)}</strong> more than your actual closing decisions. This doesn't mean "always hold longer" — it means your bias is to close too early. Consider trailing stops or partial scale-outs to capture more of these trends.
           </div>
         )}
         {bestForward.key === 'actual' && (
@@ -4916,28 +5102,27 @@ function ExitAnalysisPage({ trades, exitData, onOpenTrade }) {
         )}
       </Card>
 
-      {/* MFE vs Profit scatter — the visual "give back" picture */}
+      {/* MFE vs Profit scatter — the visual "give back" picture, in dollars */}
       <Card style={{ padding: 18 }}>
         <div style={{ marginBottom: 12 }}>
-          <div style={{ fontWeight: 600 }}>MFE vs realized profit</div>
-          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Each dot is a trade. The diagonal line is perfect capture (took everything the trade offered). Dots far below the diagonal = gave back profits. Dots far below 0 = winners that turned into losers.</div>
+          <div style={{ fontWeight: 600 }}>MFE vs realized profit ($)</div>
+          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Each dot is a trade. X axis = peak unrealized profit in dollars (MFE). Y axis = what you actually closed at. Dots low on the Y axis with a high X = winners you gave back. Dots far below zero = winners that turned into losers.</div>
         </div>
         <ResponsiveContainer width="100%" height={isMobile ? 260 : 320}>
           <ScatterChart margin={{ top: 10, right: 10, bottom: 10, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#26262c" />
-            <XAxis type="number" dataKey="mfe" name="MFE" tick={{ fontSize: 10, fill: '#a1a1ab' }} axisLine={{ stroke: '#303038' }} tickLine={false} tickFormatter={(v) => v >= 1000 ? `${(v/1000).toFixed(0)}k` : `${v}`} />
-            <YAxis type="number" dataKey="profit" name="Profit" tick={{ fontSize: 10, fill: '#a1a1ab' }} axisLine={false} tickLine={false} tickFormatter={(v) => v >= 1000 || v <= -1000 ? `${(v/1000).toFixed(0)}k` : `${v}`} />
+            <XAxis type="number" dataKey="mfeDol" name="MFE" tick={{ fontSize: 10, fill: '#a1a1ab' }} axisLine={{ stroke: '#303038' }} tickLine={false} tickFormatter={(v) => v >= 1000 ? `$${(v/1000).toFixed(1)}k` : `$${v.toFixed(0)}`} />
+            <YAxis type="number" dataKey="profitDol" name="Profit" tick={{ fontSize: 10, fill: '#a1a1ab' }} axisLine={false} tickLine={false} tickFormatter={(v) => v >= 1000 || v <= -1000 ? `$${(v/1000).toFixed(1)}k` : `$${v.toFixed(0)}`} />
             <ReferenceLine y={0} stroke="#52525b" strokeDasharray="2 2" />
-            {/* Diagonal "perfect capture" line — manually add at y=x via segments at min/max MFE */}
             <Tooltip cursor={{ strokeDasharray: '3 3', stroke: '#52525b' }} contentStyle={{ background: '#1a1a1f', border: '1px solid #3f3f46', borderRadius: 8, fontSize: 12, color: '#f4f4f5' }} labelStyle={{ color: '#fff', fontWeight: 600 }} itemStyle={{ color: '#f4f4f5' }}
-              formatter={(v, n, p) => {
-                if (n === 'profit') return [v.toLocaleString() + ' pt', 'Closed at'];
-                if (n === 'mfe') return [v.toLocaleString() + ' pt', 'Peak (MFE)'];
+              formatter={(v, n) => {
+                if (n === 'profitDol') return [(v >= 0 ? '+$' : '-$') + Math.abs(v).toFixed(2), 'Closed at'];
+                if (n === 'mfeDol') return [(v >= 0 ? '+$' : '-$') + Math.abs(v).toFixed(2), 'Peak (MFE)'];
                 return [v, n];
               }}
               labelFormatter={(v, payload) => payload?.[0]?.payload?.symbol || ''} />
-            <Scatter data={stats.scatterData.filter(d => d.profit >= 0)} fill="#26a69a" fillOpacity={0.7} />
-            <Scatter data={stats.scatterData.filter(d => d.profit < 0)} fill="#ef5350" fillOpacity={0.7} />
+            <Scatter data={stats.scatterData.filter(d => d.profitDol != null && d.profitDol >= 0)} fill="#26a69a" fillOpacity={0.7} />
+            <Scatter data={stats.scatterData.filter(d => d.profitDol != null && d.profitDol < 0)} fill="#ef5350" fillOpacity={0.7} />
           </ScatterChart>
         </ResponsiveContainer>
         <div style={{ display: 'flex', gap: 14, marginTop: 10, fontSize: 11, color: 'var(--text3)', flexWrap: 'wrap' }}>
@@ -4987,14 +5172,17 @@ function ExitAnalysisPage({ trades, exitData, onOpenTrade }) {
             <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>These trades were in profit at some point but you held until they hit your stop. Tap to review.</div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {stats.scatterData.filter(d => d.profit < 0 && d.mfe > 50).sort((a, b) => b.mfe - a.mfe).slice(0, 10).map(d => (
-              <div key={d.id} onClick={() => onOpenTrade?.(d.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'rgba(239,83,80,0.06)', border: '1px solid rgba(239,83,80,0.25)', borderRadius: 8, cursor: 'pointer', transition: 'background 0.15s' }}
+            {stats.scatterData
+              .filter(d => d.profit < 0 && d.mfe > 50)
+              .sort((a, b) => (b.mfeDol || b.mfe) - (a.mfeDol || a.mfe))
+              .slice(0, 10).map(d => (
+              <div key={d.id} onClick={() => onOpenTrade?.(d.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'rgba(239,83,80,0.06)', border: '1px solid rgba(239,83,80,0.25)', borderRadius: 8, cursor: 'pointer', transition: 'background 0.15s', flexWrap: 'wrap', gap: 8 }}
                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,83,80,0.12)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,83,80,0.06)'}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flexWrap: 'wrap' }}>
                   <span style={{ fontFamily: 'ui-monospace,monospace', fontSize: 13, color: 'var(--text)', fontWeight: 600 }}>{d.symbol}</span>
-                  <span style={{ fontSize: 11, color: 'var(--text3)' }}>peaked +{d.mfe.toLocaleString()}pt</span>
+                  <span style={{ fontSize: 11, color: 'var(--green-bright)' }}>peaked {d.mfeDol != null ? '+$' + d.mfeDol.toFixed(2) : '+' + d.mfe.toLocaleString() + 'pt'}</span>
                 </div>
-                <div className="tabnum" style={{ fontSize: 13, fontWeight: 600, color: 'var(--red)' }}>closed {d.profit.toLocaleString()}pt ({fmtMoney(d.net, true)})</div>
+                <div className="tabnum" style={{ fontSize: 13, fontWeight: 600, color: 'var(--red)' }}>closed {fmtMoney(d.net, true)}</div>
               </div>
             ))}
           </div>
