@@ -406,7 +406,7 @@ function computeRiskStatus(trades, rules) {
 //
 // `scope` is 'day' or 'week'. `windowTrades` is the slice for the analysis window.
 // `historyTrades` is the surrounding ~60-day baseline used to detect "unusual" behavior.
-function generateDailyInsights(windowTrades, historyTrades, scope) {
+function generateDailyInsights(windowTrades, historyTrades, scope, exitDataMap) {
   const out = [];
   if (!windowTrades || windowTrades.length === 0) return out;
 
@@ -598,10 +598,276 @@ function generateDailyInsights(windowTrades, historyTrades, scope) {
   // ── INSIGHT 12: Process discipline (closed positive without notes-tagged-mistakes) ──
   // Also requires notes; skipped at this layer.
 
+  // ── INSIGHT 13: Left money on the table (requires MAE/MFE CSV data) ──
+  // This is the insight we couldn't compute before — needed real MFE excursion data.
+  // For winning trades: how much of MFE did we capture? For trades that turned from win
+  // to loss: that's the headline failure mode.
+  if (exitDataMap && Object.keys(exitDataMap).length > 0) {
+    let totalMfe = 0, totalCaptured = 0, captureCount = 0;
+    let turnedLossCount = 0, turnedLossMfe = 0;
+    let leftOnTable = 0;
+    for (const t of windowTrades) {
+      const ed = exitDataMap[t.id]; if (!ed) continue;
+      const mfe = ed.mfe, profitPts = ed.profitPts;
+      if (mfe == null || profitPts == null) continue;
+      if (mfe > 0) {
+        totalMfe += mfe;
+        if (profitPts > 0) { totalCaptured += profitPts; captureCount++; leftOnTable += (mfe - profitPts); }
+        if (mfe > 50 && profitPts < 0) { turnedLossCount++; turnedLossMfe += mfe; }
+      }
+    }
+    if (turnedLossCount > 0) {
+      out.push({
+        level: 'warning',
+        icon: '⤵',
+        title: `${turnedLossCount} winner${turnedLossCount !== 1 ? 's' : ''} turned into loss${turnedLossCount !== 1 ? 'es' : ''}`,
+        body: `${turnedLossCount} trade${turnedLossCount !== 1 ? 's' : ''} ${scope === 'day' ? 'today' : 'this week'} ${turnedLossCount !== 1 ? 'were' : 'was'} in profit at some point (combined peak +${turnedLossMfe.toLocaleString()} points) but held until the stop hit. Move stop to breakeven once you're up meaningfully — don't give it all back.`,
+      });
+    }
+    if (captureCount >= 2 && totalMfe > 0) {
+      const captureRate = (totalCaptured / totalMfe) * 100;
+      if (captureRate < 40 && leftOnTable > 100) {
+        out.push({
+          level: 'caution',
+          icon: '✂',
+          title: 'Closing winners too early',
+          body: `On your ${captureCount} winners ${scope === 'day' ? 'today' : 'this period'}, you only captured ${captureRate.toFixed(0)}% of the peak (left ${leftOnTable.toLocaleString()} points on the table). Either trail your stop or scale out — but stop cutting clean trends.`,
+        });
+      } else if (captureRate >= 75) {
+        out.push({
+          level: 'good',
+          icon: '✓',
+          title: 'Strong profit-taking',
+          body: `You captured ${captureRate.toFixed(0)}% of available peak across ${captureCount} winners. That's disciplined exit execution.`,
+        });
+      }
+    }
+  }
+
   // ── Sort: warnings first, then cautions, then good news ──
   const order = { warning: 0, caution: 1, good: 2 };
   out.sort((a, b) => order[a.level] - order[b.level]);
   return out;
+}
+
+// ═══════════════ MAE/MFE CSV PARSER ═══════════════
+// Parses the CSV exported by the MQL5 script #72326 (Advanced Trade History Exporter)
+// Source: https://www.mql5.com/en/code/72326
+// Returns a map: { [positionId]: { mae, mfe, durationHrs, profitPts, t30m, t1h, t4h, t12h, t1d, t1w, t1wMin } }
+// All numbers in POINTS (the script's unit). n/a values become null.
+function parseExitCSV(text) {
+  const out = {};
+  if (!text) return out;
+  // Normalize line endings, split, drop empty lines
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim().length > 0);
+  if (lines.length < 2) return out;
+  // Parse header — handle the script's exact column names case-sensitively
+  const headers = lines[0].split(',').map(h => h.trim());
+  const idx = (name) => headers.findIndex(h => h === name);
+  const iPos = idx('Position ID');
+  const iSym = idx('Symbol');
+  const iType = idx('Type');
+  const iOpen = idx('Open Time');
+  const iClose = idx('Close Time');
+  const iDur = idx('Duration (Hrs)');
+  const iProfitPts = idx('Profit (Pts)');
+  const iMAE = idx('MAE (Pts)');
+  const iMFE = idx('MFE (Pts)');
+  const iT30 = idx('T+30m (Pts)');
+  const iT1h = idx('T+1h (Pts)');
+  const iT4h = idx('T+4h (Pts)');
+  const iT12h = idx('T+12h (Pts)');
+  const iT1d = idx('T+1d (Pts)');
+  const iT1w = idx('T+1w (Pts)');
+  const iT1wMin = idx('T+1w MIN (Pts)');
+  if (iPos < 0) return out;
+  const num = (s) => {
+    if (s == null) return null;
+    const t = String(s).trim();
+    if (t === '' || t.toLowerCase() === 'n/a') return null;
+    const n = parseFloat(t);
+    return isNaN(n) ? null : n;
+  };
+  // Per-position aggregator. Multiple CSV rows can share a Position ID (partial closes
+  // from the same position appear with the same ID but different close times). For excursion
+  // data — which is computed from the entire position open-to-MAX-window — we keep the row
+  // with the LARGEST MFE (most informative excursion picture for that position).
+  for (let i = 1; i < lines.length; i++) {
+    const cells = lines[i].split(',').map(c => c.trim());
+    if (cells.length < headers.length) continue;
+    const pos = cells[iPos];
+    if (!pos) continue;
+    const mfe = num(cells[iMFE]);
+    if (out[pos] && (out[pos].mfe ?? -Infinity) >= (mfe ?? -Infinity)) continue;
+    out[pos] = {
+      positionId: pos,
+      symbol: cells[iSym] || null,
+      type: cells[iType] ? cells[iType].toLowerCase() : null,
+      openTime: cells[iOpen] || null,
+      closeTime: cells[iClose] || null,
+      durationHrs: num(cells[iDur]),
+      profitPts: num(cells[iProfitPts]),
+      mae: num(cells[iMAE]),
+      mfe: mfe,
+      t30m: num(cells[iT30]),
+      t1h: num(cells[iT1h]),
+      t4h: num(cells[iT4h]),
+      t12h: num(cells[iT12h]),
+      t1d: num(cells[iT1d]),
+      t1w: num(cells[iT1w]),
+      t1wMin: num(cells[iT1wMin]),
+    };
+  }
+  return out;
+}
+
+// ═══════════════ EXIT ANALYSIS HELPERS ═══════════════
+// Given a trade with exit data, compute per-trade insights.
+// Returns an array of plain-English bullets explaining what MAE/MFE say about THIS trade,
+// and what the right exit would have looked like.
+function generateExitInsights(trade, exitData) {
+  if (!exitData) return [];
+  const { mae, mfe, profitPts, t30m, t1h, t4h, t12h, t1d } = exitData;
+  if (mae == null && mfe == null) return [];
+  const insights = [];
+  // Was the trade ever in profit?
+  const wasInProfit = mfe != null && mfe > 0;
+  const closedNet = profitPts != null ? profitPts : 0;
+  const closedWin = closedNet > 0;
+  // Capture rate
+  if (mfe != null && mfe > 0) {
+    const captureRate = (closedNet / mfe) * 100;
+    if (closedWin) {
+      if (captureRate >= 80) {
+        insights.push({ level: 'good', title: 'Strong exit',
+          body: `You captured ${captureRate.toFixed(0)}% of this trade's peak (MFE was ${mfe.toLocaleString()}pt, you took ${closedNet.toLocaleString()}pt). This is what good profit-taking looks like — repeat the setup that allowed you to hold this long.` });
+      } else if (captureRate >= 50) {
+        insights.push({ level: 'caution', title: 'Decent exit, room for more',
+          body: `You captured ${captureRate.toFixed(0)}% of the peak (closed at ${closedNet.toLocaleString()}pt out of ${mfe.toLocaleString()}pt MFE). A trailing stop or partial scale-out would have let more of that run.` });
+      } else {
+        insights.push({ level: 'warning', title: 'Closed too early',
+          body: `You only kept ${captureRate.toFixed(0)}% of this trade's peak. MFE hit ${mfe.toLocaleString()}pt but you exited at ${closedNet.toLocaleString()}pt. You called it right but didn't let it work.` });
+      }
+    } else if (closedNet < 0) {
+      // You were up, then closed in loss
+      insights.push({ level: 'warning', title: 'Winner turned into loser',
+        body: `This trade was up ${mfe.toLocaleString()}pt at one point. You closed it at ${closedNet.toLocaleString()}pt — gave back the entire ${mfe.toLocaleString()}pt and then took an additional ${Math.abs(closedNet).toLocaleString()}pt loss on top. Either move stop to breakeven once you're +${Math.round(mfe*0.4).toLocaleString()}pt, or take partial profits sooner.` });
+    }
+  }
+  // MAE analysis — how close did it come to the stop / how much pain absorbed
+  if (mae != null && mae < 0) {
+    if (closedWin && Math.abs(mae) > closedNet * 1.5) {
+      // Won, but took on significant pain first
+      insights.push({ level: 'caution', title: 'Bumpy ride to win',
+        body: `Before this winner paid out, it was down ${Math.abs(mae).toLocaleString()}pt (worse than your eventual gain of ${closedNet.toLocaleString()}pt). Your entry timing was off — consider waiting for a better confirmation level, or you might be entering before the setup completes.` });
+    } else if (!closedWin && mae < -100) {
+      insights.push({ level: 'caution', title: 'Trade went against you immediately',
+        body: `Worst drawdown was ${Math.abs(mae).toLocaleString()}pt against you. The market told you fast — your entry zone wasn't valid.` });
+    }
+  }
+  // Forward-time analysis — would patience have helped or hurt?
+  const forward = [
+    { label: '30 minutes', val: t30m },
+    { label: '1 hour', val: t1h },
+    { label: '4 hours', val: t4h },
+    { label: '12 hours', val: t12h },
+    { label: '1 day', val: t1d },
+  ].filter(f => f.val != null);
+  if (forward.length > 0 && closedNet < 0) {
+    // For losing trades: did any held-to-X window save it?
+    const wouldHaveWon = forward.filter(f => f.val > 0);
+    if (wouldHaveWon.length > 0) {
+      const best = wouldHaveWon.reduce((a, b) => a.val > b.val ? a : b);
+      insights.push({ level: 'caution', title: `Patience would have helped`,
+        body: `If you had held this trade ${best.label} longer, it would have been ${best.val > 0 ? '+' : ''}${best.val.toLocaleString()}pt instead of ${closedNet.toLocaleString()}pt. This setup may have needed more time to mature.` });
+    } else {
+      const allWorse = forward.every(f => f.val < closedNet);
+      if (allWorse) {
+        insights.push({ level: 'good', title: 'Right call to cut',
+          body: `Holding longer would have hurt more at every interval (T+30m: ${(t30m||0).toLocaleString()}pt, T+1h: ${(t1h||0).toLocaleString()}pt, T+4h: ${(t4h||0).toLocaleString()}pt). Cutting the loss was the correct decision.` });
+      }
+    }
+  }
+  if (forward.length > 0 && closedWin && t1d != null) {
+    // For winning trades: would more patience have made more?
+    if (t1d > closedNet * 1.5) {
+      insights.push({ level: 'caution', title: 'Could have ridden further',
+        body: `One day after your entry, the trade was at ${t1d.toLocaleString()}pt — ${((t1d/closedNet - 1)*100).toFixed(0)}% more than what you took (${closedNet.toLocaleString()}pt). Setups that move this clean often have more in them; consider a runner.` });
+    } else if (t1d < closedNet * 0.5) {
+      insights.push({ level: 'good', title: 'Good exit before reversal',
+        body: `One day later the trade had given back to ${t1d.toLocaleString()}pt. You exited near the peak — that's skill, not luck. Note the timing.` });
+    }
+  }
+  return insights;
+}
+
+// Aggregate exit-quality stats across all trades that have exit data
+function computeExitStats(enrichedTrades, exitDataMap) {
+  let total = 0, withMFE = 0, wonByMFE = 0, totalMFE = 0, totalProfit = 0;
+  let giveBackCount = 0, giveBackPts = 0;
+  let turnedLossCount = 0, turnedLossDollars = 0;
+  let captureRates = [];
+  // Forward-time aggregates
+  const forwardSums = { actual: 0, t30m: 0, t1h: 0, t4h: 0, t12h: 0, t1d: 0 };
+  const forwardCounts = { actual: 0, t30m: 0, t1h: 0, t4h: 0, t12h: 0, t1d: 0 };
+  const bySymbol = {};
+  const scatterData = []; // for MFE-vs-Profit chart
+  for (const t of enrichedTrades) {
+    const ed = exitDataMap[t.id];
+    if (!ed) continue;
+    total++;
+    const profitPts = ed.profitPts ?? 0;
+    const mfe = ed.mfe;
+    const mae = ed.mae;
+    if (!bySymbol[t.symbol]) bySymbol[t.symbol] = { count: 0, mfeSum: 0, profitSum: 0, giveBack: 0, turnedLoss: 0, dollars: 0 };
+    bySymbol[t.symbol].count++;
+    bySymbol[t.symbol].dollars += t.net;
+    if (mfe != null && mfe > 0) {
+      withMFE++;
+      totalMFE += mfe;
+      totalProfit += profitPts;
+      bySymbol[t.symbol].mfeSum += mfe;
+      bySymbol[t.symbol].profitSum += profitPts;
+      if (profitPts > 0) {
+        wonByMFE++;
+        captureRates.push((profitPts / mfe) * 100);
+      }
+      if (profitPts < mfe) {
+        giveBackCount++;
+        giveBackPts += (mfe - profitPts);
+        bySymbol[t.symbol].giveBack++;
+      }
+      if (mfe > 50 && profitPts < 0) {
+        turnedLossCount++;
+        turnedLossDollars += t.net;
+        bySymbol[t.symbol].turnedLoss++;
+      }
+      scatterData.push({ id: t.id, symbol: t.symbol, mfe, profit: profitPts, mae: mae || 0, net: t.net });
+    }
+    // Forward sums
+    forwardSums.actual += profitPts; forwardCounts.actual++;
+    for (const k of ['t30m', 't1h', 't4h', 't12h', 't1d']) {
+      if (ed[k] != null) { forwardSums[k] += ed[k]; forwardCounts[k]++; }
+    }
+  }
+  const avgCapture = captureRates.length ? captureRates.reduce((a, b) => a + b, 0) / captureRates.length : 0;
+  const medianCapture = captureRates.length ? [...captureRates].sort((a, b) => a - b)[Math.floor(captureRates.length / 2)] : 0;
+  const symbolStats = Object.entries(bySymbol).map(([sym, s]) => ({
+    symbol: sym,
+    count: s.count,
+    captureRate: s.mfeSum > 0 ? (s.profitSum / s.mfeSum) * 100 : 0,
+    turnedLoss: s.turnedLoss,
+    giveBack: s.giveBack,
+    dollars: s.dollars,
+  })).sort((a, b) => b.count - a.count);
+  return {
+    total, withMFE, wonByMFE,
+    avgCapture, medianCapture,
+    giveBackCount, giveBackPts,
+    turnedLossCount, turnedLossDollars,
+    forwardSums, forwardCounts,
+    symbolStats, scatterData,
+  };
 }
 
 // ═══════════════ MT5 PARSER ═══════════════
@@ -787,6 +1053,7 @@ const SK = {
   syncFolderHandle: 'ledger_syncFolderHandle', // stored in IndexedDB, this is just a marker
   deviceName: 'ledger_deviceName',
   tradeColumns: 'ledger_tradeColumns',
+  tradeExitData: 'ledger_tradeExitData', // MAE/MFE/forward-time data keyed by Position ID, imported from MT5 CSV script
 };
 const lsGet = (k, fallback) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { console.error(e); } };
@@ -1832,7 +2099,7 @@ function Dashboard({ trades, onDayClick, checklist, checklistDays, onChecklistTo
   );
 }
 // ═══════════════ DAY / WEEK VIEW ═══════════════
-function DayWeekView({ trades, dayNotes, onSaveDayNote, focusDate }) {
+function DayWeekView({ trades, dayNotes, onSaveDayNote, focusDate, exitData }) {
   const [mode, setMode] = useState('day');
   const stats = useMemo(() => computeStats(trades), [trades]);
   if (!stats) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--text3)' }}>No trades yet.</div>;
@@ -1843,23 +2110,23 @@ function DayWeekView({ trades, dayNotes, onSaveDayNote, focusDate }) {
         <button style={toggle('day')} onClick={() => setMode('day')}>Day</button>
         <button style={toggle('week')} onClick={() => setMode('week')}>Week</button>
       </div>
-      {mode === 'day' ? <DayView stats={stats} allTrades={trades} dayNotes={dayNotes} onSaveDayNote={onSaveDayNote} focusDate={focusDate} /> : <WeekView stats={stats} allTrades={trades} />}
+      {mode === 'day' ? <DayView stats={stats} allTrades={trades} dayNotes={dayNotes} onSaveDayNote={onSaveDayNote} focusDate={focusDate} exitData={exitData} /> : <WeekView stats={stats} allTrades={trades} exitData={exitData} />}
     </div>
   );
 }
 
-function DayView({ stats, allTrades, dayNotes, onSaveDayNote, focusDate }) {
+function DayView({ stats, allTrades, dayNotes, onSaveDayNote, focusDate, exitData }) {
   const days = useMemo(() => [...stats.daily].reverse(), [stats]);
   const [expanded, setExpanded] = useState(() => focusDate || days[0]?.date || null);
   useEffect(() => { if (focusDate) setExpanded(focusDate); }, [focusDate]);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {days.map(d => <DayCard key={d.date} day={d} allTrades={allTrades} expanded={expanded === d.date} onExpand={() => setExpanded(expanded === d.date ? null : d.date)} note={dayNotes[d.date]} onSaveNote={text => onSaveDayNote(d.date, text)} />)}
+      {days.map(d => <DayCard key={d.date} day={d} allTrades={allTrades} exitData={exitData} expanded={expanded === d.date} onExpand={() => setExpanded(expanded === d.date ? null : d.date)} note={dayNotes[d.date]} onSaveNote={text => onSaveDayNote(d.date, text)} />)}
     </div>
   );
 }
 
-function DayCard({ day, allTrades, expanded, onExpand, note, onSaveNote }) {
+function DayCard({ day, allTrades, exitData, expanded, onExpand, note, onSaveNote }) {
   const isMobile = useMobile();
   const dateObj = useMemo(() => { const [y, m, dd] = day.date.split('-').map(Number); return new Date(y, m - 1, dd); }, [day]);
   const niceDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
@@ -1933,7 +2200,7 @@ function DayCard({ day, allTrades, expanded, onExpand, note, onSaveNote }) {
                 const ct = parseMT5Date(t.closeTime); if (!ct) return false;
                 return ct >= histStart && ct < cutoff;
               });
-              return <InsightsPanel windowTrades={dayItems} historyTrades={history} scope="day" />;
+              return <InsightsPanel windowTrades={dayItems} historyTrades={history} scope="day" exitData={exitData} />;
             })()}
           </div>
           <div style={{ marginTop: 16 }}>
@@ -1970,7 +2237,7 @@ function DayCard({ day, allTrades, expanded, onExpand, note, onSaveNote }) {
   );
 }
 
-function WeekView({ stats, allTrades }) {
+function WeekView({ stats, allTrades, exitData }) {
   const isMobile = useMobile();
   const weeks = useMemo(() => {
     const map = {};
@@ -2056,7 +2323,7 @@ function WeekView({ stats, allTrades }) {
                       <span style={{ color: 'var(--violet-light)', fontSize: 13 }}>✦</span>
                       <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>RamanFX weekly insights</div>
                     </div>
-                    <InsightsPanel windowTrades={w.weekItems} historyTrades={history} scope="week" />
+                    <InsightsPanel windowTrades={w.weekItems} historyTrades={history} scope="week" exitData={exitData} />
                   </div>
                 )}
               </div>
@@ -2197,11 +2464,54 @@ const TRADE_COLUMNS = [
       return <div style={{ height: 6, background: '#26262c', borderRadius: 99, position: 'relative', overflow: 'hidden', width: 80, marginLeft: 'auto' }}><div style={{ position: 'absolute', top: 0, bottom: 0, width: 1, background: '#52525b', left: '50%' }} /><div style={{ position: 'absolute', top: 0, bottom: 0, background: pos ? 'var(--green)' : 'var(--red)', ...(pos ? { left: '50%', width: `${scalePct}%` } : { right: '50%', width: `${scalePct}%` }) }} /></div>;
     }
   },
-  // ── Unavailable columns (shown in picker but disabled with reason) ──
-  { id: 'mae',       label: 'MAE / MFE',   group: 'Unavailable', align: 'right', available: false,
-    reason: 'MT5 report history does not include tick-by-tick price data.' },
+  // ── Exit-quality (from MQL5 CSV import) ──
+  { id: 'mae',  label: 'MAE (pts)', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
+    render: (t, note, ctx) => {
+      const ed = ctx.exitData?.[t.id];
+      if (!ed || ed.mae == null) return <span style={{ color: 'var(--text3)' }}>—</span>;
+      return <span className="tabnum" style={{ color: 'var(--red)' }}>{ed.mae.toLocaleString()}</span>;
+    }
+  },
+  { id: 'mfe',  label: 'MFE (pts)', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
+    render: (t, note, ctx) => {
+      const ed = ctx.exitData?.[t.id];
+      if (!ed || ed.mfe == null) return <span style={{ color: 'var(--text3)' }}>—</span>;
+      return <span className="tabnum" style={{ color: 'var(--green-bright)' }}>+{ed.mfe.toLocaleString()}</span>;
+    }
+  },
+  { id: 'capture', label: 'Capture %', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
+    render: (t, note, ctx) => {
+      const ed = ctx.exitData?.[t.id];
+      if (!ed || ed.mfe == null || ed.mfe <= 0 || ed.profitPts == null || ed.profitPts <= 0) return <span style={{ color: 'var(--text3)' }}>—</span>;
+      const pct = (ed.profitPts / ed.mfe) * 100;
+      const color = pct >= 70 ? 'var(--green-bright)' : pct >= 40 ? '#fbbf24' : 'var(--red)';
+      return <span className="tabnum" style={{ color, fontWeight: 600 }}>{pct.toFixed(0)}%</span>;
+    }
+  },
+  { id: 't1h', label: 'If +1h held', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
+    render: (t, note, ctx) => {
+      const ed = ctx.exitData?.[t.id];
+      if (!ed || ed.t1h == null) return <span style={{ color: 'var(--text3)' }}>—</span>;
+      return <span className="tabnum" style={{ color: ed.t1h >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{ed.t1h >= 0 ? '+' : ''}{ed.t1h.toLocaleString()}</span>;
+    }
+  },
+  { id: 't4h', label: 'If +4h held', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
+    render: (t, note, ctx) => {
+      const ed = ctx.exitData?.[t.id];
+      if (!ed || ed.t4h == null) return <span style={{ color: 'var(--text3)' }}>—</span>;
+      return <span className="tabnum" style={{ color: ed.t4h >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{ed.t4h >= 0 ? '+' : ''}{ed.t4h.toLocaleString()}</span>;
+    }
+  },
+  { id: 't1d', label: 'If +1d held', group: 'Exit quality', align: 'right', available: true, defaultOn: false,
+    render: (t, note, ctx) => {
+      const ed = ctx.exitData?.[t.id];
+      if (!ed || ed.t1d == null) return <span style={{ color: 'var(--text3)' }}>—</span>;
+      return <span className="tabnum" style={{ color: ed.t1d >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{ed.t1d >= 0 ? '+' : ''}{ed.t1d.toLocaleString()}</span>;
+    }
+  },
+  // ── Truly unavailable columns ──
   { id: 'bestExit',  label: 'Best Exit',   group: 'Unavailable', align: 'right', available: false,
-    reason: 'Requires tick data we cannot derive from MT5 report files.' },
+    reason: 'Best-exit-price requires reconstructing the trade against tick data with your own exit criteria — out of scope. Use MFE column instead for the peak.' },
   { id: 'ticks',     label: 'Ticks',       group: 'Unavailable', align: 'right', available: false,
     reason: 'Futures-specific column not applicable to forex.' },
 ];
@@ -2213,7 +2523,7 @@ function ColumnPickerModal({ open, onClose, selected, onSave }) {
   useEffect(() => { setDraft(selected); }, [selected, open]);
   if (!open) return null;
   const toggle = (id) => setDraft(d => d.includes(id) ? d.filter(x => x !== id) : [...d, id]);
-  const groups = ['Timing', 'Instrument', 'Prices', 'P&L', 'Risk', 'Notes', 'Performance', 'Unavailable'];
+  const groups = ['Timing', 'Instrument', 'Prices', 'P&L', 'Risk', 'Exit quality', 'Notes', 'Performance', 'Unavailable'];
   return (
     <Modal open={open} onClose={onClose} width={680}>
       {/* Three-row flex layout inside the modal panel: fixed header, scrollable body, fixed footer.
@@ -2268,7 +2578,7 @@ function ColumnPickerModal({ open, onClose, selected, onSave }) {
 }
 
 // ═══════════════ TRADE VIEW ═══════════════
-function TradeView({ trades, notes, strategies, onSaveNote, onOpenTradeDetail }) {
+function TradeView({ trades, notes, strategies, exitData, onSaveNote, onOpenTradeDetail }) {
   const isMobile = useMobile();
   const [search, setSearch] = useState(''), [filter, setFilter] = useState('all'), [symFilter, setSymFilter] = useState('all'), [stratFilter, setStratFilter] = useState('all');
   const [expanded, setExpanded] = useState(null), [sortBy, setSortBy] = useState({ key: 'closeDate', dir: 'desc' });
@@ -2321,7 +2631,7 @@ function TradeView({ trades, notes, strategies, onSaveNote, onOpenTradeDetail })
   const sel = { fontSize: 12, background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 7, padding: '6px 8px', color: 'var(--text)', cursor: 'pointer' };
   // ctx supplies stats for column renderers (used by 'scale' column for largestWin/loss normalisation).
   // Pass filteredStats so the scale bar normalises against what's currently visible.
-  const ctx = { stats: filteredStats, strategies };
+  const ctx = { stats: filteredStats, strategies, exitData: exitData || {} };
 
   // Whether any filter is currently narrowing the view
   const isFiltering = search.trim() !== '' || filter !== 'all' || symFilter !== 'all' || stratFilter !== 'all';
@@ -2512,8 +2822,8 @@ function Modal({ open, onClose, children, width = 720 }) {
 // ═══════════════ INSIGHTS PANEL ═══════════════
 // Renders the array of insight objects returned by generateDailyInsights() from logic.js.
 // Used inside DayCard (per-day insights) and as a standalone block (weekly insights).
-function InsightsPanel({ windowTrades, historyTrades, scope, title }) {
-  const insights = useMemo(() => generateDailyInsights(windowTrades, historyTrades, scope), [windowTrades, historyTrades, scope]);
+function InsightsPanel({ windowTrades, historyTrades, scope, title, exitData }) {
+  const insights = useMemo(() => generateDailyInsights(windowTrades, historyTrades, scope, exitData), [windowTrades, historyTrades, scope, exitData]);
   if (!insights || insights.length === 0) {
     return (
       <div style={{ padding: 14, background: 'var(--panel2)', border: '1px dashed var(--border)', borderRadius: 10, fontSize: 12, color: 'var(--text3)', textAlign: 'center' }}>
@@ -2777,7 +3087,7 @@ function gatherTagUniverse(allNotes, key = 'tags') {
 }
 
 // ═══════════════ DETAILED TRADE PAGE ═══════════════
-function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onSaveNote, onSaveAttachments, onClose, onPurgeTag }) {
+function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onSaveNote, onSaveAttachments, onClose, onPurgeTag, exitData }) {
   // Compute MAE/MFE estimation. (We don't have tick data, so approximate from open/close and SL/TP.)
   const net = netPnL(trade);
   const profit = net >= 0;
@@ -2871,6 +3181,74 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 9, color: 'var(--text3)' }}><span>Max Loss</span><span>Max Profit</span></div>
           </div>
+
+          {/* Exit-quality insights — auto-generated from MAE/MFE/forward-time data if present */}
+          {exitData && (() => {
+            const insights = generateExitInsights(trade, exitData);
+            const { mae, mfe, profitPts, t30m, t1h, t4h, t12h, t1d } = exitData;
+            const levelStyle = {
+              warning: { border: 'rgba(239,83,80,0.35)', bg: 'rgba(239,83,80,0.06)', accent: 'var(--red)' },
+              caution: { border: 'rgba(251,191,36,0.35)', bg: 'rgba(251,191,36,0.05)', accent: '#fbbf24' },
+              good:    { border: 'rgba(38,166,154,0.35)', bg: 'rgba(38,166,154,0.06)', accent: 'var(--green-bright)' },
+            };
+            return (
+              <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
+                  <span style={{ color: 'var(--violet-light)', fontSize: 13 }}>◐</span>
+                  <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>Exit quality (MAE / MFE data)</div>
+                </div>
+                {/* The numbers */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 8, marginBottom: 12 }}>
+                  {mfe != null && (
+                    <div style={{ padding: '8px 10px', background: 'rgba(38,166,154,0.06)', border: '1px solid rgba(38,166,154,0.25)', borderRadius: 7 }}>
+                      <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>MFE (best)</div>
+                      <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: 'var(--green-bright)' }}>+{mfe.toLocaleString()}pt</div>
+                    </div>
+                  )}
+                  {mae != null && (
+                    <div style={{ padding: '8px 10px', background: 'rgba(239,83,80,0.06)', border: '1px solid rgba(239,83,80,0.25)', borderRadius: 7 }}>
+                      <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>MAE (worst)</div>
+                      <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: 'var(--red)' }}>{mae.toLocaleString()}pt</div>
+                    </div>
+                  )}
+                  {profitPts != null && mfe != null && mfe > 0 && profitPts > 0 && (
+                    <div style={{ padding: '8px 10px', background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 7 }}>
+                      <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>Capture</div>
+                      <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{((profitPts / mfe) * 100).toFixed(0)}%</div>
+                    </div>
+                  )}
+                </div>
+                {/* Forward-time mini ladder */}
+                {(t30m != null || t1h != null || t4h != null || t12h != null || t1d != null) && (
+                  <div style={{ padding: 10, background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 7, marginBottom: 12 }}>
+                    <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, marginBottom: 8 }}>What if you'd held longer?</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4, fontSize: 11 }}>
+                      {[['+30m', t30m], ['+1h', t1h], ['+4h', t4h], ['+12h', t12h], ['+1d', t1d]].map(([label, val]) => (
+                        <div key={label} style={{ textAlign: 'center', minWidth: 0, flex: 1 }}>
+                          <div style={{ color: 'var(--text3)', fontSize: 10 }}>{label}</div>
+                          <div className="tabnum" style={{ color: val == null ? 'var(--text3)' : val >= 0 ? 'var(--green-bright)' : 'var(--red)', fontWeight: 600 }}>{val == null ? '—' : (val >= 0 ? '+' : '') + val.toLocaleString()}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* The insights themselves — natural-language explanations */}
+                {insights.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {insights.map((ins, idx) => {
+                      const s = levelStyle[ins.level] || levelStyle.caution;
+                      return (
+                        <div key={idx} style={{ padding: '10px 12px', background: s.bg, border: `1px solid ${s.border}`, borderRadius: 8 }}>
+                          <div style={{ fontWeight: 600, fontSize: 12.5, color: s.accent, marginBottom: 3 }}>{ins.title}</div>
+                          <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.55 }}>{ins.body}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
             <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>Strategy</label>
@@ -4329,6 +4707,7 @@ function Sidebar({ tab, setTab, hasData, mobileOpen, setMobileOpen }) {
   const items = [
     ['dashboard', 'Dashboard', '◧'], ['dayweek', 'Day/Week View', '◰'], ['trade', 'Trade View', '☰'],
     ['positions', 'Positions & Orders', '◳'], ['rules', 'Risk Rules', '🛡'], ['playbook', 'Playbook', '◎'], ['notebook', 'Notebook', '✎'],
+    ['exit', 'Exit Analysis', '◐'],
     ['reports', 'Reports', '▦'], ['strategies', 'Strategies', '◈'], ['calendar', 'Calendar', '▤'], ['progress', 'Progress Tracker', '➚'],
   ];
   const aside = (
@@ -4401,6 +4780,230 @@ function Sidebar({ tab, setTab, hasData, mobileOpen, setMobileOpen }) {
   );
 }
 
+// ═══════════════ EXIT ANALYSIS PAGE ═══════════════
+// Surfaces what the MAE/MFE/forward-time CSV data reveals about exit quality.
+// Built specifically to answer "when should I have closed?"
+function ExitAnalysisPage({ trades, exitData, onOpenTrade }) {
+  const isMobile = useMobile();
+  const enriched = useMemo(() => trades.map(t => ({ ...t, net: netPnL(t) })), [trades]);
+  const stats = useMemo(() => computeExitStats(enriched, exitData), [enriched, exitData]);
+
+  // Empty state — no CSV imported yet
+  if (stats.total === 0) {
+    return (
+      <div className="fade-in">
+        <Card style={{ padding: 32, textAlign: 'center' }}>
+          <div style={{ fontSize: 32, marginBottom: 14 }}>◐</div>
+          <div style={{ fontSize: 17, fontWeight: 600, marginBottom: 8 }}>Exit Analysis</div>
+          <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 18, maxWidth: 540, margin: '0 auto 18px', lineHeight: 1.6 }}>
+            This page answers the question: <strong style={{ color: 'var(--text)' }}>"When should I have closed?"</strong> using MAE/MFE excursion data.
+            Import the CSV from MQL5 script <a href="https://www.mql5.com/en/code/72326" target="_blank" rel="noreferrer" style={{ color: 'var(--violet-light)' }}>#72326</a> (free, runs in MT5) to unlock it.
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 14 }}>Use the <strong style={{ color: 'var(--text2)' }}>📊 MAE/MFE CSV</strong> button in the header (or Settings on mobile) to upload the file.</div>
+        </Card>
+        {/* Explainer card */}
+        <Card style={{ padding: 18, marginTop: 14 }}>
+          <div style={{ fontWeight: 600, marginBottom: 12 }}>What is MAE / MFE?</div>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
+            <div style={{ padding: 14, background: 'rgba(38,166,154,0.06)', border: '1px solid rgba(38,166,154,0.25)', borderRadius: 10 }}>
+              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--green-bright)', fontWeight: 700, marginBottom: 6 }}>MFE — Maximum Favorable Excursion</div>
+              <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.55 }}>The <strong style={{ color: 'var(--text)' }}>best point</strong> a trade reached in your favor before you closed it. If you bought at 100, the price ran to 120, then dropped, and you closed at 105 — your MFE is 20 points.</div>
+            </div>
+            <div style={{ padding: 14, background: 'rgba(239,83,80,0.06)', border: '1px solid rgba(239,83,80,0.25)', borderRadius: 10 }}>
+              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--red)', fontWeight: 700, marginBottom: 6 }}>MAE — Maximum Adverse Excursion</div>
+              <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.55 }}>The <strong style={{ color: 'var(--text)' }}>worst point</strong> a trade was against you before you closed it. If you bought at 100, the price dropped to 90, then recovered and you closed at 105 — your MAE is −10 points.</div>
+            </div>
+          </div>
+          <div style={{ marginTop: 14, padding: 12, background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6 }}>
+            <strong style={{ color: 'var(--violet-light)' }}>Why it matters:</strong> If most of your winners' MFE was much bigger than what you actually took home, you're <em>cutting winners early</em>. If your losers' MAE shows they went deeply against you fast, your entries are off. The script also calculates "if you'd held to T+1h / 4h / 1d, what would you have made?" — answering whether more patience would have helped or hurt.
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // Compute headline KPIs
+  const captureColor = stats.avgCapture >= 70 ? 'var(--green-bright)' : stats.avgCapture >= 50 ? '#fbbf24' : 'var(--red)';
+  const captureLabel = stats.avgCapture >= 70 ? 'Strong exits' : stats.avgCapture >= 50 ? 'Room to grow' : 'Cutting winners short';
+  // Calculate the dollar leak — sum of money lost on trades that were profitable but turned into losses
+  const dollarLeak = stats.turnedLossDollars;
+
+  // Forward-time bar data
+  const forwardBars = [
+    { label: 'Actually closed', pts: stats.forwardSums.actual, n: stats.forwardCounts.actual, key: 'actual' },
+    { label: 'Held to T+30m', pts: stats.forwardSums.t30m, n: stats.forwardCounts.t30m, key: 't30m' },
+    { label: 'Held to T+1h', pts: stats.forwardSums.t1h, n: stats.forwardCounts.t1h, key: 't1h' },
+    { label: 'Held to T+4h', pts: stats.forwardSums.t4h, n: stats.forwardCounts.t4h, key: 't4h' },
+    { label: 'Held to T+12h', pts: stats.forwardSums.t12h, n: stats.forwardCounts.t12h, key: 't12h' },
+    { label: 'Held to T+1d', pts: stats.forwardSums.t1d, n: stats.forwardCounts.t1d, key: 't1d' },
+  ];
+  const maxForwardAbs = Math.max(...forwardBars.map(b => Math.abs(b.pts)), 1);
+  const bestForward = forwardBars.reduce((a, b) => b.pts > a.pts ? b : a);
+  const actualForward = forwardBars[0];
+
+  return (
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* Header */}
+      <Card style={{ padding: 18 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4, flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ fontSize: 17, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>◐ Exit Analysis</div>
+          <div style={{ fontSize: 12, color: 'var(--text3)' }}>Analyzing {stats.total} trades with MAE/MFE data</div>
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 2 }}>Answers the question: "When should I have closed?"</div>
+      </Card>
+
+      {/* Headline KPIs */}
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 12 }}>
+        <Card style={{ padding: 14 }}>
+          <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)', fontWeight: 700, marginBottom: 6 }}>MFE Capture</div>
+          <div className="tabnum" style={{ fontSize: 28, fontWeight: 700, color: captureColor, lineHeight: 1 }}>{stats.avgCapture.toFixed(0)}%</div>
+          <div style={{ fontSize: 11, color: captureColor, marginTop: 4, fontWeight: 600 }}>{captureLabel}</div>
+          <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 3 }}>Median {stats.medianCapture.toFixed(0)}% · {stats.wonByMFE} winners</div>
+        </Card>
+        <Card style={{ padding: 14 }}>
+          <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)', fontWeight: 700, marginBottom: 6 }}>Winners → Losers</div>
+          <div className="tabnum" style={{ fontSize: 28, fontWeight: 700, color: stats.turnedLossCount > 0 ? 'var(--red)' : 'var(--green-bright)', lineHeight: 1 }}>{stats.turnedLossCount}</div>
+          <div style={{ fontSize: 11, color: stats.turnedLossCount > 0 ? 'var(--red)' : 'var(--text3)', marginTop: 4 }}>{stats.turnedLossCount > 0 ? `${fmtMoney(Math.abs(dollarLeak))} bled` : 'Clean record'}</div>
+          <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 3 }}>Trades up &gt; 50pt then closed in loss</div>
+        </Card>
+        <Card style={{ padding: 14 }}>
+          <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)', fontWeight: 700, marginBottom: 6 }}>Pts left on table</div>
+          <div className="tabnum" style={{ fontSize: 22, fontWeight: 700, color: 'var(--red)', lineHeight: 1 }}>{(stats.giveBackPts / 1000).toFixed(1)}k</div>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>across {stats.giveBackCount} trades</div>
+          <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 3 }}>Unrealized profit watched evaporate</div>
+        </Card>
+        <Card style={{ padding: 14 }}>
+          <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)', fontWeight: 700, marginBottom: 6 }}>Best exit window</div>
+          <div className="tabnum" style={{ fontSize: 22, fontWeight: 700, color: 'var(--violet-light)', lineHeight: 1 }}>{bestForward.label.replace('Held to ', '').replace('Actually closed', 'Now')}</div>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>{(bestForward.pts / 1000).toFixed(1)}k pts total</div>
+          <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 3 }}>If you mechanically held that long</div>
+        </Card>
+      </div>
+
+      {/* Forward-time comparison chart */}
+      <Card style={{ padding: 18 }}>
+        <div style={{ marginBottom: 6 }}>
+          <div style={{ fontWeight: 600 }}>What if you had held mechanically?</div>
+          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Total points if every trade had been closed at the same time interval after entry. Compare to your actual closing decisions.</div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
+          {forwardBars.map((b, i) => {
+            const pct = (Math.abs(b.pts) / maxForwardAbs) * 100;
+            const isActual = b.key === 'actual';
+            const isBest = b.key === bestForward.key && !isActual;
+            const positive = b.pts >= 0;
+            return (
+              <div key={b.key} style={{ display: 'grid', gridTemplateColumns: isMobile ? '110px 1fr 90px' : '140px 1fr 110px', alignItems: 'center', gap: 10 }}>
+                <div style={{ fontSize: 12, color: isActual ? 'var(--violet-light)' : 'var(--text2)', fontWeight: isActual ? 700 : 500 }}>{b.label}{isBest && <span style={{ marginLeft: 6, fontSize: 9, padding: '1px 6px', background: 'rgba(38,166,154,0.18)', color: 'var(--green-bright)', borderRadius: 4, fontWeight: 700 }}>BEST</span>}</div>
+                <div style={{ height: 22, background: 'var(--panel2)', borderRadius: 6, position: 'relative', overflow: 'hidden' }}>
+                  <div style={{ position: 'absolute', top: 0, bottom: 0, left: '50%', width: 1, background: 'var(--border2)' }} />
+                  <div style={{ position: 'absolute', top: 0, bottom: 0, [positive ? 'left' : 'right']: '50%', width: `${pct / 2}%`, background: positive ? 'var(--green)' : 'var(--red)', opacity: isActual ? 1 : 0.75, borderRadius: 3 }} />
+                </div>
+                <div className="tabnum" style={{ fontSize: 12, fontWeight: 600, color: positive ? 'var(--green-bright)' : 'var(--red)', textAlign: 'right' }}>{positive ? '+' : ''}{(b.pts / 1000).toFixed(1)}k</div>
+              </div>
+            );
+          })}
+        </div>
+        {bestForward.key !== 'actual' && bestForward.pts > actualForward.pts && (
+          <div style={{ marginTop: 14, padding: 11, background: 'rgba(124,92,252,0.06)', border: '1px solid rgba(124,92,252,0.25)', borderRadius: 8, fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6 }}>
+            <strong style={{ color: 'var(--violet-light)' }}>Insight:</strong> Mechanically holding every trade for <strong>{bestForward.label.replace('Held to ', '')}</strong> would have produced <strong>{((bestForward.pts - actualForward.pts) / 1000).toFixed(1)}k more points</strong> than your actual closing decisions. This doesn't mean "always hold longer" — it means your bias is to close too early. Consider trailing stops or partial scale-outs to capture more of these trends.
+          </div>
+        )}
+        {bestForward.key === 'actual' && (
+          <div style={{ marginTop: 14, padding: 11, background: 'rgba(38,166,154,0.06)', border: '1px solid rgba(38,166,154,0.25)', borderRadius: 8, fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6 }}>
+            <strong style={{ color: 'var(--green-bright)' }}>Good news:</strong> Your actual exit decisions beat every mechanical hold-time strategy. You're picking your moments well — just be aware of the {stats.turnedLossCount} cases where winners turned into losers.
+          </div>
+        )}
+      </Card>
+
+      {/* MFE vs Profit scatter — the visual "give back" picture */}
+      <Card style={{ padding: 18 }}>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontWeight: 600 }}>MFE vs realized profit</div>
+          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Each dot is a trade. The diagonal line is perfect capture (took everything the trade offered). Dots far below the diagonal = gave back profits. Dots far below 0 = winners that turned into losers.</div>
+        </div>
+        <ResponsiveContainer width="100%" height={isMobile ? 260 : 320}>
+          <ScatterChart margin={{ top: 10, right: 10, bottom: 10, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#26262c" />
+            <XAxis type="number" dataKey="mfe" name="MFE" tick={{ fontSize: 10, fill: '#a1a1ab' }} axisLine={{ stroke: '#303038' }} tickLine={false} tickFormatter={(v) => v >= 1000 ? `${(v/1000).toFixed(0)}k` : `${v}`} />
+            <YAxis type="number" dataKey="profit" name="Profit" tick={{ fontSize: 10, fill: '#a1a1ab' }} axisLine={false} tickLine={false} tickFormatter={(v) => v >= 1000 || v <= -1000 ? `${(v/1000).toFixed(0)}k` : `${v}`} />
+            <ReferenceLine y={0} stroke="#52525b" strokeDasharray="2 2" />
+            {/* Diagonal "perfect capture" line — manually add at y=x via segments at min/max MFE */}
+            <Tooltip cursor={{ strokeDasharray: '3 3', stroke: '#52525b' }} contentStyle={{ background: '#1a1a1f', border: '1px solid #3f3f46', borderRadius: 8, fontSize: 12, color: '#f4f4f5' }} labelStyle={{ color: '#fff', fontWeight: 600 }} itemStyle={{ color: '#f4f4f5' }}
+              formatter={(v, n, p) => {
+                if (n === 'profit') return [v.toLocaleString() + ' pt', 'Closed at'];
+                if (n === 'mfe') return [v.toLocaleString() + ' pt', 'Peak (MFE)'];
+                return [v, n];
+              }}
+              labelFormatter={(v, payload) => payload?.[0]?.payload?.symbol || ''} />
+            <Scatter data={stats.scatterData.filter(d => d.profit >= 0)} fill="#26a69a" fillOpacity={0.7} />
+            <Scatter data={stats.scatterData.filter(d => d.profit < 0)} fill="#ef5350" fillOpacity={0.7} />
+          </ScatterChart>
+        </ResponsiveContainer>
+        <div style={{ display: 'flex', gap: 14, marginTop: 10, fontSize: 11, color: 'var(--text3)', flexWrap: 'wrap' }}>
+          <span><span style={{ display: 'inline-block', width: 9, height: 9, background: '#26a69a', borderRadius: '50%', marginRight: 5 }} />Winner (closed in profit)</span>
+          <span><span style={{ display: 'inline-block', width: 9, height: 9, background: '#ef5350', borderRadius: '50%', marginRight: 5 }} />Loser (closed in loss)</span>
+        </div>
+      </Card>
+
+      {/* Per-symbol exit quality table */}
+      <Card style={{ padding: 18 }}>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontWeight: 600 }}>Per-symbol exit quality</div>
+          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Which instruments do you exit well on, and which bleed you via give-backs?</div>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
+            <thead><tr style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', borderBottom: '1px solid var(--border)' }}>
+              <th style={{ padding: 10, textAlign: 'left' }}>Symbol</th>
+              <th style={{ padding: 10, textAlign: 'right' }}>Trades</th>
+              <th style={{ padding: 10, textAlign: 'right' }}>Capture</th>
+              <th style={{ padding: 10, textAlign: 'right' }}>Turned losses</th>
+              <th style={{ padding: 10, textAlign: 'right' }}>Net $</th>
+            </tr></thead>
+            <tbody>
+              {stats.symbolStats.map(s => {
+                const captureColor = s.captureRate >= 70 ? 'var(--green-bright)' : s.captureRate >= 40 ? '#fbbf24' : 'var(--red)';
+                return (
+                  <tr key={s.symbol} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: 10, fontFamily: 'ui-monospace,monospace', color: 'var(--text)' }}>{s.symbol}</td>
+                    <td className="tabnum" style={{ padding: 10, textAlign: 'right', color: 'var(--text2)' }}>{s.count}</td>
+                    <td className="tabnum" style={{ padding: 10, textAlign: 'right', color: captureColor, fontWeight: 600 }}>{s.captureRate.toFixed(0)}%</td>
+                    <td className="tabnum" style={{ padding: 10, textAlign: 'right', color: s.turnedLoss > 0 ? 'var(--red)' : 'var(--text3)' }}>{s.turnedLoss}/{s.count} ({s.count > 0 ? (s.turnedLoss / s.count * 100).toFixed(0) : 0}%)</td>
+                    <td className="tabnum" style={{ padding: 10, textAlign: 'right', fontWeight: 600, color: s.dollars >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(s.dollars, true)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {/* Worst give-back trades — clickable */}
+      {stats.scatterData.filter(d => d.profit < 0 && d.mfe > 50).length > 0 && (
+        <Card style={{ padding: 18 }}>
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontWeight: 600 }}>Top winners that turned into losers</div>
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>These trades were in profit at some point but you held until they hit your stop. Tap to review.</div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {stats.scatterData.filter(d => d.profit < 0 && d.mfe > 50).sort((a, b) => b.mfe - a.mfe).slice(0, 10).map(d => (
+              <div key={d.id} onClick={() => onOpenTrade?.(d.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'rgba(239,83,80,0.06)', border: '1px solid rgba(239,83,80,0.25)', borderRadius: 8, cursor: 'pointer', transition: 'background 0.15s' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,83,80,0.12)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,83,80,0.06)'}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                  <span style={{ fontFamily: 'ui-monospace,monospace', fontSize: 13, color: 'var(--text)', fontWeight: 600 }}>{d.symbol}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text3)' }}>peaked +{d.mfe.toLocaleString()}pt</span>
+                </div>
+                <div className="tabnum" style={{ fontSize: 13, fontWeight: 600, color: 'var(--red)' }}>closed {d.profit.toLocaleString()}pt ({fmtMoney(d.net, true)})</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 // ═══════════════ ROOT APP ═══════════════
 function App() {
   const [trades, setTrades] = useState(() => lsGet(SK.trades, []));
@@ -4417,6 +5020,8 @@ function App() {
   const [workingOrders, setWorkingOrders] = useState(() => lsGet(SK.workingOrders, []));
   const [deposits, setDeposits] = useState(() => lsGet(SK.deposits, []));
   const [attachments, setAttachments] = useState(() => lsGet(SK.attachments, {}));
+  // MAE/MFE/forward-time data imported from MQL5 script #72326 CSV. Keyed by Position ID.
+  const [exitData, setExitData] = useState(() => lsGet(SK.tradeExitData, {}));
   const [detailTrade, setDetailTrade] = useState(null);
   const [daySummary, setDaySummary] = useState(null); // {key} when popup shown
   const [brokerOffsetInput, setBrokerOffsetInput] = useState(() => String(lsGet(SK.brokerOffset, 3)));
@@ -4468,6 +5073,41 @@ function App() {
     markDirty();
     return { added, updated, skipped };
   };
+
+  // Import the MAE/MFE/forward-time CSV exported by MQL5 script #72326.
+  // Merges by Position ID into the existing exitData store; doesn't touch the trades themselves.
+  const handleExitCSVImport = (file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const text = ev.target.result;
+        const parsed = parseExitCSV(text);
+        const positionIds = Object.keys(parsed);
+        if (positionIds.length === 0) {
+          alert('No trade data found in that CSV. Make sure you exported it with the "Advanced Trade History Exporter" script (#72326) from MQL5.');
+          return;
+        }
+        // Match against existing trades to see how many we can enrich
+        const existingTradeIds = new Set(trades.map(t => t.id));
+        const matched = positionIds.filter(id => existingTradeIds.has(id));
+        const unmatched = positionIds.length - matched.length;
+        const next = { ...exitData, ...parsed };
+        setExitData(next); lsSet(SK.tradeExitData, next); markDirty();
+        alert(
+          `Imported MAE/MFE data for ${positionIds.length} positions.\n\n` +
+          `• ${matched.length} matched to existing trades in your journal\n` +
+          (unmatched > 0 ? `• ${unmatched} positions in CSV not yet in journal (will match when you re-import your MT5 HTML report)\n\n` : '\n') +
+          `Open the Exit Analysis page to see what this data reveals.`
+        );
+      } catch (err) {
+        alert('Error parsing CSV: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+  const exitCSVInputRef = useRef(null);
+  const onExitCSVChange = (e) => { const f = e.target.files?.[0]; if (f) handleExitCSVImport(f); e.target.value = ''; };
   const saveNote = (id, n) => { const next = { ...notes, [id]: n }; setNotes(next); lsSet(SK.notes, next); markDirty(); };
   // Remove a tag or mistake from EVERY note that contains it. Used by the TagPicker × button
   // to clean up the universal library.
@@ -4515,11 +5155,11 @@ function App() {
 
   const buildBackup = () => ({
     trades, notes, dayNotes, accounts, strategies, checklist, checklistDays, notebook, playbookState,
-    openPositions, workingOrders, deposits, attachments, riskRules,
+    openPositions, workingOrders, deposits, attachments, riskRules, exitData,
     exportedAt: new Date().toISOString(),
     deviceId: getDeviceId(),
     deviceName,
-    schemaVersion: 1,
+    schemaVersion: 2, // bumped for exitData
   });
   const exportJSON = () => {
     const blob = new Blob([JSON.stringify(buildBackup(), null, 2)], { type: 'application/json' });
@@ -4636,6 +5276,7 @@ function App() {
         setWorkingOrders(wo); lsSet(SK.workingOrders, wo);
         setDeposits(dep); lsSet(SK.deposits, dep);
         const at = d.attachments || {}; setAttachments(at); lsSet(SK.attachments, at);
+        const ed = d.exitData || {}; setExitData(ed); lsSet(SK.tradeExitData, ed);
         if (d.riskRules) { const rr = { ...DEFAULT_RISK_RULES, ...d.riskRules }; setRiskRules(rr); lsSet(SK.riskRules, rr); }
         setActiveAccount('all'); lsSet(SK.activeAccount, 'all');
         const now = Date.now();
@@ -4708,6 +5349,7 @@ function App() {
         setWorkingOrders(wo); lsSet(SK.workingOrders, wo);
         setDeposits(dep); lsSet(SK.deposits, dep);
         const at = d.attachments || {}; setAttachments(at); lsSet(SK.attachments, at);
+        const ed = d.exitData || {}; setExitData(ed); lsSet(SK.tradeExitData, ed);
         if (d.riskRules) { const rr = { ...DEFAULT_RISK_RULES, ...d.riskRules }; setRiskRules(rr); lsSet(SK.riskRules, rr); }
         setActiveAccount('all'); lsSet(SK.activeAccount, 'all');
         setShowSettings(false); setTab('dashboard');
@@ -4813,6 +5455,15 @@ function App() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
               {trades.length > 0 && <DateRangeFilter value={dateRange} onChange={setDateRange} />}
               <UploadBtn onUpload={handleUpload} primary />
+              {/* MAE/MFE CSV import — button shows on desktop; mobile gets it inside Settings */}
+              {!isMobile && (
+                <Hint text="Import MAE/MFE/forward-excursion data from the MQL5 script #72326 CSV export. Enriches existing trades with exit-quality metrics.">
+                  <button style={{ ...btnStyle('secondary'), display: 'inline-flex', alignItems: 'center', gap: 5 }} onClick={() => exitCSVInputRef.current?.click()}>
+                    <span style={{ fontSize: 12 }}>📊</span><span>MAE/MFE CSV</span>
+                  </button>
+                </Hint>
+              )}
+              <input ref={exitCSVInputRef} type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={onExitCSVChange} />
               <button style={{ ...btnStyle('ghost'), padding: 7 }} onClick={() => setShowSettings(!showSettings)}>⚙</button>
             </div>
           </div>
@@ -4829,6 +5480,22 @@ function App() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                 <div style={{ fontWeight: 600 }}>Settings</div>
                 <button style={btnStyle('ghost')} onClick={() => setShowSettings(false)}>✕</button>
+              </div>
+              {/* Timezone section */}
+              <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, marginBottom: 8 }}>Exit-quality data (MAE / MFE)</div>
+                <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 8, maxWidth: 720, lineHeight: 1.55 }}>
+                  Exit-quality data (MAE = worst drawdown, MFE = best run-up, forward returns at T+30m/1h/4h/12h/1d) comes from a free MQL5 script: <a href="https://www.mql5.com/en/code/72326" target="_blank" rel="noreferrer" style={{ color: 'var(--violet-light)' }}>code #72326</a>. Run it in MT5, then upload the generated CSV here. We'll match rows to your existing trades by Position ID and unlock the Exit Analysis page + per-trade insights.
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                  <button style={btnStyle('secondary')} onClick={() => exitCSVInputRef.current?.click()}>📊 Import MAE/MFE CSV</button>
+                  {Object.keys(exitData).length > 0 && (
+                    <Fragment>
+                      <span style={{ fontSize: 12, color: 'var(--text2)' }}>{Object.keys(exitData).length} positions with exit data</span>
+                      <button style={btnStyle('ghost')} onClick={() => { if (confirm('Clear all MAE/MFE exit data? Your trades stay; just the MAE/MFE/forward-time columns get cleared.')) { setExitData({}); lsSet(SK.tradeExitData, {}); markDirty(); } }}>Clear</button>
+                    </Fragment>
+                  )}
+                </div>
               </div>
               {/* Timezone section */}
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
@@ -4942,16 +5609,17 @@ function App() {
               {detailTrade && (() => {
                 const t = trades.find(x => x.id === detailTrade);
                 if (!t) return null;
-                return <DetailedTradePage trade={t} note={notes[t.id] || {}} strategies={strategies} attachments={attachments} allNotes={notes} onSaveNote={n => saveNote(t.id, n)} onSaveAttachments={saveAttachments} onClose={() => setDetailTrade(null)} onPurgeTag={purgeTagFromAllNotes} />;
+                return <DetailedTradePage trade={t} note={notes[t.id] || {}} strategies={strategies} attachments={attachments} allNotes={notes} onSaveNote={n => saveNote(t.id, n)} onSaveAttachments={saveAttachments} onClose={() => setDetailTrade(null)} onPurgeTag={purgeTagFromAllNotes} exitData={exitData[t.id]} />;
               })()}
               {!detailTrade && tab === 'dashboard' && <Dashboard trades={dateFilteredTrades} onDayClick={handleDayClick} checklist={checklist} checklistDays={checklistDays} onChecklistToggle={toggleChecklist} onChecklistEdit={editChecklist} setTab={setTab} snapshot={activeSnapshot} openPositions={filteredOpenPositions} workingOrders={filteredWorkingOrders} riskStatus={riskStatus} riskRules={riskRules} onOpenGate={() => setGateOpen(true)} deposits={dateFilteredDeposits} />}
-              {!detailTrade && tab === 'dayweek' && <DayWeekView trades={dateFilteredTrades} dayNotes={dayNotes} onSaveDayNote={saveDayNote} focusDate={focusDate} />}
-              {!detailTrade && tab === 'trade' && <TradeView trades={dateFilteredTrades} notes={notes} strategies={strategies} onSaveNote={saveNote} onOpenTradeDetail={setDetailTrade} />}
+              {!detailTrade && tab === 'dayweek' && <DayWeekView trades={dateFilteredTrades} dayNotes={dayNotes} onSaveDayNote={saveDayNote} focusDate={focusDate} exitData={exitData} />}
+              {!detailTrade && tab === 'trade' && <TradeView trades={dateFilteredTrades} notes={notes} strategies={strategies} exitData={exitData} onSaveNote={saveNote} onOpenTradeDetail={setDetailTrade} />}
               {!detailTrade && tab === 'positions' && <PositionsPage snapshot={activeSnapshot} openPositions={filteredOpenPositions} workingOrders={filteredWorkingOrders} deposits={dateFilteredDeposits} />}
               {!detailTrade && tab === 'playbook' && <Playbook playbookState={playbookState} onSavePlaybookState={savePlaybookState} />}
               {!detailTrade && tab === 'rules' && <RiskRules rules={riskRules} onSave={saveRiskRules} />}
               {!detailTrade && tab === 'notebook' && <Notebook entries={notebook} onSave={saveNotebookEntry} onDelete={deleteNotebookEntry} />}
               {!detailTrade && tab === 'reports' && <Reports trades={dateFilteredTrades} setTab={setTab} />}
+              {!detailTrade && tab === 'exit' && <ExitAnalysisPage trades={dateFilteredTrades} exitData={exitData} onOpenTrade={(id) => setDetailTrade(id)} />}
               {!detailTrade && tab === 'strategies' && <Strategies strategies={strategies} trades={dateFilteredTrades} notes={notes} onSave={saveStrategy} onDelete={deleteStrategy} />}
               {!detailTrade && tab === 'calendar' && <CalendarPage trades={dateFilteredTrades} onDayClick={handleDayClick} />}
               {!detailTrade && tab === 'progress' && <ProgressPage trades={dateFilteredTrades} checklist={checklist} checklistDays={checklistDays} />}
