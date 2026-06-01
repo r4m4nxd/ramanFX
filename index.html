@@ -695,19 +695,25 @@ function parseExitCSV(text) {
     const n = parseFloat(t);
     return isNaN(n) ? null : n;
   };
-  // Per-position aggregator. Multiple CSV rows can share a Position ID (partial closes
-  // from the same position appear with the same ID but different close times). For excursion
-  // data — which is computed from the entire position open-to-MAX-window — we keep the row
-  // with the LARGEST MFE (most informative excursion picture for that position).
+  // Per-position aggregator. Multiple CSV rows can share a Position ID — this happens whenever
+  // a position closed in partial fills (scale-outs, multiple TPs, partial manual closes). The
+  // MQL5 script #72326 reports excursion data PER FILL, not per position. To get a position-level
+  // picture we must merge across rows:
+  //   • Profit ($) and Profit (Pts) — SUM across fills (each fill closed part of the position)
+  //   • MFE — MAX across fills (best peak any fill saw is the position's peak)
+  //   • MAE — MIN across fills (worst drawdown any fill saw)
+  //   • Forward-time (T+30m..T+1d) — MAX (all fills share the same open time so they should
+  //     report identical numbers; we take max to be tolerant of script quirks)
+  //   • durationHrs — MAX (the position lived until its last fill)
+  //   • openTime — earliest, closeTime — latest
+  // After aggregation we sanity-check: if MFE somehow ends up below profit (script bug, partial-
+  // fill timing quirk, or a fill closed in profit beyond the recorded peak), we flag it suspect.
   for (let i = 1; i < lines.length; i++) {
     const cells = lines[i].split(',').map(c => c.trim());
     if (cells.length < headers.length) continue;
     const pos = cells[iPos];
     if (!pos) continue;
-    const mfe = num(cells[iMFE]);
-    if (out[pos] && (out[pos].mfe ?? -Infinity) >= (mfe ?? -Infinity)) continue;
-    out[pos] = {
-      positionId: pos,
+    const row = {
       symbol: cells[iSym] || null,
       type: cells[iType] ? cells[iType].toLowerCase() : null,
       openTime: cells[iOpen] || null,
@@ -716,7 +722,7 @@ function parseExitCSV(text) {
       profitDol: iProfitDol >= 0 ? num(cells[iProfitDol]) : null,
       profitPts: num(cells[iProfitPts]),
       mae: num(cells[iMAE]),
-      mfe: mfe,
+      mfe: num(cells[iMFE]),
       t30m: num(cells[iT30]),
       t1h: num(cells[iT1h]),
       t4h: num(cells[iT4h]),
@@ -725,6 +731,49 @@ function parseExitCSV(text) {
       t1w: num(cells[iT1w]),
       t1wMin: num(cells[iT1wMin]),
     };
+    if (!out[pos]) {
+      out[pos] = { positionId: pos, fillCount: 1, ...row };
+      continue;
+    }
+    // Merge with existing
+    const e = out[pos];
+    e.fillCount = (e.fillCount || 1) + 1;
+    // Sum the realized values
+    if (row.profitDol != null) e.profitDol = (e.profitDol || 0) + row.profitDol;
+    if (row.profitPts != null) e.profitPts = (e.profitPts || 0) + row.profitPts;
+    // MAX for MFE and forward windows (best peak / best forward outcome)
+    const takeMax = (a, b) => a == null ? b : b == null ? a : Math.max(a, b);
+    e.mfe = takeMax(e.mfe, row.mfe);
+    e.t30m = takeMax(e.t30m, row.t30m);
+    e.t1h = takeMax(e.t1h, row.t1h);
+    e.t4h = takeMax(e.t4h, row.t4h);
+    e.t12h = takeMax(e.t12h, row.t12h);
+    e.t1d = takeMax(e.t1d, row.t1d);
+    e.t1w = takeMax(e.t1w, row.t1w);
+    e.durationHrs = takeMax(e.durationHrs, row.durationHrs);
+    // MIN for MAE (worst drawdown — most negative)
+    const takeMin = (a, b) => a == null ? b : b == null ? a : Math.min(a, b);
+    e.mae = takeMin(e.mae, row.mae);
+    e.t1wMin = takeMin(e.t1wMin, row.t1wMin);
+    // Earliest open, latest close
+    if (row.openTime && (!e.openTime || row.openTime < e.openTime)) e.openTime = row.openTime;
+    if (row.closeTime && (!e.closeTime || row.closeTime > e.closeTime)) e.closeTime = row.closeTime;
+  }
+  // Sanity check: if MFE is still below realized profit after aggregation, the data is suspect.
+  // This can happen if the script's excursion sampling missed the actual peak, or if there are
+  // partial fills the script didn't capture for some reason. Mark the entry so the UI can warn.
+  for (const k in out) {
+    const e = out[k];
+    if (e.mfe != null && e.profitPts != null && e.mfe < e.profitPts) {
+      e.suspectMFE = true;
+      // Repair: the true peak is at LEAST the realized profit (you closed there).
+      e.mfe = e.profitPts;
+    }
+    if (e.mae != null && e.profitPts != null && e.mae > Math.min(0, e.profitPts)) {
+      // MAE should be ≤ 0 AND ≤ realized profit. If MAE > realized loss, similar repair.
+      e.suspectMAE = true;
+      e.mae = Math.min(0, e.profitPts);
+    }
   }
   // Second pass: compute $-per-point for every position. Primary source: that position's own
   // profit$ / profitPts ratio (most accurate because volume + symbol are baked in). Fallback:
@@ -3300,9 +3349,25 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
             const { mae, mfe, profitPts, t30m, t1h, t4h, t12h, t1d, dollarPerPt } = exitData;
             // Convert points to dollars using this position's specific ratio
             const toD = (pts) => pts != null && dollarPerPt != null ? pts * dollarPerPt : null;
-            const mfeDol = toD(mfe);
-            const maeDol = toD(mae);
+            let mfeDol = toD(mfe);
+            let maeDol = toD(mae);
             const tradeNet = (trade.profit || 0) + (trade.commission || 0) + (trade.swap || 0);
+            // ── SANITY RECONCILIATION ──
+            // The CSV is exported by a third-party MQL5 script and can have scale mismatches with
+            // the journal — e.g., when the CSV row reflects a partial fill and the journal records
+            // the whole position. Detect inconsistencies and either repair them or flag the data
+            // as suspect so we don't display misleading numbers.
+            //   Invariant 1: MFE_$ >= tradeNet   (peak must be at least where you closed)
+            //   Invariant 2: MAE_$ <= min(0, tradeNet)   (worst point must be at least as bad as either zero or closed)
+            // If either is violated, the CSV's $/pt ratio is wrong for this trade. We mark the data
+            // suspect and show a banner instead of misleading numbers.
+            let suspectData = false;
+            if (mfeDol != null && tradeNet > mfeDol + 0.5) { // half-dollar tolerance for rounding
+              suspectData = true;
+            }
+            if (maeDol != null && maeDol > Math.min(0, tradeNet) + 0.5) {
+              suspectData = true;
+            }
             const t30mDol = toD(t30m), t1hDol = toD(t1h), t4hDol = toD(t4h), t12hDol = toD(t12h), t1dDol = toD(t1d);
             const fmtD = (d) => d == null ? '—' : (d >= 0 ? '+$' : '-$') + Math.abs(d).toFixed(2);
             const levelStyle = {
@@ -3429,49 +3494,81 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                   <span style={{ color: 'var(--violet-light)', fontSize: 13 }}>◐</span>
                   <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>Exit quality (MAE / MFE data)</div>
                 </div>
-                {/* The mini journey chart */}
-                {renderJourney()}
-                {/* The numbers — now in DOLLARS */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 8, marginBottom: 12 }}>
-                  {mfeDol != null && (
-                    <div style={{ padding: '8px 10px', background: 'rgba(38,166,154,0.06)', border: '1px solid rgba(38,166,154,0.25)', borderRadius: 7 }}>
-                      <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>MFE — best point</div>
-                      <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: 'var(--green-bright)' }}>{fmtD(mfeDol)}</div>
-                      <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>{mfe?.toLocaleString()}pt</div>
+                {/* Suspect-data warning — shown when CSV-derived MFE/MAE conflict with the journal's actual closed P&L.
+                    This typically means the CSV row captured only a partial fill of a position the journal recorded
+                    in full, so the points-to-dollars ratio is off. Rather than show misleading numbers, we flag it. */}
+                {suspectData && (
+                  <div style={{ padding: '10px 12px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.4)', borderRadius: 8, marginBottom: 12 }}>
+                    <div style={{ fontWeight: 600, fontSize: 12.5, color: '#fbbf24', marginBottom: 3 }}>⚠ Exit data looks inconsistent</div>
+                    <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.55 }}>
+                      The CSV reports a peak (MFE) of {fmtD(mfeDol)} but you closed at {fmtD(tradeNet)} — that's impossible (your peak can't be below your exit). This usually means the trade closed in partial fills and the CSV captured only one fill while the journal recorded the whole position. The MAE/MFE numbers below are <strong>unreliable for this trade</strong>; treat them as approximations only.
                     </div>
-                  )}
-                  {maeDol != null && (
-                    <div style={{ padding: '8px 10px', background: 'rgba(239,83,80,0.06)', border: '1px solid rgba(239,83,80,0.25)', borderRadius: 7 }}>
-                      <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>MAE — worst point</div>
-                      <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: 'var(--red)' }}>{fmtD(maeDol)}</div>
-                      <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>{mae?.toLocaleString()}pt</div>
-                    </div>
-                  )}
-                  {profitPts != null && mfe != null && mfe > 0 && profitPts > 0 && (
-                    <div style={{ padding: '8px 10px', background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 7 }}>
-                      <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>Capture rate</div>
-                      <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{((profitPts / mfe) * 100).toFixed(0)}%</div>
-                      <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>of peak kept</div>
-                    </div>
-                  )}
-                  {/* Tile changes meaning based on whether the trade closed positive or negative. */}
-                  {mfeDol != null && mfeDol > 0 && tradeNet < mfeDol && tradeNet > 0 && (
-                    <div style={{ padding: '8px 10px', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 7 }}>
-                      <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>Left on table</div>
-                      <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24' }}>{fmtD(mfeDol - tradeNet)}</div>
-                      <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>peak − exit profit</div>
-                    </div>
-                  )}
-                  {mfeDol != null && mfeDol > 0 && tradeNet <= 0 && (
-                    <div style={{ padding: '8px 10px', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 7 }}>
-                      <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>Missed escape</div>
-                      <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24' }}>+${mfeDol.toFixed(2)}</div>
-                      <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>could have exited here</div>
-                    </div>
-                  )}
-                </div>
-                {/* Forward-time mini ladder — also in dollars now */}
-                {(t30mDol != null || t1hDol != null || t4hDol != null || t12hDol != null || t1dDol != null) && (
+                  </div>
+                )}
+                {/* The mini journey chart — only shown when data is consistent */}
+                {!suspectData && renderJourney()}
+                {/* The numbers — DOLLARS when reliable, points-only fallback when suspect */}
+                {!suspectData && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 8, marginBottom: 12 }}>
+                    {mfeDol != null && (
+                      <div style={{ padding: '8px 10px', background: 'rgba(38,166,154,0.06)', border: '1px solid rgba(38,166,154,0.25)', borderRadius: 7 }}>
+                        <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>MFE — best point</div>
+                        <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: 'var(--green-bright)' }}>{fmtD(mfeDol)}</div>
+                        <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>{mfe?.toLocaleString()}pt</div>
+                      </div>
+                    )}
+                    {maeDol != null && (
+                      <div style={{ padding: '8px 10px', background: 'rgba(239,83,80,0.06)', border: '1px solid rgba(239,83,80,0.25)', borderRadius: 7 }}>
+                        <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>MAE — worst point</div>
+                        <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: 'var(--red)' }}>{fmtD(maeDol)}</div>
+                        <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>{mae?.toLocaleString()}pt</div>
+                      </div>
+                    )}
+                    {profitPts != null && mfe != null && mfe > 0 && profitPts > 0 && (
+                      <div style={{ padding: '8px 10px', background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 7 }}>
+                        <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>Capture rate</div>
+                        <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{((profitPts / mfe) * 100).toFixed(0)}%</div>
+                        <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>of peak kept</div>
+                      </div>
+                    )}
+                    {/* Tile changes meaning based on whether the trade closed positive or negative. */}
+                    {mfeDol != null && mfeDol > 0 && tradeNet < mfeDol && tradeNet > 0 && (
+                      <div style={{ padding: '8px 10px', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 7 }}>
+                        <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>Left on table</div>
+                        <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24' }}>{fmtD(mfeDol - tradeNet)}</div>
+                        <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>peak − exit profit</div>
+                      </div>
+                    )}
+                    {mfeDol != null && mfeDol > 0 && tradeNet <= 0 && (
+                      <div style={{ padding: '8px 10px', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 7 }}>
+                        <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>Missed escape</div>
+                        <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24' }}>+${mfeDol.toFixed(2)}</div>
+                        <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>could have exited here</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {/* Suspect-data fallback — show raw points only, no dollar conversion */}
+                {suspectData && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 8, marginBottom: 12 }}>
+                    {mfe != null && (
+                      <div style={{ padding: '8px 10px', background: 'var(--panel2)', border: '1px dashed var(--border2)', borderRadius: 7, opacity: 0.7 }}>
+                        <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>MFE (raw points)</div>
+                        <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: 'var(--green-bright)' }}>+{mfe.toLocaleString()}pt</div>
+                        <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>$ conversion unreliable</div>
+                      </div>
+                    )}
+                    {mae != null && (
+                      <div style={{ padding: '8px 10px', background: 'var(--panel2)', border: '1px dashed var(--border2)', borderRadius: 7, opacity: 0.7 }}>
+                        <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>MAE (raw points)</div>
+                        <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: 'var(--red)' }}>{mae.toLocaleString()}pt</div>
+                        <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>$ conversion unreliable</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {/* Forward-time mini ladder — only shown when data is consistent */}
+                {!suspectData && (t30mDol != null || t1hDol != null || t4hDol != null || t12hDol != null || t1dDol != null) && (
                   <div style={{ padding: 10, background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 7, marginBottom: 12 }}>
                     <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, marginBottom: 8 }}>What if you'd held longer? ($ value)</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4, fontSize: 11 }}>
@@ -3484,8 +3581,8 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                     </div>
                   </div>
                 )}
-                {/* The insights themselves — natural-language explanations */}
-                {insights.length > 0 && (
+                {/* The insights themselves — only shown when data is reliable */}
+                {!suspectData && insights.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {insights.map((ins, idx) => {
                       const s = levelStyle[ins.level] || levelStyle.caution;
