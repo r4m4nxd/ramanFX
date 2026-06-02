@@ -1290,13 +1290,22 @@ async function parseMT5File(file, brokerOffsetHours = 3) {
 
 // ═══════════════ HELPERS ═══════════════
 const fmt = (n, d = 2) => n == null || isNaN(n) ? '–' : n.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
+// Privacy mode mask: when enabled (window.__rfxPrivacy === true), money values are hidden behind
+// a fixed-width mask. Length stays roughly the same so the layout doesn't shift on toggle.
+// Useful for screen sharing or screenshotting without exposing real $ figures.
+const _privMask = (n, signed) => {
+  const sign = n < 0 ? '-' : (signed && n > 0 ? '+' : '');
+  return `${sign}$•••`;
+};
 const fmtMoney = (n, signed = false) => {
   if (n == null || isNaN(n)) return '–';
+  if (typeof window !== 'undefined' && window.__rfxPrivacy) return _privMask(n, signed);
   const sign = n < 0 ? '-' : (signed && n > 0 ? '+' : '');
   return `${sign}$${fmt(Math.abs(n))}`;
 };
 const fmtCompact = (n) => {
   if (n == null || isNaN(n)) return '–';
+  if (typeof window !== 'undefined' && window.__rfxPrivacy) return _privMask(n, false);
   const abs = Math.abs(n); const sign = n < 0 ? '-' : '';
   if (abs >= 1000) return `${sign}$${(abs / 1000).toFixed(2)}k`;
   return `${sign}$${abs.toFixed(2)}`;
@@ -1333,6 +1342,7 @@ const SK = {
   tradeExitData: 'ledger_tradeExitData', // MAE/MFE/forward-time data keyed by Position ID, imported from MT5 CSV script
   theme: 'ledger_theme', // 'dark' (default) or 'light'
   sidebarCollapsed: 'ledger_sidebar_collapsed', // boolean — PC-only icon-collapsed sidebar mode
+  privacyMode: 'ledger_privacy_mode', // boolean — masks $ amounts as ••• for screen sharing
   notebookFolders: 'ledger_notebook_folders', // user-defined folders [{id, name}]
 };
 const lsGet = (k, fallback) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
@@ -4517,6 +4527,7 @@ function Reports({ trades, setTab }) {
     { id: 'daytime', label: 'Day & Time' },
     { id: 'priceqty', label: 'Price & Qty' },
     { id: 'instruments', label: 'Instruments' },
+    { id: 'winsvslosses', label: 'Wins vs Losses' },
     { id: 'compare', label: 'Compare' },
     { id: 'calendar', label: 'Calendar' },
   ];
@@ -4534,7 +4545,117 @@ function Reports({ trades, setTab }) {
       {pane === 'daytime' && <ReportsDayTimePane trades={trades} />}
       {pane === 'priceqty' && <ReportsPriceQtyPane trades={trades} />}
       {pane === 'instruments' && <ReportsInstrumentsPane trades={trades} />}
+      {pane === 'winsvslosses' && <ReportsWinsVsLossesPane trades={trades} />}
       {pane === 'compare' && <ReportsComparePane trades={trades} />}
+    </div>
+  );
+}
+// ═══════════════ WINS VS LOSSES PANE ═══════════════
+// Side-by-side comparison of winning vs losing trades. Inspired by Tradezella's
+// "Wins vs Losses" report. Lets the user see if losers are bigger/longer/at different times
+// than winners — which is often the actual asymmetry that turns a profitable system unprofitable.
+function ReportsWinsVsLossesPane({ trades }) {
+  const { winners, losers, scratch } = useMemo(() => {
+    const w = [], l = [], s = [];
+    for (const t of trades) { const n = netPnL(t); if (n > 0) w.push({ ...t, net: n }); else if (n < 0) l.push({ ...t, net: n }); else s.push({ ...t, net: n }); }
+    return { winners: w, losers: l, scratch: s };
+  }, [trades]);
+  // Compute aggregated stats for one bucket
+  const bucketStats = (arr) => {
+    if (!arr.length) return null;
+    const sum = (key) => arr.reduce((a, t) => a + (t[key] || 0), 0);
+    const avg = (key) => sum(key) / arr.length;
+    const netTotal = sum('net');
+    const volumes = arr.map(t => t.volume || 0).filter(v => v);
+    const holds = arr.map(t => t.holdSec || 0).filter(v => v);
+    return {
+      count: arr.length,
+      netTotal,
+      avgNet: arr.length ? netTotal / arr.length : 0,
+      largest: Math.max(...arr.map(t => Math.abs(t.net))),
+      avgVolume: avg('volume'),
+      avgHoldSec: holds.length ? holds.reduce((a, b) => a + b, 0) / holds.length : 0,
+      mostCommonSymbol: (() => {
+        const counts = {}; for (const t of arr) counts[t.symbol] = (counts[t.symbol] || 0) + 1;
+        const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+        return top ? `${top[0]} (${top[1]})` : '—';
+      })(),
+    };
+  };
+  const winStats = bucketStats(winners), lossStats = bucketStats(losers);
+  // Helper to render a side-by-side row
+  const row = (label, winVal, lossVal, fmt = v => v, highlight = null) => (
+    <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr 1fr', gap: 16, padding: '12px 0', borderBottom: '1px solid var(--border)', alignItems: 'baseline' }}>
+      <div style={{ fontSize: 12, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>{label}</div>
+      <div className="tabnum" style={{ fontSize: 17, fontWeight: 600, color: highlight === 'win' ? 'var(--green-bright)' : 'var(--text)' }}>{winStats ? fmt(winVal) : '—'}</div>
+      <div className="tabnum" style={{ fontSize: 17, fontWeight: 600, color: highlight === 'loss' ? 'var(--red)' : 'var(--text)' }}>{lossStats ? fmt(lossVal) : '—'}</div>
+    </div>
+  );
+  if (!winners.length && !losers.length) return <Card style={{ padding: 40, textAlign: 'center', color: 'var(--text3)' }}>No closed trades yet to compare.</Card>;
+  const total = winners.length + losers.length + scratch.length;
+  const winRate = total ? (winners.length / total) * 100 : 0;
+  // Insight: are winners and losers asymmetric? An auto-generated takeaway helps users notice.
+  const winLossRatio = lossStats?.avgNet ? Math.abs(winStats?.avgNet / lossStats.avgNet) : 0;
+  const holdRatio = lossStats?.avgHoldSec ? (winStats?.avgHoldSec || 0) / lossStats.avgHoldSec : 0;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <Card style={{ padding: 22 }}>
+        {/* Header bar showing win rate split */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Win rate</div>
+            <div className="tabnum" style={{ fontSize: 28, fontWeight: 700 }}>{winRate.toFixed(1)}%</div>
+          </div>
+          <div style={{ flex: 1, maxWidth: 400 }}>
+            <div style={{ display: 'flex', height: 14, borderRadius: 7, overflow: 'hidden', border: '1px solid var(--border)' }}>
+              <div style={{ width: `${winRate}%`, background: 'var(--green)', transition: 'width 0.5s' }} />
+              <div style={{ flex: 1, background: 'var(--red)' }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 11, color: 'var(--text3)' }}>
+              <span style={{ color: 'var(--green-bright)' }}>{winners.length} wins</span>
+              <span style={{ color: 'var(--red)' }}>{losers.length} losses</span>
+            </div>
+          </div>
+        </div>
+        {/* Two-column header */}
+        <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr 1fr', gap: 16, padding: '8px 0', borderBottom: '2px solid var(--border)' }}>
+          <div></div>
+          <div style={{ fontSize: 12, color: 'var(--green-bright)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>🏆 Winners</div>
+          <div style={{ fontSize: 12, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>⚠ Losers</div>
+        </div>
+        {/* Stat rows */}
+        {row('Count', winStats?.count, lossStats?.count)}
+        {row('Total $', winStats?.netTotal, lossStats?.netTotal, v => fmtMoney(v, true), 'win')}
+        {row('Average $', winStats?.avgNet, lossStats?.avgNet, v => fmtMoney(v, true))}
+        {row('Largest single $', winStats?.largest, lossStats?.largest, v => fmtMoney(v))}
+        {row('Avg volume (lots)', winStats?.avgVolume, lossStats?.avgVolume, v => v.toFixed(2))}
+        {row('Avg hold time', winStats?.avgHoldSec, lossStats?.avgHoldSec, v => fmtHold(v))}
+        {row('Most common symbol', winStats?.mostCommonSymbol, lossStats?.mostCommonSymbol)}
+      </Card>
+      {/* Insight callout — auto-generated based on the asymmetries detected */}
+      {(winStats && lossStats) && (
+        <Card style={{ padding: 18, borderLeft: '3px solid var(--violet)' }}>
+          <div style={{ fontSize: 11, color: 'var(--violet-light)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, marginBottom: 10 }}>What this tells you</div>
+          <ul style={{ display: 'flex', flexDirection: 'column', gap: 10, listStyle: 'none', padding: 0, fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+            <li>
+              <strong style={{ color: 'var(--text)' }}>Win/loss ratio:</strong> Your average win is {winLossRatio.toFixed(2)}× your average loss.
+              {winLossRatio < 1 && <span style={{ color: 'var(--red)' }}> Losers are bigger than winners — even a 60% win rate barely breaks even.</span>}
+              {winLossRatio >= 1 && winLossRatio < 1.5 && <span style={{ color: '#fbbf24' }}> Slim margin — you need to keep win rate above {(100 / (1 + winLossRatio)).toFixed(0)}% to stay profitable.</span>}
+              {winLossRatio >= 1.5 && <span style={{ color: 'var(--green-bright)' }}> Healthy asymmetry — winners are meaningfully bigger than losers.</span>}
+            </li>
+            <li>
+              <strong style={{ color: 'var(--text)' }}>Hold time:</strong> You hold winners for {fmtHold(winStats.avgHoldSec)} vs losers for {fmtHold(lossStats.avgHoldSec)}.
+              {holdRatio < 0.8 && <span style={{ color: 'var(--red)' }}> Cutting winners short and holding losers — the classic disposition effect.</span>}
+              {holdRatio >= 0.8 && holdRatio < 1.5 && <span style={{ color: 'var(--text2)' }}> Similar hold times — your exits don't show obvious bias.</span>}
+              {holdRatio >= 1.5 && <span style={{ color: 'var(--green-bright)' }}> Letting winners run, cutting losers — good exit discipline.</span>}
+            </li>
+            <li>
+              <strong style={{ color: 'var(--text)' }}>Position size:</strong> Avg lot size on winners {winStats.avgVolume.toFixed(2)} vs losers {lossStats.avgVolume.toFixed(2)}.
+              {lossStats.avgVolume > winStats.avgVolume * 1.3 && <span style={{ color: 'var(--red)' }}> Bigger on losers than winners — likely sizing up after losses.</span>}
+            </li>
+          </ul>
+        </Card>
+      )}
     </div>
   );
 }
@@ -4915,12 +5036,117 @@ function TemplateEditor({ folder, onSave, onCancel, inp }) {
 // ═══════════════ CALENDAR PAGE ═══════════════
 function CalendarPage({ trades, onDayClick }) {
   const stats = useMemo(() => computeStats(trades), [trades]);
+  // Month vs Year mode — Year mode shows 12 mini-calendars (one per month) with cells colored
+  // by P&L, matching Tradezella's "Yearly Calendar" widget. Click any month tile to jump to it.
+  const [mode, setMode] = useState('month');
+  const [yearOffset, setYearOffset] = useState(0); // 0 = current year, -1 = previous
   if (!stats) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--text3)' }}>No trades yet.</div>;
+  const toggle = (m, label) => (
+    <button onClick={() => setMode(m)} style={{ padding: '7px 18px', fontSize: 12, borderRadius: 7, border: 'none', cursor: 'pointer', background: mode === m ? 'var(--violet)' : 'transparent', color: mode === m ? '#fff' : 'var(--text2)', transition: 'all 0.15s' }}>{label}</button>
+  );
   return (
-    <div className="fade-in force-stack" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 380px', gap: 14 }}>
-      <CalendarView stats={stats} onDayClick={onDayClick} />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}><DrawdownChart stats={stats} /><ScatterCard stats={stats} kind="time" /></div>
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ display: 'inline-flex', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 9, padding: 3, alignSelf: 'flex-start' }}>
+        {toggle('month', 'Month')}
+        {toggle('year', 'Year')}
+      </div>
+      {mode === 'month' ? (
+        <div className="force-stack" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 380px', gap: 14 }}>
+          <CalendarView stats={stats} onDayClick={onDayClick} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}><DrawdownChart stats={stats} /><ScatterCard stats={stats} kind="time" /></div>
+        </div>
+      ) : (
+        <YearlyCalendar stats={stats} yearOffset={yearOffset} setYearOffset={setYearOffset} onMonthClick={() => setMode('month')} />
+      )}
     </div>
+  );
+}
+// ═══════════════ YEARLY CALENDAR ═══════════════
+// Compact overview of a full year. Each month is a 7-col mini-calendar with cells colored by
+// daily P&L intensity. Stats per month appear under each grid. Inspired by Tradezella's
+// "Yearly Calendar" dashboard widget — designed to expose seasonal patterns at a glance.
+function YearlyCalendar({ stats, yearOffset, setYearOffset, onMonthClick }) {
+  const year = new Date().getFullYear() + yearOffset;
+  const months = useMemo(() => {
+    const out = [];
+    let yearlyTotal = 0, yearlyTrades = 0;
+    for (let m = 0; m < 12; m++) {
+      const firstDay = new Date(year, m, 1), lastDay = new Date(year, m + 1, 0);
+      const days = [];
+      for (let i = 0; i < firstDay.getDay(); i++) days.push(null);
+      let monthPnL = 0, monthTrades = 0, tradingDays = 0;
+      for (let d = 1; d <= lastDay.getDate(); d++) {
+        const date = new Date(year, m, d);
+        const k = dayKey(date);
+        const data = stats?.byDay?.[k];
+        days.push({ day: d, key: k, data });
+        if (data) { monthPnL += data.pnl; monthTrades += data.trades; tradingDays++; }
+      }
+      yearlyTotal += monthPnL; yearlyTrades += monthTrades;
+      out.push({ month: m, name: firstDay.toLocaleString('default', { month: 'long' }), days, pnl: monthPnL, trades: monthTrades, tradingDays });
+    }
+    return { months: out, yearlyTotal, yearlyTrades };
+  }, [stats, year]);
+  const maxAbs = useMemo(() => Math.max(...(stats?.daily || []).map(d => Math.abs(d.pnl)), 100), [stats]);
+  const colorFor = (pnl) => {
+    if (pnl == null || pnl === 0) return null;
+    const a = 0.22 + Math.min(1, Math.abs(pnl) / maxAbs) * 0.43;
+    return pnl > 0 ? `rgba(38,166,154,${a})` : `rgba(239,83,80,${a})`;
+  };
+  const navBtn = { padding: '4px 10px', borderRadius: 7, background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', cursor: 'pointer', fontSize: 12 };
+  return (
+    <Card style={{ padding: 18 }}>
+      {/* Year header with prev/next + total */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button style={navBtn} onClick={() => setYearOffset(yearOffset - 1)}>‹</button>
+          <div style={{ fontSize: 18, fontWeight: 600, minWidth: 60, textAlign: 'center' }}>{year}</div>
+          <button style={navBtn} onClick={() => setYearOffset(yearOffset + 1)} disabled={yearOffset >= 0} title={yearOffset >= 0 ? 'Already on current year' : ''}>›</button>
+          <button style={{ ...navBtn, fontSize: 10, padding: '4px 10px', textTransform: 'uppercase', letterSpacing: '0.05em' }} onClick={() => setYearOffset(0)}>This year</button>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 12 }}>
+          <span style={{ color: 'var(--text3)' }}>Yearly P&L:</span>
+          <span className="tabnum" style={{ fontWeight: 600, padding: '4px 10px', borderRadius: 7, background: months.yearlyTotal >= 0 ? 'var(--pill-green-bg)' : 'var(--pill-red-bg)', color: months.yearlyTotal >= 0 ? 'var(--pill-green-fg)' : 'var(--pill-red-fg)' }}>{fmtMoney(months.yearlyTotal, true)}</span>
+          <span style={{ color: 'var(--text3)' }}>{months.yearlyTrades} trades</span>
+        </div>
+      </div>
+      {/* 4x3 grid of months. On narrow widths it collapses to 2x6 or 1x12 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+        {months.months.map(m => (
+          <div key={m.month} style={{ background: 'var(--panel2)', borderRadius: 10, padding: 12, border: '1px solid var(--border)' }}>
+            {/* Month header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{m.name}</div>
+              {m.trades > 0 ? (
+                <div className="tabnum" style={{ fontSize: 12, fontWeight: 600, color: m.pnl >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{fmtCompact(m.pnl)}</div>
+              ) : (
+                <div style={{ fontSize: 10, color: 'var(--text3)' }}>no trades</div>
+              )}
+            </div>
+            {/* Mini-calendar grid: 7 weekday headers, then 6 weeks max of cells */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
+              {['S','M','T','W','T','F','S'].map((d, i) => (
+                <div key={i} style={{ fontSize: 8, color: 'var(--text3)', textAlign: 'center', fontWeight: 600 }}>{d}</div>
+              ))}
+              {m.days.map((cell, i) => {
+                if (!cell) return <div key={i} />;
+                const c = colorFor(cell.data?.pnl);
+                return (
+                  <div key={i} title={cell.data ? `${cell.key}: ${fmtMoney(cell.data.pnl, true)} · ${cell.data.trades}t` : cell.key}
+                    style={{ aspectRatio: '1', borderRadius: 2, background: c || 'transparent', border: cell.data ? '1px solid transparent' : '1px solid var(--calendar-empty-border)', fontSize: 8, color: cell.data ? (cell.data.pnl >= 0 ? 'var(--cell-text-green)' : 'var(--cell-text-red)') : 'var(--text3)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: cell.data ? 'pointer' : 'default' }}>
+                    {cell.day}
+                  </div>
+                );
+              })}
+            </div>
+            {/* Footer with day count */}
+            {m.trades > 0 && (
+              <div style={{ marginTop: 8, fontSize: 10, color: 'var(--text3)' }}>{m.tradingDays} days · {m.trades} trades</div>
+            )}
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 
@@ -5994,6 +6220,20 @@ function App() {
   // Sidebar collapsed state (PC-only). Persisted so it survives reloads.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => lsGet(SK.sidebarCollapsed, false));
   useEffect(() => { lsSet(SK.sidebarCollapsed, sidebarCollapsed); }, [sidebarCollapsed]);
+  // Privacy mode — masks all $ amounts as ●●● across the app. Uses a window-level flag because
+  // formatters in logic.js are pure functions called from many places; flipping the window flag
+  // and bumping state forces React to re-render with masked values.
+  const [privacyMode, setPrivacyMode] = useState(() => {
+    const v = lsGet(SK.privacyMode, false);
+    if (typeof window !== 'undefined') window.__rfxPrivacy = v;
+    return v;
+  });
+  const togglePrivacy = () => setPrivacyMode(p => {
+    const next = !p;
+    if (typeof window !== 'undefined') window.__rfxPrivacy = next;
+    lsSet(SK.privacyMode, next);
+    return next;
+  });
   const [detailTrade, setDetailTrade] = useState(null);
   const [daySummary, setDaySummary] = useState(null); // {key} when popup shown
   const [brokerOffsetInput, setBrokerOffsetInput] = useState(() => String(lsGet(SK.brokerOffset, 3)));
@@ -6452,6 +6692,11 @@ function App() {
                 </Hint>
               )}
               <input ref={exitCSVInputRef} type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={onExitCSVChange} />
+              <Hint text={privacyMode ? 'Show dollar amounts' : 'Hide dollar amounts (privacy mode)'}>
+                <button style={{ ...btnStyle('ghost'), padding: 7, fontSize: 14, color: privacyMode ? 'var(--violet-light)' : undefined }} onClick={togglePrivacy} aria-label="Toggle privacy mode">
+                  {privacyMode ? '👁‍🗨' : '👁'}
+                </button>
+              </Hint>
               <Hint text={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}>
                 <button style={{ ...btnStyle('ghost'), padding: 7, fontSize: 14 }} onClick={toggleTheme} aria-label="Toggle theme">
                   {theme === 'light' ? '🌙' : '☀'}
