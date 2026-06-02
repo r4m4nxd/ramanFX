@@ -82,6 +82,15 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     --calendar-empty-bg: rgba(19,19,22,0.25);
     --calendar-empty-border: rgba(38,38,44,0.4);
     --calendar-cell-bg: rgba(19,19,22,0.4);
+    /* Text color INSIDE a colored data-cell. Designed to read well over the green/red tint backgrounds. */
+    --cell-text-green: #2dd4bf;
+    --cell-text-red: #fca5a5;
+    /* Inset blocks within cards — like strategy rules, KPI tiles inside a card.
+       Dark: very subtle lift from the panel. Light: indistinguishable from panel (pure white). */
+    --inset-bg: rgba(255,255,255,0.02);
+    --inset-border: rgba(255,255,255,0.05);
+    /* Track/scale bar background — used for progress bars, scale meters, slider tracks */
+    --track-bg: rgba(255,255,255,0.05);
     /* Pill colors — these change between themes because pills use light tints over the
        theme background, and the text color needs to match the tint density.
        Dark mode: brighter text on muted tints. Light mode: deeper text on washy tints. */
@@ -133,10 +142,10 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     --violet: #7c5cfc;
     --violet-light: #6d28d9;
     --violet-tint: rgba(124,92,252,0.10);
-    --chart-grid: #f0f0f3;
-    --chart-axis: #d4d4d8;
+    --chart-grid: #f4f4f5;
+    --chart-axis: #e4e4e7;
     --chart-tick: #71717a;
-    --chart-baseline: #a1a1aa;
+    --chart-baseline: #d4d4d8;
     --chart-tooltip-bg: #ffffff;
     --chart-tooltip-border: #d4d4d8;
     --chart-tooltip-text: #18181b;
@@ -147,10 +156,18 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     --shadow-card: 0 1px 2px rgba(0,0,0,0.04);
     --shadow-elev: 0 4px 12px rgba(0,0,0,0.06);
     --header-bg: rgba(255,255,255,0.92);
-    /* Calendar in light mode: empty cells are very faint off-white with hairline border */
-    --calendar-empty-bg: #fafafb;
-    --calendar-empty-border: #ececef;
+    /* Calendar in light mode: empty cells blend with card (off-white), data cells get vivid color */
+    --calendar-empty-bg: #fafafa;
+    --calendar-empty-border: #f0f0f3;
     --calendar-cell-bg: #ffffff;
+    /* Inset blocks in light mode — match panel so they "disappear" cleanly into the card */
+    --inset-bg: #ffffff;
+    --inset-border: #ececef;
+    /* Track on light mode: subtle dark stripe so progress bars are visible on white */
+    --track-bg: rgba(0,0,0,0.06);
+    /* Deep emerald/red — readable on saturated pastel cell backgrounds */
+    --cell-text-green: #065f46;
+    --cell-text-red: #991b1b;
     /* Pills — light tints + darker text for contrast on white panels */
     --pill-zinc-bg: #f4f4f5;
     --pill-zinc-fg: #52525b;
@@ -1578,37 +1595,30 @@ const Hint = ({ text, children }) => {
   const [pos, setPos] = useState({ top: 0, left: 0, transform: 'translate(-50%, -100%)' });
   const hideTimer = useRef(null);
   const wrapRef = useRef(null);
-  // Compute tooltip position. Two strategies:
-  //   1. If we have cursor coords (clientX/Y), position relative to cursor — feels responsive
-  //      to mouse movement and works well for large elements.
-  //   2. If we don't (e.g. touch start or tiny element like a heatmap cell), use the wrapper's
-  //      bounding rect center — pins tooltip to the element, not to where the user clicked.
-  // The tooltip is rendered via createPortal into document.body so it escapes any ancestor
-  // backdrop-filter / transform / filter that would otherwise be the containing block for
-  // position:fixed (a known browser quirk that was making this tooltip drift far from cells).
-  const computePos = (clientX, clientY) => {
-    const TIP_W = 240, TIP_H = 56;
-    let top = clientY - 10;
-    let left = clientX;
-    let transform = 'translate(-50%, -100%)';
-    if (clientX - TIP_W / 2 < 8) { left = 8; transform = 'translate(0%, -100%)'; }
-    else if (clientX + TIP_W / 2 > window.innerWidth - 8) { left = window.innerWidth - 8; transform = 'translate(-100%, -100%)'; }
-    if (top - TIP_H < 8) { top = clientY + 16; transform = transform.replace('-100%', '0%'); }
-    setPos({ top, left, transform });
-  };
-  // Fallback: position tooltip above the wrapped element's bounding rect center
-  const computePosFromRect = () => {
+  // Position the tooltip directly above the hovered element using its bounding rect, NOT raw
+  // cursor coords. Using cursor coords with position:fixed was unreliable inside scrollable
+  // containers and produced a large visual gap on the progress heatmap (small cells where the
+  // cursor coords + viewport scroll didn't reconcile). Anchoring to the element's rect makes
+  // the tooltip pop up consistently right above whatever you're hovering, regardless of layout.
+  const computePos = () => {
     const el = wrapRef.current; if (!el) return;
     const r = el.getBoundingClientRect();
-    computePos(r.left + r.width / 2, r.top);
+    const TIP_W = 240, TIP_H = 44;
+    let top = r.top - 6;                  // small gap above the element
+    let left = r.left + r.width / 2;      // horizontally centered on the element
+    let transform = 'translate(-50%, -100%)';
+    // Edge handling: if too close to left/right viewport edges, clamp
+    if (left - TIP_W / 2 < 8) { left = 8; transform = 'translate(0%, -100%)'; }
+    else if (left + TIP_W / 2 > window.innerWidth - 8) { left = window.innerWidth - 8; transform = 'translate(-100%, -100%)'; }
+    // If too close to the top edge, flip the tooltip below the element
+    if (top - TIP_H < 8) { top = r.bottom + 6; transform = transform.replace('-100%', '0%'); }
+    setPos({ top, left, transform });
   };
-  const onMove = (e) => { computePos(e.clientX, e.clientY); if (!show) setShow(true); };
+  const onEnter = () => { computePos(); setShow(true); };
   const onLeave = () => { setShow(false); };
   const onTouch = (e) => {
     if (!text) return;
-    const touch = e.touches?.[0] || e.changedTouches?.[0];
-    if (touch) computePos(touch.clientX, touch.clientY);
-    else computePosFromRect();
+    computePos();
     setShow(true);
     if (hideTimer.current) clearTimeout(hideTimer.current);
     hideTimer.current = setTimeout(() => setShow(false), 2200);
@@ -1622,7 +1632,7 @@ const Hint = ({ text, children }) => {
   ) : null;
   return (
     <Fragment>
-      <span ref={wrapRef} onMouseMove={onMove} onMouseLeave={onLeave} onTouchStart={onTouch} style={{ display: 'inline-flex' }}>{children}</span>
+      <span ref={wrapRef} onMouseEnter={onEnter} onMouseLeave={onLeave} onTouchStart={onTouch} style={{ display: 'inline-flex' }}>{children}</span>
       {tooltip}
     </Fragment>
   );
@@ -1782,7 +1792,15 @@ function CalendarView({ stats, onDayClick }) {
     return { year, month, monthName, weeks, monthStats: { pnl: monthPnL, trades: monthTrades, days: monthDays, weeklyAgg } };
   }, [monthDate, stats]);
   const maxAbs = useMemo(() => Math.max(...(stats?.daily || []).map(d => Math.abs(d.pnl)), 100), [stats]);
-  const colorFor = (pnl) => { if (pnl == null) return null; const a = 0.18 + Math.min(1, Math.abs(pnl) / maxAbs) * 0.7; return pnl >= 0 ? `rgba(38,166,154,${a})` : `rgba(239,83,80,${a})`; };
+  // colorFor: produces background tint based on pnl magnitude. Range tuned to match Tradezella:
+  // - smallest gains/losses still clearly visible (alpha 0.32)
+  // - biggest fade to nearly solid color (alpha 0.95)
+  // This makes both dark and light themes readable.
+  const colorFor = (pnl) => {
+    if (pnl == null) return null;
+    const a = 0.32 + Math.min(1, Math.abs(pnl) / maxAbs) * 0.63;
+    return pnl >= 0 ? `rgba(38,166,154,${a})` : `rgba(239,83,80,${a})`;
+  };
   const navBtn = { padding: 6, borderRadius: 7, background: 'transparent', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: 16, lineHeight: 1 };
   // Highlight today's cell so it's easy to spot
   const todayKey = dayKey(new Date());
@@ -1826,8 +1844,8 @@ function CalendarView({ stats, onDayClick }) {
                   <div style={{ fontSize: compact ? 10 : 11, color: cell.data ? 'var(--text)' : 'var(--text3)', fontWeight: 600 }}>{cell.day}</div>
                   {cell.data && (
                     <div style={{ marginTop: 'auto', minWidth: 0, overflow: 'hidden' }}>
-                      <div className="tabnum" style={{ fontSize: compact ? 10.5 : 12, fontWeight: 600, lineHeight: 1.2, color: cell.data.pnl >= 0 ? 'var(--pill-green-fg)' : 'var(--pill-red-fg)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fmtCompact(cell.data.pnl)}</div>
-                      <div style={{ fontSize: compact ? 8.5 : 9, color: cell.data.pnl >= 0 ? 'var(--pill-green-fg)' : 'var(--pill-red-fg)', opacity: 0.7, lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cell.data.trades}t</div>
+                      <div className="tabnum" style={{ fontSize: compact ? 10.5 : 12, fontWeight: 600, lineHeight: 1.2, color: cell.data.pnl >= 0 ? 'var(--cell-text-green)' : 'var(--cell-text-red)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fmtCompact(cell.data.pnl)}</div>
+                      <div style={{ fontSize: compact ? 8.5 : 9, color: cell.data.pnl >= 0 ? 'var(--cell-text-green)' : 'var(--cell-text-red)', opacity: 0.75, lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cell.data.trades}t</div>
                     </div>
                   )}
                 </button>
@@ -1888,7 +1906,7 @@ function ProgressHeatmap({ stats, months = 6, cell = 12 }) {
             <div key={wi} style={{ display: 'flex', flexDirection: 'column', gap }}>
               {week.map((d, di) => (
                 <Hint key={di} text={d.day ? `${d.key}: ${fmtMoney(d.day.pnl, true)} · ${d.day.trades} trade${d.day.trades !== 1 ? 's' : ''}` : d.key}>
-                  <div style={{ width: cell, height: cell, borderRadius: 3, background: d.day ? colorFor(d.day.pnl) : 'var(--panel2)', border: '1px solid var(--border)', cursor: d.day ? 'pointer' : 'default' }} />
+                  <div style={{ width: cell, height: cell, borderRadius: 3, background: d.day ? colorFor(d.day.pnl) : 'var(--calendar-empty-bg)', border: '1px solid var(--calendar-empty-border)', cursor: d.day ? 'pointer' : 'default' }} />
                 </Hint>
               ))}
             </div>
@@ -1988,40 +2006,40 @@ function ScoreCard({ stats }) {
     return raw.split(' ')[0].slice(0, 7);
   };
   const data = axes.map(a => ({ axis: isMobile ? shortLabel(a.axis) : a.axis, value: a.value }));
+  // Tradezella's Zella Score layout: radar on the LEFT taking ~60% width, score readout on the
+  // RIGHT taking ~40% width with vertically stacked label/number/gauge. On mobile we stack
+  // them vertically because there's not enough horizontal space to do justice to both.
   return (
     <Card style={{ padding: 18 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, flexWrap: 'wrap', gap: 4 }}>
         <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 7 }}>✦ Performance score</div>
         <div style={{ fontSize: 12, color: 'var(--text3)' }}>Composite metric</div>
       </div>
-      {/* Tradezella-style layout: radar takes the full width of the card with strong vertical
-          presence (height = 240 on desktop). Then below it sits the score + horizontal rainbow
-          gauge. This mirrors how Tradezella positions Zella Score with the radar dominating
-          and the numerical readout sitting beneath. */}
-      <div style={{ position: 'relative', width: '100%', height: isMobile ? 260 : 240, marginTop: 4 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <RadarChart data={data} outerRadius={isMobile ? 78 : 88} margin={{ top: 20, right: 60, bottom: 20, left: 60 }}>
-            <PolarGrid stroke="var(--chart-grid)" />
-            <PolarAngleAxis dataKey="axis" tick={{ fontSize: isMobile ? 11 : 11, fill: 'var(--chart-tick)', fontWeight: 500 }} />
-            <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
-            <Radar dataKey="value" stroke="var(--violet)" fill="var(--violet)" fillOpacity={0.22} strokeWidth={2} />
-          </RadarChart>
-        </ResponsiveContainer>
-      </div>
-      {/* Score readout — label + big number + horizontal gauge with triangle indicator */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 14 : 22, marginTop: 4, padding: '8px 0' }}>
-        <div style={{ flex: '0 0 auto' }}>
-          <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', fontWeight: 600 }}>Your score</div>
-          <div className="tabnum" style={{ fontSize: 32, fontWeight: 700, color: scoreColor, lineHeight: 1, marginTop: 2 }}>{animScore.toFixed(1)}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 220px', gap: isMobile ? 8 : 24, alignItems: 'center', marginTop: 6 }}>
+        {/* Radar — fills its column, prominent center placement */}
+        <div style={{ position: 'relative', width: '100%', height: isMobile ? 260 : 280 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <RadarChart data={data} outerRadius={isMobile ? 90 : 105} margin={{ top: 18, right: 30, bottom: 18, left: 30 }}>
+              <PolarGrid stroke="var(--chart-grid)" />
+              <PolarAngleAxis dataKey="axis" tick={{ fontSize: isMobile ? 10 : 11, fill: 'var(--chart-tick)', fontWeight: 500 }} />
+              <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
+              <Radar dataKey="value" stroke="var(--violet)" fill="var(--violet)" fillOpacity={0.22} strokeWidth={2} />
+            </RadarChart>
+          </ResponsiveContainer>
         </div>
-        {/* Rainbow gauge with triangle indicator */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ position: 'relative', height: 10, borderRadius: 99, overflow: 'hidden', background: 'linear-gradient(90deg, #ef5350 0%, #fbbf24 50%, #26a69a 100%)' }} />
-          {/* Triangle marker positioned at the score */}
-          <div style={{ position: 'relative', marginTop: 2, height: 8 }}>
-            <div style={{ position: 'absolute', left: `${animScore}%`, transform: 'translateX(-50%)', width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: `7px solid ${scoreColor}`, transition: 'left 0.8s' }} />
+        {/* Score readout column — Tradezella's "Your Zella Score 82.1" with rainbow gauge below */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingRight: isMobile ? 0 : 8 }}>
+          <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text3)', fontWeight: 600 }}>Your score</div>
+          <div className="tabnum" style={{ fontSize: 44, fontWeight: 700, color: scoreColor, lineHeight: 1 }}>{animScore.toFixed(1)}</div>
+          {/* Rainbow gauge bar */}
+          <div style={{ marginTop: 4 }}>
+            <div style={{ position: 'relative', height: 8, borderRadius: 99, overflow: 'hidden', background: 'linear-gradient(90deg, #ef5350 0%, #fbbf24 50%, #26a69a 100%)' }} />
+            {/* Triangle marker positioned at the score percentage */}
+            <div style={{ position: 'relative', marginTop: 2, height: 8 }}>
+              <div style={{ position: 'absolute', left: `${animScore}%`, transform: 'translateX(-50%)', width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: `7px solid ${scoreColor}`, transition: 'left 0.8s' }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text3)', marginTop: 4, fontWeight: 500 }}><span>0</span><span>50</span><span>100</span></div>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text3)', marginTop: 6, fontWeight: 500 }}><span>0</span><span>50</span><span>100</span></div>
         </div>
       </div>
     </Card>
@@ -2144,7 +2162,7 @@ function DailyChecklist({ items, checklistDays, onToggle, onEditItems }) {
           const done = !!todayChecks[it];
           return (
             <button key={it} onClick={() => onToggle(it)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 8px', borderRadius: 7, background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'background 0.15s' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-tint)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
               <span style={{ width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${done ? 'var(--violet)' : 'var(--border2)'}`, background: done ? 'var(--violet)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11, flexShrink: 0 }}>{done ? '✓' : ''}</span>
               <span style={{ fontSize: 13, color: done ? 'var(--text3)' : 'var(--text)', textDecoration: done ? 'line-through' : 'none' }}>{it}</span>
             </button>
@@ -2347,7 +2365,7 @@ function Dashboard({ trades, onDayClick, checklist, checklistDays, onChecklistTo
               <XAxis dataKey="date" tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} tickFormatter={v => v.slice(5)} interval="preserveStartEnd" />
               <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
               <ReferenceLine y={0} stroke="var(--chart-baseline)" />
-              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => [fmtMoney(v), 'Net']} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => [fmtMoney(v), 'Net']} cursor={{ fill: 'var(--track-bg)' }} />
               <Bar dataKey="pnl" radius={[2, 2, 0, 0]}>{stats.daily.map((d, i) => <Cell key={i} fill={d.pnl >= 0 ? '#26a69a' : '#ef5350'} />)}</Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -2369,7 +2387,7 @@ function Dashboard({ trades, onDayClick, checklist, checklistDays, onChecklistTo
                 return (
                   <div key={s.symbol} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
                     <div style={{ width: 76, fontFamily: 'ui-monospace,monospace', fontSize: 12, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.symbol}</div>
-                    <div style={{ flex: 1, height: 16, background: 'rgba(255,255,255,0.04)', borderRadius: 4, position: 'relative', overflow: 'hidden' }}>
+                    <div style={{ flex: 1, height: 16, background: 'var(--track-bg)', borderRadius: 4, position: 'relative', overflow: 'hidden' }}>
                       <div style={{ position: 'absolute', top: 0, bottom: 0, width: 1, background: 'var(--border2)', left: '50%' }} />
                       <div style={{ position: 'absolute', top: 0, bottom: 0, background: pos ? 'rgba(38,166,154,0.7)' : 'rgba(239,83,80,0.7)', ...(pos ? { left: '50%', width: `${pct / 2}%` } : { right: '50%', width: `${pct / 2}%` }), transition: 'width 0.5s' }} />
                     </div>
@@ -4126,7 +4144,7 @@ function ReportsOverviewPane({ stats, insights }) {
               <XAxis dataKey="bin" tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} tickFormatter={v => v.toFixed(0)} />
               <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} />
               <ReferenceLine x={0} stroke="var(--chart-baseline)" strokeDasharray="2 2" />
-              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => [v, 'Trades']} labelFormatter={l => `~$${l.toFixed(0)}`} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => [v, 'Trades']} labelFormatter={l => `~$${l.toFixed(0)}`} cursor={{ fill: 'var(--track-bg)' }} />
               <Bar dataKey="count">{stats.dist.map((d, i) => <Cell key={i} fill={d.bin >= 0 ? '#26a69a' : '#ef5350'} fillOpacity={0.7} />)}</Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -4168,7 +4186,7 @@ function ReportsDayTimePane({ trades }) {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} />
               <YAxis type="category" dataKey="day" tick={{ fontSize: 11, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} width={42} />
-              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'rgba(255,255,255,0.04)' }} formatter={(v, n) => [v, n === 'trades' ? 'Trades' : n]} />
+              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'var(--track-bg)' }} formatter={(v, n) => [v, n === 'trades' ? 'Trades' : n]} />
               <Bar dataKey="trades" fill="#7c5cfc" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -4182,7 +4200,7 @@ function ReportsDayTimePane({ trades }) {
               <XAxis type="number" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} tickFormatter={fmtCompact} />
               <YAxis type="category" dataKey="day" tick={{ fontSize: 11, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} width={42} />
               <ReferenceLine x={0} stroke="var(--chart-baseline)" />
-              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'rgba(255,255,255,0.04)' }} formatter={v => [fmtMoney(v, true), 'Net P&L']} />
+              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'var(--track-bg)' }} formatter={v => [fmtMoney(v, true), 'Net P&L']} />
               <Bar dataKey="net" radius={[0, 4, 4, 0]}>{dow.map((d, i) => <Cell key={i} fill={d.net >= 0 ? '#26a69a' : '#ef5350'} />)}</Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -4197,7 +4215,7 @@ function ReportsDayTimePane({ trades }) {
             <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} interval={1} />
             <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
             <ReferenceLine y={0} stroke="var(--chart-baseline)" />
-            <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'rgba(255,255,255,0.04)' }} formatter={v => [fmtMoney(v, true), 'Net']} />
+            <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'var(--track-bg)' }} formatter={v => [fmtMoney(v, true), 'Net']} />
             <Bar dataKey="net" radius={[2, 2, 0, 0]}>{hours.map((h, i) => <Cell key={i} fill={h.net >= 0 ? '#26a69a' : '#ef5350'} />)}</Bar>
           </BarChart>
         </ResponsiveContainer>
@@ -4260,7 +4278,7 @@ function ReportsPriceQtyPane({ trades }) {
             <XAxis dataKey="bucket" tick={{ fontSize: 11, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} />
             <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
             <ReferenceLine y={0} stroke="var(--chart-baseline)" />
-            <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'rgba(255,255,255,0.04)' }} formatter={v => [fmtMoney(v, true), 'Net']} />
+            <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'var(--track-bg)' }} formatter={v => [fmtMoney(v, true), 'Net']} />
             <Bar dataKey="net" radius={[3, 3, 0, 0]}>{vol.map((d, i) => <Cell key={i} fill={d.net >= 0 ? '#26a69a' : '#ef5350'} />)}</Bar>
           </BarChart>
         </ResponsiveContainer>
@@ -4331,7 +4349,7 @@ function ReportsInstrumentsPane({ trades }) {
                   <span>Volume: <span className="tabnum" style={{ color: 'var(--text2)' }}>{s.volume.toFixed(2)}</span></span>
                   <span>Avg: <span className="tabnum" style={{ color: pos ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(s.net / s.count, true)}</span></span>
                 </div>
-                <div style={{ height: 6, background: 'rgba(255,255,255,0.04)', borderRadius: 4, position: 'relative', overflow: 'hidden' }}>
+                <div style={{ height: 6, background: 'var(--track-bg)', borderRadius: 4, position: 'relative', overflow: 'hidden' }}>
                   <div style={{ position: 'absolute', top: 0, bottom: 0, width: 1, background: 'var(--border2)', left: '50%' }} />
                   <div style={{ position: 'absolute', top: 0, bottom: 0, background: pos ? 'var(--green)' : 'var(--red)', ...(pos ? { left: '50%', width: `${pct / 2}%` } : { right: '50%', width: `${pct / 2}%` }) }} />
                 </div>
@@ -4363,7 +4381,7 @@ function ReportsInstrumentsPane({ trades }) {
                   <td className="tabnum" style={{ padding: 10, textAlign: 'right' }}>{s.volume.toFixed(2)}</td>
                   <td className="tabnum" style={{ padding: 10, textAlign: 'right', color: pos ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(s.net / s.count, true)}</td>
                   <td style={{ padding: 10, minWidth: 140 }}>
-                    <div style={{ height: 8, background: 'rgba(255,255,255,0.04)', borderRadius: 4, position: 'relative', overflow: 'hidden' }}>
+                    <div style={{ height: 8, background: 'var(--track-bg)', borderRadius: 4, position: 'relative', overflow: 'hidden' }}>
                       <div style={{ position: 'absolute', top: 0, bottom: 0, width: 1, background: 'var(--border2)', left: '50%' }} />
                       <div style={{ position: 'absolute', top: 0, bottom: 0, background: pos ? 'var(--green)' : 'var(--red)', ...(pos ? { left: '50%', width: `${pct / 2}%` } : { right: '50%', width: `${pct / 2}%` }) }} />
                     </div>
@@ -4561,7 +4579,7 @@ function Strategies({ strategies, trades, notes, onSave, onDelete }) {
               <div key={i} style={{ background: 'var(--panel2)', borderRadius: 8, padding: 10 }}><div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{l}</div><div className="tabnum" style={{ fontSize: 17, fontWeight: 600, color: c || 'var(--text)' }}>{v}</div></div>
             ))}
           </div>
-          {p.rules && <div style={{ background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 8, padding: 12 }}><div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Rules</div><div style={{ fontSize: 13, color: 'var(--text2)', whiteSpace: 'pre-wrap' }}>{p.rules}</div></div>}
+          {p.rules && <div style={{ background: 'var(--inset-bg)', border: '1px solid var(--inset-border)', borderRadius: 8, padding: 12 }}><div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Rules</div><div style={{ fontSize: 13, color: 'var(--text2)', whiteSpace: 'pre-wrap' }}>{p.rules}</div></div>}
         </Card>
       ))}
     </div>
@@ -4584,7 +4602,7 @@ function Notebook({ entries, onSave, onDelete }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {[...entries].sort((a, b) => b.updatedAt - a.updatedAt).map(e => (
             <div key={e.id} onClick={() => { setSelected(e.id); setEditing(false); }} style={{ padding: 10, borderRadius: 8, cursor: 'pointer', background: selected === e.id ? 'rgba(124,92,252,0.1)' : 'transparent', border: selected === e.id ? '1px solid rgba(124,92,252,0.4)' : '1px solid transparent', transition: 'all 0.15s', position: 'relative' }}
-              onMouseEnter={e2 => { if (selected !== e.id) e2.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }} onMouseLeave={e2 => { if (selected !== e.id) e2.currentTarget.style.background = 'transparent'; }}>
+              onMouseEnter={e2 => { if (selected !== e.id) e2.currentTarget.style.background = 'var(--hover-tint)'; }} onMouseLeave={e2 => { if (selected !== e.id) e2.currentTarget.style.background = 'transparent'; }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 6 }}>
                 <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{e.title}</div>
                 <button onClick={ev => { ev.stopPropagation(); handleDelete(e.id); }} style={{ background: 'transparent', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 12, padding: 0, lineHeight: 1 }} onMouseEnter={ev => ev.currentTarget.style.color = 'var(--red)'} onMouseLeave={ev => ev.currentTarget.style.color = 'var(--text3)'}>🗑</button>
@@ -4749,7 +4767,7 @@ function Playbook({ playbookState, onSavePlaybookState }) {
                 const done = !!checks[c.id];
                 return (
                   <button key={c.id} onClick={() => toggle(c.id)} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px', borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-tint)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                     <span style={{ width: 17, height: 17, borderRadius: 5, border: `1.5px solid ${done ? 'var(--violet)' : 'var(--border2)'}`, background: done ? 'var(--violet)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11, flexShrink: 0, marginTop: 1 }}>{done ? '✓' : ''}</span>
                     <span style={{ fontSize: 13, color: done ? 'var(--text)' : 'var(--text2)', lineHeight: 1.4 }}>{c.label}</span>
                   </button>
@@ -5308,7 +5326,7 @@ function DateRangeFilter({ value, onChange }) {
               return (
                 <button key={p.id} onClick={() => apply(p)}
                   style={{ padding: '7px 10px', textAlign: 'left', background: active ? 'rgba(124,92,252,0.14)' : 'transparent', border: 'none', color: active ? 'var(--violet-light)' : 'var(--text2)', cursor: 'pointer', fontSize: 13, borderRadius: 6 }}
-                  onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                  onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--hover-tint)'; }}
                   onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}>
                   {p.label}
                 </button>
