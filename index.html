@@ -83,8 +83,8 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     --calendar-empty-border: rgba(38,38,44,0.4);
     --calendar-cell-bg: rgba(19,19,22,0.4);
     /* Text color INSIDE a colored data-cell. Designed to read well over the green/red tint backgrounds. */
-    --cell-text-green: #2dd4bf;
-    --cell-text-red: #fca5a5;
+    --cell-text-green: #86efac;
+    --cell-text-red: #fecaca;
     /* Inset blocks within cards — like strategy rules, KPI tiles inside a card.
        Dark: very subtle lift from the panel. Light: indistinguishable from panel (pure white). */
     --inset-bg: rgba(255,255,255,0.02);
@@ -166,8 +166,8 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     /* Track on light mode: subtle dark stripe so progress bars are visible on white */
     --track-bg: rgba(0,0,0,0.06);
     /* Deep emerald/red — readable on saturated pastel cell backgrounds */
-    --cell-text-green: #065f46;
-    --cell-text-red: #991b1b;
+    --cell-text-green: #134e4a;
+    --cell-text-red: #7f1d1d;
     /* Pills — light tints + darker text for contrast on white panels */
     --pill-zinc-bg: #f4f4f5;
     --pill-zinc-fg: #52525b;
@@ -1332,6 +1332,8 @@ const SK = {
   tradeColumns: 'ledger_tradeColumns',
   tradeExitData: 'ledger_tradeExitData', // MAE/MFE/forward-time data keyed by Position ID, imported from MT5 CSV script
   theme: 'ledger_theme', // 'dark' (default) or 'light'
+  sidebarCollapsed: 'ledger_sidebar_collapsed', // boolean — PC-only icon-collapsed sidebar mode
+  notebookFolders: 'ledger_notebook_folders', // user-defined folders [{id, name}]
 };
 const lsGet = (k, fallback) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { console.error(e); } };
@@ -1792,13 +1794,14 @@ function CalendarView({ stats, onDayClick }) {
     return { year, month, monthName, weeks, monthStats: { pnl: monthPnL, trades: monthTrades, days: monthDays, weeklyAgg } };
   }, [monthDate, stats]);
   const maxAbs = useMemo(() => Math.max(...(stats?.daily || []).map(d => Math.abs(d.pnl)), 100), [stats]);
-  // colorFor: produces background tint based on pnl magnitude. Range tuned to match Tradezella:
-  // - smallest gains/losses still clearly visible (alpha 0.32)
-  // - biggest fade to nearly solid color (alpha 0.95)
-  // This makes both dark and light themes readable.
+  // colorFor: produces background tint based on pnl magnitude. Range deliberately constrained
+  // so that the saturated end (worst day) is still light enough for deep red/green text to be
+  // readable. Going above ~0.65 makes red days unreadable in light mode (text vanishes into bg).
+  // - alpha 0.22 = small wins/losses, clearly visible
+  // - alpha 0.65 = biggest day, still readable
   const colorFor = (pnl) => {
     if (pnl == null) return null;
-    const a = 0.32 + Math.min(1, Math.abs(pnl) / maxAbs) * 0.63;
+    const a = 0.22 + Math.min(1, Math.abs(pnl) / maxAbs) * 0.43;
     return pnl >= 0 ? `rgba(38,166,154,${a})` : `rgba(239,83,80,${a})`;
   };
   const navBtn = { padding: 6, borderRadius: 7, background: 'transparent', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: 16, lineHeight: 1 };
@@ -1821,8 +1824,8 @@ function CalendarView({ stats, onDayClick }) {
         </div>
       </div>
       {/* Compact layout (mobile / narrow window): 7 equal columns, no weekly sidebar.
-          Wide layout (≥960px): 7 day columns + 78px weekly summary column. */}
-      <div style={{ display: 'grid', gridTemplateColumns: compact ? 'repeat(7, minmax(0, 1fr))' : 'repeat(7, minmax(0, 1fr)) 78px', gap: compact ? 3 : 6, gridAutoRows: compact ? 'minmax(54px, auto)' : 'minmax(62px, auto)' }}>
+          Wide layout (≥960px): 7 day columns + 96px weekly summary column. */}
+      <div style={{ display: 'grid', gridTemplateColumns: compact ? 'repeat(7, minmax(0, 1fr))' : 'repeat(7, minmax(0, 1fr)) 96px', gap: compact ? 3 : 6, gridAutoRows: compact ? 'minmax(54px, auto)' : 'minmax(62px, auto)' }}>
         {/* Header row: 7 weekday labels (+ Weekly label on wide) */}
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
           <div key={d} style={{ fontSize: 10, color: 'var(--text3)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, height: 16, lineHeight: '16px' }}>{d}</div>
@@ -1857,7 +1860,8 @@ function CalendarView({ stats, onDayClick }) {
                 <div style={{ fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Wk {w.week}</div>
                 {w.trades > 0 ? (
                   <Fragment>
-                    <div className="tabnum" style={{ fontSize: 13, fontWeight: 600, color: w.pnl >= 0 ? 'var(--green-bright)' : 'var(--red)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fmtCompact(w.pnl)}</div>
+                    {/* Use full money format (e.g. -$467.81) instead of compact (-$467) so users see exact week totals */}
+                    <div className="tabnum" style={{ fontSize: 12, fontWeight: 600, color: w.pnl >= 0 ? 'var(--green-bright)' : 'var(--red)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fmtMoney(w.pnl, true)}</div>
                     <div style={{ fontSize: 9, color: 'var(--text3)' }}>{w.days}d · {w.trades}t</div>
                   </Fragment>
                 ) : <div style={{ fontSize: 11, color: 'var(--border2)' }}>—</div>}
@@ -4586,62 +4590,323 @@ function Strategies({ strategies, trades, notes, onSave, onDelete }) {
   );
 }
 
-// ═══════════════ NOTEBOOK (with WORKING delete) ═══════════════
-function Notebook({ entries, onSave, onDelete }) {
-  const [selected, setSelected] = useState(entries[0]?.id || null);
+// ═══════════════ NOTEBOOK (with folders, favorites, templates) ═══════════════
+// Tradezella-style notebook with:
+//   - Default folders: All notes (virtual), Favorites (virtual), Daily Journal (virtual,
+//     pulls from dayNotes), Trade Notes (virtual, pulls from trade.notes), My Notes (default).
+//   - User can create custom folders. Each folder can have a template that auto-populates
+//     when a new note is created in that folder.
+//   - Notes have favorite flag + folderId + tags.
+const DEFAULT_FOLDERS = [
+  { id: 'all', name: 'All notes', virtual: true, system: true, icon: '☰' },
+  { id: 'favorites', name: 'Favorites', virtual: true, system: true, icon: '★' },
+  { id: 'trade-notes', name: 'Trade Notes', virtual: true, system: true, icon: '◧' },
+  { id: 'daily-journal', name: 'Daily Journal', virtual: true, system: true, icon: '◰' },
+  { id: 'my-notes', name: 'My Notes', system: true, icon: '✎' },
+];
+function Notebook({ entries, onSave, onDelete, folders, onSaveFolder, onDeleteFolder, trades, notes, dayNotes }) {
+  const [selectedFolder, setSelectedFolder] = useState('all');
+  const [expandedFolders, setExpandedFolders] = useState({ 'all': true, 'my-notes': true });
+  const [selected, setSelected] = useState(null);
   const [editing, setEditing] = useState(false);
-  const current = entries.find(e => e.id === selected);
+  const [search, setSearch] = useState('');
+  const [addingFolder, setAddingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [editingTemplate, setEditingTemplate] = useState(null); // folderId being template-edited
+  const [showFolderMenu, setShowFolderMenu] = useState(null); // folderId with menu open
+  // Combine default + user folders. User-saved folders WIN — they may contain template/name
+  // overrides for system folders. Iterate user-first so dedup keeps the override.
+  const allFolders = useMemo(() => {
+    const seen = new Set();
+    const out = [];
+    // First pass: anything the user has saved (may include overrides for system folders)
+    for (const f of (folders || [])) {
+      if (!seen.has(f.id)) { seen.add(f.id); out.push(f); }
+    }
+    // Second pass: defaults — only add if user didn't already override
+    for (const f of DEFAULT_FOLDERS) {
+      if (!seen.has(f.id)) { seen.add(f.id); out.push(f); }
+    }
+    // Re-sort so default folders appear in their canonical order (system first, then user-created)
+    const defaultIds = DEFAULT_FOLDERS.map(f => f.id);
+    out.sort((a, b) => {
+      const ai = defaultIds.indexOf(a.id), bi = defaultIds.indexOf(b.id);
+      if (ai === -1 && bi === -1) return 0; // both custom — preserve insertion order
+      if (ai === -1) return 1; // custom after system
+      if (bi === -1) return -1;
+      return ai - bi;
+    });
+    // Merge in default fields (icon, virtual, system) on user overrides so they don't lose styling
+    return out.map(f => {
+      const d = DEFAULT_FOLDERS.find(x => x.id === f.id);
+      return d ? { ...d, ...f } : f;
+    });
+  }, [folders]);
+  // Build virtual entries from trades (notes attached to a trade) and dayNotes
+  const tradeNoteEntries = useMemo(() => {
+    if (!notes) return [];
+    return Object.entries(notes).filter(([id, n]) => n?.note && n.note.trim()).map(([tradeId, n]) => {
+      const t = trades?.find(t => t.id === tradeId);
+      return {
+        id: `t_${tradeId}`,
+        title: t ? `${t.symbol} · ${t.closeTime?.split(' ')[0] || ''}` : 'Trade note',
+        body: n.note,
+        updatedAt: n.updatedAt || Date.now(),
+        folderId: 'trade-notes',
+        virtual: true, // can't edit from notebook (edit via trade detail page)
+        sourceId: tradeId,
+        sourceType: 'trade',
+      };
+    });
+  }, [notes, trades]);
+  const dayNoteEntries = useMemo(() => {
+    if (!dayNotes) return [];
+    return Object.entries(dayNotes).filter(([day, text]) => text && text.trim()).map(([day, text]) => ({
+      id: `d_${day}`,
+      title: day,
+      body: text,
+      updatedAt: Date.now(), // dayNotes doesn't track timestamps; show as recent
+      folderId: 'daily-journal',
+      virtual: true,
+      sourceId: day,
+      sourceType: 'day',
+    }));
+  }, [dayNotes]);
+  // Filtered entries based on selected folder + search
+  const filteredEntries = useMemo(() => {
+    let pool;
+    if (selectedFolder === 'all') pool = [...entries, ...tradeNoteEntries, ...dayNoteEntries];
+    else if (selectedFolder === 'favorites') pool = entries.filter(e => e.favorite);
+    else if (selectedFolder === 'trade-notes') pool = tradeNoteEntries;
+    else if (selectedFolder === 'daily-journal') pool = dayNoteEntries;
+    else pool = entries.filter(e => (e.folderId || 'my-notes') === selectedFolder);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      pool = pool.filter(e => (e.title || '').toLowerCase().includes(q) || (e.body || '').toLowerCase().includes(q));
+    }
+    return pool.sort((a, b) => b.updatedAt - a.updatedAt);
+  }, [entries, tradeNoteEntries, dayNoteEntries, selectedFolder, search]);
+  // Note count per folder (used in sidebar)
+  const folderCounts = useMemo(() => {
+    const counts = {};
+    counts['all'] = entries.length + tradeNoteEntries.length + dayNoteEntries.length;
+    counts['favorites'] = entries.filter(e => e.favorite).length;
+    counts['trade-notes'] = tradeNoteEntries.length;
+    counts['daily-journal'] = dayNoteEntries.length;
+    for (const f of allFolders) {
+      if (f.virtual) continue;
+      counts[f.id] = entries.filter(e => (e.folderId || 'my-notes') === f.id).length;
+    }
+    return counts;
+  }, [entries, tradeNoteEntries, dayNoteEntries, allFolders]);
+  const current = filteredEntries.find(e => e.id === selected) || (selected && !selected.startsWith('t_') && !selected.startsWith('d_') ? entries.find(e => e.id === selected) : null);
   const inp = { width: '100%', fontSize: 13, background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 7, padding: 8, color: 'var(--text)', outline: 'none' };
-  const newEntry = () => { const e = { id: `n_${Date.now()}`, title: 'Untitled', body: '', updatedAt: Date.now() }; onSave(e); setSelected(e.id); setEditing(true); };
-  const handleDelete = (id) => { if (confirm('Delete this note permanently?')) { onDelete(id); const remaining = entries.filter(e => e.id !== id); setSelected(remaining[0]?.id || null); setEditing(false); } };
+  // Create a new note in the current folder (or my-notes if a virtual folder is selected).
+  // Pre-populate with template if folder has one.
+  const newEntry = () => {
+    const folderId = (selectedFolder === 'all' || selectedFolder === 'favorites' || selectedFolder === 'trade-notes' || selectedFolder === 'daily-journal') ? 'my-notes' : selectedFolder;
+    const folder = allFolders.find(f => f.id === folderId);
+    const templateBody = folder?.template || '';
+    const e = { id: `n_${Date.now()}`, title: 'Untitled', body: templateBody, updatedAt: Date.now(), folderId, favorite: false };
+    onSave(e); setSelected(e.id); setEditing(true);
+  };
+  const handleDelete = (id) => {
+    if (id?.startsWith('t_') || id?.startsWith('d_')) { alert('To delete this note, go to the trade or day where it was created.'); return; }
+    if (confirm('Delete this note permanently?')) { onDelete(id); setSelected(null); setEditing(false); }
+  };
+  const toggleFavorite = (e) => onSave({ ...e, favorite: !e.favorite, updatedAt: e.updatedAt });
+  const moveToFolder = (e, newFolderId) => { onSave({ ...e, folderId: newFolderId, updatedAt: Date.now() }); };
+  const addFolder = () => {
+    const name = newFolderName.trim();
+    if (!name) return;
+    const id = `f_${Date.now()}`;
+    onSaveFolder({ id, name });
+    setNewFolderName(''); setAddingFolder(false);
+    setSelectedFolder(id); setExpandedFolders(prev => ({ ...prev, [id]: true }));
+  };
+  const removeFolder = (id) => {
+    if (!confirm('Delete this folder? Notes inside will be moved to "My Notes".')) return;
+    // Reassign all notes from this folder to my-notes
+    entries.filter(e => e.folderId === id).forEach(e => onSave({ ...e, folderId: 'my-notes' }));
+    onDeleteFolder(id);
+    if (selectedFolder === id) setSelectedFolder('my-notes');
+  };
+  const saveTemplate = (folderId, template) => {
+    const f = allFolders.find(x => x.id === folderId);
+    if (!f) return;
+    // System folders' templates are stored separately too — onSaveFolder handles both
+    onSaveFolder({ ...f, template });
+    setEditingTemplate(null);
+  };
   return (
-    <div className="fade-in force-stack" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 14, minHeight: 600 }}>
-      <Card style={{ padding: 12, maxHeight: 700, overflowY: 'auto' }}>
-        <button style={{ ...btnStyle('primary'), width: '100%', justifyContent: 'center', marginBottom: 8 }} onClick={newEntry}>+ New entry</button>
-        {entries.length === 0 && <div style={{ textAlign: 'center', padding: 32, color: 'var(--text3)', fontSize: 12 }}>No notes yet</div>}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {[...entries].sort((a, b) => b.updatedAt - a.updatedAt).map(e => (
-            <div key={e.id} onClick={() => { setSelected(e.id); setEditing(false); }} style={{ padding: 10, borderRadius: 8, cursor: 'pointer', background: selected === e.id ? 'rgba(124,92,252,0.1)' : 'transparent', border: selected === e.id ? '1px solid rgba(124,92,252,0.4)' : '1px solid transparent', transition: 'all 0.15s', position: 'relative' }}
-              onMouseEnter={e2 => { if (selected !== e.id) e2.currentTarget.style.background = 'var(--hover-tint)'; }} onMouseLeave={e2 => { if (selected !== e.id) e2.currentTarget.style.background = 'transparent'; }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 6 }}>
-                <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{e.title}</div>
-                <button onClick={ev => { ev.stopPropagation(); handleDelete(e.id); }} style={{ background: 'transparent', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 12, padding: 0, lineHeight: 1 }} onMouseEnter={ev => ev.currentTarget.style.color = 'var(--red)'} onMouseLeave={ev => ev.currentTarget.style.color = 'var(--text3)'}>🗑</button>
-              </div>
-              <div style={{ fontSize: 10, color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.body.slice(0, 40) || 'Empty…'}</div>
-              <div style={{ fontSize: 9, color: 'var(--border2)', marginTop: 2 }}>{new Date(e.updatedAt).toLocaleDateString()}</div>
+    <div className="fade-in force-stack" style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 14, minHeight: 600 }}>
+      {/* ── Folder sidebar ── */}
+      <Card style={{ padding: 0, maxHeight: 800, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        {/* Search + add folder header */}
+        <div style={{ padding: 12, borderBottom: '1px solid var(--border)' }}>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍 Search notes…" style={{ ...inp, fontSize: 12 }} />
+        </div>
+        {/* Folder list */}
+        <div style={{ padding: 8, flex: 1 }}>
+          {allFolders.map(folder => {
+            const isOpen = expandedFolders[folder.id];
+            const isSelected = selectedFolder === folder.id;
+            const folderEntries = folder.virtual
+              ? (folder.id === 'all' ? [...entries, ...tradeNoteEntries, ...dayNoteEntries] : folder.id === 'favorites' ? entries.filter(e => e.favorite) : folder.id === 'trade-notes' ? tradeNoteEntries : dayNoteEntries)
+              : entries.filter(e => (e.folderId || 'my-notes') === folder.id);
+            const sorted = [...folderEntries].sort((a, b) => b.updatedAt - a.updatedAt);
+            return (
+              <Fragment key={folder.id}>
+                {/* Folder row */}
+                <div onClick={() => { setSelectedFolder(folder.id); setExpandedFolders(prev => ({ ...prev, [folder.id]: !prev[folder.id] })); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 8px', borderRadius: 6, cursor: 'pointer', background: isSelected ? 'var(--violet-tint)' : 'transparent', color: isSelected ? 'var(--violet-light)' : 'var(--text)', fontSize: 13, fontWeight: 500, transition: 'all 0.12s', position: 'relative' }}
+                  onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--hover-tint)'; }}
+                  onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}>
+                  <span style={{ fontSize: 9, color: 'var(--text3)', width: 10 }}>{isOpen ? '▾' : '▸'}</span>
+                  <span style={{ fontSize: 13, width: 16, textAlign: 'center' }}>{folder.icon || '📁'}</span>
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{folder.name}</span>
+                  <span style={{ fontSize: 10, color: 'var(--text3)' }}>{folderCounts[folder.id] || 0}</span>
+                  {/* Folder menu for non-virtual folders */}
+                  {!folder.virtual && (
+                    <button onClick={ev => { ev.stopPropagation(); setShowFolderMenu(showFolderMenu === folder.id ? null : folder.id); }}
+                      style={{ background: 'transparent', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 14, padding: '0 2px', lineHeight: 1 }}>⋯</button>
+                  )}
+                  {/* Folder context menu */}
+                  {showFolderMenu === folder.id && (
+                    <div style={{ position: 'absolute', top: '100%', right: 4, marginTop: 2, background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 6, boxShadow: 'var(--shadow-elev)', zIndex: 30, minWidth: 140 }} onClick={ev => ev.stopPropagation()}>
+                      <button onClick={() => { setEditingTemplate(folder.id); setShowFolderMenu(null); }} style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'transparent', border: 'none', color: 'var(--text)', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-tint)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                        ✎ Edit template
+                      </button>
+                      {!folder.system && (
+                        <button onClick={() => { removeFolder(folder.id); setShowFolderMenu(null); }} style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'transparent', border: 'none', color: 'var(--red)', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-tint)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                          🗑 Delete folder
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {/* Folder contents (notes) */}
+                {isOpen && sorted.length > 0 && (
+                  <div style={{ marginLeft: 22, marginBottom: 4 }}>
+                    {sorted.slice(0, 50).map(e => (
+                      <div key={e.id} onClick={() => { setSelected(e.id); setEditing(false); }}
+                        style={{ padding: '5px 8px', borderRadius: 5, cursor: 'pointer', background: selected === e.id ? 'var(--violet-tint)' : 'transparent', borderLeft: selected === e.id ? '2px solid var(--violet)' : '2px solid transparent', transition: 'all 0.1s' }}
+                        onMouseEnter={ev => { if (selected !== e.id) ev.currentTarget.style.background = 'var(--hover-tint)'; }}
+                        onMouseLeave={ev => { if (selected !== e.id) ev.currentTarget.style.background = 'transparent'; }}>
+                        <div style={{ fontSize: 12, color: 'var(--text)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          {e.favorite && <span style={{ color: '#fbbf24', fontSize: 10 }}>★</span>}
+                          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.title || 'Untitled'}</span>
+                        </div>
+                        <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>{new Date(e.updatedAt).toLocaleDateString()}{e.virtual ? ' · linked' : ''}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Fragment>
+            );
+          })}
+          {/* Add folder row */}
+          {addingFolder ? (
+            <div style={{ display: 'flex', gap: 4, padding: '6px 8px', marginTop: 4 }}>
+              <input autoFocus value={newFolderName} onChange={e => setNewFolderName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addFolder(); if (e.key === 'Escape') { setAddingFolder(false); setNewFolderName(''); } }} placeholder="Folder name…" style={{ ...inp, fontSize: 12, padding: '4px 6px' }} />
+              <button onClick={addFolder} style={{ ...btnStyle('primary'), padding: '4px 8px', fontSize: 11 }}>✓</button>
             </div>
-          ))}
+          ) : (
+            <button onClick={() => setAddingFolder(true)} style={{ width: '100%', padding: '8px 10px', marginTop: 6, background: 'transparent', border: '1px dashed var(--border2)', borderRadius: 6, color: 'var(--text3)', fontSize: 12, cursor: 'pointer', textAlign: 'left' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--violet)'; e.currentTarget.style.color = 'var(--violet-light)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.color = 'var(--text3)'; }}>
+              + Add folder
+            </button>
+          )}
         </div>
       </Card>
-      <Card style={{ padding: 18 }}>
-        {!current ? <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text3)', fontSize: 13 }}>Select or create a note</div>
-          : editing ? <NotebookEditor key={current.id} entry={current} onSave={e => { onSave(e); setEditing(false); }} onCancel={() => setEditing(false)} onDelete={() => handleDelete(current.id)} inp={inp} />
-            : (
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <div><div style={{ fontSize: 20, fontWeight: 600 }}>{current.title}</div><div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Updated {new Date(current.updatedAt).toLocaleString()}</div></div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button style={btnStyle('secondary')} onClick={() => setEditing(true)}>Edit</button>
-                    <button style={btnStyle('danger')} onClick={() => handleDelete(current.id)}>Delete</button>
-                  </div>
-                </div>
-                <div style={{ fontSize: 13, color: 'var(--text2)', whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{current.body || <span style={{ color: 'var(--border2)', fontStyle: 'italic' }}>Empty note — click Edit to add content.</span>}</div>
-              </div>
-            )}
+      {/* ── Note view/editor ── */}
+      <Card style={{ padding: 18, position: 'relative' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <button style={btnStyle('primary')} onClick={newEntry}>+ New note</button>
+          {current && !current.virtual && (
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button onClick={() => toggleFavorite(current)} title={current.favorite ? 'Unfavorite' : 'Favorite'} style={{ ...btnStyle('ghost'), padding: '6px 10px', color: current.favorite ? '#fbbf24' : 'var(--text2)' }}>★</button>
+              {!editing && <button style={btnStyle('secondary')} onClick={() => setEditing(true)}>Edit</button>}
+              <button style={btnStyle('danger')} onClick={() => handleDelete(current.id)}>Delete</button>
+            </div>
+          )}
+        </div>
+        {!current ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 400, color: 'var(--text3)', fontSize: 13, gap: 8, textAlign: 'center' }}>
+            <div style={{ fontSize: 32, opacity: 0.4 }}>✎</div>
+            <div>{filteredEntries.length === 0 ? `No notes in ${allFolders.find(f => f.id === selectedFolder)?.name || 'this folder'}.` : 'Select a note from the sidebar to view it.'}</div>
+            {filteredEntries.length === 0 && <button style={btnStyle('secondary')} onClick={newEntry}>+ Create your first note here</button>}
+          </div>
+        ) : current.virtual ? (
+          // Virtual notes (from trade/day) are read-only inside Notebook
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 600 }}>{current.title}</div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2, marginBottom: 16 }}>
+              {current.sourceType === 'trade' ? 'Linked to trade — edit on the trade detail page' : 'Daily journal entry — edit from Day View'}
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--text2)', whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{current.body}</div>
+          </div>
+        ) : editing ? (
+          <NotebookEditor key={current.id} entry={current} folders={allFolders} onSave={e => { onSave(e); setEditing(false); }} onCancel={() => setEditing(false)} onDelete={() => handleDelete(current.id)} onMove={folderId => moveToFolder(current, folderId)} inp={inp} />
+        ) : (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+              <div style={{ fontSize: 20, fontWeight: 600 }}>{current.title}</div>
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+              Updated {new Date(current.updatedAt).toLocaleString()}
+              <span style={{ padding: '1px 6px', borderRadius: 4, background: 'var(--violet-tint)', color: 'var(--violet-light)', fontSize: 10 }}>{allFolders.find(f => f.id === (current.folderId || 'my-notes'))?.name || 'My Notes'}</span>
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--text2)', whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{current.body || <span style={{ color: 'var(--text3)', fontStyle: 'italic' }}>Empty note — click Edit to add content.</span>}</div>
+          </div>
+        )}
       </Card>
+      {/* Template editor modal */}
+      {editingTemplate && (
+        <Modal open={true} onClose={() => setEditingTemplate(null)} width={560}>
+          <TemplateEditor folder={allFolders.find(f => f.id === editingTemplate)} onSave={template => saveTemplate(editingTemplate, template)} onCancel={() => setEditingTemplate(null)} inp={inp} />
+        </Modal>
+      )}
     </div>
   );
 }
-function NotebookEditor({ entry, onSave, onCancel, onDelete, inp }) {
+// Note editor with folder picker
+function NotebookEditor({ entry, folders, onSave, onCancel, onDelete, onMove, inp }) {
   const [title, setTitle] = useState(entry.title), [body, setBody] = useState(entry.body);
+  const [folderId, setFolderId] = useState(entry.folderId || 'my-notes');
+  const customFolders = folders.filter(f => !f.virtual);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
       <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" style={{ fontSize: 20, fontWeight: 600, background: 'transparent', border: 'none', borderBottom: '1px solid var(--border)', paddingBottom: 8, outline: 'none', color: 'var(--text)' }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Folder</span>
+        <select value={folderId} onChange={e => setFolderId(e.target.value)} style={{ ...inp, width: 'auto', fontSize: 12, padding: '4px 8px' }}>
+          {customFolders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+        </select>
+      </div>
       <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Write your thoughts, market analysis, lessons learned…" style={{ ...inp, flex: 1, minHeight: 400, resize: 'vertical', lineHeight: 1.7 }} />
       <div style={{ display: 'flex', gap: 8 }}>
-        <button style={btnStyle('primary')} onClick={() => onSave({ ...entry, title, body, updatedAt: Date.now() })}>Save</button>
+        <button style={btnStyle('primary')} onClick={() => onSave({ ...entry, title, body, folderId, updatedAt: Date.now() })}>Save</button>
         <button style={btnStyle('ghost')} onClick={onCancel}>Cancel</button>
         <button style={{ ...btnStyle('danger'), marginLeft: 'auto' }} onClick={onDelete}>Delete</button>
+      </div>
+    </div>
+  );
+}
+// Per-folder template editor — content auto-fills new notes created in this folder
+function TemplateEditor({ folder, onSave, onCancel, inp }) {
+  const [template, setTemplate] = useState(folder?.template || '');
+  return (
+    <div style={{ padding: 20 }}>
+      <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Template for "{folder?.name}"</div>
+      <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>This text will auto-fill every new note you create in this folder. Useful for daily journals, trade recaps, watchlists, etc.</div>
+      <textarea value={template} onChange={e => setTemplate(e.target.value)} placeholder={"Examples for Daily Journal:\n\nPre-Market Game Plan:\n\nWatchlist:\n\nWhat I Did Great:\n\nMistakes I Made:\n\nOverall Recap:"} style={{ ...inp, width: '100%', minHeight: 280, resize: 'vertical', lineHeight: 1.6, fontFamily: 'ui-monospace, monospace', fontSize: 12 }} />
+      <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+        <button style={btnStyle('primary')} onClick={() => onSave(template)}>Save template</button>
+        <button style={btnStyle('ghost')} onClick={onCancel}>Cancel</button>
       </div>
     </div>
   );
@@ -5349,7 +5614,10 @@ function DateRangeFilter({ value, onChange }) {
 }
 
 // ═══════════════ SIDEBAR ═══════════════
-function Sidebar({ tab, setTab, hasData, mobileOpen, setMobileOpen }) {
+// On PC: hamburger toggles between FULL (220px, icons + labels) and COLLAPSED (60px, icons only).
+// Collapsed mode hovers show full label as a tooltip. Persisted to localStorage.
+// On mobile: behavior unchanged — hamburger opens the drawer overlay.
+function Sidebar({ tab, setTab, hasData, mobileOpen, setMobileOpen, collapsed, setCollapsed }) {
   const isMobile = useMobile();
   // When the mobile drawer is open, freeze the page underneath so taps and finger drags
   // don't scroll the content behind the drawer.
@@ -5383,12 +5651,14 @@ function Sidebar({ tab, setTab, hasData, mobileOpen, setMobileOpen }) {
     ['exit', 'Exit Analysis', '◐'],
     ['reports', 'Reports', '▦'], ['strategies', 'Strategies', '◈'], ['calendar', 'Calendar', '▤'], ['progress', 'Progress Tracker', '➚'],
   ];
+  // Effective width: 60px when collapsed on PC, 220px otherwise. Mobile drawer always 260px.
+  const sidebarWidth = isMobile ? 260 : (collapsed ? 60 : 220);
+  const isCollapsed = !isMobile && collapsed;
   const aside = (
-    <aside style={{ width: isMobile ? 260 : 220, background: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)', position: 'fixed', left: isMobile ? (mobileOpen ? 0 : -280) : 0, top: 0, bottom: 0, display: 'flex', flexDirection: 'column', padding: 12, paddingTop: isMobile ? `calc(env(safe-area-inset-top, 0px) + 14px)` : 12, zIndex: 50, transition: isMobile ? 'left 0.25s ease' : 'none', boxShadow: isMobile && mobileOpen ? '4px 0 24px rgba(0,0,0,0.6)' : 'none' }}>
-      {/* Branding stamp — embossed look using inset shadow + gradient border */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 10px', marginBottom: 10, borderRadius: 12, background: 'linear-gradient(135deg, rgba(124,92,252,0.06), rgba(192,38,211,0.04))', border: '1px solid rgba(124,92,252,0.18)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -1px 0 rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.5)' }}>
-        {/* Mini bull/bear/sword icon — same composition as the loader, scaled down */}
-        <svg width="32" height="32" viewBox="0 0 100 100" fill="none" style={{ filter: 'drop-shadow(0 0 8px rgba(124,92,252,0.4))', flexShrink: 0 }}>
+    <aside style={{ width: sidebarWidth, background: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)', position: 'fixed', left: isMobile ? (mobileOpen ? 0 : -280) : 0, top: 0, bottom: 0, display: 'flex', flexDirection: 'column', padding: isCollapsed ? '12px 8px' : 12, paddingTop: isMobile ? `calc(env(safe-area-inset-top, 0px) + 14px)` : (isCollapsed ? '12px 8px' : 12), zIndex: 50, transition: isMobile ? 'left 0.25s ease' : 'width 0.2s ease, padding 0.2s ease', boxShadow: isMobile && mobileOpen ? '4px 0 24px rgba(0,0,0,0.6)' : 'none' }}>
+      {/* Branding stamp — collapsed mode shows JUST the icon, expanded shows icon + text */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: isCollapsed ? 0 : 11, justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '10px 0' : '14px 10px', marginBottom: 10, borderRadius: 12, background: isCollapsed ? 'transparent' : 'linear-gradient(135deg, rgba(124,92,252,0.06), rgba(192,38,211,0.04))', border: isCollapsed ? 'none' : '1px solid rgba(124,92,252,0.18)', boxShadow: isCollapsed ? 'none' : 'inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -1px 0 rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.5)' }}>
+        <svg width={isCollapsed ? 36 : 32} height={isCollapsed ? 36 : 32} viewBox="0 0 100 100" fill="none" style={{ filter: 'drop-shadow(0 0 8px rgba(124,92,252,0.4))', flexShrink: 0 }}>
           <defs>
             <linearGradient id="sbSword" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#c4b5fd"/><stop offset="50%" stopColor="#a78bfa"/><stop offset="100%" stopColor="#7c5cfc"/>
@@ -5420,28 +5690,41 @@ function Sidebar({ tab, setTab, hasData, mobileOpen, setMobileOpen }) {
           <circle cx="50" cy="20" r="3" fill="url(#sbSword)"/><circle cx="50" cy="20" r="1.3" fill="#fff"/>
           <rect x="45.5" y="27" width="9" height="1.6" fill="#7c5cfc"/>
         </svg>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Embossed text — dual text-shadow for the inset stamp look. Uses light text always since sidebar is dark. */}
-          <div style={{ fontWeight: 700, fontSize: 14, lineHeight: 1.1, color: '#e9d5ff', textShadow: '0 1px 0 rgba(0,0,0,0.6), 0 -1px 0 rgba(255,255,255,0.08)', letterSpacing: '0.01em' }}>{BRAND}</div>
-          <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.14em', marginTop: 2, textShadow: '0 1px 0 rgba(0,0,0,0.6)' }}>Trading journal</div>
-        </div>
+        {!isCollapsed && (
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, lineHeight: 1.1, color: '#e9d5ff', textShadow: '0 1px 0 rgba(0,0,0,0.6), 0 -1px 0 rgba(255,255,255,0.08)', letterSpacing: '0.01em' }}>{BRAND}</div>
+            <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.14em', marginTop: 2, textShadow: '0 1px 0 rgba(0,0,0,0.6)' }}>Trading journal</div>
+          </div>
+        )}
         {isMobile && <button onClick={() => setMobileOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--sidebar-text)', cursor: 'pointer', fontSize: 18, padding: 4 }}>✕</button>}
       </div>
       <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto' }}>
         {items.map(([id, label, icon]) => {
           const active = tab === id, disabled = !hasData && id !== 'dashboard' && id !== 'playbook' && id !== 'rules';
-          // Sidebar nav buttons use the dedicated sidebar-* variables (always dark in both themes)
           return (
             <button key={id} onClick={() => { if (!disabled) { setTab(id); if (isMobile) setMobileOpen(false); } }} disabled={disabled}
-              style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 12px', borderRadius: 8, fontSize: 13, background: active ? 'var(--sidebar-active-bg)' : 'transparent', color: active ? 'var(--sidebar-text-active)' : 'var(--sidebar-text)', border: active ? '1px solid rgba(124,92,252,0.3)' : '1px solid transparent', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1, textAlign: 'left', transition: 'all 0.15s' }}
+              title={isCollapsed ? label : undefined}
+              style={{ display: 'flex', alignItems: 'center', gap: isCollapsed ? 0 : 11, justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '12px 0' : '10px 12px', borderRadius: 8, fontSize: 13, background: active ? 'var(--sidebar-active-bg)' : 'transparent', color: active ? 'var(--sidebar-text-active)' : 'var(--sidebar-text)', border: active ? '1px solid rgba(124,92,252,0.3)' : '1px solid transparent', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1, textAlign: 'left', transition: 'all 0.15s' }}
               onMouseEnter={e => { if (!active && !disabled) { e.currentTarget.style.background = 'var(--sidebar-hover-bg)'; e.currentTarget.style.color = 'var(--sidebar-text-hover)'; } }}
               onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--sidebar-text)'; } }}>
-              <span style={{ fontSize: 15, width: 16, textAlign: 'center' }}>{icon}</span>{label}
+              <span style={{ fontSize: isCollapsed ? 17 : 15, width: 16, textAlign: 'center' }}>{icon}</span>
+              {!isCollapsed && <span>{label}</span>}
             </button>
           );
         })}
       </nav>
-      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', padding: '12px 8px 0', borderTop: '1px solid var(--sidebar-divider)' }}>Data saved in your browser</div>
+      {!isCollapsed && <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', padding: '12px 8px 0', borderTop: '1px solid var(--sidebar-divider)' }}>Data saved in your browser</div>}
+      {/* Collapse/expand toggle button — bottom of sidebar on PC only.
+          Symbol points the direction the sidebar will move when clicked. */}
+      {!isMobile && (
+        <button onClick={() => setCollapsed(!collapsed)} title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          style={{ marginTop: 8, padding: isCollapsed ? '10px 0' : '8px 12px', background: 'transparent', border: 'none', color: 'var(--sidebar-text)', cursor: 'pointer', fontSize: 14, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: 11, transition: 'all 0.15s' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--sidebar-hover-bg)'; e.currentTarget.style.color = 'var(--sidebar-text-hover)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--sidebar-text)'; }}>
+          <span style={{ fontSize: 16, width: 16, textAlign: 'center' }}>{collapsed ? '»' : '«'}</span>
+          {!isCollapsed && <span style={{ fontSize: 12 }}>Collapse</span>}
+        </button>
+      )}
     </aside>
   );
   return (
@@ -5691,6 +5974,7 @@ function App() {
   const [checklist, setChecklist] = useState(() => lsGet(SK.checklist, ['Reviewed market structure', 'Defined risk before entry', 'Followed my plan', 'No revenge trades', 'Journaled the session']));
   const [checklistDays, setChecklistDays] = useState(() => lsGet(SK.checklistDays, {}));
   const [notebook, setNotebook] = useState(() => lsGet(SK.notebook, []));
+  const [notebookFolders, setNotebookFolders] = useState(() => lsGet(SK.notebookFolders, []));
   const [playbookState, setPlaybookState] = useState(() => lsGet(SK.playbook, { checks: {}, pair: 0 }));
   const [openPositions, setOpenPositions] = useState(() => lsGet(SK.openPositions, []));
   const [workingOrders, setWorkingOrders] = useState(() => lsGet(SK.workingOrders, []));
@@ -5707,6 +5991,9 @@ function App() {
     lsSet(SK.theme, theme);
   }, [theme]);
   const toggleTheme = () => setTheme(t => t === 'light' ? 'dark' : 'light');
+  // Sidebar collapsed state (PC-only). Persisted so it survives reloads.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => lsGet(SK.sidebarCollapsed, false));
+  useEffect(() => { lsSet(SK.sidebarCollapsed, sidebarCollapsed); }, [sidebarCollapsed]);
   const [detailTrade, setDetailTrade] = useState(null);
   const [daySummary, setDaySummary] = useState(null); // {key} when popup shown
   const [brokerOffsetInput, setBrokerOffsetInput] = useState(() => String(lsGet(SK.brokerOffset, 3)));
@@ -5815,6 +6102,15 @@ function App() {
   // FIXED: notebook save/delete properly persist
   const saveNotebookEntry = (e) => { const exists = notebook.find(n => n.id === e.id); const next = exists ? notebook.map(n => n.id === e.id ? e : n) : [...notebook, e]; setNotebook(next); lsSet(SK.notebook, next); markDirty(); };
   const deleteNotebookEntry = (id) => { const next = notebook.filter(n => n.id !== id); setNotebook(next); lsSet(SK.notebook, next); markDirty(); };
+  // Notebook folder handlers. Saving a folder updates its name/template if it exists, or adds it
+  // if it's new. Includes system folders (when their template is being edited) by tracking them
+  // in the user folders list with a special id prefix that survives merge in Notebook component.
+  const saveNotebookFolder = (f) => {
+    const exists = notebookFolders.find(x => x.id === f.id);
+    const next = exists ? notebookFolders.map(x => x.id === f.id ? { ...x, ...f } : x) : [...notebookFolders, f];
+    setNotebookFolders(next); lsSet(SK.notebookFolders, next); markDirty();
+  };
+  const deleteNotebookFolder = (id) => { const next = notebookFolders.filter(f => f.id !== id); setNotebookFolders(next); lsSet(SK.notebookFolders, next); markDirty(); };
   const savePlaybookState = (s) => { setPlaybookState(s); lsSet(SK.playbook, s); markDirty(); };
   const saveAttachments = (tradeId, atts) => { const next = { ...attachments, [tradeId]: atts }; if (!atts.length) delete next[tradeId]; setAttachments(next); lsSet(SK.attachments, next); markDirty(); };
   const handleDayClick = (date) => { setDaySummary(date); };
@@ -5839,12 +6135,12 @@ function App() {
   };
 
   const buildBackup = () => ({
-    trades, notes, dayNotes, accounts, strategies, checklist, checklistDays, notebook, playbookState,
+    trades, notes, dayNotes, accounts, strategies, checklist, checklistDays, notebook, notebookFolders, playbookState,
     openPositions, workingOrders, deposits, attachments, riskRules, exitData,
     exportedAt: new Date().toISOString(),
     deviceId: getDeviceId(),
     deviceName,
-    schemaVersion: 2, // bumped for exitData
+    schemaVersion: 3, // bumped for notebookFolders
   });
   const exportJSON = () => {
     const blob = new Blob([JSON.stringify(buildBackup(), null, 2)], { type: 'application/json' });
@@ -5955,6 +6251,7 @@ function App() {
         setChecklist(cl); lsSet(SK.checklist, cl);
         setChecklistDays(cd); lsSet(SK.checklistDays, cd);
         setNotebook(nb); lsSet(SK.notebook, nb);
+        const nbf = d.notebookFolders || []; setNotebookFolders(nbf); lsSet(SK.notebookFolders, nbf);
         if (d.playbookState) { setPlaybookState(d.playbookState); lsSet(SK.playbook, d.playbookState); }
         const op = d.openPositions || [], wo = d.workingOrders || [], dep = d.deposits || [];
         setOpenPositions(op); lsSet(SK.openPositions, op);
@@ -6028,6 +6325,7 @@ function App() {
         setChecklist(cl); lsSet(SK.checklist, cl);
         setChecklistDays(cd); lsSet(SK.checklistDays, cd);
         setNotebook(nb); lsSet(SK.notebook, nb);
+        const nbf = d.notebookFolders || []; setNotebookFolders(nbf); lsSet(SK.notebookFolders, nbf);
         if (d.playbookState) { setPlaybookState(d.playbookState); lsSet(SK.playbook, d.playbookState); }
         const op = d.openPositions || [], wo = d.workingOrders || [], dep = d.deposits || [];
         setOpenPositions(op); lsSet(SK.openPositions, op);
@@ -6121,13 +6419,18 @@ function App() {
   return (
     <MobileContext.Provider value={isMobile}>
     <div style={{ minHeight: '100vh' }}>
-      <Sidebar tab={tab} setTab={setTab} hasData={trades.length > 0} mobileOpen={mobileNavOpen} setMobileOpen={setMobileNavOpen} />
-      <div style={{ marginLeft: isMobile ? 0 : 220 }}>
+      <Sidebar tab={tab} setTab={setTab} hasData={trades.length > 0} mobileOpen={mobileNavOpen} setMobileOpen={setMobileNavOpen} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
+      <div style={{ marginLeft: isMobile ? 0 : (sidebarCollapsed ? 60 : 220), transition: 'margin-left 0.2s ease' }}>
         <header data-rfx-header style={{ position: 'sticky', top: 0, zIndex: 20, background: 'var(--header-bg)', backdropFilter: 'blur(14px)', borderBottom: '1px solid var(--border)' }}>
           <div style={{ padding: isMobile ? '10px 14px' : '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
               {isMobile && (
                 <button onClick={() => setMobileNavOpen(true)} style={{ background: 'transparent', border: 'none', color: 'var(--text)', cursor: 'pointer', padding: 4, fontSize: 22, lineHeight: 1, display: 'flex', alignItems: 'center' }}>☰</button>
+              )}
+              {/* PC hamburger — collapses the sidebar to icon-only mode, matching Tradezella behavior */}
+              {!isMobile && (
+                <button onClick={() => setSidebarCollapsed(c => !c)} title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} style={{ background: 'transparent', border: 'none', color: 'var(--text2)', cursor: 'pointer', padding: 4, fontSize: 20, lineHeight: 1, display: 'flex', alignItems: 'center', marginRight: 4 }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'var(--text)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text2)'}>☰</button>
               )}
               <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 600, whiteSpace: 'nowrap' }}>{titleMap[tab]}</div>
               {!isMobile && accountList.length > 0 && (
@@ -6307,7 +6610,7 @@ function App() {
               {!detailTrade && tab === 'positions' && <PositionsPage snapshot={activeSnapshot} openPositions={filteredOpenPositions} workingOrders={filteredWorkingOrders} deposits={dateFilteredDeposits} />}
               {!detailTrade && tab === 'playbook' && <Playbook playbookState={playbookState} onSavePlaybookState={savePlaybookState} />}
               {!detailTrade && tab === 'rules' && <RiskRules rules={riskRules} onSave={saveRiskRules} />}
-              {!detailTrade && tab === 'notebook' && <Notebook entries={notebook} onSave={saveNotebookEntry} onDelete={deleteNotebookEntry} />}
+              {!detailTrade && tab === 'notebook' && <Notebook entries={notebook} onSave={saveNotebookEntry} onDelete={deleteNotebookEntry} folders={notebookFolders} onSaveFolder={saveNotebookFolder} onDeleteFolder={deleteNotebookFolder} trades={trades} notes={notes} dayNotes={dayNotes} />}
               {!detailTrade && tab === 'reports' && <Reports trades={dateFilteredTrades} setTab={setTab} />}
               {!detailTrade && tab === 'exit' && <ExitAnalysisPage trades={dateFilteredTrades} exitData={exitData} onOpenTrade={(id) => setDetailTrade(id)} />}
               {!detailTrade && tab === 'strategies' && <Strategies strategies={strategies} trades={dateFilteredTrades} notes={notes} onSave={saveStrategy} onDelete={deleteStrategy} />}
