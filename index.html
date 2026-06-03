@@ -1478,6 +1478,17 @@ async function supaPull() {
   };
 }
 
+// Debounced sync — fires 2s after the last change, avoids hammering Supabase on rapid keystrokes
+let _syncTimer = null;
+function debouncedSync(getPayload) {
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(async () => {
+    if (!_supaUser) return;
+    const payload = getPayload();
+    await supaSync(payload);
+  }, 2000);
+}
+
 (async () => {
   try {
     const user = await supaGetSession();
@@ -6931,7 +6942,7 @@ function App() {
   const [dateRange, setDateRange] = useState({ from: null, to: null, label: 'All time' });
   const [riskRules, setRiskRules] = useState(() => ({ ...DEFAULT_RISK_RULES, ...lsGet(SK.riskRules, {}) }));
   const [gateOpen, setGateOpen] = useState(false);
-  const saveRiskRules = (r) => { setRiskRules(r); lsSet(SK.riskRules, r); markDirty(); };
+  const saveRiskRules = (r) => { setRiskRules(r); lsSet(SK.riskRules, r); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}) })); };
   const [lastExportAt, setLastExportAt] = useState(() => lsGet(SK.lastExportAt, null));
   const [lastImportAt, setLastImportAt] = useState(() => lsGet(SK.lastImportAt, null));
   const [lastDirty, setLastDirty] = useState(() => lsGet(SK.lastDirty, null));
@@ -7060,7 +7071,7 @@ function App() {
   };
   const exitCSVInputRef = useRef(null);
   const onExitCSVChange = (e) => { const f = e.target.files?.[0]; if (f) handleExitCSVImport(f); e.target.value = ''; };
-  const saveNote = (id, n) => { const next = { ...notes, [id]: n }; setNotes(next); lsSet(SK.notes, next); markDirty(); };
+  const saveNote = (id, n) => { const next = { ...notes, [id]: n }; setNotes(next); lsSet(SK.notes, next); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}) })); };
   // Remove a tag or mistake from EVERY note that contains it. Used by the TagPicker × button
   // to clean up the universal library.
   const purgeTagFromAllNotes = (tag, kind = 'tags') => {
@@ -7073,15 +7084,15 @@ function App() {
     }
     setNotes(next); lsSet(SK.notes, next); markDirty();
   };
-  const saveDayNote = (date, text) => { const next = { ...dayNotes }; if (text.trim()) next[date] = text; else delete next[date]; setDayNotes(next); lsSet(SK.dayNotes, next); markDirty(); };
-  const saveStrategy = (pb) => { const id = pb.id || `pb_${Date.now()}`; const next = pb.id ? strategies.map(p => p.id === pb.id ? { ...pb } : p) : [...strategies, { ...pb, id }]; setStrategies(next); lsSet(SK.strategies, next); markDirty(); };
-  const deleteStrategy = (id) => { const next = strategies.filter(p => p.id !== id); setStrategies(next); lsSet(SK.strategies, next); const nn = { ...notes }; for (const k of Object.keys(nn)) if (nn[k]?.strategyId === id) nn[k] = { ...nn[k], strategyId: null }; setNotes(nn); lsSet(SK.notes, nn); markDirty(); };
+  const saveDayNote = (date, text) => { const next = { ...dayNotes }; if (text.trim()) next[date] = text; else delete next[date]; setDayNotes(next); lsSet(SK.dayNotes, next); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}) })); };
+  const saveStrategy = (pb) => { const id = pb.id || `pb_${Date.now()}`; const next = pb.id ? strategies.map(p => p.id === pb.id ? { ...pb } : p) : [...strategies, { ...pb, id }]; setStrategies(next); lsSet(SK.strategies, next); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}) })); };
+  const deleteStrategy = (id) => { const next = strategies.filter(p => p.id !== id); setStrategies(next); lsSet(SK.strategies, next); const nn = { ...notes }; for (const k of Object.keys(nn)) if (nn[k]?.strategyId === id) nn[k] = { ...nn[k], strategyId: null }; setNotes(nn); lsSet(SK.notes, nn); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}) })); };
   const switchAccount = (id) => { setActiveAccount(id); lsSet(SK.activeAccount, id); };
-  const toggleChecklist = (item) => { const today = dayKey(new Date()); const next = { ...checklistDays }; if (!next[today]) next[today] = {}; next[today] = { ...next[today], [item]: !next[today][item] }; setChecklistDays(next); lsSet(SK.checklistDays, next); markDirty(); };
-  const editChecklist = (items) => { setChecklist(items); lsSet(SK.checklist, items); markDirty(); };
+  const toggleChecklist = (item) => { const today = dayKey(new Date()); const next = { ...checklistDays }; if (!next[today]) next[today] = {}; next[today] = { ...next[today], [item]: !next[today][item] }; setChecklistDays(next); lsSet(SK.checklistDays, next); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}) })); };
+  const editChecklist = (items) => { setChecklist(items); lsSet(SK.checklist, items); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}) })); };
   // FIXED: notebook save/delete properly persist
-  const saveNotebookEntry = (e) => { const exists = notebook.find(n => n.id === e.id); const next = exists ? notebook.map(n => n.id === e.id ? e : n) : [...notebook, e]; setNotebook(next); lsSet(SK.notebook, next); markDirty(); };
-  const deleteNotebookEntry = (id) => { const next = notebook.filter(n => n.id !== id); setNotebook(next); lsSet(SK.notebook, next); markDirty(); };
+  const saveNotebookEntry = (e) => { const exists = notebook.find(n => n.id === e.id); const next = exists ? notebook.map(n => n.id === e.id ? e : n) : [...notebook, e]; setNotebook(next); lsSet(SK.notebook, next); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}) })); };
+  const deleteNotebookEntry = (id) => { const next = notebook.filter(n => n.id !== id); setNotebook(next); lsSet(SK.notebook, next); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}) })); };
   // Notebook folder handlers. Saving a folder updates its name/template if it exists, or adds it
   // if it's new. Includes system folders (when their template is being edited) by tracking them
   // in the user folders list with a special id prefix that survives merge in Notebook component.
@@ -7096,7 +7107,7 @@ function App() {
   const saveTagCategory = (c) => {
     const exists = tagCategories.find(x => x.id === c.id);
     const next = exists ? tagCategories.map(x => x.id === c.id ? { ...x, ...c } : x) : [...tagCategories, c];
-    setTagCategories(next); lsSet(SK.tagCategories, next); markDirty();
+    setTagCategories(next); lsSet(SK.tagCategories, next); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}) }));
   };
   const deleteTagCategory = (id) => {
     // Reassign all tags in this category to 'setup'
@@ -7104,11 +7115,11 @@ function App() {
     for (const [tag, cid] of Object.entries(newMap)) if (cid === id) delete newMap[tag];
     setTagCategoryMap(newMap); lsSet(SK.tagCategoryMap, newMap);
     const next = tagCategories.filter(c => c.id !== id);
-    setTagCategories(next); lsSet(SK.tagCategories, next); markDirty();
+    setTagCategories(next); lsSet(SK.tagCategories, next); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}) }));
   };
-  const saveTagCategoryMap = (map) => { setTagCategoryMap(map); lsSet(SK.tagCategoryMap, map); markDirty(); };
+  const saveTagCategoryMap = (map) => { setTagCategoryMap(map); lsSet(SK.tagCategoryMap, map); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}) })); };
   const savePlaybookState = (s) => { setPlaybookState(s); lsSet(SK.playbook, s); markDirty(); };
-  const saveAttachments = (tradeId, atts) => { const next = { ...attachments, [tradeId]: atts }; if (!atts.length) delete next[tradeId]; setAttachments(next); lsSet(SK.attachments, next); markDirty(); };
+  const saveAttachments = (tradeId, atts) => { const next = { ...attachments, [tradeId]: atts }; if (!atts.length) delete next[tradeId]; setAttachments(next); lsSet(SK.attachments, next); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}) })); };
   const handleDayClick = (date) => { setDaySummary(date); };
   const handleDayDetails = (date) => { setDaySummary(null); setFocusDate(date); setTab('dayweek'); };
   const handleDayAddNote = () => { if (daySummary) { setFocusDate(daySummary); setTab('dayweek'); setDaySummary(null); } };
