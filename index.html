@@ -208,6 +208,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   select option { background: #1a1a1f; }
   .fade-in { animation: fadeIn 0.35s ease both; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @keyframes aiCoachPulse { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 1; transform: scale(1.4); } }
   .clickable { cursor: pointer; transition: all 0.15s ease; }
   .clickable:hover { transform: translateY(-1px); }
   /* ── PRINT-FRIENDLY STYLES ──
@@ -1390,6 +1391,8 @@ const SK = {
   notebookFolders: 'ledger_notebook_folders', // user-defined folders [{id, name}]
   tagCategories: 'ledger_tag_categories', // user-defined categories [{id, name, color, icon}]
   tagCategoryMap: 'ledger_tag_category_map', // {tagName: categoryId} — assigns tags to categories
+  aiCoachConfig: 'ledger_ai_coach_config', // { apiKey, provider, model }
+  aiCoachConvos: 'ledger_ai_coach_convos', // [{ id, title, messages, createdAt, updatedAt }]
 };
 const lsGet = (k, fallback) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { console.error(e); } };
@@ -1612,6 +1615,107 @@ function generateInsights(trades) {
   }
   return insights;
 }
+
+// ═══════════════ AI COACH HELPERS ═══════════════
+// Build a compact context blob about the trader's recent activity. We deliberately summarize
+// rather than dump raw rows so we don't blow the LLM context window — most coaching questions
+// only need stats + recent trades. The summary is structured JSON for easy LLM parsing.
+function buildAICoachContext(trades, notes, stats, riskRules, exitData, maxTrades = 50) {
+  if (!trades || trades.length === 0) return { error: 'No trades yet' };
+  // Sort by close time desc, take most recent
+  const sorted = [...trades].sort((a, b) => (parseMT5Date(b.closeTime) || 0) - (parseMT5Date(a.closeTime) || 0));
+  const recent = sorted.slice(0, maxTrades);
+  // Flatten each trade into a minimal row + linked note + exit data
+  const recentTrades = recent.map(t => {
+    const n = notes?.[t.id] || {};
+    const ed = exitData?.[t.id] || {};
+    return {
+      symbol: t.symbol,
+      side: t.type,
+      open: t.openTime,
+      close: t.closeTime,
+      entry: t.openPrice,
+      exit: t.closePrice,
+      sl: t.sl,
+      tp: t.tp,
+      volume: t.volume,
+      netPnL: +(netPnL(t)).toFixed(2),
+      tags: n.tags || [],
+      mistakes: n.mistakes || [],
+      rating: n.rating || null,
+      note: n.note || null,
+      // Exit quality if available
+      mfeDol: ed.mfe != null && ed.dollarPerPt != null ? +(ed.mfe * ed.dollarPerPt).toFixed(2) : null,
+      maeDol: ed.mae != null && ed.dollarPerPt != null ? +(ed.mae * ed.dollarPerPt).toFixed(2) : null,
+      capturePct: ed.mfe > 0 && ed.profitPts > 0 ? +((ed.profitPts / ed.mfe) * 100).toFixed(1) : null,
+    };
+  });
+  // High-level aggregate stats
+  const summary = stats ? {
+    totalTrades: stats.count,
+    winRate: +(stats.winRate * 100).toFixed(1),
+    netPnL: +stats.net.toFixed(2),
+    profitFactor: +(stats.profitFactor || 0).toFixed(2),
+    avgWin: +(stats.avgWin || 0).toFixed(2),
+    avgLoss: +(stats.avgLoss || 0).toFixed(2),
+    largestWin: +(stats.largestWin || 0).toFixed(2),
+    largestLoss: +(stats.largestLoss || 0).toFixed(2),
+    tradingDays: stats.daily?.length || 0,
+    bestDay: stats.daily?.length ? [...stats.daily].sort((a,b) => b.pnl - a.pnl)[0] : null,
+    worstDay: stats.daily?.length ? [...stats.daily].sort((a,b) => a.pnl - b.pnl)[0] : null,
+  } : null;
+  return {
+    asOf: new Date().toISOString(),
+    summary,
+    riskRules,
+    recentTrades,
+    note: `Showing most recent ${recentTrades.length} of ${trades.length} total trades.`,
+  };
+}
+// Call OpenAI-compatible chat completions API. Returns the assistant message text.
+// Supports OpenAI (api.openai.com) and any compatible endpoint (Together, Groq, etc).
+async function callAICoachAPI(messages, config) {
+  const url = config.endpoint || 'https://api.openai.com/v1/chat/completions';
+  const model = config.model || 'gpt-4o-mini';
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${config.apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      temperature: 0.4,
+      max_tokens: 1200,
+    }),
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`API error ${res.status}: ${errText.slice(0, 300)}`);
+  }
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content || '(no response)';
+}
+// The system prompt that shapes the coach's behavior. Direct, evidence-based, no platitudes.
+const AI_COACH_SYSTEM_PROMPT = `You are a trading coach for a retail forex/futures trader. You have access to their actual trade history as JSON context.
+
+Your job:
+- Answer their questions using their REAL data, not generic trading wisdom
+- Cite specific trades, dates, symbols, and numbers from the context
+- Be direct and concise. No fluff, no disclaimers about risk
+- If you see patterns (revenge trading, oversizing on losers, hold-time asymmetry, time-of-day weaknesses), call them out specifically
+- Always tie advice to evidence in their data ("On 2026-05-29 you took a 0.50 lot XAUUSD that lost $499 — 3x your average size")
+- Format with short paragraphs, bullets where useful. Use bold for key numbers.
+- Decline questions unrelated to trading or their data
+
+Refuse to:
+- Predict market direction
+- Recommend specific entries/exits for current/future trades
+- Tell them to trade more, trade bigger, or take on more risk
+- Make claims about future performance
+
+If the context shows no trades or insufficient data, say so plainly.`;
 // ═══════════════ UI PRIMITIVES ═══════════════
 
 // Responsive hook — true on portrait phones (≤ 760px wide)
@@ -6070,6 +6174,230 @@ function DateRangeFilter({ value, onChange }) {
   );
 }
 
+// ═══════════════ AI COACH ═══════════════
+// Chat-based AI assistant that answers questions about the trader's actual data.
+// Architecture:
+//  - User provides their own API key (OpenAI-compatible, default gpt-4o-mini).
+//  - Each message exchange POSTs to /v1/chat/completions with:
+//      [system prompt, trade context JSON, ...conversation history, user question]
+//  - Trade context = compact JSON summary built by buildAICoachContext() in logic.js.
+//  - Conversations persist to localStorage so the user can revisit them.
+//  - Quick prompts give starting questions for new users.
+//
+// Privacy: API key is stored in browser localStorage only. Trade data is sent to the
+// configured endpoint with each request. Tell users this in the settings panel.
+function AICoach({ trades, notes, stats, riskRules, exitData, config, onSaveConfig, conversations, onSaveConvos }) {
+  const [activeConvoId, setActiveConvoId] = useState(conversations?.[0]?.id || null);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showSettings, setShowSettings] = useState(!config?.apiKey); // show settings on first run
+  const [tempConfig, setTempConfig] = useState(config || { apiKey: '', model: 'gpt-4o-mini', endpoint: '' });
+  const messagesEndRef = useRef(null);
+  // Auto-scroll on new messages
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [activeConvoId, conversations, loading]);
+  const isMobile = useMobile();
+  const activeConvo = conversations?.find(c => c.id === activeConvoId);
+  const inp = { width: '100%', fontSize: 13, background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 7, padding: 8, color: 'var(--text)', outline: 'none' };
+  const newConvo = () => {
+    const c = { id: `ai_${Date.now()}`, title: 'New conversation', messages: [], createdAt: Date.now(), updatedAt: Date.now() };
+    const next = [c, ...(conversations || [])];
+    onSaveConvos(next);
+    setActiveConvoId(c.id);
+    setInput('');
+    setError(null);
+  };
+  const deleteConvo = (id) => {
+    if (!confirm('Delete this conversation?')) return;
+    const next = conversations.filter(c => c.id !== id);
+    onSaveConvos(next);
+    if (activeConvoId === id) setActiveConvoId(next[0]?.id || null);
+  };
+  const saveConfigAndClose = () => {
+    onSaveConfig(tempConfig);
+    setShowSettings(false);
+  };
+  // Auto-title a conversation from its first user message (first 40 chars)
+  const titleFromMessage = (text) => {
+    const cleaned = text.replace(/\s+/g, ' ').trim();
+    return cleaned.length > 40 ? cleaned.slice(0, 40) + '…' : cleaned;
+  };
+  const send = async (text) => {
+    const q = (text ?? input).trim();
+    if (!q) return;
+    if (!config?.apiKey) { setError('Add your API key in settings first.'); setShowSettings(true); return; }
+    setError(null);
+    setInput('');
+    // Ensure we have an active conversation
+    let convo = activeConvo;
+    let convoId = activeConvoId;
+    let allConvos = conversations || [];
+    if (!convo) {
+      convo = { id: `ai_${Date.now()}`, title: titleFromMessage(q), messages: [], createdAt: Date.now(), updatedAt: Date.now() };
+      convoId = convo.id;
+      allConvos = [convo, ...allConvos];
+      setActiveConvoId(convoId);
+    }
+    // Append user message
+    const userMsg = { role: 'user', content: q, ts: Date.now() };
+    convo = { ...convo, messages: [...convo.messages, userMsg], updatedAt: Date.now() };
+    if (convo.messages.length === 1) convo.title = titleFromMessage(q);
+    allConvos = allConvos.map(c => c.id === convoId ? convo : c);
+    onSaveConvos(allConvos);
+    setLoading(true);
+    try {
+      // Build context payload — gets injected as a system message after the main prompt
+      const context = buildAICoachContext(trades, notes, stats, riskRules, exitData);
+      const messages = [
+        { role: 'system', content: AI_COACH_SYSTEM_PROMPT },
+        { role: 'system', content: `Trader's current data:\n\n${JSON.stringify(context, null, 2)}` },
+        ...convo.messages.map(m => ({ role: m.role, content: m.content })),
+      ];
+      const reply = await callAICoachAPI(messages, config);
+      const aiMsg = { role: 'assistant', content: reply, ts: Date.now() };
+      convo = { ...convo, messages: [...convo.messages, aiMsg], updatedAt: Date.now() };
+      allConvos = allConvos.map(c => c.id === convoId ? convo : c);
+      onSaveConvos(allConvos);
+    } catch (e) {
+      setError(e.message || 'Failed to call AI');
+    } finally {
+      setLoading(false);
+    }
+  };
+  // Quick prompts shown for new/empty conversations
+  const quickPrompts = [
+    { icon: '📊', label: 'Review my last week', text: 'Review my trading from the last 7 days. What patterns do you see — good and bad?' },
+    { icon: '⚠️', label: 'Find my biggest mistakes', text: 'Looking at my trade data, what are the 3 most expensive mistakes I keep making? Cite specific trades.' },
+    { icon: '🏆', label: 'My best setup', text: 'Which setup or symbol has been most profitable for me? Should I do more of it or is it noise?' },
+    { icon: '😤', label: 'Am I revenge trading?', text: 'Look for revenge-trading patterns in my data — sizing up after losses, trading more frequently after a bad day, etc.' },
+    { icon: '⏰', label: 'Time-of-day patterns', text: 'When do I make money and when do I lose money during the day? Should I adjust my hours?' },
+    { icon: '🎯', label: 'How to improve next week', text: 'Based on my actual data, what are the 3 specific things I should focus on this coming week to improve?' },
+  ];
+  // ── Settings view ──
+  if (showSettings) {
+    return (
+      <div className="fade-in" style={{ maxWidth: 600, margin: '0 auto' }}>
+        <Card style={{ padding: 22 }}>
+          <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 4 }}>AI Coach Setup</div>
+          <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 20 }}>Connect an OpenAI-compatible API. Your key is stored locally in your browser only — never sent to any server except the API you specify.</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div>
+              <label style={{ fontSize: 11, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, display: 'block', marginBottom: 5 }}>API Key</label>
+              <input type="password" value={tempConfig.apiKey} onChange={e => setTempConfig({ ...tempConfig, apiKey: e.target.value })} placeholder="sk-..." style={inp} />
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>Get one from <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener" style={{ color: 'var(--violet-light)' }}>platform.openai.com/api-keys</a></div>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, display: 'block', marginBottom: 5 }}>Model</label>
+              <select value={tempConfig.model} onChange={e => setTempConfig({ ...tempConfig, model: e.target.value })} style={inp}>
+                <option value="gpt-4o-mini">gpt-4o-mini (cheap, fast — recommended)</option>
+                <option value="gpt-4o">gpt-4o (smarter, more expensive)</option>
+                <option value="gpt-4-turbo">gpt-4-turbo</option>
+                <option value="gpt-3.5-turbo">gpt-3.5-turbo (legacy, cheapest)</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, display: 'block', marginBottom: 5 }}>Custom endpoint (optional)</label>
+              <input value={tempConfig.endpoint || ''} onChange={e => setTempConfig({ ...tempConfig, endpoint: e.target.value })} placeholder="https://api.openai.com/v1/chat/completions" style={inp} />
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>Leave blank for OpenAI. For Groq, Together, OpenRouter etc., paste their /v1/chat/completions URL.</div>
+            </div>
+            <div style={{ padding: 12, background: 'var(--inset-bg)', border: '1px solid var(--inset-border)', borderRadius: 8, fontSize: 12, color: 'var(--text2)' }}>
+              <strong>Privacy:</strong> Each question sends a JSON summary of your recent ~50 trades + stats to your chosen API. No personal info (name, account #) is included beyond what's in trade fields.
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              {config?.apiKey && <button style={btnStyle('ghost')} onClick={() => setShowSettings(false)}>Cancel</button>}
+              <button style={btnStyle('primary')} onClick={saveConfigAndClose} disabled={!tempConfig.apiKey}>Save & continue</button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+  // ── Chat view ──
+  return (
+    <div className="fade-in force-stack" style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 14, minHeight: 600 }}>
+      {/* Conversation list */}
+      <Card style={{ padding: 8, maxHeight: 800, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <button style={{ ...btnStyle('primary'), width: '100%', justifyContent: 'center', marginBottom: 6 }} onClick={newConvo}>+ New chat</button>
+        {(!conversations || conversations.length === 0) && <div style={{ padding: 20, textAlign: 'center', color: 'var(--text3)', fontSize: 12 }}>No conversations yet</div>}
+        {conversations?.map(c => (
+          <div key={c.id} onClick={() => setActiveConvoId(c.id)} style={{ padding: '8px 10px', borderRadius: 6, cursor: 'pointer', background: activeConvoId === c.id ? 'var(--violet-tint)' : 'transparent', borderLeft: activeConvoId === c.id ? '2px solid var(--violet)' : '2px solid transparent', display: 'flex', alignItems: 'center', gap: 4 }}
+            onMouseEnter={e => { if (activeConvoId !== c.id) e.currentTarget.style.background = 'var(--hover-tint)'; }}
+            onMouseLeave={e => { if (activeConvoId !== c.id) e.currentTarget.style.background = 'transparent'; }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</div>
+              <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>{c.messages.length} msg · {new Date(c.updatedAt).toLocaleDateString()}</div>
+            </div>
+            <button onClick={ev => { ev.stopPropagation(); deleteConvo(c.id); }} style={{ background: 'transparent', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 11, padding: 0 }}
+              onMouseEnter={ev => ev.currentTarget.style.color = 'var(--red)'} onMouseLeave={ev => ev.currentTarget.style.color = 'var(--text3)'}>×</button>
+          </div>
+        ))}
+        <button onClick={() => setShowSettings(true)} style={{ marginTop: 'auto', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', padding: '6px 10px', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--violet)'; e.currentTarget.style.color = 'var(--violet-light)'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text2)'; }}>⚙ API settings</button>
+      </Card>
+      {/* Chat thread */}
+      <Card style={{ padding: 0, display: 'flex', flexDirection: 'column', maxHeight: 800 }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>{activeConvo?.title || 'AI Coach'}</div>
+            <div style={{ fontSize: 10, color: 'var(--text3)' }}>Using {config?.model || 'gpt-4o-mini'} · {trades?.length || 0} trades in context</div>
+          </div>
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {(!activeConvo || activeConvo.messages.length === 0) ? (
+            // Welcome screen with quick prompts
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, padding: '20px 0' }}>
+              <div style={{ fontSize: 40, opacity: 0.7 }}>🧠</div>
+              <div style={{ textAlign: 'center', maxWidth: 420 }}>
+                <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>Ask anything about your trading</div>
+                <div style={{ fontSize: 12, color: 'var(--text3)' }}>The coach reads your last {Math.min(trades?.length || 0, 50)} trades + stats and gives evidence-based feedback.</div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 8, width: '100%', maxWidth: 520 }}>
+                {quickPrompts.map((qp, i) => (
+                  <button key={i} onClick={() => send(qp.text)} disabled={loading} style={{ padding: 12, background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: 'var(--text)', transition: 'all 0.12s' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--violet)'; e.currentTarget.style.background = 'var(--hover-tint)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--panel2)'; }}>
+                    <span style={{ fontSize: 18 }}>{qp.icon}</span>
+                    <span>{qp.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            activeConvo.messages.map((m, i) => (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                <div style={{ maxWidth: '88%', padding: '10px 14px', borderRadius: 10, background: m.role === 'user' ? 'var(--violet-tint)' : 'var(--panel2)', border: `1px solid ${m.role === 'user' ? 'rgba(124,92,252,0.3)' : 'var(--border)'}`, fontSize: 13, lineHeight: 1.6, color: 'var(--text)', whiteSpace: 'pre-wrap' }}>
+                  {m.content}
+                </div>
+                <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 3, padding: '0 8px' }}>{m.role === 'user' ? 'You' : 'Coach'} · {new Date(m.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+              </div>
+            ))
+          )}
+          {loading && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', color: 'var(--text3)', fontSize: 12 }}>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {[0, 1, 2].map(i => <div key={i} style={{ width: 6, height: 6, borderRadius: 99, background: 'var(--violet-light)', opacity: 0.4, animation: `aiCoachPulse 1.2s infinite ${i * 0.2}s` }} />)}
+              </div>
+              Coach is thinking…
+            </div>
+          )}
+          {error && (
+            <div style={{ padding: 10, background: 'rgba(239,83,80,0.1)', border: '1px solid rgba(239,83,80,0.4)', borderRadius: 8, color: 'var(--red)', fontSize: 12 }}>
+              <strong>Error:</strong> {error}
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+        {/* Input row */}
+        <div style={{ padding: 12, borderTop: '1px solid var(--border)', display: 'flex', gap: 8 }}>
+          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} placeholder="Ask anything about your trading…" disabled={loading} style={{ ...inp, flex: 1 }} />
+          <button onClick={() => send()} disabled={loading || !input.trim()} style={btnStyle('primary')}>Send</button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 // ═══════════════ SIDEBAR ═══════════════
 // On PC: hamburger toggles between FULL (220px, icons + labels) and COLLAPSED (60px, icons only).
 // Collapsed mode hovers show full label as a tooltip. Persisted to localStorage.
@@ -6105,7 +6433,7 @@ function Sidebar({ tab, setTab, hasData, mobileOpen, setMobileOpen, collapsed, s
   const items = [
     ['dashboard', 'Dashboard', '◧'], ['dayweek', 'Day/Week View', '◰'], ['trade', 'Trade View', '☰'],
     ['positions', 'Positions & Orders', '◳'], ['rules', 'Risk Rules', '🛡'], ['playbook', 'Playbook', '◎'], ['notebook', 'Notebook', '✎'],
-    ['exit', 'Exit Analysis', '◐'],
+    ['exit', 'Exit Analysis', '◐'], ['coach', 'AI Coach', '🧠'],
     ['reports', 'Reports', '▦'], ['strategies', 'Strategies', '◈'], ['calendar', 'Calendar', '▤'], ['progress', 'Progress Tracker', '➚'],
   ];
   // Effective width: 60px when collapsed on PC, 220px otherwise. Mobile drawer always 260px.
@@ -6434,6 +6762,11 @@ function App() {
   const [notebookFolders, setNotebookFolders] = useState(() => lsGet(SK.notebookFolders, []));
   // Tag library modal — opened from any TagPicker via "Manage categories" button
   const [tagLibraryOpen, setTagLibraryOpen] = useState(false);
+  // AI Coach state — config + conversations
+  const [aiCoachConfig, setAICoachConfig] = useState(() => lsGet(SK.aiCoachConfig, { apiKey: '', model: 'gpt-4o-mini', endpoint: '' }));
+  const [aiCoachConvos, setAICoachConvos] = useState(() => lsGet(SK.aiCoachConvos, []));
+  const saveAICoachConfig = (c) => { setAICoachConfig(c); lsSet(SK.aiCoachConfig, c); };
+  const saveAICoachConvos = (cs) => { setAICoachConvos(cs); lsSet(SK.aiCoachConvos, cs); markDirty(); };
   // Tag categories — defaults are merged with user-saved overrides/additions at runtime.
   const [tagCategories, setTagCategories] = useState(() => lsGet(SK.tagCategories, []));
   const [tagCategoryMap, setTagCategoryMap] = useState(() => lsGet(SK.tagCategoryMap, {}));
@@ -6649,10 +6982,11 @@ function App() {
     trades, notes, dayNotes, accounts, strategies, checklist, checklistDays, notebook, notebookFolders, playbookState,
     openPositions, workingOrders, deposits, attachments, riskRules, exitData,
     tagCategories, tagCategoryMap,
+    aiCoachConvos, // conversations sync between devices; API key stays local for security
     exportedAt: new Date().toISOString(),
     deviceId: getDeviceId(),
     deviceName,
-    schemaVersion: 4, // bumped for tag categories
+    schemaVersion: 5, // bumped for AI Coach
   });
   const exportJSON = () => {
     const blob = new Blob([JSON.stringify(buildBackup(), null, 2)], { type: 'application/json' });
@@ -6766,6 +7100,7 @@ function App() {
         const nbf = d.notebookFolders || []; setNotebookFolders(nbf); lsSet(SK.notebookFolders, nbf);
         const tc = d.tagCategories || []; setTagCategories(tc); lsSet(SK.tagCategories, tc);
         const tm = d.tagCategoryMap || {}; setTagCategoryMap(tm); lsSet(SK.tagCategoryMap, tm);
+        const aic = d.aiCoachConvos || []; setAICoachConvos(aic); lsSet(SK.aiCoachConvos, aic);
         if (d.playbookState) { setPlaybookState(d.playbookState); lsSet(SK.playbook, d.playbookState); }
         const op = d.openPositions || [], wo = d.workingOrders || [], dep = d.deposits || [];
         setOpenPositions(op); lsSet(SK.openPositions, op);
@@ -6842,6 +7177,7 @@ function App() {
         const nbf = d.notebookFolders || []; setNotebookFolders(nbf); lsSet(SK.notebookFolders, nbf);
         const tc = d.tagCategories || []; setTagCategories(tc); lsSet(SK.tagCategories, tc);
         const tm = d.tagCategoryMap || {}; setTagCategoryMap(tm); lsSet(SK.tagCategoryMap, tm);
+        const aic = d.aiCoachConvos || []; setAICoachConvos(aic); lsSet(SK.aiCoachConvos, aic);
         if (d.playbookState) { setPlaybookState(d.playbookState); lsSet(SK.playbook, d.playbookState); }
         const op = d.openPositions || [], wo = d.workingOrders || [], dep = d.deposits || [];
         setOpenPositions(op); lsSet(SK.openPositions, op);
@@ -6927,7 +7263,7 @@ function App() {
     return { balance: sum('balance'), equity: sum('equity'), floatingPnL: sum('floatingPnL'), freeMargin: sum('freeMargin'), margin: sum('margin'), marginLevel: null, credit: sum('credit') };
   }, [accounts, activeAccount]);
   const accountList = useMemo(() => Object.values(accounts), [accounts]);
-  const titleMap = { dashboard: 'Dashboard', dayweek: 'Day / Week View', trade: 'Trade View', positions: 'Positions & Orders', rules: 'Risk Rules', playbook: 'Playbook', notebook: 'Notebook', reports: 'Reports', strategies: 'Strategies', calendar: 'Calendar', progress: 'Progress Tracker' };
+  const titleMap = { dashboard: 'Dashboard', dayweek: 'Day / Week View', trade: 'Trade View', positions: 'Positions & Orders', rules: 'Risk Rules', playbook: 'Playbook', notebook: 'Notebook', exit: 'Exit Analysis', coach: 'AI Coach', reports: 'Reports', strategies: 'Strategies', calendar: 'Calendar', progress: 'Progress Tracker' };
   const accTab = (active, label, onClick) => <button onClick={onClick} style={{ padding: '5px 11px', fontSize: 12, borderRadius: 7, border: 'none', cursor: 'pointer', background: active ? 'var(--panel2)' : 'transparent', color: active ? 'var(--text)' : 'var(--text3)', transition: 'all 0.15s' }}>{label}</button>;
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -7134,6 +7470,7 @@ function App() {
               {!detailTrade && tab === 'notebook' && <Notebook entries={notebook} onSave={saveNotebookEntry} onDelete={deleteNotebookEntry} folders={notebookFolders} onSaveFolder={saveNotebookFolder} onDeleteFolder={deleteNotebookFolder} trades={trades} notes={notes} dayNotes={dayNotes} />}
               {!detailTrade && tab === 'reports' && <Reports trades={dateFilteredTrades} setTab={setTab} />}
               {!detailTrade && tab === 'exit' && <ExitAnalysisPage trades={dateFilteredTrades} exitData={exitData} onOpenTrade={(id) => setDetailTrade(id)} />}
+              {!detailTrade && tab === 'coach' && <AICoach trades={dateFilteredTrades} notes={notes} stats={computeStats(dateFilteredTrades)} riskRules={riskRules} exitData={exitData} config={aiCoachConfig} onSaveConfig={saveAICoachConfig} conversations={aiCoachConvos} onSaveConvos={saveAICoachConvos} />}}
               {!detailTrade && tab === 'strategies' && <Strategies strategies={strategies} trades={dateFilteredTrades} notes={notes} onSave={saveStrategy} onDelete={deleteStrategy} />}
               {!detailTrade && tab === 'calendar' && <CalendarPage trades={dateFilteredTrades} onDayClick={handleDayClick} />}
               {!detailTrade && tab === 'progress' && <ProgressPage trades={dateFilteredTrades} checklist={checklist} checklistDays={checklistDays} />}
