@@ -18,6 +18,7 @@
 <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
 <script crossorigin src="https://unpkg.com/recharts@2.10.3/umd/Recharts.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 // Fallback loaders: if a primary CDN (unpkg) was blocked, pull the same lib from jsDelivr synchronously.
 (function () {
@@ -1396,6 +1397,98 @@ const SK = {
 };
 const lsGet = (k, fallback) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { console.error(e); } };
+
+// ═══════════════ SUPABASE CLOUD SYNC ═══════════════
+const SUPA_URL = 'https://dqjzufofmblerslcynzr.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxanp1Zm9mbWJsZXJzbGN5bnpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MTc0ODksImV4cCI6MjA5NjA5MzQ4OX0.87JYtH1p04bZgYqGtkCuxU-E_EuH4r3AlCogFEu53Hc';
+let _supa = null;
+function getSupa() {
+  if (!_supa && window.supabase) _supa = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+  return _supa;
+}
+let _supaUser = null;
+
+async function supaSignIn(email) {
+  const sb = getSupa(); if (!sb) return { error: 'Supabase not loaded' };
+  return sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.href } });
+}
+async function supaSignOut() {
+  const sb = getSupa(); if (!sb) return;
+  await sb.auth.signOut(); _supaUser = null; lsSet('rfx_cloud_user', null);
+  window.__rfxSetCloudUser && window.__rfxSetCloudUser(null);
+}
+async function supaGetSession() {
+  const sb = getSupa(); if (!sb) return null;
+  const { data } = await sb.auth.getSession();
+  _supaUser = data?.session?.user || null;
+  return _supaUser;
+}
+
+async function supaSync(payload) {
+  const sb = getSupa();
+  if (!sb || !_supaUser) return false;
+  const uid = _supaUser.id;
+  const upsertData = {
+    user_id: uid,
+    trades: payload.trades || [],
+    accounts: payload.accounts || {},
+    exit_data: payload.exitData || {},
+    open_positions: payload.openPositions || [],
+    working_orders: payload.workingOrders || [],
+    deposits: payload.deposits || [],
+    notes: payload.notes || {},
+    day_notes: payload.dayNotes || {},
+    strategies: payload.strategies || [],
+    notebook: payload.notebook || [],
+    notebook_folders: payload.notebookFolders || [],
+    checklist: payload.checklist || [],
+    checklist_days: payload.checklistDays || {},
+    risk_rules: payload.riskRules || {},
+    tag_categories: payload.tagCategories || [],
+    tag_category_map: payload.tagCategoryMap || {},
+    updated_at: new Date().toISOString()
+  };
+  const { error } = await sb.from('rfx_journal').upsert(upsertData, { onConflict: 'user_id' });
+  if (error) { console.error('Supabase sync error:', error); return false; }
+  return true;
+}
+
+async function supaPull() {
+  const sb = getSupa();
+  if (!sb || !_supaUser) return null;
+  const { data, error } = await sb.from('rfx_journal').select('*').eq('user_id', _supaUser.id).single();
+  if (error || !data) return null;
+  return {
+    trades: data.trades || [],
+    accounts: data.accounts || {},
+    exitData: data.exit_data || {},
+    openPositions: data.open_positions || [],
+    workingOrders: data.working_orders || [],
+    deposits: data.deposits || [],
+    notes: data.notes || {},
+    dayNotes: data.day_notes || {},
+    strategies: data.strategies || [],
+    notebook: data.notebook || [],
+    notebookFolders: data.notebook_folders || [],
+    checklist: data.checklist || [],
+    checklistDays: data.checklist_days || {},
+    riskRules: data.risk_rules || {},
+    tagCategories: data.tag_categories || [],
+    tagCategoryMap: data.tag_category_map || {}
+  };
+}
+
+(async () => {
+  try {
+    const user = await supaGetSession();
+    if (user) { _supaUser = user; lsSet('rfx_cloud_user', { email: user.email, id: user.id }); }
+    getSupa()?.auth.onAuthStateChange((_event, session) => {
+      _supaUser = session?.user || null;
+      if (_supaUser) lsSet('rfx_cloud_user', { email: _supaUser.email, id: _supaUser.id });
+      window.__rfxSetCloudUser && window.__rfxSetCloudUser(_supaUser ? { email: _supaUser.email } : null);
+    });
+  } catch(e) { console.warn('Supabase init error:', e); }
+})();
 
 // ═══════════════ SYNC HELPERS ═══════════════
 // Get or create a persistent device ID — random 8-char string, never leaves localStorage
@@ -6856,6 +6949,47 @@ function App() {
   const setTab = (t) => { setDetailTrade(null); setDaySummary(null); setTabRaw(t); };
   const [focusDate, setFocusDate] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [cloudUser, setCloudUser] = useState(() => lsGet('rfx_cloud_user', null));
+  const [showCloudModal, setShowCloudModal] = useState(false);
+  const [cloudEmail, setCloudEmail] = useState('');
+  const [cloudMsg, setCloudMsg] = useState('');
+  const [cloudLoading, setCloudLoading] = useState(false);
+  window.__rfxSetCloudUser = (u) => setCloudUser(u);
+
+  // On mount: if logged in, pull from cloud and merge with local
+  React.useEffect(() => {
+    (async () => {
+      const user = await supaGetSession();
+      if (user) {
+        setCloudUser({ email: user.email });
+        const remote = await supaPull();
+        if (remote && remote.trades && remote.trades.length > 0) {
+          // Merge remote trades with local (remote wins on conflict)
+          const localTrades = lsGet(SK.trades, []);
+          const map = new Map(localTrades.map(t => [t.id, t]));
+          remote.trades.forEach(t => map.set(t.id, t));
+          const merged = Array.from(map.values());
+          setTrades(merged); lsSet(SK.trades, merged);
+          if (remote.accounts && Object.keys(remote.accounts).length) { setAccounts(remote.accounts); lsSet(SK.accounts, remote.accounts); }
+          if (remote.exitData && Object.keys(remote.exitData).length) { setExitData(remote.exitData); lsSet(SK.tradeExitData, remote.exitData); }
+          if (remote.notes && Object.keys(remote.notes).length) { setNotes(remote.notes); lsSet(SK.notes, remote.notes); }
+          if (remote.strategies && remote.strategies.length) { setStrategies(remote.strategies); lsSet(SK.strategies, remote.strategies); }
+        }
+      }
+    })();
+  }, []);
+
+  const handleCloudLogin = async () => {
+    if (!cloudEmail.trim()) return;
+    setCloudLoading(true); setCloudMsg('');
+    const { error } = await supaSignIn(cloudEmail.trim());
+    setCloudLoading(false);
+    if (error) setCloudMsg('Error: ' + (error.message || error));
+    else setCloudMsg('Magic link sent! Check your email and click the link.');
+  };
+  const handleCloudLogout = async () => {
+    await supaSignOut(); setCloudUser(null); lsSet('rfx_cloud_user', null); setShowCloudModal(false);
+  };
 
   const handleUpload = async (newPositions, accountInfo) => {
     let added = 0, updated = 0, skipped = 0;
@@ -6881,6 +7015,10 @@ function App() {
     const dep = Array.from(depMap.values());
     setDeposits(dep); lsSet(SK.deposits, dep);
     markDirty();
+    // Cloud sync — push all state after MT5 import
+    if (_supaUser) {
+      supaSync({ trades: merged, accounts: next, exitData: lsGet(SK.tradeExitData, {}), openPositions: op, workingOrders: wo, deposits: dep, notes: lsGet(SK.notes, {}), dayNotes: lsGet(SK.dayNotes, {}), strategies: lsGet(SK.strategies, []), notebook: lsGet(SK.notebook, []), notebookFolders: lsGet(SK.notebookFolders, []), checklist: lsGet(SK.checklist, []), checklistDays: lsGet(SK.checklistDays, {}), riskRules: lsGet(SK.riskRules, {}), tagCategories: lsGet(SK.tagCategories, []), tagCategoryMap: lsGet(SK.tagCategoryMap, {}) }).then(ok => { if (ok) console.log('Cloud sync OK'); });
+    }
     return { added, updated, skipped };
   };
 
@@ -6904,6 +7042,9 @@ function App() {
         const unmatched = positionIds.length - matched.length;
         const next = { ...exitData, ...parsed };
         setExitData(next); lsSet(SK.tradeExitData, next); markDirty();
+        if (_supaUser) {
+          supaSync({ trades: lsGet(SK.trades, []), accounts: lsGet(SK.accounts, {}), exitData: next, openPositions: lsGet(SK.openPositions, []), workingOrders: lsGet(SK.workingOrders, []), deposits: lsGet(SK.deposits, []), notes: lsGet(SK.notes, {}), dayNotes: lsGet(SK.dayNotes, {}), strategies: lsGet(SK.strategies, []), notebook: lsGet(SK.notebook, []), notebookFolders: lsGet(SK.notebookFolders, []), checklist: lsGet(SK.checklist, []), checklistDays: lsGet(SK.checklistDays, {}), riskRules: lsGet(SK.riskRules, {}), tagCategories: lsGet(SK.tagCategories, []), tagCategoryMap: lsGet(SK.tagCategoryMap, {}) });
+        }
         alert(
           `Imported MAE/MFE data for ${positionIds.length} positions.\n\n` +
           `• ${matched.length} matched to existing trades in your journal\n` +
@@ -7325,6 +7466,12 @@ function App() {
                 </button>
               </Hint>
               <button style={{ ...btnStyle('ghost'), padding: 7 }} onClick={() => setShowSettings(!showSettings)}>⚙</button>
+              <button
+                onClick={() => setShowCloudModal(true)}
+                title={cloudUser ? 'Cloud: ' + cloudUser.email : 'Sign in to sync across devices'}
+                style={{ ...btnStyle('ghost'), padding: '4px 9px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, border: cloudUser ? '1px solid var(--green)' : '1px solid var(--border)', color: cloudUser ? 'var(--green-bright)' : 'var(--text3)' }}>
+                {cloudUser ? '☁ Synced' : '☁ Sign in'}
+              </button>
             </div>
           </div>
           {isMobile && accountList.length > 0 && (
@@ -7517,6 +7664,47 @@ function App() {
         </button>
       )}
     </div>
+
+    {/* ── Cloud Login Modal ── */}
+    {showCloudModal && (
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div style={{ background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 14, padding: 28, maxWidth: 400, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+            <div style={{ fontWeight: 700, fontSize: 15 }}>☁ Cloud Sync</div>
+            <button style={{ background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', fontSize: 18 }} onClick={() => { setShowCloudModal(false); setCloudMsg(''); }}>✕</button>
+          </div>
+          {cloudUser ? (
+            <div>
+              <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 8 }}>Signed in as</div>
+              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 18, color: 'var(--violet-light)' }}>{cloudUser.email}</div>
+              <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 16, lineHeight: 1.6 }}>
+                Your trades auto-sync to the cloud after every MT5 import. Access your journal from any device at this same URL.
+              </div>
+              <button style={{ width: '100%', padding: '10px 0', borderRadius: 8, border: '1px solid var(--red)', background: 'none', color: 'var(--red)', cursor: 'pointer', fontWeight: 600, fontSize: 13 }} onClick={handleCloudLogout}>Sign out</button>
+            </div>
+          ) : (
+            <div>
+              <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 14, lineHeight: 1.6 }}>
+                Enter your email to receive a magic link. No password needed. Your trades will sync across all devices.
+              </div>
+              <input
+                type="email" placeholder="your@email.com" value={cloudEmail}
+                onChange={e => setCloudEmail(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleCloudLogin()}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }}
+              />
+              <button
+                style={{ width: '100%', padding: '10px 0', borderRadius: 8, border: 'none', background: 'var(--violet)', color: '#fff', cursor: cloudLoading ? 'default' : 'pointer', fontWeight: 700, fontSize: 14, opacity: cloudLoading ? 0.7 : 1 }}
+                onClick={handleCloudLogin} disabled={cloudLoading}>
+                {cloudLoading ? 'Sending…' : 'Send magic link'}
+              </button>
+              {cloudMsg && <div style={{ marginTop: 12, fontSize: 12, color: cloudMsg.startsWith('Error') ? 'var(--red)' : 'var(--green-bright)', lineHeight: 1.5 }}>{cloudMsg}</div>}
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+
     </MobileContext.Provider>
   );
 }
