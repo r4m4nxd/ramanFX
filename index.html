@@ -1650,17 +1650,27 @@ function buildAICoachContext(trades, notes, stats, riskRules, exitData, maxTrade
       capturePct: ed.mfe > 0 && ed.profitPts > 0 ? +((ed.profitPts / ed.mfe) * 100).toFixed(1) : null,
     };
   });
-  // High-level aggregate stats
+  // High-level aggregate stats. Field names match computeStats() return shape exactly —
+  // earlier this had wrong names (stats.net, stats.count) and threw at runtime.
   const summary = stats ? {
-    totalTrades: stats.count,
-    winRate: +(stats.winRate * 100).toFixed(1),
-    netPnL: +stats.net.toFixed(2),
+    totalTrades: stats.total,
+    winRate: +(stats.winRate || 0).toFixed(1),
+    netPnL: +(stats.totalNet || 0).toFixed(2),
     profitFactor: +(stats.profitFactor || 0).toFixed(2),
     avgWin: +(stats.avgWin || 0).toFixed(2),
     avgLoss: +(stats.avgLoss || 0).toFixed(2),
     largestWin: +(stats.largestWin || 0).toFixed(2),
     largestLoss: +(stats.largestLoss || 0).toFixed(2),
+    avgRR: +(stats.avgRR || 0).toFixed(2),
+    expectancy: +(stats.expectancy || 0).toFixed(2),
     tradingDays: stats.daily?.length || 0,
+    profDays: stats.profDays || 0,
+    losingDays: stats.losingDays || 0,
+    dayWinRate: +(stats.dayWinRate || 0).toFixed(1),
+    maxDrawdown: +(stats.maxDD || 0).toFixed(2),
+    longestWinStreak: stats.longestWinStreak || 0,
+    longestLossStreak: stats.longestLossStreak || 0,
+    currentStreak: (stats.curStreakSign > 0 ? '+' : stats.curStreakSign < 0 ? '-' : '') + (stats.curStreak || 0),
     bestDay: stats.daily?.length ? [...stats.daily].sort((a,b) => b.pnl - a.pnl)[0] : null,
     worstDay: stats.daily?.length ? [...stats.daily].sort((a,b) => a.pnl - b.pnl)[0] : null,
   } : null;
@@ -7470,7 +7480,7 @@ function App() {
               {!detailTrade && tab === 'notebook' && <Notebook entries={notebook} onSave={saveNotebookEntry} onDelete={deleteNotebookEntry} folders={notebookFolders} onSaveFolder={saveNotebookFolder} onDeleteFolder={deleteNotebookFolder} trades={trades} notes={notes} dayNotes={dayNotes} />}
               {!detailTrade && tab === 'reports' && <Reports trades={dateFilteredTrades} setTab={setTab} />}
               {!detailTrade && tab === 'exit' && <ExitAnalysisPage trades={dateFilteredTrades} exitData={exitData} onOpenTrade={(id) => setDetailTrade(id)} />}
-              {!detailTrade && tab === 'coach' && <AICoach trades={dateFilteredTrades} notes={notes} stats={computeStats(dateFilteredTrades)} riskRules={riskRules} exitData={exitData} config={aiCoachConfig} onSaveConfig={saveAICoachConfig} conversations={aiCoachConvos} onSaveConvos={saveAICoachConvos} />}}
+              {!detailTrade && tab === 'coach' && <AICoach trades={dateFilteredTrades} notes={notes} stats={computeStats(dateFilteredTrades)} riskRules={riskRules} exitData={exitData} config={aiCoachConfig} onSaveConfig={saveAICoachConfig} conversations={aiCoachConvos} onSaveConvos={saveAICoachConvos} />}
               {!detailTrade && tab === 'strategies' && <Strategies strategies={strategies} trades={dateFilteredTrades} notes={notes} onSave={saveStrategy} onDelete={deleteStrategy} />}
               {!detailTrade && tab === 'calendar' && <CalendarPage trades={dateFilteredTrades} onDayClick={handleDayClick} />}
               {!detailTrade && tab === 'progress' && <ProgressPage trades={dateFilteredTrades} checklist={checklist} checklistDays={checklistDays} />}
