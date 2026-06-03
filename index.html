@@ -210,6 +210,33 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
   .clickable { cursor: pointer; transition: all 0.15s ease; }
   .clickable:hover { transform: translateY(-1px); }
+  /* ── PRINT-FRIENDLY STYLES ──
+     When user clicks "Print / Save as PDF" on a note, body gets `printing-note` class. We then
+     hide everything except `.print-note-target`, which contains a clean light-mode rendering of
+     the note (white bg, dark text). The browser's print dialog handles the actual PDF generation. */
+  @media print {
+    body { background: #ffffff !important; color: #000000 !important; }
+    body.printing-note > *:not(.print-note-target) { display: none !important; }
+    body.printing-note .print-note-target {
+      display: block !important;
+      position: static !important;
+      width: 100% !important;
+      max-width: 720px !important;
+      margin: 0 auto !important;
+      padding: 32px 48px !important;
+      background: #ffffff !important;
+      color: #000000 !important;
+      font-family: 'Inter', Georgia, serif !important;
+    }
+    body.printing-note .print-note-target * { color: #000000 !important; background: transparent !important; }
+    body.printing-note .print-note-target h1 { font-size: 24pt; font-weight: 700; margin-bottom: 4pt; }
+    body.printing-note .print-note-target .print-meta { font-size: 10pt; color: #666 !important; margin-bottom: 18pt; border-bottom: 1px solid #ccc; padding-bottom: 8pt; }
+    body.printing-note .print-note-target .print-body { font-size: 11pt; line-height: 1.7; white-space: pre-wrap; }
+    body.printing-note .print-note-target .print-footer { margin-top: 32pt; padding-top: 12pt; border-top: 1px solid #ccc; font-size: 8pt; color: #999 !important; text-align: center; }
+    @page { margin: 0.5in; }
+  }
+  /* Hidden when not printing — only visible during print preview */
+  .print-note-target { display: none; }
   /* Chart tooltip + label text — force bright colours so they are readable on the dark theme */
   .recharts-default-tooltip { background: #1a1a1f !important; border: 1px solid #3f3f46 !important; border-radius: 8px !important; box-shadow: 0 8px 24px rgba(0,0,0,0.5) !important; }
   .recharts-tooltip-wrapper { z-index: 60; }
@@ -1288,6 +1315,23 @@ async function parseMT5File(file, brokerOffsetHours = 3) {
   return { positions, openPositions, workingOrders, deposits, account, accountId: accountId || 'default', accountName: accountName || 'Account', broker: broker || 'MT5' };
 }
 
+// ═══════════════ TAG CATEGORIES ═══════════════
+// Default categories mirror Tradezella's three core buckets. Each maps to a pill-* CSS variable
+// so colors auto-adapt to light/dark theme. The 'mistake' category is special: items in a
+// trade's `mistakes` array are automatically considered category=mistake regardless of map.
+const DEFAULT_TAG_CATEGORIES = [
+  { id: 'setup',   name: 'Setup',   color: 'violet', icon: '◈', system: true, desc: 'Strategies, entries, patterns' },
+  { id: 'mistake', name: 'Mistake', color: 'red',    icon: '⚠', system: true, desc: 'Execution errors to avoid' },
+  { id: 'emotion', name: 'Emotion', color: 'amber',  icon: '◐', system: true, desc: 'Feelings, mindset, state' },
+];
+// Look up a category for a given tag. Falls back to 'setup' when unmapped — gives every tag
+// a visual identity even before the user starts categorizing.
+function getTagCategory(tag, isMistake, tagCategoryMap, categories) {
+  if (isMistake) return categories.find(c => c.id === 'mistake') || categories[0];
+  const catId = tagCategoryMap?.[tag] || 'setup';
+  return categories.find(c => c.id === catId) || categories.find(c => c.id === 'setup') || categories[0];
+}
+
 // ═══════════════ HELPERS ═══════════════
 const fmt = (n, d = 2) => n == null || isNaN(n) ? '–' : n.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
 // Privacy mode mask: when enabled (window.__rfxPrivacy === true), money values are hidden behind
@@ -1344,6 +1388,8 @@ const SK = {
   sidebarCollapsed: 'ledger_sidebar_collapsed', // boolean — PC-only icon-collapsed sidebar mode
   privacyMode: 'ledger_privacy_mode', // boolean — masks $ amounts as ••• for screen sharing
   notebookFolders: 'ledger_notebook_folders', // user-defined folders [{id, name}]
+  tagCategories: 'ledger_tag_categories', // user-defined categories [{id, name, color, icon}]
+  tagCategoryMap: 'ledger_tag_category_map', // {tagName: categoryId} — assigns tags to categories
 };
 const lsGet = (k, fallback) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { console.error(e); } };
@@ -3479,7 +3525,7 @@ function RecentOpenCard({ recentTrades, openPositions, setTab }) {
 // - value: array of currently-selected tags for THIS trade
 // - onChange(nextArray): called when selection changes
 // - accent: 'violet' (tags) or 'red' (mistakes) for visual distinction
-function TagPicker({ allTags, value, onChange, accent = 'violet', placeholder = 'Type to search or add new…', emptyText = 'No tags yet — type one below to start.', onPurgeTag = null }) {
+function TagPicker({ allTags, value, onChange, accent = 'violet', placeholder = 'Type to search or add new…', emptyText = 'No tags yet — type one below to start.', onPurgeTag = null, tagCategoryMap = null, tagCategories = null, defaultCategoryId = null, onManageTagLibrary = null }) {
   const [input, setInput] = useState('');
   const norm = (s) => s.trim().toLowerCase().replace(/\s+/g, '-');
   const selected = value || [];
@@ -3496,10 +3542,8 @@ function TagPicker({ allTags, value, onChange, accent = 'violet', placeholder = 
     if (!onPurgeTag) return;
     if (!confirm(`Remove "${tag}" from the library?\n\nIt is used on ${count} trade${count !== 1 ? 's' : ''}. This will delete it from all of them — you can't undo this.`)) return;
     onPurgeTag(tag);
-    // Also remove from current selection if it's there
     if (selected.includes(tag)) onChange(selected.filter(x => x !== tag));
   };
-  // Filter suggestions to those matching the typed text, excluding already-selected
   const filter = norm(input);
   const suggestions = (allTags || []).filter(({ tag }) => !isPicked(tag) && (filter === '' || tag.includes(filter)));
   const exactMatch = filter && allTags?.some(({ tag }) => tag === filter);
@@ -3511,33 +3555,61 @@ function TagPicker({ allTags, value, onChange, accent = 'violet', placeholder = 
       removeTag(selected[selected.length - 1]);
     }
   };
-  const accentColor = accent === 'red' ? 'rgba(239,83,80,0.18)' : 'rgba(124,92,252,0.18)';
-  const accentBorder = accent === 'red' ? 'rgba(239,83,80,0.45)' : 'rgba(124,92,252,0.45)';
-  const accentText = accent === 'red' ? '#ff8a87' : 'var(--violet-light)';
+  // Compute per-chip color based on tag category. Falls back to the static accent prop if no
+  // categorization data is provided (backward-compatible — mistake picker still works as before).
+  const chipColorFor = (tag) => {
+    if (tagCategories && tagCategoryMap !== null && defaultCategoryId !== 'mistake') {
+      const cat = getTagCategory(tag, false, tagCategoryMap, tagCategories);
+      // Map category color name to pill-* CSS vars
+      const color = cat?.color || accent;
+      return {
+        bg: `var(--pill-${color}-bg)`,
+        fg: `var(--pill-${color}-fg)`,
+        border: `var(--pill-${color}-border)`,
+      };
+    }
+    // Legacy single-accent rendering (used by mistakes picker)
+    return {
+      bg: accent === 'red' ? 'rgba(239,83,80,0.18)' : 'rgba(124,92,252,0.18)',
+      fg: accent === 'red' ? '#ff8a87' : 'var(--violet-light)',
+      border: accent === 'red' ? 'rgba(239,83,80,0.45)' : 'rgba(124,92,252,0.45)',
+    };
+  };
   return (
     <div>
-      {/* Selected tag chips */}
+      {/* Selected tag chips — each colored by its category if categories are wired up */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, padding: '7px 8px', minHeight: 36, alignItems: 'center', background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 8 }}>
-        {selected.map(t => (
-          <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '3px 4px 3px 9px', borderRadius: 6, background: accentColor, border: `1px solid ${accentBorder}`, color: accentText, fontWeight: 500 }}>
-            {t}
-            <button onClick={() => removeTag(t)} title="Remove from this trade" style={{ background: 'transparent', border: 'none', color: accentText, cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: '0 4px', borderRadius: 3, opacity: 0.7 }}
-              onMouseEnter={e => { e.currentTarget.style.opacity = '1'; }} onMouseLeave={e => { e.currentTarget.style.opacity = '0.7'; }}>×</button>
-          </span>
-        ))}
+        {selected.map(t => {
+          const c = chipColorFor(t);
+          return (
+            <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '3px 4px 3px 9px', borderRadius: 6, background: c.bg, border: `1px solid ${c.border}`, color: c.fg, fontWeight: 500 }}>
+              {t}
+              <button onClick={() => removeTag(t)} title="Remove from this trade" style={{ background: 'transparent', border: 'none', color: c.fg, cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: '0 4px', borderRadius: 3, opacity: 0.7 }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = '1'; }} onMouseLeave={e => { e.currentTarget.style.opacity = '0.7'; }}>×</button>
+            </span>
+          );
+        })}
         <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder={selected.length === 0 ? placeholder : ''}
           style={{ flex: 1, minWidth: 100, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 13, fontFamily: 'inherit', padding: '2px 4px' }} />
       </div>
-      {/* Suggestion chips */}
+      {/* Suggestion chips — also colored by category */}
       <div style={{ marginTop: 8 }}>
         {(!allTags || allTags.length === 0) ? (
           <div style={{ fontSize: 11, color: 'var(--text3)', fontStyle: 'italic', padding: '4px 2px' }}>{emptyText}</div>
         ) : (
           <Fragment>
-            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, marginBottom: 5 }}>
-              {filter ? `Matches "${filter}"` : `Existing (${allTags.length})`}
-              {canCreateNew && <span style={{ marginLeft: 8, fontStyle: 'italic', textTransform: 'none', letterSpacing: 0, color: accentText }}>· press Enter to create new</span>}
-              {onPurgeTag && !filter && allTags.length > 0 && <span style={{ marginLeft: 8, fontStyle: 'italic', textTransform: 'none', letterSpacing: 0, color: 'var(--text3)' }}>· tap × on a chip to delete from library</span>}
+            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, marginBottom: 5, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>{filter ? `Matches "${filter}"` : `Existing (${allTags.length})`}</span>
+              {canCreateNew && <span style={{ fontStyle: 'italic', textTransform: 'none', letterSpacing: 0, color: 'var(--violet-light)' }}>· press Enter to create new</span>}
+              {onPurgeTag && !filter && allTags.length > 0 && <span style={{ fontStyle: 'italic', textTransform: 'none', letterSpacing: 0, color: 'var(--text3)' }}>· tap × on a chip to delete from library</span>}
+              {/* Tag Library button — opens the categorization modal */}
+              {onManageTagLibrary && (
+                <button onClick={onManageTagLibrary} style={{ marginLeft: 'auto', background: 'transparent', border: '1px solid var(--border)', borderRadius: 5, color: 'var(--text2)', fontSize: 10, padding: '2px 8px', cursor: 'pointer', textTransform: 'none', letterSpacing: 0, fontWeight: 500 }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--violet)'; e.currentTarget.style.color = 'var(--violet-light)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text2)'; }}>
+                  ⚙ Manage categories
+                </button>
+              )}
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxHeight: 130, overflowY: 'auto' }}>
               {suggestions.length === 0 && filter && (
@@ -3546,22 +3618,25 @@ function TagPicker({ allTags, value, onChange, accent = 'violet', placeholder = 
               {suggestions.length === 0 && !filter && selected.length > 0 && (
                 <div style={{ fontSize: 11, color: 'var(--text3)', padding: '2px 4px', fontStyle: 'italic' }}>All existing tags already selected.</div>
               )}
-              {suggestions.slice(0, 30).map(({ tag, count }) => (
-                <div key={tag} style={{ display: 'inline-flex', alignItems: 'stretch', borderRadius: 5, border: '1px solid var(--border2)', overflow: 'hidden' }}>
-                  <button onClick={() => addTag(tag)} title={`Add to this trade · used in ${count} trade${count !== 1 ? 's' : ''}`}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11.5, padding: '3px 8px', background: 'transparent', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s' }}
-                    onMouseEnter={e => { e.currentTarget.style.background = accentColor; e.currentTarget.style.color = accentText; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text2)'; }}>
-                    + {tag}<span style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 400 }}>×{count}</span>
-                  </button>
-                  {onPurgeTag && (
-                    <button onClick={(e) => purgeFromLibrary(e, tag, count)} title={`Delete "${tag}" from library (removes from all ${count} trades)`}
-                      style={{ padding: '0 6px', fontSize: 13, background: 'transparent', border: 'none', borderLeft: '1px solid var(--border2)', color: 'var(--text3)', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s' }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,83,80,0.12)'; e.currentTarget.style.color = '#ff8a87'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text3)'; }}>×</button>
-                  )}
-                </div>
-              ))}
+              {suggestions.slice(0, 30).map(({ tag, count }) => {
+                const c = chipColorFor(tag);
+                return (
+                  <div key={tag} style={{ display: 'inline-flex', alignItems: 'stretch', borderRadius: 5, border: `1px solid ${c.border}`, overflow: 'hidden' }}>
+                    <button onClick={() => addTag(tag)} title={`Add to this trade · used in ${count} trade${count !== 1 ? 's' : ''}`}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11.5, padding: '3px 8px', background: 'transparent', border: 'none', color: c.fg, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = c.bg; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
+                      + {tag}<span style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 400 }}>×{count}</span>
+                    </button>
+                    {onPurgeTag && (
+                      <button onClick={(e) => purgeFromLibrary(e, tag, count)} title={`Delete "${tag}" from library (removes from all ${count} trades)`}
+                        style={{ padding: '0 6px', fontSize: 13, background: 'transparent', border: 'none', borderLeft: `1px solid ${c.border}`, color: 'var(--text3)', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,83,80,0.12)'; e.currentTarget.style.color = '#ff8a87'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text3)'; }}>×</button>
+                    )}
+                  </div>
+                );
+              })}
               {suggestions.length > 30 && <span style={{ fontSize: 11, color: 'var(--text3)', padding: '3px 6px' }}>+{suggestions.length - 30} more — keep typing to narrow</span>}
             </div>
           </Fragment>
@@ -3586,7 +3661,7 @@ function gatherTagUniverse(allNotes, key = 'tags') {
 }
 
 // ═══════════════ DETAILED TRADE PAGE ═══════════════
-function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onSaveNote, onSaveAttachments, onClose, onPurgeTag, exitData }) {
+function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onSaveNote, onSaveAttachments, onClose, onPurgeTag, exitData, tagCategoryMap, tagCategories, onOpenTagLibrary }) {
   // Compute MAE/MFE estimation. (We don't have tick data, so approximate from open/close and SL/TP.)
   const net = netPnL(trade);
   const profit = net >= 0;
@@ -3958,7 +4033,7 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
 
           <div style={{ marginTop: 14 }}>
             <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>Setups / Tags</label>
-            <TagPicker allTags={allTags} value={tags} onChange={setTags} accent="violet" placeholder="Type a tag, press Enter…" emptyText="No tags yet — type one to start your tag library." onPurgeTag={onPurgeTag ? (t) => onPurgeTag(t, 'tags') : null} />
+            <TagPicker allTags={allTags} value={tags} onChange={setTags} accent="violet" placeholder="Type a tag, press Enter…" emptyText="No tags yet — type one to start your tag library." onPurgeTag={onPurgeTag ? (t) => onPurgeTag(t, 'tags') : null} tagCategoryMap={tagCategoryMap} tagCategories={tagCategories} defaultCategoryId="setup" onManageTagLibrary={onOpenTagLibrary} />
           </div>
 
           <div style={{ marginTop: 14 }}>
@@ -4711,6 +4786,129 @@ function Strategies({ strategies, trades, notes, onSave, onDelete }) {
   );
 }
 
+// ═══════════════ TAG LIBRARY MODAL ═══════════════
+// Single screen where the user can:
+//   - See every tag they've ever used, grouped by category
+//   - Drag/click to reassign tags to different categories
+//   - Add custom categories (beyond the default Setup/Mistake/Emotion)
+//   - See per-tag trade count + total P&L
+// Modeled on Tradezella's "Tag Management" page.
+function TagLibrary({ open, onClose, allNotes, tagCategoryMap, onSaveTagCategoryMap, tagCategories, onSaveCategory, onDeleteCategory, trades }) {
+  const [newCatName, setNewCatName] = useState('');
+  const [adding, setAdding] = useState(false);
+  // Build a flat list of every tag (from notes.tags + notes.mistakes) with stats.
+  const tagStats = useMemo(() => {
+    const map = new Map();
+    const tradesById = new Map(trades.map(t => [t.id, t]));
+    for (const [tradeId, n] of Object.entries(allNotes || {})) {
+      const t = tradesById.get(tradeId);
+      const net = t ? netPnL(t) : 0;
+      for (const tag of (n.tags || [])) {
+        if (!map.has(tag)) map.set(tag, { tag, isMistake: false, count: 0, totalPnL: 0 });
+        const row = map.get(tag); row.count++; row.totalPnL += net;
+      }
+      for (const tag of (n.mistakes || [])) {
+        // Mistakes go into their own implicit category — still tracked for stats
+        if (!map.has(`m_${tag}`)) map.set(`m_${tag}`, { tag, isMistake: true, count: 0, totalPnL: 0 });
+        const row = map.get(`m_${tag}`); row.count++; row.totalPnL += net;
+      }
+    }
+    return [...map.values()].sort((a, b) => b.count - a.count);
+  }, [allNotes, trades]);
+  // Group tags by category
+  const byCategory = useMemo(() => {
+    const groups = {};
+    for (const cat of tagCategories) groups[cat.id] = { cat, tags: [] };
+    for (const row of tagStats) {
+      const cat = getTagCategory(row.tag, row.isMistake, tagCategoryMap, tagCategories);
+      if (cat && groups[cat.id]) groups[cat.id].tags.push(row);
+    }
+    return Object.values(groups);
+  }, [tagStats, tagCategoryMap, tagCategories]);
+  const changeCategory = (tag, newCatId) => {
+    onSaveTagCategoryMap({ ...tagCategoryMap, [tag]: newCatId });
+  };
+  const addCategory = () => {
+    const name = newCatName.trim();
+    if (!name) return;
+    const id = `c_${Date.now()}`;
+    // Custom categories pick from a rotating palette
+    const palette = ['blue', 'green', 'zinc'];
+    const color = palette[tagCategories.filter(c => !c.system).length % palette.length];
+    onSaveCategory({ id, name, color, icon: '◇' });
+    setNewCatName(''); setAdding(false);
+  };
+  return (
+    <Modal open={open} onClose={onClose} width={780}>
+      <div style={{ padding: 22 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+          <div style={{ fontSize: 18, fontWeight: 600 }}>Tag Library</div>
+          <div style={{ fontSize: 12, color: 'var(--text3)' }}>{tagStats.length} tags total</div>
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 18 }}>Organize your tags into categories so reports and chip colors stay consistent. Click a tag to reassign it.</div>
+        {tagStats.length === 0 ? (
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--text3)', fontSize: 13 }}>No tags yet — add some from any trade's detail page.</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxHeight: 500, overflowY: 'auto' }}>
+            {byCategory.map(group => (
+              <div key={group.cat.id} style={{ background: 'var(--inset-bg)', border: '1px solid var(--inset-border)', borderRadius: 8, padding: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 5, background: `var(--pill-${group.cat.color}-bg)`, color: `var(--pill-${group.cat.color}-fg)`, fontSize: 12 }}>{group.cat.icon}</span>
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>{group.cat.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text3)' }}>{group.tags.length} tag{group.tags.length !== 1 ? 's' : ''}</div>
+                  {!group.cat.system && (
+                    <button onClick={() => { if (confirm(`Delete category "${group.cat.name}"? Tags in it will move to Setup.`)) { onDeleteCategory(group.cat.id); }}} style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 13 }}
+                      onMouseEnter={e => e.currentTarget.style.color = 'var(--red)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text3)'}>🗑</button>
+                  )}
+                </div>
+                {group.tags.length === 0 ? (
+                  <div style={{ fontSize: 11, color: 'var(--text3)', fontStyle: 'italic', padding: '4px 0' }}>No tags in this category yet.</div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 6 }}>
+                    {group.tags.map(row => (
+                      <div key={`${row.isMistake ? 'm_' : ''}${row.tag}`} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 6 }}>
+                        <span style={{ fontSize: 12, color: 'var(--text)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.tag}</span>
+                        <span className="tabnum" style={{ fontSize: 10, color: row.totalPnL >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{fmtCompact(row.totalPnL)}</span>
+                        <span style={{ fontSize: 10, color: 'var(--text3)' }}>×{row.count}</span>
+                        {/* Category picker dropdown — only shown for non-mistake tags */}
+                        {!row.isMistake && (
+                          <select value={tagCategoryMap[row.tag] || 'setup'} onChange={e => changeCategory(row.tag, e.target.value)}
+                            title="Move to category"
+                            style={{ fontSize: 10, padding: '1px 4px', background: 'var(--panel2)', color: 'var(--text2)', border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer' }}>
+                            {tagCategories.filter(c => c.id !== 'mistake').map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </select>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        {/* Add category */}
+        <div style={{ marginTop: 14, padding: 12, background: 'var(--inset-bg)', border: '1px dashed var(--border2)', borderRadius: 8 }}>
+          {adding ? (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input autoFocus value={newCatName} onChange={e => setNewCatName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addCategory(); if (e.key === 'Escape') { setAdding(false); setNewCatName(''); } }} placeholder="Category name (e.g. Market Condition)" style={{ flex: 1, fontSize: 12, padding: '6px 8px', background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 6, color: 'var(--text)', outline: 'none' }} />
+              <button style={btnStyle('primary')} onClick={addCategory}>Add</button>
+              <button style={btnStyle('ghost')} onClick={() => { setAdding(false); setNewCatName(''); }}>Cancel</button>
+            </div>
+          ) : (
+            <button onClick={() => setAdding(true)} style={{ background: 'transparent', border: 'none', color: 'var(--text3)', fontSize: 12, cursor: 'pointer', padding: 0 }}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--violet-light)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text3)'}>
+              + Add custom category
+            </button>
+          )}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
+          <button style={btnStyle('primary')} onClick={onClose}>Done</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 // ═══════════════ NOTEBOOK (with folders, favorites, templates) ═══════════════
 // Tradezella-style notebook with:
 //   - Default folders: All notes (virtual), Favorites (virtual), Daily Journal (virtual,
@@ -4859,6 +5057,33 @@ function Notebook({ entries, onSave, onDelete, folders, onSaveFolder, onDeleteFo
     onSaveFolder({ ...f, template });
     setEditingTemplate(null);
   };
+  // Print a note (or save as PDF via the browser's print dialog).
+  // Strategy: render an off-screen `.print-note-target` element with clean light-mode markup,
+  // set `body.printing-note` so the @media print CSS hides everything else, call window.print(),
+  // then clean up. The user picks "Save as PDF" from their browser's print dialog destination.
+  const printNote = (note) => {
+    if (!note) return;
+    const folderName = allFolders.find(f => f.id === (note.folderId || 'my-notes'))?.name || 'My Notes';
+    const dateStr = new Date(note.updatedAt).toLocaleString();
+    const escape = (s) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    let target = document.querySelector('.print-note-target');
+    if (!target) {
+      target = document.createElement('div');
+      target.className = 'print-note-target';
+      document.body.appendChild(target);
+    }
+    target.innerHTML = `
+      <h1>${escape(note.title || 'Untitled')}</h1>
+      <div class="print-meta">${escape(folderName)} · Updated ${escape(dateStr)}${note.virtual ? ' · ' + (note.sourceType === 'trade' ? 'Trade note' : 'Daily journal entry') : ''}</div>
+      <div class="print-body">${escape(note.body) || '<em>(empty note)</em>'}</div>
+      <div class="print-footer">${escape(BRAND)} — exported ${new Date().toLocaleDateString()}</div>
+    `;
+    document.body.classList.add('printing-note');
+    setTimeout(() => {
+      window.print();
+      document.body.classList.remove('printing-note');
+    }, 50);
+  };
   return (
     <div className="fade-in force-stack" style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 14, minHeight: 600 }}>
       {/* ── Folder sidebar ── */}
@@ -4947,11 +5172,17 @@ function Notebook({ entries, onSave, onDelete, folders, onSaveFolder, onDeleteFo
       <Card style={{ padding: 18, position: 'relative' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <button style={btnStyle('primary')} onClick={newEntry}>+ New note</button>
-          {current && !current.virtual && (
+          {current && (
             <div style={{ display: 'flex', gap: 6 }}>
-              <button onClick={() => toggleFavorite(current)} title={current.favorite ? 'Unfavorite' : 'Favorite'} style={{ ...btnStyle('ghost'), padding: '6px 10px', color: current.favorite ? '#fbbf24' : 'var(--text2)' }}>★</button>
-              {!editing && <button style={btnStyle('secondary')} onClick={() => setEditing(true)}>Edit</button>}
-              <button style={btnStyle('danger')} onClick={() => handleDelete(current.id)}>Delete</button>
+              {/* Print/PDF button — works for both virtual and regular notes */}
+              <button onClick={() => printNote(current)} title="Print or save as PDF" style={{ ...btnStyle('ghost'), padding: '6px 10px' }}>🖨 Print / PDF</button>
+              {!current.virtual && (
+                <Fragment>
+                  <button onClick={() => toggleFavorite(current)} title={current.favorite ? 'Unfavorite' : 'Favorite'} style={{ ...btnStyle('ghost'), padding: '6px 10px', color: current.favorite ? '#fbbf24' : 'var(--text2)' }}>★</button>
+                  {!editing && <button style={btnStyle('secondary')} onClick={() => setEditing(true)}>Edit</button>}
+                  <button style={btnStyle('danger')} onClick={() => handleDelete(current.id)}>Delete</button>
+                </Fragment>
+              )}
             </div>
           )}
         </div>
@@ -6201,6 +6432,30 @@ function App() {
   const [checklistDays, setChecklistDays] = useState(() => lsGet(SK.checklistDays, {}));
   const [notebook, setNotebook] = useState(() => lsGet(SK.notebook, []));
   const [notebookFolders, setNotebookFolders] = useState(() => lsGet(SK.notebookFolders, []));
+  // Tag library modal — opened from any TagPicker via "Manage categories" button
+  const [tagLibraryOpen, setTagLibraryOpen] = useState(false);
+  // Tag categories — defaults are merged with user-saved overrides/additions at runtime.
+  const [tagCategories, setTagCategories] = useState(() => lsGet(SK.tagCategories, []));
+  const [tagCategoryMap, setTagCategoryMap] = useState(() => lsGet(SK.tagCategoryMap, {}));
+  // Effective categories list — user-saved win for overrides, defaults fill in
+  const allTagCategories = useMemo(() => {
+    const seen = new Set(), out = [];
+    for (const c of tagCategories) { if (!seen.has(c.id)) { seen.add(c.id); out.push(c); } }
+    for (const c of DEFAULT_TAG_CATEGORIES) { if (!seen.has(c.id)) { seen.add(c.id); out.push(c); } }
+    // Restore default order: system categories first
+    const sysIds = DEFAULT_TAG_CATEGORIES.map(c => c.id);
+    out.sort((a, b) => {
+      const ai = sysIds.indexOf(a.id), bi = sysIds.indexOf(b.id);
+      if (ai === -1 && bi === -1) return 0;
+      if (ai === -1) return 1;
+      if (bi === -1) return -1;
+      return ai - bi;
+    });
+    return out.map(c => {
+      const d = DEFAULT_TAG_CATEGORIES.find(x => x.id === c.id);
+      return d ? { ...d, ...c } : c;
+    });
+  }, [tagCategories]);
   const [playbookState, setPlaybookState] = useState(() => lsGet(SK.playbook, { checks: {}, pair: 0 }));
   const [openPositions, setOpenPositions] = useState(() => lsGet(SK.openPositions, []));
   const [workingOrders, setWorkingOrders] = useState(() => lsGet(SK.workingOrders, []));
@@ -6351,6 +6606,22 @@ function App() {
     setNotebookFolders(next); lsSet(SK.notebookFolders, next); markDirty();
   };
   const deleteNotebookFolder = (id) => { const next = notebookFolders.filter(f => f.id !== id); setNotebookFolders(next); lsSet(SK.notebookFolders, next); markDirty(); };
+  // Tag category handlers — system categories can have name/template overrides; custom ones
+  // are added by the user. Saving a category updates if exists, otherwise inserts.
+  const saveTagCategory = (c) => {
+    const exists = tagCategories.find(x => x.id === c.id);
+    const next = exists ? tagCategories.map(x => x.id === c.id ? { ...x, ...c } : x) : [...tagCategories, c];
+    setTagCategories(next); lsSet(SK.tagCategories, next); markDirty();
+  };
+  const deleteTagCategory = (id) => {
+    // Reassign all tags in this category to 'setup'
+    const newMap = { ...tagCategoryMap };
+    for (const [tag, cid] of Object.entries(newMap)) if (cid === id) delete newMap[tag];
+    setTagCategoryMap(newMap); lsSet(SK.tagCategoryMap, newMap);
+    const next = tagCategories.filter(c => c.id !== id);
+    setTagCategories(next); lsSet(SK.tagCategories, next); markDirty();
+  };
+  const saveTagCategoryMap = (map) => { setTagCategoryMap(map); lsSet(SK.tagCategoryMap, map); markDirty(); };
   const savePlaybookState = (s) => { setPlaybookState(s); lsSet(SK.playbook, s); markDirty(); };
   const saveAttachments = (tradeId, atts) => { const next = { ...attachments, [tradeId]: atts }; if (!atts.length) delete next[tradeId]; setAttachments(next); lsSet(SK.attachments, next); markDirty(); };
   const handleDayClick = (date) => { setDaySummary(date); };
@@ -6377,10 +6648,11 @@ function App() {
   const buildBackup = () => ({
     trades, notes, dayNotes, accounts, strategies, checklist, checklistDays, notebook, notebookFolders, playbookState,
     openPositions, workingOrders, deposits, attachments, riskRules, exitData,
+    tagCategories, tagCategoryMap,
     exportedAt: new Date().toISOString(),
     deviceId: getDeviceId(),
     deviceName,
-    schemaVersion: 3, // bumped for notebookFolders
+    schemaVersion: 4, // bumped for tag categories
   });
   const exportJSON = () => {
     const blob = new Blob([JSON.stringify(buildBackup(), null, 2)], { type: 'application/json' });
@@ -6492,6 +6764,8 @@ function App() {
         setChecklistDays(cd); lsSet(SK.checklistDays, cd);
         setNotebook(nb); lsSet(SK.notebook, nb);
         const nbf = d.notebookFolders || []; setNotebookFolders(nbf); lsSet(SK.notebookFolders, nbf);
+        const tc = d.tagCategories || []; setTagCategories(tc); lsSet(SK.tagCategories, tc);
+        const tm = d.tagCategoryMap || {}; setTagCategoryMap(tm); lsSet(SK.tagCategoryMap, tm);
         if (d.playbookState) { setPlaybookState(d.playbookState); lsSet(SK.playbook, d.playbookState); }
         const op = d.openPositions || [], wo = d.workingOrders || [], dep = d.deposits || [];
         setOpenPositions(op); lsSet(SK.openPositions, op);
@@ -6566,6 +6840,8 @@ function App() {
         setChecklistDays(cd); lsSet(SK.checklistDays, cd);
         setNotebook(nb); lsSet(SK.notebook, nb);
         const nbf = d.notebookFolders || []; setNotebookFolders(nbf); lsSet(SK.notebookFolders, nbf);
+        const tc = d.tagCategories || []; setTagCategories(tc); lsSet(SK.tagCategories, tc);
+        const tm = d.tagCategoryMap || {}; setTagCategoryMap(tm); lsSet(SK.tagCategoryMap, tm);
         if (d.playbookState) { setPlaybookState(d.playbookState); lsSet(SK.playbook, d.playbookState); }
         const op = d.openPositions || [], wo = d.workingOrders || [], dep = d.deposits || [];
         setOpenPositions(op); lsSet(SK.openPositions, op);
@@ -6847,7 +7123,7 @@ function App() {
               {detailTrade && (() => {
                 const t = trades.find(x => x.id === detailTrade);
                 if (!t) return null;
-                return <DetailedTradePage trade={t} note={notes[t.id] || {}} strategies={strategies} attachments={attachments} allNotes={notes} onSaveNote={n => saveNote(t.id, n)} onSaveAttachments={saveAttachments} onClose={() => setDetailTrade(null)} onPurgeTag={purgeTagFromAllNotes} exitData={exitData[t.id]} />;
+                return <DetailedTradePage trade={t} note={notes[t.id] || {}} strategies={strategies} attachments={attachments} allNotes={notes} onSaveNote={n => saveNote(t.id, n)} onSaveAttachments={saveAttachments} onClose={() => setDetailTrade(null)} onPurgeTag={purgeTagFromAllNotes} exitData={exitData[t.id]} tagCategoryMap={tagCategoryMap} tagCategories={allTagCategories} onOpenTagLibrary={() => setTagLibraryOpen(true)} />;
               })()}
               {!detailTrade && tab === 'dashboard' && <Dashboard trades={dateFilteredTrades} onDayClick={handleDayClick} checklist={checklist} checklistDays={checklistDays} onChecklistToggle={toggleChecklist} onChecklistEdit={editChecklist} setTab={setTab} snapshot={activeSnapshot} openPositions={filteredOpenPositions} workingOrders={filteredWorkingOrders} riskStatus={riskStatus} riskRules={riskRules} onOpenGate={() => setGateOpen(true)} deposits={dateFilteredDeposits} />}
               {!detailTrade && tab === 'dayweek' && <DayWeekView trades={dateFilteredTrades} dayNotes={dayNotes} onSaveDayNote={saveDayNote} focusDate={focusDate} exitData={exitData} onOpenTrade={id => setDetailTrade(id)} />}
@@ -6870,6 +7146,7 @@ function App() {
         return <DaySummaryPopup dayKey={daySummary} stats={stats} existingNote={dayNotes[daySummary]} onClose={() => setDaySummary(null)} onViewDetails={handleDayDetails} onAddNote={handleDayAddNote} />;
       })()}
       <PreTradeGate open={gateOpen} onClose={() => setGateOpen(false)} status={riskStatus} rules={riskRules} />
+      <TagLibrary open={tagLibraryOpen} onClose={() => setTagLibraryOpen(false)} allNotes={notes} tagCategoryMap={tagCategoryMap} onSaveTagCategoryMap={saveTagCategoryMap} tagCategories={allTagCategories} onSaveCategory={saveTagCategory} onDeleteCategory={deleteTagCategory} trades={trades} />
       {/* Floating sync button — always reachable; shows amber dot when unsynced changes */}
       {(() => {
         const isDirty = lastDirty && (!lastExportAt || lastDirty > lastExportAt);
