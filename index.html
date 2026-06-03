@@ -1410,7 +1410,7 @@ let _supaUser = null;
 
 async function supaSignIn(email) {
   const sb = getSupa(); if (!sb) return { error: 'Supabase not loaded' };
-  return sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.href } });
+  return sb.auth.signInWithOtp({ email, options: { emailRedirectTo: 'https://r4m4nxd.github.io/ramanFX/' } });
 }
 async function supaSignOut() {
   const sb = getSupa(); if (!sb) return;
