@@ -6967,28 +6967,62 @@ function App() {
   const [cloudLoading, setCloudLoading] = useState(false);
   window.__rfxSetCloudUser = (u) => setCloudUser(u);
 
-  // On mount: if logged in, pull from cloud and merge with local
+  // Apply remote data into React state (used by both initial pull and polling)
+  const applyRemote = React.useCallback((remote) => {
+    if (!remote) return;
+    // Trades: merge by ID, remote wins
+    if (remote.trades && remote.trades.length > 0) {
+      setTrades(prev => {
+        const map = new Map(prev.map(t => [t.id, t]));
+        remote.trades.forEach(t => map.set(t.id, t));
+        const merged = Array.from(map.values());
+        lsSet(SK.trades, merged);
+        return merged;
+      });
+    }
+    if (remote.accounts && Object.keys(remote.accounts).length) { setAccounts(remote.accounts); lsSet(SK.accounts, remote.accounts); }
+    if (remote.exitData && Object.keys(remote.exitData).length) { setExitData(remote.exitData); lsSet(SK.tradeExitData, remote.exitData); }
+    // Notes: merge by key, remote wins
+    if (remote.notes && Object.keys(remote.notes).length) {
+      setNotes(prev => { const merged = { ...prev, ...remote.notes }; lsSet(SK.notes, merged); return merged; });
+    }
+    if (remote.dayNotes && Object.keys(remote.dayNotes).length) {
+      setDayNotes(prev => { const merged = { ...prev, ...remote.dayNotes }; lsSet(SK.dayNotes, merged); return merged; });
+    }
+    if (remote.strategies && remote.strategies.length) { setStrategies(remote.strategies); lsSet(SK.strategies, remote.strategies); }
+    if (remote.notebook && remote.notebook.length) { setNotebook(remote.notebook); lsSet(SK.notebook, remote.notebook); }
+    if (remote.notebookFolders && remote.notebookFolders.length) { setNotebookFolders(remote.notebookFolders); lsSet(SK.notebookFolders, remote.notebookFolders); }
+    if (remote.checklist && remote.checklist.length) { setChecklist(remote.checklist); lsSet(SK.checklist, remote.checklist); }
+    if (remote.checklistDays && Object.keys(remote.checklistDays).length) {
+      setChecklistDays(prev => { const merged = { ...prev, ...remote.checklistDays }; lsSet(SK.checklistDays, merged); return merged; });
+    }
+    if (remote.riskRules && Object.keys(remote.riskRules).length) { setRiskRules(r => ({ ...r, ...remote.riskRules })); lsSet(SK.riskRules, remote.riskRules); }
+    if (remote.tagCategories && remote.tagCategories.length) { setTagCategories(remote.tagCategories); lsSet(SK.tagCategories, remote.tagCategories); }
+    if (remote.tagCategoryMap && Object.keys(remote.tagCategoryMap).length) { setTagCategoryMap(remote.tagCategoryMap); lsSet(SK.tagCategoryMap, remote.tagCategoryMap); }
+  }, []);
+
+  // On mount: pull from cloud, then poll every 30s for changes from other devices
   React.useEffect(() => {
+    let pollInterval = null;
+
     (async () => {
       const user = await supaGetSession();
       if (user) {
         setCloudUser({ email: user.email });
         const remote = await supaPull();
-        if (remote && remote.trades && remote.trades.length > 0) {
-          // Merge remote trades with local (remote wins on conflict)
-          const localTrades = lsGet(SK.trades, []);
-          const map = new Map(localTrades.map(t => [t.id, t]));
-          remote.trades.forEach(t => map.set(t.id, t));
-          const merged = Array.from(map.values());
-          setTrades(merged); lsSet(SK.trades, merged);
-          if (remote.accounts && Object.keys(remote.accounts).length) { setAccounts(remote.accounts); lsSet(SK.accounts, remote.accounts); }
-          if (remote.exitData && Object.keys(remote.exitData).length) { setExitData(remote.exitData); lsSet(SK.tradeExitData, remote.exitData); }
-          if (remote.notes && Object.keys(remote.notes).length) { setNotes(remote.notes); lsSet(SK.notes, remote.notes); }
-          if (remote.strategies && remote.strategies.length) { setStrategies(remote.strategies); lsSet(SK.strategies, remote.strategies); }
-        }
+        applyRemote(remote);
+
+        // Poll every 30 seconds — picks up changes made on other devices
+        pollInterval = setInterval(async () => {
+          if (!_supaUser) return;
+          const fresh = await supaPull();
+          applyRemote(fresh);
+        }, 30000);
       }
     })();
-  }, []);
+
+    return () => { if (pollInterval) clearInterval(pollInterval); };
+  }, [applyRemote]);
 
   const [cloudPassword, setCloudPassword] = React.useState('');
   const handleCloudLogin = async () => {
