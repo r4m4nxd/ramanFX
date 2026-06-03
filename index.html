@@ -1408,9 +1408,9 @@ function getSupa() {
 }
 let _supaUser = null;
 
-async function supaSignIn(email) {
+async function supaSignIn(email, password) {
   const sb = getSupa(); if (!sb) return { error: 'Supabase not loaded' };
-  return sb.auth.signInWithOtp({ email, options: { emailRedirectTo: 'https://r4m4nxd.github.io/ramanFX/' } });
+  return sb.auth.signInWithPassword({ email, password });
 }
 async function supaSignOut() {
   const sb = getSupa(); if (!sb) return;
@@ -6979,13 +6979,14 @@ function App() {
     })();
   }, []);
 
+  const [cloudPassword, setCloudPassword] = React.useState('');
   const handleCloudLogin = async () => {
-    if (!cloudEmail.trim()) return;
+    if (!cloudEmail.trim() || !cloudPassword.trim()) return;
     setCloudLoading(true); setCloudMsg('');
-    const { error } = await supaSignIn(cloudEmail.trim());
+    const { error } = await supaSignIn(cloudEmail.trim(), cloudPassword.trim());
     setCloudLoading(false);
     if (error) setCloudMsg('Error: ' + (error.message || error));
-    else setCloudMsg('Magic link sent! Check your email and click the link.');
+    else { setCloudUser({ email: cloudEmail.trim() }); setShowCloudModal(false); setCloudMsg(''); }
   };
   const handleCloudLogout = async () => {
     await supaSignOut(); setCloudUser(null); lsSet('rfx_cloud_user', null); setShowCloudModal(false);
@@ -7685,20 +7686,26 @@ function App() {
           ) : (
             <div>
               <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 14, lineHeight: 1.6 }}>
-                Enter your email to receive a magic link. No password needed. Your trades will sync across all devices.
+                Sign in with your Supabase account to sync trades across all devices.
               </div>
               <input
-                type="email" placeholder="your@email.com" value={cloudEmail}
+                type="email" placeholder="Email" value={cloudEmail}
                 onChange={e => setCloudEmail(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleCloudLogin()}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: 14, marginBottom: 10, boxSizing: 'border-box' }}
+              />
+              <input
+                type="password" placeholder="Password" value={cloudPassword}
+                onChange={e => setCloudPassword(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleCloudLogin()}
                 style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }}
               />
               <button
                 style={{ width: '100%', padding: '10px 0', borderRadius: 8, border: 'none', background: 'var(--violet)', color: '#fff', cursor: cloudLoading ? 'default' : 'pointer', fontWeight: 700, fontSize: 14, opacity: cloudLoading ? 0.7 : 1 }}
                 onClick={handleCloudLogin} disabled={cloudLoading}>
-                {cloudLoading ? 'Sending…' : 'Send magic link'}
+                {cloudLoading ? 'Signing in…' : 'Sign in'}
               </button>
-              {cloudMsg && <div style={{ marginTop: 12, fontSize: 12, color: cloudMsg.startsWith('Error') ? 'var(--red)' : 'var(--green-bright)', lineHeight: 1.5 }}>{cloudMsg}</div>}
+              {cloudMsg && <div style={{ marginTop: 12, fontSize: 12, color: 'var(--red)', lineHeight: 1.5 }}>{cloudMsg}</div>}
             </div>
           )}
         </div>
