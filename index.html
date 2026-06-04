@@ -7219,11 +7219,11 @@ function App() {
   const [cloudSyncStatus, setCloudSyncStatus] = React.useState('idle'); // 'idle' | 'syncing' | 'ok' | 'error'
   const [cloudLastSync, setCloudLastSync] = React.useState(null);
 
-  const handleManualSync = React.useCallback(async () => {
+  const handleManualSync = async () => {
     if (!_supaUser) { setCloudSyncStatus('error'); return; }
     setCloudSyncStatus('syncing');
     try {
-      // STEP 1: Push current local state to cloud first
+      // STEP 1: Push everything local up to Supabase first
       const pushed = await supaSync({
         trades: lsGet(SK.trades, []), accounts: lsGet(SK.accounts, {}),
         exitData: lsGet(SK.tradeExitData, {}), openPositions: lsGet(SK.openPositions, []),
@@ -7235,19 +7235,18 @@ function App() {
         tagCategories: lsGet(SK.tagCategories, []), tagCategoryMap: lsGet(SK.tagCategoryMap, {}),
         attachments: lsGet(SK.attachments, {}),
       });
-      if (!pushed) throw new Error('Push failed');
+      if (!pushed) throw new Error('Push failed — check internet connection');
 
-      // STEP 2: Pull remote state
+      // STEP 2: Pull what's now in Supabase (includes other devices' changes)
       const remote = await supaPull();
       if (!remote) throw new Error('Pull failed');
 
-      // STEP 3: Merge remote INTO local — trades & exitData merge by ID (remote wins for those)
-      // Notes/tags/strategies: local wins (you may be mid-edit)
+      // STEP 3: Merge — local wins on everything (you are the source of truth on this device)
+      // Exception: trades and exitData get additive merge (adds missing ones from other devices)
       if (remote.trades && remote.trades.length > 0) {
         setTrades(prev => {
           const map = new Map(prev.map(t => [t.id, t]));
-          // Only add trades that don't exist locally — don't overwrite local trade metadata
-          remote.trades.forEach(t => { if (!map.has(t.id)) map.set(t.id, t); });
+          remote.trades.forEach(t => { if (!map.has(t.id)) map.set(t.id, t); }); // add missing only
           const merged = Array.from(map.values());
           lsSet(SK.trades, merged);
           return merged;
@@ -7255,23 +7254,47 @@ function App() {
       }
       if (remote.exitData && Object.keys(remote.exitData).length) {
         setExitData(prev => {
-          const merged = { ...remote.exitData, ...prev }; // local wins on conflict
+          const merged = { ...remote.exitData, ...prev }; // local wins
           lsSet(SK.tradeExitData, merged);
           return merged;
         });
       }
-      // Accounts: merge, local wins
       if (remote.accounts && Object.keys(remote.accounts).length) {
-        setAccounts(prev => { const merged = { ...remote.accounts, ...prev }; lsSet(SK.accounts, merged); return merged; });
+        setAccounts(prev => { const m = { ...remote.accounts, ...prev }; lsSet(SK.accounts, m); return m; });
       }
-      // Notes: merge by key, local wins (you could be typing right now)
       if (remote.notes && Object.keys(remote.notes).length) {
-        setNotes(prev => { const merged = { ...remote.notes, ...prev }; lsSet(SK.notes, merged); return merged; });
+        setNotes(prev => { const m = { ...remote.notes, ...prev }; lsSet(SK.notes, m); return m; });
       }
       if (remote.dayNotes && Object.keys(remote.dayNotes).length) {
-        setDayNotes(prev => { const merged = { ...remote.dayNotes, ...prev }; lsSet(SK.dayNotes, merged); return merged; });
+        setDayNotes(prev => { const m = { ...remote.dayNotes, ...prev }; lsSet(SK.dayNotes, m); return m; });
       }
-      // Attachments: merge by tradeId then by attId, local wins
+      if (remote.strategies && remote.strategies.length) {
+        setStrategies(prev => prev.length ? prev : remote.strategies);
+      }
+      if (remote.notebook && remote.notebook.length) {
+        setNotebook(prev => {
+          const map = new Map(prev.map(n => [n.id, n]));
+          remote.notebook.forEach(n => { if (!map.has(n.id)) map.set(n.id, n); });
+          const merged = Array.from(map.values());
+          lsSet(SK.notebook, merged);
+          return merged;
+        });
+      }
+      if (remote.checklist && remote.checklist.length) {
+        setChecklist(prev => prev.length ? prev : remote.checklist);
+      }
+      if (remote.checklistDays && Object.keys(remote.checklistDays).length) {
+        setChecklistDays(prev => { const m = { ...remote.checklistDays, ...prev }; lsSet(SK.checklistDays, m); return m; });
+      }
+      if (remote.riskRules && Object.keys(remote.riskRules).length) {
+        setRiskRules(prev => ({ ...remote.riskRules, ...prev }));
+      }
+      if (remote.tagCategories && remote.tagCategories.length) {
+        setTagCategories(prev => prev.length ? prev : remote.tagCategories);
+      }
+      if (remote.tagCategoryMap && Object.keys(remote.tagCategoryMap).length) {
+        setTagCategoryMap(prev => ({ ...remote.tagCategoryMap, ...prev }));
+      }
       if (remote.attachments && Object.keys(remote.attachments).length) {
         setAttachments(prev => {
           const merged = { ...prev };
@@ -7285,28 +7308,53 @@ function App() {
           return merged;
         });
       }
-      // Checklist days: merge, local wins
-      if (remote.checklistDays && Object.keys(remote.checklistDays).length) {
-        setChecklistDays(prev => { const merged = { ...remote.checklistDays, ...prev }; lsSet(SK.checklistDays, merged); return merged; });
-      }
 
       setCloudLastSync(new Date());
       setCloudSyncStatus('ok');
       setTimeout(() => setCloudSyncStatus('idle'), 3000);
     } catch (e) {
-      console.error('Sync error:', e);
-      setSyncStatus('error');
+      console.error('Sync error:', e.message);
+      setCloudSyncStatus('error');
       setTimeout(() => setCloudSyncStatus('idle'), 4000);
     }
-  }, []);
+  };
 
-  // On mount: ONLY restore session — no auto-pull, no polling
+  // On mount: restore session → pull from DB → DB wins (overwrites local completely)
+  // This is intentional: whatever was last synced to DB is the source of truth on page load.
+  // Use the Sync button to push local changes up to DB at any time.
   React.useEffect(() => {
     (async () => {
       const user = await supaGetSession();
-      if (user) setCloudUser({ email: user.email });
+      if (!user) return;
+      setCloudUser({ email: user.email });
+      setCloudSyncStatus('syncing');
+      try {
+        const remote = await supaPull();
+        if (!remote) { setCloudSyncStatus('idle'); return; }
+        // DB wins on all fields — replaces local state entirely
+        if (remote.trades && remote.trades.length > 0) { setTrades(remote.trades); lsSet(SK.trades, remote.trades); }
+        if (remote.accounts && Object.keys(remote.accounts).length) { setAccounts(remote.accounts); lsSet(SK.accounts, remote.accounts); }
+        if (remote.exitData && Object.keys(remote.exitData).length) { setExitData(remote.exitData); lsSet(SK.tradeExitData, remote.exitData); }
+        if (remote.notes && Object.keys(remote.notes).length) { setNotes(remote.notes); lsSet(SK.notes, remote.notes); }
+        if (remote.dayNotes && Object.keys(remote.dayNotes).length) { setDayNotes(remote.dayNotes); lsSet(SK.dayNotes, remote.dayNotes); }
+        if (remote.strategies && remote.strategies.length) { setStrategies(remote.strategies); lsSet(SK.strategies, remote.strategies); }
+        if (remote.notebook && remote.notebook.length) { setNotebook(remote.notebook); lsSet(SK.notebook, remote.notebook); }
+        if (remote.notebookFolders && remote.notebookFolders.length) { setNotebookFolders(remote.notebookFolders); lsSet(SK.notebookFolders, remote.notebookFolders); }
+        if (remote.checklist && remote.checklist.length) { setChecklist(remote.checklist); lsSet(SK.checklist, remote.checklist); }
+        if (remote.checklistDays && Object.keys(remote.checklistDays).length) { setChecklistDays(remote.checklistDays); lsSet(SK.checklistDays, remote.checklistDays); }
+        if (remote.riskRules && Object.keys(remote.riskRules).length) { setRiskRules(remote.riskRules); lsSet(SK.riskRules, remote.riskRules); }
+        if (remote.tagCategories && remote.tagCategories.length) { setTagCategories(remote.tagCategories); lsSet(SK.tagCategories, remote.tagCategories); }
+        if (remote.tagCategoryMap && Object.keys(remote.tagCategoryMap).length) { setTagCategoryMap(remote.tagCategoryMap); lsSet(SK.tagCategoryMap, remote.tagCategoryMap); }
+        if (remote.attachments && Object.keys(remote.attachments).length) { setAttachments(remote.attachments); lsSet(SK.attachments, remote.attachments); }
+        setCloudLastSync(new Date());
+        setCloudSyncStatus('ok');
+        setTimeout(() => setCloudSyncStatus('idle'), 3000);
+      } catch(e) {
+        console.error('Initial pull error:', e);
+        setCloudSyncStatus('idle');
+      }
     })();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [cloudPassword, setCloudPassword] = React.useState('');
   const handleCloudLogin = async () => {
