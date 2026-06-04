@@ -1530,7 +1530,7 @@ const fmtCompact = (n) => {
   if (n == null || isNaN(n)) return '–';
   if (typeof window !== 'undefined' && window.__rfxPrivacy) return _privMask(n, false);
   const abs = Math.abs(n); const sign = n < 0 ? '-' : '';
-  if (abs >= 1000) return `${sign}$${(abs / 1000).toFixed(2)}k`;
+  if (abs >= 1000) return `${sign}$${(abs / 1000).toFixed(1)}k`;
   return `${sign}$${abs.toFixed(2)}`;
 };
 const parseMT5Date = (s) => {
@@ -2317,7 +2317,7 @@ function CalendarView({ stats, onDayClick }) {
       </div>
       {/* Compact layout (mobile / narrow window): 7 equal columns, no weekly sidebar.
           Wide layout (≥960px): 7 day columns + 96px weekly summary column. */}
-      <div style={{ display: 'grid', gridTemplateColumns: compact ? 'repeat(7, minmax(0, 1fr))' : 'repeat(7, minmax(0, 1fr)) 96px', gap: compact ? 3 : 6, gridAutoRows: compact ? 'minmax(54px, auto)' : 'minmax(62px, auto)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: compact ? 'repeat(7, minmax(0, 1fr))' : 'repeat(7, minmax(0, 1fr)) 96px', gap: compact ? 3 : 6, gridAutoRows: compact ? 'minmax(62px, auto)' : 'minmax(72px, auto)' }}>
         {/* Header row: 7 weekday labels (+ Weekly label on wide) */}
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
           <div key={d} style={{ fontSize: 10, color: 'var(--text3)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, height: 16, lineHeight: '16px' }}>{d}</div>
@@ -2333,14 +2333,15 @@ function CalendarView({ stats, onDayClick }) {
               const isToday = cell.key === todayKey;
               return (
                 <button key={i} onClick={() => cell.data && onDayClick?.(cell.key)} disabled={!cell.data}
-                  style={{ borderRadius: 9, border: isToday ? '1.5px solid var(--violet-light)' : (cell.data ? '1px solid var(--border2)' : '1px solid var(--calendar-empty-border)'), background: c || 'var(--calendar-cell-bg)', textAlign: 'left', padding: compact ? 5 : 7, cursor: cell.data ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', transition: 'all 0.15s', position: 'relative', minHeight: compact ? 54 : 62, minWidth: 0, overflow: 'hidden' }}
+                  style={{ borderRadius: 9, border: isToday ? '1.5px solid var(--violet-light)' : (cell.data ? '1px solid var(--border2)' : '1px solid var(--calendar-empty-border)'), background: c || 'var(--calendar-cell-bg)', textAlign: 'left', padding: compact ? 5 : 6, cursor: cell.data ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', transition: 'all 0.15s', position: 'relative', minHeight: compact ? 62 : 72, minWidth: 0 }}
                   onMouseEnter={e => { if (cell.data) { e.currentTarget.style.transform = 'scale(1.04)'; e.currentTarget.style.borderColor = 'var(--violet)'; e.currentTarget.style.zIndex = '5'; } }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = isToday ? 'var(--violet-light)' : (cell.data ? 'var(--border2)' : 'var(--calendar-empty-border)'); e.currentTarget.style.zIndex = 'auto'; }}>
-                  <div style={{ fontSize: compact ? 10 : 11, color: cell.data ? 'var(--text)' : 'var(--text3)', fontWeight: 600 }}>{cell.day}</div>
+                  {/* Day number top-left, tiny */}
+                  <div style={{ fontSize: compact ? 9 : 10, color: cell.data ? 'var(--text2)' : 'var(--text3)', fontWeight: 500, lineHeight: 1 }}>{cell.day}</div>
                   {cell.data && (
-                    <div style={{ marginTop: 'auto', minWidth: 0, overflow: 'hidden' }}>
-                      <div className="tabnum" style={{ fontSize: compact ? 10.5 : 12, fontWeight: 600, lineHeight: 1.2, color: cell.data.pnl >= 0 ? 'var(--cell-text-green)' : 'var(--cell-text-red)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fmtCompact(cell.data.pnl)}</div>
-                      <div style={{ fontSize: compact ? 8.5 : 9, color: cell.data.pnl >= 0 ? 'var(--cell-text-green)' : 'var(--cell-text-red)', opacity: 0.75, lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cell.data.trades}t</div>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, minWidth: 0 }}>
+                      <div className="tabnum" style={{ fontSize: compact ? 11 : 13, fontWeight: 700, lineHeight: 1.1, color: cell.data.pnl >= 0 ? 'var(--cell-text-green)' : 'var(--cell-text-red)', textAlign: 'center', wordBreak: 'break-all' }}>{fmtCompact(cell.data.pnl)}</div>
+                      <div style={{ fontSize: compact ? 8 : 9, color: cell.data.pnl >= 0 ? 'var(--cell-text-green)' : 'var(--cell-text-red)', opacity: 0.65, lineHeight: 1, textAlign: 'center' }}>{cell.data.trades}t</div>
                     </div>
                   )}
                 </button>
@@ -2353,7 +2354,7 @@ function CalendarView({ stats, onDayClick }) {
                 {w.trades > 0 ? (
                   <Fragment>
                     {/* Use full money format (e.g. -$467.81) instead of compact (-$467) so users see exact week totals */}
-                    <div className="tabnum" style={{ fontSize: 12, fontWeight: 600, color: w.pnl >= 0 ? 'var(--green-bright)' : 'var(--red)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fmtMoney(w.pnl, true)}</div>
+                    <div className="tabnum" style={{ fontSize: 11, fontWeight: 700, color: w.pnl >= 0 ? 'var(--green-bright)' : 'var(--red)', wordBreak: 'break-all', textAlign: 'center', lineHeight: 1.2 }}>{fmtCompact(w.pnl)}</div>
                     <div style={{ fontSize: 9, color: 'var(--text3)' }}>{w.days}d · {w.trades}t</div>
                   </Fragment>
                 ) : <div style={{ fontSize: 11, color: 'var(--border2)' }}>—</div>}
