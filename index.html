@@ -2231,19 +2231,17 @@ const btnStyle = (variant) => {
 // ═══════════════ UPLOAD ═══════════════
 function UploadBtn({ onUpload, primary }) {
   const ref = useRef();
-  const [status, setStatus] = useState(null);
   const handle = async (e) => {
     const file = e.target.files?.[0]; if (!file) return;
-    setStatus({ type: 'loading', text: `Parsing ${file.name}…` });
+    window.__rfxToast && window.__rfxToast(`Parsing ${file.name}…`, 'loading');
     try {
       const brokerOffset = lsGet(SK.brokerOffset, 3);
       const parsed = await parseReportFile(file, brokerOffset);
       const { positions, accountId, accountName, broker } = parsed;
       if (!positions.length && !parsed.openPositions.length && !parsed.workingOrders.length) { setStatus({ type: 'error', text: 'No positions or orders found.' }); return; }
       const result = await onUpload(positions, { id: accountId, name: accountName, broker, account: parsed.account, openPositions: parsed.openPositions, workingOrders: parsed.workingOrders, deposits: parsed.deposits });
-      setStatus({ type: 'success', text: `${result.added} new · ${result.updated} updated · ${result.skipped} skipped (${broker} #${accountId})` });
-      setTimeout(() => setStatus(null), 5000);
-    } catch (err) { setStatus({ type: 'error', text: `Parse failed: ${err.message}` }); }
+      window.__rfxToast && window.__rfxToast(`✓ ${broker} #${accountId} — ${result.added} new · ${result.updated} updated · ${result.skipped} skipped`, 'success');
+    } catch (err) { window.__rfxToast && window.__rfxToast('Parse failed: ' + err.message, 'error'); }
     e.target.value = '';
   };
   const colors = { success: ['rgba(38,166,154,0.12)', 'rgba(38,166,154,0.4)', '#2dd4bf'], error: ['rgba(239,83,80,0.12)', 'rgba(239,83,80,0.4)', '#ef5350'], loading: ['var(--chart-tooltip-bg)', 'var(--border2)', 'var(--text2)'] };
@@ -2254,9 +2252,6 @@ function UploadBtn({ onUpload, primary }) {
         ⬆ Import report
       </button>
       <input ref={ref} type="file" accept=".html,.htm" style={{ display: 'none' }} onChange={handle} />
-      {status && (
-        <div className="fade-in" style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 100, maxWidth: 360, padding: '12px 16px', borderRadius: 12, fontSize: 13, background: colors[status.type][0], border: `1px solid ${colors[status.type][1]}`, color: colors[status.type][2], backdropFilter: 'blur(10px)', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>{status.text}</div>
-      )}
     </Fragment>
   );
 }
@@ -7840,6 +7835,23 @@ function App() {
                 </Hint>
               )}
               <input ref={exitCSVInputRef} type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={onExitCSVChange} />
+
+            {/* ── Import toast — inline below buttons, always visible ── */}
+            {globalToast && (() => {
+              const isErr = globalToast.type === 'error';
+              const isLoad = globalToast.type === 'loading';
+              return (
+                <div className="fade-in" onClick={() => setGlobalToast(null)} style={{
+                  marginTop: 6, padding: '9px 14px', borderRadius: 8, fontSize: 12, lineHeight: 1.5, cursor: 'pointer',
+                  background: isErr ? 'rgba(239,83,80,0.12)' : isLoad ? 'var(--panel)' : 'rgba(38,166,154,0.12)',
+                  border: `1px solid ${isErr ? 'rgba(239,83,80,0.4)' : isLoad ? 'var(--border)' : 'rgba(38,166,154,0.4)'}`,
+                  color: isErr ? '#ef5350' : isLoad ? 'var(--text2)' : '#2dd4bf',
+                  maxWidth: 480,
+                }}>
+                  {globalToast.msg} <span style={{ opacity: 0.5, fontSize: 11 }}>· click to dismiss</span>
+                </div>
+              );
+            })()}
               <Hint text={privacyMode ? 'Show dollar amounts' : 'Hide dollar amounts (privacy mode)'}>
                 <button style={{ ...btnStyle('ghost'), padding: 7, fontSize: 14, color: privacyMode ? 'var(--violet-light)' : undefined }} onClick={togglePrivacy} aria-label="Toggle privacy mode">
                   {privacyMode ? '👁‍🗨' : '👁'}
@@ -8067,20 +8079,6 @@ function App() {
         </button>
       )}
     </div>
-
-    {/* ── Global toast (MAE/MFE import, errors) ── */}
-    {globalToast && (() => {
-      const colors = {
-        success: { bg: 'rgba(38,166,154,0.15)', border: 'rgba(38,166,154,0.5)', color: '#2dd4bf' },
-        error:   { bg: 'rgba(239,83,80,0.15)',  border: 'rgba(239,83,80,0.5)',  color: '#ef5350' },
-      };
-      const c = colors[globalToast.type] || colors.success;
-      return (
-        <div className="fade-in" style={{ position: 'fixed', bottom: 136, right: 24, zIndex: 9000, maxWidth: 380, padding: '14px 18px', borderRadius: 12, fontSize: 13, lineHeight: 1.5, background: c.bg, border: `1px solid ${c.border}`, color: c.color, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', boxShadow: '0 10px 40px rgba(0,0,0,0.6)', cursor: 'pointer' }} onClick={() => setGlobalToast(null)}>
-          {globalToast.msg}
-        </div>
-      );
-    })()}
 
     {/* ── Cloud Login Modal ── */}
     {showCloudModal && (
