@@ -328,6 +328,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   @keyframes rfx-shine { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
   .rfx-sub { font-size: 10.5px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.32em; opacity: 0; animation: rfx-fade-in 0.9s ease-out 2.3s forwards; margin-top: -10px; position: relative; z-index: 1; }
   .rfx-tagline { font-size: 12.5px; color: var(--text2); font-style: italic; opacity: 0; animation: rfx-fade-in 1s ease-out 2.6s forwards; max-width: 360px; text-align: center; line-height: 1.6; position: relative; z-index: 1; padding: 0 20px; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 </style>
 <div id="rfx-loader">
   <svg class="rfx-mark" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="none">
@@ -1709,16 +1710,6 @@ async function supaDeleteImage(userId, tradeId, attId, ext) {
   await sb.storage.from('attachments').remove([path]);
 }
 
-// Debounced sync — fires 2s after the last change, avoids hammering Supabase on rapid keystrokes
-let _syncTimer = null;
-function debouncedSync(getPayload) {
-  clearTimeout(_syncTimer);
-  _syncTimer = setTimeout(async () => {
-    if (!_supaUser) return;
-    const payload = getPayload();
-    await supaSync(payload);
-  }, 2000);
-}
 
 (async () => {
   try {
@@ -7196,7 +7187,7 @@ function App() {
   const [dateRange, setDateRange] = useState({ from: null, to: null, label: 'All time' });
   const [riskRules, setRiskRules] = useState(() => ({ ...DEFAULT_RISK_RULES, ...lsGet(SK.riskRules, {}) }));
   const [gateOpen, setGateOpen] = useState(false);
-  const saveRiskRules = (r) => { setRiskRules(r); lsSet(SK.riskRules, r); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}), attachments: lsGet(SK.attachments,{}) })); };
+  const saveRiskRules = (r) => { setRiskRules(r); lsSet(SK.riskRules, r); markDirty(); };
   const [lastExportAt, setLastExportAt] = useState(() => lsGet(SK.lastExportAt, null));
   const [lastImportAt, setLastImportAt] = useState(() => lsGet(SK.lastImportAt, null));
   const [lastDirty, setLastDirty] = useState(() => lsGet(SK.lastDirty, null));
@@ -7221,62 +7212,101 @@ function App() {
   const [cloudLoading, setCloudLoading] = useState(false);
   window.__rfxSetCloudUser = (u) => setCloudUser(u);
 
-  // Apply remote data into React state (used by both initial pull and polling)
-  const applyRemote = React.useCallback((remote) => {
-    if (!remote) return;
-    // Trades: merge by ID, remote wins
-    if (remote.trades && remote.trades.length > 0) {
-      setTrades(prev => {
-        const map = new Map(prev.map(t => [t.id, t]));
-        remote.trades.forEach(t => map.set(t.id, t));
-        const merged = Array.from(map.values());
-        lsSet(SK.trades, merged);
-        return merged;
+  // ── Manual sync: push local state up, pull remote down, merge safely ──
+  // Never runs automatically — only triggered by user clicking the sync button.
+  // Flow: 1) push current local state to Supabase, 2) pull remote, 3) merge remote INTO local
+  // (local wins on notes/tags, remote wins on trades/exitData from other imports)
+  const [cloudSyncStatus, setCloudSyncStatus] = React.useState('idle'); // 'idle' | 'syncing' | 'ok' | 'error'
+  const [cloudLastSync, setCloudLastSync] = React.useState(null);
+
+  const handleManualSync = React.useCallback(async () => {
+    if (!_supaUser) { setCloudSyncStatus('error'); return; }
+    setCloudSyncStatus('syncing');
+    try {
+      // STEP 1: Push current local state to cloud first
+      const pushed = await supaSync({
+        trades: lsGet(SK.trades, []), accounts: lsGet(SK.accounts, {}),
+        exitData: lsGet(SK.tradeExitData, {}), openPositions: lsGet(SK.openPositions, []),
+        workingOrders: lsGet(SK.workingOrders, []), deposits: lsGet(SK.deposits, []),
+        notes: lsGet(SK.notes, {}), dayNotes: lsGet(SK.dayNotes, {}),
+        strategies: lsGet(SK.strategies, []), notebook: lsGet(SK.notebook, []),
+        notebookFolders: lsGet(SK.notebookFolders, []), checklist: lsGet(SK.checklist, []),
+        checklistDays: lsGet(SK.checklistDays, {}), riskRules: lsGet(SK.riskRules, {}),
+        tagCategories: lsGet(SK.tagCategories, []), tagCategoryMap: lsGet(SK.tagCategoryMap, {}),
+        attachments: lsGet(SK.attachments, {}),
       });
+      if (!pushed) throw new Error('Push failed');
+
+      // STEP 2: Pull remote state
+      const remote = await supaPull();
+      if (!remote) throw new Error('Pull failed');
+
+      // STEP 3: Merge remote INTO local — trades & exitData merge by ID (remote wins for those)
+      // Notes/tags/strategies: local wins (you may be mid-edit)
+      if (remote.trades && remote.trades.length > 0) {
+        setTrades(prev => {
+          const map = new Map(prev.map(t => [t.id, t]));
+          // Only add trades that don't exist locally — don't overwrite local trade metadata
+          remote.trades.forEach(t => { if (!map.has(t.id)) map.set(t.id, t); });
+          const merged = Array.from(map.values());
+          lsSet(SK.trades, merged);
+          return merged;
+        });
+      }
+      if (remote.exitData && Object.keys(remote.exitData).length) {
+        setExitData(prev => {
+          const merged = { ...remote.exitData, ...prev }; // local wins on conflict
+          lsSet(SK.tradeExitData, merged);
+          return merged;
+        });
+      }
+      // Accounts: merge, local wins
+      if (remote.accounts && Object.keys(remote.accounts).length) {
+        setAccounts(prev => { const merged = { ...remote.accounts, ...prev }; lsSet(SK.accounts, merged); return merged; });
+      }
+      // Notes: merge by key, local wins (you could be typing right now)
+      if (remote.notes && Object.keys(remote.notes).length) {
+        setNotes(prev => { const merged = { ...remote.notes, ...prev }; lsSet(SK.notes, merged); return merged; });
+      }
+      if (remote.dayNotes && Object.keys(remote.dayNotes).length) {
+        setDayNotes(prev => { const merged = { ...remote.dayNotes, ...prev }; lsSet(SK.dayNotes, merged); return merged; });
+      }
+      // Attachments: merge by tradeId then by attId, local wins
+      if (remote.attachments && Object.keys(remote.attachments).length) {
+        setAttachments(prev => {
+          const merged = { ...prev };
+          for (const [tid, atts] of Object.entries(remote.attachments)) {
+            if (!merged[tid]) { merged[tid] = atts; continue; }
+            const map = new Map(merged[tid].map(a => [a.id, a]));
+            atts.forEach(a => { if (!map.has(a.id)) map.set(a.id, a); });
+            merged[tid] = Array.from(map.values());
+          }
+          lsSet(SK.attachments, merged);
+          return merged;
+        });
+      }
+      // Checklist days: merge, local wins
+      if (remote.checklistDays && Object.keys(remote.checklistDays).length) {
+        setChecklistDays(prev => { const merged = { ...remote.checklistDays, ...prev }; lsSet(SK.checklistDays, merged); return merged; });
+      }
+
+      setCloudLastSync(new Date());
+      setCloudSyncStatus('ok');
+      setTimeout(() => setCloudSyncStatus('idle'), 3000);
+    } catch (e) {
+      console.error('Sync error:', e);
+      setSyncStatus('error');
+      setTimeout(() => setCloudSyncStatus('idle'), 4000);
     }
-    if (remote.accounts && Object.keys(remote.accounts).length) { setAccounts(remote.accounts); lsSet(SK.accounts, remote.accounts); }
-    if (remote.exitData && Object.keys(remote.exitData).length) { setExitData(remote.exitData); lsSet(SK.tradeExitData, remote.exitData); }
-    // Notes: merge by key, remote wins
-    if (remote.notes && Object.keys(remote.notes).length) {
-      setNotes(prev => { const merged = { ...prev, ...remote.notes }; lsSet(SK.notes, merged); return merged; });
-    }
-    if (remote.dayNotes && Object.keys(remote.dayNotes).length) {
-      setDayNotes(prev => { const merged = { ...prev, ...remote.dayNotes }; lsSet(SK.dayNotes, merged); return merged; });
-    }
-    if (remote.strategies && remote.strategies.length) { setStrategies(remote.strategies); lsSet(SK.strategies, remote.strategies); }
-    if (remote.notebook && remote.notebook.length) { setNotebook(remote.notebook); lsSet(SK.notebook, remote.notebook); }
-    if (remote.notebookFolders && remote.notebookFolders.length) { setNotebookFolders(remote.notebookFolders); lsSet(SK.notebookFolders, remote.notebookFolders); }
-    if (remote.checklist && remote.checklist.length) { setChecklist(remote.checklist); lsSet(SK.checklist, remote.checklist); }
-    if (remote.checklistDays && Object.keys(remote.checklistDays).length) {
-      setChecklistDays(prev => { const merged = { ...prev, ...remote.checklistDays }; lsSet(SK.checklistDays, merged); return merged; });
-    }
-    if (remote.riskRules && Object.keys(remote.riskRules).length) { setRiskRules(r => ({ ...r, ...remote.riskRules })); lsSet(SK.riskRules, remote.riskRules); }
-    if (remote.tagCategories && remote.tagCategories.length) { setTagCategories(remote.tagCategories); lsSet(SK.tagCategories, remote.tagCategories); }
-    if (remote.tagCategoryMap && Object.keys(remote.tagCategoryMap).length) { setTagCategoryMap(remote.tagCategoryMap); lsSet(SK.tagCategoryMap, remote.tagCategoryMap); }
   }, []);
 
-  // On mount: pull from cloud, then poll every 30s for changes from other devices
+  // On mount: ONLY restore session — no auto-pull, no polling
   React.useEffect(() => {
-    let pollInterval = null;
-
     (async () => {
       const user = await supaGetSession();
-      if (user) {
-        setCloudUser({ email: user.email });
-        const remote = await supaPull();
-        applyRemote(remote);
-
-        // Poll every 30 seconds — picks up changes made on other devices
-        pollInterval = setInterval(async () => {
-          if (!_supaUser) return;
-          const fresh = await supaPull();
-          applyRemote(fresh);
-        }, 30000);
-      }
+      if (user) setCloudUser({ email: user.email });
     })();
-
-    return () => { if (pollInterval) clearInterval(pollInterval); };
-  }, [applyRemote]);
+  }, []);
 
   const [cloudPassword, setCloudPassword] = React.useState('');
   const handleCloudLogin = async () => {
@@ -7315,10 +7345,7 @@ function App() {
     const dep = Array.from(depMap.values());
     setDeposits(dep); lsSet(SK.deposits, dep);
     markDirty();
-    // Cloud sync — push all state after MT5 import
-    if (_supaUser) {
-      supaSync({ trades: merged, accounts: next, exitData: lsGet(SK.tradeExitData, {}), openPositions: op, workingOrders: wo, deposits: dep, notes: lsGet(SK.notes, {}), dayNotes: lsGet(SK.dayNotes, {}), strategies: lsGet(SK.strategies, []), notebook: lsGet(SK.notebook, []), notebookFolders: lsGet(SK.notebookFolders, []), checklist: lsGet(SK.checklist, []), checklistDays: lsGet(SK.checklistDays, {}), riskRules: lsGet(SK.riskRules, {}), tagCategories: lsGet(SK.tagCategories, []), tagCategoryMap: lsGet(SK.tagCategoryMap, {}) }).then(ok => { if (ok) console.log('Cloud sync OK'); });
-    }
+
     return { added, updated, skipped };
   };
 
@@ -7342,9 +7369,7 @@ function App() {
         const unmatched = positionIds.length - matched.length;
         const next = { ...exitData, ...parsed };
         setExitData(next); lsSet(SK.tradeExitData, next); markDirty();
-        if (_supaUser) {
-          supaSync({ trades: lsGet(SK.trades, []), accounts: lsGet(SK.accounts, {}), exitData: next, openPositions: lsGet(SK.openPositions, []), workingOrders: lsGet(SK.workingOrders, []), deposits: lsGet(SK.deposits, []), notes: lsGet(SK.notes, {}), dayNotes: lsGet(SK.dayNotes, {}), strategies: lsGet(SK.strategies, []), notebook: lsGet(SK.notebook, []), notebookFolders: lsGet(SK.notebookFolders, []), checklist: lsGet(SK.checklist, []), checklistDays: lsGet(SK.checklistDays, {}), riskRules: lsGet(SK.riskRules, {}), tagCategories: lsGet(SK.tagCategories, []), tagCategoryMap: lsGet(SK.tagCategoryMap, {}) });
-        }
+
         alert(
           `Imported MAE/MFE data for ${positionIds.length} positions.\n\n` +
           `• ${matched.length} matched to existing trades in your journal\n` +
@@ -7359,7 +7384,7 @@ function App() {
   };
   const exitCSVInputRef = useRef(null);
   const onExitCSVChange = (e) => { const f = e.target.files?.[0]; if (f) handleExitCSVImport(f); e.target.value = ''; };
-  const saveNote = (id, n) => { const next = { ...notes, [id]: n }; setNotes(next); lsSet(SK.notes, next); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}), attachments: lsGet(SK.attachments,{}) })); };
+  const saveNote = (id, n) => { const next = { ...notes, [id]: n }; setNotes(next); lsSet(SK.notes, next); markDirty(); };
   // Remove a tag or mistake from EVERY note that contains it. Used by the TagPicker × button
   // to clean up the universal library.
   const purgeTagFromAllNotes = (tag, kind = 'tags') => {
@@ -7372,15 +7397,15 @@ function App() {
     }
     setNotes(next); lsSet(SK.notes, next); markDirty();
   };
-  const saveDayNote = (date, text) => { const next = { ...dayNotes }; if (text.trim()) next[date] = text; else delete next[date]; setDayNotes(next); lsSet(SK.dayNotes, next); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}), attachments: lsGet(SK.attachments,{}) })); };
-  const saveStrategy = (pb) => { const id = pb.id || `pb_${Date.now()}`; const next = pb.id ? strategies.map(p => p.id === pb.id ? { ...pb } : p) : [...strategies, { ...pb, id }]; setStrategies(next); lsSet(SK.strategies, next); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}), attachments: lsGet(SK.attachments,{}) })); };
-  const deleteStrategy = (id) => { const next = strategies.filter(p => p.id !== id); setStrategies(next); lsSet(SK.strategies, next); const nn = { ...notes }; for (const k of Object.keys(nn)) if (nn[k]?.strategyId === id) nn[k] = { ...nn[k], strategyId: null }; setNotes(nn); lsSet(SK.notes, nn); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}), attachments: lsGet(SK.attachments,{}) })); };
+  const saveDayNote = (date, text) => { const next = { ...dayNotes }; if (text.trim()) next[date] = text; else delete next[date]; setDayNotes(next); lsSet(SK.dayNotes, next); markDirty(); };
+  const saveStrategy = (pb) => { const id = pb.id || `pb_${Date.now()}`; const next = pb.id ? strategies.map(p => p.id === pb.id ? { ...pb } : p) : [...strategies, { ...pb, id }]; setStrategies(next); lsSet(SK.strategies, next); markDirty(); };
+  const deleteStrategy = (id) => { const next = strategies.filter(p => p.id !== id); setStrategies(next); lsSet(SK.strategies, next); const nn = { ...notes }; for (const k of Object.keys(nn)) if (nn[k]?.strategyId === id) nn[k] = { ...nn[k], strategyId: null }; setNotes(nn); lsSet(SK.notes, nn); markDirty(); };
   const switchAccount = (id) => { setActiveAccount(id); lsSet(SK.activeAccount, id); };
-  const toggleChecklist = (item) => { const today = dayKey(new Date()); const next = { ...checklistDays }; if (!next[today]) next[today] = {}; next[today] = { ...next[today], [item]: !next[today][item] }; setChecklistDays(next); lsSet(SK.checklistDays, next); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}), attachments: lsGet(SK.attachments,{}) })); };
-  const editChecklist = (items) => { setChecklist(items); lsSet(SK.checklist, items); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}), attachments: lsGet(SK.attachments,{}) })); };
+  const toggleChecklist = (item) => { const today = dayKey(new Date()); const next = { ...checklistDays }; if (!next[today]) next[today] = {}; next[today] = { ...next[today], [item]: !next[today][item] }; setChecklistDays(next); lsSet(SK.checklistDays, next); markDirty(); };
+  const editChecklist = (items) => { setChecklist(items); lsSet(SK.checklist, items); markDirty(); };
   // FIXED: notebook save/delete properly persist
-  const saveNotebookEntry = (e) => { const exists = notebook.find(n => n.id === e.id); const next = exists ? notebook.map(n => n.id === e.id ? e : n) : [...notebook, e]; setNotebook(next); lsSet(SK.notebook, next); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}), attachments: lsGet(SK.attachments,{}) })); };
-  const deleteNotebookEntry = (id) => { const next = notebook.filter(n => n.id !== id); setNotebook(next); lsSet(SK.notebook, next); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}), attachments: lsGet(SK.attachments,{}) })); };
+  const saveNotebookEntry = (e) => { const exists = notebook.find(n => n.id === e.id); const next = exists ? notebook.map(n => n.id === e.id ? e : n) : [...notebook, e]; setNotebook(next); lsSet(SK.notebook, next); markDirty(); };
+  const deleteNotebookEntry = (id) => { const next = notebook.filter(n => n.id !== id); setNotebook(next); lsSet(SK.notebook, next); markDirty(); };
   // Notebook folder handlers. Saving a folder updates its name/template if it exists, or adds it
   // if it's new. Includes system folders (when their template is being edited) by tracking them
   // in the user folders list with a special id prefix that survives merge in Notebook component.
@@ -7395,7 +7420,7 @@ function App() {
   const saveTagCategory = (c) => {
     const exists = tagCategories.find(x => x.id === c.id);
     const next = exists ? tagCategories.map(x => x.id === c.id ? { ...x, ...c } : x) : [...tagCategories, c];
-    setTagCategories(next); lsSet(SK.tagCategories, next); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}), attachments: lsGet(SK.attachments,{}) }));
+    setTagCategories(next); lsSet(SK.tagCategories, next); markDirty();
   };
   const deleteTagCategory = (id) => {
     // Reassign all tags in this category to 'setup'
@@ -7403,11 +7428,11 @@ function App() {
     for (const [tag, cid] of Object.entries(newMap)) if (cid === id) delete newMap[tag];
     setTagCategoryMap(newMap); lsSet(SK.tagCategoryMap, newMap);
     const next = tagCategories.filter(c => c.id !== id);
-    setTagCategories(next); lsSet(SK.tagCategories, next); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}), attachments: lsGet(SK.attachments,{}) }));
+    setTagCategories(next); lsSet(SK.tagCategories, next); markDirty();
   };
-  const saveTagCategoryMap = (map) => { setTagCategoryMap(map); lsSet(SK.tagCategoryMap, map); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}), attachments: lsGet(SK.attachments,{}) })); };
+  const saveTagCategoryMap = (map) => { setTagCategoryMap(map); lsSet(SK.tagCategoryMap, map); markDirty(); };
   const savePlaybookState = (s) => { setPlaybookState(s); lsSet(SK.playbook, s); markDirty(); };
-  const saveAttachments = (tradeId, atts) => { const next = { ...attachments, [tradeId]: atts }; if (!atts.length) delete next[tradeId]; setAttachments(next); lsSet(SK.attachments, next); markDirty(); if (_supaUser) debouncedSync(() => ({ trades: lsGet(SK.trades,[]), accounts: lsGet(SK.accounts,{}), exitData: lsGet(SK.tradeExitData,{}), openPositions: lsGet(SK.openPositions,[]), workingOrders: lsGet(SK.workingOrders,[]), deposits: lsGet(SK.deposits,[]), notes: lsGet(SK.notes,{}), dayNotes: lsGet(SK.dayNotes,{}), strategies: lsGet(SK.strategies,[]), notebook: lsGet(SK.notebook,[]), notebookFolders: lsGet(SK.notebookFolders,[]), checklist: lsGet(SK.checklist,[]), checklistDays: lsGet(SK.checklistDays,{}), riskRules: lsGet(SK.riskRules,{}), tagCategories: lsGet(SK.tagCategories,[]), tagCategoryMap: lsGet(SK.tagCategoryMap,{}), attachments: lsGet(SK.attachments,{}) })); };
+  const saveAttachments = (tradeId, atts) => { const next = { ...attachments, [tradeId]: atts }; if (!atts.length) delete next[tradeId]; setAttachments(next); lsSet(SK.attachments, next); markDirty(); };
   const handleDayClick = (date) => { setDaySummary(date); };
   const handleDayDetails = (date) => { setDaySummary(null); setFocusDate(date); setTab('dayweek'); };
   const handleDayAddNote = () => { if (daySummary) { setFocusDate(daySummary); setTab('dayweek'); setDaySummary(null); } };
@@ -7766,12 +7791,30 @@ function App() {
                 </button>
               </Hint>
               <button style={{ ...btnStyle('ghost'), padding: 7 }} onClick={() => setShowSettings(!showSettings)}>⚙</button>
-              <button
-                onClick={() => setShowCloudModal(true)}
-                title={cloudUser ? 'Cloud: ' + cloudUser.email : 'Sign in to sync across devices'}
-                style={{ ...btnStyle('ghost'), padding: '4px 9px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, border: cloudUser ? '1px solid var(--green)' : '1px solid var(--border)', color: cloudUser ? 'var(--green-bright)' : 'var(--text3)' }}>
-                {cloudUser ? '☁ Synced' : '☁ Sign in'}
-              </button>
+              {cloudUser ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button
+                    onClick={handleManualSync}
+                    disabled={cloudSyncStatus === 'syncing'}
+                    title={'Last sync: ' + (cloudLastSync ? cloudLastSync.toLocaleTimeString() : 'never')}
+                    style={{ ...btnStyle('ghost'), padding: '4px 10px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 5,
+                      border: cloudSyncStatus === 'ok' ? '1px solid var(--green)' : cloudSyncStatus === 'error' ? '1px solid var(--red)' : '1px solid var(--border)',
+                      color: cloudSyncStatus === 'ok' ? 'var(--green-bright)' : cloudSyncStatus === 'error' ? 'var(--red)' : 'var(--text2)',
+                      opacity: cloudSyncStatus === 'syncing' ? 0.6 : 1 }}>
+                    <span style={{ display: 'inline-block', animation: cloudSyncStatus === 'syncing' ? 'spin 1s linear infinite' : 'none' }}>☁</span>
+                    {cloudSyncStatus === 'syncing' ? 'Syncing…' : cloudSyncStatus === 'ok' ? 'Synced ✓' : cloudSyncStatus === 'error' ? 'Sync failed' : 'Sync'}
+                  </button>
+                  <button onClick={() => setShowCloudModal(true)} title={cloudUser.email}
+                    style={{ ...btnStyle('ghost'), padding: '4px 7px', fontSize: 11, color: 'var(--text3)', border: '1px solid var(--border)' }}>
+                    ⚙
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => setShowCloudModal(true)}
+                  style={{ ...btnStyle('ghost'), padding: '4px 9px', fontSize: 12, border: '1px solid var(--border)', color: 'var(--text3)' }}>
+                  ☁ Sign in
+                </button>
+              )}
             </div>
           </div>
           {isMobile && accountList.length > 0 && (
