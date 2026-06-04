@@ -1317,6 +1317,182 @@ async function parseMT5File(file, brokerOffsetHours = 3) {
   return { positions, openPositions, workingOrders, deposits, account, accountId: accountId || 'default', accountName: accountName || 'Account', broker: broker || 'MT5' };
 }
 
+// ═══════════════ MT4 PARSER ═══════════════
+async function parseMT4File(file, brokerOffsetHours = 2) {
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let html;
+  if (bytes[0] === 0xFF && bytes[1] === 0xFE) html = new TextDecoder('utf-16le').decode(buffer);
+  else if (bytes[0] === 0xFE && bytes[1] === 0xFF) html = new TextDecoder('utf-16be').decode(buffer);
+  else html = new TextDecoder('utf-8').decode(buffer);
+
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const rows = Array.from(doc.querySelectorAll('tr'));
+
+  // MT4 account info is in first row: "Account: 11080514" | "Name: ..." | "Currency: USD" | "Leverage:" | "date"
+  let accountId = null, accountName = null;
+  const firstRowCells = Array.from(rows[0]?.querySelectorAll('td') || []).map(td => td.textContent.trim());
+  for (const cell of firstRowCells) {
+    const accMatch = cell.match(/^Account:\s*(\d+)/);
+    if (accMatch) accountId = accMatch[1];
+    const nameMatch = cell.match(/^Name:\s*(.+)/);
+    if (nameMatch) accountName = nameMatch[1].trim();
+  }
+
+  const positions = [], openPositions = [], workingOrders = [], deposits = [];
+  const summary = {};
+  let section = null;
+
+  // MT4 column layout for closed trades:
+  // [0]Ticket [1]OpenTime [2]Type [3]Size [4]Item [5]Price [6]S/L [7]T/P [8]CloseTime [9]ClosePrice [10]Commission [11]Taxes [12]Swap [13]Profit
+  // MT4 column layout for open trades:
+  // [0]Ticket [1]OpenTime [2]Type [3]Size [4]Item [5]Price [6]S/L [7]T/P [8](empty) [9]CurPrice [10]Commission [11]Taxes [12]Swap [13]Profit
+  // MT4 column layout for working orders:
+  // [0]Ticket [1]OpenTime [2]Type [3]Size [4]Item [5]Price [6]S/L [7]T/P [8]MarketPrice [9](empty)
+
+  const MT4_TRADE_TYPES = ['buy','sell','buy limit','sell limit','buy stop','sell stop'];
+  const MT4_CLOSED_TYPES = ['buy','sell']; // only these are actual closed trades
+  const MT4_ORDER_TYPES  = ['buy limit','sell limit','buy stop','sell stop'];
+
+  for (const tr of rows) {
+    const cells = Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim().replace(/ /g,' '));
+    if (!cells.length) continue;
+
+    // Section detection — single cell rows
+    const rowText = cells.join(' ').toLowerCase();
+    if (cells.length <= 2) {
+      if (rowText.includes('closed transactions')) { section = 'closed'; continue; }
+      if (rowText.includes('open trades')) { section = 'open'; continue; }
+      if (rowText.includes('working orders')) { section = 'orders'; continue; }
+      if (rowText.includes('summary')) { section = 'summary'; continue; }
+    }
+
+    // Summary rows
+    if (section === 'summary') {
+      for (let i = 0; i < cells.length - 1; i++) {
+        const label = cells[i].replace(':','').trim();
+        if (/^(Balance|Equity|Floating P\/L|Free Margin|Margin|Credit Facility)$/i.test(label)) {
+          const val = cells[i+1];
+          if (val && !isNaN(parseFloat(val))) summary[label] = val;
+        }
+      }
+      continue;
+    }
+
+    // Skip header rows (contain 'Ticket' or 'Type' as column headers)
+    if (cells[0] === 'Ticket' || cells[2] === 'Type') continue;
+
+    const num = (i) => { const v = parseFloat((cells[i]||'').replace(/[\s,]/g,'')); return isNaN(v) ? 0 : v; };
+    const ticketId = cells[0];
+    if (!/^\d+$/.test(ticketId)) continue; // skip non-trade rows
+
+    const tradeType = (cells[2] || '').toLowerCase();
+
+    // CLOSED trades
+    if (section === 'closed') {
+      if (tradeType === 'balance') {
+        // Deposit/withdrawal
+        deposits.push({
+          time: convertMT5DateString(cells[1], brokerOffsetHours),
+          amount: num(13) || num(4) || 0,
+          balance: null,
+          comment: cells[3] || ''
+        });
+        continue;
+      }
+      // Skip cancelled orders and non-trade types
+      if (!MT4_CLOSED_TYPES.includes(tradeType) || cells[9] === 'cancelled') continue;
+      // Only push if closeTime and closePrice look valid
+      if (!cells[8] || !cells[9]) continue;
+
+      positions.push({
+        id: ticketId,
+        account: accountId || 'default',
+        openTime:   convertMT5DateString(cells[1], brokerOffsetHours),
+        symbol:     cells[4].toUpperCase(),
+        type:       tradeType,
+        volume:     num(3),
+        openPrice:  num(5),
+        sl:         cells[6] || '0',
+        tp:         cells[7] || '0',
+        closeTime:  convertMT5DateString(cells[8], brokerOffsetHours),
+        closePrice: num(9),
+        commission: num(10),
+        swap:       num(12),
+        profit:     num(13),
+      });
+    }
+
+    // OPEN trades
+    else if (section === 'open') {
+      if (!MT4_CLOSED_TYPES.includes(tradeType)) continue;
+      openPositions.push({
+        id: ticketId,
+        account: accountId || 'default',
+        openTime:     convertMT5DateString(cells[1], brokerOffsetHours),
+        symbol:       cells[4].toUpperCase(),
+        type:         tradeType,
+        volume:       num(3),
+        openPrice:    num(5),
+        sl:           cells[6] || '0',
+        tp:           cells[7] || '0',
+        currentPrice: num(9),
+        swap:         num(12),
+        floatingPnL:  num(13),
+      });
+    }
+
+    // WORKING ORDERS
+    else if (section === 'orders') {
+      if (!MT4_ORDER_TYPES.includes(tradeType)) continue;
+      workingOrders.push({
+        id: ticketId,
+        account: accountId || 'default',
+        openTime: convertMT5DateString(cells[1], brokerOffsetHours),
+        symbol:   cells[4].toUpperCase(),
+        type:     tradeType,
+        volume:   num(3),
+        price:    num(5),
+        sl:       cells[6] || '0',
+        tp:       cells[7] || '0',
+        expiry:   '',
+        state:    'placed',
+      });
+    }
+  }
+
+  const parseNum = (s) => { if (!s) return null; const v = parseFloat(String(s).replace(/[^0-9.\-]/g,'')); return isNaN(v) ? null : v; };
+  const account = {
+    balance:     parseNum(summary['Balance']),
+    equity:      parseNum(summary['Equity']),
+    floatingPnL: parseNum(summary['Floating P/L']),
+    freeMargin:  parseNum(summary['Free Margin']),
+    margin:      parseNum(summary['Margin']),
+    marginLevel: null,
+    credit:      parseNum(summary['Credit Facility']),
+  };
+
+  return { positions, openPositions, workingOrders, deposits, account, accountId: accountId || 'default', accountName: accountName || 'Account', broker: 'MT4' };
+}
+
+// ── Auto-detect terminal and dispatch to correct parser ──
+async function parseReportFile(file, brokerOffsetHours) {
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let htmlSnippet;
+  if (bytes[0] === 0xFF && bytes[1] === 0xFE) htmlSnippet = new TextDecoder('utf-16le').decode(buffer.slice(0, 4000));
+  else if (bytes[0] === 0xFE && bytes[1] === 0xFF) htmlSnippet = new TextDecoder('utf-16be').decode(buffer.slice(0, 4000));
+  else htmlSnippet = new TextDecoder('utf-8').decode(buffer.slice(0, 4000));
+
+  // MT4 detection: single table, "Ticket" column header, "Closed Transactions:" section label
+  // MT5 detection: multiple tables, section headers in <th><div><b> elements, "Positions" section
+  const isMT4 = /Closed Transactions:/i.test(htmlSnippet) || /Ticket.*Open Time.*Type.*Size.*Item/i.test(htmlSnippet);
+  const isMT5 = /<b>\s*(Positions|Deals|Orders)\s*<\/b>/i.test(htmlSnippet);
+
+  if (isMT4 && !isMT5) return parseMT4File(file, brokerOffsetHours);
+  return parseMT5File(file, brokerOffsetHours);
+}
+
 // ═══════════════ TAG CATEGORIES ═══════════════
 // Default categories mirror Tradezella's three core buckets. Each maps to a pill-* CSS variable
 // so colors auto-adapt to light/dark theme. The 'mistake' category is special: items in a
@@ -2069,7 +2245,7 @@ function UploadBtn({ onUpload, primary }) {
     setStatus({ type: 'loading', text: `Parsing ${file.name}…` });
     try {
       const brokerOffset = lsGet(SK.brokerOffset, 3);
-      const parsed = await parseMT5File(file, brokerOffset);
+      const parsed = await parseReportFile(file, brokerOffset);
       const { positions, accountId, accountName, broker } = parsed;
       if (!positions.length && !parsed.openPositions.length && !parsed.workingOrders.length) { setStatus({ type: 'error', text: 'No positions or orders found.' }); return; }
       const result = await onUpload(positions, { id: accountId, name: accountName, broker, account: parsed.account, openPositions: parsed.openPositions, workingOrders: parsed.workingOrders, deposits: parsed.deposits });
