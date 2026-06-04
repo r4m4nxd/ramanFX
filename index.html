@@ -1627,15 +1627,16 @@ async function supaSync(payload) {
     updated_at: new Date().toISOString()
   };
   const { error } = await sb.from('rfx_journal').upsert(upsertData, { onConflict: 'user_id' });
-  if (error) { console.error('Supabase sync error:', error); return false; }
-  return true;
+  if (error) { console.error('Supabase sync error:', error); return { ok: false, msg: error.message || JSON.stringify(error) }; }
+  return { ok: true };
 }
 
 async function supaPull() {
   const sb = getSupa();
   if (!sb || !_supaUser) return null;
   const { data, error } = await sb.from('rfx_journal').select('*').eq('user_id', _supaUser.id).single();
-  if (error || !data) return null;
+  if (error) { console.error('Supabase pull error:', error); throw new Error(error.message || JSON.stringify(error)); }
+  if (!data) return null;
   return {
     trades: data.trades || [],
     accounts: data.accounts || {},
@@ -7218,6 +7219,15 @@ function App() {
   // (local wins on notes/tags, remote wins on trades/exitData from other imports)
   const [cloudSyncStatus, setCloudSyncStatus] = React.useState('idle'); // 'idle' | 'syncing' | 'ok' | 'error'
   const [cloudLastSync, setCloudLastSync] = React.useState(null);
+  const [globalToast, setGlobalToast] = React.useState(null); // { msg, type }
+  // Register global toast so non-React code (CSV parser) can trigger it
+  React.useEffect(() => {
+    window.__rfxToast = (msg, type = 'success') => {
+      setGlobalToast({ msg, type });
+      setTimeout(() => setGlobalToast(null), 6000);
+    };
+    return () => { window.__rfxToast = null; };
+  }, []);
 
   const handleManualSync = async () => {
     if (!_supaUser) { setCloudSyncStatus('error'); return; }
@@ -7235,7 +7245,7 @@ function App() {
         tagCategories: lsGet(SK.tagCategories, []), tagCategoryMap: lsGet(SK.tagCategoryMap, {}),
         attachments: lsGet(SK.attachments, {}),
       });
-      if (!pushed) throw new Error('Push failed — check internet connection');
+      if (!pushed || !pushed.ok) throw new Error('Push failed: ' + (pushed?.msg || 'check internet / Supabase'));
 
       // STEP 2: Pull what's now in Supabase (includes other devices' changes)
       const remote = await supaPull();
@@ -7313,9 +7323,10 @@ function App() {
       setCloudSyncStatus('ok');
       setTimeout(() => setCloudSyncStatus('idle'), 3000);
     } catch (e) {
-      console.error('Sync error:', e.message);
-      setCloudSyncStatus('error');
-      setTimeout(() => setCloudSyncStatus('idle'), 4000);
+      const msg = e.message || 'Unknown error';
+      console.error('Sync error:', msg);
+      setCloudSyncStatus('error:' + msg);
+      setTimeout(() => setCloudSyncStatus('idle'), 6000);
     }
   };
 
@@ -7350,8 +7361,10 @@ function App() {
         setCloudSyncStatus('ok');
         setTimeout(() => setCloudSyncStatus('idle'), 3000);
       } catch(e) {
-        console.error('Initial pull error:', e);
-        setCloudSyncStatus('idle');
+        const msg = e.message || 'Unknown error';
+        console.error('Initial pull error:', msg);
+        setCloudSyncStatus('error:' + msg);
+        setTimeout(() => setCloudSyncStatus('idle'), 6000);
       }
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -7418,14 +7431,13 @@ function App() {
         const next = { ...exitData, ...parsed };
         setExitData(next); lsSet(SK.tradeExitData, next); markDirty();
 
-        alert(
-          `Imported MAE/MFE data for ${positionIds.length} positions.\n\n` +
-          `• ${matched.length} matched to existing trades in your journal\n` +
-          (unmatched > 0 ? `• ${unmatched} positions in CSV not yet in journal (will match when you re-import your MT5 HTML report)\n\n` : '\n') +
-          `Open the Exit Analysis page to see what this data reveals.`
+        window.__rfxToast && window.__rfxToast(
+          `✓ MAE/MFE imported — ${matched.length} of ${positionIds.length} matched` +
+          (unmatched > 0 ? ` · ${unmatched} unmatched (re-import MT5 HTML first)` : ''),
+          'success'
         );
       } catch (err) {
-        alert('Error parsing CSV: ' + err.message);
+        window.__rfxToast && window.__rfxToast('CSV parse error: ' + err.message, 'error');
       }
     };
     reader.readAsText(file);
@@ -7844,13 +7856,13 @@ function App() {
                   <button
                     onClick={handleManualSync}
                     disabled={cloudSyncStatus === 'syncing'}
-                    title={'Last sync: ' + (cloudLastSync ? cloudLastSync.toLocaleTimeString() : 'never')}
+                    title={cloudSyncStatus.startsWith('error') ? cloudSyncStatus.slice(6) : 'Last sync: ' + (cloudLastSync ? cloudLastSync.toLocaleTimeString() : 'never')}
                     style={{ ...btnStyle('ghost'), padding: '4px 10px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 5,
-                      border: cloudSyncStatus === 'ok' ? '1px solid var(--green)' : cloudSyncStatus === 'error' ? '1px solid var(--red)' : '1px solid var(--border)',
-                      color: cloudSyncStatus === 'ok' ? 'var(--green-bright)' : cloudSyncStatus === 'error' ? 'var(--red)' : 'var(--text2)',
+                      border: cloudSyncStatus === 'ok' ? '1px solid var(--green)' : cloudSyncStatus.startsWith('error') ? '1px solid var(--red)' : '1px solid var(--border)',
+                      color: cloudSyncStatus === 'ok' ? 'var(--green-bright)' : cloudSyncStatus.startsWith('error') ? 'var(--red)' : 'var(--text2)',
                       opacity: cloudSyncStatus === 'syncing' ? 0.6 : 1 }}>
                     <span style={{ display: 'inline-block', animation: cloudSyncStatus === 'syncing' ? 'spin 1s linear infinite' : 'none' }}>☁</span>
-                    {cloudSyncStatus === 'syncing' ? 'Syncing…' : cloudSyncStatus === 'ok' ? 'Synced ✓' : cloudSyncStatus === 'error' ? 'Sync failed' : 'Sync'}
+                    {cloudSyncStatus === 'syncing' ? 'Syncing…' : cloudSyncStatus === 'ok' ? 'Synced ✓' : cloudSyncStatus.startsWith('error') ? 'Sync failed' : 'Sync'}
                   </button>
                   <button onClick={() => setShowCloudModal(true)} title={cloudUser.email}
                     style={{ ...btnStyle('ghost'), padding: '4px 7px', fontSize: 11, color: 'var(--text3)', border: '1px solid var(--border)' }}>
@@ -8055,6 +8067,20 @@ function App() {
         </button>
       )}
     </div>
+
+    {/* ── Global toast (MAE/MFE import, errors) ── */}
+    {globalToast && (() => {
+      const colors = {
+        success: { bg: 'rgba(38,166,154,0.15)', border: 'rgba(38,166,154,0.5)', color: '#2dd4bf' },
+        error:   { bg: 'rgba(239,83,80,0.15)',  border: 'rgba(239,83,80,0.5)',  color: '#ef5350' },
+      };
+      const c = colors[globalToast.type] || colors.success;
+      return (
+        <div className="fade-in" style={{ position: 'fixed', bottom: 136, right: 24, zIndex: 9000, maxWidth: 380, padding: '14px 18px', borderRadius: 12, fontSize: 13, lineHeight: 1.5, background: c.bg, border: `1px solid ${c.border}`, color: c.color, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', boxShadow: '0 10px 40px rgba(0,0,0,0.6)', cursor: 'pointer' }} onClick={() => setGlobalToast(null)}>
+          {globalToast.msg}
+        </div>
+      );
+    })()}
 
     {/* ── Cloud Login Modal ── */}
     {showCloudModal && (
