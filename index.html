@@ -4614,7 +4614,24 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <a href={lightbox.storageUrl || lightbox.dataUrl} download={lightbox.name} style={{ ...btnStyle('secondary'), textDecoration: 'none' }}>⬇ Download</a>
+                <button style={{ ...btnStyle('secondary') }} onClick={async () => {
+                    const url = lightbox.storageUrl || lightbox.dataUrl;
+                    try {
+                      const res = await fetch(url);
+                      const blob = await res.blob();
+                      const a = document.createElement('a');
+                      a.href = URL.createObjectURL(blob);
+                      a.download = lightbox.name || 'image.jpg';
+                      document.body.appendChild(a);
+                      a.click();
+                      setTimeout(() => { URL.revokeObjectURL(a.href); document.body.removeChild(a); }, 1000);
+                    } catch {
+                      // fallback for base64 dataUrls
+                      const a = document.createElement('a');
+                      a.href = url; a.download = lightbox.name || 'image.jpg';
+                      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                    }
+                  }}>⬇ Download</button>
                 <button style={btnStyle('ghost')} onClick={() => setLightbox(null)}>✕</button>
               </div>
             </div>
