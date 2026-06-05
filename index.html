@@ -852,7 +852,7 @@ function parseExitCSV(text) {
   // Parse header — handle the script's exact column names case-sensitively
   const headers = lines[0].split(',').map(h => h.trim());
   const idx = (name) => headers.findIndex(h => h === name);
-  const iPos = idx('Position ID');
+  const iPos = idx('Position ID') >= 0 ? idx('Position ID') : idx('Ticket'); // MT5='Position ID', MT4='Ticket'
   const iSym = idx('Symbol');
   const iType = idx('Type');
   const iOpen = idx('Open Time');
