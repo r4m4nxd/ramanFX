@@ -13,7 +13,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
@@ -44,23 +44,34 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
      stays dark in both light and dark mode (matching Tradezella's design language) so
      the brand stamp + navigation feel anchored regardless of the content surface. */
   :root {
+    /* ── Spacing scale (8pt grid) ── */
+    --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+    --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px;
+    /* ── Radius scale ── */
+    --r-sm: 6px; --r-md: 10px; --r-lg: 14px; --r-xl: 18px; --r-full: 9999px;
+    /* ── Easing (Emil-grade custom curves) ── */
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    /* ── z-index scale ── */
+    --z-dropdown: 30; --z-sticky: 40; --z-modal-bg: 200; --z-modal: 201; --z-toast: 300; --z-tooltip: 400;
     /* Main content surfaces */
-    --bg: #0a0a0b;
-    --panel: #131316;
-    --panel2: #1a1a1f;
-    --border: #26262c;
-    --border2: #303038;
+    --bg: #080809;
+    --panel: #101013;
+    --panel2: #161619;
+    --border: #222228;
+    --border2: #2e2e36;
     /* Text */
-    --text: #e8e8ec;
-    --text2: #a1a1ab;
-    --text3: #71717a;
+    --text: #ededf0;
+    --text2: #9898a6;
+    --text3: #636373;
     /* Brand & semantic */
     --green: #26a69a;
     --green-bright: #2dd4bf;
     --red: #ef5350;
     --violet: #7c5cfc;
     --violet-light: #9d7eff;
-    --violet-tint: rgba(124,92,252,0.12);   /* used for active states, focused borders */
+    --violet-tint: rgba(124,92,252,0.12);
     /* Charts */
     --chart-grid: #26262c;
     --chart-axis: #303038;
@@ -113,15 +124,16 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     --pill-violet-bg: rgba(124,92,252,0.14);
     --pill-violet-fg: #9d7eff;
     --pill-violet-border: rgba(124,92,252,0.35);
-    /* SIDEBAR — same in both themes (always dark like Tradezella) */
-    --sidebar-bg: #0f0f14;
-    --sidebar-border: rgba(255,255,255,0.06);
-    --sidebar-text: #a8a8b3;
-    --sidebar-text-hover: #ffffff;
-    --sidebar-text-active: #c4b5fd;
-    --sidebar-active-bg: rgba(124,92,252,0.18);
-    --sidebar-hover-bg: rgba(255,255,255,0.04);
-    --sidebar-divider: rgba(255,255,255,0.06);
+    /* SIDEBAR — always dark, refined palette */
+    --sidebar-bg: #09090c;
+    --sidebar-border: rgba(255,255,255,0.05);
+    --sidebar-text: #8888a0;
+    --sidebar-text-hover: #e8e8f0;
+    --sidebar-text-active: #b8a4ff;
+    --sidebar-active-bg: rgba(124,92,252,0.14);
+    --sidebar-active-border: rgba(124,92,252,0.5);
+    --sidebar-hover-bg: rgba(255,255,255,0.035);
+    --sidebar-divider: rgba(255,255,255,0.05);
   }
   /* ── LIGHT THEME ──
      Activated by setting data-theme="light" on the <html> element. This is modeled on
@@ -196,22 +208,48 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     background: var(--bg);
     color: var(--text);
     -webkit-font-smoothing: antialiased;
-    letter-spacing: -0.01em;
-    /* Theme switch is animated subtly so it doesn't feel jarring */
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.012em;
     transition: background-color 0.25s ease, color 0.25s ease;
   }
-  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  /* ── Refined scrollbar ── */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 4px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover); }
-  .tabnum { font-variant-numeric: tabular-nums; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: var(--r-full); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+  /* ── JetBrains Mono for all numeric displays ── */
+  .tabnum {
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+    letter-spacing: -0.02em;
+  }
   input, select, textarea, button { font-family: inherit; letter-spacing: inherit; }
-  select option { background: #1a1a1f; }
-  .fade-in { animation: fadeIn 0.35s ease both; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  select option { background: #161619; }
+  /* ── Animations ── */
+  .fade-in { animation: fadeIn 0.2s var(--ease-out) both; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  .slide-up { animation: slideUp 0.25s var(--ease-out) both; }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  .scale-in { animation: scaleIn 0.18s var(--ease-out) both; }
+  @keyframes scaleIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+  .stagger-1 { animation-delay: 30ms; }
+  .stagger-2 { animation-delay: 60ms; }
+  .stagger-3 { animation-delay: 90ms; }
+  .stagger-4 { animation-delay: 120ms; }
+  .stagger-5 { animation-delay: 150ms; }
+  .num-glow { transition: color 0.3s ease, text-shadow 0.3s ease; }
   @keyframes aiCoachPulse { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 1; transform: scale(1.4); } }
-  .clickable { cursor: pointer; transition: all 0.15s ease; }
-  .clickable:hover { transform: translateY(-1px); }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  /* ── Reduced motion ── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+  /* ── Hover only on real pointer devices ── */
+  .clickable { cursor: pointer; transition: opacity 0.15s var(--ease-out); }
+  @media (hover: hover) and (pointer: fine) {
+    .clickable:hover { opacity: 0.8; }
+  }
   /* ── PRINT-FRIENDLY STYLES ──
      When user clicks "Print / Save as PDF" on a note, body gets `printing-note` class. We then
      hide everything except `.print-note-target`, which contains a clean light-mode rendering of
@@ -237,12 +275,30 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     body.printing-note .print-note-target .print-footer { margin-top: 32pt; padding-top: 12pt; border-top: 1px solid #ccc; font-size: 8pt; color: #999 !important; text-align: center; }
     @page { margin: 0.5in; }
   }
+  /* ── Button micro-interactions (Emil: buttons must feel press) ── */
+  button:active { transform: scale(0.97) !important; }
+  button:disabled { opacity: 0.45 !important; cursor: not-allowed !important; transform: none !important; }
+  @media (hover: hover) and (pointer: fine) {
+    button:not(:disabled):hover { opacity: 0.88; }
+  }
+  /* ── Card hover lift ── */
+  @media (hover: hover) and (pointer: fine) {
+    .card-hover:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,0,0,0.3); transition: transform 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out); }
+  }
+  /* ── Modal entry animation ── */
+  .modal-enter { animation: modalEnter 0.22s var(--ease-out) both; }
+  @keyframes modalEnter { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: none; } }
+  /* ── Sidebar nav item refinements ── */
+  /* ── Input focus states ── */
+  input:focus, textarea:focus, select:focus { outline: none; box-shadow: 0 0 0 2px var(--violet-tint), 0 0 0 1px var(--violet) inset; }
+  /* ── Selection color ── */
+  ::selection { background: var(--violet-tint); color: var(--text); }
   /* Hidden when not printing — only visible during print preview */
   .print-note-target { display: none; }
   /* Chart tooltip + label text — force bright colours so they are readable on the dark theme */
-  .recharts-default-tooltip { background: #1a1a1f !important; border: 1px solid #3f3f46 !important; border-radius: 8px !important; box-shadow: 0 8px 24px rgba(0,0,0,0.5) !important; }
+  .recharts-default-tooltip { background: rgba(18,18,22,0.97) !important; border: 1px solid rgba(255,255,255,0.08) !important; border-radius: var(--r-lg) !important; box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.04) !important; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
   .recharts-tooltip-wrapper { z-index: 60; }
-  .recharts-default-tooltip .recharts-tooltip-label { color: #ffffff !important; font-weight: 600 !important; margin-bottom: 4px !important; }
+  .recharts-default-tooltip .recharts-tooltip-label { color: #ffffff !important; font-weight: 600 !important; font-size: 11px !important; letter-spacing: 0.04em !important; text-transform: uppercase !important; margin-bottom: 6px !important; opacity: 0.7; }
   .recharts-default-tooltip .recharts-tooltip-item,
   .recharts-default-tooltip .recharts-tooltip-item-name,
   .recharts-default-tooltip .recharts-tooltip-item-separator,
@@ -274,6 +330,10 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
      still occupies the top of the viewport. Push the sticky header below it. */
   header[data-rfx-header] {
     padding-top: env(safe-area-inset-top, 0px) !important;
+    border-bottom: 1px solid var(--border) !important;
+    background: var(--header-bg) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
   }
   /* Bottom safe area + clearance for floating buttons (Sync left, Pre-trade gate right).
      The floats are ~44px tall + 18px bottom offset, so reserve ~90px scroll headroom plus
@@ -2072,7 +2132,7 @@ const MobileContext = React.createContext(false);
 const useMobile = () => React.useContext(MobileContext);
 
 const Card = ({ children, className = '', style, onClick }) => (
-  <div onClick={onClick} className={className} style={{ background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 14, boxShadow: 'var(--shadow-card)', ...style }}>{children}</div>
+  <div onClick={onClick} className={className} style={{ background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-card)', overflow: 'hidden', ...style }}>{children}</div>
 );
 const Pill = ({ children, color = 'zinc' }) => {
   const c = {
@@ -2083,7 +2143,7 @@ const Pill = ({ children, color = 'zinc' }) => {
     blue: ['var(--pill-blue-bg)', 'var(--pill-blue-fg)', 'var(--pill-blue-border)'],
     violet: ['var(--pill-violet-bg)', 'var(--pill-violet-fg)', 'var(--pill-violet-border)'],
   }[color];
-  return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 7px', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', borderRadius: 6, background: c[0], color: c[1], border: `1px solid ${c[2]}` }}>{children}</span>;
+  return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', borderRadius: 'var(--r-full)', background: c[0], color: c[1], border: `1px solid ${c[2]}` }}>{children}</span>;
 };
 
 // Tooltip wrapper that works on both desktop hover and mobile tap.
@@ -2171,10 +2231,11 @@ function Gauge({ value, color = '#26a69a', size = 88 }) {
 
 function MetricGauge({ label, value, sub, color, donutValue, donutCenter, accent, hint, onClick }) {
   return (
-    <Card className={onClick ? 'clickable' : ''} onClick={onClick} style={{ padding: 16 }}>
+    <Card className={onClick ? 'clickable card-hover' : ''} onClick={onClick}
+      style={{ padding: '14px 16px', borderLeft: accent ? `2px solid ${accent}` : '2px solid transparent', transition: 'transform 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out)' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text3)', fontWeight: 600, marginBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'var(--text3)', fontWeight: 600, marginBottom: 10 }}>
             {label}{hint && <Hint text={hint}><span style={{ width: 13, height: 13, borderRadius: '50%', border: '1px solid var(--text3)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, cursor: 'help' }}>i</span></Hint>}
           </div>
           <div className="tabnum" style={{ fontSize: 26, fontWeight: 600, color: accent || 'var(--text)', letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
@@ -2221,11 +2282,11 @@ const Field = ({ label, value, mono }) => (
 );
 
 const btnStyle = (variant) => {
-  const base = { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 13px', fontSize: 12, fontWeight: 500, borderRadius: 8, border: 'none', cursor: 'pointer', transition: 'all 0.15s' };
-  if (variant === 'primary') return { ...base, background: 'var(--violet)', color: '#fff' };
-  if (variant === 'ghost') return { ...base, background: 'transparent', color: 'var(--text2)' };
-  if (variant === 'danger') return { ...base, background: 'transparent', color: 'var(--red)', border: '1px solid rgba(239,83,80,0.3)' };
-  return { ...base, background: 'var(--panel2)', color: 'var(--text)', border: '1px solid var(--border2)' };
+  const base = { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', fontSize: 12, fontWeight: 500, borderRadius: 'var(--r-md)', border: '1px solid transparent', cursor: 'pointer', transition: 'opacity 0.12s var(--ease-out), transform 0.1s var(--ease-out), background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease', WebkitTapHighlightColor: 'transparent', userSelect: 'none', letterSpacing: '-0.01em' };
+  if (variant === 'primary') return { ...base, background: 'var(--violet)', color: '#fff', borderColor: 'rgba(124,92,252,0.5)', boxShadow: '0 1px 8px rgba(124,92,252,0.25)' };
+  if (variant === 'ghost') return { ...base, background: 'transparent', color: 'var(--text2)', borderColor: 'transparent' };
+  if (variant === 'danger') return { ...base, background: 'rgba(239,83,80,0.08)', color: 'var(--red)', borderColor: 'rgba(239,83,80,0.25)' };
+  return { ...base, background: 'var(--panel2)', color: 'var(--text)', borderColor: 'var(--border)' };
 };
 
 // ═══════════════ UPLOAD ═══════════════
@@ -2333,7 +2394,7 @@ function CalendarView({ stats, onDayClick }) {
               const isToday = cell.key === todayKey;
               return (
                 <button key={i} onClick={() => cell.data && onDayClick?.(cell.key)} disabled={!cell.data}
-                  style={{ borderRadius: 9, border: isToday ? '1.5px solid var(--violet-light)' : (cell.data ? '1px solid var(--border2)' : '1px solid var(--calendar-empty-border)'), background: c || 'var(--calendar-cell-bg)', textAlign: 'center', padding: compact ? '5px 2px' : '6px 3px', cursor: cell.data ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'all 0.15s', position: 'relative', minHeight: compact ? 64 : 74, minWidth: 0 }}
+                  style={{ borderRadius: 9, border: isToday ? '1.5px solid var(--violet-light)' : (cell.data ? '1px solid var(--border2)' : '1px solid var(--calendar-empty-border)'), background: c || 'var(--calendar-cell-bg)', textAlign: 'center', padding: compact ? '5px 2px' : '6px 3px', cursor: cell.data ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)', position: 'relative', minHeight: compact ? 64 : 74, minWidth: 0 }}
                   onMouseEnter={e => { if (cell.data) { e.currentTarget.style.transform = 'scale(1.04)'; e.currentTarget.style.borderColor = 'var(--violet)'; e.currentTarget.style.zIndex = '5'; } }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = isToday ? 'var(--violet-light)' : (cell.data ? 'var(--border2)' : 'var(--calendar-empty-border)'); e.currentTarget.style.zIndex = 'auto'; }}>
                   {/* Day number — top center, small */}
@@ -2440,7 +2501,7 @@ function HeroScoreCard({ stats }) {
   const kpi = (label, value, sub, color) => (
     <div style={{ padding: '12px 14px', background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 10, minWidth: 0 }}>
       <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', fontWeight: 600, marginBottom: 6 }}>{label}</div>
-      <div className="tabnum" style={{ fontSize: 20, fontWeight: 700, color: color || 'var(--text)', lineHeight: 1, marginBottom: sub ? 3 : 0 }}>{value}</div>
+      <div className="tabnum" style={{ fontSize: 21, fontWeight: 700, color: color || 'var(--text)', lineHeight: 1, marginBottom: sub ? 4 : 0, letterSpacing: '-0.02em', fontFamily: "'JetBrains Mono', monospace" }}>{value}</div>
       {sub && <div style={{ fontSize: 10.5, color: 'var(--text3)' }}>{sub}</div>}
     </div>
   );
@@ -2453,18 +2514,18 @@ function HeroScoreCard({ stats }) {
   const pfColor = stats?.profitFactor >= 1.5 ? 'var(--green-bright)' : stats?.profitFactor >= 1 ? 'var(--text)' : 'var(--red)';
   const wrColor = stats?.winRate >= 50 ? 'var(--green-bright)' : stats?.winRate >= 40 ? 'var(--text)' : 'var(--red)';
   return (
-    <Card style={{ padding: 0, overflow: 'hidden', background: `linear-gradient(135deg, rgba(124,92,252,0.06) 0%, transparent 60%), var(--panel)` }}>
+    <Card style={{ padding: 0, overflow: 'hidden', background: `linear-gradient(135deg, rgba(124,92,252,0.08) 0%, rgba(45,212,191,0.03) 100%), var(--panel)`, borderColor: 'rgba(124,92,252,0.2)' }}>
       {/* Top section: hero score + streak */}
       <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 14 : 24, padding: isMobile ? '20px 18px 16px' : '22px 24px 18px', borderBottom: '1px solid var(--border)' }}>
         {/* Big score */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flex: '0 0 auto' }}>
           <div>
-            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', fontWeight: 700, marginBottom: 4 }}>RamanFX score</div>
+            <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--violet-light)', fontWeight: 700, marginBottom: 6, opacity: 0.7 }}>Performance Score</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-              <span className="tabnum" style={{ fontSize: isMobile ? 56 : 64, fontWeight: 800, color: scoreColor, lineHeight: 1, letterSpacing: '-0.02em', textShadow: `0 0 30px ${scoreColor}33` }}>{Math.round(animScore)}</span>
+              <span className="tabnum" style={{ fontSize: isMobile ? 56 : 68, fontWeight: 800, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', textShadow: `0 0 40px ${scoreColor}40`, fontFamily: "'JetBrains Mono', monospace" }}>{Math.round(animScore)}</span>
               <span style={{ fontSize: 18, color: 'var(--text3)', fontWeight: 500 }}>/ 100</span>
             </div>
-            <div style={{ fontSize: 11.5, color: scoreColor, fontWeight: 600, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{scoreLabel}</div>
+            <div style={{ fontSize: 10, color: scoreColor, fontWeight: 700, marginTop: 6, textTransform: 'uppercase', letterSpacing: '0.12em', display: 'inline-block', padding: '2px 8px', borderRadius: 'var(--r-full)', background: `${scoreColor}18`, border: `1px solid ${scoreColor}30` }}>{scoreLabel}</div>
           </div>
         </div>
         {/* Vertical divider on desktop */}
@@ -2532,7 +2593,7 @@ function ScoreCard({ stats }) {
         {/* Score readout column — Tradezella's "Your Zella Score 82.1" with rainbow gauge below */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingRight: isMobile ? 0 : 8 }}>
           <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text3)', fontWeight: 600 }}>Your score</div>
-          <div className="tabnum" style={{ fontSize: 44, fontWeight: 700, color: scoreColor, lineHeight: 1 }}>{animScore.toFixed(1)}</div>
+          <div className="tabnum" style={{ fontSize: 52, fontWeight: 700, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', fontFamily: "'JetBrains Mono', monospace" }}>{animScore.toFixed(1)}</div>
           {/* Rainbow gauge bar */}
           <div style={{ marginTop: 4 }}>
             <div style={{ position: 'relative', height: 8, borderRadius: 99, overflow: 'hidden', background: 'linear-gradient(90deg, #ef5350 0%, #fbbf24 50%, #26a69a 100%)' }} />
@@ -2573,7 +2634,7 @@ function ScatterCard({ stats, kind }) {
     return () => { el.removeEventListener('touchstart', onStart); el.removeEventListener('touchmove', onMove); el.removeEventListener('touchend', onEnd); };
   }, []);
   const toggleBtn = (v, label) => (
-    <button key={v} onClick={() => setTimeMode(v)} style={{ padding: '3px 10px', fontSize: 11, fontWeight: 500, borderRadius: 5, border: 'none', cursor: 'pointer', background: timeMode === v ? 'var(--violet)' : 'transparent', color: timeMode === v ? '#fff' : 'var(--text3)', transition: 'all 0.15s' }}>{label}</button>
+    <button key={v} onClick={() => setTimeMode(v)} style={{ padding: '3px 10px', fontSize: 11, fontWeight: 500, borderRadius: 5, border: 'none', cursor: 'pointer', background: timeMode === v ? 'var(--violet)' : 'transparent', color: timeMode === v ? '#fff' : 'var(--text3)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}>{label}</button>
   );
   return (
     <Card style={{ padding: 18 }}>
@@ -2592,7 +2653,7 @@ function ScatterCard({ stats, kind }) {
       <div ref={chartWrapRef} style={{ touchAction: 'pan-y' }}>
         <ResponsiveContainer width="100%" height={230}>
           <ScatterChart margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+            <CartesianGrid strokeDasharray="1 4" stroke="var(--chart-grid)" />
             {isTime
               ? <XAxis type="number" dataKey="hour" domain={[0, 24]} ticks={[0, 4, 8, 12, 16, 20, 24]} tickFormatter={h => `${h}:00`} tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} />
               : <XAxis type="number" dataKey="hold" scale="log" domain={['auto', 'auto']} tickFormatter={v => fmtHold(v)} tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} />}
@@ -2619,7 +2680,7 @@ function DrawdownChart({ stats }) {
       <ResponsiveContainer width="100%" height={170}>
         <AreaChart data={stats.equity} margin={{ top: 5, right: 10, bottom: 0, left: 0 }}>
           <defs><linearGradient id="ddG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#9d7eff" stopOpacity={0.5} /><stop offset="100%" stopColor="#9d7eff" stopOpacity={0.05} /></linearGradient></defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+          <CartesianGrid strokeDasharray="1 4" stroke="var(--chart-grid)" />
           <XAxis dataKey="label" tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} interval="preserveStartEnd" />
           <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
           <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => [fmtMoney(v), 'Drawdown']} />
@@ -2722,7 +2783,7 @@ function AccountBalanceChart({ trades, deposits }) {
       </div>
       <ResponsiveContainer width="100%" height={220}>
         <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+          <CartesianGrid strokeDasharray="1 4" stroke="var(--chart-grid)" />
           <XAxis dataKey="label" tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} interval="preserveStartEnd" />
           <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
           <ReferenceLine y={0} stroke="var(--chart-baseline)" strokeDasharray="2 2" />
@@ -2764,7 +2825,7 @@ function WinLossAvgChart({ trades }) {
   const [grain, setGrain] = useState('day');
   const data = useMemo(() => buildWinLossSeries(trades, grain), [trades, grain]);
   const toggleBtn = (v, label) => (
-    <button key={v} onClick={() => setGrain(v)} style={{ padding: '4px 11px', fontSize: 11, fontWeight: 500, borderRadius: 6, border: 'none', cursor: 'pointer', background: grain === v ? 'var(--violet)' : 'transparent', color: grain === v ? '#fff' : 'var(--text3)', transition: 'all 0.15s' }}>{label}</button>
+    <button key={v} onClick={() => setGrain(v)} style={{ padding: '4px 11px', fontSize: 11, fontWeight: 500, borderRadius: 6, border: 'none', cursor: 'pointer', background: grain === v ? 'var(--violet)' : 'transparent', color: grain === v ? '#fff' : 'var(--text3)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}>{label}</button>
   );
   if (!data.length) return null;
   return (
@@ -2782,7 +2843,7 @@ function WinLossAvgChart({ trades }) {
       </div>
       <ResponsiveContainer width="100%" height={240}>
         <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+          <CartesianGrid strokeDasharray="1 4" stroke="var(--chart-grid)" />
           <XAxis dataKey="label" tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} interval="preserveStartEnd" />
           <YAxis yAxisId="money" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
           <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={v => `${v.toFixed(0)}%`} domain={[0, 100]} />
@@ -2841,7 +2902,7 @@ function Dashboard({ trades, onDayClick, checklist, checklistDays, onChecklistTo
           <ResponsiveContainer width="100%" height={190}>
             <AreaChart data={stats.equity}>
               <defs><linearGradient id="eqA" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#26a69a" stopOpacity={0.4} /><stop offset="100%" stopColor="#26a69a" stopOpacity={0} /></linearGradient></defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+              <CartesianGrid strokeDasharray="1 4" stroke="var(--chart-grid)" />
               <XAxis dataKey="label" tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} interval="preserveStartEnd" />
               <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
               <ReferenceLine y={0} stroke="var(--chart-baseline)" strokeDasharray="2 2" />
@@ -2863,7 +2924,7 @@ function Dashboard({ trades, onDayClick, checklist, checklistDays, onChecklistTo
           <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>Each bar = one trading day</div>
           <ResponsiveContainer width="100%" height={210}>
             <BarChart data={stats.daily}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+              <CartesianGrid strokeDasharray="1 4" stroke="var(--chart-grid)" vertical={false} />
               <XAxis dataKey="date" tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} tickFormatter={v => v.slice(5)} interval="preserveStartEnd" />
               <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
               <ReferenceLine y={0} stroke="var(--chart-baseline)" />
@@ -2909,7 +2970,7 @@ function DayWeekView({ trades, dayNotes, onSaveDayNote, focusDate, exitData, onO
   const [mode, setMode] = useState('day');
   const stats = useMemo(() => computeStats(trades), [trades]);
   if (!stats) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--text3)' }}>No trades yet.</div>;
-  const toggle = (m) => ({ padding: '7px 18px', fontSize: 12, borderRadius: 7, border: 'none', cursor: 'pointer', background: mode === m ? 'var(--violet)' : 'transparent', color: mode === m ? '#fff' : 'var(--text2)', transition: 'all 0.15s' });
+  const toggle = (m) => ({ padding: '7px 18px', fontSize: 12, borderRadius: 7, border: 'none', cursor: 'pointer', background: mode === m ? 'var(--violet)' : 'transparent', color: mode === m ? '#fff' : 'var(--text2)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' });
   return (
     <div className="fade-in">
       <div style={{ display: 'inline-flex', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 9, padding: 3, marginBottom: 16 }}>
@@ -2962,7 +3023,7 @@ function DayCard({ day, allTrades, exitData, expanded, onExpand, note, onSaveNot
             <ResponsiveContainer width="100%" height={130}>
               <AreaChart data={equityData}>
                 <defs><linearGradient id={`g${day.date}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={profit ? '#26a69a' : '#ef5350'} stopOpacity={0.4} /><stop offset="100%" stopColor={profit ? '#26a69a' : '#ef5350'} stopOpacity={0} /></linearGradient></defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                <CartesianGrid strokeDasharray="1 4" stroke="var(--chart-grid)" />
                 <XAxis dataKey="i" tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
                 <ReferenceLine y={0} stroke="var(--chart-baseline)" />
@@ -2994,7 +3055,7 @@ function DayCard({ day, allTrades, exitData, expanded, onExpand, note, onSaveNot
           <div style={{ marginTop: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
               <span style={{ color: 'var(--violet-light)', fontSize: 13 }}>✦</span>
-              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>RamanFX daily insights</div>
+              <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', fontWeight: 700 }}>RamanFX daily insights</div>
             </div>
             {(() => {
               const dayItems = day.items;
@@ -3134,7 +3195,7 @@ function WeekView({ stats, allTrades, exitData }) {
                   <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
                       <span style={{ color: 'var(--violet-light)', fontSize: 13 }}>✦</span>
-                      <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>RamanFX weekly insights</div>
+                      <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', fontWeight: 700 }}>RamanFX weekly insights</div>
                     </div>
                     <InsightsPanel windowTrades={w.weekItems} historyTrades={history} scope="week" exitData={exitData} />
                   </div>
@@ -3796,8 +3857,8 @@ function Modal({ open, onClose, children, width = 720 }) {
   // Note: ReactDOM.createPortal renders children into a DOM node OUTSIDE the React tree.
   // We use document.body so the modal is a top-level sibling of #root.
   const modalContent = (
-    <div onClick={onClose} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, height: '100dvh', background: 'rgba(0,0,0,0.78)', WebkitBackdropFilter: 'blur(4px)', backdropFilter: 'blur(4px)', zIndex: 10000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', overflowY: 'auto', paddingTop: 'max(24px, env(safe-area-inset-top))', paddingBottom: 'max(24px, env(safe-area-inset-bottom))', paddingLeft: 'max(16px, env(safe-area-inset-left))', paddingRight: 'max(16px, env(safe-area-inset-right))', WebkitOverflowScrolling: 'touch' }}>
-      <div onClick={e => e.stopPropagation()} className="fade-in" style={{ background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 14, maxWidth: width, width: '100%', maxHeight: '100%', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.7)', overflow: 'hidden' }}>
+    <div onClick={onClose} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, height: '100dvh', background: 'rgba(4,4,6,0.82)', WebkitBackdropFilter: 'blur(8px) saturate(1.2)', backdropFilter: 'blur(8px) saturate(1.2)', zIndex: 10000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', overflowY: 'auto', paddingTop: 'max(24px, env(safe-area-inset-top))', paddingBottom: 'max(24px, env(safe-area-inset-bottom))', paddingLeft: 'max(16px, env(safe-area-inset-left))', paddingRight: 'max(16px, env(safe-area-inset-right))', WebkitOverflowScrolling: 'touch' }}>
+      <div onClick={e => e.stopPropagation()} className="fade-in" style={{ background: 'var(--panel)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-xl)', maxWidth: width, width: '100%', maxHeight: '100%', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.7)', overflow: 'hidden' }}>
         {children}
       </div>
     </div>
@@ -3825,7 +3886,7 @@ function InsightsPanel({ windowTrades, historyTrades, scope, title, exitData }) 
   };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {title && <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>{title}</div>}
+      {title && <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', fontWeight: 700 }}>{title}</div>}
       {insights.map((ins, idx) => {
         const s = levelStyle[ins.level] || levelStyle.caution;
         return (
@@ -3874,7 +3935,7 @@ function DaySummaryPopup({ dayKey: dk, stats, onClose, onViewDetails, onAddNote,
           <ResponsiveContainer width="100%" height={150}>
             <AreaChart data={equityData}>
               <defs><linearGradient id="dayPopG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={profit ? '#26a69a' : '#ef5350'} stopOpacity={0.4} /><stop offset="100%" stopColor={profit ? '#26a69a' : '#ef5350'} stopOpacity={0} /></linearGradient></defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+              <CartesianGrid strokeDasharray="1 4" stroke="var(--chart-grid)" />
               <XAxis dataKey="i" tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
               <ReferenceLine y={0} stroke="var(--chart-baseline)" />
@@ -3910,7 +3971,7 @@ function RecentOpenCard({ recentTrades, openPositions, setTab }) {
   const [view, setView] = useState('recent');
   const hasOpen = openPositions && openPositions.length > 0;
   const toggleBtn = (v, label) => (
-    <button onClick={() => setView(v)} style={{ padding: '4px 11px', fontSize: 11, fontWeight: 500, borderRadius: 6, border: 'none', cursor: 'pointer', background: view === v ? 'var(--violet)' : 'transparent', color: view === v ? '#fff' : 'var(--text3)', transition: 'all 0.15s' }}>{label}</button>
+    <button onClick={() => setView(v)} style={{ padding: '4px 11px', fontSize: 11, fontWeight: 500, borderRadius: 6, border: 'none', cursor: 'pointer', background: view === v ? 'var(--violet)' : 'transparent', color: view === v ? '#fff' : 'var(--text3)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}>{label}</button>
   );
   return (
     <Card style={{ padding: 18 }}>
@@ -4065,14 +4126,14 @@ function TagPicker({ allTags, value, onChange, accent = 'violet', placeholder = 
                 return (
                   <div key={tag} style={{ display: 'inline-flex', alignItems: 'stretch', borderRadius: 5, border: `1px solid ${c.border}`, overflow: 'hidden' }}>
                     <button onClick={() => addTag(tag)} title={`Add to this trade · used in ${count} trade${count !== 1 ? 's' : ''}`}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11.5, padding: '3px 8px', background: 'transparent', border: 'none', color: c.fg, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s' }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11.5, padding: '3px 8px', background: 'transparent', border: 'none', color: c.fg, cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}
                       onMouseEnter={e => { e.currentTarget.style.background = c.bg; }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
                       + {tag}<span style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 400 }}>×{count}</span>
                     </button>
                     {onPurgeTag && (
                       <button onClick={(e) => purgeFromLibrary(e, tag, count)} title={`Delete "${tag}" from library (removes from all ${count} trades)`}
-                        style={{ padding: '0 6px', fontSize: 13, background: 'transparent', border: 'none', borderLeft: `1px solid ${c.border}`, color: 'var(--text3)', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s' }}
+                        style={{ padding: '0 6px', fontSize: 13, background: 'transparent', border: 'none', borderLeft: `1px solid ${c.border}`, color: 'var(--text3)', cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}
                         onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,83,80,0.12)'; e.currentTarget.style.color = '#ff8a87'; }}
                         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text3)'; }}>×</button>
                     )}
@@ -4516,7 +4577,7 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ display: 'flex', borderBottom: '1px solid var(--border)' }}>
             {[['stats', 'Stats'], ['notes', 'Notes'], ['attachments', `Attachments${tradeAttachments.length ? ` (${tradeAttachments.length})` : ''}`]].map(([id, label]) => (
-              <button key={id} onClick={() => setPane(id)} style={{ padding: '12px 18px', fontSize: 13, fontWeight: 500, background: 'transparent', border: 'none', borderBottom: pane === id ? '2px solid var(--violet)' : '2px solid transparent', color: pane === id ? 'var(--text)' : 'var(--text3)', cursor: 'pointer', transition: 'all 0.15s' }}>{label}</button>
+              <button key={id} onClick={() => setPane(id)} style={{ padding: '12px 18px', fontSize: 13, fontWeight: 500, background: 'transparent', border: 'none', borderBottom: pane === id ? '2px solid var(--violet)' : '2px solid transparent', color: pane === id ? 'var(--text)' : 'var(--text3)', cursor: 'pointer', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}>{label}</button>
             ))}
           </div>
 
@@ -4584,7 +4645,7 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                   <input ref={fileRef} type="file" multiple accept="image/*" style={{ display: 'none' }} onChange={onFiles} />
                 </div>
                 {tradeAttachments.length === 0 ? (
-                  <div onClick={() => fileRef.current?.click()} style={{ padding: 60, textAlign: 'center', border: '2px dashed var(--border2)', borderRadius: 12, color: 'var(--text3)', cursor: 'pointer', transition: 'all 0.15s' }}
+                  <div onClick={() => fileRef.current?.click()} style={{ padding: 60, textAlign: 'center', border: '2px dashed var(--border2)', borderRadius: 12, color: 'var(--text3)', cursor: 'pointer', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--violet)'; e.currentTarget.style.color = 'var(--violet-light)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.color = 'var(--text3)'; }}>
                     <div style={{ fontSize: 32, marginBottom: 8 }}>🖼</div>
                     <div style={{ fontSize: 13 }}>Click to upload chart screenshots</div>
@@ -4711,7 +4772,7 @@ function ReportsOverviewPane({ stats, insights }) {
         <Card style={{ padding: 18 }}>
           <div style={{ fontWeight: 600, marginBottom: 2 }}>P&L distribution</div><div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>Histogram of trade outcomes</div>
           <ResponsiveContainer width="100%" height={190}>
-            <BarChart data={stats.dist}><CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+            <BarChart data={stats.dist}><CartesianGrid strokeDasharray="1 4" stroke="var(--chart-grid)" vertical={false} />
               <XAxis dataKey="bin" tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} tickFormatter={v => v.toFixed(0)} />
               <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} />
               <ReferenceLine x={0} stroke="var(--chart-baseline)" strokeDasharray="2 2" />
@@ -4754,7 +4815,7 @@ function ReportsDayTimePane({ trades }) {
           <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>How many trades you take each day</div>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={dow} layout="vertical" margin={{ left: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" horizontal={false} />
+              <CartesianGrid strokeDasharray="1 4" stroke="var(--chart-grid)" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} />
               <YAxis type="category" dataKey="day" tick={{ fontSize: 11, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} width={42} />
               <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'var(--track-bg)' }} formatter={(v, n) => [v, n === 'trades' ? 'Trades' : n]} />
@@ -4767,7 +4828,7 @@ function ReportsDayTimePane({ trades }) {
           <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>Net P&L by weekday</div>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={dow} layout="vertical" margin={{ left: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" horizontal={false} />
+              <CartesianGrid strokeDasharray="1 4" stroke="var(--chart-grid)" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} tickFormatter={fmtCompact} />
               <YAxis type="category" dataKey="day" tick={{ fontSize: 11, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} width={42} />
               <ReferenceLine x={0} stroke="var(--chart-baseline)" />
@@ -4782,7 +4843,7 @@ function ReportsDayTimePane({ trades }) {
         <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>Net P&L per entry hour</div>
         <ResponsiveContainer width="100%" height={240}>
           <BarChart data={hours}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+            <CartesianGrid strokeDasharray="1 4" stroke="var(--chart-grid)" vertical={false} />
             <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} interval={1} />
             <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
             <ReferenceLine y={0} stroke="var(--chart-baseline)" />
@@ -4845,7 +4906,7 @@ function ReportsPriceQtyPane({ trades }) {
         <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>Net P&L grouped by trade volume</div>
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={vol}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+            <CartesianGrid strokeDasharray="1 4" stroke="var(--chart-grid)" vertical={false} />
             <XAxis dataKey="bucket" tick={{ fontSize: 11, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} />
             <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
             <ReferenceLine y={0} stroke="var(--chart-baseline)" />
@@ -5043,7 +5104,7 @@ function ReportsComparePane({ trades }) {
           <ResponsiveContainer width="100%" height={180}>
             <AreaChart data={r.equity}>
               <defs><linearGradient id={`cg${num}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={r.net >= 0 ? '#26a69a' : '#ef5350'} stopOpacity={0.4} /><stop offset="100%" stopColor={r.net >= 0 ? '#26a69a' : '#ef5350'} stopOpacity={0} /></linearGradient></defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+              <CartesianGrid strokeDasharray="1 4" stroke="var(--chart-grid)" />
               <XAxis dataKey="label" tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} interval="preserveStartEnd" />
               <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
               <ReferenceLine y={0} stroke="var(--chart-baseline)" strokeDasharray="2 2" />
@@ -5093,7 +5154,7 @@ function Reports({ trades, setTab }) {
       <Card style={{ padding: 4, display: 'inline-flex', gap: 2, flexWrap: 'wrap', alignSelf: 'flex-start' }}>
         {panes.map(p => (
           <button key={p.id} onClick={() => p.id === 'calendar' ? setTab('calendar') : setPane(p.id)}
-            style={{ padding: '7px 14px', fontSize: 12, fontWeight: 500, borderRadius: 8, border: 'none', cursor: 'pointer', background: pane === p.id ? 'var(--violet)' : 'transparent', color: pane === p.id ? '#fff' : 'var(--text2)', transition: 'all 0.15s' }}
+            style={{ padding: '7px 14px', fontSize: 12, fontWeight: 500, borderRadius: 8, border: 'none', cursor: 'pointer', background: pane === p.id ? 'var(--violet)' : 'transparent', color: pane === p.id ? '#fff' : 'var(--text2)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}
             onMouseEnter={e => { if (pane !== p.id) e.currentTarget.style.color = 'var(--text)'; }}
             onMouseLeave={e => { if (pane !== p.id) e.currentTarget.style.color = 'var(--text2)'; }}>{p.label}</button>
         ))}
@@ -5229,7 +5290,7 @@ function Strategies({ strategies, trades, notes, onSave, onDelete }) {
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {!editing && (
-        <button onClick={() => setEditing({ name: '', description: '', rules: '' })} style={{ width: '100%', background: 'var(--panel)', border: '1px dashed var(--border2)', borderRadius: 14, padding: 24, color: 'var(--text2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 13, transition: 'all 0.15s' }}
+        <button onClick={() => setEditing({ name: '', description: '', rules: '' })} style={{ width: '100%', background: 'var(--panel)', border: '1px dashed var(--border2)', borderRadius: 14, padding: 24, color: 'var(--text2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 13, transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}
           onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--violet)'; e.currentTarget.style.color = 'var(--violet-light)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.color = 'var(--text2)'; }}>+ Define a new strategy</button>
       )}
       {editing && (
@@ -5587,7 +5648,7 @@ function Notebook({ entries, onSave, onDelete, folders, onSaveFolder, onDeleteFo
               <Fragment key={folder.id}>
                 {/* Folder row */}
                 <div onClick={() => { setSelectedFolder(folder.id); setExpandedFolders(prev => ({ ...prev, [folder.id]: !prev[folder.id] })); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 8px', borderRadius: 6, cursor: 'pointer', background: isSelected ? 'var(--violet-tint)' : 'transparent', color: isSelected ? 'var(--violet-light)' : 'var(--text)', fontSize: 13, fontWeight: 500, transition: 'all 0.12s', position: 'relative' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 8px', borderRadius: 6, cursor: 'pointer', background: isSelected ? 'var(--violet-tint)' : 'transparent', color: isSelected ? 'var(--violet-light)' : 'var(--text)', fontSize: 13, fontWeight: 500, transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)', position: 'relative' }}
                   onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--hover-tint)'; }}
                   onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}>
                   <span style={{ fontSize: 9, color: 'var(--text3)', width: 10 }}>{isOpen ? '▾' : '▸'}</span>
@@ -5620,7 +5681,7 @@ function Notebook({ entries, onSave, onDelete, folders, onSaveFolder, onDeleteFo
                   <div style={{ marginLeft: 22, marginBottom: 4 }}>
                     {sorted.slice(0, 50).map(e => (
                       <div key={e.id} onClick={() => { setSelected(e.id); setEditing(false); }}
-                        style={{ padding: '5px 8px', borderRadius: 5, cursor: 'pointer', background: selected === e.id ? 'var(--violet-tint)' : 'transparent', borderLeft: selected === e.id ? '2px solid var(--violet)' : '2px solid transparent', transition: 'all 0.1s' }}
+                        style={{ padding: '5px 8px', borderRadius: 5, cursor: 'pointer', background: selected === e.id ? 'var(--violet-tint)' : 'transparent', borderLeft: selected === e.id ? '2px solid var(--violet)' : '2px solid transparent', transition: 'border-color 0.1s var(--ease-out), background 0.1s var(--ease-out)' }}
                         onMouseEnter={ev => { if (selected !== e.id) ev.currentTarget.style.background = 'var(--hover-tint)'; }}
                         onMouseLeave={ev => { if (selected !== e.id) ev.currentTarget.style.background = 'transparent'; }}>
                         <div style={{ fontSize: 12, color: 'var(--text)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -5755,7 +5816,7 @@ function CalendarPage({ trades, onDayClick }) {
   const [yearOffset, setYearOffset] = useState(0); // 0 = current year, -1 = previous
   if (!stats) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--text3)' }}>No trades yet.</div>;
   const toggle = (m, label) => (
-    <button onClick={() => setMode(m)} style={{ padding: '7px 18px', fontSize: 12, borderRadius: 7, border: 'none', cursor: 'pointer', background: mode === m ? 'var(--violet)' : 'transparent', color: mode === m ? '#fff' : 'var(--text2)', transition: 'all 0.15s' }}>{label}</button>
+    <button onClick={() => setMode(m)} style={{ padding: '7px 18px', fontSize: 12, borderRadius: 7, border: 'none', cursor: 'pointer', background: mode === m ? 'var(--violet)' : 'transparent', color: mode === m ? '#fff' : 'var(--text2)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}>{label}</button>
   );
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -5946,7 +6007,7 @@ function Playbook({ playbookState, onSavePlaybookState }) {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
           {TIMEFRAME_PAIRS.map((p, i) => (
             <button key={i} onClick={() => { setPair(i); onSavePlaybookState({ ...playbookState, checks, pair: i }); }}
-              style={{ padding: '8px 12px', borderRadius: 9, border: `1px solid ${pair === i ? 'var(--violet)' : 'var(--border2)'}`, background: pair === i ? 'rgba(124,92,252,0.12)' : 'var(--panel2)', color: pair === i ? 'var(--violet-light)' : 'var(--text2)', cursor: 'pointer', fontSize: 12, transition: 'all 0.15s' }}>
+              style={{ padding: '8px 12px', borderRadius: 9, border: `1px solid ${pair === i ? 'var(--violet)' : 'var(--border2)'}`, background: pair === i ? 'rgba(124,92,252,0.12)' : 'var(--panel2)', color: pair === i ? 'var(--violet-light)' : 'var(--text2)', cursor: 'pointer', fontSize: 12, transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}>
               {p.htf} · {p.mtf} · {p.ltf}
             </button>
           ))}
@@ -6348,13 +6409,13 @@ function PreTradeGate({ open, onClose, status, rules }) {
             {wouldExceedDaily && <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}>⚠ Would breach daily cap</div>}
           </div>
         </div>
-        <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, marginBottom: 8 }}>Strategy checks</div>
+        <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', fontWeight: 700, marginBottom: 8 }}>Strategy checks</div>
         {checkRow('plannedSize', 'My size is planned, not based on how I feel.')}
         {checkRow('slDefined', 'My stop-loss price is decided BEFORE I click buy/sell, not after.')}
         {checkRow('riskCalculated', 'I calculated the dollar risk. It fits my single-trade limit.')}
         {checkRow('htfAligned', 'HTF, MTF and LTF are aligned with the direction I am taking.')}
         {checkRow('properZone', 'This is a WOW / Fresh zone / PCP near a trendline (not a random entry).')}
-        <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, marginTop: 14, marginBottom: 8 }}>Mind checks</div>
+        <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', fontWeight: 700, marginTop: 14, marginBottom: 8 }}>Mind checks</div>
         {checkRow('notChasing', 'I am NOT entering because price already moved away from my level.', true)}
         {checkRow('notRevenge', 'I am NOT trying to win back a recent loss.', true)}
         {checkRow('notFomo', 'I am NOT entering because of FOMO — I would still take this trade if the move just started.', true)}
@@ -6513,7 +6574,7 @@ function DateRangeFilter({ value, onChange }) {
   return (
     <Fragment>
       <button ref={btnRef} onClick={() => setOpen(!open)}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 12px', fontSize: 12, fontWeight: 500, borderRadius: 8, border: `1px solid ${isActive ? 'var(--violet)' : 'var(--border2)'}`, background: isActive ? 'rgba(124,92,252,0.12)' : 'var(--panel2)', color: isActive ? 'var(--violet-light)' : 'var(--text)', cursor: 'pointer', transition: 'all 0.15s', textAlign: 'left', lineHeight: 1.2 }}>
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 12px', fontSize: 12, fontWeight: 500, borderRadius: 8, border: `1px solid ${isActive ? 'var(--violet)' : 'var(--border2)'}`, background: isActive ? 'rgba(124,92,252,0.12)' : 'var(--panel2)', color: isActive ? 'var(--violet-light)' : 'var(--text)', cursor: 'pointer', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)', textAlign: 'left', lineHeight: 1.2 }}>
         <span style={{ fontSize: 13 }}>📅</span>
         <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
           <span>{buttonText}</span>
@@ -6732,7 +6793,7 @@ function AICoach({ trades, notes, stats, riskRules, exitData, config, onSaveConf
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 8, width: '100%', maxWidth: 520 }}>
                 {quickPrompts.map((qp, i) => (
-                  <button key={i} onClick={() => send(qp.text)} disabled={loading} style={{ padding: 12, background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: 'var(--text)', transition: 'all 0.12s' }}
+                  <button key={i} onClick={() => send(qp.text)} disabled={loading} style={{ padding: 12, background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: 'var(--text)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--violet)'; e.currentTarget.style.background = 'var(--hover-tint)'; }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--panel2)'; }}>
                     <span style={{ fontSize: 18 }}>{qp.icon}</span>
@@ -6855,8 +6916,8 @@ function Sidebar({ tab, setTab, hasData, mobileOpen, setMobileOpen, collapsed, s
         </svg>
         {!isCollapsed && (
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, lineHeight: 1.1, color: '#e9d5ff', textShadow: '0 1px 0 rgba(0,0,0,0.6), 0 -1px 0 rgba(255,255,255,0.08)', letterSpacing: '0.01em' }}>{BRAND}</div>
-            <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.14em', marginTop: 2, textShadow: '0 1px 0 rgba(0,0,0,0.6)' }}>Trading journal</div>
+            <div style={{ fontWeight: 800, fontSize: 15, lineHeight: 1, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Inter', sans-serif" }}>{BRAND}</div>
+            <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.18em', marginTop: 3 }}>Trading Journal</div>
           </div>
         )}
         {isMobile && <button onClick={() => setMobileOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--sidebar-text)', cursor: 'pointer', fontSize: 18, padding: 4 }}>✕</button>}
@@ -6867,21 +6928,21 @@ function Sidebar({ tab, setTab, hasData, mobileOpen, setMobileOpen, collapsed, s
           return (
             <button key={id} onClick={() => { if (!disabled) { setTab(id); if (isMobile) setMobileOpen(false); } }} disabled={disabled}
               title={isCollapsed ? label : undefined}
-              style={{ display: 'flex', alignItems: 'center', gap: isCollapsed ? 0 : 11, justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '12px 0' : '10px 12px', borderRadius: 8, fontSize: 13, background: active ? 'var(--sidebar-active-bg)' : 'transparent', color: active ? 'var(--sidebar-text-active)' : 'var(--sidebar-text)', border: active ? '1px solid rgba(124,92,252,0.3)' : '1px solid transparent', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1, textAlign: 'left', transition: 'all 0.15s' }}
+              style={{ display: 'flex', alignItems: 'center', gap: isCollapsed ? 0 : 10, justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '11px 0' : '9px 11px', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: active ? 500 : 400, background: active ? 'var(--sidebar-active-bg)' : 'transparent', color: active ? 'var(--sidebar-text-active)' : 'var(--sidebar-text)', border: active ? '1px solid var(--sidebar-active-border)' : '1px solid transparent', boxShadow: active ? 'inset 2px 0 0 var(--violet)' : 'none', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.35 : 1, textAlign: 'left', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), box-shadow 0.12s var(--ease-out)', letterSpacing: '-0.01em' }}
               onMouseEnter={e => { if (!active && !disabled) { e.currentTarget.style.background = 'var(--sidebar-hover-bg)'; e.currentTarget.style.color = 'var(--sidebar-text-hover)'; } }}
               onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--sidebar-text)'; } }}>
-              <span style={{ fontSize: isCollapsed ? 17 : 15, width: 16, textAlign: 'center' }}>{icon}</span>
-              {!isCollapsed && <span>{label}</span>}
+              <span style={{ fontSize: isCollapsed ? 16 : 14, width: 16, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
+              {!isCollapsed && <span style={{ flex: 1 }}>{label}</span>}
             </button>
           );
         })}
       </nav>
-      {!isCollapsed && <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', padding: '12px 8px 0', borderTop: '1px solid var(--sidebar-divider)' }}>Data saved in your browser</div>}
+      {!isCollapsed && <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', padding: '10px 12px 0', borderTop: '1px solid var(--sidebar-divider)', letterSpacing: '0.02em' }}>RAMANFX · v2</div>}
       {/* Collapse/expand toggle button — bottom of sidebar on PC only.
           Symbol points the direction the sidebar will move when clicked. */}
       {!isMobile && (
         <button onClick={() => setCollapsed(!collapsed)} title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          style={{ marginTop: 8, padding: isCollapsed ? '10px 0' : '8px 12px', background: 'transparent', border: 'none', color: 'var(--sidebar-text)', cursor: 'pointer', fontSize: 14, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: 11, transition: 'all 0.15s' }}
+          style={{ marginTop: 8, padding: isCollapsed ? '10px 0' : '8px 12px', background: 'transparent', border: 'none', color: 'var(--sidebar-text)', cursor: 'pointer', fontSize: 14, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: 11, transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}
           onMouseEnter={e => { e.currentTarget.style.background = 'var(--sidebar-hover-bg)'; e.currentTarget.style.color = 'var(--sidebar-text-hover)'; }}
           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--sidebar-text)'; }}>
           <span style={{ fontSize: 16, width: 16, textAlign: 'center' }}>{collapsed ? '»' : '«'}</span>
@@ -7044,7 +7105,7 @@ function ExitAnalysisPage({ trades, exitData, onOpenTrade }) {
         </div>
         <ResponsiveContainer width="100%" height={isMobile ? 260 : 320}>
           <ScatterChart margin={{ top: 10, right: 10, bottom: 10, left: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+            <CartesianGrid strokeDasharray="1 4" stroke="var(--chart-grid)" />
             <XAxis type="number" dataKey="mfeDol" name="MFE" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} tickFormatter={(v) => v >= 1000 ? `$${(v/1000).toFixed(1)}k` : `$${v.toFixed(0)}`} />
             <YAxis type="number" dataKey="profitDol" name="Profit" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={(v) => v >= 1000 || v <= -1000 ? `$${(v/1000).toFixed(1)}k` : `$${v.toFixed(0)}`} />
             <ReferenceLine y={0} stroke="var(--chart-baseline)" strokeDasharray="2 2" />
@@ -7818,7 +7879,7 @@ function App() {
   }, [accounts, activeAccount]);
   const accountList = useMemo(() => Object.values(accounts), [accounts]);
   const titleMap = { dashboard: 'Dashboard', dayweek: 'Day / Week View', trade: 'Trade View', positions: 'Positions & Orders', rules: 'Risk Rules', playbook: 'Playbook', notebook: 'Notebook', exit: 'Exit Analysis', coach: 'AI Coach', reports: 'Reports', strategies: 'Strategies', calendar: 'Calendar', progress: 'Progress Tracker' };
-  const accTab = (active, label, onClick) => <button onClick={onClick} style={{ padding: '5px 11px', fontSize: 12, borderRadius: 7, border: 'none', cursor: 'pointer', background: active ? 'var(--panel2)' : 'transparent', color: active ? 'var(--text)' : 'var(--text3)', transition: 'all 0.15s' }}>{label}</button>;
+  const accTab = (active, label, onClick) => <button onClick={onClick} style={{ padding: '4px 11px', fontSize: 12, fontWeight: active ? 500 : 400, borderRadius: 'var(--r-sm)', border: active ? '1px solid var(--border2)' : '1px solid transparent', cursor: 'pointer', background: active ? 'var(--panel2)' : 'transparent', color: active ? 'var(--text)' : 'var(--text3)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out)', letterSpacing: '-0.01em' }}>{label}</button>;
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const isMobile = useIsMobile();
 
@@ -7827,8 +7888,8 @@ function App() {
     <div style={{ minHeight: '100vh' }}>
       <Sidebar tab={tab} setTab={setTab} hasData={trades.length > 0} mobileOpen={mobileNavOpen} setMobileOpen={setMobileNavOpen} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
       <div style={{ marginLeft: isMobile ? 0 : (sidebarCollapsed ? 60 : 220), transition: 'margin-left 0.2s ease' }}>
-        <header data-rfx-header style={{ position: 'sticky', top: 0, zIndex: 20, background: 'var(--header-bg)', backdropFilter: 'blur(14px)', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ padding: isMobile ? '10px 14px' : '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <header data-rfx-header style={{ position: 'sticky', top: 0, zIndex: 40, background: 'var(--header-bg)', backdropFilter: 'blur(20px) saturate(1.3)', WebkitBackdropFilter: 'blur(20px) saturate(1.3)' }}>
+          <div style={{ padding: isMobile ? '9px 14px' : '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
               {isMobile && (
                 <button onClick={() => setMobileNavOpen(true)} style={{ background: 'transparent', border: 'none', color: 'var(--text)', cursor: 'pointer', padding: 4, fontSize: 22, lineHeight: 1, display: 'flex', alignItems: 'center' }}>☰</button>
@@ -7838,7 +7899,7 @@ function App() {
                 <button onClick={() => setSidebarCollapsed(c => !c)} title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} style={{ background: 'transparent', border: 'none', color: 'var(--text2)', cursor: 'pointer', padding: 4, fontSize: 20, lineHeight: 1, display: 'flex', alignItems: 'center', marginRight: 4 }}
                   onMouseEnter={e => e.currentTarget.style.color = 'var(--text)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text2)'}>☰</button>
               )}
-              <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 600, whiteSpace: 'nowrap' }}>{titleMap[tab]}</div>
+              <div style={{ fontSize: isMobile ? 15 : 17, fontWeight: 600, whiteSpace: 'nowrap', letterSpacing: '-0.025em', color: 'var(--text)' }}>{titleMap[tab]}</div>
               {!isMobile && accountList.length > 0 && (
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   {accTab(activeAccount === 'all', 'All accounts', () => switchAccount('all'))}
@@ -7865,7 +7926,7 @@ function App() {
               const isLoad = globalToast.type === 'loading';
               return (
                 <div className="fade-in" onClick={() => setGlobalToast(null)} style={{
-                  marginTop: 6, padding: '9px 14px', borderRadius: 8, fontSize: 12, lineHeight: 1.5, cursor: 'pointer',
+                  marginTop: 6, padding: '8px 14px', borderRadius: 'var(--r-md)', fontSize: 11, lineHeight: 1.5, cursor: 'pointer', fontWeight: 500,
                   background: isErr ? 'rgba(239,83,80,0.12)' : isLoad ? 'var(--panel)' : 'rgba(38,166,154,0.12)',
                   border: `1px solid ${isErr ? 'rgba(239,83,80,0.4)' : isLoad ? 'var(--border)' : 'rgba(38,166,154,0.4)'}`,
                   color: isErr ? '#ef5350' : isLoad ? 'var(--text2)' : '#2dd4bf',
@@ -7877,12 +7938,12 @@ function App() {
             })()}
               <Hint text={privacyMode ? 'Show dollar amounts' : 'Hide dollar amounts (privacy mode)'}>
                 <button style={{ ...btnStyle('ghost'), padding: 7, fontSize: 14, color: privacyMode ? 'var(--violet-light)' : undefined }} onClick={togglePrivacy} aria-label="Toggle privacy mode">
-                  {privacyMode ? '👁‍🗨' : '👁'}
+                  {privacyMode ? '◉' : '◎'}
                 </button>
               </Hint>
               <Hint text={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}>
                 <button style={{ ...btnStyle('ghost'), padding: 7, fontSize: 14 }} onClick={toggleTheme} aria-label="Toggle theme">
-                  {theme === 'light' ? '🌙' : '☀'}
+                  {theme === 'light' ? '◑' : '○'}
                 </button>
               </Hint>
               <button style={{ ...btnStyle('ghost'), padding: 7 }} onClick={() => setShowSettings(!showSettings)}>⚙</button>
@@ -7895,9 +7956,11 @@ function App() {
                     style={{ ...btnStyle('ghost'), padding: '4px 10px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 5,
                       border: cloudSyncStatus === 'ok' ? '1px solid var(--green)' : cloudSyncStatus.startsWith('error') ? '1px solid var(--red)' : '1px solid var(--border)',
                       color: cloudSyncStatus === 'ok' ? 'var(--green-bright)' : cloudSyncStatus.startsWith('error') ? 'var(--red)' : 'var(--text2)',
-                      opacity: cloudSyncStatus === 'syncing' ? 0.6 : 1 }}>
-                    <span style={{ display: 'inline-block', animation: cloudSyncStatus === 'syncing' ? 'spin 1s linear infinite' : 'none' }}>☁</span>
-                    {cloudSyncStatus === 'syncing' ? 'Syncing…' : cloudSyncStatus === 'ok' ? 'Synced ✓' : cloudSyncStatus.startsWith('error') ? 'Sync failed' : 'Sync'}
+                      opacity: cloudSyncStatus === 'syncing' ? 0.7 : 1,
+                      background: cloudSyncStatus === 'ok' ? 'rgba(38,166,154,0.08)' : 'var(--panel2)',
+                      fontWeight: 500 }}>
+                    <span style={{ display: 'inline-block', animation: cloudSyncStatus === 'syncing' ? 'spin 0.7s linear infinite' : 'none', fontSize: 11 }}>↻</span>
+                    {cloudSyncStatus === 'syncing' ? 'Syncing' : cloudSyncStatus === 'ok' ? 'Synced' : cloudSyncStatus.startsWith('error') ? 'Failed' : 'Sync'}
                   </button>
                   <button onClick={() => setShowCloudModal(true)} title={cloudUser.email}
                     style={{ ...btnStyle('ghost'), padding: '4px 7px', fontSize: 11, color: 'var(--text3)', border: '1px solid var(--border)' }}>
@@ -7928,7 +7991,7 @@ function App() {
               </div>
               {/* Timezone section */}
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, marginBottom: 8 }}>Exit-quality data (MAE / MFE)</div>
+                <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', fontWeight: 700, marginBottom: 8 }}>Exit-quality data (MAE / MFE)</div>
                 <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 8, maxWidth: 720, lineHeight: 1.55 }}>
                   Exit-quality data (MAE = worst drawdown, MFE = best run-up, forward returns at T+30m/1h/4h/12h/1d) comes from a free MQL5 script: <a href="https://www.mql5.com/en/code/72326" target="_blank" rel="noreferrer" style={{ color: 'var(--violet-light)' }}>code #72326</a>. Run it in MT5, then upload the generated CSV here. We'll match rows to your existing trades by Position ID and unlock the Exit Analysis page + per-trade insights.
                 </div>
@@ -7944,7 +8007,7 @@ function App() {
               </div>
               {/* Timezone section */}
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, marginBottom: 8 }}>Trade times</div>
+                <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', fontWeight: 700, marginBottom: 8 }}>Trade times</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                   <label style={{ fontSize: 13, color: 'var(--text2)' }}>MT5 broker timezone (UTC offset):</label>
                   <input type="number" step="1" min="-12" max="14" value={brokerOffsetInput} onChange={e => setBrokerOffsetInput(e.target.value)}
@@ -7959,7 +8022,7 @@ function App() {
               {/* Accounts section */}
               {accountList.length > 0 && (
                 <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, marginBottom: 10 }}>Accounts ({accountList.length})</div>
+                  <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', fontWeight: 700, marginBottom: 10 }}>Accounts ({accountList.length})</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                     {accountList.map((a, idx) => {
                       const tCount = trades.filter(t => t.account === a.id).length;
@@ -7987,7 +8050,7 @@ function App() {
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
                   <div>
-                    <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>Sync across devices</div>
+                    <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', fontWeight: 700 }}>Sync across devices</div>
                     <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>This device: <span style={{ color: 'var(--text2)' }}>{deviceName}</span> <span style={{ color: 'var(--border2)' }}>· {getDeviceId()}</span></div>
                   </div>
                   <input value={deviceName} onChange={e => updateDeviceName(e.target.value)} placeholder="Device name" style={{ ...inputStyle, width: 160 }} />
@@ -8029,13 +8092,13 @@ function App() {
 
               {/* Data summary — Sync replaces the old Export/Import flow (same JSON payload) */}
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, marginBottom: 8 }}>Data</div>
+                <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', fontWeight: 700, marginBottom: 8 }}>Data</div>
                 <div style={{ fontSize: 12, color: 'var(--text3)' }}>{trades.length} trades · {Object.keys(notes).length} notes · {strategies.length} strategies · {notebook.length} notebook entries · {Object.values(attachments).reduce((a, arr) => a + (arr?.length || 0), 0)} images</div>
                 <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6, fontStyle: 'italic' }}>To back up or restore your data, use <strong style={{ color: 'var(--text2)' }}>Sync now</strong> / <strong style={{ color: 'var(--text2)' }}>Sync from file</strong> above. Same JSON format.</div>
               </div>
               {/* Danger zone */}
               <div>
-                <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, marginBottom: 8 }}>Danger zone</div>
+                <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', fontWeight: 700, marginBottom: 8 }}>Danger zone</div>
                 <button style={btnStyle('danger')} onClick={resetEverything}>🗑 Reset everything</button>
               </div>
             </Card>
@@ -8088,8 +8151,8 @@ function App() {
               <div className="fade-in" style={{ background: 'var(--panel)', border: '1px solid var(--green)', color: 'var(--green-bright)', borderRadius: 8, padding: '8px 14px', fontSize: 12, fontWeight: 600, boxShadow: '0 6px 20px rgba(0,0,0,0.5)' }}>{syncStatus}</div>
             )}
             <button onClick={syncExport} title={isDirty ? 'You have unsynced changes — tap to sync' : 'Sync now'}
-              style={{ position: 'relative', padding: '10px 16px', borderRadius: 999, border: 'none', cursor: 'pointer', background: isDirty ? '#fbbf24' : 'var(--panel2)', color: isDirty ? '#000' : 'var(--text)', fontWeight: 600, fontSize: 12, boxShadow: '0 6px 18px rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 14 }}>📤</span>{isDirty ? 'Sync (unsaved)' : 'Sync'}
+              style={{ position: 'relative', padding: '9px 16px', borderRadius: 'var(--r-full)', border: isDirty ? 'none' : '1px solid var(--border2)', cursor: 'pointer', background: isDirty ? '#f59e0b' : 'rgba(16,16,19,0.95)', color: isDirty ? '#000' : 'var(--text2)', fontWeight: 600, fontSize: 12, boxShadow: isDirty ? '0 4px 20px rgba(245,158,11,0.35)' : '0 4px 16px rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', gap: 6, backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', transition: 'background 0.15s ease, box-shadow 0.15s ease, color 0.15s ease' }}>
+              <span style={{ fontSize: 12 }}>↻</span>{isDirty ? 'Sync (unsaved)' : 'Sync'}
             </button>
           </div>
         );
@@ -8097,8 +8160,8 @@ function App() {
       {/* Floating gate button — always reachable */}
       {trades.length > 0 && !gateOpen && (
         <button onClick={() => setGateOpen(true)} title="Pre-trade gate" className="rfx-float-bottom"
-          style={{ '--rfx-float-offset': isMobile ? '18px' : '26px', position: 'fixed', right: isMobile ? 18 : 26, zIndex: 40, padding: '12px 18px', borderRadius: 999, border: 'none', cursor: 'pointer', background: riskStatus.locked ? 'var(--red)' : 'var(--violet)', color: '#fff', fontWeight: 700, fontSize: 13, boxShadow: '0 8px 22px rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 16 }}>{riskStatus.locked ? '🛑' : '🛡'}</span>{riskStatus.locked ? 'LOCKED' : 'Pre-trade gate'}
+          style={{ '--rfx-float-offset': isMobile ? '18px' : '26px', position: 'fixed', right: isMobile ? 18 : 26, zIndex: 40, padding: '10px 18px', borderRadius: 'var(--r-full)', border: `1px solid ${riskStatus.locked ? 'rgba(239,83,80,0.4)' : 'rgba(124,92,252,0.4)'}`, cursor: 'pointer', background: riskStatus.locked ? 'rgba(239,83,80,0.9)' : 'rgba(124,92,252,0.9)', color: '#fff', fontWeight: 600, fontSize: 13, letterSpacing: '-0.01em', boxShadow: riskStatus.locked ? '0 4px 20px rgba(239,83,80,0.4)' : '0 4px 20px rgba(124,92,252,0.35)', display: 'flex', alignItems: 'center', gap: 7, backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', transition: 'background 0.15s ease, box-shadow 0.15s ease' }}>
+          <span style={{ fontSize: 14, fontStyle: 'normal' }}>{riskStatus.locked ? '✕' : '◈'}</span>{riskStatus.locked ? 'Locked' : 'Pre-trade gate'}
         </button>
       )}
     </div>
@@ -8106,7 +8169,7 @@ function App() {
     {/* ── Cloud Login Modal ── */}
     {showCloudModal && (
       <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-        <div style={{ background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 14, padding: 28, maxWidth: 400, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
+        <div style={{ background: 'var(--panel)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-xl)', padding: 28, maxWidth: 400, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
             <div style={{ fontWeight: 700, fontSize: 15 }}>☁ Cloud Sync</div>
             <button style={{ background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', fontSize: 18 }} onClick={() => { setShowCloudModal(false); setCloudMsg(''); }}>✕</button>
