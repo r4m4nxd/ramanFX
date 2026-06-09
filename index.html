@@ -13,8 +13,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
@@ -64,9 +63,9 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     --border: #1e1e26;
     --border2: #2a2a34;
     /* Text — Apple-calibrated contrast */
-    --text: #f2f2f7;
-    --text2: #8e8e9e;
-    --text3: #5a5a6e;
+    --text: #f5f5fa;
+    --text2: #9a9ab0;
+    --text3: #6d6d84;
     /* Brand & semantic */
     --green: #30d158;
     --green-bright: #34d96a;
@@ -204,9 +203,9 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     --pill-violet-border: #c5beff;
     /* Sidebar stays dark — these are intentionally not overridden */
   }
-  html { font-size: 14px; scroll-behavior: smooth; text-rendering: optimizeLegibility; }
+  html { font-size: 14.5px; scroll-behavior: smooth; text-rendering: optimizeLegibility; }
   body {
-    font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
     background: var(--bg);
     color: var(--text);
     -webkit-font-smoothing: antialiased;
@@ -219,9 +218,9 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: var(--r-full); }
   ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
-  /* ── JetBrains Mono for all numeric displays ── */
+  /* ── Geist Mono for all numeric displays ── */
   .tabnum {
-    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+    font-family: 'Geist Mono', 'Fira Code', 'SF Mono', monospace;
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum' 1;
     letter-spacing: -0.02em;
@@ -334,17 +333,18 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
   }
-  /* ── Heading typography (Satoshi 700) ── */
-  .heading-xl { font-family: 'Satoshi', -apple-system, sans-serif; font-weight: 700; letter-spacing: -0.035em; line-height: 1.1; }
-  .heading-lg { font-family: 'Satoshi', -apple-system, sans-serif; font-weight: 700; letter-spacing: -0.03em; line-height: 1.15; }
-  .heading-md { font-family: 'Satoshi', -apple-system, sans-serif; font-weight: 600; letter-spacing: -0.025em; line-height: 1.2; }
-  .heading-sm { font-family: 'Satoshi', -apple-system, sans-serif; font-weight: 500; letter-spacing: -0.02em; line-height: 1.3; }
-  /* ── Tabular nums with JetBrains Mono ── */
+  /* ── Heading typography (DM Sans 700) ── */
+  .heading-xl { font-family: 'DM Sans', sans-serif; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; }
+  .heading-lg { font-family: 'DM Sans', sans-serif; font-weight: 700; letter-spacing: -0.025em; line-height: 1.15; }
+  .heading-md { font-family: 'DM Sans', sans-serif; font-weight: 600; letter-spacing: -0.025em; line-height: 1.2; }
+  .heading-sm { font-family: 'DM Sans', sans-serif; font-weight: 500; letter-spacing: -0.02em; line-height: 1.3; }
+  /* ── Tabular nums with Geist Mono ── */
   .tabnum {
-    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+    font-family: 'Geist Mono', 'SF Mono', ui-monospace, monospace;
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum' 1;
-    letter-spacing: -0.025em;
+    letter-spacing: -0.02em;
+    -webkit-font-smoothing: antialiased;
   }
   /* ── Label / eyebrow ── */
   .label-xs { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text3); }
@@ -2354,11 +2354,11 @@ function MetricGauge({ label, value, sub, color, donutValue, donutCenter, accent
       style={{ padding: '14px 16px', borderLeft: accent ? `2px solid ${accent}` : '2px solid transparent', transition: 'transform 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out)' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text3)', fontWeight: 700, marginBottom: 10, fontFamily: "'Satoshi', sans-serif" }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, marginBottom: 10, fontFamily: "'DM Sans', sans-serif" }}>
             {label}{hint && <Hint text={hint}><span style={{ width: 13, height: 13, borderRadius: '50%', border: '1px solid var(--text3)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, cursor: 'help' }}>i</span></Hint>}
           </div>
-          <div className="tabnum" style={{ fontSize: 26, fontWeight: 600, color: accent || 'var(--text)', letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
-          {sub && <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>{sub}</div>}
+          <div className="tabnum" style={{ fontSize: 28, fontWeight: 700, color: accent || 'var(--text)', letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
+          {sub && <div style={{ fontSize: 11.5, color: 'var(--text2)', marginTop: 5 }}>{sub}</div>}
         </div>
         {donutValue != null && (
           <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -2376,9 +2376,9 @@ function WinLossBar({ avgWin, avgLoss, label }) {
   const winPct = total > 0 ? (avgWin / total) * 100 : 50;
   return (
     <Card style={{ padding: 16 }}>
-      <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text3)', fontWeight: 600, marginBottom: 8 }}>{label}</div>
+      <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)', fontWeight: 600, marginBottom: 8 }}>{label}</div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
-        <div className="tabnum" style={{ fontSize: 26, fontWeight: 600, letterSpacing: '-0.02em' }}>{(avgWin / Math.max(1, Math.abs(avgLoss))).toFixed(2)}</div>
+        <div className="tabnum" style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em' }}>{(avgWin / Math.max(1, Math.abs(avgLoss))).toFixed(2)}</div>
         <div style={{ fontSize: 11, color: 'var(--text3)' }}>R:R</div>
       </div>
       <div style={{ display: 'flex', height: 8, borderRadius: 99, overflow: 'hidden' }}>
@@ -2502,7 +2502,7 @@ function CalendarView({ stats, onDayClick }) {
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
           <div key={d} style={{ fontSize: 10, color: 'var(--text3)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, height: 16, lineHeight: '16px' }}>{d}</div>
         ))}
-        {!compact && <div style={{ fontSize: 9, color: 'var(--text3)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, height: 16, lineHeight: '16px' }}>Weekly</div>}
+        {!compact && <div style={{ fontSize: 10, color: 'var(--text3)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, height: 16, lineHeight: '16px' }}>Weekly</div>}
 
         {/* Each calendar row = 7 day cells (+ weekly cell on wide) */}
         {weeks.map((week, wi) => (
@@ -2535,12 +2535,12 @@ function CalendarView({ stats, onDayClick }) {
             {/* Weekly summary box for this row — only on wide layouts */}
             {!compact && (() => { const w = monthStats.weeklyAgg[wi]; return (
               <div style={{ borderRadius: 9, border: '1px solid var(--border)', background: 'var(--panel2)', padding: '6px 8px', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 62, minWidth: 0, overflow: 'hidden' }}>
-                <div style={{ fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Wk {w.week}</div>
+                <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Wk {w.week}</div>
                 {w.trades > 0 ? (
                   <Fragment>
                     {/* Use full money format (e.g. -$467.81) instead of compact (-$467) so users see exact week totals */}
-                    <div className="tabnum" style={{ fontSize: 10, fontWeight: 700, color: w.pnl >= 0 ? 'var(--green-bright)' : 'var(--red)', whiteSpace: 'nowrap', textAlign: 'center', lineHeight: 1.2 }}>{fmtCompact(w.pnl)}</div>
-                    <div style={{ fontSize: 9, color: 'var(--text3)' }}>{w.days}d · {w.trades}t</div>
+                    <div className="tabnum" style={{ fontSize: 11, fontWeight: 700, color: w.pnl >= 0 ? 'var(--green-bright)' : 'var(--red)', whiteSpace: 'nowrap', textAlign: 'center', lineHeight: 1.2 }}>{fmtCompact(w.pnl)}</div>
+                    <div style={{ fontSize: 10, color: 'var(--text3)' }}>{w.days}d · {w.trades}t</div>
                   </Fragment>
                 ) : <div style={{ fontSize: 11, color: 'var(--border2)' }}>—</div>}
               </div>
@@ -2578,10 +2578,10 @@ function ProgressHeatmap({ stats, months = 6, cell = 12 }) {
     <div ref={scrollRef} style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <div style={{ display: 'inline-block' }}>
         <div style={{ display: 'flex', gap, marginBottom: 4, paddingLeft: 26 }}>
-          {weeks.map((_, i) => { const l = monthLabels.find(x => x.index === i); return <div key={i} style={{ width: cell, fontSize: 9, color: 'var(--text3)' }}>{l?.label || ''}</div>; })}
+          {weeks.map((_, i) => { const l = monthLabels.find(x => x.index === i); return <div key={i} style={{ width: cell, fontSize: 10, color: 'var(--text3)' }}>{l?.label || ''}</div>; })}
         </div>
         <div style={{ display: 'flex', gap }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap, paddingRight: 4, fontSize: 9, color: 'var(--text3)', justifyContent: 'space-around' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap, paddingRight: 4, fontSize: 10, color: 'var(--text3)', justifyContent: 'space-around' }}>
             {['Sun', '', 'Tue', '', 'Thu', '', 'Sat'].map((d, i) => <div key={i} style={{ height: cell, lineHeight: `${cell}px` }}>{d}</div>)}
           </div>
           {weeks.map((week, wi) => (
@@ -2620,7 +2620,7 @@ function HeroScoreCard({ stats }) {
   const kpi = (label, value, sub, color) => (
     <div style={{ padding: '12px 14px', background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 10, minWidth: 0 }}>
       <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', fontWeight: 600, marginBottom: 6 }}>{label}</div>
-      <div className="tabnum" style={{ fontSize: 21, fontWeight: 700, color: color || 'var(--text)', lineHeight: 1, marginBottom: sub ? 4 : 0, letterSpacing: '-0.02em', fontFamily: "'JetBrains Mono', 'SF Mono', monospace" }}>{value}</div>
+      <div className="tabnum" style={{ fontSize: 24, fontWeight: 700, color: color || 'var(--text)', lineHeight: 1, marginBottom: sub ? 5 : 0, letterSpacing: '-0.025em', fontFamily: "'Geist Mono', 'SF Mono', monospace" }}>{value}</div>
       {sub && <div style={{ fontSize: 10.5, color: 'var(--text3)' }}>{sub}</div>}
     </div>
   );
@@ -2639,12 +2639,12 @@ function HeroScoreCard({ stats }) {
         {/* Big score */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flex: '0 0 auto' }}>
           <div>
-            <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--violet-light)', fontWeight: 700, marginBottom: 8, opacity: 0.7, fontFamily: "'Satoshi', sans-serif" }}>Performance Score</div>
+            <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--violet-light)', fontWeight: 700, marginBottom: 8, opacity: 0.7, fontFamily: "'DM Sans', sans-serif" }}>Performance Score</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-              <span className="tabnum" style={{ fontSize: isMobile ? 56 : 68, fontWeight: 800, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', textShadow: `0 0 40px ${scoreColor}40`, fontFamily: "'JetBrains Mono', 'SF Mono', monospace" }}>{Math.round(animScore)}</span>
-              <span style={{ fontSize: 18, color: 'var(--text3)', fontWeight: 500 }}>/ 100</span>
+              <span className="tabnum" style={{ fontSize: isMobile ? 56 : 68, fontWeight: 800, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', textShadow: `0 0 40px ${scoreColor}40`, fontFamily: "'Geist Mono', 'SF Mono', monospace" }}>{Math.round(animScore)}</span>
+              <span style={{ fontSize: 20, color: 'var(--text2)', fontWeight: 500 }}>/ 100</span>
             </div>
-            <div style={{ fontSize: 10, color: scoreColor, fontWeight: 700, marginTop: 8, textTransform: 'uppercase', letterSpacing: '0.14em', fontFamily: "'Satoshi', sans-serif", display: 'inline-block', padding: '2px 8px', borderRadius: 'var(--r-full)', background: `${scoreColor}18`, border: `1px solid ${scoreColor}30` }}>{scoreLabel}</div>
+            <div style={{ fontSize: 10, color: scoreColor, fontWeight: 700, marginTop: 8, textTransform: 'uppercase', letterSpacing: '0.14em', fontFamily: "'DM Sans', sans-serif", display: 'inline-block', padding: '2px 8px', borderRadius: 'var(--r-full)', background: `${scoreColor}18`, border: `1px solid ${scoreColor}30` }}>{scoreLabel}</div>
           </div>
         </div>
         {/* Vertical divider on desktop */}
@@ -2712,7 +2712,7 @@ function ScoreCard({ stats }) {
         {/* Score readout column — Tradezella's "Your Zella Score 82.1" with rainbow gauge below */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingRight: isMobile ? 0 : 8 }}>
           <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text3)', fontWeight: 600 }}>Your score</div>
-          <div className="tabnum" style={{ fontSize: 52, fontWeight: 700, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', fontFamily: "'JetBrains Mono', 'SF Mono', monospace" }}>{animScore.toFixed(1)}</div>
+          <div className="tabnum" style={{ fontSize: 52, fontWeight: 700, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', fontFamily: "'Geist Mono', 'SF Mono', monospace" }}>{animScore.toFixed(1)}</div>
           {/* Rainbow gauge bar */}
           <div style={{ marginTop: 4 }}>
             <div style={{ position: 'relative', height: 8, borderRadius: 99, overflow: 'hidden', background: 'linear-gradient(90deg, #ef5350 0%, #fbbf24 50%, #26a69a 100%)' }} />
@@ -2998,7 +2998,7 @@ function Dashboard({ trades, onDayClick, checklist, checklistDays, onChecklistTo
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12 }}>
         <MetricGauge label="Net P&L" hint="Total net profit/loss including commission & swap" value={fmtMoney(stats.totalNet, true)} sub={`${stats.total} trades`} accent={stats.totalNet >= 0 ? 'var(--green-bright)' : 'var(--red)'} onClick={() => setTab('reports')} />
         <MetricGauge label="Trade win %" value={`${stats.winRate.toFixed(2)}%`} donutValue={stats.winRate} color="#30d158" onClick={() => setTab('trade')}
-          donutCenter={<Fragment><div className="tabnum" style={{ fontSize: 15, fontWeight: 700 }}>{stats.wins}</div><div style={{ fontSize: 8, color: 'var(--text3)' }}>/{stats.losses}</div></Fragment>} />
+          donutCenter={<Fragment><div className="tabnum" style={{ fontSize: 15, fontWeight: 700 }}>{stats.wins}</div><div style={{ fontSize: 9.5, color: 'var(--text3)' }}>/{stats.losses}</div></Fragment>} />
         <MetricGauge label="Profit factor" hint="Gross profit ÷ gross loss" value={stats.profitFactor === Infinity ? '∞' : stats.profitFactor.toFixed(2)} donutValue={Math.min(100, (stats.profitFactor === Infinity ? 100 : stats.profitFactor) * 40)} color={stats.profitFactor >= 1 ? '#30d158' : '#ff453a'} />
         <MetricGauge label="Day win %" value={`${stats.dayWinRate.toFixed(2)}%`} sub={`${stats.profDays}W / ${stats.losingDays}L days`} donutValue={stats.dayWinRate} color="#30d158" />
         <WinLossBar avgWin={stats.avgWin} avgLoss={stats.avgLoss} label="Avg win/loss trade" />
@@ -3073,7 +3073,7 @@ function Dashboard({ trades, onDayClick, checklist, checklistDays, onChecklistTo
                       <div style={{ position: 'absolute', top: 0, bottom: 0, width: 1, background: 'var(--border2)', left: '50%' }} />
                       <div style={{ position: 'absolute', top: 0, bottom: 0, background: pos ? 'rgba(38,166,154,0.7)' : 'rgba(239,83,80,0.7)', ...(pos ? { left: '50%', width: `${pct / 2}%` } : { right: '50%', width: `${pct / 2}%` }), transition: 'width 0.5s' }} />
                     </div>
-                    <div className="tabnum" style={{ width: 64, textAlign: 'right', fontSize: 12, fontWeight: 600, color: pos ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(s.net)}</div>
+                    <div className="tabnum" style={{ width: 64, textAlign: 'right', fontSize: 13, fontWeight: 700, color: pos ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(s.net)}</div>
                   </div>
                 );
               })}
@@ -3174,7 +3174,7 @@ function DayCard({ day, allTrades, exitData, expanded, onExpand, note, onSaveNot
           <div style={{ marginTop: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
               <span style={{ color: 'var(--violet-light)', fontSize: 13 }}><svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="currentColor"/></svg></span>
-              <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text3)', fontWeight: 700, fontFamily: "'Satoshi', sans-serif" }}>RamanFX daily insights</div>
+              <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>RamanFX daily insights</div>
             </div>
             {(() => {
               const dayItems = day.items;
@@ -3290,7 +3290,7 @@ function WeekView({ stats, allTrades, exitData }) {
                               </div>
                               {day ? <div style={{ fontSize: 11, color: 'var(--text3)' }}>{day.trades} trade{day.trades !== 1 ? 's' : ''}</div> : <div style={{ fontSize: 11, color: 'var(--border2)' }}>—</div>}
                             </div>
-                            {day && <div className="tabnum" style={{ fontSize: 14, fontWeight: 600, color: isP ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(day.pnl, true)}</div>}
+                            {day && <div className="tabnum" style={{ fontSize: 15, fontWeight: 700, color: isP ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(day.pnl, true)}</div>}
                           </div>
                         );
                       })}
@@ -3302,7 +3302,7 @@ function WeekView({ stats, allTrades, exitData }) {
                         return (
                           <div key={dn} style={{ borderRadius: 10, border: `1px solid ${day ? (isP ? 'rgba(38,166,154,0.3)' : 'rgba(239,83,80,0.3)') : 'var(--border)'}`, background: day ? (isP ? 'rgba(38,166,154,0.08)' : 'rgba(239,83,80,0.08)') : 'var(--panel2)', padding: 12, textAlign: 'center', minHeight: 78, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                             <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text3)', marginBottom: 4 }}>{dayLabels[i]} {dd.getDate()}</div>
-                            {day ? <Fragment><div className="tabnum" style={{ fontSize: 14, fontWeight: 600, color: isP ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(day.pnl, true)}</div><div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 3 }}>{day.trades} trades</div></Fragment> : <div style={{ fontSize: 10, color: 'var(--border2)' }}>—</div>}
+                            {day ? <Fragment><div className="tabnum" style={{ fontSize: 15, fontWeight: 700, color: isP ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(day.pnl, true)}</div><div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 3 }}>{day.trades} trades</div></Fragment> : <div style={{ fontSize: 10, color: 'var(--border2)' }}>—</div>}
                           </div>
                         );
                       })}
@@ -3314,7 +3314,7 @@ function WeekView({ stats, allTrades, exitData }) {
                   <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
                       <span style={{ color: 'var(--violet-light)', fontSize: 13 }}><svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="currentColor"/></svg></span>
-                      <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text3)', fontWeight: 700, fontFamily: "'Satoshi', sans-serif" }}>RamanFX weekly insights</div>
+                      <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>RamanFX weekly insights</div>
                     </div>
                     <InsightsPanel windowTrades={w.weekItems} historyTrades={history} scope="week" exitData={exitData} />
                   </div>
@@ -3841,7 +3841,7 @@ function TradeView({ trades, notes, strategies, exitData, onSaveNote, onOpenTrad
                       <Pill color={t.type === 'buy' ? 'blue' : 'amber'}>{t.type}</Pill>
                       <Pill color={pos ? 'green' : t.net === 0 ? 'zinc' : 'red'}>{pos ? 'WIN' : t.net === 0 ? 'SCR' : 'LOSS'}</Pill>
                     </div>
-                    <div className="tabnum" style={{ fontWeight: 700, fontSize: 15, color: pos ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(t.net, true)}</div>
+                    <div className="tabnum" style={{ fontWeight: 700, fontSize: 16, fontWeight: 600, color: pos ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(t.net, true)}</div>
                   </div>
                   {bodyCols.length > 0 && (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', columnGap: 10, rowGap: 4, fontSize: 11, color: 'var(--text3)' }}>
@@ -4005,7 +4005,7 @@ function InsightsPanel({ windowTrades, historyTrades, scope, title, exitData }) 
   };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {title && <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text3)', fontWeight: 700, fontFamily: "'Satoshi', sans-serif" }}>{title}</div>}
+      {title && <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>{title}</div>}
       {insights.map((ins, idx) => {
         const s = levelStyle[ins.level] || levelStyle.caution;
         return (
@@ -4017,7 +4017,7 @@ function InsightsPanel({ windowTrades, historyTrades, scope, title, exitData }) 
                   <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)' }}>{ins.title}</span>
                   <span style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.06em', color: s.accent, fontWeight: 700, padding: '1px 6px', border: `1px solid ${s.border}`, borderRadius: 4 }}>{s.label}</span>
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.55, marginTop: 4 }}>{ins.body}</div>
+                <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, marginTop: 4 }}>{ins.body}</div>
               </div>
             </div>
           </div>
@@ -4366,7 +4366,7 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)' }}>Net P&L</div>
-            <div className="tabnum" style={{ fontSize: 22, fontWeight: 700, color: profit ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(net, true)}</div>
+            <div className="tabnum" style={{ fontSize: 24, fontWeight: 700, color: profit ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(net, true)}</div>
           </div>
         </div>
       </div>
@@ -4398,7 +4398,7 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
               <div style={{ position: 'absolute', top: 0, bottom: 0, width: 1, background: 'var(--border2)', left: '50%' }} />
               <div style={{ position: 'absolute', top: 0, bottom: 0, height: '100%', borderRadius: 99, background: profit ? 'var(--green)' : 'var(--red)', ...(profit ? { left: '50%', width: `${rfxScale - 50}%` } : { right: '50%', width: `${50 - rfxScale}%` }) }} />
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 9, color: 'var(--text3)' }}><span>Max Loss</span><span>Max Profit</span></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 10, color: 'var(--text3)' }}><span>Max Loss</span><span>Max Profit</span></div>
           </div>
 
           {/* Exit-quality insights — auto-generated from MAE/MFE/forward-time data if present */}
@@ -4558,7 +4558,7 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                 {suspectData && (
                   <div style={{ padding: '10px 12px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.4)', borderRadius: 8, marginBottom: 12 }}>
                     <div style={{ fontWeight: 600, fontSize: 12.5, color: '#fbbf24', marginBottom: 3 }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Exit data looks inconsistent</div>
-                    <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.55 }}>
+                    <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6 }}>
                       The CSV reports a peak (MFE) of {fmtD(mfeDol)} but you closed at {fmtD(tradeNet)} — that's impossible (your peak can't be below your exit). This usually means the trade closed in partial fills and the CSV captured only one fill while the journal recorded the whole position. The MAE/MFE numbers below are <strong>unreliable for this trade</strong>; treat them as approximations only.
                     </div>
                   </div>
@@ -4572,21 +4572,21 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                       <div style={{ padding: '8px 10px', background: 'rgba(38,166,154,0.06)', border: '1px solid rgba(38,166,154,0.25)', borderRadius: 7 }}>
                         <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>MFE — best point</div>
                         <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: 'var(--green-bright)' }}>{fmtD(mfeDol)}</div>
-                        <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>{mfe?.toLocaleString()}pt</div>
+                        <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>{mfe?.toLocaleString()}pt</div>
                       </div>
                     )}
                     {maeDol != null && (
                       <div style={{ padding: '8px 10px', background: 'rgba(239,83,80,0.06)', border: '1px solid rgba(239,83,80,0.25)', borderRadius: 7 }}>
                         <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>MAE — worst point</div>
                         <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: 'var(--red)' }}>{fmtD(maeDol)}</div>
-                        <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>{mae?.toLocaleString()}pt</div>
+                        <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>{mae?.toLocaleString()}pt</div>
                       </div>
                     )}
                     {profitPts != null && mfe != null && mfe > 0 && profitPts > 0 && (
                       <div style={{ padding: '8px 10px', background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 7 }}>
                         <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>Capture rate</div>
                         <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{((profitPts / mfe) * 100).toFixed(0)}%</div>
-                        <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>of peak kept</div>
+                        <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>of peak kept</div>
                       </div>
                     )}
                     {/* Tile changes meaning based on whether the trade closed positive or negative. */}
@@ -4594,14 +4594,14 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                       <div style={{ padding: '8px 10px', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 7 }}>
                         <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>Left on table</div>
                         <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24' }}>{fmtD(mfeDol - tradeNet)}</div>
-                        <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>peak − exit profit</div>
+                        <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>peak − exit profit</div>
                       </div>
                     )}
                     {mfeDol != null && mfeDol > 0 && tradeNet <= 0 && (
                       <div style={{ padding: '8px 10px', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 7 }}>
                         <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>Missed escape</div>
                         <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24' }}>+${mfeDol.toFixed(2)}</div>
-                        <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>could have exited here</div>
+                        <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>could have exited here</div>
                       </div>
                     )}
                   </div>
@@ -4613,14 +4613,14 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                       <div style={{ padding: '8px 10px', background: 'var(--panel2)', border: '1px dashed var(--border2)', borderRadius: 7, opacity: 0.7 }}>
                         <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>MFE (raw points)</div>
                         <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: 'var(--green-bright)' }}>+{mfe.toLocaleString()}pt</div>
-                        <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>$ conversion unreliable</div>
+                        <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>$ conversion unreliable</div>
                       </div>
                     )}
                     {mae != null && (
                       <div style={{ padding: '8px 10px', background: 'var(--panel2)', border: '1px dashed var(--border2)', borderRadius: 7, opacity: 0.7 }}>
                         <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>MAE (raw points)</div>
                         <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: 'var(--red)' }}>{mae.toLocaleString()}pt</div>
-                        <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>$ conversion unreliable</div>
+                        <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>$ conversion unreliable</div>
                       </div>
                     )}
                   </div>
@@ -4647,7 +4647,7 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                       return (
                         <div key={idx} style={{ padding: '10px 12px', background: s.bg, border: `1px solid ${s.border}`, borderRadius: 8 }}>
                           <div style={{ fontWeight: 600, fontSize: 12.5, color: s.accent, marginBottom: 3 }}>{ins.title}</div>
-                          <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.55 }}>{ins.body}</div>
+                          <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6 }}>{ins.body}</div>
                         </div>
                       );
                     })}
@@ -4979,7 +4979,7 @@ function ReportsDayTimePane({ trades }) {
               <div key={d.day} style={{ padding: 12, background: 'var(--panel2)', borderRadius: 9 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                   <span style={{ fontWeight: 600, color: 'var(--text)' }}>{d.day}</span>
-                  <span className="tabnum" style={{ fontWeight: 700, fontSize: 15, color: d.net >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(d.net, true)}</span>
+                  <span className="tabnum" style={{ fontWeight: 700, fontSize: 16, fontWeight: 600, color: d.net >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(d.net, true)}</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 4, fontSize: 11, color: 'var(--text3)' }}>
                   <span>Trades: <span className="tabnum" style={{ color: 'var(--text2)' }}>{d.trades}</span></span>
@@ -5042,7 +5042,7 @@ function ReportsPriceQtyPane({ trades }) {
               <div key={v.bucket} style={{ padding: 12, background: 'var(--panel2)', borderRadius: 9 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                   <span style={{ fontFamily: 'ui-monospace,monospace', color: 'var(--text)' }}>{v.bucket}</span>
-                  <span className="tabnum" style={{ fontWeight: 700, fontSize: 15, color: v.net >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(v.net, true)}</span>
+                  <span className="tabnum" style={{ fontWeight: 700, fontSize: 16, fontWeight: 600, color: v.net >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(v.net, true)}</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4, fontSize: 11, color: 'var(--text3)' }}>
                   <span>Trades: <span className="tabnum" style={{ color: 'var(--text2)' }}>{v.trades}</span></span>
@@ -5092,7 +5092,7 @@ function ReportsInstrumentsPane({ trades }) {
               <div key={s.symbol} style={{ padding: 12, background: 'var(--panel2)', borderRadius: 9 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                   <span style={{ fontFamily: 'ui-monospace,monospace', color: 'var(--text)', fontWeight: 600 }}>{s.symbol}</span>
-                  <span className="tabnum" style={{ fontWeight: 700, fontSize: 15, color: pos ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(s.net, true)}</span>
+                  <span className="tabnum" style={{ fontWeight: 700, fontSize: 16, fontWeight: 600, color: pos ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(s.net, true)}</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 4, fontSize: 11, color: 'var(--text3)', marginBottom: 8 }}>
                   <span>Trades: <span className="tabnum" style={{ color: 'var(--text2)' }}>{s.count}</span></span>
@@ -5770,7 +5770,7 @@ function Notebook({ entries, onSave, onDelete, folders, onSaveFolder, onDeleteFo
                   style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 8px', borderRadius: 6, cursor: 'pointer', background: isSelected ? 'var(--violet-tint)' : 'transparent', color: isSelected ? 'var(--violet-light)' : 'var(--text)', fontSize: 13, fontWeight: 500, transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)', position: 'relative' }}
                   onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--hover-tint)'; }}
                   onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}>
-                  <span style={{ fontSize: 9, color: 'var(--text3)', width: 10 }}>{isOpen ? '▾' : '▸'}</span>
+                  <span style={{ fontSize: 10, color: 'var(--text3)', width: 10 }}>{isOpen ? '▾' : '▸'}</span>
                   <span style={{ width: 16, height: 16, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{renderIcon(folder.icon || 'notebook', 14)}</span>
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{folder.name}</span>
                   <span style={{ fontSize: 10, color: 'var(--text3)' }}>{folderCounts[folder.id] || 0}</span>
@@ -5807,7 +5807,7 @@ function Notebook({ entries, onSave, onDelete, folders, onSaveFolder, onDeleteFo
                           {e.favorite && <span style={{ color: '#fbbf24', fontSize: 10 }}><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg></span>}
                           <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.title || 'Untitled'}</span>
                         </div>
-                        <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>{new Date(e.updatedAt).toLocaleDateString()}{e.virtual ? ' · linked' : ''}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>{new Date(e.updatedAt).toLocaleDateString()}{e.virtual ? ' · linked' : ''}</div>
                       </div>
                     ))}
                   </div>
@@ -6019,14 +6019,14 @@ function YearlyCalendar({ stats, yearOffset, setYearOffset, onMonthClick }) {
             {/* Mini-calendar grid: 7 weekday headers, then 6 weeks max of cells */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
               {['S','M','T','W','T','F','S'].map((d, i) => (
-                <div key={i} style={{ fontSize: 8, color: 'var(--text3)', textAlign: 'center', fontWeight: 600 }}>{d}</div>
+                <div key={i} style={{ fontSize: 9.5, color: 'var(--text3)', textAlign: 'center', fontWeight: 600 }}>{d}</div>
               ))}
               {m.days.map((cell, i) => {
                 if (!cell) return <div key={i} />;
                 const c = colorFor(cell.data?.pnl);
                 return (
                   <div key={i} title={cell.data ? `${cell.key}: ${fmtMoney(cell.data.pnl, true)} · ${cell.data.trades}t` : cell.key}
-                    style={{ aspectRatio: '1', borderRadius: 2, background: c || 'transparent', border: cell.data ? '1px solid transparent' : '1px solid var(--calendar-empty-border)', fontSize: 8, color: cell.data ? (cell.data.pnl >= 0 ? 'var(--cell-text-green)' : 'var(--cell-text-red)') : 'var(--text3)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: cell.data ? 'pointer' : 'default' }}>
+                    style={{ aspectRatio: '1', borderRadius: 2, background: c || 'transparent', border: cell.data ? '1px solid transparent' : '1px solid var(--calendar-empty-border)', fontSize: 9.5, color: cell.data ? (cell.data.pnl >= 0 ? 'var(--cell-text-green)' : 'var(--cell-text-red)') : 'var(--text3)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: cell.data ? 'pointer' : 'default' }}>
                     {cell.day}
                   </div>
                 );
@@ -6201,7 +6201,7 @@ function AccountSummaryBar({ snapshot, openPositions }) {
         {items.map((it, i) => (
           <div key={i} style={{ padding: '12px 14px', borderRight: isMobile ? (i % 2 === 0 ? '1px solid var(--border)' : 'none') : (i < items.length - 1 ? '1px solid var(--border)' : 'none'), borderBottom: isMobile && i < items.length - 2 ? '1px solid var(--border)' : 'none' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)', fontWeight: 600, marginBottom: 6 }}>
-              {it.label}<Hint text={it.hint}><span style={{ width: 12, height: 12, borderRadius: '50%', border: '1px solid var(--text3)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, cursor: 'help' }}>i</span></Hint>
+              {it.label}<Hint text={it.hint}><span style={{ width: 12, height: 12, borderRadius: '50%', border: '1px solid var(--text3)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 9.5, cursor: 'help' }}>i</span></Hint>
             </div>
             <div className="tabnum" style={{ fontSize: isMobile ? 17 : 19, fontWeight: 700, color: it.accent || 'var(--text)' }}>{it.value}</div>
           </div>
@@ -6239,7 +6239,7 @@ function OpenPositionsTable({ openPositions }) {
                     <span style={{ fontFamily: 'ui-monospace,monospace', color: 'var(--text)', fontWeight: 600 }}>{p.symbol}</span>
                     <Pill color={p.type === 'buy' ? 'blue' : 'amber'}>{p.type}</Pill>
                   </div>
-                  <div className="tabnum" style={{ fontWeight: 700, fontSize: 15, color: float >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(float, true)}</div>
+                  <div className="tabnum" style={{ fontWeight: 700, fontSize: 16, fontWeight: 600, color: float >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(float, true)}</div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 4, fontSize: 11, color: 'var(--text3)' }}>
                   <span>Volume: <span className="tabnum" style={{ color: 'var(--text2)' }}>{p.volume}</span></span>
@@ -6434,12 +6434,12 @@ function TodayStatusBanner({ status, rules, onOpenGate, onOpenRules }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', borderTop: '1px solid var(--border)' }}>
         <div style={{ padding: '10px 14px', borderRight: '1px solid var(--border)' }}>
           <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)', fontWeight: 600 }}>Daily loss</div>
-          <div className="tabnum" style={{ fontSize: 14, fontWeight: 600, marginTop: 2, color: pct >= 100 ? 'var(--red)' : pct >= 70 ? '#fbbf24' : 'var(--text)' }}>−${status.lossToday.toFixed(2)} <span style={{ color: 'var(--text3)', fontWeight: 400, fontSize: 11 }}>of −${rules.maxDailyLoss}</span></div>
+          <div className="tabnum" style={{ fontSize: 15, fontWeight: 700, marginTop: 2, color: pct >= 100 ? 'var(--red)' : pct >= 70 ? '#fbbf24' : 'var(--text)' }}>−${status.lossToday.toFixed(2)} <span style={{ color: 'var(--text3)', fontWeight: 400, fontSize: 11 }}>of −${rules.maxDailyLoss}</span></div>
           <div style={{ height: 4, background: 'var(--chart-grid)', borderRadius: 99, marginTop: 6, overflow: 'hidden' }}><div style={{ height: '100%', width: `${pct}%`, background: pct >= 100 ? 'var(--red)' : pct >= 70 ? '#fbbf24' : 'var(--green)' }} /></div>
         </div>
         <div style={{ padding: '10px 14px', borderRight: '1px solid var(--border)' }}>
           <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)', fontWeight: 600 }}>Trades</div>
-          <div className="tabnum" style={{ fontSize: 14, fontWeight: 600, marginTop: 2 }}>{status.count} <span style={{ color: 'var(--text3)', fontWeight: 400, fontSize: 11 }}>of {rules.maxDailyTrades}</span></div>
+          <div className="tabnum" style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>{status.count} <span style={{ color: 'var(--text3)', fontWeight: 400, fontSize: 11 }}>of {rules.maxDailyTrades}</span></div>
           <div style={{ height: 4, background: 'var(--chart-grid)', borderRadius: 99, marginTop: 6, overflow: 'hidden' }}><div style={{ height: '100%', width: `${pctTrades}%`, background: pctTrades >= 100 ? 'var(--red)' : 'var(--violet)' }} /></div>
         </div>
         <div style={{ padding: '10px 14px', borderRight: '1px solid var(--border)' }}>
@@ -6528,13 +6528,13 @@ function PreTradeGate({ open, onClose, status, rules }) {
             {wouldExceedDaily && <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Would breach daily cap</div>}
           </div>
         </div>
-        <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text3)', fontWeight: 700, fontFamily: "'Satoshi', sans-serif", marginBottom: 8 }}>Strategy checks</div>
+        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 8 }}>Strategy checks</div>
         {checkRow('plannedSize', 'My size is planned, not based on how I feel.')}
         {checkRow('slDefined', 'My stop-loss price is decided BEFORE I click buy/sell, not after.')}
         {checkRow('riskCalculated', 'I calculated the dollar risk. It fits my single-trade limit.')}
         {checkRow('htfAligned', 'HTF, MTF and LTF are aligned with the direction I am taking.')}
         {checkRow('properZone', 'This is a WOW / Fresh zone / PCP near a trendline (not a random entry).')}
-        <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text3)', fontWeight: 700, fontFamily: "'Satoshi', sans-serif", marginTop: 14, marginBottom: 8 }}>Mind checks</div>
+        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginTop: 14, marginBottom: 8 }}>Mind checks</div>
         {checkRow('notChasing', 'I am NOT entering because price already moved away from my level.', true)}
         {checkRow('notRevenge', 'I am NOT trying to win back a recent loss.', true)}
         {checkRow('notFomo', 'I am NOT entering because of FOMO — I would still take this trade if the move just started.', true)}
@@ -6883,7 +6883,7 @@ function AICoach({ trades, notes, stats, riskRules, exitData, config, onSaveConf
             onMouseLeave={e => { if (activeConvoId !== c.id) e.currentTarget.style.background = 'transparent'; }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</div>
-              <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>{c.messages.length} msg · {new Date(c.updatedAt).toLocaleDateString()}</div>
+              <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>{c.messages.length} msg · {new Date(c.updatedAt).toLocaleDateString()}</div>
             </div>
             <button onClick={ev => { ev.stopPropagation(); deleteConvo(c.id); }} style={{ background: 'transparent', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 11, padding: 0 }}
               onMouseEnter={ev => ev.currentTarget.style.color = 'var(--red)'} onMouseLeave={ev => ev.currentTarget.style.color = 'var(--text3)'}>×</button>
@@ -6927,7 +6927,7 @@ function AICoach({ trades, notes, stats, riskRules, exitData, config, onSaveConf
                 <div style={{ maxWidth: '88%', padding: '10px 14px', borderRadius: 10, background: m.role === 'user' ? 'var(--violet-tint)' : 'var(--panel2)', border: `1px solid ${m.role === 'user' ? 'rgba(110,93,252,0.28)' : 'var(--border)'}`, fontSize: 13, lineHeight: 1.6, color: 'var(--text)', whiteSpace: 'pre-wrap' }}>
                   {m.content}
                 </div>
-                <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 3, padding: '0 8px' }}>{m.role === 'user' ? 'You' : 'Coach'} · {new Date(m.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 3, padding: '0 8px' }}>{m.role === 'user' ? 'You' : 'Coach'} · {new Date(m.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
               </div>
             ))
           )}
@@ -7043,8 +7043,8 @@ function Sidebar({ tab, setTab, hasData, mobileOpen, setMobileOpen, collapsed, s
         </svg>
         {!isCollapsed && (
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 900, fontSize: 16, lineHeight: 1, color: '#fff', letterSpacing: '-0.03em', fontFamily: "'Satoshi', -apple-system, sans-serif" }}>{BRAND}</div>
-            <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.18em', marginTop: 3 }}>Trading Journal</div>
+            <div style={{ fontWeight: 900, fontSize: 16, lineHeight: 1, color: '#fff', letterSpacing: '-0.03em', fontFamily: "'DM Sans', -apple-system, sans-serif" }}>{BRAND}</div>
+            <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.18em', marginTop: 3 }}>Trading Journal</div>
           </div>
         )}
         {isMobile && <button onClick={() => setMobileOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--sidebar-text)', cursor: 'pointer', fontSize: 18, padding: 4 }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>}
@@ -8045,7 +8045,7 @@ function App() {
   }, [accounts, activeAccount]);
   const accountList = useMemo(() => Object.values(accounts), [accounts]);
   const titleMap = { dashboard: 'Dashboard', dayweek: 'Day / Week View', trade: 'Trade View', positions: 'Positions & Orders', rules: 'Risk Rules', playbook: 'Playbook', notebook: 'Notebook', exit: 'Exit Analysis', coach: 'AI Coach', reports: 'Reports', strategies: 'Strategies', calendar: 'Calendar', progress: 'Progress Tracker' };
-  const accTab = (active, label, onClick) => <button onClick={onClick} style={{ padding: '4px 11px', fontSize: 12, fontWeight: active ? 600 : 400, borderRadius: 'var(--r-sm)', fontFamily: "'Satoshi', sans-serif", border: active ? '1px solid var(--border2)' : '1px solid transparent', cursor: 'pointer', background: active ? 'var(--panel2)' : 'transparent', color: active ? 'var(--text)' : 'var(--text3)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out)', letterSpacing: '-0.01em' }}>{label}</button>;
+  const accTab = (active, label, onClick) => <button onClick={onClick} style={{ padding: '4px 11px', fontSize: 12, fontWeight: active ? 600 : 400, borderRadius: 'var(--r-sm)', fontFamily: "'DM Sans', sans-serif", border: active ? '1px solid var(--border2)' : '1px solid transparent', cursor: 'pointer', background: active ? 'var(--panel2)' : 'transparent', color: active ? 'var(--text)' : 'var(--text3)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out)', letterSpacing: '-0.01em' }}>{label}</button>;
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const isMobile = useIsMobile();
 
@@ -8065,7 +8065,7 @@ function App() {
                 <button onClick={() => setSidebarCollapsed(c => !c)} title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} style={{ background: 'transparent', border: 'none', color: 'var(--text2)', cursor: 'pointer', padding: 4, fontSize: 20, lineHeight: 1, display: 'flex', alignItems: 'center', marginRight: 4 }}
                   onMouseEnter={e => e.currentTarget.style.color = 'var(--text)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text2)'}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
               )}
-              <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: '-0.035em', color: 'var(--text)', fontFamily: "'Satoshi', -apple-system, sans-serif" }}>{titleMap[tab]}</div>
+              <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: '-0.035em', color: 'var(--text)', fontFamily: "'DM Sans', -apple-system, sans-serif" }}>{titleMap[tab]}</div>
               {!isMobile && accountList.length > 0 && (
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   {accTab(activeAccount === 'all', 'All accounts', () => switchAccount('all'))}
@@ -8157,7 +8157,7 @@ function App() {
               </div>
               {/* Timezone section */}
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text3)', fontWeight: 700, fontFamily: "'Satoshi', sans-serif", marginBottom: 8 }}>Exit-quality data (MAE / MFE)</div>
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 8 }}>Exit-quality data (MAE / MFE)</div>
                 <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 8, maxWidth: 720, lineHeight: 1.55 }}>
                   Exit-quality data (MAE = worst drawdown, MFE = best run-up, forward returns at T+30m/1h/4h/12h/1d) comes from a free MQL5 script: <a href="https://www.mql5.com/en/code/72326" target="_blank" rel="noreferrer" style={{ color: 'var(--violet-light)' }}>code #72326</a>. Run it in MT5, then upload the generated CSV here. We'll match rows to your existing trades by Position ID and unlock the Exit Analysis page + per-trade insights.
                 </div>
@@ -8173,7 +8173,7 @@ function App() {
               </div>
               {/* Timezone section */}
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text3)', fontWeight: 700, fontFamily: "'Satoshi', sans-serif", marginBottom: 8 }}>Trade times</div>
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 8 }}>Trade times</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                   <label style={{ fontSize: 13, color: 'var(--text2)' }}>MT5 broker timezone (UTC offset):</label>
                   <input type="number" step="1" min="-12" max="14" value={brokerOffsetInput} onChange={e => setBrokerOffsetInput(e.target.value)}
@@ -8188,7 +8188,7 @@ function App() {
               {/* Accounts section */}
               {accountList.length > 0 && (
                 <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text3)', fontWeight: 700, fontFamily: "'Satoshi', sans-serif", marginBottom: 10 }}>Accounts ({accountList.length})</div>
+                  <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 10 }}>Accounts ({accountList.length})</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                     {accountList.map((a, idx) => {
                       const tCount = trades.filter(t => t.account === a.id).length;
@@ -8216,7 +8216,7 @@ function App() {
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
                   <div>
-                    <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text3)', fontWeight: 700, fontFamily: "'Satoshi', sans-serif" }}>Sync across devices</div>
+                    <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>Sync across devices</div>
                     <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3, letterSpacing: '-0.01em' }}>This device: <span style={{ color: 'var(--text2)' }}>{deviceName}</span> <span style={{ color: 'var(--border2)' }}>· {getDeviceId()}</span></div>
                   </div>
                   <input value={deviceName} onChange={e => updateDeviceName(e.target.value)} placeholder="Device name" style={{ ...inputStyle, width: 160 }} />
@@ -8258,13 +8258,13 @@ function App() {
 
               {/* Data summary — Sync replaces the old Export/Import flow (same JSON payload) */}
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text3)', fontWeight: 700, fontFamily: "'Satoshi', sans-serif", marginBottom: 8 }}>Data</div>
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 8 }}>Data</div>
                 <div style={{ fontSize: 12, color: 'var(--text3)' }}>{trades.length} trades · {Object.keys(notes).length} notes · {strategies.length} strategies · {notebook.length} notebook entries · {Object.values(attachments).reduce((a, arr) => a + (arr?.length || 0), 0)} images</div>
                 <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6, fontStyle: 'italic' }}>To back up or restore your data, use <strong style={{ color: 'var(--text2)' }}>Sync now</strong> / <strong style={{ color: 'var(--text2)' }}>Sync from file</strong> above. Same JSON format.</div>
               </div>
               {/* Danger zone */}
               <div>
-                <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text3)', fontWeight: 700, fontFamily: "'Satoshi', sans-serif", marginBottom: 8 }}>Danger zone</div>
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 8 }}>Danger zone</div>
                 <button style={btnStyle('danger')} onClick={resetEverything}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg> Reset everything</button>
               </div>
             </Card>
