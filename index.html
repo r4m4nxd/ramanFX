@@ -13,7 +13,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
 <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
@@ -53,7 +54,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     /* ── Easing (Emil-grade custom curves) ── */
     --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
     --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
-    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-spring: cubic-bezier(0.22, 1.65, 0.36, 1);
     /* ── z-index scale ── */
     --z-dropdown: 30; --z-sticky: 40; --z-modal-bg: 200; --z-modal: 201; --z-toast: 300; --z-tooltip: 400;
     /* Main content surfaces */
@@ -203,9 +204,9 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     --pill-violet-border: #c5beff;
     /* Sidebar stays dark — these are intentionally not overridden */
   }
-  html { font-size: 14px; }
+  html { font-size: 14px; scroll-behavior: smooth; text-rendering: optimizeLegibility; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Inter', system-ui, sans-serif;
+    font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
     background: var(--bg);
     color: var(--text);
     -webkit-font-smoothing: antialiased;
@@ -227,39 +228,127 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   }
   input, select, textarea, button { font-family: inherit; letter-spacing: inherit; }
   select option { background: #161619; }
-  /* ── Animations ── */
-  .fade-in { animation: fadeIn 0.2s var(--ease-out) both; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-  .slide-up { animation: slideUp 0.25s var(--ease-out) both; }
-  @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
-  .scale-in { animation: scaleIn 0.18s var(--ease-out) both; }
-  @keyframes scaleIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
-  .stagger-1 { animation-delay: 30ms; }
-  .stagger-2 { animation-delay: 60ms; }
-  .stagger-3 { animation-delay: 90ms; }
-  .stagger-4 { animation-delay: 120ms; }
-  .stagger-5 { animation-delay: 150ms; }
-  .num-glow { transition: color 0.3s ease, text-shadow 0.3s ease; }
-  /* Chart fade-in on mount */
-  .recharts-wrapper { animation: fadeIn 0.4s var(--ease-out) both; }
-  /* Table row enter */
-  .tr-enter { animation: slideUp 0.2s var(--ease-out) both; }
-  /* Card stagger on dashboard mount */
-  .dash-card { animation: slideUp 0.25s var(--ease-out) both; }
+  /* ═══ Premium Motion System ═══ */
+  /* Spring easing — matches Framer Motion's spring(0.4, 0.8, 0.2) */
+
+  /* ── Entry animations ── */
+  .fade-in { animation: fadeIn 0.35s var(--ease-out) both; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+  }
+  .slide-up { animation: slideUp 0.42s var(--ease-spring) both; }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: none; }
+  }
+  .slide-down { animation: slideDown 0.35s var(--ease-out) both; }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: none; }
+  }
+  .scale-in { animation: scaleIn 0.3s var(--ease-spring) both; }
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .slide-right { animation: slideRight 0.4s var(--ease-out) both; }
+  @keyframes slideRight {
+    from { opacity: 0; transform: translateX(-16px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  /* ── Page transition — content fade+slide on tab change ── */
+  .page-enter { animation: pageEnter 0.35s var(--ease-out) both; }
+  @keyframes pageEnter {
+    from { opacity: 0; transform: translateY(8px) scale(0.998); }
+    to { opacity: 1; transform: none; }
+  }
+
+  /* ── Modal entrance — Apple sheet spring ── */
+  .modal-enter { animation: modalEnter 0.32s var(--ease-spring) both; }
+  @keyframes modalEnter {
+    from { opacity: 0; transform: scale(0.92) translateY(14px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  /* ── Dashboard card cascade ── */
+  .dash-card { animation: cardEnter 0.45s var(--ease-spring) both; }
+  @keyframes cardEnter {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: none; }
+  }
   .dash-card:nth-child(1) { animation-delay: 0ms; }
-  .dash-card:nth-child(2) { animation-delay: 40ms; }
-  .dash-card:nth-child(3) { animation-delay: 80ms; }
-  .dash-card:nth-child(4) { animation-delay: 120ms; }
-  .dash-card:nth-child(5) { animation-delay: 160ms; }
-  .dash-card:nth-child(6) { animation-delay: 200ms; }
-  /* KPI tile number count-up feel — handled in JS but CSS provides the container */
-  .kpi-val { transition: color 0.4s var(--ease-out); }
+  .dash-card:nth-child(2) { animation-delay: 55ms; }
+  .dash-card:nth-child(3) { animation-delay: 110ms; }
+  .dash-card:nth-child(4) { animation-delay: 165ms; }
+  .dash-card:nth-child(5) { animation-delay: 220ms; }
+  .dash-card:nth-child(6) { animation-delay: 275ms; }
+  .dash-card:nth-child(7) { animation-delay: 330ms; }
+  .dash-card:nth-child(8) { animation-delay: 385ms; }
+
+  /* ── Chart mount ── */
+  .recharts-wrapper { animation: fadeIn 0.5s var(--ease-out) 0.12s both; }
+
+  /* ── Card hover lift ── */
+  @media (hover: hover) and (pointer: fine) {
+    .card-hover {
+      transition: transform 0.22s var(--ease-out), box-shadow 0.22s var(--ease-out), border-color 0.22s var(--ease-out);
+    }
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.35), 0 0 0 0.5px rgba(255,255,255,0.06) inset;
+      border-color: var(--border2);
+    }
+  }
+
+  /* ── KPI + Numbers ── */
+  .kpi-val { transition: color 0.4s var(--ease-out), transform 0.2s var(--ease-spring); }
+  .num-glow { transition: color 0.3s ease, text-shadow 0.3s ease; }
+
+  /* ── Sidebar nav item ── */
+  .sidebar-item {
+    transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out),
+                box-shadow 0.15s var(--ease-out), transform 0.12s var(--ease-out);
+  }
+  @media (hover: hover) { .sidebar-item:hover { transform: translateX(2px); } }
+  .sidebar-item:active { transform: translateX(0) scale(0.97); }
+
+  /* ── Pulse dot ── */
+  @keyframes pulse { 0%, 100% { opacity: 0.5; transform: scale(1); } 50% { opacity: 1; transform: scale(1.6); } }
+  .pulse-dot { animation: pulse 2s ease-in-out infinite; }
   @keyframes aiCoachPulse { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 1; transform: scale(1.4); } }
   @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  /* ── Stagger utilities ── */
+  .stagger-1 { animation-delay: 50ms; }
+  .stagger-2 { animation-delay: 100ms; }
+  .stagger-3 { animation-delay: 150ms; }
+  .stagger-4 { animation-delay: 200ms; }
+  .stagger-5 { animation-delay: 250ms; }
+
+  /* ── Table row enter ── */
+  .tr-enter { animation: slideUp 0.25s var(--ease-out) both; }
+
   /* ── Reduced motion ── */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
   }
+  /* ── Heading typography (Satoshi 700) ── */
+  .heading-xl { font-family: 'Satoshi', -apple-system, sans-serif; font-weight: 700; letter-spacing: -0.035em; line-height: 1.1; }
+  .heading-lg { font-family: 'Satoshi', -apple-system, sans-serif; font-weight: 700; letter-spacing: -0.03em; line-height: 1.15; }
+  .heading-md { font-family: 'Satoshi', -apple-system, sans-serif; font-weight: 600; letter-spacing: -0.025em; line-height: 1.2; }
+  .heading-sm { font-family: 'Satoshi', -apple-system, sans-serif; font-weight: 500; letter-spacing: -0.02em; line-height: 1.3; }
+  /* ── Tabular nums with JetBrains Mono ── */
+  .tabnum {
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+    letter-spacing: -0.025em;
+  }
+  /* ── Label / eyebrow ── */
+  .label-xs { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text3); }
+  .label-sm { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); }
   /* ── Hover only on real pointer devices ── */
   .clickable { cursor: pointer; transition: opacity 0.15s var(--ease-out); }
   @media (hover: hover) and (pointer: fine) {
@@ -2162,7 +2251,7 @@ const MobileContext = React.createContext(false);
 const useMobile = () => React.useContext(MobileContext);
 
 const Card = ({ children, className = '', style, onClick }) => (
-  <div onClick={onClick} className={className} style={{ background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-card), 0 0 0 0.5px rgba(255,255,255,0.03) inset', overflow: 'hidden', ...style }}>{children}</div>
+  <div onClick={onClick} className={className} style={{ background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-card), 0 0 0 0.5px rgba(255,255,255,0.04) inset', overflow: 'hidden', transition: 'border-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out)', ...style }}>{children}</div>
 );
 const Pill = ({ children, color = 'zinc' }) => {
   const c = {
@@ -2265,7 +2354,7 @@ function MetricGauge({ label, value, sub, color, donutValue, donutCenter, accent
       style={{ padding: '14px 16px', borderLeft: accent ? `2px solid ${accent}` : '2px solid transparent', transition: 'transform 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out)' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'var(--text3)', fontWeight: 600, marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text3)', fontWeight: 700, marginBottom: 10, fontFamily: "'Satoshi', sans-serif" }}>
             {label}{hint && <Hint text={hint}><span style={{ width: 13, height: 13, borderRadius: '50%', border: '1px solid var(--text3)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, cursor: 'help' }}>i</span></Hint>}
           </div>
           <div className="tabnum" style={{ fontSize: 26, fontWeight: 600, color: accent || 'var(--text)', letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
@@ -2531,7 +2620,7 @@ function HeroScoreCard({ stats }) {
   const kpi = (label, value, sub, color) => (
     <div style={{ padding: '12px 14px', background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 10, minWidth: 0 }}>
       <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', fontWeight: 600, marginBottom: 6 }}>{label}</div>
-      <div className="tabnum" style={{ fontSize: 21, fontWeight: 700, color: color || 'var(--text)', lineHeight: 1, marginBottom: sub ? 4 : 0, letterSpacing: '-0.02em', fontFamily: "'JetBrains Mono', monospace" }}>{value}</div>
+      <div className="tabnum" style={{ fontSize: 21, fontWeight: 700, color: color || 'var(--text)', lineHeight: 1, marginBottom: sub ? 4 : 0, letterSpacing: '-0.02em', fontFamily: "'JetBrains Mono', 'SF Mono', monospace" }}>{value}</div>
       {sub && <div style={{ fontSize: 10.5, color: 'var(--text3)' }}>{sub}</div>}
     </div>
   );
@@ -2550,12 +2639,12 @@ function HeroScoreCard({ stats }) {
         {/* Big score */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flex: '0 0 auto' }}>
           <div>
-            <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--violet-light)', fontWeight: 700, marginBottom: 6, opacity: 0.7 }}>Performance Score</div>
+            <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--violet-light)', fontWeight: 700, marginBottom: 8, opacity: 0.7, fontFamily: "'Satoshi', sans-serif" }}>Performance Score</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-              <span className="tabnum" style={{ fontSize: isMobile ? 56 : 68, fontWeight: 800, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', textShadow: `0 0 40px ${scoreColor}40`, fontFamily: "'JetBrains Mono', monospace" }}>{Math.round(animScore)}</span>
+              <span className="tabnum" style={{ fontSize: isMobile ? 56 : 68, fontWeight: 800, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', textShadow: `0 0 40px ${scoreColor}40`, fontFamily: "'JetBrains Mono', 'SF Mono', monospace" }}>{Math.round(animScore)}</span>
               <span style={{ fontSize: 18, color: 'var(--text3)', fontWeight: 500 }}>/ 100</span>
             </div>
-            <div style={{ fontSize: 10, color: scoreColor, fontWeight: 700, marginTop: 6, textTransform: 'uppercase', letterSpacing: '0.12em', display: 'inline-block', padding: '2px 8px', borderRadius: 'var(--r-full)', background: `${scoreColor}18`, border: `1px solid ${scoreColor}30` }}>{scoreLabel}</div>
+            <div style={{ fontSize: 10, color: scoreColor, fontWeight: 700, marginTop: 8, textTransform: 'uppercase', letterSpacing: '0.14em', fontFamily: "'Satoshi', sans-serif", display: 'inline-block', padding: '2px 8px', borderRadius: 'var(--r-full)', background: `${scoreColor}18`, border: `1px solid ${scoreColor}30` }}>{scoreLabel}</div>
           </div>
         </div>
         {/* Vertical divider on desktop */}
@@ -2623,7 +2712,7 @@ function ScoreCard({ stats }) {
         {/* Score readout column — Tradezella's "Your Zella Score 82.1" with rainbow gauge below */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingRight: isMobile ? 0 : 8 }}>
           <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text3)', fontWeight: 600 }}>Your score</div>
-          <div className="tabnum" style={{ fontSize: 52, fontWeight: 700, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', fontFamily: "'JetBrains Mono', monospace" }}>{animScore.toFixed(1)}</div>
+          <div className="tabnum" style={{ fontSize: 52, fontWeight: 700, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', fontFamily: "'JetBrains Mono', 'SF Mono', monospace" }}>{animScore.toFixed(1)}</div>
           {/* Rainbow gauge bar */}
           <div style={{ marginTop: 4 }}>
             <div style={{ position: 'relative', height: 8, borderRadius: 99, overflow: 'hidden', background: 'linear-gradient(90deg, #ef5350 0%, #fbbf24 50%, #26a69a 100%)' }} />
@@ -3085,7 +3174,7 @@ function DayCard({ day, allTrades, exitData, expanded, onExpand, note, onSaveNot
           <div style={{ marginTop: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
               <span style={{ color: 'var(--violet-light)', fontSize: 13 }}><svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="currentColor"/></svg></span>
-              <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', fontWeight: 700 }}>RamanFX daily insights</div>
+              <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text3)', fontWeight: 700, fontFamily: "'Satoshi', sans-serif" }}>RamanFX daily insights</div>
             </div>
             {(() => {
               const dayItems = day.items;
@@ -3225,7 +3314,7 @@ function WeekView({ stats, allTrades, exitData }) {
                   <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
                       <span style={{ color: 'var(--violet-light)', fontSize: 13 }}><svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="currentColor"/></svg></span>
-                      <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', fontWeight: 700 }}>RamanFX weekly insights</div>
+                      <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text3)', fontWeight: 700, fontFamily: "'Satoshi', sans-serif" }}>RamanFX weekly insights</div>
                     </div>
                     <InsightsPanel windowTrades={w.weekItems} historyTrades={history} scope="week" exitData={exitData} />
                   </div>
@@ -3916,7 +4005,7 @@ function InsightsPanel({ windowTrades, historyTrades, scope, title, exitData }) 
   };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {title && <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', fontWeight: 700 }}>{title}</div>}
+      {title && <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text3)', fontWeight: 700, fontFamily: "'Satoshi', sans-serif" }}>{title}</div>}
       {insights.map((ins, idx) => {
         const s = levelStyle[ins.level] || levelStyle.caution;
         return (
@@ -4669,7 +4758,7 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600 }}>Chart screenshots & images</div>
-                    <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>{tradeAttachments.length} attachment{tradeAttachments.length !== 1 ? 's' : ''} · {_supaUser ? 'synced to cloud' : 'saved locally'}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3, letterSpacing: '-0.01em' }}>{tradeAttachments.length} attachment{tradeAttachments.length !== 1 ? 's' : ''} · {_supaUser ? 'synced to cloud' : 'saved locally'}</div>
                   </div>
                   <button style={btnStyle('primary')} onClick={() => !uploading && fileRef.current?.click()} disabled={uploading}>{uploading ? 'Uploading…' : '+ Add image'}</button>
                   <input ref={fileRef} type="file" multiple accept="image/*" style={{ display: 'none' }} onChange={onFiles} />
@@ -5769,7 +5858,7 @@ function Notebook({ entries, onSave, onDelete, folders, onSaveFolder, onDeleteFo
           // Virtual notes (from trade/day) are read-only inside Notebook
           <div>
             <div style={{ fontSize: 20, fontWeight: 600 }}>{current.title}</div>
-            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2, marginBottom: 16 }}>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3, letterSpacing: '-0.01em', marginBottom: 16 }}>
               {current.sourceType === 'trade' ? 'Linked to trade — edit on the trade detail page' : 'Daily journal entry — edit from Day View'}
             </div>
             <div style={{ fontSize: 13, color: 'var(--text2)', whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{current.body}</div>
@@ -6439,13 +6528,13 @@ function PreTradeGate({ open, onClose, status, rules }) {
             {wouldExceedDaily && <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Would breach daily cap</div>}
           </div>
         </div>
-        <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', fontWeight: 700, marginBottom: 8 }}>Strategy checks</div>
+        <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text3)', fontWeight: 700, fontFamily: "'Satoshi', sans-serif", marginBottom: 8 }}>Strategy checks</div>
         {checkRow('plannedSize', 'My size is planned, not based on how I feel.')}
         {checkRow('slDefined', 'My stop-loss price is decided BEFORE I click buy/sell, not after.')}
         {checkRow('riskCalculated', 'I calculated the dollar risk. It fits my single-trade limit.')}
         {checkRow('htfAligned', 'HTF, MTF and LTF are aligned with the direction I am taking.')}
         {checkRow('properZone', 'This is a WOW / Fresh zone / PCP near a trendline (not a random entry).')}
-        <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', fontWeight: 700, marginTop: 14, marginBottom: 8 }}>Mind checks</div>
+        <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text3)', fontWeight: 700, fontFamily: "'Satoshi', sans-serif", marginTop: 14, marginBottom: 8 }}>Mind checks</div>
         {checkRow('notChasing', 'I am NOT entering because price already moved away from my level.', true)}
         {checkRow('notRevenge', 'I am NOT trying to win back a recent loss.', true)}
         {checkRow('notFomo', 'I am NOT entering because of FOMO — I would still take this trade if the move just started.', true)}
@@ -6954,7 +7043,7 @@ function Sidebar({ tab, setTab, hasData, mobileOpen, setMobileOpen, collapsed, s
         </svg>
         {!isCollapsed && (
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 800, fontSize: 15, lineHeight: 1, color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Inter', sans-serif" }}>{BRAND}</div>
+            <div style={{ fontWeight: 900, fontSize: 16, lineHeight: 1, color: '#fff', letterSpacing: '-0.03em', fontFamily: "'Satoshi', -apple-system, sans-serif" }}>{BRAND}</div>
             <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.18em', marginTop: 3 }}>Trading Journal</div>
           </div>
         )}
@@ -6966,7 +7055,7 @@ function Sidebar({ tab, setTab, hasData, mobileOpen, setMobileOpen, collapsed, s
           return (
             <button key={id} onClick={() => { if (!disabled) { setTab(id); if (isMobile) setMobileOpen(false); } }} disabled={disabled}
               title={isCollapsed ? label : undefined}
-              style={{ display: 'flex', alignItems: 'center', gap: isCollapsed ? 0 : 10, justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '11px 0' : '9px 11px', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: active ? 500 : 400, background: active ? 'var(--sidebar-active-bg)' : 'transparent', color: active ? 'var(--sidebar-text-active)' : 'var(--sidebar-text)', border: active ? '1px solid var(--sidebar-active-border)' : '1px solid transparent', boxShadow: active ? 'inset 2px 0 0 var(--violet)' : 'none', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.35 : 1, textAlign: 'left', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), box-shadow 0.12s var(--ease-out)', letterSpacing: '-0.01em' }}
+              style={{ display: 'flex', alignItems: 'center', gap: isCollapsed ? 0 : 10, justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '11px 0' : '9px 11px', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: active ? 500 : 400, background: active ? 'var(--sidebar-active-bg)' : 'transparent', color: active ? 'var(--sidebar-text-active)' : 'var(--sidebar-text)', border: active ? '1px solid var(--sidebar-active-border)' : '1px solid transparent', boxShadow: active ? 'inset 2px 0 0 var(--violet)' : 'none', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.35 : 1, textAlign: 'left', letterSpacing: '-0.01em' }} className={'sidebar-item'}
               onMouseEnter={e => { if (!active && !disabled) { e.currentTarget.style.background = 'var(--sidebar-hover-bg)'; e.currentTarget.style.color = 'var(--sidebar-text-hover)'; } }}
               onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--sidebar-text)'; } }}>
               <span style={{ width: 16, height: 15, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: 0.85 }} dangerouslySetInnerHTML={{ __html: icon }} />
@@ -7956,7 +8045,7 @@ function App() {
   }, [accounts, activeAccount]);
   const accountList = useMemo(() => Object.values(accounts), [accounts]);
   const titleMap = { dashboard: 'Dashboard', dayweek: 'Day / Week View', trade: 'Trade View', positions: 'Positions & Orders', rules: 'Risk Rules', playbook: 'Playbook', notebook: 'Notebook', exit: 'Exit Analysis', coach: 'AI Coach', reports: 'Reports', strategies: 'Strategies', calendar: 'Calendar', progress: 'Progress Tracker' };
-  const accTab = (active, label, onClick) => <button onClick={onClick} style={{ padding: '4px 11px', fontSize: 12, fontWeight: active ? 500 : 400, borderRadius: 'var(--r-sm)', border: active ? '1px solid var(--border2)' : '1px solid transparent', cursor: 'pointer', background: active ? 'var(--panel2)' : 'transparent', color: active ? 'var(--text)' : 'var(--text3)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out)', letterSpacing: '-0.01em' }}>{label}</button>;
+  const accTab = (active, label, onClick) => <button onClick={onClick} style={{ padding: '4px 11px', fontSize: 12, fontWeight: active ? 600 : 400, borderRadius: 'var(--r-sm)', fontFamily: "'Satoshi', sans-serif", border: active ? '1px solid var(--border2)' : '1px solid transparent', cursor: 'pointer', background: active ? 'var(--panel2)' : 'transparent', color: active ? 'var(--text)' : 'var(--text3)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out)', letterSpacing: '-0.01em' }}>{label}</button>;
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const isMobile = useIsMobile();
 
@@ -7976,7 +8065,7 @@ function App() {
                 <button onClick={() => setSidebarCollapsed(c => !c)} title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} style={{ background: 'transparent', border: 'none', color: 'var(--text2)', cursor: 'pointer', padding: 4, fontSize: 20, lineHeight: 1, display: 'flex', alignItems: 'center', marginRight: 4 }}
                   onMouseEnter={e => e.currentTarget.style.color = 'var(--text)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text2)'}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
               )}
-              <div style={{ fontSize: isMobile ? 15 : 17, fontWeight: 600, whiteSpace: 'nowrap', letterSpacing: '-0.025em', color: 'var(--text)' }}>{titleMap[tab]}</div>
+              <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: '-0.035em', color: 'var(--text)', fontFamily: "'Satoshi', -apple-system, sans-serif" }}>{titleMap[tab]}</div>
               {!isMobile && accountList.length > 0 && (
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   {accTab(activeAccount === 'all', 'All accounts', () => switchAccount('all'))}
@@ -8059,7 +8148,7 @@ function App() {
             </div>
           )}
         </header>
-        <main data-rfx-main style={{ padding: isMobile ? '14px 12px 110px 12px' : '20px 24px 110px 24px' }}>
+        <main key={tab} data-rfx-main className='page-enter' style={{ padding: isMobile ? '14px 12px 110px 12px' : '20px 24px 110px 24px' }}>
           {showSettings && (
             <Card style={{ padding: 18, marginBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
@@ -8068,7 +8157,7 @@ function App() {
               </div>
               {/* Timezone section */}
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', fontWeight: 700, marginBottom: 8 }}>Exit-quality data (MAE / MFE)</div>
+                <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text3)', fontWeight: 700, fontFamily: "'Satoshi', sans-serif", marginBottom: 8 }}>Exit-quality data (MAE / MFE)</div>
                 <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 8, maxWidth: 720, lineHeight: 1.55 }}>
                   Exit-quality data (MAE = worst drawdown, MFE = best run-up, forward returns at T+30m/1h/4h/12h/1d) comes from a free MQL5 script: <a href="https://www.mql5.com/en/code/72326" target="_blank" rel="noreferrer" style={{ color: 'var(--violet-light)' }}>code #72326</a>. Run it in MT5, then upload the generated CSV here. We'll match rows to your existing trades by Position ID and unlock the Exit Analysis page + per-trade insights.
                 </div>
@@ -8084,7 +8173,7 @@ function App() {
               </div>
               {/* Timezone section */}
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', fontWeight: 700, marginBottom: 8 }}>Trade times</div>
+                <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text3)', fontWeight: 700, fontFamily: "'Satoshi', sans-serif", marginBottom: 8 }}>Trade times</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                   <label style={{ fontSize: 13, color: 'var(--text2)' }}>MT5 broker timezone (UTC offset):</label>
                   <input type="number" step="1" min="-12" max="14" value={brokerOffsetInput} onChange={e => setBrokerOffsetInput(e.target.value)}
@@ -8099,7 +8188,7 @@ function App() {
               {/* Accounts section */}
               {accountList.length > 0 && (
                 <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', fontWeight: 700, marginBottom: 10 }}>Accounts ({accountList.length})</div>
+                  <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text3)', fontWeight: 700, fontFamily: "'Satoshi', sans-serif", marginBottom: 10 }}>Accounts ({accountList.length})</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                     {accountList.map((a, idx) => {
                       const tCount = trades.filter(t => t.account === a.id).length;
@@ -8127,8 +8216,8 @@ function App() {
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
                   <div>
-                    <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', fontWeight: 700 }}>Sync across devices</div>
-                    <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>This device: <span style={{ color: 'var(--text2)' }}>{deviceName}</span> <span style={{ color: 'var(--border2)' }}>· {getDeviceId()}</span></div>
+                    <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text3)', fontWeight: 700, fontFamily: "'Satoshi', sans-serif" }}>Sync across devices</div>
+                    <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3, letterSpacing: '-0.01em' }}>This device: <span style={{ color: 'var(--text2)' }}>{deviceName}</span> <span style={{ color: 'var(--border2)' }}>· {getDeviceId()}</span></div>
                   </div>
                   <input value={deviceName} onChange={e => updateDeviceName(e.target.value)} placeholder="Device name" style={{ ...inputStyle, width: 160 }} />
                 </div>
@@ -8169,13 +8258,13 @@ function App() {
 
               {/* Data summary — Sync replaces the old Export/Import flow (same JSON payload) */}
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', fontWeight: 700, marginBottom: 8 }}>Data</div>
+                <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text3)', fontWeight: 700, fontFamily: "'Satoshi', sans-serif", marginBottom: 8 }}>Data</div>
                 <div style={{ fontSize: 12, color: 'var(--text3)' }}>{trades.length} trades · {Object.keys(notes).length} notes · {strategies.length} strategies · {notebook.length} notebook entries · {Object.values(attachments).reduce((a, arr) => a + (arr?.length || 0), 0)} images</div>
                 <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6, fontStyle: 'italic' }}>To back up or restore your data, use <strong style={{ color: 'var(--text2)' }}>Sync now</strong> / <strong style={{ color: 'var(--text2)' }}>Sync from file</strong> above. Same JSON format.</div>
               </div>
               {/* Danger zone */}
               <div>
-                <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text3)', fontWeight: 700, marginBottom: 8 }}>Danger zone</div>
+                <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text3)', fontWeight: 700, fontFamily: "'Satoshi', sans-serif", marginBottom: 8 }}>Danger zone</div>
                 <button style={btnStyle('danger')} onClick={resetEverything}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg> Reset everything</button>
               </div>
             </Card>
@@ -8269,13 +8358,13 @@ function App() {
                 type="email" placeholder="Email" value={cloudEmail}
                 onChange={e => setCloudEmail(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleCloudLogin()}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: 14, marginBottom: 10, boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: 14, fontFamily: 'inherit', transition: 'border-color 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out)', marginBottom: 10, boxSizing: 'border-box' }}
               />
               <input
                 type="password" placeholder="Password" value={cloudPassword}
                 onChange={e => setCloudPassword(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleCloudLogin()}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: 14, fontFamily: 'inherit', transition: 'border-color 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out)', marginBottom: 12, boxSizing: 'border-box' }}
               />
               <button
                 style={{ width: '100%', padding: '10px 0', borderRadius: 8, border: 'none', background: 'var(--violet)', color: '#fff', cursor: cloudLoading ? 'default' : 'pointer', fontWeight: 700, fontSize: 14, opacity: cloudLoading ? 0.7 : 1 }}
