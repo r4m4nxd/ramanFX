@@ -13,7 +13,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;400;500;600;700&display=swap" rel="stylesheet">
 <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
@@ -67,9 +67,9 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     --text2: #9a9ab0;
     --text3: #6d6d84;
     /* Brand & semantic */
-    --green: #30d158;
-    --green-bright: #34d96a;
-    --red: #ff453a;
+    --green: #4ade80;
+    --green-bright: #6ee7a0;
+    --red: #f87171;
     --violet: #6e5dfc;
     --violet-light: #8f80ff;
     --violet-tint: rgba(110,93,252,0.12);
@@ -96,8 +96,8 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     --calendar-empty-border: rgba(38,38,44,0.4);
     --calendar-cell-bg: rgba(19,19,22,0.4);
     /* Text color INSIDE a colored data-cell. Designed to read well over the green/red tint backgrounds. */
-    --cell-text-green: #30d158;
-    --cell-text-red: #ff6961;
+    --cell-text-green: #4ade80;
+    --cell-text-red: #fca5a5;
     /* Inset blocks within cards — like strategy rules, KPI tiles inside a card.
        Dark: very subtle lift from the panel. Light: indistinguishable from panel (pure white). */
     --inset-bg: rgba(255,255,255,0.02);
@@ -110,12 +110,12 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     --pill-zinc-bg: rgba(113,113,122,0.12);
     --pill-zinc-fg: #a1a1ab;
     --pill-zinc-border: rgba(113,113,122,0.3);
-    --pill-green-bg: rgba(48,209,88,0.1);
-    --pill-green-fg: #30d158;
-    --pill-green-border: rgba(48,209,88,0.28);
-    --pill-red-bg: rgba(255,69,58,0.1);
-    --pill-red-fg: #ff453a;
-    --pill-red-border: rgba(255,69,58,0.28);
+    --pill-green-bg: rgba(74,222,128,0.08);
+    --pill-green-fg: #4ade80;
+    --pill-green-border: rgba(74,222,128,0.22);
+    --pill-red-bg: rgba(248,113,113,0.08);
+    --pill-red-fg: #f87171;
+    --pill-red-border: rgba(248,113,113,0.22);
     --pill-amber-bg: rgba(245,158,11,0.12);
     --pill-amber-fg: #fbbf24;
     --pill-amber-border: rgba(245,158,11,0.35);
@@ -132,7 +132,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     --sidebar-text-hover: #f2f2f7;
     --sidebar-text-active: #a0a0ff;
     --sidebar-active-bg: rgba(110,93,252,0.12);
-    --sidebar-active-border: rgba(110,93,252,0.4);
+    --sidebar-active-border: rgba(110,93,252,0.28);
     --sidebar-hover-bg: rgba(255,255,255,0.03);
     --sidebar-divider: rgba(255,255,255,0.04);
   }
@@ -150,9 +150,9 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     --text: #18181b;
     --text2: #52525b;
     --text3: #71717a;
-    --green: #248a3d;
-    --green-bright: #28cd41;
-    --red: #d70015;
+    --green: #16a34a;
+    --green-bright: #22c55e;
+    --red: #dc2626;
     --violet: #7c5cfc;
     --violet-light: #6d28d9;
     --violet-tint: rgba(124,92,252,0.10);
@@ -180,8 +180,8 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     /* Track on light mode: subtle dark stripe so progress bars are visible on white */
     --track-bg: rgba(0,0,0,0.06);
     /* Deep emerald/red — readable on saturated pastel cell backgrounds */
-    --cell-text-green: #134e4a;
-    --cell-text-red: #7f1d1d;
+    --cell-text-green: #15803d;
+    --cell-text-red: #b91c1c;
     /* Pills — light tints + darker text for contrast on white panels */
     --pill-zinc-bg: #f4f4f5;
     --pill-zinc-fg: #52525b;
@@ -218,15 +218,15 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: var(--r-full); }
   ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
-  /* ── Geist Mono for all numeric displays ── */
+  /* ── DM Sans tabular-nums for all numeric displays ── */
   .tabnum {
-    font-family: 'Geist Mono', 'Fira Code', 'SF Mono', monospace;
+    font-family: 'DM Sans', 'Fira Code', 'SF Mono', monospace;
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum' 1;
     letter-spacing: -0.02em;
   }
   input, select, textarea, button { font-family: inherit; letter-spacing: inherit; }
-  select option { background: #161619; }
+  select option { background: var(--panel); color: var(--text); }
   /* ═══ Premium Motion System ═══ */
   /* Spring easing — matches Framer Motion's spring(0.4, 0.8, 0.2) */
 
@@ -338,12 +338,12 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   .heading-lg { font-family: 'DM Sans', sans-serif; font-weight: 700; letter-spacing: -0.025em; line-height: 1.15; }
   .heading-md { font-family: 'DM Sans', sans-serif; font-weight: 600; letter-spacing: -0.025em; line-height: 1.2; }
   .heading-sm { font-family: 'DM Sans', sans-serif; font-weight: 500; letter-spacing: -0.02em; line-height: 1.3; }
-  /* ── Tabular nums with Geist Mono ── */
+  /* ── Tabular nums ── */
   .tabnum {
-    font-family: 'Geist Mono', 'SF Mono', ui-monospace, monospace;
+    font-family: 'DM Sans', -apple-system, system-ui, sans-serif;
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum' 1;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.015em;
     -webkit-font-smoothing: antialiased;
   }
   /* ── Label / eyebrow ── */
@@ -394,6 +394,8 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   @keyframes modalEnter { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: none; } }
   /* ── Sidebar nav item refinements ── */
   /* ── Input focus states ── */
+  select { background: var(--panel); color: var(--text); }
+  select option { background: var(--panel); color: var(--text); }
   input:focus, textarea:focus, select:focus { outline: none; box-shadow: 0 0 0 2px var(--violet-tint), 0 0 0 1px var(--violet) inset; }
   /* ── Selection color ── */
   ::selection { background: rgba(110,93,252,0.3); color: var(--text); }
@@ -2336,7 +2338,7 @@ function useCountUp(target, dur = 600) {
 }
 
 // Gauge donut (RamanFX-style)
-function Gauge({ value, color = '#30d158', size = 88 }) {
+function Gauge({ value, color = '#4ade80', size = 88 }) {
   const radius = 38, stroke = 9, c = 2 * Math.PI * radius, arc = 0.75;
   const v = Math.max(0, Math.min(100, value));
   const animV = useCountUp(v, 700);
@@ -2402,9 +2404,9 @@ const Field = ({ label, value, mono }) => (
 
 const btnStyle = (variant) => {
   const base = { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', fontSize: 12, fontWeight: 500, borderRadius: 'var(--r-md)', border: '1px solid transparent', cursor: 'pointer', transition: 'opacity 0.12s var(--ease-out), transform 0.1s var(--ease-out), background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease', WebkitTapHighlightColor: 'transparent', userSelect: 'none', letterSpacing: '-0.01em' };
-  if (variant === 'primary') return { ...base, background: 'var(--violet)', color: '#fff', borderColor: 'rgba(110,93,252,0.44)', boxShadow: '0 1px 8px rgba(110,93,252,0.22)' };
+  if (variant === 'primary') return { ...base, background: 'var(--violet)', color: '#fff', borderColor: 'rgba(110,93,252,0.3)', boxShadow: '0 1px 8px rgba(110,93,252,0.22)' };
   if (variant === 'ghost') return { ...base, background: 'transparent', color: 'var(--text2)', borderColor: 'transparent' };
-  if (variant === 'danger') return { ...base, background: 'rgba(239,83,80,0.08)', color: 'var(--red)', borderColor: 'rgba(239,83,80,0.25)' };
+  if (variant === 'danger') return { ...base, background: 'rgba(248,113,113,0.08)', color: 'var(--red)', borderColor: 'rgba(248,113,113,0.25)' };
   return { ...base, background: 'var(--panel2)', color: 'var(--text)', borderColor: 'var(--border)' };
 };
 
@@ -2424,7 +2426,7 @@ function UploadBtn({ onUpload, primary }) {
     } catch (err) { window.__rfxToast && window.__rfxToast('Parse failed: ' + err.message, 'error'); }
     e.target.value = '';
   };
-  const colors = { success: ['rgba(38,166,154,0.12)', 'rgba(38,166,154,0.4)', '#2dd4bf'], error: ['rgba(239,83,80,0.12)', 'rgba(239,83,80,0.4)', '#ff453a'], loading: ['var(--chart-tooltip-bg)', 'var(--border2)', 'var(--text2)'] };
+  const colors = { success: ['rgba(38,166,154,0.12)', 'rgba(38,166,154,0.4)', '#2dd4bf'], error: ['rgba(248,113,113,0.12)', 'rgba(248,113,113,0.4)', '#f87171'], loading: ['var(--chart-tooltip-bg)', 'var(--border2)', 'var(--text2)'] };
   return (
     <Fragment>
       <button onClick={() => ref.current?.click()} style={btnStyle(primary ? 'primary' : 'secondary')}
@@ -2474,7 +2476,7 @@ function CalendarView({ stats, onDayClick }) {
   const colorFor = (pnl) => {
     if (pnl == null) return null;
     const a = 0.22 + Math.min(1, Math.abs(pnl) / maxAbs) * 0.43;
-    return pnl >= 0 ? `rgba(38,166,154,${a})` : `rgba(239,83,80,${a})`;
+    return pnl >= 0 ? `rgba(38,166,154,${a})` : `rgba(248,113,113,${a})`;
   };
   const navBtn = { padding: 6, borderRadius: 7, background: 'transparent', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: 16, lineHeight: 1 };
   // Highlight today's cell so it's easy to spot
@@ -2491,7 +2493,7 @@ function CalendarView({ stats, onDayClick }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, flexWrap: 'wrap' }}>
           <span style={{ color: 'var(--text3)' }}>Monthly:</span>
-          <span className="tabnum" style={{ fontWeight: 600, padding: '3px 9px', borderRadius: 7, background: monthStats.pnl >= 0 ? 'rgba(38,166,154,0.12)' : 'rgba(239,83,80,0.12)', color: monthStats.pnl >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(monthStats.pnl, true)}</span>
+          <span className="tabnum" style={{ fontWeight: 600, padding: '3px 9px', borderRadius: 7, background: monthStats.pnl >= 0 ? 'rgba(38,166,154,0.12)' : 'rgba(248,113,113,0.12)', color: monthStats.pnl >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(monthStats.pnl, true)}</span>
           <span style={{ color: 'var(--text2)', padding: '3px 9px', borderRadius: 7, background: 'var(--panel2)' }}>{monthStats.days} days</span>
         </div>
       </div>
@@ -2571,7 +2573,7 @@ function ProgressHeatmap({ stats, months = 6, cell = 12 }) {
     requestAnimationFrame(() => { el.scrollLeft = el.scrollWidth; });
   }, [weeks]);
   const maxAbs = useMemo(() => Math.max(...(stats?.daily || []).map(d => Math.abs(d.pnl)), 100), [stats]);
-  const colorFor = (pnl) => { if (pnl == null || pnl === 0) return 'var(--panel2)'; const a = 0.3 + Math.min(1, Math.abs(pnl) / maxAbs) * 0.7; return pnl > 0 ? `rgba(38,166,154,${a})` : `rgba(239,83,80,${a})`; };
+  const colorFor = (pnl) => { if (pnl == null || pnl === 0) return 'var(--panel2)'; const a = 0.3 + Math.min(1, Math.abs(pnl) / maxAbs) * 0.7; return pnl > 0 ? `rgba(38,166,154,${a})` : `rgba(248,113,113,${a})`; };
   const monthLabels = useMemo(() => { const labels = []; let lm = -1; weeks.forEach((w, i) => { const m = w[0].date.getMonth(); if (m !== lm) { labels.push({ index: i, label: w[0].date.toLocaleString('default', { month: 'short' }) }); lm = m; } }); return labels; }, [weeks]);
   const gap = 3;
   return (
@@ -2607,20 +2609,20 @@ function HeroScoreCard({ stats }) {
   const isMobile = useMobile();
   const { score } = useMemo(() => computeScore(stats), [stats]);
   const animScore = useCountUp(score, 900);
-  const scoreColor = score >= 70 ? 'var(--green-bright)' : score >= 40 ? '#ff9f0a' : 'var(--red)';
+  const scoreColor = score >= 70 ? 'var(--green-bright)' : score >= 40 ? '#fbbf24' : 'var(--red)';
   const scoreLabel = score >= 80 ? 'Excellent' : score >= 65 ? 'Strong' : score >= 50 ? 'Developing' : score >= 35 ? 'Needs work' : 'Critical';
   // Current streak — fed directly from computeStats (curStreak count + curStreakSign 1/-1/0)
   const streakCount = stats?.curStreak || 0;
   const streakSign = stats?.curStreakSign || 0; // 1 = winning, -1 = losing, 0 = none
   const streakLabel = streakSign === 0 ? null : `${streakSign > 0 ? 'W' : 'L'}${streakCount}`;
   const streakColor = streakSign > 0 ? 'var(--green-bright)' : 'var(--red)';
-  const streakBg = streakSign > 0 ? 'rgba(38,166,154,0.12)' : 'rgba(239,83,80,0.12)';
-  const streakBorder = streakSign > 0 ? 'rgba(38,166,154,0.4)' : 'rgba(239,83,80,0.4)';
+  const streakBg = streakSign > 0 ? 'rgba(38,166,154,0.12)' : 'rgba(248,113,113,0.12)';
+  const streakBorder = streakSign > 0 ? 'rgba(38,166,154,0.4)' : 'rgba(248,113,113,0.4)';
   // KPI tile renderer
   const kpi = (label, value, sub, color) => (
-    <div style={{ padding: '12px 14px', background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 10, minWidth: 0 }}>
+    <div style={{ padding: '12px 14px', background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, minWidth: 0 }}>
       <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', fontWeight: 600, marginBottom: 6 }}>{label}</div>
-      <div className="tabnum" style={{ fontSize: 24, fontWeight: 700, color: color || 'var(--text)', lineHeight: 1, marginBottom: sub ? 5 : 0, letterSpacing: '-0.025em', fontFamily: "'Geist Mono', 'SF Mono', monospace" }}>{value}</div>
+      <div className="tabnum" style={{ fontSize: 24, fontWeight: 700, color: color || 'var(--text)', lineHeight: 1, marginBottom: sub ? 5 : 0, letterSpacing: '-0.025em', fontFamily: "'DM Sans', system-ui, sans-serif" }}>{value}</div>
       {sub && <div style={{ fontSize: 10.5, color: 'var(--text3)' }}>{sub}</div>}
     </div>
   );
@@ -2641,7 +2643,7 @@ function HeroScoreCard({ stats }) {
           <div>
             <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--violet-light)', fontWeight: 700, marginBottom: 8, opacity: 0.7, fontFamily: "'DM Sans', sans-serif" }}>Performance Score</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-              <span className="tabnum" style={{ fontSize: isMobile ? 56 : 68, fontWeight: 800, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', textShadow: `0 0 40px ${scoreColor}40`, fontFamily: "'Geist Mono', 'SF Mono', monospace" }}>{Math.round(animScore)}</span>
+              <span className="tabnum" style={{ fontSize: isMobile ? 56 : 68, fontWeight: 800, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', textShadow: `0 0 24px ${scoreColor}25`, fontFamily: "'DM Sans', system-ui, sans-serif" }}>{Math.round(animScore)}</span>
               <span style={{ fontSize: 20, color: 'var(--text2)', fontWeight: 500 }}>/ 100</span>
             </div>
             <div style={{ fontSize: 10, color: scoreColor, fontWeight: 700, marginTop: 8, textTransform: 'uppercase', letterSpacing: '0.14em', fontFamily: "'DM Sans', sans-serif", display: 'inline-block', padding: '2px 8px', borderRadius: 'var(--r-full)', background: `${scoreColor}18`, border: `1px solid ${scoreColor}30` }}>{scoreLabel}</div>
@@ -2681,7 +2683,7 @@ function ScoreCard({ stats }) {
   const isMobile = useMobile();
   const { score, axes } = useMemo(() => computeScore(stats), [stats]);
   const animScore = useCountUp(score, 800);
-  const scoreColor = score >= 70 ? 'var(--green-bright)' : score >= 40 ? '#ff9f0a' : 'var(--red)';
+  const scoreColor = score >= 70 ? 'var(--green-bright)' : score >= 40 ? '#fbbf24' : 'var(--red)';
   const shortLabel = (raw) => {
     const map = { 'Win Rate': 'Win%', 'Profit Factor': 'PF', 'Avg Win/Loss': 'W/L', 'Consistency': 'Const.', 'Discipline': 'Discp.', 'Risk Mgmt': 'Risk', 'Volume': 'Vol', 'Recovery': 'Rec.' };
     if (map[raw]) return map[raw];
@@ -2712,7 +2714,7 @@ function ScoreCard({ stats }) {
         {/* Score readout column — Tradezella's "Your Zella Score 82.1" with rainbow gauge below */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingRight: isMobile ? 0 : 8 }}>
           <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text3)', fontWeight: 600 }}>Your score</div>
-          <div className="tabnum" style={{ fontSize: 52, fontWeight: 700, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', fontFamily: "'Geist Mono', 'SF Mono', monospace" }}>{animScore.toFixed(1)}</div>
+          <div className="tabnum" style={{ fontSize: 52, fontWeight: 700, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', fontFamily: "'DM Sans', system-ui, sans-serif" }}>{animScore.toFixed(1)}</div>
           {/* Rainbow gauge bar */}
           <div style={{ marginTop: 4 }}>
             <div style={{ position: 'relative', height: 8, borderRadius: 99, overflow: 'hidden', background: 'linear-gradient(90deg, #ef5350 0%, #fbbf24 50%, #26a69a 100%)' }} />
@@ -2780,8 +2782,8 @@ function ScatterCard({ stats, kind }) {
             <ReferenceLine y={0} stroke="var(--chart-baseline)" strokeDasharray="2 2" />
             <Tooltip cursor={{ strokeDasharray: '3 3', stroke: 'var(--chart-baseline)' }} contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }}
               formatter={(v, n) => n === 'pnl' ? [fmtMoney(v), 'P&L'] : [isTime ? `${Math.floor(v)}:00` : fmtHold(v), isTime ? (timeMode === 'entry' ? 'Entry' : 'Exit') : 'Hold']} />
-            <Scatter data={winData} fill="#30d158" fillOpacity={0.75} />
-            <Scatter data={lossData} fill="#ff453a" fillOpacity={0.75} />
+            <Scatter data={winData} fill="#4ade80" fillOpacity={0.75} />
+            <Scatter data={lossData} fill="#f87171" fillOpacity={0.75} />
           </ScatterChart>
         </ResponsiveContainer>
       </div>
@@ -2897,7 +2899,7 @@ function AccountBalanceChart({ trades, deposits }) {
         </div>
         <div style={{ display: 'flex', gap: 12, fontSize: 11 }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text2)' }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#6e5dfc' }} /> Balance</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text2)' }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#ff453a' }} /> Deposits</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text2)' }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#f87171' }} /> Deposits</span>
         </div>
       </div>
       <ResponsiveContainer width="100%" height={220}>
@@ -2908,7 +2910,7 @@ function AccountBalanceChart({ trades, deposits }) {
           <ReferenceLine y={0} stroke="var(--chart-baseline)" strokeDasharray="2 2" />
           <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={(v, n) => [fmtMoney(v), n === 'balance' ? 'Balance' : 'Deposits']} />
           <Line type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="balance" stroke="#6e5dfc" strokeWidth={2.4} dot={false} />
-          <Line type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="deposits" stroke="#ff453a" strokeWidth={2.4} dot={false} />
+          <Line type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="deposits" stroke="#f87171" strokeWidth={2.4} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </Card>
@@ -2969,15 +2971,15 @@ function WinLossAvgChart({ trades }) {
           <ReferenceLine y={0} yAxisId="money" stroke="var(--chart-baseline)" strokeDasharray="2 2" />
           <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }}
             formatter={(v, n) => n === 'winRate' ? [`${v.toFixed(1)}%`, 'Win %'] : [fmtMoney(v), n === 'avgWin' ? 'Avg win' : 'Avg loss']} />
-          <Line yAxisId="money" type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="avgWin" stroke="#30d158" strokeWidth={2.2} dot={{ r: 3, fill: '#30d158' }} />
+          <Line yAxisId="money" type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="avgWin" stroke="#4ade80" strokeWidth={2.2} dot={{ r: 3, fill: '#4ade80' }} />
           <Line yAxisId="money" type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="avgLoss" stroke="#58a6ff" strokeWidth={2.2} dot={{ r: 3, fill: '#58a6ff' }} />
-          <Line yAxisId="pct" type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="winRate" stroke="#ff453a" strokeWidth={2.2} dot={{ r: 3, fill: '#ff453a' }} />
+          <Line yAxisId="pct" type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="winRate" stroke="#f87171" strokeWidth={2.2} dot={{ r: 3, fill: '#f87171' }} />
         </LineChart>
       </ResponsiveContainer>
       <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 8, fontSize: 11, flexWrap: 'wrap' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text2)' }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#30d158' }} /> Avg win</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text2)' }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#4ade80' }} /> Avg win</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text2)' }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#58a6ff' }} /> Avg loss</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text2)' }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ff453a' }} /> Win %</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text2)' }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#f87171' }} /> Win %</span>
       </div>
     </Card>
   );
@@ -2997,10 +2999,10 @@ function Dashboard({ trades, onDayClick, checklist, checklistDays, onChecklistTo
       <HeroScoreCard stats={stats} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12 }}>
         <MetricGauge label="Net P&L" hint="Total net profit/loss including commission & swap" value={fmtMoney(stats.totalNet, true)} sub={`${stats.total} trades`} accent={stats.totalNet >= 0 ? 'var(--green-bright)' : 'var(--red)'} onClick={() => setTab('reports')} />
-        <MetricGauge label="Trade win %" value={`${stats.winRate.toFixed(2)}%`} donutValue={stats.winRate} color="#30d158" onClick={() => setTab('trade')}
+        <MetricGauge label="Trade win %" value={`${stats.winRate.toFixed(2)}%`} donutValue={stats.winRate} color="#4ade80" onClick={() => setTab('trade')}
           donutCenter={<Fragment><div className="tabnum" style={{ fontSize: 15, fontWeight: 700 }}>{stats.wins}</div><div style={{ fontSize: 9.5, color: 'var(--text3)' }}>/{stats.losses}</div></Fragment>} />
-        <MetricGauge label="Profit factor" hint="Gross profit ÷ gross loss" value={stats.profitFactor === Infinity ? '∞' : stats.profitFactor.toFixed(2)} donutValue={Math.min(100, (stats.profitFactor === Infinity ? 100 : stats.profitFactor) * 40)} color={stats.profitFactor >= 1 ? '#30d158' : '#ff453a'} />
-        <MetricGauge label="Day win %" value={`${stats.dayWinRate.toFixed(2)}%`} sub={`${stats.profDays}W / ${stats.losingDays}L days`} donutValue={stats.dayWinRate} color="#30d158" />
+        <MetricGauge label="Profit factor" hint="Gross profit ÷ gross loss" value={stats.profitFactor === Infinity ? '∞' : stats.profitFactor.toFixed(2)} donutValue={Math.min(100, (stats.profitFactor === Infinity ? 100 : stats.profitFactor) * 40)} color={stats.profitFactor >= 1 ? '#4ade80' : '#f87171'} />
+        <MetricGauge label="Day win %" value={`${stats.dayWinRate.toFixed(2)}%`} sub={`${stats.profDays}W / ${stats.losingDays}L days`} donutValue={stats.dayWinRate} color="#4ade80" />
         <WinLossBar avgWin={stats.avgWin} avgLoss={stats.avgLoss} label="Avg win/loss trade" />
       </div>
 
@@ -3020,13 +3022,13 @@ function Dashboard({ trades, onDayClick, checklist, checklistDays, onChecklistTo
           <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>Equity curve over time</div>
           <ResponsiveContainer width="100%" height={190}>
             <AreaChart data={stats.equity}>
-              <defs><linearGradient id="eqA" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#30d158" stopOpacity={0.4} /><stop offset="100%" stopColor="#30d158" stopOpacity={0} /></linearGradient></defs>
+              <defs><linearGradient id="eqA" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#4ade80" stopOpacity={0.4} /><stop offset="100%" stopColor="#4ade80" stopOpacity={0} /></linearGradient></defs>
               <CartesianGrid strokeDasharray="1 4" stroke="var(--chart-grid)" />
               <XAxis dataKey="label" tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} interval="preserveStartEnd" />
               <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
               <ReferenceLine y={0} stroke="var(--chart-baseline)" strokeDasharray="2 2" />
               <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => [fmtMoney(v), 'Equity']} />
-              <Area type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="equity" stroke="#30d158" strokeWidth={2} fill="url(#eqA)" />
+              <Area type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="equity" stroke="#4ade80" strokeWidth={2} fill="url(#eqA)" />
             </AreaChart>
           </ResponsiveContainer>
         </Card>
@@ -3048,7 +3050,7 @@ function Dashboard({ trades, onDayClick, checklist, checklistDays, onChecklistTo
               <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
               <ReferenceLine y={0} stroke="var(--chart-baseline)" />
               <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => [fmtMoney(v), 'Net']} cursor={{ fill: 'var(--track-bg)' }} />
-              <Bar animationDuration={500} animationEasing="ease-out" dataKey="pnl" radius={[2, 2, 0, 0]}>{stats.daily.map((d, i) => <Cell key={i} fill={d.pnl >= 0 ? '#30d158' : '#ff453a'} />)}</Bar>
+              <Bar animationDuration={500} animationEasing="ease-out" dataKey="pnl" radius={[2, 2, 0, 0]}>{stats.daily.map((d, i) => <Cell key={i} fill={d.pnl >= 0 ? '#4ade80' : '#f87171'} />)}</Bar>
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -3071,7 +3073,7 @@ function Dashboard({ trades, onDayClick, checklist, checklistDays, onChecklistTo
                     <div style={{ width: 76, fontFamily: 'ui-monospace,monospace', fontSize: 12, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.symbol}</div>
                     <div style={{ flex: 1, height: 16, background: 'var(--track-bg)', borderRadius: 4, position: 'relative', overflow: 'hidden' }}>
                       <div style={{ position: 'absolute', top: 0, bottom: 0, width: 1, background: 'var(--border2)', left: '50%' }} />
-                      <div style={{ position: 'absolute', top: 0, bottom: 0, background: pos ? 'rgba(38,166,154,0.7)' : 'rgba(239,83,80,0.7)', ...(pos ? { left: '50%', width: `${pct / 2}%` } : { right: '50%', width: `${pct / 2}%` }), transition: 'width 0.5s' }} />
+                      <div style={{ position: 'absolute', top: 0, bottom: 0, background: pos ? 'rgba(38,166,154,0.7)' : 'rgba(248,113,113,0.7)', ...(pos ? { left: '50%', width: `${pct / 2}%` } : { right: '50%', width: `${pct / 2}%` }), transition: 'width 0.5s' }} />
                     </div>
                     <div className="tabnum" style={{ width: 64, textAlign: 'right', fontSize: 13, fontWeight: 700, color: pos ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(s.net)}</div>
                   </div>
@@ -3141,13 +3143,13 @@ function DayCard({ day, allTrades, exitData, expanded, onExpand, note, onSaveNot
           <div className="force-stack" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,2fr)', gap: 16, paddingTop: 16 }}>
             <ResponsiveContainer width="100%" height={130}>
               <AreaChart data={equityData}>
-                <defs><linearGradient id={`g${day.date}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={profit ? '#30d158' : '#ff453a'} stopOpacity={0.4} /><stop offset="100%" stopColor={profit ? '#30d158' : '#ff453a'} stopOpacity={0} /></linearGradient></defs>
+                <defs><linearGradient id={`g${day.date}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={profit ? '#4ade80' : '#f87171'} stopOpacity={0.4} /><stop offset="100%" stopColor={profit ? '#4ade80' : '#f87171'} stopOpacity={0} /></linearGradient></defs>
                 <CartesianGrid strokeDasharray="1 4" stroke="var(--chart-grid)" />
                 <XAxis dataKey="i" tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
                 <ReferenceLine y={0} stroke="var(--chart-baseline)" />
                 <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => fmtMoney(v)} />
-                <Area type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="cum" stroke={profit ? '#30d158' : '#ff453a'} fill={`url(#g${day.date})`} strokeWidth={2} />
+                <Area type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="cum" stroke={profit ? '#4ade80' : '#f87171'} fill={`url(#g${day.date})`} strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(90px,1fr))', gap: 12 }}>
@@ -3169,7 +3171,7 @@ function DayCard({ day, allTrades, exitData, expanded, onExpand, note, onSaveNot
               </div>
             </div>
           )}
-          {!editNote && note && <div style={{ marginTop: 14, background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, fontSize: 13, color: 'var(--text2)', whiteSpace: 'pre-wrap' }}>{note}</div>}
+          {!editNote && note && <div style={{ marginTop: 14, background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 8, padding: 12, fontSize: 13, color: 'var(--text2)', whiteSpace: 'pre-wrap' }}>{note}</div>}
           {/* RamanFX Daily Insights — patterns detected from this day vs your 60-day history */}
           <div style={{ marginTop: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
@@ -3282,7 +3284,7 @@ function WeekView({ stats, allTrades, exitData }) {
                       {dayNames.map((dn, i) => {
                         const day = w.days[dn]; const isP = day?.pnl >= 0; const dd = new Date(start); dd.setDate(start.getDate() + i);
                         return (
-                          <div key={dn} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 8, background: day ? (isP ? 'rgba(38,166,154,0.08)' : 'rgba(239,83,80,0.08)') : 'var(--panel2)', border: `1px solid ${day ? (isP ? 'rgba(38,166,154,0.3)' : 'rgba(239,83,80,0.3)') : 'var(--border)'}`, gap: 12 }}>
+                          <div key={dn} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 8, background: day ? (isP ? 'rgba(38,166,154,0.08)' : 'rgba(248,113,113,0.08)') : 'var(--panel2)', border: `1px solid ${day ? (isP ? 'rgba(38,166,154,0.3)' : 'rgba(248,113,113,0.3)') : 'var(--border)'}`, gap: 12 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                               <div style={{ width: 36, textAlign: 'center' }}>
                                 <div style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--text3)', fontWeight: 600 }}>{dayLabels[i]}</div>
@@ -3300,7 +3302,7 @@ function WeekView({ stats, allTrades, exitData }) {
                       {dayNames.map((dn, i) => {
                         const day = w.days[dn]; const isP = day?.pnl >= 0; const dd = new Date(start); dd.setDate(start.getDate() + i);
                         return (
-                          <div key={dn} style={{ borderRadius: 10, border: `1px solid ${day ? (isP ? 'rgba(38,166,154,0.3)' : 'rgba(239,83,80,0.3)') : 'var(--border)'}`, background: day ? (isP ? 'rgba(38,166,154,0.08)' : 'rgba(239,83,80,0.08)') : 'var(--panel2)', padding: 12, textAlign: 'center', minHeight: 78, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                          <div key={dn} style={{ borderRadius: 10, border: `1px solid ${day ? (isP ? 'rgba(38,166,154,0.3)' : 'rgba(248,113,113,0.3)') : 'var(--border)'}`, background: day ? (isP ? 'rgba(38,166,154,0.08)' : 'rgba(248,113,113,0.08)') : 'var(--panel2)', padding: 12, textAlign: 'center', minHeight: 78, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                             <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text3)', marginBottom: 4 }}>{dayLabels[i]} {dd.getDate()}</div>
                             {day ? <Fragment><div className="tabnum" style={{ fontSize: 15, fontWeight: 700, color: isP ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(day.pnl, true)}</div><div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 3 }}>{day.trades} trades</div></Fragment> : <div style={{ fontSize: 10, color: 'var(--border2)' }}>—</div>}
                           </div>
@@ -3494,7 +3496,7 @@ const TRADE_COLUMNS = [
     render: (t, note) => {
       const m = note?.mistakes || [];
       if (!m.length) return <span style={{ color: 'var(--text3)' }}>—</span>;
-      return <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 3, maxWidth: 180 }}>{m.slice(0, 2).map(x => <span key={x} style={{ fontSize: 10, padding: '1px 6px', background: 'rgba(239,83,80,0.12)', border: '1px solid rgba(239,83,80,0.3)', borderRadius: 4, color: '#ff8a87' }}>{x}</span>)}{m.length > 2 && <span style={{ fontSize: 10, color: 'var(--text3)' }}>+{m.length - 2}</span>}</span>;
+      return <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 3, maxWidth: 180 }}>{m.slice(0, 2).map(x => <span key={x} style={{ fontSize: 10, padding: '1px 6px', background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 4, color: '#ff8a87' }}>{x}</span>)}{m.length > 2 && <span style={{ fontSize: 10, color: 'var(--text3)' }}>+{m.length - 2}</span>}</span>;
     }
   },
   { id: 'rating',    label: 'Setup rating', group: 'Notes', align: 'left', available: true, defaultOn: false,
@@ -3795,8 +3797,8 @@ function TradeView({ trades, notes, strategies, exitData, onSaveNote, onOpenTrad
       )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12 }}>
         <MetricGauge label="Net cumulative P&L" value={fmtMoney(filteredStats.totalNet, true)} sub={`${filteredStats.total} trade${filteredStats.total !== 1 ? 's' : ''}`} accent={filteredStats.totalNet >= 0 ? 'var(--green-bright)' : 'var(--red)'} />
-        <MetricGauge label="Profit factor" value={filteredStats.profitFactor === Infinity ? '∞' : filteredStats.profitFactor.toFixed(2)} donutValue={Math.min(100, (filteredStats.profitFactor === Infinity ? 100 : filteredStats.profitFactor) * 40)} color={filteredStats.profitFactor >= 1 ? '#30d158' : '#ff453a'} />
-        <MetricGauge label="Trade win %" value={`${filteredStats.winRate.toFixed(2)}%`} donutValue={filteredStats.winRate} color="#30d158" donutCenter={<div className="tabnum" style={{ fontSize: 13, fontWeight: 700 }}>{filteredStats.wins}/{filteredStats.losses}</div>} />
+        <MetricGauge label="Profit factor" value={filteredStats.profitFactor === Infinity ? '∞' : filteredStats.profitFactor.toFixed(2)} donutValue={Math.min(100, (filteredStats.profitFactor === Infinity ? 100 : filteredStats.profitFactor) * 40)} color={filteredStats.profitFactor >= 1 ? '#4ade80' : '#f87171'} />
+        <MetricGauge label="Trade win %" value={`${filteredStats.winRate.toFixed(2)}%`} donutValue={filteredStats.winRate} color="#4ade80" donutCenter={<div className="tabnum" style={{ fontSize: 13, fontWeight: 700 }}>{filteredStats.wins}/{filteredStats.losses}</div>} />
         <WinLossBar avgWin={filteredStats.avgWin} avgLoss={filteredStats.avgLoss} label="Avg win/loss trade" />
       </div>
       <Card style={{ padding: 12, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
@@ -3999,7 +4001,7 @@ function InsightsPanel({ windowTrades, historyTrades, scope, title, exitData }) 
     );
   }
   const levelStyle = {
-    warning: { border: 'rgba(239,83,80,0.45)', bg: 'rgba(239,83,80,0.06)', accent: 'var(--red)', label: 'Avoid' },
+    warning: { border: 'rgba(248,113,113,0.45)', bg: 'rgba(248,113,113,0.06)', accent: 'var(--red)', label: 'Avoid' },
     caution: { border: 'rgba(251,191,36,0.4)', bg: 'rgba(251,191,36,0.05)', accent: '#fbbf24', label: 'Watch' },
     good:    { border: 'rgba(38,166,154,0.45)', bg: 'rgba(38,166,154,0.06)', accent: 'var(--green-bright)', label: 'Working' },
   };
@@ -4053,13 +4055,13 @@ function DaySummaryPopup({ dayKey: dk, stats, onClose, onViewDetails, onAddNote,
         <div className="force-stack" style={{ padding: 22, display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1.6fr)', gap: 18 }}>
           <ResponsiveContainer width="100%" height={150}>
             <AreaChart data={equityData}>
-              <defs><linearGradient id="dayPopG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={profit ? '#30d158' : '#ff453a'} stopOpacity={0.4} /><stop offset="100%" stopColor={profit ? '#30d158' : '#ff453a'} stopOpacity={0} /></linearGradient></defs>
+              <defs><linearGradient id="dayPopG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={profit ? '#4ade80' : '#f87171'} stopOpacity={0.4} /><stop offset="100%" stopColor={profit ? '#4ade80' : '#f87171'} stopOpacity={0} /></linearGradient></defs>
               <CartesianGrid strokeDasharray="1 4" stroke="var(--chart-grid)" />
               <XAxis dataKey="i" tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
               <ReferenceLine y={0} stroke="var(--chart-baseline)" />
               <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => fmtMoney(v)} />
-              <Area type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="cum" stroke={profit ? '#30d158' : '#ff453a'} fill="url(#dayPopG)" strokeWidth={2} />
+              <Area type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="cum" stroke={profit ? '#4ade80' : '#f87171'} fill="url(#dayPopG)" strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))', gap: 14 }}>
@@ -4074,7 +4076,7 @@ function DaySummaryPopup({ dayKey: dk, stats, onClose, onViewDetails, onAddNote,
           </div>
         </div>
         {existingNote && (
-          <div style={{ margin: '0 22px 14px', padding: 12, background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, color: 'var(--text2)', whiteSpace: 'pre-wrap' }}>{existingNote}</div>
+          <div style={{ margin: '0 22px 14px', padding: 12, background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 8, fontSize: 13, color: 'var(--text2)', whiteSpace: 'pre-wrap' }}>{existingNote}</div>
         )}
       </div>
       <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, flexWrap: 'wrap', gap: 8 }}>
@@ -4192,9 +4194,9 @@ function TagPicker({ allTags, value, onChange, accent = 'violet', placeholder = 
     }
     // Legacy single-accent rendering (used by mistakes picker)
     return {
-      bg: accent === 'red' ? 'rgba(239,83,80,0.18)' : 'rgba(110,93,252,0.16)',
+      bg: accent === 'red' ? 'rgba(248,113,113,0.18)' : 'rgba(110,93,252,0.16)',
       fg: accent === 'red' ? '#ff8a87' : 'var(--violet-light)',
-      border: accent === 'red' ? 'rgba(239,83,80,0.45)' : 'rgba(110,93,252,0.4)',
+      border: accent === 'red' ? 'rgba(248,113,113,0.45)' : 'rgba(110,93,252,0.28)',
     };
   };
   return (
@@ -4253,7 +4255,7 @@ function TagPicker({ allTags, value, onChange, accent = 'violet', placeholder = 
                     {onPurgeTag && (
                       <button onClick={(e) => purgeFromLibrary(e, tag, count)} title={`Delete "${tag}" from library (removes from all ${count} trades)`}
                         style={{ padding: '0 6px', fontSize: 13, background: 'transparent', border: 'none', borderLeft: `1px solid ${c.border}`, color: 'var(--text3)', cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,83,80,0.12)'; e.currentTarget.style.color = '#ff8a87'; }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.12)'; e.currentTarget.style.color = '#ff8a87'; }}
                         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text3)'; }}>×</button>
                     )}
                   </div>
@@ -4429,7 +4431,7 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
             const t30mDol = toD(t30m), t1hDol = toD(t1h), t4hDol = toD(t4h), t12hDol = toD(t12h), t1dDol = toD(t1d);
             const fmtD = (d) => d == null ? '—' : (d >= 0 ? '+$' : '-$') + Math.abs(d).toFixed(2);
             const levelStyle = {
-              warning: { border: 'rgba(239,83,80,0.35)', bg: 'rgba(239,83,80,0.06)', accent: 'var(--red)' },
+              warning: { border: 'rgba(248,113,113,0.35)', bg: 'rgba(248,113,113,0.06)', accent: 'var(--red)' },
               caution: { border: 'rgba(251,191,36,0.35)', bg: 'rgba(251,191,36,0.05)', accent: '#fbbf24' },
               good:    { border: 'rgba(38,166,154,0.35)', bg: 'rgba(38,166,154,0.06)', accent: 'var(--green-bright)' },
             };
@@ -4479,7 +4481,7 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
               // MAE+MFE labels ABOVE the track, and exit BELOW. So no overlap in normal case.)
               // But labels themselves are wide. Shift exit label horizontally if it would push past edges.
               return (
-                <div style={{ marginBottom: 14, padding: '14px 14px 12px', background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 8 }}>
+                <div style={{ marginBottom: 14, padding: '14px 14px 12px', background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 8 }}>
                   <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)', fontWeight: 700, marginBottom: 14 }}>The trade's journey ($)</div>
                   {/* Outer relative container holds all three zones */}
                   <div style={{ position: 'relative', height: 130, width: '100%' }}>
@@ -4576,14 +4578,14 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                       </div>
                     )}
                     {maeDol != null && (
-                      <div style={{ padding: '8px 10px', background: 'rgba(239,83,80,0.06)', border: '1px solid rgba(239,83,80,0.25)', borderRadius: 7 }}>
+                      <div style={{ padding: '8px 10px', background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: 7 }}>
                         <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>MAE — worst point</div>
                         <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: 'var(--red)' }}>{fmtD(maeDol)}</div>
                         <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>{mae?.toLocaleString()}pt</div>
                       </div>
                     )}
                     {profitPts != null && mfe != null && mfe > 0 && profitPts > 0 && (
-                      <div style={{ padding: '8px 10px', background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 7 }}>
+                      <div style={{ padding: '8px 10px', background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 7 }}>
                         <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>Capture rate</div>
                         <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{((profitPts / mfe) * 100).toFixed(0)}%</div>
                         <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>of peak kept</div>
@@ -4627,7 +4629,7 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                 )}
                 {/* Forward-time mini ladder — only shown when data is consistent */}
                 {!suspectData && (t30mDol != null || t1hDol != null || t4hDol != null || t12hDol != null || t1dDol != null) && (
-                  <div style={{ padding: 10, background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 7, marginBottom: 12 }}>
+                  <div style={{ padding: 10, background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 7, marginBottom: 12 }}>
                     <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, marginBottom: 8 }}>What if you'd held longer? ($ value)</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4, fontSize: 11 }}>
                       {[['+30m', t30mDol], ['+1h', t1hDol], ['+4h', t4hDol], ['+12h', t12hDol], ['+1d', t1dDol]].map(([label, val]) => (
@@ -4773,7 +4775,7 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                 ) : (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 12 }}>
                     {tradeAttachments.map(a => (
-                      <div key={a.id} style={{ position: 'relative', borderRadius: 9, overflow: 'hidden', background: 'var(--panel2)', border: '1px solid var(--border)' }}>
+                      <div key={a.id} style={{ position: 'relative', borderRadius: 9, overflow: 'hidden', background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)' }}>
                         <img src={a.storageUrl || a.dataUrl} alt={a.name} style={{ width: '100%', height: 130, objectFit: 'cover', display: 'block', cursor: 'pointer' }} onClick={() => setLightbox(a)} />
                         <div style={{ padding: '6px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
                           <div style={{ fontSize: 11, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={a.name}>{a.name}</div>
@@ -4896,7 +4898,7 @@ function ReportsOverviewPane({ stats, insights }) {
               <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} />
               <ReferenceLine x={0} stroke="var(--chart-baseline)" strokeDasharray="2 2" />
               <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => [v, 'Trades']} labelFormatter={l => `~$${l.toFixed(0)}`} cursor={{ fill: 'var(--track-bg)' }} />
-              <Bar animationDuration={500} animationEasing="ease-out" dataKey="count">{stats.dist.map((d, i) => <Cell key={i} fill={d.bin >= 0 ? '#30d158' : '#ff453a'} fillOpacity={0.7} />)}</Bar>
+              <Bar animationDuration={500} animationEasing="ease-out" dataKey="count">{stats.dist.map((d, i) => <Cell key={i} fill={d.bin >= 0 ? '#4ade80' : '#f87171'} fillOpacity={0.7} />)}</Bar>
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -4907,7 +4909,7 @@ function ReportsOverviewPane({ stats, insights }) {
         {insights.length === 0 ? <div style={{ textAlign: 'center', padding: 16, color: 'var(--text3)', fontSize: 13 }}>Add at least 5 trades to unlock pattern detection.</div> : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 12 }}>
             {insights.map((ins, i) => {
-              const c = { positive: ['rgba(38,166,154,0.05)', 'rgba(38,166,154,0.2)', '#2dd4bf'], negative: ['rgba(239,83,80,0.05)', 'rgba(239,83,80,0.2)', '#ff453a'], warning: ['rgba(245,158,11,0.05)', 'rgba(245,158,11,0.2)', '#fbbf24'], info: ['rgba(56,139,253,0.05)', 'rgba(56,139,253,0.2)', '#58a6ff'] }[ins.type];
+              const c = { positive: ['rgba(38,166,154,0.05)', 'rgba(38,166,154,0.2)', '#2dd4bf'], negative: ['rgba(248,113,113,0.05)', 'rgba(248,113,113,0.2)', '#f87171'], warning: ['rgba(245,158,11,0.05)', 'rgba(245,158,11,0.2)', '#fbbf24'], info: ['rgba(56,139,253,0.05)', 'rgba(56,139,253,0.2)', '#58a6ff'] }[ins.type];
               return (
                 <div key={i} style={{ background: c[0], border: `1px solid ${c[1]}`, borderRadius: 12, padding: 16, display: 'flex', gap: 12 }}>
                   <div style={{ fontSize: 18 }}>{renderIcon(ins.icon, 18)}</div>
@@ -4952,7 +4954,7 @@ function ReportsDayTimePane({ trades }) {
               <YAxis type="category" dataKey="day" tick={{ fontSize: 11, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} width={42} />
               <ReferenceLine x={0} stroke="var(--chart-baseline)" />
               <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'var(--track-bg)' }} formatter={v => [fmtMoney(v, true), 'Net P&L']} />
-              <Bar animationDuration={500} animationEasing="ease-out" dataKey="net" radius={[0, 4, 4, 0]}>{dow.map((d, i) => <Cell key={i} fill={d.net >= 0 ? '#30d158' : '#ff453a'} />)}</Bar>
+              <Bar animationDuration={500} animationEasing="ease-out" dataKey="net" radius={[0, 4, 4, 0]}>{dow.map((d, i) => <Cell key={i} fill={d.net >= 0 ? '#4ade80' : '#f87171'} />)}</Bar>
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -4967,7 +4969,7 @@ function ReportsDayTimePane({ trades }) {
             <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
             <ReferenceLine y={0} stroke="var(--chart-baseline)" />
             <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'var(--track-bg)' }} formatter={v => [fmtMoney(v, true), 'Net']} />
-            <Bar animationDuration={500} animationEasing="ease-out" dataKey="net" radius={[2, 2, 0, 0]}>{hours.map((h, i) => <Cell key={i} fill={h.net >= 0 ? '#30d158' : '#ff453a'} />)}</Bar>
+            <Bar animationDuration={500} animationEasing="ease-out" dataKey="net" radius={[2, 2, 0, 0]}>{hours.map((h, i) => <Cell key={i} fill={h.net >= 0 ? '#4ade80' : '#f87171'} />)}</Bar>
           </BarChart>
         </ResponsiveContainer>
       </Card>
@@ -5030,7 +5032,7 @@ function ReportsPriceQtyPane({ trades }) {
             <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
             <ReferenceLine y={0} stroke="var(--chart-baseline)" />
             <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'var(--track-bg)' }} formatter={v => [fmtMoney(v, true), 'Net']} />
-            <Bar animationDuration={500} animationEasing="ease-out" dataKey="net" radius={[3, 3, 0, 0]}>{vol.map((d, i) => <Cell key={i} fill={d.net >= 0 ? '#30d158' : '#ff453a'} />)}</Bar>
+            <Bar animationDuration={500} animationEasing="ease-out" dataKey="net" radius={[3, 3, 0, 0]}>{vol.map((d, i) => <Cell key={i} fill={d.net >= 0 ? '#4ade80' : '#f87171'} />)}</Bar>
           </BarChart>
         </ResponsiveContainer>
       </Card>
@@ -5222,13 +5224,13 @@ function ReportsComparePane({ trades }) {
           </div>
           <ResponsiveContainer width="100%" height={180}>
             <AreaChart data={r.equity}>
-              <defs><linearGradient id={`cg${num}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={r.net >= 0 ? '#30d158' : '#ff453a'} stopOpacity={0.4} /><stop offset="100%" stopColor={r.net >= 0 ? '#30d158' : '#ff453a'} stopOpacity={0} /></linearGradient></defs>
+              <defs><linearGradient id={`cg${num}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={r.net >= 0 ? '#4ade80' : '#f87171'} stopOpacity={0.4} /><stop offset="100%" stopColor={r.net >= 0 ? '#4ade80' : '#f87171'} stopOpacity={0} /></linearGradient></defs>
               <CartesianGrid strokeDasharray="1 4" stroke="var(--chart-grid)" />
               <XAxis dataKey="label" tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} interval="preserveStartEnd" />
               <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
               <ReferenceLine y={0} stroke="var(--chart-baseline)" strokeDasharray="2 2" />
               <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => [fmtMoney(v), 'Equity']} />
-              <Area type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="equity" stroke={r.net >= 0 ? '#30d158' : '#ff453a'} strokeWidth={2} fill={`url(#cg${num})`} />
+              <Area type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="equity" stroke={r.net >= 0 ? '#4ade80' : '#f87171'} strokeWidth={2} fill={`url(#cg${num})`} />
             </AreaChart>
           </ResponsiveContainer>
         </Fragment>
@@ -5984,7 +5986,7 @@ function YearlyCalendar({ stats, yearOffset, setYearOffset, onMonthClick }) {
   const colorFor = (pnl) => {
     if (pnl == null || pnl === 0) return null;
     const a = 0.22 + Math.min(1, Math.abs(pnl) / maxAbs) * 0.43;
-    return pnl > 0 ? `rgba(38,166,154,${a})` : `rgba(239,83,80,${a})`;
+    return pnl > 0 ? `rgba(38,166,154,${a})` : `rgba(248,113,113,${a})`;
   };
   const navBtn = { padding: '4px 10px', borderRadius: 7, background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', cursor: 'pointer', fontSize: 12 };
   return (
@@ -6074,7 +6076,7 @@ function ProgressPage({ trades, checklist, checklistDays }) {
         <Card style={{ padding: 18 }}><div style={{ fontWeight: 600, marginBottom: 16 }}>Best & worst day</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ background: 'rgba(38,166,154,0.05)', border: '1px solid rgba(38,166,154,0.2)', borderRadius: 10, padding: 12 }}><div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: 11, color: 'var(--green-bright)', textTransform: 'uppercase', letterSpacing: '0.04em' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 010-5H6M18 9h1.5a2.5 2.5 0 000-5H18M18 2H6v7a6 6 0 0012 0V2z"/></svg> Best day</span><span className="tabnum" style={{ color: 'var(--green-bright)', fontWeight: 600 }}>{fmtMoney(best?.pnl || 0, true)}</span></div><div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4 }}>{best?.date} · {best?.trades} trades · {best?.wins}W/{best?.losses}L</div></div>
-            <div style={{ background: 'rgba(239,83,80,0.05)', border: '1px solid rgba(239,83,80,0.2)', borderRadius: 10, padding: 12 }}><div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: 11, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: '0.04em' }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Worst day</span><span className="tabnum" style={{ color: 'var(--red)', fontWeight: 600 }}>{fmtMoney(worst?.pnl || 0, true)}</span></div><div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4 }}>{worst?.date} · {worst?.trades} trades · {worst?.wins}W/{worst?.losses}L</div></div>
+            <div style={{ background: 'rgba(248,113,113,0.05)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 10, padding: 12 }}><div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: 11, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: '0.04em' }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Worst day</span><span className="tabnum" style={{ color: 'var(--red)', fontWeight: 600 }}>{fmtMoney(worst?.pnl || 0, true)}</span></div><div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4 }}>{worst?.date} · {worst?.trades} trades · {worst?.wins}W/{worst?.losses}L</div></div>
           </div>
         </Card>
       </div>
@@ -6410,7 +6412,7 @@ function TodayStatusBanner({ status, rules, onOpenGate, onOpenRules }) {
   const pct = Math.min(100, status.lossToday / Math.max(1, rules.maxDailyLoss) * 100);
   const pctTrades = Math.min(100, status.count / Math.max(1, rules.maxDailyTrades) * 100);
   return (
-    <Card style={{ padding: 0, overflow: 'hidden', border: locked ? '2px solid var(--red)' : (status.warnings.length ? '1px solid #f59e0b' : '1px solid var(--border)'), background: locked ? 'rgba(239,83,80,0.06)' : 'var(--panel)' }}>
+    <Card style={{ padding: 0, overflow: 'hidden', border: locked ? '2px solid var(--red)' : (status.warnings.length ? '1px solid #f59e0b' : '1px solid var(--border)'), background: locked ? 'rgba(248,113,113,0.06)' : 'var(--panel)' }}>
       <div style={{ padding: '14px 18px', display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', minWidth: 0 }}>
           <div style={{ fontSize: 26, lineHeight: 1 }}>{renderIcon(locked ? 'warning' : (status.warnings.length ? 'caution' : 'good'), 16)}</div>
@@ -6452,7 +6454,7 @@ function TodayStatusBanner({ status, rules, onOpenGate, onOpenRules }) {
         </div>
       </div>
       {(status.breaches.length > 0 || status.warnings.length > 0) && (
-        <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border)', background: locked ? 'rgba(239,83,80,0.08)' : 'rgba(245,158,11,0.06)' }}>
+        <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border)', background: locked ? 'rgba(248,113,113,0.08)' : 'rgba(245,158,11,0.06)' }}>
           {status.breaches.map((b, i) => (
             <div key={i} style={{ fontSize: 13, color: 'var(--red)', fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'flex-start', gap: 6 }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M4.93 4.93l14.14 14.14"/></svg> <span>{b.text}</span></div>
           ))}
@@ -6510,7 +6512,7 @@ function PreTradeGate({ open, onClose, status, rules }) {
       </div>
       <div style={{ padding: 22, flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
         {status.locked && (
-          <div style={{ padding: 14, background: 'rgba(239,83,80,0.1)', border: '1px solid var(--red)', borderRadius: 10, marginBottom: 16 }}>
+          <div style={{ padding: 14, background: 'rgba(248,113,113,0.1)', border: '1px solid var(--red)', borderRadius: 10, marginBottom: 16 }}>
             <div style={{ fontWeight: 700, color: 'var(--red)', marginBottom: 6 }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M4.93 4.93l14.14 14.14"/></svg> You are locked out for today</div>
             {status.breaches.map((b, i) => <div key={i} style={{ fontSize: 13, color: 'var(--text2)', marginTop: 4 }}>• {b.text}</div>)}
             <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 10, fontStyle: 'italic' }}>This isn't a technical block on your broker — but if you trade through this warning, you're explicitly choosing to break your own rules. Close the terminal and step away.</div>
@@ -6543,7 +6545,7 @@ function PreTradeGate({ open, onClose, status, rules }) {
           <label style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, display: 'block', marginBottom: 6 }}>Type to confirm: <span style={{ fontFamily: 'ui-monospace,monospace', color: 'var(--text)' }}>I will follow my plan</span></label>
           <input value={confirmed} onChange={e => setConfirmed(e.target.value)} placeholder="Type the words above" style={{ ...inputStyle, width: '100%', fontSize: 14 }} />
         </div>
-        <div style={{ marginTop: 18, padding: 14, borderRadius: 10, background: greenLight ? 'rgba(38,166,154,0.1)' : 'rgba(239,83,80,0.08)', border: `1.5px solid ${greenLight ? 'var(--green)' : 'var(--red)'}` }}>
+        <div style={{ marginTop: 18, padding: 14, borderRadius: 10, background: greenLight ? 'rgba(38,166,154,0.1)' : 'rgba(248,113,113,0.08)', border: `1.5px solid ${greenLight ? 'var(--green)' : 'var(--red)'}` }}>
           <div style={{ fontWeight: 700, fontSize: 15, color: greenLight ? 'var(--green-bright)' : 'var(--red)', marginBottom: greenLight ? 0 : 8 }}>
             {greenLight ? 'Clear to trade' : <span style={{display:'inline-flex',alignItems:'center',gap:5}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M4.93 4.93l14.14 14.14"/></svg> DO NOT ENTER</span>}
           </div>
@@ -6912,7 +6914,7 @@ function AICoach({ trades, notes, stats, riskRules, exitData, config, onSaveConf
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 8, width: '100%', maxWidth: 520 }}>
                 {quickPrompts.map((qp, i) => (
-                  <button key={i} onClick={() => send(qp.text)} disabled={loading} style={{ padding: 12, background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: 'var(--text)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}
+                  <button key={i} onClick={() => send(qp.text)} disabled={loading} style={{ padding: 12, background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 8, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: 'var(--text)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--violet)'; e.currentTarget.style.background = 'var(--hover-tint)'; }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--panel2)'; }}>
                     <span style={{ fontSize: 18 }}>{renderIcon(qp.icon, 16)}</span>
@@ -6940,7 +6942,7 @@ function AICoach({ trades, notes, stats, riskRules, exitData, config, onSaveConf
             </div>
           )}
           {error && (
-            <div style={{ padding: 10, background: 'rgba(239,83,80,0.1)', border: '1px solid rgba(239,83,80,0.4)', borderRadius: 8, color: 'var(--red)', fontSize: 12 }}>
+            <div style={{ padding: 10, background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.4)', borderRadius: 8, color: 'var(--red)', fontSize: 12 }}>
               <strong>Error:</strong> {error}
             </div>
           )}
@@ -7009,7 +7011,7 @@ function Sidebar({ tab, setTab, hasData, mobileOpen, setMobileOpen, collapsed, s
     <aside style={{ width: sidebarWidth, background: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)', position: 'fixed', left: isMobile ? (mobileOpen ? 0 : -280) : 0, top: 0, bottom: 0, display: 'flex', flexDirection: 'column', padding: isCollapsed ? '12px 8px' : 12, paddingTop: isMobile ? `calc(env(safe-area-inset-top, 0px) + 14px)` : (isCollapsed ? '12px 8px' : 12), zIndex: 50, transition: isMobile ? 'left 0.25s ease' : 'width 0.2s ease, padding 0.2s ease', boxShadow: isMobile && mobileOpen ? '4px 0 24px rgba(0,0,0,0.6)' : 'none' }}>
       {/* Branding stamp — collapsed mode shows JUST the icon, expanded shows icon + text */}
       <div style={{ display: 'flex', alignItems: 'center', gap: isCollapsed ? 0 : 11, justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '10px 0' : '14px 10px', marginBottom: 10, borderRadius: 12, background: isCollapsed ? 'transparent' : 'linear-gradient(135deg, rgba(110,93,252,0.06), rgba(192,38,211,0.04))', border: isCollapsed ? 'none' : '1px solid rgba(110,93,252,0.16)', boxShadow: isCollapsed ? 'none' : 'inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -1px 0 rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.5)' }}>
-        <svg width={isCollapsed ? 36 : 32} height={isCollapsed ? 36 : 32} viewBox="0 0 100 100" fill="none" style={{ filter: 'drop-shadow(0 0 8px rgba(110,93,252,0.36))', flexShrink: 0 }}>
+        <svg width={isCollapsed ? 36 : 32} height={isCollapsed ? 36 : 32} viewBox="0 0 100 100" fill="none" style={{ filter: 'drop-shadow(0 0 8px rgba(110,93,252,0.24))', flexShrink: 0 }}>
           <defs>
             <linearGradient id="sbSword" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#c4b5fd"/><stop offset="50%" stopColor="#a78bfa"/><stop offset="100%" stopColor="#6e5dfc"/>
@@ -7022,10 +7024,10 @@ function Sidebar({ tab, setTab, hasData, mobileOpen, setMobileOpen, collapsed, s
             </linearGradient>
           </defs>
           <circle cx="50" cy="55" r="40" fill="rgba(110,93,252,0.16)"/>
-          <path d="M 9 76 Q 18 46 32 35 Q 42 28 50 36" stroke="#ff453a" strokeWidth="2" fill="none" strokeLinecap="round"/>
-          <path d="M 91 76 Q 82 46 68 35 Q 58 28 50 36" stroke="#ff453a" strokeWidth="2" fill="none" strokeLinecap="round"/>
-          <path d="M 9 65 Q 18 84 32 89 Q 42 91 50 86" stroke="#30d158" strokeWidth="2" fill="none" strokeLinecap="round"/>
-          <path d="M 91 65 Q 82 84 68 89 Q 58 91 50 86" stroke="#30d158" strokeWidth="2" fill="none" strokeLinecap="round"/>
+          <path d="M 9 76 Q 18 46 32 35 Q 42 28 50 36" stroke="#f87171" strokeWidth="2" fill="none" strokeLinecap="round"/>
+          <path d="M 91 76 Q 82 46 68 35 Q 58 28 50 36" stroke="#f87171" strokeWidth="2" fill="none" strokeLinecap="round"/>
+          <path d="M 9 65 Q 18 84 32 89 Q 42 91 50 86" stroke="#4ade80" strokeWidth="2" fill="none" strokeLinecap="round"/>
+          <path d="M 91 65 Q 82 84 68 89 Q 58 91 50 86" stroke="#4ade80" strokeWidth="2" fill="none" strokeLinecap="round"/>
           <g transform="translate(13, 22)">
             <path d="M 3 14 Q 1 8 5 6 Q 9 1 16 2 L 21 -3 L 24 1 L 24 7 Q 26 11 23 15 L 21 17 Q 16 19 11 17 L 6 18 Q 2 17 3 14 Z" fill="url(#sbBull)"/>
             <path d="M 4 7 L 1 1 L 5 4 L 8 -1 L 10 5" fill="url(#sbBull)" stroke="#6e5dfc" strokeWidth="0.5"/>
@@ -7117,12 +7119,12 @@ function ExitAnalysisPage({ trades, exitData, onOpenTrade }) {
               <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--green-bright)', fontWeight: 700, marginBottom: 6 }}>MFE — Maximum Favorable Excursion</div>
               <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.55 }}>The <strong style={{ color: 'var(--text)' }}>best point</strong> a trade reached in your favor before you closed it. Example: you bought XAUUSD at $4500. Price ran up to $4550 (you were up <strong style={{ color: 'var(--green-bright)' }}>+$50 unrealized</strong>), then dropped back. You closed at $4520 with only +$20 — your MFE was +$50.</div>
             </div>
-            <div style={{ padding: 14, background: 'rgba(239,83,80,0.06)', border: '1px solid rgba(239,83,80,0.25)', borderRadius: 10 }}>
+            <div style={{ padding: 14, background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: 10 }}>
               <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--red)', fontWeight: 700, marginBottom: 6 }}>MAE — Maximum Adverse Excursion</div>
               <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.55 }}>The <strong style={{ color: 'var(--text)' }}>worst point</strong> a trade was against you before you closed it. Example: you bought XAUUSD at $4500. Price dropped to $4480 (you were down <strong style={{ color: 'var(--red)' }}>-$20 unrealized</strong>), then recovered. You closed at $4515 with +$15 — your MAE was -$20.</div>
             </div>
           </div>
-          <div style={{ marginTop: 14, padding: 12, background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6 }}>
+          <div style={{ marginTop: 14, padding: 12, background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 8, fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6 }}>
             <strong style={{ color: 'var(--violet-light)' }}>Why it matters:</strong> If most of your winners' MFE was much bigger than what you actually took home, you're <em>cutting winners early</em>. If your losers' MAE shows they went deeply against you fast, your entries are off. The script also calculates "if you'd held to T+1h / 4h / 1d, what would you have made?" — answering whether more patience would have helped or hurt.
           </div>
         </Card>
@@ -7243,13 +7245,13 @@ function ExitAnalysisPage({ trades, exitData, onOpenTrade }) {
                 return [v, n];
               }}
               labelFormatter={(v, payload) => payload?.[0]?.payload?.symbol || ''} />
-            <Scatter data={stats.scatterData.filter(d => d.profitDol != null && d.profitDol >= 0)} fill="#30d158" fillOpacity={0.7} />
-            <Scatter data={stats.scatterData.filter(d => d.profitDol != null && d.profitDol < 0)} fill="#ff453a" fillOpacity={0.7} />
+            <Scatter data={stats.scatterData.filter(d => d.profitDol != null && d.profitDol >= 0)} fill="#4ade80" fillOpacity={0.7} />
+            <Scatter data={stats.scatterData.filter(d => d.profitDol != null && d.profitDol < 0)} fill="#f87171" fillOpacity={0.7} />
           </ScatterChart>
         </ResponsiveContainer>
         <div style={{ display: 'flex', gap: 14, marginTop: 10, fontSize: 11, color: 'var(--text3)', flexWrap: 'wrap' }}>
-          <span><span style={{ display: 'inline-block', width: 9, height: 9, background: '#30d158', borderRadius: '50%', marginRight: 5 }} />Winner (closed in profit)</span>
-          <span><span style={{ display: 'inline-block', width: 9, height: 9, background: '#ff453a', borderRadius: '50%', marginRight: 5 }} />Loser (closed in loss)</span>
+          <span><span style={{ display: 'inline-block', width: 9, height: 9, background: '#4ade80', borderRadius: '50%', marginRight: 5 }} />Winner (closed in profit)</span>
+          <span><span style={{ display: 'inline-block', width: 9, height: 9, background: '#f87171', borderRadius: '50%', marginRight: 5 }} />Loser (closed in loss)</span>
         </div>
       </Card>
 
@@ -7298,8 +7300,8 @@ function ExitAnalysisPage({ trades, exitData, onOpenTrade }) {
               .filter(d => d.profit < 0 && d.mfe > 50)
               .sort((a, b) => (b.mfeDol || b.mfe) - (a.mfeDol || a.mfe))
               .slice(0, 10).map(d => (
-              <div key={d.id} onClick={() => onOpenTrade?.(d.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'rgba(239,83,80,0.06)', border: '1px solid rgba(239,83,80,0.25)', borderRadius: 8, cursor: 'pointer', transition: 'background 0.15s', flexWrap: 'wrap', gap: 8 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,83,80,0.12)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,83,80,0.06)'}>
+              <div key={d.id} onClick={() => onOpenTrade?.(d.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: 8, cursor: 'pointer', transition: 'background 0.15s', flexWrap: 'wrap', gap: 8 }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(248,113,113,0.12)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(248,113,113,0.06)'}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flexWrap: 'wrap' }}>
                   <span style={{ fontFamily: 'ui-monospace,monospace', fontSize: 13, color: 'var(--text)', fontWeight: 600 }}>{d.symbol}</span>
                   <span style={{ fontSize: 11, color: 'var(--green-bright)' }}>peaked {d.mfeDol != null ? '+$' + d.mfeDol.toFixed(2) : '+' + d.mfe.toLocaleString() + 'pt'}</span>
@@ -7318,15 +7320,15 @@ function ExitAnalysisPage({ trades, exitData, onOpenTrade }) {
 
 // ── Icon helper: converts text code / SVG string to rendered element ──
 const ICON_MAP = {
-  'good':    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#30d158" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>',
+  'good':    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>',
   'trophy':  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 010-5H6M18 9h1.5a2.5 2.5 0 000-5H18M18 2H6v7a6 6 0 0012 0V2z"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M4 22h16"/></svg>',
-  'up':      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#30d158" strokeWidth="2" strokeLinecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>',
-  'down':    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff453a" strokeWidth="2" strokeLinecap="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>',
+  'up':      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2" strokeLinecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>',
+  'down':    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>',
   'balance': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v18M3 9l4-4 4 4M17 15l4-4-4-4"/></svg>',
   'exit':    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>',
   'clock':   '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
-  'caution': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
-  'warning': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff453a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+  'caution': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+  'warning': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
   'ico0': '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
   'ico1': '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20H4a2 2 0 01-2-2V6a2 2 0 012-2h16"/><path d="M8 2v4M16 2v4M2 10h20M16 16h2M16 20h2"/></svg>',
   'ico2': '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
@@ -8093,9 +8095,9 @@ function App() {
               return (
                 <div className="fade-in" onClick={() => setGlobalToast(null)} style={{
                   marginTop: 6, padding: '8px 14px', borderRadius: 'var(--r-md)', fontSize: 11, lineHeight: 1.5, cursor: 'pointer', fontWeight: 500,
-                  background: isErr ? 'rgba(239,83,80,0.12)' : isLoad ? 'var(--panel)' : 'rgba(38,166,154,0.12)',
-                  border: `1px solid ${isErr ? 'rgba(239,83,80,0.4)' : isLoad ? 'var(--border)' : 'rgba(38,166,154,0.4)'}`,
-                  color: isErr ? '#ff453a' : isLoad ? 'var(--text2)' : '#2dd4bf',
+                  background: isErr ? 'rgba(248,113,113,0.12)' : isLoad ? 'var(--panel)' : 'rgba(38,166,154,0.12)',
+                  border: `1px solid ${isErr ? 'rgba(248,113,113,0.4)' : isLoad ? 'var(--border)' : 'rgba(38,166,154,0.4)'}`,
+                  color: isErr ? '#f87171' : isLoad ? 'var(--text2)' : '#2dd4bf',
                   maxWidth: 480,
                 }}>
                   {globalToast.msg} <span style={{ opacity: 0.5, fontSize: 11 }}>· click to dismiss</span>
@@ -8103,7 +8105,7 @@ function App() {
               );
             })()}
               <Hint text={privacyMode ? 'Show dollar amounts' : 'Hide dollar amounts (privacy mode)'}>
-                <button style={{ ...btnStyle('ghost'), padding: 7, fontSize: 14, color: privacyMode ? 'var(--violet-light)' : undefined }} onClick={togglePrivacy} aria-label="Toggle privacy mode">
+                <button style={{ ...btnStyle('ghost'), padding: 7, fontSize: 14, color: privacyMode ? 'var(--violet-light)' : 'var(--text2)' }} onClick={togglePrivacy} aria-label="Toggle privacy mode">
                   {privacyMode ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg> : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>}
                 </button>
               </Hint>
@@ -8326,7 +8328,7 @@ function App() {
       {/* Floating gate button — always reachable */}
       {trades.length > 0 && !gateOpen && (
         <button onClick={() => setGateOpen(true)} title="Pre-trade gate" className="rfx-float-bottom"
-          style={{ '--rfx-float-offset': isMobile ? '18px' : '26px', position: 'fixed', right: isMobile ? 18 : 26, zIndex: 40, padding: '10px 18px', borderRadius: 'var(--r-full)', border: `1px solid ${riskStatus.locked ? 'rgba(239,83,80,0.4)' : 'rgba(110,93,252,0.36)'}`, cursor: 'pointer', background: riskStatus.locked ? 'rgba(239,83,80,0.9)' : 'rgba(124,92,252,0.9)', color: '#fff', fontWeight: 600, fontSize: 13, letterSpacing: '-0.01em', boxShadow: riskStatus.locked ? '0 4px 20px rgba(239,83,80,0.4)' : '0 4px 20px rgba(110,93,252,0.32)', display: 'flex', alignItems: 'center', gap: 7, backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', transition: 'background 0.15s ease, box-shadow 0.15s ease' }}>
+          style={{ '--rfx-float-offset': isMobile ? '18px' : '26px', position: 'fixed', right: isMobile ? 18 : 26, zIndex: 40, padding: '10px 18px', borderRadius: 'var(--r-full)', border: `1px solid ${riskStatus.locked ? 'rgba(248,113,113,0.4)' : 'rgba(110,93,252,0.24)'}`, cursor: 'pointer', background: riskStatus.locked ? 'rgba(248,113,113,0.9)' : 'rgba(124,92,252,0.9)', color: '#fff', fontWeight: 600, fontSize: 13, letterSpacing: '-0.01em', boxShadow: riskStatus.locked ? '0 4px 20px rgba(248,113,113,0.4)' : '0 4px 20px rgba(110,93,252,0.32)', display: 'flex', alignItems: 'center', gap: 7, backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', transition: 'background 0.15s ease, box-shadow 0.15s ease' }}>
           <span style={{ fontSize: 14, fontStyle: 'normal' }}>{riskStatus.locked ? "×" : '◈'}</span>{riskStatus.locked ? 'Locked' : 'Pre-trade gate'}
         </button>
       )}
