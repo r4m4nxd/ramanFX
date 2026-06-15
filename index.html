@@ -51,6 +51,11 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     /* ── Radius scale ── */
     --r-sm: 6px; --r-md: 10px; --r-lg: 14px; --r-xl: 18px; --r-full: 9999px;
     /* ── Easing (Emil-grade custom curves) ── */
+    /* ── Motion tokens (4 named durations, 3 curves) ── */
+    --dur-fast: 120ms;      /* micro: toggle, hover, focus */
+    --dur-normal: 220ms;    /* UI: modal, drawer, tab */
+    --dur-slow: 380ms;      /* page: route, dashboard cascade */
+    --dur-xslow: 550ms;     /* hero: score count-up, splash */
     --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
     --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
     --ease-spring: cubic-bezier(0.22, 1.65, 0.36, 1);
@@ -85,7 +90,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     --scroll-thumb: #303038;
     --scroll-thumb-hover: #3f3f46;
     /* Hover tints */
-    --hover-tint: rgba(124,92,252,0.05);
+    --hover-tint: rgba(110,93,252,0.05);
     /* Shadows — subtle depth in dark mode */
     --shadow-card: 0 1px 3px rgba(0,0,0,0.3), 0 0 0 0.5px rgba(255,255,255,0.04) inset;
     --shadow-elev: 0 4px 20px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.3);
@@ -155,7 +160,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     --red: #dc2626;
     --violet: #7c5cfc;
     --violet-light: #6d28d9;
-    --violet-tint: rgba(124,92,252,0.10);
+    --violet-tint: rgba(110,93,252,0.10);
     --chart-grid: #f4f4f5;
     --chart-axis: #e4e4e7;
     --chart-tick: #71717a;
@@ -211,13 +216,13 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     letter-spacing: -0.015em;
-    transition: background-color 0.25s ease, color 0.25s ease;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
   }
   /* ── Refined scrollbar ── */
-  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: var(--r-full); }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: var(--r-full); transition: background 0.2s; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
   /* ── DM Sans tabular-nums for all numeric displays ── */
   .tabnum {
     font-family: 'DM Sans', 'Fira Code', 'SF Mono', monospace;
@@ -231,12 +236,12 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   /* Spring easing — matches Framer Motion's spring(0.4, 0.8, 0.2) */
 
   /* ── Entry animations ── */
-  .fade-in { animation: fadeIn 0.35s var(--ease-out) both; }
+  .fade-in { animation: fadeIn var(--dur-normal) var(--ease-out) both; }
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(6px); }
     to { opacity: 1; transform: none; }
   }
-  .slide-up { animation: slideUp 0.42s var(--ease-spring) both; }
+  .slide-up { animation: slideUp var(--dur-slow) var(--ease-spring) both; }
   @keyframes slideUp {
     from { opacity: 0; transform: translateY(18px); }
     to { opacity: 1; transform: none; }
@@ -246,9 +251,9 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: none; }
   }
-  .scale-in { animation: scaleIn 0.3s var(--ease-spring) both; }
+  .scale-in { animation: scaleIn var(--dur-normal) var(--ease-spring) both; }
   @keyframes scaleIn {
-    from { opacity: 0; transform: scale(0.9); }
+    from { opacity: 0; transform: scale(0.88); }
     to { opacity: 1; transform: scale(1); }
   }
   .slide-right { animation: slideRight 0.4s var(--ease-out) both; }
@@ -258,21 +263,21 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   }
 
   /* ── Page transition — content fade+slide on tab change ── */
-  .page-enter { animation: pageEnter 0.35s var(--ease-out) both; }
+  .page-enter { animation: pageEnter var(--dur-slow) var(--ease-out) both; }
   @keyframes pageEnter {
-    from { opacity: 0; transform: translateY(8px) scale(0.998); }
+    from { opacity: 0; transform: translateY(10px) scale(0.997); }
     to { opacity: 1; transform: none; }
   }
 
   /* ── Modal entrance — Apple sheet spring ── */
-  .modal-enter { animation: modalEnter 0.32s var(--ease-spring) both; }
+  .modal-enter { animation: modalEnter var(--dur-normal) var(--ease-spring) both; }
   @keyframes modalEnter {
-    from { opacity: 0; transform: scale(0.92) translateY(14px); }
+    from { opacity: 0; transform: scale(0.94) translateY(10px); }
     to { opacity: 1; transform: none; }
   }
 
   /* ── Dashboard card cascade ── */
-  .dash-card { animation: cardEnter 0.45s var(--ease-spring) both; }
+  .dash-card { animation: cardEnter var(--dur-slow) var(--ease-spring) both; }
   @keyframes cardEnter {
     from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: none; }
@@ -287,12 +292,12 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   .dash-card:nth-child(8) { animation-delay: 385ms; }
 
   /* ── Chart mount ── */
-  .recharts-wrapper { animation: fadeIn 0.5s var(--ease-out) 0.12s both; }
+  .recharts-wrapper { animation: fadeIn var(--dur-slow) var(--ease-out) 0.1s both; }
 
   /* ── Card hover lift ── */
   @media (hover: hover) and (pointer: fine) {
     .card-hover {
-      transition: transform 0.22s var(--ease-out), box-shadow 0.22s var(--ease-out), border-color 0.22s var(--ease-out);
+      transition: transform var(--dur-normal) var(--ease-out), box-shadow var(--dur-normal) var(--ease-out), border-color var(--dur-normal) var(--ease-out);
     }
     .card-hover:hover {
       transform: translateY(-2px);
@@ -300,18 +305,26 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
       border-color: var(--border2);
     }
   }
+  /* ── Scroll-reveal: elements fade in as they enter viewport ── */
+  @supports (animation-timeline: view()) {
+    .scroll-reveal {
+      animation: fadeIn linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 40%;
+    }
+  }
 
   /* ── KPI + Numbers ── */
-  .kpi-val { transition: color 0.4s var(--ease-out), transform 0.2s var(--ease-spring); }
+  .kpi-val { transition: color var(--dur-slow) var(--ease-out), transform var(--dur-normal) var(--ease-spring), opacity var(--dur-normal) var(--ease-out); }
   .num-glow { transition: color 0.3s ease, text-shadow 0.3s ease; }
 
   /* ── Sidebar nav item ── */
   .sidebar-item {
-    transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out),
-                box-shadow 0.15s var(--ease-out), transform 0.12s var(--ease-out);
+    transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out),
+                box-shadow var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-spring);
   }
-  @media (hover: hover) { .sidebar-item:hover { transform: translateX(2px); } }
-  .sidebar-item:active { transform: translateX(0) scale(0.97); }
+  @media (hover: hover) { .sidebar-item:hover { transform: translateX(3px); } }
+  .sidebar-item:active { transform: translateX(0) scale(0.96); transition-duration: 60ms; }
 
   /* ── Pulse dot ── */
   @keyframes pulse { 0%, 100% { opacity: 0.5; transform: scale(1); } 50% { opacity: 1; transform: scale(1.6); } }
@@ -327,9 +340,18 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   .stagger-5 { animation-delay: 250ms; }
 
   /* ── Table row enter ── */
-  .tr-enter { animation: slideUp 0.25s var(--ease-out) both; }
+  .tr-enter { animation: slideUp var(--dur-normal) var(--ease-out) both; }
+  /* Table row hover */
+  tr { transition: background var(--dur-fast) var(--ease-out); }
+  @media (hover: hover) { tr:hover { background: rgba(110,93,252,0.03); } }
 
   /* ── Reduced motion ── */
+  /* ── Mobile: touch targets 44px min ── */
+  @media (max-width: 768px) {
+    button { min-height: 40px; }
+    select { min-height: 40px; }
+    input[type="text"], input[type="email"], input[type="password"], textarea { min-height: 40px; }
+  }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
   }
@@ -350,7 +372,8 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   .label-xs { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text3); }
   .label-sm { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); }
   /* ── Hover only on real pointer devices ── */
-  .clickable { cursor: pointer; transition: opacity 0.15s var(--ease-out); }
+  .clickable { cursor: pointer; transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-spring); }
+  .clickable:active { transform: scale(0.98); }
   @media (hover: hover) and (pointer: fine) {
     .clickable:hover { opacity: 0.8; }
   }
@@ -380,7 +403,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     @page { margin: 0.5in; }
   }
   /* ── Button micro-interactions (Emil: buttons must feel press) ── */
-  button:active { transform: scale(0.97) !important; }
+  button:active { transform: scale(0.97) !important; transition-duration: var(--dur-fast) !important; }
   button:disabled { opacity: 0.45 !important; cursor: not-allowed !important; transform: none !important; }
   @media (hover: hover) and (pointer: fine) {
     button:not(:disabled):hover { opacity: 0.88; }
@@ -396,16 +419,16 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   /* ── Input focus states ── */
   select { background: var(--panel); color: var(--text); }
   select option { background: var(--panel); color: var(--text); }
-  input:focus, textarea:focus, select:focus { outline: none; box-shadow: 0 0 0 2px var(--violet-tint), 0 0 0 1px var(--violet) inset; }
+  input:focus, textarea:focus, select:focus { outline: none; box-shadow: 0 0 0 3px rgba(110,93,252,0.15), 0 0 0 1px rgba(110,93,252,0.4) inset; transition: box-shadow var(--dur-fast) var(--ease-out); }
   /* ── Selection color ── */
   ::selection { background: rgba(110,93,252,0.3); color: var(--text); }
-  :focus-visible { outline: 2px solid rgba(110,93,252,0.7); outline-offset: 2px; border-radius: var(--r-sm); }
-  button:focus-visible { outline: 2px solid rgba(110,93,252,0.7); outline-offset: 2px; }
+  :focus-visible { outline: 2px solid rgba(110,93,252,0.6); outline-offset: 2px; border-radius: var(--r-sm); transition: outline-offset var(--dur-fast) var(--ease-out); }
+  button:focus-visible { outline: 2px solid rgba(110,93,252,0.6); outline-offset: 3px; transition: outline-offset var(--dur-fast) var(--ease-out); }
   /* Hidden when not printing — only visible during print preview */
   .print-note-target { display: none; }
   /* Chart tooltip + label text — force bright colours so they are readable on the dark theme */
   .recharts-default-tooltip {
-    background: rgba(14,14,20,0.92) !important;
+    background: rgba(12,12,16,0.88) !important;
     border: 1px solid rgba(255,255,255,0.1) !important;
     border-radius: 12px !important;
     box-shadow: 0 12px 40px rgba(0,0,0,0.7), 0 0 0 0.5px rgba(255,255,255,0.06) inset, 0 1px 0 rgba(255,255,255,0.08) inset !important;
@@ -487,7 +510,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     background: #050507;
     display: flex; align-items: center; justify-content: center;
     flex-direction: column; gap: 0;
-    transition: opacity 0.6s cubic-bezier(0.23,1,0.32,1);
+    transition: opacity 0.6s var(--ease-out);
     overflow: hidden;
   }
   #rfx-loader.fade-out { opacity: 0; pointer-events: none; }
@@ -516,7 +539,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     position: relative; overflow: hidden;
     opacity: 0;
     transform: scale(0.8);
-    animation: rfx-icon-in 0.7s cubic-bezier(0.34,1.56,0.64,1) 0.15s forwards;
+    animation: rfx-icon-in var(--dur-xslow) var(--ease-spring) 0.15s forwards;
     z-index: 1;
   }
   /* Gloss overlay on icon */
@@ -531,7 +554,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     font-size: 22px; font-weight: 700; letter-spacing: -0.03em;
     color: #ffffff;
     opacity: 0;
-    animation: rfx-fade-up 0.6s cubic-bezier(0.23,1,0.32,1) 0.75s forwards;
+    animation: rfx-fade-up var(--dur-slow) var(--ease-out) 0.75s forwards;
     margin-top: 20px;
     position: relative; z-index: 1;
   }
@@ -539,7 +562,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     font-size: 11px; color: rgba(255,255,255,0.35);
     text-transform: uppercase; letter-spacing: 0.2em;
     opacity: 0;
-    animation: rfx-fade-up 0.6s cubic-bezier(0.23,1,0.32,1) 0.95s forwards;
+    animation: rfx-fade-up var(--dur-slow) var(--ease-out) 0.95s forwards;
     margin-top: 6px;
     position: relative; z-index: 1;
   }
@@ -556,8 +579,8 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   }
   .rfx-progress-fill {
     height: 100%; width: 0%; border-radius: 1px;
-    background: linear-gradient(90deg, rgba(124,92,252,0.6), rgba(157,126,255,0.9));
-    animation: rfx-progress 2.2s cubic-bezier(0.25,1,0.5,1) 1.2s forwards;
+    background: linear-gradient(90deg, rgba(110,93,252,0.6), rgba(157,126,255,0.9));
+    animation: rfx-progress 2s var(--ease-out) 1.2s forwards;
   }
   @keyframes rfx-icon-in {
     to { opacity: 1; transform: scale(1); }
@@ -569,8 +592,8 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   @keyframes rfx-fade-in { to { opacity: 1; } }
   @keyframes rfx-progress { to { width: 100%; } }
   @keyframes rfx-glow-pulse {
-    0%, 100% { opacity: 0.6; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.15); }
+    0%, 100% { opacity: 0.4; transform: scale(1); filter: blur(0); }
+    50% { opacity: 0.8; transform: scale(1.2); filter: blur(2px); }
   }
   @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
   .rfx-tagline { display: none; }
@@ -2307,7 +2330,7 @@ const Hint = ({ text, children }) => {
   // Portal the tooltip into document.body so it escapes any backdrop-filter / transform
   // ancestor that would otherwise reparent its position:fixed coordinate system.
   const tooltip = show && text ? ReactDOM.createPortal(
-    <div style={{ position: 'fixed', top: pos.top, left: pos.left, transform: pos.transform, background: 'var(--chart-tooltip-bg)', border: '1px solid var(--border2)', borderRadius: 7, padding: '7px 10px', fontSize: 11.5, lineHeight: 1.45, color: 'var(--chart-tooltip-text)', whiteSpace: 'normal', width: 'max-content', maxWidth: 240, zIndex: 9999, pointerEvents: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.25)' }}>{text}</div>,
+    <div style={{ position: 'fixed', top: pos.top, left: pos.left, transform: pos.transform, background: 'var(--chart-tooltip-bg)', border: '1px solid var(--border2)', borderRadius: 'var(--r-sm)', padding: '7px 10px', fontSize: 11.5, lineHeight: 1.45, color: 'var(--chart-tooltip-text)', whiteSpace: 'normal', width: 'max-content', maxWidth: 240, zIndex: 9999, pointerEvents: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.25)' }}>{text}</div>,
     document.body
   ) : null;
   return (
@@ -2353,7 +2376,7 @@ function Gauge({ value, color = '#4ade80', size = 88 }) {
 function MetricGauge({ label, value, sub, color, donutValue, donutCenter, accent, hint, onClick }) {
   return (
     <Card className={`dash-card ${onClick ? 'clickable card-hover' : ''}`} onClick={onClick}
-      style={{ padding: '14px 16px', borderLeft: accent ? `2px solid ${accent}` : '2px solid transparent', transition: 'transform 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out)' }}>
+      style={{ padding: '16px 18px', borderLeft: accent ? `2px solid ${accent}` : '2px solid transparent', transition: 'transform 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out)' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, marginBottom: 10, fontFamily: "'DM Sans', sans-serif" }}>
@@ -2383,7 +2406,7 @@ function WinLossBar({ avgWin, avgLoss, label }) {
         <div className="tabnum" style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em' }}>{(avgWin / Math.max(1, Math.abs(avgLoss))).toFixed(2)}</div>
         <div style={{ fontSize: 11, color: 'var(--text3)' }}>R:R</div>
       </div>
-      <div style={{ display: 'flex', height: 8, borderRadius: 99, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', height: 8, borderRadius: 'var(--r-full)', overflow: 'hidden' }}>
         <div style={{ background: 'var(--green)', width: `${winPct}%`, transition: 'width 0.6s' }} />
         <div style={{ background: 'var(--red)', width: `${100 - winPct}%`, transition: 'width 0.6s' }} />
       </div>
@@ -2403,7 +2426,7 @@ const Field = ({ label, value, mono }) => (
 );
 
 const btnStyle = (variant) => {
-  const base = { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', fontSize: 12, fontWeight: 500, borderRadius: 'var(--r-md)', border: '1px solid transparent', cursor: 'pointer', transition: 'opacity 0.12s var(--ease-out), transform 0.1s var(--ease-out), background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease', WebkitTapHighlightColor: 'transparent', userSelect: 'none', letterSpacing: '-0.01em' };
+  const base = { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', fontSize: 12.5, fontWeight: 500, borderRadius: 'var(--r-md)', minHeight: 36, border: '1px solid transparent', cursor: 'pointer', transition: 'opacity 0.12s var(--ease-out), transform 0.1s var(--ease-out), background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease', WebkitTapHighlightColor: 'transparent', userSelect: 'none', letterSpacing: '-0.01em' };
   if (variant === 'primary') return { ...base, background: 'var(--violet)', color: '#fff', borderColor: 'rgba(110,93,252,0.3)', boxShadow: '0 1px 8px rgba(110,93,252,0.22)' };
   if (variant === 'ghost') return { ...base, background: 'transparent', color: 'var(--text2)', borderColor: 'transparent' };
   if (variant === 'danger') return { ...base, background: 'rgba(248,113,113,0.08)', color: 'var(--red)', borderColor: 'rgba(248,113,113,0.25)' };
@@ -2431,7 +2454,7 @@ function UploadBtn({ onUpload, primary }) {
     <Fragment>
       <button onClick={() => ref.current?.click()} style={btnStyle(primary ? 'primary' : 'secondary')}
         onMouseEnter={e => e.currentTarget.style.opacity = '0.88'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
-        ⬆ Import report
+        Import report
       </button>
       <input ref={ref} type="file" accept=".html,.htm" style={{ display: 'none' }} onChange={handle} />
     </Fragment>
@@ -2478,7 +2501,7 @@ function CalendarView({ stats, onDayClick }) {
     const a = 0.22 + Math.min(1, Math.abs(pnl) / maxAbs) * 0.43;
     return pnl >= 0 ? `rgba(38,166,154,${a})` : `rgba(248,113,113,${a})`;
   };
-  const navBtn = { padding: 6, borderRadius: 7, background: 'transparent', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: 16, lineHeight: 1 };
+  const navBtn = { padding: 6, borderRadius: 'var(--r-sm)', background: 'transparent', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: 16, lineHeight: 1 };
   // Highlight today's cell so it's easy to spot
   const todayKey = dayKey(new Date());
 
@@ -2493,8 +2516,8 @@ function CalendarView({ stats, onDayClick }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, flexWrap: 'wrap' }}>
           <span style={{ color: 'var(--text3)' }}>Monthly:</span>
-          <span className="tabnum" style={{ fontWeight: 600, padding: '3px 9px', borderRadius: 7, background: monthStats.pnl >= 0 ? 'rgba(38,166,154,0.12)' : 'rgba(248,113,113,0.12)', color: monthStats.pnl >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(monthStats.pnl, true)}</span>
-          <span style={{ color: 'var(--text2)', padding: '3px 9px', borderRadius: 7, background: 'var(--panel2)' }}>{monthStats.days} days</span>
+          <span className="tabnum" style={{ fontWeight: 600, padding: '3px 9px', borderRadius: 'var(--r-sm)', background: monthStats.pnl >= 0 ? 'rgba(38,166,154,0.12)' : 'rgba(248,113,113,0.12)', color: monthStats.pnl >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(monthStats.pnl, true)}</span>
+          <span style={{ color: 'var(--text2)', padding: '3px 9px', borderRadius: 'var(--r-sm)', background: 'var(--panel2)' }}>{monthStats.days} days</span>
         </div>
       </div>
       {/* Compact layout (mobile / narrow window): 7 equal columns, no weekly sidebar.
@@ -2510,12 +2533,12 @@ function CalendarView({ stats, onDayClick }) {
         {weeks.map((week, wi) => (
           <Fragment key={wi}>
             {week.map((cell, i) => {
-              if (!cell) return <div key={i} style={{ borderRadius: 9, background: 'var(--calendar-empty-bg)', border: '1px solid var(--calendar-empty-border)', minWidth: 0 }} />;
+              if (!cell) return <div key={i} style={{ borderRadius: 'var(--r-md)', background: 'var(--calendar-empty-bg)', border: '1px solid var(--calendar-empty-border)', minWidth: 0 }} />;
               const c = cell.data ? colorFor(cell.data.pnl) : null;
               const isToday = cell.key === todayKey;
               return (
                 <button key={i} onClick={() => cell.data && onDayClick?.(cell.key)} disabled={!cell.data}
-                  style={{ borderRadius: 9, border: isToday ? '1.5px solid var(--violet-light)' : (cell.data ? '1px solid var(--border2)' : '1px solid var(--calendar-empty-border)'), background: c || 'var(--calendar-cell-bg)', textAlign: 'center', padding: compact ? '5px 2px' : '6px 3px', cursor: cell.data ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)', position: 'relative', minHeight: compact ? 64 : 74, minWidth: 0 }}
+                  style={{ borderRadius: 'var(--r-md)', border: isToday ? '1.5px solid var(--violet-light)' : (cell.data ? '1px solid var(--border2)' : '1px solid var(--calendar-empty-border)'), background: c || 'var(--calendar-cell-bg)', textAlign: 'center', padding: compact ? '5px 2px' : '6px 3px', cursor: cell.data ? 'pointer' : 'default', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)', position: 'relative', minHeight: compact ? 64 : 74, minWidth: 0 }}
                   onMouseEnter={e => { if (cell.data) { e.currentTarget.style.transform = 'scale(1.04)'; e.currentTarget.style.borderColor = 'var(--violet)'; e.currentTarget.style.zIndex = '5'; } }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = isToday ? 'var(--violet-light)' : (cell.data ? 'var(--border2)' : 'var(--calendar-empty-border)'); e.currentTarget.style.zIndex = 'auto'; }}>
                   {/* Day number — top center, small */}
@@ -2536,7 +2559,7 @@ function CalendarView({ stats, onDayClick }) {
             })}
             {/* Weekly summary box for this row — only on wide layouts */}
             {!compact && (() => { const w = monthStats.weeklyAgg[wi]; return (
-              <div style={{ borderRadius: 9, border: '1px solid var(--border)', background: 'var(--panel2)', padding: '6px 8px', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 62, minWidth: 0, overflow: 'hidden' }}>
+              <div style={{ borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'var(--panel2)', padding: '6px 8px', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 62, minWidth: 0, overflow: 'hidden' }}>
                 <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Wk {w.week}</div>
                 {w.trades > 0 ? (
                   <Fragment>
@@ -2620,7 +2643,7 @@ function HeroScoreCard({ stats }) {
   const streakBorder = streakSign > 0 ? 'rgba(38,166,154,0.4)' : 'rgba(248,113,113,0.4)';
   // KPI tile renderer
   const kpi = (label, value, sub, color) => (
-    <div style={{ padding: '12px 14px', background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, minWidth: 0 }}>
+    <div style={{ padding: '12px 14px', background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 'var(--r-md)', minWidth: 0 }}>
       <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', fontWeight: 600, marginBottom: 6 }}>{label}</div>
       <div className="tabnum" style={{ fontSize: 24, fontWeight: 700, color: color || 'var(--text)', lineHeight: 1, marginBottom: sub ? 5 : 0, letterSpacing: '-0.025em', fontFamily: "'DM Sans', system-ui, sans-serif" }}>{value}</div>
       {sub && <div style={{ fontSize: 10.5, color: 'var(--text3)' }}>{sub}</div>}
@@ -2635,7 +2658,7 @@ function HeroScoreCard({ stats }) {
   const pfColor = stats?.profitFactor >= 1.5 ? 'var(--green-bright)' : stats?.profitFactor >= 1 ? 'var(--text)' : 'var(--red)';
   const wrColor = stats?.winRate >= 50 ? 'var(--green-bright)' : stats?.winRate >= 40 ? 'var(--text)' : 'var(--red)';
   return (
-    <Card style={{ padding: 0, overflow: 'hidden', background: `linear-gradient(135deg, rgba(110,93,252,0.08) 0%, rgba(45,212,191,0.03) 100%), var(--panel)`, borderColor: 'rgba(124,92,252,0.2)' }}>
+    <Card style={{ padding: 0, overflow: 'hidden', background: `linear-gradient(135deg, rgba(110,93,252,0.08) 0%, rgba(45,212,191,0.03) 100%), var(--panel)`, borderColor: 'rgba(110,93,252,0.2)' }}>
       {/* Top section: hero score + streak */}
       <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 14 : 24, padding: isMobile ? '20px 18px 16px' : '22px 24px 18px', borderBottom: '1px solid var(--border)' }}>
         {/* Big score */}
@@ -2656,7 +2679,7 @@ function HeroScoreCard({ stats }) {
           {streakLabel && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', fontWeight: 600 }}>Current streak</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 700, padding: '3px 10px', borderRadius: 6, background: streakBg, border: `1px solid ${streakBorder}`, color: streakColor }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 700, padding: '3px 10px', borderRadius: 'var(--r-sm)', background: streakBg, border: `1px solid ${streakBorder}`, color: streakColor }}>
                 <span style={{ fontSize: 11 }}>{streakSign > 0 ? '↑' : '↓'}</span>
                 {streakLabel}
               </span>
@@ -2717,7 +2740,7 @@ function ScoreCard({ stats }) {
           <div className="tabnum" style={{ fontSize: 52, fontWeight: 700, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', fontFamily: "'DM Sans', system-ui, sans-serif" }}>{animScore.toFixed(1)}</div>
           {/* Rainbow gauge bar */}
           <div style={{ marginTop: 4 }}>
-            <div style={{ position: 'relative', height: 8, borderRadius: 99, overflow: 'hidden', background: 'linear-gradient(90deg, #ef5350 0%, #fbbf24 50%, #26a69a 100%)' }} />
+            <div style={{ position: 'relative', height: 8, borderRadius: 'var(--r-full)', overflow: 'hidden', background: 'linear-gradient(90deg, #ef5350 0%, #fbbf24 50%, #26a69a 100%)' }} />
             {/* Triangle marker positioned at the score percentage */}
             <div style={{ position: 'relative', marginTop: 2, height: 8 }}>
               <div style={{ position: 'absolute', left: `${animScore}%`, transform: 'translateX(-50%)', width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: `7px solid ${scoreColor}`, transition: 'left 0.8s' }} />
@@ -2765,7 +2788,7 @@ function ScatterCard({ stats, kind }) {
           <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>{isTime ? `P&L vs ${timeMode === 'entry' ? 'entry' : 'exit'} hour of day` : 'P&L vs hold time (log scale)'} · drag across to inspect</div>
         </div>
         {isTime && (
-          <div style={{ display: 'inline-flex', background: 'var(--panel2)', borderRadius: 6, padding: 2, gap: 1 }}>
+          <div style={{ display: 'inline-flex', background: 'var(--panel2)', borderRadius: 'var(--r-sm)', padding: 2, gap: 1 }}>
             {toggleBtn('entry', 'Entry')}
             {toggleBtn('exit', 'Exit')}
           </div>
@@ -2780,7 +2803,7 @@ function ScatterCard({ stats, kind }) {
               : <XAxis type="number" dataKey="hold" scale="log" domain={['auto', 'auto']} tickFormatter={v => fmtHold(v)} tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} />}
             <YAxis type="number" dataKey="pnl" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
             <ReferenceLine y={0} stroke="var(--chart-baseline)" strokeDasharray="2 2" />
-            <Tooltip cursor={{ strokeDasharray: '3 3', stroke: 'var(--chart-baseline)' }} contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }}
+            <Tooltip cursor={{ strokeDasharray: '3 3', stroke: 'var(--chart-baseline)' }} contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }}
               formatter={(v, n) => n === 'pnl' ? [fmtMoney(v), 'P&L'] : [isTime ? `${Math.floor(v)}:00` : fmtHold(v), isTime ? (timeMode === 'entry' ? 'Entry' : 'Exit') : 'Hold']} />
             <Scatter data={winData} fill="#4ade80" fillOpacity={0.75} />
             <Scatter data={lossData} fill="#f87171" fillOpacity={0.75} />
@@ -2804,8 +2827,8 @@ function DrawdownChart({ stats }) {
           <CartesianGrid strokeDasharray="1 4" stroke="var(--chart-grid)" />
           <XAxis dataKey="label" tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} interval="preserveStartEnd" />
           <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
-          <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => [fmtMoney(v), 'Drawdown']} />
-          <Area type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="drawdown" stroke="#9d7eff" strokeWidth={2} fill="url(#ddG)" />
+          <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => [fmtMoney(v), 'Drawdown']} />
+          <Area type="monotone" animationDuration={380} animationEasing="ease" dataKey="drawdown" stroke="#9d7eff" strokeWidth={2} fill="url(#ddG)" />
         </AreaChart>
       </ResponsiveContainer>
     </Card>
@@ -2824,7 +2847,7 @@ function DailyChecklist({ items, checklistDays, onToggle, onEditItems }) {
       <Card style={{ padding: 18 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}><div style={{ fontWeight: 600 }}>Edit checklist</div><button style={btnStyle('ghost')} onClick={() => setEditing(false)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
         <textarea value={draft} onChange={e => setDraft(e.target.value)} rows={6} placeholder="One item per line"
-          style={{ width: '100%', fontSize: 13, padding: 10, background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 8, color: 'var(--text)', outline: 'none', resize: 'vertical' }} />
+          style={{ width: '100%', fontSize: 13, padding: 10, background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 'var(--r-md)', color: 'var(--text)', outline: 'none', resize: 'vertical' }} />
         <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
           <button style={btnStyle('primary')} onClick={() => { onEditItems(draft.split('\n').map(s => s.trim()).filter(Boolean)); setEditing(false); }}>Save</button>
           <button style={btnStyle('ghost')} onClick={() => setEditing(false)}>Cancel</button>
@@ -2838,14 +2861,14 @@ function DailyChecklist({ items, checklistDays, onToggle, onEditItems }) {
         <div><div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 7 }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg> Daily checklist</div><div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Discipline score: {completed}/{items.length}</div></div>
         <button style={{ ...btnStyle('ghost'), padding: 4 }} onClick={() => { setDraft(items.join('\n')); setEditing(true); }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>
       </div>
-      <div style={{ width: '100%', height: 6, background: 'var(--chart-grid)', borderRadius: 99, overflow: 'hidden', marginBottom: 12 }}>
+      <div style={{ width: '100%', height: 6, background: 'var(--chart-grid)', borderRadius: 'var(--r-full)', overflow: 'hidden', marginBottom: 12 }}>
         <div style={{ height: '100%', background: 'var(--violet)', width: `${(completed / Math.max(1, items.length)) * 100}%`, transition: 'width 0.4s' }} />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         {items.map(it => {
           const done = !!todayChecks[it];
           return (
-            <button key={it} onClick={() => onToggle(it)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 8px', borderRadius: 7, background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'background 0.15s' }}
+            <button key={it} onClick={() => onToggle(it)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 8px', borderRadius: 'var(--r-sm)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'background 0.15s' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-tint)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
               <span style={{ width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${done ? 'var(--violet)' : 'var(--border2)'}`, background: done ? 'var(--violet)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11, flexShrink: 0 }}>{done ? <svg width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.5' strokeLinecap='round' strokeLinejoin='round'><path d='M20 6L9 17l-5-5'/></svg> : null}</span>
               <span style={{ fontSize: 13, color: done ? 'var(--text3)' : 'var(--text)', textDecoration: done ? 'line-through' : 'none' }}>{it}</span>
@@ -2908,9 +2931,9 @@ function AccountBalanceChart({ trades, deposits }) {
           <XAxis dataKey="label" tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} interval="preserveStartEnd" />
           <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
           <ReferenceLine y={0} stroke="var(--chart-baseline)" strokeDasharray="2 2" />
-          <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={(v, n) => [fmtMoney(v), n === 'balance' ? 'Balance' : 'Deposits']} />
-          <Line type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="balance" stroke="#6e5dfc" strokeWidth={2.4} dot={false} />
-          <Line type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="deposits" stroke="#f87171" strokeWidth={2.4} dot={false} />
+          <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={(v, n) => [fmtMoney(v), n === 'balance' ? 'Balance' : 'Deposits']} />
+          <Line type="monotone" animationDuration={380} animationEasing="ease" dataKey="balance" stroke="#6e5dfc" strokeWidth={2.4} dot={false} />
+          <Line type="monotone" animationDuration={380} animationEasing="ease" dataKey="deposits" stroke="#f87171" strokeWidth={2.4} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </Card>
@@ -2946,7 +2969,7 @@ function WinLossAvgChart({ trades }) {
   const [grain, setGrain] = useState('day');
   const data = useMemo(() => buildWinLossSeries(trades, grain), [trades, grain]);
   const toggleBtn = (v, label) => (
-    <button key={v} onClick={() => setGrain(v)} style={{ padding: '4px 11px', fontSize: 11, fontWeight: 500, borderRadius: 6, border: 'none', cursor: 'pointer', background: grain === v ? 'var(--violet)' : 'transparent', color: grain === v ? '#fff' : 'var(--text3)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}>{label}</button>
+    <button key={v} onClick={() => setGrain(v)} style={{ padding: '4px 11px', fontSize: 11, fontWeight: 500, borderRadius: 'var(--r-sm)', border: 'none', cursor: 'pointer', background: grain === v ? 'var(--violet)' : 'transparent', color: grain === v ? '#fff' : 'var(--text3)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}>{label}</button>
   );
   if (!data.length) return null;
   return (
@@ -2956,7 +2979,7 @@ function WinLossAvgChart({ trades }) {
           <div style={{ fontWeight: 600 }}>Win % vs Avg win / Avg loss</div>
           <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Aggregated by {grain}</div>
         </div>
-        <div style={{ display: 'inline-flex', background: 'var(--panel2)', borderRadius: 7, padding: 2, gap: 1 }}>
+        <div style={{ display: 'inline-flex', background: 'var(--panel2)', borderRadius: 'var(--r-sm)', padding: 2, gap: 1 }}>
           {toggleBtn('day', 'Day')}
           {toggleBtn('week', 'Week')}
           {toggleBtn('month', 'Month')}
@@ -2969,11 +2992,11 @@ function WinLossAvgChart({ trades }) {
           <YAxis yAxisId="money" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
           <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={v => `${v.toFixed(0)}%`} domain={[0, 100]} />
           <ReferenceLine y={0} yAxisId="money" stroke="var(--chart-baseline)" strokeDasharray="2 2" />
-          <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }}
+          <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }}
             formatter={(v, n) => n === 'winRate' ? [`${v.toFixed(1)}%`, 'Win %'] : [fmtMoney(v), n === 'avgWin' ? 'Avg win' : 'Avg loss']} />
-          <Line yAxisId="money" type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="avgWin" stroke="#4ade80" strokeWidth={2.2} dot={{ r: 3, fill: '#4ade80' }} />
-          <Line yAxisId="money" type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="avgLoss" stroke="#58a6ff" strokeWidth={2.2} dot={{ r: 3, fill: '#58a6ff' }} />
-          <Line yAxisId="pct" type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="winRate" stroke="#f87171" strokeWidth={2.2} dot={{ r: 3, fill: '#f87171' }} />
+          <Line yAxisId="money" type="monotone" animationDuration={380} animationEasing="ease" dataKey="avgWin" stroke="#4ade80" strokeWidth={2.2} dot={{ r: 3, fill: '#4ade80' }} />
+          <Line yAxisId="money" type="monotone" animationDuration={380} animationEasing="ease" dataKey="avgLoss" stroke="#58a6ff" strokeWidth={2.2} dot={{ r: 3, fill: '#58a6ff' }} />
+          <Line yAxisId="pct" type="monotone" animationDuration={380} animationEasing="ease" dataKey="winRate" stroke="#f87171" strokeWidth={2.2} dot={{ r: 3, fill: '#f87171' }} />
         </LineChart>
       </ResponsiveContainer>
       <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 8, fontSize: 11, flexWrap: 'wrap' }}>
@@ -3027,8 +3050,8 @@ function Dashboard({ trades, onDayClick, checklist, checklistDays, onChecklistTo
               <XAxis dataKey="label" tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} interval="preserveStartEnd" />
               <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
               <ReferenceLine y={0} stroke="var(--chart-baseline)" strokeDasharray="2 2" />
-              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => [fmtMoney(v), 'Equity']} />
-              <Area type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="equity" stroke="#4ade80" strokeWidth={2} fill="url(#eqA)" />
+              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => [fmtMoney(v), 'Equity']} />
+              <Area type="monotone" animationDuration={380} animationEasing="ease" dataKey="equity" stroke="#4ade80" strokeWidth={2} fill="url(#eqA)" />
             </AreaChart>
           </ResponsiveContainer>
         </Card>
@@ -3049,8 +3072,8 @@ function Dashboard({ trades, onDayClick, checklist, checklistDays, onChecklistTo
               <XAxis dataKey="date" tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} tickFormatter={v => v.slice(5)} interval="preserveStartEnd" />
               <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
               <ReferenceLine y={0} stroke="var(--chart-baseline)" />
-              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => [fmtMoney(v), 'Net']} cursor={{ fill: 'var(--track-bg)' }} />
-              <Bar animationDuration={500} animationEasing="ease-out" dataKey="pnl" radius={[2, 2, 0, 0]}>{stats.daily.map((d, i) => <Cell key={i} fill={d.pnl >= 0 ? '#4ade80' : '#f87171'} />)}</Bar>
+              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => [fmtMoney(v), 'Net']} cursor={{ fill: 'var(--track-bg)' }} />
+              <Bar animationDuration={380} animationEasing="ease" dataKey="pnl" radius={[2, 2, 0, 0]}>{stats.daily.map((d, i) => <Cell key={i} fill={d.pnl >= 0 ? '#4ade80' : '#f87171'} />)}</Bar>
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -3091,10 +3114,10 @@ function DayWeekView({ trades, dayNotes, onSaveDayNote, focusDate, exitData, onO
   const [mode, setMode] = useState('day');
   const stats = useMemo(() => computeStats(trades), [trades]);
   if (!stats) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--text3)' }}>No trades yet.</div>;
-  const toggle = (m) => ({ padding: '7px 18px', fontSize: 12, borderRadius: 7, border: 'none', cursor: 'pointer', background: mode === m ? 'var(--violet)' : 'transparent', color: mode === m ? '#fff' : 'var(--text2)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' });
+  const toggle = (m) => ({ padding: '7px 18px', fontSize: 12, borderRadius: 'var(--r-sm)', border: 'none', cursor: 'pointer', background: mode === m ? 'var(--violet)' : 'transparent', color: mode === m ? '#fff' : 'var(--text2)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' });
   return (
     <div className="fade-in">
-      <div style={{ display: 'inline-flex', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 9, padding: 3, marginBottom: 16 }}>
+      <div style={{ display: 'inline-flex', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 3, marginBottom: 16 }}>
         <button style={toggle('day')} onClick={() => setMode('day')}>Day</button>
         <button style={toggle('week')} onClick={() => setMode('week')}>Week</button>
       </div>
@@ -3148,8 +3171,8 @@ function DayCard({ day, allTrades, exitData, expanded, onExpand, note, onSaveNot
                 <XAxis dataKey="i" tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
                 <ReferenceLine y={0} stroke="var(--chart-baseline)" />
-                <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => fmtMoney(v)} />
-                <Area type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="cum" stroke={profit ? '#4ade80' : '#f87171'} fill={`url(#g${day.date})`} strokeWidth={2} />
+                <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => fmtMoney(v)} />
+                <Area type="monotone" animationDuration={380} animationEasing="ease" dataKey="cum" stroke={profit ? '#4ade80' : '#f87171'} fill={`url(#g${day.date})`} strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(90px,1fr))', gap: 12 }}>
@@ -3164,14 +3187,14 @@ function DayCard({ day, allTrades, exitData, expanded, onExpand, note, onSaveNot
           {editNote && (
             <div style={{ marginTop: 14 }}>
               <textarea value={draft} onChange={e => setDraft(e.target.value)} rows={3} placeholder="End-of-day reflection…"
-                style={{ width: '100%', fontSize: 13, padding: 10, background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 8, color: 'var(--text)', outline: 'none', resize: 'vertical' }} />
+                style={{ width: '100%', fontSize: 13, padding: 10, background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 'var(--r-md)', color: 'var(--text)', outline: 'none', resize: 'vertical' }} />
               <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                 <button style={btnStyle('primary')} onClick={() => { onSaveNote(draft); setEditNote(false); }}>Save note</button>
                 <button style={btnStyle('ghost')} onClick={() => setEditNote(false)}>Cancel</button>
               </div>
             </div>
           )}
-          {!editNote && note && <div style={{ marginTop: 14, background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 8, padding: 12, fontSize: 13, color: 'var(--text2)', whiteSpace: 'pre-wrap' }}>{note}</div>}
+          {!editNote && note && <div style={{ marginTop: 14, background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 'var(--r-md)', padding: 12, fontSize: 13, color: 'var(--text2)', whiteSpace: 'pre-wrap' }}>{note}</div>}
           {/* RamanFX Daily Insights — patterns detected from this day vs your 60-day history */}
           <div style={{ marginTop: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
@@ -3214,7 +3237,7 @@ function DayCard({ day, allTrades, exitData, expanded, onExpand, note, onSaveNot
               );
               return (
                 <div key={t.id} onClick={rowClick} style={{ display: 'grid', gridTemplateColumns: '60px 70px 56px 1fr 80px 16px', fontSize: 12, alignItems: 'center', padding: '7px 0', borderBottom: '1px solid rgba(38,38,44,0.5)', cursor: 'pointer', transition: 'background 0.12s', margin: '0 -8px', paddingLeft: 8, paddingRight: 8, borderRadius: 4 }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(124,92,252,0.05)'}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(110,93,252,0.05)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <div style={{ color: 'var(--text3)', fontFamily: 'ui-monospace,monospace' }}>{t.closeTime.split(' ')[1]?.slice(0, 5)}</div>
                   <div style={{ fontFamily: 'ui-monospace,monospace', color: 'var(--text)' }}>{t.symbol}</div>
@@ -3284,7 +3307,7 @@ function WeekView({ stats, allTrades, exitData }) {
                       {dayNames.map((dn, i) => {
                         const day = w.days[dn]; const isP = day?.pnl >= 0; const dd = new Date(start); dd.setDate(start.getDate() + i);
                         return (
-                          <div key={dn} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 8, background: day ? (isP ? 'rgba(38,166,154,0.08)' : 'rgba(248,113,113,0.08)') : 'var(--panel2)', border: `1px solid ${day ? (isP ? 'rgba(38,166,154,0.3)' : 'rgba(248,113,113,0.3)') : 'var(--border)'}`, gap: 12 }}>
+                          <div key={dn} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 'var(--r-md)', background: day ? (isP ? 'rgba(38,166,154,0.08)' : 'rgba(248,113,113,0.08)') : 'var(--panel2)', border: `1px solid ${day ? (isP ? 'rgba(38,166,154,0.3)' : 'rgba(248,113,113,0.3)') : 'var(--border)'}`, gap: 12 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                               <div style={{ width: 36, textAlign: 'center' }}>
                                 <div style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--text3)', fontWeight: 600 }}>{dayLabels[i]}</div>
@@ -3302,7 +3325,7 @@ function WeekView({ stats, allTrades, exitData }) {
                       {dayNames.map((dn, i) => {
                         const day = w.days[dn]; const isP = day?.pnl >= 0; const dd = new Date(start); dd.setDate(start.getDate() + i);
                         return (
-                          <div key={dn} style={{ borderRadius: 10, border: `1px solid ${day ? (isP ? 'rgba(38,166,154,0.3)' : 'rgba(248,113,113,0.3)') : 'var(--border)'}`, background: day ? (isP ? 'rgba(38,166,154,0.08)' : 'rgba(248,113,113,0.08)') : 'var(--panel2)', padding: 12, textAlign: 'center', minHeight: 78, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                          <div key={dn} style={{ borderRadius: 'var(--r-md)', border: `1px solid ${day ? (isP ? 'rgba(38,166,154,0.3)' : 'rgba(248,113,113,0.3)') : 'var(--border)'}`, background: day ? (isP ? 'rgba(38,166,154,0.08)' : 'rgba(248,113,113,0.08)') : 'var(--panel2)', padding: 12, textAlign: 'center', minHeight: 78, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                             <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text3)', marginBottom: 4 }}>{dayLabels[i]} {dd.getDate()}</div>
                             {day ? <Fragment><div className="tabnum" style={{ fontSize: 15, fontWeight: 700, color: isP ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(day.pnl, true)}</div><div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 3 }}>{day.trades} trades</div></Fragment> : <div style={{ fontSize: 10, color: 'var(--border2)' }}>—</div>}
                           </div>
@@ -3517,7 +3540,7 @@ const TRADE_COLUMNS = [
       const maxAbs = Math.max(ctx.stats.largestWin, Math.abs(ctx.stats.largestLoss)) || 1;
       const scalePct = Math.min(100, Math.abs(t.net) / maxAbs * 50);
       const pos = t.net >= 0;
-      return <div style={{ height: 6, background: 'var(--chart-grid)', borderRadius: 99, position: 'relative', overflow: 'hidden', width: 80, marginLeft: 'auto' }}><div style={{ position: 'absolute', top: 0, bottom: 0, width: 1, background: 'var(--chart-baseline)', left: '50%' }} /><div style={{ position: 'absolute', top: 0, bottom: 0, background: pos ? 'var(--green)' : 'var(--red)', ...(pos ? { left: '50%', width: `${scalePct}%` } : { right: '50%', width: `${scalePct}%` }) }} /></div>;
+      return <div style={{ height: 6, background: 'var(--chart-grid)', borderRadius: 'var(--r-full)', position: 'relative', overflow: 'hidden', width: 80, marginLeft: 'auto' }}><div style={{ position: 'absolute', top: 0, bottom: 0, width: 1, background: 'var(--chart-baseline)', left: '50%' }} /><div style={{ position: 'absolute', top: 0, bottom: 0, background: pos ? 'var(--green)' : 'var(--red)', ...(pos ? { left: '50%', width: `${scalePct}%` } : { right: '50%', width: `${scalePct}%` }) }} /></div>;
     }
   },
   // ── Exit-quality (from MQL5 CSV import) ──
@@ -3689,7 +3712,7 @@ function ColumnPickerModal({ open, onClose, selected, onSave }) {
                   return (
                     <label key={col.id}
                       title={col.reason || ''}
-                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 6, cursor: col.available ? 'pointer' : 'not-allowed', opacity: col.available ? 1 : 0.4, background: checked && col.available ? 'rgba(110,93,252,0.08)' : 'transparent', transition: 'background 0.12s', minHeight: 36 }}>
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 'var(--r-sm)', cursor: col.available ? 'pointer' : 'not-allowed', opacity: col.available ? 1 : 0.4, background: checked && col.available ? 'rgba(110,93,252,0.08)' : 'transparent', transition: 'background 0.12s', minHeight: 36 }}>
                       <input type="checkbox" checked={checked} disabled={!col.available} onChange={() => col.available && toggle(col.id)} style={{ accentColor: 'var(--violet)', cursor: col.available ? 'pointer' : 'not-allowed', width: 18, height: 18, flexShrink: 0 }} />
                       <span style={{ fontSize: 13, color: col.available ? 'var(--text2)' : 'var(--text3)' }}>{col.label}</span>
                     </label>
@@ -3780,7 +3803,7 @@ function TradeView({ trades, notes, strategies, exitData, onSaveNote, onOpenTrad
   }, [filtered]);
   const sortIcon = k => sortBy.key === k ? (sortBy.dir === 'desc' ? ' ↓' : ' ↑') : '';
   const toggleSort = k => setSortBy(sortBy.key === k ? { key: k, dir: sortBy.dir === 'desc' ? 'asc' : 'desc' } : { key: k, dir: 'desc' });
-  const sel = { fontSize: 12, background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 7, padding: '6px 8px', color: 'var(--text)', cursor: 'pointer' };
+  const sel = { fontSize: 12, background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 'var(--r-sm)', padding: '6px 8px', color: 'var(--text)', cursor: 'pointer' };
   // ctx supplies stats for column renderers (used by 'scale' column for largestWin/loss normalisation).
   // Pass filteredStats so the scale bar normalises against what's currently visible.
   const ctx = { stats: filteredStats, strategies, exitData: exitData || {} };
@@ -3791,7 +3814,7 @@ function TradeView({ trades, notes, strategies, exitData, onSaveNote, onOpenTrad
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {isFiltering && (
-        <div style={{ padding: '8px 14px', background: 'rgba(110,93,252,0.08)', border: '1px solid rgba(110,93,252,0.28)', borderRadius: 8, fontSize: 12, color: 'var(--violet-light)' }}>
+        <div style={{ padding: '8px 14px', background: 'rgba(110,93,252,0.08)', border: '1px solid rgba(110,93,252,0.28)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--violet-light)' }}>
           Showing {filteredStats.total} of {stats.total} trades — KPIs below reflect the filtered set.
         </div>
       )}
@@ -3821,11 +3844,11 @@ function TradeView({ trades, notes, strategies, exitData, onSaveNote, onOpenTrad
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderBottom: '1px solid var(--border)', background: 'var(--panel2)' }}>
               <span style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Sort</span>
               <select value={sortBy.key} onChange={e => setSortBy({ key: e.target.value, dir: sortBy.dir })}
-                style={{ flex: 1, padding: '6px 8px', fontSize: 12, background: 'var(--panel)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>
+                style={{ flex: 1, padding: '6px 8px', fontSize: 12, background: 'var(--panel)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', cursor: 'pointer' }}>
                 {activeCols.filter(c => c.sortValue).map(col => <option key={col.id} value={col.id}>{col.label}</option>)}
               </select>
               <button onClick={() => setSortBy({ key: sortBy.key, dir: sortBy.dir === 'desc' ? 'asc' : 'desc' })}
-                style={{ padding: '6px 10px', fontSize: 12, background: 'var(--panel)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                style={{ padding: '6px 10px', fontSize: 12, background: 'var(--panel)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                 {sortBy.dir === 'desc' ? '↓ Desc' : '↑ Asc'}
               </button>
             </div>
@@ -3909,7 +3932,7 @@ function TradeDetail({ trade, note, strategies, onSave }) {
   const [rating, setRating] = useState(note.rating || 0), [strategyId, setStrategyId] = useState(note.strategyId || ''), [saved, setSaved] = useState(false);
   useEffect(() => { setSaved(false); }, [text, tagsInput, rating, strategyId]);
   const save = () => { onSave({ note: text, tags: tagsInput.split(',').map(s => s.trim()).filter(Boolean), rating, strategyId: strategyId || null, updatedAt: Date.now() }); setSaved(true); setTimeout(() => setSaved(false), 1800); };
-  const inp = { width: '100%', fontSize: 13, background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 7, padding: '6px 8px', color: 'var(--text)', outline: 'none' };
+  const inp = { width: '100%', fontSize: 13, background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 'var(--r-sm)', padding: '6px 8px', color: 'var(--text)', outline: 'none' };
   return (
     <div style={{ background: 'rgba(10,10,11,0.5)', padding: 18, borderLeft: '2px solid var(--violet)', display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 12 }}>
@@ -3937,7 +3960,7 @@ const SummaryStat = ({ label, value, sub, accent }) => (
     <div className="tabnum" style={{ fontSize: 19, fontWeight: 600, marginTop: 2, color: accent || 'var(--text)' }}>{value} {sub && <span style={{ fontSize: 12, color: 'var(--text3)' }}>{sub}</span>}</div></div>
 );
 
-const inputStyle = { fontSize: 12, background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 7, padding: '6px 8px', color: 'var(--text)', outline: 'none', fontFamily: 'inherit' };
+const inputStyle = { fontSize: 12, background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 'var(--r-sm)', padding: '6px 8px', color: 'var(--text)', outline: 'none', fontFamily: 'inherit' };
 
 // ═══════════════ MODAL ═══════════════
 // Render modal into a portal at document.body so it's not constrained by ancestor stacking contexts,
@@ -3978,7 +4001,7 @@ function Modal({ open, onClose, children, width = 720 }) {
   // Note: ReactDOM.createPortal renders children into a DOM node OUTSIDE the React tree.
   // We use document.body so the modal is a top-level sibling of #root.
   const modalContent = (
-    <div onClick={onClose} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, height: '100dvh', background: 'rgba(4,4,6,0.82)', WebkitBackdropFilter: 'blur(8px) saturate(1.2)', backdropFilter: 'blur(8px) saturate(1.2)', zIndex: 10000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', overflowY: 'auto', paddingTop: 'max(24px, env(safe-area-inset-top))', paddingBottom: 'max(24px, env(safe-area-inset-bottom))', paddingLeft: 'max(16px, env(safe-area-inset-left))', paddingRight: 'max(16px, env(safe-area-inset-right))', WebkitOverflowScrolling: 'touch' }}>
+    <div onClick={onClose} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, height: '100dvh', background: 'rgba(0,0,0,0.5)', WebkitBackdropFilter: 'blur(8px) saturate(1.2)', backdropFilter: 'blur(8px) saturate(1.2)', zIndex: 10000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', overflowY: 'auto', paddingTop: 'max(24px, env(safe-area-inset-top))', paddingBottom: 'max(24px, env(safe-area-inset-bottom))', paddingLeft: 'max(16px, env(safe-area-inset-left))', paddingRight: 'max(16px, env(safe-area-inset-right))', WebkitOverflowScrolling: 'touch' }}>
       <div onClick={e => e.stopPropagation()} className="fade-in" style={{ background: 'var(--panel)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 'var(--r-xl)', maxWidth: width, width: '100%', maxHeight: '100%', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.7)', overflow: 'hidden' }}>
         {children}
       </div>
@@ -3995,7 +4018,7 @@ function InsightsPanel({ windowTrades, historyTrades, scope, title, exitData }) 
   const insights = useMemo(() => generateDailyInsights(windowTrades, historyTrades, scope, exitData), [windowTrades, historyTrades, scope, exitData]);
   if (!insights || insights.length === 0) {
     return (
-      <div style={{ padding: 14, background: 'var(--panel2)', border: '1px dashed var(--border)', borderRadius: 10, fontSize: 12, color: 'var(--text3)', textAlign: 'center' }}>
+      <div style={{ padding: 14, background: 'var(--panel2)', border: '1px dashed var(--border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--text3)', textAlign: 'center' }}>
         Nothing notable to flag {scope === 'day' ? 'today' : 'this period'}. {windowTrades.length < 3 ? 'Need at least 3 trades to look for patterns.' : 'Your trading was within normal bounds — keep doing what you\'re doing.'}
       </div>
     );
@@ -4060,8 +4083,8 @@ function DaySummaryPopup({ dayKey: dk, stats, onClose, onViewDetails, onAddNote,
               <XAxis dataKey="i" tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
               <ReferenceLine y={0} stroke="var(--chart-baseline)" />
-              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => fmtMoney(v)} />
-              <Area type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="cum" stroke={profit ? '#4ade80' : '#f87171'} fill="url(#dayPopG)" strokeWidth={2} />
+              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => fmtMoney(v)} />
+              <Area type="monotone" animationDuration={380} animationEasing="ease" dataKey="cum" stroke={profit ? '#4ade80' : '#f87171'} fill="url(#dayPopG)" strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))', gap: 14 }}>
@@ -4076,7 +4099,7 @@ function DaySummaryPopup({ dayKey: dk, stats, onClose, onViewDetails, onAddNote,
           </div>
         </div>
         {existingNote && (
-          <div style={{ margin: '0 22px 14px', padding: 12, background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 8, fontSize: 13, color: 'var(--text2)', whiteSpace: 'pre-wrap' }}>{existingNote}</div>
+          <div style={{ margin: '0 22px 14px', padding: 12, background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 'var(--r-md)', fontSize: 13, color: 'var(--text2)', whiteSpace: 'pre-wrap' }}>{existingNote}</div>
         )}
       </div>
       <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, flexWrap: 'wrap', gap: 8 }}>
@@ -4092,13 +4115,13 @@ function RecentOpenCard({ recentTrades, openPositions, setTab }) {
   const [view, setView] = useState('recent');
   const hasOpen = openPositions && openPositions.length > 0;
   const toggleBtn = (v, label) => (
-    <button onClick={() => setView(v)} style={{ padding: '4px 11px', fontSize: 11, fontWeight: 500, borderRadius: 6, border: 'none', cursor: 'pointer', background: view === v ? 'var(--violet)' : 'transparent', color: view === v ? '#fff' : 'var(--text3)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}>{label}</button>
+    <button onClick={() => setView(v)} style={{ padding: '4px 11px', fontSize: 11, fontWeight: 500, borderRadius: 'var(--r-sm)', border: 'none', cursor: 'pointer', background: view === v ? 'var(--violet)' : 'transparent', color: view === v ? '#fff' : 'var(--text3)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}>{label}</button>
   );
   return (
     <Card style={{ padding: 18 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <div style={{ fontWeight: 600 }}>{view === 'recent' ? 'Recent trades' : `Open positions (${openPositions?.length || 0})`}</div>
-        <div style={{ display: 'inline-flex', background: 'var(--panel2)', borderRadius: 7, padding: 2, gap: 1 }}>
+        <div style={{ display: 'inline-flex', background: 'var(--panel2)', borderRadius: 'var(--r-sm)', padding: 2, gap: 1 }}>
           {toggleBtn('recent', 'Recent')}
           {toggleBtn('open', `Open${hasOpen ? ` ·${openPositions.length}` : ''}`)}
         </div>
@@ -4206,7 +4229,7 @@ function TagPicker({ allTags, value, onChange, accent = 'violet', placeholder = 
         {selected.map(t => {
           const c = chipColorFor(t);
           return (
-            <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '3px 4px 3px 9px', borderRadius: 6, background: c.bg, border: `1px solid ${c.border}`, color: c.fg, fontWeight: 500 }}>
+            <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '3px 4px 3px 9px', borderRadius: 'var(--r-sm)', background: c.bg, border: `1px solid ${c.border}`, color: c.fg, fontWeight: 500 }}>
               {t}
               <button onClick={() => removeTag(t)} title="Remove from this trade" style={{ background: 'transparent', border: 'none', color: c.fg, cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: '0 4px', borderRadius: 3, opacity: 0.7 }}
                 onMouseEnter={e => { e.currentTarget.style.opacity = '1'; }} onMouseLeave={e => { e.currentTarget.style.opacity = '0.7'; }}>×</button>
@@ -4396,9 +4419,9 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
 
           <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
             <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: 6 }}>RamanFX Scale</div>
-            <div style={{ height: 10, background: 'var(--chart-grid)', borderRadius: 99, position: 'relative', overflow: 'hidden' }}>
+            <div style={{ height: 10, background: 'var(--chart-grid)', borderRadius: 'var(--r-full)', position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: 0, bottom: 0, width: 1, background: 'var(--border2)', left: '50%' }} />
-              <div style={{ position: 'absolute', top: 0, bottom: 0, height: '100%', borderRadius: 99, background: profit ? 'var(--green)' : 'var(--red)', ...(profit ? { left: '50%', width: `${rfxScale - 50}%` } : { right: '50%', width: `${50 - rfxScale}%` }) }} />
+              <div style={{ position: 'absolute', top: 0, bottom: 0, height: '100%', borderRadius: 'var(--r-full)', background: profit ? 'var(--green)' : 'var(--red)', ...(profit ? { left: '50%', width: `${rfxScale - 50}%` } : { right: '50%', width: `${50 - rfxScale}%` }) }} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 10, color: 'var(--text3)' }}><span>Max Loss</span><span>Max Profit</span></div>
           </div>
@@ -4526,7 +4549,7 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                     {/* ── BOTTOM ZONE — "$0" label + exit label + give-back highlight ── */}
                     {/* $0 baseline label — only show if it won't visually collide with the exit label */}
                     {Math.abs(exitPct - zeroPct) > 6 && (
-                      <div style={{ position: 'absolute', left: `${zeroPct}%`, top: 80, transform: 'translateX(-50%)', fontSize: 10, color: '#71717a', fontWeight: 500 }}>$0</div>
+                      <div style={{ position: 'absolute', left: `${zeroPct}%`, top: 80, transform: 'translateX(-50%)', fontSize: 10, color: 'var(--text3)', fontWeight: 500 }}>$0</div>
                     )}
                     {/* Exit label — sits below the track, with name + value stacked */}
                     <div style={{ position: 'absolute', left: `${exitPct}%`, top: 80, transform: 'translateX(-50%)', textAlign: 'center', whiteSpace: 'nowrap', zIndex: 4 }}>
@@ -4536,12 +4559,12 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                   </div>
                   {/* Give-back caption — different language for winners (truly left profit) vs losers (missed an escape) */}
                   {leftOnTable != null && leftOnTable > 0.01 && giveBackMode === 'left' && (
-                    <div style={{ marginTop: 8, padding: '7px 11px', background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.35)', borderRadius: 6, fontSize: 12, color: '#fbbf24', fontWeight: 600, textAlign: 'center' }}>
+                    <div style={{ marginTop: 8, padding: '7px 11px', background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.35)', borderRadius: 'var(--r-sm)', fontSize: 12, color: '#fbbf24', fontWeight: 600, textAlign: 'center' }}>
                       ⤴ Left <span className="tabnum">{fmtD(leftOnTable).replace('+', '')}</span> on the table (peak − exit)
                     </div>
                   )}
                   {leftOnTable != null && leftOnTable > 0.01 && giveBackMode === 'missed' && (
-                    <div style={{ marginTop: 8, padding: '7px 11px', background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.35)', borderRadius: 6, fontSize: 12, color: '#fbbf24', fontWeight: 600, textAlign: 'center' }}>
+                    <div style={{ marginTop: 8, padding: '7px 11px', background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.35)', borderRadius: 'var(--r-sm)', fontSize: 12, color: '#fbbf24', fontWeight: 600, textAlign: 'center' }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Could have escaped with <span className="tabnum" style={{ color: 'var(--green-bright)' }}>+${(mfeDol || 0).toFixed(2)}</span> · instead took <span className="tabnum" style={{ color: 'var(--red)' }}>{fmtD(exit)}</span>
                     </div>
                   )}
@@ -4558,7 +4581,7 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                     This typically means the CSV row captured only a partial fill of a position the journal recorded
                     in full, so the points-to-dollars ratio is off. Rather than show misleading numbers, we flag it. */}
                 {suspectData && (
-                  <div style={{ padding: '10px 12px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.4)', borderRadius: 8, marginBottom: 12 }}>
+                  <div style={{ padding: '10px 12px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.4)', borderRadius: 'var(--r-md)', marginBottom: 12 }}>
                     <div style={{ fontWeight: 600, fontSize: 12.5, color: '#fbbf24', marginBottom: 3 }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Exit data looks inconsistent</div>
                     <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6 }}>
                       The CSV reports a peak (MFE) of {fmtD(mfeDol)} but you closed at {fmtD(tradeNet)} — that's impossible (your peak can't be below your exit). This usually means the trade closed in partial fills and the CSV captured only one fill while the journal recorded the whole position. The MAE/MFE numbers below are <strong>unreliable for this trade</strong>; treat them as approximations only.
@@ -4612,14 +4635,14 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                 {suspectData && (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 8, marginBottom: 12 }}>
                     {mfe != null && (
-                      <div style={{ padding: '8px 10px', background: 'var(--panel2)', border: '1px dashed var(--border2)', borderRadius: 7, opacity: 0.7 }}>
+                      <div style={{ padding: '8px 10px', background: 'var(--panel2)', border: '1px dashed var(--border2)', borderRadius: 'var(--r-sm)', opacity: 0.7 }}>
                         <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>MFE (raw points)</div>
                         <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: 'var(--green-bright)' }}>+{mfe.toLocaleString()}pt</div>
                         <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>$ conversion unreliable</div>
                       </div>
                     )}
                     {mae != null && (
-                      <div style={{ padding: '8px 10px', background: 'var(--panel2)', border: '1px dashed var(--border2)', borderRadius: 7, opacity: 0.7 }}>
+                      <div style={{ padding: '8px 10px', background: 'var(--panel2)', border: '1px dashed var(--border2)', borderRadius: 'var(--r-sm)', opacity: 0.7 }}>
                         <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600 }}>MAE (raw points)</div>
                         <div className="tabnum" style={{ fontSize: 14, fontWeight: 700, color: 'var(--red)' }}>{mae.toLocaleString()}pt</div>
                         <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>$ conversion unreliable</div>
@@ -4629,7 +4652,7 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                 )}
                 {/* Forward-time mini ladder — only shown when data is consistent */}
                 {!suspectData && (t30mDol != null || t1hDol != null || t4hDol != null || t12hDol != null || t1dDol != null) && (
-                  <div style={{ padding: 10, background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 7, marginBottom: 12 }}>
+                  <div style={{ padding: 10, background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 'var(--r-sm)', marginBottom: 12 }}>
                     <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, marginBottom: 8 }}>What if you'd held longer? ($ value)</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4, fontSize: 11 }}>
                       {[['+30m', t30mDol], ['+1h', t1hDol], ['+4h', t4hDol], ['+12h', t12hDol], ['+1d', t1dDol]].map(([label, val]) => (
@@ -4766,7 +4789,7 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                   <input ref={fileRef} type="file" multiple accept="image/*" style={{ display: 'none' }} onChange={onFiles} />
                 </div>
                 {tradeAttachments.length === 0 ? (
-                  <div onClick={() => fileRef.current?.click()} style={{ padding: 60, textAlign: 'center', border: '2px dashed var(--border2)', borderRadius: 12, color: 'var(--text3)', cursor: 'pointer', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}
+                  <div onClick={() => fileRef.current?.click()} style={{ padding: 60, textAlign: 'center', border: '2px dashed var(--border2)', borderRadius: 'var(--r-lg)', color: 'var(--text3)', cursor: 'pointer', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--violet)'; e.currentTarget.style.color = 'var(--violet-light)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.color = 'var(--text3)'; }}>
                     <div style={{ fontSize: 32, marginBottom: 8 }}><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
                     <div style={{ fontSize: 13 }}>Click to upload chart screenshots</div>
@@ -4775,7 +4798,7 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                 ) : (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 12 }}>
                     {tradeAttachments.map(a => (
-                      <div key={a.id} style={{ position: 'relative', borderRadius: 9, overflow: 'hidden', background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)' }}>
+                      <div key={a.id} style={{ position: 'relative', borderRadius: 'var(--r-md)', overflow: 'hidden', background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)' }}>
                         <img src={a.storageUrl || a.dataUrl} alt={a.name} style={{ width: '100%', height: 130, objectFit: 'cover', display: 'block', cursor: 'pointer' }} onClick={() => setLightbox(a)} />
                         <div style={{ padding: '6px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
                           <div style={{ fontSize: 11, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={a.name}>{a.name}</div>
@@ -4823,8 +4846,8 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                 <button style={btnStyle('ghost')} onClick={() => setLightbox(null)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
               </div>
             </div>
-            <div style={{ padding: 16, background: '#0a0a0b', overflow: 'auto', WebkitOverflowScrolling: 'touch', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
-              <img src={lightbox.storageUrl || lightbox.dataUrl} alt={lightbox.name} style={{ maxWidth: '100%', height: 'auto', objectFit: 'contain', borderRadius: 8, boxShadow: '0 8px 32px rgba(0,0,0,0.6)', display: 'block' }} />
+            <div style={{ padding: 16, background: 'var(--bg)', overflow: 'auto', WebkitOverflowScrolling: 'touch', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
+              <img src={lightbox.storageUrl || lightbox.dataUrl} alt={lightbox.name} style={{ maxWidth: '100%', height: 'auto', objectFit: 'contain', borderRadius: 'var(--r-md)', boxShadow: '0 8px 32px rgba(0,0,0,0.6)', display: 'block' }} />
             </div>
           </Fragment>
         )}
@@ -4897,8 +4920,8 @@ function ReportsOverviewPane({ stats, insights }) {
               <XAxis dataKey="bin" tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} tickFormatter={v => v.toFixed(0)} />
               <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} />
               <ReferenceLine x={0} stroke="var(--chart-baseline)" strokeDasharray="2 2" />
-              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => [v, 'Trades']} labelFormatter={l => `~$${l.toFixed(0)}`} cursor={{ fill: 'var(--track-bg)' }} />
-              <Bar animationDuration={500} animationEasing="ease-out" dataKey="count">{stats.dist.map((d, i) => <Cell key={i} fill={d.bin >= 0 ? '#4ade80' : '#f87171'} fillOpacity={0.7} />)}</Bar>
+              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => [v, 'Trades']} labelFormatter={l => `~$${l.toFixed(0)}`} cursor={{ fill: 'var(--track-bg)' }} />
+              <Bar animationDuration={380} animationEasing="ease" dataKey="count">{stats.dist.map((d, i) => <Cell key={i} fill={d.bin >= 0 ? '#4ade80' : '#f87171'} fillOpacity={0.7} />)}</Bar>
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -4911,7 +4934,7 @@ function ReportsOverviewPane({ stats, insights }) {
             {insights.map((ins, i) => {
               const c = { positive: ['rgba(38,166,154,0.05)', 'rgba(38,166,154,0.2)', '#2dd4bf'], negative: ['rgba(248,113,113,0.05)', 'rgba(248,113,113,0.2)', '#f87171'], warning: ['rgba(245,158,11,0.05)', 'rgba(245,158,11,0.2)', '#fbbf24'], info: ['rgba(56,139,253,0.05)', 'rgba(56,139,253,0.2)', '#58a6ff'] }[ins.type];
               return (
-                <div key={i} style={{ background: c[0], border: `1px solid ${c[1]}`, borderRadius: 12, padding: 16, display: 'flex', gap: 12 }}>
+                <div key={i} style={{ background: c[0], border: `1px solid ${c[1]}`, borderRadius: 'var(--r-lg)', padding: 16, display: 'flex', gap: 12 }}>
                   <div style={{ fontSize: 18 }}>{renderIcon(ins.icon, 18)}</div>
                   <div><div style={{ fontSize: 13, fontWeight: 600, color: c[2], marginBottom: 4 }}>{ins.title}</div><div style={{ fontSize: 13, color: 'var(--text2)' }}>{ins.text}</div></div>
                 </div>
@@ -4939,8 +4962,8 @@ function ReportsDayTimePane({ trades }) {
               <CartesianGrid strokeDasharray="1 4" stroke="var(--chart-grid)" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} />
               <YAxis type="category" dataKey="day" tick={{ fontSize: 11, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} width={42} />
-              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'var(--track-bg)' }} formatter={(v, n) => [v, n === 'trades' ? 'Trades' : n]} />
-              <Bar animationDuration={500} animationEasing="ease-out" dataKey="trades" fill="#6e5dfc" radius={[0, 4, 4, 0]} />
+              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'var(--track-bg)' }} formatter={(v, n) => [v, n === 'trades' ? 'Trades' : n]} />
+              <Bar animationDuration={380} animationEasing="ease" dataKey="trades" fill="#6e5dfc" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -4953,8 +4976,8 @@ function ReportsDayTimePane({ trades }) {
               <XAxis type="number" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} tickFormatter={fmtCompact} />
               <YAxis type="category" dataKey="day" tick={{ fontSize: 11, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} width={42} />
               <ReferenceLine x={0} stroke="var(--chart-baseline)" />
-              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'var(--track-bg)' }} formatter={v => [fmtMoney(v, true), 'Net P&L']} />
-              <Bar animationDuration={500} animationEasing="ease-out" dataKey="net" radius={[0, 4, 4, 0]}>{dow.map((d, i) => <Cell key={i} fill={d.net >= 0 ? '#4ade80' : '#f87171'} />)}</Bar>
+              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'var(--track-bg)' }} formatter={v => [fmtMoney(v, true), 'Net P&L']} />
+              <Bar animationDuration={380} animationEasing="ease" dataKey="net" radius={[0, 4, 4, 0]}>{dow.map((d, i) => <Cell key={i} fill={d.net >= 0 ? '#4ade80' : '#f87171'} />)}</Bar>
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -4968,8 +4991,8 @@ function ReportsDayTimePane({ trades }) {
             <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} interval={1} />
             <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
             <ReferenceLine y={0} stroke="var(--chart-baseline)" />
-            <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'var(--track-bg)' }} formatter={v => [fmtMoney(v, true), 'Net']} />
-            <Bar animationDuration={500} animationEasing="ease-out" dataKey="net" radius={[2, 2, 0, 0]}>{hours.map((h, i) => <Cell key={i} fill={h.net >= 0 ? '#4ade80' : '#f87171'} />)}</Bar>
+            <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'var(--track-bg)' }} formatter={v => [fmtMoney(v, true), 'Net']} />
+            <Bar animationDuration={380} animationEasing="ease" dataKey="net" radius={[2, 2, 0, 0]}>{hours.map((h, i) => <Cell key={i} fill={h.net >= 0 ? '#4ade80' : '#f87171'} />)}</Bar>
           </BarChart>
         </ResponsiveContainer>
       </Card>
@@ -5031,8 +5054,8 @@ function ReportsPriceQtyPane({ trades }) {
             <XAxis dataKey="bucket" tick={{ fontSize: 11, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} />
             <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
             <ReferenceLine y={0} stroke="var(--chart-baseline)" />
-            <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'var(--track-bg)' }} formatter={v => [fmtMoney(v, true), 'Net']} />
-            <Bar animationDuration={500} animationEasing="ease-out" dataKey="net" radius={[3, 3, 0, 0]}>{vol.map((d, i) => <Cell key={i} fill={d.net >= 0 ? '#4ade80' : '#f87171'} />)}</Bar>
+            <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'var(--track-bg)' }} formatter={v => [fmtMoney(v, true), 'Net']} />
+            <Bar animationDuration={380} animationEasing="ease" dataKey="net" radius={[3, 3, 0, 0]}>{vol.map((d, i) => <Cell key={i} fill={d.net >= 0 ? '#4ade80' : '#f87171'} />)}</Bar>
           </BarChart>
         </ResponsiveContainer>
       </Card>
@@ -5229,8 +5252,8 @@ function ReportsComparePane({ trades }) {
               <XAxis dataKey="label" tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} interval="preserveStartEnd" />
               <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
               <ReferenceLine y={0} stroke="var(--chart-baseline)" strokeDasharray="2 2" />
-              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => [fmtMoney(v), 'Equity']} />
-              <Area type="monotone" animationDuration={600} animationEasing="ease-out" dataKey="equity" stroke={r.net >= 0 ? '#4ade80' : '#f87171'} strokeWidth={2} fill={`url(#cg${num})`} />
+              <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => [fmtMoney(v), 'Equity']} />
+              <Area type="monotone" animationDuration={380} animationEasing="ease" dataKey="equity" stroke={r.net >= 0 ? '#4ade80' : '#f87171'} strokeWidth={2} fill={`url(#cg${num})`} />
             </AreaChart>
           </ResponsiveContainer>
         </Fragment>
@@ -5275,7 +5298,7 @@ function Reports({ trades, setTab }) {
       <Card style={{ padding: 4, display: 'inline-flex', gap: 2, flexWrap: 'wrap', alignSelf: 'flex-start' }}>
         {panes.map(p => (
           <button key={p.id} onClick={() => p.id === 'calendar' ? setTab('calendar') : setPane(p.id)}
-            style={{ padding: '7px 14px', fontSize: 12, fontWeight: 500, borderRadius: 8, border: 'none', cursor: 'pointer', background: pane === p.id ? 'var(--violet)' : 'transparent', color: pane === p.id ? '#fff' : 'var(--text2)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}
+            style={{ padding: '7px 14px', fontSize: 12, fontWeight: 500, borderRadius: 'var(--r-md)', border: 'none', cursor: 'pointer', background: pane === p.id ? 'var(--violet)' : 'transparent', color: pane === p.id ? '#fff' : 'var(--text2)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}
             onMouseEnter={e => { if (pane !== p.id) e.currentTarget.style.color = 'var(--text)'; }}
             onMouseLeave={e => { if (pane !== p.id) e.currentTarget.style.color = 'var(--text2)'; }}>{p.label}</button>
         ))}
@@ -5346,7 +5369,7 @@ function ReportsWinsVsLossesPane({ trades }) {
             <div className="tabnum" style={{ fontSize: 28, fontWeight: 700 }}>{winRate.toFixed(1)}%</div>
           </div>
           <div style={{ flex: 1, maxWidth: 400 }}>
-            <div style={{ display: 'flex', height: 14, borderRadius: 7, overflow: 'hidden', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', height: 14, borderRadius: 'var(--r-sm)', overflow: 'hidden', border: '1px solid var(--border)' }}>
               <div style={{ width: `${winRate}%`, background: 'var(--green)', transition: 'width 0.5s' }} />
               <div style={{ flex: 1, background: 'var(--red)' }} />
             </div>
@@ -5407,11 +5430,11 @@ function Strategies({ strategies, trades, notes, onSave, onDelete }) {
     for (const t of trades) { const pid = notes[t.id]?.strategyId; if (pid && map[pid]) { const n = netPnL(t); map[pid].trades.push(t); map[pid].net += n; if (n > 0) map[pid].wins++; } }
     return Object.values(map).map(p => ({ ...p, count: p.trades.length, winRate: p.trades.length ? p.wins / p.trades.length * 100 : 0, avg: p.trades.length ? p.net / p.trades.length : 0 }));
   }, [strategies, trades, notes]);
-  const inp = { width: '100%', fontSize: 13, background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 7, padding: 8, color: 'var(--text)', outline: 'none' };
+  const inp = { width: '100%', fontSize: 13, background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 'var(--r-sm)', padding: 8, color: 'var(--text)', outline: 'none' };
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {!editing && (
-        <button onClick={() => setEditing({ name: '', description: '', rules: '' })} style={{ width: '100%', background: 'var(--panel)', border: '1px dashed var(--border2)', borderRadius: 14, padding: 24, color: 'var(--text2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 13, transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}
+        <button onClick={() => setEditing({ name: '', description: '', rules: '' })} style={{ width: '100%', background: 'var(--panel)', border: '1px dashed var(--border2)', borderRadius: 'var(--r-lg)', padding: 24, color: 'var(--text2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 13, transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}
           onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--violet)'; e.currentTarget.style.color = 'var(--violet-light)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.color = 'var(--text2)'; }}>+ Define a new strategy</button>
       )}
       {editing && (
@@ -5440,10 +5463,10 @@ function Strategies({ strategies, trades, notes, onSave, onDelete }) {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 8, marginBottom: 12 }}>
             {[['Net P&L', fmtMoney(p.net, true), p.net >= 0 ? 'var(--green-bright)' : 'var(--red)'], ['Win rate', p.count ? `${p.winRate.toFixed(0)}%` : '—'], ['Avg / trade', p.count ? fmtMoney(p.avg, true) : '—', p.avg >= 0 ? 'var(--green-bright)' : 'var(--red)'], ['W / L', `${p.wins} / ${p.count - p.wins}`]].map(([l, v, c], i) => (
-              <div key={i} style={{ background: 'var(--panel2)', borderRadius: 8, padding: 10 }}><div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{l}</div><div className="tabnum" style={{ fontSize: 17, fontWeight: 600, color: c || 'var(--text)' }}>{v}</div></div>
+              <div key={i} style={{ background: 'var(--panel2)', borderRadius: 'var(--r-md)', padding: 10 }}><div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{l}</div><div className="tabnum" style={{ fontSize: 17, fontWeight: 600, color: c || 'var(--text)' }}>{v}</div></div>
             ))}
           </div>
-          {p.rules && <div style={{ background: 'var(--inset-bg)', border: '1px solid var(--inset-border)', borderRadius: 8, padding: 12 }}><div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Rules</div><div style={{ fontSize: 13, color: 'var(--text2)', whiteSpace: 'pre-wrap' }}>{p.rules}</div></div>}
+          {p.rules && <div style={{ background: 'var(--inset-bg)', border: '1px solid var(--inset-border)', borderRadius: 'var(--r-md)', padding: 12 }}><div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Rules</div><div style={{ fontSize: 13, color: 'var(--text2)', whiteSpace: 'pre-wrap' }}>{p.rules}</div></div>}
         </Card>
       ))}
     </div>
@@ -5515,7 +5538,7 @@ function TagLibrary({ open, onClose, allNotes, tagCategoryMap, onSaveTagCategory
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxHeight: 500, overflowY: 'auto' }}>
             {byCategory.map(group => (
-              <div key={group.cat.id} style={{ background: 'var(--inset-bg)', border: '1px solid var(--inset-border)', borderRadius: 8, padding: 12 }}>
+              <div key={group.cat.id} style={{ background: 'var(--inset-bg)', border: '1px solid var(--inset-border)', borderRadius: 'var(--r-md)', padding: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 5, background: `var(--pill-${group.cat.color}-bg)`, color: `var(--pill-${group.cat.color}-fg)`, fontSize: 12 }}>{renderIcon(group.cat.icon, 13)}</span>
                   <div style={{ fontWeight: 600, fontSize: 13 }}>{group.cat.name}</div>
@@ -5554,7 +5577,7 @@ function TagLibrary({ open, onClose, allNotes, tagCategoryMap, onSaveTagCategory
         <div style={{ marginTop: 14, padding: 12, background: 'var(--inset-bg)', border: '1px dashed var(--border2)', borderRadius: 8 }}>
           {adding ? (
             <div style={{ display: 'flex', gap: 8 }}>
-              <input autoFocus value={newCatName} onChange={e => setNewCatName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addCategory(); if (e.key === 'Escape') { setAdding(false); setNewCatName(''); } }} placeholder="Category name (e.g. Market Condition)" style={{ flex: 1, fontSize: 12, padding: '6px 8px', background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 6, color: 'var(--text)', outline: 'none' }} />
+              <input autoFocus value={newCatName} onChange={e => setNewCatName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addCategory(); if (e.key === 'Escape') { setAdding(false); setNewCatName(''); } }} placeholder="Category name (e.g. Market Condition)" style={{ flex: 1, fontSize: 12, padding: '6px 8px', background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 'var(--r-sm)', color: 'var(--text)', outline: 'none' }} />
               <button style={btnStyle('primary')} onClick={addCategory}>Add</button>
               <button style={btnStyle('ghost')} onClick={() => { setAdding(false); setNewCatName(''); }}>Cancel</button>
             </div>
@@ -5683,7 +5706,7 @@ function Notebook({ entries, onSave, onDelete, folders, onSaveFolder, onDeleteFo
     return counts;
   }, [entries, tradeNoteEntries, dayNoteEntries, allFolders]);
   const current = filteredEntries.find(e => e.id === selected) || (selected && !selected.startsWith('t_') && !selected.startsWith('d_') ? entries.find(e => e.id === selected) : null);
-  const inp = { width: '100%', fontSize: 13, background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 7, padding: 8, color: 'var(--text)', outline: 'none' };
+  const inp = { width: '100%', fontSize: 13, background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 'var(--r-sm)', padding: 8, color: 'var(--text)', outline: 'none' };
   // Create a new note in the current folder (or my-notes if a virtual folder is selected).
   // Pre-populate with template if folder has one.
   const newEntry = () => {
@@ -5769,7 +5792,7 @@ function Notebook({ entries, onSave, onDelete, folders, onSaveFolder, onDeleteFo
               <Fragment key={folder.id}>
                 {/* Folder row */}
                 <div onClick={() => { setSelectedFolder(folder.id); setExpandedFolders(prev => ({ ...prev, [folder.id]: !prev[folder.id] })); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 8px', borderRadius: 6, cursor: 'pointer', background: isSelected ? 'var(--violet-tint)' : 'transparent', color: isSelected ? 'var(--violet-light)' : 'var(--text)', fontSize: 13, fontWeight: 500, transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)', position: 'relative' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 8px', borderRadius: 'var(--r-sm)', cursor: 'pointer', background: isSelected ? 'var(--violet-tint)' : 'transparent', color: isSelected ? 'var(--violet-light)' : 'var(--text)', fontSize: 13, fontWeight: 500, transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)', position: 'relative' }}
                   onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--hover-tint)'; }}
                   onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}>
                   <span style={{ fontSize: 10, color: 'var(--text3)', width: 10 }}>{isOpen ? '▾' : '▸'}</span>
@@ -5783,7 +5806,7 @@ function Notebook({ entries, onSave, onDelete, folders, onSaveFolder, onDeleteFo
                   )}
                   {/* Folder context menu */}
                   {showFolderMenu === folder.id && (
-                    <div style={{ position: 'absolute', top: '100%', right: 4, marginTop: 2, background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 6, boxShadow: 'var(--shadow-elev)', zIndex: 30, minWidth: 140 }} onClick={ev => ev.stopPropagation()}>
+                    <div style={{ position: 'absolute', top: '100%', right: 4, marginTop: 2, background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', boxShadow: 'var(--shadow-elev)', zIndex: 30, minWidth: 140 }} onClick={ev => ev.stopPropagation()}>
                       <button onClick={() => { setEditingTemplate(folder.id); setShowFolderMenu(null); }} style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'transparent', border: 'none', color: 'var(--text)', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
                         onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-tint)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit template
@@ -5824,7 +5847,7 @@ function Notebook({ entries, onSave, onDelete, folders, onSaveFolder, onDeleteFo
               <button onClick={addFolder} style={{ ...btnStyle('primary'), padding: '4px 8px', fontSize: 11 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg></button>
             </div>
           ) : (
-            <button onClick={() => setAddingFolder(true)} style={{ width: '100%', padding: '8px 10px', marginTop: 6, background: 'transparent', border: '1px dashed var(--border2)', borderRadius: 6, color: 'var(--text3)', fontSize: 12, cursor: 'pointer', textAlign: 'left' }}
+            <button onClick={() => setAddingFolder(true)} style={{ width: '100%', padding: '8px 10px', marginTop: 6, background: 'transparent', border: '1px dashed var(--border2)', borderRadius: 'var(--r-sm)', color: 'var(--text3)', fontSize: 12, cursor: 'pointer', textAlign: 'left' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--violet)'; e.currentTarget.style.color = 'var(--violet-light)'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.color = 'var(--text3)'; }}>
               + Add folder
@@ -5937,11 +5960,11 @@ function CalendarPage({ trades, onDayClick }) {
   const [yearOffset, setYearOffset] = useState(0); // 0 = current year, -1 = previous
   if (!stats) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--text3)' }}>No trades yet.</div>;
   const toggle = (m, label) => (
-    <button onClick={() => setMode(m)} style={{ padding: '7px 18px', fontSize: 12, borderRadius: 7, border: 'none', cursor: 'pointer', background: mode === m ? 'var(--violet)' : 'transparent', color: mode === m ? '#fff' : 'var(--text2)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}>{label}</button>
+    <button onClick={() => setMode(m)} style={{ padding: '7px 18px', fontSize: 12, borderRadius: 'var(--r-sm)', border: 'none', cursor: 'pointer', background: mode === m ? 'var(--violet)' : 'transparent', color: mode === m ? '#fff' : 'var(--text2)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}>{label}</button>
   );
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'inline-flex', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 9, padding: 3, alignSelf: 'flex-start' }}>
+      <div style={{ display: 'inline-flex', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 3, alignSelf: 'flex-start' }}>
         {toggle('month', 'Month')}
         {toggle('year', 'Year')}
       </div>
@@ -5988,7 +6011,7 @@ function YearlyCalendar({ stats, yearOffset, setYearOffset, onMonthClick }) {
     const a = 0.22 + Math.min(1, Math.abs(pnl) / maxAbs) * 0.43;
     return pnl > 0 ? `rgba(38,166,154,${a})` : `rgba(248,113,113,${a})`;
   };
-  const navBtn = { padding: '4px 10px', borderRadius: 7, background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', cursor: 'pointer', fontSize: 12 };
+  const navBtn = { padding: '4px 10px', borderRadius: 'var(--r-sm)', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', cursor: 'pointer', fontSize: 12 };
   return (
     <Card style={{ padding: 18 }}>
       {/* Year header with prev/next + total */}
@@ -6001,14 +6024,14 @@ function YearlyCalendar({ stats, yearOffset, setYearOffset, onMonthClick }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 12 }}>
           <span style={{ color: 'var(--text3)' }}>Yearly P&L:</span>
-          <span className="tabnum" style={{ fontWeight: 600, padding: '4px 10px', borderRadius: 7, background: months.yearlyTotal >= 0 ? 'var(--pill-green-bg)' : 'var(--pill-red-bg)', color: months.yearlyTotal >= 0 ? 'var(--pill-green-fg)' : 'var(--pill-red-fg)' }}>{fmtMoney(months.yearlyTotal, true)}</span>
+          <span className="tabnum" style={{ fontWeight: 600, padding: '4px 10px', borderRadius: 'var(--r-sm)', background: months.yearlyTotal >= 0 ? 'var(--pill-green-bg)' : 'var(--pill-red-bg)', color: months.yearlyTotal >= 0 ? 'var(--pill-green-fg)' : 'var(--pill-red-fg)' }}>{fmtMoney(months.yearlyTotal, true)}</span>
           <span style={{ color: 'var(--text3)' }}>{months.yearlyTrades} trades</span>
         </div>
       </div>
       {/* 4x3 grid of months. On narrow widths it collapses to 2x6 or 1x12 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
         {months.months.map(m => (
-          <div key={m.month} style={{ background: 'var(--panel2)', borderRadius: 10, padding: 12, border: '1px solid var(--border)' }}>
+          <div key={m.month} style={{ background: 'var(--panel2)', borderRadius: 'var(--r-md)', padding: 12, border: '1px solid var(--border)' }}>
             {/* Month header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
               <div style={{ fontSize: 13, fontWeight: 600 }}>{m.name}</div>
@@ -6075,8 +6098,8 @@ function ProgressPage({ trades, checklist, checklistDays }) {
         </div></Card>
         <Card style={{ padding: 18 }}><div style={{ fontWeight: 600, marginBottom: 16 }}>Best & worst day</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ background: 'rgba(38,166,154,0.05)', border: '1px solid rgba(38,166,154,0.2)', borderRadius: 10, padding: 12 }}><div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: 11, color: 'var(--green-bright)', textTransform: 'uppercase', letterSpacing: '0.04em' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 010-5H6M18 9h1.5a2.5 2.5 0 000-5H18M18 2H6v7a6 6 0 0012 0V2z"/></svg> Best day</span><span className="tabnum" style={{ color: 'var(--green-bright)', fontWeight: 600 }}>{fmtMoney(best?.pnl || 0, true)}</span></div><div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4 }}>{best?.date} · {best?.trades} trades · {best?.wins}W/{best?.losses}L</div></div>
-            <div style={{ background: 'rgba(248,113,113,0.05)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 10, padding: 12 }}><div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: 11, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: '0.04em' }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Worst day</span><span className="tabnum" style={{ color: 'var(--red)', fontWeight: 600 }}>{fmtMoney(worst?.pnl || 0, true)}</span></div><div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4 }}>{worst?.date} · {worst?.trades} trades · {worst?.wins}W/{worst?.losses}L</div></div>
+            <div style={{ background: 'rgba(38,166,154,0.05)', border: '1px solid rgba(38,166,154,0.2)', borderRadius: 'var(--r-md)', padding: 12 }}><div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: 11, color: 'var(--green-bright)', textTransform: 'uppercase', letterSpacing: '0.04em' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 010-5H6M18 9h1.5a2.5 2.5 0 000-5H18M18 2H6v7a6 6 0 0012 0V2z"/></svg> Best day</span><span className="tabnum" style={{ color: 'var(--green-bright)', fontWeight: 600 }}>{fmtMoney(best?.pnl || 0, true)}</span></div><div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4 }}>{best?.date} · {best?.trades} trades · {best?.wins}W/{best?.losses}L</div></div>
+            <div style={{ background: 'rgba(248,113,113,0.05)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 'var(--r-md)', padding: 12 }}><div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: 11, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: '0.04em' }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Worst day</span><span className="tabnum" style={{ color: 'var(--red)', fontWeight: 600 }}>{fmtMoney(worst?.pnl || 0, true)}</span></div><div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4 }}>{worst?.date} · {worst?.trades} trades · {worst?.wins}W/{worst?.losses}L</div></div>
           </div>
         </Card>
       </div>
@@ -6114,7 +6137,7 @@ function Playbook({ playbookState, onSavePlaybookState }) {
               <div className="tabnum" style={{ fontSize: 30, fontWeight: 700, color: grade.color }}>{completed}/{PLAYBOOK_CHECKS.length}</div>
               <div style={{ fontSize: 14, fontWeight: 600, color: grade.color }}>{grade.label}</div>
             </div>
-            <div style={{ width: '100%', height: 8, background: 'var(--chart-grid)', borderRadius: 99, overflow: 'hidden', marginTop: 10 }}>
+            <div style={{ width: '100%', height: 8, background: 'var(--chart-grid)', borderRadius: 'var(--r-full)', overflow: 'hidden', marginTop: 10 }}>
               <div style={{ height: '100%', width: `${pct}%`, background: grade.color, transition: 'width 0.4s' }} />
             </div>
           </div>
@@ -6128,14 +6151,14 @@ function Playbook({ playbookState, onSavePlaybookState }) {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
           {TIMEFRAME_PAIRS.map((p, i) => (
             <button key={i} onClick={() => { setPair(i); onSavePlaybookState({ ...playbookState, checks, pair: i }); }}
-              style={{ padding: '8px 12px', borderRadius: 9, border: `1px solid ${pair === i ? 'var(--violet)' : 'var(--border2)'}`, background: pair === i ? 'rgba(110,93,252,0.12)' : 'var(--panel2)', color: pair === i ? 'var(--violet-light)' : 'var(--text2)', cursor: 'pointer', fontSize: 12, transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}>
+              style={{ padding: '8px 12px', borderRadius: 'var(--r-md)', border: `1px solid ${pair === i ? 'var(--violet)' : 'var(--border2)'}`, background: pair === i ? 'rgba(110,93,252,0.12)' : 'var(--panel2)', color: pair === i ? 'var(--violet-light)' : 'var(--text2)', cursor: 'pointer', fontSize: 12, transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}>
               {p.htf} · {p.mtf} · {p.ltf}
             </button>
           ))}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
           {[['HTF — trend', tf.htf], ['MTF — structure', tf.mtf], ['LTF — entry', tf.ltf]].map(([label, val], i) => (
-            <div key={i} style={{ background: 'var(--panel2)', borderRadius: 10, padding: 14, textAlign: 'center' }}>
+            <div key={i} style={{ background: 'var(--panel2)', borderRadius: 'var(--r-md)', padding: 14, textAlign: 'center' }}>
               <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)' }}>{label}</div>
               <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4, color: i === 0 ? 'var(--violet-light)' : i === 1 ? 'var(--text)' : 'var(--green-bright)' }}>{val}</div>
             </div>
@@ -6152,7 +6175,7 @@ function Playbook({ playbookState, onSavePlaybookState }) {
               {PLAYBOOK_CHECKS.filter(c => c.group === g).map(c => {
                 const done = !!checks[c.id];
                 return (
-                  <button key={c.id} onClick={() => toggle(c.id)} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px', borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s' }}
+                  <button key={c.id} onClick={() => toggle(c.id)} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px', borderRadius: 'var(--r-md)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s' }}
                     onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-tint)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                     <span style={{ width: 17, height: 17, borderRadius: 5, border: `1.5px solid ${done ? 'var(--violet)' : 'var(--border2)'}`, background: done ? 'var(--violet)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11, flexShrink: 0, marginTop: 1 }}>{done ? <svg width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.5' strokeLinecap='round' strokeLinejoin='round'><path d='M20 6L9 17l-5-5'/></svg> : null}</span>
                     <span style={{ fontSize: 13, color: done ? 'var(--text)' : 'var(--text2)', lineHeight: 1.4 }}>{c.label}</span>
@@ -6170,13 +6193,13 @@ function Playbook({ playbookState, onSavePlaybookState }) {
         <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 14 }}>Your complete entry framework — expand this list anytime</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {PLAYBOOK_RULES.map((r, i) => (
-            <div key={i} style={{ display: 'flex', gap: 12, padding: '10px 12px', background: 'var(--panel2)', borderRadius: 9, fontSize: 13, color: 'var(--text2)' }}>
+            <div key={i} style={{ display: 'flex', gap: 12, padding: '10px 12px', background: 'var(--panel2)', borderRadius: 'var(--r-md)', fontSize: 13, color: 'var(--text2)' }}>
               <span style={{ color: 'var(--violet-light)', fontWeight: 700, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{String(i + 1).padStart(2, '0')}</span>
               <span style={{ lineHeight: 1.5 }}>{r}</span>
             </div>
           ))}
         </div>
-        <div style={{ marginTop: 14, padding: 12, background: 'rgba(110,93,252,0.06)', border: '1px solid rgba(124,92,252,0.2)', borderRadius: 9, fontSize: 12, color: 'var(--text2)' }}>
+        <div style={{ marginTop: 14, padding: 12, background: 'rgba(110,93,252,0.06)', border: '1px solid rgba(110,93,252,0.2)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--text2)' }}>
           Tip: tag your trades with these setups in Trade View (e.g. "WOW", "PCP", "fresh-zone") so the Reports insights can tell you which part of this system actually makes you money.
         </div>
       </Card>
@@ -6437,12 +6460,12 @@ function TodayStatusBanner({ status, rules, onOpenGate, onOpenRules }) {
         <div style={{ padding: '10px 14px', borderRight: '1px solid var(--border)' }}>
           <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)', fontWeight: 600 }}>Daily loss</div>
           <div className="tabnum" style={{ fontSize: 15, fontWeight: 700, marginTop: 2, color: pct >= 100 ? 'var(--red)' : pct >= 70 ? '#fbbf24' : 'var(--text)' }}>−${status.lossToday.toFixed(2)} <span style={{ color: 'var(--text3)', fontWeight: 400, fontSize: 11 }}>of −${rules.maxDailyLoss}</span></div>
-          <div style={{ height: 4, background: 'var(--chart-grid)', borderRadius: 99, marginTop: 6, overflow: 'hidden' }}><div style={{ height: '100%', width: `${pct}%`, background: pct >= 100 ? 'var(--red)' : pct >= 70 ? '#fbbf24' : 'var(--green)' }} /></div>
+          <div style={{ height: 4, background: 'var(--chart-grid)', borderRadius: 'var(--r-full)', marginTop: 6, overflow: 'hidden' }}><div style={{ height: '100%', width: `${pct}%`, background: pct >= 100 ? 'var(--red)' : pct >= 70 ? '#fbbf24' : 'var(--green)' }} /></div>
         </div>
         <div style={{ padding: '10px 14px', borderRight: '1px solid var(--border)' }}>
           <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)', fontWeight: 600 }}>Trades</div>
           <div className="tabnum" style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>{status.count} <span style={{ color: 'var(--text3)', fontWeight: 400, fontSize: 11 }}>of {rules.maxDailyTrades}</span></div>
-          <div style={{ height: 4, background: 'var(--chart-grid)', borderRadius: 99, marginTop: 6, overflow: 'hidden' }}><div style={{ height: '100%', width: `${pctTrades}%`, background: pctTrades >= 100 ? 'var(--red)' : 'var(--violet)' }} /></div>
+          <div style={{ height: 4, background: 'var(--chart-grid)', borderRadius: 'var(--r-full)', marginTop: 6, overflow: 'hidden' }}><div style={{ height: '100%', width: `${pctTrades}%`, background: pctTrades >= 100 ? 'var(--red)' : 'var(--violet)' }} /></div>
         </div>
         <div style={{ padding: '10px 14px', borderRight: '1px solid var(--border)' }}>
           <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)', fontWeight: 600 }}>Biggest size today</div>
@@ -6496,7 +6519,7 @@ function PreTradeGate({ open, onClose, status, rules }) {
   ];
   const greenLight = blockers.length === 0;
   const checkRow = (key, label, severe = false) => (
-    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '9px 10px', borderRadius: 7, cursor: 'pointer', background: checks[key] ? 'rgba(38,166,154,0.06)' : 'transparent', border: `1px solid ${checks[key] ? 'rgba(38,166,154,0.25)' : 'var(--border)'}`, marginBottom: 6 }}>
+    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '9px 10px', borderRadius: 'var(--r-sm)', cursor: 'pointer', background: checks[key] ? 'rgba(38,166,154,0.06)' : 'transparent', border: `1px solid ${checks[key] ? 'rgba(38,166,154,0.25)' : 'var(--border)'}`, marginBottom: 6 }}>
       <input type="checkbox" checked={checks[key]} onChange={e => setChecks({ ...checks, [key]: e.target.checked })} style={{ marginTop: 2, accentColor: 'var(--green)', cursor: 'pointer' }} />
       <span style={{ fontSize: 13, lineHeight: 1.4, color: severe ? '#fbbf24' : 'var(--text2)' }}>{label}</span>
     </label>
@@ -6512,7 +6535,7 @@ function PreTradeGate({ open, onClose, status, rules }) {
       </div>
       <div style={{ padding: 22, flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
         {status.locked && (
-          <div style={{ padding: 14, background: 'rgba(248,113,113,0.1)', border: '1px solid var(--red)', borderRadius: 10, marginBottom: 16 }}>
+          <div style={{ padding: 14, background: 'rgba(248,113,113,0.1)', border: '1px solid var(--red)', borderRadius: 'var(--r-md)', marginBottom: 16 }}>
             <div style={{ fontWeight: 700, color: 'var(--red)', marginBottom: 6 }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M4.93 4.93l14.14 14.14"/></svg> You are locked out for today</div>
             {status.breaches.map((b, i) => <div key={i} style={{ fontSize: 13, color: 'var(--text2)', marginTop: 4 }}>• {b.text}</div>)}
             <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 10, fontStyle: 'italic' }}>This isn't a technical block on your broker — but if you trade through this warning, you're explicitly choosing to break your own rules. Close the terminal and step away.</div>
@@ -6545,7 +6568,7 @@ function PreTradeGate({ open, onClose, status, rules }) {
           <label style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, display: 'block', marginBottom: 6 }}>Type to confirm: <span style={{ fontFamily: 'ui-monospace,monospace', color: 'var(--text)' }}>I will follow my plan</span></label>
           <input value={confirmed} onChange={e => setConfirmed(e.target.value)} placeholder="Type the words above" style={{ ...inputStyle, width: '100%', fontSize: 14 }} />
         </div>
-        <div style={{ marginTop: 18, padding: 14, borderRadius: 10, background: greenLight ? 'rgba(38,166,154,0.1)' : 'rgba(248,113,113,0.08)', border: `1.5px solid ${greenLight ? 'var(--green)' : 'var(--red)'}` }}>
+        <div style={{ marginTop: 18, padding: 14, borderRadius: 'var(--r-md)', background: greenLight ? 'rgba(38,166,154,0.1)' : 'rgba(248,113,113,0.08)', border: `1.5px solid ${greenLight ? 'var(--green)' : 'var(--red)'}` }}>
           <div style={{ fontWeight: 700, fontSize: 15, color: greenLight ? 'var(--green-bright)' : 'var(--red)', marginBottom: greenLight ? 0 : 8 }}>
             {greenLight ? 'Clear to trade' : <span style={{display:'inline-flex',alignItems:'center',gap:5}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M4.93 4.93l14.14 14.14"/></svg> DO NOT ENTER</span>}
           </div>
@@ -6695,7 +6718,7 @@ function DateRangeFilter({ value, onChange }) {
   return (
     <Fragment>
       <button ref={btnRef} onClick={() => setOpen(!open)}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 12px', fontSize: 12, fontWeight: 500, borderRadius: 8, border: `1px solid ${isActive ? 'var(--violet)' : 'var(--border2)'}`, background: isActive ? 'rgba(110,93,252,0.12)' : 'var(--panel2)', color: isActive ? 'var(--violet-light)' : 'var(--text)', cursor: 'pointer', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)', textAlign: 'left', lineHeight: 1.2 }}>
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 12px', fontSize: 12, fontWeight: 500, borderRadius: 'var(--r-md)', border: `1px solid ${isActive ? 'var(--violet)' : 'var(--border2)'}`, background: isActive ? 'rgba(110,93,252,0.12)' : 'var(--panel2)', color: isActive ? 'var(--violet-light)' : 'var(--text)', cursor: 'pointer', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)', textAlign: 'left', lineHeight: 1.2 }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
         <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
           <span>{buttonText}</span>
@@ -6704,7 +6727,7 @@ function DateRangeFilter({ value, onChange }) {
         <span style={{ marginLeft: 2, opacity: 0.7 }}>▾</span>
       </button>
       {open && (
-        <div ref={ref} className="fade-in" style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, background: 'var(--panel)', border: '1px solid var(--border2)', borderRadius: 10, padding: 12, zIndex: 1000, boxShadow: '0 14px 40px rgba(0,0,0,0.7)', maxHeight: 'calc(100vh - 20px)', overflowY: 'auto' }}>
+        <div ref={ref} className="fade-in" style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, background: 'var(--panel)', border: '1px solid var(--border2)', borderRadius: 'var(--r-md)', padding: 12, zIndex: 1000, boxShadow: '0 14px 40px rgba(0,0,0,0.7)', maxHeight: 'calc(100vh - 20px)', overflowY: 'auto' }}>
           <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, marginBottom: 8, paddingLeft: 4 }}>Quick select</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             {presets.map(p => {
@@ -6758,7 +6781,7 @@ function AICoach({ trades, notes, stats, riskRules, exitData, config, onSaveConf
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [activeConvoId, conversations, loading]);
   const isMobile = useMobile();
   const activeConvo = conversations?.find(c => c.id === activeConvoId);
-  const inp = { width: '100%', fontSize: 13, background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 7, padding: 8, color: 'var(--text)', outline: 'none' };
+  const inp = { width: '100%', fontSize: 13, background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 'var(--r-sm)', padding: 8, color: 'var(--text)', outline: 'none' };
   const newConvo = () => {
     const c = { id: `ai_${Date.now()}`, title: 'New conversation', messages: [], createdAt: Date.now(), updatedAt: Date.now() };
     const next = [c, ...(conversations || [])];
@@ -6860,7 +6883,7 @@ function AICoach({ trades, notes, stats, riskRules, exitData, config, onSaveConf
               <input value={tempConfig.endpoint || ''} onChange={e => setTempConfig({ ...tempConfig, endpoint: e.target.value })} placeholder="https://api.openai.com/v1/chat/completions" style={inp} />
               <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>Leave blank for OpenAI. For Groq, Together, OpenRouter etc., paste their /v1/chat/completions URL.</div>
             </div>
-            <div style={{ padding: 12, background: 'var(--inset-bg)', border: '1px solid var(--inset-border)', borderRadius: 8, fontSize: 12, color: 'var(--text2)' }}>
+            <div style={{ padding: 12, background: 'var(--inset-bg)', border: '1px solid var(--inset-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--text2)' }}>
               <strong>Privacy:</strong> Each question sends a JSON summary of your recent ~50 trades + stats to your chosen API. No personal info (name, account #) is included beyond what's in trade fields.
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -6880,7 +6903,7 @@ function AICoach({ trades, notes, stats, riskRules, exitData, config, onSaveConf
         <button style={{ ...btnStyle('primary'), width: '100%', justifyContent: 'center', marginBottom: 6 }} onClick={newConvo}>+ New chat</button>
         {(!conversations || conversations.length === 0) && <div style={{ padding: 20, textAlign: 'center', color: 'var(--text3)', fontSize: 12 }}>No conversations yet</div>}
         {conversations?.map(c => (
-          <div key={c.id} onClick={() => setActiveConvoId(c.id)} style={{ padding: '8px 10px', borderRadius: 6, cursor: 'pointer', background: activeConvoId === c.id ? 'var(--violet-tint)' : 'transparent', borderLeft: activeConvoId === c.id ? '2px solid var(--violet)' : '2px solid transparent', display: 'flex', alignItems: 'center', gap: 4 }}
+          <div key={c.id} onClick={() => setActiveConvoId(c.id)} style={{ padding: '8px 10px', borderRadius: 'var(--r-sm)', cursor: 'pointer', background: activeConvoId === c.id ? 'var(--violet-tint)' : 'transparent', borderLeft: activeConvoId === c.id ? '2px solid var(--violet)' : '2px solid transparent', display: 'flex', alignItems: 'center', gap: 4 }}
             onMouseEnter={e => { if (activeConvoId !== c.id) e.currentTarget.style.background = 'var(--hover-tint)'; }}
             onMouseLeave={e => { if (activeConvoId !== c.id) e.currentTarget.style.background = 'transparent'; }}>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -6891,7 +6914,7 @@ function AICoach({ trades, notes, stats, riskRules, exitData, config, onSaveConf
               onMouseEnter={ev => ev.currentTarget.style.color = 'var(--red)'} onMouseLeave={ev => ev.currentTarget.style.color = 'var(--text3)'}>×</button>
           </div>
         ))}
-        <button onClick={() => setShowSettings(true)} style={{ marginTop: 'auto', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', padding: '6px 10px', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}
+        <button onClick={() => setShowSettings(true)} style={{ marginTop: 'auto', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', padding: '6px 10px', borderRadius: 'var(--r-sm)', fontSize: 11, cursor: 'pointer' }}
           onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--violet)'; e.currentTarget.style.color = 'var(--violet-light)'; }}
           onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text2)'; }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg> API settings</button>
       </Card>
@@ -6914,7 +6937,7 @@ function AICoach({ trades, notes, stats, riskRules, exitData, config, onSaveConf
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 8, width: '100%', maxWidth: 520 }}>
                 {quickPrompts.map((qp, i) => (
-                  <button key={i} onClick={() => send(qp.text)} disabled={loading} style={{ padding: 12, background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 8, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: 'var(--text)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}
+                  <button key={i} onClick={() => send(qp.text)} disabled={loading} style={{ padding: 12, background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 'var(--r-md)', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: 'var(--text)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--violet)'; e.currentTarget.style.background = 'var(--hover-tint)'; }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--panel2)'; }}>
                     <span style={{ fontSize: 18 }}>{renderIcon(qp.icon, 16)}</span>
@@ -6926,7 +6949,7 @@ function AICoach({ trades, notes, stats, riskRules, exitData, config, onSaveConf
           ) : (
             activeConvo.messages.map((m, i) => (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
-                <div style={{ maxWidth: '88%', padding: '10px 14px', borderRadius: 10, background: m.role === 'user' ? 'var(--violet-tint)' : 'var(--panel2)', border: `1px solid ${m.role === 'user' ? 'rgba(110,93,252,0.28)' : 'var(--border)'}`, fontSize: 13, lineHeight: 1.6, color: 'var(--text)', whiteSpace: 'pre-wrap' }}>
+                <div style={{ maxWidth: '88%', padding: '10px 14px', borderRadius: 'var(--r-md)', background: m.role === 'user' ? 'var(--violet-tint)' : 'var(--panel2)', border: `1px solid ${m.role === 'user' ? 'rgba(110,93,252,0.28)' : 'var(--border)'}`, fontSize: 13, lineHeight: 1.6, color: 'var(--text)', whiteSpace: 'pre-wrap' }}>
                   {m.content}
                 </div>
                 <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 3, padding: '0 8px' }}>{m.role === 'user' ? 'You' : 'Coach'} · {new Date(m.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
@@ -6936,13 +6959,13 @@ function AICoach({ trades, notes, stats, riskRules, exitData, config, onSaveConf
           {loading && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', color: 'var(--text3)', fontSize: 12 }}>
               <div style={{ display: 'flex', gap: 4 }}>
-                {[0, 1, 2].map(i => <div key={i} style={{ width: 6, height: 6, borderRadius: 99, background: 'var(--violet-light)', opacity: 0.4, animation: `aiCoachPulse 1.2s infinite ${i * 0.2}s` }} />)}
+                {[0, 1, 2].map(i => <div key={i} style={{ width: 6, height: 6, borderRadius: 'var(--r-full)', background: 'var(--violet-light)', opacity: 0.4, animation: `aiCoachPulse 1.2s infinite ${i * 0.2}s` }} />)}
               </div>
               Coach is thinking…
             </div>
           )}
           {error && (
-            <div style={{ padding: 10, background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.4)', borderRadius: 8, color: 'var(--red)', fontSize: 12 }}>
+            <div style={{ padding: 10, background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.4)', borderRadius: 'var(--r-md)', color: 'var(--red)', fontSize: 12 }}>
               <strong>Error:</strong> {error}
             </div>
           )}
@@ -7010,7 +7033,7 @@ function Sidebar({ tab, setTab, hasData, mobileOpen, setMobileOpen, collapsed, s
   const aside = (
     <aside style={{ width: sidebarWidth, background: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)', position: 'fixed', left: isMobile ? (mobileOpen ? 0 : -280) : 0, top: 0, bottom: 0, display: 'flex', flexDirection: 'column', padding: isCollapsed ? '12px 8px' : 12, paddingTop: isMobile ? `calc(env(safe-area-inset-top, 0px) + 14px)` : (isCollapsed ? '12px 8px' : 12), zIndex: 50, transition: isMobile ? 'left 0.25s ease' : 'width 0.2s ease, padding 0.2s ease', boxShadow: isMobile && mobileOpen ? '4px 0 24px rgba(0,0,0,0.6)' : 'none' }}>
       {/* Branding stamp — collapsed mode shows JUST the icon, expanded shows icon + text */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: isCollapsed ? 0 : 11, justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '10px 0' : '14px 10px', marginBottom: 10, borderRadius: 12, background: isCollapsed ? 'transparent' : 'linear-gradient(135deg, rgba(110,93,252,0.06), rgba(192,38,211,0.04))', border: isCollapsed ? 'none' : '1px solid rgba(110,93,252,0.16)', boxShadow: isCollapsed ? 'none' : 'inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -1px 0 rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.5)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: isCollapsed ? 0 : 11, justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '10px 0' : '14px 10px', marginBottom: 10, borderRadius: 'var(--r-lg)', background: isCollapsed ? 'transparent' : 'linear-gradient(135deg, rgba(110,93,252,0.06), rgba(192,38,211,0.04))', border: isCollapsed ? 'none' : '1px solid rgba(110,93,252,0.16)', boxShadow: isCollapsed ? 'none' : 'inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -1px 0 rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.5)' }}>
         <svg width={isCollapsed ? 36 : 32} height={isCollapsed ? 36 : 32} viewBox="0 0 100 100" fill="none" style={{ filter: 'drop-shadow(0 0 8px rgba(110,93,252,0.24))', flexShrink: 0 }}>
           <defs>
             <linearGradient id="sbSword" x1="0" y1="0" x2="0" y2="1">
@@ -7060,18 +7083,18 @@ function Sidebar({ tab, setTab, hasData, mobileOpen, setMobileOpen, collapsed, s
               style={{ display: 'flex', alignItems: 'center', gap: isCollapsed ? 0 : 10, justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '11px 0' : '9px 11px', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: active ? 500 : 400, background: active ? 'var(--sidebar-active-bg)' : 'transparent', color: active ? 'var(--sidebar-text-active)' : 'var(--sidebar-text)', border: active ? '1px solid var(--sidebar-active-border)' : '1px solid transparent', boxShadow: active ? 'inset 2px 0 0 var(--violet)' : 'none', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.35 : 1, textAlign: 'left', letterSpacing: '-0.01em' }} className={'sidebar-item'}
               onMouseEnter={e => { if (!active && !disabled) { e.currentTarget.style.background = 'var(--sidebar-hover-bg)'; e.currentTarget.style.color = 'var(--sidebar-text-hover)'; } }}
               onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--sidebar-text)'; } }}>
-              <span style={{ width: 16, height: 15, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: 0.85 }} dangerouslySetInnerHTML={{ __html: icon }} />
+              <span style={{ width: 16, height: 15, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: 0.8, transition: 'opacity var(--dur-fast) var(--ease-out)' }} dangerouslySetInnerHTML={{ __html: icon }} />
               {!isCollapsed && <span style={{ flex: 1 }}>{label}</span>}
             </button>
           );
         })}
       </nav>
-      {!isCollapsed && <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', padding: '10px 12px 0', borderTop: '1px solid var(--sidebar-divider)', letterSpacing: '0.02em' }}>RAMANFX · v2</div>}
+      {!isCollapsed && <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', padding: '10px 12px 0', borderTop: '1px solid var(--sidebar-divider)', letterSpacing: '0.02em' }}>RamanFX v2.0</div>}
       {/* Collapse/expand toggle button — bottom of sidebar on PC only.
           Symbol points the direction the sidebar will move when clicked. */}
       {!isMobile && (
         <button onClick={() => setCollapsed(!collapsed)} title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          style={{ marginTop: 8, padding: isCollapsed ? '10px 0' : '8px 12px', background: 'transparent', border: 'none', color: 'var(--sidebar-text)', cursor: 'pointer', fontSize: 14, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: 11, transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}
+          style={{ marginTop: 8, padding: isCollapsed ? '10px 0' : '8px 12px', background: 'transparent', border: 'none', color: 'var(--sidebar-text)', cursor: 'pointer', fontSize: 14, borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: 11, transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}
           onMouseEnter={e => { e.currentTarget.style.background = 'var(--sidebar-hover-bg)'; e.currentTarget.style.color = 'var(--sidebar-text-hover)'; }}
           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--sidebar-text)'; }}>
           <span style={{ fontSize: 16, width: 16, textAlign: 'center' }}>{collapsed ? '»' : '«'}</span>
@@ -7124,7 +7147,7 @@ function ExitAnalysisPage({ trades, exitData, onOpenTrade }) {
               <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.55 }}>The <strong style={{ color: 'var(--text)' }}>worst point</strong> a trade was against you before you closed it. Example: you bought XAUUSD at $4500. Price dropped to $4480 (you were down <strong style={{ color: 'var(--red)' }}>-$20 unrealized</strong>), then recovered. You closed at $4515 with +$15 — your MAE was -$20.</div>
             </div>
           </div>
-          <div style={{ marginTop: 14, padding: 12, background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 8, fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6 }}>
+          <div style={{ marginTop: 14, padding: 12, background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 'var(--r-md)', fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6 }}>
             <strong style={{ color: 'var(--violet-light)' }}>Why it matters:</strong> If most of your winners' MFE was much bigger than what you actually took home, you're <em>cutting winners early</em>. If your losers' MAE shows they went deeply against you fast, your entries are off. The script also calculates "if you'd held to T+1h / 4h / 1d, what would you have made?" — answering whether more patience would have helped or hurt.
           </div>
         </Card>
@@ -7205,7 +7228,7 @@ function ExitAnalysisPage({ trades, exitData, onOpenTrade }) {
             return (
               <div key={b.key} style={{ display: 'grid', gridTemplateColumns: isMobile ? '110px 1fr 90px' : '140px 1fr 120px', alignItems: 'center', gap: 10 }}>
                 <div style={{ fontSize: 12, color: isActual ? 'var(--violet-light)' : 'var(--text2)', fontWeight: isActual ? 700 : 500 }}>{b.label}{isBest && <span style={{ marginLeft: 6, fontSize: 9, padding: '1px 6px', background: 'rgba(38,166,154,0.18)', color: 'var(--green-bright)', borderRadius: 4, fontWeight: 700 }}>BEST</span>}</div>
-                <div style={{ height: 22, background: 'var(--panel2)', borderRadius: 6, position: 'relative', overflow: 'hidden' }}>
+                <div style={{ height: 22, background: 'var(--panel2)', borderRadius: 'var(--r-sm)', position: 'relative', overflow: 'hidden' }}>
                   <div style={{ position: 'absolute', top: 0, bottom: 0, left: '50%', width: 1, background: 'var(--border2)' }} />
                   <div style={{ position: 'absolute', top: 0, bottom: 0, [positive ? 'left' : 'right']: '50%', width: `${pct / 2}%`, background: positive ? 'var(--green)' : 'var(--red)', opacity: isActual ? 1 : 0.75, borderRadius: 3 }} />
                 </div>
@@ -7215,12 +7238,12 @@ function ExitAnalysisPage({ trades, exitData, onOpenTrade }) {
           })}
         </div>
         {bestForward.key !== 'actual' && bestForward.dol > actualForward.dol && (
-          <div style={{ marginTop: 14, padding: 11, background: 'rgba(110,93,252,0.06)', border: '1px solid rgba(110,93,252,0.22)', borderRadius: 8, fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6 }}>
+          <div style={{ marginTop: 14, padding: 11, background: 'rgba(110,93,252,0.06)', border: '1px solid rgba(110,93,252,0.22)', borderRadius: 'var(--r-md)', fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6 }}>
             <strong style={{ color: 'var(--violet-light)' }}>Insight:</strong> Mechanically holding every trade for <strong>{bestForward.label.replace('Held to ', '')}</strong> would have produced <strong>{fmtMoney(bestForward.dol - actualForward.dol, true)}</strong> more than your actual closing decisions. This doesn't mean "always hold longer" — it means your bias is to close too early. Consider trailing stops or partial scale-outs to capture more of these trends.
           </div>
         )}
         {bestForward.key === 'actual' && (
-          <div style={{ marginTop: 14, padding: 11, background: 'rgba(38,166,154,0.06)', border: '1px solid rgba(38,166,154,0.25)', borderRadius: 8, fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6 }}>
+          <div style={{ marginTop: 14, padding: 11, background: 'rgba(38,166,154,0.06)', border: '1px solid rgba(38,166,154,0.25)', borderRadius: 'var(--r-md)', fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6 }}>
             <strong style={{ color: 'var(--green-bright)' }}>Good news:</strong> Your actual exit decisions beat every mechanical hold-time strategy. You're picking your moments well — just be aware of the {stats.turnedLossCount} cases where winners turned into losers.
           </div>
         )}
@@ -7238,7 +7261,7 @@ function ExitAnalysisPage({ trades, exitData, onOpenTrade }) {
             <XAxis type="number" dataKey="mfeDol" name="MFE" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} tickFormatter={(v) => v >= 1000 ? `$${(v/1000).toFixed(1)}k` : `$${v.toFixed(0)}`} />
             <YAxis type="number" dataKey="profitDol" name="Profit" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={(v) => v >= 1000 || v <= -1000 ? `$${(v/1000).toFixed(1)}k` : `$${v.toFixed(0)}`} />
             <ReferenceLine y={0} stroke="var(--chart-baseline)" strokeDasharray="2 2" />
-            <Tooltip cursor={{ strokeDasharray: '3 3', stroke: 'var(--chart-baseline)' }} contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8, fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }}
+            <Tooltip cursor={{ strokeDasharray: '3 3', stroke: 'var(--chart-baseline)' }} contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }}
               formatter={(v, n) => {
                 if (n === 'profitDol') return [(v >= 0 ? '+$' : '-$') + Math.abs(v).toFixed(2), 'Closed at'];
                 if (n === 'mfeDol') return [(v >= 0 ? '+$' : '-$') + Math.abs(v).toFixed(2), 'Peak (MFE)'];
@@ -7300,7 +7323,7 @@ function ExitAnalysisPage({ trades, exitData, onOpenTrade }) {
               .filter(d => d.profit < 0 && d.mfe > 50)
               .sort((a, b) => (b.mfeDol || b.mfe) - (a.mfeDol || a.mfe))
               .slice(0, 10).map(d => (
-              <div key={d.id} onClick={() => onOpenTrade?.(d.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: 8, cursor: 'pointer', transition: 'background 0.15s', flexWrap: 'wrap', gap: 8 }}
+              <div key={d.id} onClick={() => onOpenTrade?.(d.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: 'var(--r-md)', cursor: 'pointer', transition: 'background 0.15s', flexWrap: 'wrap', gap: 8 }}
                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(248,113,113,0.12)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(248,113,113,0.06)'}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flexWrap: 'wrap' }}>
                   <span style={{ fontFamily: 'ui-monospace,monospace', fontSize: 13, color: 'var(--text)', fontWeight: 600 }}>{d.symbol}</span>
@@ -8056,7 +8079,7 @@ function App() {
     <div style={{ minHeight: '100vh' }}>
       <Sidebar tab={tab} setTab={setTab} hasData={trades.length > 0} mobileOpen={mobileNavOpen} setMobileOpen={setMobileNavOpen} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
       <div style={{ marginLeft: isMobile ? 0 : (sidebarCollapsed ? 60 : 220), transition: 'margin-left 0.2s ease' }}>
-        <header data-rfx-header style={{ position: 'sticky', top: 0, zIndex: 40, background: 'var(--header-bg)', backdropFilter: 'blur(20px) saturate(1.3)', WebkitBackdropFilter: 'blur(20px) saturate(1.3)' }}>
+        <header data-rfx-header style={{ position: 'sticky', top: 0, zIndex: 40, background: 'var(--header-bg)', backdropFilter: 'blur(20px) saturate(1.5)', WebkitBackdropFilter: 'blur(20px) saturate(1.5)' }}>
           <div style={{ padding: isMobile ? '9px 14px' : '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
               {isMobile && (
@@ -8223,7 +8246,7 @@ function App() {
                   </div>
                   <input value={deviceName} onChange={e => updateDeviceName(e.target.value)} placeholder="Device name" style={{ ...inputStyle, width: 160 }} />
                 </div>
-                <div style={{ background: 'var(--panel2)', borderRadius: 10, padding: 14, marginBottom: 10 }}>
+                <div style={{ background: 'var(--panel2)', borderRadius: 'var(--r-md)', padding: 14, marginBottom: 10 }}>
                   <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 12, lineHeight: 1.6 }}>
                     <strong style={{ color: 'var(--text)' }}>How sync works</strong> — tap <strong>Sync now</strong> on the device you traded on; it saves a file named <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 3, fontFamily: 'ui-monospace,monospace' }}>ramanfx-sync.json</code>. Place that file in a cloud-synced folder (iCloud, Google Drive, OneDrive, Dropbox). On your other device, tap <strong>Sync from file</strong> and pick the same file. Your data stays private — the cloud provider just stores the file; only your devices read it.
                     {hasFileSystemAccess() && (
@@ -8274,7 +8297,7 @@ function App() {
           {trades.length === 0 && tab !== 'playbook' ? (
             <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{ textAlign: 'center', maxWidth: 420 }}>
-                <div style={{ width: 64, height: 64, borderRadius: 18, background: 'linear-gradient(135deg,#7c5cfc,#c026d3)', margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff' }}>{BRAND[0]}</div>
+                <div style={{ width: 64, height: 64, borderRadius: 'var(--r-xl)', background: 'linear-gradient(135deg,#7c5cfc,#c026d3)', margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff' }}>{BRAND[0]}</div>
                 <div style={{ fontSize: 24, fontWeight: 600, marginBottom: 8 }}>Welcome to {BRAND}</div>
                 <div style={{ fontSize: 14, color: 'var(--text2)', marginBottom: 24, lineHeight: 1.6 }}>A comprehensive trading journal. Import your MT5 history report to unlock the full dashboard — Day/Week view, Trade analytics, Calendar heatmap, Strategies, Notebook, Reports, and Progress tracking. Your Playbook is ready now in the sidebar.</div>
                 <div style={{ display: 'flex', justifyContent: 'center' }}><UploadBtn onUpload={handleUpload} primary /></div>
@@ -8316,10 +8339,10 @@ function App() {
         return (
           <div className="rfx-float-bottom" style={{ '--rfx-float-offset': isMobile ? '18px' : '26px', position: 'fixed', left: isMobile ? 18 : 26, zIndex: 40, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
             {syncStatus && (
-              <div className="fade-in" style={{ background: 'var(--panel)', border: '1px solid var(--green)', color: 'var(--green-bright)', borderRadius: 8, padding: '8px 14px', fontSize: 12, fontWeight: 600, boxShadow: '0 6px 20px rgba(0,0,0,0.5)' }}>{syncStatus}</div>
+              <div className="fade-in" style={{ background: 'var(--panel)', border: '1px solid var(--green)', color: 'var(--green-bright)', borderRadius: 'var(--r-md)', padding: '8px 14px', fontSize: 12, fontWeight: 600, boxShadow: '0 6px 20px rgba(0,0,0,0.5)' }}>{syncStatus}</div>
             )}
             <button onClick={syncExport} title={isDirty ? 'You have unsynced changes — tap to sync' : 'Sync now'}
-              style={{ position: 'relative', padding: '9px 16px', borderRadius: 'var(--r-full)', border: isDirty ? 'none' : '1px solid var(--border2)', cursor: 'pointer', background: isDirty ? '#f59e0b' : 'rgba(16,16,19,0.95)', color: isDirty ? '#000' : 'var(--text2)', fontWeight: 600, fontSize: 12, boxShadow: isDirty ? '0 4px 20px rgba(245,158,11,0.35)' : '0 4px 16px rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', gap: 6, backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', transition: 'background 0.15s ease, box-shadow 0.15s ease, color 0.15s ease' }}>
+              style={{ position: 'relative', padding: '9px 16px', borderRadius: 'var(--r-full)', border: isDirty ? 'none' : '1px solid var(--border2)', cursor: 'pointer', background: isDirty ? '#f59e0b' : 'rgba(16,16,19,0.95)', color: isDirty ? '#000' : 'var(--text2)', fontWeight: 600, fontSize: 12, boxShadow: isDirty ? '0 4px 20px rgba(245,158,11,0.35)' : '0 4px 16px rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', gap: 6, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', transition: 'background 0.15s ease, box-shadow 0.15s ease, color 0.15s ease' }}>
               <span style={{ fontSize: 12 }}>↻</span>{isDirty ? 'Sync (unsaved)' : 'Sync'}
             </button>
           </div>
@@ -8328,7 +8351,7 @@ function App() {
       {/* Floating gate button — always reachable */}
       {trades.length > 0 && !gateOpen && (
         <button onClick={() => setGateOpen(true)} title="Pre-trade gate" className="rfx-float-bottom"
-          style={{ '--rfx-float-offset': isMobile ? '18px' : '26px', position: 'fixed', right: isMobile ? 18 : 26, zIndex: 40, padding: '10px 18px', borderRadius: 'var(--r-full)', border: `1px solid ${riskStatus.locked ? 'rgba(248,113,113,0.4)' : 'rgba(110,93,252,0.24)'}`, cursor: 'pointer', background: riskStatus.locked ? 'rgba(248,113,113,0.9)' : 'rgba(124,92,252,0.9)', color: '#fff', fontWeight: 600, fontSize: 13, letterSpacing: '-0.01em', boxShadow: riskStatus.locked ? '0 4px 20px rgba(248,113,113,0.4)' : '0 4px 20px rgba(110,93,252,0.32)', display: 'flex', alignItems: 'center', gap: 7, backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', transition: 'background 0.15s ease, box-shadow 0.15s ease' }}>
+          style={{ '--rfx-float-offset': isMobile ? '18px' : '26px', position: 'fixed', right: isMobile ? 18 : 26, zIndex: 40, padding: '10px 18px', borderRadius: 'var(--r-full)', border: `1px solid ${riskStatus.locked ? 'rgba(248,113,113,0.4)' : 'rgba(110,93,252,0.24)'}`, cursor: 'pointer', background: riskStatus.locked ? 'rgba(248,113,113,0.9)' : 'rgba(110,93,252,0.9)', color: '#fff', fontWeight: 600, fontSize: 13, letterSpacing: '-0.01em', boxShadow: riskStatus.locked ? '0 4px 20px rgba(248,113,113,0.4)' : '0 4px 20px rgba(110,93,252,0.32)', display: 'flex', alignItems: 'center', gap: 7, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', transition: 'background 0.15s ease, box-shadow 0.15s ease' }}>
           <span style={{ fontSize: 14, fontStyle: 'normal' }}>{riskStatus.locked ? "×" : '◈'}</span>{riskStatus.locked ? 'Locked' : 'Pre-trade gate'}
         </button>
       )}
@@ -8349,7 +8372,7 @@ function App() {
               <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 16, lineHeight: 1.6 }}>
                 Your trades auto-sync to the cloud after every MT5 import. Access your journal from any device at this same URL.
               </div>
-              <button style={{ width: '100%', padding: '10px 0', borderRadius: 8, border: '1px solid var(--red)', background: 'none', color: 'var(--red)', cursor: 'pointer', fontWeight: 600, fontSize: 13 }} onClick={handleCloudLogout}>Sign out</button>
+              <button style={{ width: '100%', padding: '10px 0', borderRadius: 'var(--r-md)', border: '1px solid var(--red)', background: 'none', color: 'var(--red)', cursor: 'pointer', fontWeight: 600, fontSize: 13 }} onClick={handleCloudLogout}>Sign out</button>
             </div>
           ) : (
             <div>
@@ -8369,7 +8392,7 @@ function App() {
                 style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: 14, fontFamily: 'inherit', transition: 'border-color 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out)', marginBottom: 12, boxSizing: 'border-box' }}
               />
               <button
-                style={{ width: '100%', padding: '10px 0', borderRadius: 8, border: 'none', background: 'var(--violet)', color: '#fff', cursor: cloudLoading ? 'default' : 'pointer', fontWeight: 700, fontSize: 14, opacity: cloudLoading ? 0.7 : 1 }}
+                style={{ width: '100%', padding: '10px 0', borderRadius: 'var(--r-md)', border: 'none', background: 'var(--violet)', color: '#fff', cursor: cloudLoading ? 'default' : 'pointer', fontWeight: 700, fontSize: 14, opacity: cloudLoading ? 0.7 : 1 }}
                 onClick={handleCloudLogin} disabled={cloudLoading}>
                 {cloudLoading ? 'Signing in…' : 'Sign in'}
               </button>
