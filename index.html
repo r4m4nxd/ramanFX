@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <title>RamanFX — Trading Journal</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230a0a0b'/><circle cx='50' cy='55' r='38' fill='rgba(110,93,252,0.12)'/><path d='M 9 76 Q 18 46 32 35 Q 42 28 50 36' stroke='%23ef5350' stroke-width='2.4' fill='none' stroke-linecap='round'/><path d='M 91 76 Q 82 46 68 35 Q 58 28 50 36' stroke='%23ef5350' stroke-width='2.4' fill='none' stroke-linecap='round'/><path d='M 9 65 Q 18 84 32 89 Q 42 91 50 86' stroke='%2326a69a' stroke-width='2.4' fill='none' stroke-linecap='round'/><path d='M 91 65 Q 82 84 68 89 Q 58 91 50 86' stroke='%2326a69a' stroke-width='2.4' fill='none' stroke-linecap='round'/><g transform='translate(16, 30)'><path d='M 3 14 Q 1 8 5 6 Q 9 1 16 2 L 21 -3 L 24 1 L 24 7 Q 26 11 23 15 L 21 17 Q 16 19 11 17 L 6 18 Q 2 17 3 14 Z' fill='%23a78bfa'/><polygon points='10,-4 12,-7 14,-4 16,-7 18,-4 20,-7 22,-4' fill='%23fcd34d'/><rect x='10' y='-4' width='12' height='1.6' fill='%23fcd34d'/></g><g transform='translate(60, 30)'><path d='M 4 14 Q 3 7 8 5 Q 14 1 20 3 L 24 6 L 23 16 Q 18 19 12 17 L 6 18 Q 3 16 4 14 Z' fill='%239ca3af'/><polygon points='5,-3 7,-7 10,-3 13,-7 16,-3' fill='%23fcd34d'/><rect x='5' y='-3' width='11' height='1.6' fill='%23fcd34d'/></g><path d='M 50 22 L 47.5 27 L 47.5 76 L 50 82 L 52.5 76 L 52.5 27 Z' fill='%23a78bfa' stroke='%237c5cfc' stroke-width='0.6'/><circle cx='50' cy='20' r='3' fill='%23a78bfa' stroke='%237c5cfc' stroke-width='0.6'/><circle cx='50' cy='20' r='1.3' fill='%23ffffff'/><rect x='45.5' y='27' width='9' height='1.8' fill='%237c5cfc'/></svg>">
-<meta name="theme-color" content="#0a0a0b">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230A0E27'/><path d='M16 80 L40 56 L54 64 L82 30' fill='none' stroke='%2310B981' stroke-opacity='0.36' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'/><path d='M70 28 L84 27 L83 41' fill='none' stroke='%2310B981' stroke-opacity='0.36' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'/><text x='50' y='53' dominant-baseline='central' text-anchor='middle' font-family='Helvetica,Arial,sans-serif' font-weight='700' font-size='62' fill='%23ffffff'>R</text></svg>">
+<meta name="theme-color" content="#0C1117">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RamanFX">
@@ -13,7 +13,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
@@ -49,7 +49,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
     --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px;
     /* ── Radius scale ── */
-    --r-sm: 6px; --r-md: 10px; --r-lg: 14px; --r-xl: 18px; --r-full: 9999px;
+    --r-sm: 4px; --r-md: 6px; --r-lg: 8px; --r-xl: 10px; --r-full: 9999px;
     /* ── Easing (Emil-grade custom curves) ── */
     /* ── Motion tokens (4 named durations, 3 curves) ── */
     --dur-fast: 120ms;      /* micro: toggle, hover, focus */
@@ -62,47 +62,48 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     /* ── z-index scale ── */
     --z-dropdown: 30; --z-sticky: 40; --z-modal-bg: 200; --z-modal: 201; --z-toast: 300; --z-tooltip: 400;
     /* Main content surfaces */
-    --bg: #060608;
-    --panel: #0e0e12;
-    --panel2: #14141a;
-    --border: #1e1e26;
-    --border2: #2a2a34;
-    /* Text — Apple-calibrated contrast */
-    --text: #f5f5fa;
-    --text2: #9a9ab0;
-    --text3: #6d6d84;
+    --bg: #0C1117;
+    --panel: #151B24;
+    --panel2: #1B232E;
+    --border: #27303B;
+    --border2: #36404D;
+    /* Text — brighter for legibility on deep indigo */
+    --text: #F1F5F9;
+    --text2: #C4CDD9;
+    --text3: #8B97A6;
     /* Brand & semantic */
-    --green: #4ade80;
-    --green-bright: #6ee7a0;
-    --red: #f87171;
-    --violet: #6e5dfc;
-    --violet-light: #8f80ff;
-    --violet-tint: rgba(110,93,252,0.12);
+    --green: #2BD27B;
+    --green-bright: #4FE39B;
+    --red: #F4568E;
+    --violet: #34D399;
+    --violet-light: #6EE7B7;
+    --violet-tint: rgba(16,185,129,0.16);
+    --glow: rgba(16,185,129,0.16);
     /* Charts */
-    --chart-grid: #26262c;
-    --chart-axis: #303038;
-    --chart-tick: #a1a1ab;
-    --chart-baseline: #52525b;
-    --chart-tooltip-bg: #1a1a1f;
-    --chart-tooltip-border: #3f3f46;
-    --chart-tooltip-text: #f4f4f5;
+    --chart-grid: #27303B;
+    --chart-axis: #36404D;
+    --chart-tick: #8B97A6;
+    --chart-baseline: #36404D;
+    --chart-tooltip-bg: #151B24;
+    --chart-tooltip-border: #36404D;
+    --chart-tooltip-text: #F1F5F9;
     /* Scrollbar */
-    --scroll-thumb: #303038;
-    --scroll-thumb-hover: #3f3f46;
+    --scroll-thumb: #36404D;
+    --scroll-thumb-hover: #46515F;
     /* Hover tints */
-    --hover-tint: rgba(110,93,252,0.05);
+    --hover-tint: rgba(16,185,129,0.05);
     /* Shadows — subtle depth in dark mode */
-    --shadow-card: 0 1px 3px rgba(0,0,0,0.3), 0 0 0 0.5px rgba(255,255,255,0.04) inset;
-    --shadow-elev: 0 4px 20px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.3);
+    --shadow-card: 0 1px 2px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.04) inset, 0 0 0 0.5px rgba(255,255,255,0.03) inset;
+    --shadow-elev: 0 24px 60px -12px rgba(0,0,0,0.66), 0 8px 20px -8px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.05) inset;
     /* Header backdrop (translucent so it blends as you scroll) */
-    --header-bg: rgba(6,6,8,0.88);
+    --header-bg: rgba(12,17,23,0.82);
     /* Calendar cell colors — used for empty (no-trade) cells. Need to be subtle in both themes. */
-    --calendar-empty-bg: rgba(19,19,22,0.25);
-    --calendar-empty-border: rgba(38,38,44,0.4);
-    --calendar-cell-bg: rgba(19,19,22,0.4);
+    --calendar-empty-bg: rgba(27,35,46,0.3);
+    --calendar-empty-border: rgba(54,64,77,0.45);
+    --calendar-cell-bg: rgba(27,35,46,0.5);
     /* Text color INSIDE a colored data-cell. Designed to read well over the green/red tint backgrounds. */
-    --cell-text-green: #4ade80;
-    --cell-text-red: #fca5a5;
+    --cell-text-green: #4FE39B;
+    --cell-text-red: #F88FB5;
     /* Inset blocks within cards — like strategy rules, KPI tiles inside a card.
        Dark: very subtle lift from the panel. Light: indistinguishable from panel (pure white). */
     --inset-bg: rgba(255,255,255,0.02);
@@ -116,10 +117,10 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     --pill-zinc-fg: #a1a1ab;
     --pill-zinc-border: rgba(113,113,122,0.3);
     --pill-green-bg: rgba(74,222,128,0.08);
-    --pill-green-fg: #4ade80;
+    --pill-green-fg: #4FE39B;
     --pill-green-border: rgba(74,222,128,0.22);
     --pill-red-bg: rgba(248,113,113,0.08);
-    --pill-red-fg: #f87171;
+    --pill-red-fg: #F88FB5;
     --pill-red-border: rgba(248,113,113,0.22);
     --pill-amber-bg: rgba(245,158,11,0.12);
     --pill-amber-fg: #fbbf24;
@@ -127,17 +128,17 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     --pill-blue-bg: rgba(56,139,253,0.12);
     --pill-blue-fg: #58a6ff;
     --pill-blue-border: rgba(56,139,253,0.35);
-    --pill-violet-bg: rgba(110,93,252,0.12);
-    --pill-violet-fg: #9d7eff;
-    --pill-violet-border: rgba(110,93,252,0.32);
+    --pill-violet-bg: rgba(129,140,248,0.14);
+    --pill-violet-fg: #A5B4FC;
+    --pill-violet-border: rgba(129,140,248,0.34);
     /* SIDEBAR — always dark, refined palette */
-    --sidebar-bg: #07070a;
+    --sidebar-bg: #080B0F;
     --sidebar-border: rgba(255,255,255,0.04);
-    --sidebar-text: #7a7a90;
-    --sidebar-text-hover: #f2f2f7;
-    --sidebar-text-active: #a0a0ff;
-    --sidebar-active-bg: rgba(110,93,252,0.12);
-    --sidebar-active-border: rgba(110,93,252,0.28);
+    --sidebar-text: #7B8694;
+    --sidebar-text-hover: #F1F5F9;
+    --sidebar-text-active: #34D399;
+    --sidebar-active-bg: rgba(16,185,129,0.14);
+    --sidebar-active-border: rgba(16,185,129,0.32);
     --sidebar-hover-bg: rgba(255,255,255,0.03);
     --sidebar-divider: rgba(255,255,255,0.04);
   }
@@ -147,75 +148,77 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
      very low chrome (hairline 1px borders), high text contrast (near-black on white), and
      a dark sidebar that stays consistent with the dark theme. */
   [data-theme="light"] {
-    --bg: #fafafb;
+    --bg: #FFFFFF;
     --panel: #ffffff;
-    --panel2: #f7f7f9;
-    --border: #ececef;
-    --border2: #d4d4d8;
-    --text: #18181b;
-    --text2: #52525b;
-    --text3: #71717a;
-    --green: #16a34a;
-    --green-bright: #22c55e;
-    --red: #dc2626;
-    --violet: #7c5cfc;
-    --violet-light: #6d28d9;
-    --violet-tint: rgba(110,93,252,0.10);
-    --chart-grid: #f4f4f5;
-    --chart-axis: #e4e4e7;
-    --chart-tick: #71717a;
-    --chart-baseline: #d4d4d8;
+    --panel2: #F7F8FA;
+    --border: #ECECEF;
+    --border2: #DDDDE2;
+    --text: #0B0F19;
+    --text2: #4A5160;
+    --text3: #717784;
+    --green: #15BE53;
+    --green-bright: #16C95B;
+    --red: #EA2261;
+    --violet: #10B981;
+    --violet-light: #34D399;
+    --violet-tint: rgba(16,185,129,0.10);
+    --glow: rgba(16,185,129,0.10);
+    --chart-grid: #F1F1F4;
+    --chart-axis: #ECECEF;
+    --chart-tick: #64748D;
+    --chart-baseline: #DDDDE2;
     --chart-tooltip-bg: #ffffff;
-    --chart-tooltip-border: #d4d4d8;
-    --chart-tooltip-text: #18181b;
-    --scroll-thumb: #d4d4d8;
-    --scroll-thumb-hover: #a1a1aa;
-    --hover-tint: rgba(110,93,252,0.06);
+    --chart-tooltip-border: #DDDDE2;
+    --chart-tooltip-text: #061B31;
+    --scroll-thumb: #DDDDE2;
+    --scroll-thumb-hover: #C2C2CA;
+    --hover-tint: rgba(16,185,129,0.06);
     /* Subtle card shadow — what gives Tradezella's light mode its lift */
-    --shadow-card: 0 1px 2px rgba(0,0,0,0.04);
-    --shadow-elev: 0 4px 12px rgba(0,0,0,0.06);
+    --shadow-card: rgba(16,24,40,.06) 0 1px 2px, rgba(16,24,40,.05) 0 4px 12px -3px;
+    --shadow-elev: rgba(16,24,40,.14) 0 14px 32px -10px, rgba(16,24,40,.08) 0 6px 14px -6px;
     --header-bg: rgba(255,255,255,0.92);
     /* Calendar in light mode: empty cells blend with card (off-white), data cells get vivid color */
-    --calendar-empty-bg: #fafafa;
-    --calendar-empty-border: #f0f0f3;
+    --calendar-empty-bg: #FAFAFB;
+    --calendar-empty-border: #F1F1F4;
     --calendar-cell-bg: #ffffff;
     /* Inset blocks in light mode — match panel so they "disappear" cleanly into the card */
     --inset-bg: #ffffff;
-    --inset-border: #ececef;
+    --inset-border: #ECECEF;
     /* Track on light mode: subtle dark stripe so progress bars are visible on white */
-    --track-bg: rgba(0,0,0,0.06);
+    --track-bg: rgba(11,15,25,0.06);
     /* Deep emerald/red — readable on saturated pastel cell backgrounds */
-    --cell-text-green: #15803d;
-    --cell-text-red: #b91c1c;
+    --cell-text-green: #108C3D;
+    --cell-text-red: #C01A50;
     /* Pills — light tints + darker text for contrast on white panels */
     --pill-zinc-bg: #f4f4f5;
     --pill-zinc-fg: #52525b;
     --pill-zinc-border: #e4e4e7;
-    --pill-green-bg: #dcfce7;
-    --pill-green-fg: #15803d;
-    --pill-green-border: #bbf7d0;
-    --pill-red-bg: #fee2e2;
-    --pill-red-fg: #b91c1c;
-    --pill-red-border: #fecaca;
+    --pill-green-bg: #DCF7E6;
+    --pill-green-fg: #108C3D;
+    --pill-green-border: #BBEFD0;
+    --pill-red-bg: #FCE4EC;
+    --pill-red-fg: #C01A50;
+    --pill-red-border: #F9C6D8;
     --pill-amber-bg: #fff3cd;
     --pill-amber-fg: #a05c00;
     --pill-amber-border: #ffe0a0;
-    --pill-blue-bg: #ddf0ff;
-    --pill-blue-fg: #0060c0;
-    --pill-blue-border: #aad4ff;
-    --pill-violet-bg: #eceaff;
-    --pill-violet-fg: #4a38d4;
-    --pill-violet-border: #c5beff;
+    --pill-blue-bg: #E2ECFB;
+    --pill-blue-fg: #1F58C0;
+    --pill-blue-border: #C5D8F5;
+    --pill-violet-bg: #EEF0FE;
+    --pill-violet-fg: #4F46E5;
+    --pill-violet-border: #DADEFB;
     /* Sidebar stays dark — these are intentionally not overridden */
   }
   html { font-size: 14.5px; scroll-behavior: smooth; text-rendering: optimizeLegibility; }
   body {
-    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    font-family: 'Geist', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     background: var(--bg);
     color: var(--text);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    letter-spacing: -0.015em;
+    letter-spacing: -0.011em;
+    font-feature-settings: "ss01" 1;
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
   }
   /* ── Refined scrollbar ── */
@@ -223,11 +226,11 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: var(--r-full); transition: background 0.2s; }
   ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
-  /* ── DM Sans tabular-nums for all numeric displays ── */
+  /* ── Geist tabular-nums for all numeric displays ── */
   .tabnum {
-    font-family: 'DM Sans', 'Fira Code', 'SF Mono', monospace;
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: 'tnum' 1;
+    font-family: 'Geist', system-ui, sans-serif;
+    font-variant-numeric: tabular-nums slashed-zero;
+    font-feature-settings: 'tnum' 1, 'zero' 1, 'ss01' 1;
     letter-spacing: -0.02em;
   }
   input, select, textarea, button { font-family: inherit; letter-spacing: inherit; }
@@ -300,8 +303,8 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
       transition: transform var(--dur-normal) var(--ease-out), box-shadow var(--dur-normal) var(--ease-out), border-color var(--dur-normal) var(--ease-out);
     }
     .card-hover:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 30px rgba(0,0,0,0.35), 0 0 0 0.5px rgba(255,255,255,0.06) inset;
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-elev);
       border-color: var(--border2);
     }
   }
@@ -323,7 +326,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out),
                 box-shadow var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-spring);
   }
-  @media (hover: hover) { .sidebar-item:hover { transform: translateX(3px); } }
+  @media (hover: hover) { .sidebar-item:hover { transform: none; } }
   .sidebar-item:active { transform: translateX(0) scale(0.96); transition-duration: 60ms; }
 
   /* ── Pulse dot ── */
@@ -343,7 +346,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   .tr-enter { animation: slideUp var(--dur-normal) var(--ease-out) both; }
   /* Table row hover */
   tr { transition: background var(--dur-fast) var(--ease-out); }
-  @media (hover: hover) { tr:hover { background: rgba(110,93,252,0.03); } }
+  @media (hover: hover) { tr:hover { background: rgba(16,185,129,0.03); } }
 
   /* ── Reduced motion ── */
   /* ── Mobile: touch targets 44px min ── */
@@ -355,16 +358,16 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
   }
-  /* ── Heading typography (DM Sans 700) ── */
-  .heading-xl { font-family: 'DM Sans', sans-serif; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; }
-  .heading-lg { font-family: 'DM Sans', sans-serif; font-weight: 700; letter-spacing: -0.025em; line-height: 1.15; }
-  .heading-md { font-family: 'DM Sans', sans-serif; font-weight: 600; letter-spacing: -0.025em; line-height: 1.2; }
-  .heading-sm { font-family: 'DM Sans', sans-serif; font-weight: 500; letter-spacing: -0.02em; line-height: 1.3; }
+  /* ── Heading typography (Geist 700) ── */
+  .heading-xl { font-family: 'Geist', sans-serif; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; }
+  .heading-lg { font-family: 'Geist', sans-serif; font-weight: 700; letter-spacing: -0.025em; line-height: 1.15; }
+  .heading-md { font-family: 'Geist', sans-serif; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
+  .heading-sm { font-family: 'Geist', sans-serif; font-weight: 600; letter-spacing: -0.014em; line-height: 1.3; }
   /* ── Tabular nums ── */
   .tabnum {
-    font-family: 'DM Sans', -apple-system, system-ui, sans-serif;
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: 'tnum' 1;
+    font-family: 'Geist', system-ui, sans-serif;
+    font-variant-numeric: tabular-nums slashed-zero;
+    font-feature-settings: 'tnum' 1, 'zero' 1, 'ss01' 1;
     letter-spacing: -0.015em;
     -webkit-font-smoothing: antialiased;
   }
@@ -410,7 +413,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   }
   /* ── Card hover lift ── */
   @media (hover: hover) and (pointer: fine) {
-    .card-hover:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,0,0,0.3); transition: transform 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out); }
+    .card-hover:hover { transform: translateY(-3px); box-shadow: var(--shadow-elev); transition: transform 0.18s var(--ease-out), box-shadow 0.18s var(--ease-out); }
   }
   /* ── Modal entry animation ── */
   .modal-enter { animation: modalEnter 0.22s var(--ease-out) both; }
@@ -419,11 +422,28 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   /* ── Input focus states ── */
   select { background: var(--panel); color: var(--text); }
   select option { background: var(--panel); color: var(--text); }
-  input:focus, textarea:focus, select:focus { outline: none; box-shadow: 0 0 0 3px rgba(110,93,252,0.15), 0 0 0 1px rgba(110,93,252,0.4) inset; transition: box-shadow var(--dur-fast) var(--ease-out); }
+  input:focus, textarea:focus, select:focus { outline: none; box-shadow: 0 0 0 3px rgba(16,185,129,0.15), 0 0 0 1px rgba(16,185,129,0.4) inset; transition: box-shadow var(--dur-fast) var(--ease-out); }
   /* ── Selection color ── */
-  ::selection { background: rgba(110,93,252,0.3); color: var(--text); }
-  :focus-visible { outline: 2px solid rgba(110,93,252,0.6); outline-offset: 2px; border-radius: var(--r-sm); transition: outline-offset var(--dur-fast) var(--ease-out); }
-  button:focus-visible { outline: 2px solid rgba(110,93,252,0.6); outline-offset: 3px; transition: outline-offset var(--dur-fast) var(--ease-out); }
+  ::selection { background: rgba(16,185,129,0.3); color: var(--text); }
+  :focus-visible { outline: 2px solid rgba(16,185,129,0.6); outline-offset: 2px; border-radius: var(--r-sm); transition: outline-offset var(--dur-fast) var(--ease-out); }
+  button:focus-visible { outline: 2px solid rgba(16,185,129,0.6); outline-offset: 3px; transition: outline-offset var(--dur-fast) var(--ease-out); }
+  /* ═══════════ RaMoney luxury layer ═══════════ */
+  /* Ambient violet backlights washing the main content canvas (Stripe atmosphere) */
+  main[data-rfx-main] {
+    background:
+      radial-gradient(38% 32% at 100% -6%, var(--glow), transparent 60%),
+      radial-gradient(32% 28% at -4% 106%, var(--glow), transparent 58%);
+  }
+  /* KPI top hairline — Stripe's signature card accent */
+  .rfx-kpi::after {
+    content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--violet), transparent);
+    opacity: 0.55; pointer-events: none;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .rfx-kpi { transition: transform 0.18s var(--ease-out), border-color 0.18s var(--ease-out), box-shadow 0.18s var(--ease-out); }
+    .rfx-kpi:hover { transform: translateY(-3px); border-color: var(--border2); box-shadow: var(--shadow-elev); }
+  }
   /* Hidden when not printing — only visible during print preview */
   .print-note-target { display: none; }
   /* Chart tooltip + label text — force bright colours so they are readable on the dark theme */
@@ -507,7 +527,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   /* ── Apple-y splash screen ── */
   #rfx-loader {
     position: fixed; inset: 0; z-index: 10000;
-    background: #050507;
+    background: #0C1117;
     display: flex; align-items: center; justify-content: center;
     flex-direction: column; gap: 0;
     transition: opacity 0.6s var(--ease-out);
@@ -519,7 +539,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     content: '';
     position: absolute;
     width: 320px; height: 320px;
-    background: radial-gradient(circle, rgba(110,93,252,0.16) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(16,185,129,0.16) 0%, transparent 70%);
     border-radius: 50%;
     animation: rfx-glow-pulse 3s ease-in-out infinite;
     pointer-events: none;
@@ -528,11 +548,11 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   .rfx-icon {
     width: 88px; height: 88px;
     border-radius: 22px;
-    background: linear-gradient(145deg, #1a1030 0%, #0d0918 100%);
+    background: linear-gradient(145deg, #151B24 0%, #0C1117 100%);
     border: 1px solid rgba(255,255,255,0.12);
     box-shadow:
-      0 0 0 1px rgba(110,93,252,0.28),
-      0 24px 64px rgba(110,93,252,0.22),
+      0 0 0 1px rgba(16,185,129,0.28),
+      0 24px 64px rgba(16,185,129,0.22),
       0 4px 16px rgba(0,0,0,0.6),
       inset 0 1px 0 rgba(255,255,255,0.15);
     display: flex; align-items: center; justify-content: center;
@@ -579,7 +599,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   }
   .rfx-progress-fill {
     height: 100%; width: 0%; border-radius: 1px;
-    background: linear-gradient(90deg, rgba(110,93,252,0.6), rgba(157,126,255,0.9));
+    background: linear-gradient(90deg, rgba(16,185,129,0.6), rgba(122,107,255,0.9));
     animation: rfx-progress 2s var(--ease-out) 1.2s forwards;
   }
   @keyframes rfx-icon-in {
@@ -600,22 +620,10 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
 </style>
 <div id="rfx-loader">
   <div class="rfx-icon">
-    <svg viewBox="0 0 44 44" width="52" height="52" xmlns="http://www.w3.org/2000/svg" fill="none">
-      <polyline points="4,32 10,24 16,28 22,16 28,20 34,10 40,14"
-        stroke="url(#spkGrad)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      <polygon points="4,32 10,24 16,28 22,16 28,20 34,10 40,14 40,38 4,38"
-        fill="url(#areaGrad)" opacity="0.2"/>
-      <circle cx="40" cy="14" r="2.5" fill="#9d7eff"/>
-      <defs>
-        <linearGradient id="spkGrad" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stop-color="#6d3bff"/>
-          <stop offset="100%" stop-color="#9d7eff"/>
-        </linearGradient>
-        <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#9d7eff"/>
-          <stop offset="100%" stop-color="#9d7eff" stop-opacity="0"/>
-        </linearGradient>
-      </defs>
+    <svg viewBox="0 0 100 100" width="60" height="60" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <path d="M16 80 L40 56 L54 64 L82 30" fill="none" stroke="#34D399" stroke-opacity="0.5" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M70 28 L84 27 L83 41" fill="none" stroke="#34D399" stroke-opacity="0.5" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="50" y="53" dominant-baseline="central" text-anchor="middle" font-family="'Geist', sans-serif" font-weight="700" font-size="62" letter-spacing="-0.04em" fill="#fff">R</text>
     </svg>
   </div>
   <div class="rfx-name">RamanFX</div>
@@ -662,12 +670,12 @@ window.addEventListener('DOMContentLoaded', function () {
     if (missing.length) {
       document.getElementById('root').innerHTML =
         '<div style="max-width:520px;margin:12vh auto;font-family:Inter,system-ui,sans-serif;color:#e8e8ec;text-align:center;padding:24px">'
-        + '<div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#7c5cfc,#c026d3);margin:0 auto 18px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700">!</div>'
+        + '<div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#10B981,#c026d3);margin:0 auto 18px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700">!</div>'
         + '<div style="font-size:20px;font-weight:600;margin-bottom:10px">Couldn\'t load required libraries</div>'
         + '<div style="font-size:14px;color:#a1a1ab;line-height:1.6;margin-bottom:16px">This app loads React &amp; charting libraries from the internet the first time it opens. The following didn\'t load:<br><b style="color:#ef5350">' + missing.join(', ') + '</b></div>'
         + '<div style="font-size:13px;color:#a1a1ab;line-height:1.6;text-align:left;background:#131316;border:1px solid #26262c;border-radius:10px;padding:14px">'
         + '<b style="color:#e8e8ec">Try this:</b><br>1. Make sure you have an internet connection (only needed at startup).<br>2. Disable ad-blockers / script-blockers for this file, then reload.<br>3. Reload the page (Ctrl/Cmd + R) — CDNs occasionally hiccup.<br>4. Try a different browser (Chrome, Edge, Firefox).</div>'
-        + '<button onclick="location.reload()" style="margin-top:16px;padding:9px 18px;background:#7c5cfc;color:#fff;border:none;border-radius:9px;font-size:14px;cursor:pointer;font-family:inherit">Reload</button>'
+        + '<button onclick="location.reload()" style="margin-top:16px;padding:9px 18px;background:#10B981;color:#fff;border:none;border-radius:9px;font-size:14px;cursor:pointer;font-family:inherit">Reload</button>'
         + '</div>';
     }
   }, 1200);
@@ -2379,7 +2387,7 @@ function MetricGauge({ label, value, sub, color, donutValue, donutCenter, accent
       style={{ padding: '16px 18px', borderLeft: accent ? `2px solid ${accent}` : '2px solid transparent', transition: 'transform 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out)' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, marginBottom: 10, fontFamily: "'DM Sans', sans-serif" }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, marginBottom: 10, fontFamily: "'Geist', sans-serif" }}>
             {label}{hint && <Hint text={hint}><span style={{ width: 13, height: 13, borderRadius: '50%', border: '1px solid var(--text3)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, cursor: 'help' }}>i</span></Hint>}
           </div>
           <div className="tabnum" style={{ fontSize: 28, fontWeight: 700, color: accent || 'var(--text)', letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
@@ -2427,7 +2435,7 @@ const Field = ({ label, value, mono }) => (
 
 const btnStyle = (variant) => {
   const base = { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', fontSize: 12.5, fontWeight: 500, borderRadius: 'var(--r-md)', minHeight: 36, border: '1px solid transparent', cursor: 'pointer', transition: 'opacity 0.12s var(--ease-out), transform 0.1s var(--ease-out), background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease', WebkitTapHighlightColor: 'transparent', userSelect: 'none', letterSpacing: '-0.01em' };
-  if (variant === 'primary') return { ...base, background: 'var(--violet)', color: '#fff', borderColor: 'rgba(110,93,252,0.3)', boxShadow: '0 1px 8px rgba(110,93,252,0.22)' };
+  if (variant === 'primary') return { ...base, background: 'var(--violet)', color: '#fff', borderColor: 'rgba(16,185,129,0.3)', boxShadow: '0 1px 8px rgba(16,185,129,0.22)' };
   if (variant === 'ghost') return { ...base, background: 'transparent', color: 'var(--text2)', borderColor: 'transparent' };
   if (variant === 'danger') return { ...base, background: 'rgba(248,113,113,0.08)', color: 'var(--red)', borderColor: 'rgba(248,113,113,0.25)' };
   return { ...base, background: 'var(--panel2)', color: 'var(--text)', borderColor: 'var(--border)' };
@@ -2643,9 +2651,9 @@ function HeroScoreCard({ stats }) {
   const streakBorder = streakSign > 0 ? 'rgba(38,166,154,0.4)' : 'rgba(248,113,113,0.4)';
   // KPI tile renderer
   const kpi = (label, value, sub, color) => (
-    <div style={{ padding: '12px 14px', background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 'var(--r-md)', minWidth: 0 }}>
+    <div className="rfx-kpi" style={{ padding: '12px 14px', background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 'var(--r-md)', minWidth: 0, position: 'relative', overflow: 'hidden' }}>
       <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', fontWeight: 600, marginBottom: 6 }}>{label}</div>
-      <div className="tabnum" style={{ fontSize: 24, fontWeight: 700, color: color || 'var(--text)', lineHeight: 1, marginBottom: sub ? 5 : 0, letterSpacing: '-0.025em', fontFamily: "'DM Sans', system-ui, sans-serif" }}>{value}</div>
+      <div className="tabnum" style={{ fontSize: 24, fontWeight: 700, color: color || 'var(--text)', lineHeight: 1, marginBottom: sub ? 5 : 0, letterSpacing: '-0.025em', fontFamily: "'Geist', system-ui, sans-serif" }}>{value}</div>
       {sub && <div style={{ fontSize: 10.5, color: 'var(--text3)' }}>{sub}</div>}
     </div>
   );
@@ -2658,18 +2666,18 @@ function HeroScoreCard({ stats }) {
   const pfColor = stats?.profitFactor >= 1.5 ? 'var(--green-bright)' : stats?.profitFactor >= 1 ? 'var(--text)' : 'var(--red)';
   const wrColor = stats?.winRate >= 50 ? 'var(--green-bright)' : stats?.winRate >= 40 ? 'var(--text)' : 'var(--red)';
   return (
-    <Card style={{ padding: 0, overflow: 'hidden', background: `linear-gradient(135deg, rgba(110,93,252,0.08) 0%, rgba(45,212,191,0.03) 100%), var(--panel)`, borderColor: 'rgba(110,93,252,0.2)' }}>
+    <Card style={{ padding: 0, overflow: 'hidden', background: `linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(45,212,191,0.03) 100%), var(--panel)`, borderColor: 'rgba(16,185,129,0.2)' }}>
       {/* Top section: hero score + streak */}
       <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 14 : 24, padding: isMobile ? '20px 18px 16px' : '22px 24px 18px', borderBottom: '1px solid var(--border)' }}>
         {/* Big score */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flex: '0 0 auto' }}>
           <div>
-            <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--violet-light)', fontWeight: 700, marginBottom: 8, opacity: 0.7, fontFamily: "'DM Sans', sans-serif" }}>Performance Score</div>
+            <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--violet-light)', fontWeight: 700, marginBottom: 8, opacity: 0.7, fontFamily: "'Geist', sans-serif" }}>Performance Score</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-              <span className="tabnum" style={{ fontSize: isMobile ? 56 : 68, fontWeight: 800, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', textShadow: `0 0 24px ${scoreColor}25`, fontFamily: "'DM Sans', system-ui, sans-serif" }}>{Math.round(animScore)}</span>
+              <span className="tabnum" style={{ fontSize: isMobile ? 56 : 68, fontWeight: 800, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', textShadow: `0 0 24px ${scoreColor}25`, fontFamily: "'Geist', system-ui, sans-serif" }}>{Math.round(animScore)}</span>
               <span style={{ fontSize: 20, color: 'var(--text2)', fontWeight: 500 }}>/ 100</span>
             </div>
-            <div style={{ fontSize: 10, color: scoreColor, fontWeight: 700, marginTop: 8, textTransform: 'uppercase', letterSpacing: '0.14em', fontFamily: "'DM Sans', sans-serif", display: 'inline-block', padding: '2px 8px', borderRadius: 'var(--r-full)', background: `${scoreColor}18`, border: `1px solid ${scoreColor}30` }}>{scoreLabel}</div>
+            <div style={{ fontSize: 10, color: scoreColor, fontWeight: 700, marginTop: 8, textTransform: 'uppercase', letterSpacing: '0.14em', fontFamily: "'Geist', sans-serif", display: 'inline-block', padding: '2px 8px', borderRadius: 'var(--r-full)', background: `${scoreColor}18`, border: `1px solid ${scoreColor}30` }}>{scoreLabel}</div>
           </div>
         </div>
         {/* Vertical divider on desktop */}
@@ -2737,7 +2745,7 @@ function ScoreCard({ stats }) {
         {/* Score readout column — Tradezella's "Your Zella Score 82.1" with rainbow gauge below */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingRight: isMobile ? 0 : 8 }}>
           <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text3)', fontWeight: 600 }}>Your score</div>
-          <div className="tabnum" style={{ fontSize: 52, fontWeight: 700, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', fontFamily: "'DM Sans', system-ui, sans-serif" }}>{animScore.toFixed(1)}</div>
+          <div className="tabnum" style={{ fontSize: 52, fontWeight: 700, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', fontFamily: "'Geist', system-ui, sans-serif" }}>{animScore.toFixed(1)}</div>
           {/* Rainbow gauge bar */}
           <div style={{ marginTop: 4 }}>
             <div style={{ position: 'relative', height: 8, borderRadius: 'var(--r-full)', overflow: 'hidden', background: 'linear-gradient(90deg, #ef5350 0%, #fbbf24 50%, #26a69a 100%)' }} />
@@ -2823,12 +2831,12 @@ function DrawdownChart({ stats }) {
       </div>
       <ResponsiveContainer width="100%" height={170}>
         <AreaChart data={stats.equity} margin={{ top: 5, right: 10, bottom: 0, left: 0 }}>
-          <defs><linearGradient id="ddG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#9d7eff" stopOpacity={0.5} /><stop offset="100%" stopColor="#9d7eff" stopOpacity={0.05} /></linearGradient></defs>
+          <defs><linearGradient id="ddG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#34D399" stopOpacity={0.5} /><stop offset="100%" stopColor="#34D399" stopOpacity={0.05} /></linearGradient></defs>
           <CartesianGrid strokeDasharray="1 4" stroke="var(--chart-grid)" />
           <XAxis dataKey="label" tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} interval="preserveStartEnd" />
           <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
           <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => [fmtMoney(v), 'Drawdown']} />
-          <Area type="monotone" animationDuration={380} animationEasing="ease" dataKey="drawdown" stroke="#9d7eff" strokeWidth={2} fill="url(#ddG)" />
+          <Area type="monotone" animationDuration={380} animationEasing="ease" dataKey="drawdown" stroke="#34D399" strokeWidth={2} fill="url(#ddG)" />
         </AreaChart>
       </ResponsiveContainer>
     </Card>
@@ -2921,7 +2929,7 @@ function AccountBalanceChart({ trades, deposits }) {
           <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Running balance compared to net money deposited</div>
         </div>
         <div style={{ display: 'flex', gap: 12, fontSize: 11 }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text2)' }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#6e5dfc' }} /> Balance</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text2)' }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#10B981' }} /> Balance</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text2)' }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#f87171' }} /> Deposits</span>
         </div>
       </div>
@@ -2932,7 +2940,7 @@ function AccountBalanceChart({ trades, deposits }) {
           <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
           <ReferenceLine y={0} stroke="var(--chart-baseline)" strokeDasharray="2 2" />
           <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={(v, n) => [fmtMoney(v), n === 'balance' ? 'Balance' : 'Deposits']} />
-          <Line type="monotone" animationDuration={380} animationEasing="ease" dataKey="balance" stroke="#6e5dfc" strokeWidth={2.4} dot={false} />
+          <Line type="monotone" animationDuration={380} animationEasing="ease" dataKey="balance" stroke="#10B981" strokeWidth={2.4} dot={false} />
           <Line type="monotone" animationDuration={380} animationEasing="ease" dataKey="deposits" stroke="#f87171" strokeWidth={2.4} dot={false} />
         </LineChart>
       </ResponsiveContainer>
@@ -3199,7 +3207,7 @@ function DayCard({ day, allTrades, exitData, expanded, onExpand, note, onSaveNot
           <div style={{ marginTop: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
               <span style={{ color: 'var(--violet-light)', fontSize: 13 }}><svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="currentColor"/></svg></span>
-              <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>RamanFX daily insights</div>
+              <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Geist', sans-serif" }}>RamanFX daily insights</div>
             </div>
             {(() => {
               const dayItems = day.items;
@@ -3222,7 +3230,7 @@ function DayCard({ day, allTrades, exitData, expanded, onExpand, note, onSaveNot
               const rowClick = (e) => { e.stopPropagation(); onOpenTrade?.(t.id); };
               if (isMobile) return (
                 <div key={t.id} onClick={rowClick} style={{ padding: '8px 0', borderBottom: '1px solid rgba(38,38,44,0.5)', cursor: 'pointer', transition: 'background 0.12s', margin: '0 -4px', paddingLeft: 4, paddingRight: 4, borderRadius: 4 }}
-                  onTouchStart={e => e.currentTarget.style.background = 'rgba(110,93,252,0.06)'}
+                  onTouchStart={e => e.currentTarget.style.background = 'rgba(16,185,129,0.06)'}
                   onTouchEnd={e => e.currentTarget.style.background = 'transparent'}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -3237,7 +3245,7 @@ function DayCard({ day, allTrades, exitData, expanded, onExpand, note, onSaveNot
               );
               return (
                 <div key={t.id} onClick={rowClick} style={{ display: 'grid', gridTemplateColumns: '60px 70px 56px 1fr 80px 16px', fontSize: 12, alignItems: 'center', padding: '7px 0', borderBottom: '1px solid rgba(38,38,44,0.5)', cursor: 'pointer', transition: 'background 0.12s', margin: '0 -8px', paddingLeft: 8, paddingRight: 8, borderRadius: 4 }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(110,93,252,0.05)'}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(16,185,129,0.05)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <div style={{ color: 'var(--text3)', fontFamily: 'ui-monospace,monospace' }}>{t.closeTime.split(' ')[1]?.slice(0, 5)}</div>
                   <div style={{ fontFamily: 'ui-monospace,monospace', color: 'var(--text)' }}>{t.symbol}</div>
@@ -3339,7 +3347,7 @@ function WeekView({ stats, allTrades, exitData }) {
                   <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
                       <span style={{ color: 'var(--violet-light)', fontSize: 13 }}><svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="currentColor"/></svg></span>
-                      <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>RamanFX weekly insights</div>
+                      <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Geist', sans-serif" }}>RamanFX weekly insights</div>
                     </div>
                     <InsightsPanel windowTrades={w.weekItems} historyTrades={history} scope="week" exitData={exitData} />
                   </div>
@@ -3511,7 +3519,7 @@ const TRADE_COLUMNS = [
     render: (t, note) => {
       const tags = note?.tags || [];
       if (!tags.length) return <span style={{ color: 'var(--text3)' }}>—</span>;
-      return <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 3, maxWidth: 200 }}>{tags.slice(0, 3).map(tag => <span key={tag} style={{ fontSize: 10, padding: '1px 6px', background: 'rgba(110,93,252,0.12)', border: '1px solid rgba(110,93,252,0.28)', borderRadius: 4, color: 'var(--violet-light)' }}>{tag}</span>)}{tags.length > 3 && <span style={{ fontSize: 10, color: 'var(--text3)' }}>+{tags.length - 3}</span>}</span>;
+      return <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 3, maxWidth: 200 }}>{tags.slice(0, 3).map(tag => <span key={tag} style={{ fontSize: 10, padding: '1px 6px', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.28)', borderRadius: 4, color: 'var(--violet-light)' }}>{tag}</span>)}{tags.length > 3 && <span style={{ fontSize: 10, color: 'var(--text3)' }}>+{tags.length - 3}</span>}</span>;
     }
   },
   { id: 'mistakes',  label: 'Mistakes',    group: 'Notes', align: 'left', available: true, defaultOn: false,
@@ -3712,7 +3720,7 @@ function ColumnPickerModal({ open, onClose, selected, onSave }) {
                   return (
                     <label key={col.id}
                       title={col.reason || ''}
-                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 'var(--r-sm)', cursor: col.available ? 'pointer' : 'not-allowed', opacity: col.available ? 1 : 0.4, background: checked && col.available ? 'rgba(110,93,252,0.08)' : 'transparent', transition: 'background 0.12s', minHeight: 36 }}>
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 'var(--r-sm)', cursor: col.available ? 'pointer' : 'not-allowed', opacity: col.available ? 1 : 0.4, background: checked && col.available ? 'rgba(16,185,129,0.08)' : 'transparent', transition: 'background 0.12s', minHeight: 36 }}>
                       <input type="checkbox" checked={checked} disabled={!col.available} onChange={() => col.available && toggle(col.id)} style={{ accentColor: 'var(--violet)', cursor: col.available ? 'pointer' : 'not-allowed', width: 18, height: 18, flexShrink: 0 }} />
                       <span style={{ fontSize: 13, color: col.available ? 'var(--text2)' : 'var(--text3)' }}>{col.label}</span>
                     </label>
@@ -3814,7 +3822,7 @@ function TradeView({ trades, notes, strategies, exitData, onSaveNote, onOpenTrad
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {isFiltering && (
-        <div style={{ padding: '8px 14px', background: 'rgba(110,93,252,0.08)', border: '1px solid rgba(110,93,252,0.28)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--violet-light)' }}>
+        <div style={{ padding: '8px 14px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.28)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--violet-light)' }}>
           Showing {filteredStats.total} of {stats.total} trades — KPIs below reflect the filtered set.
         </div>
       )}
@@ -4030,7 +4038,7 @@ function InsightsPanel({ windowTrades, historyTrades, scope, title, exitData }) 
   };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {title && <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>{title}</div>}
+      {title && <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Geist', sans-serif" }}>{title}</div>}
       {insights.map((ins, idx) => {
         const s = levelStyle[ins.level] || levelStyle.caution;
         return (
@@ -4217,9 +4225,9 @@ function TagPicker({ allTags, value, onChange, accent = 'violet', placeholder = 
     }
     // Legacy single-accent rendering (used by mistakes picker)
     return {
-      bg: accent === 'red' ? 'rgba(248,113,113,0.18)' : 'rgba(110,93,252,0.16)',
+      bg: accent === 'red' ? 'rgba(248,113,113,0.18)' : 'rgba(16,185,129,0.16)',
       fg: accent === 'red' ? '#ff8a87' : 'var(--violet-light)',
-      border: accent === 'red' ? 'rgba(248,113,113,0.45)' : 'rgba(110,93,252,0.28)',
+      border: accent === 'red' ? 'rgba(248,113,113,0.45)' : 'rgba(16,185,129,0.28)',
     };
   };
   return (
@@ -4963,7 +4971,7 @@ function ReportsDayTimePane({ trades }) {
               <XAxis type="number" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} />
               <YAxis type="category" dataKey="day" tick={{ fontSize: 11, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} width={42} />
               <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'var(--track-bg)' }} formatter={(v, n) => [v, n === 'trades' ? 'Trades' : n]} />
-              <Bar animationDuration={380} animationEasing="ease" dataKey="trades" fill="#6e5dfc" radius={[0, 4, 4, 0]} />
+              <Bar animationDuration={380} animationEasing="ease" dataKey="trades" fill="#10B981" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -6081,7 +6089,7 @@ function ProgressPage({ trades, checklist, checklistDays }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12 }}>
         <MetricGauge label="Active days" value={stats.daily.length} sub="with at least one trade" />
         <MetricGauge label="Profitable days" value={stats.profDays} sub={`out of ${stats.daily.length}`} accent="var(--green-bright)" />
-        <MetricGauge label="Discipline score" value={`${avgCompletion.toFixed(0)}%`} sub={`avg over ${disciplineDays.length} logged days`} donutValue={avgCompletion} color="#6e5dfc" />
+        <MetricGauge label="Discipline score" value={`${avgCompletion.toFixed(0)}%`} sub={`avg over ${disciplineDays.length} logged days`} donutValue={avgCompletion} color="#10B981" />
         <MetricGauge label="Longest win streak" value={stats.longestWinStreak} sub={`current: ${stats.curStreakSign > 0 ? '+' : stats.curStreakSign < 0 ? '-' : ''}${stats.curStreak}`} accent="var(--green-bright)" />
       </div>
       <ScoreCard stats={stats} />
@@ -6151,7 +6159,7 @@ function Playbook({ playbookState, onSavePlaybookState }) {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
           {TIMEFRAME_PAIRS.map((p, i) => (
             <button key={i} onClick={() => { setPair(i); onSavePlaybookState({ ...playbookState, checks, pair: i }); }}
-              style={{ padding: '8px 12px', borderRadius: 'var(--r-md)', border: `1px solid ${pair === i ? 'var(--violet)' : 'var(--border2)'}`, background: pair === i ? 'rgba(110,93,252,0.12)' : 'var(--panel2)', color: pair === i ? 'var(--violet-light)' : 'var(--text2)', cursor: 'pointer', fontSize: 12, transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}>
+              style={{ padding: '8px 12px', borderRadius: 'var(--r-md)', border: `1px solid ${pair === i ? 'var(--violet)' : 'var(--border2)'}`, background: pair === i ? 'rgba(16,185,129,0.12)' : 'var(--panel2)', color: pair === i ? 'var(--violet-light)' : 'var(--text2)', cursor: 'pointer', fontSize: 12, transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}>
               {p.htf} · {p.mtf} · {p.ltf}
             </button>
           ))}
@@ -6199,7 +6207,7 @@ function Playbook({ playbookState, onSavePlaybookState }) {
             </div>
           ))}
         </div>
-        <div style={{ marginTop: 14, padding: 12, background: 'rgba(110,93,252,0.06)', border: '1px solid rgba(110,93,252,0.2)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--text2)' }}>
+        <div style={{ marginTop: 14, padding: 12, background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--text2)' }}>
           Tip: tag your trades with these setups in Trade View (e.g. "WOW", "PCP", "fresh-zone") so the Reports insights can tell you which part of this system actually makes you money.
         </div>
       </Card>
@@ -6453,7 +6461,7 @@ function TodayStatusBanner({ status, rules, onOpenGate, onOpenRules }) {
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button style={btnStyle(locked ? 'danger' : 'primary')} onClick={onOpenGate}>{locked ? 'Why locked?' : 'Check rules'}</button>
-          <button style={btnStyle('ghost')} onClick={onOpenRules}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg> Edit rules</button>
+          <button style={btnStyle('ghost')} onClick={onOpenRules}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg> Edit rules</button>
         </div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', borderTop: '1px solid var(--border)' }}>
@@ -6479,10 +6487,10 @@ function TodayStatusBanner({ status, rules, onOpenGate, onOpenRules }) {
       {(status.breaches.length > 0 || status.warnings.length > 0) && (
         <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border)', background: locked ? 'rgba(248,113,113,0.08)' : 'rgba(245,158,11,0.06)' }}>
           {status.breaches.map((b, i) => (
-            <div key={i} style={{ fontSize: 13, color: 'var(--red)', fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'flex-start', gap: 6 }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M4.93 4.93l14.14 14.14"/></svg> <span>{b.text}</span></div>
+            <div key={i} style={{ fontSize: 13, color: 'var(--red)', fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'flex-start', gap: 6 }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M4.93 4.93l14.14 14.14"/></svg> <span>{b.text}</span></div>
           ))}
           {status.warnings.map((w, i) => (
-            <div key={i} style={{ fontSize: 13, color: '#fbbf24', display: 'flex', alignItems: 'flex-start', gap: 6 }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>️ <span>{w}</span></div>
+            <div key={i} style={{ fontSize: 13, color: '#fbbf24', display: 'flex', alignItems: 'flex-start', gap: 6 }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>️ <span>{w}</span></div>
           ))}
         </div>
       )}
@@ -6531,12 +6539,12 @@ function PreTradeGate({ open, onClose, status, rules }) {
           <div style={{ fontWeight: 700, fontSize: 16 }}>Pre-trade gate</div>
           <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Affirm every item before clicking buy / sell in your terminal</div>
         </div>
-        <button style={btnStyle('ghost')} onClick={onClose}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        <button style={btnStyle('ghost')} onClick={onClose}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
       </div>
       <div style={{ padding: 22, flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
         {status.locked && (
           <div style={{ padding: 14, background: 'rgba(248,113,113,0.1)', border: '1px solid var(--red)', borderRadius: 'var(--r-md)', marginBottom: 16 }}>
-            <div style={{ fontWeight: 700, color: 'var(--red)', marginBottom: 6 }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M4.93 4.93l14.14 14.14"/></svg> You are locked out for today</div>
+            <div style={{ fontWeight: 700, color: 'var(--red)', marginBottom: 6 }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M4.93 4.93l14.14 14.14"/></svg> You are locked out for today</div>
             {status.breaches.map((b, i) => <div key={i} style={{ fontSize: 13, color: 'var(--text2)', marginTop: 4 }}>• {b.text}</div>)}
             <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 10, fontStyle: 'italic' }}>This isn't a technical block on your broker — but if you trade through this warning, you're explicitly choosing to break your own rules. Close the terminal and step away.</div>
           </div>
@@ -6545,21 +6553,21 @@ function PreTradeGate({ open, onClose, status, rules }) {
           <div>
             <label style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, display: 'block', marginBottom: 6 }}>Proposed lot size</label>
             <input type="number" step="0.01" value={proposedSize} onChange={e => setProposedSize(e.target.value)} placeholder={`max ${rules.maxPositionSizeLots}`} style={{ ...inputStyle, width: '100%', fontSize: 14, borderColor: sizeBreach || sizeEscalation ? 'var(--red)' : 'var(--border2)' }} />
-            {sizeEscalation && <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> {(size / status.avgSize).toFixed(1)}× today's avg</div>}
+            {sizeEscalation && <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> {(size / status.avgSize).toFixed(1)}× today's avg</div>}
           </div>
           <div>
             <label style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', fontWeight: 600, display: 'block', marginBottom: 6 }}>$ at risk (entry → SL)</label>
             <input type="number" step="0.01" value={proposedRisk} onChange={e => setProposedRisk(e.target.value)} placeholder={`max $${rules.maxSingleTradeRisk}`} style={{ ...inputStyle, width: '100%', fontSize: 14, borderColor: riskBreach || wouldExceedDaily ? 'var(--red)' : 'var(--border2)' }} />
-            {wouldExceedDaily && <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Would breach daily cap</div>}
+            {wouldExceedDaily && <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Would breach daily cap</div>}
           </div>
         </div>
-        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 8 }}>Strategy checks</div>
+        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Geist', sans-serif", marginBottom: 8 }}>Strategy checks</div>
         {checkRow('plannedSize', 'My size is planned, not based on how I feel.')}
         {checkRow('slDefined', 'My stop-loss price is decided BEFORE I click buy/sell, not after.')}
         {checkRow('riskCalculated', 'I calculated the dollar risk. It fits my single-trade limit.')}
         {checkRow('htfAligned', 'HTF, MTF and LTF are aligned with the direction I am taking.')}
         {checkRow('properZone', 'This is a WOW / Fresh zone / PCP near a trendline (not a random entry).')}
-        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginTop: 14, marginBottom: 8 }}>Mind checks</div>
+        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Geist', sans-serif", marginTop: 14, marginBottom: 8 }}>Mind checks</div>
         {checkRow('notChasing', 'I am NOT entering because price already moved away from my level.', true)}
         {checkRow('notRevenge', 'I am NOT trying to win back a recent loss.', true)}
         {checkRow('notFomo', 'I am NOT entering because of FOMO — I would still take this trade if the move just started.', true)}
@@ -6570,7 +6578,7 @@ function PreTradeGate({ open, onClose, status, rules }) {
         </div>
         <div style={{ marginTop: 18, padding: 14, borderRadius: 'var(--r-md)', background: greenLight ? 'rgba(38,166,154,0.1)' : 'rgba(248,113,113,0.08)', border: `1.5px solid ${greenLight ? 'var(--green)' : 'var(--red)'}` }}>
           <div style={{ fontWeight: 700, fontSize: 15, color: greenLight ? 'var(--green-bright)' : 'var(--red)', marginBottom: greenLight ? 0 : 8 }}>
-            {greenLight ? 'Clear to trade' : <span style={{display:'inline-flex',alignItems:'center',gap:5}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M4.93 4.93l14.14 14.14"/></svg> DO NOT ENTER</span>}
+            {greenLight ? 'Clear to trade' : <span style={{display:'inline-flex',alignItems:'center',gap:5}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M4.93 4.93l14.14 14.14"/></svg> DO NOT ENTER</span>}
           </div>
           {!greenLight && blockers.map((b, i) => <div key={i} style={{ fontSize: 13, color: 'var(--text2)', marginTop: 4 }}>• {b}</div>)}
         </div>
@@ -6718,11 +6726,11 @@ function DateRangeFilter({ value, onChange }) {
   return (
     <Fragment>
       <button ref={btnRef} onClick={() => setOpen(!open)}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 12px', fontSize: 12, fontWeight: 500, borderRadius: 'var(--r-md)', border: `1px solid ${isActive ? 'var(--violet)' : 'var(--border2)'}`, background: isActive ? 'rgba(110,93,252,0.12)' : 'var(--panel2)', color: isActive ? 'var(--violet-light)' : 'var(--text)', cursor: 'pointer', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)', textAlign: 'left', lineHeight: 1.2 }}>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 12px', fontSize: 12, fontWeight: 500, borderRadius: 'var(--r-md)', border: `1px solid ${isActive ? 'var(--violet)' : 'var(--border2)'}`, background: isActive ? 'rgba(16,185,129,0.12)' : 'var(--panel2)', color: isActive ? 'var(--violet-light)' : 'var(--text)', cursor: 'pointer', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)', textAlign: 'left', lineHeight: 1.2 }}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
         <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
           <span>{buttonText}</span>
-          {subLabel && <span style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.04em', color: isActive ? 'rgba(157,126,255,0.7)' : 'var(--text3)', marginTop: 1 }}>{subLabel}</span>}
+          {subLabel && <span style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.04em', color: isActive ? 'rgba(122,107,255,0.7)' : 'var(--text3)', marginTop: 1 }}>{subLabel}</span>}
         </span>
         <span style={{ marginLeft: 2, opacity: 0.7 }}>▾</span>
       </button>
@@ -6734,7 +6742,7 @@ function DateRangeFilter({ value, onChange }) {
               const active = value?.label === p.label;
               return (
                 <button key={p.id} onClick={() => apply(p)}
-                  style={{ padding: '7px 10px', textAlign: 'left', background: active ? 'rgba(110,93,252,0.12)' : 'transparent', border: 'none', color: active ? 'var(--violet-light)' : 'var(--text2)', cursor: 'pointer', fontSize: 13, borderRadius: 6 }}
+                  style={{ padding: '7px 10px', textAlign: 'left', background: active ? 'rgba(16,185,129,0.12)' : 'transparent', border: 'none', color: active ? 'var(--violet-light)' : 'var(--text2)', cursor: 'pointer', fontSize: 13, borderRadius: 6 }}
                   onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--hover-tint)'; }}
                   onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}>
                   {p.label}
@@ -6916,7 +6924,7 @@ function AICoach({ trades, notes, stats, riskRules, exitData, config, onSaveConf
         ))}
         <button onClick={() => setShowSettings(true)} style={{ marginTop: 'auto', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', padding: '6px 10px', borderRadius: 'var(--r-sm)', fontSize: 11, cursor: 'pointer' }}
           onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--violet)'; e.currentTarget.style.color = 'var(--violet-light)'; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text2)'; }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg> API settings</button>
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text2)'; }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg> API settings</button>
       </Card>
       {/* Chat thread */}
       <Card style={{ padding: 0, display: 'flex', flexDirection: 'column', maxHeight: 800 }}>
@@ -6930,7 +6938,7 @@ function AICoach({ trades, notes, stats, riskRules, exitData, config, onSaveConf
           {(!activeConvo || activeConvo.messages.length === 0) ? (
             // Welcome screen with quick prompts
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, padding: '20px 0' }}>
-              <div style={{ fontSize: 40, opacity: 0.7 }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 017 4.5v0A2.5 2.5 0 019.5 7h5A2.5 2.5 0 0117 4.5v0A2.5 2.5 0 0114.5 2h-5z"/><path d="M9 7v10M15 7v10M9 12h6M7 17a2 2 0 001 3.732M17 17a2 2 0 01-1 3.732"/></svg></div>
+              <div style={{ fontSize: 40, opacity: 0.7 }}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 017 4.5v0A2.5 2.5 0 019.5 7h5A2.5 2.5 0 0117 4.5v0A2.5 2.5 0 0114.5 2h-5z"/><path d="M9 7v10M15 7v10M9 12h6M7 17a2 2 0 001 3.732M17 17a2 2 0 01-1 3.732"/></svg></div>
               <div style={{ textAlign: 'center', maxWidth: 420 }}>
                 <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>Ask anything about your trading</div>
                 <div style={{ fontSize: 12, color: 'var(--text3)' }}>The coach reads your last {Math.min(trades?.length || 0, 50)} trades + stats and gives evidence-based feedback.</div>
@@ -6949,7 +6957,7 @@ function AICoach({ trades, notes, stats, riskRules, exitData, config, onSaveConf
           ) : (
             activeConvo.messages.map((m, i) => (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
-                <div style={{ maxWidth: '88%', padding: '10px 14px', borderRadius: 'var(--r-md)', background: m.role === 'user' ? 'var(--violet-tint)' : 'var(--panel2)', border: `1px solid ${m.role === 'user' ? 'rgba(110,93,252,0.28)' : 'var(--border)'}`, fontSize: 13, lineHeight: 1.6, color: 'var(--text)', whiteSpace: 'pre-wrap' }}>
+                <div style={{ maxWidth: '88%', padding: '10px 14px', borderRadius: 'var(--r-md)', background: m.role === 'user' ? 'var(--violet-tint)' : 'var(--panel2)', border: `1px solid ${m.role === 'user' ? 'rgba(16,185,129,0.28)' : 'var(--border)'}`, fontSize: 13, lineHeight: 1.6, color: 'var(--text)', whiteSpace: 'pre-wrap' }}>
                   {m.content}
                 </div>
                 <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 3, padding: '0 8px' }}>{m.role === 'user' ? 'You' : 'Coach'} · {new Date(m.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
@@ -7014,73 +7022,46 @@ function Sidebar({ tab, setTab, hasData, mobileOpen, setMobileOpen, collapsed, s
     };
   }, [isMobile, mobileOpen]);
   const items = [
-    ['dashboard', 'Dashboard', '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>'],
-    ['dayweek', 'Day/Week View', '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>'],
-    ['trade', 'Trade View', '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>'],
-    ['positions', 'Positions & Orders', '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>'],
-    ['rules', 'Risk Rules', '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'],
-    ['playbook', 'Playbook', '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>'],
-    ['notebook', 'Notebook', '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>'],
-    ['exit', 'Exit Analysis', '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>'],
-    ['coach', 'AI Coach', '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>'],
-    ['reports', 'Reports', '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8"/></svg>'],
-    ['strategies', 'Strategies', '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>'],
-    ['calendar', 'Calendar', '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><circle cx="12" cy="16" r="1.5" fill="currentColor"/></svg>'],
-    ['progress', 'Progress Tracker', '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>']];
+    ['dashboard', 'Dashboard', '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>'],
+    ['dayweek', 'Day/Week View', '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>'],
+    ['trade', 'Trade View', '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>'],
+    ['positions', 'Positions & Orders', '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>'],
+    ['rules', 'Risk Rules', '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'],
+    ['playbook', 'Playbook', '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>'],
+    ['notebook', 'Notebook', '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>'],
+    ['exit', 'Exit Analysis', '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>'],
+    ['coach', 'AI Coach', '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>'],
+    ['reports', 'Reports', '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8"/></svg>'],
+    ['strategies', 'Strategies', '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>'],
+    ['calendar', 'Calendar', '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><circle cx="12" cy="16" r="1.5" fill="currentColor"/></svg>'],
+    ['progress', 'Progress Tracker', '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>']];
   // Effective width: 60px when collapsed on PC, 220px otherwise. Mobile drawer always 260px.
   const sidebarWidth = isMobile ? 260 : (collapsed ? 60 : 220);
   const isCollapsed = !isMobile && collapsed;
   const aside = (
     <aside style={{ width: sidebarWidth, background: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)', position: 'fixed', left: isMobile ? (mobileOpen ? 0 : -280) : 0, top: 0, bottom: 0, display: 'flex', flexDirection: 'column', padding: isCollapsed ? '12px 8px' : 12, paddingTop: isMobile ? `calc(env(safe-area-inset-top, 0px) + 14px)` : (isCollapsed ? '12px 8px' : 12), zIndex: 50, transition: isMobile ? 'left 0.25s ease' : 'width 0.2s ease, padding 0.2s ease', boxShadow: isMobile && mobileOpen ? '4px 0 24px rgba(0,0,0,0.6)' : 'none' }}>
       {/* Branding stamp — collapsed mode shows JUST the icon, expanded shows icon + text */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: isCollapsed ? 0 : 11, justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '10px 0' : '14px 10px', marginBottom: 10, borderRadius: 'var(--r-lg)', background: isCollapsed ? 'transparent' : 'linear-gradient(135deg, rgba(110,93,252,0.06), rgba(192,38,211,0.04))', border: isCollapsed ? 'none' : '1px solid rgba(110,93,252,0.16)', boxShadow: isCollapsed ? 'none' : 'inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -1px 0 rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.5)' }}>
-        <svg width={isCollapsed ? 36 : 32} height={isCollapsed ? 36 : 32} viewBox="0 0 100 100" fill="none" style={{ filter: 'drop-shadow(0 0 8px rgba(110,93,252,0.24))', flexShrink: 0 }}>
-          <defs>
-            <linearGradient id="sbSword" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#c4b5fd"/><stop offset="50%" stopColor="#a78bfa"/><stop offset="100%" stopColor="#6e5dfc"/>
-            </linearGradient>
-            <linearGradient id="sbBull" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#c4b5fd"/><stop offset="100%" stopColor="#8b5cf6"/>
-            </linearGradient>
-            <linearGradient id="sbBear" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#d4d4d8"/><stop offset="100%" stopColor="#71717a"/>
-            </linearGradient>
-          </defs>
-          <circle cx="50" cy="55" r="40" fill="rgba(110,93,252,0.16)"/>
-          <path d="M 9 76 Q 18 46 32 35 Q 42 28 50 36" stroke="#f87171" strokeWidth="2" fill="none" strokeLinecap="round"/>
-          <path d="M 91 76 Q 82 46 68 35 Q 58 28 50 36" stroke="#f87171" strokeWidth="2" fill="none" strokeLinecap="round"/>
-          <path d="M 9 65 Q 18 84 32 89 Q 42 91 50 86" stroke="#4ade80" strokeWidth="2" fill="none" strokeLinecap="round"/>
-          <path d="M 91 65 Q 82 84 68 89 Q 58 91 50 86" stroke="#4ade80" strokeWidth="2" fill="none" strokeLinecap="round"/>
-          <g transform="translate(13, 22)">
-            <path d="M 3 14 Q 1 8 5 6 Q 9 1 16 2 L 21 -3 L 24 1 L 24 7 Q 26 11 23 15 L 21 17 Q 16 19 11 17 L 6 18 Q 2 17 3 14 Z" fill="url(#sbBull)"/>
-            <path d="M 4 7 L 1 1 L 5 4 L 8 -1 L 10 5" fill="url(#sbBull)" stroke="#6e5dfc" strokeWidth="0.5"/>
-            <g fill="#fcd34d"><polygon points="10,-4 12,-7 14,-4 16,-7 18,-4 20,-7 22,-4"/><rect x="10" y="-4" width="12" height="1.6"/></g>
-          </g>
-          <g transform="translate(65, 22)">
-            <path d="M 4 14 Q 3 7 8 5 Q 14 1 20 3 L 24 6 L 23 16 Q 18 19 12 17 L 6 18 Q 3 16 4 14 Z" fill="url(#sbBear)"/>
-            <path d="M 8 4 Q 6 -1 10 -1 Q 12 3 10 5" fill="url(#sbBear)"/>
-            <path d="M 16 3 Q 14 -2 18 -2 Q 20 2 18 4" fill="url(#sbBear)"/>
-            <g fill="#fcd34d" transform="translate(5, 0)"><polygon points="0,-3 2,-7 5,-3 8,-7 11,-3"/><rect x="0" y="-3" width="11" height="1.6"/></g>
-          </g>
-          <path d="M 50 22 L 47.5 27 L 47.5 70 L 50 76 L 52.5 70 L 52.5 27 Z" fill="url(#sbSword)" stroke="#6e5dfc" strokeWidth="0.4"/>
-          <circle cx="50" cy="20" r="3" fill="url(#sbSword)"/><circle cx="50" cy="20" r="1.3" fill="#fff"/>
-          <rect x="45.5" y="27" width="9" height="1.6" fill="#6e5dfc"/>
+      <div style={{ display: 'flex', alignItems: 'center', gap: isCollapsed ? 0 : 11, justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '10px 0' : '14px 10px', marginBottom: 10, borderRadius: 'var(--r-lg)', background: isCollapsed ? 'transparent' : 'linear-gradient(135deg, rgba(16,185,129,0.06), rgba(16,185,129,0.04))', border: isCollapsed ? 'none' : '1px solid rgba(16,185,129,0.16)', boxShadow: isCollapsed ? 'none' : 'inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -1px 0 rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.5)' }}>
+        <svg width={isCollapsed ? 36 : 32} height={isCollapsed ? 36 : 32} viewBox="0 0 100 100" fill="none" style={{ filter: 'drop-shadow(0 0 8px rgba(16,185,129,0.24))', flexShrink: 0 }}>
+          <path d="M16 80 L40 56 L54 64 L82 30" fill="none" stroke="#34D399" strokeOpacity="0.5" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M70 28 L84 27 L83 41" fill="none" stroke="#34D399" strokeOpacity="0.5" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"/>
+          <text x="50" y="53" dominantBaseline="central" textAnchor="middle" fontFamily="'Geist', sans-serif" fontWeight="700" fontSize="62" letterSpacing="-0.04em" fill="#fff">R</text>
         </svg>
         {!isCollapsed && (
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 900, fontSize: 16, lineHeight: 1, color: '#fff', letterSpacing: '-0.03em', fontFamily: "'DM Sans', -apple-system, sans-serif" }}>{BRAND}</div>
+            <div style={{ fontWeight: 900, fontSize: 16, lineHeight: 1, color: '#fff', letterSpacing: '-0.03em', fontFamily: "'Geist', -apple-system, sans-serif" }}>{BRAND}</div>
             <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.18em', marginTop: 3 }}>Trading Journal</div>
           </div>
         )}
         {isMobile && <button onClick={() => setMobileOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--sidebar-text)', cursor: 'pointer', fontSize: 18, padding: 4 }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>}
       </div>
-      <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto' }}>
+      <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, overflowY: 'auto' }}>
         {items.map(([id, label, icon]) => {
           const active = tab === id, disabled = !hasData && id !== 'dashboard' && id !== 'playbook' && id !== 'rules';
           return (
             <button key={id} onClick={() => { if (!disabled) { setTab(id); if (isMobile) setMobileOpen(false); } }} disabled={disabled}
               title={isCollapsed ? label : undefined}
-              style={{ display: 'flex', alignItems: 'center', gap: isCollapsed ? 0 : 10, justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '11px 0' : '9px 11px', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: active ? 500 : 400, background: active ? 'var(--sidebar-active-bg)' : 'transparent', color: active ? 'var(--sidebar-text-active)' : 'var(--sidebar-text)', border: active ? '1px solid var(--sidebar-active-border)' : '1px solid transparent', boxShadow: active ? 'inset 2px 0 0 var(--violet)' : 'none', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.35 : 1, textAlign: 'left', letterSpacing: '-0.01em' }} className={'sidebar-item'}
+              style={{ display: 'flex', alignItems: 'center', gap: isCollapsed ? 0 : 10, justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '11px 0' : '9px 11px', borderRadius: 'var(--r-md)', fontSize: 13.5, fontWeight: 500, background: active ? 'var(--sidebar-active-bg)' : 'transparent', color: active ? 'var(--sidebar-text-active)' : 'var(--sidebar-text)', border: active ? '1px solid var(--sidebar-active-border)' : '1px solid transparent', boxShadow: active ? 'inset 2px 0 0 var(--violet), 0 0 18px -6px var(--glow)' : 'none', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.35 : 1, textAlign: 'left', letterSpacing: '-0.01em' }} className={'sidebar-item'}
               onMouseEnter={e => { if (!active && !disabled) { e.currentTarget.style.background = 'var(--sidebar-hover-bg)'; e.currentTarget.style.color = 'var(--sidebar-text-hover)'; } }}
               onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--sidebar-text)'; } }}>
               <span style={{ width: 16, height: 15, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: 0.8, transition: 'opacity var(--dur-fast) var(--ease-out)' }} dangerouslySetInnerHTML={{ __html: icon }} />
@@ -7238,7 +7219,7 @@ function ExitAnalysisPage({ trades, exitData, onOpenTrade }) {
           })}
         </div>
         {bestForward.key !== 'actual' && bestForward.dol > actualForward.dol && (
-          <div style={{ marginTop: 14, padding: 11, background: 'rgba(110,93,252,0.06)', border: '1px solid rgba(110,93,252,0.22)', borderRadius: 'var(--r-md)', fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6 }}>
+          <div style={{ marginTop: 14, padding: 11, background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.22)', borderRadius: 'var(--r-md)', fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6 }}>
             <strong style={{ color: 'var(--violet-light)' }}>Insight:</strong> Mechanically holding every trade for <strong>{bestForward.label.replace('Held to ', '')}</strong> would have produced <strong>{fmtMoney(bestForward.dol - actualForward.dol, true)}</strong> more than your actual closing decisions. This doesn't mean "always hold longer" — it means your bias is to close too early. Consider trailing stops or partial scale-outs to capture more of these trends.
           </div>
         )}
@@ -7428,7 +7409,7 @@ function App() {
   const [exitData, setExitData] = useState(() => lsGet(SK.tradeExitData, {}));
   // Theme: 'dark' (default) or 'light'. We apply it by setting data-theme on <html>, which
   // toggles the CSS variables defined in head.html. Persists across reloads via localStorage.
-  const [theme, setTheme] = useState(() => lsGet(SK.theme, 'dark'));
+  const [theme, setTheme] = useState(() => lsGet(SK.theme, 'light'));
   useEffect(() => {
     if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
     else document.documentElement.removeAttribute('data-theme');
@@ -8070,7 +8051,7 @@ function App() {
   }, [accounts, activeAccount]);
   const accountList = useMemo(() => Object.values(accounts), [accounts]);
   const titleMap = { dashboard: 'Dashboard', dayweek: 'Day / Week View', trade: 'Trade View', positions: 'Positions & Orders', rules: 'Risk Rules', playbook: 'Playbook', notebook: 'Notebook', exit: 'Exit Analysis', coach: 'AI Coach', reports: 'Reports', strategies: 'Strategies', calendar: 'Calendar', progress: 'Progress Tracker' };
-  const accTab = (active, label, onClick) => <button onClick={onClick} style={{ padding: '4px 11px', fontSize: 12, fontWeight: active ? 600 : 400, borderRadius: 'var(--r-sm)', fontFamily: "'DM Sans', sans-serif", border: active ? '1px solid var(--border2)' : '1px solid transparent', cursor: 'pointer', background: active ? 'var(--panel2)' : 'transparent', color: active ? 'var(--text)' : 'var(--text3)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out)', letterSpacing: '-0.01em' }}>{label}</button>;
+  const accTab = (active, label, onClick) => <button onClick={onClick} style={{ padding: '4px 11px', fontSize: 12, fontWeight: active ? 600 : 400, borderRadius: 'var(--r-sm)', fontFamily: "'Geist', sans-serif", border: active ? '1px solid var(--border2)' : '1px solid transparent', cursor: 'pointer', background: active ? 'var(--panel2)' : 'transparent', color: active ? 'var(--text)' : 'var(--text3)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out)', letterSpacing: '-0.01em' }}>{label}</button>;
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const isMobile = useIsMobile();
 
@@ -8090,7 +8071,7 @@ function App() {
                 <button onClick={() => setSidebarCollapsed(c => !c)} title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} style={{ background: 'transparent', border: 'none', color: 'var(--text2)', cursor: 'pointer', padding: 4, fontSize: 20, lineHeight: 1, display: 'flex', alignItems: 'center', marginRight: 4 }}
                   onMouseEnter={e => e.currentTarget.style.color = 'var(--text)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text2)'}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
               )}
-              <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: '-0.035em', color: 'var(--text)', fontFamily: "'DM Sans', -apple-system, sans-serif" }}>{titleMap[tab]}</div>
+              <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: '-0.035em', color: 'var(--text)', fontFamily: "'Geist', -apple-system, sans-serif" }}>{titleMap[tab]}</div>
               {!isMobile && accountList.length > 0 && (
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   {accTab(activeAccount === 'all', 'All accounts', () => switchAccount('all'))}
@@ -8182,7 +8163,7 @@ function App() {
               </div>
               {/* Timezone section */}
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 8 }}>Exit-quality data (MAE / MFE)</div>
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Geist', sans-serif", marginBottom: 8 }}>Exit-quality data (MAE / MFE)</div>
                 <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 8, maxWidth: 720, lineHeight: 1.55 }}>
                   Exit-quality data (MAE = worst drawdown, MFE = best run-up, forward returns at T+30m/1h/4h/12h/1d) comes from a free MQL5 script: <a href="https://www.mql5.com/en/code/72326" target="_blank" rel="noreferrer" style={{ color: 'var(--violet-light)' }}>code #72326</a>. Run it in MT5, then upload the generated CSV here. We'll match rows to your existing trades by Position ID and unlock the Exit Analysis page + per-trade insights.
                 </div>
@@ -8198,7 +8179,7 @@ function App() {
               </div>
               {/* Timezone section */}
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 8 }}>Trade times</div>
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Geist', sans-serif", marginBottom: 8 }}>Trade times</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                   <label style={{ fontSize: 13, color: 'var(--text2)' }}>MT5 broker timezone (UTC offset):</label>
                   <input type="number" step="1" min="-12" max="14" value={brokerOffsetInput} onChange={e => setBrokerOffsetInput(e.target.value)}
@@ -8213,7 +8194,7 @@ function App() {
               {/* Accounts section */}
               {accountList.length > 0 && (
                 <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 10 }}>Accounts ({accountList.length})</div>
+                  <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Geist', sans-serif", marginBottom: 10 }}>Accounts ({accountList.length})</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                     {accountList.map((a, idx) => {
                       const tCount = trades.filter(t => t.account === a.id).length;
@@ -8241,7 +8222,7 @@ function App() {
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
                   <div>
-                    <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>Sync across devices</div>
+                    <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Geist', sans-serif" }}>Sync across devices</div>
                     <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3, letterSpacing: '-0.01em' }}>This device: <span style={{ color: 'var(--text2)' }}>{deviceName}</span> <span style={{ color: 'var(--border2)' }}>· {getDeviceId()}</span></div>
                   </div>
                   <input value={deviceName} onChange={e => updateDeviceName(e.target.value)} placeholder="Device name" style={{ ...inputStyle, width: 160 }} />
@@ -8283,13 +8264,13 @@ function App() {
 
               {/* Data summary — Sync replaces the old Export/Import flow (same JSON payload) */}
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 8 }}>Data</div>
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Geist', sans-serif", marginBottom: 8 }}>Data</div>
                 <div style={{ fontSize: 12, color: 'var(--text3)' }}>{trades.length} trades · {Object.keys(notes).length} notes · {strategies.length} strategies · {notebook.length} notebook entries · {Object.values(attachments).reduce((a, arr) => a + (arr?.length || 0), 0)} images</div>
                 <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6, fontStyle: 'italic' }}>To back up or restore your data, use <strong style={{ color: 'var(--text2)' }}>Sync now</strong> / <strong style={{ color: 'var(--text2)' }}>Sync from file</strong> above. Same JSON format.</div>
               </div>
               {/* Danger zone */}
               <div>
-                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 8 }}>Danger zone</div>
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Geist', sans-serif", marginBottom: 8 }}>Danger zone</div>
                 <button style={btnStyle('danger')} onClick={resetEverything}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg> Reset everything</button>
               </div>
             </Card>
@@ -8297,7 +8278,7 @@ function App() {
           {trades.length === 0 && tab !== 'playbook' ? (
             <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{ textAlign: 'center', maxWidth: 420 }}>
-                <div style={{ width: 64, height: 64, borderRadius: 'var(--r-xl)', background: 'linear-gradient(135deg,#7c5cfc,#c026d3)', margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff' }}>{BRAND[0]}</div>
+                <div style={{ width: 64, height: 64, borderRadius: 'var(--r-xl)', background: 'linear-gradient(135deg,#10B981,#c026d3)', margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff' }}>{BRAND[0]}</div>
                 <div style={{ fontSize: 24, fontWeight: 600, marginBottom: 8 }}>Welcome to {BRAND}</div>
                 <div style={{ fontSize: 14, color: 'var(--text2)', marginBottom: 24, lineHeight: 1.6 }}>A comprehensive trading journal. Import your MT5 history report to unlock the full dashboard — Day/Week view, Trade analytics, Calendar heatmap, Strategies, Notebook, Reports, and Progress tracking. Your Playbook is ready now in the sidebar.</div>
                 <div style={{ display: 'flex', justifyContent: 'center' }}><UploadBtn onUpload={handleUpload} primary /></div>
@@ -8351,7 +8332,7 @@ function App() {
       {/* Floating gate button — always reachable */}
       {trades.length > 0 && !gateOpen && (
         <button onClick={() => setGateOpen(true)} title="Pre-trade gate" className="rfx-float-bottom"
-          style={{ '--rfx-float-offset': isMobile ? '18px' : '26px', position: 'fixed', right: isMobile ? 18 : 26, zIndex: 40, padding: '10px 18px', borderRadius: 'var(--r-full)', border: `1px solid ${riskStatus.locked ? 'rgba(248,113,113,0.4)' : 'rgba(110,93,252,0.24)'}`, cursor: 'pointer', background: riskStatus.locked ? 'rgba(248,113,113,0.9)' : 'rgba(110,93,252,0.9)', color: '#fff', fontWeight: 600, fontSize: 13, letterSpacing: '-0.01em', boxShadow: riskStatus.locked ? '0 4px 20px rgba(248,113,113,0.4)' : '0 4px 20px rgba(110,93,252,0.32)', display: 'flex', alignItems: 'center', gap: 7, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', transition: 'background 0.15s ease, box-shadow 0.15s ease' }}>
+          style={{ '--rfx-float-offset': isMobile ? '18px' : '26px', position: 'fixed', right: isMobile ? 18 : 26, zIndex: 40, padding: '10px 18px', borderRadius: 'var(--r-full)', border: `1px solid ${riskStatus.locked ? 'rgba(248,113,113,0.4)' : 'rgba(16,185,129,0.24)'}`, cursor: 'pointer', background: riskStatus.locked ? 'rgba(248,113,113,0.9)' : 'rgba(16,185,129,0.9)', color: '#fff', fontWeight: 600, fontSize: 13, letterSpacing: '-0.01em', boxShadow: riskStatus.locked ? '0 4px 20px rgba(248,113,113,0.4)' : '0 4px 20px rgba(16,185,129,0.32)', display: 'flex', alignItems: 'center', gap: 7, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', transition: 'background 0.15s ease, box-shadow 0.15s ease' }}>
           <span style={{ fontSize: 14, fontStyle: 'normal' }}>{riskStatus.locked ? "×" : '◈'}</span>{riskStatus.locked ? 'Locked' : 'Pre-trade gate'}
         </button>
       )}
