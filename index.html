@@ -1825,7 +1825,14 @@ let _supaUser = null;
 
 async function supaSignIn(email, password) {
   const sb = getSupa(); if (!sb) return { error: 'Supabase not loaded' };
-  return sb.auth.signInWithPassword({ email, password });
+  const res = await sb.auth.signInWithPassword({ email, password });
+  // Set the cached user synchronously from the sign-in result so an immediate
+  // supaPull() works — don't wait for the async onAuthStateChange event to fire.
+  if (!res.error) {
+    _supaUser = res.data?.user || res.data?.session?.user || null;
+    if (_supaUser) lsSet('rfx_cloud_user', { email: _supaUser.email, id: _supaUser.id });
+  }
+  return res;
 }
 async function supaSignOut() {
   const sb = getSupa(); if (!sb) return;
@@ -1873,7 +1880,12 @@ async function supaPull() {
   const sb = getSupa();
   if (!sb || !_supaUser) return null;
   const { data, error } = await sb.from('rfx_journal').select('*').eq('user_id', _supaUser.id).single();
-  if (error) { console.error('Supabase pull error:', error); throw new Error(error.message || JSON.stringify(error)); }
+  if (error) {
+    // PGRST116 = "no rows returned" — not an error, just means no data synced yet
+    if (error.code === 'PGRST116') { console.log('No cloud data yet — sync from your main device first.'); return null; }
+    console.error('Supabase pull error:', error);
+    throw new Error(error.message || JSON.stringify(error));
+  }
   if (!data) return null;
   return {
     trades: data.trades || [],
@@ -7507,30 +7519,39 @@ function App() {
   }, []);
 
   const handleManualSync = async () => {
-    if (!_supaUser) { setCloudSyncStatus('error'); return; }
+    if (!_supaUser) { setCloudSyncStatus('error:Not signed in'); return; }
     setCloudSyncStatus('syncing');
     try {
-      // STEP 1: Push everything local up to Supabase first
-      const pushed = await supaSync({
-        trades: lsGet(SK.trades, []), accounts: lsGet(SK.accounts, {}),
-        exitData: lsGet(SK.tradeExitData, {}), openPositions: lsGet(SK.openPositions, []),
-        workingOrders: lsGet(SK.workingOrders, []), deposits: lsGet(SK.deposits, []),
-        notes: lsGet(SK.notes, {}), dayNotes: lsGet(SK.dayNotes, {}),
-        strategies: lsGet(SK.strategies, []), notebook: lsGet(SK.notebook, []),
-        notebookFolders: lsGet(SK.notebookFolders, []), checklist: lsGet(SK.checklist, []),
-        checklistDays: lsGet(SK.checklistDays, {}), riskRules: lsGet(SK.riskRules, {}),
-        tagCategories: lsGet(SK.tagCategories, []), tagCategoryMap: lsGet(SK.tagCategoryMap, {}),
-        attachments: lsGet(SK.attachments, {}),
-      });
-      if (!pushed || !pushed.ok) throw new Error('Push failed: ' + (pushed?.msg || 'check internet / Supabase'));
+      const localTrades = lsGet(SK.trades, []);
+      const hasLocalData = localTrades.length > 0;
 
-      // STEP 2: Pull what's now in Supabase (includes other devices' changes)
-      const remote = await supaPull();
-      if (!remote) throw new Error('Pull failed');
+      // STEP 1: Pull remote first to see what's in DB
+      let remote = null;
+      try { remote = await supaPull(); } catch(e) { console.warn('Pull before push:', e.message); }
 
-      // STEP 3: Merge — local wins on everything (you are the source of truth on this device)
-      // Exception: trades and exitData get additive merge (adds missing ones from other devices)
-      if (remote.trades && remote.trades.length > 0) {
+      // STEP 2: Smart push — only push if local has data
+      // Prevents new-device with empty localStorage from overwriting cloud records
+      if (hasLocalData) {
+        const pushed = await supaSync({
+          trades: localTrades, accounts: lsGet(SK.accounts, {}),
+          exitData: lsGet(SK.tradeExitData, {}), openPositions: lsGet(SK.openPositions, []),
+          workingOrders: lsGet(SK.workingOrders, []), deposits: lsGet(SK.deposits, []),
+          notes: lsGet(SK.notes, {}), dayNotes: lsGet(SK.dayNotes, {}),
+          strategies: lsGet(SK.strategies, []), notebook: lsGet(SK.notebook, []),
+          notebookFolders: lsGet(SK.notebookFolders, []), checklist: lsGet(SK.checklist, []),
+          checklistDays: lsGet(SK.checklistDays, {}), riskRules: lsGet(SK.riskRules, {}),
+          tagCategories: lsGet(SK.tagCategories, []), tagCategoryMap: lsGet(SK.tagCategoryMap, {}),
+          attachments: lsGet(SK.attachments, {}),
+        });
+        if (!pushed || !pushed.ok) throw new Error('Push failed: ' + (pushed?.msg || 'check internet'));
+        // Re-pull after push to get merged state
+        try { remote = await supaPull(); } catch(e) { /* use existing remote */ }
+      }
+
+      if (!remote && !hasLocalData) throw new Error('No data locally or in cloud — import an MT5/MT4 report first');
+
+      // STEP 3: Merge remote into local (only if remote has data)
+      if (remote && remote.trades && remote.trades.length > 0) {
         setTrades(prev => {
           const map = new Map(prev.map(t => [t.id, t]));
           remote.trades.forEach(t => { if (!map.has(t.id)) map.set(t.id, t); }); // add missing only
@@ -7539,26 +7560,26 @@ function App() {
           return merged;
         });
       }
-      if (remote.exitData && Object.keys(remote.exitData).length) {
+      if (remote && remote.exitData && Object.keys(remote.exitData).length) {
         setExitData(prev => {
           const merged = { ...remote.exitData, ...prev }; // local wins
           lsSet(SK.tradeExitData, merged);
           return merged;
         });
       }
-      if (remote.accounts && Object.keys(remote.accounts).length) {
+      if (remote && remote.accounts && Object.keys(remote.accounts).length) {
         setAccounts(prev => { const m = { ...remote.accounts, ...prev }; lsSet(SK.accounts, m); return m; });
       }
-      if (remote.notes && Object.keys(remote.notes).length) {
+      if (remote && remote.notes && Object.keys(remote.notes).length) {
         setNotes(prev => { const m = { ...remote.notes, ...prev }; lsSet(SK.notes, m); return m; });
       }
-      if (remote.dayNotes && Object.keys(remote.dayNotes).length) {
+      if (remote && remote.dayNotes && Object.keys(remote.dayNotes).length) {
         setDayNotes(prev => { const m = { ...remote.dayNotes, ...prev }; lsSet(SK.dayNotes, m); return m; });
       }
-      if (remote.strategies && remote.strategies.length) {
+      if (remote && remote.strategies && remote.strategies.length) {
         setStrategies(prev => prev.length ? prev : remote.strategies);
       }
-      if (remote.notebook && remote.notebook.length) {
+      if (remote && remote.notebook && remote.notebook.length) {
         setNotebook(prev => {
           const map = new Map(prev.map(n => [n.id, n]));
           remote.notebook.forEach(n => { if (!map.has(n.id)) map.set(n.id, n); });
@@ -7567,22 +7588,22 @@ function App() {
           return merged;
         });
       }
-      if (remote.checklist && remote.checklist.length) {
+      if (remote && remote.checklist && remote.checklist.length) {
         setChecklist(prev => prev.length ? prev : remote.checklist);
       }
-      if (remote.checklistDays && Object.keys(remote.checklistDays).length) {
+      if (remote && remote.checklistDays && Object.keys(remote.checklistDays).length) {
         setChecklistDays(prev => { const m = { ...remote.checklistDays, ...prev }; lsSet(SK.checklistDays, m); return m; });
       }
-      if (remote.riskRules && Object.keys(remote.riskRules).length) {
+      if (remote && remote.riskRules && Object.keys(remote.riskRules).length) {
         setRiskRules(prev => ({ ...remote.riskRules, ...prev }));
       }
-      if (remote.tagCategories && remote.tagCategories.length) {
+      if (remote && remote.tagCategories && remote.tagCategories.length) {
         setTagCategories(prev => prev.length ? prev : remote.tagCategories);
       }
-      if (remote.tagCategoryMap && Object.keys(remote.tagCategoryMap).length) {
+      if (remote && remote.tagCategoryMap && Object.keys(remote.tagCategoryMap).length) {
         setTagCategoryMap(prev => ({ ...remote.tagCategoryMap, ...prev }));
       }
-      if (remote.attachments && Object.keys(remote.attachments).length) {
+      if (remote && remote.attachments && Object.keys(remote.attachments).length) {
         setAttachments(prev => {
           const merged = { ...prev };
           for (const [tid, atts] of Object.entries(remote.attachments)) {
@@ -7614,7 +7635,7 @@ function App() {
     setCloudSyncStatus('syncing');
     try {
       const remote = await supaPull();
-      if (!remote) { setCloudSyncStatus('idle'); return; }
+      if (!remote) { setCloudSyncStatus('error:No cloud data — sync from your main device first'); setTimeout(() => setCloudSyncStatus('idle'), 5000); return; }
       // DB wins on all fields — replaces local state entirely
       if (remote.trades && remote.trades.length > 0) { setTrades(remote.trades); lsSet(SK.trades, remote.trades); }
       if (remote.accounts && Object.keys(remote.accounts).length) { setAccounts(remote.accounts); lsSet(SK.accounts, remote.accounts); }
@@ -7666,6 +7687,8 @@ function App() {
       setCloudMsg('');
       // New-device fix: the mount pull already ran with no session, so pull now
       // that we're authenticated — hydrates all records without a refresh.
+      // Ensure the cached session is current before pulling (belt-and-suspenders).
+      await supaGetSession();
       await pullFromCloud();
     }
   };
