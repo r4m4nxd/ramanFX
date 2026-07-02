@@ -216,7 +216,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     --pill-violet-border: #DADEFB;
     /* Sidebar stays dark — these are intentionally not overridden */
   }
-  html { font-size: 14.5px; scroll-behavior: smooth; text-rendering: optimizeLegibility; }
+  html { font-size: 14.5px;  text-rendering: optimizeLegibility; }
   body {
     font-family: 'Geist', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     background: var(--bg);
@@ -301,12 +301,12 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   .dash-card:nth-child(8) { animation-delay: 385ms; }
 
   /* ── Chart mount ── */
-  .recharts-wrapper { animation: fadeIn var(--dur-slow) var(--ease-out) 0.1s both; }
+
 
   /* ── Card hover lift ── */
   @media (hover: hover) and (pointer: fine) {
     .card-hover {
-      transition: transform var(--dur-normal) var(--ease-out), box-shadow var(--dur-normal) var(--ease-out), border-color var(--dur-normal) var(--ease-out);
+      transition: transform 0.15s ease;
     }
     .card-hover:hover {
       transform: translateY(-3px);
@@ -314,14 +314,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
       border-color: var(--border2);
     }
   }
-  /* ── Scroll-reveal: elements fade in as they enter viewport ── */
-  @supports (animation-timeline: view()) {
-    .scroll-reveal {
-      animation: fadeIn linear both;
-      animation-timeline: view();
-      animation-range: entry 0% entry 40%;
-    }
-  }
+
 
   /* ── KPI + Numbers ── */
   .kpi-val { transition: color var(--dur-slow) var(--ease-out), transform var(--dur-normal) var(--ease-spring), opacity var(--dur-normal) var(--ease-out); }
@@ -355,12 +348,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   @media (hover: hover) { tr:hover { background: rgba(16,185,129,0.03); } }
 
   /* ── Reduced motion ── */
-  /* ── Mobile: touch targets 44px min ── */
-  @media (max-width: 768px) {
-    button { min-height: 40px; }
-    select { min-height: 40px; }
-    input[type="text"], input[type="email"], input[type="password"], textarea { min-height: 40px; }
-  }
+
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
   }
@@ -412,14 +400,15 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     @page { margin: 0.5in; }
   }
   /* ── Button micro-interactions (Emil: buttons must feel press) ── */
-  button:active { transform: scale(0.97) !important; transition-duration: var(--dur-fast) !important; }
+  button:active { transform: scale(0.97) !important; }
   button:disabled { opacity: 0.45 !important; cursor: not-allowed !important; transform: none !important; }
   @media (hover: hover) and (pointer: fine) {
     button:not(:disabled):hover { opacity: 0.88; }
   }
   /* ── Card hover lift ── */
   @media (hover: hover) and (pointer: fine) {
-    .card-hover:hover { transform: translateY(-3px); box-shadow: var(--shadow-elev); transition: transform 0.18s var(--ease-out), box-shadow 0.18s var(--ease-out); }
+    .card-hover { transition: transform 0.15s ease; }
+    .card-hover:hover { transform: translateY(-1px); }
   }
   /* ── Modal entry animation ── */
   .modal-enter { animation: modalEnter 0.22s var(--ease-out) both; }
@@ -2874,7 +2863,7 @@ function DrawdownChart({ stats }) {
           <XAxis dataKey="label" tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} interval="preserveStartEnd" />
           <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
           <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => [fmtMoney(v), 'Drawdown']} />
-          <Area type="monotone" animationDuration={380} animationEasing="ease" dataKey="drawdown" stroke="#34D399" strokeWidth={2} fill="url(#ddG)" />
+          <Area type="monotone" animationDuration={0} animationEasing="ease" dataKey="drawdown" stroke="#34D399" strokeWidth={2} fill="url(#ddG)" />
         </AreaChart>
       </ResponsiveContainer>
     </Card>
@@ -2978,8 +2967,8 @@ function AccountBalanceChart({ trades, deposits }) {
           <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
           <ReferenceLine y={0} stroke="var(--chart-baseline)" strokeDasharray="2 2" />
           <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={(v, n) => [fmtMoney(v), n === 'balance' ? 'Balance' : 'Deposits']} />
-          <Line type="monotone" animationDuration={380} animationEasing="ease" dataKey="balance" stroke="#10B981" strokeWidth={2.4} dot={false} />
-          <Line type="monotone" animationDuration={380} animationEasing="ease" dataKey="deposits" stroke="#f87171" strokeWidth={2.4} dot={false} />
+          <Line type="monotone" animationDuration={0} animationEasing="ease" dataKey="balance" stroke="#10B981" strokeWidth={2.4} dot={false} />
+          <Line type="monotone" animationDuration={0} animationEasing="ease" dataKey="deposits" stroke="#f87171" strokeWidth={2.4} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </Card>
@@ -3040,9 +3029,9 @@ function WinLossAvgChart({ trades }) {
           <ReferenceLine y={0} yAxisId="money" stroke="var(--chart-baseline)" strokeDasharray="2 2" />
           <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }}
             formatter={(v, n) => n === 'winRate' ? [`${v.toFixed(1)}%`, 'Win %'] : [fmtMoney(v), n === 'avgWin' ? 'Avg win' : 'Avg loss']} />
-          <Line yAxisId="money" type="monotone" animationDuration={380} animationEasing="ease" dataKey="avgWin" stroke="#4ade80" strokeWidth={2.2} dot={{ r: 3, fill: '#4ade80' }} />
-          <Line yAxisId="money" type="monotone" animationDuration={380} animationEasing="ease" dataKey="avgLoss" stroke="#58a6ff" strokeWidth={2.2} dot={{ r: 3, fill: '#58a6ff' }} />
-          <Line yAxisId="pct" type="monotone" animationDuration={380} animationEasing="ease" dataKey="winRate" stroke="#f87171" strokeWidth={2.2} dot={{ r: 3, fill: '#f87171' }} />
+          <Line yAxisId="money" type="monotone" animationDuration={0} animationEasing="ease" dataKey="avgWin" stroke="#4ade80" strokeWidth={2.2} dot={{ r: 3, fill: '#4ade80' }} />
+          <Line yAxisId="money" type="monotone" animationDuration={0} animationEasing="ease" dataKey="avgLoss" stroke="#58a6ff" strokeWidth={2.2} dot={{ r: 3, fill: '#58a6ff' }} />
+          <Line yAxisId="pct" type="monotone" animationDuration={0} animationEasing="ease" dataKey="winRate" stroke="#f87171" strokeWidth={2.2} dot={{ r: 3, fill: '#f87171' }} />
         </LineChart>
       </ResponsiveContainer>
       <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 8, fontSize: 11, flexWrap: 'wrap' }}>
@@ -3097,7 +3086,7 @@ function Dashboard({ trades, onDayClick, checklist, checklistDays, onChecklistTo
               <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
               <ReferenceLine y={0} stroke="var(--chart-baseline)" strokeDasharray="2 2" />
               <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => [fmtMoney(v), 'Equity']} />
-              <Area type="monotone" animationDuration={380} animationEasing="ease" dataKey="equity" stroke="#4ade80" strokeWidth={2} fill="url(#eqA)" />
+              <Area type="monotone" animationDuration={0} animationEasing="ease" dataKey="equity" stroke="#4ade80" strokeWidth={2} fill="url(#eqA)" />
             </AreaChart>
           </ResponsiveContainer>
         </Card>
@@ -3119,7 +3108,7 @@ function Dashboard({ trades, onDayClick, checklist, checklistDays, onChecklistTo
               <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
               <ReferenceLine y={0} stroke="var(--chart-baseline)" />
               <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => [fmtMoney(v), 'Net']} cursor={{ fill: 'var(--track-bg)' }} />
-              <Bar animationDuration={380} animationEasing="ease" dataKey="pnl" radius={[2, 2, 0, 0]}>{stats.daily.map((d, i) => <Cell key={i} fill={d.pnl >= 0 ? '#4ade80' : '#f87171'} />)}</Bar>
+              <Bar animationDuration={0} animationEasing="ease" dataKey="pnl" radius={[2, 2, 0, 0]}>{stats.daily.map((d, i) => <Cell key={i} fill={d.pnl >= 0 ? '#4ade80' : '#f87171'} />)}</Bar>
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -3218,7 +3207,7 @@ function DayCard({ day, allTrades, exitData, expanded, onExpand, note, onSaveNot
                 <YAxis tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
                 <ReferenceLine y={0} stroke="var(--chart-baseline)" />
                 <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => fmtMoney(v)} />
-                <Area type="monotone" animationDuration={380} animationEasing="ease" dataKey="cum" stroke={profit ? '#4ade80' : '#f87171'} fill={`url(#g${day.date})`} strokeWidth={2} />
+                <Area type="monotone" animationDuration={0} animationEasing="ease" dataKey="cum" stroke={profit ? '#4ade80' : '#f87171'} fill={`url(#g${day.date})`} strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(90px,1fr))', gap: 12 }}>
@@ -4132,7 +4121,7 @@ function DaySummaryPopup({ dayKey: dk, stats, onClose, onViewDetails, onAddNote,
               <YAxis tick={{ fontSize: 9, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
               <ReferenceLine y={0} stroke="var(--chart-baseline)" />
               <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => fmtMoney(v)} />
-              <Area type="monotone" animationDuration={380} animationEasing="ease" dataKey="cum" stroke={profit ? '#4ade80' : '#f87171'} fill="url(#dayPopG)" strokeWidth={2} />
+              <Area type="monotone" animationDuration={0} animationEasing="ease" dataKey="cum" stroke={profit ? '#4ade80' : '#f87171'} fill="url(#dayPopG)" strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))', gap: 14 }}>
@@ -4969,7 +4958,7 @@ function ReportsOverviewPane({ stats, insights }) {
               <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} />
               <ReferenceLine x={0} stroke="var(--chart-baseline)" strokeDasharray="2 2" />
               <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => [v, 'Trades']} labelFormatter={l => `~$${l.toFixed(0)}`} cursor={{ fill: 'var(--track-bg)' }} />
-              <Bar animationDuration={380} animationEasing="ease" dataKey="count">{stats.dist.map((d, i) => <Cell key={i} fill={d.bin >= 0 ? '#4ade80' : '#f87171'} fillOpacity={0.7} />)}</Bar>
+              <Bar animationDuration={0} animationEasing="ease" dataKey="count">{stats.dist.map((d, i) => <Cell key={i} fill={d.bin >= 0 ? '#4ade80' : '#f87171'} fillOpacity={0.7} />)}</Bar>
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -5011,7 +5000,7 @@ function ReportsDayTimePane({ trades }) {
               <XAxis type="number" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} />
               <YAxis type="category" dataKey="day" tick={{ fontSize: 11, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} width={42} />
               <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'var(--track-bg)' }} formatter={(v, n) => [v, n === 'trades' ? 'Trades' : n]} />
-              <Bar animationDuration={380} animationEasing="ease" dataKey="trades" fill="#10B981" radius={[0, 4, 4, 0]} />
+              <Bar animationDuration={0} animationEasing="ease" dataKey="trades" fill="#10B981" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -5025,7 +5014,7 @@ function ReportsDayTimePane({ trades }) {
               <YAxis type="category" dataKey="day" tick={{ fontSize: 11, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} width={42} />
               <ReferenceLine x={0} stroke="var(--chart-baseline)" />
               <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'var(--track-bg)' }} formatter={v => [fmtMoney(v, true), 'Net P&L']} />
-              <Bar animationDuration={380} animationEasing="ease" dataKey="net" radius={[0, 4, 4, 0]}>{dow.map((d, i) => <Cell key={i} fill={d.net >= 0 ? '#4ade80' : '#f87171'} />)}</Bar>
+              <Bar animationDuration={0} animationEasing="ease" dataKey="net" radius={[0, 4, 4, 0]}>{dow.map((d, i) => <Cell key={i} fill={d.net >= 0 ? '#4ade80' : '#f87171'} />)}</Bar>
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -5040,7 +5029,7 @@ function ReportsDayTimePane({ trades }) {
             <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
             <ReferenceLine y={0} stroke="var(--chart-baseline)" />
             <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'var(--track-bg)' }} formatter={v => [fmtMoney(v, true), 'Net']} />
-            <Bar animationDuration={380} animationEasing="ease" dataKey="net" radius={[2, 2, 0, 0]}>{hours.map((h, i) => <Cell key={i} fill={h.net >= 0 ? '#4ade80' : '#f87171'} />)}</Bar>
+            <Bar animationDuration={0} animationEasing="ease" dataKey="net" radius={[2, 2, 0, 0]}>{hours.map((h, i) => <Cell key={i} fill={h.net >= 0 ? '#4ade80' : '#f87171'} />)}</Bar>
           </BarChart>
         </ResponsiveContainer>
       </Card>
@@ -5103,7 +5092,7 @@ function ReportsPriceQtyPane({ trades }) {
             <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
             <ReferenceLine y={0} stroke="var(--chart-baseline)" />
             <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'var(--track-bg)' }} formatter={v => [fmtMoney(v, true), 'Net']} />
-            <Bar animationDuration={380} animationEasing="ease" dataKey="net" radius={[3, 3, 0, 0]}>{vol.map((d, i) => <Cell key={i} fill={d.net >= 0 ? '#4ade80' : '#f87171'} />)}</Bar>
+            <Bar animationDuration={0} animationEasing="ease" dataKey="net" radius={[3, 3, 0, 0]}>{vol.map((d, i) => <Cell key={i} fill={d.net >= 0 ? '#4ade80' : '#f87171'} />)}</Bar>
           </BarChart>
         </ResponsiveContainer>
       </Card>
@@ -5301,7 +5290,7 @@ function ReportsComparePane({ trades }) {
               <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
               <ReferenceLine y={0} stroke="var(--chart-baseline)" strokeDasharray="2 2" />
               <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={v => [fmtMoney(v), 'Equity']} />
-              <Area type="monotone" animationDuration={380} animationEasing="ease" dataKey="equity" stroke={r.net >= 0 ? '#4ade80' : '#f87171'} strokeWidth={2} fill={`url(#cg${num})`} />
+              <Area type="monotone" animationDuration={0} animationEasing="ease" dataKey="equity" stroke={r.net >= 0 ? '#4ade80' : '#f87171'} strokeWidth={2} fill={`url(#cg${num})`} />
             </AreaChart>
           </ResponsiveContainer>
         </Fragment>
@@ -8123,7 +8112,7 @@ function App() {
     <div style={{ minHeight: '100vh' }}>
       <Sidebar tab={tab} setTab={setTab} hasData={trades.length > 0} mobileOpen={mobileNavOpen} setMobileOpen={setMobileNavOpen} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
       <div style={{ marginLeft: isMobile ? 0 : (sidebarCollapsed ? 60 : 220), transition: 'margin-left 0.2s ease' }}>
-        <header data-rfx-header style={{ position: 'sticky', top: 0, zIndex: 40, background: 'var(--header-bg)', backdropFilter: 'blur(20px) saturate(1.5)', WebkitBackdropFilter: 'blur(20px) saturate(1.5)' }}>
+        <header data-rfx-header style={{ position: 'sticky', top: 0, zIndex: 40, background: 'var(--header-bg)', willChange: 'transform' }}>
           <div style={{ padding: isMobile ? '9px 14px' : '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
               {isMobile && (
@@ -8217,7 +8206,7 @@ function App() {
             </div>
           )}
         </header>
-        <main key={tab} data-rfx-main className='page-enter' style={{ padding: isMobile ? '14px 12px 110px 12px' : '20px 24px 110px 24px' }}>
+        <main data-rfx-main style={{ padding: isMobile ? '14px 12px 110px 12px' : '20px 24px 110px 24px' }}>
           {showSettings && (
             <Card style={{ padding: 18, marginBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
@@ -8386,7 +8375,7 @@ function App() {
               <div className="fade-in" style={{ background: 'var(--panel)', border: '1px solid var(--green)', color: 'var(--green-bright)', borderRadius: 'var(--r-md)', padding: '8px 14px', fontSize: 12, fontWeight: 600, boxShadow: '0 6px 20px rgba(0,0,0,0.5)' }}>{syncStatus}</div>
             )}
             <button onClick={syncExport} title={isDirty ? 'You have unsynced changes — tap to sync' : 'Sync now'}
-              style={{ position: 'relative', padding: '9px 16px', borderRadius: 'var(--r-full)', border: isDirty ? 'none' : '1px solid var(--border2)', cursor: 'pointer', background: isDirty ? '#f59e0b' : 'rgba(16,16,19,0.95)', color: isDirty ? '#000' : 'var(--text2)', fontWeight: 600, fontSize: 12, boxShadow: isDirty ? '0 4px 20px rgba(245,158,11,0.35)' : '0 4px 16px rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', gap: 6, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', transition: 'background 0.15s ease, box-shadow 0.15s ease, color 0.15s ease' }}>
+              style={{ position: 'relative', padding: '9px 16px', borderRadius: 'var(--r-full)', border: isDirty ? 'none' : '1px solid var(--border2)', cursor: 'pointer', background: isDirty ? '#f59e0b' : 'rgba(16,16,19,0.95)', color: isDirty ? '#000' : 'var(--text2)', fontWeight: 600, fontSize: 12, boxShadow: isDirty ? '0 4px 20px rgba(245,158,11,0.35)' : '0 4px 16px rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', gap: 6, transition: 'background 0.15s ease, box-shadow 0.15s ease, color 0.15s ease' }}>
               <span style={{ fontSize: 12 }}>↻</span>{isDirty ? 'Sync (unsaved)' : 'Sync'}
             </button>
           </div>
@@ -8400,7 +8389,7 @@ function App() {
       {/* Floating gate button — always reachable */}
       {trades.length > 0 && !gateOpen && (
         <button onClick={() => setGateOpen(true)} title="Pre-trade gate" className="rfx-float-bottom"
-          style={{ '--rfx-float-offset': isMobile ? '18px' : '26px', position: 'fixed', right: isMobile ? 18 : 26, zIndex: 40, padding: '10px 18px', borderRadius: 'var(--r-full)', border: `1px solid ${riskStatus.locked ? 'rgba(248,113,113,0.4)' : 'rgba(16,185,129,0.24)'}`, cursor: 'pointer', background: riskStatus.locked ? 'rgba(248,113,113,0.9)' : 'rgba(16,185,129,0.9)', color: '#fff', fontWeight: 600, fontSize: 13, letterSpacing: '-0.01em', boxShadow: riskStatus.locked ? '0 4px 20px rgba(248,113,113,0.4)' : '0 4px 20px rgba(16,185,129,0.32)', display: 'flex', alignItems: 'center', gap: 7, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', transition: 'background 0.15s ease, box-shadow 0.15s ease' }}>
+          style={{ '--rfx-float-offset': isMobile ? '18px' : '26px', position: 'fixed', right: isMobile ? 18 : 26, zIndex: 40, padding: '10px 18px', borderRadius: 'var(--r-full)', border: `1px solid ${riskStatus.locked ? 'rgba(248,113,113,0.4)' : 'rgba(16,185,129,0.24)'}`, cursor: 'pointer', background: riskStatus.locked ? 'rgba(248,113,113,0.9)' : 'rgba(16,185,129,0.9)', color: '#fff', fontWeight: 600, fontSize: 13, letterSpacing: '-0.01em', boxShadow: riskStatus.locked ? '0 4px 20px rgba(248,113,113,0.4)' : '0 4px 20px rgba(16,185,129,0.32)', display: 'flex', alignItems: 'center', gap: 7, transition: 'background 0.15s ease, box-shadow 0.15s ease' }}>
           <span style={{ fontSize: 14, fontStyle: 'normal' }}>{riskStatus.locked ? "×" : '◈'}</span>{riskStatus.locked ? 'Locked' : 'Pre-trade gate'}
         </button>
       )}
