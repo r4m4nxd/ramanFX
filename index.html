@@ -13,7 +13,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;400;500;600;700&display=swap" rel="stylesheet">
 <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
@@ -119,7 +119,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     --pill-zinc-bg: rgba(113,113,122,0.12);
     --pill-zinc-fg: #a1a1ab;
     --pill-zinc-border: rgba(113,113,122,0.3);
-    --pill-green-bg: rgba(74,222,128,0.08);
+    --pill-green-bg: rgba(74,222,128,0.09);
     --pill-green-fg: #4FE39B;
     --pill-green-border: rgba(74,222,128,0.22);
     --pill-red-bg: rgba(248,113,113,0.08);
@@ -218,7 +218,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   }
   html { font-size: 14.5px;  text-rendering: optimizeLegibility; }
   body {
-    font-family: 'Geist', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-family: 'DM Sans', -apple-system, system-ui, sans-serif;
     background: var(--bg);
     color: var(--text);
     -webkit-font-smoothing: antialiased;
@@ -232,9 +232,9 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: var(--r-full); transition: background 0.2s; }
   ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
-  /* ── Geist tabular-nums for all numeric displays ── */
+  /* ── DM Sans tabular-nums for all numeric displays ── */
   .tabnum {
-    font-family: 'Geist', system-ui, sans-serif;
+    font-family: 'DM Sans', system-ui, sans-serif;
     font-variant-numeric: tabular-nums slashed-zero;
     font-feature-settings: 'tnum' 1, 'zero' 1, 'ss01' 1;
     letter-spacing: -0.02em;
@@ -352,17 +352,18 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
   }
-  /* ── Heading typography (Geist 700) ── */
-  .heading-xl { font-family: 'Geist', sans-serif; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; }
-  .heading-lg { font-family: 'Geist', sans-serif; font-weight: 700; letter-spacing: -0.025em; line-height: 1.15; }
-  .heading-md { font-family: 'Geist', sans-serif; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
-  .heading-sm { font-family: 'Geist', sans-serif; font-weight: 600; letter-spacing: -0.014em; line-height: 1.3; }
+  /* ── Heading typography (DM Sans 700) ── */
+  .heading-xl { font-family: 'DM Sans', sans-serif; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; }
+  .heading-lg { font-family: 'DM Sans', sans-serif; font-weight: 700; letter-spacing: -0.025em; line-height: 1.15; }
+  .heading-md { font-family: 'DM Sans', sans-serif; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
+  .heading-sm { font-family: 'DM Sans', sans-serif; font-weight: 600; letter-spacing: -0.014em; line-height: 1.3; }
   /* ── Tabular nums ── */
   .tabnum {
-    font-family: 'Geist', system-ui, sans-serif;
+    font-family: 'DM Sans', system-ui, sans-serif;
     font-variant-numeric: tabular-nums slashed-zero;
     font-feature-settings: 'tnum' 1, 'zero' 1, 'ss01' 1;
-    letter-spacing: -0.015em;
+    letter-spacing: -0.012em;
+    line-height: 1.55;
     -webkit-font-smoothing: antialiased;
   }
   /* ── Label / eyebrow ── */
@@ -2414,7 +2415,7 @@ function MetricGauge({ label, value, sub, color, donutValue, donutCenter, accent
       style={{ padding: '16px 18px', borderLeft: accent ? `2px solid ${accent}` : '2px solid transparent', transition: 'transform 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out)' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, marginBottom: 10, fontFamily: "'Geist', sans-serif" }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, marginBottom: 10, fontFamily: "'DM Sans', sans-serif" }}>
             {label}{hint && <Hint text={hint}><span style={{ width: 13, height: 13, borderRadius: '50%', border: '1px solid var(--text3)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, cursor: 'help' }}>i</span></Hint>}
           </div>
           <div className="tabnum" style={{ fontSize: 28, fontWeight: 700, color: accent || 'var(--text)', letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
@@ -2678,9 +2679,9 @@ function HeroScoreCard({ stats }) {
   const streakBorder = streakSign > 0 ? 'rgba(38,166,154,0.4)' : 'rgba(248,113,113,0.4)';
   // KPI tile renderer
   const kpi = (label, value, sub, color) => (
-    <div className="rfx-kpi" style={{ padding: '12px 14px', background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 'var(--r-md)', minWidth: 0, position: 'relative', overflow: 'hidden' }}>
+    <div className="rfx-kpi" style={{ padding: '13px 14px', background: 'var(--panel2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 'var(--r-md)', minWidth: 0, position: 'relative', overflow: 'hidden', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)' }}>
       <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', fontWeight: 600, marginBottom: 6 }}>{label}</div>
-      <div className="tabnum" style={{ fontSize: 24, fontWeight: 700, color: color || 'var(--text)', lineHeight: 1, marginBottom: sub ? 5 : 0, letterSpacing: '-0.025em', fontFamily: "'Geist', system-ui, sans-serif" }}>{value}</div>
+      <div className="tabnum" style={{ fontSize: 'clamp(19px, 4.5vw, 24px)', fontWeight: 700, color: color || 'var(--text)', lineHeight: 1, marginBottom: sub ? 5 : 0, letterSpacing: '-0.025em', fontFamily: "'DM Sans', system-ui, sans-serif", whiteSpace: 'nowrap', overflow: 'visible' }}>{value}</div>
       {sub && <div style={{ fontSize: 10.5, color: 'var(--text3)' }}>{sub}</div>}
     </div>
   );
@@ -2693,29 +2694,29 @@ function HeroScoreCard({ stats }) {
   const pfColor = stats?.profitFactor >= 1.5 ? 'var(--green-bright)' : stats?.profitFactor >= 1 ? 'var(--text)' : 'var(--red)';
   const wrColor = stats?.winRate >= 50 ? 'var(--green-bright)' : stats?.winRate >= 40 ? 'var(--text)' : 'var(--red)';
   return (
-    <Card style={{ padding: 0, overflow: 'hidden', background: `linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(45,212,191,0.03) 100%), var(--panel)`, borderColor: 'rgba(16,185,129,0.2)' }}>
+    <Card style={{ padding: 0, overflow: 'hidden', background: `radial-gradient(120% 140% at 0% 0%, rgba(110,93,252,0.10) 0%, transparent 45%), radial-gradient(120% 140% at 100% 100%, rgba(16,185,129,0.07) 0%, transparent 50%), var(--panel)`, borderColor: 'var(--border2)' }}>
       {/* Top section: hero score + streak */}
-      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 14 : 24, padding: isMobile ? '20px 18px 16px' : '22px 24px 18px', borderBottom: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 14 : 24, padding: isMobile ? '18px 16px 14px' : '22px 24px 18px', borderBottom: '1px solid var(--border)', flexWrap: 'wrap', minWidth: 0 }}>
         {/* Big score */}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flex: '0 0 auto' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flex: '0 1 auto', minWidth: 0 }}>
           <div>
-            <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--violet-light)', fontWeight: 700, marginBottom: 8, opacity: 0.7, fontFamily: "'Geist', sans-serif" }}>Performance Score</div>
+            <div style={{ fontSize: 'clamp(9px, 2.4vw, 10.5px)', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--violet-light)', fontWeight: 700, marginBottom: 8, opacity: 0.85, whiteSpace: 'nowrap', fontFamily: "'DM Sans', sans-serif" }}>Performance Score</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-              <span className="tabnum" style={{ fontSize: isMobile ? 56 : 68, fontWeight: 800, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', textShadow: `0 0 24px ${scoreColor}25`, fontFamily: "'Geist', system-ui, sans-serif" }}>{Math.round(animScore)}</span>
-              <span style={{ fontSize: 20, color: 'var(--text2)', fontWeight: 500 }}>/ 100</span>
+              <span className="tabnum" style={{ fontSize: 'clamp(44px, 9vw, 68px)', fontWeight: 800, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', textShadow: `0 0 24px ${scoreColor}25`, fontFamily: "'DM Sans', system-ui, sans-serif" }}>{Math.round(animScore)}</span>
+              <span style={{ fontSize: 'clamp(15px, 3.5vw, 20px)', color: 'var(--text2)', fontWeight: 500, whiteSpace: 'nowrap' }}>/ 100</span>
             </div>
-            <div style={{ fontSize: 10, color: scoreColor, fontWeight: 700, marginTop: 8, textTransform: 'uppercase', letterSpacing: '0.14em', fontFamily: "'Geist', sans-serif", display: 'inline-block', padding: '2px 8px', borderRadius: 'var(--r-full)', background: `${scoreColor}18`, border: `1px solid ${scoreColor}30` }}>{scoreLabel}</div>
+            <div style={{ fontSize: 10, color: scoreColor, fontWeight: 700, marginTop: 8, textTransform: 'uppercase', letterSpacing: '0.14em', fontFamily: "'DM Sans', sans-serif", display: 'inline-block', padding: '2px 8px', borderRadius: 'var(--r-full)', background: `${scoreColor}16`, border: `1px solid ${scoreColor}35`, boxShadow: `0 0 16px ${scoreColor}12` }}>{scoreLabel}</div>
           </div>
         </div>
         {/* Vertical divider on desktop */}
         {!isMobile && <div style={{ width: 1, alignSelf: 'stretch', background: 'var(--border)' }} />}
         {/* Right side: streak + context line */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, justifyContent: 'center' }}>
+        <div style={{ flex: '1 1 200px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10, justifyContent: 'center' }}>
           {streakLabel && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', fontWeight: 600 }}>Current streak</span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 700, padding: '3px 10px', borderRadius: 'var(--r-sm)', background: streakBg, border: `1px solid ${streakBorder}`, color: streakColor }}>
-                <span style={{ fontSize: 11 }}>{streakSign > 0 ? '↑' : '↓'}</span>
+                <span style={{ display: 'inline-flex' }}>{streakSign > 0 ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg> : <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>}</span>
                 {streakLabel}
               </span>
               <span style={{ fontSize: 11, color: 'var(--text3)' }}>{streakSign > 0 ? `${streakCount} win${streakCount !== 1 ? 's' : ''} in a row` : `${streakCount} loss${streakCount !== 1 ? 'es' : ''} in a row`}</span>
@@ -2727,7 +2728,7 @@ function HeroScoreCard({ stats }) {
         </div>
       </div>
       {/* Bottom KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${isMobile ? 2 : 4}, 1fr)`, gap: 10, padding: isMobile ? 14 : 18 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, padding: isMobile ? 14 : 18 }}>
         {kpi('Win rate', `${stats?.winRate?.toFixed(0) || 0}%`, `${stats?.wins || 0}W · ${stats?.losses || 0}L`, wrColor)}
         {kpi('Profit factor', stats?.profitFactor === Infinity ? '∞' : (stats?.profitFactor?.toFixed(2) || '0.00'), stats?.profitFactor >= 1 ? 'Profitable edge' : 'Below breakeven', pfColor)}
         {kpi('Avg R/R', fmtRR(stats?.avgRR || 0), stats?.avgRR >= 2 ? 'Strong asymmetry' : stats?.avgRR >= 1 ? 'Wins beat losses' : 'Losses outpace wins', rrColor)}
@@ -2752,12 +2753,12 @@ function ScoreCard({ stats }) {
   // RIGHT taking ~40% width with vertically stacked label/number/gauge. On mobile we stack
   // them vertically because there's not enough horizontal space to do justice to both.
   return (
-    <Card style={{ padding: 18 }}>
+    <Card style={{ padding: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, flexWrap: 'wrap', gap: 4 }}>
         <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 7 }}><span>Performance score</span></div>
         <div style={{ fontSize: 12, color: 'var(--text3)' }}>Composite metric</div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 220px', gap: isMobile ? 8 : 24, alignItems: 'center', marginTop: 6 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0,1fr) minmax(180px,220px)', gap: isMobile ? 8 : 24, alignItems: 'center', marginTop: 6 }}>
         {/* Radar — fills its column, prominent center placement */}
         <div style={{ position: 'relative', width: '100%', height: isMobile ? 260 : 280 }}>
           <ResponsiveContainer width="100%" height="100%">
@@ -2772,7 +2773,7 @@ function ScoreCard({ stats }) {
         {/* Score readout column — Tradezella's "Your Zella Score 82.1" with rainbow gauge below */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingRight: isMobile ? 0 : 8 }}>
           <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text3)', fontWeight: 600 }}>Your score</div>
-          <div className="tabnum" style={{ fontSize: 52, fontWeight: 700, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', fontFamily: "'Geist', system-ui, sans-serif" }}>{animScore.toFixed(1)}</div>
+          <div className="tabnum" style={{ fontSize: 52, fontWeight: 700, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', fontFamily: "'DM Sans', system-ui, sans-serif" }}>{animScore.toFixed(1)}</div>
           {/* Rainbow gauge bar */}
           <div style={{ marginTop: 4 }}>
             <div style={{ position: 'relative', height: 8, borderRadius: 'var(--r-full)', overflow: 'hidden', background: 'linear-gradient(90deg, #ef5350 0%, #fbbf24 50%, #26a69a 100%)' }} />
@@ -2816,7 +2817,7 @@ function ScatterCard({ stats, kind }) {
     <button key={v} onClick={() => setTimeMode(v)} style={{ padding: '3px 10px', fontSize: 11, fontWeight: 500, borderRadius: 5, border: 'none', cursor: 'pointer', background: timeMode === v ? 'var(--violet)' : 'transparent', color: timeMode === v ? '#fff' : 'var(--text3)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}>{label}</button>
   );
   return (
-    <Card style={{ padding: 18 }}>
+    <Card style={{ padding: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, gap: 8, flexWrap: 'wrap' }}>
         <div>
           <div style={{ fontWeight: 600 }}>{isTime ? 'Trade time performance' : 'Trade duration performance'}</div>
@@ -2851,7 +2852,7 @@ function ScatterCard({ stats, kind }) {
 
 function DrawdownChart({ stats }) {
   return (
-    <Card style={{ padding: 18 }}>
+    <Card style={{ padding: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <div><div style={{ fontWeight: 600 }}>Drawdown</div><div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Distance below equity peak</div></div>
         <span className="tabnum" style={{ fontSize: 13, color: 'var(--red)', fontWeight: 600 }}>Max: {fmtMoney(-stats.maxDD)}</span>
@@ -2879,7 +2880,7 @@ function DailyChecklist({ items, checklistDays, onToggle, onEditItems }) {
   const [draft, setDraft] = useState(items.join('\n'));
   if (editing) {
     return (
-      <Card style={{ padding: 18 }}>
+      <Card style={{ padding: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}><div style={{ fontWeight: 600 }}>Edit checklist</div><button style={btnStyle('ghost')} onClick={() => setEditing(false)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
         <textarea value={draft} onChange={e => setDraft(e.target.value)} rows={6} placeholder="One item per line"
           style={{ width: '100%', fontSize: 13, padding: 10, background: 'var(--panel2)', border: '1px solid var(--border2)', borderRadius: 'var(--r-md)', color: 'var(--text)', outline: 'none', resize: 'vertical' }} />
@@ -2891,7 +2892,7 @@ function DailyChecklist({ items, checklistDays, onToggle, onEditItems }) {
     );
   }
   return (
-    <Card style={{ padding: 18 }}>
+    <Card style={{ padding: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
         <div><div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 7 }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg> Daily checklist</div><div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Discipline score: {completed}/{items.length}</div></div>
         <button style={{ ...btnStyle('ghost'), padding: 4 }} onClick={() => { setDraft(items.join('\n')); setEditing(true); }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>
@@ -2949,7 +2950,7 @@ function AccountBalanceChart({ trades, deposits }) {
   const data = useMemo(() => buildBalanceSeries(trades, deposits), [trades, deposits]);
   if (!data.length) return null;
   return (
-    <Card style={{ padding: 18 }}>
+    <Card style={{ padding: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 6 }}>
         <div>
           <div style={{ fontWeight: 600 }}>Account balance vs deposits</div>
@@ -3008,7 +3009,7 @@ function WinLossAvgChart({ trades }) {
   );
   if (!data.length) return null;
   return (
-    <Card style={{ padding: 18 }}>
+    <Card style={{ padding: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 6 }}>
         <div>
           <div style={{ fontWeight: 600 }}>Win % vs Avg win / Avg loss</div>
@@ -3066,7 +3067,7 @@ function Dashboard({ trades, onDayClick, checklist, checklistDays, onChecklistTo
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 14 }}>
         <ScoreCard stats={stats} />
-        <Card style={{ padding: 18 }}>
+        <Card style={{ padding: 20 }}>
           <div style={{ marginBottom: 12 }}><div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 7 }}><svg width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.5' strokeLinecap='round' strokeLinejoin='round'><path d='M22 12h-4l-3 9L9 3l-3 9H2'/></svg> Progress tracker</div><div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>{stats.daily.length} active days · {stats.profDays} profitable</div></div>
           <ProgressHeatmap stats={stats} months={6} cell={13} />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, fontSize: 10, color: 'var(--text3)' }}>
@@ -3075,7 +3076,7 @@ function Dashboard({ trades, onDayClick, checklist, checklistDays, onChecklistTo
             <span>More</span>
           </div>
         </Card>
-        <Card style={{ padding: 18 }}>
+        <Card style={{ padding: 20 }}>
           <div style={{ fontWeight: 600, marginBottom: 2 }}>Net cumulative P&L</div>
           <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>Equity curve over time</div>
           <ResponsiveContainer width="100%" height={190}>
@@ -3098,7 +3099,7 @@ function Dashboard({ trades, onDayClick, checklist, checklistDays, onChecklistTo
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 14 }}>
-        <Card style={{ padding: 18 }}>
+        <Card style={{ padding: 20 }}>
           <div style={{ fontWeight: 600, marginBottom: 2 }}>Net daily P&L</div>
           <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>Each bar = one trading day</div>
           <ResponsiveContainer width="100%" height={210}>
@@ -3120,7 +3121,7 @@ function Dashboard({ trades, onDayClick, checklist, checklistDays, onChecklistTo
         <CalendarView stats={stats} onDayClick={onDayClick} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <DrawdownChart stats={stats} />
-          <Card style={{ padding: 18 }}>
+          <Card style={{ padding: 20 }}>
             <div style={{ fontWeight: 600, marginBottom: 12 }}>By symbol</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7, maxHeight: 170, overflowY: 'auto' }}>
               {symbols.slice(0, 8).map(s => {
@@ -3234,7 +3235,7 @@ function DayCard({ day, allTrades, exitData, expanded, onExpand, note, onSaveNot
           <div style={{ marginTop: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
               <span style={{ color: 'var(--violet-light)', fontSize: 13 }}><svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="currentColor"/></svg></span>
-              <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Geist', sans-serif" }}>RamanFX daily insights</div>
+              <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>RamanFX daily insights</div>
             </div>
             {(() => {
               const dayItems = day.items;
@@ -3374,7 +3375,7 @@ function WeekView({ stats, allTrades, exitData }) {
                   <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
                       <span style={{ color: 'var(--violet-light)', fontSize: 13 }}><svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="currentColor"/></svg></span>
-                      <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Geist', sans-serif" }}>RamanFX weekly insights</div>
+                      <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>RamanFX weekly insights</div>
                     </div>
                     <InsightsPanel windowTrades={w.weekItems} historyTrades={history} scope="week" exitData={exitData} />
                   </div>
@@ -4067,7 +4068,7 @@ function InsightsPanel({ windowTrades, historyTrades, scope, title, exitData }) 
   };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {title && <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Geist', sans-serif" }}>{title}</div>}
+      {title && <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>{title}</div>}
       {insights.map((ins, idx) => {
         const s = levelStyle[ins.level] || levelStyle.caution;
         return (
@@ -4155,7 +4156,7 @@ function RecentOpenCard({ recentTrades, openPositions, setTab }) {
     <button onClick={() => setView(v)} style={{ padding: '4px 11px', fontSize: 11, fontWeight: 500, borderRadius: 'var(--r-sm)', border: 'none', cursor: 'pointer', background: view === v ? 'var(--violet)' : 'transparent', color: view === v ? '#fff' : 'var(--text3)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}>{label}</button>
   );
   return (
-    <Card style={{ padding: 18 }}>
+    <Card style={{ padding: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <div style={{ fontWeight: 600 }}>{view === 'recent' ? 'Recent trades' : `Open positions (${openPositions?.length || 0})`}</div>
         <div style={{ display: 'inline-flex', background: 'var(--panel2)', borderRadius: 'var(--r-sm)', padding: 2, gap: 1 }}>
@@ -4435,7 +4436,7 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
 
       <div style={{ display: 'grid', gridTemplateColumns: useMobile() ? '1fr' : 'minmax(0,360px) minmax(0,1fr)', gap: 14 }}>
         {/* LEFT — stat panel */}
-        <Card style={{ padding: 18 }}>
+        <Card style={{ padding: 20 }}>
           <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', marginBottom: 4 }}>Net P&L</div>
           <div className="tabnum" style={{ fontSize: 28, fontWeight: 700, color: profit ? 'var(--green-bright)' : 'var(--red)', marginBottom: 14 }}>{fmtMoney(net, true)}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 13 }}>
@@ -4923,7 +4924,7 @@ function computeByVolume(trades) {
 function ReportsOverviewPane({ stats, insights }) {
   return (
     <Fragment>
-      <Card style={{ padding: 18 }}>
+      <Card style={{ padding: 20 }}>
         <div style={{ fontWeight: 600, marginBottom: 16 }}>Your stats</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 16 }}>
           <SummaryStat label="Net P&L" value={fmtMoney(stats.totalNet, true)} accent={stats.totalNet >= 0 ? 'var(--green-bright)' : 'var(--red)'} />
@@ -4950,7 +4951,7 @@ function ReportsOverviewPane({ stats, insights }) {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(340px,1fr))', gap: 14 }}>
         <DrawdownChart stats={stats} />
-        <Card style={{ padding: 18 }}>
+        <Card style={{ padding: 20 }}>
           <div style={{ fontWeight: 600, marginBottom: 2 }}>P&L distribution</div><div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>Histogram of trade outcomes</div>
           <ResponsiveContainer width="100%" height={190}>
             <BarChart data={stats.dist}><CartesianGrid strokeDasharray="1 4" stroke="var(--chart-grid)" vertical={false} />
@@ -4963,7 +4964,7 @@ function ReportsOverviewPane({ stats, insights }) {
           </ResponsiveContainer>
         </Card>
       </div>
-      <Card style={{ padding: 18 }}>
+      <Card style={{ padding: 20 }}>
         <div style={{ fontWeight: 600, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 7 }}>AI insights</div>
         <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 16 }}>Auto-detected patterns from your history</div>
         {insights.length === 0 ? <div style={{ textAlign: 'center', padding: 16, color: 'var(--text3)', fontSize: 13 }}>Add at least 5 trades to unlock pattern detection.</div> : (
@@ -4991,7 +4992,7 @@ function ReportsDayTimePane({ trades }) {
   return (
     <Fragment>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(380px,1fr))', gap: 14 }}>
-        <Card style={{ padding: 18 }}>
+        <Card style={{ padding: 20 }}>
           <div style={{ fontWeight: 600, marginBottom: 2 }}>Trade distribution by day of week</div>
           <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>How many trades you take each day</div>
           <ResponsiveContainer width="100%" height={260}>
@@ -5004,7 +5005,7 @@ function ReportsDayTimePane({ trades }) {
             </BarChart>
           </ResponsiveContainer>
         </Card>
-        <Card style={{ padding: 18 }}>
+        <Card style={{ padding: 20 }}>
           <div style={{ fontWeight: 600, marginBottom: 2 }}>Performance by day of week</div>
           <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>Net P&L by weekday</div>
           <ResponsiveContainer width="100%" height={260}>
@@ -5019,7 +5020,7 @@ function ReportsDayTimePane({ trades }) {
           </ResponsiveContainer>
         </Card>
       </div>
-      <Card style={{ padding: 18 }}>
+      <Card style={{ padding: 20 }}>
         <div style={{ fontWeight: 600, marginBottom: 2 }}>Performance by hour of day</div>
         <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>Net P&L per entry hour</div>
         <ResponsiveContainer width="100%" height={240}>
@@ -5033,7 +5034,7 @@ function ReportsDayTimePane({ trades }) {
           </BarChart>
         </ResponsiveContainer>
       </Card>
-      <Card style={{ padding: 18 }}>
+      <Card style={{ padding: 20 }}>
         <div style={{ fontWeight: 600, marginBottom: 12 }}>Day of week summary</div>
         {isMobile ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -5082,7 +5083,7 @@ function ReportsPriceQtyPane({ trades }) {
   const vol = useMemo(() => computeByVolume(trades), [trades]);
   return (
     <Fragment>
-      <Card style={{ padding: 18 }}>
+      <Card style={{ padding: 20 }}>
         <div style={{ fontWeight: 600, marginBottom: 2 }}>Performance by lot size</div>
         <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>Net P&L grouped by trade volume</div>
         <ResponsiveContainer width="100%" height={260}>
@@ -5096,7 +5097,7 @@ function ReportsPriceQtyPane({ trades }) {
           </BarChart>
         </ResponsiveContainer>
       </Card>
-      <Card style={{ padding: 18 }}>
+      <Card style={{ padding: 20 }}>
         <div style={{ fontWeight: 600, marginBottom: 12 }}>Lot size summary</div>
         {isMobile ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -5142,7 +5143,7 @@ function ReportsInstrumentsPane({ trades }) {
   const symbols = useMemo(() => computeBySymbol(trades), [trades]);
   const maxAbs = Math.max(...symbols.map(x => Math.abs(x.net)), 1);
   return (
-    <Card style={{ padding: 18 }}>
+    <Card style={{ padding: 20 }}>
       <div style={{ fontWeight: 600, marginBottom: 4 }}>Performance by instrument</div>
       <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 14 }}>Each symbol you've traded</div>
       {isMobile ? (
@@ -5270,7 +5271,7 @@ function ReportsComparePane({ trades }) {
   );
 
   const resultCard = (r, num) => (
-    <Card style={{ padding: 18 }}>
+    <Card style={{ padding: 20 }}>
       <div style={{ fontWeight: 600, marginBottom: 12 }}>Group #{num} results</div>
       {!r ? <div style={{ padding: 24, textAlign: 'center', color: 'var(--text3)' }}>No trades match these filters.</div> : (
         <Fragment>
@@ -5475,7 +5476,7 @@ function Strategies({ strategies, trades, notes, onSave, onDelete }) {
           onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--violet)'; e.currentTarget.style.color = 'var(--violet-light)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.color = 'var(--text2)'; }}>+ Define a new strategy</button>
       )}
       {editing && (
-        <Card style={{ padding: 18 }}>
+        <Card style={{ padding: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}><div style={{ fontWeight: 600 }}>{editing.id ? 'Edit strategy' : 'New strategy'}</div><button style={btnStyle('ghost')} onClick={() => setEditing(null)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <input value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} placeholder="Strategy name (e.g. 'London open breakout')" style={inp} />
@@ -6050,7 +6051,7 @@ function YearlyCalendar({ stats, yearOffset, setYearOffset, onMonthClick }) {
   };
   const navBtn = { padding: '4px 10px', borderRadius: 'var(--r-sm)', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', cursor: 'pointer', fontSize: 12 };
   return (
-    <Card style={{ padding: 18 }}>
+    <Card style={{ padding: 20 }}>
       {/* Year header with prev/next + total */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -6122,18 +6123,18 @@ function ProgressPage({ trades, checklist, checklistDays }) {
         <MetricGauge label="Longest win streak" value={stats.longestWinStreak} sub={`current: ${stats.curStreakSign > 0 ? '+' : stats.curStreakSign < 0 ? '-' : ''}${stats.curStreak}`} accent="var(--green-bright)" />
       </div>
       <ScoreCard stats={stats} />
-      <Card style={{ padding: 18 }}>
+      <Card style={{ padding: 20 }}>
         <div style={{ fontWeight: 600, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 7 }}><svg width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.5' strokeLinecap='round' strokeLinejoin='round'><path d='M22 12h-4l-3 9L9 3l-3 9H2'/></svg> Progress tracker</div>
         <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 16 }}>Your trading activity heatmap</div>
         <ProgressHeatmap stats={stats} months={6} cell={14} />
       </Card>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 14 }}>
-        <Card style={{ padding: 18 }}><div style={{ fontWeight: 600, marginBottom: 16 }}>Streak history</div><div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <Card style={{ padding: 20 }}><div style={{ fontWeight: 600, marginBottom: 16 }}>Streak history</div><div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {row('Longest win streak', stats.longestWinStreak, 'var(--green-bright)')}{row('Longest loss streak', stats.longestLossStreak, 'var(--red)')}
           {row('Current streak', stats.curStreak > 0 ? `${stats.curStreakSign > 0 ? '+' : '-'}${stats.curStreak}` : '0', stats.curStreakSign > 0 ? 'var(--green-bright)' : stats.curStreakSign < 0 ? 'var(--red)' : 'var(--text)')}
           {row('Day win rate', `${stats.dayWinRate.toFixed(1)}%`)}
         </div></Card>
-        <Card style={{ padding: 18 }}><div style={{ fontWeight: 600, marginBottom: 16 }}>Best & worst day</div>
+        <Card style={{ padding: 20 }}><div style={{ fontWeight: 600, marginBottom: 16 }}>Best & worst day</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ background: 'rgba(38,166,154,0.05)', border: '1px solid rgba(38,166,154,0.2)', borderRadius: 'var(--r-md)', padding: 12 }}><div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: 11, color: 'var(--green-bright)', textTransform: 'uppercase', letterSpacing: '0.04em' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 010-5H6M18 9h1.5a2.5 2.5 0 000-5H18M18 2H6v7a6 6 0 0012 0V2z"/></svg> Best day</span><span className="tabnum" style={{ color: 'var(--green-bright)', fontWeight: 600 }}>{fmtMoney(best?.pnl || 0, true)}</span></div><div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4 }}>{best?.date} · {best?.trades} trades · {best?.wins}W/{best?.losses}L</div></div>
             <div style={{ background: 'rgba(248,113,113,0.05)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 'var(--r-md)', padding: 12 }}><div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: 11, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: '0.04em' }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Worst day</span><span className="tabnum" style={{ color: 'var(--red)', fontWeight: 600 }}>{fmtMoney(worst?.pnl || 0, true)}</span></div><div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4 }}>{worst?.date} · {worst?.trades} trades · {worst?.wins}W/{worst?.losses}L</div></div>
@@ -6159,7 +6160,7 @@ function Playbook({ playbookState, onSavePlaybookState }) {
 
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <Card style={{ padding: 18 }}>
+      <Card style={{ padding: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 4 }}>
           <div><div style={{ fontWeight: 600, fontSize: 16 }}>Supply &amp; Demand + Trendline Confirmation</div><div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Run this checklist before every entry</div></div>
           <button style={btnStyle('secondary')} onClick={reset}>Reset checklist</button>
@@ -6167,7 +6168,7 @@ function Playbook({ playbookState, onSavePlaybookState }) {
       </Card>
 
       {/* Score banner */}
-      <Card style={{ padding: 18 }}>
+      <Card style={{ padding: 20 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'center' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
@@ -6182,7 +6183,7 @@ function Playbook({ playbookState, onSavePlaybookState }) {
       </Card>
 
       {/* Timeframe pair selector */}
-      <Card style={{ padding: 18 }}>
+      <Card style={{ padding: 20 }}>
         <div style={{ fontWeight: 600, marginBottom: 4 }}>Timeframe pairing</div>
         <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 14 }}>Identify your HTF / MTF / LTF set before taking an impulse entry</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
@@ -6225,7 +6226,7 @@ function Playbook({ playbookState, onSavePlaybookState }) {
       </div>
 
       {/* Full rules reference */}
-      <Card style={{ padding: 18 }}>
+      <Card style={{ padding: 20 }}>
         <div style={{ fontWeight: 600, marginBottom: 4 }}>Rules reference</div>
         <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 14 }}>Your complete entry framework — expand this list anytime</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -6276,7 +6277,7 @@ function AccountSummaryBar({ snapshot, openPositions }) {
 function OpenPositionsTable({ openPositions }) {
   const isMobile = useMobile();
   if (!openPositions || !openPositions.length) return (
-    <Card style={{ padding: 18 }}>
+    <Card style={{ padding: 20 }}>
       <div style={{ fontWeight: 600, marginBottom: 4 }}>Open positions</div>
       <div style={{ fontSize: 13, color: 'var(--text3)', padding: '20px 0', textAlign: 'center' }}>No open positions in your last import.</div>
     </Card>
@@ -6349,7 +6350,7 @@ function OpenPositionsTable({ openPositions }) {
 function WorkingOrdersTable({ workingOrders }) {
   const isMobile = useMobile();
   if (!workingOrders || !workingOrders.length) return (
-    <Card style={{ padding: 18 }}>
+    <Card style={{ padding: 20 }}>
       <div style={{ fontWeight: 600, marginBottom: 4 }}>Working orders</div>
       <div style={{ fontSize: 13, color: 'var(--text3)', padding: '20px 0', textAlign: 'center' }}>No pending orders in your last import.</div>
     </Card>
@@ -6590,13 +6591,13 @@ function PreTradeGate({ open, onClose, status, rules }) {
             {wouldExceedDaily && <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Would breach daily cap</div>}
           </div>
         </div>
-        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Geist', sans-serif", marginBottom: 8 }}>Strategy checks</div>
+        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 8 }}>Strategy checks</div>
         {checkRow('plannedSize', 'My size is planned, not based on how I feel.')}
         {checkRow('slDefined', 'My stop-loss price is decided BEFORE I click buy/sell, not after.')}
         {checkRow('riskCalculated', 'I calculated the dollar risk. It fits my single-trade limit.')}
         {checkRow('htfAligned', 'HTF, MTF and LTF are aligned with the direction I am taking.')}
         {checkRow('properZone', 'This is a WOW / Fresh zone / PCP near a trendline (not a random entry).')}
-        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Geist', sans-serif", marginTop: 14, marginBottom: 8 }}>Mind checks</div>
+        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginTop: 14, marginBottom: 8 }}>Mind checks</div>
         {checkRow('notChasing', 'I am NOT entering because price already moved away from my level.', true)}
         {checkRow('notRevenge', 'I am NOT trying to win back a recent loss.', true)}
         {checkRow('notFomo', 'I am NOT entering because of FOMO — I would still take this trade if the move just started.', true)}
@@ -6633,7 +6634,7 @@ function RiskRules({ rules, onSave }) {
   );
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <Card style={{ padding: 18 }}>
+      <Card style={{ padding: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
           <div>
             <div style={{ fontWeight: 700, fontSize: 18 }}>Risk rules</div>
@@ -6642,7 +6643,7 @@ function RiskRules({ rules, onSave }) {
           <button style={{ ...btnStyle('primary'), opacity: saved ? 0.6 : 1 }} onClick={() => { onSave(r); setSaved(true); setTimeout(() => setSaved(false), 2000); }}>{saved ? 'Saved' : 'Save rules'}</button>
         </div>
       </Card>
-      <Card style={{ padding: 18 }}>
+      <Card style={{ padding: 20 }}>
         <div style={{ fontWeight: 600, marginBottom: 14 }}>Per-day limits</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
           {num('maxDailyLoss', 'Max daily loss', '$', "If your day's running loss reaches this amount, the app marks you locked. Pick a number that hurts a little but doesn't take a week to recover from.", 5)}
@@ -6651,7 +6652,7 @@ function RiskRules({ rules, onSave }) {
           {num('cooldownMinutes', 'Cooldown duration', 'minutes', 'Mandatory pause after the consecutive-loss trigger fires. Walk away, do not stare at charts.', 5)}
         </div>
       </Card>
-      <Card style={{ padding: 18 }}>
+      <Card style={{ padding: 20 }}>
         <div style={{ fontWeight: 600, marginBottom: 14 }}>Per-trade limits</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
           {num('maxSingleTradeRisk', 'Max risk per trade', '$', 'Entry-to-SL distance × dollar-per-point × lot size. Should be no more than 1-2% of your account.', 5)}
@@ -6659,7 +6660,7 @@ function RiskRules({ rules, onSave }) {
           {num('maxSizeIncreaseFactor', 'Max size escalation', '× today\'s avg', 'A new trade larger than this multiple of your current daily average is flagged as escalation, not strategy.', 0.5)}
         </div>
       </Card>
-      <Card style={{ padding: 18 }}>
+      <Card style={{ padding: 20 }}>
         <div style={{ fontWeight: 600, marginBottom: 8 }}>Why these rules?</div>
         <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.7 }}>
           The journal can't stop you from clicking buy in MT5, but it can be the thing you check before each trade and the thing that holds the receipt afterward. Most blowup days follow the same shape: a win streak builds confidence, then one over-sized chase erases the gains. Daily caps stop the bleeding before the cascade. Single-trade caps stop the one-trade blowup. The size-escalation rule catches the moment you start thinking "this time I'll size up." If you fight these limits often, the right move is to look harder at your strategy — not the limits.
@@ -7074,7 +7075,7 @@ function Sidebar({ tab, setTab, hasData, mobileOpen, setMobileOpen, collapsed, s
         <img src={window.RFX_LOGO} alt="RamanFX" width={isCollapsed ? 38 : 34} height={isCollapsed ? 38 : 34} style={{ borderRadius: 9, flexShrink: 0, objectFit: 'cover', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.32), inset 0 -2px 5px rgba(0,0,0,0.5), 0 3px 8px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.08)', filter: 'drop-shadow(0 0 10px rgba(16,185,129,0.3))' }} />
         {!isCollapsed && (
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 900, fontSize: 16, lineHeight: 1, color: '#fff', letterSpacing: '-0.03em', fontFamily: "'Geist', -apple-system, sans-serif" }}>{BRAND}</div>
+            <div style={{ fontWeight: 900, fontSize: 16, lineHeight: 1, color: '#fff', letterSpacing: '-0.03em', fontFamily: "'DM Sans', -apple-system, sans-serif" }}>{BRAND}</div>
             <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.18em', marginTop: 3 }}>Trading Journal</div>
           </div>
         )}
@@ -7086,7 +7087,7 @@ function Sidebar({ tab, setTab, hasData, mobileOpen, setMobileOpen, collapsed, s
           return (
             <button key={id} onClick={() => { if (!disabled) { setTab(id); if (isMobile) setMobileOpen(false); } }} disabled={disabled}
               title={isCollapsed ? label : undefined}
-              style={{ display: 'flex', alignItems: 'center', gap: isCollapsed ? 0 : 10, justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '11px 0' : '9px 11px', borderRadius: 'var(--r-md)', fontSize: 13.5, fontWeight: 500, background: active ? 'var(--sidebar-active-bg)' : 'transparent', color: active ? 'var(--sidebar-text-active)' : 'var(--sidebar-text)', border: active ? '1px solid var(--sidebar-active-border)' : '1px solid transparent', boxShadow: active ? 'inset 2px 0 0 var(--violet), 0 0 18px -6px var(--glow)' : 'none', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.35 : 1, textAlign: 'left', letterSpacing: '-0.01em' }} className={'sidebar-item'}
+              style={{ display: 'flex', alignItems: 'center', gap: isCollapsed ? 0 : 10, justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '11px 0' : '9px 11px', borderRadius: 'var(--r-md)', fontSize: 13.5, fontWeight: 500, background: active ? 'linear-gradient(90deg, rgba(110,93,252,0.16), rgba(110,93,252,0.06))' : 'transparent', color: active ? 'var(--sidebar-text-active)' : 'var(--sidebar-text)', border: active ? '1px solid var(--sidebar-active-border)' : '1px solid transparent', boxShadow: active ? 'inset 2px 0 0 var(--violet), 0 0 18px -6px var(--glow)' : 'none', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.35 : 1, textAlign: 'left', letterSpacing: '-0.01em' }} className={'sidebar-item'}
               onMouseEnter={e => { if (!active && !disabled) { e.currentTarget.style.background = 'var(--sidebar-hover-bg)'; e.currentTarget.style.color = 'var(--sidebar-text-hover)'; } }}
               onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--sidebar-text)'; } }}>
               <span style={{ width: 20, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: active ? 1 : 0.92, transition: 'opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out)' }} dangerouslySetInnerHTML={{ __html: icon }} />
@@ -7183,7 +7184,7 @@ function ExitAnalysisPage({ trades, exitData, onOpenTrade }) {
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* Header */}
-      <Card style={{ padding: 18 }}>
+      <Card style={{ padding: 20 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4, flexWrap: 'wrap', gap: 8 }}>
           <div style={{ fontSize: 17, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Exit Analysis</div>
           <div style={{ fontSize: 12, color: 'var(--text3)' }}>Analyzing {stats.total} trades with MAE/MFE data</div>
@@ -7220,7 +7221,7 @@ function ExitAnalysisPage({ trades, exitData, onOpenTrade }) {
       </div>
 
       {/* Forward-time comparison chart */}
-      <Card style={{ padding: 18 }}>
+      <Card style={{ padding: 20 }}>
         <div style={{ marginBottom: 6 }}>
           <div style={{ fontWeight: 600 }}>What if you had held mechanically?</div>
           <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Total dollars across all trades if every one had been closed at the same time interval after entry. Compare to your actual closing decisions.</div>
@@ -7256,7 +7257,7 @@ function ExitAnalysisPage({ trades, exitData, onOpenTrade }) {
       </Card>
 
       {/* MFE vs Profit scatter — the visual "give back" picture, in dollars */}
-      <Card style={{ padding: 18 }}>
+      <Card style={{ padding: 20 }}>
         <div style={{ marginBottom: 12 }}>
           <div style={{ fontWeight: 600 }}>MFE vs realized profit ($)</div>
           <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Each dot is a trade. X axis = peak unrealized profit in dollars (MFE). Y axis = what you actually closed at. Dots low on the Y axis with a high X = winners you gave back. Dots far below zero = winners that turned into losers.</div>
@@ -7285,7 +7286,7 @@ function ExitAnalysisPage({ trades, exitData, onOpenTrade }) {
       </Card>
 
       {/* Per-symbol exit quality table */}
-      <Card style={{ padding: 18 }}>
+      <Card style={{ padding: 20 }}>
         <div style={{ marginBottom: 12 }}>
           <div style={{ fontWeight: 600 }}>Per-symbol exit quality</div>
           <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Which instruments do you exit well on, and which bleed you via give-backs?</div>
@@ -7319,7 +7320,7 @@ function ExitAnalysisPage({ trades, exitData, onOpenTrade }) {
 
       {/* Worst give-back trades — clickable */}
       {stats.scatterData.filter(d => d.profit < 0 && d.mfe > 50).length > 0 && (
-        <Card style={{ padding: 18 }}>
+        <Card style={{ padding: 20 }}>
           <div style={{ marginBottom: 12 }}>
             <div style={{ fontWeight: 600 }}>Top winners that turned into losers</div>
             <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>These trades were in profit at some point but you held until they hit your stop. Tap to review.</div>
@@ -8159,7 +8160,7 @@ function App() {
   }, [accounts, activeAccount]);
   const accountList = useMemo(() => Object.values(accounts), [accounts]);
   const titleMap = { dashboard: 'Dashboard', dayweek: 'Day / Week View', trade: 'Trade View', positions: 'Positions & Orders', rules: 'Risk Rules', playbook: 'Playbook', notebook: 'Notebook', exit: 'Exit Analysis', coach: 'AI Coach', reports: 'Reports', strategies: 'Strategies', calendar: 'Calendar', progress: 'Progress Tracker' };
-  const accTab = (active, label, onClick) => <button onClick={onClick} style={{ padding: '4px 11px', fontSize: 12, fontWeight: active ? 600 : 400, borderRadius: 'var(--r-sm)', fontFamily: "'Geist', sans-serif", border: active ? '1px solid var(--border2)' : '1px solid transparent', cursor: 'pointer', background: active ? 'var(--panel2)' : 'transparent', color: active ? 'var(--text)' : 'var(--text3)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out)', letterSpacing: '-0.01em' }}>{label}</button>;
+  const accTab = (active, label, onClick) => <button onClick={onClick} style={{ padding: '4px 11px', fontSize: 12, fontWeight: active ? 600 : 400, borderRadius: 'var(--r-sm)', fontFamily: "'DM Sans', sans-serif", border: active ? '1px solid var(--border2)' : '1px solid transparent', cursor: 'pointer', background: active ? 'var(--panel2)' : 'transparent', color: active ? 'var(--text)' : 'var(--text3)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out)', letterSpacing: '-0.01em' }}>{label}</button>;
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const isMobile = useIsMobile();
   const [cmdOpen, setCmdOpen] = useState(false);
@@ -8178,7 +8179,7 @@ function App() {
       <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} setTab={setTab} titleMap={titleMap} hasData={trades.length > 0} />
       <Sidebar tab={tab} setTab={setTab} hasData={trades.length > 0} mobileOpen={mobileNavOpen} setMobileOpen={setMobileNavOpen} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
       <div style={{ marginLeft: isMobile ? 0 : (sidebarCollapsed ? 60 : 220), transition: 'margin-left 0.2s ease' }}>
-        <header data-rfx-header style={{ position: 'sticky', top: 0, zIndex: 40, background: 'var(--header-bg)', willChange: 'transform' }}>
+        <header data-rfx-header style={{ position: 'sticky', top: 0, zIndex: 40, background: 'var(--header-bg)', willChange: 'transform', boxShadow: '0 1px 0 var(--border), 0 8px 24px -18px rgba(0,0,0,0.6)' }}>
           <div style={{ padding: isMobile ? '9px 14px' : '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
               {isMobile && (
@@ -8189,7 +8190,7 @@ function App() {
                 <button onClick={() => setSidebarCollapsed(c => !c)} title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} style={{ background: 'transparent', border: 'none', color: 'var(--text2)', cursor: 'pointer', padding: 4, fontSize: 20, lineHeight: 1, display: 'flex', alignItems: 'center', marginRight: 4 }}
                   onMouseEnter={e => e.currentTarget.style.color = 'var(--text)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text2)'}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
               )}
-              <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: '-0.035em', color: 'var(--text)', fontFamily: "'Geist', -apple-system, sans-serif" }}>{titleMap[tab]}</div>
+              <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: '-0.035em', color: 'var(--text)', fontFamily: "'DM Sans', -apple-system, sans-serif" }}>{titleMap[tab]}</div>
               {!isMobile && (
                 <button onClick={() => setCmdOpen(true)} title="Quick navigation"
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', fontSize: 10.5, color: 'var(--text3)', background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.02em' }}>
@@ -8288,7 +8289,7 @@ function App() {
               </div>
               {/* Timezone section */}
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Geist', sans-serif", marginBottom: 8 }}>Exit-quality data (MAE / MFE)</div>
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 8 }}>Exit-quality data (MAE / MFE)</div>
                 <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 8, maxWidth: 720, lineHeight: 1.55 }}>
                   Exit-quality data (MAE = worst drawdown, MFE = best run-up, forward returns at T+30m/1h/4h/12h/1d) comes from a free MQL5 script: <a href="https://www.mql5.com/en/code/72326" target="_blank" rel="noreferrer" style={{ color: 'var(--violet-light)' }}>code #72326</a>. Run it in MT5, then upload the generated CSV here. We'll match rows to your existing trades by Position ID and unlock the Exit Analysis page + per-trade insights.
                 </div>
@@ -8304,7 +8305,7 @@ function App() {
               </div>
               {/* Timezone section */}
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Geist', sans-serif", marginBottom: 8 }}>Trade times</div>
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 8 }}>Trade times</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                   <label style={{ fontSize: 13, color: 'var(--text2)' }}>MT5 broker timezone (UTC offset):</label>
                   <input type="number" step="1" min="-12" max="14" value={brokerOffsetInput} onChange={e => setBrokerOffsetInput(e.target.value)}
@@ -8319,7 +8320,7 @@ function App() {
               {/* Accounts section */}
               {accountList.length > 0 && (
                 <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Geist', sans-serif", marginBottom: 10 }}>Accounts ({accountList.length})</div>
+                  <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 10 }}>Accounts ({accountList.length})</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                     {accountList.map((a, idx) => {
                       const tCount = trades.filter(t => t.account === a.id).length;
@@ -8347,7 +8348,7 @@ function App() {
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
                   <div>
-                    <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Geist', sans-serif" }}>Sync across devices</div>
+                    <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>Sync across devices</div>
                     <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3, letterSpacing: '-0.01em' }}>This device: <span style={{ color: 'var(--text2)' }}>{deviceName}</span> <span style={{ color: 'var(--border2)' }}>· {getDeviceId()}</span></div>
                   </div>
                   <input value={deviceName} onChange={e => updateDeviceName(e.target.value)} placeholder="Device name" style={{ ...inputStyle, width: 160 }} />
@@ -8389,13 +8390,13 @@ function App() {
 
               {/* Data summary — Sync replaces the old Export/Import flow (same JSON payload) */}
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Geist', sans-serif", marginBottom: 8 }}>Data</div>
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 8 }}>Data</div>
                 <div style={{ fontSize: 12, color: 'var(--text3)' }}>{trades.length} trades · {Object.keys(notes).length} notes · {strategies.length} strategies · {notebook.length} notebook entries · {Object.values(attachments).reduce((a, arr) => a + (arr?.length || 0), 0)} images</div>
                 <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6, fontStyle: 'italic' }}>To back up or restore your data, use <strong style={{ color: 'var(--text2)' }}>Sync now</strong> / <strong style={{ color: 'var(--text2)' }}>Sync from file</strong> above. Same JSON format.</div>
               </div>
               {/* Danger zone */}
               <div>
-                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Geist', sans-serif", marginBottom: 8 }}>Danger zone</div>
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 8 }}>Danger zone</div>
                 <button style={btnStyle('danger')} onClick={resetEverything}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg> Reset everything</button>
               </div>
             </Card>
