@@ -13,7 +13,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700;800&family=Source+Code+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
@@ -56,7 +56,8 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     --dur-normal: 220ms;    /* UI: modal, drawer, tab */
     --dur-slow: 380ms;      /* page: route, dashboard cascade */
     --dur-xslow: 550ms;     /* hero: score count-up, splash */
-    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-spring2: cubic-bezier(0.25, 1, 0.5, 1);
     --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
     --ease-spring: cubic-bezier(0.22, 1.65, 0.36, 1);
     /* ── z-index scale ── */
@@ -139,7 +140,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     --sidebar-border: rgba(255,255,255,0.04);
     --sidebar-text: #A4B0C2;
     --sidebar-text-hover: #F1F5F9;
-    --sidebar-text-active: #34D399;
+    --sidebar-text-active: #6EE7B7;
     --sidebar-active-bg: rgba(16,185,129,0.14);
     --sidebar-active-border: rgba(16,185,129,0.32);
     --sidebar-hover-bg: rgba(255,255,255,0.03);
@@ -218,7 +219,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   }
   html { font-size: 14.5px;  text-rendering: optimizeLegibility; }
   body {
-    font-family: 'DM Sans', -apple-system, system-ui, sans-serif;
+    font-family: 'Hanken Grotesk', -apple-system, system-ui, sans-serif;
     background: var(--bg);
     color: var(--text);
     -webkit-font-smoothing: antialiased;
@@ -234,7 +235,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
   ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
   /* ── DM Sans tabular-nums for all numeric displays ── */
   .tabnum {
-    font-family: 'DM Sans', system-ui, sans-serif;
+    font-family: 'Hanken Grotesk', system-ui, sans-serif;
     font-variant-numeric: tabular-nums slashed-zero;
     font-feature-settings: 'tnum' 1, 'zero' 1, 'ss01' 1;
     letter-spacing: -0.02em;
@@ -353,13 +354,13 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
   }
   /* ── Heading typography (DM Sans 700) ── */
-  .heading-xl { font-family: 'DM Sans', sans-serif; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; }
-  .heading-lg { font-family: 'DM Sans', sans-serif; font-weight: 700; letter-spacing: -0.025em; line-height: 1.15; }
-  .heading-md { font-family: 'DM Sans', sans-serif; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
-  .heading-sm { font-family: 'DM Sans', sans-serif; font-weight: 600; letter-spacing: -0.014em; line-height: 1.3; }
+  .heading-xl { font-family: 'Hanken Grotesk', sans-serif; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; }
+  .heading-lg { font-family: 'Hanken Grotesk', sans-serif; font-weight: 600; letter-spacing: -0.025em; line-height: 1.15; }
+  .heading-md { font-family: 'Hanken Grotesk', sans-serif; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
+  .heading-sm { font-family: 'Hanken Grotesk', sans-serif; font-weight: 600; letter-spacing: -0.014em; line-height: 1.3; }
   /* ── Tabular nums ── */
   .tabnum {
-    font-family: 'DM Sans', system-ui, sans-serif;
+    font-family: 'Hanken Grotesk', system-ui, sans-serif;
     font-variant-numeric: tabular-nums slashed-zero;
     font-feature-settings: 'tnum' 1, 'zero' 1, 'ss01' 1;
     letter-spacing: -0.012em;
@@ -535,6 +536,51 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
     } catch (e) {}
   })();
 </script>
+<style id="rfx-motion-v3">
+  /* ═══ Cinematic motion engine (presentation layer only — no logic touched) ═══ */
+  @keyframes slideUpFade { from { opacity: 0; transform: translateY(12px); filter: blur(4px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
+  @keyframes rfxBurst2 { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(.2); opacity: 0; } }
+  @keyframes rfxWipeX { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @keyframes rfxPop2 { 0% { transform: scale(.6); opacity: 0; } 60% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+  .fade-in { animation: slideUpFade .55s var(--ease-out) backwards; }
+  .fade-in > * { animation: slideUpFade .5s var(--ease-out) backwards; }
+  .fade-in > *:nth-child(1) { animation-delay: .03s; }
+  .fade-in > *:nth-child(2) { animation-delay: .07s; }
+  .fade-in > *:nth-child(3) { animation-delay: .11s; }
+  .fade-in > *:nth-child(4) { animation-delay: .15s; }
+  .fade-in > *:nth-child(5) { animation-delay: .19s; }
+  .fade-in > *:nth-child(6) { animation-delay: .23s; }
+  .fade-in > *:nth-child(7) { animation-delay: .27s; }
+  .fade-in > *:nth-child(8) { animation-delay: .31s; }
+  .fade-in > *:nth-child(9) { animation-delay: .35s; }
+  .fade-in > *:nth-child(10) { animation-delay: .39s; }
+  .fade-in > *:nth-child(n+11) { animation-delay: .42s; }
+  /* ═══ Tactile glass cards ═══ */
+  .rfx-card { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); transition: transform .4s var(--ease-spring2), box-shadow .4s var(--ease-out), border-color .3s var(--ease-out); }
+  @media (hover: hover) {
+    .rfx-card:hover { transform: translateY(-2px) scale(1.004); border-color: rgba(16,185,129,0.4) !important; box-shadow: 0 4px 30px rgba(0,0,0,0.4), 0 14px 44px -14px rgba(16,185,129,0.2), inset 0 1px 1px rgba(255,255,255,0.05) !important; }
+  }
+  /* ═══ Kinetic buttons & fluid inputs ═══ */
+  button:active:not(:disabled) { transform: scale(0.97); }
+  .sidebar-item { transition: transform .3s var(--ease-spring2), background .15s var(--ease-out), color .15s var(--ease-out), box-shadow .3s var(--ease-out) !important; }
+  @media (hover: hover) { .sidebar-item:hover:not(:disabled) { transform: translateX(2px); } }
+  input:focus, textarea:focus, select:focus { box-shadow: 0 0 0 3px var(--violet-tint), 0 2px 8px rgba(122,107,255,0.2), 0 0 0 1px rgba(16,185,129,0.45) inset !important; }
+  /* ═══ System polish ═══ */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 99px; border: 3px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover); background-clip: padding-box; }
+  .rfx-bar-wipe { transform-origin: left center; animation: rfxWipeX .8s var(--ease-out) backwards; }
+  .rfx-glow-green { text-shadow: 0 0 18px rgba(43,210,123,0.45); }
+  .rfx-glow-red { text-shadow: 0 0 18px rgba(244,86,142,0.45); }
+  .rfx-glow-violet { text-shadow: 0 0 18px rgba(16,185,129,0.5); }
+  .rfx-cell { transition: transform .25s var(--ease-spring2), box-shadow .25s var(--ease-out); }
+  @media (hover: hover) { .rfx-cell:hover { transform: scale(1.18); box-shadow: 0 0 12px rgba(16,185,129,0.35); z-index: 2; position: relative; } }
+  @media (prefers-reduced-motion: reduce) {
+    .fade-in, .fade-in > *, .rfx-bar-wipe { animation: none !important; }
+    .rfx-card, .sidebar-item, button { transition: none !important; }
+    .rfx-card:hover, .sidebar-item:hover, button:active { transform: none !important; }
+  }
+</style>
 </head>
 <body>
 <style>
@@ -686,12 +732,12 @@ window.addEventListener('DOMContentLoaded', function () {
     if (missing.length) {
       document.getElementById('root').innerHTML =
         '<div style="max-width:520px;margin:12vh auto;font-family:Inter,system-ui,sans-serif;color:#e8e8ec;text-align:center;padding:24px">'
-        + '<div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#10B981,#c026d3);margin:0 auto 18px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700">!</div>'
+        + '<div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#34D399,#c026d3);margin:0 auto 18px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700">!</div>'
         + '<div style="font-size:20px;font-weight:600;margin-bottom:10px">Couldn\'t load required libraries</div>'
         + '<div style="font-size:14px;color:#a1a1ab;line-height:1.6;margin-bottom:16px">This app loads React &amp; charting libraries from the internet the first time it opens. The following didn\'t load:<br><b style="color:#ef5350">' + missing.join(', ') + '</b></div>'
         + '<div style="font-size:13px;color:#a1a1ab;line-height:1.6;text-align:left;background:#131316;border:1px solid #26262c;border-radius:10px;padding:14px">'
         + '<b style="color:#e8e8ec">Try this:</b><br>1. Make sure you have an internet connection (only needed at startup).<br>2. Disable ad-blockers / script-blockers for this file, then reload.<br>3. Reload the page (Ctrl/Cmd + R) — CDNs occasionally hiccup.<br>4. Try a different browser (Chrome, Edge, Firefox).</div>'
-        + '<button onclick="location.reload()" style="margin-top:16px;padding:9px 18px;background:#10B981;color:#fff;border:none;border-radius:9px;font-size:14px;cursor:pointer;font-family:inherit">Reload</button>'
+        + '<button onclick="location.reload()" style="margin-top:16px;padding:9px 18px;background:#34D399;color:#fff;border:none;border-radius:9px;font-size:14px;cursor:pointer;font-family:inherit">Reload</button>'
         + '</div>';
     }
   }, 1200);
@@ -2312,7 +2358,7 @@ const MobileContext = React.createContext(false);
 const useMobile = () => React.useContext(MobileContext);
 
 const Card = ({ children, className = '', style, onClick }) => (
-  <div onClick={onClick} className={className} style={{ background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-card), 0 0 0 0.5px rgba(255,255,255,0.04) inset', overflow: 'hidden', transition: 'border-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out)', ...style }}>{children}</div>
+  <div onClick={onClick} className={'rfx-card ' + className} style={{ background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-card), 0 0 0 0.5px rgba(255,255,255,0.04) inset', overflow: 'hidden', transition: 'border-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out)', ...style }}>{children}</div>
 );
 const Pill = ({ children, color = 'zinc' }) => {
   const c = {
@@ -2415,7 +2461,7 @@ function MetricGauge({ label, value, sub, color, donutValue, donutCenter, accent
       style={{ padding: '16px 18px', borderLeft: accent ? `2px solid ${accent}` : '2px solid transparent', transition: 'transform 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out)' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, marginBottom: 10, fontFamily: "'DM Sans', sans-serif" }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, marginBottom: 10, fontFamily: "'Hanken Grotesk', sans-serif" }}>
             {label}{hint && <Hint text={hint}><span style={{ width: 13, height: 13, borderRadius: '50%', border: '1px solid var(--text3)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, cursor: 'help' }}>i</span></Hint>}
           </div>
           <div className="tabnum" style={{ fontSize: 28, fontWeight: 700, color: accent || 'var(--text)', letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
@@ -2681,7 +2727,7 @@ function HeroScoreCard({ stats }) {
   const kpi = (label, value, sub, color) => (
     <div className="rfx-kpi" style={{ padding: '13px 14px', background: 'var(--panel2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 'var(--r-md)', minWidth: 0, position: 'relative', overflow: 'hidden', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)' }}>
       <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text3)', fontWeight: 600, marginBottom: 6 }}>{label}</div>
-      <div className="tabnum" style={{ fontSize: 'clamp(19px, 4.5vw, 24px)', fontWeight: 700, color: color || 'var(--text)', lineHeight: 1, marginBottom: sub ? 5 : 0, letterSpacing: '-0.025em', fontFamily: "'DM Sans', system-ui, sans-serif", whiteSpace: 'nowrap', overflow: 'visible' }}>{value}</div>
+      <div className="tabnum" style={{ fontSize: 'clamp(19px, 4.5vw, 24px)', fontWeight: 700, color: color || 'var(--text)', lineHeight: 1, marginBottom: sub ? 5 : 0, letterSpacing: '-0.025em', fontFamily: "'Hanken Grotesk', system-ui, sans-serif", whiteSpace: 'nowrap', overflow: 'visible' }}>{value}</div>
       {sub && <div style={{ fontSize: 10.5, color: 'var(--text3)' }}>{sub}</div>}
     </div>
   );
@@ -2700,12 +2746,12 @@ function HeroScoreCard({ stats }) {
         {/* Big score */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flex: '0 1 auto', minWidth: 0 }}>
           <div>
-            <div style={{ fontSize: 'clamp(9px, 2.4vw, 10.5px)', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--violet-light)', fontWeight: 700, marginBottom: 8, opacity: 0.85, whiteSpace: 'nowrap', fontFamily: "'DM Sans', sans-serif" }}>Performance Score</div>
+            <div style={{ fontSize: 'clamp(9px, 2.4vw, 10.5px)', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--violet-light)', fontWeight: 700, marginBottom: 8, opacity: 0.85, whiteSpace: 'nowrap', fontFamily: "'Hanken Grotesk', sans-serif" }}>Performance Score</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-              <span className="tabnum" style={{ fontSize: 'clamp(44px, 9vw, 68px)', fontWeight: 800, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', textShadow: `0 0 24px ${scoreColor}25`, fontFamily: "'DM Sans', system-ui, sans-serif" }}>{Math.round(animScore)}</span>
+              <span className="tabnum" style={{ fontSize: 'clamp(44px, 9vw, 68px)', fontWeight: 800, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', textShadow: `0 0 24px ${scoreColor}25`, fontFamily: "'Hanken Grotesk', system-ui, sans-serif" }}>{Math.round(animScore)}</span>
               <span style={{ fontSize: 'clamp(15px, 3.5vw, 20px)', color: 'var(--text2)', fontWeight: 500, whiteSpace: 'nowrap' }}>/ 100</span>
             </div>
-            <div style={{ fontSize: 10, color: scoreColor, fontWeight: 700, marginTop: 8, textTransform: 'uppercase', letterSpacing: '0.14em', fontFamily: "'DM Sans', sans-serif", display: 'inline-block', padding: '2px 8px', borderRadius: 'var(--r-full)', background: `${scoreColor}16`, border: `1px solid ${scoreColor}35`, boxShadow: `0 0 16px ${scoreColor}12` }}>{scoreLabel}</div>
+            <div style={{ fontSize: 10, color: scoreColor, fontWeight: 700, marginTop: 8, textTransform: 'uppercase', letterSpacing: '0.14em', fontFamily: "'Hanken Grotesk', sans-serif", display: 'inline-block', padding: '2px 8px', borderRadius: 'var(--r-full)', background: `${scoreColor}16`, border: `1px solid ${scoreColor}35`, boxShadow: `0 0 16px ${scoreColor}12` }}>{scoreLabel}</div>
           </div>
         </div>
         {/* Vertical divider on desktop */}
@@ -2773,7 +2819,7 @@ function ScoreCard({ stats }) {
         {/* Score readout column — Tradezella's "Your Zella Score 82.1" with rainbow gauge below */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingRight: isMobile ? 0 : 8 }}>
           <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text3)', fontWeight: 600 }}>Your score</div>
-          <div className="tabnum" style={{ fontSize: 52, fontWeight: 700, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', fontFamily: "'DM Sans', system-ui, sans-serif" }}>{animScore.toFixed(1)}</div>
+          <div className="tabnum" style={{ fontSize: 52, fontWeight: 700, color: scoreColor, lineHeight: 1, letterSpacing: '-0.04em', fontFamily: "'Hanken Grotesk', system-ui, sans-serif" }}>{animScore.toFixed(1)}</div>
           {/* Rainbow gauge bar */}
           <div style={{ marginTop: 4 }}>
             <div style={{ position: 'relative', height: 8, borderRadius: 'var(--r-full)', overflow: 'hidden', background: 'linear-gradient(90deg, #ef5350 0%, #fbbf24 50%, #26a69a 100%)' }} />
@@ -2957,7 +3003,7 @@ function AccountBalanceChart({ trades, deposits }) {
           <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Running balance compared to net money deposited</div>
         </div>
         <div style={{ display: 'flex', gap: 12, fontSize: 11 }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text2)' }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#10B981' }} /> Balance</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text2)' }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#34D399' }} /> Balance</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text2)' }}><span style={{ width: 10, height: 10, borderRadius: 2, background: '#f87171' }} /> Deposits</span>
         </div>
       </div>
@@ -2968,7 +3014,7 @@ function AccountBalanceChart({ trades, deposits }) {
           <YAxis tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} tickFormatter={fmtCompact} />
           <ReferenceLine y={0} stroke="var(--chart-baseline)" strokeDasharray="2 2" />
           <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} formatter={(v, n) => [fmtMoney(v), n === 'balance' ? 'Balance' : 'Deposits']} />
-          <Line type="monotone" animationDuration={0} animationEasing="ease" dataKey="balance" stroke="#10B981" strokeWidth={2.4} dot={false} />
+          <Line type="monotone" animationDuration={0} animationEasing="ease" dataKey="balance" stroke="#34D399" strokeWidth={2.4} dot={false} />
           <Line type="monotone" animationDuration={0} animationEasing="ease" dataKey="deposits" stroke="#f87171" strokeWidth={2.4} dot={false} />
         </LineChart>
       </ResponsiveContainer>
@@ -3235,7 +3281,7 @@ function DayCard({ day, allTrades, exitData, expanded, onExpand, note, onSaveNot
           <div style={{ marginTop: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
               <span style={{ color: 'var(--violet-light)', fontSize: 13 }}><svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="currentColor"/></svg></span>
-              <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>RamanFX daily insights</div>
+              <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Hanken Grotesk', sans-serif" }}>RamanFX daily insights</div>
             </div>
             {(() => {
               const dayItems = day.items;
@@ -3375,7 +3421,7 @@ function WeekView({ stats, allTrades, exitData }) {
                   <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
                       <span style={{ color: 'var(--violet-light)', fontSize: 13 }}><svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="currentColor"/></svg></span>
-                      <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>RamanFX weekly insights</div>
+                      <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Hanken Grotesk', sans-serif" }}>RamanFX weekly insights</div>
                     </div>
                     <InsightsPanel windowTrades={w.weekItems} historyTrades={history} scope="week" exitData={exitData} />
                   </div>
@@ -4068,7 +4114,7 @@ function InsightsPanel({ windowTrades, historyTrades, scope, title, exitData }) 
   };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {title && <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>{title}</div>}
+      {title && <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Hanken Grotesk', sans-serif" }}>{title}</div>}
       {insights.map((ins, idx) => {
         const s = levelStyle[ins.level] || levelStyle.caution;
         return (
@@ -5001,7 +5047,7 @@ function ReportsDayTimePane({ trades }) {
               <XAxis type="number" tick={{ fontSize: 10, fill: 'var(--chart-tick)' }} axisLine={{ stroke: 'var(--chart-axis)' }} tickLine={false} />
               <YAxis type="category" dataKey="day" tick={{ fontSize: 11, fill: 'var(--chart-tick)' }} axisLine={false} tickLine={false} width={42} />
               <Tooltip contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--chart-tooltip-text)' }} labelStyle={{ color: 'var(--chart-tooltip-text)', fontWeight: 600 }} itemStyle={{ color: 'var(--chart-tooltip-text)' }} cursor={{ fill: 'var(--track-bg)' }} formatter={(v, n) => [v, n === 'trades' ? 'Trades' : n]} />
-              <Bar animationDuration={0} animationEasing="ease" dataKey="trades" fill="#10B981" radius={[0, 4, 4, 0]} />
+              <Bar animationDuration={0} animationEasing="ease" dataKey="trades" fill="#34D399" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -6119,7 +6165,7 @@ function ProgressPage({ trades, checklist, checklistDays }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12 }}>
         <MetricGauge label="Active days" value={stats.daily.length} sub="with at least one trade" />
         <MetricGauge label="Profitable days" value={stats.profDays} sub={`out of ${stats.daily.length}`} accent="var(--green-bright)" />
-        <MetricGauge label="Discipline score" value={`${avgCompletion.toFixed(0)}%`} sub={`avg over ${disciplineDays.length} logged days`} donutValue={avgCompletion} color="#10B981" />
+        <MetricGauge label="Discipline score" value={`${avgCompletion.toFixed(0)}%`} sub={`avg over ${disciplineDays.length} logged days`} donutValue={avgCompletion} color="#34D399" />
         <MetricGauge label="Longest win streak" value={stats.longestWinStreak} sub={`current: ${stats.curStreakSign > 0 ? '+' : stats.curStreakSign < 0 ? '-' : ''}${stats.curStreak}`} accent="var(--green-bright)" />
       </div>
       <ScoreCard stats={stats} />
@@ -6591,13 +6637,13 @@ function PreTradeGate({ open, onClose, status, rules }) {
             {wouldExceedDaily && <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Would breach daily cap</div>}
           </div>
         </div>
-        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 8 }}>Strategy checks</div>
+        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Hanken Grotesk', sans-serif", marginBottom: 8 }}>Strategy checks</div>
         {checkRow('plannedSize', 'My size is planned, not based on how I feel.')}
         {checkRow('slDefined', 'My stop-loss price is decided BEFORE I click buy/sell, not after.')}
         {checkRow('riskCalculated', 'I calculated the dollar risk. It fits my single-trade limit.')}
         {checkRow('htfAligned', 'HTF, MTF and LTF are aligned with the direction I am taking.')}
         {checkRow('properZone', 'This is a WOW / Fresh zone / PCP near a trendline (not a random entry).')}
-        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginTop: 14, marginBottom: 8 }}>Mind checks</div>
+        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Hanken Grotesk', sans-serif", marginTop: 14, marginBottom: 8 }}>Mind checks</div>
         {checkRow('notChasing', 'I am NOT entering because price already moved away from my level.', true)}
         {checkRow('notRevenge', 'I am NOT trying to win back a recent loss.', true)}
         {checkRow('notFomo', 'I am NOT entering because of FOMO — I would still take this trade if the move just started.', true)}
@@ -7053,6 +7099,7 @@ function Sidebar({ tab, setTab, hasData, mobileOpen, setMobileOpen, collapsed, s
   }, [isMobile, mobileOpen]);
   const items = [
     ['dashboard', 'Dashboard', '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>'],
+    ['edgelab', 'Edge Lab', '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>'],
     ['dayweek', 'Day/Week View', '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>'],
     ['trade', 'Trade View', '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>'],
     ['positions', 'Positions & Orders', '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>'],
@@ -7075,7 +7122,7 @@ function Sidebar({ tab, setTab, hasData, mobileOpen, setMobileOpen, collapsed, s
         <img src={window.RFX_LOGO} alt="RamanFX" width={isCollapsed ? 38 : 34} height={isCollapsed ? 38 : 34} style={{ borderRadius: 9, flexShrink: 0, objectFit: 'cover', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.32), inset 0 -2px 5px rgba(0,0,0,0.5), 0 3px 8px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.08)', filter: 'drop-shadow(0 0 10px rgba(16,185,129,0.3))' }} />
         {!isCollapsed && (
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 900, fontSize: 16, lineHeight: 1, color: '#fff', letterSpacing: '-0.03em', fontFamily: "'DM Sans', -apple-system, sans-serif" }}>{BRAND}</div>
+            <div style={{ fontWeight: 900, fontSize: 16, lineHeight: 1, color: '#fff', letterSpacing: '-0.03em', fontFamily: "'Hanken Grotesk', -apple-system, sans-serif" }}>{BRAND}</div>
             <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.18em', marginTop: 3 }}>Trading Journal</div>
           </div>
         )}
@@ -7117,6 +7164,318 @@ function Sidebar({ tab, setTab, hasData, mobileOpen, setMobileOpen, collapsed, s
         <div onClick={() => setMobileOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)', zIndex: 49 }} />
       )}
     </Fragment>
+  );
+}
+
+// ═══════════════ EDGE LAB (behavioral discipline engine) ═══════════════
+// Purely additive view. Reads trades + notes (a trade's `mistakes` array = psychology tags)
+// and keeps its own sandbox state under 'ledger_edgelab'. No existing logic is modified.
+function RfxBurst({ burst }) {
+  if (!burst) return null;
+  const cols = ['#2BD27B', '#6EE7B7', '#36C5C9', '#E6B84C', '#F96BEE', '#34D399'];
+  return (
+    <div key={burst} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 5 }}>
+      {Array.from({ length: 16 }).map((_, i) => {
+        const ang = (i / 16) * Math.PI * 2, dist = 60 + (i % 3) * 34;
+        return <span key={i} style={{ position: 'absolute', left: '50%', top: '42%', width: i % 2 ? 6 : 9, height: i % 2 ? 6 : 9, borderRadius: i % 3 ? '50%' : 2, background: cols[i % cols.length], '--dx': `${Math.cos(ang) * dist}px`, '--dy': `${Math.sin(ang) * dist}px`, animation: 'rfxBurst2 .9s var(--ease-out) forwards' }} />;
+      })}
+      <div style={{ position: 'absolute', left: '50%', top: '42%', transform: 'translate(-50%,-50%)', padding: '7px 14px', borderRadius: 'var(--r-md)', background: 'var(--panel2)', border: '1px solid var(--border2)', fontSize: 12.5, fontWeight: 600, color: 'var(--green-bright)', whiteSpace: 'nowrap', boxShadow: 'var(--shadow-elev)', animation: 'rfxPop2 .5s var(--ease-out) both' }}>Logged 🎉</div>
+    </div>
+  );
+}
+function EdgeLab({ trades, notes }) {
+  const isMobile = useMobile();
+  const [burst, setBurst] = useState(0);
+  const fire = () => { setBurst(b => b + 1); setTimeout(() => setBurst(0), 1100); };
+  const enriched = useMemo(() => trades.map(t => ({ ...t, net: netPnL(t), mistakes: (notes[t.id]?.mistakes) || [] }))
+    .sort((a, b) => (parseMT5Date(b.closeTime) || 0) - (parseMT5Date(a.closeTime) || 0)), [trades, notes]);
+
+  // ── Emotion cost: what each tagged mistake actually charged ──
+  const emotion = useMemo(() => {
+    const map = new Map(); let total = 0;
+    for (const t of enriched) for (const m of t.mistakes) {
+      if (!map.has(m)) map.set(m, { tag: m, count: 0, cost: 0 });
+      const row = map.get(m); row.count++;
+      if (t.net < 0) { row.cost += -t.net; total += -t.net; }
+    }
+    const rows = [...map.values()].sort((a, b) => b.cost - a.cost).slice(0, 6);
+    return { rows, total, max: rows.reduce((a, r) => Math.max(a, r.cost), 1) };
+  }, [enriched]);
+
+  // ── Tiltmeter: recency-weighted mistake pressure, last 10 trades ──
+  const tilt = useMemo(() => {
+    let v = 10;
+    enriched.slice(0, 10).forEach((t, i) => {
+      const w = 1 - i * 0.07;
+      v += t.mistakes.length ? Math.min(2, t.mistakes.length) * 17 * w : -6 * w;
+    });
+    return Math.max(2, Math.min(98, Math.round(v)));
+  }, [enriched]);
+  const tiltLabel = tilt < 33 ? 'Composed' : tilt < 66 ? 'Elevated' : 'On tilt';
+  const tiltColor = tilt < 33 ? 'var(--green-bright)' : tilt < 66 ? 'var(--pill-amber-fg)' : 'var(--red)';
+  const tiltGlow = tilt < 33 ? 'rfx-glow-green' : tilt < 66 ? '' : 'rfx-glow-red';
+
+  // ── Rule-adherence streak: a day is clean when no trade that day carries a mistake ──
+  const streak = useMemo(() => {
+    const days = new Map();
+    for (const t of enriched) {
+      const d = parseMT5Date(t.closeTime); if (!d) continue;
+      const k = dayKey(d);
+      if (!days.has(k)) days.set(k, true);
+      if (t.mistakes.length) days.set(k, false);
+    }
+    const cells = []; let best = 0, run = 0, traded = 0, clean = 0;
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const k = dayKey(d);
+      if (!days.has(k)) { cells.push({ k, state: 'off' }); run = run; continue; }
+      const ok = days.get(k); traded++;
+      if (ok) { clean++; run++; best = Math.max(best, run); } else run = 0;
+      cells.push({ k, state: ok ? 'full' : 'miss' });
+    }
+    let cur = 0;
+    for (let i = 0; i <= 365; i++) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const k = dayKey(d);
+      if (!days.has(k)) continue;
+      if (days.get(k)) cur++; else break;
+    }
+    return { cells, cur, best, pct: traded ? Math.round(clean / traded * 100) : 0, traded };
+  }, [enriched]);
+
+  // ── Milestones (targets auto-step just above where you are) ──
+  const mi = useMemo(() => {
+    const wins = enriched.filter(t => t.net > 0), losses = enriched.filter(t => t.net < 0);
+    const wr = enriched.length ? wins.length / enriched.length * 100 : 0;
+    const gw = wins.reduce((a, t) => a + t.net, 0), gl = Math.abs(losses.reduce((a, t) => a + t.net, 0));
+    return { wr, pf: gl > 0 ? gw / gl : (gw > 0 ? 99 : 0), net: enriched.reduce((a, t) => a + t.net, 0) };
+  }, [enriched]);
+  const wrTarget = Math.min(90, Math.max(50, Math.ceil((mi.wr + 0.01) / 5) * 5));
+  const pfTarget = Math.max(1.5, Math.ceil((Math.min(mi.pf, 5) + 0.01) * 2) / 2);
+  const netTarget = Math.max(1000, Math.ceil((mi.net + 1) / 1000) * 1000);
+  const milestones = [
+    { label: `Win rate → ${wrTarget}%`, right: `${mi.wr.toFixed(0)}% / ${wrTarget}%`, pct: Math.max(0, Math.min(100, mi.wr / wrTarget * 100)), color: 'var(--violet)', color2: 'var(--violet-light)', sub: `${Math.max(0, wrTarget - mi.wr).toFixed(0)} points to go` },
+    { label: `Profit factor → ${pfTarget.toFixed(1)}`, right: `${Math.min(mi.pf, 99).toFixed(2)} / ${pfTarget.toFixed(2)}`, pct: Math.max(0, Math.min(100, mi.pf / pfTarget * 100)), color: '#36C5C9', color2: 'var(--green-bright)', sub: 'Cutting your top mistake usually closes this gap' },
+    { label: `Net P&L → ${fmtMoney(netTarget)}`, right: `${fmtMoney(mi.net)} / ${fmtMoney(netTarget)}`, pct: Math.max(0, Math.min(100, mi.net / netTarget * 100)), color: '#6EE7B7', color2: '#F96BEE', sub: 'Next equity checkpoint' },
+  ];
+
+  // ── Sandbox (persisted separately — never touches ledger data) ──
+  const [sb, setSbRaw] = useState(() => lsGet('ledger_edgelab', { riskPct: 1, stop: 25, target: 75, wr: 45, acct: 10000, missed: [] }));
+  const setSb = (patch) => setSbRaw(prev => { const next = { ...prev, ...patch }; lsSet('ledger_edgelab', next); return next; });
+  const [missNote, setMissNote] = useState('');
+  const [missR, setMissR] = useState('');
+  const rr = sb.target / sb.stop;
+  const riskD = sb.acct * sb.riskPct / 100;
+  const expR = (sb.wr / 100) * rr - (1 - sb.wr / 100);
+  const expD = expR * riskD;
+  const beWr = (1 / (1 + rr) * 100).toFixed(1);
+  const missedTotal = (sb.missed || []).reduce((a, m) => a + (m.r || 0), 0);
+  const addMissed = () => {
+    if (!missNote.trim()) return;
+    setSb({ missed: [{ note: missNote.trim(), r: parseFloat(missR) || 0, at: Date.now() }, ...(sb.missed || [])].slice(0, 12) });
+    setMissNote(''); setMissR(''); fire();
+  };
+
+  const eyebrow = { fontSize: 10, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em' };
+  const insetBox = { padding: '11px 13px', borderRadius: 'var(--r-md)', background: 'var(--inset-bg)', border: '1px solid var(--inset-border)' };
+  const sliderRow = (label, val, min, max, step, key, suffix) => (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>
+        <span style={eyebrow}>{label}</span>
+        <span className="tabnum" style={{ fontSize: 12, color: 'var(--text2)' }}>{val}{suffix}</span>
+      </div>
+      <input type="range" min={min} max={max} step={step} value={val} onChange={e => setSb({ [key]: parseFloat(e.target.value) })} style={{ width: '100%', accentColor: 'var(--violet)' }} />
+    </div>
+  );
+  const cellColor = { full: 'var(--green)', miss: 'var(--red)', off: 'var(--track-bg)' };
+
+  return (
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* Row 1 — Tiltmeter · Emotion cost · Streak */}
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '0.9fr 1.1fr 1.2fr', gap: 14 }}>
+        <Card style={{ padding: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <div style={{ fontWeight: 600 }}>Tiltmeter</div>
+            <span style={eyebrow}>last 10 trades</span>
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Emotional pressure from tagged mistakes</div>
+          <svg viewBox="0 0 200 118" style={{ width: '100%', maxWidth: 260, margin: '10px auto 0', display: 'block' }}>
+            <defs>
+              <linearGradient id="rfxTiltZones" x1="0" y1="1" x2="1" y2="1">
+                <stop offset="0%" stopColor="var(--green)" /><stop offset="50%" stopColor="#E6B84C" /><stop offset="100%" stopColor="var(--red)" />
+              </linearGradient>
+            </defs>
+            <path d="M 20 104 A 80 80 0 0 1 180 104" fill="none" stroke="var(--track-bg)" strokeWidth="12" strokeLinecap="round" />
+            <path d="M 20 104 A 80 80 0 0 1 180 104" fill="none" stroke="url(#rfxTiltZones)" strokeWidth="12" strokeLinecap="round" opacity="0.85" />
+            <g style={{ transform: `rotate(${Math.round(-90 + tilt * 1.8)}deg)`, transformOrigin: '100px 104px', transition: 'transform .7s var(--ease-out)' }}>
+              <line x1="100" y1="104" x2="100" y2="38" stroke="var(--text)" strokeWidth="2.5" strokeLinecap="round" />
+            </g>
+            <circle cx="100" cy="104" r="6" fill="var(--panel2)" stroke="var(--text)" strokeWidth="2" />
+          </svg>
+          <div style={{ textAlign: 'center', marginTop: 4 }}>
+            <div className={tiltGlow} style={{ fontSize: 19, fontWeight: 600, color: tiltColor }}>{tiltLabel}</div>
+            <div className="tabnum" style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 2 }}>{tilt} / 100 tilt pressure</div>
+          </div>
+          <div style={{ ...insetBox, marginTop: 12, fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.55 }}>
+            {tilt < 33 ? 'Clean execution window. Size normally and keep taking only playbook setups.'
+              : tilt < 66 ? 'Pressure building — recent trades carry mistake tags. Consider half size on the next entry.'
+              : 'Step away from live markets. Your recent trades show tilt patterns — use the sandbox below instead.'}
+          </div>
+        </Card>
+
+        <Card style={{ padding: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <div style={{ fontWeight: 600 }}>Emotion cost</div>
+            <span style={eyebrow}>from trade mistakes</span>
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>What each tagged mistake actually charged you</div>
+          {emotion.rows.length === 0 ? (
+            <div style={{ ...insetBox, marginTop: 14, fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6 }}>
+              No mistakes tagged yet. Open a trade and add tags like <span style={{ color: 'var(--red)' }}>FOMO</span>, <span style={{ color: 'var(--red)' }}>revenge</span> or <span style={{ color: 'var(--red)' }}>early exit</span> under <strong style={{ color: 'var(--text)' }}>Mistakes</strong> — this grid prices them automatically.
+            </div>
+          ) : (
+            <Fragment>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
+                {emotion.rows.map((r, i) => (
+                  <div key={r.tag} style={{ ...insetBox, display: 'grid', gridTemplateColumns: '1fr auto', gap: '4px 10px', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--red)', flexShrink: 0, boxShadow: '0 0 8px rgba(244,86,142,0.5)' }} />
+                      <span style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.tag}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text3)', flexShrink: 0 }}>×{r.count}</span>
+                    </div>
+                    <span className="tabnum" style={{ fontSize: 13, fontWeight: 600, color: 'var(--red)' }}>−{fmtMoney(r.cost)}</span>
+                    <div style={{ gridColumn: '1 / -1', height: 4, borderRadius: 99, background: 'var(--track-bg)', overflow: 'hidden' }}>
+                      <div className="rfx-bar-wipe" style={{ height: '100%', width: `${Math.round(r.cost / emotion.max * 100)}%`, background: 'var(--red)', borderRadius: 99, animationDelay: `${i * 0.06}s` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '11px 13px', borderRadius: 'var(--r-md)', background: 'rgba(244,86,142,0.07)', border: '1px solid rgba(244,86,142,0.25)' }}>
+                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text2)' }}>Total psychology tax</span>
+                <span className="tabnum rfx-glow-red" style={{ fontSize: 16, fontWeight: 700, color: 'var(--red)' }}>−{fmtMoney(emotion.total)}</span>
+              </div>
+            </Fragment>
+          )}
+        </Card>
+
+        <Card style={{ padding: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+            <div>
+              <div style={{ fontWeight: 600 }}>Rule-adherence streak</div>
+              <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Mistake-free days — win or lose</div>
+            </div>
+            <div style={{ display: 'flex', gap: 16, textAlign: 'right' }}>
+              <div><div className="tabnum rfx-glow-violet" style={{ fontSize: 21, fontWeight: 600, color: 'var(--violet-light)' }}>{streak.cur}</div><div style={eyebrow}>current</div></div>
+              <div><div className="tabnum" style={{ fontSize: 21, fontWeight: 600 }}>{streak.best}</div><div style={eyebrow}>best 30d</div></div>
+            </div>
+          </div>
+          <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(15, 1fr)', gap: 5 }}>
+            {streak.cells.map(c => (
+              <div key={c.k} className="rfx-cell" title={`${c.k} — ${c.state === 'full' ? 'clean' : c.state === 'miss' ? 'mistakes tagged' : 'no trading'}`}
+                style={{ aspectRatio: '1', borderRadius: 4, background: cellColor[c.state], border: c.state === 'off' ? '1px solid var(--inset-border)' : '1px solid transparent' }} />
+            ))}
+          </div>
+          <div style={{ marginTop: 10, display: 'flex', gap: 14, alignItems: 'center', fontSize: 11, color: 'var(--text3)', flexWrap: 'wrap' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: 'var(--green)' }} />Clean day</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: 'var(--red)' }} />Mistakes tagged</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: 'var(--track-bg)', border: '1px solid var(--inset-border)' }} />No trading</span>
+            <span style={{ flex: 1 }} />
+            <span className="tabnum">{streak.pct}% adherence</span>
+          </div>
+          <div style={{ ...insetBox, marginTop: 12, fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.55 }}>
+            {streak.cur > 0 && streak.cur >= streak.best
+              ? 'This is your best run in the window — one more clean day sets a new record. 🎉'
+              : 'Streaks count rule-following, not wins. A disciplined losing day still extends it.'}
+          </div>
+        </Card>
+      </div>
+
+      {/* Row 2 — Milestones · Sandbox */}
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 2fr', gap: 14 }}>
+        <Card style={{ padding: 20, position: 'relative', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <div style={{ fontWeight: 600 }}>Milestones</div>
+            <span style={eyebrow}>auto-stepping targets</span>
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Progress toward the next tier — not just the next win</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 15, marginTop: 16 }}>
+            {milestones.map((m, i) => (
+              <div key={m.label}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                  <span style={{ fontSize: 13, fontWeight: 500 }}>{m.label}</span>
+                  <span className="tabnum" style={{ fontSize: 11.5, color: 'var(--text3)' }}>{m.right}</span>
+                </div>
+                <div style={{ height: 8, borderRadius: 99, background: 'var(--track-bg)', overflow: 'hidden' }}>
+                  <div className="rfx-bar-wipe" style={{ height: '100%', width: `${Math.round(m.pct)}%`, background: `linear-gradient(90deg, ${m.color}, ${m.color2})`, borderRadius: 99, boxShadow: `0 0 12px ${m.color}55`, animationDelay: `${0.1 + i * 0.08}s`, transition: 'width .8s var(--ease-out)' }} />
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 5 }}>{m.sub}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card style={{ padding: 0, overflow: 'hidden', position: 'relative' }}>
+          <div style={{ padding: '18px 20px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderBottom: '1px solid var(--border)' }}>
+            <div>
+              <div style={{ fontWeight: 600 }}>Market sandbox</div>
+              <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Off-hours workspace — pressure-test risk profiles, log setups you didn't take</div>
+            </div>
+            <span className="tabnum" style={{ fontSize: 12, color: 'var(--pill-amber-fg)' }}>+{missedTotal.toFixed(1)}R left on table</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.1fr 0.9fr 1.2fr', gap: 0 }}>
+            <div style={{ padding: '16px 20px', borderRight: isMobile ? 'none' : '1px solid var(--border)', borderBottom: isMobile ? '1px solid var(--border)' : 'none', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {sliderRow('Account size', sb.acct, 1000, 200000, 1000, 'acct', ' $')}
+              {sliderRow('Risk per trade', sb.riskPct, 0.25, 3, 0.25, 'riskPct', '%')}
+              {sliderRow('Stop distance', sb.stop, 5, 80, 5, 'stop', ' pips')}
+              {sliderRow('Target distance', sb.target, 10, 300, 10, 'target', ' pips')}
+              {sliderRow('Assumed win rate', sb.wr, 20, 80, 1, 'wr', '%')}
+              <div>
+                <div style={{ height: 12, borderRadius: 'var(--r-sm)', overflow: 'hidden', display: 'flex', border: '1px solid var(--inset-border)' }}>
+                  <div style={{ width: `${Math.round(sb.stop / (sb.stop + sb.target) * 100)}%`, background: 'var(--red)', opacity: 0.7, transition: 'width .3s var(--ease-out)' }} />
+                  <div style={{ flex: 1, background: 'var(--green)', opacity: 0.7 }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: 'var(--text3)', marginTop: 4 }}>
+                  <span>risk {sb.stop}p</span><span>reward {sb.target}p</span>
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: '16px 20px', borderRight: isMobile ? 'none' : '1px solid var(--border)', borderBottom: isMobile ? '1px solid var(--border)' : 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={insetBox}><div style={eyebrow}>R : R ratio</div><div className="tabnum" style={{ fontSize: 23, fontWeight: 300, marginTop: 3 }}>1 : {rr.toFixed(1)}</div></div>
+              <div style={insetBox}><div style={eyebrow}>Risk per trade</div><div className="tabnum" style={{ fontSize: 23, fontWeight: 300, marginTop: 3 }}>{fmtMoney(riskD)}</div></div>
+              <div style={{ ...insetBox, borderColor: expD >= 0 ? 'rgba(43,210,123,0.35)' : 'rgba(244,86,142,0.35)' }}>
+                <div style={eyebrow}>Expectancy / trade</div>
+                <div className={`tabnum ${expD >= 0 ? 'rfx-glow-green' : 'rfx-glow-red'}`} style={{ fontSize: 23, fontWeight: 300, marginTop: 3, color: expD >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(expD, true)}</div>
+                <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>{expR >= 0 ? '+' : ''}{expR.toFixed(2)}R · breakeven at {beWr}% WR</div>
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>Over 100 trades this profile compounds to <span className="tabnum" style={{ fontWeight: 600, color: expD >= 0 ? 'var(--green-bright)' : 'var(--red)' }}>{fmtMoney(expD * 100, true)}</span></div>
+            </div>
+            <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 10, position: 'relative' }}>
+              <RfxBurst burst={burst} />
+              <div style={{ fontSize: 13, fontWeight: 600 }}>Missed-setup scratchpad</div>
+              <div style={{ display: 'flex', gap: 7 }}>
+                <input type="text" placeholder="Setup you didn't take — e.g. GBPJPY fresh D1 supply" value={missNote} onChange={e => setMissNote(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addMissed(); }}
+                  style={{ flex: 1, minWidth: 0, background: 'var(--inset-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '8px 10px', fontSize: 12.5 }} />
+                <input type="number" step="0.5" placeholder="R" value={missR} onChange={e => setMissR(e.target.value)}
+                  style={{ width: 56, background: 'var(--inset-bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '8px 8px', fontSize: 12.5 }} />
+                <button style={btnStyle('primary')} onClick={addMissed}>Add</button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7, maxHeight: 240, overflowY: 'auto' }}>
+                {(sb.missed || []).length === 0 && <div style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.55 }}>Nothing logged yet. Every setup you skip and record here is proof that patience has a dollar value.</div>}
+                {(sb.missed || []).map((m, i) => (
+                  <div key={m.at || i} style={{ ...insetBox, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 12.5, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.note}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0 }}>
+                      <span className="tabnum" style={{ fontSize: 12, color: 'var(--green-bright)' }}>+{(m.r || 0).toFixed(1)}R</span>
+                      <button onClick={() => setSb({ missed: sb.missed.filter((_, j) => j !== i) })} title="Remove" style={{ background: 'transparent', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 13, padding: 2, lineHeight: 1 }}>×</button>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
   );
 }
 
@@ -8160,7 +8519,7 @@ function App() {
   }, [accounts, activeAccount]);
   const accountList = useMemo(() => Object.values(accounts), [accounts]);
   const titleMap = { dashboard: 'Dashboard', dayweek: 'Day / Week View', trade: 'Trade View', positions: 'Positions & Orders', rules: 'Risk Rules', playbook: 'Playbook', notebook: 'Notebook', exit: 'Exit Analysis', coach: 'AI Coach', reports: 'Reports', strategies: 'Strategies', calendar: 'Calendar', progress: 'Progress Tracker' };
-  const accTab = (active, label, onClick) => <button onClick={onClick} style={{ padding: '4px 11px', fontSize: 12, fontWeight: active ? 600 : 400, borderRadius: 'var(--r-sm)', fontFamily: "'DM Sans', sans-serif", border: active ? '1px solid var(--border2)' : '1px solid transparent', cursor: 'pointer', background: active ? 'var(--panel2)' : 'transparent', color: active ? 'var(--text)' : 'var(--text3)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out)', letterSpacing: '-0.01em' }}>{label}</button>;
+  const accTab = (active, label, onClick) => <button onClick={onClick} style={{ padding: '4px 11px', fontSize: 12, fontWeight: active ? 600 : 400, borderRadius: 'var(--r-sm)', fontFamily: "'Hanken Grotesk', sans-serif", border: active ? '1px solid var(--border2)' : '1px solid transparent', cursor: 'pointer', background: active ? 'var(--panel2)' : 'transparent', color: active ? 'var(--text)' : 'var(--text3)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out)', letterSpacing: '-0.01em' }}>{label}</button>;
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const isMobile = useIsMobile();
   const [cmdOpen, setCmdOpen] = useState(false);
@@ -8190,7 +8549,7 @@ function App() {
                 <button onClick={() => setSidebarCollapsed(c => !c)} title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} style={{ background: 'transparent', border: 'none', color: 'var(--text2)', cursor: 'pointer', padding: 4, fontSize: 20, lineHeight: 1, display: 'flex', alignItems: 'center', marginRight: 4 }}
                   onMouseEnter={e => e.currentTarget.style.color = 'var(--text)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text2)'}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
               )}
-              <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: '-0.035em', color: 'var(--text)', fontFamily: "'DM Sans', -apple-system, sans-serif" }}>{titleMap[tab]}</div>
+              <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: '-0.035em', color: 'var(--text)', fontFamily: "'Hanken Grotesk', -apple-system, sans-serif" }}>{titleMap[tab]}</div>
               {!isMobile && (
                 <button onClick={() => setCmdOpen(true)} title="Quick navigation"
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', fontSize: 10.5, color: 'var(--text3)', background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.02em' }}>
@@ -8289,7 +8648,7 @@ function App() {
               </div>
               {/* Timezone section */}
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 8 }}>Exit-quality data (MAE / MFE)</div>
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Hanken Grotesk', sans-serif", marginBottom: 8 }}>Exit-quality data (MAE / MFE)</div>
                 <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 8, maxWidth: 720, lineHeight: 1.55 }}>
                   Exit-quality data (MAE = worst drawdown, MFE = best run-up, forward returns at T+30m/1h/4h/12h/1d) comes from a free MQL5 script: <a href="https://www.mql5.com/en/code/72326" target="_blank" rel="noreferrer" style={{ color: 'var(--violet-light)' }}>code #72326</a>. Run it in MT5, then upload the generated CSV here. We'll match rows to your existing trades by Position ID and unlock the Exit Analysis page + per-trade insights.
                 </div>
@@ -8305,7 +8664,7 @@ function App() {
               </div>
               {/* Timezone section */}
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 8 }}>Trade times</div>
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Hanken Grotesk', sans-serif", marginBottom: 8 }}>Trade times</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                   <label style={{ fontSize: 13, color: 'var(--text2)' }}>MT5 broker timezone (UTC offset):</label>
                   <input type="number" step="1" min="-12" max="14" value={brokerOffsetInput} onChange={e => setBrokerOffsetInput(e.target.value)}
@@ -8320,7 +8679,7 @@ function App() {
               {/* Accounts section */}
               {accountList.length > 0 && (
                 <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 10 }}>Accounts ({accountList.length})</div>
+                  <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Hanken Grotesk', sans-serif", marginBottom: 10 }}>Accounts ({accountList.length})</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                     {accountList.map((a, idx) => {
                       const tCount = trades.filter(t => t.account === a.id).length;
@@ -8348,7 +8707,7 @@ function App() {
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
                   <div>
-                    <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>Sync across devices</div>
+                    <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Hanken Grotesk', sans-serif" }}>Sync across devices</div>
                     <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3, letterSpacing: '-0.01em' }}>This device: <span style={{ color: 'var(--text2)' }}>{deviceName}</span> <span style={{ color: 'var(--border2)' }}>· {getDeviceId()}</span></div>
                   </div>
                   <input value={deviceName} onChange={e => updateDeviceName(e.target.value)} placeholder="Device name" style={{ ...inputStyle, width: 160 }} />
@@ -8390,13 +8749,13 @@ function App() {
 
               {/* Data summary — Sync replaces the old Export/Import flow (same JSON payload) */}
               <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 8 }}>Data</div>
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Hanken Grotesk', sans-serif", marginBottom: 8 }}>Data</div>
                 <div style={{ fontSize: 12, color: 'var(--text3)' }}>{trades.length} trades · {Object.keys(notes).length} notes · {strategies.length} strategies · {notebook.length} notebook entries · {Object.values(attachments).reduce((a, arr) => a + (arr?.length || 0), 0)} images</div>
                 <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6, fontStyle: 'italic' }}>To back up or restore your data, use <strong style={{ color: 'var(--text2)' }}>Sync now</strong> / <strong style={{ color: 'var(--text2)' }}>Sync from file</strong> above. Same JSON format.</div>
               </div>
               {/* Danger zone */}
               <div>
-                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 8 }}>Danger zone</div>
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Hanken Grotesk', sans-serif", marginBottom: 8 }}>Danger zone</div>
                 <button style={btnStyle('danger')} onClick={resetEverything}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg> Reset everything</button>
               </div>
             </Card>
@@ -8404,7 +8763,7 @@ function App() {
           {trades.length === 0 && tab !== 'playbook' ? (
             <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{ textAlign: 'center', maxWidth: 420 }}>
-                <div style={{ width: 64, height: 64, borderRadius: 'var(--r-xl)', background: 'linear-gradient(135deg,#10B981,#c026d3)', margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff' }}>{BRAND[0]}</div>
+                <div style={{ width: 64, height: 64, borderRadius: 'var(--r-xl)', background: 'linear-gradient(135deg,#34D399,#c026d3)', margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff' }}>{BRAND[0]}</div>
                 <div style={{ fontSize: 24, fontWeight: 600, marginBottom: 8 }}>Welcome to {BRAND}</div>
                 <div style={{ fontSize: 14, color: 'var(--text2)', marginBottom: 24, lineHeight: 1.6 }}>A comprehensive trading journal. Import your MT5 history report to unlock the full dashboard — Day/Week view, Trade analytics, Calendar heatmap, Strategies, Notebook, Reports, and Progress tracking. Your Playbook is ready now in the sidebar.</div>
                 <div style={{ display: 'flex', justifyContent: 'center' }}><UploadBtn onUpload={handleUpload} primary /></div>
@@ -8418,6 +8777,7 @@ function App() {
                 return <DetailedTradePage trade={t} note={notes[t.id] || {}} strategies={strategies} attachments={attachments} allNotes={notes} onSaveNote={n => saveNote(t.id, n)} onSaveAttachments={saveAttachments} onClose={() => setDetailTrade(null)} onPurgeTag={purgeTagFromAllNotes} exitData={exitData[t.id]} tagCategoryMap={tagCategoryMap} tagCategories={allTagCategories} onOpenTagLibrary={() => setTagLibraryOpen(true)} />;
               })()}
               {!detailTrade && tab === 'dashboard' && <Dashboard trades={dateFilteredTrades} onDayClick={handleDayClick} checklist={checklist} checklistDays={checklistDays} onChecklistToggle={toggleChecklist} onChecklistEdit={editChecklist} setTab={setTab} snapshot={activeSnapshot} openPositions={filteredOpenPositions} workingOrders={filteredWorkingOrders} riskStatus={riskStatus} riskRules={riskRules} onOpenGate={() => setGateOpen(true)} deposits={dateFilteredDeposits} />}
+              {!detailTrade && tab === 'edgelab' && <EdgeLab trades={dateFilteredTrades} notes={notes} />}
               {!detailTrade && tab === 'dayweek' && <DayWeekView trades={dateFilteredTrades} dayNotes={dayNotes} onSaveDayNote={saveDayNote} focusDate={focusDate} exitData={exitData} onOpenTrade={id => setDetailTrade(id)} />}
               {!detailTrade && tab === 'trade' && <TradeView trades={dateFilteredTrades} notes={notes} strategies={strategies} exitData={exitData} onSaveNote={saveNote} onOpenTradeDetail={setDetailTrade} />}
               {!detailTrade && tab === 'positions' && <PositionsPage snapshot={activeSnapshot} openPositions={filteredOpenPositions} workingOrders={filteredWorkingOrders} deposits={dateFilteredDeposits} />}
