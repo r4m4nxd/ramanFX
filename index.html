@@ -503,7 +503,7 @@ if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdel
      still occupies the top of the viewport. Push the sticky header below it. */
   header[data-rfx-header] {
     padding-top: env(safe-area-inset-top, 0px) !important;
-    border-bottom: 1px solid var(--border) !important;
+    border-bottom: 0.5px solid var(--border2) !important;
     background: var(--header-bg) !important;
     backdrop-filter: blur(16px) !important;
     -webkit-backdrop-filter: blur(16px) !important;
@@ -7385,6 +7385,62 @@ function renderIcon(icon, size) {
   });
 }
 
+
+// ── Error Boundary ──
+class ErrorBoundary extends React.Component {
+  constructor(p) { super(p); this.state = { err: null }; }
+  static getDerivedStateFromError(err) { return { err }; }
+  componentDidCatch(err, info) { console.error('RFX crash:', err, info); }
+  render() {
+    if (this.state.err) return React.createElement('div', { style: { maxWidth: 520, margin: '15vh auto', textAlign: 'center', color: 'var(--text)', fontFamily: 'inherit', padding: 24 } },
+      React.createElement('div', { style: { fontSize: 17, fontWeight: 700, marginBottom: 8 } }, 'Something went wrong'),
+      React.createElement('div', { style: { fontSize: 12, color: 'var(--text3)', marginBottom: 18, wordBreak: 'break-word' } }, String((this.state.err && this.state.err.message) || this.state.err)),
+      React.createElement('button', { onClick: () => location.reload(), style: { padding: '9px 18px', background: 'var(--violet)', color: '#fff', border: 'none', borderRadius: 9, cursor: 'pointer', fontSize: 13 } }, 'Reload app')
+    );
+    return this.props.children;
+  }
+}
+
+// ── Command Palette (Cmd/Ctrl+K) ──
+function CommandPalette({ open, onClose, setTab, titleMap, hasData }) {
+  const [q, setQ] = useState('');
+  const [sel, setSel] = useState(0);
+  const inputRef = useRef(null);
+  const pages = Object.entries(titleMap).filter(([id]) => hasData || ['dashboard','playbook','rules'].includes(id));
+  const results = pages.filter(([id, label]) => label.toLowerCase().includes(q.toLowerCase()));
+  useEffect(() => { if (open) { setQ(''); setSel(0); setTimeout(() => inputRef.current && inputRef.current.focus(), 40); } }, [open]);
+  useEffect(() => { setSel(0); }, [q]);
+  if (!open) return null;
+  const go = (id) => { setTab(id); onClose(); };
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 12000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '18vh' }}>
+      <div className="scale-in" onClick={e => e.stopPropagation()} style={{ width: 'min(480px, 92vw)', background: 'var(--panel)', border: '1px solid var(--border2)', borderRadius: 'var(--r-lg)', boxShadow: '0 24px 64px rgba(0,0,0,0.6)', overflow: 'hidden' }}>
+        <input ref={inputRef} value={q} onChange={e => setQ(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'ArrowDown') { e.preventDefault(); setSel(s => Math.min(s + 1, results.length - 1)); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); setSel(s => Math.max(s - 1, 0)); }
+            else if (e.key === 'Enter' && results[sel]) go(results[sel][0]);
+            else if (e.key === 'Escape') onClose();
+          }}
+          placeholder="Go to page…"
+          style={{ width: '100%', padding: '14px 18px', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border)', color: 'var(--text)', fontSize: 15, outline: 'none', fontFamily: 'inherit', boxShadow: 'none' }} />
+        <div style={{ maxHeight: 320, overflowY: 'auto', padding: 6 }}>
+          {results.length === 0 && <div style={{ padding: '14px 16px', fontSize: 13, color: 'var(--text3)' }}>No pages found</div>}
+          {results.map(([id, label], i) => (
+            <button key={id} onClick={() => go(id)} onMouseEnter={() => setSel(i)}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', padding: '10px 12px', borderRadius: 'var(--r-md)', border: 'none', cursor: 'pointer', fontSize: 13.5, fontFamily: 'inherit', background: i === sel ? 'var(--violet-tint)' : 'transparent', color: i === sel ? 'var(--violet-light)' : 'var(--text2)' }}>
+              <span style={{ flex: 1 }}>{label}</span>
+              {i === sel && <span style={{ fontSize: 10, color: 'var(--text3)' }}>&#9166;</span>}
+            </button>
+          ))}
+        </div>
+        <div style={{ padding: '8px 14px', borderTop: '1px solid var(--border)', display: 'flex', gap: 14, fontSize: 10.5, color: 'var(--text3)' }}>
+          <span>&#8593;&#8595; navigate</span><span>&#9166; open</span><span>esc close</span>
+        </div>
+      </div>
+    </div>
+  );
+}
 function App() {
   const [trades, setTrades] = useState(() => lsGet(SK.trades, []));
   const [notes, setNotes] = useState(() => lsGet(SK.notes, {}));
@@ -8106,10 +8162,20 @@ function App() {
   const accTab = (active, label, onClick) => <button onClick={onClick} style={{ padding: '4px 11px', fontSize: 12, fontWeight: active ? 600 : 400, borderRadius: 'var(--r-sm)', fontFamily: "'Geist', sans-serif", border: active ? '1px solid var(--border2)' : '1px solid transparent', cursor: 'pointer', background: active ? 'var(--panel2)' : 'transparent', color: active ? 'var(--text)' : 'var(--text3)', transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out)', letterSpacing: '-0.01em' }}>{label}</button>;
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const isMobile = useIsMobile();
+  const [cmdOpen, setCmdOpen] = useState(false);
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setCmdOpen(o => !o); }
+      if (e.key === 'Escape') setMobileNavOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   return (
     <MobileContext.Provider value={isMobile}>
     <div style={{ minHeight: '100vh' }}>
+      <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} setTab={setTab} titleMap={titleMap} hasData={trades.length > 0} />
       <Sidebar tab={tab} setTab={setTab} hasData={trades.length > 0} mobileOpen={mobileNavOpen} setMobileOpen={setMobileNavOpen} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
       <div style={{ marginLeft: isMobile ? 0 : (sidebarCollapsed ? 60 : 220), transition: 'margin-left 0.2s ease' }}>
         <header data-rfx-header style={{ position: 'sticky', top: 0, zIndex: 40, background: 'var(--header-bg)', willChange: 'transform' }}>
@@ -8124,6 +8190,13 @@ function App() {
                   onMouseEnter={e => e.currentTarget.style.color = 'var(--text)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text2)'}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
               )}
               <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: '-0.035em', color: 'var(--text)', fontFamily: "'Geist', -apple-system, sans-serif" }}>{titleMap[tab]}</div>
+              {!isMobile && (
+                <button onClick={() => setCmdOpen(true)} title="Quick navigation"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', fontSize: 10.5, color: 'var(--text3)', background: 'var(--panel2)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.02em' }}>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                  &#8984;K
+                </button>
+              )}
               {!isMobile && accountList.length > 0 && (
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   {accTab(activeAccount === 'all', 'All accounts', () => switchAccount('all'))}
@@ -8445,7 +8518,7 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+ReactDOM.createRoot(document.getElementById('root')).render(<ErrorBoundary><App /></ErrorBoundary>);
 </script>
 </body>
 </html>
