@@ -142,7 +142,7 @@ export function Sheet({ open, onClose, title, children, width = 520 }: { open: b
         <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={title}>
           <motion.div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
           <motion.div
-            className="absolute bg-surface border-line2 shadow-pop flex flex-col max-md:inset-x-0 max-md:bottom-0 max-md:max-h-[92vh] max-md:rounded-t-2xl max-md:border-t md:top-0 md:right-0 md:h-full md:border-l"
+            className="absolute bg-surface border-line2 shadow-pop flex flex-col max-md:inset-x-0 max-md:bottom-0 max-md:max-h-sheet max-md:rounded-t-2xl max-md:border-t md:top-0 md:right-0 md:h-full md:border-l"
             style={{ width: typeof window !== 'undefined' && window.innerWidth >= 768 ? width : undefined }}
             initial={typeof window !== 'undefined' && window.innerWidth < 768 ? { y: '100%' } : { x: '100%' }}
             animate={{ x: 0, y: 0 }}
