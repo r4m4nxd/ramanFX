@@ -755,14 +755,41 @@ const {
 const BRAND = "RamanFX"; // app name — change to your trading name
 
 // ═══════════════ STRATEGY PLAYBOOK (Supply & Demand + Trendline) ═══════════════
+// ETF = entry TF, ITF = intermediate TF, HTF = higher TF
 const TIMEFRAME_PAIRS = [
-  { htf: 'Monthly', mtf: 'Weekly', ltf: 'Daily' },
-  { htf: 'Weekly', mtf: 'Daily', ltf: '4H' },
-  { htf: 'Daily', mtf: '4H', ltf: '1H' },
-  { htf: '4H', mtf: '1H', ltf: '15m' },
-  { htf: '1H', mtf: '15m', ltf: '5m' },
-  { htf: '15m', mtf: '5m', ltf: '1m' },
+  { etf: '1m', itf: '5m', htf: '15m' },
+  { etf: '5m', itf: '15m', htf: 'H1' },
+  { etf: '15m', itf: 'H1', htf: 'H4' },
+  { etf: 'H1', itf: 'H4', htf: '1D' },
+  { etf: 'H4', itf: '1D', htf: '1W' },
+  { etf: '1D', itf: '1M', htf: '3M' },
 ];
+// Zone timeframe -> timeframe to look for confirmation on
+const ZONE_CONFIRM = { '15m': '1m', 'H1': '5m', 'H4': '15m', '1D': 'H1', '1W': 'H4', '1M': '1D' };
+const TREND_OPTS = [['up', '↑', 'Uptrend'], ['down', '↓', 'Downtrend'], ['side', '✖', 'Sideways']];
+
+// Trend alignment matrix. w = with trade direction, a = against, s = sideways.
+const ALIGN_MATRIX = [
+  { htf: ['w'], itf: ['w'], etf: ['w'], zone: 'etf', confirm: 'map', sf: true, half: false },
+  { htf: ['w'], itf: ['w'], etf: ['s', 'a'], zone: 'itf', confirm: 'map', sf: false, half: false },
+  { htf: ['w'], itf: ['a', 's'], etf: ['s', 'a'], zone: 'htf', confirm: 'etf', sf: false, half: false },
+  { htf: ['s'], itf: ['a', 's'], etf: ['s', 'a'], zone: 'htf', confirm: 'itf', sf: false, half: true },
+];
+
+function alignmentPlays(trend, combo) {
+  if (!trend || !trend.htf || !trend.itf || !trend.etf) return null;
+  const plays = [];
+  [['long', 'up'], ['short', 'down']].forEach(([dir, withT]) => {
+    const rel = t => t === 'side' ? 's' : t === withT ? 'w' : 'a';
+    ALIGN_MATRIX.forEach((m, i) => {
+      if (!m.htf.includes(rel(trend.htf)) || !m.itf.includes(rel(trend.itf)) || !m.etf.includes(rel(trend.etf))) return;
+      const zoneTf = combo[m.zone];
+      const confirmTf = m.confirm === 'map' ? (ZONE_CONFIRM[zoneTf] || null) : combo[m.confirm];
+      plays.push({ dir, row: i + 1, zoneLabel: m.zone.toUpperCase(), zoneTf, confirmTf, sf: m.sf, half: m.half });
+    });
+  });
+  return plays;
+}
 
 // Pre-trade checklist derived from the user's S&D + trendline rules.
 const PLAYBOOK_CHECKS = [
@@ -772,7 +799,7 @@ const PLAYBOOK_CHECKS = [
   { id: 'removed', label: 'Break removed 2+ opposite zones', group: 'Trendline' },
   { id: 'neartl', label: 'Zone sits under the TL (sell) / over the TL (buy)', group: 'Trendline' },
   { id: 'curve', label: 'Buying in low curve near demand / selling in high curve near supply', group: 'Location' },
-  { id: 'htf', label: 'HTF / MTF / LTF trends all match entry direction', group: 'Alignment' },
+  { id: 'htf', label: 'HTF / ITF / ETF trends match a row in the alignment matrix', group: 'Alignment' },
   { id: 'pair', label: 'Correct timeframe pair identified before the impulse entry', group: 'Alignment' },
   { id: 'cp', label: 'Fewer than 3 CP levels formed (trend still valid)', group: 'Risk' },
   { id: 'sl', label: 'SL set 10–15 pips beyond the valley (buy) / peak (sell)', group: 'Risk' },
@@ -786,7 +813,7 @@ const PLAYBOOK_RULES = [
   'Sell in high curve — near supply zone.',
   'For buys, stop loss 10–15 pips below the valley.',
   'For sells, stop loss 10–15 pips above the peak.',
-  'HTF, MTF and LTF trend must all match direction for entry.',
+  'Read HTF, ITF and ETF trend and take only the play the alignment matrix gives.',
   'Only take impulse entries after identifying the timeframe pair.',
   'Keep trading zones near the trendline — under it for sell, over it for buy.',
   'All timeframes aligned = high-probability trade.',
@@ -6202,7 +6229,10 @@ function Playbook({ playbookState, onSavePlaybookState }) {
   const toggle = (id) => { const next = { ...checks, [id]: !checks[id] }; onSavePlaybookState({ ...playbookState, checks: next, pair }); };
   const reset = () => onSavePlaybookState({ ...playbookState, checks: {}, pair });
   const groups = [...new Set(PLAYBOOK_CHECKS.map(c => c.group))];
-  const tf = TIMEFRAME_PAIRS[pair];
+  const tf = TIMEFRAME_PAIRS[pair] || TIMEFRAME_PAIRS[0];
+  const trend = playbookState.trend || {};
+  const setTrend = (k, v) => onSavePlaybookState({ ...playbookState, checks, pair, trend: { ...trend, [k]: v } });
+  const plays = alignmentPlays(trend, tf);
 
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -6228,26 +6258,102 @@ function Playbook({ playbookState, onSavePlaybookState }) {
         </div>
       </Card>
 
-      {/* Timeframe pair selector */}
+      {/* Trend alignment (ETF / ITF / HTF) */}
       <Card style={{ padding: 20 }}>
-        <div style={{ fontWeight: 600, marginBottom: 4 }}>Timeframe pairing</div>
-        <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 14 }}>Identify your HTF / MTF / LTF set before taking an impulse entry</div>
+        <div style={{ fontWeight: 600, marginBottom: 4 }}>Trend alignment</div>
+        <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 14 }}>Pick your entry timeframe, mark each trend, get the play</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
           {TIMEFRAME_PAIRS.map((p, i) => (
             <button key={i} onClick={() => { setPair(i); onSavePlaybookState({ ...playbookState, checks, pair: i }); }}
               style={{ padding: '8px 12px', borderRadius: 'var(--r-md)', border: `1px solid ${pair === i ? 'var(--violet)' : 'var(--border2)'}`, background: pair === i ? 'rgba(16,185,129,0.12)' : 'var(--panel2)', color: pair === i ? 'var(--violet-light)' : 'var(--text2)', cursor: 'pointer', fontSize: 12, transition: 'background 0.12s var(--ease-out), color 0.12s var(--ease-out), border-color 0.12s var(--ease-out), opacity 0.12s var(--ease-out)' }}>
-              {p.htf} · {p.mtf} · {p.ltf}
+              ETF {p.etf}
             </button>
           ))}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
-          {[['HTF — trend', tf.htf], ['MTF — structure', tf.mtf], ['LTF — entry', tf.ltf]].map(([label, val], i) => (
-            <div key={i} style={{ background: 'var(--panel2)', borderRadius: 'var(--r-md)', padding: 14, textAlign: 'center' }}>
+          {[['htf', 'HTF'], ['itf', 'ITF'], ['etf', 'ETF']].map(([k, label]) => (
+            <div key={k} style={{ background: 'var(--panel2)', borderRadius: 'var(--r-md)', padding: 12, textAlign: 'center' }}>
               <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)' }}>{label}</div>
-              <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4, color: i === 0 ? 'var(--violet-light)' : i === 1 ? 'var(--text)' : 'var(--green-bright)' }}>{val}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, margin: '4px 0 10px', color: k === 'htf' ? 'var(--violet-light)' : k === 'itf' ? 'var(--text)' : 'var(--green-bright)' }}>{tf[k]}</div>
+              <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+                {TREND_OPTS.map(([v, sym, title]) => {
+                  const on = trend[k] === v;
+                  const c = v === 'up' ? 'var(--green-bright)' : v === 'down' ? 'var(--red)' : 'var(--text2)';
+                  return (
+                    <button key={v} title={title} aria-label={`${label} ${title}`} aria-pressed={on} onClick={() => setTrend(k, on ? null : v)}
+                      style={{ flex: 1, minWidth: 0, padding: '6px 0', borderRadius: 'var(--r-md)', border: `1px solid ${on ? c : 'var(--border2)'}`, background: on ? 'var(--hover-tint)' : 'transparent', color: on ? c : 'var(--text3)', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}>{sym}</button>
+                  );
+                })}
+              </div>
             </div>
           ))}
         </div>
+        <div style={{ marginTop: 14 }}>
+          {plays === null ? (
+            <div style={{ padding: 12, background: 'var(--panel2)', borderRadius: 'var(--r-md)', fontSize: 13, color: 'var(--text3)' }}>Mark the HTF, ITF and ETF trend to see the play.</div>
+          ) : plays.length === 0 ? (
+            <div style={{ padding: 12, border: '1px solid var(--border2)', borderRadius: 'var(--r-md)', fontSize: 13, color: 'var(--text2)' }}><b style={{ color: 'var(--red)' }}>No trade.</b> This combination isn't in the matrix — wait for alignment.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {plays.map(pl => {
+                const c = pl.dir === 'long' ? 'var(--green-bright)' : 'var(--red)';
+                const side = pl.dir === 'long' ? 'Longs' : 'Shorts';
+                const conf = pl.confirmTf ? `confirm on ${pl.confirmTf}` : 'no lower confirmation TF in map';
+                return (
+                  <div key={pl.dir + pl.row} style={{ padding: 12, borderRadius: 'var(--r-md)', border: `1px solid ${c}`, fontSize: 13, color: 'var(--text2)', lineHeight: 1.5 }}>
+                    <div style={{ fontWeight: 700, color: c, marginBottom: 2 }}>{pl.dir === 'long' ? '↑ LONG' : '↓ SHORT'} · {pl.half ? 'HALF RISK' : 'Full risk'}</div>
+                    {pl.sf
+                      ? <>Set and Forget {side} at nearest ETF zone ({pl.zoneTf}) — or Confirmation {side} in that zone, {conf}.</>
+                      : <>Confirmation {side} in nearest {pl.zoneLabel} zone ({pl.zoneTf}), {conf}{pl.half ? ' — using half risk' : ''}.</>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {/* Alignment reference */}
+      <Card style={{ padding: 20 }}>
+        <div style={{ fontWeight: 600, marginBottom: 12 }}>Timeframe combinations</div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, textAlign: 'center' }}>
+            <tbody>
+              {[['ETF', 'etf'], ['ITF', 'itf'], ['HTF', 'htf']].map(([label, k]) => (
+                <tr key={k}>
+                  <td style={{ padding: '6px 8px', fontWeight: 700, color: 'var(--violet-light)', textAlign: 'left' }}>{label}</td>
+                  {TIMEFRAME_PAIRS.map((p, i) => <td key={i} style={{ padding: '6px 8px', borderTop: '1px solid var(--border2)', color: k === 'etf' ? 'var(--text)' : 'var(--text2)', fontWeight: k === 'etf' ? 600 : 400 }}>{p[k]}</td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ fontWeight: 600, margin: '18px 0 10px' }}>Zone → confirmation timeframe</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 8 }}>
+          {Object.entries(ZONE_CONFIRM).map(([z, c]) => (
+            <div key={z} style={{ padding: '8px 10px', background: 'var(--panel2)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--text2)' }}><b style={{ color: 'var(--text)' }}>{z}</b> zone → {c}</div>
+          ))}
+        </div>
+        {[['long', 'Longs', 'var(--green-bright)', '↑', '↓'], ['short', 'Shorts', 'var(--red)', '↓', '↑']].map(([dir, title, c, w, a]) => (
+          <div key={dir} style={{ marginTop: 18 }}>
+            <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: c, fontWeight: 700, marginBottom: 8 }}>{title}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {ALIGN_MATRIX.map((m, i) => {
+                const fmt = arr => arr.map(x => x === 'w' ? w : x === 'a' ? a : '✖').join(' or ');
+                const zone = m.zone.toUpperCase();
+                const text = m.sf ? `ETF Set and Forget ${title} at nearest ETF zone / Confirmation ${title} in nearest ETF zone on appropriate timeframe`
+                  : m.confirm === 'map' ? `Confirmation ${title} in nearest ${zone} zone, on the appropriate timeframe`
+                  : `Confirmation ${title} in nearest ${zone} zone on ${m.confirm.toUpperCase()}${m.half ? ' using half risk' : ''}`;
+                return (
+                  <div key={i} style={{ display: 'flex', flexWrap: 'wrap', columnGap: 12, rowGap: 4, padding: '8px 12px', background: 'var(--panel2)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--text2)', alignItems: 'center' }}>
+                    <span style={{ flex: '0 0 220px', color: 'var(--text)' }}>HTF {fmt(m.htf)} · ITF {fmt(m.itf)} · ETF {fmt(m.etf)}</span>
+                    <span style={{ flex: '1 1 260px', lineHeight: 1.45 }}>{text}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </Card>
 
       {/* Checklist grouped */}
@@ -6641,7 +6747,7 @@ function PreTradeGate({ open, onClose, status, rules }) {
         {checkRow('plannedSize', 'My size is planned, not based on how I feel.')}
         {checkRow('slDefined', 'My stop-loss price is decided BEFORE I click buy/sell, not after.')}
         {checkRow('riskCalculated', 'I calculated the dollar risk. It fits my single-trade limit.')}
-        {checkRow('htfAligned', 'HTF, MTF and LTF are aligned with the direction I am taking.')}
+        {checkRow('htfAligned', 'HTF, ITF and ETF trends match a play in the alignment matrix.')}
         {checkRow('properZone', 'This is a WOW / Fresh zone / PCP near a trendline (not a random entry).')}
         <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text2)', fontWeight: 600, fontFamily: "'Hanken Grotesk', sans-serif", marginTop: 14, marginBottom: 8 }}>Mind checks</div>
         {checkRow('notChasing', 'I am NOT entering because price already moved away from my level.', true)}
