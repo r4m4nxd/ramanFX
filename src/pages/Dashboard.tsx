@@ -85,6 +85,7 @@ export default function Dashboard() {
   const nav = useNavigate();
   const notes = useStore(s => s.notes);
   const [curve, setCurve] = useState<'pnl' | 'balance'>('pnl');
+  const [allSyms, setAllSyms] = useState(false);
   const s = a.stats;
   const recent = [...a.et].reverse().slice(0, 7);
   const lowSample = s.total < MIN_SCORE_TRADES;
@@ -186,8 +187,9 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <Card>
-          <CardHead title="By symbol" sub="Every symbol, best to worst" />
-          <DivergingBars rows={a.symbols.map(g => ({ key: g.key, net: g.net, sub: `${g.n} trades · ${pct(g.winRate, 0)}` }))} fmt={v => fmt(v, { signed: true, compact: true })} onRow={k => nav(`/trades?symbol=${encodeURIComponent(k)}`)} />
+          <CardHead title="By symbol" sub={a.symbols.length > 12 && !allSyms ? `Best 6 and worst 6 of ${a.symbols.length}` : 'Every symbol, best to worst'}
+            right={a.symbols.length > 12 ? <button className="text-xs text-accent hover:underline" onClick={() => setAllSyms(v => !v)}>{allSyms ? 'Show less' : 'Show all'}</button> : undefined} />
+          <DivergingBars rows={(a.symbols.length > 12 && !allSyms ? [...a.symbols.slice(0, 6), ...a.symbols.slice(-6)] : a.symbols).map(g => ({ key: g.key, net: g.net, sub: `${g.n} trades · ${pct(g.winRate, 0)}` }))} fmt={v => fmt(v, { signed: true, compact: true })} onRow={k => nav(`/trades?symbol=${encodeURIComponent(k)}`)} />
         </Card>
         <Card>
           <CardHead title="By session" sub="Entry time (UTC): Asia 23–07, London 07–12, New York 12–21" />

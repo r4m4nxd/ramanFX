@@ -11,7 +11,7 @@ export function TagInput({ value, onChange, universe, tone = 'accent', placehold
     const ql = q.trim().toLowerCase();
     return universe.filter(u => !value.includes(u) && (!ql || u.includes(ql))).slice(0, 8);
   }, [q, universe, value]);
-  const add = (t: string) => { const v = t.trim().toLowerCase(); if (v && !value.includes(v)) onChange([...value, v]); setQ(''); };
+  const add = (t: string) => { const v = t.toLowerCase().replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim(); if (v && !value.includes(v)) onChange([...value, v]); setQ(''); };
   const chip = { accent: 'bg-accent/12 text-accent border-accent/35', warn: 'bg-warn/12 text-warn border-warn/35', violet: 'bg-violet/12 text-violet border-violet/35' }[tone];
   return (
     <div className="relative">

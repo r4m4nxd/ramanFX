@@ -57,7 +57,7 @@ export function EquityChart({ data, height = 260, fmt, showDD = true }: { data: 
         <YAxis tickFormatter={v => fmt(v, { compact: true })} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} width={64} />
         <ReferenceLine y={0} stroke={c.line2} strokeDasharray="3 4" />
         <Tooltip content={<ChartTip fmt={(v, k) => (k === 'dd' ? fmt(v) : fmt(v))} labelFmt={l => new Date(l as number).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} />} cursor={{ stroke: c.line2 }} />
-        {showDD && <Area type="monotone" dataKey="dd" name="Drawdown" stroke="none" fill={c.loss} fillOpacity={0.28} isAnimationActive animationDuration={900} />}
+        {showDD && <Area type="monotone" dataKey="dd" name="Drawdown" stroke="none" fill={c.loss} fillOpacity={0.18} isAnimationActive animationDuration={900} />}
         <Area type="monotone" dataKey="cum" name="Net P&L" stroke={stroke} strokeWidth={2.2} fill="url(#eqFill)" isAnimationActive animationDuration={900} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
       </ComposedChart>
     </ResponsiveContainer>

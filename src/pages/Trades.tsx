@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useFiltered } from '@/data/derived';
 import { useStore } from '@/data/store';
-import { computeStats, type EnrichedTrade } from '@/core/stats';
+import { computeStats, normTag, type EnrichedTrade } from '@/core/stats';
 import { fmtHold } from '@/core/time';
 import { pct, rMult, shortDate, timeHM, tone, useMoney } from '@/lib/format';
 import { Badge, Card, cx, Empty, Page, Segmented } from '@/ui/kit';
@@ -25,13 +25,13 @@ export default function Trades() {
   const tag = params.get('tag') ?? '';
 
   const symbols = useMemo(() => [...new Set(et.map(t => t.sym))].sort(), [et]);
-  const tags = useMemo(() => [...new Set(Object.values(notes).flatMap(n => n.tags ?? []))].sort(), [notes]);
+  const tags = useMemo(() => [...new Set(Object.values(notes).flatMap(n => (n.tags ?? []).map(normTag)))].sort(), [notes]);
 
   const rows = useMemo(() => {
     const ql = q.trim().toLowerCase();
     const out = et.filter(t =>
       (!symbol || t.sym === symbol) && (side === 'all' || t.type === side) && (outcome === 'all' || t.outcome === outcome) &&
-      (!tag || notes[t.id]?.tags?.includes(tag)) &&
+      (!tag || (notes[t.id]?.tags ?? []).some(x => normTag(x) === tag)) &&
       (!ql || t.id.includes(ql) || t.sym.toLowerCase().includes(ql) || (notes[t.id]?.note ?? '').toLowerCase().includes(ql) || (notes[t.id]?.tags ?? []).some(x => x.toLowerCase().includes(ql))));
     const val = (t: EnrichedTrade): number | string => ({ close: t.close.getTime(), sym: t.sym, net: t.net, r: t.r ?? -Infinity, volume: t.volume, hold: t.holdSec }[sort.k]);
     return out.sort((a, b) => { const x = val(a), y = val(b); return (x < y ? -1 : x > y ? 1 : 0) * sort.dir; });

@@ -84,6 +84,9 @@ export interface Stats {
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 
+/** "Zone-near_Trendline " → "zone near trendline", so differently typed tags group together. */
+export const normTag = (t: string) => t.toLowerCase().replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+
 export function computeStats(et: EnrichedTrade[]): Stats {
   const wins = et.filter(t => t.outcome === 'win'), losses = et.filter(t => t.outcome === 'loss');
   const grossWin = sum(wins.map(t => t.net)), grossLoss = -sum(losses.map(t => t.net));
@@ -177,12 +180,33 @@ export function groupStats(et: EnrichedTrade[], keyOf: (t: EnrichedTrade) => str
 }
 
 // ─── Balance reconstruction ────────────────────────────────────────────
+/** Swaps, dividends, fees and similar balance operations change balance but aren't money you put in. */
+const ADJUSTMENT_RE = /swap|dividend|rollover|interest|fee|commission|adjust|charge|rebate|cashback/i;
+export const isAdjustment = (d: Deposit) => ADJUSTMENT_RE.test(d.comment ?? '');
+
+/**
+ * Drop deposits that are the same operation imported twice under a different broker-time offset
+ * (same account, amount and comment within 14 hours) — otherwise balance doubles.
+ */
+export function dedupeDeposits(deps: Deposit[]): Deposit[] {
+  const out: Deposit[] = [];
+  const sorted = [...deps].sort((a, b) => (a.time < b.time ? -1 : 1));
+  for (const d of sorted) {
+    const t = parseTs(d.time)?.getTime() ?? 0;
+    const dup = out.some(o => o.account === d.account && o.amount === d.amount && (o.comment ?? '') === (d.comment ?? '') && o.time !== d.time && Math.abs((parseTs(o.time)?.getTime() ?? 0) - t) <= 14 * 3_600_000);
+    if (!dup) out.push(d);
+  }
+  return out;
+}
+
 /**
  * Rebuild each account's balance through time. When an import carried a balance snapshot we
  * walk BACKWARD from it (exact, needs no starting balance). Otherwise we walk forward from the
- * first deposit. Accounts are combined by summing their balances at every event.
+ * first deposit. Accounts are combined by summing their balances at every event. The deposits
+ * line counts only money in/out (deposits, withdrawals, transfers), not swaps or dividends.
  */
-export function balanceSeries(trades: Trade[], deposits: Deposit[], accounts: Record<string, Account>, accountFilter: string | 'all'): { t: number; balance: number; deposits: number }[] {
+export function balanceSeries(trades: Trade[], depositsRaw: Deposit[], accounts: Record<string, Account>, accountFilter: string | 'all'): { t: number; balance: number; deposits: number }[] {
+  const deposits = dedupeDeposits(depositsRaw);
   const ids = new Set<string>();
   for (const t of trades) ids.add(t.account);
   for (const d of deposits) if (d.account) ids.add(d.account);
@@ -190,7 +214,7 @@ export function balanceSeries(trades: Trade[], deposits: Deposit[], accounts: Re
   type Ev = { t: number; acct: string; amount: number; dep: boolean };
   const evs: Ev[] = [];
   for (const t of trades) { if (!want.includes(t.account)) continue; const d = parseTs(t.closeTime); if (d) evs.push({ t: d.getTime(), acct: t.account, amount: netOf(t), dep: false }); }
-  for (const d of deposits) { const acct = d.account ?? 'default'; if (!want.includes(acct)) continue; const dt = parseTs(d.time); if (dt) evs.push({ t: dt.getTime(), acct, amount: d.amount || 0, dep: true }); }
+  for (const d of deposits) { const acct = d.account ?? 'default'; if (!want.includes(acct)) continue; const dt = parseTs(d.time); if (dt) evs.push({ t: dt.getTime(), acct, amount: d.amount || 0, dep: !isAdjustment(d) }); }
   evs.sort((a, b) => a.t - b.t);
   const bal: Record<string, number> = {}, depTot: Record<string, number> = {};
   for (const id of want) {
@@ -201,11 +225,12 @@ export function balanceSeries(trades: Trade[], deposits: Deposit[], accounts: Re
   }
   const out: { t: number; balance: number; deposits: number }[] = [];
   if (evs.length) out.push({ t: evs[0].t - 1, balance: sum(Object.values(bal)), deposits: 0 });
-  for (const e of evs) {
+  evs.forEach((e, i) => {
     bal[e.acct] += e.amount;
     if (e.dep) depTot[e.acct] += e.amount;
-    out.push({ t: e.t, balance: sum(Object.values(bal)), deposits: sum(Object.values(depTot)) });
-  }
+    // Apply simultaneous events together (an internal transfer posts −X and +X at the same second).
+    if (evs[i + 1]?.t !== e.t) out.push({ t: e.t, balance: sum(Object.values(bal)), deposits: sum(Object.values(depTot)) });
+  });
   return out;
 }
 
@@ -216,7 +241,8 @@ export function maxDrawdownPct(series: { balance: number }[]): number | null {
     peak = Math.max(peak, p.balance);
     if (peak > 0) dd = Math.max(dd, (peak - p.balance) / peak);
   }
-  return peak > 0 ? dd : null;
+  // A balance below zero (broker credit / bonus accounts) can't lose more than 100% of the peak.
+  return peak > 0 ? Math.min(1, dd) : null;
 }
 
 // ─── Risk-adjusted returns ─────────────────────────────────────────────

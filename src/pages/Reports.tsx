@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Bar as RBar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from 'recharts';
 import { useAnalytics } from '@/data/derived';
 import { useStore } from '@/data/store';
-import { computeStats, groupStats, type EnrichedTrade, type GroupStat } from '@/core/stats';
+import { computeStats, groupStats, normTag, type EnrichedTrade, type GroupStat } from '@/core/stats';
 import { fmtHold } from '@/core/time';
 import { pct, rMult, tone, useMoney } from '@/lib/format';
 import { Card, CardHead, cx, Page, Segmented } from '@/ui/kit';
@@ -112,10 +112,11 @@ function SetupsTab({ et }: { et: EnrichedTrade[] }) {
   const notes = useStore(s => s.notes);
   const strategies = useStore(s => s.strategies);
   const nav = useNavigate();
-  const setups = useMemo(() => groupStats(et, t => notes[t.id]?.tags?.length ? notes[t.id].tags! : null), [et, notes]);
-  const mistakes = useMemo(() => groupStats(et, t => notes[t.id]?.mistakes?.length ? notes[t.id].mistakes! : null).sort((a, b) => a.net - b.net), [et, notes]);
+  const setups = useMemo(() => groupStats(et, t => notes[t.id]?.tags?.length ? [...new Set(notes[t.id].tags!.map(normTag))] : null), [et, notes]);
+  const mistakes = useMemo(() => groupStats(et, t => notes[t.id]?.mistakes?.length ? [...new Set(notes[t.id].mistakes!.map(normTag))] : null).sort((a, b) => a.net - b.net), [et, notes]);
   const emotions = useMemo(() => groupStats(et, t => notes[t.id]?.emotion ?? null), [et, notes]);
   const grades = useMemo(() => groupStats(et, t => notes[t.id]?.grade ?? null).sort((a, b) => a.key.localeCompare(b.key)), [et, notes]);
+  const ratings = useMemo(() => groupStats(et, t => (notes[t.id]?.rating ? `${'★'.repeat(notes[t.id].rating!)}` : null)).sort((a, b) => b.key.length - a.key.length), [et, notes]);
   const strat = useMemo(() => groupStats(et, t => { const id = notes[t.id]?.strategyId; return id ? strategies.find(s => s.id === id)?.name ?? null : null; }), [et, notes, strategies]);
   const clean = useMemo(() => groupStats(et, t => (notes[t.id] ? (notes[t.id].mistakes?.length ? 'With mistakes' : 'Clean execution') : null)), [et, notes]);
   return (
@@ -125,6 +126,7 @@ function SetupsTab({ et }: { et: EnrichedTrade[] }) {
       <Card><CardHead title="Mistakes" sub="Worst first" />{mistakes.length ? <GroupTable rows={mistakes} label="Mistake" /> : <p className="text-sm text-ink3">No mistakes tagged.</p>}</Card>
       <Card><CardHead title="State of mind" />{emotions.length ? <GroupTable rows={emotions} label="Emotion" /> : <p className="text-sm text-ink3">Pick a state of mind on trades to see this.</p>}</Card>
       <Card><CardHead title="Execution grade" />{grades.length ? <GroupTable rows={grades} label="Grade" /> : <p className="text-sm text-ink3">Grade trades A–D to see this.</p>}</Card>
+      {ratings.length > 0 && <Card><CardHead title="Your star rating" /><GroupTable rows={ratings} label="Rating" /></Card>}
       {strat.length > 0 && <Card className="lg:col-span-2"><CardHead title="Strategies" /><GroupTable rows={strat} label="Strategy" /></Card>}
     </div>
   );

@@ -7,6 +7,7 @@ import { compressImage, uploadImage } from '@/data/cloud';
 import { measuredUnitValues, pipsBetween, specFor, unitValue } from '@/core/instruments';
 import { alignmentPlays, TIMEFRAME_COMBOS } from '@/core/playbook';
 import { fmtHold } from '@/core/time';
+import { normTag } from '@/core/stats';
 import type { Attachment, TradeNote, Trend } from '@/core/types';
 import { longDate, num, price, rMult, timeHM, tone, useMoney } from '@/lib/format';
 import { Badge, Card, CardHead, cx, Empty, Field, Page, useToast } from '@/ui/kit';
@@ -52,7 +53,7 @@ export default function TradeDetail() {
 
   const universe = useMemo(() => {
     const tags = new Set<string>(), mistakes = new Set<string>();
-    for (const n of Object.values(notes)) { n.tags?.forEach(x => tags.add(x.toLowerCase())); n.mistakes?.forEach(x => mistakes.add(x.toLowerCase())); }
+    for (const n of Object.values(notes)) { n.tags?.forEach(x => tags.add(normTag(x))); n.mistakes?.forEach(x => mistakes.add(normTag(x))); }
     return { tags: [...tags].sort(), mistakes: [...mistakes].sort() };
   }, [notes]);
 
@@ -187,6 +188,17 @@ export default function TradeDetail() {
                   ))}
                 </div>
               </Field>
+            </div>
+            <div className="mt-4">
+              <div className="text-xs font-medium text-ink2 mb-1.5">Rating</div>
+              <div className="flex gap-1" role="radiogroup" aria-label="Rating">
+                {[1, 2, 3, 4, 5].map(n => (
+                  <button key={n} type="button" role="radio" aria-checked={draft.rating === n} aria-label={`${n} star${n > 1 ? 's' : ''}`} onClick={() => set({ rating: draft.rating === n ? 0 : n })}
+                    className={cx('w-9 h-9 grid place-items-center rounded-lg transition-colors', (draft.rating ?? 0) >= n ? 'text-warn' : 'text-ink3 hover:text-ink2')}>
+                    <Icon name="star" size={18} fill={(draft.rating ?? 0) >= n ? 'currentColor' : 'none'} />
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="mt-4">
               <div className="text-xs font-medium text-ink2 mb-1.5">State of mind</div>

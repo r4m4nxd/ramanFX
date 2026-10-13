@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Account, Attachment, Deposit, ExitData, InstrumentOverride, NotebookEntry, NotebookFolder, OpenPosition, RiskRules, Strategy, TagCategory, TradeNote, WorkingOrder } from '@/core/types';
 import type { ParsedReport } from '@/core/parsers';
 import { emptyJournal, mergeJournal, type Journal } from './merge';
+import { dedupeDeposits } from '@/core/stats';
 import * as cloud from './cloud';
 
 // localStorage keys are shared with the classic app (public/legacy.html) so both read the same data.
@@ -135,7 +136,7 @@ export const useStore = create<State>((set, getState) => {
         accounts: { ...s.accounts, [r.accountId]: acct },
         openPositions: [...s.openPositions.filter((p: OpenPosition) => p.account !== r.accountId), ...r.openPositions],
         workingOrders: [...s.workingOrders.filter((o: WorkingOrder) => o.account !== r.accountId), ...r.workingOrders],
-        deposits: [...deps.values()],
+        deposits: dedupeDeposits([...deps.values()]),
       });
       return { added, updated, skipped };
     },

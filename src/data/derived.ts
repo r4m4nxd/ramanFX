@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useStore } from './store';
-import { balanceSeries, computeStats, enrich, groupStats, maxDrawdownPct, riskAdjusted, traderScore, type EnrichedTrade } from '@/core/stats';
+import { balanceSeries, computeStats, enrich, groupStats, maxDrawdownPct, normTag, riskAdjusted, traderScore, type EnrichedTrade } from '@/core/stats';
 import { dayKey, parseTs } from '@/core/time';
 
 /** Trades for the active account (before the date filter). */
@@ -61,8 +61,8 @@ export function useAnalytics() {
     const journaled = et.filter(t => notes[t.id] && ((notes[t.id].tags?.length ?? 0) > 0 || notes[t.id].strategyId || (notes[t.id].mistakes?.length ?? 0) > 0));
     const adherence = journaled.length >= 5 ? journaled.filter(t => !(notes[t.id].mistakes?.length)).length / journaled.length : null;
     const score = traderScore(stats, ddPct, adherence);
-    const setups = groupStats(et, t => { const n = notes[t.id]; const tags = n?.tags ?? []; return tags.length ? tags : n ? '(no setup tag)' : '(not journaled)'; });
-    const mistakes = groupStats(et, t => notes[t.id]?.mistakes?.length ? notes[t.id].mistakes! : null).sort((a, b) => a.net - b.net);
+    const setups = groupStats(et, t => { const n = notes[t.id]; const tags = [...new Set((n?.tags ?? []).map(normTag))]; return tags.length ? tags : n ? '(no setup tag)' : '(not journaled)'; });
+    const mistakes = groupStats(et, t => notes[t.id]?.mistakes?.length ? [...new Set(notes[t.id].mistakes!.map(normTag))] : null).sort((a, b) => a.net - b.net);
     const symbols = groupStats(et, t => t.sym);
     const sessions = groupStats(et, t => t.session);
     return { et, stats, balance, hasSnapshot, ddPct, ...ra, score, setups, mistakes, symbols, sessions };

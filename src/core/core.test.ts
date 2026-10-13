@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { normalizeSymbol, positionSize, specFor, measuredUnitValues, unitValue, pipValuePerLot } from './instruments';
 import { LIBRARY, findFuture, pipValueInQuote, tickValueInQuote } from './library';
-import { balanceSeries, computeStats, enrich, maxDrawdownPct, riskAdjusted, traderScore } from './stats';
+import { balanceSeries, computeStats, dedupeDeposits, enrich, maxDrawdownPct, riskAdjusted, traderScore } from './stats';
 import { alignmentPlays, TIMEFRAME_COMBOS } from './playbook';
 import { brokerToLocal, parseTs } from './time';
 import type { Trade } from './types';
@@ -109,6 +109,31 @@ describe('balance reconstruction', () => {
     expect(s[0].balance).toBe(500);           // A=0 before deposit, B=500
     expect(s[s.length - 1].balance).toBe(1550); // 1100 + 450
     expect(maxDrawdownPct(s)).toBeCloseTo(50 / 1600);
+  });
+});
+
+describe('balance edge cases', () => {
+  it('applies a same-second transfer between accounts atomically', () => {
+    const deps = [
+      { time: '2026.06.04 11:43:49', amount: -500, balance: 0, comment: 'Transfer A > B', account: 'A' },
+      { time: '2026.06.04 11:43:49', amount: 500, balance: null, comment: 'Transfer A > B', account: 'B' },
+      { time: '2026.06.01 10:00:00', amount: 500, balance: 500, comment: 'Deposit', account: 'A' },
+    ];
+    const acc = { A: { id: 'A', name: '', broker: '', lastImport: 0, snapshot: { balance: 0 } }, B: { id: 'B', name: '', broker: '', lastImport: 0, snapshot: { balance: 500 } } };
+    const s = balanceSeries([], deps, acc, 'all');
+    expect(s.every(p => p.balance >= 0)).toBe(true);
+    expect(maxDrawdownPct(s)).toBe(0);
+  });
+  it('drops a deposit re-imported under a different broker offset, keeps swaps out of deposits', () => {
+    const deps = [
+      { time: '2026.08.13 22:30:45', amount: 10000, balance: 10000, comment: 'initial balance', account: 'A' },
+      { time: '2026.08.14 07:30:45', amount: 10000, balance: 10000, comment: 'initial balance', account: 'A' },
+      { time: '2026.08.15 10:00:00', amount: -2.4, balance: null, comment: 'w_swap_1', account: 'A' },
+    ];
+    expect(dedupeDeposits(deps)).toHaveLength(2);
+    const s = balanceSeries([], deps, { A: { id: 'A', name: '', broker: '', lastImport: 0, snapshot: { balance: 9997.6 } } }, 'A');
+    expect(s[s.length - 1].deposits).toBe(10000);
+    expect(s[0].balance).toBeCloseTo(0);
   });
 });
 

@@ -66,6 +66,7 @@ const metals: LibraryInstrument[] = [
   { symbol: 'XAUEUR', name: 'Gold / Euro', assetClass: 'metal', venue: 'CFD', quote: 'EUR', contractSize: 100, pipSize: 0.1, tickSize: 0.01, unit: 'oz' },
   { symbol: 'XAUGBP', name: 'Gold / British Pound', assetClass: 'metal', venue: 'CFD', quote: 'GBP', contractSize: 100, pipSize: 0.1, tickSize: 0.01, unit: 'oz' },
   { symbol: 'XAUAUD', name: 'Gold / Australian Dollar', assetClass: 'metal', venue: 'CFD', quote: 'AUD', contractSize: 100, pipSize: 0.1, tickSize: 0.01, unit: 'oz' },
+  { symbol: 'XAUCHF', name: 'Gold / Swiss Franc', assetClass: 'metal', venue: 'CFD', quote: 'CHF', contractSize: 100, pipSize: 0.1, tickSize: 0.01, unit: 'oz' },
   { symbol: 'XAUJPY', name: 'Gold / Japanese Yen', assetClass: 'metal', venue: 'CFD', quote: 'JPY', contractSize: 100, pipSize: 10, tickSize: 1, unit: 'oz' },
   { symbol: 'XAGUSD', name: 'Silver / US Dollar', assetClass: 'metal', venue: 'CFD', quote: 'USD', contractSize: 5000, pipSize: 0.01, tickSize: 0.001, unit: 'oz', aliases: ['SILVER'] },
   { symbol: 'XAGEUR', name: 'Silver / Euro', assetClass: 'metal', venue: 'CFD', quote: 'EUR', contractSize: 5000, pipSize: 0.01, tickSize: 0.001, unit: 'oz' },
@@ -102,9 +103,22 @@ const indices: LibraryInstrument[] = [
 
 // ─── Energy CFDs ───────────────────────────────────────────────────────
 const energy: LibraryInstrument[] = [
-  { symbol: 'USOIL', name: 'WTI Crude Oil', assetClass: 'energy', venue: 'CFD', quote: 'USD', contractSize: 1000, pipSize: 0.01, tickSize: 0.001, unit: 'bbl', aliases: ['WTI', 'XTIUSD', 'CL-OIL', 'USCRUDE', 'OILUSD'] },
-  { symbol: 'UKOIL', name: 'Brent Crude Oil', assetClass: 'energy', venue: 'CFD', quote: 'USD', contractSize: 1000, pipSize: 0.01, tickSize: 0.001, unit: 'bbl', aliases: ['BRENT', 'XBRUSD', 'BRN'] },
-  { symbol: 'NATGAS', name: 'Natural Gas', assetClass: 'energy', venue: 'CFD', quote: 'USD', contractSize: 10000, pipSize: 0.001, tickSize: 0.001, unit: 'MMBtu', aliases: ['XNGUSD', 'NGAS', 'NG-C'] },
+  { symbol: 'USOIL', name: 'WTI Crude Oil', assetClass: 'energy', venue: 'CFD', quote: 'USD', contractSize: 1000, pipSize: 0.01, tickSize: 0.001, unit: 'bbl', aliases: ['WTI', 'XTIUSD', 'CL-OIL', 'USCRUDE', 'OILUSD', 'SPOTCRUDE', 'CRUDE', 'CRUDEOIL'] },
+  { symbol: 'UKOIL', name: 'Brent Crude Oil', assetClass: 'energy', venue: 'CFD', quote: 'USD', contractSize: 1000, pipSize: 0.01, tickSize: 0.001, unit: 'bbl', aliases: ['BRENT', 'XBRUSD', 'BRN', 'SPOTBRENT'] },
+  { symbol: 'NATGAS', name: 'Natural Gas', assetClass: 'energy', venue: 'CFD', quote: 'USD', contractSize: 10000, pipSize: 0.001, tickSize: 0.001, unit: 'MMBtu', aliases: ['XNGUSD', 'NGAS', 'NG-C', 'NATURALGAS'] },
+  { symbol: 'GASOLINE', name: 'Gasoline (RBOB)', assetClass: 'energy', venue: 'CFD', quote: 'USD', contractSize: 1000, pipSize: 0.0001, tickSize: 0.0001, unit: 'gal', aliases: ['RBOB', 'UGAS'] },
+  { symbol: 'HEATINGOIL', name: 'Heating Oil', assetClass: 'energy', venue: 'CFD', quote: 'USD', contractSize: 1000, pipSize: 0.0001, tickSize: 0.0001, unit: 'gal', aliases: ['HOIL'] },
+];
+
+// ─── Agricultural & soft CFDs (contract sizes vary most by broker — your fills win) ───
+const agriCfd: LibraryInstrument[] = [
+  { symbol: 'SOYBEANS', name: 'Soybeans', assetClass: 'agri', venue: 'CFD', quote: 'USD', contractSize: 1, pipSize: 0.01, tickSize: 0.01, unit: '¢/bu', aliases: ['SOYBEAN', 'SOYB'] },
+  { symbol: 'CORN', name: 'Corn', assetClass: 'agri', venue: 'CFD', quote: 'USD', contractSize: 1, pipSize: 0.01, tickSize: 0.01, unit: '¢/bu' },
+  { symbol: 'WHEAT', name: 'Wheat', assetClass: 'agri', venue: 'CFD', quote: 'USD', contractSize: 1, pipSize: 0.01, tickSize: 0.01, unit: '¢/bu' },
+  { symbol: 'COFFEE', name: 'Coffee', assetClass: 'softs', venue: 'CFD', quote: 'USD', contractSize: 1, pipSize: 0.01, tickSize: 0.01, unit: '¢/lb' },
+  { symbol: 'SUGAR', name: 'Sugar', assetClass: 'softs', venue: 'CFD', quote: 'USD', contractSize: 1, pipSize: 0.01, tickSize: 0.01, unit: '¢/lb' },
+  { symbol: 'COCOA', name: 'Cocoa', assetClass: 'softs', venue: 'CFD', quote: 'USD', contractSize: 1, pipSize: 1, tickSize: 1, unit: '$/t' },
+  { symbol: 'COTTON', name: 'Cotton', assetClass: 'softs', venue: 'CFD', quote: 'USD', contractSize: 1, pipSize: 0.01, tickSize: 0.01, unit: '¢/lb' },
 ];
 
 // ─── Crypto CFDs (1 lot = 1 coin) ──────────────────────────────────────
@@ -213,7 +227,7 @@ const futures: LibraryInstrument[] = [
   fut('OJ', 'Orange Juice (FCOJ-A)', 'softs', 'ICE', 0.05, 7.5, 'USD', 15000, '15,000 lb (¢/lb)'),
 ];
 
-export const LIBRARY: LibraryInstrument[] = [...forex, ...metals, ...indices, ...energy, ...crypto, ...futures];
+export const LIBRARY: LibraryInstrument[] = [...forex, ...metals, ...indices, ...energy, ...agriCfd, ...crypto, ...futures];
 
 const BY_KEY = new Map<string, LibraryInstrument>();
 for (const i of LIBRARY) {
