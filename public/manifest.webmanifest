@@ -1,0 +1,1 @@
+{ "name": "RamanFX Trading Journal", "short_name": "RamanFX", "start_url": "/", "display": "standalone", "background_color": "#0A0C0F", "theme_color": "#0A0C0F", "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }] }
