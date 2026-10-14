@@ -10,6 +10,7 @@ import { RangePicker } from './RangePicker';
 export const NAV: { to: string; label: string; short?: string; icon: IconName; mobile?: boolean; group?: string }[] = [
   { to: '/', label: 'Dashboard', short: 'Home', icon: 'dashboard', mobile: true },
   { to: '/plan', label: 'Planner', short: 'Plan', icon: 'target', mobile: true },
+  { to: '/guru', label: 'Guru', icon: 'sparkles' },
   { to: '/journal', label: 'Daily journal', short: 'Journal', icon: 'journal', mobile: true },
   { to: '/trades', label: 'Trades', icon: 'trades', mobile: true },
   { to: '/reports', label: 'Reports', icon: 'reports' },
@@ -184,7 +185,7 @@ export function Shell({ children }: { children: ReactNode }) {
         <main className="flex-1 w-full max-w-[1360px] mx-auto px-4 lg:px-7 pt-5 land:pt-4 pb-28 land:pb-10 lg:pb-12">
           <AnimatePresence mode="wait">
             <motion.div key={loc.pathname} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.22 }}>
-              {!hasTrades && !['/playbook', '/calculator', '/settings', '/risk', '/notebook', '/strategies', '/plan'].some(p => loc.pathname.startsWith(p)) ? <Welcome onImport={() => setImportOpen(true)} /> : children}
+              {!hasTrades && !['/playbook', '/calculator', '/settings', '/risk', '/notebook', '/strategies', '/plan', '/guru'].some(p => loc.pathname.startsWith(p)) ? <Welcome onImport={() => setImportOpen(true)} /> : children}
             </motion.div>
           </AnimatePresence>
         </main>

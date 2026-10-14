@@ -11,6 +11,7 @@ import { Badge, Card, CardHead, cx, Empty, Field, Page, Segmented, useIsMobile, 
 import { Icon } from '@/ui/Icon';
 import { Choice, CurveSlider, MoveAwayArt, Question, VerdictPanel, YesNo } from '@/ui/PlanParts';
 import { SymbolPicker, useSpec } from './calcShared';
+import { ZoneBoard } from '@/ui/ZoneBoard';
 
 const STEPS = ['Setup', 'Zone', 'Context', 'Levels', 'Verdict'] as const;
 const MOVES: { v: MoveAway; t: string; s: string }[] = [
@@ -275,7 +276,7 @@ function PlanCard({ p }: { p: Plan }) {
       {p.entry != null && <div className="text-[12px] num text-ink2">@ {p.entry} · SL {p.stop ?? '—'} · TP {p.target ?? '—'}{p.lots ? ` · ${p.lots} lots` : ''}</div>}
       <div className="flex items-center gap-2 flex-wrap">
         <Badge tone={STATUS[p.status].tone}>{STATUS[p.status].t}</Badge>
-        {p.tradeId && <Link to={`/trades/${p.tradeId}`} className="text-xs text-accent">Linked trade</Link>}
+        {p.tradeId && <Link to={`/trades/${p.tradeId}`} className="text-xs text-accent inline-block py-2 -my-2">Linked trade</Link>}
         <div className="ml-auto flex gap-1.5">
           {n && !p.retro && <button className="btn h-8 text-xs" onClick={() => save({ ...p, status: n })}>→ {STATUS[n].t}</button>}
           {!['filled', 'skipped', 'missed'].includes(p.status) && !p.retro && <button className="btn-ghost h-8 text-xs" onClick={() => save({ ...p, status: 'skipped' })}>Skip</button>}
@@ -325,6 +326,7 @@ export default function Planner() {
           <Link to="/plan/new" className="btn-primary h-11 px-5 shrink-0"><Icon name="plus" size={16} />New plan</Link>
         </div>
       </Card>
+      <ZoneBoard />
       <div className="flex items-center justify-between gap-2">
         <Segmented label="Show" size="sm" value={filter} onChange={setFilter} options={[{ value: 'active', label: 'Active' }, { value: 'done', label: 'Done' }, { value: 'all', label: 'All' }]} />
         <span className="text-xs text-ink3">{live.length} plans</span>

@@ -11,6 +11,7 @@ import { Badge, Bar, Card, CardHead, CountUp, cx, InfoTip, Page, rise, Segmented
 import { TradeList } from '@/ui/TradeList';
 import { BalanceChart, bucketDays, type DayMetric, DailyBars, DivergingBars, EquityChart, PERIOD_NOUN, PeriodToggle, Sparkline, usePeriod } from '@/ui/charts';
 import { MonthCalendar } from '@/ui/MonthCalendar';
+import { cardOfDay } from '@/core/coach';
 import { Icon } from '@/ui/Icon';
 
 function Kpi({ label, children, foot, hint, className }: { label: string; children: React.ReactNode; foot?: React.ReactNode; hint?: string; className?: string }) {
@@ -46,6 +47,23 @@ function TodayStrip() {
         <Bar value={st.tradesUsed} tone={st.tradesUsed >= 1 ? 'loss' : 'accent'} />
       </div>
       {(st.breaches[0] || st.warnings[0]) && <div className={cx('text-xs w-full', st.locked ? 'text-loss' : 'text-warn')}>{st.breaches[0]?.text ?? st.warnings[0]}</div>}
+    </motion.section>
+  );
+}
+
+function GuruStrip() {
+  const { et } = useAnalytics();
+  const card = cardOfDay();
+  let streak = 0;
+  for (const t of [...et].sort((a, b) => b.close.getTime() - a.close.getTime())) { if (t.outcome === 'loss') streak++; else if (t.outcome === 'win') break; }
+  return (
+    <motion.section variants={rise} aria-label="Guru" className="card luxe-border p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+      <div className="w-10 h-10 rounded-xl bg-accent/15 text-accent grid place-items-center shrink-0"><Icon name="sparkles" size={18} /></div>
+      <Link to="/guru" className="min-w-0 flex-1">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-ink3">{streak >= 3 ? `${streak} losses in a row` : `Rule of the day · ${card.topic}`}</div>
+        <div className="text-[14px] font-semibold mt-0.5">{streak >= 3 ? 'Half risk, high-odds setups only, no trade within 15 minutes of a loss.' : `${card.title}. `}<span className="font-normal text-ink2">{streak >= 3 ? '' : card.body}</span></div>
+      </Link>
+      <Link to="/plan/new" className="btn-primary h-10 shrink-0"><Icon name="target" size={15} />Plan a trade</Link>
     </motion.section>
   );
 }
@@ -112,6 +130,7 @@ export default function Dashboard() {
   return (
     <Page>
       <TodayStrip />
+      <GuruStrip />
 
       <section aria-label="Key metrics" className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
         <Kpi label="Net P&L" foot={`${s.total} trades · ${s.days.length} days`}>
@@ -252,7 +271,7 @@ export default function Dashboard() {
               {recent.map(t => (
                 <tr key={t.account + t.id} onClick={() => nav(`/trades/${t.id}`)} className="cursor-pointer hover:bg-raised/60 transition-colors">
                   <td className="td pl-1 num text-ink2">{shortDate(t.close)} {timeHM(t.close)}</td>
-                  <td className="td"><Link to={`/trades/${t.id}`} className="font-mono font-medium hover:text-accent" onClick={e => e.stopPropagation()}>{t.sym}</Link></td>
+                  <td className="td"><Link to={`/trades/${t.id}`} className="font-mono font-medium hover:text-accent inline-block py-2 -my-2" onClick={e => e.stopPropagation()}>{t.sym}</Link></td>
                   <td className="td"><Badge tone={t.type === 'buy' ? 'accent' : 'warn'}>{t.type === 'buy' ? 'LONG' : 'SHORT'}</Badge></td>
                   <td className="td text-ink2 truncate max-w-[180px]">{notes[t.id]?.tags?.join(', ') || <span className="text-ink3">—</span>}</td>
                   <td className="td num text-right text-ink2">{t.holdSec >= 3600 ? `${(t.holdSec / 3600).toFixed(1)}h` : `${Math.round(t.holdSec / 60)}m`}</td>

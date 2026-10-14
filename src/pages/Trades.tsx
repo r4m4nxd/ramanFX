@@ -95,7 +95,7 @@ export default function Trades() {
                   return (
                     <tr key={t.account + t.id} onClick={() => nav(`/trades/${t.id}`)} className="cursor-pointer hover:bg-raised/60 transition-colors [&>td:first-child]:pl-5 [&>td:last-child]:pr-5">
                       <td className="td num text-ink2 whitespace-nowrap">{shortDate(t.close)} <span className="text-ink3">{timeHM(t.close)}</span></td>
-                      <td className="td"><Link to={`/trades/${t.id}`} onClick={e => e.stopPropagation()} className="font-mono font-medium hover:text-accent">{t.sym}</Link>{n?.mistakes?.length ? <span className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-warn align-middle" title="Has mistakes" /> : null}</td>
+                      <td className="td"><Link to={`/trades/${t.id}`} onClick={e => e.stopPropagation()} className="font-mono font-medium hover:text-accent inline-block py-2 -my-2">{t.sym}</Link>{n?.mistakes?.length ? <span className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-warn align-middle" title="Has mistakes" /> : null}</td>
                       <td className="td"><Badge tone={t.type === 'buy' ? 'accent' : 'warn'}>{t.type === 'buy' ? 'LONG' : 'SHORT'}</Badge></td>
                       <td className="td num text-right text-ink2">{t.volume}</td>
                       <td className="td num text-right text-ink2 whitespace-nowrap">{t.openPrice} → <span className={d >= 0 ? 'text-profit' : 'text-loss'}>{t.closePrice}</span></td>

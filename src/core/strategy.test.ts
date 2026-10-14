@@ -69,3 +69,13 @@ describe('matchPlan', () => {
 });
 
 it('breakeven win rate table', () => { expect(breakevenWinRate(2)).toBeCloseTo(1 / 3); expect(breakevenWinRate(3)).toBeCloseTo(0.25); });
+
+import { drills } from './coach';
+it('every drill has a clear engine answer', () => {
+  const d = drills();
+  expect(d.length).toBeGreaterThan(10);
+  expect(new Set(d.map(x => x.answer))).toEqual(new Set(['NO TRADE', 'HIGH ODDS', 'LOW ODDS']));
+  expect(d[0].answer).toBe('HIGH ODDS');
+  expect(d[1].answer).toBe('LOW ODDS');
+  expect(d[3].answer).toBe('NO TRADE');
+});
