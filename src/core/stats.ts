@@ -1,4 +1,4 @@
-import type { Account, Deposit, InstrumentOverride, Trade, TradeNote } from './types';
+import type { Account, Deposit, ExitData, InstrumentOverride, Trade, TradeNote } from './types';
 import { dayKey, parseTs, sessionOf, type Session } from './time';
 import { measuredUnitValues, normalizeSymbol, specFor, unitValue } from './instruments';
 
@@ -15,7 +15,7 @@ export interface EnrichedTrade extends Trade {
   /** Initial risk in account currency (stop distance × value × lots), when knowable. */
   risk: number | null;
   r: number | null;
-  riskSource: 'override' | 'stop' | null;
+  riskSource: 'override' | 'initial' | 'stop' | null;
 }
 
 /** Below this absolute net a trade counts as breakeven (commission-only scratches). */
@@ -23,7 +23,7 @@ export const BE_EPS = 0.01;
 
 export const netOf = (t: Pick<Trade, 'profit' | 'commission' | 'swap'>) => (t.profit || 0) + (t.commission || 0) + (t.swap || 0);
 
-export function enrich(trades: Trade[], notes: Record<string, TradeNote> = {}, overrides: Record<string, InstrumentOverride> = {}, allForMeasure: Trade[] = trades): EnrichedTrade[] {
+export function enrich(trades: Trade[], notes: Record<string, TradeNote> = {}, overrides: Record<string, InstrumentOverride> = {}, allForMeasure: Trade[] = trades, exits: Record<string, ExitData> = {}): EnrichedTrade[] {
   const measured = measuredUnitValues(allForMeasure);
   const out: EnrichedTrade[] = [];
   for (const t of trades) {
@@ -35,14 +35,16 @@ export function enrich(trades: Trade[], notes: Record<string, TradeNote> = {}, o
     const ov = notes[t.id]?.riskOverride;
     if (ov && ov > 0) { risk = ov; riskSource = 'override'; }
     else {
-      const sl = typeof t.sl === 'number' ? t.sl : parseFloat(String(t.sl));
+      // The stop the trade was opened with (from the RamanFX export) beats the final stop in the report.
+      const init = exits[t.id]?.initSl;
+      const sl = init && init > 0 ? init : typeof t.sl === 'number' ? t.sl : parseFloat(String(t.sl));
       // Only a stop on the losing side of entry describes initial risk. A stop moved to
       // breakeven or trailed into profit no longer does, so R is left unknown.
       const valid = sl > 0 && (t.type === 'buy' ? sl < t.openPrice : sl > t.openPrice);
       if (valid) {
         const uv = unitValue(specFor(sym, overrides[sym]), measured).value;
         const r = Math.abs(t.openPrice - sl) * uv * t.volume;
-        if (r > 0) { risk = r; riskSource = 'stop'; }
+        if (r > 0) { risk = r; riskSource = init && init > 0 ? 'initial' : 'stop'; }
       }
     }
     out.push({

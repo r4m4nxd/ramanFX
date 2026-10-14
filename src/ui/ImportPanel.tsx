@@ -48,7 +48,7 @@ export function ImportPanel({ onDone }: { onDone: () => void }) {
         className={cx('flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed px-6 py-10 text-center cursor-pointer transition-colors', drag ? 'border-accent bg-accent/5' : 'border-line2 hover:border-ink3')}>
         <div className="w-12 h-12 rounded-xl bg-accent/15 text-accent grid place-items-center"><Icon name="upload" size={22} /></div>
         <div className="font-semibold">{busy ? 'Reading…' : 'Drop reports here, or click to choose'}</div>
-        <div className="text-xs text-ink3 leading-relaxed">MT5 / MT4 account history (.html / .htm) · MAE/MFE CSV from the MQL5 "Advanced Trade History Exporter"</div>
+        <div className="text-xs text-ink3 leading-relaxed">MT5 / MT4 account history (.html / .htm) · MAE/MFE CSV from the RamanFX script (MAE / MFE lab page)</div>
         <input ref={fileRef} type="file" multiple accept=".html,.htm,.csv" className="sr-only" onChange={e => { if (e.target.files) void handle(e.target.files); e.target.value = ''; }} />
       </motion.label>
 

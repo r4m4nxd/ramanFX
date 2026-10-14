@@ -15,8 +15,9 @@ export function useEnriched(): EnrichedTrade[] {
   const all = useStore(s => s.trades);
   const notes = useStore(s => s.notes);
   const overrides = useStore(s => s.overrides);
+  const exits = useStore(s => s.exitData);
   const scoped = useAccountTrades();
-  return useMemo(() => enrich(scoped, notes, overrides, all), [scoped, notes, overrides, all]);
+  return useMemo(() => enrich(scoped, notes, overrides, all, exits), [scoped, notes, overrides, all, exits]);
 }
 
 export function inRange(t: EnrichedTrade, from: string | null, to: string | null) {

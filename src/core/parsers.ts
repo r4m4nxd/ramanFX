@@ -158,7 +158,7 @@ export function parseExitCSV(text: string): Record<string, ExitData> {
   const ix = (n: string) => headers.indexOf(n);
   const iPos = ix('Position ID') >= 0 ? ix('Position ID') : ix('Ticket');
   if (iPos < 0) return out;
-  const col = { sym: ix('Symbol'), type: ix('Type'), open: ix('Open Time'), close: ix('Close Time'), dur: ix('Duration (Hrs)'), pd: ix('Profit ($)'), pp: ix('Profit (Pts)'), mae: ix('MAE (Pts)'), mfe: ix('MFE (Pts)'), t30m: ix('T+30m (Pts)'), t1h: ix('T+1h (Pts)'), t4h: ix('T+4h (Pts)'), t12h: ix('T+12h (Pts)'), t1d: ix('T+1d (Pts)'), t1w: ix('T+1w (Pts)'), t1wMin: ix('T+1w MIN (Pts)') };
+  const col = { sym: ix('Symbol'), type: ix('Type'), open: ix('Open Time'), close: ix('Close Time'), dur: ix('Duration (Hrs)'), pd: ix('Profit ($)'), pp: ix('Profit (Pts)'), mae: ix('MAE (Pts)'), mfe: ix('MFE (Pts)'), t30m: ix('T+30m (Pts)'), t1h: ix('T+1h (Pts)'), t4h: ix('T+4h (Pts)'), t12h: ix('T+12h (Pts)'), t1d: ix('T+1d (Pts)'), t1w: ix('T+1w (Pts)'), t1wMin: ix('T+1w MIN (Pts)'), isl: ix('Initial SL'), itp: ix('Initial TP'), tmfe: ix('Minutes to MFE'), tmae: ix('Minutes to MAE'), src: ix('Source') };
   const n = (c: string[], i: number) => { if (i < 0) return null; const t = (c[i] ?? '').trim(); if (!t || t.toLowerCase() === 'n/a') return null; const v = parseFloat(t); return isNaN(v) ? null : v; };
   const mx = (a: number | null, b: number | null) => (a == null ? b : b == null ? a : Math.max(a, b));
   const mn = (a: number | null, b: number | null) => (a == null ? b : b == null ? a : Math.min(a, b));
@@ -171,6 +171,7 @@ export function parseExitCSV(text: string): Record<string, ExitData> {
       positionId: pos, fillCount: 1, symbol: c[col.sym] || null, type: c[col.type]?.toLowerCase() || null, openTime: c[col.open] || null, closeTime: c[col.close] || null,
       durationHrs: n(c, col.dur), profitDol: n(c, col.pd), profitPts: n(c, col.pp), mae: n(c, col.mae), mfe: n(c, col.mfe),
       t30m: n(c, col.t30m), t1h: n(c, col.t1h), t4h: n(c, col.t4h), t12h: n(c, col.t12h), t1d: n(c, col.t1d), t1w: n(c, col.t1w), t1wMin: n(c, col.t1wMin),
+      initSl: n(c, col.isl), initTp: n(c, col.itp), minToMfe: n(c, col.tmfe), minToMae: n(c, col.tmae), source: col.src >= 0 ? c[col.src] || null : null,
     };
     const e = out[pos];
     if (!e) { out[pos] = row; continue; }

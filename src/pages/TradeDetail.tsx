@@ -270,7 +270,7 @@ export default function TradeDetail() {
                 <div key={String(k)} className="flex justify-between gap-3 py-2 border-t border-line first:border-0"><dt className="text-ink2">{k}</dt><dd className="num text-right">{v}</dd></div>
               ))}
             </dl>
-            <Field label="Initial risk override" hint={t.riskSource === 'stop' ? 'Taken from the stop in the report. Override if you moved it before exit.' : 'No usable stop in the report (none, or moved past entry). Enter what you risked to get R.'}>
+            <Field label="Initial risk override" hint={t.riskSource === 'initial' ? 'From the stop this trade was opened with (RamanFX export) — exact.' : t.riskSource === 'stop' ? 'Taken from the final stop in the report. Run the RamanFX MT5 script for the stop you opened with.' : 'No usable stop in the report (none, or moved past entry). Enter what you risked to get R.'}>
               <input type="number" step="0.01" min="0" className="field num" value={draft.riskOverride ?? ''} placeholder={t.risk ? t.risk.toFixed(2) : 'e.g. 100'} onChange={e => set({ riskOverride: e.target.value ? +e.target.value : null })} />
             </Field>
             <p className="text-[11px] text-ink3 mt-2">Value per pip {uv.source === 'measured' ? 'measured from your fills' : 'from contract spec'} · 1 {pipLabel.slice(0, -1)} = {spec.pipSize} price</p>

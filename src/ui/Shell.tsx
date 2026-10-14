@@ -20,7 +20,7 @@ export const NAV: { to: string; label: string; short?: string; icon: IconName; m
   { to: '/risk', label: 'Risk rules', icon: 'shield', group: 'Plan' },
   { to: '/strategies', label: 'Strategies', icon: 'strategy', group: 'Plan' },
   { to: '/notebook', label: 'Notebook', icon: 'notebook', group: 'Plan' },
-  { to: '/exits', label: 'Exit analysis', icon: 'exit', group: 'Review' },
+  { to: '/exits', label: 'MAE / MFE lab', icon: 'exit', group: 'Review' },
   { to: '/settings', label: 'Settings', icon: 'settings', group: 'Review' },
 ];
 

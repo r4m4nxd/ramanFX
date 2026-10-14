@@ -131,6 +131,13 @@ export interface ExitData {
   t1w: number | null;
   t1wMin: number | null;
   dollarPerPt?: number | null;
+  /** Stop/target the position was opened with (RamanFX export). */
+  initSl?: number | null;
+  initTp?: number | null;
+  /** Minutes from entry to the best / worst price, when known. */
+  minToMfe?: number | null;
+  minToMae?: number | null;
+  source?: string | null;
   suspectMFE?: boolean;
   suspectMAE?: boolean;
 }
