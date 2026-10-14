@@ -6,7 +6,7 @@ import { useGraded } from '@/data/guru';
 import { useStore } from '@/data/store';
 import { BE_TABLE, cardOfDay, drills, RULE_CARDS } from '@/core/coach';
 import { formation, SD_COMBOS } from '@/core/strategy';
-import { COURSE, WHERE } from '@/core/course';
+import { COURSE, type Pdf, WHERE } from '@/core/course';
 import { monteCarlo } from '@/core/sim';
 import { pct, tone, useMoney } from '@/lib/format';
 import { Card, CardHead, CountUp, cx, ease, Page, Segmented, spring } from '@/ui/kit';
@@ -186,25 +186,66 @@ function Progress() {
   );
 }
 
+function Lesson({ l, open, toggle, i }: { l: (typeof COURSE)[number]; open: boolean; toggle: () => void; i: number }) {
+  return (
+    <motion.li initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: Math.min(i, 20) * 0.015 }} className="border-t border-line first:border-0">
+      <button onClick={toggle} aria-expanded={open} className="w-full flex gap-3 py-3 text-left">
+        <span className="w-5 h-5 mt-0.5 rounded-full bg-profit/20 text-profit grid place-items-center shrink-0"><Icon name="check" size={11} strokeWidth={3} /></span>
+        <div className="min-w-0 flex-1">
+          <div className="text-[13.5px] font-medium">{l.slide}</div>
+          <div className="text-[12px] text-ink3 mt-0.5">{l.how}</div>
+        </div>
+        <motion.span animate={{ rotate: open ? 90 : 0 }} className="text-ink3 shrink-0 mt-0.5"><Icon name="chevronRight" size={15} /></motion.span>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25, ease }} className="overflow-hidden">
+            <div className="ml-8 mb-3 rounded-xl bg-raised/50 border border-line p-3.5">
+              <ul className="flex flex-col gap-2">
+                {l.notes.map((n, j) => <li key={j} className="flex gap-2 text-[13px] leading-relaxed text-ink2"><span className="w-1.5 h-1.5 rounded-full bg-accent mt-[7px] shrink-0" />{n}</li>)}
+              </ul>
+              {l.rule && <div className="mt-3 rounded-lg bg-accent/12 text-accent text-[13px] font-semibold px-3 py-2">{l.rule}</div>}
+              <div className="flex gap-1.5 flex-wrap mt-3 items-center">
+                <span className="text-[11px] text-ink3 mr-1">Used in</span>
+                {l.where.split(' ').map(w => <Link key={w} to={WHERE[w].to} className="chip h-7 touch:h-9 text-[11px]">{WHERE[w].label}</Link>)}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.li>
+  );
+}
+
 function CourseMap() {
-  const [pdf, setPdf] = useState<'S&D' | 'Confirmation' | 'Set & Forget'>('S&D');
-  const xs = COURSE.filter(l => l.pdf === pdf);
+  const [pdf, setPdf] = useState<Pdf>('S&D');
+  const [q, setQ] = useState('');
+  const [open, setOpen] = useState<Set<string>>(new Set());
+  const ql = q.trim().toLowerCase();
+  const xs = COURSE.filter(l => (ql ? [l.slide, l.how, l.topic, l.rule ?? '', ...l.notes].join(' ').toLowerCase().includes(ql) : l.pdf === pdf));
+  const topics = [...new Set(xs.map(l => (ql ? `${l.pdf} · ${l.topic}` : l.topic)))];
+  const all = xs.length > 0 && xs.every(l => open.has(l.pdf + l.slide));
+  const toggle = (k: string) => setOpen(o => { const n = new Set(o); if (n.has(k)) n.delete(k); else n.add(k); return n; });
   return (
     <Card>
-      <CardHead title="Course map" sub={`All ${COURSE.length} lessons from your three PDFs — and exactly where the app applies each one`} />
-      <div className="mb-4"><Segmented label="Course" size="sm" value={pdf} onChange={setPdf} options={[{ value: 'S&D', label: 'Supply & demand' }, { value: 'Confirmation', label: 'Confirmation' }, { value: 'Set & Forget', label: 'Set & forget' }]} /></div>
-      <ol className="flex flex-col">
-        {xs.map((l, i) => (
-          <motion.li key={l.slide} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.015 }} className="flex gap-3 py-2.5 border-t border-line first:border-0">
-            <span className="w-5 h-5 mt-0.5 rounded-full bg-profit/20 text-profit grid place-items-center shrink-0"><Icon name="check" size={11} strokeWidth={3} /></span>
-            <div className="min-w-0 flex-1">
-              <div className="text-[13.5px] font-medium">{l.slide}</div>
-              <div className="text-[12px] text-ink3 mt-0.5">{l.how}</div>
-            </div>
-            <div className="flex gap-1 shrink-0 flex-wrap justify-end max-w-[40%]">{l.where.split(' ').map(w => <Link key={w} to={WHERE[w].to} className="chip h-7 touch:h-9 text-[11px]">{WHERE[w].label}</Link>)}</div>
-          </motion.li>
-        ))}
-      </ol>
+      <CardHead title="Course map" sub={`All ${COURSE.length} lessons from your three PDFs as study notes — tap any lesson to open it`} />
+      <div className="flex flex-wrap gap-2 items-center mb-3">
+        {!ql && <Segmented label="Course" size="sm" value={pdf} onChange={setPdf} options={[{ value: 'S&D', label: 'Supply & demand' }, { value: 'Confirmation', label: 'Confirmation' }, { value: 'Set & Forget', label: 'Set & forget' }]} />}
+        <button onClick={() => setOpen(all ? new Set() : new Set(xs.map(l => l.pdf + l.slide)))} className="chip h-8 touch:h-9 text-[12px] ml-auto">{all ? 'Collapse all' : 'Expand all'}</button>
+      </div>
+      <div className="relative mb-2">
+        <Icon name="search" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink3" />
+        <input aria-label="Search the course" className="field pl-9 h-10" placeholder="Search all three PDFs — e.g. curve, distal, breakeven" value={q} onChange={e => setQ(e.target.value)} />
+      </div>
+      {topics.map(t => (
+        <div key={t} className="mt-3">
+          <div className="label pt-2 pb-1">{t}</div>
+          <ol className="flex flex-col">
+            {xs.filter(l => (ql ? `${l.pdf} · ${l.topic}` : l.topic) === t).map((l, i) => <Lesson key={l.pdf + l.slide} l={l} i={i} open={open.has(l.pdf + l.slide)} toggle={() => toggle(l.pdf + l.slide)} />)}
+          </ol>
+        </div>
+      ))}
+      {!xs.length && <p className="text-sm text-ink3 text-center py-8">Nothing in the PDFs matches "{q}".</p>}
     </Card>
   );
 }
