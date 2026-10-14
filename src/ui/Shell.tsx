@@ -143,7 +143,7 @@ export function Shell({ children }: { children: ReactNode }) {
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex w-[232px] shrink-0 flex-col gap-1 border-r border-line bg-surface/40 px-3 py-4 sticky top-0 h-screen">
         <div className="flex items-center gap-2.5 px-2.5 pb-5 pt-1">
-          <div className="w-8 h-8 rounded-[9px] bg-accent grid place-items-center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0A0C0F" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8" /></svg></div>
+          <img src="/icon.svg" alt="" className="w-8 h-8 rounded-[9px] ring-1 ring-line" />
           <div className="font-bold text-[16px] tracking-tight">RamanFX</div>
         </div>
         {groups.map(g => (

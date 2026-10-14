@@ -1,1 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#5B8CFF"/><path d="M14 44l13-13 9 9 14-16" fill="none" stroke="#0A0C0F" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs><linearGradient id="t" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#12161D"/><stop offset="1" stop-color="#0A0C0F"/></linearGradient></defs>
+  <rect width="512" height="512" rx="114" fill="url(#t)"/>
+  <g transform="translate(80.9 97.9) scale(3.4)">
+    <rect class="m-wick" x="16.5" y="5" width="6" height="12" rx="1.2" fill="#5B8CFF"/>
+    <rect class="m-body" x="11" y="15" width="17" height="50" rx="2.5" fill="#5B8CFF"/>
+    <rect class="m-wick" x="16.5" y="63" width="6" height="18" rx="1.2" fill="#5B8CFF"/>
+    <path class="m-base" d="M8 80H59.49L65.76 88H8Z" fill="#5B8CFF"/>
+    <path class="m-bowl" d="M33 21.5H50A13 13 0 0 1 50 47.5H33" fill="none" stroke="#5B8CFF" stroke-width="11" pathLength="1"/>
+    <path class="m-leg" d="M34.01 47.5L64.75 86.74L64.25 68.26L47.99 47.5Z" fill="#5B8CFF"/>
+    <path class="m-kick" d="M64.75 86.74L94.51 44.15L85.49 37.85L64.25 68.26Z" fill="#3DDC97"/>
+  </g>
+</svg>
