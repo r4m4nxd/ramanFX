@@ -237,7 +237,7 @@ function Library() {
                     {venue === 'fut' ? `${ccySymbol(sp.quote)}${num(sp.pointValue, sp.pointValue < 10 ? 2 : 0)}` : (
                       <span className="inline-flex items-center gap-2 justify-end">
                         {m ? <span title="Your broker's real value per pip per lot, in account currency">{money(m * sp.pipSize)}</span> : <span className="text-ink3">—</span>}
-                        <button className="btn-ghost h-7 w-7 px-0" aria-label={`Edit ${i.symbol} spec`} onClick={() => setEdit(i.symbol)}><Icon name="edit" size={13} /></button>
+                        <button className="btn-ghost h-7 w-7 touch:h-9 touch:w-9 px-0" aria-label={`Edit ${i.symbol} spec`} onClick={() => setEdit(i.symbol)}><Icon name="edit" size={13} /></button>
                       </span>
                     )}
                   </td>

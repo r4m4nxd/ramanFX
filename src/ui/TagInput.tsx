@@ -20,13 +20,13 @@ export function TagInput({ value, onChange, universe, tone = 'accent', placehold
           {value.map(t => (
             <motion.span key={t} layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} className={cx('inline-flex items-center gap-1 h-7 pl-2.5 pr-1 rounded-full border text-xs font-medium', chip)}>
               {t}
-              <button type="button" aria-label={`Remove ${t}`} className="w-5 h-5 grid place-items-center rounded-full hover:bg-black/20" onClick={() => onChange(value.filter(x => x !== t))}><Icon name="x" size={11} /></button>
+              <button type="button" aria-label={`Remove ${t}`} className="w-5 h-5 touch:w-8 touch:h-8 touch:-my-1.5 touch:-mr-2 grid place-items-center rounded-full hover:bg-black/20" onClick={() => onChange(value.filter(x => x !== t))}><Icon name="x" size={11} /></button>
             </motion.span>
           ))}
         </AnimatePresence>
         <input aria-label={label} value={q} placeholder={value.length ? '' : placeholder} onChange={e => setQ(e.target.value)} onFocus={() => setFocus(true)} onBlur={() => setTimeout(() => setFocus(false), 120)}
           onKeyDown={e => { if ((e.key === 'Enter' || e.key === ',') && q.trim()) { e.preventDefault(); add(q); } if (e.key === 'Backspace' && !q && value.length) onChange(value.slice(0, -1)); }}
-          className="flex-1 min-w-[100px] h-7 bg-transparent border-0 px-1.5 text-sm focus:ring-0" />
+          className="flex-1 min-w-[100px] h-7 touch:h-9 bg-transparent border-0 px-1.5 text-sm focus:ring-0" />
       </div>
       <AnimatePresence>
         {focus && (sugg.length > 0 || q.trim()) && (

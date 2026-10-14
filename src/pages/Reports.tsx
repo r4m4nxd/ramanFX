@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Bar as RBar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from 'recharts';
 import { useAnalytics } from '@/data/derived';
@@ -11,10 +11,28 @@ import { ChartTip, DivergingBars, useAxisW, useColors } from '@/ui/charts';
 
 type Tab = 'overview' | 'time' | 'setups' | 'symbols' | 'risk' | 'compare';
 
-function GroupTable({ rows, label, onRow }: { rows: GroupStat[]; label: string; onRow?: (k: string) => void }) {
-  const fmt = useMoney();
+/** Width of an element, live. Tables pick their layout from the card they sit in, not the screen. */
+function useWidth<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [w, setW] = useState(9999);
+  useLayoutEffect(() => {
+    if (!ref.current) return;
+    const ro = new ResizeObserver(([e]) => setW(e.contentRect.width));
+    ro.observe(ref.current);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, w] as const;
+}
+
+function GroupTable(props: { rows: GroupStat[]; label: string; onRow?: (k: string) => void; compact?: boolean }) {
+  const [ref, w] = useWidth<HTMLDivElement>();
   const mobile = useIsMobile();
-  if (mobile) return (
+  return <div ref={ref}><GroupTableInner {...props} compact={props.compact || mobile || w < 600} /></div>;
+}
+
+function GroupTableInner({ rows, label, onRow, compact }: { rows: GroupStat[]; label: string; onRow?: (k: string) => void; compact?: boolean }) {
+  const fmt = useMoney();
+  if (compact) return (
     <ul className="flex flex-col">
       {rows.map(g => {
         const Row = onRow ? 'button' : 'div';
@@ -170,7 +188,7 @@ function SymbolsTab({ et }: { et: EnrichedTrade[] }) {
       <Card className="lg:col-span-2"><CardHead title="Symbols" sub="Tap a symbol to see its trades" />
         <DivergingBars rows={sym.map(g => ({ key: g.key, net: g.net }))} fmt={v => fmt(v, { signed: true, compact: true })} />
         <div className="mt-5"><GroupTable rows={sym} label="Symbol" onRow={k => nav(`/trades?symbol=${encodeURIComponent(k)}`)} /></div></Card>
-      <Card><CardHead title="Long vs short" /><GroupBars rows={side} height={180} /><GroupTable rows={side} label="Side" /></Card>
+      <Card><CardHead title="Long vs short" /><GroupBars rows={side} height={180} /><GroupTable rows={side} label="Side" compact /></Card>
     </div>
   );
 }

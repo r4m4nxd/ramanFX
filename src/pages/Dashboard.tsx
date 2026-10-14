@@ -58,7 +58,7 @@ function Checklist() {
   const done = items.filter(i => today[i]).length;
   return (
     <Card>
-      <CardHead title="Pre-session checklist" sub={`${done} of ${items.length} done today`} right={<Link to="/risk" className="text-xs text-accent hover:underline">Edit</Link>} />
+      <CardHead title="Pre-session checklist" sub={`${done} of ${items.length} done today`} right={<Link to="/risk" className="text-xs text-accent hover:underline inline-block py-2 -my-2">Edit</Link>} />
       <Bar value={items.length ? done / items.length : 0} className="mb-3" />
       <ul className="flex flex-col">
         {items.map(it => {
@@ -171,7 +171,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <Card><MonthCalendar days={s.days} onDay={d => nav(`/journal?day=${d}`)} /></Card>
         <Card>
-          <CardHead title="Setup performance" sub="Net result by setup tag — what actually pays you" right={<Link to="/reports?tab=setups" className="text-xs text-accent hover:underline">All setups</Link>} />
+          <CardHead title="Setup performance" sub="Net result by setup tag — what actually pays you" right={<Link to="/reports?tab=setups" className="text-xs text-accent hover:underline inline-block py-2 -my-2">All setups</Link>} />
           <div>
             <table className="w-full table-fixed">
               <thead><tr><th className="th">Setup</th><th className="th text-right w-14">Trades</th><th className="th text-right w-12">Win</th><th className="th text-right w-16 max-sm:hidden">Avg R</th><th className="th text-right w-24">Net</th></tr></thead>
@@ -195,7 +195,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <Card>
           <CardHead title="By symbol" sub={a.symbols.length > 12 && !allSyms ? `Best 6 and worst 6 of ${a.symbols.length}` : 'Every symbol, best to worst'}
-            right={a.symbols.length > 12 ? <button className="text-xs text-accent hover:underline" onClick={() => setAllSyms(v => !v)}>{allSyms ? 'Show less' : 'Show all'}</button> : undefined} />
+            right={a.symbols.length > 12 ? <button className="text-xs text-accent hover:underline inline-block py-2 -my-2" onClick={() => setAllSyms(v => !v)}>{allSyms ? 'Show less' : 'Show all'}</button> : undefined} />
           <DivergingBars rows={(a.symbols.length > 12 && !allSyms ? [...a.symbols.slice(0, 6), ...a.symbols.slice(-6)] : a.symbols).map(g => ({ key: g.key, net: g.net, sub: `${g.n} trades · ${pct(g.winRate, 0)}` }))} fmt={v => fmt(v, { signed: true, compact: true })} onRow={k => nav(`/trades?symbol=${encodeURIComponent(k)}`)} />
         </Card>
         <Card>
@@ -238,7 +238,7 @@ export default function Dashboard() {
       </div>
 
       <Card>
-        <CardHead title="Recent trades" sub="Open any trade to journal it" right={<Link to="/trades" className="text-xs text-accent hover:underline">All trades</Link>} />
+        <CardHead title="Recent trades" sub="Open any trade to journal it" right={<Link to="/trades" className="text-xs text-accent hover:underline inline-block py-2 -my-2">All trades</Link>} />
         {mobile ? <TradeList trades={recent} /> : (
         <div>
           <table className="w-full ">

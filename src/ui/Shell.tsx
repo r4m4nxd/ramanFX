@@ -134,7 +134,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
   const groups = ['', 'Plan', 'Review'];
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex land:pl-[calc(68px+env(safe-area-inset-left))]">
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex w-[232px] shrink-0 flex-col gap-1 border-r border-line bg-surface/40 px-3 py-4 sticky top-0 h-screen">
         <div className="flex items-center gap-2.5 px-2.5 pb-5 pt-1">
@@ -162,25 +162,25 @@ export function Shell({ children }: { children: ReactNode }) {
       <div className="flex-1 min-w-0 flex flex-col" ref={mainRef}>
         {/* Top bar */}
         <header className="sticky top-0 z-30 bg-bg border-b border-line pt-safe px-safe">
-          <div className="max-w-[1360px] mx-auto flex items-center gap-2 px-4 lg:px-7 h-14">
-            <h1 className="text-[17px] font-semibold tracking-tight truncate">{title}</h1>
+          <div className="max-w-[1360px] mx-auto flex items-center gap-2 px-4 lg:px-7 h-14 land:h-12">
+            <h1 className="text-[17px] font-semibold tracking-tight truncate min-w-[60px]">{title}</h1>
             <div className="ml-auto flex items-center gap-1.5">
-              <div className="hidden md:flex items-center gap-1.5">
-                <SyncPill />
+              <div className="hidden md:flex land:flex items-center gap-1.5 land:[&_select]:max-w-[150px]">
+                <span className="hidden xl:inline-flex"><SyncPill /></span><span className="xl:hidden"><SyncPill compact /></span>
                 <AccountPicker />
                 <RangePicker />
               </div>
               <button className="btn-ghost w-9 px-0" aria-label={privacy ? 'Show amounts' : 'Hide amounts'} aria-pressed={privacy} onClick={() => { setPrivacy(!privacy); toast(privacy ? 'Amounts visible' : 'Amounts hidden', 'info'); }}><Icon name={privacy ? 'eyeOff' : 'eye'} /></button>
               <button className="btn-ghost w-9 px-0" aria-label="Toggle theme" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}><Icon name={theme === 'dark' ? 'sun' : 'moon'} /></button>
-              <button className="btn-primary" onClick={() => setImportOpen(true)}><Icon name="upload" size={15} /><span className="hidden sm:inline">Import</span></button>
+              <button className="btn-primary" onClick={() => setImportOpen(true)}><Icon name="upload" size={15} /><span className="hidden sm:inline land:hidden">Import</span></button>
             </div>
           </div>
-          <div className="md:hidden flex items-center gap-2 px-4 pb-2.5 [&>*]:flex-1">
+          <div className="md:hidden land:hidden flex items-center gap-2 px-4 pb-2.5 [&>*]:flex-1">
             <RangePicker /><AccountPicker /><div className="!flex-none"><SyncPill compact /></div>
           </div>
         </header>
 
-        <main className="flex-1 w-full max-w-[1360px] mx-auto px-4 lg:px-7 pt-5 pb-28 lg:pb-12">
+        <main className="flex-1 w-full max-w-[1360px] mx-auto px-4 lg:px-7 pt-5 land:pt-4 pb-28 land:pb-10 lg:pb-12">
           <AnimatePresence mode="wait">
             <motion.div key={loc.pathname} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.22 }}>
               {!hasTrades && !['/playbook', '/calculator', '/settings', '/risk', '/notebook', '/strategies'].includes(loc.pathname) ? <Welcome onImport={() => setImportOpen(true)} /> : children}
@@ -189,8 +189,18 @@ export function Shell({ children }: { children: ReactNode }) {
         </main>
       </div>
 
+      {/* Phone landscape: slim icon rail on the left keeps the full height for content */}
+      <nav aria-label="Main" className="hidden land:flex fixed left-0 inset-y-0 z-40 w-[calc(68px+env(safe-area-inset-left))] pl-[env(safe-area-inset-left)] flex-col items-center justify-center gap-1 bg-surface border-r border-line">
+        {NAV.filter(n => n.mobile).map(n => (
+          <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cx('relative w-14 h-12 rounded-xl flex flex-col items-center justify-center gap-0.5 text-[9.5px] font-medium transition-colors', isActive ? 'text-accent bg-accent/10' : 'text-ink3')}>
+            <Icon name={n.icon} size={19} />{n.short ?? n.label}
+          </NavLink>
+        ))}
+        <button className="w-14 h-12 rounded-xl flex flex-col items-center justify-center gap-0.5 text-[9.5px] font-medium text-ink3" onClick={() => setMoreOpen(true)}><Icon name="more" size={19} />More</button>
+      </nav>
+
       {/* Mobile tab bar */}
-      <nav aria-label="Main" className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-surface border-t border-line pb-safe px-safe">
+      <nav aria-label="Main" className="lg:hidden land:hidden fixed bottom-0 inset-x-0 z-40 bg-surface border-t border-line pb-safe px-safe">
         <div className="flex justify-around px-2 pt-1.5">
           {NAV.filter(n => n.mobile).map(n => (
             <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cx('relative flex flex-col items-center gap-0.5 min-w-[58px] min-h-[46px] justify-center text-[10.5px] font-medium', isActive ? 'text-accent' : 'text-ink3')}>

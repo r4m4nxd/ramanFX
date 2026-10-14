@@ -66,9 +66,9 @@ function DayCard({ day, trades, open, onToggle }: { day: string; trades: Enriche
                     {trades.map(t => (
                       <tr key={t.account + t.id} className="hover:bg-raised/50">
                         <td className="td num text-ink2">{timeHM(t.open)}–{timeHM(t.close)}</td>
-                        <td className="td"><Link className="font-mono font-medium hover:text-accent" to={`/trades/${t.id}`}>{t.sym}</Link></td>
+                        <td className="td"><Link className="font-mono font-medium hover:text-accent inline-block py-2 -my-2" to={`/trades/${t.id}`}>{t.sym}</Link></td>
                         <td className="td"><Badge tone={t.type === 'buy' ? 'accent' : 'warn'}>{t.type === 'buy' ? 'LONG' : 'SHORT'}</Badge></td>
-                        <td className="td text-ink2">{notes[t.id]?.tags?.join(', ') || <Link to={`/trades/${t.id}`} className="text-accent text-xs">Journal it</Link>}</td>
+                        <td className="td text-ink2">{notes[t.id]?.tags?.join(', ') || <Link to={`/trades/${t.id}`} className="text-accent text-xs inline-block py-2 -my-2">Journal it</Link>}</td>
                         <td className={cx('td num text-right', tone(t.r))}>{rMult(t.r, 1)}</td>
                         <td className={cx('td num text-right font-semibold', tone(t.net))}>{fmt(t.net, { signed: true })}</td>
                       </tr>

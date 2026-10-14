@@ -228,7 +228,7 @@ export default function TradeDetail() {
                       const on = draft.align?.[k] === v;
                       return <button key={v} type="button" title={title} aria-label={`${k.toUpperCase()} ${title}`} aria-pressed={on}
                         onClick={() => set({ align: { combo: draft.align?.combo ?? 3, ...(draft.align ?? {}), [k]: on ? null : v } })}
-                        className={cx('flex-1 h-8 rounded-md border text-sm font-bold', on ? (v === 'up' ? 'border-profit text-profit bg-profit/10' : v === 'down' ? 'border-loss text-loss bg-loss/10' : 'border-ink2 text-ink bg-surface') : 'border-line2 text-ink3')}>{sym}</button>;
+                        className={cx('flex-1 h-8 touch:h-10 rounded-md border text-sm font-bold', on ? (v === 'up' ? 'border-profit text-profit bg-profit/10' : v === 'down' ? 'border-loss text-loss bg-loss/10' : 'border-ink2 text-ink bg-surface') : 'border-line2 text-ink3')}>{sym}</button>;
                     })}
                   </div>
                 </div>

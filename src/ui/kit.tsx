@@ -73,7 +73,7 @@ export function Segmented<T extends string>({ value, onChange, options, size = '
         const on = o.value === value;
         return (
           <button key={o.value} role="radio" aria-checked={on} onClick={() => onChange(o.value)} type="button"
-            className={cx('relative rounded-md font-medium transition-colors', size === 'sm' ? 'h-7 px-2.5 text-xs' : 'h-8 px-3 text-[13px]', on ? 'text-ink' : 'text-ink3 hover:text-ink2')}>
+            className={cx('relative rounded-md font-medium whitespace-nowrap transition-colors', size === 'sm' ? 'h-7 touch:h-9 px-2.5 touch:px-3 text-xs' : 'h-8 touch:h-10 px-3 text-[13px]', on ? 'text-ink' : 'text-ink3 hover:text-ink2')}>
             {on && <motion.span layoutId={`seg-${id}`} transition={spring} className="absolute inset-0 rounded-md bg-surface border border-line2 shadow-sm" />}
             <span className="relative">{o.label}</span>
           </button>
@@ -95,7 +95,7 @@ export function Tabs<T extends string>({ value, onChange, options, label }: { va
   const id = useId();
   if (!mobile && options.length <= 6) return <div><Segmented label={label} value={value} onChange={onChange} options={options} /></div>;
   return (
-    <div role="tablist" aria-label={label} className={cx('grid gap-1.5 p-1 rounded-2xl bg-raised border border-line', !mobile ? (options.length > 10 ? 'grid-cols-6' : 'grid-cols-5 xl:grid-cols-10') : options.length % 3 === 0 || options.length > 4 ? 'grid-cols-3' : 'grid-cols-2')}>
+    <div role="tablist" aria-label={label} className={cx('grid gap-1.5 p-1 rounded-2xl bg-raised border border-line', !mobile ? (options.length > 10 ? 'grid-cols-6' : 'grid-cols-5 xl:grid-cols-10') : options.length % 3 === 0 || options.length > 4 ? 'grid-cols-3 land:grid-cols-6' : 'grid-cols-2')}>
       {options.map(o => {
         const on = o.value === value;
         return (
@@ -144,7 +144,7 @@ export function Empty({ icon = 'info', title, children, action }: { icon?: IconN
 export function Tip({ text, children }: { text: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
-    <span className="relative inline-flex" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}>
+    <span className="relative inline-flex" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)} onClick={() => setOpen(o => !o)}>
       {children}
       <AnimatePresence>
         {open && (
@@ -159,7 +159,7 @@ export function Tip({ text, children }: { text: string; children: ReactNode }) {
 }
 
 export function InfoTip({ text }: { text: string }) {
-  return <Tip text={text}><button type="button" aria-label={text} className="text-ink3 hover:text-ink2"><Icon name="info" size={13} /></button></Tip>;
+  return <Tip text={text}><button type="button" aria-label={text} className="text-ink3 hover:text-ink2 p-1.5 -m-1.5 touch:p-2.5 touch:-m-2.5"><Icon name="info" size={13} /></button></Tip>;
 }
 
 // ─── Sheet (side panel on desktop, bottom sheet on mobile) ───────────

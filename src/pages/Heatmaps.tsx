@@ -71,7 +71,7 @@ export default function Heatmaps() {
 
   return (
     <Page>
-      <motion.div variants={rise} className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <motion.div variants={rise} className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-2xl md:text-[28px] font-semibold tracking-tight sheen-text">Where your edge lives</h2>
           <p className="text-[13px] text-ink3 mt-1">{et.length} trades. Hover or tap a cell; hatched cells have fewer than 3 trades.</p>

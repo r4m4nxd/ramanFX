@@ -86,7 +86,7 @@ export default function Exits() {
             <tbody>
               {[...rows].reverse().slice(0, 300).map(({ t, e, capture, left }) => (
                 <tr key={t.id} className="[&>td:first-child]:pl-5 [&>td:last-child]:pr-5 hover:bg-raised/50">
-                  <td className="td"><Link to={`/trades/${t.id}`} className="font-mono hover:text-accent">{t.sym}</Link> <span className="text-ink3 text-xs">{t.closeTime.slice(0, 10)}</span>{(e.suspectMAE || e.suspectMFE) && <span className="text-warn text-xs" title="Excursion data was repaired"> *</span>}</td>
+                  <td className="td"><Link to={`/trades/${t.id}`} className="font-mono hover:text-accent inline-block py-2 -my-2">{t.sym}</Link> <span className="text-ink3 text-xs">{t.closeTime.slice(0, 10)}</span>{(e.suspectMAE || e.suspectMFE) && <span className="text-warn text-xs" title="Excursion data was repaired"> *</span>}</td>
                   <td className="td num text-right text-loss">{num(e.mae, 0)}</td>
                   <td className="td num text-right text-profit">{num(e.mfe, 0)}</td>
                   <td className={cx('td num text-right', tone(e.profitPts))}>{num(e.profitPts, 0)}</td>
