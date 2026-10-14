@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Area, CartesianGrid, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useAnalytics } from '@/data/derived';
 import { blackScholes, payoffAtExpiry, PRESETS, valueNow, type Leg } from '@/core/options';
@@ -9,6 +9,7 @@ import { Card, CardHead, CountUp, cx, ease, Field, Segmented } from '@/ui/kit';
 import { ChartTip, useAxisW, useColors } from '@/ui/charts';
 import { Icon } from '@/ui/Icon';
 import { Result, useAccountCcy } from './calcShared';
+import { loadRates, rate } from '@/data/fx';
 
 const NumIn = ({ label, value, onChange, hint, step = 'any', suffix }: { label: string; value: string; onChange: (v: string) => void; hint?: ReactNode; step?: string; suffix?: string }) => (
   <Field label={label} hint={hint}>
@@ -368,5 +369,36 @@ export function OptionsCalc() {
         </div>
       </Card>
     </Grid>
+  );
+}
+
+/** Currency converter at ECB reference rates (same source the calculators use). */
+export function ConverterCalc() {
+  const [r, setR] = useState<Awaited<ReturnType<typeof loadRates>>>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => { void loadRates().then(x => { setR(x); setFailed(!x); }); }, []);
+  const [amt, setAmt] = useState('1');
+  const [from, setFrom] = useState('USD');
+  const [to, setTo] = useState('CAD');
+  const codes = r ? Object.keys(r.rates).sort() : ['USD'];
+  const k = rate(r, from, to);
+  const a = parseFloat(amt);
+  const out = k != null && isFinite(a) ? a * k : null;
+  const sel = (v: string, set: (x: string) => void, label: string) => <select aria-label={label} className="field font-mono" value={v} onChange={e => set(e.target.value)}>{codes.map(c => <option key={c}>{c}</option>)}</select>;
+  return (
+    <Card>
+      <CardHead title="Currency converter" sub="Convert between currencies at live reference rates (European Central Bank, updated each working day)" />
+      <div className="grid sm:grid-cols-[1fr_1fr_auto_1fr] gap-3 items-end">
+        <Field label="Amount"><input type="number" step="any" inputMode="decimal" className="field num" value={amt} onChange={e => setAmt(e.target.value)} /></Field>
+        <Field label="From">{sel(from, setFrom, 'From currency')}</Field>
+        <button className="btn h-10 w-10 px-0 justify-self-center" aria-label="Swap currencies" onClick={() => { setFrom(to); setTo(from); }}><Icon name="refresh" size={15} /></button>
+        <Field label="To">{sel(to, setTo, 'To currency')}</Field>
+      </div>
+      <div className="mt-4 rounded-xl bg-accent/10 border border-accent/30 p-4 text-center">
+        <div className="label">{amt || 0} {from} =</div>
+        <div className="num text-3xl font-semibold mt-1">{out != null ? `${out.toLocaleString(undefined, { maximumFractionDigits: out < 10 ? 5 : 2 })} ${to}` : '—'}</div>
+        <div className="text-[11.5px] text-ink3 mt-1">{failed ? 'Rates unavailable offline — try again when connected.' : k != null ? `1 ${from} = ${k.toFixed(5)} ${to} · 1 ${to} = ${(1 / k).toFixed(5)} ${from}${r?.date ? ` · ECB ${r.date}` : ''}` : 'Loading rates…'}</div>
+      </div>
+    </Card>
   );
 }

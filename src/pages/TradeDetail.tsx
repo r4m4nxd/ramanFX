@@ -15,6 +15,7 @@ import { TagInput } from '@/ui/TagInput';
 import { Icon } from '@/ui/Icon';
 import { Lightbox } from '@/ui/Lightbox';
 import { VerdictCard } from '@/ui/VerdictCard';
+import { TradeChart } from '@/ui/TradeChart';
 import { useGradedTrade } from '@/data/guru';
 
 const EMOTIONS = ['calm', 'focused', 'confident', 'anxious', 'fomo', 'greedy', 'revenge', 'tired', 'bored'];
@@ -149,6 +150,8 @@ export default function TradeDetail() {
       </Card>
 
       {graded && <VerdictCard g={graded} />}
+
+      <TradeChart t={t} levels={{ initSl: ex?.initSl, sl: t.sl, tp: t.tp, proximal: graded?.plan?.proximal, distal: graded?.plan?.distal }} />
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 items-start">
         <div className="xl:col-span-2 flex flex-col gap-4 min-w-0">

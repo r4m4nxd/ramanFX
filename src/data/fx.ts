@@ -5,7 +5,7 @@
 const KEY = 'rfx_fx_rates_v1';
 const TTL = 12 * 3600 * 1000;
 
-interface Cache { at: number; base: string; rates: Record<string, number> }
+interface Cache { at: number; base: string; rates: Record<string, number>; date?: string }
 
 let mem: Cache | null = null;
 
@@ -19,7 +19,7 @@ export async function loadRates(): Promise<Cache | null> {
     const res = await fetch('https://api.frankfurter.app/latest?from=USD');
     if (!res.ok) throw new Error(String(res.status));
     const j = await res.json();
-    mem = { at: Date.now(), base: 'USD', rates: { USD: 1, ...j.rates } };
+    mem = { at: Date.now(), base: 'USD', rates: { USD: 1, ...j.rates }, date: j.date };
     try { localStorage.setItem(KEY, JSON.stringify(mem)); } catch { /* ignore */ }
     return mem;
   } catch {

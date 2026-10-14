@@ -15,6 +15,8 @@ const Heatmaps = lazy(() => import('@/pages/Heatmaps'));
 const Planner = lazy(() => import('@/pages/Planner'));
 const Guru = lazy(() => import('@/pages/Guru'));
 const Guide = lazy(() => import('@/pages/Guide'));
+const News = lazy(() => import('@/pages/News'));
+const ChartPage = lazy(() => import('@/pages/ChartPage'));
 const Playbook = lazy(() => import('@/pages/Playbook'));
 const Calculator = lazy(() => import('@/pages/Calculator'));
 const Risk = lazy(() => import('@/pages/Risk'));
@@ -24,7 +26,7 @@ const Exits = lazy(() => import('@/pages/Exits'));
 const Settings = lazy(() => import('@/pages/Settings'));
 
 // Fetch every page in the background once the app is idle, so taps never wait on a download.
-const PRELOAD = [() => import('@/pages/Guide'), () => import('@/pages/Journal'), () => import('@/pages/Trades'), () => import('@/pages/TradeDetail'), () => import('@/pages/Reports'), () => import('@/pages/CalendarPage'), () => import('@/pages/Heatmaps'), () => import('@/pages/Planner'), () => import('@/pages/Guru'), () => import('@/pages/Playbook'), () => import('@/pages/Calculator'), () => import('@/pages/Risk'), () => import('@/pages/Strategies'), () => import('@/pages/Notebook'), () => import('@/pages/Exits'), () => import('@/pages/Settings')];
+const PRELOAD = [() => import('@/pages/Guide'), () => import('@/pages/News'), () => import('@/pages/ChartPage'), () => import('@/pages/Journal'), () => import('@/pages/Trades'), () => import('@/pages/TradeDetail'), () => import('@/pages/Reports'), () => import('@/pages/CalendarPage'), () => import('@/pages/Heatmaps'), () => import('@/pages/Planner'), () => import('@/pages/Guru'), () => import('@/pages/Playbook'), () => import('@/pages/Calculator'), () => import('@/pages/Risk'), () => import('@/pages/Strategies'), () => import('@/pages/Notebook'), () => import('@/pages/Exits'), () => import('@/pages/Settings')];
 
 function Loading() {
   return (
@@ -59,6 +61,8 @@ export default function App() {
               <Route path="/heatmaps" element={<Heatmaps />} />
               <Route path="/guru" element={<Guru />} />
               <Route path="/guide" element={<Guide />} />
+              <Route path="/news" element={<News />} />
+              <Route path="/chart" element={<ChartPage />} />
               <Route path="/plan" element={<Planner />} />
               <Route path="/plan/:id" element={<Planner />} />
               <Route path="/playbook" element={<Playbook />} />

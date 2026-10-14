@@ -17,6 +17,8 @@ export const NAV: { to: string; label: string; short?: string; icon: IconName; m
   { to: '/calendar', label: 'Calendar', icon: 'calendar' },
   { to: '/heatmaps', label: 'Heat maps', icon: 'flame' },
   { to: '/playbook', label: 'Playbook', icon: 'playbook', group: 'Plan' },
+  { to: '/chart', label: 'Advanced chart', short: 'Chart', icon: 'sliders', group: 'Plan' },
+  { to: '/news', label: 'Economic calendar', short: 'News', icon: 'clock', group: 'Plan' },
   { to: '/calculator', label: 'Calculator', icon: 'calculator', group: 'Plan' },
   { to: '/risk', label: 'Risk rules', icon: 'shield', group: 'Plan' },
   { to: '/strategies', label: 'Strategies', icon: 'strategy', group: 'Plan' },
@@ -175,7 +177,7 @@ export function Shell({ children }: { children: ReactNode }) {
               </div>
               <button className="btn-ghost w-9 px-0" aria-label={privacy ? 'Show amounts' : 'Hide amounts'} aria-pressed={privacy} onClick={() => { setPrivacy(!privacy); toast(privacy ? 'Amounts visible' : 'Amounts hidden', 'info'); }}><Icon name={privacy ? 'eyeOff' : 'eye'} /></button>
               <button className="btn-ghost w-9 px-0" aria-label="Toggle theme" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}><Icon name={theme === 'dark' ? 'sun' : 'moon'} /></button>
-              <button className="btn-primary" onClick={() => setImportOpen(true)}><Icon name="upload" size={15} /><span className="hidden sm:inline land:hidden">Import</span></button>
+              <button className="btn-primary" aria-label="Import" onClick={() => setImportOpen(true)}><Icon name="upload" size={15} /><span className="hidden sm:inline land:hidden">Import</span></button>
             </div>
           </div>
           <div className="md:hidden land:hidden flex items-center gap-2 px-4 pb-2.5 [&>*]:flex-1">
@@ -187,7 +189,7 @@ export function Shell({ children }: { children: ReactNode }) {
           {/* Plain keyed fade-in. An exit-then-enter handoff (AnimatePresence "wait") could stall
               while a lazy page was still loading, leaving the new page invisible. */}
           <motion.div key={loc.pathname} className="page-in">
-              {!hasTrades && !['/playbook', '/calculator', '/settings', '/risk', '/notebook', '/strategies', '/plan', '/guru', '/guide'].some(p => loc.pathname.startsWith(p)) ? <Welcome onImport={() => setImportOpen(true)} /> : children}
+              {!hasTrades && !['/playbook', '/calculator', '/settings', '/risk', '/notebook', '/strategies', '/plan', '/guru', '/guide', '/news', '/chart'].some(p => loc.pathname.startsWith(p)) ? <Welcome onImport={() => setImportOpen(true)} /> : children}
           </motion.div>
         </main>
       </div>
