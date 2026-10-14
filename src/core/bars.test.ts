@@ -32,3 +32,16 @@ describe('bars', () => {
     expect(pickTf(600, [])).toBeNull();
   });
 });
+
+describe('bars file formats', () => {
+  it('reads UTF-16 and semicolon files', async () => {
+    const { decodeText, isBarsCSV } = await import('./bars');
+    const txt = 'RamanFX Bars;1;777\r\nSymbol;TF;Time;Open;High;Low;Close\r\nEURUSD;H1;2026.01.15 10:00:00;1.1;1.2;1.0;1.15';
+    const u16 = new Uint8Array(2 + txt.length * 2); u16[0] = 0xff; u16[1] = 0xfe;
+    for (let i = 0; i < txt.length; i++) u16[2 + i * 2] = txt.charCodeAt(i);
+    const back = decodeText(u16.buffer);
+    expect(isBarsCSV(back)).toBe(true);
+    const r = parseBarsCSV(back, 'mt-ny');
+    expect(r.series['777|EURUSD|H1'].t.length).toBe(1);
+  });
+});

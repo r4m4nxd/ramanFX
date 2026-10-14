@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { decodeReport, parseExitCSV, parseReport } from '@/core/parsers';
-import { isBarsCSV, parseBarsCSV } from '@/core/bars';
+import { decodeText, isBarsCSV, parseBarsCSV } from '@/core/bars';
 import { saveBars } from '@/data/bars';
 import { useStore } from '@/data/store';
 import { Icon } from './Icon';
@@ -23,13 +23,15 @@ export function ImportPanel({ onDone }: { onDone: () => void }) {
     const msgs: string[] = [];
     for (const f of Array.from(files)) {
       try {
-        if (/\.csv$/i.test(f.name) && isBarsCSV(await f.slice(0, 64).text())) {
-          const b = parseBarsCSV(await f.text(), clock);
+        const text = /\.csv$/i.test(f.name) ? decodeText(await f.arrayBuffer()) : '';
+        if (text && isBarsCSV(text)) {
+          const b = parseBarsCSV(text, clock);
           if (!b.bars) { msgs.push(`${f.name}: no candles found`); continue; }
           const r = await saveBars(b.series);
-          msgs.push(`${f.name}: ${b.bars.toLocaleString()} candles for ${b.symbols.length} symbols${r.cloud ? ' — synced to the cloud' : ''}`);
-        } else if (/\.csv$/i.test(f.name)) {
-          const r = importExit(parseExitCSV(await f.text()));
+          msgs.push(`${f.name}: ${b.bars.toLocaleString()} candles for ${b.symbols.length} symbols${r.cloud ? ' — uploading to the cloud in the background' : ''}`);
+        } else if (text) {
+          const r = importExit(parseExitCSV(text));
+          if (!r.total) { msgs.push(`${f.name}: not recognised — expected RamanFX_Bars.csv or RamanFX_Excursions.csv from the RamanFX scripts`); continue; }
           msgs.push(`${f.name}: MAE/MFE for ${r.matched} of ${r.total} positions`);
         } else {
           const rep = parseReport(decodeReport(await f.arrayBuffer()), clock, userTz);

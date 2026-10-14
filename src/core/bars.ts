@@ -37,16 +37,27 @@ export interface BarsImport { series: Record<string, Series>; bars: number; symb
  *   Symbol,TF,Time,Open,High,Low,Close
  *   XAUUSD,M5,2026.05.11 07:40:00,2331.10,2332.40,2330.85,2331.95
  */
-export function isBarsCSV(text: string) { return /^﻿?RamanFX Bars/.test(text); }
+export function isBarsCSV(text: string) { return /^﻿?"?RamanFX Bars/.test(text) || /^﻿?"?Symbol"?[,;\t]"?TF"?[,;\t]"?Time/m.test(text.slice(0, 400)); }
+
+/** CSV bytes → text: UTF-8, or UTF-16 (MetaTrader writes that unless told ANSI). */
+export function decodeText(buf: ArrayBuffer): string {
+  const b = new Uint8Array(buf.slice(0, 4));
+  if (b[0] === 0xff && b[1] === 0xfe) return new TextDecoder('utf-16le').decode(buf);
+  if (b[0] === 0xfe && b[1] === 0xff) return new TextDecoder('utf-16be').decode(buf);
+  if (b.length >= 4 && b[1] === 0 && b[3] === 0) return new TextDecoder('utf-16le').decode(buf);
+  return new TextDecoder('utf-8').decode(buf);
+}
 
 export function parseBarsCSV(text: string, clock: BrokerClock): BarsImport {
-  const lines = text.replace(/^﻿/, '').replace(/\r\n?/g, '\n').split('\n');
-  const account = (lines[0].split(',')[2] ?? '').trim() || 'default';
+  const lines = text.replace(/^﻿/, '').replace(/\r\n?/g, '\n').replace(/"/g, '').split('\n');
+  const sep = /\t/.test(lines[1] ?? lines[0]) ? '\t' : /;/.test(lines[1] ?? lines[0]) ? ';' : ',';
+  const hasTitle = /^RamanFX Bars/.test(lines[0]);
+  const account = (hasTitle ? lines[0].split(sep)[2] ?? '' : '').trim() || 'default';
   const toUtc = brokerParser(clock);
   const tmp: Record<string, Map<number, [number, number, number, number]>> = {};
   let bars = 0;
-  for (let i = 2; i < lines.length; i++) {
-    const c = lines[i].split(',');
+  for (let i = hasTitle ? 2 : 1; i < lines.length; i++) {
+    const c = lines[i].split(sep);
     if (c.length < 7) continue;
     const tf = c[1].trim() as Tf;
     if (!TF_SEC[tf]) continue;

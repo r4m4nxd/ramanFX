@@ -7,7 +7,7 @@
 //| Import that file in RamanFX (Import → drop the CSV).             |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.00"
+#property version   "1.10"
 #property script_show_inputs
 #property strict
 
@@ -17,9 +17,9 @@ input int InpDaysBack = 365; // Trades closed in the last N days
 string          TfName[NTF] = {"M1", "M5", "M15", "H1", "H4", "D1"};
 ENUM_TIMEFRAMES TfVal[NTF]  = {PERIOD_M1, PERIOD_M5, PERIOD_M15, PERIOD_H1, PERIOD_H4, PERIOD_D1};
 // Context before entry / after exit, in seconds, and the longest hold each timeframe is used for.
-long Before[NTF]  = {3 * 3600, 12 * 3600, 2 * 86400, 8 * 86400, 30 * 86400, 300 * 86400};
-long After[NTF]   = {2 * 3600, 6 * 3600, 1 * 86400, 3 * 86400, 10 * 86400, 30 * 86400};
-long MaxHold[NTF] = {86400, 5 * 86400, 20 * 86400, 120 * 86400, 400 * 86400, 100000 * 86400};
+long Before[NTF]  = {90 * 60, 8 * 3600, 36 * 3600, 5 * 86400, 20 * 86400, 200 * 86400};
+long After[NTF]   = {60 * 60, 4 * 3600, 12 * 3600, 2 * 86400, 7 * 86400, 20 * 86400};
+long MaxHold[NTF] = {4 * 3600, 2 * 86400, 10 * 86400, 60 * 86400, 400 * 86400, 100000 * 86400};
 
 struct Pos { ulong id; string sym; datetime tIn; datetime tOut; };
 struct Win { string sym; int tf; datetime a; datetime b; bool used; };
@@ -54,16 +54,16 @@ void AddWin(const string sym, const int tf, const datetime a, const datetime b)
    wn++;
   }
 
-int Fetch(const string sym, const ENUM_TIMEFRAMES tf, const datetime a, const datetime b, MqlRates &r[])
+// Ask the terminal for the history once and wait (max ~5 s) for it to sync. False if nothing is available.
+bool Ready(const string sym, const ENUM_TIMEFRAMES tf)
   {
-   int got = -1;
-   for(int k = 0; k < 4 && got <= 0; k++)
+   for(int k = 0; k < 20; k++)
      {
-      got = CopyRates(sym, tf, a, b, r);
-      if(got <= 0)
-         Sleep(400); // history still loading
+      if(Bars(sym, tf) > 0 && SeriesInfoInteger(sym, tf, SERIES_SYNCHRONIZED))
+         return true;
+      Sleep(250);
      }
-   return got;
+   return Bars(sym, tf) > 0;
   }
 
 void OnStart()
@@ -126,6 +126,8 @@ void OnStart()
    FileWrite(h, "Symbol", "TF", "Time", "Open", "High", "Low", "Close");
 
    long total = 0;
+   int empty = 0;
+   string missing = "";
    for(int i = 0; i < wn; i++)
      {
       if(ws[i].used)
@@ -149,7 +151,15 @@ void OnStart()
            }
       string sym = ws[i].sym;
       int f = ws[i].tf;
+      Comment("RamanFX: exporting ", sym, " ", TfName[f], " ...");
+      if(!Ready(sym, TfVal[f]))
+        {
+         empty++;
+         missing = missing + " " + sym + " " + TfName[f];
+         continue;
+        }
       int dg = (int)SymbolInfoInteger(sym, SYMBOL_DIGITS);
+      long before = total;
       datetime a = ws[idx[0]].a, b = ws[idx[0]].b;
       for(int x = 1; x <= m; x++)
         {
@@ -160,7 +170,7 @@ void OnStart()
             continue;
            }
          MqlRates r[];
-         int got = Fetch(sym, TfVal[f], a, b, r);
+         int got = CopyRates(sym, TfVal[f], a, b, r);
          for(int q = 0; q < got; q++)
             FileWrite(h, sym, TfName[f], TimeToString(r[q].time, TIME_DATE | TIME_SECONDS),
                       DoubleToString(r[q].open, dg), DoubleToString(r[q].high, dg), DoubleToString(r[q].low, dg), DoubleToString(r[q].close, dg));
@@ -172,10 +182,22 @@ void OnStart()
             b = ws[idx[x]].b;
            }
         }
+      if(total == before)
+        {
+         empty++;
+         missing = missing + " " + sym + " " + TfName[f];
+        }
+      FileFlush(h);
      }
+   Comment("");
    FileClose(h);
    string path = TerminalInfoString(TERMINAL_DATA_PATH) + "\\MQL5\\Files\\" + name;
-   Alert("RamanFX: ", trades, " trades, ", total, " candles exported. File: ", path);
+   if(trades == 0)
+      Alert("RamanFX: no closed trades found in the last ", InpDaysBack, " days of this account's history.");
+   else
+      Alert("RamanFX: ", trades, " trades, ", total, " candles exported. File: ", path);
+   if(empty > 0)
+      Print("RamanFX: no candles for:", missing, " - your broker may not keep that much history.");
    Print("RamanFX charts export: ", path);
   }
 //+------------------------------------------------------------------+

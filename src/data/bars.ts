@@ -27,18 +27,19 @@ let version = 0;
 const subs = new Set<() => void>();
 const bump = () => { version++; subs.forEach(f => f()); };
 
-/** Merge an import into the device store and push the merged series to the cloud. */
+/** Merge an import into the device store, then mirror it to the cloud in the background. */
 export async function saveBars(series: Record<string, Series>): Promise<{ cloud: boolean }> {
   const merged: Record<string, Series> = {};
   for (const [k, s] of Object.entries(series)) { merged[k] = mergeSeries(await getLocal(k), s); await putLocal(k, merged[k]); }
   bump();
   const user = useStore.getState().user;
   if (!user) return { cloud: false };
-  try {
-    const rows = Object.entries(merged).map(([key, data]) => ({ user_id: user.id, key, data, updated_at: new Date().toISOString() }));
-    for (const row of rows) { const { error } = await supa().from('rfx_bars').upsert(row, { onConflict: 'user_id,key' }); if (error) throw error; }
-    return { cloud: true };
-  } catch { return { cloud: false }; }
+  void (async () => {
+    for (const [key, data] of Object.entries(merged)) {
+      try { await supa().from('rfx_bars').upsert({ user_id: user.id, key, data, updated_at: new Date().toISOString() }, { onConflict: 'user_id,key' }); } catch { /* next sync retries on re-import */ }
+    }
+  })();
+  return { cloud: true };
 }
 
 /** Series for a symbol on every timeframe: this account's first, any account's as a fallback; cloud when the device has none. */
