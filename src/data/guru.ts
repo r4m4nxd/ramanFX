@@ -73,3 +73,14 @@ export function useGradedTrade(id: string | undefined): Graded | null {
   const all = useGraded();
   return useMemo(() => all.find(g => g.t.id === id) ?? null, [all, id]);
 }
+
+/** Shape the insight engine reads. */
+export function toInsight(g: Graded, exits: Record<string, ExitData>): import('@/core/insights').InsightTrade {
+  const ex = excursionMoney(exits[g.t.id]);
+  return {
+    id: g.t.id, sym: g.t.sym, net: g.t.net, r: g.t.r, volume: g.t.volume, holdSec: g.t.holdSec, open: g.t.open, close: g.t.close,
+    outcome: g.t.outcome, session: g.t.session, planned: !!g.plan, odds: g.eval?.odds ?? null, tradeable: g.eval ? g.eval.tradeable : null,
+    adherence: g.verdict.adherence, mfeR: g.t.risk && ex.mfe != null ? ex.mfe / g.t.risk : null,
+    riskPct: g.t.risk && g.facts.balance ? (g.t.risk / g.facts.balance) * 100 : null, maxRiskPct: g.eval?.mgmt.maxRiskPct ?? null,
+  };
+}

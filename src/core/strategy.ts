@@ -241,7 +241,7 @@ export function judgeTrade(f: TradeFacts, plan: Plan | null, defaultRiskPct = 1)
   let checks = 0, passed = 0;
   const check = (ok: boolean) => { checks++; if (ok) passed++; };
 
-  if (!plan) say('bad', 'No plan. This trade was not graded before entry — you cannot know if it was high or low odds.', 'Having a specific plan prevents FOMO and off-plan trades.');
+  if (!plan) { say('bad', 'No plan. This trade was not graded before entry — you cannot know if it was high or low odds.', 'Having a specific plan prevents FOMO and off-plan trades.'); check(false); }
   else {
     if (!v!.tradeable) { check(false); say('bad', `Taken despite a NO-TRADE verdict: ${v!.blockers.map(b => b.text).join(' ')}`, v!.blockers[0].rule); }
     else check(true);

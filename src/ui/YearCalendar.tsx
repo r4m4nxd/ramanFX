@@ -5,7 +5,7 @@ import { dayKey } from '@/core/time';
 import { monthName, pct, tone, useMoney } from '@/lib/format';
 import { heatColor, HeatLegend, inkOn, scaleFor } from './Heatmap';
 import { Icon } from './Icon';
-import { CountUp, cx, ease } from './kit';
+import { CountUp, cx, ease, Segmented } from './kit';
 import { DayPeek, useLongPress } from './DayPeek';
 
 /**
@@ -16,7 +16,11 @@ export function YearCalendar({ days, year, onYear, onMonth }: { days: DayStat[];
   const fmt = useMoney();
   const map = useMemo(() => new Map(days.map(d => [d.date, d])), [days]);
   const yearDays = useMemo(() => days.filter(d => d.date.startsWith(`${year}-`)), [days, year]);
-  const scale = useMemo(() => scaleFor('net', yearDays.map(d => d.pnl)), [yearDays]);
+  const [metric, setMetric] = useState<'net' | 'win' | 'trades'>('net');
+  const mv = (d: DayStat) => (metric === 'net' ? d.pnl : metric === 'trades' ? d.trades : d.wins + d.losses ? d.wins / (d.wins + d.losses) : null);
+  const scale = useMemo(() => scaleFor(metric, yearDays.map(mv)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [yearDays, metric]);
   const [sel, setSel] = useState<string | null>(null);
   const selDay = sel ? map.get(sel) : undefined;
   const [peek, setPeek] = useState<string | null>(null);
@@ -52,12 +56,13 @@ export function YearCalendar({ days, year, onYear, onMonth }: { days: DayStat[];
         </div>
       </div>
 
+      <div className="flex justify-end -mb-2"><Segmented label="Colour by" size="sm" value={metric} onChange={setMetric} options={[{ value: 'net', label: 'Net $' }, { value: 'win', label: 'Win %' }, { value: 'trades', label: 'Trades' }]} /></div>
       {/* Selected-day bar */}
       <div className="h-[52px] rounded-xl bg-raised/70 border border-line px-4 flex items-center overflow-hidden">
         <AnimatePresence mode="wait" initial={false}>
           {selDay ? (
             <motion.div key={sel} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="flex items-center gap-3 w-full min-w-0">
-              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: heatColor('net', selDay.pnl, scale) }} />
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: heatColor(metric, mv(selDay), scale) }} />
               <span className="text-[13px] font-medium truncate">{new Date(selDay.date + 'T00:00').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}</span>
               <span className="text-xs text-ink3 num whitespace-nowrap">{selDay.trades} trades · {selDay.wins}W {selDay.losses}L</span>
               <span className={cx('num font-semibold ml-auto whitespace-nowrap', tone(selDay.pnl))}>{fmt(selDay.pnl, { signed: true })}</span>
@@ -66,7 +71,7 @@ export function YearCalendar({ days, year, onYear, onMonth }: { days: DayStat[];
           ) : (
             <motion.div key="hint" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center justify-between gap-3 w-full">
               <span className="text-xs text-ink3 whitespace-nowrap">Hold a day for details</span>
-              <div className="flex-1 max-w-[280px]"><HeatLegend metric="net" scale={scale} /></div>
+              <div className="flex-1 max-w-[280px]"><HeatLegend metric={metric} scale={scale} /></div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -97,7 +102,7 @@ export function YearCalendar({ days, year, onYear, onMonth }: { days: DayStat[];
                       onPointerEnter={e => { if (s && e.pointerType === 'mouse') setSel(k); }} onClick={() => { if (s && !hold.consumed()) setSel(k); }}
                       aria-label={s ? `${k}: ${fmt(s.pnl, { signed: true })}` : k}
                       className={cx('heat-cell hold-cell aspect-square rounded-[4px] text-[9px] num leading-none grid place-items-center', on && 'is-active', k === today && 'ring-1 ring-accent', !s && 'cursor-default')}
-                      style={{ background: s ? heatColor('net', s.pnl, scale) : 'rgb(var(--raised) / 0.6)', color: s ? inkOn('net', s.pnl, scale) : 'rgb(var(--ink3) / 0.6)', animationDelay: `${m * 45 + i * 9}ms` }}>
+                      style={{ background: s ? heatColor(metric, mv(s), scale) : 'rgb(var(--raised) / 0.6)', color: s ? inkOn(metric, mv(s), scale) : 'rgb(var(--ink3) / 0.6)', animationDelay: `${m * 45 + i * 9}ms` }}>
                       {i + 1}
                     </button>
                   );

@@ -46,12 +46,12 @@ export const periodLabel = (t: number, p: Period) => {
 export const PERIOD_NOUN: Record<Period, [string, string, string]> = { day: ['Daily', 'day', 'days'], week: ['Weekly', 'week', 'weeks'], month: ['Monthly', 'month', 'months'] };
 
 /** Sum day stats into weeks or months. */
-export function bucketDays<T extends { date: string; pnl: number; trades?: number; wins?: number; losses?: number }>(days: T[], p: Period) {
-  const m = new Map<string, { t: number; date: string; pnl: number; trades: number; wins: number; losses: number; n: number }>();
+export function bucketDays<T extends { date: string; pnl: number; trades?: number; wins?: number; losses?: number; r?: number }>(days: T[], p: Period) {
+  const m = new Map<string, { t: number; date: string; pnl: number; trades: number; wins: number; losses: number; n: number; r: number }>();
   for (const d of days) {
     const st = periodStart(new Date(d.date + 'T00:00'), p), k = dayKey(st);
-    const b = m.get(k) ?? { t: st.getTime(), date: k, pnl: 0, trades: 0, wins: 0, losses: 0, n: 0 };
-    b.pnl += d.pnl; b.trades += d.trades ?? 0; b.wins += d.wins ?? 0; b.losses += d.losses ?? 0; b.n++;
+    const b = m.get(k) ?? { t: st.getTime(), date: k, pnl: 0, trades: 0, wins: 0, losses: 0, n: 0, r: 0 };
+    b.pnl += d.pnl; b.r += d.r ?? 0; b.trades += d.trades ?? 0; b.wins += d.wins ?? 0; b.losses += d.losses ?? 0; b.n++;
     m.set(k, b);
   }
   return [...m.values()].sort((a, b) => a.t - b.t);
@@ -158,21 +158,24 @@ export function BalanceChart({ data: raw, height = 240, fmt, period }: { data: {
 }
 
 /** Net P&L bars per day, week or month. */
-export function DailyBars({ days, height = 220, fmt, period = 'day' }: { days: { date: string; pnl: number; trades?: number; wins?: number; losses?: number }[]; height?: number; fmt: (n: number, o?: { compact?: boolean; signed?: boolean }) => string; period?: Period }) {
+export type DayMetric = 'net' | 'r' | 'win' | 'n';
+export function DailyBars({ days, height = 220, fmt, period = 'day', metric = 'net' }: { days: { date: string; pnl: number; trades?: number; wins?: number; losses?: number; r?: number }[]; height?: number; fmt: (n: number, o?: { compact?: boolean; signed?: boolean }) => string; period?: Period; metric?: DayMetric }) {
   const c = useColors();
   const yw = useAxisW();
-  const data = useMemo(() => bucketDays(days, period), [days, period]);
+  const data = useMemo(() => bucketDays(days, period).map(d => ({ ...d, v: metric === 'net' ? d.pnl : metric === 'r' ? d.r : metric === 'n' ? d.trades : d.wins + d.losses ? d.wins / (d.wins + d.losses) : 0 })), [days, period, metric]);
   const byT = useMemo(() => new Map(data.map(d => [d.t, d])), [data]);
+  const f = (v: number, short = false) => (metric === 'net' ? fmt(v, short ? { compact: true } : { signed: true }) : metric === 'r' ? `${v >= 0 && !short ? '+' : ''}${v.toFixed(short ? 1 : 2)}R` : metric === 'n' ? String(Math.round(v)) : `${Math.round(v * 100)}%`);
+  const good = (v: number) => (metric === 'win' ? v >= 0.5 : v >= 0);
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
         <CartesianGrid stroke={c.line} vertical={false} />
         <XAxis dataKey="t" tickFormatter={v => periodTick(v, period)} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} minTickGap={period === 'month' ? 10 : 30} />
-        <YAxis tickFormatter={v => fmt(v, { compact: true })} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} width={yw} />
-        <ReferenceLine y={0} stroke={c.line2} />
-        <Tooltip content={<ChartTip fmt={v => fmt(v, { signed: true })} labelFmt={l => { const d = byT.get(l as number); return `${periodLabel(l as number, period)}${d?.trades ? ` · ${d.trades} trades` : ''}`; }} />} cursor={{ fill: c.a('ink3', 0.08) }} />
-        <Bar key={period} dataKey="pnl" name="Net" radius={[3, 3, 0, 0]} maxBarSize={period === 'month' ? 44 : period === 'week' ? 30 : 22} animationDuration={700}>
-          {data.map(d => <Cell key={d.t} fill={d.pnl >= 0 ? c.profit : c.loss} />)}
+        <YAxis tickFormatter={v => f(v, true)} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} width={yw} domain={metric === 'win' ? [0, 1] : ['auto', 'auto']} />
+        <ReferenceLine y={metric === 'win' ? 0.5 : 0} stroke={c.line2} strokeDasharray={metric === 'win' ? '4 4' : undefined} />
+        <Tooltip content={<ChartTip fmt={v => f(v)} labelFmt={l => { const d = byT.get(l as number); return `${periodLabel(l as number, period)}${d?.trades ? ` · ${d.trades} trades` : ''}`; }} />} cursor={{ fill: c.a('ink3', 0.08) }} />
+        <Bar key={period + metric} dataKey="v" name={{ net: 'Net', r: 'R', win: 'Win rate', n: 'Trades' }[metric]} radius={[3, 3, 0, 0]} maxBarSize={period === 'month' ? 44 : period === 'week' ? 30 : 22} animationDuration={700}>
+          {data.map(d => <Cell key={d.t} fill={metric === 'n' ? c.accent : good(d.v) ? c.profit : c.loss} />)}
         </Bar>
       </BarChart>
     </ResponsiveContainer>

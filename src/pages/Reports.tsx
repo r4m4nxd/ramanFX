@@ -77,27 +77,41 @@ function GroupTableInner({ rows, label, onRow, compact }: { rows: GroupStat[]; l
   );
 }
 
-/** Column chart of net by category. Long category lists thin their labels instead of overlapping. */
-function GroupBars({ rows, height = 220, labelFmt }: { rows: { key: string; net: number; n?: number }[]; height?: number; labelFmt?: (k: string) => string }) {
+type BarMetric = 'net' | 'exp' | 'win' | 'r' | 'n';
+const BAR_METRICS: { v: BarMetric; label: string }[] = [{ v: 'net', label: 'Net $' }, { v: 'exp', label: 'Per trade' }, { v: 'win', label: 'Win %' }, { v: 'r', label: 'Avg R' }, { v: 'n', label: 'Trades' }];
+type BarRow = { key: string; net: number; n?: number; winRate?: number; expectancy?: number; avgR?: number | null };
+
+/** Column chart by category with its own metric switch. Long category lists thin their labels instead of overlapping. */
+function GroupBars({ rows, height = 220, labelFmt }: { rows: BarRow[]; height?: number; labelFmt?: (k: string) => string }) {
   const c = useColors();
   const fmt = useMoney();
   const mobile = useIsMobile();
   const yw = useAxisW();
+  const [m, setM] = useState<BarMetric>('net');
+  const val = (r: BarRow) => (m === 'net' ? r.net : m === 'exp' ? r.expectancy ?? (r.n ? r.net / r.n : 0) : m === 'win' ? (r.n ? r.winRate ?? 0 : 0) : m === 'r' ? r.avgR ?? 0 : r.n ?? 0);
+  const f = (v: number, short = false) => (m === 'win' ? `${Math.round(v * 100)}%` : m === 'r' ? `${v.toFixed(short ? 1 : 2)}R` : m === 'n' ? String(Math.round(v)) : fmt(v, short ? { compact: true } : { signed: true }));
+  const data = rows.map(r => ({ key: r.key, v: val(r), n: r.n ?? 0 }));
   const maxLabels = mobile ? 8 : 24;
   const interval = rows.length > maxLabels ? Math.ceil(rows.length / maxLabels) - 1 : 0;
+  const good = (v: number) => (m === 'win' ? v >= 0.5 : v >= 0);
   return (
-    <ResponsiveContainer width="100%" height={mobile ? Math.min(height, 200) : height}>
-      <BarChart data={rows} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
-        <CartesianGrid stroke={c.line} vertical={false} />
-        <XAxis dataKey="key" tick={{ fontSize: 11, fill: c.ink3 }} tickFormatter={labelFmt} axisLine={false} tickLine={false} interval={interval} />
-        <YAxis tickFormatter={v => fmt(v, { compact: true })} tick={{ fontSize: 10.5, fill: c.ink3, fontFamily: 'Geist Mono' }} axisLine={false} tickLine={false} width={yw} />
-        <ReferenceLine y={0} stroke={c.line2} />
-        <Tooltip content={<ChartTip fmt={v => fmt(v)} labelFmt={l => (labelFmt ? labelFmt(String(l)) : String(l))} />} cursor={{ fill: c.a('ink3', 0.08) }} />
-        <RBar dataKey="net" name="Net" radius={[4, 4, 0, 0]} maxBarSize={40} animationDuration={700}>
-          {rows.map(r => <Cell key={r.key} fill={r.net >= 0 ? c.profit : c.loss} />)}
-        </RBar>
-      </BarChart>
-    </ResponsiveContainer>
+    <div>
+      <div className="flex flex-wrap gap-1 mb-2" role="radiogroup" aria-label="Metric">
+        {BAR_METRICS.map(x => <button key={x.v} role="radio" aria-checked={m === x.v} onClick={() => setM(x.v)} className={cx('h-7 touch:h-8 px-2.5 rounded-full text-[11.5px] font-medium transition-colors', m === x.v ? 'bg-accent/15 text-accent' : 'text-ink3 hover:text-ink2')}>{x.label}</button>)}
+      </div>
+      <ResponsiveContainer width="100%" height={mobile ? Math.min(height, 200) : height}>
+        <BarChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+          <CartesianGrid stroke={c.line} vertical={false} />
+          <XAxis dataKey="key" tick={{ fontSize: 11, fill: c.ink3 }} tickFormatter={labelFmt} axisLine={false} tickLine={false} interval={interval} />
+          <YAxis tickFormatter={v => f(v, true)} tick={{ fontSize: 10.5, fill: c.ink3, fontFamily: 'Geist Mono' }} axisLine={false} tickLine={false} width={yw} domain={m === 'win' ? [0, 1] : ['auto', 'auto']} />
+          <ReferenceLine y={m === 'win' ? 0.5 : 0} stroke={c.line2} strokeDasharray={m === 'win' ? '4 4' : undefined} />
+          <Tooltip content={<ChartTip fmt={v => f(v)} labelFmt={l => (labelFmt ? labelFmt(String(l)) : String(l))} />} cursor={{ fill: c.a('ink3', 0.08) }} />
+          <RBar key={m} dataKey="v" name={BAR_METRICS.find(x => x.v === m)!.label} radius={[4, 4, 0, 0]} maxBarSize={40} animationDuration={600}>
+            {data.map(r => <Cell key={r.key} fill={m === 'n' ? c.accent : good(r.v) ? c.profit : c.loss} />)}
+          </RBar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
@@ -137,7 +151,7 @@ function TimeTab({ et }: { et: EnrichedTrade[] }) {
   }, [et]);
   const hours = useMemo(() => {
     const g = new Map(groupStats(et, t => String(t.open.getHours()).padStart(2, '0')).map(x => [x.key, x]));
-    return Array.from({ length: 24 }, (_, h) => { const k = String(h).padStart(2, '0'); return { key: k, net: g.get(k)?.net ?? 0, n: g.get(k)?.n ?? 0 }; });
+    return Array.from({ length: 24 }, (_, h) => { const k = String(h).padStart(2, '0'); const x = g.get(k); return { key: k, net: x?.net ?? 0, n: x?.n ?? 0, winRate: x?.winRate ?? 0, expectancy: x?.expectancy ?? 0, avgR: x?.avgR ?? 0 }; });
   }, [et]);
   const hold = useMemo(() => {
     const b = (s: number) => (s < 300 ? '< 5m' : s < 900 ? '5–15m' : s < 3600 ? '15m–1h' : s < 14400 ? '1–4h' : s < 86400 ? '4h–1d' : '> 1d');

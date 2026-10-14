@@ -9,7 +9,7 @@ import { dayKey } from '@/core/time';
 import { pct, rMult, shortDate, timeHM, tone, useMoney } from '@/lib/format';
 import { Badge, Bar, Card, CardHead, CountUp, cx, InfoTip, Page, rise, Segmented, useIsMobile } from '@/ui/kit';
 import { TradeList } from '@/ui/TradeList';
-import { BalanceChart, bucketDays, DailyBars, DivergingBars, EquityChart, PERIOD_NOUN, PeriodToggle, Sparkline, usePeriod } from '@/ui/charts';
+import { BalanceChart, bucketDays, type DayMetric, DailyBars, DivergingBars, EquityChart, PERIOD_NOUN, PeriodToggle, Sparkline, usePeriod } from '@/ui/charts';
 import { MonthCalendar } from '@/ui/MonthCalendar';
 import { Icon } from '@/ui/Icon';
 
@@ -85,7 +85,8 @@ export default function Dashboard() {
   const fmt = useMoney();
   const nav = useNavigate();
   const notes = useStore(s => s.notes);
-  const [curve, setCurve] = useState<'pnl' | 'balance'>('pnl');
+  const [curve, setCurve] = useState<'pnl' | 'r' | 'balance'>('pnl');
+  const [barM, setBarM] = useState<DayMetric>('net');
   const [allSyms, setAllSyms] = useState(false);
   const mobile = useIsMobile();
   const s = a.stats;
@@ -94,6 +95,10 @@ export default function Dashboard() {
   const buckets = useMemo(() => bucketDays(s.days, barP), [s.days, barP]);
   const shown = barP === 'day' ? buckets.slice(-60) : barP === 'week' ? buckets.slice(-52) : buckets;
   const greenB = shown.filter(b => b.pnl > 0).length, redB = shown.filter(b => b.pnl < 0).length;
+  // Cumulative R (trades with a known initial stop) and R per day.
+  const rEquity = useMemo(() => { let cum = 0, peak = 0; return a.et.filter(t => t.r != null).map(t => { cum += t.r!; peak = Math.max(peak, cum); return { t: t.close.getTime(), cum, dd: cum - peak }; }); }, [a.et]);
+  const rByDay = useMemo(() => { const m = new Map<string, number>(); for (const t of a.et) if (t.r != null) { const k = dayKey(t.close); m.set(k, (m.get(k) ?? 0) + t.r); } return m; }, [a.et]);
+  const daysR = useMemo(() => s.days.map(d => ({ ...d, r: rByDay.get(d.date) ?? 0 })), [s.days, rByDay]);
   const recent = [...a.et].reverse().slice(0, 7);
   const lowSample = s.total < MIN_SCORE_TRADES;
 
@@ -133,10 +138,10 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <Card className="xl:col-span-2">
-          <CardHead title={curve === 'pnl' ? 'Equity curve' : 'Account balance'}
-            sub={curve === 'pnl' ? <>Cumulative net P&L · max drawdown <span className="num text-loss">{fmt(-s.maxDrawdown)}</span>{a.ddPct != null && <> (<span className="num">{pct(a.ddPct)}</span> of peak)</>}</> : 'Balance through time against net money deposited'}
-            right={<div className="flex flex-wrap gap-2"><PeriodToggle value={curveP} onChange={setCurveP} /><Segmented label="Curve" size="sm" value={curve} onChange={setCurve} options={[{ value: 'pnl', label: 'P&L' }, { value: 'balance', label: 'Balance' }]} /></div>} />
-          {curve === 'pnl' ? <EquityChart data={s.equity} fmt={fmt} height={280} period={curveP} /> : a.balance.length ? <BalanceChart data={a.balance} fmt={fmt} height={280} period={curveP} /> : <div className="h-[280px] grid place-items-center text-sm text-ink3">Import a report with an account summary to see balance.</div>}
+          <CardHead title={curve === 'pnl' ? 'Equity curve' : curve === 'r' ? 'Equity in R' : 'Account balance'}
+            sub={curve === 'r' ? `Cumulative R over ${rEquity.length} trades with a known stop — the purest read of your edge` : curve === 'pnl' ? <>Cumulative net P&L · max drawdown <span className="num text-loss">{fmt(-s.maxDrawdown)}</span>{a.ddPct != null && <> (<span className="num">{pct(a.ddPct)}</span> of peak)</>}</> : 'Balance through time against net money deposited'}
+            right={<div className="flex flex-wrap gap-2"><PeriodToggle value={curveP} onChange={setCurveP} /><Segmented label="Curve" size="sm" value={curve} onChange={setCurve} options={[{ value: 'pnl', label: '$ P&L' }, { value: 'r', label: 'R' }, { value: 'balance', label: 'Balance' }]} /></div>} />
+          {curve === 'pnl' ? <EquityChart data={s.equity} fmt={fmt} height={280} period={curveP} /> : curve === 'r' ? <EquityChart data={rEquity} fmt={v => rMult(v, 1)} height={280} period={curveP} /> : a.balance.length ? <BalanceChart data={a.balance} fmt={fmt} height={280} period={curveP} /> : <div className="h-[280px] grid place-items-center text-sm text-ink3">Import a report with an account summary to see balance.</div>}
         </Card>
 
         <Card>
@@ -230,9 +235,9 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <Card className="xl:col-span-2">
-          <CardHead title={`${PERIOD_NOUN[barP][0]} net P&L`} right={<PeriodToggle value={barP} onChange={setBarP} />}
+          <CardHead title={`${PERIOD_NOUN[barP][0]} ${{ net: 'net P&L', r: 'R', win: 'win rate', n: 'trades' }[barM]}`} right={<div className="flex flex-wrap gap-2"><Segmented label="Metric" size="sm" value={barM} onChange={setBarM} options={[{ value: 'net', label: '$' }, { value: 'r', label: 'R' }, { value: 'win', label: 'Win %' }, { value: 'n', label: 'Trades' }]} /><PeriodToggle value={barP} onChange={setBarP} /></div>}
             sub={<>Green {PERIOD_NOUN[barP][2]} {greenB} · red {PERIOD_NOUN[barP][2]} {redB} · {PERIOD_NOUN[barP][1]} win rate <span className="num">{pct(greenB + redB ? greenB / (greenB + redB) : null, 0)}</span>{barP !== 'month' && <> · last {shown.length} {PERIOD_NOUN[barP][2]}</>}</>} />
-          <DailyBars days={barP === 'day' ? s.days.slice(-60) : s.days.filter(d => !shown.length || d.date >= shown[0].date)} fmt={fmt} period={barP} />
+          <DailyBars days={barP === 'day' ? daysR.slice(-60) : daysR.filter(d => !shown.length || d.date >= shown[0].date)} fmt={fmt} period={barP} metric={barM} />
         </Card>
         <Checklist />
       </div>
