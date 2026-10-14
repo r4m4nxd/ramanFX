@@ -18,7 +18,7 @@ export const NAV: { to: string; label: string; short?: string; icon: IconName; m
   { to: '/heatmaps', label: 'Heat maps', icon: 'flame' },
   { to: '/playbook', label: 'Playbook', icon: 'playbook', group: 'Plan' },
   { to: '/chart', label: 'Advanced chart', short: 'Chart', icon: 'sliders', group: 'Plan' },
-  { to: '/news', label: 'Economic calendar', short: 'News', icon: 'clock', group: 'Plan' },
+  { to: '/news', label: 'News & calendar', short: 'News', icon: 'clock', group: 'Plan' },
   { to: '/calculator', label: 'Calculator', icon: 'calculator', group: 'Plan' },
   { to: '/risk', label: 'Risk rules', icon: 'shield', group: 'Plan' },
   { to: '/strategies', label: 'Strategies', icon: 'strategy', group: 'Plan' },

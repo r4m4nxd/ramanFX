@@ -1,3 +1,4 @@
+import { TickerTape } from '@/ui/TickerTape';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -360,6 +361,7 @@ export default function Planner() {
   const shown = live.filter(p => (filter === 'all' ? true : filter === 'active' ? !['filled', 'skipped', 'missed'].includes(p.status) : ['filled', 'skipped', 'missed'].includes(p.status)));
   return (
     <Page>
+      <TickerTape />
       <Card className="luxe-border">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex-1">

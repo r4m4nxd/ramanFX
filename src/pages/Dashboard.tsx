@@ -1,3 +1,4 @@
+import { TickerTape } from '@/ui/TickerTape';
 import { motion } from 'framer-motion';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -122,6 +123,7 @@ export default function Dashboard() {
 
   if (!s.total) return (
     <Page>
+      <TickerTape />
       <TodayStrip />
       <Card><div className="py-16 text-center text-ink3">No trades in this date range. Pick another range at the top.</div></Card>
     </Page>
@@ -129,6 +131,7 @@ export default function Dashboard() {
 
   return (
     <Page>
+      <TickerTape />
       <TodayStrip />
       <GuruStrip />
 
