@@ -7,10 +7,11 @@ import type { AssetClass } from '@/core/library';
 import { ccySymbol, money, num, price } from '@/lib/format';
 import { Badge, Card, CardHead, CountUp, cx, Field, InfoTip, Page, Segmented, Stat, Tabs, useIsMobile } from '@/ui/kit';
 import { Result, SourceNote, SymbolPicker, useSpec } from './calcShared';
-import { DrawdownCalc, EdgeCalc, GrowthCalc, LevelsCalc, MarginCalc, PnlCalc, RRCalc } from './CalcTools';
+import { DrawdownCalc, GrowthCalc, LevelsCalc, MarginCalc, PnlCalc, RRCalc } from './CalcTools';
+import { MonteCarloCalc, OptionsCalc, PropCalc } from './CalcTools2';
 import { Icon } from '@/ui/Icon';
 
-type Tab = 'size' | 'value' | 'pnl' | 'margin' | 'rr' | 'growth' | 'dd' | 'edge' | 'levels' | 'library';
+type Tab = 'size' | 'value' | 'pnl' | 'margin' | 'rr' | 'growth' | 'dd' | 'mc' | 'prop' | 'options' | 'levels' | 'library';
 
 function SizeCalc() {
   const accounts = useStore(s => s.accounts);
@@ -286,12 +287,13 @@ export default function Calculator() {
     <Page>
       <div className="flex flex-col gap-3">
         <Tabs label="Calculator" value={tab} onChange={v => setParams({ tab: v }, { replace: true })} options={[
-          { value: 'size', label: 'Position size' }, { value: 'value', label: 'Pip value' }, { value: 'pnl', label: 'Profit & loss' }, { value: 'margin', label: 'Margin' }, { value: 'rr', label: 'Risk : reward' },
-          { value: 'growth', label: 'Compounding' }, { value: 'dd', label: 'Drawdown' }, { value: 'edge', label: 'Risk of ruin' }, { value: 'levels', label: 'Pivots & Fib' }, { value: 'library', label: 'Instruments' },
+          { value: 'size', label: 'Position size' }, { value: 'value', label: 'Pip value' }, { value: 'pnl', label: 'Profit & loss' }, { value: 'rr', label: 'Risk : reward' },
+          { value: 'margin', label: 'Margin' }, { value: 'mc', label: 'Monte Carlo' }, { value: 'dd', label: 'Drawdown' }, { value: 'prop', label: 'Prop firm' },
+          { value: 'options', label: 'Options' }, { value: 'growth', label: 'Compounding' }, { value: 'levels', label: 'Pivots & Fib' }, { value: 'library', label: 'Instruments' },
         ]} />
         <span className="text-xs text-ink3 flex items-center gap-1.5">Futures specs from CME, CBOT, NYMEX, COMEX, ICE, Eurex and Cboe<InfoTip text="Broker CFDs vary. When you've traded a symbol, the app uses the value measured from your own fills instead." /></span>
       </div>
-      {{ size: <SizeCalc />, value: <ValueCalc />, pnl: <PnlCalc />, margin: <MarginCalc />, rr: <RRCalc />, growth: <GrowthCalc />, dd: <DrawdownCalc />, edge: <EdgeCalc />, levels: <LevelsCalc />, library: <Library /> }[tab] ?? <SizeCalc />}
+      {{ size: <SizeCalc />, value: <ValueCalc />, pnl: <PnlCalc />, margin: <MarginCalc />, rr: <RRCalc />, growth: <GrowthCalc />, dd: <DrawdownCalc />, mc: <MonteCarloCalc />, prop: <PropCalc />, options: <OptionsCalc />, levels: <LevelsCalc />, library: <Library /> }[tab] ?? <SizeCalc />}
     </Page>
   );
 }

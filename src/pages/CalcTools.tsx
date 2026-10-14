@@ -1,11 +1,11 @@
 import { motion } from 'framer-motion';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Area, AreaChart, CartesianGrid, Line, ComposedChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { useAnalytics } from '@/data/derived';
 import { money, num, pct, price } from '@/lib/format';
 import { Card, CardHead, CountUp, cx, ease, Field, Segmented } from '@/ui/kit';
 import { ChartTip, useAxisW, useColors } from '@/ui/charts';
 import { Result, SourceNote, SymbolPicker, useAccountCcy, useSpec } from './calcShared';
+import { RecoverySim } from './CalcTools2';
 
 const NumIn = ({ label, value, onChange, hint, step = 'any', suffix }: { label: string; value: string; onChange: (v: string) => void; hint?: ReactNode; step?: string; suffix?: string }) => (
   <Field label={label} hint={hint}>
@@ -36,12 +36,58 @@ const Grid = ({ children }: { children: ReactNode }) => <div className="grid gri
 
 // ─── Profit / loss ───────────────────────────────────────────────────
 export function PnlCalc() {
-  const [futures, setFutures] = useState(false);
-  const [symbol, setSymbol] = useState('XAUUSD');
+  const [market, setMarket] = useState<'cfd' | 'fut' | 'stock'>('cfd');
+  return (
+    <div className="flex flex-col gap-3">
+      <Segmented label="Market" value={market} onChange={setMarket} options={[{ value: 'cfd', label: 'Forex / CFD' }, { value: 'fut', label: 'Futures' }, { value: 'stock', label: 'Stocks' }]} />
+      {market === 'stock' ? <StockPnl /> : <InstrumentPnl key={market} futures={market === 'fut'} />}
+    </div>
+  );
+}
+
+function StockPnl() {
+  const ccy = useAccountCcy();
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
-  const [lots, setLots] = useState('0.5');
-  const [entry, setEntry] = useState('2650');
-  const [exit, setExit] = useState('2665');
+  const [shares, setShares] = useState('100');
+  const [buy, setBuy] = useState('182.50');
+  const [sell, setSell] = useState('191.20');
+  const [comm, setComm] = useState('1');
+  const dir = side === 'buy' ? 1 : -1;
+  const gross = (+sell - +buy) * (+shares || 0) * dir;
+  const fees = (+comm || 0) * 2;
+  const net = gross - fees;
+  const cost = (+buy || 0) * (+shares || 0);
+  return (
+    <Grid>
+      <Card className="lg:col-span-3">
+        <CardHead title="Stock profit" sub="Shares bought and sold, commissions on both sides" />
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field label="Direction"><Segmented label="Direction" value={side} onChange={setSide} options={[{ value: 'buy', label: 'Long' }, { value: 'sell', label: 'Short' }]} /></Field>
+          <NumIn label="Shares" value={shares} onChange={setShares} step="1" />
+          <NumIn label={side === 'buy' ? 'Buy price' : 'Entry (sell) price'} value={buy} onChange={setBuy} />
+          <NumIn label={side === 'buy' ? 'Sell price' : 'Exit (buy back) price'} value={sell} onChange={setSell} />
+          <NumIn label={`Commission per order (${ccy})`} value={comm} onChange={setComm} />
+        </div>
+      </Card>
+      <Card className="lg:col-span-2 lg:sticky lg:top-20">
+        <Hero label="Net profit" value={net} format={v => money(v, { ccy, signed: true })} tone={net >= 0 ? 'text-profit' : 'text-loss'} />
+        <div className="grid grid-cols-2 gap-4 mt-5 pt-5 border-t border-line">
+          <Result label="Return" value={pct(cost ? net / cost : null, 2)} sub="On capital used" />
+          <Result label="Gross" value={money(gross, { ccy, signed: true })} />
+          <Result label="Commissions" value={money(-fees, { ccy })} sub="Two orders" />
+          <Result label="Breakeven price" value={+shares ? price(+buy + (dir * fees) / +shares, 2) : '—'} />
+        </div>
+      </Card>
+    </Grid>
+  );
+}
+
+function InstrumentPnl({ futures }: { futures: boolean }) {
+  const [symbol, setSymbol] = useState(futures ? 'MNQ' : 'XAUUSD');
+  const [side, setSide] = useState<'buy' | 'sell'>('buy');
+  const [lots, setLots] = useState(futures ? '1' : '0.5');
+  const [entry, setEntry] = useState(futures ? '21000' : '2650');
+  const [exit, setExit] = useState(futures ? '21040' : '2665');
   const [stop, setStop] = useState('');
   const [fees, setFees] = useState('0');
   const s = useSpec(symbol, futures);
@@ -56,7 +102,7 @@ export function PnlCalc() {
   return (
     <Grid>
       <Card className="lg:col-span-3">
-        <CardHead title="Profit & loss" sub="What a trade made or would make, in your account currency" right={<MarketToggle futures={futures} set={f => { setFutures(f); setSymbol(f ? 'MNQ' : 'XAUUSD'); }} />} />
+        <CardHead title="Profit & loss" sub={futures ? 'Contracts, tick values and round-turn commission' : 'What a trade made or would make, in your account currency'} />
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="Instrument" hint={spec.name}><SymbolPicker value={symbol} onChange={setSymbol} futures={futures} /></Field>
           <Field label="Direction"><Segmented label="Direction" value={side} onChange={setSide} options={[{ value: 'buy', label: 'Long' }, { value: 'sell', label: 'Short' }]} /></Field>
@@ -270,6 +316,10 @@ export function DrawdownCalc() {
         <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5 mt-4">
           {[5, 10, 20, 30, 40, 50, 75, 90].map(d => <div key={d} className="rounded-lg bg-raised p-2 text-center"><div className="text-[10px] text-ink3">−{d}%</div><div className="num text-[12.5px] font-semibold text-loss">+{Math.round((d / (100 - d)) * 100)}%</div></div>)}
         </div>
+        <div className="mt-6 pt-5 border-t border-line">
+          <CardHead title="How long will it really take?" sub="1,500 simulated paths back to the peak, with blow-out risk along the way" />
+          <RecoverySim now={+now} peak={+peak} />
+        </div>
       </Card>
       <Card className="lg:col-span-2 lg:sticky lg:top-20">
         <Hero label="Gain needed to get back" value={need != null ? need * 100 : null} format={v => `${v.toFixed(1)}%`} tone={need != null && need > 0.25 ? 'text-loss' : 'text-ink'} />
@@ -278,82 +328,6 @@ export function DrawdownCalc() {
           <Result label="Amount to recover" value={money(Math.max(0, +peak - +now), { ccy })} />
           <Result label="At 1% a day" value={need ? `${Math.ceil(Math.log(1 + need) / Math.log(1.01))} days` : '—'} />
           <Result label="At 2% a week" value={need ? `${Math.ceil(Math.log(1 + need) / Math.log(1.02))} weeks` : '—'} />
-        </div>
-      </Card>
-    </Grid>
-  );
-}
-
-// ─── Edge: expectancy, Kelly, risk of ruin (Monte Carlo) ─────────────
-function simulate(win: number, payoff: number, riskPct: number, trades: number, ruinAt: number, runs = 1500) {
-  const r = riskPct / 100;
-  const paths: number[][] = Array.from({ length: trades + 1 }, () => []);
-  let ruined = 0;
-  let seed = 7;
-  const rand = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }; // deterministic, so results don't flicker
-  for (let k = 0; k < runs; k++) {
-    let eq = 1, dead = false;
-    paths[0].push(1);
-    for (let t = 1; t <= trades; t++) {
-      if (!dead) { eq *= rand() < win ? 1 + r * payoff : 1 - r; if (eq <= 1 - ruinAt) { dead = true; ruined++; } }
-      paths[t].push(eq);
-    }
-  }
-  const q = (xs: number[], p: number) => { const s = [...xs].sort((a, b) => a - b); return s[Math.floor(p * (s.length - 1))]; };
-  return { ruin: ruined / runs, band: paths.map((xs, t) => ({ t, p5: (q(xs, 0.05) - 1) * 100, p50: (q(xs, 0.5) - 1) * 100, p95: (q(xs, 0.95) - 1) * 100, band: [(q(xs, 0.05) - 1) * 100, (q(xs, 0.95) - 1) * 100] as [number, number] })) };
-}
-
-export function EdgeCalc() {
-  const c = useColors();
-  const { stats } = useAnalytics();
-  const [win, setWin] = useState('50');
-  const [payoff, setPayoff] = useState('1.5');
-  const [risk, setRisk] = useState('1');
-  const [n, setN] = useState('200');
-  const [ruinAt, setRuinAt] = useState('20');
-  const w = Math.min(1, Math.max(0, (+win || 0) / 100)), b = Math.max(0, +payoff || 0);
-  const exp = w * b - (1 - w);
-  const kelly = b > 0 ? w - (1 - w) / b : null;
-  const be = b > 0 ? 1 / (1 + b) : null;
-  const sim = useMemo(() => simulate(w, b, Math.max(0, +risk || 0), Math.min(1000, Math.max(10, Math.round(+n || 0))), Math.min(0.99, Math.max(0.01, (+ruinAt || 20) / 100))), [w, b, risk, n, ruinAt]);
-  const mine = stats.total >= 10 && stats.payoff != null;
-  return (
-    <Grid>
-      <Card className="lg:col-span-3">
-        <CardHead title="Edge & risk of ruin" sub="1,500 simulated futures of your stats — the band is the middle 90% of outcomes"
-          right={mine ? <button className="btn h-8 text-xs" onClick={() => { setWin((stats.winRate * 100).toFixed(1)); setPayoff(stats.payoff!.toFixed(2)); }}>Use my stats</button> : undefined} />
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          <NumIn label="Win rate" value={win} onChange={setWin} suffix="%" />
-          <NumIn label="Avg win ÷ avg loss" value={payoff} onChange={setPayoff} hint="Payoff ratio (R per win)" />
-          <NumIn label="Risk per trade" value={risk} onChange={setRisk} suffix="%" />
-          <NumIn label="Trades" value={n} onChange={setN} step="10" />
-          <NumIn label="Ruin = drawdown of" value={ruinAt} onChange={setRuinAt} suffix="%" hint="e.g. a prop firm's max loss" />
-        </div>
-        <div className="mt-6 -mx-1">
-          <ResponsiveContainer width="100%" height={250}>
-            <ComposedChart data={sim.band} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
-              <defs><linearGradient id="bandFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={exp >= 0 ? c.profit : c.loss} stopOpacity={0.28} /><stop offset="100%" stopColor={exp >= 0 ? c.profit : c.loss} stopOpacity={0.06} /></linearGradient></defs>
-              <CartesianGrid stroke={c.line} vertical={false} />
-              <XAxis dataKey="t" tick={{ fontSize: 10.5, fill: c.ink3 }} axisLine={false} tickLine={false} minTickGap={24} />
-              <YAxis tickFormatter={v => `${Math.round(v)}%`} tick={{ fontSize: 10.5, fill: c.ink3 }} axisLine={false} tickLine={false} width={48} />
-              <ReferenceLine y={0} stroke={c.line2} />
-              <ReferenceLine y={-(+ruinAt || 20)} stroke={c.loss} strokeDasharray="4 4" />
-              <Tooltip content={<ChartTip fmt={(v, k) => (k === 'band' ? '' : `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`)} labelFmt={l => `After ${l} trades`} />} />
-              <Area type="monotone" dataKey="band" name="5–95%" stroke="none" fill="url(#bandFill)" animationDuration={900} />
-              <Line type="monotone" dataKey="p50" name="Median" stroke={exp >= 0 ? c.profit : c.loss} strokeWidth={2.4} dot={false} animationDuration={900} />
-              <Line type="monotone" dataKey="p5" name="Worst 5%" stroke={c.ink3} strokeWidth={1} strokeDasharray="3 4" dot={false} animationDuration={900} />
-              <Line type="monotone" dataKey="p95" name="Best 5%" stroke={c.ink3} strokeWidth={1} strokeDasharray="3 4" dot={false} animationDuration={900} />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
-      </Card>
-      <Card className="lg:col-span-2 lg:sticky lg:top-20">
-        <Hero label="Risk of ruin" value={sim.ruin * 100} format={v => `${v.toFixed(1)}%`} tone={sim.ruin > 0.1 ? 'text-loss' : sim.ruin > 0.02 ? 'text-warn' : 'text-profit'} sub={`Chance of a ${ruinAt}% drawdown within ${n} trades`} />
-        <div className="grid grid-cols-2 gap-4 mt-5 pt-5 border-t border-line">
-          <Result label="Expectancy" value={`${exp >= 0 ? '+' : ''}${exp.toFixed(2)}R`} sub="Per trade" />
-          <Result label="Breakeven win rate" value={pct(be, 1)} />
-          <Result label="Kelly fraction" value={kelly == null ? '—' : kelly <= 0 ? 'No edge' : pct(kelly, 1)} sub={kelly && kelly > 0 ? `Half-Kelly ${pct(kelly / 2, 1)}` : undefined} />
-          <Result label="Median outcome" value={`${sim.band[sim.band.length - 1].p50 >= 0 ? '+' : ''}${sim.band[sim.band.length - 1].p50.toFixed(1)}%`} />
         </div>
       </Card>
     </Grid>
