@@ -6,8 +6,9 @@ import { cx } from './kit';
  * Any of TradingView's official embed widgets (s3.tradingview.com/external-embedding/<script>).
  * Never transparent: a transparent iframe is painted white by the browser in dark mode.
  * `fit`: pass the box's measured pixel size — some widgets collapse when told "100%".
+ * `auto`: the widget sets its own height (ticker tape); otherwise it fills the box.
  */
-export function TvEmbed({ script, config, className, title, fit = false }: { script: string; config: Record<string, unknown>; className?: string; title: string; fit?: boolean }) {
+export function TvEmbed({ script, config, className, title, fit = false, auto = false }: { script: string; config: Record<string, unknown>; className?: string; title: string; fit?: boolean; auto?: boolean }) {
   const theme = useStore(st => st.theme);
   const outer = useRef<HTMLDivElement>(null), box = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
@@ -29,6 +30,7 @@ export function TvEmbed({ script, config, className, title, fit = false }: { scr
     el.innerHTML = '';
     const w = document.createElement('div');
     w.className = 'tradingview-widget-container__widget';
+    w.style.cssText = auto ? 'width:100%' : 'height:100%;width:100%';
     const s = document.createElement('script');
     s.src = `https://s3.tradingview.com/external-embedding/${script}`;
     s.async = true;
@@ -38,8 +40,8 @@ export function TvEmbed({ script, config, className, title, fit = false }: { scr
     return () => { el.innerHTML = ''; };
   }, [script, key]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <div ref={outer} aria-label={title} className={cx('relative overflow-hidden', className)} style={{ colorScheme: theme }}>
-      <div ref={box} className={cx('tradingview-widget-container', fit ? 'absolute inset-0' : 'w-full h-full')} />
+    <div ref={outer} aria-label={title} className={cx(className?.includes('absolute') ? '' : 'relative', 'overflow-hidden', className)} style={{ colorScheme: theme }}>
+      <div ref={box} className={cx('tradingview-widget-container', auto ? 'w-full' : 'absolute inset-0')} />
     </div>
   );
 }

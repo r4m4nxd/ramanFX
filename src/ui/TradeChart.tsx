@@ -13,6 +13,7 @@ import { Card, CardHead, cx, Segmented, useIsMobile } from './kit';
 import { Icon } from './Icon';
 import { tvSymbol } from '@/core/tvSymbol';
 import { TvWidget } from './TvWidget';
+import { TvFullscreen } from './TvFullscreen';
 
 export interface ChartLevels { initSl?: number | null; sl?: string | number | null; tp?: string | number | null; proximal?: number | null; distal?: number | null }
 
@@ -227,10 +228,15 @@ export function TradeChart({ t, levels, drawings = [], onDrawings }: { t: Enrich
     </div>
   );
   const body = mode === 'tv'
-    ? <><TvWidget symbol={tvSymbol(t.symbol)} tf={tvTf} className={full ? 'flex-1 min-h-0' : 'h-[420px] md:h-[520px]'} />{!full && <p className="text-[11.5px] text-ink3 mt-2">Pepperstone feed on TradingView ({tvSymbol(t.symbol)}) — scroll back to {t.openTime.slice(0, 10)}. Draw with the tools on the left; use My execution to see your fills.</p>}</>
+    ? <><TvWidget symbol={tvSymbol(t.symbol)} tf={tvTf} className={full ? 'flex-1 min-h-0' : 'h-[70dvh] min-h-[420px] md:h-[520px]'} />{!full && <p className="text-[11.5px] text-ink3 mt-2">Pepperstone feed on TradingView ({tvSymbol(t.symbol)}) — scroll back to {t.openTime.slice(0, 10)}. Draw with the tools on the left; use My execution to see your fills.</p>}</>
     : mine;
   const canFull = mode === 'tv' || !!active;
 
+  if (full && mode === 'tv' && mobile) return (
+    <TvFullscreen title={t.symbol} onClose={() => setFull(false)}>
+      <TvWidget bare symbol={tvSymbol(t.symbol)} tf={tvTf} className="absolute inset-0" />
+    </TvFullscreen>
+  );
   if (full && canFull) return createPortal(
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[80] bg-bg flex flex-col p-2 pt-[max(8px,env(safe-area-inset-top))] pb-[max(8px,env(safe-area-inset-bottom))]">
       <div className="flex items-center gap-2 px-1 pb-2 flex-wrap">
