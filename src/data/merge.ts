@@ -1,3 +1,4 @@
+import type { Plan, WatchZone } from '@/core/strategy';
 import type { Account, Attachment, Deposit, ExitData, NotebookEntry, NotebookFolder, OpenPosition, RiskRules, Strategy, TagCategory, Trade, TradeNote, WorkingOrder } from '@/core/types';
 
 /** Everything that syncs to the cloud. Mirrors the rfx_journal row. */
@@ -19,6 +20,8 @@ export interface Journal {
   tagCategories: TagCategory[];
   tagCategoryMap: Record<string, string>;
   attachments: Record<string, Attachment[]>;
+  plans: Plan[];
+  zones: WatchZone[];
 }
 
 const byId = <T extends { id: string }>(local: T[], remote: T[], pick: (l: T, r: T) => T = l => l): T[] => {
@@ -83,12 +86,14 @@ export function mergeJournal(local: Journal, remote: Partial<Journal>): Journal 
     tagCategories: byId(local.tagCategories, r.tagCategories),
     tagCategoryMap: { ...r.tagCategoryMap, ...local.tagCategoryMap },
     attachments,
+    plans: byId(local.plans ?? [], r.plans ?? [], newer),
+    zones: byId(local.zones ?? [], r.zones ?? [], newer),
   };
 }
 
 export function emptyJournal(): Journal {
   return {
     trades: [], accounts: {}, exitData: {}, openPositions: [], workingOrders: [], deposits: [], notes: {}, dayNotes: {},
-    strategies: [], notebook: [], notebookFolders: [], checklist: [], checklistDays: {}, riskRules: {}, tagCategories: [], tagCategoryMap: {}, attachments: {},
+    strategies: [], notebook: [], notebookFolders: [], checklist: [], checklistDays: {}, riskRules: {}, tagCategories: [], tagCategoryMap: {}, attachments: {}, plans: [], zones: [],
   };
 }

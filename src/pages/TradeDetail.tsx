@@ -14,6 +14,8 @@ import { Badge, Card, CardHead, cx, Empty, Field, Page, useToast } from '@/ui/ki
 import { TagInput } from '@/ui/TagInput';
 import { Icon } from '@/ui/Icon';
 import { Lightbox } from '@/ui/Lightbox';
+import { VerdictCard } from '@/ui/VerdictCard';
+import { useGradedTrade } from '@/data/guru';
 
 const EMOTIONS = ['calm', 'focused', 'confident', 'anxious', 'fomo', 'greedy', 'revenge', 'tired', 'bored'];
 const TRENDS: [Trend, string, string][] = [['up', '↑', 'Uptrend'], ['down', '↓', 'Downtrend'], ['side', '✖', 'Sideways']];
@@ -33,6 +35,7 @@ export default function TradeDetail() {
   const user = useStore(s => s.user);
   const fmt = useMoney();
   const toast = useToast();
+  const graded = useGradedTrade(id);
 
   const idx = all.findIndex(t => t.id === id);
   const t = all[idx];
@@ -144,6 +147,8 @@ export default function TradeDetail() {
           <div><div className="label">Moved</div><div className={cx('num text-2xl font-semibold mt-1', tone(movePips))}>{movePips > 0 ? '+' : ''}{num(movePips, 1)} <span className="text-sm text-ink3">{pipLabel}</span></div></div>
         </div>
       </Card>
+
+      {graded && <VerdictCard g={graded} />}
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 items-start">
         <div className="xl:col-span-2 flex flex-col gap-4 min-w-0">

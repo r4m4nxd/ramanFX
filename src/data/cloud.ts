@@ -19,7 +19,7 @@ const COLS: [keyof Journal, string][] = [
   ['trades', 'trades'], ['accounts', 'accounts'], ['exitData', 'exit_data'], ['openPositions', 'open_positions'], ['workingOrders', 'working_orders'],
   ['deposits', 'deposits'], ['notes', 'notes'], ['dayNotes', 'day_notes'], ['strategies', 'strategies'], ['notebook', 'notebook'],
   ['notebookFolders', 'notebook_folders'], ['checklist', 'checklist'], ['checklistDays', 'checklist_days'], ['riskRules', 'risk_rules'],
-  ['tagCategories', 'tag_categories'], ['tagCategoryMap', 'tag_category_map'], ['attachments', 'attachments'],
+  ['tagCategories', 'tag_categories'], ['tagCategoryMap', 'tag_category_map'], ['attachments', 'attachments'], ['plans', 'plans'], ['zones', 'zones'],
 ];
 
 export async function pull(userId: string): Promise<Partial<Journal> | null> {

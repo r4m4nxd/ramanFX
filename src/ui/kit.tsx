@@ -89,13 +89,17 @@ export function useIsMobile() {
   return useSyncExternalStore(cb => { mq?.addEventListener('change', cb); return () => mq?.removeEventListener('change', cb); }, () => !!mq?.matches, () => false);
 }
 
+/** Columns for a wrapping tab grid: even rows, never a lonely last item if avoidable. */
+const tabCols = (n: number, mobile: boolean) => (mobile ? (n <= 4 ? n : n % 3 === 0 || n === 5 ? 3 : 4) : n <= 10 ? n : Math.ceil(n / 2));
+
 /** Page-level tabs: a segmented bar on desktop, a wrapping pill grid on phones (no sideways scrolling). */
 export function Tabs<T extends string>({ value, onChange, options, label }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[]; label: string }) {
   const mobile = useIsMobile();
   const id = useId();
   if (!mobile && options.length <= 6) return <div><Segmented label={label} value={value} onChange={onChange} options={options} /></div>;
   return (
-    <div role="tablist" aria-label={label} className={cx('grid gap-1.5 p-1 rounded-2xl bg-raised border border-line', !mobile ? (options.length > 10 ? 'grid-cols-6' : 'grid-cols-5 xl:grid-cols-10') : options.length % 3 === 0 || options.length > 4 ? 'grid-cols-3 land:grid-cols-6' : 'grid-cols-2')}>
+    <div role="tablist" aria-label={label} className={cx('grid gap-1.5 p-1 rounded-2xl bg-raised border border-line', options.length > 4 && 'land:![grid-template-columns:repeat(6,minmax(0,1fr))]')}
+      style={{ gridTemplateColumns: `repeat(${tabCols(options.length, mobile)}, minmax(0, 1fr))` }}>
       {options.map(o => {
         const on = o.value === value;
         return (

@@ -1,4 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useGraded, type Graded } from '@/data/guru';
+import { curveDepth, formation, SD_COMBOS, trendRel } from '@/core/strategy';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Bar as RBar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from 'recharts';
 import { useAnalytics } from '@/data/derived';
@@ -9,7 +11,7 @@ import { pct, rMult, tone, useMoney } from '@/lib/format';
 import { Card, CardHead, cx, Page, Stat, Tabs, useIsMobile } from '@/ui/kit';
 import { ChartTip, DivergingBars, useAxisW, useColors } from '@/ui/charts';
 
-type Tab = 'overview' | 'time' | 'setups' | 'symbols' | 'risk' | 'compare';
+type Tab = 'overview' | 'strategy' | 'time' | 'setups' | 'symbols' | 'risk' | 'compare';
 
 /** Width of an element, live. Tables pick their layout from the card they sit in, not the screen. */
 function useWidth<T extends HTMLElement>() {
@@ -265,6 +267,51 @@ function CompareTab({ et }: { et: EnrichedTrade[] }) {
   );
 }
 
+const DIMS: { k: string; label: string; key: (g: Graded) => string | null }[] = [
+  { k: 'odds', label: 'Odds', key: g => (g.eval ? (!g.eval.tradeable ? 'No-trade setup' : g.eval.odds === 'high' ? 'High odds' : 'Low odds') : null) },
+  { k: 'method', label: 'Method', key: g => (g.plan ? (g.plan.method === 'sf' ? 'Set & forget' : 'Confirmation') : null) },
+  { k: 'signal', label: 'Confirmation', key: g => (g.plan?.method === 'conf' ? ({ both: 'Zone + trendline', trendline: 'Trendline removed', zone: 'Zone removed', structure: 'Structure shift', breakout: 'Breakout order' } as Record<string, string>)[g.plan.signal ?? ''] ?? 'No signal' : null) },
+  { k: 'kind', label: 'Zone', key: g => (g.plan ? formation(g.plan.kind, g.plan.side) : null) },
+  { k: 'move', label: 'Move away', key: g => (g.plan ? ({ poor: 'Poor', decent: 'Decent', aplus: 'A+', gap: 'Gap' })[g.plan.moveAway] : null) },
+  { k: 'base', label: 'Base', key: g => (g.plan ? (g.plan.baseCandles <= 2 ? '1–2 candles' : g.plan.baseCandles <= 4 ? '3–4 candles' : '5+ candles') : null) },
+  { k: 'trend', label: 'HTF trend', key: g => (g.plan ? ({ with: 'With trend', counter: 'Counter-trend', sideways: 'Sideways' })[trendRel(g.plan.side, g.plan.htfTrend)] : null) },
+  { k: 'curve', label: 'Curve', key: g => (g.plan ? (curveDepth(g.plan.side, g.plan.curve) <= 25 ? 'Deep (0–25%)' : curveDepth(g.plan.side, g.plan.curve) <= 50 ? 'Good half (25–50%)' : 'Wrong half (50%+)') : null) },
+  { k: 'combo', label: 'Timeframes', key: g => (g.plan ? `${SD_COMBOS[g.plan.combo].etf} → ${SD_COMBOS[g.plan.combo].htf}` : null) },
+  { k: 'adh', label: 'Rules kept', key: g => (g.verdict.adherence == null ? null : g.verdict.adherence >= 80 ? 'Kept 80%+' : g.verdict.adherence >= 50 ? 'Kept 50–79%' : 'Kept under 50%') },
+  { k: 'planned', label: 'Planned?', key: g => (g.plan ? (g.plan.retro ? 'Graded after' : 'Planned before') : 'No plan') },
+];
+
+function StrategyTab() {
+  const graded = useGraded();
+  const fmt = useMoney();
+  const { from, to } = useStore(s => s.range);
+  const inR = useMemo(() => graded.filter(g => { const k = g.t.closeTime.slice(0, 10).replace(/\./g, '-'); return (!from || k >= from) && (!to || k <= to); }), [graded, from, to]);
+  const [dim, setDim] = useState('odds');
+  const d = DIMS.find(x => x.k === dim)!;
+  const rows = useMemo(() => { const by = new Map(inR.map(g => [g.t, g])); return groupStats(inR.map(g => g.t), t => d.key(by.get(t)!)); }, [inR, d]);
+  const withPlan = inR.filter(g => g.plan).length;
+  const adh = inR.filter(g => g.verdict.adherence != null);
+  const avgAdh = adh.length ? adh.reduce((a, g) => a + g.verdict.adherence!, 0) / adh.length : null;
+  const kept = computeStats(inR.filter(g => (g.verdict.adherence ?? 0) >= 80).map(g => g.t)), broke = computeStats(inR.filter(g => g.verdict.adherence != null && g.verdict.adherence < 80).map(g => g.t));
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {([
+          ['Trades with a plan', `${withPlan} / ${inR.length}`, withPlan / Math.max(1, inR.length) >= 0.8 ? 'text-profit' : 'text-warn'],
+          ['Average rules kept', avgAdh != null ? `${avgAdh.toFixed(0)}%` : '—', avgAdh == null ? '' : avgAdh >= 80 ? 'text-profit' : avgAdh >= 50 ? 'text-warn' : 'text-loss'],
+          ['Expectancy — rules kept', kept.total ? fmt(kept.expectancy, { signed: true }) : '—', tone(kept.expectancy)],
+          ['Expectancy — rules broken', broke.total ? fmt(broke.expectancy, { signed: true }) : '—', tone(broke.expectancy)],
+        ] as [string, string, string][]).map(([l, v, c]) => <Card key={l} className="p-4"><div className="label">{l}</div><div className={cx('num text-xl font-semibold mt-1.5', c)}>{v}</div></Card>)}
+      </div>
+      <Card>
+        <CardHead title="What pays you" sub={withPlan ? 'Your results split by each part of the playbook' : 'Grade trades (open a trade → Grade this trade) to unlock this'} />
+        <div className="flex flex-wrap gap-1.5 mb-4">{DIMS.map(x => <button key={x.k} onClick={() => setDim(x.k)} className={cx('chip', dim === x.k && 'border-accent text-accent bg-accent/10')}>{x.label}</button>)}</div>
+        {rows.length ? <><GroupBars rows={rows} height={200} /><div className="mt-4"><GroupTable rows={rows} label={d.label} /></div></> : <p className="text-sm text-ink3 py-6 text-center">No graded trades for this view yet.</p>}
+      </Card>
+    </div>
+  );
+}
+
 export default function Reports() {
   const { et } = useAnalytics();
   const [params, setParams] = useSearchParams();
@@ -272,7 +319,7 @@ export default function Reports() {
   return (
     <Page>
       <Tabs label="Report" value={tab} onChange={v => setParams({ tab: v }, { replace: true })} options={[
-        { value: 'overview', label: 'Overview' }, { value: 'time', label: 'Time' }, { value: 'setups', label: 'Setups' },
+        { value: 'overview', label: 'Overview' }, { value: 'strategy', label: 'Strategy' }, { value: 'time', label: 'Time' }, { value: 'setups', label: 'Setups' },
         { value: 'symbols', label: 'Symbols' }, { value: 'risk', label: 'Risk & R' }, { value: 'compare', label: 'Win vs loss' },
       ]} />
       {tab === 'overview' && <Overview />}
@@ -281,6 +328,7 @@ export default function Reports() {
       {tab === 'symbols' && <SymbolsTab et={et} />}
       {tab === 'risk' && <RiskTab et={et} />}
       {tab === 'compare' && <CompareTab et={et} />}
+      {tab === 'strategy' && <StrategyTab />}
     </Page>
   );
 }

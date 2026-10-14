@@ -4,6 +4,7 @@ import type { ParsedReport } from '@/core/parsers';
 import { emptyJournal, mergeJournal, type Journal } from './merge';
 import { dedupeDeposits } from '@/core/stats';
 import { deviceTz } from '@/core/time';
+import type { Plan, WatchZone } from '@/core/strategy';
 import * as cloud from './cloud';
 
 // localStorage keys are shared with the classic app (public/legacy.html) so both read the same data.
@@ -14,7 +15,7 @@ export const SK = {
   attachments: 'ledger_attachments', brokerOffset: 'ledger_brokerOffset', brokerClock: 'ledger_brokerClock', userTz: 'ledger_userTz', riskRules: 'ledger_riskRules', exitData: 'ledger_tradeExitData',
   theme: 'ledger_theme', privacy: 'ledger_privacy_mode', notebookFolders: 'ledger_notebook_folders', tagCategories: 'ledger_tag_categories',
   tagCategoryMap: 'ledger_tag_category_map', aiConfig: 'ledger_ai_coach_config', aiConvos: 'ledger_ai_coach_convos',
-  overrides: 'ledger_instrument_overrides', sidebar: 'ledger_sidebar_collapsed', lastSync: 'rfx_last_sync',
+  overrides: 'ledger_instrument_overrides', plans: 'rfx_plans', zones: 'rfx_zones', sidebar: 'ledger_sidebar_collapsed', lastSync: 'rfx_last_sync',
 } as const;
 
 const get = <T,>(k: string, d: T): T => { try { const v = localStorage.getItem(k); return v ? (JSON.parse(v) as T) : d; } catch { return d; } };
@@ -50,6 +51,10 @@ interface State extends Journal {
   importReport: (r: ParsedReport) => { added: number; updated: number; skipped: number };
   importExit: (d: Record<string, ExitData>) => { matched: number; total: number };
   saveNote: (id: string, n: TradeNote) => void;
+  savePlan: (p: Plan) => void;
+  deletePlan: (id: string) => void;
+  saveZone: (z: WatchZone) => void;
+  deleteZone: (id: string) => void;
   saveDayNote: (day: string, text: string) => void;
   saveAttachments: (tradeId: string, a: Attachment[]) => void;
   toggleChecklist: (item: string) => void;
@@ -79,6 +84,7 @@ const JOURNAL_KEYS: Record<keyof Journal, string> = {
   trades: SK.trades, accounts: SK.accounts, exitData: SK.exitData, openPositions: SK.openPositions, workingOrders: SK.workingOrders,
   deposits: SK.deposits, notes: SK.notes, dayNotes: SK.dayNotes, strategies: SK.strategies, notebook: SK.notebook, notebookFolders: SK.notebookFolders,
   checklist: SK.checklist, checklistDays: SK.checklistDays, riskRules: SK.riskRules, tagCategories: SK.tagCategories, tagCategoryMap: SK.tagCategoryMap, attachments: SK.attachments,
+  plans: SK.plans, zones: SK.zones,
 };
 
 function loadJournal(): Journal {
@@ -159,6 +165,11 @@ export const useStore = create<State>((set, getState) => {
     },
 
     saveNote: (id, n) => commit({ notes: { ...getState().notes, [id]: { ...n, updatedAt: Date.now() } } }),
+    savePlan: (p) => { const now = { ...p, updatedAt: Date.now() }; const list = getState().plans; commit({ plans: list.some(x => x.id === p.id) ? list.map(x => (x.id === p.id ? now : x)) : [now, ...list] }); },
+    // Deletions are tombstones so a sync from another device can't bring the record back.
+    deletePlan: (id) => commit({ plans: getState().plans.map(x => (x.id === id ? { ...x, deleted: true, updatedAt: Date.now() } : x)) }),
+    saveZone: (z) => { const now = { ...z, updatedAt: Date.now() }; const list = getState().zones; commit({ zones: list.some(x => x.id === z.id) ? list.map(x => (x.id === z.id ? now : x)) : [now, ...list] }); },
+    deleteZone: (id) => commit({ zones: getState().zones.map(x => (x.id === id ? { ...x, deleted: true, updatedAt: Date.now() } : x)) }),
     saveDayNote: (day, text) => {
       const next = { ...getState().dayNotes };
       if (text.trim()) next[day] = text; else delete next[day];
