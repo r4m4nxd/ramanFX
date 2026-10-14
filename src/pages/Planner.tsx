@@ -253,7 +253,7 @@ function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) =
           </div>
           <div className="flex gap-1.5 mt-3" role="tablist" aria-label="Steps">
             {STEPS.map((s, i) => (
-              <button key={s} role="tab" aria-selected={i === step} onClick={() => { setDir(i > step ? 1 : -1); setStep(i); }} className="flex-1 group text-left">
+              <button key={s} role="tab" aria-selected={i === step} onClick={() => { setDir(i > step ? 1 : -1); setStep(i); }} className="flex-1 group text-left py-2 -my-2">
                 <div className="h-1.5 rounded-full bg-line overflow-hidden"><motion.div className="h-full bg-accent rounded-full" initial={false} animate={{ width: i < step ? '100%' : i === step ? '50%' : '0%' }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }} /></div>
                 <div className={cx('text-[11px] mt-1.5 font-medium', i === step ? 'text-ink' : 'text-ink3')}>{s}</div>
               </button>

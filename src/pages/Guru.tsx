@@ -201,7 +201,7 @@ function CourseMap() {
               <div className="text-[13.5px] font-medium">{l.slide}</div>
               <div className="text-[12px] text-ink3 mt-0.5">{l.how}</div>
             </div>
-            <div className="flex gap-1 shrink-0 flex-wrap justify-end max-w-[40%]">{l.where.split(' ').map(w => <Link key={w} to={WHERE[w].to} className="chip h-6 touch:h-7 text-[10.5px]">{WHERE[w].label}</Link>)}</div>
+            <div className="flex gap-1 shrink-0 flex-wrap justify-end max-w-[40%]">{l.where.split(' ').map(w => <Link key={w} to={WHERE[w].to} className="chip h-7 touch:h-9 text-[11px]">{WHERE[w].label}</Link>)}</div>
           </motion.li>
         ))}
       </ol>

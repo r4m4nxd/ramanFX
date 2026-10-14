@@ -43,7 +43,7 @@ export default function Trades() {
   const setParam = (k: string, v: string) => { const p = new URLSearchParams(params); if (v) p.set(k, v); else p.delete(k); setParams(p, { replace: true }); };
   const Th = ({ k, children, right }: { k: SortKey; children: React.ReactNode; right?: boolean }) => (
     <th className={cx('th', right && 'text-right')} aria-sort={sort.k === k ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}>
-      <button className={cx('inline-flex items-center gap-1 py-2 -my-2 hover:text-ink2', sort.k === k && 'text-ink2')} onClick={() => setSort(s => ({ k, dir: s.k === k ? (s.dir === 1 ? -1 : 1) : -1 }))}>
+      <button className={cx('inline-flex items-center gap-1 py-2 -my-2 min-w-[28px] justify-end hover:text-ink2', sort.k === k && 'text-ink2')} onClick={() => setSort(s => ({ k, dir: s.k === k ? (s.dir === 1 ? -1 : 1) : -1 }))}>
         {children}{sort.k === k && <Icon name={sort.dir === 1 ? 'arrowUp' : 'arrowDown'} size={11} />}
       </button>
     </th>
