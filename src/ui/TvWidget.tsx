@@ -34,5 +34,5 @@ export function TvWidget({ symbol, tf = 'H1', className, watchlist, panels = fal
     el.append(w, s);
     return () => { el.innerHTML = ''; };
   }, [symbol, tf, theme, tz, wl, panels]);
-  return <div className={cx('relative rounded-xl overflow-hidden border border-line', className)}><div ref={box} className="tradingview-widget-container absolute inset-0" /></div>;
+  return <div className={cx('relative rounded-xl overflow-hidden border border-line', className)}><div ref={box} className="tradingview-widget-container absolute inset-0" style={{ colorScheme: theme }} /></div>;
 }

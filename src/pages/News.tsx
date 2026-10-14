@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useStore } from '@/data/store';
 import { Card, cx, Page, Segmented } from '@/ui/kit';
 
@@ -14,9 +14,22 @@ export default function News() {
   const theme = useStore(s => s.theme);
   const [f, setF] = useState(load);
   const save = (v: typeof f) => { setF(v); try { localStorage.setItem(KEY, JSON.stringify(v)); } catch { /* ignore */ } };
-  const src = useMemo(() => {
-    const cfg = { colorTheme: theme, isTransparent: true, width: '100%', height: '100%', locale: 'en', importanceFilter: IMPORTANCE[f.imp], countryFilter: f.cc.join(',') };
-    return `https://www.tradingview-widget.com/embed-widget/events/?locale=en#${encodeURIComponent(JSON.stringify(cfg))}`;
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const cfg = { colorTheme: theme, isTransparent: false, width: '100%', height: '100%', locale: 'en', importanceFilter: IMPORTANCE[f.imp], countryFilter: f.cc.join(',') };
+    el.innerHTML = '';
+    const w = document.createElement('div');
+    w.className = 'tradingview-widget-container__widget';
+    w.style.cssText = 'height:100%;width:100%';
+    const sc = document.createElement('script');
+    sc.src = 'https://s3.tradingview.com/external-embedding/embed-widget-events.js';
+    sc.async = true;
+    sc.type = 'text/javascript';
+    sc.textContent = JSON.stringify(cfg);
+    el.append(w, sc);
+    return () => { el.innerHTML = ''; };
   }, [theme, f]);
   return (
     <Page>
@@ -34,7 +47,7 @@ export default function News() {
         </div>
       </Card>
       <Card className="p-0 overflow-hidden">
-        <div className="h-[calc(100dvh-300px)] min-h-[520px]"><iframe key={src} src={src} title="Economic calendar" className="w-full h-full" /></div>
+        <div ref={box} className="tradingview-widget-container h-[calc(100dvh-300px)] min-h-[520px] [&_iframe]:!bg-transparent" style={{ colorScheme: theme }} />
       </Card>
     </Page>
   );
