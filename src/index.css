@@ -148,34 +148,38 @@
    One living background behind everything: a deep radial base, three slow-drifting
    colour glows, two soft light sheens and a fine film grain. */
 :root {
-  --amb-bg: radial-gradient(130% 75% at 50% -12%, #171C42 0%, #0A0C0F 62%);
-  --amb-a: rgba(84, 96, 255, .42);
-  --amb-b: rgba(61, 220, 151, .13);
-  --amb-c: rgba(150, 110, 255, .16);
-  --amb-sh: rgba(150, 165, 255, .075);
-  --amb-grain: .08;
+  /* Dark, numbers-first: the canvas stays near-black (peak ~3% lift over --bg), colour is a hint at the edges,
+     motion is barely perceptible. Data must always be the highest-contrast thing on screen. */
+  --amb-bg: radial-gradient(120% 60% at 50% -18%, #12152B 0%, #0A0C0F 58%);
+  --amb-a: rgba(84, 96, 255, .13);
+  --amb-b: rgba(61, 220, 151, .045);
+  --amb-c: rgba(150, 110, 255, .05);
+  --amb-sh: rgba(150, 165, 255, .025);
+  --amb-grain: .045;
+  --amb-speed: 1.6;
 }
 [data-theme='light'] {
   --amb-bg: radial-gradient(130% 75% at 50% -12%, #D9E0F7 0%, #F4F6FA 62%);
-  --amb-a: rgba(92, 120, 255, .28);
-  --amb-b: rgba(46, 200, 150, .18);
-  --amb-c: rgba(160, 125, 255, .24);
-  --amb-sh: rgba(255, 255, 255, .6);
-  --amb-grain: .05;
+  --amb-a: rgba(92, 120, 255, .22);
+  --amb-b: rgba(46, 200, 150, .13);
+  --amb-c: rgba(160, 125, 255, .17);
+  --amb-sh: rgba(255, 255, 255, .5);
+  --amb-grain: .04;
+  --amb-speed: 1.3;
 }
 .amb { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: var(--amb-bg); }
 .amb i { position: absolute; display: block; border-radius: 50%; will-change: transform; }
-.amb .b1 { width: 90vmax; height: 90vmax; top: -48vmax; left: -30vmax; background: radial-gradient(closest-side, var(--amb-a), transparent); animation: ambD1 28s ease-in-out infinite alternate; }
-.amb .b2 { width: 80vmax; height: 80vmax; bottom: -46vmax; right: -34vmax; background: radial-gradient(closest-side, var(--amb-b), transparent); animation: ambD2 34s ease-in-out infinite alternate; }
-.amb .b3 { width: 60vmax; height: 60vmax; top: 34vh; left: 30vw; background: radial-gradient(closest-side, var(--amb-c), transparent); animation: ambD3 40s ease-in-out infinite alternate; }
+.amb .b1 { width: 90vmax; height: 90vmax; top: -48vmax; left: -30vmax; background: radial-gradient(closest-side, var(--amb-a), transparent); animation: ambD1 calc(28s * var(--amb-speed)) ease-in-out infinite alternate; }
+.amb .b2 { width: 80vmax; height: 80vmax; bottom: -46vmax; right: -34vmax; background: radial-gradient(closest-side, var(--amb-b), transparent); animation: ambD2 calc(34s * var(--amb-speed)) ease-in-out infinite alternate; }
+.amb .b3 { width: 60vmax; height: 60vmax; top: 48vh; left: 52vw; background: radial-gradient(closest-side, var(--amb-c), transparent); animation: ambD3 calc(40s * var(--amb-speed)) ease-in-out infinite alternate; }
 .amb .s1, .amb .s2 { border-radius: 0; left: -40vw; width: 180vw; height: 58vh; background: linear-gradient(180deg, var(--amb-sh), transparent 78%); }
-.amb .s1 { top: -30vh; transform: rotate(-12deg); animation: ambS1 30s ease-in-out infinite alternate; }
-.amb .s2 { top: -40vh; transform: rotate(10deg); opacity: .75; animation: ambS2 38s ease-in-out infinite alternate; }
+.amb .s1 { top: -30vh; transform: rotate(-12deg); animation: ambS1 calc(30s * var(--amb-speed)) ease-in-out infinite alternate; }
+.amb .s2 { top: -40vh; transform: rotate(10deg); opacity: .75; animation: ambS2 calc(38s * var(--amb-speed)) ease-in-out infinite alternate; }
 .amb .gr { inset: -50%; width: auto; height: auto; border-radius: 0; opacity: var(--amb-grain); mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
-@keyframes ambD1 { to { transform: translate(16vmax, 12vmax) scale(1.08); } }
-@keyframes ambD2 { to { transform: translate(-14vmax, -10vmax) scale(1.1); } }
-@keyframes ambD3 { to { transform: translate(-22vw, -16vh) scale(.9); } }
+@keyframes ambD1 { to { transform: translate(9vmax, 6vmax) scale(1.04); } }
+@keyframes ambD2 { to { transform: translate(-8vmax, -6vmax) scale(1.05); } }
+@keyframes ambD3 { to { transform: translate(-10vw, -8vh) scale(.95); } }
 @keyframes ambS1 { to { transform: rotate(-8deg) translateY(5vh); } }
 @keyframes ambS2 { to { transform: rotate(13deg) translateY(3vh); } }
 @media (prefers-reduced-motion: reduce) { .amb i { animation: none !important; } }
