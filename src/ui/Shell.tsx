@@ -13,6 +13,7 @@ export const NAV: { to: string; label: string; short?: string; icon: IconName; m
   { to: '/trades', label: 'Trades', icon: 'trades', mobile: true },
   { to: '/reports', label: 'Reports', icon: 'reports' },
   { to: '/calendar', label: 'Calendar', icon: 'calendar' },
+  { to: '/heatmaps', label: 'Heat maps', icon: 'flame' },
   { to: '/playbook', label: 'Playbook', icon: 'playbook', mobile: true, group: 'Plan' },
   { to: '/calculator', label: 'Calculator', icon: 'calculator', group: 'Plan' },
   { to: '/risk', label: 'Risk rules', icon: 'shield', group: 'Plan' },

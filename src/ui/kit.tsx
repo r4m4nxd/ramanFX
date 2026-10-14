@@ -30,7 +30,9 @@ export function Page({ children, className }: { children: ReactNode; className?:
 
 export function Card({ children, className, as = 'section', ...rest }: { children: ReactNode; className?: string; as?: 'section' | 'div'; 'aria-label'?: string }) {
   const C = as === 'div' ? motion.div : motion.section;
-  return <C variants={rise} className={cx('card p-5 min-w-0', className)} {...rest}>{children}</C>;
+  // Default padding only when the caller sets none (p-0 can't beat p-5 in Tailwind's order).
+  const padded = !/(^|\s)(md:|sm:)?p[xy]?-\d/.test(className ?? '');
+  return <C variants={rise} className={cx('card min-w-0', padded && 'p-5', className)} {...rest}>{children}</C>;
 }
 
 export function CardHead({ title, sub, right }: { title: ReactNode; sub?: ReactNode; right?: ReactNode }) {
