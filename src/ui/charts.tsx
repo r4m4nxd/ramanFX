@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis, type TooltipProps } from 'recharts';
 import { useStore } from '@/data/store';
-import { ease, useIsMobile } from './kit';
+import { ease, Segmented, useIsMobile } from './kit';
+import { dayKey } from '@/core/time';
 import { shortDate } from '@/lib/format';
 
 /** Resolved theme colours (SVG presentation attributes can't read CSS variables). */
@@ -17,6 +18,68 @@ export function useColors() {
     return { profit: c('profit'), loss: c('loss'), accent: c('accent'), warn: c('warn'), violet: c('violet'), cyan: c('cyan'), ink3: c('ink3'), ink2: c('ink2'), line: c('line'), line2: c('line2'), surface: c('surface'), a: c };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [theme]);
+}
+
+// ─── Period bucketing (days / weeks / months) ────────────────────────
+export type Period = 'day' | 'week' | 'month';
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** First day of the period containing d (weeks start Monday), local time. */
+export function periodStart(d: Date, p: Period): Date {
+  if (p === 'month') return new Date(d.getFullYear(), d.getMonth(), 1);
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  if (p === 'week') x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+  return x;
+}
+export function prevPeriod(d: Date, p: Period): Date {
+  const x = new Date(d);
+  if (p === 'month') x.setMonth(x.getMonth() - 1); else x.setDate(x.getDate() - (p === 'week' ? 7 : 1));
+  return x;
+}
+export const periodTick = (t: number, p: Period) => { const d = new Date(t); return p === 'month' ? `${MONTHS[d.getMonth()]} ’${String(d.getFullYear()).slice(2)}` : shortDate(d); };
+export const periodLabel = (t: number, p: Period) => {
+  const d = new Date(t);
+  if (p === 'month') return d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  if (p === 'week') return `Week of ${d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`;
+  return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+};
+export const PERIOD_NOUN: Record<Period, [string, string, string]> = { day: ['Daily', 'day', 'days'], week: ['Weekly', 'week', 'weeks'], month: ['Monthly', 'month', 'months'] };
+
+/** Sum day stats into weeks or months. */
+export function bucketDays<T extends { date: string; pnl: number; trades?: number; wins?: number; losses?: number }>(days: T[], p: Period) {
+  const m = new Map<string, { t: number; date: string; pnl: number; trades: number; wins: number; losses: number; n: number }>();
+  for (const d of days) {
+    const st = periodStart(new Date(d.date + 'T00:00'), p), k = dayKey(st);
+    const b = m.get(k) ?? { t: st.getTime(), date: k, pnl: 0, trades: 0, wins: 0, losses: 0, n: 0 };
+    b.pnl += d.pnl; b.trades += d.trades ?? 0; b.wins += d.wins ?? 0; b.losses += d.losses ?? 0; b.n++;
+    m.set(k, b);
+  }
+  return [...m.values()].sort((a, b) => a.t - b.t);
+}
+
+/** One point per period: the last value in it, plus `low` fields taking the period's minimum. */
+export function bucketSeries<T extends { t: number }>(pts: T[], p: Period, low: (keyof T)[] = []): T[] {
+  const out: T[] = [];
+  let key = -1;
+  for (const pt of pts) {
+    const k = periodStart(new Date(pt.t), p).getTime();
+    if (k !== key) { out.push({ ...pt, t: k }); key = k; continue; }
+    const last = out[out.length - 1], next = { ...pt, t: k } as T;
+    for (const f of low) (next[f] as unknown as number) = Math.min(last[f] as unknown as number, pt[f] as unknown as number);
+    out[out.length - 1] = next;
+  }
+  return out;
+}
+
+/** Remembered Days / Weeks / Months choice per chart. */
+export function usePeriod(id: string, initial: Period = 'day'): [Period, (p: Period) => void] {
+  const k = `rfx_period_${id}`;
+  const [p, setP] = useState<Period>(() => { try { const v = localStorage.getItem(k); return v === 'day' || v === 'week' || v === 'month' ? v : initial; } catch { return initial; } });
+  return [p, (v: Period) => { setP(v); try { localStorage.setItem(k, v); } catch { /* private mode */ } }];
+}
+
+export function PeriodToggle({ value, onChange }: { value: Period; onChange: (p: Period) => void }) {
+  return <Segmented label="Group by" size="sm" value={value} onChange={onChange} options={[{ value: 'day', label: 'Days' }, { value: 'week', label: 'Weeks' }, { value: 'month', label: 'Months' }]} />;
 }
 
 const axisTick = { fontSize: 10.5, fontFamily: 'Geist Mono, monospace' };
@@ -40,12 +103,18 @@ export function ChartTip({ active, payload, label, fmt, labelFmt }: TooltipProps
 }
 
 /** Cumulative equity on a real time axis, with drawdown beneath the zero line. */
-export function EquityChart({ data, height = 260, fmt, showDD = true }: { data: { t: number; cum: number; dd: number }[]; height?: number; fmt: (n: number, o?: { compact?: boolean }) => string; showDD?: boolean }) {
+export function EquityChart({ data, height = 260, fmt, showDD = true, period }: { data: { t: number; cum: number; dd: number }[]; height?: number; fmt: (n: number, o?: { compact?: boolean }) => string; showDD?: boolean; period?: Period }) {
   const c = useColors();
   const yw = useAxisW();
   const up = (data[data.length - 1]?.cum ?? 0) >= 0;
   const stroke = up ? c.profit : c.loss;
-  const pts = data.length ? [{ t: data[0].t - 1, cum: 0, dd: 0 }, ...data] : data;
+  const pts = useMemo(() => {
+    if (!data.length) return data;
+    if (!period) return [{ t: data[0].t - 1, cum: 0, dd: 0 }, ...data];
+    const b = bucketSeries(data, period, ['dd']);
+    return [{ t: prevPeriod(new Date(b[0].t), period).getTime(), cum: 0, dd: 0 }, ...b];
+  }, [data, period]);
+  const dots = period && pts.length < 60;
   return (
     <ResponsiveContainer width="100%" height={height}>
       <ComposedChart data={pts} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
@@ -56,18 +125,19 @@ export function EquityChart({ data, height = 260, fmt, showDD = true }: { data: 
           </linearGradient>
         </defs>
         <CartesianGrid stroke={c.line} vertical={false} />
-        <XAxis dataKey="t" type="number" scale="time" domain={['dataMin', 'dataMax']} tickFormatter={v => shortDate(new Date(v))} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} minTickGap={28} />
+        <XAxis dataKey="t" type="number" scale="time" domain={['dataMin', 'dataMax']} tickFormatter={v => periodTick(v, period ?? 'day')} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} minTickGap={28} />
         <YAxis tickFormatter={v => fmt(v, { compact: true })} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} width={yw} />
         <ReferenceLine y={0} stroke={c.line2} strokeDasharray="3 4" />
-        <Tooltip content={<ChartTip fmt={(v, k) => (k === 'dd' ? fmt(v) : fmt(v))} labelFmt={l => new Date(l as number).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} />} cursor={{ stroke: c.line2 }} />
-        {showDD && <Area type="monotone" dataKey="dd" name="Drawdown" stroke="none" fill={c.loss} fillOpacity={0.18} isAnimationActive animationDuration={900} />}
-        <Area type="monotone" dataKey="cum" name="Net P&L" stroke={stroke} strokeWidth={2.2} fill="url(#eqFill)" isAnimationActive animationDuration={900} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+        <Tooltip content={<ChartTip fmt={v => fmt(v)} labelFmt={l => (period ? periodLabel(l as number, period) : new Date(l as number).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))} />} cursor={{ stroke: c.line2 }} />
+        {showDD && <Area key={`dd${period}`} type="monotone" dataKey="dd" name="Drawdown" stroke="none" fill={c.loss} fillOpacity={0.18} isAnimationActive animationDuration={900} />}
+        <Area key={period} type="monotone" dataKey="cum" name="Net P&L" stroke={stroke} strokeWidth={2.2} fill="url(#eqFill)" isAnimationActive animationDuration={900} dot={dots ? { r: 2.5, fill: stroke, strokeWidth: 0 } : false} activeDot={{ r: 4, strokeWidth: 0 }} />
       </ComposedChart>
     </ResponsiveContainer>
   );
 }
 
-export function BalanceChart({ data, height = 240, fmt }: { data: { t: number; balance: number; deposits: number }[]; height?: number; fmt: (n: number, o?: { compact?: boolean }) => string }) {
+export function BalanceChart({ data: raw, height = 240, fmt, period }: { data: { t: number; balance: number; deposits: number }[]; height?: number; fmt: (n: number, o?: { compact?: boolean }) => string; period?: Period }) {
+  const data = useMemo(() => (period ? bucketSeries(raw, period) : raw), [raw, period]);
   const c = useColors();
   const yw = useAxisW();
   return (
@@ -77,29 +147,32 @@ export function BalanceChart({ data, height = 240, fmt }: { data: { t: number; b
           <linearGradient id="balFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={c.accent} stopOpacity={0.22} /><stop offset="100%" stopColor={c.accent} stopOpacity={0} /></linearGradient>
         </defs>
         <CartesianGrid stroke={c.line} vertical={false} />
-        <XAxis dataKey="t" type="number" scale="time" domain={['dataMin', 'dataMax']} tickFormatter={v => shortDate(new Date(v))} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} minTickGap={28} />
+        <XAxis dataKey="t" type="number" scale="time" domain={['dataMin', 'dataMax']} tickFormatter={v => periodTick(v, period ?? 'day')} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} minTickGap={28} />
         <YAxis tickFormatter={v => fmt(v, { compact: true })} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} width={yw} domain={['auto', 'auto']} />
-        <Tooltip content={<ChartTip fmt={v => fmt(v)} labelFmt={l => new Date(l as number).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })} />} cursor={{ stroke: c.line2 }} />
-        <Area type="stepAfter" dataKey="balance" name="Balance" stroke={c.accent} strokeWidth={2} fill="url(#balFill)" animationDuration={900} />
-        <Line type="stepAfter" dataKey="deposits" name="Net deposits" stroke={c.ink3} strokeWidth={1.5} strokeDasharray="4 4" dot={false} animationDuration={900} />
+        <Tooltip content={<ChartTip fmt={v => fmt(v)} labelFmt={l => (period ? `End of ${periodLabel(l as number, period).replace(/^Week of/, 'week of')}` : new Date(l as number).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }))} />} cursor={{ stroke: c.line2 }} />
+        <Area key={period} type="stepAfter" dataKey="balance" name="Balance" stroke={c.accent} strokeWidth={2} fill="url(#balFill)" animationDuration={900} />
+        <Line key={`d${period}`} type="stepAfter" dataKey="deposits" name="Net deposits" stroke={c.ink3} strokeWidth={1.5} strokeDasharray="4 4" dot={false} animationDuration={900} />
       </ComposedChart>
     </ResponsiveContainer>
   );
 }
 
-export function DailyBars({ days, height = 220, fmt }: { days: { date: string; pnl: number }[]; height?: number; fmt: (n: number, o?: { compact?: boolean }) => string }) {
+/** Net P&L bars per day, week or month. */
+export function DailyBars({ days, height = 220, fmt, period = 'day' }: { days: { date: string; pnl: number; trades?: number; wins?: number; losses?: number }[]; height?: number; fmt: (n: number, o?: { compact?: boolean; signed?: boolean }) => string; period?: Period }) {
   const c = useColors();
   const yw = useAxisW();
+  const data = useMemo(() => bucketDays(days, period), [days, period]);
+  const byT = useMemo(() => new Map(data.map(d => [d.t, d])), [data]);
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={days} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+      <BarChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
         <CartesianGrid stroke={c.line} vertical={false} />
-        <XAxis dataKey="date" tickFormatter={v => shortDate(new Date(v + 'T00:00'))} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} minTickGap={30} />
+        <XAxis dataKey="t" tickFormatter={v => periodTick(v, period)} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} minTickGap={period === 'month' ? 10 : 30} />
         <YAxis tickFormatter={v => fmt(v, { compact: true })} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} width={yw} />
         <ReferenceLine y={0} stroke={c.line2} />
-        <Tooltip content={<ChartTip fmt={v => fmt(v)} labelFmt={l => new Date(String(l) + 'T00:00').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })} />} cursor={{ fill: c.a('ink3', 0.08) }} />
-        <Bar dataKey="pnl" name="Net" radius={[3, 3, 0, 0]} maxBarSize={22} animationDuration={700}>
-          {days.map(d => <Cell key={d.date} fill={d.pnl >= 0 ? c.profit : c.loss} />)}
+        <Tooltip content={<ChartTip fmt={v => fmt(v, { signed: true })} labelFmt={l => { const d = byT.get(l as number); return `${periodLabel(l as number, period)}${d?.trades ? ` · ${d.trades} trades` : ''}`; }} />} cursor={{ fill: c.a('ink3', 0.08) }} />
+        <Bar key={period} dataKey="pnl" name="Net" radius={[3, 3, 0, 0]} maxBarSize={period === 'month' ? 44 : period === 'week' ? 30 : 22} animationDuration={700}>
+          {data.map(d => <Cell key={d.t} fill={d.pnl >= 0 ? c.profit : c.loss} />)}
         </Bar>
       </BarChart>
     </ResponsiveContainer>

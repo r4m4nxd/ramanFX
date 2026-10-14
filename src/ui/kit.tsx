@@ -84,7 +84,7 @@ export function Segmented<T extends string>({ value, onChange, options, size = '
 }
 
 /** True below the md breakpoint (phones). */
-const mq = typeof window !== 'undefined' ? window.matchMedia('(max-width: 767px)') : null;
+const mq = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(max-width: 767px)') : null;
 export function useIsMobile() {
   return useSyncExternalStore(cb => { mq?.addEventListener('change', cb); return () => mq?.removeEventListener('change', cb); }, () => !!mq?.matches, () => false);
 }
