@@ -91,7 +91,7 @@
   to { opacity: 1; transform: scale(1); filter: blur(0); }
 }
 .heat-cell {
-  animation: cellIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: cellIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards;
   transition: opacity 0.22s ease, transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease, background-color 0.45s ease;
   cursor: default;
   position: relative;
@@ -124,3 +124,7 @@
   background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
   animation: sheen 3.2s ease-in-out 0.3s 1 both;
 }
+
+/* Press-and-hold: the cell swells while you hold, so the popup feels like it grows out of it. */
+.hold-cell { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+.hold-cell:active { transform: scale(1.12); transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1); z-index: 5; }

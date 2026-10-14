@@ -161,7 +161,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
       <div className="flex-1 min-w-0 flex flex-col" ref={mainRef}>
         {/* Top bar */}
-        <header className="sticky top-0 z-30 bg-bg/80 backdrop-blur-xl border-b border-line pt-safe px-safe">
+        <header className="sticky top-0 z-30 bg-bg border-b border-line pt-safe px-safe">
           <div className="max-w-[1360px] mx-auto flex items-center gap-2 px-4 lg:px-7 h-14">
             <h1 className="text-[17px] font-semibold tracking-tight truncate">{title}</h1>
             <div className="ml-auto flex items-center gap-1.5">
@@ -190,7 +190,7 @@ export function Shell({ children }: { children: ReactNode }) {
       </div>
 
       {/* Mobile tab bar */}
-      <nav aria-label="Main" className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-surface/90 backdrop-blur-xl border-t border-line pb-safe px-safe">
+      <nav aria-label="Main" className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-surface border-t border-line pb-safe px-safe">
         <div className="flex justify-around px-2 pt-1.5">
           {NAV.filter(n => n.mobile).map(n => (
             <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cx('relative flex flex-col items-center gap-0.5 min-w-[58px] min-h-[46px] justify-center text-[10.5px] font-medium', isActive ? 'text-accent' : 'text-ink3')}>

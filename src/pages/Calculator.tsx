@@ -2,95 +2,15 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { DEFAULT_RISK_RULES, useStore } from '@/data/store';
-import { loadRates, rate } from '@/data/fx';
-import { LIBRARY, measuredUnitValues, normalizeSymbol, positionSize, specFor, unitValue, type InstrumentSpec } from '@/core/instruments';
+import { LIBRARY, measuredUnitValues, positionSize, specFor, type InstrumentSpec } from '@/core/instruments';
 import type { AssetClass } from '@/core/library';
 import { ccySymbol, money, num, price } from '@/lib/format';
 import { Badge, Card, CardHead, CountUp, cx, Field, InfoTip, Page, Segmented, Stat, Tabs, useIsMobile } from '@/ui/kit';
+import { Result, SourceNote, SymbolPicker, useSpec } from './calcShared';
+import { DrawdownCalc, EdgeCalc, GrowthCalc, LevelsCalc, MarginCalc, PnlCalc, RRCalc } from './CalcTools';
 import { Icon } from '@/ui/Icon';
 
-type Tab = 'size' | 'value' | 'library';
-
-function useAccountCcy() {
-  return useStore(s => (s.activeAccount !== 'all' ? s.accounts[s.activeAccount]?.currency : undefined) ?? Object.values(s.accounts)[0]?.currency ?? 'USD');
-}
-
-function useRates() {
-  const [r, setR] = useState<Awaited<ReturnType<typeof loadRates>>>(null);
-  useEffect(() => { void loadRates().then(setR); }, []);
-  return r;
-}
-
-/** Symbol combobox over the library plus the user's traded symbols. */
-function SymbolPicker({ value, onChange, futures }: { value: string; onChange: (s: string) => void; futures: boolean }) {
-  const trades = useStore(s => s.trades);
-  const [q, setQ] = useState(value);
-  const [open, setOpen] = useState(false);
-  useEffect(() => setQ(value), [value]);
-  const mine = useMemo(() => [...new Set(trades.map(t => normalizeSymbol(t.symbol)))], [trades]);
-  const list = useMemo(() => {
-    const ql = q.trim().toUpperCase();
-    const pool = LIBRARY.filter(i => (futures ? i.venue !== 'CFD' : i.venue === 'CFD'));
-    const ranked = pool.filter(i => !ql || i.symbol.includes(ql) || i.name.toUpperCase().includes(ql) || i.aliases?.some(a => a.includes(ql)));
-    ranked.sort((a, b) => Number(mine.includes(b.symbol)) - Number(mine.includes(a.symbol)) || Number(b.symbol.startsWith(ql)) - Number(a.symbol.startsWith(ql)));
-    return ranked.slice(0, 40);
-  }, [q, futures, mine]);
-  return (
-    <div className="relative">
-      <input aria-label="Instrument" className="field font-mono uppercase" value={q} onChange={e => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => { setOpen(false); if (q.trim()) onChange(q.trim().toUpperCase()); }, 150)} placeholder={futures ? 'ES, MNQ, GC, CL…' : 'EURUSD, XAUUSD, US30…'} />
-      <AnimatePresence>
-        {open && list.length > 0 && (
-          <motion.ul initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute z-30 mt-1 w-full card shadow-pop p-1 max-h-72 overflow-y-auto">
-            {list.map(i => (
-              <li key={i.venue + i.symbol}>
-                <button type="button" onMouseDown={() => { onChange(i.symbol); setQ(i.symbol); setOpen(false); }} className="w-full flex items-center gap-2 px-2.5 h-9 rounded-md text-sm hover:bg-raised text-left">
-                  <span className="font-mono font-medium w-16">{i.symbol}</span><span className="text-ink3 truncate">{i.name}</span>
-                  {mine.includes(i.symbol) && <Badge tone="accent" className="ml-auto">traded</Badge>}
-                  {i.venue !== 'CFD' && <span className="ml-auto text-[10px] text-ink3">{i.venue}</span>}
-                </button>
-              </li>
-            ))}
-          </motion.ul>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function useSpec(symbol: string, futures: boolean) {
-  const overrides = useStore(s => s.overrides);
-  const trades = useStore(s => s.trades);
-  const ccy = useAccountCcy();
-  const rates = useRates();
-  return useMemo(() => {
-    const spec = specFor(symbol, futures ? undefined : overrides[normalizeSymbol(symbol)], { futures });
-    const fx = rate(rates, spec.quote, ccy);
-    const uv = unitValue(spec, futures ? {} : measuredUnitValues(trades), fx ?? 1);
-    return { spec, uv, fx, ccy, fxMissing: fx == null && spec.quote !== ccy };
-  }, [symbol, futures, overrides, trades, ccy, rates]);
-}
-
-function Result({ label, value, sub, big }: { label: string; value: React.ReactNode; sub?: React.ReactNode; big?: boolean }) {
-  return (
-    <div className="min-w-0">
-      <div className="label">{label}</div>
-      <div className={cx('num font-semibold mt-1', big ? 'text-3xl tracking-tight' : 'text-lg')}>{value}</div>
-      {sub && <div className="text-[11.5px] text-ink3 mt-0.5">{sub}</div>}
-    </div>
-  );
-}
-
-function SourceNote({ spec, uv, fx, ccy, fxMissing }: ReturnType<typeof useSpec>) {
-  return (
-    <p className="text-[11.5px] text-ink3 leading-relaxed">
-      {uv.source === 'measured'
-        ? <>Value per point measured from your own {spec.symbol} fills (includes your broker's contract size and FX conversion).</>
-        : <>From contract spec: {spec.venue === 'CFD' ? `${num(spec.contractSize, 0)} units per lot` : `${ccySymbol(spec.quote)}${num(spec.pointValue, spec.pointValue < 10 ? 2 : 0)} per point`}{spec.quote !== ccy && (fx ? `, ${spec.quote}→${ccy} at ${fx.toFixed(5)} (ECB reference)` : '')}.</>}
-      {fxMissing && <span className="text-warn"> No {spec.quote}→{ccy} rate available offline; values shown in {spec.quote}.</span>}
-      {!spec.known && <span className="text-warn"> Unknown symbol — check the spec in the library tab.</span>}
-    </p>
-  );
-}
+type Tab = 'size' | 'value' | 'pnl' | 'margin' | 'rr' | 'growth' | 'dd' | 'edge' | 'levels' | 'library';
 
 function SizeCalc() {
   const accounts = useStore(s => s.accounts);
@@ -364,11 +284,14 @@ export default function Calculator() {
   const tab = (params.get('tab') as Tab) || 'size';
   return (
     <Page>
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <Tabs label="Calculator" value={tab} onChange={v => setParams({ tab: v }, { replace: true })} options={[{ value: 'size', label: 'Position size' }, { value: 'value', label: 'Pip value' }, { value: 'library', label: 'Instruments' }]} />
+      <div className="flex flex-col gap-3">
+        <Tabs label="Calculator" value={tab} onChange={v => setParams({ tab: v }, { replace: true })} options={[
+          { value: 'size', label: 'Position size' }, { value: 'value', label: 'Pip value' }, { value: 'pnl', label: 'Profit & loss' }, { value: 'margin', label: 'Margin' }, { value: 'rr', label: 'Risk : reward' },
+          { value: 'growth', label: 'Compounding' }, { value: 'dd', label: 'Drawdown' }, { value: 'edge', label: 'Risk of ruin' }, { value: 'levels', label: 'Pivots & Fib' }, { value: 'library', label: 'Instruments' },
+        ]} />
         <span className="text-xs text-ink3 flex items-center gap-1.5">Futures specs from CME, CBOT, NYMEX, COMEX, ICE, Eurex and Cboe<InfoTip text="Broker CFDs vary. When you've traded a symbol, the app uses the value measured from your own fills instead." /></span>
       </div>
-      {tab === 'size' ? <SizeCalc /> : tab === 'value' ? <ValueCalc /> : <Library />}
+      {{ size: <SizeCalc />, value: <ValueCalc />, pnl: <PnlCalc />, margin: <MarginCalc />, rr: <RRCalc />, growth: <GrowthCalc />, dd: <DrawdownCalc />, edge: <EdgeCalc />, levels: <LevelsCalc />, library: <Library /> }[tab] ?? <SizeCalc />}
     </Page>
   );
 }

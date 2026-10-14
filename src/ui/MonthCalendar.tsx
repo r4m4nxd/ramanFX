@@ -6,11 +6,14 @@ import { monthName, useMoney } from '@/lib/format';
 import { Icon } from './Icon';
 import { cx, ease, useIsMobile } from './kit';
 import { useStore } from '@/data/store';
+import { DayPeek, useLongPress } from './DayPeek';
 
 /** Month grid, Mon–Sun plus a weekly total column (weekends collapse when untraded). */
 export function MonthCalendar({ days, onDay, compact = false, initial }: { days: DayStat[]; onDay?: (date: string) => void; compact?: boolean; initial?: Date }) {
   const fmt = useMoney();
   const privacy = useStore(st => st.privacy);
+  const [peek, setPeek] = useState<string | null>(null);
+  const hold = useLongPress();
   const last = days.length ? new Date(days[days.length - 1].date + 'T00:00') : new Date();
   const [cursor, setCursor] = useState(() => { const d = initial ?? last; return new Date(d.getFullYear(), d.getMonth(), 1); });
   const map = useMemo(() => new Map(days.map(d => [d.date, d])), [days]);
@@ -67,9 +70,9 @@ export function MonthCalendar({ days, onDay, compact = false, initial }: { days:
             const Cell = s && onDay && inMonth ? 'button' : 'div';
             return (
               <motion.div key={k} initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3, ease, delay: (wi * cols + di) * 0.008 }}>
-                <Cell {...(Cell === 'button' ? { type: 'button' as const, onClick: () => onDay!(k), 'aria-label': `${k}: ${fmt(s!.pnl, { signed: true })}, ${s!.trades} trades` } : {})}
+                <Cell {...(Cell === 'button' ? { type: 'button' as const, ...hold.bind(() => setPeek(k)), onClick: () => { if (!hold.consumed()) onDay!(k); }, 'aria-label': `${k}: ${fmt(s!.pnl, { signed: true })}, ${s!.trades} trades` } : {})}
                   className={cx('w-full overflow-hidden border text-left flex flex-col transition-transform', small ? 'rounded-md min-h-[50px] p-1 justify-between' : 'rounded-lg min-h-[78px] p-2 justify-between',
-                    Cell === 'button' && 'active:scale-95 md:hover:scale-[1.04] md:hover:z-10 relative',
+                    Cell === 'button' && 'hold-cell md:hover:scale-[1.04] md:hover:z-10 relative',
                     !inMonth ? 'invisible' : s ? (s.pnl >= 0 ? 'border-profit/35' : 'border-loss/40') : 'border-line/70 bg-bg/40', k === today && 'ring-2 ring-accent')}
                   style={s && inMonth ? { background: s.pnl >= 0 ? `rgb(var(--profit) / ${intensity})` : `rgb(var(--loss) / ${intensity})` } : undefined}>
                   <span className={cx('leading-none text-ink3', small ? 'text-[10px]' : 'text-[11px]')}>{d.getDate()}</span>
@@ -102,6 +105,7 @@ export function MonthCalendar({ days, onDay, compact = false, initial }: { days:
           ))}
         </ul>
       )}
+      <DayPeek day={peek} onClose={() => setPeek(null)} />
     </div>
   );
 }

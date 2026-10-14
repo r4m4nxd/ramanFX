@@ -17,7 +17,7 @@ export function TradeList({ trades, time = 'close' }: { trades: EnrichedTrade[];
         return (
           <li key={t.account + t.id} className="border-t border-line first:border-0">
             <Link to={`/trades/${t.id}`} className="flex items-center gap-3 py-3 active:bg-raised/60 -mx-1 px-1 rounded-lg">
-              <span className={cx('w-8 h-8 rounded-lg grid place-items-center text-[10px] font-bold shrink-0', long ? 'bg-accent/12 text-accent' : 'bg-warn/12 text-warn')} aria-label={long ? 'Long' : 'Short'}>{long ? 'L' : 'S'}</span>
+              <span className={cx('w-8 h-8 rounded-lg grid place-items-center text-[10px] font-bold shrink-0', long ? 'bg-accent/15 text-accent' : 'bg-warn/15 text-warn')} aria-label={long ? 'Long' : 'Short'}>{long ? 'L' : 'S'}</span>
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-1.5">
                   <span className="font-mono font-semibold text-[14px] truncate">{t.sym}</span>

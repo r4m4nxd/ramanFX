@@ -93,9 +93,9 @@ export function useIsMobile() {
 export function Tabs<T extends string>({ value, onChange, options, label }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[]; label: string }) {
   const mobile = useIsMobile();
   const id = useId();
-  if (!mobile) return <div><Segmented label={label} value={value} onChange={onChange} options={options} /></div>;
+  if (!mobile && options.length <= 6) return <div><Segmented label={label} value={value} onChange={onChange} options={options} /></div>;
   return (
-    <div role="tablist" aria-label={label} className={cx('grid gap-1.5 p-1 rounded-2xl bg-raised border border-line', options.length % 3 === 0 || options.length > 4 ? 'grid-cols-3' : 'grid-cols-2')}>
+    <div role="tablist" aria-label={label} className={cx('grid gap-1.5 p-1 rounded-2xl bg-raised border border-line', !mobile ? 'grid-cols-5 xl:grid-cols-10' : options.length % 3 === 0 || options.length > 4 ? 'grid-cols-3' : 'grid-cols-2')}>
       {options.map(o => {
         const on = o.value === value;
         return (

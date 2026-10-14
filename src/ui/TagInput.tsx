@@ -12,7 +12,7 @@ export function TagInput({ value, onChange, universe, tone = 'accent', placehold
     return universe.filter(u => !value.includes(u) && (!ql || u.includes(ql))).slice(0, 8);
   }, [q, universe, value]);
   const add = (t: string) => { const v = t.toLowerCase().replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim(); if (v && !value.includes(v)) onChange([...value, v]); setQ(''); };
-  const chip = { accent: 'bg-accent/12 text-accent border-accent/35', warn: 'bg-warn/12 text-warn border-warn/35', violet: 'bg-violet/12 text-violet border-violet/35' }[tone];
+  const chip = { accent: 'bg-accent/15 text-accent border-accent/35', warn: 'bg-warn/15 text-warn border-warn/35', violet: 'bg-violet/15 text-violet border-violet/35' }[tone];
   return (
     <div className="relative">
       <div className="flex flex-wrap gap-1.5 items-center min-h-[38px] p-1.5 rounded-lg border border-line2 bg-bg focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20">

@@ -1,12 +1,12 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import type { DayStat } from '@/core/stats';
 import { dayKey } from '@/core/time';
 import { monthName, pct, tone, useMoney } from '@/lib/format';
 import { heatColor, HeatLegend, inkOn, scaleFor } from './Heatmap';
 import { Icon } from './Icon';
 import { CountUp, cx, ease } from './kit';
+import { DayPeek, useLongPress } from './DayPeek';
 
 /**
  * Twelve mini months for one year, each day tinted by its net P&L. Days ripple in month by month;
@@ -19,6 +19,8 @@ export function YearCalendar({ days, year, onYear, onMonth }: { days: DayStat[];
   const scale = useMemo(() => scaleFor('net', yearDays.map(d => d.pnl)), [yearDays]);
   const [sel, setSel] = useState<string | null>(null);
   const selDay = sel ? map.get(sel) : undefined;
+  const [peek, setPeek] = useState<string | null>(null);
+  const hold = useLongPress();
   const today = dayKey(new Date());
 
   const net = yearDays.reduce((a, d) => a + d.pnl, 0);
@@ -59,11 +61,11 @@ export function YearCalendar({ days, year, onYear, onMonth }: { days: DayStat[];
               <span className="text-[13px] font-medium truncate">{new Date(selDay.date + 'T00:00').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}</span>
               <span className="text-xs text-ink3 num whitespace-nowrap">{selDay.trades} trades · {selDay.wins}W {selDay.losses}L</span>
               <span className={cx('num font-semibold ml-auto whitespace-nowrap', tone(selDay.pnl))}>{fmt(selDay.pnl, { signed: true })}</span>
-              <Link to={`/journal?day=${selDay.date}`} className="btn h-8 px-2.5 text-xs shrink-0" aria-label="Open this day in the journal"><Icon name="journal" size={13} /><span className="max-sm:hidden">Journal</span></Link>
+              <button type="button" onClick={() => setPeek(selDay.date)} className="btn h-8 px-2.5 text-xs shrink-0" aria-label="Day details"><Icon name="reports" size={13} /><span className="max-sm:hidden">Details</span></button>
             </motion.div>
           ) : (
             <motion.div key="hint" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center justify-between gap-3 w-full">
-              <span className="text-xs text-ink3 whitespace-nowrap">Tap a day</span>
+              <span className="text-xs text-ink3 whitespace-nowrap">Hold a day for details</span>
               <div className="flex-1 max-w-[280px]"><HeatLegend metric="net" scale={scale} /></div>
             </motion.div>
           )}
@@ -91,9 +93,10 @@ export function YearCalendar({ days, year, onYear, onMonth }: { days: DayStat[];
                   const on = sel === k;
                   return (
                     <button key={k} type="button" disabled={!s}
-                      onPointerEnter={e => { if (s && e.pointerType === 'mouse') setSel(k); }} onClick={() => s && setSel(k)}
+                      {...(s ? hold.bind(() => { setSel(k); setPeek(k); }) : {})}
+                      onPointerEnter={e => { if (s && e.pointerType === 'mouse') setSel(k); }} onClick={() => { if (s && !hold.consumed()) setSel(k); }}
                       aria-label={s ? `${k}: ${fmt(s.pnl, { signed: true })}` : k}
-                      className={cx('heat-cell aspect-square rounded-[4px] text-[9px] num leading-none grid place-items-center', on && 'is-active', k === today && 'ring-1 ring-accent', !s && 'cursor-default')}
+                      className={cx('heat-cell hold-cell aspect-square rounded-[4px] text-[9px] num leading-none grid place-items-center', on && 'is-active', k === today && 'ring-1 ring-accent', !s && 'cursor-default')}
                       style={{ background: s ? heatColor('net', s.pnl, scale) : 'rgb(var(--raised) / 0.6)', color: s ? inkOn('net', s.pnl, scale) : 'rgb(var(--ink3) / 0.6)', animationDelay: `${m * 45 + i * 9}ms` }}>
                       {i + 1}
                     </button>
@@ -104,6 +107,7 @@ export function YearCalendar({ days, year, onYear, onMonth }: { days: DayStat[];
           );
         })}
       </div>
+      <DayPeek day={peek} onClose={() => setPeek(null)} />
     </div>
   );
 }
