@@ -268,6 +268,13 @@ export interface TradeFacts {
   holdSec: number;
   minutesSinceLastLoss?: number | null;
   sizeVsAvg?: number | null;
+  /** v2 excursion export: how it closed, how it was entered, and what holding would have paid / cost. */
+  exitReason?: string | null;
+  entryOrder?: string | null;
+  slipPts?: number | null;
+  leftMoney?: number | null;
+  savedMoney?: number | null;
+  afterMin?: number | null;
 }
 
 export interface TradeVerdict { lines: Reason[]; adherence: number | null; headline: string }
@@ -342,6 +349,17 @@ export function judgeTrade(f: TradeFacts, plan: Plan | null, defaultRiskPct = 1)
   } else if (f.r != null) {
     if (f.r <= -1.2) { say('bad', `Lost ${Math.abs(f.r).toFixed(2)}R — more than the planned 1R.`, 'Your risk is fixed before entry.'); check(false); }
   }
+
+  // How it was entered and closed (v2 export)
+  if (f.entryOrder) {
+    if (f.entryOrder === 'market') { say(plan && plan.entryType !== 'market' ? 'bad' : 'warn', `Entered with a market order${plan?.entryType === 'limit' ? ' — your plan said a pending limit' : ''}.`, 'Pending limit order just before the proximal line is the best entry; market orders are not advised.'); check(false); }
+    else if (f.entryOrder === 'limit') { say('good', 'Entered with a pending limit order.', 'Pending limit order (best entry method).'); check(true); }
+    else if (f.entryOrder === 'stop') say('warn', 'Entered with a stop order (breakout).', 'Breakout stop orders typically give a worse R:R.');
+  }
+  const ago = f.afterMin != null ? ` ${f.afterMin < 60 ? Math.round(f.afterMin) + ' min' : (f.afterMin / 60).toFixed(1) + ' h'} later` : '';
+  if (f.exitReason === 'so') say('bad', 'Closed by a margin stop-out.', 'Size from your risk %, never from a feeling.');
+  if (f.leftMoney != null && f.leftMoney > 0) say(v?.odds === 'low' ? 'warn' : 'bad', `You closed early; price hit your original target${ago} before the stop — ${money(f.leftMoney)} left on the table.`, v?.odds === 'low' ? 'Low odds: taking 1:1 is fine — DO NOT BE GREEDY.' : 'High odds: aim for a higher R:R and wait longer.');
+  if (f.savedMoney != null && f.savedMoney > 0) say('good', `Closing early paid off — price went on to hit your stop${ago}. Saved ${money(f.savedMoney)}.`, 'Manage the trade by the plan; protect capital.');
 
   // Behaviour
   if (f.minutesSinceLastLoss != null && f.minutesSinceLastLoss < 15) say('bad', `Opened ${Math.round(f.minutesSinceLastLoss)} min after a loss.`, 'Avoid revenge trading — emotional decisions make losing streaks worse.');

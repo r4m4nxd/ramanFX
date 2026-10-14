@@ -158,7 +158,11 @@ export function parseExitCSV(text: string): Record<string, ExitData> {
   const ix = (n: string) => headers.indexOf(n);
   const iPos = ix('Position ID') >= 0 ? ix('Position ID') : ix('Ticket');
   if (iPos < 0) return out;
-  const col = { sym: ix('Symbol'), type: ix('Type'), open: ix('Open Time'), close: ix('Close Time'), dur: ix('Duration (Hrs)'), pd: ix('Profit ($)'), pp: ix('Profit (Pts)'), mae: ix('MAE (Pts)'), mfe: ix('MFE (Pts)'), t30m: ix('T+30m (Pts)'), t1h: ix('T+1h (Pts)'), t4h: ix('T+4h (Pts)'), t12h: ix('T+12h (Pts)'), t1d: ix('T+1d (Pts)'), t1w: ix('T+1w (Pts)'), t1wMin: ix('T+1w MIN (Pts)'), isl: ix('Initial SL'), itp: ix('Initial TP'), tmfe: ix('Minutes to MFE'), tmae: ix('Minutes to MAE'), src: ix('Source') };
+  const col = { sym: ix('Symbol'), type: ix('Type'), open: ix('Open Time'), close: ix('Close Time'), dur: ix('Duration (Hrs)'), pd: ix('Profit ($)'), pp: ix('Profit (Pts)'), mae: ix('MAE (Pts)'), mfe: ix('MFE (Pts)'), t30m: ix('T+30m (Pts)'), t1h: ix('T+1h (Pts)'), t4h: ix('T+4h (Pts)'), t12h: ix('T+12h (Pts)'), t1d: ix('T+1d (Pts)'), t1w: ix('T+1w (Pts)'), t1wMin: ix('T+1w MIN (Pts)'), isl: ix('Initial SL'), itp: ix('Initial TP'), tmfe: ix('Minutes to MFE'), tmae: ix('Minutes to MAE'), src: ix('Source'),
+    entry: ix('Entry'), exit: ix('Exit'), reason: ix('Exit Reason'), closes: ix('Closes'), exits: ix('Exits'), order: ix('Entry Order'), req: ix('Requested'), slip: ix('Slippage (Pts)'), placed: ix('Order Placed'),
+    mbm: ix('MAE before MFE (Pts)'), h05: ix('Hit +0.5R'), h1: ix('Hit +1R'), h2: ix('Hit +2R'), h3: ix('Hit +3R'), hm05: ix('Hit -0.5R'), hsl: ix('Hit SL'), be05: ix('BE after +0.5R'), be1: ix('BE after +1R'), half: ix('-0.5R after +1R'),
+    after: ix('After Exit'), afterMin: ix('After Exit Min'), max1d: ix('Max After 1d (Pts)'), max1w: ix('Max After 1w (Pts)') };
+  const str = (c: string[], i: number) => (i < 0 ? null : (c[i] ?? '').trim() || null);
   const n = (c: string[], i: number) => { if (i < 0) return null; const t = (c[i] ?? '').trim(); if (!t || t.toLowerCase() === 'n/a') return null; const v = parseFloat(t); return isNaN(v) ? null : v; };
   const mx = (a: number | null, b: number | null) => (a == null ? b : b == null ? a : Math.max(a, b));
   const mn = (a: number | null, b: number | null) => (a == null ? b : b == null ? a : Math.min(a, b));
@@ -173,6 +177,15 @@ export function parseExitCSV(text: string): Record<string, ExitData> {
       t30m: n(c, col.t30m), t1h: n(c, col.t1h), t4h: n(c, col.t4h), t12h: n(c, col.t12h), t1d: n(c, col.t1d), t1w: n(c, col.t1w), t1wMin: n(c, col.t1wMin),
       initSl: n(c, col.isl), initTp: n(c, col.itp), minToMfe: n(c, col.tmfe), minToMae: n(c, col.tmae), source: col.src >= 0 ? c[col.src] || null : null,
     };
+    if (col.reason >= 0) {
+      const after = str(c, col.after);
+      Object.assign(row, {
+        entryPrice: n(c, col.entry), exitPrice: n(c, col.exit), exitReason: str(c, col.reason), closes: n(c, col.closes), exits: str(c, col.exits),
+        entryOrder: str(c, col.order), reqPrice: n(c, col.req), slipPts: n(c, col.slip), placedAt: str(c, col.placed), maeBeforeMfe: n(c, col.mbm),
+        touch: col.h1 >= 0 ? { p05: n(c, col.h05), p1: n(c, col.h1), p2: n(c, col.h2), p3: n(c, col.h3), m05: n(c, col.hm05), sl: n(c, col.hsl), be05: n(c, col.be05), be1: n(c, col.be1), h05: n(c, col.half) } : null,
+        afterExit: after === 'tp' || after === 'sl' || after === 'none' ? after : null, afterExitMin: n(c, col.afterMin), max1d: n(c, col.max1d), max1w: n(c, col.max1w),
+      } satisfies Partial<ExitData>);
+    }
     const e = out[pos];
     if (!e) { out[pos] = row; continue; }
     e.fillCount = (e.fillCount ?? 1) + 1;

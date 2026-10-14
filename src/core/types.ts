@@ -143,9 +143,34 @@ export interface ExitData {
   minToMfe?: number | null;
   minToMae?: number | null;
   source?: string | null;
+  // v2 export
+  /** How the position closed: sl / tp / manual / so (stop-out) / ea / other. */
+  exitReason?: string | null;
+  /** Closing deals (more than 1 = partial closes) and each fill as price@time×lots. */
+  closes?: number | null;
+  exits?: string | null;
+  entryPrice?: number | null;
+  exitPrice?: number | null;
+  /** MT5: market / limit / stop / stop_limit, the price the order asked for, slippage (+ = worse) and when it was placed. */
+  entryOrder?: string | null;
+  reqPrice?: number | null;
+  slipPts?: number | null;
+  placedAt?: string | null;
+  /** Worst point reached before the best point (heat taken on the way to the MFE). */
+  maeBeforeMfe?: number | null;
+  /** Minutes from entry when price first touched each R level (1R = initial stop), following price past the exit. */
+  touch?: Touch | null;
+  /** After the exit: did the original target or stop come first (within the export window), and when. */
+  afterExit?: 'tp' | 'sl' | 'none' | null;
+  afterExitMin?: number | null;
+  /** Best price after the exit within 1 day / 1 week, in points from entry. */
+  max1d?: number | null;
+  max1w?: number | null;
   suspectMFE?: boolean;
   suspectMAE?: boolean;
 }
+
+export interface Touch { p05: number | null; p1: number | null; p2: number | null; p3: number | null; m05: number | null; sl: number | null; be05: number | null; be1: number | null; h05: number | null }
 
 export interface Strategy {
   id: string;

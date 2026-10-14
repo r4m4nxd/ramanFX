@@ -5,6 +5,7 @@ import { CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Scatter, Scatt
 import { excursionMoney, useGraded, type Graded } from '@/data/guru';
 import { useStore } from '@/data/store';
 import { simulate, type Path } from '@/core/manage';
+import { exitSummary, type ExitTrade, type Group } from '@/core/exitInsights';
 import { num, pct, tone, useMoney } from '@/lib/format';
 import { Card, CardHead, cx, ease, Page, Segmented, Stat, useIsMobile } from '@/ui/kit';
 import { ChartTip, useAxisW, useColors } from '@/ui/charts';
@@ -18,8 +19,8 @@ function Setup({ have }: { have: number }) {
       <CardHead title={have ? 'Refresh your excursion data' : 'Get exact MAE / MFE for every trade'} sub="Your MT5 report only has entry and exit. These scripts read your broker's own price history." />
       <div className="grid md:grid-cols-2 gap-3">
         {[
-          { f: 'RamanFX_Excursions.mq5', t: 'MetaTrader 5', s: 'Tick-exact where your broker keeps ticks. Also exports the stop and target each trade was OPENED with — your true 1R.' },
-          { f: 'RamanFX_Excursions.mq4', t: 'MetaTrader 4', s: 'Uses the smallest timeframe with history. MT4 does not store the opening stop.' },
+          { f: 'RamanFX_Excursions.mq5', t: 'MetaTrader 5 · v2', s: 'Tick-exact where your broker keeps ticks. Your true 1R (the stop each trade opened with), how it closed, entry order type and slippage, partial closes, when price touched each R level, and what happened after you exited.' },
+          { f: 'RamanFX_Excursions.mq4', t: 'MetaTrader 4 · v2', s: 'Smallest timeframe with history. How it closed, R-level touches and after-exit data. MT4 does not store the opening stop, order type or slippage.' },
         ].map(x => (
           <a key={x.f} href={`/tools/${x.f}`} download className="rounded-xl border border-line hover:border-accent bg-raised/40 p-4 flex gap-3 items-start transition-colors">
             <span className="w-10 h-10 rounded-xl bg-accent/15 text-accent grid place-items-center shrink-0"><Icon name="download" size={18} /></span>
@@ -33,6 +34,71 @@ function Setup({ have }: { have: number }) {
         ))}
       </ol>
       <div className="mt-4"><button className="btn-primary" onClick={() => window.dispatchEvent(new Event('rfx:import'))}><Icon name="upload" size={14} />Import the CSV</button></div>
+    </Card>
+  );
+}
+
+
+function GroupTable({ title, sub, rows, extra }: { title: string; sub: string; rows: Group[]; extra?: { label: string; fmt: (v: number | null | undefined) => string } }) {
+  const fmt = useMoney();
+  if (!rows.length) return null;
+  return (
+    <div className="rounded-xl border border-line bg-raised/30 p-3">
+      <div className="text-[13px] font-semibold">{title}</div>
+      <div className="text-[11.5px] text-ink3 mb-2">{sub}</div>
+      <div className="flex flex-col">
+        {rows.map(g => (
+          <div key={g.key} className="py-2 border-t border-line first:border-0">
+            <div className="flex items-baseline justify-between gap-2"><span className="text-[13px] font-medium">{g.label}</span><span className={cx('num text-[13px] font-semibold', tone(g.net))}>{fmt(g.net, { signed: true })}</span></div>
+            <div className={cx('grid gap-2 mt-1', extra ? 'grid-cols-4' : 'grid-cols-3')}>
+              <Stat label="Trades" value={g.n} />
+              <Stat label="Avg R" value={g.avgR != null ? `${g.avgR >= 0 ? '+' : ''}${g.avgR.toFixed(2)}R` : '—'} className={tone(g.avgR)} />
+              <Stat label="Win" value={pct(g.win, 0)} />
+              {extra && <Stat label={extra.label} value={extra.fmt(g.extra)} />}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** v2 export: how trades closed, how they were entered, what price did after the exit. */
+function ExitBreakdown({ trades }: { trades: ExitTrade[] }) {
+  const fmt = useMoney();
+  const s = useMemo(() => exitSummary(trades), [trades]);
+  if (!s.n) return (
+    <Card className="luxe-border">
+      <CardHead title="Left on the table, exits and entries" sub="New: re-run the updated RamanFX_Excursions script (v2) and import the CSV to fill this in" />
+      <p className="text-[13px] text-ink2 leading-relaxed">It adds how every trade closed (stop, target or by hand), your entry order type and slippage, partial closes, when price first touched each R level — so the management lab is exact — and whether your original target or stop was hit after you closed.</p>
+    </Card>
+  );
+  return (
+    <Card>
+      <CardHead title="Left on the table, exits and entries" sub={`${s.n} trades from the v2 export. "After you closed" follows price for a week past the exit.`} />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+        <div className="rounded-xl border border-warn/40 bg-warn/10 p-3.5">
+          <div className="label">Left on the table</div>
+          <div className="num text-2xl font-semibold text-warn mt-1">{fmt(s.left.total)}</div>
+          <div className="text-[11.5px] text-ink3 mt-0.5">{s.left.n} trade{s.left.n === 1 ? '' : 's'} closed before your target — price went on to hit it before the stop</div>
+        </div>
+        <div className="rounded-xl border border-profit/40 bg-profit/10 p-3.5">
+          <div className="label">Saved by closing early</div>
+          <div className="num text-2xl font-semibold text-profit mt-1">{fmt(s.saved.total)}</div>
+          <div className="text-[11.5px] text-ink3 mt-0.5">{s.saved.n} trade{s.saved.n === 1 ? '' : 's'} closed before the stop — price went on to hit it</div>
+        </div>
+        <div className="rounded-xl border border-line bg-raised/40 p-3.5">
+          <div className="label">Heat before the best price</div>
+          <div className="num text-2xl font-semibold mt-1">{s.heatBeforeBestR != null ? `${s.heatBeforeBestR.toFixed(2)}R` : '—'}</div>
+          <div className="text-[11.5px] text-ink3 mt-0.5">Average drawdown on the way to the best point{s.maeR != null ? ` (vs ${s.maeR.toFixed(2)}R total MAE)` : ''}. Well under 1R means your winners rarely need the full stop.</div>
+        </div>
+      </div>
+      <div className="grid md:grid-cols-2 gap-3">
+        <GroupTable title="How your trades closed" sub="Stop, target, or your own hand" rows={s.byReason} />
+        <GroupTable title="How you entered" sub="PDFs: a pending limit at the proximal line is the best entry" rows={s.byOrder} extra={{ label: 'Slippage', fmt: v => (v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(1)} pts`) }} />
+        <GroupTable title="Scaling out" sub="Partial closes vs closing the whole position" rows={s.byCloses} />
+        <GroupTable title="How long the order waited" sub="From placing the pending order to the fill" rows={s.byWait} />
+      </div>
     </Card>
   );
 }
@@ -57,9 +123,12 @@ export default function Exits() {
     const mfeR = risk && m.mfe != null ? m.mfe / risk : null, maeR = risk && m.mae != null ? m.mae / risk : null;
     const capture = m.mfe && m.mfe > 0 ? Math.max(0, g.t.net) / m.mfe : null;
     const order = e.minToMfe != null && e.minToMae != null ? e.minToMfe < e.minToMae : null;
-    return { g, mfeR, maeR, mfe$: m.mfe, mae$: m.mae, capture, path: mfeR != null && maeR != null && g.t.r != null ? { r: g.t.r, mfe: mfeR, mae: maeR, mfeFirst: order } : null };
+    // Touch times are in R of the initial stop — only valid when the trade's R uses that same stop.
+    const touch = e.touch && g.t.riskSource !== 'override' ? e.touch : null;
+    return { g, mfeR, maeR, mfe$: m.mfe, mae$: m.mae, capture, path: mfeR != null && maeR != null && g.t.r != null ? { r: g.t.r, mfe: mfeR, mae: maeR, mfeFirst: order, touch, exitMin: g.t.holdSec / 60 } : null };
   }), [graded, exitData, from, to]);
 
+  const exitTrades: ExitTrade[] = useMemo(() => rows.map(r => ({ net: r.g.t.net, r: r.g.t.r, risk: r.g.t.risk, side: r.g.t.type, openPrice: r.g.t.openPrice, sl: r.g.t.sl, tp: r.g.t.tp, e: exitData[r.g.t.id] })), [rows, exitData]);
   const withR = rows.filter(r => r.path);
   const pool = withR.filter(r => split === 'all' || (split === 'none' ? !r.g.eval : r.g.eval?.odds === split));
   const sim = useMemo(() => simulate(pool.map(r => r.path!)), [pool]);
@@ -92,6 +161,8 @@ export default function Exits() {
           <Card key={l} className="p-4"><div className="label">{l}</div><div className={cx('num font-semibold mt-1.5 leading-tight', String(v).length > 12 ? 'text-[15px]' : 'text-xl', cl)}>{v}</div><div className="text-[11.5px] text-ink3 mt-1">{s}</div></Card>
         ))}
       </div>
+
+      <ExitBreakdown trades={exitTrades} />
 
       <div className="grid xl:grid-cols-5 gap-4">
         <Card className="xl:col-span-3">
@@ -128,7 +199,7 @@ export default function Exits() {
       </div>
 
       <Card>
-        <CardHead title="Management lab" sub={`Your ${pool.length} trades replayed under each rule from the PDFs. ${timed === 0 ? 'Your CSV has no timing, so whenever a trade touched both +1R and −1R the stop is assumed to have hit first — these are worst-case numbers. Run the RamanFX script for exact ones.' : timed < rows.length ? 'Where the order of highs and lows is unknown, the stop is assumed to hit first (conservative).' : 'Exact: every trade knows whether its best or worst price came first.'}`}
+        <CardHead title="Management lab" sub={`Your ${pool.length} trades replayed under each rule from the PDFs. ${rows.some(r => r.path?.touch) ? `${rows.filter(r => r.path?.touch).length} trades replay exactly from when price touched each R level (v2 export); the rest use MAE/MFE. ` : ''}${timed === 0 ? 'Your CSV has no timing, so whenever a trade touched both +1R and −1R the stop is assumed to have hit first — these are worst-case numbers. Run the RamanFX script for exact ones.' : timed < rows.length ? 'Where the order of highs and lows is unknown, the stop is assumed to hit first (conservative).' : 'Exact: every trade knows whether its best or worst price came first.'}`}
           right={<Segmented label="Trades" size="sm" value={split} onChange={setSplit} options={[{ value: 'all', label: 'All' }, { value: 'high', label: 'High odds' }, { value: 'low', label: 'Low odds' }, { value: 'none', label: 'Unplanned' }]} />} />
         {pool.length ? (<>
           <ResponsiveContainer width="100%" height={mobile ? 220 : 240}>

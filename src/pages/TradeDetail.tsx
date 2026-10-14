@@ -17,6 +17,7 @@ import { Lightbox } from '@/ui/Lightbox';
 import { VerdictCard } from '@/ui/VerdictCard';
 import { TradeChart } from '@/ui/TradeChart';
 import { useGradedTrade } from '@/data/guru';
+import { exitOutcome, ORDER_LABEL, ptsToR, REASON_LABEL } from '@/core/exitInsights';
 
 const EMOTIONS = ['calm', 'focused', 'confident', 'anxious', 'fomo', 'greedy', 'revenge', 'tired', 'bored'];
 const TRENDS: [Trend, string, string][] = [['up', '↑', 'Uptrend'], ['down', '↓', 'Downtrend'], ['side', '✖', 'Sideways']];
@@ -296,6 +297,34 @@ export default function TradeDetail() {
                     <div><div className="label">MFE</div><div className="text-profit mt-1">{num(ex.mfe, 0)}</div></div>
                     <div><div className="label">Captured</div><div className="mt-1">{mfe > 0 ? `${Math.round((Math.max(0, got) / mfe) * 100)}%` : '—'}</div></div>
                   </div>
+                  {ex.exitReason != null && (() => {
+                    const xt = { net: t.net, r: t.r, risk: t.risk, side: t.type, openPrice: t.openPrice, sl: t.sl, tp: t.tp, e: ex };
+                    const o = exitOutcome(xt);
+                    const heat = ptsToR(xt, ex.maeBeforeMfe);
+                    const T = ex.touch;
+                    const lv: [string, number | null | undefined][] = T ? [['+0.5R', T.p05], ['+1R', T.p1], ['+2R', T.p2], ['+3R', T.p3], ['−0.5R', T.m05], ['Stop', T.sl]] : [];
+                    const mins = (m: number) => (m < 60 ? `${Math.round(m)}m` : m < 1440 ? `${(m / 60).toFixed(1)}h` : `${(m / 1440).toFixed(1)}d`);
+                    const held = t.holdSec / 60;
+                    return (
+                      <div className="mt-4 pt-3 border-t border-line flex flex-col gap-2.5 text-[12.5px]">
+                        <div className="flex flex-wrap gap-1.5">
+                          <Badge tone={ex.exitReason === 'tp' ? 'profit' : ex.exitReason === 'sl' ? 'loss' : ex.exitReason === 'so' ? 'loss' : 'warn'}>{(REASON_LABEL[ex.exitReason] ?? ex.exitReason).toUpperCase()}</Badge>
+                          {ex.entryOrder && <Badge tone={ex.entryOrder === 'limit' ? 'profit' : 'warn'}>{(ORDER_LABEL[ex.entryOrder] ?? ex.entryOrder).toUpperCase()}{ex.slipPts ? ` · ${ex.slipPts > 0 ? '+' : ''}${ex.slipPts} PTS SLIP` : ''}</Badge>}
+                          {(ex.closes ?? 1) > 1 && <Badge tone="accent">{ex.closes} PARTIAL CLOSES</Badge>}
+                        </div>
+                        {o.left != null && o.left > 0 && <div className="text-warn">After you closed, price hit your target ({o.tpR?.toFixed(1)}R) {o.afterMin != null ? mins(o.afterMin) + ' later' : ''} before the stop — {fmt(o.left)} left on the table.</div>}
+                        {o.saved != null && o.saved > 0 && <div className="text-profit">After you closed, price hit your stop {o.afterMin != null ? mins(o.afterMin) + ' later' : ''} — closing early saved {fmt(o.saved)}.</div>}
+                        {o.after === 'none' && ex.exitReason !== 'tp' && ex.exitReason !== 'sl' && <div className="text-ink3">Price touched neither your target nor your stop in the week after you closed.</div>}
+                        {heat != null && <div className="text-ink2">Heat before the best price: <span className="num">{Math.abs(heat).toFixed(2)}R</span>{Math.abs(heat) < 0.5 && t.r != null && t.r < 0 ? ' — it barely went against you before turning your way.' : ''}</div>}
+                        {lv.some(([, m]) => m != null) && (
+                          <div>
+                            <div className="label mb-1">First touch after entry (★ = after you closed)</div>
+                            <div className="flex flex-wrap gap-1.5">{lv.filter(([, m]) => m != null).sort((a, b) => a[1]! - b[1]!).map(([k, m]) => <span key={k} className={cx('chip h-7 text-[11.5px] num', k === 'Stop' || k.startsWith('−') ? 'text-loss' : 'text-profit')}>{k} {mins(m!)}{m! > held ? ' ★' : ''}</span>)}</div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </>);
               })()}
             </Card>

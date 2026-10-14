@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useStore, DEFAULT_RISK_RULES } from './store';
 import { shared, useEnriched } from './derived';
 import { balanceSeries, type EnrichedTrade } from '@/core/stats';
+import { exitOutcome } from '@/core/exitInsights';
 import { evaluatePlan, judgeTrade, matchPlan, type Plan, type TradeFacts, type TradeVerdict, type Verdict } from '@/core/strategy';
 import type { ExitData } from '@/core/types';
 
@@ -64,6 +65,11 @@ export function useGraded(): Graded[] {
         minutesSinceLastLoss: lastLoss != null ? (open - lastLoss) / 60000 : null,
         sizeVsAvg: m > 0 ? t.volume / m : null,
       };
+      const xd = exitData[t.id];
+      if (xd?.exitReason) {
+        const o = exitOutcome({ net: t.net, r: t.r, risk: t.risk, side: t.type, openPrice: t.openPrice, sl: t.sl, tp: t.tp, e: xd });
+        Object.assign(facts, { exitReason: xd.exitReason, entryOrder: xd.entryOrder ?? null, slipPts: xd.slipPts ?? null, leftMoney: o.left, savedMoney: o.saved, afterMin: o.afterMin });
+      }
       return { t, plan, eval: plan ? evaluatePlan(plan, riskPct) : null, verdict: judgeTrade(facts, plan, riskPct), facts };
     });
   });
