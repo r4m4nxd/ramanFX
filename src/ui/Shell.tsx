@@ -22,6 +22,7 @@ export const NAV: { to: string; label: string; short?: string; icon: IconName; m
   { to: '/strategies', label: 'Strategies', icon: 'strategy', group: 'Plan' },
   { to: '/notebook', label: 'Notebook', icon: 'notebook', group: 'Plan' },
   { to: '/exits', label: 'MAE / MFE lab', icon: 'exit', group: 'Review' },
+  { to: '/guide', label: 'Guide', icon: 'info', group: 'Review' },
   { to: '/settings', label: 'Settings', icon: 'settings', group: 'Review' },
 ];
 
@@ -186,7 +187,7 @@ export function Shell({ children }: { children: ReactNode }) {
           {/* Plain keyed fade-in. An exit-then-enter handoff (AnimatePresence "wait") could stall
               while a lazy page was still loading, leaving the new page invisible. */}
           <motion.div key={loc.pathname} className="page-in">
-              {!hasTrades && !['/playbook', '/calculator', '/settings', '/risk', '/notebook', '/strategies', '/plan', '/guru'].some(p => loc.pathname.startsWith(p)) ? <Welcome onImport={() => setImportOpen(true)} /> : children}
+              {!hasTrades && !['/playbook', '/calculator', '/settings', '/risk', '/notebook', '/strategies', '/plan', '/guru', '/guide'].some(p => loc.pathname.startsWith(p)) ? <Welcome onImport={() => setImportOpen(true)} /> : children}
           </motion.div>
         </main>
       </div>
