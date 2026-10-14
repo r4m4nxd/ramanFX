@@ -244,8 +244,8 @@ function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) =
 
   return (
     <div className="grid lg:grid-cols-[minmax(0,1fr)_360px] gap-4 items-start">
-      <Card className="p-0 overflow-hidden">
-        <div className="px-5 pt-4 pb-3 border-b border-line">
+      <Card className="p-0">
+        <div className="px-5 pt-4 pb-3 border-b border-line rounded-t-xl">
           <div className="flex items-center gap-2">
             <button className="btn-ghost h-8 w-8 px-0 -ml-2" onClick={() => onDone(null)} aria-label="Close planner"><Icon name="x" size={16} /></button>
             <div className="font-semibold">{initial.retro ? 'Grade this trade' : 'Plan a trade'}{p.symbol && <span className="text-ink3 font-normal"> · {p.symbol} {p.side === 'buy' ? 'long' : 'short'}</span>}</div>
@@ -267,7 +267,7 @@ function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) =
             </motion.div>
           </AnimatePresence>
         </div>
-        <div className="px-5 py-3 border-t border-line flex items-center gap-2 bg-surface/95 backdrop-blur sticky bottom-0 max-lg:bottom-[calc(58px+max(12px,env(safe-area-inset-bottom)))] land:!bottom-0 z-10">
+        <div className="px-5 py-3 border-t border-line flex items-center gap-2 bg-surface rounded-b-xl sticky bottom-0 max-lg:bottom-[calc(58px+max(12px,env(safe-area-inset-bottom)))] land:!bottom-0 z-10">
           {step > 0 && <button className="btn h-11 px-4" onClick={() => go(-1)}><Icon name="chevronLeft" size={15} />Back</button>}
           {mobile && step < STEPS.length - 1 && (
             <span className={cx('ml-auto text-xs font-bold', !v.tradeable ? 'text-loss' : v.odds === 'high' ? 'text-profit' : 'text-warn')}>{!v.tradeable ? 'NO TRADE' : v.odds === 'high' ? 'HIGH ODDS' : 'LOW ODDS'} · {v.score}</span>

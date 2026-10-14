@@ -5,8 +5,6 @@ export default {
   darkMode: ['class', '[data-theme="dark"]'],
   theme: {
     extend: {
-      // Phones held sideways: short and wide. Gets a side rail instead of the bottom tab bar.
-      screens: { land: { raw: '(orientation: landscape) and (max-height: 520px)' }, touch: { raw: '(pointer: coarse)' } },
       colors: {
         bg: v('bg'), surface: v('surface'), raised: v('raised'), line: v('line'), line2: v('line2'),
         ink: v('ink'), ink2: v('ink2'), ink3: v('ink3'),
@@ -27,5 +25,12 @@ export default {
       animation: { shimmer: 'shimmer 1.4s linear infinite' },
     },
   },
-  plugins: [],
+  plugins: [
+    // Custom media variants as plugins: object-style `screens` would disable Tailwind's max-* variants.
+    // land = phone held sideways (short and wide); touch = coarse pointer.
+    ({ addVariant }) => {
+      addVariant('land', '@media (orientation: landscape) and (max-height: 520px)');
+      addVariant('touch', '@media (pointer: coarse)');
+    },
+  ],
 };

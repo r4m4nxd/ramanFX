@@ -215,15 +215,15 @@ export function Shell({ children }: { children: ReactNode }) {
         </div>
       </nav>
 
-      <Sheet open={moreOpen} onClose={() => setMoreOpen(false)} title="More">
-        <div className="grid grid-cols-3 gap-2">
+      <Sheet bottom open={moreOpen} onClose={() => setMoreOpen(false)} title="More">
+        <div className="grid grid-cols-3 sm:grid-cols-4 land:!grid-cols-7 gap-2">
           {NAV.filter(n => !n.mobile).map(n => (
-            <NavLink key={n.to} to={n.to} className="flex flex-col items-center gap-2 py-4 rounded-xl bg-raised border border-line text-xs font-medium text-ink2">
+            <NavLink key={n.to} to={n.to} className="flex flex-col items-center justify-center gap-2 py-4 land:py-2 land:gap-1 rounded-xl bg-raised border border-line text-xs font-medium text-ink2 text-center">
               <Icon name={n.icon} size={20} />{n.label}
             </NavLink>
           ))}
-          <button className="flex flex-col items-center gap-2 py-4 rounded-xl bg-raised border border-line text-xs font-medium text-ink2" onClick={() => { setMoreOpen(false); setCmd(true); }}><Icon name="search" size={20} />Search</button>
-          <a href="/legacy.html" className="flex flex-col items-center gap-2 py-4 rounded-xl bg-raised border border-line text-xs font-medium text-ink2"><Icon name="link" size={20} />Classic app</a>
+          <button className="flex flex-col items-center justify-center gap-2 py-4 land:py-2 land:gap-1 rounded-xl bg-raised border border-line text-xs font-medium text-ink2 text-center" onClick={() => { setMoreOpen(false); setCmd(true); }}><Icon name="search" size={20} />Search</button>
+          <a href="/legacy.html" className="flex flex-col items-center justify-center gap-2 py-4 land:py-2 land:gap-1 rounded-xl bg-raised border border-line text-xs font-medium text-ink2 text-center"><Icon name="link" size={20} />Classic app</a>
         </div>
       </Sheet>
       <Sheet open={importOpen} onClose={() => setImportOpen(false)} title="Import trades"><ImportPanel onDone={() => setImportOpen(false)} /></Sheet>

@@ -167,7 +167,7 @@ export function InfoTip({ text }: { text: string }) {
 }
 
 // ─── Sheet (side panel on desktop, bottom sheet on mobile) ───────────
-export function Sheet({ open, onClose, title, children, width = 520 }: { open: boolean; onClose: () => void; title: string; children: ReactNode; width?: number }) {
+export function Sheet({ open, onClose, title, children, width = 520, bottom = false }: { open: boolean; onClose: () => void; title: string; children: ReactNode; width?: number; /** Always a bottom sheet (centred, max 560px) — for menus. */ bottom?: boolean }) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -182,12 +182,15 @@ export function Sheet({ open, onClose, title, children, width = 520 }: { open: b
         <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={title}>
           <motion.div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
           <motion.div
-            className="absolute bg-surface border-line2 shadow-pop flex flex-col max-md:inset-x-0 max-md:bottom-0 max-md:max-h-sheet max-md:rounded-t-2xl max-md:border-t md:top-0 md:right-0 md:h-full md:border-l"
-            style={{ width: typeof window !== 'undefined' && window.innerWidth >= 768 ? width : undefined }}
-            initial={typeof window !== 'undefined' && window.innerWidth < 768 ? { y: '100%' } : { x: '100%' }}
+            className={cx('absolute bg-surface border-line2 shadow-pop flex flex-col', bottom
+              ? 'inset-x-0 bottom-0 mx-auto w-full max-w-[560px] max-h-sheet rounded-t-2xl border-t border-x'
+              : 'max-md:inset-x-0 max-md:bottom-0 max-md:max-h-sheet max-md:rounded-t-2xl max-md:border-t md:top-0 md:right-0 md:h-full md:border-l')}
+            style={{ width: !bottom && typeof window !== 'undefined' && window.innerWidth >= 768 ? width : undefined }}
+            initial={bottom || (typeof window !== 'undefined' && window.innerWidth < 768) ? { y: '100%' } : { x: '100%' }}
             animate={{ x: 0, y: 0 }}
-            exit={typeof window !== 'undefined' && window.innerWidth < 768 ? { y: '100%' } : { x: '100%' }}
+            exit={bottom || (typeof window !== 'undefined' && window.innerWidth < 768) ? { y: '100%' } : { x: '100%' }}
             transition={{ type: 'spring', stiffness: 380, damping: 38 }}>
+            {bottom && <div className="pt-2 grid place-items-center"><span className="w-10 h-1.5 rounded-full bg-line2" /></div>}
             <div className="flex items-center justify-between px-5 h-14 border-b border-line shrink-0">
               <h2 className="font-semibold">{title}</h2>
               <button className="btn-ghost w-9 px-0" onClick={onClose} aria-label="Close"><Icon name="x" /></button>
