@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { useStore } from '@/data/store';
 import { Icon } from '@/ui/Icon';
+import { Ambient } from '@/ui/Ambient';
 
 /** The only screen a signed-out visitor sees. No sign-up: accounts are made in Supabase. */
 export default function SignIn() {
@@ -19,7 +20,8 @@ export default function SignIn() {
     if (m) setErr(/invalid/i.test(m) ? 'Email or password is incorrect.' : /fetch|network/i.test(m) ? 'No connection — check your internet and try again.' : m);
   };
   return (
-    <main className="min-h-[100dvh] grid place-items-center px-4 py-10 bg-[radial-gradient(120%_80%_at_30%_10%,rgb(var(--accent)/0.16),transparent_60%)]">
+    <main className="min-h-[100dvh] grid place-items-center px-4 py-10">
+      <Ambient />
       <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.2, 0.8, 0.2, 1] }} className="w-full max-w-[380px]">
         <div className="flex flex-col items-center text-center mb-7">
           <img src="/icon.svg" alt="" className="w-[76px] h-[76px] rounded-[18px] shadow-pop" />

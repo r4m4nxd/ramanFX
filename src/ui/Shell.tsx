@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '@/data/store';
+import { Ambient } from './Ambient';
 import { Icon, type IconName } from './Icon';
 import { cx, Segmented, Sheet, spring, useToast } from './kit';
 import { ImportPanel } from './ImportPanel';
@@ -137,9 +138,17 @@ export function Shell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('rfx:import', open);
   }, []);
 
+  // Transparent header over the ambient canvas at the top of a page; solid once content scrolls under it.
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const on = () => setScrolled(window.scrollY > 4);
+    on(); window.addEventListener('scroll', on, { passive: true });
+    return () => window.removeEventListener('scroll', on);
+  }, []);
   const groups = ['', 'Plan', 'Review'];
   return (
     <div className="min-h-screen flex land:pl-[calc(68px+env(safe-area-inset-left))]">
+      <Ambient />
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex w-[232px] shrink-0 flex-col gap-1 border-r border-line bg-surface/40 px-3 py-4 sticky top-0 h-screen">
         <div className="flex items-center gap-2.5 px-2.5 pb-5 pt-1">
@@ -166,7 +175,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
       <div className="flex-1 min-w-0 flex flex-col" ref={mainRef}>
         {/* Top bar */}
-        <header className="sticky top-0 z-30 bg-bg border-b border-line pt-safe px-safe">
+        <header className={cx('sticky top-0 z-30 border-b pt-safe px-safe transition-colors duration-300', scrolled ? 'bg-bg border-line' : 'bg-transparent border-transparent')}>
           <div className="max-w-[1360px] mx-auto flex items-center gap-2 px-4 lg:px-7 h-14 land:h-12">
             <h1 className="text-[17px] font-semibold tracking-tight truncate min-w-[60px]">{title}</h1>
             <div className="ml-auto flex items-center gap-1.5">
