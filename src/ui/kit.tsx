@@ -1,6 +1,6 @@
 import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion, useTransform } from 'framer-motion';
 import { clsx } from 'clsx';
-import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon, type IconName } from './Icon';
 
@@ -145,19 +145,48 @@ export function Empty({ icon = 'info', title, children, action }: { icon?: IconN
   );
 }
 
+/**
+ * Tooltip, portalled to <body> and positioned in the viewport: clamped 8px inside the screen, flipped below
+ * when there is no room above. Mouse: hover. Touch: tap to toggle, tap elsewhere or scroll to close.
+ * Keyboard: shows on focus-visible.
+ */
 export function Tip({ text, children }: { text: string; children: ReactNode }) {
-  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null), tip = useRef<HTMLSpanElement>(null);
+  const kind = useRef('mouse');
+  const [at, setAt] = useState<DOMRect | null>(null);
+  const show = () => ref.current && setAt(ref.current.getBoundingClientRect());
+  const hide = () => setAt(null);
+  useLayoutEffect(() => {
+    const el = tip.current;
+    if (!at || !el) return;
+    const vw = document.documentElement.clientWidth, w = el.offsetWidth, h = el.offsetHeight;
+    const below = at.top - h - 8 < 8;
+    el.style.left = `${Math.round(Math.min(Math.max(8, at.left + at.width / 2 - w / 2), vw - 8 - w))}px`;
+    el.style.top = `${Math.round(below ? at.bottom + 8 : at.top - h - 8)}px`;
+    el.style.visibility = 'visible';
+  }, [at]);
+  useEffect(() => {
+    if (!at) return;
+    const away = (e: PointerEvent) => { if (!ref.current?.contains(e.target as Node)) hide(); };
+    window.addEventListener('pointerdown', away);
+    window.addEventListener('scroll', hide, true);
+    window.addEventListener('resize', hide);
+    return () => { window.removeEventListener('pointerdown', away); window.removeEventListener('scroll', hide, true); window.removeEventListener('resize', hide); };
+  }, [at]);
   return (
-    <span className="relative inline-flex" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)} onClick={() => setOpen(o => !o)}>
+    <span ref={ref} className="inline-flex"
+      onPointerDown={e => { kind.current = e.pointerType; }}
+      onPointerEnter={e => { if (e.pointerType === 'mouse') show(); }}
+      onPointerLeave={e => { if (e.pointerType === 'mouse') hide(); }}
+      onFocus={e => { if ((e.target as HTMLElement).matches?.(':focus-visible')) show(); }}
+      onBlur={hide}
+      onClick={() => { if (kind.current !== 'mouse') { if (at) hide(); else show(); } }}>
       {children}
-      <AnimatePresence>
-        {open && (
-          <motion.span role="tooltip" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }} transition={{ duration: 0.14 }}
-            className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-[240px] px-2.5 py-1.5 rounded-lg bg-ink text-bg text-xs leading-snug font-normal normal-case tracking-normal pointer-events-none">
-            {text}
-          </motion.span>
-        )}
-      </AnimatePresence>
+      {at && createPortal(
+        <span ref={tip} role="tooltip" style={{ left: 0, top: 0, visibility: 'hidden' }}
+          className="tip-in fixed z-[200] w-max max-w-[min(260px,calc(100vw-16px))] px-2.5 py-1.5 rounded-lg bg-ink text-bg text-xs leading-snug font-normal normal-case tracking-normal pointer-events-none shadow-pop">
+          {text}
+        </span>, document.body)}
     </span>
   );
 }
