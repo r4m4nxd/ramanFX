@@ -3,7 +3,7 @@ import { normalizeSymbol, positionSize, specFor, measuredUnitValues, unitValue, 
 import { LIBRARY, findFuture, pipValueInQuote, tickValueInQuote } from './library';
 import { balanceSeries, computeStats, dedupeDeposits, enrich, maxDrawdownPct, riskAdjusted, traderScore } from './stats';
 import { alignmentPlays, TIMEFRAME_COMBOS } from './playbook';
-import { brokerToLocal, parseTs } from './time';
+import { brokerToLocal, brokerToUtc, parseTs } from './time';
 import type { Trade } from './types';
 
 let seq = 0;
@@ -29,11 +29,20 @@ describe('instrument library', () => {
     expect(tv('CL')).toBeCloseTo(10); expect(tv('GC')).toBeCloseTo(10); expect(tv('MGC')).toBeCloseTo(1);
     expect(tv('ZN')).toBeCloseTo(15.625); expect(tv('6E')).toBeCloseTo(6.25); expect(tv('6J')).toBeCloseTo(6.25);
     expect(tv('MBT')).toBeCloseTo(0.5); expect(tv('MET')).toBeCloseTo(0.05);
+    expect(tv('ZT')).toBeCloseTo(7.8125); expect(tv('ZF')).toBeCloseTo(7.8125); expect(tv('ZB')).toBeCloseTo(31.25);
+    expect(tv('ZC')).toBeCloseTo(12.5); expect(tv('SI')).toBeCloseTo(25); expect(tv('SIL')).toBeCloseTo(5); expect(tv('HG')).toBeCloseTo(12.5);
+    expect(tv('NG')).toBeCloseTo(10); expect(tv('RB')).toBeCloseTo(4.2); expect(tv('YM')).toBeCloseTo(5); expect(tv('RTY')).toBeCloseTo(5);
+    expect(tv('6B')).toBeCloseTo(6.25); expect(tv('6A')).toBeCloseTo(5); expect(tv('MJY')).toBeCloseTo(1.25);
+    expect(tv('FDAX')).toBeCloseTo(25); expect(tv('FESX')).toBeCloseTo(10); expect(tv('FGBL')).toBeCloseTo(10); expect(tv('VX')).toBeCloseTo(50);
+    expect(tv('SOL')).toBeCloseTo(25); expect(tv('MXP')).toBeCloseTo(1.25);
   });
   it('resolves dated futures codes', () => {
     expect(findFuture('ESZ6')?.symbol).toBe('ES');
     expect(findFuture('/MNQH26')?.symbol).toBe('MNQ');
     expect(findFuture('M6EU2026')?.symbol).toBe('M6E');
+    expect(findFuture('ZNZ6')?.symbol).toBe('ZN');
+    expect(findFuture('GFF7')?.symbol).toBe('GF');
+    expect(findFuture('SOLH27')?.symbol).toBe('SOL');
   });
 });
 
@@ -145,6 +154,17 @@ describe('time', () => {
   it('converts broker clock to local', () => {
     const local = brokerToLocal('2026.10.01 12:00:00', 3);
     expect(parseTs(local)!.getTime()).toBe(Date.UTC(2026, 9, 1, 9));
+  });
+  it('MT clock follows US daylight saving (GMT+3 summer, GMT+2 winter)', () => {
+    expect(brokerToUtc('2026.07.01 12:00:00', 'mt-ny')).toBe(Date.UTC(2026, 6, 1, 9));
+    expect(brokerToUtc('2026.01.15 12:00:00', 'mt-ny')).toBe(Date.UTC(2026, 0, 15, 10));
+    // Mid-March: US already on DST, Europe not yet — MT clock is GMT+3.
+    expect(brokerToUtc('2026.03.10 12:00:00', 'mt-ny')).toBe(Date.UTC(2026, 2, 10, 9));
+  });
+  it('converts into a chosen time zone (Calgary)', () => {
+    expect(brokerToLocal('2026.07.01 12:00:00', 'mt-ny', 'America/Edmonton')).toBe('2026.07.01 03:00:00');
+    expect(brokerToLocal('2026.01.15 12:00:00', 'mt-ny', 'America/Edmonton')).toBe('2026.01.15 03:00:00');
+    expect(brokerToLocal('2026.07.01 12:00:00', 'UTC', 'Asia/Kolkata')).toBe('2026.07.01 17:30:00');
   });
 });
 

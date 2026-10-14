@@ -10,7 +10,7 @@ export function money(n: number | null | undefined, o: { signed?: boolean; ccy?:
   if (o.privacy) return `${sign}${s}•••`;
   const a = Math.abs(n);
   if (o.compact && a >= 1000) return `${sign}${s}${(a / 1000).toFixed(a >= 100_000 ? 0 : 1)}k`;
-  const dp = o.dp ?? 2;
+  const dp = o.dp ?? (o.compact ? 0 : 2);
   return `${sign}${s}${a.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp })}`;
 }
 

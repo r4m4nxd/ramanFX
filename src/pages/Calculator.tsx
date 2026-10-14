@@ -6,7 +6,7 @@ import { loadRates, rate } from '@/data/fx';
 import { LIBRARY, measuredUnitValues, normalizeSymbol, positionSize, specFor, unitValue, type InstrumentSpec } from '@/core/instruments';
 import type { AssetClass } from '@/core/library';
 import { ccySymbol, money, num, price } from '@/lib/format';
-import { Badge, Card, CardHead, CountUp, cx, Field, InfoTip, Page, Segmented } from '@/ui/kit';
+import { Badge, Card, CardHead, CountUp, cx, Field, InfoTip, Page, Segmented, Stat, Tabs, useIsMobile } from '@/ui/kit';
 import { Icon } from '@/ui/Icon';
 
 type Tab = 'size' | 'value' | 'library';
@@ -243,6 +243,8 @@ function Library() {
   const measured = useMemo(() => measuredUnitValues(trades), [trades]);
   const mine = Object.keys(measured);
   const [edit, setEdit] = useState<string | null>(null);
+  const mobile = useIsMobile();
+  const [mLimit, setMLimit] = useState(60);
   const rows = useMemo(() => {
     const ql = q.trim().toUpperCase();
     const list = LIBRARY.filter(i => (venue === 'cfd' ? i.venue === 'CFD' : i.venue !== 'CFD') && (cls === 'all' || i.assetClass === cls) && (!ql || i.symbol.includes(ql) || i.name.toUpperCase().includes(ql) || i.aliases?.some(a => a.includes(ql))));
@@ -255,17 +257,45 @@ function Library() {
   return (
     <Card className="p-0 overflow-hidden">
       <div className="p-4 flex flex-wrap gap-2 items-center border-b border-line">
-        <div className="relative flex-1 min-w-[200px]">
+        <div className="relative w-full md:w-auto md:flex-1 md:min-w-[200px]">
           <Icon name="search" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink3" />
           <input aria-label="Search instruments" className="field pl-9" placeholder={`Search ${LIBRARY.length} instruments`} value={q} onChange={e => setQ(e.target.value)} />
         </div>
         <Segmented label="Venue" size="sm" value={venue} onChange={setVenue} options={[{ value: 'cfd', label: 'Forex / CFD' }, { value: 'fut', label: 'Futures' }]} />
-        <select aria-label="Asset class" className="field w-auto capitalize" value={cls} onChange={e => setCls(e.target.value as AssetClass | 'all')}>
+        <select aria-label="Asset class" className="field w-auto flex-1 md:flex-none capitalize" value={cls} onChange={e => setCls(e.target.value as AssetClass | 'all')}>
           {CLASSES.map(c => <option key={c} value={c}>{c === 'all' ? 'All classes' : c}</option>)}
         </select>
       </div>
-      <div className="overflow-x-auto max-h-[70vh]">
-        <table className="w-full min-w-[820px]">
+      {mobile ? (
+        <ul className="flex flex-col px-4">
+          {rows.slice(0, mLimit).map(i => {
+            const sp = spec(i.symbol);
+            const m = measured[i.symbol];
+            const step = venue === 'fut' ? sp.tickSize : sp.pipSize;
+            const v = sp.pointValue * step;
+            return (
+              <li key={i.venue + i.symbol} className="py-3 border-t border-line first:border-0">
+                <div className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-mono font-semibold text-[14px]">{i.symbol}{overrides[i.symbol] && <Badge tone="violet" className="ml-1.5">edited</Badge>}</div>
+                    <div className="text-[12px] text-ink3 truncate">{i.name} · <span className="capitalize">{venue === 'fut' ? i.venue : i.assetClass}</span></div>
+                  </div>
+                  {venue === 'cfd' && <button className="btn-ghost h-8 w-8 px-0 -mr-1" aria-label={`Edit ${i.symbol} spec`} onClick={() => setEdit(i.symbol)}><Icon name="edit" size={14} /></button>}
+                </div>
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                  <Stat label={venue === 'fut' ? 'Contract' : 'Lot size'} value={venue === 'fut' ? i.unit : num(sp.contractSize, sp.contractSize < 10 ? 2 : 0)} />
+                  <Stat label={venue === 'fut' ? 'Tick' : 'Pip'} value={step} />
+                  <Stat label={venue === 'fut' ? 'Tick value' : 'Pip / lot'} value={`${ccySymbol(sp.quote)}${num(v, v < 1 ? 4 : 2)}`} />
+                </div>
+                {venue === 'cfd' && m ? <div className="text-[11.5px] text-ink3 mt-1.5">Measured from your trades: <span className="num text-ink2">{money(m * sp.pipSize)}</span> per pip per lot</div> : null}
+              </li>
+            );
+          })}
+          {rows.length > mLimit && <li className="py-3 border-t border-line"><button className="btn w-full h-11" onClick={() => setMLimit(l => l + 60)}>Show more ({rows.length - mLimit} left)</button></li>}
+        </ul>
+      ) : (
+      <div className="overflow-y-auto max-h-[70vh]">
+        <table className="w-full">
           <thead className="sticky top-0 bg-surface z-10"><tr className="[&>th]:pt-3 [&>th:first-child]:pl-5 [&>th:last-child]:pr-5">
             <th className="th">Symbol</th><th className="th">Name</th><th className="th">{venue === 'fut' ? 'Exchange' : 'Class'}</th><th className="th text-right">{venue === 'fut' ? 'Contract' : 'Lot size'}</th>
             <th className="th text-right">{venue === 'fut' ? 'Tick' : 'Pip'}</th><th className="th text-right">{venue === 'fut' ? 'Tick value' : 'Pip value / lot'}</th><th className="th text-right">{venue === 'fut' ? 'Point value' : 'Your measured'}</th>
@@ -296,6 +326,7 @@ function Library() {
           </tbody>
         </table>
       </div>
+      )}
       <AnimatePresence>
         {edit && <OverrideEditor symbol={edit} onClose={() => setEdit(null)} current={overrides[edit]} base={specFor(edit)} onSave={o => { setOverride(edit, o); setEdit(null); }} />}
       </AnimatePresence>
@@ -334,7 +365,7 @@ export default function Calculator() {
   return (
     <Page>
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <Segmented label="Calculator" value={tab} onChange={v => setParams({ tab: v }, { replace: true })} options={[{ value: 'size', label: 'Position size' }, { value: 'value', label: 'Pip & tick value' }, { value: 'library', label: `Instruments (${LIBRARY.length})` }]} />
+        <Tabs label="Calculator" value={tab} onChange={v => setParams({ tab: v }, { replace: true })} options={[{ value: 'size', label: 'Position size' }, { value: 'value', label: 'Pip value' }, { value: 'library', label: 'Instruments' }]} />
         <span className="text-xs text-ink3 flex items-center gap-1.5">Futures specs from CME, CBOT, NYMEX, COMEX, ICE, Eurex and Cboe<InfoTip text="Broker CFDs vary. When you've traded a symbol, the app uses the value measured from your own fills instead." /></span>
       </div>
       {tab === 'size' ? <SizeCalc /> : tab === 'value' ? <ValueCalc /> : <Library />}

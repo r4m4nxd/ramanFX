@@ -48,19 +48,19 @@ export default function Notebook() {
     <Page>
       <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-4 items-start">
         <Card className="p-2 lg:sticky lg:top-20">
-          <nav aria-label="Notebook folders" className="flex lg:flex-col gap-0.5 overflow-x-auto">
+          <nav aria-label="Notebook folders" className="grid grid-cols-2 lg:flex lg:flex-col gap-0.5">
             {nav.map(n => (
-              <button key={n.label} onClick={() => { setView(n.v); setSel(null); }} className={cx('flex items-center gap-2.5 h-9 px-3 rounded-lg text-[13px] whitespace-nowrap', same(view, n.v) ? 'bg-raised text-ink font-medium' : 'text-ink2 hover:bg-raised/60')}>
-                <Icon name={n.icon} size={15} />{n.label}<span className="ml-auto text-xs text-ink3 num">{n.n}</span>
+              <button key={n.label} onClick={() => { setView(n.v); setSel(null); }} className={cx('flex items-center gap-2.5 h-9 px-3 rounded-lg text-[13px] min-w-0', same(view, n.v) ? 'bg-raised text-ink font-medium' : 'text-ink2 hover:bg-raised/60')}>
+                <Icon name={n.icon} size={15} className="shrink-0" /><span className="truncate">{n.label}</span><span className="ml-auto text-xs text-ink3 num">{n.n}</span>
               </button>
             ))}
             <div className="label px-3 pt-3 pb-1 hidden lg:block">Folders</div>
             {allFolders.map(f => (
-              <button key={f.id} onClick={() => { setView({ kind: 'folder', id: f.id }); setSel(null); }} className={cx('flex items-center gap-2.5 h-9 px-3 rounded-lg text-[13px] whitespace-nowrap', same(view, { kind: 'folder', id: f.id }) ? 'bg-raised text-ink font-medium' : 'text-ink2 hover:bg-raised/60')}>
-                <Icon name="folder" size={15} />{f.name}<span className="ml-auto text-xs text-ink3 num">{entries.filter(e => (e.folderId || 'my-notes') === f.id).length}</span>
+              <button key={f.id} onClick={() => { setView({ kind: 'folder', id: f.id }); setSel(null); }} className={cx('flex items-center gap-2.5 h-9 px-3 rounded-lg text-[13px] min-w-0', same(view, { kind: 'folder', id: f.id }) ? 'bg-raised text-ink font-medium' : 'text-ink2 hover:bg-raised/60')}>
+                <Icon name="folder" size={15} className="shrink-0" /><span className="truncate">{f.name}</span><span className="ml-auto text-xs text-ink3 num">{entries.filter(e => (e.folderId || 'my-notes') === f.id).length}</span>
               </button>
             ))}
-            <button className="flex items-center gap-2.5 h-9 px-3 rounded-lg text-[13px] text-accent whitespace-nowrap" onClick={() => { const name = prompt('Folder name'); if (name?.trim()) saveFolder({ id: `f_${Date.now()}`, name: name.trim() }); }}><Icon name="plus" size={15} />New folder</button>
+            <button className="flex items-center gap-2.5 h-9 px-3 rounded-lg text-[13px] text-accent" onClick={() => { const name = prompt('Folder name'); if (name?.trim()) saveFolder({ id: `f_${Date.now()}`, name: name.trim() }); }}><Icon name="plus" size={15} />New folder</button>
           </nav>
         </Card>
 

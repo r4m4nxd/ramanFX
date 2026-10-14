@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { useMemo } from 'react';
 import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis, type TooltipProps } from 'recharts';
 import { useStore } from '@/data/store';
-import { ease } from './kit';
+import { ease, useIsMobile } from './kit';
 import { shortDate } from '@/lib/format';
 
 /** Resolved theme colours (SVG presentation attributes can't read CSS variables). */
@@ -20,6 +20,8 @@ export function useColors() {
 }
 
 const axisTick = { fontSize: 10.5, fontFamily: 'Geist Mono, monospace' };
+/** Y-axis gutter: narrower on phones so the plot gets the width. */
+export const useAxisW = () => (useIsMobile() ? 44 : 60);
 
 export function ChartTip({ active, payload, label, fmt, labelFmt }: TooltipProps<number, string> & { fmt: (v: number, name: string) => string; labelFmt?: (l: unknown) => string }) {
   if (!active || !payload?.length) return null;
@@ -40,12 +42,13 @@ export function ChartTip({ active, payload, label, fmt, labelFmt }: TooltipProps
 /** Cumulative equity on a real time axis, with drawdown beneath the zero line. */
 export function EquityChart({ data, height = 260, fmt, showDD = true }: { data: { t: number; cum: number; dd: number }[]; height?: number; fmt: (n: number, o?: { compact?: boolean }) => string; showDD?: boolean }) {
   const c = useColors();
+  const yw = useAxisW();
   const up = (data[data.length - 1]?.cum ?? 0) >= 0;
   const stroke = up ? c.profit : c.loss;
   const pts = data.length ? [{ t: data[0].t - 1, cum: 0, dd: 0 }, ...data] : data;
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <ComposedChart data={pts} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+      <ComposedChart data={pts} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="eqFill" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={stroke} stopOpacity={0.28} />
@@ -53,8 +56,8 @@ export function EquityChart({ data, height = 260, fmt, showDD = true }: { data: 
           </linearGradient>
         </defs>
         <CartesianGrid stroke={c.line} vertical={false} />
-        <XAxis dataKey="t" type="number" scale="time" domain={['dataMin', 'dataMax']} tickFormatter={v => shortDate(new Date(v))} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} minTickGap={40} />
-        <YAxis tickFormatter={v => fmt(v, { compact: true })} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} width={64} />
+        <XAxis dataKey="t" type="number" scale="time" domain={['dataMin', 'dataMax']} tickFormatter={v => shortDate(new Date(v))} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} minTickGap={28} />
+        <YAxis tickFormatter={v => fmt(v, { compact: true })} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} width={yw} />
         <ReferenceLine y={0} stroke={c.line2} strokeDasharray="3 4" />
         <Tooltip content={<ChartTip fmt={(v, k) => (k === 'dd' ? fmt(v) : fmt(v))} labelFmt={l => new Date(l as number).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} />} cursor={{ stroke: c.line2 }} />
         {showDD && <Area type="monotone" dataKey="dd" name="Drawdown" stroke="none" fill={c.loss} fillOpacity={0.18} isAnimationActive animationDuration={900} />}
@@ -66,15 +69,16 @@ export function EquityChart({ data, height = 260, fmt, showDD = true }: { data: 
 
 export function BalanceChart({ data, height = 240, fmt }: { data: { t: number; balance: number; deposits: number }[]; height?: number; fmt: (n: number, o?: { compact?: boolean }) => string }) {
   const c = useColors();
+  const yw = useAxisW();
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <ComposedChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+      <ComposedChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="balFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={c.accent} stopOpacity={0.22} /><stop offset="100%" stopColor={c.accent} stopOpacity={0} /></linearGradient>
         </defs>
         <CartesianGrid stroke={c.line} vertical={false} />
-        <XAxis dataKey="t" type="number" scale="time" domain={['dataMin', 'dataMax']} tickFormatter={v => shortDate(new Date(v))} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} minTickGap={40} />
-        <YAxis tickFormatter={v => fmt(v, { compact: true })} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} width={64} domain={['auto', 'auto']} />
+        <XAxis dataKey="t" type="number" scale="time" domain={['dataMin', 'dataMax']} tickFormatter={v => shortDate(new Date(v))} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} minTickGap={28} />
+        <YAxis tickFormatter={v => fmt(v, { compact: true })} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} width={yw} domain={['auto', 'auto']} />
         <Tooltip content={<ChartTip fmt={v => fmt(v)} labelFmt={l => new Date(l as number).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })} />} cursor={{ stroke: c.line2 }} />
         <Area type="stepAfter" dataKey="balance" name="Balance" stroke={c.accent} strokeWidth={2} fill="url(#balFill)" animationDuration={900} />
         <Line type="stepAfter" dataKey="deposits" name="Net deposits" stroke={c.ink3} strokeWidth={1.5} strokeDasharray="4 4" dot={false} animationDuration={900} />
@@ -85,12 +89,13 @@ export function BalanceChart({ data, height = 240, fmt }: { data: { t: number; b
 
 export function DailyBars({ days, height = 220, fmt }: { days: { date: string; pnl: number }[]; height?: number; fmt: (n: number, o?: { compact?: boolean }) => string }) {
   const c = useColors();
+  const yw = useAxisW();
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={days} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+      <BarChart data={days} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
         <CartesianGrid stroke={c.line} vertical={false} />
         <XAxis dataKey="date" tickFormatter={v => shortDate(new Date(v + 'T00:00'))} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} minTickGap={30} />
-        <YAxis tickFormatter={v => fmt(v, { compact: true })} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} width={64} />
+        <YAxis tickFormatter={v => fmt(v, { compact: true })} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} width={yw} />
         <ReferenceLine y={0} stroke={c.line2} />
         <Tooltip content={<ChartTip fmt={v => fmt(v)} labelFmt={l => new Date(String(l) + 'T00:00').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })} />} cursor={{ fill: c.a('ink3', 0.08) }} />
         <Bar dataKey="pnl" name="Net" radius={[3, 3, 0, 0]} maxBarSize={22} animationDuration={700}>

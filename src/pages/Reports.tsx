@@ -1,50 +1,78 @@
 import { useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Bar as RBar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from 'recharts';
+import { Bar as RBar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from 'recharts';
 import { useAnalytics } from '@/data/derived';
 import { useStore } from '@/data/store';
 import { computeStats, groupStats, normTag, type EnrichedTrade, type GroupStat } from '@/core/stats';
 import { fmtHold } from '@/core/time';
 import { pct, rMult, tone, useMoney } from '@/lib/format';
-import { Card, CardHead, cx, Page, Segmented } from '@/ui/kit';
-import { ChartTip, useColors } from '@/ui/charts';
+import { Card, CardHead, cx, Page, Stat, Tabs, useIsMobile } from '@/ui/kit';
+import { ChartTip, DivergingBars, useAxisW, useColors } from '@/ui/charts';
 
 type Tab = 'overview' | 'time' | 'setups' | 'symbols' | 'risk' | 'compare';
 
 function GroupTable({ rows, label, onRow }: { rows: GroupStat[]; label: string; onRow?: (k: string) => void }) {
   const fmt = useMoney();
+  const mobile = useIsMobile();
+  if (mobile) return (
+    <ul className="flex flex-col">
+      {rows.map(g => {
+        const Row = onRow ? 'button' : 'div';
+        return (
+          <li key={g.key} className="border-t border-line first:border-0">
+            <Row {...(onRow ? { type: 'button' as const, onClick: () => onRow(g.key) } : {})} className="w-full text-left py-3 flex flex-col gap-2">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="font-medium text-[14px] truncate">{g.key}</span>
+                <span className={cx('num font-semibold text-[14px] shrink-0', tone(g.net))}>{fmt(g.net, { signed: true })}</span>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                <Stat label="Trades" value={g.n} />
+                <Stat label="Win" value={pct(g.winRate, 0)} />
+                <Stat label="PF" value={g.profitFactor?.toFixed(2) ?? '—'} />
+                <Stat label="Avg R" value={rMult(g.avgR, 2)} className={tone(g.avgR)} />
+              </div>
+            </Row>
+          </li>
+        );
+      })}
+    </ul>
+  );
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[560px]">
-        <thead><tr><th className="th">{label}</th><th className="th text-right">Trades</th><th className="th text-right">Win %</th><th className="th text-right">PF</th><th className="th text-right">Expectancy</th><th className="th text-right">Avg R</th><th className="th text-right">Net</th></tr></thead>
-        <tbody>
-          {rows.map(g => (
-            <tr key={g.key} className={cx(onRow && 'cursor-pointer hover:bg-raised/50')} onClick={() => onRow?.(g.key)}>
-              <td className="td">{g.key}</td>
-              <td className="td num text-right text-ink2">{g.n}</td>
-              <td className="td num text-right text-ink2">{pct(g.winRate, 0)}</td>
-              <td className="td num text-right text-ink2">{g.profitFactor?.toFixed(2) ?? '—'}</td>
-              <td className={cx('td num text-right', tone(g.expectancy))}>{fmt(g.expectancy, { signed: true })}</td>
-              <td className={cx('td num text-right', tone(g.avgR))}>{rMult(g.avgR, 2)}</td>
-              <td className={cx('td num text-right font-semibold', tone(g.net))}>{fmt(g.net, { signed: true })}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <table className="w-full">
+      <thead><tr><th className="th">{label}</th><th className="th text-right">Trades</th><th className="th text-right">Win %</th><th className="th text-right">PF</th><th className="th text-right">Expectancy</th><th className="th text-right">Avg R</th><th className="th text-right">Net</th></tr></thead>
+      <tbody>
+        {rows.map(g => (
+          <tr key={g.key} className={cx(onRow && 'cursor-pointer hover:bg-raised/50')} onClick={() => onRow?.(g.key)}>
+            <td className="td">{g.key}</td>
+            <td className="td num text-right text-ink2">{g.n}</td>
+            <td className="td num text-right text-ink2">{pct(g.winRate, 0)}</td>
+            <td className="td num text-right text-ink2">{g.profitFactor?.toFixed(2) ?? '—'}</td>
+            <td className={cx('td num text-right', tone(g.expectancy))}>{fmt(g.expectancy, { signed: true })}</td>
+            <td className={cx('td num text-right', tone(g.avgR))}>{rMult(g.avgR, 2)}</td>
+            <td className={cx('td num text-right font-semibold', tone(g.net))}>{fmt(g.net, { signed: true })}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
-function GroupBars({ rows, height = 220 }: { rows: GroupStat[]; height?: number }) {
+/** Column chart of net by category. Long category lists thin their labels instead of overlapping. */
+function GroupBars({ rows, height = 220, labelFmt }: { rows: { key: string; net: number; n?: number }[]; height?: number; labelFmt?: (k: string) => string }) {
   const c = useColors();
   const fmt = useMoney();
+  const mobile = useIsMobile();
+  const yw = useAxisW();
+  const maxLabels = mobile ? 8 : 24;
+  const interval = rows.length > maxLabels ? Math.ceil(rows.length / maxLabels) - 1 : 0;
   return (
-    <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={rows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+    <ResponsiveContainer width="100%" height={mobile ? Math.min(height, 200) : height}>
+      <BarChart data={rows} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
         <CartesianGrid stroke={c.line} vertical={false} />
-        <XAxis dataKey="key" tick={{ fontSize: 11, fill: c.ink3 }} axisLine={false} tickLine={false} interval={0} />
-        <YAxis tickFormatter={v => fmt(v, { compact: true })} tick={{ fontSize: 10.5, fill: c.ink3, fontFamily: 'Geist Mono' }} axisLine={false} tickLine={false} width={64} />
-        <Tooltip content={<ChartTip fmt={v => fmt(v)} />} cursor={{ fill: c.a('ink3', 0.08) }} />
+        <XAxis dataKey="key" tick={{ fontSize: 11, fill: c.ink3 }} tickFormatter={labelFmt} axisLine={false} tickLine={false} interval={interval} />
+        <YAxis tickFormatter={v => fmt(v, { compact: true })} tick={{ fontSize: 10.5, fill: c.ink3, fontFamily: 'Geist Mono' }} axisLine={false} tickLine={false} width={yw} />
+        <ReferenceLine y={0} stroke={c.line2} />
+        <Tooltip content={<ChartTip fmt={v => fmt(v)} labelFmt={l => (labelFmt ? labelFmt(String(l)) : String(l))} />} cursor={{ fill: c.a('ink3', 0.08) }} />
         <RBar dataKey="net" name="Net" radius={[4, 4, 0, 0]} maxBarSize={40} animationDuration={700}>
           {rows.map(r => <Cell key={r.key} fill={r.net >= 0 ? c.profit : c.loss} />)}
         </RBar>
@@ -88,8 +116,8 @@ function TimeTab({ et }: { et: EnrichedTrade[] }) {
     return names.map(n => g.find(x => x.key === n)).filter(Boolean) as GroupStat[];
   }, [et]);
   const hours = useMemo(() => {
-    const g = groupStats(et, t => String(t.open.getHours()).padStart(2, '0'));
-    return g.sort((a, b) => a.key.localeCompare(b.key)).map(x => ({ ...x, key: `${x.key}:00` }));
+    const g = new Map(groupStats(et, t => String(t.open.getHours()).padStart(2, '0')).map(x => [x.key, x]));
+    return Array.from({ length: 24 }, (_, h) => { const k = String(h).padStart(2, '0'); return { key: k, net: g.get(k)?.net ?? 0, n: g.get(k)?.n ?? 0 }; });
   }, [et]);
   const hold = useMemo(() => {
     const b = (s: number) => (s < 300 ? '< 5m' : s < 900 ? '5–15m' : s < 3600 ? '15m–1h' : s < 14400 ? '1–4h' : s < 86400 ? '4h–1d' : '> 1d');
@@ -102,7 +130,7 @@ function TimeTab({ et }: { et: EnrichedTrade[] }) {
     <div className="grid lg:grid-cols-2 gap-4">
       <Card><CardHead title="Day of week" sub="By entry day" /><GroupBars rows={wd} /><GroupTable rows={wd} label="Day" /></Card>
       <Card><CardHead title="Session" sub="Entry hour in UTC" /><GroupBars rows={sessions} /><GroupTable rows={sessions} label="Session" /></Card>
-      <Card className="lg:col-span-2"><CardHead title="Hour of day" sub="Your local entry hour" /><GroupBars rows={hours} height={240} /></Card>
+      <Card className="lg:col-span-2"><CardHead title="Hour of day" sub="Your local entry hour" /><GroupBars rows={hours} height={240} labelFmt={k => `${k}:00`} /></Card>
       <Card className="lg:col-span-2"><CardHead title="Holding time" sub="Do your fast trades or patient trades pay?" /><GroupBars rows={hold} /><GroupTable rows={hold} label="Hold" /></Card>
     </div>
   );
@@ -136,9 +164,12 @@ function SymbolsTab({ et }: { et: EnrichedTrade[] }) {
   const nav = useNavigate();
   const sym = useMemo(() => groupStats(et, t => t.sym), [et]);
   const side = useMemo(() => groupStats(et, t => (t.type === 'buy' ? 'Long' : 'Short')), [et]);
+  const fmt = useMoney();
   return (
     <div className="grid lg:grid-cols-3 gap-4">
-      <Card className="lg:col-span-2"><CardHead title="Symbols" /><GroupBars rows={sym} /><GroupTable rows={sym} label="Symbol" onRow={k => nav(`/trades?symbol=${k}`)} /></Card>
+      <Card className="lg:col-span-2"><CardHead title="Symbols" sub="Tap a symbol to see its trades" />
+        <DivergingBars rows={sym.map(g => ({ key: g.key, net: g.net }))} fmt={v => fmt(v, { signed: true, compact: true })} />
+        <div className="mt-5"><GroupTable rows={sym} label="Symbol" onRow={k => nav(`/trades?symbol=${encodeURIComponent(k)}`)} /></div></Card>
       <Card><CardHead title="Long vs short" /><GroupBars rows={side} height={180} /><GroupTable rows={side} label="Side" /></Card>
     </div>
   );
@@ -146,6 +177,7 @@ function SymbolsTab({ et }: { et: EnrichedTrade[] }) {
 
 function RiskTab({ et }: { et: EnrichedTrade[] }) {
   const c = useColors();
+  const yw = useAxisW();
   const fmt = useMoney();
   const rDist = useMemo(() => {
     const rs = et.filter(t => t.r != null).map(t => t.r!);
@@ -162,7 +194,7 @@ function RiskTab({ et }: { et: EnrichedTrade[] }) {
         <ResponsiveContainer width="100%" height={240}>
           <BarChart data={rDist} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
             <CartesianGrid stroke={c.line} vertical={false} />
-            <XAxis dataKey="key" tick={{ fontSize: 10.5, fill: c.ink3 }} axisLine={false} tickLine={false} />
+            <XAxis dataKey="key" tick={{ fontSize: 10.5, fill: c.ink3 }} axisLine={false} tickLine={false} minTickGap={4} />
             <YAxis allowDecimals={false} tick={{ fontSize: 10.5, fill: c.ink3 }} axisLine={false} tickLine={false} />
             <Tooltip content={<ChartTip fmt={v => `${v} trades`} />} cursor={{ fill: c.a('ink3', 0.08) }} />
             <RBar dataKey="n" name="Trades" radius={[4, 4, 0, 0]} animationDuration={700}>{rDist.map(d => <Cell key={d.key} fill={d.b >= 0 ? c.profit : c.loss} />)}</RBar>
@@ -174,8 +206,8 @@ function RiskTab({ et }: { et: EnrichedTrade[] }) {
         <ResponsiveContainer width="100%" height={240}>
           <ScatterChart margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid stroke={c.line} />
-            <XAxis dataKey="x" type="number" scale="log" domain={['auto', 'auto']} tickFormatter={v => fmtHold(v)} tick={{ fontSize: 10.5, fill: c.ink3 }} axisLine={false} tickLine={false} name="Hold" />
-            <YAxis dataKey="y" type="number" tickFormatter={v => fmt(v, { compact: true })} tick={{ fontSize: 10.5, fill: c.ink3 }} axisLine={false} tickLine={false} width={64} name="Net" />
+            <XAxis dataKey="x" type="number" scale="log" domain={['auto', 'auto']} tickFormatter={v => fmtHold(v)} tick={{ fontSize: 10.5, fill: c.ink3 }} axisLine={false} tickLine={false} name="Hold" minTickGap={24} />
+            <YAxis dataKey="y" type="number" tickFormatter={v => fmt(v, { compact: true })} tick={{ fontSize: 10.5, fill: c.ink3 }} axisLine={false} tickLine={false} width={yw} name="Net" />
             <ZAxis dataKey="z" range={[20, 160]} />
             <Tooltip content={<ChartTip fmt={(v, k) => (k === 'x' ? fmtHold(v) : k === 'y' ? fmt(v) : `${v} lots`)} labelFmt={() => 'Trade'} />} />
             <Scatter data={scatter.filter(d => d.win)} fill={c.profit} fillOpacity={0.7} />
@@ -221,12 +253,10 @@ export default function Reports() {
   const tab = (params.get('tab') as Tab) || 'overview';
   return (
     <Page>
-      <div className="overflow-x-auto -mx-1 px-1">
-        <Segmented label="Report" value={tab} onChange={v => setParams({ tab: v }, { replace: true })} options={[
-          { value: 'overview', label: 'Overview' }, { value: 'time', label: 'Days & times' }, { value: 'setups', label: 'Setups & mistakes' },
-          { value: 'symbols', label: 'Symbols' }, { value: 'risk', label: 'Risk & R' }, { value: 'compare', label: 'Wins vs losses' },
-        ]} />
-      </div>
+      <Tabs label="Report" value={tab} onChange={v => setParams({ tab: v }, { replace: true })} options={[
+        { value: 'overview', label: 'Overview' }, { value: 'time', label: 'Time' }, { value: 'setups', label: 'Setups' },
+        { value: 'symbols', label: 'Symbols' }, { value: 'risk', label: 'Risk & R' }, { value: 'compare', label: 'Win vs loss' },
+      ]} />
       {tab === 'overview' && <Overview />}
       {tab === 'time' && <TimeTab et={et} />}
       {tab === 'setups' && <SetupsTab et={et} />}

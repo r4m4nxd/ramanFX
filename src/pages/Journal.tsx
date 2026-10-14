@@ -6,7 +6,8 @@ import { useStore } from '@/data/store';
 import { computeStats, type EnrichedTrade } from '@/core/stats';
 import { dayKey } from '@/core/time';
 import { pct, rMult, timeHM, tone, useMoney } from '@/lib/format';
-import { Badge, Card, cx, Empty, Page } from '@/ui/kit';
+import { Badge, Card, cx, Empty, Page, useIsMobile } from '@/ui/kit';
+import { TradeList } from '@/ui/TradeList';
 import { Icon } from '@/ui/Icon';
 
 function DayNote({ day }: { day: string }) {
@@ -28,6 +29,7 @@ function DayCard({ day, trades, open, onToggle }: { day: string; trades: Enriche
   const fmt = useMoney();
   const notes = useStore(s => s.notes);
   const s = useMemo(() => computeStats(trades), [trades]);
+  const mobile = useIsMobile();
   const d = new Date(day + 'T00:00');
   let cum = 0;
   const pts = trades.map(t => (cum += t.net));
@@ -35,9 +37,9 @@ function DayCard({ day, trades, open, onToggle }: { day: string; trades: Enriche
   const path = [0, ...pts].map((v, i) => `${i ? 'L' : 'M'}${(i / Math.max(1, pts.length)) * 100} ${((max - v) / span) * 40}`).join(' ');
   return (
     <motion.article layout className="card overflow-hidden" id={`d-${day}`}>
-      <button className="w-full flex items-center gap-4 p-4 text-left hover:bg-raised/40 transition-colors" onClick={onToggle} aria-expanded={open}>
+      <button className="w-full flex items-center gap-3 md:gap-4 p-4 text-left hover:bg-raised/40 transition-colors" onClick={onToggle} aria-expanded={open}>
         <div className={cx('w-1 self-stretch rounded-full', s.net >= 0 ? 'bg-profit' : 'bg-loss')} />
-        <div className="min-w-[120px]">
+        <div className="min-w-0">
           <div className="font-semibold">{d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}</div>
           <div className="text-xs text-ink3 mt-0.5">{s.total} trades · {pct(s.winRate, 0)} win</div>
         </div>
@@ -56,8 +58,9 @@ function DayCard({ day, trades, open, onToggle }: { day: string; trades: Enriche
         {open && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.28 }} className="overflow-hidden">
             <div className="px-4 pb-4 flex flex-col gap-4 border-t border-line pt-4">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[560px]">
+              {mobile ? <TradeList trades={trades} time="range" /> : (
+              <div>
+                <table className="w-full">
                   <thead><tr><th className="th">Time</th><th className="th">Symbol</th><th className="th">Side</th><th className="th">Setup</th><th className="th text-right">R</th><th className="th text-right">Net</th></tr></thead>
                   <tbody>
                     {trades.map(t => (
@@ -73,6 +76,7 @@ function DayCard({ day, trades, open, onToggle }: { day: string; trades: Enriche
                   </tbody>
                 </table>
               </div>
+              )}
               <DayNote day={day} />
             </div>
           </motion.div>

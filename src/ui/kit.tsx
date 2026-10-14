@@ -1,6 +1,7 @@
 import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion, useTransform } from 'framer-motion';
 import { clsx } from 'clsx';
-import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { Icon, type IconName } from './Icon';
 
 export const cx = clsx;
@@ -80,6 +81,38 @@ export function Segmented<T extends string>({ value, onChange, options, size = '
   );
 }
 
+/** True below the md breakpoint (phones). */
+const mq = typeof window !== 'undefined' ? window.matchMedia('(max-width: 767px)') : null;
+export function useIsMobile() {
+  return useSyncExternalStore(cb => { mq?.addEventListener('change', cb); return () => mq?.removeEventListener('change', cb); }, () => !!mq?.matches, () => false);
+}
+
+/** Page-level tabs: a segmented bar on desktop, a wrapping pill grid on phones (no sideways scrolling). */
+export function Tabs<T extends string>({ value, onChange, options, label }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[]; label: string }) {
+  const mobile = useIsMobile();
+  const id = useId();
+  if (!mobile) return <div><Segmented label={label} value={value} onChange={onChange} options={options} /></div>;
+  return (
+    <div role="tablist" aria-label={label} className={cx('grid gap-1.5 p-1 rounded-2xl bg-raised border border-line', options.length % 3 === 0 || options.length > 4 ? 'grid-cols-3' : 'grid-cols-2')}>
+      {options.map(o => {
+        const on = o.value === value;
+        return (
+          <button key={o.value} role="tab" aria-selected={on} type="button" onClick={() => onChange(o.value)}
+            className={cx('relative min-h-[40px] px-2 rounded-xl text-[13px] font-semibold leading-tight transition-colors', on ? 'text-ink' : 'text-ink3 active:bg-surface/60')}>
+            {on && <motion.span layoutId={`tab-${id}`} transition={spring} className="absolute inset-0 rounded-xl bg-surface border border-line2 shadow-sm" />}
+            <span className="relative">{o.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Label/value rows, used where a wide table would scroll sideways on a phone. */
+export function Stat({ label, value, className }: { label: ReactNode; value: ReactNode; className?: string }) {
+  return <div className="min-w-0"><div className="text-[10.5px] uppercase tracking-[0.06em] font-semibold text-ink3 truncate">{label}</div><div className={cx('num text-[13px] font-medium mt-0.5 truncate', className)}>{value}</div></div>;
+}
+
 // ─── Progress bar ────────────────────────────────────────────────────
 export function Bar({ value, tone = 'accent', className }: { value: number; tone?: 'accent' | 'profit' | 'loss' | 'warn'; className?: string }) {
   const bg = { accent: 'bg-accent', profit: 'bg-profit', loss: 'bg-loss', warn: 'bg-warn' }[tone];
@@ -136,7 +169,8 @@ export function Sheet({ open, onClose, title, children, width = 520 }: { open: b
     document.body.style.overflow = 'hidden';
     return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
   }, [open, onClose]);
-  return (
+  // Portalled: the blurred sticky header would otherwise trap a fixed sheet inside itself.
+  return createPortal(
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={title}>
@@ -152,11 +186,12 @@ export function Sheet({ open, onClose, title, children, width = 520 }: { open: b
               <h2 className="font-semibold">{title}</h2>
               <button className="btn-ghost w-9 px-0" onClick={onClose} aria-label="Close"><Icon name="x" /></button>
             </div>
-            <div className="overflow-y-auto p-5 pb-safe">{children}</div>
+            <div className="overflow-y-auto overscroll-contain p-5 pb-safe">{children}</div>
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
 

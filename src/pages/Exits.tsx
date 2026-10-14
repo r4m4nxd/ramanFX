@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useFiltered } from '@/data/derived';
 import { useStore } from '@/data/store';
 import { num, pct, tone, useMoney } from '@/lib/format';
-import { Card, CardHead, cx, Empty, Page } from '@/ui/kit';
+import { Card, CardHead, cx, Empty, Page, Stat, useIsMobile } from '@/ui/kit';
 
 const WINDOWS = [['t30m', '+30m'], ['t1h', '+1h'], ['t4h', '+4h'], ['t12h', '+12h'], ['t1d', '+1d'], ['t1w', '+1w']] as const;
 
@@ -11,6 +11,7 @@ export default function Exits() {
   const et = useFiltered();
   const exitData = useStore(s => s.exitData);
   const fmt = useMoney();
+  const mobile = useIsMobile();
   const rows = useMemo(() => et.filter(t => exitData[t.id]).map(t => {
     const e = exitData[t.id];
     const mfe = Math.max(0, e.mfe ?? 0), got = e.profitPts ?? 0, dpp = e.dollarPerPt ?? null;
@@ -58,9 +59,29 @@ export default function Exits() {
           ))}
         </div>
       </Card>
+      {mobile ? (
+        <Card className="px-4 py-1">
+          <ul>
+            {[...rows].reverse().slice(0, 300).map(({ t, e, capture, left }) => (
+              <li key={t.id} className="py-3 border-t border-line first:border-0">
+                <Link to={`/trades/${t.id}`} className="flex items-baseline justify-between gap-3">
+                  <span className="font-mono font-semibold">{t.sym} <span className="font-sans font-normal text-ink3 text-xs">{t.closeTime.slice(0, 10)}</span></span>
+                  <span className={cx('num font-semibold', tone(t.net))}>{fmt(t.net, { signed: true })}</span>
+                </Link>
+                <div className="grid grid-cols-4 gap-2 mt-2">
+                  <Stat label="MAE" value={num(e.mae, 0)} className="text-loss" />
+                  <Stat label="MFE" value={num(e.mfe, 0)} className="text-profit" />
+                  <Stat label="Captured" value={pct(capture, 0)} />
+                  <Stat label="Left" value={left != null && left > 0 ? fmt(left, { compact: true }) : '—'} className="text-warn" />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : (
       <Card className="p-0 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px]">
+        <div>
+          <table className="w-full">
             <thead className="bg-raised/50"><tr className="[&>th]:pt-3 [&>th:first-child]:pl-5 [&>th:last-child]:pr-5"><th className="th">Trade</th><th className="th text-right">MAE (pts)</th><th className="th text-right">MFE (pts)</th><th className="th text-right">Exit (pts)</th><th className="th text-right">Captured</th><th className="th text-right">Left</th><th className="th text-right">Net</th></tr></thead>
             <tbody>
               {[...rows].reverse().slice(0, 300).map(({ t, e, capture, left }) => (
@@ -78,6 +99,7 @@ export default function Exits() {
           </table>
         </div>
       </Card>
+      )}
     </Page>
   );
 }

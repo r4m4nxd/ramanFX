@@ -154,14 +154,17 @@ export default function Playbook() {
 
       <Card>
         <CardHead title="Alignment reference" sub="Timeframe combinations, zone confirmation map and the full matrix" />
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[520px] text-center">
-            <tbody>
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-11 gap-2">
+          {TIMEFRAME_COMBOS.map((c, i) => (
+            <button key={i} type="button" aria-pressed={i === pair} onClick={() => setPb({ ...pb, pair: i })} className={cx('rounded-xl border p-2.5 text-center transition-colors', i === pair ? 'border-accent bg-accent/10' : 'border-line bg-raised/50 hover:border-line2')}>
               {(['etf', 'itf', 'htf'] as const).map(k => (
-                <tr key={k}><td className="td text-left font-bold text-accent w-16">{k.toUpperCase()}</td>{TIMEFRAME_COMBOS.map((c, i) => <td key={i} className={cx('td num', k === 'etf' ? 'font-semibold' : 'text-ink2', i === pair && 'bg-accent/10')}>{c[k]}</td>)}</tr>
+                <div key={k} className="flex items-baseline justify-between gap-1 text-[12.5px] leading-6">
+                  <span className="text-[10px] font-bold text-ink3">{k.toUpperCase()}</span>
+                  <span className={cx('num', k === 'etf' ? 'font-semibold text-ink' : 'text-ink2')}>{c[k]}</span>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </button>
+          ))}
         </div>
         <div className="flex flex-wrap gap-2 mt-4">
           {Object.entries(ZONE_CONFIRM).map(([z, c]) => <span key={z} className="chip"><b className="text-ink">{z}</b> zone → {c}</span>)}
@@ -175,7 +178,7 @@ export default function Playbook() {
                 <div className={cx('label mb-2', side === 'Longs' ? 'text-profit' : 'text-loss')}>{side}</div>
                 {ALIGN_MATRIX.map((m, i) => (
                   <div key={i} className="flex flex-wrap gap-x-3 gap-y-1 p-2.5 rounded-lg bg-raised mb-1.5 text-[12.5px]">
-                    <span className="num text-ink w-[230px] shrink-0">HTF {f(m.htf)} · ITF {f(m.itf)} · ETF {f(m.etf)}</span>
+                    <span className="num text-ink sm:w-[230px] shrink-0">HTF {f(m.htf)} · ITF {f(m.itf)} · ETF {f(m.etf)}</span>
                     <span className="text-ink2">{m.setAndForget ? `Set & forget at ETF zone / confirmation in ETF zone` : `Confirmation in ${m.zone.toUpperCase()} zone ${m.confirm === 'map' ? 'on the mapped TF' : `on ${m.confirm.toUpperCase()}`}${m.halfRisk ? ', half risk' : ''}`}</span>
                   </div>
                 ))}

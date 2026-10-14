@@ -1,5 +1,5 @@
 import type { AccountSnapshot, Deposit, ExitData, OpenPosition, Trade, WorkingOrder } from './types';
-import { brokerToLocal } from './time';
+import { brokerToLocal, type BrokerClock } from './time';
 
 export interface ParsedReport {
   positions: Trade[];
@@ -29,13 +29,13 @@ const toNum = (s: string) => { const v = parseFloat(s.replace(/[\s,]/g, '')); re
 const numOrNull = (s: string | undefined) => { if (s == null) return null; const v = parseFloat(String(s).replace(/[^0-9.\-]/g, '')); return isNaN(v) ? null : v; };
 const side = (s: string): 'buy' | 'sell' => (s.toLowerCase().startsWith('sell') ? 'sell' : 'buy');
 
-export function parseReport(html: string, brokerOffsetHours: number): ParsedReport {
+export function parseReport(html: string, brokerOffsetHours: BrokerClock, userTz?: string): ParsedReport {
   const isMT5 = /<b>\s*(Positions|Deals|Orders)\s*<\/b>/i.test(html.slice(0, 20000)) || /<b>\s*Positions\s*<\/b>/i.test(html);
   const isMT4 = /Closed Transactions:/i.test(html) || /Ticket.*Open Time.*Type.*Size.*Item/is.test(html.slice(0, 20000));
-  return isMT4 && !isMT5 ? parseMT4(html, brokerOffsetHours) : parseMT5(html, brokerOffsetHours);
+  return isMT4 && !isMT5 ? parseMT4(html, brokerOffsetHours, userTz) : parseMT5(html, brokerOffsetHours, userTz);
 }
 
-export function parseMT5(html: string, off: number): ParsedReport {
+export function parseMT5(html: string, off: BrokerClock, userTz?: string): ParsedReport {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   let accountId: string | null = null, accountName: string | null = null, broker: string | null = null, currency: string | null = null;
   const ths = Array.from(doc.querySelectorAll('th'));
@@ -49,7 +49,7 @@ export function parseMT5(html: string, off: number): ParsedReport {
     }
     if (t === 'Name:' && next) accountName = next;
   });
-  const conv = (s: string) => brokerToLocal(s, off);
+  const conv = (s: string) => brokerToLocal(s, off, userTz);
   const positions: Trade[] = [], openPositions: OpenPosition[] = [], workingOrders: WorkingOrder[] = [], deposits: Deposit[] = [];
   const summary: Record<string, string> = {};
   const SECTIONS = ['Positions', 'Orders', 'Deals', 'Open Positions', 'Working Orders'];
@@ -93,7 +93,7 @@ export function parseMT5(html: string, off: number): ParsedReport {
   };
 }
 
-export function parseMT4(html: string, off: number): ParsedReport {
+export function parseMT4(html: string, off: BrokerClock, userTz?: string): ParsedReport {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   const rows = Array.from(doc.querySelectorAll('tr'));
   let accountId: string | null = null, accountName: string | null = null, currency: string | null = null;
@@ -102,7 +102,7 @@ export function parseMT4(html: string, off: number): ParsedReport {
     accountName = /^Name:\s*(.+)/.exec(c)?.[1]?.trim() ?? accountName;
     currency = /^Currency:\s*([A-Z]{3})/.exec(c)?.[1] ?? currency;
   }
-  const conv = (s: string) => brokerToLocal(s, off);
+  const conv = (s: string) => brokerToLocal(s, off, userTz);
   const positions: Trade[] = [], openPositions: OpenPosition[] = [], workingOrders: WorkingOrder[] = [], deposits: Deposit[] = [];
   const summary: Record<string, string> = {};
   let section: string | null = null;

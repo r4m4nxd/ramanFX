@@ -3,13 +3,13 @@ import { Link } from 'react-router-dom';
 import { journalSnapshot, useStore } from '@/data/store';
 import { Badge, Card, CardHead, Field, Page, Segmented, useToast } from '@/ui/kit';
 import { Icon } from '@/ui/Icon';
+import { ClockFields } from '@/ui/ClockFields';
 
 export default function Settings() {
   const user = useStore(s => s.user);
   const sync = useStore(s => s.sync);
   const login = useStore(s => s.login), logout = useStore(s => s.logout), syncNow = useStore(s => s.syncNow);
   const theme = useStore(s => s.theme), setTheme = useStore(s => s.setTheme);
-  const offset = useStore(s => s.brokerOffset), setOffset = useStore(s => s.setBrokerOffset);
   const accounts = useStore(s => s.accounts);
   const trades = useStore(s => s.trades);
   const playbook = useStore(s => s.playbook);
@@ -60,14 +60,12 @@ export default function Settings() {
       </Card>
 
       <Card>
-        <CardHead title="Import settings" />
-        <Field label="Broker server time offset (UTC±hours)" hint="Applied to new imports. Trades already imported keep their converted times.">
-          <input type="number" step="0.5" className="field num max-w-[160px]" value={offset} onChange={e => setOffset(parseFloat(e.target.value) || 0)} />
-        </Field>
+        <CardHead title="Time zone" sub="Applied to new imports. Trades already imported keep the times they were saved with." />
+        <ClockFields />
         <div className="mt-4 flex flex-col gap-1">
           <div className="label mb-1">Accounts</div>
           {Object.values(accounts).length ? Object.values(accounts).map(a => (
-            <div key={a.id} className="flex items-center justify-between text-sm py-2 border-t border-line first:border-0">
+            <div key={a.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 text-sm py-2.5 border-t border-line first:border-0">
               <span><b>{a.broker}</b> <span className="text-ink3 num">#{a.id}</span> · {a.currency ?? 'USD'}</span>
               <span className="text-xs text-ink3">{trades.filter(t => t.account === a.id).length} trades · imported {new Date(a.lastImport).toLocaleDateString()}</span>
             </div>

@@ -22,17 +22,17 @@ export const NAV: { to: string; label: string; short?: string; icon: IconName; m
   { to: '/settings', label: 'Settings', icon: 'settings', group: 'Review' },
 ];
 
-function SyncPill() {
+function SyncPill({ compact }: { compact?: boolean }) {
   const sync = useStore(s => s.sync);
   const user = useStore(s => s.user);
   const syncNow = useStore(s => s.syncNow);
   const nav = useNavigate();
-  if (!user) return <button className="btn-ghost h-8 text-xs text-ink3" onClick={() => nav('/settings')}><Icon name="cloud" size={14} />Local only</button>;
+  if (!user) return <button className="btn-ghost h-8 text-xs text-ink3" aria-label="Local only — sign in to sync" onClick={() => nav('/settings')}><Icon name="cloud" size={14} />{!compact && 'Local only'}</button>;
   const label = sync.status === 'syncing' ? 'Syncing…' : sync.status === 'error' ? 'Sync failed' : 'Synced';
   return (
-    <button className="btn-ghost h-8 text-xs" onClick={() => syncNow()} title={sync.message ?? (sync.at ? `Last sync ${new Date(sync.at).toLocaleTimeString()}` : '')}>
+    <button className={cx('btn-ghost h-8 text-xs', compact && 'w-9 px-0')} aria-label={compact ? label : undefined} onClick={() => syncNow()} title={sync.message ?? (sync.at ? `Last sync ${new Date(sync.at).toLocaleTimeString()}` : '')}>
       <span className={cx('w-1.5 h-1.5 rounded-full', sync.status === 'error' ? 'bg-loss' : sync.status === 'syncing' ? 'bg-warn animate-pulse' : 'bg-profit')} />
-      <span className={sync.status === 'error' ? 'text-loss' : 'text-ink2'}>{label}</span>
+      <span className={cx(sync.status === 'error' ? 'text-loss' : 'text-ink2', compact && 'sr-only')}>{label}</span>
     </button>
   );
 }
@@ -44,9 +44,9 @@ function AccountPicker() {
   const list = Object.values(accounts);
   if (list.length < 2) return null;
   return (
-    <label className="relative">
+    <label className="relative min-w-0">
       <span className="sr-only">Account</span>
-      <select className="field h-9 pr-8 appearance-none text-[13px] font-medium bg-raised" value={active} onChange={e => setActive(e.target.value)}>
+      <select className="field h-9 pr-8 appearance-none text-[13px] font-medium bg-raised truncate" value={active} onChange={e => setActive(e.target.value)}>
         <option value="all">All accounts</option>
         {list.map(a => <option key={a.id} value={a.id}>{a.broker} · {a.id}</option>)}
       </select>
@@ -174,8 +174,8 @@ export function Shell({ children }: { children: ReactNode }) {
               <button className="btn-primary" onClick={() => setImportOpen(true)}><Icon name="upload" size={15} /><span className="hidden sm:inline">Import</span></button>
             </div>
           </div>
-          <div className="md:hidden flex items-center gap-1.5 px-4 pb-2.5 overflow-x-auto">
-            <RangePicker /><AccountPicker /><SyncPill />
+          <div className="md:hidden flex items-center gap-2 px-4 pb-2.5 [&>*]:flex-1">
+            <RangePicker /><AccountPicker /><div className="!flex-none"><SyncPill compact /></div>
           </div>
         </header>
 

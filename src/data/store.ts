@@ -3,6 +3,7 @@ import type { Account, Attachment, Deposit, ExitData, InstrumentOverride, Notebo
 import type { ParsedReport } from '@/core/parsers';
 import { emptyJournal, mergeJournal, type Journal } from './merge';
 import { dedupeDeposits } from '@/core/stats';
+import { deviceTz } from '@/core/time';
 import * as cloud from './cloud';
 
 // localStorage keys are shared with the classic app (public/legacy.html) so both read the same data.
@@ -10,7 +11,7 @@ export const SK = {
   trades: 'ledger_trades', notes: 'ledger_notes', dayNotes: 'ledger_dayNotes', accounts: 'ledger_accounts', strategies: 'ledger_strategies',
   activeAccount: 'ledger_activeAccount', checklist: 'ledger_checklist', checklistDays: 'ledger_checklistDays', notebook: 'ledger_notebook',
   playbook: 'ledger_playbook', openPositions: 'ledger_openPositions', workingOrders: 'ledger_workingOrders', deposits: 'ledger_deposits',
-  attachments: 'ledger_attachments', brokerOffset: 'ledger_brokerOffset', riskRules: 'ledger_riskRules', exitData: 'ledger_tradeExitData',
+  attachments: 'ledger_attachments', brokerOffset: 'ledger_brokerOffset', brokerClock: 'ledger_brokerClock', userTz: 'ledger_userTz', riskRules: 'ledger_riskRules', exitData: 'ledger_tradeExitData',
   theme: 'ledger_theme', privacy: 'ledger_privacy_mode', notebookFolders: 'ledger_notebook_folders', tagCategories: 'ledger_tag_categories',
   tagCategoryMap: 'ledger_tag_category_map', aiConfig: 'ledger_ai_coach_config', aiConvos: 'ledger_ai_coach_convos',
   overrides: 'ledger_instrument_overrides', sidebar: 'ledger_sidebar_collapsed', lastSync: 'rfx_last_sync',
@@ -34,6 +35,10 @@ interface State extends Journal {
   activeAccount: string;
   playbook: PlaybookState;
   brokerOffset: number;
+  /** Broker server clock used to convert imported times ('mt-ny' = GMT+2/+3 with US DST). */
+  brokerClock: string;
+  /** The trader's own time zone; imported times are shown on this clock. */
+  userTz: string;
   theme: 'dark' | 'light';
   privacy: boolean;
   overrides: Record<string, InstrumentOverride>;
@@ -61,6 +66,8 @@ interface State extends Journal {
   setPrivacy: (v: boolean) => void;
   setRange: (r: DateRange) => void;
   setBrokerOffset: (h: number) => void;
+  setBrokerClock: (c: string) => void;
+  setUserTz: (tz: string) => void;
   restoreBackup: (b: Partial<Journal> & { playbookState?: PlaybookState }) => void;
   initCloud: () => Promise<void>;
   login: (email: string, password: string) => Promise<string | null>;
@@ -107,6 +114,9 @@ export const useStore = create<State>((set, getState) => {
     activeAccount: get(SK.activeAccount, 'all'),
     playbook: get(SK.playbook, { checks: {}, pair: 3 }),
     brokerOffset: get(SK.brokerOffset, 3),
+    // Older installs stored a fixed offset; anything but the old default keeps that exact offset.
+    brokerClock: get<string | null>(SK.brokerClock, null) ?? (((o: number) => (o === 3 ? 'mt-ny' : `Etc/GMT${o > 0 ? '-' : '+'}${Math.abs(o)}`))(get(SK.brokerOffset, 3))),
+    userTz: get(SK.userTz, deviceTz()),
     theme: get<string>(SK.theme, 'dark') === 'light' ? 'light' : 'dark',
     privacy: get(SK.privacy, false),
     overrides: get(SK.overrides, {}),
@@ -195,6 +205,8 @@ export const useStore = create<State>((set, getState) => {
     setPrivacy: (v) => { set({ privacy: v }); put(SK.privacy, v); },
     setRange: (r) => set({ range: r }),
     setBrokerOffset: (h) => { set({ brokerOffset: h }); put(SK.brokerOffset, h); },
+    setBrokerClock: (c) => { set({ brokerClock: c }); put(SK.brokerClock, c); },
+    setUserTz: (tz) => { set({ userTz: tz }); put(SK.userTz, tz); },
     restoreBackup: (b) => {
       const merged = mergeJournal(journalOf(getState()), b);
       commit(merged);

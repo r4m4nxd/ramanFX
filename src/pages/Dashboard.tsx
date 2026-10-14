@@ -7,7 +7,8 @@ import { riskStatus } from '@/core/risk';
 import { MIN_SCORE_TRADES } from '@/core/stats';
 import { dayKey } from '@/core/time';
 import { pct, rMult, shortDate, timeHM, tone, useMoney } from '@/lib/format';
-import { Badge, Bar, Card, CardHead, CountUp, cx, InfoTip, Page, rise, Segmented } from '@/ui/kit';
+import { Badge, Bar, Card, CardHead, CountUp, cx, InfoTip, Page, rise, Segmented, useIsMobile } from '@/ui/kit';
+import { TradeList } from '@/ui/TradeList';
 import { BalanceChart, DailyBars, DivergingBars, EquityChart, Sparkline } from '@/ui/charts';
 import { MonthCalendar } from '@/ui/MonthCalendar';
 import { Icon } from '@/ui/Icon';
@@ -86,6 +87,7 @@ export default function Dashboard() {
   const notes = useStore(s => s.notes);
   const [curve, setCurve] = useState<'pnl' | 'balance'>('pnl');
   const [allSyms, setAllSyms] = useState(false);
+  const mobile = useIsMobile();
   const s = a.stats;
   const recent = [...a.et].reverse().slice(0, 7);
   const lowSample = s.total < MIN_SCORE_TRADES;
@@ -165,16 +167,16 @@ export default function Dashboard() {
         <Card><MonthCalendar days={s.days} onDay={d => nav(`/journal?day=${d}`)} /></Card>
         <Card>
           <CardHead title="Setup performance" sub="Net result by setup tag — what actually pays you" right={<Link to="/reports?tab=setups" className="text-xs text-accent hover:underline">All setups</Link>} />
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[420px]">
-              <thead><tr><th className="th">Setup</th><th className="th text-right">Trades</th><th className="th text-right">Win</th><th className="th text-right">Avg R</th><th className="th text-right">Net</th></tr></thead>
+          <div>
+            <table className="w-full table-fixed">
+              <thead><tr><th className="th">Setup</th><th className="th text-right w-14">Trades</th><th className="th text-right w-12">Win</th><th className="th text-right w-16 max-sm:hidden">Avg R</th><th className="th text-right w-24">Net</th></tr></thead>
               <tbody>
                 {a.setups.slice(0, 7).map(g => (
                   <tr key={g.key}>
-                    <td className="td"><span className={cx('truncate', g.key.startsWith('(') ? 'text-ink3' : '')}>{g.key}</span></td>
+                    <td className="td truncate"><span className={g.key.startsWith('(') ? 'text-ink3' : ''}>{g.key}</span></td>
                     <td className="td num text-right text-ink2">{g.n}</td>
                     <td className="td num text-right text-ink2">{pct(g.winRate, 0)}</td>
-                    <td className="td num text-right text-ink2">{rMult(g.avgR, 1)}</td>
+                    <td className="td num text-right text-ink2 max-sm:hidden">{rMult(g.avgR, 1)}</td>
                     <td className={cx('td num text-right font-semibold', tone(g.net))}>{fmt(g.net, { signed: true })}</td>
                   </tr>
                 ))}
@@ -231,8 +233,9 @@ export default function Dashboard() {
 
       <Card>
         <CardHead title="Recent trades" sub="Open any trade to journal it" right={<Link to="/trades" className="text-xs text-accent hover:underline">All trades</Link>} />
-        <div className="overflow-x-auto -mx-1">
-          <table className="w-full min-w-[640px]">
+        {mobile ? <TradeList trades={recent} /> : (
+        <div>
+          <table className="w-full ">
             <thead><tr><th className="th pl-1">Closed</th><th className="th">Symbol</th><th className="th">Side</th><th className="th">Setup</th><th className="th text-right">Hold</th><th className="th text-right">R</th><th className="th text-right pr-1">Net</th></tr></thead>
             <tbody>
               {recent.map(t => (
@@ -249,6 +252,7 @@ export default function Dashboard() {
             </tbody>
           </table>
         </div>
+        )}
       </Card>
     </Page>
   );

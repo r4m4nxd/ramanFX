@@ -51,7 +51,11 @@ const FX_PAIRS = [
   'USDSEK', 'USDNOK', 'USDDKK', 'USDSGD', 'USDHKD', 'USDZAR', 'USDMXN', 'USDTRY', 'USDPLN', 'USDCZK', 'USDHUF', 'USDCNH', 'USDILS', 'USDTHB', 'USDRUB', 'USDINR',
 ];
 
-/** JPY and HUF pairs quote to 2/3 decimals, so a pip is 0.01; everything else 0.0001. */
+/**
+ * Pip convention (MT4/MT5 retail standard, matches Myfxbook): 0.01 when the quote currency is JPY or HUF
+ * (quoted to 3 decimals), 0.0001 for everything else — including CZK, THB, INR, MXN, ZAR, TRY. A few
+ * brokers (e.g. IG) use 0.001 for CZK; the app's measured per-symbol value is unaffected by pip size.
+ */
 const fxPip = (quote: string) => (quote === 'JPY' || quote === 'HUF' ? 0.01 : 0.0001);
 
 const forex: LibraryInstrument[] = FX_PAIRS.map(p => {
@@ -61,6 +65,9 @@ const forex: LibraryInstrument[] = FX_PAIRS.map(p => {
 });
 
 // ─── Spot metals (CFD) ─────────────────────────────────────────────────
+// Gold "pip" = 0.10 (the common MT5 trader convention: $1 move = 10 pips; 1 lot = 100 oz ⇒ $10/pip).
+// Some sites (e.g. OANDA) call 0.01 a gold pip — override pipSize per symbol if you count that way.
+// Silver pip = 0.01 (5,000 oz ⇒ $50/pip). Platinum/palladium 100 oz is broker-dependent.
 const metals: LibraryInstrument[] = [
   { symbol: 'XAUUSD', name: 'Gold / US Dollar', assetClass: 'metal', venue: 'CFD', quote: 'USD', contractSize: 100, pipSize: 0.1, tickSize: 0.01, unit: 'oz', aliases: ['GOLD'] },
   { symbol: 'XAUEUR', name: 'Gold / Euro', assetClass: 'metal', venue: 'CFD', quote: 'EUR', contractSize: 100, pipSize: 0.1, tickSize: 0.01, unit: 'oz' },
@@ -102,9 +109,11 @@ const indices: LibraryInstrument[] = [
 ];
 
 // ─── Energy CFDs ───────────────────────────────────────────────────────
+// Oil: 1 lot = 100 bbl at most MT5 retail/prop brokers (IC Markets XTIUSD/XBRUSD, Pepperstone, FTMO
+// USOIL.cash); some use 1,000 bbl (CME-sized) or 10 bbl (Axi, FXCM). The measured value wins.
 const energy: LibraryInstrument[] = [
-  { symbol: 'USOIL', name: 'WTI Crude Oil', assetClass: 'energy', venue: 'CFD', quote: 'USD', contractSize: 1000, pipSize: 0.01, tickSize: 0.001, unit: 'bbl', aliases: ['WTI', 'XTIUSD', 'CL-OIL', 'USCRUDE', 'OILUSD', 'SPOTCRUDE', 'CRUDE', 'CRUDEOIL'] },
-  { symbol: 'UKOIL', name: 'Brent Crude Oil', assetClass: 'energy', venue: 'CFD', quote: 'USD', contractSize: 1000, pipSize: 0.01, tickSize: 0.001, unit: 'bbl', aliases: ['BRENT', 'XBRUSD', 'BRN', 'SPOTBRENT'] },
+  { symbol: 'USOIL', name: 'WTI Crude Oil', assetClass: 'energy', venue: 'CFD', quote: 'USD', contractSize: 100, pipSize: 0.01, tickSize: 0.001, unit: 'bbl', aliases: ['WTI', 'XTIUSD', 'CL-OIL', 'USCRUDE', 'OILUSD', 'SPOTCRUDE', 'CRUDE', 'CRUDEOIL'] },
+  { symbol: 'UKOIL', name: 'Brent Crude Oil', assetClass: 'energy', venue: 'CFD', quote: 'USD', contractSize: 100, pipSize: 0.01, tickSize: 0.001, unit: 'bbl', aliases: ['BRENT', 'XBRUSD', 'BRN', 'SPOTBRENT'] },
   { symbol: 'NATGAS', name: 'Natural Gas', assetClass: 'energy', venue: 'CFD', quote: 'USD', contractSize: 10000, pipSize: 0.001, tickSize: 0.001, unit: 'MMBtu', aliases: ['XNGUSD', 'NGAS', 'NG-C', 'NATURALGAS'] },
   { symbol: 'GASOLINE', name: 'Gasoline (RBOB)', assetClass: 'energy', venue: 'CFD', quote: 'USD', contractSize: 1000, pipSize: 0.0001, tickSize: 0.0001, unit: 'gal', aliases: ['RBOB', 'UGAS'] },
   { symbol: 'HEATINGOIL', name: 'Heating Oil', assetClass: 'energy', venue: 'CFD', quote: 'USD', contractSize: 1000, pipSize: 0.0001, tickSize: 0.0001, unit: 'gal', aliases: ['HOIL'] },
@@ -122,11 +131,15 @@ const agriCfd: LibraryInstrument[] = [
 ];
 
 // ─── Crypto CFDs (1 lot = 1 coin) ──────────────────────────────────────
-const cry = (c: string, name: string, tick = 0.01): LibraryInstrument =>
-  ({ symbol: `${c}USD`, name: `${name} / US Dollar`, assetClass: 'crypto', venue: 'CFD', quote: 'USD', contractSize: 1, pipSize: 1, tickSize: tick, unit: c, aliases: [`${c}USDT`, c] });
+// Crypto has no standard pip. We use $1 for high-priced coins, $0.01 for mid-priced and $0.0001 for
+// sub-dollar coins so a "pip" is always a small fraction of price.
+const cry = (c: string, name: string, tick = 0.01, pip = 1): LibraryInstrument =>
+  ({ symbol: `${c}USD`, name: `${name} / US Dollar`, assetClass: 'crypto', venue: 'CFD', quote: 'USD', contractSize: 1, pipSize: pip, tickSize: tick, unit: c, aliases: [`${c}USDT`, c] });
 const crypto: LibraryInstrument[] = [
-  cry('BTC', 'Bitcoin'), cry('ETH', 'Ethereum'), cry('SOL', 'Solana'), cry('XRP', 'Ripple', 0.00001), cry('LTC', 'Litecoin'),
-  cry('ADA', 'Cardano', 0.00001), cry('DOGE', 'Dogecoin', 0.00001), cry('BNB', 'BNB'), cry('DOT', 'Polkadot', 0.001), cry('AVAX', 'Avalanche', 0.001), cry('LINK', 'Chainlink', 0.001),
+  cry('BTC', 'Bitcoin'), cry('ETH', 'Ethereum'), cry('BNB', 'BNB'),
+  cry('SOL', 'Solana', 0.01, 0.01), cry('LTC', 'Litecoin', 0.01, 0.01),
+  cry('DOT', 'Polkadot', 0.001, 0.01), cry('AVAX', 'Avalanche', 0.001, 0.01), cry('LINK', 'Chainlink', 0.001, 0.01),
+  cry('XRP', 'Ripple', 0.00001, 0.0001), cry('ADA', 'Cardano', 0.00001, 0.0001), cry('DOGE', 'Dogecoin', 0.00001, 0.0001),
 ];
 
 // ─── Futures ───────────────────────────────────────────────────────────
@@ -165,6 +178,7 @@ const futures: LibraryInstrument[] = [
   fut('QM', 'E-mini Crude Oil', 'energy', 'NYMEX', 0.025, 12.5, 'USD', 500, '500 bbl'),
   fut('BZ', 'Brent Crude (NYMEX)', 'energy', 'NYMEX', 0.01, 10, 'USD', 1000, '1,000 bbl'),
   fut('B', 'Brent Crude (ICE)', 'energy', 'ICE', 0.01, 10, 'USD', 1000, '1,000 bbl'),
+  fut('G', 'Low Sulphur Gasoil (ICE)', 'energy', 'ICE', 0.25, 25, 'USD', 100, '100 metric tonnes'),
   fut('NG', 'Henry Hub Natural Gas', 'energy', 'NYMEX', 0.001, 10, 'USD', 10000, '10,000 MMBtu'),
   fut('MNG', 'Micro Henry Hub Natural Gas', 'energy', 'NYMEX', 0.001, 1, 'USD', 1000, '1,000 MMBtu'),
   fut('QG', 'E-mini Natural Gas', 'energy', 'NYMEX', 0.005, 12.5, 'USD', 2500, '2,500 MMBtu'),
@@ -193,6 +207,9 @@ const futures: LibraryInstrument[] = [
   fut('6S', 'Swiss Franc', 'forex', 'CME', 0.00005, 6.25, 'USD', 125000, 'CHF 125,000'),
   fut('6N', 'New Zealand Dollar', 'forex', 'CME', 0.00005, 5, 'USD', 100000, 'NZ$100,000'),
   fut('6M', 'Mexican Peso', 'forex', 'CME', 0.00001, 5, 'USD', 500000, 'MXN 500,000'),
+  fut('MJY', 'Micro JPY/USD', 'forex', 'CME', 0.000001, 1.25, 'USD', 1250000, '¥1,250,000'),
+  fut('MCD', 'Micro CAD/USD', 'forex', 'CME', 0.0001, 1, 'USD', 10000, 'C$10,000'),
+  fut('MSF', 'Micro CHF/USD', 'forex', 'CME', 0.0001, 1.25, 'USD', 12500, 'CHF 12,500'),
   fut('DX', 'US Dollar Index (ICE)', 'forex', 'ICE', 0.005, 5, 'USD', 1000, '$1,000 × index'),
   // Interest rates — CBOT (Treasury price ticks are fractions of a point)
   fut('ZT', '2-Year T-Note', 'rates', 'CBOT', 1 / 256, 7.8125, 'USD', 200000, '$200k face'),
@@ -201,12 +218,17 @@ const futures: LibraryInstrument[] = [
   fut('TN', 'Ultra 10-Year T-Note', 'rates', 'CBOT', 1 / 64, 15.625, 'USD', 100000, '$100k face'),
   fut('ZB', '30-Year T-Bond', 'rates', 'CBOT', 1 / 32, 31.25, 'USD', 100000, '$100k face'),
   fut('UB', 'Ultra T-Bond', 'rates', 'CBOT', 1 / 32, 31.25, 'USD', 100000, '$100k face'),
-  fut('SR3', '3-Month SOFR', 'rates', 'CME', 0.0025, 6.25, 'USD', 1, '$2,500 × index'),
+  // SR3 tick is 0.0025 ($6.25) for contracts within 4 months of expiry, 0.005 ($12.50) for later months.
+  fut('SR3', '3-Month SOFR', 'rates', 'CME', 0.0025, 6.25, 'USD', 2500, '$2,500 × index'),
   // Crypto — CME
   fut('BTC', 'Bitcoin Futures', 'crypto', 'CME', 5, 25, 'USD', 5, '5 BTC'),
   fut('MBT', 'Micro Bitcoin', 'crypto', 'CME', 5, 0.5, 'USD', 0.1, '0.1 BTC'),
   fut('ETH', 'Ether Futures', 'crypto', 'CME', 0.5, 25, 'USD', 50, '50 ETH'),
   fut('MET', 'Micro Ether', 'crypto', 'CME', 0.5, 0.05, 'USD', 0.1, '0.1 ETH'),
+  fut('SOL', 'Solana Futures', 'crypto', 'CME', 0.05, 25, 'USD', 500, '500 SOL'),
+  fut('MSL', 'Micro Solana', 'crypto', 'CME', 0.05, 1.25, 'USD', 25, '25 SOL'),
+  fut('XRP', 'XRP Futures', 'crypto', 'CME', 0.0005, 25, 'USD', 50000, '50,000 XRP'),
+  fut('MXP', 'Micro XRP', 'crypto', 'CME', 0.0005, 1.25, 'USD', 2500, '2,500 XRP'),
   // Grains — CBOT (cents per bushel)
   fut('ZC', 'Corn', 'agri', 'CBOT', 0.25, 12.5, 'USD', 5000, '5,000 bu (¢/bu)'),
   fut('ZS', 'Soybeans', 'agri', 'CBOT', 0.25, 12.5, 'USD', 5000, '5,000 bu (¢/bu)'),
