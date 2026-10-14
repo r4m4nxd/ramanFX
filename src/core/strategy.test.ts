@@ -17,7 +17,8 @@ describe('evaluatePlan', () => {
   });
   it('demand above the 50% mark of the curve is low odds for set & forget', () => {
     expect(evaluatePlan(blankPlan({ side: 'buy', htfTrend: 'up', curve: 70 })).odds).toBe('low');
-    expect(evaluatePlan(blankPlan({ side: 'sell', htfTrend: 'down', curve: 70 })).odds).toBe('high');
+    expect(evaluatePlan(blankPlan({ side: 'sell', htfTrend: 'down', etfTrend: 'down', curve: 70 })).odds).toBe('high');
+    expect(evaluatePlan(blankPlan({ side: 'sell', htfTrend: 'down', etfTrend: 'up', curve: 70 })).odds).toBe('low');
   });
   it('blocks what is not a tradeable zone', () => {
     expect(evaluatePlan(blankPlan({ moveAway: 'poor' })).tradeable).toBe(false);

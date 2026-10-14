@@ -24,6 +24,36 @@ export const RULE_CARDS: { title: string; body: string; topic: string }[] = [
   { topic: 'Psychology', title: 'Hundreds, not a handful', body: 'An edge plays out over hundreds of trades. A losing streak is not a verdict on your strategy.' },
   { topic: 'Psychology', title: 'No revenge trades', body: 'Emotional decisions make losing streaks worse. Stick to the plan, especially after a loss.' },
   { topic: 'Psychology', title: 'Realistic returns', body: 'Beating the S&P\'s 8–10% a year puts you ahead of most traders. 20–30% is incredible. Year one: aim for breakeven.' },
+  { topic: 'Zones', title: 'Base types', body: 'Single-candle base is the favourite. Doji basing works but is not preferred. Multiple messy candles = weak imbalance.' },
+  { topic: 'Zones', title: 'Zones in the middle of a move', body: 'Continuation zones (Rally-Base-Rally, Drop-Base-Drop) form mid-move and are often the most powerful.' },
+  { topic: 'Zones', title: 'Not every high or low is a zone', body: 'Every candle is supply and demand, but a ZONE needs a base and an explosive move away. Lines cutting through candles are not zones.' },
+  { topic: 'Zones', title: 'Zone size is a trade-off', body: 'Small zone: best R:R, more stop-outs. Medium: balanced. Large: fills most often, lowest R:R. Choose and stay consistent.' },
+  { topic: 'Zones', title: 'Higher timeframe, more power', body: 'A 1W demand is stronger than an H4 supply. The higher the timeframe of the zone, the more it controls price.' },
+  { topic: 'Zones', title: 'Odds booster: the move away', body: 'An explosive Marubozu leaving the base — little to no wicks — is the strongest sign the zone will hold.' },
+  { topic: 'Zones', title: 'Odds booster: liquidity trap', body: 'A clear support/resistance right before the zone traps early traders; their stops sit in our zone and fuel the reaction.' },
+  { topic: 'Zones', title: 'Probabilities, not certainties', body: 'The worst zones can work and the best zones can fail. Let your R:R work out over the long run.' },
+  { topic: 'Entry', title: 'Stop styles', body: 'Standard just beyond the distal, wide, or very conservative. Wider = more room, lower R:R. Backtest, pick one, stick to it.' },
+  { topic: 'Entry', title: 'Four ways to take profit', body: 'Fixed R:R, the opposing zone, the opposing structure high/low, or no TP and trail the stop.' },
+  { topic: 'Entry', title: 'Four ways to manage the stop', body: "Don't touch it; breakeven after a set R:R; half risk after a set R:R; or move it along with price below fresh LTF zones." },
+  { topic: 'Entry', title: 'TradingView workflow', body: 'Long/Short position tool around the zone → right-click → Create limit order → set risk %. Entry, SL and TP come from the tool.' },
+  { topic: 'Confirmation', title: 'Set the alert first', body: 'Place an alert just before the HTF zone. Alerts make trading mechanical and take emotion out of it.' },
+  { topic: 'Confirmation', title: 'Multiple confirmations', body: 'Trendline, zone and structure removed on the same trade is MUCH preferred. Map what must be removed before it happens.' },
+  { topic: 'Confirmation', title: 'Structure shift', body: 'An obvious high/low broken after a fresh zone forms. Usually comes with a zone removal — use it as an odds booster.' },
+  { topic: 'Confirmation', title: 'Breakout order', body: 'Stop order just beyond the new zone after the opposing zone is removed. Works, but R:R is worse. Good for long-term investing.' },
+  { topic: 'Confirmation', title: 'Pros and cons', body: 'Pros: fewer losses, tighter entries, more confidence. Cons: missed trades, more screen time, frustration inside the HTF zone with no signal.' },
+  { topic: 'Set & forget', title: 'HTF trend + ETF trend', body: 'A high-odds set & forget follows the HTF trend AND has an entry-timeframe trend in the same direction.' },
+  { topic: 'Set & forget', title: 'The highest odds', body: 'Demand low in the curve with a NEW HTF uptrend (supply high in the curve with a new downtrend). Still needs explosive moves on both timeframes.' },
+  { topic: 'Set & forget', title: 'Profit margin', body: 'The distance from your ETF zone to the next opposing HTF zone. Small margin → manage aggressively.' },
+  { topic: 'Set & forget', title: 'Understand before you take low odds', body: 'Do not take low-odds setups unless you fully understand what is — and what is not — a high-odds setup.' },
+  { topic: 'Set & forget', title: 'The step-by-step plan', body: '1 Find ETF zones. 2 HTF trend. 3 HTF curve. 4 Pending limit order. 5 Alerts and management once filled.' },
+  { topic: 'Set & forget', title: 'Pros and cons', body: 'Pros: more setups, faster TPs with momentum, simpler. Cons: feels riskier without confirmation; too many setups can mean overtrading.' },
+  { topic: 'Timeframes', title: 'Pick for your life', body: 'Day: 1m→15m, 5m→H1, 15m→H4. Swing: H1→1D, H4→1W, 1D→1M. No best combo — price is fractal.' },
+  { topic: 'Timeframes', title: 'Beginners: swing first', body: 'Day trading is fast and stressful. Learn on swing timeframes — they teach patience and wait for quality setups.' },
+  { topic: 'Timeframes', title: 'News for day traders', body: 'Lower timeframes get hit by economic data. Know the release times and wait for the initial spike before placing a trade.' },
+  { topic: 'Psychology', title: 'Know your drawdown', body: 'Have data on your average and MAX drawdown so that when it comes you are not shocked into emotional decisions.' },
+  { topic: 'Psychology', title: 'Simulate before you suffer', body: 'Run your win rate and R:R through a profit simulator to see what a normal losing streak looks like. (Calculator → Monte Carlo.)' },
+  { topic: 'Psychology', title: 'Myths and lies', body: '"$100 a day", "$50 to $50,000", "90% win rate", "quit your 9–5". If it sounds too good to be true, it always is.' },
+  { topic: 'Psychology', title: 'Experience teaches', body: 'You only get comfortable with losing after losing a lot of trades. Success is managing losses, not avoiding them.' },
   { topic: 'Psychology', title: 'Patience pays', body: 'Your job is not to chase price. React when the market presents a clear opportunity — or move on.' },
 ];
 
@@ -52,9 +82,11 @@ export function drills(): Drill[] {
     [{ side: 'buy', htfTrend: 'up', curve: 30, qualified: 'none' }, ['H1 demand, A+ move', '1D up, low in the curve', 'It did not break any supply or trendline']],
     [{ side: 'buy', htfTrend: 'up', curve: 30, old: true }, ['H1 demand, 1D uptrend, low in the curve', 'Price ran very far before coming back weeks later']],
     [{ side: 'sell', htfTrend: 'down', curve: 80, moveAway: 'aplus', baseCandles: 1, liquidityTrap: true }, ['H4 supply, Marubozu leaving a 1-candle base', '1W trend down, 80% of the curve', 'Resistance liquidity sits just below the zone']],
+    [{ side: 'buy', htfTrend: 'up', etfTrend: 'down', curve: 25, moveAway: 'aplus' }, ['H1 demand, A+ move away', '1D uptrend, low in the curve', 'H1 itself is in a downtrend']],
+    [{ side: 'buy', htfTrend: 'up', curve: 20, newTrend: true, moveAway: 'aplus', baseCandles: 1, baseType: 'single' }, ['H1 demand from a single-candle base', '1D just made its first higher high above the trendline', 'Low in the curve']],
   ];
   return base.map(([o, prompt], id) => {
-    const plan = blankPlan({ id: `drill${id}`, qualified: 'zone', ...o });
+    const plan = blankPlan({ id: `drill${id}`, qualified: 'zone', etfTrend: o.side === 'sell' ? 'down' : 'up', ...o });
     const v = evaluatePlan(plan);
     const answer = !v.tradeable ? 'NO TRADE' : v.odds === 'high' ? 'HIGH ODDS' : 'LOW ODDS';
     const why = !v.tradeable ? v.blockers[0].rule : v.reasons.filter(r => r.tone === (v.odds === 'high' ? 'good' : 'bad')).map(r => r.rule)[0] ?? v.mgmt.target;

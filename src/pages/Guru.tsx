@@ -6,6 +6,7 @@ import { useGraded } from '@/data/guru';
 import { useStore } from '@/data/store';
 import { BE_TABLE, cardOfDay, drills, RULE_CARDS } from '@/core/coach';
 import { formation, SD_COMBOS } from '@/core/strategy';
+import { COURSE, WHERE } from '@/core/course';
 import { monteCarlo } from '@/core/sim';
 import { pct, tone, useMoney } from '@/lib/format';
 import { Card, CardHead, CountUp, cx, ease, Page, Segmented, spring } from '@/ui/kit';
@@ -185,6 +186,29 @@ function Progress() {
   );
 }
 
+function CourseMap() {
+  const [pdf, setPdf] = useState<'S&D' | 'Confirmation' | 'Set & Forget'>('S&D');
+  const xs = COURSE.filter(l => l.pdf === pdf);
+  return (
+    <Card>
+      <CardHead title="Course map" sub={`All ${COURSE.length} lessons from your three PDFs — and exactly where the app applies each one`} />
+      <div className="mb-4"><Segmented label="Course" size="sm" value={pdf} onChange={setPdf} options={[{ value: 'S&D', label: 'Supply & demand' }, { value: 'Confirmation', label: 'Confirmation' }, { value: 'Set & Forget', label: 'Set & forget' }]} /></div>
+      <ol className="flex flex-col">
+        {xs.map((l, i) => (
+          <motion.li key={l.slide} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.015 }} className="flex gap-3 py-2.5 border-t border-line first:border-0">
+            <span className="w-5 h-5 mt-0.5 rounded-full bg-profit/20 text-profit grid place-items-center shrink-0"><Icon name="check" size={11} strokeWidth={3} /></span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[13.5px] font-medium">{l.slide}</div>
+              <div className="text-[12px] text-ink3 mt-0.5">{l.how}</div>
+            </div>
+            <div className="flex gap-1 shrink-0 flex-wrap justify-end max-w-[40%]">{l.where.split(' ').map(w => <Link key={w} to={WHERE[w].to} className="chip h-6 touch:h-7 text-[10.5px]">{WHERE[w].label}</Link>)}</div>
+          </motion.li>
+        ))}
+      </ol>
+    </Card>
+  );
+}
+
 export default function Guru() {
   const hasTrades = useStore(s => s.trades.length > 0);
   return (
@@ -199,6 +223,7 @@ export default function Guru() {
         <div className="flex flex-col gap-4">{hasTrades && <Progress />}<Returns /></div>
       </div>
       <Library />
+      <CourseMap />
     </Page>
   );
 }

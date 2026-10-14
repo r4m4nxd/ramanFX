@@ -9,6 +9,11 @@ export type ZoneKind = 'VP' | 'CP';
 export type MoveAway = 'poor' | 'decent' | 'aplus' | 'gap';
 export type Qualifier = 'zone' | 'trendline' | 'both' | 'none';
 export type ConfSignal = 'zone' | 'trendline' | 'both' | 'structure' | 'breakout';
+export type EntryType = 'limit' | 'market' | 'stop';
+export type TpMethod = 'fixed' | 'zone' | 'structure' | 'trail';
+export type MgmtPlan = 'hold' | 'be' | 'half' | 'trail';
+export type StopStyle = 'standard' | 'wide' | 'conservative';
+export type BaseType = 'single' | 'tight' | 'doji' | 'messy';
 export type PlanStatus = 'planned' | 'waiting' | 'touched' | 'ordered' | 'filled' | 'skipped' | 'missed';
 
 /** Entry → higher timeframe pairs from the PDFs. Same order as the Playbook's combos. */
@@ -35,6 +40,7 @@ export interface Plan {
   // The zone
   kind: ZoneKind;
   baseCandles: number;
+  baseType?: BaseType;
   moveAway: MoveAway;
   fresh: boolean;
   /** Price ran far without retracing before coming back — an old zone. */
@@ -42,6 +48,14 @@ export interface Plan {
   qualified: Qualifier;
   // Higher-timeframe context
   htfTrend: Trend;
+  /** Entry-timeframe trend — set & forget needs it in the trade's direction too. */
+  etfTrend?: Trend;
+  /** The HTF trend has only just started (new higher high / lower low after the trendline). */
+  newTrend?: boolean;
+  /** Price of the opposing HTF zone's proximal line — the profit margin. */
+  opposingHtf?: number | null;
+  /** Day trading: checked the economic calendar for data releases. */
+  newsChecked?: boolean;
   /** Where the ETF zone sits between the HTF demand (0) and HTF supply (100) zones. */
   curve: number;
   /** ETF zone at or near an HTF zone that agrees with the trade (demand at HTF demand). */
@@ -63,6 +77,10 @@ export interface Plan {
   lots?: number | null;
   riskPct?: number | null;
   riskAmount?: number | null;
+  entryType?: EntryType;
+  stopStyle?: StopStyle;
+  tpMethod?: TpMethod;
+  mgmtPlan?: MgmtPlan;
   status: PlanStatus;
   tradeId?: string | null;
   account?: string | null;
@@ -74,7 +92,7 @@ export const blankPlan = (o: Partial<Plan> = {}): Plan => ({
   createdAt: Date.now(), updatedAt: Date.now(),
   symbol: '', side: 'buy', method: 'sf', combo: 3,
   kind: 'VP', baseCandles: 2, moveAway: 'decent', fresh: true, old: false, qualified: 'zone',
-  htfTrend: 'up', curve: 30, atHtfZone: false, nearOpposing: false,
+  htfTrend: 'up', etfTrend: 'up', newTrend: false, curve: 30, entryType: 'limit', stopStyle: 'standard', tpMethod: 'fixed', mgmtPlan: 'hold', baseType: 'tight', atHtfZone: false, nearOpposing: false,
   htfTouched: false, signal: null, liquidityTrap: false, structureShift: false,
   status: 'planned', ...o,
 });
@@ -128,6 +146,9 @@ export function evaluatePlan(p: Plan, defaultRiskPct = 1): Verdict {
   else if (p.baseCandles <= 2) add('good', `${p.baseCandles}-candle base — his favourite structure.`, 'My favourite basing is when the zone has 1–2 candles.');
   else add('good', `${p.baseCandles}-candle base — tight enough.`, 'The best bases are tight: 1 to 4 candles.');
 
+  if (p.baseType === 'doji') add('warn', 'Doji basing — workable, but not his favourite.', 'Doji candle basing: not my favourite.');
+  if (p.baseType === 'messy' && p.baseCandles <= 6) add('warn', 'Messy multi-candle base.', 'Wide and messy bases suggest weaker imbalances.');
+  if (p.baseType === 'single') add('good', 'Single-candle base — his favourite.', 'Single candle basing: my favourite.');
   if (!p.fresh) block('Zone has been tested already.', 'Zones must be FRESH — tested zones lose strength.');
   if (p.qualified === 'none') block('Zone did not remove an opposing zone or a trendline.', 'To be tradeable a zone must break an opposing zone OR remove a trendline.');
   else add('good', p.qualified === 'both' ? 'Removed an opposing zone AND a trendline.' : p.qualified === 'zone' ? 'Removed an opposing zone.' : 'Removed a trendline.', 'Qualified zone.');
@@ -149,17 +170,22 @@ export function evaluatePlan(p: Plan, defaultRiskPct = 1): Verdict {
   const low: Reason[] = [];
   if (p.nearOpposing) low.push({ tone: 'bad', text: `ETF ${p.side === 'buy' ? 'demand' : 'supply'} sits at/near an opposing HTF zone.`, rule: 'Low odds: ETF zone at or near a HTF opposing zone.' });
   if (rel !== 'with' && !p.atHtfZone) low.push({ tone: 'bad', text: rel === 'counter' ? 'Counter-trend to the HTF.' : 'HTF is sideways (no blatantly obvious trendline).', rule: 'Low odds: counter-trend or sideways to the HTF trend.' });
+  const etfRel = p.etfTrend ? trendRel(p.side, p.etfTrend) : 'with';
+  if (p.method === 'sf' && etfRel !== 'with') low.push({ tone: 'bad', text: `Entry-timeframe trend is ${etfRel === 'counter' ? 'against' : 'not with'} the trade.`, rule: 'A high-odds set & forget needs an entry-timeframe trend in the same direction.' });
   if (p.old) low.push({ tone: 'bad', text: 'Old zone — price ran far before returning.', rule: 'Low odds: the ETF zone is old.' });
   if (p.method === 'sf' && depth > 50 && !p.atHtfZone) low.push({ tone: 'bad', text: `${p.side === 'buy' ? 'Above' : 'Below'} the 50% mark of the curve (${Math.round(p.curve)}%).`, rule: `High-odds ${p.side === 'buy' ? 'demand is below' : 'supply is above'} the 50% mark of the curve.` });
   const high: Reason[] = [];
   if (rel === 'with') high.push({ tone: 'good', text: `With the HTF ${p.htfTrend === 'up' ? 'uptrend' : 'downtrend'}.`, rule: 'High odds: ETF zone aligns with the HTF trend.' });
   if (p.atHtfZone) high.push({ tone: 'good', text: 'At/near your HTF zone in control.', rule: 'High odds: ETF zone at or near a HTF zone that aligns with the entry.' });
   if (p.method === 'sf' && depth <= 50) high.push({ tone: 'good', text: `${p.side === 'buy' ? 'Low' : 'High'} in the curve (${Math.round(p.curve)}%) — room to the opposing HTF zone.`, rule: 'The closer the ETF zone is to your HTF zone, the higher the odds.' });
+  if (p.method === 'sf' && rel === 'with' && etfRel === 'with') high.push({ tone: 'good', text: 'HTF and ETF trends both with you — stacked confluence.', rule: 'Follow the HTF trend AND have an ETF trend in the same direction.' });
+  if (p.newTrend && rel === 'with') high.push({ tone: 'good', text: 'A NEW HTF trend — the highest-odds context.', rule: 'Highest odds: low in the curve combined with a new HTF trend.' });
   if (p.liquidityTrap) high.push({ tone: 'good', text: 'Liquidity trap in front of the zone.', rule: 'Odds booster: S/R liquidity trap before the zone.' });
   if (p.structureShift && p.signal !== 'structure') high.push({ tone: 'good', text: 'Structure shift in your direction.', rule: 'Odds booster: structure shift.' });
   const odds: Verdict['odds'] = low.length === 0 && (rel === 'with' || p.atHtfZone) ? 'high' : 'low';
   reasons.push(...high, ...low);
 
+  if (SD_COMBOS[p.combo]?.style === 'Day' && !p.newsChecked) add('warn', 'Day-trading timeframe and no economic calendar check.', 'Day traders: know when data comes out and wait for the initial spike.');
   // ── Score 0–100 (quality of the zone and context, independent of blockers) ──
   let s = 0;
   s += { poor: 0, decent: 14, aplus: 24, gap: 24 }[p.moveAway];
@@ -171,7 +197,9 @@ export function evaluatePlan(p: Plan, defaultRiskPct = 1): Verdict {
   s += p.atHtfZone ? 8 : 0;
   s += p.nearOpposing ? 0 : 6;
   s += Math.round(Math.max(0, Math.min(1, (100 - depth) / 100)) * 6);
-  s += (p.liquidityTrap ? 3 : 0) + (p.structureShift ? 3 : 0);
+  s += (p.liquidityTrap ? 3 : 0) + (p.structureShift ? 3 : 0) + (p.newTrend ? 2 : 0);
+  if (p.method === 'sf') s += etfRel === 'with' ? 3 : 0;
+  if (p.baseType === 'single') s += 2; else if (p.baseType === 'doji' || p.baseType === 'messy') s -= 2;
   if (p.method === 'conf') s += p.htfTouched && p.signal ? (p.signal === 'both' ? 6 : p.signal === 'breakout' ? 2 : 4) : 0;
   const score = Math.max(0, Math.min(100, s));
 
@@ -179,6 +207,16 @@ export function evaluatePlan(p: Plan, defaultRiskPct = 1): Verdict {
   const mgmt: Management = odds === 'low'
     ? { style: 'aggressive', maxRiskPct: Math.min(0.5, defaultRiskPct / 2), targetR: 1, target: '1:1 — or an alert at 1:1 instead of a TP order', breakeven: 'Move to breakeven at 0.5–1R, then trail into profit', alerts: ['Alert at 1:1', 'At the alert: stop to breakeven', 'If it keeps going: bump the stop into profit'] }
     : { style: 'non-aggressive', maxRiskPct: defaultRiskPct, targetR: 3, target: 'Opposing HTF/ETF zone, or a fixed 1:3 or higher', breakeven: 'Wait longer before breakeven — let it breathe', alerts: ['Keep a TP order in the market', 'Never widen the stop'] };
+
+  // ── Execution choices ──
+  if (p.entryType === 'market') add('warn', 'Market order — you are late to the zone.', 'Market order (if late) is not advised; a pending limit at the proximal is the best entry.');
+  else if (p.entryType === 'stop') add(p.method === 'conf' ? 'warn' : 'bad', 'Breakout stop order beyond the zone.', 'Breakout entries lower your overall R:R.');
+  else add('good', 'Pending limit order at the proximal line.', 'Pending limit order: best entry method.');
+  if (p.tpMethod === 'trail' && odds === 'low') add('warn', 'Trailing with no TP on a low-odds setup.', 'Low odds: take 1:1 or an alert at 1:1 — do not be greedy.');
+  if (p.tpMethod === 'fixed' || p.tpMethod === 'zone' || p.tpMethod === 'structure') { if (odds === 'high') add('good', `Take profit: ${{ fixed: 'fixed R:R', zone: 'opposing zone', structure: 'opposing structure' }[p.tpMethod]}, order in the market.`, 'Keep a TP order in the market in case you cannot manage the trade.'); }
+  if (p.mgmtPlan === 'hold' && odds === 'low') add('warn', 'Plan says "don\'t touch the stop" on a low-odds setup.', 'Low odds: move to breakeven quicker (0.5–1R).');
+  if ((p.mgmtPlan === 'be' || p.mgmtPlan === 'half') && odds === 'high') add('warn', 'Early breakeven on a high-odds setup can stop you out of the move.', 'High odds: wait longer before moving to breakeven.');
+  if (p.mgmtPlan === 'trail') add('good', 'Trail the stop behind lower-timeframe zones.', 'Move the stop along with price, below fresh LTF zones.');
 
   // ── Levels ──
   let rr: number | null = null;
@@ -197,6 +235,13 @@ export function evaluatePlan(p: Plan, defaultRiskPct = 1): Verdict {
       else if (odds === 'low' && rr > 1.6) add('warn', `Targeting ${rr.toFixed(1)}R on a low-odds setup.`, 'Low odds: aim for 1:1. DO NOT BE GREEDY.');
       else if (odds === 'high' && rr < 2) add('warn', `Only ${rr.toFixed(1)}R on a high-odds setup.`, 'High odds: target the opposing zone or 1:3+.');
     }
+  }
+  if (p.opposingHtf != null && p.entry != null && p.stop != null && Math.abs(p.entry - p.stop) > 0) {
+    const room = ((p.opposingHtf - p.entry) * (p.side === 'buy' ? 1 : -1)) / Math.abs(p.entry - p.stop);
+    if (room <= 0) blockers.push({ tone: 'bad', text: 'The opposing HTF zone is behind your entry — no profit margin.', rule: 'Profit margin is the distance to the next opposing HTF zone.' });
+    else if (room < 1) add('bad', `Only ${room.toFixed(1)}R of room to the opposing HTF zone.`, 'Profit margin is the distance to the next opposing HTF zone.');
+    else if (room < 2) add('warn', `${room.toFixed(1)}R of room to the opposing HTF zone — tight.`, 'Low profit margin → manage aggressively.');
+    else add('good', `${room.toFixed(1)}R of room to the opposing HTF zone.`, 'Profit margin is the distance to the next opposing HTF zone.');
   }
   if (p.riskPct != null && p.riskPct > mgmt.maxRiskPct + 1e-9) add('bad', `Risking ${p.riskPct}% — ${odds} odds allows ${mgmt.maxRiskPct}% at most.`, odds === 'low' ? 'Low odds: risk 0.5% or less.' : 'Stick to your normal risk.');
 
@@ -253,8 +298,8 @@ export function judgeTrade(f: TradeFacts, plan: Plan | null, defaultRiskPct = 1)
   else if (plan?.stop != null && (plan.stop - f.finalStop) * dir > 1e-9) { say('bad', `Stop was widened from ${plan.stop} to ${f.finalStop}.`, 'Never move your stop loss wider.'); check(false); }
   else check(true);
 
-  // Take profit order
-  if (f.finalTarget == null) { say(v?.odds === 'low' ? 'warn' : 'bad', 'No take-profit order was in the market.', 'Keep a TP order in the market in case you cannot manage the trade.'); check(v?.odds === 'low'); }
+  // Take profit order (a planned trail means no TP by design)
+  if (f.finalTarget == null && plan?.tpMethod !== 'trail') { say(v?.odds === 'low' ? 'warn' : 'bad', 'No take-profit order was in the market.', 'Keep a TP order in the market in case you cannot manage the trade.'); check(v?.odds === 'low'); }
 
   // Entry vs plan
   if (plan?.entry && plan.proximal != null && plan.distal != null) {
@@ -277,7 +322,13 @@ export function judgeTrade(f: TradeFacts, plan: Plan | null, defaultRiskPct = 1)
     const mfeR = f.mfeMoney / f.risk;
     const maeR = f.maeMoney != null ? f.maeMoney / f.risk : null;
     if (mfeR != null) {
-      if (f.net < 0 && mfeR >= 1) {
+      if (plan?.mgmtPlan === 'be' && f.net < 0 && mfeR >= (v?.odds === 'low' ? 0.5 : 1)) {
+        say('bad', `Your plan said breakeven — price reached +${mfeR.toFixed(1)}R and you still took ${money(f.net)}.`, 'Follow the management you planned before entry.');
+        check(false);
+      } else if (plan?.mgmtPlan === 'half' && f.r != null && f.r < -0.6 && mfeR >= 1) {
+        say('bad', `Plan said half risk after 1R; it hit +${mfeR.toFixed(1)}R and you still lost ${Math.abs(f.r).toFixed(2)}R.`, 'Move the stop to half risk after the set R:R.');
+        check(false);
+      } else if (f.net < 0 && mfeR >= 1) {
         say('bad', `Ran to +${mfeR.toFixed(1)}R, then closed at ${f.r != null ? f.r.toFixed(2) + 'R' : money(f.net)}. A 1:1 alert + breakeven would have saved ${money(Math.abs(f.net))}.`, 'Aggressive management: alert at 1:1, move the stop to breakeven.');
         check(false);
       } else if (f.net < 0 && mfeR >= 0.5 && v?.odds === 'low') {

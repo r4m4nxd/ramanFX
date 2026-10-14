@@ -5,7 +5,7 @@ import { DEFAULT_RISK_RULES, useStore } from '@/data/store';
 import { useEnriched } from '@/data/derived';
 import { usePlans } from '@/data/guru';
 import { positionSize } from '@/core/instruments';
-import { blankPlan, evaluatePlan, formation, SD_COMBOS, type ConfSignal, type MoveAway, type Plan, type PlanStatus } from '@/core/strategy';
+import { blankPlan, evaluatePlan, formation, SD_COMBOS, trendRel, type ConfSignal, type MoveAway, type Plan, type PlanStatus } from '@/core/strategy';
 import { money, num, price } from '@/lib/format';
 import { Badge, Card, CardHead, cx, Empty, Field, Page, Segmented, useIsMobile, useToast } from '@/ui/kit';
 import { Icon } from '@/ui/Icon';
@@ -88,6 +88,7 @@ function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) =
           {SD_COMBOS.map((c, i) => <Choice key={i} on={p.combo === i} onClick={() => set({ combo: i })} title={<span className="num">{c.etf} → {c.htf}</span>} sub={c.style} />)}
         </div>
       </Question>
+      {combo.style === 'Day' && <Question q="Economic calendar checked?" hint="Lower timeframes get hit by data releases. Wait for the initial spike."><YesNo value={!!p.newsChecked} onChange={x => set({ newsChecked: x })} yes="Checked" no="Not yet" /></Question>}
     </div>,
     // 2 ─ Zone
     <div key="zone" className="flex flex-col gap-6">
@@ -108,6 +109,14 @@ function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) =
             <motion.button key={n} type="button" whileTap={{ scale: 0.92 }} onClick={() => set({ baseCandles: n })}
               className={cx('w-12 h-12 rounded-xl border num text-[15px] font-semibold', p.baseCandles === n ? (n <= 2 ? 'border-profit bg-profit/15 text-profit' : n <= 4 ? 'border-accent bg-accent/15 text-accent' : 'border-loss bg-loss/15 text-loss') : 'border-line bg-raised/40')}>{n === 7 ? '7+' : n}</motion.button>
           ))}
+        </div>
+      </Question>
+      <Question q="Base structure">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <Choice on={p.baseType === 'single'} onClick={() => set({ baseType: 'single', baseCandles: 1 })} title="Single candle" sub="His favourite" tone="profit" />
+          <Choice on={p.baseType === 'tight'} onClick={() => set({ baseType: 'tight' })} title="Tight, uniform" sub="Clean 2–4 candles" />
+          <Choice on={p.baseType === 'doji'} onClick={() => set({ baseType: 'doji' })} title="Doji" sub="Not his favourite" tone="warn" />
+          <Choice on={p.baseType === 'messy'} onClick={() => set({ baseType: 'messy' })} title="Messy" sub="Overlapping, wicky" tone="loss" />
         </div>
       </Question>
       <Question q="Did it qualify?" hint="A zone must break an opposing zone OR remove a trendline. Both are not required.">
@@ -132,6 +141,14 @@ function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) =
           <Choice on={p.htfTrend === 'down'} onClick={() => set({ htfTrend: 'down' })} title="↓ Downtrend" tone={p.side === 'sell' ? 'profit' : 'loss'} />
         </div>
       </Question>
+      <Question q={`${combo.etf} trend (entry timeframe)`} hint="A high-odds set & forget needs this in your direction too.">
+        <div className="grid grid-cols-3 gap-2">
+          <Choice on={p.etfTrend === 'up'} onClick={() => set({ etfTrend: 'up' })} title="↑ Uptrend" tone={p.side === 'buy' ? 'profit' : 'loss'} />
+          <Choice on={p.etfTrend === 'side'} onClick={() => set({ etfTrend: 'side' })} title="✖ Sideways" tone="warn" />
+          <Choice on={p.etfTrend === 'down'} onClick={() => set({ etfTrend: 'down' })} title="↓ Downtrend" tone={p.side === 'sell' ? 'profit' : 'loss'} />
+        </div>
+      </Question>
+      {trendRel(p.side, p.htfTrend) === 'with' && <Question q="Is the HTF trend new?" hint="First higher high / lower low after the trendline formed — the highest-odds context."><YesNo value={!!p.newTrend} onChange={x => set({ newTrend: x })} yes="New trend" no="Mature" /></Question>}
       <Question q="Where is the zone in the curve?" hint="Drag the zone between your HTF demand and HTF supply.">
         <CurveSlider value={p.curve} onChange={c => set({ curve: c })} side={p.side} />
       </Question>
@@ -161,8 +178,15 @@ function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) =
         <Field label="Proximal line" hint={p.side === 'buy' ? 'Top of the base' : 'Bottom of the base'}><input type="number" step="any" inputMode="decimal" className="field num" value={p.proximal ?? ''} onChange={e => set({ proximal: e.target.value === '' ? null : +e.target.value })} /></Field>
         <Field label="Distal line" hint={p.side === 'buy' ? 'Lowest wick of the base' : 'Highest wick of the base'}><input type="number" step="any" inputMode="decimal" className="field num" value={p.distal ?? ''} onChange={e => set({ distal: e.target.value === '' ? null : +e.target.value })} /></Field>
       </div>
+      <Question q="Entry order">
+        <div className="grid grid-cols-3 gap-2">
+          <Choice on={p.entryType === 'limit'} onClick={() => set({ entryType: 'limit' })} title="Pending limit" sub="At the proximal — best" tone="profit" />
+          <Choice on={p.entryType === 'market'} onClick={() => set({ entryType: 'market' })} title="Market" sub="Late — not advised" tone="warn" />
+          <Choice on={p.entryType === 'stop'} onClick={() => set({ entryType: 'stop' })} title="Breakout stop" sub="Worse R:R" tone="warn" />
+        </div>
+      </Question>
       <Question q="Stop beyond the distal line" hint="Standard, wide or very conservative — pick one and stick to it. Your Playbook says 10–15 pips beyond the valley/peak.">
-        <div className="flex gap-2 flex-wrap">{[0, 5, 10, 15, 20].map(b => <button key={b} type="button" onClick={() => setBuffer(b)} className={cx('chip', buffer === b && 'border-accent text-accent bg-accent/10')}>{b === 0 ? 'At distal' : `${b} pips`}</button>)}</div>
+        <div className="flex gap-2 flex-wrap">{[0, 5, 10, 15, 20, 30].map(b => <button key={b} type="button" onClick={() => { setBuffer(b); set({ stopStyle: b <= 10 ? 'standard' : b <= 20 ? 'wide' : 'conservative' }); }} className={cx('chip', buffer === b && 'border-accent text-accent bg-accent/10')}>{b === 0 ? 'At distal' : `${b} pips`}</button>)}<span className="text-[11.5px] text-ink3 self-center capitalize">{p.stopStyle === 'conservative' ? 'very conservative' : p.stopStyle}</span></div>
       </Question>
       <div className="grid grid-cols-3 gap-3">
         <Field label="Entry (limit)"><input type="number" step="any" inputMode="decimal" className="field num" value={p.entry ?? ''} onChange={e => set({ entry: e.target.value === '' ? null : +e.target.value })} /></Field>
@@ -173,14 +197,33 @@ function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) =
         {[1, 2, 3, 4].map(r => <button key={r} type="button" disabled={!riskDist} onClick={() => set({ target: tpFor(r) })} className={cx('chip', r === v.mgmt.targetR && 'border-accent text-accent')}>{r}R{r === v.mgmt.targetR ? ' · prescribed' : ''}</button>)}
         <span className="text-[11.5px] text-ink3 self-center">or type the opposing zone's price</span>
       </div>
+      <Field label={`Opposing ${combo.htf} zone (proximal)`} hint="Your profit margin — how far price can travel before the HTF pushes back.">
+        <input type="number" step="any" inputMode="decimal" className="field num" value={p.opposingHtf ?? ''} onChange={e => set({ opposingHtf: e.target.value === '' ? null : +e.target.value })} />
+      </Field>
+      <Question q="Take profit">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <Choice on={p.tpMethod === 'fixed'} onClick={() => set({ tpMethod: 'fixed', target: tpFor(v.mgmt.targetR) })} title="Fixed R:R" sub={`1:${v.mgmt.targetR}`} />
+          <Choice on={p.tpMethod === 'zone'} onClick={() => set({ tpMethod: 'zone', target: p.opposingHtf ?? p.target })} title="Opposing zone" sub="Natural exit" />
+          <Choice on={p.tpMethod === 'structure'} onClick={() => set({ tpMethod: 'structure' })} title="Opposing structure" sub="Previous high/low" />
+          <Choice on={p.tpMethod === 'trail'} onClick={() => set({ tpMethod: 'trail' })} title="No TP — trail" sub="Room to run" />
+        </div>
+      </Question>
+      <Question q="Stop management once in profit" hint="Never move the stop wider.">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <Choice on={p.mgmtPlan === 'hold'} onClick={() => set({ mgmtPlan: 'hold' })} title="Don't touch it" sub="Let it play out" />
+          <Choice on={p.mgmtPlan === 'be'} onClick={() => set({ mgmtPlan: 'be' })} title="Breakeven" sub={v.odds === 'low' ? 'at 0.5–1R' : 'after a set R:R'} />
+          <Choice on={p.mgmtPlan === 'half'} onClick={() => set({ mgmtPlan: 'half' })} title="Half risk" sub="after a set R:R" />
+          <Choice on={p.mgmtPlan === 'trail'} onClick={() => set({ mgmtPlan: 'trail' })} title="Trail with price" sub="Below fresh LTF zones" />
+        </div>
+      </Question>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Balance"><input type="number" inputMode="decimal" className="field num" value={bal} onChange={e => setBal(e.target.value)} /></Field>
         <Field label={`Risk % (max ${v.mgmt.maxRiskPct}%)`}><input type="number" step="0.05" inputMode="decimal" className="field num" value={p.riskPct ?? ''} onChange={e => set({ riskPct: e.target.value === '' ? null : +e.target.value })} /></Field>
       </div>
-      <div className="rounded-xl bg-raised/60 border border-line p-4 grid grid-cols-3 gap-3">
-        <div><div className="label">Size</div><div className="num text-2xl font-semibold mt-1">{size ? size.lots.toFixed(2) : '—'}</div><div className="text-[11px] text-ink3">lots</div></div>
-        <div><div className="label">Risk</div><div className="num text-2xl font-semibold mt-1">{size ? money(size.riskAtLots) : '—'}</div><div className="text-[11px] text-ink3 num">{riskDist ? `${num(riskDist / pip, 1)} pips` : ''}</div></div>
-        <div><div className="label">R:R</div><div className="num text-2xl font-semibold mt-1">{v.rr != null ? v.rr.toFixed(2) : '—'}</div><div className="text-[11px] text-ink3">{v.rr ? `needs ${(100 / (1 + v.rr)).toFixed(0)}% wins` : ''}</div></div>
+      <div className="rounded-xl bg-raised/60 border border-line p-4 grid grid-cols-3 gap-3 [&>div]:min-w-0">
+        <div><div className="label">Size</div><div className="num text-lg sm:text-2xl font-semibold mt-1 truncate">{size ? size.lots.toFixed(2) : '—'}</div><div className="text-[11px] text-ink3">lots</div></div>
+        <div><div className="label">Risk</div><div className="num text-lg sm:text-2xl font-semibold mt-1 truncate">{size ? money(size.riskAtLots) : '—'}</div><div className="text-[11px] text-ink3 num">{riskDist ? `${num(riskDist / pip, 1)} pips` : ''}</div></div>
+        <div><div className="label">R:R</div><div className="num text-lg sm:text-2xl font-semibold mt-1 truncate">{v.rr != null ? v.rr.toFixed(2) : '—'}</div><div className="text-[11px] text-ink3">{v.rr ? `needs ${(100 / (1 + v.rr)).toFixed(0)}% wins` : ''}</div></div>
       </div>
     </div>,
     // 5 ─ Verdict
