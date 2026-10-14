@@ -1,8 +1,7 @@
 import { motion } from 'framer-motion';
 import { useMemo, useState } from 'react';
 import { useStore } from '@/data/store';
-import { normalizeSymbol } from '@/core/instruments';
-import { tvSymbol } from '@/core/tvSymbol';
+import { bareSymbol, tvSymbol } from '@/core/tvSymbol';
 import { Page, useIsMobile } from '@/ui/kit';
 import { TvWidget } from '@/ui/TvWidget';
 
@@ -11,7 +10,7 @@ export default function ChartPage() {
   const trades = useStore(s => s.trades);
   const top = useMemo(() => {
     const n: Record<string, number> = {};
-    for (const t of trades) { const s = normalizeSymbol(t.symbol); n[s] = (n[s] ?? 0) + 1; }
+    for (const t of trades) { const s = bareSymbol(t.symbol); n[s] = (n[s] ?? 0) + 1; }
     return Object.entries(n).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([s]) => s);
   }, [trades]);
   const [sym, setSym] = useState<string | null>(null);

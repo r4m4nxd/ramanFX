@@ -45,3 +45,15 @@ describe('bars file formats', () => {
     expect(r.series['777|EURUSD|H1'].t.length).toBe(1);
   });
 });
+
+describe('tradingview symbols', () => {
+  it('maps everything to Pepperstone', async () => {
+    const { tvSymbol } = await import('./tvSymbol');
+    expect(tvSymbol('XAUUSD.s')).toBe('PEPPERSTONE:XAUUSD');
+    expect(tvSymbol('NAS100')).toBe('PEPPERSTONE:NAS100');
+    expect(tvSymbol('US100')).toBe('PEPPERSTONE:NAS100');
+    expect(tvSymbol('USOIL')).toBe('PEPPERSTONE:SPOTCRUDE');
+    expect(tvSymbol('EURUSD')).toBe('PEPPERSTONE:EURUSD');
+    expect(tvSymbol('DXY')).toBe('TVC:DXY');
+  });
+});

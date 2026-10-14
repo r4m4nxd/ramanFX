@@ -99,7 +99,12 @@ export interface TradeNote {
   align?: Alignment | null;
   /** Initial risk in account currency, when the final SL in the report no longer reflects it. */
   riskOverride?: number | null;
+  /** Lines, zones and notes drawn on the trade chart. Times are UTC seconds. */
+  drawings?: Drawing[];
 }
+
+export type DrawKind = 'hline' | 'trend' | 'rect' | 'text';
+export interface Drawing { id: string; kind: DrawKind; a: { t: number; p: number }; b?: { t: number; p: number }; color: string; text?: string }
 
 export interface Attachment {
   id: string;

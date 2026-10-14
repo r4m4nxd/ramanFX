@@ -151,7 +151,7 @@ export default function TradeDetail() {
 
       {graded && <VerdictCard g={graded} />}
 
-      <TradeChart t={t} levels={{ initSl: ex?.initSl, sl: t.sl, tp: t.tp, proximal: graded?.plan?.proximal, distal: graded?.plan?.distal }} />
+      <TradeChart t={t} levels={{ initSl: ex?.initSl, sl: t.sl, tp: t.tp, proximal: graded?.plan?.proximal, distal: graded?.plan?.distal }} drawings={draft.drawings} onDrawings={d => set({ drawings: d })} />
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 items-start">
         <div className="xl:col-span-2 flex flex-col gap-4 min-w-0">

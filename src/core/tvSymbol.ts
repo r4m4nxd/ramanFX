@@ -1,18 +1,21 @@
-// RamanFX symbol → TradingView symbol for the live chart widget (CFD names differ per broker; OANDA/TVC cover them).
-const MAP: Record<string, string> = {
-  US100: 'OANDA:NAS100USD', US500: 'OANDA:SPX500USD', US30: 'OANDA:US30USD', US2000: 'OANDA:US2000USD',
-  GER40: 'OANDA:DE30EUR', UK100: 'OANDA:UK100GBP', JP225: 'OANDA:JP225USD', AUS200: 'OANDA:AU200AUD',
-  FRA40: 'OANDA:FR40EUR', HK50: 'OANDA:HK33HKD', EU50: 'OANDA:EU50EUR', ESP35: 'OANDA:ESPIXEUR',
-  USOIL: 'TVC:USOIL', UKOIL: 'TVC:UKOIL', NGAS: 'OANDA:NATGASUSD', XNGUSD: 'OANDA:NATGASUSD', XCUUSD: 'OANDA:XCUUSD', COPPER: 'OANDA:XCUUSD',
-  BTCUSD: 'BITSTAMP:BTCUSD', ETHUSD: 'BITSTAMP:ETHUSD', DXY: 'TVC:DXY', USDX: 'TVC:DXY',
+// RamanFX symbol → TradingView symbol for the chart widgets. Default feed: Pepperstone (matches the broker's own prices).
+// Pepperstone's TradingView names follow its MT4/MT5 names (NAS100, US500, SPOTCRUDE…); normalised names are mapped back.
+const PEPPER: Record<string, string> = {
+  US100: 'NAS100', USTEC: 'NAS100', NDX: 'NAS100', SPX500: 'US500', DJ30: 'US30', DE40: 'GER40', DAX: 'GER40', FTSE100: 'UK100',
+  JP225: 'JPN225', NIKKEI: 'JPN225', EU50: 'EUSTX50', STOXX50: 'EUSTX50', ESP35: 'SPA35', F40: 'FRA40', CAC40: 'FRA40', ASX200: 'AUS200',
+  USOIL: 'SPOTCRUDE', WTI: 'SPOTCRUDE', XTIUSD: 'SPOTCRUDE', UKOIL: 'SPOTBRENT', BRENT: 'SPOTBRENT', XBRUSD: 'SPOTBRENT',
+  NGAS: 'NATGAS', XNGUSD: 'NATGAS', XCUUSD: 'COPPER',
 };
-const CRYPTO = /^(BTC|ETH|SOL|XRP|LTC|BCH|ADA|DOGE|DOT|LINK|AVAX|BNB|MATIC|TRX|XLM|UNI|SHIB)USD$/;
+// Not on Pepperstone's feed.
+const OTHER: Record<string, string> = { DXY: 'TVC:DXY', USDX: 'TVC:DXY' };
+
+/** Symbol without broker suffixes (XAUUSD.s → XAUUSD, #NAS100 → NAS100). */
+export const bareSymbol = (raw: string) => raw.trim().toUpperCase().replace(/^[#.!]/, '').replace(/[._\-+!].*$/, '');
 
 export function tvSymbol(sym: string): string {
-  if (MAP[sym]) return MAP[sym];
-  if (CRYPTO.test(sym)) return `COINBASE:${sym}`;
-  if (/^[A-Z]{6}$/.test(sym)) return `OANDA:${sym}`; // FX pairs and metals (XAUUSD, XAGUSD, XAUAUD…)
-  return sym;
+  const s = bareSymbol(sym);
+  if (OTHER[s]) return OTHER[s];
+  return `PEPPERSTONE:${PEPPER[s] ?? s}`;
 }
 
 export const TV_INTERVAL: Record<string, string> = { M1: '1', M5: '5', M15: '15', H1: '60', H4: '240', D1: 'D' };
