@@ -132,3 +132,9 @@
 /* Page entrance in CSS: it always completes, even if the page mounted mid-load. */
 @keyframes pageIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .page-in { animation: pageIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Touch devices: no long-press text selection or callout; typing fields stay selectable. Mouse/trackpad keeps normal selection. */
+@media (pointer: coarse) {
+  html, body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  input, textarea, select, [contenteditable]:not([contenteditable='false']) { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+}
