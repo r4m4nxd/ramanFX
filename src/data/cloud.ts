@@ -9,8 +9,18 @@ const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 let client: SupabaseClient | null = null;
 export const supa = () => (client ??= createClient(SUPA_URL, SUPA_KEY));
 
+const SESSION_KEY = 'sb-dqjzufofmblerslcynzr-auth-token';
+/** The signed-in user. Offline (token refresh can't reach the server) a stored session still counts: the data is on this device. */
 export async function currentUser(): Promise<User | null> {
-  try { const { data } = await supa().auth.getSession(); return data.session?.user ?? null; } catch { return null; }
+  const stored = (): User | null => { try { return JSON.parse(localStorage.getItem(SESSION_KEY) ?? 'null')?.user ?? null; } catch { return null; } };
+  // An expired token makes getSession wait on a refresh that, offline, keeps retrying — don't hold the app on it.
+  const timeout = new Promise<'timeout'>(res => setTimeout(() => res('timeout'), 3500));
+  try {
+    const r = await Promise.race([supa().auth.getSession(), timeout]);
+    if (r !== 'timeout') { if (r.data.session?.user) return r.data.session.user; if (navigator.onLine) return null; }
+  } catch { /* fall through */ }
+  // Offline or unreachable: a stored session still counts — the journal is on this device. A revoked one signs out once online.
+  return stored();
 }
 export const signIn = (email: string, password: string) => supa().auth.signInWithPassword({ email, password });
 export const signOut = () => supa().auth.signOut();

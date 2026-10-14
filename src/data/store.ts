@@ -45,6 +45,8 @@ interface State extends Journal {
   overrides: Record<string, InstrumentOverride>;
   range: DateRange;
   user: { id: string; email: string } | null;
+  /** Sign-in gate: 'checking' until the stored session has been read. */
+  auth: 'checking' | 'in' | 'out';
   sync: SyncState;
 
   set: <K extends keyof Journal>(k: K, v: Journal[K]) => void;
@@ -128,6 +130,7 @@ export const useStore = create<State>((set, getState) => {
     overrides: get(SK.overrides, {}),
     range: { from: null, to: null, label: 'All time' },
     user: null,
+    auth: 'checking',
     sync: { status: 'off' },
 
     set: (k, v) => commit({ [k]: v } as Partial<Journal>),
@@ -226,22 +229,24 @@ export const useStore = create<State>((set, getState) => {
 
     initCloud: async () => {
       const u = await cloud.currentUser();
-      cloud.supa().auth.onAuthStateChange((_e, session) => {
+      cloud.supa().auth.onAuthStateChange((event, session) => {
         const su = session?.user;
-        set({ user: su ? { id: su.id, email: su.email ?? '' } : null, sync: su ? getState().sync : { status: 'off' } });
+        // Only an explicit sign-out locks the app; an empty initial session while offline must not.
+        if (su) set({ user: { id: su.id, email: su.email ?? '' }, auth: 'in', sync: getState().sync.status === 'off' ? { status: 'idle' } : getState().sync });
+        else if (event === 'SIGNED_OUT') set({ user: null, auth: 'out', sync: { status: 'off' } });
       });
-      if (!u) return;
-      set({ user: { id: u.id, email: u.email ?? '' }, sync: { status: 'idle' } });
+      if (!u) { set({ auth: 'out' }); return; }
+      set({ user: { id: u.id, email: u.email ?? '' }, auth: 'in', sync: { status: 'idle' } });
       await getState().syncNow();
     },
     login: async (email, password) => {
       const { data, error } = await cloud.signIn(email, password);
       if (error || !data.user) return error?.message ?? 'Sign-in failed';
-      set({ user: { id: data.user.id, email: data.user.email ?? email }, sync: { status: 'idle' } });
+      set({ user: { id: data.user.id, email: data.user.email ?? email }, auth: 'in', sync: { status: 'idle' } });
       await getState().syncNow();
       return null;
     },
-    logout: async () => { await cloud.signOut(); set({ user: null, sync: { status: 'off' } }); },
+    logout: async () => { await cloud.signOut(); set({ user: null, auth: 'out', sync: { status: 'off' } }); },
 
     /** Pull → merge record-by-record → save locally → push the merged journal back. */
     syncNow: async () => {

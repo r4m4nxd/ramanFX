@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { useStore } from '@/data/store';
 import { Shell } from '@/ui/Shell';
+import SignIn from '@/pages/SignIn';
 import { ToastProvider } from '@/ui/kit';
 import Dashboard from '@/pages/Dashboard';
 
@@ -46,6 +47,10 @@ export default function App() {
     const ric = (window as unknown as { requestIdleCallback?: (cb: () => void) => void }).requestIdleCallback;
     if (ric) ric(go); else setTimeout(go, 1200);
   }, []);
+  const auth = useStore(s => s.auth);
+  // Signed-out visitors only ever see the sign-in screen; nothing of the journal renders.
+  if (auth === 'checking') return null;
+  if (auth === 'out') return <SignIn />;
   return (
     <BrowserRouter>
       <ToastProvider>
