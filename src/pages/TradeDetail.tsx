@@ -13,6 +13,7 @@ import { longDate, num, price, rMult, timeHM, tone, useMoney } from '@/lib/forma
 import { Badge, Card, CardHead, cx, Empty, Field, Page, useToast } from '@/ui/kit';
 import { TagInput } from '@/ui/TagInput';
 import { Icon } from '@/ui/Icon';
+import { Lightbox } from '@/ui/Lightbox';
 
 const EMOTIONS = ['calm', 'focused', 'confident', 'anxious', 'fomo', 'greedy', 'revenge', 'tired', 'bored'];
 const TRENDS: [Trend, string, string][] = [['up', '↑', 'Uptrend'], ['down', '↓', 'Downtrend'], ['side', '✖', 'Sideways']];
@@ -37,7 +38,7 @@ export default function TradeDetail() {
   const t = all[idx];
   const [draft, setDraft] = useState<TradeNote>(() => notes[id ?? ''] ?? {});
   const [saved, setSaved] = useState<'idle' | 'saving' | 'saved'>('idle');
-  const [lightbox, setLightbox] = useState<Attachment | null>(null);
+  const [lightbox, setLightbox] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
   const dirty = useRef(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -151,9 +152,9 @@ export default function TradeDetail() {
             <input ref={fileRef} type="file" accept="image/*" multiple className="sr-only" onChange={e => { if (e.target.files) void addFiles(Array.from(e.target.files)); e.target.value = ''; }} />
             {atts.length ? (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {atts.map(a => (
+                {atts.map((a, ai) => (
                   <motion.div key={a.id} layout className="group relative aspect-video rounded-xl overflow-hidden border border-line bg-raised">
-                    <button className="absolute inset-0" onClick={() => setLightbox(a)} aria-label={`Open ${a.name}`}><img src={a.storageUrl ?? a.dataUrl} alt={a.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" /></button>
+                    <button className="absolute inset-0" onClick={() => setLightbox(ai)} aria-label={`Open ${a.name}`}><img src={a.storageUrl ?? a.dataUrl} alt={a.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" /></button>
                     <button className="absolute top-1.5 right-1.5 w-8 h-8 rounded-lg bg-black/60 text-white grid place-items-center opacity-0 group-hover:opacity-100 focus:opacity-100" aria-label="Remove screenshot" onClick={() => saveAttachments(t.id, atts.filter(x => x.id !== a.id))}><Icon name="trash" size={14} /></button>
                   </motion.div>
                 ))}
@@ -294,13 +295,7 @@ export default function TradeDetail() {
         </div>
       </div>
 
-      <AnimatePresence>
-        {lightbox && (
-          <motion.div className="fixed inset-0 z-[80] bg-black/85 grid place-items-center p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setLightbox(null)} role="dialog" aria-label="Screenshot">
-            <motion.img src={lightbox.storageUrl ?? lightbox.dataUrl} alt={lightbox.name} className="max-w-full max-h-full rounded-xl" initial={{ scale: 0.94 }} animate={{ scale: 1 }} exit={{ scale: 0.94 }} />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <Lightbox images={atts.map(x => ({ src: x.storageUrl ?? x.dataUrl ?? '', name: x.name }))} index={lightbox} onClose={() => setLightbox(null)} />
     </Page>
   );
 }
