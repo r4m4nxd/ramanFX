@@ -183,11 +183,11 @@ export function Shell({ children }: { children: ReactNode }) {
         </header>
 
         <main className="flex-1 w-full max-w-[1360px] mx-auto px-4 lg:px-7 pt-5 land:pt-4 pb-28 land:pb-10 lg:pb-12">
-          <AnimatePresence mode="wait">
-            <motion.div key={loc.pathname} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.22 }}>
+          {/* Plain keyed fade-in. An exit-then-enter handoff (AnimatePresence "wait") could stall
+              while a lazy page was still loading, leaving the new page invisible. */}
+          <motion.div key={loc.pathname} className="page-in">
               {!hasTrades && !['/playbook', '/calculator', '/settings', '/risk', '/notebook', '/strategies', '/plan', '/guru'].some(p => loc.pathname.startsWith(p)) ? <Welcome onImport={() => setImportOpen(true)} /> : children}
-            </motion.div>
-          </AnimatePresence>
+          </motion.div>
         </main>
       </div>
 

@@ -22,6 +22,9 @@ const Notebook = lazy(() => import('@/pages/Notebook'));
 const Exits = lazy(() => import('@/pages/Exits'));
 const Settings = lazy(() => import('@/pages/Settings'));
 
+// Fetch every page in the background once the app is idle, so taps never wait on a download.
+const PRELOAD = [() => import('@/pages/Journal'), () => import('@/pages/Trades'), () => import('@/pages/TradeDetail'), () => import('@/pages/Reports'), () => import('@/pages/CalendarPage'), () => import('@/pages/Heatmaps'), () => import('@/pages/Planner'), () => import('@/pages/Guru'), () => import('@/pages/Playbook'), () => import('@/pages/Calculator'), () => import('@/pages/Risk'), () => import('@/pages/Strategies'), () => import('@/pages/Notebook'), () => import('@/pages/Exits'), () => import('@/pages/Settings')];
+
 function Loading() {
   return (
     <div className="flex flex-col gap-4" aria-busy="true" aria-label="Loading">
@@ -35,6 +38,11 @@ function Loading() {
 export default function App() {
   const initCloud = useStore(s => s.initCloud);
   useEffect(() => { void initCloud(); }, [initCloud]);
+  useEffect(() => {
+    const go = () => PRELOAD.forEach((f, i) => setTimeout(() => void f().catch(() => {}), i * 120));
+    const ric = (window as unknown as { requestIdleCallback?: (cb: () => void) => void }).requestIdleCallback;
+    if (ric) ric(go); else setTimeout(go, 1200);
+  }, []);
   return (
     <BrowserRouter>
       <ToastProvider>

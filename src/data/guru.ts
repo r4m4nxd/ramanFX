@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useStore, DEFAULT_RISK_RULES } from './store';
-import { useEnriched } from './derived';
+import { shared, useEnriched } from './derived';
 import { balanceSeries, type EnrichedTrade } from '@/core/stats';
 import { evaluatePlan, judgeTrade, matchPlan, type Plan, type TradeFacts, type TradeVerdict, type Verdict } from '@/core/strategy';
 import type { ExitData } from '@/core/types';
@@ -9,7 +9,7 @@ export interface Graded { t: EnrichedTrade; plan: Plan | null; eval: Verdict | n
 
 export const usePlans = () => {
   const plans = useStore(s => s.plans);
-  return useMemo(() => plans.filter(p => !p.deleted), [plans]);
+  return shared('plans', [plans], () => plans.filter(p => !p.deleted));
 };
 
 const num = (v: string | number | null | undefined) => { const n = typeof v === 'number' ? v : parseFloat(String(v ?? '')); return isFinite(n) && n !== 0 ? n : null; };
@@ -33,7 +33,7 @@ export function useGraded(): Graded[] {
   const rules = { ...DEFAULT_RISK_RULES, ...useStore(s => s.riskRules) };
   const riskPct = rules.riskPercent ?? 1;
 
-  return useMemo(() => {
+  return shared('graded', [et, plans, exitData, trades, deposits, accounts, riskPct], () => {
     // Balance per account just before each entry.
     const series = new Map<string, { t: number; balance: number }[]>();
     const balAt = (acct: string, t: number) => {
@@ -66,7 +66,7 @@ export function useGraded(): Graded[] {
       };
       return { t, plan, eval: plan ? evaluatePlan(plan, riskPct) : null, verdict: judgeTrade(facts, plan, riskPct), facts };
     });
-  }, [et, plans, exitData, trades, deposits, accounts, riskPct]);
+  });
 }
 
 export function useGradedTrade(id: string | undefined): Graded | null {

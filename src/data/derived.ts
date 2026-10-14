@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+
 import { useStore } from './store';
 import { balanceSeries, computeStats, enrich, groupStats, maxDrawdownPct, normTag, riskAdjusted, traderScore, type EnrichedTrade } from '@/core/stats';
 import { dayKey, parseTs } from '@/core/time';
@@ -7,7 +7,17 @@ import { dayKey, parseTs } from '@/core/time';
 export function useAccountTrades() {
   const trades = useStore(s => s.trades);
   const acct = useStore(s => s.activeAccount);
-  return useMemo(() => (acct === 'all' ? trades : trades.filter(t => t.account === acct)), [trades, acct]);
+  return shared('scoped', [trades, acct], () => (acct === 'all' ? trades : trades.filter(t => t.account === acct)));
+}
+
+/** Remember the last result per call-site key: every component asking with the same inputs shares one computation. */
+const memo = new Map<string, { deps: unknown[]; v: unknown }>();
+export function shared<T>(key: string, deps: unknown[], f: () => T): T {
+  const hit = memo.get(key);
+  if (hit && hit.deps.length === deps.length && hit.deps.every((d, i) => d === deps[i])) return hit.v as T;
+  const v = f();
+  memo.set(key, { deps, v });
+  return v;
 }
 
 /** Every closed trade enriched (net, R, session…), measured against the full history. */
@@ -17,7 +27,7 @@ export function useEnriched(): EnrichedTrade[] {
   const overrides = useStore(s => s.overrides);
   const exits = useStore(s => s.exitData);
   const scoped = useAccountTrades();
-  return useMemo(() => enrich(scoped, notes, overrides, all, exits), [scoped, notes, overrides, all, exits]);
+  return shared('enrich', [scoped, notes, overrides, all, exits], () => enrich(scoped, notes, overrides, all, exits));
 }
 
 export function inRange(t: EnrichedTrade, from: string | null, to: string | null) {
@@ -29,7 +39,7 @@ export function inRange(t: EnrichedTrade, from: string | null, to: string | null
 export function useFiltered(): EnrichedTrade[] {
   const et = useEnriched();
   const { from, to } = useStore(s => s.range);
-  return useMemo(() => (from || to ? et.filter(t => inRange(t, from, to)) : et), [et, from, to]);
+  return shared('filtered', [et, from, to], () => (from || to ? et.filter(t => inRange(t, from, to)) : et));
 }
 
 export function useAnalytics() {
@@ -41,7 +51,7 @@ export function useAnalytics() {
   const notes = useStore(s => s.notes);
   const { from, to } = useStore(s => s.range);
 
-  return useMemo(() => {
+  return shared('analytics', [et, trades, deposits, accounts, acct, notes, from, to], () => {
     const stats = computeStats(et);
     // Balance across the full history, then cut to the range so the curve starts at the real balance.
     const full = balanceSeries(trades, deposits, accounts, acct);
@@ -67,5 +77,5 @@ export function useAnalytics() {
     const symbols = groupStats(et, t => t.sym);
     const sessions = groupStats(et, t => t.session);
     return { et, stats, balance, hasSnapshot, ddPct, ...ra, score, setups, mistakes, symbols, sessions };
-  }, [et, trades, deposits, accounts, acct, notes, from, to]);
+  });
 }
