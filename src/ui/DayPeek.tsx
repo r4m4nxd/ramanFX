@@ -1,5 +1,5 @@
-import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useMemo, useRef } from 'react';
+import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -38,42 +38,92 @@ export function useLongPress(ms = 420) {
   };
 }
 
+/**
+ * The day review textarea. Autosaves after a pause and flushes any pending text on unmount,
+ * so collapsing a card or closing the peek never drops the last keystrokes.
+ */
+export function DayNote({ day, rows = 3, autoFocus = false }: { day: string; rows?: number; autoFocus?: boolean }) {
+  const stored = useStore(s => s.dayNotes[day]);
+  const save = useStore(s => s.saveDayNote);
+  const [text, setText] = useState(stored ?? '');
+  const [dirty, setDirty] = useState(false);
+  const pending = useRef<{ day: string; text: string } | null>(null);
+  useEffect(() => { setText(useStore.getState().dayNotes[day] ?? ''); setDirty(false); }, [day]);
+  useEffect(() => {
+    if (!dirty) return;
+    pending.current = { day, text };
+    const h = setTimeout(() => { save(day, text); pending.current = null; setDirty(false); }, 700);
+    return () => clearTimeout(h);
+  }, [text, dirty, day, save]);
+  // Flush on unmount (or day change): the debounce above is cancelled by its cleanup.
+  useEffect(() => () => { const p = pending.current; if (p) { save(p.day, p.text); pending.current = null; } }, [day, save]);
+  const id = `dn-${day}`;
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-2">
+        <label htmlFor={id} className="text-xs font-medium text-ink2">Day review</label>
+        <span className="text-xs text-ink3" aria-live="polite">{dirty ? 'Saving…' : text ? 'Saved' : ''}</span>
+      </div>
+      <textarea id={id} rows={rows} value={text} autoFocus={autoFocus} onChange={e => { setText(e.target.value); setDirty(true); }} placeholder="What went well, what to fix tomorrow…" className="w-full mt-1.5 p-3 text-sm leading-relaxed resize-y" />
+    </div>
+  );
+}
+
 /** Day detail popup: headline, intraday equity line, stats and the day's trades. */
 export function DayPeek({ day, onClose }: { day: string | null; onClose: () => void }) {
   const mobile = useIsMobile();
+  const panel = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const open = !!day;
+  // Focus moves into the dialog, Tab stays inside it, and focus returns to the opener on close.
+  useEffect(() => {
+    if (!open) return;
+    const back = document.activeElement as HTMLElement | null;
+    const t = window.setTimeout(() => panel.current?.querySelector<HTMLElement>('[data-autofocus]')?.focus(), 30);
+    return () => { window.clearTimeout(t); back?.focus?.(); };
+  }, [open]);
   useEffect(() => {
     if (!day) return;
-    const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const k = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key !== 'Tab' || !panel.current) return;
+      const f = [...panel.current.querySelectorAll<HTMLElement>('a[href],button:not([disabled]),textarea,input,select,[tabindex]:not([tabindex="-1"])')];
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && (document.activeElement === last || !panel.current.contains(document.activeElement))) { e.preventDefault(); first.focus(); }
+    };
     window.addEventListener('keydown', k);
     document.body.style.overflow = 'hidden';
     return () => { window.removeEventListener('keydown', k); document.body.style.overflow = ''; };
   }, [day, onClose]);
   return createPortal(
+    <MotionConfig reducedMotion="user">
     <AnimatePresence>
       {day && (
-        <div className="fixed inset-0 z-[80] flex items-end md:items-center justify-center md:p-6" role="dialog" aria-modal="true" aria-label={`Day ${day}`}>
+        <div className="fixed inset-0 z-[80] flex items-end md:items-center justify-center md:p-6" role="dialog" aria-modal="true" aria-labelledby={titleId}>
           <motion.div className="absolute inset-0 bg-black/55 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
-          <motion.div
+          <motion.div ref={panel}
             className="relative w-full md:max-w-[560px] max-h-sheet md:max-h-[86vh] flex flex-col bg-surface border border-line2 shadow-pop rounded-t-3xl md:rounded-3xl overflow-hidden luxe-border"
             initial={mobile ? { y: '100%' } : { opacity: 0, scale: 0.9, y: 20 }} animate={mobile ? { y: 0 } : { opacity: 1, scale: 1, y: 0 }} exit={mobile ? { y: '100%' } : { opacity: 0, scale: 0.94, y: 10 }}
             transition={spring}
             drag={mobile ? 'y' : false} dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.6 }} onDragEnd={(_, i) => { if (i.offset.y > 120 || i.velocity.y > 600) onClose(); }}>
             {mobile && <div className="pt-2.5 pb-1 grid place-items-center"><span className="w-10 h-1.5 rounded-full bg-line2" /></div>}
-            <Body day={day} onClose={onClose} />
+            <Body day={day} onClose={onClose} titleId={titleId} />
           </motion.div>
         </div>
       )}
-    </AnimatePresence>,
+    </AnimatePresence>
+    </MotionConfig>,
     document.body,
   );
 }
 
-function Body({ day, onClose }: { day: string; onClose: () => void }) {
+function Body({ day, onClose, titleId }: { day: string; onClose: () => void; titleId: string }) {
   const fmt = useMoney();
   const c = useColors();
   const yw = useAxisW();
   const all = useFiltered();
-  const note = useStore(s => s.dayNotes[day]);
   const trades = useMemo(() => all.filter(t => dayKey(t.close) === day).sort((a, b) => a.close.getTime() - b.close.getTime()), [all, day]);
   const s = useMemo(() => computeStats(trades), [trades]);
   const curve = useMemo(() => {
@@ -93,9 +143,9 @@ function Body({ day, onClose }: { day: string; onClose: () => void }) {
       <div className="px-5 pt-3 md:pt-5 pb-4 flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="text-[12px] text-ink3">{date.toLocaleDateString(undefined, { weekday: 'long' })}</div>
-          <div className="text-lg font-semibold tracking-tight">{date.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+          <h2 id={titleId} className="text-lg font-semibold tracking-tight">{date.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}</h2>
         </div>
-        <button className="btn-ghost w-9 h-9 px-0 -mr-2" onClick={onClose} aria-label="Close"><Icon name="x" /></button>
+        <button data-autofocus className="btn-ghost w-9 h-9 px-0 -mr-2" onClick={onClose} aria-label="Close"><Icon name="x" /></button>
       </div>
       <div className="overflow-y-auto overscroll-contain px-5 pb-safe md:pb-5">
         <div className="flex items-end justify-between gap-3">
@@ -129,14 +179,14 @@ function Body({ day, onClose }: { day: string; onClose: () => void }) {
             ['Fees', fmt(trades.reduce((a, t) => a + t.commission + t.swap, 0), { signed: true }), 'Commission + swap'],
           ] as [string, string, string][]).map(([k, v, sub], i) => (
             <motion.div key={k} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.03 }} className="rounded-xl bg-raised/70 border border-line px-3 py-2.5 min-w-0">
-              <div className="text-[10.5px] uppercase tracking-wide font-semibold text-ink3 truncate">{k}</div>
+              <div className="label truncate">{k}</div>
               <div className={cx('num text-[14px] font-semibold mt-0.5 truncate', k === 'Best trade' ? 'text-profit' : k === 'Worst trade' ? 'text-loss' : '')}>{v}</div>
               {sub && <div className="text-[10.5px] text-ink3 truncate">{sub}</div>}
             </motion.div>
           ))}
         </div>
 
-        {note && <div className="mt-4 rounded-xl border border-line bg-raised/40 p-3 text-[13px] text-ink2 whitespace-pre-line leading-relaxed"><div className="label mb-1">Day review</div>{note}</div>}
+        <div className="mt-4"><DayNote day={day} rows={3} /></div>
 
         <div className="mt-4"><div className="label mb-1">Trades</div><TradeList trades={trades} time="range" /></div>
         <Link to={`/journal?day=${day}`} onClick={onClose} className="btn-primary w-full h-11 mt-4 mb-1"><Icon name="journal" size={15} />Open in journal</Link>
