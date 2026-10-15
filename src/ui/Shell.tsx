@@ -54,7 +54,7 @@ function UserPill() {
   return (
     <button type="button" onClick={() => syncNow()} title={sync.message ?? (sync.at ? `Last sync ${new Date(sync.at).toLocaleTimeString()} — tap to sync` : 'Tap to sync')}
       className="flex items-center gap-2.5 h-10 pl-1 pr-3.5 rounded-full border border-line bg-raised/50 hover:bg-raised transition-colors">
-      <span className="w-8 h-8 rounded-full grid place-items-center text-[13px] font-bold text-white" style={{ background: 'linear-gradient(140deg,#A78BFA,#7C3AED 55%,#22D3EE)' }}>{(user.email[0] ?? 'R').toUpperCase()}</span>
+      <span className="w-8 h-8 rounded-full grid place-items-center text-[13px] font-bold text-white" style={{ background: 'linear-gradient(140deg, rgb(var(--accent) / .75), rgb(var(--accent)))' }}>{(user.email[0] ?? 'R').toUpperCase()}</span>
       <span className="text-left leading-tight">
         <span className="block text-[12.5px] font-semibold max-w-[150px] truncate">{user.email.split('@')[0]}</span>
         <span className={cx('flex items-center gap-1.5 text-[11px]', sync.status === 'error' ? 'text-loss' : 'text-ink3')}><span className={cx('w-1.5 h-1.5 rounded-full', sync.status === 'error' ? 'bg-loss' : sync.status === 'syncing' ? 'bg-warn animate-pulse' : 'bg-profit')} />{label}</span>
@@ -73,11 +73,11 @@ function PillNav({ title }: { title: string }) {
     <nav aria-label="Sections" className="flex items-center gap-1 p-1 rounded-full border border-line bg-raised/40">
       {PILLS.map(p => (
         <NavLink key={p.to} to={p.to} end={p.to === '/'} className={cx('relative h-8 px-4 rounded-full text-[13px] font-semibold grid place-items-center transition-colors', on(p.to) ? 'text-ink' : 'text-ink3 hover:text-ink2')}>
-          {on(p.to) && <motion.span layoutId="pill-nav" className="absolute inset-0 rounded-full bg-accent/15 border border-accent/40 shadow-glow" transition={spring} />}
+          {on(p.to) && <motion.span layoutId="pill-nav" className="absolute inset-0 rounded-full pill-on" transition={spring} />}
           <span className="relative">{p.label}</span>
         </NavLink>
       ))}
-      {extra && <span className="relative h-8 px-4 rounded-full text-[13px] font-semibold grid place-items-center text-ink bg-accent/15 border border-accent/40 shadow-glow">{title}</span>}
+      {extra && <span className="relative h-8 px-4 rounded-full text-[13px] font-semibold grid place-items-center text-ink pill-on">{title}</span>}
     </nav>
   );
 }
@@ -199,7 +199,7 @@ export function Shell({ children }: { children: ReactNode }) {
             {NAV.filter(n => (n.group ?? '') === g).map(n => (
               <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cx('relative flex items-center gap-3 h-10 px-3 rounded-xl text-[13.5px] font-medium transition-colors', isActive ? 'text-ink' : 'text-ink3 hover:text-ink2 hover:bg-raised/60')}>
                 {({ isActive }) => (<>
-                  {isActive && <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-xl bg-gradient-to-r from-accent/25 to-accent/[0.04] border border-accent/30 shadow-glow" transition={spring} />}
+                  {isActive && <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-xl bg-gradient-to-r from-accent/25 to-accent/[0.04] border border-accent/30 shadow-glow side-on" transition={spring} />}
                   <Icon name={n.icon} size={16} className="relative" /><span className="relative">{n.label}</span>
                 </>)}
               </NavLink>

@@ -74,7 +74,7 @@ export function Segmented<T extends string>({ value, onChange, options, size = '
         return (
           <button key={o.value} role="radio" aria-checked={on} onClick={() => onChange(o.value)} type="button"
             className={cx('relative rounded-full font-semibold whitespace-nowrap transition-colors', size === 'sm' ? 'h-7 touch:h-9 px-3 touch:px-3.5 text-xs' : 'h-8 touch:h-10 px-3.5 text-[13px]', on ? 'text-ink' : 'text-ink3 hover:text-ink2')}>
-            {on && <motion.span layoutId={`seg-${id}`} transition={spring} className="absolute inset-0 rounded-full bg-accent/15 border border-accent/40 shadow-glow" />}
+            {on && <motion.span layoutId={`seg-${id}`} transition={spring} className="absolute inset-0 rounded-full pill-on" />}
             <span className="relative">{o.label}</span>
           </button>
         );
@@ -105,7 +105,7 @@ export function Tabs<T extends string>({ value, onChange, options, label }: { va
         return (
           <button key={o.value} role="tab" aria-selected={on} type="button" onClick={() => onChange(o.value)}
             className={cx('relative min-h-[40px] px-2 rounded-full text-[13px] font-semibold leading-tight transition-colors', on ? 'text-ink' : 'text-ink3 active:bg-surface/60')}>
-            {on && <motion.span layoutId={`tab-${id}`} transition={spring} className="absolute inset-0 rounded-full bg-accent/15 border border-accent/40 shadow-glow" />}
+            {on && <motion.span layoutId={`tab-${id}`} transition={spring} className="absolute inset-0 rounded-full pill-on" />}
             <span className="relative">{o.label}</span>
           </button>
         );

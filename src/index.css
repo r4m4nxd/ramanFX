@@ -28,24 +28,25 @@
 }
 
 [data-theme='light'] {
-  --bg: 244 245 249;
+  /* Warm editorial light: white bento cards on soft grey, near-black ink, one coral accent, black active pills. */
+  --bg: 242 242 242;     /* #F2F2F2 */
   --surface: 255 255 255;
-  --raised: 241 242 247;
-  --line: 228 229 237;
-  --line2: 212 214 225;
-  --ink: 17 18 26;
-  --ink2: 75 79 99;
-  --ink3: 102 106 128;
-  --accent: 124 58 237;
-  --profit: 4 150 105;
-  --loss: 220 38 38;
+  --raised: 246 246 246;
+  --line: 235 235 235;
+  --line2: 222 222 222;
+  --ink: 17 17 17;
+  --ink2: 82 82 82;
+  --ink3: 120 120 120;
+  --accent: 229 96 61;   /* #E5603D coral */
+  --profit: 5 150 105;
+  --loss: 200 30 70;     /* crimson, kept clear of the coral accent */
   --warn: 180 83 9;
   --violet: 109 40 217;
   --cyan: 8 145 178;
   --card-fill: rgba(255, 255, 255, 0);
-  --card-edge: rgba(17, 18, 26, .07);
-  --shadow-card: 0 1px 2px rgba(17, 18, 26, .04), 0 8px 24px rgba(17, 18, 26, .06);
-  --glow: 0 0 18px rgba(124, 58, 237, .22);
+  --card-edge: rgba(17, 17, 17, .04);
+  --shadow-card: none;
+  --glow: none;
   color-scheme: light;
 }
 
@@ -75,6 +76,19 @@
   .btn { @apply inline-flex items-center justify-center gap-2 h-9 px-4 rounded-full text-[13px] font-semibold border border-line2 bg-raised/70 text-ink hover:bg-line transition-colors duration-150 disabled:opacity-50 disabled:pointer-events-none; }
   .btn-primary { @apply btn border-transparent text-white; background: linear-gradient(180deg, #9F7AEA, #7C3AED); box-shadow: 0 8px 24px rgba(124, 58, 237, .4), inset 0 1px 0 rgba(255,255,255,.2); }
   .btn-primary:hover { background: linear-gradient(180deg, #A78BFA, #8B5CF6); }
+  /* Active pill (nav, segmented, tabs): violet glow in dark, solid black in light. */
+  .pill-on { @apply bg-accent/15 border border-accent/40 shadow-glow; }
+  [data-theme='light'] .pill-on { background: #111; border-color: #111; box-shadow: none; }
+  [data-theme='light'] .pill-on + span, [data-theme='light'] .pill-on ~ * { color: #fff; }
+  [data-theme='light'] .pill-on.text-ink { color: #fff; }
+  [data-theme='light'] .side-on { background: #fff; border-color: rgb(var(--line2)); box-shadow: 0 2px 8px rgba(17,17,17,.05); }
+  [data-theme='light'] .card { border-radius: 24px; }
+  [data-theme='light'] .luxe-border { --violet: 229 96 61; }
+  [data-theme='light'] .card-hero { border-radius: 24px; background: radial-gradient(120% 110% at 10% 0%, #F08A68 0%, #E5603D 50%, #C2441F 100%); border-color: rgba(255,255,255,.2); box-shadow: 0 16px 40px rgba(229, 96, 61, .28); }
+  [data-theme='light'] .btn-primary, [data-theme='light'] .btn-primary:hover { background: #E5603D; box-shadow: 0 8px 20px rgba(229, 96, 61, .3); }
+  [data-theme='light'] .btn-primary:hover { background: #D9532F; }
+  [data-theme='light'] .btn { background-color: #fff; border-color: rgb(var(--line2)); }
+  [data-theme='light'] .btn-ghost { background-color: transparent; border-color: transparent; }
   .btn-ghost { @apply btn bg-transparent border-transparent hover:bg-raised; }
   .chip { @apply inline-flex items-center gap-1.5 h-7 touch:h-9 px-2.5 rounded-full text-xs border border-line2 bg-raised text-ink2 hover:text-ink transition-colors; }
   .field { @apply h-9 px-3 text-sm w-full; }
@@ -184,15 +198,15 @@
   --amb-bar: rgba(255, 255, 255, .55);
 }
 [data-theme='light'] {
-  --amb-bg: radial-gradient(130% 75% at 50% -12%, #E4DDF9 0%, #F4F5F9 62%);
-  --amb-a: rgba(92, 120, 255, .22);
-  --amb-b: rgba(46, 200, 150, .13);
-  --amb-c: rgba(160, 125, 255, .17);
-  --amb-sh: rgba(255, 255, 255, .5);
-  --amb-grain: .04;
+  --amb-bg: radial-gradient(130% 70% at 50% -14%, #FBF6F3 0%, #F2F2F2 60%);
+  --amb-a: rgba(229, 96, 61, .07);
+  --amb-b: rgba(255, 255, 255, .5);
+  --amb-c: rgba(229, 96, 61, .04);
+  --amb-sh: rgba(255, 255, 255, .45);
+  --amb-grain: .03;
   --amb-speed: 1.3;
-  --amb-flare: rgba(124, 58, 237, .10);
-  --amb-bar: rgba(124, 58, 237, .35);
+  --amb-flare: rgba(229, 96, 61, 0);
+  --amb-bar: rgba(229, 96, 61, 0);
 }
 .amb { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: var(--amb-bg); }
 .amb i { position: absolute; display: block; border-radius: 50%; will-change: transform; }

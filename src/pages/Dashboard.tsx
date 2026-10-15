@@ -72,6 +72,8 @@ function TodayStrip() {
   return (
     <motion.section variants={rise} aria-label="Today" className="card px-4 py-3.5 flex flex-wrap items-center gap-x-6 gap-y-3">
       <div className="flex items-center gap-3">
+        <span className="w-12 h-12 rounded-full border border-line2 grid place-items-center num text-[19px] font-semibold shrink-0">{new Date().getDate()}</span>
+        <span className="leading-tight text-[13px] pr-3 border-r border-line2 max-sm:hidden">{new Date().toLocaleDateString(undefined, { weekday: 'short' })},<br /><span className="text-ink2">{new Date().toLocaleDateString(undefined, { month: 'long' })}</span></span>
         <Badge tone={t as 'loss'}>{state}</Badge>
         <span className="text-[13px] text-ink2">Today</span>
         <span className={cx('num font-semibold', tone(st.netToday))}>{fmt(st.netToday, { signed: true })}</span>
