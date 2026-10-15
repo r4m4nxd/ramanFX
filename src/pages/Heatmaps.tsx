@@ -1,10 +1,12 @@
 import { motion } from 'framer-motion';
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useStore } from '@/data/store';
 import { useAnalytics } from '@/data/derived';
 import type { EnrichedTrade } from '@/core/stats';
 import { monthName } from '@/lib/format';
-import { Card, CardHead, cx, Page, rise, Segmented, Tabs } from '@/ui/kit';
-import { addTo, emptyCell, Heatmap, METRIC_LABEL, metricValue, Spotlight, useMetricFmt, type HeatCell, type HeatMetric } from '@/ui/Heatmap';
+import { Card, CardHead, cx, Empty, Page, rise, Segmented, useIsMobile } from '@/ui/kit';
+import { addTo, emptyCell, Heatmap, METRIC_LABEL, metricValue, useMetricFmt, type HeatCell, type HeatMetric } from '@/ui/Heatmap';
 import { Icon } from '@/ui/Icon';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -30,8 +32,8 @@ function Extremes({ rows, cols, cell, metric, label }: { rows: string[]; cols: s
   const m = metric === 'trades' ? 'net' : metric;
   return (
     <div className="grid sm:grid-cols-2 gap-2 mb-5">
-      {[{ o: all[0], good: true }, { o: all[all.length - 1], good: false }].map(({ o, good }, i) => (
-        <motion.div key={`${good}${o.r}${o.c}${metric}`} initial={{ opacity: 0, x: good ? -10 : 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 + i * 0.08 }}
+      {[{ o: all[0], good: true }, { o: all[all.length - 1], good: false }].map(({ o, good }) => (
+        <motion.div key={`${good}${o.r}${o.c}${metric}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }}
           className={cx('flex items-center gap-3 rounded-xl px-3.5 py-2.5 border', good ? 'bg-profit/[0.07] border-profit/25' : 'bg-loss/[0.07] border-loss/25')}>
           <Icon name={good ? 'flame' : 'alert'} size={16} className={good ? 'text-profit' : 'text-loss'} />
           <div className="min-w-0 flex-1">
@@ -45,13 +47,28 @@ function Extremes({ rows, cols, cell, metric, label }: { rows: string[]; cols: s
   );
 }
 
+/** Local UTC offset, e.g. "UTC+05:30", so hour-based views name their clock. */
+function utcOffset() {
+  const m = -new Date().getTimezoneOffset();
+  return `UTC${m >= 0 ? '+' : '−'}${String(Math.floor(Math.abs(m) / 60)).padStart(2, '0')}:${String(Math.abs(m) % 60).padStart(2, '0')}`;
+}
+
 export default function Heatmaps() {
   const { et } = useAnalytics();
+  const nav = useNavigate();
+  const mobile = useIsMobile();
+  const setRange = useStore(s => s.setRange);
+  const range = useStore(s => s.range);
   const [metric, setMetric] = useState<HeatMetric>('net');
   const [dim, setDim] = useState<'session' | 'day' | 'hold'>('session');
 
   const dayHour = useMemo(() => grid(et, t => DAYS[(t.open.getDay() + 6) % 7], t => String(t.open.getHours()).padStart(2, '0')), [et]);
   const daysUsed = useMemo(() => DAYS.filter(d => HOURS.some(h => dayHour(d, h))), [dayHour]);
+  // Only the span of hours actually traded (gaps inside kept so the axis stays honest).
+  const hoursUsed = useMemo(() => {
+    const idx = HOURS.map((h, i) => (daysUsed.some(d => dayHour(d, h)) ? i : -1)).filter(i => i >= 0);
+    return idx.length ? HOURS.slice(idx[0], idx[idx.length - 1] + 1) : HOURS;
+  }, [dayHour, daysUsed]);
 
   const monthYear = useMemo(() => grid(et, t => monthName(t.close.getMonth()).slice(0, 3), t => String(t.close.getFullYear())), [et]);
   const yearsUsed = useMemo(() => [...new Set(et.map(t => String(t.close.getFullYear())))].sort(), [et]);
@@ -66,37 +83,57 @@ export default function Heatmaps() {
   const symGrid = useMemo(() => grid(et, t => t.sym, t => (dim === 'session' ? t.session : dim === 'day' ? DAYS[(t.open.getDay() + 6) % 7] : holdBucket(t.holdSec))), [et, dim]);
 
   const sideHour = useMemo(() => grid(et, t => (t.type === 'buy' ? 'Long' : 'Short'), t => t.session), [et]);
+  const openSym = (sym: string) => nav(`/trades?symbol=${encodeURIComponent(sym)}`);
 
-  if (!et.length) return <Card><div className="py-16 text-center text-ink3">No trades in this range.</div></Card>;
+  if (!et.length) return (
+    <Page>
+      <h2 className="text-xl md:text-2xl font-semibold tracking-tight">Where your edge lives</h2>
+      <Card>
+        <Empty icon="calendar" title={`No trades in ${range.label === 'All time' ? 'this account yet' : range.label}`}
+          action={range.from || range.to ? <button type="button" className="btn-primary h-10" onClick={() => setRange({ from: null, to: null, label: 'All time' })}>Show all time</button> : undefined}>
+          Heat maps fill in once there are trades in the selected range.
+        </Empty>
+      </Card>
+    </Page>
+  );
+
+  const fullDay = hoursUsed.length === 24;
 
   return (
     <Page>
-      <motion.div variants={rise} className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <motion.div variants={rise} className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h2 className="text-2xl md:text-[28px] font-semibold tracking-tight sheen-text">Where your edge lives</h2>
-          <p className="text-[13px] text-ink3 mt-1">{et.length} trades. Hover or tap a cell; hatched cells have fewer than 3 trades.</p>
+          <h2 className="text-xl md:text-2xl font-semibold tracking-tight">Where your edge lives</h2>
+          <p className="text-[13px] text-ink3 mt-1">{et.length} trades. {mobile ? 'Tap a cell for details' : 'Hover a cell for details'}; hatched cells have fewer than 3 trades.</p>
         </div>
-        <Tabs label="Metric" value={metric} onChange={setMetric} options={(['net', 'win', 'exp', 'r', 'trades'] as HeatMetric[]).map(m => ({ value: m, label: m === 'exp' ? 'Per trade' : METRIC_LABEL[m] }))} />
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="label shrink-0 max-sm:hidden">Colour by</span>
+          <div className="overflow-x-auto -mx-1 px-1 min-w-0"><Segmented label="Colour cells by" size="sm" value={metric} onChange={setMetric} options={(['net', 'win', 'exp', 'r', 'trades'] as HeatMetric[]).map(m => ({ value: m, label: m === 'exp' ? 'Per trade' : METRIC_LABEL[m] }))} /></div>
+        </div>
       </motion.div>
 
-      <Card className="p-0 luxe-border"><Spotlight className="p-5 md:p-6 rounded-xl">
-        <CardHead title="Day × hour" sub="Your local entry hour. The hottest hours are your trading window." />
-        <Extremes rows={daysUsed} cols={HOURS} cell={dayHour} metric={metric} label={(r, c) => `${r} · ${c}:00–${String((+c + 1) % 24).padStart(2, '0')}:00`} />
-        <Heatmap rows={daysUsed} cols={HOURS} cell={dayHour} metric={metric} transposeOnMobile rowHead="" cellH={30} colLabel={c => c} />
-      </Spotlight></Card>
+      <Card>
+        <CardHead title="Day × hour" sub={<>Entry hour, your time ({utcOffset()}).{!fullDay && <> Showing {hoursUsed[0]}–{hoursUsed[hoursUsed.length - 1]}:00; no trades outside these hours.</>}</>} />
+        <Extremes rows={daysUsed} cols={hoursUsed} cell={dayHour} metric={metric} label={(r, c) => `${r} · ${c}:00–${String((+c + 1) % 24).padStart(2, '0')}:00`} />
+        <Heatmap label="Day × hour" rows={daysUsed} cols={hoursUsed} cell={dayHour} metric={metric} transposeOnMobile rowHead="" cellH={30} colLabel={c => c} />
+      </Card>
 
       <div className="grid xl:grid-cols-5 gap-4">
-        <Card className="p-0 xl:col-span-3"><Spotlight className="p-5 md:p-6 rounded-xl">
-          <CardHead title="Symbol ×" sub="Your 12 most traded symbols" right={<Segmented label="Columns" size="sm" value={dim} onChange={setDim} options={[{ value: 'session', label: 'Session' }, { value: 'day', label: 'Day' }, { value: 'hold', label: 'Hold' }]} />} />
+        <Card className="xl:col-span-3">
+          <CardHead title={`Symbol × ${dim === 'session' ? 'session' : dim === 'day' ? 'weekday' : 'hold time'}`} sub="Your 12 most traded symbols. Open a cell to see its trades." right={<Segmented label="Columns" size="sm" value={dim} onChange={setDim} options={[{ value: 'session', label: 'Session' }, { value: 'day', label: 'Day' }, { value: 'hold', label: 'Hold' }]} />} />
           <Extremes rows={topSyms} cols={dimCols} cell={symGrid} metric={metric} label={(r, c) => `${r} · ${c}`} />
-          <Heatmap key={dim} rows={topSyms} cols={dimCols} cell={symGrid} metric={metric} showValues cellH={34} />
-        </Spotlight></Card>
-        <Card className="p-0 xl:col-span-2"><Spotlight className="p-5 md:p-6 rounded-xl">
-          <CardHead title="Month by month" sub="Classic returns grid, one column per year" />
-          <Heatmap rows={MONTHS.filter(m => yearsUsed.some(y => monthYear(m, y)))} cols={yearsUsed} cell={monthYear} metric={metric} showValues cellH={30} />
-          <div className="mt-6"><CardHead title="Direction × session" sub="Are you better buying or selling, and when?" /></div>
-          <Heatmap rows={['Long', 'Short']} cols={SESSIONS} cell={sideHour} metric={metric} showValues cellH={44} />
-        </Spotlight></Card>
+          <Heatmap key={dim} label="Symbol" rows={topSyms} cols={dimCols} cell={symGrid} metric={metric} showValues cellH={34} onOpen={r => openSym(r)} />
+        </Card>
+        <div className="xl:col-span-2 flex flex-col gap-4">
+          <Card>
+            <CardHead title="Month by month" sub="Classic returns grid, one column per year" />
+            <Heatmap label="Month by month" rows={MONTHS.filter(m => yearsUsed.some(y => monthYear(m, y)))} cols={yearsUsed} cell={monthYear} metric={metric} showValues cellH={30} />
+          </Card>
+          <Card>
+            <CardHead title="Direction × session" sub="Sessions in UTC: Asia 23–07 · London 07–12 · New York 12–21" />
+            <Heatmap label="Direction × session" rows={['Long', 'Short']} cols={SESSIONS} cell={sideHour} metric={metric} showValues cellH={44} />
+          </Card>
+        </div>
       </div>
     </Page>
   );

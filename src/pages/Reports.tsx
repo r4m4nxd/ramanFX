@@ -1,15 +1,22 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useGraded, type Graded } from '@/data/guru';
 import { curveDepth, formation, SD_COMBOS, trendRel } from '@/core/strategy';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Bar as RBar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from 'recharts';
 import { useAnalytics } from '@/data/derived';
 import { useStore } from '@/data/store';
 import { computeStats, groupStats, normTag, type EnrichedTrade, type GroupStat } from '@/core/stats';
 import { fmtHold } from '@/core/time';
 import { pct, rMult, tone, useMoney } from '@/lib/format';
-import { Card, CardHead, cx, Page, Stat, Tabs, useIsMobile } from '@/ui/kit';
+import { Card, CardHead, cx, Empty, Page, Stat, Tabs, useIsMobile } from '@/ui/kit';
+import { Icon } from '@/ui/Icon';
 import { ChartTip, DivergingBars, useAxisW, useColors } from '@/ui/charts';
+
+/** Local UTC offset, e.g. "UTC+05:30", so hour-based views name their clock. */
+function utcOffset() {
+  const m = -new Date().getTimezoneOffset();
+  return `UTC${m >= 0 ? '+' : '−'}${String(Math.floor(Math.abs(m) / 60)).padStart(2, '0')}:${String(Math.abs(m) % 60).padStart(2, '0')}`;
+}
 
 type Tab = 'overview' | 'strategy' | 'time' | 'setups' | 'symbols' | 'risk' | 'compare';
 
@@ -29,7 +36,7 @@ function useWidth<T extends HTMLElement>() {
 function GroupTable(props: { rows: GroupStat[]; label: string; onRow?: (k: string) => void; compact?: boolean }) {
   const [ref, w] = useWidth<HTMLDivElement>();
   const mobile = useIsMobile();
-  return <div ref={ref}><GroupTableInner {...props} compact={props.compact || mobile || w < 600} /></div>;
+  return <div ref={ref}><GroupTableInner {...props} compact={props.compact || mobile || w < 480} /></div>;
 }
 
 function GroupTableInner({ rows, label, onRow, compact }: { rows: GroupStat[]; label: string; onRow?: (k: string) => void; compact?: boolean }) {
@@ -45,11 +52,12 @@ function GroupTableInner({ rows, label, onRow, compact }: { rows: GroupStat[]; l
                 <span className="font-medium text-[14px] truncate">{g.key}</span>
                 <span className={cx('num font-semibold text-[14px] shrink-0', tone(g.net))}>{fmt(g.net, { signed: true })}</span>
               </div>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-5 gap-2">
                 <Stat label="Trades" value={g.n} />
                 <Stat label="Win" value={pct(g.winRate, 0)} />
                 <Stat label="PF" value={g.profitFactor?.toFixed(2) ?? '—'} />
-                <Stat label="Avg R" value={rMult(g.avgR, 2)} className={tone(g.avgR)} />
+                <Stat label="Exp." value={fmt(g.expectancy, { signed: true, compact: true })} className={tone(g.expectancy)} />
+                <Stat label="Avg R" value={rMult(g.avgR, 1)} className={tone(g.avgR)} />
               </div>
             </Row>
           </li>
@@ -63,7 +71,9 @@ function GroupTableInner({ rows, label, onRow, compact }: { rows: GroupStat[]; l
       <tbody>
         {rows.map(g => (
           <tr key={g.key} className={cx(onRow && 'cursor-pointer hover:bg-raised/50')} onClick={() => onRow?.(g.key)}>
-            <td className="td">{g.key}</td>
+            <td className="td">{onRow
+              ? <button type="button" className="text-left inline-flex items-center gap-1 hover:text-accent rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent" onClick={e => { e.stopPropagation(); onRow(g.key); }}>{g.key}<Icon name="chevronRight" size={12} className="text-ink3" /></button>
+              : g.key}</td>
             <td className="td num text-right text-ink2">{g.n}</td>
             <td className="td num text-right text-ink2">{pct(g.winRate, 0)}</td>
             <td className="td num text-right text-ink2">{g.profitFactor?.toFixed(2) ?? '—'}</td>
@@ -119,27 +129,57 @@ function Overview() {
   const a = useAnalytics();
   const fmt = useMoney();
   const s = a.stats;
-  const rows: [string, string, string?][] = [
-    ['Net P&L', fmt(s.net, { signed: true }), tone(s.net)], ['Total trades', String(s.total)], ['Winning / losing / breakeven', `${s.wins} / ${s.losses} / ${s.breakeven}`],
-    ['Win rate', pct(s.winRate)], ['Breakeven win rate', pct(s.breakevenWinRate)], ['Profit factor', s.profitFactor?.toFixed(2) ?? '—'],
-    ['Gross profit', fmt(s.grossWin)], ['Gross loss', fmt(-s.grossLoss)], ['Average win', fmt(s.avgWin), 'text-profit'], ['Average loss', fmt(s.avgLoss), 'text-loss'],
-    ['Payoff ratio', s.payoff ? `${s.payoff.toFixed(2)} : 1` : '—'], ['Expectancy / trade', fmt(s.expectancy, { signed: true }), tone(s.expectancy)],
-    ['Average R', rMult(s.avgR)], ['Total R', rMult(s.totalR, 1)], ['Trades with a usable stop', `${s.rCount} of ${s.total}`],
-    ['Largest win', fmt(s.largestWin), 'text-profit'], ['Largest loss', fmt(s.largestLoss), 'text-loss'],
-    ['Max consecutive wins', String(s.maxConsecWins)], ['Max consecutive losses', String(s.maxConsecLosses)],
-    ['Avg hold — winners', fmtHold(s.avgHoldWin)], ['Avg hold — losers', fmtHold(s.avgHoldLoss)],
-    ['Trading days', String(s.days.length)], ['Green / red days', `${s.greenDays} / ${s.redDays}`], ['Day win rate', pct(s.dayWinRate)],
-    ['Average daily P&L', fmt(s.avgDailyPnl, { signed: true }), tone(s.avgDailyPnl)], ['Best day', s.bestDay ? fmt(s.bestDay.pnl, { signed: true }) : '—', 'text-profit'], ['Worst day', s.worstDay ? fmt(s.worstDay.pnl, { signed: true }) : '—', 'text-loss'],
-    ['Max drawdown', fmt(-s.maxDrawdown), 'text-loss'], ['Max drawdown % of peak', pct(a.ddPct)], ['Recovery factor', s.recoveryFactor?.toFixed(2) ?? '—'],
-    ['Sharpe (annualised)', a.sharpe?.toFixed(2) ?? `needs 20 days (${a.n})`], ['Sortino (annualised)', a.sortino?.toFixed(2) ?? '—'], ['Lots traded', s.volume.toFixed(2)],
+  type Row = [string, string, string?];
+  const groups: { title: string; rows: Row[] }[] = [
+    { title: 'Result', rows: [
+      ['Net P&L', fmt(s.net, { signed: true }), tone(s.net)], ['Gross profit', fmt(s.grossWin)], ['Gross loss', fmt(-s.grossLoss)],
+      ['Largest win', fmt(s.largestWin), 'text-profit'], ['Largest loss', fmt(s.largestLoss), 'text-loss'],
+      ['Best day', s.bestDay ? fmt(s.bestDay.pnl, { signed: true }) : '—', 'text-profit'], ['Worst day', s.worstDay ? fmt(s.worstDay.pnl, { signed: true }) : '—', 'text-loss'],
+      ['Average daily P&L', fmt(s.avgDailyPnl, { signed: true }), tone(s.avgDailyPnl)],
+    ] },
+    { title: 'Edge', rows: [
+      ['Win rate', pct(s.winRate), s.breakevenWinRate != null ? (s.winRate >= s.breakevenWinRate ? 'text-profit' : 'text-loss') : undefined], ['Breakeven win rate', pct(s.breakevenWinRate)],
+      ['Profit factor', s.profitFactor?.toFixed(2) ?? '—', s.profitFactor != null ? (s.profitFactor >= 1 ? 'text-profit' : 'text-loss') : undefined],
+      ['Payoff ratio', s.payoff ? `${s.payoff.toFixed(2)} : 1` : '—'], ['Average win', fmt(s.avgWin)], ['Average loss', fmt(s.avgLoss)],
+      ['Expectancy / trade', fmt(s.expectancy, { signed: true }), tone(s.expectancy)],
+      ['Average R', rMult(s.avgR), tone(s.avgR)], ['Total R', rMult(s.totalR, 1), tone(s.totalR)], ['Trades with a usable stop', `${s.rCount} of ${s.total}`],
+    ] },
+    { title: 'Risk', rows: [
+      ['Max drawdown', fmt(-s.maxDrawdown), 'text-loss'], ['Max drawdown % of peak', pct(a.ddPct)], ['Recovery factor', s.recoveryFactor?.toFixed(2) ?? '—'],
+      ['Max consecutive wins', String(s.maxConsecWins)], ['Max consecutive losses', String(s.maxConsecLosses)],
+      ['Sharpe (annualised)', a.sharpe?.toFixed(2) ?? `needs 20 days (${a.n})`], ['Sortino (annualised)', a.sortino?.toFixed(2) ?? '—'],
+    ] },
+    { title: 'Activity', rows: [
+      ['Total trades', String(s.total)], ['Winning / losing / breakeven', `${s.wins} / ${s.losses} / ${s.breakeven}`],
+      ['Trading days', String(s.days.length)], ['Green / red days', `${s.greenDays} / ${s.redDays}`], ['Day win rate', pct(s.dayWinRate)],
+      ['Avg hold — winners', fmtHold(s.avgHoldWin)], ['Avg hold — losers', fmtHold(s.avgHoldLoss)], ['Lots traded', s.volume.toFixed(2)],
+    ] },
   ];
+  const be = s.breakevenWinRate, gap = be != null ? (s.winRate - be) * 100 : null;
   return (
-    <Card>
-      <CardHead title="Performance summary" sub="Every metric for the selected account and range" />
-      <dl className="grid sm:grid-cols-2 xl:grid-cols-3 gap-x-8">
-        {rows.map(([k, v, cl]) => <div key={k} className="flex justify-between gap-3 py-2.5 border-t border-line text-[13px]"><dt className="text-ink2">{k}</dt><dd className={cx('num font-medium text-right', cl)}>{v}</dd></div>)}
-      </dl>
-    </Card>
+    <div className="flex flex-col gap-4">
+      {gap != null && s.payoff != null && (
+        <Card aria-label="Verdict">
+          <div className="label">Verdict</div>
+          <p className="text-[15px] md:text-base font-semibold mt-1.5 leading-snug">
+            Win rate <span className="num">{pct(s.winRate)}</span> is{' '}
+            <span className={cx('num', gap >= 0 ? 'text-profit' : 'text-loss')}>{Math.abs(gap).toFixed(1)} pts {gap >= 0 ? 'above' : 'below'}</span>{' '}
+            the <span className="num">{pct(be)}</span> you need at a <span className="num">{s.payoff.toFixed(2)}</span> payoff.
+          </p>
+          <p className="text-[13px] text-ink3 mt-1">{gap >= 0 ? 'Your edge is positive: protect it by keeping losers small.' : 'Raise the win rate or the payoff (let winners run, cut losers sooner) to close the gap.'}</p>
+        </Card>
+      )}
+      <div className="grid lg:grid-cols-2 gap-4">
+        {groups.map(g => (
+          <Card key={g.title}>
+            <CardHead title={g.title} />
+            <dl>
+              {g.rows.map(([k, v, cl]) => <div key={k} className="flex justify-between gap-3 py-2.5 border-t border-line text-[13px]"><dt className="text-ink2">{k}</dt><dd className={cx('num font-medium text-right', cl)}>{v}</dd></div>)}
+            </dl>
+          </Card>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -162,9 +202,9 @@ function TimeTab({ et }: { et: EnrichedTrade[] }) {
   const sessions = useMemo(() => groupStats(et, t => t.session), [et]);
   return (
     <div className="grid lg:grid-cols-2 gap-4">
-      <Card><CardHead title="Day of week" sub="By entry day" /><GroupBars rows={wd} /><GroupTable rows={wd} label="Day" /></Card>
-      <Card><CardHead title="Session" sub="Entry hour in UTC" /><GroupBars rows={sessions} /><GroupTable rows={sessions} label="Session" /></Card>
-      <Card className="lg:col-span-2"><CardHead title="Hour of day" sub="Your local entry hour" /><GroupBars rows={hours} height={240} labelFmt={k => `${k}:00`} /></Card>
+      <Card><CardHead title="Day of week" sub="By entry day, your time" /><GroupBars rows={wd} /><GroupTable rows={wd} label="Day" /></Card>
+      <Card><CardHead title="Session" sub="Sessions in UTC: Asia 23–07 · London 07–12 · NY 12–21" /><GroupBars rows={sessions} /><GroupTable rows={sessions} label="Session" /></Card>
+      <Card className="lg:col-span-2"><CardHead title="Hour of day" sub={`Entry hour, your time (${utcOffset()})`} /><GroupBars rows={hours} height={240} labelFmt={k => `${k}:00`} /></Card>
       <Card className="lg:col-span-2"><CardHead title="Holding time" sub="Do your fast trades or patient trades pay?" /><GroupBars rows={hold} /><GroupTable rows={hold} label="Hold" /></Card>
     </div>
   );
@@ -196,14 +236,22 @@ function SetupsTab({ et }: { et: EnrichedTrade[] }) {
 
 function SymbolsTab({ et }: { et: EnrichedTrade[] }) {
   const nav = useNavigate();
+  const mobile = useIsMobile();
+  const [all, setAll] = useState(false);
   const sym = useMemo(() => groupStats(et, t => t.sym), [et]);
   const side = useMemo(() => groupStats(et, t => (t.type === 'buy' ? 'Long' : 'Short')), [et]);
   const fmt = useMoney();
+  const open = (k: string) => nav(`/trades?symbol=${encodeURIComponent(k)}`);
+  // Phone: best 6 and worst 6 first, so the page isn't 40 bars then 40 cards.
+  const cut = mobile && sym.length > 12 && !all;
+  const shown = cut ? [...sym.slice(0, 6), ...sym.slice(-6)] : sym;
   return (
     <div className="grid lg:grid-cols-3 gap-4">
-      <Card className="lg:col-span-2"><CardHead title="Symbols" sub="Tap a symbol to see its trades" />
-        <DivergingBars rows={sym.map(g => ({ key: g.key, net: g.net }))} fmt={v => fmt(v, { signed: true, compact: true })} />
-        <div className="mt-5"><GroupTable rows={sym} label="Symbol" onRow={k => nav(`/trades?symbol=${encodeURIComponent(k)}`)} /></div></Card>
+      <Card className="lg:col-span-2"><CardHead title="Symbols" sub={cut ? `Best 6 and worst 6 of ${sym.length}. Tap a symbol to see its trades` : 'Tap a symbol to see its trades'} />
+        <DivergingBars rows={shown.map(g => ({ key: g.key, net: g.net, sub: `${g.n} trades · ${pct(g.winRate, 0)}` }))} fmt={v => fmt(v, { signed: true, compact: true })} onRow={open} />
+        <div className="mt-5"><GroupTable rows={shown} label="Symbol" onRow={open} /></div>
+        {mobile && sym.length > 12 && <button type="button" className="btn w-full h-10 mt-3" onClick={() => setAll(v => !v)}>{all ? 'Show best and worst only' : `Show all ${sym.length}`}</button>}
+      </Card>
       <Card><CardHead title="Long vs short" /><GroupBars rows={side} height={180} /><GroupTable rows={side} label="Side" compact /></Card>
     </div>
   );
@@ -220,7 +268,11 @@ function RiskTab({ et }: { et: EnrichedTrade[] }) {
     return [...bins.entries()].sort((a, b) => a[0] - b[0]).map(([b, n]) => ({ key: `${b >= 6 ? '≥' : b <= -3 ? '≤' : ''}${b.toFixed(1)}R`, b, n }));
   }, [et]);
   const scatter = useMemo(() => et.map(t => ({ x: Math.max(60, t.holdSec), y: t.net, z: t.volume, win: t.net >= 0 })), [et]);
-  const sizes = useMemo(() => groupStats(et, t => (t.volume < 0.05 ? '< 0.05' : t.volume < 0.2 ? '0.05–0.2' : t.volume < 0.5 ? '0.2–0.5' : t.volume < 1 ? '0.5–1' : '≥ 1') + ' lots'), [et]);
+  const sizes = useMemo(() => {
+    const order = ['< 0.05', '0.05–0.2', '0.2–0.5', '0.5–1', '≥ 1'].map(x => x + ' lots');
+    const g = groupStats(et, t => (t.volume < 0.05 ? '< 0.05' : t.volume < 0.2 ? '0.05–0.2' : t.volume < 0.5 ? '0.2–0.5' : t.volume < 1 ? '0.5–1' : '≥ 1') + ' lots');
+    return order.map(o => g.find(x => x.key === o)).filter(Boolean) as GroupStat[];
+  }, [et]);
   return (
     <div className="grid lg:grid-cols-2 gap-4">
       <Card>
@@ -231,7 +283,7 @@ function RiskTab({ et }: { et: EnrichedTrade[] }) {
             <XAxis dataKey="key" tick={{ fontSize: 10.5, fill: c.ink3 }} axisLine={false} tickLine={false} minTickGap={4} />
             <YAxis allowDecimals={false} tick={{ fontSize: 10.5, fill: c.ink3 }} axisLine={false} tickLine={false} />
             <Tooltip content={<ChartTip fmt={v => `${v} trades`} />} cursor={{ fill: c.a('ink3', 0.08) }} />
-            <RBar dataKey="n" name="Trades" radius={[4, 4, 0, 0]} animationDuration={700}>{rDist.map(d => <Cell key={d.key} fill={d.b >= 0 ? c.profit : c.loss} />)}</RBar>
+            <RBar dataKey="n" name="Trades" radius={[4, 4, 0, 0]} animationDuration={700}>{rDist.map(d => <Cell key={d.key} fill={d.b > 0 ? c.profit : d.b < 0 ? c.loss : c.ink3} />)}</RBar>
           </BarChart>
         </ResponsiveContainer>
       </Card>
@@ -304,22 +356,35 @@ function StrategyTab() {
   const d = DIMS.find(x => x.k === dim)!;
   const rows = useMemo(() => { const by = new Map(inR.map(g => [g.t, g])); return groupStats(inR.map(g => g.t), t => d.key(by.get(t)!)); }, [inR, d]);
   const withPlan = inR.filter(g => g.plan).length;
-  const adh = inR.filter(g => g.verdict.adherence != null);
+  // "Rules kept" only means something for trades graded against the playbook.
+  const adh = inR.filter(g => g.plan && g.verdict.adherence != null);
   const avgAdh = adh.length ? adh.reduce((a, g) => a + g.verdict.adherence!, 0) / adh.length : null;
-  const kept = computeStats(inR.filter(g => (g.verdict.adherence ?? 0) >= 80).map(g => g.t)), broke = computeStats(inR.filter(g => g.verdict.adherence != null && g.verdict.adherence < 80).map(g => g.t));
+  const kept = computeStats(adh.filter(g => g.verdict.adherence! >= 80).map(g => g.t)), broke = computeStats(adh.filter(g => g.verdict.adherence! < 80).map(g => g.t));
+  const latest = useMemo(() => [...inR].filter(g => !g.plan).sort((a, b) => b.t.close.getTime() - a.t.close.getTime())[0], [inR]);
+  if (!withPlan) return (
+    <Card>
+      <Empty icon="target" title="No graded trades yet"
+        action={<div className="flex flex-wrap justify-center gap-2">
+          {latest && <Link className="btn-primary h-10" to={`/plan/new?trade=${latest.t.id}`}>Grade your latest trade</Link>}
+          <Link className="btn h-10" to="/plan/new">Plan a trade</Link>
+        </div>}>
+        Grade trades against your playbook to see what pays you: odds, zone, timeframes, trend and how many rules you kept. {inR.length} trades in this range are waiting.
+      </Empty>
+    </Card>
+  );
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {([
           ['Trades with a plan', `${withPlan} / ${inR.length}`, withPlan / Math.max(1, inR.length) >= 0.8 ? 'text-profit' : 'text-warn'],
-          ['Average rules kept', avgAdh != null ? `${avgAdh.toFixed(0)}%` : '—', avgAdh == null ? '' : avgAdh >= 80 ? 'text-profit' : avgAdh >= 50 ? 'text-warn' : 'text-loss'],
-          ['Expectancy — rules kept', kept.total ? fmt(kept.expectancy, { signed: true }) : '—', tone(kept.expectancy)],
-          ['Expectancy — rules broken', broke.total ? fmt(broke.expectancy, { signed: true }) : '—', tone(broke.expectancy)],
+          ['Rules kept (graded trades)', avgAdh != null ? `${avgAdh.toFixed(0)}%` : '—', avgAdh == null ? '' : avgAdh >= 80 ? 'text-profit' : avgAdh >= 50 ? 'text-warn' : 'text-loss'],
+          ['Per trade — rules kept', kept.total ? fmt(kept.expectancy, { signed: true }) : '—', tone(kept.expectancy)],
+          ['Per trade — rules broken', broke.total ? fmt(broke.expectancy, { signed: true }) : '—', tone(broke.expectancy)],
         ] as [string, string, string][]).map(([l, v, c]) => <Card key={l} className="p-4"><div className="label">{l}</div><div className={cx('num text-xl font-semibold mt-1.5', c)}>{v}</div></Card>)}
       </div>
       <Card>
-        <CardHead title="What pays you" sub={withPlan ? 'Your results split by each part of the playbook' : 'Grade trades (open a trade → Grade this trade) to unlock this'} />
-        <div className="flex flex-wrap gap-1.5 mb-4">{DIMS.map(x => <button key={x.k} onClick={() => setDim(x.k)} className={cx('chip', dim === x.k && 'border-accent text-accent bg-accent/10')}>{x.label}</button>)}</div>
+        <CardHead title="What pays you" sub={`Your results split by each part of the playbook · ${withPlan} graded trades`} />
+        <div className="flex flex-wrap gap-1.5 mb-4" role="radiogroup" aria-label="Split by">{DIMS.map(x => <button key={x.k} type="button" role="radio" aria-checked={dim === x.k} onClick={() => setDim(x.k)} className={cx('chip', dim === x.k && 'border-accent text-accent bg-accent/10 font-semibold')}>{dim === x.k && <Icon name="check" size={12} />}{x.label}</button>)}</div>
         {rows.length ? <><GroupBars rows={rows} height={200} /><div className="mt-4"><GroupTable rows={rows} label={d.label} /></div></> : <p className="text-sm text-ink3 py-6 text-center">No graded trades for this view yet.</p>}
       </Card>
     </div>
@@ -332,9 +397,9 @@ export default function Reports() {
   const tab = (params.get('tab') as Tab) || 'overview';
   return (
     <Page>
-      <Tabs label="Report" value={tab} onChange={v => setParams({ tab: v }, { replace: true })} options={[
+      <Tabs label="Report" value={tab} onChange={v => { setParams({ tab: v }, { replace: true }); window.scrollTo({ top: 0 }); }} options={[
         { value: 'overview', label: 'Overview' }, { value: 'strategy', label: 'Strategy' }, { value: 'time', label: 'Time' }, { value: 'setups', label: 'Setups' },
-        { value: 'symbols', label: 'Symbols' }, { value: 'risk', label: 'Risk & R' }, { value: 'compare', label: 'Win vs loss' },
+        { value: 'symbols', label: 'Symbols' }, { value: 'risk', label: 'Risk & R' }, { value: 'compare', label: 'Win/Loss' },
       ]} />
       {tab === 'overview' && <Overview />}
       {tab === 'time' && <TimeTab et={et} />}
