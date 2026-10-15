@@ -9,11 +9,16 @@ export default {
         bg: v('bg'), surface: v('surface'), raised: v('raised'), line: v('line'), line2: v('line2'),
         ink: v('ink'), ink2: v('ink2'), ink3: v('ink3'),
         accent: v('accent'), profit: v('profit'), loss: v('loss'), warn: v('warn'), violet: v('violet'), cyan: v('cyan'),
-        'on-accent': v('on-accent'), 'on-status': v('on-status'),
+        'on-accent': v('on-accent'), 'on-status': v('on-status'), 'accent-hi': v('accent-hi'), 'accent-press': v('accent-press'),
       },
       fontFamily: {
         sans: ['Inter', '-apple-system', '"SF Pro Display"', 'system-ui', 'sans-serif'],
         mono: ['Inter', '-apple-system', 'system-ui', 'sans-serif'],
+      },
+      // Type scale (additive): use these instead of ad-hoc text-[Npx]. micro is the floor for any readable label.
+      fontSize: {
+        micro: ['11px', '14px'], cap: ['12px', '16px'], body: ['13px', '18px'], ui: ['14px', '20px'],
+        title: ['15px', '20px'], h2: ['22px', '28px'], kpi: ['28px', '32px'], hero: ['34px', '38px'],
       },
       // Semantic radius tokens (set per theme in index.css): one place to change the shape language.
       borderRadius: { md: 'var(--radius-xs)', lg: 'var(--radius-control)', xl: 'var(--radius-inner)', '2xl': 'var(--radius-card)', '3xl': 'var(--radius-panel)' },
@@ -35,6 +40,7 @@ export default {
     ({ addVariant }) => {
       addVariant('land', '@media (orientation: landscape) and (max-height: 520px)');
       addVariant('touch', '@media (pointer: coarse)');
+      addVariant('short', '@media (max-height: 900px)');
     },
   ],
 };

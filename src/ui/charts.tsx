@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useMemo, useState } from 'react';
 import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis, type TooltipProps } from 'recharts';
 import { useStore } from '@/data/store';
@@ -104,6 +104,7 @@ export function ChartTip({ active, payload, label, fmt, labelFmt }: TooltipProps
 
 /** Cumulative equity on a real time axis, with drawdown beneath the zero line. */
 export function EquityChart({ data, height = 260, fmt, showDD = true, period }: { data: { t: number; cum: number; dd: number }[]; height?: number; fmt: (n: number, o?: { compact?: boolean }) => string; showDD?: boolean; period?: Period }) {
+  const reduce = useReducedMotion();
   const c = useColors();
   const yw = useAxisW();
   const stroke = c.accent;
@@ -128,14 +129,15 @@ export function EquityChart({ data, height = 260, fmt, showDD = true, period }: 
         <YAxis tickFormatter={v => fmt(v, { compact: true })} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} width={yw} />
         <ReferenceLine y={0} stroke={c.line2} strokeDasharray="3 4" />
         <Tooltip content={<ChartTip fmt={v => fmt(v)} labelFmt={l => (period ? periodLabel(l as number, period) : new Date(l as number).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))} />} cursor={{ stroke: c.line2 }} />
-        {showDD && <Area key={`dd${period}`} type="monotone" dataKey="dd" name="Drawdown" stroke="none" fill={c.loss} fillOpacity={0.18} isAnimationActive animationDuration={900} />}
-        <Area key={period} type="monotone" dataKey="cum" name="Net P&L" stroke={stroke} strokeWidth={2.4} fill="url(#eqFill)" isAnimationActive animationDuration={900} style={{ filter: `drop-shadow(0 0 6px ${c.a('accent', 0.45)})` }} dot={dots ? { r: 2.5, fill: stroke, strokeWidth: 0 } : false} activeDot={{ r: 6, fill: '#fff', stroke, strokeWidth: 3, style: { filter: `drop-shadow(0 0 8px ${c.a('accent', 0.9)})` } }} />
+        {showDD && <Area key={`dd${period}`} type="monotone" dataKey="dd" name="Drawdown" stroke="none" fill={c.loss} fillOpacity={0.18} isAnimationActive={!reduce} animationDuration={600} />}
+        <Area key={period} type="monotone" dataKey="cum" name="Net P&L" stroke={stroke} strokeWidth={2.4} fill="url(#eqFill)" isAnimationActive={!reduce} animationDuration={600} style={{ filter: `drop-shadow(0 0 6px ${c.a('accent', 0.45)})` }} dot={dots ? { r: 2.5, fill: stroke, strokeWidth: 0 } : false} activeDot={{ r: 6, fill: '#fff', stroke, strokeWidth: 3, style: { filter: `drop-shadow(0 0 8px ${c.a('accent', 0.9)})` } }} />
       </ComposedChart>
     </ResponsiveContainer>
   );
 }
 
 export function BalanceChart({ data: raw, height = 240, fmt, period }: { data: { t: number; balance: number; deposits: number }[]; height?: number; fmt: (n: number, o?: { compact?: boolean }) => string; period?: Period }) {
+  const reduce = useReducedMotion();
   const data = useMemo(() => (period ? bucketSeries(raw, period) : raw), [raw, period]);
   const c = useColors();
   const yw = useAxisW();
@@ -149,8 +151,8 @@ export function BalanceChart({ data: raw, height = 240, fmt, period }: { data: {
         <XAxis dataKey="t" type="number" scale="time" domain={['dataMin', 'dataMax']} tickFormatter={v => periodTick(v, period ?? 'day')} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} minTickGap={28} />
         <YAxis tickFormatter={v => fmt(v, { compact: true })} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} width={yw} domain={['auto', 'auto']} />
         <Tooltip content={<ChartTip fmt={v => fmt(v)} labelFmt={l => (period ? `End of ${periodLabel(l as number, period).replace(/^Week of/, 'week of')}` : new Date(l as number).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }))} />} cursor={{ stroke: c.line2 }} />
-        <Area key={period} type="monotone" dataKey="balance" name="Balance" stroke={c.accent} strokeWidth={2.4} fill="url(#balFill)" animationDuration={900} style={{ filter: `drop-shadow(0 0 6px ${c.a('accent', 0.45)})` }} activeDot={{ r: 6, fill: '#fff', stroke: c.accent, strokeWidth: 3 }} />
-        <Line key={`d${period}`} type="stepAfter" dataKey="deposits" name="Net deposits" stroke={c.ink3} strokeWidth={1.5} strokeDasharray="4 4" dot={false} animationDuration={900} />
+        <Area key={period} type="monotone" dataKey="balance" name="Balance" stroke={c.accent} strokeWidth={2.4} fill="url(#balFill)" isAnimationActive={!reduce} animationDuration={600} style={{ filter: `drop-shadow(0 0 6px ${c.a('accent', 0.45)})` }} activeDot={{ r: 6, fill: '#fff', stroke: c.accent, strokeWidth: 3 }} />
+        <Line key={`d${period}`} type="stepAfter" dataKey="deposits" name="Net deposits" stroke={c.ink3} strokeWidth={1.5} strokeDasharray="4 4" dot={false} isAnimationActive={!reduce} animationDuration={600} />
       </ComposedChart>
     </ResponsiveContainer>
   );
@@ -159,6 +161,7 @@ export function BalanceChart({ data: raw, height = 240, fmt, period }: { data: {
 /** Net P&L bars per day, week or month. */
 export type DayMetric = 'net' | 'r' | 'win' | 'n';
 export function DailyBars({ days, height = 220, fmt, period = 'day', metric = 'net' }: { days: { date: string; pnl: number; trades?: number; wins?: number; losses?: number; r?: number }[]; height?: number; fmt: (n: number, o?: { compact?: boolean; signed?: boolean }) => string; period?: Period; metric?: DayMetric }) {
+  const reduce = useReducedMotion();
   const c = useColors();
   const yw = useAxisW();
   const data = useMemo(() => bucketDays(days, period).map(d => ({ ...d, v: metric === 'net' ? d.pnl : metric === 'r' ? d.r : metric === 'n' ? d.trades : d.wins + d.losses ? d.wins / (d.wins + d.losses) : 0 })), [days, period, metric]);
@@ -173,7 +176,7 @@ export function DailyBars({ days, height = 220, fmt, period = 'day', metric = 'n
         <YAxis tickFormatter={v => f(v, true)} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} width={yw} domain={metric === 'win' ? [0, 1] : ['auto', 'auto']} />
         <ReferenceLine y={metric === 'win' ? 0.5 : 0} stroke={c.line2} strokeDasharray={metric === 'win' ? '4 4' : undefined} />
         <Tooltip content={<ChartTip fmt={v => f(v)} labelFmt={l => { const d = byT.get(l as number); return `${periodLabel(l as number, period)}${d?.trades ? ` · ${d.trades} trades` : ''}`; }} />} cursor={{ fill: c.a('accent', 0.06), radius: 8 } as object} />
-        <Bar key={period + metric} dataKey="v" name={{ net: 'Net', r: 'R', win: 'Win rate', n: 'Trades' }[metric]} radius={[6, 6, 6, 6]} maxBarSize={period === 'month' ? 44 : period === 'week' ? 30 : 22} animationDuration={700}
+        <Bar key={period + metric} dataKey="v" name={{ net: 'Net', r: 'R', win: 'Win rate', n: 'Trades' }[metric]} radius={[6, 6, 6, 6]} maxBarSize={period === 'month' ? 44 : period === 'week' ? 30 : 22} isAnimationActive={!reduce} animationDuration={500}
           activeBar={{ fill: c.accent, fillOpacity: 1, style: { filter: `drop-shadow(0 0 10px ${c.a('accent', 0.75)})` } }}>
           {data.map(d => <Cell key={d.t} fill={metric === 'n' ? c.accent : good(d.v) ? c.profit : c.loss} fillOpacity={0.85} />)}
         </Bar>
