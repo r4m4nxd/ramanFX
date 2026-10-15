@@ -23,8 +23,17 @@
   --card-fill: rgba(255, 255, 255, .03);
   --card-edge: rgba(255, 255, 255, .08);
   --shadow-card: 0 10px 30px rgba(0, 0, 0, .5);
-  --glow: 0 0 20px rgba(139, 92, 246, .35);
+  --glow: 0 0 14px rgba(139, 92, 246, .18);  /* one active control at a time, never decoration */
   --on-accent: 255 255 255;  /* text/icons placed on a solid accent fill */
+  /* Primary button fill (top → bottom) and active pill. Both stops keep white text ≥ 4.5:1. */
+  --accent-hi: 124 58 237;   /* #7C3AED */
+  --accent-press: 109 40 217; /* #6D28D9 */
+  --pill-on-bg: rgb(139 92 246 / .15);
+  --pill-on-edge: rgb(139 92 246 / .40);
+  --pill-on-ink: 243 244 246;
+  /* Hero card gradient: deep enough that white/90 labels pass 4.5:1 across the whole fill. */
+  --hero-1: #7C3AED; --hero-2: #5B21B6; --hero-3: #3B0F8C;
+  --hero-shadow: 0 12px 32px rgba(124, 58, 237, .18);
   --on-status: 11 12 16;     /* text/icons placed on a solid profit/warn/loss fill */
   /* Shape and motion (semantic). */
   --radius-xs: 6px; --radius-control: 10px; --radius-inner: 12px; --radius-card: 16px; --radius-panel: 24px;
@@ -54,6 +63,13 @@
   --glow: none;
   --on-accent: 255 255 255;
   --on-status: 255 255 255;
+  --accent-hi: 194 68 31;
+  --accent-press: 174 58 24;  /* #AE3A18 */
+  --pill-on-bg: rgb(17 17 17);
+  --pill-on-edge: rgb(17 17 17);
+  --pill-on-ink: 255 255 255;
+  --hero-1: #D4522B; --hero-2: #C2441F; --hero-3: #A3361A;
+  --hero-shadow: 0 12px 32px rgba(194, 68, 31, .22);
   --radius-xs: 7px; --radius-control: 12px; --radius-inner: 16px; --radius-card: 24px; --radius-panel: 28px;
   color-scheme: light;
 }
@@ -70,7 +86,7 @@
   ::-webkit-scrollbar-thumb { background: rgb(var(--line2)); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
   ::-webkit-scrollbar-track { background: transparent; }
   :focus-visible { outline: 2px solid rgb(var(--accent)); outline-offset: 2px; border-radius: 6px; }
-  input, select, textarea { @apply bg-bg border border-line2 rounded-lg text-ink placeholder:text-ink3; }
+  input, select, textarea { @apply bg-raised border border-line2 rounded-lg text-ink placeholder:text-ink3; }
   input:focus, select:focus, textarea:focus { @apply outline-none border-accent ring-2 ring-accent/20; }
 }
 
@@ -78,28 +94,34 @@
   /* Card: translucent charcoal over the surface, hairline edge, soft wide shadow. */
   .card { @apply rounded-2xl; background: linear-gradient(var(--card-fill), var(--card-fill)), rgb(var(--surface)); border: 1px solid var(--card-edge); box-shadow: var(--shadow-card); }
   /* Highlight card: deep violet gradient fill with a radial glow (one per screen). */
-  .card-hero { @apply rounded-2xl text-white; background: radial-gradient(120% 100% at 15% 0%, #A78BFA 0%, #7C3AED 45%, #4C1D95 100%); border: 1px solid rgba(255,255,255,.16); box-shadow: 0 20px 50px rgba(124, 58, 237, .35); }
+  .card-hero { @apply rounded-2xl text-on-accent; background: radial-gradient(120% 100% at 15% 0%, var(--hero-1) 0%, var(--hero-2) 55%, var(--hero-3) 100%); border: 1px solid rgb(255 255 255 / .16); box-shadow: var(--hero-shadow); }
+  /* A losing period never sits on the brand fill: plain surface, loss-tinted edge and wash, ink text (value in text-loss). */
+  .card-hero[data-tone='loss'] { @apply text-ink; background: radial-gradient(120% 100% at 0% 0%, rgb(var(--loss) / .10), transparent 60%), rgb(var(--surface)); border-color: rgb(var(--loss) / .35); box-shadow: var(--shadow-card); }
   .num { font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
   .label { @apply text-[11px] uppercase tracking-[0.08em] font-semibold text-ink3; }
-  .btn { @apply inline-flex items-center justify-center gap-2 h-9 px-4 rounded-full text-[13px] font-semibold border border-line2 bg-raised/70 text-ink hover:bg-line transition-colors duration-150 disabled:opacity-50 disabled:pointer-events-none; }
-  .btn-primary { @apply btn border-transparent text-white; background: linear-gradient(180deg, #9F7AEA, #7C3AED); box-shadow: 0 8px 24px rgba(124, 58, 237, .4), inset 0 1px 0 rgba(255,255,255,.2); }
-  .btn-primary:hover { background: linear-gradient(180deg, #A78BFA, #8B5CF6); }
-  /* Active pill (nav, segmented, tabs): violet glow in dark, solid black in light. */
-  .pill-on { @apply bg-accent/15 border border-accent/40 shadow-glow; }
-  [data-theme='light'] .pill-on { background: #111; border-color: #111; box-shadow: none; }
-  [data-theme='light'] .pill-on + span, [data-theme='light'] .pill-on ~ * { color: #fff; }
-  [data-theme='light'] .pill-on.text-ink { color: #fff; }
-  [data-theme='light'] .side-on { background: #fff; border-color: rgb(var(--line2)); box-shadow: 0 2px 8px rgba(17,17,17,.05); }
+  /* Buttons share one geometry (.btn-base); variants set only fill/edge, so no variant inherits another's theme overrides. */
+  .btn-base { @apply inline-flex items-center justify-center gap-2 h-9 px-4 rounded-full text-[13px] font-semibold border transition-colors duration-150 disabled:opacity-50 disabled:pointer-events-none; }
+  .btn { @apply btn-base border-line2 bg-raised/70 text-ink hover:bg-line; }
+  .btn-primary { @apply btn-base border-transparent text-on-accent; background: linear-gradient(180deg, rgb(var(--accent-hi)), rgb(var(--accent-press))); box-shadow: 0 4px 14px rgb(var(--accent) / .25), inset 0 1px 0 rgb(255 255 255 / .14); }
+  .btn-primary:hover { background: linear-gradient(180deg, rgb(var(--accent)), rgb(var(--accent-hi))); }
+  .btn-ghost { @apply btn-base bg-transparent border-transparent text-ink hover:bg-raised; }
+  /* Active pill (segmented, tabs): soft violet in dark, solid black in light. */
+  .pill-on { background: var(--pill-on-bg); border: 1px solid var(--pill-on-edge); box-shadow: var(--glow); }
+  [data-theme='light'] .pill-on + span, [data-theme='light'] .pill-on ~ * { color: rgb(var(--pill-on-ink)); }
+  [data-theme='light'] .pill-on.text-ink { color: rgb(var(--pill-on-ink)); }
+  /* Sidebar location: a quiet raised row (no glow) in dark, a white card in light. */
+  .side-on { background: rgb(var(--raised)); border: 1px solid rgb(var(--line2)); }
+  [data-theme='light'] .side-on { background: rgb(var(--surface)); box-shadow: 0 2px 8px rgb(17 17 17 / .05); }
   [data-theme='light'] .luxe-border { --violet: 229 96 61; }
-  [data-theme='light'] .card-hero { background: radial-gradient(120% 110% at 10% 0%, #F08A68 0%, #E5603D 50%, #C2441F 100%); border-color: rgba(255,255,255,.2); box-shadow: 0 16px 40px rgba(229, 96, 61, .28); }
-  [data-theme='light'] .btn-primary, [data-theme='light'] .btn-primary:hover { background: rgb(var(--accent)); box-shadow: 0 8px 20px rgba(229, 96, 61, .3); }
-  [data-theme='light'] .btn-primary:hover { background: #AE3A18; }
-  [data-theme='light'] .btn { background-color: #fff; border-color: rgb(var(--line2)); }
-  [data-theme='light'] .btn-ghost { background-color: transparent; border-color: transparent; }
-  .btn-ghost { @apply btn bg-transparent border-transparent hover:bg-raised; }
+  [data-theme='light'] .btn-primary, [data-theme='light'] .btn-primary:hover { background: rgb(var(--accent)); box-shadow: 0 4px 14px rgb(var(--accent) / .25); }
+  [data-theme='light'] .btn-primary:hover { background: rgb(var(--accent-press)); }
+  [data-theme='light'] .btn { background-color: rgb(var(--surface)); }
   .chip { @apply inline-flex items-center gap-1.5 h-7 touch:h-9 px-2.5 rounded-full text-xs border border-line2 bg-raised text-ink2 hover:text-ink transition-colors; }
   .field { @apply h-9 px-3 text-sm w-full; }
-  .th { @apply text-[11px] uppercase tracking-[0.06em] font-semibold text-ink3 text-left pb-2.5; }
+  /* Native selects match the pill language: raised fill + a quiet chevron (selects that draw their own Icon opt out with appearance-none). */
+  select.field:not(.appearance-none) { appearance: none; padding-right: 2rem; background-repeat: no-repeat; background-position: right .7rem center; background-size: 14px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238A8D9B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); }
+  .th { @apply text-[11px] uppercase tracking-[0.08em] font-semibold text-ink3 text-left pb-2.5; }
   /* Pill-shaped table head row and soft hover rows. */
   thead.pillhead tr > th { @apply bg-raised/70 py-3 px-2; }
   thead.pillhead tr > th:first-child { border-radius: 999px 0 0 999px; padding-left: 1rem; }
@@ -201,8 +223,8 @@
   --amb-sh: rgba(150, 165, 255, .025);
   --amb-grain: .045;
   --amb-speed: 1.6;
-  --amb-flare: rgba(139, 92, 246, .16);
-  --amb-bar: rgba(255, 255, 255, .55);
+  --amb-flare: rgba(139, 92, 246, .07);
+  --amb-bar: rgba(255, 255, 255, .12);
 }
 [data-theme='light'] {
   --amb-bg: radial-gradient(130% 70% at 50% -14%, #FBF6F3 0%, #F2F2F2 60%);
