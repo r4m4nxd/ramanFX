@@ -1,12 +1,12 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { DEFAULT_RISK_RULES, useStore } from '@/data/store';
 import { LIBRARY, measuredUnitValues, positionSize, specFor, type InstrumentSpec } from '@/core/instruments';
 import type { AssetClass } from '@/core/library';
 import { ccySymbol, money, num, price } from '@/lib/format';
-import { Badge, Card, CardHead, CountUp, cx, Field, InfoTip, Page, Segmented, Stat, Tabs, useIsMobile } from '@/ui/kit';
-import { Result, SourceNote, SymbolPicker, useSpec } from './calcShared';
+import { Badge, Card, CardHead, CountUp, cx, Field, InfoTip, Page, Segmented, Stat, useIsMobile } from '@/ui/kit';
+import { Result, SourceNote, SymbolPicker, usePersisted, useSpec } from './calcShared';
 import { DrawdownCalc, GrowthCalc, LevelsCalc, MarginCalc, PnlCalc, RRCalc } from './CalcTools';
 import { ConverterCalc, MonteCarloCalc, OptionsCalc, PropCalc } from './CalcTools2';
 import { Icon } from '@/ui/Icon';
@@ -18,20 +18,21 @@ function SizeCalc() {
   const active = useStore(s => s.activeAccount);
   const rules = { ...DEFAULT_RISK_RULES, ...useStore(s => s.riskRules) };
   const snapBal = (active !== 'all' ? accounts[active]?.snapshot?.balance : Object.values(accounts)[0]?.snapshot?.balance) ?? null;
-  const [futures, setFutures] = useState(false);
-  const [symbol, setSymbol] = useState('XAUUSD');
+  const [futures, setFuturesRaw] = usePersisted('rfx_calc_size_futures', false);
+  const [symbol, setSymbol] = usePersisted('rfx_calc_size_symbol', 'XAUUSD');
+  const setFutures = (f: boolean) => { if (f !== futures) { setFuturesRaw(f); setSymbol(f ? 'MES' : 'XAUUSD'); } };
   const [balance, setBalance] = useState<string>(snapBal ? String(snapBal) : '10000');
-  const [mode, setMode] = useState<'pct' | 'amt'>('pct');
-  const [riskPct, setRiskPct] = useState(String(rules.riskPercent ?? 1));
-  const [riskAmt, setRiskAmt] = useState('100');
-  const [entry, setEntry] = useState('');
-  const [stopMode, setStopMode] = useState<'price' | 'pips'>('pips');
-  const [stop, setStop] = useState('');
-  const [stopPips, setStopPips] = useState('30');
-  const [side, setSide] = useState<'buy' | 'sell'>('buy');
+  const [mode, setMode] = usePersisted<'pct' | 'amt'>('rfx_calc_size_mode', 'pct');
+  const [riskPct, setRiskPct] = usePersisted('rfx_calc_size_riskPct', String(rules.riskPercent ?? 1));
+  const [riskAmt, setRiskAmt] = usePersisted('rfx_calc_size_riskAmt', '100');
+  const [entry, setEntry] = usePersisted('rfx_calc_size_entry', '');
+  const [stopMode, setStopMode] = usePersisted<'price' | 'pips'>('rfx_calc_size_stopMode', 'pips');
+  const [stop, setStop] = usePersisted('rfx_calc_size_stop', '');
+  const [stopPips, setStopPips] = usePersisted('rfx_calc_size_stopPips', '30');
+  const [side, setSide] = usePersisted<'buy' | 'sell'>('rfx_calc_size_side', 'buy');
+  const mobile = useIsMobile();
   const s = useSpec(symbol, futures);
   const { spec, uv, ccy } = s;
-  useEffect(() => { setSymbol(futures ? 'MES' : 'XAUUSD'); }, [futures]);
 
   const riskBudget = mode === 'pct' ? (+balance || 0) * (+riskPct || 0) / 100 : +riskAmt || 0;
   const e = +entry || 0;
@@ -41,7 +42,16 @@ function SizeCalc() {
   const res = positionSize({ riskAmount: riskBudget, entry: 0, stop: dist, unitValue: uv.value, lotStep, minLot: lotStep });
   const pipVal = uv.value * spec.pipSize;
   const unit = futures ? 'contracts' : 'lots';
-  const capped = res && !futures && res.lots > rules.maxPositionSizeLots;
+  // Your Risk rules cap the answer: the hero is the largest size that obeys BOTH the lot cap and the max risk per trade.
+  const lotCapHit = !!res && !futures && rules.maxPositionSizeLots > 0 && res.lots > rules.maxPositionSizeLots;
+  const riskCapHit = !!res && rules.maxSingleTradeRisk > 0 && res.riskAtLots > rules.maxSingleTradeRisk + 1e-9;
+  const capped = lotCapHit || riskCapHit;
+  const perLotRisk = dist * uv.value;
+  const riskCapLots = perLotRisk > 0 && rules.maxSingleTradeRisk > 0 ? Math.floor(rules.maxSingleTradeRisk / perLotRisk / lotStep + 1e-9) * lotStep : Infinity;
+  const allowed = res ? Math.max(0, Math.min(res.lots, lotCapHit ? rules.maxPositionSizeLots : Infinity, riskCapLots)) : 0;
+  const shownLots = capped ? allowed : res?.lots ?? 0;
+  const shownRisk = res ? shownLots * perLotRisk : 0;
+  const capText = [riskCapHit && `${money(rules.maxSingleTradeRisk, { ccy })} max risk`, lotCapHit && `${rules.maxPositionSizeLots}-lot cap`].filter(Boolean).join(' and ');
   const pipWord = spec.venue === 'CFD' && (spec.assetClass === 'forex' || spec.assetClass === 'metal') ? 'pips' : futures ? 'ticks' : 'points';
 
   return (
@@ -74,18 +84,22 @@ function SizeCalc() {
       </Card>
 
       <Card className="lg:col-span-2 lg:sticky lg:top-20">
-        <div className="label">Size</div>
+        <div className="label">{capped ? 'Size within your rules' : 'Size'}</div>
         <div className="flex items-baseline gap-2 mt-1">
-          {res ? <CountUp value={res.lots} format={v => v.toFixed(futures ? 0 : 2)} className={cx('num text-5xl font-semibold tracking-tight', res.tooSmall ? 'text-loss' : capped ? 'text-warn' : 'text-ink')} /> : <span className="num text-5xl font-semibold text-ink3">—</span>}
+          {res ? <CountUp value={shownLots} format={v => v.toFixed(futures ? 0 : 2)} className={cx('num text-5xl font-semibold tracking-tight', res.tooSmall || (capped && allowed <= 0) ? 'text-loss' : 'text-ink')} /> : <span className="num text-5xl font-semibold text-ink3">—</span>}
           <span className="text-ink3">{unit}</span>
         </div>
-        {res?.tooSmall && <p className="text-xs text-loss mt-2">Budget is below one {futures ? 'contract' : 'minimum lot'} at this stop. Widen the risk or tighten the stop.</p>}
-        {capped && <p className="text-xs text-warn mt-2">Above your {rules.maxPositionSizeLots}-lot cap in Risk rules.</p>}
+        {res?.tooSmall && <p className="text-[13px] text-loss mt-2">Budget is below one {futures ? 'contract' : 'minimum lot'} at this stop. Widen the risk or tighten the stop.</p>}
+        {capped && res && (
+          <p role="status" className="text-[13px] text-warn mt-2 flex items-start gap-1.5"><Icon name="alert" size={14} className="mt-0.5 shrink-0" />
+            <span>Your budget gives <span className="num">{res.lots.toFixed(futures ? 0 : 2)}</span> {unit} ({money(res.riskAtLots, { ccy })}), above your {capText} in Risk rules.</span>
+          </p>
+        )}
         <div className="grid grid-cols-2 gap-4 mt-5 pt-5 border-t border-line">
           <Result label="Risk budget" value={money(riskBudget, { ccy })} sub={mode === 'pct' ? `${riskPct}% of balance` : undefined} />
-          <Result label="Risk at size" value={res ? money(res.riskAtLots, { ccy }) : '—'} sub={res && riskBudget ? `${((res.riskAtLots / (+balance || 1)) * 100).toFixed(2)}% of balance` : undefined} />
+          <Result label="Risk at size" value={res ? money(shownRisk, { ccy }) : '—'} sub={res && riskBudget ? `${((shownRisk / (+balance || 1)) * 100).toFixed(2)}% of balance` : undefined} />
           <Result label={`Stop distance`} value={dist ? `${num(dist / spec.pipSize, 1)} ${pipWord}` : '—'} sub={dist ? `${price(dist, spec.digits)} in price` : undefined} />
-          <Result label={`Value per ${pipWord.slice(0, -1)}`} value={money(pipVal * (res?.lots || 1), { ccy })} sub={`${money(pipVal, { ccy })} per 1 ${futures ? 'contract' : 'lot'}`} />
+          <Result label={`Value per ${pipWord.slice(0, -1)}`} value={money(pipVal * (shownLots || 1), { ccy })} sub={`${money(pipVal, { ccy })} per 1 ${futures ? 'contract' : 'lot'}`} />
         </div>
         {stopPrice != null && e > 0 && dist > 0 && (
           <div className="mt-5 pt-5 border-t border-line">
@@ -93,27 +107,36 @@ function SizeCalc() {
             <table className="w-full text-[13px]">
               <thead className="pillhead"><tr><th className="th">Level</th><th className="th text-right">Price</th><th className="th text-right">Result</th></tr></thead>
               <tbody>
-                <tr><td className="td text-loss">Stop</td><td className="td num text-right">{price(stopPrice, spec.digits)}</td><td className="td num text-right text-loss">{res ? money(-res.riskAtLots, { ccy }) : '—'}</td></tr>
+                <tr><td className="td text-loss">Stop</td><td className="td num text-right">{price(stopPrice, spec.digits)}</td><td className="td num text-right text-loss">{res ? money(-shownRisk, { ccy }) : '—'}</td></tr>
                 {[1, 1.5, 2, 3, 4].map(r => {
                   const p = side === 'buy' ? e + dist * r : e - dist * r;
-                  return <tr key={r}><td className="td text-profit">{r}R</td><td className="td num text-right">{price(p, spec.digits)}</td><td className="td num text-right text-profit">{res ? money(res.riskAtLots * r, { ccy, signed: true }) : '—'}</td></tr>;
+                  return <tr key={r}><td className="td text-profit">{r}R</td><td className="td num text-right">{price(p, spec.digits)}</td><td className="td num text-right text-profit">{res ? money(shownRisk * r, { ccy, signed: true }) : '—'}</td></tr>;
                 })}
               </tbody>
             </table>
           </div>
         )}
       </Card>
+      {mobile && res && (
+        <div role="status" aria-live="polite" className="sticky bottom-[calc(58px+max(12px,env(safe-area-inset-bottom)))] land:!bottom-0 z-10 -mx-1 card shadow-pop px-4 py-2.5 flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline gap-1.5"><span className={cx('num text-2xl font-semibold tracking-tight', res.tooSmall || (capped && allowed <= 0) ? 'text-loss' : 'text-ink')}>{shownLots.toFixed(futures ? 0 : 2)}</span><span className="text-xs text-ink3">{unit}</span></div>
+            <div className="text-[11.5px] text-ink3 num truncate">risk {money(shownRisk, { ccy })}{dist ? ` · ${num(dist / spec.pipSize, 1)} ${pipWord}` : ''}</div>
+          </div>
+          {capped && <Badge tone="warn">Capped by rules</Badge>}
+        </div>
+      )}
     </div>
   );
 }
 
 function ValueCalc() {
-  const [futures, setFutures] = useState(false);
-  const [symbol, setSymbol] = useState('EURUSD');
-  const [lots, setLots] = useState('1');
-  const [move, setMove] = useState('10');
+  const [futures, setFuturesRaw] = usePersisted('rfx_calc_value_futures', false);
+  const [symbol, setSymbol] = usePersisted('rfx_calc_value_symbol', 'EURUSD');
+  const setFutures = (f: boolean) => { if (f !== futures) { setFuturesRaw(f); setSymbol(f ? 'ES' : 'EURUSD'); } };
+  const [lots, setLots] = usePersisted('rfx_calc_value_lots', '1');
+  const [move, setMove] = usePersisted('rfx_calc_value_move', '10');
   const s = useSpec(symbol, futures);
-  useEffect(() => { setSymbol(futures ? 'ES' : 'EURUSD'); }, [futures]);
   const { spec, uv, ccy } = s;
   const l = +lots || 0;
   const pipWord = futures ? 'tick' : spec.assetClass === 'forex' || spec.assetClass === 'metal' ? 'pip' : 'point';
@@ -280,20 +303,39 @@ function OverrideEditor({ symbol, current, base, onSave, onClose }: { symbol: st
   );
 }
 
+const PRIMARY: { value: Tab; label: string; short: string }[] = [
+  { value: 'size', label: 'Position size', short: 'Size' }, { value: 'value', label: 'Pip value', short: 'Pip value' }, { value: 'pnl', label: 'Profit & loss', short: 'P&L' }, { value: 'rr', label: 'Risk : reward', short: 'R:R' },
+];
+const MORE: { value: Tab; label: string }[] = [
+  { value: 'margin', label: 'Margin' }, { value: 'mc', label: 'Monte Carlo' }, { value: 'dd', label: 'Drawdown' }, { value: 'prop', label: 'Prop firm' },
+  { value: 'options', label: 'Options' }, { value: 'growth', label: 'Compounding' }, { value: 'levels', label: 'Pivots & Fib' }, { value: 'fx', label: 'Currency' }, { value: 'library', label: 'Instruments' },
+];
+const MORE_KEY = '__more';
+
 export default function Calculator() {
   const [params, setParams] = useSearchParams();
-  const tab = (params.get('tab') as Tab) || 'size';
+  const raw = params.get('tab') as Tab | null;
+  const tab: Tab = raw && (PRIMARY.some(o => o.value === raw) || MORE.some(o => o.value === raw)) ? raw : 'size';
+  const mobile = useIsMobile();
+  const pick = (v: Tab) => setParams({ tab: v }, { replace: true });
+  const inMore = MORE.some(o => o.value === tab);
   return (
     <Page>
-      <div className="flex flex-col gap-3">
-        <Tabs label="Calculator" value={tab} onChange={v => setParams({ tab: v }, { replace: true })} options={[
-          { value: 'size', label: 'Position size' }, { value: 'value', label: 'Pip value' }, { value: 'pnl', label: 'Profit & loss' }, { value: 'rr', label: 'Risk : reward' },
-          { value: 'margin', label: 'Margin' }, { value: 'mc', label: 'Monte Carlo' }, { value: 'dd', label: 'Drawdown' }, { value: 'prop', label: 'Prop firm' },
-          { value: 'options', label: 'Options' }, { value: 'growth', label: 'Compounding' }, { value: 'levels', label: 'Pivots & Fib' }, { value: 'fx', label: 'Currency' }, { value: 'library', label: 'Instruments' },
-        ]} />
-        <span className="text-xs text-ink3 flex items-center gap-1.5">Futures specs from CME, CBOT, NYMEX, COMEX, ICE, Eurex and Cboe<InfoTip text="Broker CFDs vary. When you've traded a symbol, the app uses the value measured from your own fills instead." /></span>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+        <Segmented label="Calculator" value={inMore ? (MORE_KEY as Tab) : tab} onChange={pick}
+          options={PRIMARY.map(o => ({ value: o.value, label: mobile ? <><span aria-hidden>{o.short}</span><span className="sr-only">{o.label}</span></> : o.label }))} />
+        <label className="relative flex-1 sm:flex-none sm:min-w-[200px]">
+          <span className="sr-only">More tools</span>
+          <select className={cx('field w-full', inMore && 'border-accent text-ink font-semibold')} value={inMore ? tab : ''} onChange={e => e.target.value && pick(e.target.value as Tab)}>
+            <option value="">More tools…</option>
+            {MORE.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </label>
       </div>
-      {{ size: <SizeCalc />, value: <ValueCalc />, pnl: <PnlCalc />, margin: <MarginCalc />, rr: <RRCalc />, growth: <GrowthCalc />, dd: <DrawdownCalc />, mc: <MonteCarloCalc />, prop: <PropCalc />, options: <OptionsCalc />, levels: <LevelsCalc />, fx: <ConverterCalc />, library: <Library /> }[tab] ?? <SizeCalc />}
+      {(tab === 'value' || tab === 'library' || tab === 'size' || tab === 'margin') && (
+        <span className="text-xs text-ink3 flex items-center gap-1.5 -mt-1">Futures specs from CME, CBOT, NYMEX, COMEX, ICE, Eurex and Cboe<InfoTip text="Broker CFDs vary. When you've traded a symbol, the app uses the value measured from your own fills instead." /></span>
+      )}
+      {{ size: <SizeCalc />, value: <ValueCalc />, pnl: <PnlCalc />, margin: <MarginCalc />, rr: <RRCalc />, growth: <GrowthCalc />, dd: <DrawdownCalc />, mc: <MonteCarloCalc />, prop: <PropCalc />, options: <OptionsCalc />, levels: <LevelsCalc />, fx: <ConverterCalc />, library: <Library /> }[tab]}
     </Page>
   );
 }

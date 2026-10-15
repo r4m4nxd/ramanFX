@@ -10,6 +10,15 @@ export function useAccountCcy() {
   return useStore(s => (s.activeAccount !== 'all' ? s.accounts[s.activeAccount]?.currency : undefined) ?? Object.values(s.accounts)[0]?.currency ?? 'USD');
 }
 
+/** useState that survives tab switches and visits (localStorage, best effort). */
+export function usePersisted<T>(key: string, initial: T): [T, (v: T) => void] {
+  const [v, setV] = useState<T>(() => { try { const raw = localStorage.getItem(key); return raw != null ? (JSON.parse(raw) as T) : initial; } catch { return initial; } });
+  return [v, (x: T) => { setV(x); try { localStorage.setItem(key, JSON.stringify(x)); } catch { /* private mode */ } }];
+}
+
+export const readLocal = <T,>(key: string): T | null => { try { const raw = localStorage.getItem(key); return raw ? (JSON.parse(raw) as T) : null; } catch { return null; } };
+export const writeLocal = (key: string, v: unknown) => { try { if (v == null) localStorage.removeItem(key); else localStorage.setItem(key, JSON.stringify(v)); } catch { /* private mode */ } };
+
 export function useRates() {
   const [r, setR] = useState<Awaited<ReturnType<typeof loadRates>>>(null);
   useEffect(() => { void loadRates().then(setR); }, []);
