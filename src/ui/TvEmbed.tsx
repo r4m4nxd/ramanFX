@@ -12,6 +12,8 @@ export function TvEmbed({ script, config, className, title, fit = false, auto = 
   const theme = useStore(st => st.theme);
   const outer = useRef<HTMLDivElement>(null), box = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+  const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false);
   useEffect(() => {
     if (!fit || !outer.current) return;
     const el = outer.current;
@@ -28,6 +30,11 @@ export function TvEmbed({ script, config, className, title, fit = false, auto = 
     const el = box.current;
     if (!el || !sized) return;
     el.innerHTML = '';
+    setReady(false); setFailed(false);
+    // The widget's iframe paints over the placeholder; we only need to know when it exists.
+    const mo = new MutationObserver(() => { if (el.querySelector('iframe')) { setReady(true); mo.disconnect(); } });
+    mo.observe(el, { childList: true, subtree: true });
+    const slow = window.setTimeout(() => { if (!el.querySelector('iframe')) setFailed(true); }, 15000);
     const w = document.createElement('div');
     w.className = 'tradingview-widget-container__widget';
     w.style.cssText = auto ? 'width:100%' : 'height:100%;width:100%';
@@ -35,12 +42,20 @@ export function TvEmbed({ script, config, className, title, fit = false, auto = 
     s.src = `https://s3.tradingview.com/external-embedding/${script}`;
     s.async = true;
     s.type = 'text/javascript';
+    s.onerror = () => setFailed(true);
     s.textContent = JSON.stringify({ colorTheme: theme, theme, isTransparent: false, locale: 'en', ...sized });
     el.append(w, s);
-    return () => { el.innerHTML = ''; };
+    return () => { mo.disconnect(); clearTimeout(slow); el.innerHTML = ''; };
   }, [script, key]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <div ref={outer} role="region" aria-label={title} className={cx(className?.includes('absolute') ? '' : 'relative', 'overflow-hidden', className)} style={{ colorScheme: theme }}>
+    <div ref={outer} role="region" aria-label={title} aria-busy={!ready && !failed} className={cx(className?.includes('absolute') ? '' : 'relative', 'overflow-hidden', className)} style={{ colorScheme: theme }}>
+      {!auto && !ready && (
+        <div className={cx('absolute inset-0 grid place-items-center bg-raised/40 text-center px-6', !failed && 'motion-safe:animate-pulse')} aria-hidden={!failed}>
+          <div className="text-[12.5px] text-ink3 max-w-[320px]">
+            {failed ? <><span className="text-ink2 font-medium block">{title} didn't load</span>TradingView may be blocked by a content blocker or the network. Allow s3.tradingview.com, then reload.</> : <>Loading {title} from TradingView…</>}
+          </div>
+        </div>
+      )}
       <div ref={box} className={cx('tradingview-widget-container', auto ? 'w-full' : 'absolute inset-0')} />
     </div>
   );

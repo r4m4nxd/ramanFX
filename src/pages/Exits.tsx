@@ -1,13 +1,13 @@
 import { motion } from 'framer-motion';
-import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis, Bar, BarChart } from 'recharts';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis, Bar, BarChart, LabelList } from 'recharts';
 import { excursionMoney, useGraded, type Graded } from '@/data/guru';
 import { useStore } from '@/data/store';
 import { simulate, type Path } from '@/core/manage';
 import { exitSummary, type ExitTrade, type Group } from '@/core/exitInsights';
 import { num, pct, tone, useMoney } from '@/lib/format';
-import { Card, CardHead, cx, ease, Page, Segmented, Stat, useIsMobile } from '@/ui/kit';
+import { Badge, Card, CardHead, cx, ease, InfoTip, Page, Segmented, Stat, useIsMobile } from '@/ui/kit';
 import { ChartTip, useAxisW, useColors } from '@/ui/charts';
 import { Icon } from '@/ui/Icon';
 
@@ -15,7 +15,8 @@ const WINDOWS = [['t30m', '+30m'], ['t1h', '+1h'], ['t4h', '+4h'], ['t12h', '+12
 
 function Setup({ have }: { have: number }) {
   return (
-    <Card className={cx(!have && 'luxe-border')}>
+    <Card className={cx('scroll-mt-28', !have && 'luxe-border')} aria-label="Excursion scripts">
+      <div id="exc-setup" />
       <CardHead title={have ? 'Refresh your excursion data' : 'Get exact MAE / MFE for every trade'} sub="Your MT5 report only has entry and exit. These scripts read your broker's own price history." />
       <div className="grid md:grid-cols-2 gap-3">
         {[
@@ -68,9 +69,18 @@ function ExitBreakdown({ trades }: { trades: ExitTrade[] }) {
   const fmt = useMoney();
   const s = useMemo(() => exitSummary(trades), [trades]);
   if (!s.n) return (
-    <Card className="luxe-border">
-      <CardHead title="Left on the table, exits and entries" sub="New: re-run the updated RamanFX_Excursions script (v2) and import the CSV to fill this in" />
-      <p className="text-[13px] text-ink2 leading-relaxed">It adds how every trade closed (stop, target or by hand), your entry order type and slippage, partial closes, when price first touched each R level — so the management lab is exact — and whether your original target or stop was hit after you closed.</p>
+    <Card className="py-3.5 flex flex-wrap items-center gap-x-4 gap-y-2.5">
+      <div className="flex items-start gap-2.5 min-w-0 flex-1 basis-[260px]">
+        <Icon name="info" size={15} className="text-ink3 shrink-0 mt-0.5" />
+        <div className="min-w-0">
+          <div className="text-[13px] font-semibold">Left on the table, exits and entries</div>
+          <p className="text-[12px] text-ink3 leading-relaxed">Needs the v2 script: how each trade closed, order type and slippage, partials, R-level touch times, and whether your target or stop hit after you closed.</p>
+        </div>
+      </div>
+      <div className="flex gap-2 shrink-0">
+        <a href="#exc-setup" className="btn h-9" onClick={e => { e.preventDefault(); document.getElementById('exc-setup')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}><Icon name="download" size={14} />Get script</a>
+        <button className="btn-primary h-9" onClick={() => window.dispatchEvent(new Event('rfx:import'))}><Icon name="upload" size={14} />Import CSV</button>
+      </div>
     </Card>
   );
   return (
@@ -95,7 +105,7 @@ function ExitBreakdown({ trades }: { trades: ExitTrade[] }) {
       </div>
       <div className="grid md:grid-cols-2 gap-3">
         <GroupTable title="How your trades closed" sub="Stop, target, or your own hand" rows={s.byReason} />
-        <GroupTable title="How you entered" sub="PDFs: a pending limit at the proximal line is the best entry" rows={s.byOrder} extra={{ label: 'Slippage', fmt: v => (v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(1)} pts`) }} />
+        <GroupTable title="How you entered" sub="Playbook: a pending limit at the proximal line is the best entry" rows={s.byOrder} extra={{ label: 'Slippage', fmt: v => (v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(1)} pts`) }} />
         <GroupTable title="Scaling out" sub="Partial closes vs closing the whole position" rows={s.byCloses} />
         <GroupTable title="How long the order waited" sub="From placing the pending order to the fill" rows={s.byWait} />
       </div>
@@ -104,6 +114,76 @@ function ExitBreakdown({ trades }: { trades: ExitTrade[] }) {
 }
 
 type Row = { g: Graded; mfeR: number | null; maeR: number | null; mfe$: number | null; mae$: number | null; capture: number | null; path: Path | null };
+
+type Sort = 'new' | 'gave' | 'heat' | 'capture';
+const PAGE = 25;
+
+/** Every trade with excursion data: sortable, paged, one unit per column. */
+function TradeList({ rows, unit, only, onClear, source }: { rows: Row[]; unit: 'R' | '$'; only: 'gaveBack' | null; onClear: () => void; source: (id: string) => string }) {
+  const fmt = useMoney();
+  const mobile = useIsMobile();
+  const [sort, setSort] = useState<Sort>('new');
+  const [limit, setLimit] = useState(PAGE);
+  useEffect(() => { if (only) setSort('gave'); setLimit(PAGE); }, [only]);
+  const mae = (r: Row) => (unit === 'R' ? r.maeR : r.mae$);
+  const mfe = (r: Row) => (unit === 'R' ? r.mfeR : r.mfe$);
+  const gave = (r: Row) => { const f = mfe(r); const res = unit === 'R' ? r.g.t.r : r.g.t.net; return f == null || res == null ? null : f - res; };
+  const list = useMemo(() => {
+    const xs = only === 'gaveBack' ? rows.filter(r => r.g.t.outcome === 'loss' && (r.mfeR ?? 0) >= 1) : rows;
+    const by = (k: (r: Row) => number | null, dir: 1 | -1) => [...xs].sort((a, b) => { const x = k(a), y = k(b); if (x == null) return y == null ? 0 : 1; if (y == null) return -1; return (x - y) * dir; });
+    return sort === 'new' ? [...xs].reverse() : sort === 'gave' ? by(gave, -1) : sort === 'heat' ? by(mae, -1) : by(r => r.capture, 1);
+  }, [rows, only, sort, unit]); // eslint-disable-line react-hooks/exhaustive-deps
+  const shown = list.slice(0, limit);
+  const v = (x: number | null) => (x == null ? '—' : unit === 'R' ? `${x.toFixed(2)}R` : fmt(x));
+  const noR = 'No known 1R. Set the initial risk on the trade, or switch to $.';
+  const cell = (x: number | null) => (x == null && unit === 'R' ? <span title={noR} className="text-ink3">—</span> : v(x));
+  return (
+    <Card className={mobile ? 'px-4 pt-4 pb-3' : 'p-0 overflow-hidden'} aria-label="Every trade">
+      <div id="exc-trades" className="scroll-mt-28" />
+      <div className={mobile ? '' : 'px-5 pt-5'}>
+        <CardHead title={only ? 'Losers that were +1R first' : 'Every trade'} sub={`${num(list.length, 0)} of ${num(rows.length, 0)} positions with excursion data · MAE / MFE in ${unit}`}
+          right={<Segmented label="Sort trades" size="sm" value={sort} onChange={x => { setSort(x); setLimit(PAGE); }} options={[{ value: 'new', label: 'Newest' }, { value: 'gave', label: 'Gave back' }, { value: 'heat', label: 'Most heat' }, { value: 'capture', label: 'Low capture' }]} />} />
+        {only && <button className="chip h-8 -mt-2 mb-3" onClick={onClear} aria-label="Clear filter: losers that were +1R first">Losers that were +1R first<Icon name="x" size={12} /></button>}
+      </div>
+      {mobile ? (
+        <ul>{shown.map(r => (
+          <li key={r.g.t.id} className="py-3 border-t border-line first:border-0">
+            <Link to={`/trades/${r.g.t.id}`} className="flex items-baseline justify-between gap-3"><span className="font-mono font-semibold">{r.g.t.sym} <span className="font-sans font-normal text-ink3 text-xs">{r.g.t.closeTime.slice(0, 10)}</span></span><span className={cx('num font-semibold', tone(r.g.t.net))}>{fmt(r.g.t.net, { signed: true })}</span></Link>
+            <div className="grid grid-cols-4 gap-2 mt-2">
+              <Stat label={`MAE ${unit}`} value={cell(mae(r))} className="text-loss" />
+              <Stat label={`MFE ${unit}`} value={cell(mfe(r))} className="text-profit" />
+              <Stat label="Result R" value={r.g.t.r != null ? `${r.g.t.r.toFixed(2)}R` : '—'} className={tone(r.g.t.r)} />
+              <Stat label="Captured" value={pct(r.capture, 0)} />
+            </div>
+          </li>
+        ))}</ul>
+      ) : (
+        <table className="w-full">
+          <thead className="pillhead"><tr className="[&>th]:pt-3 [&>th:first-child]:pl-5 [&>th:last-child]:pr-5"><th className="th">Trade</th><th className="th text-right">MAE ({unit})</th><th className="th text-right">MFE ({unit})</th><th className="th text-right">Result (R)</th><th className="th text-right">Captured</th><th className="th text-right">Data</th><th className="th text-right">Net</th></tr></thead>
+          <tbody>
+            {shown.map(r => (
+              <tr key={r.g.t.id} className="[&>td:first-child]:pl-5 [&>td:last-child]:pr-5 hover:bg-raised/50">
+                <td className="td"><Link to={`/trades/${r.g.t.id}`} className="font-mono hover:text-accent inline-block py-2 -my-2">{r.g.t.sym}</Link> <span className="text-ink3 text-xs">{r.g.t.closeTime.slice(0, 10)}</span></td>
+                <td className="td num text-right text-loss">{cell(mae(r))}</td>
+                <td className="td num text-right text-profit">{cell(mfe(r))}</td>
+                <td className={cx('td num text-right', tone(r.g.t.r))}>{r.g.t.r != null ? `${r.g.t.r.toFixed(2)}R` : <span title={noR}>—</span>}</td>
+                <td className="td num text-right">{pct(r.capture, 0)}</td>
+                <td className="td text-right text-xs text-ink3">{source(r.g.t.id)}</td>
+                <td className={cx('td num text-right font-semibold', tone(r.g.t.net))}>{fmt(r.g.t.net, { signed: true })}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {list.length > limit && (
+        <div className={mobile ? 'pt-2' : 'p-4 pt-3'}>
+          <button className="btn w-full h-10" onClick={() => setLimit(l => l + PAGE)}>Show {Math.min(PAGE, list.length - limit)} more <span className="text-ink3 num">({num(list.length - limit, 0)} left)</span></button>
+        </div>
+      )}
+      {!list.length && <p className="text-sm text-ink3 py-6 text-center">No trades match.</p>}
+    </Card>
+  );
+}
 
 export default function Exits() {
   const graded = useGraded();
@@ -115,6 +195,8 @@ export default function Exits() {
   const mobile = useIsMobile();
   const [unit, setUnit] = useState<'R' | '$'>('R');
   const [split, setSplit] = useState<'all' | 'high' | 'low' | 'none'>('all');
+  const [only, setOnly] = useState<'gaveBack' | null>(null);
+  const navigate = useNavigate();
 
   const rows: Row[] = useMemo(() => graded.filter(g => exitData[g.t.id]).filter(g => { const k = g.t.closeTime.slice(0, 10).replace(/\./g, '-'); return (!from || k >= from) && (!to || k <= to); }).map(g => {
     const e = exitData[g.t.id];
@@ -145,24 +227,48 @@ export default function Exits() {
     return { label, n: xs.length, better: xs.length ? better / xs.length : null };
   });
   const cap = (v: number | null) => (v == null ? null : unit === 'R' ? Math.min(6, v) : v);
-  const scatter = rows.map(r => ({ x: cap(unit === 'R' ? r.maeR : r.mae$), y: cap(unit === 'R' ? r.mfeR : r.mfe$), z: Math.abs(r.g.t.net), win: r.g.t.net >= 0, sym: r.g.t.sym, net: r.g.t.net })).filter(d => d.x != null && d.y != null);
+  const scatter = rows.map(r => ({ x: cap(unit === 'R' ? r.maeR : r.mae$), y: cap(unit === 'R' ? r.mfeR : r.mfe$), z: Math.abs(r.g.t.net), win: r.g.t.net >= 0, sym: r.g.t.sym, net: r.g.t.net, id: r.g.t.id, date: r.g.t.closeTime.slice(0, 10) })).filter(d => d.x != null && d.y != null);
+  const ranked = [...sim].sort((a, b) => b.totalR - a.totalR);
+  const splitName = { all: 'all trades', high: 'high-odds trades', low: 'low-odds trades', none: 'unplanned trades' }[split];
+  const delta = best && actual ? best.totalR - actual.totalR : null;
+  const exitBreakdown = <ExitBreakdown trades={exitTrades} />;
+  const v2 = exitSummary(exitTrades).n > 0;
+  const touched = rows.filter(r => r.path?.touch).length;
+  const caveat = `${touched ? `${touched} trades replay exactly from when price touched each R level (v2 export); the rest use MAE/MFE. ` : ''}${timed === 0 ? 'Your CSV has no timing, so whenever a trade touched both +1R and −1R the stop is assumed to have hit first. These are worst-case numbers. Run the RamanFX script for exact ones.' : timed < rows.length ? 'Where the order of highs and lows is unknown, the stop is assumed to hit first (conservative).' : 'Exact: every trade knows whether its best or worst price came first.'}`;
+  const showGaveBack = () => { setOnly('gaveBack'); requestAnimationFrame(() => document.getElementById('exc-trades')?.scrollIntoView({ behavior: 'smooth', block: 'start' })); };
 
   if (!rows.length) return <Page><Setup have={0} /></Page>;
 
   return (
     <Page>
+      {!mobile && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+          <h2 className="text-2xl md:text-[28px] font-semibold tracking-tight">MAE / MFE lab</h2>
+          <p className="text-[13px] text-ink3 mt-1">How far your trades went against and for you, and what other exit rules would have made.</p>
+        </motion.div>
+      )}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          ['Trades with data', `${rows.length}`, `${withR.length} with a known 1R · ${timed} timed`, ''],
-          ['Avg capture (winners)', pct(avgCapture, 0), 'Of the best price reached', avgCapture != null && avgCapture < 0.5 ? 'text-warn' : ''],
-          ['Losers that were +1R first', `${gaveBack.length}`, gaveBack.length ? `${fmt(gaveBack$)} lost after being 1R up` : 'None', gaveBack.length ? 'text-loss' : 'text-profit'],
-          ['Best rule on your trades', best ? best.name : '—', best && actual ? `${best.totalR - actual.totalR >= 0 ? '+' : ''}${(best.totalR - actual.totalR).toFixed(1)}R vs how you traded` : '', 'text-accent'],
-        ].map(([l, v, s, cl]) => (
-          <Card key={l} className="p-4"><div className="label">{l}</div><div className={cx('num font-semibold mt-1.5 leading-tight', String(v).length > 12 ? 'text-[15px]' : 'text-xl', cl)}>{v}</div><div className="text-[11.5px] text-ink3 mt-1">{s}</div></Card>
-        ))}
+        <Card className="p-4"><div className="label">Trades with data</div><div className="num text-xl font-semibold mt-1.5 leading-tight">{rows.length}</div><div className="text-[11.5px] text-ink3 mt-1">{withR.length} with a known 1R · {timed} timed</div></Card>
+        <Card className="p-4"><div className="label">Avg capture (winners)</div><div className={cx('num text-xl font-semibold mt-1.5 leading-tight', avgCapture != null && avgCapture < 0.5 && 'text-warn')}>{pct(avgCapture, 0)}</div><div className="text-[11.5px] text-ink3 mt-1">Of the best price reached</div></Card>
+        <Card className="p-0">
+          {gaveBack.length ? (
+            <button onClick={showGaveBack} aria-controls="exc-trades" className="w-full h-full text-left p-4 rounded-[inherit] hover:bg-raised/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60">
+              <div className="label flex items-center justify-between gap-2">Losers that were +1R first<Icon name="chevronRight" size={13} className="text-ink3 shrink-0" /></div>
+              <div className="num text-xl font-semibold mt-1.5 leading-tight text-loss">{gaveBack.length}</div>
+              <div className="text-[11.5px] text-ink3 mt-1"><span className="num">{fmt(gaveBack$)}</span> lost after being 1R up · <span className="text-ink2 underline underline-offset-2">see them</span></div>
+            </button>
+          ) : (
+            <div className="p-4"><div className="label">Losers that were +1R first</div><div className="num text-xl font-semibold mt-1.5 leading-tight text-profit">0</div><div className="text-[11.5px] text-ink3 mt-1">None</div></div>
+          )}
+        </Card>
+        <Card className="p-4">
+          <div className="label">Best exit rule</div>
+          <div className={cx('num text-xl font-semibold mt-1.5 leading-tight', tone(delta))}>{delta != null ? `${delta >= 0 ? '+' : ''}${delta.toFixed(1)}R` : '—'}</div>
+          <div className="text-[11.5px] text-ink3 mt-1">{best ? <><span className="text-ink2">{best.name}</span> vs how you traded · {splitName}</> : 'Needs trades with a known 1R'}</div>
+        </Card>
       </div>
 
-      <ExitBreakdown trades={exitTrades} />
+      {v2 && exitBreakdown}
 
       <div className="grid xl:grid-cols-5 gap-4">
         <Card className="xl:col-span-3">
@@ -175,93 +281,67 @@ export default function Exits() {
               <ZAxis dataKey="z" range={[18, 140]} />
               {unit === 'R' && <ReferenceLine x={1} stroke={c.loss} strokeDasharray="4 4" label={{ value: '1R stop', fill: c.ink3, fontSize: 10, position: 'insideTopRight' }} />}
               {unit === 'R' && <ReferenceLine y={1} stroke={c.profit} strokeDasharray="4 4" label={{ value: '1:1', fill: c.ink3, fontSize: 10, position: 'insideTopLeft' }} />}
-              <Tooltip content={<ChartTip fmt={(v, k) => (k === 'z' ? fmt(v) : unit === 'R' ? `${v.toFixed(2)}R` : fmt(v))} labelFmt={() => 'Trade'} />} />
-              <Scatter data={scatter} isAnimationActive animationDuration={800}>
+              <Tooltip content={p => { const d = (p.payload?.[0]?.payload ?? null) as (typeof scatter)[number] | null; return <ChartTip active={p.active} payload={p.payload as never} fmt={(v, k) => (k === 'z' ? fmt(v) : unit === 'R' ? `${v.toFixed(2)}R` : fmt(v))} labelFmt={() => (d ? `${d.sym} · ${d.date}` : 'Trade')} />; }} />
+              <Scatter data={scatter} isAnimationActive animationDuration={800} cursor="pointer" onClick={(d: { id?: string; payload?: { id?: string } }) => { const id = d?.payload?.id ?? d?.id; if (id) navigate(`/trades/${id}`); }}>
                 {scatter.map((d, i) => <Cell key={i} fill={d.win ? c.profit : c.loss} fillOpacity={0.7} />)}
               </Scatter>
             </ScatterChart>
           </ResponsiveContainer>
-          {unit === 'R' && <p className="text-[11.5px] text-ink3 mt-2">Red dots above the 1:1 line were winners at some point. Dots right of the 1R line went past your initial stop. Values above 6R sit on the edge.</p>}
+          {unit === 'R' && <p className="text-[11.5px] text-ink3 mt-2">Red dots above the 1:1 line were winners at some point. Dots right of the 1R line went past your initial stop. Values above 6R sit on the edge. Tap a dot to open the trade.</p>}
+          {unit === '$' && <p className="text-[11.5px] text-ink3 mt-2">Tap a dot to open the trade.</p>}
         </Card>
-        <Card className="xl:col-span-2">
+        <Card className="xl:col-span-2 self-start">
           <CardHead title="After you exited" sub="Share of trades where price was further in your favour later" />
           <div className="grid grid-cols-3 gap-2">
             {forward.map((f, i) => (
               <motion.div key={f.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05, ease }} className="rounded-xl bg-raised/70 border border-line p-3 text-center">
                 <div className="label">{f.label}</div>
-                <div className={cx('num text-xl font-semibold mt-1', f.better != null && f.better > 0.5 ? 'text-warn' : '')}>{pct(f.better, 0)}</div>
+                <div className={cx('num text-xl font-semibold mt-1', f.better != null && f.better >= 0.6 ? 'text-warn' : '')}>{pct(f.better, 0)}</div>
                 <div className="text-[10.5px] text-ink3">{f.n} trades</div>
               </motion.div>
             ))}
           </div>
-          <p className="text-[12px] text-ink3 mt-3 leading-relaxed">Above 50% means you usually exit early. That's only a problem on high-odds setups — on low odds, taking 1:1 is the plan.</p>
+          <p className="text-[12px] text-ink3 mt-3 leading-relaxed">Above 50% means you usually exit early (amber from 60%). That's only a problem on high-odds setups — on low odds, taking 1:1 is the plan.</p>
         </Card>
       </div>
 
       <Card>
-        <CardHead title="Management lab" sub={`Your ${pool.length} trades replayed under each rule from the PDFs. ${rows.some(r => r.path?.touch) ? `${rows.filter(r => r.path?.touch).length} trades replay exactly from when price touched each R level (v2 export); the rest use MAE/MFE. ` : ''}${timed === 0 ? 'Your CSV has no timing, so whenever a trade touched both +1R and −1R the stop is assumed to have hit first — these are worst-case numbers. Run the RamanFX script for exact ones.' : timed < rows.length ? 'Where the order of highs and lows is unknown, the stop is assumed to hit first (conservative).' : 'Exact: every trade knows whether its best or worst price came first.'}`}
+        <CardHead title={<span className="inline-flex items-center gap-2 flex-wrap">Management lab<InfoTip text={caveat} /><Badge tone={timed === 0 ? 'warn' : timed < rows.length ? 'neutral' : 'profit'}>{timed === 0 ? 'Worst case' : timed < rows.length ? 'Mostly exact' : 'Exact'}</Badge></span>} sub={`Your ${pool.length} trades replayed under each exit rule from your playbook.`}
           right={<Segmented label="Trades" size="sm" value={split} onChange={setSplit} options={[{ value: 'all', label: 'All' }, { value: 'high', label: 'High odds' }, { value: 'low', label: 'Low odds' }, { value: 'none', label: 'Unplanned' }]} />} />
         {pool.length ? (<>
           <ResponsiveContainer width="100%" height={mobile ? 220 : 240}>
-            <BarChart data={sim} layout="vertical" margin={{ top: 0, right: 12, left: 0, bottom: 0 }}>
+            <BarChart data={sim} layout="vertical" margin={{ top: 0, right: 48, left: 0, bottom: 0 }}>
               <CartesianGrid stroke={c.line} horizontal={false} />
               <XAxis type="number" tickFormatter={v => `${v}R`} tick={{ fontSize: 10.5, fill: c.ink3 }} axisLine={false} tickLine={false} />
               <YAxis type="category" dataKey="name" width={mobile ? 110 : 170} tick={{ fontSize: mobile ? 10.5 : 12, fill: c.ink2 }} axisLine={false} tickLine={false} />
               <ReferenceLine x={0} stroke={c.line2} />
               <Tooltip content={<ChartTip fmt={v => `${v.toFixed(1)}R`} />} cursor={{ fill: c.a('ink3', 0.08) }} />
               <Bar dataKey="totalR" name="Total" radius={[0, 4, 4, 0]} animationDuration={800}>
-                {sim.map(s => <Cell key={s.id} fill={s.id === best?.id ? c.accent : s.totalR >= 0 ? c.profit : c.loss} fillOpacity={s.id === 'actual' ? 0.55 : 0.85} />)}
+                {sim.map(s => <Cell key={s.id} fill={s.id === 'actual' ? c.ink3 : s.totalR >= 0 ? c.profit : c.loss} fillOpacity={s.id === best?.id ? 0.95 : s.id === 'actual' ? 0.5 : 0.45} />)}
+                <LabelList dataKey="totalR" position="right" fontSize={10.5} fill={c.ink2} formatter={(v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}R`} />
               </Bar>
             </BarChart>
           </ResponsiveContainer>
-          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-2 mt-4">
-            {sim.map(s => (
-              <div key={s.id} className={cx('rounded-xl border p-3', s.id === best?.id ? 'border-accent bg-accent/10' : 'border-line bg-raised/40')}>
-                <div className="text-[13px] font-semibold flex items-center gap-1.5">{s.name}{s.id === best?.id && <Icon name="star" size={12} className="text-accent" fill="currentColor" />}</div>
-                <div className="text-[11px] text-ink3">{s.desc}</div>
-                <div className="grid grid-cols-3 gap-2 mt-2">
-                  <Stat label="Total" value={`${s.totalR >= 0 ? '+' : ''}${s.totalR.toFixed(1)}R`} className={tone(s.totalR)} />
-                  <Stat label="Avg" value={`${s.avgR.toFixed(2)}R`} className={tone(s.avgR)} />
-                  <Stat label="Win" value={pct(s.winRate, 0)} />
-                </div>
-              </div>
+          <ol className="mt-4 flex flex-col" aria-label="Exit rules, best first">
+            {ranked.map((s, i) => (
+              <li key={s.id} className={cx('grid grid-cols-[1.5rem_minmax(0,1fr)_auto] md:grid-cols-[1.5rem_minmax(0,1fr)_repeat(3,5.5rem)] items-center gap-x-3 gap-y-1 rounded-xl px-3 py-2.5 border', s.id === best?.id ? 'border-accent/50 bg-accent/10' : s.id === 'actual' ? 'border-line2 border-dashed' : 'border-transparent')}>
+                <span className="num text-[12px] text-ink3">{i + 1}</span>
+                <span className="min-w-0">
+                  <span className="text-[13px] font-semibold flex items-center gap-1.5">{s.name}{s.id === best?.id && <Icon name="star" size={12} className="text-accent" fill="currentColor" />}{s.id === 'actual' && <span className="text-[11px] font-normal text-ink3">baseline</span>}</span>
+                  <span className="text-[11px] text-ink3 block leading-snug">{s.desc}</span>
+                </span>
+                <span className={cx('num text-[14px] font-semibold text-right', tone(s.totalR))}>{`${s.totalR >= 0 ? '+' : ''}${s.totalR.toFixed(1)}R`}</span>
+                <span className="col-start-2 md:col-start-auto md:text-right text-[11.5px] md:text-[13px] text-ink3 md:text-ink2 num"><span className="md:hidden">Avg </span><span className={tone(s.avgR)}>{s.avgR.toFixed(2)}R</span></span>
+                <span className="col-start-3 md:col-start-auto text-right text-[11.5px] md:text-[13px] text-ink3 md:text-ink2 num"><span className="md:hidden">Win </span>{pct(s.winRate, 0)}</span>
+              </li>
             ))}
-          </div>
+          </ol>
         </>) : <p className="text-sm text-ink3 py-6 text-center">{split === 'all' ? 'Needs trades with a known initial stop (run the MT5 script, or set the initial risk on the trade).' : 'No trades in this group yet — grade trades in the Planner to split by odds.'}</p>}
       </Card>
 
-      <Card className={mobile ? 'px-4 py-1' : 'p-0 overflow-hidden'}>
-        {mobile ? (
-          <ul>{[...rows].reverse().slice(0, 200).map(r => (
-            <li key={r.g.t.id} className="py-3 border-t border-line first:border-0">
-              <Link to={`/trades/${r.g.t.id}`} className="flex items-baseline justify-between gap-3"><span className="font-mono font-semibold">{r.g.t.sym} <span className="font-sans font-normal text-ink3 text-xs">{r.g.t.closeTime.slice(0, 10)}</span></span><span className={cx('num font-semibold', tone(r.g.t.net))}>{fmt(r.g.t.net, { signed: true })}</span></Link>
-              <div className="grid grid-cols-4 gap-2 mt-2">
-                <Stat label="MAE" value={r.maeR != null ? `${r.maeR.toFixed(2)}R` : fmt(r.mae$ ?? null)} className="text-loss" />
-                <Stat label="MFE" value={r.mfeR != null ? `${r.mfeR.toFixed(2)}R` : fmt(r.mfe$ ?? null)} className="text-profit" />
-                <Stat label="Result" value={r.g.t.r != null ? `${r.g.t.r.toFixed(2)}R` : '—'} className={tone(r.g.t.r)} />
-                <Stat label="Captured" value={pct(r.capture, 0)} />
-              </div>
-            </li>
-          ))}</ul>
-        ) : (
-          <table className="w-full">
-            <thead className="pillhead"><tr className="[&>th]:pt-3 [&>th:first-child]:pl-5 [&>th:last-child]:pr-5"><th className="th">Trade</th><th className="th text-right">MAE</th><th className="th text-right">MFE</th><th className="th text-right">Result</th><th className="th text-right">Captured</th><th className="th text-right">Data</th><th className="th text-right">Net</th></tr></thead>
-            <tbody>
-              {[...rows].reverse().slice(0, 300).map(r => (
-                <tr key={r.g.t.id} className="[&>td:first-child]:pl-5 [&>td:last-child]:pr-5 hover:bg-raised/50">
-                  <td className="td"><Link to={`/trades/${r.g.t.id}`} className="font-mono hover:text-accent inline-block py-2 -my-2">{r.g.t.sym}</Link> <span className="text-ink3 text-xs">{r.g.t.closeTime.slice(0, 10)}</span></td>
-                  <td className="td num text-right text-loss">{r.maeR != null ? `${r.maeR.toFixed(2)}R` : fmt(r.mae$ ?? null)}</td>
-                  <td className="td num text-right text-profit">{r.mfeR != null ? `${r.mfeR.toFixed(2)}R` : fmt(r.mfe$ ?? null)}</td>
-                  <td className={cx('td num text-right', tone(r.g.t.r))}>{r.g.t.r != null ? `${r.g.t.r.toFixed(2)}R` : '—'}</td>
-                  <td className="td num text-right">{pct(r.capture, 0)}</td>
-                  <td className="td text-right text-xs text-ink3">{exitData[r.g.t.id].source ?? 'CSV'}</td>
-                  <td className={cx('td num text-right font-semibold', tone(r.g.t.net))}>{fmt(r.g.t.net, { signed: true })}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Card>
+      {!v2 && exitBreakdown}
+
+      <TradeList rows={rows} unit={unit} only={only} onClear={() => setOnly(null)} source={id => exitData[id].source ?? 'CSV'} />
       <Setup have={rows.length} />
       <p className="text-[11.5px] text-ink3 text-center">{num(rows.length, 0)} positions with excursion data.</p>
     </Page>
