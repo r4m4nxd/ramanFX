@@ -40,7 +40,7 @@ export function TvEmbed({ script, config, className, title, fit = false, auto = 
     return () => { el.innerHTML = ''; };
   }, [script, key]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <div ref={outer} aria-label={title} className={cx(className?.includes('absolute') ? '' : 'relative', 'overflow-hidden', className)} style={{ colorScheme: theme }}>
+    <div ref={outer} role="region" aria-label={title} className={cx(className?.includes('absolute') ? '' : 'relative', 'overflow-hidden', className)} style={{ colorScheme: theme }}>
       <div ref={box} className={cx('tradingview-widget-container', auto ? 'w-full' : 'absolute inset-0')} />
     </div>
   );

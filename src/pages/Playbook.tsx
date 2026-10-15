@@ -135,7 +135,7 @@ export default function Playbook() {
                   const on = !!checks[c.id];
                   return (
                     <button key={c.id} role="checkbox" aria-checked={on} onClick={() => setPb({ ...pb, checks: { ...checks, [c.id]: !on } })} className="w-full flex items-start gap-3 py-2 px-1.5 -mx-1.5 rounded-lg text-left hover:bg-raised">
-                      <motion.span animate={{ scale: on ? [1, 1.2, 1] : 1 }} className={cx('mt-0.5 w-[18px] h-[18px] rounded-md border grid place-items-center shrink-0', on ? 'bg-accent border-accent text-[#0A0C0F]' : 'border-line2')}>{on && <Icon name="check" size={12} strokeWidth={3} />}</motion.span>
+                      <motion.span animate={{ scale: on ? [1, 1.2, 1] : 1 }} className={cx('mt-0.5 w-[18px] h-[18px] rounded-md border grid place-items-center shrink-0', on ? 'bg-accent border-accent text-on-accent' : 'border-line2')}>{on && <Icon name="check" size={12} strokeWidth={3} />}</motion.span>
                       <span className={cx('text-[13px] leading-snug', on ? 'text-ink' : 'text-ink2')}>{c.label}</span>
                     </button>
                   );

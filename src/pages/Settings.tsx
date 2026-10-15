@@ -78,7 +78,7 @@ export default function Settings() {
         <div className="flex flex-wrap gap-2">
           <button className="btn" onClick={exportJSON}><Icon name="download" size={14} />Download backup</button>
           <button className="btn" onClick={() => fileRef.current?.click()}><Icon name="upload" size={14} />Restore from file</button>
-          <input ref={fileRef} type="file" accept="application/json,.json" className="sr-only" onChange={async e => {
+          <input ref={fileRef} type="file" aria-label="Restore backup file" accept="application/json,.json" className="sr-only" onChange={async e => {
             const f = e.target.files?.[0]; e.target.value = '';
             if (!f) return;
             try { restore(JSON.parse(await f.text())); toast('Backup merged into your journal'); } catch (x) { toast(`Couldn't read that file: ${(x as Error).message}`, 'error'); }
@@ -89,6 +89,9 @@ export default function Settings() {
       <Card>
         <CardHead title="Instrument specs" sub="Contract sizes, pip and tick sizes for 200+ instruments, editable per symbol" right={<Link to="/calculator?tab=library" className="btn h-8">Open library</Link>} />
         <p className="text-sm text-ink3">The classic version of the app is still available at <a className="text-accent" href="/legacy.html">/legacy.html</a> for the AI coach and Edge lab while they're rebuilt. Both read the same data on this device.</p>
+      </Card>
+      <Card>
+        <CardHead title="Design system" sub="Colour, shape and motion tokens, the shared components and the accessibility baseline — generated live from the app." right={<Link to="/design" className="btn">Open<Icon name="chevronRight" size={14} /></Link>} />
       </Card>
     </Page>
   );

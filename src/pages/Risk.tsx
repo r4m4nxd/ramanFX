@@ -54,7 +54,7 @@ export default function Risk() {
             const on = !!gate[g];
             return (
               <button key={g} role="checkbox" aria-checked={on} onClick={() => setGate(x => ({ ...x, [g]: !on }))} className="w-full flex items-start gap-3 py-2 text-left">
-                <motion.span animate={{ scale: on ? [1, 1.2, 1] : 1 }} className={cx('mt-0.5 w-[18px] h-[18px] rounded-md border grid place-items-center shrink-0', on ? 'bg-profit border-profit text-[#0A0C0F]' : 'border-line2')}>{on && <Icon name="check" size={12} strokeWidth={3} />}</motion.span>
+                <motion.span animate={{ scale: on ? [1, 1.2, 1] : 1 }} className={cx('mt-0.5 w-[18px] h-[18px] rounded-md border grid place-items-center shrink-0', on ? 'bg-profit border-profit text-on-status' : 'border-line2')}>{on && <Icon name="check" size={12} strokeWidth={3} />}</motion.span>
                 <span className="text-[13px] text-ink2 leading-snug">{g}</span>
               </button>
             );

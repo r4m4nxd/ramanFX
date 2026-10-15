@@ -77,7 +77,7 @@ function PillNav({ title }: { title: string }) {
           <span className="relative">{p.label}</span>
         </NavLink>
       ))}
-      {extra && <span className="relative h-8 px-4 rounded-full text-[13px] font-semibold grid place-items-center text-ink pill-on">{title}</span>}
+      {extra && <span className="relative h-8 px-4 rounded-full text-[13px] font-semibold grid place-items-center whitespace-nowrap text-ink pill-on">{title}</span>}
     </nav>
   );
 }
@@ -160,7 +160,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const [cmd, setCmd] = useState(false);
   const toast = useToast();
   const mainRef = useRef<HTMLDivElement>(null);
-  const title = NAV.find(n => (n.to === '/' ? loc.pathname === '/' : loc.pathname.startsWith(n.to)))?.label ?? 'Trade';
+  const title = NAV.find(n => (n.to === '/' ? loc.pathname === '/' : loc.pathname.startsWith(n.to)))?.label ?? (loc.pathname.startsWith('/design') ? 'Design system' : 'Trade');
 
   useEffect(() => { window.scrollTo({ top: 0 }); setMoreOpen(false); }, [loc.pathname]);
   useEffect(() => {
@@ -207,8 +207,8 @@ export function Shell({ children }: { children: ReactNode }) {
           </div>
         ))}
         <div className="flex-1" />
-        <button className="btn-ghost justify-start text-ink3 text-xs" onClick={() => setCmd(true)}><Icon name="search" size={14} />Search<kbd className="ml-auto text-[10px] border border-line2 rounded px-1.5">⌘K</kbd></button>
-        <a href="/legacy.html" className="btn-ghost justify-start text-ink3 text-xs"><Icon name="link" size={14} />Classic app</a>
+        <button className="btn-ghost shrink-0 justify-start text-ink3 text-xs" onClick={() => setCmd(true)}><Icon name="search" size={14} />Search<kbd className="ml-auto text-[10px] border border-line2 rounded px-1.5">⌘K</kbd></button>
+        <a href="/legacy.html" className="btn-ghost shrink-0 justify-start text-ink3 text-xs"><Icon name="link" size={14} />Classic app</a>
       </aside>
 
       <div className="flex-1 min-w-0 flex flex-col" ref={mainRef}>
@@ -238,7 +238,7 @@ export function Shell({ children }: { children: ReactNode }) {
           {/* Plain keyed fade-in. An exit-then-enter handoff (AnimatePresence "wait") could stall
               while a lazy page was still loading, leaving the new page invisible. */}
           <motion.div key={loc.pathname} className="page-in">
-              {!hasTrades && !['/playbook', '/calculator', '/settings', '/risk', '/notebook', '/strategies', '/plan', '/guru', '/guide', '/news', '/chart'].some(p => loc.pathname.startsWith(p)) ? <Welcome onImport={() => setImportOpen(true)} /> : children}
+              {!hasTrades && !['/playbook', '/calculator', '/settings', '/risk', '/notebook', '/strategies', '/plan', '/guru', '/guide', '/news', '/chart', '/design'].some(p => loc.pathname.startsWith(p)) ? <Welcome onImport={() => setImportOpen(true)} /> : children}
           </motion.div>
         </main>
       </div>

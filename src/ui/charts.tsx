@@ -89,7 +89,7 @@ export const useAxisW = () => (useIsMobile() ? 44 : 60);
 export function ChartTip({ active, payload, label, fmt, labelFmt }: TooltipProps<number, string> & { fmt: (v: number, name: string) => string; labelFmt?: (l: unknown) => string }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-2xl bg-surface/95 backdrop-blur-md border border-accent/30 shadow-[0_10px_30px_rgba(0,0,0,.45),0_0_20px_rgba(139,92,246,.25)] px-3.5 py-2.5 text-xs">
+    <div className="rounded-2xl bg-surface/95 backdrop-blur-md border border-accent/30 shadow-card px-3.5 py-2.5 text-xs">
       <div className="text-ink3 mb-1">{labelFmt ? labelFmt(label) : String(label)}</div>
       {payload.filter(p => p.value != null).map(p => (
         <div key={String(p.dataKey)} className="flex items-center gap-2 num">

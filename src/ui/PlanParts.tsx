@@ -13,7 +13,7 @@ export function Choice({ on, onClick, title, sub, children, tone = 'accent' }: {
       {children}
       <div className="text-[13.5px] font-semibold leading-tight">{title}</div>
       {sub && <div className="text-[11.5px] text-ink3 mt-0.5 leading-snug">{sub}</div>}
-      {on && <motion.span layoutId={undefined} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={spring} className="absolute top-2 right-2 w-5 h-5 rounded-full bg-accent text-[#0A0C0F] grid place-items-center"><Icon name="check" size={12} strokeWidth={3} /></motion.span>}
+      {on && <motion.span layoutId={undefined} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={spring} className="absolute top-2 right-2 w-5 h-5 rounded-full bg-accent text-on-accent grid place-items-center"><Icon name="check" size={12} strokeWidth={3} /></motion.span>}
     </motion.button>
   );
 }

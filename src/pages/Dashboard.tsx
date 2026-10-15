@@ -125,7 +125,7 @@ function Checklist() {
             <li key={it}>
               <button type="button" role="checkbox" aria-checked={on} onClick={() => toggle(it)} className="w-full flex items-center gap-3 py-2 px-1.5 -mx-1.5 rounded-lg hover:bg-raised text-left">
                 <motion.span animate={{ scale: on ? [1, 1.2, 1] : 1 }} transition={{ duration: 0.25 }}
-                  className={cx('w-[18px] h-[18px] rounded-md border grid place-items-center shrink-0 transition-colors', on ? 'bg-accent border-accent text-[#0A0C0F]' : 'border-line2')}>
+                  className={cx('w-[18px] h-[18px] rounded-md border grid place-items-center shrink-0 transition-colors', on ? 'bg-accent border-accent text-on-accent' : 'border-line2')}>
                   {on && <Icon name="check" size={12} strokeWidth={3} />}
                 </motion.span>
                 <span className={cx('text-[13px]', on ? 'text-ink3 line-through' : 'text-ink')}>{it}</span>

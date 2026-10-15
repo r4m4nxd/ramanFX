@@ -9,12 +9,15 @@ export default {
         bg: v('bg'), surface: v('surface'), raised: v('raised'), line: v('line'), line2: v('line2'),
         ink: v('ink'), ink2: v('ink2'), ink3: v('ink3'),
         accent: v('accent'), profit: v('profit'), loss: v('loss'), warn: v('warn'), violet: v('violet'), cyan: v('cyan'),
+        'on-accent': v('on-accent'), 'on-status': v('on-status'),
       },
       fontFamily: {
         sans: ['Inter', '-apple-system', '"SF Pro Display"', 'system-ui', 'sans-serif'],
         mono: ['Inter', '-apple-system', 'system-ui', 'sans-serif'],
       },
-      borderRadius: { xl: '12px', '2xl': '16px' },
+      // Semantic radius tokens (set per theme in index.css): one place to change the shape language.
+      borderRadius: { md: 'var(--radius-xs)', lg: 'var(--radius-control)', xl: 'var(--radius-inner)', '2xl': 'var(--radius-card)', '3xl': 'var(--radius-panel)' },
+      transitionDuration: { fast: 'var(--motion-fast)', base: 'var(--motion-base)', slow: 'var(--motion-slow)' },
       boxShadow: {
         card: 'var(--shadow-card)',
         glow: 'var(--glow)',

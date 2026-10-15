@@ -194,7 +194,7 @@ export default function TradeDetail() {
                 <div className="flex gap-1.5">
                   {(['A', 'B', 'C', 'D'] as const).map(g => (
                     <button key={g} type="button" aria-pressed={draft.grade === g} onClick={() => set({ grade: draft.grade === g ? null : g })}
-                      className={cx('h-9 flex-1 rounded-lg border text-sm font-bold transition-colors', draft.grade === g ? (g === 'A' ? 'bg-profit text-[#0A0C0F] border-profit' : g === 'B' ? 'bg-accent text-[#0A0C0F] border-accent' : g === 'C' ? 'bg-warn text-[#0A0C0F] border-warn' : 'bg-loss text-white border-loss') : 'border-line2 text-ink2 hover:bg-raised')}>{g}</button>
+                      className={cx('h-9 flex-1 rounded-lg border text-sm font-bold transition-colors', draft.grade === g ? (g === 'A' ? 'bg-profit text-on-status border-profit' : g === 'B' ? 'bg-accent text-on-accent border-accent' : g === 'C' ? 'bg-warn text-on-status border-warn' : 'bg-loss text-white border-loss') : 'border-line2 text-ink2 hover:bg-raised')}>{g}</button>
                   ))}
                 </div>
               </Field>

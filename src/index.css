@@ -24,6 +24,11 @@
   --card-edge: rgba(255, 255, 255, .08);
   --shadow-card: 0 10px 30px rgba(0, 0, 0, .5);
   --glow: 0 0 20px rgba(139, 92, 246, .35);
+  --on-accent: 255 255 255;  /* text/icons placed on a solid accent fill */
+  --on-status: 11 12 16;     /* text/icons placed on a solid profit/warn/loss fill */
+  /* Shape and motion (semantic). */
+  --radius-xs: 6px; --radius-control: 10px; --radius-inner: 12px; --radius-card: 16px; --radius-panel: 24px;
+  --motion-fast: 150ms; --motion-base: 250ms; --motion-slow: 450ms;
   color-scheme: dark;
 }
 
@@ -36,9 +41,9 @@
   --line2: 222 222 222;
   --ink: 17 17 17;
   --ink2: 82 82 82;
-  --ink3: 120 120 120;
-  --accent: 229 96 61;   /* #E5603D coral */
-  --profit: 5 150 105;
+  --ink3: 108 108 108;
+  --accent: 194 68 31;   /* #C2441F coral — deepest shade that passes 4.5:1 with white */
+  --profit: 4 120 87;
   --loss: 200 30 70;     /* crimson, kept clear of the coral accent */
   --warn: 180 83 9;
   --violet: 109 40 217;
@@ -47,6 +52,9 @@
   --card-edge: rgba(17, 17, 17, .04);
   --shadow-card: none;
   --glow: none;
+  --on-accent: 255 255 255;
+  --on-status: 255 255 255;
+  --radius-xs: 7px; --radius-control: 12px; --radius-inner: 16px; --radius-card: 24px; --radius-panel: 28px;
   color-scheme: light;
 }
 
@@ -82,11 +90,10 @@
   [data-theme='light'] .pill-on + span, [data-theme='light'] .pill-on ~ * { color: #fff; }
   [data-theme='light'] .pill-on.text-ink { color: #fff; }
   [data-theme='light'] .side-on { background: #fff; border-color: rgb(var(--line2)); box-shadow: 0 2px 8px rgba(17,17,17,.05); }
-  [data-theme='light'] .card { border-radius: 24px; }
   [data-theme='light'] .luxe-border { --violet: 229 96 61; }
-  [data-theme='light'] .card-hero { border-radius: 24px; background: radial-gradient(120% 110% at 10% 0%, #F08A68 0%, #E5603D 50%, #C2441F 100%); border-color: rgba(255,255,255,.2); box-shadow: 0 16px 40px rgba(229, 96, 61, .28); }
-  [data-theme='light'] .btn-primary, [data-theme='light'] .btn-primary:hover { background: #E5603D; box-shadow: 0 8px 20px rgba(229, 96, 61, .3); }
-  [data-theme='light'] .btn-primary:hover { background: #D9532F; }
+  [data-theme='light'] .card-hero { background: radial-gradient(120% 110% at 10% 0%, #F08A68 0%, #E5603D 50%, #C2441F 100%); border-color: rgba(255,255,255,.2); box-shadow: 0 16px 40px rgba(229, 96, 61, .28); }
+  [data-theme='light'] .btn-primary, [data-theme='light'] .btn-primary:hover { background: rgb(var(--accent)); box-shadow: 0 8px 20px rgba(229, 96, 61, .3); }
+  [data-theme='light'] .btn-primary:hover { background: #AE3A18; }
   [data-theme='light'] .btn { background-color: #fff; border-color: rgb(var(--line2)); }
   [data-theme='light'] .btn-ghost { background-color: transparent; border-color: transparent; }
   .btn-ghost { @apply btn bg-transparent border-transparent hover:bg-raised; }

@@ -11,6 +11,7 @@ const Journal = lazy(() => import('@/pages/Journal'));
 const Trades = lazy(() => import('@/pages/Trades'));
 const TradeDetail = lazy(() => import('@/pages/TradeDetail'));
 const Reports = lazy(() => import('@/pages/Reports'));
+const DesignSystem = lazy(() => import('@/pages/DesignSystem'));
 const CalendarPage = lazy(() => import('@/pages/CalendarPage'));
 const Heatmaps = lazy(() => import('@/pages/Heatmaps'));
 const Planner = lazy(() => import('@/pages/Planner'));
@@ -77,6 +78,7 @@ export default function App() {
               <Route path="/notebook" element={<Notebook />} />
               <Route path="/exits" element={<Exits />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/design" element={<DesignSystem />} />
               <Route path="*" element={<Dashboard />} />
             </Routes>
           </Suspense>
