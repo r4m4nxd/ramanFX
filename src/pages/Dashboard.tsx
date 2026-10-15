@@ -170,8 +170,7 @@ export default function Dashboard() {
     <Page>
       <TickerTape />
       <TodayStrip />
-      <GuruStrip />
-
+      <h2 className="label -mb-1 mt-2 px-1">Performance</h2>
       <section aria-label="Key metrics" className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
         <Kpi hero icon="bolt" className="col-span-2 md:col-span-1" label="Net P&L" foot={`${s.total} trades · ${s.days.length} days`}>
           <CountUp value={s.net} format={v => fmt(v, { signed: true })} className="num text-[28px] font-bold tracking-tight text-white whitespace-nowrap" />
@@ -194,9 +193,7 @@ export default function Dashboard() {
           <CountUp value={s.expectancy} format={v => fmt(v, { signed: true })} className={cx('num text-[26px] font-semibold tracking-tight', tone(s.expectancy))} />
         </Kpi>
       </section>
-
-      <RiskGrid s={s} />
-
+      <h2 className="label -mb-1 mt-2 px-1">Trends</h2>
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <Card className="xl:col-span-2">
           <CardHead title={curve === 'pnl' ? 'Equity curve' : curve === 'r' ? 'Equity in R' : 'Account balance'}
@@ -233,7 +230,18 @@ export default function Dashboard() {
           {lowSample && <p className="text-[11px] text-warn mt-3">Small sample: treat every number here as provisional.</p>}
         </Card>
       </div>
-
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <Card className="xl:col-span-2">
+          <CardHead title={`${PERIOD_NOUN[barP][0]} ${{ net: 'net P&L', r: 'R', win: 'win rate', n: 'trades' }[barM]}`} right={<div className="flex flex-wrap gap-2"><Segmented label="Metric" size="sm" value={barM} onChange={setBarM} options={[{ value: 'net', label: '$' }, { value: 'r', label: 'R' }, { value: 'win', label: 'Win %' }, { value: 'n', label: 'Trades' }]} /><PeriodToggle value={barP} onChange={setBarP} /></div>}
+            sub={<>Green {PERIOD_NOUN[barP][2]} {greenB} · red {PERIOD_NOUN[barP][2]} {redB} · {PERIOD_NOUN[barP][1]} win rate <span className="num">{pct(greenB + redB ? greenB / (greenB + redB) : null, 0)}</span>{barP !== 'month' && <> · last {shown.length} {PERIOD_NOUN[barP][2]}</>}</>} />
+          <DailyBars days={barP === 'day' ? daysR.slice(-60) : daysR.filter(d => !shown.length || d.date >= shown[0].date)} fmt={fmt} period={barP} metric={barM} />
+        </Card>
+        <Checklist />
+      </div>
+      <h2 className="label -mb-1 mt-2 px-1">Discipline & risk</h2>
+      <RiskGrid s={s} />
+      <GuruStrip />
+      <h2 className="label -mb-1 mt-2 px-1">Breakdown</h2>
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <Card><MonthCalendar days={s.days} onDay={d => nav(`/journal?day=${d}`)} /></Card>
         <Card>
@@ -257,7 +265,6 @@ export default function Dashboard() {
           {a.setups.find(g => g.key === '(not journaled)') && <p className="text-xs text-ink3 mt-3">Tag trades with their setup in the trade view to see which setups carry your edge.</p>}
         </Card>
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <Card>
           <CardHead title="By symbol" sub={a.symbols.length > 12 && !allSyms ? `Best 6 and worst 6 of ${a.symbols.length}` : 'Every symbol, best to worst'}
@@ -293,16 +300,7 @@ export default function Dashboard() {
           ) : <p className="text-sm text-ink3 py-6 text-center">No mistakes tagged yet. Tag them on a trade to see what they cost.</p>}
         </Card>
       </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <Card className="xl:col-span-2">
-          <CardHead title={`${PERIOD_NOUN[barP][0]} ${{ net: 'net P&L', r: 'R', win: 'win rate', n: 'trades' }[barM]}`} right={<div className="flex flex-wrap gap-2"><Segmented label="Metric" size="sm" value={barM} onChange={setBarM} options={[{ value: 'net', label: '$' }, { value: 'r', label: 'R' }, { value: 'win', label: 'Win %' }, { value: 'n', label: 'Trades' }]} /><PeriodToggle value={barP} onChange={setBarP} /></div>}
-            sub={<>Green {PERIOD_NOUN[barP][2]} {greenB} · red {PERIOD_NOUN[barP][2]} {redB} · {PERIOD_NOUN[barP][1]} win rate <span className="num">{pct(greenB + redB ? greenB / (greenB + redB) : null, 0)}</span>{barP !== 'month' && <> · last {shown.length} {PERIOD_NOUN[barP][2]}</>}</>} />
-          <DailyBars days={barP === 'day' ? daysR.slice(-60) : daysR.filter(d => !shown.length || d.date >= shown[0].date)} fmt={fmt} period={barP} metric={barM} />
-        </Card>
-        <Checklist />
-      </div>
-
+      <h2 className="label -mb-1 mt-2 px-1">Activity</h2>
       <Card>
         <CardHead title="Recent trades" sub="Open any trade to journal it" right={<Link to="/trades" className="text-xs text-accent hover:underline inline-block py-2 -my-2">All trades</Link>} />
         {mobile ? <TradeList trades={recent} /> : (
