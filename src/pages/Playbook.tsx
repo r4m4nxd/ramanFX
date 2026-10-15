@@ -48,7 +48,8 @@ export default function Playbook() {
   const plays = alignmentPlays(trend, combo);
   const checks = pb.checks ?? {};
   const done = CHECKS.filter(c => checks[c.id]).length;
-  const grade = done === CHECKS.length ? ['A+ setup', 'profit'] : done / CHECKS.length >= 0.8 ? ['High probability', 'profit'] : done / CHECKS.length >= 0.55 ? ['Needs confirmation', 'warn'] : ['Skip it', 'loss'];
+  // Neutral until the trader has worked through at least half the list; red means a real "skip it", not "not started".
+  const grade = done === 0 ? ['Not started', 'neutral'] : done === CHECKS.length ? ['A+ setup', 'profit'] : done / CHECKS.length >= 0.8 ? ['High probability', 'profit'] : done / CHECKS.length >= 0.55 ? ['Needs confirmation', 'warn'] : done >= Math.ceil(CHECKS.length / 2) ? ['Skip it', 'loss'] : ['In progress', 'neutral'];
 
   // Did trades that matched the matrix do better? Uses the alignment saved on each trade.
   const adherence = useMemo(() => groupStats(et, t => {
@@ -121,11 +122,11 @@ export default function Playbook() {
 
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 items-start">
         <Card className="xl:col-span-3">
-          <CardHead title="Pre-trade checklist" sub="Supply & demand + trendline confirmation" right={<button className="btn h-8 text-xs" onClick={() => setPb({ ...pb, checks: {} })}>Reset</button>} />
+          <CardHead title="Setup checklist" sub="Supply & demand + trendline confirmation" right={<button className="btn h-8 touch:h-10 text-xs" disabled={!done} onClick={() => setPb({ ...pb, checks: {} })}>Reset</button>} />
           <div className="flex items-center gap-3 mb-4">
-            <span className={cx('num text-2xl font-semibold', `text-${grade[1]}`)}>{done}/{CHECKS.length}</span>
-            <Badge tone={grade[1] as 'profit'}>{grade[0]}</Badge>
-            <Bar value={done / CHECKS.length} tone={grade[1] as 'profit'} className="flex-1" />
+            <span className={cx('num text-2xl font-semibold', grade[1] === 'neutral' ? 'text-ink' : `text-${grade[1]}`)}>{done}/{CHECKS.length}</span>
+            <span role="status" aria-live="polite"><Badge tone={grade[1] as 'profit'}>{grade[0]}</Badge></span>
+            <Bar value={done / CHECKS.length} tone={grade[1] === 'neutral' ? 'accent' : grade[1] as 'profit'} className="flex-1" />
           </div>
           <div className="grid sm:grid-cols-2 gap-x-6">
             {[...new Set(CHECKS.map(c => c.group))].map(g => (
