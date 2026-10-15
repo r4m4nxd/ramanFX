@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useEnriched } from '@/data/derived';
 import { useStore } from '@/data/store';
 import { compressImage, uploadImage } from '@/data/cloud';
@@ -10,7 +10,8 @@ import { fmtHold } from '@/core/time';
 import { normTag } from '@/core/stats';
 import type { Attachment, TradeNote, Trend } from '@/core/types';
 import { longDate, num, price, rMult, timeHM, tone, useMoney } from '@/lib/format';
-import { Badge, Card, CardHead, cx, Empty, Field, Page, useToast } from '@/ui/kit';
+import { Badge, Card, CardHead, cx, Empty, Field, Page, useIsMobile, useToast } from '@/ui/kit';
+import { TRADE_ORDER_KEY } from '@/ui/TradeList';
 import { TagInput } from '@/ui/TagInput';
 import { Icon } from '@/ui/Icon';
 import { Lightbox } from '@/ui/Lightbox';
@@ -39,21 +40,46 @@ export default function TradeDetail() {
   const toast = useToast();
   const graded = useGradedTrade(id);
 
-  const idx = all.findIndex(t => t.id === id);
-  const t = all[idx];
+  const loc = useLocation();
+  const mobile = useIsMobile();
+  const t = all.find(x => x.id === id);
+  // Prev/Next walk the trades list as it was filtered and sorted; elsewhere, newest first.
+  const order = useMemo(() => {
+    if ((loc.state as { list?: string } | null)?.list === 'trades') {
+      try { const ids = JSON.parse(sessionStorage.getItem(TRADE_ORDER_KEY) ?? 'null') as string[] | null; if (ids?.includes(id ?? '')) return { ids, filtered: true }; } catch { /* fall through */ }
+    }
+    return { ids: [...all].sort((a, b) => b.close.getTime() - a.close.getTime()).map(x => x.id), filtered: false };
+  }, [all, id, loc.state]);
+  const pos = order.ids.indexOf(id ?? '');
+  const prevId = pos > 0 ? order.ids[pos - 1] : undefined;
+  const nextId = pos >= 0 ? order.ids[pos + 1] : undefined;
+  const go = (to?: string) => { if (to) nav(`/trades/${to}`, { replace: true, state: loc.state }); };
   const [draft, setDraft] = useState<TradeNote>(() => notes[id ?? ''] ?? {});
   const [saved, setSaved] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [confirmDel, setConfirmDel] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const dirty = useRef(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const riskRef = useRef<HTMLInputElement>(null);
+  const [riskOpen, setRiskOpen] = useState(false);
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
 
-  useEffect(() => { setDraft(notes[id ?? ''] ?? {}); dirty.current = false; setSaved('idle'); /* eslint-disable-next-line */ }, [id]);
+  useEffect(() => {
+    setDraft(notes[id ?? ''] ?? {}); dirty.current = false; setSaved('idle'); setConfirmDel(null);
+    // Flush a pending edit when leaving this trade (Prev/Next, Back, closing the tab) instead of dropping it.
+    const flush = () => { if (dirty.current && id) { saveNote(id, draftRef.current); dirty.current = false; } };
+    window.addEventListener('pagehide', flush);
+    return () => { window.removeEventListener('pagehide', flush); flush(); };
+    /* eslint-disable-next-line */
+  }, [id]);
   // Autosave 600ms after the last user edit (never on open, so viewing doesn't bump timestamps).
   useEffect(() => {
     if (!dirty.current || !id) return;
     setSaved('saving');
-    const h = setTimeout(() => { saveNote(id, draft); setSaved('saved'); }, 600);
+    const h = setTimeout(() => { saveNote(id, draft); dirty.current = false; setSaved('saved'); }, 600);
     return () => clearTimeout(h);
   }, [draft, id, saveNote]);
 
@@ -69,12 +95,13 @@ export default function TradeDetail() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).closest('input,textarea,select')) return;
-      if (e.key === 'ArrowLeft' && all[idx - 1]) nav(`/trades/${all[idx - 1].id}`);
-      if (e.key === 'ArrowRight' && all[idx + 1]) nav(`/trades/${all[idx + 1].id}`);
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === 'ArrowLeft') go(prevId);
+      if (e.key === 'ArrowRight') go(nextId);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [all, idx, nav]);
+  });
 
   // Paste a screenshot straight from the clipboard.
   useEffect(() => {
@@ -102,22 +129,86 @@ export default function TradeDetail() {
   const want = t.type === 'buy' ? 'long' : 'short';
   const matched = plays?.find(p => p.dir === want);
 
-  async function addFiles(files: File[]) {
+  async function addFiles(picked: File[]) {
+    const files = picked.filter(f => f.type.startsWith('image/'));
+    if (!files.length) { toast('Only image files can be added', 'error'); return; }
     setUploading(true);
     const added: Attachment[] = [];
+    try {
     for (const f of files) {
       const attId = `att_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       const blob = await compressImage(f);
       let storageUrl: string | null = null;
-      if (user) storageUrl = await uploadImage(user.id, `${t.account}_${t.id}`, attId, blob);
+      if (user) storageUrl = await uploadImage(user.id, `${t!.account}_${t!.id}`, attId, blob);
       const base = { id: attId, name: f.name || 'screenshot.jpg', type: 'image/jpeg', size: blob.size, addedAt: Date.now() };
       if (storageUrl) added.push({ ...base, storageUrl });
       else added.push({ ...base, dataUrl: await new Promise<string>(r => { const fr = new FileReader(); fr.onload = () => r(String(fr.result)); fr.readAsDataURL(blob); }) });
     }
-    saveAttachments(t.id, [...atts, ...added]);
-    setUploading(false);
-    toast(`${added.length} screenshot${added.length > 1 ? 's' : ''} added`);
+    } catch {
+      toast(added.length ? `Only ${added.length} of ${files.length} screenshots were added` : 'Could not add the screenshot. Try again.', 'error');
+    } finally {
+      if (added.length) saveAttachments(t!.id, [...atts, ...added]);
+      setUploading(false);
+    }
+    if (added.length === files.length) toast(`${added.length} screenshot${added.length > 1 ? 's' : ''} added`);
   }
+  const drop = {
+    onDragOver: (e: React.DragEvent) => { e.preventDefault(); setDragOver(true); },
+    onDragLeave: () => setDragOver(false),
+    onDrop: (e: React.DragEvent) => { e.preventDefault(); setDragOver(false); void addFiles(Array.from(e.dataTransfer.files)); },
+  };
+  const removeAtt = (attId: string) => {
+    if (confirmDel !== attId) { setConfirmDel(attId); return; }
+    saveAttachments(t.id, atts.filter(x => x.id !== attId)); setConfirmDel(null); toast('Screenshot removed');
+  };
+  const editRisk = () => { setRiskOpen(true); requestAnimationFrame(() => { riskRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }); riskRef.current?.focus(); }); };
+
+  const journal = (
+    <Card aria-label="Journal">
+      <CardHead title="Journal" sub="Why you took it, how you managed it, what you'd repeat" right={<span className={cx('text-xs transition-opacity', saved === 'idle' ? 'opacity-0' : 'text-ink3')} aria-live="polite">{saved === 'saving' ? 'Saving…' : 'Saved'}</span>} />
+      <label className="sr-only" htmlFor="tnote">Trade notes</label>
+      <textarea id="tnote" rows={7} value={draft.note ?? ''} onChange={e => set({ note: e.target.value })} placeholder="Setup, confirmation, management, lesson…" className="w-full p-3.5 text-[14px] leading-relaxed resize-y" />
+      <div className="grid sm:grid-cols-2 gap-4 mt-4">
+        <Field label="Setup tags"><TagInput label="Setup tags" value={draft.tags ?? []} onChange={v => set({ tags: v })} universe={universe.tags} placeholder="wow zone, fresh zone, pcp…" /></Field>
+        <Field label="Mistakes"><TagInput label="Mistakes" tone="warn" value={draft.mistakes ?? []} onChange={v => set({ mistakes: v })} universe={universe.mistakes} placeholder="moved sl, early exit…" /></Field>
+      </div>
+      <div className="grid sm:grid-cols-2 gap-4 mt-4">
+        <Field label="Strategy">
+          <select className="field" value={draft.strategyId ?? ''} onChange={e => set({ strategyId: e.target.value || null })}>
+            <option value="">None</option>{strategies.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </Field>
+        <Field label="Execution grade">
+          <div className="flex gap-1.5">
+            {(['A', 'B', 'C', 'D'] as const).map(g => (
+              <button key={g} type="button" aria-pressed={draft.grade === g} onClick={() => set({ grade: draft.grade === g ? null : g })}
+                className={cx('h-9 flex-1 rounded-full border text-sm font-bold transition-colors', draft.grade === g ? (g === 'A' ? 'bg-profit text-on-status border-profit' : g === 'B' ? 'bg-accent text-on-accent border-accent' : g === 'C' ? 'bg-warn text-on-status border-warn' : 'bg-loss text-white border-loss') : 'border-line2 text-ink2 hover:bg-raised')}>{g}</button>
+            ))}
+          </div>
+        </Field>
+      </div>
+      <div className="mt-4">
+        <div className="text-xs font-medium text-ink2 mb-1.5">Rating</div>
+        <div className="flex gap-1" role="radiogroup" aria-label="Rating">
+          {[1, 2, 3, 4, 5].map(n => (
+            <button key={n} type="button" role="radio" aria-checked={draft.rating === n} aria-label={`${n} star${n > 1 ? 's' : ''}`} onClick={() => set({ rating: draft.rating === n ? 0 : n })}
+              className={cx('w-9 h-9 grid place-items-center rounded-lg transition-colors', (draft.rating ?? 0) >= n ? 'text-warn' : 'text-ink3 hover:text-ink2')}>
+              <Icon name="star" size={18} fill={(draft.rating ?? 0) >= n ? 'currentColor' : 'none'} />
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="mt-4">
+        <div className="text-xs font-medium text-ink2 mb-1.5">State of mind</div>
+        <div className="flex flex-wrap gap-1.5">
+          {EMOTIONS.map(e => (
+            <button key={e} type="button" aria-pressed={draft.emotion === e} onClick={() => set({ emotion: draft.emotion === e ? null : e })}
+              className={cx('chip capitalize', draft.emotion === e && 'bg-ink text-bg border-ink')}>{e}</button>
+          ))}
+        </div>
+      </div>
+    </Card>
+  );
 
   const pipLabel = spec.assetClass === 'forex' || spec.assetClass === 'metal' ? 'pips' : 'pts';
 
@@ -127,8 +218,9 @@ export default function TradeDetail() {
         <button className="btn-ghost -ml-2 text-accent" onClick={() => nav(-1)}><Icon name="chevronLeft" size={15} />Back</button>
         <div className="flex items-center gap-2">
           <span className={cx('text-xs transition-opacity', saved === 'idle' ? 'opacity-0' : 'text-ink3')}>{saved === 'saving' ? 'Saving…' : 'Saved'}</span>
-          <button className="btn" disabled={!all[idx - 1]} onClick={() => nav(`/trades/${all[idx - 1].id}`)} aria-label="Previous trade"><Icon name="chevronLeft" size={14} />Prev</button>
-          <button className="btn" disabled={!all[idx + 1]} onClick={() => nav(`/trades/${all[idx + 1].id}`)} aria-label="Next trade">Next<Icon name="chevronRight" size={14} /></button>
+          {pos >= 0 && <span className="text-xs text-ink3 num hidden sm:inline" title={order.filtered ? 'Position in your filtered trades list' : 'Position among all trades, newest first'}>{pos + 1} / {order.ids.length}</span>}
+          <button className="btn" disabled={!prevId} onClick={() => go(prevId)} aria-label="Previous trade" title="Previous trade (←)"><Icon name="chevronLeft" size={14} />Prev</button>
+          <button className="btn" disabled={!nextId} onClick={() => go(nextId)} aria-label="Next trade" title="Next trade (→)">Next<Icon name="chevronRight" size={14} /></button>
         </div>
       </div>
 
@@ -137,18 +229,26 @@ export default function TradeDetail() {
           <div className="flex items-center gap-2.5 flex-wrap">
             <h2 className="font-mono text-2xl font-semibold">{t.sym}</h2>
             <Badge tone={t.type === 'buy' ? 'accent' : 'warn'}>{t.type === 'buy' ? 'LONG' : 'SHORT'}</Badge>
-            {matched && <Badge tone="profit">FOLLOWED PLAN</Badge>}
+            {matched && <Badge tone="profit">MATCHES MATRIX</Badge>}
             {plays && !matched && <Badge tone="loss">AGAINST MATRIX</Badge>}
             {!!draft.mistakes?.length && <Badge tone="warn">{draft.mistakes.length} MISTAKE{draft.mistakes.length > 1 ? 'S' : ''}</Badge>}
           </div>
-          <p className="text-[13px] text-ink3 mt-1.5">{longDate(t.open)} · {timeHM(t.open)} → {timeHM(t.close)} · held {fmtHold(t.holdSec)} · {spec.name} · #{t.id}</p>
+          <p className="text-[13px] text-ink3 mt-1.5 num">{longDate(t.open)} · {timeHM(t.open)} → {timeHM(t.close)} · <span className="whitespace-nowrap">held {fmtHold(t.holdSec)}</span></p>
+          <p className="text-[12px] text-ink3 mt-0.5"><span className="whitespace-nowrap">{spec.name}</span> · <span className="num whitespace-nowrap">{t.volume} lots</span> · <span className="num whitespace-nowrap">#{t.id}</span></p>
         </div>
-        <div className="flex gap-8 flex-wrap">
+        <div className="grid grid-cols-2 sm:flex gap-x-8 gap-y-4 w-full sm:w-auto">
           <div><div className="label">Net P&L</div><div className={cx('num text-2xl font-semibold mt-1', tone(t.net))}>{fmt(t.net, { signed: true })}</div></div>
-          <div><div className="label">R multiple</div><div className={cx('num text-2xl font-semibold mt-1', tone(t.r))}>{rMult(t.r, 2)}</div></div>
-          <div><div className="label">Moved</div><div className={cx('num text-2xl font-semibold mt-1', tone(movePips))}>{movePips > 0 ? '+' : ''}{num(movePips, 1)} <span className="text-sm text-ink3">{pipLabel}</span></div></div>
+          <div>
+            <div className="label">R multiple</div>
+            {t.r != null ? <div className={cx('num text-2xl font-semibold mt-1', tone(t.r))}>{rMult(t.r, 2)}</div>
+              : <button type="button" className="mt-1 h-8 text-sm font-medium text-accent hover:underline" onClick={editRisk}>Set risk to get R</button>}
+          </div>
+          <div><div className="label">Risk</div><div className="num text-lg font-semibold mt-1.5 text-ink2">{t.risk ? fmt(t.risk) : '—'}</div></div>
+          <div><div className="label">Price move</div><div className={cx('num text-lg font-semibold mt-1.5', tone(movePips))}>{movePips > 0 ? '+' : ''}{num(movePips, 1)} <span className="text-xs text-ink3">{pipLabel}</span></div></div>
         </div>
       </Card>
+
+      {mobile && journal}
 
       {graded && <VerdictCard g={graded} />}
 
@@ -156,7 +256,8 @@ export default function TradeDetail() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 items-start">
         <div className="xl:col-span-2 flex flex-col gap-4 min-w-0">
-          <Card aria-label="Screenshots">
+          <Card aria-label="Screenshots" className={cx(dragOver && 'ring-2 ring-accent/50')}>
+            <div {...drop}>
             <CardHead title="Chart screenshots" sub="Paste (Ctrl/⌘+V), drop or upload — one per timeframe works best" right={<button className="btn" onClick={() => fileRef.current?.click()} disabled={uploading}><Icon name="image" size={14} />{uploading ? 'Uploading…' : 'Add'}</button>} />
             <input ref={fileRef} type="file" accept="image/*" multiple className="sr-only" onChange={e => { if (e.target.files) void addFiles(Array.from(e.target.files)); e.target.value = ''; }} />
             {atts.length ? (
@@ -164,62 +265,19 @@ export default function TradeDetail() {
                 {atts.map((a, ai) => (
                   <motion.div key={a.id} layout className="group relative aspect-video rounded-xl overflow-hidden border border-line bg-raised">
                     <button className="absolute inset-0" onClick={() => setLightbox(ai)} aria-label={`Open ${a.name}`}><img src={a.storageUrl ?? a.dataUrl} alt={a.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" /></button>
-                    <button className="absolute top-1.5 right-1.5 w-8 h-8 rounded-lg bg-black/60 text-white grid place-items-center opacity-0 group-hover:opacity-100 focus:opacity-100" aria-label="Remove screenshot" onClick={() => saveAttachments(t.id, atts.filter(x => x.id !== a.id))}><Icon name="trash" size={14} /></button>
+                    <button className={cx('absolute top-1.5 right-1.5 h-8 rounded-lg text-white grid place-items-center transition-opacity', confirmDel === a.id ? 'px-2.5 bg-loss text-xs font-semibold opacity-100' : 'w-8 bg-black/60 opacity-0 touch:opacity-100 group-hover:opacity-100 focus:opacity-100')} aria-label={confirmDel === a.id ? `Confirm remove ${a.name}` : `Remove ${a.name}`} onClick={() => removeAtt(a.id)} onBlur={() => setConfirmDel(c => (c === a.id ? null : c))}>{confirmDel === a.id ? 'Remove?' : <Icon name="trash" size={14} />}</button>
                   </motion.div>
                 ))}
               </div>
             ) : (
-              <button className="w-full h-44 rounded-xl border-2 border-dashed border-line2 hover:border-ink3 grid place-items-center text-sm text-ink3" onClick={() => fileRef.current?.click()}
-                onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); void addFiles(Array.from(e.dataTransfer.files)); }}>
-                <span className="flex flex-col items-center gap-2"><Icon name="image" size={22} />Drop or paste your chart</span>
+              <button className={cx('w-full h-28 md:h-36 rounded-xl border-2 border-dashed hover:border-ink3 grid place-items-center text-sm text-ink3', dragOver ? 'border-accent' : 'border-line2')} onClick={() => fileRef.current?.click()} disabled={uploading}>
+                <span className="flex flex-col items-center gap-2"><Icon name="image" size={22} />{uploading ? 'Uploading…' : mobile ? 'Tap to add your chart' : 'Drop or paste your chart'}</span>
               </button>
             )}
+            </div>
           </Card>
 
-          <Card aria-label="Journal">
-            <CardHead title="Journal" sub="Why you took it, how you managed it, what you'd repeat" />
-            <label className="sr-only" htmlFor="tnote">Trade notes</label>
-            <textarea id="tnote" rows={7} value={draft.note ?? ''} onChange={e => set({ note: e.target.value })} placeholder="Setup, confirmation, management, lesson…" className="w-full p-3.5 text-[14px] leading-relaxed resize-y" />
-            <div className="grid sm:grid-cols-2 gap-4 mt-4">
-              <Field label="Setup tags"><TagInput label="Setup tags" value={draft.tags ?? []} onChange={v => set({ tags: v })} universe={universe.tags} placeholder="wow zone, fresh zone, pcp…" /></Field>
-              <Field label="Mistakes"><TagInput label="Mistakes" tone="warn" value={draft.mistakes ?? []} onChange={v => set({ mistakes: v })} universe={universe.mistakes} placeholder="moved sl, early exit…" /></Field>
-            </div>
-            <div className="grid sm:grid-cols-2 gap-4 mt-4">
-              <Field label="Strategy">
-                <select className="field" value={draft.strategyId ?? ''} onChange={e => set({ strategyId: e.target.value || null })}>
-                  <option value="">None</option>{strategies.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-              </Field>
-              <Field label="Execution grade">
-                <div className="flex gap-1.5">
-                  {(['A', 'B', 'C', 'D'] as const).map(g => (
-                    <button key={g} type="button" aria-pressed={draft.grade === g} onClick={() => set({ grade: draft.grade === g ? null : g })}
-                      className={cx('h-9 flex-1 rounded-lg border text-sm font-bold transition-colors', draft.grade === g ? (g === 'A' ? 'bg-profit text-on-status border-profit' : g === 'B' ? 'bg-accent text-on-accent border-accent' : g === 'C' ? 'bg-warn text-on-status border-warn' : 'bg-loss text-white border-loss') : 'border-line2 text-ink2 hover:bg-raised')}>{g}</button>
-                  ))}
-                </div>
-              </Field>
-            </div>
-            <div className="mt-4">
-              <div className="text-xs font-medium text-ink2 mb-1.5">Rating</div>
-              <div className="flex gap-1" role="radiogroup" aria-label="Rating">
-                {[1, 2, 3, 4, 5].map(n => (
-                  <button key={n} type="button" role="radio" aria-checked={draft.rating === n} aria-label={`${n} star${n > 1 ? 's' : ''}`} onClick={() => set({ rating: draft.rating === n ? 0 : n })}
-                    className={cx('w-9 h-9 grid place-items-center rounded-lg transition-colors', (draft.rating ?? 0) >= n ? 'text-warn' : 'text-ink3 hover:text-ink2')}>
-                    <Icon name="star" size={18} fill={(draft.rating ?? 0) >= n ? 'currentColor' : 'none'} />
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="mt-4">
-              <div className="text-xs font-medium text-ink2 mb-1.5">State of mind</div>
-              <div className="flex flex-wrap gap-1.5">
-                {EMOTIONS.map(e => (
-                  <button key={e} type="button" aria-pressed={draft.emotion === e} onClick={() => set({ emotion: draft.emotion === e ? null : e })}
-                    className={cx('chip capitalize', draft.emotion === e && 'bg-ink text-bg border-ink')}>{e}</button>
-                ))}
-              </div>
-            </div>
-          </Card>
+          {!mobile && journal}
         </div>
 
         <div className="flex flex-col gap-4 min-w-0">
@@ -269,14 +327,24 @@ export default function TradeDetail() {
                 ['Size', `${t.volume} lots`],
                 ['Pip value', `${fmt(uv.value * spec.pipSize * t.volume)} / ${pipLabel.slice(0, -1)}`],
                 ['Initial risk', t.risk ? fmt(t.risk) : '—'],
-                ['Gross · commission · swap', `${fmt(t.profit)} · ${fmt(t.commission)} · ${fmt(t.swap)}`],
+                ['Gross', fmt(t.profit)],
+                ['Commission', fmt(t.commission)],
+                ['Swap', fmt(t.swap)],
               ].map(([k, v]) => (
                 <div key={String(k)} className="flex justify-between gap-3 py-2 border-t border-line first:border-0"><dt className="text-ink2">{k}</dt><dd className="num text-right">{v}</dd></div>
               ))}
             </dl>
-            <Field label="Initial risk override" hint={t.riskSource === 'initial' ? 'From the stop this trade was opened with (RamanFX export) — exact.' : t.riskSource === 'stop' ? 'Taken from the final stop in the report. Run the RamanFX MT5 script for the stop you opened with.' : 'No usable stop in the report (none, or moved past entry). Enter what you risked to get R.'}>
-              <input type="number" step="0.01" min="0" className="field num" value={draft.riskOverride ?? ''} placeholder={t.risk ? t.risk.toFixed(2) : 'e.g. 100'} onChange={e => set({ riskOverride: e.target.value ? +e.target.value : null })} />
-            </Field>
+            <details className="mt-2 border-t border-line pt-2 group" open={riskOpen || draft.riskOverride != null || t.risk == null} onToggle={e => setRiskOpen((e.target as HTMLDetailsElement).open)}>
+              <summary className="cursor-pointer list-none flex items-center justify-between gap-2 py-1.5 text-[13px] text-ink2 hover:text-ink">
+                <span>Override initial risk{draft.riskOverride != null && <span className="text-ink3"> · set</span>}</span>
+                <Icon name="chevronDown" size={14} className="transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="pt-2">
+                <Field label="Initial risk" hint={t.riskSource === 'initial' ? 'Exact: from the stop you opened with.' : t.riskSource === 'stop' ? 'Estimated from the final stop. Enter what you risked for an exact R.' : 'No usable stop on this trade. Enter what you risked to get R.'}>
+                  <input ref={riskRef} type="number" step="0.01" min="0" inputMode="decimal" className="field num" value={draft.riskOverride ?? ''} placeholder={t.risk ? t.risk.toFixed(2) : 'e.g. 100'} onChange={e => set({ riskOverride: e.target.value ? +e.target.value : null })} />
+                </Field>
+              </div>
+            </details>
             <p className="text-[11px] text-ink3 mt-2">Value per pip {uv.source === 'measured' ? 'measured from your fills' : 'from contract spec'} · 1 {pipLabel.slice(0, -1)} = {spec.pipSize} price</p>
           </Card>
 
@@ -288,14 +356,14 @@ export default function TradeDetail() {
                 const span = mae + mfe || 1;
                 return (<>
                   <div className="relative h-8 rounded-lg bg-raised overflow-hidden">
-                    <motion.div className="absolute inset-y-1.5 bg-loss/60 rounded-l" style={{ right: `${(mfe / span) * 100}%` }} initial={{ width: 0 }} animate={{ width: `${(mae / span) * 100}%` }} />
-                    <motion.div className="absolute inset-y-1.5 bg-profit/40 rounded-r" style={{ left: `${(mae / span) * 100}%` }} initial={{ width: 0 }} animate={{ width: `${(mfe / span) * 100}%` }} />
+                    <motion.div className="absolute inset-y-2.5 bg-loss/35 rounded-l" style={{ right: `${(mfe / span) * 100}%` }} initial={{ width: 0 }} animate={{ width: `${(mae / span) * 100}%` }} />
+                    <motion.div className="absolute inset-y-2.5 bg-profit/35 rounded-r" style={{ left: `${(mae / span) * 100}%` }} initial={{ width: 0 }} animate={{ width: `${(mfe / span) * 100}%` }} />
                     <div className="absolute inset-y-0 w-0.5 bg-ink" style={{ left: `${((mae + got) / span) * 100}%` }} title="Exit" />
                   </div>
-                  <div className="grid grid-cols-3 gap-2 mt-3 text-xs num">
-                    <div><div className="label">MAE</div><div className="text-loss mt-1">{num(ex.mae, 0)}</div></div>
-                    <div><div className="label">MFE</div><div className="text-profit mt-1">{num(ex.mfe, 0)}</div></div>
-                    <div><div className="label">Captured</div><div className="mt-1">{mfe > 0 ? `${Math.round((Math.max(0, got) / mfe) * 100)}%` : '—'}</div></div>
+                  <div className="grid grid-cols-3 gap-2 mt-3 num">
+                    <div><div className="label">MAE</div><div className="text-loss mt-1 text-base font-semibold">{num(ex.mae, 0)}</div></div>
+                    <div><div className="label">MFE</div><div className="text-profit mt-1 text-base font-semibold">{num(ex.mfe, 0)}</div></div>
+                    <div><div className="label">Captured</div><div className="mt-1 text-base font-semibold">{mfe > 0 ? `${Math.round((Math.max(0, got) / mfe) * 100)}%` : '—'}</div></div>
                   </div>
                   {ex.exitReason != null && (() => {
                     const xt = { net: t.net, r: t.r, risk: t.risk, side: t.type, openPrice: t.openPrice, sl: t.sl, tp: t.tp, e: ex };

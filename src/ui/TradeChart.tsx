@@ -190,7 +190,12 @@ export function TradeChart({ t, levels, drawings = [], onDrawings }: { t: Enrich
   const tfValue = mode === 'tv' ? tvTf : active;
   const tfs = tfValue && tfOpts.length > 1 && <Segmented label="Timeframe" size="sm" value={tfValue} onChange={v => setTf(v)} options={tfOpts.map(x => ({ value: x, label: short(x) }))} />;
   const views = <Segmented label="Chart source" size="sm" value={mode} onChange={v => setView(v)} options={[{ value: 'mine', label: 'My execution' }, { value: 'tv', label: 'TradingView' }]} />;
-  const mine = loading ? <div className="h-[340px] md:h-[440px] grid place-items-center text-[13px] text-ink3">Loading candles…</div>
+  const mine = loading ? <div className="h-[340px] md:h-[440px] relative rounded-xl bg-raised/40 overflow-hidden" role="status" aria-label="Loading candles">
+      <div className="absolute inset-x-6 bottom-10 top-10 flex items-end gap-1.5 opacity-60 motion-safe:animate-pulse" aria-hidden>
+        {[38, 52, 46, 61, 57, 70, 64, 48, 55, 42, 50, 66, 73, 60, 68, 58, 49, 62].map((h, i) => <span key={i} className="flex-1 rounded-sm bg-line2" style={{ height: `${h}%` }} />)}
+      </div>
+      <span className="absolute left-4 top-3 text-[12px] text-ink3">Loading candles…</span>
+    </div>
     : !active ? (
       <div className="rounded-xl bg-raised/50 border border-line p-4 text-[13px] text-ink2 leading-relaxed">
         <div className="font-semibold text-ink mb-1">No candles for {t.symbol} yet</div>
