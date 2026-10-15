@@ -11,12 +11,13 @@ export default {
         accent: v('accent'), profit: v('profit'), loss: v('loss'), warn: v('warn'), violet: v('violet'), cyan: v('cyan'),
       },
       fontFamily: {
-        sans: ['Geist', 'system-ui', 'sans-serif'],
-        mono: ['"Geist Mono"', 'ui-monospace', 'monospace'],
+        sans: ['Inter', '-apple-system', '"SF Pro Display"', 'system-ui', 'sans-serif'],
+        mono: ['Inter', '-apple-system', 'system-ui', 'sans-serif'],
       },
-      borderRadius: { xl: '14px', '2xl': '18px' },
+      borderRadius: { xl: '12px', '2xl': '16px' },
       boxShadow: {
-        card: '0 1px 0 rgb(255 255 255 / 0.03) inset, 0 1px 2px rgb(0 0 0 / 0.2)',
+        card: 'var(--shadow-card)',
+        glow: 'var(--glow)',
         pop: '0 12px 40px -8px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(var(--line2))',
       },
       keyframes: {

@@ -79,7 +79,7 @@ function DayChart({ gs, unit }: { gs: Graded[]; unit: Unit }) {
         <defs><linearGradient id={`dj${gs[0].t.id}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={col} stopOpacity={0.32} /><stop offset="100%" stopColor={col} stopOpacity={0} /></linearGradient></defs>
         <CartesianGrid stroke={c.line} vertical={false} />
         <XAxis dataKey="t" type="number" scale="time" domain={['dataMin', 'dataMax']} tickFormatter={v => timeHM(new Date(v))} tick={{ fontSize: 10.5, fill: c.ink3 }} axisLine={false} tickLine={false} minTickGap={30} />
-        <YAxis tickFormatter={f} tick={{ fontSize: 10.5, fill: c.ink3, fontFamily: 'Geist Mono' }} axisLine={false} tickLine={false} width={yw} />
+        <YAxis tickFormatter={f} tick={{ fontSize: 10.5, fill: c.ink3, fontFamily: 'Inter, system-ui, sans-serif' }} axisLine={false} tickLine={false} width={yw} />
         <ReferenceLine y={0} stroke={c.line2} strokeDasharray="3 4" />
         <Tooltip content={<ChartTip fmt={(v, k) => (k === 'v' ? (unit === 'R' ? rMult(v, 2) : fmt(v, { signed: true })) : unit === 'R' ? rMult(v, 2) : fmt(v, { signed: true }))} labelFmt={l => timeHM(new Date(l as number))} />} cursor={{ stroke: c.line2 }} />
         <Bar dataKey="v" name="Trade" barSize={6} radius={[2, 2, 2, 2]} animationDuration={600}>{data.map((d, i) => <Cell key={i} fill={d.v >= 0 ? c.profit : c.loss} fillOpacity={0.45} />)}</Bar>
@@ -171,7 +171,7 @@ function WeekChart({ gs, unit, start }: { gs: Graded[]; unit: Unit; start: Date 
       <ComposedChart data={data} margin={{ top: 8, right: 6, left: 0, bottom: 0 }}>
         <CartesianGrid stroke={c.line} vertical={false} />
         <XAxis dataKey="n" tick={{ fontSize: 11, fill: c.ink3 }} axisLine={false} tickLine={false} />
-        <YAxis tickFormatter={f} tick={{ fontSize: 10.5, fill: c.ink3, fontFamily: 'Geist Mono' }} axisLine={false} tickLine={false} width={yw} />
+        <YAxis tickFormatter={f} tick={{ fontSize: 10.5, fill: c.ink3, fontFamily: 'Inter, system-ui, sans-serif' }} axisLine={false} tickLine={false} width={yw} />
         <ReferenceLine y={0} stroke={c.line2} />
         <Tooltip content={<ChartTip fmt={v => (unit === 'R' ? rMult(v, 2) : fmt(v, { signed: true }))} />} cursor={{ fill: c.a('ink3', 0.08) }} />
         <Bar dataKey="v" name="Day" radius={[4, 4, 0, 0]} maxBarSize={40} animationDuration={700}>{data.map((d, i) => <Cell key={i} fill={d.v >= 0 ? c.profit : c.loss} />)}</Bar>

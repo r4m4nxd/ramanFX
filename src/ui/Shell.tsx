@@ -44,6 +44,44 @@ function SyncPill({ compact }: { compact?: boolean }) {
   );
 }
 
+/** Account badge: avatar, who is signed in and the sync state; tap to sync now. */
+function UserPill() {
+  const sync = useStore(s => s.sync);
+  const user = useStore(s => s.user);
+  const syncNow = useStore(s => s.syncNow);
+  if (!user) return null;
+  const label = sync.status === 'syncing' ? 'Syncing…' : sync.status === 'error' ? 'Sync failed' : 'Synced';
+  return (
+    <button type="button" onClick={() => syncNow()} title={sync.message ?? (sync.at ? `Last sync ${new Date(sync.at).toLocaleTimeString()} — tap to sync` : 'Tap to sync')}
+      className="flex items-center gap-2.5 h-10 pl-1 pr-3.5 rounded-full border border-line bg-raised/50 hover:bg-raised transition-colors">
+      <span className="w-8 h-8 rounded-full grid place-items-center text-[13px] font-bold text-white" style={{ background: 'linear-gradient(140deg,#A78BFA,#7C3AED 55%,#22D3EE)' }}>{(user.email[0] ?? 'R').toUpperCase()}</span>
+      <span className="text-left leading-tight">
+        <span className="block text-[12.5px] font-semibold max-w-[150px] truncate">{user.email.split('@')[0]}</span>
+        <span className={cx('flex items-center gap-1.5 text-[11px]', sync.status === 'error' ? 'text-loss' : 'text-ink3')}><span className={cx('w-1.5 h-1.5 rounded-full', sync.status === 'error' ? 'bg-loss' : sync.status === 'syncing' ? 'bg-warn animate-pulse' : 'bg-profit')} />{label}</span>
+      </span>
+    </button>
+  );
+}
+
+/** Pill sub-navigation for the main sections (wide screens). */
+const PILLS = [{ to: '/', label: 'Dashboard' }, { to: '/trades', label: 'Trades' }, { to: '/journal', label: 'Journal' }, { to: '/calendar', label: 'Calendar' }, { to: '/reports', label: 'Reports' }];
+function PillNav({ title }: { title: string }) {
+  const loc = useLocation();
+  const on = (to: string) => (to === '/' ? loc.pathname === '/' : loc.pathname.startsWith(to));
+  const extra = !PILLS.some(p => on(p.to));
+  return (
+    <nav aria-label="Sections" className="flex items-center gap-1 p-1 rounded-full border border-line bg-raised/40">
+      {PILLS.map(p => (
+        <NavLink key={p.to} to={p.to} end={p.to === '/'} className={cx('relative h-8 px-4 rounded-full text-[13px] font-semibold grid place-items-center transition-colors', on(p.to) ? 'text-ink' : 'text-ink3 hover:text-ink2')}>
+          {on(p.to) && <motion.span layoutId="pill-nav" className="absolute inset-0 rounded-full bg-accent/15 border border-accent/40 shadow-glow" transition={spring} />}
+          <span className="relative">{p.label}</span>
+        </NavLink>
+      ))}
+      {extra && <span className="relative h-8 px-4 rounded-full text-[13px] font-semibold grid place-items-center text-ink bg-accent/15 border border-accent/40 shadow-glow">{title}</span>}
+    </nav>
+  );
+}
+
 function AccountPicker() {
   const accounts = useStore(s => s.accounts);
   const active = useStore(s => s.activeAccount);
@@ -159,9 +197,9 @@ export function Shell({ children }: { children: ReactNode }) {
           <div key={g} className="flex flex-col gap-0.5 mb-3">
             {g && <div className="label px-3 pb-1.5 pt-1">{g}</div>}
             {NAV.filter(n => (n.group ?? '') === g).map(n => (
-              <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cx('relative flex items-center gap-3 h-9 px-3 rounded-lg text-[13.5px] font-medium transition-colors', isActive ? 'text-ink' : 'text-ink3 hover:text-ink2 hover:bg-raised/60')}>
+              <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cx('relative flex items-center gap-3 h-10 px-3 rounded-xl text-[13.5px] font-medium transition-colors', isActive ? 'text-ink' : 'text-ink3 hover:text-ink2 hover:bg-raised/60')}>
                 {({ isActive }) => (<>
-                  {isActive && <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-lg bg-raised border border-line" transition={spring} />}
+                  {isActive && <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-xl bg-gradient-to-r from-accent/25 to-accent/[0.04] border border-accent/30 shadow-glow" transition={spring} />}
                   <Icon name={n.icon} size={16} className="relative" /><span className="relative">{n.label}</span>
                 </>)}
               </NavLink>
@@ -177,10 +215,12 @@ export function Shell({ children }: { children: ReactNode }) {
         {/* Top bar */}
         <header className={cx('sticky top-0 z-30 border-b pt-safe px-safe transition-colors duration-300', scrolled ? 'bg-bg border-line' : 'bg-transparent border-transparent')}>
           <div className="max-w-[1360px] mx-auto flex items-center gap-2 px-4 lg:px-7 h-14 land:h-12">
-            <h1 className="text-[17px] font-semibold tracking-tight truncate min-w-[60px]">{title}</h1>
+            <h1 className="text-[17px] font-semibold tracking-tight truncate min-w-[60px] xl:sr-only">{title}</h1>
+            <div className="hidden xl:block"><PillNav title={title} /></div>
+            <button type="button" onClick={() => setCmd(true)} className="hidden 2xl:flex items-center gap-2.5 h-10 w-[230px] ml-3 px-4 rounded-full border border-line bg-raised/40 text-[13px] text-ink3 hover:text-ink2 transition-colors"><Icon name="search" size={15} />Search pages and trades<kbd className="ml-auto text-[10px] border border-line2 rounded-full px-1.5">⌘K</kbd></button>
             <div className="ml-auto flex items-center gap-1.5">
               <div className="hidden md:flex land:flex items-center gap-1.5 land:[&_select]:max-w-[150px]">
-                <span className="hidden xl:inline-flex"><SyncPill /></span><span className="xl:hidden"><SyncPill compact /></span>
+                <span className="hidden xl:inline-flex"><UserPill /></span><span className="xl:hidden"><SyncPill compact /></span>
                 <AccountPicker />
                 <RangePicker />
               </div>

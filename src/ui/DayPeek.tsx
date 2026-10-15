@@ -110,7 +110,7 @@ function Body({ day, onClose }: { day: string; onClose: () => void }) {
                 <defs><linearGradient id="peekFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={col} stopOpacity={0.32} /><stop offset="100%" stopColor={col} stopOpacity={0} /></linearGradient></defs>
                 <CartesianGrid stroke={c.line} vertical={false} />
                 <XAxis dataKey="t" type="number" scale="time" domain={['dataMin', 'dataMax']} tickFormatter={v => timeHM(new Date(v))} tick={{ fontSize: 10.5, fill: c.ink3 }} axisLine={false} tickLine={false} minTickGap={30} />
-                <YAxis tickFormatter={v => fmt(v, { compact: true })} tick={{ fontSize: 10.5, fill: c.ink3, fontFamily: 'Geist Mono' }} axisLine={false} tickLine={false} width={yw} />
+                <YAxis tickFormatter={v => fmt(v, { compact: true })} tick={{ fontSize: 10.5, fill: c.ink3, fontFamily: 'Inter, system-ui, sans-serif' }} axisLine={false} tickLine={false} width={yw} />
                 <ReferenceLine y={0} stroke={c.line2} strokeDasharray="3 4" />
                 <Tooltip content={<ChartTip fmt={v => fmt(v, { signed: true })} labelFmt={l => timeHM(new Date(l as number))} />} cursor={{ stroke: c.line2 }} />
                 <Area type="stepAfter" dataKey="cum" name="Running P&L" stroke={col} strokeWidth={2.4} fill="url(#peekFill)" animationDuration={1100} dot={{ r: 2.5, fill: col, strokeWidth: 0 }} activeDot={{ r: 5, strokeWidth: 0 }} />

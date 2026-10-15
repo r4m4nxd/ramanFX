@@ -68,13 +68,13 @@ export function CountUp({ value, format, className }: { value: number; format: (
 export function Segmented<T extends string>({ value, onChange, options, size = 'md', label }: { value: T; onChange: (v: T) => void; options: { value: T; label: ReactNode }[]; size?: 'sm' | 'md'; label: string }) {
   const id = useId();
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex p-0.5 rounded-lg bg-raised border border-line">
+    <div role="radiogroup" aria-label={label} className="inline-flex p-[3px] rounded-full bg-raised/60 border border-line">
       {options.map(o => {
         const on = o.value === value;
         return (
           <button key={o.value} role="radio" aria-checked={on} onClick={() => onChange(o.value)} type="button"
-            className={cx('relative rounded-md font-medium whitespace-nowrap transition-colors', size === 'sm' ? 'h-7 touch:h-9 px-2.5 touch:px-3 text-xs' : 'h-8 touch:h-10 px-3 text-[13px]', on ? 'text-ink' : 'text-ink3 hover:text-ink2')}>
-            {on && <motion.span layoutId={`seg-${id}`} transition={spring} className="absolute inset-0 rounded-md bg-surface border border-line2 shadow-sm" />}
+            className={cx('relative rounded-full font-semibold whitespace-nowrap transition-colors', size === 'sm' ? 'h-7 touch:h-9 px-3 touch:px-3.5 text-xs' : 'h-8 touch:h-10 px-3.5 text-[13px]', on ? 'text-ink' : 'text-ink3 hover:text-ink2')}>
+            {on && <motion.span layoutId={`seg-${id}`} transition={spring} className="absolute inset-0 rounded-full bg-accent/15 border border-accent/40 shadow-glow" />}
             <span className="relative">{o.label}</span>
           </button>
         );
@@ -98,14 +98,14 @@ export function Tabs<T extends string>({ value, onChange, options, label }: { va
   const id = useId();
   if (!mobile && options.length <= 6) return <div><Segmented label={label} value={value} onChange={onChange} options={options} /></div>;
   return (
-    <div role="tablist" aria-label={label} className={cx('grid gap-1.5 p-1 rounded-2xl bg-raised border border-line', options.length > 4 && 'land:![grid-template-columns:repeat(6,minmax(0,1fr))]')}
+    <div role="tablist" aria-label={label} className={cx('grid gap-1.5 p-1 rounded-[22px] bg-raised/60 border border-line', options.length > 4 && 'land:![grid-template-columns:repeat(6,minmax(0,1fr))]')}
       style={{ gridTemplateColumns: `repeat(${tabCols(options.length, mobile)}, minmax(0, 1fr))` }}>
       {options.map(o => {
         const on = o.value === value;
         return (
           <button key={o.value} role="tab" aria-selected={on} type="button" onClick={() => onChange(o.value)}
-            className={cx('relative min-h-[40px] px-2 rounded-xl text-[13px] font-semibold leading-tight transition-colors', on ? 'text-ink' : 'text-ink3 active:bg-surface/60')}>
-            {on && <motion.span layoutId={`tab-${id}`} transition={spring} className="absolute inset-0 rounded-xl bg-surface border border-line2 shadow-sm" />}
+            className={cx('relative min-h-[40px] px-2 rounded-full text-[13px] font-semibold leading-tight transition-colors', on ? 'text-ink' : 'text-ink3 active:bg-surface/60')}>
+            {on && <motion.span layoutId={`tab-${id}`} transition={spring} className="absolute inset-0 rounded-full bg-accent/15 border border-accent/40 shadow-glow" />}
             <span className="relative">{o.label}</span>
           </button>
         );
@@ -131,7 +131,7 @@ export function Bar({ value, tone = 'accent', className }: { value: number; tone
 
 export function Badge({ children, tone = 'neutral', className }: { children: ReactNode; tone?: 'neutral' | 'profit' | 'loss' | 'warn' | 'accent' | 'violet'; className?: string }) {
   const t = { neutral: 'bg-raised text-ink2 border-line2', profit: 'bg-profit/10 text-profit border-profit/30', loss: 'bg-loss/10 text-loss border-loss/30', warn: 'bg-warn/10 text-warn border-warn/30', accent: 'bg-accent/10 text-accent border-accent/30', violet: 'bg-violet/10 text-violet border-violet/30' }[tone];
-  return <span className={cx('inline-flex items-center gap-1 h-6 px-2 rounded-md border text-[11px] font-semibold tracking-wide', t, className)}>{children}</span>;
+  return <span className={cx('inline-flex items-center gap-1 h-6 px-2.5 rounded-full border text-[11px] font-semibold tracking-wide', t, className)}>{children}</span>;
 }
 
 export function Empty({ icon = 'info', title, children, action }: { icon?: IconName; title: string; children?: ReactNode; action?: ReactNode }) {

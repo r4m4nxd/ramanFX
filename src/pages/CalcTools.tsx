@@ -262,7 +262,7 @@ export function GrowthCalc() {
               <defs><linearGradient id="gFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={c.accent} stopOpacity={0.35} /><stop offset="100%" stopColor={c.accent} stopOpacity={0} /></linearGradient></defs>
               <CartesianGrid stroke={c.line} vertical={false} />
               <XAxis dataKey="p" tick={{ fontSize: 10.5, fill: c.ink3 }} axisLine={false} tickLine={false} minTickGap={24} />
-              <YAxis tickFormatter={fmt} tick={{ fontSize: 10.5, fill: c.ink3, fontFamily: 'Geist Mono' }} axisLine={false} tickLine={false} width={yw} />
+              <YAxis tickFormatter={fmt} tick={{ fontSize: 10.5, fill: c.ink3, fontFamily: 'Inter, system-ui, sans-serif' }} axisLine={false} tickLine={false} width={yw} />
               {+goal > 0 && <ReferenceLine y={+goal} stroke={c.warn} strokeDasharray="4 4" />}
               <Tooltip content={<ChartTip fmt={v => money(v, { ccy })} labelFmt={l => `${unit} ${l}`} />} />
               <Area type="monotone" dataKey="bal" name="Balance" stroke={c.accent} strokeWidth={2.2} fill="url(#gFill)" animationDuration={900} />

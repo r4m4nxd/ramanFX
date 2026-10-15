@@ -245,7 +245,7 @@ export default function Exits() {
           ))}</ul>
         ) : (
           <table className="w-full">
-            <thead className="bg-raised/50"><tr className="[&>th]:pt-3 [&>th:first-child]:pl-5 [&>th:last-child]:pr-5"><th className="th">Trade</th><th className="th text-right">MAE</th><th className="th text-right">MFE</th><th className="th text-right">Result</th><th className="th text-right">Captured</th><th className="th text-right">Data</th><th className="th text-right">Net</th></tr></thead>
+            <thead className="pillhead"><tr className="[&>th]:pt-3 [&>th:first-child]:pl-5 [&>th:last-child]:pr-5"><th className="th">Trade</th><th className="th text-right">MAE</th><th className="th text-right">MFE</th><th className="th text-right">Result</th><th className="th text-right">Captured</th><th className="th text-right">Data</th><th className="th text-right">Net</th></tr></thead>
             <tbody>
               {[...rows].reverse().slice(0, 300).map(r => (
                 <tr key={r.g.t.id} className="[&>td:first-child]:pl-5 [&>td:last-child]:pr-5 hover:bg-raised/50">

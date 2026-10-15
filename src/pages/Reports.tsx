@@ -59,7 +59,7 @@ function GroupTableInner({ rows, label, onRow, compact }: { rows: GroupStat[]; l
   );
   return (
     <table className="w-full">
-      <thead><tr><th className="th">{label}</th><th className="th text-right">Trades</th><th className="th text-right">Win %</th><th className="th text-right">PF</th><th className="th text-right">Expectancy</th><th className="th text-right">Avg R</th><th className="th text-right">Net</th></tr></thead>
+      <thead className="pillhead"><tr><th className="th">{label}</th><th className="th text-right">Trades</th><th className="th text-right">Win %</th><th className="th text-right">PF</th><th className="th text-right">Expectancy</th><th className="th text-right">Avg R</th><th className="th text-right">Net</th></tr></thead>
       <tbody>
         {rows.map(g => (
           <tr key={g.key} className={cx(onRow && 'cursor-pointer hover:bg-raised/50')} onClick={() => onRow?.(g.key)}>
@@ -103,7 +103,7 @@ function GroupBars({ rows, height = 220, labelFmt }: { rows: BarRow[]; height?: 
         <BarChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
           <CartesianGrid stroke={c.line} vertical={false} />
           <XAxis dataKey="key" tick={{ fontSize: 11, fill: c.ink3 }} tickFormatter={labelFmt} axisLine={false} tickLine={false} interval={interval} />
-          <YAxis tickFormatter={v => f(v, true)} tick={{ fontSize: 10.5, fill: c.ink3, fontFamily: 'Geist Mono' }} axisLine={false} tickLine={false} width={yw} domain={m === 'win' ? [0, 1] : ['auto', 'auto']} />
+          <YAxis tickFormatter={v => f(v, true)} tick={{ fontSize: 10.5, fill: c.ink3, fontFamily: 'Inter, system-ui, sans-serif' }} axisLine={false} tickLine={false} width={yw} domain={m === 'win' ? [0, 1] : ['auto', 'auto']} />
           <ReferenceLine y={m === 'win' ? 0.5 : 0} stroke={c.line2} strokeDasharray={m === 'win' ? '4 4' : undefined} />
           <Tooltip content={<ChartTip fmt={v => f(v)} labelFmt={l => (labelFmt ? labelFmt(String(l)) : String(l))} />} cursor={{ fill: c.a('ink3', 0.08) }} />
           <RBar key={m} dataKey="v" name={BAR_METRICS.find(x => x.v === m)!.label} radius={[4, 4, 0, 0]} maxBarSize={40} animationDuration={600}>
@@ -274,7 +274,7 @@ function CompareTab({ et }: { et: EnrichedTrade[] }) {
     <Card>
       <CardHead title="Winners vs losers" sub="If losers are held longer or sized bigger, that's where the leak is" />
       <table className="w-full">
-        <thead><tr><th className="th">Metric</th><th className="th text-right text-profit">Winners</th><th className="th text-right text-loss">Losers</th></tr></thead>
+        <thead className="pillhead"><tr><th className="th">Metric</th><th className="th text-right text-profit">Winners</th><th className="th text-right text-loss">Losers</th></tr></thead>
         <tbody>{rows.map(([k, a, b]) => <tr key={k}><td className="td text-ink2">{k}</td><td className="td num text-right">{a}</td><td className="td num text-right">{b}</td></tr>)}</tbody>
       </table>
     </Card>

@@ -13,15 +13,52 @@ import { TradeList } from '@/ui/TradeList';
 import { BalanceChart, bucketDays, type DayMetric, DailyBars, DivergingBars, EquityChart, PERIOD_NOUN, PeriodToggle, Sparkline, usePeriod } from '@/ui/charts';
 import { MonthCalendar } from '@/ui/MonthCalendar';
 import { cardOfDay } from '@/core/coach';
-import { Icon } from '@/ui/Icon';
+import { Icon, type IconName } from '@/ui/Icon';
 
-function Kpi({ label, children, foot, hint, className }: { label: string; children: React.ReactNode; foot?: React.ReactNode; hint?: string; className?: string }) {
+function Kpi({ label, children, foot, hint, className, icon, hero }: { label: string; children: React.ReactNode; foot?: React.ReactNode; hint?: string; className?: string; icon?: IconName; hero?: boolean }) {
   return (
-    <motion.div variants={rise} className={cx('card p-4 min-w-0 flex flex-col', className)}>
-      <div className="label flex items-center gap-1.5">{label}{hint && <InfoTip text={hint} />}</div>
+    <motion.div variants={rise} className={cx(hero ? 'card-hero' : 'card', 'p-4 min-w-0 flex flex-col', className)}>
+      <div className="flex items-center gap-2.5">
+        {icon && <span className={cx('w-8 h-8 rounded-full grid place-items-center shrink-0', hero ? 'bg-white/20 text-white' : 'bg-accent/10 text-accent border border-accent/25')}><Icon name={icon} size={15} /></span>}
+        <div className={cx('label flex items-center gap-1.5', hero && '!text-white/80')}>{label}{hint && <InfoTip text={hint} />}</div>
+      </div>
       <div className="mt-2 flex-1">{children}</div>
-      {foot && <div className="text-[11.5px] text-ink3 mt-2.5">{foot}</div>}
+      {foot && <div className={cx('text-[11.5px] mt-2.5', hero ? 'text-white/75' : 'text-ink3')}>{foot}</div>}
     </motion.div>
+  );
+}
+
+/** Key-value grid: risk limits and targets beside today's usage, prop-firm style. */
+function RiskGrid({ s }: { s: { winRate: number; profitFactor: number | null; wins: number; losses: number; total: number; days: unknown[] } }) {
+  const all = useEnriched();
+  const rules = { ...DEFAULT_RISK_RULES, ...useStore(st => st.riskRules) };
+  const fmt = useMoney();
+  const st = useMemo(() => riskStatus(all, rules), [all, rules]);
+  const decided = s.wins + s.losses;
+  const rows: [string, React.ReactNode, string?][] = [
+    ['Daily loss limit', <>{fmt(st.lossToday)} <span className="text-ink3">/ {fmt(rules.maxDailyLoss)}</span></>, st.lossUsed >= 1 ? 'text-loss' : undefined],
+    ['Max risk per trade', fmt(rules.maxSingleTradeRisk)],
+    ['Risk per trade', `${rules.riskPercent}%`],
+    ['Trades today', <>{st.count} <span className="text-ink3">/ {rules.maxDailyTrades}</span></>, st.tradesUsed >= 1 ? 'text-warn' : undefined],
+    ['Losses in a row', <>{st.consecLosses} <span className="text-ink3">/ {rules.maxConsecutiveLosses}</span></>, rules.maxConsecutiveLosses && st.consecLosses >= rules.maxConsecutiveLosses ? 'text-loss' : undefined],
+    ['Cooldown after streak', `${rules.cooldownMinutes} min`],
+    ['Win rate', pct(s.winRate), 'text-profit'],
+    ['Loss rate', decided ? pct(s.losses / decided) : '—', 'text-loss'],
+    ['Profit factor', s.profitFactor == null ? '—' : s.profitFactor.toFixed(2), s.profitFactor != null && s.profitFactor < 1 ? 'text-loss' : undefined],
+    ['Trading days', String(s.days.length)],
+  ];
+  return (
+    <Card>
+      <CardHead title="Risk & targets" sub="Your limits against today, plus the core rates" right={<Link to="/risk" className="text-xs text-accent hover:underline inline-block py-2 -my-2">Edit limits</Link>} />
+      <dl className="grid grid-cols-2 lg:grid-cols-5 gap-x-6">
+        {rows.map(([k, v, t]) => (
+          <div key={k} className="flex items-center justify-between gap-3 py-2.5 border-b border-line/70">
+            <dt className="text-[12.5px] text-ink3 truncate">{k}</dt>
+            <dd className={cx('num text-[13.5px] font-semibold whitespace-nowrap', t)}>{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </Card>
   );
 }
 
@@ -136,27 +173,29 @@ export default function Dashboard() {
       <GuruStrip />
 
       <section aria-label="Key metrics" className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
-        <Kpi label="Net P&L" foot={`${s.total} trades · ${s.days.length} days`}>
-          <CountUp value={s.net} format={v => fmt(v, { signed: true })} className={cx('num text-[26px] font-semibold tracking-tight', tone(s.net))} />
-          <Sparkline values={s.equity.map(e => e.cum)} className="mt-2" />
+        <Kpi hero icon="bolt" className="col-span-2 md:col-span-1" label="Net P&L" foot={`${s.total} trades · ${s.days.length} days`}>
+          <CountUp value={s.net} format={v => fmt(v, { signed: true })} className="num text-[28px] font-bold tracking-tight text-white whitespace-nowrap" />
+          <Sparkline values={s.equity.map(e => e.cum)} className="mt-2" color="#fff" />
         </Kpi>
-        <Kpi label="Win rate" hint="Wins ÷ (wins + losses). Breakeven trades are excluded." foot={s.breakevenWinRate != null ? <>Breakeven at your payoff: <span className="num text-ink2">{pct(s.breakevenWinRate)}</span></> : undefined}>
+        <Kpi icon="target" label="Win rate" hint="Wins ÷ (wins + losses). Breakeven trades are excluded." foot={s.breakevenWinRate != null ? <>Breakeven at your payoff: <span className="num text-ink2">{pct(s.breakevenWinRate)}</span></> : undefined}>
           <div className="flex items-baseline gap-2"><CountUp value={s.winRate * 100} format={v => `${v.toFixed(1)}%`} className="num text-[26px] font-semibold tracking-tight" /><span className="text-xs text-ink3">{s.wins}W · {s.losses}L{s.breakeven ? ` · ${s.breakeven}BE` : ''}</span></div>
           <div className="relative mt-3 h-1.5 rounded-full bg-loss/70 overflow-hidden">
             <motion.div className="absolute inset-y-0 left-0 bg-profit rounded-full" initial={{ width: 0 }} animate={{ width: `${s.winRate * 100}%` }} transition={{ duration: 0.9 }} />
             {s.breakevenWinRate != null && <span className="absolute -top-0.5 -bottom-0.5 w-0.5 bg-ink" style={{ left: `${s.breakevenWinRate * 100}%` }} title="Breakeven win rate" />}
           </div>
         </Kpi>
-        <Kpi label="Profit factor" hint="Gross profit ÷ gross loss." foot={<span className="num">{fmt(s.grossWin, { compact: true })} won · {fmt(s.grossLoss, { compact: true })} lost</span>}>
+        <Kpi icon="sliders" label="Profit factor" hint="Gross profit ÷ gross loss." foot={<span className="num">{fmt(s.grossWin, { compact: true })} won · {fmt(s.grossLoss, { compact: true })} lost</span>}>
           {s.profitFactor == null ? <span className="num text-[26px] font-semibold">—</span> : <CountUp value={s.profitFactor} format={v => v.toFixed(2)} className={cx('num text-[26px] font-semibold tracking-tight', s.profitFactor >= 1 ? 'text-ink' : 'text-loss')} />}
         </Kpi>
-        <Kpi label="Avg win / loss" hint="Payoff ratio: average winner ÷ average loser." foot={<span className="num flex justify-between"><span className="text-profit">{fmt(s.avgWin)}</span><span className="text-loss">{fmt(s.avgLoss)}</span></span>}>
+        <Kpi icon="arrowUp" label="Avg win / loss" hint="Payoff ratio: average winner ÷ average loser." foot={<span className="num flex justify-between"><span className="text-profit">{fmt(s.avgWin)}</span><span className="text-loss">{fmt(s.avgLoss)}</span></span>}>
           {s.payoff == null ? <span className="num text-[26px] font-semibold">—</span> : <div className="flex items-baseline gap-1"><CountUp value={s.payoff} format={v => v.toFixed(2)} className="num text-[26px] font-semibold tracking-tight" /><span className="text-ink3 text-sm">: 1</span></div>}
         </Kpi>
-        <Kpi className="col-span-2 md:col-span-1" label="Expectancy" hint="Average net result per trade. Avg R uses each trade's initial stop." foot={s.avgR != null ? <>Avg <span className="num text-ink2">{rMult(s.avgR)}</span> over {s.rCount} trades with a stop</> : 'Add stops to see R'}>
+        <Kpi icon="sparkles" label="Expectancy" hint="Average net result per trade. Avg R uses each trade's initial stop." foot={s.avgR != null ? <>Avg <span className="num text-ink2">{rMult(s.avgR)}</span> over {s.rCount} trades with a stop</> : 'Add stops to see R'}>
           <CountUp value={s.expectancy} format={v => fmt(v, { signed: true })} className={cx('num text-[26px] font-semibold tracking-tight', tone(s.expectancy))} />
         </Kpi>
       </section>
+
+      <RiskGrid s={s} />
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <Card className="xl:col-span-2">
@@ -201,7 +240,7 @@ export default function Dashboard() {
           <CardHead title="Setup performance" sub="Net result by setup tag — what actually pays you" right={<Link to="/reports?tab=setups" className="text-xs text-accent hover:underline inline-block py-2 -my-2">All setups</Link>} />
           <div>
             <table className="w-full table-fixed">
-              <thead><tr><th className="th">Setup</th><th className="th text-right w-14">Trades</th><th className="th text-right w-12">Win</th><th className="th text-right w-16 max-sm:hidden">Avg R</th><th className="th text-right w-24">Net</th></tr></thead>
+              <thead className="pillhead"><tr><th className="th pl-4">Setup</th><th className="th text-right w-14">Trades</th><th className="th text-right w-12">Win</th><th className="th text-right w-16 max-sm:hidden">Avg R</th><th className="th text-right w-24 pr-4">Net</th></tr></thead>
               <tbody>
                 {a.setups.slice(0, 7).map(g => (
                   <tr key={g.key}>
@@ -269,17 +308,18 @@ export default function Dashboard() {
         {mobile ? <TradeList trades={recent} /> : (
         <div>
           <table className="w-full ">
-            <thead><tr><th className="th pl-1">Closed</th><th className="th">Symbol</th><th className="th">Side</th><th className="th">Setup</th><th className="th text-right">Hold</th><th className="th text-right">R</th><th className="th text-right pr-1">Net</th></tr></thead>
+            <thead className="pillhead"><tr><th className="th pl-4">Closed</th><th className="th">Symbol</th><th className="th">Side</th><th className="th">Setup</th><th className="th text-right">Hold</th><th className="th pl-5">Result</th><th className="th text-right">R</th><th className="th text-right pr-4">Net</th></tr></thead>
             <tbody>
               {recent.map(t => (
                 <tr key={t.account + t.id} onClick={() => nav(`/trades/${t.id}`)} className="cursor-pointer hover:bg-raised/60 transition-colors">
-                  <td className="td pl-1 num text-ink2">{shortDate(t.close)} {timeHM(t.close)}</td>
+                  <td className="td pl-4 num text-ink2">{shortDate(t.close)} {timeHM(t.close)}</td>
                   <td className="td"><Link to={`/trades/${t.id}`} className="font-mono font-medium hover:text-accent inline-block py-2 -my-2" onClick={e => e.stopPropagation()}>{t.sym}</Link></td>
-                  <td className="td"><Badge tone={t.type === 'buy' ? 'accent' : 'warn'}>{t.type === 'buy' ? 'LONG' : 'SHORT'}</Badge></td>
+                  <td className="td"><Badge tone={t.type === 'buy' ? 'profit' : 'loss'}>{t.type === 'buy' ? 'BUY' : 'SELL'}</Badge></td>
                   <td className="td text-ink2 truncate max-w-[180px]">{notes[t.id]?.tags?.join(', ') || <span className="text-ink3">—</span>}</td>
                   <td className="td num text-right text-ink2">{t.holdSec >= 3600 ? `${(t.holdSec / 3600).toFixed(1)}h` : `${Math.round(t.holdSec / 60)}m`}</td>
+                  <td className="td pl-5"><Badge tone={t.net > 0 ? 'profit' : t.net < 0 ? 'loss' : 'neutral'}>{t.net > 0 ? 'WIN' : t.net < 0 ? 'LOSS' : 'BE'}</Badge></td>
                   <td className="td num text-right text-ink2">{rMult(t.r, 1)}</td>
-                  <td className={cx('td num text-right font-semibold pr-1', tone(t.net))}>{fmt(t.net, { signed: true })}</td>
+                  <td className={cx('td num text-right font-semibold pr-4', tone(t.net))}>{fmt(t.net, { signed: true })}</td>
                 </tr>
               ))}
             </tbody>

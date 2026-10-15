@@ -82,14 +82,14 @@ export function PeriodToggle({ value, onChange }: { value: Period; onChange: (p:
   return <Segmented label="Group by" size="sm" value={value} onChange={onChange} options={[{ value: 'day', label: 'Days' }, { value: 'week', label: 'Weeks' }, { value: 'month', label: 'Months' }]} />;
 }
 
-const axisTick = { fontSize: 10.5, fontFamily: 'Geist Mono, monospace' };
+const axisTick = { fontSize: 10.5, fontFamily: 'Inter, system-ui, sans-serif' };
 /** Y-axis gutter: narrower on phones so the plot gets the width. */
 export const useAxisW = () => (useIsMobile() ? 44 : 60);
 
 export function ChartTip({ active, payload, label, fmt, labelFmt }: TooltipProps<number, string> & { fmt: (v: number, name: string) => string; labelFmt?: (l: unknown) => string }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg bg-surface border border-line2 shadow-pop px-3 py-2 text-xs">
+    <div className="rounded-2xl bg-surface/95 backdrop-blur-md border border-accent/30 shadow-[0_10px_30px_rgba(0,0,0,.45),0_0_20px_rgba(139,92,246,.25)] px-3.5 py-2.5 text-xs">
       <div className="text-ink3 mb-1">{labelFmt ? labelFmt(label) : String(label)}</div>
       {payload.filter(p => p.value != null).map(p => (
         <div key={String(p.dataKey)} className="flex items-center gap-2 num">
@@ -106,8 +106,7 @@ export function ChartTip({ active, payload, label, fmt, labelFmt }: TooltipProps
 export function EquityChart({ data, height = 260, fmt, showDD = true, period }: { data: { t: number; cum: number; dd: number }[]; height?: number; fmt: (n: number, o?: { compact?: boolean }) => string; showDD?: boolean; period?: Period }) {
   const c = useColors();
   const yw = useAxisW();
-  const up = (data[data.length - 1]?.cum ?? 0) >= 0;
-  const stroke = up ? c.profit : c.loss;
+  const stroke = c.accent;
   const pts = useMemo(() => {
     if (!data.length) return data;
     if (!period) return [{ t: data[0].t - 1, cum: 0, dd: 0 }, ...data];
@@ -120,7 +119,7 @@ export function EquityChart({ data, height = 260, fmt, showDD = true, period }: 
       <ComposedChart data={pts} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="eqFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={stroke} stopOpacity={0.28} />
+            <stop offset="0%" stopColor={stroke} stopOpacity={0.38} />
             <stop offset="100%" stopColor={stroke} stopOpacity={0} />
           </linearGradient>
         </defs>
@@ -130,7 +129,7 @@ export function EquityChart({ data, height = 260, fmt, showDD = true, period }: 
         <ReferenceLine y={0} stroke={c.line2} strokeDasharray="3 4" />
         <Tooltip content={<ChartTip fmt={v => fmt(v)} labelFmt={l => (period ? periodLabel(l as number, period) : new Date(l as number).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))} />} cursor={{ stroke: c.line2 }} />
         {showDD && <Area key={`dd${period}`} type="monotone" dataKey="dd" name="Drawdown" stroke="none" fill={c.loss} fillOpacity={0.18} isAnimationActive animationDuration={900} />}
-        <Area key={period} type="monotone" dataKey="cum" name="Net P&L" stroke={stroke} strokeWidth={2.2} fill="url(#eqFill)" isAnimationActive animationDuration={900} dot={dots ? { r: 2.5, fill: stroke, strokeWidth: 0 } : false} activeDot={{ r: 4, strokeWidth: 0 }} />
+        <Area key={period} type="monotone" dataKey="cum" name="Net P&L" stroke={stroke} strokeWidth={2.4} fill="url(#eqFill)" isAnimationActive animationDuration={900} style={{ filter: 'drop-shadow(0 0 6px rgba(139,92,246,.45))' }} dot={dots ? { r: 2.5, fill: stroke, strokeWidth: 0 } : false} activeDot={{ r: 6, fill: '#fff', stroke, strokeWidth: 3, style: { filter: 'drop-shadow(0 0 8px rgba(139,92,246,.9))' } }} />
       </ComposedChart>
     </ResponsiveContainer>
   );
@@ -144,13 +143,13 @@ export function BalanceChart({ data: raw, height = 240, fmt, period }: { data: {
     <ResponsiveContainer width="100%" height={height}>
       <ComposedChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
         <defs>
-          <linearGradient id="balFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={c.accent} stopOpacity={0.22} /><stop offset="100%" stopColor={c.accent} stopOpacity={0} /></linearGradient>
+          <linearGradient id="balFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={c.accent} stopOpacity={0.35} /><stop offset="100%" stopColor={c.accent} stopOpacity={0} /></linearGradient>
         </defs>
         <CartesianGrid stroke={c.line} vertical={false} />
         <XAxis dataKey="t" type="number" scale="time" domain={['dataMin', 'dataMax']} tickFormatter={v => periodTick(v, period ?? 'day')} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} minTickGap={28} />
         <YAxis tickFormatter={v => fmt(v, { compact: true })} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} width={yw} domain={['auto', 'auto']} />
         <Tooltip content={<ChartTip fmt={v => fmt(v)} labelFmt={l => (period ? `End of ${periodLabel(l as number, period).replace(/^Week of/, 'week of')}` : new Date(l as number).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }))} />} cursor={{ stroke: c.line2 }} />
-        <Area key={period} type="stepAfter" dataKey="balance" name="Balance" stroke={c.accent} strokeWidth={2} fill="url(#balFill)" animationDuration={900} />
+        <Area key={period} type="monotone" dataKey="balance" name="Balance" stroke={c.accent} strokeWidth={2.4} fill="url(#balFill)" animationDuration={900} style={{ filter: 'drop-shadow(0 0 6px rgba(139,92,246,.45))' }} activeDot={{ r: 6, fill: '#fff', stroke: c.accent, strokeWidth: 3 }} />
         <Line key={`d${period}`} type="stepAfter" dataKey="deposits" name="Net deposits" stroke={c.ink3} strokeWidth={1.5} strokeDasharray="4 4" dot={false} animationDuration={900} />
       </ComposedChart>
     </ResponsiveContainer>
@@ -173,21 +172,22 @@ export function DailyBars({ days, height = 220, fmt, period = 'day', metric = 'n
         <XAxis dataKey="t" tickFormatter={v => periodTick(v, period)} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} minTickGap={period === 'month' ? 10 : 30} />
         <YAxis tickFormatter={v => f(v, true)} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} width={yw} domain={metric === 'win' ? [0, 1] : ['auto', 'auto']} />
         <ReferenceLine y={metric === 'win' ? 0.5 : 0} stroke={c.line2} strokeDasharray={metric === 'win' ? '4 4' : undefined} />
-        <Tooltip content={<ChartTip fmt={v => f(v)} labelFmt={l => { const d = byT.get(l as number); return `${periodLabel(l as number, period)}${d?.trades ? ` · ${d.trades} trades` : ''}`; }} />} cursor={{ fill: c.a('ink3', 0.08) }} />
-        <Bar key={period + metric} dataKey="v" name={{ net: 'Net', r: 'R', win: 'Win rate', n: 'Trades' }[metric]} radius={[3, 3, 0, 0]} maxBarSize={period === 'month' ? 44 : period === 'week' ? 30 : 22} animationDuration={700}>
-          {data.map(d => <Cell key={d.t} fill={metric === 'n' ? c.accent : good(d.v) ? c.profit : c.loss} />)}
+        <Tooltip content={<ChartTip fmt={v => f(v)} labelFmt={l => { const d = byT.get(l as number); return `${periodLabel(l as number, period)}${d?.trades ? ` · ${d.trades} trades` : ''}`; }} />} cursor={{ fill: c.a('accent', 0.06), radius: 8 } as object} />
+        <Bar key={period + metric} dataKey="v" name={{ net: 'Net', r: 'R', win: 'Win rate', n: 'Trades' }[metric]} radius={[6, 6, 6, 6]} maxBarSize={period === 'month' ? 44 : period === 'week' ? 30 : 22} animationDuration={700}
+          activeBar={{ fill: c.accent, fillOpacity: 1, style: { filter: 'drop-shadow(0 0 10px rgba(139,92,246,.75))' } }}>
+          {data.map(d => <Cell key={d.t} fill={metric === 'n' ? c.accent : good(d.v) ? c.profit : c.loss} fillOpacity={0.85} />)}
         </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
 }
 
-export function Sparkline({ values, height = 36, className }: { values: number[]; height?: number; className?: string }) {
+export function Sparkline({ values, height = 36, className, color }: { values: number[]; height?: number; className?: string; color?: string }) {
   const c = useColors();
   if (values.length < 2) return <div style={{ height }} />;
   const min = Math.min(0, ...values), max = Math.max(0, ...values), span = max - min || 1;
   const d = values.map((v, i) => `${i ? 'L' : 'M'}${((i / (values.length - 1)) * 100).toFixed(2)} ${(((max - v) / span) * 100).toFixed(2)}`).join(' ');
-  const col = values[values.length - 1] >= 0 ? c.profit : c.loss;
+  const col = color ?? (values[values.length - 1] >= 0 ? c.profit : c.loss);
   return (
     <svg viewBox="0 0 100 100" preserveAspectRatio="none" width="100%" height={height} className={className} aria-hidden="true">
       <motion.path d={d} fill="none" stroke={col} strokeWidth={2} vectorEffect="non-scaling-stroke" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.1, ease }} />

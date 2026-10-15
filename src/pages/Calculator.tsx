@@ -91,7 +91,7 @@ function SizeCalc() {
           <div className="mt-5 pt-5 border-t border-line">
             <div className="label mb-2">Targets</div>
             <table className="w-full text-[13px]">
-              <thead><tr><th className="th">Level</th><th className="th text-right">Price</th><th className="th text-right">Result</th></tr></thead>
+              <thead className="pillhead"><tr><th className="th">Level</th><th className="th text-right">Price</th><th className="th text-right">Result</th></tr></thead>
               <tbody>
                 <tr><td className="td text-loss">Stop</td><td className="td num text-right">{price(stopPrice, spec.digits)}</td><td className="td num text-right text-loss">{res ? money(-res.riskAtLots, { ccy }) : '—'}</td></tr>
                 {[1, 1.5, 2, 3, 4].map(r => {

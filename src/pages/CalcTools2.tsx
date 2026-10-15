@@ -97,7 +97,7 @@ export function MonteCarloCalc() {
               <defs><linearGradient id="mcBand" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={exp >= 0 ? c.profit : c.loss} stopOpacity={0.2} /><stop offset="100%" stopColor={exp >= 0 ? c.profit : c.loss} stopOpacity={0.04} /></linearGradient></defs>
               <CartesianGrid stroke={c.line} vertical={false} />
               <XAxis dataKey="t" tick={{ fontSize: 10.5, fill: c.ink3 }} axisLine={false} tickLine={false} minTickGap={24} />
-              <YAxis tickFormatter={fmtC} tick={{ fontSize: 10.5, fill: c.ink3, fontFamily: 'Geist Mono' }} axisLine={false} tickLine={false} width={yw} domain={['auto', 'auto']} />
+              <YAxis tickFormatter={fmtC} tick={{ fontSize: 10.5, fill: c.ink3, fontFamily: 'Inter, system-ui, sans-serif' }} axisLine={false} tickLine={false} width={yw} domain={['auto', 'auto']} />
               <ReferenceLine y={+start} stroke={c.line2} strokeDasharray="3 4" />
               <Area type="monotone" dataKey="band" stroke="none" fill="url(#mcBand)" isAnimationActive={false} />
               {res.samples.map((_, k) => <Line key={k} type="linear" dataKey={`s${k}`} stroke={c.a(k % 3 ? 'accent' : 'violet', 0.22)} strokeWidth={1} dot={false} isAnimationActive animationDuration={700 + k * 18} />)}
@@ -336,7 +336,7 @@ export function OptionsCalc() {
               </defs>
               <CartesianGrid stroke={c.line} vertical={false} />
               <XAxis dataKey="x" type="number" domain={['dataMin', 'dataMax']} tickFormatter={x => num(x, S < 10 ? 2 : 0)} tick={{ fontSize: 10.5, fill: c.ink3 }} axisLine={false} tickLine={false} minTickGap={30} />
-              <YAxis tickFormatter={y => money(y, { compact: true })} tick={{ fontSize: 10.5, fill: c.ink3, fontFamily: 'Geist Mono' }} axisLine={false} tickLine={false} width={yw} />
+              <YAxis tickFormatter={y => money(y, { compact: true })} tick={{ fontSize: 10.5, fill: c.ink3, fontFamily: 'Inter, system-ui, sans-serif' }} axisLine={false} tickLine={false} width={yw} />
               <ReferenceLine y={0} stroke={c.line2} />
               <ReferenceLine x={S} stroke={c.accent} strokeDasharray="3 4" />
               {bes.map((b, i) => <ReferenceLine key={i} x={b} stroke={c.warn} strokeDasharray="2 3" />)}
