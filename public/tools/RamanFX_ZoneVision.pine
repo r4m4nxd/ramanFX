@@ -40,6 +40,7 @@ panelPos    = input.string("Top right", "Panel position", options=["Top right", 
 panelSizeS  = input.string("Small", "Panel text size", options=["Tiny", "Small", "Normal", "Large", "Huge"], group=gS)
 panelSize   = panelSizeS == "Tiny" ? size.tiny : panelSizeS == "Normal" ? size.normal : panelSizeS == "Large" ? size.large : panelSizeS == "Huge" ? size.huge : size.small
 panelWhere  = panelPos == "Top left" ? position.top_left : panelPos == "Bottom right" ? position.bottom_right : panelPos == "Bottom left" ? position.bottom_left : position.top_right
+labelGap    = input.float(3.0, "Label spacing (% of recent range): closer price tags are merged", minval=0.5, maxval=10, step=0.5, group=gS)
 doAlerts    = input.bool(true, "Alert when price reaches a fresh zone with the HTF trend", group=gS)
 
 gC = "Colours"
@@ -283,6 +284,7 @@ gradeOk(string g) => gradeF == "All" or (gradeF == "A only" and g == "A") or (gr
 var string lastBest = ""
 
 // ---------- drawing (last bar only) ----------
+visRange = ta.highest(high, 150) - ta.lowest(low, 150)
 var boxes = array.new<box>()
 var lines = array.new<line>()
 var labels = array.new<label>()
@@ -297,6 +299,11 @@ if barstate.islast
         lb.delete()
     boxes.clear(), lines.clear(), labels.clear()
     right = bar_index + 25
+    // every price tag goes through these arrays; close ones are merged into one readable label at the end
+    tagP = array.new<float>()
+    tagT = array.new<string>()
+    tagC = array.new<color>()
+    tagTip = array.new<string>()
 
     // potential trades: every fresh usable zone with a valid plan, ranked by planner score
     tIdx = array.new<int>()
@@ -353,10 +360,10 @@ if barstate.islast
                 lines.push(line.new(x1, sl, x2, sl, color=cStop, style=line.style_dashed))
                 lines.push(line.new(x1, tp, x2, tp, color=cTgt, style=line.style_dashed))
                 // one label per trade (all numbers in it) so nothing stacks on the zone price tags
-                labels.push(label.new(x2, z.prox, "#" + str.tostring(n + 1) + " " + side + " " + str.tostring(z.prox, format.mintick) + " | SL " + str.tostring(sl, format.mintick) + " | 1:" + str.tostring(rr, "#.0") + " | " + g, style=label.style_label_left, color=color.new(color.white, 100), textcolor=cEntry, size=size.small, tooltip=why))
+                tagP.push(z.prox), tagT.push("#" + str.tostring(n + 1) + " " + side + " " + str.tostring(z.prox, format.mintick) + " | SL " + str.tostring(sl, format.mintick) + " | 1:" + str.tostring(rr, "#.0") + " | " + g), tagC.push(cEntry), tagTip.push(why)
                 if not tpDone.includes(tp)
                     tpDone.push(tp)
-                    labels.push(label.new(x2, tp, "TP " + str.tostring(tp, format.mintick), style=label.style_label_left, color=color.new(color.white, 100), textcolor=cTgt, size=size.small))
+                    tagP.push(tp), tagT.push("TP " + str.tostring(tp, format.mintick)), tagC.push(cTgt), tagTip.push("Target of trade #" + str.tostring(n + 1))
     if doAlerts and bestKey != "" and bestKey != lastBest
         alert(syminfo.ticker + " " + timeframe.period + " potential trade: " + rows.get(0), alert.freq_once_per_bar)
     lastBest := bestKey
@@ -383,8 +390,8 @@ if barstate.islast
             txt = showNames ? zname(z) + " | zone " + g + (isTrade ? " | " + tradeTxt.get(zi) : "") + (tr >= 0 ? " | liquidity trap" : "") + (z.tested ? " | tested" : "") : ""
             boxes.push(box.new(z.t0, z.prox, right, z.dist, border_color=z.dir > 0 ? cDemL : cSupL, bgcolor=z.dir > 0 ? cDemF : cSupF, text=txt, text_color=cTxt, text_size=size.small, text_halign=text.align_left, text_valign=z.dir > 0 ? text.align_bottom : text.align_top))
             if not (isTrade and (planLines == "All listed" or tradeOf.get(zi) == 1))
-                labels.push(label.new(right, z.prox, str.tostring(z.prox, format.mintick), style=label.style_label_left, color=color.new(color.white, 100), textcolor=z.dir > 0 ? cDemL : cSupL, size=size.small))
-                labels.push(label.new(right, z.dist, str.tostring(z.dist, format.mintick), style=label.style_label_left, color=color.new(color.white, 100), textcolor=cTxt, size=size.tiny))
+                tagP.push(z.prox), tagT.push(str.tostring(z.prox, format.mintick)), tagC.push(z.dir > 0 ? cDemL : cSupL), tagTip.push("Proximal line (entry side) of the " + (z.dir > 0 ? "demand" : "supply") + " zone")
+                tagP.push(z.dist), tagT.push(str.tostring(z.dist, format.mintick)), tagC.push(cTxt), tagTip.push("Distal line (far side) of the zone")
             if tr >= 0
                 tp = z.dir > 0 ? plP.get(tr) : phP.get(tr)
                 tb = z.dir > 0 ? plB.get(tr) : phB.get(tr)
@@ -417,6 +424,31 @@ if barstate.islast
                     if close < p2 + slope * (bar_index - b2)
                         lines.push(line.new(b1, p1, b2, p2, color=cTL, width=1, extend=extend.right))
                     break
+
+    // merge price tags that would sit on top of each other
+    if tagP.size() > 0
+        gap = visRange * labelGap / 100
+        so = tagP.sort_indices()
+        float cp = tagP.get(so.get(0))
+        string ct = tagT.get(so.get(0))
+        color cc = tagC.get(so.get(0))
+        string ctip = tagTip.get(so.get(0))
+        for k = 1 to tagP.size()
+            bool flush = k == tagP.size()
+            if not flush
+                j = so.get(k)
+                if tagP.get(j) - cp < gap
+                    if not str.contains(ct, tagT.get(j))
+                        ct := str.startswith(tagT.get(j), "#") ? tagT.get(j) + "  /  " + ct : ct + "  /  " + tagT.get(j)
+                    cc := str.startswith(tagT.get(j), "#") ? tagC.get(j) : cc
+                    ctip := ctip + "\n" + tagTip.get(j)
+                else
+                    flush := true
+            if flush
+                labels.push(label.new(right, cp, ct, style=label.style_label_left, color=color.new(#000000, 45), textcolor=cc, size=size.small, tooltip=ctip))
+                if k < tagP.size()
+                    j = so.get(k)
+                    cp := tagP.get(j), ct := tagT.get(j), cc := tagC.get(j), ctip := tagTip.get(j)
 
     if showPanel
         panel.clear(0, 0, 0, 29)
