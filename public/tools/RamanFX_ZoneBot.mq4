@@ -28,6 +28,7 @@
 enum BotMode   { MODE_SCANNER = 0, MODE_APPROVE = 1, MODE_AUTO = 2 };
 enum EntryMode { ENTRY_SF = 0, ENTRY_CONF = 1, ENTRY_BOTH = 2 };
 enum LiveBE    { BE_NONE = 0, BE_AT_1R = 1, BE_AT_2R = 2 };
+enum Manage    { MG_OFF = 0, MG_MENTOR = 1, MG_BE_ONLY = 2 };
 
 input BotMode   InpMode          = MODE_AUTO;    // Mode
 input EntryMode InpEntry         = ENTRY_BOTH;   // Entry method
@@ -57,7 +58,11 @@ input int       InpAsianEndUTC   = 6;            // Asian session end (UTC hour)
 input int       InpNewsBeforeMin = 30;           // No orders this many minutes before news
 input int       InpNewsAfterMin  = 30;           // ...and after
 input int       InpFridayCutUTC  = 19;           // Friday: cancel pendings, no new orders after (UTC hour)
-input LiveBE    InpLiveBE        = BE_NONE;      // Live break-even rule (all others are simulated)
+input Manage    InpManage        = MG_MENTOR;    // Trade management while the bot runs
+input LiveBE    InpLiveBE        = BE_AT_2R;     // Break-even trigger (used by both management modes)
+input bool      InpHalfRiskAt1R  = true;         // Mentor: at +1R cut the risk in half (stop to -0.5R)
+input bool      InpTrailZones    = true;         // Mentor: move the stop under each new zone that forms in your favour
+input bool      InpPartialAt3R   = false;        // Mentor's split: close 25% at 3R, run the rest
 input int       InpConfTouchBars = 60;           // Confirmation: HTF zone touched within N entry bars
 input int       InpPendingBars   = 100;          // Cancel unfilled limit after N entry bars
 input int       InpSimDays       = 10;           // Variant replay horizon (days)
@@ -729,17 +734,67 @@ void ManageOrders()
          continue;
         }
       TrackFill(OrderTicket());
-      // live break-even rule
-      double Rp = si >= 0 ? stRpts[si] * point : 0;
-      if(InpLiveBE != BE_NONE && Rp > 0)
+      if(InpManage != MG_OFF) ManageOpen(OrderTicket(), k, si);
+     }
+  }
+
+// Mentor's management, in order (lessons 6, 8 and the Confirmation webinar):
+//  1. +1R  → stop to -0.5R (half the risk)
+//  2. +2R (or +1R) → stop to break-even + spread
+//  3. each new fresh entry-TF zone that forms in our favour after the fill → stop just beyond its distal line
+//  4. optional: 25% off at 3R, the rest runs to the target
+// The stop only ever moves in the trade's favour. Every change is printed with the reason.
+datetime trailBar[]; int trailTicket[];
+void ManageOpen(int ticket, int k, int si)
+  {
+   if(!OrderSelect(ticket, SELECT_BY_TICKET)) return;
+   string s = OrderSymbol(); int type = OrderType(); int dir = type == OP_BUY ? 1 : -1;
+   int digits = (int)MarketInfo(s, MODE_DIGITS); double point = MarketInfo(s, MODE_POINT);
+   double open = OrderOpenPrice(), sl = OrderStopLoss(), tp = OrderTakeProfit();
+   double R = si >= 0 ? stRpts[si] * point : 0;
+   if(R <= 0) return;
+   double px = dir > 0 ? MarketInfo(s, MODE_BID) : MarketInfo(s, MODE_ASK);
+   double gainR = dir * (px - open) / R;
+   double spread = MarketInfo(s, MODE_ASK) - MarketInfo(s, MODE_BID);
+   double stopLvl = MathMax(MarketInfo(s, MODE_STOPLEVEL), MarketInfo(s, MODE_FREEZELEVEL)) * point;
+   double newSl = sl; string why = "";
+   if(InpManage == MG_MENTOR && InpHalfRiskAt1R && gainR >= 1.0)
+     { double c = open - dir * 0.5 * R; if(dir * (c - newSl) > point) { newSl = c; why = "+1R reached → risk cut to half (stop at -0.5R)"; } }
+   double beTrig = InpLiveBE == BE_AT_1R ? 1.0 : (InpLiveBE == BE_AT_2R ? 2.0 : 99);
+   if(gainR >= beTrig)
+     { double c = open + dir * spread; if(dir * (c - newSl) > point) { newSl = c; why = StringFormat("+%.0fR reached → stop to break-even", beTrig); } }
+   if(InpManage == MG_MENTOR && InpTrailZones)
+     {
+      int etf = TF_E[k], ti = -1;
+      for(int i = 0; i < ArraySize(trailTicket); i++) if(trailTicket[i] == ticket) ti = i;
+      if(ti < 0) { ti = ArraySize(trailTicket); ArrayResize(trailTicket, ti + 1); ArrayResize(trailBar, ti + 1); trailTicket[ti] = ticket; trailBar[ti] = 0; }
+      datetime b0 = iTime(s, etf, 0);
+      if(trailBar[ti] != b0)                                         // once per new entry-TF candle
         {
-         double trig = InpLiveBE == BE_AT_1R ? Rp : 2 * Rp;
-         double open = OrderOpenPrice();
-         if(type == OP_BUY && MarketInfo(s, MODE_BID) - open >= trig && OrderStopLoss() < open)
-            if(!OrderModify(OrderTicket(), open, NormalizeDouble(open, (int)MarketInfo(s, MODE_DIGITS)), OrderTakeProfit(), 0)) Print("BE modify failed ", GetLastError());
-         if(type == OP_SELL && open - MarketInfo(s, MODE_ASK) >= trig && OrderStopLoss() > open)
-            if(!OrderModify(OrderTicket(), open, NormalizeDouble(open, (int)MarketInfo(s, MODE_DIGITS)), OrderTakeProfit(), 0)) Print("BE modify failed ", GetLastError());
+         trailBar[ti] = b0;
+         Zone z[]; int n = DetectZones(s, etf, z);
+         for(int i = n - 1; i >= 0; i--)
+           {
+            if(z[i].dir != dir || z[i].removed || !z[i].cont) continue;
+            if(z[i].tLeg <= OrderOpenTime()) break;                    // only zones formed after the fill
+            double c = z[i].dist - dir * (InpStopBufferPts * point + (dir < 0 ? spread : 0));
+            if(dir * (c - open) < 0) continue;                          // only trail into profit
+            if(dir * (c - newSl) > point) { newSl = c; why = StringFormat("new %s %s zone formed → stop under its distal line", TF_N[k], dir > 0 ? "demand" : "supply"); }
+            break;
+           }
         }
+     }
+   // apply: only in our favour and outside the broker's stop level
+   if(why != "" && dir * (newSl - sl) > point && dir * (px - newSl) > stopLvl)
+     {
+      if(OrderModify(ticket, open, NormalizeDouble(newSl, digits), tp, 0)) Print("#", ticket, " ", s, " stop moved to ", DoubleToString(newSl, digits), " — ", why);
+      else Print("#", ticket, " stop move failed ", GetLastError());
+     }
+   // 25% at 3R (once): only while the full original size is still open
+   if(InpManage == MG_MENTOR && InpPartialAt3R && gainR >= 3.0 && OrderSelect(ticket, SELECT_BY_TICKET) && StringFind(OrderComment(), "from #") < 0)
+     {
+      double step = MarketInfo(s, MODE_LOTSTEP), part = MathFloor(OrderLots() * 0.25 / step) * step;
+      if(part >= MarketInfo(s, MODE_MINLOT) && OrderClose(ticket, part, px, 5)) Print("#", ticket, " ", s, " closed 25% at 3R");
      }
   }
 
