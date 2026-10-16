@@ -11,6 +11,11 @@ import { monteCarlo } from '@/core/sim';
 import { pct, tone, useMoney } from '@/lib/format';
 import { Card, CardHead, CountUp, cx, ease, Page, Segmented, spring } from '@/ui/kit';
 import { Icon } from '@/ui/Icon';
+import { LESSON_RULE_CARDS } from '@/core/lessonLinks';
+import { VIDEO_LESSONS } from '@/core/videoLessons';
+
+// Rule-of-the-day pool: the PDF cards plus every rule stated in the video lessons.
+const CARDS: { topic: string; title: string; body: string; lesson?: number }[] = [...RULE_CARDS, ...LESSON_RULE_CARDS];
 
 function StreakMode() {
   const { et, stats } = useAnalytics();
@@ -45,19 +50,34 @@ function StreakMode() {
   );
 }
 
+function CourseCard() {
+  let done: number[] = [];
+  try { done = JSON.parse(localStorage.getItem('rfx_lessons_done') ?? '[]'); } catch { /* storage blocked */ }
+  const next = VIDEO_LESSONS.find(l => !done.includes(l.n)) ?? VIDEO_LESSONS[0];
+  return (
+    <Card>
+      <div className="label flex items-center gap-1.5 mb-2"><Icon name="playbook" size={12} />Video course</div>
+      <div className="num text-[13px] text-ink2">{done.length}/{VIDEO_LESSONS.length} lessons studied</div>
+      <div className="h-1.5 rounded-full bg-line mt-2 overflow-hidden"><div className="h-full bg-accent rounded-full" style={{ width: `${(done.length / Math.max(1, VIDEO_LESSONS.length)) * 100}%` }} /></div>
+      {next && <Link to={`/learn?l=${next.n}`} className="btn mt-3 w-full justify-between"><span className="truncate">Next: {next.n}. {next.title}</span><Icon name="chevronRight" size={14} /></Link>}
+    </Card>
+  );
+}
+
 function DailyCard() {
   const c = cardOfDay();
-  const [i, setI] = useState(RULE_CARDS.indexOf(c));
-  const card = RULE_CARDS[i];
+  const [i, setI] = useState(() => { const d = new Date(); const n = Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86_400_000); return Math.max(0, n % CARDS.length) || CARDS.indexOf(c); });
+  const card = CARDS[i];
   return (
     <Card>
       <div className="flex items-center justify-between mb-3"><div className="label flex items-center gap-1.5"><Icon name="sparkles" size={12} />Rule of the day</div>
-        <div className="flex gap-1"><button className="btn-ghost w-8 h-8 px-0" aria-label="Previous rule" onClick={() => setI((i - 1 + RULE_CARDS.length) % RULE_CARDS.length)}><Icon name="chevronLeft" size={15} /></button><button className="btn-ghost w-8 h-8 px-0" aria-label="Next rule" onClick={() => setI((i + 1) % RULE_CARDS.length)}><Icon name="chevronRight" size={15} /></button></div></div>
+        <div className="flex gap-1"><button className="btn-ghost w-8 h-8 px-0" aria-label="Previous rule" onClick={() => setI((i - 1 + CARDS.length) % CARDS.length)}><Icon name="chevronLeft" size={15} /></button><button className="btn-ghost w-8 h-8 px-0" aria-label="Next rule" onClick={() => setI((i + 1) % CARDS.length)}><Icon name="chevronRight" size={15} /></button></div></div>
       <AnimatePresence mode="wait">
         <motion.div key={i} initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3, ease }}>
           <div className="text-[11px] text-accent font-semibold uppercase tracking-wider">{card.topic}</div>
           <div className="text-xl font-semibold tracking-tight mt-1">{card.title}</div>
           <p className="text-[14px] text-ink2 mt-2 leading-relaxed">{card.body}</p>
+          {card.lesson && <Link to={`/learn?l=${card.lesson}`} className="inline-flex items-center gap-1 text-[12.5px] text-accent hover:underline mt-2">Open lesson {card.lesson}<Icon name="chevronRight" size={13} /></Link>}
         </motion.div>
       </AnimatePresence>
     </Card>
@@ -260,7 +280,7 @@ export default function Guru() {
       </motion.div>
       {hasTrades && <StreakMode />}
       <div className="grid lg:grid-cols-2 gap-4 items-start">
-        <div className="flex flex-col gap-4"><DailyCard /><Drills /></div>
+        <div className="flex flex-col gap-4"><DailyCard /><CourseCard /><Drills /></div>
         <div className="flex flex-col gap-4">{hasTrades && <Progress />}<Returns /></div>
       </div>
       <Library />

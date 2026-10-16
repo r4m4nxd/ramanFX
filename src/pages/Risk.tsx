@@ -9,6 +9,7 @@ import { useMoney } from '@/lib/format';
 import { Badge, Bar, Card, CardHead, cx, Field, Page, useToast } from '@/ui/kit';
 import { Icon } from '@/ui/Icon';
 import { readLocal, writeLocal } from './calcShared';
+import { MentorChecks } from '@/ui/LessonLinks';
 
 const FIELDS: { k: keyof RiskRules; label: string; hint: string; step: number; money?: boolean }[] = [
   { k: 'maxDailyLoss', label: 'Max daily loss', hint: 'Net loss for the day that ends trading', step: 1, money: true },
@@ -129,6 +130,12 @@ export default function Risk() {
           </Card>
         </div>
       </div>
+      <Card>
+        <details>
+          <summary className="cursor-pointer list-none flex items-center justify-between gap-3"><span><span className="text-[15px] font-semibold block">Mentor's pre-trade checks</span><span className="text-[12.5px] text-ink3">Every check from the video lessons, linked to its lesson</span></span><Icon name="chevronDown" size={16} className="text-ink3 shrink-0" /></summary>
+          <div className="mt-4"><MentorChecks /></div>
+        </details>
+      </Card>
     </Page>
   );
 }

@@ -19,6 +19,7 @@ import { VerdictCard } from '@/ui/VerdictCard';
 import { TradeChart } from '@/ui/TradeChart';
 import { useGradedTrade } from '@/data/guru';
 import { exitOutcome, ORDER_LABEL, ptsToR, REASON_LABEL } from '@/core/exitInsights';
+import { LESSON_MISTAKE_TAGS } from '@/core/lessonLinks';
 
 const EMOTIONS = ['calm', 'focused', 'confident', 'anxious', 'fomo', 'greedy', 'revenge', 'tired', 'bored'];
 const TRENDS: [Trend, string, string][] = [['up', '↑', 'Uptrend'], ['down', '↓', 'Downtrend'], ['side', '✖', 'Sideways']];
@@ -86,6 +87,7 @@ export default function TradeDetail() {
   const universe = useMemo(() => {
     const tags = new Set<string>(), mistakes = new Set<string>();
     for (const n of Object.values(notes)) { n.tags?.forEach(x => tags.add(normTag(x))); n.mistakes?.forEach(x => mistakes.add(normTag(x))); }
+    LESSON_MISTAKE_TAGS.forEach(x => mistakes.add(normTag(x)));
     return { tags: [...tags].sort(), mistakes: [...mistakes].sort() };
   }, [notes]);
 
