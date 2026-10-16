@@ -1,9 +1,9 @@
-// RamanFX ZoneVision for TradingView (Pine Script v5)
+// RamanFX ZoneVision for TradingView (Pine Script v6)
 // Same rules as the MT4 ZoneVision / ZoneBot: basing candles, explosive move away, stay-away candle,
 // similar-size rule, departure, CP / VP names, A/B/C grade, fresh / tested / removed, liquidity traps,
 // one intact trendline each way, HTF bias (mentor timeframe pairs) and the planned entry / stop / target.
 // Add to chart: Pine Editor -> paste -> Save -> Add to chart. Alerts: Create alert -> "Any alert() function call".
-//@version=5
+//@version=6
 indicator("RamanFX ZoneVision", shorttitle="ZoneVision", overlay=true, max_boxes_count=200, max_lines_count=100, max_labels_count=100)
 
 // ---------- inputs ----------
@@ -224,11 +224,11 @@ if barstate.islast
             if usable(z) and (showTested or not z.tested)
                 idx.push(i)
                 dst.push(math.abs(close - z.prox))
-    order = dst.sort_indices()
+    ord = dst.sort_indices()
     shown = math.min(nShow, idx.size())
     if shown > 0
         for n = 0 to shown - 1
-            z = zones.get(idx.get(order.get(n)))
+            z = zones.get(idx.get(ord.get(n)))
             g = grade(z)
             tr = showTrap ? trapFor(z) : -1
             txt = showNames ? zname(z) + " | " + g + (tr >= 0 ? " | liquidity trap" : "") + (z.tested ? " | tested" : "") : ""
@@ -272,7 +272,7 @@ if barstate.islast
     string planTxt = "no setup: " + (htfTrend == 0 ? "HTF trend unclear" : "no fresh zone with the trend")
     if showPlan and idx.size() > 0
         for n = 0 to idx.size() - 1
-            z = zones.get(idx.get(order.get(n)))
+            z = zones.get(idx.get(ord.get(n)))
             if z.dir != htfTrend or z.tested
                 continue
             // stop: CP beyond distal; VP beyond the swing valley/peak of the whole drop/rally into the zone
