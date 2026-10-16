@@ -27,6 +27,10 @@ showTrap    = input.bool(true, "Liquidity traps (purple)", group=gS)
 showTL      = input.bool(true, "Newest intact trendline each way", group=gS)
 showPlan    = input.bool(true, "Planned entry / stop / target", group=gS)
 showPanel   = input.bool(true, "Info panel", group=gS)
+panelPos    = input.string("Top right", "Panel position", options=["Top right", "Top left", "Bottom right", "Bottom left"], group=gS)
+panelSizeS  = input.string("Small", "Panel text size", options=["Tiny", "Small", "Normal", "Large", "Huge"], group=gS)
+panelSize   = panelSizeS == "Tiny" ? size.tiny : panelSizeS == "Normal" ? size.normal : panelSizeS == "Large" ? size.large : panelSizeS == "Huge" ? size.huge : size.small
+panelWhere  = panelPos == "Top left" ? position.top_left : panelPos == "Bottom right" ? position.bottom_right : panelPos == "Bottom left" ? position.bottom_left : position.top_right
 doAlerts    = input.bool(true, "Alert when price reaches a fresh zone with the HTF trend", group=gS)
 
 gC = "Colours"
@@ -206,7 +210,7 @@ if doAlerts and barstate.isconfirmed and zones.size() > 0
 var boxes = array.new<box>()
 var lines = array.new<line>()
 var labels = array.new<label>()
-var table panel = table.new(position.top_left, 1, 5, bgcolor=color.new(color.white, 100))
+var table panel = table.new(panelWhere, 1, 5, bgcolor=color.new(#000000, 70), frame_color=color.new(#C9CED8, 80), frame_width=1, border_width=0)
 
 if barstate.islast
     for b in boxes
@@ -314,7 +318,7 @@ if barstate.islast
             break
 
     if showPanel
-        table.cell(panel, 0, 0, "ZoneVision  " + timeframe.period + " -> " + htf, text_color=cEntry, text_size=size.small, text_halign=text.align_left)
-        table.cell(panel, 0, 1, "Bias: " + (htfTrend > 0 ? "UP (HTF higher highs / lows)" : htfTrend < 0 ? "DOWN (HTF lower highs / lows)" : "unclear - wait"), text_color=cTxt, text_size=size.small, text_halign=text.align_left)
-        table.cell(panel, 0, 2, "Zones: " + str.tostring(idx.size()) + " fresh/usable, " + str.tostring(shown) + " drawn", text_color=cTxt, text_size=size.small, text_halign=text.align_left)
-        table.cell(panel, 0, 3, "Plan: " + planTxt, text_color=cTxt, text_size=size.small, text_halign=text.align_left)
+        table.cell(panel, 0, 0, "ZoneVision  " + timeframe.period + " -> " + htf, text_color=cEntry, text_size=panelSize, text_halign=text.align_left)
+        table.cell(panel, 0, 1, "Bias: " + (htfTrend > 0 ? "UP (HTF higher highs / lows)" : htfTrend < 0 ? "DOWN (HTF lower highs / lows)" : "unclear - wait"), text_color=cTxt, text_size=panelSize, text_halign=text.align_left)
+        table.cell(panel, 0, 2, "Zones: " + str.tostring(idx.size()) + " fresh/usable, " + str.tostring(shown) + " drawn", text_color=cTxt, text_size=panelSize, text_halign=text.align_left)
+        table.cell(panel, 0, 3, "Plan: " + planTxt, text_color=cTxt, text_size=panelSize, text_halign=text.align_left)
