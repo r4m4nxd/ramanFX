@@ -39,6 +39,8 @@ input bool      InpTF_M5         = true;         // Trade 5m entries (HTF H1)
 input bool      InpTF_M15        = true;         // Trade 15m entries (HTF H4)
 input bool      InpTF_H1         = true;         // Trade H1 entries (HTF 1D)
 input bool      InpTF_H4         = true;         // Trade H4 entries (HTF 1W)
+input bool      InpTF_D1         = true;         // Trade D1 entries (HTF 1M)
+input bool      InpTF_W1         = true;         // Trade W1 entries (HTF 1M)
 input double    InpRiskPct       = 1.0;          // Risk per trade (% of balance)
 input double    InpMinRR         = 2.0;          // Minimum reward:risk to opposing zone
 input double    InpMinLegRatio   = 1.2;          // Move-away range / largest base candle (loose)
@@ -74,9 +76,10 @@ input int       InpTrapSwing     = 3;            // Obvious level = swing with N
 input bool      InpRequireTrap   = false;        // Only trade zones with a liquidity trap
 
 //--- timeframe pairs (mentor's combos)
-int TF_E[5] = {PERIOD_M1, PERIOD_M5, PERIOD_M15, PERIOD_H1, PERIOD_H4};
-int TF_H[5] = {PERIOD_M15, PERIOD_H1, PERIOD_H4, PERIOD_D1, PERIOD_W1};
-string TF_N[5] = {"M1", "M5", "M15", "H1", "H4"};
+#define NTF 7
+int TF_E[NTF] = {PERIOD_M1, PERIOD_M5, PERIOD_M15, PERIOD_H1, PERIOD_H4, PERIOD_D1, PERIOD_W1};
+int TF_H[NTF] = {PERIOD_M15, PERIOD_H1, PERIOD_H4, PERIOD_D1, PERIOD_W1, PERIOD_MN1, PERIOD_MN1};
+string TF_N[NTF] = {"M1", "M5", "M15", "H1", "H4", "D1", "W1"};
 
 struct Zone
   {
@@ -118,7 +121,7 @@ string BE_N[4] = {"NoBE", "BE@1R", "BE@2R", "+0.5R@2R"};
 
 Sim      sims[];
 string   syms[];
-datetime lastBar[][5];
+datetime lastBar[][NTF];
 string   newsCcy[];
 datetime newsTime[];
 datetime lastNewsLoad = 0;
@@ -134,7 +137,7 @@ int OnInit()
   {
    BuildSymbols();
    ArrayResize(lastBar, ArraySize(syms));
-   for(int i = 0; i < ArraySize(syms); i++) for(int k = 0; k < 5; k++) lastBar[i][k] = 0;
+   for(int i = 0; i < ArraySize(syms); i++) for(int k = 0; k < NTF; k++) lastBar[i][k] = 0;
    LoadSims();
    StLoad();
    LoadNews();
@@ -208,7 +211,7 @@ void Work()
    if(TimeCurrent() - lastNewsLoad > 3600) LoadNews();
    ManageOrders();
    for(int i = 0; i < ArraySize(syms); i++)
-      for(int k = 0; k < 5; k++)
+      for(int k = 0; k < NTF; k++)
         {
          if(!TfOn(k)) continue;
          datetime t = iTime(syms[i], TF_E[k], 0);
@@ -227,7 +230,9 @@ bool TfOn(int k)
    if(k == 1) return InpTF_M5;
    if(k == 2) return InpTF_M15;
    if(k == 3) return InpTF_H1;
-   return InpTF_H4;
+   if(k == 4) return InpTF_H4;
+   if(k == 5) return InpTF_D1;
+   return InpTF_W1;
   }
 
 //+------------------------------------------------------------------+
@@ -615,7 +620,7 @@ void Place(string s, int k, int dir, double entry, double sl, double tp, double 
                         riskMoney, AccountCurrency(), riskPct, lots, stopDist / pip, rr);
    // short human comment (MT4 allows 31 characters); full reasoning goes to the log, Experts tab and chart
    // e.g. "2 M5 demand A, H1 up, 1:4.8 trap" (MT4 keeps 31 characters)
-   // Starts with a rank so the Comment column sorts 1 minute -> 1 month: 1 M1, 2 M5, 3 M15, 4 H1, 5 H4
+   // Starts with a rank so the Comment column sorts 1 minute -> 1 month: 1 M1, 2 M5, 3 M15, 4 H1, 5 H4, 6 D1, 7 W1
    string cm = StringFormat("%d %s %s %s, %s %s, 1:%.1f", k + 1, TF_N[k], dir > 0 ? "demand" : "supply", grade, TfName(TF_H[k]), dir > 0 ? "up" : "down", rr);
    if(method == "CONF" && StringLen(cm) <= 26) cm += " conf";
    if(trap && StringLen(cm) <= 26) cm += " trap";
@@ -658,7 +663,7 @@ void StLoad()
    FileClose(f);
   }
 // Entry TF index from the magic number when no state exists (magic = base + k [+10 for confirmation]).
-int KOf(int magic) { int k = (magic - InpMagic) % 10; return (k >= 0 && k <= 4) ? k : 1; }
+int KOf(int magic) { int k = (magic - InpMagic) % 10; return (k >= 0 && k < NTF) ? k : 1; }
 
 void LogOrder(int t, string s, string info)
   {
@@ -965,7 +970,7 @@ void LogVariant(Sim &m, string tpv, string bev, double r, datetime ex, string wh
 
 string TfName(int tf)
   {
-   switch(tf) { case PERIOD_M1: return "M1"; case PERIOD_M5: return "M5"; case PERIOD_M15: return "M15"; case PERIOD_H1: return "H1"; case PERIOD_H4: return "H4"; case PERIOD_D1: return "D1"; case PERIOD_W1: return "W1"; }
+   switch(tf) { case PERIOD_M1: return "M1"; case PERIOD_M5: return "M5"; case PERIOD_M15: return "M15"; case PERIOD_H1: return "H1"; case PERIOD_H4: return "H4"; case PERIOD_D1: return "D1"; case PERIOD_W1: return "W1"; case PERIOD_MN1: return "MN"; }
    return IntegerToString(tf);
   }
 
