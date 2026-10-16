@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| RamanFX_ZoneVision.mq4  (v0.1)                                    |
+//| RamanFX_ZoneVision.mq4  (v0.2 — clean, mentor-style)                                    |
 //| See the chart through the ZoneBot's eyes. Uses the SAME zone     |
 //| rules and defaults as RamanFX_ZoneBot.mq4 so you can spot where  |
 //| the bot disagrees with you (and with the mentor).                |
@@ -20,7 +20,7 @@
 //| into a zone does not count as a touch. Removal needs a CLOSE.    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "0.10"
+#property version   "0.20"
 #property strict
 #property indicator_chart_window
 
@@ -33,22 +33,27 @@ input int    InpMaxZoneAge    = 200;    // Ignore zones older than this many bar
 input double InpEmoATR        = 3.0;    // Emotional candle: range > this × ATR (wick ignored)
 input double InpMinRR         = 2.0;    // Min reward:risk (for the planned setup)
 input double InpStopBufferPts = 10;     // Stop buffer beyond distal (points)
-input string Sep2             = "── What to show ──"; // ─────
-input bool   InpShowRemoved   = true;   // Show removed zones (faded, crossed)
-input bool   InpShowTested    = true;   // Show tested zones
-input bool   InpShowReversal  = true;   // Show reversal zones (DBR / RBD) — bot ignores them
-input bool   InpShowRejected  = false;  // Show rejected candidates + reason (debug)
-input int    InpLabelParts    = 4;      // Label the 4 parts on the newest N zones
-input bool   InpShowTrendlines= true;   // Draw trendlines (mentor rules)
+input string Sep2             = "── What to show (clean by default) ──"; // ─────
+input int    InpMaxZones      = 4;      // Zones drawn: the N closest to price
+input bool   InpShowTested    = false;  // Also draw tested zones
+input bool   InpShowRemoved   = false;  // Also draw removed zones (faded)
+input bool   InpShowNames     = true;   // Zone name inside the box (e.g. Rally Base Rally Demand (CP))
+input bool   InpShowTrendlines= true;   // Newest intact trendline each way (mentor rules)
+input bool   InpShowBrokenTL  = false;  // Also draw broken trendlines
 input int    InpTrendSwing    = 3;      // Swing strength for peaks / valleys (bars each side)
-input bool   InpShowHTF       = true;   // Draw HTF zones (paired timeframe)
-input bool   InpShowPlan      = true;   // Draw the bot's planned trade
-input bool   InpShowPanel     = true;   // Info panel (step-by-step reasoning)
-input bool   InpShowThoughts  = true;   // Write what the bot thinks next to each zone / trendline
-input color  InpDemand        = C'38,166,120';
-input color  InpSupply        = C'220,70,70';
-input color  InpMuted         = C'110,110,120';
-input color  InpTrend         = C'139,92,246';
+input bool   InpShowHTF       = true;   // HTF zone band (closest above and below)
+input bool   InpShowPlan      = true;   // Bot's planned entry / SL / TP
+input bool   InpShowPanel     = true;   // Compact info panel
+input bool   InpExplain       = false;  // Explain mode: label the 4 parts on the bot's zone
+input bool   InpShowRejected  = false;  // Debug: rejected candidates + reason
+input color  InpDemandFill    = C'200,232,203';
+input color  InpDemandLine    = C'46,139,87';
+input color  InpSupplyFill    = C'246,212,198';
+input color  InpSupplyLine    = C'200,60,60';
+input color  InpHtfFill       = C'252,238,170';
+input color  InpMuted         = C'150,150,150';
+input color  InpTrend         = C'40,40,40';
+input color  InpText          = C'90,90,90';
 
 #define PFX "RFXV_"
 
@@ -91,8 +96,8 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
    Detect(_Symbol, _Period, Z, true);
    if(InpShowTrendlines) Trendlines(_Symbol, _Period);
    Qualify();
+   if(InpShowHTF) { int h = HtfOf(_Period); if(h > 0) { Detect(_Symbol, h, HZ, false); DrawZones(HZ, true); } }   // HTF band first, underneath
    DrawZones(Z, false);
-   if(InpShowHTF) { int h = HtfOf(_Period); if(h > 0) { Detect(_Symbol, h, HZ, false); DrawZones(HZ, true); } }
    if(InpShowPanel || InpShowPlan) Panel();
    return rates_total;
   }
@@ -254,26 +259,21 @@ void Trendlines(string s, int tf)
          a = b;                                                                // continue past this line
         }
      }
+   bool drawnUp = false, drawnDn = false;
    for(int i = 0; i < ArraySize(TL); i++)
      {
+      if(TL[i].removed && !InpShowBrokenTL) continue;
+      if(!TL[i].removed) { if(TL[i].dir > 0) { if(drawnUp) continue; drawnUp = true; } else { if(drawnDn) continue; drawnDn = true; } }
       string nm = PFX + "tl" + IntegerToString(i);
-      int end = TL[i].removed ? TL[i].removedBar : -15;
+      int end = TL[i].removed ? TL[i].removedBar : -10;
       double slope = (TL[i].pb - TL[i].pa) / (TL[i].a - TL[i].b);
       double pe = TL[i].pa + slope * (TL[i].a - end);
       ObjectCreate(0, nm, OBJ_TREND, 0, Time[TL[i].a], TL[i].pa, BarTime(s, tf, end), pe);
       ObjectSetInteger(0, nm, OBJPROP_RAY_RIGHT, false);
       ObjectSetInteger(0, nm, OBJPROP_COLOR, TL[i].removed ? InpMuted : InpTrend);
-      ObjectSetInteger(0, nm, OBJPROP_WIDTH, TL[i].removed ? 1 : 2);
-      ObjectSetInteger(0, nm, OBJPROP_STYLE, TL[i].removed ? STYLE_DASH : STYLE_SOLID);
-      ObjectSetString(0, nm, OBJPROP_TOOLTIP, (TL[i].dir > 0 ? "Uptrend line" : "Downtrend line") + (TL[i].removed ? " — removed" : " — intact"));
-      if(TL[i].removed)
-         Txt(PFX + "tlx" + IntegerToString(i), Time[TL[i].removedBar], pe, "TL removed", InpMuted, 7, TL[i].dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
-      if(InpShowThoughts)
-         Txt(PFX + "tlth" + IntegerToString(i), BarTime(s, tf, end), pe,
-             TL[i].removed ? "Bot: trendline broken by a full close — structure shift; a zone that formed the break qualifies"
-                           : (TL[i].dir > 0 ? "Bot: uptrend line intact — supports buys until a candle closes fully below it"
-                                            : "Bot: downtrend line intact — supports sells until a candle closes fully above it"),
-             TL[i].removed ? InpMuted : InpTrend, 7, TL[i].dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
+      ObjectSetInteger(0, nm, OBJPROP_STYLE, TL[i].removed ? STYLE_DOT : STYLE_SOLID);
+      ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
+      ObjectSetString(0, nm, OBJPROP_TOOLTIP, (TL[i].dir > 0 ? "Uptrend line" : "Downtrend line") + (TL[i].removed ? " — removed by a full close" : " — intact"));
      }
   }
 
@@ -333,64 +333,75 @@ void HLine(string nm, datetime t1, datetime t2, double p, color c, int style, in
    ObjectSetInteger(0, nm, OBJPROP_COLOR, c); ObjectSetInteger(0, nm, OBJPROP_STYLE, style); ObjectSetInteger(0, nm, OBJPROP_WIDTH, width);
   }
 
+string ZoneName(Zone &z)
+  {
+   if(z.dir > 0) return z.cont ? "Rally Base Rally Demand (CP)" : "Drop Base Rally Demand (PV)";
+   return z.cont ? "Drop Base Drop Supply (CP)" : "Rally Base Drop Supply (PV)";
+  }
+
+void PriceTag(string nm, datetime t, double p, color c)
+  {
+   Txt(nm, t, p, "(" + DoubleToString(p, Digits) + ")", c, 7, ANCHOR_RIGHT);
+  }
+
+// The N zones closest to price, mentor style: light fill, solid border, prices at the right edge.
 void DrawZones(Zone &zs[], bool htf)
   {
    int tf = htf ? HtfOf(_Period) : _Period;
-   string tag = htf ? "H" : "Z";
-   int labelled = 0;
-   for(int i = ArraySize(zs) - 1; i >= 0; i--)
+   double px = (Bid + Ask) / 2;
+   // pick the closest eligible zones
+   int idx[]; double dst[]; int n = 0;
+   for(int i = 0; i < ArraySize(zs); i++)
      {
-      Zone z = zs[i];
-      if(z.legBar > InpMaxZoneAge && !htf) continue;
-      if(z.removed && (!InpShowRemoved || htf)) continue;
-      if(z.tested && !InpShowTested) continue;
-      if(!z.cont && !InpShowReversal) continue;
-      string id = PFX + tag + IntegerToString(i);
-      color c = z.removed ? InpMuted : (z.dir > 0 ? InpDemand : InpSupply);
+      if(!htf && zs[i].legBar > InpMaxZoneAge) continue;
+      if(zs[i].removed && (htf || !InpShowRemoved)) continue;
+      if(zs[i].tested && !htf && !InpShowTested) continue;
+      ArrayResize(idx, n + 1); ArrayResize(dst, n + 1);
+      idx[n] = i; dst[n] = MathMin(MathAbs(zs[i].prox - px), MathAbs(zs[i].dist - px)); n++;
+     }
+   int want = htf ? 2 : InpMaxZones;
+   datetime right = Time[0] + PeriodSeconds() * 18;
+   for(int pick = 0; pick < MathMin(want, n); pick++)
+     {
+      int best = -1;
+      for(int j = 0; j < n; j++) if(idx[j] >= 0 && (best < 0 || dst[j] < dst[best])) best = j;
+      if(best < 0) break;
+      Zone z = zs[idx[best]]; string id = PFX + (htf ? "H" : "Z") + IntegerToString(idx[best]); idx[best] = -1;
+      color fill = htf ? InpHtfFill : (z.removed ? C'235,235,235' : (z.dir > 0 ? InpDemandFill : InpSupplyFill));
+      color line = z.removed ? InpMuted : (z.dir > 0 ? InpDemandLine : InpSupplyLine);
       datetime t1 = iTime(_Symbol, tf, z.legBar + z.baseN);
-      datetime t2 = z.removed ? iTime(_Symbol, tf, z.removedBar) : Time[0] + PeriodSeconds() * 12;
+      datetime t2 = z.removed ? iTime(_Symbol, tf, z.removedBar) : right;
       ObjectCreate(0, id, OBJ_RECTANGLE, 0, t1, z.prox, t2, z.dist);
-      ObjectSetInteger(0, id, OBJPROP_COLOR, c);
-      ObjectSetInteger(0, id, OBJPROP_BACK, !htf);
-      ObjectSetInteger(0, id, OBJPROP_WIDTH, htf ? 2 : 1);
-      if(htf) ObjectSetInteger(0, id, OBJPROP_STYLE, STYLE_SOLID);
-      string type = z.cont ? (z.dir > 0 ? "RBR" : "DBD") : (z.dir > 0 ? "DBR" : "RBD");
+      ObjectSetInteger(0, id, OBJPROP_COLOR, fill); ObjectSetInteger(0, id, OBJPROP_BACK, true); ObjectSetInteger(0, id, OBJPROP_SELECTABLE, false);
       string state = z.removed ? "removed" : (z.tested ? "tested" : "fresh");
-      ObjectSetString(0, id, OBJPROP_TOOLTIP, StringFormat("%s%s %s · grade %s · move away %.1fx · base %d · %s%s", htf ? "HTF " : "", z.dir > 0 ? "Demand" : "Supply", type, z.grade, z.legRatio, z.baseN, state, htf ? "" : " · " + z.qual));
-      // proximal / distal
-      HLine(id + "p", t1, t2, z.prox, c, STYLE_SOLID, htf ? 2 : 1);
-      HLine(id + "d", t1, t2, z.dist, c, STYLE_DASH, 1);
-      // header label
-      string head = StringFormat("%s%s %s %s%s", htf ? TfName(tf) + " " : "", type, z.grade, state == "fresh" ? "" : state, (z.cont || htf) ? "" : "  (bot skips reversal)");
-      Txt(id + "h", t2, z.dir > 0 ? z.prox : z.prox, head, c, htf ? 8 : 7, z.dir > 0 ? ANCHOR_LEFT_LOWER : ANCHOR_LEFT_UPPER);
-      if(InpShowThoughts && !htf && z.legBar <= InpMaxZoneAge)
-         Txt(id + "th", t2, z.dist, "Bot: " + Thought(z), z.removed ? InpMuted : clrSilver, 7, z.dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
-      if(InpShowThoughts && htf && !z.removed)
-         Txt(id + "th", t2, z.dist, z.tested ? "Bot: HTF zone already touched — look for confirmation inside it" : "Bot: HTF zone — where the bigger players sit; entries in this direction get priority", c, 7, z.dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
-      if(z.removed)
+      ObjectSetString(0, id, OBJPROP_TOOLTIP, StringFormat("%s%s · grade %s · move away %.1fx · base %d · %s · %s", htf ? TfName(tf) + " " : "", ZoneName(z), z.grade, z.legRatio, z.baseN, state, htf ? "" : z.qual));
+      if(!htf)
         {
-         ObjectCreate(0, id + "x", OBJ_TREND, 0, t1, z.prox, t2, z.dist);
-         ObjectSetInteger(0, id + "x", OBJPROP_RAY_RIGHT, false); ObjectSetInteger(0, id + "x", OBJPROP_COLOR, InpMuted);
+         HLine(id + "p", t1, t2, z.prox, line, STYLE_SOLID, 1);
+         HLine(id + "d", t1, t2, z.dist, line, STYLE_SOLID, 1);
         }
-      if(z.tested && z.testedBar > 0 && !htf)
-         Txt(id + "t", iTime(_Symbol, tf, z.testedBar), z.prox, "touched", c, 7, z.dir > 0 ? ANCHOR_UPPER : ANCHOR_LOWER);
-      // the 4 parts on the newest zones
-      if(!htf && labelled < InpLabelParts && !z.removed)
+      PriceTag(id + "pp", t2, z.prox, htf ? InpText : line);
+      PriceTag(id + "dp", t2, z.dist, htf ? InpText : line);
+      if(InpShowNames)
         {
-         labelled++;
-         double off = MathAbs(z.prox - z.dist) * 0.4;
-         Txt(id + "b", iTime(_Symbol, tf, z.legBar + 1), z.dir > 0 ? z.dist - off : z.dist + off, StringFormat("① base ×%d", z.baseN), c, 7, z.dir > 0 ? ANCHOR_UPPER : ANCHOR_LOWER);
-         double legEnd = z.dir > 0 ? iHigh(_Symbol, tf, z.legBar) : iLow(_Symbol, tf, z.legBar);
-         Txt(id + "m", iTime(_Symbol, tf, z.legBar), legEnd, StringFormat("② move away %.1fx", z.legRatio), c, 7, z.dir > 0 ? ANCHOR_LOWER : ANCHOR_UPPER);
-         double saEdge = z.dir > 0 ? iLow(_Symbol, tf, z.saBar) : iHigh(_Symbol, tf, z.saBar);
-         Txt(id + "s", iTime(_Symbol, tf, z.saBar), z.dir > 0 ? iHigh(_Symbol, tf, z.saBar) : iLow(_Symbol, tf, z.saBar), "③ stay away", c, 7, z.dir > 0 ? ANCHOR_LOWER : ANCHOR_UPPER);
-         ObjectCreate(0, id + "g", OBJ_TREND, 0, iTime(_Symbol, tf, z.saBar), saEdge, iTime(_Symbol, tf, z.saBar), z.prox);
-         ObjectSetInteger(0, id + "g", OBJPROP_RAY_RIGHT, false); ObjectSetInteger(0, id + "g", OBJPROP_COLOR, clrGold); ObjectSetInteger(0, id + "g", OBJPROP_WIDTH, 2);
-         ObjectSetString(0, id + "g", OBJPROP_TOOLTIP, "④ space between stay-away candle and proximal line");
-         Txt(id + "gs", iTime(_Symbol, tf, z.saBar - 1), (saEdge + z.prox) / 2, "④ space", clrGold, 7, ANCHOR_LEFT);
-         Txt(id + "q", t1, z.dir > 0 ? z.dist - 2 * off : z.dist + 2 * off, z.qual, InpMuted, 7, z.dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
+         string nm = htf ? TfName(tf) + " " + (z.dir > 0 ? "demand" : "supply") : ZoneName(z) + (z.grade == "A" ? "" : " · " + z.grade) + (state == "fresh" ? "" : " · " + state);
+         Txt(id + "n", t1, z.dir > 0 ? z.dist : z.dist, nm, InpText, 7, z.dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
         }
      }
+  }
+
+// Explain mode: the 4 parts on one zone only.
+void Explain(Zone &z)
+  {
+   string id = PFX + "ex"; color c = InpText;
+   double off = MathAbs(z.prox - z.dist) * 0.6;
+   Txt(id + "b", Time[z.legBar + 1], z.dir > 0 ? z.dist - off : z.dist + off, StringFormat("1 base x%d", z.baseN), c, 7, z.dir > 0 ? ANCHOR_UPPER : ANCHOR_LOWER);
+   Txt(id + "m", Time[z.legBar], z.dir > 0 ? High[z.legBar] : Low[z.legBar], StringFormat("2 move away %.1fx", z.legRatio), c, 7, z.dir > 0 ? ANCHOR_LOWER : ANCHOR_UPPER);
+   double saEdge = z.dir > 0 ? Low[z.saBar] : High[z.saBar];
+   Txt(id + "s", Time[z.saBar], z.dir > 0 ? High[z.saBar] : Low[z.saBar], "3 stay away", c, 7, z.dir > 0 ? ANCHOR_LOWER : ANCHOR_UPPER);
+   ObjectCreate(0, id + "g", OBJ_TREND, 0, Time[z.saBar], saEdge, Time[z.saBar], z.prox);
+   ObjectSetInteger(0, id + "g", OBJPROP_RAY_RIGHT, false); ObjectSetInteger(0, id + "g", OBJPROP_COLOR, clrGoldenrod); ObjectSetInteger(0, id + "g", OBJPROP_WIDTH, 2);
+   Txt(id + "gs", Time[z.saBar], (saEdge + z.prox) / 2, "  4 space", clrGoldenrod, 7, ANCHOR_LEFT);
   }
 
 //+------------------------------------------------------------------+
@@ -421,32 +432,16 @@ double Curve(string s, int htf, double p)
 //+------------------------------------------------------------------+
 //| Panel + the setup the bot would take now (same logic as Scan)   |
 //+------------------------------------------------------------------+
-// What the bot "thinks" about one zone, in the order it checks things.
-string Thought(Zone &z)
-  {
-   string side = z.dir > 0 ? "buy" : "sell";
-   if(z.removed) return "price closed through the distal line — zone removed, ignored.";
-   if(!z.cont) return "reversal zone (" + (z.dir > 0 ? "DBR" : "RBD") + ") — I only trade continuation zones, ignored.";
-   if(z.tested) return "price already came back — not fresh, ignored.";
-   if(gTrend == 0) return "fresh, but the HTF trend is unclear — I wait.";
-   if(gTrend != z.dir) return "fresh, but against the HTF trend — ignored.";
-   return StringFormat("fresh %s with the HTF trend, grade %s — I %s at %s if R:R to the next opposing zone ≥ %.1f.", z.dir > 0 ? "RBR demand" : "DBD supply", z.grade, side == "buy" ? "buy" : "sell", DoubleToString(z.prox, Digits), InpMinRR);
-  }
-
 void Panel()
   {
    int htf = HtfOf(_Period);
-   int trend = htf > 0 ? HtfTrend(_Symbol, htf) : 0;
+   int trend = gTrend;
    double spread = Ask - Bid;
-   string lines = StringFormat("RamanFX ZoneVision — %s %s → HTF %s\n", _Symbol, TfName(_Period), htf > 0 ? TfName(htf) : "–");
-   lines += StringFormat("HTF trend (bot, swings): %s\n", trend > 0 ? "UP" : (trend < 0 ? "DOWN" : "unclear"));
-   lines += "Structure (trendlines): " + StructureNow() + "\n";
-   int fresh = 0, tested = 0, removed = 0;
-   for(int i = 0; i < ArraySize(Z); i++) { if(Z[i].removed) removed++; else if(Z[i].tested) tested++; else fresh++; }
-   lines += StringFormat("Zones: %d fresh · %d tested · %d removed\n", fresh, tested, removed);
+   string L = StringFormat("ZoneVision  %s %s  →  bias from %s\n", _Symbol, TfName(_Period), htf > 0 ? TfName(htf) : "–");
+   L += "Bias: " + (trend > 0 ? "UP — buys only" : (trend < 0 ? "DOWN — sells only" : "unclear — bot waits")) + "\n";
+   L += "Structure: " + StructureNow() + "\n";
 
-   // newest fresh continuation zone in the HTF direction — what the bot would trade
-   string plan = "Bot setup: none";
+   string plan = "Bot: no trade setup";
    for(int i = ArraySize(Z) - 1; i >= 0; i--)
      {
       if(Z[i].removed || Z[i].tested || !Z[i].cont) continue;
@@ -464,31 +459,37 @@ void Panel()
       double tp = opp > 0 ? (dir > 0 ? opp - spread : opp + spread) : 0;
       double rr = tp > 0 ? MathAbs(tp - entry) / MathMax(MathAbs(entry - sl), Point) : 0;
       string why = "";
-      if(trend == 0) why = "HTF trend unclear";
-      else if(trend != dir) why = "against HTF trend";
-      else if(tp == 0) why = "no opposing zone for target";
-      else if(rr < InpMinRR) why = StringFormat("R:R %.2f < %.2f", rr, InpMinRR);
-      plan = StringFormat("Bot setup: %s %s grade %s  R:R %.2f  curve %.0f%%\n  → %s", dir > 0 ? "BUY limit" : "SELL limit", dir > 0 ? "RBR" : "DBD", Z[i].grade, rr,
-                          htf > 0 ? Curve(_Symbol, htf, Z[i].prox) : 50.0, why == "" ? "WOULD TRADE (if session / news / spread filters pass)" : "SKIP: " + why);
-      if(InpShowPlan)
+      if(trend == 0) why = "HTF bias unclear";
+      else if(trend != dir) why = "against HTF bias";
+      else if(tp == 0) why = "no opposing zone for a target";
+      else if(rr < InpMinRR) why = StringFormat("R:R %.1f below %.1f", rr, InpMinRR);
+      if(why == "")
+         plan = StringFormat("Bot: %s %s  SL %s  TP %s  (1:%.1f, %s %s)", dir > 0 ? "BUY limit" : "SELL limit", DoubleToString(entry, Digits), DoubleToString(sl, Digits), DoubleToString(tp, Digits), rr, dir > 0 ? "RBR" : "DBD", Z[i].grade);
+      else
+         plan = StringFormat("Bot: watching %s at %s — no trade: %s", dir > 0 ? "demand" : "supply", DoubleToString(Z[i].prox, Digits), why);
+      if(InpShowPlan && why == "")
         {
-         datetime t1 = iTime(_Symbol, 0, Z[i].legBar), t2 = Time[0] + PeriodSeconds() * 25;
-         HLine(PFX + "pe", t1, t2, entry, clrDodgerBlue, STYLE_SOLID, 2); Txt(PFX + "pet", t2, entry, " entry " + DoubleToString(entry, Digits), clrDodgerBlue, 8, ANCHOR_LEFT);
-         HLine(PFX + "ps", t1, t2, sl, InpSupply, STYLE_DOT, 1);          Txt(PFX + "pst", t2, sl, " SL " + DoubleToString(sl, Digits), InpSupply, 8, ANCHOR_LEFT);
-         if(tp > 0) { HLine(PFX + "pt", t1, t2, tp, InpDemand, STYLE_DOT, 1); Txt(PFX + "ptt", t2, tp, StringFormat(" TP %s (1:%.1f)", DoubleToString(tp, Digits), rr), InpDemand, 8, ANCHOR_LEFT); }
+         datetime t1 = Time[0] + PeriodSeconds() * 2, t2 = Time[0] + PeriodSeconds() * 18;
+         HLine(PFX + "pe", t1, t2, entry, clrRoyalBlue, STYLE_SOLID, 2); Txt(PFX + "pet", t2, entry, " entry", clrRoyalBlue, 7, ANCHOR_LEFT);
+         HLine(PFX + "ps", t1, t2, sl, InpSupplyLine, STYLE_DOT, 1);    Txt(PFX + "pst", t2, sl, " SL", InpSupplyLine, 7, ANCHOR_LEFT);
+         HLine(PFX + "pt", t1, t2, tp, InpDemandLine, STYLE_DOT, 1);    Txt(PFX + "ptt", t2, tp, " TP", InpDemandLine, 7, ANCHOR_LEFT);
         }
+      if(InpExplain) Explain(Z[i]);
       break;
      }
-   lines += plan;
-   lines += "\n\nHow I decide (in order):\n";
-   lines += StringFormat("1. HTF %s trend: %s — I only trade in this direction.\n", htf > 0 ? TfName(htf) : "", trend > 0 ? "UP → buys only" : (trend < 0 ? "DOWN → sells only" : "unclear → no trades"));
-   lines += "2. Zone must have all 4 parts: base, move away, stay away, space to the proximal line.\n";
-   lines += "3. Continuation (RBR / DBD), fresh (never touched), similar size to the others.\n";
-   lines += "4. Entry at the proximal line, stop beyond the distal line + spread.\n";
-   lines += StringFormat("5. Target just before the next opposing fresh zone; skip if R:R < %.1f.\n", InpMinRR);
-   lines += "6. Filters: news window, Asian session, Friday close, wide spread, 1 trade per symbol.\n";
-   lines += "7. While pending: cancel if the zone is removed or price hits the target first.\n";
-   lines += "8. Risk 1% with a hard stop. Every fill is replayed with each TP / break-even variant.";
-   if(InpShowPanel) Comment(lines);
+   L += plan;
+   // bias arrow near the latest price
+   ObjectDelete(0, PFX + "bias");
+   if(trend != 0)
+     {
+      int hi = iHighest(NULL, 0, MODE_HIGH, 30, 0), lo = iLowest(NULL, 0, MODE_LOW, 30, 0);
+      double y = trend > 0 ? High[hi] : Low[lo];
+      ObjectCreate(0, PFX + "bias", OBJ_ARROW, 0, Time[0] + PeriodSeconds() * 8, y);
+      ObjectSetInteger(0, PFX + "bias", OBJPROP_ARROWCODE, trend > 0 ? 233 : 234);
+      ObjectSetInteger(0, PFX + "bias", OBJPROP_COLOR, trend > 0 ? InpDemandLine : InpSupplyLine);
+      ObjectSetInteger(0, PFX + "bias", OBJPROP_WIDTH, 3);
+      ObjectSetString(0, PFX + "bias", OBJPROP_TOOLTIP, "HTF bias " + (trend > 0 ? "up" : "down"));
+     }
+   if(InpShowPanel) Comment(L);
   }
 //+------------------------------------------------------------------+
