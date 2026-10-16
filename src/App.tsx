@@ -13,6 +13,7 @@ const TradeDetail = lazy(() => import('@/pages/TradeDetail'));
 const Reports = lazy(() => import('@/pages/Reports'));
 const DesignSystem = lazy(() => import('@/pages/DesignSystem'));
 const Learn = lazy(() => import('@/pages/Learn'));
+const BotGuide = lazy(() => import('@/pages/BotGuide'));
 const CalendarPage = lazy(() => import('@/pages/CalendarPage'));
 const Heatmaps = lazy(() => import('@/pages/Heatmaps'));
 const Planner = lazy(() => import('@/pages/Planner'));
@@ -68,6 +69,7 @@ export default function App() {
               <Route path="/heatmaps" element={<Heatmaps />} />
               <Route path="/guru" element={<Guru />} />
               <Route path="/guide" element={<Guide />} />
+              <Route path="/bot-guide" element={<BotGuide />} />
               <Route path="/news" element={<News />} />
               <Route path="/chart" element={<ChartPage />} />
               <Route path="/plan" element={<Planner />} />
