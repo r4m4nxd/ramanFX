@@ -29,6 +29,7 @@ enum BotMode   { MODE_SCANNER = 0, MODE_APPROVE = 1, MODE_AUTO = 2 };
 enum EntryMode { ENTRY_SF = 0, ENTRY_CONF = 1, ENTRY_BOTH = 2 };
 enum LiveBE    { BE_NONE = 0, BE_AT_1R = 1, BE_AT_2R = 2 };
 enum Manage    { MG_OFF = 0, MG_MENTOR = 1, MG_BE_ONLY = 2 };
+enum TpMode    { TP_SWING = 0, TP_OPP_ZONE = 1, TP_NEAREST = 2 };
 
 input BotMode   InpMode          = MODE_AUTO;    // Mode
 input EntryMode InpEntry         = ENTRY_BOTH;   // Entry method
@@ -53,6 +54,7 @@ input double    InpStopBufferPts = 10;           // (legacy, unused) see CP / VP
 input double    InpCPStopPips    = 3.0;          // CP zone (RBR / DBD): stop this many pips beyond the distal line
 input double    InpVPStopPips    = 3.0;          // VP zone (DBR / RBD): stop this many pips beyond the swing valley / peak
 input int       InpVPSwingBars   = 10;           // VP: look this many entry-TF candles around the zone for the valley / peak
+input TpMode    InpTpMode        = TP_SWING;     // Target: recent swing low/high (like your manual trades), next opposing zone, or whichever is nearer
 input bool      InpTradeVP       = true;         // Also trade VP (reversal) zones, with their swing stop
 input int       InpMaxPerSymbol  = 3;            // Max bot orders per symbol (one per entry timeframe)
 input int       InpMaxOrders     = 40;           // Max bot orders in total (pending + open)
@@ -514,13 +516,13 @@ void Scan(string s, int k)
         {
          entry = z[i].prox + spread;                              // buy limit fills on Ask
          sl = StopFor(s, etf, z[i], pip) ;
-         tp = opp > 0 ? opp - spread : 0;
+         tp = PickTarget(s, etf, z[i], opp, spread);
         }
       else
         {
          entry = z[i].prox;
          sl = StopFor(s, etf, z[i], pip) + spread;
-         tp = opp > 0 ? opp + spread : 0;
+         tp = PickTarget(s, etf, z[i], opp, spread);
         }
       // the target can't run through a fresh opposing HTF zone - cap it just before that zone
       double hOpp = 0;
@@ -571,7 +573,7 @@ void Scan(string s, int k)
       if(InpAlerts) Alert("RamanFX ZoneBot: ", tag);
       Count(decision);
       string info = StringFormat("%s %s %s zone (grade %s) | %s trend %s | %s%s\n", dir > 0 ? "BUY" : "SELL", TF_N[k], dir > 0 ? "demand" : "supply", z[i].grade, TfName(htf), trend > 0 ? "up" : "down", method == "CONF" ? "confirmation" : "set & forget", z[i].trap > 0 ? " | liquidity trap" : "");
-      info += StringFormat("Why: fresh %s %s with the trend, stop %s, move away %.1fx, target before next %s %s zone", z[i].cont ? "CP" : "VP", z[i].cont ? (dir > 0 ? "RBR" : "DBD") : (dir > 0 ? "DBR" : "RBD"), z[i].cont ? "beyond distal" : "beyond swing " + (dir > 0 ? "valley" : "peak"), z[i].legRatio, cappedByHtf ? TfName(htf) : TF_N[k], dir > 0 ? "supply" : "demand");
+      info += StringFormat("Why: fresh %s %s with the trend, stop %s, move away %.1fx, target %s %s", z[i].cont ? "CP" : "VP", z[i].cont ? (dir > 0 ? "RBR" : "DBD") : (dir > 0 ? "DBR" : "RBD"), z[i].cont ? "beyond distal" : "beyond swing " + (dir > 0 ? "valley" : "peak"), z[i].legRatio, cappedByHtf ? "before next" : (InpTpMode == TP_SWING ? "at recent swing" : "before next"), cappedByHtf ? TfName(htf) + (dir > 0 ? " supply" : " demand") : (InpTpMode == TP_SWING ? (dir > 0 ? "high" : "low") : TF_N[k] + (dir > 0 ? " supply" : " demand")));
       if(InpMode == MODE_AUTO) Place(s, k, dir, entry, sl, tp, z[i].dist, method, z[i].grade, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));
       else if(InpMode == MODE_APPROVE) AddProposal(s, k, dir, entry, sl, tp, z[i].dist, method, z[i].grade, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));
       return;
@@ -685,6 +687,25 @@ int CountOrders(string s)
    for(int i = OrdersTotal() - 1; i >= 0; i--)
       if(OrderSelect(i, SELECT_BY_POS) && OurMagic(OrderMagicNumber()) && (s == "" || OrderSymbol() == s)) n++;
    return n;
+  }
+
+// Target: the recent swing extreme of the move that left the zone (lowest low since the zone for sells,
+// highest high for buys) - where you take profit manually - or the next opposing zone, per InpTpMode.
+double PickTarget(string s, int tf, Zone &z, double opp, double spread)
+  {
+   double sw = 0;
+   int n = z.legBar;                                                  // from the move away up to the last closed candle
+   if(n >= 1)
+     {
+      int ix = z.dir > 0 ? iHighest(s, tf, MODE_HIGH, n, 1) : iLowest(s, tf, MODE_LOW, n, 1);
+      if(ix >= 0) sw = z.dir > 0 ? iHigh(s, tf, ix) : iLow(s, tf, ix);
+     }
+   double swTp = sw > 0 ? sw - z.dir * spread : 0, opTp = opp > 0 ? opp - z.dir * spread : 0;
+   if(InpTpMode == TP_SWING) return swTp > 0 ? swTp : opTp;
+   if(InpTpMode == TP_OPP_ZONE) return opTp;
+   if(swTp == 0) return opTp;
+   if(opTp == 0) return swTp;
+   return z.dir > 0 ? MathMin(swTp, opTp) : MathMax(swTp, opTp);     // nearest
   }
 
 // Stop placement (mentor):
