@@ -22,7 +22,7 @@
 //|   2026.10.17 12:30,USD   (UTC time, currency)                    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "0.10"
+#property version   "0.20"
 #property strict
 
 enum BotMode   { MODE_SCANNER = 0, MODE_APPROVE = 1, MODE_AUTO = 2 };
@@ -140,10 +140,38 @@ void OnDeinit(const int reason)
    SaveSims();
    ObjectsDeleteAll(0, "RFXZ_");
    ObjectsDeleteAll(0, "RFXB_");
+   Comment("");
   }
 
 void OnTick() { if(IsTesting()) Work(); }
 void OnTimer() { Work(); }
+
+// Why nothing is trading: counts of every decision since start, shown on the chart.
+string cKey[]; int cVal[]; datetime lastScanAt = 0; int scans = 0;
+void Count(string why)
+  {
+   string k = why;
+   if(StringFind(k, "R:R") == 0) k = "R:R below minimum";
+   for(int i = 0; i < ArraySize(cKey); i++) if(cKey[i] == k) { cVal[i]++; return; }
+   int n = ArraySize(cKey); ArrayResize(cKey, n + 1); ArrayResize(cVal, n + 1); cKey[n] = k; cVal[n] = 1;
+  }
+void Status()
+  {
+   string t = StringFormat("RamanFX ZoneBot — %s · %s · %d symbols\n", EnumToString(InpMode), EnumToString(InpEntry), ArraySize(syms));
+   if(!IsTradeAllowed() || !TerminalInfoInteger(TERMINAL_TRADE_ALLOWED)) t += "⚠ AutoTrading is OFF — press the AutoTrading button and tick 'Allow live trading' in the EA settings\n";
+   if(IsTradeAllowed() && !IsExpertEnabled()) t += "⚠ Expert Advisors are disabled in the terminal\n";
+   string blocked = BlockedNow(ArraySize(syms) > 0 ? syms[0] : _Symbol);
+   t += "Right now: " + (blocked == "" ? "trading window open" : "paused — " + blocked) + "\n";
+   t += StringFormat("Scans: %d (last %s)\n", scans, lastScanAt ? TimeToString(lastScanAt, TIME_MINUTES) : "–");
+   int pend = 0, open = 0;
+   for(int i = OrdersTotal() - 1; i >= 0; i--) if(OrderSelect(i, SELECT_BY_POS) && OurMagic(OrderMagicNumber())) { if(OrderType() <= OP_SELL) open++; else pend++; }
+   t += StringFormat("Orders: %d pending · %d open\n", pend, open);
+   t += "Decisions so far:\n";
+   for(int i = 0; i < ArraySize(cKey); i++) t += StringFormat("  %-28s %d\n", cKey[i], cVal[i]);
+   if(!ArraySize(cKey)) t += "  (waiting for the next new candle on each timeframe)\n";
+   t += "Full log: MQL4\\Files\\RamanFX_Bot_Signals.csv";
+   Comment(t);
+  }
 
 void Work()
   {
@@ -156,10 +184,11 @@ void Work()
          datetime t = iTime(syms[i], TF_E[k], 0);
          if(t == 0 || t == lastBar[i][k]) continue;
          lastBar[i][k] = t;
-         Scan(syms[i], k);
+         Scan(syms[i], k); scans++; lastScanAt = TimeCurrent();
         }
    UpdateSims();
    if(InpMode == MODE_APPROVE) DrawProposals();
+   Status();
   }
 
 bool TfOn(int k)
@@ -336,8 +365,12 @@ int HtfTrend(string s, int htf)
       if(d > 0 && nl < 2) lo[nl++] = d;
      }
    if(nh < 2 || nl < 2) return 0;
-   if(hi[0] > hi[1] && lo[0] > lo[1]) return 1;
-   if(hi[0] < hi[1] && lo[0] < lo[1]) return -1;
+   if(hi[0] > hi[1] && lo[0] > lo[1]) return 1;               // higher highs + higher lows
+   if(hi[0] < hi[1] && lo[0] < lo[1]) return -1;              // lower highs + lower lows
+   // mixed swings: the last break of structure decides (close beyond the latest swing high / low)
+   double c = iClose(s, htf, 1);
+   if(c > hi[0]) return 1;
+   if(c < lo[0]) return -1;
    return 0;
   }
 
@@ -417,10 +450,11 @@ void Scan(string s, int k)
       double curve = Curve(s, htf, z[i].prox);
       string decision = reason == "" ? (InpMode == MODE_AUTO ? "ORDER" : (InpMode == MODE_APPROVE ? "PROPOSE" : "ALERT")) : "SKIP";
       LogSignal(s, k, z[i], entry, sl, tp, rr, trend, curve, method, spread / point, decision, reason, digits);
-      if(reason != "") return;                                   // only the newest candidate per scan
+      if(reason != "") { Count(reason); if(StringFind(reason, "already one trade") == 0 || StringFind(reason, "Friday") == 0 || StringFind(reason, "weekend") == 0 || StringFind(reason, "Asian") == 0 || StringFind(reason, "news") == 0) return; continue; }
 
       string tag = StringFormat("%s %s %s %s 1:%.1f grade %s%s", s, TF_N[k], dir > 0 ? "BUY" : "SELL", method, rr, z[i].grade, z[i].trap > 0 ? " + liquidity trap" : "");
       if(InpAlerts) Alert("RamanFX ZoneBot: ", tag);
+      Count(decision);
       if(InpMode == MODE_AUTO) Place(s, k, dir, entry, sl, tp, z[i].dist, method, z[i].grade);
       else if(InpMode == MODE_APPROVE) AddProposal(s, k, dir, entry, sl, tp, z[i].dist, method, z[i].grade);
       return;
@@ -516,13 +550,13 @@ void Place(string s, int k, int dir, double entry, double sl, double tp, double 
   {
    int digits = (int)MarketInfo(s, MODE_DIGITS);
    double lots = Lots(s, MathAbs(entry - sl));
-   if(lots <= 0) { Print(s, ": lot size below broker minimum at ", InpRiskPct, "% risk — skipped"); return; }
+   if(lots <= 0) { Print(s, ": lot size below broker minimum at ", InpRiskPct, "% risk — skipped"); Count("lot below broker minimum"); return; }
    double point = MarketInfo(s, MODE_POINT);
    // comment: RFX|tf|method|distal|R(points)|grade
    string cm = StringFormat("RFX|%d|%s|%s|%d|%s", k, method == "CONF" ? "C" : "S", DoubleToString(dist, digits), (int)MathRound(MathAbs(entry - sl) / point), grade);
    int type = dir > 0 ? OP_BUYLIMIT : OP_SELLLIMIT;
    int t = OrderSend(s, type, lots, NormalizeDouble(entry, digits), 3, NormalizeDouble(sl, digits), NormalizeDouble(tp, digits), cm, MagicFor(k, method), 0, dir > 0 ? clrLime : clrRed);
-   if(t < 0) Print("OrderSend failed ", s, " ", GetLastError());
+   if(t < 0) { int e = GetLastError(); Print("OrderSend failed ", s, " error ", e); Count("order rejected by broker (error " + IntegerToString(e) + ")"); }
   }
 
 string Field(string cm, int idx) { string p[]; int n = StringSplit(cm, '|', p); return idx < n ? p[idx] : ""; }

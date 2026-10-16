@@ -480,8 +480,12 @@ int HtfTrend(string s, int htf)
       if(d > 0 && nl < 2) lo[nl++] = d;
      }
    if(nh < 2 || nl < 2) return 0;
-   if(hi[0] > hi[1] && lo[0] > lo[1]) return 1;
-   if(hi[0] < hi[1] && lo[0] < lo[1]) return -1;
+   if(hi[0] > hi[1] && lo[0] > lo[1]) return 1;               // higher highs + higher lows
+   if(hi[0] < hi[1] && lo[0] < lo[1]) return -1;              // lower highs + lower lows
+   // mixed swings: the last break of structure decides (close beyond the latest swing high / low)
+   double c = iClose(s, htf, 1);
+   if(c > hi[0]) return 1;
+   if(c < lo[0]) return -1;
    return 0;
   }
 double Curve(string s, int htf, double p)
