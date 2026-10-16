@@ -146,6 +146,7 @@ void OnDeinit(const int reason)
    ObjectsDeleteAll(0, "RFXZ_");
    ObjectsDeleteAll(0, "RFXB_");
    Comment("");
+   ObjectsDeleteAll(0, "RFXS_");
   }
 
 void OnTick() { if(IsTesting()) Work(); }
@@ -175,7 +176,26 @@ void Status()
    for(int i = 0; i < ArraySize(cKey); i++) t += StringFormat("  %-28s %d\n", cKey[i], cVal[i]);
    if(!ArraySize(cKey)) t += "  (waiting for the next new candle on each timeframe)\n";
    t += "Full log: MQL4\\Files\\RamanFX_Bot_Signals.csv";
-   Comment(t);
+   string ls[]; int n = StringSplit(t, '\n', ls);
+   ObjectsDeleteAll(0, "RFXS_");
+   for(int i = 0; i < n; i++) RightLabel(0, "RFXS_" + IntegerToString(i), ls[i], 20 + i * 15, i == 0 ? clrRoyalBlue : (StringFind(ls[i], "⚠") == 0 ? clrCrimson : clrDimGray), i == 0 ? 9 : 8);
+   statusLines = n;
+  }
+
+int statusLines = 0;
+// One line of text anchored to the chart's top-right corner.
+void RightLabel(long ch, string nm, string text, int y, color c, int size)
+  {
+   if(ObjectFind(ch, nm) < 0) ObjectCreate(ch, nm, OBJ_LABEL, 0, 0, 0);
+   ObjectSetInteger(ch, nm, OBJPROP_CORNER, CORNER_RIGHT_UPPER);
+   ObjectSetInteger(ch, nm, OBJPROP_ANCHOR, ANCHOR_RIGHT_UPPER);
+   ObjectSetInteger(ch, nm, OBJPROP_XDISTANCE, 12);
+   ObjectSetInteger(ch, nm, OBJPROP_YDISTANCE, y);
+   ObjectSetString(ch, nm, OBJPROP_TEXT, text);
+   ObjectSetString(ch, nm, OBJPROP_FONT, "Arial");
+   ObjectSetInteger(ch, nm, OBJPROP_FONTSIZE, size);
+   ObjectSetInteger(ch, nm, OBJPROP_COLOR, c);
+   ObjectSetInteger(ch, nm, OBJPROP_SELECTABLE, false);
   }
 
 void Work()
@@ -664,18 +684,9 @@ void Annotate(int t, string s, double price, string &lines[], double prox, doubl
       ObjectSetString(ch, zl, OBJPROP_TEXT, StringFormat("%s %s zone → order #%d", TF_N[k], dir > 0 ? "demand" : "supply", t));
       ObjectSetInteger(ch, zl, OBJPROP_FONTSIZE, 7); ObjectSetInteger(ch, zl, OBJPROP_COLOR, clrDimGray);
       ObjectSetInteger(ch, zl, OBJPROP_ANCHOR, dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
+      int y0 = (ch == ChartID() ? 30 + statusLines * 15 : 20);
       for(int i = 0; i < ArraySize(lines); i++)
-        {
-         string nm = StringFormat("RFXO_%d_%d", t, i);
-         ObjectCreate(ch, nm, OBJ_LABEL, 0, 0, 0);
-         ObjectSetInteger(ch, nm, OBJPROP_CORNER, CORNER_LEFT_LOWER);
-         ObjectSetInteger(ch, nm, OBJPROP_XDISTANCE, 10);
-         ObjectSetInteger(ch, nm, OBJPROP_YDISTANCE, 20 + (ArraySize(lines) - i) * 14);
-         ObjectSetString(ch, nm, OBJPROP_TEXT, lines[i]);
-         ObjectSetString(ch, nm, OBJPROP_FONT, "Arial");
-         ObjectSetInteger(ch, nm, OBJPROP_FONTSIZE, 8);
-         ObjectSetInteger(ch, nm, OBJPROP_COLOR, i == 0 ? clrRoyalBlue : clrDimGray);
-        }
+         RightLabel(ch, StringFormat("RFXO_%d_%d", t, i), lines[i], y0 + i * 14, i == 0 ? clrRoyalBlue : clrDimGray, 8);
       ChartRedraw(ch);
      }
   }
