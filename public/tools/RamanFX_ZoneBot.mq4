@@ -121,7 +121,7 @@ datetime lastSimBar = 0;
 int      knownTickets[];
 
 // Approve mode proposals
-struct Proposal { string sym; int k; int dir; double entry, sl, tp, dist, rr; bool trap; string method, grade, info; datetime t; };
+struct Proposal { string sym; int k; int dir; double entry, sl, tp, dist, rr, prox; bool trap; string method, grade, info; datetime t, tZone; };
 Proposal props[];
 
 //+------------------------------------------------------------------+
@@ -402,6 +402,9 @@ void Scan(string s, int k)
    int digits = (int)MarketInfo(s, MODE_DIGITS);
    double spread = MarketInfo(s, MODE_ASK) - MarketInfo(s, MODE_BID);
 
+   // fresh HTF zones: an opposing HTF zone in the way caps the target
+   Zone hz[];
+   int hn = DetectZones(s, htf, hz);
    // newest fresh continuation zone in the HTF direction
    for(int i = n - 1; i >= 0; i--)
      {
@@ -431,6 +434,16 @@ void Scan(string s, int k)
          sl = z[i].dist + InpStopBufferPts * point + spread;
          tp = opp > 0 ? opp + spread : 0;
         }
+      // the target can't run through a fresh opposing HTF zone — cap it just before that zone
+      double hOpp = 0;
+      for(int j = 0; j < hn; j++)
+        {
+         if(hz[j].dir == dir || hz[j].removed || hz[j].tested) continue;
+         if(dir > 0 && hz[j].prox > entry && (hOpp == 0 || hz[j].prox < hOpp)) hOpp = hz[j].prox;
+         if(dir < 0 && hz[j].prox < entry && (hOpp == 0 || hz[j].prox > hOpp)) hOpp = hz[j].prox;
+        }
+      bool cappedByHtf = false;
+      if(hOpp > 0 && (tp == 0 || (dir > 0 && hOpp - spread < tp) || (dir < 0 && hOpp + spread > tp))) { tp = dir > 0 ? hOpp - spread : hOpp + spread; cappedByHtf = true; }
       // never a noise-sized stop: at least InpMinStopPips and InpMinStopSpreads × spread
       double pip = point * ((digits == 3 || digits == 5) ? 10 : 1);
       double minStop = MathMax(InpMinStopPips * pip, InpMinStopSpreads * spread);
@@ -467,9 +480,10 @@ void Scan(string s, int k)
       string info = StringFormat("RamanFX bot · %s limit · %s entry zone → %s trend %s\n", dir > 0 ? "BUY" : "SELL", TF_N[k], TfName(htf), trend > 0 ? "UP" : "DOWN");
       info += StringFormat("Zone: %s %s grade %s (move away %.1fx, base %d candles) · fresh · %s\n", dir > 0 ? "RBR demand" : "DBD supply", DoubleToString(z[i].prox, digits) + "–" + DoubleToString(z[i].dist, digits), z[i].grade, z[i].legRatio, z[i].baseN, method == "CONF" ? "confirmation entry (HTF zone touched, opposing zone removed)" : "set & forget");
       info += StringFormat("Why: with the %s trend · continuation zone, never touched%s%s\n", TfName(htf), z[i].trap > 0 ? " · liquidity trap at " + DoubleToString(z[i].trap, digits) : "", z[i].crowded ? " · note: sits on an S/R level" : "");
-      info += StringFormat("Target: just before the next %s zone · R:R 1:%.1f · HTF curve %.0f%%", dir > 0 ? "supply" : "demand", rr, curve);
-      if(InpMode == MODE_AUTO) Place(s, k, dir, entry, sl, tp, z[i].dist, method, z[i].grade, rr, z[i].trap > 0, info);
-      else if(InpMode == MODE_APPROVE) AddProposal(s, k, dir, entry, sl, tp, z[i].dist, method, z[i].grade, rr, z[i].trap > 0, info);
+      info += StringFormat("Target: just before the next %s %s zone · R:R 1:%.1f · HTF curve %.0f%%\n", cappedByHtf ? TfName(htf) : TF_N[k], dir > 0 ? "supply" : "demand", rr, curve);
+      info += "Checks: HTF trend ✓ · fresh ✓ · continuation ✓ · 4 parts ✓ · R:R ≥ " + DoubleToString(InpMinRR, 1) + " ✓ · room to HTF zone ✓ · spread ✓ · session/news ✓";
+      if(InpMode == MODE_AUTO) Place(s, k, dir, entry, sl, tp, z[i].dist, method, z[i].grade, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));
+      else if(InpMode == MODE_APPROVE) AddProposal(s, k, dir, entry, sl, tp, z[i].dist, method, z[i].grade, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));
       return;
      }
   }
@@ -559,7 +573,7 @@ double Lots(string s, double stopDist)
    return MathMin(lots, mx);
   }
 
-void Place(string s, int k, int dir, double entry, double sl, double tp, double dist, string method, string grade, double rr, bool trap, string info)
+void Place(string s, int k, int dir, double entry, double sl, double tp, double dist, string method, string grade, double rr, bool trap, string info, double prox, datetime tZone)
   {
    int digits = (int)MarketInfo(s, MODE_DIGITS);
    double point = MarketInfo(s, MODE_POINT), pip = point * ((digits == 3 || digits == 5) ? 10 : 1);
@@ -587,7 +601,7 @@ void Place(string s, int k, int dir, double entry, double sl, double tp, double 
    string lines[]; int n = StringSplit(info, '\n', lines);
    for(int i = 0; i < n; i++) Print("#", t, " ", lines[i]);
    LogOrder(t, s, info);
-   Annotate(t, s, entry, lines);
+   Annotate(t, s, entry, lines, prox, dist, tZone, k, dir);
   }
 
 //+------------------------------------------------------------------+
@@ -633,12 +647,23 @@ void LogOrder(int t, string s, string info)
   }
 
 // Writes the reasoning next to the order on every open chart of that symbol.
-void Annotate(int t, string s, double price, string &lines[])
+void Annotate(int t, string s, double price, string &lines[], double prox, double dist, datetime tZone, int k, int dir)
   {
    for(long ch = ChartFirst(); ch >= 0; ch = ChartNext(ch))
      {
       if(ChartSymbol(ch) != s) continue;
       ObjectsDeleteAll(ch, "RFXO_");
+      // the exact zone this order came from, with its timeframe
+      string zn = StringFormat("RFXO_%d_zone", t);
+      ObjectCreate(ch, zn, OBJ_RECTANGLE, 0, tZone, prox, TimeCurrent() + PeriodSeconds(TF_E[k]) * 60, dist);
+      ObjectSetInteger(ch, zn, OBJPROP_COLOR, dir > 0 ? C'170,215,190' : C'240,190,180');
+      ObjectSetInteger(ch, zn, OBJPROP_BACK, true);
+      ObjectSetString(ch, zn, OBJPROP_TOOLTIP, StringFormat("Bot order #%d — %s %s zone", t, TF_N[k], dir > 0 ? "demand" : "supply"));
+      string zl = StringFormat("RFXO_%d_ztxt", t);
+      ObjectCreate(ch, zl, OBJ_TEXT, 0, tZone, dist);
+      ObjectSetString(ch, zl, OBJPROP_TEXT, StringFormat("%s %s zone → order #%d", TF_N[k], dir > 0 ? "demand" : "supply", t));
+      ObjectSetInteger(ch, zl, OBJPROP_FONTSIZE, 7); ObjectSetInteger(ch, zl, OBJPROP_COLOR, clrDimGray);
+      ObjectSetInteger(ch, zl, OBJPROP_ANCHOR, dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
       for(int i = 0; i < ArraySize(lines); i++)
         {
          string nm = StringFormat("RFXO_%d_%d", t, i);
@@ -894,10 +919,10 @@ void DrawZones(Zone &z[])
 //+------------------------------------------------------------------+
 //| Approve mode: one button per proposal                            |
 //+------------------------------------------------------------------+
-void AddProposal(string s, int k, int dir, double entry, double sl, double tp, double dist, string method, string grade, double rr, bool trap, string info)
+void AddProposal(string s, int k, int dir, double entry, double sl, double tp, double dist, string method, string grade, double rr, bool trap, string info, double prox, datetime tZone)
   {
    for(int i = 0; i < ArraySize(props); i++) if(props[i].sym == s && props[i].k == k) return;
-   Proposal p; p.sym = s; p.k = k; p.dir = dir; p.entry = entry; p.sl = sl; p.tp = tp; p.dist = dist; p.method = method; p.grade = grade; p.rr = rr; p.trap = trap; p.info = info; p.t = TimeCurrent();
+   Proposal p; p.sym = s; p.k = k; p.dir = dir; p.entry = entry; p.sl = sl; p.tp = tp; p.dist = dist; p.method = method; p.grade = grade; p.rr = rr; p.trap = trap; p.info = info; p.prox = prox; p.tZone = tZone; p.t = TimeCurrent();
    int n = ArraySize(props); ArrayResize(props, n + 1); props[n] = p;
   }
 
@@ -924,7 +949,7 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
    if(id != CHARTEVENT_OBJECT_CLICK || StringFind(sparam, "RFXB_") != 0) return;
    int i = (int)StringToInteger(StringSubstr(sparam, 5));
    if(i < 0 || i >= ArraySize(props)) return;
-   Place(props[i].sym, props[i].k, props[i].dir, props[i].entry, props[i].sl, props[i].tp, props[i].dist, props[i].method, props[i].grade, props[i].rr, props[i].trap, props[i].info);
+   Place(props[i].sym, props[i].k, props[i].dir, props[i].entry, props[i].sl, props[i].tp, props[i].dist, props[i].method, props[i].grade, props[i].rr, props[i].trap, props[i].info, props[i].prox, props[i].tZone);
    for(int j = i; j < ArraySize(props) - 1; j++) props[j] = props[j + 1];
    ArrayResize(props, ArraySize(props) - 1);
    DrawProposals();
