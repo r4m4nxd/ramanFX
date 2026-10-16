@@ -22,7 +22,7 @@
 //|   2026.10.17 12:30,USD   (UTC time, currency)                    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "0.72"
+#property version   "0.80"
 #property strict
 
 enum BotMode   { MODE_SCANNER = 0, MODE_APPROVE = 1, MODE_AUTO = 2 };
@@ -161,6 +161,8 @@ string placeErr = "";
 string keep = "|";
 int myTrend = 0; string myTrendWhy = ""; datetime lastMine = 0;
 Proposal props[]; string lastPanelSig = ""; int viewK = -1; int panelBottom = 120;
+string dSym[]; int dK[]; string dProx[]; datetime dTime[]; bool dMy[];   // advice you denied (expires when the zone goes or after 3 days)
+bool busy = false; string lastClickNm = ""; uint lastClickMs = 0;
 
 //+------------------------------------------------------------------+
 int OnInit()
@@ -174,8 +176,22 @@ int OnInit()
    LoadNews();
    EnsureHeaders();
    LoadProps();
-   if(GlobalVariableCheck("RFX_view_" + _Symbol)) viewK = (int)GlobalVariableGet("RFX_view_" + _Symbol);
+   busy = false; keep = "|"; lastClickNm = ""; lastClickMs = 0;
+   viewK = GlobalVariableCheck("RFX_view_" + _Symbol) ? (int)GlobalVariableGet("RFX_view_" + _Symbol) : -1;
    lastPanelSig = "-";
+   if(InpMode == MODE_APPROVE)
+     {
+      for(int o = ObjectsTotal(0, -1, -1) - 1; o >= 0; o--)            // no phantom presses left over from before the reload
+        {
+         string nm = ObjectName(0, o);
+         if(StringFind(nm, "RFXB_") == 0) ObjectSetInteger(0, nm, OBJPROP_STATE, false);
+        }
+      int vi = -1;
+      for(int j = 0; j < ArraySize(props); j++) if(props[j].k == viewK && props[j].sym == _Symbol) { vi = j; break; }
+      if(vi >= 0) { if(ObjectFind(0, "RFXP_z") < 0) DrawView(vi); }
+      else if(viewK >= 0) ClearView();
+      DrawProposals();
+     }
    EventSetTimer(2);
    Print("RamanFX ZoneBot started: ", ArraySize(syms), " symbols, mode ", EnumToString(InpMode));
    return(INIT_SUCCEEDED);
@@ -187,7 +203,7 @@ void OnDeinit(const int reason)
    FlushSignals(true);
    SaveSims();
    ObjectsDeleteAll(0, "RFXZ_");
-   ObjectsDeleteAll(0, "RFXB_");
+   if(reason != REASON_CHARTCHANGE) ObjectsDeleteAll(0, "RFXB_");   // timeframe switch (View): buttons stay, OnInit re-syncs them
    ObjectsDeleteAll(0, "RFXN2_");
    if(reason != REASON_CHARTCHANGE) ObjectsDeleteAll(0, "RFXP_");
    Comment("");
@@ -269,6 +285,7 @@ void Work()
       BuildSymbols(); lastSymBuild = TimeLocal();
       if(ArraySize(syms) != before) { ArrayResize(lastBar, ArraySize(syms)); for(int i = 0; i < ArraySize(syms); i++) for(int k = 0; k < NTF; k++) lastBar[i][k] = 0; Print("ZoneBot watching ", ArraySize(syms), " symbols"); }
      }
+   if(ArrayRange(lastBar, 0) != ArraySize(syms)) { ArrayResize(lastBar, ArraySize(syms)); for(int i = 0; i < ArraySize(syms); i++) for(int k = 0; k < NTF; k++) lastBar[i][k] = 0; }
    if(TimeCurrent() - lastNewsLoad > 3600) LoadNews();
    if(InpUseMyLines && TimeLocal() - lastMine >= 5) { lastMine = TimeLocal(); myTrend = MyTrendlines(); MyZones(); }
    ManageOrders();
@@ -339,6 +356,7 @@ void BuildSymbols()
      }
   }
 void AddSym(string s) { int n = ArraySize(syms); ArrayResize(syms, n + 1); syms[n] = s; }
+int SymIdx(string s) { for(int i = 0; i < ArraySize(syms); i++) if(syms[i] == s) return i; return -1; }
 
 //+------------------------------------------------------------------+
 //| Candle helpers                                                   |
@@ -554,6 +572,8 @@ void MyZones()
    double point = MarketInfo(_Symbol, MODE_POINT); int digits = (int)MarketInfo(_Symbol, MODE_DIGITS);
    double pip = point * ((digits == 3 || digits == 5) ? 10 : 1);
    double bid = MarketInfo(_Symbol, MODE_BID), ask = MarketInfo(_Symbol, MODE_ASK), spread = ask - bid;
+   if(point <= 0 || bid <= 0 || ask <= 0) return;
+   string liveMy = "|";
    for(int i = ObjectsTotal(0, -1, -1) - 1; i >= 0; i--)
      {
       string nm = ObjectName(0, i);
@@ -562,6 +582,7 @@ void MyZones()
       datetime t0 = (datetime)MathMin(ObjectGetInteger(0, nm, OBJPROP_TIME1), ObjectGetInteger(0, nm, OBJPROP_TIME2));
       double top = MathMax(p1, p2), bot = MathMin(p1, p2), h = top - bot;
       if(h <= 0) continue;
+      liveMy += DoubleToString(top, 6) + "|" + DoubleToString(bot, 6) + "|";
       int dir = bid > top ? 1 : (ask < bot ? -1 : 0);
       if(dir == 0 || (myTrend != 0 && dir != myTrend)) continue;          // price inside it, or against your trendline bias
       // timeframe = the smallest one whose candles fit a zone this tall
@@ -589,6 +610,10 @@ void MyZones()
          if(InpPush && !IsTesting()) SendNotification("RamanFX: " + tag + " - check and approve in MT4");
         }
      }
+   bool ch = ExpireDismissed();
+   for(int d = ArraySize(dSym) - 1; d >= 0; d--)                       // denied rectangle you have since deleted / moved
+      if(dMy[d] && dSym[d] == _Symbol && StringFind(liveMy, "|" + dProx[d] + "|") < 0) { DropDismissed(d); ch = true; }
+   if(ch) SaveProps();
   }
 bool Qualified(string s, int etf, Zone &z[], int i)
   {
@@ -660,6 +685,11 @@ void Scan(string s, int k)
    int digits = (int)MarketInfo(s, MODE_DIGITS);
    double spread = MarketInfo(s, MODE_ASK) - MarketInfo(s, MODE_BID);
    double pip = point * ((digits == 3 || digits == 5) ? 10 : 1);
+   if(point <= 0 || MarketInfo(s, MODE_BID) <= 0 || MarketInfo(s, MODE_ASK) <= 0) { Say(s, k, "no price yet (symbol not in Market Watch?)"); return; }
+   // denied advice expires after 3 days or once its zone is removed / consumed
+   bool dch = ExpireDismissed();
+   if(n > 0) dch = PruneDismissed(s, k, z, n) || dch;
+   if(dch) SaveProps();
 
    // fresh HTF zones: an opposing HTF zone in the way caps the target
    Zone hz[];
@@ -671,6 +701,7 @@ void Scan(string s, int k)
       if(z[i].removed || z[i].consumed || z[i].pen > 0.25) continue;   // a shallow wick (< 25%) keeps it tradable
       if(z[i].legBar > InpMaxZoneAge) break;
       if(!z[i].cont && !InpTradeVP) continue;                    // VP (reversal) zones only when enabled
+      if(InpMode == MODE_APPROVE && IsDismissed(s, k, z[i].prox, false)) { Count("denied by you"); continue; }   // next-best zone gets advised
       int dir = z[i].dir;
       string reason = "";
       double entry = 0, sl = 0, tp = 0, rr = 0;
@@ -765,13 +796,17 @@ void Scan(string s, int k)
       int i = best, dir = z[i].dir; double entry = bEntry, sl = bSl, tp = bTp, rr = bRr; string method = bMethod, decision = bDecision, g = bPg; bool cappedByHtf = bCapped;
       string tag = StringFormat("%s %s %s %s %s 1:%.1f grade %s%s", s, TF_N[k], dir > 0 ? "BUY" : "SELL", z[i].cont ? "CP" : "VP", method, rr, g, z[i].trap > 0 ? " + liquidity trap" : "");
       tag += StringFormat(" (score %d)", bPs);
-      if(InpAlerts) Alert("RamanFX ZoneBot: ", tag);
-      if(InpPush && !IsTesting()) SendNotification("RamanFX: " + tag + (InpMode == MODE_APPROVE ? " - check the chart and approve in MT4" : ""));
       Count(decision);
       string info = StringFormat("%s %s %s zone (grade %s %d) | %s trend %s | %s%s\n", dir > 0 ? "BUY" : "SELL", TF_N[k], dir > 0 ? "demand" : "supply", g, bPs, TfName(htf), trend > 0 ? "up" : "down", method == "CONF" ? "confirmation" : "set & forget", z[i].trap > 0 ? " | liquidity trap" : "");
       info += StringFormat("Why: fresh %s %s with the trend, stop %s, move away %.1fx, target %s %s", z[i].cont ? "CP" : "VP", z[i].cont ? (dir > 0 ? "RBR" : "DBD") : (dir > 0 ? "DBR" : "RBD"), z[i].cont ? "beyond distal" : "beyond swing " + (dir > 0 ? "valley" : "peak"), z[i].legRatio, cappedByHtf ? "before next" : "at nearest", cappedByHtf ? TfName(htf) + (dir > 0 ? " supply" : " demand") : (dir > 0 ? "swing high / supply" : "swing low / demand"));
+      bool fresh = true;                                                 // approve mode: alert only for new / changed advice
+      if(InpMode == MODE_APPROVE) fresh = AddProposal(s, k, dir, entry, sl, tp, z[i].dist, method, g, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));
+      if(fresh)
+        {
+         if(InpAlerts) Alert("RamanFX ZoneBot: ", tag);
+         if(InpPush && !IsTesting()) SendNotification("RamanFX: " + tag + (InpMode == MODE_APPROVE ? " - check the chart and approve in MT4" : ""));
+        }
       if(InpMode == MODE_AUTO) Place(s, k, dir, entry, sl, tp, z[i].dist, method, g, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));
-      else if(InpMode == MODE_APPROVE) AddProposal(s, k, dir, entry, sl, tp, z[i].dist, method, g, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));
    }
   }
 
@@ -930,17 +965,20 @@ double StopFor(string s, int tf, Zone &z, double pip)
   }
 
 
-double Lots(string s, double stopDist)
+double Lots(string s, double stopDist, double pct)
   {
    double tv = MarketInfo(s, MODE_TICKVALUE), ts = MarketInfo(s, MODE_TICKSIZE);
    if(tv <= 0 || ts <= 0 || stopDist <= 0) return 0;
    double perLot = stopDist / ts * tv;
-   double lots = AccountBalance() * InpRiskPct / 100.0 / perLot;
+   double lots = AccountBalance() * pct / 100.0 / perLot;
    double step = MarketInfo(s, MODE_LOTSTEP), mn = MarketInfo(s, MODE_MINLOT), mx = MarketInfo(s, MODE_MAXLOT);
-   lots = MathFloor(lots / step) * step;
+   if(step <= 0) step = 0.01;
+   lots = MathFloor(lots / step + 1e-9) * step;
    if(lots < mn) return 0;                                      // can't keep risk <= target
-   return MathMin(lots, mx);
+   if(mx > 0) lots = MathMin(lots, mx);
+   return NormalizeDouble(lots, LotDigits(step));
   }
+int LotDigits(double step) { return step >= 1 ? 0 : (step >= 0.1 ? 1 : (step >= 0.01 ? 2 : 3)); }
 
 bool Place(string s, int k, int dir, double entry, double sl, double tp, double dist, string method, string grade, double rr, bool trap, string info, double prox, datetime tZone)
   {
@@ -948,19 +986,42 @@ bool Place(string s, int k, int dir, double entry, double sl, double tp, double 
    if(!IsTradeAllowed() || !TerminalInfoInteger(TERMINAL_TRADE_ALLOWED))
      { placeErr = "AutoTrading is OFF - press the AutoTrading button on the MT4 toolbar (green) and tick 'Allow live trading' in the bot's settings (F7)"; Print(s, ": ", placeErr); return false; }
    double riskPctUse = InpRiskPct * ((InpHalfRiskC && grade == "C") ? 0.5 : 1.0);   // low odds = half risk
+   RefreshRates();
    int digits = (int)MarketInfo(s, MODE_DIGITS);
    double point = MarketInfo(s, MODE_POINT), pip = point * ((digits == 3 || digits == 5) ? 10 : 1);
+   double ask = MarketInfo(s, MODE_ASK), bid = MarketInfo(s, MODE_BID);
+   if(point <= 0 || ask <= 0 || bid <= 0 || AccountBalance() <= 0) { placeErr = "no price for " + s + " (add it to Market Watch)"; Print(s, ": ", placeErr); return false; }
+   entry = NormalizeDouble(entry, digits); sl = NormalizeDouble(sl, digits); tp = NormalizeDouble(tp, digits);
+   // the broker rejects (error 130) a limit on the wrong side of price or stops inside its stop level
+   double stopLvl = MarketInfo(s, MODE_STOPLEVEL) * point;
+   if(dir > 0)
+     {
+      if(entry >= ask - stopLvl) placeErr = StringFormat("price (ask %s) is already at/through the entry %s - a buy limit must sit below price", DoubleToString(ask, digits), DoubleToString(entry, digits));
+      else if(sl <= 0 || sl >= entry - stopLvl) placeErr = "stop too close to (or on the wrong side of) the entry";
+      else if(tp > 0 && tp <= entry + stopLvl) placeErr = "target too close to (or on the wrong side of) the entry";
+     }
+   else
+     {
+      if(entry <= bid + stopLvl) placeErr = StringFormat("price (bid %s) is already at/through the entry %s - a sell limit must sit above price", DoubleToString(bid, digits), DoubleToString(entry, digits));
+      else if(sl <= entry + stopLvl) placeErr = "stop too close to (or on the wrong side of) the entry";
+      else if(tp > 0 && tp >= entry - stopLvl) placeErr = "target too close to (or on the wrong side of) the entry";
+     }
+   if(placeErr != "") { Print(s, ": ", placeErr); Count("prices invalid at placement"); return false; }
    double stopDist = MathAbs(entry - sl);
-   double lots = Lots(s, stopDist);
+   double lots = Lots(s, stopDist, riskPctUse);
    if(lots <= 0) { Print(s, ": lot size below broker minimum at ", riskPctUse, "% risk - skipped"); Count("lot below broker minimum"); placeErr = "lot below broker minimum"; return false; }
-   if(lots > InpMaxLots) { lots = MathFloor(InpMaxLots / MarketInfo(s, MODE_LOTSTEP)) * MarketInfo(s, MODE_LOTSTEP); }
+   double lstep = MarketInfo(s, MODE_LOTSTEP); if(lstep <= 0) lstep = 0.01;
+   if(lots > InpMaxLots) lots = NormalizeDouble(MathFloor(InpMaxLots / lstep + 1e-9) * lstep, LotDigits(lstep));
+   if(lots < MarketInfo(s, MODE_MINLOT) || lots <= 0) { placeErr = "InpMaxLots is below the broker minimum lot"; Print(s, ": ", placeErr); return false; }
    // real money at risk and margin, double-checked before sending
    double tv = MarketInfo(s, MODE_TICKVALUE), ts = MarketInfo(s, MODE_TICKSIZE);
+   if(tv <= 0 || ts <= 0) { placeErr = "no tick value for " + s; Print(s, ": ", placeErr); return false; }
    double riskMoney = stopDist / ts * tv * lots;
    double riskPct = 100.0 * riskMoney / AccountBalance();
    double margin = MarketInfo(s, MODE_MARGINREQUIRED) * lots;
    if(riskPct > riskPctUse * 1.05) { Print(s, StringFormat(": risk %.2f%% above %.2f%% - skipped", riskPct, riskPctUse)); Count("risk check failed"); placeErr = "risk check failed"; return false; }
    if(margin > AccountFreeMargin() * InpMaxMarginPct / 100.0) { Print(s, StringFormat(": needs margin %.2f > %.0f%% of free margin - skipped", margin, InpMaxMarginPct)); Count("margin too high"); placeErr = "margin too high"; return false; }
+   ResetLastError();
    if(AccountFreeMarginCheck(s, dir > 0 ? OP_BUY : OP_SELL, lots) <= 0 || GetLastError() == ERR_NOT_ENOUGH_MONEY) { Count("not enough free margin"); placeErr = "not enough free margin"; return false; }
    info += StringFormat("\nRisk %.2f %s (%.2f%%) | %.2f lots | stop %.1f pips | R:R 1:%.1f",
                         riskMoney, AccountCurrency(), riskPct, lots, stopDist / pip, rr);
@@ -971,7 +1032,9 @@ bool Place(string s, int k, int dir, double entry, double sl, double tp, double 
    if(method == "CONF" && StringLen(cm) <= 26) cm += " conf";
    if(trap && StringLen(cm) <= 26) cm += " trap";
    int type = dir > 0 ? OP_BUYLIMIT : OP_SELLLIMIT;
-   int t = OrderSend(s, type, lots, NormalizeDouble(entry, digits), 3, NormalizeDouble(sl, digits), NormalizeDouble(tp, digits), cm, MagicFor(k, method), 0, dir > 0 ? clrLime : clrRed);
+   for(int w = 0; w < 30 && IsTradeContextBusy(); w++) Sleep(100);
+   ResetLastError();
+   int t = OrderSend(s, type, lots, entry, 3, sl, tp, cm, MagicFor(k, method), 0, dir > 0 ? clrLime : clrRed);
    if(t < 0) { int e = GetLastError(); Print("OrderSend failed ", s, " error ", e); placeErr = "broker rejected the order (error " + IntegerToString(e) + ")"; Count(placeErr); return false; }
    StSet(t, k, method, dist, stopDist / point, grade);
    string lines[]; int n = StringSplit(info, '\n', lines);
@@ -998,6 +1061,7 @@ void StSet(int t, int k, string m, double dist, double rpts, string g)
   }
 void StLoad()
   {
+   ArrayResize(stT, 0); ArrayResize(stK, 0); ArrayResize(stM, 0); ArrayResize(stDist, 0); ArrayResize(stRpts, 0); ArrayResize(stG, 0);
    string fn = PairFile("RamanFX_Bot_State", ".csv");
    if(!FileIsExist(fn)) fn = "RamanFX_Bot_State.csv";               // first run after the update: old shared file
    int f = FileOpen(fn, FILE_READ | FILE_CSV | FILE_ANSI, ',');
@@ -1064,6 +1128,7 @@ void ManageOrders()
       int type = OrderType();
       int si = StIdx(OrderTicket());
       int k = si >= 0 ? stK[si] : KOf(OrderMagicNumber());
+      if(k < 0 || k >= NTF) k = KOf(OrderMagicNumber());
       int etf = TF_E[k];
       double dist = si >= 0 ? stDist[si] : 0;
       double point = MarketInfo(s, MODE_POINT);
@@ -1170,7 +1235,7 @@ void TrackFill(int ticket)
    double Rp = si >= 0 ? stRpts[si] * point : 0;
    if(Rp <= 0) Rp = MathAbs(OrderOpenPrice() - OrderStopLoss());
    Sim m;
-   m.ticket = ticket; m.sym = OrderSymbol(); int k = si >= 0 ? stK[si] : KOf(OrderMagicNumber()); m.tf = TF_N[k];
+   m.ticket = ticket; m.sym = OrderSymbol(); int k = si >= 0 ? stK[si] : KOf(OrderMagicNumber()); if(k < 0 || k >= NTF) k = KOf(OrderMagicNumber()); m.tf = TF_N[k];
    m.method = OrderMagicNumber() - InpMagic >= 10 ? "CONF" : "SF"; m.grade = si >= 0 ? stG[si] : "";
    m.dir = OrderType() == OP_BUY ? 1 : -1; m.entry = OrderOpenPrice(); m.R = Rp; m.opp = OrderTakeProfit();
    m.t0 = OrderOpenTime(); m.tLast = 0; m.done = false;
@@ -1266,7 +1331,7 @@ void SaveSims()
 
 void LoadSims()
   {
-   ArrayResize(sims, 0);
+   ArrayResize(sims, 0); ArrayResize(sInit, 0); simPos = 0;
    int f = FileOpen(PairFile("RamanFX_Bot_Sims", ".dat"), FILE_READ | FILE_CSV | FILE_ANSI, ',');
    if(f == INVALID_HANDLE) return;
    while(!FileIsEnding(f))
@@ -1375,7 +1440,6 @@ void DrawZones(Zone &z[])
 //+------------------------------------------------------------------+
 //| Approve mode: one button per proposal                            |
 //+------------------------------------------------------------------+
-string dismissed[];   // zones you denied: never advised again
 string PropFile() { return "RamanFX_Advice_" + _Symbol + ".csv"; }
 // advisories survive timeframe switches and MT4 restarts (written only when the list changes)
 void SaveProps()
@@ -1387,81 +1451,144 @@ void SaveProps()
       string inf = props[i].info; StringReplace(inf, "\n", "~"); StringReplace(inf, "\t", " ");
       FileWriteString(f, StringFormat("P\t%s\t%d\t%d\t%.6f\t%.6f\t%.6f\t%.6f\t%s\t%s\t%.2f\t%d\t%.6f\t%d\t%d\t%s\r\n", props[i].sym, props[i].k, props[i].dir, props[i].entry, props[i].sl, props[i].tp, props[i].dist, props[i].method, props[i].grade, props[i].rr, props[i].trap ? 1 : 0, props[i].prox, (int)props[i].tZone, (int)props[i].t, inf));
      }
-   for(int i = 0; i < ArraySize(dismissed); i++) FileWriteString(f, "D\t" + dismissed[i] + "\r\n");
+   for(int i = 0; i < ArraySize(dSym); i++) FileWriteString(f, StringFormat("D2\t%s\t%d\t%s\t%d\t%d\r\n", dSym[i], dK[i], dProx[i], (int)dTime[i], dMy[i] ? 1 : 0));
    FileClose(f);
   }
 void LoadProps()
   {
-   ArrayResize(props, 0); ArrayResize(dismissed, 0);
+   ArrayResize(props, 0);
+   ArrayResize(dSym, 0); ArrayResize(dK, 0); ArrayResize(dProx, 0); ArrayResize(dTime, 0); ArrayResize(dMy, 0);
    int f = FileOpen(PropFile(), FILE_READ | FILE_TXT | FILE_ANSI);
    if(f == INVALID_HANDLE) return;
    while(!FileIsEnding(f))
      {
       string ln = FileReadString(f), c[];
       int n = StringSplit(ln, '\t', c);
-      if(n == 2 && c[0] == "D") { int d = ArraySize(dismissed); ArrayResize(dismissed, d + 1); dismissed[d] = c[1]; continue; }
+      if(n >= 6 && c[0] == "D2")                                         // old "D" lines (never expired) are dropped
+        {
+         int dk = (int)StringToInteger(c[2]);
+         if(dk < 0 || dk >= NTF || c[1] == "") continue;
+         int d = ArraySize(dSym); ArrayResize(dSym, d + 1); ArrayResize(dK, d + 1); ArrayResize(dProx, d + 1); ArrayResize(dTime, d + 1); ArrayResize(dMy, d + 1);
+         dSym[d] = c[1]; dK[d] = dk; dProx[d] = c[3]; dTime[d] = (datetime)StringToInteger(c[4]); dMy[d] = StringToInteger(c[5]) == 1;
+         continue;
+        }
       if(n < 16 || c[0] != "P") continue;
       Proposal p; p.sym = c[1]; p.k = (int)StringToInteger(c[2]); p.dir = (int)StringToInteger(c[3]);
+      if(p.sym == "" || p.k < 0 || p.k >= NTF || (p.dir != 1 && p.dir != -1)) continue;
       p.entry = StringToDouble(c[4]); p.sl = StringToDouble(c[5]); p.tp = StringToDouble(c[6]); p.dist = StringToDouble(c[7]);
       p.method = c[8]; p.grade = c[9]; p.rr = StringToDouble(c[10]); p.trap = c[11] == "1"; p.prox = StringToDouble(c[12]);
       p.tZone = (datetime)StringToInteger(c[13]); p.t = (datetime)StringToInteger(c[14]); p.info = c[15]; StringReplace(p.info, "~", "\n");
       int m = ArraySize(props); ArrayResize(props, m + 1); props[m] = p;
      }
    FileClose(f);
+   if(ExpireDismissed()) SaveProps();
   }
 
-void AddProposal(string s, int k, int dir, double entry, double sl, double tp, double dist, string method, string grade, double rr, bool trap, string info, double prox, datetime tZone)
+// ---- denied advice: skipped by Scan (so the next-best zone is advised), expires after 3 days or when its zone goes ----
+bool IsDismissed(string s, int k, double prox, bool my)
   {
-   string key = s + TF_N[k] + DoubleToString(prox, 6);
-   for(int i = 0; i < ArraySize(dismissed); i++) if(dismissed[i] == key) return;
+   string px = DoubleToString(prox, 6);
+   for(int d = 0; d < ArraySize(dSym); d++) if(dSym[d] == s && dK[d] == k && dMy[d] == my && dProx[d] == px) return true;
+   return false;
+  }
+void AddDismissed(string s, int k, double prox, bool my)
+  {
+   if(IsDismissed(s, k, prox, my)) return;
+   int d = ArraySize(dSym); ArrayResize(dSym, d + 1); ArrayResize(dK, d + 1); ArrayResize(dProx, d + 1); ArrayResize(dTime, d + 1); ArrayResize(dMy, d + 1);
+   dSym[d] = s; dK[d] = k; dProx[d] = DoubleToString(prox, 6); dTime[d] = TimeCurrent(); dMy[d] = my;
+  }
+void DropDismissed(int d)
+  {
+   int n = ArraySize(dSym);
+   if(d < 0 || d >= n) return;
+   for(int j = d; j < n - 1; j++) { dSym[j] = dSym[j + 1]; dK[j] = dK[j + 1]; dProx[j] = dProx[j + 1]; dTime[j] = dTime[j + 1]; dMy[j] = dMy[j + 1]; }
+   ArrayResize(dSym, n - 1); ArrayResize(dK, n - 1); ArrayResize(dProx, n - 1); ArrayResize(dTime, n - 1); ArrayResize(dMy, n - 1);
+  }
+bool ExpireDismissed()
+  {
+   bool ch = false;
+   for(int d = ArraySize(dSym) - 1; d >= 0; d--) if(TimeCurrent() - dTime[d] > 3 * 86400) { DropDismissed(d); ch = true; }
+   return ch;
+  }
+// a denied scanner zone that is no longer live (removed / consumed / out of the lookback) is forgotten
+bool PruneDismissed(string s, int k, Zone &z[], int n)
+  {
+   bool ch = false;
+   for(int d = ArraySize(dSym) - 1; d >= 0; d--)
+     {
+      if(dMy[d] || dSym[d] != s || dK[d] != k) continue;
+      bool live = false;
+      for(int i = 0; i < n && !live; i++) if(!z[i].removed && !z[i].consumed && DoubleToString(z[i].prox, 6) == dProx[d]) live = true;
+      if(!live) { DropDismissed(d); ch = true; }
+     }
+   return ch;
+  }
+
+// true when the advice is new or changed (caller alerts only then)
+bool AddProposal(string s, int k, int dir, double entry, double sl, double tp, double dist, string method, string grade, double rr, bool trap, string info, double prox, datetime tZone)
+  {
+   if(IsDismissed(s, k, prox, method == "MY")) return false;
    for(int i = 0; i < ArraySize(props); i++) if(props[i].sym == s && props[i].k == k)
      {
-      if(props[i].method == "MY" && method != "MY") return;                       // your own zone keeps its slot
+      if(props[i].method == "MY" && method != "MY") return false;                 // your own zone keeps its slot
       double tol = 2 * MarketInfo(s, MODE_ASK) - 2 * MarketInfo(s, MODE_BID) + MarketInfo(s, MODE_POINT);
-      if(MathAbs(props[i].prox - prox) <= tol && MathAbs(props[i].sl - sl) <= tol && MathAbs(props[i].tp - tp) <= tol) return;   // same zone (spread jitter): keep it, no redraw
+      if(props[i].dir == dir && MathAbs(props[i].prox - prox) <= tol && MathAbs(props[i].sl - sl) <= tol && MathAbs(props[i].tp - tp) <= tol) return false;   // same zone (spread jitter): keep it, no redraw
       props[i].dir = dir; props[i].entry = entry; props[i].sl = sl; props[i].tp = tp; props[i].rr = rr; props[i].info = info; props[i].prox = prox; props[i].dist = dist; props[i].tZone = tZone; props[i].grade = grade; props[i].method = method; props[i].trap = trap; props[i].t = TimeCurrent();
-      SaveProps(); lastPanelSig = "-"; return;
+      SaveProps(); lastPanelSig = "-";
+      if(k == viewK && s == _Symbol) DrawView(i);                               // the chart always shows what Approve would place
+      return true;
      }
    Proposal p; p.sym = s; p.k = k; p.dir = dir; p.entry = entry; p.sl = sl; p.tp = tp; p.dist = dist; p.method = method; p.grade = grade; p.rr = rr; p.trap = trap; p.info = info; p.prox = prox; p.tZone = tZone; p.t = TimeCurrent();
    int n = ArraySize(props); ArrayResize(props, n + 1); props[n] = p;
    SaveProps();
+   return true;
   }
 
-void DropProposal(int i) { for(int j = i; j < ArraySize(props) - 1; j++) props[j] = props[j + 1]; ArrayResize(props, ArraySize(props) - 1); SaveProps(); }
+void DropProposal(int i)
+  {
+   int n = ArraySize(props);
+   if(i < 0 || i >= n) return;
+   for(int j = i; j < n - 1; j++) props[j] = props[j + 1];
+   ArrayResize(props, n - 1); SaveProps();
+  }
 
-// Advisory panel (top-left): [Refresh PAIR] then one row per timeframe advice:
+// Advisory panel (top-right): [Refresh PAIR] then one row per timeframe advice:
 // [M15 BUY VP A75 1:2.9]  [View]  [Approve]  [Deny]
+// Buttons are created once and only updated afterwards (never deleted / recreated on a timer tick).
 void DrawProposals()
   {
    for(int i = ArraySize(props) - 1; i >= 0; i--)
      {
       // advice ends when its zone is broken, an order exists, or price is already past the entry
       Proposal p = props[i];
-      double bid = MarketInfo(p.sym, MODE_BID), ask = MarketInfo(p.sym, MODE_ASK);
-      bool gone = HasOrder(p.sym, p.k) || (p.dir > 0 && (iClose(p.sym, TF_E[p.k], 1) < p.dist || ask <= p.entry || bid >= p.entry + 0.8 * (p.tp - p.entry))) || (p.dir < 0 && (iClose(p.sym, TF_E[p.k], 1) > p.dist || bid >= p.entry || ask <= p.entry - 0.8 * (p.entry - p.tp)));
-      if(gone) { if(p.k == viewK) ClearView(); DropProposal(i); }
+      double bid = MarketInfo(p.sym, MODE_BID), ask = MarketInfo(p.sym, MODE_ASK), c1 = iClose(p.sym, TF_E[p.k], 1);
+      if(bid <= 0 || ask <= 0) continue;                                 // no quote yet (start-up): keep the advice
+      bool broke = c1 > 0 && (p.dir > 0 ? c1 < p.dist : c1 > p.dist);    // c1 = 0: history not loaded yet
+      bool gone = HasOrder(p.sym, p.k) || broke || (p.dir > 0 && (ask <= p.entry || (p.tp > 0 && bid >= p.entry + 0.8 * (p.tp - p.entry)))) || (p.dir < 0 && (bid >= p.entry || (p.tp > 0 && ask <= p.entry - 0.8 * (p.entry - p.tp))));
+      if(gone) { if(p.k == viewK && p.sym == _Symbol) ClearView(); DropProposal(i); }
      }
-   string sig = IntegerToString(viewK);
-   for(int i = 0; i < ArraySize(props); i++) sig += props[i].sym + TF_N[props[i].k] + DoubleToString(props[i].rr, 1) + props[i].grade;
+   int W = (int)ChartGetInteger(0, CHART_WIDTH_IN_PIXELS), x0 = MathMax(10, W - 12 - 392);
+   string sig = IntegerToString(viewK) + "|" + IntegerToString(W);
+   for(int i = 0; i < ArraySize(props); i++) sig += "|" + props[i].sym + TF_N[props[i].k] + IntegerToString(props[i].dir) + props[i].method + DoubleToString(props[i].prox, 6) + DoubleToString(props[i].rr, 1) + props[i].grade + (props[i].trap ? "t" : "");
    if(sig == lastPanelSig) return;
    lastPanelSig = sig;
    keep = "|";
-   // right side, under the bot's status lines (max 4 lines from y 20): nothing overlaps
-   int W = (int)ChartGetInteger(0, CHART_WIDTH_IN_PIXELS), x0 = MathMax(10, W - 12 - 392);
+   // right side, under the bot's status lines (max 5 lines from y 20): nothing overlaps
    int y = 112;
    Btn("RFXB_r0", "Refresh " + _Symbol + (ArraySize(props) == 0 ? "  (no advice yet)" : StringFormat("  (%d advice)", ArraySize(props))), x0, y, 392, clrDarkSlateGray);
    y += 26;
-   // rows sorted by timeframe M1 .. W1; button names carry the timeframe, so a click always hits the right advice
+   // rows sorted by timeframe M1 .. W1; button names carry timeframe AND symbol, so a click always hits the right advice
    for(int k = 0; k < NTF; k++)
       for(int i = 0; i < ArraySize(props); i++)
         {
          if(props[i].k != k) continue;
          string sc = ""; int at = StringFind(props[i].info, "(grade ");
-         if(at >= 0) sc = StringSubstr(props[i].info, at + 7, StringFind(props[i].info, ")", at) - at - 7);
+         int to = at >= 0 ? StringFind(props[i].info, ")", at) : -1;
+         if(at >= 0 && to > at + 7) sc = StringSubstr(props[i].info, at + 7, to - at - 7);
          StringReplace(sc, " ", "");
-         string txt = StringFormat("%s %s %s %s 1:%.1f%s", TF_N[k], props[i].dir > 0 ? "BUY" : "SELL", props[i].method == "MY" ? "YOURS" : (StringFind(props[i].info, " VP ") >= 0 ? "VP" : "CP"), sc == "" ? props[i].grade : sc, props[i].rr, props[i].trap ? " trap" : "");
-         bool on = viewK == k;
-         string ks = IntegerToString(k);
+         string txt = StringFormat("%s %s %s %s 1:%.1f%s", (props[i].sym == _Symbol ? "" : props[i].sym + " ") + TF_N[k], props[i].dir > 0 ? "BUY" : "SELL", props[i].method == "MY" ? "YOURS" : (StringFind(props[i].info, " VP ") >= 0 ? "VP" : "CP"), sc == "" ? props[i].grade : sc, props[i].rr, props[i].trap ? " trap" : "");
+         bool on = viewK == k && props[i].sym == _Symbol;
+         string ks = IntegerToString(k) + "_" + props[i].sym;
          Btn("RFXB_t" + ks, (on ? "> " : "") + txt, x0, y, 210, props[i].dir > 0 ? C'30,110,70' : C'150,45,45');
          Btn("RFXB_v" + ks, "View", x0 + 214, y, 50, on ? clrDarkOrange : clrDimGray);
          Btn("RFXB_p" + ks, "Approve", x0 + 268, y, 66, clrRoyalBlue);
@@ -1477,7 +1604,7 @@ void DrawProposals()
    // reasoning of the advice being viewed, right under the list
    ObjectsDeleteAll(0, "RFXN2_");
    if(viewK >= 0)
-      for(int i = 0; i < ArraySize(props); i++) if(props[i].k == viewK)
+      for(int i = 0; i < ArraySize(props); i++) if(props[i].k == viewK && props[i].sym == _Symbol)
         {
          string ls[]; int n = StringSplit(props[i].info, '\n', ls);
          for(int j = 0; j < n; j++) RightLabel(0, "RFXN2_" + IntegerToString(j), ls[j], panelBottom + j * 14, j == 0 ? clrRoyalBlue : clrDimGray, 8);
@@ -1487,19 +1614,28 @@ void DrawProposals()
 void Btn(string nm, string text, int x, int y, int w, color bg)
   {
    keep += nm + "|";
-   if(ObjectFind(0, nm) < 0) { ObjectCreate(0, nm, OBJ_BUTTON, 0, 0, 0); ObjectSetInteger(0, nm, OBJPROP_STATE, false); }
+   if(ObjectFind(0, nm) < 0)
+     {
+      ObjectCreate(0, nm, OBJ_BUTTON, 0, 0, 0);
+      ObjectSetInteger(0, nm, OBJPROP_STATE, false);
+      ObjectSetInteger(0, nm, OBJPROP_CORNER, CORNER_LEFT_UPPER);
+      ObjectSetString(0, nm, OBJPROP_FONT, "Arial"); ObjectSetInteger(0, nm, OBJPROP_FONTSIZE, 8);
+      ObjectSetInteger(0, nm, OBJPROP_COLOR, clrWhite);
+     }
+   // the press state is never touched here: only Click() resets it, so no press is swallowed by a redraw
+   ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false); ObjectSetInteger(0, nm, OBJPROP_SELECTED, false);
+   ObjectSetInteger(0, nm, OBJPROP_HIDDEN, true); ObjectSetInteger(0, nm, OBJPROP_BACK, false); ObjectSetInteger(0, nm, OBJPROP_ZORDER, 100);
    ObjectSetInteger(0, nm, OBJPROP_XDISTANCE, x); ObjectSetInteger(0, nm, OBJPROP_YDISTANCE, y);
    ObjectSetInteger(0, nm, OBJPROP_XSIZE, w); ObjectSetInteger(0, nm, OBJPROP_YSIZE, 22);
-   ObjectSetString(0, nm, OBJPROP_TEXT, text); ObjectSetString(0, nm, OBJPROP_FONT, "Arial"); ObjectSetInteger(0, nm, OBJPROP_FONTSIZE, 8);
-   ObjectSetInteger(0, nm, OBJPROP_BGCOLOR, bg); ObjectSetInteger(0, nm, OBJPROP_COLOR, clrWhite);
-   ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
+   ObjectSetString(0, nm, OBJPROP_TEXT, text);
+   ObjectSetInteger(0, nm, OBJPROP_BGCOLOR, bg);
   }
 
 void ClearView() { ObjectsDeleteAll(0, "RFXP_"); ObjectsDeleteAll(0, "RFXN2_"); viewK = -1; GlobalVariableDel("RFX_view_" + _Symbol); }
-// View: draws the advice on THIS chart and switches it to the advice's timeframe; the panel stays,
-// so you check the chart and press Approve or Deny on the same screen.
-void ViewProposal(int i)
+// Draws the advice (zone, entry, stop, target) on THIS chart.
+void DrawView(int i)
   {
+   if(i < 0 || i >= ArraySize(props)) return;
    Proposal p = props[i];
    ObjectsDeleteAll(0, "RFXP_");
    viewK = p.k;
@@ -1509,6 +1645,7 @@ void ViewProposal(int i)
    datetime t1 = p.tZone, t2 = TimeCurrent() + sec * 20;
    ObjectCreate(0, pre + "z", OBJ_RECTANGLE, 0, t1, p.prox, t2, p.dist);
    ObjectSetInteger(0, pre + "z", OBJPROP_COLOR, p.dir > 0 ? C'190,225,200' : C'245,205,195'); ObjectSetInteger(0, pre + "z", OBJPROP_BACK, true);
+   ObjectSetInteger(0, pre + "z", OBJPROP_SELECTABLE, false);
    string nm[3] = {"e", "s", "t"}; double pr[3]; pr[0] = p.entry; pr[1] = p.sl; pr[2] = p.tp;
    color cl[3] = {clrRoyalBlue, clrCrimson, clrSeaGreen}; string lb[3] = {"entry", "stop", "target"};
    int dg = (int)MarketInfo(p.sym, MODE_DIGITS);
@@ -1516,60 +1653,108 @@ void ViewProposal(int i)
      {
       ObjectCreate(0, pre + nm[j], OBJ_TREND, 0, t1, pr[j], t2, pr[j]);
       ObjectSetInteger(0, pre + nm[j], OBJPROP_RAY_RIGHT, false); ObjectSetInteger(0, pre + nm[j], OBJPROP_COLOR, cl[j]); ObjectSetInteger(0, pre + nm[j], OBJPROP_STYLE, j == 0 ? STYLE_SOLID : STYLE_DASH);
+      ObjectSetInteger(0, pre + nm[j], OBJPROP_SELECTABLE, false);
       ObjectCreate(0, pre + nm[j] + "l", OBJ_TEXT, 0, t2, pr[j]);
       ObjectSetString(0, pre + nm[j] + "l", OBJPROP_TEXT, " " + TF_N[p.k] + " " + lb[j] + " " + DoubleToString(pr[j], dg));
       ObjectSetInteger(0, pre + nm[j] + "l", OBJPROP_COLOR, cl[j]); ObjectSetInteger(0, pre + nm[j] + "l", OBJPROP_FONTSIZE, 8); ObjectSetInteger(0, pre + nm[j] + "l", OBJPROP_ANCHOR, ANCHOR_LEFT);
      }
+  }
+// View: draws the advice on THIS chart and switches it to the advice's timeframe; the panel stays,
+// so you check the chart and press Approve or Deny on the same screen.
+void ViewProposal(int i)
+  {
+   if(props[i].sym != _Symbol) { Alert("RamanFX ZoneBot: open a ", props[i].sym, " chart to view this advice"); lastPanelSig = "-"; DrawProposals(); return; }
+   int tf = TF_E[props[i].k];
+   DrawView(i);
    lastPanelSig = "-";
-   if(_Period != TF_E[p.k]) ChartSetSymbolPeriod(0, _Symbol, TF_E[p.k]);   // drawings stay; the bot reloads on the new timeframe
-   else { DrawProposals(); ChartRedraw(0); }
+   DrawProposals();
+   ChartRedraw(0);
+   if(_Period != tf) ChartSetSymbolPeriod(0, _Symbol, tf);   // drawings stay; the bot reloads on the new timeframe (OnInit restores the view)
   }
 
+// Clears the advice and rescans this pair on every timeframe right away (other pairs follow on the timer).
 void Refresh()
   {
    ClearView();
    ArrayResize(props, 0); SaveProps();
-   for(int i = 0; i < ArraySize(syms); i++) for(int k = 0; k < NTF; k++) lastBar[i][k] = 0;   // rescan every timeframe now
-   lastPanelSig = "-";
+   if(ArrayRange(lastBar, 0) != ArraySize(syms)) ArrayResize(lastBar, ArraySize(syms));
+   for(int i = 0; i < ArraySize(syms); i++) for(int k = 0; k < NTF; k++) lastBar[i][k] = 0;
+   lastPanelSig = "-"; lastMine = 0;
    Print("ZoneBot: refreshing ", _Symbol, " on every timeframe");
+   uint w0 = GetTickCount();
+   for(int i = 0; i < ArraySize(syms); i++)
+     {
+      if(syms[i] != _Symbol) continue;
+      for(int k = 0; k < NTF && GetTickCount() - w0 < 2500; k++)
+        {
+         if(!TfOn(k)) continue;
+         datetime t = iTime(syms[i], TF_E[k], 0);
+         if(t == 0) continue;                                           // history not loaded yet: the timer retries
+         lastBar[i][k] = t;
+         Scan(syms[i], k); scans++; lastScanAt = TimeCurrent();
+        }
+     }
   }
 
 void OnChartEvent(const int id, const long &lparam, const double &dparam, const string &sparam)
   {
-   if(id == CHARTEVENT_CHART_CHANGE) { lastPanelSig = "-"; DrawProposals(); return; }   // resized: re-place the panel
+   if(id == CHARTEVENT_CHART_CHANGE) { if(InpMode == MODE_APPROVE) DrawProposals(); return; }   // resized: the width is in the panel signature
    if(id != CHARTEVENT_OBJECT_CLICK || StringFind(sparam, "RFXB_") != 0) return;
+   // the timer poll may already have handled this very press (state reset): don't run it twice
+   bool pressed = ObjectGetInteger(0, sparam, OBJPROP_STATE) != 0;
+   if(!pressed && sparam == lastClickNm && GetTickCount() - lastClickMs < 5000) return;
    HandleClick(sparam);
   }
-bool busy = false;
 void HandleClick(string sparam)
   {
    if(busy) return;
    busy = true;
    Click(sparam);
    busy = false;
+   lastClickNm = sparam; lastClickMs = GetTickCount();
   }
 void Click(string sparam)
   {
    string act = StringSubstr(sparam, 5, 1);
    ObjectSetInteger(0, sparam, OBJPROP_STATE, false);
-   if(act == "r") { Refresh(); Work(); return; }
-   int k = (int)StringToInteger(StringSubstr(sparam, 6)), i = -1;
-   for(int j = 0; j < ArraySize(props); j++) if(props[j].k == k && props[j].sym == _Symbol) { i = j; break; }
-   if(i < 0) { lastPanelSig = "-"; DrawProposals(); return; }
+   Print("ZoneBot: button ", sparam, " pressed");
+   if(ObjectFind(0, sparam) >= 0) { ObjectSetString(0, sparam, OBJPROP_TEXT, act == "r" ? "Refreshing " + _Symbol + " ..." : "..."); ChartRedraw(0); }   // instant feedback
+   if(act == "r") { Refresh(); Work(); lastPanelSig = "-"; DrawProposals(); return; }
+   int k = (int)StringToInteger(StringSubstr(sparam, 6, 1)), i = -1;
+   string sy = StringLen(sparam) > 8 ? StringSubstr(sparam, 8) : _Symbol;
+   for(int j = 0; j < ArraySize(props); j++) if(props[j].k == k && props[j].sym == sy) { i = j; break; }
+   if(i < 0)
+     {
+      if(act == "p") Alert("RamanFX ZoneBot: order NOT placed - this advice is no longer valid (zone broken, price moved or advice replaced). Press Refresh.");
+      lastPanelSig = "-"; DrawProposals(); return;
+     }
    if(act == "v" || act == "t") { ViewProposal(i); return; }
    if(act == "p")
      {
-      if(!Place(props[i].sym, props[i].k, props[i].dir, props[i].entry, props[i].sl, props[i].tp, props[i].dist, props[i].method, props[i].grade, props[i].rr, props[i].trap, props[i].info, props[i].prox, props[i].tZone))
-        { Alert("RamanFX ZoneBot: order NOT placed - ", placeErr); return; }     // advice kept so you can try again
-      Alert("RamanFX ZoneBot: order placed - ", props[i].sym, " ", TF_N[props[i].k], " ", props[i].dir > 0 ? "BUY LIMIT" : "SELL LIMIT", " @ ", DoubleToString(props[i].entry, (int)MarketInfo(props[i].sym, MODE_DIGITS)));
-      if(props[i].k == viewK) ClearView();
-      DropProposal(i);
+      string sym = props[i].sym, tfn = TF_N[props[i].k]; int dir = props[i].dir; double entry = props[i].entry;
+      if(!Place(sym, props[i].k, dir, entry, props[i].sl, props[i].tp, props[i].dist, props[i].method, props[i].grade, props[i].rr, props[i].trap, props[i].info, props[i].prox, props[i].tZone))
+         Alert("RamanFX ZoneBot: ", sym, " ", tfn, " order NOT placed - ", placeErr == "" ? "unknown reason (see Experts tab)" : placeErr);   // advice kept so you can try again
+      else
+        {
+         Alert("RamanFX ZoneBot: order placed - ", sym, " ", tfn, " ", dir > 0 ? "BUY LIMIT" : "SELL LIMIT", " @ ", DoubleToString(entry, (int)MarketInfo(sym, MODE_DIGITS)));
+         if(props[i].k == viewK && sym == _Symbol) ClearView();
+         DropProposal(i);
+        }
      }
    else if(act == "x")
      {
-      int n = ArraySize(dismissed); ArrayResize(dismissed, n + 1); dismissed[n] = props[i].sym + TF_N[props[i].k] + DoubleToString(props[i].prox, 6);
-      if(props[i].k == viewK) ClearView();
+      string sym = props[i].sym; int kk = props[i].k;
+      AddDismissed(sym, kk, props[i].prox, props[i].method == "MY");
+      Print("ZoneBot: denied ", sym, " ", TF_N[kk], " zone ", DoubleToString(props[i].prox, (int)MarketInfo(sym, MODE_DIGITS)), " - looking for the next one");
+      if(kk == viewK && sym == _Symbol) ClearView();
       DropProposal(i);
+      int si = SymIdx(sym);                                              // rescan that timeframe now: the next-best zone is advised
+      if(si >= 0 && si < ArrayRange(lastBar, 0) && TfOn(kk))
+        {
+         datetime t = iTime(sym, TF_E[kk], 0);
+         lastBar[si][kk] = t;
+         if(t > 0) Scan(sym, kk);
+        }
      }
    lastPanelSig = "-";
    DrawProposals();
