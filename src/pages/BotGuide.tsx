@@ -193,6 +193,17 @@ function ZoneVision() {
         ]} tone="accent" />
       </Section>
 
+      <Section title="TradingView version">
+        <div className="flex flex-wrap gap-2 mb-3"><a className="btn" href="/tools/RamanFX_ZoneVision.pine" download><Icon name="download" size={14} />RamanFX_ZoneVision.pine</a></div>
+        <Steps items={[
+          <>Open the file in a text editor and copy everything.</>,
+          <>TradingView: <b>Pine Editor</b> (bottom) → <b>Open → New blank indicator</b> → select all, paste → <b>Save</b> → <b>Add to chart</b>.</>,
+          <>Same zones, names, grades, purple liquidity traps, trendlines, HTF bias (mentor pairs) and the planned entry / stop / target. A table top-left shows bias and plan.</>,
+          <>Alerts: <b>Create alert</b> → Condition <b>RamanFX ZoneVision</b> → <b>Any alert() function call</b>. You get pinged when price reaches a fresh zone with the HTF trend.</>,
+          <>Differences from MT4: no HTF zone band, and it cannot read the MT4 bot's orders.</>,
+        ]} />
+      </Section>
+
       <Section title="Start it">
         <Steps items={[
           <>Drag <b>RamanFX_ZoneVision</b> (Indicators) onto any chart. It works on every timeframe and redraws when you switch.</>,

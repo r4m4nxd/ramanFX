@@ -140,6 +140,7 @@ export default function Settings() {
         <div className="flex flex-wrap gap-2">
           <a className="btn" href="/tools/RamanFX_ZoneBot.mq4" download><Icon name="download" size={14} />RamanFX_ZoneBot.mq4</a>
           <a className="btn" href="/tools/RamanFX_ZoneVision.mq4" download><Icon name="download" size={14} />RamanFX_ZoneVision.mq4 (indicator)</a>
+          <a className="btn" href="/tools/RamanFX_ZoneVision.pine" download><Icon name="download" size={14} />ZoneVision for TradingView (.pine)</a>
           <Link to="/bot-guide" className="btn-primary"><Icon name="info" size={14} />Full guide</Link>
         </div>
         <ol className="mt-3 text-[12.5px] text-ink2 list-decimal pl-5 flex flex-col gap-1">

@@ -1,0 +1,317 @@
+// RamanFX ZoneVision for TradingView (Pine Script v5)
+// Same rules as the MT4 ZoneVision / ZoneBot: basing candles, explosive move away, stay-away candle,
+// similar-size rule, departure, CP / VP names, A/B/C grade, fresh / tested / removed, liquidity traps,
+// one intact trendline each way, HTF bias (mentor timeframe pairs) and the planned entry / stop / target.
+// Add to chart: Pine Editor -> paste -> Save -> Add to chart. Alerts: Create alert -> "Any alert() function call".
+//@version=5
+indicator("RamanFX ZoneVision", shorttitle="ZoneVision", overlay=true, max_boxes_count=200, max_lines_count=100, max_labels_count=100)
+
+// ---------- inputs ----------
+gR = "Zone rules (keep equal to ZoneBot)"
+legRatio   = input.float(1.5, "Move-away range / largest base candle", minval=1.0, step=0.1, group=gR)
+maxBase    = input.int(6, "Max basing candles", minval=1, maxval=6, group=gR)
+maxZoneATR = input.float(1.5, "Max zone height (x ATR14)", minval=0.2, step=0.1, group=gR)
+minDep     = input.float(1.5, "Departure: price must leave >= N x zone height", minval=0.0, step=0.1, group=gR)
+lookback   = input.int(300, "Ignore zones older than (bars)", minval=50, maxval=2000, group=gR)
+swingN     = input.int(3, "Swing strength (bars each side)", minval=1, maxval=10, group=gR)
+trapATR    = input.float(1.0, "Liquidity trap: level within N x ATR in front of the zone", step=0.1, group=gR)
+minRR      = input.float(2.0, "Min reward:risk for the plan", step=0.1, group=gR)
+htfIn      = input.timeframe("", "HTF (empty = mentor pair: 1m>15m, 5m>1H, 15m>4H, 1H>D, 4H>W, D>M)", group=gR)
+
+gS = "What to show (clean by default)"
+nShow       = input.int(4, "Zones drawn: the N closest to price", minval=1, maxval=20, group=gS)
+showTested  = input.bool(false, "Also draw tested zones", group=gS)
+showRemoved = input.bool(false, "Also draw removed zones (faint)", group=gS)
+showNames   = input.bool(true, "Zone name + grade in the box", group=gS)
+showTrap    = input.bool(true, "Liquidity traps (purple)", group=gS)
+showTL      = input.bool(true, "Newest intact trendline each way", group=gS)
+showPlan    = input.bool(true, "Planned entry / stop / target", group=gS)
+showPanel   = input.bool(true, "Info panel", group=gS)
+doAlerts    = input.bool(true, "Alert when price reaches a fresh zone with the HTF trend", group=gS)
+
+gC = "Colours"
+cDemF = input.color(color.new(#C8E8CB, 30), "Demand fill", group=gC)
+cDemL = input.color(#2E8B57, "Demand line", group=gC)
+cSupF = input.color(color.new(#F6D4C6, 30), "Supply fill", group=gC)
+cSupL = input.color(#C83C3C, "Supply line", group=gC)
+cTrap = input.color(#AA96DC, "Liquidity trap", group=gC)
+cRem  = input.color(color.new(#F6D4C6, 80), "Removed zone", group=gC)
+cTL   = input.color(#282828, "Trendline", group=gC)
+cTxt  = input.color(#5A5A5A, "Text", group=gC)
+
+// ---------- helpers ----------
+atr = ta.atr(14)
+rng(i) => high[i] - low[i]
+bod(i) => math.abs(close[i] - open[i])
+basing(i) => rng(i) > 0 and bod(i) <= 0.5 * rng(i)
+cdir(i) => close[i] > open[i] ? 1 : close[i] < open[i] ? -1 : 0
+
+tfs = timeframe.in_seconds()
+autoHtf = tfs <= 60 ? "15" : tfs <= 300 ? "60" : tfs <= 900 ? "240" : tfs <= 3600 ? "D" : tfs <= 14400 ? "W" : "M"
+htf = htfIn == "" ? autoHtf : htfIn
+// stop buffer in pips by timeframe (same as ZoneBot)
+bufPips = tfs <= 60 ? 1.0 : tfs <= 300 ? 1.5 : tfs <= 900 ? 3.0 : tfs <= 3600 ? 5.0 : tfs <= 14400 ? 10.0 : tfs <= 86400 ? 20.0 : 40.0
+pip = syminfo.mintick * (syminfo.type == "forex" ? 10 : 1)
+
+// HTF trend: higher highs + higher lows = up, lower highs + lower lows = down, else last break of structure
+f_trend() =>
+    ph = ta.pivothigh(2, 2)
+    pl = ta.pivotlow(2, 2)
+    h1 = ta.valuewhen(not na(ph), ph, 0)
+    h2 = ta.valuewhen(not na(ph), ph, 1)
+    l1 = ta.valuewhen(not na(pl), pl, 0)
+    l2 = ta.valuewhen(not na(pl), pl, 1)
+    h1 > h2 and l1 > l2 ? 1 : h1 < h2 and l1 < l2 ? -1 : close > h1 ? 1 : close < l1 ? -1 : 0
+htfTrend = request.security(syminfo.tickerid, htf, f_trend()[1], lookahead=barmerge.lookahead_on)
+
+// ---------- zones ----------
+type Zone
+    int dir
+    float prox
+    float dist
+    int t0
+    int legBar
+    int baseN
+    float ratio
+    bool erc
+    bool cont
+    bool tested
+    bool removed
+    int remBar
+    float pen
+    float far
+    bool back
+
+var zones = array.new<Zone>()
+
+// status of every zone, once per closed bar
+if barstate.isconfirmed
+    for z in zones
+        if not z.removed
+            h = math.abs(z.prox - z.dist)
+            if z.dir > 0
+                if close < z.dist
+                    z.removed := true
+                    z.remBar := bar_index
+                else if low <= z.prox and bar_index > z.legBar + 1
+                    z.tested := true
+                    z.back := true
+                    z.pen := math.max(z.pen, (z.prox - low) / h)
+                if not z.back
+                    z.far := math.max(z.far, high)
+            else
+                if close > z.dist
+                    z.removed := true
+                    z.remBar := bar_index
+                else if high >= z.prox and bar_index > z.legBar + 1
+                    z.tested := true
+                    z.back := true
+                    z.pen := math.max(z.pen, (high - z.prox) / h)
+                if not z.back
+                    z.far := math.min(z.far, low)
+
+// new zone: bar[1] = move away, bars[2..] = base, bar[0] = stay-away candle
+if barstate.isconfirmed and bar_index > 20
+    lr = rng(1)
+    d = cdir(1)
+    if lr > 0 and not basing(1) and d != 0
+        k = 0
+        mb = 0.0
+        for j = 2 to maxBase + 1
+            if basing(j)
+                k += 1
+                mb := math.max(mb, rng(j))
+            else
+                break
+        if k > 0 and mb > 0 and lr / mb >= legRatio
+            px = d > 0 ? -1e10 : 1e10
+            ds = d > 0 ? 1e10 : -1e10
+            for j = 2 to k + 1
+                if d > 0
+                    px := math.max(px, math.max(open[j], close[j]))
+                    ds := math.min(ds, low[j])
+                else
+                    px := math.min(px, math.min(open[j], close[j]))
+                    ds := math.max(ds, high[j])
+            ds := d > 0 ? math.min(ds, low[1]) : math.max(ds, high[1])
+            h = math.abs(px - ds)
+            stay = d > 0 ? low > px : high < px
+            if h > 0 and h <= maxZoneATR * atr[1] and stay
+                ercOk = bod(1) / lr >= 0.6 and (d > 0 ? (close[1] - low[1]) / lr >= 0.8 : (high[1] - close[1]) / lr >= 0.8)
+                zones.push(Zone.new(d, px, ds, bar_index - k - 1, bar_index - 1, k, lr / mb, ercOk, cdir(k + 2) == d, false, false, na, 0.0, d > 0 ? math.max(high, high[1]) : math.min(low, low[1]), false))
+                if zones.size() > 200
+                    zones.shift()
+
+dep(Zone z) => math.abs(z.far - z.prox) / math.max(math.abs(z.prox - z.dist), syminfo.mintick)
+grade(Zone z) =>
+    dp = dep(z)
+    z.ratio >= 2.5 and z.baseN <= 3 and z.erc and dp >= 2 ? "A" : z.ratio >= 1.8 and dp >= 1.5 ? "B" : "C"
+zname(Zone z) =>
+    z.cont ? (z.dir > 0 ? "Rally Base Rally Demand (CP)" : "Drop Base Drop Supply (CP)") : (z.dir > 0 ? "Drop Base Rally Demand (VP)" : "Rally Base Drop Supply (VP)")
+usable(Zone z) => not z.removed and z.pen < 0.5 and dep(z) >= minDep and z.legBar >= bar_index - lookback
+
+// ---------- swings (traps, trendlines) ----------
+var plP = array.new<float>()
+var plB = array.new<int>()
+var plS = array.new<bool>()
+var phP = array.new<float>()
+var phB = array.new<int>()
+var phS = array.new<bool>()
+pl = ta.pivotlow(swingN, swingN)
+ph = ta.pivothigh(swingN, swingN)
+if not na(pl)
+    plP.push(pl), plB.push(bar_index - swingN), plS.push(false)
+    if plP.size() > 60
+        plP.shift(), plB.shift(), plS.shift()
+if not na(ph)
+    phP.push(ph), phB.push(bar_index - swingN), phS.push(false)
+    if phP.size() > 60
+        phP.shift(), phB.shift(), phS.shift()
+if plP.size() > 0
+    for i = 0 to plP.size() - 1
+        if not plS.get(i) and bar_index > plB.get(i) + swingN and low < plP.get(i)
+            plS.set(i, true)
+if phP.size() > 0
+    for i = 0 to phP.size() - 1
+        if not phS.get(i) and bar_index > phB.get(i) + swingN and high > phP.get(i)
+            phS.set(i, true)
+
+// liquidity trap: an obvious, unswept swing level just in front of the zone (lesson 16); returns index or -1
+trapFor(Zone z) =>
+    int best = -1
+    if z.dir > 0 and plP.size() > 0
+        for i = plP.size() - 1 to 0
+            p = plP.get(i)
+            if plB.get(i) > z.legBar and not plS.get(i) and p > z.prox and p - z.prox <= trapATR * atr
+                best := i
+                break
+    else if z.dir < 0 and phP.size() > 0
+        for i = phP.size() - 1 to 0
+            p = phP.get(i)
+            if phB.get(i) > z.legBar and not phS.get(i) and p < z.prox and z.prox - p <= trapATR * atr
+                best := i
+                break
+    best
+
+// alerts: price reaches a fresh zone that agrees with the HTF trend
+if doAlerts and barstate.isconfirmed and zones.size() > 0
+    for z in zones
+        if not z.removed and z.tested and z.pen < 0.5 and dep(z) >= minDep and z.dir == htfTrend and (z.dir > 0 ? low <= z.prox and low[1] > z.prox : high >= z.prox and high[1] < z.prox)
+            alert(syminfo.ticker + " " + timeframe.period + ": price at fresh " + (z.dir > 0 ? "demand " : "supply ") + str.tostring(z.prox, format.mintick) + " (" + zname(z) + ", grade " + grade(z) + ")", alert.freq_once_per_bar_close)
+
+// ---------- drawing (last bar only) ----------
+var boxes = array.new<box>()
+var lines = array.new<line>()
+var labels = array.new<label>()
+var table panel = table.new(position.top_left, 1, 5, bgcolor=color.new(color.white, 100))
+
+if barstate.islast
+    for b in boxes
+        b.delete()
+    for l in lines
+        l.delete()
+    for lb in labels
+        lb.delete()
+    boxes.clear(), lines.clear(), labels.clear()
+    right = bar_index + 25
+
+    // the N zones closest to price
+    idx = array.new<int>()
+    dst = array.new<float>()
+    if zones.size() > 0
+        for i = 0 to zones.size() - 1
+            z = zones.get(i)
+            if usable(z) and (showTested or not z.tested)
+                idx.push(i)
+                dst.push(math.abs(close - z.prox))
+    order = dst.sort_indices()
+    shown = math.min(nShow, idx.size())
+    if shown > 0
+        for n = 0 to shown - 1
+            z = zones.get(idx.get(order.get(n)))
+            g = grade(z)
+            tr = showTrap ? trapFor(z) : -1
+            txt = showNames ? zname(z) + " | " + g + (tr >= 0 ? " | liquidity trap" : "") + (z.tested ? " | tested" : "") : ""
+            boxes.push(box.new(z.t0, z.prox, right, z.dist, border_color=z.dir > 0 ? cDemL : cSupL, bgcolor=z.dir > 0 ? cDemF : cSupF, text=txt, text_color=cTxt, text_size=size.small, text_halign=text.align_left, text_valign=z.dir > 0 ? text.align_bottom : text.align_top))
+            labels.push(label.new(right, z.prox, str.tostring(z.prox, format.mintick), style=label.style_label_left, color=color.new(color.white, 100), textcolor=z.dir > 0 ? cDemL : cSupL, size=size.small))
+            labels.push(label.new(right, z.dist, str.tostring(z.dist, format.mintick), style=label.style_label_left, color=color.new(color.white, 100), textcolor=cTxt, size=size.tiny))
+            if tr >= 0
+                tp = z.dir > 0 ? plP.get(tr) : phP.get(tr)
+                tb = z.dir > 0 ? plB.get(tr) : phB.get(tr)
+                lines.push(line.new(tb, tp, right, tp, color=cTrap, width=3))
+
+    // removed zones, faint
+    if showRemoved and zones.size() > 0
+        cnt = 0
+        for i = zones.size() - 1 to 0
+            z = zones.get(i)
+            if z.removed and cnt < 6 and z.legBar >= bar_index - lookback
+                boxes.push(box.new(z.t0, z.prox, z.remBar, z.dist, border_color=cRem, bgcolor=cRem))
+                cnt += 1
+
+    // newest intact trendline each way (rising: two higher lows, falling: two lower highs)
+    if showTL
+        if plP.size() >= 2
+            for i = plP.size() - 1 to 1
+                p2 = plP.get(i), p1 = plP.get(i - 1), b2 = plB.get(i), b1 = plB.get(i - 1)
+                if p2 > p1
+                    slope = (p2 - p1) / (b2 - b1)
+                    if close > p2 + slope * (bar_index - b2)
+                        lines.push(line.new(b1, p1, b2, p2, color=cTL, width=1, extend=extend.right))
+                    break
+        if phP.size() >= 2
+            for i = phP.size() - 1 to 1
+                p2 = phP.get(i), p1 = phP.get(i - 1), b2 = phB.get(i), b1 = phB.get(i - 1)
+                if p2 < p1
+                    slope = (p2 - p1) / (b2 - b1)
+                    if close < p2 + slope * (bar_index - b2)
+                        lines.push(line.new(b1, p1, b2, p2, color=cTL, width=1, extend=extend.right))
+                    break
+
+    // plan: closest fresh zone with the HTF trend
+    string planTxt = "no setup: " + (htfTrend == 0 ? "HTF trend unclear" : "no fresh zone with the trend")
+    if showPlan and idx.size() > 0
+        for n = 0 to idx.size() - 1
+            z = zones.get(idx.get(order.get(n)))
+            if z.dir != htfTrend or z.tested
+                continue
+            // stop: CP beyond distal; VP beyond the swing valley/peak of the whole drop/rally into the zone
+            float ext = z.dist
+            if not z.cont
+                legX = z.dir > 0 ? high[bar_index - z.legBar] : low[bar_index - z.legBar]
+                for b = math.max(z.legBar - 2, 0) to math.max(z.legBar - 150, 0)
+                    off = bar_index - b
+                    if off > 4900
+                        break
+                    ext := z.dir > 0 ? math.min(ext, low[off]) : math.max(ext, high[off])
+                    if b < z.legBar - z.baseN and (z.dir > 0 ? high[off] >= legX : low[off] <= legX)
+                        break
+            sl = ext - z.dir * bufPips * pip
+            // target: nearer of the swing since the zone and the next opposing fresh zone
+            float sw = na
+            for off = 1 to math.min(bar_index - z.legBar, 4900)
+                sw := na(sw) ? (z.dir > 0 ? high[off] : low[off]) : (z.dir > 0 ? math.max(sw, high[off]) : math.min(sw, low[off]))
+            float opp = na
+            for o in zones
+                if usable(o) and o.dir != z.dir and (z.dir > 0 ? o.prox > z.prox : o.prox < z.prox)
+                    opp := na(opp) ? o.prox : (z.dir > 0 ? math.min(opp, o.prox) : math.max(opp, o.prox))
+            tp = na(sw) ? opp : na(opp) ? sw : (z.dir > 0 ? math.min(sw, opp) : math.max(sw, opp))
+            risk = math.abs(z.prox - sl)
+            rr = na(tp) or risk <= 0 ? 0.0 : z.dir * (tp - z.prox) / risk
+            if rr < minRR
+                planTxt := "closest trend zone R:R " + str.tostring(rr, "#.0") + " < " + str.tostring(minRR, "#.0")
+                break
+            x1 = bar_index + 2, x2 = right
+            lines.push(line.new(x1, z.prox, x2, z.prox, color=color.blue, width=2))
+            lines.push(line.new(x1, sl, x2, sl, color=color.red, style=line.style_dashed))
+            lines.push(line.new(x1, tp, x2, tp, color=color.green, style=line.style_dashed))
+            labels.push(label.new(x2, sl, "stop " + str.tostring(sl, format.mintick), style=label.style_label_left, color=color.new(color.white, 100), textcolor=color.red, size=size.small))
+            labels.push(label.new(x2, tp, "target " + str.tostring(tp, format.mintick), style=label.style_label_left, color=color.new(color.white, 100), textcolor=color.green, size=size.small))
+            planTxt := (z.dir > 0 ? "BUY limit " : "SELL limit ") + str.tostring(z.prox, format.mintick) + "  1:" + str.tostring(rr, "#.0") + "  grade " + grade(z) + (z.cont ? "  CP" : "  VP")
+            break
+
+    if showPanel
+        table.cell(panel, 0, 0, "ZoneVision  " + timeframe.period + " -> " + htf, text_color=color.blue, text_size=size.small, text_halign=text.align_left)
+        table.cell(panel, 0, 1, "Bias: " + (htfTrend > 0 ? "UP (HTF higher highs / lows)" : htfTrend < 0 ? "DOWN (HTF lower highs / lows)" : "unclear - wait"), text_color=cTxt, text_size=size.small, text_halign=text.align_left)
+        table.cell(panel, 0, 2, "Zones: " + str.tostring(idx.size()) + " fresh/usable, " + str.tostring(shown) + " drawn", text_color=cTxt, text_size=size.small, text_halign=text.align_left)
+        table.cell(panel, 0, 3, "Plan: " + planTxt, text_color=cTxt, text_size=size.small, text_halign=text.align_left)
