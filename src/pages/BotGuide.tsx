@@ -198,7 +198,7 @@ function ZoneVision() {
         <Steps items={[
           <>Open the file in a text editor and copy everything.</>,
           <>TradingView: <b>Pine Editor</b> (bottom) → <b>Open → New blank indicator</b> → select all, paste → <b>Save</b> → <b>Add to chart</b>.</>,
-          <>Same zones, names, grades, purple liquidity traps, trendlines, HTF bias (mentor pairs) and the planned entry / stop / target. A table top-left shows bias and plan.</>,
+          <>Everything the MT4 bot thinks except placing orders: same zones, names, purple liquidity traps, trendlines and HTF bias (1m up to 12M), plus up to 5 <b>potential trades</b> ranked by the Planner score (A/B/C) with entry, stop, target and R:R, and a <b>Why #1</b> checklist of Sam Seiden's odds enhancers and your mentor's rules (✔ / ✘). Filter by grade, show counter-trend setups, and pick the panel corner and text size in Settings.</>,
           <>Alerts: <b>Create alert</b> → Condition <b>RamanFX ZoneVision</b> → <b>Any alert() function call</b>. You get pinged when price reaches a fresh zone with the HTF trend.</>,
           <>Differences from MT4: no HTF zone band, and it cannot read the MT4 bot's orders.</>,
         ]} />
