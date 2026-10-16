@@ -22,7 +22,7 @@
 //|   2026.10.17 12:30,USD   (UTC time, currency)                    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "0.71"
+#property version   "0.72"
 #property strict
 
 enum BotMode   { MODE_SCANNER = 0, MODE_APPROVE = 1, MODE_AUTO = 2 };
@@ -158,6 +158,7 @@ int      knownTickets[];
 // Approve mode proposals
 struct Proposal { string sym; int k; int dir; double entry, sl, tp, dist, rr, prox; bool trap; string method, grade, info; datetime t, tZone; };
 string placeErr = "";
+string keep = "|";
 int myTrend = 0; string myTrendWhy = ""; datetime lastMine = 0;
 Proposal props[]; string lastPanelSig = ""; int viewK = -1; int panelBottom = 120;
 
@@ -286,7 +287,15 @@ void Work()
      }
    UpdateSims();
    FlushSignals(false);
-   if(InpMode == MODE_APPROVE) DrawProposals();
+   if(InpMode == MODE_APPROVE)
+     {
+      for(int o = ObjectsTotal(0, -1, -1) - 1; o >= 0; o--)
+        {
+         string nm = ObjectName(0, o);
+         if(StringFind(nm, "RFXB_") == 0 && ObjectGetInteger(0, nm, OBJPROP_STATE)) { HandleClick(nm); break; }
+        }
+      DrawProposals();
+     }
    Status();
   }
 
@@ -1408,7 +1417,8 @@ void AddProposal(string s, int k, int dir, double entry, double sl, double tp, d
    for(int i = 0; i < ArraySize(props); i++) if(props[i].sym == s && props[i].k == k)
      {
       if(props[i].method == "MY" && method != "MY") return;                       // your own zone keeps its slot
-      if(props[i].prox == prox && props[i].sl == sl && props[i].tp == tp) return;   // max 1 advice per timeframe: newest wins
+      double tol = 2 * MarketInfo(s, MODE_ASK) - 2 * MarketInfo(s, MODE_BID) + MarketInfo(s, MODE_POINT);
+      if(MathAbs(props[i].prox - prox) <= tol && MathAbs(props[i].sl - sl) <= tol && MathAbs(props[i].tp - tp) <= tol) return;   // same zone (spread jitter): keep it, no redraw
       props[i].dir = dir; props[i].entry = entry; props[i].sl = sl; props[i].tp = tp; props[i].rr = rr; props[i].info = info; props[i].prox = prox; props[i].dist = dist; props[i].tZone = tZone; props[i].grade = grade; props[i].method = method; props[i].trap = trap; props[i].t = TimeCurrent();
       SaveProps(); lastPanelSig = "-"; return;
      }
@@ -1435,7 +1445,7 @@ void DrawProposals()
    for(int i = 0; i < ArraySize(props); i++) sig += props[i].sym + TF_N[props[i].k] + DoubleToString(props[i].rr, 1) + props[i].grade;
    if(sig == lastPanelSig) return;
    lastPanelSig = sig;
-   ObjectsDeleteAll(0, "RFXB_");
+   keep = "|";
    // right side, under the bot's status lines (max 4 lines from y 20): nothing overlaps
    int W = (int)ChartGetInteger(0, CHART_WIDTH_IN_PIXELS), x0 = MathMax(10, W - 12 - 392);
    int y = 112;
@@ -1459,6 +1469,11 @@ void DrawProposals()
          y += 26;
         }
    panelBottom = y + 6;
+   for(int o = ObjectsTotal(0, -1, -1) - 1; o >= 0; o--)               // remove buttons of advice that is gone
+     {
+      string nm = ObjectName(0, o);
+      if(StringFind(nm, "RFXB_") == 0 && StringFind(keep, "|" + nm + "|") < 0) ObjectDelete(0, nm);
+     }
    // reasoning of the advice being viewed, right under the list
    ObjectsDeleteAll(0, "RFXN2_");
    if(viewK >= 0)
@@ -1471,7 +1486,8 @@ void DrawProposals()
   }
 void Btn(string nm, string text, int x, int y, int w, color bg)
   {
-   ObjectCreate(0, nm, OBJ_BUTTON, 0, 0, 0);
+   keep += nm + "|";
+   if(ObjectFind(0, nm) < 0) { ObjectCreate(0, nm, OBJ_BUTTON, 0, 0, 0); ObjectSetInteger(0, nm, OBJPROP_STATE, false); }
    ObjectSetInteger(0, nm, OBJPROP_XDISTANCE, x); ObjectSetInteger(0, nm, OBJPROP_YDISTANCE, y);
    ObjectSetInteger(0, nm, OBJPROP_XSIZE, w); ObjectSetInteger(0, nm, OBJPROP_YSIZE, 22);
    ObjectSetString(0, nm, OBJPROP_TEXT, text); ObjectSetString(0, nm, OBJPROP_FONT, "Arial"); ObjectSetInteger(0, nm, OBJPROP_FONTSIZE, 8);
@@ -1522,6 +1538,18 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
   {
    if(id == CHARTEVENT_CHART_CHANGE) { lastPanelSig = "-"; DrawProposals(); return; }   // resized: re-place the panel
    if(id != CHARTEVENT_OBJECT_CLICK || StringFind(sparam, "RFXB_") != 0) return;
+   HandleClick(sparam);
+  }
+bool busy = false;
+void HandleClick(string sparam)
+  {
+   if(busy) return;
+   busy = true;
+   Click(sparam);
+   busy = false;
+  }
+void Click(string sparam)
+  {
    string act = StringSubstr(sparam, 5, 1);
    ObjectSetInteger(0, sparam, OBJPROP_STATE, false);
    if(act == "r") { Refresh(); Work(); return; }
