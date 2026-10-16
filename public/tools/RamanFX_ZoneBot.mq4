@@ -22,7 +22,7 @@
 //|   2026.10.17 12:30,USD   (UTC time, currency)                    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "0.30"
+#property version   "0.40"
 #property strict
 
 enum BotMode   { MODE_SCANNER = 0, MODE_APPROVE = 1, MODE_AUTO = 2 };
@@ -30,8 +30,11 @@ enum EntryMode { ENTRY_SF = 0, ENTRY_CONF = 1, ENTRY_BOTH = 2 };
 enum LiveBE    { BE_NONE = 0, BE_AT_1R = 1, BE_AT_2R = 2 };
 enum Manage    { MG_OFF = 0, MG_MENTOR = 1, MG_BE_ONLY = 2 };
 enum TpMode    { TP_SWING = 0, TP_OPP_ZONE = 1, TP_NEAREST = 2 };
+enum Grades    { GR_ALL = 0, GR_A = 1, GR_AB = 2, GR_B = 3, GR_C = 4 };
 
 input BotMode   InpMode          = MODE_APPROVE; // Mode: Approve = bot finds + alerts, you check the chart and press Place
+input Grades    InpGrades        = GR_ALL;       // Which planner grades to trade: All / A only / A+B / B only / C only
+input bool      InpHalfRiskC     = true;         // Planner rule: low odds (grade C) risks half
 input EntryMode InpEntry         = ENTRY_BOTH;   // Entry method
 input string    InpSymbols       = "";           // Symbols (comma list; empty = every forex pair in Market Watch)
 input int       InpScansPerTick  = 8;            // Max symbol/timeframe scans per 2-second tick (keeps MT4 responsive)
@@ -477,6 +480,49 @@ double Curve(string s, int htf, double p)
    return hi > lo ? 100.0 * (p - lo) / (hi - lo) : 50;
   }
 
+// Planner score 0-100, same points as the app's Planner (evaluatePlan): move away, base, qualified,
+// fresh/age, HTF trend, at HTF zone, no opposing HTF zone near, curve, trap, ETF trend, confirmation.
+// A >= 75, B >= 60, else C (low odds).
+int PlanScore(string s, int etf, int htf, int trend, Zone &z[], int i, Zone &hz[], int hn, double curve, string method)
+  {
+   int dir = z[i].dir, sc = 0;
+   double h = MathAbs(z[i].prox - z[i].dist);
+   sc += (z[i].erc && z[i].legRatio >= 2.5) ? 24 : 14;                                   // A+ / decent move away
+   sc += z[i].baseN <= 2 ? 14 : (z[i].baseN <= 4 ? 10 : (z[i].baseN <= 6 ? 3 : 0));      // tight base
+   if(z[i].baseN == 1) sc += 2;                                                          // single-candle base
+   datetime b0 = iTime(s, etf, z[i].legBar + z[i].baseN), b1 = iTime(s, etf, MathMax(z[i].legBar - 5, 0));
+   for(int j = 0; j < ArraySize(z); j++)                                                  // move away removed an opposing zone
+      if(z[j].dir != dir && z[j].removed && z[j].tRemoved >= b0 && z[j].tRemoved <= b1) { sc += 10; break; }
+   sc += 8;                                                                               // fresh (only fresh zones reach here)
+   if(z[i].legBar <= 100) sc += 4;                                                        // not an old zone
+   sc += trend == dir ? 14 : (trend == 0 ? 5 : 0);                                        // with the HTF trend
+   bool atHtf = false, nearOpp = false;
+   for(int j = 0; j < hn; j++)
+     {
+      if(hz[j].removed) continue;
+      double hh = MathAbs(hz[j].prox - hz[j].dist), top = MathMax(hz[j].prox, hz[j].dist) + hh, bot = MathMin(hz[j].prox, hz[j].dist) - hh;
+      bool near = z[i].prox <= top && z[i].prox >= bot;
+      if(near && hz[j].dir == dir) atHtf = true;
+      if(near && hz[j].dir != dir) nearOpp = true;
+     }
+   if(atHtf) sc += 8;
+   if(!nearOpp) sc += 6;
+   double depth = dir > 0 ? curve : 100 - curve;                                          // low in the curve for buys
+   sc += (int)MathRound(MathMax(0, MathMin(1, (100 - depth) / 100)) * 6);
+   if(z[i].trap > 0) sc += 3;                                                             // liquidity trap
+   if(method == "CONF") sc += 4; else if(HtfTrend(s, etf) == dir) sc += 3;               // confirmation / ETF trend with you
+   return MathMin(100, sc);
+  }
+string PlanGrade(int sc) { return sc >= 75 ? "A" : (sc >= 60 ? "B" : "C"); }
+bool GradeAllowed(string g)
+  {
+   if(InpGrades == GR_ALL) return true;
+   if(InpGrades == GR_A) return g == "A";
+   if(InpGrades == GR_AB) return g == "A" || g == "B";
+   if(InpGrades == GR_B) return g == "B";
+   return g == "C";
+  }
+
 //+------------------------------------------------------------------+
 //| Scan one symbol / entry timeframe                                |
 //+------------------------------------------------------------------+
@@ -496,7 +542,7 @@ void Scan(string s, int k)
    Zone hz[];
    int hn = HtfZones(s, htf, hz);
    // every fresh zone in the HTF direction is checked; the best one (VP > trap > grade > R:R) is acted on
-   int best = -1; double bScore = 0, bEntry = 0, bSl = 0, bTp = 0, bRr = 0; string bMethod = "", bDecision = ""; bool bCapped = false;
+   int best = -1; double bScore = 0, bEntry = 0, bSl = 0, bTp = 0, bRr = 0; string bMethod = "", bDecision = "", bPg = ""; int bPs = 0; bool bCapped = false;
    for(int i = n - 1; i >= 0; i--)
      {
       if(z[i].removed || z[i].tested) continue;
@@ -551,6 +597,8 @@ void Scan(string s, int k)
       if(reason == "" && InpEntry == ENTRY_CONF && method != "CONF") reason = "no confirmation";
       if(reason == "") { int tb; bool cr; z[i].trap = FindTrap(s, etf, dir, z[i].prox, z[i].dist, z[i].legBar - 1, z[i].legBar + z[i].baseN, tb, cr); z[i].trapBar = tb; z[i].crowded = cr; }
       if(reason == "" && InpRequireTrap && z[i].trap == 0) reason = "no liquidity trap";
+      int ps = 0; string pg = "";
+      if(reason == "") { ps = PlanScore(s, etf, htf, trend, z, i, hz, hn, curve, method); pg = PlanGrade(ps); if(!GradeAllowed(pg)) reason = StringFormat("grade %s (%d) filtered", pg, ps); }
       if(reason == "" && tp == 0) reason = "no opposing zone for target";
       if(reason == "" && rr < InpMinRR) reason = StringFormat("R:R %.2f < %.2f", rr, InpMinRR);
       if(reason == "" && spread > risk * InpMaxSpreadPct / 100.0) reason = "spread too wide";
@@ -570,22 +618,23 @@ void Scan(string s, int k)
       Say(s, k, decision == "SKIP" ? "skip - " + reason + StringFormat(" (%s %s %s, grade %s)", TF_N[k], dir > 0 ? "demand" : "supply", DoubleToString(z[i].prox, digits), z[i].grade) : decision);
       if(reason != "") { Count(reason); if(StringFind(reason, "already an order") == 0 || StringFind(reason, "max ") == 0 || StringFind(reason, "Friday") == 0 || StringFind(reason, "weekend") == 0 || StringFind(reason, "Asian") == 0 || StringFind(reason, "news") == 0) return; continue; }
 
-      // rank: valleys/peaks (VP) first, then liquidity trap, grade, R:R
-      double score = (z[i].cont ? 0 : 3) + (z[i].trap > 0 ? 2 : 0) + (z[i].grade == "A" ? 2 : (z[i].grade == "B" ? 1 : 0)) + MathMin(rr, 6) / 3.0 - (z[i].crowded ? 1 : 0);
-      if(best < 0 || score > bScore) { best = i; bScore = score; bEntry = entry; bSl = sl; bTp = tp; bRr = rr; bMethod = method; bCapped = cappedByHtf; bDecision = decision; }
+      // rank: valleys/peaks (VP) first, then planner score, R:R
+      double score = (z[i].cont ? 0 : 3) + ps / 25.0 + MathMin(rr, 6) / 3.0 - (z[i].crowded ? 1 : 0);
+      if(best < 0 || score > bScore) { best = i; bScore = score; bEntry = entry; bSl = sl; bTp = tp; bRr = rr; bMethod = method; bCapped = cappedByHtf; bDecision = decision; bPs = ps; bPg = pg; }
       continue;
      }
    if(best < 0) return;
    {
-      int i = best, dir = z[i].dir; double entry = bEntry, sl = bSl, tp = bTp, rr = bRr; string method = bMethod, decision = bDecision; bool cappedByHtf = bCapped;
-      string tag = StringFormat("%s %s %s %s %s 1:%.1f grade %s%s", s, TF_N[k], dir > 0 ? "BUY" : "SELL", z[i].cont ? "CP" : "VP", method, rr, z[i].grade, z[i].trap > 0 ? " + liquidity trap" : "");
+      int i = best, dir = z[i].dir; double entry = bEntry, sl = bSl, tp = bTp, rr = bRr; string method = bMethod, decision = bDecision, g = bPg; bool cappedByHtf = bCapped;
+      string tag = StringFormat("%s %s %s %s %s 1:%.1f grade %s%s", s, TF_N[k], dir > 0 ? "BUY" : "SELL", z[i].cont ? "CP" : "VP", method, rr, g, z[i].trap > 0 ? " + liquidity trap" : "");
+      tag += StringFormat(" (score %d)", bPs);
       if(InpAlerts) Alert("RamanFX ZoneBot: ", tag);
       if(InpPush && !IsTesting()) SendNotification("RamanFX: " + tag + (InpMode == MODE_APPROVE ? " - check the chart and approve in MT4" : ""));
       Count(decision);
-      string info = StringFormat("%s %s %s zone (grade %s) | %s trend %s | %s%s\n", dir > 0 ? "BUY" : "SELL", TF_N[k], dir > 0 ? "demand" : "supply", z[i].grade, TfName(htf), trend > 0 ? "up" : "down", method == "CONF" ? "confirmation" : "set & forget", z[i].trap > 0 ? " | liquidity trap" : "");
+      string info = StringFormat("%s %s %s zone (grade %s %d) | %s trend %s | %s%s\n", dir > 0 ? "BUY" : "SELL", TF_N[k], dir > 0 ? "demand" : "supply", g, bPs, TfName(htf), trend > 0 ? "up" : "down", method == "CONF" ? "confirmation" : "set & forget", z[i].trap > 0 ? " | liquidity trap" : "");
       info += StringFormat("Why: fresh %s %s with the trend, stop %s, move away %.1fx, target %s %s", z[i].cont ? "CP" : "VP", z[i].cont ? (dir > 0 ? "RBR" : "DBD") : (dir > 0 ? "DBR" : "RBD"), z[i].cont ? "beyond distal" : "beyond swing " + (dir > 0 ? "valley" : "peak"), z[i].legRatio, cappedByHtf ? "before next" : (InpTpMode == TP_SWING ? "at recent swing" : "before next"), cappedByHtf ? TfName(htf) + (dir > 0 ? " supply" : " demand") : (InpTpMode == TP_SWING ? (dir > 0 ? "high" : "low") : TF_N[k] + (dir > 0 ? " supply" : " demand")));
-      if(InpMode == MODE_AUTO) Place(s, k, dir, entry, sl, tp, z[i].dist, method, z[i].grade, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));
-      else if(InpMode == MODE_APPROVE) AddProposal(s, k, dir, entry, sl, tp, z[i].dist, method, z[i].grade, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));
+      if(InpMode == MODE_AUTO) Place(s, k, dir, entry, sl, tp, z[i].dist, method, g, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));
+      else if(InpMode == MODE_APPROVE) AddProposal(s, k, dir, entry, sl, tp, z[i].dist, method, g, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));
    }
   }
 
@@ -750,18 +799,19 @@ double Lots(string s, double stopDist)
 
 void Place(string s, int k, int dir, double entry, double sl, double tp, double dist, string method, string grade, double rr, bool trap, string info, double prox, datetime tZone)
   {
+   double riskPctUse = InpRiskPct * ((InpHalfRiskC && grade == "C") ? 0.5 : 1.0);   // low odds = half risk
    int digits = (int)MarketInfo(s, MODE_DIGITS);
    double point = MarketInfo(s, MODE_POINT), pip = point * ((digits == 3 || digits == 5) ? 10 : 1);
    double stopDist = MathAbs(entry - sl);
    double lots = Lots(s, stopDist);
-   if(lots <= 0) { Print(s, ": lot size below broker minimum at ", InpRiskPct, "% risk - skipped"); Count("lot below broker minimum"); return; }
+   if(lots <= 0) { Print(s, ": lot size below broker minimum at ", riskPctUse, "% risk - skipped"); Count("lot below broker minimum"); return; }
    if(lots > InpMaxLots) { lots = MathFloor(InpMaxLots / MarketInfo(s, MODE_LOTSTEP)) * MarketInfo(s, MODE_LOTSTEP); }
    // real money at risk and margin, double-checked before sending
    double tv = MarketInfo(s, MODE_TICKVALUE), ts = MarketInfo(s, MODE_TICKSIZE);
    double riskMoney = stopDist / ts * tv * lots;
    double riskPct = 100.0 * riskMoney / AccountBalance();
    double margin = MarketInfo(s, MODE_MARGINREQUIRED) * lots;
-   if(riskPct > InpRiskPct * 1.05) { Print(s, StringFormat(": risk %.2f%% above %.2f%% - skipped", riskPct, InpRiskPct)); Count("risk check failed"); return; }
+   if(riskPct > riskPctUse * 1.05) { Print(s, StringFormat(": risk %.2f%% above %.2f%% - skipped", riskPct, riskPctUse)); Count("risk check failed"); return; }
    if(margin > AccountFreeMargin() * InpMaxMarginPct / 100.0) { Print(s, StringFormat(": needs margin %.2f > %.0f%% of free margin - skipped", margin, InpMaxMarginPct)); Count("margin too high"); return; }
    if(AccountFreeMarginCheck(s, dir > 0 ? OP_BUY : OP_SELL, lots) <= 0 || GetLastError() == ERR_NOT_ENOUGH_MONEY) { Count("not enough free margin"); return; }
    info += StringFormat("\nRisk %.2f %s (%.2f%%) | %.2f lots | stop %.1f pips | R:R 1:%.1f",
