@@ -139,6 +139,7 @@ export default function Settings() {
         <CardHead title="Zone bot (MT4 · demo only)" sub="Expert Advisor built from your mentor's rules: finds fresh continuation zones, trades with the HTF trend at 1% risk, always with a stop, and logs every setup plus a replay of every take-profit and break-even variant." />
         <div className="flex flex-wrap gap-2">
           <a className="btn" href="/tools/RamanFX_ZoneBot.mq4" download><Icon name="download" size={14} />RamanFX_ZoneBot.mq4</a>
+          <a className="btn" href="/tools/RamanFX_ZoneVision.mq4" download><Icon name="download" size={14} />RamanFX_ZoneVision.mq4 (indicator)</a>
         </div>
         <ol className="mt-3 text-[12.5px] text-ink2 list-decimal pl-5 flex flex-col gap-1">
           <li>MT4: File → Open Data Folder → MQL4 → Experts. Put the file there, then press F7 in MetaEditor to compile.</li>
