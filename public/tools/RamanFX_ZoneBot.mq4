@@ -614,8 +614,9 @@ void Place(string s, int k, int dir, double entry, double sl, double tp, double 
    info += StringFormat("\nRisk %.2f %s (%.2f%%) | %.2f lots | stop %.1f pips | R:R 1:%.1f",
                         riskMoney, AccountCurrency(), riskPct, lots, stopDist / pip, rr);
    // short human comment (MT4 allows 31 characters); full reasoning goes to the log, Experts tab and chart
-   // e.g. "M5 demand A, H1 up, 1:4.8 trap" (MT4 keeps 31 characters)
-   string cm = StringFormat("%s %s %s, %s %s, 1:%.1f", TF_N[k], dir > 0 ? "demand" : "supply", grade, TfName(TF_H[k]), dir > 0 ? "up" : "down", rr);
+   // e.g. "2 M5 demand A, H1 up, 1:4.8 trap" (MT4 keeps 31 characters)
+   // Starts with a rank so the Comment column sorts 1 minute -> 1 month: 1 M1, 2 M5, 3 M15, 4 H1, 5 H4
+   string cm = StringFormat("%d %s %s %s, %s %s, 1:%.1f", k + 1, TF_N[k], dir > 0 ? "demand" : "supply", grade, TfName(TF_H[k]), dir > 0 ? "up" : "down", rr);
    if(method == "CONF" && StringLen(cm) <= 26) cm += " conf";
    if(trap && StringLen(cm) <= 26) cm += " trap";
    int type = dir > 0 ? OP_BUYLIMIT : OP_SELLLIMIT;
