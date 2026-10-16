@@ -30,14 +30,17 @@ showPanel   = input.bool(true, "Info panel", group=gS)
 doAlerts    = input.bool(true, "Alert when price reaches a fresh zone with the HTF trend", group=gS)
 
 gC = "Colours"
-cDemF = input.color(color.new(#C8E8CB, 30), "Demand fill", group=gC)
-cDemL = input.color(#2E8B57, "Demand line", group=gC)
-cSupF = input.color(color.new(#F6D4C6, 30), "Supply fill", group=gC)
-cSupL = input.color(#C83C3C, "Supply line", group=gC)
-cTrap = input.color(#AA96DC, "Liquidity trap", group=gC)
-cRem  = input.color(color.new(#F6D4C6, 80), "Removed zone", group=gC)
-cTL   = input.color(#282828, "Trendline", group=gC)
-cTxt  = input.color(#5A5A5A, "Text", group=gC)
+cDemF = input.color(color.new(#5FD08A, 85), "Demand fill", group=gC)
+cDemL = input.color(color.new(#7EE0A0, 30), "Demand line", group=gC)
+cSupF = input.color(color.new(#FF8A7A, 85), "Supply fill", group=gC)
+cSupL = input.color(color.new(#FF9E8F, 30), "Supply line", group=gC)
+cTrap = input.color(color.new(#C7B6FF, 20), "Liquidity trap", group=gC)
+cRem  = input.color(color.new(#FFB4A0, 92), "Removed zone", group=gC)
+cTL   = input.color(color.new(#D0D4DC, 40), "Trendline", group=gC)
+cTxt  = input.color(#C9CED8, "Text", group=gC)
+cEntry = input.color(#7FB2FF, "Plan entry", group=gC)
+cStop  = input.color(#FF8C8C, "Plan stop", group=gC)
+cTgt   = input.color(#7EE0A0, "Plan target", group=gC)
 
 // ---------- helpers ----------
 atr = ta.atr(14)
@@ -302,16 +305,16 @@ if barstate.islast
                 planTxt := "closest trend zone R:R " + str.tostring(rr, "#.0") + " < " + str.tostring(minRR, "#.0")
                 break
             x1 = bar_index + 2, x2 = right
-            lines.push(line.new(x1, z.prox, x2, z.prox, color=color.blue, width=2))
-            lines.push(line.new(x1, sl, x2, sl, color=color.red, style=line.style_dashed))
-            lines.push(line.new(x1, tp, x2, tp, color=color.green, style=line.style_dashed))
-            labels.push(label.new(x2, sl, "stop " + str.tostring(sl, format.mintick), style=label.style_label_left, color=color.new(color.white, 100), textcolor=color.red, size=size.small))
-            labels.push(label.new(x2, tp, "target " + str.tostring(tp, format.mintick), style=label.style_label_left, color=color.new(color.white, 100), textcolor=color.green, size=size.small))
+            lines.push(line.new(x1, z.prox, x2, z.prox, color=cEntry, width=2))
+            lines.push(line.new(x1, sl, x2, sl, color=cStop, style=line.style_dashed))
+            lines.push(line.new(x1, tp, x2, tp, color=cTgt, style=line.style_dashed))
+            labels.push(label.new(x2, sl, "stop " + str.tostring(sl, format.mintick), style=label.style_label_left, color=color.new(color.white, 100), textcolor=cStop, size=size.small))
+            labels.push(label.new(x2, tp, "target " + str.tostring(tp, format.mintick), style=label.style_label_left, color=color.new(color.white, 100), textcolor=cTgt, size=size.small))
             planTxt := (z.dir > 0 ? "BUY limit " : "SELL limit ") + str.tostring(z.prox, format.mintick) + "  1:" + str.tostring(rr, "#.0") + "  grade " + grade(z) + (z.cont ? "  CP" : "  VP")
             break
 
     if showPanel
-        table.cell(panel, 0, 0, "ZoneVision  " + timeframe.period + " -> " + htf, text_color=color.blue, text_size=size.small, text_halign=text.align_left)
+        table.cell(panel, 0, 0, "ZoneVision  " + timeframe.period + " -> " + htf, text_color=cEntry, text_size=size.small, text_halign=text.align_left)
         table.cell(panel, 0, 1, "Bias: " + (htfTrend > 0 ? "UP (HTF higher highs / lows)" : htfTrend < 0 ? "DOWN (HTF lower highs / lows)" : "unclear - wait"), text_color=cTxt, text_size=size.small, text_halign=text.align_left)
         table.cell(panel, 0, 2, "Zones: " + str.tostring(idx.size()) + " fresh/usable, " + str.tostring(shown) + " drawn", text_color=cTxt, text_size=size.small, text_halign=text.align_left)
         table.cell(panel, 0, 3, "Plan: " + planTxt, text_color=cTxt, text_size=size.small, text_halign=text.align_left)
