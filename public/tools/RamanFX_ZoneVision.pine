@@ -24,7 +24,9 @@ showTested  = input.bool(false, "Also draw tested zones", group=gS)
 showRemoved = input.bool(false, "Also draw removed zones (faint)", group=gS)
 showNames   = input.bool(true, "Zone name + grade in the box", group=gS)
 showTrap    = input.bool(true, "Liquidity traps (purple)", group=gS)
-showTL      = input.bool(true, "Newest intact trendline each way", group=gS)
+showTL      = input.bool(true, "Draw trendlines", group=gS)
+showUpTL    = input.bool(true, "  Rising trendline (higher lows)", group=gS)
+showDnTL    = input.bool(true, "  Falling trendline (lower highs)", group=gS)
 showPlan    = input.bool(true, "Planned entry / stop / target", group=gS)
 showPanel   = input.bool(true, "Info panel", group=gS)
 panelPos    = input.string("Top right", "Panel position", options=["Top right", "Top left", "Bottom right", "Bottom left"], group=gS)
@@ -258,7 +260,7 @@ if barstate.islast
 
     // newest intact trendline each way (rising: two higher lows, falling: two lower highs)
     if showTL
-        if plP.size() >= 2
+        if showUpTL and plP.size() >= 2
             for i = plP.size() - 1 to 1
                 p2 = plP.get(i), p1 = plP.get(i - 1), b2 = plB.get(i), b1 = plB.get(i - 1)
                 if p2 > p1
@@ -266,7 +268,7 @@ if barstate.islast
                     if close > p2 + slope * (bar_index - b2)
                         lines.push(line.new(b1, p1, b2, p2, color=cTL, width=1, extend=extend.right))
                     break
-        if phP.size() >= 2
+        if showDnTL and phP.size() >= 2
             for i = phP.size() - 1 to 1
                 p2 = phP.get(i), p1 = phP.get(i - 1), b2 = phB.get(i), b1 = phB.get(i - 1)
                 if p2 < p1
