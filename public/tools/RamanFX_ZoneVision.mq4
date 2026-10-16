@@ -33,6 +33,8 @@ input int    InpMaxZoneAge    = 200;    // Ignore zones older than this many bar
 input double InpEmoATR        = 3.0;    // Emotional candle: range > this × ATR (wick ignored)
 input double InpMinRR         = 2.0;    // Min reward:risk (for the planned setup)
 input double InpStopBufferPts = 10;     // Stop buffer beyond distal (points)
+input double InpTrapATR       = 1.0;    // Liquidity trap: obvious level within N × ATR in front of the zone
+input int    InpTrapSwing     = 3;      // Obvious level = swing with N bars each side
 input string Sep2             = "── What to show (clean by default) ──"; // ─────
 input int    InpMaxZones      = 4;      // Zones drawn: the N closest to price
 input bool   InpShowTested    = false;  // Also draw tested zones
@@ -50,6 +52,7 @@ input color  InpDemandFill    = C'200,232,203';
 input color  InpDemandLine    = C'46,139,87';
 input color  InpSupplyFill    = C'246,212,198';
 input color  InpSupplyLine    = C'200,60,60';
+input color  InpTrapColor     = C'170,150,220';
 input color  InpHtfFill       = C'252,238,170';
 input color  InpMuted         = C'150,150,150';
 input color  InpTrend         = C'40,40,40';
@@ -59,6 +62,9 @@ input color  InpText          = C'90,90,90';
 
 struct Zone
   {
+   double   trap;       // liquidity trap price (0 = none)
+   bool     crowded;    // zone sits on an obvious S/R level (retail crowd)
+   int      trapBar;
    int      dir;
    double   prox, dist;
    int      legBar, baseN, saBar;
@@ -139,6 +145,55 @@ void Reject(string s, int tf, int L, int k, string why, bool draw)
    Txt(PFX + "rejt" + IntegerToString(L), BarTime(s, tf, L), hi, "✕ " + why, InpMuted, 7, ANCHOR_LEFT_LOWER);
   }
 
+//+------------------------------------------------------------------+
+//| Liquidity (lesson 16): retail traders trade support/resistance   |
+//| ("old resistance becomes new support") and put stops just beyond |
+//| the obvious level. The mentor prefers a zone sitting just BEYOND |
+//| that obvious level, so price runs those stops first → trap,      |
+//| better odds (purple). A zone sitting ON the obvious level is a   |
+//| retail trade → crowded, lower odds.                              |
+//| Obvious level = a clear swing low/high (InpTrapSwing bars each   |
+//| side). In front = between price and the proximal line, within    |
+//| InpTrapATR × ATR. Stops still resting = not swept since.         |
+//+------------------------------------------------------------------+
+bool SwingAt(string s, int tf, int i, int dir)        // dir +1 swing low, -1 swing high
+  {
+   for(int j = 1; j <= InpTrapSwing; j++)
+     {
+      if(i - j < 1) return false;
+      if(dir > 0 && (iLow(s, tf, i) > iLow(s, tf, i - j) || iLow(s, tf, i) > iLow(s, tf, i + j))) return false;
+      if(dir < 0 && (iHigh(s, tf, i) < iHigh(s, tf, i - j) || iHigh(s, tf, i) < iHigh(s, tf, i + j))) return false;
+     }
+   return true;
+  }
+// Returns the trap level (0 = none). crowded = an obvious level sits inside the zone itself.
+double FindTrap(string s, int tf, int dir, double prox, double dist, int fromBar, int baseEnd, int &trapBar, bool &crowded)
+  {
+   trapBar = -1; crowded = false;
+   double atr = iATR(s, tf, 14, 1), best = 0;
+   if(atr <= 0) return 0;
+   int scan = MathMin(iBars(s, tf) - InpTrapSwing - 2, fromBar + 150);
+   for(int i = scan; i >= InpTrapSwing + 1; i--)
+     {
+      for(int kind = -1; kind <= 1; kind += 2)                   // swing highs and swing lows
+        {
+         if(!SwingAt(s, tf, i, kind)) continue;
+         double lv = kind > 0 ? iLow(s, tf, i) : iHigh(s, tf, i);
+         double lo = MathMin(prox, dist), hi = MathMax(prox, dist);
+         if(lv >= lo && lv <= hi && i > baseEnd + InpTrapSwing) { crowded = true; continue; }   // zone built on an older obvious level
+         if(i >= fromBar) continue;                                             // trap level forms after the zone
+         double gap = dir > 0 ? lv - prox : prox - lv;
+         if(gap <= 0 || gap > InpTrapATR * atr) continue;
+         // stops still resting: price hasn't traded back through the level since it formed
+         bool swept = false;
+         for(int j = i - 1; j >= 1; j--) if((dir > 0 && iLow(s, tf, j) < lv) || (dir < 0 && iHigh(s, tf, j) > lv)) { swept = true; break; }
+         if(swept) continue;
+         if(best == 0 || gap < MathAbs(best - prox)) { best = lv; trapBar = i; }
+        }
+     }
+   return best;
+  }
+
 int Detect(string s, int tf, Zone &out[], bool draw)
   {
    ArrayResize(out, 0);
@@ -179,7 +234,7 @@ int Detect(string s, int tf, Zone &out[], bool draw)
       Zone z;
       z.dir = dir; z.prox = prox; z.dist = dist; z.legBar = L; z.baseN = k; z.saBar = sa; z.legRatio = ratio; z.cont = cont;
       z.grade = (ratio >= 2.5 && k <= 3) ? "A" : (ratio >= 1.8 ? "B" : "C");
-      z.tested = false; z.removed = false; z.removedBar = -1; z.testedBar = -1; z.qual = "";
+      z.tested = false; z.removed = false; z.removedBar = -1; z.testedBar = -1; z.qual = ""; z.trap = 0; z.trapBar = -1; z.crowded = false;
       for(int j = sa - 1; j >= 1; j--)
         {
          if(dir > 0)
@@ -193,6 +248,7 @@ int Detect(string s, int tf, Zone &out[], bool draw)
             if(!z.tested && iHigh(s, tf, j) >= prox && !Emotional(s, tf, j)) { z.tested = true; z.testedBar = j; }
            }
         }
+      if(!z.removed) { int tb; bool cr; z.trap = FindTrap(s, tf, dir, prox, dist, sa, L + k, tb, cr); z.trapBar = tb; z.crowded = cr; }
       int n = ArraySize(out); ArrayResize(out, n + 1); out[n] = z;
      }
    return ArraySize(out);
@@ -382,9 +438,16 @@ void DrawZones(Zone &zs[], bool htf)
         }
       PriceTag(id + "pp", t2, z.prox, htf ? InpText : line);
       PriceTag(id + "dp", t2, z.dist, htf ? InpText : line);
+      if(!htf && z.trap > 0 && z.trapBar > 0)
+        {
+         double th = MathMax(MathAbs(z.prox - z.dist) * 0.12, 2 * Point);
+         ObjectCreate(0, id + "lt", OBJ_RECTANGLE, 0, Time[z.trapBar], z.trap, t2, z.dir > 0 ? z.trap - th : z.trap + th);
+         ObjectSetInteger(0, id + "lt", OBJPROP_COLOR, InpTrapColor); ObjectSetInteger(0, id + "lt", OBJPROP_BACK, true); ObjectSetInteger(0, id + "lt", OBJPROP_SELECTABLE, false);
+         ObjectSetString(0, id + "lt", OBJPROP_TOOLTIP, "Liquidity trap " + DoubleToString(z.trap, Digits) + " — obvious level in front of the zone; retail stops rest here, price runs them into the zone (lesson 16)");
+        }
       if(InpShowNames)
         {
-         string nm = htf ? TfName(tf) + " " + (z.dir > 0 ? "demand" : "supply") : ZoneName(z) + (z.grade == "A" ? "" : " · " + z.grade) + (state == "fresh" ? "" : " · " + state);
+         string nm = htf ? TfName(tf) + " " + (z.dir > 0 ? "demand" : "supply") : ZoneName(z) + (z.grade == "A" ? "" : " · " + z.grade) + (state == "fresh" ? "" : " · " + state) + (z.crowded ? " · on S/R level (crowded)" : "");
          Txt(id + "n", t1, z.dir > 0 ? z.dist : z.dist, nm, InpText, 7, z.dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
         }
      }
@@ -464,7 +527,7 @@ void Panel()
       else if(tp == 0) why = "no opposing zone for a target";
       else if(rr < InpMinRR) why = StringFormat("R:R %.1f below %.1f", rr, InpMinRR);
       if(why == "")
-         plan = StringFormat("Bot: %s %s  SL %s  TP %s  (1:%.1f, %s %s)", dir > 0 ? "BUY limit" : "SELL limit", DoubleToString(entry, Digits), DoubleToString(sl, Digits), DoubleToString(tp, Digits), rr, dir > 0 ? "RBR" : "DBD", Z[i].grade);
+         plan = StringFormat("Bot: %s %s  SL %s  TP %s  (1:%.1f, %s %s%s)", dir > 0 ? "BUY limit" : "SELL limit", DoubleToString(entry, Digits), DoubleToString(sl, Digits), DoubleToString(tp, Digits), rr, dir > 0 ? "RBR" : "DBD", Z[i].grade, Z[i].trap > 0 ? " + trap" : "");
       else
          plan = StringFormat("Bot: watching %s at %s — no trade: %s", dir > 0 ? "demand" : "supply", DoubleToString(Z[i].prox, Digits), why);
       if(InpShowPlan && why == "")

@@ -60,6 +60,9 @@ input int       InpSimDays       = 10;           // Variant replay horizon (days
 input int       InpMagic         = 770100;       // Magic number base
 input bool      InpAlerts        = true;         // Pop-up / push alerts for new setups
 input bool      InpDraw          = true;         // Draw zones on this chart
+input double    InpTrapATR       = 1.0;          // Liquidity trap: obvious level within N × ATR in front of the zone
+input int       InpTrapSwing     = 3;            // Obvious level = swing with N bars each side
+input bool      InpRequireTrap   = false;        // Only trade zones with a liquidity trap
 
 //--- timeframe pairs (mentor's combos)
 int TF_E[5] = {PERIOD_M1, PERIOD_M5, PERIOD_M15, PERIOD_H1, PERIOD_H4};
@@ -68,6 +71,9 @@ string TF_N[5] = {"M1", "M5", "M15", "H1", "H4"};
 
 struct Zone
   {
+   double   trap;       // liquidity trap price (0 = none)
+   bool     crowded;    // zone sits on an obvious S/R level (retail crowd)
+   int      trapBar;
    int      dir;        // +1 demand, -1 supply
    double   prox, dist;
    int      legBar;     // bar index of the move-away candle (at detection time)
@@ -203,6 +209,55 @@ int    CDir(string s, int tf, int i) { return iClose(s, tf, i) > iOpen(s, tf, i)
 //+------------------------------------------------------------------+
 //| Zone detection (mentor's 4 parts)                                |
 //+------------------------------------------------------------------+
+//+------------------------------------------------------------------+
+//| Liquidity (lesson 16): retail traders trade support/resistance   |
+//| ("old resistance becomes new support") and put stops just beyond |
+//| the obvious level. The mentor prefers a zone sitting just BEYOND |
+//| that obvious level, so price runs those stops first → trap,      |
+//| better odds (purple). A zone sitting ON the obvious level is a   |
+//| retail trade → crowded, lower odds.                              |
+//| Obvious level = a clear swing low/high (InpTrapSwing bars each   |
+//| side). In front = between price and the proximal line, within    |
+//| InpTrapATR × ATR. Stops still resting = not swept since.         |
+//+------------------------------------------------------------------+
+bool SwingAt(string s, int tf, int i, int dir)        // dir +1 swing low, -1 swing high
+  {
+   for(int j = 1; j <= InpTrapSwing; j++)
+     {
+      if(i - j < 1) return false;
+      if(dir > 0 && (iLow(s, tf, i) > iLow(s, tf, i - j) || iLow(s, tf, i) > iLow(s, tf, i + j))) return false;
+      if(dir < 0 && (iHigh(s, tf, i) < iHigh(s, tf, i - j) || iHigh(s, tf, i) < iHigh(s, tf, i + j))) return false;
+     }
+   return true;
+  }
+// Returns the trap level (0 = none). crowded = an obvious level sits inside the zone itself.
+double FindTrap(string s, int tf, int dir, double prox, double dist, int fromBar, int baseEnd, int &trapBar, bool &crowded)
+  {
+   trapBar = -1; crowded = false;
+   double atr = iATR(s, tf, 14, 1), best = 0;
+   if(atr <= 0) return 0;
+   int scan = MathMin(iBars(s, tf) - InpTrapSwing - 2, fromBar + 150);
+   for(int i = scan; i >= InpTrapSwing + 1; i--)
+     {
+      for(int kind = -1; kind <= 1; kind += 2)                   // swing highs and swing lows
+        {
+         if(!SwingAt(s, tf, i, kind)) continue;
+         double lv = kind > 0 ? iLow(s, tf, i) : iHigh(s, tf, i);
+         double lo = MathMin(prox, dist), hi = MathMax(prox, dist);
+         if(lv >= lo && lv <= hi && i > baseEnd + InpTrapSwing) { crowded = true; continue; }   // zone built on an older obvious level
+         if(i >= fromBar) continue;                                             // trap level forms after the zone
+         double gap = dir > 0 ? lv - prox : prox - lv;
+         if(gap <= 0 || gap > InpTrapATR * atr) continue;
+         // stops still resting: price hasn't traded back through the level since it formed
+         bool swept = false;
+         for(int j = i - 1; j >= 1; j--) if((dir > 0 && iLow(s, tf, j) < lv) || (dir < 0 && iHigh(s, tf, j) > lv)) { swept = true; break; }
+         if(swept) continue;
+         if(best == 0 || gap < MathAbs(best - prox)) { best = lv; trapBar = i; }
+        }
+     }
+   return best;
+  }
+
 int DetectZones(string s, int tf, Zone &out[])
   {
    ArrayResize(out, 0);
@@ -248,7 +303,7 @@ int DetectZones(string s, int tf, Zone &out[])
       z.dir = dir; z.prox = prox; z.dist = dist; z.legBar = L; z.tLeg = iTime(s, tf, L);
       z.baseN = k; z.legRatio = ratio; z.cont = cont;
       z.grade = (ratio >= 2.5 && k <= 3) ? "A" : (ratio >= 1.8 ? "B" : "C");
-      z.tested = false; z.removed = false; z.tRemoved = 0; z.tTouched = 0;
+      z.tested = false; z.removed = false; z.tRemoved = 0; z.tTouched = 0; z.trap = 0; z.trapBar = -1; z.crowded = false;
       for(int j = sa - 1; j >= 1; j--)                                       // status since the stay-away
         {
          if(dir > 0)
@@ -262,6 +317,7 @@ int DetectZones(string s, int tf, Zone &out[])
             if(!z.tested && iHigh(s, tf, j) >= prox) { z.tested = true; z.tTouched = iTime(s, tf, j); }
            }
         }
+      if(!z.removed) { int tb; bool cr; z.trap = FindTrap(s, tf, dir, prox, dist, sa, L + k, tb, cr); z.trapBar = tb; z.crowded = cr; }
       int n = ArraySize(out); ArrayResize(out, n + 1); out[n] = z;
      }
    return ArraySize(out);
@@ -345,6 +401,7 @@ void Scan(string s, int k)
       else if(trend != dir) reason = "against HTF trend";
       else if(InpEntry == ENTRY_SF && method == "CONF") method = "SF";
       if(reason == "" && InpEntry == ENTRY_CONF && method != "CONF") reason = "no confirmation";
+      if(reason == "" && InpRequireTrap && z[i].trap == 0) reason = "no liquidity trap";
       if(reason == "" && tp == 0) reason = "no opposing zone for target";
       if(reason == "" && rr < InpMinRR) reason = StringFormat("R:R %.2f < %.2f", rr, InpMinRR);
       if(reason == "" && spread > risk * InpMaxSpreadPct / 100.0) reason = "spread too wide";
@@ -362,7 +419,7 @@ void Scan(string s, int k)
       LogSignal(s, k, z[i], entry, sl, tp, rr, trend, curve, method, spread / point, decision, reason, digits);
       if(reason != "") return;                                   // only the newest candidate per scan
 
-      string tag = StringFormat("%s %s %s %s 1:%.1f grade %s", s, TF_N[k], dir > 0 ? "BUY" : "SELL", method, rr, z[i].grade);
+      string tag = StringFormat("%s %s %s %s 1:%.1f grade %s%s", s, TF_N[k], dir > 0 ? "BUY" : "SELL", method, rr, z[i].grade, z[i].trap > 0 ? " + liquidity trap" : "");
       if(InpAlerts) Alert("RamanFX ZoneBot: ", tag);
       if(InpMode == MODE_AUTO) Place(s, k, dir, entry, sl, tp, z[i].dist, method, z[i].grade);
       else if(InpMode == MODE_APPROVE) AddProposal(s, k, dir, entry, sl, tp, z[i].dist, method, z[i].grade);
@@ -643,7 +700,7 @@ void EnsureHeaders()
    if(!FileIsExist("RamanFX_Bot_Signals.csv"))
      {
       int f = FileOpen("RamanFX_Bot_Signals.csv", FILE_WRITE | FILE_CSV | FILE_ANSI, ',');
-      if(f != INVALID_HANDLE) { FileWrite(f, "Time", "Symbol", "EntryTF", "HTF", "Side", "Type", "Grade", "LegRatio", "BaseCandles", "Proximal", "Distal", "Entry", "SL", "TP", "RR", "HtfTrend", "CurvePct", "Method", "SpreadPts", "Decision", "Reason"); FileClose(f); }
+      if(f != INVALID_HANDLE) { FileWrite(f, "Time", "Symbol", "EntryTF", "HTF", "Side", "Type", "Grade", "LegRatio", "BaseCandles", "Proximal", "Distal", "Entry", "SL", "TP", "RR", "HtfTrend", "CurvePct", "Method", "SpreadPts", "Decision", "Reason", "LiquidityTrap", "OnSRLevel"); FileClose(f); }
      }
    if(!FileIsExist("RamanFX_Bot_Variants.csv"))
      {
@@ -666,7 +723,7 @@ void LogSignal(string s, int k, Zone &z, double entry, double sl, double tp, dou
    FileWrite(f, TimeToString(TimeCurrent(), TIME_DATE | TIME_MINUTES), s, TF_N[k], TfName(TF_H[k]), z.dir > 0 ? "BUY" : "SELL", z.dir > 0 ? "RBR" : "DBD", z.grade,
              DoubleToString(z.legRatio, 2), z.baseN, DoubleToString(z.prox, digits), DoubleToString(z.dist, digits),
              DoubleToString(entry, digits), DoubleToString(sl, digits), DoubleToString(tp, digits), DoubleToString(rr, 2),
-             trend > 0 ? "up" : (trend < 0 ? "down" : "side"), DoubleToString(curve, 0), method, DoubleToString(spreadPts, 0), decision, reason);
+             trend > 0 ? "up" : (trend < 0 ? "down" : "side"), DoubleToString(curve, 0), method, DoubleToString(spreadPts, 0), decision, reason, z.trap > 0 ? DoubleToString(z.trap, digits) : "", z.crowded ? "yes" : "");
    FileClose(f);
   }
 
