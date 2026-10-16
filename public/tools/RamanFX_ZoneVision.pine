@@ -16,7 +16,7 @@ lookback   = input.int(300, "Ignore zones older than (bars)", minval=50, maxval=
 swingN     = input.int(3, "Swing strength (bars each side)", minval=1, maxval=10, group=gR)
 trapATR    = input.float(1.0, "Liquidity trap: level within N x ATR in front of the zone", step=0.1, group=gR)
 minRR      = input.float(2.0, "Min reward:risk for the plan", step=0.1, group=gR)
-htfIn      = input.timeframe("", "HTF (empty = mentor pair: 1m>15m, 5m>1H, 15m>4H, 1H>D, 4H>W, D>M)", group=gR)
+htfIn      = input.timeframe("", "HTF (empty = auto: 1m>15m, 5m>1H, 15m>4H, 1H>D, 4H>W, D>M, W>3M, M and up>12M)", group=gR)
 
 gS = "What to show (clean by default)"
 nShow       = input.int(4, "Zones drawn: the N closest to price", minval=1, maxval=20, group=gS)
@@ -50,10 +50,10 @@ basing(i) => rng(i) > 0 and bod(i) <= 0.5 * rng(i)
 cdir(i) => close[i] > open[i] ? 1 : close[i] < open[i] ? -1 : 0
 
 tfs = timeframe.in_seconds()
-autoHtf = tfs <= 60 ? "15" : tfs <= 300 ? "60" : tfs <= 900 ? "240" : tfs <= 3600 ? "D" : tfs <= 14400 ? "W" : "M"
+autoHtf = tfs <= 60 ? "15" : tfs <= 300 ? "60" : tfs <= 900 ? "240" : tfs <= 3600 ? "D" : tfs <= 14400 ? "W" : tfs <= 86400 ? "M" : tfs <= 604800 ? "3M" : "12M"
 htf = htfIn == "" ? autoHtf : htfIn
 // stop buffer in pips by timeframe (same as ZoneBot)
-bufPips = tfs <= 60 ? 1.0 : tfs <= 300 ? 1.5 : tfs <= 900 ? 3.0 : tfs <= 3600 ? 5.0 : tfs <= 14400 ? 10.0 : tfs <= 86400 ? 20.0 : 40.0
+bufPips = tfs <= 60 ? 1.0 : tfs <= 300 ? 1.5 : tfs <= 900 ? 3.0 : tfs <= 3600 ? 5.0 : tfs <= 14400 ? 10.0 : tfs <= 86400 ? 20.0 : tfs <= 604800 ? 40.0 : tfs <= 2700000 ? 80.0 : 150.0
 pip = syminfo.mintick * (syminfo.type == "forex" ? 10 : 1)
 
 // HTF trend: higher highs + higher lows = up, lower highs + lower lows = down, else last break of structure
