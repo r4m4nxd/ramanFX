@@ -31,7 +31,7 @@ enum LiveBE    { BE_NONE = 0, BE_AT_1R = 1, BE_AT_2R = 2 };
 enum Manage    { MG_OFF = 0, MG_MENTOR = 1, MG_BE_ONLY = 2 };
 enum TpMode    { TP_SWING = 0, TP_OPP_ZONE = 1, TP_NEAREST = 2 };
 
-input BotMode   InpMode          = MODE_AUTO;    // Mode
+input BotMode   InpMode          = MODE_APPROVE; // Mode: Approve = bot finds + alerts, you check the chart and press Place
 input EntryMode InpEntry         = ENTRY_BOTH;   // Entry method
 input string    InpSymbols       = "";           // Symbols (comma list; empty = every forex pair in Market Watch)
 input int       InpScansPerTick  = 8;            // Max symbol/timeframe scans per 2-second tick (keeps MT4 responsive)
@@ -51,8 +51,7 @@ input double    InpMaxZoneATR    = 1.5;          // Max zone height in ATR(14) (
 input int       InpLookback      = 200;          // Bars scanned per timeframe
 input int       InpMaxZoneAge    = 200;          // Ignore zones older than this many bars
 input double    InpStopBufferPts = 10;           // (legacy, unused) see CP / VP stop inputs below
-input double    InpCPStopPips    = 3.0;          // CP zone (RBR / DBD): stop this many pips beyond the distal line
-input double    InpVPStopPips    = 3.0;          // VP zone (DBR / RBD): stop this many pips beyond the swing valley / peak
+input double    InpStopScale     = 1.0;          // Stop buffer multiplier. Base pips beyond the zone/swing: M1 1, M5 1.5, M15 3, H1 5, H4 10, D1 20, W1 40
 input int       InpVPSwingBars   = 10;           // VP: look this many entry-TF candles around the zone for the valley / peak
 input TpMode    InpTpMode        = TP_SWING;     // Target: recent swing low/high (like your manual trades), next opposing zone, or whichever is nearer
 input bool      InpTradeVP       = true;         // Also trade VP (reversal) zones, with their swing stop
@@ -85,7 +84,8 @@ input int       InpPendingBars   = 100;          // Cancel unfilled limit after 
 input int       InpSimDays       = 5;            // Variant replay horizon (days)
 input int       InpMagic         = 770100;       // Magic number base
 input bool      InpLogSkips      = false;        // Also log skipped zones to the CSV (off = orders only)
-input bool      InpAlerts        = true;         // Pop-up / push alerts for new setups
+input bool      InpAlerts        = true;         // Pop-up alert for new setups
+input bool      InpPush          = true;         // Push to the MT4 phone app (Tools > Options > Notifications, MetaQuotes ID)
 input bool      InpDraw          = false;        // Draw zones on this chart
 input double    InpTrapATR       = 1.0;          // Liquidity trap: obvious level within N x ATR in front of the zone
 input int       InpTrapSwing     = 3;            // Obvious level = swing with N bars each side
@@ -495,7 +495,8 @@ void Scan(string s, int k)
    // fresh HTF zones: an opposing HTF zone in the way caps the target
    Zone hz[];
    int hn = HtfZones(s, htf, hz);
-   // newest fresh continuation zone in the HTF direction
+   // every fresh zone in the HTF direction is checked; the best one (VP > trap > grade > R:R) is acted on
+   int best = -1; double bScore = 0, bEntry = 0, bSl = 0, bTp = 0, bRr = 0; string bMethod = "", bDecision = ""; bool bCapped = false;
    for(int i = n - 1; i >= 0; i--)
      {
       if(z[i].removed || z[i].tested) continue;
@@ -569,15 +570,23 @@ void Scan(string s, int k)
       Say(s, k, decision == "SKIP" ? "skip - " + reason + StringFormat(" (%s %s %s, grade %s)", TF_N[k], dir > 0 ? "demand" : "supply", DoubleToString(z[i].prox, digits), z[i].grade) : decision);
       if(reason != "") { Count(reason); if(StringFind(reason, "already an order") == 0 || StringFind(reason, "max ") == 0 || StringFind(reason, "Friday") == 0 || StringFind(reason, "weekend") == 0 || StringFind(reason, "Asian") == 0 || StringFind(reason, "news") == 0) return; continue; }
 
-      string tag = StringFormat("%s %s %s %s 1:%.1f grade %s%s", s, TF_N[k], dir > 0 ? "BUY" : "SELL", method, rr, z[i].grade, z[i].trap > 0 ? " + liquidity trap" : "");
+      // rank: valleys/peaks (VP) first, then liquidity trap, grade, R:R
+      double score = (z[i].cont ? 0 : 3) + (z[i].trap > 0 ? 2 : 0) + (z[i].grade == "A" ? 2 : (z[i].grade == "B" ? 1 : 0)) + MathMin(rr, 6) / 3.0 - (z[i].crowded ? 1 : 0);
+      if(best < 0 || score > bScore) { best = i; bScore = score; bEntry = entry; bSl = sl; bTp = tp; bRr = rr; bMethod = method; bCapped = cappedByHtf; bDecision = decision; }
+      continue;
+     }
+   if(best < 0) return;
+   {
+      int i = best, dir = z[i].dir; double entry = bEntry, sl = bSl, tp = bTp, rr = bRr; string method = bMethod, decision = bDecision; bool cappedByHtf = bCapped;
+      string tag = StringFormat("%s %s %s %s %s 1:%.1f grade %s%s", s, TF_N[k], dir > 0 ? "BUY" : "SELL", z[i].cont ? "CP" : "VP", method, rr, z[i].grade, z[i].trap > 0 ? " + liquidity trap" : "");
       if(InpAlerts) Alert("RamanFX ZoneBot: ", tag);
+      if(InpPush && !IsTesting()) SendNotification("RamanFX: " + tag + (InpMode == MODE_APPROVE ? " - check the chart and approve in MT4" : ""));
       Count(decision);
       string info = StringFormat("%s %s %s zone (grade %s) | %s trend %s | %s%s\n", dir > 0 ? "BUY" : "SELL", TF_N[k], dir > 0 ? "demand" : "supply", z[i].grade, TfName(htf), trend > 0 ? "up" : "down", method == "CONF" ? "confirmation" : "set & forget", z[i].trap > 0 ? " | liquidity trap" : "");
       info += StringFormat("Why: fresh %s %s with the trend, stop %s, move away %.1fx, target %s %s", z[i].cont ? "CP" : "VP", z[i].cont ? (dir > 0 ? "RBR" : "DBD") : (dir > 0 ? "DBR" : "RBD"), z[i].cont ? "beyond distal" : "beyond swing " + (dir > 0 ? "valley" : "peak"), z[i].legRatio, cappedByHtf ? "before next" : (InpTpMode == TP_SWING ? "at recent swing" : "before next"), cappedByHtf ? TfName(htf) + (dir > 0 ? " supply" : " demand") : (InpTpMode == TP_SWING ? (dir > 0 ? "high" : "low") : TF_N[k] + (dir > 0 ? " supply" : " demand")));
       if(InpMode == MODE_AUTO) Place(s, k, dir, entry, sl, tp, z[i].dist, method, z[i].grade, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));
       else if(InpMode == MODE_APPROVE) AddProposal(s, k, dir, entry, sl, tp, z[i].dist, method, z[i].grade, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));
-      return;
-     }
+   }
   }
 
 // Confirmation: price touched an HTF zone in our direction within N entry bars, and an
@@ -712,13 +721,19 @@ double PickTarget(string s, int tf, Zone &z, double opp, double spread)
 //  CP zone (RBR / DBD continuation): a few pips beyond the distal line.
 //  VP zone (DBR / RBD reversal): a few pips beyond the swing valley (demand) / peak (supply) of the entry TF
 //  around the zone - the lowest low / highest high from the drop into the base through the stay-away candle.
+double TfStopPips(int tf)
+  {
+   switch(tf) { case PERIOD_M1: return 1; case PERIOD_M5: return 1.5; case PERIOD_M15: return 3; case PERIOD_H1: return 5; case PERIOD_H4: return 10; case PERIOD_D1: return 20; }
+   return 40;
+  }
 double StopFor(string s, int tf, Zone &z, double pip)
   {
-   if(z.cont) return z.dist - z.dir * InpCPStopPips * pip;
+   double buf = TfStopPips(tf) * InpStopScale * pip;
+   if(z.cont) return z.dist - z.dir * buf;
    int from = MathMax(1, z.legBar - 2), to = z.legBar + z.baseN + InpVPSwingBars;
    double ext = z.dist;
    for(int j = from; j <= to && j < iBars(s, tf); j++) ext = z.dir > 0 ? MathMin(ext, iLow(s, tf, j)) : MathMax(ext, iHigh(s, tf, j));
-   return ext - z.dir * InpVPStopPips * pip;
+   return ext - z.dir * buf;
   }
 
 double Lots(string s, double stopDist)
@@ -1152,39 +1167,101 @@ void DrawZones(Zone &z[])
 //+------------------------------------------------------------------+
 //| Approve mode: one button per proposal                            |
 //+------------------------------------------------------------------+
+string dismissed[];   // zones you rejected: never proposed again
 void AddProposal(string s, int k, int dir, double entry, double sl, double tp, double dist, string method, string grade, double rr, bool trap, string info, double prox, datetime tZone)
   {
-   for(int i = 0; i < ArraySize(props); i++) if(props[i].sym == s && props[i].k == k) return;
+   string key = s + TF_N[k] + DoubleToString(prox, 6);
+   for(int i = 0; i < ArraySize(dismissed); i++) if(dismissed[i] == key) return;
+   for(int i = 0; i < ArraySize(props); i++) if(props[i].sym == s && props[i].k == k) { if(props[i].prox == prox) return; props[i].entry = entry; props[i].sl = sl; props[i].tp = tp; props[i].rr = rr; props[i].info = info; props[i].prox = prox; props[i].dist = dist; props[i].tZone = tZone; props[i].t = TimeCurrent(); return; }
    Proposal p; p.sym = s; p.k = k; p.dir = dir; p.entry = entry; p.sl = sl; p.tp = tp; p.dist = dist; p.method = method; p.grade = grade; p.rr = rr; p.trap = trap; p.info = info; p.prox = prox; p.tZone = tZone; p.t = TimeCurrent();
    int n = ArraySize(props); ArrayResize(props, n + 1); props[n] = p;
   }
 
+void DropProposal(int i) { for(int j = i; j < ArraySize(props) - 1; j++) props[j] = props[j + 1]; ArrayResize(props, ArraySize(props) - 1); }
+
+// Approve panel (top-left of the bot's chart): one row per setup - View opens the chart with the plan drawn, Place sends the order, X dismisses it.
+string lastPanelSig = "";
 void DrawProposals()
   {
-   ObjectsDeleteAll(0, "RFXB_");
-   for(int i = ArraySize(props) - 1; i >= 0; i--)                        // drop stale proposals (>2h)
-      if(TimeCurrent() - props[i].t > 7200 || HasOrder(props[i].sym, props[i].k)) { for(int j = i; j < ArraySize(props) - 1; j++) props[j] = props[j + 1]; ArrayResize(props, ArraySize(props) - 1); }
-   for(int i = 0; i < ArraySize(props); i++)
+   for(int i = ArraySize(props) - 1; i >= 0; i--)
      {
-      string nm = "RFXB_" + IntegerToString(i);
-      double rr = MathAbs(props[i].tp - props[i].entry) / MathMax(MathAbs(props[i].entry - props[i].sl), 1e-10);
-      ObjectCreate(0, nm, OBJ_BUTTON, 0, 0, 0);
-      ObjectSetInteger(0, nm, OBJPROP_XDISTANCE, 10); ObjectSetInteger(0, nm, OBJPROP_YDISTANCE, 30 + i * 28);
-      ObjectSetInteger(0, nm, OBJPROP_XSIZE, 300); ObjectSetInteger(0, nm, OBJPROP_YSIZE, 24);
-      ObjectSetString(0, nm, OBJPROP_TEXT, StringFormat("Approve %s %s %s %s 1:%.1f (%s)", props[i].sym, TF_N[props[i].k], props[i].dir > 0 ? "BUY" : "SELL", props[i].method, rr, props[i].grade));
-      ObjectSetInteger(0, nm, OBJPROP_BGCOLOR, props[i].dir > 0 ? clrDarkGreen : clrMaroon);
-      ObjectSetInteger(0, nm, OBJPROP_COLOR, clrWhite);
+      // drop a setup once its zone is removed / touched, an order exists, or price is already past the entry
+      Proposal p = props[i];
+      double bid = MarketInfo(p.sym, MODE_BID), ask = MarketInfo(p.sym, MODE_ASK);
+      bool gone = HasOrder(p.sym, p.k) || (p.dir > 0 && (iClose(p.sym, TF_E[p.k], 1) < p.dist || ask <= p.entry)) || (p.dir < 0 && (iClose(p.sym, TF_E[p.k], 1) > p.dist || bid >= p.entry)) || TimeCurrent() - p.t > 86400;
+      if(gone) DropProposal(i);
      }
+   string sig = "";
+   for(int i = 0; i < ArraySize(props); i++) sig += props[i].sym + TF_N[props[i].k] + DoubleToString(props[i].rr, 1);
+   if(sig == lastPanelSig) return;
+   lastPanelSig = sig;
+   ObjectsDeleteAll(0, "RFXB_");
+   for(int i = 0; i < ArraySize(props) && i < 15; i++)
+     {
+      int y = 30 + i * 26;
+      string txt = StringFormat("%s %s %s %s  1:%.1f  %s%s", props[i].sym, TF_N[props[i].k], props[i].dir > 0 ? "BUY" : "SELL", StringFind(props[i].info, " VP ") >= 0 ? "VP" : "CP", props[i].rr, props[i].grade, props[i].trap ? " trap" : "");
+      Btn("RFXB_t" + IntegerToString(i), txt, 10, y, 250, props[i].dir > 0 ? C'30,110,70' : C'150,45,45');
+      Btn("RFXB_v" + IntegerToString(i), "View", 264, y, 50, clrDimGray);
+      Btn("RFXB_p" + IntegerToString(i), "Place", 318, y, 56, clrRoyalBlue);
+      Btn("RFXB_x" + IntegerToString(i), "X", 378, y, 24, clrGray);
+     }
+   ChartRedraw(0);
+  }
+void Btn(string nm, string text, int x, int y, int w, color bg)
+  {
+   ObjectCreate(0, nm, OBJ_BUTTON, 0, 0, 0);
+   ObjectSetInteger(0, nm, OBJPROP_XDISTANCE, x); ObjectSetInteger(0, nm, OBJPROP_YDISTANCE, y);
+   ObjectSetInteger(0, nm, OBJPROP_XSIZE, w); ObjectSetInteger(0, nm, OBJPROP_YSIZE, 22);
+   ObjectSetString(0, nm, OBJPROP_TEXT, text); ObjectSetString(0, nm, OBJPROP_FONT, "Arial"); ObjectSetInteger(0, nm, OBJPROP_FONTSIZE, 8);
+   ObjectSetInteger(0, nm, OBJPROP_BGCOLOR, bg); ObjectSetInteger(0, nm, OBJPROP_COLOR, clrWhite);
+  }
+
+// Opens the setup's chart on its entry timeframe and draws the zone, entry, stop and target for your check.
+void ViewProposal(int i)
+  {
+   Proposal p = props[i];
+   long ch = ChartOpen(p.sym, TF_E[p.k]);
+   if(ch <= 0) return;
+   string pre = "RFXP_";
+   ObjectsDeleteAll(ch, pre);
+   datetime t2 = TimeCurrent() + PeriodSeconds(TF_E[p.k]) * 30;
+   ObjectCreate(ch, pre + "z", OBJ_RECTANGLE, 0, p.tZone, p.prox, t2, p.dist);
+   ObjectSetInteger(ch, pre + "z", OBJPROP_COLOR, p.dir > 0 ? C'190,225,200' : C'245,205,195'); ObjectSetInteger(ch, pre + "z", OBJPROP_BACK, true);
+   string nm[3] = {"e", "s", "t"}; double pr[3]; pr[0] = p.entry; pr[1] = p.sl; pr[2] = p.tp;
+   color cl[3] = {clrRoyalBlue, clrCrimson, clrSeaGreen}; string lb[3] = {"entry", "stop", "target"};
+   for(int j = 0; j < 3; j++)
+     {
+      ObjectCreate(ch, pre + nm[j], OBJ_TREND, 0, p.tZone, pr[j], t2, pr[j]);
+      ObjectSetInteger(ch, pre + nm[j], OBJPROP_RAY_RIGHT, false); ObjectSetInteger(ch, pre + nm[j], OBJPROP_COLOR, cl[j]); ObjectSetInteger(ch, pre + nm[j], OBJPROP_STYLE, j == 0 ? STYLE_SOLID : STYLE_DASH);
+      ObjectCreate(ch, pre + nm[j] + "l", OBJ_TEXT, 0, t2, pr[j]);
+      ObjectSetString(ch, pre + nm[j] + "l", OBJPROP_TEXT, " " + lb[j] + " " + DoubleToString(pr[j], (int)MarketInfo(p.sym, MODE_DIGITS)));
+      ObjectSetInteger(ch, pre + nm[j] + "l", OBJPROP_COLOR, cl[j]); ObjectSetInteger(ch, pre + nm[j] + "l", OBJPROP_FONTSIZE, 8); ObjectSetInteger(ch, pre + nm[j] + "l", OBJPROP_ANCHOR, ANCHOR_LEFT);
+     }
+   string ls[]; int n = StringSplit(p.info, '\n', ls);
+   for(int j = 0; j < n; j++) RightLabel(ch, pre + "n" + IntegerToString(j), ls[j], 18 + (n - 1 - j) * 14, j == 0 ? clrRoyalBlue : clrDimGray, 8);
+   for(int j = 0; j < n; j++) { ObjectSetInteger(ch, pre + "n" + IntegerToString(j), OBJPROP_CORNER, CORNER_RIGHT_LOWER); ObjectSetInteger(ch, pre + "n" + IntegerToString(j), OBJPROP_ANCHOR, ANCHOR_RIGHT_LOWER); }
+   ChartRedraw(ch);
   }
 
 void OnChartEvent(const int id, const long &lparam, const double &dparam, const string &sparam)
   {
    if(id != CHARTEVENT_OBJECT_CLICK || StringFind(sparam, "RFXB_") != 0) return;
-   int i = (int)StringToInteger(StringSubstr(sparam, 5));
+   string act = StringSubstr(sparam, 5, 1);
+   int i = (int)StringToInteger(StringSubstr(sparam, 6));
+   ObjectSetInteger(0, sparam, OBJPROP_STATE, false);
    if(i < 0 || i >= ArraySize(props)) return;
-   Place(props[i].sym, props[i].k, props[i].dir, props[i].entry, props[i].sl, props[i].tp, props[i].dist, props[i].method, props[i].grade, props[i].rr, props[i].trap, props[i].info, props[i].prox, props[i].tZone);
-   for(int j = i; j < ArraySize(props) - 1; j++) props[j] = props[j + 1];
-   ArrayResize(props, ArraySize(props) - 1);
+   if(act == "v") { ViewProposal(i); return; }
+   if(act == "p")
+     {
+      Place(props[i].sym, props[i].k, props[i].dir, props[i].entry, props[i].sl, props[i].tp, props[i].dist, props[i].method, props[i].grade, props[i].rr, props[i].trap, props[i].info, props[i].prox, props[i].tZone);
+      DropProposal(i);
+     }
+   else if(act == "x")
+     {
+      int n = ArraySize(dismissed); ArrayResize(dismissed, n + 1); dismissed[n] = props[i].sym + TF_N[props[i].k] + DoubleToString(props[i].prox, 6);
+      DropProposal(i);
+     }
+   lastPanelSig = "-";
    DrawProposals();
   }
 //+------------------------------------------------------------------+
