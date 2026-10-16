@@ -22,7 +22,7 @@
 //|   2026.10.17 12:30,USD   (UTC time, currency)                    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "0.70"
+#property version   "0.71"
 #property strict
 
 enum BotMode   { MODE_SCANNER = 0, MODE_APPROVE = 1, MODE_AUTO = 2 };
@@ -484,7 +484,7 @@ int DetectZones(string s, int tf, Zone &out[])
 //+------------------------------------------------------------------+
 int HtfTrend(string s, int htf)
   {
-   double hi[2], lo[2]; int nh = 0, nl = 0;
+   double hi[2] = {0, 0}, lo[2] = {0, 0}; int nh = 0, nl = 0;
    for(int i = 3; i < 300 && (nh < 2 || nl < 2); i++)
      {
       double u = iFractals(s, htf, MODE_UPPER, i), d = iFractals(s, htf, MODE_LOWER, i);
@@ -519,7 +519,7 @@ bool MineObj(string nm) { return StringFind(nm, "RFX") != 0; }       // not draw
 int MyTrendlines()
   {
    double bid = MarketInfo(_Symbol, MODE_BID), best = DBL_MAX; int v = 0;
-   for(int i = ObjectsTotal(0) - 1; i >= 0; i--)
+   for(int i = ObjectsTotal(0, -1, -1) - 1; i >= 0; i--)
      {
       string nm = ObjectName(0, i);
       if(!MineObj(nm) || ObjectType(nm) != OBJ_TREND) continue;
@@ -545,7 +545,7 @@ void MyZones()
    double point = MarketInfo(_Symbol, MODE_POINT); int digits = (int)MarketInfo(_Symbol, MODE_DIGITS);
    double pip = point * ((digits == 3 || digits == 5) ? 10 : 1);
    double bid = MarketInfo(_Symbol, MODE_BID), ask = MarketInfo(_Symbol, MODE_ASK), spread = ask - bid;
-   for(int i = ObjectsTotal(0) - 1; i >= 0; i--)
+   for(int i = ObjectsTotal(0, -1, -1) - 1; i >= 0; i--)
      {
       string nm = ObjectName(0, i);
       if(!MineObj(nm) || ObjectType(nm) != OBJ_RECTANGLE) continue;
