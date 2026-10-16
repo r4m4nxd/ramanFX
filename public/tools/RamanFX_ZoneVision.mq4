@@ -28,7 +28,7 @@ input string Sep1             = "-- Zone rules (keep equal to ZoneBot) --"; // -
 input double InpMinLegRatio   = 1.2;    // Move-away range / largest base candle
 input int    InpMaxBase       = 6;      // Max basing candles
 input double InpMaxZoneATR    = 1.5;    // Max zone height in ATR(14) (similar-size rule)
-input int    InpLookback      = 300;    // Bars scanned
+input int    InpLookback      = 200;    // Bars scanned
 input int    InpMaxZoneAge    = 200;    // Ignore zones older than this many bars
 input double InpEmoATR        = 3.0;    // Emotional candle: range > this x ATR (wick ignored)
 input double InpMinRR         = 2.0;    // Min reward:risk (for the planned setup)
@@ -62,6 +62,7 @@ input color  InpText          = C'90,90,90';
 
 struct Zone
   {
+   int      baseEnd;
    double   trap;       // liquidity trap price (0 = none)
    bool     crowded;    // zone sits on an obvious S/R level (retail crowd)
    int      trapBar;
@@ -172,7 +173,7 @@ double FindTrap(string s, int tf, int dir, double prox, double dist, int fromBar
    trapBar = -1; crowded = false;
    double atr = iATR(s, tf, 14, 1), best = 0;
    if(atr <= 0) return 0;
-   int scan = MathMin(iBars(s, tf) - InpTrapSwing - 2, fromBar + 150);
+   int scan = MathMin(iBars(s, tf) - InpTrapSwing - 2, baseEnd + 40);
    for(int i = scan; i >= InpTrapSwing + 1; i--)
      {
       for(int kind = -1; kind <= 1; kind += 2)                   // swing highs and swing lows
@@ -248,7 +249,7 @@ int Detect(string s, int tf, Zone &out[], bool draw)
             if(!z.tested && iHigh(s, tf, j) >= prox && !Emotional(s, tf, j)) { z.tested = true; z.testedBar = j; }
            }
         }
-      if(!z.removed) { int tb; bool cr; z.trap = FindTrap(s, tf, dir, prox, dist, sa, L + k, tb, cr); z.trapBar = tb; z.crowded = cr; }
+      z.baseEnd = L + k;   // liquidity trap is worked out later, only for the zones that get drawn
       int n = ArraySize(out); ArrayResize(out, n + 1); out[n] = z;
      }
    return ArraySize(out);
@@ -422,6 +423,7 @@ void DrawZones(Zone &zs[], bool htf)
       int best = -1;
       for(int j = 0; j < n; j++) if(idx[j] >= 0 && (best < 0 || dst[j] < dst[best])) best = j;
       if(best < 0) break;
+      if(!htf && !zs[idx[best]].removed && zs[idx[best]].trapBar == -1) { int tb; bool cr; Zone q = zs[idx[best]]; zs[idx[best]].trap = FindTrap(_Symbol, tf, q.dir, q.prox, q.dist, q.saBar, q.baseEnd, tb, cr); zs[idx[best]].trapBar = tb == -1 ? -2 : tb; zs[idx[best]].crowded = cr; }
       Zone z = zs[idx[best]]; string id = PFX + (htf ? "H" : "Z") + IntegerToString(idx[best]); idx[best] = -1;
       color fill = htf ? InpHtfFill : (z.removed ? C'250,230,212' : (z.dir > 0 ? InpDemandFill : InpSupplyFill));
       color line = z.removed ? InpMuted : (z.dir > 0 ? InpDemandLine : InpSupplyLine);
