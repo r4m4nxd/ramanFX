@@ -160,6 +160,7 @@ int OnInit()
 void OnDeinit(const int reason)
   {
    EventKillTimer();
+   FlushSignals(true);
    SaveSims();
    ObjectsDeleteAll(0, "RFXZ_");
    ObjectsDeleteAll(0, "RFXB_");
@@ -247,6 +248,7 @@ void Work()
       qPos = (idx + 1) % total;
      }
    UpdateSims();
+   FlushSignals(false);
    if(InpMode == MODE_APPROVE) DrawProposals();
    Status();
   }
@@ -1024,15 +1026,34 @@ int OpenAppend(string name)
    return f;
   }
 
+// Signals are kept in memory and written once a minute in one go; a zone is logged again only when its decision changes.
+string sigBuf[]; string sigKey[]; string sigLast[]; datetime lastFlush = 0;
 void LogSignal(string s, int k, Zone &z, double entry, double sl, double tp, double rr, int trend, double curve, string method, double spreadPts, string decision, string reason, int digits)
   {
-   int f = OpenAppend("RamanFX_Bot_Signals.csv");
+   string key = s + TF_N[k] + DoubleToString(z.prox, digits), state = decision + reason;
+   int ki = -1;
+   for(int i = 0; i < ArraySize(sigKey); i++) if(sigKey[i] == key) { ki = i; break; }
+   if(ki >= 0 && sigLast[ki] == state) return;                           // same zone, same verdict: nothing new
+   if(ki < 0) { ki = ArraySize(sigKey); ArrayResize(sigKey, ki + 1); ArrayResize(sigLast, ki + 1); sigKey[ki] = key; if(ki > 3000) { ArrayResize(sigKey, 0); ArrayResize(sigLast, 0); ki = 0; ArrayResize(sigKey, 1); ArrayResize(sigLast, 1); sigKey[0] = key; } }
+   sigLast[ki] = state;
+   string line = StringFormat("%s,%s,%s,%s,%s,%s,%s,%s,%d,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s",
+                 TimeToString(TimeCurrent(), TIME_DATE | TIME_MINUTES), s, TF_N[k], TfName(TF_H[k]), z.dir > 0 ? "BUY" : "SELL", z.dir > 0 ? "RBR" : "DBD", z.grade,
+                 DoubleToString(z.legRatio, 2), z.baseN, DoubleToString(z.prox, digits), DoubleToString(z.dist, digits),
+                 DoubleToString(entry, digits), DoubleToString(sl, digits), DoubleToString(tp, digits), DoubleToString(rr, 2),
+                 trend > 0 ? "up" : (trend < 0 ? "down" : "side"), DoubleToString(curve, 0), method, DoubleToString(spreadPts, 0), decision, reason,
+                 z.trap > 0 ? DoubleToString(z.trap, digits) : "", z.crowded ? "yes" : "");
+   int n = ArraySize(sigBuf); ArrayResize(sigBuf, n + 1); sigBuf[n] = line;
+  }
+void FlushSignals(bool force)
+  {
+   if(!ArraySize(sigBuf) || (!force && TimeLocal() - lastFlush < 60)) return;
+   lastFlush = TimeLocal();
+   int f = FileOpen("RamanFX_Bot_Signals.csv", FILE_READ | FILE_WRITE | FILE_TXT | FILE_ANSI | FILE_SHARE_READ);
    if(f == INVALID_HANDLE) return;
-   FileWrite(f, TimeToString(TimeCurrent(), TIME_DATE | TIME_MINUTES), s, TF_N[k], TfName(TF_H[k]), z.dir > 0 ? "BUY" : "SELL", z.dir > 0 ? "RBR" : "DBD", z.grade,
-             DoubleToString(z.legRatio, 2), z.baseN, DoubleToString(z.prox, digits), DoubleToString(z.dist, digits),
-             DoubleToString(entry, digits), DoubleToString(sl, digits), DoubleToString(tp, digits), DoubleToString(rr, 2),
-             trend > 0 ? "up" : (trend < 0 ? "down" : "side"), DoubleToString(curve, 0), method, DoubleToString(spreadPts, 0), decision, reason, z.trap > 0 ? DoubleToString(z.trap, digits) : "", z.crowded ? "yes" : "");
+   FileSeek(f, 0, SEEK_END);
+   for(int i = 0; i < ArraySize(sigBuf); i++) FileWriteString(f, sigBuf[i] + "\r\n");
    FileClose(f);
+   ArrayResize(sigBuf, 0);
   }
 
 void LogVariant(Sim &m, string tpv, string bev, double r, datetime ex, string why)

@@ -100,7 +100,9 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
    static datetime lastPanel = 0;
    if(Time[0] == lastDraw && prev_calculated > 0)
      {
-      if(TimeLocal() - lastPanel >= 5) { lastPanel = TimeLocal(); Panel(); if(InpShowBotOrders) BotNotes(); }   // light refresh between candles
+      if(TimeLocal() - lastPanel >= 5) { lastPanel = TimeLocal(); Panel(); }   // light refresh between candles
+      static datetime lastNotes = 0;
+      if(InpShowBotOrders && TimeLocal() - lastNotes >= 20) { lastNotes = TimeLocal(); BotNotes(); }   // bot notes file read every 20s
       return rates_total;
      }
    lastDraw = Time[0];
