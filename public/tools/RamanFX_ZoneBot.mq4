@@ -22,7 +22,7 @@
 //|   2026.10.17 12:30,USD   (UTC time, currency)                    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "0.50"
+#property version   "0.51"
 #property strict
 
 enum BotMode   { MODE_SCANNER = 0, MODE_APPROVE = 1, MODE_AUTO = 2 };
@@ -153,7 +153,7 @@ int      knownTickets[];
 // Approve mode proposals
 struct Proposal { string sym; int k; int dir; double entry, sl, tp, dist, rr, prox; bool trap; string method, grade, info; datetime t, tZone; };
 string placeErr = "";
-Proposal props[]; string lastPanelSig = ""; int viewK = -1;
+Proposal props[]; string lastPanelSig = ""; int viewK = -1; int panelBottom = 120;
 
 //+------------------------------------------------------------------+
 int OnInit()
@@ -181,6 +181,7 @@ void OnDeinit(const int reason)
    SaveSims();
    ObjectsDeleteAll(0, "RFXZ_");
    ObjectsDeleteAll(0, "RFXB_");
+   ObjectsDeleteAll(0, "RFXN2_");
    if(reason != REASON_CHARTCHANGE) ObjectsDeleteAll(0, "RFXP_");
    Comment("");
    ObjectsDeleteAll(0, "RFXS_");
@@ -919,14 +920,7 @@ void Annotate(int t, string s, double price, string &lines[], double prox, doubl
       ObjectSetString(ch, zl, OBJPROP_TEXT, StringFormat("%s %s zone -> order #%d", TF_N[k], dir > 0 ? "demand" : "supply", t));
       ObjectSetInteger(ch, zl, OBJPROP_FONTSIZE, 7); ObjectSetInteger(ch, zl, OBJPROP_COLOR, clrDimGray);
       ObjectSetInteger(ch, zl, OBJPROP_ANCHOR, dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
-      int nL = ArraySize(lines);
-      for(int i = 0; i < nL; i++)
-        {
-         string nm = StringFormat("RFXO_%d_%d", t, i);
-         RightLabel(ch, nm, lines[i], 18 + (nL - 1 - i) * 14, i == 0 ? clrRoyalBlue : clrDimGray, 8);
-         ObjectSetInteger(ch, nm, OBJPROP_CORNER, CORNER_RIGHT_LOWER);
-         ObjectSetInteger(ch, nm, OBJPROP_ANCHOR, ANCHOR_RIGHT_LOWER);
-        }
+      // reasoning text is shown by ZoneVision (bottom-right) and in the Experts tab: no second copy here, so nothing overlaps
       ChartRedraw(ch);
      }
   }
@@ -1325,9 +1319,12 @@ void DrawProposals()
    if(sig == lastPanelSig) return;
    lastPanelSig = sig;
    ObjectsDeleteAll(0, "RFXB_");
-   Btn("RFXB_r0", "Refresh " + _Symbol + (ArraySize(props) == 0 ? "  (no advice yet)" : StringFormat("  (%d advice)", ArraySize(props))), 10, 26, 392, clrDarkSlateGray);
-   // rows sorted by timeframe M1 .. W1
-   int y = 52;
+   // right side, under the bot's status lines (max 4 lines from y 20): nothing overlaps
+   int W = (int)ChartGetInteger(0, CHART_WIDTH_IN_PIXELS), x0 = MathMax(10, W - 12 - 392);
+   int y = 92;
+   Btn("RFXB_r0", "Refresh " + _Symbol + (ArraySize(props) == 0 ? "  (no advice yet)" : StringFormat("  (%d advice)", ArraySize(props))), x0, y, 392, clrDarkSlateGray);
+   y += 26;
+   // rows sorted by timeframe M1 .. W1; button names carry the timeframe, so a click always hits the right advice
    for(int k = 0; k < NTF; k++)
       for(int i = 0; i < ArraySize(props); i++)
         {
@@ -1337,11 +1334,21 @@ void DrawProposals()
          StringReplace(sc, " ", "");
          string txt = StringFormat("%s %s %s %s 1:%.1f%s", TF_N[k], props[i].dir > 0 ? "BUY" : "SELL", StringFind(props[i].info, " VP ") >= 0 ? "VP" : "CP", sc == "" ? props[i].grade : sc, props[i].rr, props[i].trap ? " trap" : "");
          bool on = viewK == k;
-         Btn("RFXB_t" + IntegerToString(i), (on ? "> " : "") + txt, 10, y, 210, props[i].dir > 0 ? C'30,110,70' : C'150,45,45');
-         Btn("RFXB_v" + IntegerToString(i), "View", 224, y, 50, on ? clrDarkOrange : clrDimGray);
-         Btn("RFXB_p" + IntegerToString(i), "Approve", 278, y, 66, clrRoyalBlue);
-         Btn("RFXB_x" + IntegerToString(i), "Deny", 348, y, 54, clrGray);
+         string ks = IntegerToString(k);
+         Btn("RFXB_t" + ks, (on ? "> " : "") + txt, x0, y, 210, props[i].dir > 0 ? C'30,110,70' : C'150,45,45');
+         Btn("RFXB_v" + ks, "View", x0 + 214, y, 50, on ? clrDarkOrange : clrDimGray);
+         Btn("RFXB_p" + ks, "Approve", x0 + 268, y, 66, clrRoyalBlue);
+         Btn("RFXB_x" + ks, "Deny", x0 + 338, y, 54, clrGray);
          y += 26;
+        }
+   panelBottom = y + 6;
+   // reasoning of the advice being viewed, right under the list
+   ObjectsDeleteAll(0, "RFXN2_");
+   if(viewK >= 0)
+      for(int i = 0; i < ArraySize(props); i++) if(props[i].k == viewK)
+        {
+         string ls[]; int n = StringSplit(props[i].info, '\n', ls);
+         for(int j = 0; j < n; j++) RightLabel(0, "RFXN2_" + IntegerToString(j), ls[j], panelBottom + j * 14, j == 0 ? clrRoyalBlue : clrDimGray, 8);
         }
    ChartRedraw(0);
   }
@@ -1355,7 +1362,7 @@ void Btn(string nm, string text, int x, int y, int w, color bg)
    ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
   }
 
-void ClearView() { ObjectsDeleteAll(0, "RFXP_"); viewK = -1; GlobalVariableDel("RFX_view_" + _Symbol); }
+void ClearView() { ObjectsDeleteAll(0, "RFXP_"); ObjectsDeleteAll(0, "RFXN2_"); viewK = -1; GlobalVariableDel("RFX_view_" + _Symbol); }
 // View: draws the advice on THIS chart and switches it to the advice's timeframe; the panel stays,
 // so you check the chart and press Approve or Deny on the same screen.
 void ViewProposal(int i)
@@ -1380,16 +1387,6 @@ void ViewProposal(int i)
       ObjectSetString(0, pre + nm[j] + "l", OBJPROP_TEXT, " " + TF_N[p.k] + " " + lb[j] + " " + DoubleToString(pr[j], dg));
       ObjectSetInteger(0, pre + nm[j] + "l", OBJPROP_COLOR, cl[j]); ObjectSetInteger(0, pre + nm[j] + "l", OBJPROP_FONTSIZE, 8); ObjectSetInteger(0, pre + nm[j] + "l", OBJPROP_ANCHOR, ANCHOR_LEFT);
      }
-   string ls[]; int n = StringSplit(p.info, '\n', ls);
-   for(int j = 0; j < n; j++)
-     {
-      string o = pre + "n" + IntegerToString(j);
-      ObjectCreate(0, o, OBJ_LABEL, 0, 0, 0);
-      ObjectSetInteger(0, o, OBJPROP_CORNER, CORNER_RIGHT_LOWER); ObjectSetInteger(0, o, OBJPROP_ANCHOR, ANCHOR_RIGHT_LOWER);
-      ObjectSetInteger(0, o, OBJPROP_XDISTANCE, 10); ObjectSetInteger(0, o, OBJPROP_YDISTANCE, 18 + (n - 1 - j) * 14);
-      ObjectSetString(0, o, OBJPROP_TEXT, ls[j]); ObjectSetString(0, o, OBJPROP_FONT, "Arial"); ObjectSetInteger(0, o, OBJPROP_FONTSIZE, 8);
-      ObjectSetInteger(0, o, OBJPROP_COLOR, j == 0 ? clrRoyalBlue : clrDimGray);
-     }
    lastPanelSig = "-";
    if(_Period != TF_E[p.k]) ChartSetSymbolPeriod(0, _Symbol, TF_E[p.k]);   // drawings stay; the bot reloads on the new timeframe
    else { DrawProposals(); ChartRedraw(0); }
@@ -1406,12 +1403,14 @@ void Refresh()
 
 void OnChartEvent(const int id, const long &lparam, const double &dparam, const string &sparam)
   {
+   if(id == CHARTEVENT_CHART_CHANGE) { lastPanelSig = "-"; DrawProposals(); return; }   // resized: re-place the panel
    if(id != CHARTEVENT_OBJECT_CLICK || StringFind(sparam, "RFXB_") != 0) return;
    string act = StringSubstr(sparam, 5, 1);
-   int i = (int)StringToInteger(StringSubstr(sparam, 6));
    ObjectSetInteger(0, sparam, OBJPROP_STATE, false);
    if(act == "r") { Refresh(); Work(); return; }
-   if(i < 0 || i >= ArraySize(props)) return;
+   int k = (int)StringToInteger(StringSubstr(sparam, 6)), i = -1;
+   for(int j = 0; j < ArraySize(props); j++) if(props[j].k == k && props[j].sym == _Symbol) { i = j; break; }
+   if(i < 0) { lastPanelSig = "-"; DrawProposals(); return; }
    if(act == "v" || act == "t") { ViewProposal(i); return; }
    if(act == "p")
      {
