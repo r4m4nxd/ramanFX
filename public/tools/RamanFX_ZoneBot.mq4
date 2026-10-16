@@ -76,6 +76,7 @@ input int       InpConfTouchBars = 60;           // Confirmation: HTF zone touch
 input int       InpPendingBars   = 100;          // Cancel unfilled limit after N entry bars
 input int       InpSimDays       = 5;            // Variant replay horizon (days)
 input int       InpMagic         = 770100;       // Magic number base
+input bool      InpLogSkips      = false;        // Also log skipped zones to the CSV (off = orders only)
 input bool      InpAlerts        = true;         // Pop-up / push alerts for new setups
 input bool      InpDraw          = false;        // Draw zones on this chart
 input double    InpTrapATR       = 1.0;          // Liquidity trap: obvious level within N x ATR in front of the zone
@@ -1030,6 +1031,7 @@ int OpenAppend(string name)
 string sigBuf[]; string sigKey[]; string sigLast[]; datetime lastFlush = 0;
 void LogSignal(string s, int k, Zone &z, double entry, double sl, double tp, double rr, int trend, double curve, string method, double spreadPts, string decision, string reason, int digits)
   {
+   if(decision == "SKIP" && !InpLogSkips) return;                       // keep the log small: orders only by default
    string key = s + TF_N[k] + DoubleToString(z.prox, digits), state = decision + reason;
    int ki = -1;
    for(int i = 0; i < ArraySize(sigKey); i++) if(sigKey[i] == key) { ki = i; break; }
