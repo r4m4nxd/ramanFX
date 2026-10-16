@@ -22,7 +22,7 @@
 //|   2026.10.17 12:30,USD   (UTC time, currency)                    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "0.60"
+#property version   "0.61"
 #property strict
 
 enum BotMode   { MODE_SCANNER = 0, MODE_APPROVE = 1, MODE_AUTO = 2 };
@@ -47,8 +47,8 @@ input bool      InpTF_H4         = true;         // Trade H4 entries (HTF 1W)
 input bool      InpTF_D1         = true;         // Trade D1 entries (HTF 1M)
 input bool      InpTF_W1         = true;         // Trade W1 entries (HTF 1M)
 input double    InpRiskPct       = 1.0;          // Risk per trade (% of balance)
-input double    InpMinRR         = 3.0;          // Minimum reward:risk to opposing zone
-input double    InpMinLegRatio   = 2.0;          // Move-away range / largest base candle (Seiden: strong departure)
+input double    InpMinRR         = 2.0;          // Minimum reward:risk to opposing zone
+input double    InpMinLegRatio   = 1.5;          // Move-away range / largest base candle (Seiden: strong departure)
 input int       InpMaxBase       = 6;            // Max basing candles
 input double    InpMaxZoneATR    = 1.5;          // Max zone height in ATR(14) (similar-size rule)
 input int       InpLookback      = 200;          // Bars scanned per timeframe
@@ -65,11 +65,11 @@ input double    InpMinStopSpreads= 3.0;          // ...and at least this many sp
 input double    InpMaxLots       = 2.0;          // Hard cap on lots per order
 input double    InpMaxMarginPct  = 10.0;         // Skip if the order needs more than this % of free margin
 input double    InpMinStopATR    = 0.2;          // Minimum stop as a fraction of the entry TF's ATR(14)
-input double    InpMinDeparture  = 2.0;          // Departure: price must travel >= N x zone height away from the proximal line
+input double    InpMinDeparture  = 1.5;          // Departure: price must travel >= N x zone height away from the proximal line
 input bool      InpRequireITF    = false;        // Skip when the intermediate TF trend points the other way (3-timeframe check)
-input bool      InpCurveFilter   = true;         // Demand only in the lower third of the HTF curve (half if at an HTF demand), supply mirrored
-input double    InpMaxDistATR    = 1.0;          // Zone must be within N x HTF ATR of price and in the first half of the way to target (no chasing)
-input bool      InpRequireQualified = true;      // Planner rule: the move away must have removed an opposing zone (set & forget)
+input bool      InpCurveFilter   = false;        // Demand only in the lower third of the HTF curve (half if at an HTF demand), supply mirrored
+input double    InpMaxDistATR    = 2.0;          // Zone must be within N x HTF ATR of price and in the first half of the way to target (no chasing)
+input bool      InpRequireQualified = false;     // Planner rule: the move away must have removed an opposing zone (set & forget)
 input double    InpMaxDailyLossPct = 4.0;        // Daily loss limit: no new orders + cancel pendings once equity is down this % today
 input double    InpMgmtMaxSpreadR = 0.25;        // Don't move stops while spread > this fraction of 1R (rollover spikes)
 input double    InpMaxSpreadPct  = 15;           // Max spread as % of the stop distance
@@ -642,11 +642,11 @@ void Scan(string s, int k)
       if(reason == "" && InpRequireQualified && method == "SF" && !Qualified(s, etf, z, i)) reason = "move away did not remove an opposing zone";
       // no chasing: a confirmed swing has formed and price has pulled back toward the zone
       double now = dir > 0 ? MarketInfo(s, MODE_BID) : MarketInfo(s, MODE_ASK), far = MathAbs(now - z[i].prox);
-      double maxFar = MathMin(InpMaxDistATR * iATR(s, htf, 14, 1), tp > 0 ? 0.5 * MathAbs(tp - entry) : DBL_MAX);
+      double maxFar = MathMin(InpMaxDistATR * iATR(s, htf, 14, 1), tp > 0 ? 0.75 * MathAbs(tp - entry) : DBL_MAX);
       if(reason == "")
         {
          int ix = dir > 0 ? iHighest(s, etf, MODE_HIGH, MathMax(1, z[i].legBar), 1) : iLowest(s, etf, MODE_LOW, MathMax(1, z[i].legBar), 1);
-         if(ix >= 0 && ix < 4) reason = "no pullback yet (price still at the swing)";
+         if(ix >= 0 && ix < 2) reason = "no pullback yet (price still at the swing)";
          else if(far > maxFar) reason = "zone too far from price";
         }
       if(reason == "" && InpEntry == ENTRY_CONF && method != "CONF") reason = "no confirmation";
