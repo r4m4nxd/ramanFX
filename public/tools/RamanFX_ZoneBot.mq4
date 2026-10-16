@@ -22,7 +22,7 @@
 //|   2026.10.17 12:30,USD   (UTC time, currency)                    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "0.61"
+#property version   "0.70"
 #property strict
 
 enum BotMode   { MODE_SCANNER = 0, MODE_APPROVE = 1, MODE_AUTO = 2 };
@@ -69,6 +69,7 @@ input double    InpMinDeparture  = 1.5;          // Departure: price must travel
 input bool      InpRequireITF    = false;        // Skip when the intermediate TF trend points the other way (3-timeframe check)
 input bool      InpCurveFilter   = false;        // Demand only in the lower third of the HTF curve (half if at an HTF demand), supply mirrored
 input double    InpMaxDistATR    = 2.0;          // Zone must be within N x HTF ATR of price and in the first half of the way to target (no chasing)
+input bool      InpUseMyLines    = true;         // Use YOUR trendlines on this chart for the trend, and YOUR rectangles as zones to advise
 input bool      InpRequireQualified = false;     // Planner rule: the move away must have removed an opposing zone (set & forget)
 input double    InpMaxDailyLossPct = 4.0;        // Daily loss limit: no new orders + cancel pendings once equity is down this % today
 input double    InpMgmtMaxSpreadR = 0.25;        // Don't move stops while spread > this fraction of 1R (rollover spikes)
@@ -157,6 +158,7 @@ int      knownTickets[];
 // Approve mode proposals
 struct Proposal { string sym; int k; int dir; double entry, sl, tp, dist, rr, prox; bool trap; string method, grade, info; datetime t, tZone; };
 string placeErr = "";
+int myTrend = 0; string myTrendWhy = ""; datetime lastMine = 0;
 Proposal props[]; string lastPanelSig = ""; int viewK = -1; int panelBottom = 120;
 
 //+------------------------------------------------------------------+
@@ -222,6 +224,7 @@ void Status()
    string blocked = BlockedNow(ArraySize(syms) > 0 ? syms[0] : _Symbol);
    int pend = 0, open = 0;
    for(int i = OrdersTotal() - 1; i >= 0; i--) if(OrderSelect(i, SELECT_BY_POS) && OurMagic(OrderMagicNumber())) { if(OrderType() <= OP_SELL) open++; else pend++; }
+   if(InpUseMyLines) t += (myTrend == 0 ? "Bias: no trendline of yours on this chart" : "Bias " + (myTrend > 0 ? "UP" : "DOWN") + ": " + myTrendWhy) + "\n";
    t += (blocked == "" ? "Trading" : "Paused: " + blocked) + StringFormat("  |  %d pending, %d open\n", pend, open);
    int order[]; ArrayResize(order, ArraySize(cKey)); for(int i = 0; i < ArraySize(cKey); i++) order[i] = i;
    for(int i = 0; i < ArraySize(order); i++) for(int j = i + 1; j < ArraySize(order); j++) if(cVal[order[j]] > cVal[order[i]]) { int x = order[i]; order[i] = order[j]; order[j] = x; }
@@ -266,6 +269,7 @@ void Work()
       if(ArraySize(syms) != before) { ArrayResize(lastBar, ArraySize(syms)); for(int i = 0; i < ArraySize(syms); i++) for(int k = 0; k < NTF; k++) lastBar[i][k] = 0; Print("ZoneBot watching ", ArraySize(syms), " symbols"); }
      }
    if(TimeCurrent() - lastNewsLoad > 3600) LoadNews();
+   if(InpUseMyLines && TimeLocal() - lastMine >= 5) { lastMine = TimeLocal(); myTrend = MyTrendlines(); MyZones(); }
    ManageOrders();
    int total = ArraySize(syms) * NTF, done = 0;
    uint w0 = GetTickCount();
@@ -509,6 +513,74 @@ double Curve(string s, int htf, double p)
 // Planner score 0-100, same points as the app's Planner (evaluatePlan): move away, base, qualified,
 // fresh/age, HTF trend, at HTF zone, no opposing HTF zone near, curve, trap, ETF trend, confirmation.
 // A >= 75, B >= 60, else C (low odds).
+
+// ---- your drawings: trendlines give the bias, rectangles are zones you want advised ----
+bool MineObj(string nm) { return StringFind(nm, "RFX") != 0; }       // not drawn by the bot or ZoneVision
+int MyTrendlines()
+  {
+   double bid = MarketInfo(_Symbol, MODE_BID), best = DBL_MAX; int v = 0;
+   for(int i = ObjectsTotal(0) - 1; i >= 0; i--)
+     {
+      string nm = ObjectName(0, i);
+      if(!MineObj(nm) || ObjectType(nm) != OBJ_TREND) continue;
+      datetime t1 = (datetime)ObjectGetInteger(0, nm, OBJPROP_TIME1), t2 = (datetime)ObjectGetInteger(0, nm, OBJPROP_TIME2);
+      double p1 = ObjectGetDouble(0, nm, OBJPROP_PRICE1), p2 = ObjectGetDouble(0, nm, OBJPROP_PRICE2);
+      if(t1 == t2) continue;
+      if(t1 > t2) { datetime tt = t1; t1 = t2; t2 = tt; double pp = p1; p1 = p2; p2 = pp; }
+      double at = p1 + (p2 - p1) * (double)(TimeCurrent() - t1) / (double)(t2 - t1);   // line value now
+      if(at <= 0) continue;
+      double d = MathAbs(bid - at);
+      if(d >= best) continue;
+      best = d;
+      bool up = p2 > p1, above = bid > at;
+      // rising line held = up; falling line broken upward = up; mirror for down
+      v = (up && above) || (!up && above) ? 1 : -1;
+      myTrendWhy = StringFormat("your %s trendline %s", up ? "rising" : "falling", above ? (up ? "holding" : "broken up") : (up ? "broken down" : "holding"));
+     }
+   return v;
+  }
+void MyZones()
+  {
+   if(!InpUseMyLines || InpMode == MODE_SCANNER) return;
+   double point = MarketInfo(_Symbol, MODE_POINT); int digits = (int)MarketInfo(_Symbol, MODE_DIGITS);
+   double pip = point * ((digits == 3 || digits == 5) ? 10 : 1);
+   double bid = MarketInfo(_Symbol, MODE_BID), ask = MarketInfo(_Symbol, MODE_ASK), spread = ask - bid;
+   for(int i = ObjectsTotal(0) - 1; i >= 0; i--)
+     {
+      string nm = ObjectName(0, i);
+      if(!MineObj(nm) || ObjectType(nm) != OBJ_RECTANGLE) continue;
+      double p1 = ObjectGetDouble(0, nm, OBJPROP_PRICE1), p2 = ObjectGetDouble(0, nm, OBJPROP_PRICE2);
+      datetime t0 = (datetime)MathMin(ObjectGetInteger(0, nm, OBJPROP_TIME1), ObjectGetInteger(0, nm, OBJPROP_TIME2));
+      double top = MathMax(p1, p2), bot = MathMin(p1, p2), h = top - bot;
+      if(h <= 0) continue;
+      int dir = bid > top ? 1 : (ask < bot ? -1 : 0);
+      if(dir == 0 || (myTrend != 0 && dir != myTrend)) continue;          // price inside it, or against your trendline bias
+      // timeframe = the smallest one whose candles fit a zone this tall
+      int k = NTF - 1;
+      for(int j = 0; j < NTF; j++) { double a = iATR(_Symbol, TF_E[j], 14, 1); if(a > 0 && h <= InpMaxZoneATR * a) { k = j; break; } }
+      if(HasOrder(_Symbol, k)) continue;
+      int tf = TF_E[k];
+      double buf = TfStopPips(tf) * InpStopScale * pip;
+      double entry = dir > 0 ? top + spread : bot, sl = dir > 0 ? bot - buf : top + buf + spread;
+      int sh = iBarShift(_Symbol, tf, t0); if(sh < 2) continue;
+      int ix = dir > 0 ? iHighest(_Symbol, tf, MODE_HIGH, sh, 1) : iLowest(_Symbol, tf, MODE_LOW, sh, 1);
+      double tp = ix < 0 ? 0 : (dir > 0 ? iHigh(_Symbol, tf, ix) - spread : iLow(_Symbol, tf, ix) + spread);   // swing since your zone
+      double risk = MathAbs(entry - sl), rr = (risk > 0 && tp > 0) ? dir * (tp - entry) / risk : 0;
+      if(rr < 1.5) continue;
+      int sc = 50 + (myTrend == dir ? 20 : 0) + (rr >= 3 ? 10 : 0);
+      string g = PlanGrade(sc);
+      string info = StringFormat("%s %s YOUR %s zone (grade %s %d) | %s\n", dir > 0 ? "BUY" : "SELL", TF_N[k], dir > 0 ? "demand" : "supply", g, sc, myTrend != 0 ? myTrendWhy : "no trendline bias");
+      info += StringFormat("Why: you drew it; entry at the %s line, stop beyond it +%.1f pips, target the swing %s since the zone", dir > 0 ? "top" : "bottom", buf / pip, dir > 0 ? "high" : "low");
+      int before = ArraySize(props);
+      AddProposal(_Symbol, k, dir, NormalizeDouble(entry, digits), NormalizeDouble(sl, digits), NormalizeDouble(tp, digits), dir > 0 ? bot : top, "MY", g, rr, false, info, dir > 0 ? top : bot, t0);
+      if(ArraySize(props) > before)
+        {
+         string tag = StringFormat("%s %s %s your zone 1:%.1f", _Symbol, TF_N[k], dir > 0 ? "BUY" : "SELL", rr);
+         if(InpAlerts) Alert("RamanFX ZoneBot: ", tag);
+         if(InpPush && !IsTesting()) SendNotification("RamanFX: " + tag + " - check and approve in MT4");
+        }
+     }
+  }
 bool Qualified(string s, int etf, Zone &z[], int i)
   {
    datetime b0 = iTime(s, etf, z[i].legBar + z[i].baseN), b1 = iTime(s, etf, MathMax(z[i].legBar - 5, 0));
@@ -574,6 +646,7 @@ void Scan(string s, int k)
    int n = DetectZones(s, etf, z);
    if(InpDraw && s == _Symbol && etf == _Period) DrawZones(z);
    int trend = HtfTrend(s, htf);
+   if(InpUseMyLines && s == _Symbol && myTrend != 0) trend = myTrend;     // your trendlines decide the bias
    double point = MarketInfo(s, MODE_POINT);
    int digits = (int)MarketInfo(s, MODE_DIGITS);
    double spread = MarketInfo(s, MODE_ASK) - MarketInfo(s, MODE_BID);
@@ -1334,6 +1407,7 @@ void AddProposal(string s, int k, int dir, double entry, double sl, double tp, d
    for(int i = 0; i < ArraySize(dismissed); i++) if(dismissed[i] == key) return;
    for(int i = 0; i < ArraySize(props); i++) if(props[i].sym == s && props[i].k == k)
      {
+      if(props[i].method == "MY" && method != "MY") return;                       // your own zone keeps its slot
       if(props[i].prox == prox && props[i].sl == sl && props[i].tp == tp) return;   // max 1 advice per timeframe: newest wins
       props[i].dir = dir; props[i].entry = entry; props[i].sl = sl; props[i].tp = tp; props[i].rr = rr; props[i].info = info; props[i].prox = prox; props[i].dist = dist; props[i].tZone = tZone; props[i].grade = grade; props[i].method = method; props[i].trap = trap; props[i].t = TimeCurrent();
       SaveProps(); lastPanelSig = "-"; return;
@@ -1364,7 +1438,7 @@ void DrawProposals()
    ObjectsDeleteAll(0, "RFXB_");
    // right side, under the bot's status lines (max 4 lines from y 20): nothing overlaps
    int W = (int)ChartGetInteger(0, CHART_WIDTH_IN_PIXELS), x0 = MathMax(10, W - 12 - 392);
-   int y = 92;
+   int y = 112;
    Btn("RFXB_r0", "Refresh " + _Symbol + (ArraySize(props) == 0 ? "  (no advice yet)" : StringFormat("  (%d advice)", ArraySize(props))), x0, y, 392, clrDarkSlateGray);
    y += 26;
    // rows sorted by timeframe M1 .. W1; button names carry the timeframe, so a click always hits the right advice
@@ -1375,7 +1449,7 @@ void DrawProposals()
          string sc = ""; int at = StringFind(props[i].info, "(grade ");
          if(at >= 0) sc = StringSubstr(props[i].info, at + 7, StringFind(props[i].info, ")", at) - at - 7);
          StringReplace(sc, " ", "");
-         string txt = StringFormat("%s %s %s %s 1:%.1f%s", TF_N[k], props[i].dir > 0 ? "BUY" : "SELL", StringFind(props[i].info, " VP ") >= 0 ? "VP" : "CP", sc == "" ? props[i].grade : sc, props[i].rr, props[i].trap ? " trap" : "");
+         string txt = StringFormat("%s %s %s %s 1:%.1f%s", TF_N[k], props[i].dir > 0 ? "BUY" : "SELL", props[i].method == "MY" ? "YOURS" : (StringFind(props[i].info, " VP ") >= 0 ? "VP" : "CP"), sc == "" ? props[i].grade : sc, props[i].rr, props[i].trap ? " trap" : "");
          bool on = viewK == k;
          string ks = IntegerToString(k);
          Btn("RFXB_t" + ks, (on ? "> " : "") + txt, x0, y, 210, props[i].dir > 0 ? C'30,110,70' : C'150,45,45');
