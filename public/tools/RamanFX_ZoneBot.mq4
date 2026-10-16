@@ -49,7 +49,13 @@ input int       InpMaxBase       = 6;            // Max basing candles
 input double    InpMaxZoneATR    = 1.5;          // Max zone height in ATR(14) (similar-size rule)
 input int       InpLookback      = 200;          // Bars scanned per timeframe
 input int       InpMaxZoneAge    = 200;          // Ignore zones older than this many bars
-input double    InpStopBufferPts = 10;           // Extra stop buffer beyond distal (points)
+input double    InpStopBufferPts = 10;           // (legacy, unused) see CP / VP stop inputs below
+input double    InpCPStopPips    = 3.0;          // CP zone (RBR / DBD): stop this many pips beyond the distal line
+input double    InpVPStopPips    = 3.0;          // VP zone (DBR / RBD): stop this many pips beyond the swing valley / peak
+input int       InpVPSwingBars   = 10;           // VP: look this many entry-TF candles around the zone for the valley / peak
+input bool      InpTradeVP       = true;         // Also trade VP (reversal) zones, with their swing stop
+input int       InpMaxPerSymbol  = 3;            // Max bot orders per symbol (one per entry timeframe)
+input int       InpMaxOrders     = 40;           // Max bot orders in total (pending + open)
 input double    InpMinStopPips   = 3.0;          // Minimum stop distance (pips) - tiny zones get a wider stop, smaller lots
 input double    InpMinStopSpreads= 3.0;          // ...and at least this many spreads
 input double    InpMaxLots       = 2.0;          // Hard cap on lots per order
@@ -233,8 +239,16 @@ void RightLabel(long ch, string nm, string text, int y, color c, int size)
   }
 
 int qPos = 0;   // round-robin position over symbol x timeframe
+datetime lastSymBuild = 0;
 void Work()
   {
+   // after an MT4 restart the symbol list can be empty until the terminal connects: rebuild it
+   if((ArraySize(syms) == 0 || TimeLocal() - lastSymBuild > 900) && IsConnected())
+     {
+      int before = ArraySize(syms);
+      BuildSymbols(); lastSymBuild = TimeLocal();
+      if(ArraySize(syms) != before) { ArrayResize(lastBar, ArraySize(syms)); for(int i = 0; i < ArraySize(syms); i++) for(int k = 0; k < NTF; k++) lastBar[i][k] = 0; Print("ZoneBot watching ", ArraySize(syms), " symbols"); }
+     }
    if(TimeCurrent() - lastNewsLoad > 3600) LoadNews();
    ManageOrders();
    int total = ArraySize(syms) * NTF, done = 0;
@@ -474,6 +488,7 @@ void Scan(string s, int k)
    double point = MarketInfo(s, MODE_POINT);
    int digits = (int)MarketInfo(s, MODE_DIGITS);
    double spread = MarketInfo(s, MODE_ASK) - MarketInfo(s, MODE_BID);
+   double pip = point * ((digits == 3 || digits == 5) ? 10 : 1);
 
    // fresh HTF zones: an opposing HTF zone in the way caps the target
    Zone hz[];
@@ -483,7 +498,7 @@ void Scan(string s, int k)
      {
       if(z[i].removed || z[i].tested) continue;
       if(z[i].legBar > InpMaxZoneAge) break;
-      if(!z[i].cont) continue;                                   // RBR / DBD only
+      if(!z[i].cont && !InpTradeVP) continue;                    // VP (reversal) zones only when enabled
       int dir = z[i].dir;
       string reason = "";
       double entry = 0, sl = 0, tp = 0, rr = 0;
@@ -498,13 +513,13 @@ void Scan(string s, int k)
       if(dir > 0)
         {
          entry = z[i].prox + spread;                              // buy limit fills on Ask
-         sl = z[i].dist - InpStopBufferPts * point;
+         sl = StopFor(s, etf, z[i], pip) ;
          tp = opp > 0 ? opp - spread : 0;
         }
       else
         {
          entry = z[i].prox;
-         sl = z[i].dist + InpStopBufferPts * point + spread;
+         sl = StopFor(s, etf, z[i], pip) + spread;
          tp = opp > 0 ? opp + spread : 0;
         }
       // the target can't run through a fresh opposing HTF zone - cap it just before that zone
@@ -518,7 +533,6 @@ void Scan(string s, int k)
       bool cappedByHtf = false;
       if(hOpp > 0 && (tp == 0 || (dir > 0 && hOpp - spread < tp) || (dir < 0 && hOpp + spread > tp))) { tp = dir > 0 ? hOpp - spread : hOpp + spread; cappedByHtf = true; }
       // never a noise-sized stop: at least InpMinStopPips and InpMinStopSpreads x spread
-      double pip = point * ((digits == 3 || digits == 5) ? 10 : 1);
       double minStop = MathMax(MathMax(InpMinStopPips * pip, InpMinStopSpreads * spread), InpMinStopATR * iATR(s, etf, 14, 1));
       if(MathAbs(entry - sl) < minStop) sl = dir > 0 ? entry - minStop : entry + minStop;
       double risk = MathAbs(entry - sl);
@@ -538,7 +552,9 @@ void Scan(string s, int k)
       if(reason == "" && rr < InpMinRR) reason = StringFormat("R:R %.2f < %.2f", rr, InpMinRR);
       if(reason == "" && spread > risk * InpMaxSpreadPct / 100.0) reason = "spread too wide";
       if(reason == "") reason = BlockedNow(s);
-      if(reason == "" && HasOrder(s)) reason = "already one trade on symbol";
+      if(reason == "" && HasOrder(s, k)) reason = "already an order on this symbol/timeframe";
+      if(reason == "" && CountOrders(s) >= InpMaxPerSymbol) reason = "max orders on symbol";
+      if(reason == "" && CountOrders("") >= InpMaxOrders) reason = "max bot orders reached";
       if(reason == "")
         {
          double ask = MarketInfo(s, MODE_ASK), bid = MarketInfo(s, MODE_BID);
@@ -549,13 +565,13 @@ void Scan(string s, int k)
       string decision = reason == "" ? (InpMode == MODE_AUTO ? "ORDER" : (InpMode == MODE_APPROVE ? "PROPOSE" : "ALERT")) : "SKIP";
       LogSignal(s, k, z[i], entry, sl, tp, rr, trend, curve, method, spread / point, decision, reason, digits);
       Say(s, k, decision == "SKIP" ? "skip - " + reason + StringFormat(" (%s %s %s, grade %s)", TF_N[k], dir > 0 ? "demand" : "supply", DoubleToString(z[i].prox, digits), z[i].grade) : decision);
-      if(reason != "") { Count(reason); if(StringFind(reason, "already one trade") == 0 || StringFind(reason, "Friday") == 0 || StringFind(reason, "weekend") == 0 || StringFind(reason, "Asian") == 0 || StringFind(reason, "news") == 0) return; continue; }
+      if(reason != "") { Count(reason); if(StringFind(reason, "already an order") == 0 || StringFind(reason, "max ") == 0 || StringFind(reason, "Friday") == 0 || StringFind(reason, "weekend") == 0 || StringFind(reason, "Asian") == 0 || StringFind(reason, "news") == 0) return; continue; }
 
       string tag = StringFormat("%s %s %s %s 1:%.1f grade %s%s", s, TF_N[k], dir > 0 ? "BUY" : "SELL", method, rr, z[i].grade, z[i].trap > 0 ? " + liquidity trap" : "");
       if(InpAlerts) Alert("RamanFX ZoneBot: ", tag);
       Count(decision);
       string info = StringFormat("%s %s %s zone (grade %s) | %s trend %s | %s%s\n", dir > 0 ? "BUY" : "SELL", TF_N[k], dir > 0 ? "demand" : "supply", z[i].grade, TfName(htf), trend > 0 ? "up" : "down", method == "CONF" ? "confirmation" : "set & forget", z[i].trap > 0 ? " | liquidity trap" : "");
-      info += StringFormat("Why: fresh %s with the trend, move away %.1fx, target before next %s %s zone", dir > 0 ? "RBR" : "DBD", z[i].legRatio, cappedByHtf ? TfName(htf) : TF_N[k], dir > 0 ? "supply" : "demand");
+      info += StringFormat("Why: fresh %s %s with the trend, stop %s, move away %.1fx, target before next %s %s zone", z[i].cont ? "CP" : "VP", z[i].cont ? (dir > 0 ? "RBR" : "DBD") : (dir > 0 ? "DBR" : "RBD"), z[i].cont ? "beyond distal" : "beyond swing " + (dir > 0 ? "valley" : "peak"), z[i].legRatio, cappedByHtf ? TfName(htf) : TF_N[k], dir > 0 ? "supply" : "demand");
       if(InpMode == MODE_AUTO) Place(s, k, dir, entry, sl, tp, z[i].dist, method, z[i].grade, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));
       else if(InpMode == MODE_APPROVE) AddProposal(s, k, dir, entry, sl, tp, z[i].dist, method, z[i].grade, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));
       return;
@@ -656,11 +672,32 @@ void LoadNews()
 int MagicFor(int k, string method) { return InpMagic + k + (method == "CONF" ? 10 : 0); }
 bool OurMagic(int m) { return m >= InpMagic && m < InpMagic + 20; }
 
-bool HasOrder(string s)
+// One bot order per symbol per entry timeframe (magic = base + k, +10 for confirmation).
+bool HasOrder(string s, int k)
   {
    for(int i = OrdersTotal() - 1; i >= 0; i--)
-      if(OrderSelect(i, SELECT_BY_POS) && OrderSymbol() == s && OurMagic(OrderMagicNumber())) return true;
+      if(OrderSelect(i, SELECT_BY_POS) && OrderSymbol() == s && OurMagic(OrderMagicNumber()) && (OrderMagicNumber() - InpMagic) % 10 == k) return true;
    return false;
+  }
+int CountOrders(string s)
+  {
+   int n = 0;
+   for(int i = OrdersTotal() - 1; i >= 0; i--)
+      if(OrderSelect(i, SELECT_BY_POS) && OurMagic(OrderMagicNumber()) && (s == "" || OrderSymbol() == s)) n++;
+   return n;
+  }
+
+// Stop placement (mentor):
+//  CP zone (RBR / DBD continuation): a few pips beyond the distal line.
+//  VP zone (DBR / RBD reversal): a few pips beyond the swing valley (demand) / peak (supply) of the entry TF
+//  around the zone - the lowest low / highest high from the drop into the base through the stay-away candle.
+double StopFor(string s, int tf, Zone &z, double pip)
+  {
+   if(z.cont) return z.dist - z.dir * InpCPStopPips * pip;
+   int from = MathMax(1, z.legBar - 2), to = z.legBar + z.baseN + InpVPSwingBars;
+   double ext = z.dist;
+   for(int j = from; j <= to && j < iBars(s, tf); j++) ext = z.dir > 0 ? MathMin(ext, iLow(s, tf, j)) : MathMax(ext, iHigh(s, tf, j));
+   return ext - z.dir * InpVPStopPips * pip;
   }
 
 double Lots(string s, double stopDist)
@@ -1105,7 +1142,7 @@ void DrawProposals()
   {
    ObjectsDeleteAll(0, "RFXB_");
    for(int i = ArraySize(props) - 1; i >= 0; i--)                        // drop stale proposals (>2h)
-      if(TimeCurrent() - props[i].t > 7200 || HasOrder(props[i].sym)) { for(int j = i; j < ArraySize(props) - 1; j++) props[j] = props[j + 1]; ArrayResize(props, ArraySize(props) - 1); }
+      if(TimeCurrent() - props[i].t > 7200 || HasOrder(props[i].sym, props[i].k)) { for(int j = i; j < ArraySize(props) - 1; j++) props[j] = props[j + 1]; ArrayResize(props, ArraySize(props) - 1); }
    for(int i = 0; i < ArraySize(props); i++)
      {
       string nm = "RFXB_" + IntegerToString(i);
