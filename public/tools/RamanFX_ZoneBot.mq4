@@ -22,7 +22,7 @@
 //|   2026.10.17 12:30,USD   (UTC time, currency)                    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "0.20"
+#property version   "0.30"
 #property strict
 
 enum BotMode   { MODE_SCANNER = 0, MODE_APPROVE = 1, MODE_AUTO = 2 };
@@ -46,6 +46,10 @@ input double    InpMaxZoneATR    = 1.5;          // Max zone height in ATR(14) (
 input int       InpLookback      = 300;          // Bars scanned per timeframe
 input int       InpMaxZoneAge    = 200;          // Ignore zones older than this many bars
 input double    InpStopBufferPts = 10;           // Extra stop buffer beyond distal (points)
+input double    InpMinStopPips   = 3.0;          // Minimum stop distance (pips) — tiny zones get a wider stop, smaller lots
+input double    InpMinStopSpreads= 3.0;          // ...and at least this many spreads
+input double    InpMaxLots       = 2.0;          // Hard cap on lots per order
+input double    InpMaxMarginPct  = 10.0;         // Skip if the order needs more than this % of free margin
 input double    InpMaxSpreadPct  = 15;           // Max spread as % of the stop distance
 input bool      InpSkipAsian     = true;         // No new orders in the Asian session
 input int       InpAsianStartUTC = 22;           // Asian session start (UTC hour)
@@ -117,7 +121,7 @@ datetime lastSimBar = 0;
 int      knownTickets[];
 
 // Approve mode proposals
-struct Proposal { string sym; int k; int dir; double entry, sl, tp, dist; string method, grade; datetime t; };
+struct Proposal { string sym; int k; int dir; double entry, sl, tp, dist, rr; bool trap; string method, grade, info; datetime t; };
 Proposal props[];
 
 //+------------------------------------------------------------------+
@@ -127,6 +131,7 @@ int OnInit()
    ArrayResize(lastBar, ArraySize(syms));
    for(int i = 0; i < ArraySize(syms); i++) for(int k = 0; k < 5; k++) lastBar[i][k] = 0;
    LoadSims();
+   StLoad();
    LoadNews();
    EnsureHeaders();
    EventSetTimer(2);
@@ -426,6 +431,10 @@ void Scan(string s, int k)
          sl = z[i].dist + InpStopBufferPts * point + spread;
          tp = opp > 0 ? opp + spread : 0;
         }
+      // never a noise-sized stop: at least InpMinStopPips and InpMinStopSpreads × spread
+      double pip = point * ((digits == 3 || digits == 5) ? 10 : 1);
+      double minStop = MathMax(InpMinStopPips * pip, InpMinStopSpreads * spread);
+      if(MathAbs(entry - sl) < minStop) sl = dir > 0 ? entry - minStop : entry + minStop;
       double risk = MathAbs(entry - sl);
       if(tp > 0 && risk > 0) rr = MathAbs(tp - entry) / risk;
       string method = ConfirmedBy(s, etf, htf, dir, z, z[i]) ? "CONF" : "SF";
@@ -455,8 +464,12 @@ void Scan(string s, int k)
       string tag = StringFormat("%s %s %s %s 1:%.1f grade %s%s", s, TF_N[k], dir > 0 ? "BUY" : "SELL", method, rr, z[i].grade, z[i].trap > 0 ? " + liquidity trap" : "");
       if(InpAlerts) Alert("RamanFX ZoneBot: ", tag);
       Count(decision);
-      if(InpMode == MODE_AUTO) Place(s, k, dir, entry, sl, tp, z[i].dist, method, z[i].grade);
-      else if(InpMode == MODE_APPROVE) AddProposal(s, k, dir, entry, sl, tp, z[i].dist, method, z[i].grade);
+      string info = StringFormat("RamanFX bot · %s limit · %s entry zone → %s trend %s\n", dir > 0 ? "BUY" : "SELL", TF_N[k], TfName(htf), trend > 0 ? "UP" : "DOWN");
+      info += StringFormat("Zone: %s %s grade %s (move away %.1fx, base %d candles) · fresh · %s\n", dir > 0 ? "RBR demand" : "DBD supply", DoubleToString(z[i].prox, digits) + "–" + DoubleToString(z[i].dist, digits), z[i].grade, z[i].legRatio, z[i].baseN, method == "CONF" ? "confirmation entry (HTF zone touched, opposing zone removed)" : "set & forget");
+      info += StringFormat("Why: with the %s trend · continuation zone, never touched%s%s\n", TfName(htf), z[i].trap > 0 ? " · liquidity trap at " + DoubleToString(z[i].trap, digits) : "", z[i].crowded ? " · note: sits on an S/R level" : "");
+      info += StringFormat("Target: just before the next %s zone · R:R 1:%.1f · HTF curve %.0f%%", dir > 0 ? "supply" : "demand", rr, curve);
+      if(InpMode == MODE_AUTO) Place(s, k, dir, entry, sl, tp, z[i].dist, method, z[i].grade, rr, z[i].trap > 0, info);
+      else if(InpMode == MODE_APPROVE) AddProposal(s, k, dir, entry, sl, tp, z[i].dist, method, z[i].grade, rr, z[i].trap > 0, info);
       return;
      }
   }
@@ -546,17 +559,100 @@ double Lots(string s, double stopDist)
    return MathMin(lots, mx);
   }
 
-void Place(string s, int k, int dir, double entry, double sl, double tp, double dist, string method, string grade)
+void Place(string s, int k, int dir, double entry, double sl, double tp, double dist, string method, string grade, double rr, bool trap, string info)
   {
    int digits = (int)MarketInfo(s, MODE_DIGITS);
-   double lots = Lots(s, MathAbs(entry - sl));
+   double point = MarketInfo(s, MODE_POINT), pip = point * ((digits == 3 || digits == 5) ? 10 : 1);
+   double stopDist = MathAbs(entry - sl);
+   double lots = Lots(s, stopDist);
    if(lots <= 0) { Print(s, ": lot size below broker minimum at ", InpRiskPct, "% risk — skipped"); Count("lot below broker minimum"); return; }
-   double point = MarketInfo(s, MODE_POINT);
-   // comment: RFX|tf|method|distal|R(points)|grade
-   string cm = StringFormat("RFX|%d|%s|%s|%d|%s", k, method == "CONF" ? "C" : "S", DoubleToString(dist, digits), (int)MathRound(MathAbs(entry - sl) / point), grade);
+   if(lots > InpMaxLots) { lots = MathFloor(InpMaxLots / MarketInfo(s, MODE_LOTSTEP)) * MarketInfo(s, MODE_LOTSTEP); }
+   // real money at risk and margin, double-checked before sending
+   double tv = MarketInfo(s, MODE_TICKVALUE), ts = MarketInfo(s, MODE_TICKSIZE);
+   double riskMoney = stopDist / ts * tv * lots;
+   double riskPct = 100.0 * riskMoney / AccountBalance();
+   double margin = MarketInfo(s, MODE_MARGINREQUIRED) * lots;
+   if(riskPct > InpRiskPct * 1.05) { Print(s, StringFormat(": risk %.2f%% above %.2f%% — skipped", riskPct, InpRiskPct)); Count("risk check failed"); return; }
+   if(margin > AccountFreeMargin() * InpMaxMarginPct / 100.0) { Print(s, StringFormat(": needs margin %.2f > %.0f%% of free margin — skipped", margin, InpMaxMarginPct)); Count("margin too high"); return; }
+   if(AccountFreeMarginCheck(s, dir > 0 ? OP_BUY : OP_SELL, lots) <= 0 || GetLastError() == ERR_NOT_ENOUGH_MONEY) { Count("not enough free margin"); return; }
+   info += StringFormat("\nEntry %s · SL %s (%.1f pips) · TP %s\nRisk %s %.2f = %.2f%% of balance · %.2f lots · margin %.2f",
+                        DoubleToString(entry, digits), DoubleToString(sl, digits), stopDist / pip, DoubleToString(tp, digits),
+                        AccountCurrency(), riskMoney, riskPct, lots, margin);
+   // short human comment (MT4 allows 31 characters); full reasoning goes to the log, Experts tab and chart
+   string cm = StringFormat("RFX %s>%s %s %s 1:%.1f%s", TF_N[k], TfName(TF_H[k]), method, grade, rr, trap ? " T" : "");
    int type = dir > 0 ? OP_BUYLIMIT : OP_SELLLIMIT;
    int t = OrderSend(s, type, lots, NormalizeDouble(entry, digits), 3, NormalizeDouble(sl, digits), NormalizeDouble(tp, digits), cm, MagicFor(k, method), 0, dir > 0 ? clrLime : clrRed);
-   if(t < 0) { int e = GetLastError(); Print("OrderSend failed ", s, " error ", e); Count("order rejected by broker (error " + IntegerToString(e) + ")"); }
+   if(t < 0) { int e = GetLastError(); Print("OrderSend failed ", s, " error ", e); Count("order rejected by broker (error " + IntegerToString(e) + ")"); return; }
+   StSet(t, k, method, dist, stopDist / point, grade);
+   string lines[]; int n = StringSplit(info, '\n', lines);
+   for(int i = 0; i < n; i++) Print("#", t, " ", lines[i]);
+   LogOrder(t, s, info);
+   Annotate(t, s, entry, lines);
+  }
+
+//+------------------------------------------------------------------+
+//| Per-order state (MT4 comments are too short to hold it)          |
+//+------------------------------------------------------------------+
+int stT[]; int stK[]; string stM[]; double stDist[]; double stRpts[]; string stG[];
+int StIdx(int t) { for(int i = 0; i < ArraySize(stT); i++) if(stT[i] == t) return i; return -1; }
+void StSet(int t, int k, string m, double dist, double rpts, string g)
+  {
+   int i = StIdx(t);
+   if(i < 0) { i = ArraySize(stT); ArrayResize(stT, i + 1); ArrayResize(stK, i + 1); ArrayResize(stM, i + 1); ArrayResize(stDist, i + 1); ArrayResize(stRpts, i + 1); ArrayResize(stG, i + 1); }
+   stT[i] = t; stK[i] = k; stM[i] = m; stDist[i] = dist; stRpts[i] = rpts; stG[i] = g;
+   int f = FileOpen("RamanFX_Bot_State.csv", FILE_WRITE | FILE_CSV | FILE_ANSI, ',');
+   if(f == INVALID_HANDLE) return;
+   for(int j = 0; j < ArraySize(stT); j++) FileWrite(f, stT[j], stK[j], stM[j], DoubleToString(stDist[j], 6), DoubleToString(stRpts[j], 1), stG[j]);
+   FileClose(f);
+  }
+void StLoad()
+  {
+   int f = FileOpen("RamanFX_Bot_State.csv", FILE_READ | FILE_CSV | FILE_ANSI, ',');
+   if(f == INVALID_HANDLE) return;
+   while(!FileIsEnding(f))
+     {
+      int t = (int)StringToInteger(FileReadString(f)); if(t == 0) break;
+      int i = ArraySize(stT); ArrayResize(stT, i + 1); ArrayResize(stK, i + 1); ArrayResize(stM, i + 1); ArrayResize(stDist, i + 1); ArrayResize(stRpts, i + 1); ArrayResize(stG, i + 1);
+      stT[i] = t; stK[i] = (int)StringToInteger(FileReadString(f)); stM[i] = FileReadString(f);
+      stDist[i] = StringToDouble(FileReadString(f)); stRpts[i] = StringToDouble(FileReadString(f)); stG[i] = FileReadString(f);
+     }
+   FileClose(f);
+  }
+// Entry TF index from the magic number when no state exists (magic = base + k [+10 for confirmation]).
+int KOf(int magic) { int k = (magic - InpMagic) % 10; return (k >= 0 && k <= 4) ? k : 1; }
+
+void LogOrder(int t, string s, string info)
+  {
+   bool fresh = !FileIsExist("RamanFX_Bot_Orders.csv");
+   int f = OpenAppend("RamanFX_Bot_Orders.csv");
+   if(f == INVALID_HANDLE) return;
+   if(fresh) FileWrite(f, "Time", "Ticket", "Symbol", "Reasoning");
+   string flat = info; StringReplace(flat, "\n", " | ");
+   FileWrite(f, TimeToString(TimeCurrent(), TIME_DATE | TIME_MINUTES), t, s, flat);
+   FileClose(f);
+  }
+
+// Writes the reasoning next to the order on every open chart of that symbol.
+void Annotate(int t, string s, double price, string &lines[])
+  {
+   for(long ch = ChartFirst(); ch >= 0; ch = ChartNext(ch))
+     {
+      if(ChartSymbol(ch) != s) continue;
+      ObjectsDeleteAll(ch, "RFXO_");
+      for(int i = 0; i < ArraySize(lines); i++)
+        {
+         string nm = StringFormat("RFXO_%d_%d", t, i);
+         ObjectCreate(ch, nm, OBJ_LABEL, 0, 0, 0);
+         ObjectSetInteger(ch, nm, OBJPROP_CORNER, CORNER_LEFT_LOWER);
+         ObjectSetInteger(ch, nm, OBJPROP_XDISTANCE, 10);
+         ObjectSetInteger(ch, nm, OBJPROP_YDISTANCE, 20 + (ArraySize(lines) - i) * 14);
+         ObjectSetString(ch, nm, OBJPROP_TEXT, lines[i]);
+         ObjectSetString(ch, nm, OBJPROP_FONT, "Arial");
+         ObjectSetInteger(ch, nm, OBJPROP_FONTSIZE, 8);
+         ObjectSetInteger(ch, nm, OBJPROP_COLOR, i == 0 ? clrRoyalBlue : clrDimGray);
+        }
+      ChartRedraw(ch);
+     }
   }
 
 string Field(string cm, int idx) { string p[]; int n = StringSplit(cm, '|', p); return idx < n ? p[idx] : ""; }
@@ -570,10 +666,10 @@ void ManageOrders()
       if(!OrderSelect(i, SELECT_BY_POS) || !OurMagic(OrderMagicNumber())) continue;
       string s = OrderSymbol(); string cm = OrderComment();
       int type = OrderType();
-      int k = (int)StringToInteger(Field(cm, 1));
-      if(k < 0 || k > 4) k = 1;
+      int si = StIdx(OrderTicket());
+      int k = si >= 0 ? stK[si] : KOf(OrderMagicNumber());
       int etf = TF_E[k];
-      double dist = StringToDouble(Field(cm, 3));
+      double dist = si >= 0 ? stDist[si] : 0;
       double point = MarketInfo(s, MODE_POINT);
       if(type == OP_BUYLIMIT || type == OP_SELLLIMIT)
         {
@@ -598,7 +694,7 @@ void ManageOrders()
         }
       TrackFill(OrderTicket());
       // live break-even rule
-      double Rp = StringToDouble(Field(cm, 4)) * point;
+      double Rp = si >= 0 ? stRpts[si] * point : 0;
       if(InpLiveBE != BE_NONE && Rp > 0)
         {
          double trig = InpLiveBE == BE_AT_1R ? Rp : 2 * Rp;
@@ -622,11 +718,12 @@ void TrackFill(int ticket)
    if(!OrderSelect(ticket, SELECT_BY_TICKET)) return;
    string cm = OrderComment();
    double point = MarketInfo(OrderSymbol(), MODE_POINT);
-   double Rp = StringToDouble(Field(cm, 4)) * point;
+   int si = StIdx(ticket);
+   double Rp = si >= 0 ? stRpts[si] * point : 0;
    if(Rp <= 0) Rp = MathAbs(OrderOpenPrice() - OrderStopLoss());
    Sim m;
-   m.ticket = ticket; m.sym = OrderSymbol(); int k = (int)StringToInteger(Field(cm, 1)); m.tf = (k >= 0 && k <= 4) ? TF_N[k] : "?";
-   m.method = Field(cm, 2) == "C" ? "CONF" : "SF"; m.grade = Field(cm, 5);
+   m.ticket = ticket; m.sym = OrderSymbol(); int k = si >= 0 ? stK[si] : KOf(OrderMagicNumber()); m.tf = TF_N[k];
+   m.method = OrderMagicNumber() - InpMagic >= 10 ? "CONF" : "SF"; m.grade = si >= 0 ? stG[si] : "";
    m.dir = OrderType() == OP_BUY ? 1 : -1; m.entry = OrderOpenPrice(); m.R = Rp; m.opp = OrderTakeProfit();
    m.t0 = OrderOpenTime(); m.tLast = 0; m.done = false;
    int s = ArraySize(sims); ArrayResize(sims, s + 1); sims[s] = m;
@@ -797,10 +894,10 @@ void DrawZones(Zone &z[])
 //+------------------------------------------------------------------+
 //| Approve mode: one button per proposal                            |
 //+------------------------------------------------------------------+
-void AddProposal(string s, int k, int dir, double entry, double sl, double tp, double dist, string method, string grade)
+void AddProposal(string s, int k, int dir, double entry, double sl, double tp, double dist, string method, string grade, double rr, bool trap, string info)
   {
    for(int i = 0; i < ArraySize(props); i++) if(props[i].sym == s && props[i].k == k) return;
-   Proposal p; p.sym = s; p.k = k; p.dir = dir; p.entry = entry; p.sl = sl; p.tp = tp; p.dist = dist; p.method = method; p.grade = grade; p.t = TimeCurrent();
+   Proposal p; p.sym = s; p.k = k; p.dir = dir; p.entry = entry; p.sl = sl; p.tp = tp; p.dist = dist; p.method = method; p.grade = grade; p.rr = rr; p.trap = trap; p.info = info; p.t = TimeCurrent();
    int n = ArraySize(props); ArrayResize(props, n + 1); props[n] = p;
   }
 
@@ -827,7 +924,7 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
    if(id != CHARTEVENT_OBJECT_CLICK || StringFind(sparam, "RFXB_") != 0) return;
    int i = (int)StringToInteger(StringSubstr(sparam, 5));
    if(i < 0 || i >= ArraySize(props)) return;
-   Place(props[i].sym, props[i].k, props[i].dir, props[i].entry, props[i].sl, props[i].tp, props[i].dist, props[i].method, props[i].grade);
+   Place(props[i].sym, props[i].k, props[i].dir, props[i].entry, props[i].sl, props[i].tp, props[i].dist, props[i].method, props[i].grade, props[i].rr, props[i].trap, props[i].info);
    for(int j = i; j < ArraySize(props) - 1; j++) props[j] = props[j + 1];
    ArrayResize(props, ArraySize(props) - 1);
    DrawProposals();
