@@ -144,6 +144,7 @@ export default function Settings() {
         <ol className="mt-3 text-[12.5px] text-ink2 list-decimal pl-5 flex flex-col gap-1">
           <li>MT4: File → Open Data Folder → MQL4 → Experts. Put the file there, then press F7 in MetaEditor to compile.</li>
           <li>Drag RamanFX_ZoneBot onto any one chart, tick "Allow live trading", pick the mode (Scanner / Approve / Auto). Demo account only.</li>
+          <li>ZoneVision indicator (MQL4 → Indicators): draws exactly what the bot sees — zones with their 4 parts labelled, trendlines, HTF zones, rejected candidates and the trade it would take. Use it to spot what needs correcting.</li>
           <li>Logs land in MQL4\Files: RamanFX_Bot_Signals.csv (every zone and why it was traded or skipped) and RamanFX_Bot_Variants.csv (TP / break-even replays).</li>
         </ol>
       </Card>
