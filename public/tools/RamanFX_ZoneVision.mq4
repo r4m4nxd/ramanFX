@@ -367,7 +367,7 @@ void DrawZones(Zone &zs[], bool htf)
       for(int j = 0; j < n; j++) if(idx[j] >= 0 && (best < 0 || dst[j] < dst[best])) best = j;
       if(best < 0) break;
       Zone z = zs[idx[best]]; string id = PFX + (htf ? "H" : "Z") + IntegerToString(idx[best]); idx[best] = -1;
-      color fill = htf ? InpHtfFill : (z.removed ? C'235,235,235' : (z.dir > 0 ? InpDemandFill : InpSupplyFill));
+      color fill = htf ? InpHtfFill : (z.removed ? C'250,230,212' : (z.dir > 0 ? InpDemandFill : InpSupplyFill));
       color line = z.removed ? InpMuted : (z.dir > 0 ? InpDemandLine : InpSupplyLine);
       datetime t1 = iTime(_Symbol, tf, z.legBar + z.baseN);
       datetime t2 = z.removed ? iTime(_Symbol, tf, z.removedBar) : right;
