@@ -37,7 +37,7 @@ input Grades    InpGrades        = GR_ALL;       // Which planner grades to trad
 input bool      InpHalfRiskC     = true;         // Planner rule: low odds (grade C) risks half
 input EntryMode InpEntry         = ENTRY_BOTH;   // Entry method
 input string    InpSymbols       = "";           // Symbols (comma list; empty = every forex pair in Market Watch)
-input int       InpScansPerTick  = 8;            // Max symbol/timeframe scans per 2-second tick (keeps MT4 responsive)
+input int       InpScansPerTick  = 4;            // Max symbol/timeframe scans per 2-second tick (keeps MT4 responsive)
 input string    InpSuffix        = "";           // Broker symbol suffix (e.g. .a)
 input bool      InpTF_M1         = true;         // Trade 1m entries (HTF 15m)
 input bool      InpTF_M5         = true;         // Trade 5m entries (HTF H1)
@@ -147,7 +147,7 @@ datetime lastBar[][NTF];
 string   newsCcy[];
 datetime newsTime[];
 datetime lastNewsLoad = 0;
-datetime lastSimBar = 0;
+datetime lastSimBar = 0; datetime startedAt = 0;
 int      knownTickets[];
 
 // Approve mode proposals
@@ -157,6 +157,7 @@ Proposal props[];
 //+------------------------------------------------------------------+
 int OnInit()
   {
+   startedAt = TimeLocal();
    BuildSymbols();
    ArrayResize(lastBar, ArraySize(syms));
    for(int i = 0; i < ArraySize(syms); i++) for(int k = 0; k < NTF; k++) lastBar[i][k] = 0;
@@ -257,7 +258,9 @@ void Work()
    if(TimeCurrent() - lastNewsLoad > 3600) LoadNews();
    ManageOrders();
    int total = ArraySize(syms) * NTF, done = 0;
-   for(int step = 0; step < total && done < InpScansPerTick; step++)
+   uint w0 = GetTickCount();
+   bool warm = TimeLocal() - startedAt < 20;                         // first 20 s: 1 scan per tick while MT4 loads history
+   for(int step = 0; step < total && done < (warm ? 1 : InpScansPerTick) && GetTickCount() - w0 < 400; step++)
      {
       int idx = (qPos + step) % total, i = idx / NTF, k = idx % NTF;
       if(!TfOn(k)) continue;
@@ -1034,64 +1037,77 @@ void TrackFill(int ticket)
   }
 
 // Replays every TP x BE variant over M1 bars from the fill. SL is assumed hit first when a bar touches both.
+// Variant replay is incremental: each sim keeps its state and only new M1 bars are replayed,
+// with a hard budget per call so MT4 never freezes (the old full replay could take many seconds).
+double sRes[], sSl[]; bool sOpen[], sHalf[]; datetime sEx[]; string sWhy[]; bool sInit[]; int simPos = 0;
 void UpdateSims()
   {
-   datetime b = iTime(_Symbol, PERIOD_M1, 1);
-   if(b == lastSimBar || (lastSimBar > 0 && b - lastSimBar < 900)) return;
-   lastSimBar = b;
-   bool changed = false;
-   for(int i = 0; i < ArraySize(sims); i++)
+   int n = ArraySize(sims);
+   if(n == 0 || TimeLocal() - startedAt < 120) return;              // let MT4 settle after start
+   if(ArraySize(sInit) < n)
      {
+      int o = ArraySize(sInit);
+      ArrayResize(sInit, n); ArrayResize(sRes, n * NV); ArrayResize(sSl, n * NV); ArrayResize(sOpen, n * NV); ArrayResize(sHalf, n * NV); ArrayResize(sEx, n * NV); ArrayResize(sWhy, n * NV);
+      for(int i = o; i < n; i++) sInit[i] = false;
+     }
+   uint t0 = GetTickCount();
+   bool changed = false;
+   for(int c = 0; c < n && GetTickCount() - t0 < 80; c++)
+     {
+      int i = (simPos + c) % n;
       if(sims[i].done) continue;
-      datetime horizon = sims[i].t0 + InpSimDays * 86400;
-      bool finished = TimeCurrent() > horizon;
-      int start = iBarShift(sims[i].sym, PERIOD_M1, sims[i].t0);
-      if(start < 0) continue;
-      // run every variant from the fill to the latest closed bar
-      double res[NV]; datetime ex[NV]; string why[NV]; bool open[NV]; double sl[NV]; bool half[NV];
-      for(int v = 0; v < NV; v++) { res[v] = 0; ex[v] = 0; why[v] = ""; open[v] = true; sl[v] = sims[i].entry - sims[i].dir * sims[i].R; half[v] = false; }
-      int dir = sims[i].dir; double e = sims[i].entry, R = sims[i].R;
-      for(int sh = start; sh >= 1; sh--)
+      if(!sInit[i])
         {
-         double hi = iHigh(sims[i].sym, PERIOD_M1, sh), lo = iLow(sims[i].sym, PERIOD_M1, sh);
+         for(int v = 0; v < NV; v++) { int q = i * NV + v; sRes[q] = 0; sEx[q] = 0; sWhy[q] = ""; sOpen[q] = true; sSl[q] = sims[i].entry - sims[i].dir * sims[i].R; sHalf[q] = false; }
+         sims[i].tLast = 0; sInit[i] = true;
+        }
+      datetime horizon = sims[i].t0 + InpSimDays * 86400;
+      int start = sims[i].tLast == 0 ? iBarShift(sims[i].sym, PERIOD_M1, sims[i].t0) : iBarShift(sims[i].sym, PERIOD_M1, sims[i].tLast) - 1;
+      if(start < 0) continue;
+      int dir = sims[i].dir; double e = sims[i].entry, R = sims[i].R;
+      if(R <= 0) { sims[i].done = true; continue; }
+      int stop = MathMax(1, start - 1500);                           // at most 1500 M1 bars per sim per call
+      for(int sh = start; sh >= stop; sh--)
+        {
          datetime tt = iTime(sims[i].sym, PERIOD_M1, sh);
          if(tt > horizon) break;
-         double fav = dir > 0 ? (hi - e) / R : (e - lo) / R;     // best excursion this bar (R)
-         double adv = dir > 0 ? (lo - e) / R : (e - hi) / R;     // worst excursion this bar (R)
+         double hi = iHigh(sims[i].sym, PERIOD_M1, sh), lo = iLow(sims[i].sym, PERIOD_M1, sh);
+         double fav = dir > 0 ? (hi - e) / R : (e - lo) / R;
+         double adv = dir > 0 ? (lo - e) / R : (e - hi) / R;
          for(int v = 0; v < NV; v++)
            {
-            if(!open[v]) continue;
+            int q = i * NV + v;
+            if(!sOpen[q]) continue;
             int tpv = v / 4, bev = v % 4;
-            double slR = dir > 0 ? (sl[v] - e) / R : (e - sl[v]) / R;
-            if(adv <= slR)                                          // stop first (conservative)
-              {
-               res[v] += (half[v] ? 0.75 : 1.0) * slR; open[v] = false; ex[v] = tt; why[v] = slR >= 0 ? "BE/locked" : "SL";
-               continue;
-              }
+            double slR = dir > 0 ? (sSl[q] - e) / R : (e - sSl[q]) / R;
+            if(adv <= slR) { sRes[q] += (sHalf[q] ? 0.75 : 1.0) * slR; sOpen[q] = false; sEx[q] = tt; sWhy[q] = slR >= 0 ? "BE/locked" : "SL"; continue; }
             double tpR = tpv == 1 ? 2 : (tpv == 2 ? 3 : (tpv == 3 ? 5 : (sims[i].opp > 0 ? MathAbs(sims[i].opp - e) / R : 99)));
-            if(tpv == 4 && !half[v] && fav >= 3) { res[v] += 0.25 * 3; half[v] = true; }
-            if(fav >= tpR) { res[v] += (half[v] ? 0.75 : 1.0) * tpR; open[v] = false; ex[v] = tt; why[v] = "TP"; continue; }
-            // break-even moves take effect from the next bar
-            if(bev == 1 && fav >= 1 && slR < 0) sl[v] = e;
-            if(bev == 2 && fav >= 2 && slR < 0) sl[v] = e;
-            if(bev == 3 && fav >= 2 && slR < 0.5) sl[v] = e + dir * 0.5 * R;
+            if(tpv == 4 && !sHalf[q] && fav >= 3) { sRes[q] += 0.25 * 3; sHalf[q] = true; }
+            if(fav >= tpR) { sRes[q] += (sHalf[q] ? 0.75 : 1.0) * tpR; sOpen[q] = false; sEx[q] = tt; sWhy[q] = "TP"; continue; }
+            if(bev == 1 && fav >= 1 && slR < 0) sSl[q] = e;
+            if(bev == 2 && fav >= 2 && slR < 0) sSl[q] = e;
+            if(bev == 3 && fav >= 2 && slR < 0.5) sSl[q] = e + dir * 0.5 * R;
            }
+         sims[i].tLast = tt;
         }
       bool all = true;
-      for(int v = 0; v < NV; v++) if(open[v]) all = false;
-      if(all || finished)
+      for(int v = 0; v < NV; v++) if(sOpen[i * NV + v]) all = false;
+      if(all || TimeCurrent() > horizon)
         {
-         double last = dir > 0 ? iBid(sims[i].sym) : iAsk(sims[i].sym);
+         double last = dir > 0 ? MarketInfo(sims[i].sym, MODE_BID) : MarketInfo(sims[i].sym, MODE_ASK);
          for(int v = 0; v < NV; v++)
            {
-            if(open[v]) { res[v] += (half[v] ? 0.75 : 1.0) * (dir > 0 ? (last - e) / R : (e - last) / R); ex[v] = TimeCurrent(); why[v] = "horizon"; }
-            LogVariant(sims[i], TP_N[v / 4], BE_N[v % 4], res[v], ex[v], why[v]);
+            int q = i * NV + v;
+            if(sOpen[q]) { sRes[q] += (sHalf[q] ? 0.75 : 1.0) * (dir > 0 ? (last - e) / R : (e - last) / R); sEx[q] = TimeCurrent(); sWhy[q] = "horizon"; }
+            LogVariant(sims[i], TP_N[v / 4], BE_N[v % 4], sRes[q], sEx[q], sWhy[q]);
            }
          sims[i].done = true; changed = true;
         }
      }
+   simPos = (simPos + 1) % n;
    if(changed) SaveSims();
   }
+
 double iBid(string s) { return MarketInfo(s, MODE_BID); }
 double iAsk(string s) { return MarketInfo(s, MODE_ASK); }
 
