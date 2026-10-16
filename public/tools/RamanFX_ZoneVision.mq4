@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| RamanFX_ZoneVision.mq4  (v0.2 — clean, mentor-style)                                    |
+//| RamanFX_ZoneVision.mq4  (v0.2 - clean, mentor-style)                                    |
 //| See the chart through the ZoneBot's eyes. Uses the SAME zone     |
 //| rules and defaults as RamanFX_ZoneBot.mq4 so you can spot where  |
 //| the bot disagrees with you (and with the mentor).                |
@@ -10,13 +10,13 @@
 //|  - qualifiers: removed an opposing zone, removed a trendline,    |
 //|    made a new high/low of the lookback                           |
 //|  - rejected candidates with the reason (optional)                |
-//|  - trendlines by the mentor's rules: clear valley → peak →       |
+//|  - trendlines by the mentor's rules: clear valley -> peak ->       |
 //|    higher high; attached so it never cuts through a candle;      |
 //|    removed only by a candle fully (body + wick) beyond it        |
-//|  - HTF zones (entry TF → HTF pairing) and the HTF trend          |
+//|  - HTF zones (entry TF -> HTF pairing) and the HTF trend          |
 //|  - the setup the bot would take now: entry, SL, TP, R:R and the  |
 //|    reason it would trade or skip                                 |
-//| Emotional wicks: a huge candle (> EmoATR × ATR) that only wicks  |
+//| Emotional wicks: a huge candle (> EmoATR x ATR) that only wicks  |
 //| into a zone does not count as a touch. Removal needs a CLOSE.    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
@@ -24,18 +24,18 @@
 #property strict
 #property indicator_chart_window
 
-input string Sep1             = "── Zone rules (keep equal to ZoneBot) ──"; // ─────
-input double InpMinLegRatio   = 1.2;    // Move-away range ÷ largest base candle
+input string Sep1             = "-- Zone rules (keep equal to ZoneBot) --"; // -----
+input double InpMinLegRatio   = 1.2;    // Move-away range / largest base candle
 input int    InpMaxBase       = 6;      // Max basing candles
 input double InpMaxZoneATR    = 1.5;    // Max zone height in ATR(14) (similar-size rule)
 input int    InpLookback      = 300;    // Bars scanned
 input int    InpMaxZoneAge    = 200;    // Ignore zones older than this many bars
-input double InpEmoATR        = 3.0;    // Emotional candle: range > this × ATR (wick ignored)
+input double InpEmoATR        = 3.0;    // Emotional candle: range > this x ATR (wick ignored)
 input double InpMinRR         = 2.0;    // Min reward:risk (for the planned setup)
 input double InpStopBufferPts = 10;     // Stop buffer beyond distal (points)
-input double InpTrapATR       = 1.0;    // Liquidity trap: obvious level within N × ATR in front of the zone
+input double InpTrapATR       = 1.0;    // Liquidity trap: obvious level within N x ATR in front of the zone
 input int    InpTrapSwing     = 3;      // Obvious level = swing with N bars each side
-input string Sep2             = "── What to show (clean by default) ──"; // ─────
+input string Sep2             = "-- What to show (clean by default) --"; // -----
 input int    InpMaxZones      = 4;      // Zones drawn: the N closest to price
 input bool   InpShowTested    = false;  // Also draw tested zones
 input bool   InpShowRemoved   = false;  // Also draw removed zones (faded)
@@ -131,7 +131,7 @@ bool   Emotional(string s, int tf, int i) { double a = iATR(s, tf, 14, i + 1); r
 datetime BarTime(string s, int tf, int i) { return i >= 0 ? iTime(s, tf, i) : iTime(s, tf, 0) + (datetime)(-i * PeriodSeconds(tf)); }
 
 //+------------------------------------------------------------------+
-//| Zone detection — same rules as ZoneBot                           |
+//| Zone detection - same rules as ZoneBot                           |
 //+------------------------------------------------------------------+
 void Reject(string s, int tf, int L, int k, string why, bool draw)
   {
@@ -142,19 +142,19 @@ void Reject(string s, int tf, int L, int k, string why, bool draw)
    ObjectCreate(0, nm, OBJ_RECTANGLE, 0, BarTime(s, tf, L + MathMax(k, 1)), hi, BarTime(s, tf, L - 1), lo);
    ObjectSetInteger(0, nm, OBJPROP_COLOR, InpMuted); ObjectSetInteger(0, nm, OBJPROP_STYLE, STYLE_DOT); ObjectSetInteger(0, nm, OBJPROP_BACK, false);
    ObjectSetString(0, nm, OBJPROP_TOOLTIP, "Rejected: " + why);
-   Txt(PFX + "rejt" + IntegerToString(L), BarTime(s, tf, L), hi, "✕ " + why, InpMuted, 7, ANCHOR_LEFT_LOWER);
+   Txt(PFX + "rejt" + IntegerToString(L), BarTime(s, tf, L), hi, "x " + why, InpMuted, 7, ANCHOR_LEFT_LOWER);
   }
 
 //+------------------------------------------------------------------+
 //| Liquidity (lesson 16): retail traders trade support/resistance   |
 //| ("old resistance becomes new support") and put stops just beyond |
 //| the obvious level. The mentor prefers a zone sitting just BEYOND |
-//| that obvious level, so price runs those stops first → trap,      |
+//| that obvious level, so price runs those stops first -> trap,      |
 //| better odds (purple). A zone sitting ON the obvious level is a   |
-//| retail trade → crowded, lower odds.                              |
+//| retail trade -> crowded, lower odds.                              |
 //| Obvious level = a clear swing low/high (InpTrapSwing bars each   |
 //| side). In front = between price and the proximal line, within    |
-//| InpTrapATR × ATR. Stops still resting = not swept since.         |
+//| InpTrapATR x ATR. Stops still resting = not swept since.         |
 //+------------------------------------------------------------------+
 bool SwingAt(string s, int tf, int i, int dir)        // dir +1 swing low, -1 swing high
   {
@@ -227,7 +227,7 @@ int Detect(string s, int tf, Zone &out[], bool draw)
       double h = MathAbs(prox - dist);
       double atr = iATR(s, tf, 14, L);
       if(h <= 0) continue;
-      if(atr > 0 && h > InpMaxZoneATR * atr) { Reject(s, tf, L, k, StringFormat("zone %.1f ATR — too big", h / atr), draw); continue; }
+      if(atr > 0 && h > InpMaxZoneATR * atr) { Reject(s, tf, L, k, StringFormat("zone %.1f ATR - too big", h / atr), draw); continue; }
       int sa = L - 1;
       if((dir > 0 && iLow(s, tf, sa) <= prox) || (dir < 0 && iHigh(s, tf, sa) >= prox)) { Reject(s, tf, L, k, "no stay-away / no space", draw); continue; }
 
@@ -255,8 +255,8 @@ int Detect(string s, int tf, Zone &out[], bool draw)
   }
 
 //+------------------------------------------------------------------+
-//| Trendlines — mentor rules                                        |
-//|  up: valley A → peak → higher high → valley B (B > A); line A→B |
+//| Trendlines - mentor rules                                        |
+//|  up: valley A -> peak -> higher high -> valley B (B > A); line A->B |
 //|  is the lowest-slope line from A, so no candle low between them |
 //|  is below it (never cuts through candles). Removed by the first |
 //|  candle whose HIGH is below the line (full body + wick).        |
@@ -329,7 +329,7 @@ void Trendlines(string s, int tf)
       ObjectSetInteger(0, nm, OBJPROP_COLOR, TL[i].removed ? InpMuted : InpTrend);
       ObjectSetInteger(0, nm, OBJPROP_STYLE, TL[i].removed ? STYLE_DOT : STYLE_SOLID);
       ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
-      ObjectSetString(0, nm, OBJPROP_TOOLTIP, (TL[i].dir > 0 ? "Uptrend line" : "Downtrend line") + (TL[i].removed ? " — removed by a full close" : " — intact"));
+      ObjectSetString(0, nm, OBJPROP_TOOLTIP, (TL[i].dir > 0 ? "Uptrend line" : "Downtrend line") + (TL[i].removed ? " - removed by a full close" : " - intact"));
      }
   }
 
@@ -354,17 +354,17 @@ void Qualify()
       string q = "";
       // the move away (up to 5 bars after the leg) removed an older opposing zone
       for(int j = 0; j < ArraySize(Z); j++)
-         if(Z[j].dir == -Z[i].dir && Z[j].removed && Z[j].legBar > Z[i].legBar && Z[j].removedBar <= Z[i].legBar && Z[j].removedBar >= Z[i].legBar - 5) { q += "removed opp. zone · "; break; }
+         if(Z[j].dir == -Z[i].dir && Z[j].removed && Z[j].legBar > Z[i].legBar && Z[j].removedBar <= Z[i].legBar && Z[j].removedBar >= Z[i].legBar - 5) { q += "removed opp. zone | "; break; }
       for(int t = 0; t < ArraySize(TL); t++)
-         if(TL[t].dir == -Z[i].dir && TL[t].removed && TL[t].removedBar <= Z[i].legBar && TL[t].removedBar >= Z[i].legBar - 5) { q += "removed trendline · "; break; }
+         if(TL[t].dir == -Z[i].dir && TL[t].removed && TL[t].removedBar <= Z[i].legBar && TL[t].removedBar >= Z[i].legBar - 5) { q += "removed trendline | "; break; }
       // the move away made a new high / low versus everything before the zone
       int L = Z[i].legBar, older = L + Z[i].baseN + 1;
       int span = MathMin(InpLookback, Bars - older - 1);
       if(span > 5)
         {
          int nx = MathMax(L - 5, 1);
-         if(Z[i].dir > 0 && High[iHighest(NULL, 0, MODE_HIGH, L - nx + 1, nx)] > High[iHighest(NULL, 0, MODE_HIGH, span, older)]) q += "new high · ";
-         if(Z[i].dir < 0 && Low[iLowest(NULL, 0, MODE_LOW, L - nx + 1, nx)] < Low[iLowest(NULL, 0, MODE_LOW, span, older)]) q += "new low · ";
+         if(Z[i].dir > 0 && High[iHighest(NULL, 0, MODE_HIGH, L - nx + 1, nx)] > High[iHighest(NULL, 0, MODE_HIGH, span, older)]) q += "new high | ";
+         if(Z[i].dir < 0 && Low[iLowest(NULL, 0, MODE_LOW, L - nx + 1, nx)] < Low[iLowest(NULL, 0, MODE_LOW, span, older)]) q += "new low | ";
         }
       Z[i].qual = q == "" ? "no qualifier" : StringSubstr(q, 0, StringLen(q) - 3);
      }
@@ -430,7 +430,7 @@ void DrawZones(Zone &zs[], bool htf)
       ObjectCreate(0, id, OBJ_RECTANGLE, 0, t1, z.prox, t2, z.dist);
       ObjectSetInteger(0, id, OBJPROP_COLOR, fill); ObjectSetInteger(0, id, OBJPROP_BACK, true); ObjectSetInteger(0, id, OBJPROP_SELECTABLE, false);
       string state = z.removed ? "removed" : (z.tested ? "tested" : "fresh");
-      ObjectSetString(0, id, OBJPROP_TOOLTIP, StringFormat("%s%s · grade %s · move away %.1fx · base %d · %s · %s", htf ? TfName(tf) + " " : "", ZoneName(z), z.grade, z.legRatio, z.baseN, state, htf ? "" : z.qual));
+      ObjectSetString(0, id, OBJPROP_TOOLTIP, StringFormat("%s%s | grade %s | move away %.1fx | base %d | %s | %s", htf ? TfName(tf) + " " : "", ZoneName(z), z.grade, z.legRatio, z.baseN, state, htf ? "" : z.qual));
       if(!htf)
         {
          HLine(id + "p", t1, t2, z.prox, line, STYLE_SOLID, 1);
@@ -443,11 +443,11 @@ void DrawZones(Zone &zs[], bool htf)
          double th = MathMax(MathAbs(z.prox - z.dist) * 0.12, 2 * Point);
          ObjectCreate(0, id + "lt", OBJ_RECTANGLE, 0, Time[z.trapBar], z.trap, t2, z.dir > 0 ? z.trap - th : z.trap + th);
          ObjectSetInteger(0, id + "lt", OBJPROP_COLOR, InpTrapColor); ObjectSetInteger(0, id + "lt", OBJPROP_BACK, true); ObjectSetInteger(0, id + "lt", OBJPROP_SELECTABLE, false);
-         ObjectSetString(0, id + "lt", OBJPROP_TOOLTIP, "Liquidity trap " + DoubleToString(z.trap, Digits) + " — obvious level in front of the zone; retail stops rest here, price runs them into the zone (lesson 16)");
+         ObjectSetString(0, id + "lt", OBJPROP_TOOLTIP, "Liquidity trap " + DoubleToString(z.trap, Digits) + " - obvious level in front of the zone; retail stops rest here, price runs them into the zone (lesson 16)");
         }
       if(InpShowNames)
         {
-         string nm = htf ? TfName(tf) + " " + (z.dir > 0 ? "demand" : "supply") : ZoneName(z) + (z.grade == "A" ? "" : " · " + z.grade) + (state == "fresh" ? "" : " · " + state) + (z.crowded ? " · on S/R level (crowded)" : "");
+         string nm = htf ? TfName(tf) + " " + (z.dir > 0 ? "demand" : "supply") : ZoneName(z) + (z.grade == "A" ? "" : " | " + z.grade) + (state == "fresh" ? "" : " | " + state) + (z.crowded ? " | on S/R level (crowded)" : "");
          Txt(id + "n", t1, z.dir > 0 ? z.dist : z.dist, nm, InpText, 7, z.dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
         }
      }
@@ -504,8 +504,8 @@ void Panel()
    int htf = HtfOf(_Period);
    int trend = gTrend;
    double spread = Ask - Bid;
-   string L = StringFormat("ZoneVision  %s %s  →  bias from %s\n", _Symbol, TfName(_Period), htf > 0 ? TfName(htf) : "–");
-   L += "Bias: " + (trend > 0 ? "UP — buys only" : (trend < 0 ? "DOWN — sells only" : "unclear — bot waits")) + "\n";
+   string L = StringFormat("ZoneVision  %s %s  ->  bias from %s\n", _Symbol, TfName(_Period), htf > 0 ? TfName(htf) : "-");
+   L += "Bias: " + (trend > 0 ? "UP - buys only" : (trend < 0 ? "DOWN - sells only" : "unclear - bot waits")) + "\n";
    L += "Structure: " + StructureNow() + "\n";
 
    string plan = "Bot: no trade setup";
@@ -533,7 +533,7 @@ void Panel()
       if(why == "")
          plan = StringFormat("Bot: %s %s  SL %s  TP %s  (1:%.1f, %s %s%s)", dir > 0 ? "BUY limit" : "SELL limit", DoubleToString(entry, Digits), DoubleToString(sl, Digits), DoubleToString(tp, Digits), rr, dir > 0 ? "RBR" : "DBD", Z[i].grade, Z[i].trap > 0 ? " + trap" : "");
       else
-         plan = StringFormat("Bot: watching %s at %s — no trade: %s", dir > 0 ? "demand" : "supply", DoubleToString(Z[i].prox, Digits), why);
+         plan = StringFormat("Bot: watching %s at %s - no trade: %s", dir > 0 ? "demand" : "supply", DoubleToString(Z[i].prox, Digits), why);
       if(InpShowPlan && why == "")
         {
          datetime t1 = Time[0] + PeriodSeconds() * 2, t2 = Time[0] + PeriodSeconds() * 18;

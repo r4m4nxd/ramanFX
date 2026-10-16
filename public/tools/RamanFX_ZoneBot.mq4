@@ -1,10 +1,10 @@
 //+------------------------------------------------------------------+
-//| RamanFX_ZoneBot.mq4  (v0.1 — DEMO ONLY)                           |
+//| RamanFX_ZoneBot.mq4  (v0.1 - DEMO ONLY)                           |
 //| Supply & demand zone bot built from the mentor's rules:          |
 //|  - zone = basing + move away + stay away + space to proximal     |
 //|  - continuation zones (RBR / DBD) only, fresh only, graded A/B/C |
-//|  - entry TF takes direction from its HTF (1m→15m, 5m→H1,         |
-//|    15m→H4, H1→1D, H4→1W)                                         |
+//|  - entry TF takes direction from its HTF (1m->15m, 5m->H1,         |
+//|    15m->H4, H1->1D, H4->1W)                                         |
 //|  - set & forget (limit at proximal) and/or confirmation          |
 //|    (HTF zone touched + an opposing entry-TF zone removed)        |
 //|  - SL beyond distal + spread, TP just before the opposing zone   |
@@ -41,13 +41,13 @@ input bool      InpTF_H1         = true;         // Trade H1 entries (HTF 1D)
 input bool      InpTF_H4         = true;         // Trade H4 entries (HTF 1W)
 input double    InpRiskPct       = 1.0;          // Risk per trade (% of balance)
 input double    InpMinRR         = 2.0;          // Minimum reward:risk to opposing zone
-input double    InpMinLegRatio   = 1.2;          // Move-away range ÷ largest base candle (loose)
+input double    InpMinLegRatio   = 1.2;          // Move-away range / largest base candle (loose)
 input int       InpMaxBase       = 6;            // Max basing candles
 input double    InpMaxZoneATR    = 1.5;          // Max zone height in ATR(14) (similar-size rule)
 input int       InpLookback      = 300;          // Bars scanned per timeframe
 input int       InpMaxZoneAge    = 200;          // Ignore zones older than this many bars
 input double    InpStopBufferPts = 10;           // Extra stop buffer beyond distal (points)
-input double    InpMinStopPips   = 3.0;          // Minimum stop distance (pips) — tiny zones get a wider stop, smaller lots
+input double    InpMinStopPips   = 3.0;          // Minimum stop distance (pips) - tiny zones get a wider stop, smaller lots
 input double    InpMinStopSpreads= 3.0;          // ...and at least this many spreads
 input double    InpMaxLots       = 2.0;          // Hard cap on lots per order
 input double    InpMaxMarginPct  = 10.0;         // Skip if the order needs more than this % of free margin
@@ -69,7 +69,7 @@ input int       InpSimDays       = 10;           // Variant replay horizon (days
 input int       InpMagic         = 770100;       // Magic number base
 input bool      InpAlerts        = true;         // Pop-up / push alerts for new setups
 input bool      InpDraw          = true;         // Draw zones on this chart
-input double    InpTrapATR       = 1.0;          // Liquidity trap: obvious level within N × ATR in front of the zone
+input double    InpTrapATR       = 1.0;          // Liquidity trap: obvious level within N x ATR in front of the zone
 input int       InpTrapSwing     = 3;            // Obvious level = swing with N bars each side
 input bool      InpRequireTrap   = false;        // Only trade zones with a liquidity trap
 
@@ -168,26 +168,26 @@ void Count(string why)
   }
 void Status()
   {
-   string t = StringFormat("RamanFX ZoneBot — %s · %s · %d symbols\n", EnumToString(InpMode), EnumToString(InpEntry), ArraySize(syms));
-   if(!IsTradeAllowed() || !TerminalInfoInteger(TERMINAL_TRADE_ALLOWED)) t += "⚠ AutoTrading is OFF — press the AutoTrading button and tick 'Allow live trading' in the EA settings\n";
-   if(IsTradeAllowed() && !IsExpertEnabled()) t += "⚠ Expert Advisors are disabled in the terminal\n";
+   string t = StringFormat("ZoneBot  %s | %s | %d pairs\n", InpMode == MODE_AUTO ? "AUTO" : (InpMode == MODE_APPROVE ? "APPROVE" : "SCANNER"), InpEntry == ENTRY_BOTH ? "S&F + conf" : (InpEntry == ENTRY_SF ? "set & forget" : "confirmation"), ArraySize(syms));
+   if(!IsTradeAllowed() || !TerminalInfoInteger(TERMINAL_TRADE_ALLOWED)) t += "! AutoTrading is OFF\n";
    string blocked = BlockedNow(ArraySize(syms) > 0 ? syms[0] : _Symbol);
-   t += "Right now: " + (blocked == "" ? "trading window open" : "paused — " + blocked) + "\n";
-   t += StringFormat("Scans: %d (last %s)\n", scans, lastScanAt ? TimeToString(lastScanAt, TIME_MINUTES) : "–");
    int pend = 0, open = 0;
    for(int i = OrdersTotal() - 1; i >= 0; i--) if(OrderSelect(i, SELECT_BY_POS) && OurMagic(OrderMagicNumber())) { if(OrderType() <= OP_SELL) open++; else pend++; }
-   t += StringFormat("Orders: %d pending · %d open\n", pend, open);
-   t += "Decisions so far:\n";
-   for(int i = 0; i < ArraySize(cKey); i++) t += StringFormat("  %-28s %d\n", cKey[i], cVal[i]);
-   if(!ArraySize(cKey)) t += "  (waiting for the next new candle on each timeframe)\n";
-   t += "Full log: MQL4\\Files\\RamanFX_Bot_Signals.csv";
+   t += (blocked == "" ? "Trading" : "Paused: " + blocked) + StringFormat("  |  %d pending, %d open\n", pend, open);
+   int order[]; ArrayResize(order, ArraySize(cKey)); for(int i = 0; i < ArraySize(cKey); i++) order[i] = i;
+   for(int i = 0; i < ArraySize(order); i++) for(int j = i + 1; j < ArraySize(order); j++) if(cVal[order[j]] > cVal[order[i]]) { int x = order[i]; order[i] = order[j]; order[j] = x; }
+   int shown = 0;
+   for(int i = 0; i < ArraySize(order) && shown < 3; i++)
+     {
+      string key = cKey[order[i]];
+      if(key == "ORDER" || key == "PROPOSE" || key == "ALERT") continue;
+      t += (shown == 0 ? "Top skips: " : "") + StringFormat("%s (%d)", key, cVal[order[i]]) + (shown < 2 ? ", " : "") ; shown++;
+     }
    string ls[]; int n = StringSplit(t, '\n', ls);
    ObjectsDeleteAll(0, "RFXS_");
-   for(int i = 0; i < n; i++) RightLabel(0, "RFXS_" + IntegerToString(i), ls[i], 20 + i * 15, i == 0 ? clrRoyalBlue : (StringFind(ls[i], "⚠") == 0 ? clrCrimson : clrDimGray), i == 0 ? 9 : 8);
-   statusLines = n;
+   for(int i = 0; i < n; i++) if(ls[i] != "") RightLabel(0, "RFXS_" + IntegerToString(i), ls[i], 20 + i * 15, i == 0 ? clrRoyalBlue : (StringFind(ls[i], "!") == 0 ? clrCrimson : clrDimGray), i == 0 ? 9 : 8);
   }
 
-int statusLines = 0;
 // One line of text anchored to the chart's top-right corner.
 void RightLabel(long ch, string nm, string text, int y, color c, int size)
   {
@@ -272,12 +272,12 @@ int    CDir(string s, int tf, int i) { return iClose(s, tf, i) > iOpen(s, tf, i)
 //| Liquidity (lesson 16): retail traders trade support/resistance   |
 //| ("old resistance becomes new support") and put stops just beyond |
 //| the obvious level. The mentor prefers a zone sitting just BEYOND |
-//| that obvious level, so price runs those stops first → trap,      |
+//| that obvious level, so price runs those stops first -> trap,      |
 //| better odds (purple). A zone sitting ON the obvious level is a   |
-//| retail trade → crowded, lower odds.                              |
+//| retail trade -> crowded, lower odds.                              |
 //| Obvious level = a clear swing low/high (InpTrapSwing bars each   |
 //| side). In front = between price and the proximal line, within    |
-//| InpTrapATR × ATR. Stops still resting = not swept since.         |
+//| InpTrapATR x ATR. Stops still resting = not swept since.         |
 //+------------------------------------------------------------------+
 bool SwingAt(string s, int tf, int i, int dir)        // dir +1 swing low, -1 swing high
   {
@@ -459,7 +459,7 @@ void Scan(string s, int k)
          sl = z[i].dist + InpStopBufferPts * point + spread;
          tp = opp > 0 ? opp + spread : 0;
         }
-      // the target can't run through a fresh opposing HTF zone — cap it just before that zone
+      // the target can't run through a fresh opposing HTF zone - cap it just before that zone
       double hOpp = 0;
       for(int j = 0; j < hn; j++)
         {
@@ -469,7 +469,7 @@ void Scan(string s, int k)
         }
       bool cappedByHtf = false;
       if(hOpp > 0 && (tp == 0 || (dir > 0 && hOpp - spread < tp) || (dir < 0 && hOpp + spread > tp))) { tp = dir > 0 ? hOpp - spread : hOpp + spread; cappedByHtf = true; }
-      // never a noise-sized stop: at least InpMinStopPips and InpMinStopSpreads × spread
+      // never a noise-sized stop: at least InpMinStopPips and InpMinStopSpreads x spread
       double pip = point * ((digits == 3 || digits == 5) ? 10 : 1);
       double minStop = MathMax(InpMinStopPips * pip, InpMinStopSpreads * spread);
       if(MathAbs(entry - sl) < minStop) sl = dir > 0 ? entry - minStop : entry + minStop;
@@ -502,11 +502,8 @@ void Scan(string s, int k)
       string tag = StringFormat("%s %s %s %s 1:%.1f grade %s%s", s, TF_N[k], dir > 0 ? "BUY" : "SELL", method, rr, z[i].grade, z[i].trap > 0 ? " + liquidity trap" : "");
       if(InpAlerts) Alert("RamanFX ZoneBot: ", tag);
       Count(decision);
-      string info = StringFormat("RamanFX bot · %s limit · %s entry zone → %s trend %s\n", dir > 0 ? "BUY" : "SELL", TF_N[k], TfName(htf), trend > 0 ? "UP" : "DOWN");
-      info += StringFormat("Zone: %s %s grade %s (move away %.1fx, base %d candles) · fresh · %s\n", dir > 0 ? "RBR demand" : "DBD supply", DoubleToString(z[i].prox, digits) + "–" + DoubleToString(z[i].dist, digits), z[i].grade, z[i].legRatio, z[i].baseN, method == "CONF" ? "confirmation entry (HTF zone touched, opposing zone removed)" : "set & forget");
-      info += StringFormat("Why: with the %s trend · continuation zone, never touched%s%s\n", TfName(htf), z[i].trap > 0 ? " · liquidity trap at " + DoubleToString(z[i].trap, digits) : "", z[i].crowded ? " · note: sits on an S/R level" : "");
-      info += StringFormat("Target: just before the next %s %s zone · R:R 1:%.1f · HTF curve %.0f%%\n", cappedByHtf ? TfName(htf) : TF_N[k], dir > 0 ? "supply" : "demand", rr, curve);
-      info += "Checks: HTF trend ✓ · fresh ✓ · continuation ✓ · 4 parts ✓ · R:R ≥ " + DoubleToString(InpMinRR, 1) + " ✓ · room to HTF zone ✓ · spread ✓ · session/news ✓";
+      string info = StringFormat("%s %s %s zone (grade %s) | %s trend %s | %s%s\n", dir > 0 ? "BUY" : "SELL", TF_N[k], dir > 0 ? "demand" : "supply", z[i].grade, TfName(htf), trend > 0 ? "up" : "down", method == "CONF" ? "confirmation" : "set & forget", z[i].trap > 0 ? " | liquidity trap" : "");
+      info += StringFormat("Why: fresh %s with the trend, move away %.1fx, target before next %s %s zone", dir > 0 ? "RBR" : "DBD", z[i].legRatio, cappedByHtf ? TfName(htf) : TF_N[k], dir > 0 ? "supply" : "demand");
       if(InpMode == MODE_AUTO) Place(s, k, dir, entry, sl, tp, z[i].dist, method, z[i].grade, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));
       else if(InpMode == MODE_APPROVE) AddProposal(s, k, dir, entry, sl, tp, z[i].dist, method, z[i].grade, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));
       return;
@@ -594,7 +591,7 @@ double Lots(string s, double stopDist)
    double lots = AccountBalance() * InpRiskPct / 100.0 / perLot;
    double step = MarketInfo(s, MODE_LOTSTEP), mn = MarketInfo(s, MODE_MINLOT), mx = MarketInfo(s, MODE_MAXLOT);
    lots = MathFloor(lots / step) * step;
-   if(lots < mn) return 0;                                      // can't keep risk ≤ target
+   if(lots < mn) return 0;                                      // can't keep risk <= target
    return MathMin(lots, mx);
   }
 
@@ -604,21 +601,23 @@ void Place(string s, int k, int dir, double entry, double sl, double tp, double 
    double point = MarketInfo(s, MODE_POINT), pip = point * ((digits == 3 || digits == 5) ? 10 : 1);
    double stopDist = MathAbs(entry - sl);
    double lots = Lots(s, stopDist);
-   if(lots <= 0) { Print(s, ": lot size below broker minimum at ", InpRiskPct, "% risk — skipped"); Count("lot below broker minimum"); return; }
+   if(lots <= 0) { Print(s, ": lot size below broker minimum at ", InpRiskPct, "% risk - skipped"); Count("lot below broker minimum"); return; }
    if(lots > InpMaxLots) { lots = MathFloor(InpMaxLots / MarketInfo(s, MODE_LOTSTEP)) * MarketInfo(s, MODE_LOTSTEP); }
    // real money at risk and margin, double-checked before sending
    double tv = MarketInfo(s, MODE_TICKVALUE), ts = MarketInfo(s, MODE_TICKSIZE);
    double riskMoney = stopDist / ts * tv * lots;
    double riskPct = 100.0 * riskMoney / AccountBalance();
    double margin = MarketInfo(s, MODE_MARGINREQUIRED) * lots;
-   if(riskPct > InpRiskPct * 1.05) { Print(s, StringFormat(": risk %.2f%% above %.2f%% — skipped", riskPct, InpRiskPct)); Count("risk check failed"); return; }
-   if(margin > AccountFreeMargin() * InpMaxMarginPct / 100.0) { Print(s, StringFormat(": needs margin %.2f > %.0f%% of free margin — skipped", margin, InpMaxMarginPct)); Count("margin too high"); return; }
+   if(riskPct > InpRiskPct * 1.05) { Print(s, StringFormat(": risk %.2f%% above %.2f%% - skipped", riskPct, InpRiskPct)); Count("risk check failed"); return; }
+   if(margin > AccountFreeMargin() * InpMaxMarginPct / 100.0) { Print(s, StringFormat(": needs margin %.2f > %.0f%% of free margin - skipped", margin, InpMaxMarginPct)); Count("margin too high"); return; }
    if(AccountFreeMarginCheck(s, dir > 0 ? OP_BUY : OP_SELL, lots) <= 0 || GetLastError() == ERR_NOT_ENOUGH_MONEY) { Count("not enough free margin"); return; }
-   info += StringFormat("\nEntry %s · SL %s (%.1f pips) · TP %s\nRisk %s %.2f = %.2f%% of balance · %.2f lots · margin %.2f",
-                        DoubleToString(entry, digits), DoubleToString(sl, digits), stopDist / pip, DoubleToString(tp, digits),
-                        AccountCurrency(), riskMoney, riskPct, lots, margin);
+   info += StringFormat("\nRisk %.2f %s (%.2f%%) | %.2f lots | stop %.1f pips | R:R 1:%.1f",
+                        riskMoney, AccountCurrency(), riskPct, lots, stopDist / pip, rr);
    // short human comment (MT4 allows 31 characters); full reasoning goes to the log, Experts tab and chart
-   string cm = StringFormat("RFX %s>%s %s %s 1:%.1f%s", TF_N[k], TfName(TF_H[k]), method, grade, rr, trap ? " T" : "");
+   // e.g. "M5 demand A, H1 up, 1:4.8 trap" (MT4 keeps 31 characters)
+   string cm = StringFormat("%s %s %s, %s %s, 1:%.1f", TF_N[k], dir > 0 ? "demand" : "supply", grade, TfName(TF_H[k]), dir > 0 ? "up" : "down", rr);
+   if(method == "CONF" && StringLen(cm) <= 26) cm += " conf";
+   if(trap && StringLen(cm) <= 26) cm += " trap";
    int type = dir > 0 ? OP_BUYLIMIT : OP_SELLLIMIT;
    int t = OrderSend(s, type, lots, NormalizeDouble(entry, digits), 3, NormalizeDouble(sl, digits), NormalizeDouble(tp, digits), cm, MagicFor(k, method), 0, dir > 0 ? clrLime : clrRed);
    if(t < 0) { int e = GetLastError(); Print("OrderSend failed ", s, " error ", e); Count("order rejected by broker (error " + IntegerToString(e) + ")"); return; }
@@ -683,15 +682,20 @@ void Annotate(int t, string s, double price, string &lines[], double prox, doubl
       ObjectCreate(ch, zn, OBJ_RECTANGLE, 0, tZone, prox, TimeCurrent() + PeriodSeconds(TF_E[k]) * 60, dist);
       ObjectSetInteger(ch, zn, OBJPROP_COLOR, dir > 0 ? C'170,215,190' : C'240,190,180');
       ObjectSetInteger(ch, zn, OBJPROP_BACK, true);
-      ObjectSetString(ch, zn, OBJPROP_TOOLTIP, StringFormat("Bot order #%d — %s %s zone", t, TF_N[k], dir > 0 ? "demand" : "supply"));
+      ObjectSetString(ch, zn, OBJPROP_TOOLTIP, StringFormat("Bot order #%d - %s %s zone", t, TF_N[k], dir > 0 ? "demand" : "supply"));
       string zl = StringFormat("RFXO_%d_ztxt", t);
       ObjectCreate(ch, zl, OBJ_TEXT, 0, tZone, dist);
-      ObjectSetString(ch, zl, OBJPROP_TEXT, StringFormat("%s %s zone → order #%d", TF_N[k], dir > 0 ? "demand" : "supply", t));
+      ObjectSetString(ch, zl, OBJPROP_TEXT, StringFormat("%s %s zone -> order #%d", TF_N[k], dir > 0 ? "demand" : "supply", t));
       ObjectSetInteger(ch, zl, OBJPROP_FONTSIZE, 7); ObjectSetInteger(ch, zl, OBJPROP_COLOR, clrDimGray);
       ObjectSetInteger(ch, zl, OBJPROP_ANCHOR, dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
-      int y0 = (ch == ChartID() ? 30 + statusLines * 15 : 20);
-      for(int i = 0; i < ArraySize(lines); i++)
-         RightLabel(ch, StringFormat("RFXO_%d_%d", t, i), lines[i], y0 + i * 14, i == 0 ? clrRoyalBlue : clrDimGray, 8);
+      int nL = ArraySize(lines);
+      for(int i = 0; i < nL; i++)
+        {
+         string nm = StringFormat("RFXO_%d_%d", t, i);
+         RightLabel(ch, nm, lines[i], 18 + (nL - 1 - i) * 14, i == 0 ? clrRoyalBlue : clrDimGray, 8);
+         ObjectSetInteger(ch, nm, OBJPROP_CORNER, CORNER_RIGHT_LOWER);
+         ObjectSetInteger(ch, nm, OBJPROP_ANCHOR, ANCHOR_RIGHT_LOWER);
+        }
       ChartRedraw(ch);
      }
   }
@@ -739,9 +743,9 @@ void ManageOrders()
   }
 
 // Mentor's management, in order (lessons 6, 8 and the Confirmation webinar):
-//  1. +1R  → stop to -0.5R (half the risk)
-//  2. +2R (or +1R) → stop to break-even + spread
-//  3. each new fresh entry-TF zone that forms in our favour after the fill → stop just beyond its distal line
+//  1. +1R  -> stop to -0.5R (half the risk)
+//  2. +2R (or +1R) -> stop to break-even + spread
+//  3. each new fresh entry-TF zone that forms in our favour after the fill -> stop just beyond its distal line
 //  4. optional: 25% off at 3R, the rest runs to the target
 // The stop only ever moves in the trade's favour. Every change is printed with the reason.
 datetime trailBar[]; int trailTicket[];
@@ -759,10 +763,10 @@ void ManageOpen(int ticket, int k, int si)
    double stopLvl = MathMax(MarketInfo(s, MODE_STOPLEVEL), MarketInfo(s, MODE_FREEZELEVEL)) * point;
    double newSl = sl; string why = "";
    if(InpManage == MG_MENTOR && InpHalfRiskAt1R && gainR >= 1.0)
-     { double c = open - dir * 0.5 * R; if(dir * (c - newSl) > point) { newSl = c; why = "+1R reached → risk cut to half (stop at -0.5R)"; } }
+     { double c = open - dir * 0.5 * R; if(dir * (c - newSl) > point) { newSl = c; why = "+1R reached -> risk cut to half (stop at -0.5R)"; } }
    double beTrig = InpLiveBE == BE_AT_1R ? 1.0 : (InpLiveBE == BE_AT_2R ? 2.0 : 99);
    if(gainR >= beTrig)
-     { double c = open + dir * spread; if(dir * (c - newSl) > point) { newSl = c; why = StringFormat("+%.0fR reached → stop to break-even", beTrig); } }
+     { double c = open + dir * spread; if(dir * (c - newSl) > point) { newSl = c; why = StringFormat("+%.0fR reached -> stop to break-even", beTrig); } }
    if(InpManage == MG_MENTOR && InpTrailZones)
      {
       int etf = TF_E[k], ti = -1;
@@ -779,7 +783,7 @@ void ManageOpen(int ticket, int k, int si)
             if(z[i].tLeg <= OrderOpenTime()) break;                    // only zones formed after the fill
             double c = z[i].dist - dir * (InpStopBufferPts * point + (dir < 0 ? spread : 0));
             if(dir * (c - open) < 0) continue;                          // only trail into profit
-            if(dir * (c - newSl) > point) { newSl = c; why = StringFormat("new %s %s zone formed → stop under its distal line", TF_N[k], dir > 0 ? "demand" : "supply"); }
+            if(dir * (c - newSl) > point) { newSl = c; why = StringFormat("new %s %s zone formed -> stop under its distal line", TF_N[k], dir > 0 ? "demand" : "supply"); }
             break;
            }
         }
@@ -787,7 +791,7 @@ void ManageOpen(int ticket, int k, int si)
    // apply: only in our favour and outside the broker's stop level
    if(why != "" && dir * (newSl - sl) > point && dir * (px - newSl) > stopLvl)
      {
-      if(OrderModify(ticket, open, NormalizeDouble(newSl, digits), tp, 0)) Print("#", ticket, " ", s, " stop moved to ", DoubleToString(newSl, digits), " — ", why);
+      if(OrderModify(ticket, open, NormalizeDouble(newSl, digits), tp, 0)) Print("#", ticket, " ", s, " stop moved to ", DoubleToString(newSl, digits), " - ", why);
       else Print("#", ticket, " stop move failed ", GetLastError());
      }
    // 25% at 3R (once): only while the full original size is still open
