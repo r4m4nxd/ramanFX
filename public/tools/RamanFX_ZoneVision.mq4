@@ -46,6 +46,7 @@ input int    InpTrendSwing    = 3;      // Swing strength for peaks / valleys (b
 input bool   InpShowHTF       = true;   // HTF zone band (closest above and below)
 input bool   InpShowPlan      = true;   // Bot's planned entry / SL / TP
 input bool   InpShowPanel     = true;   // Compact info panel
+input bool   InpShowBotOrders = true;   // Show why the ZoneBot placed its order on this symbol (bottom-right)
 input bool   InpExplain       = false;  // Explain mode: label the 4 parts on the bot's zone
 input bool   InpShowRejected  = false;  // Debug: rejected candidates + reason
 input color  InpDemandFill    = C'200,232,203';
@@ -91,12 +92,17 @@ TLine TL[];
 datetime lastDraw = 0;
 
 int OnInit() { return(INIT_SUCCEEDED); }
-void OnDeinit(const int r) { ObjectsDeleteAll(0, PFX); Comment(""); }
+void OnDeinit(const int r) { ObjectsDeleteAll(0, PFX); ObjectsDeleteAll(0, "RFXN_"); Comment(""); }
 
 int OnCalculate(const int rates_total, const int prev_calculated, const datetime &time[], const double &open[], const double &high[],
                 const double &low[], const double &close[], const long &tick_volume[], const long &volume[], const int &spread[])
   {
-   if(Time[0] == lastDraw && prev_calculated > 0) { if(InpShowPanel) Panel(); return rates_total; }
+   static datetime lastPanel = 0;
+   if(Time[0] == lastDraw && prev_calculated > 0)
+     {
+      if(TimeLocal() - lastPanel >= 5) { lastPanel = TimeLocal(); Panel(); if(InpShowBotOrders) BotNotes(); }   // light refresh between candles
+      return rates_total;
+     }
    lastDraw = Time[0];
    ObjectsDeleteAll(0, PFX);
    { int h0 = HtfOf(_Period); gTrend = h0 > 0 ? HtfTrend(_Symbol, h0) : 0; }
@@ -106,6 +112,7 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
    if(InpShowHTF) { int h = HtfOf(_Period); if(h > 0) { Detect(_Symbol, h, HZ, false); DrawZones(HZ, true); } }   // HTF band first, underneath
    DrawZones(Z, false);
    if(InpShowPanel || InpShowPlan) Panel();
+   if(InpShowBotOrders) BotNotes();
    return rates_total;
   }
 
@@ -562,3 +569,47 @@ void Panel()
    if(InpShowPanel) Comment(L);
   }
 //+------------------------------------------------------------------+
+
+//+------------------------------------------------------------------+
+//| ZoneBot order notes: reads MQL4\Files\RamanFX_Bot_Orders.txt and |
+//| shows the reasoning of the bot's live order(s) on this symbol.   |
+//+------------------------------------------------------------------+
+bool TicketLive(int t)
+  {
+   for(int i = OrdersTotal() - 1; i >= 0; i--) if(OrderSelect(i, SELECT_BY_POS) && OrderTicket() == t) return true;
+   return false;
+  }
+void BotNotes()
+  {
+   int f = FileOpen("RamanFX_Bot_Orders.txt", FILE_READ | FILE_TXT | FILE_ANSI | FILE_SHARE_READ | FILE_SHARE_WRITE);
+   string note = ""; int ticket = 0;
+   if(f != INVALID_HANDLE)
+     {
+      while(!FileIsEnding(f))
+        {
+         string line = FileReadString(f);
+         string p[]; if(StringSplit(line, '\t', p) < 4) continue;
+         if(p[2] != _Symbol) continue;
+         int t = (int)StringToInteger(p[1]);
+         if(TicketLive(t)) { ticket = t; note = p[3]; }        // newest live order wins
+        }
+      FileClose(f);
+     }
+   ObjectsDeleteAll(0, "RFXN_");
+   if(note == "") return;
+   string ls[]; StringReplace(note, " || ", "\n"); int n = StringSplit(note, '\n', ls);
+   for(int i = 0; i < n; i++)
+     {
+      string nm = "RFXN_" + IntegerToString(i);
+      ObjectCreate(0, nm, OBJ_LABEL, 0, 0, 0);
+      ObjectSetInteger(0, nm, OBJPROP_CORNER, CORNER_RIGHT_LOWER);
+      ObjectSetInteger(0, nm, OBJPROP_ANCHOR, ANCHOR_RIGHT_LOWER);
+      ObjectSetInteger(0, nm, OBJPROP_XDISTANCE, 12);
+      ObjectSetInteger(0, nm, OBJPROP_YDISTANCE, 18 + (n - 1 - i) * 14);
+      ObjectSetString(0, nm, OBJPROP_TEXT, (i == 0 ? "#" + IntegerToString(ticket) + "  " : "") + ls[i]);
+      ObjectSetString(0, nm, OBJPROP_FONT, "Arial");
+      ObjectSetInteger(0, nm, OBJPROP_FONTSIZE, 8);
+      ObjectSetInteger(0, nm, OBJPROP_COLOR, i == 0 ? clrRoyalBlue : clrDimGray);
+      ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
+     }
+  }

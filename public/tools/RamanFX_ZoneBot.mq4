@@ -32,8 +32,8 @@ enum Manage    { MG_OFF = 0, MG_MENTOR = 1, MG_BE_ONLY = 2 };
 
 input BotMode   InpMode          = MODE_AUTO;    // Mode
 input EntryMode InpEntry         = ENTRY_BOTH;   // Entry method
-input string    InpSymbols       = "EURUSD,GBPUSD,USDJPY,USDCHF,AUDUSD,USDCAD,NZDUSD,EURJPY,GBPJPY,EURGBP"; // Symbols (comma list; empty = every forex pair in Market Watch - much heavier)
-input int       InpScansPerTick  = 6;            // Max symbol/timeframe scans per 3-second tick (keeps MT4 responsive)
+input string    InpSymbols       = "";           // Symbols (comma list; empty = every forex pair in Market Watch)
+input int       InpScansPerTick  = 8;            // Max symbol/timeframe scans per 2-second tick (keeps MT4 responsive)
 input string    InpSuffix        = "";           // Broker symbol suffix (e.g. .a)
 input bool      InpTF_M1         = true;         // Trade 1m entries (HTF 15m)
 input bool      InpTF_M5         = true;         // Trade 5m entries (HTF H1)
@@ -56,12 +56,12 @@ input double    InpMaxLots       = 2.0;          // Hard cap on lots per order
 input double    InpMaxMarginPct  = 10.0;         // Skip if the order needs more than this % of free margin
 input double    InpMinStopATR    = 0.2;          // Minimum stop as a fraction of the entry TF's ATR(14)
 input double    InpMinDeparture  = 1.0;          // Departure: price must travel >= N x zone height away from the proximal line
-input bool      InpRequireITF    = true;         // Skip when the intermediate TF trend points the other way (3-timeframe check)
+input bool      InpRequireITF    = false;        // Skip when the intermediate TF trend points the other way (3-timeframe check)
 input bool      InpCurveFilter   = false;        // Mentor odds: demand in the lower half of the HTF curve, supply in the upper half
 input double    InpMaxDailyLossPct = 4.0;        // Daily loss limit: no new orders + cancel pendings once equity is down this % today
 input double    InpMgmtMaxSpreadR = 0.25;        // Don't move stops while spread > this fraction of 1R (rollover spikes)
 input double    InpMaxSpreadPct  = 15;           // Max spread as % of the stop distance
-input bool      InpSkipAsian     = true;         // No new orders in the Asian session
+input bool      InpSkipAsian     = false;        // No new orders in the Asian session
 input int       InpAsianStartUTC = 22;           // Asian session start (UTC hour)
 input int       InpAsianEndUTC   = 6;            // Asian session end (UTC hour)
 input int       InpNewsBeforeMin = 30;           // No orders this many minutes before news
@@ -77,7 +77,7 @@ input int       InpPendingBars   = 100;          // Cancel unfilled limit after 
 input int       InpSimDays       = 5;            // Variant replay horizon (days)
 input int       InpMagic         = 770100;       // Magic number base
 input bool      InpAlerts        = true;         // Pop-up / push alerts for new setups
-input bool      InpDraw          = true;         // Draw zones on this chart
+input bool      InpDraw          = false;        // Draw zones on this chart
 input double    InpTrapATR       = 1.0;          // Liquidity trap: obvious level within N x ATR in front of the zone
 input int       InpTrapSwing     = 3;            // Obvious level = swing with N bars each side
 input bool      InpRequireTrap   = false;        // Only trade zones with a liquidity trap
@@ -152,7 +152,7 @@ int OnInit()
    StLoad();
    LoadNews();
    EnsureHeaders();
-   EventSetTimer(3);
+   EventSetTimer(2);
    Print("RamanFX ZoneBot started: ", ArraySize(syms), " symbols, mode ", EnumToString(InpMode));
    return(INIT_SUCCEEDED);
   }
@@ -190,6 +190,7 @@ void Say(string s, int k, string msg)
    Print(StringFormat("%-7s %-3s -> %s", s, TF_N[k], msg));
   }
 
+string lastStatus = "";
 void Status()
   {
    string t = StringFormat("ZoneBot  %s | %s | %d pairs\n", InpMode == MODE_AUTO ? "AUTO" : (InpMode == MODE_APPROVE ? "APPROVE" : "SCANNER"), InpEntry == ENTRY_BOTH ? "S&F + conf" : (InpEntry == ENTRY_SF ? "set & forget" : "confirmation"), ArraySize(syms));
@@ -207,8 +208,10 @@ void Status()
       if(key == "ORDER" || key == "PROPOSE" || key == "ALERT") continue;
       t += (shown == 0 ? "Top skips: " : "") + StringFormat("%s (%d)", key, cVal[order[i]]) + (shown < 2 ? ", " : "") ; shown++;
      }
+   if(t == lastStatus) return;                                         // nothing changed: no redraw
+   lastStatus = t;
    string ls[]; int n = StringSplit(t, '\n', ls);
-   ObjectsDeleteAll(0, "RFXS_");
+   for(int i = n; i < 8; i++) ObjectDelete(0, "RFXS_" + IntegerToString(i));
    for(int i = 0; i < n; i++) if(ls[i] != "") RightLabel(0, "RFXS_" + IntegerToString(i), ls[i], 20 + i * 15, i == 0 ? clrRoyalBlue : (StringFind(ls[i], "!") == 0 ? clrCrimson : clrDimGray), i == 0 ? 9 : 8);
   }
 
@@ -418,7 +421,7 @@ int DetectZones(string s, int tf, Zone &out[])
             if(!z.tested && iHigh(s, tf, j) >= prox) { z.tested = true; z.tTouched = iTime(s, tf, j); }
            }
         }
-      if(!z.removed && !z.tested) { int tb; bool cr; z.trap = FindTrap(s, tf, dir, prox, dist, sa, L + k, tb, cr); z.trapBar = tb; z.crowded = cr; }   // fresh zones only (cost)
+      // liquidity trap is worked out later, only for the zone the bot is about to act on (speed)
       int n = ArraySize(out); ArrayResize(out, n + 1); out[n] = z;
      }
    return ArraySize(out);
@@ -471,7 +474,7 @@ void Scan(string s, int k)
 
    // fresh HTF zones: an opposing HTF zone in the way caps the target
    Zone hz[];
-   int hn = DetectZones(s, htf, hz);
+   int hn = HtfZones(s, htf, hz);
    // newest fresh continuation zone in the HTF direction
    for(int i = n - 1; i >= 0; i--)
      {
@@ -526,6 +529,7 @@ void Scan(string s, int k)
       if(reason == "" && InpRequireITF) { int it = HtfTrend(s, TF_I[k]); if(it == -dir) reason = "intermediate TF " + TfName(TF_I[k]) + " against"; }
       if(reason == "" && InpCurveFilter && ((dir > 0 && curve > 50) || (dir < 0 && curve < 50))) reason = "zone on the wrong side of the HTF curve";
       if(reason == "" && InpEntry == ENTRY_CONF && method != "CONF") reason = "no confirmation";
+      if(reason == "") { int tb; bool cr; z[i].trap = FindTrap(s, etf, dir, z[i].prox, z[i].dist, z[i].legBar - 1, z[i].legBar + z[i].baseN, tb, cr); z[i].trapBar = tb; z[i].crowded = cr; }
       if(reason == "" && InpRequireTrap && z[i].trap == 0) reason = "no liquidity trap";
       if(reason == "" && tp == 0) reason = "no opposing zone for target";
       if(reason == "" && rr < InpMinRR) reason = StringFormat("R:R %.2f < %.2f", rr, InpMinRR);
@@ -581,6 +585,27 @@ bool DailyLossHit()
    int doy = TimeDayOfYear(TimeCurrent());
    if(doy != dayStartDoy) { dayStartDoy = doy; dayStartEquity = AccountBalance(); }
    return dayStartEquity > 0 && (dayStartEquity - AccountEquity()) / dayStartEquity * 100.0 >= InpMaxDailyLossPct;
+  }
+
+// Higher-timeframe zones change only when a new HTF candle opens: detect once per symbol/HTF bar, reuse after.
+#define HCAP 40
+string hKey[]; datetime hTime[]; int hCount[]; Zone hStore[];
+int HtfZones(string s, int htf, Zone &out[])
+  {
+   string key = s + "|" + IntegerToString(htf);
+   datetime t = iTime(s, htf, 0);
+   int slot = -1;
+   for(int i = 0; i < ArraySize(hKey); i++) if(hKey[i] == key) { slot = i; break; }
+   if(slot < 0) { slot = ArraySize(hKey); ArrayResize(hKey, slot + 1); ArrayResize(hTime, slot + 1); ArrayResize(hCount, slot + 1); ArrayResize(hStore, (slot + 1) * HCAP); hKey[slot] = key; hTime[slot] = 0; hCount[slot] = 0; }
+   if(hTime[slot] != t)
+     {
+      Zone z[]; int n = DetectZones(s, htf, z), c = 0;
+      for(int i = n - 1; i >= 0 && c < HCAP; i--) if(!z[i].removed) hStore[slot * HCAP + c++] = z[i];   // newest live zones
+      hCount[slot] = c; hTime[slot] = t;
+     }
+   ArrayResize(out, hCount[slot]);
+   for(int i = 0; i < hCount[slot]; i++) out[i] = hStore[slot * HCAP + i];
+   return hCount[slot];
   }
 
 string BlockedNow(string s)
@@ -712,14 +737,16 @@ void StLoad()
 // Entry TF index from the magic number when no state exists (magic = base + k [+10 for confirmation]).
 int KOf(int magic) { int k = (magic - InpMagic) % 10; return (k >= 0 && k < NTF) ? k : 1; }
 
+// One tab-separated line per order; lines of the reasoning joined with " || " so ZoneVision can show them on any chart.
 void LogOrder(int t, string s, string info)
   {
-   bool fresh = !FileIsExist("RamanFX_Bot_Orders.csv");
-   int f = OpenAppend("RamanFX_Bot_Orders.csv");
+   bool fresh = !FileIsExist("RamanFX_Bot_Orders.txt");
+   int f = FileOpen("RamanFX_Bot_Orders.txt", FILE_READ | FILE_WRITE | FILE_TXT | FILE_ANSI | FILE_SHARE_READ | FILE_SHARE_WRITE);
    if(f == INVALID_HANDLE) return;
-   if(fresh) FileWrite(f, "Time", "Ticket", "Symbol", "Reasoning");
-   string flat = info; StringReplace(flat, "\n", " | ");
-   FileWrite(f, TimeToString(TimeCurrent(), TIME_DATE | TIME_MINUTES), t, s, flat);
+   FileSeek(f, 0, SEEK_END);
+   if(fresh) FileWriteString(f, "Time\tTicket\tSymbol\tReasoning\r\n");
+   string flat = info; StringReplace(flat, "\n", " || "); StringReplace(flat, "\t", " ");
+   FileWriteString(f, TimeToString(TimeCurrent(), TIME_DATE | TIME_MINUTES) + "\t" + IntegerToString(t) + "\t" + s + "\t" + flat + "\r\n");
    FileClose(f);
   }
 
