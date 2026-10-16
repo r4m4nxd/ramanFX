@@ -43,7 +43,8 @@ input bool   InpShowTrendlines= true;   // Draw trendlines (mentor rules)
 input int    InpTrendSwing    = 3;      // Swing strength for peaks / valleys (bars each side)
 input bool   InpShowHTF       = true;   // Draw HTF zones (paired timeframe)
 input bool   InpShowPlan      = true;   // Draw the bot's planned trade
-input bool   InpShowPanel     = true;   // Info panel
+input bool   InpShowPanel     = true;   // Info panel (step-by-step reasoning)
+input bool   InpShowThoughts  = true;   // Write what the bot thinks next to each zone / trendline
 input color  InpDemand        = C'38,166,120';
 input color  InpSupply        = C'220,70,70';
 input color  InpMuted         = C'110,110,120';
@@ -73,6 +74,7 @@ struct TLine
   };
 
 Zone  Z[], HZ[];
+int   gTrend = 0;   // HTF trend as the bot reads it
 TLine TL[];
 datetime lastDraw = 0;
 
@@ -85,6 +87,7 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
    if(Time[0] == lastDraw && prev_calculated > 0) { if(InpShowPanel) Panel(); return rates_total; }
    lastDraw = Time[0];
    ObjectsDeleteAll(0, PFX);
+   { int h0 = HtfOf(_Period); gTrend = h0 > 0 ? HtfTrend(_Symbol, h0) : 0; }
    Detect(_Symbol, _Period, Z, true);
    if(InpShowTrendlines) Trendlines(_Symbol, _Period);
    Qualify();
@@ -265,6 +268,12 @@ void Trendlines(string s, int tf)
       ObjectSetString(0, nm, OBJPROP_TOOLTIP, (TL[i].dir > 0 ? "Uptrend line" : "Downtrend line") + (TL[i].removed ? " — removed" : " — intact"));
       if(TL[i].removed)
          Txt(PFX + "tlx" + IntegerToString(i), Time[TL[i].removedBar], pe, "TL removed", InpMuted, 7, TL[i].dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
+      if(InpShowThoughts)
+         Txt(PFX + "tlth" + IntegerToString(i), BarTime(s, tf, end), pe,
+             TL[i].removed ? "Bot: trendline broken by a full close — structure shift; a zone that formed the break qualifies"
+                           : (TL[i].dir > 0 ? "Bot: uptrend line intact — supports buys until a candle closes fully below it"
+                                            : "Bot: downtrend line intact — supports sells until a candle closes fully above it"),
+             TL[i].removed ? InpMuted : InpTrend, 7, TL[i].dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
      }
   }
 
@@ -354,6 +363,10 @@ void DrawZones(Zone &zs[], bool htf)
       // header label
       string head = StringFormat("%s%s %s %s%s", htf ? TfName(tf) + " " : "", type, z.grade, state == "fresh" ? "" : state, (z.cont || htf) ? "" : "  (bot skips reversal)");
       Txt(id + "h", t2, z.dir > 0 ? z.prox : z.prox, head, c, htf ? 8 : 7, z.dir > 0 ? ANCHOR_LEFT_LOWER : ANCHOR_LEFT_UPPER);
+      if(InpShowThoughts && !htf && z.legBar <= InpMaxZoneAge)
+         Txt(id + "th", t2, z.dist, "Bot: " + Thought(z), z.removed ? InpMuted : clrSilver, 7, z.dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
+      if(InpShowThoughts && htf && !z.removed)
+         Txt(id + "th", t2, z.dist, z.tested ? "Bot: HTF zone already touched — look for confirmation inside it" : "Bot: HTF zone — where the bigger players sit; entries in this direction get priority", c, 7, z.dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
       if(z.removed)
         {
          ObjectCreate(0, id + "x", OBJ_TREND, 0, t1, z.prox, t2, z.dist);
@@ -408,6 +421,18 @@ double Curve(string s, int htf, double p)
 //+------------------------------------------------------------------+
 //| Panel + the setup the bot would take now (same logic as Scan)   |
 //+------------------------------------------------------------------+
+// What the bot "thinks" about one zone, in the order it checks things.
+string Thought(Zone &z)
+  {
+   string side = z.dir > 0 ? "buy" : "sell";
+   if(z.removed) return "price closed through the distal line — zone removed, ignored.";
+   if(!z.cont) return "reversal zone (" + (z.dir > 0 ? "DBR" : "RBD") + ") — I only trade continuation zones, ignored.";
+   if(z.tested) return "price already came back — not fresh, ignored.";
+   if(gTrend == 0) return "fresh, but the HTF trend is unclear — I wait.";
+   if(gTrend != z.dir) return "fresh, but against the HTF trend — ignored.";
+   return StringFormat("fresh %s with the HTF trend, grade %s — I %s at %s if R:R to the next opposing zone ≥ %.1f.", z.dir > 0 ? "RBR demand" : "DBD supply", z.grade, side == "buy" ? "buy" : "sell", DoubleToString(z.prox, Digits), InpMinRR);
+  }
+
 void Panel()
   {
    int htf = HtfOf(_Period);
@@ -455,6 +480,15 @@ void Panel()
       break;
      }
    lines += plan;
+   lines += "\n\nHow I decide (in order):\n";
+   lines += StringFormat("1. HTF %s trend: %s — I only trade in this direction.\n", htf > 0 ? TfName(htf) : "", trend > 0 ? "UP → buys only" : (trend < 0 ? "DOWN → sells only" : "unclear → no trades"));
+   lines += "2. Zone must have all 4 parts: base, move away, stay away, space to the proximal line.\n";
+   lines += "3. Continuation (RBR / DBD), fresh (never touched), similar size to the others.\n";
+   lines += "4. Entry at the proximal line, stop beyond the distal line + spread.\n";
+   lines += StringFormat("5. Target just before the next opposing fresh zone; skip if R:R < %.1f.\n", InpMinRR);
+   lines += "6. Filters: news window, Asian session, Friday close, wide spread, 1 trade per symbol.\n";
+   lines += "7. While pending: cancel if the zone is removed or price hits the target first.\n";
+   lines += "8. Risk 1% with a hard stop. Every fill is replayed with each TP / break-even variant.";
    if(InpShowPanel) Comment(lines);
   }
 //+------------------------------------------------------------------+
