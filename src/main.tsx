@@ -13,3 +13,6 @@ if (splash) {
   const wait = hidden ? 0 : Math.max(0, (reduce ? 500 : 1950) - performance.now());
   setTimeout(() => { splash.classList.add('out'); setTimeout(() => splash.remove(), 450); }, wait);
 }
+
+// iOS Safari ignores :active (the press squeeze on buttons and tabs) unless the page listens for touches.
+document.addEventListener('touchstart', () => {}, { passive: true });

@@ -293,11 +293,11 @@ export function Shell({ children }: { children: ReactNode }) {
         <header className={cx('sticky top-0 z-30 border-b pt-safe px-safe transition-colors duration-300', scrolled ? 'bg-bg/70 [backdrop-filter:blur(20px)_saturate(180%)] [-webkit-backdrop-filter:blur(20px)_saturate(180%)] border-transparent shadow-[0_8px_24px_-16px_rgb(0_0_0/0.45)]' : 'bg-transparent border-transparent')}>
           <div className="max-w-[1360px] mx-auto flex items-center gap-2 px-4 lg:px-7 h-14 land:h-12">
             <h1 className="text-[17px] lg:text-[19px] font-semibold tracking-tight truncate min-w-[60px]">{title}</h1>
-            <span className="hidden xl:block ml-3 shrink-0 h-9 2xl:h-10">
+            <span className="order-last xl:order-none xl:ml-3 shrink-0 h-9 w-9 xl:w-auto 2xl:h-10">
               {!cmd && (
                 <motion.button layoutId="cmd-morph" style={{ borderRadius: 20 }} transition={spring} type="button" onClick={() => setCmd(true)} aria-label="Search pages, trades and actions"
-                  className="flex items-center gap-2.5 h-9 2xl:h-10 2xl:w-[230px] px-3 2xl:px-4 border border-line bg-raised/40 text-[13px] text-ink3 hover:text-ink2 transition-colors">
-                  <Icon name="search" size={15} /><span className="hidden 2xl:inline">Search pages and trades</span><kbd className="ml-auto text-[10px] border border-line2 rounded-full px-1.5">{MOD}K</kbd>
+                  className="flex items-center justify-center xl:justify-start gap-2.5 h-9 w-9 xl:w-auto 2xl:h-10 2xl:w-[230px] xl:px-3 2xl:px-4 border border-line bg-raised/40 text-[13px] text-ink3 hover:text-ink2 transition-colors active:scale-95">
+                  <Icon name="search" size={15} /><span className="hidden 2xl:inline">Search pages and trades</span><kbd className="hidden xl:inline ml-auto text-[10px] border border-line2 rounded-full px-1.5">{MOD}K</kbd>
                 </motion.button>
               )}
             </span>
@@ -335,8 +335,8 @@ export function Shell({ children }: { children: ReactNode }) {
       {/* Phone landscape: slim icon rail on the left keeps the full height for content */}
       <nav aria-label="Main" className="hidden land:flex fixed left-0 inset-y-0 z-40 w-[calc(68px+env(safe-area-inset-left))] pl-[env(safe-area-inset-left)] flex-col items-center justify-center gap-1 bg-surface border-r border-line">
         {NAV.filter(n => n.mobile).map(n => (
-          <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cx('relative w-14 h-12 rounded-xl flex flex-col items-center justify-center gap-0.5 text-micro transition-colors', isActive ? 'text-ink font-semibold bg-accent/15 [&_svg]:text-accent' : 'text-ink3 font-medium')}>
-            <Icon name={n.icon} size={19} />{n.short ?? n.label}
+          <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cx('relative w-14 h-12 rounded-xl flex flex-col items-center justify-center gap-0.5 text-micro transition-[color,transform] active:scale-90', isActive ? 'text-ink font-semibold [&_svg]:text-accent' : 'text-ink3 font-medium')}>
+            {({ isActive }) => (<>{isActive && <motion.span layoutId="rail-chip" transition={spring} className="absolute inset-0 rounded-xl bg-accent/15" />}<Icon name={n.icon} size={19} className="relative" /><span className="relative">{n.short ?? n.label}</span></>)}
           </NavLink>
         ))}
         <button className={cx('w-14 h-12 rounded-xl flex flex-col items-center justify-center gap-0.5 text-micro', inMore ? 'text-ink font-semibold bg-accent/15 [&_svg]:text-accent' : 'text-ink3 font-medium')} aria-haspopup="dialog" aria-expanded={moreOpen} aria-current={inMore ? 'page' : undefined} onClick={() => setMoreOpen(true)}><Icon name="more" size={19} />More</button>
@@ -346,12 +346,12 @@ export function Shell({ children }: { children: ReactNode }) {
       <nav aria-label="Main" className="lg:hidden land:hidden fixed bottom-0 inset-x-0 z-40 bg-surface border-t border-line pb-safe px-safe">
         <div className="flex justify-around max-w-[680px] mx-auto px-2 pt-1.5">
           {NAV.filter(n => n.mobile).map(n => (
-            <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cx('flex flex-col items-center gap-0.5 min-w-[58px] min-h-[46px] justify-center text-micro', isActive ? 'text-ink font-semibold' : 'text-ink3 font-medium')}>
-              {({ isActive }) => (<><span className={cx('grid place-items-center h-7 w-12 rounded-full transition-colors', isActive && 'bg-accent/15 text-accent')}><Icon name={n.icon} size={20} /></span>{n.short ?? n.label}</>)}
+            <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cx('flex flex-col items-center gap-0.5 min-w-[58px] min-h-[46px] justify-center text-micro transition-transform active:scale-90', isActive ? 'text-ink font-semibold' : 'text-ink3 font-medium')}>
+              {({ isActive }) => (<><span className={cx('relative grid place-items-center h-7 w-12 rounded-full transition-colors', isActive && 'text-accent')}>{isActive && <motion.span layoutId="tab-chip" transition={spring} className="absolute inset-0 rounded-full bg-accent/15" />}<Icon name={n.icon} size={20} className="relative" /></span>{n.short ?? n.label}</>)}
             </NavLink>
           ))}
-          <button className={cx('flex flex-col items-center gap-0.5 min-w-[58px] min-h-[46px] justify-center text-micro', inMore ? 'text-ink font-semibold' : 'text-ink3 font-medium')} aria-haspopup="dialog" aria-expanded={moreOpen} aria-current={inMore ? 'page' : undefined} onClick={() => setMoreOpen(true)}>
-            <span className={cx('grid place-items-center h-7 w-12 rounded-full transition-colors', inMore && 'bg-accent/15 text-accent')}><Icon name="more" size={20} /></span>More
+          <button className={cx('flex flex-col items-center gap-0.5 min-w-[58px] min-h-[46px] justify-center text-micro transition-transform active:scale-90', inMore ? 'text-ink font-semibold' : 'text-ink3 font-medium')} aria-haspopup="dialog" aria-expanded={moreOpen} aria-current={inMore ? 'page' : undefined} onClick={() => setMoreOpen(true)}>
+            <span className={cx('relative grid place-items-center h-7 w-12 rounded-full transition-colors', inMore && 'text-accent')}>{inMore && <motion.span layoutId="tab-chip" transition={spring} className="absolute inset-0 rounded-full bg-accent/15" />}<Icon name="more" size={20} className="relative" /></span>More
           </button>
         </div>
       </nav>

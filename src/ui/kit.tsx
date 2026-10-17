@@ -291,7 +291,7 @@ export function Sheet({ open, onClose, title, children, width = 520, bottom = fa
   }, [open, onClose]);
   useDialogFocus(open, panel, '[data-sheet-close]');
   const fromBottom = bottom || (typeof window !== 'undefined' && window.innerWidth < 768);
-  const morph = !!morphId && !fromBottom && !reduce;
+  const morph = !!morphId && !reduce;
   const off = reduce ? { opacity: 0 } : morph ? { opacity: 0 } : fromBottom ? { y: '100%' } : { x: '100%' };
   // Portalled: the blurred sticky header would otherwise trap a fixed sheet inside itself.
   return createPortal(
@@ -303,7 +303,7 @@ export function Sheet({ open, onClose, title, children, width = 520, bottom = fa
             className={cx('absolute bg-surface border-line2 shadow-pop flex flex-col', bottom
               ? 'inset-x-0 bottom-0 mx-auto w-full max-w-[560px] max-h-sheet rounded-t-2xl border-t border-x'
               : 'max-md:inset-x-0 max-md:bottom-0 max-md:max-h-sheet max-md:rounded-t-2xl max-md:border-t md:top-0 md:right-0 md:h-full md:border-l')}
-            style={{ width: !bottom && typeof window !== 'undefined' && window.innerWidth >= 768 ? width : undefined, ...(morph ? { borderRadius: 20, top: 8, bottom: 8, right: 8, height: 'auto' } : {}) }}
+            style={{ width: !bottom && typeof window !== 'undefined' && window.innerWidth >= 768 ? width : undefined, ...(morph && !fromBottom ? { borderRadius: 20, top: 8, bottom: 8, right: 8, height: 'auto' } : morph ? { borderTopLeftRadius: 20, borderTopRightRadius: 20 } : {}) }}
             initial={off}
             animate={{ x: 0, y: 0, opacity: 1 }}
             exit={off}
