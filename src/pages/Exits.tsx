@@ -142,7 +142,7 @@ function TradeList({ rows, unit, only, onClear, source }: { rows: Row[]; unit: '
       <div id="exc-trades" className="scroll-mt-28" />
       <div className={mobile ? '' : 'px-5 pt-5'}>
         <CardHead title={only ? 'Losers that were +1R first' : 'Every trade'} sub={`${num(list.length, 0)} of ${num(rows.length, 0)} positions with excursion data · MAE / MFE in ${unit}`}
-          right={<Segmented label="Sort trades" size="sm" value={sort} onChange={x => { setSort(x); setLimit(PAGE); }} options={[{ value: 'new', label: 'Newest' }, { value: 'gave', label: 'Gave back' }, { value: 'heat', label: 'Most heat' }, { value: 'capture', label: 'Low capture' }]} />} />
+          right={<Segmented swap="card" label="Sort trades" size="sm" value={sort} onChange={x => { setSort(x); setLimit(PAGE); }} options={[{ value: 'new', label: 'Newest' }, { value: 'gave', label: 'Gave back' }, { value: 'heat', label: 'Most heat' }, { value: 'capture', label: 'Low capture' }]} />} />
         {only && <button className="chip h-8 -mt-2 mb-3" onClick={onClear} aria-label="Clear filter: losers that were +1R first">Losers that were +1R first<Icon name="x" size={12} /></button>}
       </div>
       {mobile ? (
@@ -272,7 +272,7 @@ export default function Exits() {
 
       <div className="grid xl:grid-cols-5 gap-4">
         <Card className="xl:col-span-3">
-          <CardHead title="Heat vs reward" sub="Each dot is a trade: how far it went against you (x) and for you (y)" right={<Segmented label="Unit" size="sm" value={unit} onChange={setUnit} options={[{ value: 'R', label: 'R' }, { value: '$', label: '$' }]} />} />
+          <CardHead title="Heat vs reward" sub="Each dot is a trade: how far it went against you (x) and for you (y)" right={<Segmented swap="card" label="Unit" size="sm" value={unit} onChange={setUnit} options={[{ value: 'R', label: 'R' }, { value: '$', label: '$' }]} />} />
           <ResponsiveContainer width="100%" height={mobile ? 260 : 320}>
             <ScatterChart margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
               <CartesianGrid stroke={c.line} />
@@ -307,7 +307,7 @@ export default function Exits() {
 
       <Card>
         <CardHead title={<span className="inline-flex items-center gap-2 flex-wrap">Management lab<InfoTip text={caveat} /><Badge tone={timed === 0 ? 'warn' : timed < rows.length ? 'neutral' : 'profit'}>{timed === 0 ? 'Worst case' : timed < rows.length ? 'Mostly exact' : 'Exact'}</Badge></span>} sub={`Your ${pool.length} trades replayed under each exit rule from your playbook.`}
-          right={<Segmented label="Trades" size="sm" value={split} onChange={setSplit} options={[{ value: 'all', label: 'All' }, { value: 'high', label: 'High odds' }, { value: 'low', label: 'Low odds' }, { value: 'none', label: 'Unplanned' }]} />} />
+          right={<Segmented swap="card" label="Trades" size="sm" value={split} onChange={setSplit} options={[{ value: 'all', label: 'All' }, { value: 'high', label: 'High odds' }, { value: 'low', label: 'Low odds' }, { value: 'none', label: 'Unplanned' }]} />} />
         {pool.length ? (<>
           <ResponsiveContainer width="100%" height={mobile ? 220 : 240}>
             <BarChart data={sim} layout="vertical" margin={{ top: 0, right: 48, left: 0, bottom: 0 }}>

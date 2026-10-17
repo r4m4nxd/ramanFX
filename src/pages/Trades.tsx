@@ -95,9 +95,9 @@ export default function Trades() {
     </th>
   );
 
-  const reviewSeg = <Segmented label="Review state" size="sm" value={review} onChange={v => setParam('review', v === 'all' ? '' : v)} options={[{ value: 'all', label: 'All' }, { value: 'todo', label: <>To review <span className="num opacity-70">{counts.todo}</span></> }, { value: 'mistakes', label: <>Mistakes <span className="num opacity-70">{counts.mistakes}</span></> }]} />;
-  const sideSeg = <Segmented label="Side" size="sm" value={side} onChange={v => setParam('side', v === 'all' ? '' : v)} options={[{ value: 'all', label: 'All' }, { value: 'buy', label: 'Long' }, { value: 'sell', label: 'Short' }]} />;
-  const outcomeSeg = <Segmented label="Outcome" size="sm" value={outcome} onChange={v => setParam('outcome', v === 'all' ? '' : v)} options={[{ value: 'all', label: 'All' }, { value: 'win', label: 'Wins' }, { value: 'loss', label: 'Losses' }]} />;
+  const reviewSeg = <Segmented swap="page" label="Review state" size="sm" value={review} onChange={v => setParam('review', v === 'all' ? '' : v)} options={[{ value: 'all', label: 'All' }, { value: 'todo', label: <>To review <span className="num opacity-70">{counts.todo}</span></> }, { value: 'mistakes', label: <>Mistakes <span className="num opacity-70">{counts.mistakes}</span></> }]} />;
+  const sideSeg = <Segmented swap="page" label="Side" size="sm" value={side} onChange={v => setParam('side', v === 'all' ? '' : v)} options={[{ value: 'all', label: 'All' }, { value: 'buy', label: 'Long' }, { value: 'sell', label: 'Short' }]} />;
+  const outcomeSeg = <Segmented swap="page" label="Outcome" size="sm" value={outcome} onChange={v => setParam('outcome', v === 'all' ? '' : v)} options={[{ value: 'all', label: 'All' }, { value: 'win', label: 'Wins' }, { value: 'loss', label: 'Losses' }]} />;
   const selects = (<>
     <select aria-label="Symbol" className="field md:w-auto" value={symbol} onChange={e => setParam('symbol', e.target.value)}>
       <option value="">All symbols</option>{symbols.map(s => <option key={s}>{s}</option>)}

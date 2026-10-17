@@ -322,7 +322,7 @@ export default function Calculator() {
   return (
     <Page>
       <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-        <Segmented label="Calculator" value={inMore ? (MORE_KEY as Tab) : tab} onChange={pick}
+        <Segmented swap="page" label="Calculator" value={inMore ? (MORE_KEY as Tab) : tab} onChange={pick}
           options={PRIMARY.map(o => ({ value: o.value, label: mobile ? <><span aria-hidden>{o.short}</span><span className="sr-only">{o.label}</span></> : o.label }))} />
         <label className="relative flex-1 sm:flex-none sm:min-w-[200px]">
           <span className="sr-only">More tools</span>

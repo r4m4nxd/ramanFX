@@ -28,7 +28,9 @@ export function morphNavigate(el: Element | null, go: () => void) {
 /** Calm page-to-page change: the old page dissolves while the new one drifts up out of a soft blur (View Transitions).
  *  Falls back to a plain navigation (the CSS .page-in fade) where unsupported or under reduced motion. */
 type VTDoc = Document & { startViewTransition?: (cb: () => Promise<void> | void) => { finished: Promise<void> } };
-let softEntry = false;
+let softEntry = false, quietUntil = 0;
+/** True just after a soft page/section change: charts skip their own draw-in so the dissolve isn't fighting a second animation. */
+export const transitionQuiet = () => performance.now() < quietUntil;
 /** True while softNavigate is rendering the next page: that page must not also run its own CSS fade-in
  *  (switching it on afterwards would restart the fade and blink). Read once per page by the shell. */
 export const enteringSoftly = () => softEntry;
@@ -38,7 +40,7 @@ export function softNavigate(go: () => void) {
   const root = document.documentElement;
   root.dataset.vt = 'page';
   d.startViewTransition(async () => {
-    softEntry = true;
+    softEntry = true; quietUntil = performance.now() + 1100;
     try { flushSync(go); } finally { softEntry = false; }
     // A lazy page shows a skeleton first; give it a few frames to arrive so the crossfade lands on real content.
     for (let i = 0; i < 18 && document.querySelector('main [aria-label="Loading"]'); i++) await new Promise(r => setTimeout(r, 16));
@@ -46,13 +48,15 @@ export function softNavigate(go: () => void) {
 }
 /** Same calm dissolve for a pill switch (segmented control, tabs): only the section that changes crossfades — the card
  *  holding the control, or the page — while the control itself stays crisp and its pill keeps sliding. */
-export function softSwap(control: Element | null, apply: () => void) {
+export function softSwap(control: Element | null, apply: () => void, scope: SwapScope = 'card') {
   const d = document as VTDoc;
   if (!control || !d.startViewTransition || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { apply(); return; }
-  const region = control.closest<HTMLElement>('[data-swap], .card, .card-hero') ?? document.querySelector<HTMLElement>('[data-page]');
+  const page = document.querySelector<HTMLElement>('[data-page]');
+  const region = scope === 'page' ? page : control.closest<HTMLElement>('[data-swap], .card, .card-hero') ?? page;
   if (!region) { apply(); return; }
   const ctl = control as HTMLElement, root = document.documentElement;
   region.style.viewTransitionName = 'swap'; ctl.style.viewTransitionName = 'swap-ctl'; root.dataset.vt = 'swap';
+  quietUntil = performance.now() + 900;
   d.startViewTransition(() => { flushSync(apply); }).finished.finally(() => {
     region.style.viewTransitionName = ''; ctl.style.viewTransitionName = ''; if (root.dataset.vt === 'swap') delete root.dataset.vt;
   });
@@ -163,14 +167,17 @@ export function CountUp({ value, format, className, id }: { value: number; forma
 }
 
 // ─── Segmented control with sliding pill ─────────────────────────────
-export function Segmented<T extends string>({ value, onChange, options, size = 'md', label }: { value: T; onChange: (v: T) => void; options: { value: T; label: ReactNode }[]; size?: 'sm' | 'md'; label: string }) {
+/** `swap`: this control switches a section's content — 'card' dissolves the card holding it, 'page' the whole page.
+ *  Leave it off for form inputs (direction, units, mode): those just slide the pill, content updates in place. */
+export type SwapScope = 'card' | 'page';
+export function Segmented<T extends string>({ value, onChange, options, size = 'md', label, swap }: { value: T; onChange: (v: T) => void; options: { value: T; label: ReactNode }[]; size?: 'sm' | 'md'; label: string; swap?: SwapScope }) {
   const id = useId();
   return (
     <div role="radiogroup" aria-label={label} className="inline-flex p-[3px] rounded-full bg-raised/50 border border-line/70 shadow-[inset_0_1px_2px_rgb(0_0_0/0.18),inset_0_-0.5px_0_var(--spec-soft)]">
       {options.map(o => {
         const on = o.value === value;
         return (
-          <button key={o.value} role="radio" aria-checked={on} onClick={e => { if (!on) softSwap(e.currentTarget.parentElement, () => onChange(o.value)); }} type="button"
+          <button key={o.value} role="radio" aria-checked={on} onClick={e => { if (on) return; if (swap) softSwap(e.currentTarget.parentElement, () => onChange(o.value), swap); else onChange(o.value); }} type="button"
             className={cx('relative rounded-full font-semibold whitespace-nowrap transition-colors', size === 'sm' ? 'h-7 touch:h-9 px-3 touch:px-3.5 text-xs' : 'h-8 touch:h-10 px-3.5 text-[13px]', on ? 'text-ink' : 'text-ink3 hover:text-ink2')}>
             {on && <motion.span layoutId={`seg-${id}`} transition={spring} className="absolute inset-0 rounded-full pill-on" />}
             <span className="relative">{o.label}</span>
@@ -195,7 +202,7 @@ export function useIsMobile() {
 const tabCols = (n: number, mobile: boolean) => (mobile ? (n <= 4 ? n : n % 3 === 0 || n === 5 ? 3 : 4) : n <= 10 ? n : Math.ceil(n / 2));
 
 /** Page-level tabs: a segmented bar on desktop, a wrapping pill grid on phones (no sideways scrolling). */
-export function Tabs<T extends string>({ value, onChange, options, label }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[]; label: string }) {
+export function Tabs<T extends string>({ value, onChange, options, label, swap = 'page' }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[]; label: string; swap?: SwapScope | false }) {
   const mobile = useIsMobile();
   const id = useId();
   if (!mobile && options.length <= 6) return <div><Segmented label={label} value={value} onChange={onChange} options={options} /></div>;
@@ -205,7 +212,7 @@ export function Tabs<T extends string>({ value, onChange, options, label }: { va
       {options.map(o => {
         const on = o.value === value;
         return (
-          <button key={o.value} role="tab" aria-selected={on} type="button" onClick={e => { if (!on) softSwap(e.currentTarget.parentElement, () => onChange(o.value)); }}
+          <button key={o.value} role="tab" aria-selected={on} type="button" onClick={e => { if (on) return; if (swap) softSwap(e.currentTarget.parentElement, () => onChange(o.value), swap); else onChange(o.value); }}
             className={cx('relative min-h-[40px] px-2 rounded-full text-[13px] font-semibold leading-tight transition-colors', on ? 'text-ink' : 'text-ink3 active:bg-surface/60')}>
             {on && <motion.span layoutId={`tab-${id}`} transition={spring} className="absolute inset-0 rounded-full pill-on" />}
             <span className="relative">{o.label}</span>

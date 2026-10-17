@@ -386,7 +386,7 @@ export default function Planner() {
       </Card>
       <ZoneBoard />
       <div className="flex items-center justify-between gap-2">
-        <Segmented label="Show" size="sm" value={filter} onChange={setFilter} options={[{ value: 'active', label: 'Active' }, { value: 'done', label: 'Done' }, { value: 'all', label: 'All' }]} />
+        <Segmented swap="page" label="Show" size="sm" value={filter} onChange={setFilter} options={[{ value: 'active', label: 'Active' }, { value: 'done', label: 'Done' }, { value: 'all', label: 'All' }]} />
         <span className="text-xs text-ink3">{live.length.toLocaleString()} {live.length === 1 ? 'plan' : 'plans'}</span>
       </div>
       {shown.length ? (

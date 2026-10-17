@@ -56,7 +56,7 @@ export function YearCalendar({ days, year, onYear, onMonth }: { days: DayStat[];
         </div>
       </div>
 
-      <div className="flex justify-end -mb-2"><Segmented label="Colour by" size="sm" value={metric} onChange={setMetric} options={[{ value: 'net', label: 'Net $' }, { value: 'win', label: 'Win %' }, { value: 'trades', label: 'Trades' }]} /></div>
+      <div className="flex justify-end -mb-2"><Segmented swap="card" label="Colour by" size="sm" value={metric} onChange={setMetric} options={[{ value: 'net', label: 'Net $' }, { value: 'win', label: 'Win %' }, { value: 'trades', label: 'Trades' }]} /></div>
       {/* Selected-day bar */}
       <div className="h-[52px] rounded-xl bg-raised/70 border border-line px-4 flex items-center overflow-hidden">
         <AnimatePresence mode="wait" initial={false}>

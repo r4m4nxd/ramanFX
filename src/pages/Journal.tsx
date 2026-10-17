@@ -315,7 +315,7 @@ export default function Journal() {
     <Page>
       <div className="flex items-center justify-between gap-2">
         <div className={mobile ? 'flex-1 min-w-0' : 'w-[260px]'}><Tabs label="Journal view" value={view} onChange={v => setParams({ view: v }, { replace: true })} options={[{ value: 'day', label: 'Days' }, { value: 'week', label: 'Weeks' }]} /></div>
-        <Segmented label="Unit" size="sm" value={unit} onChange={setUnit} options={[{ value: '$', label: mobile ? '$' : '$ P&L' }, { value: 'R', label: mobile ? 'R' : 'R multiple' }]} />
+        <Segmented swap="page" label="Unit" size="sm" value={unit} onChange={setUnit} options={[{ value: '$', label: mobile ? '$' : '$ P&L' }, { value: 'R', label: mobile ? 'R' : 'R multiple' }]} />
       </div>
       <Summary days={days} unit={unit} onDay={goDay} />
       {view === 'day' ? (<>

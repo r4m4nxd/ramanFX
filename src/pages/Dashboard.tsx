@@ -207,7 +207,7 @@ export default function Dashboard() {
         <Card className="xl:col-span-2">
           <CardHead title={curve === 'pnl' ? 'Equity curve' : curve === 'r' ? 'Equity in R' : 'Account balance'}
             sub={curve === 'r' ? `Cumulative R over ${rEquity.length} trades with a known stop — the purest read of your edge` : curve === 'pnl' ? <>Cumulative net P&L · max drawdown <span className="num text-loss">{fmt(-s.maxDrawdown)}</span>{a.ddPct != null && <> (<span className="num">{pct(a.ddPct)}</span> of peak)</>}</> : 'Balance through time against net money deposited'}
-            right={<div className="flex flex-wrap gap-2"><PeriodToggle value={curveP} onChange={setCurveP} /><Segmented label="Curve" size="sm" value={curve} onChange={setCurve} options={[{ value: 'pnl', label: '$ P&L' }, { value: 'r', label: 'R' }, { value: 'balance', label: 'Balance' }]} /></div>} />
+            right={<div className="flex flex-wrap gap-2"><PeriodToggle value={curveP} onChange={setCurveP} /><Segmented swap="card" label="Curve" size="sm" value={curve} onChange={setCurve} options={[{ value: 'pnl', label: '$ P&L' }, { value: 'r', label: 'R' }, { value: 'balance', label: 'Balance' }]} /></div>} />
           {curve === 'pnl' ? <EquityChart data={s.equity} fmt={fmt} height={280} period={curveP} /> : curve === 'r' ? <EquityChart data={rEquity} fmt={v => rMult(v, 1)} height={280} period={curveP} /> : a.balance.length ? <BalanceChart data={a.balance} fmt={fmt} height={280} period={curveP} /> : <div className="h-[280px] grid place-items-center text-sm text-ink3">Import a report with an account summary to see balance.</div>}
         </Card>
 
@@ -241,7 +241,7 @@ export default function Dashboard() {
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <Card className="xl:col-span-2">
-          <CardHead title={`${PERIOD_NOUN[barP][0]} ${{ net: 'net P&L', r: 'R', win: 'win rate', n: 'trades' }[barM]}`} right={<div className="flex flex-wrap gap-2"><Segmented label="Metric" size="sm" value={barM} onChange={setBarM} options={[{ value: 'net', label: '$' }, { value: 'r', label: 'R' }, { value: 'win', label: 'Win %' }, { value: 'n', label: 'Trades' }]} /><PeriodToggle value={barP} onChange={setBarP} /></div>}
+          <CardHead title={`${PERIOD_NOUN[barP][0]} ${{ net: 'net P&L', r: 'R', win: 'win rate', n: 'trades' }[barM]}`} right={<div className="flex flex-wrap gap-2"><Segmented swap="card" label="Metric" size="sm" value={barM} onChange={setBarM} options={[{ value: 'net', label: '$' }, { value: 'r', label: 'R' }, { value: 'win', label: 'Win %' }, { value: 'n', label: 'Trades' }]} /><PeriodToggle value={barP} onChange={setBarP} /></div>}
             sub={<>Green {PERIOD_NOUN[barP][2]} {greenB} · red {PERIOD_NOUN[barP][2]} {redB} · {PERIOD_NOUN[barP][1]} win rate <span className="num">{pct(greenB + redB ? greenB / (greenB + redB) : null, 0)}</span>{barP !== 'month' && <> · last {shown.length} {PERIOD_NOUN[barP][2]}</>}</>} />
           <DailyBars days={barP === 'day' ? daysR.slice(-60) : daysR.filter(d => !shown.length || d.date >= shown[0].date)} fmt={fmt} period={barP} metric={barM} />
         </Card>
