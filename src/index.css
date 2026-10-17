@@ -75,7 +75,8 @@
 }
 
 @layer base {
-  html { -webkit-text-size-adjust: 100%; }
+  /* Native-app feel: no grey tap flash, no double-tap zoom delay, no rubber-band of the whole page behind fixed bars. */
+  html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; touch-action: manipulation; overscroll-behavior-y: none; }
   body {
     @apply bg-bg text-ink font-sans antialiased;
     font-feature-settings: 'cv11', 'ss01', 'tnum' 0;
@@ -201,6 +202,12 @@
 :root { --ease-spring: linear(0, 0.034 1.4%, 0.13 3%, 0.45 9%, 0.69 15%, 0.84 21%, 0.93 28%, 0.975 36%, 0.993 46%, 1); }
 @keyframes pageIn { from { opacity: 0; transform: translateY(8px) scale(0.995); } to { opacity: 1; transform: none; } }
 .page-in { animation: pageIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+/* iOS push: drill-down pages (a trade, a plan) slide in from the right; top-level tabs just fade up. */
+@keyframes pagePush { from { opacity: 0.4; transform: translateX(28%); } to { opacity: 1; transform: none; } }
+@media (max-width: 1023px) { .page-push { animation: pagePush 0.42s var(--ease-spring) both; } }
+/* iOS large title: big on top of the page, collapses into the bar once you scroll past it. */
+.large-title { font-size: 34px; line-height: 41px; font-weight: 700; letter-spacing: -0.022em; }
+.bar-title { transition: opacity 0.2s ease, transform 0.25s var(--ease-spring); }
 .btn-base { transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.2s ease, transform 0.5s var(--ease-spring); }
 .btn-base:active { transform: scale(0.97); transition: transform 100ms ease-out; }
 /* Trade row -> trade page morph (View Transitions API): the row grows into the header card, everything else cross-fades. */

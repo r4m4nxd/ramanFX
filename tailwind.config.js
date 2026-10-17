@@ -12,7 +12,7 @@ export default {
         'on-accent': v('on-accent'), 'on-status': v('on-status'), 'accent-hi': v('accent-hi'), 'accent-press': v('accent-press'),
       },
       fontFamily: {
-        sans: ['Inter', '-apple-system', '"SF Pro Display"', 'system-ui', 'sans-serif'],
+        sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', 'Inter', 'system-ui', 'sans-serif'],
         mono: ['Inter', '-apple-system', 'system-ui', 'sans-serif'],
       },
       // Type scale (additive): use these instead of ad-hoc text-[Npx]. micro is the floor for any readable label.

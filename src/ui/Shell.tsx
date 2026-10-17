@@ -214,6 +214,33 @@ export function Shell({ children }: { children: ReactNode }) {
   const scoped = !!here?.scoped;
   const inMore = !here?.mobile;
   const multiAccount = useStore(s => Object.keys(s.accounts).length > 1);
+  // Drill-down page (e.g. /trades/123): iOS push in, no large title, and an edge swipe takes you back.
+  const deep = loc.pathname.split('/').filter(Boolean).length > 1 && !loc.pathname.startsWith('/learn');
+  const navTo = useNavigate();
+  useEffect(() => {
+    if (!deep) return;
+    // Installed app (home screen) has no browser back gesture, so recreate iOS's swipe-from-left-edge.
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone;
+    if (!standalone) return;
+    let x0 = 0, y0 = 0, t0 = 0, active = false, el: HTMLElement | null = null;
+    const down = (e: PointerEvent) => { if (e.pointerType !== 'touch' || e.clientX > 24) return; x0 = e.clientX; y0 = e.clientY; t0 = performance.now(); active = true; el = mainRef.current; if (el) el.style.transition = 'none'; };
+    const move = (e: PointerEvent) => {
+      if (!active || !el) return;
+      const dx = e.clientX - x0;
+      if (Math.abs(e.clientY - y0) > 30 && dx < 20) { active = false; el.style.transform = ''; return; }
+      if (dx > 0) el.style.transform = `translateX(${dx}px)`;
+    };
+    const up = (e: PointerEvent) => {
+      if (!active || !el) return;
+      active = false;
+      const dx = e.clientX - x0, v = dx / Math.max(1, performance.now() - t0) * 1000;
+      el.style.transition = 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)';
+      if (dx + v * 0.2 > window.innerWidth * 0.4) { navigator.vibrate?.(8); el.style.transform = `translateX(${window.innerWidth}px)`; window.setTimeout(() => { if (el) { el.style.transition = 'none'; el.style.transform = ''; } navTo(-1); }, 220); }
+      else el.style.transform = '';
+    };
+    window.addEventListener('pointerdown', down, { passive: true }); window.addEventListener('pointermove', move, { passive: true }); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+    return () => { window.removeEventListener('pointerdown', down); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); };
+  }, [deep, navTo]);
 
   const first = useRef(true);
   useEffect(() => {
@@ -244,8 +271,9 @@ export function Shell({ children }: { children: ReactNode }) {
 
   // Transparent header over the ambient canvas at the top of a page; solid once content scrolls under it.
   const [scrolled, setScrolled] = useState(false);
+  const [pastTitle, setPastTitle] = useState(false);
   useEffect(() => {
-    const on = () => setScrolled(window.scrollY > 4);
+    const on = () => { setScrolled(window.scrollY > 4); setPastTitle(window.scrollY > 38); };
     on(); window.addEventListener('scroll', on, { passive: true });
     return () => window.removeEventListener('scroll', on);
   }, []);
@@ -292,7 +320,7 @@ export function Shell({ children }: { children: ReactNode }) {
         {/* Top bar */}
         <header className={cx('sticky top-0 z-30 border-b pt-safe px-safe transition-colors duration-300', scrolled ? 'bg-bg/70 [backdrop-filter:blur(20px)_saturate(180%)] [-webkit-backdrop-filter:blur(20px)_saturate(180%)] border-transparent shadow-[0_8px_24px_-16px_rgb(0_0_0/0.45)]' : 'bg-transparent border-transparent')}>
           <div className="max-w-[1360px] mx-auto flex items-center gap-2 px-4 lg:px-7 h-14 land:h-12">
-            <h1 className="text-[17px] lg:text-[19px] font-semibold tracking-tight truncate min-w-[60px]">{title}</h1>
+            <h1 className={cx('bar-title text-[17px] lg:text-[19px] font-semibold tracking-tight truncate min-w-[60px]', !pastTitle && !deep && 'max-lg:land:opacity-100 max-lg:opacity-0 max-lg:translate-y-1')}>{title}</h1>
             <span className="order-last xl:order-none xl:ml-3 shrink-0 h-9 w-9 xl:w-auto 2xl:h-10">
               {!cmd && (
                 <motion.button layoutId="cmd-morph" style={{ borderRadius: 20 }} transition={spring} type="button" onClick={() => setCmd(true)} aria-label="Search pages, trades and actions"
@@ -326,7 +354,8 @@ export function Shell({ children }: { children: ReactNode }) {
         <main id="main" ref={mainRef} tabIndex={-1} className="flex-1 w-full max-w-[1360px] mx-auto px-4 lg:px-7 pt-5 land:pt-4 pb-28 land:pb-10 lg:pb-12 outline-none">
           {/* Plain keyed fade-in. An exit-then-enter handoff (AnimatePresence "wait") could stall
               while a lazy page was still loading, leaving the new page invisible. */}
-          <motion.div key={loc.pathname} className="page-in">
+          <motion.div key={loc.pathname} className={deep ? 'page-in page-push' : 'page-in'}>
+              {!deep && <div className="lg:hidden land:hidden large-title mb-3 -mt-1" aria-hidden="true">{title}</div>}
               {!hasTrades && !['/playbook', '/calculator', '/settings', '/risk', '/notebook', '/strategies', '/plan', '/guru', '/guide', '/news', '/chart', '/design', '/learn', '/bot-guide'].some(p => loc.pathname.startsWith(p)) ? <Welcome onImport={() => setImportOpen(true)} /> : children}
           </motion.div>
         </main>
@@ -343,10 +372,10 @@ export function Shell({ children }: { children: ReactNode }) {
       </nav>
 
       {/* Mobile tab bar: the active tab gets an icon chip and bold label, not just a colour change. */}
-      <nav aria-label="Main" className="lg:hidden land:hidden fixed bottom-0 inset-x-0 z-40 bg-surface border-t border-line pb-safe px-safe">
+      <nav aria-label="Main" className="lg:hidden land:hidden fixed bottom-0 inset-x-0 z-40 bg-surface/75 [backdrop-filter:blur(20px)_saturate(180%)] [-webkit-backdrop-filter:blur(20px)_saturate(180%)] border-t border-line/60 pb-safe px-safe">
         <div className="flex justify-around max-w-[680px] mx-auto px-2 pt-1.5">
           {NAV.filter(n => n.mobile).map(n => (
-            <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cx('flex flex-col items-center gap-0.5 min-w-[58px] min-h-[46px] justify-center text-micro transition-transform active:scale-90', isActive ? 'text-ink font-semibold' : 'text-ink3 font-medium')}>
+            <NavLink key={n.to} to={n.to} end={n.to === '/'} onClick={() => navigator.vibrate?.(6)} className={({ isActive }) => cx('flex flex-col items-center gap-0.5 min-w-[58px] min-h-[46px] justify-center text-micro transition-transform active:scale-90', isActive ? 'text-ink font-semibold' : 'text-ink3 font-medium')}>
               {({ isActive }) => (<><span className={cx('relative grid place-items-center h-7 w-12 rounded-full transition-colors', isActive && 'text-accent')}>{isActive && <motion.span layoutId="tab-chip" transition={spring} className="absolute inset-0 rounded-full bg-accent/15" />}<Icon name={n.icon} size={20} className="relative" /></span>{n.short ?? n.label}</>)}
             </NavLink>
           ))}
