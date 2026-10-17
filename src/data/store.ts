@@ -1,3 +1,4 @@
+import { flushSync } from 'react-dom';
 import { create } from 'zustand';
 import type { Account, Attachment, Deposit, ExitData, InstrumentOverride, NotebookEntry, NotebookFolder, OpenPosition, RiskRules, Strategy, TagCategory, TradeNote, WorkingOrder } from '@/core/types';
 import type { ParsedReport } from '@/core/parsers';
@@ -215,7 +216,20 @@ export const useStore = create<State>((set, getState) => {
       if (o) next[sym] = o; else delete next[sym];
       set({ overrides: next }); put(SK.overrides, next);
     },
-    setTheme: (t) => { const root = document.documentElement; root.classList.add('theme-anim'); window.setTimeout(() => root.classList.remove('theme-anim'), 450); root.dataset.theme = t; set({ theme: t }); put(SK.theme, t); },
+    setTheme: (t) => {
+      const root = document.documentElement;
+      const apply = () => { root.dataset.theme = t; flushSync(() => set({ theme: t })); };
+      put(SK.theme, t);
+      const d = document as Document & { startViewTransition?: (cb: () => void) => { finished: Promise<void> } };
+      // One uniform dissolve of the whole screen (gradients, shadows, charts and text together) instead of
+      // per-element colour transitions that can't cover everything and land at different moments.
+      if (d.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        root.dataset.vt = 'theme';
+        d.startViewTransition(apply).finished.finally(() => { if (root.dataset.vt === 'theme') delete root.dataset.vt; });
+        return;
+      }
+      root.classList.add('theme-anim'); window.setTimeout(() => root.classList.remove('theme-anim'), 450); apply();
+    },
     setPrivacy: (v) => { set({ privacy: v }); put(SK.privacy, v); },
     setRange: (r) => set({ range: r }),
     setBrokerOffset: (h) => { set({ brokerOffset: h }); put(SK.brokerOffset, h); },

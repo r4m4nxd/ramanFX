@@ -257,6 +257,11 @@
 .vt-bar-top { view-transition-name: bar-top; } .vt-bar-bottom { view-transition-name: bar-bottom; } .vt-side { view-transition-name: side; }
 ::view-transition-old(bar-top), ::view-transition-old(bar-bottom), ::view-transition-old(side) { display: none; }
 ::view-transition-new(bar-top), ::view-transition-new(bar-bottom), ::view-transition-new(side) { animation: none; }
+/* Theme switch: the new theme dissolves in over the old one (old stays opaque underneath, so nothing dims mid-way). */
+[data-vt='theme']::view-transition-group(*) { animation: none; }
+[data-vt='theme']::view-transition-old(*) { display: block; animation: none; }
+[data-vt='theme']::view-transition-new(*) { animation: themeIn 0.6s var(--ease-calm) both; mix-blend-mode: normal; }
+@keyframes themeIn { from { opacity: 0; } }
 /* Pill switch: only the section crossfades (same calm dissolve, a touch quicker); the page and the control stay still. */
 [data-vt='swap']::view-transition-old(root), [data-vt='swap']::view-transition-new(root) { animation: none; }
 ::view-transition-group(swap) { animation-duration: 0.42s; animation-timing-function: var(--ease-calm); }
