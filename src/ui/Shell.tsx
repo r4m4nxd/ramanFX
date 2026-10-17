@@ -317,7 +317,6 @@ export function Shell({ children }: { children: ReactNode }) {
   ], [privacy, theme, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const groups: Group[] = ['Today', 'Review', 'Plan & tools'];
-  const tile = (active: boolean) => cx('flex flex-col items-center justify-center gap-2 py-4 land:py-2 land:gap-1 rounded-xl bg-raised border text-xs font-medium text-center', active ? 'border-accent/40 text-ink' : 'border-line text-ink2');
   return (
     <MotionConfig reducedMotion="user">
     <div className="min-h-screen flex land:pl-[calc(80px+env(safe-area-inset-left))]">
@@ -404,25 +403,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <GlassTabBar tabs={mobileTabs} active={mobileTabs.findIndex(n => isOn(loc.pathname, n.to))} moreActive={inMore} onMore={() => setMoreOpen(true)} onSearch={openCmd} />
 
       <Sheet bottom open={moreOpen} onClose={() => setMoreOpen(false)} title="More">
-        <button type="button" className="field h-11 flex items-center gap-2 text-left text-ink3 mb-4" onClick={() => { setMoreOpen(false); openCmd(); }}><Icon name="search" size={16} />Search pages, trades, actions</button>
-        {(['Review', 'Plan & tools'] as Group[]).map(g => (
-          <section key={g} className="mb-4" aria-label={g}>
-            <div className="label mb-2">{g}</div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 land:!grid-cols-7 gap-2">
-              {NAV.filter(n => n.group === g && !n.mobile).map(n => (
-                <NavLink key={n.to} to={n.to} onClick={softClick(() => navTo(n.to))} className={({ isActive }) => tile(isActive)}>
-                  <Icon name={n.icon} size={20} />{n.label}
-                </NavLink>
-              ))}
-            </div>
-          </section>
-        ))}
-        <div className="flex flex-wrap items-center justify-center gap-1 border-t border-line pt-3">
-          {NAV.filter(n => n.group === 'Help').map(n => (
-            <NavLink key={n.to} to={n.to} onClick={softClick(() => navTo(n.to))} className={({ isActive }) => cx('btn-ghost h-11', isActive ? 'text-ink' : 'text-ink2')}><Icon name={n.icon} size={15} />{n.label}</NavLink>
-          ))}
-          <a href="/legacy.html" className="btn-ghost h-11 text-ink2"><Icon name="link" size={15} />Classic app</a>
-        </div>
+        <MoreMenu onSearch={() => { setMoreOpen(false); openCmd(); }} go={to => navTo(to)} />
       </Sheet>
       <Sheet open={importOpen} onClose={() => setImportOpen(false)} title="Import trades" morphId="import-morph"><ImportPanel onDone={() => setImportOpen(false)} /></Sheet>
       <CommandPalette open={cmd} onClose={() => setCmd(false)} actions={actions} instant={cmdKbd} />
@@ -496,4 +477,64 @@ function useGlassLight() {
     const stop = installLiveCards();
     return () => { stop(); clearTimeout(calm); cancelAnimationFrame(raf); window.removeEventListener('scroll', queue); window.removeEventListener('pointermove', move); };
   }, []);
+}
+
+/** iOS-style app colours per page: each tile gets its own gradient icon, like the Settings app. */
+const TINT: Record<string, [string, string]> = {
+  '/reports': ['#4F8BFF', '#2563EB'], '/calendar': ['#FF6B6B', '#E11D48'], '/heatmaps': ['#FFA24C', '#EA580C'],
+  '/exits': ['#2DD4BF', '#0D9488'], '/guru': ['#B78CFF', '#7C3AED'], '/playbook': ['#818CF8', '#4F46E5'],
+  '/strategies': ['#F472B6', '#DB2777'], '/risk': ['#4ADE80', '#16A34A'], '/calculator': ['#A1A1AA', '#52525B'],
+  '/chart': ['#38BDF8', '#0284C7'], '/news': ['#FACC15', '#CA8A04'], '/notebook': ['#FDBA74', '#F59E0B'],
+  '/learn': ['#60A5FA', '#3B82F6'], '/bot-guide': ['#34D399', '#059669'], '/guide': ['#C4B5FD', '#8B5CF6'], '/settings': ['#9CA3AF', '#4B5563'],
+};
+function AppIcon({ to, icon, size = 44 }: { to: string; icon: IconName; size?: number }) {
+  const [a, b] = TINT[to] ?? ['#8B5CF6', '#6D28D9'];
+  return (
+    <span className="app-icon" style={{ width: size, height: size, background: `linear-gradient(160deg, ${a}, ${b})`, boxShadow: `inset 0 1px 0 rgb(255 255 255 / .45), inset 0 -2px 6px rgb(0 0 0 / .18), 0 8px 18px -8px ${b}` }}>
+      <Icon name={icon} size={Math.round(size * 0.48)} strokeWidth={2} />
+    </span>
+  );
+}
+
+/** The phone "More" sheet: glass search pill, app-icon tiles that cascade in, and an iOS grouped list for help. */
+function MoreMenu({ onSearch, go }: { onSearch: () => void; go: (to: string) => void }) {
+  const loc = useLocation();
+  const intro = { hidden: { opacity: 0, transform: 'translateY(10px) scale(0.96)' }, show: { opacity: 1, transform: 'translateY(0px) scale(1)', transition: { duration: 0.32, ease: [0.23, 1, 0.32, 1] } } };
+  let k = 0;
+  return (
+    <motion.div initial="hidden" animate="show" variants={{ hidden: {}, show: { transition: { staggerChildren: 0.03, delayChildren: 0.06 } } }}>
+      <motion.button variants={intro} type="button" onClick={onSearch} className="glass press w-full h-12 rounded-full flex items-center gap-2.5 px-4 text-left text-ink2 mb-5">
+        <Icon name="search" size={17} className="text-ink3" />Search pages, trades, actions
+      </motion.button>
+      {(['Review', 'Plan & tools'] as Group[]).map(g => (
+        <section key={g} className="mb-5" aria-label={g}>
+          <div className="text-[13px] font-semibold text-ink2 mb-2.5 px-1 tracking-tight">{g}</div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 land:!grid-cols-7 gap-2.5">
+            {NAV.filter(n => n.group === g && !n.mobile).map(n => {
+              const on = isOn(loc.pathname, n.to);
+              k++;
+              return (
+                <motion.div key={n.to} variants={intro} custom={k}>
+                  <NavLink to={n.to} onClick={softClick(() => go(n.to))} aria-current={on ? 'page' : undefined}
+                    className={cx('more-tile press flex flex-col items-center justify-center gap-2.5 py-4 land:py-2 land:gap-1.5 rounded-[20px] text-[12.5px] font-medium text-center leading-tight', on ? 'is-on text-ink' : 'text-ink2')}>
+                    <AppIcon to={n.to} icon={n.icon} />{n.label}
+                  </NavLink>
+                </motion.div>
+              );
+            })}
+          </div>
+        </section>
+      ))}
+      <motion.div variants={intro} className="more-list rounded-[20px] overflow-hidden">
+        {NAV.filter(n => n.group === 'Help').map(n => (
+          <NavLink key={n.to} to={n.to} onClick={softClick(() => go(n.to))} className="press flex items-center gap-3 h-[52px] px-3.5 text-[15px] text-ink active:bg-white/5">
+            <AppIcon to={n.to} icon={n.icon} size={30} /><span className="flex-1">{n.label}</span><Icon name="chevronRight" size={16} className="text-ink3" />
+          </NavLink>
+        ))}
+        <a href="/legacy.html" className="press flex items-center gap-3 h-[52px] px-3.5 text-[15px] text-ink active:bg-white/5">
+          <AppIcon to="/legacy" icon="link" size={30} /><span className="flex-1">Classic app</span><Icon name="chevronRight" size={16} className="text-ink3" />
+        </a>
+      </motion.div>
+    </motion.div>
+  );
 }
