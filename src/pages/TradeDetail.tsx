@@ -226,7 +226,7 @@ export default function TradeDetail() {
         </div>
       </div>
 
-      <Card className="flex flex-wrap items-center gap-6 justify-between">
+      <Card className="flex flex-wrap items-center gap-6 justify-between vt-hero [view-transition-name:trade-hero]">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
             <h2 className="font-mono text-2xl font-semibold">{t.sym}</h2>

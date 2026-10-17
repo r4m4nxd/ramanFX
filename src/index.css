@@ -203,6 +203,11 @@
 .page-in { animation: pageIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .btn-base { transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.2s ease, transform 0.5s var(--ease-spring); }
 .btn-base:active { transform: scale(0.97); transition: transform 100ms ease-out; }
+/* Trade row -> trade page morph (View Transitions API): the row grows into the header card, everything else cross-fades. */
+::view-transition-group(trade-hero) { animation-duration: 0.45s; animation-timing-function: var(--ease-spring); }
+::view-transition-old(trade-hero), ::view-transition-new(trade-hero) { animation-duration: 0.3s; height: 100%; object-fit: cover; }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.25s; }
+@media (prefers-reduced-motion: reduce) { ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; } }
 /* Theme switches ease instead of snapping. */
 .theme-anim, .theme-anim * { transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease, fill 0.35s ease !important; }
 /* Accessibility: no translucency or heavy motion when the OS asks for it. */

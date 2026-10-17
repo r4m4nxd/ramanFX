@@ -6,7 +6,7 @@ import { computeStats, normTag, type EnrichedTrade } from '@/core/stats';
 import { specFor } from '@/core/instruments';
 import { fmtHold } from '@/core/time';
 import { pct, price, rMult, shortDate, timeHM, tone, useMoney } from '@/lib/format';
-import { Badge, Card, cx, Empty, Page, Segmented, useIsMobile } from '@/ui/kit';
+import { Badge, Card, cx, Empty, morphNavigate, Page, Segmented, useIsMobile } from '@/ui/kit';
 import { TRADE_ORDER_KEY, TradeList } from '@/ui/TradeList';
 import { Icon } from '@/ui/Icon';
 
@@ -179,7 +179,7 @@ export default function Trades() {
                   const n = notes[t.id];
                   const digits = specFor(t.sym, overrides[t.sym]).digits;
                   return (
-                    <tr key={t.account + t.id} onClick={() => nav(`/trades/${t.id}`, { state: linkState })} className="cursor-pointer hover:bg-raised/60 transition-colors [&>td:first-child]:pl-5 [&>td:last-child]:pr-5">
+                    <tr key={t.account + t.id} onClick={e => morphNavigate(e.currentTarget, () => nav(`/trades/${t.id}`, { state: linkState }))} className="cursor-pointer hover:bg-raised/60 transition-colors [&>td:first-child]:pl-5 [&>td:last-child]:pr-5">
                       <td className="td num text-ink2 whitespace-nowrap">{shortDate(t.close)} <span className="text-ink3">{timeHM(t.close)}</span></td>
                       <td className="td"><Link to={`/trades/${t.id}`} state={linkState} onClick={e => e.stopPropagation()} className="font-mono font-medium hover:text-accent inline-block py-2 -my-2">{t.sym}</Link>{n?.mistakes?.length ? <span className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-warn align-middle" title={`Mistakes: ${n.mistakes.join(', ')}`} aria-label="Has mistakes" role="img" /> : null}</td>
                       <td className="td"><Badge tone={t.type === 'buy' ? 'profit' : 'loss'}>{t.type === 'buy' ? 'BUY' : 'SELL'}</Badge></td>

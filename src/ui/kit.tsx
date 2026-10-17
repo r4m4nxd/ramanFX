@@ -1,10 +1,29 @@
 import { AnimatePresence, animate, motion, useDragControls, useMotionValue, useReducedMotion, useTransform } from 'framer-motion';
 import { clsx } from 'clsx';
 import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode, type RefObject } from 'react';
-import { createPortal } from 'react-dom';
+import { createPortal, flushSync } from 'react-dom';
 import { Icon, type IconName } from './Icon';
 
 export const cx = clsx;
+
+/** Page-to-page morph (View Transitions): the clicked element becomes the 'trade-hero' that grows into the
+ *  detail page's header card. Returns whether the browser can do it, to pass as react-router's unstable_viewTransition. */
+export function morphFrom(el: Element | null) {
+  if (!el || typeof document === 'undefined' || !('startViewTransition' in document) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
+  document.querySelectorAll<HTMLElement>('[data-vt-src]').forEach(e => { e.style.viewTransitionName = ''; delete e.dataset.vtSrc; });
+  const h = el as HTMLElement;
+  h.style.viewTransitionName = 'trade-hero'; h.dataset.vtSrc = '1';
+  window.setTimeout(() => { if (h.isConnected) { h.style.viewTransitionName = ''; delete h.dataset.vtSrc; } }, 1200);
+  return true;
+}
+/** Navigate with the morph: snapshot, render the new page synchronously, wait (max ~320ms) for its hero card, then animate. */
+export function morphNavigate(el: Element | null, go: () => void) {
+  if (!morphFrom(el)) { go(); return; }
+  (document as Document & { startViewTransition: (cb: () => Promise<void>) => unknown }).startViewTransition(async () => {
+    flushSync(go);
+    for (let i = 0; i < 20 && !document.querySelector('.vt-hero'); i++) await new Promise(r => setTimeout(r, 16));
+  });
+}
 
 // ─── Motion presets ──────────────────────────────────────────────────
 // Apple springs: critically damped (no bounce) for UI moves; a little bounce only after a flick/drag (momentum).

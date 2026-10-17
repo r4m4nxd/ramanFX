@@ -8,7 +8,7 @@ import { riskStatus } from '@/core/risk';
 import { MIN_SCORE_TRADES } from '@/core/stats';
 import { dayKey } from '@/core/time';
 import { pct, rMult, shortDate, timeHM, tone, useMoney } from '@/lib/format';
-import { Badge, Bar, Card, CardHead, CountUp, cx, InfoTip, Page, rise, Segmented, useIsMobile } from '@/ui/kit';
+import { Badge, Bar, Card, CardHead, CountUp, cx, InfoTip, morphNavigate, Page, rise, Segmented, useIsMobile } from '@/ui/kit';
 import { TradeList } from '@/ui/TradeList';
 import { BalanceChart, bucketDays, type DayMetric, DailyBars, DivergingBars, EquityChart, PERIOD_NOUN, PeriodToggle, Sparkline, usePeriod } from '@/ui/charts';
 import { MonthCalendar } from '@/ui/MonthCalendar';
@@ -311,7 +311,7 @@ export default function Dashboard() {
             <thead className="pillhead"><tr><th className="th pl-4">Closed</th><th className="th">Symbol</th><th className="th">Side</th><th className="th">Setup</th><th className="th text-right">Hold</th><th className="th pl-5">Result</th><th className="th text-right">R</th><th className="th text-right pr-4">Net</th></tr></thead>
             <tbody>
               {recent.map(t => (
-                <tr key={t.account + t.id} onClick={() => nav(`/trades/${t.id}`)} className="cursor-pointer hover:bg-raised/60 transition-colors">
+                <tr key={t.account + t.id} onClick={e => morphNavigate(e.currentTarget, () => nav(`/trades/${t.id}`))} className="cursor-pointer hover:bg-raised/60 transition-colors">
                   <td className="td pl-4 num text-ink2">{shortDate(t.close)} {timeHM(t.close)}</td>
                   <td className="td"><Link to={`/trades/${t.id}`} className="font-mono font-medium hover:text-accent inline-block py-2 -my-2" onClick={e => e.stopPropagation()}>{t.sym}</Link></td>
                   <td className="td"><Badge tone={t.type === 'buy' ? 'profit' : 'loss'}>{t.type === 'buy' ? 'BUY' : 'SELL'}</Badge></td>

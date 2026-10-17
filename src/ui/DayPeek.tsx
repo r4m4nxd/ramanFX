@@ -70,7 +70,19 @@ export function DayNote({ day, rows = 3, autoFocus = false }: { day: string; row
 }
 
 /** Day detail popup: headline, intraday equity line, stats and the day's trades. */
+// Where the last tap/click happened, so the day preview can grow out of the cell that opened it (Apple-style zoom from source).
+let lastTap = { x: 0, y: 0, t: 0 };
+if (typeof window !== 'undefined') window.addEventListener('pointerdown', e => { lastTap = { x: e.clientX, y: e.clientY, t: Date.now() }; }, { capture: true, passive: true });
+function fromTap() {
+  if (Date.now() - lastTap.t > 1500) return { x: 0, y: 30 };
+  return { x: lastTap.x - window.innerWidth / 2, y: lastTap.y - window.innerHeight / 2 };
+}
+
 export function DayPeek({ day, onClose }: { day: string | null; onClose: () => void }) {
+  const origin = useRef({ x: 0, y: 30 });
+  const openedFor = useRef<string | null>(null);
+  if (day && openedFor.current !== day) { origin.current = fromTap(); }
+  openedFor.current = day;
   const mobile = useIsMobile();
   const panel = useRef<HTMLDivElement>(null);
   const titleId = useId();
@@ -105,7 +117,7 @@ export function DayPeek({ day, onClose }: { day: string | null; onClose: () => v
           <motion.div className="absolute inset-0 bg-black/55 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
           <motion.div ref={panel}
             className="relative w-full md:max-w-[560px] max-h-sheet md:max-h-[86vh] flex flex-col bg-surface border border-line2 shadow-pop rounded-t-3xl md:rounded-3xl overflow-hidden luxe-border"
-            initial={mobile ? { y: '100%' } : { opacity: 0, scale: 0.9, y: 20 }} animate={mobile ? { y: 0 } : { opacity: 1, scale: 1, y: 0 }} exit={mobile ? { y: '100%' } : { opacity: 0, scale: 0.94, y: 10 }}
+            initial={mobile ? { y: '100%' } : { opacity: 0, scale: 0.08, ...origin.current }} animate={mobile ? { y: 0 } : { opacity: 1, scale: 1, x: 0, y: 0 }} exit={mobile ? { y: '100%' } : { opacity: 0, scale: 0.08, ...origin.current }}
             transition={spring}
             drag={mobile ? 'y' : false} dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.6 }} onDragEnd={(_, i) => { if (i.offset.y > 120 || i.velocity.y > 600) onClose(); }}>
             {mobile && <div className="pt-2.5 pb-1 grid place-items-center"><span className="w-10 h-1.5 rounded-full bg-line2" /></div>}
