@@ -82,6 +82,8 @@
 @layer base {
   /* Native-app feel: no grey tap flash, no double-tap zoom delay, no rubber-band of the whole page behind fixed bars. */
   html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; touch-action: manipulation; overscroll-behavior-y: none; }
+  /* iPhone/iPad: keep Safari's native rubber band at the top and bottom (other browsers get rubberBand.ts instead). */
+  @supports (-webkit-touch-callout: none) { html { overscroll-behavior-y: auto; } }
   body {
     @apply bg-bg text-ink font-sans antialiased;
     font-feature-settings: 'cv11', 'ss01', 'tnum' 0;

@@ -12,6 +12,7 @@ import { cx, Segmented, Sheet, softClick, softNavigate, spring, useDialogFocus, 
 import { ImportPanel } from './ImportPanel';
 import { GlassTabBar } from './GlassTabBar';
 import { installLiveCards } from './liveCards';
+import { installRubberBand } from './rubberBand';
 import { presets, RangePicker } from './RangePicker';
 
 type Group = 'Today' | 'Review' | 'Plan & tools' | 'Help';
@@ -254,6 +255,8 @@ export function Shell({ children }: { children: ReactNode }) {
   }, [deep, navTo]);
 
   useGlassLight();
+  // Top and bottom of the page stretch and settle like iOS instead of stopping dead.
+  useEffect(() => (mainRef.current ? installRubberBand(mainRef.current) : undefined), []);
   const first = useRef(true);
   useEffect(() => {
     window.scrollTo({ top: 0 }); setMoreOpen(false);
