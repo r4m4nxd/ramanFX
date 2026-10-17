@@ -35,11 +35,29 @@ export function Card({ children, className, as = 'section', ...rest }: { childre
   return <C variants={rise} className={cx('card min-w-0', padded && 'p-5', className)} {...rest}>{children}</C>;
 }
 
+/** Apple-style text entrance: each word rises out of a blur, one after another. Plain text only; respects reduced motion. */
+export function RevealText({ text, className, delay = 0, as: Tag = 'span' }: { text: string; className?: string; delay?: number; as?: 'span' | 'h1' | 'h2' | 'h3' | 'p' }) {
+  const reduce = useReducedMotion();
+  if (reduce) return <Tag className={className}>{text}</Tag>;
+  const words = text.split(' ');
+  return (
+    <Tag className={className} aria-label={text}>
+      {words.map((w, i) => (
+        <motion.span key={i} aria-hidden="true" className="inline-block whitespace-pre"
+          initial={{ opacity: 0, y: '0.35em', filter: 'blur(6px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          transition={{ duration: 0.55, ease, delay: delay + i * 0.045 }}>
+          {w}{i < words.length - 1 ? ' ' : ''}
+        </motion.span>
+      ))}
+    </Tag>
+  );
+}
+
 export function CardHead({ title, sub, right }: { title: ReactNode; sub?: ReactNode; right?: ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
       <div className="min-w-0">
-        <h2 className="text-[15px] font-semibold leading-tight">{title}</h2>
+        <h2 className="text-[15px] font-semibold leading-tight">{typeof title === 'string' ? <RevealText text={title} /> : title}</h2>
         {sub && <p className="text-xs text-ink3 mt-1">{sub}</p>}
       </div>
       {right}
@@ -302,13 +320,18 @@ function ToastItem({ t, onClose }: { t: Toast; onClose: () => void }) {
     return () => clearTimeout(h);
   }, [paused, t, onClose]);
   return (
-    <motion.div layout initial={{ opacity: 0, y: 16, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.96 }} transition={spring}
+    // Dynamic-Island morph: a small dark pill springs open to full width, then its content fades in.
+    <motion.div layout initial={{ opacity: 0, scaleX: 0.35, scaleY: 0.7, y: 12, filter: 'blur(8px)' }} animate={{ opacity: 1, scaleX: 1, scaleY: 1, y: 0, filter: 'blur(0px)' }}
+      exit={{ opacity: 0, scaleX: 0.4, scaleY: 0.7, filter: 'blur(8px)', transition: { duration: 0.22, ease } }} transition={{ type: 'spring', stiffness: 380, damping: 26, mass: 0.9 }}
       onPointerEnter={() => setPaused(true)} onPointerLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}
-      className="pointer-events-auto flex items-center gap-2.5 pl-4 pr-1.5 py-1.5 min-h-[44px] rounded-xl bg-surface border border-line2 shadow-pop text-sm max-w-[min(90vw,480px)]">
-      <span className={cx('w-2 h-2 rounded-full shrink-0', t.tone === 'ok' ? 'bg-profit' : t.tone === 'error' ? 'bg-loss' : 'bg-accent')} aria-hidden="true" />
-      <span className="py-1 mr-1">{t.text}</span>
-      {t.action && <button type="button" className="btn-ghost h-8 px-3 text-accent shrink-0" onClick={() => { t.action!.run(); onClose(); }}>{t.action.label}</button>}
-      <button type="button" className="btn-ghost h-8 w-8 px-0 text-ink3 shrink-0 ml-auto" aria-label="Dismiss" onClick={onClose}><Icon name="x" size={14} /></button>
+      style={{ borderRadius: 999 }}
+      className="pointer-events-auto flex items-center gap-2.5 pl-4 pr-1.5 py-1.5 min-h-[44px] bg-[#0b0b0d] text-white border border-white/10 shadow-pop text-sm max-w-[min(90vw,480px)]">
+      <motion.span className="contents" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.12, duration: 0.25 }}>
+        <span className={cx('w-2 h-2 rounded-full shrink-0', t.tone === 'ok' ? 'bg-profit' : t.tone === 'error' ? 'bg-loss' : 'bg-accent')} aria-hidden="true" />
+        <span className="py-1 mr-1">{t.text}</span>
+        {t.action && <button type="button" className="h-8 px-3 rounded-full text-accent font-semibold shrink-0 hover:bg-white/10" onClick={() => { t.action!.run(); onClose(); }}>{t.action.label}</button>}
+        <button type="button" className="h-8 w-8 grid place-items-center rounded-full text-white/60 hover:text-white hover:bg-white/10 shrink-0 ml-auto" aria-label="Dismiss" onClick={onClose}><Icon name="x" size={14} /></button>
+      </motion.span>
     </motion.div>
   );
 }

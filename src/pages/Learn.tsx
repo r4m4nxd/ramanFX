@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { VIDEO_LESSONS, type VideoLesson } from '@/core/videoLessons';
-import { Badge, Card, cx, Page } from '@/ui/kit';
+import { Badge, Card, cx, Page, RevealText, spring } from '@/ui/kit';
+import { motion } from 'framer-motion';
 import { Icon } from '@/ui/Icon';
 import { hasDiagram, LessonDiagram } from '@/ui/LessonDiagrams';
 
@@ -30,7 +31,7 @@ function LessonView({ l, done, toggle }: { l: VideoLesson; done: boolean; toggle
     <article className="flex flex-col gap-4">
       <Card>
         <div className="flex flex-wrap items-center gap-2 mb-2"><Badge tone="accent">Lesson {l.n}</Badge><Badge>{KIND[l.kind]}</Badge>{done && <Badge tone="profit">Studied</Badge>}</div>
-        <h2 className="text-[22px] font-semibold tracking-tight">{l.title}</h2>
+        <RevealText key={l.n} as="h2" className="text-[22px] font-semibold tracking-tight" text={l.title} />
         <p className="text-[14px] text-ink2 mt-2 max-w-[75ch] leading-relaxed">{l.summary}</p>
         <div className="flex flex-wrap gap-2 mt-4">
           <button type="button" className={done ? 'btn' : 'btn-primary'} onClick={toggle}><Icon name="check" size={14} />{done ? 'Mark as not studied' : 'Mark as studied'}</button>
@@ -103,9 +104,10 @@ export default function Learn() {
               {list.map(l => (
                 <li key={l.n}>
                   <button type="button" onClick={() => setSp({ l: String(l.n) })} aria-current={l.n === n ? 'page' : undefined}
-                    className={cx('w-full flex items-start gap-3 text-left px-2.5 py-2.5 rounded-lg transition-colors', l.n === n ? 'bg-accent/10' : 'hover:bg-raised/60')}>
-                    <span className={cx('num w-6 h-6 rounded-full grid place-items-center text-[11px] font-semibold shrink-0', done.includes(l.n) ? 'bg-profit/15 text-profit' : 'bg-raised text-ink2')}>{done.includes(l.n) ? <Icon name="check" size={12} /> : l.n}</span>
-                    <span className="min-w-0"><span className="block text-[13px] font-medium leading-snug">{l.title}</span><span className="block text-[11.5px] text-ink3 mt-0.5">{KIND[l.kind]} · {l.sections.length} sections</span></span>
+                    className={cx('relative w-full flex items-start gap-3 text-left px-2.5 py-2.5 rounded-lg transition-colors', l.n !== n && 'hover:bg-raised/60')}>
+                    {l.n === n && <motion.span layoutId="lesson-pill" transition={spring} className="absolute inset-0 rounded-lg bg-accent/10" />}
+                    <span className={cx('relative num w-6 h-6 rounded-full grid place-items-center text-[11px] font-semibold shrink-0', done.includes(l.n) ? 'bg-profit/15 text-profit' : 'bg-raised text-ink2')}>{done.includes(l.n) ? <Icon name="check" size={12} /> : l.n}</span>
+                    <span className="relative min-w-0"><span className="block text-[13px] font-medium leading-snug">{l.title}</span><span className="block text-[11.5px] text-ink3 mt-0.5">{KIND[l.kind]} · {l.sections.length} sections</span></span>
                   </button>
                 </li>
               ))}
@@ -121,7 +123,7 @@ export default function Learn() {
             </>
           ) : (
             <Card className="max-lg:hidden">
-              <h2 className="text-[20px] font-semibold">Your mentor's video course, as notes</h2>
+              <RevealText as="h2" className="text-[20px] font-semibold" text="Your mentor's video course, as notes" />
               <p className="text-[14px] text-ink2 mt-2 max-w-[70ch]">All {VIDEO_LESSONS.length} lessons written out with diagrams, his rules, the mistakes he warns about and a pre-trade check for each. Pick a lesson on the left. The Planner, Playbook and Guru link back here.</p>
               <button type="button" className="btn-primary mt-4" onClick={() => setSp({ l: String((VIDEO_LESSONS.find(l => !done.includes(l.n)) ?? VIDEO_LESSONS[0]).n) })}>{done.length ? 'Continue' : 'Start lesson 1'}<Icon name="chevronRight" size={14} /></button>
             </Card>

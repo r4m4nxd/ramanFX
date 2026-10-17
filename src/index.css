@@ -196,8 +196,12 @@
 .hold-cell:active { transform: scale(1.12); transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1); z-index: 5; }
 
 /* Page entrance in CSS: it always completes, even if the page mounted mid-load. */
-@keyframes pageIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-.page-in { animation: pageIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both; }
+/* Apple-style motion: a real spring curve (slight overshoot, settles), blur-to-sharp entrances, springy presses. */
+:root { --ease-spring: linear(0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.723 12.9%, 0.938 16.7%, 1.017 19.4%, 1.067, 1.099 24.3%, 1.108 26%, 1.100, 1.078 30.9%, 1.032 35.9%, 0.996 42%, 0.986 45.7%, 0.990 54%, 1.001 66.6%, 1); }
+@keyframes pageIn { from { opacity: 0; transform: translateY(10px) scale(0.995); filter: blur(6px); } to { opacity: 1; transform: none; filter: blur(0); } }
+.page-in { animation: pageIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.btn-base { transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.2s ease, transform 0.5s var(--ease-spring); }
+.btn-base:active { transform: scale(0.96); transition-duration: 0.08s; }
 
 /* Touch devices: no long-press text selection or callout; typing fields stay selectable. Mouse/trackpad keeps normal selection. */
 @media (pointer: coarse) {

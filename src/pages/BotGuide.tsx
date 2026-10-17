@@ -1,6 +1,6 @@
 import { useSearchParams } from 'react-router-dom';
 import type { ReactNode } from 'react';
-import { Badge, Card, cx, Page } from '@/ui/kit';
+import { Badge, Card, cx, Page, RevealText } from '@/ui/kit';
 import { Icon } from '@/ui/Icon';
 
 function Steps({ items }: { items: ReactNode[] }) {
@@ -274,7 +274,7 @@ export default function BotGuide() {
       <div className="flex flex-col gap-4 max-w-[900px]">
         <Card>
           <div className="flex flex-wrap items-center gap-2 mb-2"><Badge tone="accent">MT4</Badge><Badge tone="warn">Demo first</Badge></div>
-          <h2 className="text-[22px] font-semibold tracking-tight">Bot guide</h2>
+          <RevealText as="h2" className="text-[22px] font-semibold tracking-tight" text="Bot guide" />
           <p className="text-[14px] text-ink2 mt-2 max-w-[70ch] leading-relaxed">How to install and use the RamanFX ZoneBot (finds, advises and manages trades) and the ZoneVision indicator (draws what the bot sees).</p>
           <div className="flex gap-2 mt-4" role="tablist">
             <button type="button" role="tab" aria-selected={tab === 'bot'} className={tab === 'bot' ? 'btn-primary' : 'btn'} onClick={() => setSp({})}>ZoneBot</button>
