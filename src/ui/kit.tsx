@@ -259,7 +259,7 @@ export function useDialogFocus(open: boolean, ref: RefObject<HTMLElement>, initi
 }
 
 // ─── Sheet (side panel on desktop, bottom sheet on mobile) ───────────
-export function Sheet({ open, onClose, title, children, width = 520, bottom = false }: { open: boolean; onClose: () => void; title: string; children: ReactNode; width?: number; /** Always a bottom sheet (centred, max 560px) — for menus. */ bottom?: boolean }) {
+export function Sheet({ open, onClose, title, children, width = 520, bottom = false, morphId }: { open: boolean; onClose: () => void; title: string; children: ReactNode; width?: number; /** Always a bottom sheet (centred, max 560px) — for menus. */ bottom?: boolean; /** Desktop: grow out of the element with this layoutId (e.g. the button that opened it). */ morphId?: string }) {
   const reduce = useReducedMotion();
   const panel = useRef<HTMLDivElement>(null);
   const drag = useDragControls();
@@ -272,22 +272,23 @@ export function Sheet({ open, onClose, title, children, width = 520, bottom = fa
   }, [open, onClose]);
   useDialogFocus(open, panel, '[data-sheet-close]');
   const fromBottom = bottom || (typeof window !== 'undefined' && window.innerWidth < 768);
-  const off = reduce ? { opacity: 0 } : fromBottom ? { y: '100%' } : { x: '100%' };
+  const morph = !!morphId && !fromBottom && !reduce;
+  const off = reduce ? { opacity: 0 } : morph ? { opacity: 0 } : fromBottom ? { y: '100%' } : { x: '100%' };
   // Portalled: the blurred sticky header would otherwise trap a fixed sheet inside itself.
   return createPortal(
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={title}>
           <motion.div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
-          <motion.div ref={panel}
+          <motion.div ref={panel} layoutId={morph ? morphId : undefined}
             className={cx('absolute bg-surface border-line2 shadow-pop flex flex-col', bottom
               ? 'inset-x-0 bottom-0 mx-auto w-full max-w-[560px] max-h-sheet rounded-t-2xl border-t border-x'
               : 'max-md:inset-x-0 max-md:bottom-0 max-md:max-h-sheet max-md:rounded-t-2xl max-md:border-t md:top-0 md:right-0 md:h-full md:border-l')}
-            style={{ width: !bottom && typeof window !== 'undefined' && window.innerWidth >= 768 ? width : undefined }}
+            style={{ width: !bottom && typeof window !== 'undefined' && window.innerWidth >= 768 ? width : undefined, ...(morph ? { borderRadius: 20, top: 8, bottom: 8, right: 8, height: 'auto' } : {}) }}
             initial={off}
             animate={{ x: 0, y: 0, opacity: 1 }}
             exit={off}
-            transition={reduce ? { duration: 0.2 } : momentumSpring}
+            transition={reduce ? { duration: 0.2 } : morph ? spring : momentumSpring}
             // Bottom sheets follow the finger down and dismiss past ~110px or on a quick flick, like a native sheet.
             drag={fromBottom && !reduce ? 'y' : false} dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0.12, bottom: 0.9 }} dragListener={false}
             dragControls={drag}
@@ -298,7 +299,7 @@ export function Sheet({ open, onClose, title, children, width = 520, bottom = fa
               <h2 className="font-semibold">{title}</h2>
               <button className="btn-ghost w-9 px-0" onClick={onClose} aria-label="Close" data-sheet-close><Icon name="x" /></button>
             </div>
-            <div className="overflow-y-auto overscroll-contain p-5 pb-safe">{children}</div>
+            <motion.div className="overflow-y-auto overscroll-contain p-5 pb-safe" initial={morph ? { opacity: 0, filter: 'blur(6px)' } : false} animate={{ opacity: 1, filter: 'blur(0px)', transition: { delay: morph ? 0.12 : 0, duration: 0.25 } }}>{children}</motion.div>
           </motion.div>
         </div>
       )}

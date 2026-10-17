@@ -151,7 +151,9 @@ function CommandPalette({ open, onClose, actions }: { open: boolean; onClose: ()
       {open && (
         <div className="fixed inset-0 z-[70] flex items-start justify-center pt-[calc(12vh+env(safe-area-inset-top))] px-4" role="dialog" aria-modal="true" aria-label="Command palette">
           <motion.div className="absolute inset-0 bg-black/50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
-          <motion.div ref={box} className="relative w-full max-w-lg card shadow-pop overflow-hidden" initial={{ opacity: 0, scale: 0.97, y: -8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }} transition={spring}>
+          {/* Morph: on wide screens the header search pill grows into this panel (shared layoutId); content blurs in once the shape has settled. */}
+          <motion.div ref={box} layoutId="cmd-morph" style={{ borderRadius: 16 }} className="relative w-full max-w-lg card shadow-pop overflow-hidden" initial={{ opacity: 0, scale: 0.97, y: -8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0 }} transition={spring}>
+            <motion.div initial={{ opacity: 0, filter: 'blur(6px)' }} animate={{ opacity: 1, filter: 'blur(0px)', transition: { delay: 0.1, duration: 0.25 } }} exit={{ opacity: 0, filter: 'blur(6px)', transition: { duration: 0.1 } }}>
             <div className="flex items-center gap-2 px-4 border-b border-line">
               <Icon name="search" className="text-ink3" />
               <input autoFocus role="combobox" aria-expanded="true" aria-controls="cmd-list" aria-activedescendant={items[i] ? `cmd-${i}` : undefined} aria-autocomplete="list"
@@ -174,6 +176,7 @@ function CommandPalette({ open, onClose, actions }: { open: boolean; onClose: ()
               </li>))}
               {!items.length && <li className="px-3 py-6 text-center text-sm text-ink3">Nothing found</li>}
             </ul>
+            </motion.div>
           </motion.div>
         </div>
       )}
@@ -290,10 +293,14 @@ export function Shell({ children }: { children: ReactNode }) {
         <header className={cx('sticky top-0 z-30 border-b pt-safe px-safe transition-colors duration-300', scrolled ? 'bg-bg/70 [backdrop-filter:blur(20px)_saturate(180%)] [-webkit-backdrop-filter:blur(20px)_saturate(180%)] border-transparent shadow-[0_8px_24px_-16px_rgb(0_0_0/0.45)]' : 'bg-transparent border-transparent')}>
           <div className="max-w-[1360px] mx-auto flex items-center gap-2 px-4 lg:px-7 h-14 land:h-12">
             <h1 className="text-[17px] lg:text-[19px] font-semibold tracking-tight truncate min-w-[60px]">{title}</h1>
-            <button type="button" onClick={() => setCmd(true)} aria-label="Search pages, trades and actions"
-              className="hidden xl:flex items-center gap-2.5 h-9 2xl:h-10 2xl:w-[230px] ml-3 px-3 2xl:px-4 rounded-full border border-line bg-raised/40 text-[13px] text-ink3 hover:text-ink2 transition-colors shrink-0">
-              <Icon name="search" size={15} /><span className="hidden 2xl:inline">Search pages and trades</span><kbd className="ml-auto text-[10px] border border-line2 rounded-full px-1.5">{MOD}K</kbd>
-            </button>
+            <span className="hidden xl:block ml-3 shrink-0 h-9 2xl:h-10">
+              {!cmd && (
+                <motion.button layoutId="cmd-morph" style={{ borderRadius: 20 }} transition={spring} type="button" onClick={() => setCmd(true)} aria-label="Search pages, trades and actions"
+                  className="flex items-center gap-2.5 h-9 2xl:h-10 2xl:w-[230px] px-3 2xl:px-4 border border-line bg-raised/40 text-[13px] text-ink3 hover:text-ink2 transition-colors">
+                  <Icon name="search" size={15} /><span className="hidden 2xl:inline">Search pages and trades</span><kbd className="ml-auto text-[10px] border border-line2 rounded-full px-1.5">{MOD}K</kbd>
+                </motion.button>
+              )}
+            </span>
             <div className="ml-auto flex items-center gap-1.5 min-w-0">
               <div className="hidden md:flex land:flex items-center gap-1.5 min-w-0 land:[&_select]:max-w-[150px]">
                 <span className="hidden xl:inline-flex"><UserPill /></span><span className="xl:hidden"><SyncPill /></span>
@@ -303,7 +310,10 @@ export function Shell({ children }: { children: ReactNode }) {
               <button className="btn-ghost w-9 px-0" aria-label={privacy ? 'Show amounts' : 'Hide amounts'} aria-pressed={privacy} onClick={togglePrivacy}><Icon name={privacy ? 'eyeOff' : 'eye'} /></button>
               <button className="btn-ghost w-9 px-0" aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}><Icon name={theme === 'dark' ? 'sun' : 'moon'} /></button>
               {/* Quiet once there's a journal: importing is occasional, so the accent stays for each page's own main action. */}
-              <button className={hasTrades ? 'btn' : 'btn-primary'} aria-label="Import trades" aria-haspopup="dialog" aria-expanded={importOpen} onClick={() => setImportOpen(true)}><Icon name="upload" size={15} /><span className="hidden sm:inline land:hidden">Import</span></button>
+              {/* Morph: the button grows into the import panel and shrinks back into it on close. */}
+              {importOpen
+                ? <span className={cx(hasTrades ? 'btn' : 'btn-primary', 'invisible')} aria-hidden="true"><Icon name="upload" size={15} /><span className="hidden sm:inline land:hidden">Import</span></span>
+                : <motion.button layoutId="import-morph" style={{ borderRadius: 18 }} transition={spring} className={hasTrades ? 'btn' : 'btn-primary'} aria-label="Import trades" aria-haspopup="dialog" aria-expanded={importOpen} onClick={() => setImportOpen(true)}><Icon name="upload" size={15} /><span className="hidden sm:inline land:hidden">Import</span></motion.button>}
             </div>
           </div>
           {scoped && (
@@ -367,7 +377,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <a href="/legacy.html" className="btn-ghost h-11 text-ink2"><Icon name="link" size={15} />Classic app</a>
         </div>
       </Sheet>
-      <Sheet open={importOpen} onClose={() => setImportOpen(false)} title="Import trades"><ImportPanel onDone={() => setImportOpen(false)} /></Sheet>
+      <Sheet open={importOpen} onClose={() => setImportOpen(false)} title="Import trades" morphId="import-morph"><ImportPanel onDone={() => setImportOpen(false)} /></Sheet>
       <CommandPalette open={cmd} onClose={() => setCmd(false)} actions={actions} />
     </div>
     </MotionConfig>

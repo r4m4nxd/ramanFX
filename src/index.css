@@ -199,7 +199,7 @@
 /* Apple-style motion: a real spring curve (slight overshoot, settles), blur-to-sharp entrances, springy presses. */
 /* Critically damped spring (no overshoot), Apple's default for UI motion. */
 :root { --ease-spring: linear(0, 0.034 1.4%, 0.13 3%, 0.45 9%, 0.69 15%, 0.84 21%, 0.93 28%, 0.975 36%, 0.993 46%, 1); }
-@keyframes pageIn { from { opacity: 0; transform: translateY(8px) scale(0.995); filter: blur(4px); } to { opacity: 1; transform: none; filter: blur(0); } }
+@keyframes pageIn { from { opacity: 0; transform: translateY(8px) scale(0.995); } to { opacity: 1; transform: none; } }
 .page-in { animation: pageIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .btn-base { transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.2s ease, transform 0.5s var(--ease-spring); }
 .btn-base:active { transform: scale(0.97); transition: transform 100ms ease-out; }
