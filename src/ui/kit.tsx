@@ -289,9 +289,10 @@ export function Sheet({ open, onClose, title, children, width = 520, bottom = fa
             exit={off}
             transition={reduce ? { duration: 0.2 } : momentumSpring}
             // Bottom sheets follow the finger down and dismiss past ~110px or on a quick flick, like a native sheet.
-            drag={fromBottom && !reduce ? 'y' : false} dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.6 }} dragListener={false}
+            drag={fromBottom && !reduce ? 'y' : false} dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0.12, bottom: 0.9 }} dragListener={false}
             dragControls={drag}
-            onDragEnd={(_, i) => { if (i.offset.y > 110 || i.velocity.y > 600) onClose(); }}>
+            // Apple momentum projection: where would a flick carry the sheet? Dismiss if that lands past 40% of its height.
+            onDragEnd={(_, i) => { const h = panel.current?.offsetHeight ?? 600; const projected = i.offset.y + (i.velocity.y / 1000) * 0.998 / (1 - 0.998); if (i.velocity.y > -50 && projected > h * 0.4) onClose(); }}>
             {fromBottom && <div className="pt-2 pb-1 grid place-items-center touch-none cursor-grab" onPointerDown={e => drag.start(e)} aria-hidden="true"><span className="w-10 h-1.5 rounded-full bg-line2" /></div>}
             <div className={cx('flex items-center justify-between px-5 h-14 border-b border-line shrink-0', fromBottom && 'touch-none')} onPointerDown={e => { if (fromBottom && !(e.target as HTMLElement).closest('button')) drag.start(e); }}>
               <h2 className="font-semibold">{title}</h2>
