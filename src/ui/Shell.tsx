@@ -11,6 +11,7 @@ import { Icon, type IconName } from './Icon';
 import { cx, Segmented, Sheet, softClick, softNavigate, spring, useDialogFocus, useOnline, useToast } from './kit';
 import { ImportPanel } from './ImportPanel';
 import { GlassTabBar } from './GlassTabBar';
+import { installLiveCards } from './liveCards';
 import { presets, RangePicker } from './RangePicker';
 
 type Group = 'Today' | 'Review' | 'Plan & tools' | 'Help';
@@ -471,18 +472,23 @@ function usePhoneBar() {
 function useGlassLight() {
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    let px: number | null = null, raf = 0;
+    let px: number | null = null, raf = 0, calm = 0;
+    const glass = () => document.querySelectorAll<HTMLElement>('.glass, .glass-pop');
     const paint = () => {
       raf = 0;
       const fromScroll = 30 + 22 * Math.sin(window.scrollY / 260);
       const lx = px == null ? fromScroll : 0.65 * (12 + 76 * (px / window.innerWidth)) + 0.35 * fromScroll;
-      document.querySelectorAll<HTMLElement>('.glass, .glass-pop').forEach(el => el.style.setProperty('--lx', `${lx.toFixed(1)}%`));
+      // Movement makes the edges flash their VIBGYOR band (--glint up, the band turning with the light); stillness calms it.
+      glass().forEach(el => { el.style.setProperty('--lx', `${lx.toFixed(1)}%`); el.style.setProperty('--la', `${(lx * 3.6 + 120).toFixed(0)}deg`); el.style.setProperty('--glint', '1'); });
+      clearTimeout(calm);
+      calm = window.setTimeout(() => glass().forEach(el => el.style.setProperty('--glint', '0.18')), 220);
     };
     const queue = () => { if (!raf) raf = requestAnimationFrame(paint); };
     const move = (e: PointerEvent) => { if (e.pointerType !== 'mouse') return; px = e.clientX; queue(); };
     window.addEventListener('scroll', queue, { passive: true });
     window.addEventListener('pointermove', move, { passive: true });
     paint();
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('scroll', queue); window.removeEventListener('pointermove', move); };
+    const stop = installLiveCards();
+    return () => { stop(); clearTimeout(calm); cancelAnimationFrame(raf); window.removeEventListener('scroll', queue); window.removeEventListener('pointermove', move); };
   }, []);
 }

@@ -1,4 +1,4 @@
-import { animate, motion, useMotionValue, useReducedMotion, useTransform, useVelocity, useSpring } from 'framer-motion';
+import { animate, motion, type MotionStyle, useMotionValue, useReducedMotion, useTransform, useVelocity, useSpring } from 'framer-motion';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon, type IconName } from './Icon';
@@ -22,6 +22,9 @@ export function GlassTabBar({ tabs, active, onMore, moreActive, onSearch }: { ta
   const v = useVelocity(x);
   const stretch = useSpring(useTransform(v, s => Math.min(0.28, Math.abs(s) / 4200)), { stiffness: 500, damping: 40 });
   const sx = useTransform(stretch, s => 1 + s), sy = useTransform(stretch, s => 1 - s * 0.45);
+  // Rainbow edge on the lens: brightens with speed and swirls as it travels, like light refracting through moving glass.
+  const iris = useTransform(stretch, [0, 0.12], [0.4, 1]);
+  const la = useTransform(x, v => `${(200 + v * 1.2).toFixed(0)}deg`);
   const [lift, setLift] = useState(false);
   const drag = useRef<{ id: number; x0: number; lx: number; moved: boolean } | null>(null);
   const count = tabs.length + 1;
@@ -61,7 +64,7 @@ export function GlassTabBar({ tabs, active, onMore, moreActive, onSearch }: { ta
         onPointerCancel={() => { if (drag.current?.moved) { setLift(false); animate(x, left(sel), { type: 'spring', duration: 0.45, bounce: 0.2 }); } drag.current = null; }}>
         {sel >= 0 && w > 0 && (
           <motion.span aria-hidden="true" className="glass-lens absolute top-1 bottom-1 left-0 rounded-full pointer-events-none"
-            style={{ width: w, x, scaleX: sx, scaleY: sy }} animate={{ scale: lift ? 1.12 : 1 }} transition={{ type: 'spring', duration: 0.35, bounce: 0.3 }} />
+            style={{ width: w, x, scaleX: sx, scaleY: sy, '--iris': iris, '--la': la } as unknown as MotionStyle} animate={{ scale: lift ? 1.12 : 1 }} transition={{ type: 'spring', duration: 0.35, bounce: 0.3 }} />
         )}
         {[...tabs.map((t, i) => ({ ...t, i })), { to: '', label: 'More', icon: 'more' as IconName, i: tabs.length }].map(t => {
           const on = t.i === sel;
