@@ -29,21 +29,32 @@ export function morphNavigate(el: Element | null, go: () => void) {
 // Apple springs: critically damped (no bounce) for UI moves; a little bounce only after a flick/drag (momentum).
 export const spring = { type: 'spring', bounce: 0, duration: 0.4 } as const;
 export const momentumSpring = { type: 'spring', bounce: 0.2, duration: 0.3 } as const;
-export const ease = [0.22, 1, 0.36, 1] as const;
+/** Strong ease-out (same curve as --ease-out in index.css). */
+export const ease = [0.23, 1, 0.32, 1] as const;
 
 export const stagger = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.045, delayChildren: 0.02 } },
+  show: { transition: { staggerChildren: 0.035, delayChildren: 0.02 } },
 };
+// Full transform strings (not x/y shorthands) so the entrance stays on the compositor while charts mount.
 export const rise = {
-  hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.42, ease } },
+  hidden: { opacity: 0, transform: 'translateY(6px)' },
+  show: { opacity: 1, transform: 'translateY(0px)', transition: { duration: 0.25, ease } },
 };
 
-/** Page wrapper: children marked with `variants={rise}` cascade in. */
+/** True only while the app is first painting: intro motion (cascades, bars growing, lines drawing) plays once,
+ *  not on every page visit, and never under reduced motion. */
+export function useIntro() {
+  const reduce = useReducedMotion();
+  const [intro] = useState(() => !warm());
+  return intro && !reduce;
+}
+
+/** Page wrapper: on first paint, children marked with `variants={rise}` cascade in; later visits rely on the page fade. */
 export function Page({ children, className }: { children: ReactNode; className?: string }) {
+  const intro = useIntro();
   return (
-    <motion.div variants={stagger} initial="hidden" animate="show" className={cx('flex flex-col gap-4', className)}>
+    <motion.div variants={stagger} initial={intro ? 'hidden' : false} animate="show" className={cx('flex flex-col gap-4', className)}>
       {children}
     </motion.div>
   );
@@ -78,7 +89,7 @@ export function CardHead({ title, sub, right }: { title: ReactNode; sub?: ReactN
   return (
     <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
       <div className="min-w-0">
-        <h2 className="text-[15px] font-semibold leading-tight">{typeof title === 'string' ? <RevealText text={title} /> : title}</h2>
+        <h2 className="text-[15px] font-semibold leading-tight">{title}</h2>
         {sub && <p className="text-xs text-ink3 mt-1">{sub}</p>}
       </div>
       {right}
@@ -174,10 +185,11 @@ export function Stat({ label, value, className }: { label: ReactNode; value: Rea
 // ─── Progress bar ────────────────────────────────────────────────────
 export function Bar({ value, tone = 'accent', className }: { value: number; tone?: 'accent' | 'profit' | 'loss' | 'warn'; className?: string }) {
   const bg = { accent: 'bg-accent', profit: 'bg-profit', loss: 'bg-loss', warn: 'bg-warn' }[tone];
-  const [grow] = useState(() => !warm());
+  const grow = useIntro();
   return (
     <div className={cx('h-1.5 rounded-full bg-line overflow-hidden', className)}>
-      <motion.div className={cx('h-full rounded-full', bg)} initial={grow ? { width: 0 } : false} animate={{ width: `${Math.max(0, Math.min(100, value * 100))}%` }} transition={{ duration: 0.45, ease }} />
+      {/* scaleX, not width: the fill grows on the compositor without re-laying out the card. */}
+      <motion.div className={cx('h-full w-full rounded-full origin-left', bg)} initial={grow ? { transform: 'scaleX(0)' } : false} animate={{ transform: `scaleX(${Math.max(0, Math.min(1, value))})` }} transition={{ duration: 0.45, ease }} />
     </div>
   );
 }

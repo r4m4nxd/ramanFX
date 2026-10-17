@@ -84,7 +84,7 @@ export function YearCalendar({ days, year, onYear, onMonth }: { days: DayStat[];
           const lead = (first.getDay() + 6) % 7;
           const len = new Date(year, m + 1, 0).getDate();
           return (
-            <motion.section key={`${year}-${m}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease, delay: m * 0.035 }} aria-label={monthName(m)}>
+            <motion.section key={`${year}-${m}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease, delay: m * 0.03 }} aria-label={monthName(m)}>
               <button type="button" onClick={() => onMonth?.(m)} className="w-full flex items-baseline justify-between gap-2 mb-2 group">
                 <span className="text-[13px] font-semibold group-hover:text-accent transition-colors">{monthName(m).slice(0, 3)}</span>
                 <span className={cx('num text-[11.5px] font-medium', n ? tone(mn) : 'text-ink3')}>{n ? fmt(mn, { signed: true, compact: true }) : '—'}</span>

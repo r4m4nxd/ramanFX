@@ -38,6 +38,8 @@
   /* Shape and motion (semantic). */
   --radius-xs: 6px; --radius-control: 10px; --radius-inner: 12px; --radius-card: 16px; --radius-panel: 24px;
   --motion-fast: 150ms; --motion-base: 250ms; --motion-slow: 450ms;
+  /* Easing tokens: strong ease-out for entrances/exits, ease-in-out for on-screen moves, iOS drawer curve. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1); --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1); --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   color-scheme: dark;
 }
 
@@ -99,6 +101,10 @@
   /* A losing period never sits on the brand fill: plain surface, loss-tinted edge and wash, ink text (value in text-loss). */
   .card-hero[data-tone='loss'] { @apply text-ink; background: radial-gradient(120% 100% at 0% 0%, rgb(var(--loss) / .10), transparent 60%), rgb(var(--surface)); border-color: rgb(var(--loss) / .35); box-shadow: var(--shadow-card); }
   .num { font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  /* Big numbers scale with their card (container query units) instead of overflowing it: never truncate an amount. */
+  .kpi-box { container-type: inline-size; }
+  /* --kpi-ch = characters in the value: short values keep the full size, long ones shrink just enough to fit. */
+  .kpi-fit { font-size: min(var(--kpi-max, 26px), calc(100cqi / (var(--kpi-ch, 6) * 0.62))); white-space: nowrap; }
   .label { @apply text-[11px] uppercase tracking-[0.08em] font-semibold text-ink3; }
   /* Buttons share one geometry (.btn-base); variants set only fill/edge, so no variant inherits another's theme overrides. */
   .btn-base { @apply inline-flex items-center justify-center gap-2 h-9 px-4 rounded-full text-[13px] font-semibold border transition-colors duration-150 disabled:opacity-50 disabled:pointer-events-none; }
@@ -139,8 +145,13 @@
   @apply animate-shimmer rounded-md;
 }
 
+/* Reduced motion = fewer and gentler, not zero: keyframe movement stops, colour/opacity transitions and the page fade stay,
+   and every press/scale/slide transform is dropped below. */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  *:not(.page-in):not(.tip-in), *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+  html { scroll-behavior: auto !important; }
+  .btn-base:active, .hold-cell:active, .heat-cell.is-active, .press:active { transform: none !important; }
+  .bar-title { transform: none !important; }
 }
 
 .recharts-tooltip-cursor { fill: rgb(var(--ink) / 0.04); }
@@ -153,13 +164,14 @@
 }
 
 /* ─── Heat maps & luxe surfaces ─────────────────────────────────────── */
+/* Grid entrance: opacity + a small scale only (no blur: it's repainted per cell, hundreds of them). */
 @keyframes cellIn {
-  from { opacity: 0; transform: scale(0.35); filter: blur(3px); }
-  to { opacity: 1; transform: scale(1); filter: blur(0); }
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
 }
 .heat-cell {
-  animation: cellIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards;
-  transition: opacity 0.22s ease, transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease, background-color 0.45s ease;
+  animation: cellIn 0.3s var(--ease-out) backwards;
+  transition: opacity 0.2s ease, transform 0.2s var(--ease-out), box-shadow 0.2s ease, background-color 0.25s ease;
   cursor: default;
   position: relative;
 }
@@ -173,12 +185,15 @@
   content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
   background: repeating-linear-gradient(135deg, rgb(var(--surface) / 0.4) 0 1.5px, transparent 1.5px 7px);
 }
+/* Pointer position for .spotlight: non-inheriting, so updating it on mousemove restyles one element, not the whole subtree. */
+@property --mx { syntax: '<length-percentage>'; inherits: false; initial-value: 50%; }
+@property --my { syntax: '<length-percentage>'; inherits: false; initial-value: 0%; }
 .spotlight { position: relative; isolation: isolate; }
 .spotlight::before {
-  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: -1; opacity: 0; transition: opacity 0.4s ease;
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: -1; opacity: 0; transition: opacity 0.25s ease;
   background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 0%), rgb(var(--accent) / 0.10), transparent 60%);
 }
-.spotlight:hover::before { opacity: 1; }
+@media (hover: hover) and (pointer: fine) { .spotlight:hover::before { opacity: 1; } }
 /* Hairline gradient border for hero cards. */
 .luxe-border {
   background: linear-gradient(rgb(var(--surface)), rgb(var(--surface))) padding-box,
@@ -194,22 +209,25 @@
 
 /* Press-and-hold: the cell swells while you hold, so the popup feels like it grows out of it. */
 .hold-cell { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
-.hold-cell:active { transform: scale(1.12); transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1); z-index: 5; }
+.hold-cell:active { transform: scale(1.12); transition: transform 0.42s var(--ease-out); z-index: 5; }
 
 /* Page entrance in CSS: it always completes, even if the page mounted mid-load. */
 /* Apple-style motion: a real spring curve (slight overshoot, settles), blur-to-sharp entrances, springy presses. */
 /* Critically damped spring (no overshoot), Apple's default for UI motion. */
 :root { --ease-spring: linear(0, 0.034 1.4%, 0.13 3%, 0.45 9%, 0.69 15%, 0.84 21%, 0.93 28%, 0.975 36%, 0.993 46%, 1); }
-@keyframes pageIn { from { opacity: 0; transform: translateY(8px) scale(0.995); } to { opacity: 1; transform: none; } }
-.page-in { animation: pageIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+/* Top-level page switch happens tens of times a day: a short fade with a 4px lift, nothing more. */
+@keyframes pageIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.page-in { animation: pageIn 0.2s var(--ease-out) both; }
 /* iOS push: drill-down pages (a trade, a plan) slide in from the right; top-level tabs just fade up. */
 @keyframes pagePush { from { opacity: 0.4; transform: translateX(28%); } to { opacity: 1; transform: none; } }
-@media (max-width: 1023px) { .page-push { animation: pagePush 0.42s var(--ease-spring) both; } }
+@media (max-width: 1023px) { .page-push { animation: pagePush 0.35s var(--ease-drawer) both; } }
 /* iOS large title: big on top of the page, collapses into the bar once you scroll past it. */
 .large-title { font-size: 34px; line-height: 41px; font-weight: 700; letter-spacing: -0.022em; }
 .bar-title { transition: opacity 0.2s ease, transform 0.25s var(--ease-spring); }
 .btn-base { transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.2s ease, transform 0.5s var(--ease-spring); }
-.btn-base:active { transform: scale(0.97); transition: transform 100ms ease-out; }
+.btn-base:active, .press:active { transform: scale(0.97); transition: transform 100ms var(--ease-out); }
+/* Press feedback for custom tappables (rows, tiles, tab items): same squeeze as buttons, released with the spring. */
+.press { transition: transform 0.4s var(--ease-spring), background-color 0.15s ease; -webkit-user-select: none; user-select: none; }
 /* Trade row -> trade page morph (View Transitions API): the row grows into the header card, everything else cross-fades. */
 ::view-transition-group(trade-hero) { animation-duration: 0.45s; animation-timing-function: var(--ease-spring); }
 ::view-transition-old(trade-hero), ::view-transition-new(trade-hero) { animation-duration: 0.3s; height: 100%; object-fit: cover; }
@@ -226,13 +244,14 @@
 /* Touch devices: no long-press text selection or callout; typing fields stay selectable. Mouse/trackpad keeps normal selection. */
 @media (pointer: coarse) {
   html, body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  /* iOS zooms into any field under 16px and never zooms back out. */
+  input:not([type='checkbox']):not([type='radio']):not([type='range']), select, textarea { font-size: 16px !important; }
   input, textarea, select, [contenteditable]:not([contenteditable='false']) { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 }
 
 /* Tooltip fade (no transform: positions are set in px by Tip). */
-.tip-in { animation: tip-in 0.14s ease-out both; }
+.tip-in { animation: tip-in 0.14s var(--ease-out) both; }
 @keyframes tip-in { from { opacity: 0; } to { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .tip-in { animation: none; } }
 
 /* ── Ambient canvas (AUFC "Luxe 2", RamanFX colours) ─────────────────────────
    One living background behind everything: a deep radial base, three slow-drifting

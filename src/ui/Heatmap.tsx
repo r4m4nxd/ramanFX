@@ -77,7 +77,7 @@ export function HeatLegend({ metric, scale, marker }: { metric: HeatMetric; scal
       <div className="relative flex-1 max-w-[220px] h-2 rounded-full" style={{ background: `linear-gradient(90deg, ${stops})` }}>
         <AnimatePresence>
           {pos != null && (
-            <motion.span initial={{ opacity: 0, scale: 0.4 }} animate={{ opacity: 1, scale: 1, left: `${pos * 100}%` }} exit={{ opacity: 0, scale: 0.4 }} transition={spring}
+            <motion.span initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1, left: `${pos * 100}%` }} exit={{ opacity: 0, scale: 0.8 }} transition={spring}
               className="absolute top-1/2 w-3.5 h-3.5 -ml-[7px] -mt-[7px] rounded-full bg-surface border-2 border-ink shadow-pop" />
           )}
         </AnimatePresence>

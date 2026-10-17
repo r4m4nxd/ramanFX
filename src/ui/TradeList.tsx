@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import type { EnrichedTrade } from '@/core/stats';
 import { fmtHold } from '@/core/time';
-import { useStore } from '@/data/store';
+import { useNotes } from '@/data/derived';
 import { rMult, shortDate, timeHM, tone, useMoney } from '@/lib/format';
 import { cx, morphNavigate } from './kit';
 
@@ -12,7 +12,7 @@ export const TRADE_ORDER_KEY = 'rfx.tradeOrder';
 export function TradeList({ trades, time = 'close', linkState }: { trades: EnrichedTrade[]; time?: 'close' | 'range'; linkState?: unknown }) {
   const nav = useNavigate();
   const fmt = useMoney();
-  const notes = useStore(s => s.notes);
+  const notes = useNotes();
   return (
     <ul className="flex flex-col">
       {trades.map(t => {

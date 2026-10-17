@@ -1,6 +1,6 @@
 import { TickerTape } from '@/ui/TickerTape';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { DEFAULT_RISK_RULES, useStore } from '@/data/store';
 import { useEnriched } from '@/data/derived';
@@ -45,6 +45,9 @@ function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) =
   const [p, setP] = useState<Plan>(initial);
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState(1);
+  // The first step just appears with the page; only later step changes slide.
+  const firstStep = useRef(true);
+  useEffect(() => { firstStep.current = false; }, []);
   const set = (patch: Partial<Plan>) => setP(x => ({ ...x, ...patch }));
   const v = useMemo(() => evaluatePlan(p, rules.riskPercent ?? 1), [p, rules.riskPercent]);
   const spec = useSpec(p.symbol || 'EURUSD', false);
@@ -109,7 +112,7 @@ function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) =
       <Question q="Basing candles" hint="Tight and well structured. 1–2 is his favourite, up to 4 is fine, wide and messy should be avoided.">
         <div className="flex gap-2 flex-wrap">
           {[1, 2, 3, 4, 5, 6, 7].map(n => (
-            <motion.button key={n} type="button" whileTap={{ scale: 0.92 }} onClick={() => set({ baseCandles: n })}
+            <motion.button key={n} type="button" whileTap={{ scale: 0.97 }} onClick={() => set({ baseCandles: n })}
               className={cx('w-12 h-12 rounded-xl border num text-[15px] font-semibold', p.baseCandles === n ? (n <= 2 ? 'border-profit bg-profit/15 text-profit' : n <= 4 ? 'border-accent bg-accent/15 text-accent' : 'border-loss bg-loss/15 text-loss') : 'border-line bg-raised/40')}>{n === 7 ? '7+' : n}</motion.button>
           ))}
         </div>
@@ -251,21 +254,21 @@ function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) =
         <div className="px-5 pt-4 pb-3 border-b border-line rounded-t-xl">
           <div className="flex items-center gap-2">
             <button className="btn-ghost h-8 w-8 px-0 -ml-2" onClick={() => onDone(null)} aria-label="Close planner"><Icon name="x" size={16} /></button>
-            <div className="font-semibold">{initial.retro ? 'Grade this trade' : 'Plan a trade'}{p.symbol && <span className="text-ink3 font-normal"> · {p.symbol} {p.side === 'buy' ? 'long' : 'short'}</span>}</div>
-            <span className="ml-auto text-xs text-ink3 num">{step + 1}/{STEPS.length}</span>
+            <div className="font-semibold min-w-0 truncate">{initial.retro ? 'Grade this trade' : 'Plan a trade'}{p.symbol && <span className="text-ink3 font-normal"> · {p.symbol} {p.side === 'buy' ? 'long' : 'short'}</span>}</div>
+            <span className="ml-auto text-xs text-ink3 num shrink-0">{step + 1}/{STEPS.length}</span>
           </div>
           <div className="flex gap-1.5 mt-3" role="tablist" aria-label="Steps">
             {STEPS.map((s, i) => (
               <button key={s} role="tab" aria-selected={i === step} onClick={() => { setDir(i > step ? 1 : -1); setStep(i); }} className="flex-1 group text-left py-2 -my-2">
-                <div className="h-1.5 rounded-full bg-line overflow-hidden"><motion.div className="h-full bg-accent rounded-full" initial={false} animate={{ width: i < step ? '100%' : i === step ? '50%' : '0%' }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }} /></div>
+                <div className="h-1.5 rounded-full bg-line overflow-hidden"><motion.div className="h-full w-full bg-accent rounded-full origin-left" initial={false} animate={{ transform: `scaleX(${i < step ? 1 : i === step ? 0.5 : 0})` }} transition={{ duration: 0.3, ease: [0.77, 0, 0.175, 1] }} /></div>
                 <div className={cx('text-[11px] mt-1.5 font-medium', i === step ? 'text-ink' : 'text-ink3')}>{s}</div>
               </button>
             ))}
           </div>
         </div>
         <div className="p-5 overflow-hidden">
-          <AnimatePresence mode="wait" custom={dir} initial={false}>
-            <motion.div key={step} custom={dir} initial={{ opacity: 0, x: dir * 28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: dir * -28 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}>
+          {/* Steps are tapped through quickly: the new step slides in at once (no exit-then-enter wait), so Next never stalls. */}
+            <motion.div key={step} initial={firstStep.current ? false : { opacity: 0, transform: `translateX(${dir * 16}px)` }} animate={{ opacity: 1, transform: 'translateX(0px)' }} transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}>
               {body[step]}
               <div className="mt-5 pt-4 border-t border-line flex flex-col gap-3">
                 <LessonChips nums={PLANNER_LESSONS[STEPS[step]] ?? []} />
@@ -277,7 +280,6 @@ function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) =
                 )}
               </div>
             </motion.div>
-          </AnimatePresence>
         </div>
         <div className="px-5 py-3 border-t border-line flex items-center gap-2 bg-surface rounded-b-xl sticky bottom-0 max-lg:bottom-[calc(58px+max(12px,env(safe-area-inset-bottom)))] land:!bottom-0 z-10">
           {step > 0 && <button className="btn h-11 px-4" onClick={() => go(-1)}><Icon name="chevronLeft" size={15} />Back</button>}
@@ -320,7 +322,7 @@ function PlanCard({ p }: { p: Plan }) {
       <div className="flex items-start gap-3">
         <div className={cx('w-1 self-stretch rounded-full', !v.tradeable ? 'bg-loss' : v.odds === 'high' ? 'bg-profit' : 'bg-warn')} />
         <div className="min-w-0 flex-1">
-          <Link to={`/plan/${p.id}`} className="flex items-baseline gap-2"><span className="font-mono font-semibold text-[15px]">{p.symbol || '—'}</span><span className={cx('text-xs font-semibold', p.side === 'buy' ? 'text-profit' : 'text-loss')}>{p.side === 'buy' ? 'LONG' : 'SHORT'}</span></Link>
+          <Link to={`/plan/${p.id}`} className="flex items-baseline gap-2 min-w-0"><span className="font-mono font-semibold text-[15px] truncate" title={p.symbol || undefined}>{p.symbol || '—'}</span><span className={cx('text-xs font-semibold shrink-0', p.side === 'buy' ? 'text-profit' : 'text-loss')}>{p.side === 'buy' ? 'LONG' : 'SHORT'}</span></Link>
           <div className="text-[12px] text-ink3 mt-0.5">{p.method === 'sf' ? 'Set & forget' : 'Confirmation'} · {SD_COMBOS[p.combo].etf}→{SD_COMBOS[p.combo].htf} · {formation(p.kind, p.side)}</div>
         </div>
         <div className="text-right shrink-0">
@@ -328,7 +330,7 @@ function PlanCard({ p }: { p: Plan }) {
           <div className="num text-xl font-semibold">{v.score}</div>
         </div>
       </div>
-      {p.entry != null && <div className="text-[12px] num text-ink2">@ {p.entry} · SL {p.stop ?? '—'} · TP {p.target ?? '—'}{p.lots ? ` · ${p.lots} lots` : ''}</div>}
+      {p.entry != null && <div className="text-[12px] num text-ink2 [overflow-wrap:anywhere]">@ {p.entry} · SL {p.stop ?? '—'} · TP {p.target ?? '—'}{p.lots ? ` · ${p.lots} lots` : ''}</div>}
       <div className="flex items-center gap-2 flex-wrap">
         <Badge tone={STATUS[p.status].tone}>{STATUS[p.status].t}</Badge>
         {p.tradeId && <Link to={`/trades/${p.tradeId}`} className="text-xs text-accent inline-block py-2 -my-2">Linked trade</Link>}
@@ -385,7 +387,7 @@ export default function Planner() {
       <ZoneBoard />
       <div className="flex items-center justify-between gap-2">
         <Segmented label="Show" size="sm" value={filter} onChange={setFilter} options={[{ value: 'active', label: 'Active' }, { value: 'done', label: 'Done' }, { value: 'all', label: 'All' }]} />
-        <span className="text-xs text-ink3">{live.length} plans</span>
+        <span className="text-xs text-ink3">{live.length.toLocaleString()} {live.length === 1 ? 'plan' : 'plans'}</span>
       </div>
       {shown.length ? (
         <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3"><AnimatePresence>{shown.map(p => <PlanCard key={p.id} p={p} />)}</AnimatePresence></div>

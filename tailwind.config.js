@@ -2,6 +2,8 @@
 const v = (n) => `rgb(var(--${n}) / <alpha-value>)`;
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
+  // hover: utilities only apply where the device can hover, so a tap never leaves a sticky hover state on phones.
+  future: { hoverOnlyWhenSupported: true },
   darkMode: ['class', '[data-theme="dark"]'],
   theme: {
     extend: {
@@ -23,6 +25,7 @@ export default {
       // Semantic radius tokens (set per theme in index.css): one place to change the shape language.
       borderRadius: { md: 'var(--radius-xs)', lg: 'var(--radius-control)', xl: 'var(--radius-inner)', '2xl': 'var(--radius-card)', '3xl': 'var(--radius-panel)' },
       transitionDuration: { fast: 'var(--motion-fast)', base: 'var(--motion-base)', slow: 'var(--motion-slow)' },
+      transitionTimingFunction: { out: 'var(--ease-out)', 'in-out': 'var(--ease-in-out)', drawer: 'var(--ease-drawer)' },
       boxShadow: {
         card: 'var(--shadow-card)',
         glow: 'var(--glow)',

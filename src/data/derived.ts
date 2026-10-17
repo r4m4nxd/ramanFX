@@ -2,11 +2,19 @@
 import { useStore } from './store';
 import { balanceSeries, computeStats, enrich, groupStats, maxDrawdownPct, normTag, riskAdjusted, traderScore, type EnrichedTrade } from '@/core/stats';
 import { dayKey, parseTs } from '@/core/time';
+import { dataMode, fixtureNotes, fixtureTrades } from './worstCase';
+
+// Dev-only: ?data=worst|one|empty|huge replaces the journal with stress fixtures (always 'real' in production).
+export const DATA_MODE = dataMode();
+const FX_TRADES = fixtureTrades(DATA_MODE), FX_NOTES = fixtureNotes(DATA_MODE);
+/** All trades in the journal (or the dev fixture). */
+export function useTrades() { const t = useStore(s => s.trades); return FX_TRADES ?? t; }
+export function useNotes() { const n = useStore(s => s.notes); return FX_NOTES ?? n; }
 
 /** Trades for the active account (before the date filter). */
 export function useAccountTrades() {
-  const trades = useStore(s => s.trades);
-  const acct = useStore(s => s.activeAccount);
+  const trades = useTrades();
+  const acct = useStore(s => (FX_TRADES ? 'all' : s.activeAccount));
   return shared('scoped', [trades, acct], () => (acct === 'all' ? trades : trades.filter(t => t.account === acct)));
 }
 
@@ -22,8 +30,8 @@ export function shared<T>(key: string, deps: unknown[], f: () => T): T {
 
 /** Every closed trade enriched (net, R, session…), measured against the full history. */
 export function useEnriched(): EnrichedTrade[] {
-  const all = useStore(s => s.trades);
-  const notes = useStore(s => s.notes);
+  const all = useTrades();
+  const notes = useNotes();
   const overrides = useStore(s => s.overrides);
   const exits = useStore(s => s.exitData);
   const scoped = useAccountTrades();
@@ -44,11 +52,11 @@ export function useFiltered(): EnrichedTrade[] {
 
 export function useAnalytics() {
   const et = useFiltered();
-  const trades = useStore(s => s.trades);
+  const trades = useTrades();
   const deposits = useStore(s => s.deposits);
   const accounts = useStore(s => s.accounts);
   const acct = useStore(s => s.activeAccount);
-  const notes = useStore(s => s.notes);
+  const notes = useNotes();
   const { from, to } = useStore(s => s.range);
 
   return shared('analytics', [et, trades, deposits, accounts, acct, notes, from, to], () => {

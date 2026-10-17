@@ -2,6 +2,8 @@ import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '@/data/store';
+import { DATA_MODE, useTrades } from '@/data/derived';
+import { DATA_MODES } from '@/data/worstCase';
 import { netOf } from '@/core/stats';
 import { money } from '@/lib/format';
 import { Ambient } from './Ambient';
@@ -117,7 +119,8 @@ function AccountPicker() {
 type Cmd = { key: string; label: string; hint?: ReactNode; icon: IconName; run: () => void; group: 'Actions' | 'Pages' | 'Trades' };
 
 /** ⌘K: run a shell action, jump to a page or find a trade. A combobox over a listbox, so screen readers follow the highlight. */
-function CommandPalette({ open, onClose, actions }: { open: boolean; onClose: () => void; actions: Cmd[] }) {
+/** `instant`: opened from the keyboard (⌘K or /), an action hit many times a day, so it appears and leaves with no animation. */
+function CommandPalette({ open, onClose, actions, instant }: { open: boolean; onClose: () => void; actions: Cmd[]; instant: boolean }) {
   const [q, setQ] = useState('');
   const [i, setI] = useState(0);
   const nav = useNavigate();
@@ -150,10 +153,12 @@ function CommandPalette({ open, onClose, actions }: { open: boolean; onClose: ()
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-[70] flex items-start justify-center pt-[calc(12vh+env(safe-area-inset-top))] px-4" role="dialog" aria-modal="true" aria-label="Command palette">
-          <motion.div className="absolute inset-0 bg-black/50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
+          <motion.div className="absolute inset-0 bg-black/50" initial={instant ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: instant ? { duration: 0 } : { duration: 0.15 } }} onClick={onClose} />
           {/* Morph: on wide screens the header search pill grows into this panel (shared layoutId); content blurs in once the shape has settled. */}
-          <motion.div ref={box} layoutId="cmd-morph" style={{ borderRadius: 16 }} className="relative w-full max-w-lg card shadow-pop overflow-hidden" initial={{ opacity: 0, scale: 0.97, y: -8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0 }} transition={spring}>
-            <motion.div initial={{ opacity: 0, filter: 'blur(6px)' }} animate={{ opacity: 1, filter: 'blur(0px)', transition: { delay: 0.1, duration: 0.25 } }} exit={{ opacity: 0, filter: 'blur(6px)', transition: { duration: 0.1 } }}>
+          <motion.div ref={box} layoutId={instant ? undefined : 'cmd-morph'} style={{ borderRadius: 16 }} className="relative w-full max-w-lg card shadow-pop overflow-hidden"
+            initial={instant ? false : { opacity: 0, transform: 'translateY(-8px) scale(0.97)' }} animate={{ opacity: 1, transform: 'translateY(0px) scale(1)' }} exit={{ opacity: 0, transition: instant ? { duration: 0 } : { duration: 0.15 } }} transition={spring}>
+            {/* Content sharpens in quickly once the shape is nearly there: the user is about to type. */}
+            <motion.div initial={instant ? false : { opacity: 0, filter: 'blur(4px)' }} animate={{ opacity: 1, filter: 'blur(0px)', transition: { delay: 0.06, duration: 0.15 } }} exit={{ opacity: 0, transition: { duration: instant ? 0 : 0.1 } }}>
             <div className="flex items-center gap-2 px-4 border-b border-line">
               <Icon name="search" className="text-ink3" />
               <input autoFocus role="combobox" aria-expanded="true" aria-controls="cmd-list" aria-activedescendant={items[i] ? `cmd-${i}` : undefined} aria-autocomplete="list"
@@ -201,10 +206,12 @@ export function Shell({ children }: { children: ReactNode }) {
   const theme = useStore(s => s.theme), setTheme = useStore(s => s.setTheme);
   const privacy = useStore(s => s.privacy), setPrivacy = useStore(s => s.setPrivacy);
   const user = useStore(s => s.user), syncNow = useStore(s => s.syncNow);
-  const hasTrades = useStore(s => s.trades.length > 0);
+  const hasTrades = useTrades().length > 0;
   const [importOpen, setImportOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [cmd, setCmd] = useState(false);
+  const [cmdKbd, setCmdKbd] = useState(false);
+  const openCmd = () => { setCmdKbd(false); setCmd(true); };
   const toast = useToast();
   const mainRef = useRef<HTMLElement>(null);
   const online = useOnline();
@@ -234,7 +241,7 @@ export function Shell({ children }: { children: ReactNode }) {
       if (!active || !el) return;
       active = false;
       const dx = e.clientX - x0, v = dx / Math.max(1, performance.now() - t0) * 1000;
-      el.style.transition = 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)';
+      el.style.transition = 'transform 0.35s var(--ease-drawer)';
       if (dx + v * 0.2 > window.innerWidth * 0.4) { navigator.vibrate?.(8); el.style.transform = `translateX(${window.innerWidth}px)`; window.setTimeout(() => { if (el) { el.style.transition = 'none'; el.style.transform = ''; } navTo(-1); }, 220); }
       else el.style.transform = '';
     };
@@ -251,9 +258,10 @@ export function Shell({ children }: { children: ReactNode }) {
   }, [loc.pathname]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setCmd(v => !v); return; }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setCmdKbd(true); setCmd(v => !v); return; }
       const t = e.target as HTMLElement;
-      if (e.key === '/' && !e.metaKey && !e.ctrlKey && !t.closest('input, textarea, select, [contenteditable="true"], [role="dialog"]')) { e.preventDefault(); setCmd(true); }
+      // A page that owns "/" (Trades focuses its own search) claims it first in the capture phase.
+      if (e.key === '/' && !e.defaultPrevented && !e.metaKey && !e.ctrlKey && !t.closest('input, textarea, select, [contenteditable="true"], [role="dialog"]')) { e.preventDefault(); setCmdKbd(true); setCmd(true); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -310,7 +318,7 @@ export function Shell({ children }: { children: ReactNode }) {
         <div className="shrink-0 border-t border-line mx-3 pt-2 flex flex-col gap-0.5">
           {NAV.filter(n => n.group === 'Help').map(n => <SideLink key={n.to} n={n} />)}
           <div className="flex flex-col gap-0.5 mt-1">
-            <button className="btn-ghost h-8 px-3 justify-start gap-3 text-ink3 text-xs font-medium whitespace-nowrap" onClick={() => setCmd(true)} aria-label={`Search (shortcut / or ${MOD.trim()}+K)`}><Icon name="search" size={14} />Search<kbd className="ml-auto text-[10px] border border-line2 rounded px-1 whitespace-nowrap">{MOD}K</kbd></button>
+            <button className="btn-ghost h-8 px-3 justify-start gap-3 text-ink3 text-xs font-medium whitespace-nowrap" onClick={openCmd} aria-label={`Search (shortcut / or ${MOD.trim()}+K)`}><Icon name="search" size={14} />Search<kbd className="ml-auto text-[10px] border border-line2 rounded px-1 whitespace-nowrap">{MOD}K</kbd></button>
             <a href="/legacy.html" className="btn-ghost h-8 px-3 justify-start gap-3 text-ink3 text-xs font-medium whitespace-nowrap"><Icon name="link" size={14} />Classic app</a>
           </div>
         </div>
@@ -318,12 +326,12 @@ export function Shell({ children }: { children: ReactNode }) {
 
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Top bar */}
-        <header className={cx('sticky top-0 z-30 border-b pt-safe px-safe transition-colors duration-300', scrolled ? 'bg-bg/70 [backdrop-filter:blur(20px)_saturate(180%)] [-webkit-backdrop-filter:blur(20px)_saturate(180%)] border-transparent shadow-[0_8px_24px_-16px_rgb(0_0_0/0.45)]' : 'bg-transparent border-transparent')}>
+        <header className={cx('sticky top-0 z-30 border-b pt-safe px-safe transition-colors duration-200', scrolled ? 'bg-bg/70 [backdrop-filter:blur(20px)_saturate(180%)] [-webkit-backdrop-filter:blur(20px)_saturate(180%)] border-transparent shadow-[0_8px_24px_-16px_rgb(0_0_0/0.45)]' : 'bg-transparent border-transparent')}>
           <div className="max-w-[1360px] mx-auto flex items-center gap-2 px-4 lg:px-7 h-14 land:h-12">
             <h1 className={cx('bar-title text-[17px] lg:text-[19px] font-semibold tracking-tight truncate min-w-[60px]', !pastTitle && !deep && 'max-lg:land:opacity-100 max-lg:opacity-0 max-lg:translate-y-1')}>{title}</h1>
             <span className="order-last xl:order-none xl:ml-3 shrink-0 h-9 w-9 xl:w-auto 2xl:h-10">
               {!cmd && (
-                <motion.button layoutId="cmd-morph" style={{ borderRadius: 20 }} transition={spring} type="button" onClick={() => setCmd(true)} aria-label="Search pages, trades and actions"
+                <motion.button layoutId="cmd-morph" style={{ borderRadius: 20 }} transition={spring} type="button" onClick={openCmd} aria-label="Search pages, trades and actions"
                   className="flex items-center justify-center xl:justify-start gap-2.5 h-9 w-9 xl:w-auto 2xl:h-10 2xl:w-[230px] xl:px-3 2xl:px-4 border border-line bg-raised/40 text-[13px] text-ink3 hover:text-ink2 transition-colors active:scale-95">
                   <Icon name="search" size={15} /><span className="hidden 2xl:inline">Search pages and trades</span><kbd className="hidden xl:inline ml-auto text-[10px] border border-line2 rounded-full px-1.5">{MOD}K</kbd>
                 </motion.button>
@@ -364,7 +372,7 @@ export function Shell({ children }: { children: ReactNode }) {
       {/* Phone landscape: slim icon rail on the left keeps the full height for content */}
       <nav aria-label="Main" className="hidden land:flex fixed left-0 inset-y-0 z-40 w-[calc(68px+env(safe-area-inset-left))] pl-[env(safe-area-inset-left)] flex-col items-center justify-center gap-1 bg-surface border-r border-line">
         {NAV.filter(n => n.mobile).map(n => (
-          <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cx('relative w-14 h-12 rounded-xl flex flex-col items-center justify-center gap-0.5 text-micro transition-[color,transform] active:scale-90', isActive ? 'text-ink font-semibold [&_svg]:text-accent' : 'text-ink3 font-medium')}>
+          <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cx('relative w-14 h-12 rounded-xl flex flex-col items-center justify-center gap-0.5 text-micro transition-[color,transform] active:scale-95', isActive ? 'text-ink font-semibold [&_svg]:text-accent' : 'text-ink3 font-medium')}>
             {({ isActive }) => (<>{isActive && <motion.span layoutId="rail-chip" transition={spring} className="absolute inset-0 rounded-xl bg-accent/15" />}<Icon name={n.icon} size={19} className="relative" /><span className="relative">{n.short ?? n.label}</span></>)}
           </NavLink>
         ))}
@@ -375,18 +383,18 @@ export function Shell({ children }: { children: ReactNode }) {
       <nav aria-label="Main" className="lg:hidden land:hidden fixed bottom-0 inset-x-0 z-40 bg-surface/75 [backdrop-filter:blur(20px)_saturate(180%)] [-webkit-backdrop-filter:blur(20px)_saturate(180%)] border-t border-line/60 pb-safe px-safe">
         <div className="flex justify-around max-w-[680px] mx-auto px-2 pt-1.5">
           {NAV.filter(n => n.mobile).map(n => (
-            <NavLink key={n.to} to={n.to} end={n.to === '/'} onClick={() => navigator.vibrate?.(6)} className={({ isActive }) => cx('flex flex-col items-center gap-0.5 min-w-[58px] min-h-[46px] justify-center text-micro transition-transform active:scale-90', isActive ? 'text-ink font-semibold' : 'text-ink3 font-medium')}>
+            <NavLink key={n.to} to={n.to} end={n.to === '/'} onClick={() => navigator.vibrate?.(6)} className={({ isActive }) => cx('flex flex-col items-center gap-0.5 min-w-[58px] min-h-[46px] justify-center text-micro transition-transform active:scale-95', isActive ? 'text-ink font-semibold' : 'text-ink3 font-medium')}>
               {({ isActive }) => (<><span className={cx('relative grid place-items-center h-7 w-12 rounded-full transition-colors', isActive && 'text-accent')}>{isActive && <motion.span layoutId="tab-chip" transition={spring} className="absolute inset-0 rounded-full bg-accent/15" />}<Icon name={n.icon} size={20} className="relative" /></span>{n.short ?? n.label}</>)}
             </NavLink>
           ))}
-          <button className={cx('flex flex-col items-center gap-0.5 min-w-[58px] min-h-[46px] justify-center text-micro transition-transform active:scale-90', inMore ? 'text-ink font-semibold' : 'text-ink3 font-medium')} aria-haspopup="dialog" aria-expanded={moreOpen} aria-current={inMore ? 'page' : undefined} onClick={() => setMoreOpen(true)}>
+          <button className={cx('flex flex-col items-center gap-0.5 min-w-[58px] min-h-[46px] justify-center text-micro transition-transform active:scale-95', inMore ? 'text-ink font-semibold' : 'text-ink3 font-medium')} aria-haspopup="dialog" aria-expanded={moreOpen} aria-current={inMore ? 'page' : undefined} onClick={() => setMoreOpen(true)}>
             <span className={cx('relative grid place-items-center h-7 w-12 rounded-full transition-colors', inMore && 'text-accent')}>{inMore && <motion.span layoutId="tab-chip" transition={spring} className="absolute inset-0 rounded-full bg-accent/15" />}<Icon name="more" size={20} className="relative" /></span>More
           </button>
         </div>
       </nav>
 
       <Sheet bottom open={moreOpen} onClose={() => setMoreOpen(false)} title="More">
-        <button type="button" className="field h-11 flex items-center gap-2 text-left text-ink3 mb-4" onClick={() => { setMoreOpen(false); setCmd(true); }}><Icon name="search" size={16} />Search pages, trades, actions</button>
+        <button type="button" className="field h-11 flex items-center gap-2 text-left text-ink3 mb-4" onClick={() => { setMoreOpen(false); openCmd(); }}><Icon name="search" size={16} />Search pages, trades, actions</button>
         {(['Review', 'Plan & tools'] as Group[]).map(g => (
           <section key={g} className="mb-4" aria-label={g}>
             <div className="label mb-2">{g}</div>
@@ -407,7 +415,8 @@ export function Shell({ children }: { children: ReactNode }) {
         </div>
       </Sheet>
       <Sheet open={importOpen} onClose={() => setImportOpen(false)} title="Import trades" morphId="import-morph"><ImportPanel onDone={() => setImportOpen(false)} /></Sheet>
-      <CommandPalette open={cmd} onClose={() => setCmd(false)} actions={actions} />
+      <CommandPalette open={cmd} onClose={() => setCmd(false)} actions={actions} instant={cmdKbd} />
+      {import.meta.env.DEV && <DevDataToggle />}
     </div>
     </MotionConfig>
   );
@@ -430,6 +439,17 @@ function Welcome({ onImport }: { onImport: () => void }) {
         <div className="text-xs text-ink3">Your Playbook, Calculator and Risk rules work without trades.</div>
         <Segmented label="Theme" value={useStore.getState().theme} onChange={v => useStore.getState().setTheme(v)} size="sm" options={[{ value: 'dark', label: 'Dark' }, { value: 'light', label: 'Light' }]} />
       </motion.div>
+    </div>
+  );
+}
+
+/** Dev only (break-ui): flip the whole app between the real journal and stress fixtures. Plain chrome, instant, not part of the design. */
+function DevDataToggle() {
+  const label = { real: 'Demo data', worst: 'Worst case', one: 'One', empty: 'Empty', huge: '1,500 rows' } as const;
+  const go = (m: string) => { const u = new URL(location.href); if (m === 'real') u.searchParams.delete('data'); else u.searchParams.set('data', m); location.assign(u.toString()); };
+  return (
+    <div role="radiogroup" aria-label="Dev data set" className="fixed z-[90] left-1/2 -translate-x-1/2 bottom-[calc(84px+env(safe-area-inset-bottom))] lg:bottom-3 land:bottom-3 flex gap-0.5 p-0.5 rounded-full bg-neutral-200 text-[11px] font-[system-ui] text-neutral-700 shadow">
+      {DATA_MODES.map(m => <button key={m} type="button" role="radio" aria-checked={DATA_MODE === m} onClick={() => go(m)} className={cx('h-6 px-2.5 rounded-full whitespace-nowrap', DATA_MODE === m && 'bg-white text-black shadow-sm')}>{label[m]}</button>)}
     </div>
   );
 }

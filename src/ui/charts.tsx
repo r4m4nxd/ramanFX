@@ -2,7 +2,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useMemo, useState } from 'react';
 import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis, type TooltipProps } from 'recharts';
 import { useStore } from '@/data/store';
-import { ease, Segmented, useIsMobile } from './kit';
+import { ease, Segmented, useIntro, useIsMobile } from './kit';
 import { dayKey } from '@/core/time';
 import { shortDate } from '@/lib/format';
 
@@ -187,13 +187,14 @@ export function DailyBars({ days, height = 220, fmt, period = 'day', metric = 'n
 
 export function Sparkline({ values, height = 36, className, color }: { values: number[]; height?: number; className?: string; color?: string }) {
   const c = useColors();
+  const intro = useIntro();
   if (values.length < 2) return <div style={{ height }} />;
   const min = Math.min(0, ...values), max = Math.max(0, ...values), span = max - min || 1;
   const d = values.map((v, i) => `${i ? 'L' : 'M'}${((i / (values.length - 1)) * 100).toFixed(2)} ${(((max - v) / span) * 100).toFixed(2)}`).join(' ');
   const col = color ?? (values[values.length - 1] >= 0 ? c.profit : c.loss);
   return (
     <svg viewBox="0 0 100 100" preserveAspectRatio="none" width="100%" height={height} className={className} aria-hidden="true">
-      <motion.path d={d} fill="none" stroke={col} strokeWidth={2} vectorEffect="non-scaling-stroke" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.1, ease }} />
+      <motion.path d={d} fill="none" stroke={col} strokeWidth={2} vectorEffect="non-scaling-stroke" initial={intro ? { pathLength: 0 } : false} animate={{ pathLength: 1 }} transition={{ duration: 0.6, ease }} />
     </svg>
   );
 }
@@ -201,13 +202,14 @@ export function Sparkline({ values, height = 36, className, color }: { values: n
 /** Ring gauge, value 0..1. */
 export function Ring({ value, size = 64, stroke = 7, color, track, children }: { value: number; size?: number; stroke?: number; color: string; track?: string; children?: React.ReactNode }) {
   const c = useColors();
+  const intro = useIntro();
   const r = (size - stroke) / 2, circ = 2 * Math.PI * r;
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90" aria-hidden="true">
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={track ?? c.line} strokeWidth={stroke} />
         <motion.circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={circ}
-          initial={{ strokeDashoffset: circ }} animate={{ strokeDashoffset: circ * (1 - Math.max(0, Math.min(1, value))) }} transition={{ duration: 1, ease }} />
+          initial={intro ? { strokeDashoffset: circ } : false} animate={{ strokeDashoffset: circ * (1 - Math.max(0, Math.min(1, value))) }} transition={{ duration: 0.6, ease }} />
       </svg>
       {children && <div className="absolute inset-0 grid place-items-center">{children}</div>}
     </div>
@@ -217,6 +219,7 @@ export function Ring({ value, size = 64, stroke = 7, color, track, children }: {
 /** Diverging horizontal bars (symbols, setups): zero in the middle, every row shown. */
 export function DivergingBars({ rows, fmt, onRow }: { rows: { key: string; net: number; sub?: string }[]; fmt: (n: number) => string; onRow?: (k: string) => void }) {
   const max = Math.max(1, ...rows.map(r => Math.abs(r.net)));
+  const intro = useIntro();
   return (
     <div className="flex flex-col gap-2.5">
       {rows.map((r, i) => {
@@ -228,8 +231,9 @@ export function DivergingBars({ rows, fmt, onRow }: { rows: { key: string; net: 
             <span className="truncate font-mono text-ink2" title={r.key}>{r.key}{r.sub && <span className="block text-[10.5px] text-ink3 font-sans">{r.sub}</span>}</span>
             <span className="relative h-2 rounded-full bg-line/60">
               <span className="absolute top-0 bottom-0 left-1/2 w-px bg-line2" />
-              <motion.span className={'absolute top-0 h-2 rounded-full ' + (pos ? 'bg-profit' : 'bg-loss')}
-                style={pos ? { left: '50%' } : { right: '50%' }} initial={{ width: 0 }} animate={{ width: `${w}%` }} transition={{ duration: 0.7, ease, delay: i * 0.03 }} />
+              {/* Half-width track per side, filled with scaleX from the zero line (compositor-only). */}
+              <motion.span className={'absolute top-0 h-2 w-1/2 rounded-full ' + (pos ? 'bg-profit origin-left' : 'bg-loss origin-right')}
+                style={pos ? { left: '50%' } : { right: '50%' }} initial={intro ? { transform: 'scaleX(0)' } : false} animate={{ transform: `scaleX(${w / 50})` }} transition={{ duration: 0.45, ease, delay: intro ? Math.min(i, 10) * 0.03 : 0 }} />
             </span>
             <span className={'num text-right font-semibold ' + (pos ? 'text-profit' : 'text-loss')}>{fmt(r.net)}</span>
           </Row>

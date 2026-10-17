@@ -22,11 +22,11 @@ export default function SignIn() {
   return (
     <main className="min-h-[100dvh] grid place-items-center px-4 py-10">
       <Ambient />
-      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.2, 0.8, 0.2, 1] }} className="w-full max-w-[380px]">
+      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.23, 1, 0.32, 1] }} className="w-full max-w-[380px]">
         <div className="flex flex-col items-center text-center mb-7">
           <img src="/icon.svg" alt="" className="w-[76px] h-[76px] rounded-[18px] shadow-pop" />
           <h1 className="text-2xl font-semibold tracking-tight mt-5">RamanFX</h1>
-          <p className="text-[13.5px] text-ink3 mt-1.5 flex items-center gap-1.5"><Icon name="shield" size={14} />Private trading journal. Sign in to continue.</p>
+          <p className="text-[13.5px] text-ink3 mt-1.5 [text-wrap:balance]"><Icon name="shield" size={14} className="inline-block align-[-2px] mr-1.5" />Private trading journal. Sign in to continue.</p>
         </div>
         <form onSubmit={submit} className="card p-5 flex flex-col gap-3.5" aria-label="Sign in">
           <label className="flex flex-col gap-1.5">

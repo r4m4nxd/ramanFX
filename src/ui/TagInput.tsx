@@ -18,7 +18,7 @@ export function TagInput({ value, onChange, universe, tone = 'accent', placehold
       <div className="flex flex-wrap gap-1.5 items-center min-h-[38px] p-1.5 rounded-lg border border-line2 bg-bg focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20">
         <AnimatePresence initial={false}>
           {value.map(t => (
-            <motion.span key={t} layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} className={cx('inline-flex items-center gap-1 h-7 pl-2.5 pr-1 rounded-full border text-xs font-medium', chip)}>
+            <motion.span key={t} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className={cx('inline-flex items-center gap-1 h-7 pl-2.5 pr-1 rounded-full border text-xs font-medium', chip)}>
               {t}
               <button type="button" aria-label={`Remove ${t}`} className="w-5 h-5 touch:w-8 touch:h-8 touch:-my-1.5 touch:-mr-2 grid place-items-center rounded-full hover:bg-black/20" onClick={() => onChange(value.filter(x => x !== t))}><Icon name="x" size={11} /></button>
             </motion.span>

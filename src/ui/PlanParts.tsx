@@ -13,7 +13,7 @@ export function Choice({ on, onClick, title, sub, children, tone = 'accent' }: {
       {children}
       <div className="text-[13.5px] font-semibold leading-tight">{title}</div>
       {sub && <div className="text-[11.5px] text-ink3 mt-0.5 leading-snug">{sub}</div>}
-      {on && <motion.span layoutId={undefined} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={spring} className="absolute top-2 right-2 w-5 h-5 rounded-full bg-accent text-on-accent grid place-items-center"><Icon name="check" size={12} strokeWidth={3} /></motion.span>}
+      {on && <motion.span initial={{ opacity: 0, transform: 'scale(0.5)' }} animate={{ opacity: 1, transform: 'scale(1)' }} transition={spring} className="absolute top-2 right-2 w-5 h-5 rounded-full bg-accent text-on-accent grid place-items-center"><Icon name="check" size={12} strokeWidth={3} /></motion.span>}
     </motion.button>
   );
 }
@@ -98,8 +98,9 @@ export function CurveSlider({ value, onChange, side }: { value: number; onChange
         <div className="absolute inset-x-0 top-1/2 border-t border-dashed border-ink/60" />
         <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[9px] font-semibold bg-surface/90 rounded px-1">50%</span>
         <motion.div className="absolute left-2 right-2 h-3.5 -mb-[7px] rounded-md shadow-pop pointer-events-none"
-          style={{ background: side === 'buy' ? 'rgb(var(--profit))' : 'rgb(var(--loss))' }}
-          animate={{ bottom: `${16 + value * 0.68}%`, scale: drag ? 1.08 : 1 }} transition={spring} />
+          // Transform, not `bottom`: dragging moves a composited layer instead of re-laying out the slider every frame (240px track, 68% travel).
+          style={{ bottom: '16%', background: side === 'buy' ? 'rgb(var(--profit))' : 'rgb(var(--loss))' }}
+          animate={{ transform: `translateY(${-value * 1.632}px) scale(${drag ? 1.08 : 1})` }} transition={spring} />
       </div>
       <div className="flex flex-col justify-center gap-2 text-[12.5px] leading-relaxed">
         <div className={cx('num text-3xl font-semibold', good ? 'text-profit' : 'text-warn')}>{value}%</div>
@@ -130,7 +131,7 @@ export function ReasonList({ items, max }: { items: Reason[]; max?: number }) {
   return (
     <ul className="flex flex-col gap-1.5">
       {items.slice(0, max).map((r, i) => (
-        <motion.li key={r.text} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}>
+        <motion.li key={r.text} initial={{ opacity: 0, transform: 'translateX(-6px)' }} animate={{ opacity: 1, transform: 'translateX(0px)' }} transition={{ duration: 0.2, ease, delay: Math.min(i, 8) * 0.03 }}>
           <button type="button" onClick={() => setOpen(open === i ? null : i)} className="w-full text-left flex gap-2.5 items-start rounded-lg px-2 py-1.5 -mx-2 hover:bg-raised/60">
             <span className={cx('mt-[3px] w-4 h-4 rounded-full grid place-items-center shrink-0', r.tone === 'good' ? 'bg-profit/20 text-profit' : r.tone === 'bad' ? 'bg-loss/20 text-loss' : 'bg-warn/20 text-warn')}>
               <Icon name={r.tone === 'good' ? 'check' : r.tone === 'bad' ? 'x' : 'alert'} size={10} strokeWidth={3} />
@@ -155,7 +156,7 @@ export function VerdictPanel({ v, compact }: { v: Verdict; compact?: boolean }) 
         <ScoreRing score={v.score} tone={tone} />
         <div className="min-w-0">
           <AnimatePresence mode="wait">
-            <motion.div key={label} initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }}
+            <motion.div key={label} initial={{ opacity: 0, transform: 'translateY(6px)', filter: 'blur(4px)' }} animate={{ opacity: 1, transform: 'translateY(0px)', filter: 'blur(0px)' }} exit={{ opacity: 0, transform: 'translateY(-6px)' }} transition={{ duration: 0.15, ease }}
               className={cx('text-[22px] font-bold tracking-tight', `text-${tone}`)}>{label}</motion.div>
           </AnimatePresence>
           <div className="text-[12.5px] text-ink2 mt-0.5">{!v.tradeable ? `${v.blockers.length} rule${v.blockers.length > 1 ? 's' : ''} say no. Skip it — opportunities are endless.` : v.mgmt.style === 'aggressive' ? 'Take it, but manage it aggressively.' : 'Let it run. Manage it patiently.'}</div>
