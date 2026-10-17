@@ -81,7 +81,7 @@ export function RangePicker({ className }: { className?: string }) {
         <AnimatePresence>
           {open && (
             <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }} transition={{ duration: 0.16 }}
-              className="absolute z-50 mt-2 right-0 w-[290px] touch:w-[340px] card shadow-pop p-2" role="dialog" aria-label="Date range">
+              className="absolute z-50 mt-2 right-0 w-[290px] touch:w-[340px] glass-pop rounded-2xl p-2" role="dialog" aria-label="Date range">
               {body}
             </motion.div>
           )}

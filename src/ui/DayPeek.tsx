@@ -118,7 +118,7 @@ export function DayPeek({ day, onClose }: { day: string | null; onClose: () => v
         <div className="fixed inset-0 z-[80] flex items-end md:items-center justify-center md:p-6" role="dialog" aria-modal="true" aria-labelledby={titleId}>
           <motion.div className="absolute inset-0 bg-black/55 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.18 } }} onClick={onClose} />
           <motion.div ref={panel}
-            className="relative w-full md:max-w-[560px] max-h-sheet md:max-h-[86vh] flex flex-col bg-surface border border-line2 shadow-pop rounded-t-3xl md:rounded-3xl overflow-hidden luxe-border"
+            className="relative w-full md:max-w-[560px] max-h-sheet md:max-h-[86vh] flex flex-col glass-pop rounded-t-3xl md:rounded-3xl overflow-hidden luxe-border"
             initial={{ opacity: 0, scale: 0.08, ...origin.current }} animate={{ opacity: 1, scale: 1, x: 0, y: 0 }} exit={mobile ? { y: '100%', transition: { duration: 0.22, ease: [0.23, 1, 0.32, 1] } } : { opacity: 0, scale: 0.08, ...origin.current, transition: { duration: 0.18, ease: [0.23, 1, 0.32, 1] } }}
             transition={spring}
             drag={mobile ? 'y' : false} dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.6 }} onDragEnd={(_, i) => { if (i.offset.y > 120 || i.velocity.y > 500 || (i.offset.y > 40 && i.velocity.y > 250)) onClose(); }}>

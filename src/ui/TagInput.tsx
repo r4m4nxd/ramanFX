@@ -30,7 +30,7 @@ export function TagInput({ value, onChange, universe, tone = 'accent', placehold
       </div>
       <AnimatePresence>
         {focus && (sugg.length > 0 || q.trim()) && (
-          <motion.ul initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute z-30 mt-1 w-full card shadow-pop p-1 max-h-56 overflow-y-auto">
+          <motion.ul initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute z-30 mt-1 w-full glass-pop rounded-2xl p-1 max-h-56 overflow-y-auto">
             {q.trim() && !universe.includes(q.trim().toLowerCase()) && <li><button type="button" className="w-full text-left px-2.5 h-8 rounded-md text-sm hover:bg-raised" onMouseDown={() => add(q)}>Add “{q.trim().toLowerCase()}”</button></li>}
             {sugg.map(s => <li key={s}><button type="button" className="w-full text-left px-2.5 h-8 rounded-md text-sm hover:bg-raised text-ink2" onMouseDown={() => add(s)}>{s}</button></li>)}
           </motion.ul>

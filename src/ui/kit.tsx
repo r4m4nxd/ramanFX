@@ -127,7 +127,7 @@ export function CountUp({ value, format, className, id }: { value: number; forma
 export function Segmented<T extends string>({ value, onChange, options, size = 'md', label }: { value: T; onChange: (v: T) => void; options: { value: T; label: ReactNode }[]; size?: 'sm' | 'md'; label: string }) {
   const id = useId();
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex p-[3px] rounded-full bg-raised/60 border border-line">
+    <div role="radiogroup" aria-label={label} className="inline-flex p-[3px] rounded-full bg-raised/50 border border-line/70 shadow-[inset_0_1px_2px_rgb(0_0_0/0.18),inset_0_-0.5px_0_var(--spec-soft)]">
       {options.map(o => {
         const on = o.value === value;
         return (
@@ -161,7 +161,7 @@ export function Tabs<T extends string>({ value, onChange, options, label }: { va
   const id = useId();
   if (!mobile && options.length <= 6) return <div><Segmented label={label} value={value} onChange={onChange} options={options} /></div>;
   return (
-    <div role="tablist" aria-label={label} className={cx('grid gap-1.5 p-1 rounded-[22px] bg-raised/60 border border-line', options.length > 4 && 'land:![grid-template-columns:repeat(6,minmax(0,1fr))]')}
+    <div role="tablist" aria-label={label} className={cx('grid gap-1.5 p-1 rounded-[22px] bg-raised/50 border border-line/70 shadow-[inset_0_1px_2px_rgb(0_0_0/0.18),inset_0_-0.5px_0_var(--spec-soft)]', options.length > 4 && 'land:![grid-template-columns:repeat(6,minmax(0,1fr))]')}
       style={{ gridTemplateColumns: `repeat(${tabCols(options.length, mobile)}, minmax(0, 1fr))` }}>
       {options.map(o => {
         const on = o.value === value;
@@ -261,7 +261,7 @@ export function Tip({ text, children }: { text: string; children: ReactNode }) {
       {children}
       {at && createPortal(
         <span ref={tip} role="tooltip" style={{ left: 0, top: 0, visibility: 'hidden' }}
-          className={cx(!instant && 'tip-in', 'fixed z-[200] w-max max-w-[min(260px,calc(100vw-16px))] px-2.5 py-1.5 rounded-lg bg-ink text-bg text-xs leading-snug font-normal normal-case tracking-normal pointer-events-none shadow-pop')}>
+          className={cx(!instant && 'tip-in', 'fixed z-[200] w-max max-w-[min(260px,calc(100vw-16px))] px-2.5 py-1.5 rounded-xl glass-pop text-ink text-xs leading-snug font-normal normal-case tracking-normal pointer-events-none')}>
           {text}
         </span>, document.body)}
     </span>
@@ -322,9 +322,9 @@ export function Sheet({ open, onClose, title, children, width = 520, bottom = fa
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={title}>
-          <motion.div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
+          <motion.div className="absolute inset-0 bg-black/40" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
           <motion.div ref={panel} layoutId={morph ? morphId : undefined}
-            className={cx('absolute bg-surface border-line2 shadow-pop flex flex-col', bottom
+            className={cx('absolute glass-pop flex flex-col', bottom
               ? 'inset-x-0 bottom-0 mx-auto w-full max-w-[560px] max-h-sheet rounded-t-2xl border-t border-x'
               : 'max-md:inset-x-0 max-md:bottom-0 max-md:max-h-sheet max-md:rounded-t-2xl max-md:border-t md:top-0 md:right-0 md:h-full md:border-l')}
             style={{ width: !bottom && typeof window !== 'undefined' && window.innerWidth >= 768 ? width : undefined, ...(morph && !fromBottom ? { borderRadius: 20, top: 8, bottom: 8, right: 8, height: 'auto' } : morph ? { borderTopLeftRadius: 20, borderTopRightRadius: 20 } : {}) }}
@@ -388,12 +388,12 @@ function ToastItem({ t, onClose }: { t: Toast; onClose: () => void }) {
       onDragStart={() => { t0.current = performance.now(); setPaused(true); }} onDragEnd={(_, i) => swipeEnd(i.offset)}
       onPointerEnter={() => setPaused(true)} onPointerLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}
       style={{ borderRadius: 999 }}
-      className="pointer-events-auto touch-none cursor-grab active:cursor-grabbing flex items-center gap-2.5 pl-4 pr-1.5 py-1.5 min-h-[44px] bg-[#0b0b0d] text-white border border-white/10 shadow-pop text-sm max-w-[min(90vw,480px)]">
+      className="pointer-events-auto touch-none cursor-grab active:cursor-grabbing flex items-center gap-2.5 pl-4 pr-1.5 py-1.5 min-h-[44px] glass-pop text-ink text-sm max-w-[min(90vw,480px)]">
       <motion.span className="contents" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.12, duration: 0.25 }}>
         <span className={cx('w-2 h-2 rounded-full shrink-0', t.tone === 'ok' ? 'bg-profit' : t.tone === 'error' ? 'bg-loss' : 'bg-accent')} aria-hidden="true" />
         <span className="py-1 mr-1">{t.text}</span>
-        {t.action && <button type="button" className="h-8 px-3 rounded-full text-accent font-semibold shrink-0 hover:bg-white/10" onClick={() => { t.action!.run(); onClose(); }}>{t.action.label}</button>}
-        <button type="button" className="h-8 w-8 grid place-items-center rounded-full text-white/60 hover:text-white hover:bg-white/10 shrink-0 ml-auto" aria-label="Dismiss" onClick={onClose}><Icon name="x" size={14} /></button>
+        {t.action && <button type="button" className="h-8 px-3 rounded-full text-accent font-semibold shrink-0 hover:bg-ink/10" onClick={() => { t.action!.run(); onClose(); }}>{t.action.label}</button>}
+        <button type="button" className="h-8 w-8 grid place-items-center rounded-full text-ink3 hover:text-ink hover:bg-ink/10 shrink-0 ml-auto" aria-label="Dismiss" onClick={onClose}><Icon name="x" size={14} /></button>
       </motion.span>
     </motion.div>
   );

@@ -156,7 +156,7 @@ function CommandPalette({ open, onClose, actions, instant }: { open: boolean; on
         <div className="fixed inset-0 z-[70] flex items-start justify-center pt-[calc(12vh+env(safe-area-inset-top))] px-4" role="dialog" aria-modal="true" aria-label="Command palette">
           <motion.div className="absolute inset-0 bg-black/50" initial={instant ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: instant ? { duration: 0 } : { duration: 0.15 } }} onClick={onClose} />
           {/* Morph: on wide screens the header search pill grows into this panel (shared layoutId); content blurs in once the shape has settled. */}
-          <motion.div ref={box} layoutId={instant ? undefined : 'cmd-morph'} style={{ borderRadius: 16 }} className="relative w-full max-w-lg card shadow-pop overflow-hidden"
+          <motion.div ref={box} layoutId={instant ? undefined : 'cmd-morph'} style={{ borderRadius: 16 }} className="relative w-full max-w-lg glass-pop overflow-hidden"
             initial={instant ? false : { opacity: 0, transform: 'translateY(-8px) scale(0.97)' }} animate={{ opacity: 1, transform: 'translateY(0px) scale(1)' }} exit={{ opacity: 0, transition: instant ? { duration: 0 } : { duration: 0.15 } }} transition={spring}>
             {/* Content sharpens in quickly once the shape is nearly there: the user is about to type. */}
             <motion.div initial={instant ? false : { opacity: 0, filter: 'blur(4px)' }} animate={{ opacity: 1, filter: 'blur(0px)', transition: { delay: 0.06, duration: 0.15 } }} exit={{ opacity: 0, transition: { duration: instant ? 0 : 0.1 } }}>
@@ -300,11 +300,12 @@ export function Shell({ children }: { children: ReactNode }) {
   const tile = (active: boolean) => cx('flex flex-col items-center justify-center gap-2 py-4 land:py-2 land:gap-1 rounded-xl bg-raised border text-xs font-medium text-center', active ? 'border-accent/40 text-ink' : 'border-line text-ink2');
   return (
     <MotionConfig reducedMotion="user">
-    <div className="min-h-screen flex land:pl-[calc(68px+env(safe-area-inset-left))]">
+    <div className="min-h-screen flex land:pl-[calc(80px+env(safe-area-inset-left))]">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[80] btn-primary">Skip to content</a>
       <Ambient />
       {/* Desktop sidebar: logo, a scrolling nav, and a pinned footer so nothing is ever cut off on a short screen. */}
-      <aside className="hidden lg:flex w-[232px] shrink-0 flex-col border-r border-line bg-surface/40 py-4 sticky top-0 h-screen">
+      {/* Floating glass sidebar: inset from the window edges so the canvas glows around it. */}
+      <aside className="hidden lg:flex w-[232px] shrink-0 flex-col glass rounded-[26px] m-3 mr-0 py-4 sticky top-3 h-[calc(100vh-24px)]">
         <div className="flex items-center gap-2.5 px-5 pb-4 short:pb-3 pt-1 shrink-0">
           <img src="/icon.svg" alt="" className="w-8 h-8 rounded-[9px] ring-1 ring-line" />
           <div className="font-bold text-[16px] tracking-tight">RamanFX</div>
@@ -328,8 +329,10 @@ export function Shell({ children }: { children: ReactNode }) {
 
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Top bar */}
-        <header className={cx('sticky top-0 z-30 border-b pt-safe px-safe transition-[background-color,box-shadow] duration-200', scrolled ? 'material hairline-b border-transparent' : 'bg-transparent border-transparent')}>
-          <div className="max-w-[1360px] mx-auto flex items-center gap-2 px-4 lg:px-7 h-14 land:h-12">
+        {/* Top bar floats: transparent at rest, then condenses into a glass capsule once content scrolls beneath it. */}
+        <header className="sticky top-0 z-30 pt-safe px-safe">
+          <div className={cx('mx-2 lg:mx-4 mt-1.5 rounded-[26px] border border-transparent transition-[background-color,box-shadow,border-color] duration-200', scrolled ? 'glass' : 'bg-transparent shadow-none')}>
+          <div className="max-w-[1360px] mx-auto flex items-center gap-2 px-3 lg:px-5 h-14 land:h-12">
             <h1 className={cx('bar-title text-[17px] lg:text-[19px] font-semibold truncate min-w-[60px]', !pastTitle && !deep && 'max-lg:land:opacity-100 max-lg:opacity-0 max-lg:translate-y-1')}>{title}</h1>
             <span className="order-last xl:order-none xl:ml-3 shrink-0 h-9 w-9 xl:w-auto 2xl:h-10">
               {!cmd && (
@@ -355,10 +358,11 @@ export function Shell({ children }: { children: ReactNode }) {
             </div>
           </div>
           {scoped && (
-            <div className={cx('md:hidden land:hidden grid gap-2 px-4 pb-2.5', multiAccount && 'grid-cols-2')}>
+            <div className={cx('md:hidden land:hidden grid gap-2 px-3 pb-2.5', multiAccount && 'grid-cols-2')}>
               <RangePicker /><AccountPicker />
             </div>
           )}
+          </div>
         </header>
 
         <main id="main" ref={mainRef} tabIndex={-1} className="flex-1 w-full max-w-[1360px] mx-auto px-4 lg:px-7 pt-5 land:pt-4 pb-28 land:pb-10 lg:pb-12 outline-none">
@@ -372,7 +376,7 @@ export function Shell({ children }: { children: ReactNode }) {
       </div>
 
       {/* Phone landscape: slim icon rail on the left keeps the full height for content */}
-      <nav aria-label="Main" className="hidden land:flex fixed left-0 inset-y-0 z-40 w-[calc(68px+env(safe-area-inset-left))] pl-[env(safe-area-inset-left)] flex-col items-center justify-center gap-1 bg-surface border-r border-line">
+      <nav aria-label="Main" className="hidden land:flex fixed left-[max(8px,env(safe-area-inset-left))] inset-y-2 z-40 w-[64px] flex-col items-center justify-center gap-1 glass rounded-[26px]">
         {NAV.filter(n => n.mobile).map(n => (
           <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cx('press relative w-14 h-12 rounded-xl flex flex-col items-center justify-center gap-0.5 text-micro', isActive ? 'text-ink font-semibold [&_svg]:text-accent' : 'text-ink3 font-medium')}>
             {({ isActive }) => (<>{isActive && <motion.span layoutId="rail-chip" transition={spring} className="absolute inset-0 rounded-xl bg-accent/15" />}<Icon name={n.icon} size={19} className="relative" /><span className="relative">{n.short ?? n.label}</span></>)}
