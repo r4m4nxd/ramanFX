@@ -215,7 +215,7 @@ export const useStore = create<State>((set, getState) => {
       if (o) next[sym] = o; else delete next[sym];
       set({ overrides: next }); put(SK.overrides, next);
     },
-    setTheme: (t) => { document.documentElement.dataset.theme = t; set({ theme: t }); put(SK.theme, t); },
+    setTheme: (t) => { const root = document.documentElement; root.classList.add('theme-anim'); window.setTimeout(() => root.classList.remove('theme-anim'), 450); root.dataset.theme = t; set({ theme: t }); put(SK.theme, t); },
     setPrivacy: (v) => { set({ privacy: v }); put(SK.privacy, v); },
     setRange: (r) => set({ range: r }),
     setBrokerOffset: (h) => { set({ brokerOffset: h }); put(SK.brokerOffset, h); },

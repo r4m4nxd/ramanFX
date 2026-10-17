@@ -7,7 +7,9 @@ import { Icon, type IconName } from './Icon';
 export const cx = clsx;
 
 // ─── Motion presets ──────────────────────────────────────────────────
-export const spring = { type: 'spring', stiffness: 420, damping: 34, mass: 0.8 } as const;
+// Apple springs: critically damped (no bounce) for UI moves; a little bounce only after a flick/drag (momentum).
+export const spring = { type: 'spring', bounce: 0, duration: 0.4 } as const;
+export const momentumSpring = { type: 'spring', bounce: 0.2, duration: 0.3 } as const;
 export const ease = [0.22, 1, 0.36, 1] as const;
 
 export const stagger = {
@@ -285,7 +287,7 @@ export function Sheet({ open, onClose, title, children, width = 520, bottom = fa
             initial={off}
             animate={{ x: 0, y: 0, opacity: 1 }}
             exit={off}
-            transition={reduce ? { duration: 0.12 } : { type: 'spring', stiffness: 380, damping: 38 }}
+            transition={reduce ? { duration: 0.2 } : momentumSpring}
             // Bottom sheets follow the finger down and dismiss past ~110px or on a quick flick, like a native sheet.
             drag={fromBottom && !reduce ? 'y' : false} dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.6 }} dragListener={false}
             dragControls={drag}
@@ -321,8 +323,8 @@ function ToastItem({ t, onClose }: { t: Toast; onClose: () => void }) {
   }, [paused, t, onClose]);
   return (
     // Dynamic-Island morph: a small dark pill springs open to full width, then its content fades in.
-    <motion.div layout initial={{ opacity: 0, scaleX: 0.35, scaleY: 0.7, y: 12, filter: 'blur(8px)' }} animate={{ opacity: 1, scaleX: 1, scaleY: 1, y: 0, filter: 'blur(0px)' }}
-      exit={{ opacity: 0, scaleX: 0.4, scaleY: 0.7, filter: 'blur(8px)', transition: { duration: 0.22, ease } }} transition={{ type: 'spring', stiffness: 380, damping: 26, mass: 0.9 }}
+    <motion.div layout initial={{ opacity: 0, scaleX: 0.35, scaleY: 0.7, y: 12, filter: 'blur(6px)' }} animate={{ opacity: 1, scaleX: 1, scaleY: 1, y: 0, filter: 'blur(0px)' }}
+      exit={{ opacity: 0, scaleX: 0.4, scaleY: 0.7, filter: 'blur(8px)', transition: { duration: 0.22, ease } }} transition={spring}
       onPointerEnter={() => setPaused(true)} onPointerLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}
       style={{ borderRadius: 999 }}
       className="pointer-events-auto flex items-center gap-2.5 pl-4 pr-1.5 py-1.5 min-h-[44px] bg-[#0b0b0d] text-white border border-white/10 shadow-pop text-sm max-w-[min(90vw,480px)]">

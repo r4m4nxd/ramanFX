@@ -79,7 +79,7 @@ export default function Guide() {
                   <div className="label px-3 pt-2 pb-1">{g}</div>
                   {GUIDE.filter(s => s.group === g).map(s => (
                     <button key={s.id} onClick={() => go(s.id)} className={cx('relative w-full text-left flex items-center gap-2.5 h-9 px-3 rounded-lg text-[13px]', active === s.id ? 'text-ink font-medium' : 'text-ink3 hover:text-ink2', !shown.includes(s) && 'opacity-35')}>
-                      {active === s.id && <motion.span layoutId="guide-pill" className="absolute inset-0 rounded-lg bg-raised border border-line" transition={{ type: 'spring', stiffness: 420, damping: 34 }} />}
+                      {active === s.id && <motion.span layoutId="guide-pill" className="absolute inset-0 rounded-lg bg-raised border border-line" transition={{ type: 'spring', bounce: 0, duration: 0.4 }} />}
                       <Icon name={s.icon as IconName} size={14} className="relative shrink-0" /><span className="relative truncate">{s.title}</span>
                     </button>
                   ))}
