@@ -278,7 +278,7 @@ export default function Dashboard() {
         <Card>
           <CardHead title="By symbol" sub={a.symbols.length > 12 && !allSyms ? `Best 6 and worst 6 of ${a.symbols.length}` : 'Every symbol, best to worst'}
             right={a.symbols.length > 12 ? <button className="text-xs text-accent hover:underline inline-block py-2 -my-2" onClick={() => setAllSyms(v => !v)}>{allSyms ? 'Show less' : 'Show all'}</button> : undefined} />
-          <DivergingBars rows={(a.symbols.length > 12 && !allSyms ? [...a.symbols.slice(0, 6), ...a.symbols.slice(-6)] : a.symbols).map(g => ({ key: g.key, net: g.net, sub: `${g.n} trades · ${pct(g.winRate, 0)}` }))} fmt={v => fmt(v, { signed: true, compact: true })} onRow={k => nav(`/trades?symbol=${encodeURIComponent(k)}`)} />
+          <DivergingBars rows={(a.symbols.length > 12 && !allSyms ? [...a.symbols.slice(0, 6), ...a.symbols.slice(-6)] : a.symbols).map(g => ({ key: g.key, net: g.net, sub: `${plural(g.n, 'trade')} · ${pct(g.winRate, 0)}` }))} fmt={v => fmt(v, { signed: true, compact: true })} onRow={k => nav(`/trades?symbol=${encodeURIComponent(k)}`)} />
         </Card>
         <Card>
           <CardHead title="By session" sub="Entry time (UTC): Asia 23–07, London 07–12, New York 12–21" />

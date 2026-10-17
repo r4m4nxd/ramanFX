@@ -8,7 +8,7 @@ import { netOf } from '@/core/stats';
 import { money } from '@/lib/format';
 import { Ambient } from './Ambient';
 import { Icon, type IconName } from './Icon';
-import { cx, Segmented, Sheet, spring, useDialogFocus, useOnline, useToast } from './kit';
+import { cx, Segmented, Sheet, softClick, softNavigate, spring, useDialogFocus, useOnline, useToast } from './kit';
 import { ImportPanel } from './ImportPanel';
 import { GlassTabBar } from './GlassTabBar';
 import { presets, RangePicker } from './RangePicker';
@@ -133,7 +133,7 @@ function CommandPalette({ open, onClose, actions, instant }: { open: boolean; on
   useDialogFocus(open, box);
   const items = useMemo<Cmd[]>(() => {
     const ql = q.trim().toLowerCase();
-    const pages: Cmd[] = NAV.map(n => ({ key: n.to, label: n.label, hint: n.hint, icon: n.icon, run: () => nav(n.to), group: 'Pages' }));
+    const pages: Cmd[] = NAV.map(n => ({ key: n.to, label: n.label, hint: n.hint, icon: n.icon, run: () => softNavigate(() => nav(n.to)), group: 'Pages' }));
     const ranges: Cmd[] = presets().map(p => ({ key: `range-${p.label}`, label: `Range: ${p.label}`, hint: 'Date filter', icon: 'calendar', run: () => useStore.getState().setRange(p), group: 'Actions' }));
     if (!ql) return [...actions, ...pages];
     const match = (c: Cmd) => c.label.toLowerCase().includes(ql) || (typeof c.hint === 'string' && c.hint.toLowerCase().includes(ql));
@@ -192,8 +192,9 @@ function CommandPalette({ open, onClose, actions, instant }: { open: boolean; on
 
 /** Sidebar row (desktop). The active page gets a quiet raised row; violet glow is kept for the one active control. */
 function SideLink({ n }: { n: (typeof NAV)[number] }) {
+  const nav = useNavigate();
   return (
-    <NavLink to={n.to} end={n.to === '/'} className={({ isActive }) => cx('relative flex items-center gap-3 h-10 short:h-9 px-3 rounded-xl text-[13.5px] font-medium transition-colors shrink-0', isActive ? 'text-ink' : 'text-ink3 hover:text-ink2 hover:bg-raised/60')}>
+    <NavLink to={n.to} end={n.to === '/'} onClick={softClick(() => nav(n.to))} className={({ isActive }) => cx('relative flex items-center gap-3 h-10 short:h-9 px-3 rounded-xl text-[13.5px] font-medium transition-colors shrink-0', isActive ? 'text-ink' : 'text-ink3 hover:text-ink2 hover:bg-raised/60')}>
       {({ isActive }) => (<>
         {isActive && <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-xl side-on" transition={spring} />}
         <Icon name={n.icon} size={16} className={cx('relative', isActive && 'text-accent')} /><span className="relative">{n.label}</span>
@@ -251,6 +252,7 @@ export function Shell({ children }: { children: ReactNode }) {
     return () => { window.removeEventListener('pointerdown', down); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); };
   }, [deep, navTo]);
 
+  useGlassLight();
   const first = useRef(true);
   useEffect(() => {
     window.scrollTo({ top: 0 }); setMoreOpen(false);
@@ -317,7 +319,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <Ambient />
       {/* Desktop sidebar: logo, a scrolling nav, and a pinned footer so nothing is ever cut off on a short screen. */}
       {/* Floating glass sidebar: inset from the window edges so the canvas glows around it. */}
-      <aside className="hidden lg:flex w-[232px] shrink-0 flex-col glass rounded-[26px] m-3 mr-0 py-4 sticky top-3 h-[calc(100vh-24px)]">
+      <aside className="vt-side hidden lg:flex w-[232px] shrink-0 flex-col glass rounded-[26px] m-3 mr-0 py-4 sticky top-3 h-[calc(100vh-24px)]">
         <div className="flex items-center gap-2.5 px-5 pb-4 short:pb-3 pt-1 shrink-0">
           <img src="/icon.svg" alt="" className="w-8 h-8 rounded-[9px] ring-1 ring-line" />
           <div className="font-bold text-[16px] tracking-tight">RamanFX</div>
@@ -344,19 +346,11 @@ export function Shell({ children }: { children: ReactNode }) {
         {/* Phone scroll-edge effect (iOS 26): no solid bar; content dissolves into a progressive blur under the top edge. */}
         {phone && <motion.div aria-hidden="true" className="scroll-edge lg:hidden land:hidden" style={{ opacity: edgeOpacity, height: `calc(env(safe-area-inset-top) + ${scoped ? 124 : 76}px)` }} />}
         {/* Top bar floats: transparent at rest, then condenses into a glass capsule once content scrolls beneath it. */}
-        <header className="sticky top-0 z-30 pt-safe px-safe">
+        <header className="vt-bar-top sticky top-0 z-30 pt-safe px-safe">
           <div className={cx('mx-2 lg:mx-4 mt-1.5 rounded-[26px] border border-transparent transition-[background-color,box-shadow,border-color] duration-200', scrolled && !phone ? 'glass' : 'bg-transparent shadow-none')}>
           <div className="max-w-[1360px] mx-auto flex items-center gap-2 px-3 lg:px-5 h-14 land:h-12">
             <motion.h1 className="bar-title text-[17px] lg:text-[19px] font-semibold truncate min-w-[60px]"
               style={liveTitle ? (reduceMotion ? { opacity: barOpacity } : { opacity: barOpacity, filter: barFilter, y: barY }) : undefined}>{title}</motion.h1>
-            <span className="order-last xl:order-none xl:ml-3 shrink-0 h-9 w-9 xl:w-auto 2xl:h-10">
-              {!cmd && (
-                <motion.button layoutId="cmd-morph" style={{ borderRadius: 20 }} transition={spring} type="button" onClick={openCmd} aria-label="Search pages, trades and actions"
-                  className="flex items-center justify-center xl:justify-start gap-2.5 h-9 w-9 xl:w-auto 2xl:h-10 2xl:w-[230px] xl:px-3 2xl:px-4 border border-line bg-raised/40 text-[13px] text-ink3 hover:text-ink2 transition-colors active:scale-95">
-                  <Icon name="search" size={15} /><span className="hidden 2xl:inline">Search pages and trades</span><kbd className="hidden xl:inline ml-auto text-[10px] border border-line2 rounded-full px-1.5">{MOD}K</kbd>
-                </motion.button>
-              )}
-            </span>
             <div className="ml-auto flex items-center gap-1.5 min-w-0">
               <div className="hidden md:flex land:flex items-center gap-1.5 min-w-0 land:[&_select]:max-w-[150px]">
                 <span className="hidden xl:inline-flex"><UserPill /></span><span className="xl:hidden"><SyncPill /></span>
@@ -391,9 +385,9 @@ export function Shell({ children }: { children: ReactNode }) {
       </div>
 
       {/* Phone landscape: slim icon rail on the left keeps the full height for content */}
-      <nav aria-label="Main" className="hidden land:flex fixed left-[max(8px,env(safe-area-inset-left))] inset-y-2 z-40 w-[64px] flex-col items-center justify-center gap-1 glass rounded-[26px]">
+      <nav aria-label="Main" className="vt-side hidden land:flex fixed left-[max(8px,env(safe-area-inset-left))] inset-y-2 z-40 w-[64px] flex-col items-center justify-center gap-1 glass rounded-[26px]">
         {NAV.filter(n => n.mobile).map(n => (
-          <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cx('press relative w-14 h-12 rounded-xl flex flex-col items-center justify-center gap-0.5 text-micro', isActive ? 'text-ink font-semibold [&_svg]:text-accent' : 'text-ink3 font-medium')}>
+          <NavLink key={n.to} to={n.to} end={n.to === '/'} onClick={softClick(() => navTo(n.to))} className={({ isActive }) => cx('press relative w-14 h-12 rounded-xl flex flex-col items-center justify-center gap-0.5 text-micro', isActive ? 'text-ink font-semibold [&_svg]:text-accent' : 'text-ink3 font-medium')}>
             {({ isActive }) => (<>{isActive && <motion.span layoutId="rail-chip" transition={spring} className="absolute inset-0 rounded-xl bg-accent/15" />}<Icon name={n.icon} size={19} className="relative" /><span className="relative">{n.short ?? n.label}</span></>)}
           </NavLink>
         ))}
@@ -410,7 +404,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <div className="label mb-2">{g}</div>
             <div className="grid grid-cols-3 sm:grid-cols-4 land:!grid-cols-7 gap-2">
               {NAV.filter(n => n.group === g && !n.mobile).map(n => (
-                <NavLink key={n.to} to={n.to} className={({ isActive }) => tile(isActive)}>
+                <NavLink key={n.to} to={n.to} onClick={softClick(() => navTo(n.to))} className={({ isActive }) => tile(isActive)}>
                   <Icon name={n.icon} size={20} />{n.label}
                 </NavLink>
               ))}
@@ -419,7 +413,7 @@ export function Shell({ children }: { children: ReactNode }) {
         ))}
         <div className="flex flex-wrap items-center justify-center gap-1 border-t border-line pt-3">
           {NAV.filter(n => n.group === 'Help').map(n => (
-            <NavLink key={n.to} to={n.to} className={({ isActive }) => cx('btn-ghost h-11', isActive ? 'text-ink' : 'text-ink2')}><Icon name={n.icon} size={15} />{n.label}</NavLink>
+            <NavLink key={n.to} to={n.to} onClick={softClick(() => navTo(n.to))} className={({ isActive }) => cx('btn-ghost h-11', isActive ? 'text-ink' : 'text-ink2')}><Icon name={n.icon} size={15} />{n.label}</NavLink>
           ))}
           <a href="/legacy.html" className="btn-ghost h-11 text-ink2"><Icon name="link" size={15} />Classic app</a>
         </div>
@@ -470,4 +464,25 @@ function usePhoneBar() {
   const [on, setOn] = useState(() => typeof window !== 'undefined' && window.matchMedia(phoneMq).matches);
   useEffect(() => { const m = window.matchMedia(phoneMq); const f = () => setOn(m.matches); m.addEventListener('change', f); return () => m.removeEventListener('change', f); }, []);
   return on;
+}
+
+/** Liquid Glass reflections: slide the light streak (--lx) across every glass surface — with the pointer on desktop, and
+ *  gently with scrolling everywhere. Written per glass element (non-inheriting property), once per frame at most. */
+function useGlassLight() {
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let px: number | null = null, raf = 0;
+    const paint = () => {
+      raf = 0;
+      const fromScroll = 30 + 22 * Math.sin(window.scrollY / 260);
+      const lx = px == null ? fromScroll : 0.65 * (12 + 76 * (px / window.innerWidth)) + 0.35 * fromScroll;
+      document.querySelectorAll<HTMLElement>('.glass, .glass-pop').forEach(el => el.style.setProperty('--lx', `${lx.toFixed(1)}%`));
+    };
+    const queue = () => { if (!raf) raf = requestAnimationFrame(paint); };
+    const move = (e: PointerEvent) => { if (e.pointerType !== 'mouse') return; px = e.clientX; queue(); };
+    window.addEventListener('scroll', queue, { passive: true });
+    window.addEventListener('pointermove', move, { passive: true });
+    paint();
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('scroll', queue); window.removeEventListener('pointermove', move); };
+  }, []);
 }

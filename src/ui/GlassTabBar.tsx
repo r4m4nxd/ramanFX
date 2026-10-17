@@ -2,7 +2,7 @@ import { animate, motion, useMotionValue, useReducedMotion, useTransform, useVel
 import { useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon, type IconName } from './Icon';
-import { cx } from './kit';
+import { cx, softNavigate } from './kit';
 
 type Tab = { to: string; label: string; icon: IconName; end?: boolean };
 
@@ -41,11 +41,11 @@ export function GlassTabBar({ tabs, active, onMore, moreActive, onSearch }: { ta
     return () => c.stop();
   }, [sel, w]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const go = (i: number) => { navigator.vibrate?.(6); if (i === tabs.length) onMore(); else nav(tabs[i].to); };
+  const go = (i: number) => { navigator.vibrate?.(6); if (i === tabs.length) onMore(); else { const to = tabs[i].to; softNavigate(() => nav(to)); } };
   const nearest = (lx: number) => { let best = 0, d = Infinity; for (let i = 0; i < count; i++) { const dd = Math.abs(left(i) - lx); if (dd < d) { d = dd; best = i; } } return best; };
 
   return (
-    <nav aria-label="Main" className="lg:hidden land:hidden fixed z-40 inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] flex items-center gap-2 max-w-[560px] mx-auto pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
+    <nav aria-label="Main" className="vt-bar-bottom lg:hidden land:hidden fixed z-40 inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] flex items-center gap-2 max-w-[560px] mx-auto pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
       <div ref={bar} className="glass relative flex-1 h-[62px] rounded-full flex items-stretch p-1 touch-pan-y"
         onPointerDown={e => { if (e.pointerType === 'mouse' && e.button) return; const r = bar.current!.getBoundingClientRect(); drag.current = { id: e.pointerId, x0: e.clientX, lx: e.clientX - r.left, moved: false }; }}
         onPointerMove={e => {

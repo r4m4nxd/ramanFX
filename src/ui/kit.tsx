@@ -25,6 +25,25 @@ export function morphNavigate(el: Element | null, go: () => void) {
   });
 }
 
+/** Calm page-to-page change: the old page dissolves while the new one drifts up out of a soft blur (View Transitions).
+ *  Falls back to a plain navigation (the CSS .page-in fade) where unsupported or under reduced motion. */
+export function softNavigate(go: () => void) {
+  const d = document as Document & { startViewTransition?: (cb: () => Promise<void>) => { finished: Promise<void> } };
+  if (!d.startViewTransition || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { go(); return; }
+  const root = document.documentElement;
+  root.dataset.vt = 'page';
+  d.startViewTransition(async () => {
+    flushSync(go);
+    // A lazy page shows a skeleton first; give it a few frames to arrive so the crossfade lands on real content.
+    for (let i = 0; i < 18 && document.querySelector('main [aria-label="Loading"]'); i++) await new Promise(r => setTimeout(r, 16));
+  }).finished.finally(() => { delete root.dataset.vt; });
+}
+/** onClick for a NavLink/Link: plain left clicks navigate softly; modified clicks keep the browser's behaviour. */
+export const softClick = (go: () => void) => (e: { button: number; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; preventDefault: () => void }) => {
+  if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  e.preventDefault(); softNavigate(go);
+};
+
 // ─── Motion presets ──────────────────────────────────────────────────
 // Apple springs: critically damped (no bounce) for UI moves; a little bounce only after a flick/drag (momentum).
 export const spring = { type: 'spring', bounce: 0, duration: 0.4 } as const;

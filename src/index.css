@@ -39,7 +39,7 @@
   --radius-xs: 6px; --radius-control: 10px; --radius-inner: 12px; --radius-card: 16px; --radius-panel: 24px;
   --motion-fast: 150ms; --motion-base: 250ms; --motion-slow: 450ms;
   /* Easing tokens: strong ease-out for entrances/exits, ease-in-out for on-screen moves, iOS drawer curve. */
-  --ease-out: cubic-bezier(0.23, 1, 0.32, 1); --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1); --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1); --ease-calm: cubic-bezier(0.25, 0.8, 0.25, 1); --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1); --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   /* Bar material (header, tab bar): translucent fill + 0.5px-looking hairline drawn as an inset shadow. */
   --material: rgb(var(--bg) / 0.72); --hairline: rgb(255 255 255 / 0.09);
   color-scheme: dark;
@@ -223,8 +223,11 @@
 /* Critically damped spring (no overshoot), Apple's default for UI motion. */
 :root { --ease-spring: linear(0, 0.034 1.4%, 0.13 3%, 0.45 9%, 0.69 15%, 0.84 21%, 0.93 28%, 0.975 36%, 0.993 46%, 1); }
 /* Top-level page switch happens tens of times a day: a short fade with a 4px lift, nothing more. */
-@keyframes pageIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-.page-in { animation: pageIn 0.2s var(--ease-out) both; }
+/* Soothing page entrance (used when View Transitions aren't available): a slow fade that drifts up out of a soft blur. */
+@keyframes pageIn { from { opacity: 0; transform: translateY(10px) scale(0.992); filter: blur(6px); } to { opacity: 1; transform: none; filter: blur(0); } }
+.page-in { animation: pageIn 0.5s var(--ease-calm) both; }
+/* A page entered through softNavigate is animated by the view transition below, not twice. */
+[data-vt='page'] .page-in { animation: none; }
 /* iOS push: drill-down pages (a trade, a plan) slide in from the right; top-level tabs just fade up. */
 @keyframes pagePush { from { opacity: 0.4; transform: translateX(28%); } to { opacity: 1; transform: none; } }
 @media (max-width: 1023px) { .page-push { animation: pagePush 0.35s var(--ease-drawer) both; } }
@@ -244,6 +247,15 @@
 ::view-transition-group(trade-hero) { animation-duration: 0.45s; animation-timing-function: var(--ease-spring); }
 ::view-transition-old(trade-hero), ::view-transition-new(trade-hero) { animation-duration: 0.3s; height: 100%; object-fit: cover; }
 ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.25s; }
+/* Page switch: a relaxed crossfade. The old page settles back and dissolves; the new one rises out of a soft blur, overlapping. */
+@keyframes vtOut { to { opacity: 0; transform: scale(0.985); filter: blur(8px); } }
+@keyframes vtIn { from { opacity: 0; transform: translateY(14px) scale(1.008); filter: blur(10px); } }
+[data-vt='page']::view-transition-old(root) { animation: vtOut 0.38s var(--ease-calm) both; }
+[data-vt='page']::view-transition-new(root) { animation: vtIn 0.6s var(--ease-calm) 0.08s both; }
+/* The chrome (bars, sidebar) stays put while pages change beneath it; its own live motion (the tab lens) keeps playing. */
+.vt-bar-top { view-transition-name: bar-top; } .vt-bar-bottom { view-transition-name: bar-bottom; } .vt-side { view-transition-name: side; }
+::view-transition-old(bar-top), ::view-transition-old(bar-bottom), ::view-transition-old(side) { display: none; }
+::view-transition-new(bar-top), ::view-transition-new(bar-bottom), ::view-transition-new(side) { animation: none; }
 @media (prefers-reduced-motion: reduce) { ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; } }
 /* Theme switches ease instead of snapping. */
 .theme-anim, .theme-anim * { transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease, fill 0.35s ease !important; }
@@ -377,3 +389,26 @@
   .glass, .glass-pop { background: rgb(var(--surface)); }
   .glass-lens { background: rgb(var(--raised)); }
 }
+
+/* ── Liquid Glass reflections ─────────────────────────────────────────────
+   --lx: where the light streak sits across the glass. Pointer position on desktop, scroll position on phones (set by
+   useGlassLight on each glass element only; non-inheriting, so it never restyles the content inside). */
+@property --lx { syntax: '<percentage>'; inherits: false; initial-value: 30%; }
+:where(.glass, .glass-pop):not(.absolute):not(.fixed):not(.sticky) { position: relative; }
+.glass, .glass-pop { isolation: isolate; transition: --lx 0.9s var(--ease-calm); }
+/* Specular streak: a soft diagonal band of light that glides across the surface. */
+.glass::before, .glass-pop::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: -1;
+  background:
+    linear-gradient(112deg, transparent calc(var(--lx) - 22%), rgb(255 255 255 / var(--sheen, .10)) var(--lx), transparent calc(var(--lx) + 22%)),
+    radial-gradient(90% 60% at var(--lx) -10%, rgb(255 255 255 / var(--sheen-top, .12)), transparent 60%);
+}
+/* Fresnel rim: edges catch the light — bright on the lit top-left, faint on the far side, like a thick glass edge. */
+.glass::after, .glass-pop::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none;
+  background: linear-gradient(150deg, rgb(255 255 255 / var(--rim-hi, .5)), rgb(255 255 255 / .06) 35%, rgb(255 255 255 / 0) 60%, rgb(255 255 255 / var(--rim-lo, .22)));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+}
+[data-theme='light'] { --sheen: .55; --sheen-top: .6; --rim-hi: 1; --rim-lo: .7; }
+@media (prefers-reduced-transparency: reduce) { .glass::before, .glass-pop::before { display: none; } }
+@media (prefers-reduced-motion: reduce) { .glass, .glass-pop { transition: none; } }
