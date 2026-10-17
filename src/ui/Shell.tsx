@@ -176,7 +176,7 @@ function CommandPalette({ open, onClose, actions, instant }: { open: boolean; on
                 }} />
               <button type="button" onClick={onClose} className="text-[10px] text-ink3 border border-line2 rounded px-1.5 py-0.5" aria-label="Close">ESC</button>
             </div>
-            <ul ref={list} id="cmd-list" role="listbox" aria-label="Results" className="max-h-[50vh] overflow-y-auto p-1.5">
+            <ul ref={list} id="cmd-list" role="listbox" aria-label="Results" className="max-h-[50vh] max-h-[50dvh] overflow-y-auto overscroll-contain touch-pan-y p-1.5">
               {items.map((it, k) => (<li key={it.key} role="presentation">
                 {(k === 0 || items[k - 1].group !== it.group) && <div className="label px-3 pt-2.5 pb-1" aria-hidden="true">{it.group}</div>}
                 <div id={`cmd-${k}`} data-k={k} role="option" aria-selected={k === i} className={cx('w-full flex items-center gap-3 px-3 h-10 rounded-lg text-sm text-left cursor-pointer', k === i ? 'bg-raised text-ink' : 'text-ink2')} onMouseMove={() => setI(k)} onClick={() => pick(it)}>

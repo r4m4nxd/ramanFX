@@ -8,13 +8,13 @@ import { CountUp, cx, ease, spring } from './kit';
 export function Choice({ on, onClick, title, sub, children, tone = 'accent' }: { on: boolean; onClick: () => void; title: ReactNode; sub?: ReactNode; children?: ReactNode; tone?: 'accent' | 'profit' | 'loss' | 'warn' }) {
   const ring = { accent: 'border-accent bg-accent/10 ring-1 ring-inset ring-accent', profit: 'border-profit bg-profit/10 ring-1 ring-inset ring-profit', loss: 'border-loss bg-loss/10 ring-1 ring-inset ring-loss', warn: 'border-warn bg-warn/10 ring-1 ring-inset ring-warn' }[tone];
   return (
-    <motion.button type="button" whileTap={{ transform: 'scale(0.97)' }} transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }} onClick={onClick} aria-pressed={on}
-      className={cx('relative text-left rounded-xl border p-3 transition-[color,background-color,border-color,box-shadow] duration-150 min-h-[56px] [-webkit-tap-highlight-color:transparent]', on ? ring : 'border-line bg-raised/40 hover:border-line2')}>
+    <button type="button" onClick={onClick} aria-pressed={on}
+      className={cx('press relative text-left rounded-xl border p-3 transition-[color,background-color,border-color,box-shadow] duration-150 min-h-[56px] [-webkit-tap-highlight-color:transparent]', on ? ring : 'border-line bg-raised/40 hover:border-line2')}>
       {children}
       <div className="text-[13.5px] font-semibold leading-tight">{title}</div>
       {sub && <div className="text-[11.5px] text-ink3 mt-0.5 leading-snug">{sub}</div>}
       {on && <motion.span initial={{ opacity: 0, transform: 'scale(0.5)' }} animate={{ opacity: 1, transform: 'scale(1)' }} transition={spring} className="absolute top-2 right-2 w-5 h-5 rounded-full bg-accent text-on-accent grid place-items-center"><Icon name="check" size={12} strokeWidth={3} /></motion.span>}
-    </motion.button>
+    </button>
   );
 }
 

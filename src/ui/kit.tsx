@@ -130,13 +130,24 @@ export function RevealText({ text, className, delay = 0, as: Tag = 'span' }: { t
 
 export function CardHead({ title, sub, right }: { title: ReactNode; sub?: ReactNode; right?: ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
-      <div className="min-w-0">
-        <h2 className="text-[15px] font-semibold leading-tight">{title}</h2>
-        {sub && <p className="text-xs text-ink3 mt-1">{sub}</p>}
+    // With controls on the right, the layout is fixed: one-line title, a two-line slot for the subtitle, and the controls on
+    // their own row (phones) or pinned right — so switching a pill never shifts the pills or the chart below.
+    right ? (
+      <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-2.5 mb-4">
+        <div className="min-w-0">
+          <h2 className="text-[15px] font-semibold leading-tight truncate">{title}</h2>
+          {sub && <p className="text-xs text-ink3 mt-1 line-clamp-2 min-h-[32px]">{sub}</p>}
+        </div>
+        <div className="min-w-0 sm:justify-self-end">{right}</div>
       </div>
-      {right}
-    </div>
+    ) : (
+      <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
+        <div className="min-w-0">
+          <h2 className="text-[15px] font-semibold leading-tight">{title}</h2>
+          {sub && <p className="text-xs text-ink3 mt-1">{sub}</p>}
+        </div>
+      </div>
+    )
   );
 }
 
@@ -377,6 +388,7 @@ export function lockScroll() {
   if (locks++ === 0) {
     html.dataset.scrollLock = '1';
     html.style.overflow = 'hidden'; html.style.overscrollBehavior = 'none';
+    document.body.style.overflow = 'hidden'; document.body.style.overscrollBehavior = 'none'; // iOS Safari needs the body locked too
     document.addEventListener('touchstart', touchStart, { passive: true });
     document.addEventListener('touchmove', touchMove, { passive: false });
   }
@@ -386,6 +398,7 @@ export function lockScroll() {
     if (--locks === 0) {
       delete html.dataset.scrollLock;
       html.style.overflow = ''; html.style.overscrollBehavior = '';
+      document.body.style.overflow = ''; document.body.style.overscrollBehavior = '';
       document.removeEventListener('touchstart', touchStart); document.removeEventListener('touchmove', touchMove);
     }
   };

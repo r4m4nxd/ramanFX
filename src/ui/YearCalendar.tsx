@@ -97,7 +97,7 @@ export function YearCalendar({ days, year, onYear, onMonth }: { days: DayStat[];
                   const s = map.get(k);
                   const on = sel === k;
                   return (
-                    <button key={k} type="button" disabled={!s}
+                    <button key={`${metric}-${k}`} type="button" disabled={!s}
                       {...(s ? hold.bind(() => { setSel(k); setPeek(k); }) : {})}
                       onPointerEnter={e => { if (s && e.pointerType === 'mouse') setSel(k); }} onClick={() => { if (s && !hold.consumed()) setSel(v => (v === k ? null : k)); }}
                       aria-label={s ? `${k}: ${fmt(s.pnl, { signed: true })}` : k}

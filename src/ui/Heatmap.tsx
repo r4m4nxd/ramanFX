@@ -180,7 +180,7 @@ export function Heatmap({ rows, cols, cell, metric, showValues = false, transpos
             const me = hov?.r === ri && hov?.c === ci;
             const style: CSSProperties = { height: cellH, background: heatColor(metric, v, scale), animationDelay: `${Math.min(ri + ci, 22) * 28}ms`, opacity: focus ? 1 : 0.38, color: inkOn(metric, v, scale) };
             return (
-              <button type="button" key={`${r}|${c}`} data-cell={`${ri}-${ci}`} tabIndex={me || (!hov && ri === 0 && ci === 0) ? 0 : -1}
+              <button type="button" key={`${metric}|${r}|${c}`} data-cell={`${ri}-${ci}`} tabIndex={me || (!hov && ri === 0 && ci === 0) ? 0 : -1}
                 aria-label={`${flip ? colIndexLabel(r) : r} ${flip ? c : colIndexLabel(c)}: ${x ? `${f(metric, v)}, ${x.n} ${x.n === 1 ? 'trade' : 'trades'}` : 'no trades'}`}
                 onPointerEnter={e => { if (e.pointerType === 'mouse' && !pinned) enter(ri, ci, e.currentTarget); }}
                 onFocus={e => { if (!pinned) enter(ri, ci, e.currentTarget); }}

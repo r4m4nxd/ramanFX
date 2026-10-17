@@ -93,13 +93,14 @@ export default function Learn() {
   return (
     <Page>
       <div className="grid gap-4 lg:grid-cols-[300px_1fr] items-start">
-        <aside className={cx('flex flex-col gap-3 lg:sticky lg:top-20', lesson && 'max-lg:hidden')}>
+        <aside className={cx('flex flex-col gap-3 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)]', lesson && 'max-lg:hidden')}>
           <Card>
             <div className="flex items-baseline justify-between"><div className="label">Video course</div><span className="num text-[12px] text-ink3">{done.length}/{VIDEO_LESSONS.length} studied</span></div>
             <div className="h-1.5 rounded-full bg-line mt-2 overflow-hidden"><div className="h-full bg-accent rounded-full" style={{ width: `${pct * 100}%` }} /></div>
             <input className="field mt-3" placeholder="Search every lesson…" aria-label="Search lessons" value={q} onChange={e => setQ(e.target.value)} />
           </Card>
-          <Card className="p-2">
+          {/* The list scrolls by itself (desktop), independent of the lesson beside it. */}
+          <Card className="p-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
             <ol className="flex flex-col">
               {list.map(l => (
                 <li key={l.n}>

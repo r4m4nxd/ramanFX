@@ -44,13 +44,18 @@ export function SymbolPicker({ value, onChange, futures }: { value: string; onCh
       <input aria-label="Instrument" className="field font-mono uppercase" value={q} onChange={e => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => { setOpen(false); if (q.trim()) onChange(q.trim().toUpperCase()); }, 150)} placeholder={futures ? 'ES, MNQ, GC, CL…' : 'EURUSD, XAUUSD, US30…'} />
       <AnimatePresence>
         {open && list.length > 0 && (
-          <motion.ul initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute z-30 mt-1 w-full card shadow-pop p-1 max-h-72 overflow-y-auto">
+          // Wide enough to read every ticker's full name; scrolls up/down only and never drags the page with it.
+          <motion.ul initial={{ opacity: 0, transform: 'translateY(-4px)' }} animate={{ opacity: 1, transform: 'translateY(0px)' }} exit={{ opacity: 0 }} transition={{ duration: 0.16 }}
+            className="absolute z-30 mt-1.5 left-0 w-full sm:w-[max(100%,380px)] glass-pop rounded-2xl p-1.5 max-h-80 overflow-y-auto overflow-x-hidden overscroll-contain touch-pan-y" style={{ background: 'rgb(var(--surface))' }}>
             {list.map(i => (
               <li key={i.venue + i.symbol}>
-                <button type="button" onMouseDown={() => { onChange(i.symbol); setQ(i.symbol); setOpen(false); }} className="w-full flex items-center gap-2 px-2.5 h-9 rounded-md text-sm hover:bg-raised text-left">
-                  <span className="font-mono font-medium w-16">{i.symbol}</span><span className="text-ink3 truncate">{i.name}</span>
-                  {mine.includes(i.symbol) && <Badge tone="accent" className="ml-auto">traded</Badge>}
-                  {i.venue !== 'CFD' && <span className="ml-auto text-[10px] text-ink3">{i.venue}</span>}
+                <button type="button" onMouseDown={() => { onChange(i.symbol); setQ(i.symbol); setOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2 min-h-[48px] rounded-xl text-left hover:bg-raised active:bg-raised">
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-mono font-semibold text-[14px] leading-tight">{i.symbol}</span>
+                    <span className="block text-[12px] text-ink3 leading-snug mt-0.5">{i.name}</span>
+                  </span>
+                  {mine.includes(i.symbol) && <Badge tone="accent" className="shrink-0">traded</Badge>}
+                  {i.venue !== 'CFD' && <span className="shrink-0 text-[10.5px] font-medium text-ink3 border border-line2 rounded-full px-2 py-0.5">{i.venue}</span>}
                 </button>
               </li>
             ))}

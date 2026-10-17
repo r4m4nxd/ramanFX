@@ -112,8 +112,8 @@ function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) =
       <Question q="Basing candles" hint="Tight and well structured. 1–2 is his favourite, up to 4 is fine, wide and messy should be avoided.">
         <div className="flex gap-2 flex-wrap">
           {[1, 2, 3, 4, 5, 6, 7].map(n => (
-            <motion.button key={n} type="button" whileTap={{ transform: 'scale(0.97)' }} transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }} onClick={() => set({ baseCandles: n })}
-              className={cx('w-12 h-12 rounded-xl border num text-[15px] font-semibold', p.baseCandles === n ? (n <= 2 ? 'border-profit bg-profit/15 text-profit' : n <= 4 ? 'border-accent bg-accent/15 text-accent' : 'border-loss bg-loss/15 text-loss') : 'border-line bg-raised/40')}>{n === 7 ? '7+' : n}</motion.button>
+            <button key={n} type="button" onClick={() => set({ baseCandles: n })}
+              className={cx('press w-12 h-12 rounded-xl border num text-[15px] font-semibold', p.baseCandles === n ? (n <= 2 ? 'border-profit bg-profit/15 text-profit' : n <= 4 ? 'border-accent bg-accent/15 text-accent' : 'border-loss bg-loss/15 text-loss') : 'border-line bg-raised/40')}>{n === 7 ? '7+' : n}</button>
           ))}
         </div>
       </Question>
@@ -268,7 +268,7 @@ function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) =
         </div>
         <div className="p-5 overflow-hidden">
           {/* Steps are tapped through quickly: the new step slides in at once (no exit-then-enter wait), so Next never stalls. */}
-            <motion.div key={step} initial={firstStep.current ? false : { opacity: 0, transform: `translateX(${dir * 16}px)` }} animate={{ opacity: 1, transform: 'translateX(0px)' }} transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}>
+            <div key={step} className={firstStep.current ? undefined : 'step-in'} style={{ '--step-from': `${dir * 14}px` } as React.CSSProperties}>
               {body[step]}
               <div className="mt-5 pt-4 border-t border-line flex flex-col gap-3">
                 <LessonChips nums={PLANNER_LESSONS[STEPS[step]] ?? []} />
@@ -279,7 +279,7 @@ function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) =
                   </details>
                 )}
               </div>
-            </motion.div>
+            </div>
         </div>
         <div className="px-5 py-3 border-t border-line flex items-center gap-2 bg-surface rounded-b-xl sticky bottom-0 max-lg:bottom-[calc(70px+max(12px,env(safe-area-inset-bottom)))] land:!bottom-0 z-10">
           {step > 0 && <button className="btn h-11 px-4" onClick={() => go(-1)}><Icon name="chevronLeft" size={15} />Back</button>}
