@@ -251,10 +251,10 @@
 /* Page switch: a relaxed crossfade. The old page settles back and dissolves; the new one rises out of a soft blur, overlapping. */
 /* No gap: the new page fades in on top from the first frame, while the old one stays solid underneath (softening and
    settling back) and only melts away once it's mostly covered — so the screen never dips to the bare background. */
-@keyframes vtOut { 0% { opacity: 1; transform: none; filter: blur(0); } 55% { opacity: 1; } 100% { opacity: 0; transform: scale(0.985); filter: blur(6px); } }
-@keyframes vtIn { from { opacity: 0; transform: translateY(12px) scale(1.006); filter: blur(8px); } }
-[data-vt='page']::view-transition-old(root) { animation: vtOut 0.5s var(--ease-calm) both; }
-[data-vt='page']::view-transition-new(root) { animation: vtIn 0.5s var(--ease-calm) both; }
+@keyframes vtOut { 0%, 45% { opacity: 1; filter: blur(0); } 100% { opacity: 0; filter: blur(3px); } }
+@keyframes vtIn { from { opacity: 0; transform: translateY(6px); filter: blur(3px); } }
+[data-vt='page']::view-transition-old(root) { animation: vtOut 0.42s var(--ease-calm) both; }
+[data-vt='page']::view-transition-new(root) { animation: vtIn 0.42s var(--ease-calm) both; }
 /* The chrome (bars, sidebar) stays put while pages change beneath it; its own live motion (the tab lens) keeps playing. */
 .vt-bar-top { view-transition-name: bar-top; } .vt-bar-bottom { view-transition-name: bar-bottom; } .vt-side { view-transition-name: side; }
 ::view-transition-old(bar-top), ::view-transition-old(bar-bottom), ::view-transition-old(side) { display: none; }
@@ -269,12 +269,14 @@
 /* Pill switch: only the section crossfades (same calm dissolve, a touch quicker); the page and the control stay still. */
 [data-vt='swap']::view-transition-old(root), [data-vt='swap']::view-transition-new(root) { animation: none; }
 /* The section box itself resizes smoothly and clips, so a taller/shorter result never spills over the content below. */
-::view-transition-group(swap) { animation-duration: 0.4s; animation-timing-function: var(--ease-calm); overflow: clip; border-radius: var(--radius-card); }
-::view-transition-old(swap) { animation: vtSwapOut 0.36s var(--ease-calm) both; }
-@keyframes vtSwapOut { 0% { opacity: 1; filter: blur(0); } 50% { opacity: 1; } 100% { opacity: 0; filter: blur(4px); } }
-::view-transition-new(swap) { animation: vtSwapIn 0.36s var(--ease-calm) both; }
+::view-transition-group(swap) { animation-duration: 0.32s; animation-timing-function: var(--ease-calm); overflow: clip; border-radius: var(--radius-card); }
+/* Opacity only: anything that didn't change (titles, headers, the controls) crossfades onto identical pixels and so looks
+   perfectly still; only what actually changed dissolves. No blur, drift or scale — this happens many times a session. */
+::view-transition-old(swap) { animation: vtSwapOut 0.3s var(--ease-calm) both; }
+@keyframes vtSwapOut { 0%, 35% { opacity: 1; } 100% { opacity: 0; } }
+::view-transition-new(swap) { animation: vtSwapIn 0.26s var(--ease-calm) both; }
 ::view-transition-old(swap), ::view-transition-new(swap) { height: 100%; object-fit: none; object-position: top; }
-@keyframes vtSwapIn { from { opacity: 0; transform: translateY(4px); filter: blur(4px); } }
+@keyframes vtSwapIn { from { opacity: 0; } }
 ::view-transition-old(swap-ctl) { display: none; }
 ::view-transition-new(swap-ctl) { animation: none; }
 @media (prefers-reduced-motion: reduce) { ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; } }
