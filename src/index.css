@@ -228,8 +228,7 @@
 /* Soothing page entrance (used when View Transitions aren't available): a slow fade that drifts up out of a soft blur. */
 @keyframes pageIn { from { opacity: 0; transform: translateY(10px) scale(0.992); filter: blur(6px); } to { opacity: 1; transform: none; filter: blur(0); } }
 .page-in { animation: pageIn 0.5s var(--ease-calm) both; }
-/* A page entered through softNavigate is animated by the view transition below, not twice. */
-[data-vt='page'] .page-in { animation: none; }
+
 /* iOS push: drill-down pages (a trade, a plan) slide in from the right; top-level tabs just fade up. */
 @keyframes pagePush { from { opacity: 0.4; transform: translateX(28%); } to { opacity: 1; transform: none; } }
 @media (max-width: 1023px) { .page-push { animation: pagePush 0.35s var(--ease-drawer) both; } }
@@ -258,6 +257,15 @@
 .vt-bar-top { view-transition-name: bar-top; } .vt-bar-bottom { view-transition-name: bar-bottom; } .vt-side { view-transition-name: side; }
 ::view-transition-old(bar-top), ::view-transition-old(bar-bottom), ::view-transition-old(side) { display: none; }
 ::view-transition-new(bar-top), ::view-transition-new(bar-bottom), ::view-transition-new(side) { animation: none; }
+/* Pill switch: only the section crossfades (same calm dissolve, a touch quicker); the page and the control stay still. */
+[data-vt='swap']::view-transition-old(root), [data-vt='swap']::view-transition-new(root) { animation: none; }
+::view-transition-group(swap) { animation-duration: 0.42s; animation-timing-function: var(--ease-calm); }
+::view-transition-old(swap) { animation: vtOut 0.26s var(--ease-calm) both; }
+::view-transition-new(swap) { animation: vtSwapIn 0.42s var(--ease-calm) 0.05s both; }
+::view-transition-old(swap), ::view-transition-new(swap) { height: 100%; object-fit: none; object-position: top; }
+@keyframes vtSwapIn { from { opacity: 0; transform: translateY(6px); filter: blur(6px); } }
+::view-transition-old(swap-ctl) { display: none; }
+::view-transition-new(swap-ctl) { animation: none; }
 @media (prefers-reduced-motion: reduce) { ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; } }
 /* Theme switches ease instead of snapping. */
 .theme-anim, .theme-anim * { transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease, fill 0.35s ease !important; }

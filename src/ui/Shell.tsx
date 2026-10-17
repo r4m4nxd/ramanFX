@@ -8,7 +8,7 @@ import { netOf } from '@/core/stats';
 import { money } from '@/lib/format';
 import { Ambient } from './Ambient';
 import { Icon, type IconName } from './Icon';
-import { cx, Segmented, Sheet, softClick, softNavigate, spring, useDialogFocus, useOnline, useToast } from './kit';
+import { cx, enteringSoftly, Segmented, Sheet, softClick, softNavigate, spring, useDialogFocus, useOnline, useToast } from './kit';
 import { ImportPanel } from './ImportPanel';
 import { GlassTabBar } from './GlassTabBar';
 import { installLiveCards } from './liveCards';
@@ -255,6 +255,8 @@ export function Shell({ children }: { children: ReactNode }) {
   }, [deep, navTo]);
 
   useGlassLight();
+  // Decided once per page: entered through the soft transition → no extra CSS fade (it would blink when it starts late).
+  const pageEnter = useMemo(() => (enteringSoftly() ? '' : deep ? 'page-in page-push' : 'page-in'), [loc.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
   // Top and bottom of the page stretch and settle like iOS instead of stopping dead.
   useEffect(() => (mainRef.current ? installRubberBand(mainRef.current) : undefined), []);
   const first = useRef(true);
@@ -381,7 +383,7 @@ export function Shell({ children }: { children: ReactNode }) {
         <main id="main" ref={mainRef} tabIndex={-1} className="flex-1 w-full max-w-[1360px] mx-auto px-4 lg:px-7 pt-5 land:pt-4 pb-28 land:pb-10 lg:pb-12 outline-none">
           {/* Plain keyed fade-in. An exit-then-enter handoff (AnimatePresence "wait") could stall
               while a lazy page was still loading, leaving the new page invisible. */}
-          <motion.div key={loc.pathname} className={deep ? 'page-in page-push' : 'page-in'}>
+          <motion.div key={loc.pathname} data-page className={pageEnter}>
               {!deep && <motion.div className="lg:hidden land:hidden large-title mb-3 -mt-1 origin-left" aria-hidden="true" style={reduceMotion ? { opacity: bigOpacity } : { opacity: bigOpacity, filter: bigFilter, scale: bigScale }}>{title}</motion.div>}
               {!hasTrades && !['/playbook', '/calculator', '/settings', '/risk', '/notebook', '/strategies', '/plan', '/guru', '/guide', '/news', '/chart', '/design', '/learn', '/bot-guide'].some(p => loc.pathname.startsWith(p)) ? <Welcome onImport={() => setImportOpen(true)} /> : children}
           </motion.div>
