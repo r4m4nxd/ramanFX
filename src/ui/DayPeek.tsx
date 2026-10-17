@@ -177,7 +177,7 @@ function Body({ day, onClose, titleId }: { day: string; onClose: () => void; tit
                 <YAxis tickFormatter={v => fmt(v, { compact: true })} tick={{ fontSize: 10.5, fill: c.ink3, fontFamily: 'Inter, system-ui, sans-serif' }} axisLine={false} tickLine={false} width={yw} />
                 <ReferenceLine y={0} stroke={c.line2} strokeDasharray="3 4" />
                 <Tooltip content={<ChartTip fmt={v => fmt(v, { signed: true })} labelFmt={l => timeHM(new Date(l as number))} />} cursor={{ stroke: c.line2 }} />
-                <Area type="stepAfter" dataKey="cum" name="Running P&L" stroke={col} strokeWidth={2.4} fill="url(#peekFill)" animationDuration={1100} dot={{ r: 2.5, fill: col, strokeWidth: 0 }} activeDot={{ r: 5, strokeWidth: 0 }} />
+                <Area type="monotone" dataKey="cum" name="Running P&L" stroke={col} strokeWidth={2.4} fill="url(#peekFill)" animationDuration={1100} dot={{ r: 2.5, fill: col, strokeWidth: 0 }} activeDot={{ r: 5, strokeWidth: 0 }} />
               </AreaChart>
             </ResponsiveContainer>
           </motion.div>

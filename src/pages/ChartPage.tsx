@@ -29,8 +29,7 @@ export default function ChartPage() {
     <Page>
       {!mobile && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-          <h2 className="text-2xl md:text-[28px] font-semibold tracking-tight">Advanced chart</h2>
-          <p className="text-[13px] text-ink3 mt-1">Full TradingView chart on Pepperstone prices — drawing tools on the left, indicators and timeframes on top, your symbols in the watchlist.</p>
+          <p className="text-[13px] text-ink3">Full TradingView chart on Pepperstone prices — drawing tools on the left, indicators and timeframes on top, your symbols in the watchlist.</p>
         </motion.div>
       )}
       {mobile ? (

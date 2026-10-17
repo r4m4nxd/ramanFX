@@ -124,6 +124,8 @@ export function Heatmap({ rows, cols, cell, metric, showValues = false, transpos
   const scale = useMemo(() => scaleFor(metric, values), [metric, values]);
   const [hov, setHov] = useState<{ r: number; c: number } | null>(null);
   const [tip, setTip] = useState<{ x: number; y: number; r: string; c: string; cell: HeatCell; v: number | null } | null>(null);
+  // Hover previews; a tap/click pins the summary (with its "View trades" button). Tapping the pinned cell again closes it.
+  const [pinned, setPinned] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const label = (c: string, i: number) => (flip ? c : colLabel ? colLabel(c, i) : c);
   const rowLabel = (r: string, i: number) => (flip && colLabel ? colLabel(r, i) : r);
@@ -137,7 +139,7 @@ export function Heatmap({ rows, cols, cell, metric, showValues = false, transpos
     const b = box.current.getBoundingClientRect(), e = el.getBoundingClientRect();
     setTip({ x: Math.max(88, Math.min(b.width - 88, e.left - b.left + e.width / 2)), y: e.top - b.top, r: flip ? C[ci] : R[ri], c: flip ? R[ri] : C[ci], cell: x, v });
   };
-  const leave = () => { setHov(null); setTip(null); onHover?.(null); };
+  const leave = () => { setHov(null); setTip(null); setPinned(false); onHover?.(null); };
   // Touch: a tap outside the map or a scroll dismisses the tooltip.
   useEffect(() => {
     if (!tip) return;
@@ -161,7 +163,7 @@ export function Heatmap({ rows, cols, cell, metric, showValues = false, transpos
   const colIndexLabel = (name: string) => { const i = cols.indexOf(name); return colLabel ? colLabel(name, i) : name; };
 
   return (
-    <div ref={box} className="relative select-none" onPointerLeave={e => { if (e.pointerType === 'mouse') leave(); }}>
+    <div ref={box} className="relative select-none" onPointerLeave={e => { if (e.pointerType === 'mouse' && !pinned) leave(); }}>
       <div className="grid gap-[3px]" style={{ gridTemplateColumns: `minmax(${flip ? 34 : 44}px, max-content) repeat(${C.length}, minmax(0, 1fr))` }} role="group" aria-label={`${mapLabel ? `${mapLabel}: ` : ''}${METRIC_LABEL[metric]} heat map. Arrow keys move between cells${onOpen ? ', Enter opens its trades' : ''}.`}>
         <div className="text-[10px] text-ink3 font-semibold uppercase tracking-wider self-end pb-1" aria-hidden="true">{rowHead}</div>
         {C.map((c, ci) => (
@@ -176,14 +178,14 @@ export function Heatmap({ rows, cols, cell, metric, showValues = false, transpos
             const v = x && x.n >= minN ? metricValue(metric, x) : null;
             const focus = !hov || hov.r === ri || hov.c === ci;
             const me = hov?.r === ri && hov?.c === ci;
-            const style: CSSProperties = { height: cellH, background: heatColor(metric, v, scale), animationDelay: `${Math.min(ri + ci, 10) * 14}ms`, opacity: focus ? 1 : 0.38, color: inkOn(metric, v, scale) };
+            const style: CSSProperties = { height: cellH, background: heatColor(metric, v, scale), animationDelay: `${Math.min(ri + ci, 22) * 28}ms`, opacity: focus ? 1 : 0.38, color: inkOn(metric, v, scale) };
             return (
               <button type="button" key={`${r}|${c}`} data-cell={`${ri}-${ci}`} tabIndex={me || (!hov && ri === 0 && ci === 0) ? 0 : -1}
                 aria-label={`${flip ? colIndexLabel(r) : r} ${flip ? c : colIndexLabel(c)}: ${x ? `${f(metric, v)}, ${x.n} ${x.n === 1 ? 'trade' : 'trades'}` : 'no trades'}`}
-                onPointerEnter={e => { if (e.pointerType === 'mouse') enter(ri, ci, e.currentTarget); }}
-                onFocus={e => enter(ri, ci, e.currentTarget)}
-                onKeyDown={e => { if (e.key === 'Enter' && x && onOpen) { e.preventDefault(); open(ri, ci); } else onKey(e, ri, ci); }}
-                onClick={e => { if (me && x && onOpen) open(ri, ci); else if (!me) enter(ri, ci, e.currentTarget); }}
+                onPointerEnter={e => { if (e.pointerType === 'mouse' && !pinned) enter(ri, ci, e.currentTarget); }}
+                onFocus={e => { if (!pinned) enter(ri, ci, e.currentTarget); }}
+                onKeyDown={e => { if (e.key === 'Enter' && x) { e.preventDefault(); if (me && pinned && onOpen) open(ri, ci); else { enter(ri, ci, e.currentTarget); setPinned(true); } } else onKey(e, ri, ci); }}
+                onClick={e => { if (me && pinned) { leave(); return; } enter(ri, ci, e.currentTarget); setPinned(!!x); }}
                 className={cx('heat-cell rounded-[5px] grid place-items-center num text-[10.5px] font-semibold min-w-0 p-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent', x && onOpen && 'cursor-pointer', me && 'is-active', x && x.n < 3 && metric !== 'trades' && 'heat-thin')}
                 style={style}>
                 {showValues && (!mobile || C.length <= 7) && v != null && <span className="truncate px-0.5">{f(metric, v, true)}</span>}
@@ -194,9 +196,9 @@ export function Heatmap({ rows, cols, cell, metric, showValues = false, transpos
       </div>
       <AnimatePresence>
         {tip && (
-          <motion.div key="tip" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }}
-            className={cx('absolute left-0 top-0 z-20', onOpen && mobile ? 'pointer-events-auto' : 'pointer-events-none')} style={{ translate: '-50% calc(-100% - 10px)', left: tip.x, top: tip.y }} role="status">
-            <div className="rounded-xl bg-surface border border-line2 shadow-pop px-3 py-2 text-xs min-w-[150px]">
+          <motion.div key="tip" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.97 }} transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }}
+            className={cx('absolute left-0 top-0 z-20 origin-bottom', pinned ? 'pointer-events-auto' : 'pointer-events-none')} style={{ translate: '-50% calc(-100% - 10px)', left: tip.x, top: tip.y }} role={pinned ? 'dialog' : 'status'} aria-label="Cell summary">
+            <div className="rounded-2xl glass-pop px-3.5 py-2.5 text-xs min-w-[170px]">
               <div className="text-ink3 mb-1 whitespace-nowrap">{tip.r} · {colIndexLabel(tip.c)}</div>
               <div className={cx('num text-[15px] font-semibold', tip.cell.net >= 0 ? 'text-profit' : 'text-loss')}>{f('net', tip.cell.net)}</div>
               <div className="flex gap-3 mt-1 text-ink2 num whitespace-nowrap">
@@ -204,9 +206,9 @@ export function Heatmap({ rows, cols, cell, metric, showValues = false, transpos
                 <span>{f('win', metricValue('win', tip.cell))} win</span>
                 {tip.cell.rN > 0 && <span>{f('r', metricValue('r', tip.cell))}</span>}
               </div>
-              {onOpen && (mobile
-                ? <button type="button" className="mt-1.5 -mx-1 px-1 h-8 text-accent font-medium whitespace-nowrap" onClick={() => onOpen(tip.r, tip.c)}>View {tip.cell.n} {tip.cell.n === 1 ? 'trade' : 'trades'} →</button>
-                : <div className="mt-1.5 text-accent font-medium whitespace-nowrap">Click to view {tip.cell.n} {tip.cell.n === 1 ? 'trade' : 'trades'} →</div>)}
+              {onOpen && (pinned
+                ? <button type="button" className="btn-primary w-full h-9 mt-2.5 text-xs whitespace-nowrap" onClick={() => { const { r, c } = tip; leave(); onOpen(r, c); }}>View {tip.cell.n} {tip.cell.n === 1 ? 'trade' : 'trades'} →</button>
+                : <div className="mt-1.5 text-ink3 whitespace-nowrap">{mobile ? 'Tap' : 'Click'} for details</div>)}
             </div>
           </motion.div>
         )}

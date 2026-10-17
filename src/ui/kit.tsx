@@ -85,17 +85,17 @@ export const rise = {
   show: { opacity: 1, transform: 'translateY(0px)', transition: { duration: 0.25, ease } },
 };
 
-/** True only while the app is first painting: intro motion (cascades, bars growing, lines drawing) plays once,
- *  not on every page visit, and never under reduced motion. */
+/** Data motion (bars growing, lines and rings drawing in) plays each time a chart appears; never under reduced motion. */
 export function useIntro() {
-  const reduce = useReducedMotion();
-  const [intro] = useState(() => !warm());
-  return intro && !reduce;
+  return !useReducedMotion();
 }
 
 /** Page wrapper: on first paint, children marked with `variants={rise}` cascade in; later visits rely on the page fade. */
 export function Page({ children, className }: { children: ReactNode; className?: string }) {
-  const intro = useIntro();
+  // The card cascade is a first-paint flourish only; later visits rely on the page transition.
+  const reduce = useReducedMotion();
+  const [boot] = useState(() => !warm());
+  const intro = boot && !reduce;
   return (
     <motion.div variants={stagger} initial={intro ? 'hidden' : false} animate="show" className={cx('flex flex-col gap-4', className)}>
       {children}
@@ -318,6 +318,36 @@ export function Tip({ text, children }: { text: string; children: ReactNode }) {
 
 export function InfoTip({ text }: { text: string }) {
   return <Tip text={text}><button type="button" aria-label={text} className="text-ink3 hover:text-ink2 p-1.5 -m-1.5 touch:p-2.5 touch:-m-2.5"><Icon name="info" size={13} /></button></Tip>;
+}
+
+// ─── Peek: a small pinned summary for a tapped chart element ───────────
+/** Shows what you tapped (summary + an explicit action button) instead of jumping to another page. Closes when the
+ *  same thing is tapped again (the caller toggles), on a tap anywhere else, on scroll, or Esc. */
+export function Peek({ at, owner, onClose, children, label }: { at: { x: number; y: number } | null; owner?: Element | null; onClose: () => void; children: ReactNode; label: string }) {
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!at) return;
+    const down = (e: PointerEvent) => { const t = e.target as Node; if (box.current?.contains(t) || owner?.contains(t)) return; onClose(); };
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('pointerdown', down, true); window.addEventListener('keydown', key); window.addEventListener('scroll', onClose, { passive: true });
+    return () => { window.removeEventListener('pointerdown', down, true); window.removeEventListener('keydown', key); window.removeEventListener('scroll', onClose); };
+  }, [at, owner, onClose]);
+  if (typeof document === 'undefined') return null;
+  const below = !!at && at.y < 190;
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 400;
+  return createPortal(
+    <AnimatePresence>
+      {at && (
+        <motion.div ref={box} role="dialog" aria-label={label} key="peek"
+          initial={{ opacity: 0, transform: 'scale(0.96)' }} animate={{ opacity: 1, transform: 'scale(1)' }} exit={{ opacity: 0, transform: 'scale(0.97)', transition: { duration: 0.12 } }} transition={{ duration: 0.18, ease }}
+          className="fixed z-[90] w-[min(260px,calc(100vw-24px))] glass-pop rounded-2xl p-3.5 text-[13px]"
+          style={{ left: Math.max(12, Math.min(vw - 12 - Math.min(260, vw - 24), at.x - 130)), top: below ? at.y + 14 : undefined, bottom: below ? undefined : `calc(100vh - ${at.y - 10}px)`, transformOrigin: below ? 'top center' : 'bottom center' }}>
+          {children}
+        </motion.div>
+      )}
+    </AnimatePresence>,
+    document.body,
+  );
 }
 
 // ─── Background scroll lock for pop-ups ──────────────────────────────

@@ -99,7 +99,7 @@ export function YearCalendar({ days, year, onYear, onMonth }: { days: DayStat[];
                   return (
                     <button key={k} type="button" disabled={!s}
                       {...(s ? hold.bind(() => { setSel(k); setPeek(k); }) : {})}
-                      onPointerEnter={e => { if (s && e.pointerType === 'mouse') setSel(k); }} onClick={() => { if (s && !hold.consumed()) setSel(k); }}
+                      onPointerEnter={e => { if (s && e.pointerType === 'mouse') setSel(k); }} onClick={() => { if (s && !hold.consumed()) setSel(v => (v === k ? null : k)); }}
                       aria-label={s ? `${k}: ${fmt(s.pnl, { signed: true })}` : k}
                       className={cx('heat-cell hold-cell aspect-square rounded-[4px] text-[9px] num leading-none grid place-items-center', on && 'is-active', k === today && 'ring-1 ring-accent', !s && 'cursor-default')}
                       style={{ background: s ? heatColor(metric, mv(s), scale) : 'rgb(var(--raised) / 0.6)', color: s ? inkOn(metric, mv(s), scale) : 'rgb(var(--ink3) / 0.6)', animationDelay: `${m * 45 + i * 9}ms` }}>

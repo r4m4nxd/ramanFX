@@ -480,18 +480,10 @@ function useGlassLight() {
   }, []);
 }
 
-/** iOS-style app colours per page: each tile gets its own gradient icon, like the Settings app. */
-const TINT: Record<string, [string, string]> = {
-  '/reports': ['#4F8BFF', '#2563EB'], '/calendar': ['#FF6B6B', '#E11D48'], '/heatmaps': ['#FFA24C', '#EA580C'],
-  '/exits': ['#2DD4BF', '#0D9488'], '/guru': ['#B78CFF', '#7C3AED'], '/playbook': ['#818CF8', '#4F46E5'],
-  '/strategies': ['#F472B6', '#DB2777'], '/risk': ['#4ADE80', '#16A34A'], '/calculator': ['#A1A1AA', '#52525B'],
-  '/chart': ['#38BDF8', '#0284C7'], '/news': ['#FACC15', '#CA8A04'], '/notebook': ['#FDBA74', '#F59E0B'],
-  '/learn': ['#60A5FA', '#3B82F6'], '/bot-guide': ['#34D399', '#059669'], '/guide': ['#C4B5FD', '#8B5CF6'], '/settings': ['#9CA3AF', '#4B5563'],
-};
 function AppIcon({ to, icon, size = 44 }: { to: string; icon: IconName; size?: number }) {
-  const [a, b] = TINT[to] ?? ['#8B5CF6', '#6D28D9'];
+  // One colour family for every page: the theme accent, lit like an app icon.
   return (
-    <span className="app-icon" style={{ width: size, height: size, background: `linear-gradient(160deg, ${a}, ${b})`, boxShadow: `inset 0 1px 0 rgb(255 255 255 / .45), inset 0 -2px 6px rgb(0 0 0 / .18), 0 8px 18px -8px ${b}` }}>
+    <span className="app-icon" data-to={to} style={{ width: size, height: size }}>
       <Icon name={icon} size={Math.round(size * 0.48)} strokeWidth={2} />
     </span>
   );

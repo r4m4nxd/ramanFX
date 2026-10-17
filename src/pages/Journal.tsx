@@ -80,7 +80,7 @@ function DayChart({ gs, unit }: { gs: Graded[]; unit: Unit }) {
         <ReferenceLine y={0} stroke={c.line2} strokeDasharray="3 4" />
         <Tooltip content={<ChartTip fmt={(v, k) => (k === 'v' ? (unit === 'R' ? rMult(v, 2) : fmt(v, { signed: true })) : unit === 'R' ? rMult(v, 2) : fmt(v, { signed: true }))} labelFmt={l => timeHM(new Date(l as number))} />} cursor={{ stroke: c.line2 }} />
         <Bar dataKey="v" name="Trade" barSize={6} radius={[2, 2, 2, 2]} animationDuration={400}>{data.map((d, i) => <Cell key={i} fill={d.v >= 0 ? c.profit : c.loss} fillOpacity={0.45} />)}</Bar>
-        <Area type="stepAfter" dataKey="cum" name="Running" baseValue={0} stroke={`url(#${gid}s)`} strokeWidth={2.2} fill={`url(#${gid})`} animationDuration={500} dot={false} activeDot={{ r: 4, fill: col, strokeWidth: 0 }} />
+        <Area type="monotone" dataKey="cum" name="Running" baseValue={0} stroke={`url(#${gid}s)`} strokeWidth={2.2} fill={`url(#${gid})`} animationDuration={500} dot={false} activeDot={{ r: 4, fill: col, strokeWidth: 0 }} />
       </ComposedChart>
     </ResponsiveContainer>
   );

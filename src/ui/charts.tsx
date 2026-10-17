@@ -1,8 +1,9 @@
 import { motion, useReducedMotion } from 'framer-motion';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis, type TooltipProps } from 'recharts';
 import { useStore } from '@/data/store';
-import { ease, Segmented, transitionQuiet, useIntro, useIsMobile } from './kit';
+import { cx, ease, Peek, Segmented, transitionQuiet, useIntro, useIsMobile } from './kit';
+import { Icon } from './Icon';
 import { dayKey } from '@/core/time';
 import { shortDate } from '@/lib/format';
 
@@ -129,8 +130,8 @@ export function EquityChart({ data, height = 260, fmt, showDD = true, period }: 
         <YAxis tickFormatter={v => fmt(v, { compact: true })} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} width={yw} />
         <ReferenceLine y={0} stroke={c.line2} strokeDasharray="3 4" />
         <Tooltip content={<ChartTip fmt={v => fmt(v)} labelFmt={l => (period ? periodLabel(l as number, period) : new Date(l as number).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))} />} cursor={{ stroke: c.line2 }} />
-        {showDD && <Area key={`dd${period}`} type="monotone" dataKey="dd" name="Drawdown" stroke="none" fill={c.loss} fillOpacity={0.18} isAnimationActive={!reduce && !transitionQuiet()} animationDuration={600} />}
-        <Area key={period} type="monotone" dataKey="cum" name="Net P&L" stroke={stroke} strokeWidth={2.4} fill="url(#eqFill)" isAnimationActive={!reduce && !transitionQuiet()} animationDuration={600} style={{ filter: `drop-shadow(0 0 6px ${c.a('accent', 0.45)})` }} dot={dots ? { r: 2.5, fill: stroke, strokeWidth: 0 } : false} activeDot={{ r: 6, fill: '#fff', stroke, strokeWidth: 3, style: { filter: `drop-shadow(0 0 8px ${c.a('accent', 0.9)})` } }} />
+        {showDD && <Area key={`dd${period}`} type="monotone" dataKey="dd" name="Drawdown" stroke="none" fill={c.loss} fillOpacity={0.18} isAnimationActive={!reduce} animationBegin={transitionQuiet() ? 220 : 0} animationEasing="ease-out" animationDuration={900} />}
+        <Area key={period} type="monotone" dataKey="cum" name="Net P&L" stroke={stroke} strokeWidth={2.4} fill="url(#eqFill)" isAnimationActive={!reduce} animationBegin={transitionQuiet() ? 220 : 0} animationEasing="ease-out" animationDuration={900} style={{ filter: `drop-shadow(0 0 6px ${c.a('accent', 0.45)})` }} dot={dots ? { r: 2.5, fill: stroke, strokeWidth: 0 } : false} activeDot={{ r: 6, fill: '#fff', stroke, strokeWidth: 3, style: { filter: `drop-shadow(0 0 8px ${c.a('accent', 0.9)})` } }} />
       </ComposedChart>
     </ResponsiveContainer>
   );
@@ -151,8 +152,8 @@ export function BalanceChart({ data: raw, height = 240, fmt, period }: { data: {
         <XAxis dataKey="t" type="number" scale="time" domain={['dataMin', 'dataMax']} tickFormatter={v => periodTick(v, period ?? 'day')} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} minTickGap={28} />
         <YAxis tickFormatter={v => fmt(v, { compact: true })} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} width={yw} domain={['auto', 'auto']} />
         <Tooltip content={<ChartTip fmt={v => fmt(v)} labelFmt={l => (period ? `End of ${periodLabel(l as number, period).replace(/^Week of/, 'week of')}` : new Date(l as number).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }))} />} cursor={{ stroke: c.line2 }} />
-        <Area key={period} type="monotone" dataKey="balance" name="Balance" stroke={c.accent} strokeWidth={2.4} fill="url(#balFill)" isAnimationActive={!reduce && !transitionQuiet()} animationDuration={600} style={{ filter: `drop-shadow(0 0 6px ${c.a('accent', 0.45)})` }} activeDot={{ r: 6, fill: '#fff', stroke: c.accent, strokeWidth: 3 }} />
-        <Line key={`d${period}`} type="stepAfter" dataKey="deposits" name="Net deposits" stroke={c.ink3} strokeWidth={1.5} strokeDasharray="4 4" dot={false} isAnimationActive={!reduce && !transitionQuiet()} animationDuration={600} />
+        <Area key={period} type="monotone" dataKey="balance" name="Balance" stroke={c.accent} strokeWidth={2.4} fill="url(#balFill)" isAnimationActive={!reduce} animationBegin={transitionQuiet() ? 220 : 0} animationEasing="ease-out" animationDuration={900} style={{ filter: `drop-shadow(0 0 6px ${c.a('accent', 0.45)})` }} activeDot={{ r: 6, fill: '#fff', stroke: c.accent, strokeWidth: 3 }} />
+        <Line key={`d${period}`} type="stepAfter" dataKey="deposits" name="Net deposits" stroke={c.ink3} strokeWidth={1.5} strokeDasharray="4 4" dot={false} isAnimationActive={!reduce} animationBegin={transitionQuiet() ? 220 : 0} animationEasing="ease-out" animationDuration={900} />
       </ComposedChart>
     </ResponsiveContainer>
   );
@@ -176,7 +177,7 @@ export function DailyBars({ days, height = 220, fmt, period = 'day', metric = 'n
         <YAxis tickFormatter={v => f(v, true)} tick={{ ...axisTick, fill: c.ink3 }} axisLine={false} tickLine={false} width={yw} domain={metric === 'win' ? [0, 1] : ['auto', 'auto']} />
         <ReferenceLine y={metric === 'win' ? 0.5 : 0} stroke={c.line2} strokeDasharray={metric === 'win' ? '4 4' : undefined} />
         <Tooltip content={<ChartTip fmt={v => f(v)} labelFmt={l => { const d = byT.get(l as number); return `${periodLabel(l as number, period)}${d?.trades ? ` · ${d.trades} trades` : ''}`; }} />} cursor={{ fill: c.a('accent', 0.06), radius: 8 } as object} />
-        <Bar key={period + metric} dataKey="v" name={{ net: 'Net', r: 'R', win: 'Win rate', n: 'Trades' }[metric]} radius={[6, 6, 6, 6]} maxBarSize={period === 'month' ? 44 : period === 'week' ? 30 : 22} isAnimationActive={!reduce && !transitionQuiet()} animationDuration={500}
+        <Bar key={period + metric} dataKey="v" name={{ net: 'Net', r: 'R', win: 'Win rate', n: 'Trades' }[metric]} radius={[6, 6, 6, 6]} maxBarSize={period === 'month' ? 44 : period === 'week' ? 30 : 22} isAnimationActive={!reduce} animationBegin={transitionQuiet() ? 220 : 0} animationEasing="ease-out" animationDuration={900}
           activeBar={{ fill: c.accent, fillOpacity: 1, style: { filter: `drop-shadow(0 0 10px ${c.a('accent', 0.75)})` } }}>
           {data.map(d => <Cell key={d.t} fill={metric === 'n' ? c.accent : good(d.v) ? c.profit : c.loss} fillOpacity={0.85} />)}
         </Bar>
@@ -190,11 +191,11 @@ export function Sparkline({ values, height = 36, className, color }: { values: n
   const intro = useIntro();
   if (values.length < 2) return <div style={{ height }} />;
   const min = Math.min(0, ...values), max = Math.max(0, ...values), span = max - min || 1;
-  const d = values.map((v, i) => `${i ? 'L' : 'M'}${((i / (values.length - 1)) * 100).toFixed(2)} ${(((max - v) / span) * 100).toFixed(2)}`).join(' ');
+  const d = smoothPath(values.map((v, i) => [(i / (values.length - 1)) * 100, ((max - v) / span) * 100]));
   const col = color ?? (values[values.length - 1] >= 0 ? c.profit : c.loss);
   return (
     <svg viewBox="0 0 100 100" preserveAspectRatio="none" width="100%" height={height} className={className} aria-hidden="true">
-      <motion.path d={d} fill="none" stroke={col} strokeWidth={2} vectorEffect="non-scaling-stroke" initial={intro ? { pathLength: 0 } : false} animate={{ pathLength: 1 }} transition={{ duration: 0.6, ease }} />
+      <motion.path d={d} fill="none" stroke={col} strokeWidth={2} vectorEffect="non-scaling-stroke" initial={intro ? { pathLength: 0 } : false} animate={{ pathLength: 1 }} transition={{ duration: 0.9, ease }} />
     </svg>
   );
 }
@@ -209,7 +210,7 @@ export function Ring({ value, size = 64, stroke = 7, color, track, children }: {
       <svg width={size} height={size} className="-rotate-90" aria-hidden="true">
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={track ?? c.line} strokeWidth={stroke} />
         <motion.circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={circ}
-          initial={intro ? { strokeDashoffset: circ } : false} animate={{ strokeDashoffset: circ * (1 - Math.max(0, Math.min(1, value))) }} transition={{ duration: 0.6, ease }} />
+          initial={intro ? { strokeDashoffset: circ } : false} animate={{ strokeDashoffset: circ * (1 - Math.max(0, Math.min(1, value))) }} transition={{ duration: 0.9, ease }} />
       </svg>
       {children && <div className="absolute inset-0 grid place-items-center">{children}</div>}
     </div>
@@ -217,9 +218,13 @@ export function Ring({ value, size = 64, stroke = 7, color, track, children }: {
 }
 
 /** Diverging horizontal bars (symbols, setups): zero in the middle, every row shown. */
-export function DivergingBars({ rows, fmt, onRow }: { rows: { key: string; net: number; sub?: string }[]; fmt: (n: number) => string; onRow?: (k: string) => void }) {
+export function DivergingBars({ rows, fmt, onRow, openLabel = 'View trades' }: { rows: { key: string; net: number; sub?: string }[]; fmt: (n: number) => string; onRow?: (k: string) => void; openLabel?: string }) {
   const max = Math.max(1, ...rows.map(r => Math.abs(r.net)));
   const intro = useIntro();
+  // Tap a row: pin a summary with an explicit "View trades" button; tap the same row again to put it away.
+  const [sel, setSel] = useState<{ key: string; at: { x: number; y: number }; el: Element } | null>(null);
+  const close = useCallback(() => setSel(null), []);
+  const picked = sel ? rows.find(r => r.key === sel.key) : null;
   return (
     <div className="flex flex-col gap-2.5">
       {rows.map((r, i) => {
@@ -227,7 +232,7 @@ export function DivergingBars({ rows, fmt, onRow }: { rows: { key: string; net: 
         const pos = r.net >= 0;
         const Row = onRow ? 'button' : 'div';
         return (
-          <Row key={r.key} {...(onRow ? { type: 'button' as const, onClick: () => onRow(r.key) } : {})} className={'grid grid-cols-[84px_minmax(0,1fr)_84px] items-center gap-3 text-[13px] text-left ' + (onRow ? 'hover:bg-raised -mx-2 px-2 py-1 rounded-lg' : '')}>
+          <Row key={r.key} {...(onRow ? { type: 'button' as const, 'aria-expanded': sel?.key === r.key, onClick: (e: React.MouseEvent<HTMLElement>) => { const el = e.currentTarget, b = el.getBoundingClientRect(); setSel(s => (s?.key === r.key ? null : { key: r.key, el, at: { x: b.left + b.width / 2, y: b.top } })); } } : {})} className={'grid grid-cols-[84px_minmax(0,1fr)_84px] items-center gap-3 text-[13px] text-left ' + (onRow ? cx('hover:bg-raised -mx-2 px-2 py-1 rounded-lg transition-colors', sel?.key === r.key && 'bg-raised') : '')}>
             <span className="truncate font-mono text-ink2" title={r.key}>{r.key}{r.sub && <span className="block text-[10.5px] text-ink3 font-sans">{r.sub}</span>}</span>
             <span className="relative h-2 rounded-full bg-line/60">
               <span className="absolute top-0 bottom-0 left-1/2 w-px bg-line2" />
@@ -239,6 +244,29 @@ export function DivergingBars({ rows, fmt, onRow }: { rows: { key: string; net: 
           </Row>
         );
       })}
+      <Peek at={sel?.at ?? null} owner={sel?.el} onClose={close} label={picked?.key ?? 'Details'}>
+        {picked && (<>
+          <div className="font-mono font-semibold text-[14px]">{picked.key}</div>
+          {picked.sub && <div className="text-[12px] text-ink3 mt-0.5">{picked.sub}</div>}
+          <div className={cx('num text-[20px] font-semibold mt-2', picked.net >= 0 ? 'text-profit' : 'text-loss')}>{fmt(picked.net)}</div>
+          {onRow && <button type="button" className="btn-primary w-full h-10 mt-3" onClick={() => { const k = picked.key; close(); onRow(k); }}>{openLabel}<Icon name="chevronRight" size={14} /></button>}
+        </>)}
+      </Peek>
     </div>
   );
+}
+
+/** Smooth line through points (monotone cubic, like Recharts' "monotone"): no overshoot past the data, no sharp corners. */
+export function smoothPath(p: [number, number][]) {
+  if (p.length < 3) return p.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(2)} ${y.toFixed(2)}`).join(' ');
+  const n = p.length, dx: number[] = [], m: number[] = [], t: number[] = new Array(n);
+  for (let i = 0; i < n - 1; i++) { dx[i] = p[i + 1][0] - p[i][0]; m[i] = (p[i + 1][1] - p[i][1]) / (dx[i] || 1); }
+  t[0] = m[0]; t[n - 1] = m[n - 2];
+  for (let i = 1; i < n - 1; i++) t[i] = m[i - 1] * m[i] <= 0 ? 0 : (3 * (dx[i - 1] + dx[i])) / ((2 * dx[i] + dx[i - 1]) / m[i - 1] + (dx[i] + 2 * dx[i - 1]) / m[i]);
+  let d = `M${p[0][0].toFixed(2)} ${p[0][1].toFixed(2)}`;
+  for (let i = 0; i < n - 1; i++) {
+    const h = dx[i] / 3;
+    d += ` C${(p[i][0] + h).toFixed(2)} ${(p[i][1] + t[i] * h).toFixed(2)} ${(p[i + 1][0] - h).toFixed(2)} ${(p[i + 1][1] - t[i + 1] * h).toFixed(2)} ${p[i + 1][0].toFixed(2)} ${p[i + 1][1].toFixed(2)}`;
+  }
+  return d;
 }
