@@ -418,7 +418,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastCtx.Provider value={push}>
       {children}
       {/* Clears the phone tab bar (~64px + home indicator); bottom-left in landscape, where the rail sits on the left. */}
-      <div className="fixed z-[60] bottom-[calc(76px+env(safe-area-inset-bottom))] lg:bottom-6 land:bottom-4 left-1/2 -translate-x-1/2 flex flex-col gap-2 items-center pointer-events-none">
+      <div className="fixed z-[60] bottom-[calc(84px+max(12px,env(safe-area-inset-bottom)))] lg:bottom-6 land:bottom-4 left-1/2 -translate-x-1/2 flex flex-col gap-2 items-center pointer-events-none">
         {region('error')}{region('other')}
       </div>
     </ToastCtx.Provider>

@@ -10,6 +10,7 @@ import { Ambient } from './Ambient';
 import { Icon, type IconName } from './Icon';
 import { cx, Segmented, Sheet, spring, useDialogFocus, useOnline, useToast } from './kit';
 import { ImportPanel } from './ImportPanel';
+import { GlassTabBar } from './GlassTabBar';
 import { presets, RangePicker } from './RangePicker';
 
 type Group = 'Today' | 'Review' | 'Plan & tools' | 'Help';
@@ -18,7 +19,7 @@ type Group = 'Today' | 'Review' | 'Plan & tools' | 'Help';
  * `mobile` = in the phone tab bar; `scoped` = the page reads the date range / account filters; `hint` = one line on what it's for.
  */
 export const NAV: { to: string; label: string; short?: string; icon: IconName; mobile?: boolean; group: Group; hint: string; scoped?: boolean }[] = [
-  { to: '/', label: 'Dashboard', icon: 'dashboard', mobile: true, group: 'Today', hint: 'Today at a glance', scoped: true },
+  { to: '/', label: 'Dashboard', short: 'Home', icon: 'dashboard', mobile: true, group: 'Today', hint: 'Today at a glance', scoped: true },
   { to: '/plan', label: 'Planner', short: 'Plan', icon: 'target', mobile: true, group: 'Today', hint: "Today's zones and entries", scoped: true },
   { to: '/journal', label: 'Daily journal', short: 'Journal', icon: 'journal', mobile: true, group: 'Today', hint: 'Notes and P&L by day', scoped: true },
   { to: '/trades', label: 'Trades', icon: 'trades', mobile: true, group: 'Review', hint: 'Every position, filter and review', scoped: true },
@@ -220,6 +221,7 @@ export function Shell({ children }: { children: ReactNode }) {
   // The date range and account filters only show where the page actually reads them.
   const scoped = !!here?.scoped;
   const inMore = !here?.mobile;
+  const mobileTabs = useMemo(() => NAV.filter(n => n.mobile).map(n => ({ to: n.to, label: n.short ?? n.label, icon: n.icon })), []);
   const multiAccount = useStore(s => Object.keys(s.accounts).length > 1);
   // Drill-down page (e.g. /trades/123): iOS push in, no large title, and an edge swipe takes you back.
   const deep = loc.pathname.split('/').filter(Boolean).length > 1 && !loc.pathname.startsWith('/learn');
@@ -379,19 +381,8 @@ export function Shell({ children }: { children: ReactNode }) {
         <button className={cx('w-14 h-12 rounded-xl flex flex-col items-center justify-center gap-0.5 text-micro', inMore ? 'text-ink font-semibold bg-accent/15 [&_svg]:text-accent' : 'text-ink3 font-medium')} aria-haspopup="dialog" aria-expanded={moreOpen} aria-current={inMore ? 'page' : undefined} onClick={() => setMoreOpen(true)}><Icon name="more" size={19} />More</button>
       </nav>
 
-      {/* Mobile tab bar: the active tab gets an icon chip and bold label, not just a colour change. */}
-      <nav aria-label="Main" className="lg:hidden land:hidden fixed bottom-0 inset-x-0 z-40 material hairline-t pb-safe px-safe">
-        <div className="flex justify-around max-w-[680px] mx-auto px-2 pt-1.5">
-          {NAV.filter(n => n.mobile).map(n => (
-            <NavLink key={n.to} to={n.to} end={n.to === '/'} onClick={() => navigator.vibrate?.(6)} className={({ isActive }) => cx('tab-item press text-micro', isActive ? 'text-ink font-semibold' : 'text-ink3 font-medium')}>
-              {({ isActive }) => (<><span className={cx('relative grid place-items-center h-7 w-12 rounded-full transition-colors', isActive && 'text-accent')}>{isActive && <motion.span layoutId="tab-chip" transition={spring} className="absolute inset-0 rounded-full bg-accent/15" />}<Icon name={n.icon} size={20} className="relative" /></span>{n.short ?? n.label}</>)}
-            </NavLink>
-          ))}
-          <button className={cx('tab-item press text-micro', inMore ? 'text-ink font-semibold' : 'text-ink3 font-medium')} aria-haspopup="dialog" aria-expanded={moreOpen} aria-current={inMore ? 'page' : undefined} onClick={() => setMoreOpen(true)}>
-            <span className={cx('relative grid place-items-center h-7 w-12 rounded-full transition-colors', inMore && 'text-accent')}>{inMore && <motion.span layoutId="tab-chip" transition={spring} className="absolute inset-0 rounded-full bg-accent/15" />}<Icon name="more" size={20} className="relative" /></span>More
-          </button>
-        </div>
-      </nav>
+      {/* Phone: floating Liquid Glass tab bar with a sliding, stretchy selection lens and a search orb. */}
+      <GlassTabBar tabs={mobileTabs} active={mobileTabs.findIndex(n => isOn(loc.pathname, n.to))} moreActive={inMore} onMore={() => setMoreOpen(true)} onSearch={openCmd} />
 
       <Sheet bottom open={moreOpen} onClose={() => setMoreOpen(false)} title="More">
         <button type="button" className="field h-11 flex items-center gap-2 text-left text-ink3 mb-4" onClick={() => { setMoreOpen(false); openCmd(); }}><Icon name="search" size={16} />Search pages, trades, actions</button>
@@ -448,7 +439,7 @@ function DevDataToggle() {
   const label = { real: 'Demo data', worst: 'Worst case', one: 'One', empty: 'Empty', huge: '1,500 rows' } as const;
   const go = (m: string) => { const u = new URL(location.href); if (m === 'real') u.searchParams.delete('data'); else u.searchParams.set('data', m); location.assign(u.toString()); };
   return (
-    <div role="radiogroup" aria-label="Dev data set" className="fixed z-[90] left-1/2 -translate-x-1/2 bottom-[calc(84px+env(safe-area-inset-bottom))] lg:bottom-3 land:bottom-3 flex gap-0.5 p-0.5 rounded-full bg-neutral-200 text-[11px] font-[system-ui] text-neutral-700 shadow">
+    <div role="radiogroup" aria-label="Dev data set" className="fixed z-[90] left-1/2 -translate-x-1/2 bottom-[calc(84px+max(12px,env(safe-area-inset-bottom)))] lg:bottom-3 land:bottom-3 flex gap-0.5 p-0.5 rounded-full bg-neutral-200 text-[11px] font-[system-ui] text-neutral-700 shadow">
       {DATA_MODES.map(m => <button key={m} type="button" role="radio" aria-checked={DATA_MODE === m} onClick={() => go(m)} className={cx('h-6 px-2.5 rounded-full whitespace-nowrap', DATA_MODE === m && 'bg-white text-black shadow-sm')}>{label[m]}</button>)}
     </div>
   );

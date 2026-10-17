@@ -281,7 +281,7 @@ function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) =
               </div>
             </motion.div>
         </div>
-        <div className="px-5 py-3 border-t border-line flex items-center gap-2 bg-surface rounded-b-xl sticky bottom-0 max-lg:bottom-[calc(58px+max(12px,env(safe-area-inset-bottom)))] land:!bottom-0 z-10">
+        <div className="px-5 py-3 border-t border-line flex items-center gap-2 bg-surface rounded-b-xl sticky bottom-0 max-lg:bottom-[calc(70px+max(12px,env(safe-area-inset-bottom)))] land:!bottom-0 z-10">
           {step > 0 && <button className="btn h-11 px-4" onClick={() => go(-1)}><Icon name="chevronLeft" size={15} />Back</button>}
           {mobile && step < STEPS.length - 1 && (
             <span className={cx('ml-auto text-xs font-bold', !v.tradeable ? 'text-loss' : v.odds === 'high' ? 'text-profit' : 'text-warn')}>{!v.tradeable ? 'NO TRADE' : v.odds === 'high' ? 'HIGH ODDS' : 'LOW ODDS'} · {v.score}</span>
