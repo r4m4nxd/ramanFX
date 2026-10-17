@@ -320,6 +320,49 @@ export function InfoTip({ text }: { text: string }) {
   return <Tip text={text}><button type="button" aria-label={text} className="text-ink3 hover:text-ink2 p-1.5 -m-1.5 touch:p-2.5 touch:-m-2.5"><Icon name="info" size={13} /></button></Tip>;
 }
 
+// ─── Background scroll lock for pop-ups ──────────────────────────────
+// Counted, so a pop-up opened from another (sheet → search) keeps the page locked until the last one closes.
+// overflow:hidden alone doesn't stop iOS Safari, so touch-drags are also cancelled unless they're scrolling a
+// scrollable area inside the open dialog (sheet content, lists), and the page rubber band is switched off.
+let locks = 0;
+const canScroll = (el: HTMLElement | null, stop: Element | null, dy: number) => {
+  for (; el && el !== stop?.parentElement; el = el.parentElement) {
+    const oy = getComputedStyle(el).overflowY;
+    if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight + 1) {
+      if (dy > 0 ? el.scrollTop > 0 : el.scrollTop + el.clientHeight < el.scrollHeight - 1) return true;
+    }
+  }
+  return false;
+};
+let ty = 0;
+const touchStart = (e: TouchEvent) => { ty = e.touches[0]?.clientY ?? 0; };
+const touchMove = (e: TouchEvent) => {
+  const t = e.target as HTMLElement, dialog = t.closest('[aria-modal="true"]');
+  const dy = (e.touches[0]?.clientY ?? 0) - ty;
+  if (dialog && canScroll(t, dialog, dy)) return;
+  if (e.cancelable) e.preventDefault();
+};
+export function lockScroll() {
+  const html = document.documentElement;
+  if (locks++ === 0) {
+    html.dataset.scrollLock = '1';
+    html.style.overflow = 'hidden'; html.style.overscrollBehavior = 'none';
+    document.addEventListener('touchstart', touchStart, { passive: true });
+    document.addEventListener('touchmove', touchMove, { passive: false });
+  }
+  let done = false;
+  return () => {
+    if (done) return; done = true;
+    if (--locks === 0) {
+      delete html.dataset.scrollLock;
+      html.style.overflow = ''; html.style.overscrollBehavior = '';
+      document.removeEventListener('touchstart', touchStart); document.removeEventListener('touchmove', touchMove);
+    }
+  };
+}
+/** While `open`, the page behind can't scroll (wheel, keys, touch, iOS included). */
+export function useScrollLock(open: boolean) { useEffect(() => (open ? lockScroll() : undefined), [open]); }
+
 // ─── Focus management for dialogs ────────────────────────────────────
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 /** While `open`: move focus into `ref` (first [autofocus], else `initial`, else the first control), keep Tab inside it,
@@ -358,8 +401,8 @@ export function Sheet({ open, onClose, title, children, width = 520, bottom = fa
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
-    document.body.style.overflow = 'hidden';
-    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
+    const unlock = lockScroll();
+    return () => { window.removeEventListener('keydown', onKey); unlock(); };
   }, [open, onClose]);
   useDialogFocus(open, panel, '[data-sheet-close]');
   const fromBottom = bottom || (typeof window !== 'undefined' && window.innerWidth < 768);

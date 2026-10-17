@@ -8,7 +8,7 @@ import { netOf } from '@/core/stats';
 import { money } from '@/lib/format';
 import { Ambient } from './Ambient';
 import { Icon, type IconName } from './Icon';
-import { cx, enteringSoftly, Segmented, Sheet, softClick, softNavigate, spring, useDialogFocus, useOnline, useToast } from './kit';
+import { cx, enteringSoftly, Segmented, Sheet, useScrollLock, softClick, softNavigate, spring, useDialogFocus, useOnline, useToast } from './kit';
 import { ImportPanel } from './ImportPanel';
 import { GlassTabBar } from './GlassTabBar';
 import { installLiveCards } from './liveCards';
@@ -133,6 +133,7 @@ function CommandPalette({ open, onClose, actions, instant }: { open: boolean; on
   const box = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLUListElement>(null);
   useDialogFocus(open, box);
+  useScrollLock(open);
   const items = useMemo<Cmd[]>(() => {
     const ql = q.trim().toLowerCase();
     const pages: Cmd[] = NAV.map(n => ({ key: n.to, label: n.label, hint: n.hint, icon: n.icon, run: () => softNavigate(() => nav(n.to)), group: 'Pages' }));

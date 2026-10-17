@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from './Icon';
-import { spring } from './kit';
+import { lockScroll, spring } from './kit';
 
 export interface LightboxImage { src: string; name?: string }
 
@@ -23,9 +23,8 @@ export function Lightbox({ images, index, onClose }: { images: LightboxImage[]; 
     if (!open) return;
     const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); if (e.key === 'ArrowRight') go(1); if (e.key === 'ArrowLeft') go(-1); };
     window.addEventListener('keydown', k);
-    const { overflow } = document.body.style;
-    document.body.style.overflow = 'hidden';
-    return () => { window.removeEventListener('keydown', k); document.body.style.overflow = overflow; };
+    const unlock = lockScroll();
+    return () => { window.removeEventListener('keydown', k); unlock(); };
   }, [open, go, onClose]);
 
   const img = images[Math.min(i, images.length - 1)];

@@ -10,7 +10,7 @@ import { dayKey } from '@/core/time';
 import { pct, timeHM, tone, useMoney } from '@/lib/format';
 import { ChartTip, useAxisW, useColors } from './charts';
 import { Icon } from './Icon';
-import { CountUp, cx, spring, useIsMobile } from './kit';
+import { CountUp, cx, lockScroll, spring, useIsMobile } from './kit';
 import { TradeList } from './TradeList';
 
 /**
@@ -108,8 +108,8 @@ export function DayPeek({ day, onClose }: { day: string | null; onClose: () => v
       else if (!e.shiftKey && (document.activeElement === last || !panel.current.contains(document.activeElement))) { e.preventDefault(); first.focus(); }
     };
     window.addEventListener('keydown', k);
-    document.body.style.overflow = 'hidden';
-    return () => { window.removeEventListener('keydown', k); document.body.style.overflow = ''; };
+    const unlock = lockScroll();
+    return () => { window.removeEventListener('keydown', k); unlock(); };
   }, [day, onClose]);
   return createPortal(
     <MotionConfig reducedMotion="user">

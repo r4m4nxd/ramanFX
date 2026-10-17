@@ -5,7 +5,7 @@ import { DEFAULT_RISK_RULES, useStore } from '@/data/store';
 import { LIBRARY, measuredUnitValues, positionSize, specFor, type InstrumentSpec } from '@/core/instruments';
 import type { AssetClass } from '@/core/library';
 import { ccySymbol, money, num, price } from '@/lib/format';
-import { Badge, Card, CardHead, CountUp, cx, Field, InfoTip, Page, Segmented, Stat, useIsMobile } from '@/ui/kit';
+import { Badge, Card, CardHead, CountUp, cx, Field, InfoTip, Page, Segmented, Stat, useIsMobile, useScrollLock } from '@/ui/kit';
 import { Result, SourceNote, SymbolPicker, usePersisted, useSpec } from './calcShared';
 import { DrawdownCalc, GrowthCalc, LevelsCalc, MarginCalc, PnlCalc, RRCalc } from './CalcTools';
 import { ConverterCalc, MonteCarloCalc, OptionsCalc, PropCalc } from './CalcTools2';
@@ -282,6 +282,7 @@ function OverrideEditor({ symbol, current, base, onSave, onClose }: { symbol: st
   const [cs, setCs] = useState(String(current?.contractSize ?? base.contractSize));
   const [pip, setPip] = useState(String(current?.pipSize ?? base.pipSize));
   const [tick, setTick] = useState(String(current?.tickSize ?? base.tickSize));
+  useScrollLock(true);
   return (
     <motion.div className="fixed inset-0 z-50 grid place-items-center p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} role="dialog" aria-modal="true" aria-label={`Edit ${symbol}`}>
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />

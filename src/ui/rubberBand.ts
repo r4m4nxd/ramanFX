@@ -22,7 +22,8 @@ export function installRubberBand(el: HTMLElement) {
   };
 
   // Touch: stretch while pulling past an edge.
-  const start = (e: TouchEvent) => { if (e.touches.length !== 1) return; touching = true; pulling = false; y0 = e.touches[0].clientY; };
+  const locked = () => !!document.documentElement.dataset.scrollLock; // a pop-up is open: the page stays still
+  const start = (e: TouchEvent) => { if (e.touches.length !== 1 || locked()) return; touching = true; pulling = false; y0 = e.touches[0].clientY; };
   const move = (e: TouchEvent) => {
     if (!touching || e.touches.length !== 1) return;
     const dy = e.touches[0].clientY - y0;
@@ -39,7 +40,7 @@ export function installRubberBand(el: HTMLElement) {
 
   // Wheel / trackpad: same stretch, settles once the wheel goes quiet.
   const wheel = (e: WheelEvent) => {
-    if (e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+    if (e.ctrlKey || locked() || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
     const pushingUp = e.deltaY < 0 && atTop(), pushingDown = e.deltaY > 0 && atBottom();
     if (!pushingUp && !pushingDown) { if (offset) { wheelRaw = 0; settle(260); } return; }
     wheelRaw += -e.deltaY * (e.deltaMode === 1 ? 16 : 1) * 0.6;
