@@ -61,7 +61,7 @@ export function ZoneBoard() {
       <CardHead title="Zone watchlist" sub="Map zones before the session. Move them only when price earns it." right={<button className="btn h-9" onClick={() => { setAdding(v => !v); setEditId(null); }}><Icon name={adding ? 'x' : 'plus'} size={14} />{adding ? 'Cancel' : 'Add zone'}</button>} />
       <AnimatePresence>
         {adding && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }} className="overflow-hidden">
             <div className="pb-4 mb-4 border-b border-line"><ZoneForm init={BLANK} onSave={add} /></div>
           </motion.div>
         )}
@@ -113,11 +113,11 @@ export function ZoneBoard() {
       {closed.length > 0 && (
         <div className="mt-4 pt-3 border-t border-line">
           <button className="flex items-center gap-1.5 text-[12.5px] text-ink3 hover:text-ink2" onClick={() => setShowClosed(v => !v)}>
-            <motion.span animate={{ rotate: showClosed ? 90 : 0 }}><Icon name="chevronRight" size={13} /></motion.span>Planned & invalid ({closed.length})
+            <motion.span initial={false} animate={{ transform: `rotate(${showClosed ? 90 : 0}deg)` }} transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }} className="inline-flex"><Icon name="chevronRight" size={13} /></motion.span>Planned & invalid ({closed.length})
           </button>
           <AnimatePresence initial={false}>
             {showClosed && (
-              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }} className="overflow-hidden">
                 <div className="flex flex-col mt-2">
                   {closed.map(z => (
                     <div key={z.id} className="flex items-center gap-2 py-2 border-t border-line first:border-0">

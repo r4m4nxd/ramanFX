@@ -179,7 +179,7 @@ export default function Dashboard() {
     <Page>
       <TickerTape />
       <TodayStrip />
-      <h2 className="label -mb-1 mt-2 px-1">Performance</h2>
+      <h2 className="text-[19px] font-semibold tracking-[-0.015em] text-ink leading-tight -mb-1 mt-4 px-1">Performance</h2>
       <section aria-label="Key metrics" className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
         <Kpi hero icon="bolt" className="col-span-2 md:col-span-1" label="Net P&L" foot={`${plural(s.total, 'trade')} · ${plural(s.days.length, 'day')}`}>
           <Fit text={fmt(s.net, { signed: true })} max={28}><CountUp value={s.net} format={v => fmt(v, { signed: true })} className="num font-bold tracking-tight text-white" /></Fit>
@@ -202,7 +202,7 @@ export default function Dashboard() {
           <Fit text={fmt(s.expectancy, { signed: true })}><CountUp value={s.expectancy} format={v => fmt(v, { signed: true })} className={cx('num font-semibold tracking-tight', tone(s.expectancy))} /></Fit>
         </Kpi>
       </section>
-      <h2 className="label -mb-1 mt-2 px-1">Trends</h2>
+      <h2 className="text-[19px] font-semibold tracking-[-0.015em] text-ink leading-tight -mb-1 mt-4 px-1">Trends</h2>
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <Card className="xl:col-span-2">
           <CardHead title={curve === 'pnl' ? 'Equity curve' : curve === 'r' ? 'Equity in R' : 'Account balance'}
@@ -247,10 +247,10 @@ export default function Dashboard() {
         </Card>
         <Checklist />
       </div>
-      <h2 className="label -mb-1 mt-2 px-1">Discipline & risk</h2>
+      <h2 className="text-[19px] font-semibold tracking-[-0.015em] text-ink leading-tight -mb-1 mt-4 px-1">Discipline & risk</h2>
       <RiskGrid s={s} />
       <GuruStrip />
-      <h2 className="label -mb-1 mt-2 px-1">Breakdown</h2>
+      <h2 className="text-[19px] font-semibold tracking-[-0.015em] text-ink leading-tight -mb-1 mt-4 px-1">Breakdown</h2>
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <Card><MonthCalendar days={s.days} onDay={d => nav(`/journal?day=${d}`)} /></Card>
         <Card>
@@ -309,7 +309,7 @@ export default function Dashboard() {
           ) : <p className="text-sm text-ink3 py-6 text-center">No mistakes tagged yet. Tag them on a trade to see what they cost.</p>}
         </Card>
       </div>
-      <h2 className="label -mb-1 mt-2 px-1">Activity</h2>
+      <h2 className="text-[19px] font-semibold tracking-[-0.015em] text-ink leading-tight -mb-1 mt-4 px-1">Activity</h2>
       <Card>
         <CardHead title="Recent trades" sub="Open any trade to journal it" right={<Link to="/trades" className="text-xs text-accent hover:underline inline-block py-2 -my-2">All trades</Link>} />
         {mobile ? <TradeList trades={recent} /> : (

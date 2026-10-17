@@ -326,9 +326,9 @@ export function Shell({ children }: { children: ReactNode }) {
 
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Top bar */}
-        <header className={cx('sticky top-0 z-30 border-b pt-safe px-safe transition-colors duration-200', scrolled ? 'bg-bg/70 [backdrop-filter:blur(20px)_saturate(180%)] [-webkit-backdrop-filter:blur(20px)_saturate(180%)] border-transparent shadow-[0_8px_24px_-16px_rgb(0_0_0/0.45)]' : 'bg-transparent border-transparent')}>
+        <header className={cx('sticky top-0 z-30 border-b pt-safe px-safe transition-[background-color,box-shadow] duration-200', scrolled ? 'material hairline-b border-transparent' : 'bg-transparent border-transparent')}>
           <div className="max-w-[1360px] mx-auto flex items-center gap-2 px-4 lg:px-7 h-14 land:h-12">
-            <h1 className={cx('bar-title text-[17px] lg:text-[19px] font-semibold tracking-tight truncate min-w-[60px]', !pastTitle && !deep && 'max-lg:land:opacity-100 max-lg:opacity-0 max-lg:translate-y-1')}>{title}</h1>
+            <h1 className={cx('bar-title text-[17px] lg:text-[19px] font-semibold truncate min-w-[60px]', !pastTitle && !deep && 'max-lg:land:opacity-100 max-lg:opacity-0 max-lg:translate-y-1')}>{title}</h1>
             <span className="order-last xl:order-none xl:ml-3 shrink-0 h-9 w-9 xl:w-auto 2xl:h-10">
               {!cmd && (
                 <motion.button layoutId="cmd-morph" style={{ borderRadius: 20 }} transition={spring} type="button" onClick={openCmd} aria-label="Search pages, trades and actions"
@@ -372,7 +372,7 @@ export function Shell({ children }: { children: ReactNode }) {
       {/* Phone landscape: slim icon rail on the left keeps the full height for content */}
       <nav aria-label="Main" className="hidden land:flex fixed left-0 inset-y-0 z-40 w-[calc(68px+env(safe-area-inset-left))] pl-[env(safe-area-inset-left)] flex-col items-center justify-center gap-1 bg-surface border-r border-line">
         {NAV.filter(n => n.mobile).map(n => (
-          <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cx('relative w-14 h-12 rounded-xl flex flex-col items-center justify-center gap-0.5 text-micro transition-[color,transform] active:scale-95', isActive ? 'text-ink font-semibold [&_svg]:text-accent' : 'text-ink3 font-medium')}>
+          <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cx('press relative w-14 h-12 rounded-xl flex flex-col items-center justify-center gap-0.5 text-micro', isActive ? 'text-ink font-semibold [&_svg]:text-accent' : 'text-ink3 font-medium')}>
             {({ isActive }) => (<>{isActive && <motion.span layoutId="rail-chip" transition={spring} className="absolute inset-0 rounded-xl bg-accent/15" />}<Icon name={n.icon} size={19} className="relative" /><span className="relative">{n.short ?? n.label}</span></>)}
           </NavLink>
         ))}
@@ -380,14 +380,14 @@ export function Shell({ children }: { children: ReactNode }) {
       </nav>
 
       {/* Mobile tab bar: the active tab gets an icon chip and bold label, not just a colour change. */}
-      <nav aria-label="Main" className="lg:hidden land:hidden fixed bottom-0 inset-x-0 z-40 bg-surface/75 [backdrop-filter:blur(20px)_saturate(180%)] [-webkit-backdrop-filter:blur(20px)_saturate(180%)] border-t border-line/60 pb-safe px-safe">
+      <nav aria-label="Main" className="lg:hidden land:hidden fixed bottom-0 inset-x-0 z-40 material hairline-t pb-safe px-safe">
         <div className="flex justify-around max-w-[680px] mx-auto px-2 pt-1.5">
           {NAV.filter(n => n.mobile).map(n => (
-            <NavLink key={n.to} to={n.to} end={n.to === '/'} onClick={() => navigator.vibrate?.(6)} className={({ isActive }) => cx('flex flex-col items-center gap-0.5 min-w-[58px] min-h-[46px] justify-center text-micro transition-transform active:scale-95', isActive ? 'text-ink font-semibold' : 'text-ink3 font-medium')}>
+            <NavLink key={n.to} to={n.to} end={n.to === '/'} onClick={() => navigator.vibrate?.(6)} className={({ isActive }) => cx('tab-item press text-micro', isActive ? 'text-ink font-semibold' : 'text-ink3 font-medium')}>
               {({ isActive }) => (<><span className={cx('relative grid place-items-center h-7 w-12 rounded-full transition-colors', isActive && 'text-accent')}>{isActive && <motion.span layoutId="tab-chip" transition={spring} className="absolute inset-0 rounded-full bg-accent/15" />}<Icon name={n.icon} size={20} className="relative" /></span>{n.short ?? n.label}</>)}
             </NavLink>
           ))}
-          <button className={cx('flex flex-col items-center gap-0.5 min-w-[58px] min-h-[46px] justify-center text-micro transition-transform active:scale-95', inMore ? 'text-ink font-semibold' : 'text-ink3 font-medium')} aria-haspopup="dialog" aria-expanded={moreOpen} aria-current={inMore ? 'page' : undefined} onClick={() => setMoreOpen(true)}>
+          <button className={cx('tab-item press text-micro', inMore ? 'text-ink font-semibold' : 'text-ink3 font-medium')} aria-haspopup="dialog" aria-expanded={moreOpen} aria-current={inMore ? 'page' : undefined} onClick={() => setMoreOpen(true)}>
             <span className={cx('relative grid place-items-center h-7 w-12 rounded-full transition-colors', inMore && 'text-accent')}>{inMore && <motion.span layoutId="tab-chip" transition={spring} className="absolute inset-0 rounded-full bg-accent/15" />}<Icon name="more" size={20} className="relative" /></span>More
           </button>
         </div>

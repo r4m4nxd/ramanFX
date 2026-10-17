@@ -201,11 +201,11 @@ export function Badge({ children, tone = 'neutral', className }: { children: Rea
 
 export function Empty({ icon = 'info', title, children, action }: { icon?: IconName; title: string; children?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center text-center py-12 px-6 gap-3">
-      <div className="w-11 h-11 rounded-xl bg-raised border border-line grid place-items-center text-ink3"><Icon name={icon} size={20} /></div>
-      <div className="font-semibold">{title}</div>
-      {children && <div className="text-sm text-ink3 max-w-sm leading-relaxed">{children}</div>}
-      {action}
+    <div className="flex flex-col items-center justify-center text-center py-14 px-6">
+      <div className="w-12 h-12 rounded-full bg-raised/70 grid place-items-center text-ink3/80 mb-4"><Icon name={icon} size={20} /></div>
+      <div className="text-[15px] font-semibold tracking-[-0.01em] text-ink">{title}</div>
+      {children && <div className="text-[13px] text-ink3 max-w-[34ch] leading-relaxed mt-1.5 text-pretty">{children}</div>}
+      {action && <div className="mt-5">{action}</div>}
     </div>
   );
 }
@@ -215,12 +215,24 @@ export function Empty({ icon = 'info', title, children, action }: { icon?: IconN
  * when there is no room above. Mouse: hover. Touch: tap to toggle, tap elsewhere or scroll to close.
  * Keyboard: shows on focus-visible.
  */
+// Shared across tooltips: once one has shown, neighbours open instantly (no delay, no animation) for 400ms after it closes.
+let tipsOpen = 0, tipClosedAt = 0;
+const tipsWarm = () => tipsOpen > 0 || performance.now() - tipClosedAt < 400;
 export function Tip({ text, children }: { text: string; children: ReactNode }) {
   const ref = useRef<HTMLSpanElement>(null), tip = useRef<HTMLSpanElement>(null);
-  const kind = useRef('mouse');
+  const kind = useRef('mouse'), timer = useRef<ReturnType<typeof setTimeout>>();
   const [at, setAt] = useState<DOMRect | null>(null);
-  const show = () => ref.current && setAt(ref.current.getBoundingClientRect());
-  const hide = () => setAt(null);
+  const [instant, setInstant] = useState(false);
+  const show = () => { clearTimeout(timer.current); if (ref.current) { setInstant(tipsWarm()); setAt(ref.current.getBoundingClientRect()); } };
+  /** First mouse tooltip waits 300ms so passing the cursor over controls doesn't flash tips; later ones are instant. */
+  const hoverShow = () => { clearTimeout(timer.current); if (tipsWarm()) show(); else timer.current = setTimeout(show, 300); };
+  const hide = () => { clearTimeout(timer.current); setAt(null); };
+  useEffect(() => {
+    if (!at) return;
+    tipsOpen++;
+    return () => { tipsOpen--; tipClosedAt = performance.now(); };
+  }, [at]);
+  useEffect(() => () => clearTimeout(timer.current), []);
   useLayoutEffect(() => {
     const el = tip.current;
     if (!at || !el) return;
@@ -241,7 +253,7 @@ export function Tip({ text, children }: { text: string; children: ReactNode }) {
   return (
     <span ref={ref} className="inline-flex"
       onPointerDown={e => { kind.current = e.pointerType; }}
-      onPointerEnter={e => { if (e.pointerType === 'mouse') show(); }}
+      onPointerEnter={e => { if (e.pointerType === 'mouse') hoverShow(); }}
       onPointerLeave={e => { if (e.pointerType === 'mouse') hide(); }}
       onFocus={e => { if ((e.target as HTMLElement).matches?.(':focus-visible')) show(); }}
       onBlur={hide}
@@ -249,7 +261,7 @@ export function Tip({ text, children }: { text: string; children: ReactNode }) {
       {children}
       {at && createPortal(
         <span ref={tip} role="tooltip" style={{ left: 0, top: 0, visibility: 'hidden' }}
-          className="tip-in fixed z-[200] w-max max-w-[min(260px,calc(100vw-16px))] px-2.5 py-1.5 rounded-lg bg-ink text-bg text-xs leading-snug font-normal normal-case tracking-normal pointer-events-none shadow-pop">
+          className={cx(!instant && 'tip-in', 'fixed z-[200] w-max max-w-[min(260px,calc(100vw-16px))] px-2.5 py-1.5 rounded-lg bg-ink text-bg text-xs leading-snug font-normal normal-case tracking-normal pointer-events-none shadow-pop')}>
           {text}
         </span>, document.body)}
     </span>
@@ -318,7 +330,8 @@ export function Sheet({ open, onClose, title, children, width = 520, bottom = fa
             style={{ width: !bottom && typeof window !== 'undefined' && window.innerWidth >= 768 ? width : undefined, ...(morph && !fromBottom ? { borderRadius: 20, top: 8, bottom: 8, right: 8, height: 'auto' } : morph ? { borderTopLeftRadius: 20, borderTopRightRadius: 20 } : {}) }}
             initial={off}
             animate={{ x: 0, y: 0, opacity: 1 }}
-            exit={off}
+            // Exit faster than enter: dismissal is the user's intent, so get out of the way (ease-out, 200ms).
+            exit={{ ...off, transition: { duration: reduce ? 0.15 : 0.2, ease } }}
             transition={reduce ? { duration: 0.2 } : morph ? spring : momentumSpring}
             // Bottom sheets follow the finger down and dismiss past ~110px or on a quick flick, like a native sheet.
             drag={fromBottom && !reduce ? 'y' : false} dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0.12, bottom: 0.9 }} dragListener={false}
@@ -347,20 +360,35 @@ const ToastCtx = createContext<Push>(() => {});
 export const useToast = () => useContext(ToastCtx);
 
 /** One toast. Errors stay until dismissed; others pause while hovered or focused. An action (e.g. Undo) gives 6s. */
+const visSub = (cb: () => void) => { document.addEventListener('visibilitychange', cb); return () => document.removeEventListener('visibilitychange', cb); };
 function ToastItem({ t, onClose }: { t: Toast; onClose: () => void }) {
   const [paused, setPaused] = useState(false);
+  const hidden = useSyncExternalStore(visSub, () => document.hidden, () => false);
+  const reduce = useReducedMotion();
+  // Swipe to dismiss (any direction); the toast leaves the way it was flicked.
+  const [gone, setGone] = useState<{ x: number; y: number } | null>(null);
+  const t0 = useRef(0);
   useEffect(() => {
-    if (paused || t.tone === 'error') return;
+    if (paused || hidden || t.tone === 'error') return;
     const h = setTimeout(onClose, t.ms);
     return () => clearTimeout(h);
-  }, [paused, t, onClose]);
+  }, [paused, hidden, t, onClose]);
+  const swipeEnd = (o: { x: number; y: number }) => {
+    setPaused(false);
+    const ax = Math.abs(o.x), ay = Math.abs(o.y), d = Math.max(ax, ay), ms = Math.max(1, performance.now() - t0.current);
+    if (d < 45 && d / ms <= 0.11) return;
+    flushSync(() => setGone(ax >= ay ? { x: Math.sign(o.x) * 360, y: 0 } : { x: 0, y: Math.sign(o.y) * 120 }));
+    onClose();
+  };
   return (
     // Dynamic-Island morph: a small dark pill springs open to full width, then its content fades in.
     <motion.div layout initial={{ opacity: 0, scaleX: 0.35, scaleY: 0.7, y: 12, filter: 'blur(6px)' }} animate={{ opacity: 1, scaleX: 1, scaleY: 1, y: 0, filter: 'blur(0px)' }}
-      exit={{ opacity: 0, scaleX: 0.4, scaleY: 0.7, filter: 'blur(8px)', transition: { duration: 0.22, ease } }} transition={spring}
+      exit={gone ? { opacity: 0, x: gone.x, y: gone.y, transition: { duration: 0.2, ease } } : { opacity: 0, scaleX: 0.4, scaleY: 0.7, filter: 'blur(8px)', transition: { duration: 0.2, ease } }} transition={spring}
+      drag={!reduce} dragSnapToOrigin dragElastic={0.6} dragMomentum={false}
+      onDragStart={() => { t0.current = performance.now(); setPaused(true); }} onDragEnd={(_, i) => swipeEnd(i.offset)}
       onPointerEnter={() => setPaused(true)} onPointerLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}
       style={{ borderRadius: 999 }}
-      className="pointer-events-auto flex items-center gap-2.5 pl-4 pr-1.5 py-1.5 min-h-[44px] bg-[#0b0b0d] text-white border border-white/10 shadow-pop text-sm max-w-[min(90vw,480px)]">
+      className="pointer-events-auto touch-none cursor-grab active:cursor-grabbing flex items-center gap-2.5 pl-4 pr-1.5 py-1.5 min-h-[44px] bg-[#0b0b0d] text-white border border-white/10 shadow-pop text-sm max-w-[min(90vw,480px)]">
       <motion.span className="contents" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.12, duration: 0.25 }}>
         <span className={cx('w-2 h-2 rounded-full shrink-0', t.tone === 'ok' ? 'bg-profit' : t.tone === 'error' ? 'bg-loss' : 'bg-accent')} aria-hidden="true" />
         <span className="py-1 mr-1">{t.text}</span>

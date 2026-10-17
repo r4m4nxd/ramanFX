@@ -112,7 +112,7 @@ function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) =
       <Question q="Basing candles" hint="Tight and well structured. 1–2 is his favourite, up to 4 is fine, wide and messy should be avoided.">
         <div className="flex gap-2 flex-wrap">
           {[1, 2, 3, 4, 5, 6, 7].map(n => (
-            <motion.button key={n} type="button" whileTap={{ scale: 0.97 }} onClick={() => set({ baseCandles: n })}
+            <motion.button key={n} type="button" whileTap={{ transform: 'scale(0.97)' }} transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }} onClick={() => set({ baseCandles: n })}
               className={cx('w-12 h-12 rounded-xl border num text-[15px] font-semibold', p.baseCandles === n ? (n <= 2 ? 'border-profit bg-profit/15 text-profit' : n <= 4 ? 'border-accent bg-accent/15 text-accent' : 'border-loss bg-loss/15 text-loss') : 'border-line bg-raised/40')}>{n === 7 ? '7+' : n}</motion.button>
           ))}
         </div>

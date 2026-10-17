@@ -121,12 +121,12 @@ function DayCard({ day, gs, history, open, onToggle, unit, outlier }: { day: str
         <div className="ml-auto flex items-center gap-5">
           <div className="hidden md:block text-right"><div className="label">PF</div><div className="num text-sm">{s.profitFactor?.toFixed(2) ?? '—'}</div></div>
           <div className="text-right"><div className="label">{unit === 'R' ? 'Net R' : 'Net'}</div><div className={cx('num text-lg font-semibold leading-tight', tone(shown))}>{unit === 'R' ? rMult(totalR, 1) : fmt(s.net, { signed: true })}</div></div>
-          <motion.span animate={{ rotate: open ? 180 : 0 }} className="text-ink3"><Icon name="chevronDown" /></motion.span>
+          <motion.span initial={false} animate={{ transform: `rotate(${open ? 180 : 0}deg)` }} transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }} className="text-ink3 inline-flex"><Icon name="chevronDown" /></motion.span>
         </div>
       </button>
       <AnimatePresence initial={false}>
         {open && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }} className="overflow-hidden">
             <div className="px-4 pb-4 flex flex-col gap-4 border-t border-line pt-4">
               <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-4 items-start">
                 <DayChart gs={gs} unit={unit} />
@@ -206,12 +206,12 @@ function WeekCard({ start, gs, history, open, onToggle, unit, onDay }: { start: 
         </div>
         <div className="ml-auto flex items-center gap-5">
           <div className="text-right"><div className="label">{unit === 'R' ? 'Net R' : 'Net'}</div><div className={cx('num text-lg font-semibold leading-tight', tone(shown))}>{unit === 'R' ? rMult(totalR, 1) : fmt(s.net, { signed: true })}</div></div>
-          <motion.span animate={{ rotate: open ? 180 : 0 }} className="text-ink3"><Icon name="chevronDown" /></motion.span>
+          <motion.span initial={false} animate={{ transform: `rotate(${open ? 180 : 0}deg)` }} transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }} className="text-ink3 inline-flex"><Icon name="chevronDown" /></motion.span>
         </div>
       </button>
       <AnimatePresence initial={false}>
         {open && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }} className="overflow-hidden">
             <div className="px-4 pb-4 flex flex-col gap-4 border-t border-line pt-4">
               <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-4 items-start">
                 <WeekChart gs={gs} unit={unit} start={start} />

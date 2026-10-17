@@ -6,10 +6,10 @@ import { CountUp, cx, ease, spring } from './kit';
 
 /** Big tappable option card used throughout the planner. */
 export function Choice({ on, onClick, title, sub, children, tone = 'accent' }: { on: boolean; onClick: () => void; title: ReactNode; sub?: ReactNode; children?: ReactNode; tone?: 'accent' | 'profit' | 'loss' | 'warn' }) {
-  const ring = { accent: 'border-accent bg-accent/10', profit: 'border-profit bg-profit/10', loss: 'border-loss bg-loss/10', warn: 'border-warn bg-warn/10' }[tone];
+  const ring = { accent: 'border-accent bg-accent/10 ring-1 ring-inset ring-accent', profit: 'border-profit bg-profit/10 ring-1 ring-inset ring-profit', loss: 'border-loss bg-loss/10 ring-1 ring-inset ring-loss', warn: 'border-warn bg-warn/10 ring-1 ring-inset ring-warn' }[tone];
   return (
-    <motion.button type="button" whileTap={{ scale: 0.97 }} onClick={onClick} aria-pressed={on}
-      className={cx('relative text-left rounded-xl border p-3 transition-colors min-h-[56px]', on ? ring : 'border-line bg-raised/40 hover:border-line2')}>
+    <motion.button type="button" whileTap={{ transform: 'scale(0.97)' }} transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }} onClick={onClick} aria-pressed={on}
+      className={cx('relative text-left rounded-xl border p-3 transition-[color,background-color,border-color,box-shadow] duration-150 min-h-[56px] [-webkit-tap-highlight-color:transparent]', on ? ring : 'border-line bg-raised/40 hover:border-line2')}>
       {children}
       <div className="text-[13.5px] font-semibold leading-tight">{title}</div>
       {sub && <div className="text-[11.5px] text-ink3 mt-0.5 leading-snug">{sub}</div>}
@@ -59,7 +59,7 @@ export function MoveAwayArt({ grade, side }: { grade: MoveAway; side: 'buy' | 's
         const x = 4 + i * 8.5, bull = c < o, top = Math.min(flip(o), flip(c)), bot = Math.max(flip(o), flip(c));
         const col = i < base.length ? 'rgb(var(--ink3))' : (bull === up ? 'rgb(var(--profit))' : 'rgb(var(--loss))');
         return (
-          <motion.g key={i} initial={{ opacity: 0, y: up ? 6 : -6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05, duration: 0.3, ease }}>
+          <motion.g key={i} initial={{ opacity: 0, transform: `translateY(${up ? 6 : -6}px)` }} animate={{ opacity: 1, transform: 'translateY(0px)' }} transition={{ delay: i * 0.05, duration: 0.3, ease }}>
             <line x1={x + 2.5} x2={x + 2.5} y1={Math.min(flip(h), flip(l))} y2={Math.max(flip(h), flip(l))} stroke={col} strokeWidth="0.8" />
             <rect x={x} y={top} width="5" height={Math.max(1, bot - top)} rx="0.6" fill={col} />
           </motion.g>
@@ -137,7 +137,7 @@ export function ReasonList({ items, max }: { items: Reason[]; max?: number }) {
               <Icon name={r.tone === 'good' ? 'check' : r.tone === 'bad' ? 'x' : 'alert'} size={10} strokeWidth={3} />
             </span>
             <span className="text-[13px] leading-snug flex-1">{r.text}
-              <AnimatePresence>{open === i && <motion.span initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="block overflow-hidden text-[11.5px] text-ink3 italic mt-1">Rule: {r.rule}</motion.span>}</AnimatePresence>
+              <AnimatePresence>{open === i && <motion.span initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }} className="block overflow-hidden text-[11.5px] text-ink3 italic mt-1">Rule: {r.rule}</motion.span>}</AnimatePresence>
             </span>
           </button>
         </motion.li>

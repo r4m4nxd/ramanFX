@@ -116,12 +116,12 @@ export function DayPeek({ day, onClose }: { day: string | null; onClose: () => v
     <AnimatePresence>
       {day && (
         <div className="fixed inset-0 z-[80] flex items-end md:items-center justify-center md:p-6" role="dialog" aria-modal="true" aria-labelledby={titleId}>
-          <motion.div className="absolute inset-0 bg-black/55 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
+          <motion.div className="absolute inset-0 bg-black/55 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.18 } }} onClick={onClose} />
           <motion.div ref={panel}
             className="relative w-full md:max-w-[560px] max-h-sheet md:max-h-[86vh] flex flex-col bg-surface border border-line2 shadow-pop rounded-t-3xl md:rounded-3xl overflow-hidden luxe-border"
-            initial={{ opacity: 0, scale: 0.08, ...origin.current }} animate={{ opacity: 1, scale: 1, x: 0, y: 0 }} exit={mobile ? { y: '100%' } : { opacity: 0, scale: 0.08, ...origin.current }}
+            initial={{ opacity: 0, scale: 0.08, ...origin.current }} animate={{ opacity: 1, scale: 1, x: 0, y: 0 }} exit={mobile ? { y: '100%', transition: { duration: 0.22, ease: [0.23, 1, 0.32, 1] } } : { opacity: 0, scale: 0.08, ...origin.current, transition: { duration: 0.18, ease: [0.23, 1, 0.32, 1] } }}
             transition={spring}
-            drag={mobile ? 'y' : false} dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.6 }} onDragEnd={(_, i) => { if (i.offset.y > 120 || i.velocity.y > 600) onClose(); }}>
+            drag={mobile ? 'y' : false} dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.6 }} onDragEnd={(_, i) => { if (i.offset.y > 120 || i.velocity.y > 500 || (i.offset.y > 40 && i.velocity.y > 250)) onClose(); }}>
             {mobile && <div className="pt-2.5 pb-1 grid place-items-center"><span className="w-10 h-1.5 rounded-full bg-line2" /></div>}
             <Body day={day} onClose={onClose} titleId={titleId} />
           </motion.div>
@@ -192,7 +192,7 @@ function Body({ day, onClose, titleId }: { day: string; onClose: () => void; tit
             ['Worst trade', fmt(worst, { signed: true }), ''],
             ['Fees', fmt(trades.reduce((a, t) => a + t.commission + t.swap, 0), { signed: true }), 'Commission + swap'],
           ] as [string, string, string][]).map(([k, v, sub], i) => (
-            <motion.div key={k} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.03 }} className="rounded-xl bg-raised/70 border border-line px-3 py-2.5 min-w-0">
+            <motion.div key={k} initial={{ opacity: 0, transform: 'translateY(8px)' }} animate={{ opacity: 1, transform: 'translateY(0px)' }} transition={{ delay: 0.1 + i * 0.03, duration: 0.25, ease: [0.23, 1, 0.32, 1] }} className="rounded-xl bg-raised/70 border border-line px-3 py-2.5 min-w-0">
               <div className="label truncate">{k}</div>
               <div className={cx('num text-[14px] font-semibold mt-0.5 truncate', k === 'Best trade' ? 'text-profit' : k === 'Worst trade' ? 'text-loss' : '')}>{v}</div>
               {sub && <div className="text-[10.5px] text-ink3 truncate">{sub}</div>}

@@ -40,10 +40,13 @@
   --motion-fast: 150ms; --motion-base: 250ms; --motion-slow: 450ms;
   /* Easing tokens: strong ease-out for entrances/exits, ease-in-out for on-screen moves, iOS drawer curve. */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1); --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1); --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  /* Bar material (header, tab bar): translucent fill + 0.5px-looking hairline drawn as an inset shadow. */
+  --material: rgb(var(--bg) / 0.72); --hairline: rgb(255 255 255 / 0.09);
   color-scheme: dark;
 }
 
 [data-theme='light'] {
+  --material: rgb(255 255 255 / 0.72); --hairline: rgb(0 0 0 / 0.14);
   /* Warm editorial light: white bento cards on soft grey, near-black ink, one coral accent, black active pills. */
   --bg: 242 242 242;     /* #F2F2F2 */
   --surface: 255 255 255;
@@ -223,7 +226,7 @@
 @media (max-width: 1023px) { .page-push { animation: pagePush 0.35s var(--ease-drawer) both; } }
 /* iOS large title: big on top of the page, collapses into the bar once you scroll past it. */
 .large-title { font-size: 34px; line-height: 41px; font-weight: 700; letter-spacing: -0.022em; }
-.bar-title { transition: opacity 0.2s ease, transform 0.25s var(--ease-spring); }
+.bar-title { letter-spacing: -0.024em; transition: opacity 0.2s ease, transform 0.25s var(--ease-spring); }
 .btn-base { transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.2s ease, transform 0.5s var(--ease-spring); }
 .btn-base:active, .press:active { transform: scale(0.97); transition: transform 100ms var(--ease-out); }
 /* Press feedback for custom tappables (rows, tiles, tab items): same squeeze as buttons, released with the spring. */
@@ -301,3 +304,12 @@
 .amb .fb { left: 50%; top: 0; width: min(560px, 70vw); height: 2px; transform: translateX(-50%); border-radius: 2px;
   background: linear-gradient(90deg, transparent, var(--amb-bar), transparent); box-shadow: 0 0 24px 6px var(--amb-flare); }
 @media (prefers-reduced-motion: reduce) { .amb i { animation: none !important; } }
+
+/* Apple bar material: blur + saturate over content; hairline sits on the edge facing content. */
+.material { background-color: var(--material); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%); }
+.hairline-b { box-shadow: inset 0 -0.5px 0 var(--hairline); } .hairline-t { box-shadow: inset 0 0.5px 0 var(--hairline); }
+@media (prefers-reduced-transparency: reduce) { .material { background-color: rgb(var(--bg)); } }
+/* Headings: Apple-style tight display tracking (tighter as size grows). */
+.tracking-display { letter-spacing: -0.022em; } .tracking-heading { letter-spacing: -0.012em; }
+/* Tab items: label/icon stack with a 44px+ target; press squeeze comes from .press. */
+.tab-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 64px; min-height: 49px; -webkit-tap-highlight-color: transparent; }
