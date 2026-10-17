@@ -159,7 +159,6 @@
   *:not(.page-in):not(.tip-in), *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
   html { scroll-behavior: auto !important; }
   .btn-base:active, .hold-cell:active, .heat-cell.is-active, .press:active { transform: none !important; }
-  .bar-title { transform: none !important; }
 }
 
 .recharts-tooltip-cursor { fill: rgb(var(--ink) / 0.04); }
@@ -231,7 +230,12 @@
 @media (max-width: 1023px) { .page-push { animation: pagePush 0.35s var(--ease-drawer) both; } }
 /* iOS large title: big on top of the page, collapses into the bar once you scroll past it. */
 .large-title { font-size: 34px; line-height: 41px; font-weight: 700; letter-spacing: -0.022em; }
-.bar-title { letter-spacing: -0.024em; transition: opacity 0.2s ease, transform 0.25s var(--ease-spring); }
+.bar-title { letter-spacing: -0.024em; }
+/* iOS 26 scroll edge: a fixed band whose blur fades out downward (masked), so content melts away under the top bar. */
+.scroll-edge { position: fixed; top: 0; inset-inline: 0; z-index: 29; pointer-events: none; height: calc(env(safe-area-inset-top) + 76px);
+  background: linear-gradient(180deg, rgb(var(--bg) / 0.85) 0%, rgb(var(--bg) / 0.55) 55%, transparent 100%);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent 100%); mask-image: linear-gradient(180deg, #000 45%, transparent 100%); }
 .btn-base { transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.2s ease, transform 0.5s var(--ease-spring); }
 .btn-base:active, .press:active { transform: scale(0.97); transition: transform 100ms var(--ease-out); }
 /* Press feedback for custom tappables (rows, tiles, tab items): same squeeze as buttons, released with the spring. */

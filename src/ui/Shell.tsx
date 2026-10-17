@@ -1,4 +1,4 @@
-import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
+import { AnimatePresence, motion, MotionConfig, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '@/data/store';
@@ -281,9 +281,21 @@ export function Shell({ children }: { children: ReactNode }) {
 
   // Transparent header over the ambient canvas at the top of a page; solid once content scrolls under it.
   const [scrolled, setScrolled] = useState(false);
-  const [pastTitle, setPastTitle] = useState(false);
+  // iOS large title → inline title, tied to the scroll position (not a timed animation), so it tracks the finger both ways:
+  // the large title blurs, shrinks and fades as it slides under the top edge; the bar title sharpens in out of a blur.
+  const phone = usePhoneBar();
+  const reduceMotion = useReducedMotion();
+  const { scrollY } = useScroll();
+  const bigOpacity = useTransform(scrollY, [0, 44], [1, 0]);
+  const bigFilter = useTransform(scrollY, [0, 44], ['blur(0px)', 'blur(8px)']);
+  const bigScale = useTransform(scrollY, [0, 44], [1, 0.94]);
+  const barOpacity = useTransform(scrollY, [26, 56], [0, 1]);
+  const barFilter = useTransform(scrollY, [26, 56], ['blur(6px)', 'blur(0px)']);
+  const barY = useTransform(scrollY, [26, 56], [5, 0]);
+  const edgeOpacity = useTransform(scrollY, [0, 24], [0, 1]);
+  const liveTitle = phone && !deep;
   useEffect(() => {
-    const on = () => { setScrolled(window.scrollY > 4); setPastTitle(window.scrollY > 38); };
+    const on = () => setScrolled(window.scrollY > 4);
     on(); window.addEventListener('scroll', on, { passive: true });
     return () => window.removeEventListener('scroll', on);
   }, []);
@@ -329,11 +341,14 @@ export function Shell({ children }: { children: ReactNode }) {
 
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Top bar */}
+        {/* Phone scroll-edge effect (iOS 26): no solid bar; content dissolves into a progressive blur under the top edge. */}
+        {phone && <motion.div aria-hidden="true" className="scroll-edge lg:hidden land:hidden" style={{ opacity: edgeOpacity, height: `calc(env(safe-area-inset-top) + ${scoped ? 124 : 76}px)` }} />}
         {/* Top bar floats: transparent at rest, then condenses into a glass capsule once content scrolls beneath it. */}
         <header className="sticky top-0 z-30 pt-safe px-safe">
-          <div className={cx('mx-2 lg:mx-4 mt-1.5 rounded-[26px] border border-transparent transition-[background-color,box-shadow,border-color] duration-200', scrolled ? 'glass' : 'bg-transparent shadow-none')}>
+          <div className={cx('mx-2 lg:mx-4 mt-1.5 rounded-[26px] border border-transparent transition-[background-color,box-shadow,border-color] duration-200', scrolled && !phone ? 'glass' : 'bg-transparent shadow-none')}>
           <div className="max-w-[1360px] mx-auto flex items-center gap-2 px-3 lg:px-5 h-14 land:h-12">
-            <h1 className={cx('bar-title text-[17px] lg:text-[19px] font-semibold truncate min-w-[60px]', !pastTitle && !deep && 'max-lg:land:opacity-100 max-lg:opacity-0 max-lg:translate-y-1')}>{title}</h1>
+            <motion.h1 className="bar-title text-[17px] lg:text-[19px] font-semibold truncate min-w-[60px]"
+              style={liveTitle ? (reduceMotion ? { opacity: barOpacity } : { opacity: barOpacity, filter: barFilter, y: barY }) : undefined}>{title}</motion.h1>
             <span className="order-last xl:order-none xl:ml-3 shrink-0 h-9 w-9 xl:w-auto 2xl:h-10">
               {!cmd && (
                 <motion.button layoutId="cmd-morph" style={{ borderRadius: 20 }} transition={spring} type="button" onClick={openCmd} aria-label="Search pages, trades and actions"
@@ -369,7 +384,7 @@ export function Shell({ children }: { children: ReactNode }) {
           {/* Plain keyed fade-in. An exit-then-enter handoff (AnimatePresence "wait") could stall
               while a lazy page was still loading, leaving the new page invisible. */}
           <motion.div key={loc.pathname} className={deep ? 'page-in page-push' : 'page-in'}>
-              {!deep && <div className="lg:hidden land:hidden large-title mb-3 -mt-1" aria-hidden="true">{title}</div>}
+              {!deep && <motion.div className="lg:hidden land:hidden large-title mb-3 -mt-1 origin-left" aria-hidden="true" style={reduceMotion ? { opacity: bigOpacity } : { opacity: bigOpacity, filter: bigFilter, scale: bigScale }}>{title}</motion.div>}
               {!hasTrades && !['/playbook', '/calculator', '/settings', '/risk', '/notebook', '/strategies', '/plan', '/guru', '/guide', '/news', '/chart', '/design', '/learn', '/bot-guide'].some(p => loc.pathname.startsWith(p)) ? <Welcome onImport={() => setImportOpen(true)} /> : children}
           </motion.div>
         </main>
@@ -447,4 +462,12 @@ function DevDataToggle() {
       {DATA_MODES.map(m => <button key={m} type="button" role="radio" aria-checked={DATA_MODE === m} onClick={() => go(m)} className={cx('h-6 px-2.5 rounded-full whitespace-nowrap', DATA_MODE === m && 'bg-white text-black shadow-sm')}>{label[m]}</button>)}
     </div>
   );
+}
+
+/** Phone portrait layout (large title + scroll-edge effect): below lg and not the short landscape layout. */
+const phoneMq = '(max-width: 1023px) and (not ((orientation: landscape) and (max-height: 520px)))';
+function usePhoneBar() {
+  const [on, setOn] = useState(() => typeof window !== 'undefined' && window.matchMedia(phoneMq).matches);
+  useEffect(() => { const m = window.matchMedia(phoneMq); const f = () => setOn(m.matches); m.addEventListener('change', f); return () => m.removeEventListener('change', f); }, []);
+  return on;
 }
