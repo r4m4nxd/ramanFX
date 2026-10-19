@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { useStore } from '@/data/store';
 import { Shell } from '@/ui/Shell';
 import SignIn from '@/pages/SignIn';
+import { DATA_MODE } from '@/data/derived';
 import { ToastProvider } from '@/ui/kit';
 import Dashboard from '@/pages/Dashboard';
 
@@ -52,8 +53,11 @@ export default function App() {
   }, []);
   const auth = useStore(s => s.auth);
   // Signed-out visitors only ever see the sign-in screen; nothing of the journal renders.
-  if (auth === 'checking') return null;
-  if (auth === 'out') return <SignIn />;
+  // Dev stress fixtures (?data=…, never in production builds) render without an account.
+  if (DATA_MODE === 'real') {
+    if (auth === 'checking') return null;
+    if (auth === 'out') return <SignIn />;
+  }
   return (
     <BrowserRouter>
       <ToastProvider>

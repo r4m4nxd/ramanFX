@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from './Icon';
-import { spring } from './kit';
+import { lockScroll, spring } from './kit';
 
 export interface LightboxImage { src: string; name?: string }
 
@@ -23,9 +23,8 @@ export function Lightbox({ images, index, onClose }: { images: LightboxImage[]; 
     if (!open) return;
     const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); if (e.key === 'ArrowRight') go(1); if (e.key === 'ArrowLeft') go(-1); };
     window.addEventListener('keydown', k);
-    const { overflow } = document.body.style;
-    document.body.style.overflow = 'hidden';
-    return () => { window.removeEventListener('keydown', k); document.body.style.overflow = overflow; };
+    const unlock = lockScroll();
+    return () => { window.removeEventListener('keydown', k); unlock(); };
   }, [open, go, onClose]);
 
   const img = images[Math.min(i, images.length - 1)];
@@ -53,7 +52,7 @@ export function Lightbox({ images, index, onClose }: { images: LightboxImage[]; 
             <button className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white grid place-items-center max-md:hidden" onClick={e => { e.stopPropagation(); go(-1); }} aria-label="Previous image"><Icon name="chevronLeft" /></button>
             <button className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white grid place-items-center max-md:hidden" onClick={e => { e.stopPropagation(); go(1); }} aria-label="Next image"><Icon name="chevronRight" /></button>
             <div className="absolute left-1/2 -translate-x-1/2 flex gap-1.5" style={{ bottom: 'max(16px, env(safe-area-inset-bottom))' }}>
-              {images.map((_, k) => <span key={k} className={`h-1.5 rounded-full transition-all ${k === i ? 'w-5 bg-white' : 'w-1.5 bg-white/40'}`} />)}
+              {images.map((_, k) => <span key={k} className={`h-1.5 rounded-full transition-[width,background-color] duration-200 ease-out ${k === i ? 'w-5 bg-white' : 'w-1.5 bg-white/40'}`} />)}
             </div>
           </>)}
         </motion.div>

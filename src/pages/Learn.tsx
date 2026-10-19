@@ -152,7 +152,7 @@ export default function Learn() {
   return (
     <Page>
       <div className="grid gap-4 lg:grid-cols-[300px_1fr] items-start">
-        <aside className={cx('flex flex-col gap-3 lg:sticky lg:top-20', lesson && 'max-lg:hidden')}>
+        <aside className={cx('flex flex-col gap-3 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)]', lesson && 'max-lg:hidden')}>
           <Card>
             <Segmented label="Source" value={src} onChange={v => { setQ(''); setSp(v === 'zoom' ? { src: 'zoom' } : {}); }}
               options={[{ value: 'course', label: `Video course · ${VIDEO_LESSONS.length}` }, { value: 'zoom', label: `Sunday live · ${ZOOM_SESSIONS.length}` }]} />
@@ -160,7 +160,8 @@ export default function Learn() {
             <div className="h-1.5 rounded-full bg-line mt-2 overflow-hidden"><div className="h-full bg-accent rounded-full" style={{ width: `${pct * 100}%` }} /></div>
             <input className="field mt-3" placeholder={src === 'zoom' ? 'Search every session…' : 'Search every lesson…'} aria-label="Search" value={q} onChange={e => setQ(e.target.value)} />
           </Card>
-          <Card className="p-2">
+          {/* The list scrolls by itself (desktop), independent of the lesson beside it. */}
+          <Card className="p-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
             <ol className="flex flex-col">
               {list.map(l => (
                 <li key={l.n}>

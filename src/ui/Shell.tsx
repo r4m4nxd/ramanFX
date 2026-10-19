@@ -1,13 +1,18 @@
-import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
+import { AnimatePresence, motion, MotionConfig, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '@/data/store';
+import { DATA_MODE, useTrades } from '@/data/derived';
+import { DATA_MODES } from '@/data/worstCase';
 import { netOf } from '@/core/stats';
 import { money } from '@/lib/format';
 import { Ambient } from './Ambient';
 import { Icon, type IconName } from './Icon';
-import { cx, Segmented, Sheet, spring, useDialogFocus, useOnline, useToast } from './kit';
+import { cx, enteringSoftly, Segmented, Sheet, useScrollLock, softClick, softNavigate, spring, useDialogFocus, useOnline, useToast } from './kit';
 import { ImportPanel } from './ImportPanel';
+import { GlassTabBar } from './GlassTabBar';
+import { installLiveCards } from './liveCards';
+import { installRubberBand } from './rubberBand';
 import { presets, RangePicker } from './RangePicker';
 
 type Group = 'Today' | 'Review' | 'Plan & tools' | 'Help';
@@ -16,7 +21,7 @@ type Group = 'Today' | 'Review' | 'Plan & tools' | 'Help';
  * `mobile` = in the phone tab bar; `scoped` = the page reads the date range / account filters; `hint` = one line on what it's for.
  */
 export const NAV: { to: string; label: string; short?: string; icon: IconName; mobile?: boolean; group: Group; hint: string; scoped?: boolean }[] = [
-  { to: '/', label: 'Dashboard', icon: 'dashboard', mobile: true, group: 'Today', hint: 'Today at a glance', scoped: true },
+  { to: '/', label: 'Dashboard', short: 'Home', icon: 'dashboard', mobile: true, group: 'Today', hint: 'Today at a glance', scoped: true },
   { to: '/plan', label: 'Planner', short: 'Plan', icon: 'target', mobile: true, group: 'Today', hint: "Today's zones and entries", scoped: true },
   { to: '/journal', label: 'Daily journal', short: 'Journal', icon: 'journal', mobile: true, group: 'Today', hint: 'Notes and P&L by day', scoped: true },
   { to: '/trades', label: 'Trades', icon: 'trades', mobile: true, group: 'Review', hint: 'Every position, filter and review', scoped: true },
@@ -117,7 +122,8 @@ function AccountPicker() {
 type Cmd = { key: string; label: string; hint?: ReactNode; icon: IconName; run: () => void; group: 'Actions' | 'Pages' | 'Trades' };
 
 /** ⌘K: run a shell action, jump to a page or find a trade. A combobox over a listbox, so screen readers follow the highlight. */
-function CommandPalette({ open, onClose, actions }: { open: boolean; onClose: () => void; actions: Cmd[] }) {
+/** `instant`: opened from the keyboard (⌘K or /), an action hit many times a day, so it appears and leaves with no animation. */
+function CommandPalette({ open, onClose, actions, instant }: { open: boolean; onClose: () => void; actions: Cmd[]; instant: boolean }) {
   const [q, setQ] = useState('');
   const [i, setI] = useState(0);
   const nav = useNavigate();
@@ -127,9 +133,10 @@ function CommandPalette({ open, onClose, actions }: { open: boolean; onClose: ()
   const box = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLUListElement>(null);
   useDialogFocus(open, box);
+  useScrollLock(open);
   const items = useMemo<Cmd[]>(() => {
     const ql = q.trim().toLowerCase();
-    const pages: Cmd[] = NAV.map(n => ({ key: n.to, label: n.label, hint: n.hint, icon: n.icon, run: () => nav(n.to), group: 'Pages' }));
+    const pages: Cmd[] = NAV.map(n => ({ key: n.to, label: n.label, hint: n.hint, icon: n.icon, run: () => softNavigate(() => nav(n.to)), group: 'Pages' }));
     const ranges: Cmd[] = presets().map(p => ({ key: `range-${p.label}`, label: `Range: ${p.label}`, hint: 'Date filter', icon: 'calendar', run: () => useStore.getState().setRange(p), group: 'Actions' }));
     if (!ql) return [...actions, ...pages];
     const match = (c: Cmd) => c.label.toLowerCase().includes(ql) || (typeof c.hint === 'string' && c.hint.toLowerCase().includes(ql));
@@ -150,10 +157,12 @@ function CommandPalette({ open, onClose, actions }: { open: boolean; onClose: ()
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-[70] flex items-start justify-center pt-[calc(12vh+env(safe-area-inset-top))] px-4" role="dialog" aria-modal="true" aria-label="Command palette">
-          <motion.div className="absolute inset-0 bg-black/50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
+          <motion.div className="absolute inset-0 bg-black/50" initial={instant ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: instant ? { duration: 0 } : { duration: 0.15 } }} onClick={onClose} />
           {/* Morph: on wide screens the header search pill grows into this panel (shared layoutId); content blurs in once the shape has settled. */}
-          <motion.div ref={box} layoutId="cmd-morph" style={{ borderRadius: 16 }} className="relative w-full max-w-lg card shadow-pop overflow-hidden" initial={{ opacity: 0, scale: 0.97, y: -8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0 }} transition={spring}>
-            <motion.div initial={{ opacity: 0, filter: 'blur(6px)' }} animate={{ opacity: 1, filter: 'blur(0px)', transition: { delay: 0.1, duration: 0.25 } }} exit={{ opacity: 0, filter: 'blur(6px)', transition: { duration: 0.1 } }}>
+          <motion.div ref={box} layoutId={instant ? undefined : 'cmd-morph'} style={{ borderRadius: 16 }} className="relative w-full max-w-lg glass-pop overflow-hidden"
+            initial={instant ? false : { opacity: 0, transform: 'translateY(-8px) scale(0.97)' }} animate={{ opacity: 1, transform: 'translateY(0px) scale(1)' }} exit={{ opacity: 0, transition: instant ? { duration: 0 } : { duration: 0.15 } }} transition={spring}>
+            {/* Content sharpens in quickly once the shape is nearly there: the user is about to type. */}
+            <motion.div initial={instant ? false : { opacity: 0, filter: 'blur(4px)' }} animate={{ opacity: 1, filter: 'blur(0px)', transition: { delay: 0.06, duration: 0.15 } }} exit={{ opacity: 0, transition: { duration: instant ? 0 : 0.1 } }}>
             <div className="flex items-center gap-2 px-4 border-b border-line">
               <Icon name="search" className="text-ink3" />
               <input autoFocus role="combobox" aria-expanded="true" aria-controls="cmd-list" aria-activedescendant={items[i] ? `cmd-${i}` : undefined} aria-autocomplete="list"
@@ -167,7 +176,7 @@ function CommandPalette({ open, onClose, actions }: { open: boolean; onClose: ()
                 }} />
               <button type="button" onClick={onClose} className="text-[10px] text-ink3 border border-line2 rounded px-1.5 py-0.5" aria-label="Close">ESC</button>
             </div>
-            <ul ref={list} id="cmd-list" role="listbox" aria-label="Results" className="max-h-[50vh] overflow-y-auto p-1.5">
+            <ul ref={list} id="cmd-list" role="listbox" aria-label="Results" className="max-h-[50vh] max-h-[50dvh] overflow-y-auto overscroll-contain touch-pan-y p-1.5">
               {items.map((it, k) => (<li key={it.key} role="presentation">
                 {(k === 0 || items[k - 1].group !== it.group) && <div className="label px-3 pt-2.5 pb-1" aria-hidden="true">{it.group}</div>}
                 <div id={`cmd-${k}`} data-k={k} role="option" aria-selected={k === i} className={cx('w-full flex items-center gap-3 px-3 h-10 rounded-lg text-sm text-left cursor-pointer', k === i ? 'bg-raised text-ink' : 'text-ink2')} onMouseMove={() => setI(k)} onClick={() => pick(it)}>
@@ -186,8 +195,9 @@ function CommandPalette({ open, onClose, actions }: { open: boolean; onClose: ()
 
 /** Sidebar row (desktop). The active page gets a quiet raised row; violet glow is kept for the one active control. */
 function SideLink({ n }: { n: (typeof NAV)[number] }) {
+  const nav = useNavigate();
   return (
-    <NavLink to={n.to} end={n.to === '/'} className={({ isActive }) => cx('relative flex items-center gap-3 h-10 short:h-9 px-3 rounded-xl text-[13.5px] font-medium transition-colors shrink-0', isActive ? 'text-ink' : 'text-ink3 hover:text-ink2 hover:bg-raised/60')}>
+    <NavLink to={n.to} end={n.to === '/'} onClick={softClick(() => nav(n.to))} className={({ isActive }) => cx('relative flex items-center gap-3 h-10 short:h-9 px-3 rounded-xl text-[13.5px] font-medium transition-colors shrink-0', isActive ? 'text-ink' : 'text-ink3 hover:text-ink2 hover:bg-raised/60')}>
       {({ isActive }) => (<>
         {isActive && <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-xl side-on" transition={spring} />}
         <Icon name={n.icon} size={16} className={cx('relative', isActive && 'text-accent')} /><span className="relative">{n.label}</span>
@@ -201,10 +211,12 @@ export function Shell({ children }: { children: ReactNode }) {
   const theme = useStore(s => s.theme), setTheme = useStore(s => s.setTheme);
   const privacy = useStore(s => s.privacy), setPrivacy = useStore(s => s.setPrivacy);
   const user = useStore(s => s.user), syncNow = useStore(s => s.syncNow);
-  const hasTrades = useStore(s => s.trades.length > 0);
+  const hasTrades = useTrades().length > 0;
   const [importOpen, setImportOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [cmd, setCmd] = useState(false);
+  const [cmdKbd, setCmdKbd] = useState(false);
+  const openCmd = () => { setCmdKbd(false); setCmd(true); };
   const toast = useToast();
   const mainRef = useRef<HTMLElement>(null);
   const online = useOnline();
@@ -213,6 +225,7 @@ export function Shell({ children }: { children: ReactNode }) {
   // The date range and account filters only show where the page actually reads them.
   const scoped = !!here?.scoped;
   const inMore = !here?.mobile;
+  const mobileTabs = useMemo(() => NAV.filter(n => n.mobile).map(n => ({ to: n.to, label: n.short ?? n.label, icon: n.icon })), []);
   const multiAccount = useStore(s => Object.keys(s.accounts).length > 1);
   // Drill-down page (e.g. /trades/123): iOS push in, no large title, and an edge swipe takes you back.
   const deep = loc.pathname.split('/').filter(Boolean).length > 1 && !loc.pathname.startsWith('/learn');
@@ -234,7 +247,7 @@ export function Shell({ children }: { children: ReactNode }) {
       if (!active || !el) return;
       active = false;
       const dx = e.clientX - x0, v = dx / Math.max(1, performance.now() - t0) * 1000;
-      el.style.transition = 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)';
+      el.style.transition = 'transform 0.35s var(--ease-drawer)';
       if (dx + v * 0.2 > window.innerWidth * 0.4) { navigator.vibrate?.(8); el.style.transform = `translateX(${window.innerWidth}px)`; window.setTimeout(() => { if (el) { el.style.transition = 'none'; el.style.transform = ''; } navTo(-1); }, 220); }
       else el.style.transform = '';
     };
@@ -242,6 +255,11 @@ export function Shell({ children }: { children: ReactNode }) {
     return () => { window.removeEventListener('pointerdown', down); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); };
   }, [deep, navTo]);
 
+  useGlassLight();
+  // Decided once per page: entered through the soft transition → no extra CSS fade (it would blink when it starts late).
+  const pageEnter = useMemo(() => (enteringSoftly() ? '' : deep ? 'page-in page-push' : 'page-in'), [loc.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Top and bottom of the page stretch and settle like iOS instead of stopping dead.
+  useEffect(() => (mainRef.current ? installRubberBand(mainRef.current) : undefined), []);
   const first = useRef(true);
   useEffect(() => {
     window.scrollTo({ top: 0 }); setMoreOpen(false);
@@ -251,9 +269,10 @@ export function Shell({ children }: { children: ReactNode }) {
   }, [loc.pathname]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setCmd(v => !v); return; }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setCmdKbd(true); setCmd(v => !v); return; }
       const t = e.target as HTMLElement;
-      if (e.key === '/' && !e.metaKey && !e.ctrlKey && !t.closest('input, textarea, select, [contenteditable="true"], [role="dialog"]')) { e.preventDefault(); setCmd(true); }
+      // A page that owns "/" (Trades focuses its own search) claims it first in the capture phase.
+      if (e.key === '/' && !e.defaultPrevented && !e.metaKey && !e.ctrlKey && !t.closest('input, textarea, select, [contenteditable="true"], [role="dialog"]')) { e.preventDefault(); setCmdKbd(true); setCmd(true); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -271,9 +290,21 @@ export function Shell({ children }: { children: ReactNode }) {
 
   // Transparent header over the ambient canvas at the top of a page; solid once content scrolls under it.
   const [scrolled, setScrolled] = useState(false);
-  const [pastTitle, setPastTitle] = useState(false);
+  // iOS large title → inline title, tied to the scroll position (not a timed animation), so it tracks the finger both ways:
+  // the large title blurs, shrinks and fades as it slides under the top edge; the bar title sharpens in out of a blur.
+  const phone = usePhoneBar();
+  const reduceMotion = useReducedMotion();
+  const { scrollY } = useScroll();
+  const bigOpacity = useTransform(scrollY, [0, 44], [1, 0]);
+  const bigFilter = useTransform(scrollY, [0, 44], ['blur(0px)', 'blur(8px)']);
+  const bigScale = useTransform(scrollY, [0, 44], [1, 0.94]);
+  const barOpacity = useTransform(scrollY, [26, 56], [0, 1]);
+  const barFilter = useTransform(scrollY, [26, 56], ['blur(6px)', 'blur(0px)']);
+  const barY = useTransform(scrollY, [26, 56], [5, 0]);
+  const edgeOpacity = useTransform(scrollY, [0, 24], [0, 1]);
+  const liveTitle = phone && !deep;
   useEffect(() => {
-    const on = () => { setScrolled(window.scrollY > 4); setPastTitle(window.scrollY > 38); };
+    const on = () => setScrolled(window.scrollY > 4);
     on(); window.addEventListener('scroll', on, { passive: true });
     return () => window.removeEventListener('scroll', on);
   }, []);
@@ -287,14 +318,14 @@ export function Shell({ children }: { children: ReactNode }) {
   ], [privacy, theme, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const groups: Group[] = ['Today', 'Review', 'Plan & tools'];
-  const tile = (active: boolean) => cx('flex flex-col items-center justify-center gap-2 py-4 land:py-2 land:gap-1 rounded-xl bg-raised border text-xs font-medium text-center', active ? 'border-accent/40 text-ink' : 'border-line text-ink2');
   return (
     <MotionConfig reducedMotion="user">
-    <div className="min-h-screen flex land:pl-[calc(68px+env(safe-area-inset-left))]">
+    <div className="min-h-screen flex land:pl-[calc(80px+env(safe-area-inset-left))]">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[80] btn-primary">Skip to content</a>
       <Ambient />
       {/* Desktop sidebar: logo, a scrolling nav, and a pinned footer so nothing is ever cut off on a short screen. */}
-      <aside className="hidden lg:flex w-[232px] shrink-0 flex-col border-r border-line bg-surface/40 py-4 sticky top-0 h-screen">
+      {/* Floating glass sidebar: inset from the window edges so the canvas glows around it. */}
+      <aside className="vt-side hidden lg:flex w-[232px] shrink-0 flex-col glass rounded-[26px] m-3 mr-0 py-4 sticky top-3 h-[calc(100vh-24px)]">
         <div className="flex items-center gap-2.5 px-5 pb-4 short:pb-3 pt-1 shrink-0">
           <img src="/icon.svg" alt="" className="w-8 h-8 rounded-[9px] ring-1 ring-line" />
           <div className="font-bold text-[16px] tracking-tight">RamanFX</div>
@@ -310,7 +341,7 @@ export function Shell({ children }: { children: ReactNode }) {
         <div className="shrink-0 border-t border-line mx-3 pt-2 flex flex-col gap-0.5">
           {NAV.filter(n => n.group === 'Help').map(n => <SideLink key={n.to} n={n} />)}
           <div className="flex flex-col gap-0.5 mt-1">
-            <button className="btn-ghost h-8 px-3 justify-start gap-3 text-ink3 text-xs font-medium whitespace-nowrap" onClick={() => setCmd(true)} aria-label={`Search (shortcut / or ${MOD.trim()}+K)`}><Icon name="search" size={14} />Search<kbd className="ml-auto text-[10px] border border-line2 rounded px-1 whitespace-nowrap">{MOD}K</kbd></button>
+            <button className="btn-ghost h-8 px-3 justify-start gap-3 text-ink3 text-xs font-medium whitespace-nowrap" onClick={openCmd} aria-label={`Search (shortcut / or ${MOD.trim()}+K)`}><Icon name="search" size={14} />Search<kbd className="ml-auto text-[10px] border border-line2 rounded px-1 whitespace-nowrap">{MOD}K</kbd></button>
             <a href="/legacy.html" className="btn-ghost h-8 px-3 justify-start gap-3 text-ink3 text-xs font-medium whitespace-nowrap"><Icon name="link" size={14} />Classic app</a>
           </div>
         </div>
@@ -318,17 +349,14 @@ export function Shell({ children }: { children: ReactNode }) {
 
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Top bar */}
-        <header className={cx('sticky top-0 z-30 border-b pt-safe px-safe transition-colors duration-300', scrolled ? 'bg-bg/70 [backdrop-filter:blur(20px)_saturate(180%)] [-webkit-backdrop-filter:blur(20px)_saturate(180%)] border-transparent shadow-[0_8px_24px_-16px_rgb(0_0_0/0.45)]' : 'bg-transparent border-transparent')}>
-          <div className="max-w-[1360px] mx-auto flex items-center gap-2 px-4 lg:px-7 h-14 land:h-12">
-            <h1 className={cx('bar-title text-[17px] lg:text-[19px] font-semibold tracking-tight truncate min-w-[60px]', !pastTitle && !deep && 'max-lg:land:opacity-100 max-lg:opacity-0 max-lg:translate-y-1')}>{title}</h1>
-            <span className="order-last xl:order-none xl:ml-3 shrink-0 h-9 w-9 xl:w-auto 2xl:h-10">
-              {!cmd && (
-                <motion.button layoutId="cmd-morph" style={{ borderRadius: 20 }} transition={spring} type="button" onClick={() => setCmd(true)} aria-label="Search pages, trades and actions"
-                  className="flex items-center justify-center xl:justify-start gap-2.5 h-9 w-9 xl:w-auto 2xl:h-10 2xl:w-[230px] xl:px-3 2xl:px-4 border border-line bg-raised/40 text-[13px] text-ink3 hover:text-ink2 transition-colors active:scale-95">
-                  <Icon name="search" size={15} /><span className="hidden 2xl:inline">Search pages and trades</span><kbd className="hidden xl:inline ml-auto text-[10px] border border-line2 rounded-full px-1.5">{MOD}K</kbd>
-                </motion.button>
-              )}
-            </span>
+        {/* Phone scroll-edge effect (iOS 26): no solid bar; content dissolves into a progressive blur under the top edge. */}
+        {phone && <motion.div aria-hidden="true" className="scroll-edge lg:hidden land:hidden" style={{ opacity: edgeOpacity, height: `calc(env(safe-area-inset-top) + ${scoped ? 124 : 76}px)` }} />}
+        {/* Top bar floats: transparent at rest, then condenses into a glass capsule once content scrolls beneath it. */}
+        <header className="vt-bar-top sticky top-0 z-30 pt-safe px-safe">
+          <div className={cx('mx-2 lg:mx-4 mt-1.5 rounded-[26px] border border-transparent transition-[background-color,box-shadow,border-color] duration-200', scrolled && !phone ? 'glass' : 'bg-transparent shadow-none')}>
+          <div className="max-w-[1360px] mx-auto flex items-center gap-2 px-3 lg:px-5 h-14 land:h-12">
+            <motion.h1 className="bar-title text-[17px] lg:text-[19px] font-semibold truncate min-w-[60px]"
+              style={liveTitle ? (reduceMotion ? { opacity: barOpacity } : { opacity: barOpacity, filter: barFilter, y: barY }) : undefined}>{title}</motion.h1>
             <div className="ml-auto flex items-center gap-1.5 min-w-0">
               <div className="hidden md:flex land:flex items-center gap-1.5 min-w-0 land:[&_select]:max-w-[150px]">
                 <span className="hidden xl:inline-flex"><UserPill /></span><span className="xl:hidden"><SyncPill /></span>
@@ -345,69 +373,42 @@ export function Shell({ children }: { children: ReactNode }) {
             </div>
           </div>
           {scoped && (
-            <div className={cx('md:hidden land:hidden grid gap-2 px-4 pb-2.5', multiAccount && 'grid-cols-2')}>
+            <div className={cx('md:hidden land:hidden grid gap-2 px-3 pb-2.5', multiAccount && 'grid-cols-2')}>
               <RangePicker /><AccountPicker />
             </div>
           )}
+          </div>
         </header>
 
         <main id="main" ref={mainRef} tabIndex={-1} className="flex-1 w-full max-w-[1360px] mx-auto px-4 lg:px-7 pt-5 land:pt-4 pb-28 land:pb-10 lg:pb-12 outline-none">
           {/* Plain keyed fade-in. An exit-then-enter handoff (AnimatePresence "wait") could stall
               while a lazy page was still loading, leaving the new page invisible. */}
-          <motion.div key={loc.pathname} className={deep ? 'page-in page-push' : 'page-in'}>
-              {!deep && <div className="lg:hidden land:hidden large-title mb-3 -mt-1" aria-hidden="true">{title}</div>}
+          <motion.div key={loc.pathname} data-page className={pageEnter}>
+              {!deep && <motion.div className="lg:hidden land:hidden large-title mb-3 -mt-1 origin-left" aria-hidden="true" style={reduceMotion ? { opacity: bigOpacity } : { opacity: bigOpacity, filter: bigFilter, scale: bigScale }}>{title}</motion.div>}
               {!hasTrades && !['/playbook', '/calculator', '/settings', '/risk', '/notebook', '/strategies', '/plan', '/guru', '/guide', '/news', '/chart', '/design', '/learn', '/bot-guide'].some(p => loc.pathname.startsWith(p)) ? <Welcome onImport={() => setImportOpen(true)} /> : children}
           </motion.div>
         </main>
       </div>
 
       {/* Phone landscape: slim icon rail on the left keeps the full height for content */}
-      <nav aria-label="Main" className="hidden land:flex fixed left-0 inset-y-0 z-40 w-[calc(68px+env(safe-area-inset-left))] pl-[env(safe-area-inset-left)] flex-col items-center justify-center gap-1 bg-surface border-r border-line">
+      <nav aria-label="Main" className="vt-side hidden land:flex fixed left-[max(8px,env(safe-area-inset-left))] inset-y-2 z-40 w-[64px] flex-col items-center justify-center gap-1 glass rounded-[26px]">
         {NAV.filter(n => n.mobile).map(n => (
-          <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cx('relative w-14 h-12 rounded-xl flex flex-col items-center justify-center gap-0.5 text-micro transition-[color,transform] active:scale-90', isActive ? 'text-ink font-semibold [&_svg]:text-accent' : 'text-ink3 font-medium')}>
+          <NavLink key={n.to} to={n.to} end={n.to === '/'} onClick={softClick(() => navTo(n.to))} className={({ isActive }) => cx('press relative w-14 h-12 rounded-xl flex flex-col items-center justify-center gap-0.5 text-micro', isActive ? 'text-ink font-semibold [&_svg]:text-accent' : 'text-ink3 font-medium')}>
             {({ isActive }) => (<>{isActive && <motion.span layoutId="rail-chip" transition={spring} className="absolute inset-0 rounded-xl bg-accent/15" />}<Icon name={n.icon} size={19} className="relative" /><span className="relative">{n.short ?? n.label}</span></>)}
           </NavLink>
         ))}
         <button className={cx('w-14 h-12 rounded-xl flex flex-col items-center justify-center gap-0.5 text-micro', inMore ? 'text-ink font-semibold bg-accent/15 [&_svg]:text-accent' : 'text-ink3 font-medium')} aria-haspopup="dialog" aria-expanded={moreOpen} aria-current={inMore ? 'page' : undefined} onClick={() => setMoreOpen(true)}><Icon name="more" size={19} />More</button>
       </nav>
 
-      {/* Mobile tab bar: the active tab gets an icon chip and bold label, not just a colour change. */}
-      <nav aria-label="Main" className="lg:hidden land:hidden fixed bottom-0 inset-x-0 z-40 bg-surface/75 [backdrop-filter:blur(20px)_saturate(180%)] [-webkit-backdrop-filter:blur(20px)_saturate(180%)] border-t border-line/60 pb-safe px-safe">
-        <div className="flex justify-around max-w-[680px] mx-auto px-2 pt-1.5">
-          {NAV.filter(n => n.mobile).map(n => (
-            <NavLink key={n.to} to={n.to} end={n.to === '/'} onClick={() => navigator.vibrate?.(6)} className={({ isActive }) => cx('flex flex-col items-center gap-0.5 min-w-[58px] min-h-[46px] justify-center text-micro transition-transform active:scale-90', isActive ? 'text-ink font-semibold' : 'text-ink3 font-medium')}>
-              {({ isActive }) => (<><span className={cx('relative grid place-items-center h-7 w-12 rounded-full transition-colors', isActive && 'text-accent')}>{isActive && <motion.span layoutId="tab-chip" transition={spring} className="absolute inset-0 rounded-full bg-accent/15" />}<Icon name={n.icon} size={20} className="relative" /></span>{n.short ?? n.label}</>)}
-            </NavLink>
-          ))}
-          <button className={cx('flex flex-col items-center gap-0.5 min-w-[58px] min-h-[46px] justify-center text-micro transition-transform active:scale-90', inMore ? 'text-ink font-semibold' : 'text-ink3 font-medium')} aria-haspopup="dialog" aria-expanded={moreOpen} aria-current={inMore ? 'page' : undefined} onClick={() => setMoreOpen(true)}>
-            <span className={cx('relative grid place-items-center h-7 w-12 rounded-full transition-colors', inMore && 'text-accent')}>{inMore && <motion.span layoutId="tab-chip" transition={spring} className="absolute inset-0 rounded-full bg-accent/15" />}<Icon name="more" size={20} className="relative" /></span>More
-          </button>
-        </div>
-      </nav>
+      {/* Phone: floating Liquid Glass tab bar with a sliding, stretchy selection lens and a search orb. */}
+      <GlassTabBar tabs={mobileTabs} active={mobileTabs.findIndex(n => isOn(loc.pathname, n.to))} moreActive={inMore} onMore={() => setMoreOpen(true)} onSearch={openCmd} />
 
       <Sheet bottom open={moreOpen} onClose={() => setMoreOpen(false)} title="More">
-        <button type="button" className="field h-11 flex items-center gap-2 text-left text-ink3 mb-4" onClick={() => { setMoreOpen(false); setCmd(true); }}><Icon name="search" size={16} />Search pages, trades, actions</button>
-        {(['Review', 'Plan & tools'] as Group[]).map(g => (
-          <section key={g} className="mb-4" aria-label={g}>
-            <div className="label mb-2">{g}</div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 land:!grid-cols-7 gap-2">
-              {NAV.filter(n => n.group === g && !n.mobile).map(n => (
-                <NavLink key={n.to} to={n.to} className={({ isActive }) => tile(isActive)}>
-                  <Icon name={n.icon} size={20} />{n.label}
-                </NavLink>
-              ))}
-            </div>
-          </section>
-        ))}
-        <div className="flex flex-wrap items-center justify-center gap-1 border-t border-line pt-3">
-          {NAV.filter(n => n.group === 'Help').map(n => (
-            <NavLink key={n.to} to={n.to} className={({ isActive }) => cx('btn-ghost h-11', isActive ? 'text-ink' : 'text-ink2')}><Icon name={n.icon} size={15} />{n.label}</NavLink>
-          ))}
-          <a href="/legacy.html" className="btn-ghost h-11 text-ink2"><Icon name="link" size={15} />Classic app</a>
-        </div>
+        <MoreMenu onSearch={() => { setMoreOpen(false); openCmd(); }} go={to => navTo(to)} />
       </Sheet>
       <Sheet open={importOpen} onClose={() => setImportOpen(false)} title="Import trades" morphId="import-morph"><ImportPanel onDone={() => setImportOpen(false)} /></Sheet>
-      <CommandPalette open={cmd} onClose={() => setCmd(false)} actions={actions} />
+      <CommandPalette open={cmd} onClose={() => setCmd(false)} actions={actions} instant={cmdKbd} />
+      {import.meta.env.DEV && <DevDataToggle />}
     </div>
     </MotionConfig>
   );
@@ -431,5 +432,102 @@ function Welcome({ onImport }: { onImport: () => void }) {
         <Segmented label="Theme" value={useStore.getState().theme} onChange={v => useStore.getState().setTheme(v)} size="sm" options={[{ value: 'dark', label: 'Dark' }, { value: 'light', label: 'Light' }]} />
       </motion.div>
     </div>
+  );
+}
+
+/** Dev only (break-ui): flip the whole app between the real journal and stress fixtures. Plain chrome, instant, not part of the design. */
+function DevDataToggle() {
+  const label = { real: 'Demo data', worst: 'Worst case', one: 'One', empty: 'Empty', huge: '1,500 rows' } as const;
+  const go = (m: string) => { const u = new URL(location.href); if (m === 'real') u.searchParams.delete('data'); else u.searchParams.set('data', m); location.assign(u.toString()); };
+  return (
+    <div role="radiogroup" aria-label="Dev data set" className="fixed z-[90] left-1/2 -translate-x-1/2 bottom-[calc(84px+max(12px,env(safe-area-inset-bottom)))] lg:bottom-3 land:bottom-3 flex gap-0.5 p-0.5 rounded-full bg-neutral-200 text-[11px] font-[system-ui] text-neutral-700 shadow">
+      {DATA_MODES.map(m => <button key={m} type="button" role="radio" aria-checked={DATA_MODE === m} onClick={() => go(m)} className={cx('h-6 px-2.5 rounded-full whitespace-nowrap', DATA_MODE === m && 'bg-white text-black shadow-sm')}>{label[m]}</button>)}
+    </div>
+  );
+}
+
+/** Phone portrait layout (large title + scroll-edge effect): below lg and not the short landscape layout. */
+const phoneMq = '(max-width: 1023px) and (not ((orientation: landscape) and (max-height: 520px)))';
+function usePhoneBar() {
+  const [on, setOn] = useState(() => typeof window !== 'undefined' && window.matchMedia(phoneMq).matches);
+  useEffect(() => { const m = window.matchMedia(phoneMq); const f = () => setOn(m.matches); m.addEventListener('change', f); return () => m.removeEventListener('change', f); }, []);
+  return on;
+}
+
+/** Liquid Glass reflections: slide the light streak (--lx) across every glass surface — with the pointer on desktop, and
+ *  gently with scrolling everywhere. Written per glass element (non-inheriting property), once per frame at most. */
+function useGlassLight() {
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let px: number | null = null, raf = 0, calm = 0;
+    const glass = () => document.querySelectorAll<HTMLElement>('.glass, .glass-pop');
+    const paint = () => {
+      raf = 0;
+      const fromScroll = 30 + 22 * Math.sin(window.scrollY / 260);
+      const lx = px == null ? fromScroll : 0.65 * (12 + 76 * (px / window.innerWidth)) + 0.35 * fromScroll;
+      // Movement makes the edges flash their VIBGYOR band (--glint up, the band turning with the light); stillness calms it.
+      glass().forEach(el => { el.style.setProperty('--lx', `${lx.toFixed(1)}%`); el.style.setProperty('--la', `${(lx * 3.6 + 120).toFixed(0)}deg`); el.style.setProperty('--glint', '1'); });
+      clearTimeout(calm);
+      calm = window.setTimeout(() => glass().forEach(el => el.style.setProperty('--glint', '0.18')), 220);
+    };
+    const queue = () => { if (!raf) raf = requestAnimationFrame(paint); };
+    const move = (e: PointerEvent) => { if (e.pointerType !== 'mouse') return; px = e.clientX; queue(); };
+    window.addEventListener('scroll', queue, { passive: true });
+    window.addEventListener('pointermove', move, { passive: true });
+    paint();
+    const stop = installLiveCards();
+    return () => { stop(); clearTimeout(calm); cancelAnimationFrame(raf); window.removeEventListener('scroll', queue); window.removeEventListener('pointermove', move); };
+  }, []);
+}
+
+function AppIcon({ to, icon, size = 44 }: { to: string; icon: IconName; size?: number }) {
+  // One colour family for every page: the theme accent, lit like an app icon.
+  return (
+    <span className="app-icon" data-to={to} style={{ width: size, height: size }}>
+      <Icon name={icon} size={Math.round(size * 0.48)} strokeWidth={2} />
+    </span>
+  );
+}
+
+/** The phone "More" sheet: glass search pill, app-icon tiles that cascade in, and an iOS grouped list for help. */
+function MoreMenu({ onSearch, go }: { onSearch: () => void; go: (to: string) => void }) {
+  const loc = useLocation();
+  const intro = { hidden: { opacity: 0, transform: 'translateY(10px) scale(0.96)' }, show: { opacity: 1, transform: 'translateY(0px) scale(1)', transition: { duration: 0.32, ease: [0.23, 1, 0.32, 1] } } };
+  let k = 0;
+  return (
+    <motion.div initial="hidden" animate="show" variants={{ hidden: {}, show: { transition: { staggerChildren: 0.03, delayChildren: 0.06 } } }}>
+      <motion.button variants={intro} type="button" onClick={onSearch} className="glass press w-full h-12 rounded-full flex items-center gap-2.5 px-4 text-left text-ink2 mb-5">
+        <Icon name="search" size={17} className="text-ink3" />Search pages, trades, actions
+      </motion.button>
+      {(['Review', 'Plan & tools'] as Group[]).map(g => (
+        <section key={g} className="mb-5" aria-label={g}>
+          <div className="text-[13px] font-semibold text-ink2 mb-2.5 px-1 tracking-tight">{g}</div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 land:!grid-cols-7 gap-2.5">
+            {NAV.filter(n => n.group === g && !n.mobile).map(n => {
+              const on = isOn(loc.pathname, n.to);
+              k++;
+              return (
+                <motion.div key={n.to} variants={intro} custom={k}>
+                  <NavLink to={n.to} onClick={softClick(() => go(n.to))} aria-current={on ? 'page' : undefined}
+                    className={cx('more-tile press flex flex-col items-center justify-center gap-2.5 py-4 land:py-2 land:gap-1.5 rounded-[20px] text-[12.5px] font-medium text-center leading-tight', on ? 'is-on text-ink' : 'text-ink2')}>
+                    <AppIcon to={n.to} icon={n.icon} />{n.label}
+                  </NavLink>
+                </motion.div>
+              );
+            })}
+          </div>
+        </section>
+      ))}
+      <motion.div variants={intro} className="more-list rounded-[20px] overflow-hidden">
+        {NAV.filter(n => n.group === 'Help').map(n => (
+          <NavLink key={n.to} to={n.to} onClick={softClick(() => go(n.to))} className="press flex items-center gap-3 h-[52px] px-3.5 text-[15px] text-ink active:bg-white/5">
+            <AppIcon to={n.to} icon={n.icon} size={30} /><span className="flex-1">{n.label}</span><Icon name="chevronRight" size={16} className="text-ink3" />
+          </NavLink>
+        ))}
+        <a href="/legacy.html" className="press flex items-center gap-3 h-[52px] px-3.5 text-[15px] text-ink active:bg-white/5">
+          <AppIcon to="/legacy" icon="link" size={30} /><span className="flex-1">Classic app</span><Icon name="chevronRight" size={16} className="text-ink3" />
+        </a>
+      </motion.div>
+    </motion.div>
   );
 }

@@ -248,7 +248,7 @@ export function GrowthCalc() {
   return (
     <Grid>
       <Card className="lg:col-span-3">
-        <CardHead title="Compounding" sub="What steady returns turn into, with optional deposits" right={<Segmented label="Period" size="sm" value={unit} onChange={setUnit} options={[{ value: 'day', label: 'Daily' }, { value: 'week', label: 'Weekly' }, { value: 'month', label: 'Monthly' }]} />} />
+        <CardHead title="Compounding" sub="What steady returns turn into, with optional deposits" right={<Segmented swap="card" label="Period" size="sm" value={unit} onChange={setUnit} options={[{ value: 'day', label: 'Daily' }, { value: 'week', label: 'Weekly' }, { value: 'month', label: 'Monthly' }]} />} />
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <NumIn label={`Start (${ccy})`} value={start} onChange={setStart} />
           <NumIn label={`Return per ${unit}`} value={rateP} onChange={setRateP} suffix="%" />
@@ -371,7 +371,7 @@ export function LevelsCalc() {
         <ul key={kind} className="mt-4">{piv.map(([k, v], i) => <Row key={k} k={k} v={v} i={i} accent={k.startsWith('R') ? 'text-loss' : k.startsWith('S') ? 'text-profit' : 'text-accent'} />)}</ul>
       </Card>
       <Card>
-        <CardHead title="Fibonacci" sub="Retracements and extensions of the swing above" right={<Segmented label="Swing" size="sm" value={dir} onChange={setDir} options={[{ value: 'up', label: 'Up swing' }, { value: 'down', label: 'Down swing' }]} />} />
+        <CardHead title="Fibonacci" sub="Retracements and extensions of the swing above" right={<Segmented swap="card" label="Swing" size="sm" value={dir} onChange={setDir} options={[{ value: 'up', label: 'Up swing' }, { value: 'down', label: 'Down swing' }]} />} />
         <ul key={dir}>{fib.map(({ label, f, p }, i) => <Row key={label} k={label} v={p} i={i} accent={[0.5, 0.618].includes(f) ? 'text-warn' : label.includes('ext') ? 'text-accent' : f === 0 || f === 1 ? 'text-ink' : 'text-ink2'} />)}</ul>
       </Card>
     </div>

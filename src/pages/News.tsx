@@ -32,7 +32,7 @@ export default function News() {
       {view === 'calendar' && (
         <>
           <Card className="flex flex-col gap-3">
-            <Segmented label="Importance" size="sm" value={f.imp} onChange={imp => save({ ...f, imp })} options={[{ value: 'high', label: 'High only' }, { value: 'med', label: 'Medium +' }, { value: 'all', label: 'All' }]} />
+            <Segmented swap="page" label="Importance" size="sm" value={f.imp} onChange={imp => save({ ...f, imp })} options={[{ value: 'high', label: 'High only' }, { value: 'med', label: 'Medium +' }, { value: 'all', label: 'All' }]} />
             <div className="flex flex-wrap gap-1.5" role="group" aria-label="Currencies">
               {COUNTRIES.map(([c, l]) => {
                 const on = f.cc.includes(c);

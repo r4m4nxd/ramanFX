@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis, Bar, BarChart, LabelList } from 'recharts';
 import { excursionMoney, useGraded, type Graded } from '@/data/guru';
@@ -7,7 +7,7 @@ import { useStore } from '@/data/store';
 import { simulate, type Path } from '@/core/manage';
 import { exitSummary, type ExitTrade, type Group } from '@/core/exitInsights';
 import { num, pct, tone, useMoney } from '@/lib/format';
-import { Badge, Card, CardHead, cx, ease, InfoTip, Page, Segmented, Stat, useIsMobile } from '@/ui/kit';
+import { Badge, Card, CardHead, cx, ease, InfoTip, Page, Peek, Segmented, Stat, useIsMobile } from '@/ui/kit';
 import { ChartTip, useAxisW, useColors } from '@/ui/charts';
 import { Icon } from '@/ui/Icon';
 
@@ -142,7 +142,7 @@ function TradeList({ rows, unit, only, onClear, source }: { rows: Row[]; unit: '
       <div id="exc-trades" className="scroll-mt-28" />
       <div className={mobile ? '' : 'px-5 pt-5'}>
         <CardHead title={only ? 'Losers that were +1R first' : 'Every trade'} sub={`${num(list.length, 0)} of ${num(rows.length, 0)} positions with excursion data · MAE / MFE in ${unit}`}
-          right={<Segmented label="Sort trades" size="sm" value={sort} onChange={x => { setSort(x); setLimit(PAGE); }} options={[{ value: 'new', label: 'Newest' }, { value: 'gave', label: 'Gave back' }, { value: 'heat', label: 'Most heat' }, { value: 'capture', label: 'Low capture' }]} />} />
+          right={<Segmented swap="card" label="Sort trades" size="sm" value={sort} onChange={x => { setSort(x); setLimit(PAGE); }} options={[{ value: 'new', label: 'Newest' }, { value: 'gave', label: 'Gave back' }, { value: 'heat', label: 'Most heat' }, { value: 'capture', label: 'Low capture' }]} />} />
         {only && <button className="chip h-8 -mt-2 mb-3" onClick={onClear} aria-label="Clear filter: losers that were +1R first">Losers that were +1R first<Icon name="x" size={12} /></button>}
       </div>
       {mobile ? (
@@ -228,6 +228,9 @@ export default function Exits() {
   });
   const cap = (v: number | null) => (v == null ? null : unit === 'R' ? Math.min(6, v) : v);
   const scatter = rows.map(r => ({ x: cap(unit === 'R' ? r.maeR : r.mae$), y: cap(unit === 'R' ? r.mfeR : r.mfe$), z: Math.abs(r.g.t.net), win: r.g.t.net >= 0, sym: r.g.t.sym, net: r.g.t.net, id: r.g.t.id, date: r.g.t.closeTime.slice(0, 10) })).filter(d => d.x != null && d.y != null);
+  // Tapped dot: a pinned summary with an "Open trade" button; tapping the same dot again closes it.
+  const [dot, setDot] = useState<{ p: (typeof scatter)[number]; at: { x: number; y: number } } | null>(null);
+  const closeDot = useCallback(() => setDot(null), []);
   const ranked = [...sim].sort((a, b) => b.totalR - a.totalR);
   const splitName = { all: 'all trades', high: 'high-odds trades', low: 'low-odds trades', none: 'unplanned trades' }[split];
   const delta = best && actual ? best.totalR - actual.totalR : null;
@@ -272,7 +275,7 @@ export default function Exits() {
 
       <div className="grid xl:grid-cols-5 gap-4">
         <Card className="xl:col-span-3">
-          <CardHead title="Heat vs reward" sub="Each dot is a trade: how far it went against you (x) and for you (y)" right={<Segmented label="Unit" size="sm" value={unit} onChange={setUnit} options={[{ value: 'R', label: 'R' }, { value: '$', label: '$' }]} />} />
+          <CardHead title="Heat vs reward" sub="Each dot is a trade: how far it went against you (x) and for you (y)" right={<Segmented swap="card" label="Unit" size="sm" value={unit} onChange={setUnit} options={[{ value: 'R', label: 'R' }, { value: '$', label: '$' }]} />} />
           <ResponsiveContainer width="100%" height={mobile ? 260 : 320}>
             <ScatterChart margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
               <CartesianGrid stroke={c.line} />
@@ -282,13 +285,24 @@ export default function Exits() {
               {unit === 'R' && <ReferenceLine x={1} stroke={c.loss} strokeDasharray="4 4" label={{ value: '1R stop', fill: c.ink3, fontSize: 10, position: 'insideTopRight' }} />}
               {unit === 'R' && <ReferenceLine y={1} stroke={c.profit} strokeDasharray="4 4" label={{ value: '1:1', fill: c.ink3, fontSize: 10, position: 'insideTopLeft' }} />}
               <Tooltip content={p => { const d = (p.payload?.[0]?.payload ?? null) as (typeof scatter)[number] | null; return <ChartTip active={p.active} payload={p.payload as never} fmt={(v, k) => (k === 'z' ? fmt(v) : unit === 'R' ? `${v.toFixed(2)}R` : fmt(v))} labelFmt={() => (d ? `${d.sym} · ${d.date}` : 'Trade')} />; }} />
-              <Scatter data={scatter} isAnimationActive animationDuration={800} cursor="pointer" onClick={(d: { id?: string; payload?: { id?: string } }) => { const id = d?.payload?.id ?? d?.id; if (id) navigate(`/trades/${id}`); }}>
+              <Scatter data={scatter} isAnimationActive animationDuration={900} animationEasing="ease-out" cursor="pointer" onClick={(d: { payload?: (typeof scatter)[number] } & Partial<(typeof scatter)[number]>, _i: number, e: React.MouseEvent) => { const p = (d?.payload ?? d) as (typeof scatter)[number]; if (!p?.id) return; setDot(o => (o?.p.id === p.id ? null : { p, at: { x: e.clientX, y: e.clientY } })); }}>
                 {scatter.map((d, i) => <Cell key={i} fill={d.win ? c.profit : c.loss} fillOpacity={0.7} />)}
               </Scatter>
             </ScatterChart>
           </ResponsiveContainer>
-          {unit === 'R' && <p className="text-[11.5px] text-ink3 mt-2">Red dots above the 1:1 line were winners at some point. Dots right of the 1R line went past your initial stop. Values above 6R sit on the edge. Tap a dot to open the trade.</p>}
-          {unit === '$' && <p className="text-[11.5px] text-ink3 mt-2">Tap a dot to open the trade.</p>}
+          <Peek at={dot?.at ?? null} onClose={closeDot} label="Trade">
+            {dot && (<>
+              <div className="font-mono font-semibold text-[14px]">{dot.p.sym} <span className="font-sans font-normal text-ink3 text-[12px]">· {dot.p.date}</span></div>
+              <div className="grid grid-cols-3 gap-2 mt-2.5 num">
+                <div><div className="label">Against</div><div className="font-semibold text-loss">{unit === 'R' ? `${(dot.p.x ?? 0).toFixed(2)}R` : fmt(dot.p.x ?? 0)}</div></div>
+                <div><div className="label">For</div><div className="font-semibold text-profit">{unit === 'R' ? `${(dot.p.y ?? 0).toFixed(2)}R` : fmt(dot.p.y ?? 0)}</div></div>
+                <div><div className="label">Net</div><div className={cx('font-semibold', dot.p.win ? 'text-profit' : 'text-loss')}>{fmt(dot.p.net)}</div></div>
+              </div>
+              <button type="button" className="btn-primary w-full h-10 mt-3" onClick={() => { const id = dot.p.id; closeDot(); navigate(`/trades/${id}`); }}>Open trade<Icon name="chevronRight" size={14} /></button>
+            </>)}
+          </Peek>
+          {unit === 'R' && <p className="text-[11.5px] text-ink3 mt-2">Red dots above the 1:1 line were winners at some point. Dots right of the 1R line went past your initial stop. Values above 6R sit on the edge. Tap a dot to see the trade.</p>}
+          {unit === '$' && <p className="text-[11.5px] text-ink3 mt-2">Tap a dot to see the trade.</p>}
         </Card>
         <Card className="xl:col-span-2 self-start">
           <CardHead title="After you exited" sub="Share of trades where price was further in your favour later" />
@@ -307,7 +321,7 @@ export default function Exits() {
 
       <Card>
         <CardHead title={<span className="inline-flex items-center gap-2 flex-wrap">Management lab<InfoTip text={caveat} /><Badge tone={timed === 0 ? 'warn' : timed < rows.length ? 'neutral' : 'profit'}>{timed === 0 ? 'Worst case' : timed < rows.length ? 'Mostly exact' : 'Exact'}</Badge></span>} sub={`Your ${pool.length} trades replayed under each exit rule from your playbook.`}
-          right={<Segmented label="Trades" size="sm" value={split} onChange={setSplit} options={[{ value: 'all', label: 'All' }, { value: 'high', label: 'High odds' }, { value: 'low', label: 'Low odds' }, { value: 'none', label: 'Unplanned' }]} />} />
+          right={<Segmented swap="card" label="Trades" size="sm" value={split} onChange={setSplit} options={[{ value: 'all', label: 'All' }, { value: 'high', label: 'High odds' }, { value: 'low', label: 'Low odds' }, { value: 'none', label: 'Unplanned' }]} />} />
         {pool.length ? (<>
           <ResponsiveContainer width="100%" height={mobile ? 220 : 240}>
             <BarChart data={sim} layout="vertical" margin={{ top: 0, right: 48, left: 0, bottom: 0 }}>

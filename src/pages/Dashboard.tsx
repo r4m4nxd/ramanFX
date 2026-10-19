@@ -2,13 +2,19 @@ import { TickerTape } from '@/ui/TickerTape';
 import { motion } from 'framer-motion';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAnalytics, useEnriched } from '@/data/derived';
+import { useAnalytics, useEnriched, useNotes } from '@/data/derived';
 import { DEFAULT_RISK_RULES, useStore } from '@/data/store';
 import { riskStatus } from '@/core/risk';
 import { MIN_SCORE_TRADES } from '@/core/stats';
 import { dayKey } from '@/core/time';
 import { pct, rMult, shortDate, timeHM, tone, useMoney } from '@/lib/format';
-import { Badge, Bar, Card, CardHead, CountUp, cx, InfoTip, morphNavigate, Page, rise, Segmented, useIsMobile } from '@/ui/kit';
+import { Badge, Bar, Card, CardHead, CountUp, cx, ease, InfoTip, morphNavigate, Page, rise, Segmented, useIntro, useIsMobile } from '@/ui/kit';
+
+/** Big KPI number that scales down to fit its card instead of overflowing (see .kpi-fit). */
+const Fit = ({ text, max, children }: { text: string; max?: number; children: React.ReactNode }) => (
+  <span className="kpi-fit block" style={{ '--kpi-ch': text.length, ...(max ? { '--kpi-max': `${max}px` } : {}) } as React.CSSProperties}>{children}</span>
+);
+const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString()} ${n === 1 ? one : many}`;
 import { TradeList } from '@/ui/TradeList';
 import { BalanceChart, bucketDays, type DayMetric, DailyBars, DivergingBars, EquityChart, PERIOD_NOUN, PeriodToggle, Sparkline, usePeriod } from '@/ui/charts';
 import { MonthCalendar } from '@/ui/MonthCalendar';
@@ -17,10 +23,10 @@ import { Icon, type IconName } from '@/ui/Icon';
 
 function Kpi({ label, children, foot, hint, className, icon, hero }: { label: string; children: React.ReactNode; foot?: React.ReactNode; hint?: string; className?: string; icon?: IconName; hero?: boolean }) {
   return (
-    <motion.div variants={rise} className={cx(hero ? 'card-hero' : 'card', 'p-4 min-w-0 flex flex-col', className)}>
+    <motion.div variants={rise} className={cx(hero ? 'card-hero' : 'card', 'kpi-box p-4 min-w-0 flex flex-col', className)}>
       <div className="flex items-center gap-2.5">
-        {icon && <span className={cx('w-8 h-8 rounded-full grid place-items-center shrink-0', hero ? 'bg-white/20 text-white' : 'bg-accent/10 text-accent border border-accent/25')}><Icon name={icon} size={15} /></span>}
-        <div className={cx('label flex items-center gap-1.5', hero && '!text-white/80')}>{label}{hint && <InfoTip text={hint} />}</div>
+        {icon && <span className={cx('w-8 h-8 rounded-full place-items-center shrink-0', !hero ? 'hidden min-[400px]:grid' : 'grid', hero ? 'bg-white/20 text-white' : 'bg-accent/10 text-accent border border-accent/25')}><Icon name={icon} size={15} /></span>}
+        <div className={cx('label flex items-center gap-1.5 min-w-0', hero && '!text-white/80')}>{label}{hint && <InfoTip text={hint} />}</div>
       </div>
       <div className="mt-2 flex-1">{children}</div>
       {foot && <div className={cx('text-[11.5px] mt-2.5', hero ? 'text-white/75' : 'text-ink3')}>{foot}</div>}
@@ -71,7 +77,7 @@ function TodayStrip() {
   const t = st.locked ? 'loss' : st.warnings.length ? 'warn' : 'profit';
   return (
     <motion.section variants={rise} aria-label="Today" className="card px-4 py-3.5 flex flex-wrap items-center gap-x-6 gap-y-3">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <span className="w-12 h-12 rounded-full border border-line2 grid place-items-center num text-[19px] font-semibold shrink-0">{new Date().getDate()}</span>
         <span className="leading-tight text-[13px] pr-3 border-r border-line2 max-sm:hidden">{new Date().toLocaleDateString(undefined, { weekday: 'short' })},<br /><span className="text-ink2">{new Date().toLocaleDateString(undefined, { month: 'long' })}</span></span>
         <Badge tone={t as 'loss'}>{state}</Badge>
@@ -123,11 +129,11 @@ function Checklist() {
           const on = !!today[it];
           return (
             <li key={it}>
-              <button type="button" role="checkbox" aria-checked={on} onClick={() => toggle(it)} className="w-full flex items-center gap-3 py-2 px-1.5 -mx-1.5 rounded-lg hover:bg-raised text-left">
-                <motion.span animate={{ scale: on ? [1, 1.2, 1] : 1 }} transition={{ duration: 0.25 }}
-                  className={cx('w-[18px] h-[18px] rounded-md border grid place-items-center shrink-0 transition-colors', on ? 'bg-accent border-accent text-on-accent' : 'border-line2')}>
-                  {on && <Icon name="check" size={12} strokeWidth={3} />}
-                </motion.span>
+              <button type="button" role="checkbox" aria-checked={on} onClick={() => toggle(it)} className="w-full flex items-center gap-3 py-2 px-1.5 -mx-1.5 rounded-lg hover:bg-raised active:bg-raised text-left select-none">
+                <span className={cx('w-[18px] h-[18px] rounded-md border grid place-items-center shrink-0 transition-colors duration-150', on ? 'bg-accent border-accent text-on-accent' : 'border-line2')}>
+                  {/* The tick scales in from 0.5 with a transition (retargets if tapped twice), not a restartable keyframe pop. */}
+                  <span className={cx('grid place-items-center transition-[transform,opacity] duration-200 ease-out', on ? 'opacity-100 scale-100' : 'opacity-0 scale-50')}><Icon name="check" size={12} strokeWidth={3} /></span>
+                </span>
                 <span className={cx('text-[13px]', on ? 'text-ink3 line-through' : 'text-ink')}>{it}</span>
               </button>
             </li>
@@ -142,11 +148,12 @@ export default function Dashboard() {
   const a = useAnalytics();
   const fmt = useMoney();
   const nav = useNavigate();
-  const notes = useStore(s => s.notes);
+  const notes = useNotes();
   const [curve, setCurve] = useState<'pnl' | 'r' | 'balance'>('pnl');
   const [barM, setBarM] = useState<DayMetric>('net');
   const [allSyms, setAllSyms] = useState(false);
   const mobile = useIsMobile();
+  const intro = useIntro();
   const s = a.stats;
   const [curveP, setCurveP] = usePeriod('curve');
   const [barP, setBarP] = usePeriod('bars');
@@ -172,35 +179,35 @@ export default function Dashboard() {
     <Page>
       <TickerTape />
       <TodayStrip />
-      <h2 className="label -mb-1 mt-2 px-1">Performance</h2>
+      <h2 className="text-[19px] font-semibold tracking-[-0.015em] text-ink leading-tight -mb-1 mt-4 px-1">Performance</h2>
       <section aria-label="Key metrics" className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
-        <Kpi hero icon="bolt" className="col-span-2 md:col-span-1" label="Net P&L" foot={`${s.total} trades · ${s.days.length} days`}>
-          <CountUp value={s.net} format={v => fmt(v, { signed: true })} className="num text-[28px] font-bold tracking-tight text-white whitespace-nowrap" />
+        <Kpi hero icon="bolt" className="col-span-2 md:col-span-1" label="Net P&L" foot={`${plural(s.total, 'trade')} · ${plural(s.days.length, 'day')}`}>
+          <Fit text={fmt(s.net, { signed: true })} max={28}><CountUp value={s.net} format={v => fmt(v, { signed: true })} className="num font-bold tracking-tight text-white" /></Fit>
           <Sparkline values={s.equity.map(e => e.cum)} className="mt-2" color="#fff" />
         </Kpi>
         <Kpi icon="target" label="Win rate" hint="Wins ÷ (wins + losses). Breakeven trades are excluded." foot={s.breakevenWinRate != null ? <>Breakeven at your payoff: <span className="num text-ink2">{pct(s.breakevenWinRate)}</span></> : undefined}>
-          <div className="flex items-baseline gap-2"><CountUp value={s.winRate * 100} format={v => `${v.toFixed(1)}%`} className="num text-[26px] font-semibold tracking-tight" /><span className="text-xs text-ink3">{s.wins}W · {s.losses}L{s.breakeven ? ` · ${s.breakeven}BE` : ''}</span></div>
+          <div className="flex flex-wrap items-baseline gap-x-2"><span className="num text-[26px] font-semibold tracking-tight"><CountUp value={s.winRate * 100} format={v => `${v.toFixed(1)}%`} /></span><span className="text-xs text-ink3 whitespace-nowrap">{s.wins}W · {s.losses}L{s.breakeven ? ` · ${s.breakeven}BE` : ''}</span></div>
           <div className="relative mt-3 h-1.5 rounded-full bg-loss/70 overflow-hidden">
-            <motion.div className="absolute inset-y-0 left-0 bg-profit rounded-full" initial={{ width: 0 }} animate={{ width: `${s.winRate * 100}%` }} transition={{ duration: 0.9 }} />
+            <motion.div className="absolute inset-0 bg-profit rounded-full origin-left" initial={intro ? { transform: 'scaleX(0)' } : false} animate={{ transform: `scaleX(${s.winRate})` }} transition={{ duration: 0.45, ease }} />
             {s.breakevenWinRate != null && <span className="absolute -top-0.5 -bottom-0.5 w-0.5 bg-ink" style={{ left: `${s.breakevenWinRate * 100}%` }} title="Breakeven win rate" />}
           </div>
         </Kpi>
         <Kpi icon="sliders" label="Profit factor" hint="Gross profit ÷ gross loss." foot={<span className="num">{fmt(s.grossWin, { compact: true })} won · {fmt(s.grossLoss, { compact: true })} lost</span>}>
-          {s.profitFactor == null ? <span className="num text-[26px] font-semibold">—</span> : <CountUp value={s.profitFactor} format={v => v.toFixed(2)} className={cx('num text-[26px] font-semibold tracking-tight', s.profitFactor >= 1 ? 'text-ink' : 'text-loss')} />}
+          {s.profitFactor == null ? <span className="num text-[26px] font-semibold">—</span> : <Fit text={s.profitFactor.toFixed(2)}><CountUp value={s.profitFactor} format={v => v.toFixed(2)} className={cx('num font-semibold tracking-tight', s.profitFactor >= 1 ? 'text-ink' : 'text-loss')} /></Fit>}
         </Kpi>
-        <Kpi icon="arrowUp" label="Avg win / loss" hint="Payoff ratio: average winner ÷ average loser." foot={<span className="num flex justify-between"><span className="text-profit">{fmt(s.avgWin)}</span><span className="text-loss">{fmt(s.avgLoss)}</span></span>}>
-          {s.payoff == null ? <span className="num text-[26px] font-semibold">—</span> : <div className="flex items-baseline gap-1"><CountUp value={s.payoff} format={v => v.toFixed(2)} className="num text-[26px] font-semibold tracking-tight" /><span className="text-ink3 text-sm">: 1</span></div>}
+        <Kpi icon="arrowUp" label="Avg win / loss" hint="Payoff ratio: average winner ÷ average loser." foot={<span className="num flex flex-wrap justify-between gap-x-2"><span className="text-profit">{fmt(s.avgWin)}</span><span className="text-loss">{fmt(s.avgLoss)}</span></span>}>
+          {s.payoff == null ? <span className="num text-[26px] font-semibold">—</span> : <div className="flex items-baseline gap-1"><span className="num text-[26px] font-semibold tracking-tight"><CountUp value={s.payoff} format={v => v.toFixed(2)} /></span><span className="text-ink3 text-sm">: 1</span></div>}
         </Kpi>
         <Kpi icon="sparkles" label="Expectancy" hint="Average net result per trade. Avg R uses each trade's initial stop." foot={s.avgR != null ? <>Avg <span className="num text-ink2">{rMult(s.avgR)}</span> over {s.rCount} trades with a stop</> : 'Add stops to see R'}>
-          <CountUp value={s.expectancy} format={v => fmt(v, { signed: true })} className={cx('num text-[26px] font-semibold tracking-tight', tone(s.expectancy))} />
+          <Fit text={fmt(s.expectancy, { signed: true })}><CountUp value={s.expectancy} format={v => fmt(v, { signed: true })} className={cx('num font-semibold tracking-tight', tone(s.expectancy))} /></Fit>
         </Kpi>
       </section>
-      <h2 className="label -mb-1 mt-2 px-1">Trends</h2>
+      <h2 className="text-[19px] font-semibold tracking-[-0.015em] text-ink leading-tight -mb-1 mt-4 px-1">Trends</h2>
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <Card className="xl:col-span-2">
           <CardHead title={curve === 'pnl' ? 'Equity curve' : curve === 'r' ? 'Equity in R' : 'Account balance'}
             sub={curve === 'r' ? `Cumulative R over ${rEquity.length} trades with a known stop — the purest read of your edge` : curve === 'pnl' ? <>Cumulative net P&L · max drawdown <span className="num text-loss">{fmt(-s.maxDrawdown)}</span>{a.ddPct != null && <> (<span className="num">{pct(a.ddPct)}</span> of peak)</>}</> : 'Balance through time against net money deposited'}
-            right={<div className="flex flex-wrap gap-2"><PeriodToggle value={curveP} onChange={setCurveP} /><Segmented label="Curve" size="sm" value={curve} onChange={setCurve} options={[{ value: 'pnl', label: '$ P&L' }, { value: 'r', label: 'R' }, { value: 'balance', label: 'Balance' }]} /></div>} />
+            right={<div className="flex flex-wrap gap-2"><PeriodToggle value={curveP} onChange={setCurveP} /><Segmented swap="card" label="Curve" size="sm" value={curve} onChange={setCurve} options={[{ value: 'pnl', label: '$ P&L' }, { value: 'r', label: 'R' }, { value: 'balance', label: 'Balance' }]} /></div>} />
           {curve === 'pnl' ? <EquityChart data={s.equity} fmt={fmt} height={280} period={curveP} /> : curve === 'r' ? <EquityChart data={rEquity} fmt={v => rMult(v, 1)} height={280} period={curveP} /> : a.balance.length ? <BalanceChart data={a.balance} fmt={fmt} height={280} period={curveP} /> : <div className="h-[280px] grid place-items-center text-sm text-ink3">Import a report with an account summary to see balance.</div>}
         </Card>
 
@@ -234,16 +241,16 @@ export default function Dashboard() {
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <Card className="xl:col-span-2">
-          <CardHead title={`${PERIOD_NOUN[barP][0]} ${{ net: 'net P&L', r: 'R', win: 'win rate', n: 'trades' }[barM]}`} right={<div className="flex flex-wrap gap-2"><Segmented label="Metric" size="sm" value={barM} onChange={setBarM} options={[{ value: 'net', label: '$' }, { value: 'r', label: 'R' }, { value: 'win', label: 'Win %' }, { value: 'n', label: 'Trades' }]} /><PeriodToggle value={barP} onChange={setBarP} /></div>}
+          <CardHead title={`${PERIOD_NOUN[barP][0]} ${{ net: 'net P&L', r: 'R', win: 'win rate', n: 'trades' }[barM]}`} right={<div className="flex flex-wrap gap-2"><Segmented swap="card" label="Metric" size="sm" value={barM} onChange={setBarM} options={[{ value: 'net', label: '$' }, { value: 'r', label: 'R' }, { value: 'win', label: 'Win %' }, { value: 'n', label: 'Trades' }]} /><PeriodToggle value={barP} onChange={setBarP} /></div>}
             sub={<>Green {PERIOD_NOUN[barP][2]} {greenB} · red {PERIOD_NOUN[barP][2]} {redB} · {PERIOD_NOUN[barP][1]} win rate <span className="num">{pct(greenB + redB ? greenB / (greenB + redB) : null, 0)}</span>{barP !== 'month' && <> · last {shown.length} {PERIOD_NOUN[barP][2]}</>}</>} />
           <DailyBars days={barP === 'day' ? daysR.slice(-60) : daysR.filter(d => !shown.length || d.date >= shown[0].date)} fmt={fmt} period={barP} metric={barM} />
         </Card>
         <Checklist />
       </div>
-      <h2 className="label -mb-1 mt-2 px-1">Discipline & risk</h2>
+      <h2 className="text-[19px] font-semibold tracking-[-0.015em] text-ink leading-tight -mb-1 mt-4 px-1">Discipline & risk</h2>
       <RiskGrid s={s} />
       <GuruStrip />
-      <h2 className="label -mb-1 mt-2 px-1">Breakdown</h2>
+      <h2 className="text-[19px] font-semibold tracking-[-0.015em] text-ink leading-tight -mb-1 mt-4 px-1">Breakdown</h2>
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <Card><MonthCalendar days={s.days} onDay={d => nav(`/journal?day=${d}`)} /></Card>
         <Card>
@@ -254,7 +261,7 @@ export default function Dashboard() {
               <tbody>
                 {a.setups.slice(0, 7).map(g => (
                   <tr key={g.key}>
-                    <td className="td truncate"><span className={g.key.startsWith('(') ? 'text-ink3' : ''}>{g.key}</span></td>
+                    <td className="td truncate" title={g.key}><span className={g.key.startsWith('(') ? 'text-ink3' : ''}>{g.key}</span></td>
                     <td className="td num text-right text-ink2">{g.n}</td>
                     <td className="td num text-right text-ink2">{pct(g.winRate, 0)}</td>
                     <td className="td num text-right text-ink2 max-sm:hidden">{rMult(g.avgR, 1)}</td>
@@ -271,7 +278,7 @@ export default function Dashboard() {
         <Card>
           <CardHead title="By symbol" sub={a.symbols.length > 12 && !allSyms ? `Best 6 and worst 6 of ${a.symbols.length}` : 'Every symbol, best to worst'}
             right={a.symbols.length > 12 ? <button className="text-xs text-accent hover:underline inline-block py-2 -my-2" onClick={() => setAllSyms(v => !v)}>{allSyms ? 'Show less' : 'Show all'}</button> : undefined} />
-          <DivergingBars rows={(a.symbols.length > 12 && !allSyms ? [...a.symbols.slice(0, 6), ...a.symbols.slice(-6)] : a.symbols).map(g => ({ key: g.key, net: g.net, sub: `${g.n} trades · ${pct(g.winRate, 0)}` }))} fmt={v => fmt(v, { signed: true, compact: true })} onRow={k => nav(`/trades?symbol=${encodeURIComponent(k)}`)} />
+          <DivergingBars rows={(a.symbols.length > 12 && !allSyms ? [...a.symbols.slice(0, 6), ...a.symbols.slice(-6)] : a.symbols).map(g => ({ key: g.key, net: g.net, sub: `${plural(g.n, 'trade')} · ${pct(g.winRate, 0)}` }))} fmt={v => fmt(v, { signed: true, compact: true })} onRow={k => nav(`/trades?symbol=${encodeURIComponent(k)}`)} />
         </Card>
         <Card>
           <CardHead title="By session" sub="Entry time (UTC): Asia 23–07, London 07–12, New York 12–21" />
@@ -280,8 +287,8 @@ export default function Dashboard() {
               <div key={g.key} className="grid grid-cols-[84px_1fr_auto] items-center gap-3 text-[13px]">
                 <span className="text-ink2">{g.key}</span>
                 <div className="h-6 rounded-md bg-raised overflow-hidden relative">
-                  <motion.div className={cx('h-full rounded-md', g.net >= 0 ? 'bg-profit/70' : 'bg-loss/70')} initial={{ width: 0 }} animate={{ width: `${(Math.abs(g.net) / Math.max(1, ...a.sessions.map(x => Math.abs(x.net)))) * 100}%` }} transition={{ duration: 0.8 }} />
-                  <span className="absolute inset-y-0 left-2 flex items-center text-[11px] text-ink">{g.n} · {pct(g.winRate, 0)}</span>
+                  <motion.div className={cx('h-full w-full rounded-md origin-left', g.net >= 0 ? 'bg-profit/70' : 'bg-loss/70')} initial={intro ? { transform: 'scaleX(0)' } : false} animate={{ transform: `scaleX(${Math.abs(g.net) / Math.max(1, ...a.sessions.map(x => Math.abs(x.net)))})` }} transition={{ duration: 0.45, ease }} />
+                  <span className="absolute inset-y-0 left-2 flex items-center text-[11px] text-ink whitespace-nowrap">{g.n.toLocaleString()} · {pct(g.winRate, 0)}</span>
                 </div>
                 <span className={cx('num font-semibold w-[78px] text-right', tone(g.net))}>{fmt(g.net, { signed: true, compact: true })}</span>
               </div>
@@ -294,20 +301,20 @@ export default function Dashboard() {
             <ul>
               {a.mistakes.slice(0, 5).map(g => (
                 <li key={g.key} className="flex items-center justify-between py-2.5 border-t border-line first:border-0 text-[13px]">
-                  <div><div>{g.key}</div><div className="text-[11.5px] text-ink3">{g.n} trades</div></div>
-                  <span className={cx('num font-semibold', tone(g.net))}>{fmt(g.net, { signed: true })}</span>
+                  <div className="min-w-0"><div className="[overflow-wrap:anywhere]">{g.key}</div><div className="text-[11.5px] text-ink3">{plural(g.n, 'trade')}</div></div>
+                  <span className={cx('num font-semibold shrink-0 pl-3', tone(g.net))}>{fmt(g.net, { signed: true })}</span>
                 </li>
               ))}
             </ul>
           ) : <p className="text-sm text-ink3 py-6 text-center">No mistakes tagged yet. Tag them on a trade to see what they cost.</p>}
         </Card>
       </div>
-      <h2 className="label -mb-1 mt-2 px-1">Activity</h2>
+      <h2 className="text-[19px] font-semibold tracking-[-0.015em] text-ink leading-tight -mb-1 mt-4 px-1">Activity</h2>
       <Card>
         <CardHead title="Recent trades" sub="Open any trade to journal it" right={<Link to="/trades" className="text-xs text-accent hover:underline inline-block py-2 -my-2">All trades</Link>} />
         {mobile ? <TradeList trades={recent} /> : (
-        <div>
-          <table className="w-full ">
+        <div className="overflow-x-auto overscroll-x-contain -mx-5 px-5">
+          <table className="w-full">
             <thead className="pillhead"><tr><th className="th pl-4">Closed</th><th className="th">Symbol</th><th className="th">Side</th><th className="th">Setup</th><th className="th text-right">Hold</th><th className="th pl-5">Result</th><th className="th text-right">R</th><th className="th text-right pr-4">Net</th></tr></thead>
             <tbody>
               {recent.map(t => (
@@ -315,7 +322,7 @@ export default function Dashboard() {
                   <td className="td pl-4 num text-ink2">{shortDate(t.close)} {timeHM(t.close)}</td>
                   <td className="td"><Link to={`/trades/${t.id}`} className="font-mono font-medium hover:text-accent inline-block py-2 -my-2" onClick={e => e.stopPropagation()}>{t.sym}</Link></td>
                   <td className="td"><Badge tone={t.type === 'buy' ? 'profit' : 'loss'}>{t.type === 'buy' ? 'BUY' : 'SELL'}</Badge></td>
-                  <td className="td text-ink2 truncate max-w-[180px]">{notes[t.id]?.tags?.join(', ') || <span className="text-ink3">—</span>}</td>
+                  <td className="td text-ink2 truncate max-w-[180px]" title={notes[t.id]?.tags?.join(', ') || undefined}>{notes[t.id]?.tags?.join(', ') || <span className="text-ink3">—</span>}</td>
                   <td className="td num text-right text-ink2">{t.holdSec >= 3600 ? `${(t.holdSec / 3600).toFixed(1)}h` : `${Math.round(t.holdSec / 60)}m`}</td>
                   <td className="td pl-5"><Badge tone={t.net > 0 ? 'profit' : t.net < 0 ? 'loss' : 'neutral'}>{t.net > 0 ? 'WIN' : t.net < 0 ? 'LOSS' : 'BE'}</Badge></td>
                   <td className="td num text-right text-ink2">{rMult(t.r, 1)}</td>

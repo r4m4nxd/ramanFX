@@ -25,25 +25,79 @@ export function morphNavigate(el: Element | null, go: () => void) {
   });
 }
 
+/** Calm page-to-page change: the old page dissolves while the new one drifts up out of a soft blur (View Transitions).
+ *  Falls back to a plain navigation (the CSS .page-in fade) where unsupported or under reduced motion. */
+type VTDoc = Document & { startViewTransition?: (cb: () => Promise<void> | void) => { finished: Promise<void> } };
+let softEntry = false, quietUntil = 0;
+/** True just after a soft page/section change: charts skip their own draw-in so the dissolve isn't fighting a second animation. */
+export const transitionQuiet = () => performance.now() < quietUntil;
+/** True while softNavigate is rendering the next page: that page must not also run its own CSS fade-in
+ *  (switching it on afterwards would restart the fade and blink). Read once per page by the shell. */
+export const enteringSoftly = () => softEntry;
+export function softNavigate(go: () => void) {
+  const d = document as VTDoc;
+  if (!d.startViewTransition || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { go(); return; }
+  const root = document.documentElement;
+  root.dataset.vt = 'page';
+  d.startViewTransition(async () => {
+    softEntry = true; quietUntil = performance.now() + 1100;
+    try { flushSync(go); } finally { softEntry = false; }
+    // A lazy page shows a skeleton first; give it a few frames to arrive so the crossfade lands on real content.
+    for (let i = 0; i < 18 && document.querySelector('main [aria-label="Loading"]'); i++) await new Promise(r => setTimeout(r, 16));
+  }).finished.finally(() => { delete root.dataset.vt; });
+}
+/** Same calm dissolve for a pill switch (segmented control, tabs): only the section that changes crossfades — the card
+ *  holding the control, or the page — while the control itself stays crisp and its pill keeps sliding. */
+export function softSwap(control: Element | null, apply: () => void, scope: SwapScope = 'card') {
+  const d = document as VTDoc;
+  if (!control || !d.startViewTransition || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { apply(); return; }
+  const page = document.querySelector<HTMLElement>('[data-page]');
+  const region = scope === 'page' ? page : control.closest<HTMLElement>('[data-swap], .card, .card-hero') ?? page;
+  if (!region) { apply(); return; }
+  const ctl = control as HTMLElement, root = document.documentElement;
+  region.style.viewTransitionName = 'swap'; ctl.style.viewTransitionName = 'swap-ctl'; root.dataset.vt = 'swap';
+  quietUntil = performance.now() + 900;
+  d.startViewTransition(() => { flushSync(apply); }).finished.finally(() => {
+    region.style.viewTransitionName = ''; ctl.style.viewTransitionName = ''; if (root.dataset.vt === 'swap') delete root.dataset.vt;
+  });
+}
+
+/** onClick for a NavLink/Link: plain left clicks navigate softly; modified clicks keep the browser's behaviour. */
+export const softClick = (go: () => void) => (e: { button: number; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; preventDefault: () => void }) => {
+  if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  e.preventDefault(); softNavigate(go);
+};
+
 // ─── Motion presets ──────────────────────────────────────────────────
 // Apple springs: critically damped (no bounce) for UI moves; a little bounce only after a flick/drag (momentum).
 export const spring = { type: 'spring', bounce: 0, duration: 0.4 } as const;
 export const momentumSpring = { type: 'spring', bounce: 0.2, duration: 0.3 } as const;
-export const ease = [0.22, 1, 0.36, 1] as const;
+/** Strong ease-out (same curve as --ease-out in index.css). */
+export const ease = [0.23, 1, 0.32, 1] as const;
 
 export const stagger = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.045, delayChildren: 0.02 } },
+  show: { transition: { staggerChildren: 0.035, delayChildren: 0.02 } },
 };
+// Full transform strings (not x/y shorthands) so the entrance stays on the compositor while charts mount.
 export const rise = {
-  hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.42, ease } },
+  hidden: { opacity: 0, transform: 'translateY(6px)' },
+  show: { opacity: 1, transform: 'translateY(0px)', transition: { duration: 0.25, ease } },
 };
 
-/** Page wrapper: children marked with `variants={rise}` cascade in. */
+/** Data motion (bars growing, lines and rings drawing in) plays each time a chart appears; never under reduced motion. */
+export function useIntro() {
+  return !useReducedMotion();
+}
+
+/** Page wrapper: on first paint, children marked with `variants={rise}` cascade in; later visits rely on the page fade. */
 export function Page({ children, className }: { children: ReactNode; className?: string }) {
+  // The card cascade is a first-paint flourish only; later visits rely on the page transition.
+  const reduce = useReducedMotion();
+  const [boot] = useState(() => !warm());
+  const intro = boot && !reduce;
   return (
-    <motion.div variants={stagger} initial="hidden" animate="show" className={cx('flex flex-col gap-4', className)}>
+    <motion.div variants={stagger} initial={intro ? 'hidden' : false} animate="show" className={cx('flex flex-col gap-4', className)}>
       {children}
     </motion.div>
   );
@@ -76,13 +130,24 @@ export function RevealText({ text, className, delay = 0, as: Tag = 'span' }: { t
 
 export function CardHead({ title, sub, right }: { title: ReactNode; sub?: ReactNode; right?: ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
-      <div className="min-w-0">
-        <h2 className="text-[15px] font-semibold leading-tight">{typeof title === 'string' ? <RevealText text={title} /> : title}</h2>
-        {sub && <p className="text-xs text-ink3 mt-1">{sub}</p>}
+    // With controls on the right, the layout is fixed: one-line title, a two-line slot for the subtitle, and the controls on
+    // their own row (phones) or pinned right — so switching a pill never shifts the pills or the chart below.
+    right ? (
+      <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-2.5 mb-4">
+        <div className="min-w-0">
+          <h2 className="text-[15px] font-semibold leading-tight truncate">{title}</h2>
+          {sub && <p className="text-xs text-ink3 mt-1 line-clamp-2 min-h-[32px]">{sub}</p>}
+        </div>
+        <div className="min-w-0 sm:justify-self-end">{right}</div>
       </div>
-      {right}
-    </div>
+    ) : (
+      <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
+        <div className="min-w-0">
+          <h2 className="text-[15px] font-semibold leading-tight">{title}</h2>
+          {sub && <p className="text-xs text-ink3 mt-1">{sub}</p>}
+        </div>
+      </div>
+    )
   );
 }
 
@@ -113,17 +178,21 @@ export function CountUp({ value, format, className, id }: { value: number; forma
 }
 
 // ─── Segmented control with sliding pill ─────────────────────────────
-export function Segmented<T extends string>({ value, onChange, options, size = 'md', label }: { value: T; onChange: (v: T) => void; options: { value: T; label: ReactNode }[]; size?: 'sm' | 'md'; label: string }) {
+/** `swap`: this control switches a section's content — 'card' dissolves the card holding it, 'page' the whole page.
+ *  Leave it off for form inputs (direction, units, mode): those just slide the pill, content updates in place. */
+export type SwapScope = 'card' | 'page';
+export function Segmented<T extends string>({ value, onChange, options, size = 'md', label, swap }: { value: T; onChange: (v: T) => void; options: { value: T; label: ReactNode }[]; size?: 'sm' | 'md'; label: string; swap?: SwapScope }) {
   const id = useId();
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex p-[3px] rounded-full bg-raised/60 border border-line">
+    <div role="radiogroup" aria-label={label} className="inline-flex p-[3px] rounded-full bg-raised/50 border border-line/70 shadow-[inset_0_1px_2px_rgb(0_0_0/0.18),inset_0_-0.5px_0_var(--spec-soft)]">
       {options.map(o => {
         const on = o.value === value;
         return (
-          <button key={o.value} role="radio" aria-checked={on} onClick={() => onChange(o.value)} type="button"
+          <button key={o.value} role="radio" aria-checked={on} onClick={e => { if (on) return; if (swap) softSwap(e.currentTarget.parentElement, () => onChange(o.value), swap); else onChange(o.value); }} type="button"
             className={cx('relative rounded-full font-semibold whitespace-nowrap transition-colors', size === 'sm' ? 'h-7 touch:h-9 px-3 touch:px-3.5 text-xs' : 'h-8 touch:h-10 px-3.5 text-[13px]', on ? 'text-ink' : 'text-ink3 hover:text-ink2')}>
-            {on && <motion.span layoutId={`seg-${id}`} transition={spring} className="absolute inset-0 rounded-full pill-on" />}
-            <span className="relative">{o.label}</span>
+            {on && <motion.span layoutId={`seg-${id}`} transition={spring} className="absolute inset-0 z-0 rounded-full pill-on" />}
+            {/* Labels sit above the travelling pill, so it never blots out another tab's name on its way. */}
+            <span className="relative z-[1]">{o.label}</span>
           </button>
         );
       })}
@@ -145,20 +214,21 @@ export function useIsMobile() {
 const tabCols = (n: number, mobile: boolean) => (mobile ? (n <= 4 ? n : n % 3 === 0 || n === 5 ? 3 : 4) : n <= 10 ? n : Math.ceil(n / 2));
 
 /** Page-level tabs: a segmented bar on desktop, a wrapping pill grid on phones (no sideways scrolling). */
-export function Tabs<T extends string>({ value, onChange, options, label }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[]; label: string }) {
+export function Tabs<T extends string>({ value, onChange, options, label, swap = 'page' }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[]; label: string; swap?: SwapScope | false }) {
   const mobile = useIsMobile();
   const id = useId();
   if (!mobile && options.length <= 6) return <div><Segmented label={label} value={value} onChange={onChange} options={options} /></div>;
   return (
-    <div role="tablist" aria-label={label} className={cx('grid gap-1.5 p-1 rounded-[22px] bg-raised/60 border border-line', options.length > 4 && 'land:![grid-template-columns:repeat(6,minmax(0,1fr))]')}
+    <div role="tablist" aria-label={label} className={cx('grid gap-1.5 p-1 rounded-[22px] bg-raised/50 border border-line/70 shadow-[inset_0_1px_2px_rgb(0_0_0/0.18),inset_0_-0.5px_0_var(--spec-soft)]', options.length > 4 && 'land:![grid-template-columns:repeat(6,minmax(0,1fr))]')}
       style={{ gridTemplateColumns: `repeat(${tabCols(options.length, mobile)}, minmax(0, 1fr))` }}>
       {options.map(o => {
         const on = o.value === value;
         return (
-          <button key={o.value} role="tab" aria-selected={on} type="button" onClick={() => onChange(o.value)}
+          <button key={o.value} role="tab" aria-selected={on} type="button" onClick={e => { if (on) return; if (swap) softSwap(e.currentTarget.parentElement, () => onChange(o.value), swap); else onChange(o.value); }}
             className={cx('relative min-h-[40px] px-2 rounded-full text-[13px] font-semibold leading-tight transition-colors', on ? 'text-ink' : 'text-ink3 active:bg-surface/60')}>
-            {on && <motion.span layoutId={`tab-${id}`} transition={spring} className="absolute inset-0 rounded-full pill-on" />}
-            <span className="relative">{o.label}</span>
+            {on && <motion.span layoutId={`tab-${id}`} transition={spring} className="absolute inset-0 z-0 rounded-full pill-on" />}
+            {/* Labels sit above the travelling pill, so it never blots out another tab's name on its way. */}
+            <span className="relative z-[1]">{o.label}</span>
           </button>
         );
       })}
@@ -174,10 +244,11 @@ export function Stat({ label, value, className }: { label: ReactNode; value: Rea
 // ─── Progress bar ────────────────────────────────────────────────────
 export function Bar({ value, tone = 'accent', className }: { value: number; tone?: 'accent' | 'profit' | 'loss' | 'warn'; className?: string }) {
   const bg = { accent: 'bg-accent', profit: 'bg-profit', loss: 'bg-loss', warn: 'bg-warn' }[tone];
-  const [grow] = useState(() => !warm());
+  const grow = useIntro();
   return (
     <div className={cx('h-1.5 rounded-full bg-line overflow-hidden', className)}>
-      <motion.div className={cx('h-full rounded-full', bg)} initial={grow ? { width: 0 } : false} animate={{ width: `${Math.max(0, Math.min(100, value * 100))}%` }} transition={{ duration: 0.45, ease }} />
+      {/* scaleX, not width: the fill grows on the compositor without re-laying out the card. */}
+      <motion.div className={cx('h-full w-full rounded-full origin-left', bg)} initial={grow ? { transform: 'scaleX(0)' } : false} animate={{ transform: `scaleX(${Math.max(0, Math.min(1, value))})` }} transition={{ duration: 0.45, ease }} />
     </div>
   );
 }
@@ -189,11 +260,11 @@ export function Badge({ children, tone = 'neutral', className }: { children: Rea
 
 export function Empty({ icon = 'info', title, children, action }: { icon?: IconName; title: string; children?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center text-center py-12 px-6 gap-3">
-      <div className="w-11 h-11 rounded-xl bg-raised border border-line grid place-items-center text-ink3"><Icon name={icon} size={20} /></div>
-      <div className="font-semibold">{title}</div>
-      {children && <div className="text-sm text-ink3 max-w-sm leading-relaxed">{children}</div>}
-      {action}
+    <div className="flex flex-col items-center justify-center text-center py-14 px-6">
+      <div className="w-12 h-12 rounded-full bg-raised/70 grid place-items-center text-ink3/80 mb-4"><Icon name={icon} size={20} /></div>
+      <div className="text-[15px] font-semibold tracking-[-0.01em] text-ink">{title}</div>
+      {children && <div className="text-[13px] text-ink3 max-w-[34ch] leading-relaxed mt-1.5 text-pretty">{children}</div>}
+      {action && <div className="mt-5">{action}</div>}
     </div>
   );
 }
@@ -203,12 +274,24 @@ export function Empty({ icon = 'info', title, children, action }: { icon?: IconN
  * when there is no room above. Mouse: hover. Touch: tap to toggle, tap elsewhere or scroll to close.
  * Keyboard: shows on focus-visible.
  */
+// Shared across tooltips: once one has shown, neighbours open instantly (no delay, no animation) for 400ms after it closes.
+let tipsOpen = 0, tipClosedAt = 0;
+const tipsWarm = () => tipsOpen > 0 || performance.now() - tipClosedAt < 400;
 export function Tip({ text, children }: { text: string; children: ReactNode }) {
   const ref = useRef<HTMLSpanElement>(null), tip = useRef<HTMLSpanElement>(null);
-  const kind = useRef('mouse');
+  const kind = useRef('mouse'), timer = useRef<ReturnType<typeof setTimeout>>();
   const [at, setAt] = useState<DOMRect | null>(null);
-  const show = () => ref.current && setAt(ref.current.getBoundingClientRect());
-  const hide = () => setAt(null);
+  const [instant, setInstant] = useState(false);
+  const show = () => { clearTimeout(timer.current); if (ref.current) { setInstant(tipsWarm()); setAt(ref.current.getBoundingClientRect()); } };
+  /** First mouse tooltip waits 300ms so passing the cursor over controls doesn't flash tips; later ones are instant. */
+  const hoverShow = () => { clearTimeout(timer.current); if (tipsWarm()) show(); else timer.current = setTimeout(show, 300); };
+  const hide = () => { clearTimeout(timer.current); setAt(null); };
+  useEffect(() => {
+    if (!at) return;
+    tipsOpen++;
+    return () => { tipsOpen--; tipClosedAt = performance.now(); };
+  }, [at]);
+  useEffect(() => () => clearTimeout(timer.current), []);
   useLayoutEffect(() => {
     const el = tip.current;
     if (!at || !el) return;
@@ -229,7 +312,7 @@ export function Tip({ text, children }: { text: string; children: ReactNode }) {
   return (
     <span ref={ref} className="inline-flex"
       onPointerDown={e => { kind.current = e.pointerType; }}
-      onPointerEnter={e => { if (e.pointerType === 'mouse') show(); }}
+      onPointerEnter={e => { if (e.pointerType === 'mouse') hoverShow(); }}
       onPointerLeave={e => { if (e.pointerType === 'mouse') hide(); }}
       onFocus={e => { if ((e.target as HTMLElement).matches?.(':focus-visible')) show(); }}
       onBlur={hide}
@@ -237,7 +320,7 @@ export function Tip({ text, children }: { text: string; children: ReactNode }) {
       {children}
       {at && createPortal(
         <span ref={tip} role="tooltip" style={{ left: 0, top: 0, visibility: 'hidden' }}
-          className="tip-in fixed z-[200] w-max max-w-[min(260px,calc(100vw-16px))] px-2.5 py-1.5 rounded-lg bg-ink text-bg text-xs leading-snug font-normal normal-case tracking-normal pointer-events-none shadow-pop">
+          className={cx(!instant && 'tip-in', 'fixed z-[200] w-max max-w-[min(260px,calc(100vw-16px))] px-2.5 py-1.5 rounded-xl glass-pop text-ink text-xs leading-snug font-normal normal-case tracking-normal pointer-events-none')}>
           {text}
         </span>, document.body)}
     </span>
@@ -247,6 +330,81 @@ export function Tip({ text, children }: { text: string; children: ReactNode }) {
 export function InfoTip({ text }: { text: string }) {
   return <Tip text={text}><button type="button" aria-label={text} className="text-ink3 hover:text-ink2 p-1.5 -m-1.5 touch:p-2.5 touch:-m-2.5"><Icon name="info" size={13} /></button></Tip>;
 }
+
+// ─── Peek: a small pinned summary for a tapped chart element ───────────
+/** Shows what you tapped (summary + an explicit action button) instead of jumping to another page. Closes when the
+ *  same thing is tapped again (the caller toggles), on a tap anywhere else, on scroll, or Esc. */
+export function Peek({ at, owner, onClose, children, label }: { at: { x: number; y: number } | null; owner?: Element | null; onClose: () => void; children: ReactNode; label: string }) {
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!at) return;
+    const down = (e: PointerEvent) => { const t = e.target as Node; if (box.current?.contains(t) || owner?.contains(t)) return; onClose(); };
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('pointerdown', down, true); window.addEventListener('keydown', key); window.addEventListener('scroll', onClose, { passive: true });
+    return () => { window.removeEventListener('pointerdown', down, true); window.removeEventListener('keydown', key); window.removeEventListener('scroll', onClose); };
+  }, [at, owner, onClose]);
+  if (typeof document === 'undefined') return null;
+  const below = !!at && at.y < 190;
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 400;
+  return createPortal(
+    <AnimatePresence>
+      {at && (
+        <motion.div ref={box} role="dialog" aria-label={label} key="peek"
+          initial={{ opacity: 0, transform: 'scale(0.96)' }} animate={{ opacity: 1, transform: 'scale(1)' }} exit={{ opacity: 0, transform: 'scale(0.97)', transition: { duration: 0.12 } }} transition={{ duration: 0.18, ease }}
+          className="fixed z-[90] w-[min(260px,calc(100vw-24px))] glass-pop rounded-2xl p-3.5 text-[13px]"
+          style={{ left: Math.max(12, Math.min(vw - 12 - Math.min(260, vw - 24), at.x - 130)), top: below ? at.y + 14 : undefined, bottom: below ? undefined : `calc(100vh - ${at.y - 10}px)`, transformOrigin: below ? 'top center' : 'bottom center' }}>
+          {children}
+        </motion.div>
+      )}
+    </AnimatePresence>,
+    document.body,
+  );
+}
+
+// ─── Background scroll lock for pop-ups ──────────────────────────────
+// Counted, so a pop-up opened from another (sheet → search) keeps the page locked until the last one closes.
+// overflow:hidden alone doesn't stop iOS Safari, so touch-drags are also cancelled unless they're scrolling a
+// scrollable area inside the open dialog (sheet content, lists), and the page rubber band is switched off.
+let locks = 0;
+const canScroll = (el: HTMLElement | null, stop: Element | null, dy: number) => {
+  for (; el && el !== stop?.parentElement; el = el.parentElement) {
+    const oy = getComputedStyle(el).overflowY;
+    if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight + 1) {
+      if (dy > 0 ? el.scrollTop > 0 : el.scrollTop + el.clientHeight < el.scrollHeight - 1) return true;
+    }
+  }
+  return false;
+};
+let ty = 0;
+const touchStart = (e: TouchEvent) => { ty = e.touches[0]?.clientY ?? 0; };
+const touchMove = (e: TouchEvent) => {
+  const t = e.target as HTMLElement, dialog = t.closest('[aria-modal="true"]');
+  const dy = (e.touches[0]?.clientY ?? 0) - ty;
+  if (dialog && canScroll(t, dialog, dy)) return;
+  if (e.cancelable) e.preventDefault();
+};
+export function lockScroll() {
+  const html = document.documentElement;
+  if (locks++ === 0) {
+    html.dataset.scrollLock = '1';
+    html.style.overflow = 'hidden'; html.style.overscrollBehavior = 'none';
+    document.body.style.overflow = 'hidden'; document.body.style.overscrollBehavior = 'none'; // iOS Safari needs the body locked too
+    document.addEventListener('touchstart', touchStart, { passive: true });
+    document.addEventListener('touchmove', touchMove, { passive: false });
+  }
+  let done = false;
+  return () => {
+    if (done) return; done = true;
+    if (--locks === 0) {
+      delete html.dataset.scrollLock;
+      html.style.overflow = ''; html.style.overscrollBehavior = '';
+      document.body.style.overflow = ''; document.body.style.overscrollBehavior = '';
+      document.removeEventListener('touchstart', touchStart); document.removeEventListener('touchmove', touchMove);
+    }
+  };
+}
+/** While `open`, the page behind can't scroll (wheel, keys, touch, iOS included). */
+export function useScrollLock(open: boolean) { useEffect(() => (open ? lockScroll() : undefined), [open]); }
 
 // ─── Focus management for dialogs ────────────────────────────────────
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -286,8 +444,8 @@ export function Sheet({ open, onClose, title, children, width = 520, bottom = fa
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
-    document.body.style.overflow = 'hidden';
-    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
+    const unlock = lockScroll();
+    return () => { window.removeEventListener('keydown', onKey); unlock(); };
   }, [open, onClose]);
   useDialogFocus(open, panel, '[data-sheet-close]');
   const fromBottom = bottom || (typeof window !== 'undefined' && window.innerWidth < 768);
@@ -298,15 +456,16 @@ export function Sheet({ open, onClose, title, children, width = 520, bottom = fa
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={title}>
-          <motion.div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
+          <motion.div className="absolute inset-0 bg-black/40" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
           <motion.div ref={panel} layoutId={morph ? morphId : undefined}
-            className={cx('absolute bg-surface border-line2 shadow-pop flex flex-col', bottom
+            className={cx('absolute glass-pop flex flex-col', bottom
               ? 'inset-x-0 bottom-0 mx-auto w-full max-w-[560px] max-h-sheet rounded-t-2xl border-t border-x'
               : 'max-md:inset-x-0 max-md:bottom-0 max-md:max-h-sheet max-md:rounded-t-2xl max-md:border-t md:top-0 md:right-0 md:h-full md:border-l')}
             style={{ width: !bottom && typeof window !== 'undefined' && window.innerWidth >= 768 ? width : undefined, ...(morph && !fromBottom ? { borderRadius: 20, top: 8, bottom: 8, right: 8, height: 'auto' } : morph ? { borderTopLeftRadius: 20, borderTopRightRadius: 20 } : {}) }}
             initial={off}
             animate={{ x: 0, y: 0, opacity: 1 }}
-            exit={off}
+            // Exit faster than enter: dismissal is the user's intent, so get out of the way (ease-out, 200ms).
+            exit={{ ...off, transition: { duration: reduce ? 0.15 : 0.2, ease } }}
             transition={reduce ? { duration: 0.2 } : morph ? spring : momentumSpring}
             // Bottom sheets follow the finger down and dismiss past ~110px or on a quick flick, like a native sheet.
             drag={fromBottom && !reduce ? 'y' : false} dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0.12, bottom: 0.9 }} dragListener={false}
@@ -335,25 +494,40 @@ const ToastCtx = createContext<Push>(() => {});
 export const useToast = () => useContext(ToastCtx);
 
 /** One toast. Errors stay until dismissed; others pause while hovered or focused. An action (e.g. Undo) gives 6s. */
+const visSub = (cb: () => void) => { document.addEventListener('visibilitychange', cb); return () => document.removeEventListener('visibilitychange', cb); };
 function ToastItem({ t, onClose }: { t: Toast; onClose: () => void }) {
   const [paused, setPaused] = useState(false);
+  const hidden = useSyncExternalStore(visSub, () => document.hidden, () => false);
+  const reduce = useReducedMotion();
+  // Swipe to dismiss (any direction); the toast leaves the way it was flicked.
+  const [gone, setGone] = useState<{ x: number; y: number } | null>(null);
+  const t0 = useRef(0);
   useEffect(() => {
-    if (paused || t.tone === 'error') return;
+    if (paused || hidden || t.tone === 'error') return;
     const h = setTimeout(onClose, t.ms);
     return () => clearTimeout(h);
-  }, [paused, t, onClose]);
+  }, [paused, hidden, t, onClose]);
+  const swipeEnd = (o: { x: number; y: number }) => {
+    setPaused(false);
+    const ax = Math.abs(o.x), ay = Math.abs(o.y), d = Math.max(ax, ay), ms = Math.max(1, performance.now() - t0.current);
+    if (d < 45 && d / ms <= 0.11) return;
+    flushSync(() => setGone(ax >= ay ? { x: Math.sign(o.x) * 360, y: 0 } : { x: 0, y: Math.sign(o.y) * 120 }));
+    onClose();
+  };
   return (
     // Dynamic-Island morph: a small dark pill springs open to full width, then its content fades in.
     <motion.div layout initial={{ opacity: 0, scaleX: 0.35, scaleY: 0.7, y: 12, filter: 'blur(6px)' }} animate={{ opacity: 1, scaleX: 1, scaleY: 1, y: 0, filter: 'blur(0px)' }}
-      exit={{ opacity: 0, scaleX: 0.4, scaleY: 0.7, filter: 'blur(8px)', transition: { duration: 0.22, ease } }} transition={spring}
+      exit={gone ? { opacity: 0, x: gone.x, y: gone.y, transition: { duration: 0.2, ease } } : { opacity: 0, scaleX: 0.4, scaleY: 0.7, filter: 'blur(8px)', transition: { duration: 0.2, ease } }} transition={spring}
+      drag={!reduce} dragSnapToOrigin dragElastic={0.6} dragMomentum={false}
+      onDragStart={() => { t0.current = performance.now(); setPaused(true); }} onDragEnd={(_, i) => swipeEnd(i.offset)}
       onPointerEnter={() => setPaused(true)} onPointerLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}
       style={{ borderRadius: 999 }}
-      className="pointer-events-auto flex items-center gap-2.5 pl-4 pr-1.5 py-1.5 min-h-[44px] bg-[#0b0b0d] text-white border border-white/10 shadow-pop text-sm max-w-[min(90vw,480px)]">
+      className="pointer-events-auto touch-none cursor-grab active:cursor-grabbing flex items-center gap-2.5 pl-4 pr-1.5 py-1.5 min-h-[44px] glass-pop text-ink text-sm max-w-[min(90vw,480px)]">
       <motion.span className="contents" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.12, duration: 0.25 }}>
         <span className={cx('w-2 h-2 rounded-full shrink-0', t.tone === 'ok' ? 'bg-profit' : t.tone === 'error' ? 'bg-loss' : 'bg-accent')} aria-hidden="true" />
         <span className="py-1 mr-1">{t.text}</span>
-        {t.action && <button type="button" className="h-8 px-3 rounded-full text-accent font-semibold shrink-0 hover:bg-white/10" onClick={() => { t.action!.run(); onClose(); }}>{t.action.label}</button>}
-        <button type="button" className="h-8 w-8 grid place-items-center rounded-full text-white/60 hover:text-white hover:bg-white/10 shrink-0 ml-auto" aria-label="Dismiss" onClick={onClose}><Icon name="x" size={14} /></button>
+        {t.action && <button type="button" className="h-8 px-3 rounded-full text-accent font-semibold shrink-0 hover:bg-ink/10" onClick={() => { t.action!.run(); onClose(); }}>{t.action.label}</button>}
+        <button type="button" className="h-8 w-8 grid place-items-center rounded-full text-ink3 hover:text-ink hover:bg-ink/10 shrink-0 ml-auto" aria-label="Dismiss" onClick={onClose}><Icon name="x" size={14} /></button>
       </motion.span>
     </motion.div>
   );
@@ -378,7 +552,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastCtx.Provider value={push}>
       {children}
       {/* Clears the phone tab bar (~64px + home indicator); bottom-left in landscape, where the rail sits on the left. */}
-      <div className="fixed z-[60] bottom-[calc(76px+env(safe-area-inset-bottom))] lg:bottom-6 land:bottom-4 left-1/2 -translate-x-1/2 flex flex-col gap-2 items-center pointer-events-none">
+      <div className="fixed z-[60] bottom-[calc(84px+max(12px,env(safe-area-inset-bottom)))] lg:bottom-6 land:bottom-4 left-1/2 -translate-x-1/2 flex flex-col gap-2 items-center pointer-events-none">
         {region('error')}{region('other')}
       </div>
     </ToastCtx.Provider>

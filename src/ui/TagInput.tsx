@@ -18,7 +18,7 @@ export function TagInput({ value, onChange, universe, tone = 'accent', placehold
       <div className="flex flex-wrap gap-1.5 items-center min-h-[38px] p-1.5 rounded-lg border border-line2 bg-bg focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20">
         <AnimatePresence initial={false}>
           {value.map(t => (
-            <motion.span key={t} layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} className={cx('inline-flex items-center gap-1 h-7 pl-2.5 pr-1 rounded-full border text-xs font-medium', chip)}>
+            <motion.span key={t} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className={cx('inline-flex items-center gap-1 h-7 pl-2.5 pr-1 rounded-full border text-xs font-medium', chip)}>
               {t}
               <button type="button" aria-label={`Remove ${t}`} className="w-5 h-5 touch:w-8 touch:h-8 touch:-my-1.5 touch:-mr-2 grid place-items-center rounded-full hover:bg-black/20" onClick={() => onChange(value.filter(x => x !== t))}><Icon name="x" size={11} /></button>
             </motion.span>
@@ -30,7 +30,7 @@ export function TagInput({ value, onChange, universe, tone = 'accent', placehold
       </div>
       <AnimatePresence>
         {focus && (sugg.length > 0 || q.trim()) && (
-          <motion.ul initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute z-30 mt-1 w-full card shadow-pop p-1 max-h-56 overflow-y-auto">
+          <motion.ul initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute z-30 mt-1 w-full glass-pop rounded-2xl p-1 max-h-56 overflow-y-auto">
             {q.trim() && !universe.includes(q.trim().toLowerCase()) && <li><button type="button" className="w-full text-left px-2.5 h-8 rounded-md text-sm hover:bg-raised" onMouseDown={() => add(q)}>Add “{q.trim().toLowerCase()}”</button></li>}
             {sugg.map(s => <li key={s}><button type="button" className="w-full text-left px-2.5 h-8 rounded-md text-sm hover:bg-raised text-ink2" onMouseDown={() => add(s)}>{s}</button></li>)}
           </motion.ul>

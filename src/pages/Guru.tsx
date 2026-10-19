@@ -189,7 +189,7 @@ function Progress() {
   const top = [...broken.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4);
   return (
     <Card>
-      <CardHead title="Your discipline" sub="The rules you break most, from your own trades" right={<Segmented label="Window" size="sm" value={n} onChange={setN} options={[{ value: '20', label: 'Last 20' }, { value: '50', label: 'Last 50' }, { value: 'all', label: 'All' }]} />} />
+      <CardHead title="Your discipline" sub="The rules you break most, from your own trades" right={<Segmented swap="card" label="Window" size="sm" value={n} onChange={setN} options={[{ value: '20', label: 'Last 20' }, { value: '50', label: 'Last 50' }, { value: 'all', label: 'All' }]} />} />
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-raised/60 p-3"><div className="label">Planned</div><div className="num text-2xl font-semibold mt-1">{pct(xs.length ? planned / xs.length : null, 0)}</div><div className="text-[11px] text-ink3">{planned} of {xs.length} trades</div></div>
         <div className="rounded-xl bg-raised/60 p-3"><div className="label">Rules kept</div><div className={cx('num text-2xl font-semibold mt-1', avg >= 80 ? 'text-profit' : avg >= 50 ? 'text-warn' : 'text-loss')}>{avg.toFixed(0)}%</div><div className="text-[11px] text-ink3">average per trade</div></div>
@@ -251,7 +251,7 @@ function CourseMap() {
     <Card>
       <CardHead title="Course map" sub={`All ${COURSE.length} lessons from your three PDFs as study notes — tap any lesson to open it`} />
       <div className="flex flex-wrap gap-2 items-center mb-3">
-        {!ql && <Segmented label="Course" size="sm" value={pdf} onChange={setPdf} options={[{ value: 'S&D', label: 'Supply & demand' }, { value: 'Confirmation', label: 'Confirmation' }, { value: 'Set & Forget', label: 'Set & forget' }]} />}
+        {!ql && <Segmented swap="page" label="Course" size="sm" value={pdf} onChange={setPdf} options={[{ value: 'S&D', label: 'Supply & demand' }, { value: 'Confirmation', label: 'Confirmation' }, { value: 'Set & Forget', label: 'Set & forget' }]} />}
         <button onClick={() => setOpen(all ? new Set() : new Set(xs.map(l => l.pdf + l.slide)))} className="chip h-8 touch:h-9 text-[12px] ml-auto">{all ? 'Collapse all' : 'Expand all'}</button>
       </div>
       <div className="relative mb-2">

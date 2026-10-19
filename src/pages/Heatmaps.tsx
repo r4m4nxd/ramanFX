@@ -108,7 +108,7 @@ export default function Heatmaps() {
         </div>
         <div className="flex items-center gap-2 min-w-0">
           <span className="label shrink-0 max-sm:hidden">Colour by</span>
-          <div className="overflow-x-auto -mx-1 px-1 min-w-0"><Segmented label="Colour cells by" size="sm" value={metric} onChange={setMetric} options={(['net', 'win', 'exp', 'r', 'trades'] as HeatMetric[]).map(m => ({ value: m, label: m === 'exp' ? 'Per trade' : METRIC_LABEL[m] }))} /></div>
+          <div className="overflow-x-auto -mx-1 px-1 min-w-0"><Segmented swap="card" label="Colour cells by" size="sm" value={metric} onChange={setMetric} options={(['net', 'win', 'exp', 'r', 'trades'] as HeatMetric[]).map(m => ({ value: m, label: m === 'exp' ? 'Per trade' : METRIC_LABEL[m] }))} /></div>
         </div>
       </motion.div>
 
@@ -120,7 +120,7 @@ export default function Heatmaps() {
 
       <div className="grid xl:grid-cols-5 gap-4">
         <Card className="xl:col-span-3">
-          <CardHead title={`Symbol × ${dim === 'session' ? 'session' : dim === 'day' ? 'weekday' : 'hold time'}`} sub="Your 12 most traded symbols. Open a cell to see its trades." right={<Segmented label="Columns" size="sm" value={dim} onChange={setDim} options={[{ value: 'session', label: 'Session' }, { value: 'day', label: 'Day' }, { value: 'hold', label: 'Hold' }]} />} />
+          <CardHead title={`Symbol × ${dim === 'session' ? 'session' : dim === 'day' ? 'weekday' : 'hold time'}`} sub="Your 12 most traded symbols. Open a cell to see its trades." right={<Segmented swap="card" label="Columns" size="sm" value={dim} onChange={setDim} options={[{ value: 'session', label: 'Session' }, { value: 'day', label: 'Day' }, { value: 'hold', label: 'Hold' }]} />} />
           <Extremes rows={topSyms} cols={dimCols} cell={symGrid} metric={metric} label={(r, c) => `${r} · ${c}`} />
           <Heatmap key={dim} label="Symbol" rows={topSyms} cols={dimCols} cell={symGrid} metric={metric} showValues cellH={34} onOpen={r => openSym(r)} />
         </Card>

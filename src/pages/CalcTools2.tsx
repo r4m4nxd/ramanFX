@@ -100,7 +100,7 @@ export function MonteCarloCalc() {
               <YAxis tickFormatter={fmtC} tick={{ fontSize: 10.5, fill: c.ink3, fontFamily: 'Inter, system-ui, sans-serif' }} axisLine={false} tickLine={false} width={yw} domain={['auto', 'auto']} />
               <ReferenceLine y={+start} stroke={c.line2} strokeDasharray="3 4" />
               <Area type="monotone" dataKey="band" stroke="none" fill="url(#mcBand)" isAnimationActive={false} />
-              {res.samples.map((_, k) => <Line key={k} type="linear" dataKey={`s${k}`} stroke={c.a(k % 3 ? 'accent' : 'violet', 0.22)} strokeWidth={1} dot={false} isAnimationActive animationDuration={700 + k * 18} />)}
+              {res.samples.map((_, k) => <Line key={k} type="monotone" dataKey={`s${k}`} stroke={c.a(k % 3 ? 'accent' : 'violet', 0.22)} strokeWidth={1} dot={false} isAnimationActive animationDuration={700 + k * 18} />)}
               <Line type="monotone" dataKey="p50" name="Median" stroke={exp >= 0 ? c.profit : c.loss} strokeWidth={2.6} dot={false} animationDuration={1200} />
               <Tooltip content={<ChartTip fmt={(v, k) => (k === 'p50' ? money(v, { ccy }) : '')} labelFmt={l => `After ${l} trades`} />} />
             </ComposedChart>

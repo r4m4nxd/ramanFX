@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from './Icon';
+import { lockScroll } from './kit';
 
 /** Edge-to-edge portrait chart over the whole app, like the TradingView phone app. */
 export function TvFullscreen({ title, onClose, controls, children }: { title: ReactNode; onClose: () => void; controls?: ReactNode; children: ReactNode }) {
@@ -14,9 +15,8 @@ export function TvFullscreen({ title, onClose, controls, children }: { title: Re
   useEffect(() => {
     const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', k);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { window.removeEventListener('keydown', k); document.body.style.overflow = prev; };
+    const unlock = lockScroll();
+    return () => { window.removeEventListener('keydown', k); unlock(); };
   }, [onClose]);
   return createPortal(
     <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}

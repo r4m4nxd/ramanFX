@@ -61,9 +61,10 @@ export function RangePicker({ className }: { className?: string }) {
       </div>
       <div className={cx('border-t border-line flex flex-col gap-2', mobile ? 'mt-4 pt-4' : 'mt-2 pt-2.5 px-1')}>
         <div className="label">Custom range</div>
-        <div className="grid grid-cols-2 gap-2">
-          <Field label="From"><input type="date" className={cx('field', mobile ? 'h-11' : 'h-8 text-xs touch:h-11 touch:text-sm')} value={from} max={to || undefined} onChange={e => setFrom(e.target.value)} /></Field>
-          <Field label="To"><input type="date" className={cx('field', mobile ? 'h-11' : 'h-8 text-xs touch:h-11 touch:text-sm')} value={to} min={from || undefined} onChange={e => setTo(e.target.value)} /></Field>
+        {/* Two equal halves that always fit the window: the native date box's own minimum width is cancelled out. */}
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2">
+          <Field label="From"><input type="date" className={cx('date-field', mobile ? 'h-11' : 'h-9 touch:h-11')} value={from} max={to || undefined} onChange={e => setFrom(e.target.value)} /></Field>
+          <Field label="To"><input type="date" className={cx('date-field', mobile ? 'h-11' : 'h-9 touch:h-11')} value={to} min={from || undefined} onChange={e => setTo(e.target.value)} /></Field>
         </div>
         <button className={cx('btn-primary', mobile ? 'h-11' : 'h-8 touch:h-11')} disabled={!from && !to} onClick={() => { setRange({ from: from || null, to: to || null, label: customLabel(from || null, to || null) }); setOpen(false); }}>Apply</button>
       </div>
@@ -81,7 +82,7 @@ export function RangePicker({ className }: { className?: string }) {
         <AnimatePresence>
           {open && (
             <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }} transition={{ duration: 0.16 }}
-              className="absolute z-50 mt-2 right-0 w-[290px] touch:w-[340px] card shadow-pop p-2" role="dialog" aria-label="Date range">
+              className="absolute z-50 mt-2 right-0 w-[290px] touch:w-[340px] glass-pop rounded-2xl p-2" role="dialog" aria-label="Date range">
               {body}
             </motion.div>
           )}

@@ -1,6 +1,7 @@
+import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useFiltered } from '@/data/derived';
+import { useFiltered, useNotes } from '@/data/derived';
 import { useStore } from '@/data/store';
 import { computeStats, normTag, type EnrichedTrade } from '@/core/stats';
 import { specFor } from '@/core/instruments';
@@ -21,7 +22,7 @@ const pick = <T extends string>(v: string | null, ok: readonly T[], d: T): T => 
 
 export default function Trades() {
   const et = useFiltered();
-  const notes = useStore(s => s.notes);
+  const notes = useNotes();
   const overrides = useStore(s => s.overrides);
   const fmt = useMoney();
   const nav = useNavigate();
@@ -69,14 +70,14 @@ export default function Trades() {
   // Remember the visible order for Prev/Next on the trade page.
   useEffect(() => { try { sessionStorage.setItem(TRADE_ORDER_KEY, JSON.stringify(rows.map(t => t.id))); } catch { /* storage unavailable */ } }, [rows]);
 
-  // "/" jumps to search, like most list apps.
+  // "/" jumps to search, like most list apps. Capture phase + preventDefault, so the shell's "/" (command palette) stands down here.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== '/' || e.metaKey || e.ctrlKey || (e.target as HTMLElement).closest('input,textarea,select,[contenteditable]')) return;
+      if (e.key !== '/' || e.metaKey || e.ctrlKey || (e.target as HTMLElement).closest('input,textarea,select,[contenteditable],[role="dialog"]')) return;
       e.preventDefault(); setShowFilters(true); searchRef.current?.focus();
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
   }, []);
 
   const sum = useMemo(() => computeStats(rows), [rows]);
@@ -94,9 +95,9 @@ export default function Trades() {
     </th>
   );
 
-  const reviewSeg = <Segmented label="Review state" size="sm" value={review} onChange={v => setParam('review', v === 'all' ? '' : v)} options={[{ value: 'all', label: 'All' }, { value: 'todo', label: <>To review <span className="num opacity-70">{counts.todo}</span></> }, { value: 'mistakes', label: <>Mistakes <span className="num opacity-70">{counts.mistakes}</span></> }]} />;
-  const sideSeg = <Segmented label="Side" size="sm" value={side} onChange={v => setParam('side', v === 'all' ? '' : v)} options={[{ value: 'all', label: 'All' }, { value: 'buy', label: 'Long' }, { value: 'sell', label: 'Short' }]} />;
-  const outcomeSeg = <Segmented label="Outcome" size="sm" value={outcome} onChange={v => setParam('outcome', v === 'all' ? '' : v)} options={[{ value: 'all', label: 'All' }, { value: 'win', label: 'Wins' }, { value: 'loss', label: 'Losses' }]} />;
+  const reviewSeg = <Segmented swap="page" label="Review state" size="sm" value={review} onChange={v => setParam('review', v === 'all' ? '' : v)} options={[{ value: 'all', label: 'All' }, { value: 'todo', label: <>To review <span className="num opacity-70">{counts.todo}</span></> }, { value: 'mistakes', label: <>Mistakes <span className="num opacity-70">{counts.mistakes}</span></> }]} />;
+  const sideSeg = <Segmented swap="page" label="Side" size="sm" value={side} onChange={v => setParam('side', v === 'all' ? '' : v)} options={[{ value: 'all', label: 'All' }, { value: 'buy', label: 'Long' }, { value: 'sell', label: 'Short' }]} />;
+  const outcomeSeg = <Segmented swap="page" label="Outcome" size="sm" value={outcome} onChange={v => setParam('outcome', v === 'all' ? '' : v)} options={[{ value: 'all', label: 'All' }, { value: 'win', label: 'Wins' }, { value: 'loss', label: 'Losses' }]} />;
   const selects = (<>
     <select aria-label="Symbol" className="field md:w-auto" value={symbol} onChange={e => setParam('symbol', e.target.value)}>
       <option value="">All symbols</option>{symbols.map(s => <option key={s}>{s}</option>)}
@@ -122,8 +123,11 @@ export default function Trades() {
               <Icon name="sliders" size={14} />Filters{active > 0 && <span className="num">· {active}</span>}
             </button>
           </div>
+          {/* Filters unfold under the button instead of shoving the list down in one frame. */}
+          <AnimatePresence initial={false}>
           {showFilters && (
-            <div id="trade-filters" className="flex flex-col gap-3 mt-3">
+            <motion.div id="trade-filters" key="filters" className="overflow-hidden" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}>
+            <div className="flex flex-col gap-3 pt-3">
               <div className="grid grid-cols-2 gap-2">{selects}</div>
               {[['Review', reviewSeg], ['Side', sideSeg], ['Outcome', outcomeSeg]].map(([l, el]) => (
                 <div key={l as string} className="flex items-center justify-between gap-2"><span className="label">{l}</span>{el}</div>
@@ -140,7 +144,9 @@ export default function Trades() {
                 </div>
               </div>
             </div>
+            </motion.div>
           )}
+          </AnimatePresence>
         </>) : (
           <div className="flex flex-wrap gap-2 items-center">
             {search}{selects}{reviewSeg}{sideSeg}{outcomeSeg}
@@ -148,11 +154,11 @@ export default function Trades() {
         )}
         {anyFilter && (
           <div className="flex items-center justify-between gap-2 mt-3 text-xs text-ink3">
-            <span className="num">{rows.length} of {et.length} trades</span>
+            <span className="num">{rows.length} of {et.length} {et.length === 1 ? 'trade' : 'trades'}</span>
             <button type="button" className="btn-ghost h-8 text-accent" onClick={clearAll}><Icon name="x" size={13} />Clear filters</button>
           </div>
         )}
-        <div className="grid grid-cols-3 lg:grid-cols-6 gap-x-3 gap-y-3 mt-4 pt-4 border-t border-line">
+        <div className="grid grid-cols-2 min-[400px]:grid-cols-3 lg:grid-cols-6 gap-x-3 gap-y-3 mt-4 pt-4 border-t border-line">
           {[
             ['Trades', String(sum.total), ''],
             ['Net P&L', fmt(sum.net, { signed: true }), tone(sum.net)],
@@ -160,16 +166,16 @@ export default function Trades() {
             ['Profit factor', sum.profitFactor?.toFixed(2) ?? '—', ''],
             ['Expectancy', fmt(sum.expectancy, { signed: true }), tone(sum.expectancy)],
             ['Avg R', rMult(sum.avgR), tone(sum.avgR)],
-          ].map(([l, v, cl]) => <div key={l} className="min-w-0"><div className="label truncate">{l}</div><div className={cx('num font-semibold mt-1 truncate', cl)}>{v}</div></div>)}
+          ].map(([l, v, cl]) => <div key={l} className="min-w-0"><div className="label truncate">{l}</div><div className={cx('num font-semibold mt-1 whitespace-nowrap text-[clamp(13px,3.6vw,16px)] lg:text-base', cl)}>{v}</div></div>)}
         </div>
       </Card>
 
       <Card className={mobile ? 'px-4 py-1' : 'p-0 overflow-hidden'}>
         {rows.length ? mobile ? (<>
           <TradeList trades={rows.slice(0, limit)} linkState={linkState} />
-          {rows.length > limit && <div className="py-3 text-center border-t border-line"><button className="btn w-full h-11" onClick={more}>Show more ({rows.length - limit} left)</button></div>}
+          {rows.length > limit && <div className="py-3 text-center border-t border-line"><button className="btn w-full h-11" onClick={more}>Show more ({(rows.length - limit).toLocaleString()} left)</button></div>}
         </>) : (
-          <div>
+          <div className="overflow-x-auto overscroll-x-contain">
             <table className="w-full">
               <thead className="pillhead"><tr className="[&>th]:pt-3 [&>th:first-child]:pl-5 [&>th:last-child]:pr-5">
                 <Th k="close">Closed</Th><Th k="sym">Symbol</Th><th className="th">Side</th><Th k="volume" right>Lots</Th><th className="th text-right">Entry → Exit</th><Th k="hold" right>Hold</Th><th className="th pl-5">Setup</th><th className="th">Result</th><Th k="r" right>R</Th><Th k="net" right>Net</Th>
@@ -186,7 +192,7 @@ export default function Trades() {
                       <td className="td num text-right text-ink2">{t.volume}</td>
                       <td className="td num text-right text-ink2 whitespace-nowrap">{price(t.openPrice, digits)} <span className="text-ink3">→</span> {price(t.closePrice, digits)}</td>
                       <td className="td num text-right text-ink2">{fmtHold(t.holdSec)}</td>
-                      <td className="td pl-5 text-ink2 max-w-[200px] truncate">{n?.tags?.join(', ') || <span className="text-ink3">—</span>}</td>
+                      <td className="td pl-5 text-ink2 max-w-[200px] truncate" title={n?.tags?.join(', ') || undefined}>{n?.tags?.join(', ') || <span className="text-ink3">—</span>}</td>
                       <td className="td"><Badge tone={t.net > 0 ? 'profit' : t.net < 0 ? 'loss' : 'neutral'}>{t.net > 0 ? 'WIN' : t.net < 0 ? 'LOSS' : 'BE'}</Badge></td>
                       <td className={cx('td num text-right', t.r == null ? 'text-ink3' : 'text-ink2')}>{rMult(t.r, 1)}</td>
                       <td className={cx('td num text-right font-semibold', tone(t.net))}>{fmt(t.net, { signed: true })}</td>
@@ -195,7 +201,7 @@ export default function Trades() {
                 })}
               </tbody>
             </table>
-            {rows.length > limit && <div className="p-4 text-center border-t border-line"><button className="btn" onClick={more}>Show more ({rows.length - limit} left)</button></div>}
+            {rows.length > limit && <div className="p-4 text-center border-t border-line"><button className="btn" onClick={more}>Show more ({(rows.length - limit).toLocaleString()} left)</button></div>}
           </div>
         ) : <Empty icon="search" title="No trades match" action={anyFilter ? <button className="btn" onClick={clearAll}>Clear filters</button> : undefined}>{anyFilter ? 'Nothing fits these filters in the current date range.' : 'No trades in the current date range. Widen it from the date picker.'}</Empty>}
       </Card>

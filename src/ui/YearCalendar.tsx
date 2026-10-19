@@ -56,7 +56,7 @@ export function YearCalendar({ days, year, onYear, onMonth }: { days: DayStat[];
         </div>
       </div>
 
-      <div className="flex justify-end -mb-2"><Segmented label="Colour by" size="sm" value={metric} onChange={setMetric} options={[{ value: 'net', label: 'Net $' }, { value: 'win', label: 'Win %' }, { value: 'trades', label: 'Trades' }]} /></div>
+      <div className="flex justify-end -mb-2"><Segmented swap="card" label="Colour by" size="sm" value={metric} onChange={setMetric} options={[{ value: 'net', label: 'Net $' }, { value: 'win', label: 'Win %' }, { value: 'trades', label: 'Trades' }]} /></div>
       {/* Selected-day bar */}
       <div className="h-[52px] rounded-xl bg-raised/70 border border-line px-4 flex items-center overflow-hidden">
         <AnimatePresence mode="wait" initial={false}>
@@ -84,7 +84,7 @@ export function YearCalendar({ days, year, onYear, onMonth }: { days: DayStat[];
           const lead = (first.getDay() + 6) % 7;
           const len = new Date(year, m + 1, 0).getDate();
           return (
-            <motion.section key={`${year}-${m}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease, delay: m * 0.035 }} aria-label={monthName(m)}>
+            <motion.section key={`${year}-${m}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease, delay: m * 0.03 }} aria-label={monthName(m)}>
               <button type="button" onClick={() => onMonth?.(m)} className="w-full flex items-baseline justify-between gap-2 mb-2 group">
                 <span className="text-[13px] font-semibold group-hover:text-accent transition-colors">{monthName(m).slice(0, 3)}</span>
                 <span className={cx('num text-[11.5px] font-medium', n ? tone(mn) : 'text-ink3')}>{n ? fmt(mn, { signed: true, compact: true }) : '—'}</span>
@@ -97,9 +97,9 @@ export function YearCalendar({ days, year, onYear, onMonth }: { days: DayStat[];
                   const s = map.get(k);
                   const on = sel === k;
                   return (
-                    <button key={k} type="button" disabled={!s}
+                    <button key={`${metric}-${k}`} type="button" disabled={!s}
                       {...(s ? hold.bind(() => { setSel(k); setPeek(k); }) : {})}
-                      onPointerEnter={e => { if (s && e.pointerType === 'mouse') setSel(k); }} onClick={() => { if (s && !hold.consumed()) setSel(k); }}
+                      onPointerEnter={e => { if (s && e.pointerType === 'mouse') setSel(k); }} onClick={() => { if (s && !hold.consumed()) setSel(v => (v === k ? null : k)); }}
                       aria-label={s ? `${k}: ${fmt(s.pnl, { signed: true })}` : k}
                       className={cx('heat-cell hold-cell aspect-square rounded-[4px] text-[9px] num leading-none grid place-items-center', on && 'is-active', k === today && 'ring-1 ring-accent', !s && 'cursor-default')}
                       style={{ background: s ? heatColor(metric, mv(s), scale) : 'rgb(var(--raised) / 0.6)', color: s ? inkOn(metric, mv(s), scale) : 'rgb(var(--ink3) / 0.6)', animationDelay: `${m * 45 + i * 9}ms` }}>

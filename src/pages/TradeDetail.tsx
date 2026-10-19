@@ -10,7 +10,7 @@ import { fmtHold } from '@/core/time';
 import { normTag } from '@/core/stats';
 import type { Attachment, TradeNote, Trend } from '@/core/types';
 import { longDate, num, price, rMult, timeHM, tone, useMoney } from '@/lib/format';
-import { Badge, Card, CardHead, cx, Empty, Field, Page, useIsMobile, useToast } from '@/ui/kit';
+import { Badge, Card, CardHead, cx, ease, Empty, Field, Page, useIsMobile, useToast } from '@/ui/kit';
 import { TRADE_ORDER_KEY } from '@/ui/TradeList';
 import { TagInput } from '@/ui/TagInput';
 import { Icon } from '@/ui/Icon';
@@ -304,7 +304,7 @@ export default function TradeDetail() {
               ))}
             </div>
             <AnimatePresence mode="wait">
-              <motion.div key={JSON.stringify(plays)} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-3">
+              <motion.div key={JSON.stringify(plays)} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2, ease }} className="mt-3">
                 {plays === null ? <p className="text-xs text-ink3">Mark all three trends to check this trade against your matrix.</p>
                   : plays.length === 0 ? <div className="p-3 rounded-lg border border-loss/40 text-[13px]"><b className="text-loss">No-trade combination.</b> <span className="text-ink2">The matrix had no play here.</span></div>
                   : plays.map(p => (
@@ -358,8 +358,8 @@ export default function TradeDetail() {
                 const span = mae + mfe || 1;
                 return (<>
                   <div className="relative h-8 rounded-lg bg-raised overflow-hidden">
-                    <motion.div className="absolute inset-y-2.5 bg-loss/35 rounded-l" style={{ right: `${(mfe / span) * 100}%` }} initial={{ width: 0 }} animate={{ width: `${(mae / span) * 100}%` }} />
-                    <motion.div className="absolute inset-y-2.5 bg-profit/35 rounded-r" style={{ left: `${(mae / span) * 100}%` }} initial={{ width: 0 }} animate={{ width: `${(mfe / span) * 100}%` }} />
+                    <motion.div className="absolute inset-y-2.5 bg-loss/35 rounded-l origin-right" style={{ right: `${(mfe / span) * 100}%`, width: `${(mae / span) * 100}%` }} initial={{ scaleX: 0.001 }} animate={{ scaleX: 1 }} transition={{ duration: 0.28, ease }} />
+                    <motion.div className="absolute inset-y-2.5 bg-profit/35 rounded-r origin-left" style={{ left: `${(mae / span) * 100}%`, width: `${(mfe / span) * 100}%` }} initial={{ scaleX: 0.001 }} animate={{ scaleX: 1 }} transition={{ duration: 0.28, ease }} />
                     <div className="absolute inset-y-0 w-0.5 bg-ink" style={{ left: `${((mae + got) / span) * 100}%` }} title="Exit" />
                   </div>
                   <div className="grid grid-cols-3 gap-2 mt-3 num">

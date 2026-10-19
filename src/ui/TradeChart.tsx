@@ -9,7 +9,7 @@ import { deviceTz } from '@/core/time';
 import { useTradeBars } from '@/data/bars';
 import { useStore } from '@/data/store';
 import type { EnrichedTrade } from '@/core/stats';
-import { Card, CardHead, cx, Segmented, useIsMobile } from './kit';
+import { Card, CardHead, cx, lockScroll, Segmented, useIsMobile } from './kit';
 import { Icon } from './Icon';
 import { tvSymbol } from '@/core/tvSymbol';
 import { TvWidget } from './TvWidget';
@@ -181,8 +181,8 @@ export function TradeChart({ t, levels, drawings = [], onDrawings }: { t: Enrich
   useEffect(() => {
     if (!full) return;
     const k = (e: KeyboardEvent) => { if (e.key === 'Escape') setFull(false); };
-    window.addEventListener('keydown', k); document.body.style.overflow = 'hidden';
-    return () => { window.removeEventListener('keydown', k); document.body.style.overflow = ''; };
+    window.addEventListener('keydown', k); const unlock = lockScroll();
+    return () => { window.removeEventListener('keydown', k); unlock(); };
   }, [full]);
 
   const short = (x: Tf) => (mobile ? x.replace('M', '').replace('H', 'h').replace('D1', 'D') : x);
