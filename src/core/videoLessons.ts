@@ -73,6 +73,21 @@ export const VIDEO_LESSONS: VideoLesson[] = [
      "Goal of the course: combine everything (incl. multiple timeframe analysis) to build your own strategy.",
      "Ask him questions anytime if something is unclear."
     ]
+   },
+   {
+    "heading": "More from the lesson: Why a chart method was needed",
+    "points": [
+     "Anybody can say 'price goes up when demand exceeds supply'; the question is how you identify that on a price chart. That is what the founder of the method worked out.",
+     "His understanding of how it was found: on the floor he saw where the orders filled, then looked at the chart and saw the huge move out of that price.",
+     "First example on the chart: price pushed down, then 'boom' pushed up; he boxed the base, price later pushed back down into the box (the entry) and pushed up out of the zone again."
+    ]
+   },
+   {
+    "heading": "More from the lesson: Where he does NOT draw zones",
+    "points": [
+     "On the example chart he points to several spots and says 'no demand here' because there was no large move away. He only marks the large moves away.",
+     "The two-type list (DBR/RBR, RBD/DBD) is also covered in his free videos."
+    ]
    }
   ],
   "rules": [
@@ -90,7 +105,10 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "We are looking for a pause in the market and a strong fast move out.",
    "Sideways price action basically means that there's a balance of buyers and sellers - that's not what we are looking for.",
    "That's how they leave their footprints on a price chart.",
-   "We always wait for the pullback."
+   "We always wait for the pullback.",
+   "There was so much demand here and such a lack of supply that price pushed out.",
+   "Price could not stay at this level long enough and we just shot up out of that area.",
+   "We are stacking the odds in our favor by trading with these large players."
   ],
   "diagrams": [
    {
@@ -191,6 +209,27 @@ export const VIDEO_LESSONS: VideoLesson[] = [
      "Open a chart and use the arrow tool to POINT to where you think demand and supply are (point at the basing) - don't draw zones yet.",
      "Post a screenshot in the Discord homework tab; he will check it."
     ]
+   },
+   {
+    "heading": "More from the lesson: Worked hypothetical: zone that removed nothing",
+    "points": [
+     "His sketch: big red candle down, two basing candles, a large push up and a move away, with supply sitting above that was NOT removed. Even so, the demand left below can be a potential buy if it is a decent move away and the higher timeframes make sense.",
+     "He then frames it as a 1-hour chart: that 1H demand should be located inside a daily demand zone. That is where the edge comes from."
+    ]
+   },
+   {
+    "heading": "More from the lesson: More 'not S&D' examples from the article",
+    "points": [
+     "Second article chart: a randomly drawn zone that price had already broken through. He shows where the real supply was instead: basing, then the move down. He marks another supply on the same chart the same way (basing, move down).",
+     "On the first article chart he notes the boxes' zones had already been removed (at least further back), which is another sign they are S/R, not S&D.",
+     "Boxes that are just 'areas price rallies in and out of' with no structure are not supply and demand."
+    ]
+   },
+   {
+    "heading": "More from the lesson: Use his chart link",
+    "points": [
+     "He provides his charts so you can compare his tight, consistent zones against S/R-style boxes and learn the difference."
+    ]
    }
   ],
   "rules": [
@@ -206,13 +245,16 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "Trading drawable-only zones (huge wick, ~50% candle move away, little time away).",
    "Drawing support/resistance boxes from random prices and calling them supply and demand.",
    "Using indicators on S&D charts.",
-   "Getting too hung up on what the zone removed when the higher-timeframe context is right."
+   "Getting too hung up on what the zone removed when the higher-timeframe context is right.",
+   "Starting a zone from a random earlier price instead of at the basing that caused the move away."
   ],
   "quotes": [
    "Just because you can find it, it doesn't mean that it's qualified as supply or demand.",
    "Our edge comes from that top-down analysis.",
    "Clean basing, good move away - that's a drawable and tradable zone.",
-   "This is not supply and demand, this is basically a support and resistance zone."
+   "This is not supply and demand, this is basically a support and resistance zone.",
+   "Supply and demand is very tightly based.",
+   "There's just no structure to anything they're doing here."
   ],
   "diagrams": [
    {
@@ -330,6 +372,22 @@ export const VIDEO_LESSONS: VideoLesson[] = [
      "Draw 2 supply zones (one RBD, one DBD) and 2 demand zones (one continuation/RBR, one DBR), all drawn similar in size.",
      "Post in the homework chat labelled lesson 3 homework. Getting it wrong is fine - that's the point."
     ]
+   },
+   {
+    "heading": "More from the lesson: Worked 3:1 example (proximal choice)",
+    "points": [
+     "With the proximal drawn low (small zone), a 3:1 trader only needed price to reach 2.205. Drawing the proximal higher made price travel further for 3:1; drawing it even bigger, price only just hit 3:1. Whether you hit it depends on how far your stop is."
+    ]
+   },
+   {
+    "heading": "More from the lesson: Other notes",
+    "points": [
+     "His example chart had three demand zones: two CP (rally-base-rally) and one PV (drop-base-rally).",
+     "He says there are really only two types of zones; there are 'different situations', but he doesn't want to confuse anyone.",
+     "He won't repeat everything for supply because it is the complete opposite.",
+     "The rules to apply: zones similar in size, distal line at the extreme of the basing candles. Beyond that the proximal is up to you.",
+     "Example identification: 'two basing candles' and the green candle is the large move away; then wrap the lines around the basing."
+    ]
    }
   ],
   "rules": [
@@ -349,7 +407,9 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "Distal is always going to be the one that's further away.",
    "You need to include this wick.",
    "As long as you have the distal line, that's the most important thing.",
-   "You simply just cut that in half."
+   "You simply just cut that in half.",
+   "There is some subjectivity here. It's not all completely objective.",
+   "If you send me homework and it's incorrect or it's not good, that's great. That's the point of it."
   ],
   "diagrams": [
    {
@@ -452,6 +512,16 @@ export const VIDEO_LESSONS: VideoLesson[] = [
      "Post two screenshots of one setup (a win or a loss is fine): 1) your HTF zone, 2) the ETF setup inside it ('a zone within a zone').",
      "Post it in the Discord homework chat and label what it is."
     ]
+   },
+   {
+    "heading": "More from the lesson: Extra details from the examples",
+    "points": [
+     "Natural gas: he had cut a trade inside the weekly zone earlier and was back in again at the time of recording.",
+     "In the EURUSD example he said the H1 zones he drew 'aren't high quality'; they were only to show the process.",
+     "On the EURUSD 5m chart there was almost a second 5m zone right after the wick stop-out, which would have been another trade.",
+     "He says MTA is where you actually start to build a trading plan and strategy.",
+     "The edge works the same on 15m, 1m or any chart as long as you use the timeframe combinations properly."
+    ]
    }
   ],
   "rules": [
@@ -470,7 +540,9 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "Our edge comes from identifying these higher timeframe zones, refining our entry lower, and then holding as long as possible.",
    "We buy at demand. We do not sell at demand.",
    "Pick one timeframe guys and stick to that timeframe.",
-   "A couple trades did not work, but that's okay because eventually the one did."
+   "A couple trades did not work, but that's okay because eventually the one did.",
+   "I would screenshot this, I would learn this.",
+   "This is golden information here. This is how we get those 50 to one trades."
   ],
   "diagrams": [
    {
@@ -561,13 +633,36 @@ export const VIDEO_LESSONS: VideoLesson[] = [
     "points": [
      "Draw one momentum line and one proper trend line (clear higher highs/higher lows, peaks and valleys) and post both."
     ]
+   },
+   {
+    "heading": "More from the lesson: Momentum with no trend: how a trend would have formed",
+    "points": [
+     "Example: momentum currently up, but no clear peak or valley. It is hard to call it a downtrend, sideways, or anything else; there is no trend, only momentum.",
+     "How it would have become an uptrend: push up, push down lower, push back up and break the high. Then you have a clear valley and a clear peak, and you draw the trend line. That did not happen."
+    ]
+   },
+   {
+    "heading": "More from the lesson: Downtrend without a trend line (sketch)",
+    "points": [
+     "Sketch: valley, peak, then price broke the low but never broke the prior high in the right way. There is a lower low, so it is pretty much a downtrend, but you cannot draw a trend line there.",
+     "He says this does not happen too often, so examples are hard to find."
+    ]
+   },
+   {
+    "heading": "More from the lesson: Judging when momentum becomes a trend",
+    "points": [
+     "Example: price came down to the trend line and kept rallying. At some point further up he would say the trend is up, but at the time there was not enough price action.",
+     "Zoomed in on a slice, price can look sideways; zoomed out, it keeps breaking down and the trend is down. He calls this 'reality-based thinking': if price keeps going for long enough, that is the trend.",
+     "He uses subjectivity and best judgement here, not a measurement."
+    ]
    }
   ],
   "rules": [
    "Trade with trends and trend lines, never momentum lines.",
    "Draw a trend line only after the prior swing low (downtrend) or high (uptrend) is broken.",
    "A trend line must be angled, not near-flat.",
-   "For confirmation, use a break of a proper trend line, not a momentum line."
+   "For confirmation, use a break of a proper trend line, not a momentum line.",
+   "Do not draw momentum lines on your chart."
   ],
   "mistakes": [
    "Drawing momentum lines and treating them as trend lines (he sees this a lot in the community).",
@@ -580,7 +675,10 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "Momentum lines are steep and aggressive and trend lines are very, very obvious.",
    "You could probably show your mom who has no idea what trading is, and she'd be able to tell you.",
    "Not everything is black and white.",
-   "The reason I'm showing you momentum lines is to show you what not to do."
+   "The reason I'm showing you momentum lines is to show you what not to do.",
+   "This is always gonna be better than that momentum.",
+   "Not every trend line's gonna be the exact same. Not every momentum line's gonna be the exact same.",
+   "Study my charts, look at my trend lines, get used to it."
   ],
   "diagrams": [
    {
@@ -668,6 +766,25 @@ export const VIDEO_LESSONS: VideoLesson[] = [
     "points": [
      "As price moves in your favour and fresh demand forms below, you can bump the stop under it to lock in profit."
     ]
+   },
+   {
+    "heading": "More from the lesson: How to test",
+    "points": [
+     "His instruction: go back, look at a chart, track the zones like he does, and test which entry and take-profit methods work for you."
+    ]
+   },
+   {
+    "heading": "More from the lesson: Spread example details",
+    "points": [
+     "He uses a broker with a spread (he notes many people pay for no spread). EURUSD example: if the tool reads 40.2, he moves it to about 41.2 (one pip before the zone), and does the same past the other side for the stop.",
+     "Natural gas example: H4 demand inside the big weekly zone, with the runner held toward the next weekly supply at roughly 3."
+    ]
+   },
+   {
+    "heading": "More from the lesson: Zone-within-zone example",
+    "points": [
+     "On the H4 example there was a lower-timeframe zone inside the zone that could have been used to refine the entry."
+    ]
    }
   ],
   "rules": [
@@ -683,7 +800,9 @@ export const VIDEO_LESSONS: VideoLesson[] = [
   "quotes": [
    "Once the zone is broken, the whole trade gets voided.",
    "There's no free lunch. There's pros and cons to everything.",
-   "It's all about testing."
+   "It's all about testing.",
+   "The stop loss is usually always the same, but as far as entries go and take profits, it's definitely subjective.",
+   "It's all based on different market conditions."
   ],
   "diagrams": [
    {
@@ -775,6 +894,33 @@ export const VIDEO_LESSONS: VideoLesson[] = [
     "points": [
      "Three screenshots: 1) entry-timeframe zone/entry, 2) higher-timeframe zone, 3) MSA-timeframe zone. Label each timeframe (arrows help). Any valid sequence is fine."
     ]
+   },
+   {
+    "heading": "More from the lesson: Where MSA came from",
+    "points": [
+     "He says he asked himself one day, while only trading HTF zones, 'why should this weekly demand zone hold?', and then went to the timeframe above the weekly.",
+     "The weekly zone in the natural gas example had 'beautiful reactions' off it."
+    ]
+   },
+   {
+    "heading": "More from the lesson: The question above the weekly",
+    "points": [
+     "In the EURUSD low-quality example he says that to justify the weekly demand you would have to ask whether there is a three-month demand there 'or whatever'.",
+     "In the natural gas example he used the 6-month ('macro') chart. He adds that MSA can also be applied to the lower timeframes."
+    ]
+   },
+   {
+    "heading": "More from the lesson: EURUSD daily-to-5m hold idea",
+    "points": [
+     "Example: a daily supply zone was on his chart at the time. Plan: get long at daily demand, find a 1H demand inside it, enter on 5m, and try to hold from the daily demand toward the daily supply by repeatedly finding 5m entries.",
+     "He calls the 5m 'a pretty popular entry type'."
+    ]
+   },
+   {
+    "heading": "More from the lesson: How to build your own sequence",
+    "points": [
+     "Take the HTF of your entry timeframe, act as if that HTF is now your entry timeframe, and apply its HTF. That third timeframe is your MSA timeframe."
+    ]
    }
   ],
   "rules": [
@@ -791,7 +937,9 @@ export const VIDEO_LESSONS: VideoLesson[] = [
   "quotes": [
    "Why should this weekly demand zone hold?",
    "If you're not using multiple sequence analysis, you're gonna have a hard time trading.",
-   "Our risk reward is gonna be very large, but our win rate is not gonna be amazing."
+   "Our risk reward is gonna be very large, but our win rate is not gonna be amazing.",
+   "If you do not understand multiple timeframe analysis, you will not understand multiple sequence analysis. I can guarantee you that.",
+   "When I started to apply this, my trading took a turn for the best."
   ],
   "diagrams": [
    {
@@ -869,6 +1017,22 @@ export const VIDEO_LESSONS: VideoLesson[] = [
     "points": [
      "Two labelled screenshots: the HTF trend (any sequence), and the nearest-zone setup on the ETF."
     ]
+   },
+   {
+    "heading": "More from the lesson: Details from the examples",
+    "points": [
+     "The 3rd-CP trade: he actually thought about taking it (entry and stop shown). As price reached about 1:1 he would have moved the stop to break even at least, or taken profit, so he would have broken even.",
+     "On the daily, price went up at about a 90-degree angle. That will happen, and you will miss trades.",
+     "In the H1 example, the nearest H4 zone was far below, around 179.5, which is why buying the next H1 zone was risky.",
+     "Trading one timeframe and buying its demand zones 'is fine'; to stack the odds you need to look at other factors (the HTF trend).",
+     "He says the daily uptrend in the example was 'completely objective'; nobody would deny it."
+    ]
+   },
+   {
+    "heading": "More from the lesson: Terminology",
+    "points": [
+     "'Momentum trading' from him can also mean a different method that he does not cover here."
+    ]
    }
   ],
   "rules": [
@@ -887,7 +1051,9 @@ export const VIDEO_LESSONS: VideoLesson[] = [
   "quotes": [
    "Do not chase price. I cannot stress that enough.",
    "After three CPs, continuation patterns, we should stop trading to the upside.",
-   "We simply buy or sell the nearest zone."
+   "We simply buy or sell the nearest zone.",
+   "We don't just want to just be buying every zone with the trend.",
+   "We still need to make sure that the zone is high quality."
   ],
   "diagrams": [
    {
@@ -2083,6 +2249,33 @@ export const VIDEO_LESSONS: VideoLesson[] = [
      "Seeing results from trading discipline helped him stick to the gym, and the gym discipline now helps his trading. He feels more clear-minded.",
      "His suggestion: changing something in your actual life to build discipline can help your trading."
     ]
+   },
+   {
+    "heading": "More from the lesson: Context and extra details from the week",
+    "points": [
+     "Start of a new month: he took no trades at first, then several setups showed up at once. The USDJPY trade was posted in the Discord group.",
+     "On USDJPY his stop went to breakeven almost immediately because the trade had basically no drawdown. He says a no-drawdown trade feels like hype, and it is a bummer to watch that return pull back, but 'not that big of a deal... onto the next one'.",
+     "Why he wanted the first trade after the risk increase to win: a winner first would mean any following losses are only a drawdown from profit, not a true drawdown.",
+     "After the two losses he went back to his journal notes and re-read his own 'do not get discouraged' note. He says reading it is what you have to do in that moment.",
+     "The analogy in full: running down the street for a free ice-cream truck (the USDJPY trade going great), getting punched in the face (stopped at BE), getting up and walking away, then getting stabbed (two losses in a row after raising risk). He says it no longer really feels like that, because of his discipline."
+    ]
+   },
+   {
+    "heading": "More from the lesson: R:R mindset he spells out",
+    "points": [
+     "The losses will hurt, but one or two winners will make up for them. You will lose more than you win and still be profitable over the long run.",
+     "If 1:1 or 2:1 does not fit you (he does not like it either, he finds it difficult), master the discipline to keep taking the next trade with a lower-win-rate, bigger-R:R system.",
+     "With 1% risk on every June trade, he estimates the return would have been about 1.6% to 1.9% instead of 0.89%.",
+     "June also contained four losing trades in a row. He reminds himself that this 'is what it is' and moves on.",
+     "He expects a temporary drawdown while the bigger risk is in place, and says you just have to understand that it will happen.",
+     "Trading 'a lot of it is just that discipline'. You do not have to win a lot if you get used to losing."
+    ]
+   },
+   {
+    "heading": "More from the lesson: Why he shared this",
+    "points": [
+     "He recorded it right after the losses so that anyone with the same thoughts or feelings knows other traders feel this too. It is completely normal, and it does not mean you won't be successful."
+    ]
    }
   ],
   "rules": [
@@ -2091,7 +2284,9 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "Riskier setups get half risk; standard setups get full risk.",
    "Decide risk changes in advance and in writing (e.g. 'if June is profitable, increase to full risk').",
    "After a loss, feel it briefly, then get straight back to looking for the next setup.",
-   "Once a system is proven, trust the R:R and the probabilities. Do not rewrite it after a losing streak."
+   "Once a system is proven, trust the R:R and the probabilities. Do not rewrite it after a losing streak.",
+   "When a losing streak hits, re-read the notes you wrote in advance (e.g. 'expect big drawdown, do not get discouraged') before reacting.",
+   "Get used to losing: the system's few winners pay for the many losers, so keep taking the next trade."
   ],
   "mistakes": [
    "Not moving the stop to BE when your plan says to, because you think price will react a second time.",
@@ -2099,13 +2294,19 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "Constantly tweaking the strategy after each loss (e.g. blaming the approach to the zone) instead of trusting the probabilities.",
    "Staying upset for too long after a loss.",
    "Holding trades very long without accounting for swap fees eating profit.",
-   "Being shocked by a drawdown after raising risk instead of expecting it."
+   "Being shocked by a drawdown after raising risk instead of expecting it.",
+   "Letting a no-drawdown 'hype' trade that comes back to BE throw you off the next setup.",
+   "Choosing a 1:1 or 2:1 style only because a low win rate feels uncomfortable, when the real fix is the discipline to keep taking trades."
   ],
   "quotes": [
    "Expect big drawdown, do not get discouraged.",
    "I lose more than I win and I'm still a profitable trader.",
    "It's okay to feel that way for a few minutes, then you have to immediately get right back into it.",
-   "Take your loss like an adult and understand the math and the probabilities."
+   "Take your loss like an adult and understand the math and the probabilities.",
+   "Obviously supply and demand works. Obviously the system I have works, I just need to move on to the next trade.",
+   "These losses are gonna hurt, but you're gonna have that one winner... those two winners that are gonna make up for your losses.",
+   "It's completely normal and it doesn't mean that you aren't gonna be successful.",
+   "You don't have to win a lot if you get used to losing."
   ],
   "diagrams": [
    {
@@ -2123,7 +2324,9 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "Do I know the point (e.g. ~2:1) where my plan moves the stop to BE?",
    "Have I accounted for swap fees if I plan to hold for a long time?",
    "Am I calm, with no lingering frustration from the last loss?",
-   "Am I taking this trade because it fits the plan, not to 'fix' a losing streak?"
+   "Am I taking this trade because it fits the plan, not to 'fix' a losing streak?",
+   "Have I re-read my pre-written journal notes for this month (risk plan, expected drawdown)?",
+   "Do I know my current losing streak compared with my recorded max drawdown (his is 6 in a row)?"
   ],
   "journalTags": [
    "stop not moved to BE per plan",
@@ -2253,6 +2456,58 @@ export const VIDEO_LESSONS: VideoLesson[] = [
      "Indicators that flag strong moves can be fine to experiment with, but they don't follow the chain analysis (they flag moves that aren't zones).",
      "Next homework: January 2012 to January 2013 on the same chart."
     ]
+   },
+   {
+    "heading": "More from the lesson: More psychology details",
+    "points": [
+     "Someone who has never heard of trading can press buy and win. 'You can make a million dollars at the click of a button, but you could also lose it slowly over time.'",
+     "He says the quote exaggerates a little: a trade you planned for 5:1 that runs to 10:1 probably feels better than skipping. The point is still not to force trades.",
+     "Some very obvious-looking charts will still lose when you take them. That is all part of it.",
+     "There is a balance between short-term and long-term thinking, but trading is about staying in the game long-term.",
+     "Hard stop, as a YouTuber put it: it makes you accept you are wrong. Without it, 1% becomes the next stop at 2%, then 3%, 4%, up to 10% of the whole account. A losing position you keep also ties up capital, leaving you less leverage."
+    ]
+   },
+   {
+    "heading": "More from the lesson: Why highs and lows are not zones",
+    "points": [
+     "Example: a sideways daily chart with repeated selling at the top and buying at the bottom. That is technically supply and demand, but every candle is supply and demand.",
+     "Each daily candle seen on a lower timeframe (e.g. 1H) is its own run of buying and selling. That is supply and demand, but it is not a supply and demand zone under the original methodology.",
+     "He learned from Sam Seiden's free YouTube videos (never his course). His strategy is tweaked from that, but much closer to it than to YouTube's highs/lows versions, which he says were changed to sell courses."
+    ]
+   },
+   {
+    "heading": "More from the lesson: Zone sizing by measuring (clone method)",
+    "points": [
+     "Worked example: wick-to-body was far too small (a correct earlier zone fitted about 2.5 times inside it). Wick-to-wick was still too small (about 1.5 times). So he moved the proximal line up to wherever the zone matched the earlier correct zone's size.",
+     "'There's no reason that this is here other than I'm making it similar size to that one.'",
+     "When first learning, clone a correct zone and measure the new one against it. With experience you won't need to. He clones only to demonstrate.",
+     "Use the surroundings: try attaching the proximal line to different wicks and bodies within the basing and pick what gives a similar size. A zone a little smaller or a little bigger is 'similar enough'.",
+     "Example: a too-small zone that you could fit almost two of the correct zone into shows the size is wrong. That would make a 'no space' zone look valid when it isn't."
+    ]
+   },
+   {
+    "heading": "More from the lesson: Homework walkthrough details (Jan 2011 to Jan 2012)",
+    "points": [
+     "First zone qualified because it removed a trendline. When a supply was removed, he saw the move away and the zone immediately ('picture perfect obvious to me' after years of practice).",
+     "Distal line example: a green candle's low sat below a red wick, so the distal line attached to that green candle's low (the true lowest point of the base).",
+     "Trendline exercise: several candles technically closed below the line. The removal candle is the FIRST one whose body and wick both closed below. Members circled the wrong candle (one still touching the line). The later full closes don't matter.",
+     "A trendline removed by no zone: everything after it was basing with no move away and no stay away, so the chain stopped there.",
+     "A hidden zone he had to draw to see: basing, a move-away candle, then the stay-away candle and the space. His worry was whether the move-away candle was big enough. He judged it was, and it was 'a beautiful setup'.",
+     "A supply zone: an extra red basing candle at the top could be included or left out. Including it made sense given the zone size he was aiming for.",
+     "Trendlines placed very close to each other are hard to spot. Even he almost missed one, and he admitted missing another while marking homework.",
+     "Emotional wick example (USDCAD): a huge candle wicked through a demand like a news event. He treated the wick as if it wasn't there and kept extending the zone. If the body had closed beyond it, the zone would have been removed.",
+     "For next week: if you don't have this zone on your chart, draw it so you can see what removes it."
+    ]
+   },
+   {
+    "heading": "More from the lesson: Move-away judgement in homework",
+    "points": [
+     "Technically every candle is a move away. The move away he wants is a nice, sharp move, not a run of wicks and basing candles.",
+     "Placing the proximal line says the next candle is a move-away candle. If that candle is clearly basing, there is no zone there.",
+     "50% candle indicator use case: a candle you might think is a move away gets flagged as a basing candle, which helps beginners tell basing from move away. He says it is just a tool and that his work without it is 'spot on'.",
+     "Your eyes should go straight to the sharp moves away on any chart.",
+     "MTA homework format seen: 4H higher timeframe and 15-minute entry timeframe. Send both charts."
+    ]
    }
   ],
   "rules": [
@@ -2263,7 +2518,11 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "Never let wicks cut through the distal line, and never draw trendlines through candles.",
    "A trendline is removed only when a candle closes fully (body and wick) beyond it.",
    "Ignore emotional wicks when judging zone removal.",
-   "Don't force trades or zones — no opportunity is a valid decision."
+   "Don't force trades or zones — no opportunity is a valid decision.",
+   "The trendline is removed by the FIRST candle that closes fully (body and wick) beyond it. Later full closes are irrelevant.",
+   "If you are unsure whether a zone exists, draw it at the similar size first and only then judge the space.",
+   "Attach the distal line to the true lowest point of the base, even if that is another candle's body rather than a wick.",
+   "Every daily candle is supply and demand on a lower timeframe. Only the specific formation (basing, move away, stay away, space) is a zone."
   ],
   "mistakes": [
    "Calling repeated highs/lows supply and demand (support/resistance thinking).",
@@ -2274,13 +2533,23 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "Calling a trendline removed while the candle still touches it.",
    "Calling a zone removed by an emotional news wick.",
    "Judging a higher-timeframe zone on a lower-timeframe chart.",
-   "Drip-feeding small deposits and blowing them instead of risking 1%."
+   "Drip-feeding small deposits and blowing them instead of risking 1%.",
+   "Circling a candle that still touches the trendline, or a later candle, as the removal candle.",
+   "Measuring zones wick-to-body or wick-to-wick by habit instead of matching the size of the previous correct zones.",
+   "Missing a second trendline that sits very close to an obvious one.",
+   "Removing the hard stop and letting a 1% loss grow to 10% of the account, and tying up capital.",
+   "Not asking questions in sessions (he says people who never ask learn nothing)."
   ],
   "quotes": [
    "The greatest trade is often the one not taken.",
    "You absolutely need all four of them.",
    "Every tradable zone is a drawable zone, but not every drawable zone is a tradable zone.",
-   "It doesn't have to be a grand piano."
+   "It doesn't have to be a grand piano.",
+   "The market rewards those who wait, not those who force their will upon it.",
+   "To see no opportunity and move on is a decision, a position of patience and strength.",
+   "Every candle is supply and demand.",
+   "How is that a rule-based system if you're cutting through candles?",
+   "It's nothing to do with the first candle or the second or some arbitrary number."
   ],
   "diagrams": [
    {
@@ -2302,7 +2571,11 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "Is the zone a similar size to my other zones on this chart?",
    "Is it tradable, not just drawable (fast move away, price stayed away)?",
    "Am I risking 1% with a hard stop?",
-   "Is this the best setup on my watchlist, or am I forcing it?"
+   "Is this the best setup on my watchlist, or am I forcing it?",
+   "Have I identified the FIRST candle that closed fully (body and wick) beyond the trendline?",
+   "If I cloned a previous correct zone onto this one, would it be a similar size?",
+   "If a wick broke the zone, was it a huge emotional (news) candle that I should ignore?",
+   "Am I sending screenshots of every timeframe for MTA homework?"
   ],
   "journalTags": [
    "zone missing stay-away",
@@ -2345,12 +2618,20 @@ export const VIDEO_LESSONS: VideoLesson[] = [
      "A trendline needs a high, a clear pullback forming an obvious low (valley), then the higher high.",
      "Steady movement without that clear peak and valley is just momentum - a momentum line, not a trendline."
     ]
+   },
+   {
+    "heading": "More from the lesson: How he spotted it",
+    "points": [
+     "He found this EUR/JPY trendline while updating the members' charts. It 'was looking good at first', then price pushed up so far that the line was no longer relevant 'at the time of recording'.",
+     "The reason to remove it was time: 'it took so long for price to come back to it' that it is basically irrelevant."
+    ]
    }
   ],
   "rules": [
    "A trendline needs price action around it to stay valid; if price leaves for a long time and goes far away, remove it.",
    "A trendline that keeps getting tested stays valid until it is broken.",
-   "Only a clear peak and valley with a higher high (lower low) makes a trendline; otherwise it is momentum."
+   "Only a clear peak and valley with a higher high (lower low) makes a trendline; otherwise it is momentum.",
+   "Review trendlines when you update charts. Remove any line that price has left far behind for a long time, even if it was never broken."
   ],
   "mistakes": [
    "Keeping an old trendline that price left long ago and far behind.",
@@ -2358,7 +2639,8 @@ export const VIDEO_LESSONS: VideoLesson[] = [
   ],
   "quotes": [
    "This is a momentum line, not a trendline.",
-   "We basically have to see price action around the trend line for it to be considered valid."
+   "We basically have to see price action around the trend line for it to be considered valid.",
+   "It took so long for price to come back to it, it is basically irrelevant."
   ],
   "diagrams": [
    {
@@ -2369,7 +2651,8 @@ export const VIDEO_LESSONS: VideoLesson[] = [
   "checklist": [
    "Has price shown recent price action around this trendline?",
    "Has price been far away from it for a long time? (If so, remove it.)",
-   "Is it a real trendline (clear peak and valley) and not a momentum line?"
+   "Is it a real trendline (clear peak and valley) and not a momentum line?",
+   "When updating my charts, is each trendline still relevant to where price is now?"
   ],
   "journalTags": [
    "stale trendline",
@@ -2414,12 +2697,23 @@ export const VIDEO_LESSONS: VideoLesson[] = [
      "Wait for price to leave the range into higher-quality zones above or below.",
      "A pullback into the daily demand here would not form a downtrend (the peak and valley are not good enough for a trendline), but you can still go long because it is at a demand zone."
     ]
+   },
+   {
+    "heading": "More from the lesson: Extra points from the USD/JPY example",
+    "points": [
+     "Lower odds does not mean he stops trading the pair: 'it's not like we're not gonna take trades... we understand that it's just gonna be lower odds' for all the H4 zones.",
+     "The two H1 range lines were marked in his daily market breakdown or weekly forecast video. His message there was to wait for a trend to form.",
+     "Breaking the trendline that forms after a range breakout is the guide for when to stop looking for longs (or shorts).",
+     "On H4 there were high-quality zones above the range but not really any below it. Wait for price to pull out of the range into those zones.",
+     "Day-trading longs or shorts become good depending on which side of the H1 range price breaks out of."
+    ]
    }
   ],
   "rules": [
    "Lower odds when the higher timeframe of your entry timeframe is sideways.",
    "Higher odds when the higher timeframe is trending (either direction) or price is at a higher-timeframe zone.",
-   "Zones inside a big messy range are not setups for him - wait for price to leave the range."
+   "Zones inside a big messy range are not setups for him - wait for price to leave the range.",
+   "It's always higher odds to trade with a trend on your higher timeframe. A sideways market is very, very difficult to trade."
   ],
   "mistakes": [
    "Trading zones inside a messy range on the higher timeframe.",
@@ -2429,7 +2723,9 @@ export const VIDEO_LESSONS: VideoLesson[] = [
   "quotes": [
    "It's lower odds to be trading when your higher timeframe to your entry timeframe is going sideways.",
    "We're not biased long or short.",
-   "That was just trading in a big messy range. Absolutely hate it."
+   "That was just trading in a big messy range. Absolutely hate it.",
+   "It's always going to be higher odds when we are trading with a trend on our higher timeframe.",
+   "I don't see any trading options until we can break a low or break a high on the one hour chart."
   ],
   "diagrams": [
    {
@@ -2446,7 +2742,8 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "If not, is price at a higher-timeframe supply/demand zone?",
    "Is this zone sitting inside a big messy range?",
    "Am I waiting for a break of the range high/low before trading?",
-   "If I trade sideways conditions anyway, am I trading with extra caution?"
+   "If I trade sideways conditions anyway, am I trading with extra caution?",
+   "Has the H1 broken its range high or low yet (if not, no day-trading options for him)?"
   ],
   "journalTags": [
    "HTF sideways",
@@ -2473,6 +2770,12 @@ export const VIDEO_LESSONS: VideoLesson[] = [
      "Huge wicks through the zone = not removed.",
      "It is about the size of the wick relative to the body: a big 'emotional' wick with a small body is not a removal.",
      "His second comparison is ambiguous in the captions: two candles with similar emotional wicks - one with a body about as big as the wick, one with a much bigger body. He calls the one with the bigger body 'not removed', and says that when the body is that big the wick is not really big compared to the body, 'and we're not gonna call that removed'. The drawing is needed to be sure which case he means."
+    ]
+   },
+   {
+    "heading": "More from the lesson: Context",
+    "points": [
+     "Clip from a live session: a member who joined late asked about a zone being violated by a wick. He says he had covered it in detail earlier and drew a 'removed' side and a 'not removed' side to compare examples."
     ]
    }
   ],
@@ -2620,6 +2923,35 @@ export const VIDEO_LESSONS: VideoLesson[] = [
      "Chain analysis isn't the holy grail. Its value is keeping you rule-based.",
      "Rules help psychology. A great move from a zone with no trendline or opposing zone removed is 'not a trade'. Missing it shouldn't bother you, and rules stop you forcing trades or changing your rules."
     ]
+   },
+   {
+    "heading": "More from the lesson: More walkthrough details (Jan 1990 to Jan 1991)",
+    "points": [
+     "First demand that removed a supply: three basing candles before 'not the best explosive move away'. He included all three in the basing.",
+     "Respected supply example: price reacted off a supply many times ('clearly there is supply here, but it just couldn't hold'). Buyers took over and pushed price up, so the demand that removed it is a strong one.",
+     "Not a downward trendline: there was a peak but no lower low. Another case was sideways price action: 'if we just had one more little spike down' there would have been a good enough valley.",
+     "All the zones look a little different but very similar: basing, then explosive move away, every time.",
+     "After a trendline removal, a demand gave 'a beautiful setup there to target the all-time highs'. A single-candle-basing demand that removed a supply plus an all-time high gave 'a nice little 1:1'. The zone didn't work that great.",
+     "Final example: a supply and a trendline both removed by one demand with single-candle basing and an explosive move away, 'picture perfect'.",
+     "When he can already see a zone was removed, he uses the remove tool directly rather than checking it with another tool (he mentions not needing his Fibonacci tool)."
+    ]
+   },
+   {
+    "heading": "More from the lesson: Extra homework-review corrections",
+    "points": [
+     "Draw trendlines from the lowest touch point available. A line not attached to a valley 'from down there' makes no sense.",
+     "A line 'too horizontal' is not a trendline, and drawing it can make you ignore the real trendline nearby.",
+     "Don't call a candle the explosive move when it is really the basing candle. Moving the proximal line shows the real zone, and you then see the trade off it.",
+     "If two basing candles are close together, include both. Including them doesn't make the zone massive.",
+     "Use the magnet tool: either turn it on, or hold Ctrl while dragging a trendline or zone edge so it snaps to the nearest wick.",
+     "Use different colours. Yellow zones are very hard to see.",
+     "Overcorrecting: a member who drew too many zones started drawing too few. The goal is to fine-tune what should be drawn.",
+     "Members' DBR/RBD/RBR labels were often technically correct even when the move away was 'barely good enough' to be a zone.",
+     "Don't tag him in homework. He only looks at it on Sunday.",
+     "Screenshots are only for video-lesson homework. Sunday chain-analysis homework is a shared chart link.",
+     "If you're new and confused, rewatch old Sunday sessions (he keeps them up until his Zoom storage runs out) and the welcome video. Mute your mic during sessions.",
+     "Homework at about 98% is very rare. A couple of members reached it in this session."
+    ]
    }
   ],
   "rules": [
@@ -2631,7 +2963,9 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "A demand's basing must be below the supply it removed (supply's basing above the demand it removed). A wick poking past it disqualifies it.",
    "When a zone is removed, end it and mark it removed. Keep charts clean.",
    "Don't force zones. If nothing removed it, the chain ends.",
-   "End an overextended trendline. Don't extend it."
+   "End an overextended trendline. Don't extend it.",
+   "Use the magnet tool (or hold Ctrl) so trendlines and zone lines snap exactly to wicks.",
+   "Copy every one of his zones every week. At minimum, carry over the zones he lists, so the chain continues correctly."
   ],
   "mistakes": [
    "Calling a zone off an explosive candle before a stay-away candle forms.",
@@ -2645,13 +2979,19 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "Using the demand whose basing wick peaked above the supply as the one that 'removed' it.",
    "Thinking of S/R ('old resistance becomes new support') instead of supply removed by demand.",
    "Taking a very old zone whose first pullback comes a year or more later.",
-   "Homework errors: wrong timeframe, screenshots instead of links, not copying his zones, submitting twice."
+   "Homework errors: wrong timeframe, screenshots instead of links, not copying his zones, submitting twice.",
+   "Overcorrecting from drawing too many zones to drawing too few.",
+   "Drawing zones in hard-to-see colours (e.g. yellow).",
+   "Tagging him on homework or submitting screenshots for Sunday homework.",
+   "Calling the basing candle the explosive move by misplacing the proximal line."
   ],
   "quotes": [
    "The bigger the space, the better the zone.",
    "We're not gonna force zones... the analysis just ends.",
    "Every single high we break is an all-time high.",
-   "It just didn't follow my rules. There's nothing I can do about it."
+   "It just didn't follow my rules. There's nothing I can do about it.",
+   "Clearly there is supply here, but it just couldn't hold.",
+   "This isn't the holy grail, this is just the chain analysis... it keeps us rule-based."
   ],
   "diagrams": [
    {
@@ -2677,7 +3017,9 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "Is the trendline built on a blatant peak and valley plus a higher high or lower low, without cutting candles?",
    "Was the removed opposing zone respected or tested before it broke (more confidence)?",
    "Is the zone recent enough? No year-later first pullback on an old zone?",
-   "Are all nearby basing candles and wicks included, with the proximal line tight to the basing?"
+   "Are all nearby basing candles and wicks included, with the proximal line tight to the basing?",
+   "Is the trendline attached to the lowest available valley point (snapped with magnet/Ctrl)?",
+   "Have I carried over all of his zones and trendlines from last week before starting?"
   ],
   "journalTags": [
    "no stay-away candle",
@@ -2749,7 +3091,8 @@ export const VIDEO_LESSONS: VideoLesson[] = [
   ],
   "quotes": [
    "Technically any zone is a set and forget.",
-   "This zone was formed when the daily zone was forming. This zone was formed after the daily zone was contacted."
+   "This zone was formed when the daily zone was forming. This zone was formed after the daily zone was contacted.",
+   "So they may both look like set and forget trades... but just remember this is a confirmation zone."
   ],
   "diagrams": [
    {

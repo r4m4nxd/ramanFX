@@ -13,8 +13,8 @@ import { Icon } from '@/ui/Icon';
 import { Choice, CurveSlider, MoveAwayArt, Question, VerdictPanel, YesNo } from '@/ui/PlanParts';
 import { SymbolPicker, useSpec } from './calcShared';
 import { ZoneBoard } from '@/ui/ZoneBoard';
-import { PLANNER_LESSONS } from '@/core/lessonLinks';
-import { LessonChips, MentorChecks } from '@/ui/LessonLinks';
+import { PLANNER_LESSONS, PLANNER_ZOOM } from '@/core/lessonLinks';
+import { LessonChips, MentorChecks, ZoomChips } from '@/ui/LessonLinks';
 
 const STEPS = ['Setup', 'Zone', 'Context', 'Levels', 'Verdict'] as const;
 const MOVES: { v: MoveAway; t: string; s: string }[] = [
@@ -269,6 +269,7 @@ function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) =
               {body[step]}
               <div className="mt-5 pt-4 border-t border-line flex flex-col gap-3">
                 <LessonChips nums={PLANNER_LESSONS[STEPS[step]] ?? []} />
+                <ZoomChips nums={PLANNER_ZOOM[STEPS[step]] ?? []} />
                 {STEPS[step] === 'Verdict' && (
                   <details className="group">
                     <summary className="cursor-pointer text-[13px] font-medium text-ink2 hover:text-ink py-1">Mentor's pre-trade checks</summary>

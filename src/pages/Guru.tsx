@@ -11,11 +11,11 @@ import { monteCarlo } from '@/core/sim';
 import { pct, tone, useMoney } from '@/lib/format';
 import { Card, CardHead, CountUp, cx, ease, Page, Segmented, spring } from '@/ui/kit';
 import { Icon } from '@/ui/Icon';
-import { LESSON_RULE_CARDS } from '@/core/lessonLinks';
+import { LESSON_RULE_CARDS, ZOOM_RULE_CARDS } from '@/core/lessonLinks';
 import { VIDEO_LESSONS } from '@/core/videoLessons';
 
 // Rule-of-the-day pool: the PDF cards plus every rule stated in the video lessons.
-const CARDS: { topic: string; title: string; body: string; lesson?: number }[] = [...RULE_CARDS, ...LESSON_RULE_CARDS];
+const CARDS: { topic: string; title: string; body: string; lesson?: number; zoom?: number }[] = [...RULE_CARDS, ...LESSON_RULE_CARDS, ...ZOOM_RULE_CARDS];
 
 function StreakMode() {
   const { et, stats } = useAnalytics();
@@ -78,6 +78,7 @@ function DailyCard() {
           <div className="text-xl font-semibold tracking-tight mt-1">{card.title}</div>
           <p className="text-[14px] text-ink2 mt-2 leading-relaxed">{card.body}</p>
           {card.lesson && <Link to={`/learn?l=${card.lesson}`} className="inline-flex items-center gap-1 text-[12.5px] text-accent hover:underline mt-2">Open lesson {card.lesson}<Icon name="chevronRight" size={13} /></Link>}
+          {card.zoom && <Link to={`/learn?src=zoom&l=${card.zoom}`} className="inline-flex items-center gap-1 text-[12.5px] text-accent hover:underline mt-2">Open Sunday session<Icon name="chevronRight" size={13} /></Link>}
         </motion.div>
       </AnimatePresence>
     </Card>

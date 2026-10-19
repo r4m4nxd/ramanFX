@@ -19,7 +19,7 @@ import { VerdictCard } from '@/ui/VerdictCard';
 import { TradeChart } from '@/ui/TradeChart';
 import { useGradedTrade } from '@/data/guru';
 import { exitOutcome, ORDER_LABEL, ptsToR, REASON_LABEL } from '@/core/exitInsights';
-import { LESSON_MISTAKE_TAGS } from '@/core/lessonLinks';
+import { ALL_MISTAKE_TAGS as LESSON_MISTAKE_TAGS } from '@/core/lessonLinks';
 
 const EMOTIONS = ['calm', 'focused', 'confident', 'anxious', 'fomo', 'greedy', 'revenge', 'tired', 'bored'];
 const TRENDS: [Trend, string, string][] = [['up', '↑', 'Uptrend'], ['down', '↓', 'Downtrend'], ['side', '✖', 'Sideways']];
