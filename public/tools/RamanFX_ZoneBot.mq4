@@ -22,7 +22,7 @@
 //|   2026.10.17 12:30,USD   (UTC time, currency)                    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "0.80"
+#property version   "0.90"
 #property strict
 
 enum BotMode   { MODE_SCANNER = 0, MODE_APPROVE = 1, MODE_AUTO = 2 };
@@ -70,7 +70,11 @@ input bool      InpRequireITF    = false;        // Skip when the intermediate T
 input bool      InpCurveFilter   = false;        // Demand only in the lower third of the HTF curve (half if at an HTF demand), supply mirrored
 input double    InpMaxDistATR    = 2.0;          // Zone must be within N x HTF ATR of price and in the first half of the way to target (no chasing)
 input bool      InpUseMyLines    = true;         // Use YOUR trendlines on this chart for the trend, and YOUR rectangles as zones to advise
-input bool      InpRequireQualified = false;     // Planner rule: the move away must have removed an opposing zone (set & forget)
+input bool      InpRequireQualified = true;      // Kevin's chain rule: the move away removed an opposing zone or made an all-time high/low (your trendline is the third trigger - you check it)
+input double    InpMinGap        = 0.15;         // Kevin: space between stay-away candle and proximal (x zone height); less = drawable only, not traded
+input double    InpMinSizeVsMedian = 0.5;        // Kevin: a zone about half the size of the other zones is too small to trade
+input double    InpMetalOilStop  = 2.0;          // Kevin: wider stops on gold and oil (x the timeframe buffer)
+input bool      InpNewsIntradayOnly = true;      // Kevin: avoid news with intraday limit orders; daily swing orders don't need the filter
 input double    InpMaxDailyLossPct = 4.0;        // Daily loss limit: no new orders + cancel pendings once equity is down this % today
 input double    InpMgmtMaxSpreadR = 0.25;        // Don't move stops while spread > this fraction of 1R (rollover spikes)
 input double    InpMaxSpreadPct  = 15;           // Max spread as % of the stop distance
@@ -106,6 +110,9 @@ string TF_N[NTF] = {"M1", "M5", "M15", "H1", "H4", "D1", "W1"};
 
 struct Zone
   {
+   double   gap;        // space between the stay-away candle and the proximal line / zone height (Kevin's main quality grade)
+   bool     ath;        // the move away made an all-time high/low (within the loaded history)
+   bool     leg2;       // a second explosive candle followed straight away
    double   departure;  // distance travelled away / zone height
    bool     erc;        // extended-range move-away candle
    double   trap;       // liquidity trap price (0 = none)
@@ -468,6 +475,19 @@ int DetectZones(string s, int tf, Zone &out[])
         }
       double departure = MathAbs(far - prox) / h;
       if(departure < InpMinDeparture) continue;
+      // Kevin: the stay-away candle must leave space to the proximal line; the bigger, the stronger
+      double gap = dir > 0 ? (iLow(s, tf, sa) - prox) / h : (prox - iHigh(s, tf, sa)) / h;
+      // Kevin's third chain trigger: the move away made a new all-time high (low) of the loaded history
+      int older = MathMin(iBars(s, tf) - 1, L + 2000) - L;
+      double ext = dir > 0 ? MathMax(iHigh(s, tf, L), iHigh(s, tf, sa)) : MathMin(iLow(s, tf, L), iLow(s, tf, sa));
+      bool ath = false;
+      if(older > 5)
+        {
+         int ix = dir > 0 ? iHighest(s, tf, MODE_HIGH, older, L + 1) : iLowest(s, tf, MODE_LOW, older, L + 1);
+         ath = ix >= 0 && (dir > 0 ? ext > iHigh(s, tf, ix) : ext < iLow(s, tf, ix));
+        }
+      // preferred: a second explosive candle straight after the first (no re-basing)
+      bool leg2 = sa >= 1 && !Basing(s, tf, sa) && CDir(s, tf, sa) == dir && Rng(s, tf, sa) >= maxBase * InpMinLegRatio;
       // extended-range move-away candle: big body (>= 60%) closing near its extreme (top/bottom 20%)
       double lo = iLow(s, tf, L), lh = iHigh(s, tf, L), cl = iClose(s, tf, L);
       bool erc = Body(s, tf, L) / lr >= 0.6 && (dir > 0 ? (cl - lo) / lr >= 0.8 : (lh - cl) / lr >= 0.8);
@@ -476,6 +496,7 @@ int DetectZones(string s, int tf, Zone &out[])
       z.dir = dir; z.prox = prox; z.dist = dist; z.legBar = L; z.tLeg = iTime(s, tf, L);
       z.baseN = k; z.legRatio = ratio; z.cont = cont; z.departure = departure; z.erc = erc;
       z.grade = (ratio >= 2.5 && k <= 3 && erc && departure >= 2) ? "A" : ((ratio >= 1.8 && departure >= 1.5) ? "B" : "C");
+      z.gap = gap; z.ath = ath; z.leg2 = leg2;
       z.tested = false; z.removed = false; z.pen = 0; z.consumed = false; z.tRemoved = 0; z.tTouched = 0; z.trap = 0; z.trapBar = -1; z.crowded = false;
       for(int j = sa - 1; j >= 1; j--)                                       // status since the stay-away
         {
@@ -618,6 +639,7 @@ void MyZones()
 bool Qualified(string s, int etf, Zone &z[], int i)
   {
    datetime b0 = iTime(s, etf, z[i].legBar + z[i].baseN), b1 = iTime(s, etf, MathMax(z[i].legBar - 5, 0));
+   if(z[i].ath) return true;                                            // made an all-time high / low
    for(int j = 0; j < ArraySize(z); j++) if(z[j].dir != z[i].dir && z[j].removed && z[j].tRemoved >= b0 && z[j].tRemoved <= b1) return true;
    return false;
   }
@@ -640,6 +662,9 @@ int PlanScore(string s, int etf, int htf, int trend, Zone &z[], int i, Zone &hz[
    if(z[i].baseN == 1) sc += 2;                                                          // single-candle base
    if(Qualified(s, etf, z, i)) sc += 10;                                                  // move away removed an opposing zone
    if(!z[i].tested) sc += 8;                                                              // untouched
+   sc += z[i].gap >= 0.5 ? 4 : (z[i].gap >= 0.25 ? 2 : 0);                                // Kevin: space under the stay-away candle
+   if(z[i].leg2) sc += 3;                                                                 // second explosive candle, no re-basing
+   if(z[i].ath) sc += 3;                                                                  // made an all-time high / low
    if(!z[i].cont) sc += 4;                                                                // valley / peak: the mentor's preferred entry
    if(z[i].legBar <= 100) sc += 4;                                                        // not an old zone
    sc += trend == dir ? 14 : (trend == 0 ? 5 : 0);                                        // with the HTF trend
@@ -752,7 +777,14 @@ void Scan(string s, int k)
          double lim = AtHtfZone(z[i], hz, hn, dir) ? 50 : 33;
          if((dir > 0 && curve > lim) || (dir < 0 && curve < 100 - lim)) reason = "zone not low/high enough in the HTF curve";
         }
-      if(reason == "" && InpRequireQualified && method == "SF" && !Qualified(s, etf, z, i)) reason = "move away did not remove an opposing zone";
+      if(reason == "" && InpRequireQualified && !Qualified(s, etf, z, i)) reason = "not in the chain (removed nothing, no all-time high/low)";
+      if(reason == "" && z[i].gap < InpMinGap) reason = "drawable only: little space under the stay-away candle";
+      if(reason == "" && InpMinSizeVsMedian > 0)
+        {
+         double hs[]; int m = 0; ArrayResize(hs, n);
+         for(int j = 0; j < n; j++) if(!z[j].removed) hs[m++] = MathAbs(z[j].prox - z[j].dist);
+         if(m >= 4) { ArrayResize(hs, m); ArraySort(hs); double med = hs[m / 2]; if(MathAbs(z[i].prox - z[i].dist) < InpMinSizeVsMedian * med) reason = "zone too small vs the others on this chart"; }
+        }
       // no chasing: a confirmed swing has formed and price has pulled back toward the zone
       double now = dir > 0 ? MarketInfo(s, MODE_BID) : MarketInfo(s, MODE_ASK), far = MathAbs(now - z[i].prox);
       double maxFar = MathMin(InpMaxDistATR * iATR(s, htf, 14, 1), tp > 0 ? 0.75 * MathAbs(tp - entry) : DBL_MAX);
@@ -770,7 +802,7 @@ void Scan(string s, int k)
       if(reason == "" && tp == 0) reason = "no opposing zone for target";
       if(reason == "" && rr < InpMinRR) reason = StringFormat("R:R %.2f < %.2f", rr, InpMinRR);
       if(reason == "" && spread > risk * InpMaxSpreadPct / 100.0) reason = "spread too wide";
-      if(reason == "") reason = BlockedNow(s);
+      if(reason == "") reason = BlockedNow(s, TF_E[k]);
       if(reason == "" && HasOrder(s, k)) reason = "already an order on this symbol/timeframe";
       if(reason == "" && CountOrders(s) >= InpMaxPerSymbol) reason = "max orders on symbol";
       if(reason == "" && CountOrders("") >= InpMaxOrders) reason = "max bot orders reached";
@@ -799,6 +831,7 @@ void Scan(string s, int k)
       Count(decision);
       string info = StringFormat("%s %s %s zone (grade %s %d) | %s trend %s | %s%s\n", dir > 0 ? "BUY" : "SELL", TF_N[k], dir > 0 ? "demand" : "supply", g, bPs, TfName(htf), trend > 0 ? "up" : "down", method == "CONF" ? "confirmation" : "set & forget", z[i].trap > 0 ? " | liquidity trap" : "");
       info += StringFormat("Why: fresh %s %s with the trend, stop %s, move away %.1fx, target %s %s", z[i].cont ? "CP" : "VP", z[i].cont ? (dir > 0 ? "RBR" : "DBD") : (dir > 0 ? "DBR" : "RBD"), z[i].cont ? "beyond distal" : "beyond swing " + (dir > 0 ? "valley" : "peak"), z[i].legRatio, cappedByHtf ? "before next" : "at nearest", cappedByHtf ? TfName(htf) + (dir > 0 ? " supply" : " demand") : (dir > 0 ? "swing high / supply" : "swing low / demand"));
+      info += StringFormat("\nChain: %s | space under stay-away %.0f%% of zone%s", z[i].ath ? (dir > 0 ? "made an all-time high" : "made an all-time low") : "removed an opposing zone", z[i].gap * 100, z[i].leg2 ? " | second explosive candle" : "");
       bool fresh = true;                                                 // approve mode: alert only for new / changed advice
       if(InpMode == MODE_APPROVE) fresh = AddProposal(s, k, dir, entry, sl, tp, z[i].dist, method, g, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));
       if(fresh)
@@ -859,7 +892,7 @@ int HtfZones(string s, int htf, Zone &out[])
    return hCount[slot];
   }
 
-string BlockedNow(string s)
+string BlockedNow(string s, int etf = 0)
   {
    if(InpMaxDailyLossPct > 0 && DailyLossHit()) return "daily loss limit";
    datetime utc = TimeGMT();
@@ -871,7 +904,7 @@ string BlockedNow(string s)
       bool asia = InpAsianStartUTC > InpAsianEndUTC ? (h >= InpAsianStartUTC || h < InpAsianEndUTC) : (h >= InpAsianStartUTC && h < InpAsianEndUTC);
       if(asia) return "Asian session";
      }
-   for(int i = 0; i < ArraySize(newsTime); i++)
+   for(int i = 0; i < ArraySize(newsTime) && !(InpNewsIntradayOnly && etf >= PERIOD_H4); i++)
      {
       if(StringFind(s, newsCcy[i]) < 0) continue;
       if(utc >= newsTime[i] - InpNewsBeforeMin * 60 && utc <= newsTime[i] + InpNewsAfterMin * 60) return "news " + newsCcy[i];
@@ -947,9 +980,10 @@ double TfStopPips(int tf)
    switch(tf) { case PERIOD_M1: return 1; case PERIOD_M5: return 1.5; case PERIOD_M15: return 3; case PERIOD_H1: return 5; case PERIOD_H4: return 10; case PERIOD_D1: return 20; }
    return 40;
   }
+bool MetalOrOil(string s) { string u = s; StringToUpper(u); return StringFind(u, "XAU") >= 0 || StringFind(u, "GOLD") >= 0 || StringFind(u, "XAG") >= 0 || StringFind(u, "OIL") >= 0 || StringFind(u, "WTI") >= 0 || StringFind(u, "BRENT") >= 0 || StringFind(u, "XTI") >= 0 || StringFind(u, "XBR") >= 0; }
 double StopFor(string s, int tf, Zone &z, double pip)
   {
-   double buf = TfStopPips(tf) * InpStopScale * pip;
+   double buf = TfStopPips(tf) * InpStopScale * pip * (MetalOrOil(s) ? InpMetalOilStop : 1.0);
    if(z.cont) return z.dist - z.dir * buf;
    // VP: the swing valley (peak) is the lowest low (highest high) of the whole drop (rally) into the zone:
    // walk back from the move away until price was last above the move-away high (below its low), max 150 bars

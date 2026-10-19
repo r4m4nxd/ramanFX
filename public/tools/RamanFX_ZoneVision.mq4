@@ -20,7 +20,7 @@
 //| into a zone does not count as a touch. Removal needs a CLOSE.    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "0.20"
+#property version   "0.30"
 #property strict
 #property indicator_chart_window
 
@@ -35,6 +35,10 @@ input double InpMinRR         = 2.0;    // Min reward:risk (for the planned setu
 input double InpStopBufferPts = 10;     // Stop buffer beyond distal (points)
 input double InpTrapATR       = 1.0;    // Liquidity trap: obvious level within N x ATR in front of the zone
 input int    InpTrapSwing     = 3;      // Obvious level = swing with N bars each side
+input bool   InpOnlyQualified = true;   // Sunday rule: only zones in the chain (removed opp. zone / trendline / made a new high-low)
+input double InpMinGap        = 0.15;   // Space under the stay-away candle (x zone height) - below = drawable only, not tradable
+input double InpMinSizeVsMedian = 0.5;  // Zone smaller than this x the median zone = too small
+input double InpMetalOilStop  = 2.0;    // Stop buffer multiplier on gold / silver / oil
 input string Sep2             = "-- What to show (clean by default) --"; // -----
 input int    InpMaxZones      = 4;      // Zones drawn: the N closest to price
 input bool   InpShowTested    = false;  // Also draw tested zones
@@ -75,6 +79,9 @@ struct Zone
    bool     cont, tested, removed;
    int      removedBar, testedBar;
    string   qual;
+   double   gap;        // space between stay-away candle and proximal, x zone height
+   bool     leg2;       // second explosive candle in the move away
+   bool     chain;      // removed opposing zone / trendline / made new high-low
   };
 
 struct TLine
@@ -244,17 +251,20 @@ int Detect(string s, int tf, Zone &out[], bool draw)
       Zone z;
       z.dir = dir; z.prox = prox; z.dist = dist; z.legBar = L; z.baseN = k; z.saBar = sa; z.legRatio = ratio; z.cont = cont;
       z.grade = (ratio >= 2.5 && k <= 3) ? "A" : (ratio >= 1.8 ? "B" : "C");
+      z.gap = dir > 0 ? (iLow(s, tf, sa) - prox) / h : (prox - iHigh(s, tf, sa)) / h;
+      z.leg2 = sa >= 1 && !Basing(s, tf, sa) && CDir(s, tf, sa) == dir && Rng(s, tf, sa) >= maxBase * InpMinLegRatio;
+      z.chain = false;
       z.tested = false; z.removed = false; z.removedBar = -1; z.testedBar = -1; z.qual = ""; z.trap = 0; z.trapBar = -1; z.crowded = false;
       for(int j = sa - 1; j >= 1; j--)
         {
          if(dir > 0)
            {
-            if(iClose(s, tf, j) < dist) { z.removed = true; z.removedBar = j; break; }
+            if(iClose(s, tf, j) < dist || (iLow(s, tf, j) < dist && !Emotional(s, tf, j))) { z.removed = true; z.removedBar = j; break; }
             if(!z.tested && iLow(s, tf, j) <= prox && !Emotional(s, tf, j)) { z.tested = true; z.testedBar = j; }
            }
          else
            {
-            if(iClose(s, tf, j) > dist) { z.removed = true; z.removedBar = j; break; }
+            if(iClose(s, tf, j) > dist || (iHigh(s, tf, j) > dist && !Emotional(s, tf, j))) { z.removed = true; z.removedBar = j; break; }
             if(!z.tested && iHigh(s, tf, j) >= prox && !Emotional(s, tf, j)) { z.tested = true; z.testedBar = j; }
            }
         }
@@ -376,7 +386,10 @@ void Qualify()
          if(Z[i].dir > 0 && High[iHighest(NULL, 0, MODE_HIGH, L - nx + 1, nx)] > High[iHighest(NULL, 0, MODE_HIGH, span, older)]) q += "new high | ";
          if(Z[i].dir < 0 && Low[iLowest(NULL, 0, MODE_LOW, L - nx + 1, nx)] < Low[iLowest(NULL, 0, MODE_LOW, span, older)]) q += "new low | ";
         }
-      Z[i].qual = q == "" ? "no qualifier" : StringSubstr(q, 0, StringLen(q) - 3);
+      Z[i].chain = q != "";
+      if(Z[i].leg2) q += "2nd explosive candle | ";
+      if(Z[i].gap < InpMinGap) q += "drawable only (little space under stay-away) | ";
+      Z[i].qual = q == "" ? "no qualifier (not in the chain)" : StringSubstr(q, 0, StringLen(q) - 3);
      }
   }
 
@@ -410,6 +423,23 @@ void PriceTag(string nm, datetime t, double p, color c)
    Txt(nm, t, p, "(" + DoubleToString(p, Digits) + ")", c, 7, ANCHOR_RIGHT);
   }
 
+// Sunday rule: zones should be similar in size; about half the usual size is too small.
+bool TooSmall(Zone &zs[], int i)
+  {
+   double hs[]; int n = 0;
+   for(int j = 0; j < ArraySize(zs); j++) if(!zs[j].removed) { ArrayResize(hs, n + 1); hs[n++] = MathAbs(zs[j].prox - zs[j].dist); }
+   if(n < 4) return false;
+   ArraySort(hs);
+   double med = hs[n / 2];
+   return MathAbs(zs[i].prox - zs[i].dist) < InpMinSizeVsMedian * med;
+  }
+
+bool MetalOrOil()
+  {
+   string u = _Symbol; StringToUpper(u);
+   return StringFind(u, "XAU") >= 0 || StringFind(u, "GOLD") >= 0 || StringFind(u, "XAG") >= 0 || StringFind(u, "OIL") >= 0 || StringFind(u, "WTI") >= 0 || StringFind(u, "BRENT") >= 0 || StringFind(u, "XTI") >= 0 || StringFind(u, "XBR") >= 0;
+  }
+
 // The N zones closest to price, mentor style: light fill, solid border, prices at the right edge.
 void DrawZones(Zone &zs[], bool htf)
   {
@@ -422,6 +452,8 @@ void DrawZones(Zone &zs[], bool htf)
       if(!htf && zs[i].legBar > InpMaxZoneAge) continue;
       if(zs[i].removed && (htf || !InpShowRemoved)) continue;
       if(zs[i].tested && !htf && !InpShowTested) continue;
+      if(!htf && InpOnlyQualified && !zs[i].chain && !zs[i].removed) continue;
+      if(!htf && TooSmall(zs, i)) continue;
       ArrayResize(idx, n + 1); ArrayResize(dst, n + 1);
       idx[n] = i; dst[n] = MathMin(MathAbs(zs[i].prox - px), MathAbs(zs[i].dist - px)); n++;
      }
@@ -458,7 +490,7 @@ void DrawZones(Zone &zs[], bool htf)
         }
       if(InpShowNames)
         {
-         string nm = htf ? TfName(tf) + " " + (z.dir > 0 ? "demand" : "supply") : ZoneName(z) + (z.grade == "A" ? "" : " | " + z.grade) + (state == "fresh" ? "" : " | " + state) + (z.crowded ? " | on S/R level (crowded)" : "");
+         string nm = htf ? TfName(tf) + " " + (z.dir > 0 ? "demand" : "supply") : ZoneName(z) + (z.grade == "A" ? "" : " | " + z.grade) + (state == "fresh" ? "" : " | " + state) + (z.gap < InpMinGap ? " | drawable only" : "") + (z.crowded ? " | on S/R level (crowded)" : "");
          Txt(id + "n", t1, z.dir > 0 ? z.dist : z.dist, nm, InpText, 7, z.dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
         }
      }
@@ -523,6 +555,8 @@ void Panel()
    for(int i = ArraySize(Z) - 1; i >= 0; i--)
      {
       if(Z[i].removed || Z[i].tested || !Z[i].cont) continue;
+      if(InpOnlyQualified && !Z[i].chain) continue;
+      if(Z[i].gap < InpMinGap || TooSmall(Z, i)) continue;
       if(Z[i].legBar > InpMaxZoneAge) break;
       int dir = Z[i].dir;
       double opp = 0;
@@ -533,7 +567,8 @@ void Panel()
          if(dir < 0 && Z[j].prox < Z[i].prox && (opp == 0 || Z[j].prox > opp)) opp = Z[j].prox;
         }
       double entry = dir > 0 ? Z[i].prox + spread : Z[i].prox;
-      double sl = dir > 0 ? Z[i].dist - InpStopBufferPts * Point : Z[i].dist + InpStopBufferPts * Point + spread;
+      double buf = InpStopBufferPts * Point * (MetalOrOil() ? InpMetalOilStop : 1.0);
+      double sl = dir > 0 ? Z[i].dist - buf : Z[i].dist + buf + spread;
       double tp = opp > 0 ? (dir > 0 ? opp - spread : opp + spread) : 0;
       double rr = tp > 0 ? MathAbs(tp - entry) / MathMax(MathAbs(entry - sl), Point) : 0;
       string why = "";

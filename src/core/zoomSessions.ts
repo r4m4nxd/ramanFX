@@ -2398,6 +2398,854 @@ export const ZOOM_SESSIONS: ZoomSession[] = [
   ]
  },
  {
+  "n": 6,
+  "title": "Chain analysis homework: trendline drawing, updated trendlines and the zone that removes a trendline",
+  "kind": "zoom",
+  "date": "2026-08-30",
+  "summary": "Kevin walks through the chain-analysis homework on the daily chart from January 1995 to January 1996, a week he calls tricky because of the many trendlines. He repeats the three rules for drawing a zone (it removes an opposing zone, removes a trendline, or makes an all-time high/low) and gives a detailed trendline lesson: obvious peak and valley plus a break of the prior low/high, never cutting through wicks, ending overextended lines, updating the line after a new high or low, and counting a trendline as removed only on a full candle close beyond it. He adds a new clarification: for a zone to be the one that removed a downward trendline, its basing candle must be at or below the trendline. He then marks each student's homework, flags zones that 'accomplished nothing', wrong timeframes and redrawn zones that were never on his charts, and says he is debating a future rule for zones with two explosive moves away. He closes by saying a swing trader's stop should be wider when a higher timeframe zone is in control, and by explaining why economic data and fundamentals hardly matter for 1:1 to 3:1 swing trades.",
+  "sections": [
+   {
+    "heading": "Opening and the chain-analysis rules",
+    "points": [
+     "Sunday livestream for August 30th; Kevin mentions a second child is coming soon and accepts he may miss some trades because of it.",
+     "The homework is the chain analysis: if a zone you expected is missing from his chart, it is because it did not fit the chain analysis.",
+     "Chain analysis = mark out all the zones and trendlines, and the zones that remove them.",
+     "Recap of last week: a demand drawn because it removed a trendline, a supply drawn because it removed a trendline, and a demand drawn because it removed a supply and made an all-time high.",
+     "The three rules: only draw a zone that (1) removes an opposing zone, (2) removes a trendline, or (3) makes an all-time high or low. If it does none of these, do not draw it.",
+     "Every time you draw a zone, ask yourself: what did it remove?",
+     "This week's range: January 1995 to January 1996. He warns it is tricky with many trendlines and says seasoned members sometimes catch things he missed."
+    ]
+   },
+   {
+    "heading": "Trendline 1: highest point, no cutting through wicks, ending an overextended line",
+    "points": [
+     "First he spots a valley, a peak and a lower low, which gives a downward trendline.",
+     "For a trendline in either direction you need an OBVIOUS peak and valley, not tiny peaks and valleys, plus a higher high (uptrend) or lower low (downtrend). An obvious peak and valley with no break of the low is not a trendline.",
+     "Draw from the highest point possible to the peak.",
+     "Zoomed in, the line from the very highest point cut through candles (wicks stuck above it). We do not want that, so adjust to the next highest point possible. Most of the time it has to be adjusted because of the angle change.",
+     "Live, he does not try point after point; with experience he can see right away where the anchor goes.",
+     "This trendline became way overextended (price pushed far away from it), so he simply ends the trendline there."
+    ]
+   },
+   {
+    "heading": "Trendline 2 and identifying the supply that removed the demand",
+    "points": [
+     "A second obvious peak and valley gives another trendline, drawn from the previous peak to that peak. He admits it can be a bit subjective and 'not 100% perfect, as close as we can get it'.",
+     "A demand zone was respected and then removed, so by rule 1 he has to find the supply that removed it. There will not always be one, but most of the time there is.",
+     "Nothing stood out. He compared a few small candidate zones by their moves away; he usually judges by eye, but when it is close he measures: 74 pips (to the body), 63, 93 for the whole wick, 85.",
+     "His pick for the supply that removed the demand is the zone higher up, with the better move away.",
+     "Drawable vs tradable (he refers back to video lesson 1): he would not trade that supply. A lower candidate that is not in the chain analysis had a much better move away, followed by a second explosive move away, and he would take that trade 'all day'. He admits that is partly hindsight.",
+     "He would never really take the drawn supply: he does not like how close the stay-away candle is."
+    ]
+   },
+   {
+    "heading": "No demand from basing candles below the downward trendline",
+    "points": [
+     "A downward trendline was removed. Rule 2 says when a trendline is removed we MIGHT have a zone, and the keyword is might.",
+     "No demand here: every candle below that trendline is a 'boo-boo' basing candle. None meets the minimum requirement for a zone.",
+     "Even he gets confused here, so he sets it up as a trendline lesson."
+    ]
+   },
+   {
+    "heading": "Trendline lesson: picking the right peaks and checking with a channel",
+    "points": [
+     "After the lower move there are many small peaks and valleys. He finds the recent obvious peak, valley and lower low, and draws the trendline peak to peak.",
+     "He puts a channel tool on the trendline as a check: price sold off but hovered around the bottom of the channel, which is OK.",
+     "What he does not want to see is a massive sell-off away from the line, which tells him price pushed far away from the trendline. The earlier trendline got so overextended that he ended it.",
+     "Another trendline: peak and lower low, drawn from the highest point possible to the peak, cutting through no wicks; a clean line.",
+     "No zone was drawn at a very explosive move here because it removed nothing (no zone, no trendline), so it is not in the chain analysis."
+    ]
+   },
+   {
+    "heading": "Possible future rule: two explosive moves in a row",
+    "points": [
+     "From a pattern he has seen over 7 years, he is debating a rule for zones that remove nothing but have an extremely obvious explosive candle followed by another one.",
+     "He does not know how to qualify it yet. His idea: a move away about 4 to 5 times the size of the basing. The example zone moved away about 5 times the size of its basing.",
+     "He does not like changing his rules, but when you see patterns it makes sense. A student said such zones worked for them; Kevin agrees they work out quite a bit but says, for now, they do not follow the rules.",
+     "Status: not a rule yet. Do not add these zones to the chain analysis."
+    ]
+   },
+   {
+    "heading": "The demand that removed the trendlines: basing at or below the line",
+    "points": [
+     "Both trendlines were removed, and there were no zones above them before, so none afterwards either.",
+     "When a trendline is removed there is a zone; he sees the obvious explosive move away.",
+     "Key clarification: for a DOWNWARD trendline, the basing candle of the move away must be AT or BELOW the trendline for that zone to count as the one that removed it.",
+     "If the whole basing candle sat above the trendline, that basing and move away did not remove the trendline. Here the basing candle is at the line; even if the line only touches its wick, it counts.",
+     "So this demand removed trendline 1 and trendline 2.",
+     "Zone size: he trims it slightly so it is similar to the sizes of his other zones. Body to body is also fine."
+    ]
+   },
+   {
+    "heading": "When a trendline is removed: full candle close",
+    "points": [
+     "A trendline is removed only when a candle closes fully beyond it, with no wick or body touching the line. Extend the line until then.",
+     "Example: one candle's wick still touched the line, so the line was removed on the next candle, which closed fully above with nothing touching.",
+     "A later upward trendline: a very obvious peak and valley ('everybody is seeing this peak and valley'), drawn from the lowest point possible.",
+     "A touch that does not close beyond is a RESPECT of the trendline, not a removal."
+    ]
+   },
+   {
+    "heading": "Updated trendlines after a new high or low",
+    "points": [
+     "We do not cut through candles when drawing, but we let the trendline cut through candles until price either breaks it or makes a new high.",
+     "Once a new high is made, you do not just move the line there. Draw the updated trendline from the next valley, if a properly drawn line can be made.",
+     "The trendline he wants to see on charts is the updated one. You may keep both, and he does not mind seeing the old one, but the updated one is required.",
+     "Later, a downward trendline that was fully respected (wicks and bodies kept touching it) had to be extended, not removed, until a candle closed beyond it.",
+     "A student pointed out a new lower low that needed an updated trendline from the recent peak (peak, valley, peak, lower low). Kevin had missed it: 'Trendlines can get a little bit confusing.'"
+    ]
+   },
+   {
+    "heading": "Older zone trade and the next demand (measuring a close call)",
+    "points": [
+     "Back at the zone, there was a quick 1:1 off it; he calls it 'a nice little one-to-one' because it is an older zone.",
+     "That zone was then removed, so he finds the demand that removed it and measures to check the bare minimum: about 85, then 84 total. It qualifies.",
+     "A lower demand made more sense and was the better zone. In real trading you could have both, but the qualifying one goes in the chain analysis.",
+     "No supply removed that demand, and no supply removed that trendline.",
+     "In real trading, if a supply removes and the qualifying zone is mediocre while a very obvious zone sits lower in a better location, you can trade the better one. For the chain analysis, only the zone that qualified first counts.",
+     "Many students drew the better zone. He accepts it, but they must delete it for next week to keep the chain analysis consistent."
+    ]
+   },
+   {
+    "heading": "Homework review: common corrections",
+    "points": [
+     "Ask what each zone accomplished: 'You have your rules, start following them.' Keep the rules on your chart (an anchored note at the top) and check every zone against them.",
+     "Do not map out every low and high; it does not matter for this analysis.",
+     "A zone drawn too big ignores the peaks and valleys inside it; the basing candle defines where the zone actually is.",
+     "Do not label basing candles as the zone: the zone is at the basing before the explosive move away.",
+     "Mark zones as removed when they are removed; do not keep extending them.",
+     "Copy his chain analysis exactly each week. Do not carry forward zones that were not on his charts last week.",
+     "Use the daily FXCM chart. He cannot mark homework done on the 1-hour chart.",
+     "A very long trendline is allowed, but it usually skips the peaks and valleys in between. Use the recent valid peak unless the line would become almost horizontal.",
+     "A student redrew a trendline from a later peak; that is wrong while the angle from the recent peak is still good. Only if the recent peak were low and the line very horizontal would you do that.",
+     "Calling an obvious peak and valley 'too flat' is not a reason to skip a trendline.",
+     "Do not draw a zone from a 'boo-boo' basing candle with no real move away.",
+     "One student stopped extending a zone because a new trendline formed: correct.",
+     "Close call between two supplies: the upper one wins. Both candles are about the same size, but the lower one has a wick at the bottom, which makes it more of a basing candle.",
+     "Measured example: candle sizes 203 vs 182 vs 225 ('close enough'), with an older body at 151."
+    ]
+   },
+   {
+    "heading": "All-time highs on any timeframe and the zoom effect",
+    "points": [
+     "A student shared a case with a daily demand (removed an all-time high) and a 1-hour zone (removed a supply).",
+     "An all-time high is not only on the daily chart; it can be on any timeframe.",
+     "Next week's homework: January 1996 to January 1997. There is an all-time high to map (rule 3), so there will be a zone.",
+     "He admits a zone he skipped last week was probably a zone, but he keeps it out for consistency.",
+     "A student asked if he is gradually changing the measurement. He explains the zoom effect: after an insanely explosive move (gold, oil), the chart scrunches up and earlier good zones look like small basing candles. That is why he does not like relying on measuring. He has used his method for years and it works, so he will not change it."
+    ]
+   },
+   {
+    "heading": "Stops with a higher-timeframe zone in control",
+    "points": [
+     "A student was stopped out on a Euro trade with a tight stop. He had said in his breakdown to use a wider stop because a daily demand sat there.",
+     "The wider stop was not because of NFP. It was because a higher timeframe zone was in control, so you give the trade more wiggle room.",
+     "Price could still blast through the daily demand, but why not give yourself more room? 'You guys gotta listen.'",
+     "For a momentum trade, a wide stop does not make much sense."
+    ]
+   },
+   {
+    "heading": "Economic data, fundamentals and time away from the charts",
+    "points": [
+     "He does not follow the release schedule; as a swing trader it matters less to him. Day traders definitely need to know when data comes out.",
+     "Exception: if he is short, price is moving up toward his stop and NFP is coming, closing the trade beforehand might be a decent idea. But the move is 50-50 either way.",
+     "'Your 2-to-1 trade will not be affected by the economics.' Fundamentals matter more for larger risk-reward trades on higher timeframes.",
+     "Fundamentals may tell you where price ought to be, but not that it will get there or go in a straight line. You can still get a 1:1 off a supply.",
+     "He does not say fundamentals do not matter. He says fundamentals content is an endless source of material for content creators.",
+     "Mindset: spend long sessions on the charts (even 10 hours) to recognise patterns, but also step away; you do not want to be on the charts 100% of the time."
+    ]
+   }
+  ],
+  "rules": [
+   "Only draw a zone that removes an opposing zone, removes a trendline, or makes an all-time high/low.",
+   "For every zone you draw, ask: what did it remove?",
+   "Draw a trendline only with an obvious peak and valley AND a break of the prior low (downtrend) or high (uptrend).",
+   "Anchor from the highest (or lowest) point possible; if the line cuts through wicks or candles, move to the next highest (or lowest) point.",
+   "End a trendline when price gets overextended away from it.",
+   "A trendline is removed only when a candle closes fully beyond it with no wick or body touching; until then extend it.",
+   "Let the trendline cut through candles until price breaks it or makes a new high/low; then draw the updated trendline.",
+   "After a new lower low, draw the updated downward trendline from the recent peak.",
+   "When a trendline is removed, a zone MIGHT exist; basing candles alone do not qualify.",
+   "A demand counts as removing a downward trendline only if its basing candle is at or below the line (for supply and an upward trendline, at or above).",
+   "When a zone is removed, look for the opposing zone that removed it; there usually is one, but not always.",
+   "When candidates are close, measure the move away; the first one that qualifies goes in the chain analysis.",
+   "Keep zone sizes similar to your other zones (trim if needed; body to body is fine).",
+   "Copy his chain analysis exactly each week and delete zones not on his charts.",
+   "Do homework on the daily FXCM chart.",
+   "Keep the rules on an anchored note on your chart.",
+   "Use a wider stop when a higher timeframe zone is in control; use a tighter stop for momentum trades.",
+   "All-time highs and lows count on any timeframe."
+  ],
+  "mistakes": [
+   "Drawing zones that accomplished nothing (removed nothing).",
+   "Mapping out every high and low.",
+   "Drawing zones too big, which ignores the inner peaks and valleys and the real basing candle.",
+   "Drawing a zone on boo-boo basing candles with no real move away.",
+   "Treating basing candles as the zone instead of the basing before the explosive move.",
+   "Not marking a removed zone as removed (keeping it extended).",
+   "Carrying forward zones that were never in his chain analysis.",
+   "Working on the wrong timeframe (1H instead of daily).",
+   "Trendlines that cut through candles or wicks.",
+   "Missing updated trendlines after a new high or low.",
+   "Drawing trendlines too large and skipping the obvious peaks and valleys in between.",
+   "Re-anchoring a trendline to a later peak while the angle from the recent peak is still good.",
+   "Missing the zone that removed a trendline when its basing sits right at the line.",
+   "Using a tight stop when a daily zone is in control.",
+   "Not listening to the trade breakdowns.",
+   "Letting economic data and fundamentals drive 1:1 to 3:1 swing trades.",
+   "Spending 100% of your time on the charts without stepping away."
+  ],
+  "quotes": [
+   "Removes an opposing zone, removes a trend line, or makes an all-time high or low. It's really that simple.",
+   "You have to ask yourself, what did it remove?",
+   "Not little boo-boo peaks and valleys.",
+   "We don't cut through the trend lines, but we let the trend line cut through the candles until we either break it, or until we make a new high.",
+   "We need a full candle close, no wicks, no bodies touching it.",
+   "Keyword, might.",
+   "Trendlines can get a little bit confusing.",
+   "I don't like changing my rules, but when you see patterns, it kind of makes sense.",
+   "You have your rules, start following them.",
+   "You guys gotta listen to me.",
+   "Your 2-to-1 trade will not be affected by the economics.",
+   "Stepping away also can help."
+  ],
+  "diagrams": [
+   {
+    "key": "trendline",
+    "caption": "Obvious peak and valley plus a break of the low; move the anchor when the line cuts wicks; draw an updated line from the recent peak after a new lower low."
+   },
+   {
+    "key": "zone-removed",
+    "caption": "The chain analysis: each zone exists because it removed an opposing zone, a trendline, or made an all-time high or low."
+   },
+   {
+    "key": "remove-limit",
+    "caption": "Trendline removal needs a full candle close beyond it with no wick or body touching."
+   },
+   {
+    "key": "quality",
+    "caption": "Drawable vs tradable: a supply with a close stay-away candle vs a lower zone with two explosive moves away."
+   },
+   {
+    "key": "entry-stop-tp",
+    "caption": "Wider stop when a daily zone is in control; tighter stop for momentum trades."
+   }
+  ],
+  "checklist": [
+   "What did this zone remove: an opposing zone, a trendline, or an all-time high/low?",
+   "Is there an obvious peak and valley plus a break of the low or high?",
+   "Does the trendline cut through any wicks or candles?",
+   "Has the trendline become overextended, so it should be ended?",
+   "Has a candle closed fully beyond the trendline with nothing touching it?",
+   "Was a new high or low made, so I need an updated trendline?",
+   "Is the zone's basing candle at or below the downward trendline (at or above an upward one)?",
+   "Is the move away explosive enough, or is this just basing candles?",
+   "Is the zone similar in size to my other zones?",
+   "Drawable or tradable: is the stay-away candle too close, and is the move away weak?",
+   "Am I on the daily FXCM chart with his previous chain analysis copied exactly?",
+   "Is a higher timeframe zone in control, so I should use a wider stop?"
+  ],
+  "journalTags": [
+   "zone not qualified",
+   "zone removed nothing",
+   "trendline cuts candles",
+   "missed updated trendline",
+   "overextended trendline",
+   "trendline removal no full close",
+   "zone too big",
+   "basing candle zone",
+   "stop too tight htf",
+   "wrong timeframe",
+   "fundamentals bias"
+  ],
+  "newVsPdfs": [
+   "The chain-analysis homework method: draw only zones that remove an opposing zone, remove a trendline, or make an all-time high/low, and log what removed what.",
+   "New precision rule: a zone removes a downward trendline only if its basing candle is at or below the line (touching the wick counts).",
+   "Trendline removal requires a full candle close beyond the line with no wick or body touching (applying the zone 'tested' close logic to trendlines).",
+   "Using a channel tool to judge whether price is overextended from a trendline, and ending overextended lines.",
+   "Proposed (not adopted) rule: zones with two explosive moves in a row, a move away about 4 to 5 times the basing size, even if they remove nothing.",
+   "In close calls between zones, the first one to qualify goes in the chain analysis, but you may trade the better-located zone in real trading.",
+   "All-time highs and lows count on any timeframe.",
+   "The zoom effect after huge moves makes earlier zones look like basing candles, which is why he dislikes measuring.",
+   "Stop width: wider when a higher timeframe zone is in control, not because of news; tight for momentum trades.",
+   "Fundamentals and economic data barely matter for 1:1 to 3:1 swing trades; consider closing a trade before NFP only if price is already moving toward your stop."
+  ],
+  "examples": [
+   {
+    "market": "Homework chart (daily FXCM, Jan 1995 to Jan 1996)",
+    "timeframe": "Daily",
+    "setup": "Downward trendline drawn from the highest point to the peak, then adjusted",
+    "reasoning": "The original line cut through wicks, so he moved it to the next highest point. Price later got overextended from the line.",
+    "outcome": "Trendline adjusted, then ended where it became overextended"
+   },
+   {
+    "market": "Homework chart",
+    "timeframe": "Daily",
+    "setup": "Supply that removed a respected demand; choosing between candidates",
+    "reasoning": "Weak options measured at 74/63/93/85 pips. The upper zone with the better move away qualified. A lower zone (not in the chain) had a better move away plus a second explosive move away.",
+    "outcome": "Upper supply drawn but not tradable (stay-away candle too close). He would trade the lower one 'all day', partly in hindsight."
+   },
+   {
+    "market": "Homework chart",
+    "timeframe": "Daily",
+    "setup": "Downward trendline removed, with only basing candles below it",
+    "reasoning": "Rule 2 says a zone MIGHT exist. All candles were boo-boo basing candles below minimum requirements.",
+    "outcome": "No demand drawn"
+   },
+   {
+    "market": "Homework chart",
+    "timeframe": "Daily",
+    "setup": "Explosive demand removing two downward trendlines",
+    "reasoning": "The basing candle sat at the trendline (the line touched its wick). It must be at or below the line for a downward trendline. The line was removed when a later candle closed fully above with nothing touching it.",
+    "outcome": "Demand drawn as removing trendlines 1 and 2, trimmed to a similar size to his other zones"
+   },
+   {
+    "market": "Homework chart",
+    "timeframe": "Daily",
+    "setup": "Older zone retested",
+    "reasoning": "Older zone",
+    "outcome": "Quick 1:1, then the zone was removed"
+   },
+   {
+    "market": "Homework chart",
+    "timeframe": "Daily",
+    "setup": "Demand that removed the older supply; close call between two demands",
+    "reasoning": "The upper demand measured about 84-85, the bare minimum, so it qualified first. The lower demand was better located and better quality.",
+    "outcome": "Upper one goes in the chain analysis. You can trade the lower one in real trading. Students must delete the lower one for consistency."
+   },
+   {
+    "market": "Student example (gold implied)",
+    "timeframe": "Daily + 1H",
+    "setup": "Daily demand from removing an all-time high, with a 1H zone from removing a supply",
+    "reasoning": "An all-time high can be on any timeframe",
+    "outcome": "Shared as a valid example"
+   },
+   {
+    "market": "EUR (Euro)",
+    "timeframe": "Swing, with daily demand below",
+    "setup": "Long with a tight stop",
+    "reasoning": "He advised a wider stop because a daily demand was in control. It was not about NFP.",
+    "outcome": "A student with a tight stop was stopped out"
+   }
+  ],
+  "qa": [
+   {
+    "q": "A student said zones with two explosive moves worked for them but they stopped drawing them because they do not follow the rules.",
+    "a": "He agrees those zones work out quite a bit. He is debating a rule, roughly a move away 4 to 5 times the basing size, but for now they are not in the chain analysis."
+   },
+   {
+    "q": "A student pointed out a missed updated trendline after a new lower low.",
+    "a": "He agreed: draw the updated line from the recent peak (peak, valley, peak, lower low). He thanked the student and said trendlines can get confusing."
+   },
+   {
+    "q": "A student noted a daily demand that removed an all-time high and a 1H zone that removed a supply.",
+    "a": "Correct. All-time highs are not only on the daily; they can be on any timeframe."
+   },
+   {
+    "q": "A student wrote 'too flat' as the reason for skipping a trendline.",
+    "a": "He did not understand it. It was an obvious peak and valley, so the trendline should be drawn."
+   },
+   {
+    "q": "Are you gradually changing the measurement of zones?",
+    "a": "No. After insanely explosive moves (gold, oil), the chart scrunches up and earlier good zones look like small basing candles: the zoom effect. That is why he dislikes relying on measuring. His method has worked for years, so he will not change it."
+   },
+   {
+    "q": "Was the wider stop on the Euro trade because of NFP (this Friday)?",
+    "a": "No. It was wider because a higher timeframe (daily) zone was in control, to give more wiggle room. He does not follow the data schedule as a swing trader. Day traders must. He might close a trade before NFP if price is already moving toward his stop, but it is 50-50."
+   }
+  ],
+  "newDiagrams": [
+   {
+    "id": "basing-at-trendline",
+    "title": "Zone that removes a trendline",
+    "caption": "Valid: the demand's basing candle is at or below the downward trendline (touching its wick counts). Invalid: basing fully above the line, so that move did not remove the line.",
+    "svg": "<line x1='20' y1='30' x2='300' y2='120' stroke='#f87171' stroke-width='1.5'/><text x='230' y='92' fill='#f87171' font-size='9'>down trendline</text><rect x='70' y='60' width='40' height='26' fill='#34d399' fill-opacity='0.18' stroke='#34d399'/><line x1='90' y1='52' x2='90' y2='92' stroke='#94a3b8'/><rect x='86' y='64' width='8' height='14' fill='#94a3b8'/><rect x='100' y='20' width='10' height='50' fill='#34d399'/><line x1='105' y1='14' x2='105' y2='72' stroke='#34d399'/><text x='60' y='104' fill='#34d399' font-size='9'>VALID: basing at line</text><rect x='200' y='40' width='40' height='22' fill='#a78bfa' fill-opacity='0.15' stroke='#a78bfa' stroke-dasharray='3 2'/><rect x='216' y='44' width='8' height='12' fill='#94a3b8'/><rect x='228' y='10' width='10' height='36' fill='#34d399'/><text x='186' y='34' fill='#a78bfa' font-size='9'>basing above line</text><text x='186' y='150' fill='#94a3b8' font-size='9'>did not remove the line</text><text x='20' y='170' fill='#94a3b8' font-size='9'>Removal: candle closes fully above, no wick or body touching</text>"
+   },
+   {
+    "id": "updated-trendline",
+    "title": "Updated trendline after a new low",
+    "caption": "The old line is drawn peak to peak and may cut through candles until a new lower low. Then draw the updated line from the recent peak. Do not move to a later peak while the angle stays good.",
+    "svg": "<polyline points='20,30 60,90 100,50 140,120 180,80 230,150 270,110' fill='none' stroke='#94a3b8' stroke-width='1.2'/><line x1='20' y1='30' x2='200' y2='75' stroke='#f87171' stroke-opacity='0.5' stroke-dasharray='4 3'/><text x='150' y='58' fill='#f87171' font-size='9'>old line</text><line x1='100' y1='50' x2='300' y2='104' stroke='#f87171' stroke-width='1.5'/><text x='240' y='92' fill='#f87171' font-size='9'>updated</text><circle cx='140' cy='120' r='3' fill='#a78bfa'/><text x='110' y='136' fill='#a78bfa' font-size='9'>valley</text><circle cx='230' cy='150' r='3' fill='#a78bfa'/><text x='200' y='166' fill='#a78bfa' font-size='9'>new lower low</text><text x='20' y='175' fill='#94a3b8' font-size='9'>peak, valley, peak, lower low</text>"
+   }
+  ],
+  "botRules": [
+   {
+    "rule": "Zone qualification for the chain",
+    "detail": "Keep the zone only if it removed an opposing zone, removed a trendline, or made an all-time high/low (any timeframe); otherwise discard it",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Trendline existence",
+    "detail": "Needs an obvious peak and valley (discretionary size) plus a close beyond the prior low (downtrend) or high (uptrend)",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "Trendline anchor",
+    "detail": "Start at the highest/lowest point; if any wick or body crosses the line between anchors, move to the next extreme point",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "Trendline removal",
+    "detail": "Removed when a candle closes fully beyond the line with no wick or body touching; any touch = respect, so extend the line",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "Trendline update",
+    "detail": "On a new lower low (or higher high), redraw from the most recent peak (or valley) if a valid line exists",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "Trendline overextension",
+    "detail": "discretionary: end the line when price sells off or rallies far from it (channel check)",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "Zone removing a downward trendline",
+    "detail": "The basing candle's range must be at or below the trendline value at that bar (wick touch counts); otherwise that zone did not remove the line",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Basing-only rejection",
+    "detail": "If the candles past the removed trendline are all basing candles with no explosive move away, there is no zone",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Close-call selection",
+    "detail": "Measure the move away when candidates are close (examples: 74/63/93/85 pips; 84-85 minimum). The first that qualifies goes in the chain",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Drawable vs tradable flag",
+    "detail": "Mark as drawable-only if the stay-away candle is close or the move away is weak; discretionary",
+    "plannerStep": "Verdict"
+   },
+   {
+    "rule": "Stop width",
+    "detail": "Widen the stop when a higher timeframe (e.g. daily) zone is in control; tight stop for momentum trades; news is not a reason",
+    "plannerStep": "Levels"
+   },
+   {
+    "rule": "News exit",
+    "detail": "discretionary: consider closing a swing trade before NFP only if price is already moving toward the stop",
+    "plannerStep": "Verdict"
+   }
+  ]
+ },
+ {
+  "n": 7,
+  "title": "Chain analysis Jan 1996 to Jan 1997: emotional wicks, the stay-away candle, starting trendlines from the recent valley and mapping all-time highs",
+  "kind": "zoom",
+  "date": "2026-09-06",
+  "summary": "Kevin opens after a losing week by reminding students that bad weeks and months are normal and that the 'turn $5 into $500k' picture sold by fake gurus is false. He finishes the daily chain analysis (Aussie, January 1996 to January 1997) using his three zone rules, showing a trendline-removal demand, an all-time-high supply, a borderline trendline, a demand rejected for having no stay-away candle, and a 10 out of 10 single-candle demand that was spiked through by a news-driven emotional wick. He defines an emotional wick precisely: a zone is only kept through an emotional wick when only the wick pierces it; if the body closes beyond, it is removed, and if you keep a zone through an emotional wick you extend it and the next supply/demand is taken from there. He explains that being stopped by news on a day-trading chart is your fault, while on a daily swing chart it is out of your control. The homework review hammers three recurring errors: trendlines started from a random point instead of the most recent peak and valley, trendlines that are too large (weekly-sized) and miss the ones in between, and missing zones because all-time highs were not mapped; plus zones whose first candle out is a basing candle, 50% wick candles drawn as zones, lines not attached (use the magnet tool), and zones that removed nothing. New homework: January 1997 to January 1998.",
+  "sections": [
+   {
+    "heading": "Opening: losing weeks are normal",
+    "points": [
+     "It was not a good trading week; as he said at the end of the forecast video, these weeks can happen.",
+     "Beginners think bad weeks cannot happen because fake gurus advertise trading as turning $5 into $500 grand. That is nonsense, so when a bad week or a bad month comes you must not panic - get that idea out of your head.",
+     "(Personal chat about a tornado near his home; no trading content.)"
+    ]
+   },
+   {
+    "heading": "Chain analysis recap: the three rules",
+    "points": [
+     "Homework period reviewed: daily chart (Aussie), January 1996 to January 1997.",
+     "For new members: in the chain analysis we only draw zones that follow one of the three rules written on the top right of his chart.",
+     "Rule 2: when a trendline is removed, we have a zone. Rule 3: when price makes an all-time high, we have a zone. The other rule used in the chain is that an opposing zone was removed.",
+     "Definition repeated: a zone is basing, an explosive move away, a stay-away candle, and space between the stay-away candle and the zone."
+    ]
+   },
+   {
+    "heading": "Walkthrough 1: demand from a trendline removal",
+    "points": [
+     "The last part of the previous chain was a trendline; it is removed, giving a demand zone.",
+     "The trendline touches both basing candles before the explosive move away, so the demand is valid. If the line were a little lower and did not touch the basing candle, he would not draw the zone - it is that simple.",
+     "He drew the zone a little big but said it is fine."
+    ]
+   },
+   {
+    "heading": "Walkthrough 2: all-time high supply and a too-large trendline",
+    "points": [
+     "Price made an all-time high, so by rule 3 there is a zone (supply) there.",
+     "Many students probably wanted to draw a long trendline there. It is technically correct but really big - on a daily chart it is probably a weekly trendline, so he does not draw it.",
+     "The all-time high was removed by an area of demand that looks 'somewhat decent' but is not his favourite and not one he would trade: the move away is barely explosive enough; he wanted another explosive candle.",
+     "There is a demand near the all-time high area that is 'close but just not good enough': the basing barely qualifies and the move away does not."
+    ]
+   },
+   {
+    "heading": "Walkthrough 3: borderline trendlines and readjusting",
+    "points": [
+     "Determining whether a peak and valley are good enough is sometimes borderline: 'when we have rules, there's gonna be times where it's borderline.' He drew it to see what it looked like and accepted it.",
+     "He compared two similar-looking valleys: one was formed only by a wick, the other by actual candles (bodies). The one formed by actual candles makes the better valley, so that trendline was kept.",
+     "A trendline needs three things: a peak, a valley, and a lower low (for a downtrend; higher high for an uptrend).",
+     "When a new peak, valley and lower low form, the trendline is readjusted to the newer ones. You could have both lines on the chart; he removed the older one, but the newer one is what he wanted to see.",
+     "The resulting demand was removed - not surprising because it was very poor quality - leaving a supply zone with an objectively explosive candle (looked better the more he zoomed in)."
+    ]
+   },
+   {
+    "heading": "Walkthrough 4: no demand because there is no stay-away candle",
+    "points": [
+     "After the supply removed the opposing demand, he looked for a demand and found nothing that represents demand.",
+     "One almost qualified, but drawn that tight it was too small. Drawn at a proper size there is basing and an explosive move but no stay-away candle.",
+     "The stay-away candle means price stayed away from the zone. The stay-away candle cannot touch the zone, or it is not a stay-away candle.",
+     "Next, a blatant peak, valley and lower low gave another trendline, which was removed by an area of demand that also removed the all-time high."
+    ]
+   },
+   {
+    "heading": "TradingView tip: Shift for straight lines",
+    "points": [
+     "When drawing all-time highs it is hard to get the line perfectly flat. Hold Shift while drawing to get a straight (horizontal) line; it also snaps to a 45-degree angle or a vertical line."
+    ]
+   },
+   {
+    "heading": "Walkthrough 5: the 10/10 demand and the emotional wick",
+    "points": [
+     "A single-candle basing demand that removed an all-time high, with clean basing and an amazing move away: 'a 10 out of 10 zone'. He would take that trade all day, every day.",
+     "Price spiked straight through it as if it was not there, most likely due to a news event or economic data on the Aussie or, more likely, the US dollar. That can happen.",
+     "He compared its location to a current 4-hour S&P zone near an all-time high; the S&P zone is good but this one is better.",
+     "Answering what an emotional candle is: this obvious, massive wick through the zone is an emotional wick.",
+     "Because it was only a wick, he did not end the zone there; he extended it. The zone was respected afterwards and price pushed up - a pattern he noticed doing the chain analysis, which is why he extends zones through emotional wicks.",
+     "Later a candle broke the zone with its body, so the zone was removed.",
+     "Precise rule: an emotional wick only counts (zone not removed) when it is just the wick. Even if the wick is enormous, if the body closes beyond the zone, even barely, the zone is removed.",
+     "A new supply was created after that and gave a nice move. Drawn tight it is too small, so he drew it a bit bigger; another zone could also be a bit bigger.",
+     "You would still be stopped out by the emotional wick, 100%, but the zone is not removed."
+    ]
+   },
+   {
+    "heading": "News and fault: day trading vs swing trading",
+    "points": [
+     "On a 1-minute (day trading) chart, if you know inflation data is coming out on the dollar and you leave an order at the zone and get wicked out, that is your fault for placing the trade knowing news was due.",
+     "On a daily (swing) chart with a daily limit order, especially when price is far away, this would not bother him much and is not really your fault - it is out of your control.",
+     "That is why the Sunday forecast starts with when economic data comes out: not to predict the data, but to know when it is released so you do not get hit by an emotional wick."
+    ]
+   },
+   {
+    "heading": "Homework review: zone drawing corrections",
+    "points": [
+     "A student's zone was reasonable but he would include another basing candle from the same group: it does not make the zone much bigger and gives more wiggle room. Including a far-away basing candle would make the zone too big compared to the other zones, so do not.",
+     "You must change your zones to match his exactly (e.g. move the distal line) before next week's homework, because a different zone changes the later chain - 'an absolute must'. All zones must be on your charts to get the same chain.",
+     "Lines that are not actually attached to the candles: use the magnet tool and wrap the lines around the basing properly.",
+     "Include the wick at the top/bottom of the zone when it belongs to the basing.",
+     "A supply drawn on a candle with a massive wick is a 50% candle; he does not really draw 50% candles as zones. He recommends the 50% candle indicator to show them.",
+     "When you extend a zone through an emotional wick, the next zone (e.g. the supply) is the one nearest to the removed demand - the nearest explosive move away - not an earlier one.",
+     "A zone the student pointed at was not demand because the first candle out was a basing candle, not an explosive move away. The candle right after the proximal line must be explosive; if it is a basing candle, redraw the zone so the explosive candle follows it.",
+     "A 'larger basing candle' is still a basing candle; it does not qualify as the move away.",
+     "A 5-minute demand had an explosive move but very small space between the stay-away candle and the zone, so it is not really a tradable zone.",
+     "A bearish zone 'technically qualifies' but is not good; you want a decent amount of space from the stay-away candle to where the zone is drawn.",
+     "Only the zone that broke the opposing zone is the zone by rule; any other is 'just an extra one'.",
+     "Do not extend zones all the way across the chart - it makes it too messy.",
+     "Every zone must accomplish something: ask 'what did it remove?' If nothing, it is not a chain zone.",
+     "A student who did not copy the previous weeks' work missed zones; you must copy all previous analysis and follow the instructions (do not submit homework screenshots, only draw the zones/move points)."
+    ]
+   },
+   {
+    "heading": "Homework review: trendline corrections",
+    "points": [
+     "Most common error this week: many students started the trendline from the same random point. A trendline is drawn from the most recent peak and valley, not from a point that is not a valley.",
+     "Even when a student's line ended up as the same line, the concept was wrong: draw from the most recent peak and valley; when a new peak and valley form, go from those. Touching three points does not matter - we only use two.",
+     "He does sometimes attach a line to a less obvious point, but only when there is no proper valley/peak to attach to (e.g. attach to the next lowest point). That did not apply here.",
+     "A peak and valley without a new high (uptrend) or lower low (downtrend) after it is not a trendline: 'a trend line could have the best peak and valley, but if we do not break that opposing high, there is no trend line'. No trendline means no zone from it.",
+     "Too-large trendlines: a weekly-sized line on a daily chart makes you miss all the trendlines (and zones) in between. If it is the only one available it is reasonable, but a weekly trendline stays on the weekly.",
+     "Zooming: if you are too zoomed out you miss peaks and valleys in between; too zoomed in and you can miss a trendline (he admitted missing one a student found).",
+     "A trendline that is only slightly overextended is still fine (close to too large but valid).",
+     "Momentum line (blue) vs trendline (black): a student's momentum line was correct but the trendline too big."
+    ]
+   },
+   {
+    "heading": "Homework review: map the all-time highs",
+    "points": [
+     "Several students missed zones simply because they did not mark the all-time high/low; one missed zone then made them miss the next zone in the chain.",
+     "'Map out the all-time highs, and then the chain will most likely be correct.' He recommends having all-time highs mapped before starting.",
+     "A student asked about an all-time low; he found one was very close and marked it with a horizontal ray.",
+     "Praise went to work where trendlines, demand and supply were all correct with only one missed trendline."
+    ]
+   },
+   {
+    "heading": "Wrap-up and homework",
+    "points": [
+     "He will add rules and possibly a copy of his chain analysis exactly as he did it to clear things up.",
+     "Next homework: January 1997 to January 1998, with all previous zones drawn exactly as his.",
+     "No student questions were asked; he hopes for a better trading week and asks students to stay positive."
+    ]
+   }
+  ],
+  "rules": [
+   "Only draw chain zones that follow one of the three rules (opposing zone removed, trendline removed, all-time high/low).",
+   "Draw a trendline-removal zone only if the trendline touches the basing candles before the explosive move away.",
+   "Require a stay-away candle that does not touch the zone.",
+   "Make the candle after the proximal line an explosive candle, never a basing candle.",
+   "Draw a trendline only after a peak, a valley and a new high/lower low.",
+   "Start trendlines from the most recent peak and valley; readjust when a newer peak, valley and new extreme form.",
+   "Use two points for a trendline, not three.",
+   "Leave weekly-sized trendlines on the weekly chart; do not draw them on the daily.",
+   "Prefer a valley formed by candle bodies over one formed only by a wick.",
+   "Keep a zone through an emotional wick only if just the wick pierces it; remove it if the body closes beyond, even barely.",
+   "Extend a zone through an emotional wick, and take the next opposing zone from the nearest explosive move to the removed zone.",
+   "Do not draw 50% (huge-wick) candles as zones.",
+   "Include adjacent basing candles in the same group if it does not make the zone too big compared to other zones.",
+   "Map out all-time highs and lows before doing the chain.",
+   "Copy all previous analysis and correct your zones to match his before the next homework.",
+   "Use the magnet tool so zones and trendlines are actually attached; hold Shift for straight horizontal lines.",
+   "Do not extend zones all the way across the chart.",
+   "Know when economic data is released; do not leave day-trading orders at zones into known news."
+  ],
+  "mistakes": [
+   "Believing bad weeks or months should not happen.",
+   "Starting trendlines from a random point that is not a valley.",
+   "Drawing trendlines too large (weekly-sized on daily) and missing those in between.",
+   "Drawing a trendline with a peak and valley but no new high/low.",
+   "Not mapping all-time highs, which cascades into missing later zones.",
+   "Calling a basing candle (or larger basing candle) the explosive move away.",
+   "Drawing zones with no stay-away candle or tiny space between stay-away candle and zone.",
+   "Drawing zones too small or too big.",
+   "Drawing a 50% huge-wick candle as a zone.",
+   "Ending a zone at an emotional wick instead of extending it; or keeping a zone when the body closed through.",
+   "Drawing zones that removed nothing.",
+   "Lines not attached to candles; not using the magnet tool.",
+   "Not copying previous weeks' analysis or not correcting zones to match his.",
+   "Extending zones all the way across the chart.",
+   "Day trading into known news releases with orders at zones.",
+   "Being too zoomed out or too zoomed in and missing peaks/valleys."
+  ],
+  "quotes": [
+   "These weeks can happen.",
+   "When we have rules, there's gonna be times where it's borderline.",
+   "The stay-away candle can't touch the zone, or else it's not a stay-away candle.",
+   "This is a 10 out of 10 zone.",
+   "Emotional wicks only count when it's just the wick.",
+   "You would be stopped out, but we're not removing the zone.",
+   "A trend line could have the best peak and valley, but if we do not break that opposing high, there is no trend line.",
+   "Map out the all-time highs, and then the chain will most likely be correct.",
+   "What did it remove? Nothing."
+  ],
+  "diagrams": [
+   {
+    "key": "zone-anatomy",
+    "caption": "Basing, explosive move away, stay-away candle that must not touch the zone, and the space between it and the proximal line."
+   },
+   {
+    "key": "trendline",
+    "caption": "Peak, valley, then new high/lower low; start from the most recent peak and valley, not a random point."
+   },
+   {
+    "key": "zone-removed",
+    "caption": "Only wick through = not removed (extend the zone); body closes beyond, even barely = removed."
+   },
+   {
+    "key": "sequence",
+    "caption": "Chain rules: opposing zone removed, trendline removed (line must touch basing), all-time high/low."
+   },
+   {
+    "key": "low-odds",
+    "caption": "Know news release times; a news emotional wick on a day-trading chart is your fault, on a daily swing chart it is out of your control."
+   }
+  ],
+  "checklist": [
+   "Are all-time highs/lows mapped?",
+   "Which of the three rules created this zone, and what did it remove?",
+   "Is there basing, an explosive first candle out of the zone, a stay-away candle that does not touch the zone, and decent space?",
+   "Is the zone sized reasonably compared with other zones (including adjacent basing candles)?",
+   "Is the trendline from the most recent peak and valley, with a confirmed new high/low, and not weekly-sized?",
+   "For a trendline-removal zone, does the trendline touch the basing candles?",
+   "Was the zone pierced by only a wick (extend) or did a body close beyond (remove)?",
+   "Is the zone a 50% wick candle?",
+   "Is there economic news due while my day-trading order sits at the zone?",
+   "Are lines snapped with the magnet tool?"
+  ],
+  "journalTags": [
+   "trendline random start",
+   "trendline too large",
+   "no new high/low",
+   "all-time high not mapped",
+   "basing candle as move away",
+   "no stay-away candle",
+   "zone too small",
+   "zone too big",
+   "50% candle zone",
+   "emotional wick misread",
+   "zone removed nothing",
+   "line not attached",
+   "traded into news"
+  ],
+  "newVsPdfs": [
+   "Precise emotional-wick rule: only a wick-only pierce keeps a zone; any body close beyond, however small and however big the wick, removes it.",
+   "Zones kept through an emotional wick are extended, and the next opposing zone is taken from the nearest explosive move to the removed zone.",
+   "Fault framework for news spikes: day-trading chart with known news = your fault; daily swing limit order = out of your control.",
+   "Stay-away candle defined strictly: it cannot touch the zone; a zone drawn at proper size with a touching next candle is not a zone.",
+   "Trendline-removal zones require the trendline to touch the basing candles before the explosive move.",
+   "Wick-only valleys are weaker than body-formed valleys when judging borderline trendlines.",
+   "Trendline start must be the most recent peak and valley; only use another point when no proper peak/valley exists.",
+   "Weekly-sized trendlines stay on the weekly chart; drawing them on the daily makes you miss the chain.",
+   "Mapping all-time highs/lows first is the single fix for most cascading chain misses.",
+   "TradingView tip: hold Shift for perfectly horizontal (or 45-degree/vertical) lines.",
+   "Include extra basing candles from the same group if it does not oversize the zone (more wiggle room)."
+  ],
+  "examples": [
+   {
+    "market": "AUD/USD (Aussie)",
+    "timeframe": "Daily (Jan 1996)",
+    "setup": "Demand zone from a trendline removal",
+    "reasoning": "The trendline touches both basing candles before the explosive move away (rule 2). If the line did not touch the basing candle there would be no zone.",
+    "outcome": "Drawn as a valid chain demand (slightly big but fine)."
+   },
+   {
+    "market": "AUD/USD",
+    "timeframe": "Daily",
+    "setup": "All-time high supply",
+    "reasoning": "Rule 3: an all-time high gives a zone. A long trendline here was technically correct but weekly-sized, so not drawn on the daily.",
+    "outcome": "All-time high later removed by a barely-explosive demand he would not trade."
+   },
+   {
+    "market": "AUD/USD",
+    "timeframe": "Daily",
+    "setup": "Borderline trendline",
+    "reasoning": "Peak/valley borderline; valley formed by actual candles preferred over a wick-only valley. Readjusted when a newer peak, valley and lower low formed.",
+    "outcome": "Trendline kept; its demand was very poor and got removed, leaving a supply."
+   },
+   {
+    "market": "AUD/USD",
+    "timeframe": "Daily",
+    "setup": "Potential demand after supply removed opposing demand",
+    "reasoning": "Drawn tight it is too small; drawn properly there is basing and explosive move but no stay-away candle (next candle touches the zone).",
+    "outcome": "Not a zone."
+   },
+   {
+    "market": "AUD/USD",
+    "timeframe": "Daily",
+    "setup": "Single-candle basing demand that removed an all-time high",
+    "reasoning": "Clean basing, amazing move away - 10/10, take it all day every day.",
+    "outcome": "Spiked through by a news-driven emotional wick (stop hit), but only the wick pierced so the zone was extended; it was respected and pushed up, then later removed by a body close. A new supply formed afterwards with a nice move."
+   },
+   {
+    "market": "S&P 500",
+    "timeframe": "4H",
+    "setup": "Zone near an all-time high",
+    "reasoning": "Mentioned as similar location to the 10/10 Aussie demand.",
+    "outcome": "Good zone, but the Aussie example is better."
+   },
+   {
+    "market": "Student homework",
+    "timeframe": "5-minute",
+    "setup": "Demand zone",
+    "reasoning": "Explosive move but very small space between stay-away candle and zone.",
+    "outcome": "Not really tradable; would likely not have filled if drawn properly."
+   }
+  ],
+  "qa": [
+   {
+    "q": "What is an emotional candle?",
+    "a": "An obvious, massive wick through a zone, usually from news or economic data. If only the wick goes through, the zone is not removed - you extend it, and it is often respected afterwards. If the body closes beyond the zone, even barely and even with a huge wick, the zone is removed. You still get stopped out by the wick."
+   },
+   {
+    "q": "Would we still be stopped out by the emotional wick?",
+    "a": "Yes, 100%. You would be stopped out, but the zone is not removed. On a daily swing chart it is out of your control; on a day-trading chart with known news coming, placing the trade is your fault - that is why the forecast lists economic data release times."
+   },
+   {
+    "q": "Is there an all-time low here?",
+    "a": "He did not think so at first, then saw it was very close and marked it with a horizontal ray."
+   },
+   {
+    "q": "(Homework) Is a peak and valley alone enough for a trendline?",
+    "a": "No. You need a peak, a valley, and then the opposing high (or low) broken. Without the new high/low there is no trendline and therefore no zone from it."
+   },
+   {
+    "q": "(Homework) Why can't I start the trendline from this point?",
+    "a": "Because it is not a valley. Trendlines go from the most recent peak and valley. He only attaches to another point when there is no proper peak/valley available."
+   }
+  ],
+  "newDiagrams": [
+   {
+    "id": "emotional-wick-extend",
+    "title": "Extend through an emotional wick",
+    "caption": "A news spike pierces the demand with only its wick: the zone is kept and extended, and is respected afterwards. A later body close below removes it.",
+    "svg": "<rect x='20' y='110' width='280' height='22' fill='#34d399' fill-opacity='0.18' stroke='#34d399' stroke-width='0.8'/><text x='24' y='106' fill='#34d399' font-size='9'>demand (10/10)</text><line x1='40' y1='112' x2='40' y2='132' stroke='#34d399'/><rect x='36' y='114' width='8' height='14' fill='#94a3b8'/><line x1='55' y1='60' x2='55' y2='118' stroke='#34d399'/><rect x='51' y='64' width='8' height='50' fill='#34d399'/><line x1='70' y1='45' x2='70' y2='70' stroke='#34d399'/><rect x='66' y='48' width='8' height='18' fill='#34d399'/><line x1='120' y1='70' x2='120' y2='168' stroke='#f87171'/><rect x='116' y='74' width='8' height='30' fill='#f87171'/><text x='128' y='164' fill='#f87171' font-size='9'>emotional wick only: keep and extend</text><line x1='150' y1='70' x2='150' y2='112' stroke='#34d399'/><rect x='146' y='74' width='8' height='30' fill='#34d399'/><line x1='170' y1='50' x2='170' y2='80' stroke='#34d399'/><rect x='166' y='54' width='8' height='20' fill='#34d399'/><text x='180' y='48' fill='#94a3b8' font-size='9'>respected, pushes up</text><line x1='250' y1='90' x2='250' y2='150' stroke='#f87171'/><rect x='246' y='94' width='8' height='44' fill='#f87171'/><circle cx='250' cy='138' r='5' fill='none' stroke='#f87171'/><text x='206' y='176' fill='#f87171' font-size='9'>body closes below: removed</text>"
+   },
+   {
+    "id": "stay-away-touch",
+    "title": "Stay-away candle must not touch the zone",
+    "caption": "Left: basing, explosive move, stay-away candle clear of the zone = valid. Right: zone drawn at proper size and the next candle touches it = no stay-away candle, no zone.",
+    "svg": "<rect x='20' y='120' width='120' height='18' fill='#34d399' fill-opacity='0.18' stroke='#34d399' stroke-width='0.8'/><line x1='35' y1='120' x2='35' y2='138' stroke='#94a3b8'/><rect x='31' y='123' width='8' height='12' fill='#94a3b8'/><line x1='55' y1='70' x2='55' y2='126' stroke='#34d399'/><rect x='51' y='74' width='8' height='48' fill='#34d399'/><line x1='75' y1='60' x2='75' y2='95' stroke='#34d399'/><rect x='71' y='64' width='8' height='26' fill='#34d399'/><text x='68' y='108' fill='#94a3b8' font-size='9'>space</text><text x='24' y='156' fill='#34d399' font-size='9'>valid: stays away</text><rect x='180' y='120' width='120' height='18' fill='#f87171' fill-opacity='0.12' stroke='#f87171' stroke-width='0.8' stroke-dasharray='3 2'/><line x1='195' y1='120' x2='195' y2='138' stroke='#94a3b8'/><rect x='191' y='123' width='8' height='12' fill='#94a3b8'/><line x1='215' y1='80' x2='215' y2='126' stroke='#34d399'/><rect x='211' y='84' width='8' height='38' fill='#34d399'/><line x1='235' y1='85' x2='235' y2='124' stroke='#f87171'/><rect x='231' y='88' width='8' height='20' fill='#f87171'/><circle cx='235' cy='122' r='4' fill='none' stroke='#a78bfa'/><text x='184' y='156' fill='#f87171' font-size='9'>touches zone: no stay-away</text><text x='110' y='20' fill='#a78bfa' font-size='10'>stay-away candle</text>"
+   }
+  ],
+  "botRules": [
+   {
+    "rule": "Zone must come from one of the three chain rules",
+    "detail": "Opposing zone removed, trendline removed, or all-time high/low made; otherwise skip.",
+    "plannerStep": "Setup"
+   },
+   {
+    "rule": "Trendline-removal zone validity",
+    "detail": "The removed trendline must touch the basing candles before the explosive move away; if it does not touch the basing candle, no zone.",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "First candle after the proximal line must be explosive",
+    "detail": "If the candle immediately after the zone is a basing (or larger basing) candle, reject or redraw the zone.",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Require a stay-away candle that does not touch the zone",
+    "detail": "Candle after the explosive move must not overlap the zone range; if it touches, no zone.",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Require space between stay-away candle and proximal line",
+    "detail": "Very small space = drawable but not tradable; no number given (discretionary).",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Reject 50% candles as zone candles",
+    "detail": "A candle with a massive wick (about 50% wick) is not drawn as a zone; use a 50% candle indicator.",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Zone sizing",
+    "detail": "Include adjacent basing candles of the same group unless it makes the zone much larger than other zones on the chart (discretionary).",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Valid trendline needs peak, valley and a new extreme",
+    "detail": "Peak, valley, then lower low (downtrend) or higher high (uptrend) that breaks the opposing extreme; two anchor points from the most recent peak and valley.",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "Readjust trendline on newer swing",
+    "detail": "When a newer peak, valley and new extreme form, redraw from those.",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "Skip oversized trendlines on the current timeframe",
+    "detail": "If the trendline spans a structure belonging to the next higher timeframe (e.g. weekly-sized on daily), do not use it (discretionary).",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "Prefer body-formed valleys",
+    "detail": "On borderline cases, a valley formed by candle bodies outweighs one formed only by a wick.",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "Zone removal vs emotional wick",
+    "detail": "If only the wick pierces beyond the distal line, keep and extend the zone (stop still hit). If the body closes beyond the distal line by any amount, mark removed.",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Map all-time highs and lows",
+    "detail": "Compute ATH/ATL before running the chain; an ATH gives a zone.",
+    "plannerStep": "Setup"
+   },
+   {
+    "rule": "News filter for day trading",
+    "detail": "On intraday charts, do not leave limit orders at zones through scheduled high-impact data (e.g. US inflation); on daily swing orders, no filter required.",
+    "plannerStep": "Verdict"
+   },
+   {
+    "rule": "Quality rating",
+    "detail": "Top grade (10/10): single-candle clean basing, amazing move away, removed an all-time high. Barely explosive move away = not tradable (discretionary).",
+    "plannerStep": "Verdict"
+   }
+  ]
+ },
+ {
   "n": 8,
   "title": "Chain analysis Jan 1996-Jan 1997: zones with no basing, trendline updates and overextended lines",
   "kind": "zoom",
@@ -2868,6 +3716,976 @@ export const ZOOM_SESSIONS: ZoomSession[] = [
   ]
  },
  {
+  "n": 9,
+  "title": "Chain analysis: don't force zones, all-time lows, and updating/ending trendlines",
+  "kind": "zoom",
+  "date": "2026-09-20",
+  "summary": "Kevin walks through a quiet week of the chain analysis on the daily chart. Most of the new price was at all-time lows (rule 3), but only three zones qualified because almost everything in between was small basing candles, not explosive moves away. The main lessons were patience (don't force zones), drawing zones that include all the basing candles, and keeping trendlines strict: an obvious peak and valley followed by a lower low or higher high, ended when an updated line appears or when it gets overextended. He then marks the students' homework. The most common mistakes were trendlines with no lower low, missed updated trendlines, forced zones and badly drawn zones. He also answers a question on removals across timeframes: removal only counts on the exact same timeframe.",
+  "sections": [
+   {
+    "heading": "Opening: purpose of the Sunday session and psychology",
+    "points": [
+     "Sunday sessions are where they dive into the 'meat' of the system: the rules, trendlines, what a zone is. Video lessons, daily breakdowns and forecasts sit alongside them.",
+     "The chain analysis moves one year at a time. Some weeks are great for lessons and some are not; this one is a weak week, and that is just how it is.",
+     "Reminder for new members: only draw zones that qualify under one of the three rules (remove a zone, remove a trendline, or make an all-time high/low). One rule is enough, not all three.",
+     "This week is mostly rule 3. Once price trades at these levels, everything is an all-time low.",
+     "Clear the old zones off the chart as you go.",
+     "The last zone carried over was a very poor-quality supply. It is drawable, not tradable. He would not take it, even though it worked out fantastically, and he refuses to claim afterwards that he would have.",
+     "'The best zones can fail, and the worst zones could work.' He passes on good trades and takes bad ones, which is why trading psychology matters so much.",
+     "You can have the best strategy in the world, with a good win rate or good overall risk-reward, and still fail without the psychology. Everyone struggles with it, him included. He recommends his podcast episodes for this."
+    ]
+   },
+   {
+    "heading": "Zone 1: supply that removed demand plus an all-time low",
+    "points": [
+     "Rule 1 reminder: an opposing zone being removed only sometimes gives a zone. A zone, trendline or all-time low being removed does not guarantee one.",
+     "Here a demand zone was removed AND an all-time low was made, a 'double whammy'. He immediately spotted the supply above.",
+     "He ended the removed zone's line short of the exact removal point to keep the chart clean, because a new zone was being drawn there. Normally you end it right where it was removed.",
+     "He rated this supply as decent: nice basing and a good move away. It was a little better than the old poor supply, which price came straight back to. With this one, price stayed away for a while."
+    ]
+   },
+   {
+    "heading": "Zone 2: demand that removed two supplies, and how to draw it",
+    "points": [
+     "Anyone in the group for a month should see it: a great explosive move away with two basing candles. It removed two opposing supply zones.",
+     "Because the two basing candles are close together, and using both doesn't make the zone massive or tiny, use BOTH. Don't draw the zone off only one candle.",
+     "Distal: go all the way to the bottom wick, using the magnet tool. Proximal: put it right up against where the explosive move away started.",
+     "The zone later failed, most likely because it was against the downtrend you see when you zoom out. Trends and trendlines are vital. Spotting supply and demand zones alone is not enough.",
+     "The push up after it was momentum, not a trendline. A trendline needs very obvious peaks and valleys, not 'little boo-boo' peaks and valleys."
+    ]
+   },
+   {
+    "heading": "Downtrend lines: updating, ending and overextension",
+    "points": [
+     "After a low was removed, an obvious peak and valley appeared, followed by a lower low. You need that lower low after the peak and valley. That gave a valid downtrend line.",
+     "Don't keep extending one trendline forever, especially once a new peak and valley forms. Here the next one was 'pretty much a peak and valley', so the line was updated to go from the new point.",
+     "Homework expectation: both trendlines on the chart, the original ended and the updated one drawn.",
+     "Extended, the line got hugely overextended as price was pushed down. It is fine to have it in real trading. Once it is that overextended, end it by marking that it got too extended.",
+     "Two reasons a trendline ends here: (1) an updated trendline replaces it, which makes the old one invalid; (2) it got too overextended."
+    ]
+   },
+   {
+    "heading": "Big basing candles vs explosive moves: don't force zones",
+    "points": [
+     "Above the demand there was no supply at all, just small basing candles.",
+     "The confusing part: a candle that is bigger than the tiny ones around it is still a basing candle, just a bigger one. Compared with its neighbours it looks explosive, but it isn't the kind of explosive move he means.",
+     "He doesn't usually measure anything. Judging an explosive move is a feel you build over time by taking part in these meetings.",
+     "Many all-time lows were made in this stretch and none of them showed demand or supply. Main lesson: be patient and don't just draw any zone.",
+     "One nice explosive candle removed nothing (rules 1-3), so it is not a zone. Ask what it removed.",
+     "A small drop-base-drop looked like a zone but wasn't, because the move-away candle wasn't good enough. Without the wick, as a full red body, it probably would have been a zone."
+    ]
+   },
+   {
+    "heading": "Momentum vs trendline; not cutting through candles",
+    "points": [
+     "Valley, peak and lower low: a trendline. Small steps with no obvious valleys: momentum. Compare the two.",
+     "Draw from the most recent peak to the new peak.",
+     "Don't anchor from the highest older peak if the line would cut through candles. A trendline must not cut through candles. There are extreme exceptions, but he won't cover them yet.",
+     "An uptrend line was also needed: peak, valley, higher high. Then another peak, valley and higher high appeared, so it had to be updated.",
+     "The straight update would have cut through candles, so he adjusted the anchor. His line can therefore start where there is no peak or valley, because the real peak and valley is elsewhere and the line was moved to avoid candles.",
+     "The older line ended, and he wants it ended on your charts.",
+     "He marked an all-time low early so it is ready for a later homework."
+    ]
+   },
+   {
+    "heading": "Zone 3: demand from a removed trendline, and old zones",
+    "points": [
+     "Rule 2: a trendline was removed, giving an extremely obvious demand zone.",
+     "Unfortunately the zone got very old. When price finally returned it got at most a tiny reaction and then failed. That is the issue with older zones.",
+     "Ideally you wait for a pullback into a zone like this, but there wasn't one. You won't always get a pullback entry; accepting that is part of trading psychology.",
+     "Another example: a peak and valley that is only momentum compared with real trendline structure.",
+     "Week recap: only three zones. The test was not forcing poor-quality zones and keeping trendlines updated and correct."
+    ]
+   },
+   {
+    "heading": "Homework types differ by week",
+    "points": [
+     "Some weeks test whether you can identify every one of many zones, which is tricky.",
+     "Some weeks are heavily about trendlines.",
+     "Some weeks, like this one, are about not forcing zones. Each week depends on how the charts played out.",
+     "He doesn't only grade the zones you draw. He also checks that you didn't force any zones."
+    ]
+   },
+   {
+    "heading": "Homework review: trendline errors",
+    "points": [
+     "A student got all three zones but missed an updated trendline that needed to end the old one.",
+     "A borderline trendline idea: it was only a wick. If those candles had been bodies he would agree, but because it's just a wick he doesn't really see a trendline. He gave grace because it was close and 'too wicky'.",
+     "The repeated error: a trendline with NO lower low after the peak. That is not a trendline. If price had then broken that low, it would have been correct.",
+     "Several students got the demand right but for a bad reason: they said it removed an invalid trendline. He still grades the rest of your chain as if your trendline were right.",
+     "Another student drew a peak and valley with no higher high. Remember: peak, valley, higher high.",
+     "Trendline recipe as he repeated it: starting point, peak, a valley deep enough to be extremely obvious, then a break of the high where your peak is (higher high). Downtrend: starting point, valley, peak, lower low. No lower low means no trendline.",
+     "He suspects people are overcomplicating trendlines and considers them easier than identifying zones. The rules are in the Discord learning material.",
+     "Nobody, or maybe one person, got both of the tricky trendlines."
+    ]
+   },
+   {
+    "heading": "Homework review: zone drawing and forced zones",
+    "points": [
+     "Forced zone: a move away the same size as the surrounding basing candles. If you draw that zone you would also have to draw others like it, which shows it isn't a zone.",
+     "Attach trendlines properly. Not perfectly attached is tolerable when doing quick after-the-fact analysis, but live it must actually be attached.",
+     "Zones not attached to the highest wick: you must go up to the proximal line properly.",
+     "Don't cut through the wick when drawing a zone. Include the wick.",
+     "Big tip: if you draw your zone and the next candle is a basing candle, it is not a zone. The zone belongs where the explosive move away actually starts.",
+     "Include all the basing candles when they are close together. If a wick reached far down he would draw it differently. A frequent error was zones that were too tiny because they ignored one of the basing candles.",
+     "Only tighten the zone if the basing gets crazy.",
+     "Your distal line must have a reason, such as the lowest wick of the basing. A distal placed at a random point makes no sense.",
+     "When drawing an all-time low, use the actual all-time low.",
+     "Removal check: one student drew two zones that each removed one. Zoomed in, the earlier zone was fully respected by the basing, so only one zone counted. It would only remove it if part of the basing wicked above it.",
+     "A zone that is way too big compared with the others: if it had removed supply, he would still draw it big and accept that it's massive. That can happen sometimes."
+    ]
+   },
+   {
+    "heading": "Homework logistics and using his resources",
+    "points": [
+     "Homework must be on the DAILY chart. Submissions on the wrong timeframe (one on 1H) could not be marked.",
+     "Send real screenshots (get a screenshot app), not sideways photos taken on another device.",
+     "Members in the chat ask about zones that his daily breakdown and chart link already answer. Watch the breakdowns: that is why he makes them. Asking why something is not a zone is fair.",
+     "You may have your own rule (e.g. drawing an amazing move away that removed nothing), but his chart link shows what qualifies under his rules. A borderline example a member raised was not on his chart.",
+     "He is hard on students who did well before because he cares. If he didn't, he would just say try again next week.",
+     "He recommends watching previous meetings for trendlines; they cover it better than a short video, though he may make one."
+    ]
+   },
+   {
+    "heading": "Trendline subjectivity and next homework",
+    "points": [
+     "Next homework: January 1999 to January 2000. The chart starts clean with no zones needing removal, and it is mostly about trendlines.",
+     "No pip-measurement rule for trendlines (e.g. 'if the depth is 168 pips it's a trendline'). Pip values differ between pairs, so it's visual.",
+     "That is why he gives grace on borderline cases: 'We are not robots, we are humans.'",
+     "Classic rule: the trendline must be as obvious as possible, super obvious peak-valley, peak-valley.",
+     "Don't draw one massive trendline that ignores the smaller valid trendlines in between.",
+     "Grace is given on subjective wick-or-valley calls, but NOT on trendlines that break the basic rule (no lower low), unless it's your very first time.",
+     "Market note: the dollar looks strong. The current hiccup is most likely the start of a pullback after a long strong run."
+    ]
+   },
+   {
+    "heading": "Q&A: removals across timeframes",
+    "points": [
+     "A student asked if an opposite zone can be removed by a zone on a different timeframe. No. Everything happens on the exact same timeframe.",
+     "A one-minute zone will not remove a monthly zone. Zone removal and trendline removal are judged on the same chart and timeframe. If you trade the 5-minute, look for removals only on the 5-minute."
+    ]
+   }
+  ],
+  "rules": [
+   "Draw a zone only if it removes an opposing zone, removes a trendline, or makes an all-time high/low. One is enough.",
+   "Don't force zones. If nothing in a stretch shows an explosive move away, draw nothing.",
+   "Don't call a bigger-than-usual basing candle an explosive move away. Judge it against real explosive moves.",
+   "An explosive candle that removed nothing is not a zone.",
+   "When the basing candles are close, include all of them in the zone. Only tighten it if the basing gets crazy.",
+   "Put the distal at the bottom wick of the basing for demand (top wick for supply), using the magnet tool. Put the proximal right against where the explosive move away starts.",
+   "Include the wick. Don't cut through it when drawing a zone.",
+   "If the candle after your drawn zone is a basing candle, it is not a zone. Move the zone to where the explosive move away begins.",
+   "A downtrend line needs a starting point, an obvious valley, a peak, then a lower low. An uptrend line needs an obvious peak, valley, then a higher high.",
+   "Use only very obvious peaks and valleys. Small ones are momentum.",
+   "A trendline must not cut through candles. Adjust the anchor point if needed.",
+   "When a newer peak and valley forms, draw the updated trendline and end the old one, which is now invalid.",
+   "End a trendline that has become overextended.",
+   "Don't draw one massive trendline that skips the valid trendlines in between.",
+   "Judge zone and trendline removals only on the same timeframe.",
+   "Use the actual all-time low/high when marking it.",
+   "End a removed zone at the point it was removed (shorten it only for chart cleanliness).",
+   "Submit homework on the daily chart, as a proper screenshot.",
+   "Watch the daily breakdowns and check his chart link before asking whether something is a zone."
+  ],
+  "mistakes": [
+   "Trading drawable-only, poor-quality zones, or claiming afterwards you'd have taken one that worked.",
+   "Forcing zones from larger-than-normal basing candles.",
+   "Drawing a zone off an explosive candle that removed nothing.",
+   "Drawing a trendline with no lower low (or no higher high) after the peak and valley.",
+   "Using wick-only peaks or valleys as trendline structure ('too wicky').",
+   "Calling momentum a trendline.",
+   "Missing the updated trendline and not ending the old one.",
+   "Extending a trendline forever even when it is overextended.",
+   "Drawing a trendline that cuts through candles.",
+   "Drawing a zone off only one basing candle, so it's too tiny.",
+   "Cutting through the wick, or not attaching the zone to the highest/lowest wick.",
+   "Placing the distal line at an arbitrary point.",
+   "Drawing a zone where the next candle is still basing.",
+   "Assuming a zone removed another when the basing actually respected it (zoom in).",
+   "Marking an all-time low that isn't the real all-time low.",
+   "Getting a zone right for the wrong reason (removal of an invalid trendline).",
+   "Trading zones against the larger trend.",
+   "Waiting on very old zones and expecting them to hold.",
+   "Submitting homework on the wrong timeframe (e.g. 1H) or as sideways photos.",
+   "Not watching the daily breakdowns or checking the chart link.",
+   "Measuring trendline depth in pips instead of judging visually.",
+   "Drawing one massive trendline that ignores the ones in between."
+  ],
+  "quotes": [
+   "The best zones can fail, and the worst zones could work.",
+   "There's trades where they're great, and I don't take them. There's trades that are bad, and I take.",
+   "You think you can just spot supply and demand zones and trade that, you are certainly mistaken.",
+   "We're not just gonna force a zone.",
+   "If you draw your zone, and the next candle is a basin candle, that is not a zone.",
+   "Peak, valley, higher high.",
+   "We are not robots, we are humans.",
+   "If I didn't care, I wouldn't be hard on you.",
+   "A one-minute zone will not remove a monthly zone."
+  ],
+  "diagrams": [
+   {
+    "key": "qualify",
+    "caption": "This week was mostly rule 3 (all-time lows), and many of them produced no zone. Making an all-time low doesn't guarantee a zone."
+   },
+   {
+    "key": "draw",
+    "caption": "Demand off two close basing candles: distal at the bottom wick, proximal against the start of the explosive move. Include both candles."
+   },
+   {
+    "key": "trendline",
+    "caption": "Peak, valley, then lower low (downtrend) or higher high (uptrend). No break of the low or high means no trendline."
+   },
+   {
+    "key": "trend-momentum",
+    "caption": "Small 'boo-boo' peaks and valleys = momentum. Only very obvious peaks and valleys make a trendline."
+   },
+   {
+    "key": "quality",
+    "caption": "Drawable vs tradable: the poor carried-over supply worked, but he still wouldn't take it."
+   }
+  ],
+  "checklist": [
+   "Did this zone remove an opposing zone, remove a trendline, or make a real all-time high/low?",
+   "Is the move away truly explosive compared with real explosive moves, and not just a larger basing candle?",
+   "Is the next candle after my zone a move-away candle, not another basing candle?",
+   "Have I included all the close basing candles, with the distal at the extreme wick and the proximal against the move away?",
+   "Does my trendline have an obvious peak and valley AND a higher high or lower low?",
+   "Does the trendline avoid cutting through candles?",
+   "Is there a newer peak and valley that means I should update the line and end the old one?",
+   "Has the trendline become overextended and needs ending?",
+   "Am I judging every removal on the same timeframe?",
+   "Is the zone against the larger trend, or very old?",
+   "Have I checked the daily breakdown or chart link for this zone?"
+  ],
+  "journalTags": [
+   "zone not qualified",
+   "forced zone",
+   "basing mistaken for move away",
+   "no lower low trendline",
+   "no higher high trendline",
+   "momentum not trendline",
+   "trendline not updated",
+   "overextended trendline",
+   "trendline cuts candles",
+   "zone missing basing candle",
+   "wick cut off",
+   "random distal",
+   "against trend",
+   "old zone",
+   "wrong timeframe removal",
+   "drawable not tradable"
+  ],
+  "newVsPdfs": [
+   "Quick zone test: if the candle right after your drawn zone is a basing candle, it is not a zone. Relocate it to where the explosive move begins.",
+   "A larger-than-normal basing candle is still a basing candle. 'Explosive' is judged against real explosive moves, by feel, not measurement.",
+   "Explicit two reasons to end a trendline: an updated trendline (makes the old one invalid) or overextension. Both should be shown on the homework.",
+   "An adjusted trendline anchor can sit where there's no peak or valley, because it was moved to avoid cutting candles.",
+   "Wick-only peaks or valleys are 'too wicky' for trendline structure. As bodies they'd count, and borderline wick cases get grace.",
+   "No pip-depth rule for trendlines because pip values differ between pairs. Don't draw a massive trendline that skips the ones in between.",
+   "Grading policy: the chain is graded as if your (wrong) trendline were right, so you can get a zone right for a wrong reason. Grace on subjective calls, none on the missing lower low/higher high.",
+   "Removal check by zooming in: a zone only removes an earlier one if the basing actually wicked past it.",
+   "Removals (zone or trendline) only count on the exact same timeframe. A 1-minute zone never removes a monthly zone.",
+   "An oversized zone that qualifies is still drawn big and accepted as massive.",
+   "Homework logistics: daily chart only, proper screenshots, use the daily breakdowns and chart link.",
+   "Homework weeks vary in focus (many zones / trendlines / not forcing zones). This week was 'don't force zones'."
+  ],
+  "examples": [
+   {
+    "market": "Not named (homework chart)",
+    "timeframe": "Daily",
+    "setup": "Carried-over very poor-quality supply",
+    "reasoning": "Drawable, not tradable: poor quality.",
+    "outcome": "Worked out fantastically, but he would still not take it. The best zones can fail and the worst can work."
+   },
+   {
+    "market": "Not named (homework chart)",
+    "timeframe": "Daily",
+    "setup": "Supply that removed a demand zone and made an all-time low (rules 1 and 3)",
+    "reasoning": "Nice basing, good move away, price stayed away for a while. Better than the prior poor supply, which price came straight back to.",
+    "outcome": "Drawn as a valid zone; it removed the demand and made an all-time low."
+   },
+   {
+    "market": "Not named (homework chart)",
+    "timeframe": "Daily",
+    "setup": "Demand off two basing candles with a great explosive move away, removing two supplies",
+    "reasoning": "Use both close basing candles: distal at the bottom wick (magnet tool), proximal against the start of the move away.",
+    "outcome": "Failed, most likely because it was against the larger downtrend."
+   },
+   {
+    "market": "Not named (homework chart)",
+    "timeframe": "Daily",
+    "setup": "Downtrend line: peak, valley, lower low; then updated to a newer peak/valley",
+    "reasoning": "An updated line invalidates the old one. The extended line became overextended, so it was ended.",
+    "outcome": "Both lines expected on homework; old one ended."
+   },
+   {
+    "market": "Not named (homework chart)",
+    "timeframe": "Daily",
+    "setup": "Larger basing candles and a drop-base-drop among many all-time lows",
+    "reasoning": "Bigger-than-normal basing candles aren't explosive moves. One explosive candle removed nothing. The DBD's move-away candle had a wick and wasn't a full red body.",
+    "outcome": "No zones drawn: don't force zones."
+   },
+   {
+    "market": "Not named (homework chart)",
+    "timeframe": "Daily",
+    "setup": "Uptrend line: peak, valley, higher high, then updated after another higher high",
+    "reasoning": "The straight update would have cut through candles, so the anchor was adjusted.",
+    "outcome": "Old line ended; updated line drawn from an adjusted point."
+   },
+   {
+    "market": "Not named (homework chart)",
+    "timeframe": "Daily",
+    "setup": "Demand that removed a trendline (rule 2)",
+    "reasoning": "Extremely obvious demand, but it became very old with no pullback entry.",
+    "outcome": "At most a tiny reaction when finally retested, then failed. That is the issue with old zones."
+   }
+  ],
+  "qa": [
+   {
+    "q": "Can an opposite zone be removed by a zone on a different timeframe?",
+    "a": "No. Everything is on the exact same timeframe. A one-minute zone will not remove a monthly zone, technically speaking or not, because they don't switch timeframes. Zone removed, trendline removed, it's all on the same chart and timeframe. If you trade the 5-minute chart and look for removed zones, look only on the 5-minute."
+   },
+   {
+    "q": "(A student asked for a dedicated lesson on trendlines.)",
+    "a": "He can, but recommends watching previous meetings, where trendlines come up all the time; that's better than a little video lesson. It's simple: you need a good enough peak and valley, and you attach it like that. There are some more details, but he thinks trendlines are easier than identifying a zone."
+   },
+   {
+    "q": "(A student whose homework slipped asked how to get back on track.)",
+    "a": "Do what you did last week. He's hard on you because he cares."
+   }
+  ],
+  "newDiagrams": [
+   {
+    "id": "next-candle-basing",
+    "title": "Next candle is basing = not a zone",
+    "caption": "Draw the zone at the last basing before the explosive candle. If the candle after your zone is still a basing candle, the zone is in the wrong place.",
+    "svg": "<rect x='30' y='70' width='10' height='14' fill='#94a3b8'/><line x1='35' y1='64' x2='35' y2='90' stroke='#94a3b8'/><rect x='50' y='68' width='10' height='16' fill='#94a3b8'/><line x1='55' y1='62' x2='55' y2='90' stroke='#94a3b8'/><rect x='70' y='72' width='10' height='12' fill='#94a3b8'/><line x1='75' y1='66' x2='75' y2='88' stroke='#94a3b8'/><rect x='90' y='70' width='10' height='14' fill='#94a3b8'/><line x1='95' y1='64' x2='95' y2='90' stroke='#94a3b8'/><rect x='110' y='92' width='10' height='70' fill='#f87171'/><line x1='115' y1='88' x2='115' y2='166' stroke='#f87171'/><rect x='26' y='60' width='38' height='30' fill='#f87171' fill-opacity='0.15' stroke='#f87171' stroke-dasharray='3 2'/><text x='20' y='52' font-size='9' fill='#f87171'>wrong: next candle is basing</text><rect x='176' y='70' width='10' height='14' fill='#94a3b8'/><line x1='181' y1='64' x2='181' y2='90' stroke='#94a3b8'/><rect x='196' y='68' width='10' height='16' fill='#94a3b8'/><line x1='201' y1='62' x2='201' y2='90' stroke='#94a3b8'/><rect x='216' y='88' width='10' height='72' fill='#f87171'/><line x1='221' y1='84' x2='221' y2='164' stroke='#f87171'/><rect x='172' y='60' width='40' height='30' fill='#34d399' fill-opacity='0.12' stroke='#34d399'/><text x='172' y='52' font-size='9' fill='#34d399'>right: zone at basing before explosive move</text><text x='20' y='176' font-size='9' fill='#94a3b8'>explosive red candle = move away</text>"
+   },
+   {
+    "id": "trendline-ended",
+    "title": "Ending a trendline: updated or overextended",
+    "caption": "Line A ends when the updated line B forms from a newer peak/valley. A line that price leaves far behind is ended as overextended, not extended forever.",
+    "svg": "<polyline points='20,30 50,90 75,55 105,120 130,95 160,150 190,130 230,170' fill='none' stroke='#94a3b8' stroke-width='1.5'/><line x1='20' y1='30' x2='140' y2='86' stroke='#a78bfa' stroke-width='1.5'/><line x1='140' y1='86' x2='300' y2='160' stroke='#a78bfa' stroke-dasharray='3 3' stroke-opacity='0.5'/><text x='70' y='40' font-size='9' fill='#a78bfa'>A (ended)</text><line x1='75' y1='55' x2='260' y2='145' stroke='#f87171' stroke-width='1.5'/><text x='200' y='118' font-size='9' fill='#f87171'>B (updated)</text><circle cx='75' cy='55' r='3' fill='#f87171'/><text x='80' y='50' font-size='9' fill='#94a3b8'>new peak</text><text x='150' y='166' font-size='9' fill='#94a3b8'>lower low</text><text x='20' y='176' font-size='9' fill='#94a3b8'>valley, peak, lower low = downtrend line</text>"
+   }
+  ],
+  "botRules": [
+   {
+    "rule": "Qualify a zone only if it removed an opposing zone, removed a trendline, or made an all-time high/low",
+    "detail": "any one of the three is enough; a qualifying event does not guarantee a zone",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Reject zone if the candle immediately after the drawn basing is itself a basing candle",
+    "detail": "the zone must sit directly before the explosive move-away candle",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Reject move-away candles that are only larger basing candles",
+    "detail": "discretionary: compared with real explosive moves, judged by feel, not measured",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Reject move-away candle with a significant wick instead of a full body",
+    "detail": "discretionary (DBD example: would be a zone if the candle were a full red body without the wick)",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Include all adjacent basing candles in the zone when they are close in size",
+    "detail": "distal = extreme wick of the basing (magnet); proximal = edge where the explosive move starts; tighten only if the basing is extreme",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Count a removal of an earlier zone only if the new zone's basing went past it",
+    "detail": "zoom in; if the basing fully respected the earlier zone, it was not removed",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Evaluate zone/trendline removals only on the same timeframe as the zone",
+    "detail": "e.g. 5m trading -> removals checked only on 5m; a 1m zone never removes a monthly zone",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "Downtrend line valid only after starting point, obvious valley, peak, then a break below the valley (lower low)",
+    "detail": "uptrend mirror: peak, valley, then break above the peak (higher high); no break = no trendline",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "Reject trendline structure built on wick-only peaks/valleys or small swings",
+    "detail": "discretionary; no pip threshold because pip values differ between pairs",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "Trendline must not cut through any candle; shift the anchor to avoid it",
+    "detail": "rare extreme exceptions not specified",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "When a newer peak/valley + higher high/lower low forms, replace the trendline and mark the old one invalid",
+    "detail": "don't skip valid intermediate trendlines with one massive line",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "End a trendline once price is far overextended from it",
+    "detail": "discretionary",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "Flag zones against the larger trend and very old zones as lower odds",
+    "detail": "discretionary: failed demand against the downtrend; old trendline-removal demand only got a tiny reaction",
+    "plannerStep": "Verdict"
+   },
+   {
+    "rule": "Skip drawable-only, poor-quality zones even if they might work",
+    "detail": "discretionary: poor basing/move away, quick return",
+    "plannerStep": "Verdict"
+   }
+  ]
+ },
+ {
+  "n": 10,
+  "title": "Chain-analysis homework review: higher-high trendlines, borderline zones, emotional wicks and the channel tool",
+  "kind": "zoom",
+  "date": "2026-09-27",
+  "summary": "Kevin opened with the learning path (free S&D course, then private video lessons, then Sunday sessions) and walked through this week's daily chain-analysis homework, where the only zones drawn are ones that remove an opposing zone, remove a trendline, or make an all-time high/low. He hammered the trendline anatomy (peak, valley, then a higher high / lower low), drawing from the lowest/highest point possible without cutting candles, avoiding overly large trendlines when smaller ones exist in between, and 'ending' a trendline once price overextends. He measured borderline moves away in pips to separate drawable from tradable zones, then marked every student's chart, correcting momentum mistaken for trendlines, zones that accomplished nothing, zones drawn too small, and normal wicks mistaken for emotional wicks. He then explained the parallel channel tool (50% line = golden zone vs overextended zone and how it affects trade management and counter-trend odds) and answered questions on watchlists, day-trading timeframes, trading after losses, win rate vs R:R, and how to get market direction (higher timeframe plus one).",
+  "sections": [
+   {
+    "heading": "Opening: learning path and attendance",
+    "points": [
+     "Attendance has dropped (maybe school is back); sessions are recorded, but he deletes ones older than about 2 months because of storage limits, so the last ~5 are available.",
+     "Recommended path for new traders: (1) watch the full free S&D course on YouTube, (2) watch the private video lessons, (3) watch and participate in the Sunday sessions, and watch old ones too.",
+     "If you already understand what a zone is (and that 'little basing candles' are not the zones we want) you can skip the free course, but he still recommends it.",
+     "The Sunday sessions are the most important factor, but you cannot really understand them without the full course and the private lessons first."
+    ]
+   },
+   {
+    "heading": "Homework walkthrough part 1: trendline anatomy and large trendlines",
+    "points": [
+     "Task: mark all zones that remove opposing zones, trendlines (and all-time highs/lows) on the daily homework chart, continuing from last week's demand and upward trendline.",
+     "He saw a large trendline but did not draw it because a smaller trendline exists in between; draw larger trendlines only if there are no trendlines in between, which is often not the case.",
+     "A trendline needs a blatantly obvious peak and valley followed by a higher high (uptrend). If price fails to break the high, there is no trendline.",
+     "Upward trendline: draw from the lowest point possible to the next lowest point in the valley. If a wick would be cut through, attach the line to a different point instead; we never cut through candles.",
+     "Example of what is NOT a trendline: a valley and peak with no lower low after it (some students drew this last week). Remove the missing lower low and you would have the trendline.",
+     "Only one trendline at a time is really kept; drawing too many/too large ones makes you miss the relevant one."
+    ]
+   },
+   {
+    "heading": "Homework walkthrough part 2: basing candles, measuring borderline moves away",
+    "points": [
+     "He pointed out an obvious small basing candle, then bigger basing candles, then a candle that is neither a basing candle nor a good enough explosive move away; that is not what we want.",
+     "What we want is a very clear explosive move away; zones like that are 'never a question'.",
+     "For a close supply call (a student asked) he measured: the reference move was 112 pips and he looked for at least 112 pips on the candidate; it qualified, so he drew it, but called it 'not a great zone' - drawable, not tradable.",
+     "On his real trading charts, if a zone is that close and needs measuring, he usually just does not draw it; he only measures for the homework's sake.",
+     "Chart zoom changes perception: zoomed out, only extremely obvious moves look explosive; zoomed in, zones look beautiful everywhere. It is nuanced and somewhat subjective.",
+     "Key distinction: for a tricky zone the question is 'is it drawable?'; for an obvious zone the question is 'is it tradable?'. Tricky-to-draw zones are never really tradable - if you do not know if it is a good move away, avoid it.",
+     "Nothing wrong with measuring and comparing to your older zones when it is questionable.",
+     "Second borderline supply after a supply was removed: body measured 82, from bottom of body to wick top 102; the wick at the top made him nervous. Comparison measures were 108 and 115. He drew it but felt he was 'forcing zones'; definitely not a trade he would take, and price blasted right through it."
+    ]
+   },
+   {
+    "heading": "Homework walkthrough part 3: overextended trendlines, removal, drawing the zone",
+    "points": [
+     "New uptrend trendline with obvious peak, valley and higher high, but price became very overextended above it, making the trendline essentially irrelevant.",
+     "He wants students to have that trendline but end it around that point (no specific point) - not extend it, because extending it says it is still relevant. If price had stayed around the trendline it would stay relevant.",
+     "Extending the overextended trendline would also make you miss the next trendline.",
+     "He started a trendline from the actual low, but it would have cut through candles, so he started it at another point; that is why his trendline start points sometimes look random but are not.",
+     "A trendline is not removed until a candle has a full close, body AND wick, below an upward trendline (or above a downward trendline). The explosive move candles that still touched the line did not remove it.",
+     "When drawing the resulting demand zone, include all of the basing candles.",
+     "Would he take that trade? Probably yes: pretty good zone, not his favourite, better than the earlier two borderline zones; what he really wants is the zone with a very nice move away. It produced a nice trade."
+    ]
+   },
+   {
+    "heading": "Homework walkthrough part 4: downtrend lines and the end of the chart",
+    "points": [
+     "Downtrend line: blatant peak, valley and lower low; draw from the highest point possible to the peak.",
+     "That trendline was removed not by the first candle poking through but by the candle that fully closed above it, full body and wick.",
+     "Rule 2 (trendline removed) gives a zone 'not always': if everything is just basing candles with no qualifying move, there is no zone and the analysis just ends.",
+     "Out of the borderline zones, if you traded all of them: loss, loss, winner, and you could be in profit depending on target - but he personally would only have traded the one good zone.",
+     "A later candidate had a decent move away candle, but when drawn similar in size to the other zones there was no stay-away candle, so no zone.",
+     "A final borderline peak/valley trendline: he would not draw it but gives grace if students did.",
+     "He admitted he completely forgot to draw an obvious zone that a student found - 'just one that I simply forgot to draw'."
+    ]
+   },
+   {
+    "heading": "Purpose of chain analysis and next week's homework",
+    "points": [
+     "Chain analysis: only draw zones that (1) remove an opposing zone, (2) remove a trendline, or (3) make an all-time high or low. If you draw a zone that removed nothing, ask: what did it remove? Nothing.",
+     "Zones are kept on the chart to see what removes them, so every zone shows its work: this demand removed this trendline, this supply removed this demand, etc. This is what he does on his chart link.",
+     "Next week's homework: from January 2000 to January 2001 (at the very end he said '1999 to 2000', likely a slip). You must have the existing zone and the all-time low on your chart because of rule 3.",
+     "He expects next week's chart to have few zones.",
+     "New members overwhelmed by needing previous zones: put a vertical line at the start and end dates, copy his zones from his chart link in Discord, add the all-time low, then draw all trendlines. You will struggle at first and that is fine."
+    ]
+   },
+   {
+    "heading": "Student homework reviews: recurring corrections",
+    "points": [
+     "Zones should usually be drawn a bit larger, including all the basing candles when they are close together.",
+     "Pick the more blatant peak and valley when two candidates are close.",
+     "Trendlines with a wrong start point can create a zone that should not exist; start from the correct lowest/highest point.",
+     "A student on the 1-minute chart: homework must be on the daily chart.",
+     "Wicks: a supply with a big wick is worse, especially when a better supply exists above - choose the better one.",
+     "Too-small moves away, forced zones: delete them.",
+     "'Too horizontal to be a trendline.'",
+     "A student kept drawing random zones that followed none of the 3 rules and mapping every single high and low; 'we do not map out every single high and low'. He will be hard on repeat mistakes to hold students accountable, but first-timers get leniency.",
+     "A zone should be removed when price peaks above it (supply) - one student did not remove it.",
+     "Momentum is not a trendline: a move up with tiny peaks and valleys is just momentum; the peak and valley we look for are the obvious swings.",
+     "Distal line: do not randomly end the zone; include the wick (end the distal at the wick).",
+     "Homework must be submitted as a chart link (so he can zoom in), not a screenshot; screenshots are only for the video-lesson homework. Watch the welcome video on how to submit.",
+     "Very thick distal/proximal lines make charts hard to mark; messy dots/indicators should be removed.",
+     "Liked when students 'ended' overextended trendlines - shows they recognise it got overextended.",
+     "If one candidate barely qualifies, a smaller one next to it certainly does not.",
+     "The higher high concept is 'very, very simple': the peak and valley can look identical, but you need the higher high.",
+     "Big-mistake student summary: trendlines too large, wrong start points, zones that accomplished nothing, moves away not good enough - needs a complete reset."
+    ]
+   },
+   {
+    "heading": "Emotional wick vs normal wick; drawing zones too small",
+    "points": [
+     "A student kept a zone alive because of what they thought was an emotional wick. It was just a normal-sized wick: larger than nearby wicks but the overall candle and wick were normal, so it is a normal break and the zone is removed.",
+     "An emotional wick would be a much larger, exaggerated wick (he sketched it); then it would be a different story.",
+     "Drawing a zone too small makes the move away look good enough; drawn at proper size, the move away becomes much worse. Do not shrink zones to justify the stay-away candle.",
+     "When you draw zones super tiny, a lot of zones become zones that aren't."
+    ]
+   },
+   {
+    "heading": "Channel tool (parallel channel on a trendline)",
+    "points": [
+     "First draw the trendline normally; the channel tool is not used to draw the trendline.",
+     "Place the channel on the trendline, then drag the opposite side to the valley after the peak (downtrend) - roughly, it does not have to be perfect.",
+     "Downward trendline: anything below the 50% mark of the channel is overextended - you can still trade there but he does not love it. Between the downward trendline and the 50% mark is the optimal area to trade.",
+     "Upward trendline example (S&P 500): between the trendline and the 50% line is the 'golden area'; once price breaks above the 50% mark it is the 'danger zone' - price can still go up, but it is less likely.",
+     "Trading in the golden area: less aggressive trade management. Trading in the overextended area: allowed, but be more aggressive with trade management.",
+     "Counter-trend: an entry-timeframe supply zone in the overextended area (especially way above the channel) is more likely to work than an entry-timeframe supply inside the golden area where we want longs."
+    ]
+   },
+   {
+    "heading": "Q&A: watchlists and pairs",
+    "points": [
+     "No pairs strictly to avoid, but cross pairs are generally junk and whippy, especially yen crosses.",
+     "As a swing trader he has a large watchlist; silver is on it only because a zone is near.",
+     "Day traders: stick to 4-5 instruments max, e.g. gold, S&P, the euro, the yen, maybe GBP/USD and the Aussie; definitely the euro.",
+     "If one instrument (e.g. USD/JPY) has nothing for a couple of weeks, swap another in.",
+     "Good idea: a larger general basket plus a weekly watchlist picked from it based on trends, opportunities and his forecast, in separate columns."
+    ]
+   },
+   {
+    "heading": "Q&A: chart questions, trading after losses, win rate",
+    "points": [
+     "A student asked why he did not mark a recent rally-base-rally zone: that zone did not remove anything; the zone he has is the one that removed the supply.",
+     "After a losing trade: if the next setup follows the rules, take it. But if you know two losses in a row will make you do stupid things, step away - and work on yourself so you can take the next setup. Two losses (down 2%) should not affect you.",
+     "Win rate: risk-to-reward and win rate are correlated; larger R:R targets mean a lower win rate. To raise win rate, target lower R:R and trade good zones.",
+     "Be specific when asking: which supply, which chart, which timeframe.",
+     "BTC 15-minute supply: some supply there but he does not love zones that just peak up and drop like that."
+    ]
+   },
+   {
+    "heading": "Q&A: use his chart link, day-trading timeframes, direction",
+    "points": [
+     "Many members never use his chart link or daily breakdown video - that is the core of the membership; even day traders should use his zones.",
+     "Day-trading example (USD/CAD): no zones or trendlines on the lower timeframe means nothing to trade; wait until price hits his H4 zone, then go to your 15-minute for day-trading longs.",
+     "He swing trades entering on H4 and H1. New traders should stick to ONE entry timeframe.",
+     "Stay off the 1-minute (its higher timeframe would be the 15-minute, which he does not analyse). Use the 5-minute with his H1 charts as the guide, or the 15-minute with his H4 as the guide. Pick one, not both.",
+     "A student using daily, 1H and 5M: fine. Avoid the 15-minute unless a 15M zone sits right next to your 5M zone - then take the 15M zone because it is that close.",
+     "His own early mistake 6-7 years ago: trying to day trade and swing trade while entering on 5M, 15M, H4 and H1 at once - extremely confusing and overwhelming.",
+     "You really need a computer to trade; he dislikes trading on a phone.",
+     "Direction depends on your entry timeframe: entering on 5M, direction comes from H1; once mastered add the daily ('higher timeframe plus one' / multiple sequence analysis). Example: H1 uptrend line means look for 5M longs, but at a daily supply expect the H1 trendline to break.",
+     "A 1-minute trader does not need the daily; he, entering on H4/H1, uses daily, weekly and monthly."
+    ]
+   }
+  ],
+  "rules": [
+   "Only draw zones that remove an opposing zone, remove a trendline, or make an all-time high/low.",
+   "Draw a trendline only after a clear peak, valley and a higher high (uptrend) or lower low (downtrend).",
+   "Draw uptrend lines from the lowest point possible to the valley; downtrend lines from the highest point possible to the peak.",
+   "Never cut through candles with a trendline; move the anchor point instead.",
+   "Do not draw large trendlines when smaller valid trendlines exist in between; keep one trendline at a time.",
+   "End (stop extending) a trendline once price becomes heavily overextended from it.",
+   "Consider a trendline removed only when a candle fully closes (body and wick) beyond it.",
+   "Include all basing candles in the zone when they are close together.",
+   "End the distal line at the wick; do not end the zone randomly.",
+   "Do not trade a zone that is tricky to draw; if you have to ask whether the move away is good enough, avoid it.",
+   "Measure and compare to older zones when a move away is questionable.",
+   "A zone needs a stay-away candle when drawn at normal size.",
+   "Do not shrink a zone to make its move away look valid.",
+   "Treat a normal-sized wick through a zone as a removal; only a clearly exaggerated wick is emotional.",
+   "Remove a supply zone when price peaks above it.",
+   "Do not map out every high and low.",
+   "Submit homework as a chart link, on the daily chart.",
+   "Draw the trendline first, then apply the channel tool to the next valley/peak.",
+   "Prefer trades between the trendline and the channel's 50% line; trade beyond 50% only with more aggressive management.",
+   "Day traders: keep 4-5 instruments max and use one entry timeframe.",
+   "Take the next valid setup after a loss unless you know your emotions are compromised; then step away.",
+   "Get direction from the timeframe above your entry, then add one more (higher timeframe plus one)."
+  ],
+  "mistakes": [
+   "Drawing a trendline from a peak and valley without a higher high / lower low.",
+   "Calling momentum (small zigzags) a trendline.",
+   "Drawing overly large trendlines and missing the ones in between.",
+   "Drawing too many trendlines at once.",
+   "Starting a trendline from the wrong point, creating zones that should not exist.",
+   "Extending an overextended trendline as if still relevant.",
+   "Treating a trendline as removed before a full body-and-wick close beyond it.",
+   "Drawing zones that accomplished nothing (random zones).",
+   "Mapping out every single high and low.",
+   "Forcing zones with too-small moves away.",
+   "Drawing zones too small to justify the move away / stay-away candle.",
+   "Drawing zones too small in general instead of including all basing candles.",
+   "Ending the distal line before the wick.",
+   "Mistaking a normal wick for an emotional wick and keeping a removed zone.",
+   "Not removing a zone after price peaks above it.",
+   "Picking the zone with a big wick when a better one exists above.",
+   "Trading borderline, drawable-only zones.",
+   "Doing homework on the wrong timeframe (1-minute instead of daily).",
+   "Submitting homework as a screenshot; thick lines and cluttered dots.",
+   "Repeating the same mistakes week after week.",
+   "Trading several entry timeframes and both day and swing trading at once.",
+   "Trading on the 1-minute as a beginner.",
+   "Large watchlists for day trading; trading whippy yen cross pairs.",
+   "Asking vague questions without chart, timeframe and location.",
+   "Not using his chart link and daily breakdown video.",
+   "Trading after losses when emotionally compromised."
+  ],
+  "quotes": [
+   "If it's tricky to draw, if you don't really know if it's a good move away, I would avoid it.",
+   "We're not trying to cut through candles.",
+   "We need the higher high.",
+   "We do not map out every single high and low.",
+   "When you draw it that small, a lot of zones become zones that aren't.",
+   "Why is this a zone? Oh, trend line was removed.",
+   "You're down 2%, big deal.",
+   "Pick one, don't do both.",
+   "I kind of feel like I'm forcing zones at this point."
+  ],
+  "diagrams": [
+   {
+    "key": "trendline",
+    "caption": "Peak, valley, then the higher high (or lower low) that confirms the line; anchor at the extreme without cutting candles; skip large lines with smaller ones inside."
+   },
+   {
+    "key": "sequence",
+    "caption": "Chain analysis: each zone exists because it removed a zone, a trendline, or made an all-time high/low."
+   },
+   {
+    "key": "qualify",
+    "caption": "Measuring a borderline move away (e.g. 112 pips needed) - if you have to measure it, it is drawable, not tradable."
+   },
+   {
+    "key": "zone-removed",
+    "caption": "Normal wick through a zone = removed; only an exaggerated emotional wick keeps it."
+   },
+   {
+    "key": "trend-momentum",
+    "caption": "Small zigzags are momentum, not the obvious peak and valley a trendline needs."
+   },
+   {
+    "key": "mtf",
+    "caption": "Higher timeframe plus one: 5M entry, H1 direction, daily context."
+   }
+  ],
+  "checklist": [
+   "Does this zone remove an opposing zone, a trendline, or make an all-time high/low?",
+   "Is the move away clearly explosive, or would I need to measure it? If measuring, treat it as drawable only.",
+   "Is there a stay-away candle with the zone drawn at proper size, including all basing candles and the wick?",
+   "Is the trendline built on peak, valley and a higher high / lower low, from the extreme point, not cutting candles?",
+   "Is there a smaller trendline in between that makes a large one invalid?",
+   "Has the trendline been removed by a full body-and-wick close?",
+   "Is price overextended from the trendline (beyond the channel's 50%)? If so, manage more aggressively.",
+   "Was any wick through the zone truly emotional or just normal?",
+   "Is the instrument on my small watchlist and am I on my one entry timeframe?",
+   "What does the timeframe above my entry (plus one more) say about direction?",
+   "Am I emotionally fit to take this after recent losses?"
+  ],
+  "journalTags": [
+   "zone removed nothing",
+   "no higher high",
+   "momentum not trend",
+   "trendline too large",
+   "trendline wrong anchor",
+   "trendline cuts candles",
+   "trendline not ended",
+   "premature trendline removal",
+   "zone drawn too small",
+   "forced zone",
+   "borderline zone traded",
+   "normal wick as emotional",
+   "zone not removed",
+   "distal not at wick",
+   "overextended entry",
+   "too many timeframes",
+   "watchlist too big",
+   "tilt after losses"
+  ],
+  "newVsPdfs": [
+   "Channel tool explained: draw trendline first, project channel to the next swing; between trendline and 50% = golden/optimal area, beyond 50% = overextended/danger zone.",
+   "Trade management tied to the channel: less aggressive inside the golden area, more aggressive when trading in the overextended area; counter-trend entry-TF zones more likely to work when overextended beyond the channel.",
+   "Concrete pip measuring of borderline moves away (112 pips reference; 82/102 vs 108/115) and the rule that zones needing measurement are drawable, not tradable; on real charts he simply skips them.",
+   "Emotional wick vs normal wick distinction: a proportionally normal wick through a zone removes it.",
+   "Do not shrink zones to justify the move away/stay-away candle.",
+   "Chart zoom/price action scale makes moves away look different; explosiveness is relative.",
+   "Learning path: free course, private lessons, then Sunday sessions.",
+   "Day-trading setup: 4-5 instruments (gold, S&P, euro, yen, GBP/USD, Aussie), large basket plus weekly watchlist, yen crosses whippy.",
+   "Timeframe pairings for using his charts: 5M entry with his H1, or 15M entry with his H4; avoid 1M; use 15M zone only if right next to the 5M zone.",
+   "Direction = timeframe above entry plus one; 1M traders do not need the daily.",
+   "Win rate vs R:R correlation; trading after two losses only if emotionally in control.",
+   "Next homework: January 2000 to January 2001 with the all-time low marked."
+  ],
+  "examples": [
+   {
+    "market": "Homework pair",
+    "timeframe": "Daily",
+    "setup": "Large trendline vs smaller trendline in between",
+    "reasoning": "A smaller valid trendline (peak, valley, higher high) exists inside the large one, so the large one is not drawn.",
+    "outcome": "Only the smaller trendline kept; drawing the large one makes you miss zones."
+   },
+   {
+    "market": "Homework pair",
+    "timeframe": "Daily",
+    "setup": "Borderline supply zone (student asked)",
+    "reasoning": "Reference move measured 112 pips; needed at least 112 pips; it qualified.",
+    "outcome": "Drawn as drawable but not tradable; on real charts he would skip such a zone."
+   },
+   {
+    "market": "Homework pair",
+    "timeframe": "Daily",
+    "setup": "Borderline supply after a supply was removed, with a top wick",
+    "reasoning": "Body 82, body-bottom to wick 102 vs comparisons 108/115; wick made him nervous; felt like forcing.",
+    "outcome": "Drawn for chain analysis only, not a trade; price blasted right through it."
+   },
+   {
+    "market": "Homework pair",
+    "timeframe": "Daily",
+    "setup": "Uptrend line that became overextended",
+    "reasoning": "Valid peak/valley/higher high, but price ran far from it, making it irrelevant.",
+    "outcome": "Keep the line but end it; extending would also hide the next trendline."
+   },
+   {
+    "market": "Homework pair",
+    "timeframe": "Daily",
+    "setup": "Demand zone from a trendline removal",
+    "reasoning": "Trendline removed only when a candle fully closed (body and wick) beyond it; zone includes all basing candles.",
+    "outcome": "Pretty good zone he would probably take; produced a nice trade."
+   },
+   {
+    "market": "Homework pair",
+    "timeframe": "Daily",
+    "setup": "Downtrend line removal followed by basing only",
+    "reasoning": "Rule 2 does not always give a zone; only basing candles, no explosive move.",
+    "outcome": "No zone; analysis ends there."
+   },
+   {
+    "market": "Homework pair",
+    "timeframe": "Daily",
+    "setup": "Candidate zone with decent move away but no stay-away candle",
+    "reasoning": "Drawn at a size similar to the other zones, there is no stay-away candle.",
+    "outcome": "Not a zone."
+   },
+   {
+    "market": "Student chart",
+    "timeframe": "Daily",
+    "setup": "Zone kept because of a supposed emotional wick",
+    "reasoning": "The wick was normal-sized relative to the candle; an emotional wick is much larger.",
+    "outcome": "Zone should be removed."
+   },
+   {
+    "market": "Student chart",
+    "timeframe": "Daily",
+    "setup": "Zone drawn very small to make the move away look good",
+    "reasoning": "At proper size the move away is much weaker.",
+    "outcome": "Not a valid zone; do not shrink zones."
+   },
+   {
+    "market": "S&P 500",
+    "timeframe": "Not specified",
+    "setup": "Channel tool on an upward trendline",
+    "reasoning": "Price between trendline and 50% line = golden area for longs; above 50% = danger/overextended.",
+    "outcome": "Trade in the golden area with normal management; overextended area allowed with more aggressive management; counter-trend supply more likely to work when overextended."
+   },
+   {
+    "market": "USD/CAD",
+    "timeframe": "Lower TF (5M/15M) with his H4",
+    "setup": "Day-trading plan",
+    "reasoning": "No zones or trendlines on the lower timeframe; wait for price to reach his H4 zone.",
+    "outcome": "Then drop to the 15-minute and look for day-trading longs."
+   },
+   {
+    "market": "BTC",
+    "timeframe": "15-minute",
+    "setup": "Student-identified supply",
+    "reasoning": "There is some supply, but he dislikes zones that just peak up and drop.",
+    "outcome": "Not bad, not loved."
+   },
+   {
+    "market": "Generic",
+    "timeframe": "H1 / 5M / Daily",
+    "setup": "Direction for 5M entries",
+    "reasoning": "H1 uptrend line means look for 5M longs; but price at a daily supply means the H1 trendline may break.",
+    "outcome": "Higher timeframe plus one."
+   }
+  ],
+  "qa": [
+   {
+    "q": "Are the old Sunday sessions available?",
+    "a": "Yes, but he deletes ones older than about 2 months because he refuses to pay for unlimited storage; the last ~5 are always available."
+   },
+   {
+    "q": "Is this close supply zone valid?",
+    "a": "It is close; on real charts he would just not draw it. For homework he measured: 112 pips reference, needed at least 112; it qualified, so draw it, but it is not a great zone - drawable not tradable."
+   },
+   {
+    "q": "As a new member I'm overwhelmed since zones depend on removing previous zones.",
+    "a": "Put vertical lines at Jan 2000 and Jan 2001, copy his zones from his chart link in Discord (you just need the existing zone and the all-time low), then draw all the trendlines. You will struggle at first, that is fine and why the meetings exist."
+   },
+   {
+    "q": "Should I make a new account just for this community / trading?",
+    "a": "Yes, just open a blank chart; the welcome video explains how to submit homework properly."
+   },
+   {
+    "q": "No candle closed yet beyond the trendline (student note)?",
+    "a": "Exactly - great observation; the trendline is removed only by a full close."
+   },
+   {
+    "q": "How do you use the channel tool?",
+    "a": "Draw your trendline first. Put the channel on the trendline and drag the other side to the valley after the peak (roughly). For a downtrend, below the 50% mark is overextended (tradable but not loved); between trendline and 50% is optimal. For an uptrend, between trendline and 50% is the golden area; above 50% is the danger zone - trade it with more aggressive management. Counter-trend zones are more likely to work in the overextended area than in the golden area."
+   },
+   {
+    "q": "Can we all speak with each other on mic?",
+    "a": "Yes if you have a question; he does not want to talk for no reason."
+   },
+   {
+    "q": "How do I know which pairs to trade and avoid?",
+    "a": "No pairs to strictly avoid, but cross pairs (especially yen crosses) are whippy junk. Swing traders can have a big watchlist; day traders 4-5 max (gold, S&P, euro, yen, maybe GBP/USD, Aussie). Keep a large general basket and pick a weekly watchlist from it based on trends and opportunities."
+   },
+   {
+    "q": "Why didn't you mark the recent zone that blew off that rally-base-rally?",
+    "a": "Because that zone did not remove anything; the zone he has is the one that removed the supply."
+   },
+   {
+    "q": "If you have a losing trade, would you still take the next setup?",
+    "a": "If it follows the rules, yes, 100%. But if you know two losses in a row will make you do stupid things, step away, and work on your emotional control so you can take it. Two losses is only down 2%."
+   },
+   {
+    "q": "How can I improve my win rate?",
+    "a": "Vague question; R:R and win rate are correlated. Larger R:R means lower win rate, so look for lower R:R and trade good zones."
+   },
+   {
+    "q": "BTC, there's supply?",
+    "a": "Be specific (which chart, timeframe, where). On the 15-minute there is some supply but he does not love zones that just peak up and drop."
+   },
+   {
+    "q": "As a day trader, what timeframes should I use?",
+    "a": "He enters on H4 and H1 as a swing trader, but a newer trader should stick to one. Avoid the 1-minute. Use the 5-minute with his H1 charts as the guide, or the 15-minute with his H4 as the guide. Pick one."
+   },
+   {
+    "q": "It's difficult to track on the phone.",
+    "a": "If you are going to be a trader you need a computer; he generally does not like trading on his phone."
+   },
+   {
+    "q": "As a day trader I use daily, 1H and 5M - OK?",
+    "a": "Yes. Avoid the 15-minute, unless a 15M zone is right next to your 5M zone; then take the 15M zone. Stick to one entry timeframe - his own early mistake was trading many timeframes and styles at once."
+   },
+   {
+    "q": "What timeframe gives a clear market direction?",
+    "a": "Depends on your entry timeframe. Entering on 5M, direction is from H1; once mastered, add the daily (higher timeframe plus one / multiple sequence analysis). If you trade the 1-minute you do not need the daily; he uses daily, weekly and monthly because he enters on H4/H1."
+   }
+  ],
+  "newDiagrams": [
+   {
+    "id": "trendline-channel-50",
+    "title": "Channel tool: golden area vs overextended",
+    "caption": "Draw the uptrend line first, project the channel to the opposite swing. Between the trendline and the 50% line is the golden area; above 50% is overextended - tradable with more aggressive management, and counter-trend supply there is more likely to work.",
+    "svg": "<line x1='20' y1='160' x2='300' y2='70' stroke='#34d399' stroke-width='2'/><line x1='20' y1='110' x2='300' y2='20' stroke='#94a3b8' stroke-width='1.5'/><line x1='20' y1='135' x2='300' y2='45' stroke='#a78bfa' stroke-width='1' stroke-dasharray='4 3'/><polygon points='20,160 300,70 300,45 20,135' fill='#34d399' fill-opacity='0.12'/><polygon points='20,135 300,45 300,20 20,110' fill='#f87171' fill-opacity='0.12'/><text x='200' y='88' fill='#34d399' font-size='9'>golden area (normal mgmt)</text><text x='150' y='58' fill='#f87171' font-size='9'>overextended (aggressive mgmt)</text><text x='250' y='42' fill='#a78bfa' font-size='9'>50%</text><text x='24' y='174' fill='#94a3b8' font-size='9'>trendline drawn first, channel to next swing</text>"
+   },
+   {
+    "id": "higher-high-required",
+    "title": "Trendline needs the higher high",
+    "caption": "Left: peak, valley, then a higher high = valid uptrend line. Right: peak and valley with no higher high = no trendline, even if it looks identical.",
+    "svg": "<polyline points='15,150 55,90 80,120 125,60' fill='none' stroke='#94a3b8' stroke-width='1.5'/><line x1='15' y1='150' x2='150' y2='108' stroke='#34d399' stroke-width='2'/><line x1='55' y1='90' x2='150' y2='90' stroke='#94a3b8' stroke-dasharray='3 3'/><text x='112' y='54' fill='#34d399' font-size='9'>higher high</text><text x='20' y='170' fill='#34d399' font-size='10'>valid trendline</text><polyline points='175,150 215,90 240,120 280,98' fill='none' stroke='#94a3b8' stroke-width='1.5'/><line x1='215' y1='90' x2='310' y2='90' stroke='#94a3b8' stroke-dasharray='3 3'/><line x1='175' y1='150' x2='300' y2='112' stroke='#f87171' stroke-width='2' stroke-dasharray='5 3'/><text x='255' y='84' fill='#f87171' font-size='9'>no higher high</text><text x='185' y='170' fill='#f87171' font-size='10'>not a trendline</text>"
+   },
+   {
+    "id": "wick-normal-vs-emotional",
+    "title": "Normal wick vs emotional wick",
+    "caption": "A wick proportional to its candle that breaks the zone is a normal break - remove the zone. Only an exaggerated wick, far larger than the candle body, counts as emotional.",
+    "svg": "<rect x='20' y='60' width='280' height='22' fill='#f87171' fill-opacity='0.18' stroke='#f87171'/><text x='24' y='55' fill='#f87171' font-size='9'>supply zone</text><line x1='90' y1='50' x2='90' y2='130' stroke='#94a3b8'/><rect x='82' y='95' width='16' height='30' fill='#34d399'/><text x='50' y='150' fill='#94a3b8' font-size='9'>normal wick = removed</text><line x1='230' y1='20' x2='230' y2='140' stroke='#a78bfa'/><rect x='222' y='115' width='16' height='20' fill='#34d399'/><text x='180' y='160' fill='#a78bfa' font-size='9'>emotional wick = exaggerated</text>"
+   }
+  ],
+  "botRules": [
+   {
+    "rule": "Zone qualifies for chain analysis only if it removed an opposing zone, removed a trendline, or made an all-time high/low",
+    "detail": "Three rules; otherwise discard",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Validate uptrend line only after peak, valley, then a close above the peak (higher high); mirror for downtrend",
+    "detail": "Fail to break the high = no trendline",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "Anchor trendline at the lowest low (uptrend) / highest high (downtrend); if the line intersects any candle between anchors, shift the anchor",
+    "detail": "No candle may be cut through",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "Prefer the most recent smaller trendline; discard a larger trendline if a valid smaller one exists within its span",
+    "detail": "One active trendline at a time",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "Trendline removed only when a candle closes with full body and wick beyond the line",
+    "detail": "Touching candles do not remove it",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "Mark trendline irrelevant (ended) when price is heavily overextended from it",
+    "detail": "discretionary (no specific point)",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "If the move away has to be measured to qualify, flag the zone as drawable-only and do not trade",
+    "detail": "Measure candidate vs prior qualifying move, e.g. needs >= 112 pips when reference was 112",
+    "plannerStep": "Verdict"
+   },
+   {
+    "rule": "Zone width must include all adjacent basing candles and extend distal to the wick before testing move away and stay-away candle",
+    "detail": "No stay-away candle at normal width = no zone",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Treat a wick through the zone as removal unless the wick is exaggerated relative to the candle",
+    "detail": "discretionary (normal-sized wick = removed)",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Channel position: compute channel from trendline to the next opposite swing; price between line and 50% = golden, beyond 50% = overextended",
+    "detail": "Overextended: allowed with more aggressive management; counter-trend zones there get higher odds",
+    "plannerStep": "Levels"
+   },
+   {
+    "rule": "Direction from the timeframe above entry, context from one more above",
+    "detail": "5M entry -> H1 direction -> daily context; H4/H1 entry -> daily/weekly/monthly",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "Single entry timeframe per trader profile; 5M paired with H1 zones or 15M with H4 zones",
+    "detail": "Avoid 1M; use a 15M zone on a 5M plan only if it sits right next to the 5M zone",
+    "plannerStep": "Setup"
+   },
+   {
+    "rule": "Day-trading watchlist limit",
+    "detail": "4-5 instruments max; avoid whippy yen crosses",
+    "plannerStep": "Setup"
+   },
+   {
+    "rule": "Lower-timeframe trade only when price reaches a higher-timeframe zone when the entry timeframe has no zones/trendlines",
+    "detail": "e.g. wait for H4 zone, then look for 15M longs",
+    "plannerStep": "Setup"
+   },
+   {
+    "rule": "Block trading after consecutive losses if the trader flags emotional tilt",
+    "detail": "discretionary (example: two losses = -2% should not matter)",
+    "plannerStep": "Verdict"
+   }
+  ]
+ },
+ {
   "n": 11,
   "title": "Chain-analysis homework review: trendline anatomy, borderline zones and homework format",
   "kind": "zoom",
@@ -3288,6 +5106,576 @@ export const ZOOM_SESSIONS: ZoomSession[] = [
     "rule": "Downgrade zones on borderline move away to drawable-only",
     "detail": "discretionary; moves away are not measured, judged relative to candle sizes at an appropriate zoom",
     "plannerStep": "Verdict"
+   }
+  ]
+ },
+ {
+  "n": 12,
+  "title": "Space between stay-away grades the zone; homework chain and first trade reviews",
+  "kind": "zoom",
+  "date": "2026-10-11",
+  "summary": "Kevin re-explained the zone recipe for new members and stressed that the space between the stay-away candle and the proximal line is what tells him whether a zone is good or poor. He then walked the homework chain from January 01 to January 02 (an all-time low with no valid demand, trendline drawing and removal on a full candle close, a supply widened on its proximal side, and a trendline break with no zone). He marked every student's homework, pointing out common faults: distal lines not attached to the wick, zones drawn too small, and momentum lines drawn as trendlines. For the first time he went through the Discord trade-review channel. He set the rules for posting reviews (show the zone and the reaction, no dollar amounts) and judged each trade on zone quality, the trendline, how old the zone was, the stop width and the trend.",
+  "sections": [
+   {
+    "heading": "Opening and new format for Sunday sessions",
+    "points": [
+     "Some homework weeks have lots of zones and some, like last week, are mostly about not forcing zones. Learning when NOT to draw a zone matters just as much.",
+     "He wants new things in these sessions, so from now on he will go through the Discord trade-review channel every Sunday.",
+     "Keep the trade-review channel simple, clean and clear so it can be reviewed live. Questions belong in the questions channel, not in trade review.",
+     "A student asked about a EURUSD H1 'green candle that failed'. His answer: he does not see a candle as failing. A candle is just a candle."
+    ]
+   },
+   {
+    "heading": "Zone recipe recap for new members",
+    "points": [
+     "A zone has four required parts, but parts 3 and 4 are linked, so you really only need three. Get those three and you have all four.",
+     "1) Basing candles: small candles, found everywhere on a chart. You need 1 to 3, and they can be any colour (a basing candle in a demand zone can be green).",
+     "2) Move-away candle: it must be explosive. He gives no measurement on purpose, because when price gets very overextended the moves away start to look smaller. You learn to judge it over time, and there is some subjectivity.",
+     "The move away must be one explosive candle that covers the distance. If price got there through a series of little basing candles, it does not count.",
+     "3) Stay-away candle: it stays away from the proximal line.",
+     "4) Space between the stay-away candle and the proximal line. A stay-away candle automatically gives you this space."
+    ]
+   },
+   {
+    "heading": "The space between the stay-away candle is the quality grade",
+    "points": [
+     "How he judges a zone as good or bad: by the space between the stay-away candle and the proximal line.",
+     "EURUSD H1 example: single-candle basing ('my favorite'), a very obvious explosive move away, a stay-away candle and a large space. It is a very good zone and the trade worked.",
+     "On the same chart, a second zone had very little space. It was not the best zone, so that trade was 'completely avoidable'. It failed completely.",
+     "A third zone had decent space and was a pretty good zone. It gave about a 1:1, or break-even, depending on the R:R target.",
+     "So the three examples were a great, a poor and a pretty good zone, and the results matched the space: 'it's no coincidence'.",
+     "Poor-space zones are still drawn (drawable versus tradable) so you can follow what removes them in the chain analysis. They are just not traded.",
+     "Stops: don't use a very tight stop, in these market conditions or in general. Even a sensible stop can be taken out by the spread; that happened to him on EURUSD a couple of weeks ago."
+    ]
+   },
+   {
+    "heading": "Trendline recap and the three Sunday-analysis rules",
+    "points": [
+     "A trendline needs an obvious peak and valley, not small ones, and then a higher high (or a lower low for a downward line).",
+     "In the Sunday analysis, only draw zones that do one of three things: remove an opposing zone, remove a trendline, or make an all-time high or low. It must be an ALL-TIME high or low, not just any high or low.",
+     "He is being a little more lenient on moves away this time. In some market conditions moves away are huge, and then people only look for moves that big, when smaller explosive ones are fine too."
+    ]
+   },
+   {
+    "heading": "Homework walkthrough, January 01 to January 02 (chain analysis)",
+    "points": [
+     "An earlier zone was valid because it removed the downward trendline. Price reacted nicely (maybe a 1:1) and then removed that zone.",
+     "He spotted a single-candle-basing supply right away and kept it a similar size to the previous zones (by eye, not measured). He would not have liked trading it: price took so long to come back that the zone was old, and old zones are usually not the best to trade.",
+     "All-time low: under rule 3 this suggests a zone, but not every time ('this is a tricky one'). He looked for explosive candles and started with the one closest to the all-time low. When the trigger is an all-time low, a removed zone or a removed trendline, the candidate is always the closest one to it.",
+     "Drawn at a similar size to the other zones, the nearest candidate had almost no space and no stay-away candle, so it is not a zone. The next candidate was the same, so they left the zone above as it was and did not force a demand.",
+     "A student suggested drawing it very small to create space. His answer: 'we're not gonna make zones smaller just to fit.'",
+     "He marked the all-time low with a horizontal ray. There was an obvious peak and valley there, but no high was broken afterwards, so there is no trendline. If a high had been broken, there would definitely be one.",
+     "Upper trendline: peak, valley, and then the high above the valley was broken, so it is valid. Draw it from the lowest point of the valley. If that cuts through candles, adjust it to the next point.",
+     "Downward trendline: obvious peak, valley and a lower low, drawn from the highest point. It is borderline 'almost too horizontal', but he kept it. Any more push down would have made it irrelevant."
+    ]
+   },
+   {
+    "heading": "When the trendline was removed, and the zone that removed it",
+    "points": [
+     "A trendline is NOT removed when candles merely touch it. Here a red candle and even the green explosive candle were still touching the line.",
+     "It is removed only when the first candle closes fully above it (body and wick) for a downward line, or fully below it for an upward line. If a wick still touches the line, it is not removed until a candle closes clear of it.",
+     "Then you find the zone that removed it. Here it was a zone that 'just barely' qualified.",
+     "Later, a supply zone 'very obviously' removed the zone and the upper trendline, and it gave a beautiful little trade."
+    ]
+   },
+   {
+    "heading": "Drawing a supply larger on the proximal side",
+    "points": [
+     "Drawn wick to wick, that supply was only about half the size of the earlier zone (he cloned the zone to compare them).",
+     "He did not stretch it over all of the earlier basing, because there were two different sections of basing.",
+     "Instead he made it 'just a little bit bigger' on the proximal side so it matches the size of nearby zones. That is why you sometimes see him widen a zone; there are examples in the Weekly Forex Forecast.",
+     "He would trade that supply on appearance alone: the space under the stay-away candle was good. Price reacted and removed it, and right away there was a demand below with an explosive move away."
+    ]
+   },
+   {
+    "heading": "A trendline break with no zone",
+    "points": [
+     "There was a peak and valley, so there was a trendline, and it broke. But no supply removed it.",
+     "'Just because a trend line breaks or a zone breaks doesn't mean we just automatically have a zone.' In that case the chain ends there."
+    ]
+   },
+   {
+    "heading": "Homework marking: borderline calls and subjectivity",
+    "points": [
+     "'Nothing is personal in this homework.' If he is hard on someone, it is because he cares.",
+     "Zones and trendlines that were close got a 'borderline'. Borderline means it could go either way, so it is not marked wrong. 'Nothing is going to be 100%' and trading will be a little subjective.",
+     "What made him nervous about one borderline zone was the wick. If that part had been bodies (more basing candles) it would have been obvious. A wick there makes it less certain.",
+     "What he does not want to see is lines nowhere near a trendline being called trendlines. That is 'way wrong'.",
+     "Missing one trendline can cascade and make you miss the zones and trendlines that follow in the chain.",
+     "He admitted he had missed an obvious trendline himself because he was too focused on another part of the chart. 'I'm not perfect.' A student had caught it, and everyone should add it to their charts.",
+     "He found one homework zone drawn over an extra candle. The zone must be drawn on the single basing candle only."
+    ]
+   },
+   {
+    "heading": "Homework marking: common faults",
+    "points": [
+     "Distal line not attached to the candle (a 'random distal line'). The distal line must sit on the wick. Getting this wrong made one student miss the next zone in the chain.",
+     "Zones drawn too small. Make them bigger so they match the size of nearby zones.",
+     "Basing that is too big means it is not a zone.",
+     "Trendlines drawn with no lower low (or higher high). 'If you draw trend lines like this, they're literally everywhere on the chart.' After the peak and valley, a new high (or low) must form.",
+     "Momentum drawn as trendlines. 'This is momentum.' Focus on the larger peaks and valleys.",
+     "A basing candle labelled as a zone ('that's a basing candle, not a zone').",
+     "Two zones drawn at one all-time low with no reason, and zones not extended until the candle that actually removes them.",
+     "Moves away that are not explosive enough.",
+     "In a multiple-timeframe homework (EURUSD daily demand plus H1 zones), the daily demand was good. One H1 zone was rejected because the move away was not explosive. The other H1 zone, with nice single-candle basing, was fine.",
+     "Submission problems: wrong chart, wrong timeframe, links that would not open, and no visible timeframe or symbol all mean he cannot mark the work. He will not chase anyone for homework.",
+     "He praised a student who marked peaks, valleys and higher highs, because it shows they are applying the rules. He called it a good tip for new traders."
+    ]
+   },
+   {
+    "heading": "Homework for next week",
+    "points": [
+     "Chain from January 2002 to January 2003.",
+     "Make sure the supply zone from this session is on your chart and drawn properly (proximal widened as shown). That is the first thing he will check.",
+     "New members can start with the lesson homework; doing both is better."
+    ]
+   },
+   {
+    "heading": "Trade review: how to post",
+    "points": [
+     "Show both the zone and the trade. If the zone is far from the reaction, post two screenshots, one of the zone and one of the reaction.",
+     "A screenshot of only the result, a 5-minute entry with no context, or a risk-reward tool covering the zone cannot be judged.",
+     "A student pointed out that people mostly post wins. He agreed and asked everyone to show the full analysis.",
+     "Don't tag him with a chart and no question; he won't answer it.",
+     "Never post dollar amounts, even on a demo account. Post percentages. Dollar amounts can make people feel bad: the same trade might make $30 for one person and $300 for another. Percentage is what matters, and it is in the rules."
+    ]
+   },
+   {
+    "heading": "Trade review: verdicts",
+    "points": [
+     "A trade after a trendline removal, with nice basing and a very explosive move away, was a great trade. It was entered halfway into the zone, which happened to work.",
+     "Entering halfway through the zone is not banned. It gives a higher R:R when it works, but you get filled less often and miss trades. 'There's no free lunch.'",
+     "A break-even on a good zone is fine.",
+     "A EURGBP quick 1:1 had a pullback too quick for his liking, but it worked. The trade was with the trend, so a bigger R:R was technically possible. With price that overextended, he liked the aggressive management.",
+     "A full take-profit trade had the zone on a basing candle. The proper zone was lower, and that would still have been a trade.",
+     "For a set & forget zone, he would have drawn only the single basing candle instead of the whole large area.",
+     "A confirmation trade had a good upper trendline but large basing. When the basing is almost the size of the move-away candle, 'it's kind of our sign to kind of stay away'. It removed the trendline, and if you are convinced by the higher timeframe it was a nice confirmation trade.",
+     "USDCHF 3:1 was a great trade. The box the student called 'liquidity' was not obvious liquidity, just a random box.",
+     "AUDUSD liquidity trap: a decent zone that he liked.",
+     "Natural gas gap zone: a decent trade, but not his favourite setup.",
+     "A 15-minute set & forget loss: the trendline was really horizontal price action with no real peak (first mistake). The supply only just qualified, and it was old. The zone 'move away' was two green candles that look like one move but are not, so it was not explosive. Looking at the overall move instead of the single candle is a mistake he makes too.",
+     "Several trades won from zones with no explosive move away, or from basing candles. He was glad they worked but said they were not zones, and he 'wouldn't be doing my job' if he didn't say so.",
+     "A 1:2 trade was too zoomed in and had no explosive move away. It also did not remove any demand, so it was not supply.",
+     "Lost trade: the trendline was way overextended and basically irrelevant, so the supply it depended on was not valid either. The zone itself was not terrible, but the loss was avoidable.",
+     "Rally-base-rally confirmation zone with beautiful basing and move away, and price staying far away: 'as good as it's gonna get'.",
+     "A break-even on EUR and a 1:6 (1.26) on EURJPY with a wider stop were a great example of why wider stops are often better, especially in these market conditions.",
+     "US100 H1 zone: he did not love one wick, but it was a pretty good trade and a fine loss for that market. On another trade the only thing against it was the higher timeframes.",
+     "A wicked-out trade was counter-trend against very strong USDCAD momentum, which is why he preferred the long. 'Break-even, win, loss' over a week is completely reasonable."
+    ]
+   },
+   {
+    "heading": "Closing Q&A and mindset",
+    "points": [
+     "Being stopped out again and again by a tight stop: use a wider stop loss.",
+     "A student said that cutting 75% of their pairs, keeping swing trading in the background and checking charts at most once a day had improved their results. He agreed it is not stupid at all.",
+     "You can backtest on any timeframe you like.",
+     "Gold had a nice confirmation-trading setup for the week ahead.",
+     "'If you lose, don't let it frustrate you. It's the reality of trading.'"
+    ]
+   }
+  ],
+  "rules": [
+   "Grade every zone by the space between the stay-away candle and the proximal line. Large space = good zone, minimal space = poor zone.",
+   "Draw poor-space zones for the chain analysis, but do not trade them.",
+   "Count the move away only if it is a single explosive candle, not a run of small candles or two candles that look like one.",
+   "Use 1 to 3 basing candles, of any colour.",
+   "Only draw zones in the Sunday analysis that remove an opposing zone, remove a trendline, or make an all-time high or low.",
+   "After an all-time low or high, a removed zone or a removed trendline, check the closest explosive candle first.",
+   "Never shrink a zone to create space. Draw it at a similar size to nearby zones and then judge it.",
+   "Draw a trendline only after an obvious peak, an obvious valley and a broken high (or a lower low).",
+   "Treat a trendline as removed only when the first candle closes fully beyond it (body and wick). Touching does not count.",
+   "If a zone drawn wick to wick is much smaller than nearby zones and it has two basing sections, widen only the proximal side a little. Don't swallow the other basing.",
+   "A trendline or zone break without a qualifying zone produces no zone. End the chain there.",
+   "Attach the distal line to the wick of the basing candle.",
+   "Draw the zone on the single basing candle when the base is one candle; don't include the neighbouring candle.",
+   "Remove trendlines that are overextended and irrelevant, and do not trade zones that depend on them.",
+   "Avoid very tight stops; use wider stops in these market conditions.",
+   "Post trade reviews showing the zone and the reaction (two screenshots if needed), with no dollar amounts, only percentages.",
+   "Put questions in the questions channel, not in trade review.",
+   "Submit homework with the right chart and timeframe visible."
+  ],
+  "mistakes": [
+   "Trading zones with minimal space under the stay-away candle.",
+   "Treating a run of small candles, or two consecutive candles, as one explosive move away.",
+   "Calling a basing candle a zone.",
+   "Shrinking a zone so that it appears to have space.",
+   "Drawing trendlines with no higher high or lower low. They end up everywhere on the chart.",
+   "Drawing momentum as a trendline.",
+   "Treating horizontal price action as a trendline.",
+   "Removing a trendline when a candle only touches it or a wick crosses it.",
+   "Distal lines not attached to the wick.",
+   "Zones drawn too small compared with nearby zones.",
+   "Assuming every trendline or zone break gives a zone.",
+   "Trading old zones that price took a long time to return to.",
+   "Keeping an overextended trendline and trading the supply that depends on it.",
+   "Taking a zone whose basing is almost the size of the move away.",
+   "Stops that are too tight and get taken out by the spread.",
+   "Counter-trend trades against very strong momentum.",
+   "Hyper-zooming into lower timeframes and calling random structures zones.",
+   "Labelling random boxes as liquidity.",
+   "Posting only wins, only results, or screenshots where the R:R tool hides the zone.",
+   "Posting dollar amounts.",
+   "Submitting homework with the wrong chart or timeframe, or a link that won't open.",
+   "Missing one trendline, which makes you miss the zones that follow in the chain."
+  ],
+  "quotes": [
+   "We have to learn when to not draw a zone as well.",
+   "A candle is just a candle.",
+   "The space between the stay-away candle and the zone is what really tells me if it's a good zone or not.",
+   "It's still drawable versus tradable.",
+   "We're not gonna make zones smaller just to fit.",
+   "Just because a trend line breaks or a zone breaks doesn't mean we just automatically have a zone.",
+   "Nothing is going to be 100%.",
+   "There's no free lunch.",
+   "I wouldn't be doing my job if I didn't say that.",
+   "If you lose, don't let it frustrate you. It's the reality of trading."
+  ],
+  "diagrams": [
+   {
+    "key": "zone-anatomy",
+    "caption": "Basing, explosive move away, stay-away candle and the space under it. Today he graded quality by the size of that space."
+   },
+   {
+    "key": "quality",
+    "caption": "Great, poor and pretty-good EURUSD H1 zones: results matched the space under the stay-away candle."
+   },
+   {
+    "key": "draw",
+    "caption": "Distal line on the wick, similar zone size, single basing candle only. Widen the proximal side when the zone is undersized."
+   },
+   {
+    "key": "trendline",
+    "caption": "Obvious peak and valley plus a broken high or lower low. Anchor at the extreme point without cutting candles."
+   },
+   {
+    "key": "trend-momentum",
+    "caption": "Several homework 'trendlines' were momentum; focus on the larger peaks and valleys."
+   },
+   {
+    "key": "zone-removed",
+    "caption": "Trendline removed only by the first full body-and-wick close beyond it; touching candles don't count."
+   },
+   {
+    "key": "sequence",
+    "caption": "Chain analysis: each zone must remove a zone, remove a trendline or make an all-time high or low. A break with no zone ends the chain."
+   }
+  ],
+  "checklist": [
+   "Are there 1 to 3 small basing candles?",
+   "Is the move away a single explosive candle?",
+   "Is there a stay-away candle, and how big is the space under it?",
+   "Is the zone drawn at a similar size to nearby zones, with the distal line on the wick?",
+   "Did it remove an opposing zone, remove a trendline, or make an all-time high or low?",
+   "Is it the closest explosive candle to that event?",
+   "Was the trendline really removed by a full body-and-wick close?",
+   "Is the trendline built from an obvious peak and valley plus a higher high or lower low? Is it too horizontal or overextended?",
+   "Is the basing small compared with the move away?",
+   "How old is the zone?",
+   "Is the trade with the trend, not against strong momentum?",
+   "Is the stop wide enough to survive the spread and current conditions?"
+  ],
+  "journalTags": [
+   "no space under stay-away",
+   "not explosive move away",
+   "basing candle as zone",
+   "zone too small",
+   "distal not on wick",
+   "momentum as trendline",
+   "no higher high or lower low",
+   "trendline too horizontal",
+   "overextended trendline",
+   "premature trendline removal",
+   "old zone",
+   "basing too large",
+   "tight stop",
+   "counter-trend momentum",
+   "forced zone",
+   "entered mid-zone"
+  ],
+  "newVsPdfs": [
+   "The size of the space between the stay-away candle and the proximal line is the main quality grade (great, poor or pretty good, with live EURUSD H1 results), not just a yes/no requirement.",
+   "After an all-time low or high, a removed zone or a removed trendline, check the closest explosive candle first.",
+   "Widen a zone slightly on the proximal side when wick to wick is about half the size of nearby zones and there are two separate basing sections.",
+   "Old zones that price takes a long time to return to are usually not the best to trade.",
+   "A basing almost the size of the move away is a sign to stay away.",
+   "Two consecutive candles that look like one move are not an explosive move away; judge the single candle, not the overall move.",
+   "A wick, rather than bodies, in the basing area makes a borderline zone less certain.",
+   "Borderline calls on zones and trendlines are explicitly not marked wrong; some subjectivity is accepted.",
+   "Entering halfway through the zone gives a higher R:R but fewer fills.",
+   "Wider stops are often better in current conditions; very tight stops get taken out by the spread.",
+   "New Sunday format: trade-review rules (zone plus reaction screenshots, no dollar amounts, questions elsewhere).",
+   "Homework chain continues from January 2002 to January 2003."
+  ],
+  "examples": [
+   {
+    "market": "EURUSD",
+    "timeframe": "H1",
+    "setup": "Demand with single-candle basing, a very explosive move away and a large space under the stay-away candle",
+    "reasoning": "Big space between the stay-away candle and the proximal line = great zone",
+    "outcome": "Good trade"
+   },
+   {
+    "market": "EURUSD",
+    "timeframe": "H1",
+    "setup": "Zone with very little space between the stay-away candle and the proximal line",
+    "reasoning": "Poor quality. Drawable, not tradable",
+    "outcome": "Failed completely; he called it avoidable"
+   },
+   {
+    "market": "EURUSD",
+    "timeframe": "H1",
+    "setup": "Zone with moderate space",
+    "reasoning": "Pretty good zone",
+    "outcome": "About 1:1 or break-even depending on the R:R target"
+   },
+   {
+    "market": "Homework chart (Jan 01 to Jan 02)",
+    "timeframe": "homework timeframe",
+    "setup": "Candidate demands at an all-time low",
+    "reasoning": "Drawn at a similar size, they had no stay-away candle and no space. Shrinking them to create space is not allowed",
+    "outcome": "No zone. The zone above stays"
+   },
+   {
+    "market": "Homework chart (Jan 01 to Jan 02)",
+    "timeframe": "homework timeframe",
+    "setup": "Downward trendline (borderline flat) removed by the first full close above it, and the zone that removed it",
+    "reasoning": "Candles touching the line did not remove it; only the full body-and-wick close did. The zone just barely qualified",
+    "outcome": "Valid chain link"
+   },
+   {
+    "market": "Homework chart (Jan 01 to Jan 02)",
+    "timeframe": "homework timeframe",
+    "setup": "Supply that removed the zone and the upper trendline, widened on the proximal side",
+    "reasoning": "Wick to wick it was half the size of the other zones. It had two basing sections, so he widened it only a little. It had good space",
+    "outcome": "Beautiful little trade, later removed by a demand"
+   },
+   {
+    "market": "Homework chart (Jan 01 to Jan 02)",
+    "timeframe": "homework timeframe",
+    "setup": "Trendline break",
+    "reasoning": "No supply removed it",
+    "outcome": "No zone; the chain stops"
+   },
+   {
+    "market": "EURUSD daily / H1 (student MTA homework)",
+    "timeframe": "D / H1",
+    "setup": "Daily demand with H1 zones",
+    "reasoning": "The daily move away is obvious. One H1 move away was not explosive; the other had single-candle basing",
+    "outcome": "One H1 zone rejected, one accepted"
+   },
+   {
+    "market": "EURGBP",
+    "timeframe": "not stated",
+    "setup": "With-trend zone, quick pullback",
+    "reasoning": "Pullback too quick for him; price overextended so aggressive management was fine",
+    "outcome": "Quick 1:1 win"
+   },
+   {
+    "market": "Not stated (student)",
+    "timeframe": "not stated",
+    "setup": "Confirmation trade after upper trendline removal, large basing",
+    "reasoning": "Basing almost the size of the move away is a sign to stay away; acceptable if the higher timeframe is convincing",
+    "outcome": "Win; 'pretty good job'"
+   },
+   {
+    "market": "USDCHF",
+    "timeframe": "not stated",
+    "setup": "Good zone with a 'liquidity' box",
+    "reasoning": "Good trade; the liquidity box was not obvious",
+    "outcome": "3:1 win"
+   },
+   {
+    "market": "AUDUSD",
+    "timeframe": "not stated",
+    "setup": "Liquidity trap zone",
+    "reasoning": "Decent zone",
+    "outcome": "Win"
+   },
+   {
+    "market": "Natural gas",
+    "timeframe": "not stated",
+    "setup": "Gap zone",
+    "reasoning": "Decent but not his favourite setup",
+    "outcome": "Win"
+   },
+   {
+    "market": "Not stated (student)",
+    "timeframe": "15m set & forget",
+    "setup": "Supply off a flat 'trendline'",
+    "reasoning": "The trendline was horizontal with no peak. The zone barely qualified and was old. The move away was two candles, not one explosive candle",
+    "outcome": "Loss; not a great setup"
+   },
+   {
+    "market": "Not stated (student)",
+    "timeframe": "not stated",
+    "setup": "Supply depending on an overextended trendline",
+    "reasoning": "The trendline was irrelevant, so the supply was not valid, even though the zone looked fine",
+    "outcome": "Loss; avoidable"
+   },
+   {
+    "market": "Not stated (student)",
+    "timeframe": "not stated",
+    "setup": "Rally-base-rally confirmation zone",
+    "reasoning": "Beautiful basing and move away, and price went further away",
+    "outcome": "1:1 win; 'as good as it's gonna get'"
+   },
+   {
+    "market": "EUR / EURJPY",
+    "timeframe": "not stated",
+    "setup": "Two trades, one with a wider stop",
+    "reasoning": "Wider stops survive these market conditions",
+    "outcome": "Break-even and a 1:6"
+   },
+   {
+    "market": "US100",
+    "timeframe": "H1",
+    "setup": "H1 zone with one wick he didn't love",
+    "reasoning": "Pretty good trade for that market",
+    "outcome": "Loss; 'a fine loss'"
+   },
+   {
+    "market": "USDCAD",
+    "timeframe": "H1",
+    "setup": "Counter-trend short against strong momentum",
+    "reasoning": "Counter-trend; he preferred the long",
+    "outcome": "Wicked out"
+   }
+  ],
+  "qa": [
+   {
+    "q": "Can you share tips on the EURUSD H1 green candle that failed?",
+    "a": "He does not see a candle as failing; a candle is just a candle. The zone involved was not a good zone, because the stay-away candle left very little space."
+   },
+   {
+    "q": "Why not draw the all-time-low demand very small so it has space?",
+    "a": "We do not make zones smaller just to fit. Drawn at a similar size, it has no space and no stay-away candle, so it is not a zone."
+   },
+   {
+    "q": "Isn't that downward trendline too horizontal?",
+    "a": "It is close and borderline. Any more push down would make it irrelevant, but in his opinion it still qualifies."
+   },
+   {
+    "q": "My chain this week is totally wrong.",
+    "a": "That's okay."
+   },
+   {
+    "q": "Can you check a specific pair at the end?",
+    "a": "He doesn't like turning the session into a forecast, but said to remind him at the end."
+   },
+   {
+    "q": "Why do you not recommend entering halfway through the zone?",
+    "a": "He is not really against it. There are pros and cons and no free lunch: your R:R is higher when the zone works, but you get filled less, so you win fewer trades and miss some."
+   },
+   {
+    "q": "My base is only one candle; is that allowed?",
+    "a": "A base is not limited to one candle. It can be one to as many as you want; he prefers one to three, up to five."
+   },
+   {
+    "q": "A student summarised the strategy: good basing, an explosive move away, a stay-away candle, a trendline needs an obvious peak and valley, and a zone must remove an opposing zone.",
+    "a": "A pretty good, accurate representation."
+   },
+   {
+    "q": "Do we have to do the homework on the AUD pair, or can we start with the lessons?",
+    "a": "Start with the lessons; doing both is better."
+   },
+   {
+    "q": "What should I do if I keep getting knocked out by a tight stop loss?",
+    "a": "Use a wider stop loss."
+   },
+   {
+    "q": "If I backtest on the daily timeframe, is it good for all timeframes?",
+    "a": "He wasn't sure what was meant, but you can backtest on any timeframe you like. Send follow-ups in text on Discord."
+   },
+   {
+    "q": "When are the Sunday meetings?",
+    "a": "Around 9:30 a.m. Eastern Time."
+   }
+  ],
+  "newDiagrams": [
+   {
+    "id": "stay-away-space-grade",
+    "title": "Grading by stay-away space",
+    "caption": "Same recipe, different quality: a big gap between the stay-away candle and the proximal line is a great zone; almost no gap is drawable but not tradable.",
+    "svg": "<text x=\"8\" y=\"14\" fill=\"#94a3b8\" font-size=\"10\">Grade a zone by the space under the stay-away candle</text><rect x=\"20\" y=\"130\" width=\"120\" height=\"16\" fill=\"#34d399\" fill-opacity=\"0.18\" stroke=\"#34d399\" stroke-width=\"1\"/><text x=\"22\" y=\"158\" fill=\"#34d399\" font-size=\"9\">demand zone</text><rect x=\"30\" y=\"132\" width=\"8\" height=\"10\" fill=\"#f87171\"/><line x1=\"34\" y1=\"128\" x2=\"34\" y2=\"146\" stroke=\"#f87171\"/><rect x=\"44\" y=\"70\" width=\"10\" height=\"62\" fill=\"#34d399\"/><line x1=\"49\" y1=\"64\" x2=\"49\" y2=\"134\" stroke=\"#34d399\"/><rect x=\"60\" y=\"56\" width=\"9\" height=\"16\" fill=\"#34d399\"/><line x1=\"64\" y1=\"50\" x2=\"64\" y2=\"80\" stroke=\"#34d399\"/><rect x=\"64\" y=\"80\" width=\"70\" height=\"50\" fill=\"#a78bfa\" fill-opacity=\"0.18\" stroke=\"#a78bfa\" stroke-dasharray=\"3 2\"/><text x=\"70\" y=\"108\" fill=\"#a78bfa\" font-size=\"9\">big space</text><text x=\"30\" y=\"174\" fill=\"#34d399\" font-size=\"10\">GREAT zone</text><rect x=\"180\" y=\"130\" width=\"120\" height=\"16\" fill=\"#34d399\" fill-opacity=\"0.18\" stroke=\"#34d399\" stroke-width=\"1\"/><text x=\"182\" y=\"158\" fill=\"#34d399\" font-size=\"9\">demand zone</text><rect x=\"190\" y=\"132\" width=\"8\" height=\"10\" fill=\"#f87171\"/><line x1=\"194\" y1=\"128\" x2=\"194\" y2=\"146\" stroke=\"#f87171\"/><rect x=\"204\" y=\"80\" width=\"10\" height=\"52\" fill=\"#34d399\"/><line x1=\"209\" y1=\"74\" x2=\"209\" y2=\"134\" stroke=\"#34d399\"/><rect x=\"220\" y=\"104\" width=\"9\" height=\"20\" fill=\"#f87171\"/><line x1=\"224\" y1=\"98\" x2=\"224\" y2=\"127\" stroke=\"#f87171\"/><rect x=\"224\" y=\"127\" width=\"70\" height=\"3\" fill=\"#a78bfa\" fill-opacity=\"0.5\"/><text x=\"232\" y=\"120\" fill=\"#a78bfa\" font-size=\"9\">almost no space</text><text x=\"186\" y=\"174\" fill=\"#f87171\" font-size=\"10\">POOR zone - drawable, not tradable</text>"
+   },
+   {
+    "id": "widen-proximal-two-bases",
+    "title": "Widening an undersized zone",
+    "caption": "When wick to wick is about half the size of nearby zones and there are two basing sections, keep the distal line on the wick and push the proximal line slightly. Don't swallow the older basing.",
+    "svg": "<text x=\"8\" y=\"14\" fill=\"#94a3b8\" font-size=\"10\">Two basing sections: widen proximal a little, not the whole base</text><rect x=\"40\" y=\"40\" width=\"10\" height=\"16\" fill=\"#34d399\"/><line x1=\"45\" y1=\"34\" x2=\"45\" y2=\"60\" stroke=\"#34d399\"/><rect x=\"56\" y=\"44\" width=\"10\" height=\"14\" fill=\"#f87171\"/><line x1=\"61\" y1=\"38\" x2=\"61\" y2=\"62\" stroke=\"#f87171\"/><text x=\"30\" y=\"30\" fill=\"#94a3b8\" font-size=\"9\">older basing (ignore)</text><rect x=\"80\" y=\"70\" width=\"10\" height=\"12\" fill=\"#34d399\"/><line x1=\"85\" y1=\"64\" x2=\"85\" y2=\"86\" stroke=\"#34d399\"/><line x1=\"85\" y1=\"86\" x2=\"85\" y2=\"92\" stroke=\"#34d399\"/><rect x=\"96\" y=\"80\" width=\"11\" height=\"80\" fill=\"#f87171\"/><line x1=\"101\" y1=\"76\" x2=\"101\" y2=\"164\" stroke=\"#f87171\"/><text x=\"104\" y=\"174\" fill=\"#f87171\" font-size=\"9\">explosive move away</text><rect x=\"70\" y=\"64\" width=\"240\" height=\"11\" fill=\"none\" stroke=\"#94a3b8\" stroke-dasharray=\"3 2\"/><text x=\"200\" y=\"60\" fill=\"#94a3b8\" font-size=\"9\">wick-to-wick: half size</text><rect x=\"70\" y=\"64\" width=\"240\" height=\"22\" fill=\"#f87171\" fill-opacity=\"0.16\" stroke=\"#f87171\"/><text x=\"200\" y=\"100\" fill=\"#f87171\" font-size=\"9\">supply: distal at wick,</text><text x=\"200\" y=\"111\" fill=\"#f87171\" font-size=\"9\">proximal pushed down to</text><text x=\"200\" y=\"122\" fill=\"#f87171\" font-size=\"9\">match similar zone size</text>"
+   },
+   {
+    "id": "basing-vs-move-away",
+    "title": "Basing size vs move away",
+    "caption": "When the basing is almost as big as the move-away candle, take it as a sign to stay away, even if the move away itself is good.",
+    "svg": "<text x=\"8\" y=\"14\" fill=\"#94a3b8\" font-size=\"10\">Basing vs move away: compare their sizes</text><rect x=\"30\" y=\"120\" width=\"12\" height=\"20\" fill=\"#f87171\"/><rect x=\"46\" y=\"118\" width=\"12\" height=\"22\" fill=\"#34d399\"/><rect x=\"62\" y=\"40\" width=\"12\" height=\"80\" fill=\"#34d399\"/><text x=\"20\" y=\"160\" fill=\"#34d399\" font-size=\"9\">small basing, big move: OK</text><rect x=\"190\" y=\"70\" width=\"14\" height=\"60\" fill=\"#f87171\"/><rect x=\"208\" y=\"72\" width=\"14\" height=\"56\" fill=\"#34d399\"/><rect x=\"226\" y=\"50\" width=\"12\" height=\"72\" fill=\"#34d399\"/><text x=\"170\" y=\"150\" fill=\"#f87171\" font-size=\"9\">basing ~ size of move away:</text><text x=\"170\" y=\"161\" fill=\"#f87171\" font-size=\"9\">sign to stay away</text><line x1=\"160\" y1=\"24\" x2=\"160\" y2=\"170\" stroke=\"#94a3b8\" stroke-dasharray=\"2 3\"/>"
+   }
+  ],
+  "botRules": [
+   {
+    "rule": "Require a stay-away candle and a measurable gap between it and the proximal line",
+    "detail": "Gap size grades the zone. Large gap = tradable; minimal gap = drawable only. No numeric threshold given (discretionary)",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Move away must be one explosive candle",
+    "detail": "No measurement given. Multiple small candles, or two candles that only look like one move, do not qualify. Be somewhat lenient when the market is overextended (discretionary)",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Basing count",
+    "detail": "1 to 3 candles of any colour (prefers 1 to 3, up to 5)",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Reject if basing size is close to move-away size",
+    "detail": "Basing 'almost the size of the move-away candle' means stay away (discretionary ratio)",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Zone must have a trigger",
+    "detail": "It removed an opposing zone, OR removed a trendline (first full body-and-wick close beyond it), OR made an all-time high or low",
+    "plannerStep": "Setup"
+   },
+   {
+    "rule": "Pick the candidate zone closest to the trigger",
+    "detail": "Use the explosive candle nearest the all-time low or high, removed zone or removed trendline. If it fails the space check, try the next; if none qualify, there is no zone",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Normalise zone height",
+    "detail": "Similar size to recent zones on the same timeframe. Never shrink to create space. If undersized with two basing sections, extend the proximal side slightly",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Trendline validity",
+    "detail": "Obvious peak + obvious valley + a broken high (up) or lower low (down). Reject near-horizontal or overextended lines",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "Trendline removal",
+    "detail": "Removed only by the first candle whose body AND wick close fully beyond the line; a candle touching it does not count",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "Downgrade old zones",
+    "detail": "Zones that price took a long time to return to are usually not the best (no number given)",
+    "plannerStep": "Verdict"
+   },
+   {
+    "rule": "Avoid counter-trend trades against strong momentum",
+    "detail": "discretionary",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "Entry at the proximal line by default",
+    "detail": "A mid-zone entry is allowed but gets filled less often in exchange for a higher R:R",
+    "plannerStep": "Levels"
+   },
+   {
+    "rule": "Stop not too tight",
+    "detail": "Leave room beyond the distal line for the spread; prefer wider stops in current conditions (no number given)",
+    "plannerStep": "Levels"
    }
   ]
  },

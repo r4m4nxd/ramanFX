@@ -16,6 +16,11 @@ lookback   = input.int(300, "Ignore zones older than (bars)", minval=50, maxval=
 swingN     = input.int(3, "Swing strength (bars each side)", minval=1, maxval=10, group=gR)
 trapATR    = input.float(1.0, "Liquidity trap: level within N x ATR in front of the zone", step=0.1, group=gR)
 minRR      = input.float(2.0, "Min reward:risk for the plan", step=0.1, group=gR)
+onlyChain  = input.bool(true, "Sunday rule: trade only zones in the chain (removed opp. zone or made a new all-time high/low)", group=gR)
+minGap     = input.float(0.15, "Space under the stay-away candle (x zone height): below = drawable only", minval=0, step=0.05, group=gR)
+minSizeMed = input.float(0.5, "Zone smaller than N x the median zone = too small", minval=0, step=0.1, group=gR)
+emoATR     = input.float(3.0, "Emotional candle (range > N x ATR): its wick is ignored for removal", minval=1, step=0.5, group=gR)
+metalStop  = input.float(2.0, "Stop buffer multiplier on gold / silver / oil", minval=1, step=0.5, group=gR)
 htfIn      = input.timeframe("", "HTF (empty = auto: 1m>15m, 5m>1H, 15m>4H, 1H>D, 4H>W, D>M, W>3M, M and up>12M)", group=gR)
 
 gS = "What to show (clean by default)"
@@ -68,6 +73,10 @@ autoHtf = tfs <= 60 ? "15" : tfs <= 300 ? "60" : tfs <= 900 ? "240" : tfs <= 360
 htf = htfIn == "" ? autoHtf : htfIn
 // stop buffer in pips by timeframe (same as ZoneBot)
 bufPips = tfs <= 60 ? 1.0 : tfs <= 300 ? 1.5 : tfs <= 900 ? 3.0 : tfs <= 3600 ? 5.0 : tfs <= 14400 ? 10.0 : tfs <= 86400 ? 20.0 : tfs <= 604800 ? 40.0 : tfs <= 2700000 ? 80.0 : 150.0
+symU = str.upper(syminfo.ticker)
+metalOil = str.contains(symU, "XAU") or str.contains(symU, "GOLD") or str.contains(symU, "XAG") or str.contains(symU, "OIL") or str.contains(symU, "WTI") or str.contains(symU, "BRENT") or str.contains(symU, "XTI") or str.contains(symU, "XBR")
+allHi = ta.max(high)
+allLo = ta.min(low)
 pip = syminfo.mintick * (syminfo.type == "forex" ? 10 : 1)
 
 // HTF trend: higher highs + higher lows = up, lower highs + lower lows = down, else last break of structure
@@ -98,6 +107,9 @@ type Zone
     float pen
     float far
     bool back
+    float gap
+    bool ath
+    bool leg2
 
 var zones = array.new<Zone>()
 
@@ -107,7 +119,7 @@ if barstate.isconfirmed
         if not z.removed
             h = math.abs(z.prox - z.dist)
             if z.dir > 0
-                if close < z.dist
+                if close < z.dist or (low < z.dist and rng(0) <= emoATR * atr)
                     z.removed := true
                     z.remBar := bar_index
                 else if low <= z.prox and bar_index > z.legBar + 1
@@ -117,7 +129,7 @@ if barstate.isconfirmed
                 if not z.back
                     z.far := math.max(z.far, high)
             else
-                if close > z.dist
+                if close > z.dist or (high > z.dist and rng(0) <= emoATR * atr)
                     z.removed := true
                     z.remBar := bar_index
                 else if high >= z.prox and bar_index > z.legBar + 1
@@ -155,7 +167,7 @@ if barstate.isconfirmed and bar_index > 20
             stay = d > 0 ? low > px : high < px
             if h > 0 and h <= maxZoneATR * atr[1] and stay
                 ercOk = bod(1) / lr >= 0.6 and (d > 0 ? (close[1] - low[1]) / lr >= 0.8 : (high[1] - close[1]) / lr >= 0.8)
-                zones.push(Zone.new(d, px, ds, bar_index - k - 1, bar_index - 1, k, lr / mb, ercOk, cdir(k + 2) == d, false, false, na, 0.0, d > 0 ? math.max(high, high[1]) : math.min(low, low[1]), false))
+                zones.push(Zone.new(d, px, ds, bar_index - k - 1, bar_index - 1, k, lr / mb, ercOk, cdir(k + 2) == d, false, false, na, 0.0, d > 0 ? math.max(high, high[1]) : math.min(low, low[1]), false, (d > 0 ? low - px : px - high) / h, d > 0 ? math.max(high, high[1]) > allHi[2] : math.min(low, low[1]) < allLo[2], not basing(0) and cdir(0) == d and rng(0) >= mb * legRatio))
                 if zones.size() > 200
                     zones.shift()
 
@@ -166,6 +178,13 @@ grade(Zone z) =>
 zname(Zone z) =>
     z.cont ? (z.dir > 0 ? "Rally Base Rally Demand (CP)" : "Drop Base Drop Supply (CP)") : (z.dir > 0 ? "Drop Base Rally Demand (VP)" : "Rally Base Drop Supply (VP)")
 usable(Zone z) => not z.removed and z.pen < 0.5 and dep(z) >= minDep and z.legBar >= bar_index - lookback
+// Sunday rule: zones should be similar in size; about half the usual size is too small
+medH() =>
+    hs = array.new<float>()
+    for o in zones
+        if not o.removed
+            hs.push(math.abs(o.prox - o.dist))
+    hs.size() >= 4 ? hs.median() : 0.0
 
 // ---------- swings (traps, trendlines) ----------
 var plP = array.new<float>()
@@ -231,7 +250,7 @@ planFor(Zone z) =>
             ext := z.dir > 0 ? math.min(ext, low[off]) : math.max(ext, high[off])
             if b < z.legBar - z.baseN and (z.dir > 0 ? high[off] >= legX : low[off] <= legX)
                 break
-    sl = ext - z.dir * bufPips * pip
+    sl = ext - z.dir * bufPips * pip * (metalOil ? metalStop : 1.0)
     float sw = na
     for off = 1 to math.max(1, math.min(bar_index - z.legBar, 4900))
         sw := na(sw) ? (z.dir > 0 ? high[off] : low[off]) : (z.dir > 0 ? math.max(sw, high[off]) : math.min(sw, low[off]))
@@ -250,7 +269,7 @@ qualified(Zone z) =>
         if o.dir != z.dir and o.removed and not na(o.remBar) and o.remBar >= z.t0 and o.remBar <= z.legBar + 5
             q := true
             break
-    q
+    q or z.ath
 
 // Planner points (0-100) + Seiden / mentor odds checklist
 scoreZone(Zone z, float sl) =>
@@ -266,12 +285,15 @@ scoreZone(Zone z, float sl) =>
     aplus = z.erc and z.ratio >= 2.5
     sc = (aplus ? 24 : 14) + (z.baseN <= 3 ? 14 : z.baseN <= 6 ? 4 : 0) + (z.baseN == 1 ? 2 : 0) + (q ? 10 : 0) + (not z.tested ? 8 : 0) + (bar_index - z.legBar <= 100 ? 4 : 0)
     sc += (htfTrend == z.dir ? 14 : htfTrend == 0 ? 5 : 0) + (nearOpp ? 0 : 6) + math.round(math.max(0, math.min(1, (100 - depth) / 100)) * 6) + (trap ? 3 : 0) + (z.cont ? 0 : 4) + (dp >= 2 ? 3 : 0)
+    sc += (z.gap >= 0.5 ? 4 : z.gap >= 0.25 ? 2 : 0) + (z.leg2 ? 3 : 0) + (z.ath ? 3 : 0)
     ok = "✔ ", no = "✘ "
     why = (aplus ? ok + "Strength: A+ move away (" : no + "Strength: decent move away (") + str.tostring(z.ratio, "#.0") + "x base)"
     why += "\n" + (z.baseN <= 3 ? ok : no) + "Time at level: " + str.tostring(z.baseN) + " base candle" + (z.baseN > 1 ? "s" : "")
     why += "\n" + (not z.tested ? ok + "Freshness: untouched" : no + "Freshness: tested " + str.tostring(math.round(z.pen * 100)) + "% deep")
     why += "\n" + (dp >= 2 ? ok : no) + "Departure: left " + str.tostring(dp, "#.0") + "x zone height"
-    why += "\n" + (q ? ok + "Qualified: removed an opposing zone" : no + "Qualified: no opposing zone removed (check your trendline)")
+    why += "\n" + (q ? ok + "Chain: " + (z.ath ? "made a new all-time " + (z.dir > 0 ? "high" : "low") : "removed an opposing zone") : no + "Chain: removed nothing (check if it broke your trendline)")
+    why += "\n" + (z.gap >= 0.25 ? ok : no) + "Stay-away space: " + str.tostring(math.round(z.gap * 100)) + "% of zone" + (z.gap < minGap ? " (drawable only)" : "")
+    why += "\n" + (z.leg2 ? ok + "Second explosive candle in the move away" : no + "Only one explosive candle")
     why += "\n" + (htfTrend == z.dir ? ok + "Trend: with the " + htf + " trend" : htfTrend == 0 ? no + "Trend: " + htf + " unclear" : no + "Trend: AGAINST the " + htf + " trend")
     why += "\n" + (depth <= 50 ? ok : no) + "Curve: " + (z.dir > 0 ? "low" : "high") + " in the " + htf + " curve at " + str.tostring(math.round(depth)) + "% " + (depth <= 33 ? "(best third)" : depth <= 50 ? "(good half)" : "(expensive side)")
     why += "\n" + (nearOpp ? no + "Profit margin: opposing zone close in front" : ok + "Profit margin: clear path to target")
@@ -288,7 +310,7 @@ visRange = ta.highest(high, 150) - ta.lowest(low, 150)
 var boxes = array.new<box>()
 var lines = array.new<line>()
 var labels = array.new<label>()
-var table panel = table.new(panelWhere, 1, 30, bgcolor=color.new(#000000, 70), frame_color=color.new(#C9CED8, 80), frame_width=1, border_width=0)
+var table panel = table.new(panelWhere, 1, 40, bgcolor=color.new(#000000, 70), frame_color=color.new(#C9CED8, 80), frame_width=1, border_width=0)
 
 if barstate.islast
     for b in boxes
@@ -312,11 +334,18 @@ if barstate.islast
     tTp = array.new<float>()
     tRr = array.new<float>()
     tWhy = array.new<string>()
+    medZ = medH()
     string none = htfTrend == 0 ? "HTF trend unclear - wait" : "no fresh zone with R:R >= " + str.tostring(minRR, "#.0")
     if showPlan and zones.size() > 0
         for i = 0 to zones.size() - 1
             z = zones.get(i)
             if not usable(z) or z.pen > 0.25
+                continue
+            if onlyChain and not qualified(z)
+                continue
+            if z.gap < minGap or z.dir == 0
+                continue
+            if medZ > 0 and math.abs(z.prox - z.dist) < minSizeMed * medZ
                 continue
             if not showCounter and htfTrend != 0 and z.dir != htfTrend
                 continue
@@ -387,7 +416,7 @@ if barstate.islast
             tr = showTrap ? trapFor(z) : -1
             zi = idx.get(ord.get(n))
             isTrade = tradeOf.get(zi) > 0
-            txt = showNames ? zname(z) + " | zone " + g + (isTrade ? " | " + tradeTxt.get(zi) : "") + (tr >= 0 ? " | liquidity trap" : "") + (z.tested ? " | tested" : "") : ""
+            txt = showNames ? zname(z) + " | zone " + g + (z.gap < minGap ? " | drawable only" : "") + (onlyChain and not qualified(z) ? " | not in chain" : "") + (isTrade ? " | " + tradeTxt.get(zi) : "") + (tr >= 0 ? " | liquidity trap" : "") + (z.tested ? " | tested" : "") : ""
             boxes.push(box.new(z.t0, z.prox, right, z.dist, border_color=z.dir > 0 ? cDemL : cSupL, bgcolor=z.dir > 0 ? cDemF : cSupF, text=txt, text_color=cTxt, text_size=size.small, text_halign=text.align_left, text_valign=z.dir > 0 ? text.align_bottom : text.align_top))
             if not (isTrade and (planLines == "All listed" or tradeOf.get(zi) == 1))
                 tagP.push(z.prox), tagT.push(str.tostring(z.prox, format.mintick)), tagC.push(z.dir > 0 ? cDemL : cSupL), tagTip.push("Proximal line (entry side) of the " + (z.dir > 0 ? "demand" : "supply") + " zone")
@@ -407,22 +436,43 @@ if barstate.islast
                 cnt += 1
 
     // newest intact trendline each way (rising: two higher lows, falling: two lower highs)
+    string tlNote = ""
     if showTL
         if showUpTL and plP.size() >= 2
             for i = plP.size() - 1 to 1
                 p2 = plP.get(i), p1 = plP.get(i - 1), b2 = plB.get(i), b1 = plB.get(i - 1)
                 if p2 > p1
                     slope = (p2 - p1) / (b2 - b1)
-                    if close > p2 + slope * (bar_index - b2)
+                    bool broken = false
+                    float ch = 0.0
+                    for off = 0 to math.min(bar_index - b1, 4900)
+                        lv = p1 + slope * (bar_index - off - b1)
+                        if bar_index - off > b2 and high[off] < lv
+                            broken := true
+                        ch := math.max(ch, high[off] - lv)
+                    if not broken
                         lines.push(line.new(b1, p1, b2, p2, color=cTL, width=1, extend=extend.right))
+                        lines.push(line.new(b1, p1 + ch / 2, b2, p2 + ch / 2, color=color.new(cTL, 70), style=line.style_dotted, extend=extend.right))
+                        mid = p1 + slope * (bar_index - b1) + ch / 2
+                        tlNote := (close > mid ? "Up channel: price beyond 50% = overextended, wait" : "Up channel: price in the golden area (line to 50%)")
                     break
         if showDnTL and phP.size() >= 2
             for i = phP.size() - 1 to 1
                 p2 = phP.get(i), p1 = phP.get(i - 1), b2 = phB.get(i), b1 = phB.get(i - 1)
                 if p2 < p1
                     slope = (p2 - p1) / (b2 - b1)
-                    if close < p2 + slope * (bar_index - b2)
+                    bool broken = false
+                    float ch = 0.0
+                    for off = 0 to math.min(bar_index - b1, 4900)
+                        lv = p1 + slope * (bar_index - off - b1)
+                        if bar_index - off > b2 and low[off] > lv
+                            broken := true
+                        ch := math.max(ch, lv - low[off])
+                    if not broken
                         lines.push(line.new(b1, p1, b2, p2, color=cTL, width=1, extend=extend.right))
+                        lines.push(line.new(b1, p1 - ch / 2, b2, p2 - ch / 2, color=color.new(cTL, 70), style=line.style_dotted, extend=extend.right))
+                        mid = p1 + slope * (bar_index - b1) - ch / 2
+                        tlNote := tlNote + (tlNote == "" ? "" : " | ") + (close < mid ? "Down channel: beyond 50% = overextended, wait" : "Down channel: price in the golden area (line to 50%)")
                     break
 
     // merge price tags that would sit on top of each other
@@ -451,7 +501,7 @@ if barstate.islast
                     cp := tagP.get(j), ct := tagT.get(j), cc := tagC.get(j), ctip := tagTip.get(j)
 
     if showPanel
-        panel.clear(0, 0, 0, 29)
+        panel.clear(0, 0, 0, 39)
         r = 0
         table.cell(panel, 0, r, "ZoneVision  " + timeframe.period + " -> " + htf, text_color=cEntry, text_size=panelSize, text_halign=text.align_left)
         r += 1
@@ -460,6 +510,12 @@ if barstate.islast
         if panelView != "Header only"
             table.cell(panel, 0, r, "Zones: " + str.tostring(idx.size()) + " fresh/usable, " + str.tostring(shown) + " drawn", text_color=cTxt, text_size=panelSize, text_halign=text.align_left)
             r += 1
+            if tlNote != ""
+                table.cell(panel, 0, r, tlNote, text_color=cTxt, text_size=panelSize, text_halign=text.align_left)
+                r += 1
+            if panelView == "Full"
+                table.cell(panel, 0, r, (metalOil ? "Gold/oil: wider stop (x" + str.tostring(metalStop, "#.0") + "). " : "") + (tfs <= 3600 ? "Intraday: no limit orders into red-folder news" : "Swing TF: news filter not needed"), text_color=cTxt, text_size=panelSize, text_halign=text.align_left)
+                r += 1
         if showPlan and panelView != "Header only"
             table.cell(panel, 0, r, rows.size() == 0 ? "Potential trades: none (" + none + ")" : "Potential trades, best first (entry | stop | target | R:R | grade):", text_color=cEntry, text_size=panelSize, text_halign=text.align_left)
             r += 1
