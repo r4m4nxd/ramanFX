@@ -1131,6 +1131,17 @@ export const VIDEO_LESSONS: VideoLesson[] = [
      "Buy demand zones on the way down, as long as you have consistent capital, believe in the company long term, and it pays a dividend.",
      "Buying at the highs still collects dividends but can leave you down 50%. Buying low adds capital gains on top of dividends."
     ]
+   },
+   {
+    "heading": "More from the lesson: Extra details from the examples",
+    "points": [
+     "Coca-Cola 12M: no fresh zones to buy right now; only if price pulled all the way back down would you buy pullbacks to demand zones there.",
+     "He admits a 1M zone is 'huge', but says these are the zones to use for buying.",
+     "3M (MMM): he calls it one of the only examples right now where price is inside the highest timeframe zone possible, the 12-month zone. He calls it a 'once in a lifetime buying opportunity, in my opinion, on a solid company'.",
+     "S&P 500 monthly: trending up and coming off a pullback. Buying the dips on the way down is 'not mentally easy', but it is easy to justify because you are buying after -20%, not after +20%.",
+     "S&P scenario: right now, up at the highs, is not a great time to buy. If price breaks the prior high and leaves demand below, that demand becomes a great buy 'because we prove that price can push all the way up to here'.",
+     "Buying at the highs and riding a 50% drop is 'still all right if you don't plan on selling', because you still collect the quarterly dividends. Buying low is much better because you get capital gains as well."
+    ]
    }
   ],
   "rules": [
@@ -1147,7 +1158,9 @@ export const VIDEO_LESSONS: VideoLesson[] = [
   "quotes": [
    "It's basically the same strategy as supply and demand, but it's just with no stop loss.",
    "The larger timeframe we go, the bigger the pullback.",
-   "Wait for price to go up and then buy pullbacks."
+   "Wait for price to go up and then buy pullbacks.",
+   "We prove that price can push all the way up to here.",
+   "It's a great source of income to put your cash at work."
   ],
   "diagrams": [
    {
@@ -1160,7 +1173,8 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "Is price in a 1M/3M/6M/12M demand zone?",
    "Is my buy size scaled to the zone's timeframe?",
    "Am I buying a pullback rather than chasing a run?",
-   "Is my capital consistent enough to keep buying lower?"
+   "Is my capital consistent enough to keep buying lower?",
+   "Has price proven it can push up (broken the prior high) before I buy the new demand on the pullback?"
   ],
   "journalTags": [
    "chased price",
@@ -1241,6 +1255,18 @@ export const VIDEO_LESSONS: VideoLesson[] = [
      "AUDUSD example: a 5m zone just under the 5m trend line was inside a 15m rally-base-rally, with no real 15m trend line (only momentum). He would leave it.",
      "When price is trending, the criteria can be looser; trend raises odds."
     ]
+   },
+   {
+    "heading": "More from the lesson: Extra details from the examples",
+    "points": [
+     "Tested example (US dollar H4 supply): a red candle that closed outside the zone did not count as tested, because part of that candle was still touching or inside the zone. Only the green candle with no wick or body touching made it tested.",
+     "He says he no longer trades confirmation much. When he did trade it heavily, he never felt comfortable shorting a supply zone after it had become tested.",
+     "Hypothetical demand ('two bases and a nice rally stay-away candle'): while no demand zone is in control, the daily supply is still in control, which is better for shorts. Once a daily demand forms below and takes control, shorts become lower odds.",
+     "Embedded example: he would have drawn the H1 supply around the 15m zone a bit bigger than shown. He called the lower, non-embedded 15m zone 'definitely a risky setup'.",
+     "Your own testing may disagree with him. For example, you might find over 100 tested trades that taking both zones and aiming for 3:1 works even at a tested zone.",
+     "AUD (Aussie) example: on a 1H uptrend he looks for 5m longs. The only 15m line there was an aggressive momentum line, not a trend line; the real 15m trend line was further back, so the 5m zone was fine.",
+     "Once price has come all the way back down and hit the opposing zone, none of the order-leaving logic matters any more."
+    ]
    }
   ],
   "rules": [
@@ -1248,20 +1274,24 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "Confirmation: remove the order if price hits the opposing HTF zone before pulling back to your entry zone.",
    "Set & forget: keep only the order at the nearest zone. Move it when a newer nearer qualified zone forms.",
    "After the nearest ETF zone fails, lower ETF orders stay only if inside an ITF zone with the ITF trend line holding.",
-   "No time-based or candle-count removal."
+   "No time-based or candle-count removal.",
+   "Counter-trend trades are lower odds anyway, so they need to be the highest-odds version of the setup."
   ],
   "mistakes": [
    "Leaving an order after the opposing HTF zone was hit, when your zone is no longer in control.",
    "Counter-trend trades at a tested zone.",
    "Keeping an old set & forget order below a newer nearer zone.",
    "Taking ETF zones below a broken trend line with no ITF zone support.",
-   "Treating confirmations far from the HTF zone as confirmation trades."
+   "Treating confirmations far from the HTF zone as confirmation trades.",
+   "Expecting exact, to-the-letter rules for when to pull an order. He says there aren't any; it evolves with your own testing."
   ],
   "quotes": [
    "It has nothing to do with time or anything or the amount of candles.",
    "When a zone is tested, it becomes lower odds.",
    "With the trend, it always increases your odds.",
-   "It's all going to be subject to testing."
+   "It's all going to be subject to testing.",
+   "There are rules that I would break if price is trending.",
+   "When price is trending, it just makes the criteria have to be less."
   ],
   "diagrams": [
    {
@@ -1283,7 +1313,8 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "Has price hit the opposing HTF zone before my entry? If so, remove.",
    "Is my order at the NEAREST zone (set & forget)?",
    "Is the trend line still holding? If not, is my zone inside an ITF zone with the ITF trend line intact?",
-   "Did the confirmation form within about one zone-height of the HTF zone?"
+   "Did the confirmation form within about one zone-height of the HTF zone?",
+   "Is the zone I'm keeping an order on embedded inside a higher-timeframe zone (H1 for a 15m zone)?"
   ],
   "journalTags": [
    "tested HTF zone",
@@ -1352,6 +1383,18 @@ export const VIDEO_LESSONS: VideoLesson[] = [
      "Don't change strategy after three losses, especially a high-R:R one. Give it a few months. If it still isn't working after about two quarters, then change something.",
      "Holding to the final TP takes experience. Example: up $1,500 with a $2,000 target, a new trader closes early and loses out on $500."
     ]
+   },
+   {
+    "heading": "More from the lesson: Extra details and his own experience",
+    "points": [
+     "When he was learning, he watched a few people but never asked them where price was going. He was more interested in the process and in being able to do it on his own.",
+     "He wanted something where he could make a profit consistently every month or every year, 'not just make some money'.",
+     "You have to enjoy what you do; if you don't, 'there's almost no reason to be doing it'. He would not track zones all day for members if he hated it, because it doesn't pay him enough for that.",
+     "Before his current strategy he took 2.5:1, 2:1 and sometimes 3:1 trades, and after three losses in a row he would want to change his strategy. He says he has been guilty of this and it is not a good thing to do.",
+     "Even when he gives a new trader an exact entry, stop and TP, the new trader may not be able to hold. In the $1,500 / $2,000 example, he himself would move the stop to breakeven and let it play out to the final TP.",
+     "In the 'stick to one side' example he said to ignore the weekly demand below for the sake of the example. In reality a weekly demand there would also matter before switching to shorts.",
+     "He still runs the calculator simulation himself after three or four losses in a row."
+    ]
    }
   ],
   "rules": [
@@ -1366,13 +1409,17 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "Trying to catch every move (trading both directions).",
    "Trading a prediction against the trend.",
    "Abandoning the strategy after three losses.",
-   "Closing early before the final TP out of fear."
+   "Closing early before the final TP out of fear.",
+   "Switching to a new strategy after three losses, as he did when he traded 2:1-3:1."
   ],
   "quotes": [
    "Being flat, being in no position is actually a position.",
    "I will predict these things based on history, but I will not trade them.",
    "Stick to one side of the market: long, short or flat.",
-   "It should be about the process and learning how to trade; the money will just flow in naturally."
+   "It should be about the process and learning how to trade; the money will just flow in naturally.",
+   "Not losing money is actually part of the process.",
+   "Psychology only comes with experience and time.",
+   "You have to enjoy the process."
   ],
   "diagrams": [
    {
@@ -1476,6 +1523,18 @@ export const VIDEO_LESSONS: VideoLesson[] = [
      "Q: What is the higher timeframe for the 15m chart? A: The H4 (not the H1).",
      "Q (trend read): sideways? A: Downtrend - valley, peak, then lower low - though not a clean one."
     ]
+   },
+   {
+    "heading": "More from the lesson: Extra details",
+    "points": [
+     "Why he personally avoids day trading: the stress is much higher and he calls himself an uptight person who gets overwhelmed easily, so it does not suit his personality.",
+     "Signal and course sellers who call themselves full-time traders are, in his view, not really day trading full time.",
+     "Swing trading gives you freedom: you don't always have to be looking at the chart. He spends only as much time as he needs to update zones for members.",
+     "Objective vs subjective news: a war with Russia or high unemployment is objectively negative. Something like the US debt-ceiling decision is subjective; he thinks it is very negative for the dollar while others think it is positive. That is why he trades the charts.",
+     "Pre-news scenario: if price is BELOW your zone at 8:59 with data at 9:00, you could leave the order in expecting a spike up and then a drop (risky), or wait for the spike candle, let spreads calm down, and then place the order.",
+     "Practical setup: keep his chart link open in one browser tab and your own two-chart layout in another, so you can check whether price is inside one of his HTF zones (e.g. 'price is right at my four-hour supply, maybe not the best time to go long').",
+     "Day trading can be very rewarding if you have a very good understanding of multiple sequence analysis."
+    ]
    }
   ],
   "rules": [
@@ -1483,7 +1542,8 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "Do not day trade the news; wait for the release and for spreads to settle.",
    "Never let news or your opinion of it change a valid technical setup.",
    "Day trading as a beginner only with money you can afford to lose - not 1-2% per trade.",
-   "You do not need to take a trade every day."
+   "You do not need to take a trade every day.",
+   "Don't just find HTF zones and look for trades inside them: assess the trend first."
   ],
   "mistakes": [
    "Jumping into a 1m/5m zone you missed because the candle is about to close.",
@@ -1491,13 +1551,16 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "Entering just before a scheduled release - spread spikes can stop you out without price touching the stop.",
    "Predicting news or trading your opinion of it.",
    "Going long on lower timeframes while price is inside a higher-timeframe supply zone.",
-   "Using seconds charts (extreme scalping)."
+   "Using seconds charts (extreme scalping).",
+   "Pricing your own opinion of a subjective news event into a trade."
   ],
   "quotes": [
    "Price is fractal - everything works on every timeframe.",
    "Do not day trade the news.",
    "It's not about predicting the news.",
-   "If you have your setup in play, take it."
+   "If you have your setup in play, take it.",
+   "It's not about predicting what they're gonna say.",
+   "This huge move up is not objectively supply."
   ],
   "diagrams": [
    {
@@ -1639,6 +1702,49 @@ export const VIDEO_LESSONS: VideoLesson[] = [
      "Swing trading on the H1 is 'the perfect mix' - decent setups without the stress.",
      "Patience: his results improved drastically when he stopped thinking he must trade every day."
     ]
+   },
+   {
+    "heading": "More from the lesson: Why he rejects score-based rule books",
+    "points": [
+     "Rule-book example he was taught: count the basing candles (e.g. six; 'six to seven candles is max'), measure the move away (over 4:1), call it 10/10. He says it makes trading too simple; anybody can learn to count candles and measure with the R:R tool.",
+     "He compares it to 'wait for the EMA cross and you're short', or '9/10 buy, below 8 buy with less risk, below 7 don't trade'. It is better than random buying and selling, but not enough to be successful.",
+     "He would not even call a zone 10/10, because that implies many factors; it is just 'good' (or 'three out of three').",
+     "There are basically tradable zones and non-tradable zones.",
+     "EUR/USD chart: good, good, good, good, good, bad. The purple zone gets higher odds from the daily supply above (for shorts) than a long against that daily supply."
+    ]
+   },
+   {
+    "heading": "More from the lesson: His own trading notes from the session",
+    "points": [
+     "In June he started adding more H1 entries and got a lot of trades. Win rate 'isn't great', but he stayed profitable by managing stops aggressively and risking less.",
+     "Mistake he admits: on EUR/GBP he took a trade at what he calls a dead demand zone. 'It's actually not a trade I would take.'",
+     "GBP/JPY: he skipped an H1 zone at about 4 CPs because price was overextended, and regrets it. The embedded H1 zone at 179.719 was large with wicks he didn't love; he was waiting for the deeper zone around 175.545.",
+     "EUR/USD: the three-month chart itself looked bullish (green candle, two 50% basing candles), so he admits he could be wrong. He is just reading 'the story': higher-timeframe supply in control means shorting, if anything.",
+     "A daily supply could in theory be traded on its own (stop above, TP below), but on a daily you would rather get a lower-timeframe entry.",
+     "Many traders never go above the daily, weekly or monthly chart. Looking at macro charts shows how much higher quality a daily zone really is.",
+     "Silver: an H4 demand below that price didn't quite reach; he called a nearby zone one he 'would never have taken, very poor quality'. Zones in red on his watchlist mean he is looking for momentum trades.",
+     "Week plan by relationship with markets: EUR/USD shorts, silver longs off daily demand, natural gas waiting for daily supply removal, oil sideways (skip), USD/CHF no weekly or daily zone in control (skip)."
+    ]
+   },
+   {
+    "heading": "More from the lesson: Retail strategies vs S&D (member Q&A)",
+    "points": [
+     "A member who traded S/R for three years kept getting stopped out. Kevin's explanation: price breaks the S/R level into the real supply or demand and then moves back the other way.",
+     "AUD example: a purple daily demand zone that S/R traders saw as support held with barely any drawdown. S/R sellers were stopped out, and their sells were probably the banks' buys.",
+     "USD/CAD weekly: an obvious support level with fresh demand below. He expected at least 1.33 and said 'let's say I'm completely wrong, who cares' because of his 5:1 or 3:1 R:R.",
+     "Emotional experience comes into play only after you have your strategy in place.",
+     "Everybody should start with supply and demand. You can add S/R or other tools, but only while trading with the higher timeframes."
+    ]
+   },
+   {
+    "heading": "More from the lesson: Memory, testing and timeframe",
+    "points": [
+     "He can tell you the weekly and daily picture of the major pairs, major indexes, oil, natural gas and gold from memory, because he has built a relationship with those markets. Cross pairs he tends to forget.",
+     "He finds TradingView's backtesting software poor. He tests by going back over the zones he has tracked.",
+     "On the H1 he can skip the charts for a couple of hours and not miss a trade.",
+     "If you are day trading and it's working, stick with it; you can move to swing trading as you get more experienced. It's all fractal; the differences are time and emotional involvement.",
+     "Copying someone exactly only makes sense for personal friends. Members should take what he does, tweak one thing (e.g. 9 of his 10 rules) and test it."
+    ]
    }
   ],
   "rules": [
@@ -1648,7 +1754,9 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "A zone tested over 75% of the way is out.",
    "His non-negotiable: daily uptrend + H1 uptrend before buying pullbacks to demand.",
    "Do top-down analysis first; do not start on the entry timeframe as a new trader.",
-   "Every trade needs logic you can explain."
+   "Every trade needs logic you can explain.",
+   "Starting from the entry timeframe is something only experienced traders can get away with; new traders must go top-down.",
+   "With high R:R you can take several valid zones in a row: -1, -1, +5 still nets +3%. Even four losses and a fifth winner is about breakeven or +1%."
   ],
   "mistakes": [
    "Trading a zone because it looks like a 10/10 while ignoring HTF, trend and intermediate timeframe.",
@@ -1659,13 +1767,20 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "Buying overextended trends after 4-5 CPs with full risk.",
    "Chasing price instead of waiting for the deeper zone.",
    "Claiming a lucky win as a good trade without logic.",
-   "Changing the strategy after two losses / cherry-picking zones."
+   "Changing the strategy after two losses / cherry-picking zones.",
+   "Taking a trade on a dead (already-spent) demand zone.",
+   "Believing trading is '90% emotions and 10% skill'. A perfectly emotionally stable trader still fails trading bad patterns.",
+   "Following signal or podcast-clip 'full-time traders' instead of being patient."
   ],
   "quotes": [
    "The quality of the zone changed without the look of the zone changing.",
    "It's all about the higher timeframes.",
    "You got lucky in my opinion.",
-   "I would rather wait for that than chase price and lose."
+   "I would rather wait for that than chase price and lose.",
+   "There's basically tradable zones and non-tradable zones.",
+   "It's 50% strategy and 50% of just applying that strategy time and time again and not changing it.",
+   "The markets function based on supply and demand, nothing else.",
+   "All this price action is a story."
   ],
   "diagrams": [
    {
@@ -1690,7 +1805,9 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "How many times has the zone been tested, and how deep (under 25%? over 75%)?",
    "Is the zone fresh, or just a reaction off a previous zone?",
    "Is the market overextended (several CPs in a row)? If so, am I reducing risk or waiting for an embedded zone in a deeper HTF zone?",
-   "Can I explain the logic of this trade?"
+   "Can I explain the logic of this trade?",
+   "Have I checked the macro charts (monthly/3M/6M) above my daily zone?",
+   "Is this zone actually spent (a dead zone), even if it still looks fine?"
   ],
   "journalTags": [
    "traded the look only",
@@ -1780,7 +1897,8 @@ export const VIDEO_LESSONS: VideoLesson[] = [
   ],
   "quotes": [
    "This is a momentum line.",
-   "It's not the easiest thing ever. There are some rules to it and there is some nuance to it as well."
+   "It's not the easiest thing ever. There are some rules to it and there is some nuance to it as well.",
+   "The higher high is one thing that we need as far as how to draw a trend line."
   ],
   "diagrams": [
    {
@@ -1926,6 +2044,30 @@ export const VIDEO_LESSONS: VideoLesson[] = [
      "Homework (trend trading): weekly demand with 4H confirmation in a weekly uptrend = tradable, with the trend.",
      "Homework (GBPUSD daily/1H): valid with the trend only if the pullback comes before price reaches/breaks the trendline; if it takes a long time and breaks the trendline it is no longer a trend trade and he would ignore the zone."
     ]
+   },
+   {
+    "heading": "More from the lesson: Q&A: EUR/USD daily supply short (targets)",
+    "points": [
+     "A member asked about shorting EUR/USD off daily supply once the H1 demand breaks. Kevin is personally not interested: weekly momentum is up and the daily trend is up, so a 1H supply short is against both. Confirmation is needed and he wouldn't short until he gets it.",
+     "Targets for that short: the nearby area, or something like 1.11 for a big move. Your target could also be a fixed 2:1 or 3:1 based on what your journal and testing show.",
+     "If there were an opposing zone close by, you could see your target clearly. After a sharp move it is hard to set one, so you can bump your stop instead. 'There's not one right way.'"
+    ]
+   },
+   {
+    "heading": "More from the lesson: Extra details",
+    "points": [
+     "In the H1/5m teaching example, he says you wouldn't actually take 1H confirmation there, because no daily zone was in control. He teaches it anyway because 'chart work is chart work': it works on any timeframe.",
+     "Stacked zones: a member said price often breaks the top zone and comes back to the deeper one. Kevin has seen all three work, and he used to like the ones at the trendline.",
+     "With confirmation you will miss some trades and have to be okay with that. That is why he uses both S&F and confirmation.",
+     "His results are slightly better with set & forget, which you want to trade with the trend because it is the highest-odds thing to do.",
+     "He finds TradingView's backtesting tool glitchy and laggy, and hard to use without his four-chart layout.",
+     "Natural gas: six-month demand in control (weekly too), so the daily zone is daily confirmation and 'very likely to work'.",
+     "When he only traded 15m inside 4H supply zones he was breakeven, 'winning small'. Opening up to the higher timeframes changed that.",
+     "Hesitation to pull the trigger is really not trusting your process, plan or R:R. Using multiple sequence analysis builds that trust.",
+     "Gold homework (daily -> 1H -> 5m): the 1H supply's move away wasn't great. The basing was identified well; he would draw it to the wick to leave a little space.",
+     "GBP/USD homework: a slow pullback that reaches the trendline is 'very low odds' to even take place.",
+     "Homework is optional ('not real homework'), but he highly suggests it if you want to get better."
+    ]
    }
   ],
   "rules": [
@@ -1935,7 +2077,8 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "The deeper you refine below the zone timeframe, the bigger the R:R target must be (hold toward the opposing HTF zone).",
    "Use confirmation for counter-trend trades, zones around trendlines, oversized zones and zones you don't trust.",
    "Only add to a trade on a clean new zone that meets your criteria.",
-   "Test everything before trusting your R:R."
+   "Test everything before trusting your R:R.",
+   "If you don't trust a zone or think it is questionable, always use confirmation, then track the data with screenshots to decide later whether to ignore such zones or just trust the R:R."
   ],
   "mistakes": [
    "Calling a zone removed by a huge emotional wick with a small body.",
@@ -1944,13 +2087,18 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "Picking timeframes that don't fit your schedule (1m entries without screen time).",
    "Not accepting missed trades when waiting for confirmation or taking only the extreme zone.",
    "Trading counter-trend zones without confirmation.",
-   "Not testing - then not trusting your R:R and hesitating to pull the trigger."
+   "Not testing - then not trusting your R:R and hesitating to pull the trigger.",
+   "Taking 1H confirmation when no daily zone is in control.",
+   "Asking which timeframe a setup was on. Price action is price action on every timeframe."
   ],
   "quotes": [
    "Remember, there's no free lunch.",
    "Confirmation is best used when trading counter trend.",
    "Price action is price action.",
-   "If you ever meet a trader that says I've got it all figured out, they're probably full of it."
+   "If you ever meet a trader that says I've got it all figured out, they're probably full of it.",
+   "Chart work is chart work.",
+   "You will miss some trades on confirmation. You have to be okay with that.",
+   "With my strategy, I'm gonna lose more than I win and it's gonna work out."
   ],
   "diagrams": [
    {
@@ -1975,7 +2123,9 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "Does my timeframe pair fit my schedule, and is it not too far apart (e.g. not 1m into daily)?",
    "If refining very deep, is my target toward the opposing HTF zone?",
    "Pullback or breakout - is there a basing structure for the breakout stop?",
-   "If adding on, is the new zone clean and does it meet my criteria?"
+   "If adding on, is the new zone clean and does it meet my criteria?",
+   "Is there a daily zone in control before I look for 1H confirmation?",
+   "Am I shorting against a weekly momentum and daily uptrend? If so, has confirmation actually happened?"
   ],
   "journalTags": [
    "no HTF contact",
@@ -2095,6 +2245,44 @@ export const VIDEO_LESSONS: VideoLesson[] = [
      "Post your trades in the trade review channel.",
      "Stacking odds: trade with the trend and inside higher-timeframe zones."
     ]
+   },
+   {
+    "heading": "More from the lesson: Extra details on zones",
+    "points": [
+     "Demand is identified by the move away; then you draw the structure. Everyone drawing the same demand zone should end up with the same distal line, on the very bottom wick of the basing.",
+     "Black-out test, repeated: when an 'area' zone has no structure where it starts, 'it is always a zone that is drawn after the fact'.",
+     "Example of someone doing it right: identified the move down and the basing, then drew the distal and proximal lines using the wick. 'This guy clearly knows what he is doing.'",
+     "Pound example: he ignored a huge emotional wick and drew the zone to the body because 'it makes logical sense'. With tight basing, though, include the wick.",
+     "Magnet tool: missing by one pip is 'not extremely, extremely important', but why not do it correctly. Price will often hold the zone to a T.",
+     "The idea came to him that morning over coffee: everything is supply and demand (there could be no market without it), but supply and demand ZONE trading is a different thing."
+    ]
+   },
+   {
+    "heading": "More from the lesson: Extra details on trendlines and retail traps",
+    "points": [
+     "The trendline demand example was decent, with momentum up. He only skipped it because he was already in the trade.",
+     "On a 1-minute chart the whippy action around a trendline is even more extreme. He suspects some manipulation there, while admitting he doesn't know how the banks' algos work.",
+     "USD/JPY: his buy sat below an 'old resistance becomes new support' level where S/R buyers' stops were, so 'I bought all their sell orders'. He says it wasn't his plan, but it makes sense in hindsight.",
+     "If you traded old-resistance-becomes-new-support levels there, you would have been stopped out a lot. The real demand was below and that one worked.",
+     "Banks move price, but they need to make money too: 'we're all trying to make money from retail traders'.",
+     "Poker detail: if a super-tight player re-raises your aces, he probably has kings, ace-king or queens, so get the money in now. Against a loose aggressive player, call rather than raise and let him put the money in."
+    ]
+   },
+   {
+    "heading": "More from the lesson: Extra details on testing and systems",
+    "points": [
+     "Example tweaks to test: maybe you only take zones at the extreme and not both zones.",
+     "He could tell members his strategy to a T and they might still not be able to execute it, because it needs a lot of patience.",
+     "From his journal: after three losses in a row he can see he could lose two or three more and still be back to breakeven or up with one winner.",
+     "GBP/JPY setup at the time: price looked very overextended, with a possible deep pullback to the 177 area. It had looked overextended many times before in the same run.",
+     "There is probably a chart-pattern, S/R or trendline system with a win rate under 50% that is profitable. Some people need to win more than they lose and cannot trade such systems.",
+     "Instagram example: a trader who struggled with losing didn't know his win rate or R:R, only that he 'usually goes for 3:1'.",
+     "Until you test your own system, you probably won't be profitable. You never truly 'figure it out', but you can figure out a system that works for you.",
+     "He had a few mentors. Before joining, he spent hours comparing their timestamped YouTube forecasts with the charts.",
+     "Faking is easy: someone could run two accounts, short one and long the other, and show the winner. That is why he points to timestamped forecasts instead of P&L.",
+     "The membership doesn't hand out entries, stops and TPs: 'We are not trying to hold hands here.'",
+     "If members post about 10 trades a week in trade review, he will make a breakdown video of every one."
+    ]
    }
   ],
   "rules": [
@@ -2103,7 +2291,8 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "Draw zones before the fact - not because price reacted there.",
    "If a zone is clearly broken, take the loss and move on; don't keep trading it.",
    "Be cautious of zones sitting on trendlines or obvious old S/R; prefer the zone below/beyond where retail stops sit.",
-   "Once you have a working system, stick with it for at least six months."
+   "Once you have a working system, stick with it for at least six months.",
+   "Be aware of obvious retail levels (S/R and trendlines) and adjust. These are the only two times he looks for 'retail things'."
   ],
   "mistakes": [
    "Drawing zones from areas price reacted to several times (that's S/R).",
@@ -2113,13 +2302,19 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "Analysing after the fact.",
    "Buying a demand zone right on a trendline or on 'old resistance becomes new support'.",
    "Not knowing your win rate, R:R and max drawdown, so losing streaks shake you.",
-   "Skipping a valid setup because price 'looks overextended'."
+   "Skipping a valid setup because price 'looks overextended'.",
+   "Not knowing your win rate and R:R, so normal losing streaks feel like the system is broken.",
+   "Treating a big-R:R system as gambling or 'trying to hit a home run'. It is probability."
   ],
   "quotes": [
    "There's supply and demand, and then there's supply and demand zone trading.",
    "We don't cut through a candle.",
    "We want to trade with the banks and against retail.",
-   "Anybody is a genius in a bull market."
+   "Anybody is a genius in a bull market.",
+   "There's always trades to be taken. You just need to know what to look for.",
+   "The discord can only be as active as you make it.",
+   "If your setup says you take this trade, you take that trade.",
+   "I am a trader. I am not an influencer."
   ],
   "diagrams": [
    {
@@ -2143,7 +2338,9 @@ export const VIDEO_LESSONS: VideoLesson[] = [
    "Has the zone already been clearly broken?",
    "Does the zone sit on a trendline or an obvious old high/low?",
    "If on a trendline, am I trading with the trend and is R:R good?",
-   "Do I know my win rate, R:R and max drawdown for this setup?"
+   "Do I know my win rate, R:R and max drawdown for this setup?",
+   "Are retail traders' stops likely sitting just beyond my zone (old S/R, trendline)? Is there a better zone below/above them?",
+   "Is my distal line exactly on the wick (magnet tool)?"
   ],
   "journalTags": [
    "no basing",
