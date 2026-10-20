@@ -1003,7 +1003,7 @@ recent_items = fx("""
                 Sort(
                     Filter(
                         LinehaulRates,
-                        ExpiryDate >= Today(),
+                        varRecExpired || ExpiryDate >= Today(),
                         StartsWith(Title, Left(l, 2)),
                         StartsWith(Destination, Mid(l, 3, 2)),
                         StartsWith(Carrier, c),
@@ -1013,24 +1013,26 @@ recent_items = fx("""
                     SortOrder.Descending
                 ),
                 IsOn, Upper(Trim(Active)) in ["YES", "TRUE"],
-                LH, LHCost(Base, Fuel, F_Adj, F_Discount, Adj, AdjType, Discount, DiscountType, recTglFuel.Value),
-                NoFSC, recTglFuel.Value && FuelMissing(Fuel)
+                LH, LHCost(Base, Fuel, F_Adj, F_Discount, Adj, AdjType, Discount, DiscountType, !varRecNoFuel),
+                NoFSC, !varRecNoFuel && FuelMissing(Fuel),
+                Expired, ExpiryDate < Today()
             ),
-            (IsBlank(e) || e in Equipment) && (!recTglActive.Value || IsOn)
+            (IsBlank(e) || e in Equipment) && (!varRecActive || IsOn)
         )
     )
 """)
 
 # column: (key, header, x fraction, width fraction, align)
 REC_COLS = [
-    ("Lane", "Lane", 0.00, 0.10, "Left"),
-    ("Carrier", "Carrier", 0.10, 0.15, "Left"),
-    ("Mode", "Mode", 0.25, 0.11, "Left"),
-    ("Equip", "Equipment", 0.36, 0.17, "Left"),
-    ("LH", "LH cost", 0.53, 0.11, "Right"),
-    ("Ft3", "$/ft³", 0.64, 0.09, "Right"),
-    ("Status", "Status", 0.73, 0.12, "Left"),
-    ("Added", "Added", 0.85, 0.15, "Left"),
+    ("Lane", "Lane", 0.00, 0.09, "Left"),
+    ("Carrier", "Carrier", 0.09, 0.13, "Left"),
+    ("Mode", "Mode", 0.22, 0.10, "Left"),
+    ("Equip", "Equipment", 0.32, 0.16, "Left"),
+    ("LH", "LH cost", 0.48, 0.13, "Right"),
+    ("Ft3", "$/ft³", 0.61, 0.08, "Right"),
+    ("Status", "Status", 0.69, 0.10, "Left"),
+    ("Valid", "Expires in", 0.79, 0.10, "Left"),
+    ("Added", "Added", 0.89, 0.11, "Left"),
 ]
 REC_TEXT = {
     "Lane": 'ThisItem.Title & " → " & ThisItem.Destination',
@@ -1039,7 +1041,37 @@ REC_TEXT = {
     "Equip": "ThisItem.Equipment",
     "LH": 'Text(ThisItem.LH, "$#,##0.00") & If(ThisItem.NoFSC, " ⚠", "")',
     "Ft3": 'Text(ThisItem.LH / CubicFt(ThisItem.Equipment), "$#,##0.00")',
+    "Valid": fx("""
+        With(
+            {d: DateDiff(Today(), ThisItem.ExpiryDate, TimeUnit.Days)},
+            If(
+                d < 0, "Expired",
+                d = 0, "Today",
+                d = 1, "1 day",
+                d < 14, d & " days",
+                d < 60, RoundDown(d / 7, 0) & " weeks",
+                RoundDown(d / 30, 0) & " months"
+            )
+        )
+    """),
     "Added": 'Text(ThisItem.Timestamp, "mmm d, h:mm AM/PM")',
+}
+REC_DIM = "!ThisItem.IsOn || ThisItem.Expired"  # inactive and expired rows recede
+REC_COLOR = {
+    "LH": f"If(ThisItem.NoFSC, clrAmberInk, {REC_DIM}, clrInk3, clrInk)",
+    # 90+ days: normal text; 90 → 30 days: slate fades to amber; 30 → 0 days: amber fades to red
+    "Valid": fx(f"""
+        With(
+            {{d: DateDiff(Today(), ThisItem.ExpiryDate, TimeUnit.Days)}},
+            If(
+                d <= 0, clrRed,
+                d >= 90, If({REC_DIM}, clrInk3, clrInk),
+                d > 30, With({{k: (90 - d) / 60}}, RGBA(72 + 124 * k, 88 + 32 * k, 106 - 106 * k, 1)),
+                With({{k: (30 - d) / 30}}, RGBA(196, 120 - 98 * k, 28 * k, 1))
+            )
+        )
+    """),
+    "Added": "clrInk3",
 }
 
 
@@ -1047,15 +1079,19 @@ def rec_template():
     kids = []
     for key, _, x, w, align in REC_COLS:
         if key == "Status":
-            kids.append(pill("recRowStatus", 'If(ThisItem.IsOn, "Active", "Inactive")',
-                             "If(ThisItem.IsOn, clrGreenBg, clrSoft)", "If(ThisItem.IsOn, clrGreenInk, clrInk3)",
+            kids.append(pill("recRowStatus", 'If(ThisItem.Expired, "Expired", ThisItem.IsOn, "Active", "Inactive")',
+                             "If(ThisItem.Expired, clrRedBg, ThisItem.IsOn, clrGreenBg, clrSoft)",
+                             "If(ThisItem.Expired, clrRed, ThisItem.IsOn, clrGreenInk, clrInk3)",
                              OnSelect="Select(Parent)", X=f"Parent.TemplateWidth * {x} + 8", Y=12, Width=74))
             continue
-        kids.append(lbl(f"recRow{key}", REC_TEXT[key], OnSelect="Select(Parent)",
-                        Size=T_SECONDARY if key == "Added" else T_TABLE,
-                        FontWeight="FontWeight.Bold" if key == "Lane" else "FontWeight.Normal",
-                        Color="If(ThisItem.NoFSC, clrAmberInk, clrInk)" if key == "LH" else
-                        ("clrInk3" if key == "Added" else "clrInk"),
+        extra = ({"Tooltip": '"Valid to " & Text(ThisItem.ExpiryDate, "mmm d, yyyy")',
+                  "FontWeight": "If(DateDiff(Today(), ThisItem.ExpiryDate, TimeUnit.Days) <= 30, FontWeight.Semibold, FontWeight.Normal)"}
+                 if key == "Valid" else {})
+        kids.append(lbl(f"recRow{key}", REC_TEXT[key], OnSelect="Select(Parent)", **extra,
+                        Size=T_SECONDARY if key in ("Added", "Valid") else T_TABLE,
+                        **({} if key == "Valid" else
+                           {"FontWeight": "FontWeight.Bold" if key == "Lane" else "FontWeight.Normal"}),
+                        Color=REC_COLOR.get(key, f"If({REC_DIM}, clrInk3, clrInk)"),
                         Align=f"Align.{align}", PaddingLeft=10, PaddingRight=10,
                         X=f"Parent.TemplateWidth * {x}", Y=0, Width=f"Parent.TemplateWidth * {w}", Height=46))
     kids.append(rect("recRowSep", Fill="clrSoft", X=0, Y=45, Width="Parent.TemplateWidth", Height=1))
@@ -1064,29 +1100,42 @@ def rec_template():
 
 rec_header = manual("recColHdr", [
     *[caps(f"recHdr{key}", head, Align=f"Align.{align}", PaddingLeft=10, PaddingRight=10,
-           X=f"Parent.Width * {x}", Y=8, Width=f"Parent.Width * {w}") for key, head, x, w, align in REC_COLS],
+           X=f"Parent.Width * {x}", Y=8, Width=f"Parent.Width * {w}") for key, head, x, w, align in REC_COLS
+      if key != "LH"],
+    lbl("recHdrLH", 'If(varRecNoFuel, "LH cost · no fuel", "LH cost · fuel in")', Size=T_CAPTION,
+        FontWeight="FontWeight.Bold", Color="If(varRecNoFuel, clrAmberInk, clrInk3)", Align="Align.Right",
+        PaddingLeft=10, PaddingRight=10, X=f"Parent.Width * {REC_COLS[4][2]}", Y=8,
+        Width=f"Parent.Width * {REC_COLS[4][3]}", Height=18),
     rect("recHdrLine", Fill="clrBlue", X=0, Y=34, Width="Parent.Width", Height=2),
 ], Fill="clrPanel", Height=36, **fixed(), **STRETCH)
 
+def rec_chip(name, text, on, onselect, width):
+    """Filter chip: tap to switch, filled teal when on (same look as the service-day chips)."""
+    return btn(name, s(text), Size=T_SECONDARY, OnSelect=onselect, **rad(16), **fixed(width, 32),
+               Fill=f"If({on}, clrBlue, clrPanel)", Color=f"If({on}, clrWhite, clrInk2)",
+               BorderColor=f"If({on}, clrBlue, clrLine)", HoverFill=f"If({on}, clrBlue, clrPanel)",
+               HoverColor=f"If({on}, clrWhite, clrInk)", PressedFill="clrBlue", PressedColor="clrWhite")
+
+
 recent_body = body("rec", [
-    row("recFilters", "If(recBody.Width < 1120, 92, 42)", inset=2, children=[
-        *[textin(f"recTxt{k}", hint, **fixed(150, 38)) for k, hint in
+    row("recFilters", "If(recBody.Width < 1180, 92, 42)", inset=2, children=[
+        *[textin(f"recTxt{k}", hint, **fixed(140, 38)) for k, hint in
           [("Lane", "Lane, e.g. TOWI"), ("Carrier", "Carrier"), ("Mode", "Mode"), ("Equip", "Equipment, e.g. 53")]],
-        toggle("recTglActive", "Active only", "Active only", **fixed(160, 32)),
-        toggle("recTglFuel", "Include fuel", "Include fuel", **fixed(160, 32)),
+        rec_chip("recChipActive", "Active only", "varRecActive", "Set(varRecActive, !varRecActive)", 118),
+        rec_chip("recChipFuel", "Include fuel", "!varRecNoFuel", "Set(varRecNoFuel, !varRecNoFuel)", 126),
+        rec_chip("recChipExpired", "Show expired", "varRecExpired", "Set(varRecExpired, !varRecExpired)", 128),
         btn("recBtnClear", s("Clear filters"), Size=T_SECONDARY,
-            OnSelect="Reset(recTxtLane); Reset(recTxtCarrier); Reset(recTxtMode); Reset(recTxtEquip); Reset(recTglActive)",
+            OnSelect=("Reset(recTxtLane); Reset(recTxtCarrier); Reset(recTxtMode); Reset(recTxtEquip); "
+                      "Set(varRecActive, false); Set(varRecNoFuel, false); Set(varRecExpired, false)"),
             **fixed(132, 32)),
-        lbl("recLblCount", fx("""
-            CountRows(recGallery.AllItems) & If(CountRows(recGallery.AllItems) = 1, " rate", " rates") &
-            " · fuel " & If(recTglFuel.Value, "included", "excluded")
-        """), Size=T_SECONDARY, Color="clrInk3", Align="Align.Right", Height=30, **fill(1)),
+        lbl("recLblCount", 'CountRows(recGallery.AllItems) & If(CountRows(recGallery.AllItems) = 1, " rate", " rates")',
+            Size=T_SECONDARY, Color="clrInk3", Align="Align.Right", Height=30, **fill(1)),
     ], gap=12, LayoutAlignItems="LayoutAlignItems.Center", LayoutWrap="true"),
     box("recTable", "Vertical", [
         rec_header,
         node("recGallery", "Gallery@2.15.0", {
             "Items": recent_items, "TemplateSize": 46, "TemplatePadding": 0,
-            "TemplateFill": "If(ThisItem.IsSelected, clrSoft, clrPanel)", "BorderThickness": 0,
+            "TemplateFill": "clrPanel", "BorderThickness": 0,
             "OnSelect": "Set(varRate, ThisItem); Navigate(scrDetails, ScreenTransition.None)",
             "ShowScrollbar": "true", **fill(1), **STRETCH,
         }, rec_template(), "BrowseLayout_Vertical_TwoTextOneImageVariant_ver5.0"),
@@ -1096,7 +1145,7 @@ recent_body = body("rec", [
 ], scroll=False, gap=16)
 
 write_screen("scrRecent", {"Fill": "clrPage"}, [
-    shell("rec", "Recent", s("Recent entries · newest first, expired rates hidden"),
+    shell("rec", "Recent", '"Recent entries · newest first" & If(varRecExpired, ", expired included", ", expired hidden")',
           [btn("recHdrBtnNew", s("+ New rate"), "primary", OnSelect="Navigate(scrEntry, ScreenTransition.None)",
                **fixed(130, 38))],
           recent_body),
@@ -1193,7 +1242,8 @@ DET_COLLECT = fx(f"""
     ClearCollect(
         colLaneRates,
         Sort(
-            AddColumns(Filter(LinehaulRates, {DET_KEY}), IsOn, Upper(Trim(Active)) in ["YES", "TRUE"], LH, 0, NoFSC, false),
+            AddColumns(Filter(LinehaulRates, {DET_KEY}), IsOn, Upper(Trim(Active)) in ["YES", "TRUE"], LH, 0, NoFSC, false,
+                       Expired, ExpiryDate < Today()),
             Timestamp,
             SortOrder.Descending
         )

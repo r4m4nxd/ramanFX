@@ -349,7 +349,7 @@ Screens:
                               PaddingRight: =0
                               PaddingTop: =0
                               Size: =11
-                              Text: ="Recent entries · newest first, expired rates hidden"
+                              Text: ="Recent entries · newest first" & If(varRecExpired, ", expired included", ", expired hidden")
                               VerticalAlign: =VerticalAlign.Middle
                               Visible: =Parent.Width > 700
                         - recHdrUser:
@@ -438,7 +438,7 @@ Screens:
                               DropShadow: =DropShadow.None
                               Fill: =clrClear
                               FillPortions: =0
-                              Height: =If(recBody.Width < 1120, 92, 42)
+                              Height: =If(recBody.Width < 1180, 92, 42)
                               LayoutAlignItems: =LayoutAlignItems.Center
                               LayoutDirection: =LayoutDirection.Horizontal
                               LayoutGap: =12
@@ -482,7 +482,7 @@ Screens:
                                     RadiusTopLeft: =5
                                     RadiusTopRight: =5
                                     Size: =11
-                                    Width: =150
+                                    Width: =140
                               - recTxtCarrier:
                                   Control: Classic/TextInput@2.3.2
                                   Properties:
@@ -511,7 +511,7 @@ Screens:
                                     RadiusTopLeft: =5
                                     RadiusTopRight: =5
                                     Size: =11
-                                    Width: =150
+                                    Width: =140
                               - recTxtMode:
                                   Control: Classic/TextInput@2.3.2
                                   Properties:
@@ -540,7 +540,7 @@ Screens:
                                     RadiusTopLeft: =5
                                     RadiusTopRight: =5
                                     Size: =11
-                                    Width: =150
+                                    Width: =140
                               - recTxtEquip:
                                   Control: Classic/TextInput@2.3.2
                                   Properties:
@@ -569,51 +569,109 @@ Screens:
                                     RadiusTopLeft: =5
                                     RadiusTopRight: =5
                                     Size: =11
-                                    Width: =150
-                              - recTglActive:
-                                  Control: Classic/Toggle@2.1.0
+                                    Width: =140
+                              - recChipActive:
+                                  Control: Classic/Button@2.2.0
                                   Properties:
-                                    BorderThickness: =0
-                                    Color: =clrInk
-                                    Default: =false
-                                    FalseFill: =RGBA(190, 200, 210, 1)
-                                    FalseHoverFill: =clrInk3
-                                    FalseText: ="Active only"
+                                    BorderColor: =If(varRecActive, clrBlue, clrLine)
+                                    BorderThickness: =1
+                                    Color: =If(varRecActive, clrWhite, clrInk2)
+                                    DisabledBorderColor: =clrLine
+                                    DisabledColor: =clrInk3
+                                    DisabledFill: =clrSoft
+                                    Fill: =If(varRecActive, clrBlue, clrPanel)
                                     FillPortions: =0
                                     Font: =Font.'Segoe UI'
                                     FontWeight: =FontWeight.Semibold
-                                    HandleFill: =clrWhite
                                     Height: =32
+                                    HoverBorderColor: =clrInk3
+                                    HoverColor: =If(varRecActive, clrWhite, clrInk)
+                                    HoverFill: =If(varRecActive, clrBlue, clrPanel)
                                     LayoutMinHeight: =0
                                     LayoutMinWidth: =0
+                                    OnSelect: =Set(varRecActive, !varRecActive)
+                                    PaddingBottom: =0
+                                    PaddingLeft: =12
+                                    PaddingRight: =12
+                                    PaddingTop: =0
+                                    PressedBorderColor: =clrInk3
+                                    PressedColor: =clrWhite
+                                    PressedFill: =clrBlue
+                                    RadiusBottomLeft: =16
+                                    RadiusBottomRight: =16
+                                    RadiusTopLeft: =16
+                                    RadiusTopRight: =16
                                     Size: =10
-                                    TextPosition: =TextPosition.Right
-                                    TrueFill: =clrBlue
-                                    TrueHoverFill: =clrBlueHover
-                                    TrueText: ="Active only"
-                                    Width: =160
-                              - recTglFuel:
-                                  Control: Classic/Toggle@2.1.0
+                                    Text: ="Active only"
+                                    Width: =118
+                              - recChipFuel:
+                                  Control: Classic/Button@2.2.0
                                   Properties:
-                                    BorderThickness: =0
-                                    Color: =clrInk
-                                    Default: =false
-                                    FalseFill: =RGBA(190, 200, 210, 1)
-                                    FalseHoverFill: =clrInk3
-                                    FalseText: ="Include fuel"
+                                    BorderColor: =If(!varRecNoFuel, clrBlue, clrLine)
+                                    BorderThickness: =1
+                                    Color: =If(!varRecNoFuel, clrWhite, clrInk2)
+                                    DisabledBorderColor: =clrLine
+                                    DisabledColor: =clrInk3
+                                    DisabledFill: =clrSoft
+                                    Fill: =If(!varRecNoFuel, clrBlue, clrPanel)
                                     FillPortions: =0
                                     Font: =Font.'Segoe UI'
                                     FontWeight: =FontWeight.Semibold
-                                    HandleFill: =clrWhite
                                     Height: =32
+                                    HoverBorderColor: =clrInk3
+                                    HoverColor: =If(!varRecNoFuel, clrWhite, clrInk)
+                                    HoverFill: =If(!varRecNoFuel, clrBlue, clrPanel)
                                     LayoutMinHeight: =0
                                     LayoutMinWidth: =0
+                                    OnSelect: =Set(varRecNoFuel, !varRecNoFuel)
+                                    PaddingBottom: =0
+                                    PaddingLeft: =12
+                                    PaddingRight: =12
+                                    PaddingTop: =0
+                                    PressedBorderColor: =clrInk3
+                                    PressedColor: =clrWhite
+                                    PressedFill: =clrBlue
+                                    RadiusBottomLeft: =16
+                                    RadiusBottomRight: =16
+                                    RadiusTopLeft: =16
+                                    RadiusTopRight: =16
                                     Size: =10
-                                    TextPosition: =TextPosition.Right
-                                    TrueFill: =clrBlue
-                                    TrueHoverFill: =clrBlueHover
-                                    TrueText: ="Include fuel"
-                                    Width: =160
+                                    Text: ="Include fuel"
+                                    Width: =126
+                              - recChipExpired:
+                                  Control: Classic/Button@2.2.0
+                                  Properties:
+                                    BorderColor: =If(varRecExpired, clrBlue, clrLine)
+                                    BorderThickness: =1
+                                    Color: =If(varRecExpired, clrWhite, clrInk2)
+                                    DisabledBorderColor: =clrLine
+                                    DisabledColor: =clrInk3
+                                    DisabledFill: =clrSoft
+                                    Fill: =If(varRecExpired, clrBlue, clrPanel)
+                                    FillPortions: =0
+                                    Font: =Font.'Segoe UI'
+                                    FontWeight: =FontWeight.Semibold
+                                    Height: =32
+                                    HoverBorderColor: =clrInk3
+                                    HoverColor: =If(varRecExpired, clrWhite, clrInk)
+                                    HoverFill: =If(varRecExpired, clrBlue, clrPanel)
+                                    LayoutMinHeight: =0
+                                    LayoutMinWidth: =0
+                                    OnSelect: =Set(varRecExpired, !varRecExpired)
+                                    PaddingBottom: =0
+                                    PaddingLeft: =12
+                                    PaddingRight: =12
+                                    PaddingTop: =0
+                                    PressedBorderColor: =clrInk3
+                                    PressedColor: =clrWhite
+                                    PressedFill: =clrBlue
+                                    RadiusBottomLeft: =16
+                                    RadiusBottomRight: =16
+                                    RadiusTopLeft: =16
+                                    RadiusTopRight: =16
+                                    Size: =10
+                                    Text: ="Show expired"
+                                    Width: =128
                               - recBtnClear:
                                   Control: Classic/Button@2.2.0
                                   Properties:
@@ -633,7 +691,7 @@ Screens:
                                     HoverFill: =clrPanel
                                     LayoutMinHeight: =0
                                     LayoutMinWidth: =0
-                                    OnSelect: =Reset(recTxtLane); Reset(recTxtCarrier); Reset(recTxtMode); Reset(recTxtEquip); Reset(recTglActive)
+                                    OnSelect: =Reset(recTxtLane); Reset(recTxtCarrier); Reset(recTxtMode); Reset(recTxtEquip); Set(varRecActive, false); Set(varRecNoFuel, false); Set(varRecExpired, false)
                                     PaddingBottom: =0
                                     PaddingLeft: =12
                                     PaddingRight: =12
@@ -664,9 +722,7 @@ Screens:
                                     PaddingRight: =0
                                     PaddingTop: =0
                                     Size: =10
-                                    Text: |-
-                                      =CountRows(recGallery.AllItems) & If(CountRows(recGallery.AllItems) = 1, " rate", " rates") &
-                                      " · fuel " & If(recTglFuel.Value, "included", "excluded")
+                                    Text: =CountRows(recGallery.AllItems) & If(CountRows(recGallery.AllItems) = 1, " rate", " rates")
                                     VerticalAlign: =VerticalAlign.Middle
                         - recTable:
                             Control: GroupContainer@1.5.0
@@ -724,7 +780,7 @@ Screens:
                                           Size: =9
                                           Text: ="Lane"
                                           VerticalAlign: =VerticalAlign.Middle
-                                          Width: =Parent.Width * 0.1
+                                          Width: =Parent.Width * 0.09
                                           X: =Parent.Width * 0.0
                                           Y: =8
                                     - recHdrCarrier:
@@ -743,8 +799,8 @@ Screens:
                                           Size: =9
                                           Text: ="Carrier"
                                           VerticalAlign: =VerticalAlign.Middle
-                                          Width: =Parent.Width * 0.15
-                                          X: =Parent.Width * 0.1
+                                          Width: =Parent.Width * 0.13
+                                          X: =Parent.Width * 0.09
                                           Y: =8
                                     - recHdrMode:
                                         Control: Label@2.5.1
@@ -762,8 +818,8 @@ Screens:
                                           Size: =9
                                           Text: ="Mode"
                                           VerticalAlign: =VerticalAlign.Middle
-                                          Width: =Parent.Width * 0.11
-                                          X: =Parent.Width * 0.25
+                                          Width: =Parent.Width * 0.1
+                                          X: =Parent.Width * 0.22
                                           Y: =8
                                     - recHdrEquip:
                                         Control: Label@2.5.1
@@ -781,27 +837,8 @@ Screens:
                                           Size: =9
                                           Text: ="Equipment"
                                           VerticalAlign: =VerticalAlign.Middle
-                                          Width: =Parent.Width * 0.17
-                                          X: =Parent.Width * 0.36
-                                          Y: =8
-                                    - recHdrLH:
-                                        Control: Label@2.5.1
-                                        Properties:
-                                          Align: =Align.Right
-                                          BorderThickness: =0
-                                          Color: =clrInk3
-                                          Font: =Font.'Segoe UI'
-                                          FontWeight: =FontWeight.Bold
-                                          Height: =18
-                                          PaddingBottom: =0
-                                          PaddingLeft: =10
-                                          PaddingRight: =10
-                                          PaddingTop: =0
-                                          Size: =9
-                                          Text: ="LH cost"
-                                          VerticalAlign: =VerticalAlign.Middle
-                                          Width: =Parent.Width * 0.11
-                                          X: =Parent.Width * 0.53
+                                          Width: =Parent.Width * 0.16
+                                          X: =Parent.Width * 0.32
                                           Y: =8
                                     - recHdrFt3:
                                         Control: Label@2.5.1
@@ -819,8 +856,8 @@ Screens:
                                           Size: =9
                                           Text: ="$/ft³"
                                           VerticalAlign: =VerticalAlign.Middle
-                                          Width: =Parent.Width * 0.09
-                                          X: =Parent.Width * 0.64
+                                          Width: =Parent.Width * 0.08
+                                          X: =Parent.Width * 0.61
                                           Y: =8
                                     - recHdrStatus:
                                         Control: Label@2.5.1
@@ -838,8 +875,27 @@ Screens:
                                           Size: =9
                                           Text: ="Status"
                                           VerticalAlign: =VerticalAlign.Middle
-                                          Width: =Parent.Width * 0.12
-                                          X: =Parent.Width * 0.73
+                                          Width: =Parent.Width * 0.1
+                                          X: =Parent.Width * 0.69
+                                          Y: =8
+                                    - recHdrValid:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          Align: =Align.Left
+                                          BorderThickness: =0
+                                          Color: =clrInk3
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Bold
+                                          Height: =18
+                                          PaddingBottom: =0
+                                          PaddingLeft: =10
+                                          PaddingRight: =10
+                                          PaddingTop: =0
+                                          Size: =9
+                                          Text: ="Expires in"
+                                          VerticalAlign: =VerticalAlign.Middle
+                                          Width: =Parent.Width * 0.1
+                                          X: =Parent.Width * 0.79
                                           Y: =8
                                     - recHdrAdded:
                                         Control: Label@2.5.1
@@ -857,8 +913,27 @@ Screens:
                                           Size: =9
                                           Text: ="Added"
                                           VerticalAlign: =VerticalAlign.Middle
-                                          Width: =Parent.Width * 0.15
-                                          X: =Parent.Width * 0.85
+                                          Width: =Parent.Width * 0.11
+                                          X: =Parent.Width * 0.89
+                                          Y: =8
+                                    - recHdrLH:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          Align: =Align.Right
+                                          BorderThickness: =0
+                                          Color: =If(varRecNoFuel, clrAmberInk, clrInk3)
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Bold
+                                          Height: =18
+                                          PaddingBottom: =0
+                                          PaddingLeft: =10
+                                          PaddingRight: =10
+                                          PaddingTop: =0
+                                          Size: =9
+                                          Text: =If(varRecNoFuel, "LH cost · no fuel", "LH cost · fuel in")
+                                          VerticalAlign: =VerticalAlign.Middle
+                                          Width: =Parent.Width * 0.13
+                                          X: =Parent.Width * 0.48
                                           Y: =8
                                     - recHdrLine:
                                         Control: Rectangle@2.3.0
@@ -889,7 +964,7 @@ Screens:
                                                   Sort(
                                                       Filter(
                                                           LinehaulRates,
-                                                          ExpiryDate >= Today(),
+                                                          varRecExpired || ExpiryDate >= Today(),
                                                           StartsWith(Title, Left(l, 2)),
                                                           StartsWith(Destination, Mid(l, 3, 2)),
                                                           StartsWith(Carrier, c),
@@ -899,17 +974,18 @@ Screens:
                                                       SortOrder.Descending
                                                   ),
                                                   IsOn, Upper(Trim(Active)) in ["YES", "TRUE"],
-                                                  LH, LHCost(Base, Fuel, F_Adj, F_Discount, Adj, AdjType, Discount, DiscountType, recTglFuel.Value),
-                                                  NoFSC, recTglFuel.Value && FuelMissing(Fuel)
+                                                  LH, LHCost(Base, Fuel, F_Adj, F_Discount, Adj, AdjType, Discount, DiscountType, !varRecNoFuel),
+                                                  NoFSC, !varRecNoFuel && FuelMissing(Fuel),
+                                                  Expired, ExpiryDate < Today()
                                               ),
-                                              (IsBlank(e) || e in Equipment) && (!recTglActive.Value || IsOn)
+                                              (IsBlank(e) || e in Equipment) && (!varRecActive || IsOn)
                                           )
                                       )
                                     LayoutMinHeight: =0
                                     LayoutMinWidth: =40
                                     OnSelect: =Set(varRate, ThisItem); Navigate(scrDetails, ScreenTransition.None)
                                     ShowScrollbar: =true
-                                    TemplateFill: =If(ThisItem.IsSelected, clrSoft, clrPanel)
+                                    TemplateFill: =clrPanel
                                     TemplatePadding: =0
                                     TemplateSize: =46
                                   Children:
@@ -918,7 +994,7 @@ Screens:
                                         Properties:
                                           Align: =Align.Left
                                           BorderThickness: =0
-                                          Color: =clrInk
+                                          Color: =If(!ThisItem.IsOn || ThisItem.Expired, clrInk3, clrInk)
                                           Font: =Font.'Segoe UI'
                                           FontWeight: =FontWeight.Bold
                                           Height: =46
@@ -930,7 +1006,7 @@ Screens:
                                           Size: =10.5
                                           Text: =ThisItem.Title & " → " & ThisItem.Destination
                                           VerticalAlign: =VerticalAlign.Middle
-                                          Width: =Parent.TemplateWidth * 0.1
+                                          Width: =Parent.TemplateWidth * 0.09
                                           X: =Parent.TemplateWidth * 0.0
                                           Y: =0
                                     - recRowCarrier:
@@ -938,7 +1014,7 @@ Screens:
                                         Properties:
                                           Align: =Align.Left
                                           BorderThickness: =0
-                                          Color: =clrInk
+                                          Color: =If(!ThisItem.IsOn || ThisItem.Expired, clrInk3, clrInk)
                                           Font: =Font.'Segoe UI'
                                           FontWeight: =FontWeight.Normal
                                           Height: =46
@@ -950,15 +1026,15 @@ Screens:
                                           Size: =10.5
                                           Text: =ThisItem.Carrier
                                           VerticalAlign: =VerticalAlign.Middle
-                                          Width: =Parent.TemplateWidth * 0.15
-                                          X: =Parent.TemplateWidth * 0.1
+                                          Width: =Parent.TemplateWidth * 0.13
+                                          X: =Parent.TemplateWidth * 0.09
                                           Y: =0
                                     - recRowMode:
                                         Control: Label@2.5.1
                                         Properties:
                                           Align: =Align.Left
                                           BorderThickness: =0
-                                          Color: =clrInk
+                                          Color: =If(!ThisItem.IsOn || ThisItem.Expired, clrInk3, clrInk)
                                           Font: =Font.'Segoe UI'
                                           FontWeight: =FontWeight.Normal
                                           Height: =46
@@ -970,15 +1046,15 @@ Screens:
                                           Size: =10.5
                                           Text: =ThisItem.Mode
                                           VerticalAlign: =VerticalAlign.Middle
-                                          Width: =Parent.TemplateWidth * 0.11
-                                          X: =Parent.TemplateWidth * 0.25
+                                          Width: =Parent.TemplateWidth * 0.1
+                                          X: =Parent.TemplateWidth * 0.22
                                           Y: =0
                                     - recRowEquip:
                                         Control: Label@2.5.1
                                         Properties:
                                           Align: =Align.Left
                                           BorderThickness: =0
-                                          Color: =clrInk
+                                          Color: =If(!ThisItem.IsOn || ThisItem.Expired, clrInk3, clrInk)
                                           Font: =Font.'Segoe UI'
                                           FontWeight: =FontWeight.Normal
                                           Height: =46
@@ -990,15 +1066,15 @@ Screens:
                                           Size: =10.5
                                           Text: =ThisItem.Equipment
                                           VerticalAlign: =VerticalAlign.Middle
-                                          Width: =Parent.TemplateWidth * 0.17
-                                          X: =Parent.TemplateWidth * 0.36
+                                          Width: =Parent.TemplateWidth * 0.16
+                                          X: =Parent.TemplateWidth * 0.32
                                           Y: =0
                                     - recRowLH:
                                         Control: Label@2.5.1
                                         Properties:
                                           Align: =Align.Right
                                           BorderThickness: =0
-                                          Color: =If(ThisItem.NoFSC, clrAmberInk, clrInk)
+                                          Color: =If(ThisItem.NoFSC, clrAmberInk, !ThisItem.IsOn || ThisItem.Expired, clrInk3, clrInk)
                                           Font: =Font.'Segoe UI'
                                           FontWeight: =FontWeight.Normal
                                           Height: =46
@@ -1010,15 +1086,15 @@ Screens:
                                           Size: =10.5
                                           Text: =Text(ThisItem.LH, "$#,##0.00") & If(ThisItem.NoFSC, " ⚠", "")
                                           VerticalAlign: =VerticalAlign.Middle
-                                          Width: =Parent.TemplateWidth * 0.11
-                                          X: =Parent.TemplateWidth * 0.53
+                                          Width: =Parent.TemplateWidth * 0.13
+                                          X: =Parent.TemplateWidth * 0.48
                                           Y: =0
                                     - recRowFt3:
                                         Control: Label@2.5.1
                                         Properties:
                                           Align: =Align.Right
                                           BorderThickness: =0
-                                          Color: =clrInk
+                                          Color: =If(!ThisItem.IsOn || ThisItem.Expired, clrInk3, clrInk)
                                           Font: =Font.'Segoe UI'
                                           FontWeight: =FontWeight.Normal
                                           Height: =46
@@ -1030,39 +1106,80 @@ Screens:
                                           Size: =10.5
                                           Text: =Text(ThisItem.LH / CubicFt(ThisItem.Equipment), "$#,##0.00")
                                           VerticalAlign: =VerticalAlign.Middle
-                                          Width: =Parent.TemplateWidth * 0.09
-                                          X: =Parent.TemplateWidth * 0.64
+                                          Width: =Parent.TemplateWidth * 0.08
+                                          X: =Parent.TemplateWidth * 0.61
                                           Y: =0
                                     - recRowStatus:
                                         Control: Classic/Button@2.2.0
                                         Properties:
                                           BorderColor: =clrClear
                                           BorderThickness: =0
-                                          Color: =If(ThisItem.IsOn, clrGreenInk, clrInk3)
-                                          Fill: =If(ThisItem.IsOn, clrGreenBg, clrSoft)
+                                          Color: =If(ThisItem.Expired, clrRed, ThisItem.IsOn, clrGreenInk, clrInk3)
+                                          Fill: =If(ThisItem.Expired, clrRedBg, ThisItem.IsOn, clrGreenBg, clrSoft)
                                           Font: =Font.'Segoe UI'
                                           FontWeight: =FontWeight.Bold
                                           Height: =22
                                           HoverBorderColor: =clrClear
-                                          HoverColor: =If(ThisItem.IsOn, clrGreenInk, clrInk3)
-                                          HoverFill: =If(ThisItem.IsOn, clrGreenBg, clrSoft)
+                                          HoverColor: =If(ThisItem.Expired, clrRed, ThisItem.IsOn, clrGreenInk, clrInk3)
+                                          HoverFill: =If(ThisItem.Expired, clrRedBg, ThisItem.IsOn, clrGreenBg, clrSoft)
                                           OnSelect: =Select(Parent)
                                           PaddingBottom: =0
                                           PaddingLeft: =10
                                           PaddingRight: =10
                                           PaddingTop: =0
                                           PressedBorderColor: =clrClear
-                                          PressedColor: =If(ThisItem.IsOn, clrGreenInk, clrInk3)
-                                          PressedFill: =If(ThisItem.IsOn, clrGreenBg, clrSoft)
+                                          PressedColor: =If(ThisItem.Expired, clrRed, ThisItem.IsOn, clrGreenInk, clrInk3)
+                                          PressedFill: =If(ThisItem.Expired, clrRedBg, ThisItem.IsOn, clrGreenBg, clrSoft)
                                           RadiusBottomLeft: =11
                                           RadiusBottomRight: =11
                                           RadiusTopLeft: =11
                                           RadiusTopRight: =11
                                           Size: =8.5
-                                          Text: =If(ThisItem.IsOn, "Active", "Inactive")
+                                          Text: =If(ThisItem.Expired, "Expired", ThisItem.IsOn, "Active", "Inactive")
                                           Width: =74
-                                          X: =Parent.TemplateWidth * 0.73 + 8
+                                          X: =Parent.TemplateWidth * 0.69 + 8
                                           Y: =12
+                                    - recRowValid:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          Align: =Align.Left
+                                          BorderThickness: =0
+                                          Color: |-
+                                            =With(
+                                                {d: DateDiff(Today(), ThisItem.ExpiryDate, TimeUnit.Days)},
+                                                If(
+                                                    d <= 0, clrRed,
+                                                    d >= 90, If(!ThisItem.IsOn || ThisItem.Expired, clrInk3, clrInk),
+                                                    d > 30, With({k: (90 - d) / 60}, RGBA(72 + 124 * k, 88 + 32 * k, 106 - 106 * k, 1)),
+                                                    With({k: (30 - d) / 30}, RGBA(196, 120 - 98 * k, 28 * k, 1))
+                                                )
+                                            )
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =If(DateDiff(Today(), ThisItem.ExpiryDate, TimeUnit.Days) <= 30, FontWeight.Semibold, FontWeight.Normal)
+                                          Height: =46
+                                          OnSelect: =Select(Parent)
+                                          PaddingBottom: =0
+                                          PaddingLeft: =10
+                                          PaddingRight: =10
+                                          PaddingTop: =0
+                                          Size: =10
+                                          Text: |-
+                                            =With(
+                                                {d: DateDiff(Today(), ThisItem.ExpiryDate, TimeUnit.Days)},
+                                                If(
+                                                    d < 0, "Expired",
+                                                    d = 0, "Today",
+                                                    d = 1, "1 day",
+                                                    d < 14, d & " days",
+                                                    d < 60, RoundDown(d / 7, 0) & " weeks",
+                                                    RoundDown(d / 30, 0) & " months"
+                                                )
+                                            )
+                                          Tooltip: ="Valid to " & Text(ThisItem.ExpiryDate, "mmm d, yyyy")
+                                          VerticalAlign: =VerticalAlign.Middle
+                                          Width: =Parent.TemplateWidth * 0.1
+                                          X: =Parent.TemplateWidth * 0.79
+                                          Y: =0
                                     - recRowAdded:
                                         Control: Label@2.5.1
                                         Properties:
@@ -1080,8 +1197,8 @@ Screens:
                                           Size: =10
                                           Text: =Text(ThisItem.Timestamp, "mmm d, h:mm AM/PM")
                                           VerticalAlign: =VerticalAlign.Middle
-                                          Width: =Parent.TemplateWidth * 0.15
-                                          X: =Parent.TemplateWidth * 0.85
+                                          Width: =Parent.TemplateWidth * 0.11
+                                          X: =Parent.TemplateWidth * 0.89
                                           Y: =0
                                     - recRowSep:
                                         Control: Rectangle@2.3.0

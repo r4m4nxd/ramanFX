@@ -134,3 +134,17 @@ Every text control uses one of these roles. The sizes are set once at the top of
   - **Height:** at least 1.4 × the font size plus its top and bottom padding.
   - **Width:** wide enough for its fixed text plus side padding (plus the switch, for toggles).
   - The build lists any control that fails. The current build reports "every text control fits".
+
+## Recent entries
+
+- **Filter chips:** "Active only", "Include fuel" and "Show expired" sit next to the search boxes and fill teal when on.
+  - Fuel is included by default.
+  - Expired rates are hidden unless "Show expired" is on.
+  - "Clear filters" resets the search boxes and all three chips.
+- **LH cost header:** reads "LH cost · fuel in" or "LH cost · no fuel" (in amber), so a cost without fuel can't be mistaken for the full cost.
+- **Count:** "169 rates" on one line.
+- **Rows:** no row is highlighted on load. Inactive and expired rows are shown in grey. Expired rows get a red "Expired" pill.
+- **Expires in:** shows the time left in days (under 2 weeks), weeks (under about 2 months), or months.
+  - The colour shifts gradually: normal text from 90 days out, slate to amber between 90 and 30 days, then amber to red over the last 30 days. Expired is red.
+  - Inside 30 days the text turns semibold.
+  - Hovering shows the exact "Valid to" date.

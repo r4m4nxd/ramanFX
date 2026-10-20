@@ -7,7 +7,8 @@ Screens:
         ClearCollect(
             colLaneRates,
             Sort(
-                AddColumns(Filter(LinehaulRates, Title = varRate.Title && Destination = varRate.Destination && Carrier = varRate.Carrier && Mode = varRate.Mode && Equipment = varRate.Equipment), IsOn, Upper(Trim(Active)) in ["YES", "TRUE"], LH, 0, NoFSC, false),
+                AddColumns(Filter(LinehaulRates, Title = varRate.Title && Destination = varRate.Destination && Carrier = varRate.Carrier && Mode = varRate.Mode && Equipment = varRate.Equipment), IsOn, Upper(Trim(Active)) in ["YES", "TRUE"], LH, 0, NoFSC, false,
+                           Expired, ExpiryDate < Today()),
                 Timestamp,
                 SortOrder.Descending
             )
@@ -2960,7 +2961,8 @@ Screens:
                                                                           ClearCollect(
                                                                               colLaneRates,
                                                                               Sort(
-                                                                                  AddColumns(Filter(LinehaulRates, Title = varRate.Title && Destination = varRate.Destination && Carrier = varRate.Carrier && Mode = varRate.Mode && Equipment = varRate.Equipment), IsOn, Upper(Trim(Active)) in ["YES", "TRUE"], LH, 0, NoFSC, false),
+                                                                                  AddColumns(Filter(LinehaulRates, Title = varRate.Title && Destination = varRate.Destination && Carrier = varRate.Carrier && Mode = varRate.Mode && Equipment = varRate.Equipment), IsOn, Upper(Trim(Active)) in ["YES", "TRUE"], LH, 0, NoFSC, false,
+                                                                                             Expired, ExpiryDate < Today()),
                                                                                   Timestamp,
                                                                                   SortOrder.Descending
                                                                               )
@@ -3639,7 +3641,8 @@ Screens:
                                   ClearCollect(
                                       colLaneRates,
                                       Sort(
-                                          AddColumns(Filter(LinehaulRates, Title = varRate.Title && Destination = varRate.Destination && Carrier = varRate.Carrier && Mode = varRate.Mode && Equipment = varRate.Equipment), IsOn, Upper(Trim(Active)) in ["YES", "TRUE"], LH, 0, NoFSC, false),
+                                          AddColumns(Filter(LinehaulRates, Title = varRate.Title && Destination = varRate.Destination && Carrier = varRate.Carrier && Mode = varRate.Mode && Equipment = varRate.Equipment), IsOn, Upper(Trim(Active)) in ["YES", "TRUE"], LH, 0, NoFSC, false,
+                                                     Expired, ExpiryDate < Today()),
                                           Timestamp,
                                           SortOrder.Descending
                                       )
