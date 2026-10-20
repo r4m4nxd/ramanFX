@@ -1,0 +1,1240 @@
+Screens:
+  scrFuel:
+    Properties:
+      Fill: =clrPage
+      OnVisible: =Set(varFuelForm, false); Set(varFuelEdit, false)
+    Children:
+      - fulRoot:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            BorderThickness: =0
+            DropShadow: =DropShadow.None
+            Fill: =clrPage
+            Height: =Parent.Height
+            LayoutDirection: =LayoutDirection.Horizontal
+            LayoutGap: =0
+            PaddingBottom: =0
+            PaddingLeft: =0
+            PaddingRight: =0
+            PaddingTop: =0
+            RadiusBottomLeft: =0
+            RadiusBottomRight: =0
+            RadiusTopLeft: =0
+            RadiusTopRight: =0
+            Width: =Parent.Width
+            X: =0
+            Y: =0
+          Children:
+            - fulRail:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  AlignInContainer: =AlignInContainer.Stretch
+                  BorderThickness: =0
+                  DropShadow: =DropShadow.None
+                  Fill: =clrRail
+                  FillPortions: =0
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Vertical
+                  LayoutGap: =6
+                  LayoutMinWidth: =84
+                  PaddingBottom: =14
+                  PaddingLeft: =5
+                  PaddingRight: =5
+                  PaddingTop: =14
+                  RadiusBottomLeft: =0
+                  RadiusBottomRight: =0
+                  RadiusTopLeft: =0
+                  RadiusTopRight: =0
+                  Width: =84
+                Children:
+                  - fulLogo:
+                      Control: Image@2.2.3
+                      Properties:
+                        FillPortions: =0
+                        Height: =48
+                        Image: ='cff logo'
+                        ImagePosition: =ImagePosition.Fit
+                        Width: =48
+                  - fulRailGap:
+                      Control: Rectangle@2.3.0
+                      Properties:
+                        BorderThickness: =0
+                        Fill: =clrClear
+                        FillPortions: =0
+                        Height: =10
+                        Width: =10
+                  - fulNavNew:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
+                        Fill: =clrClear
+                        FillPortions: =0
+                        Height: =64
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =3
+                        LayoutJustifyContent: =LayoutJustifyContent.Center
+                        PaddingBottom: =0
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        RadiusBottomLeft: =6
+                        RadiusBottomRight: =6
+                        RadiusTopLeft: =6
+                        RadiusTopRight: =6
+                        Width: =74
+                      Children:
+                        - fulNavNewIcon:
+                            Control: Classic/Icon@2.5.0
+                            Properties:
+                              Color: =clrRailInk
+                              FillPortions: =0
+                              Height: =26
+                              HoverColor: =clrWhite
+                              Icon: =Icon.Edit
+                              OnSelect: =Navigate(scrEntry, ScreenTransition.None)
+                              PressedColor: =clrWhite
+                              Tooltip: ="New rate"
+                              Width: =26
+                        - fulNavNewText:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Center
+                              BorderThickness: =0
+                              Color: =clrRailInk
+                              FillPortions: =0
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =18
+                              OnSelect: =Navigate(scrEntry, ScreenTransition.None)
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              PaddingTop: =0
+                              Size: =8.5
+                              Text: ="New rate"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =74
+                  - fulNavRecent:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
+                        Fill: =clrClear
+                        FillPortions: =0
+                        Height: =64
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =3
+                        LayoutJustifyContent: =LayoutJustifyContent.Center
+                        PaddingBottom: =0
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        RadiusBottomLeft: =6
+                        RadiusBottomRight: =6
+                        RadiusTopLeft: =6
+                        RadiusTopRight: =6
+                        Width: =74
+                      Children:
+                        - fulNavRecentIcon:
+                            Control: Classic/Icon@2.5.0
+                            Properties:
+                              Color: =clrRailInk
+                              FillPortions: =0
+                              Height: =26
+                              HoverColor: =clrWhite
+                              Icon: =Icon.DetailList
+                              OnSelect: =Navigate(scrRecent, ScreenTransition.None)
+                              PressedColor: =clrWhite
+                              Tooltip: ="Recent"
+                              Width: =26
+                        - fulNavRecentText:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Center
+                              BorderThickness: =0
+                              Color: =clrRailInk
+                              FillPortions: =0
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =18
+                              OnSelect: =Navigate(scrRecent, ScreenTransition.None)
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              PaddingTop: =0
+                              Size: =8.5
+                              Text: ="Recent"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =74
+                  - fulNavFuel:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
+                        Fill: =clrRailOn
+                        FillPortions: =0
+                        Height: =64
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =3
+                        LayoutJustifyContent: =LayoutJustifyContent.Center
+                        PaddingBottom: =0
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        RadiusBottomLeft: =6
+                        RadiusBottomRight: =6
+                        RadiusTopLeft: =6
+                        RadiusTopRight: =6
+                        Width: =74
+                      Children:
+                        - fulNavFuelIcon:
+                            Control: Classic/Icon@2.5.0
+                            Properties:
+                              Color: =clrOrange
+                              FillPortions: =0
+                              Height: =26
+                              HoverColor: =clrWhite
+                              Icon: =Icon.Money
+                              OnSelect: =Navigate(scrFuel, ScreenTransition.None)
+                              PressedColor: =clrWhite
+                              Tooltip: ="Fuel library"
+                              Width: =26
+                        - fulNavFuelText:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Center
+                              BorderThickness: =0
+                              Color: =clrWhite
+                              FillPortions: =0
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =18
+                              OnSelect: =Navigate(scrFuel, ScreenTransition.None)
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              PaddingTop: =0
+                              Size: =8.5
+                              Text: ="Fuel library"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =74
+            - fulMain:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  AlignInContainer: =AlignInContainer.Stretch
+                  BorderThickness: =0
+                  DropShadow: =DropShadow.None
+                  Fill: =clrPage
+                  FillPortions: =1
+                  LayoutDirection: =LayoutDirection.Vertical
+                  LayoutGap: =0
+                  LayoutMinWidth: =300
+                  PaddingBottom: =0
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  PaddingTop: =0
+                  RadiusBottomLeft: =0
+                  RadiusBottomRight: =0
+                  RadiusTopLeft: =0
+                  RadiusTopRight: =0
+                Children:
+                  - fulHeader:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Stretch
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.Light
+                        Fill: =clrPanel
+                        FillPortions: =0
+                        Height: =60
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Horizontal
+                        LayoutGap: =14
+                        PaddingBottom: =0
+                        PaddingLeft: =20
+                        PaddingRight: =16
+                        PaddingTop: =0
+                        RadiusBottomLeft: =0
+                        RadiusBottomRight: =0
+                        RadiusTopLeft: =0
+                        RadiusTopRight: =0
+                      Children:
+                        - fulHdrTitle:
+                            Control: Label@2.5.1
+                            Properties:
+                              BorderThickness: =0
+                              Color: =clrInk
+                              FillPortions: =0
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =36
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              PaddingTop: =0
+                              Size: =15
+                              Text: ="Line-Haul Rates"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =160
+                        - fulHdrDiv:
+                            Control: Rectangle@2.3.0
+                            Properties:
+                              BorderThickness: =0
+                              Fill: =clrLine
+                              FillPortions: =0
+                              Height: =24
+                              Width: =1
+                        - fulHdrStep:
+                            Control: Label@2.5.1
+                            Properties:
+                              BorderThickness: =0
+                              Color: =clrInk3
+                              FillPortions: =1
+                              Font: =Font.'Segoe UI'
+                              Height: =36
+                              LayoutMinWidth: =40
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              PaddingTop: =0
+                              Size: =11
+                              Text: ="Fuel library · FSC % by program"
+                              VerticalAlign: =VerticalAlign.Middle
+                        - fulHdrUser:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Right
+                              BorderThickness: =0
+                              Color: =clrInk2
+                              FillPortions: =0
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =36
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              PaddingTop: =0
+                              Size: =9
+                              Text: =User().FullName & " · " & Text(Today(), "mmm d, yyyy")
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =210
+                        - fulHdrBtnAdd:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderColor: =clrBlue
+                              BorderThickness: =1
+                              Color: =clrWhite
+                              DisabledBorderColor: =clrLine
+                              DisabledColor: =clrInk3
+                              DisabledFill: =clrSoft
+                              Fill: =clrBlue
+                              FillPortions: =0
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =38
+                              HoverBorderColor: =clrBlueHover
+                              HoverColor: =clrWhite
+                              HoverFill: =clrBlueHover
+                              OnSelect: =Set(varFuelRec, Blank()); Set(varFuelEdit, false); Set(varFuelForm, true); Reset(fulTxtProgram); Reset(fulTxtFsc); Reset(fulDteEff)
+                              PressedBorderColor: =clrInk
+                              PressedColor: =clrWhite
+                              PressedFill: =clrInk
+                              RadiusBottomLeft: =5
+                              RadiusBottomRight: =5
+                              RadiusTopLeft: =5
+                              RadiusTopRight: =5
+                              Size: =10.5
+                              Text: ="+ Add program"
+                              Width: =150
+                  - fulBody:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Stretch
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
+                        Fill: =clrClear
+                        FillPortions: =1
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =14
+                        LayoutMinWidth: =40
+                        PaddingBottom: =16
+                        PaddingLeft: =16
+                        PaddingRight: =16
+                        PaddingTop: =16
+                        RadiusBottomLeft: =0
+                        RadiusBottomRight: =0
+                        RadiusTopLeft: =0
+                        RadiusTopRight: =0
+                      Children:
+                        - fulSecList:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Stretch
+                              BorderColor: =clrLine
+                              BorderThickness: =1
+                              DropShadow: =DropShadow.None
+                              Fill: =clrPanel
+                              FillPortions: =1
+                              LayoutDirection: =LayoutDirection.Vertical
+                              LayoutGap: =0
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              PaddingTop: =0
+                              RadiusBottomLeft: =6
+                              RadiusBottomRight: =6
+                              RadiusTopLeft: =6
+                              RadiusTopRight: =6
+                            Children:
+                              - fulSecListHead:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    BorderThickness: =0
+                                    DropShadow: =DropShadow.None
+                                    Fill: =clrClear
+                                    FillPortions: =0
+                                    Height: =48
+                                    LayoutAlignItems: =LayoutAlignItems.Center
+                                    LayoutDirection: =LayoutDirection.Horizontal
+                                    LayoutGap: =12
+                                    PaddingBottom: =0
+                                    PaddingLeft: =16
+                                    PaddingRight: =16
+                                    PaddingTop: =0
+                                    RadiusBottomLeft: =0
+                                    RadiusBottomRight: =0
+                                    RadiusTopLeft: =0
+                                    RadiusTopRight: =0
+                                  Children:
+                                    - fulSecListNum:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          Align: =Align.Center
+                                          BorderThickness: =0
+                                          Color: =clrWhite
+                                          Fill: =clrInk
+                                          FillPortions: =0
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Bold
+                                          Height: =24
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          Size: =9
+                                          Text: ="A"
+                                          VerticalAlign: =VerticalAlign.Middle
+                                          Width: =24
+                                    - fulSecListTitle:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          BorderThickness: =0
+                                          Color: =clrInk
+                                          FillPortions: =0
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Bold
+                                          Height: =30
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          Size: =12
+                                          Text: ="Programs"
+                                          VerticalAlign: =VerticalAlign.Middle
+                                          Width: =150
+                                    - fulSecListHint:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          BorderThickness: =0
+                                          Color: =clrInk3
+                                          FillPortions: =1
+                                          Font: =Font.'Segoe UI'
+                                          Height: =30
+                                          LayoutMinWidth: =40
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          Size: =9
+                                          Text: ="Rates use today's FSC, so editing a program updates every rate on it"
+                                          VerticalAlign: =VerticalAlign.Middle
+                              - fulSecListSep:
+                                  Control: Rectangle@2.3.0
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    BorderThickness: =0
+                                    Fill: =clrLine
+                                    FillPortions: =0
+                                    Height: =1
+                              - fulSecListBody:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    BorderThickness: =0
+                                    DropShadow: =DropShadow.None
+                                    Fill: =clrClear
+                                    FillPortions: =1
+                                    LayoutDirection: =LayoutDirection.Vertical
+                                    LayoutGap: =0
+                                    LayoutMinWidth: =40
+                                    PaddingBottom: =0
+                                    PaddingLeft: =16
+                                    PaddingRight: =16
+                                    PaddingTop: =0
+                                    RadiusBottomLeft: =0
+                                    RadiusBottomRight: =0
+                                    RadiusTopLeft: =0
+                                    RadiusTopRight: =0
+                                  Children:
+                                    - fulColHdr:
+                                        Control: GroupContainer@1.5.0
+                                        Variant: ManualLayout
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          BorderThickness: =0
+                                          DropShadow: =DropShadow.None
+                                          Fill: =clrPanel
+                                          FillPortions: =0
+                                          Height: =32
+                                          RadiusBottomLeft: =0
+                                          RadiusBottomRight: =0
+                                          RadiusTopLeft: =0
+                                          RadiusTopRight: =0
+                                        Children:
+                                          - fulHdrProg:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                Align: =Align.Left
+                                                BorderThickness: =0
+                                                Color: =clrInk3
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Bold
+                                                Height: =18
+                                                PaddingBottom: =0
+                                                PaddingLeft: =16
+                                                PaddingRight: =10
+                                                PaddingTop: =0
+                                                Size: =8.5
+                                                Text: ="Program"
+                                                VerticalAlign: =VerticalAlign.Middle
+                                                Width: =Parent.Width * 0.28
+                                                X: =Parent.Width * 0.0
+                                                Y: =7
+                                          - fulHdrFsc:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                Align: =Align.Right
+                                                BorderThickness: =0
+                                                Color: =clrInk3
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Bold
+                                                Height: =18
+                                                PaddingBottom: =0
+                                                PaddingLeft: =16
+                                                PaddingRight: =10
+                                                PaddingTop: =0
+                                                Size: =8.5
+                                                Text: ="FSC"
+                                                VerticalAlign: =VerticalAlign.Middle
+                                                Width: =Parent.Width * 0.14
+                                                X: =Parent.Width * 0.28
+                                                Y: =7
+                                          - fulHdrEff:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                Align: =Align.Left
+                                                BorderThickness: =0
+                                                Color: =clrInk3
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Bold
+                                                Height: =18
+                                                PaddingBottom: =0
+                                                PaddingLeft: =16
+                                                PaddingRight: =10
+                                                PaddingTop: =0
+                                                Size: =8.5
+                                                Text: ="Effective"
+                                                VerticalAlign: =VerticalAlign.Middle
+                                                Width: =Parent.Width * 0.18
+                                                X: =Parent.Width * 0.46
+                                                Y: =7
+                                          - fulHdrWho:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                Align: =Align.Left
+                                                BorderThickness: =0
+                                                Color: =clrInk3
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Bold
+                                                Height: =18
+                                                PaddingBottom: =0
+                                                PaddingLeft: =16
+                                                PaddingRight: =10
+                                                PaddingTop: =0
+                                                Size: =8.5
+                                                Text: ="Last updated"
+                                                VerticalAlign: =VerticalAlign.Middle
+                                                Width: =Parent.Width * 0.24
+                                                X: =Parent.Width * 0.64
+                                                Y: =7
+                                          - fulHdrLine:
+                                              Control: Rectangle@2.3.0
+                                              Properties:
+                                                BorderThickness: =0
+                                                Fill: =clrBlue
+                                                Height: =2
+                                                Width: =Parent.Width
+                                                X: =0
+                                                Y: =30
+                                    - fulGallery:
+                                        Control: Gallery@2.15.0
+                                        Variant: BrowseLayout_Vertical_TwoTextOneImageVariant_ver5.0
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          BorderThickness: =0
+                                          FillPortions: =1
+                                          Items: =Sort(FuelLibrary, Title, SortOrder.Ascending)
+                                          LayoutMinWidth: =40
+                                          ShowScrollbar: =true
+                                          TemplateFill: =If(varFuelForm && varFuelEdit && ThisItem.ID = varFuelRec.ID, clrAmberBg, clrPanel)
+                                          TemplatePadding: =0
+                                          TemplateSize: =58
+                                        Children:
+                                          - fulRowProg:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                BorderThickness: =0
+                                                Color: =clrInk
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Bold
+                                                Height: =58
+                                                PaddingBottom: =0
+                                                PaddingLeft: =16
+                                                PaddingRight: =0
+                                                PaddingTop: =0
+                                                Size: =12
+                                                Text: =ThisItem.Title
+                                                VerticalAlign: =VerticalAlign.Middle
+                                                Width: =Parent.TemplateWidth * 0.28
+                                                X: =0
+                                                Y: =0
+                                          - fulRowFsc:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                Align: =Align.Right
+                                                BorderThickness: =0
+                                                Color: =clrInk
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Bold
+                                                Height: =58
+                                                PaddingBottom: =0
+                                                PaddingLeft: =0
+                                                PaddingRight: =10
+                                                PaddingTop: =0
+                                                Size: =12
+                                                Text: =Text(ThisItem.FSC, "0.00") & "%"
+                                                VerticalAlign: =VerticalAlign.Middle
+                                                Width: =Parent.TemplateWidth * 0.14
+                                                X: =Parent.TemplateWidth * 0.28
+                                                Y: =0
+                                          - fulRowEff:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                BorderThickness: =0
+                                                Color: =clrInk
+                                                Font: =Font.'Segoe UI'
+                                                Height: =58
+                                                PaddingBottom: =0
+                                                PaddingLeft: =16
+                                                PaddingRight: =0
+                                                PaddingTop: =0
+                                                Size: =10
+                                                Text: =Text(ThisItem.EffectiveDate, "mmm d, yyyy")
+                                                VerticalAlign: =VerticalAlign.Middle
+                                                Width: =Parent.TemplateWidth * 0.18
+                                                X: =Parent.TemplateWidth * 0.46
+                                                Y: =0
+                                          - fulRowWho:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                BorderThickness: =0
+                                                Color: =clrInk3
+                                                Font: =Font.'Segoe UI'
+                                                Height: =58
+                                                PaddingBottom: =0
+                                                PaddingLeft: =16
+                                                PaddingRight: =0
+                                                PaddingTop: =0
+                                                Size: =8.5
+                                                Text: =ThisItem.AddedByUser & Char(10) & Text(ThisItem.Timestamp, "mmm d, h:mm AM/PM")
+                                                VerticalAlign: =VerticalAlign.Middle
+                                                Width: =Parent.TemplateWidth * 0.24
+                                                Wrap: =true
+                                                X: =Parent.TemplateWidth * 0.64
+                                                Y: =0
+                                          - fulRowEdit:
+                                              Control: Classic/Button@2.2.0
+                                              Properties:
+                                                BorderColor: =clrLine
+                                                BorderThickness: =1
+                                                Color: =clrInk
+                                                DisabledBorderColor: =clrLine
+                                                DisabledColor: =clrInk3
+                                                DisabledFill: =clrSoft
+                                                Fill: =clrPanel
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Semibold
+                                                Height: =28
+                                                HoverBorderColor: =clrInk3
+                                                HoverColor: =clrInk
+                                                HoverFill: =clrSoft
+                                                OnSelect: =Set(varFuelRec, ThisItem); Set(varFuelEdit, true); Set(varFuelForm, true); Reset(fulTxtProgram); Reset(fulTxtFsc); Reset(fulDteEff)
+                                                PressedBorderColor: =clrInk3
+                                                PressedColor: =clrInk
+                                                PressedFill: =clrLine
+                                                RadiusBottomLeft: =5
+                                                RadiusBottomRight: =5
+                                                RadiusTopLeft: =5
+                                                RadiusTopRight: =5
+                                                Size: =9
+                                                Text: ="Edit"
+                                                Width: =60
+                                                X: =Parent.TemplateWidth - 76
+                                                Y: =15
+                                          - fulRowSep:
+                                              Control: Rectangle@2.3.0
+                                              Properties:
+                                                BorderThickness: =0
+                                                Fill: =clrSoft
+                                                Height: =1
+                                                Width: =Parent.TemplateWidth
+                                                X: =0
+                                                Y: =57
+                        - fulSecForm:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Stretch
+                              BorderColor: =clrBlueHover
+                              BorderThickness: =1
+                              DropShadow: =DropShadow.None
+                              Fill: =clrPanel
+                              FillPortions: =0
+                              Height: =If(fulLblErr.Visible, 250, 204)
+                              LayoutDirection: =LayoutDirection.Vertical
+                              LayoutGap: =0
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              PaddingTop: =0
+                              RadiusBottomLeft: =6
+                              RadiusBottomRight: =6
+                              RadiusTopLeft: =6
+                              RadiusTopRight: =6
+                              Visible: =varFuelForm
+                            Children:
+                              - fulSecFormHead:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    BorderThickness: =0
+                                    DropShadow: =DropShadow.None
+                                    Fill: =clrClear
+                                    FillPortions: =0
+                                    Height: =48
+                                    LayoutAlignItems: =LayoutAlignItems.Center
+                                    LayoutDirection: =LayoutDirection.Horizontal
+                                    LayoutGap: =12
+                                    PaddingBottom: =0
+                                    PaddingLeft: =16
+                                    PaddingRight: =16
+                                    PaddingTop: =0
+                                    RadiusBottomLeft: =0
+                                    RadiusBottomRight: =0
+                                    RadiusTopLeft: =0
+                                    RadiusTopRight: =0
+                                  Children:
+                                    - fulSecFormNum:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          Align: =Align.Center
+                                          BorderThickness: =0
+                                          Color: =clrWhite
+                                          Fill: =clrInk
+                                          FillPortions: =0
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Bold
+                                          Height: =24
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          Size: =9
+                                          Text: ="B"
+                                          VerticalAlign: =VerticalAlign.Middle
+                                          Width: =24
+                                    - fulSecFormTitle:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          BorderThickness: =0
+                                          Color: =clrInk
+                                          FillPortions: =0
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Bold
+                                          Height: =30
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          Size: =12
+                                          Text: =If(varFuelEdit, "Edit program", "Add program")
+                                          VerticalAlign: =VerticalAlign.Middle
+                                          Width: =150
+                                    - fulSecFormHint:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          BorderThickness: =0
+                                          Color: =clrInk3
+                                          FillPortions: =1
+                                          Font: =Font.'Segoe UI'
+                                          Height: =30
+                                          LayoutMinWidth: =40
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          Size: =9
+                                          Text: =If(varFuelEdit, "Changing " & varFuelRec.Title & " updates the cost of every rate on it", "Program names must be unique")
+                                          VerticalAlign: =VerticalAlign.Middle
+                              - fulSecFormSep:
+                                  Control: Rectangle@2.3.0
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    BorderThickness: =0
+                                    Fill: =clrLine
+                                    FillPortions: =0
+                                    Height: =1
+                              - fulSecFormBody:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    BorderThickness: =0
+                                    DropShadow: =DropShadow.None
+                                    Fill: =clrClear
+                                    FillPortions: =1
+                                    LayoutDirection: =LayoutDirection.Vertical
+                                    LayoutGap: =12
+                                    LayoutMinWidth: =40
+                                    PaddingBottom: =16
+                                    PaddingLeft: =16
+                                    PaddingRight: =16
+                                    PaddingTop: =16
+                                    RadiusBottomLeft: =0
+                                    RadiusBottomRight: =0
+                                    RadiusTopLeft: =0
+                                    RadiusTopRight: =0
+                                  Children:
+                                    - fulFormRow:
+                                        Control: GroupContainer@1.5.0
+                                        Variant: AutoLayout
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          BorderThickness: =0
+                                          DropShadow: =DropShadow.None
+                                          Fill: =clrClear
+                                          FillPortions: =0
+                                          Height: =60
+                                          LayoutDirection: =LayoutDirection.Horizontal
+                                          LayoutGap: =12
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          RadiusBottomLeft: =0
+                                          RadiusBottomRight: =0
+                                          RadiusTopLeft: =0
+                                          RadiusTopRight: =0
+                                        Children:
+                                          - fulFldProgram:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: AutoLayout
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderThickness: =0
+                                                DropShadow: =DropShadow.None
+                                                Fill: =clrClear
+                                                FillPortions: =1
+                                                LayoutDirection: =LayoutDirection.Vertical
+                                                LayoutGap: =4
+                                                LayoutMinWidth: =100
+                                                PaddingBottom: =0
+                                                PaddingLeft: =0
+                                                PaddingRight: =0
+                                                PaddingTop: =0
+                                                RadiusBottomLeft: =0
+                                                RadiusBottomRight: =0
+                                                RadiusTopLeft: =0
+                                                RadiusTopRight: =0
+                                              Children:
+                                                - fulFldProgramLbl:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.Stretch
+                                                      BorderThickness: =0
+                                                      Color: =clrInk3
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =18
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =8.5
+                                                      Text: ="Program *"
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                - fulTxtProgram:
+                                                    Control: Classic/TextInput@2.3.2
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.Stretch
+                                                      BorderColor: =clrLine
+                                                      BorderThickness: =1
+                                                      Color: =clrInk
+                                                      Default: =If(varFuelEdit, varFuelRec.Title, "")
+                                                      Fill: =clrPanel
+                                                      Font: =Font.'Segoe UI'
+                                                      Height: =38
+                                                      HintText: ="e.g. CP"
+                                                      HoverBorderColor: =clrInk3
+                                                      HoverFill: =clrPanel
+                                                      PressedBorderColor: =clrBlue
+                                                      PressedFill: =clrPanel
+                                                      RadiusBottomLeft: =5
+                                                      RadiusBottomRight: =5
+                                                      RadiusTopLeft: =5
+                                                      RadiusTopRight: =5
+                                                      Size: =10.5
+                                          - fulFldFsc:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: AutoLayout
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderThickness: =0
+                                                DropShadow: =DropShadow.None
+                                                Fill: =clrClear
+                                                FillPortions: =1
+                                                LayoutDirection: =LayoutDirection.Vertical
+                                                LayoutGap: =4
+                                                LayoutMinWidth: =100
+                                                PaddingBottom: =0
+                                                PaddingLeft: =0
+                                                PaddingRight: =0
+                                                PaddingTop: =0
+                                                RadiusBottomLeft: =0
+                                                RadiusBottomRight: =0
+                                                RadiusTopLeft: =0
+                                                RadiusTopRight: =0
+                                              Children:
+                                                - fulFldFscLbl:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.Stretch
+                                                      BorderThickness: =0
+                                                      Color: =clrInk3
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =18
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =8.5
+                                                      Text: ="FSC % *"
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                - fulFscRow:
+                                                    Control: GroupContainer@1.5.0
+                                                    Variant: AutoLayout
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.Stretch
+                                                      BorderThickness: =0
+                                                      DropShadow: =DropShadow.None
+                                                      Fill: =clrClear
+                                                      FillPortions: =0
+                                                      Height: =38
+                                                      LayoutDirection: =LayoutDirection.Horizontal
+                                                      LayoutGap: =6
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      RadiusBottomLeft: =0
+                                                      RadiusBottomRight: =0
+                                                      RadiusTopLeft: =0
+                                                      RadiusTopRight: =0
+                                                    Children:
+                                                      - fulTxtFsc:
+                                                          Control: Classic/TextInput@2.3.2
+                                                          Properties:
+                                                            Align: =Align.Right
+                                                            AlignInContainer: =AlignInContainer.Stretch
+                                                            BorderColor: =clrLine
+                                                            BorderThickness: =1
+                                                            Color: =clrInk
+                                                            Default: =If(varFuelEdit, Text(varFuelRec.FSC), "")
+                                                            Fill: =clrPanel
+                                                            FillPortions: =1
+                                                            Font: =Font.'Segoe UI'
+                                                            Format: =TextFormat.Number
+                                                            Height: =38
+                                                            HintText: ="e.g. 36.16"
+                                                            HoverBorderColor: =clrInk3
+                                                            HoverFill: =clrPanel
+                                                            LayoutMinWidth: =40
+                                                            PressedBorderColor: =clrBlue
+                                                            PressedFill: =clrPanel
+                                                            RadiusBottomLeft: =5
+                                                            RadiusBottomRight: =5
+                                                            RadiusTopLeft: =5
+                                                            RadiusTopRight: =5
+                                                            Size: =10.5
+                                                      - fulFscUnit:
+                                                          Control: Label@2.5.1
+                                                          Properties:
+                                                            Align: =Align.Center
+                                                            BorderColor: =clrLine
+                                                            BorderThickness: =1
+                                                            Color: =clrInk3
+                                                            Fill: =clrSoft
+                                                            FillPortions: =0
+                                                            Font: =Font.'Segoe UI'
+                                                            FontWeight: =FontWeight.Bold
+                                                            Height: =38
+                                                            PaddingBottom: =0
+                                                            PaddingLeft: =0
+                                                            PaddingRight: =0
+                                                            PaddingTop: =0
+                                                            Size: =10
+                                                            Text: ="%"
+                                                            VerticalAlign: =VerticalAlign.Middle
+                                                            Width: =40
+                                          - fulFldEff:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: AutoLayout
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderThickness: =0
+                                                DropShadow: =DropShadow.None
+                                                Fill: =clrClear
+                                                FillPortions: =1
+                                                LayoutDirection: =LayoutDirection.Vertical
+                                                LayoutGap: =4
+                                                LayoutMinWidth: =100
+                                                PaddingBottom: =0
+                                                PaddingLeft: =0
+                                                PaddingRight: =0
+                                                PaddingTop: =0
+                                                RadiusBottomLeft: =0
+                                                RadiusBottomRight: =0
+                                                RadiusTopLeft: =0
+                                                RadiusTopRight: =0
+                                              Children:
+                                                - fulFldEffLbl:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.Stretch
+                                                      BorderThickness: =0
+                                                      Color: =clrInk3
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =18
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =8.5
+                                                      Text: ="Effective *"
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                - fulDteEff:
+                                                    Control: Classic/DatePicker@2.6.0
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.Stretch
+                                                      BorderColor: =clrLine
+                                                      BorderThickness: =1
+                                                      Color: =clrInk
+                                                      DefaultDate: =If(varFuelEdit, varFuelRec.EffectiveDate, Today())
+                                                      Fill: =clrPanel
+                                                      Font: =Font.'Segoe UI'
+                                                      Height: =38
+                                                      IconBackground: =clrBlue
+                                                      IconFill: =clrWhite
+                                                      Size: =10.5
+                                    - fulLblErr:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          BorderColor: =clrRed
+                                          BorderThickness: =1
+                                          Color: =clrRed
+                                          Fill: =clrRedBg
+                                          FillPortions: =0
+                                          Font: =Font.'Segoe UI'
+                                          Height: =34
+                                          PaddingBottom: =0
+                                          PaddingLeft: =12
+                                          PaddingRight: =12
+                                          PaddingTop: =0
+                                          Size: =9.5
+                                          Text: |-
+                                            =With(
+                                                {p: Upper(Trim(fulTxtProgram.Text)), v: Trim(fulTxtFsc.Text)},
+                                                If(
+                                                    !IsBlank(v) && !IsMatch(v, "^\d{1,3}(\.\d{1,2})?$"),
+                                                    "FSC % must be a number with up to 2 decimals, e.g. 36.16.",
+                                                    !IsBlank(p) && !IsBlank(
+                                                        LookUp(FuelLibrary, Title = p && (!varFuelEdit || ID <> varFuelRec.ID))
+                                                    ),
+                                                    p & " is already in the library. Edit that row instead.",
+                                                    ""
+                                                )
+                                            )
+                                          VerticalAlign: =VerticalAlign.Middle
+                                          Visible: =!IsBlank(Self.Text)
+                                          Wrap: =true
+                                    - fulFormBtns:
+                                        Control: GroupContainer@1.5.0
+                                        Variant: AutoLayout
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          BorderThickness: =0
+                                          DropShadow: =DropShadow.None
+                                          Fill: =clrClear
+                                          FillPortions: =0
+                                          Height: =38
+                                          LayoutDirection: =LayoutDirection.Horizontal
+                                          LayoutGap: =10
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          RadiusBottomLeft: =0
+                                          RadiusBottomRight: =0
+                                          RadiusTopLeft: =0
+                                          RadiusTopRight: =0
+                                        Children:
+                                          - fulFormSpacer:
+                                              Control: Rectangle@2.3.0
+                                              Properties:
+                                                BorderThickness: =0
+                                                Fill: =clrClear
+                                                FillPortions: =1
+                                                Height: =10
+                                                LayoutMinWidth: =0
+                                          - fulBtnCancel:
+                                              Control: Classic/Button@2.2.0
+                                              Properties:
+                                                BorderColor: =clrLine
+                                                BorderThickness: =1
+                                                Color: =clrInk
+                                                DisabledBorderColor: =clrLine
+                                                DisabledColor: =clrInk3
+                                                DisabledFill: =clrSoft
+                                                Fill: =clrPanel
+                                                FillPortions: =0
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Semibold
+                                                Height: =38
+                                                HoverBorderColor: =clrInk3
+                                                HoverColor: =clrInk
+                                                HoverFill: =clrSoft
+                                                OnSelect: =Set(varFuelForm, false); Set(varFuelEdit, false)
+                                                PressedBorderColor: =clrInk3
+                                                PressedColor: =clrInk
+                                                PressedFill: =clrLine
+                                                RadiusBottomLeft: =5
+                                                RadiusBottomRight: =5
+                                                RadiusTopLeft: =5
+                                                RadiusTopRight: =5
+                                                Size: =10.5
+                                                Text: ="Cancel"
+                                                Width: =100
+                                          - fulBtnSave:
+                                              Control: Classic/Button@2.2.0
+                                              Properties:
+                                                BorderColor: =clrBlue
+                                                BorderThickness: =1
+                                                Color: =clrWhite
+                                                DisabledBorderColor: =clrLine
+                                                DisabledColor: =clrInk3
+                                                DisabledFill: =clrSoft
+                                                DisplayMode: |-
+                                                  =If(
+                                                      IsBlank(Trim(fulTxtProgram.Text)) || IsBlank(Trim(fulTxtFsc.Text)) ||
+                                                      IsBlank(fulDteEff.SelectedDate) || !IsBlank(fulLblErr.Text),
+                                                      DisplayMode.Disabled,
+                                                      DisplayMode.Edit
+                                                  )
+                                                Fill: =clrBlue
+                                                FillPortions: =0
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Semibold
+                                                Height: =38
+                                                HoverBorderColor: =clrBlueHover
+                                                HoverColor: =clrWhite
+                                                HoverFill: =clrBlueHover
+                                                OnSelect: |-
+                                                  =If(
+                                                      !IsBlank(fulLblErr.Text),
+                                                      Notify(fulLblErr.Text, NotificationType.Error),
+                                                      With(
+                                                          {
+                                                              r: Patch(
+                                                                  FuelLibrary,
+                                                                  If(varFuelEdit, LookUp(FuelLibrary, ID = varFuelRec.ID), Defaults(FuelLibrary)),
+                                                                  {
+                                                                      Title: Upper(Trim(fulTxtProgram.Text)),
+                                                                      FSC: Value(fulTxtFsc.Text),
+                                                                      EffectiveDate: fulDteEff.SelectedDate,
+                                                                      Timestamp: Now(),
+                                                                      AddedByEmail: User().Email,
+                                                                      AddedByUser: User().FullName
+                                                                  }
+                                                              )
+                                                          },
+                                                          If(
+                                                              IsError(r) || IsBlank(r.ID),
+                                                              Notify("The fuel program wasn't saved. Try again.", NotificationType.Error),
+                                                              Notify(r.Title & If(varFuelEdit, " updated.", " added."), NotificationType.Success);
+                                                              Refresh(FuelLibrary);
+                                                              Set(varFuelForm, false);
+                                                              Set(varFuelEdit, false);
+                                                              Set(varFuelRec, Blank())
+                                                          )
+                                                      )
+                                                  )
+                                                PressedBorderColor: =clrInk
+                                                PressedColor: =clrWhite
+                                                PressedFill: =clrInk
+                                                RadiusBottomLeft: =5
+                                                RadiusBottomRight: =5
+                                                RadiusTopLeft: =5
+                                                RadiusTopRight: =5
+                                                Size: =10.5
+                                                Text: ="Save"
+                                                Width: =120

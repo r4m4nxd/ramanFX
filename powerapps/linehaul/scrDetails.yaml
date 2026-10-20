@@ -1,0 +1,2066 @@
+Screens:
+  scrDetails:
+    Properties:
+      Fill: =clrPage
+    Children:
+      - detRoot:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            BorderThickness: =0
+            DropShadow: =DropShadow.None
+            Fill: =clrPage
+            Height: =Parent.Height
+            LayoutDirection: =LayoutDirection.Horizontal
+            LayoutGap: =0
+            PaddingBottom: =0
+            PaddingLeft: =0
+            PaddingRight: =0
+            PaddingTop: =0
+            RadiusBottomLeft: =0
+            RadiusBottomRight: =0
+            RadiusTopLeft: =0
+            RadiusTopRight: =0
+            Width: =Parent.Width
+            X: =0
+            Y: =0
+          Children:
+            - detRail:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  AlignInContainer: =AlignInContainer.Stretch
+                  BorderThickness: =0
+                  DropShadow: =DropShadow.None
+                  Fill: =clrRail
+                  FillPortions: =0
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Vertical
+                  LayoutGap: =6
+                  LayoutMinWidth: =84
+                  PaddingBottom: =14
+                  PaddingLeft: =5
+                  PaddingRight: =5
+                  PaddingTop: =14
+                  RadiusBottomLeft: =0
+                  RadiusBottomRight: =0
+                  RadiusTopLeft: =0
+                  RadiusTopRight: =0
+                  Width: =84
+                Children:
+                  - detLogo:
+                      Control: Image@2.2.3
+                      Properties:
+                        FillPortions: =0
+                        Height: =48
+                        Image: ='cff logo'
+                        ImagePosition: =ImagePosition.Fit
+                        Width: =48
+                  - detRailGap:
+                      Control: Rectangle@2.3.0
+                      Properties:
+                        BorderThickness: =0
+                        Fill: =clrClear
+                        FillPortions: =0
+                        Height: =10
+                        Width: =10
+                  - detNavNew:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
+                        Fill: =clrClear
+                        FillPortions: =0
+                        Height: =64
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =3
+                        LayoutJustifyContent: =LayoutJustifyContent.Center
+                        PaddingBottom: =0
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        RadiusBottomLeft: =6
+                        RadiusBottomRight: =6
+                        RadiusTopLeft: =6
+                        RadiusTopRight: =6
+                        Width: =74
+                      Children:
+                        - detNavNewIcon:
+                            Control: Classic/Icon@2.5.0
+                            Properties:
+                              Color: =clrRailInk
+                              FillPortions: =0
+                              Height: =26
+                              HoverColor: =clrWhite
+                              Icon: =Icon.Edit
+                              OnSelect: =Navigate(scrEntry, ScreenTransition.None)
+                              PressedColor: =clrWhite
+                              Tooltip: ="New rate"
+                              Width: =26
+                        - detNavNewText:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Center
+                              BorderThickness: =0
+                              Color: =clrRailInk
+                              FillPortions: =0
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =18
+                              OnSelect: =Navigate(scrEntry, ScreenTransition.None)
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              PaddingTop: =0
+                              Size: =8.5
+                              Text: ="New rate"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =74
+                  - detNavRecent:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
+                        Fill: =clrRailOn
+                        FillPortions: =0
+                        Height: =64
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =3
+                        LayoutJustifyContent: =LayoutJustifyContent.Center
+                        PaddingBottom: =0
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        RadiusBottomLeft: =6
+                        RadiusBottomRight: =6
+                        RadiusTopLeft: =6
+                        RadiusTopRight: =6
+                        Width: =74
+                      Children:
+                        - detNavRecentIcon:
+                            Control: Classic/Icon@2.5.0
+                            Properties:
+                              Color: =clrOrange
+                              FillPortions: =0
+                              Height: =26
+                              HoverColor: =clrWhite
+                              Icon: =Icon.DetailList
+                              OnSelect: =Navigate(scrRecent, ScreenTransition.None)
+                              PressedColor: =clrWhite
+                              Tooltip: ="Recent"
+                              Width: =26
+                        - detNavRecentText:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Center
+                              BorderThickness: =0
+                              Color: =clrWhite
+                              FillPortions: =0
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =18
+                              OnSelect: =Navigate(scrRecent, ScreenTransition.None)
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              PaddingTop: =0
+                              Size: =8.5
+                              Text: ="Recent"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =74
+                  - detNavFuel:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
+                        Fill: =clrClear
+                        FillPortions: =0
+                        Height: =64
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =3
+                        LayoutJustifyContent: =LayoutJustifyContent.Center
+                        PaddingBottom: =0
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        RadiusBottomLeft: =6
+                        RadiusBottomRight: =6
+                        RadiusTopLeft: =6
+                        RadiusTopRight: =6
+                        Width: =74
+                      Children:
+                        - detNavFuelIcon:
+                            Control: Classic/Icon@2.5.0
+                            Properties:
+                              Color: =clrRailInk
+                              FillPortions: =0
+                              Height: =26
+                              HoverColor: =clrWhite
+                              Icon: =Icon.Money
+                              OnSelect: =Navigate(scrFuel, ScreenTransition.None)
+                              PressedColor: =clrWhite
+                              Tooltip: ="Fuel library"
+                              Width: =26
+                        - detNavFuelText:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Center
+                              BorderThickness: =0
+                              Color: =clrRailInk
+                              FillPortions: =0
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =18
+                              OnSelect: =Navigate(scrFuel, ScreenTransition.None)
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              PaddingTop: =0
+                              Size: =8.5
+                              Text: ="Fuel library"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =74
+            - detMain:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  AlignInContainer: =AlignInContainer.Stretch
+                  BorderThickness: =0
+                  DropShadow: =DropShadow.None
+                  Fill: =clrPage
+                  FillPortions: =1
+                  LayoutDirection: =LayoutDirection.Vertical
+                  LayoutGap: =0
+                  LayoutMinWidth: =300
+                  PaddingBottom: =0
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  PaddingTop: =0
+                  RadiusBottomLeft: =0
+                  RadiusBottomRight: =0
+                  RadiusTopLeft: =0
+                  RadiusTopRight: =0
+                Children:
+                  - detHeader:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Stretch
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.Light
+                        Fill: =clrPanel
+                        FillPortions: =0
+                        Height: =60
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Horizontal
+                        LayoutGap: =14
+                        PaddingBottom: =0
+                        PaddingLeft: =20
+                        PaddingRight: =16
+                        PaddingTop: =0
+                        RadiusBottomLeft: =0
+                        RadiusBottomRight: =0
+                        RadiusTopLeft: =0
+                        RadiusTopRight: =0
+                      Children:
+                        - detHdrTitle:
+                            Control: Label@2.5.1
+                            Properties:
+                              BorderThickness: =0
+                              Color: =clrInk
+                              FillPortions: =0
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =36
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              PaddingTop: =0
+                              Size: =15
+                              Text: ="Line-Haul Rates"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =160
+                        - detHdrDiv:
+                            Control: Rectangle@2.3.0
+                            Properties:
+                              BorderThickness: =0
+                              Fill: =clrLine
+                              FillPortions: =0
+                              Height: =24
+                              Width: =1
+                        - detHdrStep:
+                            Control: Label@2.5.1
+                            Properties:
+                              BorderThickness: =0
+                              Color: =clrInk3
+                              FillPortions: =1
+                              Font: =Font.'Segoe UI'
+                              Height: =36
+                              LayoutMinWidth: =40
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              PaddingTop: =0
+                              Size: =11
+                              Text: ="Rate details · " & varRate.Title & varRate.Destination & "-" & varRate.Carrier & "-" & varRate.Mode & "-" & varRate.Equipment
+                              VerticalAlign: =VerticalAlign.Middle
+                        - detHdrUser:
+                            Control: Label@2.5.1
+                            Properties:
+                              Align: =Align.Right
+                              BorderThickness: =0
+                              Color: =clrInk2
+                              FillPortions: =0
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =36
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              PaddingTop: =0
+                              Size: =9
+                              Text: =User().FullName & " · " & Text(Today(), "mmm d, yyyy")
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =210
+                        - detHdrBtnBack:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderColor: =clrLine
+                              BorderThickness: =1
+                              Color: =clrInk
+                              DisabledBorderColor: =clrLine
+                              DisabledColor: =clrInk3
+                              DisabledFill: =clrSoft
+                              Fill: =clrPanel
+                              FillPortions: =0
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =38
+                              HoverBorderColor: =clrInk3
+                              HoverColor: =clrInk
+                              HoverFill: =clrSoft
+                              OnSelect: =Navigate(scrRecent, ScreenTransition.None)
+                              PressedBorderColor: =clrInk3
+                              PressedColor: =clrInk
+                              PressedFill: =clrLine
+                              RadiusBottomLeft: =5
+                              RadiusBottomRight: =5
+                              RadiusTopLeft: =5
+                              RadiusTopRight: =5
+                              Size: =10.5
+                              Text: ="← Back to recent"
+                              Width: =150
+                  - detBody:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        AlignInContainer: =AlignInContainer.Stretch
+                        BorderThickness: =0
+                        DropShadow: =DropShadow.None
+                        Fill: =clrClear
+                        FillPortions: =1
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =14
+                        LayoutMinWidth: =40
+                        LayoutOverflowY: =LayoutOverflow.Scroll
+                        PaddingBottom: =16
+                        PaddingLeft: =16
+                        PaddingRight: =16
+                        PaddingTop: =16
+                        RadiusBottomLeft: =0
+                        RadiusBottomRight: =0
+                        RadiusTopLeft: =0
+                        RadiusTopRight: =0
+                      Children:
+                        - detHero:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Stretch
+                              BorderThickness: =0
+                              DropShadow: =DropShadow.None
+                              Fill: =clrClear
+                              FillPortions: =0
+                              Height: =44
+                              LayoutAlignItems: =LayoutAlignItems.Center
+                              LayoutDirection: =LayoutDirection.Horizontal
+                              LayoutGap: =10
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              PaddingTop: =0
+                              RadiusBottomLeft: =0
+                              RadiusBottomRight: =0
+                              RadiusTopLeft: =0
+                              RadiusTopRight: =0
+                            Children:
+                              - detLblLane:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    BorderThickness: =0
+                                    Color: =clrInk
+                                    FillPortions: =0
+                                    Font: =Font.'Segoe UI'
+                                    FontWeight: =FontWeight.Bold
+                                    Height: =44
+                                    PaddingBottom: =0
+                                    PaddingLeft: =0
+                                    PaddingRight: =0
+                                    PaddingTop: =0
+                                    Size: =20
+                                    Text: =varRate.Title & "  →  " & varRate.Destination
+                                    VerticalAlign: =VerticalAlign.Middle
+                                    Width: =150
+                              - detChipCarrier:
+                                  Control: Classic/Button@2.2.0
+                                  Properties:
+                                    BorderColor: =clrLine
+                                    BorderThickness: =1
+                                    Color: =clrInk
+                                    Fill: =clrPanel
+                                    FillPortions: =0
+                                    Font: =Font.'Segoe UI'
+                                    FontWeight: =FontWeight.Bold
+                                    Height: =26
+                                    HoverBorderColor: =clrLine
+                                    HoverColor: =clrInk
+                                    HoverFill: =clrPanel
+                                    PressedBorderColor: =clrLine
+                                    PressedColor: =clrInk
+                                    PressedFill: =clrPanel
+                                    RadiusBottomLeft: =11
+                                    RadiusBottomRight: =11
+                                    RadiusTopLeft: =11
+                                    RadiusTopRight: =11
+                                    Size: =8.5
+                                    Text: =varRate.Carrier
+                                    Width: =140
+                              - detChipMode:
+                                  Control: Classic/Button@2.2.0
+                                  Properties:
+                                    BorderColor: =clrLine
+                                    BorderThickness: =1
+                                    Color: =clrInk
+                                    Fill: =clrPanel
+                                    FillPortions: =0
+                                    Font: =Font.'Segoe UI'
+                                    FontWeight: =FontWeight.Bold
+                                    Height: =26
+                                    HoverBorderColor: =clrLine
+                                    HoverColor: =clrInk
+                                    HoverFill: =clrPanel
+                                    PressedBorderColor: =clrLine
+                                    PressedColor: =clrInk
+                                    PressedFill: =clrPanel
+                                    RadiusBottomLeft: =11
+                                    RadiusBottomRight: =11
+                                    RadiusTopLeft: =11
+                                    RadiusTopRight: =11
+                                    Size: =8.5
+                                    Text: =varRate.Mode
+                                    Width: =100
+                              - detChipEquip:
+                                  Control: Classic/Button@2.2.0
+                                  Properties:
+                                    BorderColor: =clrLine
+                                    BorderThickness: =1
+                                    Color: =clrInk
+                                    Fill: =clrPanel
+                                    FillPortions: =0
+                                    Font: =Font.'Segoe UI'
+                                    FontWeight: =FontWeight.Bold
+                                    Height: =26
+                                    HoverBorderColor: =clrLine
+                                    HoverColor: =clrInk
+                                    HoverFill: =clrPanel
+                                    PressedBorderColor: =clrLine
+                                    PressedColor: =clrInk
+                                    PressedFill: =clrPanel
+                                    RadiusBottomLeft: =11
+                                    RadiusBottomRight: =11
+                                    RadiusTopLeft: =11
+                                    RadiusTopRight: =11
+                                    Size: =8.5
+                                    Text: =varRate.Equipment
+                                    Width: =170
+                              - detHeroSpacer:
+                                  Control: Rectangle@2.3.0
+                                  Properties:
+                                    BorderThickness: =0
+                                    Fill: =clrClear
+                                    FillPortions: =1
+                                    Height: =10
+                                    LayoutMinWidth: =0
+                              - detStatus:
+                                  Control: Classic/Button@2.2.0
+                                  Properties:
+                                    BorderColor: =clrClear
+                                    BorderThickness: =0
+                                    Color: =If(varRate.Active, clrGreenInk, clrInk3)
+                                    Fill: =If(varRate.Active, clrGreenBg, clrSoft)
+                                    FillPortions: =0
+                                    Font: =Font.'Segoe UI'
+                                    FontWeight: =FontWeight.Bold
+                                    Height: =26
+                                    HoverBorderColor: =clrClear
+                                    HoverColor: =If(varRate.Active, clrGreenInk, clrInk3)
+                                    HoverFill: =If(varRate.Active, clrGreenBg, clrSoft)
+                                    PressedBorderColor: =clrClear
+                                    PressedColor: =If(varRate.Active, clrGreenInk, clrInk3)
+                                    PressedFill: =If(varRate.Active, clrGreenBg, clrSoft)
+                                    RadiusBottomLeft: =11
+                                    RadiusBottomRight: =11
+                                    RadiusTopLeft: =11
+                                    RadiusTopRight: =11
+                                    Size: =8.5
+                                    Text: =If(varRate.Active, "Active", "Inactive")
+                                    Width: =90
+                        - detSecLane:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Stretch
+                              BorderColor: =clrLine
+                              BorderThickness: =1
+                              DropShadow: =DropShadow.None
+                              Fill: =clrPanel
+                              FillPortions: =0
+                              Height: =204
+                              LayoutDirection: =LayoutDirection.Vertical
+                              LayoutGap: =0
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              PaddingTop: =0
+                              RadiusBottomLeft: =6
+                              RadiusBottomRight: =6
+                              RadiusTopLeft: =6
+                              RadiusTopRight: =6
+                            Children:
+                              - detSecLaneHead:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    BorderThickness: =0
+                                    DropShadow: =DropShadow.None
+                                    Fill: =clrClear
+                                    FillPortions: =0
+                                    Height: =48
+                                    LayoutAlignItems: =LayoutAlignItems.Center
+                                    LayoutDirection: =LayoutDirection.Horizontal
+                                    LayoutGap: =12
+                                    PaddingBottom: =0
+                                    PaddingLeft: =16
+                                    PaddingRight: =16
+                                    PaddingTop: =0
+                                    RadiusBottomLeft: =0
+                                    RadiusBottomRight: =0
+                                    RadiusTopLeft: =0
+                                    RadiusTopRight: =0
+                                  Children:
+                                    - detSecLaneNum:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          Align: =Align.Center
+                                          BorderThickness: =0
+                                          Color: =clrWhite
+                                          Fill: =clrInk
+                                          FillPortions: =0
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Bold
+                                          Height: =24
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          Size: =9
+                                          Text: ="1"
+                                          VerticalAlign: =VerticalAlign.Middle
+                                          Width: =24
+                                    - detSecLaneTitle:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          BorderThickness: =0
+                                          Color: =clrInk
+                                          FillPortions: =0
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Bold
+                                          Height: =30
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          Size: =12
+                                          Text: ="Lane"
+                                          VerticalAlign: =VerticalAlign.Middle
+                                          Width: =150
+                                    - detSecLaneHint:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          BorderThickness: =0
+                                          Color: =clrInk3
+                                          FillPortions: =1
+                                          Font: =Font.'Segoe UI'
+                                          Height: =30
+                                          LayoutMinWidth: =40
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          Size: =9
+                                          Text: ="Read only"
+                                          VerticalAlign: =VerticalAlign.Middle
+                              - detSecLaneSep:
+                                  Control: Rectangle@2.3.0
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    BorderThickness: =0
+                                    Fill: =clrLine
+                                    FillPortions: =0
+                                    Height: =1
+                              - detSecLaneBody:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    BorderThickness: =0
+                                    DropShadow: =DropShadow.None
+                                    Fill: =clrClear
+                                    FillPortions: =1
+                                    LayoutDirection: =LayoutDirection.Vertical
+                                    LayoutGap: =8
+                                    LayoutMinWidth: =40
+                                    PaddingBottom: =16
+                                    PaddingLeft: =16
+                                    PaddingRight: =16
+                                    PaddingTop: =16
+                                    RadiusBottomLeft: =0
+                                    RadiusBottomRight: =0
+                                    RadiusTopLeft: =0
+                                    RadiusTopRight: =0
+                                  Children:
+                                    - detLaneRow1:
+                                        Control: GroupContainer@1.5.0
+                                        Variant: AutoLayout
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          BorderThickness: =0
+                                          DropShadow: =DropShadow.None
+                                          Fill: =clrClear
+                                          FillPortions: =0
+                                          Height: =56
+                                          LayoutDirection: =LayoutDirection.Horizontal
+                                          LayoutGap: =8
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          RadiusBottomLeft: =0
+                                          RadiusBottomRight: =0
+                                          RadiusTopLeft: =0
+                                          RadiusTopRight: =0
+                                        Children:
+                                          - detFactOrigin:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: ManualLayout
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderThickness: =0
+                                                DropShadow: =DropShadow.None
+                                                Fill: =clrSoft
+                                                FillPortions: =1
+                                                Height: =56
+                                                LayoutMinWidth: =80
+                                                RadiusBottomLeft: =0
+                                                RadiusBottomRight: =3
+                                                RadiusTopLeft: =0
+                                                RadiusTopRight: =3
+                                              Children:
+                                                - detFactOriginEdge:
+                                                    Control: Rectangle@2.3.0
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Fill: =clrBlue
+                                                      Height: =Parent.Height
+                                                      Width: =3
+                                                      X: =0
+                                                      Y: =0
+                                                - detFactOriginK:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Color: =clrInk3
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =16
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =8
+                                                      Text: ="ORIGIN"
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                      Width: =Parent.Width - 16
+                                                      X: =12
+                                                      Y: =7
+                                                - detFactOriginV:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Color: =clrInk
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Semibold
+                                                      Height: =24
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =10.5
+                                                      Text: =varRate.Title
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                      Width: =Parent.Width - 16
+                                                      X: =12
+                                                      Y: =25
+                                          - detFactDest:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: ManualLayout
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderThickness: =0
+                                                DropShadow: =DropShadow.None
+                                                Fill: =clrSoft
+                                                FillPortions: =1
+                                                Height: =56
+                                                LayoutMinWidth: =80
+                                                RadiusBottomLeft: =0
+                                                RadiusBottomRight: =3
+                                                RadiusTopLeft: =0
+                                                RadiusTopRight: =3
+                                              Children:
+                                                - detFactDestEdge:
+                                                    Control: Rectangle@2.3.0
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Fill: =clrBlue
+                                                      Height: =Parent.Height
+                                                      Width: =3
+                                                      X: =0
+                                                      Y: =0
+                                                - detFactDestK:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Color: =clrInk3
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =16
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =8
+                                                      Text: ="DESTINATION"
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                      Width: =Parent.Width - 16
+                                                      X: =12
+                                                      Y: =7
+                                                - detFactDestV:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Color: =clrInk
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Semibold
+                                                      Height: =24
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =10.5
+                                                      Text: =varRate.Destination
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                      Width: =Parent.Width - 16
+                                                      X: =12
+                                                      Y: =25
+                                          - detFactCarrier:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: ManualLayout
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderThickness: =0
+                                                DropShadow: =DropShadow.None
+                                                Fill: =clrSoft
+                                                FillPortions: =1
+                                                Height: =56
+                                                LayoutMinWidth: =80
+                                                RadiusBottomLeft: =0
+                                                RadiusBottomRight: =3
+                                                RadiusTopLeft: =0
+                                                RadiusTopRight: =3
+                                              Children:
+                                                - detFactCarrierEdge:
+                                                    Control: Rectangle@2.3.0
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Fill: =clrBlue
+                                                      Height: =Parent.Height
+                                                      Width: =3
+                                                      X: =0
+                                                      Y: =0
+                                                - detFactCarrierK:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Color: =clrInk3
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =16
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =8
+                                                      Text: ="CARRIER"
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                      Width: =Parent.Width - 16
+                                                      X: =12
+                                                      Y: =7
+                                                - detFactCarrierV:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Color: =clrInk
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Semibold
+                                                      Height: =24
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =10.5
+                                                      Text: =varRate.Carrier
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                      Width: =Parent.Width - 16
+                                                      X: =12
+                                                      Y: =25
+                                    - detLaneRow2:
+                                        Control: GroupContainer@1.5.0
+                                        Variant: AutoLayout
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          BorderThickness: =0
+                                          DropShadow: =DropShadow.None
+                                          Fill: =clrClear
+                                          FillPortions: =0
+                                          Height: =56
+                                          LayoutDirection: =LayoutDirection.Horizontal
+                                          LayoutGap: =8
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          RadiusBottomLeft: =0
+                                          RadiusBottomRight: =0
+                                          RadiusTopLeft: =0
+                                          RadiusTopRight: =0
+                                        Children:
+                                          - detFactDays:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: ManualLayout
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderThickness: =0
+                                                DropShadow: =DropShadow.None
+                                                Fill: =clrSoft
+                                                FillPortions: =1
+                                                Height: =56
+                                                LayoutMinWidth: =80
+                                                RadiusBottomLeft: =0
+                                                RadiusBottomRight: =3
+                                                RadiusTopLeft: =0
+                                                RadiusTopRight: =3
+                                              Children:
+                                                - detFactDaysEdge:
+                                                    Control: Rectangle@2.3.0
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Fill: =clrBlue
+                                                      Height: =Parent.Height
+                                                      Width: =3
+                                                      X: =0
+                                                      Y: =0
+                                                - detFactDaysK:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Color: =clrInk3
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =16
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =8
+                                                      Text: ="SERVICE DAYS"
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                      Width: =Parent.Width - 16
+                                                      X: =12
+                                                      Y: =7
+                                                - detFactDaysV:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Color: =clrInk
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Semibold
+                                                      Height: =24
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =10.5
+                                                      Text: =varRate.ServiceDays
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                      Width: =Parent.Width - 16
+                                                      X: =12
+                                                      Y: =25
+                                          - detFactEff:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: ManualLayout
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderThickness: =0
+                                                DropShadow: =DropShadow.None
+                                                Fill: =clrSoft
+                                                FillPortions: =1
+                                                Height: =56
+                                                LayoutMinWidth: =80
+                                                RadiusBottomLeft: =0
+                                                RadiusBottomRight: =3
+                                                RadiusTopLeft: =0
+                                                RadiusTopRight: =3
+                                              Children:
+                                                - detFactEffEdge:
+                                                    Control: Rectangle@2.3.0
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Fill: =clrBlue
+                                                      Height: =Parent.Height
+                                                      Width: =3
+                                                      X: =0
+                                                      Y: =0
+                                                - detFactEffK:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Color: =clrInk3
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =16
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =8
+                                                      Text: ="EFFECTIVE"
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                      Width: =Parent.Width - 16
+                                                      X: =12
+                                                      Y: =7
+                                                - detFactEffV:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Color: =clrInk
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Semibold
+                                                      Height: =24
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =10.5
+                                                      Text: =Text(varRate.EffectiveDate, "mmm d, yyyy")
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                      Width: =Parent.Width - 16
+                                                      X: =12
+                                                      Y: =25
+                                          - detFactExpiry:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: ManualLayout
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderThickness: =0
+                                                DropShadow: =DropShadow.None
+                                                Fill: =clrSoft
+                                                FillPortions: =1
+                                                Height: =56
+                                                LayoutMinWidth: =80
+                                                RadiusBottomLeft: =0
+                                                RadiusBottomRight: =3
+                                                RadiusTopLeft: =0
+                                                RadiusTopRight: =3
+                                              Children:
+                                                - detFactExpiryEdge:
+                                                    Control: Rectangle@2.3.0
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Fill: =clrBlue
+                                                      Height: =Parent.Height
+                                                      Width: =3
+                                                      X: =0
+                                                      Y: =0
+                                                - detFactExpiryK:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Color: =clrInk3
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =16
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =8
+                                                      Text: ="EXPIRY"
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                      Width: =Parent.Width - 16
+                                                      X: =12
+                                                      Y: =7
+                                                - detFactExpiryV:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Color: =clrInk
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Semibold
+                                                      Height: =24
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =10.5
+                                                      Text: =Text(varRate.ExpiryDate, "mmm d, yyyy")
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                      Width: =Parent.Width - 16
+                                                      X: =12
+                                                      Y: =25
+                        - detSecCost:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Stretch
+                              BorderColor: =clrLine
+                              BorderThickness: =1
+                              DropShadow: =DropShadow.None
+                              Fill: =clrPanel
+                              FillPortions: =0
+                              Height: =If(detLblWarn.Visible, 548, 502)
+                              LayoutDirection: =LayoutDirection.Vertical
+                              LayoutGap: =0
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              PaddingTop: =0
+                              RadiusBottomLeft: =6
+                              RadiusBottomRight: =6
+                              RadiusTopLeft: =6
+                              RadiusTopRight: =6
+                            Children:
+                              - detSecCostHead:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    BorderThickness: =0
+                                    DropShadow: =DropShadow.None
+                                    Fill: =clrClear
+                                    FillPortions: =0
+                                    Height: =48
+                                    LayoutAlignItems: =LayoutAlignItems.Center
+                                    LayoutDirection: =LayoutDirection.Horizontal
+                                    LayoutGap: =12
+                                    PaddingBottom: =0
+                                    PaddingLeft: =16
+                                    PaddingRight: =16
+                                    PaddingTop: =0
+                                    RadiusBottomLeft: =0
+                                    RadiusBottomRight: =0
+                                    RadiusTopLeft: =0
+                                    RadiusTopRight: =0
+                                  Children:
+                                    - detSecCostNum:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          Align: =Align.Center
+                                          BorderThickness: =0
+                                          Color: =clrWhite
+                                          Fill: =clrInk
+                                          FillPortions: =0
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Bold
+                                          Height: =24
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          Size: =9
+                                          Text: ="2"
+                                          VerticalAlign: =VerticalAlign.Middle
+                                          Width: =24
+                                    - detSecCostTitle:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          BorderThickness: =0
+                                          Color: =clrInk
+                                          FillPortions: =0
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Bold
+                                          Height: =30
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          Size: =12
+                                          Text: ="Cost"
+                                          VerticalAlign: =VerticalAlign.Middle
+                                          Width: =150
+                                    - detSecCostHint:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          BorderThickness: =0
+                                          Color: =clrInk3
+                                          FillPortions: =1
+                                          Font: =Font.'Segoe UI'
+                                          Height: =30
+                                          LayoutMinWidth: =40
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          Size: =9
+                                          Text: ="Calculated with today's FSC"
+                                          VerticalAlign: =VerticalAlign.Middle
+                                    - detTglFuel:
+                                        Control: Classic/Toggle@2.1.0
+                                        Properties:
+                                          BorderThickness: =0
+                                          Color: =clrInk
+                                          Default: =true
+                                          FalseFill: =RGBA(190, 200, 210, 1)
+                                          FalseHoverFill: =clrInk3
+                                          FalseText: ="Include fuel"
+                                          FillPortions: =0
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Semibold
+                                          HandleFill: =clrWhite
+                                          Height: =30
+                                          Size: =10
+                                          TextPosition: =TextPosition.Right
+                                          TrueFill: =clrBlue
+                                          TrueHoverFill: =clrBlueHover
+                                          TrueText: ="Include fuel"
+                                          Width: =150
+                              - detSecCostSep:
+                                  Control: Rectangle@2.3.0
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    BorderThickness: =0
+                                    Fill: =clrLine
+                                    FillPortions: =0
+                                    Height: =1
+                              - detSecCostBody:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    BorderThickness: =0
+                                    DropShadow: =DropShadow.None
+                                    Fill: =clrClear
+                                    FillPortions: =1
+                                    LayoutDirection: =LayoutDirection.Vertical
+                                    LayoutGap: =12
+                                    LayoutMinWidth: =40
+                                    PaddingBottom: =16
+                                    PaddingLeft: =16
+                                    PaddingRight: =16
+                                    PaddingTop: =16
+                                    RadiusBottomLeft: =0
+                                    RadiusBottomRight: =0
+                                    RadiusTopLeft: =0
+                                    RadiusTopRight: =0
+                                  Children:
+                                    - detTiles:
+                                        Control: GroupContainer@1.5.0
+                                        Variant: AutoLayout
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          BorderThickness: =0
+                                          DropShadow: =DropShadow.None
+                                          Fill: =clrClear
+                                          FillPortions: =0
+                                          Height: =62
+                                          LayoutDirection: =LayoutDirection.Horizontal
+                                          LayoutGap: =10
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          RadiusBottomLeft: =0
+                                          RadiusBottomRight: =0
+                                          RadiusTopLeft: =0
+                                          RadiusTopRight: =0
+                                        Children:
+                                          - detTileLH:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: AutoLayout
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderColor: =clrLine
+                                                BorderThickness: =1
+                                                DropShadow: =DropShadow.None
+                                                Fill: =clrSoft
+                                                FillPortions: =1.4
+                                                LayoutDirection: =LayoutDirection.Vertical
+                                                LayoutGap: =0
+                                                LayoutMinWidth: =90
+                                                PaddingBottom: =6
+                                                PaddingLeft: =12
+                                                PaddingRight: =12
+                                                PaddingTop: =6
+                                                RadiusBottomLeft: =6
+                                                RadiusBottomRight: =6
+                                                RadiusTopLeft: =6
+                                                RadiusTopRight: =6
+                                              Children:
+                                                - detTileLHK:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.Stretch
+                                                      BorderThickness: =0
+                                                      Color: =clrInk3
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =16
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =8
+                                                      Text: ="LH COST"
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                - detTileLHV:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.Stretch
+                                                      BorderThickness: =0
+                                                      Color: =clrInk
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =32
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =17
+                                                      Text: =If(IsBlank(varRate.Base), "—", Text(LHCost(varRate.Base, varRate.Fuel, varRate.F_Adj, varRate.F_Discount, varRate.Adj, varRate.AdjType, varRate.Discount, varRate.DiscountType, detTglFuel.Value), "$#,##0.00"))
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                          - detTileFt3:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: AutoLayout
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderColor: =clrLine
+                                                BorderThickness: =1
+                                                DropShadow: =DropShadow.None
+                                                Fill: =clrPanel
+                                                FillPortions: =1
+                                                LayoutDirection: =LayoutDirection.Vertical
+                                                LayoutGap: =0
+                                                LayoutMinWidth: =90
+                                                PaddingBottom: =6
+                                                PaddingLeft: =12
+                                                PaddingRight: =12
+                                                PaddingTop: =6
+                                                RadiusBottomLeft: =6
+                                                RadiusBottomRight: =6
+                                                RadiusTopLeft: =6
+                                                RadiusTopRight: =6
+                                              Children:
+                                                - detTileFt3K:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.Stretch
+                                                      BorderThickness: =0
+                                                      Color: =clrInk3
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =16
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =8
+                                                      Text: ="PER FT³"
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                - detTileFt3V:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.Stretch
+                                                      BorderThickness: =0
+                                                      Color: =clrInk
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =32
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =13
+                                                      Text: =If(IsBlank(varRate.Base), "—", Text(LHCost(varRate.Base, varRate.Fuel, varRate.F_Adj, varRate.F_Discount, varRate.Adj, varRate.AdjType, varRate.Discount, varRate.DiscountType, detTglFuel.Value) / CubicFt(varRate.Equipment), "$#,##0.00"))
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                          - detTileLin:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: AutoLayout
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderColor: =clrLine
+                                                BorderThickness: =1
+                                                DropShadow: =DropShadow.None
+                                                Fill: =clrPanel
+                                                FillPortions: =1
+                                                LayoutDirection: =LayoutDirection.Vertical
+                                                LayoutGap: =0
+                                                LayoutMinWidth: =90
+                                                PaddingBottom: =6
+                                                PaddingLeft: =12
+                                                PaddingRight: =12
+                                                PaddingTop: =6
+                                                RadiusBottomLeft: =6
+                                                RadiusBottomRight: =6
+                                                RadiusTopLeft: =6
+                                                RadiusTopRight: =6
+                                              Children:
+                                                - detTileLinK:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.Stretch
+                                                      BorderThickness: =0
+                                                      Color: =clrInk3
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =16
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =8
+                                                      Text: ="PER LINEAR FT"
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                - detTileLinV:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.Stretch
+                                                      BorderThickness: =0
+                                                      Color: =clrInk
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =32
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =13
+                                                      Text: =If(IsBlank(varRate.Base), "—", Text(LHCost(varRate.Base, varRate.Fuel, varRate.F_Adj, varRate.F_Discount, varRate.Adj, varRate.AdjType, varRate.Discount, varRate.DiscountType, detTglFuel.Value) / EquipFt(varRate.Equipment), "$#,##0.00"))
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                          - detTileSkid:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: AutoLayout
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderColor: =clrLine
+                                                BorderThickness: =1
+                                                DropShadow: =DropShadow.None
+                                                Fill: =clrPanel
+                                                FillPortions: =1
+                                                LayoutDirection: =LayoutDirection.Vertical
+                                                LayoutGap: =0
+                                                LayoutMinWidth: =90
+                                                PaddingBottom: =6
+                                                PaddingLeft: =12
+                                                PaddingRight: =12
+                                                PaddingTop: =6
+                                                RadiusBottomLeft: =6
+                                                RadiusBottomRight: =6
+                                                RadiusTopLeft: =6
+                                                RadiusTopRight: =6
+                                              Children:
+                                                - detTileSkidK:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.Stretch
+                                                      BorderThickness: =0
+                                                      Color: =clrInk3
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =16
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =8
+                                                      Text: ="PER SKID SPOT"
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                - detTileSkidV:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.Stretch
+                                                      BorderThickness: =0
+                                                      Color: =clrInk
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =32
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =13
+                                                      Text: =If(IsBlank(varRate.Base), "—", Text(LHCost(varRate.Base, varRate.Fuel, varRate.F_Adj, varRate.F_Discount, varRate.Adj, varRate.AdjType, varRate.Discount, varRate.DiscountType, detTglFuel.Value) / SkidSpots(varRate.Equipment), "$#,##0.00"))
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                    - detLblWarn:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          BorderColor: =RGBA(233, 215, 155, 1)
+                                          BorderThickness: =1
+                                          Color: =clrAmberInk
+                                          Fill: =clrAmberBg
+                                          FillPortions: =0
+                                          Font: =Font.'Segoe UI'
+                                          Height: =34
+                                          PaddingBottom: =0
+                                          PaddingLeft: =12
+                                          PaddingRight: =12
+                                          PaddingTop: =0
+                                          Size: =9.5
+                                          Text: =If(detTglFuel.Value && FuelMissing(varRate.Fuel), "⚠ " & varRate.Fuel & " isn't in the Fuel Library, so this cost has no fuel. Add it on the Fuel library screen.", "")
+                                          VerticalAlign: =VerticalAlign.Middle
+                                          Visible: =!IsBlank(Self.Text)
+                                          Wrap: =true
+                                    - detCostRow1:
+                                        Control: GroupContainer@1.5.0
+                                        Variant: AutoLayout
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          BorderThickness: =0
+                                          DropShadow: =DropShadow.None
+                                          Fill: =clrClear
+                                          FillPortions: =0
+                                          Height: =56
+                                          LayoutDirection: =LayoutDirection.Horizontal
+                                          LayoutGap: =8
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          RadiusBottomLeft: =0
+                                          RadiusBottomRight: =0
+                                          RadiusTopLeft: =0
+                                          RadiusTopRight: =0
+                                        Children:
+                                          - detFactBase:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: ManualLayout
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderThickness: =0
+                                                DropShadow: =DropShadow.None
+                                                Fill: =clrSoft
+                                                FillPortions: =1
+                                                Height: =56
+                                                LayoutMinWidth: =80
+                                                RadiusBottomLeft: =0
+                                                RadiusBottomRight: =3
+                                                RadiusTopLeft: =0
+                                                RadiusTopRight: =3
+                                              Children:
+                                                - detFactBaseEdge:
+                                                    Control: Rectangle@2.3.0
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Fill: =clrBlue
+                                                      Height: =Parent.Height
+                                                      Width: =3
+                                                      X: =0
+                                                      Y: =0
+                                                - detFactBaseK:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Color: =clrInk3
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =16
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =8
+                                                      Text: ="BASE"
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                      Width: =Parent.Width - 16
+                                                      X: =12
+                                                      Y: =7
+                                                - detFactBaseV:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Color: =clrInk
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Semibold
+                                                      Height: =24
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =10.5
+                                                      Text: =Text(varRate.Base, "$#,##0.00")
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                      Width: =Parent.Width - 16
+                                                      X: =12
+                                                      Y: =25
+                                          - detFactAdj:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: ManualLayout
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderThickness: =0
+                                                DropShadow: =DropShadow.None
+                                                Fill: =clrSoft
+                                                FillPortions: =1
+                                                Height: =56
+                                                LayoutMinWidth: =80
+                                                RadiusBottomLeft: =0
+                                                RadiusBottomRight: =3
+                                                RadiusTopLeft: =0
+                                                RadiusTopRight: =3
+                                              Children:
+                                                - detFactAdjEdge:
+                                                    Control: Rectangle@2.3.0
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Fill: =clrBlue
+                                                      Height: =Parent.Height
+                                                      Width: =3
+                                                      X: =0
+                                                      Y: =0
+                                                - detFactAdjK:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Color: =clrInk3
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =16
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =8
+                                                      Text: ="ADD-ON"
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                      Width: =Parent.Width - 16
+                                                      X: =12
+                                                      Y: =7
+                                                - detFactAdjV:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Color: =clrInk
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Semibold
+                                                      Height: =24
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =10.5
+                                                      Text: =If(Coalesce(varRate.Adj, 0) = 0, "—", If(varRate.AdjType = "%", Text(varRate.Adj) & "%", Text(varRate.Adj, "$#,##0.00")))
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                      Width: =Parent.Width - 16
+                                                      X: =12
+                                                      Y: =25
+                                          - detFactDisc:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: ManualLayout
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderThickness: =0
+                                                DropShadow: =DropShadow.None
+                                                Fill: =clrSoft
+                                                FillPortions: =1
+                                                Height: =56
+                                                LayoutMinWidth: =80
+                                                RadiusBottomLeft: =0
+                                                RadiusBottomRight: =3
+                                                RadiusTopLeft: =0
+                                                RadiusTopRight: =3
+                                              Children:
+                                                - detFactDiscEdge:
+                                                    Control: Rectangle@2.3.0
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Fill: =clrBlue
+                                                      Height: =Parent.Height
+                                                      Width: =3
+                                                      X: =0
+                                                      Y: =0
+                                                - detFactDiscK:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Color: =clrInk3
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =16
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =8
+                                                      Text: ="DISCOUNT"
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                      Width: =Parent.Width - 16
+                                                      X: =12
+                                                      Y: =7
+                                                - detFactDiscV:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Color: =clrInk
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Semibold
+                                                      Height: =24
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =10.5
+                                                      Text: =If(Coalesce(varRate.Discount, 0) = 0, "—", If(varRate.DiscountType = "%", Text(varRate.Discount) & "%", Text(varRate.Discount, "$#,##0.00")))
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                      Width: =Parent.Width - 16
+                                                      X: =12
+                                                      Y: =25
+                                    - detCostRow2:
+                                        Control: GroupContainer@1.5.0
+                                        Variant: AutoLayout
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          BorderThickness: =0
+                                          DropShadow: =DropShadow.None
+                                          Fill: =clrClear
+                                          FillPortions: =0
+                                          Height: =56
+                                          LayoutDirection: =LayoutDirection.Horizontal
+                                          LayoutGap: =8
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          RadiusBottomLeft: =0
+                                          RadiusBottomRight: =0
+                                          RadiusTopLeft: =0
+                                          RadiusTopRight: =0
+                                        Children:
+                                          - detFactFuel:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: ManualLayout
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderThickness: =0
+                                                DropShadow: =DropShadow.None
+                                                Fill: =clrSoft
+                                                FillPortions: =1
+                                                Height: =56
+                                                LayoutMinWidth: =80
+                                                RadiusBottomLeft: =0
+                                                RadiusBottomRight: =3
+                                                RadiusTopLeft: =0
+                                                RadiusTopRight: =3
+                                              Children:
+                                                - detFactFuelEdge:
+                                                    Control: Rectangle@2.3.0
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Fill: =clrBlue
+                                                      Height: =Parent.Height
+                                                      Width: =3
+                                                      X: =0
+                                                      Y: =0
+                                                - detFactFuelK:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Color: =clrInk3
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =16
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =8
+                                                      Text: ="FUEL PROGRAM"
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                      Width: =Parent.Width - 16
+                                                      X: =12
+                                                      Y: =7
+                                                - detFactFuelV:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Color: =clrInk
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Semibold
+                                                      Height: =24
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =10.5
+                                                      Text: =varRate.Fuel
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                      Width: =Parent.Width - 16
+                                                      X: =12
+                                                      Y: =25
+                                          - detFactFAdj:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: ManualLayout
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderThickness: =0
+                                                DropShadow: =DropShadow.None
+                                                Fill: =clrSoft
+                                                FillPortions: =1
+                                                Height: =56
+                                                LayoutMinWidth: =80
+                                                RadiusBottomLeft: =0
+                                                RadiusBottomRight: =3
+                                                RadiusTopLeft: =0
+                                                RadiusTopRight: =3
+                                              Children:
+                                                - detFactFAdjEdge:
+                                                    Control: Rectangle@2.3.0
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Fill: =clrBlue
+                                                      Height: =Parent.Height
+                                                      Width: =3
+                                                      X: =0
+                                                      Y: =0
+                                                - detFactFAdjK:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Color: =clrInk3
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =16
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =8
+                                                      Text: ="FUEL ADD-ON"
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                      Width: =Parent.Width - 16
+                                                      X: =12
+                                                      Y: =7
+                                                - detFactFAdjV:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Color: =clrInk
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Semibold
+                                                      Height: =24
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =10.5
+                                                      Text: =If(Coalesce(varRate.F_Adj, 0) = 0, "—", Text(varRate.F_Adj) & " pts")
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                      Width: =Parent.Width - 16
+                                                      X: =12
+                                                      Y: =25
+                                          - detFactFDisc:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: ManualLayout
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderThickness: =0
+                                                DropShadow: =DropShadow.None
+                                                Fill: =clrSoft
+                                                FillPortions: =1
+                                                Height: =56
+                                                LayoutMinWidth: =80
+                                                RadiusBottomLeft: =0
+                                                RadiusBottomRight: =3
+                                                RadiusTopLeft: =0
+                                                RadiusTopRight: =3
+                                              Children:
+                                                - detFactFDiscEdge:
+                                                    Control: Rectangle@2.3.0
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Fill: =clrBlue
+                                                      Height: =Parent.Height
+                                                      Width: =3
+                                                      X: =0
+                                                      Y: =0
+                                                - detFactFDiscK:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Color: =clrInk3
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =16
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =8
+                                                      Text: ="FUEL DISCOUNT"
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                      Width: =Parent.Width - 16
+                                                      X: =12
+                                                      Y: =7
+                                                - detFactFDiscV:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Color: =clrInk
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Semibold
+                                                      Height: =24
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =10.5
+                                                      Text: =If(Coalesce(varRate.F_Discount, 0) = 0, "—", Text(varRate.F_Discount) & " pts")
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                      Width: =Parent.Width - 16
+                                                      X: =12
+                                                      Y: =25
+                                    - detBd:
+                                        Control: GroupContainer@1.5.0
+                                        Variant: AutoLayout
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          BorderThickness: =0
+                                          DropShadow: =DropShadow.None
+                                          Fill: =clrClear
+                                          FillPortions: =1
+                                          LayoutDirection: =LayoutDirection.Vertical
+                                          LayoutGap: =4
+                                          LayoutMinWidth: =100
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          RadiusBottomLeft: =0
+                                          RadiusBottomRight: =0
+                                          RadiusTopLeft: =0
+                                          RadiusTopRight: =0
+                                        Children:
+                                          - detBdLbl:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderThickness: =0
+                                                Color: =clrInk3
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Bold
+                                                Height: =18
+                                                PaddingBottom: =0
+                                                PaddingLeft: =0
+                                                PaddingRight: =0
+                                                PaddingTop: =0
+                                                Size: =8.5
+                                                Text: ="How the cost is built"
+                                                VerticalAlign: =VerticalAlign.Middle
+                                          - detBdRow:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: AutoLayout
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderThickness: =0
+                                                DropShadow: =DropShadow.None
+                                                Fill: =clrClear
+                                                FillPortions: =0
+                                                Height: =96
+                                                LayoutDirection: =LayoutDirection.Horizontal
+                                                LayoutGap: =12
+                                                PaddingBottom: =0
+                                                PaddingLeft: =0
+                                                PaddingRight: =0
+                                                PaddingTop: =0
+                                                RadiusBottomLeft: =0
+                                                RadiusBottomRight: =0
+                                                RadiusTopLeft: =0
+                                                RadiusTopRight: =0
+                                              Children:
+                                                - detBdLeft:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      BorderThickness: =0
+                                                      Color: =clrInk2
+                                                      FillPortions: =1
+                                                      Font: =Font.'Segoe UI'
+                                                      Height: =96
+                                                      LayoutMinWidth: =40
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =9.5
+                                                      Text: |-
+                                                        =With(
+                                                            {f: varRate.Fuel, fa: Coalesce(varRate.F_Adj, 0), fd: Coalesce(varRate.F_Discount, 0)},
+                                                            "Base" & Char(10) &
+                                                            If(
+                                                                IsBlank(f), "Fuel",
+                                                                f = "ALL-IN", "Fuel · all-in rate",
+                                                                FuelMissing(f), "Fuel · " & f & " has no FSC in the library",
+                                                                !(detTglFuel.Value), "Fuel · excluded",
+                                                                "Fuel · " & f & " " & Text(LookUp(nfFuel, Title = f).FSC, "0.00") & "%" &
+                                                                If(fa > 0, " + " & fa, "") & If(fd > 0, " − " & fd, "") &
+                                                                " = " & Text(FscPct(f, fa, fd, true), "0.00") & "%"
+                                                            ) & Char(10) &
+                                                            "Add-on" & Char(10) &
+                                                            "Discount" & Char(10) &
+                                                            "LH cost"
+                                                        )
+                                                      VerticalAlign: =VerticalAlign.Top
+                                                      Wrap: =true
+                                                - detBdRight:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      Align: =Align.Right
+                                                      BorderThickness: =0
+                                                      Color: =clrInk
+                                                      FillPortions: =0
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Semibold
+                                                      Height: =96
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =9.5
+                                                      Text: |-
+                                                        =If(
+                                                            !(!IsBlank(varRate.Base)),
+                                                            "—",
+                                                            With(
+                                                                {b: Coalesce(varRate.Base, 0), fsc: FscPct(varRate.Fuel, varRate.F_Adj, varRate.F_Discount, detTglFuel.Value)},
+                                                                With(
+                                                                    {x: b * (1 + fsc / 100)},
+                                                                    With(
+                                                                        {a: If(varRate.AdjType = "%", x * Coalesce(varRate.Adj, 0) / 100, Coalesce(varRate.Adj, 0))},
+                                                                        With(
+                                                                            {d: If(varRate.DiscountType = "%", (x + a) * Coalesce(varRate.Discount, 0) / 100, Coalesce(varRate.Discount, 0))},
+                                                                            Text(b, "$#,##0.00") & Char(10) &
+                                                                            "+ " & Text(x - b, "$#,##0.00") & Char(10) &
+                                                                            "+ " & Text(a, "$#,##0.00") & Char(10) &
+                                                                            "− " & Text(d, "$#,##0.00") & Char(10) &
+                                                                            Text(x + a - d, "$#,##0.00")
+                                                                        )
+                                                                    )
+                                                                )
+                                                            )
+                                                        )
+                                                      VerticalAlign: =VerticalAlign.Top
+                                                      Width: =150
+                                    - detFldNotes:
+                                        Control: GroupContainer@1.5.0
+                                        Variant: AutoLayout
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          BorderThickness: =0
+                                          DropShadow: =DropShadow.None
+                                          Fill: =clrClear
+                                          FillPortions: =1
+                                          LayoutDirection: =LayoutDirection.Vertical
+                                          LayoutGap: =4
+                                          LayoutMinWidth: =100
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          RadiusBottomLeft: =0
+                                          RadiusBottomRight: =0
+                                          RadiusTopLeft: =0
+                                          RadiusTopRight: =0
+                                        Children:
+                                          - detFldNotesLbl:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderThickness: =0
+                                                Color: =clrInk3
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Bold
+                                                Height: =18
+                                                PaddingBottom: =0
+                                                PaddingLeft: =0
+                                                PaddingRight: =0
+                                                PaddingTop: =0
+                                                Size: =8.5
+                                                Text: ="Comments"
+                                                VerticalAlign: =VerticalAlign.Middle
+                                          - detLblNotes:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderThickness: =0
+                                                Color: =If(IsBlank(varRate.Comments), clrInk3, clrInk)
+                                                FillPortions: =0
+                                                Font: =Font.'Segoe UI'
+                                                Height: =60
+                                                PaddingBottom: =0
+                                                PaddingLeft: =0
+                                                PaddingRight: =0
+                                                PaddingTop: =0
+                                                Size: =10
+                                                Text: =If(IsBlank(varRate.Comments), "No comments", varRate.Comments)
+                                                VerticalAlign: =VerticalAlign.Top
+                                                Wrap: =true
+                        - detLblFooter:
+                            Control: Label@2.5.1
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Stretch
+                              BorderThickness: =0
+                              Color: =clrInk3
+                              FillPortions: =0
+                              Font: =Font.'Segoe UI'
+                              Height: =24
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              PaddingTop: =0
+                              Size: =9
+                              Text: ="Submitted by " & varRate.SubmittedBy & " · " & Text(varRate.Timestamp, "mmm d, yyyy h:mm AM/PM")
+                              VerticalAlign: =VerticalAlign.Middle
