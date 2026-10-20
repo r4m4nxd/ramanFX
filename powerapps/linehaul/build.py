@@ -267,12 +267,12 @@ def section(name, num, title, hint, body, height=None, head_extra=(), body_pad=1
     return box(name, "Vertical", [head, rect(name + "Sep", Height=1, **fixed(), **STRETCH), inner], **base)
 
 
-def fact(name, key, value, edge="clrBlue"):
+def fact(name, key, value, edge="clrBlue", size=T_BODY):
     return manual(name, [
         rect(name + "Edge", Fill=edge, X=0, Y=0, Width=3, Height="Parent.Height"),
         lbl(name + "K", s(key.upper()), Size=T_CAPTION, FontWeight="FontWeight.Bold", Color="clrInk3",
             X=14, Y=7, Width="Parent.Width - 22", Height=18),
-        lbl(name + "V", value, Size=T_BODY, FontWeight="FontWeight.Semibold",
+        lbl(name + "V", value, Size=size, FontWeight="FontWeight.Semibold",
             X=14, Y=27, Width="Parent.Width - 22", Height=22),
     ], Fill="clrSoft", Height=56, RadiusTopRight=3, RadiusBottomRight=3, **fill(1, 80), **STRETCH)
 
@@ -846,7 +846,7 @@ day_select = fx("""
 
 def day_chip(day):
     on = "Self.Text in colDays.Value"
-    return btn(f"entDay{day.title()}", s(day), Size=T_SECONDARY, OnSelect=day_select, **rad(15), **fixed(54, 30),
+    return btn(f"entDay{day.title()}", s(day), Size=T_CAPTION, OnSelect=day_select, **rad(15), **fixed(54, 30),
                Fill=f"If({on}, clrBlue, clrPanel)", Color=f"If({on}, clrWhite, clrInk2)",
                BorderColor=f"If({on}, clrBlue, clrLine)", HoverFill=f"If({on}, clrBlue, clrPanel)",
                HoverColor=f"If({on}, clrWhite, clrInk2)", PressedFill="clrBlue", PressedColor="clrWhite")
@@ -937,7 +937,7 @@ cost_section = section("entSecCost", "2", s("Cost"), None, FillPortions=ENT_NARR
     row("entRowFacts", 56, [
         fact("entFactFsc", "FSC today", entry_fsc_today),
         fact("entFactFscApplied", "FSC applied", entry_fsc_applied),
-        fact("entFactEquip", "Equipment", entry_equip),
+        fact("entFactEquip", "Equipment", entry_equip, size=T_CAPTION),
     ], gap=8),
     breakdown("ent",
               breakdown_left("varFuel", "Value(entTxtFAdj.Text)", "Value(entTxtFDisc.Text)", "true",

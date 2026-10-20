@@ -1099,7 +1099,7 @@ Screens:
                                                                   RadiusBottomRight: =15
                                                                   RadiusTopLeft: =15
                                                                   RadiusTopRight: =15
-                                                                  Size: =10
+                                                                  Size: =9
                                                                   Text: ="ALL"
                                                                   Width: =54
                                                             - entDayMon:
@@ -1142,7 +1142,7 @@ Screens:
                                                                   RadiusBottomRight: =15
                                                                   RadiusTopLeft: =15
                                                                   RadiusTopRight: =15
-                                                                  Size: =10
+                                                                  Size: =9
                                                                   Text: ="MON"
                                                                   Width: =54
                                                             - entDayTue:
@@ -1185,7 +1185,7 @@ Screens:
                                                                   RadiusBottomRight: =15
                                                                   RadiusTopLeft: =15
                                                                   RadiusTopRight: =15
-                                                                  Size: =10
+                                                                  Size: =9
                                                                   Text: ="TUE"
                                                                   Width: =54
                                                             - entDayWed:
@@ -1228,7 +1228,7 @@ Screens:
                                                                   RadiusBottomRight: =15
                                                                   RadiusTopLeft: =15
                                                                   RadiusTopRight: =15
-                                                                  Size: =10
+                                                                  Size: =9
                                                                   Text: ="WED"
                                                                   Width: =54
                                                             - entDayThu:
@@ -1271,7 +1271,7 @@ Screens:
                                                                   RadiusBottomRight: =15
                                                                   RadiusTopLeft: =15
                                                                   RadiusTopRight: =15
-                                                                  Size: =10
+                                                                  Size: =9
                                                                   Text: ="THU"
                                                                   Width: =54
                                                             - entDayFri:
@@ -1314,7 +1314,7 @@ Screens:
                                                                   RadiusBottomRight: =15
                                                                   RadiusTopLeft: =15
                                                                   RadiusTopRight: =15
-                                                                  Size: =10
+                                                                  Size: =9
                                                                   Text: ="FRI"
                                                                   Width: =54
                                                             - entDaySat:
@@ -1357,7 +1357,7 @@ Screens:
                                                                   RadiusBottomRight: =15
                                                                   RadiusTopLeft: =15
                                                                   RadiusTopRight: =15
-                                                                  Size: =10
+                                                                  Size: =9
                                                                   Text: ="SAT"
                                                                   Width: =54
                                                             - entDaySun:
@@ -1400,7 +1400,7 @@ Screens:
                                                                   RadiusBottomRight: =15
                                                                   RadiusTopLeft: =15
                                                                   RadiusTopRight: =15
-                                                                  Size: =10
+                                                                  Size: =9
                                                                   Text: ="SUN"
                                                                   Width: =54
                                           - entRowLane3:
@@ -2923,7 +2923,7 @@ Screens:
                                                             PaddingLeft: =0
                                                             PaddingRight: =0
                                                             PaddingTop: =0
-                                                            Size: =11
+                                                            Size: =9
                                                             Text: |-
                                                               =With(
                                                                   {e: varEquip},
