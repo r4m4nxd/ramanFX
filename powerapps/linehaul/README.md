@@ -96,5 +96,35 @@ SharePoint mishandles `Active = true` when it is combined with other conditions,
 - **States for mouse and touch:** hover only darkens a button's border, which helps on PC and doesn't stick after a tap on a tablet. Pressing gives the real feedback (primary buttons go dark, chips fill blue).
 - **Narrow screens:** under 900 px the two-column screens stack into one column, the Recent filter row wraps onto two lines, and the header drops the date and step text.
 - **Pickers instead of combo boxes:** Origin, Destination, Mode, Equipment, Carrier and Fuel open a searchable list over the screen. Classic combo boxes inside containers clip their own dropdown, so the list showed empty. Adding a new carrier now happens at the bottom of the Carrier picker.
-- **Text sizes (pt):** 9 for field labels, 10.5 for body text, 11 for inputs and buttons, 13 for section titles, 16 for the page title, 18 for the main cost figure.
 - **No screen transitions:** people switch screens many times a day, so navigation is instant.
+
+## Type scale
+
+Every text control uses one of these roles. The sizes are set once at the top of `build.py`.
+
+| Role | pt | Used for |
+|---|---|---|
+| Display | 20 | Lane on Rate details |
+| Page title | 16 | Header title |
+| Key figure | 18 | LH cost tile |
+| Figure | 14 | Other cost tiles |
+| Section | 13 | Card titles, picker and dialog titles |
+| Body | 11 | Inputs, buttons, picker buttons, values, picker rows, dialog text, comments |
+| Table | 10.5 | Gallery rows, cost breakdown |
+| Secondary | 10 | Hints, banners, status line, counts, dates, footer, toggles, chips |
+| Caption | 9 | Field labels and data keys (caps), section number |
+| Micro | 8.5 | Status pills, nav rail labels |
+
+## Inner padding and fit check
+
+- **Default inner padding by control:**
+  - Text inputs: 12 px left and right, 6 px top and bottom.
+  - Buttons: 12 px left and right.
+  - Pills: 10 px left and right.
+  - Date pickers: 12 px on the left.
+  - Banners: 8 px top and bottom, 12 px sides.
+  - Containers: 16 px.
+- **Fit check:** `build.py` checks every visible label, button, input, date picker and toggle before writing the files.
+  - **Height:** at least 1.4 × the font size plus its top and bottom padding.
+  - **Width:** wide enough for its fixed text plus side padding (plus the switch, for toggles).
+  - The build lists any control that fails. The current build reports "every text control fits".

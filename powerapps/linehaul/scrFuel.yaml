@@ -39,7 +39,7 @@ Screens:
                   LayoutDirection: =LayoutDirection.Vertical
                   LayoutGap: =8
                   LayoutMinHeight: =0
-                  LayoutMinWidth: =84
+                  LayoutMinWidth: =96
                   PaddingBottom: =14
                   PaddingLeft: =5
                   PaddingRight: =5
@@ -48,7 +48,7 @@ Screens:
                   RadiusBottomRight: =0
                   RadiusTopLeft: =0
                   RadiusTopRight: =0
-                  Width: =84
+                  Width: =96
                 Children:
                   - fulLogo:
                       Control: Image@2.2.3
@@ -93,7 +93,7 @@ Screens:
                         RadiusBottomRight: =6
                         RadiusTopLeft: =6
                         RadiusTopRight: =6
-                        Width: =74
+                        Width: =88
                       Children:
                         - fulNavNewIcon:
                             Control: Classic/Icon@2.5.0
@@ -126,10 +126,10 @@ Screens:
                               PaddingLeft: =0
                               PaddingRight: =0
                               PaddingTop: =0
-                              Size: =9
+                              Size: =8.5
                               Text: ="New rate"
                               VerticalAlign: =VerticalAlign.Middle
-                              Width: =74
+                              Width: =88
                   - fulNavRecent:
                       Control: GroupContainer@1.5.0
                       Variant: AutoLayout
@@ -153,7 +153,7 @@ Screens:
                         RadiusBottomRight: =6
                         RadiusTopLeft: =6
                         RadiusTopRight: =6
-                        Width: =74
+                        Width: =88
                       Children:
                         - fulNavRecentIcon:
                             Control: Classic/Icon@2.5.0
@@ -186,10 +186,10 @@ Screens:
                               PaddingLeft: =0
                               PaddingRight: =0
                               PaddingTop: =0
-                              Size: =9
+                              Size: =8.5
                               Text: ="Recent"
                               VerticalAlign: =VerticalAlign.Middle
-                              Width: =74
+                              Width: =88
                   - fulNavFuel:
                       Control: GroupContainer@1.5.0
                       Variant: AutoLayout
@@ -213,7 +213,7 @@ Screens:
                         RadiusBottomRight: =6
                         RadiusTopLeft: =6
                         RadiusTopRight: =6
-                        Width: =74
+                        Width: =88
                       Children:
                         - fulNavFuelIcon:
                             Control: Classic/Icon@2.5.0
@@ -246,10 +246,10 @@ Screens:
                               PaddingLeft: =0
                               PaddingRight: =0
                               PaddingTop: =0
-                              Size: =9
+                              Size: =8.5
                               Text: ="Fuel library"
                               VerticalAlign: =VerticalAlign.Middle
-                              Width: =74
+                              Width: =88
             - fulMain:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
@@ -314,7 +314,7 @@ Screens:
                               Size: =16
                               Text: ="Line-Haul Rates"
                               VerticalAlign: =VerticalAlign.Middle
-                              Width: =170
+                              Width: =210
                         - fulHdrDiv:
                             Control: Rectangle@2.3.0
                             Properties:
@@ -339,7 +339,7 @@ Screens:
                               PaddingLeft: =0
                               PaddingRight: =0
                               PaddingTop: =0
-                              Size: =11.5
+                              Size: =11
                               Text: ="Fuel library · FSC % by program"
                               VerticalAlign: =VerticalAlign.Middle
                               Visible: =Parent.Width > 700
@@ -359,7 +359,7 @@ Screens:
                               PaddingLeft: =0
                               PaddingRight: =0
                               PaddingTop: =0
-                              Size: =9.5
+                              Size: =10
                               Text: =User().FullName & " · " & Text(Today(), "mmm d, yyyy")
                               VerticalAlign: =VerticalAlign.Middle
                               Visible: =Parent.Width > 1000
@@ -384,6 +384,10 @@ Screens:
                               LayoutMinHeight: =0
                               LayoutMinWidth: =0
                               OnSelect: =Set(varFuelRec, Blank()); Set(varFuelEdit, false); Set(varFuelForm, true); Reset(fulTxtProgram); Reset(fulTxtFsc); Reset(fulDteEff)
+                              PaddingBottom: =0
+                              PaddingLeft: =12
+                              PaddingRight: =12
+                              PaddingTop: =0
                               PressedBorderColor: =clrInk
                               PressedColor: =clrWhite
                               PressedFill: =clrInk
@@ -524,7 +528,7 @@ Screens:
                                                 Size: =13
                                                 Text: ="Programs"
                                                 VerticalAlign: =VerticalAlign.Middle
-                                                Width: =190
+                                                Width: =250
                                           - fulSecListHint:
                                               Control: Label@2.5.1
                                               Properties:
@@ -539,7 +543,7 @@ Screens:
                                                 PaddingLeft: =0
                                                 PaddingRight: =0
                                                 PaddingTop: =0
-                                                Size: =9.5
+                                                Size: =10
                                                 Text: ="Rates use today's FSC, so editing a program updates every rate on it"
                                                 VerticalAlign: =VerticalAlign.Middle
                                     - fulSecListSep:
@@ -703,7 +707,7 @@ Screens:
                                                       PaddingLeft: =16
                                                       PaddingRight: =0
                                                       PaddingTop: =0
-                                                      Size: =12
+                                                      Size: =11
                                                       Text: =ThisItem.Title
                                                       VerticalAlign: =VerticalAlign.Middle
                                                       Width: =Parent.TemplateWidth * 0.28
@@ -722,7 +726,7 @@ Screens:
                                                       PaddingLeft: =0
                                                       PaddingRight: =10
                                                       PaddingTop: =0
-                                                      Size: =12
+                                                      Size: =11
                                                       Text: =Text(ThisItem.FSC, "0.00") & "%"
                                                       VerticalAlign: =VerticalAlign.Middle
                                                       Width: =Parent.TemplateWidth * 0.14
@@ -739,7 +743,7 @@ Screens:
                                                       PaddingLeft: =16
                                                       PaddingRight: =0
                                                       PaddingTop: =0
-                                                      Size: =10
+                                                      Size: =10.5
                                                       Text: =Text(ThisItem.EffectiveDate, "mmm d, yyyy")
                                                       VerticalAlign: =VerticalAlign.Middle
                                                       Width: =Parent.TemplateWidth * 0.18
@@ -756,7 +760,7 @@ Screens:
                                                       PaddingLeft: =16
                                                       PaddingRight: =0
                                                       PaddingTop: =0
-                                                      Size: =8.5
+                                                      Size: =10
                                                       Text: =ThisItem.AddedByUser & Char(10) & Text(ThisItem.Timestamp, "mmm d, h:mm AM/PM")
                                                       VerticalAlign: =VerticalAlign.Middle
                                                       Width: =Parent.TemplateWidth * 0.24
@@ -780,6 +784,10 @@ Screens:
                                                       HoverColor: =clrInk
                                                       HoverFill: =clrPanel
                                                       OnSelect: =Set(varFuelRec, ThisItem); Set(varFuelEdit, true); Set(varFuelForm, true); Reset(fulTxtProgram); Reset(fulTxtFsc); Reset(fulDteEff)
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =12
+                                                      PaddingRight: =12
+                                                      PaddingTop: =0
                                                       PressedBorderColor: =clrInk3
                                                       PressedColor: =clrInk
                                                       PressedFill: =clrLine
@@ -787,7 +795,7 @@ Screens:
                                                       RadiusBottomRight: =5
                                                       RadiusTopLeft: =5
                                                       RadiusTopRight: =5
-                                                      Size: =9
+                                                      Size: =10
                                                       Text: ="Edit"
                                                       Width: =60
                                                       X: =Parent.TemplateWidth - 76
@@ -811,7 +819,7 @@ Screens:
                                     DropShadow: =DropShadow.None
                                     Fill: =clrPanel
                                     FillPortions: =If(fulBody.Width < 900, 0, 1)
-                                    Height: =If(fulLblErr.Visible, 408, 344)
+                                    Height: =If(fulLblErr.Visible, 412, 344)
                                     LayoutDirection: =LayoutDirection.Vertical
                                     LayoutGap: =0
                                     LayoutMinHeight: =0
@@ -888,7 +896,7 @@ Screens:
                                                 Size: =13
                                                 Text: =If(varFuelEdit, "Edit program", "Add program")
                                                 VerticalAlign: =VerticalAlign.Middle
-                                                Width: =190
+                                                Width: =250
                                           - fulSecFormHint:
                                               Control: Label@2.5.1
                                               Properties:
@@ -903,7 +911,7 @@ Screens:
                                                 PaddingLeft: =0
                                                 PaddingRight: =0
                                                 PaddingTop: =0
-                                                Size: =9.5
+                                                Size: =10
                                                 Text: =If(varFuelEdit, "Changing " & varFuelRec.Title & " updates the cost of every rate on it", "Program names must be unique")
                                                 VerticalAlign: =VerticalAlign.Middle
                                     - fulSecFormSep:
@@ -1017,6 +1025,10 @@ Screens:
                                                             HoverFill: =clrPanel
                                                             LayoutMinHeight: =0
                                                             LayoutMinWidth: =0
+                                                            PaddingBottom: =6
+                                                            PaddingLeft: =12
+                                                            PaddingRight: =12
+                                                            PaddingTop: =6
                                                             PressedBorderColor: =clrBlue
                                                             PressedFill: =clrPanel
                                                             RadiusBottomLeft: =5
@@ -1129,6 +1141,10 @@ Screens:
                                                                   HoverFill: =clrPanel
                                                                   LayoutMinHeight: =0
                                                                   LayoutMinWidth: =40
+                                                                  PaddingBottom: =6
+                                                                  PaddingLeft: =12
+                                                                  PaddingRight: =12
+                                                                  PaddingTop: =6
                                                                   PressedBorderColor: =clrBlue
                                                                   PressedFill: =clrPanel
                                                                   RadiusBottomLeft: =5
@@ -1236,6 +1252,8 @@ Screens:
                                                             IconFill: =clrWhite
                                                             LayoutMinHeight: =0
                                                             LayoutMinWidth: =0
+                                                            PaddingLeft: =12
+                                                            PaddingRight: =4
                                                             Size: =11
                                           - fulLblErr:
                                               Control: Label@2.5.1
@@ -1247,7 +1265,7 @@ Screens:
                                                 Fill: =clrRedBg
                                                 FillPortions: =0
                                                 Font: =Font.'Segoe UI'
-                                                Height: =52
+                                                Height: =56
                                                 LayoutMinHeight: =0
                                                 LayoutMinWidth: =0
                                                 PaddingBottom: =8
@@ -1323,6 +1341,10 @@ Screens:
                                                       LayoutMinHeight: =0
                                                       LayoutMinWidth: =0
                                                       OnSelect: =Set(varFuelEdit, false); Set(varFuelRec, Blank()); Reset(fulTxtProgram); Reset(fulTxtFsc); Reset(fulDteEff)
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =12
+                                                      PaddingRight: =12
+                                                      PaddingTop: =0
                                                       PressedBorderColor: =clrInk3
                                                       PressedColor: =clrInk
                                                       PressedFill: =clrLine
@@ -1391,6 +1413,10 @@ Screens:
                                                                 )
                                                             )
                                                         )
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =12
+                                                      PaddingRight: =12
+                                                      PaddingTop: =0
                                                       PressedBorderColor: =clrInk
                                                       PressedColor: =clrWhite
                                                       PressedFill: =clrInk

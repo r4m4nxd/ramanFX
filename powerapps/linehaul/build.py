@@ -9,6 +9,9 @@ from textwrap import dedent, indent
 
 OUT = pathlib.Path(__file__).parent
 FONT = "Font.'Segoe UI'"
+# type scale (pt): one size per role, used everywhere
+T_DISPLAY, T_PAGE, T_KEYFIG, T_FIG, T_SECTION = 20, 16, 18, 14, 13
+T_BODY, T_TABLE, T_SECONDARY, T_CAPTION, T_MICRO = 11, 10.5, 10, 9, 8.5
 NUM = r'"^(\d+\.?\d*|\.\d+)?$"'  # empty or a positive number: no $, %, minus or letters
 
 
@@ -44,7 +47,47 @@ def emit(n, ind):
     return out
 
 
+PT_TO_PX = 96 / 72
+TEXT_CONTROLS = ("Label@", "Classic/Button@", "Classic/TextInput@", "Classic/DatePicker@", "Classic/Toggle@")
+ISSUES = []
+
+
+def _num(v):
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def audit(n, screen):
+    """Flags any text control whose fixed size can't hold its font (1.4 line height) or its literal text."""
+    pr = n["props"]
+    if n["control"].startswith(TEXT_CONTROLS) and pr.get("Visible") != "false":
+        size, h, w = _num(pr.get("Size", 10.5)), _num(pr.get("Height")), _num(pr.get("Width"))
+        line = size * PT_TO_PX * 1.4
+        pad_v = (_num(pr.get("PaddingTop", 0)) or 0) + (_num(pr.get("PaddingBottom", 0)) or 0)
+        if h is not None and pr.get("Wrap") != "true" and pr.get("Mode") != "TextMode.MultiLine" and h < line + pad_v:
+            ISSUES.append(f"{screen}/{n['name']}: height {h:g} < {line + pad_v:.1f} needed for {size}pt")
+        text = pr.get("Text", "")
+        literal = text[1:-1] if text.startswith('"') and text.endswith('"') and text.count('"') == 2 else None
+        if n["control"].startswith("Classic/Toggle@"):
+            texts = [pr.get("TrueText", '""')[1:-1], pr.get("FalseText", '""')[1:-1]]
+            extra = 52  # the switch itself
+        else:
+            texts, extra = ([literal] if literal else []), 0
+        pad_h = (_num(pr.get("PaddingLeft", 0)) or 0) + (_num(pr.get("PaddingRight", 0)) or 0)
+        bold = 0.62 if "Bold" in str(pr.get("FontWeight", "")) or "Semibold" in str(pr.get("FontWeight", "")) else 0.56
+        for tx in texts:
+            need = len(tx) * size * PT_TO_PX * bold + pad_h + extra
+            if w is not None and pr.get("Wrap") != "true" and w < need:
+                ISSUES.append(f"{screen}/{n['name']}: width {w:g} < {need:.0f} for '{tx}'")
+    for c in n["children"]:
+        audit(c, screen)
+
+
 def write_screen(name, props, children):
+    for c in children:
+        audit(c, name)
     out = ["Screens:", f"  {name}:", "    Properties:"]
     out += [fmt(k, props[k], 6) for k in sorted(props)]
     out.append("    Children:")
@@ -100,14 +143,14 @@ def manual(name, children, **p):
 
 
 def lbl(name, text, **p):
-    base = {"Text": text, "Font": FONT, "Color": "clrInk", "Size": 10.5, "BorderThickness": 0,
+    base = {"Text": text, "Font": FONT, "Color": "clrInk", "Size": T_TABLE, "BorderThickness": 0,
             "VerticalAlign": "VerticalAlign.Middle", **pads(0)}
     base.update(p)
     return node(name, "Label@2.5.1", base)
 
 
 def caps(name, text, **p):
-    base = {"Size": 9, "FontWeight": "FontWeight.Bold", "Color": "clrInk3", "Height": 18}
+    base = {"Size": T_CAPTION, "FontWeight": "FontWeight.Bold", "Color": "clrInk3", "Height": 18}
     base.update(p)
     return lbl(name, s(text), **base)
 
@@ -119,7 +162,8 @@ def rect(name, **p):
 
 
 def btn(name, text, kind="secondary", **p):
-    base = {"Text": text, "Font": FONT, "Size": 11, "FontWeight": "FontWeight.Semibold", "BorderThickness": 1,
+    base = {"Text": text, "Font": FONT, "Size": T_BODY, "FontWeight": "FontWeight.Semibold", "BorderThickness": 1,
+            "PaddingLeft": 12, "PaddingRight": 12, "PaddingTop": 0, "PaddingBottom": 0,
             "DisabledFill": "clrSoft", "DisabledColor": "clrInk3", "DisabledBorderColor": "clrLine", **rad(5)}
     if kind == "primary":
         base.update(Fill="clrBlue", Color="clrWhite", BorderColor="clrBlue", HoverFill="clrBlue", HoverColor="clrWhite",
@@ -135,7 +179,8 @@ def btn(name, text, kind="secondary", **p):
 
 
 def pill(name, text, fillc, color, **p):
-    base = {"Text": text, "Font": FONT, "Size": 8.5, "FontWeight": "FontWeight.Bold", "BorderThickness": 0, **rad(11),
+    base = {"Text": text, "Font": FONT, "Size": T_MICRO, "FontWeight": "FontWeight.Bold", "BorderThickness": 0, **rad(11),
+            "PaddingLeft": 10, "PaddingRight": 10, "PaddingTop": 0, "PaddingBottom": 0,
             "Fill": fillc, "Color": color, "HoverFill": fillc, "HoverColor": color, "PressedFill": fillc, "PressedColor": color,
             "BorderColor": "clrClear", "HoverBorderColor": "clrClear", "PressedBorderColor": "clrClear", "Height": 22}
     base.update(p)
@@ -143,7 +188,8 @@ def pill(name, text, fillc, color, **p):
 
 
 def textin(name, hint="", **p):
-    base = {"Default": s(""), "HintText": s(hint), "Font": FONT, "Size": 11, "Color": "clrInk", "Fill": "clrPanel",
+    base = {"Default": s(""), "HintText": s(hint), "Font": FONT, "Size": T_BODY, "Color": "clrInk", "Fill": "clrPanel",
+            "PaddingLeft": 12, "PaddingRight": 12, "PaddingTop": 6, "PaddingBottom": 6,
             "BorderColor": "clrLine", "BorderThickness": 1, "HoverBorderColor": "clrInk3", "HoverFill": "clrPanel",
             "PressedBorderColor": "clrBlue", "PressedFill": "clrPanel", "Height": 38, **rad(5), **STRETCH}
     base.update(p)
@@ -160,7 +206,7 @@ def numin(name, hint="0", **p):
 def combo(name, items, field, placeholder="Select…", **p):
     base = {"Items": items, "DisplayFields": f'["{field}"]', "SearchFields": f'["{field}"]', "SelectMultiple": "false",
             "IsSearchable": "true", "DefaultSelectedItems": "Blank()", "InputTextPlaceholder": s(placeholder),
-            "Font": FONT, "Size": 11, "Color": "clrInk", "Fill": "clrPanel",
+            "Font": FONT, "Size": T_BODY, "Color": "clrInk", "Fill": "clrPanel",
             "BorderColor": f"If(IsBlank(Self.Selected.{field}), clrAmber, clrLine)",
             "ChevronBackground": "clrPanel", "ChevronFill": "clrInk3", "ChevronHoverBackground": "clrSoft",
             "ChevronHoverFill": "clrInk", "HoverBorderColor": "clrInk3", "HoverFill": "clrSoft", "HoverColor": "clrInk",
@@ -171,7 +217,7 @@ def combo(name, items, field, placeholder="Select…", **p):
 
 
 def toggle(name, true_text, false_text, default="false", **p):
-    base = {"Default": default, "TrueText": s(true_text), "FalseText": s(false_text), "Font": FONT, "Size": 10,
+    base = {"Default": default, "TrueText": s(true_text), "FalseText": s(false_text), "Font": FONT, "Size": T_SECONDARY,
             "FontWeight": "FontWeight.Semibold", "Color": "clrInk", "TrueFill": "clrBlue", "TrueHoverFill": "clrBlueHover",
             "FalseFill": "RGBA(190, 200, 210, 1)", "FalseHoverFill": "clrInk3", "HandleFill": "clrWhite",
             "TextPosition": "TextPosition.Right", "BorderThickness": 0}
@@ -180,7 +226,7 @@ def toggle(name, true_text, false_text, default="false", **p):
 
 
 def datepick(name, default, **p):
-    base = {"DefaultDate": default, "Font": FONT, "Size": 11, "Color": "clrInk", "Fill": "clrPanel",
+    base = {"DefaultDate": default, "Font": FONT, "Size": T_BODY, "PaddingLeft": 12, "PaddingRight": 4, "Color": "clrInk", "Fill": "clrPanel",
             "BorderColor": "clrLine", "BorderThickness": 1, "IconBackground": "clrBlue", "IconFill": "clrWhite",
             "Height": 38, **STRETCH}
     base.update(p)
@@ -203,10 +249,10 @@ def row(name, height, children, gap=12, **p):
 def section(name, num, title, hint, body, height=None, head_extra=(), body_pad=16, body_gap=12, **p):
     size = {"Height": height, "FillPortions": 0} if height is not None else {"FillPortions": 1}
     head = box(name + "Head", "Horizontal", [
-        lbl(name + "Num", s(num), Fill="clrInk", Color="clrWhite", Size=9, FontWeight="FontWeight.Bold",
+        lbl(name + "Num", s(num), Fill="clrInk", Color="clrWhite", Size=T_CAPTION, FontWeight="FontWeight.Bold",
             Align="Align.Center", **fixed(24, 24)),
-        lbl(name + "Title", title, Size=13, FontWeight="FontWeight.Bold", **fixed(190, 30)),
-        lbl(name + "Hint", hint, Size=9.5, Color="clrInk3", Height=30, **fill(1)),
+        lbl(name + "Title", title, Size=T_SECTION, FontWeight="FontWeight.Bold", **fixed(250, 30)),
+        lbl(name + "Hint", hint, Size=T_SECONDARY, Color="clrInk3", Height=30, **fill(1)),
         *head_extra,
     ], Height=48, LayoutGap=12, LayoutAlignItems="LayoutAlignItems.Center", **pads(0, 16), **fixed(), **STRETCH)
     inner = box(name + "Body", "Vertical", body, LayoutGap=body_gap, **pads(body_pad, 16), **fill(1), **STRETCH)
@@ -218,17 +264,17 @@ def section(name, num, title, hint, body, height=None, head_extra=(), body_pad=1
 def fact(name, key, value, edge="clrBlue"):
     return manual(name, [
         rect(name + "Edge", Fill=edge, X=0, Y=0, Width=3, Height="Parent.Height"),
-        lbl(name + "K", s(key.upper()), Size=8.5, FontWeight="FontWeight.Bold", Color="clrInk3",
-            X=14, Y=8, Width="Parent.Width - 22", Height=16),
-        lbl(name + "V", value, Size=11, FontWeight="FontWeight.Semibold",
-            X=14, Y=26, Width="Parent.Width - 22", Height=24),
+        lbl(name + "K", s(key.upper()), Size=T_CAPTION, FontWeight="FontWeight.Bold", Color="clrInk3",
+            X=14, Y=7, Width="Parent.Width - 22", Height=18),
+        lbl(name + "V", value, Size=T_BODY, FontWeight="FontWeight.Semibold",
+            X=14, Y=27, Width="Parent.Width - 22", Height=22),
     ], Fill="clrSoft", Height=56, RadiusTopRight=3, RadiusBottomRight=3, **fill(1, 80), **STRETCH)
 
 
 def cost_tile(name, key, value, main=False, fp=1):
     return box(name, "Vertical", [
-        lbl(name + "K", s(key.upper()), Size=8.5, FontWeight="FontWeight.Bold", Color="clrInk3", Height=16, **STRETCH),
-        lbl(name + "V", value, Size=18 if main else 14, FontWeight="FontWeight.Bold", Height=32, **STRETCH),
+        lbl(name + "K", s(key.upper()), Size=T_CAPTION, FontWeight="FontWeight.Bold", Color="clrInk3", Height=18, **STRETCH),
+        lbl(name + "V", value, Size=T_KEYFIG if main else T_FIG, FontWeight="FontWeight.Bold", Height=34, **STRETCH),
     ], Fill="clrSoft" if main else "clrPanel", BorderColor="clrLine", BorderThickness=1, **rad(6),
         **pads(8, 14), **fill(fp, 90), **STRETCH)
 
@@ -246,25 +292,25 @@ def rail(p, current):
                 "Icon": icon, "Color": "clrOrange" if on else "clrRailInk", "HoverColor": "clrWhite",
                 "PressedColor": "clrWhite", "OnSelect": go, "Tooltip": s(text), "Width": 26, "Height": 26,
                 "FillPortions": 0}),
-            lbl(f"{p}Nav{key}Text", s(text), Size=9, FontWeight="FontWeight.Semibold",
-                Color="clrWhite" if on else "clrRailInk", Align="Align.Center", OnSelect=go, **fixed(74, 18)),
+            lbl(f"{p}Nav{key}Text", s(text), Size=T_MICRO, FontWeight="FontWeight.Semibold",
+                Color="clrWhite" if on else "clrRailInk", Align="Align.Center", OnSelect=go, **fixed(88, 18)),
         ], Fill="clrRailOn" if on else "clrClear", LayoutGap=4, LayoutAlignItems="LayoutAlignItems.Center",
-            LayoutJustifyContent="LayoutJustifyContent.Center", **rad(6), **fixed(74, 64)))
+            LayoutJustifyContent="LayoutJustifyContent.Center", **rad(6), **fixed(88, 64)))
     return box(f"{p}Rail", "Vertical", [
         node(f"{p}Logo", "Image@2.2.3", {"Image": "'cff logo'", "ImagePosition": "ImagePosition.Fit",
                                           "Width": 48, "Height": 48, "FillPortions": 0}),
         rect(f"{p}RailGap", Fill="clrClear", **fixed(10, 10)),
         *navs,
     ], Fill="clrRail", LayoutGap=8, LayoutAlignItems="LayoutAlignItems.Center", **pads(14, 5),
-        **fixed(84), LayoutMinWidth=84, **STRETCH)
+        **fixed(96), LayoutMinWidth=96, **STRETCH)
 
 
 def header(p, step, right):
     return box(f"{p}Header", "Horizontal", [
-        lbl(f"{p}HdrTitle", s("Line-Haul Rates"), Size=16, FontWeight="FontWeight.Semibold", **fixed(170, 36)),
+        lbl(f"{p}HdrTitle", s("Line-Haul Rates"), Size=T_PAGE, FontWeight="FontWeight.Semibold", **fixed(210, 36)),
         rect(f"{p}HdrDiv", **fixed(1, 24)),
-        lbl(f"{p}HdrStep", step, Size=11.5, Color="clrInk3", Height=36, Visible="Parent.Width > 700", **fill(1)),
-        lbl(f"{p}HdrUser", 'User().FullName & " · " & Text(Today(), "mmm d, yyyy")', Size=9.5, Color="clrInk2",
+        lbl(f"{p}HdrStep", step, Size=T_BODY, Color="clrInk3", Height=36, Visible="Parent.Width > 700", **fill(1)),
+        lbl(f"{p}HdrUser", 'User().FullName & " · " & Text(Today(), "mmm d, yyyy")', Size=T_SECONDARY, Color="clrInk2",
             FontWeight="FontWeight.Semibold", Align="Align.Right", Visible="Parent.Width > 1000", **fixed(240, 36)),
         *right,
     ], Fill="clrPanel", Height=60, LayoutGap=16, LayoutAlignItems="LayoutAlignItems.Center",
@@ -294,14 +340,14 @@ def modal(p, visible, title, message, cancel, ok_text, ok):
         rect(f"{p}ModalShade", Fill="RGBA(22, 32, 43, 0.45)", X=0, Y=0, Width="Parent.Width", Height="Parent.Height",
              OnSelect="false"),
         manual(f"{p}ModalCard", [
-            lbl(f"{p}ModalTitle", title, Size=13, FontWeight="FontWeight.Bold",
+            lbl(f"{p}ModalTitle", title, Size=T_SECTION, FontWeight="FontWeight.Bold",
                 X=20, Y=16, Width="Parent.Width - 40", Height=30),
-            lbl(f"{p}ModalMsg", message, Size=10, Color="clrInk2", Wrap="true", VerticalAlign="VerticalAlign.Top",
+            lbl(f"{p}ModalMsg", message, Size=T_BODY, Color="clrInk2", Wrap="true", VerticalAlign="VerticalAlign.Top",
                 X=20, Y=54, Width="Parent.Width - 40", Height="Parent.Height - 124"),
             btn(f"{p}ModalCancel", s("Go back"), OnSelect=cancel,
-                X="Parent.Width - 304", Y="Parent.Height - 58", Width=120, Height=38),
+                X="Parent.Width - 332", Y="Parent.Height - 58", Width=120, Height=38),
             btn(f"{p}ModalOk", ok_text, "primary", OnSelect=ok,
-                X="Parent.Width - 172", Y="Parent.Height - 58", Width=152, Height=38),
+                X="Parent.Width - 200", Y="Parent.Height - 58", Width=180, Height=38),
         ], Fill="clrPanel", BorderColor="clrLine", BorderThickness=1, DropShadow="DropShadow.Bold", **rad(8),
             X="(Parent.Width - 500) / 2", Y="(Parent.Height - 300) / 2", Width=500, Height=300),
     ], Visible=visible, X=0, Y=0, Width="Parent.Width", Height="Parent.Height")
@@ -581,9 +627,9 @@ def breakdown_right(ready, base, fuel, fadj, fdisc, adj, adj_pct, disc, disc_pct
 def breakdown(p, left, right):
     return field(f"{p}Bd", "How the cost is built", h=134, controls=[
         box(f"{p}BdRow", "Horizontal", [
-            lbl(f"{p}BdLeft", left, Size=10.5, Color="clrInk2", VerticalAlign="VerticalAlign.Top", Wrap="true",
+            lbl(f"{p}BdLeft", left, Size=T_TABLE, Color="clrInk2", VerticalAlign="VerticalAlign.Top", Wrap="true",
                 Height=112, **fill(1)),
-            lbl(f"{p}BdRight", right, Size=10.5, FontWeight="FontWeight.Semibold", Align="Align.Right",
+            lbl(f"{p}BdRight", right, Size=T_TABLE, FontWeight="FontWeight.Semibold", Align="Align.Right",
                 VerticalAlign="VerticalAlign.Top", **fixed(150, 112)),
         ], Height=112, LayoutGap=12, **fixed(), **STRETCH),
     ])
@@ -734,7 +780,7 @@ entry_picker = manual("entPicker", [
     rect("entPickShade", Fill="RGBA(22, 32, 43, 0.45)", X=0, Y=0, Width="Parent.Width", Height="Parent.Height",
          OnSelect='Set(varPick, "")'),
     manual("entPickCard", [
-        lbl("entPickTitle", '"Choose " & Lower(varPick)', Size=14, FontWeight="FontWeight.Bold",
+        lbl("entPickTitle", '"Choose " & Lower(varPick)', Size=T_SECTION, FontWeight="FontWeight.Bold",
             X=20, Y=16, Width="Parent.Width - 92", Height=36),
         btn("entPickClose", s("✕"), Tooltip=s("Close"), OnSelect='Set(varPick, "")',
             X="Parent.Width - 60", Y=16, Width=40, Height=36),
@@ -748,10 +794,10 @@ entry_picker = manual("entPicker", [
             "X": 0, "Y": 120, "Width": "Parent.Width",
             "Height": 'Parent.Height - 120 - If(varPick = "Carrier", 80, 8)',
         }, [
-            lbl("entPickRowText", "ThisItem.Value", Size=12, OnSelect="Select(Parent)",
+            lbl("entPickRowText", "ThisItem.Value", Size=T_BODY, OnSelect="Select(Parent)",
                 FontWeight=f"If(ThisItem.Value = {PICK_CUR}, FontWeight.Bold, FontWeight.Normal)",
                 PaddingLeft=20, X=0, Y=0, Width="Parent.TemplateWidth - 60", Height=48),
-            lbl("entPickRowCheck", s("✓"), Size=13, Color="clrBlue", FontWeight="FontWeight.Bold",
+            lbl("entPickRowCheck", s("✓"), Size=T_SECTION, Color="clrBlue", FontWeight="FontWeight.Bold",
                 Visible=f"ThisItem.Value = {PICK_CUR}", OnSelect="Select(Parent)", Align="Align.Center",
                 X="Parent.TemplateWidth - 56", Y=0, Width=40, Height=48),
             rect("entPickRowSep", Fill="clrSoft", X=0, Y=47, Width="Parent.TemplateWidth", Height=1),
@@ -759,9 +805,9 @@ entry_picker = manual("entPicker", [
         rect("entPickFootLine", Visible='varPick = "Carrier"', X=0, Y="Parent.Height - 80",
              Width="Parent.Width", Height=1),
         textin("entPickNew", "Not listed? Type a new carrier", Visible='varPick = "Carrier"',
-               X=20, Y="Parent.Height - 60", Width="Parent.Width - 156", Height=40),
+               X=20, Y="Parent.Height - 60", Width="Parent.Width - 180", Height=40),
         btn("entPickAdd", s("Add carrier"), "primary", Visible='varPick = "Carrier"', OnSelect=entry_add_carrier,
-            X="Parent.Width - 124", Y="Parent.Height - 60", Width=104, Height=40),
+            X="Parent.Width - 148", Y="Parent.Height - 60", Width=128, Height=40),
     ], Fill="clrPanel", BorderColor="clrLine", BorderThickness=1, DropShadow="DropShadow.Bold", **rad(8),
         X="(Parent.Width - 460) / 2", Y=32, Width=460, Height="Parent.Height - 64"),
 ], Visible="!IsBlank(varPick)", X=0, Y=0, Width="Parent.Width", Height="Parent.Height")
@@ -782,14 +828,14 @@ day_select = fx("""
 
 def day_chip(day):
     on = "Self.Text in colDays.Value"
-    return btn(f"entDay{day.title()}", s(day), Size=9, OnSelect=day_select, **rad(15), **fixed(54, 30),
+    return btn(f"entDay{day.title()}", s(day), Size=T_SECONDARY, OnSelect=day_select, **rad(15), **fixed(54, 30),
                Fill=f"If({on}, clrBlue, clrPanel)", Color=f"If({on}, clrWhite, clrInk2)",
                BorderColor=f"If({on}, clrBlue, clrLine)", HoverFill=f"If({on}, clrBlue, clrPanel)",
                HoverColor=f"If({on}, clrWhite, clrInk2)", PressedFill="clrBlue", PressedColor="clrWhite")
 
 
 def pct_toggle(name):
-    return toggle(name, "%", "$", Size=9, FontWeight="FontWeight.Bold", **fixed(64, 18))
+    return toggle(name, "%", "$", Size=T_CAPTION, FontWeight="FontWeight.Bold", **fixed(64, 18))
 
 
 def unit(name, text):
@@ -797,7 +843,7 @@ def unit(name, text):
                FontWeight="FontWeight.Bold", Align="Align.Center", **fixed(40, 38))
 
 
-ENT_LANE_H = "(468 + If(entLblReplace.Visible, 64, 0) + If(entLblDupe.Visible, 64, 0))"
+ENT_LANE_H = "(468 + If(entLblReplace.Visible, 68, 0) + If(entLblDupe.Visible, 68, 0))"
 ENT_COST_H = "436"
 ENT_NARROW_FP = "If(entBody.Width < 900, 0, 1)"
 
@@ -823,21 +869,21 @@ lane_section = section("entSecLane", "1", s("Lane"), s("Who moves it, where, on 
         field("entFldExpiry", "Expiry *", [datepick(
             "entDteExpiry",
             "DateAdd(Date(Year(entDteEff.SelectedDate) + 1, Month(entDteEff.SelectedDate), 1), -1, TimeUnit.Days)")]),
-        field("entFldActive", "Active rate", [toggle("entTglActive", "Yes, use this rate", "No, keep for reference",
+        field("entFldActive", "Active rate", [toggle("entTglActive", "Active", "Inactive",
                                                      default="true", Height=38, **STRETCH)]),
     ]),
     field("entFldNotes", "Comments", h=86, controls=[textin("entTxtNotes", "Anything the next person should know about this rate",
                                              Mode="TextMode.MultiLine", Height=64, EnableSpellCheck="true")]),
     row("entRowKey", 28, [
         caps("entKeyLbl", "Lane key", **fixed(80, 28)),
-        lbl("entLblKey", entry_key, Size=10, FontWeight="FontWeight.Semibold", Height=28, **fill(1)),
+        lbl("entLblKey", entry_key, Size=T_BODY, FontWeight="FontWeight.Semibold", Height=28, **fill(1)),
     ], LayoutAlignItems="LayoutAlignItems.Center"),
     lbl("entLblReplace", entry_replace, Visible="!IsBlank(Self.Text)", Fill="clrAmberBg", Color="clrAmberInk",
-        BorderColor="RGBA(233, 215, 155, 1)", BorderThickness=1, Size=10, Wrap="true", **pads(8, 12),
-        **fixed(h=52), **STRETCH),
+        BorderColor="RGBA(233, 215, 155, 1)", BorderThickness=1, Size=T_SECONDARY, Wrap="true", **pads(8, 12),
+        **fixed(h=56), **STRETCH),
     lbl("entLblDupe", entry_dupe, Visible="!IsBlank(Self.Text)", Fill="clrAmberBg", Color="clrAmberInk",
-        BorderColor="RGBA(233, 215, 155, 1)", BorderThickness=1, Size=10, Wrap="true", **pads(8, 12),
-        **fixed(h=52), **STRETCH),
+        BorderColor="RGBA(233, 215, 155, 1)", BorderThickness=1, Size=T_SECONDARY, Wrap="true", **pads(8, 12),
+        **fixed(h=56), **STRETCH),
 ])
 
 cost_section = section("entSecCost", "2", s("Cost"), s("Fuel goes on the base first, then add-on, then discount"), FillPortions=ENT_NARROW_FP, Height=ENT_COST_H, LayoutMinWidth=320, body=[
@@ -874,7 +920,7 @@ entry_action = box("entActionWrap", "Vertical", [
         cost_tile("entTileLin", "per linear ft", entry_tile_value("EquipFt")),
         cost_tile("entTileSkid", "per skid spot", entry_tile_value("SkidSpots")),
         lbl("entLblStatus", 'If(IsBlank(entLblErrors.Text), "✓ Ready to save", entLblErrors.Text)',
-            Color="If(IsBlank(entLblErrors.Text), clrGreenInk, clrAmberInk)", Size=10,
+            Color="If(IsBlank(entLblErrors.Text), clrGreenInk, clrAmberInk)", Size=T_SECONDARY,
             FontWeight="FontWeight.Semibold", Wrap="true", **fill(1.6, 160), **STRETCH),
         btn("entBtnReset", s("Reset"), "danger", OnSelect=entry_reset, **fixed(100, 44)),
         btn("entBtnSave", 'If(varSaving, "Saving…", "Save rate")', "primary", OnSelect=entry_save,
@@ -882,12 +928,12 @@ entry_action = box("entActionWrap", "Vertical", [
             **fixed(140, 44)),
     ], Fill="clrPanel", BorderColor="clrLine", BorderThickness=1, **rad(6), LayoutGap=12, **pads(10, 16),
         LayoutAlignItems="LayoutAlignItems.Center", **fill(1), **STRETCH),
-], Height=104, **pads(0, 16, 16, 16), **fixed(), **STRETCH)
+], Height=108, **pads(0, 16, 16, 16), **fixed(), **STRETCH)
 
 write_screen("scrEntry", {"Fill": "clrPage", "OnVisible": 'Set(varPick, ""); Set(varConfirmSave, false)'}, [
     shell("ent", "New", s("New rate"),
           [btn("entHdrBtnRecent", s("Recent entries"), OnSelect="Navigate(scrRecent, ScreenTransition.None)",
-               **fixed(140, 38))],
+               **fixed(160, 38))],
           body("ent", [row("entCols", fx(f"""
               If(
                   entBody.Width < 900,
@@ -971,7 +1017,7 @@ def rec_template():
                              OnSelect="Select(Parent)", X=f"Parent.TemplateWidth * {x} + 8", Y=12, Width=74))
             continue
         kids.append(lbl(f"recRow{key}", REC_TEXT[key], OnSelect="Select(Parent)",
-                        Size=9 if key == "Added" else 10.5,
+                        Size=T_SECONDARY if key == "Added" else T_TABLE,
                         FontWeight="FontWeight.Bold" if key == "Lane" else "FontWeight.Normal",
                         Color="If(ThisItem.NoFSC, clrAmberInk, clrInk)" if key == "LH" else
                         ("clrInk3" if key == "Added" else "clrInk"),
@@ -991,15 +1037,15 @@ recent_body = body("rec", [
     row("recFilters", "If(recBody.Width < 1120, 88, 38)", [
         *[textin(f"recTxt{k}", hint, **fixed(150, 38)) for k, hint in
           [("Lane", "Lane, e.g. TOWI"), ("Carrier", "Carrier"), ("Mode", "Mode"), ("Equip", "Equipment, e.g. 53")]],
-        toggle("recTglActive", "Active only", "Active only", **fixed(130, 30)),
-        toggle("recTglFuel", "Include fuel", "Include fuel", **fixed(130, 30)),
-        btn("recBtnClear", s("Clear filters"), Size=9.5,
+        toggle("recTglActive", "Active only", "Active only", **fixed(160, 32)),
+        toggle("recTglFuel", "Include fuel", "Include fuel", **fixed(160, 32)),
+        btn("recBtnClear", s("Clear filters"), Size=T_SECONDARY,
             OnSelect="Reset(recTxtLane); Reset(recTxtCarrier); Reset(recTxtMode); Reset(recTxtEquip); Reset(recTglActive)",
-            **fixed(120, 30)),
+            **fixed(132, 32)),
         lbl("recLblCount", fx("""
             CountRows(recGallery.AllItems) & If(CountRows(recGallery.AllItems) = 1, " rate", " rates") &
             " · fuel " & If(recTglFuel.Value, "included", "excluded")
-        """), Size=10, Color="clrInk3", Align="Align.Right", Height=30, **fill(1)),
+        """), Size=T_SECONDARY, Color="clrInk3", Align="Align.Right", Height=30, **fill(1)),
     ], gap=12, LayoutAlignItems="LayoutAlignItems.Center", LayoutWrap="true"),
     box("recTable", "Vertical", [
         rec_header,
@@ -1044,7 +1090,7 @@ def det_tile_value(divisor=None):
 
 
 det_hero = row("detHero", 44, [
-    lbl("detLblLane", f'{R}.Title & "  →  " & {R}.Destination', Size=20, FontWeight="FontWeight.Bold", **fixed(150, 44)),
+    lbl("detLblLane", f'{R}.Title & "  →  " & {R}.Destination', Size=T_DISPLAY, FontWeight="FontWeight.Bold", **fixed(150, 44)),
     pill("detChipCarrier", f"{R}.Carrier", "clrPanel", "clrInk", BorderColor="clrLine", BorderThickness=1,
          HoverBorderColor="clrLine", PressedBorderColor="clrLine", **fixed(140, 26)),
     pill("detChipMode", f"{R}.Mode", "clrPanel", "clrInk", BorderColor="clrLine", BorderThickness=1,
@@ -1070,10 +1116,10 @@ det_lane = section("detSecLane", "1", s("Lane"), s("Read only"), height=210, bod
 ])
 
 det_cost = section("detSecCost", "2", s("Cost"), s("Calculated with today's FSC"),
-                   height="If(detLblWarn.Visible, 596, 532)",
-                   head_extra=[toggle("detTglFuel", "Include fuel", "Include fuel", default="true", **fixed(150, 30))],
+                   height="If(detLblWarn.Visible, 604, 536)",
+                   head_extra=[toggle("detTglFuel", "Include fuel", "Include fuel", default="true", **fixed(170, 32))],
                    body=[
-    row("detTiles", 66, [
+    row("detTiles", 68, [
         cost_tile("detTileLH", "LH cost", det_tile_value(), main=True, fp=1.4),
         cost_tile("detTileFt3", "per ft³", det_tile_value("CubicFt")),
         cost_tile("detTileLin", "per linear ft", det_tile_value("EquipFt")),
@@ -1081,7 +1127,7 @@ det_cost = section("detSecCost", "2", s("Cost"), s("Calculated with today's FSC"
     ], gap=12),
     lbl("detLblWarn", f"If(detTglFuel.Value && FuelMissing({R}.Fuel), \"⚠ \" & {R}.Fuel & \" isn't in the Fuel Library, so this cost has no fuel. Add it on the Fuel library screen.\", \"\")",
         Visible="!IsBlank(Self.Text)", Fill="clrAmberBg", Color="clrAmberInk", BorderColor="RGBA(233, 215, 155, 1)",
-        BorderThickness=1, Size=10, Wrap="true", **pads(8, 12), **fixed(h=52), **STRETCH),
+        BorderThickness=1, Size=T_SECONDARY, Wrap="true", **pads(8, 12), **fixed(h=56), **STRETCH),
     row("detCostRow1", 56, [
         fact("detFactBase", "Base", f'Text({R}.Base, "$#,##0.00")'),
         fact("detFactAdj", "Add-on", money_or_dash("Adj", "AdjType")),
@@ -1099,7 +1145,7 @@ det_cost = section("detSecCost", "2", s("Cost"), s("Calculated with today's FSC"
                               "detTglFuel.Value")),
     field("detFldNotes", "Comments", h=82, controls=[
         lbl("detLblNotes", f'If(IsBlank({R}.Comments), "No comments", {R}.Comments)',
-            Color=f"If(IsBlank({R}.Comments), clrInk3, clrInk)", Size=10, Wrap="true",
+            Color=f"If(IsBlank({R}.Comments), clrInk3, clrInk)", Size=T_BODY, Wrap="true",
             VerticalAlign="VerticalAlign.Top", **fixed(h=60), **STRETCH),
     ]),
 ])
@@ -1216,7 +1262,7 @@ det_save = ("If(\n    !IsBlank(detLblEditErr.Text),\n    Notify(detLblEditErr.Te
 
 det_edit = section("detSecEdit", "✎", s("Edit status & dates"),
                    s("To change the price, save a new rate so the history stays intact"),
-                   height="296 + If(detLblEditErr.Visible, 64, 0) + If(detLblEditWarn.Visible, 82, 0)",
+                   height="296 + If(detLblEditErr.Visible, 68, 0) + If(detLblEditWarn.Visible, 86, 0)",
                    Visible="varEditRate", BorderColor="clrBlueHover", body=[
     row("detEditRow", 60, [
         field("detFldEditActive", "Active rate", [toggle("detTglEditActive", "Active", "Inactive",
@@ -1227,10 +1273,10 @@ det_edit = section("detSecEdit", "✎", s("Edit status & dates"),
     field("detFldEditNotes", "Comments", h=86, controls=[textin("detTxtEditNotes", "Why the change?", Default=f"{R}.Comments",
                                                  Mode="TextMode.MultiLine", Height=64)]),
     lbl("detLblEditErr", det_edit_err, Visible="!IsBlank(Self.Text)", Fill="clrRedBg", Color="clrRed",
-        BorderColor="clrRed", BorderThickness=1, Size=10, Wrap="true", **pads(8, 12), **fixed(h=52), **STRETCH),
+        BorderColor="clrRed", BorderThickness=1, Size=T_SECONDARY, Wrap="true", **pads(8, 12), **fixed(h=56), **STRETCH),
     lbl("detLblEditWarn", det_edit_warn, Visible="!IsBlank(Self.Text)", Fill="clrAmberBg", Color="clrAmberInk",
-        BorderColor="RGBA(233, 215, 155, 1)", BorderThickness=1, Size=10, Wrap="true", **pads(8, 12),
-        **fixed(h=70), **STRETCH),
+        BorderColor="RGBA(233, 215, 155, 1)", BorderThickness=1, Size=T_SECONDARY, Wrap="true", **pads(8, 12),
+        **fixed(h=74), **STRETCH),
     row("detEditBtns", 38, [
         rect("detEditSpacer", Fill="clrClear", Height=10, **fill(1, 0)),
         btn("detBtnEditCancel", s("Cancel"), OnSelect="Set(varEditRate, false)", **fixed(100, 38)),
@@ -1258,7 +1304,7 @@ def lane_template():
                  "If(ThisItem.Active, clrGreenBg, clrSoft)", "If(ThisItem.Active, clrGreenInk, clrInk3)",
                  OnSelect="Select(Parent)", X=12, Y=11, Width=74)]
     for key, _, x, w, align in LANE_COLS[1:]:
-        kids.append(lbl(f"detLaneRow{key}", LANE_TEXT[key], OnSelect="Select(Parent)", Size=10.5,
+        kids.append(lbl(f"detLaneRow{key}", LANE_TEXT[key], OnSelect="Select(Parent)", Size=T_TABLE,
                         FontWeight="If(ThisItem.ID = varRate.ID, FontWeight.Bold, FontWeight.Normal)",
                         Color="If(ThisItem.ExpiryDate < Today(), clrRed, clrInk)" if key == "Exp" else "clrInk",
                         Align=f"Align.{align}", PaddingLeft=10, PaddingRight=10,
@@ -1269,13 +1315,13 @@ def lane_template():
 
 det_history = section("detSecHistory", "3", s("All rates on this lane"),
                       'CountRows(colLaneRates) & If(CountRows(colLaneRates) = 1, " rate", " rates") & " · select one to open it"',
-                      height="89 + If(detLblMultiActive.Visible, 52, 0) + Min(Max(CountRows(colLaneRates), 1), 6) * 44",
+                      height="89 + If(detLblMultiActive.Visible, 56, 0) + Min(Max(CountRows(colLaneRates), 1), 6) * 44",
                       body_pad=0, body_gap=0, body=[
     lbl("detLblMultiActive",
         'With({n: CountRows(Filter(colLaneRates, ThisRecord.Active = true))}, If(n > 1, "⚠ " & n & " rates on this lane are active. '
         'Open the one that should stay active, choose Edit rate and save it; the others switch off.", ""))',
-        Visible="!IsBlank(Self.Text)", Fill="clrAmberBg", Color="clrAmberInk", Size=10, Wrap="true",
-        **pads(8, 16), **fixed(h=52), **STRETCH),
+        Visible="!IsBlank(Self.Text)", Fill="clrAmberBg", Color="clrAmberInk", Size=T_SECONDARY, Wrap="true",
+        **pads(8, 16), **fixed(h=56), **STRETCH),
     manual("detLaneHdr", [
         *[caps(f"detLaneHdr{k}", h, Align=f"Align.{a}", PaddingLeft=12 if k == "Status" else 10, PaddingRight=10,
                X=f"Parent.Width * {x}", Y=7, Width=f"Parent.Width * {w}") for k, h, x, w, a in LANE_COLS],
@@ -1298,7 +1344,7 @@ write_screen("scrDetails", {"Fill": "clrPage", "OnVisible": "Set(varEditRate, fa
           [btn("detHdrBtnEdit", s("Edit rate"), "primary", Visible="!varEditRate", OnSelect=DET_OPEN_EDIT,
                **fixed(110, 38)),
            btn("detHdrBtnBack", s("← Back to recent"), OnSelect="Navigate(scrRecent, ScreenTransition.None)",
-               **fixed(150, 38))],
+               **fixed(176, 38))],
           body("det", [
               det_hero,
               row("detCols", fx(f"""
@@ -1316,7 +1362,7 @@ write_screen("scrDetails", {"Fill": "clrPage", "OnVisible": "Set(varEditRate, fa
                   LayoutDirection="If(detBody.Width < 900, LayoutDirection.Vertical, LayoutDirection.Horizontal)"),
               lbl("detLblFooter",
                   f'"Submitted by " & {R}.SubmittedBy & " · " & Text({R}.Timestamp, "mmm d, yyyy h:mm AM/PM")',
-                  Size=9, Color="clrInk3", **fixed(h=24), **STRETCH),
+                  Size=T_SECONDARY, Color="clrInk3", **fixed(h=24), **STRETCH),
           ])),
     modal("det", "varConfirmEdit", s("Check before saving"), "detLblEditWarn.Text",
           "Set(varConfirmEdit, false)", s("Save changes"), det_do_save),
@@ -1340,16 +1386,16 @@ fuel_gallery = node("fulGallery", "Gallery@2.15.0", {
     "TemplateFill": "If(varFuelForm && varFuelEdit && ThisItem.ID = varFuelRec.ID, clrAmberBg, clrPanel)",
     "BorderThickness": 0, "ShowScrollbar": "true", **fill(1), **STRETCH,
 }, [
-    lbl("fulRowProg", "ThisItem.Title", Size=12, FontWeight="FontWeight.Bold", PaddingLeft=16,
+    lbl("fulRowProg", "ThisItem.Title", Size=T_BODY, FontWeight="FontWeight.Bold", PaddingLeft=16,
         X=0, Y=0, Width="Parent.TemplateWidth * 0.28", Height=58),
-    lbl("fulRowFsc", 'Text(ThisItem.FSC, "0.00") & "%"', Size=12, FontWeight="FontWeight.Bold", Align="Align.Right",
+    lbl("fulRowFsc", 'Text(ThisItem.FSC, "0.00") & "%"', Size=T_BODY, FontWeight="FontWeight.Bold", Align="Align.Right",
         PaddingRight=10, X="Parent.TemplateWidth * 0.28", Y=0, Width="Parent.TemplateWidth * 0.14", Height=58),
-    lbl("fulRowEff", 'Text(ThisItem.EffectiveDate, "mmm d, yyyy")', Size=10, PaddingLeft=16,
+    lbl("fulRowEff", 'Text(ThisItem.EffectiveDate, "mmm d, yyyy")', Size=T_TABLE, PaddingLeft=16,
         X="Parent.TemplateWidth * 0.46", Y=0, Width="Parent.TemplateWidth * 0.18", Height=58),
-    lbl("fulRowWho", 'ThisItem.AddedByUser & Char(10) & Text(ThisItem.Timestamp, "mmm d, h:mm AM/PM")', Size=8.5,
+    lbl("fulRowWho", 'ThisItem.AddedByUser & Char(10) & Text(ThisItem.Timestamp, "mmm d, h:mm AM/PM")', Size=T_SECONDARY,
         Color="clrInk3", Wrap="true", PaddingLeft=16, X="Parent.TemplateWidth * 0.64", Y=0,
         Width="Parent.TemplateWidth * 0.24", Height=58),
-    btn("fulRowEdit", s("Edit"), Size=9, X="Parent.TemplateWidth - 76", Y=15, Width=60, Height=28,
+    btn("fulRowEdit", s("Edit"), Size=T_SECONDARY, X="Parent.TemplateWidth - 76", Y=15, Width=60, Height=28,
         OnSelect=f"Set(varFuelRec, ThisItem); Set(varFuelEdit, true); Set(varFuelForm, true); {fuel_open}"),
     rect("fulRowSep", Fill="clrSoft", X=0, Y=57, Width="Parent.TemplateWidth", Height=1),
 ], "BrowseLayout_Vertical_TwoTextOneImageVariant_ver5.0")
@@ -1410,7 +1456,7 @@ fuel_programs = section("fulSecList", "A", s("Programs"),
 
 fuel_form = section("fulSecForm", "B", 'If(varFuelEdit, "Edit program", "Add program")',
                     'If(varFuelEdit, "Changing " & varFuelRec.Title & " updates the cost of every rate on it", "Program names must be unique")',
-                    height="If(fulLblErr.Visible, 408, 344)", BorderColor="clrBlueHover",
+                    height="If(fulLblErr.Visible, 412, 344)", BorderColor="clrBlueHover",
                     FillPortions="If(fulBody.Width < 900, 0, 1)", LayoutMinWidth=320,
                     AlignInContainer="If(fulBody.Width < 900, AlignInContainer.Stretch, AlignInContainer.Start)", body=[
     row("fulFormRow1", 60, [field("fulFldProgram", "Program *", [
@@ -1423,7 +1469,7 @@ fuel_form = section("fulSecForm", "B", 'If(varFuelEdit, "Edit program", "Add pro
     row("fulFormRow3", 60, [field("fulFldEff", "Effective *", [
         datepick("fulDteEff", "If(varFuelEdit, varFuelRec.EffectiveDate, Today())")])]),
     lbl("fulLblErr", fuel_err, Visible="!IsBlank(Self.Text)", Fill="clrRedBg", Color="clrRed",
-        BorderColor="clrRed", BorderThickness=1, Size=10, Wrap="true", **pads(8, 12), **fixed(h=52), **STRETCH),
+        BorderColor="clrRed", BorderThickness=1, Size=T_SECONDARY, Wrap="true", **pads(8, 12), **fixed(h=56), **STRETCH),
     row("fulFormBtns", 38, [
         rect("fulFormSpacer", Fill="clrClear", Height=10, **fill(1, 0)),
         btn("fulBtnCancel", s("Clear"), OnSelect=f"Set(varFuelEdit, false); Set(varFuelRec, Blank()); {fuel_open}",
@@ -1449,3 +1495,4 @@ write_screen("scrFuel", {"Fill": "clrPage", "OnVisible": f"Set(varFuelForm, true
 ])
 
 print("wrote", ", ".join(sorted(p.name for p in OUT.glob("scr*.yaml"))))
+print("\n".join(ISSUES) if ISSUES else "audit: every text control fits")

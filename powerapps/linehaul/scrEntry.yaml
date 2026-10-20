@@ -39,7 +39,7 @@ Screens:
                   LayoutDirection: =LayoutDirection.Vertical
                   LayoutGap: =8
                   LayoutMinHeight: =0
-                  LayoutMinWidth: =84
+                  LayoutMinWidth: =96
                   PaddingBottom: =14
                   PaddingLeft: =5
                   PaddingRight: =5
@@ -48,7 +48,7 @@ Screens:
                   RadiusBottomRight: =0
                   RadiusTopLeft: =0
                   RadiusTopRight: =0
-                  Width: =84
+                  Width: =96
                 Children:
                   - entLogo:
                       Control: Image@2.2.3
@@ -93,7 +93,7 @@ Screens:
                         RadiusBottomRight: =6
                         RadiusTopLeft: =6
                         RadiusTopRight: =6
-                        Width: =74
+                        Width: =88
                       Children:
                         - entNavNewIcon:
                             Control: Classic/Icon@2.5.0
@@ -126,10 +126,10 @@ Screens:
                               PaddingLeft: =0
                               PaddingRight: =0
                               PaddingTop: =0
-                              Size: =9
+                              Size: =8.5
                               Text: ="New rate"
                               VerticalAlign: =VerticalAlign.Middle
-                              Width: =74
+                              Width: =88
                   - entNavRecent:
                       Control: GroupContainer@1.5.0
                       Variant: AutoLayout
@@ -153,7 +153,7 @@ Screens:
                         RadiusBottomRight: =6
                         RadiusTopLeft: =6
                         RadiusTopRight: =6
-                        Width: =74
+                        Width: =88
                       Children:
                         - entNavRecentIcon:
                             Control: Classic/Icon@2.5.0
@@ -186,10 +186,10 @@ Screens:
                               PaddingLeft: =0
                               PaddingRight: =0
                               PaddingTop: =0
-                              Size: =9
+                              Size: =8.5
                               Text: ="Recent"
                               VerticalAlign: =VerticalAlign.Middle
-                              Width: =74
+                              Width: =88
                   - entNavFuel:
                       Control: GroupContainer@1.5.0
                       Variant: AutoLayout
@@ -213,7 +213,7 @@ Screens:
                         RadiusBottomRight: =6
                         RadiusTopLeft: =6
                         RadiusTopRight: =6
-                        Width: =74
+                        Width: =88
                       Children:
                         - entNavFuelIcon:
                             Control: Classic/Icon@2.5.0
@@ -246,10 +246,10 @@ Screens:
                               PaddingLeft: =0
                               PaddingRight: =0
                               PaddingTop: =0
-                              Size: =9
+                              Size: =8.5
                               Text: ="Fuel library"
                               VerticalAlign: =VerticalAlign.Middle
-                              Width: =74
+                              Width: =88
             - entMain:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
@@ -314,7 +314,7 @@ Screens:
                               Size: =16
                               Text: ="Line-Haul Rates"
                               VerticalAlign: =VerticalAlign.Middle
-                              Width: =170
+                              Width: =210
                         - entHdrDiv:
                             Control: Rectangle@2.3.0
                             Properties:
@@ -339,7 +339,7 @@ Screens:
                               PaddingLeft: =0
                               PaddingRight: =0
                               PaddingTop: =0
-                              Size: =11.5
+                              Size: =11
                               Text: ="New rate"
                               VerticalAlign: =VerticalAlign.Middle
                               Visible: =Parent.Width > 700
@@ -359,7 +359,7 @@ Screens:
                               PaddingLeft: =0
                               PaddingRight: =0
                               PaddingTop: =0
-                              Size: =9.5
+                              Size: =10
                               Text: =User().FullName & " · " & Text(Today(), "mmm d, yyyy")
                               VerticalAlign: =VerticalAlign.Middle
                               Visible: =Parent.Width > 1000
@@ -384,6 +384,10 @@ Screens:
                               LayoutMinHeight: =0
                               LayoutMinWidth: =0
                               OnSelect: =Navigate(scrRecent, ScreenTransition.None)
+                              PaddingBottom: =0
+                              PaddingLeft: =12
+                              PaddingRight: =12
+                              PaddingTop: =0
                               PressedBorderColor: =clrInk3
                               PressedColor: =clrInk
                               PressedFill: =clrLine
@@ -393,7 +397,7 @@ Screens:
                               RadiusTopRight: =5
                               Size: =11
                               Text: ="Recent entries"
-                              Width: =140
+                              Width: =160
                   - entBody:
                       Control: GroupContainer@1.5.0
                       Variant: AutoLayout
@@ -429,8 +433,8 @@ Screens:
                               Height: |-
                                 =If(
                                     entBody.Width < 900,
-                                    (468 + If(entLblReplace.Visible, 64, 0) + If(entLblDupe.Visible, 64, 0)) + 16 + 436,
-                                    (468 + If(entLblReplace.Visible, 64, 0) + If(entLblDupe.Visible, 64, 0))
+                                    (468 + If(entLblReplace.Visible, 68, 0) + If(entLblDupe.Visible, 68, 0)) + 16 + 436,
+                                    (468 + If(entLblReplace.Visible, 68, 0) + If(entLblDupe.Visible, 68, 0))
                                 )
                               LayoutDirection: =If(entBody.Width < 900, LayoutDirection.Vertical, LayoutDirection.Horizontal)
                               LayoutGap: =16
@@ -455,7 +459,7 @@ Screens:
                                     DropShadow: =DropShadow.None
                                     Fill: =clrPanel
                                     FillPortions: =If(entBody.Width < 900, 0, 1)
-                                    Height: =(468 + If(entLblReplace.Visible, 64, 0) + If(entLblDupe.Visible, 64, 0))
+                                    Height: =(468 + If(entLblReplace.Visible, 68, 0) + If(entLblDupe.Visible, 68, 0))
                                     LayoutDirection: =LayoutDirection.Vertical
                                     LayoutGap: =0
                                     LayoutMinHeight: =0
@@ -532,7 +536,7 @@ Screens:
                                                 Size: =13
                                                 Text: ="Lane"
                                                 VerticalAlign: =VerticalAlign.Middle
-                                                Width: =190
+                                                Width: =250
                                           - entSecLaneHint:
                                               Control: Label@2.5.1
                                               Properties:
@@ -547,7 +551,7 @@ Screens:
                                                 PaddingLeft: =0
                                                 PaddingRight: =0
                                                 PaddingTop: =0
-                                                Size: =9.5
+                                                Size: =10
                                                 Text: ="Who moves it, where, on what"
                                                 VerticalAlign: =VerticalAlign.Middle
                                     - entSecLaneSep:
@@ -666,7 +670,10 @@ Screens:
                                                             LayoutMinHeight: =0
                                                             LayoutMinWidth: =0
                                                             OnSelect: =Set(varPick, "Origin"); Reset(entPickSearch); Reset(entPickNew)
+                                                            PaddingBottom: =0
                                                             PaddingLeft: =12
+                                                            PaddingRight: =12
+                                                            PaddingTop: =0
                                                             PressedBorderColor: =clrBlue
                                                             PressedColor: =If(IsBlank(varOrigin), clrInk3, clrInk)
                                                             PressedFill: =clrSoft
@@ -737,7 +744,10 @@ Screens:
                                                             LayoutMinHeight: =0
                                                             LayoutMinWidth: =0
                                                             OnSelect: =Set(varPick, "Destination"); Reset(entPickSearch); Reset(entPickNew)
+                                                            PaddingBottom: =0
                                                             PaddingLeft: =12
+                                                            PaddingRight: =12
+                                                            PaddingTop: =0
                                                             PressedBorderColor: =clrBlue
                                                             PressedColor: =If(IsBlank(varDest), clrInk3, clrInk)
                                                             PressedFill: =clrSoft
@@ -808,7 +818,10 @@ Screens:
                                                             LayoutMinHeight: =0
                                                             LayoutMinWidth: =0
                                                             OnSelect: =Set(varPick, "Mode"); Reset(entPickSearch); Reset(entPickNew)
+                                                            PaddingBottom: =0
                                                             PaddingLeft: =12
+                                                            PaddingRight: =12
+                                                            PaddingTop: =0
                                                             PressedBorderColor: =clrBlue
                                                             PressedColor: =If(IsBlank(varMode), clrInk3, clrInk)
                                                             PressedFill: =clrSoft
@@ -879,7 +892,10 @@ Screens:
                                                             LayoutMinHeight: =0
                                                             LayoutMinWidth: =0
                                                             OnSelect: =Set(varPick, "Equipment"); Reset(entPickSearch); Reset(entPickNew)
+                                                            PaddingBottom: =0
                                                             PaddingLeft: =12
+                                                            PaddingRight: =12
+                                                            PaddingTop: =0
                                                             PressedBorderColor: =clrBlue
                                                             PressedColor: =If(IsBlank(varEquip), clrInk3, clrInk)
                                                             PressedFill: =clrSoft
@@ -973,7 +989,10 @@ Screens:
                                                             LayoutMinHeight: =0
                                                             LayoutMinWidth: =0
                                                             OnSelect: =Set(varPick, "Carrier"); Reset(entPickSearch); Reset(entPickNew)
+                                                            PaddingBottom: =0
                                                             PaddingLeft: =12
+                                                            PaddingRight: =12
+                                                            PaddingTop: =0
                                                             PressedBorderColor: =clrBlue
                                                             PressedColor: =If(IsBlank(varCarrier), clrInk3, clrInk)
                                                             PressedFill: =clrSoft
@@ -1076,6 +1095,10 @@ Screens:
                                                                             If(d in colDays.Value, RemoveIf(colDays, Value = d), Collect(colDays, {Value: d}))
                                                                         )
                                                                     )
+                                                                  PaddingBottom: =0
+                                                                  PaddingLeft: =12
+                                                                  PaddingRight: =12
+                                                                  PaddingTop: =0
                                                                   PressedBorderColor: =clrInk3
                                                                   PressedColor: =clrWhite
                                                                   PressedFill: =clrBlue
@@ -1083,7 +1106,7 @@ Screens:
                                                                   RadiusBottomRight: =15
                                                                   RadiusTopLeft: =15
                                                                   RadiusTopRight: =15
-                                                                  Size: =9
+                                                                  Size: =10
                                                                   Text: ="ALL"
                                                                   Width: =54
                                                             - entDayMon:
@@ -1115,6 +1138,10 @@ Screens:
                                                                             If(d in colDays.Value, RemoveIf(colDays, Value = d), Collect(colDays, {Value: d}))
                                                                         )
                                                                     )
+                                                                  PaddingBottom: =0
+                                                                  PaddingLeft: =12
+                                                                  PaddingRight: =12
+                                                                  PaddingTop: =0
                                                                   PressedBorderColor: =clrInk3
                                                                   PressedColor: =clrWhite
                                                                   PressedFill: =clrBlue
@@ -1122,7 +1149,7 @@ Screens:
                                                                   RadiusBottomRight: =15
                                                                   RadiusTopLeft: =15
                                                                   RadiusTopRight: =15
-                                                                  Size: =9
+                                                                  Size: =10
                                                                   Text: ="MON"
                                                                   Width: =54
                                                             - entDayTue:
@@ -1154,6 +1181,10 @@ Screens:
                                                                             If(d in colDays.Value, RemoveIf(colDays, Value = d), Collect(colDays, {Value: d}))
                                                                         )
                                                                     )
+                                                                  PaddingBottom: =0
+                                                                  PaddingLeft: =12
+                                                                  PaddingRight: =12
+                                                                  PaddingTop: =0
                                                                   PressedBorderColor: =clrInk3
                                                                   PressedColor: =clrWhite
                                                                   PressedFill: =clrBlue
@@ -1161,7 +1192,7 @@ Screens:
                                                                   RadiusBottomRight: =15
                                                                   RadiusTopLeft: =15
                                                                   RadiusTopRight: =15
-                                                                  Size: =9
+                                                                  Size: =10
                                                                   Text: ="TUE"
                                                                   Width: =54
                                                             - entDayWed:
@@ -1193,6 +1224,10 @@ Screens:
                                                                             If(d in colDays.Value, RemoveIf(colDays, Value = d), Collect(colDays, {Value: d}))
                                                                         )
                                                                     )
+                                                                  PaddingBottom: =0
+                                                                  PaddingLeft: =12
+                                                                  PaddingRight: =12
+                                                                  PaddingTop: =0
                                                                   PressedBorderColor: =clrInk3
                                                                   PressedColor: =clrWhite
                                                                   PressedFill: =clrBlue
@@ -1200,7 +1235,7 @@ Screens:
                                                                   RadiusBottomRight: =15
                                                                   RadiusTopLeft: =15
                                                                   RadiusTopRight: =15
-                                                                  Size: =9
+                                                                  Size: =10
                                                                   Text: ="WED"
                                                                   Width: =54
                                                             - entDayThu:
@@ -1232,6 +1267,10 @@ Screens:
                                                                             If(d in colDays.Value, RemoveIf(colDays, Value = d), Collect(colDays, {Value: d}))
                                                                         )
                                                                     )
+                                                                  PaddingBottom: =0
+                                                                  PaddingLeft: =12
+                                                                  PaddingRight: =12
+                                                                  PaddingTop: =0
                                                                   PressedBorderColor: =clrInk3
                                                                   PressedColor: =clrWhite
                                                                   PressedFill: =clrBlue
@@ -1239,7 +1278,7 @@ Screens:
                                                                   RadiusBottomRight: =15
                                                                   RadiusTopLeft: =15
                                                                   RadiusTopRight: =15
-                                                                  Size: =9
+                                                                  Size: =10
                                                                   Text: ="THU"
                                                                   Width: =54
                                                             - entDayFri:
@@ -1271,6 +1310,10 @@ Screens:
                                                                             If(d in colDays.Value, RemoveIf(colDays, Value = d), Collect(colDays, {Value: d}))
                                                                         )
                                                                     )
+                                                                  PaddingBottom: =0
+                                                                  PaddingLeft: =12
+                                                                  PaddingRight: =12
+                                                                  PaddingTop: =0
                                                                   PressedBorderColor: =clrInk3
                                                                   PressedColor: =clrWhite
                                                                   PressedFill: =clrBlue
@@ -1278,7 +1321,7 @@ Screens:
                                                                   RadiusBottomRight: =15
                                                                   RadiusTopLeft: =15
                                                                   RadiusTopRight: =15
-                                                                  Size: =9
+                                                                  Size: =10
                                                                   Text: ="FRI"
                                                                   Width: =54
                                                             - entDaySat:
@@ -1310,6 +1353,10 @@ Screens:
                                                                             If(d in colDays.Value, RemoveIf(colDays, Value = d), Collect(colDays, {Value: d}))
                                                                         )
                                                                     )
+                                                                  PaddingBottom: =0
+                                                                  PaddingLeft: =12
+                                                                  PaddingRight: =12
+                                                                  PaddingTop: =0
                                                                   PressedBorderColor: =clrInk3
                                                                   PressedColor: =clrWhite
                                                                   PressedFill: =clrBlue
@@ -1317,7 +1364,7 @@ Screens:
                                                                   RadiusBottomRight: =15
                                                                   RadiusTopLeft: =15
                                                                   RadiusTopRight: =15
-                                                                  Size: =9
+                                                                  Size: =10
                                                                   Text: ="SAT"
                                                                   Width: =54
                                                             - entDaySun:
@@ -1349,6 +1396,10 @@ Screens:
                                                                             If(d in colDays.Value, RemoveIf(colDays, Value = d), Collect(colDays, {Value: d}))
                                                                         )
                                                                     )
+                                                                  PaddingBottom: =0
+                                                                  PaddingLeft: =12
+                                                                  PaddingRight: =12
+                                                                  PaddingTop: =0
                                                                   PressedBorderColor: =clrInk3
                                                                   PressedColor: =clrWhite
                                                                   PressedFill: =clrBlue
@@ -1356,7 +1407,7 @@ Screens:
                                                                   RadiusBottomRight: =15
                                                                   RadiusTopLeft: =15
                                                                   RadiusTopRight: =15
-                                                                  Size: =9
+                                                                  Size: =10
                                                                   Text: ="SUN"
                                                                   Width: =54
                                           - entRowLane3:
@@ -1437,6 +1488,8 @@ Screens:
                                                             IconFill: =clrWhite
                                                             LayoutMinHeight: =0
                                                             LayoutMinWidth: =0
+                                                            PaddingLeft: =12
+                                                            PaddingRight: =4
                                                             Size: =11
                                                 - entFldExpiry:
                                                     Control: GroupContainer@1.5.0
@@ -1493,6 +1546,8 @@ Screens:
                                                             IconFill: =clrWhite
                                                             LayoutMinHeight: =0
                                                             LayoutMinWidth: =0
+                                                            PaddingLeft: =12
+                                                            PaddingRight: =4
                                                             Size: =11
                                                 - entFldActive:
                                                     Control: GroupContainer@1.5.0
@@ -1543,7 +1598,7 @@ Screens:
                                                             Default: =true
                                                             FalseFill: =RGBA(190, 200, 210, 1)
                                                             FalseHoverFill: =clrInk3
-                                                            FalseText: ="No, keep for reference"
+                                                            FalseText: ="Inactive"
                                                             Font: =Font.'Segoe UI'
                                                             FontWeight: =FontWeight.Semibold
                                                             HandleFill: =clrWhite
@@ -1554,7 +1609,7 @@ Screens:
                                                             TextPosition: =TextPosition.Right
                                                             TrueFill: =clrBlue
                                                             TrueHoverFill: =clrBlueHover
-                                                            TrueText: ="Yes, use this rate"
+                                                            TrueText: ="Active"
                                           - entFldNotes:
                                               Control: GroupContainer@1.5.0
                                               Variant: AutoLayout
@@ -1614,6 +1669,10 @@ Screens:
                                                       LayoutMinHeight: =0
                                                       LayoutMinWidth: =0
                                                       Mode: =TextMode.MultiLine
+                                                      PaddingBottom: =6
+                                                      PaddingLeft: =12
+                                                      PaddingRight: =12
+                                                      PaddingTop: =6
                                                       PressedBorderColor: =clrBlue
                                                       PressedFill: =clrPanel
                                                       RadiusBottomLeft: =5
@@ -1679,7 +1738,7 @@ Screens:
                                                       PaddingLeft: =0
                                                       PaddingRight: =0
                                                       PaddingTop: =0
-                                                      Size: =10
+                                                      Size: =11
                                                       Text: |-
                                                         =If(
                                                             IsBlank(varOrigin) || IsBlank(varDest) ||
@@ -1700,7 +1759,7 @@ Screens:
                                                 Fill: =clrAmberBg
                                                 FillPortions: =0
                                                 Font: =Font.'Segoe UI'
-                                                Height: =52
+                                                Height: =56
                                                 LayoutMinHeight: =0
                                                 LayoutMinWidth: =0
                                                 PaddingBottom: =8
@@ -1747,7 +1806,7 @@ Screens:
                                                 Fill: =clrAmberBg
                                                 FillPortions: =0
                                                 Font: =Font.'Segoe UI'
-                                                Height: =52
+                                                Height: =56
                                                 LayoutMinHeight: =0
                                                 LayoutMinWidth: =0
                                                 PaddingBottom: =8
@@ -1872,7 +1931,7 @@ Screens:
                                                 Size: =13
                                                 Text: ="Cost"
                                                 VerticalAlign: =VerticalAlign.Middle
-                                                Width: =190
+                                                Width: =250
                                           - entSecCostHint:
                                               Control: Label@2.5.1
                                               Properties:
@@ -1887,7 +1946,7 @@ Screens:
                                                 PaddingLeft: =0
                                                 PaddingRight: =0
                                                 PaddingTop: =0
-                                                Size: =9.5
+                                                Size: =10
                                                 Text: ="Fuel goes on the base first, then add-on, then discount"
                                                 VerticalAlign: =VerticalAlign.Middle
                                     - entSecCostSep:
@@ -2049,6 +2108,10 @@ Screens:
                                                                   HoverFill: =clrPanel
                                                                   LayoutMinHeight: =0
                                                                   LayoutMinWidth: =40
+                                                                  PaddingBottom: =6
+                                                                  PaddingLeft: =12
+                                                                  PaddingRight: =12
+                                                                  PaddingTop: =6
                                                                   PressedBorderColor: =clrBlue
                                                                   PressedFill: =clrPanel
                                                                   RadiusBottomLeft: =5
@@ -2160,6 +2223,10 @@ Screens:
                                                             HoverFill: =clrPanel
                                                             LayoutMinHeight: =0
                                                             LayoutMinWidth: =0
+                                                            PaddingBottom: =6
+                                                            PaddingLeft: =12
+                                                            PaddingRight: =12
+                                                            PaddingTop: =6
                                                             PressedBorderColor: =clrBlue
                                                             PressedFill: =clrPanel
                                                             RadiusBottomLeft: =5
@@ -2271,6 +2338,10 @@ Screens:
                                                             HoverFill: =clrPanel
                                                             LayoutMinHeight: =0
                                                             LayoutMinWidth: =0
+                                                            PaddingBottom: =6
+                                                            PaddingLeft: =12
+                                                            PaddingRight: =12
+                                                            PaddingTop: =6
                                                             PressedBorderColor: =clrBlue
                                                             PressedFill: =clrPanel
                                                             RadiusBottomLeft: =5
@@ -2362,7 +2433,10 @@ Screens:
                                                             LayoutMinHeight: =0
                                                             LayoutMinWidth: =0
                                                             OnSelect: =Set(varPick, "Fuel program"); Reset(entPickSearch); Reset(entPickNew)
+                                                            PaddingBottom: =0
                                                             PaddingLeft: =12
+                                                            PaddingRight: =12
+                                                            PaddingTop: =0
                                                             PressedBorderColor: =clrBlue
                                                             PressedColor: =If(IsBlank(varFuel), clrInk3, clrInk)
                                                             PressedFill: =clrSoft
@@ -2454,6 +2528,10 @@ Screens:
                                                                   HoverFill: =clrPanel
                                                                   LayoutMinHeight: =0
                                                                   LayoutMinWidth: =40
+                                                                  PaddingBottom: =6
+                                                                  PaddingLeft: =12
+                                                                  PaddingRight: =12
+                                                                  PaddingTop: =6
                                                                   PressedBorderColor: =clrBlue
                                                                   PressedFill: =clrPanel
                                                                   RadiusBottomLeft: =5
@@ -2565,6 +2643,10 @@ Screens:
                                                                   HoverFill: =clrPanel
                                                                   LayoutMinHeight: =0
                                                                   LayoutMinWidth: =40
+                                                                  PaddingBottom: =6
+                                                                  PaddingLeft: =12
+                                                                  PaddingRight: =12
+                                                                  PaddingTop: =6
                                                                   PressedBorderColor: =clrBlue
                                                                   PressedFill: =clrPanel
                                                                   RadiusBottomLeft: =5
@@ -2650,17 +2732,17 @@ Screens:
                                                             Color: =clrInk3
                                                             Font: =Font.'Segoe UI'
                                                             FontWeight: =FontWeight.Bold
-                                                            Height: =16
+                                                            Height: =18
                                                             PaddingBottom: =0
                                                             PaddingLeft: =0
                                                             PaddingRight: =0
                                                             PaddingTop: =0
-                                                            Size: =8.5
+                                                            Size: =9
                                                             Text: ="FSC TODAY"
                                                             VerticalAlign: =VerticalAlign.Middle
                                                             Width: =Parent.Width - 22
                                                             X: =14
-                                                            Y: =8
+                                                            Y: =7
                                                       - entFactFscV:
                                                           Control: Label@2.5.1
                                                           Properties:
@@ -2668,7 +2750,7 @@ Screens:
                                                             Color: =clrInk
                                                             Font: =Font.'Segoe UI'
                                                             FontWeight: =FontWeight.Semibold
-                                                            Height: =24
+                                                            Height: =22
                                                             PaddingBottom: =0
                                                             PaddingLeft: =0
                                                             PaddingRight: =0
@@ -2687,7 +2769,7 @@ Screens:
                                                             VerticalAlign: =VerticalAlign.Middle
                                                             Width: =Parent.Width - 22
                                                             X: =14
-                                                            Y: =26
+                                                            Y: =27
                                                 - entFactFscApplied:
                                                     Control: GroupContainer@1.5.0
                                                     Variant: ManualLayout
@@ -2721,17 +2803,17 @@ Screens:
                                                             Color: =clrInk3
                                                             Font: =Font.'Segoe UI'
                                                             FontWeight: =FontWeight.Bold
-                                                            Height: =16
+                                                            Height: =18
                                                             PaddingBottom: =0
                                                             PaddingLeft: =0
                                                             PaddingRight: =0
                                                             PaddingTop: =0
-                                                            Size: =8.5
+                                                            Size: =9
                                                             Text: ="FSC APPLIED"
                                                             VerticalAlign: =VerticalAlign.Middle
                                                             Width: =Parent.Width - 22
                                                             X: =14
-                                                            Y: =8
+                                                            Y: =7
                                                       - entFactFscAppliedV:
                                                           Control: Label@2.5.1
                                                           Properties:
@@ -2739,7 +2821,7 @@ Screens:
                                                             Color: =clrInk
                                                             Font: =Font.'Segoe UI'
                                                             FontWeight: =FontWeight.Semibold
-                                                            Height: =24
+                                                            Height: =22
                                                             PaddingBottom: =0
                                                             PaddingLeft: =0
                                                             PaddingRight: =0
@@ -2754,7 +2836,7 @@ Screens:
                                                             VerticalAlign: =VerticalAlign.Middle
                                                             Width: =Parent.Width - 22
                                                             X: =14
-                                                            Y: =26
+                                                            Y: =27
                                                 - entFactEquip:
                                                     Control: GroupContainer@1.5.0
                                                     Variant: ManualLayout
@@ -2788,17 +2870,17 @@ Screens:
                                                             Color: =clrInk3
                                                             Font: =Font.'Segoe UI'
                                                             FontWeight: =FontWeight.Bold
-                                                            Height: =16
+                                                            Height: =18
                                                             PaddingBottom: =0
                                                             PaddingLeft: =0
                                                             PaddingRight: =0
                                                             PaddingTop: =0
-                                                            Size: =8.5
+                                                            Size: =9
                                                             Text: ="EQUIPMENT"
                                                             VerticalAlign: =VerticalAlign.Middle
                                                             Width: =Parent.Width - 22
                                                             X: =14
-                                                            Y: =8
+                                                            Y: =7
                                                       - entFactEquipV:
                                                           Control: Label@2.5.1
                                                           Properties:
@@ -2806,7 +2888,7 @@ Screens:
                                                             Color: =clrInk
                                                             Font: =Font.'Segoe UI'
                                                             FontWeight: =FontWeight.Semibold
-                                                            Height: =24
+                                                            Height: =22
                                                             PaddingBottom: =0
                                                             PaddingLeft: =0
                                                             PaddingRight: =0
@@ -2823,7 +2905,7 @@ Screens:
                                                             VerticalAlign: =VerticalAlign.Middle
                                                             Width: =Parent.Width - 22
                                                             X: =14
-                                                            Y: =26
+                                                            Y: =27
                                           - entBd:
                                               Control: GroupContainer@1.5.0
                                               Variant: AutoLayout
@@ -2972,7 +3054,7 @@ Screens:
                         DropShadow: =DropShadow.None
                         Fill: =clrClear
                         FillPortions: =0
-                        Height: =104
+                        Height: =108
                         LayoutDirection: =LayoutDirection.Vertical
                         LayoutGap: =0
                         LayoutMinHeight: =0
@@ -3041,14 +3123,14 @@ Screens:
                                           Color: =clrInk3
                                           Font: =Font.'Segoe UI'
                                           FontWeight: =FontWeight.Bold
-                                          Height: =16
+                                          Height: =18
                                           LayoutMinHeight: =0
                                           LayoutMinWidth: =0
                                           PaddingBottom: =0
                                           PaddingLeft: =0
                                           PaddingRight: =0
                                           PaddingTop: =0
-                                          Size: =8.5
+                                          Size: =9
                                           Text: ="LH COST · FUEL IN"
                                           VerticalAlign: =VerticalAlign.Middle
                                     - entTileLHV:
@@ -3059,7 +3141,7 @@ Screens:
                                           Color: =clrInk
                                           Font: =Font.'Segoe UI'
                                           FontWeight: =FontWeight.Bold
-                                          Height: =32
+                                          Height: =34
                                           LayoutMinHeight: =0
                                           LayoutMinWidth: =0
                                           PaddingBottom: =0
@@ -3100,14 +3182,14 @@ Screens:
                                           Color: =clrInk3
                                           Font: =Font.'Segoe UI'
                                           FontWeight: =FontWeight.Bold
-                                          Height: =16
+                                          Height: =18
                                           LayoutMinHeight: =0
                                           LayoutMinWidth: =0
                                           PaddingBottom: =0
                                           PaddingLeft: =0
                                           PaddingRight: =0
                                           PaddingTop: =0
-                                          Size: =8.5
+                                          Size: =9
                                           Text: ="PER FT³"
                                           VerticalAlign: =VerticalAlign.Middle
                                     - entTileFt3V:
@@ -3118,7 +3200,7 @@ Screens:
                                           Color: =clrInk
                                           Font: =Font.'Segoe UI'
                                           FontWeight: =FontWeight.Bold
-                                          Height: =32
+                                          Height: =34
                                           LayoutMinHeight: =0
                                           LayoutMinWidth: =0
                                           PaddingBottom: =0
@@ -3159,14 +3241,14 @@ Screens:
                                           Color: =clrInk3
                                           Font: =Font.'Segoe UI'
                                           FontWeight: =FontWeight.Bold
-                                          Height: =16
+                                          Height: =18
                                           LayoutMinHeight: =0
                                           LayoutMinWidth: =0
                                           PaddingBottom: =0
                                           PaddingLeft: =0
                                           PaddingRight: =0
                                           PaddingTop: =0
-                                          Size: =8.5
+                                          Size: =9
                                           Text: ="PER LINEAR FT"
                                           VerticalAlign: =VerticalAlign.Middle
                                     - entTileLinV:
@@ -3177,7 +3259,7 @@ Screens:
                                           Color: =clrInk
                                           Font: =Font.'Segoe UI'
                                           FontWeight: =FontWeight.Bold
-                                          Height: =32
+                                          Height: =34
                                           LayoutMinHeight: =0
                                           LayoutMinWidth: =0
                                           PaddingBottom: =0
@@ -3218,14 +3300,14 @@ Screens:
                                           Color: =clrInk3
                                           Font: =Font.'Segoe UI'
                                           FontWeight: =FontWeight.Bold
-                                          Height: =16
+                                          Height: =18
                                           LayoutMinHeight: =0
                                           LayoutMinWidth: =0
                                           PaddingBottom: =0
                                           PaddingLeft: =0
                                           PaddingRight: =0
                                           PaddingTop: =0
-                                          Size: =8.5
+                                          Size: =9
                                           Text: ="PER SKID SPOT"
                                           VerticalAlign: =VerticalAlign.Middle
                                     - entTileSkidV:
@@ -3236,7 +3318,7 @@ Screens:
                                           Color: =clrInk
                                           Font: =Font.'Segoe UI'
                                           FontWeight: =FontWeight.Bold
-                                          Height: =32
+                                          Height: =34
                                           LayoutMinHeight: =0
                                           LayoutMinWidth: =0
                                           PaddingBottom: =0
@@ -3292,6 +3374,10 @@ Screens:
                                       Reset(entTxtFAdj); Reset(entTxtFDisc); Reset(entTxtNotes);
                                       Clear(colDays);
                                       Set(varConfirmSave, false)
+                                    PaddingBottom: =0
+                                    PaddingLeft: =12
+                                    PaddingRight: =12
+                                    PaddingTop: =0
                                     PressedBorderColor: =clrRed
                                     PressedColor: =clrRed
                                     PressedFill: =clrRedBg
@@ -3392,6 +3478,10 @@ Screens:
                                           );
                                           Set(varSaving, false)
                                       )
+                                    PaddingBottom: =0
+                                    PaddingLeft: =12
+                                    PaddingRight: =12
+                                    PaddingTop: =0
                                     PressedBorderColor: =clrInk
                                     PressedColor: =clrWhite
                                     PressedFill: =clrInk
@@ -3650,7 +3740,7 @@ Screens:
                         PaddingLeft: =0
                         PaddingRight: =0
                         PaddingTop: =0
-                        Size: =10
+                        Size: =11
                         Text: =entLblConfirm.Text
                         VerticalAlign: =VerticalAlign.Top
                         Width: =Parent.Width - 40
@@ -3674,6 +3764,10 @@ Screens:
                         HoverColor: =clrInk
                         HoverFill: =clrPanel
                         OnSelect: =Set(varConfirmSave, false)
+                        PaddingBottom: =0
+                        PaddingLeft: =12
+                        PaddingRight: =12
+                        PaddingTop: =0
                         PressedBorderColor: =clrInk3
                         PressedColor: =clrInk
                         PressedFill: =clrLine
@@ -3684,7 +3778,7 @@ Screens:
                         Size: =11
                         Text: ="Go back"
                         Width: =120
-                        X: =Parent.Width - 304
+                        X: =Parent.Width - 332
                         Y: =Parent.Height - 58
                   - entModalOk:
                       Control: Classic/Button@2.2.0
@@ -3767,6 +3861,10 @@ Screens:
                               )
                           );
                           Set(varSaving, false)
+                        PaddingBottom: =0
+                        PaddingLeft: =12
+                        PaddingRight: =12
+                        PaddingTop: =0
                         PressedBorderColor: =clrInk
                         PressedColor: =clrWhite
                         PressedFill: =clrInk
@@ -3776,8 +3874,8 @@ Screens:
                         RadiusTopRight: =5
                         Size: =11
                         Text: =If(IsBlank(entLblReplace.Text), "Save anyway", "Replace and save")
-                        Width: =152
-                        X: =Parent.Width - 172
+                        Width: =180
+                        X: =Parent.Width - 200
                         Y: =Parent.Height - 58
       - entPicker:
           Control: GroupContainer@1.5.0
@@ -3835,7 +3933,7 @@ Screens:
                         PaddingLeft: =0
                         PaddingRight: =0
                         PaddingTop: =0
-                        Size: =14
+                        Size: =13
                         Text: ="Choose " & Lower(varPick)
                         VerticalAlign: =VerticalAlign.Middle
                         Width: =Parent.Width - 92
@@ -3858,6 +3956,10 @@ Screens:
                         HoverColor: =clrInk
                         HoverFill: =clrPanel
                         OnSelect: =Set(varPick, "")
+                        PaddingBottom: =0
+                        PaddingLeft: =12
+                        PaddingRight: =12
+                        PaddingTop: =0
                         PressedBorderColor: =clrInk3
                         PressedColor: =clrInk
                         PressedFill: =clrLine
@@ -3885,6 +3987,10 @@ Screens:
                         HintText: ="Search"
                         HoverBorderColor: =clrInk3
                         HoverFill: =clrPanel
+                        PaddingBottom: =6
+                        PaddingLeft: =12
+                        PaddingRight: =12
+                        PaddingTop: =6
                         PressedBorderColor: =clrBlue
                         PressedFill: =clrPanel
                         RadiusBottomLeft: =5
@@ -3955,7 +4061,7 @@ Screens:
                               PaddingLeft: =20
                               PaddingRight: =0
                               PaddingTop: =0
-                              Size: =12
+                              Size: =11
                               Text: =ThisItem.Value
                               VerticalAlign: =VerticalAlign.Middle
                               Width: =Parent.TemplateWidth - 60
@@ -4015,6 +4121,10 @@ Screens:
                         HintText: ="Not listed? Type a new carrier"
                         HoverBorderColor: =clrInk3
                         HoverFill: =clrPanel
+                        PaddingBottom: =6
+                        PaddingLeft: =12
+                        PaddingRight: =12
+                        PaddingTop: =6
                         PressedBorderColor: =clrBlue
                         PressedFill: =clrPanel
                         RadiusBottomLeft: =5
@@ -4023,7 +4133,7 @@ Screens:
                         RadiusTopRight: =5
                         Size: =11
                         Visible: =varPick = "Carrier"
-                        Width: =Parent.Width - 156
+                        Width: =Parent.Width - 180
                         X: =20
                         Y: =Parent.Height - 60
                   - entPickAdd:
@@ -4064,6 +4174,10 @@ Screens:
                                   )
                               )
                           )
+                        PaddingBottom: =0
+                        PaddingLeft: =12
+                        PaddingRight: =12
+                        PaddingTop: =0
                         PressedBorderColor: =clrInk
                         PressedColor: =clrWhite
                         PressedFill: =clrInk
@@ -4074,6 +4188,6 @@ Screens:
                         Size: =11
                         Text: ="Add carrier"
                         Visible: =varPick = "Carrier"
-                        Width: =104
-                        X: =Parent.Width - 124
+                        Width: =128
+                        X: =Parent.Width - 148
                         Y: =Parent.Height - 60
