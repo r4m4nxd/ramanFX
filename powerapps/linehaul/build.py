@@ -258,7 +258,7 @@ def section(name, num, title, hint, body, height=None, head_extra=(), body_pad=1
         lbl(name + "Num", s(num), Fill="clrInk", Color="clrWhite", Size=T_CAPTION, FontWeight="FontWeight.Bold",
             Align="Align.Center", **fixed(24, 24)),
         lbl(name + "Title", title, Size=T_SECTION, FontWeight="FontWeight.Bold", **fixed(250, 30)),
-        lbl(name + "Hint", hint, Size=T_SECONDARY, Color="clrInk3", Height=30, **fill(1)),
+        *([lbl(name + "Hint", hint, Size=T_SECONDARY, Color="clrInk3", Height=30, **fill(1))] if hint else []),
         *head_extra,
     ], Height=48, LayoutGap=12, LayoutAlignItems="LayoutAlignItems.Center", **pads(0, 16), **fixed(), **STRETCH)
     inner = box(name + "Body", "Vertical", body, LayoutGap=body_gap, **pads(body_pad, 16), **fill(1), **STRETCH)
@@ -313,7 +313,7 @@ def rail(p, current):
 
 def header(p, step, right):
     return box(f"{p}Header", "Horizontal", [
-        lbl(f"{p}HdrTitle", s("Line-Haul Rates"), Size=T_PAGE, FontWeight="FontWeight.Semibold", **fixed(210, 36)),
+        lbl(f"{p}HdrTitle", s("Line-Haul Form"), Size=T_PAGE, FontWeight="FontWeight.Semibold", **fixed(210, 36)),
         rect(f"{p}HdrDiv", **fixed(1, 24)),
         lbl(f"{p}HdrStep", step, Size=T_BODY, Color="clrInk3", Height=36, Visible="Parent.Width > 700", **fill(1)),
         lbl(f"{p}HdrUser", 'User().FullName & " · " & Text(Today(), "mmm d, yyyy")', Size=T_SECONDARY, Color="clrInk2",
@@ -587,8 +587,11 @@ entry_equip = fx("""
 """)
 
 
-def breakdown_left(fuel, fadj, fdisc, with_fuel):
+def breakdown_left(fuel, fadj, fdisc, with_fuel, ready="true"):
     return fx(f"""
+        If(
+            !({ready}),
+            "Enter a base rate, equipment and fuel program to see how the cost is built.",
         With(
             {{f: {fuel}, fa: Coalesce({fadj}, 0), fd: Coalesce({fdisc}, 0)}},
             "Base" & Char(10) &
@@ -605,6 +608,7 @@ def breakdown_left(fuel, fadj, fdisc, with_fuel):
             "Discount" & Char(10) &
             "LH cost"
         )
+        )
     """)
 
 
@@ -612,7 +616,7 @@ def breakdown_right(ready, base, fuel, fadj, fdisc, adj, adj_pct, disc, disc_pct
     return fx(f"""
         If(
             !({ready}),
-            "—",
+            "",
             With(
                 {{b: Coalesce({base}, 0), fsc: FscPct({fuel}, {fadj}, {fdisc}, {with_fuel})}},
                 With(
@@ -722,6 +726,7 @@ entry_reset = fx("""
     Set(varOrigin, Blank()); Set(varDest, Blank()); Set(varMode, Blank()); Set(varEquip, Blank());
     Set(varCarrier, Blank()); Set(varFuel, Blank()); Set(varPick, "");
     Reset(entDteEff); Reset(entDteExpiry); Reset(entTglActive);
+    Set(varAdjPct, false); Set(varDiscPct, false);
     Reset(entTxtBase); Reset(entTxtAdj); Reset(entTglAdjPct); Reset(entTxtDisc); Reset(entTglDiscPct);
     Reset(entTxtFAdj); Reset(entTxtFDisc); Reset(entTxtNotes);
     Clear(colDays);
@@ -847,8 +852,23 @@ def day_chip(day):
                HoverColor=f"If({on}, clrWhite, clrInk2)", PressedFill="clrBlue", PressedColor="clrWhite")
 
 
-def pct_toggle(name):
-    return toggle(name, "%", "$", Size=T_CAPTION, FontWeight="FontWeight.Bold", **fixed(64, 18))
+def pct_toggle(name, var, what):
+    """'$ | %' pair. The hidden toggle keeps the state so formulas still read <toggle>.Value."""
+    def seg(sname, text, pct):
+        on = var if pct else f"!{var}"
+        return btn(sname, s(text), Size=T_CAPTION, FontWeight="FontWeight.Bold", BorderThickness=0,
+                   PaddingLeft=0, PaddingRight=0, Fill=f"If({on}, clrBlue, clrSoft)", Color=f"If({on}, clrWhite, clrInk2)",
+                   HoverFill=f"If({on}, clrBlue, clrSoft)", HoverColor=f"If({on}, clrWhite, clrInk)",
+                   PressedFill="clrBlue", PressedColor="clrWhite",
+                   RadiusTopLeft=0 if pct else 4, RadiusBottomLeft=0 if pct else 4,
+                   RadiusTopRight=4 if pct else 0, RadiusBottomRight=4 if pct else 0,
+                   Tooltip=s(f"{what} in {'percent' if pct else 'dollars'}"),
+                   OnSelect=f"Set({var}, {'true' if pct else 'false'}); Reset({name})", **fixed(28, 18))
+    base = name.replace("entTgl", "entSeg").removesuffix("Pct")
+    return [
+        toggle(name, "%", "$", default=var, Visible="false", **fixed(10, 18)),
+        box(base, "Horizontal", [seg(base + "Amt", "$", False), seg(base + "Pct", "%", True)], **fixed(56, 18)),
+    ]
 
 
 def unit(name, text):
@@ -860,7 +880,7 @@ ENT_LANE_H = "(470 + If(entLblReplace.Visible, 68, 0) + If(entLblDupe.Visible, 6
 ENT_COST_H = "436"
 ENT_NARROW_FP = "If(entBody.Width < 900, 0, 1)"
 
-lane_section = section("entSecLane", "1", s("Lane"), s("Who moves it, where, on what"), FillPortions=ENT_NARROW_FP, Height=ENT_LANE_H, LayoutMinWidth=320, body=[
+lane_section = section("entSecLane", "1", s("Lane"), None, FillPortions=ENT_NARROW_FP, Height=ENT_LANE_H, LayoutMinWidth=320, body=[
     row("entRowLane1", 60, [
         field("entFldOrigin", "Origin *", [picker_btn("entPickOrigin", "varOrigin", "Origin")]),
         field("entFldDest", "Destination *", [picker_btn("entPickDest", "varDest", "Destination")]),
@@ -883,9 +903,10 @@ lane_section = section("entSecLane", "1", s("Lane"), s("Who moves it, where, on 
             "entDteExpiry",
             "DateAdd(Date(Year(entDteEff.SelectedDate) + 1, Month(entDteEff.SelectedDate), 1), -1, TimeUnit.Days)")]),
         field("entFldActive", "Active rate", [toggle("entTglActive", "Active", "Inactive",
-                                                     default="true", Height=36, **STRETCH)]),
+                                                     default="true", Height=36, Width=150,
+                                                     AlignInContainer="AlignInContainer.Start")]),
     ]),
-    field("entFldNotes", "Comments", h=88, controls=[textin("entTxtNotes", "Anything the next person should know about this rate",
+    field("entFldNotes", "Comments", h=88, controls=[textin("entTxtNotes", "",
                                              Mode="TextMode.MultiLine", Height=64, EnableSpellCheck="true")]),
     row("entRowKey", 28, [
         caps("entKeyLbl", "Lane key", **fixed(80, 28)),
@@ -899,14 +920,14 @@ lane_section = section("entSecLane", "1", s("Lane"), s("Who moves it, where, on 
         **fixed(h=56), **STRETCH),
 ])
 
-cost_section = section("entSecCost", "2", s("Cost"), s("Fuel goes on the base first, then add-on, then discount"), FillPortions=ENT_NARROW_FP, Height=ENT_COST_H, LayoutMinWidth=320, body=[
+cost_section = section("entSecCost", "2", s("Cost"), None, FillPortions=ENT_NARROW_FP, Height=ENT_COST_H, LayoutMinWidth=320, body=[
     row("entRowCost1", 60, [
         field("entFldBase", "Base rate ($) *", [
             numin("entTxtBase", "$0.00",
                   BorderColor=f"If(!IsMatch(Self.Text, {NUM}), clrRed, IsBlank(Trim(Self.Text)), clrAmber, clrLine)"),
         ]),
-        field("entFldAdj", "Add-on", [numin("entTxtAdj")], head=[pct_toggle("entTglAdjPct")]),
-        field("entFldDisc", "Discount", [numin("entTxtDisc")], head=[pct_toggle("entTglDiscPct")]),
+        field("entFldAdj", "Add-on", [numin("entTxtAdj")], head=pct_toggle("entTglAdjPct", "varAdjPct", "Add-on")),
+        field("entFldDisc", "Discount", [numin("entTxtDisc")], head=pct_toggle("entTglDiscPct", "varDiscPct", "Discount")),
     ]),
     row("entRowCost2", 60, [
         field("entFldFuel", "Fuel program *", [picker_btn("entPickFuel", "varFuel", "Fuel program")]),
@@ -919,7 +940,8 @@ cost_section = section("entSecCost", "2", s("Cost"), s("Fuel goes on the base fi
         fact("entFactEquip", "Equipment", entry_equip),
     ], gap=8),
     breakdown("ent",
-              breakdown_left("varFuel", "Value(entTxtFAdj.Text)", "Value(entTxtFDisc.Text)", "true"),
+              breakdown_left("varFuel", "Value(entTxtFAdj.Text)", "Value(entTxtFDisc.Text)", "true",
+                             ready="!IsBlank(entCalc.Text)"),
               breakdown_right("!IsBlank(entCalc.Text)", "Value(entTxtBase.Text)", "varFuel",
                               "Value(entTxtFAdj.Text)", "Value(entTxtFDisc.Text)", "Value(entTxtAdj.Text)",
                               "entTglAdjPct.Value", "Value(entTxtDisc.Text)", "entTglDiscPct.Value", "true")),

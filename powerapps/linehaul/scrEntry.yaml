@@ -322,7 +322,7 @@ Screens:
                               PaddingRight: =0
                               PaddingTop: =0
                               Size: =16
-                              Text: ="Line-Haul Rates"
+                              Text: ="Line-Haul Form"
                               VerticalAlign: =VerticalAlign.Middle
                               Width: =210
                         - entHdrDiv:
@@ -547,23 +547,6 @@ Screens:
                                                 Text: ="Lane"
                                                 VerticalAlign: =VerticalAlign.Middle
                                                 Width: =250
-                                          - entSecLaneHint:
-                                              Control: Label@2.5.1
-                                              Properties:
-                                                BorderThickness: =0
-                                                Color: =clrInk3
-                                                FillPortions: =1
-                                                Font: =Font.'Segoe UI'
-                                                Height: =30
-                                                LayoutMinHeight: =0
-                                                LayoutMinWidth: =40
-                                                PaddingBottom: =0
-                                                PaddingLeft: =0
-                                                PaddingRight: =0
-                                                PaddingTop: =0
-                                                Size: =10
-                                                Text: ="Who moves it, where, on what"
-                                                VerticalAlign: =VerticalAlign.Middle
                                     - entSecLaneSep:
                                         Control: Rectangle@2.3.0
                                         Properties:
@@ -1602,7 +1585,7 @@ Screens:
                                                       - entTglActive:
                                                           Control: Classic/Toggle@2.1.0
                                                           Properties:
-                                                            AlignInContainer: =AlignInContainer.Stretch
+                                                            AlignInContainer: =AlignInContainer.Start
                                                             BorderThickness: =0
                                                             Color: =clrInk
                                                             Default: =true
@@ -1620,6 +1603,7 @@ Screens:
                                                             TrueFill: =clrBlue
                                                             TrueHoverFill: =clrBlueHover
                                                             TrueText: ="Active"
+                                                            Width: =150
                                           - entFldNotes:
                                               Control: GroupContainer@1.5.0
                                               Variant: AutoLayout
@@ -1673,7 +1657,7 @@ Screens:
                                                       Fill: =clrPanel
                                                       Font: =Font.'Segoe UI'
                                                       Height: =64
-                                                      HintText: ="Anything the next person should know about this rate"
+                                                      HintText: =""
                                                       HoverBorderColor: =clrInk3
                                                       HoverFill: =clrPanel
                                                       LayoutMinHeight: =0
@@ -1945,23 +1929,6 @@ Screens:
                                                 Text: ="Cost"
                                                 VerticalAlign: =VerticalAlign.Middle
                                                 Width: =250
-                                          - entSecCostHint:
-                                              Control: Label@2.5.1
-                                              Properties:
-                                                BorderThickness: =0
-                                                Color: =clrInk3
-                                                FillPortions: =1
-                                                Font: =Font.'Segoe UI'
-                                                Height: =30
-                                                LayoutMinHeight: =0
-                                                LayoutMinWidth: =40
-                                                PaddingBottom: =0
-                                                PaddingLeft: =0
-                                                PaddingRight: =0
-                                                PaddingTop: =0
-                                                Size: =10
-                                                Text: ="Fuel goes on the base first, then add-on, then discount"
-                                                VerticalAlign: =VerticalAlign.Middle
                                     - entSecCostSep:
                                         Control: Rectangle@2.3.0
                                         Properties:
@@ -2155,23 +2122,117 @@ Screens:
                                                                 Properties:
                                                                   BorderThickness: =0
                                                                   Color: =clrInk
-                                                                  Default: =false
+                                                                  Default: =varAdjPct
                                                                   FalseFill: =RGBA(190, 200, 210, 1)
                                                                   FalseHoverFill: =clrInk3
                                                                   FalseText: ="$"
                                                                   FillPortions: =0
                                                                   Font: =Font.'Segoe UI'
-                                                                  FontWeight: =FontWeight.Bold
+                                                                  FontWeight: =FontWeight.Semibold
                                                                   HandleFill: =clrWhite
                                                                   Height: =18
                                                                   LayoutMinHeight: =0
                                                                   LayoutMinWidth: =0
-                                                                  Size: =9
+                                                                  Size: =10
                                                                   TextPosition: =TextPosition.Right
                                                                   TrueFill: =clrBlue
                                                                   TrueHoverFill: =clrBlueHover
                                                                   TrueText: ="%"
-                                                                  Width: =64
+                                                                  Visible: =false
+                                                                  Width: =10
+                                                            - entSegAdj:
+                                                                Control: GroupContainer@1.5.0
+                                                                Variant: AutoLayout
+                                                                Properties:
+                                                                  BorderThickness: =0
+                                                                  DropShadow: =DropShadow.None
+                                                                  Fill: =clrClear
+                                                                  FillPortions: =0
+                                                                  Height: =18
+                                                                  LayoutDirection: =LayoutDirection.Horizontal
+                                                                  LayoutGap: =0
+                                                                  LayoutMinHeight: =0
+                                                                  LayoutMinWidth: =0
+                                                                  PaddingBottom: =0
+                                                                  PaddingLeft: =0
+                                                                  PaddingRight: =0
+                                                                  PaddingTop: =0
+                                                                  RadiusBottomLeft: =0
+                                                                  RadiusBottomRight: =0
+                                                                  RadiusTopLeft: =0
+                                                                  RadiusTopRight: =0
+                                                                  Width: =56
+                                                                Children:
+                                                                  - entSegAdjAmt:
+                                                                      Control: Classic/Button@2.2.0
+                                                                      Properties:
+                                                                        BorderColor: =clrLine
+                                                                        BorderThickness: =0
+                                                                        Color: =If(!varAdjPct, clrWhite, clrInk2)
+                                                                        DisabledBorderColor: =clrLine
+                                                                        DisabledColor: =clrInk3
+                                                                        DisabledFill: =clrSoft
+                                                                        Fill: =If(!varAdjPct, clrBlue, clrSoft)
+                                                                        FillPortions: =0
+                                                                        Font: =Font.'Segoe UI'
+                                                                        FontWeight: =FontWeight.Bold
+                                                                        Height: =18
+                                                                        HoverBorderColor: =clrInk3
+                                                                        HoverColor: =If(!varAdjPct, clrWhite, clrInk)
+                                                                        HoverFill: =If(!varAdjPct, clrBlue, clrSoft)
+                                                                        LayoutMinHeight: =0
+                                                                        LayoutMinWidth: =0
+                                                                        OnSelect: =Set(varAdjPct, false); Reset(entTglAdjPct)
+                                                                        PaddingBottom: =0
+                                                                        PaddingLeft: =0
+                                                                        PaddingRight: =0
+                                                                        PaddingTop: =0
+                                                                        PressedBorderColor: =clrInk3
+                                                                        PressedColor: =clrWhite
+                                                                        PressedFill: =clrBlue
+                                                                        RadiusBottomLeft: =4
+                                                                        RadiusBottomRight: =0
+                                                                        RadiusTopLeft: =4
+                                                                        RadiusTopRight: =0
+                                                                        Size: =9
+                                                                        Text: ="$"
+                                                                        Tooltip: ="Add-on in dollars"
+                                                                        Width: =28
+                                                                  - entSegAdjPct:
+                                                                      Control: Classic/Button@2.2.0
+                                                                      Properties:
+                                                                        BorderColor: =clrLine
+                                                                        BorderThickness: =0
+                                                                        Color: =If(varAdjPct, clrWhite, clrInk2)
+                                                                        DisabledBorderColor: =clrLine
+                                                                        DisabledColor: =clrInk3
+                                                                        DisabledFill: =clrSoft
+                                                                        Fill: =If(varAdjPct, clrBlue, clrSoft)
+                                                                        FillPortions: =0
+                                                                        Font: =Font.'Segoe UI'
+                                                                        FontWeight: =FontWeight.Bold
+                                                                        Height: =18
+                                                                        HoverBorderColor: =clrInk3
+                                                                        HoverColor: =If(varAdjPct, clrWhite, clrInk)
+                                                                        HoverFill: =If(varAdjPct, clrBlue, clrSoft)
+                                                                        LayoutMinHeight: =0
+                                                                        LayoutMinWidth: =0
+                                                                        OnSelect: =Set(varAdjPct, true); Reset(entTglAdjPct)
+                                                                        PaddingBottom: =0
+                                                                        PaddingLeft: =0
+                                                                        PaddingRight: =0
+                                                                        PaddingTop: =0
+                                                                        PressedBorderColor: =clrInk3
+                                                                        PressedColor: =clrWhite
+                                                                        PressedFill: =clrBlue
+                                                                        RadiusBottomLeft: =0
+                                                                        RadiusBottomRight: =4
+                                                                        RadiusTopLeft: =0
+                                                                        RadiusTopRight: =4
+                                                                        Size: =9
+                                                                        Text: ="%"
+                                                                        Tooltip: ="Add-on in percent"
+                                                                        Width: =28
                                                       - entTxtAdj:
                                                           Control: Classic/TextInput@2.3.2
                                                           Properties:
@@ -2270,23 +2331,117 @@ Screens:
                                                                 Properties:
                                                                   BorderThickness: =0
                                                                   Color: =clrInk
-                                                                  Default: =false
+                                                                  Default: =varDiscPct
                                                                   FalseFill: =RGBA(190, 200, 210, 1)
                                                                   FalseHoverFill: =clrInk3
                                                                   FalseText: ="$"
                                                                   FillPortions: =0
                                                                   Font: =Font.'Segoe UI'
-                                                                  FontWeight: =FontWeight.Bold
+                                                                  FontWeight: =FontWeight.Semibold
                                                                   HandleFill: =clrWhite
                                                                   Height: =18
                                                                   LayoutMinHeight: =0
                                                                   LayoutMinWidth: =0
-                                                                  Size: =9
+                                                                  Size: =10
                                                                   TextPosition: =TextPosition.Right
                                                                   TrueFill: =clrBlue
                                                                   TrueHoverFill: =clrBlueHover
                                                                   TrueText: ="%"
-                                                                  Width: =64
+                                                                  Visible: =false
+                                                                  Width: =10
+                                                            - entSegDisc:
+                                                                Control: GroupContainer@1.5.0
+                                                                Variant: AutoLayout
+                                                                Properties:
+                                                                  BorderThickness: =0
+                                                                  DropShadow: =DropShadow.None
+                                                                  Fill: =clrClear
+                                                                  FillPortions: =0
+                                                                  Height: =18
+                                                                  LayoutDirection: =LayoutDirection.Horizontal
+                                                                  LayoutGap: =0
+                                                                  LayoutMinHeight: =0
+                                                                  LayoutMinWidth: =0
+                                                                  PaddingBottom: =0
+                                                                  PaddingLeft: =0
+                                                                  PaddingRight: =0
+                                                                  PaddingTop: =0
+                                                                  RadiusBottomLeft: =0
+                                                                  RadiusBottomRight: =0
+                                                                  RadiusTopLeft: =0
+                                                                  RadiusTopRight: =0
+                                                                  Width: =56
+                                                                Children:
+                                                                  - entSegDiscAmt:
+                                                                      Control: Classic/Button@2.2.0
+                                                                      Properties:
+                                                                        BorderColor: =clrLine
+                                                                        BorderThickness: =0
+                                                                        Color: =If(!varDiscPct, clrWhite, clrInk2)
+                                                                        DisabledBorderColor: =clrLine
+                                                                        DisabledColor: =clrInk3
+                                                                        DisabledFill: =clrSoft
+                                                                        Fill: =If(!varDiscPct, clrBlue, clrSoft)
+                                                                        FillPortions: =0
+                                                                        Font: =Font.'Segoe UI'
+                                                                        FontWeight: =FontWeight.Bold
+                                                                        Height: =18
+                                                                        HoverBorderColor: =clrInk3
+                                                                        HoverColor: =If(!varDiscPct, clrWhite, clrInk)
+                                                                        HoverFill: =If(!varDiscPct, clrBlue, clrSoft)
+                                                                        LayoutMinHeight: =0
+                                                                        LayoutMinWidth: =0
+                                                                        OnSelect: =Set(varDiscPct, false); Reset(entTglDiscPct)
+                                                                        PaddingBottom: =0
+                                                                        PaddingLeft: =0
+                                                                        PaddingRight: =0
+                                                                        PaddingTop: =0
+                                                                        PressedBorderColor: =clrInk3
+                                                                        PressedColor: =clrWhite
+                                                                        PressedFill: =clrBlue
+                                                                        RadiusBottomLeft: =4
+                                                                        RadiusBottomRight: =0
+                                                                        RadiusTopLeft: =4
+                                                                        RadiusTopRight: =0
+                                                                        Size: =9
+                                                                        Text: ="$"
+                                                                        Tooltip: ="Discount in dollars"
+                                                                        Width: =28
+                                                                  - entSegDiscPct:
+                                                                      Control: Classic/Button@2.2.0
+                                                                      Properties:
+                                                                        BorderColor: =clrLine
+                                                                        BorderThickness: =0
+                                                                        Color: =If(varDiscPct, clrWhite, clrInk2)
+                                                                        DisabledBorderColor: =clrLine
+                                                                        DisabledColor: =clrInk3
+                                                                        DisabledFill: =clrSoft
+                                                                        Fill: =If(varDiscPct, clrBlue, clrSoft)
+                                                                        FillPortions: =0
+                                                                        Font: =Font.'Segoe UI'
+                                                                        FontWeight: =FontWeight.Bold
+                                                                        Height: =18
+                                                                        HoverBorderColor: =clrInk3
+                                                                        HoverColor: =If(varDiscPct, clrWhite, clrInk)
+                                                                        HoverFill: =If(varDiscPct, clrBlue, clrSoft)
+                                                                        LayoutMinHeight: =0
+                                                                        LayoutMinWidth: =0
+                                                                        OnSelect: =Set(varDiscPct, true); Reset(entTglDiscPct)
+                                                                        PaddingBottom: =0
+                                                                        PaddingLeft: =0
+                                                                        PaddingRight: =0
+                                                                        PaddingTop: =0
+                                                                        PressedBorderColor: =clrInk3
+                                                                        PressedColor: =clrWhite
+                                                                        PressedFill: =clrBlue
+                                                                        RadiusBottomLeft: =0
+                                                                        RadiusBottomRight: =4
+                                                                        RadiusTopLeft: =0
+                                                                        RadiusTopRight: =4
+                                                                        Size: =9
+                                                                        Text: ="%"
+                                                                        Tooltip: ="Discount in percent"
+                                                                        Width: =28
                                                       - entTxtDisc:
                                                           Control: Classic/TextInput@2.3.2
                                                           Properties:
@@ -2861,7 +3016,10 @@ Screens:
                                                             PaddingTop: =0
                                                             Size: =10.5
                                                             Text: |-
-                                                              =With(
+                                                              =If(
+                                                                  !(!IsBlank(entCalc.Text)),
+                                                                  "Enter a base rate, equipment and fuel program to see how the cost is built.",
+                                                              With(
                                                                   {f: varFuel, fa: Coalesce(Value(entTxtFAdj.Text), 0), fd: Coalesce(Value(entTxtFDisc.Text), 0)},
                                                                   "Base" & Char(10) &
                                                                   If(
@@ -2876,6 +3034,7 @@ Screens:
                                                                   "Add-on" & Char(10) &
                                                                   "Discount" & Char(10) &
                                                                   "LH cost"
+                                                              )
                                                               )
                                                             VerticalAlign: =VerticalAlign.Top
                                                             Wrap: =true
@@ -2899,7 +3058,7 @@ Screens:
                                                             Text: |-
                                                               =If(
                                                                   !(!IsBlank(entCalc.Text)),
-                                                                  "—",
+                                                                  "",
                                                                   With(
                                                                       {b: Coalesce(Value(entTxtBase.Text), 0), fsc: FscPct(varFuel, Value(entTxtFAdj.Text), Value(entTxtFDisc.Text), true)},
                                                                       With(
@@ -3245,6 +3404,7 @@ Screens:
                                       =Set(varOrigin, Blank()); Set(varDest, Blank()); Set(varMode, Blank()); Set(varEquip, Blank());
                                       Set(varCarrier, Blank()); Set(varFuel, Blank()); Set(varPick, "");
                                       Reset(entDteEff); Reset(entDteExpiry); Reset(entTglActive);
+                                      Set(varAdjPct, false); Set(varDiscPct, false);
                                       Reset(entTxtBase); Reset(entTxtAdj); Reset(entTglAdjPct); Reset(entTxtDisc); Reset(entTglDiscPct);
                                       Reset(entTxtFAdj); Reset(entTxtFDisc); Reset(entTxtNotes);
                                       Clear(colDays);

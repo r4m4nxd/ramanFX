@@ -331,7 +331,7 @@ Screens:
                               PaddingRight: =0
                               PaddingTop: =0
                               Size: =16
-                              Text: ="Line-Haul Rates"
+                              Text: ="Line-Haul Form"
                               VerticalAlign: =VerticalAlign.Middle
                               Width: =210
                         - detHdrDiv:
@@ -2191,7 +2191,10 @@ Screens:
                                                                   PaddingTop: =0
                                                                   Size: =10.5
                                                                   Text: |-
-                                                                    =With(
+                                                                    =If(
+                                                                        !(true),
+                                                                        "Enter a base rate, equipment and fuel program to see how the cost is built.",
+                                                                    With(
                                                                         {f: varRate.Fuel, fa: Coalesce(varRate.F_Adj, 0), fd: Coalesce(varRate.F_Discount, 0)},
                                                                         "Base" & Char(10) &
                                                                         If(
@@ -2206,6 +2209,7 @@ Screens:
                                                                         "Add-on" & Char(10) &
                                                                         "Discount" & Char(10) &
                                                                         "LH cost"
+                                                                    )
                                                                     )
                                                                   VerticalAlign: =VerticalAlign.Top
                                                                   Wrap: =true
@@ -2229,7 +2233,7 @@ Screens:
                                                                   Text: |-
                                                                     =If(
                                                                         !(!IsBlank(varRate.Base)),
-                                                                        "—",
+                                                                        "",
                                                                         With(
                                                                             {b: Coalesce(varRate.Base, 0), fsc: FscPct(varRate.Fuel, varRate.F_Adj, varRate.F_Discount, detTglFuel.Value)},
                                                                             With(
