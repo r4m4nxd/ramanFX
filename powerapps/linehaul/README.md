@@ -124,7 +124,8 @@ Every text control uses one of these roles. The sizes are set once at the top of
   - Date pickers: 12 px on the left.
   - Banners: 8 px top and bottom, 12 px sides.
   - Containers: 16 px.
-- **Fit check:** `build.py` checks every visible label, button, input, date picker and toggle before writing the files.
+- **Bordered controls never touch a container edge.** Power Apps containers clip anything drawn on their edge, including a control's own border. Every field, card column, header and button row therefore has at least 2 px of padding, and inputs, pickers and date pickers are 36 px high so the rows keep their size. Units are in the labels ("Base rate ($)", "Fuel add-on (pts)", "FSC (%)") instead of separate boxes.
+- **Fit check:** `build.py` checks every visible label, button, input, date picker and toggle before writing the files, and flags any bordered control in a container with less than 2 px padding.
   - **Height:** at least 1.4 × the font size plus its top and bottom padding.
   - **Width:** wide enough for its fixed text plus side padding (plus the switch, for toggles).
   - The build lists any control that fails. The current build reports "every text control fits".

@@ -287,10 +287,10 @@ Screens:
                         LayoutGap: =16
                         LayoutMinHeight: =0
                         LayoutMinWidth: =0
-                        PaddingBottom: =0
+                        PaddingBottom: =2
                         PaddingLeft: =16
                         PaddingRight: =16
-                        PaddingTop: =0
+                        PaddingTop: =2
                         RadiusBottomLeft: =0
                         RadiusBottomRight: =0
                         RadiusTopLeft: =0
@@ -433,10 +433,10 @@ Screens:
                               LayoutGap: =16
                               LayoutMinHeight: =0
                               LayoutMinWidth: =40
-                              PaddingBottom: =0
-                              PaddingLeft: =0
-                              PaddingRight: =0
-                              PaddingTop: =0
+                              PaddingBottom: =2
+                              PaddingLeft: =2
+                              PaddingRight: =2
+                              PaddingTop: =2
                               RadiusBottomLeft: =0
                               RadiusBottomRight: =0
                               RadiusTopLeft: =0
@@ -819,7 +819,7 @@ Screens:
                                     DropShadow: =DropShadow.None
                                     Fill: =clrPanel
                                     FillPortions: =If(fulBody.Width < 900, 0, 1)
-                                    Height: =If(fulLblErr.Visible, 412, 344)
+                                    Height: =If(fulLblErr.Visible, 416, 348)
                                     LayoutDirection: =LayoutDirection.Vertical
                                     LayoutGap: =0
                                     LayoutMinHeight: =0
@@ -979,13 +979,13 @@ Screens:
                                                       Fill: =clrClear
                                                       FillPortions: =1
                                                       LayoutDirection: =LayoutDirection.Vertical
-                                                      LayoutGap: =4
+                                                      LayoutGap: =2
                                                       LayoutMinHeight: =0
                                                       LayoutMinWidth: =100
-                                                      PaddingBottom: =0
-                                                      PaddingLeft: =0
-                                                      PaddingRight: =0
-                                                      PaddingTop: =0
+                                                      PaddingBottom: =2
+                                                      PaddingLeft: =2
+                                                      PaddingRight: =2
+                                                      PaddingTop: =2
                                                       RadiusBottomLeft: =0
                                                       RadiusBottomRight: =0
                                                       RadiusTopLeft: =0
@@ -1019,7 +1019,7 @@ Screens:
                                                             Default: =If(varFuelEdit, varFuelRec.Title, "")
                                                             Fill: =clrPanel
                                                             Font: =Font.'Segoe UI'
-                                                            Height: =38
+                                                            Height: =36
                                                             HintText: ="e.g. CP"
                                                             HoverBorderColor: =clrInk3
                                                             HoverFill: =clrPanel
@@ -1069,13 +1069,13 @@ Screens:
                                                       Fill: =clrClear
                                                       FillPortions: =1
                                                       LayoutDirection: =LayoutDirection.Vertical
-                                                      LayoutGap: =4
+                                                      LayoutGap: =2
                                                       LayoutMinHeight: =0
                                                       LayoutMinWidth: =100
-                                                      PaddingBottom: =0
-                                                      PaddingLeft: =0
-                                                      PaddingRight: =0
-                                                      PaddingTop: =0
+                                                      PaddingBottom: =2
+                                                      PaddingLeft: =2
+                                                      PaddingRight: =2
+                                                      PaddingTop: =2
                                                       RadiusBottomLeft: =0
                                                       RadiusBottomRight: =0
                                                       RadiusTopLeft: =0
@@ -1097,83 +1097,37 @@ Screens:
                                                             PaddingRight: =0
                                                             PaddingTop: =0
                                                             Size: =9
-                                                            Text: ="FSC % *"
+                                                            Text: ="FSC (%) *"
                                                             VerticalAlign: =VerticalAlign.Middle
-                                                      - fulFscRow:
-                                                          Control: GroupContainer@1.5.0
-                                                          Variant: AutoLayout
+                                                      - fulTxtFsc:
+                                                          Control: Classic/TextInput@2.3.2
                                                           Properties:
+                                                            Align: =Align.Right
                                                             AlignInContainer: =AlignInContainer.Stretch
-                                                            BorderThickness: =0
-                                                            DropShadow: =DropShadow.None
-                                                            Fill: =clrClear
-                                                            FillPortions: =0
-                                                            Height: =38
-                                                            LayoutDirection: =LayoutDirection.Horizontal
-                                                            LayoutGap: =8
+                                                            BorderColor: =clrLine
+                                                            BorderThickness: =1
+                                                            Color: =clrInk
+                                                            Default: =If(varFuelEdit, Text(varFuelRec.FSC), "")
+                                                            Fill: =clrPanel
+                                                            Font: =Font.'Segoe UI'
+                                                            Format: =TextFormat.Number
+                                                            Height: =36
+                                                            HintText: ="e.g. 36.16"
+                                                            HoverBorderColor: =clrInk3
+                                                            HoverFill: =clrPanel
                                                             LayoutMinHeight: =0
                                                             LayoutMinWidth: =0
-                                                            PaddingBottom: =0
-                                                            PaddingLeft: =0
-                                                            PaddingRight: =0
-                                                            PaddingTop: =0
-                                                            RadiusBottomLeft: =0
-                                                            RadiusBottomRight: =0
-                                                            RadiusTopLeft: =0
-                                                            RadiusTopRight: =0
-                                                          Children:
-                                                            - fulTxtFsc:
-                                                                Control: Classic/TextInput@2.3.2
-                                                                Properties:
-                                                                  Align: =Align.Right
-                                                                  AlignInContainer: =AlignInContainer.Stretch
-                                                                  BorderColor: =clrLine
-                                                                  BorderThickness: =1
-                                                                  Color: =clrInk
-                                                                  Default: =If(varFuelEdit, Text(varFuelRec.FSC), "")
-                                                                  Fill: =clrPanel
-                                                                  FillPortions: =1
-                                                                  Font: =Font.'Segoe UI'
-                                                                  Format: =TextFormat.Number
-                                                                  Height: =38
-                                                                  HintText: ="e.g. 36.16"
-                                                                  HoverBorderColor: =clrInk3
-                                                                  HoverFill: =clrPanel
-                                                                  LayoutMinHeight: =0
-                                                                  LayoutMinWidth: =40
-                                                                  PaddingBottom: =6
-                                                                  PaddingLeft: =12
-                                                                  PaddingRight: =12
-                                                                  PaddingTop: =6
-                                                                  PressedBorderColor: =clrBlue
-                                                                  PressedFill: =clrPanel
-                                                                  RadiusBottomLeft: =5
-                                                                  RadiusBottomRight: =5
-                                                                  RadiusTopLeft: =5
-                                                                  RadiusTopRight: =5
-                                                                  Size: =11
-                                                            - fulFscUnit:
-                                                                Control: Label@2.5.1
-                                                                Properties:
-                                                                  Align: =Align.Center
-                                                                  BorderColor: =clrLine
-                                                                  BorderThickness: =1
-                                                                  Color: =clrInk3
-                                                                  Fill: =clrSoft
-                                                                  FillPortions: =0
-                                                                  Font: =Font.'Segoe UI'
-                                                                  FontWeight: =FontWeight.Bold
-                                                                  Height: =38
-                                                                  LayoutMinHeight: =0
-                                                                  LayoutMinWidth: =0
-                                                                  PaddingBottom: =0
-                                                                  PaddingLeft: =0
-                                                                  PaddingRight: =0
-                                                                  PaddingTop: =0
-                                                                  Size: =10.5
-                                                                  Text: ="%"
-                                                                  VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =40
+                                                            PaddingBottom: =6
+                                                            PaddingLeft: =12
+                                                            PaddingRight: =12
+                                                            PaddingTop: =6
+                                                            PressedBorderColor: =clrBlue
+                                                            PressedFill: =clrPanel
+                                                            RadiusBottomLeft: =5
+                                                            RadiusBottomRight: =5
+                                                            RadiusTopLeft: =5
+                                                            RadiusTopRight: =5
+                                                            Size: =11
                                           - fulFormRow3:
                                               Control: GroupContainer@1.5.0
                                               Variant: AutoLayout
@@ -1207,13 +1161,13 @@ Screens:
                                                       Fill: =clrClear
                                                       FillPortions: =1
                                                       LayoutDirection: =LayoutDirection.Vertical
-                                                      LayoutGap: =4
+                                                      LayoutGap: =2
                                                       LayoutMinHeight: =0
                                                       LayoutMinWidth: =100
-                                                      PaddingBottom: =0
-                                                      PaddingLeft: =0
-                                                      PaddingRight: =0
-                                                      PaddingTop: =0
+                                                      PaddingBottom: =2
+                                                      PaddingLeft: =2
+                                                      PaddingRight: =2
+                                                      PaddingTop: =2
                                                       RadiusBottomLeft: =0
                                                       RadiusBottomRight: =0
                                                       RadiusTopLeft: =0
@@ -1247,7 +1201,7 @@ Screens:
                                                             DefaultDate: =If(varFuelEdit, varFuelRec.EffectiveDate, Today())
                                                             Fill: =clrPanel
                                                             Font: =Font.'Segoe UI'
-                                                            Height: =38
+                                                            Height: =36
                                                             IconBackground: =clrBlue
                                                             IconFill: =clrWhite
                                                             LayoutMinHeight: =0
@@ -1298,15 +1252,15 @@ Screens:
                                                 DropShadow: =DropShadow.None
                                                 Fill: =clrClear
                                                 FillPortions: =0
-                                                Height: =38
+                                                Height: =42
                                                 LayoutDirection: =LayoutDirection.Horizontal
                                                 LayoutGap: =12
                                                 LayoutMinHeight: =0
                                                 LayoutMinWidth: =0
-                                                PaddingBottom: =0
-                                                PaddingLeft: =0
-                                                PaddingRight: =0
-                                                PaddingTop: =0
+                                                PaddingBottom: =2
+                                                PaddingLeft: =2
+                                                PaddingRight: =2
+                                                PaddingTop: =2
                                                 RadiusBottomLeft: =0
                                                 RadiusBottomRight: =0
                                                 RadiusTopLeft: =0

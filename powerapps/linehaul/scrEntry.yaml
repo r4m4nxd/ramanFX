@@ -287,10 +287,10 @@ Screens:
                         LayoutGap: =16
                         LayoutMinHeight: =0
                         LayoutMinWidth: =0
-                        PaddingBottom: =0
+                        PaddingBottom: =2
                         PaddingLeft: =16
                         PaddingRight: =16
-                        PaddingTop: =0
+                        PaddingTop: =2
                         RadiusBottomLeft: =0
                         RadiusBottomRight: =0
                         RadiusTopLeft: =0
@@ -433,17 +433,17 @@ Screens:
                               Height: |-
                                 =If(
                                     entBody.Width < 900,
-                                    (468 + If(entLblReplace.Visible, 68, 0) + If(entLblDupe.Visible, 68, 0)) + 16 + 436,
-                                    (468 + If(entLblReplace.Visible, 68, 0) + If(entLblDupe.Visible, 68, 0))
+                                    (470 + If(entLblReplace.Visible, 68, 0) + If(entLblDupe.Visible, 68, 0)) + 16 + 436 + 4,
+                                    (470 + If(entLblReplace.Visible, 68, 0) + If(entLblDupe.Visible, 68, 0)) + 4
                                 )
                               LayoutDirection: =If(entBody.Width < 900, LayoutDirection.Vertical, LayoutDirection.Horizontal)
                               LayoutGap: =16
                               LayoutMinHeight: =0
                               LayoutMinWidth: =0
-                              PaddingBottom: =0
-                              PaddingLeft: =0
-                              PaddingRight: =0
-                              PaddingTop: =0
+                              PaddingBottom: =2
+                              PaddingLeft: =2
+                              PaddingRight: =2
+                              PaddingTop: =2
                               RadiusBottomLeft: =0
                               RadiusBottomRight: =0
                               RadiusTopLeft: =0
@@ -459,7 +459,7 @@ Screens:
                                     DropShadow: =DropShadow.None
                                     Fill: =clrPanel
                                     FillPortions: =If(entBody.Width < 900, 0, 1)
-                                    Height: =(468 + If(entLblReplace.Visible, 68, 0) + If(entLblDupe.Visible, 68, 0))
+                                    Height: =(470 + If(entLblReplace.Visible, 68, 0) + If(entLblDupe.Visible, 68, 0))
                                     LayoutDirection: =LayoutDirection.Vertical
                                     LayoutGap: =0
                                     LayoutMinHeight: =0
@@ -619,13 +619,13 @@ Screens:
                                                       Fill: =clrClear
                                                       FillPortions: =1
                                                       LayoutDirection: =LayoutDirection.Vertical
-                                                      LayoutGap: =4
+                                                      LayoutGap: =2
                                                       LayoutMinHeight: =0
                                                       LayoutMinWidth: =100
-                                                      PaddingBottom: =0
-                                                      PaddingLeft: =0
-                                                      PaddingRight: =0
-                                                      PaddingTop: =0
+                                                      PaddingBottom: =2
+                                                      PaddingLeft: =2
+                                                      PaddingRight: =2
+                                                      PaddingTop: =2
                                                       RadiusBottomLeft: =0
                                                       RadiusBottomRight: =0
                                                       RadiusTopLeft: =0
@@ -663,7 +663,7 @@ Screens:
                                                             Fill: =clrPanel
                                                             Font: =Font.'Segoe UI'
                                                             FontWeight: =FontWeight.Normal
-                                                            Height: =38
+                                                            Height: =36
                                                             HoverBorderColor: =clrInk3
                                                             HoverColor: =If(IsBlank(varOrigin), clrInk3, clrInk)
                                                             HoverFill: =clrPanel
@@ -693,13 +693,13 @@ Screens:
                                                       Fill: =clrClear
                                                       FillPortions: =1
                                                       LayoutDirection: =LayoutDirection.Vertical
-                                                      LayoutGap: =4
+                                                      LayoutGap: =2
                                                       LayoutMinHeight: =0
                                                       LayoutMinWidth: =100
-                                                      PaddingBottom: =0
-                                                      PaddingLeft: =0
-                                                      PaddingRight: =0
-                                                      PaddingTop: =0
+                                                      PaddingBottom: =2
+                                                      PaddingLeft: =2
+                                                      PaddingRight: =2
+                                                      PaddingTop: =2
                                                       RadiusBottomLeft: =0
                                                       RadiusBottomRight: =0
                                                       RadiusTopLeft: =0
@@ -737,7 +737,7 @@ Screens:
                                                             Fill: =clrPanel
                                                             Font: =Font.'Segoe UI'
                                                             FontWeight: =FontWeight.Normal
-                                                            Height: =38
+                                                            Height: =36
                                                             HoverBorderColor: =clrInk3
                                                             HoverColor: =If(IsBlank(varDest), clrInk3, clrInk)
                                                             HoverFill: =clrPanel
@@ -767,13 +767,13 @@ Screens:
                                                       Fill: =clrClear
                                                       FillPortions: =1
                                                       LayoutDirection: =LayoutDirection.Vertical
-                                                      LayoutGap: =4
+                                                      LayoutGap: =2
                                                       LayoutMinHeight: =0
                                                       LayoutMinWidth: =100
-                                                      PaddingBottom: =0
-                                                      PaddingLeft: =0
-                                                      PaddingRight: =0
-                                                      PaddingTop: =0
+                                                      PaddingBottom: =2
+                                                      PaddingLeft: =2
+                                                      PaddingRight: =2
+                                                      PaddingTop: =2
                                                       RadiusBottomLeft: =0
                                                       RadiusBottomRight: =0
                                                       RadiusTopLeft: =0
@@ -811,7 +811,7 @@ Screens:
                                                             Fill: =clrPanel
                                                             Font: =Font.'Segoe UI'
                                                             FontWeight: =FontWeight.Normal
-                                                            Height: =38
+                                                            Height: =36
                                                             HoverBorderColor: =clrInk3
                                                             HoverColor: =If(IsBlank(varMode), clrInk3, clrInk)
                                                             HoverFill: =clrPanel
@@ -841,13 +841,13 @@ Screens:
                                                       Fill: =clrClear
                                                       FillPortions: =1
                                                       LayoutDirection: =LayoutDirection.Vertical
-                                                      LayoutGap: =4
+                                                      LayoutGap: =2
                                                       LayoutMinHeight: =0
                                                       LayoutMinWidth: =100
-                                                      PaddingBottom: =0
-                                                      PaddingLeft: =0
-                                                      PaddingRight: =0
-                                                      PaddingTop: =0
+                                                      PaddingBottom: =2
+                                                      PaddingLeft: =2
+                                                      PaddingRight: =2
+                                                      PaddingTop: =2
                                                       RadiusBottomLeft: =0
                                                       RadiusBottomRight: =0
                                                       RadiusTopLeft: =0
@@ -885,7 +885,7 @@ Screens:
                                                             Fill: =clrPanel
                                                             Font: =Font.'Segoe UI'
                                                             FontWeight: =FontWeight.Normal
-                                                            Height: =38
+                                                            Height: =36
                                                             HoverBorderColor: =clrInk3
                                                             HoverColor: =If(IsBlank(varEquip), clrInk3, clrInk)
                                                             HoverFill: =clrPanel
@@ -938,13 +938,13 @@ Screens:
                                                       Fill: =clrClear
                                                       FillPortions: =1
                                                       LayoutDirection: =LayoutDirection.Vertical
-                                                      LayoutGap: =4
+                                                      LayoutGap: =2
                                                       LayoutMinHeight: =0
                                                       LayoutMinWidth: =100
-                                                      PaddingBottom: =0
-                                                      PaddingLeft: =0
-                                                      PaddingRight: =0
-                                                      PaddingTop: =0
+                                                      PaddingBottom: =2
+                                                      PaddingLeft: =2
+                                                      PaddingRight: =2
+                                                      PaddingTop: =2
                                                       RadiusBottomLeft: =0
                                                       RadiusBottomRight: =0
                                                       RadiusTopLeft: =0
@@ -982,7 +982,7 @@ Screens:
                                                             Fill: =clrPanel
                                                             Font: =Font.'Segoe UI'
                                                             FontWeight: =FontWeight.Normal
-                                                            Height: =38
+                                                            Height: =36
                                                             HoverBorderColor: =clrInk3
                                                             HoverColor: =If(IsBlank(varCarrier), clrInk3, clrInk)
                                                             HoverFill: =clrPanel
@@ -1012,13 +1012,13 @@ Screens:
                                                       Fill: =clrClear
                                                       FillPortions: =1.3
                                                       LayoutDirection: =LayoutDirection.Vertical
-                                                      LayoutGap: =4
+                                                      LayoutGap: =2
                                                       LayoutMinHeight: =0
                                                       LayoutMinWidth: =100
-                                                      PaddingBottom: =0
-                                                      PaddingLeft: =0
-                                                      PaddingRight: =0
-                                                      PaddingTop: =0
+                                                      PaddingBottom: =2
+                                                      PaddingLeft: =2
+                                                      PaddingRight: =2
+                                                      PaddingTop: =2
                                                       RadiusBottomLeft: =0
                                                       RadiusBottomRight: =0
                                                       RadiusTopLeft: =0
@@ -1051,16 +1051,16 @@ Screens:
                                                             DropShadow: =DropShadow.None
                                                             Fill: =clrClear
                                                             FillPortions: =0
-                                                            Height: =70
+                                                            Height: =72
                                                             LayoutDirection: =LayoutDirection.Horizontal
                                                             LayoutGap: =8
                                                             LayoutMinHeight: =0
                                                             LayoutMinWidth: =0
                                                             LayoutWrap: =true
-                                                            PaddingBottom: =0
-                                                            PaddingLeft: =0
-                                                            PaddingRight: =0
-                                                            PaddingTop: =0
+                                                            PaddingBottom: =2
+                                                            PaddingLeft: =2
+                                                            PaddingRight: =2
+                                                            PaddingTop: =2
                                                             RadiusBottomLeft: =0
                                                             RadiusBottomRight: =0
                                                             RadiusTopLeft: =0
@@ -1443,13 +1443,13 @@ Screens:
                                                       Fill: =clrClear
                                                       FillPortions: =1
                                                       LayoutDirection: =LayoutDirection.Vertical
-                                                      LayoutGap: =4
+                                                      LayoutGap: =2
                                                       LayoutMinHeight: =0
                                                       LayoutMinWidth: =100
-                                                      PaddingBottom: =0
-                                                      PaddingLeft: =0
-                                                      PaddingRight: =0
-                                                      PaddingTop: =0
+                                                      PaddingBottom: =2
+                                                      PaddingLeft: =2
+                                                      PaddingRight: =2
+                                                      PaddingTop: =2
                                                       RadiusBottomLeft: =0
                                                       RadiusBottomRight: =0
                                                       RadiusTopLeft: =0
@@ -1483,7 +1483,7 @@ Screens:
                                                             DefaultDate: =Date(Year(Today()), 1, 1)
                                                             Fill: =clrPanel
                                                             Font: =Font.'Segoe UI'
-                                                            Height: =38
+                                                            Height: =36
                                                             IconBackground: =clrBlue
                                                             IconFill: =clrWhite
                                                             LayoutMinHeight: =0
@@ -1501,13 +1501,13 @@ Screens:
                                                       Fill: =clrClear
                                                       FillPortions: =1
                                                       LayoutDirection: =LayoutDirection.Vertical
-                                                      LayoutGap: =4
+                                                      LayoutGap: =2
                                                       LayoutMinHeight: =0
                                                       LayoutMinWidth: =100
-                                                      PaddingBottom: =0
-                                                      PaddingLeft: =0
-                                                      PaddingRight: =0
-                                                      PaddingTop: =0
+                                                      PaddingBottom: =2
+                                                      PaddingLeft: =2
+                                                      PaddingRight: =2
+                                                      PaddingTop: =2
                                                       RadiusBottomLeft: =0
                                                       RadiusBottomRight: =0
                                                       RadiusTopLeft: =0
@@ -1541,7 +1541,7 @@ Screens:
                                                             DefaultDate: =DateAdd(Date(Year(entDteEff.SelectedDate) + 1, Month(entDteEff.SelectedDate), 1), -1, TimeUnit.Days)
                                                             Fill: =clrPanel
                                                             Font: =Font.'Segoe UI'
-                                                            Height: =38
+                                                            Height: =36
                                                             IconBackground: =clrBlue
                                                             IconFill: =clrWhite
                                                             LayoutMinHeight: =0
@@ -1559,13 +1559,13 @@ Screens:
                                                       Fill: =clrClear
                                                       FillPortions: =1
                                                       LayoutDirection: =LayoutDirection.Vertical
-                                                      LayoutGap: =4
+                                                      LayoutGap: =2
                                                       LayoutMinHeight: =0
                                                       LayoutMinWidth: =100
-                                                      PaddingBottom: =0
-                                                      PaddingLeft: =0
-                                                      PaddingRight: =0
-                                                      PaddingTop: =0
+                                                      PaddingBottom: =2
+                                                      PaddingLeft: =2
+                                                      PaddingRight: =2
+                                                      PaddingTop: =2
                                                       RadiusBottomLeft: =0
                                                       RadiusBottomRight: =0
                                                       RadiusTopLeft: =0
@@ -1602,7 +1602,7 @@ Screens:
                                                             Font: =Font.'Segoe UI'
                                                             FontWeight: =FontWeight.Semibold
                                                             HandleFill: =clrWhite
-                                                            Height: =38
+                                                            Height: =36
                                                             LayoutMinHeight: =0
                                                             LayoutMinWidth: =0
                                                             Size: =10
@@ -1619,15 +1619,15 @@ Screens:
                                                 DropShadow: =DropShadow.None
                                                 Fill: =clrClear
                                                 FillPortions: =0
-                                                Height: =86
+                                                Height: =88
                                                 LayoutDirection: =LayoutDirection.Vertical
-                                                LayoutGap: =4
+                                                LayoutGap: =2
                                                 LayoutMinHeight: =0
                                                 LayoutMinWidth: =0
-                                                PaddingBottom: =0
-                                                PaddingLeft: =0
-                                                PaddingRight: =0
-                                                PaddingTop: =0
+                                                PaddingBottom: =2
+                                                PaddingLeft: =2
+                                                PaddingRight: =2
+                                                PaddingTop: =2
                                                 RadiusBottomLeft: =0
                                                 RadiusBottomRight: =0
                                                 RadiusTopLeft: =0
@@ -2014,13 +2014,13 @@ Screens:
                                                       Fill: =clrClear
                                                       FillPortions: =1
                                                       LayoutDirection: =LayoutDirection.Vertical
-                                                      LayoutGap: =4
+                                                      LayoutGap: =2
                                                       LayoutMinHeight: =0
                                                       LayoutMinWidth: =100
-                                                      PaddingBottom: =0
-                                                      PaddingLeft: =0
-                                                      PaddingRight: =0
-                                                      PaddingTop: =0
+                                                      PaddingBottom: =2
+                                                      PaddingLeft: =2
+                                                      PaddingRight: =2
+                                                      PaddingTop: =2
                                                       RadiusBottomLeft: =0
                                                       RadiusBottomRight: =0
                                                       RadiusTopLeft: =0
@@ -2042,83 +2042,37 @@ Screens:
                                                             PaddingRight: =0
                                                             PaddingTop: =0
                                                             Size: =9
-                                                            Text: ="Base rate *"
+                                                            Text: ="Base rate ($) *"
                                                             VerticalAlign: =VerticalAlign.Middle
-                                                      - entBaseRow:
-                                                          Control: GroupContainer@1.5.0
-                                                          Variant: AutoLayout
+                                                      - entTxtBase:
+                                                          Control: Classic/TextInput@2.3.2
                                                           Properties:
+                                                            Align: =Align.Right
                                                             AlignInContainer: =AlignInContainer.Stretch
-                                                            BorderThickness: =0
-                                                            DropShadow: =DropShadow.None
-                                                            Fill: =clrClear
-                                                            FillPortions: =0
-                                                            Height: =38
-                                                            LayoutDirection: =LayoutDirection.Horizontal
-                                                            LayoutGap: =8
+                                                            BorderColor: =If(!IsMatch(Self.Text, "^(\d+\.?\d*|\.\d+)?$"), clrRed, IsBlank(Trim(Self.Text)), clrAmber, clrLine)
+                                                            BorderThickness: =1
+                                                            Color: =clrInk
+                                                            Default: =""
+                                                            Fill: =clrPanel
+                                                            Font: =Font.'Segoe UI'
+                                                            Format: =TextFormat.Number
+                                                            Height: =36
+                                                            HintText: ="$0.00"
+                                                            HoverBorderColor: =clrInk3
+                                                            HoverFill: =clrPanel
                                                             LayoutMinHeight: =0
                                                             LayoutMinWidth: =0
-                                                            PaddingBottom: =0
-                                                            PaddingLeft: =0
-                                                            PaddingRight: =0
-                                                            PaddingTop: =0
-                                                            RadiusBottomLeft: =0
-                                                            RadiusBottomRight: =0
-                                                            RadiusTopLeft: =0
-                                                            RadiusTopRight: =0
-                                                          Children:
-                                                            - entBaseUnit:
-                                                                Control: Label@2.5.1
-                                                                Properties:
-                                                                  Align: =Align.Center
-                                                                  BorderColor: =clrLine
-                                                                  BorderThickness: =1
-                                                                  Color: =clrInk3
-                                                                  Fill: =clrSoft
-                                                                  FillPortions: =0
-                                                                  Font: =Font.'Segoe UI'
-                                                                  FontWeight: =FontWeight.Bold
-                                                                  Height: =38
-                                                                  LayoutMinHeight: =0
-                                                                  LayoutMinWidth: =0
-                                                                  PaddingBottom: =0
-                                                                  PaddingLeft: =0
-                                                                  PaddingRight: =0
-                                                                  PaddingTop: =0
-                                                                  Size: =10.5
-                                                                  Text: ="$"
-                                                                  VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =40
-                                                            - entTxtBase:
-                                                                Control: Classic/TextInput@2.3.2
-                                                                Properties:
-                                                                  Align: =Align.Right
-                                                                  AlignInContainer: =AlignInContainer.Stretch
-                                                                  BorderColor: =If(!IsMatch(Self.Text, "^(\d+\.?\d*|\.\d+)?$"), clrRed, IsBlank(Trim(Self.Text)), clrAmber, clrLine)
-                                                                  BorderThickness: =1
-                                                                  Color: =clrInk
-                                                                  Default: =""
-                                                                  Fill: =clrPanel
-                                                                  FillPortions: =1
-                                                                  Font: =Font.'Segoe UI'
-                                                                  Format: =TextFormat.Number
-                                                                  Height: =38
-                                                                  HintText: ="0.00"
-                                                                  HoverBorderColor: =clrInk3
-                                                                  HoverFill: =clrPanel
-                                                                  LayoutMinHeight: =0
-                                                                  LayoutMinWidth: =40
-                                                                  PaddingBottom: =6
-                                                                  PaddingLeft: =12
-                                                                  PaddingRight: =12
-                                                                  PaddingTop: =6
-                                                                  PressedBorderColor: =clrBlue
-                                                                  PressedFill: =clrPanel
-                                                                  RadiusBottomLeft: =5
-                                                                  RadiusBottomRight: =5
-                                                                  RadiusTopLeft: =5
-                                                                  RadiusTopRight: =5
-                                                                  Size: =11
+                                                            PaddingBottom: =6
+                                                            PaddingLeft: =12
+                                                            PaddingRight: =12
+                                                            PaddingTop: =6
+                                                            PressedBorderColor: =clrBlue
+                                                            PressedFill: =clrPanel
+                                                            RadiusBottomLeft: =5
+                                                            RadiusBottomRight: =5
+                                                            RadiusTopLeft: =5
+                                                            RadiusTopRight: =5
+                                                            Size: =11
                                                 - entFldAdj:
                                                     Control: GroupContainer@1.5.0
                                                     Variant: AutoLayout
@@ -2129,13 +2083,13 @@ Screens:
                                                       Fill: =clrClear
                                                       FillPortions: =1
                                                       LayoutDirection: =LayoutDirection.Vertical
-                                                      LayoutGap: =4
+                                                      LayoutGap: =2
                                                       LayoutMinHeight: =0
                                                       LayoutMinWidth: =100
-                                                      PaddingBottom: =0
-                                                      PaddingLeft: =0
-                                                      PaddingRight: =0
-                                                      PaddingTop: =0
+                                                      PaddingBottom: =2
+                                                      PaddingLeft: =2
+                                                      PaddingRight: =2
+                                                      PaddingTop: =2
                                                       RadiusBottomLeft: =0
                                                       RadiusBottomRight: =0
                                                       RadiusTopLeft: =0
@@ -2217,7 +2171,7 @@ Screens:
                                                             Fill: =clrPanel
                                                             Font: =Font.'Segoe UI'
                                                             Format: =TextFormat.Number
-                                                            Height: =38
+                                                            Height: =36
                                                             HintText: ="0"
                                                             HoverBorderColor: =clrInk3
                                                             HoverFill: =clrPanel
@@ -2244,13 +2198,13 @@ Screens:
                                                       Fill: =clrClear
                                                       FillPortions: =1
                                                       LayoutDirection: =LayoutDirection.Vertical
-                                                      LayoutGap: =4
+                                                      LayoutGap: =2
                                                       LayoutMinHeight: =0
                                                       LayoutMinWidth: =100
-                                                      PaddingBottom: =0
-                                                      PaddingLeft: =0
-                                                      PaddingRight: =0
-                                                      PaddingTop: =0
+                                                      PaddingBottom: =2
+                                                      PaddingLeft: =2
+                                                      PaddingRight: =2
+                                                      PaddingTop: =2
                                                       RadiusBottomLeft: =0
                                                       RadiusBottomRight: =0
                                                       RadiusTopLeft: =0
@@ -2332,7 +2286,7 @@ Screens:
                                                             Fill: =clrPanel
                                                             Font: =Font.'Segoe UI'
                                                             Format: =TextFormat.Number
-                                                            Height: =38
+                                                            Height: =36
                                                             HintText: ="0"
                                                             HoverBorderColor: =clrInk3
                                                             HoverFill: =clrPanel
@@ -2382,13 +2336,13 @@ Screens:
                                                       Fill: =clrClear
                                                       FillPortions: =1
                                                       LayoutDirection: =LayoutDirection.Vertical
-                                                      LayoutGap: =4
+                                                      LayoutGap: =2
                                                       LayoutMinHeight: =0
                                                       LayoutMinWidth: =100
-                                                      PaddingBottom: =0
-                                                      PaddingLeft: =0
-                                                      PaddingRight: =0
-                                                      PaddingTop: =0
+                                                      PaddingBottom: =2
+                                                      PaddingLeft: =2
+                                                      PaddingRight: =2
+                                                      PaddingTop: =2
                                                       RadiusBottomLeft: =0
                                                       RadiusBottomRight: =0
                                                       RadiusTopLeft: =0
@@ -2426,7 +2380,7 @@ Screens:
                                                             Fill: =clrPanel
                                                             Font: =Font.'Segoe UI'
                                                             FontWeight: =FontWeight.Normal
-                                                            Height: =38
+                                                            Height: =36
                                                             HoverBorderColor: =clrInk3
                                                             HoverColor: =If(IsBlank(varFuel), clrInk3, clrInk)
                                                             HoverFill: =clrPanel
@@ -2456,13 +2410,13 @@ Screens:
                                                       Fill: =clrClear
                                                       FillPortions: =1
                                                       LayoutDirection: =LayoutDirection.Vertical
-                                                      LayoutGap: =4
+                                                      LayoutGap: =2
                                                       LayoutMinHeight: =0
                                                       LayoutMinWidth: =100
-                                                      PaddingBottom: =0
-                                                      PaddingLeft: =0
-                                                      PaddingRight: =0
-                                                      PaddingTop: =0
+                                                      PaddingBottom: =2
+                                                      PaddingLeft: =2
+                                                      PaddingRight: =2
+                                                      PaddingTop: =2
                                                       RadiusBottomLeft: =0
                                                       RadiusBottomRight: =0
                                                       RadiusTopLeft: =0
@@ -2484,83 +2438,37 @@ Screens:
                                                             PaddingRight: =0
                                                             PaddingTop: =0
                                                             Size: =9
-                                                            Text: ="Fuel add-on"
+                                                            Text: ="Fuel add-on (pts)"
                                                             VerticalAlign: =VerticalAlign.Middle
-                                                      - entFAdjRow:
-                                                          Control: GroupContainer@1.5.0
-                                                          Variant: AutoLayout
+                                                      - entTxtFAdj:
+                                                          Control: Classic/TextInput@2.3.2
                                                           Properties:
+                                                            Align: =Align.Right
                                                             AlignInContainer: =AlignInContainer.Stretch
-                                                            BorderThickness: =0
-                                                            DropShadow: =DropShadow.None
-                                                            Fill: =clrClear
-                                                            FillPortions: =0
-                                                            Height: =38
-                                                            LayoutDirection: =LayoutDirection.Horizontal
-                                                            LayoutGap: =8
+                                                            BorderColor: =If(IsMatch(Self.Text, "^(\d+\.?\d*|\.\d+)?$"), clrLine, clrRed)
+                                                            BorderThickness: =1
+                                                            Color: =clrInk
+                                                            Default: =""
+                                                            Fill: =clrPanel
+                                                            Font: =Font.'Segoe UI'
+                                                            Format: =TextFormat.Number
+                                                            Height: =36
+                                                            HintText: ="0 pts"
+                                                            HoverBorderColor: =clrInk3
+                                                            HoverFill: =clrPanel
                                                             LayoutMinHeight: =0
                                                             LayoutMinWidth: =0
-                                                            PaddingBottom: =0
-                                                            PaddingLeft: =0
-                                                            PaddingRight: =0
-                                                            PaddingTop: =0
-                                                            RadiusBottomLeft: =0
-                                                            RadiusBottomRight: =0
-                                                            RadiusTopLeft: =0
-                                                            RadiusTopRight: =0
-                                                          Children:
-                                                            - entTxtFAdj:
-                                                                Control: Classic/TextInput@2.3.2
-                                                                Properties:
-                                                                  Align: =Align.Right
-                                                                  AlignInContainer: =AlignInContainer.Stretch
-                                                                  BorderColor: =If(IsMatch(Self.Text, "^(\d+\.?\d*|\.\d+)?$"), clrLine, clrRed)
-                                                                  BorderThickness: =1
-                                                                  Color: =clrInk
-                                                                  Default: =""
-                                                                  Fill: =clrPanel
-                                                                  FillPortions: =1
-                                                                  Font: =Font.'Segoe UI'
-                                                                  Format: =TextFormat.Number
-                                                                  Height: =38
-                                                                  HintText: ="0"
-                                                                  HoverBorderColor: =clrInk3
-                                                                  HoverFill: =clrPanel
-                                                                  LayoutMinHeight: =0
-                                                                  LayoutMinWidth: =40
-                                                                  PaddingBottom: =6
-                                                                  PaddingLeft: =12
-                                                                  PaddingRight: =12
-                                                                  PaddingTop: =6
-                                                                  PressedBorderColor: =clrBlue
-                                                                  PressedFill: =clrPanel
-                                                                  RadiusBottomLeft: =5
-                                                                  RadiusBottomRight: =5
-                                                                  RadiusTopLeft: =5
-                                                                  RadiusTopRight: =5
-                                                                  Size: =11
-                                                            - entFAdjUnit:
-                                                                Control: Label@2.5.1
-                                                                Properties:
-                                                                  Align: =Align.Center
-                                                                  BorderColor: =clrLine
-                                                                  BorderThickness: =1
-                                                                  Color: =clrInk3
-                                                                  Fill: =clrSoft
-                                                                  FillPortions: =0
-                                                                  Font: =Font.'Segoe UI'
-                                                                  FontWeight: =FontWeight.Bold
-                                                                  Height: =38
-                                                                  LayoutMinHeight: =0
-                                                                  LayoutMinWidth: =0
-                                                                  PaddingBottom: =0
-                                                                  PaddingLeft: =0
-                                                                  PaddingRight: =0
-                                                                  PaddingTop: =0
-                                                                  Size: =10.5
-                                                                  Text: ="pts"
-                                                                  VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =40
+                                                            PaddingBottom: =6
+                                                            PaddingLeft: =12
+                                                            PaddingRight: =12
+                                                            PaddingTop: =6
+                                                            PressedBorderColor: =clrBlue
+                                                            PressedFill: =clrPanel
+                                                            RadiusBottomLeft: =5
+                                                            RadiusBottomRight: =5
+                                                            RadiusTopLeft: =5
+                                                            RadiusTopRight: =5
+                                                            Size: =11
                                                 - entFldFDisc:
                                                     Control: GroupContainer@1.5.0
                                                     Variant: AutoLayout
@@ -2571,13 +2479,13 @@ Screens:
                                                       Fill: =clrClear
                                                       FillPortions: =1
                                                       LayoutDirection: =LayoutDirection.Vertical
-                                                      LayoutGap: =4
+                                                      LayoutGap: =2
                                                       LayoutMinHeight: =0
                                                       LayoutMinWidth: =100
-                                                      PaddingBottom: =0
-                                                      PaddingLeft: =0
-                                                      PaddingRight: =0
-                                                      PaddingTop: =0
+                                                      PaddingBottom: =2
+                                                      PaddingLeft: =2
+                                                      PaddingRight: =2
+                                                      PaddingTop: =2
                                                       RadiusBottomLeft: =0
                                                       RadiusBottomRight: =0
                                                       RadiusTopLeft: =0
@@ -2599,83 +2507,37 @@ Screens:
                                                             PaddingRight: =0
                                                             PaddingTop: =0
                                                             Size: =9
-                                                            Text: ="Fuel discount"
+                                                            Text: ="Fuel discount (pts)"
                                                             VerticalAlign: =VerticalAlign.Middle
-                                                      - entFDiscRow:
-                                                          Control: GroupContainer@1.5.0
-                                                          Variant: AutoLayout
+                                                      - entTxtFDisc:
+                                                          Control: Classic/TextInput@2.3.2
                                                           Properties:
+                                                            Align: =Align.Right
                                                             AlignInContainer: =AlignInContainer.Stretch
-                                                            BorderThickness: =0
-                                                            DropShadow: =DropShadow.None
-                                                            Fill: =clrClear
-                                                            FillPortions: =0
-                                                            Height: =38
-                                                            LayoutDirection: =LayoutDirection.Horizontal
-                                                            LayoutGap: =8
+                                                            BorderColor: =If(IsMatch(Self.Text, "^(\d+\.?\d*|\.\d+)?$"), clrLine, clrRed)
+                                                            BorderThickness: =1
+                                                            Color: =clrInk
+                                                            Default: =""
+                                                            Fill: =clrPanel
+                                                            Font: =Font.'Segoe UI'
+                                                            Format: =TextFormat.Number
+                                                            Height: =36
+                                                            HintText: ="0 pts"
+                                                            HoverBorderColor: =clrInk3
+                                                            HoverFill: =clrPanel
                                                             LayoutMinHeight: =0
                                                             LayoutMinWidth: =0
-                                                            PaddingBottom: =0
-                                                            PaddingLeft: =0
-                                                            PaddingRight: =0
-                                                            PaddingTop: =0
-                                                            RadiusBottomLeft: =0
-                                                            RadiusBottomRight: =0
-                                                            RadiusTopLeft: =0
-                                                            RadiusTopRight: =0
-                                                          Children:
-                                                            - entTxtFDisc:
-                                                                Control: Classic/TextInput@2.3.2
-                                                                Properties:
-                                                                  Align: =Align.Right
-                                                                  AlignInContainer: =AlignInContainer.Stretch
-                                                                  BorderColor: =If(IsMatch(Self.Text, "^(\d+\.?\d*|\.\d+)?$"), clrLine, clrRed)
-                                                                  BorderThickness: =1
-                                                                  Color: =clrInk
-                                                                  Default: =""
-                                                                  Fill: =clrPanel
-                                                                  FillPortions: =1
-                                                                  Font: =Font.'Segoe UI'
-                                                                  Format: =TextFormat.Number
-                                                                  Height: =38
-                                                                  HintText: ="0"
-                                                                  HoverBorderColor: =clrInk3
-                                                                  HoverFill: =clrPanel
-                                                                  LayoutMinHeight: =0
-                                                                  LayoutMinWidth: =40
-                                                                  PaddingBottom: =6
-                                                                  PaddingLeft: =12
-                                                                  PaddingRight: =12
-                                                                  PaddingTop: =6
-                                                                  PressedBorderColor: =clrBlue
-                                                                  PressedFill: =clrPanel
-                                                                  RadiusBottomLeft: =5
-                                                                  RadiusBottomRight: =5
-                                                                  RadiusTopLeft: =5
-                                                                  RadiusTopRight: =5
-                                                                  Size: =11
-                                                            - entFDiscUnit:
-                                                                Control: Label@2.5.1
-                                                                Properties:
-                                                                  Align: =Align.Center
-                                                                  BorderColor: =clrLine
-                                                                  BorderThickness: =1
-                                                                  Color: =clrInk3
-                                                                  Fill: =clrSoft
-                                                                  FillPortions: =0
-                                                                  Font: =Font.'Segoe UI'
-                                                                  FontWeight: =FontWeight.Bold
-                                                                  Height: =38
-                                                                  LayoutMinHeight: =0
-                                                                  LayoutMinWidth: =0
-                                                                  PaddingBottom: =0
-                                                                  PaddingLeft: =0
-                                                                  PaddingRight: =0
-                                                                  PaddingTop: =0
-                                                                  Size: =10.5
-                                                                  Text: ="pts"
-                                                                  VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =40
+                                                            PaddingBottom: =6
+                                                            PaddingLeft: =12
+                                                            PaddingRight: =12
+                                                            PaddingTop: =6
+                                                            PressedBorderColor: =clrBlue
+                                                            PressedFill: =clrPanel
+                                                            RadiusBottomLeft: =5
+                                                            RadiusBottomRight: =5
+                                                            RadiusTopLeft: =5
+                                                            RadiusTopRight: =5
+                                                            Size: =11
                                           - entRowFacts:
                                               Control: GroupContainer@1.5.0
                                               Variant: AutoLayout
@@ -2917,13 +2779,13 @@ Screens:
                                                 FillPortions: =0
                                                 Height: =134
                                                 LayoutDirection: =LayoutDirection.Vertical
-                                                LayoutGap: =4
+                                                LayoutGap: =2
                                                 LayoutMinHeight: =0
                                                 LayoutMinWidth: =0
-                                                PaddingBottom: =0
-                                                PaddingLeft: =0
-                                                PaddingRight: =0
-                                                PaddingTop: =0
+                                                PaddingBottom: =2
+                                                PaddingLeft: =2
+                                                PaddingRight: =2
+                                                PaddingTop: =2
                                                 RadiusBottomLeft: =0
                                                 RadiusBottomRight: =0
                                                 RadiusTopLeft: =0
@@ -3054,7 +2916,7 @@ Screens:
                         DropShadow: =DropShadow.None
                         Fill: =clrClear
                         FillPortions: =0
-                        Height: =108
+                        Height: =110
                         LayoutDirection: =LayoutDirection.Vertical
                         LayoutGap: =0
                         LayoutMinHeight: =0
@@ -3062,7 +2924,7 @@ Screens:
                         PaddingBottom: =16
                         PaddingLeft: =16
                         PaddingRight: =16
-                        PaddingTop: =0
+                        PaddingTop: =2
                         RadiusBottomLeft: =0
                         RadiusBottomRight: =0
                         RadiusTopLeft: =0

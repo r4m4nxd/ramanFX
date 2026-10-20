@@ -81,6 +81,12 @@ def audit(n, screen):
             need = len(tx) * size * PT_TO_PX * bold + pad_h + extra
             if w is not None and pr.get("Wrap") != "true" and w < need:
                 ISSUES.append(f"{screen}/{n['name']}: width {w:g} < {need:.0f} for '{tx}'")
+    if n["control"].startswith("GroupContainer@") and n["variant"] == "AutoLayout":
+        inset = min(_num(pr.get(k, 0)) or 0 for k in ("PaddingTop", "PaddingRight", "PaddingBottom", "PaddingLeft"))
+        for c in n["children"]:
+            cp = c["props"]
+            if inset < 2 and (_num(cp.get("BorderThickness", 0)) or 0) > 0 and cp.get("Visible") != "false":
+                ISSUES.append(f"{screen}/{c['name']}: border touches the edge of {n['name']} (container needs 2 px padding)")
     for c in n["children"]:
         audit(c, screen)
 
@@ -191,7 +197,7 @@ def textin(name, hint="", **p):
     base = {"Default": s(""), "HintText": s(hint), "Font": FONT, "Size": T_BODY, "Color": "clrInk", "Fill": "clrPanel",
             "PaddingLeft": 12, "PaddingRight": 12, "PaddingTop": 6, "PaddingBottom": 6,
             "BorderColor": "clrLine", "BorderThickness": 1, "HoverBorderColor": "clrInk3", "HoverFill": "clrPanel",
-            "PressedBorderColor": "clrBlue", "PressedFill": "clrPanel", "Height": 38, **rad(5), **STRETCH}
+            "PressedBorderColor": "clrBlue", "PressedFill": "clrPanel", "Height": 36, **rad(5), **STRETCH}
     base.update(p)
     return node(name, "Classic/TextInput@2.3.2", base)
 
@@ -211,7 +217,7 @@ def combo(name, items, field, placeholder="Select…", **p):
             "ChevronBackground": "clrPanel", "ChevronFill": "clrInk3", "ChevronHoverBackground": "clrSoft",
             "ChevronHoverFill": "clrInk", "HoverBorderColor": "clrInk3", "HoverFill": "clrSoft", "HoverColor": "clrInk",
             "PressedBorderColor": "clrBlue", "PressedFill": "clrBlue", "PressedColor": "clrWhite",
-            "SelectionFill": "clrBlue", "SelectionColor": "clrWhite", "Height": 38, **STRETCH}
+            "SelectionFill": "clrBlue", "SelectionColor": "clrWhite", "Height": 36, **STRETCH}
     base.update(p)
     return node(name, "Classic/ComboBox@2.4.0", base)
 
@@ -228,7 +234,7 @@ def toggle(name, true_text, false_text, default="false", **p):
 def datepick(name, default, **p):
     base = {"DefaultDate": default, "Font": FONT, "Size": T_BODY, "PaddingLeft": 12, "PaddingRight": 4, "Color": "clrInk", "Fill": "clrPanel",
             "BorderColor": "clrLine", "BorderThickness": 1, "IconBackground": "clrBlue", "IconFill": "clrWhite",
-            "Height": 38, **STRETCH}
+            "Height": 36, **STRETCH}
     base.update(p)
     return node(name, "Classic/DatePicker@2.6.0", base)
 
@@ -239,11 +245,11 @@ def field(name, label, controls, fp=1, head=None, h=None):
         name + "Head", "Horizontal", [caps(name + "Lbl", label, **fill(1, 40))] + head,
         Height=18, LayoutGap=8, LayoutAlignItems="LayoutAlignItems.Center", **STRETCH, **fixed())
     size = {"FillPortions": 0, "Height": h} if h is not None else fill(fp, 100)
-    return box(name, "Vertical", [top] + controls, LayoutGap=4, **size, **STRETCH)
+    return box(name, "Vertical", [top] + controls, LayoutGap=2, **pads(2), **size, **STRETCH)
 
 
-def row(name, height, children, gap=12, **p):
-    return box(name, "Horizontal", children, Height=height, LayoutGap=gap, **fixed(), **STRETCH, **p)
+def row(name, height, children, gap=12, inset=0, **p):
+    return box(name, "Horizontal", children, Height=height, LayoutGap=gap, **pads(inset), **fixed(), **STRETCH, **p)
 
 
 def section(name, num, title, hint, body, height=None, head_extra=(), body_pad=16, body_gap=12, **p):
@@ -314,7 +320,7 @@ def header(p, step, right):
             FontWeight="FontWeight.Semibold", Align="Align.Right", Visible="Parent.Width > 1000", **fixed(240, 36)),
         *right,
     ], Fill="clrPanel", Height=60, LayoutGap=16, LayoutAlignItems="LayoutAlignItems.Center",
-        DropShadow="DropShadow.Light", **pads(0, 16), **fixed(), **STRETCH)
+        DropShadow="DropShadow.Light", **pads(2, 16), **fixed(), **STRETCH)
 
 
 def shell(p, current, step, right, body, action=None):
@@ -772,7 +778,7 @@ def picker_btn(name, var, label):
     return btn(name, f'If(IsBlank({var}), "Select…", {var}) & "   ▾"', Align="Align.Left", PaddingLeft=12,
                FontWeight="FontWeight.Normal", Color=color, HoverColor=color, PressedColor=color,
                PressedFill="clrSoft", BorderColor=f"If(IsBlank({var}), clrAmber, clrLine)",
-               HoverBorderColor="clrInk3", PressedBorderColor="clrBlue", Height=38,
+               HoverBorderColor="clrInk3", PressedBorderColor="clrBlue", Height=36,
                OnSelect=f'Set(varPick, "{label}"); Reset(entPickSearch); Reset(entPickNew)', **STRETCH)
 
 
@@ -843,7 +849,7 @@ def unit(name, text):
                FontWeight="FontWeight.Bold", Align="Align.Center", **fixed(40, 38))
 
 
-ENT_LANE_H = "(468 + If(entLblReplace.Visible, 68, 0) + If(entLblDupe.Visible, 68, 0))"
+ENT_LANE_H = "(470 + If(entLblReplace.Visible, 68, 0) + If(entLblDupe.Visible, 68, 0))"
 ENT_COST_H = "436"
 ENT_NARROW_FP = "If(entBody.Width < 900, 0, 1)"
 
@@ -861,7 +867,7 @@ lane_section = section("entSecLane", "1", s("Lane"), s("Who moves it, where, on 
         field("entFldDays", "Service days *", [
             box("entDays", "Horizontal", [day_chip(d) for d in
                                           ["ALL", "MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]],
-                LayoutWrap="true", LayoutGap=8, Height=70, **fixed(), **STRETCH),
+                LayoutWrap="true", LayoutGap=8, Height=72, **pads(2), **fixed(), **STRETCH),
         ], fp=1.3),
     ]),
     row("entRowLane3", 60, [
@@ -870,9 +876,9 @@ lane_section = section("entSecLane", "1", s("Lane"), s("Who moves it, where, on 
             "entDteExpiry",
             "DateAdd(Date(Year(entDteEff.SelectedDate) + 1, Month(entDteEff.SelectedDate), 1), -1, TimeUnit.Days)")]),
         field("entFldActive", "Active rate", [toggle("entTglActive", "Active", "Inactive",
-                                                     default="true", Height=38, **STRETCH)]),
+                                                     default="true", Height=36, **STRETCH)]),
     ]),
-    field("entFldNotes", "Comments", h=86, controls=[textin("entTxtNotes", "Anything the next person should know about this rate",
+    field("entFldNotes", "Comments", h=88, controls=[textin("entTxtNotes", "Anything the next person should know about this rate",
                                              Mode="TextMode.MultiLine", Height=64, EnableSpellCheck="true")]),
     row("entRowKey", 28, [
         caps("entKeyLbl", "Lane key", **fixed(80, 28)),
@@ -888,18 +894,17 @@ lane_section = section("entSecLane", "1", s("Lane"), s("Who moves it, where, on 
 
 cost_section = section("entSecCost", "2", s("Cost"), s("Fuel goes on the base first, then add-on, then discount"), FillPortions=ENT_NARROW_FP, Height=ENT_COST_H, LayoutMinWidth=320, body=[
     row("entRowCost1", 60, [
-        field("entFldBase", "Base rate *", [row("entBaseRow", 38, [
-            unit("entBaseUnit", "$"),
-            numin("entTxtBase", "0.00", **fill(1),
+        field("entFldBase", "Base rate ($) *", [
+            numin("entTxtBase", "$0.00",
                   BorderColor=f"If(!IsMatch(Self.Text, {NUM}), clrRed, IsBlank(Trim(Self.Text)), clrAmber, clrLine)"),
-        ], gap=8)]),
+        ]),
         field("entFldAdj", "Add-on", [numin("entTxtAdj")], head=[pct_toggle("entTglAdjPct")]),
         field("entFldDisc", "Discount", [numin("entTxtDisc")], head=[pct_toggle("entTglDiscPct")]),
     ]),
     row("entRowCost2", 60, [
         field("entFldFuel", "Fuel program *", [picker_btn("entPickFuel", "varFuel", "Fuel program")]),
-        field("entFldFAdj", "Fuel add-on", [row("entFAdjRow", 38, [numin("entTxtFAdj", **fill(1)), unit("entFAdjUnit", "pts")], gap=8)]),
-        field("entFldFDisc", "Fuel discount", [row("entFDiscRow", 38, [numin("entTxtFDisc", **fill(1)), unit("entFDiscUnit", "pts")], gap=8)]),
+        field("entFldFAdj", "Fuel add-on (pts)", [numin("entTxtFAdj", "0 pts")]),
+        field("entFldFDisc", "Fuel discount (pts)", [numin("entTxtFDisc", "0 pts")]),
     ]),
     row("entRowFacts", 56, [
         fact("entFactFsc", "FSC today", entry_fsc_today),
@@ -928,7 +933,7 @@ entry_action = box("entActionWrap", "Vertical", [
             **fixed(140, 44)),
     ], Fill="clrPanel", BorderColor="clrLine", BorderThickness=1, **rad(6), LayoutGap=12, **pads(10, 16),
         LayoutAlignItems="LayoutAlignItems.Center", **fill(1), **STRETCH),
-], Height=108, **pads(0, 16, 16, 16), **fixed(), **STRETCH)
+], Height=110, **pads(2, 16, 16, 16), **fixed(), **STRETCH)
 
 write_screen("scrEntry", {"Fill": "clrPage", "OnVisible": 'Set(varPick, ""); Set(varConfirmSave, false)'}, [
     shell("ent", "New", s("New rate"),
@@ -937,10 +942,10 @@ write_screen("scrEntry", {"Fill": "clrPage", "OnVisible": 'Set(varPick, ""); Set
           body("ent", [row("entCols", fx(f"""
               If(
                   entBody.Width < 900,
-                  {ENT_LANE_H} + 16 + {ENT_COST_H},
-                  {ENT_LANE_H}
+                  {ENT_LANE_H} + 16 + {ENT_COST_H} + 4,
+                  {ENT_LANE_H} + 4
               )
-          """), [lane_section, cost_section], gap=16,
+          """), inset=2, children=[lane_section, cost_section], gap=16,
               LayoutDirection="If(entBody.Width < 900, LayoutDirection.Vertical, LayoutDirection.Horizontal)")]),
           entry_action),
     hidden("entLblErrors", entry_errors),
@@ -1034,7 +1039,7 @@ rec_header = manual("recColHdr", [
 ], Fill="clrPanel", Height=36, **fixed(), **STRETCH)
 
 recent_body = body("rec", [
-    row("recFilters", "If(recBody.Width < 1120, 88, 38)", [
+    row("recFilters", "If(recBody.Width < 1120, 92, 42)", inset=2, children=[
         *[textin(f"recTxt{k}", hint, **fixed(150, 38)) for k, hint in
           [("Lane", "Lane, e.g. TOWI"), ("Carrier", "Carrier"), ("Mode", "Mode"), ("Equip", "Equipment, e.g. 53")]],
         toggle("recTglActive", "Active only", "Active only", **fixed(160, 32)),
@@ -1089,7 +1094,7 @@ def det_tile_value(divisor=None):
     return f'If(IsBlank({R}.Base), "—", Text({v}, "$#,##0.00"))'
 
 
-det_hero = row("detHero", 44, [
+det_hero = row("detHero", 44, inset=2, children=[
     lbl("detLblLane", f'{R}.Title & "  →  " & {R}.Destination', Size=T_DISPLAY, FontWeight="FontWeight.Bold", **fixed(150, 44)),
     pill("detChipCarrier", f"{R}.Carrier", "clrPanel", "clrInk", BorderColor="clrLine", BorderThickness=1,
          HoverBorderColor="clrLine", PressedBorderColor="clrLine", **fixed(140, 26)),
@@ -1116,10 +1121,10 @@ det_lane = section("detSecLane", "1", s("Lane"), s("Read only"), height=210, bod
 ])
 
 det_cost = section("detSecCost", "2", s("Cost"), s("Calculated with today's FSC"),
-                   height="If(detLblWarn.Visible, 604, 536)",
+                   height="If(detLblWarn.Visible, 608, 540)",
                    head_extra=[toggle("detTglFuel", "Include fuel", "Include fuel", default="true", **fixed(170, 32))],
                    body=[
-    row("detTiles", 68, [
+    row("detTiles", 72, inset=2, children=[
         cost_tile("detTileLH", "LH cost", det_tile_value(), main=True, fp=1.4),
         cost_tile("detTileFt3", "per ft³", det_tile_value("CubicFt")),
         cost_tile("detTileLin", "per linear ft", det_tile_value("EquipFt")),
@@ -1262,22 +1267,22 @@ det_save = ("If(\n    !IsBlank(detLblEditErr.Text),\n    Notify(detLblEditErr.Te
 
 det_edit = section("detSecEdit", "✎", s("Edit status & dates"),
                    s("To change the price, save a new rate so the history stays intact"),
-                   height="296 + If(detLblEditErr.Visible, 68, 0) + If(detLblEditWarn.Visible, 86, 0)",
+                   height="302 + If(detLblEditErr.Visible, 68, 0) + If(detLblEditWarn.Visible, 86, 0)",
                    Visible="varEditRate", BorderColor="clrBlueHover", body=[
     row("detEditRow", 60, [
         field("detFldEditActive", "Active rate", [toggle("detTglEditActive", "Active", "Inactive",
-                                                         default=f"{R}.Active", Height=38, **STRETCH)]),
+                                                         default=f"{R}.Active", Height=36, **STRETCH)]),
         field("detFldEditEff", "Effective *", [datepick("detDteEditEff", f"{R}.EffectiveDate")]),
         field("detFldEditExp", "Expiry *", [datepick("detDteEditExp", f"{R}.ExpiryDate")]),
     ]),
-    field("detFldEditNotes", "Comments", h=86, controls=[textin("detTxtEditNotes", "Why the change?", Default=f"{R}.Comments",
+    field("detFldEditNotes", "Comments", h=88, controls=[textin("detTxtEditNotes", "Why the change?", Default=f"{R}.Comments",
                                                  Mode="TextMode.MultiLine", Height=64)]),
     lbl("detLblEditErr", det_edit_err, Visible="!IsBlank(Self.Text)", Fill="clrRedBg", Color="clrRed",
         BorderColor="clrRed", BorderThickness=1, Size=T_SECONDARY, Wrap="true", **pads(8, 12), **fixed(h=56), **STRETCH),
     lbl("detLblEditWarn", det_edit_warn, Visible="!IsBlank(Self.Text)", Fill="clrAmberBg", Color="clrAmberInk",
         BorderColor="RGBA(233, 215, 155, 1)", BorderThickness=1, Size=T_SECONDARY, Wrap="true", **pads(8, 12),
         **fixed(h=74), **STRETCH),
-    row("detEditBtns", 38, [
+    row("detEditBtns", 42, inset=2, children=[
         rect("detEditSpacer", Fill="clrClear", Height=10, **fill(1, 0)),
         btn("detBtnEditCancel", s("Cancel"), OnSelect="Set(varEditRate, false)", **fixed(100, 38)),
         btn("detBtnEditSave", 'If(varSavingEdit, "Saving…", "Save changes")', "primary", OnSelect=det_save,
@@ -1350,13 +1355,13 @@ write_screen("scrDetails", {"Fill": "clrPage", "OnVisible": "Set(varEditRate, fa
               row("detCols", fx(f"""
                   If(
                       detBody.Width < 900,
-                      {DET_LEFT_H} + 16 + {DET_RIGHT_H},
-                      Max({DET_LEFT_H}, {DET_RIGHT_H})
+                      {DET_LEFT_H} + 4 + 16 + {DET_RIGHT_H} + 4,
+                      Max({DET_LEFT_H}, {DET_RIGHT_H}) + 4
                   )
               """), [
-                  box("detColLeft", "Vertical", [det_lane, det_cost], LayoutGap=16, Height=DET_LEFT_H,
+                  box("detColLeft", "Vertical", [det_lane, det_cost], LayoutGap=16, Height=DET_LEFT_H + " + 4", **pads(2),
                       FillPortions="If(detBody.Width < 900, 0, 1.15)", LayoutMinWidth=320, **STRETCH),
-                  box("detColRight", "Vertical", [det_edit, det_history], LayoutGap=16, Height=DET_RIGHT_H,
+                  box("detColRight", "Vertical", [det_edit, det_history], LayoutGap=16, Height=DET_RIGHT_H + " + 4", **pads(2),
                       FillPortions="If(detBody.Width < 900, 0, 1)", LayoutMinWidth=320, **STRETCH),
               ], gap=16,
                   LayoutDirection="If(detBody.Width < 900, LayoutDirection.Vertical, LayoutDirection.Horizontal)"),
@@ -1456,21 +1461,19 @@ fuel_programs = section("fulSecList", "A", s("Programs"),
 
 fuel_form = section("fulSecForm", "B", 'If(varFuelEdit, "Edit program", "Add program")',
                     'If(varFuelEdit, "Changing " & varFuelRec.Title & " updates the cost of every rate on it", "Program names must be unique")',
-                    height="If(fulLblErr.Visible, 412, 344)", BorderColor="clrBlueHover",
+                    height="If(fulLblErr.Visible, 416, 348)", BorderColor="clrBlueHover",
                     FillPortions="If(fulBody.Width < 900, 0, 1)", LayoutMinWidth=320,
                     AlignInContainer="If(fulBody.Width < 900, AlignInContainer.Stretch, AlignInContainer.Start)", body=[
     row("fulFormRow1", 60, [field("fulFldProgram", "Program *", [
         textin("fulTxtProgram", "e.g. CP", Default='If(varFuelEdit, varFuelRec.Title, "")')])]),
-    row("fulFormRow2", 60, [field("fulFldFsc", "FSC % *", [row("fulFscRow", 38, [
+    row("fulFormRow2", 60, [field("fulFldFsc", "FSC (%) *", [
         textin("fulTxtFsc", "e.g. 36.16", Format="TextFormat.Number", Align="Align.Right",
-               Default='If(varFuelEdit, Text(varFuelRec.FSC), "")', **fill(1)),
-        unit("fulFscUnit", "%"),
-    ], gap=8)])]),
+               Default='If(varFuelEdit, Text(varFuelRec.FSC), "")')])]),
     row("fulFormRow3", 60, [field("fulFldEff", "Effective *", [
         datepick("fulDteEff", "If(varFuelEdit, varFuelRec.EffectiveDate, Today())")])]),
     lbl("fulLblErr", fuel_err, Visible="!IsBlank(Self.Text)", Fill="clrRedBg", Color="clrRed",
         BorderColor="clrRed", BorderThickness=1, Size=T_SECONDARY, Wrap="true", **pads(8, 12), **fixed(h=56), **STRETCH),
-    row("fulFormBtns", 38, [
+    row("fulFormBtns", 42, inset=2, children=[
         rect("fulFormSpacer", Fill="clrClear", Height=10, **fill(1, 0)),
         btn("fulBtnCancel", s("Clear"), OnSelect=f"Set(varFuelEdit, false); Set(varFuelRec, Blank()); {fuel_open}",
             **fixed(100, 38)),
@@ -1489,7 +1492,7 @@ write_screen("scrFuel", {"Fill": "clrPage", "OnVisible": f"Set(varFuelForm, true
     shell("ful", "Fuel", s("Fuel library · FSC % by program"),
           [btn("fulHdrBtnAdd", s("+ Add program"), "primary", **fixed(150, 38),
                OnSelect=f"Set(varFuelRec, Blank()); Set(varFuelEdit, false); Set(varFuelForm, true); {fuel_open}")],
-          body("ful", [box("fulCols", "Horizontal", [fuel_programs, fuel_form], LayoutGap=16,
+          body("ful", [box("fulCols", "Horizontal", [fuel_programs, fuel_form], LayoutGap=16, **pads(2),
                            LayoutDirection="If(fulBody.Width < 900, LayoutDirection.Vertical, LayoutDirection.Horizontal)",
                            **fill(1), **STRETCH)], scroll=False)),
 ])
