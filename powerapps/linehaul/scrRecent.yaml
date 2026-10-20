@@ -888,7 +888,7 @@ Screens:
                                                       Timestamp,
                                                       SortOrder.Descending
                                                   ),
-                                                  IsOn, Coalesce(Active, false),
+                                                  IsOn, Upper(Trim(Active)) in ["YES", "TRUE"],
                                                   LH, LHCost(Base, Fuel, F_Adj, F_Discount, Adj, AdjType, Discount, DiscountType, recTglFuel.Value),
                                                   NoFSC, recTglFuel.Value && FuelMissing(Fuel)
                                               ),

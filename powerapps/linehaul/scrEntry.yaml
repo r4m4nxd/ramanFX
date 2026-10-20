@@ -1783,7 +1783,7 @@ Screens:
                                                                           Mode = varMode &&
                                                                           Equipment = varEquip
                                                                       ),
-                                                                      IsOn, Coalesce(Active, false)
+                                                                      IsOn, Upper(Trim(Active)) in ["YES", "TRUE"]
                                                                   ),
                                                                   IsOn
                                                               )
@@ -3312,7 +3312,7 @@ Screens:
                                                               F_Discount: Value(entTxtFDisc.Text),
                                                               F_DiscountType: If(IsBlank(Trim(entTxtFDisc.Text)), "", "%"),
                                                               Comments: entTxtNotes.Text,
-                                                              Active: entTglActive.Value,
+                                                              Active: If(entTglActive.Value, "Yes", "No"),
                                                               SubmittedBy: User().FullName,
                                                               SubmittedEmail: User().Email,
                                                               Timestamp: Now()
@@ -3323,7 +3323,7 @@ Screens:
                                                       IsError(n) || IsBlank(n.ID),
                                                       Notify("The rate wasn't saved. Check your connection and try again.", NotificationType.Error),
                                                       If(
-                                                          n.Active,
+                                                          Upper(n.Active) = "YES",
                                                           ForAll(
                                                               Filter(
                                                                   AddColumns(
@@ -3332,11 +3332,11 @@ Screens:
                                                                           Title = n.Title && Destination = n.Destination && Carrier = n.Carrier &&
                                                                           Mode = n.Mode && Equipment = n.Equipment
                                                                       ),
-                                                                      IsOn, Coalesce(Active, false)
+                                                                      IsOn, Upper(Trim(Active)) in ["YES", "TRUE"]
                                                                   ),
                                                                   IsOn && ID <> n.ID
                                                               ) As old,
-                                                              Patch(LinehaulRates, LookUp(LinehaulRates, ID = old.ID), {Active: false})
+                                                              Patch(LinehaulRates, LookUp(LinehaulRates, ID = old.ID), {Active: "No"})
                                                           )
                                                       );
                                                       Notify("Rate saved for " & n.Title & n.Destination & " " & n.Carrier & ".", NotificationType.Success);
@@ -3699,7 +3699,7 @@ Screens:
                                               F_Discount: Value(entTxtFDisc.Text),
                                               F_DiscountType: If(IsBlank(Trim(entTxtFDisc.Text)), "", "%"),
                                               Comments: entTxtNotes.Text,
-                                              Active: entTglActive.Value,
+                                              Active: If(entTglActive.Value, "Yes", "No"),
                                               SubmittedBy: User().FullName,
                                               SubmittedEmail: User().Email,
                                               Timestamp: Now()
@@ -3710,7 +3710,7 @@ Screens:
                                       IsError(n) || IsBlank(n.ID),
                                       Notify("The rate wasn't saved. Check your connection and try again.", NotificationType.Error),
                                       If(
-                                          n.Active,
+                                          Upper(n.Active) = "YES",
                                           ForAll(
                                               Filter(
                                                   AddColumns(
@@ -3719,11 +3719,11 @@ Screens:
                                                           Title = n.Title && Destination = n.Destination && Carrier = n.Carrier &&
                                                           Mode = n.Mode && Equipment = n.Equipment
                                                       ),
-                                                      IsOn, Coalesce(Active, false)
+                                                      IsOn, Upper(Trim(Active)) in ["YES", "TRUE"]
                                                   ),
                                                   IsOn && ID <> n.ID
                                               ) As old,
-                                              Patch(LinehaulRates, LookUp(LinehaulRates, ID = old.ID), {Active: false})
+                                              Patch(LinehaulRates, LookUp(LinehaulRates, ID = old.ID), {Active: "No"})
                                           )
                                       );
                                       Notify("Rate saved for " & n.Title & n.Destination & " " & n.Carrier & ".", NotificationType.Success);

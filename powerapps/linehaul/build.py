@@ -483,7 +483,7 @@ entry_replace = fx("""
                             Mode = varMode &&
                             Equipment = varEquip
                         ),
-                        IsOn, Coalesce(Active, false)
+                        IsOn, Upper(Trim(Active)) in ["YES", "TRUE"]
                     ),
                     IsOn
                 )
@@ -677,7 +677,7 @@ entry_do_save = fx("""
                         F_Discount: Value(entTxtFDisc.Text),
                         F_DiscountType: If(IsBlank(Trim(entTxtFDisc.Text)), "", "%"),
                         Comments: entTxtNotes.Text,
-                        Active: entTglActive.Value,
+                        Active: If(entTglActive.Value, "Yes", "No"),
                         SubmittedBy: User().FullName,
                         SubmittedEmail: User().Email,
                         Timestamp: Now()
@@ -688,7 +688,7 @@ entry_do_save = fx("""
                 IsError(n) || IsBlank(n.ID),
                 Notify("The rate wasn't saved. Check your connection and try again.", NotificationType.Error),
                 If(
-                    n.Active,
+                    Upper(n.Active) = "YES",
                     ForAll(
                         Filter(
                             AddColumns(
@@ -697,11 +697,11 @@ entry_do_save = fx("""
                                     Title = n.Title && Destination = n.Destination && Carrier = n.Carrier &&
                                     Mode = n.Mode && Equipment = n.Equipment
                                 ),
-                                IsOn, Coalesce(Active, false)
+                                IsOn, Upper(Trim(Active)) in ["YES", "TRUE"]
                             ),
                             IsOn && ID <> n.ID
                         ) As old,
-                        Patch(LinehaulRates, LookUp(LinehaulRates, ID = old.ID), {Active: false})
+                        Patch(LinehaulRates, LookUp(LinehaulRates, ID = old.ID), {Active: "No"})
                     )
                 );
                 Notify("Rate saved for " & n.Title & n.Destination & " " & n.Carrier & ".", NotificationType.Success);
@@ -989,7 +989,7 @@ recent_items = fx("""
                     Timestamp,
                     SortOrder.Descending
                 ),
-                IsOn, Coalesce(Active, false),
+                IsOn, Upper(Trim(Active)) in ["YES", "TRUE"],
                 LH, LHCost(Base, Fuel, F_Adj, F_Discount, Adj, AdjType, Discount, DiscountType, recTglFuel.Value),
                 NoFSC, recTglFuel.Value && FuelMissing(Fuel)
             ),
@@ -1110,8 +1110,8 @@ det_hero = row("detHero", 44, inset=2, children=[
     pill("detChipEquip", f"{R}.Equipment", "clrPanel", "clrInk", BorderColor="clrLine", BorderThickness=1,
          HoverBorderColor="clrLine", PressedBorderColor="clrLine", **fixed(170, 26)),
     rect("detHeroSpacer", Fill="clrClear", Height=10, **fill(1, 0)),
-    pill("detStatus", f'If({R}.Active, "Active", "Inactive")', f"If({R}.Active, clrGreenBg, clrSoft)",
-         f"If({R}.Active, clrGreenInk, clrInk3)", **fixed(90, 26)),
+    pill("detStatus", f'If({R}.IsOn, "Active", "Inactive")', f"If({R}.IsOn, clrGreenBg, clrSoft)",
+         f"If({R}.IsOn, clrGreenInk, clrInk3)", **fixed(90, 26)),
 ], gap=12, LayoutAlignItems="LayoutAlignItems.Center")
 
 det_lane = section("detSecLane", "1", s("Lane"), s("Read only"), height=210, body_gap=8, body=[
@@ -1170,7 +1170,7 @@ DET_COLLECT = fx(f"""
     ClearCollect(
         colLaneRates,
         Sort(
-            AddColumns(Filter(LinehaulRates, {DET_KEY}), IsOn, Coalesce(Active, false), LH, 0, NoFSC, false),
+            AddColumns(Filter(LinehaulRates, {DET_KEY}), IsOn, Upper(Trim(Active)) in ["YES", "TRUE"], LH, 0, NoFSC, false),
             Timestamp,
             SortOrder.Descending
         )
@@ -1203,7 +1203,7 @@ det_edit_warn = fx("""
                 Text(act.Timestamp, "mmm d, yyyy") & "). Saving switches it off. ", ""
             ) &
             If(
-                !detTglEditActive.Value && varRate.Active && IsBlank(act),
+                !detTglEditActive.Value && varRate.IsOn && IsBlank(act),
                 "⚠ This is the only active rate on this lane. After saving, the lane has no active rate. ", ""
             ) &
             If(
@@ -1223,7 +1223,7 @@ det_do_save = fx(f"""
                 LinehaulRates,
                 LookUp(LinehaulRates, ID = varRate.ID),
                 {{
-                    Active: detTglEditActive.Value,
+                    Active: If(detTglEditActive.Value, "Yes", "No"),
                     EffectiveDate: detDteEditEff.SelectedDate,
                     ExpiryDate: detDteEditExp.SelectedDate,
                     Comments: detTxtEditNotes.Text
@@ -1234,7 +1234,7 @@ det_do_save = fx(f"""
             IsError(r) || IsBlank(r.ID),
             Notify("Changes weren't saved. Check your connection and try again.", NotificationType.Error),
             If(
-                r.Active,
+                Upper(r.Active) = "YES",
                 ForAll(
                     Filter(
                         AddColumns(
@@ -1243,11 +1243,11 @@ det_do_save = fx(f"""
                                 Title = r.Title && Destination = r.Destination && Carrier = r.Carrier &&
                                 Mode = r.Mode && Equipment = r.Equipment
                             ),
-                            IsOn, Coalesce(Active, false)
+                            IsOn, Upper(Trim(Active)) in ["YES", "TRUE"]
                         ),
                         IsOn && ID <> r.ID
                     ) As old,
-                    Patch(LinehaulRates, LookUp(LinehaulRates, ID = old.ID), {{Active: false}})
+                    Patch(LinehaulRates, LookUp(LinehaulRates, ID = old.ID), {{Active: "No"}})
                 )
             );
             Set(
@@ -1256,7 +1256,7 @@ det_do_save = fx(f"""
                     varRate,
                     {{
                         Active: r.Active,
-                        IsOn: Coalesce(r.Active, false),
+                        IsOn: Upper(r.Active) = "YES",
                         EffectiveDate: r.EffectiveDate,
                         ExpiryDate: r.ExpiryDate,
                         Comments: r.Comments
@@ -1282,7 +1282,7 @@ det_edit = section("detSecEdit", "✎", s("Edit status & dates"),
                    Visible="varEditRate", BorderColor="clrBlueHover", body=[
     row("detEditRow", 60, [
         field("detFldEditActive", "Active rate", [toggle("detTglEditActive", "Active", "Inactive",
-                                                         default=f"{R}.Active", Height=36, **STRETCH)]),
+                                                         default=f"{R}.IsOn", Height=36, **STRETCH)]),
         field("detFldEditEff", "Effective *", [datepick("detDteEditEff", f"{R}.EffectiveDate")]),
         field("detFldEditExp", "Expiry *", [datepick("detDteEditExp", f"{R}.ExpiryDate")]),
     ]),

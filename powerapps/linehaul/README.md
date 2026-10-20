@@ -73,19 +73,18 @@ Do these once in the list settings. They protect the data even if someone edits 
 1. **Indexed columns** on `LinehaulRates`: Title, Destination, Carrier, Mode, Equipment, Active, ExpiryDate and Timestamp. Without indexes, filters stop working once the list passes 5,000 items.
 2. **Required columns:** Title, Destination, Carrier, Mode, Equipment, Fuel, Base, EffectiveDate and ExpiryDate.
 3. **List validation** (List settings → Validation settings): `=[ExpiryDate]>[EffectiveDate]`
-4. **Active** column default = Yes.
+4. **Active** column default value = `Yes`.
 5. **Permissions:** users get *Contribute without delete*, so rates can't be deleted from the list itself.
 6. Optional: a Power Automate flow that runs nightly and switches expired active rates to inactive.
 
-## Yes/No column
+## Active column (text: Yes / No)
 
-SharePoint returns no rows when a filter on the Yes/No `Active` column is sent to it, and Power Apps sends it whenever it can. That is why "Active only" came back empty.
-
-Every Active check now runs on rows already loaded:
-- The query to SharePoint filters only on expiry, lane, carrier, mode or ID.
-- `AddColumns(..., IsOn, Coalesce(Active, false))` then pulls the rows into the app, so the `IsOn` check can't be pushed back to SharePoint.
-
-This covers the "Active only" filter, the status pills, the replace warning, both deactivation steps and the lane history. Blank Active values count as inactive.
+`Active` in `LinehaulRates` is a **Single line of text** column holding `Yes` or `No`.
+- **Writing:** the app always writes `Yes` or `No`.
+- **Reading:** a row counts as active when the text is `Yes` (or legacy `true`), ignoring case and spaces. The app adds this as a column: `IsOn = Upper(Trim(Active)) in ["YES", "TRUE"]`.
+- **Everything uses `IsOn`:** the "Active only" filter, the status pills, the replace warning, both deactivation steps, the edit toggle and the lane history.
+- **Blank or anything else** counts as inactive.
+- **Editing the list by hand:** type exactly `Yes` or `No`.
 
 ## Known limits
 

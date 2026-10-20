@@ -7,7 +7,7 @@ Screens:
         ClearCollect(
             colLaneRates,
             Sort(
-                AddColumns(Filter(LinehaulRates, Title = varRate.Title && Destination = varRate.Destination && Carrier = varRate.Carrier && Mode = varRate.Mode && Equipment = varRate.Equipment), IsOn, Coalesce(Active, false), LH, 0, NoFSC, false),
+                AddColumns(Filter(LinehaulRates, Title = varRate.Title && Destination = varRate.Destination && Carrier = varRate.Carrier && Mode = varRate.Mode && Equipment = varRate.Equipment), IsOn, Upper(Trim(Active)) in ["YES", "TRUE"], LH, 0, NoFSC, false),
                 Timestamp,
                 SortOrder.Descending
             )
@@ -612,15 +612,15 @@ Screens:
                                   Properties:
                                     BorderColor: =clrClear
                                     BorderThickness: =0
-                                    Color: =If(varRate.Active, clrGreenInk, clrInk3)
-                                    Fill: =If(varRate.Active, clrGreenBg, clrSoft)
+                                    Color: =If(varRate.IsOn, clrGreenInk, clrInk3)
+                                    Fill: =If(varRate.IsOn, clrGreenBg, clrSoft)
                                     FillPortions: =0
                                     Font: =Font.'Segoe UI'
                                     FontWeight: =FontWeight.Bold
                                     Height: =26
                                     HoverBorderColor: =clrClear
-                                    HoverColor: =If(varRate.Active, clrGreenInk, clrInk3)
-                                    HoverFill: =If(varRate.Active, clrGreenBg, clrSoft)
+                                    HoverColor: =If(varRate.IsOn, clrGreenInk, clrInk3)
+                                    HoverFill: =If(varRate.IsOn, clrGreenBg, clrSoft)
                                     LayoutMinHeight: =0
                                     LayoutMinWidth: =0
                                     PaddingBottom: =0
@@ -628,14 +628,14 @@ Screens:
                                     PaddingRight: =10
                                     PaddingTop: =0
                                     PressedBorderColor: =clrClear
-                                    PressedColor: =If(varRate.Active, clrGreenInk, clrInk3)
-                                    PressedFill: =If(varRate.Active, clrGreenBg, clrSoft)
+                                    PressedColor: =If(varRate.IsOn, clrGreenInk, clrInk3)
+                                    PressedFill: =If(varRate.IsOn, clrGreenBg, clrSoft)
                                     RadiusBottomLeft: =11
                                     RadiusBottomRight: =11
                                     RadiusTopLeft: =11
                                     RadiusTopRight: =11
                                     Size: =8.5
-                                    Text: =If(varRate.Active, "Active", "Inactive")
+                                    Text: =If(varRate.IsOn, "Active", "Inactive")
                                     Width: =90
                         - detCols:
                             Control: GroupContainer@1.5.0
@@ -2530,7 +2530,7 @@ Screens:
                                                                   AlignInContainer: =AlignInContainer.Stretch
                                                                   BorderThickness: =0
                                                                   Color: =clrInk
-                                                                  Default: =varRate.Active
+                                                                  Default: =varRate.IsOn
                                                                   FalseFill: =RGBA(190, 200, 210, 1)
                                                                   FalseHoverFill: =clrInk3
                                                                   FalseText: ="Inactive"
@@ -2791,7 +2791,7 @@ Screens:
                                                                     Text(act.Timestamp, "mmm d, yyyy") & "). Saving switches it off. ", ""
                                                                 ) &
                                                                 If(
-                                                                    !detTglEditActive.Value && varRate.Active && IsBlank(act),
+                                                                    !detTglEditActive.Value && varRate.IsOn && IsBlank(act),
                                                                     "⚠ This is the only active rate on this lane. After saving, the lane has no active rate. ", ""
                                                                 ) &
                                                                 If(
@@ -2903,7 +2903,7 @@ Screens:
                                                                               LinehaulRates,
                                                                               LookUp(LinehaulRates, ID = varRate.ID),
                                                                               {
-                                                                                  Active: detTglEditActive.Value,
+                                                                                  Active: If(detTglEditActive.Value, "Yes", "No"),
                                                                                   EffectiveDate: detDteEditEff.SelectedDate,
                                                                                   ExpiryDate: detDteEditExp.SelectedDate,
                                                                                   Comments: detTxtEditNotes.Text
@@ -2914,7 +2914,7 @@ Screens:
                                                                           IsError(r) || IsBlank(r.ID),
                                                                           Notify("Changes weren't saved. Check your connection and try again.", NotificationType.Error),
                                                                           If(
-                                                                              r.Active,
+                                                                              Upper(r.Active) = "YES",
                                                                               ForAll(
                                                                                   Filter(
                                                                                       AddColumns(
@@ -2923,11 +2923,11 @@ Screens:
                                                                                               Title = r.Title && Destination = r.Destination && Carrier = r.Carrier &&
                                                                                               Mode = r.Mode && Equipment = r.Equipment
                                                                                           ),
-                                                                                          IsOn, Coalesce(Active, false)
+                                                                                          IsOn, Upper(Trim(Active)) in ["YES", "TRUE"]
                                                                                       ),
                                                                                       IsOn && ID <> r.ID
                                                                                   ) As old,
-                                                                                  Patch(LinehaulRates, LookUp(LinehaulRates, ID = old.ID), {Active: false})
+                                                                                  Patch(LinehaulRates, LookUp(LinehaulRates, ID = old.ID), {Active: "No"})
                                                                               )
                                                                           );
                                                                           Set(
@@ -2936,7 +2936,7 @@ Screens:
                                                                                   varRate,
                                                                                   {
                                                                                       Active: r.Active,
-                                                                                      IsOn: Coalesce(r.Active, false),
+                                                                                      IsOn: Upper(r.Active) = "YES",
                                                                                       EffectiveDate: r.EffectiveDate,
                                                                                       ExpiryDate: r.ExpiryDate,
                                                                                       Comments: r.Comments
@@ -2946,7 +2946,7 @@ Screens:
                                                                           ClearCollect(
                                                                               colLaneRates,
                                                                               Sort(
-                                                                                  AddColumns(Filter(LinehaulRates, Title = varRate.Title && Destination = varRate.Destination && Carrier = varRate.Carrier && Mode = varRate.Mode && Equipment = varRate.Equipment), IsOn, Coalesce(Active, false), LH, 0, NoFSC, false),
+                                                                                  AddColumns(Filter(LinehaulRates, Title = varRate.Title && Destination = varRate.Destination && Carrier = varRate.Carrier && Mode = varRate.Mode && Equipment = varRate.Equipment), IsOn, Upper(Trim(Active)) in ["YES", "TRUE"], LH, 0, NoFSC, false),
                                                                                   Timestamp,
                                                                                   SortOrder.Descending
                                                                               )
@@ -3582,7 +3582,7 @@ Screens:
                                       LinehaulRates,
                                       LookUp(LinehaulRates, ID = varRate.ID),
                                       {
-                                          Active: detTglEditActive.Value,
+                                          Active: If(detTglEditActive.Value, "Yes", "No"),
                                           EffectiveDate: detDteEditEff.SelectedDate,
                                           ExpiryDate: detDteEditExp.SelectedDate,
                                           Comments: detTxtEditNotes.Text
@@ -3593,7 +3593,7 @@ Screens:
                                   IsError(r) || IsBlank(r.ID),
                                   Notify("Changes weren't saved. Check your connection and try again.", NotificationType.Error),
                                   If(
-                                      r.Active,
+                                      Upper(r.Active) = "YES",
                                       ForAll(
                                           Filter(
                                               AddColumns(
@@ -3602,11 +3602,11 @@ Screens:
                                                       Title = r.Title && Destination = r.Destination && Carrier = r.Carrier &&
                                                       Mode = r.Mode && Equipment = r.Equipment
                                                   ),
-                                                  IsOn, Coalesce(Active, false)
+                                                  IsOn, Upper(Trim(Active)) in ["YES", "TRUE"]
                                               ),
                                               IsOn && ID <> r.ID
                                           ) As old,
-                                          Patch(LinehaulRates, LookUp(LinehaulRates, ID = old.ID), {Active: false})
+                                          Patch(LinehaulRates, LookUp(LinehaulRates, ID = old.ID), {Active: "No"})
                                       )
                                   );
                                   Set(
@@ -3615,7 +3615,7 @@ Screens:
                                           varRate,
                                           {
                                               Active: r.Active,
-                                              IsOn: Coalesce(r.Active, false),
+                                              IsOn: Upper(r.Active) = "YES",
                                               EffectiveDate: r.EffectiveDate,
                                               ExpiryDate: r.ExpiryDate,
                                               Comments: r.Comments
@@ -3625,7 +3625,7 @@ Screens:
                                   ClearCollect(
                                       colLaneRates,
                                       Sort(
-                                          AddColumns(Filter(LinehaulRates, Title = varRate.Title && Destination = varRate.Destination && Carrier = varRate.Carrier && Mode = varRate.Mode && Equipment = varRate.Equipment), IsOn, Coalesce(Active, false), LH, 0, NoFSC, false),
+                                          AddColumns(Filter(LinehaulRates, Title = varRate.Title && Destination = varRate.Destination && Carrier = varRate.Carrier && Mode = varRate.Mode && Equipment = varRate.Equipment), IsOn, Upper(Trim(Active)) in ["YES", "TRUE"], LH, 0, NoFSC, false),
                                           Timestamp,
                                           SortOrder.Descending
                                       )
