@@ -47,6 +47,7 @@ Screens:
                   LayoutAlignItems: =LayoutAlignItems.Center
                   LayoutDirection: =LayoutDirection.Vertical
                   LayoutGap: =8
+                  LayoutMinHeight: =0
                   LayoutMinWidth: =84
                   PaddingBottom: =14
                   PaddingLeft: =5
@@ -65,6 +66,8 @@ Screens:
                         Height: =48
                         Image: ='cff logo'
                         ImagePosition: =ImagePosition.Fit
+                        LayoutMinHeight: =0
+                        LayoutMinWidth: =0
                         Width: =48
                   - detRailGap:
                       Control: Rectangle@2.3.0
@@ -73,6 +76,8 @@ Screens:
                         Fill: =clrClear
                         FillPortions: =0
                         Height: =10
+                        LayoutMinHeight: =0
+                        LayoutMinWidth: =0
                         Width: =10
                   - detNavNew:
                       Control: GroupContainer@1.5.0
@@ -87,6 +92,8 @@ Screens:
                         LayoutDirection: =LayoutDirection.Vertical
                         LayoutGap: =4
                         LayoutJustifyContent: =LayoutJustifyContent.Center
+                        LayoutMinHeight: =0
+                        LayoutMinWidth: =0
                         PaddingBottom: =0
                         PaddingLeft: =0
                         PaddingRight: =0
@@ -105,6 +112,8 @@ Screens:
                               Height: =26
                               HoverColor: =clrWhite
                               Icon: =Icon.Edit
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =0
                               OnSelect: =Navigate(scrEntry, ScreenTransition.None)
                               PressedColor: =clrWhite
                               Tooltip: ="New rate"
@@ -119,12 +128,14 @@ Screens:
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Semibold
                               Height: =18
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =0
                               OnSelect: =Navigate(scrEntry, ScreenTransition.None)
                               PaddingBottom: =0
                               PaddingLeft: =0
                               PaddingRight: =0
                               PaddingTop: =0
-                              Size: =8.5
+                              Size: =9
                               Text: ="New rate"
                               VerticalAlign: =VerticalAlign.Middle
                               Width: =74
@@ -141,6 +152,8 @@ Screens:
                         LayoutDirection: =LayoutDirection.Vertical
                         LayoutGap: =4
                         LayoutJustifyContent: =LayoutJustifyContent.Center
+                        LayoutMinHeight: =0
+                        LayoutMinWidth: =0
                         PaddingBottom: =0
                         PaddingLeft: =0
                         PaddingRight: =0
@@ -159,6 +172,8 @@ Screens:
                               Height: =26
                               HoverColor: =clrWhite
                               Icon: =Icon.DetailList
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =0
                               OnSelect: =Navigate(scrRecent, ScreenTransition.None)
                               PressedColor: =clrWhite
                               Tooltip: ="Recent"
@@ -173,12 +188,14 @@ Screens:
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Semibold
                               Height: =18
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =0
                               OnSelect: =Navigate(scrRecent, ScreenTransition.None)
                               PaddingBottom: =0
                               PaddingLeft: =0
                               PaddingRight: =0
                               PaddingTop: =0
-                              Size: =8.5
+                              Size: =9
                               Text: ="Recent"
                               VerticalAlign: =VerticalAlign.Middle
                               Width: =74
@@ -195,6 +212,8 @@ Screens:
                         LayoutDirection: =LayoutDirection.Vertical
                         LayoutGap: =4
                         LayoutJustifyContent: =LayoutJustifyContent.Center
+                        LayoutMinHeight: =0
+                        LayoutMinWidth: =0
                         PaddingBottom: =0
                         PaddingLeft: =0
                         PaddingRight: =0
@@ -213,6 +232,8 @@ Screens:
                               Height: =26
                               HoverColor: =clrWhite
                               Icon: =Icon.Money
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =0
                               OnSelect: =Navigate(scrFuel, ScreenTransition.None)
                               PressedColor: =clrWhite
                               Tooltip: ="Fuel library"
@@ -227,12 +248,14 @@ Screens:
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Semibold
                               Height: =18
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =0
                               OnSelect: =Navigate(scrFuel, ScreenTransition.None)
                               PaddingBottom: =0
                               PaddingLeft: =0
                               PaddingRight: =0
                               PaddingTop: =0
-                              Size: =8.5
+                              Size: =9
                               Text: ="Fuel library"
                               VerticalAlign: =VerticalAlign.Middle
                               Width: =74
@@ -247,6 +270,7 @@ Screens:
                   FillPortions: =1
                   LayoutDirection: =LayoutDirection.Vertical
                   LayoutGap: =0
+                  LayoutMinHeight: =0
                   LayoutMinWidth: =300
                   PaddingBottom: =0
                   PaddingLeft: =0
@@ -270,6 +294,8 @@ Screens:
                         LayoutAlignItems: =LayoutAlignItems.Center
                         LayoutDirection: =LayoutDirection.Horizontal
                         LayoutGap: =16
+                        LayoutMinHeight: =0
+                        LayoutMinWidth: =0
                         PaddingBottom: =0
                         PaddingLeft: =16
                         PaddingRight: =16
@@ -288,14 +314,16 @@ Screens:
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Semibold
                               Height: =36
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =0
                               PaddingBottom: =0
                               PaddingLeft: =0
                               PaddingRight: =0
                               PaddingTop: =0
-                              Size: =15
+                              Size: =16
                               Text: ="Line-Haul Rates"
                               VerticalAlign: =VerticalAlign.Middle
-                              Width: =160
+                              Width: =170
                         - detHdrDiv:
                             Control: Rectangle@2.3.0
                             Properties:
@@ -303,6 +331,8 @@ Screens:
                               Fill: =clrLine
                               FillPortions: =0
                               Height: =24
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =0
                               Width: =1
                         - detHdrStep:
                             Control: Label@2.5.1
@@ -312,14 +342,16 @@ Screens:
                               FillPortions: =1
                               Font: =Font.'Segoe UI'
                               Height: =36
+                              LayoutMinHeight: =0
                               LayoutMinWidth: =40
                               PaddingBottom: =0
                               PaddingLeft: =0
                               PaddingRight: =0
                               PaddingTop: =0
-                              Size: =11
+                              Size: =11.5
                               Text: ="Rate details · " & varRate.Title & varRate.Destination & "-" & varRate.Carrier & "-" & varRate.Mode & "-" & varRate.Equipment
                               VerticalAlign: =VerticalAlign.Middle
+                              Visible: =Parent.Width > 700
                         - detHdrUser:
                             Control: Label@2.5.1
                             Properties:
@@ -330,14 +362,17 @@ Screens:
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Semibold
                               Height: =36
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =0
                               PaddingBottom: =0
                               PaddingLeft: =0
                               PaddingRight: =0
                               PaddingTop: =0
-                              Size: =9
+                              Size: =9.5
                               Text: =User().FullName & " · " & Text(Today(), "mmm d, yyyy")
                               VerticalAlign: =VerticalAlign.Middle
-                              Width: =210
+                              Visible: =Parent.Width > 1000
+                              Width: =240
                         - detHdrBtnEdit:
                             Control: Classic/Button@2.2.0
                             Properties:
@@ -355,6 +390,8 @@ Screens:
                               HoverBorderColor: =clrBlueHover
                               HoverColor: =clrWhite
                               HoverFill: =clrBlue
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =0
                               OnSelect: =Set(varEditRate, true); Reset(detTglEditActive); Reset(detDteEditEff); Reset(detDteEditExp); Reset(detTxtEditNotes)
                               PressedBorderColor: =clrInk
                               PressedColor: =clrWhite
@@ -363,7 +400,7 @@ Screens:
                               RadiusBottomRight: =5
                               RadiusTopLeft: =5
                               RadiusTopRight: =5
-                              Size: =10.5
+                              Size: =11
                               Text: ="Edit rate"
                               Visible: =!varEditRate
                               Width: =110
@@ -384,6 +421,8 @@ Screens:
                               HoverBorderColor: =clrInk3
                               HoverColor: =clrInk
                               HoverFill: =clrPanel
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =0
                               OnSelect: =Navigate(scrRecent, ScreenTransition.None)
                               PressedBorderColor: =clrInk3
                               PressedColor: =clrInk
@@ -392,7 +431,7 @@ Screens:
                               RadiusBottomRight: =5
                               RadiusTopLeft: =5
                               RadiusTopRight: =5
-                              Size: =10.5
+                              Size: =11
                               Text: ="← Back to recent"
                               Width: =150
                   - detBody:
@@ -406,6 +445,7 @@ Screens:
                         FillPortions: =1
                         LayoutDirection: =LayoutDirection.Vertical
                         LayoutGap: =16
+                        LayoutMinHeight: =0
                         LayoutMinWidth: =40
                         LayoutOverflowY: =LayoutOverflow.Scroll
                         PaddingBottom: =16
@@ -430,6 +470,8 @@ Screens:
                               LayoutAlignItems: =LayoutAlignItems.Center
                               LayoutDirection: =LayoutDirection.Horizontal
                               LayoutGap: =12
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =0
                               PaddingBottom: =0
                               PaddingLeft: =0
                               PaddingRight: =0
@@ -448,6 +490,8 @@ Screens:
                                     Font: =Font.'Segoe UI'
                                     FontWeight: =FontWeight.Bold
                                     Height: =44
+                                    LayoutMinHeight: =0
+                                    LayoutMinWidth: =0
                                     PaddingBottom: =0
                                     PaddingLeft: =0
                                     PaddingRight: =0
@@ -470,6 +514,8 @@ Screens:
                                     HoverBorderColor: =clrLine
                                     HoverColor: =clrInk
                                     HoverFill: =clrPanel
+                                    LayoutMinHeight: =0
+                                    LayoutMinWidth: =0
                                     PressedBorderColor: =clrLine
                                     PressedColor: =clrInk
                                     PressedFill: =clrPanel
@@ -494,6 +540,8 @@ Screens:
                                     HoverBorderColor: =clrLine
                                     HoverColor: =clrInk
                                     HoverFill: =clrPanel
+                                    LayoutMinHeight: =0
+                                    LayoutMinWidth: =0
                                     PressedBorderColor: =clrLine
                                     PressedColor: =clrInk
                                     PressedFill: =clrPanel
@@ -518,6 +566,8 @@ Screens:
                                     HoverBorderColor: =clrLine
                                     HoverColor: =clrInk
                                     HoverFill: =clrPanel
+                                    LayoutMinHeight: =0
+                                    LayoutMinWidth: =0
                                     PressedBorderColor: =clrLine
                                     PressedColor: =clrInk
                                     PressedFill: =clrPanel
@@ -535,6 +585,7 @@ Screens:
                                     Fill: =clrClear
                                     FillPortions: =1
                                     Height: =10
+                                    LayoutMinHeight: =0
                                     LayoutMinWidth: =0
                               - detStatus:
                                   Control: Classic/Button@2.2.0
@@ -550,6 +601,8 @@ Screens:
                                     HoverBorderColor: =clrClear
                                     HoverColor: =If(varRate.Active, clrGreenInk, clrInk3)
                                     HoverFill: =If(varRate.Active, clrGreenBg, clrSoft)
+                                    LayoutMinHeight: =0
+                                    LayoutMinWidth: =0
                                     PressedBorderColor: =clrClear
                                     PressedColor: =If(varRate.Active, clrGreenInk, clrInk3)
                                     PressedFill: =If(varRate.Active, clrGreenBg, clrSoft)
@@ -570,12 +623,15 @@ Screens:
                               Fill: =clrClear
                               FillPortions: =0
                               Height: |-
-                                =Max(
-                                    detSecLane.Height + 16 + detSecCost.Height,
-                                    If(varEditRate, detSecEdit.Height + 16, 0) + detSecHistory.Height
+                                =If(
+                                    detBody.Width < 900,
+                                    (detSecLane.Height + 16 + detSecCost.Height) + 16 + (If(varEditRate, detSecEdit.Height + 16, 0) + detSecHistory.Height),
+                                    Max((detSecLane.Height + 16 + detSecCost.Height), (If(varEditRate, detSecEdit.Height + 16, 0) + detSecHistory.Height))
                                 )
-                              LayoutDirection: =LayoutDirection.Horizontal
+                              LayoutDirection: =If(detBody.Width < 900, LayoutDirection.Vertical, LayoutDirection.Horizontal)
                               LayoutGap: =16
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =0
                               PaddingBottom: =0
                               PaddingLeft: =0
                               PaddingRight: =0
@@ -593,10 +649,12 @@ Screens:
                                     BorderThickness: =0
                                     DropShadow: =DropShadow.None
                                     Fill: =clrClear
-                                    FillPortions: =1.15
+                                    FillPortions: =If(detBody.Width < 900, 0, 1.15)
+                                    Height: =(detSecLane.Height + 16 + detSecCost.Height)
                                     LayoutDirection: =LayoutDirection.Vertical
                                     LayoutGap: =16
-                                    LayoutMinWidth: =420
+                                    LayoutMinHeight: =0
+                                    LayoutMinWidth: =320
                                     PaddingBottom: =0
                                     PaddingLeft: =0
                                     PaddingRight: =0
@@ -619,6 +677,8 @@ Screens:
                                           Height: =204
                                           LayoutDirection: =LayoutDirection.Vertical
                                           LayoutGap: =0
+                                          LayoutMinHeight: =0
+                                          LayoutMinWidth: =0
                                           PaddingBottom: =0
                                           PaddingLeft: =0
                                           PaddingRight: =0
@@ -641,6 +701,8 @@ Screens:
                                                 LayoutAlignItems: =LayoutAlignItems.Center
                                                 LayoutDirection: =LayoutDirection.Horizontal
                                                 LayoutGap: =12
+                                                LayoutMinHeight: =0
+                                                LayoutMinWidth: =0
                                                 PaddingBottom: =0
                                                 PaddingLeft: =16
                                                 PaddingRight: =16
@@ -661,6 +723,8 @@ Screens:
                                                       Font: =Font.'Segoe UI'
                                                       FontWeight: =FontWeight.Bold
                                                       Height: =24
+                                                      LayoutMinHeight: =0
+                                                      LayoutMinWidth: =0
                                                       PaddingBottom: =0
                                                       PaddingLeft: =0
                                                       PaddingRight: =0
@@ -678,14 +742,16 @@ Screens:
                                                       Font: =Font.'Segoe UI'
                                                       FontWeight: =FontWeight.Bold
                                                       Height: =30
+                                                      LayoutMinHeight: =0
+                                                      LayoutMinWidth: =0
                                                       PaddingBottom: =0
                                                       PaddingLeft: =0
                                                       PaddingRight: =0
                                                       PaddingTop: =0
-                                                      Size: =12
+                                                      Size: =13
                                                       Text: ="Lane"
                                                       VerticalAlign: =VerticalAlign.Middle
-                                                      Width: =150
+                                                      Width: =190
                                                 - detSecLaneHint:
                                                     Control: Label@2.5.1
                                                     Properties:
@@ -694,12 +760,13 @@ Screens:
                                                       FillPortions: =1
                                                       Font: =Font.'Segoe UI'
                                                       Height: =30
+                                                      LayoutMinHeight: =0
                                                       LayoutMinWidth: =40
                                                       PaddingBottom: =0
                                                       PaddingLeft: =0
                                                       PaddingRight: =0
                                                       PaddingTop: =0
-                                                      Size: =9
+                                                      Size: =9.5
                                                       Text: ="Read only"
                                                       VerticalAlign: =VerticalAlign.Middle
                                           - detSecLaneSep:
@@ -710,6 +777,8 @@ Screens:
                                                 Fill: =clrLine
                                                 FillPortions: =0
                                                 Height: =1
+                                                LayoutMinHeight: =0
+                                                LayoutMinWidth: =0
                                           - detSecLaneBody:
                                               Control: GroupContainer@1.5.0
                                               Variant: AutoLayout
@@ -721,6 +790,7 @@ Screens:
                                                 FillPortions: =1
                                                 LayoutDirection: =LayoutDirection.Vertical
                                                 LayoutGap: =8
+                                                LayoutMinHeight: =0
                                                 LayoutMinWidth: =40
                                                 PaddingBottom: =16
                                                 PaddingLeft: =16
@@ -743,6 +813,8 @@ Screens:
                                                       Height: =56
                                                       LayoutDirection: =LayoutDirection.Horizontal
                                                       LayoutGap: =8
+                                                      LayoutMinHeight: =0
+                                                      LayoutMinWidth: =0
                                                       PaddingBottom: =0
                                                       PaddingLeft: =0
                                                       PaddingRight: =0
@@ -762,6 +834,7 @@ Screens:
                                                             Fill: =clrSoft
                                                             FillPortions: =1
                                                             Height: =56
+                                                            LayoutMinHeight: =0
                                                             LayoutMinWidth: =80
                                                             RadiusBottomLeft: =0
                                                             RadiusBottomRight: =3
@@ -789,12 +862,12 @@ Screens:
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =8
+                                                                  Size: =8.5
                                                                   Text: ="ORIGIN"
                                                                   VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =Parent.Width - 16
-                                                                  X: =12
-                                                                  Y: =7
+                                                                  Width: =Parent.Width - 22
+                                                                  X: =14
+                                                                  Y: =8
                                                             - detFactOriginV:
                                                                 Control: Label@2.5.1
                                                                 Properties:
@@ -807,12 +880,12 @@ Screens:
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =10.5
+                                                                  Size: =11
                                                                   Text: =varRate.Title
                                                                   VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =Parent.Width - 16
-                                                                  X: =12
-                                                                  Y: =25
+                                                                  Width: =Parent.Width - 22
+                                                                  X: =14
+                                                                  Y: =26
                                                       - detFactDest:
                                                           Control: GroupContainer@1.5.0
                                                           Variant: ManualLayout
@@ -823,6 +896,7 @@ Screens:
                                                             Fill: =clrSoft
                                                             FillPortions: =1
                                                             Height: =56
+                                                            LayoutMinHeight: =0
                                                             LayoutMinWidth: =80
                                                             RadiusBottomLeft: =0
                                                             RadiusBottomRight: =3
@@ -850,12 +924,12 @@ Screens:
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =8
+                                                                  Size: =8.5
                                                                   Text: ="DESTINATION"
                                                                   VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =Parent.Width - 16
-                                                                  X: =12
-                                                                  Y: =7
+                                                                  Width: =Parent.Width - 22
+                                                                  X: =14
+                                                                  Y: =8
                                                             - detFactDestV:
                                                                 Control: Label@2.5.1
                                                                 Properties:
@@ -868,12 +942,12 @@ Screens:
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =10.5
+                                                                  Size: =11
                                                                   Text: =varRate.Destination
                                                                   VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =Parent.Width - 16
-                                                                  X: =12
-                                                                  Y: =25
+                                                                  Width: =Parent.Width - 22
+                                                                  X: =14
+                                                                  Y: =26
                                                       - detFactCarrier:
                                                           Control: GroupContainer@1.5.0
                                                           Variant: ManualLayout
@@ -884,6 +958,7 @@ Screens:
                                                             Fill: =clrSoft
                                                             FillPortions: =1
                                                             Height: =56
+                                                            LayoutMinHeight: =0
                                                             LayoutMinWidth: =80
                                                             RadiusBottomLeft: =0
                                                             RadiusBottomRight: =3
@@ -911,12 +986,12 @@ Screens:
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =8
+                                                                  Size: =8.5
                                                                   Text: ="CARRIER"
                                                                   VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =Parent.Width - 16
-                                                                  X: =12
-                                                                  Y: =7
+                                                                  Width: =Parent.Width - 22
+                                                                  X: =14
+                                                                  Y: =8
                                                             - detFactCarrierV:
                                                                 Control: Label@2.5.1
                                                                 Properties:
@@ -929,12 +1004,12 @@ Screens:
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =10.5
+                                                                  Size: =11
                                                                   Text: =varRate.Carrier
                                                                   VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =Parent.Width - 16
-                                                                  X: =12
-                                                                  Y: =25
+                                                                  Width: =Parent.Width - 22
+                                                                  X: =14
+                                                                  Y: =26
                                                 - detLaneRow2:
                                                     Control: GroupContainer@1.5.0
                                                     Variant: AutoLayout
@@ -947,6 +1022,8 @@ Screens:
                                                       Height: =56
                                                       LayoutDirection: =LayoutDirection.Horizontal
                                                       LayoutGap: =8
+                                                      LayoutMinHeight: =0
+                                                      LayoutMinWidth: =0
                                                       PaddingBottom: =0
                                                       PaddingLeft: =0
                                                       PaddingRight: =0
@@ -966,6 +1043,7 @@ Screens:
                                                             Fill: =clrSoft
                                                             FillPortions: =1
                                                             Height: =56
+                                                            LayoutMinHeight: =0
                                                             LayoutMinWidth: =80
                                                             RadiusBottomLeft: =0
                                                             RadiusBottomRight: =3
@@ -993,12 +1071,12 @@ Screens:
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =8
+                                                                  Size: =8.5
                                                                   Text: ="SERVICE DAYS"
                                                                   VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =Parent.Width - 16
-                                                                  X: =12
-                                                                  Y: =7
+                                                                  Width: =Parent.Width - 22
+                                                                  X: =14
+                                                                  Y: =8
                                                             - detFactDaysV:
                                                                 Control: Label@2.5.1
                                                                 Properties:
@@ -1011,12 +1089,12 @@ Screens:
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =10.5
+                                                                  Size: =11
                                                                   Text: =varRate.ServiceDays
                                                                   VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =Parent.Width - 16
-                                                                  X: =12
-                                                                  Y: =25
+                                                                  Width: =Parent.Width - 22
+                                                                  X: =14
+                                                                  Y: =26
                                                       - detFactEff:
                                                           Control: GroupContainer@1.5.0
                                                           Variant: ManualLayout
@@ -1027,6 +1105,7 @@ Screens:
                                                             Fill: =clrSoft
                                                             FillPortions: =1
                                                             Height: =56
+                                                            LayoutMinHeight: =0
                                                             LayoutMinWidth: =80
                                                             RadiusBottomLeft: =0
                                                             RadiusBottomRight: =3
@@ -1054,12 +1133,12 @@ Screens:
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =8
+                                                                  Size: =8.5
                                                                   Text: ="EFFECTIVE"
                                                                   VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =Parent.Width - 16
-                                                                  X: =12
-                                                                  Y: =7
+                                                                  Width: =Parent.Width - 22
+                                                                  X: =14
+                                                                  Y: =8
                                                             - detFactEffV:
                                                                 Control: Label@2.5.1
                                                                 Properties:
@@ -1072,12 +1151,12 @@ Screens:
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =10.5
+                                                                  Size: =11
                                                                   Text: =Text(varRate.EffectiveDate, "mmm d, yyyy")
                                                                   VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =Parent.Width - 16
-                                                                  X: =12
-                                                                  Y: =25
+                                                                  Width: =Parent.Width - 22
+                                                                  X: =14
+                                                                  Y: =26
                                                       - detFactExpiry:
                                                           Control: GroupContainer@1.5.0
                                                           Variant: ManualLayout
@@ -1088,6 +1167,7 @@ Screens:
                                                             Fill: =clrSoft
                                                             FillPortions: =1
                                                             Height: =56
+                                                            LayoutMinHeight: =0
                                                             LayoutMinWidth: =80
                                                             RadiusBottomLeft: =0
                                                             RadiusBottomRight: =3
@@ -1115,12 +1195,12 @@ Screens:
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =8
+                                                                  Size: =8.5
                                                                   Text: ="EXPIRY"
                                                                   VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =Parent.Width - 16
-                                                                  X: =12
-                                                                  Y: =7
+                                                                  Width: =Parent.Width - 22
+                                                                  X: =14
+                                                                  Y: =8
                                                             - detFactExpiryV:
                                                                 Control: Label@2.5.1
                                                                 Properties:
@@ -1133,12 +1213,12 @@ Screens:
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =10.5
+                                                                  Size: =11
                                                                   Text: =Text(varRate.ExpiryDate, "mmm d, yyyy")
                                                                   VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =Parent.Width - 16
-                                                                  X: =12
-                                                                  Y: =25
+                                                                  Width: =Parent.Width - 22
+                                                                  X: =14
+                                                                  Y: =26
                                     - detSecCost:
                                         Control: GroupContainer@1.5.0
                                         Variant: AutoLayout
@@ -1152,6 +1232,8 @@ Screens:
                                           Height: =If(detLblWarn.Visible, 548, 502)
                                           LayoutDirection: =LayoutDirection.Vertical
                                           LayoutGap: =0
+                                          LayoutMinHeight: =0
+                                          LayoutMinWidth: =0
                                           PaddingBottom: =0
                                           PaddingLeft: =0
                                           PaddingRight: =0
@@ -1174,6 +1256,8 @@ Screens:
                                                 LayoutAlignItems: =LayoutAlignItems.Center
                                                 LayoutDirection: =LayoutDirection.Horizontal
                                                 LayoutGap: =12
+                                                LayoutMinHeight: =0
+                                                LayoutMinWidth: =0
                                                 PaddingBottom: =0
                                                 PaddingLeft: =16
                                                 PaddingRight: =16
@@ -1194,6 +1278,8 @@ Screens:
                                                       Font: =Font.'Segoe UI'
                                                       FontWeight: =FontWeight.Bold
                                                       Height: =24
+                                                      LayoutMinHeight: =0
+                                                      LayoutMinWidth: =0
                                                       PaddingBottom: =0
                                                       PaddingLeft: =0
                                                       PaddingRight: =0
@@ -1211,14 +1297,16 @@ Screens:
                                                       Font: =Font.'Segoe UI'
                                                       FontWeight: =FontWeight.Bold
                                                       Height: =30
+                                                      LayoutMinHeight: =0
+                                                      LayoutMinWidth: =0
                                                       PaddingBottom: =0
                                                       PaddingLeft: =0
                                                       PaddingRight: =0
                                                       PaddingTop: =0
-                                                      Size: =12
+                                                      Size: =13
                                                       Text: ="Cost"
                                                       VerticalAlign: =VerticalAlign.Middle
-                                                      Width: =150
+                                                      Width: =190
                                                 - detSecCostHint:
                                                     Control: Label@2.5.1
                                                     Properties:
@@ -1227,12 +1315,13 @@ Screens:
                                                       FillPortions: =1
                                                       Font: =Font.'Segoe UI'
                                                       Height: =30
+                                                      LayoutMinHeight: =0
                                                       LayoutMinWidth: =40
                                                       PaddingBottom: =0
                                                       PaddingLeft: =0
                                                       PaddingRight: =0
                                                       PaddingTop: =0
-                                                      Size: =9
+                                                      Size: =9.5
                                                       Text: ="Calculated with today's FSC"
                                                       VerticalAlign: =VerticalAlign.Middle
                                                 - detTglFuel:
@@ -1249,6 +1338,8 @@ Screens:
                                                       FontWeight: =FontWeight.Semibold
                                                       HandleFill: =clrWhite
                                                       Height: =30
+                                                      LayoutMinHeight: =0
+                                                      LayoutMinWidth: =0
                                                       Size: =10
                                                       TextPosition: =TextPosition.Right
                                                       TrueFill: =clrBlue
@@ -1263,6 +1354,8 @@ Screens:
                                                 Fill: =clrLine
                                                 FillPortions: =0
                                                 Height: =1
+                                                LayoutMinHeight: =0
+                                                LayoutMinWidth: =0
                                           - detSecCostBody:
                                               Control: GroupContainer@1.5.0
                                               Variant: AutoLayout
@@ -1274,6 +1367,7 @@ Screens:
                                                 FillPortions: =1
                                                 LayoutDirection: =LayoutDirection.Vertical
                                                 LayoutGap: =12
+                                                LayoutMinHeight: =0
                                                 LayoutMinWidth: =40
                                                 PaddingBottom: =16
                                                 PaddingLeft: =16
@@ -1296,6 +1390,8 @@ Screens:
                                                       Height: =62
                                                       LayoutDirection: =LayoutDirection.Horizontal
                                                       LayoutGap: =12
+                                                      LayoutMinHeight: =0
+                                                      LayoutMinWidth: =0
                                                       PaddingBottom: =0
                                                       PaddingLeft: =0
                                                       PaddingRight: =0
@@ -1317,6 +1413,7 @@ Screens:
                                                             FillPortions: =1.4
                                                             LayoutDirection: =LayoutDirection.Vertical
                                                             LayoutGap: =0
+                                                            LayoutMinHeight: =0
                                                             LayoutMinWidth: =90
                                                             PaddingBottom: =6
                                                             PaddingLeft: =12
@@ -1336,11 +1433,13 @@ Screens:
                                                                   Font: =Font.'Segoe UI'
                                                                   FontWeight: =FontWeight.Bold
                                                                   Height: =16
+                                                                  LayoutMinHeight: =0
+                                                                  LayoutMinWidth: =0
                                                                   PaddingBottom: =0
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =8
+                                                                  Size: =8.5
                                                                   Text: ="LH COST"
                                                                   VerticalAlign: =VerticalAlign.Middle
                                                             - detTileLHV:
@@ -1352,11 +1451,13 @@ Screens:
                                                                   Font: =Font.'Segoe UI'
                                                                   FontWeight: =FontWeight.Bold
                                                                   Height: =32
+                                                                  LayoutMinHeight: =0
+                                                                  LayoutMinWidth: =0
                                                                   PaddingBottom: =0
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =17
+                                                                  Size: =18
                                                                   Text: =If(IsBlank(varRate.Base), "—", Text(LHCost(varRate.Base, varRate.Fuel, varRate.F_Adj, varRate.F_Discount, varRate.Adj, varRate.AdjType, varRate.Discount, varRate.DiscountType, detTglFuel.Value), "$#,##0.00"))
                                                                   VerticalAlign: =VerticalAlign.Middle
                                                       - detTileFt3:
@@ -1371,6 +1472,7 @@ Screens:
                                                             FillPortions: =1
                                                             LayoutDirection: =LayoutDirection.Vertical
                                                             LayoutGap: =0
+                                                            LayoutMinHeight: =0
                                                             LayoutMinWidth: =90
                                                             PaddingBottom: =6
                                                             PaddingLeft: =12
@@ -1390,11 +1492,13 @@ Screens:
                                                                   Font: =Font.'Segoe UI'
                                                                   FontWeight: =FontWeight.Bold
                                                                   Height: =16
+                                                                  LayoutMinHeight: =0
+                                                                  LayoutMinWidth: =0
                                                                   PaddingBottom: =0
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =8
+                                                                  Size: =8.5
                                                                   Text: ="PER FT³"
                                                                   VerticalAlign: =VerticalAlign.Middle
                                                             - detTileFt3V:
@@ -1406,11 +1510,13 @@ Screens:
                                                                   Font: =Font.'Segoe UI'
                                                                   FontWeight: =FontWeight.Bold
                                                                   Height: =32
+                                                                  LayoutMinHeight: =0
+                                                                  LayoutMinWidth: =0
                                                                   PaddingBottom: =0
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =13
+                                                                  Size: =14
                                                                   Text: =If(IsBlank(varRate.Base), "—", Text(LHCost(varRate.Base, varRate.Fuel, varRate.F_Adj, varRate.F_Discount, varRate.Adj, varRate.AdjType, varRate.Discount, varRate.DiscountType, detTglFuel.Value) / CubicFt(varRate.Equipment), "$#,##0.00"))
                                                                   VerticalAlign: =VerticalAlign.Middle
                                                       - detTileLin:
@@ -1425,6 +1531,7 @@ Screens:
                                                             FillPortions: =1
                                                             LayoutDirection: =LayoutDirection.Vertical
                                                             LayoutGap: =0
+                                                            LayoutMinHeight: =0
                                                             LayoutMinWidth: =90
                                                             PaddingBottom: =6
                                                             PaddingLeft: =12
@@ -1444,11 +1551,13 @@ Screens:
                                                                   Font: =Font.'Segoe UI'
                                                                   FontWeight: =FontWeight.Bold
                                                                   Height: =16
+                                                                  LayoutMinHeight: =0
+                                                                  LayoutMinWidth: =0
                                                                   PaddingBottom: =0
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =8
+                                                                  Size: =8.5
                                                                   Text: ="PER LINEAR FT"
                                                                   VerticalAlign: =VerticalAlign.Middle
                                                             - detTileLinV:
@@ -1460,11 +1569,13 @@ Screens:
                                                                   Font: =Font.'Segoe UI'
                                                                   FontWeight: =FontWeight.Bold
                                                                   Height: =32
+                                                                  LayoutMinHeight: =0
+                                                                  LayoutMinWidth: =0
                                                                   PaddingBottom: =0
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =13
+                                                                  Size: =14
                                                                   Text: =If(IsBlank(varRate.Base), "—", Text(LHCost(varRate.Base, varRate.Fuel, varRate.F_Adj, varRate.F_Discount, varRate.Adj, varRate.AdjType, varRate.Discount, varRate.DiscountType, detTglFuel.Value) / EquipFt(varRate.Equipment), "$#,##0.00"))
                                                                   VerticalAlign: =VerticalAlign.Middle
                                                       - detTileSkid:
@@ -1479,6 +1590,7 @@ Screens:
                                                             FillPortions: =1
                                                             LayoutDirection: =LayoutDirection.Vertical
                                                             LayoutGap: =0
+                                                            LayoutMinHeight: =0
                                                             LayoutMinWidth: =90
                                                             PaddingBottom: =6
                                                             PaddingLeft: =12
@@ -1498,11 +1610,13 @@ Screens:
                                                                   Font: =Font.'Segoe UI'
                                                                   FontWeight: =FontWeight.Bold
                                                                   Height: =16
+                                                                  LayoutMinHeight: =0
+                                                                  LayoutMinWidth: =0
                                                                   PaddingBottom: =0
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =8
+                                                                  Size: =8.5
                                                                   Text: ="PER SKID SPOT"
                                                                   VerticalAlign: =VerticalAlign.Middle
                                                             - detTileSkidV:
@@ -1514,11 +1628,13 @@ Screens:
                                                                   Font: =Font.'Segoe UI'
                                                                   FontWeight: =FontWeight.Bold
                                                                   Height: =32
+                                                                  LayoutMinHeight: =0
+                                                                  LayoutMinWidth: =0
                                                                   PaddingBottom: =0
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =13
+                                                                  Size: =14
                                                                   Text: =If(IsBlank(varRate.Base), "—", Text(LHCost(varRate.Base, varRate.Fuel, varRate.F_Adj, varRate.F_Discount, varRate.Adj, varRate.AdjType, varRate.Discount, varRate.DiscountType, detTglFuel.Value) / SkidSpots(varRate.Equipment), "$#,##0.00"))
                                                                   VerticalAlign: =VerticalAlign.Middle
                                                 - detLblWarn:
@@ -1532,11 +1648,13 @@ Screens:
                                                       FillPortions: =0
                                                       Font: =Font.'Segoe UI'
                                                       Height: =34
+                                                      LayoutMinHeight: =0
+                                                      LayoutMinWidth: =0
                                                       PaddingBottom: =0
                                                       PaddingLeft: =12
                                                       PaddingRight: =12
                                                       PaddingTop: =0
-                                                      Size: =9.5
+                                                      Size: =10
                                                       Text: =If(detTglFuel.Value && FuelMissing(varRate.Fuel), "⚠ " & varRate.Fuel & " isn't in the Fuel Library, so this cost has no fuel. Add it on the Fuel library screen.", "")
                                                       VerticalAlign: =VerticalAlign.Middle
                                                       Visible: =!IsBlank(Self.Text)
@@ -1553,6 +1671,8 @@ Screens:
                                                       Height: =56
                                                       LayoutDirection: =LayoutDirection.Horizontal
                                                       LayoutGap: =8
+                                                      LayoutMinHeight: =0
+                                                      LayoutMinWidth: =0
                                                       PaddingBottom: =0
                                                       PaddingLeft: =0
                                                       PaddingRight: =0
@@ -1572,6 +1692,7 @@ Screens:
                                                             Fill: =clrSoft
                                                             FillPortions: =1
                                                             Height: =56
+                                                            LayoutMinHeight: =0
                                                             LayoutMinWidth: =80
                                                             RadiusBottomLeft: =0
                                                             RadiusBottomRight: =3
@@ -1599,12 +1720,12 @@ Screens:
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =8
+                                                                  Size: =8.5
                                                                   Text: ="BASE"
                                                                   VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =Parent.Width - 16
-                                                                  X: =12
-                                                                  Y: =7
+                                                                  Width: =Parent.Width - 22
+                                                                  X: =14
+                                                                  Y: =8
                                                             - detFactBaseV:
                                                                 Control: Label@2.5.1
                                                                 Properties:
@@ -1617,12 +1738,12 @@ Screens:
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =10.5
+                                                                  Size: =11
                                                                   Text: =Text(varRate.Base, "$#,##0.00")
                                                                   VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =Parent.Width - 16
-                                                                  X: =12
-                                                                  Y: =25
+                                                                  Width: =Parent.Width - 22
+                                                                  X: =14
+                                                                  Y: =26
                                                       - detFactAdj:
                                                           Control: GroupContainer@1.5.0
                                                           Variant: ManualLayout
@@ -1633,6 +1754,7 @@ Screens:
                                                             Fill: =clrSoft
                                                             FillPortions: =1
                                                             Height: =56
+                                                            LayoutMinHeight: =0
                                                             LayoutMinWidth: =80
                                                             RadiusBottomLeft: =0
                                                             RadiusBottomRight: =3
@@ -1660,12 +1782,12 @@ Screens:
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =8
+                                                                  Size: =8.5
                                                                   Text: ="ADD-ON"
                                                                   VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =Parent.Width - 16
-                                                                  X: =12
-                                                                  Y: =7
+                                                                  Width: =Parent.Width - 22
+                                                                  X: =14
+                                                                  Y: =8
                                                             - detFactAdjV:
                                                                 Control: Label@2.5.1
                                                                 Properties:
@@ -1678,12 +1800,12 @@ Screens:
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =10.5
+                                                                  Size: =11
                                                                   Text: =If(Coalesce(varRate.Adj, 0) = 0, "—", If(varRate.AdjType = "%", Text(varRate.Adj) & "%", Text(varRate.Adj, "$#,##0.00")))
                                                                   VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =Parent.Width - 16
-                                                                  X: =12
-                                                                  Y: =25
+                                                                  Width: =Parent.Width - 22
+                                                                  X: =14
+                                                                  Y: =26
                                                       - detFactDisc:
                                                           Control: GroupContainer@1.5.0
                                                           Variant: ManualLayout
@@ -1694,6 +1816,7 @@ Screens:
                                                             Fill: =clrSoft
                                                             FillPortions: =1
                                                             Height: =56
+                                                            LayoutMinHeight: =0
                                                             LayoutMinWidth: =80
                                                             RadiusBottomLeft: =0
                                                             RadiusBottomRight: =3
@@ -1721,12 +1844,12 @@ Screens:
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =8
+                                                                  Size: =8.5
                                                                   Text: ="DISCOUNT"
                                                                   VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =Parent.Width - 16
-                                                                  X: =12
-                                                                  Y: =7
+                                                                  Width: =Parent.Width - 22
+                                                                  X: =14
+                                                                  Y: =8
                                                             - detFactDiscV:
                                                                 Control: Label@2.5.1
                                                                 Properties:
@@ -1739,12 +1862,12 @@ Screens:
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =10.5
+                                                                  Size: =11
                                                                   Text: =If(Coalesce(varRate.Discount, 0) = 0, "—", If(varRate.DiscountType = "%", Text(varRate.Discount) & "%", Text(varRate.Discount, "$#,##0.00")))
                                                                   VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =Parent.Width - 16
-                                                                  X: =12
-                                                                  Y: =25
+                                                                  Width: =Parent.Width - 22
+                                                                  X: =14
+                                                                  Y: =26
                                                 - detCostRow2:
                                                     Control: GroupContainer@1.5.0
                                                     Variant: AutoLayout
@@ -1757,6 +1880,8 @@ Screens:
                                                       Height: =56
                                                       LayoutDirection: =LayoutDirection.Horizontal
                                                       LayoutGap: =8
+                                                      LayoutMinHeight: =0
+                                                      LayoutMinWidth: =0
                                                       PaddingBottom: =0
                                                       PaddingLeft: =0
                                                       PaddingRight: =0
@@ -1776,6 +1901,7 @@ Screens:
                                                             Fill: =clrSoft
                                                             FillPortions: =1
                                                             Height: =56
+                                                            LayoutMinHeight: =0
                                                             LayoutMinWidth: =80
                                                             RadiusBottomLeft: =0
                                                             RadiusBottomRight: =3
@@ -1803,12 +1929,12 @@ Screens:
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =8
+                                                                  Size: =8.5
                                                                   Text: ="FUEL PROGRAM"
                                                                   VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =Parent.Width - 16
-                                                                  X: =12
-                                                                  Y: =7
+                                                                  Width: =Parent.Width - 22
+                                                                  X: =14
+                                                                  Y: =8
                                                             - detFactFuelV:
                                                                 Control: Label@2.5.1
                                                                 Properties:
@@ -1821,12 +1947,12 @@ Screens:
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =10.5
+                                                                  Size: =11
                                                                   Text: =varRate.Fuel
                                                                   VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =Parent.Width - 16
-                                                                  X: =12
-                                                                  Y: =25
+                                                                  Width: =Parent.Width - 22
+                                                                  X: =14
+                                                                  Y: =26
                                                       - detFactFAdj:
                                                           Control: GroupContainer@1.5.0
                                                           Variant: ManualLayout
@@ -1837,6 +1963,7 @@ Screens:
                                                             Fill: =clrSoft
                                                             FillPortions: =1
                                                             Height: =56
+                                                            LayoutMinHeight: =0
                                                             LayoutMinWidth: =80
                                                             RadiusBottomLeft: =0
                                                             RadiusBottomRight: =3
@@ -1864,12 +1991,12 @@ Screens:
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =8
+                                                                  Size: =8.5
                                                                   Text: ="FUEL ADD-ON"
                                                                   VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =Parent.Width - 16
-                                                                  X: =12
-                                                                  Y: =7
+                                                                  Width: =Parent.Width - 22
+                                                                  X: =14
+                                                                  Y: =8
                                                             - detFactFAdjV:
                                                                 Control: Label@2.5.1
                                                                 Properties:
@@ -1882,12 +2009,12 @@ Screens:
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =10.5
+                                                                  Size: =11
                                                                   Text: =If(Coalesce(varRate.F_Adj, 0) = 0, "—", Text(varRate.F_Adj) & " pts")
                                                                   VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =Parent.Width - 16
-                                                                  X: =12
-                                                                  Y: =25
+                                                                  Width: =Parent.Width - 22
+                                                                  X: =14
+                                                                  Y: =26
                                                       - detFactFDisc:
                                                           Control: GroupContainer@1.5.0
                                                           Variant: ManualLayout
@@ -1898,6 +2025,7 @@ Screens:
                                                             Fill: =clrSoft
                                                             FillPortions: =1
                                                             Height: =56
+                                                            LayoutMinHeight: =0
                                                             LayoutMinWidth: =80
                                                             RadiusBottomLeft: =0
                                                             RadiusBottomRight: =3
@@ -1925,12 +2053,12 @@ Screens:
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =8
+                                                                  Size: =8.5
                                                                   Text: ="FUEL DISCOUNT"
                                                                   VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =Parent.Width - 16
-                                                                  X: =12
-                                                                  Y: =7
+                                                                  Width: =Parent.Width - 22
+                                                                  X: =14
+                                                                  Y: =8
                                                             - detFactFDiscV:
                                                                 Control: Label@2.5.1
                                                                 Properties:
@@ -1943,12 +2071,12 @@ Screens:
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =10.5
+                                                                  Size: =11
                                                                   Text: =If(Coalesce(varRate.F_Discount, 0) = 0, "—", Text(varRate.F_Discount) & " pts")
                                                                   VerticalAlign: =VerticalAlign.Middle
-                                                                  Width: =Parent.Width - 16
-                                                                  X: =12
-                                                                  Y: =25
+                                                                  Width: =Parent.Width - 22
+                                                                  X: =14
+                                                                  Y: =26
                                                 - detBd:
                                                     Control: GroupContainer@1.5.0
                                                     Variant: AutoLayout
@@ -1960,6 +2088,7 @@ Screens:
                                                       FillPortions: =1
                                                       LayoutDirection: =LayoutDirection.Vertical
                                                       LayoutGap: =4
+                                                      LayoutMinHeight: =0
                                                       LayoutMinWidth: =100
                                                       PaddingBottom: =0
                                                       PaddingLeft: =0
@@ -1979,11 +2108,13 @@ Screens:
                                                             Font: =Font.'Segoe UI'
                                                             FontWeight: =FontWeight.Bold
                                                             Height: =18
+                                                            LayoutMinHeight: =0
+                                                            LayoutMinWidth: =0
                                                             PaddingBottom: =0
                                                             PaddingLeft: =0
                                                             PaddingRight: =0
                                                             PaddingTop: =0
-                                                            Size: =8.5
+                                                            Size: =9
                                                             Text: ="How the cost is built"
                                                             VerticalAlign: =VerticalAlign.Middle
                                                       - detBdRow:
@@ -1995,9 +2126,11 @@ Screens:
                                                             DropShadow: =DropShadow.None
                                                             Fill: =clrClear
                                                             FillPortions: =0
-                                                            Height: =96
+                                                            Height: =104
                                                             LayoutDirection: =LayoutDirection.Horizontal
                                                             LayoutGap: =12
+                                                            LayoutMinHeight: =0
+                                                            LayoutMinWidth: =0
                                                             PaddingBottom: =0
                                                             PaddingLeft: =0
                                                             PaddingRight: =0
@@ -2014,13 +2147,14 @@ Screens:
                                                                   Color: =clrInk2
                                                                   FillPortions: =1
                                                                   Font: =Font.'Segoe UI'
-                                                                  Height: =96
+                                                                  Height: =104
+                                                                  LayoutMinHeight: =0
                                                                   LayoutMinWidth: =40
                                                                   PaddingBottom: =0
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =9.5
+                                                                  Size: =10.5
                                                                   Text: |-
                                                                     =With(
                                                                         {f: varRate.Fuel, fa: Coalesce(varRate.F_Adj, 0), fd: Coalesce(varRate.F_Discount, 0)},
@@ -2049,12 +2183,14 @@ Screens:
                                                                   FillPortions: =0
                                                                   Font: =Font.'Segoe UI'
                                                                   FontWeight: =FontWeight.Semibold
-                                                                  Height: =96
+                                                                  Height: =104
+                                                                  LayoutMinHeight: =0
+                                                                  LayoutMinWidth: =0
                                                                   PaddingBottom: =0
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =9.5
+                                                                  Size: =10.5
                                                                   Text: |-
                                                                     =If(
                                                                         !(!IsBlank(varRate.Base)),
@@ -2090,6 +2226,7 @@ Screens:
                                                       FillPortions: =1
                                                       LayoutDirection: =LayoutDirection.Vertical
                                                       LayoutGap: =4
+                                                      LayoutMinHeight: =0
                                                       LayoutMinWidth: =100
                                                       PaddingBottom: =0
                                                       PaddingLeft: =0
@@ -2109,11 +2246,13 @@ Screens:
                                                             Font: =Font.'Segoe UI'
                                                             FontWeight: =FontWeight.Bold
                                                             Height: =18
+                                                            LayoutMinHeight: =0
+                                                            LayoutMinWidth: =0
                                                             PaddingBottom: =0
                                                             PaddingLeft: =0
                                                             PaddingRight: =0
                                                             PaddingTop: =0
-                                                            Size: =8.5
+                                                            Size: =9
                                                             Text: ="Comments"
                                                             VerticalAlign: =VerticalAlign.Middle
                                                       - detLblNotes:
@@ -2125,6 +2264,8 @@ Screens:
                                                             FillPortions: =0
                                                             Font: =Font.'Segoe UI'
                                                             Height: =60
+                                                            LayoutMinHeight: =0
+                                                            LayoutMinWidth: =0
                                                             PaddingBottom: =0
                                                             PaddingLeft: =0
                                                             PaddingRight: =0
@@ -2141,10 +2282,12 @@ Screens:
                                     BorderThickness: =0
                                     DropShadow: =DropShadow.None
                                     Fill: =clrClear
-                                    FillPortions: =1
+                                    FillPortions: =If(detBody.Width < 900, 0, 1)
+                                    Height: =(If(varEditRate, detSecEdit.Height + 16, 0) + detSecHistory.Height)
                                     LayoutDirection: =LayoutDirection.Vertical
                                     LayoutGap: =16
-                                    LayoutMinWidth: =380
+                                    LayoutMinHeight: =0
+                                    LayoutMinWidth: =320
                                     PaddingBottom: =0
                                     PaddingLeft: =0
                                     PaddingRight: =0
@@ -2167,6 +2310,8 @@ Screens:
                                           Height: =289 + If(detLblEditErr.Visible, 46, 0) + If(detLblEditWarn.Visible, 58, 0)
                                           LayoutDirection: =LayoutDirection.Vertical
                                           LayoutGap: =0
+                                          LayoutMinHeight: =0
+                                          LayoutMinWidth: =0
                                           PaddingBottom: =0
                                           PaddingLeft: =0
                                           PaddingRight: =0
@@ -2190,6 +2335,8 @@ Screens:
                                                 LayoutAlignItems: =LayoutAlignItems.Center
                                                 LayoutDirection: =LayoutDirection.Horizontal
                                                 LayoutGap: =12
+                                                LayoutMinHeight: =0
+                                                LayoutMinWidth: =0
                                                 PaddingBottom: =0
                                                 PaddingLeft: =16
                                                 PaddingRight: =16
@@ -2210,6 +2357,8 @@ Screens:
                                                       Font: =Font.'Segoe UI'
                                                       FontWeight: =FontWeight.Bold
                                                       Height: =24
+                                                      LayoutMinHeight: =0
+                                                      LayoutMinWidth: =0
                                                       PaddingBottom: =0
                                                       PaddingLeft: =0
                                                       PaddingRight: =0
@@ -2227,14 +2376,16 @@ Screens:
                                                       Font: =Font.'Segoe UI'
                                                       FontWeight: =FontWeight.Bold
                                                       Height: =30
+                                                      LayoutMinHeight: =0
+                                                      LayoutMinWidth: =0
                                                       PaddingBottom: =0
                                                       PaddingLeft: =0
                                                       PaddingRight: =0
                                                       PaddingTop: =0
-                                                      Size: =12
+                                                      Size: =13
                                                       Text: ="Edit status & dates"
                                                       VerticalAlign: =VerticalAlign.Middle
-                                                      Width: =150
+                                                      Width: =190
                                                 - detSecEditHint:
                                                     Control: Label@2.5.1
                                                     Properties:
@@ -2243,12 +2394,13 @@ Screens:
                                                       FillPortions: =1
                                                       Font: =Font.'Segoe UI'
                                                       Height: =30
+                                                      LayoutMinHeight: =0
                                                       LayoutMinWidth: =40
                                                       PaddingBottom: =0
                                                       PaddingLeft: =0
                                                       PaddingRight: =0
                                                       PaddingTop: =0
-                                                      Size: =9
+                                                      Size: =9.5
                                                       Text: ="To change the price, save a new rate so the history stays intact"
                                                       VerticalAlign: =VerticalAlign.Middle
                                           - detSecEditSep:
@@ -2259,6 +2411,8 @@ Screens:
                                                 Fill: =clrLine
                                                 FillPortions: =0
                                                 Height: =1
+                                                LayoutMinHeight: =0
+                                                LayoutMinWidth: =0
                                           - detSecEditBody:
                                               Control: GroupContainer@1.5.0
                                               Variant: AutoLayout
@@ -2270,6 +2424,7 @@ Screens:
                                                 FillPortions: =1
                                                 LayoutDirection: =LayoutDirection.Vertical
                                                 LayoutGap: =12
+                                                LayoutMinHeight: =0
                                                 LayoutMinWidth: =40
                                                 PaddingBottom: =16
                                                 PaddingLeft: =16
@@ -2292,6 +2447,8 @@ Screens:
                                                       Height: =60
                                                       LayoutDirection: =LayoutDirection.Horizontal
                                                       LayoutGap: =12
+                                                      LayoutMinHeight: =0
+                                                      LayoutMinWidth: =0
                                                       PaddingBottom: =0
                                                       PaddingLeft: =0
                                                       PaddingRight: =0
@@ -2312,6 +2469,7 @@ Screens:
                                                             FillPortions: =1
                                                             LayoutDirection: =LayoutDirection.Vertical
                                                             LayoutGap: =4
+                                                            LayoutMinHeight: =0
                                                             LayoutMinWidth: =100
                                                             PaddingBottom: =0
                                                             PaddingLeft: =0
@@ -2331,11 +2489,13 @@ Screens:
                                                                   Font: =Font.'Segoe UI'
                                                                   FontWeight: =FontWeight.Bold
                                                                   Height: =18
+                                                                  LayoutMinHeight: =0
+                                                                  LayoutMinWidth: =0
                                                                   PaddingBottom: =0
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =8.5
+                                                                  Size: =9
                                                                   Text: ="Active rate"
                                                                   VerticalAlign: =VerticalAlign.Middle
                                                             - detTglEditActive:
@@ -2352,6 +2512,8 @@ Screens:
                                                                   FontWeight: =FontWeight.Semibold
                                                                   HandleFill: =clrWhite
                                                                   Height: =38
+                                                                  LayoutMinHeight: =0
+                                                                  LayoutMinWidth: =0
                                                                   Size: =10
                                                                   TextPosition: =TextPosition.Right
                                                                   TrueFill: =clrBlue
@@ -2368,6 +2530,7 @@ Screens:
                                                             FillPortions: =1
                                                             LayoutDirection: =LayoutDirection.Vertical
                                                             LayoutGap: =4
+                                                            LayoutMinHeight: =0
                                                             LayoutMinWidth: =100
                                                             PaddingBottom: =0
                                                             PaddingLeft: =0
@@ -2387,11 +2550,13 @@ Screens:
                                                                   Font: =Font.'Segoe UI'
                                                                   FontWeight: =FontWeight.Bold
                                                                   Height: =18
+                                                                  LayoutMinHeight: =0
+                                                                  LayoutMinWidth: =0
                                                                   PaddingBottom: =0
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =8.5
+                                                                  Size: =9
                                                                   Text: ="Effective *"
                                                                   VerticalAlign: =VerticalAlign.Middle
                                                             - detDteEditEff:
@@ -2407,7 +2572,9 @@ Screens:
                                                                   Height: =38
                                                                   IconBackground: =clrBlue
                                                                   IconFill: =clrWhite
-                                                                  Size: =10.5
+                                                                  LayoutMinHeight: =0
+                                                                  LayoutMinWidth: =0
+                                                                  Size: =11
                                                       - detFldEditExp:
                                                           Control: GroupContainer@1.5.0
                                                           Variant: AutoLayout
@@ -2419,6 +2586,7 @@ Screens:
                                                             FillPortions: =1
                                                             LayoutDirection: =LayoutDirection.Vertical
                                                             LayoutGap: =4
+                                                            LayoutMinHeight: =0
                                                             LayoutMinWidth: =100
                                                             PaddingBottom: =0
                                                             PaddingLeft: =0
@@ -2438,11 +2606,13 @@ Screens:
                                                                   Font: =Font.'Segoe UI'
                                                                   FontWeight: =FontWeight.Bold
                                                                   Height: =18
+                                                                  LayoutMinHeight: =0
+                                                                  LayoutMinWidth: =0
                                                                   PaddingBottom: =0
                                                                   PaddingLeft: =0
                                                                   PaddingRight: =0
                                                                   PaddingTop: =0
-                                                                  Size: =8.5
+                                                                  Size: =9
                                                                   Text: ="Expiry *"
                                                                   VerticalAlign: =VerticalAlign.Middle
                                                             - detDteEditExp:
@@ -2458,7 +2628,9 @@ Screens:
                                                                   Height: =38
                                                                   IconBackground: =clrBlue
                                                                   IconFill: =clrWhite
-                                                                  Size: =10.5
+                                                                  LayoutMinHeight: =0
+                                                                  LayoutMinWidth: =0
+                                                                  Size: =11
                                                 - detFldEditNotes:
                                                     Control: GroupContainer@1.5.0
                                                     Variant: AutoLayout
@@ -2470,6 +2642,7 @@ Screens:
                                                       FillPortions: =1
                                                       LayoutDirection: =LayoutDirection.Vertical
                                                       LayoutGap: =4
+                                                      LayoutMinHeight: =0
                                                       LayoutMinWidth: =100
                                                       PaddingBottom: =0
                                                       PaddingLeft: =0
@@ -2489,11 +2662,13 @@ Screens:
                                                             Font: =Font.'Segoe UI'
                                                             FontWeight: =FontWeight.Bold
                                                             Height: =18
+                                                            LayoutMinHeight: =0
+                                                            LayoutMinWidth: =0
                                                             PaddingBottom: =0
                                                             PaddingLeft: =0
                                                             PaddingRight: =0
                                                             PaddingTop: =0
-                                                            Size: =8.5
+                                                            Size: =9
                                                             Text: ="Comments"
                                                             VerticalAlign: =VerticalAlign.Middle
                                                       - detTxtEditNotes:
@@ -2510,6 +2685,8 @@ Screens:
                                                             HintText: ="Why the change?"
                                                             HoverBorderColor: =clrInk3
                                                             HoverFill: =clrPanel
+                                                            LayoutMinHeight: =0
+                                                            LayoutMinWidth: =0
                                                             Mode: =TextMode.MultiLine
                                                             PressedBorderColor: =clrBlue
                                                             PressedFill: =clrPanel
@@ -2517,7 +2694,7 @@ Screens:
                                                             RadiusBottomRight: =5
                                                             RadiusTopLeft: =5
                                                             RadiusTopRight: =5
-                                                            Size: =10.5
+                                                            Size: =11
                                                 - detLblEditErr:
                                                     Control: Label@2.5.1
                                                     Properties:
@@ -2529,11 +2706,13 @@ Screens:
                                                       FillPortions: =0
                                                       Font: =Font.'Segoe UI'
                                                       Height: =34
+                                                      LayoutMinHeight: =0
+                                                      LayoutMinWidth: =0
                                                       PaddingBottom: =0
                                                       PaddingLeft: =12
                                                       PaddingRight: =12
                                                       PaddingTop: =0
-                                                      Size: =9.5
+                                                      Size: =10
                                                       Text: |-
                                                         =Trim(
                                                             If(
@@ -2560,11 +2739,13 @@ Screens:
                                                       FillPortions: =0
                                                       Font: =Font.'Segoe UI'
                                                       Height: =46
+                                                      LayoutMinHeight: =0
+                                                      LayoutMinWidth: =0
                                                       PaddingBottom: =0
                                                       PaddingLeft: =12
                                                       PaddingRight: =12
                                                       PaddingTop: =0
-                                                      Size: =9.5
+                                                      Size: =10
                                                       Text: |-
                                                         =With(
                                                             {act: First(Filter(colLaneRates, ID <> varRate.ID && Active))},
@@ -2600,6 +2781,8 @@ Screens:
                                                       Height: =38
                                                       LayoutDirection: =LayoutDirection.Horizontal
                                                       LayoutGap: =12
+                                                      LayoutMinHeight: =0
+                                                      LayoutMinWidth: =0
                                                       PaddingBottom: =0
                                                       PaddingLeft: =0
                                                       PaddingRight: =0
@@ -2616,6 +2799,7 @@ Screens:
                                                             Fill: =clrClear
                                                             FillPortions: =1
                                                             Height: =10
+                                                            LayoutMinHeight: =0
                                                             LayoutMinWidth: =0
                                                       - detBtnEditCancel:
                                                           Control: Classic/Button@2.2.0
@@ -2634,6 +2818,8 @@ Screens:
                                                             HoverBorderColor: =clrInk3
                                                             HoverColor: =clrInk
                                                             HoverFill: =clrPanel
+                                                            LayoutMinHeight: =0
+                                                            LayoutMinWidth: =0
                                                             OnSelect: =Set(varEditRate, false)
                                                             PressedBorderColor: =clrInk3
                                                             PressedColor: =clrInk
@@ -2642,7 +2828,7 @@ Screens:
                                                             RadiusBottomRight: =5
                                                             RadiusTopLeft: =5
                                                             RadiusTopRight: =5
-                                                            Size: =10.5
+                                                            Size: =11
                                                             Text: ="Cancel"
                                                             Width: =100
                                                       - detBtnEditSave:
@@ -2663,6 +2849,8 @@ Screens:
                                                             HoverBorderColor: =clrBlueHover
                                                             HoverColor: =clrWhite
                                                             HoverFill: =clrBlue
+                                                            LayoutMinHeight: =0
+                                                            LayoutMinWidth: =0
                                                             OnSelect: |-
                                                               =If(
                                                                   !IsBlank(detLblEditErr.Text),
@@ -2693,9 +2881,9 @@ Screens:
                                                                                       Filter(
                                                                                           LinehaulRates,
                                                                                           Title = r.Title && Destination = r.Destination && Carrier = r.Carrier &&
-                                                                                          Mode = r.Mode && Equipment = r.Equipment && Active = true
+                                                                                          Mode = r.Mode && Equipment = r.Equipment
                                                                                       ),
-                                                                                      ID <> r.ID
+                                                                                      Active && ID <> r.ID
                                                                                   ) As old,
                                                                                   Patch(LinehaulRates, old, {Active: false})
                                                                               )
@@ -2734,7 +2922,7 @@ Screens:
                                                             RadiusBottomRight: =5
                                                             RadiusTopLeft: =5
                                                             RadiusTopRight: =5
-                                                            Size: =10.5
+                                                            Size: =11
                                                             Text: =If(varSavingEdit, "Saving…", "Save changes")
                                                             Width: =140
                                     - detSecHistory:
@@ -2750,6 +2938,8 @@ Screens:
                                           Height: =81 + If(detLblMultiActive.Visible, 44, 0) + Min(Max(CountRows(colLaneRates), 1), 6) * 44
                                           LayoutDirection: =LayoutDirection.Vertical
                                           LayoutGap: =0
+                                          LayoutMinHeight: =0
+                                          LayoutMinWidth: =0
                                           PaddingBottom: =0
                                           PaddingLeft: =0
                                           PaddingRight: =0
@@ -2772,6 +2962,8 @@ Screens:
                                                 LayoutAlignItems: =LayoutAlignItems.Center
                                                 LayoutDirection: =LayoutDirection.Horizontal
                                                 LayoutGap: =12
+                                                LayoutMinHeight: =0
+                                                LayoutMinWidth: =0
                                                 PaddingBottom: =0
                                                 PaddingLeft: =16
                                                 PaddingRight: =16
@@ -2792,6 +2984,8 @@ Screens:
                                                       Font: =Font.'Segoe UI'
                                                       FontWeight: =FontWeight.Bold
                                                       Height: =24
+                                                      LayoutMinHeight: =0
+                                                      LayoutMinWidth: =0
                                                       PaddingBottom: =0
                                                       PaddingLeft: =0
                                                       PaddingRight: =0
@@ -2809,14 +3003,16 @@ Screens:
                                                       Font: =Font.'Segoe UI'
                                                       FontWeight: =FontWeight.Bold
                                                       Height: =30
+                                                      LayoutMinHeight: =0
+                                                      LayoutMinWidth: =0
                                                       PaddingBottom: =0
                                                       PaddingLeft: =0
                                                       PaddingRight: =0
                                                       PaddingTop: =0
-                                                      Size: =12
+                                                      Size: =13
                                                       Text: ="All rates on this lane"
                                                       VerticalAlign: =VerticalAlign.Middle
-                                                      Width: =150
+                                                      Width: =190
                                                 - detSecHistoryHint:
                                                     Control: Label@2.5.1
                                                     Properties:
@@ -2825,12 +3021,13 @@ Screens:
                                                       FillPortions: =1
                                                       Font: =Font.'Segoe UI'
                                                       Height: =30
+                                                      LayoutMinHeight: =0
                                                       LayoutMinWidth: =40
                                                       PaddingBottom: =0
                                                       PaddingLeft: =0
                                                       PaddingRight: =0
                                                       PaddingTop: =0
-                                                      Size: =9
+                                                      Size: =9.5
                                                       Text: =CountRows(colLaneRates) & If(CountRows(colLaneRates) = 1, " rate", " rates") & " · select one to open it"
                                                       VerticalAlign: =VerticalAlign.Middle
                                           - detSecHistorySep:
@@ -2841,6 +3038,8 @@ Screens:
                                                 Fill: =clrLine
                                                 FillPortions: =0
                                                 Height: =1
+                                                LayoutMinHeight: =0
+                                                LayoutMinWidth: =0
                                           - detSecHistoryBody:
                                               Control: GroupContainer@1.5.0
                                               Variant: AutoLayout
@@ -2852,6 +3051,7 @@ Screens:
                                                 FillPortions: =1
                                                 LayoutDirection: =LayoutDirection.Vertical
                                                 LayoutGap: =0
+                                                LayoutMinHeight: =0
                                                 LayoutMinWidth: =40
                                                 PaddingBottom: =0
                                                 PaddingLeft: =16
@@ -2872,11 +3072,13 @@ Screens:
                                                       FillPortions: =0
                                                       Font: =Font.'Segoe UI'
                                                       Height: =44
+                                                      LayoutMinHeight: =0
+                                                      LayoutMinWidth: =0
                                                       PaddingBottom: =0
                                                       PaddingLeft: =16
                                                       PaddingRight: =16
                                                       PaddingTop: =0
-                                                      Size: =9.5
+                                                      Size: =10
                                                       Text: |-
                                                         =With({n: CountRows(Filter(colLaneRates, Active))}, If(n > 1, "⚠ " & n & " rates on this lane are active. Open the one that should stay active, choose Edit rate and save it; the others switch off.", ""))
                                                       VerticalAlign: =VerticalAlign.Middle
@@ -2892,6 +3094,8 @@ Screens:
                                                       Fill: =clrPanel
                                                       FillPortions: =0
                                                       Height: =32
+                                                      LayoutMinHeight: =0
+                                                      LayoutMinWidth: =0
                                                       RadiusBottomLeft: =0
                                                       RadiusBottomRight: =0
                                                       RadiusTopLeft: =0
@@ -2910,7 +3114,7 @@ Screens:
                                                             PaddingLeft: =12
                                                             PaddingRight: =10
                                                             PaddingTop: =0
-                                                            Size: =8.5
+                                                            Size: =9
                                                             Text: ="Status"
                                                             VerticalAlign: =VerticalAlign.Middle
                                                             Width: =Parent.Width * 0.16
@@ -2929,7 +3133,7 @@ Screens:
                                                             PaddingLeft: =10
                                                             PaddingRight: =10
                                                             PaddingTop: =0
-                                                            Size: =8.5
+                                                            Size: =9
                                                             Text: ="Base"
                                                             VerticalAlign: =VerticalAlign.Middle
                                                             Width: =Parent.Width * 0.15
@@ -2948,7 +3152,7 @@ Screens:
                                                             PaddingLeft: =10
                                                             PaddingRight: =10
                                                             PaddingTop: =0
-                                                            Size: =8.5
+                                                            Size: =9
                                                             Text: ="Fuel"
                                                             VerticalAlign: =VerticalAlign.Middle
                                                             Width: =Parent.Width * 0.14
@@ -2967,7 +3171,7 @@ Screens:
                                                             PaddingLeft: =10
                                                             PaddingRight: =10
                                                             PaddingTop: =0
-                                                            Size: =8.5
+                                                            Size: =9
                                                             Text: ="Effective"
                                                             VerticalAlign: =VerticalAlign.Middle
                                                             Width: =Parent.Width * 0.17
@@ -2986,7 +3190,7 @@ Screens:
                                                             PaddingLeft: =10
                                                             PaddingRight: =10
                                                             PaddingTop: =0
-                                                            Size: =8.5
+                                                            Size: =9
                                                             Text: ="Expiry"
                                                             VerticalAlign: =VerticalAlign.Middle
                                                             Width: =Parent.Width * 0.17
@@ -3005,7 +3209,7 @@ Screens:
                                                             PaddingLeft: =10
                                                             PaddingRight: =10
                                                             PaddingTop: =0
-                                                            Size: =8.5
+                                                            Size: =9
                                                             Text: ="Added"
                                                             VerticalAlign: =VerticalAlign.Middle
                                                             Width: =Parent.Width * 0.19
@@ -3029,6 +3233,8 @@ Screens:
                                                       FillPortions: =0
                                                       Height: =Min(Max(CountRows(colLaneRates), 1), 6) * 44
                                                       Items: =colLaneRates
+                                                      LayoutMinHeight: =0
+                                                      LayoutMinWidth: =0
                                                       OnSelect: =Set(varRate, ThisItem); Set(varEditRate, false)
                                                       ShowScrollbar: =true
                                                       TemplateFill: =If(ThisItem.ID = varRate.ID, clrSoft, clrPanel)
@@ -3075,7 +3281,7 @@ Screens:
                                                             PaddingLeft: =10
                                                             PaddingRight: =10
                                                             PaddingTop: =0
-                                                            Size: =9.5
+                                                            Size: =10.5
                                                             Text: =Text(ThisItem.Base, "$#,##0.00")
                                                             VerticalAlign: =VerticalAlign.Middle
                                                             Width: =Parent.TemplateWidth * 0.15
@@ -3095,7 +3301,7 @@ Screens:
                                                             PaddingLeft: =10
                                                             PaddingRight: =10
                                                             PaddingTop: =0
-                                                            Size: =9.5
+                                                            Size: =10.5
                                                             Text: =ThisItem.Fuel
                                                             VerticalAlign: =VerticalAlign.Middle
                                                             Width: =Parent.TemplateWidth * 0.14
@@ -3115,7 +3321,7 @@ Screens:
                                                             PaddingLeft: =10
                                                             PaddingRight: =10
                                                             PaddingTop: =0
-                                                            Size: =9.5
+                                                            Size: =10.5
                                                             Text: =Text(ThisItem.EffectiveDate, "mmm d, yyyy")
                                                             VerticalAlign: =VerticalAlign.Middle
                                                             Width: =Parent.TemplateWidth * 0.17
@@ -3135,7 +3341,7 @@ Screens:
                                                             PaddingLeft: =10
                                                             PaddingRight: =10
                                                             PaddingTop: =0
-                                                            Size: =9.5
+                                                            Size: =10.5
                                                             Text: =Text(ThisItem.ExpiryDate, "mmm d, yyyy")
                                                             VerticalAlign: =VerticalAlign.Middle
                                                             Width: =Parent.TemplateWidth * 0.17
@@ -3155,7 +3361,7 @@ Screens:
                                                             PaddingLeft: =10
                                                             PaddingRight: =10
                                                             PaddingTop: =0
-                                                            Size: =9.5
+                                                            Size: =10.5
                                                             Text: =Text(ThisItem.Timestamp, "mmm d, yyyy")
                                                             VerticalAlign: =VerticalAlign.Middle
                                                             Width: =Parent.TemplateWidth * 0.19
@@ -3179,6 +3385,8 @@ Screens:
                               FillPortions: =0
                               Font: =Font.'Segoe UI'
                               Height: =24
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =0
                               PaddingBottom: =0
                               PaddingLeft: =0
                               PaddingRight: =0
@@ -3290,7 +3498,7 @@ Screens:
                         RadiusBottomRight: =5
                         RadiusTopLeft: =5
                         RadiusTopRight: =5
-                        Size: =10.5
+                        Size: =11
                         Text: ="Go back"
                         Width: =120
                         X: =Parent.Width - 304
@@ -3336,9 +3544,9 @@ Screens:
                                               Filter(
                                                   LinehaulRates,
                                                   Title = r.Title && Destination = r.Destination && Carrier = r.Carrier &&
-                                                  Mode = r.Mode && Equipment = r.Equipment && Active = true
+                                                  Mode = r.Mode && Equipment = r.Equipment
                                               ),
-                                              ID <> r.ID
+                                              Active && ID <> r.ID
                                           ) As old,
                                           Patch(LinehaulRates, old, {Active: false})
                                       )
@@ -3376,7 +3584,7 @@ Screens:
                         RadiusBottomRight: =5
                         RadiusTopLeft: =5
                         RadiusTopRight: =5
-                        Size: =10.5
+                        Size: =11
                         Text: ="Save changes"
                         Width: =152
                         X: =Parent.Width - 172

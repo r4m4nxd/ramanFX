@@ -87,6 +87,9 @@ def box(name, direction, children, **p):
     base = {"LayoutDirection": f"LayoutDirection.{direction}", "LayoutGap": 0, "DropShadow": "DropShadow.None",
             "Fill": "clrClear", "BorderThickness": 0, **pads(0), **rad(0)}
     base.update(p)
+    for c in children:  # Studio gives auto-layout children a large default minimum, which clips them
+        c["props"].setdefault("LayoutMinWidth", 0)
+        c["props"].setdefault("LayoutMinHeight", 0)
     return node(name, "GroupContainer@1.5.0", base, children, "AutoLayout")
 
 
@@ -97,14 +100,14 @@ def manual(name, children, **p):
 
 
 def lbl(name, text, **p):
-    base = {"Text": text, "Font": FONT, "Color": "clrInk", "Size": 10, "BorderThickness": 0,
+    base = {"Text": text, "Font": FONT, "Color": "clrInk", "Size": 10.5, "BorderThickness": 0,
             "VerticalAlign": "VerticalAlign.Middle", **pads(0)}
     base.update(p)
     return node(name, "Label@2.5.1", base)
 
 
 def caps(name, text, **p):
-    base = {"Size": 8.5, "FontWeight": "FontWeight.Bold", "Color": "clrInk3", "Height": 18}
+    base = {"Size": 9, "FontWeight": "FontWeight.Bold", "Color": "clrInk3", "Height": 18}
     base.update(p)
     return lbl(name, s(text), **base)
 
@@ -116,7 +119,7 @@ def rect(name, **p):
 
 
 def btn(name, text, kind="secondary", **p):
-    base = {"Text": text, "Font": FONT, "Size": 10.5, "FontWeight": "FontWeight.Semibold", "BorderThickness": 1,
+    base = {"Text": text, "Font": FONT, "Size": 11, "FontWeight": "FontWeight.Semibold", "BorderThickness": 1,
             "DisabledFill": "clrSoft", "DisabledColor": "clrInk3", "DisabledBorderColor": "clrLine", **rad(5)}
     if kind == "primary":
         base.update(Fill="clrBlue", Color="clrWhite", BorderColor="clrBlue", HoverFill="clrBlue", HoverColor="clrWhite",
@@ -140,7 +143,7 @@ def pill(name, text, fillc, color, **p):
 
 
 def textin(name, hint="", **p):
-    base = {"Default": s(""), "HintText": s(hint), "Font": FONT, "Size": 10.5, "Color": "clrInk", "Fill": "clrPanel",
+    base = {"Default": s(""), "HintText": s(hint), "Font": FONT, "Size": 11, "Color": "clrInk", "Fill": "clrPanel",
             "BorderColor": "clrLine", "BorderThickness": 1, "HoverBorderColor": "clrInk3", "HoverFill": "clrPanel",
             "PressedBorderColor": "clrBlue", "PressedFill": "clrPanel", "Height": 38, **rad(5), **STRETCH}
     base.update(p)
@@ -157,7 +160,7 @@ def numin(name, hint="0", **p):
 def combo(name, items, field, placeholder="Select…", **p):
     base = {"Items": items, "DisplayFields": f'["{field}"]', "SearchFields": f'["{field}"]', "SelectMultiple": "false",
             "IsSearchable": "true", "DefaultSelectedItems": "Blank()", "InputTextPlaceholder": s(placeholder),
-            "Font": FONT, "Size": 10.5, "Color": "clrInk", "Fill": "clrPanel",
+            "Font": FONT, "Size": 11, "Color": "clrInk", "Fill": "clrPanel",
             "BorderColor": f"If(IsBlank(Self.Selected.{field}), clrAmber, clrLine)",
             "ChevronBackground": "clrPanel", "ChevronFill": "clrInk3", "ChevronHoverBackground": "clrSoft",
             "ChevronHoverFill": "clrInk", "HoverBorderColor": "clrInk3", "HoverFill": "clrSoft", "HoverColor": "clrInk",
@@ -177,7 +180,7 @@ def toggle(name, true_text, false_text, default="false", **p):
 
 
 def datepick(name, default, **p):
-    base = {"DefaultDate": default, "Font": FONT, "Size": 10.5, "Color": "clrInk", "Fill": "clrPanel",
+    base = {"DefaultDate": default, "Font": FONT, "Size": 11, "Color": "clrInk", "Fill": "clrPanel",
             "BorderColor": "clrLine", "BorderThickness": 1, "IconBackground": "clrBlue", "IconFill": "clrWhite",
             "Height": 38, **STRETCH}
     base.update(p)
@@ -201,8 +204,8 @@ def section(name, num, title, hint, body, height=None, head_extra=(), body_pad=1
     head = box(name + "Head", "Horizontal", [
         lbl(name + "Num", s(num), Fill="clrInk", Color="clrWhite", Size=9, FontWeight="FontWeight.Bold",
             Align="Align.Center", **fixed(24, 24)),
-        lbl(name + "Title", title, Size=12, FontWeight="FontWeight.Bold", **fixed(150, 30)),
-        lbl(name + "Hint", hint, Size=9, Color="clrInk3", Height=30, **fill(1)),
+        lbl(name + "Title", title, Size=13, FontWeight="FontWeight.Bold", **fixed(190, 30)),
+        lbl(name + "Hint", hint, Size=9.5, Color="clrInk3", Height=30, **fill(1)),
         *head_extra,
     ], Height=48, LayoutGap=12, LayoutAlignItems="LayoutAlignItems.Center", **pads(0, 16), **fixed(), **STRETCH)
     inner = box(name + "Body", "Vertical", body, LayoutGap=body_gap, **pads(body_pad, 16), **fill(1), **STRETCH)
@@ -214,17 +217,17 @@ def section(name, num, title, hint, body, height=None, head_extra=(), body_pad=1
 def fact(name, key, value, edge="clrBlue"):
     return manual(name, [
         rect(name + "Edge", Fill=edge, X=0, Y=0, Width=3, Height="Parent.Height"),
-        lbl(name + "K", s(key.upper()), Size=8, FontWeight="FontWeight.Bold", Color="clrInk3",
-            X=12, Y=7, Width="Parent.Width - 16", Height=16),
-        lbl(name + "V", value, Size=10.5, FontWeight="FontWeight.Semibold",
-            X=12, Y=25, Width="Parent.Width - 16", Height=24),
+        lbl(name + "K", s(key.upper()), Size=8.5, FontWeight="FontWeight.Bold", Color="clrInk3",
+            X=14, Y=8, Width="Parent.Width - 22", Height=16),
+        lbl(name + "V", value, Size=11, FontWeight="FontWeight.Semibold",
+            X=14, Y=26, Width="Parent.Width - 22", Height=24),
     ], Fill="clrSoft", Height=56, RadiusTopRight=3, RadiusBottomRight=3, **fill(1, 80), **STRETCH)
 
 
 def cost_tile(name, key, value, main=False, fp=1):
     return box(name, "Vertical", [
-        lbl(name + "K", s(key.upper()), Size=8, FontWeight="FontWeight.Bold", Color="clrInk3", Height=16, **STRETCH),
-        lbl(name + "V", value, Size=17 if main else 13, FontWeight="FontWeight.Bold", Height=32, **STRETCH),
+        lbl(name + "K", s(key.upper()), Size=8.5, FontWeight="FontWeight.Bold", Color="clrInk3", Height=16, **STRETCH),
+        lbl(name + "V", value, Size=18 if main else 14, FontWeight="FontWeight.Bold", Height=32, **STRETCH),
     ], Fill="clrSoft" if main else "clrPanel", BorderColor="clrLine", BorderThickness=1, **rad(6),
         **pads(6, 12), **fill(fp, 90), **STRETCH)
 
@@ -242,7 +245,7 @@ def rail(p, current):
                 "Icon": icon, "Color": "clrOrange" if on else "clrRailInk", "HoverColor": "clrWhite",
                 "PressedColor": "clrWhite", "OnSelect": go, "Tooltip": s(text), "Width": 26, "Height": 26,
                 "FillPortions": 0}),
-            lbl(f"{p}Nav{key}Text", s(text), Size=8.5, FontWeight="FontWeight.Semibold",
+            lbl(f"{p}Nav{key}Text", s(text), Size=9, FontWeight="FontWeight.Semibold",
                 Color="clrWhite" if on else "clrRailInk", Align="Align.Center", OnSelect=go, **fixed(74, 18)),
         ], Fill="clrRailOn" if on else "clrClear", LayoutGap=4, LayoutAlignItems="LayoutAlignItems.Center",
             LayoutJustifyContent="LayoutJustifyContent.Center", **rad(6), **fixed(74, 64)))
@@ -257,11 +260,11 @@ def rail(p, current):
 
 def header(p, step, right):
     return box(f"{p}Header", "Horizontal", [
-        lbl(f"{p}HdrTitle", s("Line-Haul Rates"), Size=15, FontWeight="FontWeight.Semibold", **fixed(160, 36)),
+        lbl(f"{p}HdrTitle", s("Line-Haul Rates"), Size=16, FontWeight="FontWeight.Semibold", **fixed(170, 36)),
         rect(f"{p}HdrDiv", **fixed(1, 24)),
-        lbl(f"{p}HdrStep", step, Size=11, Color="clrInk3", Height=36, **fill(1)),
-        lbl(f"{p}HdrUser", 'User().FullName & " · " & Text(Today(), "mmm d, yyyy")', Size=9, Color="clrInk2",
-            FontWeight="FontWeight.Semibold", Align="Align.Right", **fixed(210, 36)),
+        lbl(f"{p}HdrStep", step, Size=11.5, Color="clrInk3", Height=36, Visible="Parent.Width > 700", **fill(1)),
+        lbl(f"{p}HdrUser", 'User().FullName & " · " & Text(Today(), "mmm d, yyyy")', Size=9.5, Color="clrInk2",
+            FontWeight="FontWeight.Semibold", Align="Align.Right", Visible="Parent.Width > 1000", **fixed(240, 36)),
         *right,
     ], Fill="clrPanel", Height=60, LayoutGap=16, LayoutAlignItems="LayoutAlignItems.Center",
         DropShadow="DropShadow.Light", **pads(0, 16), **fixed(), **STRETCH)
@@ -313,14 +316,14 @@ entry_errors = fx(f"""
             miss: Concat(
                 Filter(
                     Table(
-                        {{f: "Origin", ok: !IsBlank(entCmbOrigin.Selected.Value)}},
-                        {{f: "Destination", ok: !IsBlank(entCmbDest.Selected.Value)}},
-                        {{f: "Mode", ok: !IsBlank(entCmbMode.Selected.Value)}},
-                        {{f: "Equipment", ok: !IsBlank(entCmbEquip.Selected.Value)}},
-                        {{f: "Carrier", ok: !IsBlank(entCmbCarrier.Selected.Title)}},
+                        {{f: "Origin", ok: !IsBlank(varOrigin)}},
+                        {{f: "Destination", ok: !IsBlank(varDest)}},
+                        {{f: "Mode", ok: !IsBlank(varMode)}},
+                        {{f: "Equipment", ok: !IsBlank(varEquip)}},
+                        {{f: "Carrier", ok: !IsBlank(varCarrier)}},
                         {{f: "Service days", ok: CountRows(colDays) > 0}},
                         {{f: "Base rate", ok: !IsBlank(Trim(entTxtBase.Text))}},
-                        {{f: "Fuel program", ok: !IsBlank(entCmbFuel.Selected.Title)}}
+                        {{f: "Fuel program", ok: !IsBlank(varFuel)}}
                     ),
                     !ok
                 ),
@@ -337,7 +340,7 @@ entry_errors = fx(f"""
                 "Expiry must be after the effective date. ", ""
             ) &
             If(
-                !IsBlank(entCmbOrigin.Selected.Value) && entCmbOrigin.Selected.Value = entCmbDest.Selected.Value,
+                !IsBlank(varOrigin) && varOrigin = varDest,
                 "Origin and destination can't be the same. ", ""
             ) &
             If(
@@ -349,19 +352,18 @@ entry_errors = fx(f"""
                 "A % discount must be under 100. ", ""
             ) &
             If(
-                FuelMissing(entCmbFuel.Selected.Title),
+                FuelMissing(varFuel),
                 "The fuel program has no FSC. Fix it in the Fuel library first. ", ""
             ) &
             If(
-                entNumOk.Text = "ok" && !IsBlank(entCmbFuel.Selected.Title) &&
-                FscPct(entCmbFuel.Selected.Title, Value(entTxtFAdj.Text), Value(entTxtFDisc.Text), true) < 0,
+                entNumOk.Text = "ok" && !IsBlank(varFuel) &&
+                FscPct(varFuel, Value(entTxtFAdj.Text), Value(entTxtFDisc.Text), true) < 0,
                 "Fuel discount is bigger than the FSC. ", ""
             ) &
             If(
                 !IsBlank(entCalc.Text) && Value(entCalc.Text) <= 0,
                 "The discount wipes out the whole cost. Check the discount. ", ""
-            ) &
-            If(varAddCarrier, "Finish or cancel the new carrier first. ", "")
+            )
         )
     )
 """)
@@ -381,10 +383,10 @@ entry_numok = fx(f"""
 entry_calc = fx(f"""
     If(
         entNumOk.Text = "ok" && !IsBlank(Trim(entTxtBase.Text)) &&
-        !IsBlank(entCmbFuel.Selected.Title) && !IsBlank(entCmbEquip.Selected.Value),
+        !IsBlank(varFuel) && !IsBlank(varEquip),
         Text(
             LHCost(
-                Value(entTxtBase.Text), entCmbFuel.Selected.Title,
+                Value(entTxtBase.Text), varFuel,
                 Value(entTxtFAdj.Text), Value(entTxtFDisc.Text),
                 Value(entTxtAdj.Text), {E_ADJ},
                 Value(entTxtDisc.Text), {E_DISC},
@@ -397,18 +399,18 @@ entry_calc = fx(f"""
 
 
 def entry_tile_value(divisor=None):
-    v = "Value(entCalc.Text)" + (f" / {divisor}(entCmbEquip.Selected.Value)" if divisor else "")
+    v = "Value(entCalc.Text)" + (f" / {divisor}(varEquip)" if divisor else "")
     return f'If(IsBlank(entCalc.Text), "—", Text({v}, "$#,##0.00"))'
 
 
 entry_key = fx("""
     If(
-        IsBlank(entCmbOrigin.Selected.Value) || IsBlank(entCmbDest.Selected.Value) ||
-        IsBlank(entCmbCarrier.Selected.Title) || IsBlank(entCmbMode.Selected.Value) ||
-        IsBlank(entCmbEquip.Selected.Value),
+        IsBlank(varOrigin) || IsBlank(varDest) ||
+        IsBlank(varCarrier) || IsBlank(varMode) ||
+        IsBlank(varEquip),
         "—",
-        entCmbOrigin.Selected.Value & entCmbDest.Selected.Value & "-" & entCmbCarrier.Selected.Title & "-" &
-        entCmbMode.Selected.Value & "-" & entCmbEquip.Selected.Value
+        varOrigin & varDest & "-" & varCarrier & "-" &
+        varMode & "-" & varEquip
     )
 """)
 
@@ -419,13 +421,15 @@ entry_replace = fx("""
         With(
             {
                 p: LookUp(
-                    LinehaulRates,
-                    Title = entCmbOrigin.Selected.Value &&
-                    Destination = entCmbDest.Selected.Value &&
-                    Carrier = entCmbCarrier.Selected.Title &&
-                    Mode = entCmbMode.Selected.Value &&
-                    Equipment = entCmbEquip.Selected.Value &&
-                    Active = true
+                    Filter(
+                        LinehaulRates,
+                        Title = varOrigin &&
+                        Destination = varDest &&
+                        Carrier = varCarrier &&
+                        Mode = varMode &&
+                        Equipment = varEquip
+                    ),
+                    Active
                 )
             },
             If(
@@ -441,19 +445,19 @@ entry_replace = fx("""
 entry_dupe = fx("""
     If(
         entLblKey.Text = "—" || entNumOk.Text <> "ok" || IsBlank(Trim(entTxtBase.Text)) ||
-        IsBlank(entCmbFuel.Selected.Title),
+        IsBlank(varFuel),
         "",
         With(
             {
                 p: LookUp(
                     LinehaulRates,
-                    Title = entCmbOrigin.Selected.Value &&
-                    Destination = entCmbDest.Selected.Value &&
-                    Carrier = entCmbCarrier.Selected.Title &&
-                    Mode = entCmbMode.Selected.Value &&
-                    Equipment = entCmbEquip.Selected.Value &&
+                    Title = varOrigin &&
+                    Destination = varDest &&
+                    Carrier = varCarrier &&
+                    Mode = varMode &&
+                    Equipment = varEquip &&
                     Base = Value(entTxtBase.Text) &&
-                    Fuel = entCmbFuel.Selected.Title &&
+                    Fuel = varFuel &&
                     ExpiryDate >= Today()
                 )
             },
@@ -497,7 +501,7 @@ entry_confirm = fx("""
 
 entry_fsc_today = fx("""
     With(
-        {f: entCmbFuel.Selected.Title},
+        {f: varFuel},
         If(
             IsBlank(f), "—",
             f = "ALL-IN", "All-in rate",
@@ -509,15 +513,15 @@ entry_fsc_today = fx("""
 
 entry_fsc_applied = fx("""
     If(
-        IsBlank(entCmbFuel.Selected.Title) || entNumOk.Text <> "ok",
+        IsBlank(varFuel) || entNumOk.Text <> "ok",
         "—",
-        Text(FscPct(entCmbFuel.Selected.Title, Value(entTxtFAdj.Text), Value(entTxtFDisc.Text), true), "0.00") & "%"
+        Text(FscPct(varFuel, Value(entTxtFAdj.Text), Value(entTxtFDisc.Text), true), "0.00") & "%"
     )
 """)
 
 entry_equip = fx("""
     With(
-        {e: entCmbEquip.Selected.Value},
+        {e: varEquip},
         If(
             IsBlank(e), "—",
             EquipFt(e) & " ft · " & Text(CubicFt(e), "#,##0") & " ft³ · " & SkidSpots(e) & " skids"
@@ -576,11 +580,11 @@ def breakdown_right(ready, base, fuel, fadj, fdisc, adj, adj_pct, disc, disc_pct
 def breakdown(p, left, right):
     return field(f"{p}Bd", "How the cost is built", [
         box(f"{p}BdRow", "Horizontal", [
-            lbl(f"{p}BdLeft", left, Size=9.5, Color="clrInk2", VerticalAlign="VerticalAlign.Top", Wrap="true",
-                Height=96, **fill(1)),
-            lbl(f"{p}BdRight", right, Size=9.5, FontWeight="FontWeight.Semibold", Align="Align.Right",
-                VerticalAlign="VerticalAlign.Top", **fixed(150, 96)),
-        ], Height=96, LayoutGap=12, **fixed(), **STRETCH),
+            lbl(f"{p}BdLeft", left, Size=10.5, Color="clrInk2", VerticalAlign="VerticalAlign.Top", Wrap="true",
+                Height=104, **fill(1)),
+            lbl(f"{p}BdRight", right, Size=10.5, FontWeight="FontWeight.Semibold", Align="Align.Right",
+                VerticalAlign="VerticalAlign.Top", **fixed(150, 104)),
+        ], Height=104, LayoutGap=12, **fixed(), **STRETCH),
     ])
 
 
@@ -594,12 +598,12 @@ entry_do_save = fx("""
                     LinehaulRates,
                     Defaults(LinehaulRates),
                     {
-                        Title: entCmbOrigin.Selected.Value,
-                        Destination: entCmbDest.Selected.Value,
-                        Mode: entCmbMode.Selected.Value,
-                        Carrier: entCmbCarrier.Selected.Title,
-                        Equipment: entCmbEquip.Selected.Value,
-                        Fuel: entCmbFuel.Selected.Title,
+                        Title: varOrigin,
+                        Destination: varDest,
+                        Mode: varMode,
+                        Carrier: varCarrier,
+                        Equipment: varEquip,
+                        Fuel: varFuel,
                         ServiceDays: If(
                             "ALL" in colDays.Value,
                             "ALL",
@@ -634,9 +638,9 @@ entry_do_save = fx("""
                             Filter(
                                 LinehaulRates,
                                 Title = n.Title && Destination = n.Destination && Carrier = n.Carrier &&
-                                Mode = n.Mode && Equipment = n.Equipment && Active = true
+                                Mode = n.Mode && Equipment = n.Equipment
                             ),
-                            ID <> n.ID
+                            Active && ID <> n.ID
                         ) As old,
                         Patch(LinehaulRates, old, {Active: false})
                     )
@@ -655,31 +659,112 @@ entry_save = ("If(\n    !IsBlank(entLblErrors.Text),\n    Notify(entLblErrors.Te
               + indent(entry_do_save, "    ") + "\n)")
 
 entry_reset = fx("""
-    Reset(entCmbOrigin); Reset(entCmbDest); Reset(entCmbMode); Reset(entCmbEquip);
-    Reset(entCmbCarrier); Reset(entCmbFuel);
+    Set(varOrigin, Blank()); Set(varDest, Blank()); Set(varMode, Blank()); Set(varEquip, Blank());
+    Set(varCarrier, Blank()); Set(varFuel, Blank()); Set(varPick, "");
     Reset(entDteEff); Reset(entDteExpiry); Reset(entTglActive);
     Reset(entTxtBase); Reset(entTxtAdj); Reset(entTglAdjPct); Reset(entTxtDisc); Reset(entTglDiscPct);
-    Reset(entTxtFAdj); Reset(entTxtFDisc); Reset(entTxtNotes); Reset(entTxtNewCarrier);
+    Reset(entTxtFAdj); Reset(entTxtFDisc); Reset(entTxtNotes);
     Clear(colDays);
-    Set(varAddCarrier, false);
     Set(varConfirmSave, false)
 """)
 
 entry_add_carrier = fx("""
     With(
-        {c: Upper(Trim(entTxtNewCarrier.Text))},
+        {c: Upper(Trim(entPickNew.Text))},
         If(
             IsBlank(c),
             Notify("Type a carrier name first.", NotificationType.Warning),
             !IsBlank(LookUp(Carriers, Title = c)),
-            Notify(c & " is already in the list.", NotificationType.Warning),
-            Patch(Carriers, Defaults(Carriers), {Title: c});
-            Notify(c & " added. Pick it from the list.", NotificationType.Success);
-            Reset(entTxtNewCarrier);
-            Set(varAddCarrier, false)
+            Set(varCarrier, c);
+            Notify(c & " was already in the list, so it's selected.", NotificationType.Information);
+            Set(varPick, ""),
+            With(
+                {r: Patch(Carriers, Defaults(Carriers), {Title: c})},
+                If(
+                    IsError(r),
+                    Notify("The carrier wasn't added. Try again.", NotificationType.Error),
+                    Set(varCarrier, c);
+                    Notify(c & " added and selected.", NotificationType.Success);
+                    Set(varPick, "")
+                )
+            )
         )
     )
 """)
+
+PICK_ITEMS = fx("""
+    Switch(
+        varPick,
+        "Origin", nfTerminals,
+        "Destination", nfTerminals,
+        "Mode", nfModes,
+        "Equipment", nfEquipment,
+        "Carrier", ForAll(Sort(Carriers, Title, SortOrder.Ascending), {Value: Title}),
+        "Fuel program", ForAll(Sort(FuelLibrary, Title, SortOrder.Ascending), {Value: Title}),
+        Filter(nfTerminals, false)
+    )
+""")
+PICK_CUR = ('Switch(varPick, "Origin", varOrigin, "Destination", varDest, "Mode", varMode, '
+            '"Equipment", varEquip, "Carrier", varCarrier, "Fuel program", varFuel, "")')
+PICK_SET = fx("""
+    Switch(
+        varPick,
+        "Origin", Set(varOrigin, ThisItem.Value),
+        "Destination", Set(varDest, ThisItem.Value),
+        "Mode", Set(varMode, ThisItem.Value),
+        "Equipment", Set(varEquip, ThisItem.Value),
+        "Carrier", Set(varCarrier, ThisItem.Value),
+        "Fuel program", Set(varFuel, ThisItem.Value)
+    );
+    Set(varPick, "")
+""")
+
+
+def picker_btn(name, var, label):
+    color = f"If(IsBlank({var}), clrInk3, clrInk)"
+    return btn(name, f'If(IsBlank({var}), "Select…", {var}) & "   ▾"', Align="Align.Left", PaddingLeft=12,
+               FontWeight="FontWeight.Normal", Color=color, HoverColor=color, PressedColor=color,
+               PressedFill="clrSoft", BorderColor=f"If(IsBlank({var}), clrAmber, clrLine)",
+               HoverBorderColor="clrInk3", PressedBorderColor="clrBlue", Height=38,
+               OnSelect=f'Set(varPick, "{label}"); Reset(entPickSearch); Reset(entPickNew)', **STRETCH)
+
+
+entry_picker = manual("entPicker", [
+    rect("entPickShade", Fill="RGBA(22, 32, 43, 0.45)", X=0, Y=0, Width="Parent.Width", Height="Parent.Height",
+         OnSelect='Set(varPick, "")'),
+    manual("entPickCard", [
+        lbl("entPickTitle", '"Choose " & Lower(varPick)', Size=14, FontWeight="FontWeight.Bold",
+            X=20, Y=16, Width="Parent.Width - 92", Height=36),
+        btn("entPickClose", s("✕"), Tooltip=s("Close"), OnSelect='Set(varPick, "")',
+            X="Parent.Width - 60", Y=16, Width=40, Height=36),
+        textin("entPickSearch", "Search", X=20, Y=64, Width="Parent.Width - 40", Height=40),
+        rect("entPickLine", X=0, Y=119, Width="Parent.Width", Height=1),
+        node("entPickGallery", "Gallery@2.15.0", {
+            "Items": "Filter(" + PICK_ITEMS + ",\n    IsBlank(Trim(entPickSearch.Text)) || Upper(Trim(entPickSearch.Text)) in Upper(Value)\n)",
+            "TemplateSize": 48, "TemplatePadding": 0, "BorderThickness": 0, "ShowScrollbar": "true",
+            "TemplateFill": f"If(ThisItem.Value = {PICK_CUR}, clrSoft, clrPanel)",
+            "OnSelect": PICK_SET,
+            "X": 0, "Y": 120, "Width": "Parent.Width",
+            "Height": 'Parent.Height - 120 - If(varPick = "Carrier", 80, 8)',
+        }, [
+            lbl("entPickRowText", "ThisItem.Value", Size=12, OnSelect="Select(Parent)",
+                FontWeight=f"If(ThisItem.Value = {PICK_CUR}, FontWeight.Bold, FontWeight.Normal)",
+                PaddingLeft=20, X=0, Y=0, Width="Parent.TemplateWidth - 60", Height=48),
+            lbl("entPickRowCheck", s("✓"), Size=13, Color="clrBlue", FontWeight="FontWeight.Bold",
+                Visible=f"ThisItem.Value = {PICK_CUR}", OnSelect="Select(Parent)", Align="Align.Center",
+                X="Parent.TemplateWidth - 56", Y=0, Width=40, Height=48),
+            rect("entPickRowSep", Fill="clrSoft", X=0, Y=47, Width="Parent.TemplateWidth", Height=1),
+        ], "BrowseLayout_Vertical_TwoTextOneImageVariant_ver5.0"),
+        rect("entPickFootLine", Visible='varPick = "Carrier"', X=0, Y="Parent.Height - 80",
+             Width="Parent.Width", Height=1),
+        textin("entPickNew", "Not listed? Type a new carrier", Visible='varPick = "Carrier"',
+               X=20, Y="Parent.Height - 60", Width="Parent.Width - 156", Height=40),
+        btn("entPickAdd", s("Add carrier"), "primary", Visible='varPick = "Carrier"', OnSelect=entry_add_carrier,
+            X="Parent.Width - 124", Y="Parent.Height - 60", Width=104, Height=40),
+    ], Fill="clrPanel", BorderColor="clrLine", BorderThickness=1, DropShadow="DropShadow.Bold", **rad(8),
+        X="(Parent.Width - 460) / 2", Y=32, Width=460, Height="Parent.Height - 64"),
+], Visible="!IsBlank(varPick)", X=0, Y=0, Width="Parent.Width", Height="Parent.Height")
+
 
 day_select = fx("""
     With(
@@ -711,26 +796,20 @@ def unit(name, text):
                FontWeight="FontWeight.Bold", Align="Align.Center", **fixed(40, 38))
 
 
-lane_section = section("entSecLane", "1", s("Lane"), s("Who moves it, where, on what"), FillPortions=1, LayoutMinWidth=420, body=[
+ENT_LANE_H = "(460 + If(entLblReplace.Visible, 46, 0) + If(entLblDupe.Visible, 58, 0))"
+ENT_COST_H = "428"
+ENT_NARROW_FP = "If(entBody.Width < 900, 0, 1)"
+
+lane_section = section("entSecLane", "1", s("Lane"), s("Who moves it, where, on what"), FillPortions=ENT_NARROW_FP, Height=ENT_LANE_H, LayoutMinWidth=320, body=[
     row("entRowLane1", 60, [
-        field("entFldOrigin", "Origin *", [combo("entCmbOrigin", "nfTerminals", "Value")]),
-        field("entFldDest", "Destination *", [combo("entCmbDest", "nfTerminals", "Value")]),
-        field("entFldMode", "Mode *", [combo("entCmbMode", "nfModes", "Value")]),
-        field("entFldEquip", "Equipment *", [combo("entCmbEquip", "nfEquipment", "Value")]),
+        field("entFldOrigin", "Origin *", [picker_btn("entPickOrigin", "varOrigin", "Origin")]),
+        field("entFldDest", "Destination *", [picker_btn("entPickDest", "varDest", "Destination")]),
+        field("entFldMode", "Mode *", [picker_btn("entPickMode", "varMode", "Mode")]),
+        field("entFldEquip", "Equipment *", [picker_btn("entPickEquip", "varEquip", "Equipment")]),
     ]),
     row("entRowLane2", 96, [
         field("entFldCarrier", "Carrier *", [
-            row("entCarrierRow", 38, [
-                combo("entCmbCarrier", "Sort(Carriers, Title, SortOrder.Ascending)", "Title",
-                      placeholder="Select carrier…", Visible="!varAddCarrier", **fill(1)),
-                textin("entTxtNewCarrier", "New carrier name", Visible="varAddCarrier", **fill(1)),
-                btn("entBtnAddCarrier", s("+"), Size=14, Tooltip=s("Add a carrier"), Visible="!varAddCarrier",
-                    OnSelect="Set(varAddCarrier, true)", **fixed(38, 38)),
-                btn("entBtnSaveCarrier", s("Add"), "primary", Visible="varAddCarrier",
-                    OnSelect=entry_add_carrier, **fixed(60, 38)),
-                btn("entBtnCancelCarrier", s("✕"), Visible="varAddCarrier", Tooltip=s("Cancel"),
-                    OnSelect="Reset(entTxtNewCarrier); Set(varAddCarrier, false)", **fixed(38, 38)),
-            ], gap=8),
+            picker_btn("entPickCarrier", "varCarrier", "Carrier"),
         ]),
         field("entFldDays", "Service days *", [
             box("entDays", "Horizontal", [day_chip(d) for d in
@@ -753,14 +832,14 @@ lane_section = section("entSecLane", "1", s("Lane"), s("Who moves it, where, on 
         lbl("entLblKey", entry_key, Size=10, FontWeight="FontWeight.Semibold", Height=28, **fill(1)),
     ], LayoutAlignItems="LayoutAlignItems.Center"),
     lbl("entLblReplace", entry_replace, Visible="!IsBlank(Self.Text)", Fill="clrAmberBg", Color="clrAmberInk",
-        BorderColor="RGBA(233, 215, 155, 1)", BorderThickness=1, Size=9.5, Wrap="true", **pads(0, 12),
+        BorderColor="RGBA(233, 215, 155, 1)", BorderThickness=1, Size=10, Wrap="true", **pads(0, 12),
         **fixed(h=34), **STRETCH),
     lbl("entLblDupe", entry_dupe, Visible="!IsBlank(Self.Text)", Fill="clrAmberBg", Color="clrAmberInk",
-        BorderColor="RGBA(233, 215, 155, 1)", BorderThickness=1, Size=9.5, Wrap="true", **pads(0, 12),
+        BorderColor="RGBA(233, 215, 155, 1)", BorderThickness=1, Size=10, Wrap="true", **pads(0, 12),
         **fixed(h=46), **STRETCH),
 ])
 
-cost_section = section("entSecCost", "2", s("Cost"), s("Fuel goes on the base first, then add-on, then discount"), FillPortions=1, LayoutMinWidth=420, body=[
+cost_section = section("entSecCost", "2", s("Cost"), s("Fuel goes on the base first, then add-on, then discount"), FillPortions=ENT_NARROW_FP, Height=ENT_COST_H, LayoutMinWidth=320, body=[
     row("entRowCost1", 60, [
         field("entFldBase", "Base rate *", [row("entBaseRow", 38, [
             unit("entBaseUnit", "$"),
@@ -771,7 +850,7 @@ cost_section = section("entSecCost", "2", s("Cost"), s("Fuel goes on the base fi
         field("entFldDisc", "Discount", [numin("entTxtDisc")], head=[pct_toggle("entTglDiscPct")]),
     ]),
     row("entRowCost2", 60, [
-        field("entFldFuel", "Fuel program *", [combo("entCmbFuel", "Sort(FuelLibrary, Title, SortOrder.Ascending)", "Title")]),
+        field("entFldFuel", "Fuel program *", [picker_btn("entPickFuel", "varFuel", "Fuel program")]),
         field("entFldFAdj", "Fuel add-on", [row("entFAdjRow", 38, [numin("entTxtFAdj", **fill(1)), unit("entFAdjUnit", "pts")], gap=8)]),
         field("entFldFDisc", "Fuel discount", [row("entFDiscRow", 38, [numin("entTxtFDisc", **fill(1)), unit("entFDiscUnit", "pts")], gap=8)]),
     ]),
@@ -781,8 +860,8 @@ cost_section = section("entSecCost", "2", s("Cost"), s("Fuel goes on the base fi
         fact("entFactEquip", "Equipment", entry_equip),
     ], gap=8),
     breakdown("ent",
-              breakdown_left("entCmbFuel.Selected.Title", "Value(entTxtFAdj.Text)", "Value(entTxtFDisc.Text)", "true"),
-              breakdown_right("!IsBlank(entCalc.Text)", "Value(entTxtBase.Text)", "entCmbFuel.Selected.Title",
+              breakdown_left("varFuel", "Value(entTxtFAdj.Text)", "Value(entTxtFDisc.Text)", "true"),
+              breakdown_right("!IsBlank(entCalc.Text)", "Value(entTxtBase.Text)", "varFuel",
                               "Value(entTxtFAdj.Text)", "Value(entTxtFDisc.Text)", "Value(entTxtAdj.Text)",
                               "entTglAdjPct.Value", "Value(entTxtDisc.Text)", "entTglDiscPct.Value", "true")),
 ])
@@ -794,7 +873,7 @@ entry_action = box("entActionWrap", "Vertical", [
         cost_tile("entTileLin", "per linear ft", entry_tile_value("EquipFt")),
         cost_tile("entTileSkid", "per skid spot", entry_tile_value("SkidSpots")),
         lbl("entLblStatus", 'If(IsBlank(entLblErrors.Text), "✓ Ready to save", entLblErrors.Text)',
-            Color="If(IsBlank(entLblErrors.Text), clrGreenInk, clrAmberInk)", Size=9.5,
+            Color="If(IsBlank(entLblErrors.Text), clrGreenInk, clrAmberInk)", Size=10,
             FontWeight="FontWeight.Semibold", Wrap="true", **fill(1.6, 160), **STRETCH),
         btn("entBtnReset", s("Reset"), "danger", OnSelect=entry_reset, **fixed(100, 44)),
         btn("entBtnSave", 'If(varSaving, "Saving…", "Save rate")', "primary", OnSelect=entry_save,
@@ -804,11 +883,18 @@ entry_action = box("entActionWrap", "Vertical", [
         LayoutAlignItems="LayoutAlignItems.Center", **fill(1), **STRETCH),
 ], Height=98, **pads(0, 16, 16, 16), **fixed(), **STRETCH)
 
-write_screen("scrEntry", {"Fill": "clrPage"}, [
+write_screen("scrEntry", {"Fill": "clrPage", "OnVisible": 'Set(varPick, ""); Set(varConfirmSave, false)'}, [
     shell("ent", "New", s("New rate"),
           [btn("entHdrBtnRecent", s("Recent entries"), OnSelect="Navigate(scrRecent, ScreenTransition.None)",
                **fixed(140, 38))],
-          body("ent", [row("entCols", "460 + If(entLblReplace.Visible, 46, 0) + If(entLblDupe.Visible, 58, 0)", [lane_section, cost_section], gap=16)]),
+          body("ent", [row("entCols", fx(f"""
+              If(
+                  entBody.Width < 900,
+                  {ENT_LANE_H} + 16 + {ENT_COST_H},
+                  {ENT_LANE_H}
+              )
+          """), [lane_section, cost_section], gap=16,
+              LayoutDirection="If(entBody.Width < 900, LayoutDirection.Vertical, LayoutDirection.Horizontal)")]),
           entry_action),
     hidden("entLblErrors", entry_errors),
     hidden("entNumOk", entry_numok),
@@ -818,6 +904,7 @@ write_screen("scrEntry", {"Fill": "clrPage"}, [
           "Set(varConfirmSave, false)",
           'If(IsBlank(entLblReplace.Text), "Save anyway", "Replace and save")',
           "Set(varConfirmSave, false);\n" + entry_do_save),
+    entry_picker,
 ])
 
 
@@ -839,13 +926,12 @@ recent_items = fx("""
                         StartsWith(Title, Left(l, 2)),
                         StartsWith(Destination, Mid(l, 3, 2)),
                         StartsWith(Carrier, c),
-                        StartsWith(Mode, m),
-                        !recTglActive.Value || Active = true
+                        StartsWith(Mode, m)
                     ),
                     Timestamp,
                     SortOrder.Descending
                 ),
-                IsBlank(e) || e in Equipment
+                (IsBlank(e) || e in Equipment) && (!recTglActive.Value || Active)
             ),
             LH, LHCost(Base, Fuel, F_Adj, F_Discount, Adj, AdjType, Discount, DiscountType, recTglFuel.Value),
             NoFSC, recTglFuel.Value && FuelMissing(Fuel)
@@ -884,7 +970,7 @@ def rec_template():
                              OnSelect="Select(Parent)", X=f"Parent.TemplateWidth * {x} + 8", Y=12, Width=74))
             continue
         kids.append(lbl(f"recRow{key}", REC_TEXT[key], OnSelect="Select(Parent)",
-                        Size=8.5 if key == "Added" else 10,
+                        Size=9 if key == "Added" else 10.5,
                         FontWeight="FontWeight.Bold" if key == "Lane" else "FontWeight.Normal",
                         Color="If(ThisItem.NoFSC, clrAmberInk, clrInk)" if key == "LH" else
                         ("clrInk3" if key == "Added" else "clrInk"),
@@ -901,7 +987,7 @@ rec_header = manual("recColHdr", [
 ], Fill="clrPanel", Height=36, **fixed(), **STRETCH)
 
 recent_body = body("rec", [
-    row("recFilters", 38, [
+    row("recFilters", "If(recBody.Width < 1120, 88, 38)", [
         *[textin(f"recTxt{k}", hint, **fixed(150, 38)) for k, hint in
           [("Lane", "Lane, e.g. TOWI"), ("Carrier", "Carrier"), ("Mode", "Mode"), ("Equip", "Equipment, e.g. 53")]],
         toggle("recTglActive", "Active only", "Active only", **fixed(130, 30)),
@@ -912,8 +998,8 @@ recent_body = body("rec", [
         lbl("recLblCount", fx("""
             CountRows(recGallery.AllItems) & If(CountRows(recGallery.AllItems) = 1, " rate", " rates") &
             " · fuel " & If(recTglFuel.Value, "included", "excluded")
-        """), Size=9, Color="clrInk3", Align="Align.Right", Height=30, **fill(1)),
-    ], gap=12, LayoutAlignItems="LayoutAlignItems.Center"),
+        """), Size=10, Color="clrInk3", Align="Align.Right", Height=30, **fill(1)),
+    ], gap=12, LayoutAlignItems="LayoutAlignItems.Center", LayoutWrap="true"),
     box("recTable", "Vertical", [
         rec_header,
         node("recGallery", "Gallery@2.15.0", {
@@ -994,7 +1080,7 @@ det_cost = section("detSecCost", "2", s("Cost"), s("Calculated with today's FSC"
     ], gap=12),
     lbl("detLblWarn", f"If(detTglFuel.Value && FuelMissing({R}.Fuel), \"⚠ \" & {R}.Fuel & \" isn't in the Fuel Library, so this cost has no fuel. Add it on the Fuel library screen.\", \"\")",
         Visible="!IsBlank(Self.Text)", Fill="clrAmberBg", Color="clrAmberInk", BorderColor="RGBA(233, 215, 155, 1)",
-        BorderThickness=1, Size=9.5, Wrap="true", **pads(0, 12), **fixed(h=34), **STRETCH),
+        BorderThickness=1, Size=10, Wrap="true", **pads(0, 12), **fixed(h=34), **STRETCH),
     row("detCostRow1", 56, [
         fact("detFactBase", "Base", f'Text({R}.Base, "$#,##0.00")'),
         fact("detFactAdj", "Add-on", money_or_dash("Adj", "AdjType")),
@@ -1095,9 +1181,9 @@ det_do_save = fx(f"""
                         Filter(
                             LinehaulRates,
                             Title = r.Title && Destination = r.Destination && Carrier = r.Carrier &&
-                            Mode = r.Mode && Equipment = r.Equipment && Active = true
+                            Mode = r.Mode && Equipment = r.Equipment
                         ),
-                        ID <> r.ID
+                        Active && ID <> r.ID
                     ) As old,
                     Patch(LinehaulRates, old, {{Active: false}})
                 )
@@ -1140,9 +1226,9 @@ det_edit = section("detSecEdit", "✎", s("Edit status & dates"),
     field("detFldEditNotes", "Comments", [textin("detTxtEditNotes", "Why the change?", Default=f"{R}.Comments",
                                                  Mode="TextMode.MultiLine", Height=64)]),
     lbl("detLblEditErr", det_edit_err, Visible="!IsBlank(Self.Text)", Fill="clrRedBg", Color="clrRed",
-        BorderColor="clrRed", BorderThickness=1, Size=9.5, Wrap="true", **pads(0, 12), **fixed(h=34), **STRETCH),
+        BorderColor="clrRed", BorderThickness=1, Size=10, Wrap="true", **pads(0, 12), **fixed(h=34), **STRETCH),
     lbl("detLblEditWarn", det_edit_warn, Visible="!IsBlank(Self.Text)", Fill="clrAmberBg", Color="clrAmberInk",
-        BorderColor="RGBA(233, 215, 155, 1)", BorderThickness=1, Size=9.5, Wrap="true", **pads(0, 12),
+        BorderColor="RGBA(233, 215, 155, 1)", BorderThickness=1, Size=10, Wrap="true", **pads(0, 12),
         **fixed(h=46), **STRETCH),
     row("detEditBtns", 38, [
         rect("detEditSpacer", Fill="clrClear", Height=10, **fill(1, 0)),
@@ -1171,7 +1257,7 @@ def lane_template():
                  "If(ThisItem.Active, clrGreenBg, clrSoft)", "If(ThisItem.Active, clrGreenInk, clrInk3)",
                  OnSelect="Select(Parent)", X=12, Y=11, Width=74)]
     for key, _, x, w, align in LANE_COLS[1:]:
-        kids.append(lbl(f"detLaneRow{key}", LANE_TEXT[key], OnSelect="Select(Parent)", Size=9.5,
+        kids.append(lbl(f"detLaneRow{key}", LANE_TEXT[key], OnSelect="Select(Parent)", Size=10.5,
                         FontWeight="If(ThisItem.ID = varRate.ID, FontWeight.Bold, FontWeight.Normal)",
                         Color="If(ThisItem.ExpiryDate < Today(), clrRed, clrInk)" if key == "Exp" else "clrInk",
                         Align=f"Align.{align}", PaddingLeft=10, PaddingRight=10,
@@ -1187,7 +1273,7 @@ det_history = section("detSecHistory", "3", s("All rates on this lane"),
     lbl("detLblMultiActive",
         'With({n: CountRows(Filter(colLaneRates, Active))}, If(n > 1, "⚠ " & n & " rates on this lane are active. '
         'Open the one that should stay active, choose Edit rate and save it; the others switch off.", ""))',
-        Visible="!IsBlank(Self.Text)", Fill="clrAmberBg", Color="clrAmberInk", Size=9.5, Wrap="true",
+        Visible="!IsBlank(Self.Text)", Fill="clrAmberBg", Color="clrAmberInk", Size=10, Wrap="true",
         **pads(0, 16), **fixed(h=44), **STRETCH),
     manual("detLaneHdr", [
         *[caps(f"detLaneHdr{k}", h, Align=f"Align.{a}", PaddingLeft=12 if k == "Status" else 10, PaddingRight=10,
@@ -1202,6 +1288,9 @@ det_history = section("detSecHistory", "3", s("All rates on this lane"),
     }, lane_template(), "BrowseLayout_Vertical_TwoTextOneImageVariant_ver5.0"),
 ])
 
+DET_LEFT_H = "(detSecLane.Height + 16 + detSecCost.Height)"
+DET_RIGHT_H = "(If(varEditRate, detSecEdit.Height + 16, 0) + detSecHistory.Height)"
+
 write_screen("scrDetails", {"Fill": "clrPage", "OnVisible": "Set(varEditRate, false); Set(varConfirmEdit, false); Set(varSavingEdit, false);\n" + DET_COLLECT}, [
     shell("det", "Recent",
           f'"Rate details · " & {R}.Title & {R}.Destination & "-" & {R}.Carrier & "-" & {R}.Mode & "-" & {R}.Equipment',
@@ -1211,15 +1300,19 @@ write_screen("scrDetails", {"Fill": "clrPage", "OnVisible": "Set(varEditRate, fa
                **fixed(150, 38))],
           body("det", [
               det_hero,
-              row("detCols", fx("""
-                  Max(
-                      detSecLane.Height + 16 + detSecCost.Height,
-                      If(varEditRate, detSecEdit.Height + 16, 0) + detSecHistory.Height
+              row("detCols", fx(f"""
+                  If(
+                      detBody.Width < 900,
+                      {DET_LEFT_H} + 16 + {DET_RIGHT_H},
+                      Max({DET_LEFT_H}, {DET_RIGHT_H})
                   )
               """), [
-                  box("detColLeft", "Vertical", [det_lane, det_cost], LayoutGap=16, **fill(1.15, 420), **STRETCH),
-                  box("detColRight", "Vertical", [det_edit, det_history], LayoutGap=16, **fill(1, 380), **STRETCH),
-              ], gap=16),
+                  box("detColLeft", "Vertical", [det_lane, det_cost], LayoutGap=16, Height=DET_LEFT_H,
+                      FillPortions="If(detBody.Width < 900, 0, 1.15)", LayoutMinWidth=320, **STRETCH),
+                  box("detColRight", "Vertical", [det_edit, det_history], LayoutGap=16, Height=DET_RIGHT_H,
+                      FillPortions="If(detBody.Width < 900, 0, 1)", LayoutMinWidth=320, **STRETCH),
+              ], gap=16,
+                  LayoutDirection="If(detBody.Width < 900, LayoutDirection.Vertical, LayoutDirection.Horizontal)"),
               lbl("detLblFooter",
                   f'"Submitted by " & {R}.SubmittedBy & " · " & Text({R}.Timestamp, "mmm d, yyyy h:mm AM/PM")',
                   Size=9, Color="clrInk3", **fixed(h=24), **STRETCH),
@@ -1311,13 +1404,14 @@ fuel_save = fx("""
 
 fuel_programs = section("fulSecList", "A", s("Programs"),
                         s("Rates use today's FSC, so editing a program updates every rate on it"),
-                        body_pad=0, body_gap=0, FillPortions=1.5, LayoutMinWidth=480,
+                        body_pad=0, body_gap=0, FillPortions=1.5, LayoutMinWidth=320,
                         body=[fuel_header, fuel_gallery])
 
 fuel_form = section("fulSecForm", "B", 'If(varFuelEdit, "Edit program", "Add program")',
                     'If(varFuelEdit, "Changing " & varFuelRec.Title & " updates the cost of every rate on it", "Program names must be unique")',
-                    height="If(fulLblErr.Visible, 381, 335)", BorderColor="clrBlueHover", FillPortions=1, LayoutMinWidth=360,
-                    AlignInContainer="AlignInContainer.Start", body=[
+                    height="If(fulLblErr.Visible, 381, 335)", BorderColor="clrBlueHover",
+                    FillPortions="If(fulBody.Width < 900, 0, 1)", LayoutMinWidth=320,
+                    AlignInContainer="If(fulBody.Width < 900, AlignInContainer.Stretch, AlignInContainer.Start)", body=[
     row("fulFormRow1", 60, [field("fulFldProgram", "Program *", [
         textin("fulTxtProgram", "e.g. CP", Default='If(varFuelEdit, varFuelRec.Title, "")')])]),
     row("fulFormRow2", 60, [field("fulFldFsc", "FSC % *", [row("fulFscRow", 38, [
@@ -1328,7 +1422,7 @@ fuel_form = section("fulSecForm", "B", 'If(varFuelEdit, "Edit program", "Add pro
     row("fulFormRow3", 60, [field("fulFldEff", "Effective *", [
         datepick("fulDteEff", "If(varFuelEdit, varFuelRec.EffectiveDate, Today())")])]),
     lbl("fulLblErr", fuel_err, Visible="!IsBlank(Self.Text)", Fill="clrRedBg", Color="clrRed",
-        BorderColor="clrRed", BorderThickness=1, Size=9.5, Wrap="true", **pads(0, 12), **fixed(h=34), **STRETCH),
+        BorderColor="clrRed", BorderThickness=1, Size=10, Wrap="true", **pads(0, 12), **fixed(h=34), **STRETCH),
     row("fulFormBtns", 38, [
         rect("fulFormSpacer", Fill="clrClear", Height=10, **fill(1, 0)),
         btn("fulBtnCancel", s("Clear"), OnSelect=f"Set(varFuelEdit, false); Set(varFuelRec, Blank()); {fuel_open}",
@@ -1349,6 +1443,7 @@ write_screen("scrFuel", {"Fill": "clrPage", "OnVisible": f"Set(varFuelForm, true
           [btn("fulHdrBtnAdd", s("+ Add program"), "primary", **fixed(150, 38),
                OnSelect=f"Set(varFuelRec, Blank()); Set(varFuelEdit, false); Set(varFuelForm, true); {fuel_open}")],
           body("ful", [box("fulCols", "Horizontal", [fuel_programs, fuel_form], LayoutGap=16,
+                           LayoutDirection="If(fulBody.Width < 900, LayoutDirection.Vertical, LayoutDirection.Horizontal)",
                            **fill(1), **STRETCH)], scroll=False)),
 ])
 

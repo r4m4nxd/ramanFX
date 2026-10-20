@@ -1,6 +1,6 @@
 # Line-Haul Cost Collector: redesigned screens
 
-Four new screens in the LTL Rate Request style, laid out for iPad landscape. They sit alongside the old screens until you switch over.
+Four new screens in the LTL Rate Request style, laid out for PC and tablet landscape, with a one-column layout for phones. They sit alongside the old screens until you switch over.
 
 | File | What it is |
 |---|---|
@@ -14,7 +14,7 @@ Four new screens in the LTL Rate Request style, laid out for iPad landscape. The
 
 ## Install (in this order)
 
-1. **Settings → Display:** orientation *Landscape*, size *4:3 (iPad)*, then turn off *Scale to fit* and *Lock aspect ratio*. The layouts are built for iPad landscape and stretch to fill any screen from 1024 px wide up.
+1. **Settings → Display:** orientation *Landscape*, size *4:3 (iPad)*, then turn off *Scale to fit*, *Lock aspect ratio* and *Lock orientation*. The app is laid out for PC and tablet landscape, and stacks to one column under 900 px wide (phones).
 2. **Settings → Updates → New:** check that **User-defined functions** is on. It's on by default in current Studio.
 3. **Settings → General:** set the data row limit to 2000.
 4. **FuelLibrary list:** add one item with Title `ALL-IN` and FSC `0`. The fuel picker now reads from the library, so ALL-IN has to exist there.
@@ -77,17 +77,24 @@ Do these once in the list settings. They protect the data even if someone edits 
 5. **Permissions:** users get *Contribute without delete*, so rates can't be deleted from the list itself.
 6. Optional: a Power Automate flow that runs nightly and switches expired active rates to inactive.
 
+## Yes/No column
+
+SharePoint mishandles `Active = true` when it is combined with other conditions, which is why "Active only" showed an empty list. The query to SharePoint now filters on lane, carrier and mode only, and Active is checked on the rows that come back. The replace warning, duplicate check and deactivation step use the same pattern.
+
 ## Known limits
 
 - Cost uses **today's** FSC, so editing a fuel program changes the cost of past rates.
 - The fuel-library row filter and the equipment "contains" filter run on the first 2,000 rows returned. The rows are already filtered by lane, carrier and mode and exclude expired rates, so this only matters at very large volumes.
 
-## Layout (iPad landscape)
+## Layout (PC, tablet, phone)
 
 - **Rate entry:** Lane and Cost sit side by side in equal-height cards. A single bottom bar shows the four cost tiles, what's still missing, and the Reset and Save buttons.
 - **Recent entries:** filters, toggles and the result count share one row, so the table gets the rest of the screen.
 - **Rate details:** the lane title runs across the top. Lane facts and cost are on the left; the edit panel and all rates on this lane are on the right.
 - **Fuel library:** the program list is on the left, with the add/edit panel always open on the right.
 - **Spacing:** only 4, 8, 12 and 16 px gaps, 16 px padding on every card and the page, 6 px card corners.
-- **Touch-first states:** hover never changes a button's fill, because on iPad hover sticks after a tap. Pressing gives the feedback instead (primary buttons go dark, chips fill blue).
+- **States for mouse and touch:** hover only darkens a button's border, which helps on PC and doesn't stick after a tap on a tablet. Pressing gives the real feedback (primary buttons go dark, chips fill blue).
+- **Narrow screens:** under 900 px the two-column screens stack into one column, the Recent filter row wraps onto two lines, and the header drops the date and step text.
+- **Pickers instead of combo boxes:** Origin, Destination, Mode, Equipment, Carrier and Fuel open a searchable list over the screen. Classic combo boxes inside containers clip their own dropdown, so the list showed empty. Adding a new carrier now happens at the bottom of the Carrier picker.
+- **Text sizes (pt):** 9 for field labels, 10.5 for body text, 11 for inputs and buttons, 13 for section titles, 16 for the page title, 18 for the main cost figure.
 - **No screen transitions:** people switch screens many times a day, so navigation is instant.

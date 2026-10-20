@@ -37,6 +37,7 @@ Screens:
                   LayoutAlignItems: =LayoutAlignItems.Center
                   LayoutDirection: =LayoutDirection.Vertical
                   LayoutGap: =8
+                  LayoutMinHeight: =0
                   LayoutMinWidth: =84
                   PaddingBottom: =14
                   PaddingLeft: =5
@@ -55,6 +56,8 @@ Screens:
                         Height: =48
                         Image: ='cff logo'
                         ImagePosition: =ImagePosition.Fit
+                        LayoutMinHeight: =0
+                        LayoutMinWidth: =0
                         Width: =48
                   - recRailGap:
                       Control: Rectangle@2.3.0
@@ -63,6 +66,8 @@ Screens:
                         Fill: =clrClear
                         FillPortions: =0
                         Height: =10
+                        LayoutMinHeight: =0
+                        LayoutMinWidth: =0
                         Width: =10
                   - recNavNew:
                       Control: GroupContainer@1.5.0
@@ -77,6 +82,8 @@ Screens:
                         LayoutDirection: =LayoutDirection.Vertical
                         LayoutGap: =4
                         LayoutJustifyContent: =LayoutJustifyContent.Center
+                        LayoutMinHeight: =0
+                        LayoutMinWidth: =0
                         PaddingBottom: =0
                         PaddingLeft: =0
                         PaddingRight: =0
@@ -95,6 +102,8 @@ Screens:
                               Height: =26
                               HoverColor: =clrWhite
                               Icon: =Icon.Edit
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =0
                               OnSelect: =Navigate(scrEntry, ScreenTransition.None)
                               PressedColor: =clrWhite
                               Tooltip: ="New rate"
@@ -109,12 +118,14 @@ Screens:
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Semibold
                               Height: =18
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =0
                               OnSelect: =Navigate(scrEntry, ScreenTransition.None)
                               PaddingBottom: =0
                               PaddingLeft: =0
                               PaddingRight: =0
                               PaddingTop: =0
-                              Size: =8.5
+                              Size: =9
                               Text: ="New rate"
                               VerticalAlign: =VerticalAlign.Middle
                               Width: =74
@@ -131,6 +142,8 @@ Screens:
                         LayoutDirection: =LayoutDirection.Vertical
                         LayoutGap: =4
                         LayoutJustifyContent: =LayoutJustifyContent.Center
+                        LayoutMinHeight: =0
+                        LayoutMinWidth: =0
                         PaddingBottom: =0
                         PaddingLeft: =0
                         PaddingRight: =0
@@ -149,6 +162,8 @@ Screens:
                               Height: =26
                               HoverColor: =clrWhite
                               Icon: =Icon.DetailList
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =0
                               OnSelect: =Navigate(scrRecent, ScreenTransition.None)
                               PressedColor: =clrWhite
                               Tooltip: ="Recent"
@@ -163,12 +178,14 @@ Screens:
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Semibold
                               Height: =18
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =0
                               OnSelect: =Navigate(scrRecent, ScreenTransition.None)
                               PaddingBottom: =0
                               PaddingLeft: =0
                               PaddingRight: =0
                               PaddingTop: =0
-                              Size: =8.5
+                              Size: =9
                               Text: ="Recent"
                               VerticalAlign: =VerticalAlign.Middle
                               Width: =74
@@ -185,6 +202,8 @@ Screens:
                         LayoutDirection: =LayoutDirection.Vertical
                         LayoutGap: =4
                         LayoutJustifyContent: =LayoutJustifyContent.Center
+                        LayoutMinHeight: =0
+                        LayoutMinWidth: =0
                         PaddingBottom: =0
                         PaddingLeft: =0
                         PaddingRight: =0
@@ -203,6 +222,8 @@ Screens:
                               Height: =26
                               HoverColor: =clrWhite
                               Icon: =Icon.Money
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =0
                               OnSelect: =Navigate(scrFuel, ScreenTransition.None)
                               PressedColor: =clrWhite
                               Tooltip: ="Fuel library"
@@ -217,12 +238,14 @@ Screens:
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Semibold
                               Height: =18
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =0
                               OnSelect: =Navigate(scrFuel, ScreenTransition.None)
                               PaddingBottom: =0
                               PaddingLeft: =0
                               PaddingRight: =0
                               PaddingTop: =0
-                              Size: =8.5
+                              Size: =9
                               Text: ="Fuel library"
                               VerticalAlign: =VerticalAlign.Middle
                               Width: =74
@@ -237,6 +260,7 @@ Screens:
                   FillPortions: =1
                   LayoutDirection: =LayoutDirection.Vertical
                   LayoutGap: =0
+                  LayoutMinHeight: =0
                   LayoutMinWidth: =300
                   PaddingBottom: =0
                   PaddingLeft: =0
@@ -260,6 +284,8 @@ Screens:
                         LayoutAlignItems: =LayoutAlignItems.Center
                         LayoutDirection: =LayoutDirection.Horizontal
                         LayoutGap: =16
+                        LayoutMinHeight: =0
+                        LayoutMinWidth: =0
                         PaddingBottom: =0
                         PaddingLeft: =16
                         PaddingRight: =16
@@ -278,14 +304,16 @@ Screens:
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Semibold
                               Height: =36
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =0
                               PaddingBottom: =0
                               PaddingLeft: =0
                               PaddingRight: =0
                               PaddingTop: =0
-                              Size: =15
+                              Size: =16
                               Text: ="Line-Haul Rates"
                               VerticalAlign: =VerticalAlign.Middle
-                              Width: =160
+                              Width: =170
                         - recHdrDiv:
                             Control: Rectangle@2.3.0
                             Properties:
@@ -293,6 +321,8 @@ Screens:
                               Fill: =clrLine
                               FillPortions: =0
                               Height: =24
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =0
                               Width: =1
                         - recHdrStep:
                             Control: Label@2.5.1
@@ -302,14 +332,16 @@ Screens:
                               FillPortions: =1
                               Font: =Font.'Segoe UI'
                               Height: =36
+                              LayoutMinHeight: =0
                               LayoutMinWidth: =40
                               PaddingBottom: =0
                               PaddingLeft: =0
                               PaddingRight: =0
                               PaddingTop: =0
-                              Size: =11
+                              Size: =11.5
                               Text: ="Recent entries · newest first, expired rates hidden"
                               VerticalAlign: =VerticalAlign.Middle
+                              Visible: =Parent.Width > 700
                         - recHdrUser:
                             Control: Label@2.5.1
                             Properties:
@@ -320,14 +352,17 @@ Screens:
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Semibold
                               Height: =36
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =0
                               PaddingBottom: =0
                               PaddingLeft: =0
                               PaddingRight: =0
                               PaddingTop: =0
-                              Size: =9
+                              Size: =9.5
                               Text: =User().FullName & " · " & Text(Today(), "mmm d, yyyy")
                               VerticalAlign: =VerticalAlign.Middle
-                              Width: =210
+                              Visible: =Parent.Width > 1000
+                              Width: =240
                         - recHdrBtnNew:
                             Control: Classic/Button@2.2.0
                             Properties:
@@ -345,6 +380,8 @@ Screens:
                               HoverBorderColor: =clrBlueHover
                               HoverColor: =clrWhite
                               HoverFill: =clrBlue
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =0
                               OnSelect: =Navigate(scrEntry, ScreenTransition.None)
                               PressedBorderColor: =clrInk
                               PressedColor: =clrWhite
@@ -353,7 +390,7 @@ Screens:
                               RadiusBottomRight: =5
                               RadiusTopLeft: =5
                               RadiusTopRight: =5
-                              Size: =10.5
+                              Size: =11
                               Text: ="+ New rate"
                               Width: =130
                   - recBody:
@@ -367,6 +404,7 @@ Screens:
                         FillPortions: =1
                         LayoutDirection: =LayoutDirection.Vertical
                         LayoutGap: =16
+                        LayoutMinHeight: =0
                         LayoutMinWidth: =40
                         PaddingBottom: =16
                         PaddingLeft: =16
@@ -386,10 +424,13 @@ Screens:
                               DropShadow: =DropShadow.None
                               Fill: =clrClear
                               FillPortions: =0
-                              Height: =38
+                              Height: =If(recBody.Width < 1120, 88, 38)
                               LayoutAlignItems: =LayoutAlignItems.Center
                               LayoutDirection: =LayoutDirection.Horizontal
                               LayoutGap: =12
+                              LayoutMinHeight: =0
+                              LayoutMinWidth: =0
+                              LayoutWrap: =true
                               PaddingBottom: =0
                               PaddingLeft: =0
                               PaddingRight: =0
@@ -414,13 +455,15 @@ Screens:
                                     HintText: ="Lane, e.g. TOWI"
                                     HoverBorderColor: =clrInk3
                                     HoverFill: =clrPanel
+                                    LayoutMinHeight: =0
+                                    LayoutMinWidth: =0
                                     PressedBorderColor: =clrBlue
                                     PressedFill: =clrPanel
                                     RadiusBottomLeft: =5
                                     RadiusBottomRight: =5
                                     RadiusTopLeft: =5
                                     RadiusTopRight: =5
-                                    Size: =10.5
+                                    Size: =11
                                     Width: =150
                               - recTxtCarrier:
                                   Control: Classic/TextInput@2.3.2
@@ -437,13 +480,15 @@ Screens:
                                     HintText: ="Carrier"
                                     HoverBorderColor: =clrInk3
                                     HoverFill: =clrPanel
+                                    LayoutMinHeight: =0
+                                    LayoutMinWidth: =0
                                     PressedBorderColor: =clrBlue
                                     PressedFill: =clrPanel
                                     RadiusBottomLeft: =5
                                     RadiusBottomRight: =5
                                     RadiusTopLeft: =5
                                     RadiusTopRight: =5
-                                    Size: =10.5
+                                    Size: =11
                                     Width: =150
                               - recTxtMode:
                                   Control: Classic/TextInput@2.3.2
@@ -460,13 +505,15 @@ Screens:
                                     HintText: ="Mode"
                                     HoverBorderColor: =clrInk3
                                     HoverFill: =clrPanel
+                                    LayoutMinHeight: =0
+                                    LayoutMinWidth: =0
                                     PressedBorderColor: =clrBlue
                                     PressedFill: =clrPanel
                                     RadiusBottomLeft: =5
                                     RadiusBottomRight: =5
                                     RadiusTopLeft: =5
                                     RadiusTopRight: =5
-                                    Size: =10.5
+                                    Size: =11
                                     Width: =150
                               - recTxtEquip:
                                   Control: Classic/TextInput@2.3.2
@@ -483,13 +530,15 @@ Screens:
                                     HintText: ="Equipment, e.g. 53"
                                     HoverBorderColor: =clrInk3
                                     HoverFill: =clrPanel
+                                    LayoutMinHeight: =0
+                                    LayoutMinWidth: =0
                                     PressedBorderColor: =clrBlue
                                     PressedFill: =clrPanel
                                     RadiusBottomLeft: =5
                                     RadiusBottomRight: =5
                                     RadiusTopLeft: =5
                                     RadiusTopRight: =5
-                                    Size: =10.5
+                                    Size: =11
                                     Width: =150
                               - recTglActive:
                                   Control: Classic/Toggle@2.1.0
@@ -505,6 +554,8 @@ Screens:
                                     FontWeight: =FontWeight.Semibold
                                     HandleFill: =clrWhite
                                     Height: =30
+                                    LayoutMinHeight: =0
+                                    LayoutMinWidth: =0
                                     Size: =10
                                     TextPosition: =TextPosition.Right
                                     TrueFill: =clrBlue
@@ -525,6 +576,8 @@ Screens:
                                     FontWeight: =FontWeight.Semibold
                                     HandleFill: =clrWhite
                                     Height: =30
+                                    LayoutMinHeight: =0
+                                    LayoutMinWidth: =0
                                     Size: =10
                                     TextPosition: =TextPosition.Right
                                     TrueFill: =clrBlue
@@ -548,6 +601,8 @@ Screens:
                                     HoverBorderColor: =clrInk3
                                     HoverColor: =clrInk
                                     HoverFill: =clrPanel
+                                    LayoutMinHeight: =0
+                                    LayoutMinWidth: =0
                                     OnSelect: =Reset(recTxtLane); Reset(recTxtCarrier); Reset(recTxtMode); Reset(recTxtEquip); Reset(recTglActive)
                                     PressedBorderColor: =clrInk3
                                     PressedColor: =clrInk
@@ -568,12 +623,13 @@ Screens:
                                     FillPortions: =1
                                     Font: =Font.'Segoe UI'
                                     Height: =30
+                                    LayoutMinHeight: =0
                                     LayoutMinWidth: =40
                                     PaddingBottom: =0
                                     PaddingLeft: =0
                                     PaddingRight: =0
                                     PaddingTop: =0
-                                    Size: =9
+                                    Size: =10
                                     Text: |-
                                       =CountRows(recGallery.AllItems) & If(CountRows(recGallery.AllItems) = 1, " rate", " rates") &
                                       " · fuel " & If(recTglFuel.Value, "included", "excluded")
@@ -590,6 +646,7 @@ Screens:
                               FillPortions: =1
                               LayoutDirection: =LayoutDirection.Vertical
                               LayoutGap: =0
+                              LayoutMinHeight: =0
                               LayoutMinWidth: =40
                               PaddingBottom: =0
                               PaddingLeft: =0
@@ -610,6 +667,8 @@ Screens:
                                     Fill: =clrPanel
                                     FillPortions: =0
                                     Height: =36
+                                    LayoutMinHeight: =0
+                                    LayoutMinWidth: =0
                                     RadiusBottomLeft: =0
                                     RadiusBottomRight: =0
                                     RadiusTopLeft: =0
@@ -628,7 +687,7 @@ Screens:
                                           PaddingLeft: =10
                                           PaddingRight: =10
                                           PaddingTop: =0
-                                          Size: =8.5
+                                          Size: =9
                                           Text: ="Lane"
                                           VerticalAlign: =VerticalAlign.Middle
                                           Width: =Parent.Width * 0.1
@@ -647,7 +706,7 @@ Screens:
                                           PaddingLeft: =10
                                           PaddingRight: =10
                                           PaddingTop: =0
-                                          Size: =8.5
+                                          Size: =9
                                           Text: ="Carrier"
                                           VerticalAlign: =VerticalAlign.Middle
                                           Width: =Parent.Width * 0.15
@@ -666,7 +725,7 @@ Screens:
                                           PaddingLeft: =10
                                           PaddingRight: =10
                                           PaddingTop: =0
-                                          Size: =8.5
+                                          Size: =9
                                           Text: ="Mode"
                                           VerticalAlign: =VerticalAlign.Middle
                                           Width: =Parent.Width * 0.11
@@ -685,7 +744,7 @@ Screens:
                                           PaddingLeft: =10
                                           PaddingRight: =10
                                           PaddingTop: =0
-                                          Size: =8.5
+                                          Size: =9
                                           Text: ="Equipment"
                                           VerticalAlign: =VerticalAlign.Middle
                                           Width: =Parent.Width * 0.17
@@ -704,7 +763,7 @@ Screens:
                                           PaddingLeft: =10
                                           PaddingRight: =10
                                           PaddingTop: =0
-                                          Size: =8.5
+                                          Size: =9
                                           Text: ="LH cost"
                                           VerticalAlign: =VerticalAlign.Middle
                                           Width: =Parent.Width * 0.11
@@ -723,7 +782,7 @@ Screens:
                                           PaddingLeft: =10
                                           PaddingRight: =10
                                           PaddingTop: =0
-                                          Size: =8.5
+                                          Size: =9
                                           Text: ="$/ft³"
                                           VerticalAlign: =VerticalAlign.Middle
                                           Width: =Parent.Width * 0.09
@@ -742,7 +801,7 @@ Screens:
                                           PaddingLeft: =10
                                           PaddingRight: =10
                                           PaddingTop: =0
-                                          Size: =8.5
+                                          Size: =9
                                           Text: ="Status"
                                           VerticalAlign: =VerticalAlign.Middle
                                           Width: =Parent.Width * 0.12
@@ -761,7 +820,7 @@ Screens:
                                           PaddingLeft: =10
                                           PaddingRight: =10
                                           PaddingTop: =0
-                                          Size: =8.5
+                                          Size: =9
                                           Text: ="Added"
                                           VerticalAlign: =VerticalAlign.Middle
                                           Width: =Parent.Width * 0.15
@@ -800,18 +859,18 @@ Screens:
                                                           StartsWith(Title, Left(l, 2)),
                                                           StartsWith(Destination, Mid(l, 3, 2)),
                                                           StartsWith(Carrier, c),
-                                                          StartsWith(Mode, m),
-                                                          !recTglActive.Value || Active = true
+                                                          StartsWith(Mode, m)
                                                       ),
                                                       Timestamp,
                                                       SortOrder.Descending
                                                   ),
-                                                  IsBlank(e) || e in Equipment
+                                                  (IsBlank(e) || e in Equipment) && (!recTglActive.Value || Active)
                                               ),
                                               LH, LHCost(Base, Fuel, F_Adj, F_Discount, Adj, AdjType, Discount, DiscountType, recTglFuel.Value),
                                               NoFSC, recTglFuel.Value && FuelMissing(Fuel)
                                           )
                                       )
+                                    LayoutMinHeight: =0
                                     LayoutMinWidth: =40
                                     OnSelect: =Set(varRate, ThisItem); Navigate(scrDetails, ScreenTransition.None)
                                     ShowScrollbar: =true
@@ -833,7 +892,7 @@ Screens:
                                           PaddingLeft: =10
                                           PaddingRight: =10
                                           PaddingTop: =0
-                                          Size: =10
+                                          Size: =10.5
                                           Text: =ThisItem.Title & " → " & ThisItem.Destination
                                           VerticalAlign: =VerticalAlign.Middle
                                           Width: =Parent.TemplateWidth * 0.1
@@ -853,7 +912,7 @@ Screens:
                                           PaddingLeft: =10
                                           PaddingRight: =10
                                           PaddingTop: =0
-                                          Size: =10
+                                          Size: =10.5
                                           Text: =ThisItem.Carrier
                                           VerticalAlign: =VerticalAlign.Middle
                                           Width: =Parent.TemplateWidth * 0.15
@@ -873,7 +932,7 @@ Screens:
                                           PaddingLeft: =10
                                           PaddingRight: =10
                                           PaddingTop: =0
-                                          Size: =10
+                                          Size: =10.5
                                           Text: =ThisItem.Mode
                                           VerticalAlign: =VerticalAlign.Middle
                                           Width: =Parent.TemplateWidth * 0.11
@@ -893,7 +952,7 @@ Screens:
                                           PaddingLeft: =10
                                           PaddingRight: =10
                                           PaddingTop: =0
-                                          Size: =10
+                                          Size: =10.5
                                           Text: =ThisItem.Equipment
                                           VerticalAlign: =VerticalAlign.Middle
                                           Width: =Parent.TemplateWidth * 0.17
@@ -913,7 +972,7 @@ Screens:
                                           PaddingLeft: =10
                                           PaddingRight: =10
                                           PaddingTop: =0
-                                          Size: =10
+                                          Size: =10.5
                                           Text: =Text(ThisItem.LH, "$#,##0.00") & If(ThisItem.NoFSC, " ⚠", "")
                                           VerticalAlign: =VerticalAlign.Middle
                                           Width: =Parent.TemplateWidth * 0.11
@@ -933,7 +992,7 @@ Screens:
                                           PaddingLeft: =10
                                           PaddingRight: =10
                                           PaddingTop: =0
-                                          Size: =10
+                                          Size: =10.5
                                           Text: =Text(ThisItem.LH / CubicFt(ThisItem.Equipment), "$#,##0.00")
                                           VerticalAlign: =VerticalAlign.Middle
                                           Width: =Parent.TemplateWidth * 0.09
@@ -979,7 +1038,7 @@ Screens:
                                           PaddingLeft: =10
                                           PaddingRight: =10
                                           PaddingTop: =0
-                                          Size: =8.5
+                                          Size: =9
                                           Text: =Text(ThisItem.Timestamp, "mmm d, h:mm AM/PM")
                                           VerticalAlign: =VerticalAlign.Middle
                                           Width: =Parent.TemplateWidth * 0.15
@@ -1004,11 +1063,13 @@ Screens:
                                     FillPortions: =0
                                     Font: =Font.'Segoe UI'
                                     Height: =60
+                                    LayoutMinHeight: =0
+                                    LayoutMinWidth: =0
                                     PaddingBottom: =0
                                     PaddingLeft: =0
                                     PaddingRight: =0
                                     PaddingTop: =0
-                                    Size: =10
+                                    Size: =10.5
                                     Text: ="No rates match these filters. Clear filters to see everything."
                                     VerticalAlign: =VerticalAlign.Middle
                                     Visible: =IsEmpty(recGallery.AllItems)
