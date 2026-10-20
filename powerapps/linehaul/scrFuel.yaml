@@ -811,7 +811,7 @@ Screens:
                                     DropShadow: =DropShadow.None
                                     Fill: =clrPanel
                                     FillPortions: =If(fulBody.Width < 900, 0, 1)
-                                    Height: =If(fulLblErr.Visible, 381, 335)
+                                    Height: =If(fulLblErr.Visible, 408, 344)
                                     LayoutDirection: =LayoutDirection.Vertical
                                     LayoutGap: =0
                                     LayoutMinHeight: =0
@@ -1247,13 +1247,13 @@ Screens:
                                                 Fill: =clrRedBg
                                                 FillPortions: =0
                                                 Font: =Font.'Segoe UI'
-                                                Height: =34
+                                                Height: =52
                                                 LayoutMinHeight: =0
                                                 LayoutMinWidth: =0
-                                                PaddingBottom: =0
+                                                PaddingBottom: =8
                                                 PaddingLeft: =12
                                                 PaddingRight: =12
-                                                PaddingTop: =0
+                                                PaddingTop: =8
                                                 Size: =10
                                                 Text: |-
                                                   =With(

@@ -429,8 +429,8 @@ Screens:
                               Height: |-
                                 =If(
                                     entBody.Width < 900,
-                                    (460 + If(entLblReplace.Visible, 46, 0) + If(entLblDupe.Visible, 58, 0)) + 16 + 428,
-                                    (460 + If(entLblReplace.Visible, 46, 0) + If(entLblDupe.Visible, 58, 0))
+                                    (468 + If(entLblReplace.Visible, 64, 0) + If(entLblDupe.Visible, 64, 0)) + 16 + 436,
+                                    (468 + If(entLblReplace.Visible, 64, 0) + If(entLblDupe.Visible, 64, 0))
                                 )
                               LayoutDirection: =If(entBody.Width < 900, LayoutDirection.Vertical, LayoutDirection.Horizontal)
                               LayoutGap: =16
@@ -455,7 +455,7 @@ Screens:
                                     DropShadow: =DropShadow.None
                                     Fill: =clrPanel
                                     FillPortions: =If(entBody.Width < 900, 0, 1)
-                                    Height: =(460 + If(entLblReplace.Visible, 46, 0) + If(entLblDupe.Visible, 58, 0))
+                                    Height: =(468 + If(entLblReplace.Visible, 64, 0) + If(entLblDupe.Visible, 64, 0))
                                     LayoutDirection: =LayoutDirection.Vertical
                                     LayoutGap: =0
                                     LayoutMinHeight: =0
@@ -1563,11 +1563,12 @@ Screens:
                                                 BorderThickness: =0
                                                 DropShadow: =DropShadow.None
                                                 Fill: =clrClear
-                                                FillPortions: =1
+                                                FillPortions: =0
+                                                Height: =86
                                                 LayoutDirection: =LayoutDirection.Vertical
                                                 LayoutGap: =4
                                                 LayoutMinHeight: =0
-                                                LayoutMinWidth: =100
+                                                LayoutMinWidth: =0
                                                 PaddingBottom: =0
                                                 PaddingLeft: =0
                                                 PaddingRight: =0
@@ -1699,13 +1700,13 @@ Screens:
                                                 Fill: =clrAmberBg
                                                 FillPortions: =0
                                                 Font: =Font.'Segoe UI'
-                                                Height: =34
+                                                Height: =52
                                                 LayoutMinHeight: =0
                                                 LayoutMinWidth: =0
-                                                PaddingBottom: =0
+                                                PaddingBottom: =8
                                                 PaddingLeft: =12
                                                 PaddingRight: =12
-                                                PaddingTop: =0
+                                                PaddingTop: =8
                                                 Size: =10
                                                 Text: |-
                                                   =If(
@@ -1746,13 +1747,13 @@ Screens:
                                                 Fill: =clrAmberBg
                                                 FillPortions: =0
                                                 Font: =Font.'Segoe UI'
-                                                Height: =46
+                                                Height: =52
                                                 LayoutMinHeight: =0
                                                 LayoutMinWidth: =0
-                                                PaddingBottom: =0
+                                                PaddingBottom: =8
                                                 PaddingLeft: =12
                                                 PaddingRight: =12
-                                                PaddingTop: =0
+                                                PaddingTop: =8
                                                 Size: =10
                                                 Text: |-
                                                   =If(
@@ -1794,7 +1795,7 @@ Screens:
                                     DropShadow: =DropShadow.None
                                     Fill: =clrPanel
                                     FillPortions: =If(entBody.Width < 900, 0, 1)
-                                    Height: =428
+                                    Height: =436
                                     LayoutDirection: =LayoutDirection.Vertical
                                     LayoutGap: =0
                                     LayoutMinHeight: =0
@@ -2831,11 +2832,12 @@ Screens:
                                                 BorderThickness: =0
                                                 DropShadow: =DropShadow.None
                                                 Fill: =clrClear
-                                                FillPortions: =1
+                                                FillPortions: =0
+                                                Height: =134
                                                 LayoutDirection: =LayoutDirection.Vertical
                                                 LayoutGap: =4
                                                 LayoutMinHeight: =0
-                                                LayoutMinWidth: =100
+                                                LayoutMinWidth: =0
                                                 PaddingBottom: =0
                                                 PaddingLeft: =0
                                                 PaddingRight: =0
@@ -2872,7 +2874,7 @@ Screens:
                                                       DropShadow: =DropShadow.None
                                                       Fill: =clrClear
                                                       FillPortions: =0
-                                                      Height: =104
+                                                      Height: =112
                                                       LayoutDirection: =LayoutDirection.Horizontal
                                                       LayoutGap: =12
                                                       LayoutMinHeight: =0
@@ -2893,7 +2895,7 @@ Screens:
                                                             Color: =clrInk2
                                                             FillPortions: =1
                                                             Font: =Font.'Segoe UI'
-                                                            Height: =104
+                                                            Height: =112
                                                             LayoutMinHeight: =0
                                                             LayoutMinWidth: =40
                                                             PaddingBottom: =0
@@ -2929,7 +2931,7 @@ Screens:
                                                             FillPortions: =0
                                                             Font: =Font.'Segoe UI'
                                                             FontWeight: =FontWeight.Semibold
-                                                            Height: =104
+                                                            Height: =112
                                                             LayoutMinHeight: =0
                                                             LayoutMinWidth: =0
                                                             PaddingBottom: =0
@@ -2970,7 +2972,7 @@ Screens:
                         DropShadow: =DropShadow.None
                         Fill: =clrClear
                         FillPortions: =0
-                        Height: =98
+                        Height: =104
                         LayoutDirection: =LayoutDirection.Vertical
                         LayoutGap: =0
                         LayoutMinHeight: =0
@@ -3022,10 +3024,10 @@ Screens:
                                     LayoutGap: =0
                                     LayoutMinHeight: =0
                                     LayoutMinWidth: =90
-                                    PaddingBottom: =6
-                                    PaddingLeft: =12
-                                    PaddingRight: =12
-                                    PaddingTop: =6
+                                    PaddingBottom: =8
+                                    PaddingLeft: =14
+                                    PaddingRight: =14
+                                    PaddingTop: =8
                                     RadiusBottomLeft: =6
                                     RadiusBottomRight: =6
                                     RadiusTopLeft: =6
@@ -3081,10 +3083,10 @@ Screens:
                                     LayoutGap: =0
                                     LayoutMinHeight: =0
                                     LayoutMinWidth: =90
-                                    PaddingBottom: =6
-                                    PaddingLeft: =12
-                                    PaddingRight: =12
-                                    PaddingTop: =6
+                                    PaddingBottom: =8
+                                    PaddingLeft: =14
+                                    PaddingRight: =14
+                                    PaddingTop: =8
                                     RadiusBottomLeft: =6
                                     RadiusBottomRight: =6
                                     RadiusTopLeft: =6
@@ -3140,10 +3142,10 @@ Screens:
                                     LayoutGap: =0
                                     LayoutMinHeight: =0
                                     LayoutMinWidth: =90
-                                    PaddingBottom: =6
-                                    PaddingLeft: =12
-                                    PaddingRight: =12
-                                    PaddingTop: =6
+                                    PaddingBottom: =8
+                                    PaddingLeft: =14
+                                    PaddingRight: =14
+                                    PaddingTop: =8
                                     RadiusBottomLeft: =6
                                     RadiusBottomRight: =6
                                     RadiusTopLeft: =6
@@ -3199,10 +3201,10 @@ Screens:
                                     LayoutGap: =0
                                     LayoutMinHeight: =0
                                     LayoutMinWidth: =90
-                                    PaddingBottom: =6
-                                    PaddingLeft: =12
-                                    PaddingRight: =12
-                                    PaddingTop: =6
+                                    PaddingBottom: =8
+                                    PaddingLeft: =14
+                                    PaddingRight: =14
+                                    PaddingTop: =8
                                     RadiusBottomLeft: =6
                                     RadiusBottomRight: =6
                                     RadiusTopLeft: =6
