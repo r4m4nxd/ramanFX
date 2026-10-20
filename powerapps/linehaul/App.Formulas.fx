@@ -1,16 +1,16 @@
 // Line-Haul Cost Collector · App.Formulas
 // Paste into App → Formulas (append below anything already there).
 
-// ---------- Theme (matches LTL Rate Request) ----------
+// ---------- Theme: LTL Rate Request family, teal accent so the two apps aren't confused ----------
 clrInk = RGBA(22, 32, 43, 1);
 clrInk2 = RGBA(72, 88, 106, 1);
 clrInk3 = RGBA(125, 139, 153, 1);
-clrPage = RGBA(239, 242, 245, 1);
+clrPage = RGBA(236, 243, 243, 1);
 clrPanel = RGBA(255, 255, 255, 1);
-clrLine = RGBA(219, 226, 233, 1);
-clrSoft = RGBA(244, 247, 249, 1);
-clrBlue = RGBA(47, 75, 155, 1);
-clrBlueHover = RGBA(71, 99, 184, 1);
+clrLine = RGBA(212, 225, 226, 1);
+clrSoft = RGBA(242, 248, 248, 1);
+clrBlue = RGBA(14, 110, 112, 1);        // primary accent (teal)
+clrBlueHover = RGBA(26, 138, 140, 1);
 clrRed = RGBA(196, 22, 28, 1);
 clrRedBg = RGBA(253, 236, 237, 1);
 clrAmber = RGBA(242, 183, 5, 1);
@@ -18,9 +18,9 @@ clrAmberBg = RGBA(255, 247, 221, 1);
 clrAmberInk = RGBA(125, 94, 0, 1);
 clrGreenBg = RGBA(231, 244, 236, 1);
 clrGreenInk = RGBA(20, 96, 63, 1);
-clrRail = RGBA(31, 41, 51, 1);
-clrRailOn = RGBA(44, 57, 69, 1);
-clrRailInk = RGBA(201, 210, 219, 1);
+clrRail = RGBA(23, 39, 43, 1);
+clrRailOn = RGBA(35, 58, 63, 1);
+clrRailInk = RGBA(196, 214, 216, 1);
 clrOrange = RGBA(224, 102, 43, 1);
 clrWhite = RGBA(255, 255, 255, 1);
 clrClear = RGBA(0, 0, 0, 0);
