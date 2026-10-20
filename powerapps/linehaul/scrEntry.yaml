@@ -1774,15 +1774,18 @@ Screens:
                                                       With(
                                                           {
                                                               p: LookUp(
-                                                                  Filter(
-                                                                      LinehaulRates,
-                                                                      Title = varOrigin &&
-                                                                      Destination = varDest &&
-                                                                      Carrier = varCarrier &&
-                                                                      Mode = varMode &&
-                                                                      Equipment = varEquip
+                                                                  AddColumns(
+                                                                      Filter(
+                                                                          LinehaulRates,
+                                                                          Title = varOrigin &&
+                                                                          Destination = varDest &&
+                                                                          Carrier = varCarrier &&
+                                                                          Mode = varMode &&
+                                                                          Equipment = varEquip
+                                                                      ),
+                                                                      IsOn, Coalesce(Active, false)
                                                                   ),
-                                                                  ThisRecord.Active = true
+                                                                  IsOn
                                                               )
                                                           },
                                                           If(
@@ -3323,14 +3326,17 @@ Screens:
                                                           n.Active,
                                                           ForAll(
                                                               Filter(
-                                                                  Filter(
-                                                                      LinehaulRates,
-                                                                      Title = n.Title && Destination = n.Destination && Carrier = n.Carrier &&
-                                                                      Mode = n.Mode && Equipment = n.Equipment
+                                                                  AddColumns(
+                                                                      Filter(
+                                                                          LinehaulRates,
+                                                                          Title = n.Title && Destination = n.Destination && Carrier = n.Carrier &&
+                                                                          Mode = n.Mode && Equipment = n.Equipment
+                                                                      ),
+                                                                      IsOn, Coalesce(Active, false)
                                                                   ),
-                                                                  ThisRecord.Active = true && ID <> n.ID
+                                                                  IsOn && ID <> n.ID
                                                               ) As old,
-                                                              Patch(LinehaulRates, old, {Active: false})
+                                                              Patch(LinehaulRates, LookUp(LinehaulRates, ID = old.ID), {Active: false})
                                                           )
                                                       );
                                                       Notify("Rate saved for " & n.Title & n.Destination & " " & n.Carrier & ".", NotificationType.Success);
@@ -3707,14 +3713,17 @@ Screens:
                                           n.Active,
                                           ForAll(
                                               Filter(
-                                                  Filter(
-                                                      LinehaulRates,
-                                                      Title = n.Title && Destination = n.Destination && Carrier = n.Carrier &&
-                                                      Mode = n.Mode && Equipment = n.Equipment
+                                                  AddColumns(
+                                                      Filter(
+                                                          LinehaulRates,
+                                                          Title = n.Title && Destination = n.Destination && Carrier = n.Carrier &&
+                                                          Mode = n.Mode && Equipment = n.Equipment
+                                                      ),
+                                                      IsOn, Coalesce(Active, false)
                                                   ),
-                                                  ThisRecord.Active = true && ID <> n.ID
+                                                  IsOn && ID <> n.ID
                                               ) As old,
-                                              Patch(LinehaulRates, old, {Active: false})
+                                              Patch(LinehaulRates, LookUp(LinehaulRates, ID = old.ID), {Active: false})
                                           )
                                       );
                                       Notify("Rate saved for " & n.Title & n.Destination & " " & n.Carrier & ".", NotificationType.Success);

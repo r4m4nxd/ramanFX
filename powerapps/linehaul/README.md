@@ -79,7 +79,13 @@ Do these once in the list settings. They protect the data even if someone edits 
 
 ## Yes/No column
 
-SharePoint mishandles `Active = true` when it is combined with other conditions, which is why "Active only" showed an empty list. The query to SharePoint now filters on lane, carrier and mode only, and Active is checked on the rows that come back. The replace warning, duplicate check and deactivation step use the same pattern.
+SharePoint returns no rows when a filter on the Yes/No `Active` column is sent to it, and Power Apps sends it whenever it can. That is why "Active only" came back empty.
+
+Every Active check now runs on rows already loaded:
+- The query to SharePoint filters only on expiry, lane, carrier, mode or ID.
+- `AddColumns(..., IsOn, Coalesce(Active, false))` then pulls the rows into the app, so the `IsOn` check can't be pushed back to SharePoint.
+
+This covers the "Active only" filter, the status pills, the replace warning, both deactivation steps and the lane history. Blank Active values count as inactive.
 
 ## Known limits
 

@@ -474,15 +474,18 @@ entry_replace = fx("""
         With(
             {
                 p: LookUp(
-                    Filter(
-                        LinehaulRates,
-                        Title = varOrigin &&
-                        Destination = varDest &&
-                        Carrier = varCarrier &&
-                        Mode = varMode &&
-                        Equipment = varEquip
+                    AddColumns(
+                        Filter(
+                            LinehaulRates,
+                            Title = varOrigin &&
+                            Destination = varDest &&
+                            Carrier = varCarrier &&
+                            Mode = varMode &&
+                            Equipment = varEquip
+                        ),
+                        IsOn, Coalesce(Active, false)
                     ),
-                    ThisRecord.Active = true
+                    IsOn
                 )
             },
             If(
@@ -688,14 +691,17 @@ entry_do_save = fx("""
                     n.Active,
                     ForAll(
                         Filter(
-                            Filter(
-                                LinehaulRates,
-                                Title = n.Title && Destination = n.Destination && Carrier = n.Carrier &&
-                                Mode = n.Mode && Equipment = n.Equipment
+                            AddColumns(
+                                Filter(
+                                    LinehaulRates,
+                                    Title = n.Title && Destination = n.Destination && Carrier = n.Carrier &&
+                                    Mode = n.Mode && Equipment = n.Equipment
+                                ),
+                                IsOn, Coalesce(Active, false)
                             ),
-                            ThisRecord.Active = true && ID <> n.ID
+                            IsOn && ID <> n.ID
                         ) As old,
-                        Patch(LinehaulRates, old, {Active: false})
+                        Patch(LinehaulRates, LookUp(LinehaulRates, ID = old.ID), {Active: false})
                     )
                 );
                 Notify("Rate saved for " & n.Title & n.Destination & " " & n.Carrier & ".", NotificationType.Success);
@@ -969,8 +975,8 @@ recent_items = fx("""
             m: Upper(Trim(recTxtMode.Text)),
             e: Upper(Trim(recTxtEquip.Text))
         },
-        AddColumns(
-            Filter(
+        Filter(
+            AddColumns(
                 Sort(
                     Filter(
                         LinehaulRates,
@@ -983,10 +989,11 @@ recent_items = fx("""
                     Timestamp,
                     SortOrder.Descending
                 ),
-                (IsBlank(e) || e in Equipment) && (!recTglActive.Value || ThisRecord.Active = true)
+                IsOn, Coalesce(Active, false),
+                LH, LHCost(Base, Fuel, F_Adj, F_Discount, Adj, AdjType, Discount, DiscountType, recTglFuel.Value),
+                NoFSC, recTglFuel.Value && FuelMissing(Fuel)
             ),
-            LH, LHCost(Base, Fuel, F_Adj, F_Discount, Adj, AdjType, Discount, DiscountType, recTglFuel.Value),
-            NoFSC, recTglFuel.Value && FuelMissing(Fuel)
+            (IsBlank(e) || e in Equipment) && (!recTglActive.Value || IsOn)
         )
     )
 """)
@@ -1017,8 +1024,8 @@ def rec_template():
     kids = []
     for key, _, x, w, align in REC_COLS:
         if key == "Status":
-            kids.append(pill("recRowStatus", 'If(ThisItem.Active, "Active", "Inactive")',
-                             "If(ThisItem.Active, clrGreenBg, clrSoft)", "If(ThisItem.Active, clrGreenInk, clrInk3)",
+            kids.append(pill("recRowStatus", 'If(ThisItem.IsOn, "Active", "Inactive")',
+                             "If(ThisItem.IsOn, clrGreenBg, clrSoft)", "If(ThisItem.IsOn, clrGreenInk, clrInk3)",
                              OnSelect="Select(Parent)", X=f"Parent.TemplateWidth * {x} + 8", Y=12, Width=74))
             continue
         kids.append(lbl(f"recRow{key}", REC_TEXT[key], OnSelect="Select(Parent)",
@@ -1163,7 +1170,7 @@ DET_COLLECT = fx(f"""
     ClearCollect(
         colLaneRates,
         Sort(
-            AddColumns(Filter(LinehaulRates, {DET_KEY}), LH, 0, NoFSC, false),
+            AddColumns(Filter(LinehaulRates, {DET_KEY}), IsOn, Coalesce(Active, false), LH, 0, NoFSC, false),
             Timestamp,
             SortOrder.Descending
         )
@@ -1188,7 +1195,7 @@ det_edit_err = fx("""
 
 det_edit_warn = fx("""
     With(
-        {act: First(Filter(colLaneRates, ID <> varRate.ID && ThisRecord.Active = true))},
+        {act: First(Filter(colLaneRates, ID <> varRate.ID && IsOn))},
         Trim(
             If(
                 detTglEditActive.Value && !IsBlank(act),
@@ -1230,14 +1237,17 @@ det_do_save = fx(f"""
                 r.Active,
                 ForAll(
                     Filter(
-                        Filter(
-                            LinehaulRates,
-                            Title = r.Title && Destination = r.Destination && Carrier = r.Carrier &&
-                            Mode = r.Mode && Equipment = r.Equipment
+                        AddColumns(
+                            Filter(
+                                LinehaulRates,
+                                Title = r.Title && Destination = r.Destination && Carrier = r.Carrier &&
+                                Mode = r.Mode && Equipment = r.Equipment
+                            ),
+                            IsOn, Coalesce(Active, false)
                         ),
-                        ThisRecord.Active = true && ID <> r.ID
+                        IsOn && ID <> r.ID
                     ) As old,
-                    Patch(LinehaulRates, old, {{Active: false}})
+                    Patch(LinehaulRates, LookUp(LinehaulRates, ID = old.ID), {{Active: false}})
                 )
             );
             Set(
@@ -1246,6 +1256,7 @@ det_do_save = fx(f"""
                     varRate,
                     {{
                         Active: r.Active,
+                        IsOn: Coalesce(r.Active, false),
                         EffectiveDate: r.EffectiveDate,
                         ExpiryDate: r.ExpiryDate,
                         Comments: r.Comments
@@ -1305,8 +1316,8 @@ LANE_TEXT = {
 
 
 def lane_template():
-    kids = [pill("detLaneRowStatus", 'If(ThisItem.Active, "Active", "Inactive")',
-                 "If(ThisItem.Active, clrGreenBg, clrSoft)", "If(ThisItem.Active, clrGreenInk, clrInk3)",
+    kids = [pill("detLaneRowStatus", 'If(ThisItem.IsOn, "Active", "Inactive")',
+                 "If(ThisItem.IsOn, clrGreenBg, clrSoft)", "If(ThisItem.IsOn, clrGreenInk, clrInk3)",
                  OnSelect="Select(Parent)", X=12, Y=11, Width=74)]
     for key, _, x, w, align in LANE_COLS[1:]:
         kids.append(lbl(f"detLaneRow{key}", LANE_TEXT[key], OnSelect="Select(Parent)", Size=T_TABLE,
@@ -1323,7 +1334,7 @@ det_history = section("detSecHistory", "3", s("All rates on this lane"),
                       height="89 + If(detLblMultiActive.Visible, 56, 0) + Min(Max(CountRows(colLaneRates), 1), 6) * 44",
                       body_pad=0, body_gap=0, body=[
     lbl("detLblMultiActive",
-        'With({n: CountRows(Filter(colLaneRates, ThisRecord.Active = true))}, If(n > 1, "⚠ " & n & " rates on this lane are active. '
+        'With({n: CountRows(Filter(colLaneRates, IsOn))}, If(n > 1, "⚠ " & n & " rates on this lane are active. '
         'Open the one that should stay active, choose Edit rate and save it; the others switch off.", ""))',
         Visible="!IsBlank(Self.Text)", Fill="clrAmberBg", Color="clrAmberInk", Size=T_SECONDARY, Wrap="true",
         **pads(8, 16), **fixed(h=56), **STRETCH),
