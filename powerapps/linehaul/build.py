@@ -1182,8 +1182,9 @@ det_hero = row("detHero", 44, inset=2, children=[
     pill("detChipEquip", f"{R}.Equipment", "clrPanel", "clrInk", BorderColor="clrLine", BorderThickness=1,
          HoverBorderColor="clrLine", PressedBorderColor="clrLine", **fixed(170, 26)),
     rect("detHeroSpacer", Fill="clrClear", Height=10, **fill(1, 0)),
-    pill("detStatus", f'If({R}.IsOn, "Active", "Inactive")', f"If({R}.IsOn, clrGreenBg, clrSoft)",
-         f"If({R}.IsOn, clrGreenInk, clrInk3)", **fixed(90, 26)),
+    pill("detStatus", f'If({R}.ExpiryDate < Today(), "Expired", {R}.IsOn, "Active", "Inactive")',
+         f"If({R}.ExpiryDate < Today(), clrRedBg, {R}.IsOn, clrGreenBg, clrSoft)",
+         f"If({R}.ExpiryDate < Today(), clrRed, {R}.IsOn, clrGreenInk, clrInk3)", **fixed(90, 26)),
 ], gap=12, LayoutAlignItems="LayoutAlignItems.Center")
 
 det_lane = section("detSecLane", "1", s("Lane"), s("Read only"), height=210, body_gap=8, body=[
@@ -1330,6 +1331,7 @@ det_do_save = fx(f"""
                     {{
                         Active: r.Active,
                         IsOn: Upper(r.Active) = "YES",
+                        Expired: r.ExpiryDate < Today(),
                         EffectiveDate: r.EffectiveDate,
                         ExpiryDate: r.ExpiryDate,
                         Comments: r.Comments
@@ -1389,8 +1391,9 @@ LANE_TEXT = {
 
 
 def lane_template():
-    kids = [pill("detLaneRowStatus", 'If(ThisItem.IsOn, "Active", "Inactive")',
-                 "If(ThisItem.IsOn, clrGreenBg, clrSoft)", "If(ThisItem.IsOn, clrGreenInk, clrInk3)",
+    kids = [pill("detLaneRowStatus", 'If(ThisItem.ExpiryDate < Today(), "Expired", ThisItem.IsOn, "Active", "Inactive")',
+                 "If(ThisItem.ExpiryDate < Today(), clrRedBg, ThisItem.IsOn, clrGreenBg, clrSoft)",
+                 "If(ThisItem.ExpiryDate < Today(), clrRed, ThisItem.IsOn, clrGreenInk, clrInk3)",
                  OnSelect="Select(Parent)", X=12, Y=11, Width=74)]
     for key, _, x, w, align in LANE_COLS[1:]:
         kids.append(lbl(f"detLaneRow{key}", LANE_TEXT[key], OnSelect="Select(Parent)", Size=T_TABLE,
