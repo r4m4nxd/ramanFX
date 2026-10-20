@@ -2,6 +2,16 @@ Screens:
   scrDetails:
     Properties:
       Fill: =clrPage
+      OnVisible: |-
+        =Set(varEditRate, false); Set(varConfirmEdit, false); Set(varSavingEdit, false);
+        ClearCollect(
+            colLaneRates,
+            Sort(
+                AddColumns(Filter(LinehaulRates, Title = varRate.Title && Destination = varRate.Destination && Carrier = varRate.Carrier && Mode = varRate.Mode && Equipment = varRate.Equipment), LH, 0, NoFSC, false),
+                Timestamp,
+                SortOrder.Descending
+            )
+        )
     Children:
       - detRoot:
           Control: GroupContainer@1.5.0
@@ -328,6 +338,35 @@ Screens:
                               Text: =User().FullName & " · " & Text(Today(), "mmm d, yyyy")
                               VerticalAlign: =VerticalAlign.Middle
                               Width: =210
+                        - detHdrBtnEdit:
+                            Control: Classic/Button@2.2.0
+                            Properties:
+                              BorderColor: =clrBlue
+                              BorderThickness: =1
+                              Color: =clrWhite
+                              DisabledBorderColor: =clrLine
+                              DisabledColor: =clrInk3
+                              DisabledFill: =clrSoft
+                              Fill: =clrBlue
+                              FillPortions: =0
+                              Font: =Font.'Segoe UI'
+                              FontWeight: =FontWeight.Semibold
+                              Height: =38
+                              HoverBorderColor: =clrBlueHover
+                              HoverColor: =clrWhite
+                              HoverFill: =clrBlueHover
+                              OnSelect: =Set(varEditRate, true); Reset(detTglEditActive); Reset(detDteEditEff); Reset(detDteEditExp); Reset(detTxtEditNotes)
+                              PressedBorderColor: =clrInk
+                              PressedColor: =clrWhite
+                              PressedFill: =clrInk
+                              RadiusBottomLeft: =5
+                              RadiusBottomRight: =5
+                              RadiusTopLeft: =5
+                              RadiusTopRight: =5
+                              Size: =10.5
+                              Text: ="Edit rate"
+                              Visible: =!varEditRate
+                              Width: =110
                         - detHdrBtnBack:
                             Control: Classic/Button@2.2.0
                             Properties:
@@ -521,6 +560,589 @@ Screens:
                                     Size: =8.5
                                     Text: =If(varRate.Active, "Active", "Inactive")
                                     Width: =90
+                        - detSecEdit:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Stretch
+                              BorderColor: =clrBlueHover
+                              BorderThickness: =1
+                              DropShadow: =DropShadow.None
+                              Fill: =clrPanel
+                              FillPortions: =0
+                              Height: =289 + If(detLblEditErr.Visible, 46, 0) + If(detLblEditWarn.Visible, 58, 0)
+                              LayoutDirection: =LayoutDirection.Vertical
+                              LayoutGap: =0
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              PaddingTop: =0
+                              RadiusBottomLeft: =6
+                              RadiusBottomRight: =6
+                              RadiusTopLeft: =6
+                              RadiusTopRight: =6
+                              Visible: =varEditRate
+                            Children:
+                              - detSecEditHead:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    BorderThickness: =0
+                                    DropShadow: =DropShadow.None
+                                    Fill: =clrClear
+                                    FillPortions: =0
+                                    Height: =48
+                                    LayoutAlignItems: =LayoutAlignItems.Center
+                                    LayoutDirection: =LayoutDirection.Horizontal
+                                    LayoutGap: =12
+                                    PaddingBottom: =0
+                                    PaddingLeft: =16
+                                    PaddingRight: =16
+                                    PaddingTop: =0
+                                    RadiusBottomLeft: =0
+                                    RadiusBottomRight: =0
+                                    RadiusTopLeft: =0
+                                    RadiusTopRight: =0
+                                  Children:
+                                    - detSecEditNum:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          Align: =Align.Center
+                                          BorderThickness: =0
+                                          Color: =clrWhite
+                                          Fill: =clrInk
+                                          FillPortions: =0
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Bold
+                                          Height: =24
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          Size: =9
+                                          Text: ="✎"
+                                          VerticalAlign: =VerticalAlign.Middle
+                                          Width: =24
+                                    - detSecEditTitle:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          BorderThickness: =0
+                                          Color: =clrInk
+                                          FillPortions: =0
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Bold
+                                          Height: =30
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          Size: =12
+                                          Text: ="Edit status & dates"
+                                          VerticalAlign: =VerticalAlign.Middle
+                                          Width: =150
+                                    - detSecEditHint:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          BorderThickness: =0
+                                          Color: =clrInk3
+                                          FillPortions: =1
+                                          Font: =Font.'Segoe UI'
+                                          Height: =30
+                                          LayoutMinWidth: =40
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          Size: =9
+                                          Text: ="To change the price, save a new rate so the history stays intact"
+                                          VerticalAlign: =VerticalAlign.Middle
+                              - detSecEditSep:
+                                  Control: Rectangle@2.3.0
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    BorderThickness: =0
+                                    Fill: =clrLine
+                                    FillPortions: =0
+                                    Height: =1
+                              - detSecEditBody:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    BorderThickness: =0
+                                    DropShadow: =DropShadow.None
+                                    Fill: =clrClear
+                                    FillPortions: =1
+                                    LayoutDirection: =LayoutDirection.Vertical
+                                    LayoutGap: =12
+                                    LayoutMinWidth: =40
+                                    PaddingBottom: =16
+                                    PaddingLeft: =16
+                                    PaddingRight: =16
+                                    PaddingTop: =16
+                                    RadiusBottomLeft: =0
+                                    RadiusBottomRight: =0
+                                    RadiusTopLeft: =0
+                                    RadiusTopRight: =0
+                                  Children:
+                                    - detEditRow:
+                                        Control: GroupContainer@1.5.0
+                                        Variant: AutoLayout
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          BorderThickness: =0
+                                          DropShadow: =DropShadow.None
+                                          Fill: =clrClear
+                                          FillPortions: =0
+                                          Height: =60
+                                          LayoutDirection: =LayoutDirection.Horizontal
+                                          LayoutGap: =12
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          RadiusBottomLeft: =0
+                                          RadiusBottomRight: =0
+                                          RadiusTopLeft: =0
+                                          RadiusTopRight: =0
+                                        Children:
+                                          - detFldEditActive:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: AutoLayout
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderThickness: =0
+                                                DropShadow: =DropShadow.None
+                                                Fill: =clrClear
+                                                FillPortions: =1
+                                                LayoutDirection: =LayoutDirection.Vertical
+                                                LayoutGap: =4
+                                                LayoutMinWidth: =100
+                                                PaddingBottom: =0
+                                                PaddingLeft: =0
+                                                PaddingRight: =0
+                                                PaddingTop: =0
+                                                RadiusBottomLeft: =0
+                                                RadiusBottomRight: =0
+                                                RadiusTopLeft: =0
+                                                RadiusTopRight: =0
+                                              Children:
+                                                - detFldEditActiveLbl:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.Stretch
+                                                      BorderThickness: =0
+                                                      Color: =clrInk3
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =18
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =8.5
+                                                      Text: ="Active rate"
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                - detTglEditActive:
+                                                    Control: Classic/Toggle@2.1.0
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.Stretch
+                                                      BorderThickness: =0
+                                                      Color: =clrInk
+                                                      Default: =varRate.Active
+                                                      FalseFill: =RGBA(190, 200, 210, 1)
+                                                      FalseHoverFill: =clrInk3
+                                                      FalseText: ="Inactive"
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Semibold
+                                                      HandleFill: =clrWhite
+                                                      Height: =38
+                                                      Size: =10
+                                                      TextPosition: =TextPosition.Right
+                                                      TrueFill: =clrBlue
+                                                      TrueHoverFill: =clrBlueHover
+                                                      TrueText: ="Active"
+                                          - detFldEditEff:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: AutoLayout
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderThickness: =0
+                                                DropShadow: =DropShadow.None
+                                                Fill: =clrClear
+                                                FillPortions: =1
+                                                LayoutDirection: =LayoutDirection.Vertical
+                                                LayoutGap: =4
+                                                LayoutMinWidth: =100
+                                                PaddingBottom: =0
+                                                PaddingLeft: =0
+                                                PaddingRight: =0
+                                                PaddingTop: =0
+                                                RadiusBottomLeft: =0
+                                                RadiusBottomRight: =0
+                                                RadiusTopLeft: =0
+                                                RadiusTopRight: =0
+                                              Children:
+                                                - detFldEditEffLbl:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.Stretch
+                                                      BorderThickness: =0
+                                                      Color: =clrInk3
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =18
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =8.5
+                                                      Text: ="Effective *"
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                - detDteEditEff:
+                                                    Control: Classic/DatePicker@2.6.0
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.Stretch
+                                                      BorderColor: =clrLine
+                                                      BorderThickness: =1
+                                                      Color: =clrInk
+                                                      DefaultDate: =varRate.EffectiveDate
+                                                      Fill: =clrPanel
+                                                      Font: =Font.'Segoe UI'
+                                                      Height: =38
+                                                      IconBackground: =clrBlue
+                                                      IconFill: =clrWhite
+                                                      Size: =10.5
+                                          - detFldEditExp:
+                                              Control: GroupContainer@1.5.0
+                                              Variant: AutoLayout
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderThickness: =0
+                                                DropShadow: =DropShadow.None
+                                                Fill: =clrClear
+                                                FillPortions: =1
+                                                LayoutDirection: =LayoutDirection.Vertical
+                                                LayoutGap: =4
+                                                LayoutMinWidth: =100
+                                                PaddingBottom: =0
+                                                PaddingLeft: =0
+                                                PaddingRight: =0
+                                                PaddingTop: =0
+                                                RadiusBottomLeft: =0
+                                                RadiusBottomRight: =0
+                                                RadiusTopLeft: =0
+                                                RadiusTopRight: =0
+                                              Children:
+                                                - detFldEditExpLbl:
+                                                    Control: Label@2.5.1
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.Stretch
+                                                      BorderThickness: =0
+                                                      Color: =clrInk3
+                                                      Font: =Font.'Segoe UI'
+                                                      FontWeight: =FontWeight.Bold
+                                                      Height: =18
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      Size: =8.5
+                                                      Text: ="Expiry *"
+                                                      VerticalAlign: =VerticalAlign.Middle
+                                                - detDteEditExp:
+                                                    Control: Classic/DatePicker@2.6.0
+                                                    Properties:
+                                                      AlignInContainer: =AlignInContainer.Stretch
+                                                      BorderColor: =clrLine
+                                                      BorderThickness: =1
+                                                      Color: =clrInk
+                                                      DefaultDate: =varRate.ExpiryDate
+                                                      Fill: =clrPanel
+                                                      Font: =Font.'Segoe UI'
+                                                      Height: =38
+                                                      IconBackground: =clrBlue
+                                                      IconFill: =clrWhite
+                                                      Size: =10.5
+                                    - detFldEditNotes:
+                                        Control: GroupContainer@1.5.0
+                                        Variant: AutoLayout
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          BorderThickness: =0
+                                          DropShadow: =DropShadow.None
+                                          Fill: =clrClear
+                                          FillPortions: =1
+                                          LayoutDirection: =LayoutDirection.Vertical
+                                          LayoutGap: =4
+                                          LayoutMinWidth: =100
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          RadiusBottomLeft: =0
+                                          RadiusBottomRight: =0
+                                          RadiusTopLeft: =0
+                                          RadiusTopRight: =0
+                                        Children:
+                                          - detFldEditNotesLbl:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderThickness: =0
+                                                Color: =clrInk3
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Bold
+                                                Height: =18
+                                                PaddingBottom: =0
+                                                PaddingLeft: =0
+                                                PaddingRight: =0
+                                                PaddingTop: =0
+                                                Size: =8.5
+                                                Text: ="Comments"
+                                                VerticalAlign: =VerticalAlign.Middle
+                                          - detTxtEditNotes:
+                                              Control: Classic/TextInput@2.3.2
+                                              Properties:
+                                                AlignInContainer: =AlignInContainer.Stretch
+                                                BorderColor: =clrLine
+                                                BorderThickness: =1
+                                                Color: =clrInk
+                                                Default: =varRate.Comments
+                                                Fill: =clrPanel
+                                                Font: =Font.'Segoe UI'
+                                                Height: =64
+                                                HintText: ="Why the change?"
+                                                HoverBorderColor: =clrInk3
+                                                HoverFill: =clrPanel
+                                                Mode: =TextMode.MultiLine
+                                                PressedBorderColor: =clrBlue
+                                                PressedFill: =clrPanel
+                                                RadiusBottomLeft: =5
+                                                RadiusBottomRight: =5
+                                                RadiusTopLeft: =5
+                                                RadiusTopRight: =5
+                                                Size: =10.5
+                                    - detLblEditErr:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          BorderColor: =clrRed
+                                          BorderThickness: =1
+                                          Color: =clrRed
+                                          Fill: =clrRedBg
+                                          FillPortions: =0
+                                          Font: =Font.'Segoe UI'
+                                          Height: =34
+                                          PaddingBottom: =0
+                                          PaddingLeft: =12
+                                          PaddingRight: =12
+                                          PaddingTop: =0
+                                          Size: =9.5
+                                          Text: |-
+                                            =Trim(
+                                                If(
+                                                    IsBlank(detDteEditEff.SelectedDate) || IsBlank(detDteEditExp.SelectedDate) ||
+                                                    detDteEditExp.SelectedDate <= detDteEditEff.SelectedDate,
+                                                    "Expiry must be after the effective date. ", ""
+                                                ) &
+                                                If(
+                                                    detTglEditActive.Value && !IsBlank(detDteEditExp.SelectedDate) && detDteEditExp.SelectedDate < Today(),
+                                                    "An expired rate can't be active. Extend the expiry or set it to inactive. ", ""
+                                                )
+                                            )
+                                          VerticalAlign: =VerticalAlign.Middle
+                                          Visible: =!IsBlank(Self.Text)
+                                          Wrap: =true
+                                    - detLblEditWarn:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          BorderColor: =RGBA(233, 215, 155, 1)
+                                          BorderThickness: =1
+                                          Color: =clrAmberInk
+                                          Fill: =clrAmberBg
+                                          FillPortions: =0
+                                          Font: =Font.'Segoe UI'
+                                          Height: =46
+                                          PaddingBottom: =0
+                                          PaddingLeft: =12
+                                          PaddingRight: =12
+                                          PaddingTop: =0
+                                          Size: =9.5
+                                          Text: |-
+                                            =With(
+                                                {act: First(Filter(colLaneRates, ID <> varRate.ID && Active))},
+                                                Trim(
+                                                    If(
+                                                        detTglEditActive.Value && !IsBlank(act),
+                                                        "⚠ Another rate on this lane is active (base " & Text(act.Base, "$#,##0.00") & ", added " &
+                                                        Text(act.Timestamp, "mmm d, yyyy") & "). Saving switches it off. ", ""
+                                                    ) &
+                                                    If(
+                                                        !detTglEditActive.Value && varRate.Active && IsBlank(act),
+                                                        "⚠ This is the only active rate on this lane. After saving, the lane has no active rate. ", ""
+                                                    ) &
+                                                    If(
+                                                        !IsBlank(detDteEditExp.SelectedDate) && detDteEditExp.SelectedDate < Today() &&
+                                                        varRate.ExpiryDate >= Today(),
+                                                        "⚠ The new expiry has already passed, so this rate will drop off Recent entries. ", ""
+                                                    )
+                                                )
+                                            )
+                                          VerticalAlign: =VerticalAlign.Middle
+                                          Visible: =!IsBlank(Self.Text)
+                                          Wrap: =true
+                                    - detEditBtns:
+                                        Control: GroupContainer@1.5.0
+                                        Variant: AutoLayout
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          BorderThickness: =0
+                                          DropShadow: =DropShadow.None
+                                          Fill: =clrClear
+                                          FillPortions: =0
+                                          Height: =38
+                                          LayoutDirection: =LayoutDirection.Horizontal
+                                          LayoutGap: =10
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          RadiusBottomLeft: =0
+                                          RadiusBottomRight: =0
+                                          RadiusTopLeft: =0
+                                          RadiusTopRight: =0
+                                        Children:
+                                          - detEditSpacer:
+                                              Control: Rectangle@2.3.0
+                                              Properties:
+                                                BorderThickness: =0
+                                                Fill: =clrClear
+                                                FillPortions: =1
+                                                Height: =10
+                                                LayoutMinWidth: =0
+                                          - detBtnEditCancel:
+                                              Control: Classic/Button@2.2.0
+                                              Properties:
+                                                BorderColor: =clrLine
+                                                BorderThickness: =1
+                                                Color: =clrInk
+                                                DisabledBorderColor: =clrLine
+                                                DisabledColor: =clrInk3
+                                                DisabledFill: =clrSoft
+                                                Fill: =clrPanel
+                                                FillPortions: =0
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Semibold
+                                                Height: =38
+                                                HoverBorderColor: =clrInk3
+                                                HoverColor: =clrInk
+                                                HoverFill: =clrSoft
+                                                OnSelect: =Set(varEditRate, false)
+                                                PressedBorderColor: =clrInk3
+                                                PressedColor: =clrInk
+                                                PressedFill: =clrLine
+                                                RadiusBottomLeft: =5
+                                                RadiusBottomRight: =5
+                                                RadiusTopLeft: =5
+                                                RadiusTopRight: =5
+                                                Size: =10.5
+                                                Text: ="Cancel"
+                                                Width: =100
+                                          - detBtnEditSave:
+                                              Control: Classic/Button@2.2.0
+                                              Properties:
+                                                BorderColor: =clrBlue
+                                                BorderThickness: =1
+                                                Color: =clrWhite
+                                                DisabledBorderColor: =clrLine
+                                                DisabledColor: =clrInk3
+                                                DisabledFill: =clrSoft
+                                                DisplayMode: =If(IsBlank(detLblEditErr.Text) && !varSavingEdit, DisplayMode.Edit, DisplayMode.Disabled)
+                                                Fill: =clrBlue
+                                                FillPortions: =0
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Semibold
+                                                Height: =38
+                                                HoverBorderColor: =clrBlueHover
+                                                HoverColor: =clrWhite
+                                                HoverFill: =clrBlueHover
+                                                OnSelect: |-
+                                                  =If(
+                                                      !IsBlank(detLblEditErr.Text),
+                                                      Notify(detLblEditErr.Text, NotificationType.Error),
+                                                      !IsBlank(detLblEditWarn.Text),
+                                                      Set(varConfirmEdit, true),
+                                                      Set(varSavingEdit, true);
+                                                      With(
+                                                          {
+                                                              r: Patch(
+                                                                  LinehaulRates,
+                                                                  LookUp(LinehaulRates, ID = varRate.ID),
+                                                                  {
+                                                                      Active: detTglEditActive.Value,
+                                                                      EffectiveDate: detDteEditEff.SelectedDate,
+                                                                      ExpiryDate: detDteEditExp.SelectedDate,
+                                                                      Comments: detTxtEditNotes.Text
+                                                                  }
+                                                              )
+                                                          },
+                                                          If(
+                                                              IsError(r) || IsBlank(r.ID),
+                                                              Notify("Changes weren't saved. Check your connection and try again.", NotificationType.Error),
+                                                              If(
+                                                                  r.Active,
+                                                                  ForAll(
+                                                                      Filter(
+                                                                          Filter(
+                                                                              LinehaulRates,
+                                                                              Title = r.Title && Destination = r.Destination && Carrier = r.Carrier &&
+                                                                              Mode = r.Mode && Equipment = r.Equipment && Active = true
+                                                                          ),
+                                                                          ID <> r.ID
+                                                                      ) As old,
+                                                                      Patch(LinehaulRates, old, {Active: false})
+                                                                  )
+                                                              );
+                                                              Set(
+                                                                  varRate,
+                                                                  Patch(
+                                                                      varRate,
+                                                                      {
+                                                                          Active: r.Active,
+                                                                          EffectiveDate: r.EffectiveDate,
+                                                                          ExpiryDate: r.ExpiryDate,
+                                                                          Comments: r.Comments
+                                                                      }
+                                                                  )
+                                                              );
+                                                              ClearCollect(
+                                                                  colLaneRates,
+                                                                  Sort(
+                                                                      AddColumns(Filter(LinehaulRates, Title = varRate.Title && Destination = varRate.Destination && Carrier = varRate.Carrier && Mode = varRate.Mode && Equipment = varRate.Equipment), LH, 0, NoFSC, false),
+                                                                      Timestamp,
+                                                                      SortOrder.Descending
+                                                                  )
+                                                              );
+                                                              Set(varEditRate, false);
+                                                              Notify("Changes saved.", NotificationType.Success)
+                                                          )
+                                                      );
+                                                      Set(varConfirmEdit, false);
+                                                      Set(varSavingEdit, false)
+                                                  )
+                                                PressedBorderColor: =clrInk
+                                                PressedColor: =clrWhite
+                                                PressedFill: =clrInk
+                                                RadiusBottomLeft: =5
+                                                RadiusBottomRight: =5
+                                                RadiusTopLeft: =5
+                                                RadiusTopRight: =5
+                                                Size: =10.5
+                                                Text: =If(varSavingEdit, "Saving…", "Save changes")
+                                                Width: =140
                         - detSecLane:
                             Control: GroupContainer@1.5.0
                             Variant: AutoLayout
@@ -2048,6 +2670,439 @@ Screens:
                                                 Text: =If(IsBlank(varRate.Comments), "No comments", varRate.Comments)
                                                 VerticalAlign: =VerticalAlign.Top
                                                 Wrap: =true
+                        - detSecHistory:
+                            Control: GroupContainer@1.5.0
+                            Variant: AutoLayout
+                            Properties:
+                              AlignInContainer: =AlignInContainer.Stretch
+                              BorderColor: =clrLine
+                              BorderThickness: =1
+                              DropShadow: =DropShadow.None
+                              Fill: =clrPanel
+                              FillPortions: =0
+                              Height: =81 + If(detLblMultiActive.Visible, 44, 0) + Min(Max(CountRows(colLaneRates), 1), 6) * 44
+                              LayoutDirection: =LayoutDirection.Vertical
+                              LayoutGap: =0
+                              PaddingBottom: =0
+                              PaddingLeft: =0
+                              PaddingRight: =0
+                              PaddingTop: =0
+                              RadiusBottomLeft: =6
+                              RadiusBottomRight: =6
+                              RadiusTopLeft: =6
+                              RadiusTopRight: =6
+                            Children:
+                              - detSecHistoryHead:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    BorderThickness: =0
+                                    DropShadow: =DropShadow.None
+                                    Fill: =clrClear
+                                    FillPortions: =0
+                                    Height: =48
+                                    LayoutAlignItems: =LayoutAlignItems.Center
+                                    LayoutDirection: =LayoutDirection.Horizontal
+                                    LayoutGap: =12
+                                    PaddingBottom: =0
+                                    PaddingLeft: =16
+                                    PaddingRight: =16
+                                    PaddingTop: =0
+                                    RadiusBottomLeft: =0
+                                    RadiusBottomRight: =0
+                                    RadiusTopLeft: =0
+                                    RadiusTopRight: =0
+                                  Children:
+                                    - detSecHistoryNum:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          Align: =Align.Center
+                                          BorderThickness: =0
+                                          Color: =clrWhite
+                                          Fill: =clrInk
+                                          FillPortions: =0
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Bold
+                                          Height: =24
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          Size: =9
+                                          Text: ="3"
+                                          VerticalAlign: =VerticalAlign.Middle
+                                          Width: =24
+                                    - detSecHistoryTitle:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          BorderThickness: =0
+                                          Color: =clrInk
+                                          FillPortions: =0
+                                          Font: =Font.'Segoe UI'
+                                          FontWeight: =FontWeight.Bold
+                                          Height: =30
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          Size: =12
+                                          Text: ="All rates on this lane"
+                                          VerticalAlign: =VerticalAlign.Middle
+                                          Width: =150
+                                    - detSecHistoryHint:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          BorderThickness: =0
+                                          Color: =clrInk3
+                                          FillPortions: =1
+                                          Font: =Font.'Segoe UI'
+                                          Height: =30
+                                          LayoutMinWidth: =40
+                                          PaddingBottom: =0
+                                          PaddingLeft: =0
+                                          PaddingRight: =0
+                                          PaddingTop: =0
+                                          Size: =9
+                                          Text: =CountRows(colLaneRates) & If(CountRows(colLaneRates) = 1, " rate", " rates") & " · select one to open it"
+                                          VerticalAlign: =VerticalAlign.Middle
+                              - detSecHistorySep:
+                                  Control: Rectangle@2.3.0
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    BorderThickness: =0
+                                    Fill: =clrLine
+                                    FillPortions: =0
+                                    Height: =1
+                              - detSecHistoryBody:
+                                  Control: GroupContainer@1.5.0
+                                  Variant: AutoLayout
+                                  Properties:
+                                    AlignInContainer: =AlignInContainer.Stretch
+                                    BorderThickness: =0
+                                    DropShadow: =DropShadow.None
+                                    Fill: =clrClear
+                                    FillPortions: =1
+                                    LayoutDirection: =LayoutDirection.Vertical
+                                    LayoutGap: =0
+                                    LayoutMinWidth: =40
+                                    PaddingBottom: =0
+                                    PaddingLeft: =16
+                                    PaddingRight: =16
+                                    PaddingTop: =0
+                                    RadiusBottomLeft: =0
+                                    RadiusBottomRight: =0
+                                    RadiusTopLeft: =0
+                                    RadiusTopRight: =0
+                                  Children:
+                                    - detLblMultiActive:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          BorderThickness: =0
+                                          Color: =clrAmberInk
+                                          Fill: =clrAmberBg
+                                          FillPortions: =0
+                                          Font: =Font.'Segoe UI'
+                                          Height: =44
+                                          PaddingBottom: =0
+                                          PaddingLeft: =16
+                                          PaddingRight: =16
+                                          PaddingTop: =0
+                                          Size: =9.5
+                                          Text: |-
+                                            =With({n: CountRows(Filter(colLaneRates, Active))}, If(n > 1, "⚠ " & n & " rates on this lane are active. Open the one that should stay active, choose Edit rate and save it; the others switch off.", ""))
+                                          VerticalAlign: =VerticalAlign.Middle
+                                          Visible: =!IsBlank(Self.Text)
+                                          Wrap: =true
+                                    - detLaneHdr:
+                                        Control: GroupContainer@1.5.0
+                                        Variant: ManualLayout
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          BorderThickness: =0
+                                          DropShadow: =DropShadow.None
+                                          Fill: =clrPanel
+                                          FillPortions: =0
+                                          Height: =32
+                                          RadiusBottomLeft: =0
+                                          RadiusBottomRight: =0
+                                          RadiusTopLeft: =0
+                                          RadiusTopRight: =0
+                                        Children:
+                                          - detLaneHdrStatus:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                Align: =Align.Left
+                                                BorderThickness: =0
+                                                Color: =clrInk3
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Bold
+                                                Height: =18
+                                                PaddingBottom: =0
+                                                PaddingLeft: =12
+                                                PaddingRight: =10
+                                                PaddingTop: =0
+                                                Size: =8.5
+                                                Text: ="Status"
+                                                VerticalAlign: =VerticalAlign.Middle
+                                                Width: =Parent.Width * 0.16
+                                                X: =Parent.Width * 0.0
+                                                Y: =7
+                                          - detLaneHdrBase:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                Align: =Align.Right
+                                                BorderThickness: =0
+                                                Color: =clrInk3
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Bold
+                                                Height: =18
+                                                PaddingBottom: =0
+                                                PaddingLeft: =10
+                                                PaddingRight: =10
+                                                PaddingTop: =0
+                                                Size: =8.5
+                                                Text: ="Base"
+                                                VerticalAlign: =VerticalAlign.Middle
+                                                Width: =Parent.Width * 0.15
+                                                X: =Parent.Width * 0.16
+                                                Y: =7
+                                          - detLaneHdrFuel:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                Align: =Align.Left
+                                                BorderThickness: =0
+                                                Color: =clrInk3
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Bold
+                                                Height: =18
+                                                PaddingBottom: =0
+                                                PaddingLeft: =10
+                                                PaddingRight: =10
+                                                PaddingTop: =0
+                                                Size: =8.5
+                                                Text: ="Fuel"
+                                                VerticalAlign: =VerticalAlign.Middle
+                                                Width: =Parent.Width * 0.14
+                                                X: =Parent.Width * 0.33
+                                                Y: =7
+                                          - detLaneHdrEff:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                Align: =Align.Left
+                                                BorderThickness: =0
+                                                Color: =clrInk3
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Bold
+                                                Height: =18
+                                                PaddingBottom: =0
+                                                PaddingLeft: =10
+                                                PaddingRight: =10
+                                                PaddingTop: =0
+                                                Size: =8.5
+                                                Text: ="Effective"
+                                                VerticalAlign: =VerticalAlign.Middle
+                                                Width: =Parent.Width * 0.17
+                                                X: =Parent.Width * 0.47
+                                                Y: =7
+                                          - detLaneHdrExp:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                Align: =Align.Left
+                                                BorderThickness: =0
+                                                Color: =clrInk3
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Bold
+                                                Height: =18
+                                                PaddingBottom: =0
+                                                PaddingLeft: =10
+                                                PaddingRight: =10
+                                                PaddingTop: =0
+                                                Size: =8.5
+                                                Text: ="Expiry"
+                                                VerticalAlign: =VerticalAlign.Middle
+                                                Width: =Parent.Width * 0.17
+                                                X: =Parent.Width * 0.64
+                                                Y: =7
+                                          - detLaneHdrAdded:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                Align: =Align.Left
+                                                BorderThickness: =0
+                                                Color: =clrInk3
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Bold
+                                                Height: =18
+                                                PaddingBottom: =0
+                                                PaddingLeft: =10
+                                                PaddingRight: =10
+                                                PaddingTop: =0
+                                                Size: =8.5
+                                                Text: ="Added"
+                                                VerticalAlign: =VerticalAlign.Middle
+                                                Width: =Parent.Width * 0.19
+                                                X: =Parent.Width * 0.81
+                                                Y: =7
+                                          - detLaneHdrLine:
+                                              Control: Rectangle@2.3.0
+                                              Properties:
+                                                BorderThickness: =0
+                                                Fill: =clrBlue
+                                                Height: =2
+                                                Width: =Parent.Width
+                                                X: =0
+                                                Y: =30
+                                    - detLaneGallery:
+                                        Control: Gallery@2.15.0
+                                        Variant: BrowseLayout_Vertical_TwoTextOneImageVariant_ver5.0
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          BorderThickness: =0
+                                          FillPortions: =0
+                                          Height: =Min(Max(CountRows(colLaneRates), 1), 6) * 44
+                                          Items: =colLaneRates
+                                          OnSelect: =Set(varRate, ThisItem); Set(varEditRate, false)
+                                          ShowScrollbar: =true
+                                          TemplateFill: =If(ThisItem.ID = varRate.ID, clrSoft, clrPanel)
+                                          TemplatePadding: =0
+                                          TemplateSize: =44
+                                        Children:
+                                          - detLaneRowStatus:
+                                              Control: Classic/Button@2.2.0
+                                              Properties:
+                                                BorderColor: =clrClear
+                                                BorderThickness: =0
+                                                Color: =If(ThisItem.Active, clrGreenInk, clrInk3)
+                                                Fill: =If(ThisItem.Active, clrGreenBg, clrSoft)
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =FontWeight.Bold
+                                                Height: =22
+                                                HoverBorderColor: =clrClear
+                                                HoverColor: =If(ThisItem.Active, clrGreenInk, clrInk3)
+                                                HoverFill: =If(ThisItem.Active, clrGreenBg, clrSoft)
+                                                OnSelect: =Select(Parent)
+                                                PressedBorderColor: =clrClear
+                                                PressedColor: =If(ThisItem.Active, clrGreenInk, clrInk3)
+                                                PressedFill: =If(ThisItem.Active, clrGreenBg, clrSoft)
+                                                RadiusBottomLeft: =11
+                                                RadiusBottomRight: =11
+                                                RadiusTopLeft: =11
+                                                RadiusTopRight: =11
+                                                Size: =8.5
+                                                Text: =If(ThisItem.Active, "Active", "Inactive")
+                                                Width: =74
+                                                X: =12
+                                                Y: =11
+                                          - detLaneRowBase:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                Align: =Align.Right
+                                                BorderThickness: =0
+                                                Color: =clrInk
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =If(ThisItem.ID = varRate.ID, FontWeight.Bold, FontWeight.Normal)
+                                                Height: =44
+                                                OnSelect: =Select(Parent)
+                                                PaddingBottom: =0
+                                                PaddingLeft: =10
+                                                PaddingRight: =10
+                                                PaddingTop: =0
+                                                Size: =9.5
+                                                Text: =Text(ThisItem.Base, "$#,##0.00")
+                                                VerticalAlign: =VerticalAlign.Middle
+                                                Width: =Parent.TemplateWidth * 0.15
+                                                X: =Parent.TemplateWidth * 0.16
+                                                Y: =0
+                                          - detLaneRowFuel:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                Align: =Align.Left
+                                                BorderThickness: =0
+                                                Color: =clrInk
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =If(ThisItem.ID = varRate.ID, FontWeight.Bold, FontWeight.Normal)
+                                                Height: =44
+                                                OnSelect: =Select(Parent)
+                                                PaddingBottom: =0
+                                                PaddingLeft: =10
+                                                PaddingRight: =10
+                                                PaddingTop: =0
+                                                Size: =9.5
+                                                Text: =ThisItem.Fuel
+                                                VerticalAlign: =VerticalAlign.Middle
+                                                Width: =Parent.TemplateWidth * 0.14
+                                                X: =Parent.TemplateWidth * 0.33
+                                                Y: =0
+                                          - detLaneRowEff:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                Align: =Align.Left
+                                                BorderThickness: =0
+                                                Color: =clrInk
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =If(ThisItem.ID = varRate.ID, FontWeight.Bold, FontWeight.Normal)
+                                                Height: =44
+                                                OnSelect: =Select(Parent)
+                                                PaddingBottom: =0
+                                                PaddingLeft: =10
+                                                PaddingRight: =10
+                                                PaddingTop: =0
+                                                Size: =9.5
+                                                Text: =Text(ThisItem.EffectiveDate, "mmm d, yyyy")
+                                                VerticalAlign: =VerticalAlign.Middle
+                                                Width: =Parent.TemplateWidth * 0.17
+                                                X: =Parent.TemplateWidth * 0.47
+                                                Y: =0
+                                          - detLaneRowExp:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                Align: =Align.Left
+                                                BorderThickness: =0
+                                                Color: =If(ThisItem.ExpiryDate < Today(), clrRed, clrInk)
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =If(ThisItem.ID = varRate.ID, FontWeight.Bold, FontWeight.Normal)
+                                                Height: =44
+                                                OnSelect: =Select(Parent)
+                                                PaddingBottom: =0
+                                                PaddingLeft: =10
+                                                PaddingRight: =10
+                                                PaddingTop: =0
+                                                Size: =9.5
+                                                Text: =Text(ThisItem.ExpiryDate, "mmm d, yyyy")
+                                                VerticalAlign: =VerticalAlign.Middle
+                                                Width: =Parent.TemplateWidth * 0.17
+                                                X: =Parent.TemplateWidth * 0.64
+                                                Y: =0
+                                          - detLaneRowAdded:
+                                              Control: Label@2.5.1
+                                              Properties:
+                                                Align: =Align.Left
+                                                BorderThickness: =0
+                                                Color: =clrInk
+                                                Font: =Font.'Segoe UI'
+                                                FontWeight: =If(ThisItem.ID = varRate.ID, FontWeight.Bold, FontWeight.Normal)
+                                                Height: =44
+                                                OnSelect: =Select(Parent)
+                                                PaddingBottom: =0
+                                                PaddingLeft: =10
+                                                PaddingRight: =10
+                                                PaddingTop: =0
+                                                Size: =9.5
+                                                Text: =Text(ThisItem.Timestamp, "mmm d, yyyy")
+                                                VerticalAlign: =VerticalAlign.Middle
+                                                Width: =Parent.TemplateWidth * 0.19
+                                                X: =Parent.TemplateWidth * 0.81
+                                                Y: =0
+                                          - detLaneRowSep:
+                                              Control: Rectangle@2.3.0
+                                              Properties:
+                                                BorderThickness: =0
+                                                Fill: =clrSoft
+                                                Height: =1
+                                                Width: =Parent.TemplateWidth
+                                                X: =0
+                                                Y: =43
                         - detLblFooter:
                             Control: Label@2.5.1
                             Properties:
@@ -2064,3 +3119,198 @@ Screens:
                               Size: =9
                               Text: ="Submitted by " & varRate.SubmittedBy & " · " & Text(varRate.Timestamp, "mmm d, yyyy h:mm AM/PM")
                               VerticalAlign: =VerticalAlign.Middle
+      - detModal:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            BorderThickness: =0
+            DropShadow: =DropShadow.None
+            Fill: =clrClear
+            Height: =Parent.Height
+            RadiusBottomLeft: =0
+            RadiusBottomRight: =0
+            RadiusTopLeft: =0
+            RadiusTopRight: =0
+            Visible: =varConfirmEdit
+            Width: =Parent.Width
+            X: =0
+            Y: =0
+          Children:
+            - detModalShade:
+                Control: Rectangle@2.3.0
+                Properties:
+                  BorderThickness: =0
+                  Fill: =RGBA(22, 32, 43, 0.45)
+                  Height: =Parent.Height
+                  OnSelect: =false
+                  Width: =Parent.Width
+                  X: =0
+                  Y: =0
+            - detModalCard:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =clrLine
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.Bold
+                  Fill: =clrPanel
+                  Height: =300
+                  RadiusBottomLeft: =8
+                  RadiusBottomRight: =8
+                  RadiusTopLeft: =8
+                  RadiusTopRight: =8
+                  Width: =500
+                  X: =(Parent.Width - 500) / 2
+                  Y: =(Parent.Height - 300) / 2
+                Children:
+                  - detModalTitle:
+                      Control: Label@2.5.1
+                      Properties:
+                        BorderThickness: =0
+                        Color: =clrInk
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =30
+                        PaddingBottom: =0
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        Size: =13
+                        Text: ="Check before saving"
+                        VerticalAlign: =VerticalAlign.Middle
+                        Width: =Parent.Width - 40
+                        X: =20
+                        Y: =16
+                  - detModalMsg:
+                      Control: Label@2.5.1
+                      Properties:
+                        BorderThickness: =0
+                        Color: =clrInk2
+                        Font: =Font.'Segoe UI'
+                        Height: =Parent.Height - 124
+                        PaddingBottom: =0
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        Size: =10
+                        Text: =detLblEditWarn.Text
+                        VerticalAlign: =VerticalAlign.Top
+                        Width: =Parent.Width - 40
+                        Wrap: =true
+                        X: =20
+                        Y: =54
+                  - detModalCancel:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderColor: =clrLine
+                        BorderThickness: =1
+                        Color: =clrInk
+                        DisabledBorderColor: =clrLine
+                        DisabledColor: =clrInk3
+                        DisabledFill: =clrSoft
+                        Fill: =clrPanel
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =38
+                        HoverBorderColor: =clrInk3
+                        HoverColor: =clrInk
+                        HoverFill: =clrSoft
+                        OnSelect: =Set(varConfirmEdit, false)
+                        PressedBorderColor: =clrInk3
+                        PressedColor: =clrInk
+                        PressedFill: =clrLine
+                        RadiusBottomLeft: =5
+                        RadiusBottomRight: =5
+                        RadiusTopLeft: =5
+                        RadiusTopRight: =5
+                        Size: =10.5
+                        Text: ="Go back"
+                        Width: =120
+                        X: =Parent.Width - 304
+                        Y: =Parent.Height - 58
+                  - detModalOk:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderColor: =clrBlue
+                        BorderThickness: =1
+                        Color: =clrWhite
+                        DisabledBorderColor: =clrLine
+                        DisabledColor: =clrInk3
+                        DisabledFill: =clrSoft
+                        Fill: =clrBlue
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =38
+                        HoverBorderColor: =clrBlueHover
+                        HoverColor: =clrWhite
+                        HoverFill: =clrBlueHover
+                        OnSelect: |-
+                          =Set(varSavingEdit, true);
+                          With(
+                              {
+                                  r: Patch(
+                                      LinehaulRates,
+                                      LookUp(LinehaulRates, ID = varRate.ID),
+                                      {
+                                          Active: detTglEditActive.Value,
+                                          EffectiveDate: detDteEditEff.SelectedDate,
+                                          ExpiryDate: detDteEditExp.SelectedDate,
+                                          Comments: detTxtEditNotes.Text
+                                      }
+                                  )
+                              },
+                              If(
+                                  IsError(r) || IsBlank(r.ID),
+                                  Notify("Changes weren't saved. Check your connection and try again.", NotificationType.Error),
+                                  If(
+                                      r.Active,
+                                      ForAll(
+                                          Filter(
+                                              Filter(
+                                                  LinehaulRates,
+                                                  Title = r.Title && Destination = r.Destination && Carrier = r.Carrier &&
+                                                  Mode = r.Mode && Equipment = r.Equipment && Active = true
+                                              ),
+                                              ID <> r.ID
+                                          ) As old,
+                                          Patch(LinehaulRates, old, {Active: false})
+                                      )
+                                  );
+                                  Set(
+                                      varRate,
+                                      Patch(
+                                          varRate,
+                                          {
+                                              Active: r.Active,
+                                              EffectiveDate: r.EffectiveDate,
+                                              ExpiryDate: r.ExpiryDate,
+                                              Comments: r.Comments
+                                          }
+                                      )
+                                  );
+                                  ClearCollect(
+                                      colLaneRates,
+                                      Sort(
+                                          AddColumns(Filter(LinehaulRates, Title = varRate.Title && Destination = varRate.Destination && Carrier = varRate.Carrier && Mode = varRate.Mode && Equipment = varRate.Equipment), LH, 0, NoFSC, false),
+                                          Timestamp,
+                                          SortOrder.Descending
+                                      )
+                                  );
+                                  Set(varEditRate, false);
+                                  Notify("Changes saved.", NotificationType.Success)
+                              )
+                          );
+                          Set(varConfirmEdit, false);
+                          Set(varSavingEdit, false)
+                        PressedBorderColor: =clrInk
+                        PressedColor: =clrWhite
+                        PressedFill: =clrInk
+                        RadiusBottomLeft: =5
+                        RadiusBottomRight: =5
+                        RadiusTopLeft: =5
+                        RadiusTopRight: =5
+                        Size: =10.5
+                        Text: ="Save changes"
+                        Width: =152
+                        X: =Parent.Width - 172
+                        Y: =Parent.Height - 58

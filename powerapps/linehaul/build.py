@@ -5,7 +5,7 @@ Run: python3 build.py  ->  writes scrEntry.yaml, scrRecent.yaml, scrDetails.yaml
 Every formula below is plain Power Fx; this script only handles layout boilerplate.
 """
 import pathlib
-from textwrap import dedent
+from textwrap import dedent, indent
 
 OUT = pathlib.Path(__file__).parent
 FONT = "Font.'Segoe UI'"
@@ -284,6 +284,25 @@ def hidden(name, text):
     return lbl(name, text, Visible="false", X=0, Y=0, Width=10, Height=10)
 
 
+def modal(p, visible, title, message, cancel, ok_text, ok):
+    """Full-screen confirm dialog. The shade rectangle swallows clicks meant for the screen behind."""
+    return manual(f"{p}Modal", [
+        rect(f"{p}ModalShade", Fill="RGBA(22, 32, 43, 0.45)", X=0, Y=0, Width="Parent.Width", Height="Parent.Height",
+             OnSelect="false"),
+        manual(f"{p}ModalCard", [
+            lbl(f"{p}ModalTitle", title, Size=13, FontWeight="FontWeight.Bold",
+                X=20, Y=16, Width="Parent.Width - 40", Height=30),
+            lbl(f"{p}ModalMsg", message, Size=10, Color="clrInk2", Wrap="true", VerticalAlign="VerticalAlign.Top",
+                X=20, Y=54, Width="Parent.Width - 40", Height="Parent.Height - 124"),
+            btn(f"{p}ModalCancel", s("Go back"), OnSelect=cancel,
+                X="Parent.Width - 304", Y="Parent.Height - 58", Width=120, Height=38),
+            btn(f"{p}ModalOk", ok_text, "primary", OnSelect=ok,
+                X="Parent.Width - 172", Y="Parent.Height - 58", Width=152, Height=38),
+        ], Fill="clrPanel", BorderColor="clrLine", BorderThickness=1, DropShadow="DropShadow.Bold", **rad(8),
+            X="(Parent.Width - 500) / 2", Y="(Parent.Height - 300) / 2", Width=500, Height=300),
+    ], Visible=visible, X=0, Y=0, Width="Parent.Width", Height="Parent.Height")
+
+
 # ================================================================ ENTRY
 E_ADJ = 'If(entTglAdjPct.Value, "%", "$")'
 E_DISC = 'If(entTglDiscPct.Value, "%", "$")'
@@ -318,9 +337,31 @@ entry_errors = fx(f"""
                 "Expiry must be after the effective date. ", ""
             ) &
             If(
+                !IsBlank(entCmbOrigin.Selected.Value) && entCmbOrigin.Selected.Value = entCmbDest.Selected.Value,
+                "Origin and destination can't be the same. ", ""
+            ) &
+            If(
+                entNumOk.Text = "ok" && !IsBlank(Trim(entTxtBase.Text)) && Value(entTxtBase.Text) <= 0,
+                "Base rate must be more than $0. ", ""
+            ) &
+            If(
                 entNumOk.Text = "ok" && entTglDiscPct.Value && Coalesce(Value(entTxtDisc.Text), 0) >= 100,
                 "A % discount must be under 100. ", ""
-            )
+            ) &
+            If(
+                FuelMissing(entCmbFuel.Selected.Title),
+                "The fuel program has no FSC. Fix it in the Fuel library first. ", ""
+            ) &
+            If(
+                entNumOk.Text = "ok" && !IsBlank(entCmbFuel.Selected.Title) &&
+                FscPct(entCmbFuel.Selected.Title, Value(entTxtFAdj.Text), Value(entTxtFDisc.Text), true) < 0,
+                "Fuel discount is bigger than the FSC. ", ""
+            ) &
+            If(
+                !IsBlank(entCalc.Text) && Value(entCalc.Text) <= 0,
+                "The discount wipes out the whole cost. Check the discount. ", ""
+            ) &
+            If(varAddCarrier, "Finish or cancel the new carrier first. ", "")
         )
     )
 """)
@@ -394,6 +435,63 @@ entry_replace = fx("""
                 Text(p.Base, "$#,##0.00") & ", added " & Text(p.Timestamp, "mmm d, yyyy") & ")."
             )
         )
+    )
+""")
+
+entry_dupe = fx("""
+    If(
+        entLblKey.Text = "—" || entNumOk.Text <> "ok" || IsBlank(Trim(entTxtBase.Text)) ||
+        IsBlank(entCmbFuel.Selected.Title),
+        "",
+        With(
+            {
+                p: LookUp(
+                    LinehaulRates,
+                    Title = entCmbOrigin.Selected.Value &&
+                    Destination = entCmbDest.Selected.Value &&
+                    Carrier = entCmbCarrier.Selected.Title &&
+                    Mode = entCmbMode.Selected.Value &&
+                    Equipment = entCmbEquip.Selected.Value &&
+                    Base = Value(entTxtBase.Text) &&
+                    Fuel = entCmbFuel.Selected.Title &&
+                    ExpiryDate >= Today()
+                )
+            },
+            If(
+                IsBlank(p),
+                "",
+                "⚠ A rate with the same base (" & Text(p.Base, "$#,##0.00") & ") and fuel already exists for this lane, " &
+                "added " & Text(p.Timestamp, "mmm d, yyyy") & " by " & p.SubmittedBy & ". Saving creates a duplicate."
+            )
+        )
+    )
+""")
+
+entry_confirm = fx("""
+    Concat(
+        Filter(
+            Table(
+                {t: entLblReplace.Text},
+                {t: entLblDupe.Text},
+                {
+                    t: If(
+                        !IsBlank(entDteExpiry.SelectedDate) && entDteExpiry.SelectedDate < Today(),
+                        "⚠ The expiry date has already passed, so this rate won't show in Recent entries.",
+                        ""
+                    )
+                },
+                {
+                    t: If(
+                        entNumOk.Text = "ok" && Coalesce(Value(entTxtBase.Text), 0) > 20000,
+                        "⚠ The base rate is over $20,000. Check it isn't a typo.",
+                        ""
+                    )
+                }
+            ),
+            !IsBlank(t)
+        ),
+        t,
+        Char(10) & Char(10)
     )
 """)
 
@@ -486,7 +584,7 @@ def breakdown(p, left, right):
     ])
 
 
-entry_save = fx("""
+entry_do_save = fx("""
     If(
         !IsBlank(entLblErrors.Text),
         Notify(entLblErrors.Text, NotificationType.Error),
@@ -550,6 +648,12 @@ entry_save = fx("""
     )
 """)
 
+entry_do_save = "Set(varSaving, true);\n" + entry_do_save + ";\nSet(varSaving, false)"
+
+entry_save = ("If(\n    !IsBlank(entLblErrors.Text),\n    Notify(entLblErrors.Text, NotificationType.Error),\n"
+              "    !IsBlank(entLblConfirm.Text),\n    Set(varConfirmSave, true),\n"
+              + indent(entry_do_save, "    ") + "\n)")
+
 entry_reset = fx("""
     Reset(entCmbOrigin); Reset(entCmbDest); Reset(entCmbMode); Reset(entCmbEquip);
     Reset(entCmbCarrier); Reset(entCmbFuel);
@@ -557,7 +661,8 @@ entry_reset = fx("""
     Reset(entTxtBase); Reset(entTxtAdj); Reset(entTglAdjPct); Reset(entTxtDisc); Reset(entTglDiscPct);
     Reset(entTxtFAdj); Reset(entTxtFDisc); Reset(entTxtNotes); Reset(entTxtNewCarrier);
     Clear(colDays);
-    Set(varAddCarrier, false)
+    Set(varAddCarrier, false);
+    Set(varConfirmSave, false)
 """)
 
 entry_add_carrier = fx("""
@@ -606,7 +711,7 @@ def unit(name, text):
                FontWeight="FontWeight.Bold", Align="Align.Center", **fixed(40, 38))
 
 
-lane_section = section("entSecLane", "1", s("Lane"), s("Who moves it, where, on what"), height="If(entLblReplace.Visible, 422, 376)", body=[
+lane_section = section("entSecLane", "1", s("Lane"), s("Who moves it, where, on what"), height="376 + If(entLblReplace.Visible, 46, 0) + If(entLblDupe.Visible, 58, 0)", body=[
     row("entRowLane1", 60, [
         field("entFldOrigin", "Origin *", [combo("entCmbOrigin", "nfTerminals", "Value")]),
         field("entFldDest", "Destination *", [combo("entCmbDest", "nfTerminals", "Value")]),
@@ -648,6 +753,9 @@ lane_section = section("entSecLane", "1", s("Lane"), s("Who moves it, where, on 
     lbl("entLblReplace", entry_replace, Visible="!IsBlank(Self.Text)", Fill="clrAmberBg", Color="clrAmberInk",
         BorderColor="RGBA(233, 215, 155, 1)", BorderThickness=1, Size=9.5, Wrap="true", **pads(0, 12),
         **fixed(h=34), **STRETCH),
+    lbl("entLblDupe", entry_dupe, Visible="!IsBlank(Self.Text)", Fill="clrAmberBg", Color="clrAmberInk",
+        BorderColor="RGBA(233, 215, 155, 1)", BorderThickness=1, Size=9.5, Wrap="true", **pads(0, 12),
+        **fixed(h=46), **STRETCH),
 ])
 
 cost_section = section("entSecCost", "2", s("Cost"), s("Fuel goes on the base first, then add-on, then discount"), height=520, body=[
@@ -692,8 +800,9 @@ entry_action = box("entActionWrap", "Vertical", [
                 Color="If(IsBlank(entLblErrors.Text), clrGreenInk, clrAmberInk)", Size=9.5,
                 FontWeight="FontWeight.Semibold", Wrap="true", Height=40, **fill(1)),
             btn("entBtnReset", s("Reset"), "danger", OnSelect=entry_reset, **fixed(100, 40)),
-            btn("entBtnSave", s("Save rate"), "primary", OnSelect=entry_save,
-                DisplayMode="If(IsBlank(entLblErrors.Text), DisplayMode.Edit, DisplayMode.Disabled)", **fixed(140, 40)),
+            btn("entBtnSave", 'If(varSaving, "Saving…", "Save rate")', "primary", OnSelect=entry_save,
+                DisplayMode="If(IsBlank(entLblErrors.Text) && !varSaving, DisplayMode.Edit, DisplayMode.Disabled)",
+                **fixed(140, 40)),
         ], gap=10, LayoutAlignItems="LayoutAlignItems.Center"),
     ], Fill="clrPanel", BorderColor="clrLine", BorderThickness=1, **rad(6), LayoutGap=10, **pads(12, 16),
         **fill(1), **STRETCH),
@@ -708,6 +817,11 @@ write_screen("scrEntry", {"Fill": "clrPage"}, [
     hidden("entLblErrors", entry_errors),
     hidden("entNumOk", entry_numok),
     hidden("entCalc", entry_calc),
+    hidden("entLblConfirm", entry_confirm),
+    modal("ent", "varConfirmSave", s("Check before saving"), "entLblConfirm.Text",
+          "Set(varConfirmSave, false)",
+          'If(IsBlank(entLblReplace.Text), "Save anyway", "Replace and save")',
+          "Set(varConfirmSave, false);\n" + entry_do_save),
 ])
 
 
@@ -909,17 +1023,206 @@ det_cost = section("detSecCost", "2", s("Cost"), s("Calculated with today's FSC"
     ]),
 ])
 
-write_screen("scrDetails", {"Fill": "clrPage"}, [
+
+# ---------------------------------------------------------------- details: edit mode + lane history
+DET_KEY = (f"Title = {R}.Title && Destination = {R}.Destination && Carrier = {R}.Carrier && "
+           f"Mode = {R}.Mode && Equipment = {R}.Equipment")
+DET_COLLECT = fx(f"""
+    ClearCollect(
+        colLaneRates,
+        Sort(
+            AddColumns(Filter(LinehaulRates, {DET_KEY}), LH, 0, NoFSC, false),
+            Timestamp,
+            SortOrder.Descending
+        )
+    )
+""")
+DET_OPEN_EDIT = ("Set(varEditRate, true); Reset(detTglEditActive); Reset(detDteEditEff); "
+                 "Reset(detDteEditExp); Reset(detTxtEditNotes)")
+
+det_edit_err = fx("""
+    Trim(
+        If(
+            IsBlank(detDteEditEff.SelectedDate) || IsBlank(detDteEditExp.SelectedDate) ||
+            detDteEditExp.SelectedDate <= detDteEditEff.SelectedDate,
+            "Expiry must be after the effective date. ", ""
+        ) &
+        If(
+            detTglEditActive.Value && !IsBlank(detDteEditExp.SelectedDate) && detDteEditExp.SelectedDate < Today(),
+            "An expired rate can't be active. Extend the expiry or set it to inactive. ", ""
+        )
+    )
+""")
+
+det_edit_warn = fx("""
+    With(
+        {act: First(Filter(colLaneRates, ID <> varRate.ID && Active))},
+        Trim(
+            If(
+                detTglEditActive.Value && !IsBlank(act),
+                "⚠ Another rate on this lane is active (base " & Text(act.Base, "$#,##0.00") & ", added " &
+                Text(act.Timestamp, "mmm d, yyyy") & "). Saving switches it off. ", ""
+            ) &
+            If(
+                !detTglEditActive.Value && varRate.Active && IsBlank(act),
+                "⚠ This is the only active rate on this lane. After saving, the lane has no active rate. ", ""
+            ) &
+            If(
+                !IsBlank(detDteEditExp.SelectedDate) && detDteEditExp.SelectedDate < Today() &&
+                varRate.ExpiryDate >= Today(),
+                "⚠ The new expiry has already passed, so this rate will drop off Recent entries. ", ""
+            )
+        )
+    )
+""")
+
+det_do_save = fx(f"""
+    Set(varSavingEdit, true);
+    With(
+        {{
+            r: Patch(
+                LinehaulRates,
+                LookUp(LinehaulRates, ID = varRate.ID),
+                {{
+                    Active: detTglEditActive.Value,
+                    EffectiveDate: detDteEditEff.SelectedDate,
+                    ExpiryDate: detDteEditExp.SelectedDate,
+                    Comments: detTxtEditNotes.Text
+                }}
+            )
+        }},
+        If(
+            IsError(r) || IsBlank(r.ID),
+            Notify("Changes weren't saved. Check your connection and try again.", NotificationType.Error),
+            If(
+                r.Active,
+                ForAll(
+                    Filter(
+                        Filter(
+                            LinehaulRates,
+                            Title = r.Title && Destination = r.Destination && Carrier = r.Carrier &&
+                            Mode = r.Mode && Equipment = r.Equipment && Active = true
+                        ),
+                        ID <> r.ID
+                    ) As old,
+                    Patch(LinehaulRates, old, {{Active: false}})
+                )
+            );
+            Set(
+                varRate,
+                Patch(
+                    varRate,
+                    {{
+                        Active: r.Active,
+                        EffectiveDate: r.EffectiveDate,
+                        ExpiryDate: r.ExpiryDate,
+                        Comments: r.Comments
+                    }}
+                )
+            );
+""") + "\n" + indent(DET_COLLECT, "        ") + ";\n        " + fx("""
+            Set(varEditRate, false);
+            Notify("Changes saved.", NotificationType.Success)
+        )
+    );
+    Set(varConfirmEdit, false);
+    Set(varSavingEdit, false)
+""")
+
+det_save = ("If(\n    !IsBlank(detLblEditErr.Text),\n    Notify(detLblEditErr.Text, NotificationType.Error),\n"
+            "    !IsBlank(detLblEditWarn.Text),\n    Set(varConfirmEdit, true),\n"
+            + indent(det_do_save, "    ") + "\n)")
+
+det_edit = section("detSecEdit", "✎", s("Edit status & dates"),
+                   s("To change the price, save a new rate so the history stays intact"),
+                   height="289 + If(detLblEditErr.Visible, 46, 0) + If(detLblEditWarn.Visible, 58, 0)",
+                   Visible="varEditRate", BorderColor="clrBlueHover", body=[
+    row("detEditRow", 60, [
+        field("detFldEditActive", "Active rate", [toggle("detTglEditActive", "Active", "Inactive",
+                                                         default=f"{R}.Active", Height=38, **STRETCH)]),
+        field("detFldEditEff", "Effective *", [datepick("detDteEditEff", f"{R}.EffectiveDate")]),
+        field("detFldEditExp", "Expiry *", [datepick("detDteEditExp", f"{R}.ExpiryDate")]),
+    ]),
+    field("detFldEditNotes", "Comments", [textin("detTxtEditNotes", "Why the change?", Default=f"{R}.Comments",
+                                                 Mode="TextMode.MultiLine", Height=64)]),
+    lbl("detLblEditErr", det_edit_err, Visible="!IsBlank(Self.Text)", Fill="clrRedBg", Color="clrRed",
+        BorderColor="clrRed", BorderThickness=1, Size=9.5, Wrap="true", **pads(0, 12), **fixed(h=34), **STRETCH),
+    lbl("detLblEditWarn", det_edit_warn, Visible="!IsBlank(Self.Text)", Fill="clrAmberBg", Color="clrAmberInk",
+        BorderColor="RGBA(233, 215, 155, 1)", BorderThickness=1, Size=9.5, Wrap="true", **pads(0, 12),
+        **fixed(h=46), **STRETCH),
+    row("detEditBtns", 38, [
+        rect("detEditSpacer", Fill="clrClear", Height=10, **fill(1, 0)),
+        btn("detBtnEditCancel", s("Cancel"), OnSelect="Set(varEditRate, false)", **fixed(100, 38)),
+        btn("detBtnEditSave", 'If(varSavingEdit, "Saving…", "Save changes")', "primary", OnSelect=det_save,
+            DisplayMode="If(IsBlank(detLblEditErr.Text) && !varSavingEdit, DisplayMode.Edit, DisplayMode.Disabled)",
+            **fixed(140, 38)),
+    ], gap=10),
+])
+
+# column: (key, header, x fraction, width fraction, align)
+LANE_COLS = [("Status", "Status", 0.00, 0.16, "Left"), ("Base", "Base", 0.16, 0.15, "Right"),
+             ("Fuel", "Fuel", 0.33, 0.14, "Left"), ("Eff", "Effective", 0.47, 0.17, "Left"),
+             ("Exp", "Expiry", 0.64, 0.17, "Left"), ("Added", "Added", 0.81, 0.19, "Left")]
+LANE_TEXT = {
+    "Base": 'Text(ThisItem.Base, "$#,##0.00")',
+    "Fuel": "ThisItem.Fuel",
+    "Eff": 'Text(ThisItem.EffectiveDate, "mmm d, yyyy")',
+    "Exp": 'Text(ThisItem.ExpiryDate, "mmm d, yyyy")',
+    "Added": 'Text(ThisItem.Timestamp, "mmm d, yyyy")',
+}
+
+
+def lane_template():
+    kids = [pill("detLaneRowStatus", 'If(ThisItem.Active, "Active", "Inactive")',
+                 "If(ThisItem.Active, clrGreenBg, clrSoft)", "If(ThisItem.Active, clrGreenInk, clrInk3)",
+                 OnSelect="Select(Parent)", X=12, Y=11, Width=74)]
+    for key, _, x, w, align in LANE_COLS[1:]:
+        kids.append(lbl(f"detLaneRow{key}", LANE_TEXT[key], OnSelect="Select(Parent)", Size=9.5,
+                        FontWeight="If(ThisItem.ID = varRate.ID, FontWeight.Bold, FontWeight.Normal)",
+                        Color="If(ThisItem.ExpiryDate < Today(), clrRed, clrInk)" if key == "Exp" else "clrInk",
+                        Align=f"Align.{align}", PaddingLeft=10, PaddingRight=10,
+                        X=f"Parent.TemplateWidth * {x}", Y=0, Width=f"Parent.TemplateWidth * {w}", Height=44))
+    kids.append(rect("detLaneRowSep", Fill="clrSoft", X=0, Y=43, Width="Parent.TemplateWidth", Height=1))
+    return kids
+
+
+det_history = section("detSecHistory", "3", s("All rates on this lane"),
+                      'CountRows(colLaneRates) & If(CountRows(colLaneRates) = 1, " rate", " rates") & " · select one to open it"',
+                      height="81 + If(detLblMultiActive.Visible, 44, 0) + Min(Max(CountRows(colLaneRates), 1), 6) * 44",
+                      body_pad=0, body_gap=0, body=[
+    lbl("detLblMultiActive",
+        'With({n: CountRows(Filter(colLaneRates, Active))}, If(n > 1, "⚠ " & n & " rates on this lane are active. '
+        'Open the one that should stay active, choose Edit rate and save it; the others switch off.", ""))',
+        Visible="!IsBlank(Self.Text)", Fill="clrAmberBg", Color="clrAmberInk", Size=9.5, Wrap="true",
+        **pads(0, 16), **fixed(h=44), **STRETCH),
+    manual("detLaneHdr", [
+        *[caps(f"detLaneHdr{k}", h, Align=f"Align.{a}", PaddingLeft=12 if k == "Status" else 10, PaddingRight=10,
+               X=f"Parent.Width * {x}", Y=7, Width=f"Parent.Width * {w}") for k, h, x, w, a in LANE_COLS],
+        rect("detLaneHdrLine", Fill="clrBlue", X=0, Y=30, Width="Parent.Width", Height=2),
+    ], Fill="clrPanel", Height=32, **fixed(), **STRETCH),
+    node("detLaneGallery", "Gallery@2.15.0", {
+        "Items": "colLaneRates", "TemplateSize": 44, "TemplatePadding": 0,
+        "TemplateFill": "If(ThisItem.ID = varRate.ID, clrSoft, clrPanel)", "BorderThickness": 0,
+        "OnSelect": "Set(varRate, ThisItem); Set(varEditRate, false)", "ShowScrollbar": "true",
+        "Height": "Min(Max(CountRows(colLaneRates), 1), 6) * 44", **fixed(), **STRETCH,
+    }, lane_template(), "BrowseLayout_Vertical_TwoTextOneImageVariant_ver5.0"),
+])
+
+write_screen("scrDetails", {"Fill": "clrPage", "OnVisible": "Set(varEditRate, false); Set(varConfirmEdit, false); Set(varSavingEdit, false);\n" + DET_COLLECT}, [
     shell("det", "Recent",
           f'"Rate details · " & {R}.Title & {R}.Destination & "-" & {R}.Carrier & "-" & {R}.Mode & "-" & {R}.Equipment',
-          [btn("detHdrBtnBack", s("← Back to recent"), OnSelect="Navigate(scrRecent, ScreenTransition.None)",
+          [btn("detHdrBtnEdit", s("Edit rate"), "primary", Visible="!varEditRate", OnSelect=DET_OPEN_EDIT,
+               **fixed(110, 38)),
+           btn("detHdrBtnBack", s("← Back to recent"), OnSelect="Navigate(scrRecent, ScreenTransition.None)",
                **fixed(150, 38))],
           body("det", [
-              det_hero, det_lane, det_cost,
+              det_hero, det_edit, det_lane, det_cost, det_history,
               lbl("detLblFooter",
                   f'"Submitted by " & {R}.SubmittedBy & " · " & Text({R}.Timestamp, "mmm d, yyyy h:mm AM/PM")',
                   Size=9, Color="clrInk3", **fixed(h=24), **STRETCH),
           ])),
+    modal("det", "varConfirmEdit", s("Check before saving"), "detLblEditWarn.Text",
+          "Set(varConfirmEdit, false)", s("Save changes"), det_do_save),
 ])
 
 

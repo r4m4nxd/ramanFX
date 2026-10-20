@@ -36,7 +36,45 @@ Four new screens in the LTL Rate Request style. They sit alongside the old scree
   - Carrier names are saved in upper case, and duplicates are blocked with a delegable exact match.
   - Fuel program names are checked the same way.
 - **Failed saves are reported.** If a save fails, the user is told and the form keeps its data.
-- **New variable names** (`varRate`, `colDays`, `varFuelForm`, `varFuelEdit`, `varFuelRec`) so they don't clash with the old screens while both exist.
+- **New variable names** (`varRate`, `colDays`, `colLaneRates`, `varFuelForm`, `varFuelEdit`, `varFuelRec`, `varEditRate`, `varConfirmSave`, `varConfirmEdit`, `varSaving`, `varSavingEdit`) so they don't clash with the old screens while both exist.
+
+## Duplicates and edit mode
+
+**New rate (Save rate)** stops on a confirm dialog when any of these is true:
+- the lane already has an active rate and this one is marked active. The button reads **Replace and save**, and the old rate is switched off only after the new one saves.
+- a live rate for this lane already has the same base and fuel, so saving would create a duplicate.
+- the expiry date has already passed.
+- the base is over $20,000, which is likely a typo.
+
+**Rate details → Edit rate** changes Active, Effective, Expiry and Comments. Price fields can't be edited, so a price change is always a new rate and the history stays intact.
+- **Hard stops:** expiry on or before the effective date; making an expired rate active.
+- **Confirm first:** making it active while another rate is active (that one gets switched off); switching off the lane's only active rate; moving the expiry into the past.
+- **All rates on this lane:** lists every rate for the lane key, expired ones included. It flags lanes that already have more than one active rate (left over from old data); open the one to keep, Edit rate, Save, and the others switch off.
+
+## Rules that keep the data clean
+
+| Rule | Where |
+|---|---|
+| Lane fields, carrier and fuel come from lists, never free text | Entry |
+| New carrier and fuel program names are trimmed, upper-cased, and blocked if they already exist | Entry, Fuel library |
+| Origin ≠ destination; base > $0; % discount < 100; LH cost must stay above $0 | Entry (Save disabled) |
+| Fuel program must have an FSC; fuel discount can't exceed the FSC | Entry |
+| Expiry after effective; an expired rate can't be active | Entry, Edit |
+| Only one active rate per lane key | Entry and Edit save logic |
+| Save buttons lock while saving, so a double click can't create two rows | Entry, Edit |
+| A failed save says so and keeps the form filled | Everywhere |
+| Nothing is ever deleted; old rates are switched to inactive | By design |
+
+## Recommended SharePoint settings
+
+Do these once in the list settings. They protect the data even if someone edits the list directly.
+
+1. **Indexed columns** on `LinehaulRates`: Title, Destination, Carrier, Mode, Equipment, Active, ExpiryDate and Timestamp. Without indexes, filters stop working once the list passes 5,000 items.
+2. **Required columns:** Title, Destination, Carrier, Mode, Equipment, Fuel, Base, EffectiveDate and ExpiryDate.
+3. **List validation** (List settings → Validation settings): `=[ExpiryDate]>[EffectiveDate]`
+4. **Active** column default = Yes.
+5. **Permissions:** users get *Contribute without delete*, so rates can't be deleted from the list itself.
+6. Optional: a Power Automate flow that runs nightly and switches expired active rates to inactive.
 
 ## Known limits
 

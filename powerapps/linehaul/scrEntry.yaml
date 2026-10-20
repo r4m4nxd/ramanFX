@@ -388,7 +388,7 @@ Screens:
                               DropShadow: =DropShadow.None
                               Fill: =clrPanel
                               FillPortions: =0
-                              Height: =If(entLblReplace.Visible, 422, 376)
+                              Height: =376 + If(entLblReplace.Visible, 46, 0) + If(entLblDupe.Visible, 58, 0)
                               LayoutDirection: =LayoutDirection.Vertical
                               LayoutGap: =0
                               PaddingBottom: =0
@@ -1660,6 +1660,52 @@ Screens:
                                                         "",
                                                         "⚠ Saving switches off the current active rate for this lane (base " &
                                                         Text(p.Base, "$#,##0.00") & ", added " & Text(p.Timestamp, "mmm d, yyyy") & ")."
+                                                    )
+                                                )
+                                            )
+                                          VerticalAlign: =VerticalAlign.Middle
+                                          Visible: =!IsBlank(Self.Text)
+                                          Wrap: =true
+                                    - entLblDupe:
+                                        Control: Label@2.5.1
+                                        Properties:
+                                          AlignInContainer: =AlignInContainer.Stretch
+                                          BorderColor: =RGBA(233, 215, 155, 1)
+                                          BorderThickness: =1
+                                          Color: =clrAmberInk
+                                          Fill: =clrAmberBg
+                                          FillPortions: =0
+                                          Font: =Font.'Segoe UI'
+                                          Height: =46
+                                          PaddingBottom: =0
+                                          PaddingLeft: =12
+                                          PaddingRight: =12
+                                          PaddingTop: =0
+                                          Size: =9.5
+                                          Text: |-
+                                            =If(
+                                                entLblKey.Text = "—" || entNumOk.Text <> "ok" || IsBlank(Trim(entTxtBase.Text)) ||
+                                                IsBlank(entCmbFuel.Selected.Title),
+                                                "",
+                                                With(
+                                                    {
+                                                        p: LookUp(
+                                                            LinehaulRates,
+                                                            Title = entCmbOrigin.Selected.Value &&
+                                                            Destination = entCmbDest.Selected.Value &&
+                                                            Carrier = entCmbCarrier.Selected.Title &&
+                                                            Mode = entCmbMode.Selected.Value &&
+                                                            Equipment = entCmbEquip.Selected.Value &&
+                                                            Base = Value(entTxtBase.Text) &&
+                                                            Fuel = entCmbFuel.Selected.Title &&
+                                                            ExpiryDate >= Today()
+                                                        )
+                                                    },
+                                                    If(
+                                                        IsBlank(p),
+                                                        "",
+                                                        "⚠ A rate with the same base (" & Text(p.Base, "$#,##0.00") & ") and fuel already exists for this lane, " &
+                                                        "added " & Text(p.Timestamp, "mmm d, yyyy") & " by " & p.SubmittedBy & ". Saving creates a duplicate."
                                                     )
                                                 )
                                             )
@@ -3173,7 +3219,8 @@ Screens:
                                             Reset(entTxtBase); Reset(entTxtAdj); Reset(entTglAdjPct); Reset(entTxtDisc); Reset(entTglDiscPct);
                                             Reset(entTxtFAdj); Reset(entTxtFDisc); Reset(entTxtNotes); Reset(entTxtNewCarrier);
                                             Clear(colDays);
-                                            Set(varAddCarrier, false)
+                                            Set(varAddCarrier, false);
+                                            Set(varConfirmSave, false)
                                           PressedBorderColor: =clrRed
                                           PressedColor: =clrRed
                                           PressedFill: =clrRedBg
@@ -3193,7 +3240,7 @@ Screens:
                                           DisabledBorderColor: =clrLine
                                           DisabledColor: =clrInk3
                                           DisabledFill: =clrSoft
-                                          DisplayMode: =If(IsBlank(entLblErrors.Text), DisplayMode.Edit, DisplayMode.Disabled)
+                                          DisplayMode: =If(IsBlank(entLblErrors.Text) && !varSaving, DisplayMode.Edit, DisplayMode.Disabled)
                                           Fill: =clrBlue
                                           FillPortions: =0
                                           Font: =Font.'Segoe UI'
@@ -3206,63 +3253,71 @@ Screens:
                                             =If(
                                                 !IsBlank(entLblErrors.Text),
                                                 Notify(entLblErrors.Text, NotificationType.Error),
-                                                With(
-                                                    {
-                                                        n: Patch(
-                                                            LinehaulRates,
-                                                            Defaults(LinehaulRates),
-                                                            {
-                                                                Title: entCmbOrigin.Selected.Value,
-                                                                Destination: entCmbDest.Selected.Value,
-                                                                Mode: entCmbMode.Selected.Value,
-                                                                Carrier: entCmbCarrier.Selected.Title,
-                                                                Equipment: entCmbEquip.Selected.Value,
-                                                                Fuel: entCmbFuel.Selected.Title,
-                                                                ServiceDays: If(
-                                                                    "ALL" in colDays.Value,
-                                                                    "ALL",
-                                                                    Concat(Filter(nfDays, Value in colDays.Value), Value, ";")
-                                                                ),
-                                                                EffectiveDate: entDteEff.SelectedDate,
-                                                                ExpiryDate: entDteExpiry.SelectedDate,
-                                                                Base: Value(entTxtBase.Text),
-                                                                Adj: Value(entTxtAdj.Text),
-                                                                AdjType: If(IsBlank(Trim(entTxtAdj.Text)), "", If(entTglAdjPct.Value, "%", "$")),
-                                                                Discount: Value(entTxtDisc.Text),
-                                                                DiscountType: If(IsBlank(Trim(entTxtDisc.Text)), "", If(entTglDiscPct.Value, "%", "$")),
-                                                                F_Adj: Value(entTxtFAdj.Text),
-                                                                F_AdjType: If(IsBlank(Trim(entTxtFAdj.Text)), "", "%"),
-                                                                F_Discount: Value(entTxtFDisc.Text),
-                                                                F_DiscountType: If(IsBlank(Trim(entTxtFDisc.Text)), "", "%"),
-                                                                Comments: entTxtNotes.Text,
-                                                                Active: entTglActive.Value,
-                                                                SubmittedBy: User().FullName,
-                                                                SubmittedEmail: User().Email,
-                                                                Timestamp: Now()
-                                                            }
-                                                        )
-                                                    },
-                                                    If(
-                                                        IsError(n) || IsBlank(n.ID),
-                                                        Notify("The rate wasn't saved. Check your connection and try again.", NotificationType.Error),
-                                                        If(
-                                                            n.Active,
-                                                            ForAll(
-                                                                Filter(
-                                                                    Filter(
-                                                                        LinehaulRates,
-                                                                        Title = n.Title && Destination = n.Destination && Carrier = n.Carrier &&
-                                                                        Mode = n.Mode && Equipment = n.Equipment && Active = true
+                                                !IsBlank(entLblConfirm.Text),
+                                                Set(varConfirmSave, true),
+                                                Set(varSaving, true);
+                                                If(
+                                                    !IsBlank(entLblErrors.Text),
+                                                    Notify(entLblErrors.Text, NotificationType.Error),
+                                                    With(
+                                                        {
+                                                            n: Patch(
+                                                                LinehaulRates,
+                                                                Defaults(LinehaulRates),
+                                                                {
+                                                                    Title: entCmbOrigin.Selected.Value,
+                                                                    Destination: entCmbDest.Selected.Value,
+                                                                    Mode: entCmbMode.Selected.Value,
+                                                                    Carrier: entCmbCarrier.Selected.Title,
+                                                                    Equipment: entCmbEquip.Selected.Value,
+                                                                    Fuel: entCmbFuel.Selected.Title,
+                                                                    ServiceDays: If(
+                                                                        "ALL" in colDays.Value,
+                                                                        "ALL",
+                                                                        Concat(Filter(nfDays, Value in colDays.Value), Value, ";")
                                                                     ),
-                                                                    ID <> n.ID
-                                                                ) As old,
-                                                                Patch(LinehaulRates, old, {Active: false})
+                                                                    EffectiveDate: entDteEff.SelectedDate,
+                                                                    ExpiryDate: entDteExpiry.SelectedDate,
+                                                                    Base: Value(entTxtBase.Text),
+                                                                    Adj: Value(entTxtAdj.Text),
+                                                                    AdjType: If(IsBlank(Trim(entTxtAdj.Text)), "", If(entTglAdjPct.Value, "%", "$")),
+                                                                    Discount: Value(entTxtDisc.Text),
+                                                                    DiscountType: If(IsBlank(Trim(entTxtDisc.Text)), "", If(entTglDiscPct.Value, "%", "$")),
+                                                                    F_Adj: Value(entTxtFAdj.Text),
+                                                                    F_AdjType: If(IsBlank(Trim(entTxtFAdj.Text)), "", "%"),
+                                                                    F_Discount: Value(entTxtFDisc.Text),
+                                                                    F_DiscountType: If(IsBlank(Trim(entTxtFDisc.Text)), "", "%"),
+                                                                    Comments: entTxtNotes.Text,
+                                                                    Active: entTglActive.Value,
+                                                                    SubmittedBy: User().FullName,
+                                                                    SubmittedEmail: User().Email,
+                                                                    Timestamp: Now()
+                                                                }
                                                             )
-                                                        );
-                                                        Notify("Rate saved for " & n.Title & n.Destination & " " & n.Carrier & ".", NotificationType.Success);
-                                                        Select(entBtnReset)
+                                                        },
+                                                        If(
+                                                            IsError(n) || IsBlank(n.ID),
+                                                            Notify("The rate wasn't saved. Check your connection and try again.", NotificationType.Error),
+                                                            If(
+                                                                n.Active,
+                                                                ForAll(
+                                                                    Filter(
+                                                                        Filter(
+                                                                            LinehaulRates,
+                                                                            Title = n.Title && Destination = n.Destination && Carrier = n.Carrier &&
+                                                                            Mode = n.Mode && Equipment = n.Equipment && Active = true
+                                                                        ),
+                                                                        ID <> n.ID
+                                                                    ) As old,
+                                                                    Patch(LinehaulRates, old, {Active: false})
+                                                                )
+                                                            );
+                                                            Notify("Rate saved for " & n.Title & n.Destination & " " & n.Carrier & ".", NotificationType.Success);
+                                                            Select(entBtnReset)
+                                                        )
                                                     )
-                                                )
+                                                );
+                                                Set(varSaving, false)
                                             )
                                           PressedBorderColor: =clrInk
                                           PressedColor: =clrWhite
@@ -3272,7 +3327,7 @@ Screens:
                                           RadiusTopLeft: =5
                                           RadiusTopRight: =5
                                           Size: =10.5
-                                          Text: ="Save rate"
+                                          Text: =If(varSaving, "Saving…", "Save rate")
                                           Width: =140
       - entLblErrors:
           Control: Label@2.5.1
@@ -3316,9 +3371,31 @@ Screens:
                           "Expiry must be after the effective date. ", ""
                       ) &
                       If(
+                          !IsBlank(entCmbOrigin.Selected.Value) && entCmbOrigin.Selected.Value = entCmbDest.Selected.Value,
+                          "Origin and destination can't be the same. ", ""
+                      ) &
+                      If(
+                          entNumOk.Text = "ok" && !IsBlank(Trim(entTxtBase.Text)) && Value(entTxtBase.Text) <= 0,
+                          "Base rate must be more than $0. ", ""
+                      ) &
+                      If(
                           entNumOk.Text = "ok" && entTglDiscPct.Value && Coalesce(Value(entTxtDisc.Text), 0) >= 100,
                           "A % discount must be under 100. ", ""
-                      )
+                      ) &
+                      If(
+                          FuelMissing(entCmbFuel.Selected.Title),
+                          "The fuel program has no FSC. Fix it in the Fuel library first. ", ""
+                      ) &
+                      If(
+                          entNumOk.Text = "ok" && !IsBlank(entCmbFuel.Selected.Title) &&
+                          FscPct(entCmbFuel.Selected.Title, Value(entTxtFAdj.Text), Value(entTxtFDisc.Text), true) < 0,
+                          "Fuel discount is bigger than the FSC. ", ""
+                      ) &
+                      If(
+                          !IsBlank(entCalc.Text) && Value(entCalc.Text) <= 0,
+                          "The discount wipes out the whole cost. Check the discount. ", ""
+                      ) &
+                      If(varAddCarrier, "Finish or cancel the new carrier first. ", "")
                   )
               )
             VerticalAlign: =VerticalAlign.Middle
@@ -3385,3 +3462,248 @@ Screens:
             Width: =10
             X: =0
             Y: =0
+      - entLblConfirm:
+          Control: Label@2.5.1
+          Properties:
+            BorderThickness: =0
+            Color: =clrInk
+            Font: =Font.'Segoe UI'
+            Height: =10
+            PaddingBottom: =0
+            PaddingLeft: =0
+            PaddingRight: =0
+            PaddingTop: =0
+            Size: =10
+            Text: |-
+              =Concat(
+                  Filter(
+                      Table(
+                          {t: entLblReplace.Text},
+                          {t: entLblDupe.Text},
+                          {
+                              t: If(
+                                  !IsBlank(entDteExpiry.SelectedDate) && entDteExpiry.SelectedDate < Today(),
+                                  "⚠ The expiry date has already passed, so this rate won't show in Recent entries.",
+                                  ""
+                              )
+                          },
+                          {
+                              t: If(
+                                  entNumOk.Text = "ok" && Coalesce(Value(entTxtBase.Text), 0) > 20000,
+                                  "⚠ The base rate is over $20,000. Check it isn't a typo.",
+                                  ""
+                              )
+                          }
+                      ),
+                      !IsBlank(t)
+                  ),
+                  t,
+                  Char(10) & Char(10)
+              )
+            VerticalAlign: =VerticalAlign.Middle
+            Visible: =false
+            Width: =10
+            X: =0
+            Y: =0
+      - entModal:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            BorderThickness: =0
+            DropShadow: =DropShadow.None
+            Fill: =clrClear
+            Height: =Parent.Height
+            RadiusBottomLeft: =0
+            RadiusBottomRight: =0
+            RadiusTopLeft: =0
+            RadiusTopRight: =0
+            Visible: =varConfirmSave
+            Width: =Parent.Width
+            X: =0
+            Y: =0
+          Children:
+            - entModalShade:
+                Control: Rectangle@2.3.0
+                Properties:
+                  BorderThickness: =0
+                  Fill: =RGBA(22, 32, 43, 0.45)
+                  Height: =Parent.Height
+                  OnSelect: =false
+                  Width: =Parent.Width
+                  X: =0
+                  Y: =0
+            - entModalCard:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  BorderColor: =clrLine
+                  BorderThickness: =1
+                  DropShadow: =DropShadow.Bold
+                  Fill: =clrPanel
+                  Height: =300
+                  RadiusBottomLeft: =8
+                  RadiusBottomRight: =8
+                  RadiusTopLeft: =8
+                  RadiusTopRight: =8
+                  Width: =500
+                  X: =(Parent.Width - 500) / 2
+                  Y: =(Parent.Height - 300) / 2
+                Children:
+                  - entModalTitle:
+                      Control: Label@2.5.1
+                      Properties:
+                        BorderThickness: =0
+                        Color: =clrInk
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Bold
+                        Height: =30
+                        PaddingBottom: =0
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        Size: =13
+                        Text: ="Check before saving"
+                        VerticalAlign: =VerticalAlign.Middle
+                        Width: =Parent.Width - 40
+                        X: =20
+                        Y: =16
+                  - entModalMsg:
+                      Control: Label@2.5.1
+                      Properties:
+                        BorderThickness: =0
+                        Color: =clrInk2
+                        Font: =Font.'Segoe UI'
+                        Height: =Parent.Height - 124
+                        PaddingBottom: =0
+                        PaddingLeft: =0
+                        PaddingRight: =0
+                        PaddingTop: =0
+                        Size: =10
+                        Text: =entLblConfirm.Text
+                        VerticalAlign: =VerticalAlign.Top
+                        Width: =Parent.Width - 40
+                        Wrap: =true
+                        X: =20
+                        Y: =54
+                  - entModalCancel:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderColor: =clrLine
+                        BorderThickness: =1
+                        Color: =clrInk
+                        DisabledBorderColor: =clrLine
+                        DisabledColor: =clrInk3
+                        DisabledFill: =clrSoft
+                        Fill: =clrPanel
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =38
+                        HoverBorderColor: =clrInk3
+                        HoverColor: =clrInk
+                        HoverFill: =clrSoft
+                        OnSelect: =Set(varConfirmSave, false)
+                        PressedBorderColor: =clrInk3
+                        PressedColor: =clrInk
+                        PressedFill: =clrLine
+                        RadiusBottomLeft: =5
+                        RadiusBottomRight: =5
+                        RadiusTopLeft: =5
+                        RadiusTopRight: =5
+                        Size: =10.5
+                        Text: ="Go back"
+                        Width: =120
+                        X: =Parent.Width - 304
+                        Y: =Parent.Height - 58
+                  - entModalOk:
+                      Control: Classic/Button@2.2.0
+                      Properties:
+                        BorderColor: =clrBlue
+                        BorderThickness: =1
+                        Color: =clrWhite
+                        DisabledBorderColor: =clrLine
+                        DisabledColor: =clrInk3
+                        DisabledFill: =clrSoft
+                        Fill: =clrBlue
+                        Font: =Font.'Segoe UI'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =38
+                        HoverBorderColor: =clrBlueHover
+                        HoverColor: =clrWhite
+                        HoverFill: =clrBlueHover
+                        OnSelect: |-
+                          =Set(varConfirmSave, false);
+                          Set(varSaving, true);
+                          If(
+                              !IsBlank(entLblErrors.Text),
+                              Notify(entLblErrors.Text, NotificationType.Error),
+                              With(
+                                  {
+                                      n: Patch(
+                                          LinehaulRates,
+                                          Defaults(LinehaulRates),
+                                          {
+                                              Title: entCmbOrigin.Selected.Value,
+                                              Destination: entCmbDest.Selected.Value,
+                                              Mode: entCmbMode.Selected.Value,
+                                              Carrier: entCmbCarrier.Selected.Title,
+                                              Equipment: entCmbEquip.Selected.Value,
+                                              Fuel: entCmbFuel.Selected.Title,
+                                              ServiceDays: If(
+                                                  "ALL" in colDays.Value,
+                                                  "ALL",
+                                                  Concat(Filter(nfDays, Value in colDays.Value), Value, ";")
+                                              ),
+                                              EffectiveDate: entDteEff.SelectedDate,
+                                              ExpiryDate: entDteExpiry.SelectedDate,
+                                              Base: Value(entTxtBase.Text),
+                                              Adj: Value(entTxtAdj.Text),
+                                              AdjType: If(IsBlank(Trim(entTxtAdj.Text)), "", If(entTglAdjPct.Value, "%", "$")),
+                                              Discount: Value(entTxtDisc.Text),
+                                              DiscountType: If(IsBlank(Trim(entTxtDisc.Text)), "", If(entTglDiscPct.Value, "%", "$")),
+                                              F_Adj: Value(entTxtFAdj.Text),
+                                              F_AdjType: If(IsBlank(Trim(entTxtFAdj.Text)), "", "%"),
+                                              F_Discount: Value(entTxtFDisc.Text),
+                                              F_DiscountType: If(IsBlank(Trim(entTxtFDisc.Text)), "", "%"),
+                                              Comments: entTxtNotes.Text,
+                                              Active: entTglActive.Value,
+                                              SubmittedBy: User().FullName,
+                                              SubmittedEmail: User().Email,
+                                              Timestamp: Now()
+                                          }
+                                      )
+                                  },
+                                  If(
+                                      IsError(n) || IsBlank(n.ID),
+                                      Notify("The rate wasn't saved. Check your connection and try again.", NotificationType.Error),
+                                      If(
+                                          n.Active,
+                                          ForAll(
+                                              Filter(
+                                                  Filter(
+                                                      LinehaulRates,
+                                                      Title = n.Title && Destination = n.Destination && Carrier = n.Carrier &&
+                                                      Mode = n.Mode && Equipment = n.Equipment && Active = true
+                                                  ),
+                                                  ID <> n.ID
+                                              ) As old,
+                                              Patch(LinehaulRates, old, {Active: false})
+                                          )
+                                      );
+                                      Notify("Rate saved for " & n.Title & n.Destination & " " & n.Carrier & ".", NotificationType.Success);
+                                      Select(entBtnReset)
+                                  )
+                              )
+                          );
+                          Set(varSaving, false)
+                        PressedBorderColor: =clrInk
+                        PressedColor: =clrWhite
+                        PressedFill: =clrInk
+                        RadiusBottomLeft: =5
+                        RadiusBottomRight: =5
+                        RadiusTopLeft: =5
+                        RadiusTopRight: =5
+                        Size: =10.5
+                        Text: =If(IsBlank(entLblReplace.Text), "Save anyway", "Replace and save")
+                        Width: =152
+                        X: =Parent.Width - 172
+                        Y: =Parent.Height - 58
