@@ -36,7 +36,7 @@ Screens:
                   FillPortions: =0
                   LayoutAlignItems: =LayoutAlignItems.Center
                   LayoutDirection: =LayoutDirection.Vertical
-                  LayoutGap: =6
+                  LayoutGap: =8
                   LayoutMinWidth: =84
                   PaddingBottom: =14
                   PaddingLeft: =5
@@ -75,7 +75,7 @@ Screens:
                         Height: =64
                         LayoutAlignItems: =LayoutAlignItems.Center
                         LayoutDirection: =LayoutDirection.Vertical
-                        LayoutGap: =3
+                        LayoutGap: =4
                         LayoutJustifyContent: =LayoutJustifyContent.Center
                         PaddingBottom: =0
                         PaddingLeft: =0
@@ -129,7 +129,7 @@ Screens:
                         Height: =64
                         LayoutAlignItems: =LayoutAlignItems.Center
                         LayoutDirection: =LayoutDirection.Vertical
-                        LayoutGap: =3
+                        LayoutGap: =4
                         LayoutJustifyContent: =LayoutJustifyContent.Center
                         PaddingBottom: =0
                         PaddingLeft: =0
@@ -183,7 +183,7 @@ Screens:
                         Height: =64
                         LayoutAlignItems: =LayoutAlignItems.Center
                         LayoutDirection: =LayoutDirection.Vertical
-                        LayoutGap: =3
+                        LayoutGap: =4
                         LayoutJustifyContent: =LayoutJustifyContent.Center
                         PaddingBottom: =0
                         PaddingLeft: =0
@@ -259,9 +259,9 @@ Screens:
                         Height: =60
                         LayoutAlignItems: =LayoutAlignItems.Center
                         LayoutDirection: =LayoutDirection.Horizontal
-                        LayoutGap: =14
+                        LayoutGap: =16
                         PaddingBottom: =0
-                        PaddingLeft: =20
+                        PaddingLeft: =16
                         PaddingRight: =16
                         PaddingTop: =0
                         RadiusBottomLeft: =0
@@ -344,7 +344,7 @@ Screens:
                               Height: =38
                               HoverBorderColor: =clrBlueHover
                               HoverColor: =clrWhite
-                              HoverFill: =clrBlueHover
+                              HoverFill: =clrBlue
                               OnSelect: =Navigate(scrEntry, ScreenTransition.None)
                               PressedBorderColor: =clrInk
                               PressedColor: =clrWhite
@@ -366,7 +366,7 @@ Screens:
                         Fill: =clrClear
                         FillPortions: =1
                         LayoutDirection: =LayoutDirection.Vertical
-                        LayoutGap: =10
+                        LayoutGap: =16
                         LayoutMinWidth: =40
                         PaddingBottom: =16
                         PaddingLeft: =16
@@ -386,9 +386,10 @@ Screens:
                               DropShadow: =DropShadow.None
                               Fill: =clrClear
                               FillPortions: =0
-                              Height: =36
+                              Height: =38
+                              LayoutAlignItems: =LayoutAlignItems.Center
                               LayoutDirection: =LayoutDirection.Horizontal
-                              LayoutGap: =8
+                              LayoutGap: =12
                               PaddingBottom: =0
                               PaddingLeft: =0
                               PaddingRight: =0
@@ -407,13 +408,12 @@ Screens:
                                     Color: =clrInk
                                     Default: =""
                                     Fill: =clrPanel
-                                    FillPortions: =1
+                                    FillPortions: =0
                                     Font: =Font.'Segoe UI'
-                                    Height: =36
+                                    Height: =38
                                     HintText: ="Lane, e.g. TOWI"
                                     HoverBorderColor: =clrInk3
                                     HoverFill: =clrPanel
-                                    LayoutMinWidth: =40
                                     PressedBorderColor: =clrBlue
                                     PressedFill: =clrPanel
                                     RadiusBottomLeft: =5
@@ -421,6 +421,7 @@ Screens:
                                     RadiusTopLeft: =5
                                     RadiusTopRight: =5
                                     Size: =10.5
+                                    Width: =150
                               - recTxtCarrier:
                                   Control: Classic/TextInput@2.3.2
                                   Properties:
@@ -430,13 +431,12 @@ Screens:
                                     Color: =clrInk
                                     Default: =""
                                     Fill: =clrPanel
-                                    FillPortions: =1
+                                    FillPortions: =0
                                     Font: =Font.'Segoe UI'
-                                    Height: =36
+                                    Height: =38
                                     HintText: ="Carrier"
                                     HoverBorderColor: =clrInk3
                                     HoverFill: =clrPanel
-                                    LayoutMinWidth: =40
                                     PressedBorderColor: =clrBlue
                                     PressedFill: =clrPanel
                                     RadiusBottomLeft: =5
@@ -444,6 +444,7 @@ Screens:
                                     RadiusTopLeft: =5
                                     RadiusTopRight: =5
                                     Size: =10.5
+                                    Width: =150
                               - recTxtMode:
                                   Control: Classic/TextInput@2.3.2
                                   Properties:
@@ -453,13 +454,12 @@ Screens:
                                     Color: =clrInk
                                     Default: =""
                                     Fill: =clrPanel
-                                    FillPortions: =1
+                                    FillPortions: =0
                                     Font: =Font.'Segoe UI'
-                                    Height: =36
+                                    Height: =38
                                     HintText: ="Mode"
                                     HoverBorderColor: =clrInk3
                                     HoverFill: =clrPanel
-                                    LayoutMinWidth: =40
                                     PressedBorderColor: =clrBlue
                                     PressedFill: =clrPanel
                                     RadiusBottomLeft: =5
@@ -467,6 +467,7 @@ Screens:
                                     RadiusTopLeft: =5
                                     RadiusTopRight: =5
                                     Size: =10.5
+                                    Width: =150
                               - recTxtEquip:
                                   Control: Classic/TextInput@2.3.2
                                   Properties:
@@ -476,13 +477,12 @@ Screens:
                                     Color: =clrInk
                                     Default: =""
                                     Fill: =clrPanel
-                                    FillPortions: =1
+                                    FillPortions: =0
                                     Font: =Font.'Segoe UI'
-                                    Height: =36
+                                    Height: =38
                                     HintText: ="Equipment, e.g. 53"
                                     HoverBorderColor: =clrInk3
                                     HoverFill: =clrPanel
-                                    LayoutMinWidth: =40
                                     PressedBorderColor: =clrBlue
                                     PressedFill: =clrPanel
                                     RadiusBottomLeft: =5
@@ -490,28 +490,7 @@ Screens:
                                     RadiusTopLeft: =5
                                     RadiusTopRight: =5
                                     Size: =10.5
-                        - recCtl:
-                            Control: GroupContainer@1.5.0
-                            Variant: AutoLayout
-                            Properties:
-                              AlignInContainer: =AlignInContainer.Stretch
-                              BorderThickness: =0
-                              DropShadow: =DropShadow.None
-                              Fill: =clrClear
-                              FillPortions: =0
-                              Height: =32
-                              LayoutAlignItems: =LayoutAlignItems.Center
-                              LayoutDirection: =LayoutDirection.Horizontal
-                              LayoutGap: =16
-                              PaddingBottom: =0
-                              PaddingLeft: =0
-                              PaddingRight: =0
-                              PaddingTop: =0
-                              RadiusBottomLeft: =0
-                              RadiusBottomRight: =0
-                              RadiusTopLeft: =0
-                              RadiusTopRight: =0
-                            Children:
+                                    Width: =150
                               - recTglActive:
                                   Control: Classic/Toggle@2.1.0
                                   Properties:
@@ -531,7 +510,7 @@ Screens:
                                     TrueFill: =clrBlue
                                     TrueHoverFill: =clrBlueHover
                                     TrueText: ="Active only"
-                                    Width: =150
+                                    Width: =130
                               - recTglFuel:
                                   Control: Classic/Toggle@2.1.0
                                   Properties:
@@ -551,7 +530,7 @@ Screens:
                                     TrueFill: =clrBlue
                                     TrueHoverFill: =clrBlueHover
                                     TrueText: ="Include fuel"
-                                    Width: =150
+                                    Width: =130
                               - recBtnClear:
                                   Control: Classic/Button@2.2.0
                                   Properties:
@@ -568,7 +547,7 @@ Screens:
                                     Height: =30
                                     HoverBorderColor: =clrInk3
                                     HoverColor: =clrInk
-                                    HoverFill: =clrSoft
+                                    HoverFill: =clrPanel
                                     OnSelect: =Reset(recTxtLane); Reset(recTxtCarrier); Reset(recTxtMode); Reset(recTxtEquip); Reset(recTglActive)
                                     PressedBorderColor: =clrInk3
                                     PressedColor: =clrInk

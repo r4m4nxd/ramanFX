@@ -1,6 +1,6 @@
 # Line-Haul Cost Collector: redesigned screens
 
-Four new screens in the LTL Rate Request style. They sit alongside the old screens until you switch over.
+Four new screens in the LTL Rate Request style, laid out for iPad landscape. They sit alongside the old screens until you switch over.
 
 | File | What it is |
 |---|---|
@@ -9,11 +9,12 @@ Four new screens in the LTL Rate Request style. They sit alongside the old scree
 | `scrRecent.yaml` | Recent entries |
 | `scrDetails.yaml` | Rate details |
 | `scrFuel.yaml` | Fuel library |
+| `LinehaulApp_FullCode.txt` | Everything above in one file, in paste order |
 | `build.py` | Generates the four YAML files. Edit it, then run `python3 build.py`. |
 
 ## Install (in this order)
 
-1. **Settings → Display:** turn off *Scale to fit* and *Lock aspect ratio*, and keep orientation *Portrait*. This lets the screens fill the device.
+1. **Settings → Display:** orientation *Landscape*, size *4:3 (iPad)*, then turn off *Scale to fit* and *Lock aspect ratio*. The layouts are built for iPad landscape and stretch to fill any screen from 1024 px wide up.
 2. **Settings → Updates → New:** check that **User-defined functions** is on. It's on by default in current Studio.
 3. **Settings → General:** set the data row limit to 2000.
 4. **FuelLibrary list:** add one item with Title `ALL-IN` and FSC `0`. The fuel picker now reads from the library, so ALL-IN has to exist there.
@@ -80,3 +81,13 @@ Do these once in the list settings. They protect the data even if someone edits 
 
 - Cost uses **today's** FSC, so editing a fuel program changes the cost of past rates.
 - The fuel-library row filter and the equipment "contains" filter run on the first 2,000 rows returned. The rows are already filtered by lane, carrier and mode and exclude expired rates, so this only matters at very large volumes.
+
+## Layout (iPad landscape)
+
+- **Rate entry:** Lane and Cost sit side by side in equal-height cards. A single bottom bar shows the four cost tiles, what's still missing, and the Reset and Save buttons.
+- **Recent entries:** filters, toggles and the result count share one row, so the table gets the rest of the screen.
+- **Rate details:** the lane title runs across the top. Lane facts and cost are on the left; the edit panel and all rates on this lane are on the right.
+- **Fuel library:** the program list is on the left, with the add/edit panel always open on the right.
+- **Spacing:** only 4, 8, 12 and 16 px gaps, 16 px padding on every card and the page, 6 px card corners.
+- **Touch-first states:** hover never changes a button's fill, because on iPad hover sticks after a tap. Pressing gives the feedback instead (primary buttons go dark, chips fill blue).
+- **No screen transitions:** people switch screens many times a day, so navigation is instant. Rate entry opens with the cursor in Origin.

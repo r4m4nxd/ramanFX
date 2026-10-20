@@ -119,13 +119,13 @@ def btn(name, text, kind="secondary", **p):
     base = {"Text": text, "Font": FONT, "Size": 10.5, "FontWeight": "FontWeight.Semibold", "BorderThickness": 1,
             "DisabledFill": "clrSoft", "DisabledColor": "clrInk3", "DisabledBorderColor": "clrLine", **rad(5)}
     if kind == "primary":
-        base.update(Fill="clrBlue", Color="clrWhite", BorderColor="clrBlue", HoverFill="clrBlueHover", HoverColor="clrWhite",
+        base.update(Fill="clrBlue", Color="clrWhite", BorderColor="clrBlue", HoverFill="clrBlue", HoverColor="clrWhite",
                     HoverBorderColor="clrBlueHover", PressedFill="clrInk", PressedColor="clrWhite", PressedBorderColor="clrInk")
     elif kind == "danger":
-        base.update(Fill="clrPanel", Color="clrRed", BorderColor="clrLine", HoverFill="clrRedBg", HoverColor="clrRed",
+        base.update(Fill="clrPanel", Color="clrRed", BorderColor="clrLine", HoverFill="clrPanel", HoverColor="clrRed",
                     HoverBorderColor="clrRed", PressedFill="clrRedBg", PressedColor="clrRed", PressedBorderColor="clrRed")
     else:
-        base.update(Fill="clrPanel", Color="clrInk", BorderColor="clrLine", HoverFill="clrSoft", HoverColor="clrInk",
+        base.update(Fill="clrPanel", Color="clrInk", BorderColor="clrLine", HoverFill="clrPanel", HoverColor="clrInk",
                     HoverBorderColor="clrInk3", PressedFill="clrLine", PressedColor="clrInk", PressedBorderColor="clrInk3")
     base.update(p)
     return node(name, "Classic/Button@2.2.0", base)
@@ -188,7 +188,7 @@ def datepick(name, default, **p):
 def field(name, label, controls, fp=1, head=None):
     top = caps(name + "Lbl", label, **STRETCH) if head is None else box(
         name + "Head", "Horizontal", [caps(name + "Lbl", label, **fill(1, 40))] + head,
-        Height=18, LayoutGap=6, LayoutAlignItems="LayoutAlignItems.Center", **STRETCH, **fixed())
+        Height=18, LayoutGap=8, LayoutAlignItems="LayoutAlignItems.Center", **STRETCH, **fixed())
     return box(name, "Vertical", [top] + controls, LayoutGap=4, **fill(fp, 100), **STRETCH)
 
 
@@ -244,14 +244,14 @@ def rail(p, current):
                 "FillPortions": 0}),
             lbl(f"{p}Nav{key}Text", s(text), Size=8.5, FontWeight="FontWeight.Semibold",
                 Color="clrWhite" if on else "clrRailInk", Align="Align.Center", OnSelect=go, **fixed(74, 18)),
-        ], Fill="clrRailOn" if on else "clrClear", LayoutGap=3, LayoutAlignItems="LayoutAlignItems.Center",
+        ], Fill="clrRailOn" if on else "clrClear", LayoutGap=4, LayoutAlignItems="LayoutAlignItems.Center",
             LayoutJustifyContent="LayoutJustifyContent.Center", **rad(6), **fixed(74, 64)))
     return box(f"{p}Rail", "Vertical", [
         node(f"{p}Logo", "Image@2.2.3", {"Image": "'cff logo'", "ImagePosition": "ImagePosition.Fit",
                                           "Width": 48, "Height": 48, "FillPortions": 0}),
         rect(f"{p}RailGap", Fill="clrClear", **fixed(10, 10)),
         *navs,
-    ], Fill="clrRail", LayoutGap=6, LayoutAlignItems="LayoutAlignItems.Center", **pads(14, 5),
+    ], Fill="clrRail", LayoutGap=8, LayoutAlignItems="LayoutAlignItems.Center", **pads(14, 5),
         **fixed(84), LayoutMinWidth=84, **STRETCH)
 
 
@@ -263,8 +263,8 @@ def header(p, step, right):
         lbl(f"{p}HdrUser", 'User().FullName & " · " & Text(Today(), "mmm d, yyyy")', Size=9, Color="clrInk2",
             FontWeight="FontWeight.Semibold", Align="Align.Right", **fixed(210, 36)),
         *right,
-    ], Fill="clrPanel", Height=60, LayoutGap=14, LayoutAlignItems="LayoutAlignItems.Center",
-        DropShadow="DropShadow.Light", **pads(0, 16, 0, 20), **fixed(), **STRETCH)
+    ], Fill="clrPanel", Height=60, LayoutGap=16, LayoutAlignItems="LayoutAlignItems.Center",
+        DropShadow="DropShadow.Light", **pads(0, 16), **fixed(), **STRETCH)
 
 
 def shell(p, current, step, right, body, action=None):
@@ -275,7 +275,7 @@ def shell(p, current, step, right, body, action=None):
     ], Fill="clrPage", X=0, Y=0, Width="Parent.Width", Height="Parent.Height")
 
 
-def body(p, children, scroll=True, gap=14):
+def body(p, children, scroll=True, gap=16):
     extra = {"LayoutOverflowY": "LayoutOverflow.Scroll"} if scroll else {}
     return box(f"{p}Body", "Vertical", children, LayoutGap=gap, **pads(16), **fill(1), **STRETCH, **extra)
 
@@ -698,8 +698,8 @@ def day_chip(day):
     on = "Self.Text in colDays.Value"
     return btn(f"entDay{day.title()}", s(day), Size=9, OnSelect=day_select, **rad(15), **fixed(54, 30),
                Fill=f"If({on}, clrBlue, clrPanel)", Color=f"If({on}, clrWhite, clrInk2)",
-               BorderColor=f"If({on}, clrBlue, clrLine)", HoverFill=f"If({on}, clrBlueHover, clrSoft)",
-               HoverColor=f"If({on}, clrWhite, clrInk)", PressedFill="clrBlue", PressedColor="clrWhite")
+               BorderColor=f"If({on}, clrBlue, clrLine)", HoverFill=f"If({on}, clrBlue, clrPanel)",
+               HoverColor=f"If({on}, clrWhite, clrInk2)", PressedFill="clrBlue", PressedColor="clrWhite")
 
 
 def pct_toggle(name):
@@ -711,7 +711,7 @@ def unit(name, text):
                FontWeight="FontWeight.Bold", Align="Align.Center", **fixed(40, 38))
 
 
-lane_section = section("entSecLane", "1", s("Lane"), s("Who moves it, where, on what"), height="376 + If(entLblReplace.Visible, 46, 0) + If(entLblDupe.Visible, 58, 0)", body=[
+lane_section = section("entSecLane", "1", s("Lane"), s("Who moves it, where, on what"), FillPortions=1, LayoutMinWidth=420, body=[
     row("entRowLane1", 60, [
         field("entFldOrigin", "Origin *", [combo("entCmbOrigin", "nfTerminals", "Value")]),
         field("entFldDest", "Destination *", [combo("entCmbDest", "nfTerminals", "Value")]),
@@ -730,12 +730,12 @@ lane_section = section("entSecLane", "1", s("Lane"), s("Who moves it, where, on 
                     OnSelect=entry_add_carrier, **fixed(60, 38)),
                 btn("entBtnCancelCarrier", s("✕"), Visible="varAddCarrier", Tooltip=s("Cancel"),
                     OnSelect="Reset(entTxtNewCarrier); Set(varAddCarrier, false)", **fixed(38, 38)),
-            ], gap=6),
+            ], gap=8),
         ]),
         field("entFldDays", "Service days *", [
             box("entDays", "Horizontal", [day_chip(d) for d in
                                           ["ALL", "MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]],
-                LayoutWrap="true", LayoutGap=6, Height=70, **fixed(), **STRETCH),
+                LayoutWrap="true", LayoutGap=8, Height=70, **fixed(), **STRETCH),
         ], fp=1.3),
     ]),
     row("entRowLane3", 60, [
@@ -746,6 +746,8 @@ lane_section = section("entSecLane", "1", s("Lane"), s("Who moves it, where, on 
         field("entFldActive", "Active rate", [toggle("entTglActive", "Yes, use this rate", "No, keep for reference",
                                                      default="true", Height=38, **STRETCH)]),
     ]),
+    field("entFldNotes", "Comments", [textin("entTxtNotes", "Anything the next person should know about this rate",
+                                             Mode="TextMode.MultiLine", Height=64, EnableSpellCheck="true")]),
     row("entRowKey", 28, [
         caps("entKeyLbl", "Lane key", **fixed(80, 28)),
         lbl("entLblKey", entry_key, Size=10, FontWeight="FontWeight.Semibold", Height=28, **fill(1)),
@@ -758,28 +760,26 @@ lane_section = section("entSecLane", "1", s("Lane"), s("Who moves it, where, on 
         **fixed(h=46), **STRETCH),
 ])
 
-cost_section = section("entSecCost", "2", s("Cost"), s("Fuel goes on the base first, then add-on, then discount"), height=520, body=[
+cost_section = section("entSecCost", "2", s("Cost"), s("Fuel goes on the base first, then add-on, then discount"), FillPortions=1, LayoutMinWidth=420, body=[
     row("entRowCost1", 60, [
         field("entFldBase", "Base rate *", [row("entBaseRow", 38, [
             unit("entBaseUnit", "$"),
             numin("entTxtBase", "0.00", **fill(1),
                   BorderColor=f"If(!IsMatch(Self.Text, {NUM}), clrRed, IsBlank(Trim(Self.Text)), clrAmber, clrLine)"),
-        ], gap=6)]),
+        ], gap=8)]),
         field("entFldAdj", "Add-on", [numin("entTxtAdj")], head=[pct_toggle("entTglAdjPct")]),
         field("entFldDisc", "Discount", [numin("entTxtDisc")], head=[pct_toggle("entTglDiscPct")]),
     ]),
     row("entRowCost2", 60, [
         field("entFldFuel", "Fuel program *", [combo("entCmbFuel", "Sort(FuelLibrary, Title, SortOrder.Ascending)", "Title")]),
-        field("entFldFAdj", "Fuel add-on", [row("entFAdjRow", 38, [numin("entTxtFAdj", **fill(1)), unit("entFAdjUnit", "pts")], gap=6)]),
-        field("entFldFDisc", "Fuel discount", [row("entFDiscRow", 38, [numin("entTxtFDisc", **fill(1)), unit("entFDiscUnit", "pts")], gap=6)]),
+        field("entFldFAdj", "Fuel add-on", [row("entFAdjRow", 38, [numin("entTxtFAdj", **fill(1)), unit("entFAdjUnit", "pts")], gap=8)]),
+        field("entFldFDisc", "Fuel discount", [row("entFDiscRow", 38, [numin("entTxtFDisc", **fill(1)), unit("entFDiscUnit", "pts")], gap=8)]),
     ]),
     row("entRowFacts", 56, [
         fact("entFactFsc", "FSC today", entry_fsc_today),
         fact("entFactFscApplied", "FSC applied", entry_fsc_applied),
         fact("entFactEquip", "Equipment", entry_equip),
     ], gap=8),
-    field("entFldNotes", "Comments", [textin("entTxtNotes", "Anything the next person should know about this rate",
-                                             Mode="TextMode.MultiLine", Height=64, EnableSpellCheck="true")]),
     breakdown("ent",
               breakdown_left("entCmbFuel.Selected.Title", "Value(entTxtFAdj.Text)", "Value(entTxtFDisc.Text)", "true"),
               breakdown_right("!IsBlank(entCalc.Text)", "Value(entTxtBase.Text)", "entCmbFuel.Selected.Title",
@@ -788,31 +788,27 @@ cost_section = section("entSecCost", "2", s("Cost"), s("Fuel goes on the base fi
 ])
 
 entry_action = box("entActionWrap", "Vertical", [
-    box("entAction", "Vertical", [
-        row("entTiles", 62, [
-            cost_tile("entTileLH", "LH cost · fuel in", entry_tile_value(), main=True, fp=1.4),
-            cost_tile("entTileFt3", "per ft³", entry_tile_value("CubicFt")),
-            cost_tile("entTileLin", "per linear ft", entry_tile_value("EquipFt")),
-            cost_tile("entTileSkid", "per skid spot", entry_tile_value("SkidSpots")),
-        ], gap=10),
-        row("entActRow", 40, [
-            lbl("entLblStatus", 'If(IsBlank(entLblErrors.Text), "✓ Ready to save", entLblErrors.Text)',
-                Color="If(IsBlank(entLblErrors.Text), clrGreenInk, clrAmberInk)", Size=9.5,
-                FontWeight="FontWeight.Semibold", Wrap="true", Height=40, **fill(1)),
-            btn("entBtnReset", s("Reset"), "danger", OnSelect=entry_reset, **fixed(100, 40)),
-            btn("entBtnSave", 'If(varSaving, "Saving…", "Save rate")', "primary", OnSelect=entry_save,
-                DisplayMode="If(IsBlank(entLblErrors.Text) && !varSaving, DisplayMode.Edit, DisplayMode.Disabled)",
-                **fixed(140, 40)),
-        ], gap=10, LayoutAlignItems="LayoutAlignItems.Center"),
-    ], Fill="clrPanel", BorderColor="clrLine", BorderThickness=1, **rad(6), LayoutGap=10, **pads(12, 16),
-        **fill(1), **STRETCH),
-], Height=160, **pads(0, 16, 16, 16), **fixed(), **STRETCH)
+    box("entAction", "Horizontal", [
+        cost_tile("entTileLH", "LH cost · fuel in", entry_tile_value(), main=True, fp=1.3),
+        cost_tile("entTileFt3", "per ft³", entry_tile_value("CubicFt")),
+        cost_tile("entTileLin", "per linear ft", entry_tile_value("EquipFt")),
+        cost_tile("entTileSkid", "per skid spot", entry_tile_value("SkidSpots")),
+        lbl("entLblStatus", 'If(IsBlank(entLblErrors.Text), "✓ Ready to save", entLblErrors.Text)',
+            Color="If(IsBlank(entLblErrors.Text), clrGreenInk, clrAmberInk)", Size=9.5,
+            FontWeight="FontWeight.Semibold", Wrap="true", **fill(1.6, 160), **STRETCH),
+        btn("entBtnReset", s("Reset"), "danger", OnSelect=entry_reset, **fixed(100, 44)),
+        btn("entBtnSave", 'If(varSaving, "Saving…", "Save rate")', "primary", OnSelect=entry_save,
+            DisplayMode="If(IsBlank(entLblErrors.Text) && !varSaving, DisplayMode.Edit, DisplayMode.Disabled)",
+            **fixed(140, 44)),
+    ], Fill="clrPanel", BorderColor="clrLine", BorderThickness=1, **rad(6), LayoutGap=12, **pads(10, 16),
+        LayoutAlignItems="LayoutAlignItems.Center", **fill(1), **STRETCH),
+], Height=98, **pads(0, 16, 16, 16), **fixed(), **STRETCH)
 
-write_screen("scrEntry", {"Fill": "clrPage"}, [
+write_screen("scrEntry", {"Fill": "clrPage", "OnVisible": "SetFocus(entCmbOrigin)"}, [
     shell("ent", "New", s("New rate"),
           [btn("entHdrBtnRecent", s("Recent entries"), OnSelect="Navigate(scrRecent, ScreenTransition.None)",
                **fixed(140, 38))],
-          body("ent", [lane_section, cost_section]),
+          body("ent", [row("entCols", "460 + If(entLblReplace.Visible, 46, 0) + If(entLblDupe.Visible, 58, 0)", [lane_section, cost_section], gap=16)]),
           entry_action),
     hidden("entLblErrors", entry_errors),
     hidden("entNumOk", entry_numok),
@@ -905,13 +901,11 @@ rec_header = manual("recColHdr", [
 ], Fill="clrPanel", Height=36, **fixed(), **STRETCH)
 
 recent_body = body("rec", [
-    row("recFilters", 36, [
-        textin(f"recTxt{k}", hint, Height=36, **fill(1)) for k, hint in
-        [("Lane", "Lane, e.g. TOWI"), ("Carrier", "Carrier"), ("Mode", "Mode"), ("Equip", "Equipment, e.g. 53")]
-    ], gap=8),
-    row("recCtl", 32, [
-        toggle("recTglActive", "Active only", "Active only", **fixed(150, 30)),
-        toggle("recTglFuel", "Include fuel", "Include fuel", **fixed(150, 30)),
+    row("recFilters", 38, [
+        *[textin(f"recTxt{k}", hint, **fixed(150, 38)) for k, hint in
+          [("Lane", "Lane, e.g. TOWI"), ("Carrier", "Carrier"), ("Mode", "Mode"), ("Equip", "Equipment, e.g. 53")]],
+        toggle("recTglActive", "Active only", "Active only", **fixed(130, 30)),
+        toggle("recTglFuel", "Include fuel", "Include fuel", **fixed(130, 30)),
         btn("recBtnClear", s("Clear filters"), Size=9.5,
             OnSelect="Reset(recTxtLane); Reset(recTxtCarrier); Reset(recTxtMode); Reset(recTxtEquip); Reset(recTglActive)",
             **fixed(120, 30)),
@@ -919,7 +913,7 @@ recent_body = body("rec", [
             CountRows(recGallery.AllItems) & If(CountRows(recGallery.AllItems) = 1, " rate", " rates") &
             " · fuel " & If(recTglFuel.Value, "included", "excluded")
         """), Size=9, Color="clrInk3", Align="Align.Right", Height=30, **fill(1)),
-    ], gap=16, LayoutAlignItems="LayoutAlignItems.Center"),
+    ], gap=12, LayoutAlignItems="LayoutAlignItems.Center"),
     box("recTable", "Vertical", [
         rec_header,
         node("recGallery", "Gallery@2.15.0", {
@@ -931,7 +925,7 @@ recent_body = body("rec", [
         lbl("recLblEmpty", s("No rates match these filters. Clear filters to see everything."),
             Visible="IsEmpty(recGallery.AllItems)", Color="clrInk3", Align="Align.Center", **fixed(h=60), **STRETCH),
     ], Fill="clrPanel", BorderColor="clrLine", BorderThickness=1, **rad(6), **fill(1), **STRETCH),
-], scroll=False, gap=10)
+], scroll=False, gap=16)
 
 write_screen("scrRecent", {"Fill": "clrPage"}, [
     shell("rec", "Recent", s("Recent entries · newest first, expired rates hidden"),
@@ -973,7 +967,7 @@ det_hero = row("detHero", 44, [
     rect("detHeroSpacer", Fill="clrClear", Height=10, **fill(1, 0)),
     pill("detStatus", f'If({R}.Active, "Active", "Inactive")', f"If({R}.Active, clrGreenBg, clrSoft)",
          f"If({R}.Active, clrGreenInk, clrInk3)", **fixed(90, 26)),
-], gap=10, LayoutAlignItems="LayoutAlignItems.Center")
+], gap=12, LayoutAlignItems="LayoutAlignItems.Center")
 
 det_lane = section("detSecLane", "1", s("Lane"), s("Read only"), height=204, body_gap=8, body=[
     row("detLaneRow1", 56, [
@@ -997,7 +991,7 @@ det_cost = section("detSecCost", "2", s("Cost"), s("Calculated with today's FSC"
         cost_tile("detTileFt3", "per ft³", det_tile_value("CubicFt")),
         cost_tile("detTileLin", "per linear ft", det_tile_value("EquipFt")),
         cost_tile("detTileSkid", "per skid spot", det_tile_value("SkidSpots")),
-    ], gap=10),
+    ], gap=12),
     lbl("detLblWarn", f"If(detTglFuel.Value && FuelMissing({R}.Fuel), \"⚠ \" & {R}.Fuel & \" isn't in the Fuel Library, so this cost has no fuel. Add it on the Fuel library screen.\", \"\")",
         Visible="!IsBlank(Self.Text)", Fill="clrAmberBg", Color="clrAmberInk", BorderColor="RGBA(233, 215, 155, 1)",
         BorderThickness=1, Size=9.5, Wrap="true", **pads(0, 12), **fixed(h=34), **STRETCH),
@@ -1156,7 +1150,7 @@ det_edit = section("detSecEdit", "✎", s("Edit status & dates"),
         btn("detBtnEditSave", 'If(varSavingEdit, "Saving…", "Save changes")', "primary", OnSelect=det_save,
             DisplayMode="If(IsBlank(detLblEditErr.Text) && !varSavingEdit, DisplayMode.Edit, DisplayMode.Disabled)",
             **fixed(140, 38)),
-    ], gap=10),
+    ], gap=12),
 ])
 
 # column: (key, header, x fraction, width fraction, align)
@@ -1216,7 +1210,16 @@ write_screen("scrDetails", {"Fill": "clrPage", "OnVisible": "Set(varEditRate, fa
            btn("detHdrBtnBack", s("← Back to recent"), OnSelect="Navigate(scrRecent, ScreenTransition.None)",
                **fixed(150, 38))],
           body("det", [
-              det_hero, det_edit, det_lane, det_cost, det_history,
+              det_hero,
+              row("detCols", fx("""
+                  Max(
+                      detSecLane.Height + 16 + detSecCost.Height,
+                      If(varEditRate, detSecEdit.Height + 16, 0) + detSecHistory.Height
+                  )
+              """), [
+                  box("detColLeft", "Vertical", [det_lane, det_cost], LayoutGap=16, **fill(1.15, 420), **STRETCH),
+                  box("detColRight", "Vertical", [det_edit, det_history], LayoutGap=16, **fill(1, 380), **STRETCH),
+              ], gap=16),
               lbl("detLblFooter",
                   f'"Submitted by " & {R}.SubmittedBy & " · " & Text({R}.Timestamp, "mmm d, yyyy h:mm AM/PM")',
                   Size=9, Color="clrInk3", **fixed(h=24), **STRETCH),
@@ -1296,9 +1299,11 @@ fuel_save = fx("""
                 Notify("The fuel program wasn't saved. Try again.", NotificationType.Error),
                 Notify(r.Title & If(varFuelEdit, " updated.", " added."), NotificationType.Success);
                 Refresh(FuelLibrary);
-                Set(varFuelForm, false);
                 Set(varFuelEdit, false);
-                Set(varFuelRec, Blank())
+                Set(varFuelRec, Blank());
+                Reset(fulTxtProgram);
+                Reset(fulTxtFsc);
+                Reset(fulDteEff)
             )
         )
     )
@@ -1306,26 +1311,27 @@ fuel_save = fx("""
 
 fuel_programs = section("fulSecList", "A", s("Programs"),
                         s("Rates use today's FSC, so editing a program updates every rate on it"),
-                        body_pad=0, body_gap=0, body=[fuel_header, fuel_gallery])
+                        body_pad=0, body_gap=0, FillPortions=1.5, LayoutMinWidth=480,
+                        body=[fuel_header, fuel_gallery])
 
 fuel_form = section("fulSecForm", "B", 'If(varFuelEdit, "Edit program", "Add program")',
                     'If(varFuelEdit, "Changing " & varFuelRec.Title & " updates the cost of every rate on it", "Program names must be unique")',
-                    height="If(fulLblErr.Visible, 250, 204)", Visible="varFuelForm", BorderColor="clrBlueHover", body=[
-    row("fulFormRow", 60, [
-        field("fulFldProgram", "Program *", [textin("fulTxtProgram", "e.g. CP",
-                                                    Default='If(varFuelEdit, varFuelRec.Title, "")')]),
-        field("fulFldFsc", "FSC % *", [row("fulFscRow", 38, [
-            textin("fulTxtFsc", "e.g. 36.16", Format="TextFormat.Number", Align="Align.Right",
-                   Default='If(varFuelEdit, Text(varFuelRec.FSC), "")', **fill(1)),
-            unit("fulFscUnit", "%"),
-        ], gap=6)]),
-        field("fulFldEff", "Effective *", [datepick("fulDteEff", "If(varFuelEdit, varFuelRec.EffectiveDate, Today())")]),
-    ]),
+                    height="If(fulLblErr.Visible, 381, 335)", BorderColor="clrBlueHover", FillPortions=1, LayoutMinWidth=360,
+                    AlignInContainer="AlignInContainer.Start", body=[
+    row("fulFormRow1", 60, [field("fulFldProgram", "Program *", [
+        textin("fulTxtProgram", "e.g. CP", Default='If(varFuelEdit, varFuelRec.Title, "")')])]),
+    row("fulFormRow2", 60, [field("fulFldFsc", "FSC % *", [row("fulFscRow", 38, [
+        textin("fulTxtFsc", "e.g. 36.16", Format="TextFormat.Number", Align="Align.Right",
+               Default='If(varFuelEdit, Text(varFuelRec.FSC), "")', **fill(1)),
+        unit("fulFscUnit", "%"),
+    ], gap=8)])]),
+    row("fulFormRow3", 60, [field("fulFldEff", "Effective *", [
+        datepick("fulDteEff", "If(varFuelEdit, varFuelRec.EffectiveDate, Today())")])]),
     lbl("fulLblErr", fuel_err, Visible="!IsBlank(Self.Text)", Fill="clrRedBg", Color="clrRed",
         BorderColor="clrRed", BorderThickness=1, Size=9.5, Wrap="true", **pads(0, 12), **fixed(h=34), **STRETCH),
     row("fulFormBtns", 38, [
         rect("fulFormSpacer", Fill="clrClear", Height=10, **fill(1, 0)),
-        btn("fulBtnCancel", s("Cancel"), OnSelect="Set(varFuelForm, false); Set(varFuelEdit, false)",
+        btn("fulBtnCancel", s("Clear"), OnSelect=f"Set(varFuelEdit, false); Set(varFuelRec, Blank()); {fuel_open}",
             **fixed(100, 38)),
         btn("fulBtnSave", s("Save"), "primary", OnSelect=fuel_save, **fixed(120, 38), DisplayMode=fx("""
             If(
@@ -1335,14 +1341,15 @@ fuel_form = section("fulSecForm", "B", 'If(varFuelEdit, "Edit program", "Add pro
                 DisplayMode.Edit
             )
         """)),
-    ], gap=10),
+    ], gap=12),
 ])
 
-write_screen("scrFuel", {"Fill": "clrPage", "OnVisible": "Set(varFuelForm, false); Set(varFuelEdit, false)"}, [
+write_screen("scrFuel", {"Fill": "clrPage", "OnVisible": f"Set(varFuelForm, true); Set(varFuelEdit, false); Set(varFuelRec, Blank()); {fuel_open}"}, [
     shell("ful", "Fuel", s("Fuel library · FSC % by program"),
           [btn("fulHdrBtnAdd", s("+ Add program"), "primary", **fixed(150, 38),
                OnSelect=f"Set(varFuelRec, Blank()); Set(varFuelEdit, false); Set(varFuelForm, true); {fuel_open}")],
-          body("ful", [fuel_programs, fuel_form], scroll=False)),
+          body("ful", [box("fulCols", "Horizontal", [fuel_programs, fuel_form], LayoutGap=16,
+                           **fill(1), **STRETCH)], scroll=False)),
 ])
 
 print("wrote", ", ".join(sorted(p.name for p in OUT.glob("scr*.yaml"))))
