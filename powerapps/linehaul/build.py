@@ -295,11 +295,11 @@ def rail(p, current):
         go = f"Navigate({scr}, ScreenTransition.None)"
         navs.append(box(f"{p}Nav{key}", "Vertical", [
             node(f"{p}Nav{key}Icon", "Classic/Icon@2.5.0", {
-                "Icon": icon, "Color": "clrOrange" if on else "clrRailInk", "HoverColor": "clrWhite",
-                "PressedColor": "clrWhite", "OnSelect": go, "Tooltip": s(text), "Width": 26, "Height": 26,
+                "Icon": icon, "Color": "clrRailOnInk" if on else "clrRailInk", "HoverColor": "clrRailOnInk" if on else "clrBlue",
+                "PressedColor": "clrRailOnInk" if on else "clrBlue", "OnSelect": go, "Tooltip": s(text), "Width": 26, "Height": 26,
                 "FillPortions": 0}),
             lbl(f"{p}Nav{key}Text", s(text), Size=T_MICRO, FontWeight="FontWeight.Semibold",
-                Color="clrWhite" if on else "clrRailInk", Align="Align.Center", OnSelect=go, **fixed(88, 18)),
+                Color="clrRailOnInk" if on else "clrRailInk", Align="Align.Center", OnSelect=go, **fixed(88, 18)),
         ], Fill="clrRailOn" if on else "clrClear", LayoutGap=4, LayoutAlignItems="LayoutAlignItems.Center",
             LayoutJustifyContent="LayoutJustifyContent.Center", **rad(6), **fixed(88, 64)))
     return box(f"{p}Rail", "Vertical", [
@@ -327,6 +327,7 @@ def shell(p, current, step, right, body, action=None):
     main = [header(p, step, right), body] + ([action] if action else [])
     return box(f"{p}Root", "Horizontal", [
         rail(p, current),
+        rect(f"{p}RailEdge", Fill="clrLine", Width=1, FillPortions=0, **STRETCH),
         box(f"{p}Main", "Vertical", main, Fill="clrPage", **fill(1, 300), **STRETCH),
     ], Fill="clrPage", X=0, Y=0, Width="Parent.Width", Height="Parent.Height")
 

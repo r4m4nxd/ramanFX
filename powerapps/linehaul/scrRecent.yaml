@@ -100,12 +100,12 @@ Screens:
                               Color: =clrRailInk
                               FillPortions: =0
                               Height: =26
-                              HoverColor: =clrWhite
+                              HoverColor: =clrBlue
                               Icon: =Icon.Edit
                               LayoutMinHeight: =0
                               LayoutMinWidth: =0
                               OnSelect: =Navigate(scrEntry, ScreenTransition.None)
-                              PressedColor: =clrWhite
+                              PressedColor: =clrBlue
                               Tooltip: ="New rate"
                               Width: =26
                         - recNavNewText:
@@ -157,15 +157,15 @@ Screens:
                         - recNavRecentIcon:
                             Control: Classic/Icon@2.5.0
                             Properties:
-                              Color: =clrOrange
+                              Color: =clrRailOnInk
                               FillPortions: =0
                               Height: =26
-                              HoverColor: =clrWhite
+                              HoverColor: =clrRailOnInk
                               Icon: =Icon.DetailList
                               LayoutMinHeight: =0
                               LayoutMinWidth: =0
                               OnSelect: =Navigate(scrRecent, ScreenTransition.None)
-                              PressedColor: =clrWhite
+                              PressedColor: =clrRailOnInk
                               Tooltip: ="Recent"
                               Width: =26
                         - recNavRecentText:
@@ -173,7 +173,7 @@ Screens:
                             Properties:
                               Align: =Align.Center
                               BorderThickness: =0
-                              Color: =clrWhite
+                              Color: =clrRailOnInk
                               FillPortions: =0
                               Font: =Font.'Segoe UI'
                               FontWeight: =FontWeight.Semibold
@@ -220,12 +220,12 @@ Screens:
                               Color: =clrRailInk
                               FillPortions: =0
                               Height: =26
-                              HoverColor: =clrWhite
+                              HoverColor: =clrBlue
                               Icon: =Icon.Money
                               LayoutMinHeight: =0
                               LayoutMinWidth: =0
                               OnSelect: =Navigate(scrFuel, ScreenTransition.None)
-                              PressedColor: =clrWhite
+                              PressedColor: =clrBlue
                               Tooltip: ="Fuel library"
                               Width: =26
                         - recNavFuelText:
@@ -249,6 +249,16 @@ Screens:
                               Text: ="Fuel library"
                               VerticalAlign: =VerticalAlign.Middle
                               Width: =88
+            - recRailEdge:
+                Control: Rectangle@2.3.0
+                Properties:
+                  AlignInContainer: =AlignInContainer.Stretch
+                  BorderThickness: =0
+                  Fill: =clrLine
+                  FillPortions: =0
+                  LayoutMinHeight: =0
+                  LayoutMinWidth: =0
+                  Width: =1
             - recMain:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
