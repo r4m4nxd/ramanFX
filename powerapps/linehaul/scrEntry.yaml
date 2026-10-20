@@ -1722,7 +1722,7 @@ Screens:
                                                                       Mode = varMode &&
                                                                       Equipment = varEquip
                                                                   ),
-                                                                  Active
+                                                                  ThisRecord.Active = true
                                                               )
                                                           },
                                                           If(
@@ -3378,7 +3378,7 @@ Screens:
                                                                       Title = n.Title && Destination = n.Destination && Carrier = n.Carrier &&
                                                                       Mode = n.Mode && Equipment = n.Equipment
                                                                   ),
-                                                                  Active && ID <> n.ID
+                                                                  ThisRecord.Active = true && ID <> n.ID
                                                               ) As old,
                                                               Patch(LinehaulRates, old, {Active: false})
                                                           )
@@ -3754,7 +3754,7 @@ Screens:
                                                       Title = n.Title && Destination = n.Destination && Carrier = n.Carrier &&
                                                       Mode = n.Mode && Equipment = n.Equipment
                                                   ),
-                                                  Active && ID <> n.ID
+                                                  ThisRecord.Active = true && ID <> n.ID
                                               ) As old,
                                               Patch(LinehaulRates, old, {Active: false})
                                           )

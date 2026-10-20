@@ -2748,7 +2748,7 @@ Screens:
                                                       Size: =10
                                                       Text: |-
                                                         =With(
-                                                            {act: First(Filter(colLaneRates, ID <> varRate.ID && Active))},
+                                                            {act: First(Filter(colLaneRates, ID <> varRate.ID && ThisRecord.Active = true))},
                                                             Trim(
                                                                 If(
                                                                     detTglEditActive.Value && !IsBlank(act),
@@ -2883,7 +2883,7 @@ Screens:
                                                                                           Title = r.Title && Destination = r.Destination && Carrier = r.Carrier &&
                                                                                           Mode = r.Mode && Equipment = r.Equipment
                                                                                       ),
-                                                                                      Active && ID <> r.ID
+                                                                                      ThisRecord.Active = true && ID <> r.ID
                                                                                   ) As old,
                                                                                   Patch(LinehaulRates, old, {Active: false})
                                                                               )
@@ -3080,7 +3080,7 @@ Screens:
                                                       PaddingTop: =0
                                                       Size: =10
                                                       Text: |-
-                                                        =With({n: CountRows(Filter(colLaneRates, Active))}, If(n > 1, "⚠ " & n & " rates on this lane are active. Open the one that should stay active, choose Edit rate and save it; the others switch off.", ""))
+                                                        =With({n: CountRows(Filter(colLaneRates, ThisRecord.Active = true))}, If(n > 1, "⚠ " & n & " rates on this lane are active. Open the one that should stay active, choose Edit rate and save it; the others switch off.", ""))
                                                       VerticalAlign: =VerticalAlign.Middle
                                                       Visible: =!IsBlank(Self.Text)
                                                       Wrap: =true
@@ -3546,7 +3546,7 @@ Screens:
                                                   Title = r.Title && Destination = r.Destination && Carrier = r.Carrier &&
                                                   Mode = r.Mode && Equipment = r.Equipment
                                               ),
-                                              Active && ID <> r.ID
+                                              ThisRecord.Active = true && ID <> r.ID
                                           ) As old,
                                           Patch(LinehaulRates, old, {Active: false})
                                       )

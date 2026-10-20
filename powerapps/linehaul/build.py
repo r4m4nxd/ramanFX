@@ -429,7 +429,7 @@ entry_replace = fx("""
                         Mode = varMode &&
                         Equipment = varEquip
                     ),
-                    Active
+                    ThisRecord.Active = true
                 )
             },
             If(
@@ -640,7 +640,7 @@ entry_do_save = fx("""
                                 Title = n.Title && Destination = n.Destination && Carrier = n.Carrier &&
                                 Mode = n.Mode && Equipment = n.Equipment
                             ),
-                            Active && ID <> n.ID
+                            ThisRecord.Active = true && ID <> n.ID
                         ) As old,
                         Patch(LinehaulRates, old, {Active: false})
                     )
@@ -931,7 +931,7 @@ recent_items = fx("""
                     Timestamp,
                     SortOrder.Descending
                 ),
-                (IsBlank(e) || e in Equipment) && (!recTglActive.Value || Active)
+                (IsBlank(e) || e in Equipment) && (!recTglActive.Value || ThisRecord.Active = true)
             ),
             LH, LHCost(Base, Fuel, F_Adj, F_Discount, Adj, AdjType, Discount, DiscountType, recTglFuel.Value),
             NoFSC, recTglFuel.Value && FuelMissing(Fuel)
@@ -1136,7 +1136,7 @@ det_edit_err = fx("""
 
 det_edit_warn = fx("""
     With(
-        {act: First(Filter(colLaneRates, ID <> varRate.ID && Active))},
+        {act: First(Filter(colLaneRates, ID <> varRate.ID && ThisRecord.Active = true))},
         Trim(
             If(
                 detTglEditActive.Value && !IsBlank(act),
@@ -1183,7 +1183,7 @@ det_do_save = fx(f"""
                             Title = r.Title && Destination = r.Destination && Carrier = r.Carrier &&
                             Mode = r.Mode && Equipment = r.Equipment
                         ),
-                        Active && ID <> r.ID
+                        ThisRecord.Active = true && ID <> r.ID
                     ) As old,
                     Patch(LinehaulRates, old, {{Active: false}})
                 )
@@ -1271,7 +1271,7 @@ det_history = section("detSecHistory", "3", s("All rates on this lane"),
                       height="81 + If(detLblMultiActive.Visible, 44, 0) + Min(Max(CountRows(colLaneRates), 1), 6) * 44",
                       body_pad=0, body_gap=0, body=[
     lbl("detLblMultiActive",
-        'With({n: CountRows(Filter(colLaneRates, Active))}, If(n > 1, "⚠ " & n & " rates on this lane are active. '
+        'With({n: CountRows(Filter(colLaneRates, ThisRecord.Active = true))}, If(n > 1, "⚠ " & n & " rates on this lane are active. '
         'Open the one that should stay active, choose Edit rate and save it; the others switch off.", ""))',
         Visible="!IsBlank(Self.Text)", Fill="clrAmberBg", Color="clrAmberInk", Size=10, Wrap="true",
         **pads(0, 16), **fixed(h=44), **STRETCH),

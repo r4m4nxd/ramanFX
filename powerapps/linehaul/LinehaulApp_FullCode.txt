@@ -4227,7 +4227,7 @@ Screens:
                                                       Size: =10
                                                       Text: |-
                                                         =With(
-                                                            {act: First(Filter(colLaneRates, ID <> varRate.ID && Active))},
+                                                            {act: First(Filter(colLaneRates, ID <> varRate.ID && ThisRecord.Active = true))},
                                                             Trim(
                                                                 If(
                                                                     detTglEditActive.Value && !IsBlank(act),
@@ -4362,7 +4362,7 @@ Screens:
                                                                                           Title = r.Title && Destination = r.Destination && Carrier = r.Carrier &&
                                                                                           Mode = r.Mode && Equipment = r.Equipment
                                                                                       ),
-                                                                                      Active && ID <> r.ID
+                                                                                      ThisRecord.Active = true && ID <> r.ID
                                                                                   ) As old,
                                                                                   Patch(LinehaulRates, old, {Active: false})
                                                                               )
@@ -4559,7 +4559,7 @@ Screens:
                                                       PaddingTop: =0
                                                       Size: =10
                                                       Text: |-
-                                                        =With({n: CountRows(Filter(colLaneRates, Active))}, If(n > 1, "⚠ " & n & " rates on this lane are active. Open the one that should stay active, choose Edit rate and save it; the others switch off.", ""))
+                                                        =With({n: CountRows(Filter(colLaneRates, ThisRecord.Active = true))}, If(n > 1, "⚠ " & n & " rates on this lane are active. Open the one that should stay active, choose Edit rate and save it; the others switch off.", ""))
                                                       VerticalAlign: =VerticalAlign.Middle
                                                       Visible: =!IsBlank(Self.Text)
                                                       Wrap: =true
@@ -5025,7 +5025,7 @@ Screens:
                                                   Title = r.Title && Destination = r.Destination && Carrier = r.Carrier &&
                                                   Mode = r.Mode && Equipment = r.Equipment
                                               ),
-                                              Active && ID <> r.ID
+                                              ThisRecord.Active = true && ID <> r.ID
                                           ) As old,
                                           Patch(LinehaulRates, old, {Active: false})
                                       )
@@ -5938,7 +5938,7 @@ Screens:
                                                       Timestamp,
                                                       SortOrder.Descending
                                                   ),
-                                                  (IsBlank(e) || e in Equipment) && (!recTglActive.Value || Active)
+                                                  (IsBlank(e) || e in Equipment) && (!recTglActive.Value || ThisRecord.Active = true)
                                               ),
                                               LH, LHCost(Base, Fuel, F_Adj, F_Discount, Adj, AdjType, Discount, DiscountType, recTglFuel.Value),
                                               NoFSC, recTglFuel.Value && FuelMissing(Fuel)
@@ -7875,7 +7875,7 @@ Screens:
                                                                       Mode = varMode &&
                                                                       Equipment = varEquip
                                                                   ),
-                                                                  Active
+                                                                  ThisRecord.Active = true
                                                               )
                                                           },
                                                           If(
@@ -9531,7 +9531,7 @@ Screens:
                                                                       Title = n.Title && Destination = n.Destination && Carrier = n.Carrier &&
                                                                       Mode = n.Mode && Equipment = n.Equipment
                                                                   ),
-                                                                  Active && ID <> n.ID
+                                                                  ThisRecord.Active = true && ID <> n.ID
                                                               ) As old,
                                                               Patch(LinehaulRates, old, {Active: false})
                                                           )
@@ -9907,7 +9907,7 @@ Screens:
                                                       Title = n.Title && Destination = n.Destination && Carrier = n.Carrier &&
                                                       Mode = n.Mode && Equipment = n.Equipment
                                                   ),
-                                                  Active && ID <> n.ID
+                                                  ThisRecord.Active = true && ID <> n.ID
                                               ) As old,
                                               Patch(LinehaulRates, old, {Active: false})
                                           )
