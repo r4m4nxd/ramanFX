@@ -5789,7 +5789,6 @@ Screens:
   scrEntry:
     Properties:
       Fill: =clrPage
-      OnVisible: =SetFocus(entCmbOrigin)
     Children:
       - entRoot:
           Control: GroupContainer@1.5.0

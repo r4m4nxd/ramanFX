@@ -804,7 +804,7 @@ entry_action = box("entActionWrap", "Vertical", [
         LayoutAlignItems="LayoutAlignItems.Center", **fill(1), **STRETCH),
 ], Height=98, **pads(0, 16, 16, 16), **fixed(), **STRETCH)
 
-write_screen("scrEntry", {"Fill": "clrPage", "OnVisible": "SetFocus(entCmbOrigin)"}, [
+write_screen("scrEntry", {"Fill": "clrPage"}, [
     shell("ent", "New", s("New rate"),
           [btn("entHdrBtnRecent", s("Recent entries"), OnSelect="Navigate(scrRecent, ScreenTransition.None)",
                **fixed(140, 38))],

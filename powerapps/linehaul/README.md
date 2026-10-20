@@ -90,4 +90,4 @@ Do these once in the list settings. They protect the data even if someone edits 
 - **Fuel library:** the program list is on the left, with the add/edit panel always open on the right.
 - **Spacing:** only 4, 8, 12 and 16 px gaps, 16 px padding on every card and the page, 6 px card corners.
 - **Touch-first states:** hover never changes a button's fill, because on iPad hover sticks after a tap. Pressing gives the feedback instead (primary buttons go dark, chips fill blue).
-- **No screen transitions:** people switch screens many times a day, so navigation is instant. Rate entry opens with the cursor in Origin.
+- **No screen transitions:** people switch screens many times a day, so navigation is instant.
