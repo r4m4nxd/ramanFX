@@ -444,6 +444,17 @@ kLine(int d, int N, int Lmax) =>
 
 [hu1, hup1, hu2, hup2, huw] = request.security(syminfo.tickerid, htf, kLine(1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
 [hd1, hdp1, hd2, hdp2, hdw] = request.security(syminfo.tickerid, htf, kLine(-1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
+// the timeframes above this chart for multi-timeframe trendlines: 15m -> 1H, 4H, D (level 2 = the HTF pair above)
+stepUp(int n) =>
+    s0 = timeframe.in_seconds()
+    i = (s0 <= 60 ? 0 : s0 <= 300 ? 1 : s0 <= 1800 ? 2 : s0 <= 3600 ? 3 : s0 <= 14400 ? 4 : s0 <= 86400 ? 5 : s0 <= 604800 ? 6 : 7) + n
+    i == 1 ? "5" : i == 2 ? "15" : i == 3 ? "60" : i == 4 ? "240" : i == 5 ? "D" : i == 6 ? "W" : i == 7 ? "M" : ""
+tfL1 = stepUp(1)
+tfL3 = stepUp(3)
+[a1u1, a1up1, a1u2, a1up2, a1uw] = request.security(syminfo.tickerid, tfL1 == "" ? timeframe.period : tfL1, kLine(1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
+[a1d1, a1dp1, a1d2, a1dp2, a1dw] = request.security(syminfo.tickerid, tfL1 == "" ? timeframe.period : tfL1, kLine(-1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
+[a3u1, a3up1, a3u2, a3up2, a3uw] = request.security(syminfo.tickerid, tfL3 == "" ? timeframe.period : tfL3, kLine(1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
+[a3d1, a3dp1, a3d2, a3dp2, a3dw] = request.security(syminfo.tickerid, tfL3 == "" ? timeframe.period : tfL3, kLine(-1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
 hLineAt(float t1, float p1, float t2, float p2, float t) => na(t1) or t2 == t1 ? na : p2 + (p2 - p1) / (t2 - t1) * (t - t2)
 
 overext(int d, float price) =>
@@ -785,7 +796,7 @@ if barstate.islast
                     lp2 = cP.get(q)
                     ls = cS.get(q)
                     x2 = cR.get(q) >= 0 ? cR.get(q) : bar_index + 3
-                    lines.push(line.new(la, lp2 + ls * (la - lb2), x2, lp2 + ls * (x2 - lb2), color=cR.get(q) >= 0 ? color.new(cTL, 60) : cTL, style=cR.get(q) >= 0 ? line.style_dotted : line.style_solid, width=cR.get(q) >= 0 ? 1 : 3))
+                    lines.push(line.new(la, lp2 + ls * (la - lb2), x2, lp2 + ls * (x2 - lb2), color=cR.get(q) >= 0 ? color.new(cTL, 60) : cTL, style=cR.get(q) >= 0 ? line.style_dotted : line.style_solid, width=1))
         // channel 50% from the newest respected line: drives the overextended check; the helper line only if asked
         if use >= 0
             la = cA.get(use)
@@ -811,15 +822,18 @@ if barstate.islast
                 dnB := lb2
                 dnW := w
             tlNote := tlNote + (tlNote == "" ? "" : " | ") + (d > 0 ? "Up trendline: " : "Down trendline: ") + (overext(d, close) ? "price beyond the channel 50% = OVEREXTENDED, wait" : "price in the golden area")
-        // HTF line on this chart, for precision on the entry timeframe
-        ht1 = d > 0 ? hu1 : hd1
-        hp1 = d > 0 ? hup1 : hdp1
-        ht2 = d > 0 ? hu2 : hd2
-        hp2 = d > 0 ? hup2 : hdp2
-        if showTL and showHtfTL and (d > 0 ? showUpTL : showDnTL) and not na(ht1) and htf != timeframe.period
-            tEnd = time + 5 * timeframe.in_seconds() * 1000
-            lines.push(line.new(int(ht1), hp1, int(tEnd), hLineAt(ht1, hp1, ht2, hp2, tEnd), xloc=xloc.bar_time, color=cHtfTL, width=2))
-            tagP.push(hLineAt(ht1, hp1, ht2, hp2, time)), tagT.push(htf + " trendline"), tagC.push(cHtfTL), tagTip.push(htf + (d > 0 ? " uptrend line: lowest point to a real valley (a higher high followed)" : " downtrend line: highest point to a real peak (a lower low followed)") + ". Zones near it are stronger.")
+        // higher-timeframe lines on this chart (ITF, HTF and the one above): thin dotted gold, respected lines only
+        if showTL and showHtfTL and (d > 0 ? showUpTL : showDnTL)
+            for lvl = 0 to 2
+                tfN = lvl == 0 ? tfL1 : lvl == 1 ? htf : tfL3
+                ht1 = lvl == 0 ? (d > 0 ? a1u1 : a1d1) : lvl == 1 ? (d > 0 ? hu1 : hd1) : (d > 0 ? a3u1 : a3d1)
+                hp1 = lvl == 0 ? (d > 0 ? a1up1 : a1dp1) : lvl == 1 ? (d > 0 ? hup1 : hdp1) : (d > 0 ? a3up1 : a3dp1)
+                ht2 = lvl == 0 ? (d > 0 ? a1u2 : a1d2) : lvl == 1 ? (d > 0 ? hu2 : hd2) : (d > 0 ? a3u2 : a3d2)
+                hp2 = lvl == 0 ? (d > 0 ? a1up2 : a1dp2) : lvl == 1 ? (d > 0 ? hup2 : hdp2) : (d > 0 ? a3up2 : a3dp2)
+                if tfN != "" and tfN != timeframe.period and not na(ht1) and not (lvl == 1 and htf == tfL1)
+                    tEnd = time + 5 * timeframe.in_seconds() * 1000
+                    lines.push(line.new(int(ht1), hp1, int(tEnd), hLineAt(ht1, hp1, ht2, hp2, tEnd), xloc=xloc.bar_time, color=cHtfTL, style=line.style_dotted, width=1))
+                    tagP.push(hLineAt(ht1, hp1, ht2, hp2, time)), tagT.push(tfN + " trendline"), tagC.push(cHtfTL), tagTip.push(tfN + (d > 0 ? " uptrend line (a higher high followed its valley)" : " downtrend line (a lower low followed its peak)") + ". Zones near it are stronger.")
 
     // potential trades: every fresh usable zone with a valid plan, ranked by planner score
     tIdx = array.new<int>()

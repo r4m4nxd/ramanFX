@@ -629,7 +629,7 @@ void DrawKLines(string s, int tf, KLine &L[], string tag, color c)
          double p2 = L[i].pb + L[i].sl * (L[i].b + 3);
          ObjectCreate(0, nm, OBJ_TREND, 0, iTime(s, tf, L[i].a), KAt(L[i], L[i].a), t2, p2);
          ObjectSetInteger(0, nm, OBJPROP_RAY_RIGHT, false); ObjectSetInteger(0, nm, OBJPROP_COLOR, c);
-         ObjectSetInteger(0, nm, OBJPROP_WIDTH, 3); ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false); ObjectSetInteger(0, nm, OBJPROP_BACK, true);
+         ObjectSetInteger(0, nm, OBJPROP_WIDTH, 1); ObjectSetInteger(0, nm, OBJPROP_STYLE, tag == "H" ? STYLE_DOT : STYLE_SOLID); ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false); ObjectSetInteger(0, nm, OBJPROP_BACK, true);
          ObjectSetString(0, nm, OBJPROP_TOOLTIP, TfName(tf) + (q == 1 ? " overall " : " ") + (d > 0 ? "uptrend line: lowest point to a real valley (a higher high followed)" : "downtrend line: highest point to a real peak (a lower low followed)") + " - respected so far");
         }
      }

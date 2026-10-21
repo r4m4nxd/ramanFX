@@ -20,7 +20,7 @@
 //| into a zone does not count as a touch. Removal needs a CLOSE.    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.60"
+#property version   "1.70"
 #property strict
 #property indicator_chart_window
 
@@ -51,7 +51,8 @@ input bool   InpShowBrokenTL  = false;  // Also draw broken trendlines
 input int    InpTrendSwing    = 3;      // Swing strength for liquidity-trap levels (bars each side)
 input int    InpTLHistory     = 3;      // Trendlines drawn each way: the newest N (broken ones end where they broke)
 input bool   InpShowChannel   = false;  // Draw the channel 50% helper line (the overextension check works either way)
-input bool   InpShowHTFLines  = true;   // Also draw the higher-timeframe trendlines on this chart (precision on the entry TF)
+input bool   InpShowHTFLines  = true;
+input int    InpHTFLevels     = 3;      // Higher timeframes whose trendlines are drawn here (M15 chart: 1 = H1, 2 = + H4, 3 = + D1)   // Also draw the higher-timeframe trendlines on this chart (precision on the entry TF)
 input color  InpHtfTL         = C'200,150,40';
 input int    InpTLSwing       = 2;      // Trendlines: swing points need N bars each side; REAL only after a new higher high / lower low
 input bool   InpShowHTF       = true;   // HTF zone band (closest above and below)
@@ -69,7 +70,7 @@ input color  InpSupplyLine    = C'200,60,60';
 input color  InpTrapColor     = C'170,150,220';
 input color  InpHtfFill       = C'252,238,170';
 input color  InpMuted         = C'170,170,170';
-input color  InpTrend         = clrBlack;   // respected trendlines (thick); broken ones use InpMuted, dotted
+input color  InpTrend         = clrBlack;   // respected trendlines (thin solid); broken ones use InpMuted, dotted
 input color  InpText          = C'90,90,90';
 
 #define PFX "RFXV_"
@@ -129,7 +130,16 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
    Detect(_Symbol, _Period, Z, true);
    gHTF = 0; gHUpOn = false; gHDnOn = false;
    { int h = HtfOf(_Period);                                          // HTF lines first, shown on this chart for precision
-     if(InpShowHTFLines && h > 0) { gTF = h; Trendlines(_Symbol, h); gHTF = h; gHUpOn = gUpOn; gHUpS = gUpS; gHUpP = gUpP; gHUpW = gUpW; gHUpB = gUpB; gHDnOn = gDnOn; gHDnS = gDnS; gHDnP = gDnP; gHDnW = gDnW; gHDnB = gDnB; } }
+     // the higher timeframes above this chart (e.g. M15 -> H1, H4, D1): thin dotted gold, for multi-timeframe analysis
+     if(InpShowHTFLines)
+        for(int lv = InpHTFLevels; lv >= 1; lv--)
+          {
+           int t = StepUp(_Period, lv);
+           if(t <= 0) continue;
+           gTF = t; Trendlines(_Symbol, t);
+           if(t == h) { gHTF = h; gHUpOn = gUpOn; gHUpS = gUpS; gHUpP = gUpP; gHUpW = gUpW; gHUpB = gUpB; gHDnOn = gDnOn; gHDnS = gDnS; gHDnP = gDnP; gHDnW = gDnW; gHDnB = gDnB; }
+          }
+     if(h > 0 && gHTF == 0 && InpShowHTFLines) { gTF = h; Trendlines(_Symbol, h); gHTF = h; gHUpOn = gUpOn; gHUpS = gUpS; gHUpP = gUpP; gHUpW = gUpW; gHUpB = gUpB; gHDnOn = gDnOn; gHDnS = gDnS; gHDnP = gDnP; gHDnW = gDnW; gHDnB = gDnB; } }
    gTF = _Period;
    Trendlines(_Symbol, _Period);                                     // this chart: chain + channel use it; drawn only if InpShowTrendlines
    Qualify();
@@ -165,6 +175,15 @@ void MarkEmotional()
 //+------------------------------------------------------------------+
 //| Helpers                                                          |
 //+------------------------------------------------------------------+
+// n steps up the timeframe ladder M1 M5 M15 H1 H4 D1 W1 MN1 (0 = none)
+int StepUp(int tf, int n)
+  {
+   int lad[8] = {PERIOD_M1, PERIOD_M5, PERIOD_M15, PERIOD_H1, PERIOD_H4, PERIOD_D1, PERIOD_W1, PERIOD_MN1};   // M30 skipped: M15 -> H1, H4, D1
+   int i = -1; for(int k = 0; k < 8; k++) if(lad[k] == tf) i = k;
+   if(tf == PERIOD_M30) i = 2;
+   if(i < 0) return 0;
+   return i + n < 8 ? lad[i + n] : 0;
+  }
 int HtfOf(int tf)
   {
    switch(tf) { case PERIOD_M1: return PERIOD_M15; case PERIOD_M5: return PERIOD_H1; case PERIOD_M15: return PERIOD_H4;
@@ -435,18 +454,19 @@ void Trendlines(string s, int tf)
          if(TL[i].dir != d) continue;
          if(!TL[i].removed && use < 0) use = i;
          if(shown >= InpTLHistory) continue;
+         if(gTF != _Period && TL[i].removed) continue;                // higher timeframes: only the lines still respected
          shown++;
          bool up = d > 0;
          double sl = (TL[i].pb - TL[i].pa) / MathMax(1, TL[i].a - TL[i].b);
          int end = TL[i].removed ? TL[i].removedBar : 0;
          double pe = LineAt(TL[i].pb, TL[i].b, sl, end - (TL[i].removed ? 0 : 3));
-         string nm = PFX + "tl" + (gTF == _Period ? "" : "H") + IntegerToString(i);
+         string nm = PFX + "tl" + (gTF == _Period ? "" : "H" + IntegerToString(gTF) + "_") + IntegerToString(i);
          color c = TL[i].removed ? InpMuted : (gTF == _Period ? InpTrend : InpHtfTL);   // broken: light dotted; respected: thick dark
          if(InpShowTrendlines) ObjectCreate(0, nm, OBJ_TREND, 0, iTime(NULL, gTF, TL[i].a), TL[i].pa, TL[i].removed ? iTime(NULL, gTF, end) : iTime(NULL, gTF, 0) + PeriodSeconds(gTF) * 3, pe);
          ObjectSetInteger(0, nm, OBJPROP_RAY_RIGHT, false);
          ObjectSetInteger(0, nm, OBJPROP_COLOR, c);
-         ObjectSetInteger(0, nm, OBJPROP_STYLE, TL[i].removed ? STYLE_DOT : STYLE_SOLID);
-         ObjectSetInteger(0, nm, OBJPROP_WIDTH, TL[i].removed ? 1 : 3);
+         ObjectSetInteger(0, nm, OBJPROP_STYLE, TL[i].removed || gTF != _Period ? STYLE_DOT : STYLE_SOLID);   // HTF lines: thin dotted gold
+         ObjectSetInteger(0, nm, OBJPROP_WIDTH, 1);                     // all lines thin
          ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
          ObjectSetString(0, nm, OBJPROP_TOOLTIP, TfName(gTF) + (TL[i].conf ? " " : " overall ") + (up ? "uptrend line: real valley, then a higher high" : "downtrend line: real peak, then a lower low")
             + (TL[i].removed ? " | ENDED: a full candle closed " + (up ? "below" : "above") + " it on " + TimeToString(iTime(NULL, gTF, end), TIME_DATE | TIME_MINUTES) : " | respected so far"));
