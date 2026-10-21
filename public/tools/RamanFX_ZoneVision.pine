@@ -298,6 +298,10 @@ kLine(int d, int N, int Lmax) =>
     float rt2 = na
     float rp2 = na
     float rw = na
+    float bt1 = na
+    float bp1 = na
+    float bte = na
+    float bpe = na
     L = math.min(Lmax, bar_index - 2 * N - 20)
     if barstate.islast and L > 30
         tol = 0.25 * a14
@@ -339,6 +343,11 @@ kLine(int d, int N, int Lmax) =>
         int prevB = na
         float prevP = na
         int lastA = na
+        int nwA = na
+        int nwB = na
+        float nwP = na
+        float nwS = na
+        int nwR = na
         for pass = 0 to 1
             if pass == 1 and not na(bestA)
                 break
@@ -436,12 +445,20 @@ kLine(int d, int N, int Lmax) =>
                         if pass == 0
                             lastA := fa
                         bool rem = false
+                        int remO = na
                         if b2 - 1 >= 1
                             for o6 = b2 - 1 to 1
                                 lv = p2 + fsl * (b2 - o6)
                                 if d > 0 ? high[o6] < lv : low[o6] > lv
                                     rem := true
+                                    remO := o6
                                     break
+                        if pass == 0 and (na(nwB) or b2 < nwB)
+                            nwA := fa
+                            nwB := b2
+                            nwP := p2
+                            nwS := fsl
+                            nwR := remO
                         if not rem
                             bestA := fa
                             bestB := b2
@@ -457,10 +474,16 @@ kLine(int d, int N, int Lmax) =>
             rt2 := time[bestB]
             rp2 := bestP
             rw := w
-    [rt1, rp1, rt2, rp2, rw]
+        // the newest line when it is already broken: drawn lighter, ending where it broke
+        if not na(nwB) and not na(nwR)
+            bt1 := time[nwA]
+            bp1 := nwP + nwS * (nwB - nwA)
+            bte := time[nwR]
+            bpe := nwP + nwS * (nwB - nwR)
+    [rt1, rp1, rt2, rp2, rw, bt1, bp1, bte, bpe]
 
-[hu1, hup1, hu2, hup2, huw] = request.security(syminfo.tickerid, htf, kLine(1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
-[hd1, hdp1, hd2, hdp2, hdw] = request.security(syminfo.tickerid, htf, kLine(-1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
+[hu1, hup1, hu2, hup2, huw, hub1, hubp1, hube, hubpe] = request.security(syminfo.tickerid, htf, kLine(1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
+[hd1, hdp1, hd2, hdp2, hdw, hdb1, hdbp1, hdbe, hdbpe] = request.security(syminfo.tickerid, htf, kLine(-1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
 // the timeframes above this chart for multi-timeframe trendlines: 15m -> 1H, 4H, D (level 2 = the HTF pair above)
 stepUp(int n) =>
     s0 = timeframe.in_seconds()
@@ -468,10 +491,10 @@ stepUp(int n) =>
     i == 1 ? "5" : i == 2 ? "15" : i == 3 ? "60" : i == 4 ? "240" : i == 5 ? "D" : i == 6 ? "W" : i == 7 ? "M" : ""
 tfL1 = stepUp(1)
 tfL3 = stepUp(3)
-[a1u1, a1up1, a1u2, a1up2, a1uw] = request.security(syminfo.tickerid, tfL1 == "" ? timeframe.period : tfL1, kLine(1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
-[a1d1, a1dp1, a1d2, a1dp2, a1dw] = request.security(syminfo.tickerid, tfL1 == "" ? timeframe.period : tfL1, kLine(-1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
-[a3u1, a3up1, a3u2, a3up2, a3uw] = request.security(syminfo.tickerid, tfL3 == "" ? timeframe.period : tfL3, kLine(1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
-[a3d1, a3dp1, a3d2, a3dp2, a3dw] = request.security(syminfo.tickerid, tfL3 == "" ? timeframe.period : tfL3, kLine(-1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
+[a1u1, a1up1, a1u2, a1up2, a1uw, a1ub1, a1ubp1, a1ube, a1ubpe] = request.security(syminfo.tickerid, tfL1 == "" ? timeframe.period : tfL1, kLine(1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
+[a1d1, a1dp1, a1d2, a1dp2, a1dw, a1db1, a1dbp1, a1dbe, a1dbpe] = request.security(syminfo.tickerid, tfL1 == "" ? timeframe.period : tfL1, kLine(-1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
+[a3u1, a3up1, a3u2, a3up2, a3uw, a3ub1, a3ubp1, a3ube, a3ubpe] = request.security(syminfo.tickerid, tfL3 == "" ? timeframe.period : tfL3, kLine(1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
+[a3d1, a3dp1, a3d2, a3dp2, a3dw, a3db1, a3dbp1, a3dbe, a3dbpe] = request.security(syminfo.tickerid, tfL3 == "" ? timeframe.period : tfL3, kLine(-1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
 hLineAt(float t1, float p1, float t2, float p2, float t) => na(t1) or t2 == t1 ? na : p2 + (p2 - p1) / (t2 - t1) * (t - t2)
 
 overext(int d, float price) =>
@@ -910,6 +933,13 @@ if barstate.islast
                 hp1 = lvl == 0 ? (d > 0 ? a1up1 : a1dp1) : lvl == 1 ? (d > 0 ? hup1 : hdp1) : (d > 0 ? a3up1 : a3dp1)
                 ht2 = lvl == 0 ? (d > 0 ? a1u2 : a1d2) : lvl == 1 ? (d > 0 ? hu2 : hd2) : (d > 0 ? a3u2 : a3d2)
                 hp2 = lvl == 0 ? (d > 0 ? a1up2 : a1dp2) : lvl == 1 ? (d > 0 ? hup2 : hdp2) : (d > 0 ? a3up2 : a3dp2)
+                // the newest HTF line if it is already broken: lighter gold dotted, ending where it broke
+                bt = lvl == 0 ? (d > 0 ? a1ub1 : a1db1) : lvl == 1 ? (d > 0 ? hub1 : hdb1) : (d > 0 ? a3ub1 : a3db1)
+                bp = lvl == 0 ? (d > 0 ? a1ubp1 : a1dbp1) : lvl == 1 ? (d > 0 ? hubp1 : hdbp1) : (d > 0 ? a3ubp1 : a3dbp1)
+                be = lvl == 0 ? (d > 0 ? a1ube : a1dbe) : lvl == 1 ? (d > 0 ? hube : hdbe) : (d > 0 ? a3ube : a3dbe)
+                bpe = lvl == 0 ? (d > 0 ? a1ubpe : a1dbpe) : lvl == 1 ? (d > 0 ? hubpe : hdbpe) : (d > 0 ? a3ubpe : a3dbpe)
+                if tfN != "" and tfN != timeframe.period and not na(bt) and not na(be) and not (lvl == 1 and htf == tfL1)
+                    lines.push(line.new(int(bt), bp, int(be), bpe, xloc=xloc.bar_time, color=color.new(cHtfTL, 55), style=line.style_dotted, width=1))
                 // skip a gold line that sits on this chart's own line or on a gold line already drawn (keep one)
                 bool same = false
                 if not na(ht1)

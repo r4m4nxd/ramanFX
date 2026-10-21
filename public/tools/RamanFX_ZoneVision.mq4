@@ -20,7 +20,7 @@
 //| into a zone does not count as a touch. Removal needs a CLOSE.    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.90"
+#property version   "1.91"
 #property strict
 #property indicator_chart_window
 
@@ -54,7 +54,8 @@ input bool   InpShowChannel   = false;  // Draw the channel 50% helper line (the
 input bool   InpShowHTFLines  = true;
 input int    InpHTFLevels     = 4;      // Higher timeframes whose trendlines are drawn here (M15 chart: H1, H4, D1, W1); top-down like your analysis
 input bool   InpTLBias        = true;   // Bias from the newest HTF trendline break (a broken daily downtrend line = bullish for H4 / H1)   // Also draw the higher-timeframe trendlines on this chart (precision on the entry TF)
-input color  InpHtfTL         = C'200,150,40';
+input color  InpHtfTL         = C'200,150,40';   // higher-timeframe lines still respected (thin dotted)
+input color  InpHtfTLBroken   = C'228,205,150';  // higher-timeframe lines already broken (lighter, end where they broke)
 input int    InpTLSwing       = 2;      // Trendlines: swing points need N bars each side; REAL only after a new higher high / lower low
 input bool   InpShowHTF       = true;   // HTF zone band (closest above and below)
 input bool   InpShowPlan      = true;   // Bot's planned entry / SL / TP
@@ -423,7 +424,8 @@ void DedupeTL()
      {
       string x = ObjectName(0, o, 0, OBJ_TREND);
       if(StringFind(x, PFX + "tl") != 0 || StringFind(x, PFX + "tlc") == 0) continue;
-      if(ObjectGetInteger(0, x, OBJPROP_STYLE) == STYLE_DOT && ObjectGetInteger(0, x, OBJPROP_COLOR) == InpMuted) continue;   // broken lines stay as history
+      color xc = (color)ObjectGetInteger(0, x, OBJPROP_COLOR);
+      if(xc == InpMuted || xc == InpHtfTLBroken) continue;            // broken lines stay as history
       ArrayResize(nm, n + 1); nm[n++] = x;
      }
    double tol = 0.3 * iATR(NULL, 0, 14, 1);
@@ -523,14 +525,13 @@ void Trendlines(string s, int tf)
          if(TL[i].dir != d) continue;
          bool keep = i == newest || (!TL[i].conf && !TL[i].removed) || (TL[i].removed && newest >= 0 && TL[i].b > TL[newest].a);
          if(!keep || shown >= InpTLHistory) continue;
-         if(gTF != _Period && TL[i].removed) continue;                // higher timeframes: only the lines still respected
          shown++;
          bool up = d > 0;
          double sl = (TL[i].pb - TL[i].pa) / MathMax(1, TL[i].a - TL[i].b);
          int end = TL[i].removed ? TL[i].removedBar : 0;
          double pe = LineAt(TL[i].pb, TL[i].b, sl, end - (TL[i].removed ? 0 : 3));
          string nm = PFX + "tl" + (gTF == _Period ? "" : "H" + IntegerToString(gTF) + "_") + IntegerToString(i);
-         color c = TL[i].removed ? InpMuted : (gTF == _Period ? InpTrend : InpHtfTL);   // broken: light dotted; respected: thick dark
+         color c = gTF == _Period ? (TL[i].removed ? InpMuted : InpTrend) : (TL[i].removed ? InpHtfTLBroken : InpHtfTL);   // broken: light dotted; respected: thick dark
          if(InpShowTrendlines) ObjectCreate(0, nm, OBJ_TREND, 0, iTime(NULL, gTF, TL[i].a), TL[i].pa, TL[i].removed ? iTime(NULL, gTF, end) : iTime(NULL, gTF, 0) + PeriodSeconds(gTF) * 3, pe);
          ObjectSetInteger(0, nm, OBJPROP_RAY_RIGHT, false);
          ObjectSetInteger(0, nm, OBJPROP_COLOR, c);
