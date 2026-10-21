@@ -20,7 +20,7 @@
 //| into a zone does not count as a touch. Removal needs a CLOSE.    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.96"
+#property version   "1.97"
 #property strict
 #property indicator_chart_window
 
@@ -115,7 +115,49 @@ TLine TL[];
 datetime lastDraw = 0;
 
 int OnInit() { return(INIT_SUCCEEDED); }
-void OnDeinit(const int r) { ObjectsDeleteAll(0, PFX); ObjectsDeleteAll(0, "RFXN_"); Comment(""); }
+void OnDeinit(const int r) { ObjectsDeleteAll(0, PFX); ObjectsDeleteAll(0, "RFXN_"); ObjectsDeleteAll(0, "RFXP2_"); Comment(""); }
+
+// Click a zone (its box or its name) -> its notes in a box at the bottom-left; click the box to close it.
+// Works even when MT4 does not show hover tooltips.
+string zKey[], zTxt[];
+void RegZone(string id, string txt) { int n = ArraySize(zKey); ArrayResize(zKey, n + 1); ArrayResize(zTxt, n + 1); zKey[n] = id; zTxt[n] = txt; }
+void HidePop() { ObjectsDeleteAll(0, "RFXP2_"); ChartRedraw(); }
+void ShowPop(string txt)
+  {
+   HidePop();
+   string ln[]; int n = StringSplit(txt, '\n', ln);
+   int h = 16 * (n + 1) + 8, w = 0;
+   for(int i = 0; i < n; i++) w = MathMax(w, StringLen(ln[i]));
+   string bg = "RFXP2_bg";
+   ObjectCreate(0, bg, OBJ_RECTANGLE_LABEL, 0, 0, 0);
+   ObjectSetInteger(0, bg, OBJPROP_CORNER, CORNER_LEFT_LOWER);
+   ObjectSetInteger(0, bg, OBJPROP_XDISTANCE, 8); ObjectSetInteger(0, bg, OBJPROP_YDISTANCE, h + 8);
+   ObjectSetInteger(0, bg, OBJPROP_XSIZE, MathMax(220, w * 7 + 20)); ObjectSetInteger(0, bg, OBJPROP_YSIZE, h);
+   ObjectSetInteger(0, bg, OBJPROP_BGCOLOR, clrWhite); ObjectSetInteger(0, bg, OBJPROP_BORDER_TYPE, BORDER_FLAT);
+   ObjectSetInteger(0, bg, OBJPROP_COLOR, clrSilver); ObjectSetInteger(0, bg, OBJPROP_BACK, false); ObjectSetInteger(0, bg, OBJPROP_SELECTABLE, false);
+   for(int i = 0; i <= n; i++)
+     {
+      string nm = "RFXP2_" + IntegerToString(i);
+      ObjectCreate(0, nm, OBJ_LABEL, 0, 0, 0);
+      ObjectSetInteger(0, nm, OBJPROP_CORNER, CORNER_LEFT_LOWER);
+      ObjectSetInteger(0, nm, OBJPROP_XDISTANCE, 16); ObjectSetInteger(0, nm, OBJPROP_YDISTANCE, h + 2 - 16 * i);
+      ObjectSetString(0, nm, OBJPROP_TEXT, i < n ? ln[i] : "(click here to close)");
+      ObjectSetString(0, nm, OBJPROP_FONT, "Arial"); ObjectSetInteger(0, nm, OBJPROP_FONTSIZE, 8);
+      color c = clrDimGray;
+      if(i < n && StringFind(ln[i], "x ") == 0) c = clrFireBrick;
+      if(i < n && StringFind(ln[i], "+ ") == 0) c = clrSeaGreen;
+      if(i == 0 || (i == 1 && n > 1)) c = clrBlack;
+      ObjectSetInteger(0, nm, OBJPROP_COLOR, c); ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
+     }
+   ChartRedraw();
+  }
+void OnChartEvent(const int id, const long &lparam, const double &dparam, const string &sparam)
+  {
+   if(id != CHARTEVENT_OBJECT_CLICK) return;
+   if(StringFind(sparam, "RFXP2_") == 0) { HidePop(); return; }
+   for(int i = 0; i < ArraySize(zKey); i++)
+      if(sparam == zKey[i] || sparam == zKey[i] + "n" || sparam == zKey[i] + "p" || sparam == zKey[i] + "d") { ShowPop(zTxt[i]); return; }
+  }
 
 int OnCalculate(const int rates_total, const int prev_calculated, const datetime &time[], const double &open[], const double &high[],
                 const double &low[], const double &close[], const long &tick_volume[], const long &volume[], const int &spread[])
@@ -130,6 +172,7 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
      }
    lastDraw = Time[0];
    ObjectsDeleteAll(0, PFX);
+   ArrayResize(zKey, 0); ArrayResize(zTxt, 0);
    { int h0 = HtfOf(_Period); gTrend = h0 > 0 ? HtfTrend(_Symbol, h0) : 0; }
    Detect(_Symbol, _Period, Z, true);
    gHTF = 0; gHUpOn = false; gHDnOn = false; gHBias = 0; gHBiasTxt = "";
@@ -894,6 +937,7 @@ void DrawZones(Zone &zs[], bool htf)
       if(!htf && !zs[idx[best]].removed && zs[idx[best]].trapBar == -1) { int tb; bool cr; Zone q = zs[idx[best]]; zs[idx[best]].trap = FindTrap(_Symbol, tf, q.dir, q.prox, q.dist, q.saBar, q.baseEnd, tb, cr); zs[idx[best]].trapBar = tb == -1 ? -2 : tb; zs[idx[best]].crowded = cr; }
       int zi = idx[best]; Zone z = zs[zi]; string id = PFX + (htf ? "H" : "Z") + IntegerToString(zi); idx[best] = -1;
       string verdict = "", shortWhy = "", full = htf ? "" : ZoneNotes(zs, zi, verdict, shortWhy);
+      if(!htf) RegZone(id, ZoneName(z) + "\n" + full);
       color fill = htf ? InpHtfFill : (z.removed ? C'250,230,212' : (z.dir > 0 ? InpDemandFill : InpSupplyFill));
       color line = z.removed ? InpMuted : (z.dir > 0 ? InpDemandLine : InpSupplyLine);
       datetime t1 = iTime(_Symbol, tf, z.legBar + z.baseN);
