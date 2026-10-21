@@ -20,7 +20,7 @@
 //| into a zone does not count as a touch. Removal needs a CLOSE.    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.98"
+#property version   "1.99"
 #property strict
 #property indicator_chart_window
 
@@ -115,7 +115,62 @@ TLine TL[];
 datetime lastDraw = 0;
 
 int OnInit() { return(INIT_SUCCEEDED); }
-void OnDeinit(const int r) { ObjectsDeleteAll(0, PFX); ObjectsDeleteAll(0, "RFXN_"); Comment(""); }
+void OnDeinit(const int r) { ObjectsDeleteAll(0, PFX); ObjectsDeleteAll(0, "RFXN_"); ObjectsDeleteAll(0, "RFXP2_"); Comment(""); }
+
+// Click a zone (box, name or its lines) -> a details box right beside the click; click anywhere else to close it
+string zKey[], zTxt[]; uint popAt = 0;
+void RegZone(string id, string txt) { int n = ArraySize(zKey); ArrayResize(zKey, n + 1); ArrayResize(zTxt, n + 1); zKey[n] = id; zTxt[n] = txt; }
+void HidePop() { if(ObjectFind(0, "RFXP2_bg") >= 0) { ObjectsDeleteAll(0, "RFXP2_"); ChartRedraw(); } }
+void ShowPop(string txt, int x, int y)
+  {
+   ObjectsDeleteAll(0, "RFXP2_");
+   string ln[]; int n = StringSplit(txt, '\n', ln), w = 0;
+   for(int i = 0; i < n; i++) w = MathMax(w, StringLen(ln[i]));
+   int bw = MathMax(240, w * 6 + 24), bh = 15 * n + 12;
+   int cw = (int)ChartGetInteger(0, CHART_WIDTH_IN_PIXELS), ch = (int)ChartGetInteger(0, CHART_HEIGHT_IN_PIXELS);
+   int bx = x + 18 + bw > cw ? MathMax(4, x - 18 - bw) : x + 18, by = MathMax(4, MathMin(y - bh / 2, ch - bh - 4));
+   ObjectCreate(0, "RFXP2_bg", OBJ_RECTANGLE_LABEL, 0, 0, 0);
+   ObjectSetInteger(0, "RFXP2_bg", OBJPROP_XDISTANCE, bx); ObjectSetInteger(0, "RFXP2_bg", OBJPROP_YDISTANCE, by);
+   ObjectSetInteger(0, "RFXP2_bg", OBJPROP_XSIZE, bw); ObjectSetInteger(0, "RFXP2_bg", OBJPROP_YSIZE, bh);
+   ObjectSetInteger(0, "RFXP2_bg", OBJPROP_BGCOLOR, C'255,255,236'); ObjectSetInteger(0, "RFXP2_bg", OBJPROP_BORDER_TYPE, BORDER_FLAT);
+   ObjectSetInteger(0, "RFXP2_bg", OBJPROP_COLOR, clrDarkGray); ObjectSetInteger(0, "RFXP2_bg", OBJPROP_BACK, false);
+   for(int i = 0; i < n; i++)
+     {
+      string nm = "RFXP2_" + IntegerToString(i);
+      ObjectCreate(0, nm, OBJ_LABEL, 0, 0, 0);
+      ObjectSetInteger(0, nm, OBJPROP_XDISTANCE, bx + 8); ObjectSetInteger(0, nm, OBJPROP_YDISTANCE, by + 6 + 15 * i);
+      ObjectSetString(0, nm, OBJPROP_TEXT, ln[i]); ObjectSetString(0, nm, OBJPROP_FONT, "Arial"); ObjectSetInteger(0, nm, OBJPROP_FONTSIZE, 8);
+      color c = clrDimGray;
+      if(StringFind(ln[i], "x ") == 0) c = clrFireBrick;
+      if(StringFind(ln[i], "+ ") == 0) c = clrSeaGreen;
+      if(i <= 1) c = clrBlack;
+      ObjectSetInteger(0, nm, OBJPROP_COLOR, c);
+     }
+   NoSelect("RFXP2_");
+   popAt = GetTickCount();
+   ChartRedraw();
+  }
+// nothing this indicator draws can be selected or dragged (clicks still open the details box)
+void NoSelect(string pre)
+  {
+   for(int o = ObjectsTotal(0, -1, -1) - 1; o >= 0; o--)
+     {
+      string nm = ObjectName(0, o);
+      if(StringFind(nm, pre) != 0) continue;
+      ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false); ObjectSetInteger(0, nm, OBJPROP_SELECTED, false);
+     }
+  }
+void OnChartEvent(const int id, const long &lparam, const double &dparam, const string &sparam)
+  {
+   if(id == CHARTEVENT_OBJECT_CLICK)
+     {
+      for(int i = 0; i < ArraySize(zKey); i++)
+         if(sparam == zKey[i] || sparam == zKey[i] + "n" || sparam == zKey[i] + "p" || sparam == zKey[i] + "d") { ShowPop(zTxt[i], (int)lparam, (int)dparam); return; }
+      HidePop();
+      return;
+     }
+   if(id == CHARTEVENT_CLICK && GetTickCount() - popAt > 300) HidePop();   // a click on empty chart closes it
+  }
 
 int OnCalculate(const int rates_total, const int prev_calculated, const datetime &time[], const double &open[], const double &high[],
                 const double &low[], const double &close[], const long &tick_volume[], const long &volume[], const int &spread[])
@@ -130,6 +185,7 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
      }
    lastDraw = Time[0];
    ObjectsDeleteAll(0, PFX);
+   ArrayResize(zKey, 0); ArrayResize(zTxt, 0);
    { int h0 = HtfOf(_Period); gTrend = h0 > 0 ? HtfTrend(_Symbol, h0) : 0; }
    Detect(_Symbol, _Period, Z, true);
    gHTF = 0; gHUpOn = false; gHDnOn = false; gHBias = 0; gHBiasTxt = "";
@@ -154,6 +210,7 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
    if(InpShowEmotional) MarkEmotional();
    if(InpShowPanel || InpShowPlan) Panel();
    if(InpShowBotOrders) BotNotes();
+   NoSelect(PFX); NoSelect("RFXN_");
    return rates_total;
   }
 
@@ -924,7 +981,8 @@ void DrawZones(Zone &zs[], bool htf)
       ObjectCreate(0, id, OBJ_RECTANGLE, 0, t1, z.prox, t2, z.dist);
       ObjectSetInteger(0, id, OBJPROP_COLOR, fill); ObjectSetInteger(0, id, OBJPROP_BACK, true); ObjectSetInteger(0, id, OBJPROP_SELECTABLE, false);
       string state = z.removed ? "removed" : (z.tested ? "tested" : "fresh");
-      ObjectSetString(0, id, OBJPROP_TOOLTIP, htf ? TfName(tf) + " " + ZoneName(z) : ZoneName(z) + "\n" + full);
+      ObjectSetString(0, id, OBJPROP_TOOLTIP, htf ? TfName(tf) + " " + ZoneName(z) : ZoneName(z) + " | " + verdict + " - click for details");
+      if(!htf) RegZone(id, ZoneName(z) + "\n" + full);
       if(!htf)
         {
          HLine(id + "p", t1, t2, z.prox, line, STYLE_SOLID, z.arrival ? 2 : 1);
@@ -943,7 +1001,7 @@ void DrawZones(Zone &zs[], bool htf)
         {
          string nm = htf ? TfName(tf) + " " + (z.dir > 0 ? "demand" : "supply") : (z.arrival ? "ARRIVAL | " : "") + ZoneName(z) + " | " + verdict + (shortWhy == "" ? "" : ": " + shortWhy);
          Txt(id + "n", t1, z.dir > 0 ? z.dist : z.dist, nm, verdict == "WEAK" ? InpMuted : InpText, 7, z.dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
-         if(!htf) ObjectSetString(0, id + "n", OBJPROP_TOOLTIP, full);
+         if(!htf) ObjectSetString(0, id + "n", OBJPROP_TOOLTIP, "click for details");
         }
      }
   }

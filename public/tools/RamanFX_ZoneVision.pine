@@ -257,14 +257,14 @@ planFor(Zone z) =>
         legX = z.dir > 0 ? high[bar_index - z.legBar] : low[bar_index - z.legBar]
         for b = math.max(z.legBar - 2, 0) to math.max(z.legBar - 150, 0)
             off = bar_index - b
-            if off > 4900
+            if off > 1990
                 break
             ext := z.dir > 0 ? math.min(ext, low[off]) : math.max(ext, high[off])
             if b < z.legBar - z.baseN and (z.dir > 0 ? high[off] >= legX : low[off] <= legX)
                 break
     sl = ext - z.dir * bufPips * pip * (metalOil ? metalStop : 1.0)
     float sw = na
-    for off = 1 to math.max(1, math.min(bar_index - z.legBar, 4900))
+    for off = 1 to math.max(1, math.min(bar_index - z.legBar, 1990))
         sw := na(sw) ? (z.dir > 0 ? high[off] : low[off]) : (z.dir > 0 ? math.max(sw, high[off]) : math.min(sw, low[off]))
     float opp = na
     for o in zones
@@ -505,10 +505,10 @@ tfL3 = stepUp(3)
 refineTL(int d, float t1, float t2, int durMs, int N) =>
     int ca = na
     float va = na
-    int ph = na
+    int phb = na
     float vp = na
     if not na(t1) and not na(t2)
-        for off = 0 to math.min(bar_index - 1, 4000)
+        for off = 0 to math.min(bar_index - 1, 1990)
             tt = time[off]
             if tt < t1
                 break
@@ -518,21 +518,21 @@ refineTL(int d, float t1, float t2, int durMs, int N) =>
                 ca := bar_index - off
             if tt >= t2 and tt < t2 + durMs and (na(vp) or (d > 0 ? v < vp : v > vp))
                 vp := v
-                ph := bar_index - off
+                phb := bar_index - off
     int cb = na
     float vb = na
     float sl = na
     int ce = na
-    if not na(ca) and not na(ph) and ph > ca
-        for x = ca + 1 to ph
+    if not na(ca) and not na(phb) and phb > ca
+        for x = ca + 1 to phb
             v = d > 0 ? low[bar_index - x] : high[bar_index - x]
             s0 = (v - va) / (x - ca)
             if (d > 0 ? s0 > 0 : s0 < 0) and (na(sl) or (d > 0 ? s0 < sl : s0 > sl))
                 sl := s0
                 cb := x
                 vb := v
-        if not na(cb) and ph + 1 <= bar_index - 1
-            for x = ph + 1 to bar_index - 1
+        if not na(cb) and phb + 1 <= bar_index - 1
+            for x = phb + 1 to bar_index - 1
                 off = bar_index - x
                 lv = vb + sl * (x - cb)
                 if d > 0 ? high[off] < lv : low[off] > lv
