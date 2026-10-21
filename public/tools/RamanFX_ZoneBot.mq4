@@ -485,6 +485,15 @@ string zpSym[]; int zpDir[]; double zpLo[]; double zpHi[]; int zpN[];
 int modTicket[]; datetime modBar[];
 // chart drawings (live with InpDraw, tester only in visual mode)
 string vzSkip[]; int vzArrT[]; string vzOrdSig = "";
+string gVizTrend = ""; string vzR[]; int vzC[];                        // chart TF: HTF bias explanation + skip tally of the last scan
+string DirTxt(int d) { return d > 0 ? "UP" : (d < 0 ? "DOWN" : "unclear"); }
+void VizTally(string r)
+  {
+   int p = StringFind(r, " ("); if(p > 0) r = StringSubstr(r, 0, p);
+   if(StringFind(r, "best: ") == 0) r = StringSubstr(r, 6);
+   for(int i = 0; i < ArraySize(vzR); i++) if(vzR[i] == r) { vzC[i]++; return; }
+   int n = ArraySize(vzR); ArrayResize(vzR, n + 1); ArrayResize(vzC, n + 1); vzR[n] = r; vzC[n] = 1;
+  }
 // Kevin best capital protection state (UTC day / week start balances, stops, equity peak, report counters)
 datetime gPDay = 0, gPWeek = 0; double gPDayBal = 0, gPWeekBal = 0; bool gPDayStop = false, gPWeekStop = false, gStreakStop = false;
 double gEqPeak = 0, gMaxOpenRisk = 0; bool gDDHalf = false;
@@ -1113,6 +1122,8 @@ void Scan(string s, int k)
    if(Viz() && s == _Symbol && etf == _Period)                           // this chart's timeframe: zones considered + the trendlines used (new bar only)
      {
       VizZones(s, k, etf, z);
+      gVizTrend = StringFormat("HTF %s: swings %s, TL break %s = bias %s", TfName(htf), DirTxt(kTrend), DirTxt(kBias), DirTxt(trend));
+      ArrayResize(vzR, 0); ArrayResize(vzC, 0);
       DrawKLines(s, etf, gKE, "E", clrBlack);
       DrawKLines(s, htf, gKH, "H", clrGoldenrod);
      }
@@ -1181,7 +1192,7 @@ void Scan(string s, int k)
       else if(EffEntry() == ENTRY_SF && method == "CONF") method = "SF";
       if(reason == "" && IsBest())
         {
-         if(kTrend != dir || kBias == -dir) reason = "best: bias (HTF trend or trendline break against)";
+         if(kBias == -dir) reason = "best: bias (newest HTF trendline break against)";
          else if(z[i].tested) reason = "best: not fresh";
          else if(KCross(s, dir, z[i].prox) < 0) reason = "best: tl cross";
         }
@@ -1253,7 +1264,7 @@ void Scan(string s, int k)
       string decision = reason == "" ? (gMode == MODE_AUTO ? "ORDER" : (gMode == MODE_APPROVE ? "PROPOSE" : "ALERT")) : "SKIP";
       LogSignal(s, k, z[i], entry, sl, tp, rr, trend, curve, method, spread / point, decision, reason, digits);
       Say(s, k, decision == "SKIP" ? "skip - " + reason + StringFormat(" (%s %s %s, grade %s)", TF_N[k], dir > 0 ? "demand" : "supply", DoubleToString(z[i].prox, digits), z[i].grade) : decision);
-      if(reason != "" && Viz() && s == _Symbol && etf == _Period) VizSkip(s, k, etf, z[i], reason);
+      if(reason != "" && Viz() && s == _Symbol && etf == _Period) { VizSkip(s, k, etf, z[i], reason); VizTally(reason); }
       if(reason != "") { Count(reason); if(StringFind(reason, "already an order") == 0 || StringFind(reason, "max ") == 0 || StringFind(reason, "Friday") == 0 || StringFind(reason, "weekend") == 0 || StringFind(reason, "Asian") == 0 || StringFind(reason, "news") == 0) return; continue; }
 
       // rank: planner score (VP bonus inside) + nearness to price
@@ -2616,6 +2627,19 @@ string VizPanelText()
       else if(InpMaxOpenRiskPct > 0 && orisk + BestRiskPct() > InpMaxOpenRiskPct + 1e-9) why = "max open risk";
      }
    if(why != "") out += "! PAUSED (Kevin best): " + why + "\n";
+   if(gVizTrend != "") out += gVizTrend + "\n";
+   if(ArraySize(vzR) > 0)
+     {
+      string sk = "Skips: "; int used[]; ArrayResize(used, ArraySize(vzR)); ArrayInitialize(used, 0);
+      for(int q = 0; q < 3; q++)
+        {
+         int bi = -1;
+         for(int i = 0; i < ArraySize(vzR); i++) if(used[i] == 0 && (bi < 0 || vzC[i] > vzC[bi])) bi = i;
+         if(bi < 0) break;
+         used[bi] = 1; sk += (q > 0 ? ", " : "") + vzR[bi] + " x" + IntegerToString(vzC[bi]);
+        }
+      out += (StringLen(sk) > 63 ? StringSubstr(sk, 0, 63) : sk) + "\n";
+     }
    return out;
   }
 
