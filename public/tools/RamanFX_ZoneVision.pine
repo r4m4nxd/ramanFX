@@ -639,53 +639,53 @@ scoreZone(Zone z, float sl) =>
 noteHelp(string n) =>
     string h = ""
     if h == "" and str.contains(n, "clear space")
-        h := "\n      the first candle after the move away (stay-away candle) stayed this % of the zone height away from the entry line. Big gap = price left fast, orders still waiting. Under 15% = drawable only, not tradable."
+        h := " (stay-away candle stayed this % of the zone height away: price left fast, orders still there. <15% = drawable only)"
     if h == "" and str.contains(n, "drawable only")
-        h := "\n      the stay-away candle came back too close to the entry line: the zone is real but not worth trading."
+        h := " (stay-away candle came back too close: real zone, not tradable)"
     if h == "" and str.contains(n, "explosive move away")
-        h := "\n      the move-away candle is this many times bigger than the biggest base candle. 2.5x+ = strong, under 1.8x = weak."
+        h := " (move-away candle vs biggest base candle. 2.5x+ strong)"
     if h == "" and str.contains(n, "weak move away")
-        h := "\n      the move-away candle is not much bigger than the base: weak imbalance, fewer orders left."
+        h := " (move away barely bigger than the base)"
     if h == "" and str.contains(n, "2nd explosive candle")
-        h := "\n      a second big candle followed the first one: strong institutional push."
+        h := " (a second big push followed)"
     if h == "" and str.contains(n, "only one explosive candle")
-        h := "\n      the push stopped after one candle: weaker than two."
+        h := " (the push stopped after one candle)"
     if h == "" and str.contains(n, "base candle")
-        h := "\n      few base candles = little time at the level = more orders left (Seiden: time at level)."
+        h := " (short time at level = more orders left)"
     if h == "" and str.contains(n, "long base")
-        h := "\n      price sat at the level for many candles: orders used up."
+        h := " (long time at level = orders used up)"
     if h == "" and str.contains(n, "not in the chain")
-        h := "\n      the move away removed nothing: Kevin does not trade it."
+        h := " (removed nothing: Kevin skips it)"
     if h == "" and str.contains(n, "in the chain")
-        h := "\n      the move away removed an opposing zone, broke a trendline or made a new high / low (Kevin's chain rule)."
+        h := " (removed a zone / trendline or made a new high-low)"
     if h == "" and str.contains(n, "ARRIVAL")
-        h := "\n      broke the trendline AND took out the previous high / low: the strongest kind of zone."
+        h := " (broke the trendline AND the previous high-low: strongest)"
     if h == "" and str.contains(n, "fresh")
-        h := "\n      price has not come back to the zone yet."
+        h := " (price has not come back yet)"
     if h == "" and str.contains(n, "already tested")
-        h := "\n      price already came back into the zone: orders partly used."
+        h := " (price came back: orders partly used)"
     if h == "" and str.contains(n, "VP")
-        h := "\n      valley / peak zone: price turned there (reversal) - Kevin's favourite."
+        h := " (reversal zone (valley / peak): Kevin's favourite)"
     if h == "" and str.contains(n, "with the")
-        h := "\n      the zone points the same way as the higher-timeframe trend."
+        h := " (same way as the HTF trend)"
     if h == "" and str.contains(n, "against the")
-        h := "\n      the zone fights the higher-timeframe trend."
+        h := " (fights the HTF trend)"
     if h == "" and str.contains(n, "beyond channel 50%")
-        h := "\n      the zone sits in the overextended half of the trend channel: wait for the golden area."
+        h := " (overextended half of the channel: wait)"
     if h == "" and str.contains(n, "too small")
-        h := "\n      much smaller than the other zones on this chart: easily run through."
-    if h == "" and str.contains(n, "at the")
-        h := "\n      the zone sits on a respected trendline: two reasons in one place."
+        h := " (much smaller than other zones: easily run through)"
     if h == "" and str.contains(n, "without crossing")
-        h := "\n      price can reach the zone without breaking a trendline first: the line protects the zone."
+        h := " (no trendline between price and the zone)"
     if h == "" and str.contains(n, "must cross")
-        h := "\n      a respected trendline lies between price and the zone: it has to break first."
+        h := " (a trendline must break first)"
+    if h == "" and str.contains(n, "at the")
+        h := " (sits on a respected trendline)"
     if h == "" and str.contains(n, "liquidity trap")
-        h := "\n      an obvious high / low in front of the zone where retail stops sit; price often grabs them, then reaches the zone."
+        h := " (obvious high-low in front: stops get taken first)"
     if h == "" and str.contains(n, "far:")
-        h := "\n      the zone is more than 2 x HTF ATR away: plan it, do not expect it soon."
+        h := " (more than 2x HTF ATR away: not soon)"
     if h == "" and str.contains(n, "obvious S/R")
-        h := "\n      the zone sits on a level everyone sees: crowded, can be run through."
+        h := " (level everyone sees: crowded)"
     h
 // Strong / weak in a few words (Kevin + Seiden checks). WEAK = any deal-breaker; STRONG = 5+ strengths, at most one weakness
 zoneNotes(Zone z, float medZ) =>

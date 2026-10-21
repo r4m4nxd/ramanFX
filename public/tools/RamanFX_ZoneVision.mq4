@@ -786,30 +786,30 @@ void Push(string &a[], string v) { int n = ArraySize(a); ArrayResize(a, n + 1); 
 // one-line explanation shown under each note in the tooltip
 string NoteHelp(string n)
   {
-   if(StringFind(n, "clear space") >= 0) return "\n      " + "the first candle after the move away (stay-away candle) stayed this % of the zone height away from the entry line. Big gap = price left fast, orders still waiting. Under 15% = drawable only, not tradable.";
-   if(StringFind(n, "drawable only") >= 0) return "\n      " + "the stay-away candle came back too close to the entry line: the zone is real but not worth trading.";
-   if(StringFind(n, "explosive move away") >= 0) return "\n      " + "the move-away candle is this many times bigger than the biggest base candle. 2.5x+ = strong, under 1.8x = weak.";
-   if(StringFind(n, "weak move away") >= 0) return "\n      " + "the move-away candle is not much bigger than the base: weak imbalance, fewer orders left.";
-   if(StringFind(n, "2nd explosive candle") >= 0) return "\n      " + "a second big candle followed the first one: strong institutional push.";
-   if(StringFind(n, "only one explosive candle") >= 0) return "\n      " + "the push stopped after one candle: weaker than two.";
-   if(StringFind(n, "base candle") >= 0) return "\n      " + "few base candles = little time at the level = more orders left (Seiden: time at level).";
-   if(StringFind(n, "long base") >= 0) return "\n      " + "price sat at the level for many candles: orders used up.";
-   if(StringFind(n, "not in the chain") >= 0) return "\n      " + "the move away removed nothing: Kevin does not trade it.";
-   if(StringFind(n, "in the chain") >= 0) return "\n      " + "the move away removed an opposing zone, broke a trendline or made a new high / low (Kevin's chain rule).";
-   if(StringFind(n, "ARRIVAL") >= 0) return "\n      " + "broke the trendline AND took out the previous high / low: the strongest kind of zone.";
-   if(StringFind(n, "fresh") >= 0) return "\n      " + "price has not come back to the zone yet.";
-   if(StringFind(n, "already tested") >= 0) return "\n      " + "price already came back into the zone: orders partly used.";
-   if(StringFind(n, "VP") >= 0) return "\n      " + "valley / peak zone: price turned there (reversal) - Kevin's favourite.";
-   if(StringFind(n, "with the") >= 0) return "\n      " + "the zone points the same way as the higher-timeframe trend.";
-   if(StringFind(n, "against the") >= 0) return "\n      " + "the zone fights the higher-timeframe trend.";
-   if(StringFind(n, "beyond channel 50%") >= 0) return "\n      " + "the zone sits in the overextended half of the trend channel: wait for the golden area.";
-   if(StringFind(n, "too small") >= 0) return "\n      " + "much smaller than the other zones on this chart: easily run through.";
-   if(StringFind(n, "at the") >= 0) return "\n      " + "the zone sits on a respected trendline: two reasons in one place.";
-   if(StringFind(n, "without crossing") >= 0) return "\n      " + "price can reach the zone without breaking a trendline first: the line protects the zone.";
-   if(StringFind(n, "must cross") >= 0) return "\n      " + "a respected trendline lies between price and the zone: it has to break first.";
-   if(StringFind(n, "liquidity trap") >= 0) return "\n      " + "an obvious high / low in front of the zone where retail stops sit; price often grabs them, then reaches the zone.";
-   if(StringFind(n, "far:") >= 0) return "\n      " + "the zone is more than 2 x HTF ATR away: plan it, do not expect it soon.";
-   if(StringFind(n, "obvious S/R") >= 0) return "\n      " + "the zone sits on a level everyone sees: crowded, can be run through.";
+   if(StringFind(n, "clear space") >= 0) return " (stay-away candle stayed this % of the zone height away: price left fast, orders still there. <15% = drawable only)";
+   if(StringFind(n, "drawable only") >= 0) return " (stay-away candle came back too close: real zone, not tradable)";
+   if(StringFind(n, "explosive move away") >= 0) return " (move-away candle vs biggest base candle. 2.5x+ strong)";
+   if(StringFind(n, "weak move away") >= 0) return " (move away barely bigger than the base)";
+   if(StringFind(n, "2nd explosive candle") >= 0) return " (a second big push followed)";
+   if(StringFind(n, "only one explosive candle") >= 0) return " (the push stopped after one candle)";
+   if(StringFind(n, "base candle") >= 0) return " (short time at level = more orders left)";
+   if(StringFind(n, "long base") >= 0) return " (long time at level = orders used up)";
+   if(StringFind(n, "not in the chain") >= 0) return " (removed nothing: Kevin skips it)";
+   if(StringFind(n, "in the chain") >= 0) return " (removed a zone / trendline or made a new high-low)";
+   if(StringFind(n, "ARRIVAL") >= 0) return " (broke the trendline AND the previous high-low: strongest)";
+   if(StringFind(n, "fresh") >= 0) return " (price has not come back yet)";
+   if(StringFind(n, "already tested") >= 0) return " (price came back: orders partly used)";
+   if(StringFind(n, "VP") >= 0) return " (reversal zone (valley / peak): Kevin's favourite)";
+   if(StringFind(n, "with the") >= 0) return " (same way as the HTF trend)";
+   if(StringFind(n, "against the") >= 0) return " (fights the HTF trend)";
+   if(StringFind(n, "beyond channel 50%") >= 0) return " (overextended half of the channel: wait)";
+   if(StringFind(n, "too small") >= 0) return " (much smaller than other zones: easily run through)";
+   if(StringFind(n, "without crossing") >= 0) return " (no trendline between price and the zone)";
+   if(StringFind(n, "must cross") >= 0) return " (a trendline must break first)";
+   if(StringFind(n, "at the") >= 0) return " (sits on a respected trendline)";
+   if(StringFind(n, "liquidity trap") >= 0) return " (obvious high-low in front: stops get taken first)";
+   if(StringFind(n, "far:") >= 0) return " (more than 2x HTF ATR away: not soon)";
+   if(StringFind(n, "obvious S/R") >= 0) return " (level everyone sees: crowded)";
    return "";
   }
 // Strong / weak in a few words: Kevin's and Seiden's checks on one zone.
@@ -845,6 +845,7 @@ string ZoneNotes(Zone &zs[], int i, string &verdict, string &shortWhy)
    for(int k = 0; k < nc; k++) t += "x " + cr[k] + NoteHelp(cr[k]) + "\n";
    for(int k = 0; k < nm; k++) t += "- " + mi[k] + NoteHelp(mi[k]) + "\n";
    for(int k = 0; k < np; k++) t += "+ " + pl[k] + NoteHelp(pl[k]) + "\n";
+   if(StringLen(t) > 1000) t = StringSubstr(t, 0, 990) + "...";      // MT4 hides tooltips that are too long
    return t;
   }
 
