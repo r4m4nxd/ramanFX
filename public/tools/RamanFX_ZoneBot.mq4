@@ -33,7 +33,7 @@ enum LiveBE    { BE_NONE = 0, BE_AT_1R = 1, BE_AT_2R = 2 };
 enum Manage    { MG_OFF = 0, MG_MENTOR = 1, MG_BE_ONLY = 2 };
 enum TpMode    { TP_SWING = 0, TP_OPP_ZONE = 1, TP_NEAREST = 2 };
 enum Grades    { GR_ALL = 0, GR_A = 1, GR_AB = 2, GR_B = 3, GR_C = 4 };
-enum BotPreset { PRESET_CUSTOM = 0, PRESET_KEVIN_BEST = 1, PRESET_AGGRESSIVE = 2 };
+enum BotPreset { PRESET_CUSTOM = 0, PRESET_KEVIN_BEST = 1, PRESET_AGGRESSIVE = 2, PRESET_ZONES_3R = 3 };
 
 input BotMode   InpMode          = MODE_APPROVE; // Mode: Approve = bot finds + alerts, you check the chart and press Place
 input BotPreset InpPreset        = PRESET_KEVIN_BEST; // Preset: Kevin best = M15/H1/H4, grade A arrival zones only, ATR stop, BE at 2R only, 1 order per zone. Custom = your settings below. Aggressive = as InpAggressive
@@ -70,6 +70,10 @@ input double    InpMinStopSpreads= 3.0;          // ...and at least this many sp
 input double    InpMaxLots       = 2.0;          // Hard cap on lots per order
 input double    InpMaxMarginPct  = 10.0;         // Skip if the order needs more than this % of free margin
 input double    InpMinStopATR    = 0.2;          // Minimum stop as a fraction of the entry TF's ATR(14)
+input double    InpZ3RR          = 3.0;          // Zones 3R preset: fixed reward:risk (TP = entry + N x stop)
+input double    InpZ3Front       = 0.05;         // Zones 3R preset: enter this fraction of the zone height before the proximal
+input double    InpZ3StopBuf     = 0.10;         // Zones 3R preset: stop this fraction of the zone height beyond the distal (+ spread)
+input bool      InpZ3Bias        = true;         // Zones 3R preset: skip zones against the HTF bias (trendline break / swings)
 input double    InpBestStopATR   = 0.5;          // Kevin best preset: stop at least N x entry TF ATR(14) from entry (metals / oil also >= 0.35 x HTF ATR)
 input double    InpMinDeparture  = 1.5;          // Departure: price must travel >= N x zone height away from the proximal line
 input bool      InpRequireITF    = false;        // Skip when the intermediate TF trend points the other way (3-timeframe check)
@@ -344,6 +348,7 @@ void Status()
    string t = StringFormat("ZoneBot  %s | %s | %d pairs\n", gMode == MODE_AUTO ? "AUTO" : (gMode == MODE_APPROVE ? "APPROVE" : "SCANNER"), EffEntry() == ENTRY_BOTH ? "S&F + conf" : (EffEntry() == ENTRY_SF ? "set & forget" : "confirmation"), ArraySize(syms));
    if(IsAggr()) t = StringSubstr(t, 0, StringLen(t) - 1) + StringFormat(" | AGGRESSIVE (all TFs, A-C, %d/pair, %d max)\n", EffMaxPerSymbol(), EffMaxOrders());
    else if(IsBest()) t = StringSubstr(t, 0, StringLen(t) - 1) + StringFormat(" | KEVIN BEST (M15-H4, A arrival, stop >= %.2f ATR, BE at 2R)\n", InpBestStopATR);
+   else if(IsZ3()) t = StringSubstr(t, 0, StringLen(t) - 1) + StringFormat(" | ZONES 3R (all zones, 1:%.1f, BE at 1R)\n", InpZ3RR);
    else t = StringSubstr(t, 0, StringLen(t) - 1) + " | CUSTOM\n";
    if(!IsTradeAllowed() || !TerminalInfoInteger(TERMINAL_TRADE_ALLOWED)) t += "! AutoTrading is OFF\n";
    string blocked = BlockedNow(ArraySize(syms) > 0 ? syms[0] : _Symbol);
@@ -443,7 +448,7 @@ void Work()
 bool TfOn(int k)
   {
    if(!TfToggle(k)) return false;
-   if(IsBest()) return k >= 2 && k <= 4;
+   if(IsProt()) return k >= 2 && k <= 4;
    return true;
   }
 bool TfToggle(int k)
@@ -464,19 +469,21 @@ bool TfToggle(int k)
 BotPreset EffPreset()      { if(InpAggressive) return PRESET_AGGRESSIVE; return InpPreset; }
 bool      IsAggr()          { return EffPreset() == PRESET_AGGRESSIVE; }
 bool      IsBest()          { return EffPreset() == PRESET_KEVIN_BEST; }
-string    PresetName()      { if(IsAggr()) return "AGGRESSIVE"; if(IsBest()) return "KEVIN BEST"; return "CUSTOM"; }
+bool      IsZ3()            { return EffPreset() == PRESET_ZONES_3R; }   // every drawn zone, fixed 1:3, BE at 1R
+bool      IsProt()          { return IsBest() || IsZ3(); }              // capital protection, one order per zone, no pending churn
+string    PresetName()      { if(IsAggr()) return "AGGRESSIVE"; if(IsBest()) return "KEVIN BEST"; if(IsZ3()) return "ZONES 3R"; return "CUSTOM"; }
 EntryMode EffEntry()       { return IsAggr() ? ENTRY_BOTH : InpEntry; }
 int       EffMaxPerSymbol() { return IsAggr() ? MathMax(InpMaxPerSymbol, NTF) : InpMaxPerSymbol; }
 int       EffMaxOrders()    { return IsAggr() ? MathMax(InpMaxOrders, 60) : InpMaxOrders; }
 bool      EffTradeVP()      { return IsAggr() || InpTradeVP; }
 int       EffScansPerTick() { return IsAggr() ? MathMax(InpScansPerTick, NTF) : InpScansPerTick; }
-bool      EffBlockOverext() { return IsBest() || InpBlockOverext; }
+bool      EffBlockOverext() { return IsBest() || (!IsZ3() && InpBlockOverext); }
 // management: Kevin best = nothing until +2R, then break-even (spread + commission); no half risk, no trailing, no partial
-bool      EffManageOn()     { return IsBest() || InpManage != MG_OFF; }
-bool      EffHalfRisk1R()   { return !IsBest() && InpManage == MG_MENTOR && InpHalfRiskAt1R; }
-bool      EffTrailZones()   { return !IsBest() && InpManage == MG_MENTOR && InpTrailZones; }
-bool      EffPartial3R()    { return !IsBest() && InpManage == MG_MENTOR && InpPartialAt3R; }
-double    EffBeTrig()       { if(IsBest()) return 2.0; if(InpLiveBE == BE_AT_1R) return 1.0; if(InpLiveBE == BE_AT_2R) return 2.0; return 99; }
+bool      EffManageOn()     { return IsProt() || InpManage != MG_OFF; }
+bool      EffHalfRisk1R()   { return !IsProt() && InpManage == MG_MENTOR && InpHalfRiskAt1R; }
+bool      EffTrailZones()   { return !IsProt() && InpManage == MG_MENTOR && InpTrailZones; }
+bool      EffPartial3R()    { return !IsProt() && InpManage == MG_MENTOR && InpPartialAt3R; }
+double    EffBeTrig()       { if(IsZ3()) return 1.0; if(IsBest()) return 2.0; if(InpLiveBE == BE_AT_1R) return 1.0; if(InpLiveBE == BE_AT_2R) return 2.0; return 99; }
 
 // order counters for the backtest report
 int gPlaced = 0, gCancelled = 0, gModified = 0;
@@ -1182,12 +1189,22 @@ void Scan(string s, int k)
          if(tp > 0 && MathAbs(entry - sl) > 0) rr0 = MathAbs(tp - entry) / MathAbs(entry - sl);
          if(MathAbs(entry - sl) < volMin) { sl = dir > 0 ? entry - volMin : entry + volMin; volWide = true; }
         }
+      if(IsZ3())                                                       // Zones 3R: just before the proximal, stop beyond the distal, fixed 1:N target
+        {
+         double zh = MathAbs(z[i].prox - z[i].dist);
+         if(dir > 0) { entry = z[i].prox + spread + InpZ3Front * zh; sl = z[i].dist - MathMax(spread, InpZ3StopBuf * zh); }
+         else        { entry = z[i].prox - InpZ3Front * zh;          sl = z[i].dist + spread + MathMax(spread, InpZ3StopBuf * zh); }
+         tp = dir > 0 ? entry + InpZ3RR * (entry - sl) : entry - InpZ3RR * (sl - entry);
+         entry = NormalizeDouble(entry, digits); sl = NormalizeDouble(sl, digits); tp = NormalizeDouble(tp, digits);
+         if(MathAbs(entry - sl) < InpMinStopSpreads * spread) reason = "zones3r: zone too small for the spread";
+        }
       double risk = MathAbs(entry - sl);
       if(tp > 0 && risk > 0) rr = MathAbs(tp - entry) / risk;
       string method = ConfirmedBy(s, etf, dir, z, z[i], hz, hn) ? "CONF" : "SF";
       double curve = Curve(s, htf, z[i].prox);
 
-      if(trend == 0) reason = "HTF trend unclear";
+      if(IsZ3()) { if(reason == "" && InpZ3Bias && trend == -dir) reason = "zones3r: against HTF bias"; }
+      else if(trend == 0) reason = "HTF trend unclear";
       else if(trend != dir) reason = "against HTF trend";
       else if(EffEntry() == ENTRY_SF && method == "CONF") method = "SF";
       if(reason == "" && IsBest())
@@ -1202,10 +1219,10 @@ void Scan(string s, int k)
          double lim = AtHtfZone(z[i], hz, hn, dir) ? 50 : 33;
          if((dir > 0 && curve > lim) || (dir < 0 && curve < 100 - lim)) reason = "zone not low/high enough in the HTF curve";
         }
-      if(reason == "" && InpRequireQualified && !Qualified(s, etf, z, i)) reason = "not in the chain (removed nothing, no trendline, no all-time high/low)";
+      if(reason == "" && !IsZ3() && InpRequireQualified && !Qualified(s, etf, z, i)) reason = "not in the chain (removed nothing, no trendline, no all-time high/low)";
       if(reason == "" && EffBlockOverext() && (ChannelState(s, etf, gKE, dir, z[i].prox) == 2 || ChannelState(s, htf, gKH, dir, z[i].prox) == 2)) reason = "zone beyond the channel 50% (overextended) - wait for the golden area";
-      if(reason == "" && z[i].gap < InpMinGap) reason = "drawable only: little space under the stay-away candle";
-      if(reason == "" && InpMinSizeVsMedian > 0)
+      if(reason == "" && !IsZ3() && z[i].gap < InpMinGap) reason = "drawable only: little space under the stay-away candle";
+      if(reason == "" && !IsZ3() && InpMinSizeVsMedian > 0)
         {
          double hs[]; int m = 0; ArrayResize(hs, n);
          for(int j = 0; j < n; j++) if(!z[j].removed) hs[m++] = MathAbs(z[j].prox - z[j].dist);
@@ -1229,7 +1246,7 @@ void Scan(string s, int k)
       if(reason == "") { int tb; bool cr; z[i].trap = FindTrap(s, etf, dir, z[i].prox, z[i].dist, z[i].legBar - 1, z[i].legBar + z[i].baseN, tb, cr); z[i].trapBar = tb; z[i].crowded = cr; }
       if(reason == "" && InpRequireTrap && z[i].trap == 0) reason = "no liquidity trap";
       int ps = 0; string pg = "";
-      if(reason == "") { ps = PlanScore(s, etf, htf, trend, z, i, hz, hn, curve, method); if(Arrival(s, etf, z, i)) ps = MathMin(100, ps + 8); { int cx = KCross(s, dir, z[i].prox); ps = (int)MathMax(0, MathMin(100, ps + (cx > 0 ? 3 : (cx < 0 ? -5 : 0)))); } pg = PlanGrade(ps); if(!GradeAllowed(pg)) reason = StringFormat("grade %s (%d) filtered", pg, ps); else if(IsBest() && pg == "B" && !Arrival(s, etf, z, i)) reason = "best: grade B without arrival"; }
+      if(reason == "") { ps = PlanScore(s, etf, htf, trend, z, i, hz, hn, curve, method); if(Arrival(s, etf, z, i)) ps = MathMin(100, ps + 8); { int cx = KCross(s, dir, z[i].prox); ps = (int)MathMax(0, MathMin(100, ps + (cx > 0 ? 3 : (cx < 0 ? -5 : 0)))); } pg = PlanGrade(ps); if(!IsZ3() && !GradeAllowed(pg)) reason = StringFormat("grade %s (%d) filtered", pg, ps); else if(IsBest() && pg == "B" && !Arrival(s, etf, z, i)) reason = "best: grade B without arrival"; }
       if(reason == "" && tp == 0) reason = "no opposing zone for target";
       if(reason == "" && rr < InpMinRR)
         {
@@ -1238,7 +1255,7 @@ void Scan(string s, int k)
         }
       if(reason == "" && spread > risk * InpMaxSpreadPct / 100.0) reason = "spread too wide";
       if(reason == "") reason = BlockedNow(s, TF_E[k]);
-      if(reason == "" && IsBest())
+      if(reason == "" && IsProt())
         {
          int zt = ZoneOrder(s, dir, z[i].prox, z[i].dist);
          if(zt > 0) { BestModify(zt, s, etf, entry, sl, tp, MathAbs(z[i].prox - z[i].dist)); reason = "best: zone already traded"; }
@@ -1487,7 +1504,7 @@ bool Place(string s, int k, int dir, double entry, double sl, double tp, double 
    placeErr = "";
    if(!IsTradeAllowed() || !TerminalInfoInteger(TERMINAL_TRADE_ALLOWED))
      { placeErr = "AutoTrading is OFF - press the AutoTrading button on the MT4 toolbar (green) and tick 'Allow live trading' in the bot's settings (F7)"; Print(s, ": ", placeErr); return false; }
-   double riskPctUse = (IsBest() ? BestRiskPct() : InpRiskPct) * ((InpHalfRiskC && grade == "C") ? 0.5 : 1.0);   // low odds = half risk
+   double riskPctUse = (IsProt() ? BestRiskPct() : InpRiskPct) * ((InpHalfRiskC && grade == "C") ? 0.5 : 1.0);   // low odds = half risk
    RefreshRates();
    int digits = (int)MarketInfo(s, MODE_DIGITS);
    double point = MarketInfo(s, MODE_POINT), pip = point * ((digits == 3 || digits == 5) ? 10 : 1);
@@ -1540,7 +1557,7 @@ bool Place(string s, int k, int dir, double entry, double sl, double tp, double 
    if(t < 0) { int e = GetLastError(); Print("OrderSend failed ", s, " error ", e); placeErr = "broker rejected the order (error " + IntegerToString(e) + ")"; Count(placeErr); return false; }
    StSet(t, k, method, dist, stopDist / point, grade);
    gPlaced++;
-   if(IsBest()) AddZonePlacement(s, dir, prox, dist);
+   if(IsProt()) AddZonePlacement(s, dir, prox, dist);
    RecordInit(t, sl, tp);                                                // exact initial stop / target for the backtest report
    string lines[]; int n = StringSplit(info, '\n', lines);
    for(int i = 0; i < n; i++) Print("#", t, " ", lines[i]);
@@ -1645,9 +1662,9 @@ void ManageOrders()
          double c1 = iClose(s, etf, 1);
          if(dist > 0 && type == OP_BUYLIMIT && c1 < dist) why = "zone removed";
          if(dist > 0 && type == OP_SELLLIMIT && c1 > dist) why = "zone removed";
-         if(!IsBest() && OrderTakeProfit() > 0 && type == OP_BUYLIMIT && MarketInfo(s, MODE_BID) >= OrderOpenPrice() + 0.8 * (OrderTakeProfit() - OrderOpenPrice())) why = "price ran 80% to target before fill";
-         if(!IsBest() && OrderTakeProfit() > 0 && type == OP_SELLLIMIT && MarketInfo(s, MODE_ASK) <= OrderOpenPrice() - 0.8 * (OrderOpenPrice() - OrderTakeProfit())) why = "price ran 80% to target before fill";
-         if(IsBest() && why == "")                                      // Kevin best: price left the zone far behind (re-armed later within 1 ATR)
+         if(!IsProt() && OrderTakeProfit() > 0 && type == OP_BUYLIMIT && MarketInfo(s, MODE_BID) >= OrderOpenPrice() + 0.8 * (OrderTakeProfit() - OrderOpenPrice())) why = "price ran 80% to target before fill";
+         if(!IsProt() && OrderTakeProfit() > 0 && type == OP_SELLLIMIT && MarketInfo(s, MODE_ASK) <= OrderOpenPrice() - 0.8 * (OrderOpenPrice() - OrderTakeProfit())) why = "price ran 80% to target before fill";
+         if(IsProt() && why == "")                                      // Kevin best: price left the zone far behind (re-armed later within 1 ATR)
            {
             double hAtr = iATR(s, TF_H[k], 14, 1), pxNow = type == OP_BUYLIMIT ? MarketInfo(s, MODE_BID) : MarketInfo(s, MODE_ASK);
             if(hAtr > 0 && MathAbs(pxNow - OrderOpenPrice()) > 3.0 * hAtr) why = "price moved more than 3 x HTF ATR away from the zone";
@@ -1660,7 +1677,7 @@ void ManageOrders()
          if(fridayCut) why = "Friday cut-off";
          if(InpMaxDailyLossPct > 0 && DailyLossHit()) why = "daily loss limit";
          if(why == "" && iBarShift(s, etf, OrderOpenTime()) > InpPendingBars) why = "expired";
-         if(why == "" && !IsBest()) { string b = BlockedNow(s); if(StringFind(b, "news") == 0) why = b; }   // Kevin best: news only blocks new orders
+         if(why == "" && !IsProt()) { string b = BlockedNow(s); if(StringFind(b, "news") == 0) why = b; }   // Kevin best: news only blocks new orders
          if(why != "" && OrderDelete(OrderTicket())) { gCancelled++; Print("Cancelled ", s, " limit: ", why); }
          continue;
         }
@@ -1701,7 +1718,7 @@ void ManageOpen(int ticket, int k, int si)
      { double c = open - dir * 0.5 * R; if(dir * (c - newSl) > point) { newSl = c; why = "+1R reached -> risk cut to half (stop at -0.5R)"; } }
    double beTrig = EffBeTrig();
    double commPx = 0;                                                   // Kevin best: break-even also covers the commission
-   if(IsBest()) { double tvx = MarketInfo(s, MODE_TICKVALUE), tsx = MarketInfo(s, MODE_TICKSIZE); if(tvx > 0 && tsx > 0 && OrderLots() > 0) commPx = MathAbs(OrderCommission()) / (OrderLots() * tvx) * tsx; }
+   if(IsProt()) { double tvx = MarketInfo(s, MODE_TICKVALUE), tsx = MarketInfo(s, MODE_TICKSIZE); if(tvx > 0 && tsx > 0 && OrderLots() > 0) commPx = MathAbs(OrderCommission()) / (OrderLots() * tvx) * tsx; }
    if(gainR >= beTrig)
      { double c = open + dir * (spread + commPx); if(dir * (c - newSl) > point) { newSl = c; why = StringFormat("+%.0fR reached -> stop to break-even", beTrig); } }
    if(EffTrailZones())
@@ -2462,7 +2479,7 @@ void ProtectUpdate()
    datetime week = day - ((dow + 6) % 7) * 86400;                       // Monday 00:00 UTC
    if(day != gPDay) { gPDay = day; gPDayBal = AccountBalance(); gPDayStop = false; }
    if(week != gPWeek) { gPWeek = week; gPWeekBal = AccountBalance(); gPWeekStop = false; }
-   if(!IsBest()) return;                                                // other presets: start balances only (tester panel)
+   if(!IsProt()) return;                                                // other presets: start balances only (tester panel)
    double eq = AccountEquity();
    if(!gPDayStop && InpDailyLossPctBest > 0 && gPDayBal > 0 && (gPDayBal - eq) / gPDayBal * 100.0 >= InpDailyLossPctBest)
      { gPDayStop = true; Print(StringFormat("Kevin best: daily loss %.2f%% reached - no new orders, pendings cancelled for the rest of the UTC day", InpDailyLossPctBest)); }
@@ -2614,11 +2631,11 @@ string VizPanelText()
    double orisk = OpenRiskPct(), dayPl = 0;
    if(gPDayBal > 0) dayPl = (AccountEquity() - gPDayBal) / gPDayBal * 100.0;
    string cap = "";
-   if(IsBest()) cap = StringFormat(" (cap %.2f%%, risk/trade %.2f%%%s)", InpMaxOpenRiskPct, BestRiskPct(), gDDHalf ? ", halved: drawdown" : "");
+   if(IsProt()) cap = StringFormat(" (cap %.2f%%, risk/trade %.2f%%%s)", InpMaxOpenRiskPct, BestRiskPct(), gDDHalf ? ", halved: drawdown" : "");
    string out = StringFormat("Preset %s | open risk %.2f%%%s\n", PresetName(), orisk, cap);
    out += StringFormat("Today P/L %+.2f%% | loss streak %d | trades today %d\n", dayPl, st, td);
    string why = "";
-   if(IsBest())
+   if(IsProt())
      {
       if(gPWeekStop) why = "weekly loss limit";
       else if(gPDayStop) why = "daily loss limit";
@@ -2679,7 +2696,7 @@ int CollectTrades(BTrade &T[])
       if(rp > 0) t.R = t.dir * (t.cp - t.op) / rp;
       else
         {
-         double rm = gStartBal * (IsBest() ? InpBestRiskPct : InpRiskPct) / 100.0;                     // no stop known: money R at the planned risk
+         double rm = gStartBal * (IsProt() ? InpBestRiskPct : InpRiskPct) / 100.0;                     // no stop known: money R at the planned risk
          if(rm > 0) { t.R = t.net / rm; t.rsrc = "money"; } else { t.R = 0; t.hasR = false; t.rsrc = ""; }
         }
       t.outcome = MathAbs(t.net) < 0.01 ? 0 : (t.net > 0 ? 1 : -1);
@@ -2866,7 +2883,7 @@ void BacktestReport()
      for(int i = 0; i < OrdersHistoryTotal(); i++) if(OrderSelect(i, SELECT_BY_POS, MODE_HISTORY) && OurMagic(OrderMagicNumber()) && OrderType() <= OP_SELL && StringFind(OrderComment(), "from #") < 0) nFill++;
      for(int i = OrdersTotal() - 1; i >= 0; i--) if(OrderSelect(i, SELECT_BY_POS) && OurMagic(OrderMagicNumber()) && OrderType() <= OP_SELL) nFill++;
      Print(StringFormat("Orders placed %d, cancelled %d, filled %d (pending modified %d)", gPlaced, gCancelled, nFill, gModified)); }
-   if(IsBest()) Print(StringFormat("Capital protection: risk/trade %.2f%%, max open risk reached %.2f%% (limit %.2f%%) | days stopped: daily limit %d, weekly limit %d, loss streak %d",
+   if(IsProt()) Print(StringFormat("Capital protection: risk/trade %.2f%%, max open risk reached %.2f%% (limit %.2f%%) | days stopped: daily limit %d, weekly limit %d, loss streak %d",
                         InpBestRiskPct, gMaxOpenRisk, InpMaxOpenRiskPct, gDaysDaily, gDaysWeekly, gDaysStreak));
    if(nT == 0) Print("No closed bot trades in this test.");
    else
