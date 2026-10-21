@@ -1075,7 +1075,7 @@ string PlanGrade(int sc) { return sc >= 75 ? "A" : (sc >= 60 ? "B" : "C"); }
 bool GradeAllowed(string g)
   {
    if(IsAggr()) return g == "A" || g == "B" || g == "C";              // aggressive preset: every grade (C keeps half risk via InpHalfRiskC)
-   if(IsBest()) return g == "A";                                      // Kevin best: grade A only
+   if(IsBest()) return g == "A" || g == "B";                          // Kevin best: A, or B when it is an Arrival zone (checked in Scan)
    if(InpGrades == GR_ALL) return true;
    if(InpGrades == GR_A) return g == "A";
    if(InpGrades == GR_AB) return g == "A" || g == "B";
@@ -1181,9 +1181,8 @@ void Scan(string s, int k)
       else if(EffEntry() == ENTRY_SF && method == "CONF") method = "SF";
       if(reason == "" && IsBest())
         {
-         if(kTrend != dir || kBias != dir) reason = "best: bias (HTF trend and trendline bias must both agree)";
+         if(kTrend != dir || kBias == -dir) reason = "best: bias (HTF trend or trendline break against)";
          else if(z[i].tested) reason = "best: not fresh";
-         else if(!Arrival(s, etf, z, i)) reason = "best: not arrival";
          else if(KCross(s, dir, z[i].prox) < 0) reason = "best: tl cross";
         }
       if(reason == "" && InpRequireITF) { int it = HtfTrend(s, TF_I[k]); if(it == -dir) reason = "intermediate TF " + TfName(TF_I[k]) + " against"; }
@@ -1219,7 +1218,7 @@ void Scan(string s, int k)
       if(reason == "") { int tb; bool cr; z[i].trap = FindTrap(s, etf, dir, z[i].prox, z[i].dist, z[i].legBar - 1, z[i].legBar + z[i].baseN, tb, cr); z[i].trapBar = tb; z[i].crowded = cr; }
       if(reason == "" && InpRequireTrap && z[i].trap == 0) reason = "no liquidity trap";
       int ps = 0; string pg = "";
-      if(reason == "") { ps = PlanScore(s, etf, htf, trend, z, i, hz, hn, curve, method); if(Arrival(s, etf, z, i)) ps = MathMin(100, ps + 8); { int cx = KCross(s, dir, z[i].prox); ps = (int)MathMax(0, MathMin(100, ps + (cx > 0 ? 3 : (cx < 0 ? -5 : 0)))); } pg = PlanGrade(ps); if(!GradeAllowed(pg)) reason = StringFormat("grade %s (%d) filtered", pg, ps); }
+      if(reason == "") { ps = PlanScore(s, etf, htf, trend, z, i, hz, hn, curve, method); if(Arrival(s, etf, z, i)) ps = MathMin(100, ps + 8); { int cx = KCross(s, dir, z[i].prox); ps = (int)MathMax(0, MathMin(100, ps + (cx > 0 ? 3 : (cx < 0 ? -5 : 0)))); } pg = PlanGrade(ps); if(!GradeAllowed(pg)) reason = StringFormat("grade %s (%d) filtered", pg, ps); else if(IsBest() && pg == "B" && !Arrival(s, etf, z, i)) reason = "best: grade B without arrival"; }
       if(reason == "" && tp == 0) reason = "no opposing zone for target";
       if(reason == "" && rr < InpMinRR)
         {
