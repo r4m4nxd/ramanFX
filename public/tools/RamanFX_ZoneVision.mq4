@@ -20,7 +20,7 @@
 //| into a zone does not count as a touch. Removal needs a CLOSE.    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.96"
+#property version   "1.98"
 #property strict
 #property indicator_chart_window
 
@@ -840,8 +840,8 @@ string ZoneNotes(Zone &zs[], int i, string &verdict, string &shortWhy)
    if(z.baseN <= 3) Push(pl, IntegerToString(z.baseN) + " base candle" + (z.baseN > 1 ? "s" : "")); else if(z.baseN > 6) Push(mi, "long base (" + IntegerToString(z.baseN) + " candles)");
    if(z.legRatio >= 2.5) Push(pl, StringFormat("explosive move away %.1fx", z.legRatio)); else if(z.legRatio < 1.8) Push(mi, StringFormat("weak move away %.1fx", z.legRatio));
    if(z.leg2) Push(pl, "2nd explosive candle"); else Push(mi, "only one explosive candle");
-   if(z.arrival) Push(pl, "ARRIVAL zone: broke the trendline AND took out the previous high / low or a zone");
-   if(z.chain) Push(pl, "in the chain: " + z.qual); else Push(cr, "not in the chain (removed nothing)");
+   if(z.arrival) Push(pl, "ARRIVAL: broke the trendline + the previous high/low");
+   if(z.chain) Push(pl, "in the chain"); else Push(cr, "not in the chain (removed nothing)");
    if(z.gap < InpMinGap) Push(cr, "drawable only: no space under the stay-away candle"); else if(z.gap >= 0.25) Push(pl, StringFormat("clear space %.0f%%", z.gap * 100));
    if(z.tested) Push(cr, "already tested"); else Push(pl, "fresh");
    if(TooSmall(zs, i)) Push(cr, "too small vs other zones");
@@ -860,10 +860,33 @@ string ZoneNotes(Zone &zs[], int i, string &verdict, string &shortWhy)
    if(nc > 0) shortWhy = cr[0] + (nc > 1 ? ", " + cr[1] : "");
    else if(verdict == "STRONG") shortWhy = pl[0] + (np > 1 ? ", " + pl[1] : "");
    else shortWhy = (nm > 0 ? mi[0] : (np > 0 ? pl[0] : ""));
-   string t = verdict + "\n";
+   // the plan, the way the drills taught it: entry at the proximal, stop past the distal + buffer (x2 gold / oil),
+   // target just before the nearest fresh opposing zone
+   double spread = Ask - Bid, buf = InpStopBufferPts * Point * (MetalOrOil() ? InpMetalOilStop : 1.0), opp = 0;
+   for(int j = 0; j < ArraySize(zs); j++)
+     {
+      if(zs[j].dir == z.dir || zs[j].removed) continue;
+      if(z.dir > 0 && zs[j].prox > z.prox && (opp == 0 || zs[j].prox < opp)) opp = zs[j].prox;
+      if(z.dir < 0 && zs[j].prox < z.prox && (opp == 0 || zs[j].prox > opp)) opp = zs[j].prox;
+     }
+   double en = z.dir > 0 ? z.prox + spread : z.prox, sl = z.dir > 0 ? z.dist - buf : z.dist + buf + spread;
+   double tp = opp > 0 ? (z.dir > 0 ? opp - spread : opp + spread) : 0, rr = tp > 0 ? MathAbs(tp - en) / MathMax(MathAbs(en - sl), Point) : 0;
+   string grade = nc > 0 ? "C" : ((verdict == "STRONG" && (z.arrival || np >= 6) && rr >= 3) ? "A" : (rr >= InpMinRR && nm <= 2 ? "B" : "C"));
+   string why = nc > 0 ? cr[0] : (tp == 0 ? "no opposing zone for a target" : (rr < InpMinRR ? StringFormat("R:R 1:%.1f is below 1:%.1f", rr, InpMinRR) : ""));
+   string t = StringFormat("Grade %s | %s | Trade: %s\n", grade, verdict, why == "" ? "YES" : "NO - " + why);
+   if(tp > 0) t += StringFormat("Plan: %s %s  SL %s  TP %s  = 1:%.1f\n", z.dir > 0 ? "buy limit" : "sell limit", DoubleToString(en, Digits), DoubleToString(sl, Digits), DoubleToString(tp, Digits), rr);
+   if(z.gap >= InpMinGap) t += StringFormat("Clear space %.0f%%: price left fast, orders still waiting (want 25%%+, best 50%%+)\n", z.gap * 100);
    for(int k = 0; k < nc; k++) t += "x " + cr[k] + "\n";
-   for(int k = 0; k < nm; k++) t += "- " + mi[k] + "\n";
-   for(int k = 0; k < np; k++) t += "+ " + pl[k] + "\n";
+   for(int k = 0; k < MathMin(nm, 3); k++) t += "- " + mi[k] + "\n";
+   for(int k = 0, sh = 0; k < np && sh < 5; k++) { if(StringFind(pl[k], "clear space") == 0) continue; t += "+ " + pl[k] + "\n"; sh++; }
+   // what the drills showed you were missing, only the parts that apply here
+   string ls = "";
+   if(MetalOrOil()) ls += "wider stop on gold/oil (drill 10); ";
+   if(z.tested) ls += "tested = skip (drill 10); ";
+   if(Overextended(z.dir, z.prox)) ls += "overextended = wait (drill 9); ";
+   ls += "TP before the next zone, not past it (drills 2, 6, 7)";
+   t += "Drills: " + ls;
+   if(StringLen(t) > 900) t = StringSubstr(t, 0, 895) + "...";        // MT4 tooltips stop at about 1000 characters
    return t;
   }
 
@@ -901,7 +924,7 @@ void DrawZones(Zone &zs[], bool htf)
       ObjectCreate(0, id, OBJ_RECTANGLE, 0, t1, z.prox, t2, z.dist);
       ObjectSetInteger(0, id, OBJPROP_COLOR, fill); ObjectSetInteger(0, id, OBJPROP_BACK, true); ObjectSetInteger(0, id, OBJPROP_SELECTABLE, false);
       string state = z.removed ? "removed" : (z.tested ? "tested" : "fresh");
-      ObjectSetString(0, id, OBJPROP_TOOLTIP, htf ? TfName(tf) + " " + ZoneName(z) : ZoneName(z) + " - " + full);
+      ObjectSetString(0, id, OBJPROP_TOOLTIP, htf ? TfName(tf) + " " + ZoneName(z) : ZoneName(z) + "\n" + full);
       if(!htf)
         {
          HLine(id + "p", t1, t2, z.prox, line, STYLE_SOLID, z.arrival ? 2 : 1);

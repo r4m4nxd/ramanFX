@@ -766,13 +766,25 @@ zoneNotes(Zone z, float medZ) =>
         zMi.push("far: " + str.tostring(xa, "#.0") + " x " + htf + " ATR")
     verdict = zCr.size() > 0 ? "WEAK" : (zPl.size() >= 5 and zMi.size() <= 1) or isArr ? "STRONG" : "OK"
     shortWhy = zCr.size() > 0 ? zCr.get(0) + (zCr.size() > 1 ? ", " + zCr.get(1) : "") : verdict == "STRONG" ? zPl.get(0) + (zPl.size() > 1 ? ", " + zPl.get(1) : "") : zMi.size() > 0 ? zMi.get(0) : zPl.size() > 0 ? zPl.get(0) : ""
-    full = verdict
+    // the plan the drills taught: entry at the proximal, stop past the distal + buffer, target before the next zone
+    [psl, ptp, prr] = planFor(z)
+    [psc, pwhy] = scoreZone(z, psl)
+    pg = zCr.size() > 0 ? "C" : psc >= 75 ? "A" : psc >= 60 ? "B" : "C"
+    pno = zCr.size() > 0 ? zCr.get(0) : na(ptp) ? "no opposing zone for a target" : prr < minRR ? "R:R 1:" + str.tostring(prr, "#.0") + " below 1:" + str.tostring(minRR, "#.0") : ""
+    full = "Grade " + pg + " (" + str.tostring(psc) + ") | " + verdict + " | Trade: " + (pno == "" ? "YES" : "NO - " + pno)
+    if not na(ptp)
+        full += "\nPlan: " + (z.dir > 0 ? "buy limit " : "sell limit ") + str.tostring(z.prox, format.mintick) + "  SL " + str.tostring(psl, format.mintick) + "  TP " + str.tostring(ptp, format.mintick) + "  = 1:" + str.tostring(prr, "#.0")
+    if z.gap >= minGap
+        full += "\nClear space " + str.tostring(math.round(z.gap * 100)) + "%: price left fast, orders still waiting (want 25%+, best 50%+)"
+    lsn = (metalOil ? "wider stop on gold/oil (drill 10); " : "") + (z.tested ? "tested = skip (drill 10); " : "") + (overext(z.dir, z.prox) ? "overextended = wait (drill 9); " : "") + "TP before the next zone, not past it (drills 2, 6, 7)"
     for t in zCr
         full += "\n✘ " + t
     for t in zMi
         full += "\n– " + t
     for t in zPl
-        full += "\n✔ " + t
+        if not str.startswith(t, "clear space")
+            full += "\n✔ " + t
+    full += "\nDrills: " + lsn
     [verdict, shortWhy, full]
 
 gradeOf(int sc) => sc >= 75 ? "A" : sc >= 60 ? "B" : "C"
