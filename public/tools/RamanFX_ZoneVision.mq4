@@ -20,7 +20,7 @@
 //| into a zone does not count as a touch. Removal needs a CLOSE.    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.80"
+#property version   "1.90"
 #property strict
 #property indicator_chart_window
 
@@ -144,6 +144,7 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
    if(InpTLBias && gHBias != 0) gTrend = gHBias;                    // a broken HTF trendline sets the bias (the newest break wins)
    gTF = _Period;
    Trendlines(_Symbol, _Period);                                     // this chart: chain + channel use it; drawn only if InpShowTrendlines
+   DedupeTL();
    Qualify();
    if(InpShowHTF) { int h = HtfOf(_Period); if(h > 0) { Detect(_Symbol, h, HZ, false); DrawZones(HZ, true); } }   // HTF band first, underneath
    DrawZones(Z, false);
@@ -399,6 +400,56 @@ void AddTL(int d, int a, int b2, double p2, double sl, bool overall)
    int n = ArraySize(TL); ArrayResize(TL, n + 1); TL[n] = t;
   }
 
+// two drawn lines that sit on top of each other (an H1 and an H4 line on the same pivots, or a gold line on this
+// chart's own line): keep one - this chart's line first, else the higher timeframe - and delete the rest
+double TLPrice(string n, datetime t)
+  {
+   datetime t1 = (datetime)ObjectGetInteger(0, n, OBJPROP_TIME, 0), t2 = (datetime)ObjectGetInteger(0, n, OBJPROP_TIME, 1);
+   double p1 = ObjectGetDouble(0, n, OBJPROP_PRICE, 0), p2 = ObjectGetDouble(0, n, OBJPROP_PRICE, 1);
+   if(t2 == t1) return p1;
+   return p1 + (p2 - p1) * (double)(t - t1) / (double)(t2 - t1);
+  }
+int TLRank(string n)                                                   // this chart = top; HTF lines by timeframe
+  {
+   int h = StringFind(n, "tlH");
+   if(h < 0) return 1000000;
+   int u = StringFind(n, "_", h);
+   return (int)StringToInteger(StringSubstr(n, h + 3, u - h - 3));
+  }
+void DedupeTL()
+  {
+   string nm[]; int n = 0;
+   for(int o = ObjectsTotal(0, 0, OBJ_TREND) - 1; o >= 0; o--)
+     {
+      string x = ObjectName(0, o, 0, OBJ_TREND);
+      if(StringFind(x, PFX + "tl") != 0 || StringFind(x, PFX + "tlc") == 0) continue;
+      if(ObjectGetInteger(0, x, OBJPROP_STYLE) == STYLE_DOT && ObjectGetInteger(0, x, OBJPROP_COLOR) == InpMuted) continue;   // broken lines stay as history
+      ArrayResize(nm, n + 1); nm[n++] = x;
+     }
+   double tol = 0.3 * iATR(NULL, 0, 14, 1);
+   datetime ta = Time[0], tb = Time[MathMin(30, Bars - 1)];
+   for(int i = 0; i < n; i++)
+      for(int j = i + 1; j < n; j++)
+        {
+         if(ObjectFind(0, nm[i]) < 0 || ObjectFind(0, nm[j]) < 0) continue;
+         if(MathAbs(TLPrice(nm[i], ta) - TLPrice(nm[j], ta)) > tol || MathAbs(TLPrice(nm[i], tb) - TLPrice(nm[j], tb)) > tol) continue;
+         string del = TLRank(nm[i]) >= TLRank(nm[j]) ? nm[j] : nm[i];
+         ObjectDelete(0, del); ObjectDelete(0, del + "l");
+        }
+  }
+bool Confirmed(int a, int b2, double p2, double sl, int d)
+  {
+   double ext = d > 0 ? -DBL_MAX : DBL_MAX;
+   for(int j = a - 1; j > b2; j--) ext = d > 0 ? MathMax(ext, Hi(j)) : MathMin(ext, Lo(j));
+   if(ext == DBL_MAX || ext == -DBL_MAX) return false;
+   for(int j = b2 - 1; j >= 1; j--)
+     {
+      double lv = LineAt(p2, b2, sl, j);
+      if((d > 0 && Hi(j) < lv) || (d < 0 && Lo(j) > lv)) return false;     // broken before it was confirmed
+      if((d > 0 && Hi(j) > ext) || (d < 0 && Lo(j) < ext)) return true;
+     }
+   return false;
+  }
 // Kevin: a near-horizontal line is not a trendline (it is momentum). Needs a visible angle.
 bool TooFlat(int a, int b2, double p2, double sl)
   {
@@ -431,6 +482,9 @@ void Trendlines(string s, int tf)
          if(a < 0 && pb > 0 && (d > 0 ? pp < p2 : pp > p2)) { a = FitAnchor(pb, b2, p2, d, sl); if(TooFlat(a, b2, p2, sl)) a = -1; }
          if(a < 0 && lastA > b2 && (d > 0 ? Lo(lastA) < p2 : Hi(lastA) > p2)) { a = FitAnchor(lastA, b2, p2, d, sl); if(TooFlat(a, b2, p2, sl)) a = -1; }
          if(a < 0) continue;
+         // confirmed only when price makes a new high above everything between the two valleys (new low below
+         // everything between the two peaks) BEFORE a full candle breaks the line; otherwise it is no trendline yet
+         if(!Confirmed(a, b2, p2, sl, d)) continue;
          // the same anchor as the previous line = the same trendline, updated (Kevin: never two lines from one anchor)
          int n = ArraySize(TL);
          if(n > 0 && TL[n - 1].dir == d && TL[n - 1].a == a) ArrayResize(TL, n - 1);
@@ -452,18 +506,23 @@ void Trendlines(string s, int tf)
          double sl = 0; int a = FitAnchor(O, pvBar[bk], pvP[bk], d, sl);
          bool dup = false;
          for(int t = 0; t < ArraySize(TL); t++) if(TL[t].dir == d && (TL[t].a == a || TL[t].b == pvBar[bk])) dup = true;
-         if(!dup && !TooFlat(a, pvBar[bk], pvP[bk], sl)) { AddTL(d, a, pvBar[bk], pvP[bk], sl, true); if(TL[ArraySize(TL) - 1].removed) ArrayResize(TL, ArraySize(TL) - 1); }
+         if(!dup && !TooFlat(a, pvBar[bk], pvP[bk], sl) && Confirmed(a, pvBar[bk], pvP[bk], sl, d)) { AddTL(d, a, pvBar[bk], pvP[bk], sl, true); if(TL[ArraySize(TL) - 1].removed) ArrayResize(TL, ArraySize(TL) - 1); }
         }
      }
-   // draw the newest InpTLHistory lines each way; respected ones bold, broken ones thin and ended where the full candle closed beyond
+   // draw per direction: the newest line (a refined line replaces the older ones - only one at a time), the overall line
+   // when still respected, and older broken lines only from an earlier, separate leg (no overlapping clutter)
    for(int d = -1; d <= 1; d += 2)
      {
-      int shown = 0, use = -1;
+      int newest = -1, use = -1;
+      for(int i = 0; i < ArraySize(TL); i++) if(TL[i].dir == d && TL[i].conf && (newest < 0 || TL[i].b < TL[newest].b)) newest = i;
+      if(newest >= 0 && !TL[newest].removed) use = newest;
+      if(use < 0) for(int i = 0; i < ArraySize(TL); i++) if(TL[i].dir == d && !TL[i].conf && !TL[i].removed) use = i;
+      int shown = 0;
       for(int i = ArraySize(TL) - 1; i >= 0; i--)
         {
          if(TL[i].dir != d) continue;
-         if(!TL[i].removed && use < 0) use = i;
-         if(shown >= InpTLHistory) continue;
+         bool keep = i == newest || (!TL[i].conf && !TL[i].removed) || (TL[i].removed && newest >= 0 && TL[i].b > TL[newest].a);
+         if(!keep || shown >= InpTLHistory) continue;
          if(gTF != _Period && TL[i].removed) continue;                // higher timeframes: only the lines still respected
          shown++;
          bool up = d > 0;

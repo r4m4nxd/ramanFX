@@ -22,7 +22,7 @@
 //|   2026.10.17 12:30,USD   (UTC time, currency)                    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.20"
+#property version   "1.30"
 #property strict
 
 enum BotMode   { MODE_SCANNER = 0, MODE_APPROVE = 1, MODE_AUTO = 2 };
@@ -550,6 +550,21 @@ bool KFlat(string s, int tf, int a, int b2, double p2, double sl, int d)
    double atr = MathMax(iATR(s, tf, 14, b2), MarketInfo(s, MODE_POINT));
    return MathAbs(sl) < 0.015 * atr || MathAbs(sl * (a - b2)) < 1.5 * atr;
   }
+// confirmed only when price makes a new high above everything between the two valleys (new low below everything
+// between the two peaks) before a full candle breaks the line
+bool KConf(string s, int tf, int a, int b2, double p2, double sl, int d)
+  {
+   double ext = d > 0 ? -DBL_MAX : DBL_MAX;
+   for(int j = a - 1; j > b2; j--) ext = d > 0 ? MathMax(ext, iHigh(s, tf, j)) : MathMin(ext, iLow(s, tf, j));
+   if(ext == DBL_MAX || ext == -DBL_MAX) return false;
+   for(int j = b2 - 1; j >= 1; j--)
+     {
+      double lv = p2 + sl * (b2 - j);
+      if((d > 0 && iHigh(s, tf, j) < lv) || (d < 0 && iLow(s, tf, j) > lv)) return false;
+      if((d > 0 && iHigh(s, tf, j) > ext) || (d < 0 && iLow(s, tf, j) < ext)) return true;
+     }
+   return false;
+  }
 void KAdd(string s, int tf, KLine &out[], int d, int a, int b2, double p2, double sl, bool ov)
   {
    KLine t; t.dir = d; t.a = a; t.b = b2; t.pb = p2; t.sl = sl; t.removed = false; t.conf = true; t.ov = ov; t.tRem = 0;
@@ -579,6 +594,7 @@ int KLines(string s, int tf, KLine &out[])
          if(a < 0 && pb > 0 && (d > 0 ? pp < p2 : pp > p2)) { a = KFit(s, tf, pb, b2, p2, d, sl); if(KFlat(s, tf, a, b2, p2, sl, d)) a = -1; }
          if(a < 0 && lastA > b2 && (d > 0 ? iLow(s, tf, lastA) < p2 : iHigh(s, tf, lastA) > p2)) { a = KFit(s, tf, lastA, b2, p2, d, sl); if(KFlat(s, tf, a, b2, p2, sl, d)) a = -1; }
          if(a < 0) continue;
+         if(!KConf(s, tf, a, b2, p2, sl, d)) continue;                    // no new high / low beyond the swing between the pivots yet
          int n = ArraySize(out);
          if(n > 0 && out[n - 1].dir == d && out[n - 1].a == a) ArrayResize(out, n - 1);   // same anchor = the same line, updated
          KAdd(s, tf, out, d, a, b2, p2, sl, false);
@@ -594,7 +610,7 @@ int KLines(string s, int tf, KLine &out[])
          if((d > 0 && s0 <= 0) || (d < 0 && s0 >= 0)) continue;
          if(bk < 0 || (d > 0 ? s0 < bs : s0 > bs)) { bk = k; bs = s0; }
         }
-      if(bk >= 0) { int a = KFit(s, tf, O, pzB[bk], pzP[bk], d, sl); if(!KFlat(s, tf, a, pzB[bk], pzP[bk], sl, d)) KAdd(s, tf, out, d, a, pzB[bk], pzP[bk], sl, true); }
+      if(bk >= 0) { int a = KFit(s, tf, O, pzB[bk], pzP[bk], d, sl); if(!KFlat(s, tf, a, pzB[bk], pzP[bk], sl, d) && KConf(s, tf, a, pzB[bk], pzP[bk], sl, d)) KAdd(s, tf, out, d, a, pzB[bk], pzP[bk], sl, true); }
      }
    return ArraySize(out);
   }

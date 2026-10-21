@@ -415,6 +415,23 @@ kLine(int d, int N, int Lmax) =>
                         if math.abs(sl) >= 0.015 * a14[b2] and math.abs(sl * (a - b2)) >= 1.5 * a14[b2]
                             fa := a
                             fsl := sl
+                    // confirmed only after a new high / low beyond the swing between the pivots, before the line breaks
+                    if not na(fa) and fa - 1 >= b2 + 1 and b2 - 1 >= 1
+                        float ext = na
+                        for o8 = fa - 1 to b2 + 1
+                            ext := na(ext) ? (d > 0 ? high[o8] : low[o8]) : (d > 0 ? math.max(ext, high[o8]) : math.min(ext, low[o8]))
+                        bool cfm = false
+                        for o9 = b2 - 1 to 1
+                            lv = p2 + fsl * (b2 - o9)
+                            if d > 0 ? high[o9] < lv : low[o9] > lv
+                                break
+                            if d > 0 ? high[o9] > ext : low[o9] < ext
+                                cfm := true
+                                break
+                        if not cfm
+                            fa := na
+                    else
+                        fa := na
                     if not na(fa)
                         if pass == 0
                             lastA := fa
@@ -695,6 +712,16 @@ if barstate.islast
     tlRemDir.clear()
     tlRemBar.clear()
     string tlNote = ""
+    // respected lines drawn on this chart (for removing gold duplicates): anchor time / price, slope per bar, pivot bar / price
+    drT1 = array.new<float>()
+    drP1 = array.new<float>()
+    drS = array.new<float>()
+    drB = array.new<int>()
+    drP2 = array.new<float>()
+    gT1 = array.new<float>()
+    gP1 = array.new<float>()
+    gT2 = array.new<float>()
+    gP2 = array.new<float>()
     for kd = 0 to 1
         d = kd == 0 ? 1 : -1
         want = d > 0 ? -1 : 1
@@ -787,7 +814,21 @@ if barstate.islast
                         if math.abs(sl) >= 0.015 * atrB and math.abs(sl * (b2 - a)) >= 1.5 * atrB
                             fa := a
                             fsl := sl
-                    if not na(fa)
+                    // confirmed only when price makes a new high above everything between the two valleys (new low
+                    // below everything between the two peaks) before a full candle breaks the line
+                    bool cfm = false
+                    if not na(fa) and b2 - 1 >= fa + 1 and bar_index - 1 >= b2 + 1
+                        float ext = na
+                        for x = fa + 1 to b2 - 1
+                            ext := na(ext) ? (d > 0 ? high[bar_index - x] : low[bar_index - x]) : (d > 0 ? math.max(ext, high[bar_index - x]) : math.min(ext, low[bar_index - x]))
+                        for x = b2 + 1 to bar_index - 1
+                            lv = p2 + fsl * (x - b2)
+                            if d > 0 ? high[bar_index - x] < lv : low[bar_index - x] > lv
+                                break
+                            if d > 0 ? high[bar_index - x] > ext : low[bar_index - x] < ext
+                                cfm := true
+                                break
+                    if not na(fa) and cfm
                         int rem = -1
                         if bar_index - 1 >= b2 + 1
                             for x = b2 + 1 to bar_index - 1
@@ -808,14 +849,25 @@ if barstate.islast
                         if pass == 0 and cA.size() > 0 and cA.get(cA.size() - 1) == fa
                             cA.pop(), cB.pop(), cP.pop(), cS.pop(), cR.pop()
                         cA.push(fa), cB.push(b2), cP.push(p2), cS.push(fsl), cR.push(rem)
-        // draw the newest tlHist lines: respected ones bold, broken ones thin and ended where they broke
+        // draw: the newest line (a refined line replaces the older ones), the overall line while respected, and older
+        // broken lines only from an earlier, separate leg - no overlapping clutter
         int use = -1
-        shown = 0
+        int nw = -1
         if cA.size() > 0
+            // the newest leg line is the one with the latest second pivot
+            for q = 0 to cA.size() - 1
+                if nw < 0 or cB.get(q) > cB.get(nw)
+                    nw := q
+            if cR.get(nw) < 0
+                use := nw
+            else
+                for q = 0 to cA.size() - 1
+                    if cR.get(q) < 0
+                        use := q
+            shown = 0
             for q = cA.size() - 1 to 0
-                if cR.get(q) < 0 and use < 0
-                    use := q
-                if shown < tlHist and showTL and (d > 0 ? showUpTL : showDnTL)
+                keep = q == nw or cR.get(q) < 0 or (cR.get(q) >= 0 and cB.get(q) < cA.get(nw))
+                if keep and shown < tlHist and showTL and (d > 0 ? showUpTL : showDnTL)
                     shown += 1
                     la = cA.get(q)
                     lb2 = cB.get(q)
@@ -823,6 +875,8 @@ if barstate.islast
                     ls = cS.get(q)
                     x2 = cR.get(q) >= 0 ? cR.get(q) : bar_index + 3
                     lines.push(line.new(la, lp2 + ls * (la - lb2), x2, lp2 + ls * (x2 - lb2), color=cR.get(q) >= 0 ? color.new(cTL, 60) : cTL, style=cR.get(q) >= 0 ? line.style_dotted : line.style_solid, width=1))
+                    if cR.get(q) < 0
+                        drT1.push(time[bar_index - la]), drP1.push(lp2 + ls * (la - lb2)), drS.push(ls), drB.push(lb2), drP2.push(lp2)
         // channel 50% from the newest respected line: drives the overextended check; the helper line only if asked
         if use >= 0
             la = cA.get(use)
@@ -850,13 +904,30 @@ if barstate.islast
             tlNote := tlNote + (tlNote == "" ? "" : " | ") + (d > 0 ? "Up trendline: " : "Down trendline: ") + (overext(d, close) ? "price beyond the channel 50% = OVEREXTENDED, wait" : "price in the golden area")
         // higher-timeframe lines on this chart (ITF, HTF and the one above): thin dotted gold, respected lines only
         if showTL and showHtfTL and (d > 0 ? showUpTL : showDnTL)
-            for lvl = 0 to 2
+            for lvl = 2 to 0
                 tfN = lvl == 0 ? tfL1 : lvl == 1 ? htf : tfL3
                 ht1 = lvl == 0 ? (d > 0 ? a1u1 : a1d1) : lvl == 1 ? (d > 0 ? hu1 : hd1) : (d > 0 ? a3u1 : a3d1)
                 hp1 = lvl == 0 ? (d > 0 ? a1up1 : a1dp1) : lvl == 1 ? (d > 0 ? hup1 : hdp1) : (d > 0 ? a3up1 : a3dp1)
                 ht2 = lvl == 0 ? (d > 0 ? a1u2 : a1d2) : lvl == 1 ? (d > 0 ? hu2 : hd2) : (d > 0 ? a3u2 : a3d2)
                 hp2 = lvl == 0 ? (d > 0 ? a1up2 : a1dp2) : lvl == 1 ? (d > 0 ? hup2 : hdp2) : (d > 0 ? a3up2 : a3dp2)
-                if tfN != "" and tfN != timeframe.period and not na(ht1) and not (lvl == 1 and htf == tfL1)
+                // skip a gold line that sits on this chart's own line or on a gold line already drawn (keep one)
+                bool same = false
+                if not na(ht1)
+                    tb = time[30]
+                    va = hLineAt(ht1, hp1, ht2, hp2, time)
+                    vb = hLineAt(ht1, hp1, ht2, hp2, tb)
+                    if drB.size() > 0
+                        for q3 = 0 to drB.size() - 1
+                            ca = drP2.get(q3) + drS.get(q3) * (bar_index - drB.get(q3))
+                            cb = drP2.get(q3) + drS.get(q3) * (bar_index - 30 - drB.get(q3))
+                            if math.abs(ca - va) < 0.3 * atr and math.abs(cb - vb) < 0.3 * atr
+                                same := true
+                    if gT1.size() > 0
+                        for q3 = 0 to gT1.size() - 1
+                            if math.abs(hLineAt(gT1.get(q3), gP1.get(q3), gT2.get(q3), gP2.get(q3), time) - va) < 0.3 * atr and math.abs(hLineAt(gT1.get(q3), gP1.get(q3), gT2.get(q3), gP2.get(q3), tb) - vb) < 0.3 * atr
+                                same := true
+                if tfN != "" and tfN != timeframe.period and not na(ht1) and not (lvl == 1 and htf == tfL1) and not same
+                    gT1.push(ht1), gP1.push(hp1), gT2.push(ht2), gP2.push(hp2)
                     tEnd = time + 5 * timeframe.in_seconds() * 1000
                     lines.push(line.new(int(ht1), hp1, int(tEnd), hLineAt(ht1, hp1, ht2, hp2, tEnd), xloc=xloc.bar_time, color=cHtfTL, style=line.style_dotted, width=1))
                     tagP.push(hLineAt(ht1, hp1, ht2, hp2, time)), tagT.push(tfN + " trendline"), tagC.push(cHtfTL), tagTip.push(tfN + (d > 0 ? " uptrend line (a higher high followed its valley)" : " downtrend line (a lower low followed its peak)") + ". Zones near it are stronger.")
