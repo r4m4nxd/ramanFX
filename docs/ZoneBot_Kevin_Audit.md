@@ -143,6 +143,15 @@ Checked with no bug found:
 - Tester UTC (`NowUTC`, `ToUTC`, `DayOf` use `InpTesterGMT`).
 - The scan gate order in `Scan` (the one-order-per-zone check sits after the price / protection gates, and "already traded" still updates the pending).
 
+## 10. v1.62: Breakout and Impulse presets (A/B tests against Zones 3R)
+
+Added in v1.62. Line numbers refer to v1.62. **CL** = `src/core/course.ts`.
+
+| # | Rule | Source | Bot behaviour (function : line) | Verdict | Notes |
+|---|---|---|---|---|---|
+| 68 | Breakout method: price contacts the HTF zone; on the ETF an opposing zone must be removed; if a zone in your direction (a proper basing structure) forms below it, place a buy stop just beyond the opposing zone's distal, stop safely beyond your zone; no basing structure = no trade. Breakout = higher win rate, smaller R:R (~1.5R vs ~10R for the pullback to the same target) | VL:1944-1952, VL:2076, VL:2106, VL:2125, VL:2144, CL:241-246, CO:42 | `PRESET_BREAKOUT` (4): `ScanBreakout`:1481. HTF zone contact within `InpConfTouchBars` (`InpBoNeedHTF`), basing zone = a zone ZoneVision draws, formed after the contact and within one HTF zone height of it; OP_BUYSTOP / OP_SELLSTOP `InpBoBuffer` x opposing zone height beyond its distal; stop `InpBoStopBuf` x basing height + spread beyond the basing distal; target = nearer of the next opposing ETF zone beyond the broken one and the opposing HTF zone, else `InpBoRRCap` x risk; skip below `InpBoMinRR`. Cancelled (`ManageOrders`:2204, `KevinPendings`:1790) when the basing zone is removed, the target is reached unfilled, the ETF trendline / nearer zone is lost without ITF / HTF support, news / Friday / loss limits; no time rule. One order per basing zone (`ZoneOrder`:2945 keys on it), capital protection, hedge, BE at `InpBoBE` R | MATCH | CO:42 words it as "stop order just beyond the new zone after the opposing zone is removed"; the bot follows CL:241-246 / VL:1945 (order beyond the opposing zone, fills on the break). Kevin gives no fixed target or BE rule for it: target and BE are the user's choice |
+| 69 | Impulse market entry: impulse candle (body >= 1.5 x ATR, close in the outer 25%) that breaks structure (previous swing high / low, or an opposing zone removed) -> market order, big stop beyond the candle / base extreme, BE at 1R, half closed at every 2R with the stop locked 1R behind, optional fixed 3R target | The user's own method | `PRESET_IMPULSE` (5): `ScanImpulse`:1594, `ImpTaken`:1586 (one trade per impulse candle), ladder in `ManageOpen`:2331, remainder state `StCarry`:2133, partial parts merged into one trade in `CollectTrades`:3502 | n/a (not Kevin's) | Kevin advises against market orders (strategy.ts flags them) and enters with limits at zones; this preset exists only to A/B test the user's idea |
+
 ## Counts (v1.60, rules 1-67)
 
 | Verdict | Count |
@@ -158,4 +167,4 @@ The bugs (B1-B8) are listed separately; B6 and B8 are also rows 44 and 67.
 - **Not fixed: discretionary:** 17, 62.
 - **Not fixed: user override / user decision:** 50, 64, 66; 57 (safety).
 
-No inputs were added or removed in v1.61, so `RamanFX_ZoneBot_Zones3R.set` and `RamanFX_ZoneBot_KevinBest.set` (97 inputs each) stay valid as they are.
+No inputs were added or removed in v1.61. v1.62 adds 16 inputs (Breakout + Impulse groups), so all four .set files (`KevinBest`, `Zones3R`, `Breakout`, `Impulse`; 113 inputs each) were regenerated.
