@@ -288,24 +288,50 @@ var float dnP = na
 var float dnS = na
 var float dnW = na
 var int dnB = na
-// Kevin's line on the series of the calling context (used for the HTF through request.security), last bar only.
-// Real valley = swing low followed by a higher high before it breaks; real peak = swing high followed by a lower low.
-// Newest respected line (previous real pivot -> newest, or lowest/highest point if too flat), else the overall line
-// from the very bottom/top. Returns [anchor time, anchor price, pivot time, pivot price, channel width] (na = none).
-kLine(int d, int N, int Lmax) =>
+// Kevin's lines on the series of the calling context (the higher timeframes, through request.security), last bar only.
+// Same rules as MT4 Trendlines() and as this chart's lines further down:
+//  real valley = swing low (N bars each side) followed by a higher high above the last swing high before it breaks;
+//  real peak = swing high followed by a lower low the same way. Every real pivot gets a candidate line; its anchor
+//  tries 1) the extreme of the window before the pivot, 2) the previous real pivot, 3) the previous line's anchor -
+//  the first that cuts no candle (anchor moves to the cutting candle, 0.05 ATR slack), is not flat (>= 0.015 ATR per bar
+//  and >= 1.5 ATR in all) and is confirmed (a new high / low beyond everything between the pivots before a full candle
+//  breaks it). The same anchor as the previous line = the same line, updated. Plus the overall line from the window's
+//  very bottom / top while it is respected.
+// Drawn (newest first, at most min(H, 3)): the newest line, the overall line while respected, older broken lines only
+// from an earlier separate leg (their pivot older than the newest line's anchor).
+// Returns [channel line: anchor time, anchor price, pivot time, pivot price, channel width,
+//          then 3 x (anchor time, anchor price, pivot time, pivot price, end time, end price, broken 1 / 0)] (na = none).
+kLine(int d, int N, int Lmax, int H, int durMs) =>
     a14 = ta.atr(14)
     float rt1 = na
     float rp1 = na
     float rt2 = na
     float rp2 = na
     float rw = na
-    float bt1 = na
-    float bp1 = na
-    float bte = na
-    float bpe = na
-    L = math.min(Lmax, bar_index - 2 * N - 20)
+    float l0t1 = na
+    float l0p1 = na
+    float l0t2 = na
+    float l0p2 = na
+    float l0te = na
+    float l0pe = na
+    float l0bk = na
+    float l1t1 = na
+    float l1p1 = na
+    float l1t2 = na
+    float l1p2 = na
+    float l1te = na
+    float l1pe = na
+    float l1bk = na
+    float l2t1 = na
+    float l2p1 = na
+    float l2t2 = na
+    float l2p2 = na
+    float l2te = na
+    float l2pe = na
+    float l2bk = na
+    L = math.min(Lmax, bar_index - 2 * N - 20, 1990 - N)
     if barstate.islast and L > 30
-        tol = 0.05 * a14
+        tol = 0.05 * a14[1]
         rB = array.new<int>()
         rP = array.new<float>()
         int fH = na
@@ -336,22 +362,17 @@ kLine(int d, int N, int Lmax) =>
                 fL := off
             if isHi
                 fH := off
-        // candidate lines (offsets: bigger = older); value at offset o = p2 + sl * (b2 - o)
-        int bestA = na
-        int bestB = na
-        float bestP = na
-        float bestS = na
+        // candidate lines (offsets: bigger = older); value at offset o = p2 + sl * (b2 - o); cR = break offset or -1;
+        // cC = false for the overall line
+        cA = array.new<int>()
+        cB = array.new<int>()
+        cP = array.new<float>()
+        cS = array.new<float>()
+        cR = array.new<int>()
+        cC = array.new<bool>()
         int prevB = na
         float prevP = na
-        int lastA = na
-        int nwA = na
-        int nwB = na
-        float nwP = na
-        float nwS = na
-        int nwR = na
         for pass = 0 to 1
-            if pass == 1 and not na(bestA)
-                break
             n = pass == 0 ? rB.size() : 1
             if n > 0
                 for k = 0 to n - 1
@@ -365,14 +386,18 @@ kLine(int d, int N, int Lmax) =>
                         p2 := rP.get(k)
                         if not na(prevB) and (d > 0 ? prevP < p2 : prevP > p2)
                             A1 := prevB
-                        if not na(lastA) and lastA > b2 and (d > 0 ? low[lastA] < p2 : high[lastA] > p2)
-                            A3 := lastA
+                        // the previous line's anchor (MT4 lastA)
+                        if cA.size() > 0
+                            la0 = cA.get(cA.size() - 1)
+                            if la0 > b2 and (d > 0 ? low[la0] < p2 : high[la0] > p2)
+                                A3 := la0
                         float ex = na
-                        for o3 = b2 + 1 to L
-                            v = d > 0 ? low[o3] : high[o3]
-                            if na(ex) or (d > 0 ? v < ex : v > ex)
-                                ex := v
-                                A2 := o3
+                        if b2 + 1 <= L
+                            for o3 = b2 + 1 to L
+                                v = d > 0 ? low[o3] : high[o3]
+                                if na(ex) or (d > 0 ? v < ex : v > ex)
+                                    ex := v
+                                    A2 := o3
                         if not na(ex) and (d > 0 ? ex >= p2 : ex <= p2)
                             A2 := na
                         prevB := b2
@@ -397,8 +422,7 @@ kLine(int d, int N, int Lmax) =>
                                         p2 := rP.get(k2)
                         if na(b2)
                             A2 := na
-                    // previous real pivot, then the original starting point of the current line, then the extreme;
-                    // the first one with a real angle wins (near-flat = momentum, not a trendline)
+                    // 1) window extreme, 2) previous real pivot, 3) previous line's anchor: the first with a real angle wins
                     int fa = na
                     float fsl = na
                     for tryI = 0 to 2
@@ -425,7 +449,7 @@ kLine(int d, int N, int Lmax) =>
                         if math.abs(sl) >= 0.015 * a14[b2] and math.abs(sl * (a - b2)) >= 1.5 * a14[b2]
                             fa := a
                             fsl := sl
-                    // confirmed only after a new high / low beyond the swing between the pivots, before the line breaks
+                    // confirmed only after a new high / low beyond everything between the pivots, before the line breaks
                     if not na(fa) and fa - 1 >= b2 + 1 and b2 - 1 >= 1
                         float ext = na
                         for o8 = fa - 1 to b2 + 1
@@ -443,75 +467,153 @@ kLine(int d, int N, int Lmax) =>
                     else
                         fa := na
                     if not na(fa)
-                        if pass == 0
-                            lastA := fa
-                        bool rem = false
-                        int remO = na
-                        if b2 - 1 >= 1
-                            for o6 = b2 - 1 to 1
-                                lv = p2 + fsl * (b2 - o6)
-                                if d > 0 ? high[o6] < lv : low[o6] > lv
-                                    rem := true
-                                    remO := o6
-                                    break
-                        if pass == 0 and (na(nwB) or b2 < nwB)
-                            nwA := fa
-                            nwB := b2
-                            nwP := p2
-                            nwS := fsl
-                            nwR := remO
-                        if not rem
-                            bestA := fa
-                            bestB := b2
-                            bestP := p2
-                            bestS := fsl
-        if not na(bestA)
-            float w = 0.0
-            for o7 = bestA to 0
-                lv = bestP + bestS * (bestB - o7)
-                w := math.max(w, d > 0 ? high[o7] - lv : lv - low[o7])
-            rt1 := time[bestA]
-            rp1 := bestP + bestS * (bestB - bestA)
-            rt2 := time[bestB]
-            rp2 := bestP
-            rw := w
-        // the newest line when it is already broken: drawn lighter, ending where it broke
-        if not na(nwB) and not na(nwR)
-            bt1 := time[nwA]
-            bp1 := nwP + nwS * (nwB - nwA)
-            bte := time[nwR]
-            bpe := nwP + nwS * (nwB - nwR)
-    [rt1, rp1, rt2, rp2, rw, bt1, bp1, bte, bpe]
+                        int rem = -1
+                        for o6 = b2 - 1 to 1
+                            lv = p2 + fsl * (b2 - o6)
+                            if d > 0 ? high[o6] < lv : low[o6] > lv
+                                rem := o6
+                                break
+                        // the overall line: not when it repeats a line's anchor or pivot, and only while respected
+                        bool dup = false
+                        if pass == 1 and cA.size() > 0
+                            for q2 = 0 to cA.size() - 1
+                                if cA.get(q2) == fa or cB.get(q2) == b2
+                                    dup := true
+                        if not (pass == 1 and (dup or rem >= 0))
+                            // the same anchor as the previous line = the same trendline, updated (never two lines from one anchor)
+                            if pass == 0 and cA.size() > 0 and cA.get(cA.size() - 1) == fa
+                                cA.pop(), cB.pop(), cP.pop(), cS.pop(), cR.pop(), cC.pop()
+                            cA.push(fa), cB.push(b2), cP.push(p2), cS.push(fsl), cR.push(rem), cC.push(pass == 0)
+        if cA.size() > 0
+            // the newest line = the latest second pivot (overall line excluded)
+            int nw = -1
+            for q = 0 to cA.size() - 1
+                if cC.get(q) and (nw < 0 or cB.get(q) < cB.get(nw))
+                    nw := q
+            int nwA = -1
+            if nw >= 0
+                nwA := cA.get(nw)
+            // channel / trade checks: the newest line while respected, else the overall line while respected
+            int use = -1
+            if nw >= 0 and cR.get(nw) < 0
+                use := nw
+            if use < 0
+                for q = 0 to cA.size() - 1
+                    if not cC.get(q) and cR.get(q) < 0
+                        use := q
+            if use >= 0
+                ua = cA.get(use)
+                ub = cB.get(use)
+                up2 = cP.get(use)
+                us = cS.get(use)
+                float w = 0.0
+                for o7 = ua to 1
+                    lv = up2 + us * (ub - o7)
+                    w := math.max(w, d > 0 ? high[o7] - lv : lv - low[o7])
+                rt1 := time[ua]
+                rp1 := up2 + us * (ub - ua)
+                rt2 := time[ub]
+                rp2 := up2
+                rw := w
+            int shown = 0
+            for q = cA.size() - 1 to 0
+                keep = q == nw or (not cC.get(q) and cR.get(q) < 0) or (cR.get(q) >= 0 and nw >= 0 and cB.get(q) > nwA)
+                if keep and shown < math.min(H, 3)
+                    qa = cA.get(q)
+                    qb = cB.get(q)
+                    qp = cP.get(q)
+                    qs = cS.get(q)
+                    qr = cR.get(q)
+                    float vt1 = time[qa]
+                    float vp1 = qp + qs * (qb - qa)
+                    float vt2 = time[qb]
+                    float vp2 = qp
+                    float vte = qr >= 0 ? time[qr] : time + 3 * durMs
+                    float vpe = qr >= 0 ? qp + qs * (qb - qr) : qp + qs * (qb + 3)
+                    float vbk = qr >= 0 ? 1.0 : 0.0
+                    if shown == 0
+                        l0t1 := vt1
+                        l0p1 := vp1
+                        l0t2 := vt2
+                        l0p2 := vp2
+                        l0te := vte
+                        l0pe := vpe
+                        l0bk := vbk
+                    else if shown == 1
+                        l1t1 := vt1
+                        l1p1 := vp1
+                        l1t2 := vt2
+                        l1p2 := vp2
+                        l1te := vte
+                        l1pe := vpe
+                        l1bk := vbk
+                    else
+                        l2t1 := vt1
+                        l2p1 := vp1
+                        l2t2 := vt2
+                        l2p2 := vp2
+                        l2te := vte
+                        l2pe := vpe
+                        l2bk := vbk
+                    shown += 1
+    [rt1, rp1, rt2, rp2, rw, l0t1, l0p1, l0t2, l0p2, l0te, l0pe, l0bk, l1t1, l1p1, l1t2, l1p2, l1te, l1pe, l1bk, l2t1, l2p1, l2t2, l2p2, l2te, l2pe, l2bk]
 
-[hu1, hup1, hu2, hup2, huw, hub1, hubp1, hube, hubpe] = request.security(syminfo.tickerid, htf, kLine(1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
-[hd1, hdp1, hd2, hdp2, hdw, hdb1, hdbp1, hdbe, hdbpe] = request.security(syminfo.tickerid, htf, kLine(-1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
-// the timeframes above this chart for multi-timeframe trendlines: 15m -> 1H, 4H, D (level 2 = the HTF pair above)
+// the timeframes above this chart for multi-timeframe trendlines (MT4 StepUp / InpHTFLevels = 4): 15m -> 1H, 4H, D, W
 stepUp(int n) =>
     s0 = timeframe.in_seconds()
     i = (s0 <= 60 ? 0 : s0 <= 300 ? 1 : s0 <= 1800 ? 2 : s0 <= 3600 ? 3 : s0 <= 14400 ? 4 : s0 <= 86400 ? 5 : s0 <= 604800 ? 6 : 7) + n
     i == 1 ? "5" : i == 2 ? "15" : i == 3 ? "60" : i == 4 ? "240" : i == 5 ? "D" : i == 6 ? "W" : i == 7 ? "M" : ""
 tfL1 = stepUp(1)
+tfL2 = stepUp(2)
 tfL3 = stepUp(3)
-[a1u1, a1up1, a1u2, a1up2, a1uw, a1ub1, a1ubp1, a1ube, a1ubpe] = request.security(syminfo.tickerid, tfL1 == "" ? timeframe.period : tfL1, kLine(1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
-[a1d1, a1dp1, a1d2, a1dp2, a1dw, a1db1, a1dbp1, a1dbe, a1dbpe] = request.security(syminfo.tickerid, tfL1 == "" ? timeframe.period : tfL1, kLine(-1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
-[a3u1, a3up1, a3u2, a3up2, a3uw, a3ub1, a3ubp1, a3ube, a3ubpe] = request.security(syminfo.tickerid, tfL3 == "" ? timeframe.period : tfL3, kLine(1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
-[a3d1, a3dp1, a3d2, a3dp2, a3dw, a3db1, a3dbp1, a3dbe, a3dbpe] = request.security(syminfo.tickerid, tfL3 == "" ? timeframe.period : tfL3, kLine(-1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
-// HTF line on this chart, refined the way you do it going down the timeframes:
+tfL4 = stepUp(4)
+// a level that is missing, not above this chart or the same as the HTF (requested anyway) gets length 0: no work, no lines
+tfR1 = tfL1 == "" ? timeframe.period : tfL1
+tfR2 = tfL2 == "" ? timeframe.period : tfL2
+tfR3 = tfL3 == "" ? timeframe.period : tfL3
+tfR4 = tfL4 == "" ? timeframe.period : tfL4
+kSec0 = timeframe.in_seconds(htf)
+kSec1 = timeframe.in_seconds(tfR1)
+kSec2 = timeframe.in_seconds(tfR2)
+kSec3 = timeframe.in_seconds(tfR3)
+kSec4 = timeframe.in_seconds(tfR4)
+kLen1 = tfL1 == "" or kSec1 <= tfs or kSec1 == kSec0 ? 0 : lookback
+kLen2 = tfL2 == "" or kSec2 <= tfs or kSec2 == kSec0 ? 0 : lookback
+kLen3 = tfL3 == "" or kSec3 <= tfs or kSec3 == kSec0 ? 0 : lookback
+kLen4 = tfL4 == "" or kSec4 <= tfs or kSec4 == kSec0 ? 0 : lookback
+[hu1, hup1, hu2, hup2, huw, k0u0t1, k0u0p1, k0u0t2, k0u0p2, k0u0te, k0u0pe, k0u0bk, k0u1t1, k0u1p1, k0u1t2, k0u1p2, k0u1te, k0u1pe, k0u1bk, k0u2t1, k0u2p1, k0u2t2, k0u2p2, k0u2te, k0u2pe, k0u2bk] = request.security(syminfo.tickerid, htf, kLine(1, tlSwing, lookback, tlHist, kSec0 * 1000), lookahead=barmerge.lookahead_off)
+[hd1, hdp1, hd2, hdp2, hdw, k0d0t1, k0d0p1, k0d0t2, k0d0p2, k0d0te, k0d0pe, k0d0bk, k0d1t1, k0d1p1, k0d1t2, k0d1p2, k0d1te, k0d1pe, k0d1bk, k0d2t1, k0d2p1, k0d2t2, k0d2p2, k0d2te, k0d2pe, k0d2bk] = request.security(syminfo.tickerid, htf, kLine(-1, tlSwing, lookback, tlHist, kSec0 * 1000), lookahead=barmerge.lookahead_off)
+[k1uc1, k1uc2, k1uc3, k1uc4, k1uw, k1u0t1, k1u0p1, k1u0t2, k1u0p2, k1u0te, k1u0pe, k1u0bk, k1u1t1, k1u1p1, k1u1t2, k1u1p2, k1u1te, k1u1pe, k1u1bk, k1u2t1, k1u2p1, k1u2t2, k1u2p2, k1u2te, k1u2pe, k1u2bk] = request.security(syminfo.tickerid, tfR1, kLine(1, tlSwing, kLen1, tlHist, kSec1 * 1000), lookahead=barmerge.lookahead_off)
+[k1dc1, k1dc2, k1dc3, k1dc4, k1dw, k1d0t1, k1d0p1, k1d0t2, k1d0p2, k1d0te, k1d0pe, k1d0bk, k1d1t1, k1d1p1, k1d1t2, k1d1p2, k1d1te, k1d1pe, k1d1bk, k1d2t1, k1d2p1, k1d2t2, k1d2p2, k1d2te, k1d2pe, k1d2bk] = request.security(syminfo.tickerid, tfR1, kLine(-1, tlSwing, kLen1, tlHist, kSec1 * 1000), lookahead=barmerge.lookahead_off)
+[k2uc1, k2uc2, k2uc3, k2uc4, k2uw, k2u0t1, k2u0p1, k2u0t2, k2u0p2, k2u0te, k2u0pe, k2u0bk, k2u1t1, k2u1p1, k2u1t2, k2u1p2, k2u1te, k2u1pe, k2u1bk, k2u2t1, k2u2p1, k2u2t2, k2u2p2, k2u2te, k2u2pe, k2u2bk] = request.security(syminfo.tickerid, tfR2, kLine(1, tlSwing, kLen2, tlHist, kSec2 * 1000), lookahead=barmerge.lookahead_off)
+[k2dc1, k2dc2, k2dc3, k2dc4, k2dw, k2d0t1, k2d0p1, k2d0t2, k2d0p2, k2d0te, k2d0pe, k2d0bk, k2d1t1, k2d1p1, k2d1t2, k2d1p2, k2d1te, k2d1pe, k2d1bk, k2d2t1, k2d2p1, k2d2t2, k2d2p2, k2d2te, k2d2pe, k2d2bk] = request.security(syminfo.tickerid, tfR2, kLine(-1, tlSwing, kLen2, tlHist, kSec2 * 1000), lookahead=barmerge.lookahead_off)
+[k3uc1, k3uc2, k3uc3, k3uc4, k3uw, k3u0t1, k3u0p1, k3u0t2, k3u0p2, k3u0te, k3u0pe, k3u0bk, k3u1t1, k3u1p1, k3u1t2, k3u1p2, k3u1te, k3u1pe, k3u1bk, k3u2t1, k3u2p1, k3u2t2, k3u2p2, k3u2te, k3u2pe, k3u2bk] = request.security(syminfo.tickerid, tfR3, kLine(1, tlSwing, kLen3, tlHist, kSec3 * 1000), lookahead=barmerge.lookahead_off)
+[k3dc1, k3dc2, k3dc3, k3dc4, k3dw, k3d0t1, k3d0p1, k3d0t2, k3d0p2, k3d0te, k3d0pe, k3d0bk, k3d1t1, k3d1p1, k3d1t2, k3d1p2, k3d1te, k3d1pe, k3d1bk, k3d2t1, k3d2p1, k3d2t2, k3d2p2, k3d2te, k3d2pe, k3d2bk] = request.security(syminfo.tickerid, tfR3, kLine(-1, tlSwing, kLen3, tlHist, kSec3 * 1000), lookahead=barmerge.lookahead_off)
+[k4uc1, k4uc2, k4uc3, k4uc4, k4uw, k4u0t1, k4u0p1, k4u0t2, k4u0p2, k4u0te, k4u0pe, k4u0bk, k4u1t1, k4u1p1, k4u1t2, k4u1p2, k4u1te, k4u1pe, k4u1bk, k4u2t1, k4u2p1, k4u2t2, k4u2p2, k4u2te, k4u2pe, k4u2bk] = request.security(syminfo.tickerid, tfR4, kLine(1, tlSwing, kLen4, tlHist, kSec4 * 1000), lookahead=barmerge.lookahead_off)
+[k4dc1, k4dc2, k4dc3, k4dc4, k4dw, k4d0t1, k4d0p1, k4d0t2, k4d0p2, k4d0te, k4d0pe, k4d0bk, k4d1t1, k4d1p1, k4d1t2, k4d1p2, k4d1te, k4d1pe, k4d1bk, k4d2t1, k4d2p1, k4d2t2, k4d2p2, k4d2te, k4d2pe, k4d2bk] = request.security(syminfo.tickerid, tfR4, kLine(-1, tlSwing, kLen4, tlHist, kSec4 * 1000), lookahead=barmerge.lookahead_off)
+// HTF line on this chart, refined the way you do it going down the timeframes (MT4 RefineOnChart + ChartBarIn):
 //  1) anchor = this chart's candle holding the extreme inside the HTF anchor bar;
 //  2) touch = the candle up to the HTF pivot that keeps every candle between on the right side (no cut candles);
 //  3) walk forward: a later swing poking beyond the line becomes the new touch; stop at the first full candle beyond it
-//     on this chart (the break here), so later rallies never flatten the line.
-// Returns [anchor bar, anchor price, touch bar, touch price, slope, break bar or na].
-refineTL(int d, float t1, float t2, int durMs, int N) =>
+//     on this chart (the break here) and, for a line already broken on the HTF, at the HTF break bar.
+// na anchor when this chart's history (1990 bars) does not reach back to the HTF anchor bar.
+// Returns [anchor bar, anchor price, touch bar, touch price, slope, break bar or na, chart bar of the HTF break or na].
+refineTL(int d, float t1, float t2, float te, int durMs, int N) =>
     int ca = na
     float va = na
     int phb = na
     float vp = na
+    int eb = na
+    bool full = false
     if not na(t1) and not na(t2)
-        for off = 0 to math.min(bar_index - 1, 1990)
+        for off = 0 to math.min(bar_index - 1, 1990 - N)
             tt = time[off]
+            if tt <= t1
+                full := true
             if tt < t1
                 break
+            if not na(te) and tt >= te
+                eb := bar_index - off
             v = d > 0 ? low[off] : high[off]
             if tt < t1 + durMs and (na(va) or (d > 0 ? v < va : v > va))
                 va := v
@@ -523,7 +625,7 @@ refineTL(int d, float t1, float t2, int durMs, int N) =>
     float vb = na
     float sl = na
     int ce = na
-    if not na(ca) and not na(phb) and phb > ca
+    if full and not na(ca) and not na(phb) and phb > ca
         for x = ca + 1 to phb
             v = d > 0 ? low[bar_index - x] : high[bar_index - x]
             s0 = (v - va) / (x - ca)
@@ -531,12 +633,15 @@ refineTL(int d, float t1, float t2, int durMs, int N) =>
                 sl := s0
                 cb := x
                 vb := v
+        stopX = na(eb) ? bar_index - 1 : math.min(bar_index - 1, eb + 1)
         if not na(cb) and phb + 1 <= bar_index - 1
             for x = phb + 1 to bar_index - 1
                 off = bar_index - x
                 lv = vb + sl * (x - cb)
                 if d > 0 ? high[off] < lv : low[off] > lv
                     ce := x
+                    break
+                if x > stopX
                     break
                 if off > N
                     bool piv = true
@@ -550,7 +655,7 @@ refineTL(int d, float t1, float t2, int durMs, int N) =>
                             sl := s0
                             cb := x
                             vb := v
-    [na(cb) ? na : ca, va, cb, vb, sl, ce]
+    [na(cb) or not full ? na : ca, va, cb, vb, sl, ce, eb]
 
 hLineAt(float t1, float p1, float t2, float p2, float t) => na(t1) or t2 == t1 ? na : p2 + (p2 - p1) / (t2 - t1) * (t - t2)
 
@@ -813,10 +918,10 @@ if barstate.islast
     tagC = array.new<color>()
     tagTip = array.new<string>()
 
-    // ---- trendlines, Kevin's way: a REAL valley is a swing low after which price makes a higher high (above the last
-    // swing high) before breaking the valley; a REAL peak is a swing high followed by a lower low. Lines join the two
-    // most recent real valleys (higher low) / peaks (lower high), anchored so no candle is cut, drawn until a full candle closes beyond
-    zL = math.min(lookback, bar_index - 20)
+    // ---- trendlines, Kevin's way (same rules and display as MT4 Trendlines / DedupeTL): a REAL valley is a swing low
+    // after which price makes a higher high (above the last swing high) before breaking the valley; a REAL peak is a swing
+    // high followed by a lower low. Lines anchored so no candle is cut, drawn until a full candle closes beyond them
+    zL = math.max(tlSwing + 1, math.min(lookback, bar_index - 20, 1990 - tlSwing))
     pvB = array.new<int>()
     pvP = array.new<float>()
     pvT = array.new<int>()
@@ -856,32 +961,33 @@ if barstate.islast
     tlRemDir.clear()
     tlRemBar.clear()
     string tlNote = ""
-    // respected lines drawn on this chart (for removing gold duplicates): anchor time / price, slope per bar, pivot bar / price
-    drT1 = array.new<float>()
-    drP1 = array.new<float>()
-    drS = array.new<float>()
-    drB = array.new<int>()
-    drP2 = array.new<float>()
-    drA = array.new<int>()
-    drL = array.new<line>()
-    gRA = array.new<int>()
-    gRB = array.new<int>()
-    gT1 = array.new<float>()
-    gP1 = array.new<float>()
-    gT2 = array.new<float>()
-    gP2 = array.new<float>()
+    // every drawn trendline (this chart's and the HTF ones), for one line per pivot pair (MT4 RegTL / DedupeTL):
+    // anchor time, touch time, direction, broken, rank (0 = this chart, else the timeframe in minutes), line,
+    // price now and 30 bars ago, timeframe name ("" = this chart), still drawn
+    rgA = array.new<float>()
+    rgB = array.new<float>()
+    rgD = array.new<int>()
+    rgX = array.new<bool>()
+    rgR = array.new<int>()
+    rgL = array.new<line>()
+    rgV0 = array.new<float>()
+    rgV1 = array.new<float>()
+    rgTf = array.new<string>()
+    rgOn = array.new<bool>()
     for kd = 0 to 1
         d = kd == 0 ? 1 : -1
         want = d > 0 ? -1 : 1
-        // every real valley (peak) gets a line from the previous real one, or - if that is too flat or missing - from the
-        // lowest (highest) point before it. Near-flat lines are dropped (Kevin: that is momentum, not a trendline).
-        // Each line is drawn until a full candle closes beyond it, then ended there. Removals feed the chain rule.
+        // every real valley (peak) gets a candidate line; the anchor tries 1) the lowest (highest) point before it,
+        // 2) the previous real one, 3) the previous line's anchor - the first that is not near-flat (Kevin: that is
+        // momentum, not a trendline) and is confirmed. Plus the overall line from the very bottom (top) while respected.
+        // cC = false for the overall line; cR = bar where a full candle closed beyond it (-1 = respected)
         cA = array.new<int>()
         cB = array.new<int>()
         cP = array.new<float>()
         cS = array.new<float>()
         cR = array.new<int>()
-        tol = 0.05 * atr
+        cC = array.new<bool>()
+        tol = 0.05 * atr[1]
         int prevB = na
         float prevP = na
         for pass = 0 to 1
@@ -900,17 +1006,18 @@ if barstate.islast
                         p2 := pvP.get(k)
                         if not na(prevB) and (d > 0 ? prevP < p2 : prevP > p2)
                             A1 := prevB
-                        // too flat from the previous one: back to the original starting point of the current line
+                        // the original starting point of the current line (MT4 lastA)
                         if cA.size() > 0
                             la0 = cA.get(cA.size() - 1)
                             if la0 < b2 and (d > 0 ? low[bar_index - la0] < p2 : high[bar_index - la0] > p2)
                                 A3 := la0
                         float ex = na
-                        for x = bar_index - zL to b2 - 1
-                            v = d > 0 ? low[bar_index - x] : high[bar_index - x]
-                            if na(ex) or (d > 0 ? v < ex : v > ex)
-                                ex := v
-                                A2 := x
+                        if bar_index - zL <= b2 - 1
+                            for x = bar_index - zL to b2 - 1
+                                v = d > 0 ? low[bar_index - x] : high[bar_index - x]
+                                if na(ex) or (d > 0 ? v < ex : v > ex)
+                                    ex := v
+                                    A2 := x
                         if not na(ex) and (d > 0 ? ex >= p2 : ex <= p2)
                             A2 := na
                         prevB := b2
@@ -934,7 +1041,7 @@ if barstate.islast
                                         p2 := pvP.get(k2)
                         if na(b2)
                             A2 := na
-                    // try the previous real pivot first, then the lowest / highest point; keep the first with a real angle
+                    // 1) lowest / highest point, 2) previous real pivot, 3) previous line's anchor; first with a real angle
                     int fa = na
                     float fsl = na
                     for tryI = 0 to 2
@@ -978,54 +1085,61 @@ if barstate.islast
                                 break
                     if not na(fa) and cfm
                         int rem = -1
-                        if bar_index - 1 >= b2 + 1
-                            for x = b2 + 1 to bar_index - 1
-                                lv = p2 + fsl * (x - b2)
-                                if d > 0 ? high[bar_index - x] < lv : low[bar_index - x] > lv
-                                    rem := x
-                                    break
-                        if pass == 0 and rem >= 0
-                            tlRemDir.push(d), tlRemBar.push(rem)
+                        for x = b2 + 1 to bar_index - 1
+                            lv = p2 + fsl * (x - b2)
+                            if d > 0 ? high[bar_index - x] < lv : low[bar_index - x] > lv
+                                rem := x
+                                break
                         bool dup = false
-                        if cA.size() > 0
+                        if pass == 1 and cA.size() > 0
                             for q2 = 0 to cA.size() - 1
-                                if cA.get(q2) == fa or (pass == 1 and cB.get(q2) == b2)
+                                if cA.get(q2) == fa or cB.get(q2) == b2
                                     dup := true
-                        if pass == 1 and (dup or rem >= 0)
-                            continue
-                        // same anchor as the previous line = the same trendline, updated (never two lines from one anchor)
-                        if pass == 0 and cA.size() > 0 and cA.get(cA.size() - 1) == fa
-                            cA.pop(), cB.pop(), cP.pop(), cS.pop(), cR.pop()
-                        cA.push(fa), cB.push(b2), cP.push(p2), cS.push(fsl), cR.push(rem)
-        // draw: the newest line (a refined line replaces the older ones), the overall line while respected, and older
-        // broken lines only from an earlier, separate leg - no overlapping clutter
+                        if not (pass == 1 and (dup or rem >= 0))
+                            // same anchor as the previous line = the same trendline, updated (never two lines from one anchor)
+                            if pass == 0 and cA.size() > 0 and cA.get(cA.size() - 1) == fa
+                                cA.pop(), cB.pop(), cP.pop(), cS.pop(), cR.pop(), cC.pop()
+                            cA.push(fa), cB.push(b2), cP.push(p2), cS.push(fsl), cR.push(rem), cC.push(pass == 0)
+        // removals of the lines that were kept feed the chain rule (MT4 reads its TL list)
+        if cA.size() > 0
+            for q = 0 to cA.size() - 1
+                if cR.get(q) >= 0
+                    tlRemDir.push(d), tlRemBar.push(cR.get(q))
+        // draw (MT4): the newest line only (a refined line replaces the older ones), the overall line while respected,
+        // and older broken lines only from an earlier, separate leg (pivot older than the newest line's anchor); newest
+        // first, at most tlHist each way
         int use = -1
         int nw = -1
         if cA.size() > 0
-            // the newest leg line is the one with the latest second pivot
+            // the newest leg line is the one with the latest second pivot (the overall line does not count)
             for q = 0 to cA.size() - 1
-                if nw < 0 or cB.get(q) > cB.get(nw)
+                if cC.get(q) and (nw < 0 or cB.get(q) > cB.get(nw))
                     nw := q
-            if cR.get(nw) < 0
+            int nwA = -1
+            if nw >= 0
+                nwA := cA.get(nw)
+            if nw >= 0 and cR.get(nw) < 0
                 use := nw
-            else
+            if use < 0
                 for q = 0 to cA.size() - 1
-                    if cR.get(q) < 0
+                    if not cC.get(q) and cR.get(q) < 0
                         use := q
             shown = 0
             for q = cA.size() - 1 to 0
-                keep = q == nw or cR.get(q) < 0 or (cR.get(q) >= 0 and cB.get(q) < cA.get(nw))
+                keep = q == nw or (not cC.get(q) and cR.get(q) < 0) or (cR.get(q) >= 0 and nw >= 0 and cB.get(q) < nwA)
                 if keep and shown < tlHist and showTL and (d > 0 ? showUpTL : showDnTL)
                     shown += 1
                     la = cA.get(q)
                     lb2 = cB.get(q)
                     lp2 = cP.get(q)
                     ls = cS.get(q)
-                    x2 = cR.get(q) >= 0 ? cR.get(q) : bar_index + 3
-                    ln0 = line.new(la, lp2 + ls * (la - lb2), x2, lp2 + ls * (x2 - lb2), color=cR.get(q) >= 0 ? color.new(cTL, 60) : cTL, style=cR.get(q) >= 0 ? line.style_dotted : line.style_solid, width=1)
+                    brk = cR.get(q) >= 0
+                    x2 = brk ? cR.get(q) : bar_index + 3
+                    // respected: thin solid; broken: thin dotted, lighter, ending where it broke
+                    ln0 = line.new(la, lp2 + ls * (la - lb2), x2, lp2 + ls * (x2 - lb2), color=brk ? color.new(cTL, 60) : cTL, style=brk ? line.style_dotted : line.style_solid, width=1)
                     lines.push(ln0)
-                    if cR.get(q) < 0
-                        drT1.push(time[bar_index - la]), drP1.push(lp2 + ls * (la - lb2)), drS.push(ls), drB.push(lb2), drP2.push(lp2), drA.push(la), drL.push(ln0)
+                    rgA.push(time[bar_index - la]), rgB.push(time[bar_index - lb2]), rgD.push(d), rgX.push(brk), rgR.push(0), rgL.push(ln0)
+                    rgV0.push(lp2 + ls * (bar_index - lb2)), rgV1.push(lp2 + ls * (bar_index - 30 - lb2)), rgTf.push(""), rgOn.push(true)
         // channel 50% from the newest respected line: drives the overextended check; the helper line only if asked
         if use >= 0
             la = cA.get(use)
@@ -1033,7 +1147,7 @@ if barstate.islast
             lp2 = cP.get(use)
             ls = cS.get(use)
             float w = 0.0
-            for x = la to bar_index
+            for x = la to bar_index - 1
                 lv = lp2 + ls * (x - lb2)
                 w := math.max(w, d > 0 ? high[bar_index - x] - lv : lv - low[bar_index - x])
             if showChan and showTL
@@ -1051,60 +1165,81 @@ if barstate.islast
                 dnB := lb2
                 dnW := w
             tlNote := tlNote + (tlNote == "" ? "" : " | ") + (d > 0 ? "Up trendline: " : "Down trendline: ") + (overext(d, close) ? "price beyond the channel 50% = OVEREXTENDED, wait" : "price in the golden area")
-        // higher-timeframe lines on this chart (ITF, HTF and the one above): thin dotted gold, respected lines only
-        if showTL and showHtfTL and (d > 0 ? showUpTL : showDnTL)
-            for lvl = 2 to 0
-                tfN = lvl == 0 ? tfL1 : lvl == 1 ? htf : tfL3
-                ht1 = lvl == 0 ? (d > 0 ? a1u1 : a1d1) : lvl == 1 ? (d > 0 ? hu1 : hd1) : (d > 0 ? a3u1 : a3d1)
-                hp1 = lvl == 0 ? (d > 0 ? a1up1 : a1dp1) : lvl == 1 ? (d > 0 ? hup1 : hdp1) : (d > 0 ? a3up1 : a3dp1)
-                ht2 = lvl == 0 ? (d > 0 ? a1u2 : a1d2) : lvl == 1 ? (d > 0 ? hu2 : hd2) : (d > 0 ? a3u2 : a3d2)
-                hp2 = lvl == 0 ? (d > 0 ? a1up2 : a1dp2) : lvl == 1 ? (d > 0 ? hup2 : hdp2) : (d > 0 ? a3up2 : a3dp2)
-                // the newest HTF line if it is already broken: lighter gold dotted, ending where it broke
-                bt = lvl == 0 ? (d > 0 ? a1ub1 : a1db1) : lvl == 1 ? (d > 0 ? hub1 : hdb1) : (d > 0 ? a3ub1 : a3db1)
-                bp = lvl == 0 ? (d > 0 ? a1ubp1 : a1dbp1) : lvl == 1 ? (d > 0 ? hubp1 : hdbp1) : (d > 0 ? a3ubp1 : a3dbp1)
-                be = lvl == 0 ? (d > 0 ? a1ube : a1dbe) : lvl == 1 ? (d > 0 ? hube : hdbe) : (d > 0 ? a3ube : a3dbe)
-                bpe = lvl == 0 ? (d > 0 ? a1ubpe : a1dbpe) : lvl == 1 ? (d > 0 ? hubpe : hdbpe) : (d > 0 ? a3ubpe : a3dbpe)
-                if tfN != "" and tfN != timeframe.period and not na(bt) and not na(be) and not (lvl == 1 and htf == tfL1)
-                    // the broken line's pivot time is not returned; refine the anchor only and keep the HTF slope through the end
-                    lines.push(line.new(int(bt), bp, int(be), bpe, xloc=xloc.bar_time, color=color.new(cHtfTL, 55), style=line.style_dotted, width=1))
-                // skip a gold line that sits on this chart's own line or on a gold line already drawn (keep one)
-                bool same = false
-                if not na(ht1)
-                    tb = time[30]
-                    va = hLineAt(ht1, hp1, ht2, hp2, time)
-                    vb = hLineAt(ht1, hp1, ht2, hp2, tb)
-                    if drB.size() > 0
-                        for q3 = 0 to drB.size() - 1
-                            ca = drP2.get(q3) + drS.get(q3) * (bar_index - drB.get(q3))
-                            cb = drP2.get(q3) + drS.get(q3) * (bar_index - 30 - drB.get(q3))
-                            if math.abs(ca - va) < 0.3 * atr and math.abs(cb - vb) < 0.3 * atr
-                                same := true
-                    if gT1.size() > 0
-                        for q3 = 0 to gT1.size() - 1
-                            if math.abs(hLineAt(gT1.get(q3), gP1.get(q3), gT2.get(q3), gP2.get(q3), time) - va) < 0.3 * atr and math.abs(hLineAt(gT1.get(q3), gP1.get(q3), gT2.get(q3), gP2.get(q3), tb) - vb) < 0.3 * atr
-                                same := true
-                if tfN != "" and tfN != timeframe.period and not na(ht1) and not (lvl == 1 and htf == tfL1) and not same
-                    gT1.push(ht1), gP1.push(hp1), gT2.push(ht2), gP2.push(hp2)
-                    tEnd = time + 5 * timeframe.in_seconds() * 1000
-                    [ra, rpa, rb, rpb, rsl, rce] = refineTL(d, ht1, ht2, timeframe.in_seconds(tfN) * 1000, tlSwing)
-                    if refineHtf and not na(ra)
-                        // same anchor and touch as a line already drawn = the same trendline: keep one (the higher timeframe)
-                        bool dupP = false
-                        if gRA.size() > 0
-                            for q4 = 0 to gRA.size() - 1
-                                if math.abs(gRA.get(q4) - ra) <= 3 and math.abs(gRB.get(q4) - rb) <= 3
-                                    dupP := true
-                        if not dupP
-                            if drA.size() > 0
-                                for q5 = 0 to drA.size() - 1
-                                    if math.abs(drA.get(q5) - ra) <= 3 and math.abs(drB.get(q5) - rb) <= 3
-                                        line.delete(drL.get(q5))
-                            gRA.push(ra), gRB.push(rb)
-                            rx2 = na(rce) ? bar_index + 3 : rce
-                            lines.push(line.new(ra, rpa, rx2, rpb + rsl * (rx2 - rb), color=na(rce) ? cHtfTL : color.new(cHtfTL, 55), style=line.style_dotted, width=1))
-                    else
-                        lines.push(line.new(int(ht1), hp1, int(tEnd), hLineAt(ht1, hp1, ht2, hp2, tEnd), xloc=xloc.bar_time, color=cHtfTL, style=line.style_dotted, width=1))
-                    tagP.push(hLineAt(ht1, hp1, ht2, hp2, time)), tagT.push(tfN + " trendline"), tagC.push(cHtfTL), tagTip.push(tfN + (d > 0 ? " uptrend line (a higher high followed its valley)" : " downtrend line (a lower low followed its peak)") + ". Zones near it are stronger.")
+    // ---- higher-timeframe lines on this chart (MT4 InpHTFLevels = 4: e.g. 15m -> 1H, 4H, D, W; plus the HTF if it is
+    // not one of them): per timeframe and direction the same selection as above (at most min(tlHist, 3)), re-anchored
+    // on this chart's candles. Respected = thin dotted gold; broken = lighter gold dotted, ending where it broke.
+    // layout of tlH: (((slot * 2 + up 0 / down 1) * 3 + line) * 7 + field), slot 0 = HTF, 1..4 = the levels above
+    tlH = array.new<float>()
+    tlH.concat(array.from(k0u0t1, k0u0p1, k0u0t2, k0u0p2, k0u0te, k0u0pe, k0u0bk, k0u1t1, k0u1p1, k0u1t2, k0u1p2, k0u1te, k0u1pe, k0u1bk, k0u2t1, k0u2p1, k0u2t2, k0u2p2, k0u2te, k0u2pe, k0u2bk))
+    tlH.concat(array.from(k0d0t1, k0d0p1, k0d0t2, k0d0p2, k0d0te, k0d0pe, k0d0bk, k0d1t1, k0d1p1, k0d1t2, k0d1p2, k0d1te, k0d1pe, k0d1bk, k0d2t1, k0d2p1, k0d2t2, k0d2p2, k0d2te, k0d2pe, k0d2bk))
+    tlH.concat(array.from(k1u0t1, k1u0p1, k1u0t2, k1u0p2, k1u0te, k1u0pe, k1u0bk, k1u1t1, k1u1p1, k1u1t2, k1u1p2, k1u1te, k1u1pe, k1u1bk, k1u2t1, k1u2p1, k1u2t2, k1u2p2, k1u2te, k1u2pe, k1u2bk))
+    tlH.concat(array.from(k1d0t1, k1d0p1, k1d0t2, k1d0p2, k1d0te, k1d0pe, k1d0bk, k1d1t1, k1d1p1, k1d1t2, k1d1p2, k1d1te, k1d1pe, k1d1bk, k1d2t1, k1d2p1, k1d2t2, k1d2p2, k1d2te, k1d2pe, k1d2bk))
+    tlH.concat(array.from(k2u0t1, k2u0p1, k2u0t2, k2u0p2, k2u0te, k2u0pe, k2u0bk, k2u1t1, k2u1p1, k2u1t2, k2u1p2, k2u1te, k2u1pe, k2u1bk, k2u2t1, k2u2p1, k2u2t2, k2u2p2, k2u2te, k2u2pe, k2u2bk))
+    tlH.concat(array.from(k2d0t1, k2d0p1, k2d0t2, k2d0p2, k2d0te, k2d0pe, k2d0bk, k2d1t1, k2d1p1, k2d1t2, k2d1p2, k2d1te, k2d1pe, k2d1bk, k2d2t1, k2d2p1, k2d2t2, k2d2p2, k2d2te, k2d2pe, k2d2bk))
+    tlH.concat(array.from(k3u0t1, k3u0p1, k3u0t2, k3u0p2, k3u0te, k3u0pe, k3u0bk, k3u1t1, k3u1p1, k3u1t2, k3u1p2, k3u1te, k3u1pe, k3u1bk, k3u2t1, k3u2p1, k3u2t2, k3u2p2, k3u2te, k3u2pe, k3u2bk))
+    tlH.concat(array.from(k3d0t1, k3d0p1, k3d0t2, k3d0p2, k3d0te, k3d0pe, k3d0bk, k3d1t1, k3d1p1, k3d1t2, k3d1p2, k3d1te, k3d1pe, k3d1bk, k3d2t1, k3d2p1, k3d2t2, k3d2p2, k3d2te, k3d2pe, k3d2bk))
+    tlH.concat(array.from(k4u0t1, k4u0p1, k4u0t2, k4u0p2, k4u0te, k4u0pe, k4u0bk, k4u1t1, k4u1p1, k4u1t2, k4u1p2, k4u1te, k4u1pe, k4u1bk, k4u2t1, k4u2p1, k4u2t2, k4u2p2, k4u2te, k4u2pe, k4u2bk))
+    tlH.concat(array.from(k4d0t1, k4d0p1, k4d0t2, k4d0p2, k4d0te, k4d0pe, k4d0bk, k4d1t1, k4d1p1, k4d1t2, k4d1p2, k4d1te, k4d1pe, k4d1bk, k4d2t1, k4d2p1, k4d2t2, k4d2p2, k4d2te, k4d2pe, k4d2bk))
+    if showTL and showHtfTL
+        for s = 4 to 0
+            secN = s == 0 ? kSec0 : s == 1 ? kSec1 : s == 2 ? kSec2 : s == 3 ? kSec3 : kSec4
+            lenN = s == 0 ? (kSec0 > tfs ? 1 : 0) : s == 1 ? kLen1 : s == 2 ? kLen2 : s == 3 ? kLen3 : kLen4
+            tfN = s == 0 ? htf : s == 1 ? tfL1 : s == 2 ? tfL2 : s == 3 ? tfL3 : tfL4
+            if lenN > 0
+                for kd = 0 to 1
+                    d = kd == 0 ? 1 : -1
+                    if d > 0 ? showUpTL : showDnTL
+                        for j = 0 to 2
+                            bs0 = ((s * 2 + kd) * 3 + j) * 7
+                            ht1 = tlH.get(bs0)
+                            if not na(ht1)
+                                hp1 = tlH.get(bs0 + 1)
+                                ht2 = tlH.get(bs0 + 2)
+                                hte = tlH.get(bs0 + 4)
+                                hpe = tlH.get(bs0 + 5)
+                                hbk = tlH.get(bs0 + 6) > 0
+                                colH = hbk ? color.new(cHtfTL, 55) : cHtfTL
+                                bool done = false
+                                if refineHtf
+                                    [ra, rpa, rb, rpb, rsl, rce, reb] = refineTL(d, ht1, ht2, hbk ? hte : na, secN * 1000, tlSwing)
+                                    int xe = na(rce) ? (hbk ? reb : na) : rce
+                                    if not na(ra) and not (hbk and na(xe))
+                                        rx2 = na(xe) ? bar_index + 3 : xe
+                                        lnR = line.new(ra, rpa, rx2, rpb + rsl * (rx2 - rb), color=colH, style=line.style_dotted, width=1)
+                                        lines.push(lnR)
+                                        rgA.push(time[bar_index - ra]), rgB.push(time[bar_index - rb]), rgD.push(d), rgX.push(hbk), rgR.push(int(secN / 60)), rgL.push(lnR)
+                                        rgV0.push(rpb + rsl * (bar_index - rb)), rgV1.push(rpb + rsl * (bar_index - 30 - rb)), rgTf.push(tfN), rgOn.push(true)
+                                        done := true
+                                if not done
+                                    // this chart's history does not reach the anchor (or refining is off): the HTF coordinates
+                                    lnH = line.new(int(ht1), hp1, int(hte), hpe, xloc=xloc.bar_time, color=colH, style=line.style_dotted, width=1)
+                                    lines.push(lnH)
+                                    rgA.push(ht1), rgB.push(ht2), rgD.push(d), rgX.push(hbk), rgR.push(int(secN / 60)), rgL.push(lnH)
+                                    rgV0.push(hLineAt(ht1, hp1, hte, hpe, time)), rgV1.push(hLineAt(ht1, hp1, hte, hpe, time[30])), rgTf.push(tfN), rgOn.push(true)
+    // one line per pivot pair (MT4 DedupeTL): the same anchor candle and the same touch candle (within 3 bars of this
+    // chart), or two respected lines lying on top of each other (within 0.3 ATR now and 30 bars ago), are one trendline:
+    // keep the respected one, then the higher timeframe's
+    rgN = rgL.size()
+    if rgN > 1
+        dNear = 3 * tfs * 1000
+        dTol = 0.3 * atr[1]
+        for dI = 0 to rgN - 2
+            for dJ = dI + 1 to rgN - 1
+                if rgD.get(dI) == rgD.get(dJ) and rgOn.get(dI) and rgOn.get(dJ)
+                    samePiv = math.abs(rgA.get(dI) - rgA.get(dJ)) <= dNear and math.abs(rgB.get(dI) - rgB.get(dJ)) <= dNear
+                    onTop = not rgX.get(dI) and not rgX.get(dJ) and math.abs(rgV0.get(dI) - rgV0.get(dJ)) <= dTol and math.abs(rgV1.get(dI) - rgV1.get(dJ)) <= dTol
+                    if samePiv or onTop
+                        dS1 = (rgX.get(dI) ? 0 : 10000000) + rgR.get(dI)
+                        dS2 = (rgX.get(dJ) ? 0 : 10000000) + rgR.get(dJ)
+                        dDel = dS1 >= dS2 ? dJ : dI
+                        line.delete(rgL.get(dDel))
+                        rgOn.set(dDel, false)
+    // the "H4 trendline" tag for every respected HTF line still drawn
+    if rgN > 0
+        for dI = 0 to rgN - 1
+            if rgOn.get(dI) and not rgX.get(dI) and rgTf.get(dI) != "" and not na(rgV0.get(dI))
+                tfT = rgTf.get(dI)
+                tagP.push(rgV0.get(dI)), tagT.push(tfT + " trendline"), tagC.push(cHtfTL), tagTip.push(tfT + (rgD.get(dI) > 0 ? " uptrend line (a higher high followed its valley)" : " downtrend line (a lower low followed its peak)") + ". Zones near it are stronger.")
 
     // potential trades: every fresh usable zone with a valid plan, ranked by planner score
     tIdx = array.new<int>()
@@ -1219,6 +1354,7 @@ if barstate.islast
             [verdict, shortWhy, full] = zoneNotes(z, medZ)
             txt = showNames ? (str.contains(full, "ARRIVAL") ? "ARRIVAL | " : "") + zname(z) + " | " + verdict + (shortWhy != "" ? ": " + shortWhy : "") + (isTrade ? " | " + tradeTxt.get(zi) : "") : ""
             boxes.push(box.new(z.t0, z.prox, right, z.dist, border_color=z.dir > 0 ? cDemL : cSupL, border_width=str.contains(full, "ARRIVAL") ? 3 : 1, bgcolor=z.dir > 0 ? cDemF : cSupF, text=txt, text_color=verdict == "WEAK" ? color.new(cTxt, 45) : cTxt, text_size=size.small, text_halign=text.align_left, text_valign=z.dir > 0 ? text.align_bottom : text.align_top))
+            labels.push(label.new(z.t0, (z.prox + z.dist) / 2, "ⓘ", style=label.style_label_center, color=color.new(z.dir > 0 ? cDemL : cSupL, 20), textcolor=color.white, size=size.small, tooltip=zname(z) + " | " + verdict + "\n" + full))
             if not (isTrade and (planLines == "All listed" or tradeOf.get(zi) == 1))
                 tagP.push(z.prox), tagT.push(str.tostring(z.prox, format.mintick)), tagC.push(z.dir > 0 ? cDemL : cSupL), tagTip.push(zname(z) + " - " + full)
                 tagP.push(z.dist), tagT.push(str.tostring(z.dist, format.mintick)), tagC.push(cTxt), tagTip.push("Distal line (far side) of the zone")
