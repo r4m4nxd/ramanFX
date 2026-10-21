@@ -2450,7 +2450,7 @@ void BacktestReport()
       KpiRow(fk, "Overall", "All trades", S, true);
      }
    KStat tfS[NTF]; int tfN[NTF];
-   for(int i = 0; i < NTF; i++) tfN[i] = 0;
+   ArrayInitialize(tfN, 0); ZeroMemory(tfS);
    for(int d = 0; d < NDIM && nT > 0; d++)
      {
       string keys[]; int nk = DimKeys(d, keys);
