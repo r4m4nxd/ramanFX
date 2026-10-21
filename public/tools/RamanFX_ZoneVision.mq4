@@ -20,7 +20,7 @@
 //| into a zone does not count as a touch. Removal needs a CLOSE.    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "0.32"
+#property version   "0.40"
 #property strict
 #property indicator_chart_window
 
@@ -48,7 +48,8 @@ input bool   InpShowRemoved   = false;  // Also draw removed zones (faded)
 input bool   InpShowNames     = true;   // Zone name inside the box (e.g. Rally Base Rally Demand (CP))
 input bool   InpShowTrendlines= true;   // Newest intact trendline each way (mentor rules)
 input bool   InpShowBrokenTL  = false;  // Also draw broken trendlines
-input int    InpTrendSwing    = 3;      // Swing strength for peaks / valleys (bars each side)
+input int    InpTrendSwing    = 3;      // Swing strength for liquidity-trap levels (bars each side)
+input double InpSwingATR      = 2.0;    // Real peak / valley for trendlines: price must turn at least N x ATR
 input bool   InpShowHTF       = true;   // HTF zone band (closest above and below)
 input bool   InpShowPlan      = true;   // Bot's planned entry / SL / TP
 input bool   InpShowPanel     = true;   // Compact info panel
@@ -95,6 +96,7 @@ struct TLine
    double   pa, pb;
    bool     removed;
    int      removedBar;
+   bool     conf;         // higher high / lower low made after the second turn
   };
 
 Zone  Z[], HZ[];
@@ -120,7 +122,7 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
    ObjectsDeleteAll(0, PFX);
    { int h0 = HtfOf(_Period); gTrend = h0 > 0 ? HtfTrend(_Symbol, h0) : 0; }
    Detect(_Symbol, _Period, Z, true);
-   if(InpShowTrendlines) Trendlines(_Symbol, _Period);
+   Trendlines(_Symbol, _Period);                                     // always: chain + channel use it; drawn only if InpShowTrendlines
    Qualify();
    if(InpShowHTF) { int h = HtfOf(_Period); if(h > 0) { Detect(_Symbol, h, HZ, false); DrawZones(HZ, true); } }   // HTF band first, underneath
    DrawZones(Z, false);
@@ -301,82 +303,124 @@ int Detect(string s, int tf, Zone &out[], bool draw)
   }
 
 //+------------------------------------------------------------------+
-//| Trendlines - mentor rules                                        |
-//|  up: valley A -> peak -> higher high -> valley B (B > A); line A->B |
-//|  is the lowest-slope line from A, so no candle low between them |
-//|  is below it (never cuts through candles). Removed by the first |
-//|  candle whose HIGH is below the line (full body + wick).        |
+//| Trendlines - Kevin's way                                         |
+//|  Real peaks / valleys = zigzag turns of >= InpSwingATR x ATR.    |
+//|  Up line: the two most recent valleys, higher low, a peak in     |
+//|  between, then a higher high (else dotted = not confirmed yet).  |
+//|  Anchored so no candle between the anchors is cut. Drawn only    |
+//|  until a FULL candle (body and wick) closes beyond it.           |
 //+------------------------------------------------------------------+
-bool SwingLow(int i)  { for(int j = 1; j <= InpTrendSwing; j++) if(i - j < 1 || Low[i] > Low[i - j] || Low[i] > Low[i + j]) return false; return true; }
-bool SwingHigh(int i) { for(int j = 1; j <= InpTrendSwing; j++) if(i - j < 1 || High[i] < High[i - j] || High[i] < High[i + j]) return false; return true; }
+int    pvBar[]; double pvP[]; int pvT[];             // zigzag turns, oldest first; pvT +1 peak, -1 valley
+void AddPiv(int b, double p, int t) { int n = ArraySize(pvBar); ArrayResize(pvBar, n + 1); ArrayResize(pvP, n + 1); ArrayResize(pvT, n + 1); pvBar[n] = b; pvP[n] = p; pvT[n] = t; }
+void ZigZag(int bars)
+  {
+   ArrayResize(pvBar, 0); ArrayResize(pvP, 0); ArrayResize(pvT, 0);
+   int dir = 0, hiB = bars, loB = bars; double hiP = High[bars], loP = Low[bars];
+   for(int i = bars - 1; i >= 1; i--)
+     {
+      double th = InpSwingATR * iATR(NULL, 0, 14, i);
+      if(dir == 0)
+        {
+         if(High[i] > hiP) { hiP = High[i]; hiB = i; }
+         if(Low[i] < loP) { loP = Low[i]; loB = i; }
+         if(hiP - loP >= th) { if(hiB > loB) { AddPiv(hiB, hiP, 1); dir = -1; } else { AddPiv(loB, loP, -1); dir = 1; } }
+        }
+      else if(dir > 0)                                              // rising: track the peak until price turns down th
+        {
+         if(High[i] > hiP) { hiP = High[i]; hiB = i; }
+         else if(hiP - Low[i] >= th) { AddPiv(hiB, hiP, 1); dir = -1; loP = Low[i]; loB = i; }
+        }
+      else
+        {
+         if(Low[i] < loP) { loP = Low[i]; loB = i; }
+         else if(High[i] - loP >= th) { AddPiv(loB, loP, -1); dir = 1; hiP = High[i]; hiB = i; }
+        }
+     }
+  }
+
+// latest intact lines, for the channel 50% check
+bool gUpOn = false, gDnOn = false; double gUpS, gUpP, gUpW, gDnS, gDnP, gDnW; int gUpB, gDnB;
+double LineAt(double p, int b, double sl, int j) { return p + sl * (b - j); }   // value at bar j of a line through (b, p), slope per bar toward newer bars
 
 void Trendlines(string s, int tf)
   {
-   ArrayResize(TL, 0);
-   int bars = MathMin(InpLookback, Bars - InpTrendSwing - 2);
+   ArrayResize(TL, 0); gUpOn = false; gDnOn = false;
+   int bars = MathMin(InpLookback, Bars - 20);
+   ZigZag(bars);
    for(int d = -1; d <= 1; d += 2)
      {
-      int found = 0;
-      for(int a = InpTrendSwing + 2; a < bars && found < 4; a++)              // newest anchors first
+      int want = d > 0 ? -1 : 1;                                    // up line on valleys, down line on peaks
+      int prev = -1;
+      for(int k = 0; k < ArraySize(pvBar); k++)
         {
-         if(d > 0 && !SwingLow(a)) continue;
-         if(d < 0 && !SwingHigh(a)) continue;
-         double pa = d > 0 ? Low[a] : High[a];
-         // lowest-slope (support) / highest-slope (resistance) touch after a peak
-         int peak = -1; double pk = d > 0 ? -DBL_MAX : DBL_MAX;
-         int b = -1; double best = d > 0 ? DBL_MAX : -DBL_MAX;
-         for(int j = a - 1; j >= 1; j--)
+         if(pvT[k] != want) continue;
+         if(prev < 0) { prev = k; continue; }
+         int k1 = prev; prev = k;
+         if(d > 0 && pvP[k] <= pvP[k1]) continue;                    // need a higher low
+         if(d < 0 && pvP[k] >= pvP[k1]) continue;                    // need a lower high
+         int b2 = pvBar[k]; double p2 = pvP[k];
+         // anchor: steepest touch between the two turns, so the line cuts no candle
+         double sl = d > 0 ? -DBL_MAX : DBL_MAX; int a = pvBar[k1];
+         for(int j = pvBar[k1]; j > b2; j--)
            {
-            if(d > 0 && High[j] > pk) { pk = High[j]; peak = j; }
-            if(d < 0 && Low[j] < pk) { pk = Low[j]; peak = j; }
-            if(peak < 0 || j >= peak) continue;                                // B must come after the peak
-            bool sw = d > 0 ? SwingLow(j) : SwingHigh(j);
-            if(!sw) continue;
-            double pj = d > 0 ? Low[j] : High[j];
-            if(d > 0 && pj <= pa) break;                                       // need a higher low
-            if(d < 0 && pj >= pa) break;                                       // need a lower high
-            double slope = (pj - pa) / (a - j);
-            if((d > 0 && slope < best) || (d < 0 && slope > best)) { best = slope; b = j; }
+            double v = d > 0 ? (p2 - Low[j]) / (j - b2) : (p2 - High[j]) / (j - b2);
+            if((d > 0 && v > sl) || (d < 0 && v < sl)) { sl = v; a = j; }
            }
-         if(b < 0) continue;
-         // need a higher high after the first peak (uptrend) / lower low (downtrend)
-         bool hh = false;
-         for(int j = b; j >= 1; j--) if((d > 0 && High[j] > pk) || (d < 0 && Low[j] < pk)) { hh = true; break; }
-         if(!hh) continue;
-         // the line must not cut any candle between the anchors
-         bool cuts = false;
-         for(int j = a - 1; j > b; j--)
+         // peak / valley between, then a higher high / lower low after the second turn
+         double mid = d > 0 ? -DBL_MAX : DBL_MAX;
+         for(int j = pvBar[k1] - 1; j > b2; j--) mid = d > 0 ? MathMax(mid, High[j]) : MathMin(mid, Low[j]);
+         bool conf = false;
+         for(int j = b2 - 1; j >= 1; j--) if((d > 0 && High[j] > mid) || (d < 0 && Low[j] < mid)) { conf = true; break; }
+         TLine t; t.dir = d; t.a = a; t.b = b2; t.pb = p2; t.pa = LineAt(p2, b2, sl, a); t.removed = false; t.removedBar = -1; t.conf = conf;
+         for(int j = b2 - 1; j >= 1; j--)
            {
-            double lv = pa + best * (a - j);
-            if((d > 0 && Low[j] < lv - Point) || (d < 0 && High[j] > lv + Point)) { cuts = true; break; }
-           }
-         if(cuts) continue;
-         TLine t; t.dir = d; t.a = a; t.b = b; t.pa = pa; t.pb = d > 0 ? Low[b] : High[b]; t.removed = false; t.removedBar = -1;
-         for(int j = b - 1; j >= 1; j--)
-           {
-            double lv = pa + best * (a - j);
+            double lv = LineAt(p2, b2, sl, j);
             if((d > 0 && High[j] < lv) || (d < 0 && Low[j] > lv)) { t.removed = true; t.removedBar = j; break; }
            }
-         int n = ArraySize(TL); ArrayResize(TL, n + 1); TL[n] = t; found++;
-         a = b;                                                                // continue past this line
+         int n = ArraySize(TL); ArrayResize(TL, n + 1); TL[n] = t;
         }
      }
-   bool drawnUp = false, drawnDn = false;
-   for(int i = 0; i < ArraySize(TL); i++)
+   // draw: newest line each way (+ the newest removed one if asked), short: anchor -> removal or now
+   bool doneUp = false, doneDn = false, oldUp = false, oldDn = false;
+   for(int i = ArraySize(TL) - 1; i >= 0; i--)
      {
-      if(TL[i].removed && !InpShowBrokenTL) continue;
-      if(!TL[i].removed) { if(TL[i].dir > 0) { if(drawnUp) continue; drawnUp = true; } else { if(drawnDn) continue; drawnDn = true; } }
+      bool up = TL[i].dir > 0;
+      if(!TL[i].removed) { if(up ? doneUp : doneDn) continue; if(up) doneUp = true; else doneDn = true; }
+      else { if(!InpShowBrokenTL || (up ? oldUp : oldDn)) continue; if(up) oldUp = true; else oldDn = true; }
+      double sl = (TL[i].pb - TL[i].pa) / MathMax(1, TL[i].a - TL[i].b);
+      int end = TL[i].removed ? TL[i].removedBar : 0;
+      double pe = LineAt(TL[i].pb, TL[i].b, sl, end - (TL[i].removed ? 0 : 5));
       string nm = PFX + "tl" + IntegerToString(i);
-      int end = TL[i].removed ? TL[i].removedBar : -10;
-      double slope = (TL[i].pb - TL[i].pa) / (TL[i].a - TL[i].b);
-      double pe = TL[i].pa + slope * (TL[i].a - end);
-      ObjectCreate(0, nm, OBJ_TREND, 0, Time[TL[i].a], TL[i].pa, BarTime(s, tf, end), pe);
+      if(InpShowTrendlines) ObjectCreate(0, nm, OBJ_TREND, 0, Time[TL[i].a], TL[i].pa, TL[i].removed ? Time[end] : Time[0] + PeriodSeconds() * 5, pe);
       ObjectSetInteger(0, nm, OBJPROP_RAY_RIGHT, false);
       ObjectSetInteger(0, nm, OBJPROP_COLOR, TL[i].removed ? InpMuted : InpTrend);
-      ObjectSetInteger(0, nm, OBJPROP_STYLE, TL[i].removed ? STYLE_DOT : STYLE_SOLID);
+      ObjectSetInteger(0, nm, OBJPROP_STYLE, TL[i].removed ? STYLE_DOT : (TL[i].conf ? STYLE_SOLID : STYLE_DASH));
+      ObjectSetInteger(0, nm, OBJPROP_WIDTH, TL[i].removed ? 1 : 2);
       ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
-      ObjectSetString(0, nm, OBJPROP_TOOLTIP, (TL[i].dir > 0 ? "Uptrend line" : "Downtrend line") + (TL[i].removed ? " - removed by a full close" : " - intact"));
+      ObjectSetString(0, nm, OBJPROP_TOOLTIP, (up ? "Uptrend line: two real valleys, higher low" : "Downtrend line: two real peaks, lower high")
+         + (TL[i].conf ? (up ? ", then a higher high" : ", then a lower low") : " - not confirmed yet (needs " + (up ? "a higher high)" : "a lower low)"))
+         + (TL[i].removed ? " | removed by a full candle " + (up ? "below" : "above") + " it on " + TimeToString(Time[end], TIME_DATE | TIME_MINUTES) : " | respected so far"));
+      if(!TL[i].removed && TL[i].conf)
+        {
+         // channel: widest swing away from the line since the anchor; 50% = golden area edge
+         double w = 0;
+         for(int j = TL[i].a; j >= 1; j--) w = MathMax(w, up ? High[j] - LineAt(TL[i].pb, TL[i].b, sl, j) : LineAt(TL[i].pb, TL[i].b, sl, j) - Low[j]);
+         if(up) { gUpOn = true; gUpS = sl; gUpP = TL[i].pb; gUpB = TL[i].b; gUpW = w; } else { gDnOn = true; gDnS = sl; gDnP = TL[i].pb; gDnB = TL[i].b; gDnW = w; }
+         string cn = nm + "c";
+         double off = up ? w / 2 : -w / 2;
+         if(InpShowTrendlines) ObjectCreate(0, cn, OBJ_TREND, 0, Time[TL[i].a], TL[i].pa + off, Time[0] + PeriodSeconds() * 5, pe + off);
+         ObjectSetInteger(0, cn, OBJPROP_RAY_RIGHT, false); ObjectSetInteger(0, cn, OBJPROP_COLOR, InpMuted); ObjectSetInteger(0, cn, OBJPROP_STYLE, STYLE_DOT);
+         ObjectSetInteger(0, cn, OBJPROP_SELECTABLE, false);
+         ObjectSetString(0, cn, OBJPROP_TOOLTIP, "Channel 50%: between the trendline and this line = golden area. Beyond it = overextended, wait.");
+        }
      }
+  }
+// price beyond 50% of the channel, in the trend direction
+bool Overextended(int dir, double price)
+  {
+   if(dir > 0 && gUpOn) return price > LineAt(gUpP, gUpB, gUpS, 0) + gUpW / 2;
+   if(dir < 0 && gDnOn) return price < LineAt(gDnP, gDnB, gDnS, 0) - gDnW / 2;
+   return false;
   }
 
 // "Momentum" = no valid trendline on the newest structure.
@@ -466,6 +510,40 @@ bool MetalOrOil()
    return StringFind(u, "XAU") >= 0 || StringFind(u, "GOLD") >= 0 || StringFind(u, "XAG") >= 0 || StringFind(u, "OIL") >= 0 || StringFind(u, "WTI") >= 0 || StringFind(u, "BRENT") >= 0 || StringFind(u, "XTI") >= 0 || StringFind(u, "XBR") >= 0;
   }
 
+void Push(string &a[], string v) { int n = ArraySize(a); ArrayResize(a, n + 1); a[n] = v; }
+// Strong / weak in a few words: Kevin's and Seiden's checks on one zone.
+// verdict: WEAK if any deal-breaker, STRONG if 5+ strengths and at most one weakness, else OK.
+string ZoneNotes(Zone &zs[], int i, string &verdict, string &shortWhy)
+  {
+   Zone z = zs[i];
+   string pl[], mi[], cr[];
+   if(z.baseN <= 3) Push(pl, IntegerToString(z.baseN) + " base candle" + (z.baseN > 1 ? "s" : "")); else if(z.baseN > 6) Push(mi, "long base (" + IntegerToString(z.baseN) + " candles)");
+   if(z.legRatio >= 2.5) Push(pl, StringFormat("explosive move away %.1fx", z.legRatio)); else if(z.legRatio < 1.8) Push(mi, StringFormat("weak move away %.1fx", z.legRatio));
+   if(z.leg2) Push(pl, "2nd explosive candle"); else Push(mi, "only one explosive candle");
+   if(z.chain) Push(pl, "in the chain: " + z.qual); else Push(cr, "not in the chain (removed nothing)");
+   if(z.gap < InpMinGap) Push(cr, "drawable only: no space under the stay-away candle"); else if(z.gap >= 0.25) Push(pl, StringFormat("clear space %.0f%%", z.gap * 100));
+   if(z.tested) Push(cr, "already tested"); else Push(pl, "fresh");
+   if(TooSmall(zs, i)) Push(cr, "too small vs other zones");
+   if(!z.cont) Push(pl, "VP (Kevin's favourite)");
+   if(gTrend == z.dir) Push(pl, "with the HTF trend"); else if(gTrend == -z.dir) Push(cr, "against the HTF trend");
+   if(Overextended(z.dir, z.prox)) Push(cr, "beyond channel 50% (overextended)");
+   if(z.trap > 0) Push(pl, "liquidity trap in front");
+   if(z.crowded) Push(mi, "on an obvious S/R level (crowded)");
+   int htf = HtfOf(_Period); if(htf <= 0) htf = _Period;
+   double xa = MathAbs((Bid + Ask) / 2 - z.prox) / MathMax(iATR(NULL, htf, 14, 1), Point);
+   if(xa > InpMaxDistATR) Push(mi, StringFormat("far: %.1f x %s ATR", xa, TfName(htf)));
+   int np = ArraySize(pl), nm = ArraySize(mi), nc = ArraySize(cr);
+   verdict = nc > 0 ? "WEAK" : (np >= 5 && nm <= 1 ? "STRONG" : "OK");
+   if(nc > 0) shortWhy = cr[0] + (nc > 1 ? ", " + cr[1] : "");
+   else if(verdict == "STRONG") shortWhy = pl[0] + (np > 1 ? ", " + pl[1] : "");
+   else shortWhy = (nm > 0 ? mi[0] : (np > 0 ? pl[0] : ""));
+   string t = verdict + "\n";
+   for(int k = 0; k < nc; k++) t += "x " + cr[k] + "\n";
+   for(int k = 0; k < nm; k++) t += "- " + mi[k] + "\n";
+   for(int k = 0; k < np; k++) t += "+ " + pl[k] + "\n";
+   return t;
+  }
+
 // The N zones closest to price, mentor style: light fill, solid border, prices at the right edge.
 void DrawZones(Zone &zs[], bool htf)
   {
@@ -491,7 +569,8 @@ void DrawZones(Zone &zs[], bool htf)
       for(int j = 0; j < n; j++) if(idx[j] >= 0 && (best < 0 || dst[j] < dst[best])) best = j;
       if(best < 0) break;
       if(!htf && !zs[idx[best]].removed && zs[idx[best]].trapBar == -1) { int tb; bool cr; Zone q = zs[idx[best]]; zs[idx[best]].trap = FindTrap(_Symbol, tf, q.dir, q.prox, q.dist, q.saBar, q.baseEnd, tb, cr); zs[idx[best]].trapBar = tb == -1 ? -2 : tb; zs[idx[best]].crowded = cr; }
-      Zone z = zs[idx[best]]; string id = PFX + (htf ? "H" : "Z") + IntegerToString(idx[best]); idx[best] = -1;
+      int zi = idx[best]; Zone z = zs[zi]; string id = PFX + (htf ? "H" : "Z") + IntegerToString(zi); idx[best] = -1;
+      string verdict = "", shortWhy = "", full = htf ? "" : ZoneNotes(zs, zi, verdict, shortWhy);
       color fill = htf ? InpHtfFill : (z.removed ? C'250,230,212' : (z.dir > 0 ? InpDemandFill : InpSupplyFill));
       color line = z.removed ? InpMuted : (z.dir > 0 ? InpDemandLine : InpSupplyLine);
       datetime t1 = iTime(_Symbol, tf, z.legBar + z.baseN);
@@ -499,7 +578,7 @@ void DrawZones(Zone &zs[], bool htf)
       ObjectCreate(0, id, OBJ_RECTANGLE, 0, t1, z.prox, t2, z.dist);
       ObjectSetInteger(0, id, OBJPROP_COLOR, fill); ObjectSetInteger(0, id, OBJPROP_BACK, true); ObjectSetInteger(0, id, OBJPROP_SELECTABLE, false);
       string state = z.removed ? "removed" : (z.tested ? "tested" : "fresh");
-      ObjectSetString(0, id, OBJPROP_TOOLTIP, StringFormat("%s%s | grade %s | move away %.1fx | base %d | %s | %s", htf ? TfName(tf) + " " : "", ZoneName(z), z.grade, z.legRatio, z.baseN, state, htf ? "" : z.qual));
+      ObjectSetString(0, id, OBJPROP_TOOLTIP, htf ? TfName(tf) + " " + ZoneName(z) : ZoneName(z) + " - " + full);
       if(!htf)
         {
          HLine(id + "p", t1, t2, z.prox, line, STYLE_SOLID, 1);
@@ -516,8 +595,9 @@ void DrawZones(Zone &zs[], bool htf)
         }
       if(InpShowNames)
         {
-         string nm = htf ? TfName(tf) + " " + (z.dir > 0 ? "demand" : "supply") : ZoneName(z) + (z.grade == "A" ? "" : " | " + z.grade) + (state == "fresh" ? "" : " | " + state) + (z.gap < InpMinGap ? " | drawable only" : "") + (z.crowded ? " | on S/R level (crowded)" : "");
-         Txt(id + "n", t1, z.dir > 0 ? z.dist : z.dist, nm, InpText, 7, z.dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
+         string nm = htf ? TfName(tf) + " " + (z.dir > 0 ? "demand" : "supply") : ZoneName(z) + " | " + verdict + (shortWhy == "" ? "" : ": " + shortWhy);
+         Txt(id + "n", t1, z.dir > 0 ? z.dist : z.dist, nm, verdict == "WEAK" ? InpMuted : InpText, 7, z.dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
+         if(!htf) ObjectSetString(0, id + "n", OBJPROP_TOOLTIP, full);
         }
      }
   }
@@ -576,6 +656,11 @@ void Panel()
    string L = StringFormat("ZoneVision  %s %s  ->  bias from %s\n", _Symbol, TfName(_Period), htf > 0 ? TfName(htf) : "-");
    L += "Bias: " + (trend > 0 ? "UP - buys only" : (trend < 0 ? "DOWN - sells only" : "unclear - bot waits")) + "\n";
    L += "Structure: " + StructureNow() + "\n";
+   { double mid = (Bid + Ask) / 2;
+     if(Overextended(1, mid)) L += "Up channel: price beyond 50% = OVEREXTENDED - no buys, wait for the golden area\n";
+     else if(gUpOn) L += "Up channel: price in the golden area (line to 50%)\n";
+     if(Overextended(-1, mid)) L += "Down channel: price beyond 50% = OVEREXTENDED - no sells, wait for the golden area\n";
+     else if(gDnOn) L += "Down channel: price in the golden area (line to 50%)\n"; }
 
    string plan = "Bot: no trade setup";
    for(int i = ArraySize(Z) - 1; i >= 0; i--)
@@ -583,6 +668,7 @@ void Panel()
       if(Z[i].removed || Z[i].tested || !Z[i].cont) continue;
       if(InpOnlyQualified && !Z[i].chain) continue;
       if(Z[i].gap < InpMinGap || TooSmall(Z, i)) continue;
+      if(Overextended(Z[i].dir, Z[i].prox)) continue;                // Kevin: buy only in the golden area (line to 50%)
       if(Z[i].legBar > InpMaxZoneAge) break;
       int dir = Z[i].dir;
       double opp = 0;

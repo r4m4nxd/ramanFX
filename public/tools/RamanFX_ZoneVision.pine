@@ -4,7 +4,7 @@
 // liquidity traps, trendlines and HTF bias (1m up to 12M).
 // Add to chart: Pine Editor -> paste -> Save -> Add to chart. Alerts: Create alert -> "Any alert() function call".
 //@version=6
-indicator("RamanFX ZoneVision", shorttitle="ZoneVision", overlay=true, max_boxes_count=200, max_lines_count=100, max_labels_count=100)
+indicator("RamanFX ZoneVision", shorttitle="ZoneVision", overlay=true, max_boxes_count=200, max_lines_count=100, max_labels_count=100, max_bars_back=2100)
 
 // ---------- inputs ----------
 gR = "Zone rules (keep equal to ZoneBot)"
@@ -13,7 +13,8 @@ maxBase    = input.int(6, "Max basing candles", minval=1, maxval=6, group=gR)
 maxZoneATR = input.float(1.5, "Max zone height (x ATR14)", minval=0.2, step=0.1, group=gR)
 minDep     = input.float(1.5, "Departure: price must leave >= N x zone height", minval=0.0, step=0.1, group=gR)
 lookback   = input.int(300, "Ignore zones older than (bars)", minval=50, maxval=2000, group=gR)
-swingN     = input.int(3, "Swing strength (bars each side)", minval=1, maxval=10, group=gR)
+swingN     = input.int(3, "Swing strength for liquidity-trap levels (bars each side)", minval=1, maxval=10, group=gR)
+swingATR   = input.float(2.0, "Trendlines: a real peak / valley = price turns at least N x ATR", minval=0.5, step=0.25, group=gR)
 trapATR    = input.float(1.0, "Liquidity trap: level within N x ATR in front of the zone", step=0.1, group=gR)
 minRR      = input.float(2.0, "Min reward:risk for the plan", step=0.1, group=gR)
 onlyChain  = input.bool(true, "Sunday rule: trade only zones in the chain (removed opp. zone or made a new all-time high/low)", group=gR)
@@ -269,12 +270,33 @@ planFor(Zone z) =>
     rr = na(tp) or risk <= 0 ? 0.0 : z.dir * (tp - z.prox) / risk
     [sl, tp, rr]
 
+// trendlines (filled on the last bar): removals feed the chain rule, the newest intact line feeds the channel 50% check
+var tlRemDir = array.new<int>()
+var tlRemBar = array.new<int>()
+var bool upOn = false
+var bool dnOn = false
+var float upP = na
+var float upS = na
+var float upW = na
+var int upB = na
+var float dnP = na
+var float dnS = na
+var float dnW = na
+var int dnB = na
+overext(int d, float price) =>
+    d > 0 ? (upOn and price > upP + upS * (bar_index - upB) + upW / 2) : (dnOn and price < dnP + dnS * (bar_index - dnB) - dnW / 2)
+
 qualified(Zone z) =>
     bool q = false
     for o in zones
         if o.dir != z.dir and o.removed and not na(o.remBar) and o.remBar >= z.t0 and o.remBar <= z.legBar + 5
             q := true
             break
+    if not q and tlRemDir.size() > 0
+        for i = 0 to tlRemDir.size() - 1
+            if tlRemDir.get(i) == -z.dir and tlRemBar.get(i) >= z.t0 and tlRemBar.get(i) <= z.legBar + 5
+                q := true
+                break
     q or z.ath
 
 // Planner points (0-100) + Seiden / mentor odds checklist
@@ -307,6 +329,61 @@ scoreZone(Zone z, float sl) =>
     why += "\n" + (z.cont ? no + "Type: CP continuation (VP preferred)" : ok + "Type: VP valley/peak (mentor's favourite)")
     [math.min(100, sc), why]
 
+// Strong / weak in a few words (Kevin + Seiden checks). WEAK = any deal-breaker; STRONG = 5+ strengths, at most one weakness
+zoneNotes(Zone z, float medZ) =>
+    pl = array.new<string>()
+    mi = array.new<string>()
+    cr = array.new<string>()
+    if z.baseN <= 3
+        pl.push(str.tostring(z.baseN) + " base candle" + (z.baseN > 1 ? "s" : ""))
+    else if z.baseN > 6
+        mi.push("long base (" + str.tostring(z.baseN) + " candles)")
+    if z.ratio >= 2.5
+        pl.push("explosive move away " + str.tostring(z.ratio, "#.0") + "x")
+    else if z.ratio < 1.8
+        mi.push("weak move away " + str.tostring(z.ratio, "#.0") + "x")
+    if z.leg2
+        pl.push("2nd explosive candle")
+    else
+        mi.push("only one explosive candle")
+    if qualified(z)
+        pl.push(z.ath ? "in the chain: new " + (z.dir > 0 ? "high" : "low") : "in the chain: removed a zone / trendline")
+    else
+        cr.push("not in the chain (removed nothing)")
+    if z.gap < minGap
+        cr.push("drawable only: no space under the stay-away candle")
+    else if z.gap >= 0.25
+        pl.push("clear space " + str.tostring(math.round(z.gap * 100)) + "%")
+    if z.tested
+        cr.push("already tested")
+    else
+        pl.push("fresh")
+    if medZ > 0 and math.abs(z.prox - z.dist) < minSizeMed * medZ
+        cr.push("too small vs other zones")
+    if not z.cont
+        pl.push("VP (Kevin's favourite)")
+    if htfTrend == z.dir
+        pl.push("with the " + htf + " trend")
+    else if htfTrend == -z.dir
+        cr.push("against the " + htf + " trend")
+    if overext(z.dir, z.prox)
+        cr.push("beyond channel 50% (overextended)")
+    if trapFor(z) >= 0
+        pl.push("liquidity trap in front")
+    xa = na(htfAtr) or htfAtr <= 0 ? 0.0 : math.abs(close - z.prox) / htfAtr
+    if xa > liveATR
+        mi.push("far: " + str.tostring(xa, "#.0") + " x " + htf + " ATR")
+    verdict = cr.size() > 0 ? "WEAK" : pl.size() >= 5 and mi.size() <= 1 ? "STRONG" : "OK"
+    shortWhy = cr.size() > 0 ? cr.get(0) + (cr.size() > 1 ? ", " + cr.get(1) : "") : verdict == "STRONG" ? pl.get(0) + (pl.size() > 1 ? ", " + pl.get(1) : "") : mi.size() > 0 ? mi.get(0) : pl.size() > 0 ? pl.get(0) : ""
+    full = verdict
+    for t in cr
+        full += "\n✘ " + t
+    for t in mi
+        full += "\n– " + t
+    for t in pl
+        full += "\n✔ " + t
+    [verdict, shortWhy, full]
+
 gradeOf(int sc) => sc >= 75 ? "A" : sc >= 60 ? "B" : "C"
 gradeOk(string g) => gradeF == "All" or (gradeF == "A only" and g == "A") or (gradeF == "A + B" and g != "C") or (gradeF == "B only" and g == "B") or (gradeF == "C only" and g == "C")
 var string lastBest = ""
@@ -333,6 +410,147 @@ if barstate.islast
     tagC = array.new<color>()
     tagTip = array.new<string>()
 
+    // ---- trendlines, Kevin's way: real peaks / valleys (zigzag turns >= swingATR x ATR), the two most recent,
+    // higher low / lower high, anchored so no candle is cut, drawn only until a full candle closes beyond it
+    zL = math.min(lookback, bar_index - 20)
+    pvB = array.new<int>()
+    pvP = array.new<float>()
+    pvT = array.new<int>()
+    int zd = 0
+    int hiB = bar_index - zL
+    int loB = bar_index - zL
+    float hiP = high[zL]
+    float loP = low[zL]
+    for off = zL - 1 to 1
+        th = swingATR * atr[off]
+        bi = bar_index - off
+        h = high[off]
+        l = low[off]
+        if zd == 0
+            if h > hiP
+                hiP := h
+                hiB := bi
+            if l < loP
+                loP := l
+                loB := bi
+            if hiP - loP >= th
+                if hiB < loB
+                    pvB.push(hiB), pvP.push(hiP), pvT.push(1)
+                    zd := -1
+                else
+                    pvB.push(loB), pvP.push(loP), pvT.push(-1)
+                    zd := 1
+        else if zd > 0
+            if h > hiP
+                hiP := h
+                hiB := bi
+            else if hiP - l >= th
+                pvB.push(hiB), pvP.push(hiP), pvT.push(1)
+                zd := -1
+                loP := l
+                loB := bi
+        else
+            if l < loP
+                loP := l
+                loB := bi
+            else if h - loP >= th
+                pvB.push(loB), pvP.push(loP), pvT.push(-1)
+                zd := 1
+                hiP := h
+                hiB := bi
+    upOn := false
+    dnOn := false
+    tlRemDir.clear()
+    tlRemBar.clear()
+    string tlNote = ""
+    for kd = 0 to 1
+        d = kd == 0 ? 1 : -1
+        want = d > 0 ? -1 : 1
+        int prev = -1
+        int la = na
+        int lb2 = na
+        float lp2 = na
+        float ls = na
+        int lrem = -1
+        bool lconf = false
+        if pvB.size() > 0
+            for k = 0 to pvB.size() - 1
+                if pvT.get(k) != want
+                    continue
+                if prev < 0
+                    prev := k
+                    continue
+                k1 = prev
+                prev := k
+                b1 = pvB.get(k1)
+                p1 = pvP.get(k1)
+                b2 = pvB.get(k)
+                p2 = pvP.get(k)
+                if d > 0 ? p2 <= p1 : p2 >= p1
+                    continue
+                float sl = d > 0 ? -1e10 : 1e10
+                int a = b1
+                for x = b1 to b2 - 1
+                    off = bar_index - x
+                    v = d > 0 ? (p2 - low[off]) / (b2 - x) : (p2 - high[off]) / (b2 - x)
+                    if d > 0 ? v > sl : v < sl
+                        sl := v
+                        a := x
+                float mid = d > 0 ? -1e10 : 1e10
+                if b2 - 1 >= b1 + 1
+                    for x = b1 + 1 to b2 - 1
+                        mid := d > 0 ? math.max(mid, high[bar_index - x]) : math.min(mid, low[bar_index - x])
+                bool conf = false
+                int rem = -1
+                if bar_index - 1 >= b2 + 1
+                    for x = b2 + 1 to bar_index - 1
+                        off = bar_index - x
+                        if not conf and (d > 0 ? high[off] > mid : low[off] < mid)
+                            conf := true
+                        lv = p2 + sl * (x - b2)
+                        if d > 0 ? high[off] < lv : low[off] > lv
+                            rem := x
+                            break
+                if rem >= 0
+                    tlRemDir.push(d), tlRemBar.push(rem)
+                la := a
+                lb2 := b2
+                lp2 := p2
+                ls := sl
+                lrem := rem
+                lconf := conf
+        if not na(la)
+            x2 = lrem >= 0 ? lrem : bar_index + 5
+            y1 = lp2 + ls * (la - lb2)
+            y2 = lp2 + ls * (x2 - lb2)
+            if showTL and (d > 0 ? showUpTL : showDnTL)
+                lines.push(line.new(la, y1, x2, y2, color=lrem >= 0 ? color.new(cTL, 65) : cTL, style=lrem >= 0 ? line.style_dotted : lconf ? line.style_solid : line.style_dashed, width=lrem >= 0 ? 1 : 2))
+            if lrem < 0 and lconf
+                float w = 0.0
+                for x = la to bar_index
+                    off = bar_index - x
+                    lv = lp2 + ls * (x - lb2)
+                    w := math.max(w, d > 0 ? high[off] - lv : lv - low[off])
+                if showTL and (d > 0 ? showUpTL : showDnTL)
+                    lines.push(line.new(la, y1 + d * w / 2, x2, y2 + d * w / 2, color=color.new(cTL, 70), style=line.style_dotted))
+                if d > 0
+                    upOn := true
+                    upP := lp2
+                    upS := ls
+                    upB := lb2
+                    upW := w
+                else
+                    dnOn := true
+                    dnP := lp2
+                    dnS := ls
+                    dnB := lb2
+                    dnW := w
+                tlNote := tlNote + (tlNote == "" ? "" : " | ") + (d > 0 ? "Up channel: " : "Down channel: ") + (overext(d, close) ? "price beyond 50% = OVEREXTENDED, wait" : "price in the golden area (line to 50%)")
+            else if lrem >= 0
+                tlNote := tlNote + (tlNote == "" ? "" : " | ") + (d > 0 ? "Uptrend line removed by a full candle below it" : "Downtrend line removed by a full candle above it")
+            else
+                tlNote := tlNote + (tlNote == "" ? "" : " | ") + (d > 0 ? "Uptrend line not confirmed yet (needs a higher high)" : "Downtrend line not confirmed yet (needs a lower low)")
+
     // potential trades: every fresh usable zone with a valid plan, ranked by planner score
     tIdx = array.new<int>()
     tSc = array.new<float>()
@@ -350,6 +568,8 @@ if barstate.islast
             if onlyChain and not qualified(z)
                 continue
             if z.gap < minGap or z.dir == 0
+                continue
+            if overext(z.dir, z.prox)
                 continue
             if medZ > 0 and math.abs(z.prox - z.dist) < minSizeMed * medZ
                 continue
@@ -441,10 +661,11 @@ if barstate.islast
             tr = showTrap ? trapFor(z) : -1
             zi = idx.get(ord.get(n))
             isTrade = tradeOf.get(zi) > 0
-            txt = showNames ? zname(z) + " | zone " + g + (z.gap < minGap ? " | drawable only" : "") + (onlyChain and not qualified(z) ? " | not in chain" : "") + (isTrade ? " | " + tradeTxt.get(zi) : "") + (tr >= 0 ? " | liquidity trap" : "") + (z.tested ? " | tested" : "") : ""
-            boxes.push(box.new(z.t0, z.prox, right, z.dist, border_color=z.dir > 0 ? cDemL : cSupL, bgcolor=z.dir > 0 ? cDemF : cSupF, text=txt, text_color=cTxt, text_size=size.small, text_halign=text.align_left, text_valign=z.dir > 0 ? text.align_bottom : text.align_top))
+            [verdict, shortWhy, full] = zoneNotes(z, medZ)
+            txt = showNames ? zname(z) + " | " + verdict + (shortWhy != "" ? ": " + shortWhy : "") + (isTrade ? " | " + tradeTxt.get(zi) : "") : ""
+            boxes.push(box.new(z.t0, z.prox, right, z.dist, border_color=z.dir > 0 ? cDemL : cSupL, bgcolor=z.dir > 0 ? cDemF : cSupF, text=txt, text_color=verdict == "WEAK" ? color.new(cTxt, 45) : cTxt, text_size=size.small, text_halign=text.align_left, text_valign=z.dir > 0 ? text.align_bottom : text.align_top))
             if not (isTrade and (planLines == "All listed" or tradeOf.get(zi) == 1))
-                tagP.push(z.prox), tagT.push(str.tostring(z.prox, format.mintick)), tagC.push(z.dir > 0 ? cDemL : cSupL), tagTip.push("Proximal line (entry side) of the " + (z.dir > 0 ? "demand" : "supply") + " zone")
+                tagP.push(z.prox), tagT.push(str.tostring(z.prox, format.mintick)), tagC.push(z.dir > 0 ? cDemL : cSupL), tagTip.push(zname(z) + " - " + full)
                 tagP.push(z.dist), tagT.push(str.tostring(z.dist, format.mintick)), tagC.push(cTxt), tagTip.push("Distal line (far side) of the zone")
             if tr >= 0
                 tp = z.dir > 0 ? plP.get(tr) : phP.get(tr)
@@ -459,46 +680,6 @@ if barstate.islast
             if z.removed and cnt < 6 and z.legBar >= bar_index - lookback
                 boxes.push(box.new(z.t0, z.prox, z.remBar, z.dist, border_color=cRem, bgcolor=cRem))
                 cnt += 1
-
-    // newest intact trendline each way (rising: two higher lows, falling: two lower highs)
-    string tlNote = ""
-    if showTL
-        if showUpTL and plP.size() >= 2
-            for i = plP.size() - 1 to 1
-                p2 = plP.get(i), p1 = plP.get(i - 1), b2 = plB.get(i), b1 = plB.get(i - 1)
-                if p2 > p1
-                    slope = (p2 - p1) / (b2 - b1)
-                    bool broken = false
-                    float ch = 0.0
-                    for off = 0 to math.min(bar_index - b1, 4900)
-                        lv = p1 + slope * (bar_index - off - b1)
-                        if bar_index - off > b2 and high[off] < lv
-                            broken := true
-                        ch := math.max(ch, high[off] - lv)
-                    if not broken
-                        lines.push(line.new(b1, p1, b2, p2, color=cTL, width=1, extend=extend.right))
-                        lines.push(line.new(b1, p1 + ch / 2, b2, p2 + ch / 2, color=color.new(cTL, 70), style=line.style_dotted, extend=extend.right))
-                        mid = p1 + slope * (bar_index - b1) + ch / 2
-                        tlNote := (close > mid ? "Up channel: price beyond 50% = overextended, wait" : "Up channel: price in the golden area (line to 50%)")
-                    break
-        if showDnTL and phP.size() >= 2
-            for i = phP.size() - 1 to 1
-                p2 = phP.get(i), p1 = phP.get(i - 1), b2 = phB.get(i), b1 = phB.get(i - 1)
-                if p2 < p1
-                    slope = (p2 - p1) / (b2 - b1)
-                    bool broken = false
-                    float ch = 0.0
-                    for off = 0 to math.min(bar_index - b1, 4900)
-                        lv = p1 + slope * (bar_index - off - b1)
-                        if bar_index - off > b2 and low[off] > lv
-                            broken := true
-                        ch := math.max(ch, lv - low[off])
-                    if not broken
-                        lines.push(line.new(b1, p1, b2, p2, color=cTL, width=1, extend=extend.right))
-                        lines.push(line.new(b1, p1 - ch / 2, b2, p2 - ch / 2, color=color.new(cTL, 70), style=line.style_dotted, extend=extend.right))
-                        mid = p1 + slope * (bar_index - b1) - ch / 2
-                        tlNote := tlNote + (tlNote == "" ? "" : " | ") + (close < mid ? "Down channel: beyond 50% = overextended, wait" : "Down channel: price in the golden area (line to 50%)")
-                    break
 
     // merge price tags that would sit on top of each other
     if tagP.size() > 0
