@@ -543,6 +543,12 @@ int KFit(string s, int tf, int A, int b2, double p2, int d, double &sl)       //
    sl = (p2 - (d > 0 ? iLow(s, tf, a) : iHigh(s, tf, a))) / (a - b2);
    return a;
   }
+// Kevin: a near-horizontal line is momentum, not a trendline: needs >= 0.015 ATR per bar and >= 1.5 ATR in total
+bool KFlat(string s, int tf, int a, int b2, double p2, double sl, int d)
+  {
+   double atr = MathMax(iATR(s, tf, 14, b2), MarketInfo(s, MODE_POINT));
+   return MathAbs(sl) < 0.015 * atr || MathAbs(sl * (a - b2)) < 1.5 * atr;
+  }
 void KAdd(string s, int tf, KLine &out[], int d, int a, int b2, double p2, double sl, bool ov)
   {
    KLine t; t.dir = d; t.a = a; t.b = b2; t.pb = p2; t.sl = sl; t.removed = false; t.conf = true; t.ov = ov; t.tRem = 0;
@@ -559,17 +565,25 @@ int KLines(string s, int tf, KLine &out[])
    Zz(s, tf, bars);
    for(int d = -1; d <= 1; d += 2)
      {
-      int want = d > 0 ? -1 : 1, prevB = -1; double prevP = 0, sl = 0;
+      int want = d > 0 ? -1 : 1, prevB = -1, lastA = -1; double prevP = 0, sl = 0;
       for(int k = 0; k < ArraySize(pzB); k++)
         {
          if(pzT[k] != want) continue;
-         int b2 = pzB[k], A = -1; double p2 = pzP[k];
-         if(prevB > 0 && (d > 0 ? prevP < p2 : prevP > p2) && MathAbs(prevP - p2) >= iATR(s, tf, 14, b2)) A = prevB;
-         else { A = d > 0 ? iLowest(s, tf, MODE_LOW, bars - b2, b2 + 1) : iHighest(s, tf, MODE_HIGH, bars - b2, b2 + 1); if(A < 0 || (d > 0 ? iLow(s, tf, A) >= p2 : iHigh(s, tf, A) <= p2)) A = -1; }
+         int b2 = pzB[k], a = -1, pb = prevB; double p2 = pzP[k], pp = prevP;
          prevB = b2; prevP = p2;
-         if(A < 0) continue;
-         int a = KFit(s, tf, A, b2, p2, d, sl);
+         if(pb > 0 && (d > 0 ? pp < p2 : pp > p2)) { a = KFit(s, tf, pb, b2, p2, d, sl); if(KFlat(s, tf, a, b2, p2, sl, d)) a = -1; }
+         if(a < 0 && lastA > b2 && (d > 0 ? iLow(s, tf, lastA) < p2 : iHigh(s, tf, lastA) > p2)) { a = KFit(s, tf, lastA, b2, p2, d, sl); if(KFlat(s, tf, a, b2, p2, sl, d)) a = -1; }   // original starting point
+         if(a < 0)
+           {
+            int A = d > 0 ? iLowest(s, tf, MODE_LOW, bars - b2, b2 + 1) : iHighest(s, tf, MODE_HIGH, bars - b2, b2 + 1);
+            if(A < 0 || (d > 0 ? iLow(s, tf, A) >= p2 : iHigh(s, tf, A) <= p2)) continue;
+            a = KFit(s, tf, A, b2, p2, d, sl);
+            if(KFlat(s, tf, a, b2, p2, sl, d)) continue;
+           }
+         int n = ArraySize(out);
+         if(n > 0 && out[n - 1].dir == d && out[n - 1].a == a) ArrayResize(out, n - 1);   // same anchor = the same line, updated
          KAdd(s, tf, out, d, a, b2, p2, sl, false);
+         lastA = a;
         }
       int O = d > 0 ? iLowest(s, tf, MODE_LOW, bars, 1) : iHighest(s, tf, MODE_HIGH, bars, 1);
       if(O < 0) continue;
@@ -581,7 +595,7 @@ int KLines(string s, int tf, KLine &out[])
          if((d > 0 && s0 <= 0) || (d < 0 && s0 >= 0)) continue;
          if(bk < 0 || (d > 0 ? s0 < bs : s0 > bs)) { bk = k; bs = s0; }
         }
-      if(bk >= 0) { int a = KFit(s, tf, O, pzB[bk], pzP[bk], d, sl); KAdd(s, tf, out, d, a, pzB[bk], pzP[bk], sl, true); }
+      if(bk >= 0) { int a = KFit(s, tf, O, pzB[bk], pzP[bk], d, sl); if(!KFlat(s, tf, a, pzB[bk], pzP[bk], sl, d)) KAdd(s, tf, out, d, a, pzB[bk], pzP[bk], sl, true); }
      }
    return ArraySize(out);
   }
