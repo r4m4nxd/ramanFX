@@ -142,7 +142,7 @@ function ZoneBot() {
       <Section title="Key settings">
         <Table head={['Input', 'What it does']} rows={[
           ['InpMode', 'Approve (default): you confirm every order. Auto: it places orders itself. Scanner: alerts only.'],
-          ['InpAggressive', 'Off by default. On = trade every legit zone it can, on every timeframe: all entry timeframes M1 to W1, set & forget AND confirmation entries, grades A, B and C (C still risks half with InpHalfRiskC), VP zones too, one order per pair per timeframe (caps raised to at least 7 per pair and 60 in total) and every timeframe scanned on each tick. The zone rules stay: chain, stay-away gap, size vs the median, fresh zones only, HTF trend / trendline bias, no overextended zones, minimum R:R, stop buffers, risk % per trade and the news filter in live trading. It does not switch Approve to Auto.'],
+          ['InpAggressive', 'Off by default. On = trade every legit zone it can, on every timeframe you leave ticked (InpTF_M1 to InpTF_W1, all on by default), set & forget AND confirmation entries, grades A, B and C (C still risks half with InpHalfRiskC), VP zones too, one order per pair per timeframe (caps raised to at least 7 per pair and 60 in total) and every timeframe scanned on each tick. The zone rules stay: chain, stay-away gap, size vs the median, fresh zones only, HTF trend / trendline bias, no overextended zones, minimum R:R, stop buffers, risk % per trade and the news filter in live trading. It does not switch Approve to Auto.'],
           ['InpGrades', 'Which grades it may advise/trade.'],
           ['InpRiskPct', 'Risk per trade, default 1% of balance. Also capped by InpMaxLots and InpMaxMarginPct.'],
           ['InpEntry', 'Set & forget, confirmation, or both.'],

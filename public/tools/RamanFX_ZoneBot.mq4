@@ -35,7 +35,7 @@ enum TpMode    { TP_SWING = 0, TP_OPP_ZONE = 1, TP_NEAREST = 2 };
 enum Grades    { GR_ALL = 0, GR_A = 1, GR_AB = 2, GR_B = 3, GR_C = 4 };
 
 input BotMode   InpMode          = MODE_APPROVE; // Mode: Approve = bot finds + alerts, you check the chart and press Place
-input bool      InpAggressive    = false;        // Aggressive: all TFs, S&F + conf, grades A-C (C half risk), VP, 1 order/pair/TF (>=7/pair, 60 total). Zone rules, stops, R:R, risk %, news still apply
+input bool      InpAggressive    = false;        // Aggressive: TFs ticked below, S&F + conf, grades A-C (C half risk), VP, 1 order/pair/TF (>=7/pair, 60 total). Zone rules, stops, R:R, risk %, news still apply
 input Grades    InpGrades        = GR_ALL;       // Which planner grades to trade: All / A only / A+B / B only / C only
 input bool      InpHalfRiskC     = true;         // Planner rule: low odds (grade C) risks half
 input EntryMode InpEntry         = ENTRY_BOTH;   // Entry method
@@ -422,7 +422,6 @@ void Work()
 
 bool TfOn(int k)
   {
-   if(InpAggressive) return k >= 0 && k < NTF;                         // aggressive preset: every entry timeframe
    if(k == 0) return InpTF_M1;
    if(k == 1) return InpTF_M5;
    if(k == 2) return InpTF_M15;
