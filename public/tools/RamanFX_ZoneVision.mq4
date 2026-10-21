@@ -20,7 +20,7 @@
 //| into a zone does not count as a touch. Removal needs a CLOSE.    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.94"
+#property version   "1.95"
 #property strict
 #property indicator_chart_window
 
@@ -463,27 +463,42 @@ int ChartBarIn(int d, int hb)
 // anchor = this chart's candle holding the extreme inside the HTF anchor bar; touch = the swing point of THIS chart
 // that keeps every other swing on the right side of the line (a tangent), searched until the HTF break - the way you
 // refine touch points going down the timeframes. Falls back to the candle inside the HTF pivot bar.
-bool RefineOnChart(int d, int aH, int bH, int endH, int &ca, int &cb, double &csl)
+// HTF line on this chart, the way you refine it going down the timeframes:
+//  1) anchor = this chart's candle holding the extreme inside the HTF anchor bar;
+//  2) touch = the candle (up to the HTF pivot) that keeps every candle between on the right side - no cut candles;
+//  3) walk forward on THIS chart: a later swing that pokes beyond the line becomes the new touch; the walk stops at the
+//     first full candle beyond the line (the break on this chart), so later rallies never flatten the line.
+// ce = this chart's break bar (-1 = still respected here). false when the history does not reach the anchor.
+bool RefineOnChart(int d, int aH, int bH, int endH, int &ca, int &cb, double &csl, int &ce)
   {
-   ca = ChartBarIn(d, aH);
-   if(ca < 0) return false;
-   int stop = endH >= 0 ? iBarShift(NULL, 0, iTime(NULL, gTF, endH)) + 1 : 1;
-   int keep = gTF; gTF = _Period;
-   double pa = d > 0 ? Low[ca] : High[ca], best = 0; cb = -1;
-   for(int j = ca - InpTLSwing - 1; j >= MathMax(stop, InpTLSwing + 1); j--)
+   ca = ChartBarIn(d, aH); int ph = ChartBarIn(d, bH); ce = -1;
+   if(ca < 0 || ph < 0 || ph >= ca) return false;
+   double pa = d > 0 ? Low[ca] : High[ca];
+   cb = -1; csl = 0;
+   for(int j = ca - 1; j >= ph; j--)
      {
-      if(!(d > 0 ? FrLow(j) : FrHigh(j))) continue;
       double s0 = ((d > 0 ? Low[j] : High[j]) - pa) / (ca - j);
       if((d > 0 && s0 <= 0) || (d < 0 && s0 >= 0)) continue;
-      if(cb < 0 || (d > 0 ? s0 < best : s0 > best)) { cb = j; best = s0; }
+      if(cb < 0 || (d > 0 ? s0 < csl : s0 > csl)) { cb = j; csl = s0; }
      }
-   if(cb < 0) { gTF = keep; cb = ChartBarIn(d, bH); if(cb < 0 || cb >= ca) return false; gTF = _Period; }
-   // Kevin: if the line cuts a candle between the anchor and the touch, move the anchor to the next highest (lowest)
-   // point that cuts nothing - on THIS chart's candles
-   ca = FitAnchor(ca, cb, d > 0 ? Low[cb] : High[cb], d, csl);
+   if(cb < 0) return false;
+   int keep = gTF; gTF = _Period;
+   int stop = endH >= 0 ? MathMax(1, iBarShift(NULL, 0, iTime(NULL, keep, endH)) - 1) : 1;
+   for(int j = ph - 1; j >= 1; j--)
+     {
+      double lv = (d > 0 ? Low[cb] : High[cb]) + csl * (cb - j);
+      if((d > 0 && High[j] < lv) || (d < 0 && Low[j] > lv)) { ce = j; break; }            // a full candle beyond: broken here
+      if(j < stop) break;
+      if(j > InpTLSwing && (d > 0 ? FrLow(j) : FrHigh(j)) && (d > 0 ? Low[j] < lv : High[j] > lv))
+        {
+         double s0 = ((d > 0 ? Low[j] : High[j]) - pa) / (ca - j);
+         if((d > 0 && s0 > 0) || (d < 0 && s0 < 0)) { cb = j; csl = s0; }                // a later swing pokes through: new touch
+        }
+     }
    gTF = keep;
    return true;
   }
+
 bool Confirmed(int a, int b2, double p2, double sl, int d)
   {
    double ext = d > 0 ? -DBL_MAX : DBL_MAX;
@@ -578,22 +593,23 @@ void Trendlines(string s, int tf)
          string nm = PFX + "tl" + (gTF == _Period ? "" : "H" + IntegerToString(gTF) + "_") + IntegerToString(i);
          color c = gTF == _Period ? (TL[i].removed ? InpMuted : InpTrend) : (TL[i].removed ? InpHtfTLBroken : InpHtfTL);   // broken: light dotted; respected: thick dark
          datetime x1 = iTime(NULL, gTF, TL[i].a), x2 = TL[i].removed ? iTime(NULL, gTF, end) : iTime(NULL, gTF, 0) + PeriodSeconds(gTF) * 3;
-         double y1 = TL[i].pa;
+         double y1 = TL[i].pa; datetime rTouch = 0;
          // higher-timeframe line on this chart: re-anchor it on this chart's own candles - the top-most (bottom-most)
          // candle inside each HTF pivot, then moved so it cuts no candle of this chart (clean, exact touch points)
          if(gTF != _Period && InpRefineHTF)
            {
-            int ca, cb; double csl;
-            if(RefineOnChart(d, TL[i].a, TL[i].b, TL[i].removed ? TL[i].removedBar : -1, ca, cb, csl))
+            int ca, cb, ce; double csl;
+            if(RefineOnChart(d, TL[i].a, TL[i].b, TL[i].removed ? TL[i].removedBar : -1, ca, cb, csl, ce))
               {
                double pcb = up ? Low[cb] : High[cb];
                x1 = Time[ca]; y1 = up ? Low[ca] : High[ca];
-               if(TL[i].removed) { int ce = iBarShift(NULL, 0, iTime(NULL, gTF, end)); x2 = Time[ce]; pe = pcb + csl * (cb - ce); }
+               if(TL[i].removed && ce < 0) ce = iBarShift(NULL, 0, iTime(NULL, gTF, end));
+               if(ce >= 0) { x2 = Time[ce]; pe = pcb + csl * (cb - ce); }
                else { x2 = Time[0] + PeriodSeconds() * 3; pe = pcb + csl * (cb + 3); }
+               rTouch = Time[cb];
               }
            }
-         datetime tTouch = iTime(NULL, gTF, TL[i].b);
-         if(gTF != _Period && InpRefineHTF) { int ca2, cb2; double cs2; if(RefineOnChart(d, TL[i].a, TL[i].b, TL[i].removed ? TL[i].removedBar : -1, ca2, cb2, cs2)) tTouch = Time[cb2]; }
+         datetime tTouch = rTouch > 0 ? rTouch : iTime(NULL, gTF, TL[i].b);
          if(InpShowTrendlines) { ObjectCreate(0, nm, OBJ_TREND, 0, x1, y1, x2, pe); RegTL(nm, x1, tTouch, d, TL[i].removed, gTF == _Period ? 0 : gTF); }
          ObjectSetInteger(0, nm, OBJPROP_RAY_RIGHT, false);
          ObjectSetInteger(0, nm, OBJPROP_COLOR, c);
@@ -847,7 +863,7 @@ string ZoneNotes(Zone &zs[], int i, string &verdict, string &shortWhy)
    for(int k = 0; k < nc; k++) t += "x " + cr[k] + NoteHelp(cr[k]) + "\n";
    for(int k = 0; k < nm; k++) t += "- " + mi[k] + NoteHelp(mi[k]) + "\n";
    for(int k = 0; k < np; k++) t += "+ " + pl[k] + NoteHelp(pl[k]) + "\n";
-   if(StringLen(t) > 1000) t = StringSubstr(t, 0, 990) + "...";      // MT4 hides tooltips that are too long
+   if(StringLen(t) > 400) t = StringSubstr(t, 0, 395) + "...";        // MT4 drops tooltips that are too long (keep well under its limit)
    return t;
   }
 
