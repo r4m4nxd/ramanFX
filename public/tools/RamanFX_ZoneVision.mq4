@@ -723,6 +723,35 @@ bool MetalOrOil()
   }
 
 void Push(string &a[], string v) { int n = ArraySize(a); ArrayResize(a, n + 1); a[n] = v; }
+// one-line explanation shown under each note in the tooltip
+string NoteHelp(string n)
+  {
+   if(StringFind(n, "clear space") >= 0) return "\n      " + "the first candle after the move away (stay-away candle) stayed this % of the zone height away from the entry line. Big gap = price left fast, orders still waiting. Under 15% = drawable only, not tradable.";
+   if(StringFind(n, "drawable only") >= 0) return "\n      " + "the stay-away candle came back too close to the entry line: the zone is real but not worth trading.";
+   if(StringFind(n, "explosive move away") >= 0) return "\n      " + "the move-away candle is this many times bigger than the biggest base candle. 2.5x+ = strong, under 1.8x = weak.";
+   if(StringFind(n, "weak move away") >= 0) return "\n      " + "the move-away candle is not much bigger than the base: weak imbalance, fewer orders left.";
+   if(StringFind(n, "2nd explosive candle") >= 0) return "\n      " + "a second big candle followed the first one: strong institutional push.";
+   if(StringFind(n, "only one explosive candle") >= 0) return "\n      " + "the push stopped after one candle: weaker than two.";
+   if(StringFind(n, "base candle") >= 0) return "\n      " + "few base candles = little time at the level = more orders left (Seiden: time at level).";
+   if(StringFind(n, "long base") >= 0) return "\n      " + "price sat at the level for many candles: orders used up.";
+   if(StringFind(n, "in the chain") >= 0) return "\n      " + "the move away removed an opposing zone, broke a trendline or made a new high / low (Kevin's chain rule).";
+   if(StringFind(n, "not in the chain") >= 0) return "\n      " + "the move away removed nothing: Kevin does not trade it.";
+   if(StringFind(n, "ARRIVAL") >= 0) return "\n      " + "broke the trendline AND took out the previous high / low: the strongest kind of zone.";
+   if(StringFind(n, "fresh") >= 0) return "\n      " + "price has not come back to the zone yet.";
+   if(StringFind(n, "already tested") >= 0) return "\n      " + "price already came back into the zone: orders partly used.";
+   if(StringFind(n, "VP") >= 0) return "\n      " + "valley / peak zone: price turned there (reversal) - Kevin's favourite.";
+   if(StringFind(n, "with the") >= 0) return "\n      " + "the zone points the same way as the higher-timeframe trend.";
+   if(StringFind(n, "against the") >= 0) return "\n      " + "the zone fights the higher-timeframe trend.";
+   if(StringFind(n, "beyond channel 50%") >= 0) return "\n      " + "the zone sits in the overextended half of the trend channel: wait for the golden area.";
+   if(StringFind(n, "too small") >= 0) return "\n      " + "much smaller than the other zones on this chart: easily run through.";
+   if(StringFind(n, "at the") >= 0) return "\n      " + "the zone sits on a respected trendline: two reasons in one place.";
+   if(StringFind(n, "without crossing") >= 0) return "\n      " + "price can reach the zone without breaking a trendline first: the line protects the zone.";
+   if(StringFind(n, "must cross") >= 0) return "\n      " + "a respected trendline lies between price and the zone: it has to break first.";
+   if(StringFind(n, "liquidity trap") >= 0) return "\n      " + "an obvious high / low in front of the zone where retail stops sit; price often grabs them, then reaches the zone.";
+   if(StringFind(n, "far:") >= 0) return "\n      " + "the zone is more than 2 x HTF ATR away: plan it, do not expect it soon.";
+   if(StringFind(n, "obvious S/R") >= 0) return "\n      " + "the zone sits on a level everyone sees: crowded, can be run through.";
+   return "";
+  }
 // Strong / weak in a few words: Kevin's and Seiden's checks on one zone.
 // verdict: WEAK if any deal-breaker, STRONG if 5+ strengths and at most one weakness, else OK.
 string ZoneNotes(Zone &zs[], int i, string &verdict, string &shortWhy)
@@ -753,9 +782,9 @@ string ZoneNotes(Zone &zs[], int i, string &verdict, string &shortWhy)
    else if(verdict == "STRONG") shortWhy = pl[0] + (np > 1 ? ", " + pl[1] : "");
    else shortWhy = (nm > 0 ? mi[0] : (np > 0 ? pl[0] : ""));
    string t = verdict + "\n";
-   for(int k = 0; k < nc; k++) t += "x " + cr[k] + "\n";
-   for(int k = 0; k < nm; k++) t += "- " + mi[k] + "\n";
-   for(int k = 0; k < np; k++) t += "+ " + pl[k] + "\n";
+   for(int k = 0; k < nc; k++) t += "x " + cr[k] + NoteHelp(cr[k]) + "\n";
+   for(int k = 0; k < nm; k++) t += "- " + mi[k] + NoteHelp(mi[k]) + "\n";
+   for(int k = 0; k < np; k++) t += "+ " + pl[k] + NoteHelp(pl[k]) + "\n";
    return t;
   }
 
