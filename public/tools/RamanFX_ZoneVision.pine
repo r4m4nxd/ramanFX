@@ -1354,7 +1354,7 @@ if barstate.islast
             [verdict, shortWhy, full] = zoneNotes(z, medZ)
             txt = showNames ? (str.contains(full, "ARRIVAL") ? "ARRIVAL | " : "") + zname(z) + " | " + verdict + (shortWhy != "" ? ": " + shortWhy : "") + (isTrade ? " | " + tradeTxt.get(zi) : "") : ""
             boxes.push(box.new(z.t0, z.prox, right, z.dist, border_color=z.dir > 0 ? cDemL : cSupL, border_width=str.contains(full, "ARRIVAL") ? 3 : 1, bgcolor=z.dir > 0 ? cDemF : cSupF, text=txt, text_color=verdict == "WEAK" ? color.new(cTxt, 45) : cTxt, text_size=size.small, text_halign=text.align_left, text_valign=z.dir > 0 ? text.align_bottom : text.align_top))
-            labels.push(label.new(z.t0, (z.prox + z.dist) / 2, "ⓘ", style=label.style_label_center, color=color.new(z.dir > 0 ? cDemL : cSupL, 20), textcolor=color.white, size=size.small, tooltip=zname(z) + " | " + verdict + "\n" + full))
+            labels.push(label.new(right, (z.prox + z.dist) / 2, "ⓘ", style=label.style_label_left, color=color.new(z.dir > 0 ? cDemL : cSupL, 20), textcolor=color.white, size=size.small, tooltip=zname(z) + " | " + verdict + "\n" + full))
             if not (isTrade and (planLines == "All listed" or tradeOf.get(zi) == 1))
                 tagP.push(z.prox), tagT.push(str.tostring(z.prox, format.mintick)), tagC.push(z.dir > 0 ? cDemL : cSupL), tagTip.push(zname(z) + " - " + full)
                 tagP.push(z.dist), tagT.push(str.tostring(z.dist, format.mintick)), tagC.push(cTxt), tagTip.push("Distal line (far side) of the zone")
