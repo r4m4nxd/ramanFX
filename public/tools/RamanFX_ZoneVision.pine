@@ -29,6 +29,7 @@ showTested  = input.bool(false, "Also draw tested zones", group=gS)
 showRemoved = input.bool(false, "Also draw removed zones (faint)", group=gS)
 showNames   = input.bool(true, "Zone name + grade in the box", group=gS)
 showTrap    = input.bool(true, "Liquidity traps (purple)", group=gS)
+showEmo     = input.bool(true, "Mark emotional candles (range > N x ATR, see Zone rules) with a star", group=gS)
 showTL      = input.bool(true, "Draw trendlines", group=gS)
 showUpTL    = input.bool(true, "  Rising trendline (higher lows)", group=gS)
 showDnTL    = input.bool(true, "  Falling trendline (lower highs)", group=gS)
@@ -64,6 +65,10 @@ cTgt   = input.color(#7EE0A0, "Plan target", group=gC)
 
 // ---------- helpers ----------
 atr = ta.atr(14)
+// emotional candle: usually news or a stop run; its wick does not remove a zone, only a body close beyond the distal does
+emo = showEmo and barstate.isconfirmed and high - low > emoATR * atr[1]
+plotshape(emo and close >= open, "Emotional candle (up)", shape.diamond, location.abovebar, color.new(#E8C46A, 10), size=size.tiny, text="emo", textcolor=color.new(#E8C46A, 10))
+plotshape(emo and close < open, "Emotional candle (down)", shape.diamond, location.belowbar, color.new(#E8C46A, 10), size=size.tiny, text="emo", textcolor=color.new(#E8C46A, 10))
 rng(i) => high[i] - low[i]
 bod(i) => math.abs(close[i] - open[i])
 basing(i) => rng(i) > 0 and bod(i) <= 0.5 * rng(i)

@@ -20,7 +20,7 @@
 //| into a zone does not count as a touch. Removal needs a CLOSE.    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "0.31"
+#property version   "0.32"
 #property strict
 #property indicator_chart_window
 
@@ -54,6 +54,8 @@ input bool   InpShowPlan      = true;   // Bot's planned entry / SL / TP
 input bool   InpShowPanel     = true;   // Compact info panel
 input bool   InpShowBotOrders = true;   // Show why the ZoneBot placed its order on this symbol (bottom-right)
 input bool   InpExplain       = false;  // Explain mode: label the 4 parts on the bot's zone
+input bool   InpShowEmotional = true;   // Mark emotional candles (range > InpEmoATR x ATR) with a star
+input color  InpEmoColor      = clrGoldenrod;
 input bool   InpShowRejected  = false;  // Debug: rejected candidates + reason
 input color  InpDemandFill    = C'200,232,203';
 input color  InpDemandLine    = C'46,139,87';
@@ -122,9 +124,31 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
    Qualify();
    if(InpShowHTF) { int h = HtfOf(_Period); if(h > 0) { Detect(_Symbol, h, HZ, false); DrawZones(HZ, true); } }   // HTF band first, underneath
    DrawZones(Z, false);
+   if(InpShowEmotional) MarkEmotional();
    if(InpShowPanel || InpShowPlan) Panel();
    if(InpShowBotOrders) BotNotes();
    return rates_total;
+  }
+
+// Emotional candle: range > InpEmoATR x ATR(14). Usually news or a stop run. Its wick is
+// ignored for zone removal (only a body close or a normal wick removes a zone).
+void MarkEmotional()
+  {
+   int bars = MathMin(InpLookback, Bars - 16);
+   for(int i = 1; i < bars; i++)
+     {
+      if(!Emotional(_Symbol, _Period, i)) continue;
+      double a = iATR(NULL, 0, 14, i + 1), x = (High[i] - Low[i]) / MathMax(a, Point);
+      bool up = Close[i] >= Open[i];
+      string nm = PFX + "emo" + IntegerToString(i);
+      ObjectCreate(0, nm, OBJ_ARROW, 0, Time[i], up ? High[i] : Low[i]);
+      ObjectSetInteger(0, nm, OBJPROP_ARROWCODE, 171);
+      ObjectSetInteger(0, nm, OBJPROP_ANCHOR, up ? ANCHOR_BOTTOM : ANCHOR_TOP);
+      ObjectSetInteger(0, nm, OBJPROP_COLOR, InpEmoColor);
+      ObjectSetInteger(0, nm, OBJPROP_WIDTH, 1);
+      ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
+      ObjectSetString(0, nm, OBJPROP_TOOLTIP, StringFormat("Emotional candle: %.1f x ATR. Often news or a stop run. Its wick does not remove a zone - only a body close beyond the distal does.", x));
+     }
   }
 
 //+------------------------------------------------------------------+
