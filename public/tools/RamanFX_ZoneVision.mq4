@@ -20,7 +20,7 @@
 //| into a zone does not count as a touch. Removal needs a CLOSE.    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.95"
+#property version   "1.96"
 #property strict
 #property indicator_chart_window
 
@@ -65,6 +65,7 @@ input bool   InpShowBotOrders = true;   // Show why the ZoneBot placed its order
 input bool   InpExplain       = false;  // Explain mode: label the 4 parts on the bot's zone
 input bool   InpShowEmotional = true;   // Mark emotional candles (range > InpEmoATR x ATR) with a star
 input color  InpEmoColor      = clrGoldenrod;
+input bool   InpShowLegend    = true;   // Short key of the abbreviations in the panel
 input bool   InpShowRejected  = false;  // Debug: rejected candidates + reason
 input color  InpDemandFill    = C'200,232,203';
 input color  InpDemandLine    = C'46,139,87';
@@ -860,10 +861,9 @@ string ZoneNotes(Zone &zs[], int i, string &verdict, string &shortWhy)
    else if(verdict == "STRONG") shortWhy = pl[0] + (np > 1 ? ", " + pl[1] : "");
    else shortWhy = (nm > 0 ? mi[0] : (np > 0 ? pl[0] : ""));
    string t = verdict + "\n";
-   for(int k = 0; k < nc; k++) t += "x " + cr[k] + NoteHelp(cr[k]) + "\n";
-   for(int k = 0; k < nm; k++) t += "- " + mi[k] + NoteHelp(mi[k]) + "\n";
-   for(int k = 0; k < np; k++) t += "+ " + pl[k] + NoteHelp(pl[k]) + "\n";
-   if(StringLen(t) > 400) t = StringSubstr(t, 0, 395) + "...";        // MT4 drops tooltips that are too long (keep well under its limit)
+   for(int k = 0; k < nc; k++) t += "x " + cr[k] + "\n";
+   for(int k = 0; k < nm; k++) t += "- " + mi[k] + "\n";
+   for(int k = 0; k < np; k++) t += "+ " + pl[k] + "\n";
    return t;
   }
 
@@ -979,6 +979,7 @@ void Panel()
    string L = StringFormat("ZoneVision  %s %s  ->  bias from %s\n", _Symbol, TfName(_Period), htf > 0 ? TfName(htf) : "-");
    L += "Bias: " + (trend > 0 ? "UP - buys only" : (trend < 0 ? "DOWN - sells only" : "unclear - bot waits")) + "\n";
    L += "Structure: " + StructureNow() + "\n";
+   if(InpShowLegend) L += "Key: VP = valley/peak (reversal), CP = continuation, clear space = gap under the stay-away candle,\n      ATR = average candle size, HTF = higher timeframe, x = deal-breaker, - = weakness, + = strength\n";
    if(gHBiasTxt != "") L += "Trendline bias: " + (gHBias > 0 ? "UP - " : "DOWN - ") + gHBiasTxt + "\n";
    { double mid = (Bid + Ask) / 2;
      if(Overextended(1, mid)) L += "Up channel: price beyond 50% = OVEREXTENDED - no buys, wait for the golden area\n";

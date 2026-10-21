@@ -768,11 +768,11 @@ zoneNotes(Zone z, float medZ) =>
     shortWhy = zCr.size() > 0 ? zCr.get(0) + (zCr.size() > 1 ? ", " + zCr.get(1) : "") : verdict == "STRONG" ? zPl.get(0) + (zPl.size() > 1 ? ", " + zPl.get(1) : "") : zMi.size() > 0 ? zMi.get(0) : zPl.size() > 0 ? zPl.get(0) : ""
     full = verdict
     for t in zCr
-        full += "\n✘ " + t + noteHelp(t)
+        full += "\n✘ " + t
     for t in zMi
-        full += "\n– " + t + noteHelp(t)
+        full += "\n– " + t
     for t in zPl
-        full += "\n✔ " + t + noteHelp(t)
+        full += "\n✔ " + t
     [verdict, shortWhy, full]
 
 gradeOf(int sc) => sc >= 75 ? "A" : sc >= 60 ? "B" : "C"
@@ -1259,6 +1259,9 @@ if barstate.islast
         if panelView != "Header only"
             table.cell(panel, 0, r, "Zones: " + str.tostring(idx.size()) + " fresh/usable, " + str.tostring(shown) + " drawn", text_color=cTxt, text_size=panelSize, text_halign=text.align_left)
             r += 1
+            if panelView == "Full"
+                table.cell(panel, 0, r, "Key: VP = valley/peak (reversal) · CP = continuation · clear space = gap under the stay-away candle · ATR = average candle size · HTF = higher timeframe · ✘ deal-breaker · – weakness · ✔ strength", text_color=cTxt, text_size=panelSize, text_halign=text.align_left)
+                r += 1
             if tlNote != ""
                 table.cell(panel, 0, r, tlNote, text_color=cTxt, text_size=panelSize, text_halign=text.align_left)
                 r += 1
