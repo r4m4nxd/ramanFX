@@ -22,7 +22,7 @@
 //|   2026.10.17 12:30,USD   (UTC time, currency)                    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.30"
+#property version   "1.31"
 #property strict
 
 enum BotMode   { MODE_SCANNER = 0, MODE_APPROVE = 1, MODE_AUTO = 2 };
@@ -530,9 +530,9 @@ void Zz(string s, int tf, int bars)                                     // real 
      }
   }
 double KAt(KLine &k, int j) { return k.pb + k.sl * (k.b - j); }
-int KFit(string s, int tf, int A, int b2, double p2, int d, double &sl)       // move the anchor only for a real cut (> 0.25 ATR)
+int KFit(string s, int tf, int A, int b2, double p2, int d, double &sl)       // move the anchor when the line cuts a candle (Kevin)
   {
-   int a = A; double tol = 0.25 * iATR(s, tf, 14, 1);
+   int a = A; double tol = 0.05 * iATR(s, tf, 14, 1);          // Kevin: never cut a candle
    for(int it = 0; it < 50; it++)
      {
       sl = (p2 - (d > 0 ? iLow(s, tf, a) : iHigh(s, tf, a))) / (a - b2);

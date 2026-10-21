@@ -305,7 +305,7 @@ kLine(int d, int N, int Lmax) =>
     float bpe = na
     L = math.min(Lmax, bar_index - 2 * N - 20)
     if barstate.islast and L > 30
-        tol = 0.25 * a14
+        tol = 0.05 * a14
         rB = array.new<int>()
         rP = array.new<float>()
         int fH = na
@@ -528,6 +528,27 @@ refineTL(int d, float t1, int durMs, int N) =>
                     sl := s0
                     cb := bar_index - off
                     vb := v
+    // Kevin: if the line cuts a candle between the anchor and the touch, move the anchor to the point that cuts nothing
+    if not na(cb)
+        int a = ca
+        tol = 0.05 * atr
+        for it = 0 to 49
+            sl := (vb - (d > 0 ? low[bar_index - a] : high[bar_index - a])) / (cb - a)
+            int worst = -1
+            float exc = tol
+            if cb - 1 >= a + 1
+                for x = a + 1 to cb - 1
+                    lv = vb + sl * (x - cb)
+                    e = d > 0 ? lv - low[bar_index - x] : high[bar_index - x] - lv
+                    if e > exc
+                        exc := e
+                        worst := x
+            if worst < 0
+                break
+            a := worst
+        sl := (vb - (d > 0 ? low[bar_index - a] : high[bar_index - a])) / (cb - a)
+        ca := a
+        va := d > 0 ? low[bar_index - a] : high[bar_index - a]
     [na(cb) ? na : ca, va, cb, vb, sl]
 
 hLineAt(float t1, float p1, float t2, float p2, float t) => na(t1) or t2 == t1 ? na : p2 + (p2 - p1) / (t2 - t1) * (t - t2)
@@ -847,7 +868,7 @@ if barstate.islast
         cP = array.new<float>()
         cS = array.new<float>()
         cR = array.new<int>()
-        tol = 0.25 * atr
+        tol = 0.05 * atr
         int prevB = na
         float prevP = na
         for pass = 0 to 1

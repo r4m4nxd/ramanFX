@@ -20,7 +20,7 @@
 //| into a zone does not count as a touch. Removal needs a CLOSE.    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.93"
+#property version   "1.94"
 #property strict
 #property indicator_chart_window
 
@@ -383,7 +383,7 @@ double LineAt(double p, int b, double sl, int j) { return p + sl * (b - j); }   
 // Kevin: attach at the anchor; move it only when a candle really pokes through (more than a quarter ATR)
 int FitAnchor(int A, int b2, double p2, int d, double &sl)
   {
-   int a = A; double tol = 0.25 * iATR(NULL, gTF, 14, 1);
+   int a = A; double tol = 0.05 * iATR(NULL, gTF, 14, 1);            // Kevin: trendlines never cut a candle (only a hair of slack)
    for(int it = 0; it < 50; it++)
      {
       sl = (p2 - (d > 0 ? Lo(a) : Hi(a))) / (a - b2);
@@ -477,9 +477,11 @@ bool RefineOnChart(int d, int aH, int bH, int endH, int &ca, int &cb, double &cs
       if((d > 0 && s0 <= 0) || (d < 0 && s0 >= 0)) continue;
       if(cb < 0 || (d > 0 ? s0 < best : s0 > best)) { cb = j; best = s0; }
      }
+   if(cb < 0) { gTF = keep; cb = ChartBarIn(d, bH); if(cb < 0 || cb >= ca) return false; gTF = _Period; }
+   // Kevin: if the line cuts a candle between the anchor and the touch, move the anchor to the next highest (lowest)
+   // point that cuts nothing - on THIS chart's candles
+   ca = FitAnchor(ca, cb, d > 0 ? Low[cb] : High[cb], d, csl);
    gTF = keep;
-   if(cb < 0) { cb = ChartBarIn(d, bH); if(cb < 0 || cb >= ca) return false; }
-   csl = ((d > 0 ? Low[cb] : High[cb]) - pa) / (ca - cb);
    return true;
   }
 bool Confirmed(int a, int b2, double p2, double sl, int d)
