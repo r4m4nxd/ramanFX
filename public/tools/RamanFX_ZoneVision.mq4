@@ -68,8 +68,8 @@ input color  InpSupplyFill    = C'246,212,198';
 input color  InpSupplyLine    = C'200,60,60';
 input color  InpTrapColor     = C'170,150,220';
 input color  InpHtfFill       = C'252,238,170';
-input color  InpMuted         = C'150,150,150';
-input color  InpTrend         = C'40,40,40';
+input color  InpMuted         = C'170,170,170';
+input color  InpTrend         = clrBlack;   // respected trendlines (thick); broken ones use InpMuted, dotted
 input color  InpText          = C'90,90,90';
 
 #define PFX "RFXV_"
@@ -443,12 +443,12 @@ void Trendlines(string s, int tf)
          int end = TL[i].removed ? TL[i].removedBar : 0;
          double pe = LineAt(TL[i].pb, TL[i].b, sl, end - (TL[i].removed ? 0 : 3));
          string nm = PFX + "tl" + (gTF == _Period ? "" : "H") + IntegerToString(i);
-         color c = gTF == _Period ? InpTrend : InpHtfTL;
+         color c = TL[i].removed ? InpMuted : (gTF == _Period ? InpTrend : InpHtfTL);   // broken: light dotted; respected: thick dark
          if(InpShowTrendlines) ObjectCreate(0, nm, OBJ_TREND, 0, iTime(NULL, gTF, TL[i].a), TL[i].pa, TL[i].removed ? iTime(NULL, gTF, end) : iTime(NULL, gTF, 0) + PeriodSeconds(gTF) * 3, pe);
          ObjectSetInteger(0, nm, OBJPROP_RAY_RIGHT, false);
          ObjectSetInteger(0, nm, OBJPROP_COLOR, c);
-         ObjectSetInteger(0, nm, OBJPROP_STYLE, STYLE_SOLID);
-         ObjectSetInteger(0, nm, OBJPROP_WIDTH, TL[i].removed ? 1 : 2);
+         ObjectSetInteger(0, nm, OBJPROP_STYLE, TL[i].removed ? STYLE_DOT : STYLE_SOLID);
+         ObjectSetInteger(0, nm, OBJPROP_WIDTH, TL[i].removed ? 1 : 3);
          ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
          ObjectSetString(0, nm, OBJPROP_TOOLTIP, TfName(gTF) + (TL[i].conf ? " " : " overall ") + (up ? "uptrend line: real valley, then a higher high" : "downtrend line: real peak, then a lower low")
             + (TL[i].removed ? " | ENDED: a full candle closed " + (up ? "below" : "above") + " it on " + TimeToString(iTime(NULL, gTF, end), TIME_DATE | TIME_MINUTES) : " | respected so far"));

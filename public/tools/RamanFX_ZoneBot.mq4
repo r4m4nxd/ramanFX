@@ -631,7 +631,7 @@ void DrawKLines(string s, int tf, KLine &L[], string tag, color c)
          double p2 = L[i].pb + L[i].sl * (L[i].b + 3);
          ObjectCreate(0, nm, OBJ_TREND, 0, iTime(s, tf, L[i].a), KAt(L[i], L[i].a), t2, p2);
          ObjectSetInteger(0, nm, OBJPROP_RAY_RIGHT, false); ObjectSetInteger(0, nm, OBJPROP_COLOR, c);
-         ObjectSetInteger(0, nm, OBJPROP_WIDTH, q == 0 ? 2 : 1); ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false); ObjectSetInteger(0, nm, OBJPROP_BACK, true);
+         ObjectSetInteger(0, nm, OBJPROP_WIDTH, 3); ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false); ObjectSetInteger(0, nm, OBJPROP_BACK, true);
          ObjectSetString(0, nm, OBJPROP_TOOLTIP, TfName(tf) + (q == 1 ? " overall " : " ") + (d > 0 ? "uptrend line: lowest point to a real valley (a higher high followed)" : "downtrend line: highest point to a real peak (a lower low followed)") + " - respected so far");
         }
      }
@@ -947,7 +947,7 @@ void Scan(string s, int k)
    Zone hz[];
    int hn = HtfZones(s, htf, hz);
    KLines(s, etf, gKE); KLines(s, htf, gKH);
-   if(InpDraw && s == _Symbol && etf == _Period) { DrawKLines(s, etf, gKE, "E", clrDimGray); DrawKLines(s, htf, gKH, "H", clrGoldenrod); }
+   if(InpDraw && s == _Symbol && etf == _Period) { DrawKLines(s, etf, gKE, "E", clrBlack); DrawKLines(s, htf, gKH, "H", clrGoldenrod); }
    // every fresh zone in the HTF direction is checked; the best one (VP > trap > grade > R:R) is acted on
    int fI = -1; double fFar = 0, fAtr = 0;                                  // nearest zone that failed only on distance
    int best = -1; double bScore = 0, bEntry = 0, bSl = 0, bTp = 0, bRr = 0; string bMethod = "", bDecision = "", bPg = ""; int bPs = 0; bool bCapped = false;

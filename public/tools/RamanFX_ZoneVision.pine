@@ -754,7 +754,7 @@ if barstate.islast
                     lp2 = cP.get(q)
                     ls = cS.get(q)
                     x2 = cR.get(q) >= 0 ? cR.get(q) : bar_index + 3
-                    lines.push(line.new(la, lp2 + ls * (la - lb2), x2, lp2 + ls * (x2 - lb2), color=cR.get(q) >= 0 ? color.new(cTL, 40) : cTL, width=cR.get(q) >= 0 ? 1 : 2))
+                    lines.push(line.new(la, lp2 + ls * (la - lb2), x2, lp2 + ls * (x2 - lb2), color=cR.get(q) >= 0 ? color.new(cTL, 60) : cTL, style=cR.get(q) >= 0 ? line.style_dotted : line.style_solid, width=cR.get(q) >= 0 ? 1 : 3))
         // channel 50% from the newest respected line: drives the overextended check; the helper line only if asked
         if use >= 0
             la = cA.get(use)
