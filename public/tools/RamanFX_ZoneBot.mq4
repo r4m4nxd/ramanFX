@@ -22,7 +22,7 @@
 //|   2026.10.17 12:30,USD   (UTC time, currency)                    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "0.93"
+#property version   "1.00"
 #property strict
 
 enum BotMode   { MODE_SCANNER = 0, MODE_APPROVE = 1, MODE_AUTO = 2 };
@@ -98,6 +98,9 @@ input int       InpSimDays       = 5;            // Variant replay horizon (days
 input int       InpMagic         = 770100;       // Magic number base
 input bool      InpLogSkips      = false;        // Also log skipped zones to the CSV (off = orders only)
 input bool      InpAlerts        = true;         // Pop-up alert for new setups
+input string    SepT             = "-- Strategy Tester (only used in the tester) --"; // -----
+input int       InpTesterGMT     = 2;            // Tester: broker server time offset from GMT (most brokers 2, or 3 in summer) for Friday / Asian rules
+input bool      InpTesterNews    = false;        // Tester: use RamanFX_News.csv (only if it holds the PAST news for the test period)
 input bool      InpPush          = true;         // Push to the MT4 phone app (Tools > Options > Notifications, MetaQuotes ID)
 input bool      InpDraw          = false;        // Draw zones on this chart
 input double    InpTrapATR       = 1.0;          // Liquidity trap: obvious level within N x ATR in front of the zone
@@ -175,21 +178,22 @@ string dSym[]; int dK[]; string dProx[]; datetime dTime[]; bool dMy[];   // advi
 bool busy = false; string lastClickNm = ""; uint lastClickMs = 0;
 
 //+------------------------------------------------------------------+
+BotMode gMode = MODE_APPROVE;                                          // the tester has no buttons: it always runs AUTO
 int OnInit()
   {
+   gMode = IsTesting() ? MODE_AUTO : InpMode;
    startedAt = TimeLocal();
    BuildSymbols();
    ArrayResize(lastBar, ArraySize(syms));
    for(int i = 0; i < ArraySize(syms); i++) for(int k = 0; k < NTF; k++) lastBar[i][k] = 0;
-   LoadSims();
-   StLoad();
+   if(!IsTesting()) { LoadSims(); StLoad(); }                          // tester: tickets restart at 1, old state would mix in
    LoadNews();
    EnsureHeaders();
    LoadProps();
    busy = false; keep = "|"; lastClickNm = ""; lastClickMs = 0;
    viewK = GlobalVariableCheck("RFX_view_" + _Symbol) ? (int)GlobalVariableGet("RFX_view_" + _Symbol) : -1;
    lastPanelSig = "-";
-   if(InpMode == MODE_APPROVE)
+   if(gMode == MODE_APPROVE)
      {
       for(int o = ObjectsTotal(0, -1, -1) - 1; o >= 0; o--)            // no phantom presses left over from before the reload
         {
@@ -203,12 +207,13 @@ int OnInit()
       DrawProposals();
      }
    EventSetTimer(2);
-   Print("RamanFX ZoneBot started: ", ArraySize(syms), " symbols, mode ", EnumToString(InpMode));
+   Print("RamanFX ZoneBot started: ", ArraySize(syms), " symbols, mode ", EnumToString(gMode));
    return(INIT_SUCCEEDED);
   }
 
 void OnDeinit(const int reason)
   {
+   if(IsTesting()) BacktestReport();
    EventKillTimer();
    FlushSignals(true);
    SaveSims();
@@ -315,7 +320,7 @@ void Say(string s, int k, string msg)
 string lastStatus = "";
 void Status()
   {
-   string t = StringFormat("ZoneBot  %s | %s | %d pairs\n", InpMode == MODE_AUTO ? "AUTO" : (InpMode == MODE_APPROVE ? "APPROVE" : "SCANNER"), InpEntry == ENTRY_BOTH ? "S&F + conf" : (InpEntry == ENTRY_SF ? "set & forget" : "confirmation"), ArraySize(syms));
+   string t = StringFormat("ZoneBot  %s | %s | %d pairs\n", gMode == MODE_AUTO ? "AUTO" : (gMode == MODE_APPROVE ? "APPROVE" : "SCANNER"), InpEntry == ENTRY_BOTH ? "S&F + conf" : (InpEntry == ENTRY_SF ? "set & forget" : "confirmation"), ArraySize(syms));
    if(!IsTradeAllowed() || !TerminalInfoInteger(TERMINAL_TRADE_ALLOWED)) t += "! AutoTrading is OFF\n";
    string blocked = BlockedNow(ArraySize(syms) > 0 ? syms[0] : _Symbol);
    int pend = 0, open = 0;
@@ -382,9 +387,9 @@ void Work()
       Scan(syms[i], k); scans++; done++; lastScanAt = TimeCurrent();
       qPos = (idx + 1) % total;
      }
-   UpdateSims();
+   if(!IsTesting()) UpdateSims();
    FlushSignals(false);
-   if(InpMode == MODE_APPROVE)
+   if(gMode == MODE_APPROVE)
      {
       for(int o = ObjectsTotal(0, -1, -1) - 1; o >= 0; o--)
         {
@@ -796,7 +801,7 @@ int MyTrendlines()
   }
 void MyZones()
   {
-   if(!InpUseMyLines || InpMode == MODE_SCANNER) return;
+   if(!InpUseMyLines || gMode == MODE_SCANNER) return;
    double point = MarketInfo(_Symbol, MODE_POINT); int digits = (int)MarketInfo(_Symbol, MODE_DIGITS);
    double pip = point * ((digits == 3 || digits == 5) ? 10 : 1);
    double bid = MarketInfo(_Symbol, MODE_BID), ask = MarketInfo(_Symbol, MODE_ASK), spread = ask - bid;
@@ -937,7 +942,7 @@ void Scan(string s, int k)
       if(z[i].removed || z[i].consumed || z[i].pen > 0.25) continue;   // a shallow wick (< 25%) keeps it tradable
       if(z[i].legBar > InpMaxZoneAge) break;
       if(!z[i].cont && !InpTradeVP) continue;                    // VP (reversal) zones only when enabled
-      if(InpMode == MODE_APPROVE && IsDismissed(s, k, z[i].prox, false)) { Count("denied by you"); continue; }   // next-best zone gets advised
+      if(gMode == MODE_APPROVE && IsDismissed(s, k, z[i].prox, false)) { Count("denied by you"); continue; }   // next-best zone gets advised
       int dir = z[i].dir;
       string reason = "";
       double entry = 0, sl = 0, tp = 0, rr = 0;
@@ -1030,7 +1035,7 @@ void Scan(string s, int k)
          if(dir > 0 && ask - entry <= stopLvl) reason = "price too close to zone";
          if(dir < 0 && entry - bid <= stopLvl) reason = "price too close to zone";
         }
-      string decision = reason == "" ? (InpMode == MODE_AUTO ? "ORDER" : (InpMode == MODE_APPROVE ? "PROPOSE" : "ALERT")) : "SKIP";
+      string decision = reason == "" ? (gMode == MODE_AUTO ? "ORDER" : (gMode == MODE_APPROVE ? "PROPOSE" : "ALERT")) : "SKIP";
       LogSignal(s, k, z[i], entry, sl, tp, rr, trend, curve, method, spread / point, decision, reason, digits);
       Say(s, k, decision == "SKIP" ? "skip - " + reason + StringFormat(" (%s %s %s, grade %s)", TF_N[k], dir > 0 ? "demand" : "supply", DoubleToString(z[i].prox, digits), z[i].grade) : decision);
       if(reason != "") { Count(reason); if(StringFind(reason, "already an order") == 0 || StringFind(reason, "max ") == 0 || StringFind(reason, "Friday") == 0 || StringFind(reason, "weekend") == 0 || StringFind(reason, "Asian") == 0 || StringFind(reason, "news") == 0) return; continue; }
@@ -1060,13 +1065,13 @@ void Scan(string s, int k)
         info += "Channel: " + (ce == 1 || ch == 1 ? "zone in the golden area (trendline to 50%)" : "no respected trendline in this direction") + (nt != "" ? " | zone at the " + nt + " trendline" : "") + "\n"; }
       info += StringFormat("Chain: %s | space under stay-away %.0f%% of zone%s", z[i].ath ? (dir > 0 ? "made an all-time high" : "made an all-time low") : "removed an opposing zone", z[i].gap * 100, z[i].leg2 ? " | second explosive candle" : "");
       bool fresh = true;                                                 // approve mode: alert only for new / changed advice
-      if(InpMode == MODE_APPROVE) fresh = AddProposal(s, k, dir, entry, sl, tp, z[i].dist, method, g, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));
+      if(gMode == MODE_APPROVE) fresh = AddProposal(s, k, dir, entry, sl, tp, z[i].dist, method, g, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));
       if(fresh)
         {
          if(InpAlerts) Alert("RamanFX ZoneBot: ", tag);
-         if(InpPush && !IsTesting()) SendNotification("RamanFX: " + tag + (InpMode == MODE_APPROVE ? " - check the chart and approve in MT4" : ""));
+         if(InpPush && !IsTesting()) SendNotification("RamanFX: " + tag + (gMode == MODE_APPROVE ? " - check the chart and approve in MT4" : ""));
         }
-      if(InpMode == MODE_AUTO) Place(s, k, dir, entry, sl, tp, z[i].dist, method, g, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));
+      if(gMode == MODE_AUTO) Place(s, k, dir, entry, sl, tp, z[i].dist, method, g, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));
    }
   }
 
@@ -1119,10 +1124,13 @@ int HtfZones(string s, int htf, Zone &out[])
    return hCount[slot];
   }
 
+// in the tester TimeGMT() is the PC clock, so use the test time minus the broker offset
+datetime NowUTC() { return IsTesting() ? TimeCurrent() - InpTesterGMT * 3600 : TimeGMT(); }
+
 string BlockedNow(string s, int etf = 0)
   {
    if(InpMaxDailyLossPct > 0 && DailyLossHit()) return "daily loss limit";
-   datetime utc = TimeGMT();
+   datetime utc = NowUTC();
    int h = TimeHour(utc), dow = TimeDayOfWeek(utc);
    if(dow == 5 && h >= InpFridayCutUTC) return "Friday cut-off";
    if(dow == 6 || dow == 0) return "weekend";
@@ -1143,6 +1151,7 @@ void LoadNews()
   {
    lastNewsLoad = TimeCurrent();
    ArrayResize(newsTime, 0); ArrayResize(newsCcy, 0);
+   if(IsTesting() && !InpTesterNews) return;
    int f = FileOpen("RamanFX_News.csv", FILE_READ | FILE_CSV | FILE_ANSI, ',');
    if(f == INVALID_HANDLE) return;
    while(!FileIsEnding(f))
@@ -1379,7 +1388,7 @@ string Field(string cm, int idx) { string p[]; int n = StringSplit(cm, '|', p); 
 
 void ManageOrders()
   {
-   datetime utc = TimeGMT();
+   datetime utc = NowUTC();
    bool fridayCut = TimeDayOfWeek(utc) == 5 && TimeHour(utc) >= InpFridayCutUTC;
    for(int i = OrdersTotal() - 1; i >= 0; i--)
      {
@@ -1959,7 +1968,7 @@ void Refresh()
 
 void OnChartEvent(const int id, const long &lparam, const double &dparam, const string &sparam)
   {
-   if(id == CHARTEVENT_CHART_CHANGE) { if(InpMode == MODE_APPROVE) DrawProposals(); return; }   // resized: the width is in the panel signature
+   if(id == CHARTEVENT_CHART_CHANGE) { if(gMode == MODE_APPROVE) DrawProposals(); return; }   // resized: the width is in the panel signature
    if(id != CHARTEVENT_OBJECT_CLICK || StringFind(sparam, "RFXB_") != 0) return;
    // the timer poll may already have handled this very press (state reset): don't run it twice
    bool pressed = ObjectGetInteger(0, sparam, OBJPROP_STATE) != 0;
@@ -2021,3 +2030,47 @@ void Click(string sparam)
    DrawProposals();
   }
 //+------------------------------------------------------------------+
+
+//+------------------------------------------------------------------+
+//| Backtest report: every closed bot trade in R, by grade, entry    |
+//| timeframe and entry type; plus why setups were skipped.          |
+//+------------------------------------------------------------------+
+void BacktestReport()
+  {
+   string key[]; int n[], w[]; double rs[], best[], worst[];
+   double totR = 0, grossW = 0, grossL = 0, peak = 0, run = 0, maxDD = 0; int all = 0, wins = 0;
+   int fh = FileOpen("RamanFX_Backtest_" + _Symbol + ".csv", FILE_WRITE | FILE_CSV | FILE_ANSI, ',');
+   if(fh != INVALID_HANDLE) FileWrite(fh, "ticket", "open time", "close time", "side", "grade", "timeframe", "entry", "open", "close", "R", "profit");
+   for(int i = 0; i < OrdersHistoryTotal(); i++)
+     {
+      if(!OrderSelect(i, SELECT_BY_POS, MODE_HISTORY) || !OurMagic(OrderMagicNumber()) || OrderType() > OP_SELL) continue;
+      int si = StIdx(OrderTicket());
+      double rp = si >= 0 ? stRpts[si] * MarketInfo(OrderSymbol(), MODE_POINT) : 0;
+      if(rp <= 0) continue;
+      int dir = OrderType() == OP_BUY ? 1 : -1;
+      double R = dir * (OrderClosePrice() - OrderOpenPrice()) / rp;
+      string g = stG[si], tf = TF_N[stK[si]], m = stM[si] == "CONF" ? "confirmation" : "set & forget";
+      all++; if(R > 0) { wins++; grossW += R; } else grossL -= R;
+      totR += R; run += R; peak = MathMax(peak, run); maxDD = MathMax(maxDD, peak - run);
+      string ks[4]; ks[0] = "All trades"; ks[1] = "Grade " + g; ks[2] = "Entry TF " + tf; ks[3] = "Entry " + m;
+      for(int q = 0; q < 4; q++)
+        {
+         int x = -1; for(int j = 0; j < ArraySize(key); j++) if(key[j] == ks[q]) { x = j; break; }
+         if(x < 0) { x = ArraySize(key); ArrayResize(key, x + 1); ArrayResize(n, x + 1); ArrayResize(w, x + 1); ArrayResize(rs, x + 1); ArrayResize(best, x + 1); ArrayResize(worst, x + 1); key[x] = ks[q]; n[x] = 0; w[x] = 0; rs[x] = 0; best[x] = -1e9; worst[x] = 1e9; }
+         n[x]++; if(R > 0) w[x]++; rs[x] += R; best[x] = MathMax(best[x], R); worst[x] = MathMin(worst[x], R);
+        }
+      if(fh != INVALID_HANDLE) FileWrite(fh, OrderTicket(), TimeToString(OrderOpenTime()), TimeToString(OrderCloseTime()), dir > 0 ? "BUY" : "SELL", g, tf, m,
+                                         DoubleToString(OrderOpenPrice(), Digits), DoubleToString(OrderClosePrice(), Digits), DoubleToString(R, 2), DoubleToString(OrderProfit() + OrderSwap() + OrderCommission(), 2));
+     }
+   if(fh != INVALID_HANDLE) FileClose(fh);
+   Print("=========== RamanFX ZoneBot backtest: ", _Symbol, " ===========");
+   Print(StringFormat("Trades %d | win rate %.0f%% | total %.1fR | avg %.2fR | profit factor %.2f | max drawdown %.1fR",
+         all, all > 0 ? 100.0 * wins / all : 0, totR, all > 0 ? totR / all : 0, grossL > 0 ? grossW / grossL : 0, maxDD));
+   for(int j = 0; j < ArraySize(key); j++)
+      Print(StringFormat("  %-24s %4d trades | win %3.0f%% | avg %5.2fR | total %6.1fR | best %.1fR | worst %.1fR", key[j], n[j], 100.0 * w[j] / MathMax(1, n[j]), rs[j] / MathMax(1, n[j]), rs[j], best[j], worst[j]));
+   int order[]; ArrayResize(order, ArraySize(cKey)); for(int i = 0; i < ArraySize(cKey); i++) order[i] = i;
+   for(int i = 0; i < ArraySize(order); i++) for(int j = i + 1; j < ArraySize(order); j++) if(cVal[order[j]] > cVal[order[i]]) { int x = order[i]; order[i] = order[j]; order[j] = x; }
+   Print("  Most common reasons a setup was skipped:");
+   for(int i = 0; i < MathMin(8, ArraySize(order)); i++) Print(StringFormat("    %-60s %d", cKey[order[i]], cVal[order[i]]));
+   Print("  Every trade: MQL4/Files of the tester (tester/files) -> RamanFX_Backtest_", _Symbol, ".csv");
+  }
