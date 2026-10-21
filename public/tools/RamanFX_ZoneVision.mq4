@@ -20,7 +20,7 @@
 //| into a zone does not count as a touch. Removal needs a CLOSE.    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.50"
+#property version   "1.60"
 #property strict
 #property indicator_chart_window
 
@@ -91,6 +91,7 @@ struct Zone
    double   gap;        // space between stay-away candle and proximal, x zone height
    bool     leg2;       // second explosive candle in the move away
    bool     chain;      // removed opposing zone / trendline / made new high-low
+   bool     arrival;    // strongest: broke the trendline AND removed the previous high / low or an opposing zone
   };
 
 struct TLine
@@ -289,7 +290,7 @@ int Detect(string s, int tf, Zone &out[], bool draw)
       z.grade = (ratio >= 2.5 && k <= 3) ? "A" : (ratio >= 1.8 ? "B" : "C");
       z.gap = dir > 0 ? (iLow(s, tf, sa) - prox) / h : (prox - iHigh(s, tf, sa)) / h;
       z.leg2 = sa >= 1 && !Basing(s, tf, sa) && CDir(s, tf, sa) == dir && Rng(s, tf, sa) >= maxBase * InpMinLegRatio;
-      z.chain = false;
+      z.chain = false; z.arrival = false;
       z.tested = false; z.removed = false; z.removedBar = -1; z.testedBar = -1; z.qual = ""; z.trap = 0; z.trapBar = -1; z.crowded = false;
       for(int j = sa - 1; j >= 1; j--)
         {
@@ -394,16 +395,13 @@ void Trendlines(string s, int tf)
          int pb = prevB; double pp = prevP;
          prevB = b2; prevP = p2;
          int a = -1;
-         // 1) the previous real valley / peak; 2) too flat: back to the original starting point of the current line
-         if(pb > 0 && (d > 0 ? pp < p2 : pp > p2)) { a = FitAnchor(pb, b2, p2, d, sl); if(TooFlat(a, b2, p2, sl)) a = -1; }
+         // 1) the top / bottom of the move; if that line would cut a peak (valley) in between, the anchor moves to it,
+         //    which gives the two most recent peaks (valleys). 2) too flat: the previous real one. 3) the line's original start.
+         int A = d > 0 ? iLowest(NULL, gTF, MODE_LOW, bars - b2, b2 + 1) : iHighest(NULL, gTF, MODE_HIGH, bars - b2, b2 + 1);
+         if(A > b2 && (d > 0 ? Lo(A) < p2 : Hi(A) > p2)) { a = FitAnchor(A, b2, p2, d, sl); if(TooFlat(a, b2, p2, sl)) a = -1; }
+         if(a < 0 && pb > 0 && (d > 0 ? pp < p2 : pp > p2)) { a = FitAnchor(pb, b2, p2, d, sl); if(TooFlat(a, b2, p2, sl)) a = -1; }
          if(a < 0 && lastA > b2 && (d > 0 ? Lo(lastA) < p2 : Hi(lastA) > p2)) { a = FitAnchor(lastA, b2, p2, d, sl); if(TooFlat(a, b2, p2, sl)) a = -1; }
-         if(a < 0)
-           {
-            int A = d > 0 ? iLowest(NULL, gTF, MODE_LOW, bars - b2, b2 + 1) : iHighest(NULL, gTF, MODE_HIGH, bars - b2, b2 + 1);
-            if(A < 0 || (d > 0 ? Lo(A) >= p2 : Hi(A) <= p2)) continue;
-            a = FitAnchor(A, b2, p2, d, sl);
-            if(TooFlat(a, b2, p2, sl)) continue;
-           }
+         if(a < 0) continue;
          // the same anchor as the previous line = the same trendline, updated (Kevin: never two lines from one anchor)
          int n = ArraySize(TL);
          if(n > 0 && TL[n - 1].dir == d && TL[n - 1].a == a) ArrayResize(TL, n - 1);
@@ -531,13 +529,24 @@ void Qualify()
       // the move away made a new high / low versus everything before the zone
       int L = Z[i].legBar, older = L + Z[i].baseN + 1;
       int span = MathMin(InpLookback, Bars - older - 1);
+      bool rmHL = false;
       if(span > 5)
         {
          int nx = MathMax(L - 5, 1);
-         if(Z[i].dir > 0 && High[iHighest(NULL, 0, MODE_HIGH, L - nx + 1, nx)] > High[iHighest(NULL, 0, MODE_HIGH, span, older)]) q += "new high | ";
-         if(Z[i].dir < 0 && Low[iLowest(NULL, 0, MODE_LOW, L - nx + 1, nx)] < Low[iLowest(NULL, 0, MODE_LOW, span, older)]) q += "new low | ";
+         double legX = Z[i].dir > 0 ? High[iHighest(NULL, 0, MODE_HIGH, L - nx + 1, nx)] : Low[iLowest(NULL, 0, MODE_LOW, L - nx + 1, nx)];
+         if(Z[i].dir > 0 && legX > High[iHighest(NULL, 0, MODE_HIGH, span, older)]) q += "new high | ";
+         if(Z[i].dir < 0 && legX < Low[iLowest(NULL, 0, MODE_LOW, span, older)]) q += "new low | ";
+         // the previous swing high (for demand) / low (for supply) before the base: did the move away take it out?
+         for(int j = older; j < older + span && j < Bars - InpTLSwing - 1; j++)
+           {
+            if(Z[i].dir > 0 && FrHigh(j)) { rmHL = legX > High[j]; break; }
+            if(Z[i].dir < 0 && FrLow(j))  { rmHL = legX < Low[j]; break; }
+           }
+         if(rmHL) q += (Z[i].dir > 0 ? "removed the previous high | " : "removed the previous low | ");
         }
       Z[i].chain = q != "";
+      Z[i].arrival = StringFind(q, "removed trendline") >= 0 && (StringFind(q, "removed opp. zone") >= 0 || rmHL || StringFind(q, "new high") >= 0 || StringFind(q, "new low") >= 0);
+      if(Z[i].arrival) q = "ARRIVAL zone | " + q;
       if(Z[i].leg2) q += "2nd explosive candle | ";
       if(Z[i].gap < InpMinGap) q += "drawable only (little space under stay-away) | ";
       Z[i].qual = q == "" ? "no qualifier (not in the chain)" : StringSubstr(q, 0, StringLen(q) - 3);
@@ -601,6 +610,7 @@ string ZoneNotes(Zone &zs[], int i, string &verdict, string &shortWhy)
    if(z.baseN <= 3) Push(pl, IntegerToString(z.baseN) + " base candle" + (z.baseN > 1 ? "s" : "")); else if(z.baseN > 6) Push(mi, "long base (" + IntegerToString(z.baseN) + " candles)");
    if(z.legRatio >= 2.5) Push(pl, StringFormat("explosive move away %.1fx", z.legRatio)); else if(z.legRatio < 1.8) Push(mi, StringFormat("weak move away %.1fx", z.legRatio));
    if(z.leg2) Push(pl, "2nd explosive candle"); else Push(mi, "only one explosive candle");
+   if(z.arrival) Push(pl, "ARRIVAL zone: broke the trendline AND took out the previous high / low or a zone");
    if(z.chain) Push(pl, "in the chain: " + z.qual); else Push(cr, "not in the chain (removed nothing)");
    if(z.gap < InpMinGap) Push(cr, "drawable only: no space under the stay-away candle"); else if(z.gap >= 0.25) Push(pl, StringFormat("clear space %.0f%%", z.gap * 100));
    if(z.tested) Push(cr, "already tested"); else Push(pl, "fresh");
@@ -615,7 +625,7 @@ string ZoneNotes(Zone &zs[], int i, string &verdict, string &shortWhy)
    double xa = MathAbs((Bid + Ask) / 2 - z.prox) / MathMax(iATR(NULL, htf, 14, 1), Point);
    if(xa > InpMaxDistATR) Push(mi, StringFormat("far: %.1f x %s ATR", xa, TfName(htf)));
    int np = ArraySize(pl), nm = ArraySize(mi), nc = ArraySize(cr);
-   verdict = nc > 0 ? "WEAK" : (np >= 5 && nm <= 1 ? "STRONG" : "OK");
+   verdict = nc > 0 ? "WEAK" : ((np >= 5 && nm <= 1) || z.arrival ? "STRONG" : "OK");
    if(nc > 0) shortWhy = cr[0] + (nc > 1 ? ", " + cr[1] : "");
    else if(verdict == "STRONG") shortWhy = pl[0] + (np > 1 ? ", " + pl[1] : "");
    else shortWhy = (nm > 0 ? mi[0] : (np > 0 ? pl[0] : ""));
@@ -663,8 +673,8 @@ void DrawZones(Zone &zs[], bool htf)
       ObjectSetString(0, id, OBJPROP_TOOLTIP, htf ? TfName(tf) + " " + ZoneName(z) : ZoneName(z) + " - " + full);
       if(!htf)
         {
-         HLine(id + "p", t1, t2, z.prox, line, STYLE_SOLID, 1);
-         HLine(id + "d", t1, t2, z.dist, line, STYLE_SOLID, 1);
+         HLine(id + "p", t1, t2, z.prox, line, STYLE_SOLID, z.arrival ? 2 : 1);
+         HLine(id + "d", t1, t2, z.dist, line, STYLE_SOLID, z.arrival ? 2 : 1);
         }
       PriceTag(id + "pp", t2, z.prox, htf ? InpText : line);
       PriceTag(id + "dp", t2, z.dist, htf ? InpText : line);
@@ -677,7 +687,7 @@ void DrawZones(Zone &zs[], bool htf)
         }
       if(InpShowNames)
         {
-         string nm = htf ? TfName(tf) + " " + (z.dir > 0 ? "demand" : "supply") : ZoneName(z) + " | " + verdict + (shortWhy == "" ? "" : ": " + shortWhy);
+         string nm = htf ? TfName(tf) + " " + (z.dir > 0 ? "demand" : "supply") : (z.arrival ? "ARRIVAL | " : "") + ZoneName(z) + " | " + verdict + (shortWhy == "" ? "" : ": " + shortWhy);
          Txt(id + "n", t1, z.dir > 0 ? z.dist : z.dist, nm, verdict == "WEAK" ? InpMuted : InpText, 7, z.dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
          if(!htf) ObjectSetString(0, id + "n", OBJPROP_TOOLTIP, full);
         }

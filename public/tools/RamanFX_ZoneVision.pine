@@ -392,7 +392,7 @@ kLine(int d, int N, int Lmax) =>
                     int fa = na
                     float fsl = na
                     for tryI = 0 to 2
-                        A = tryI == 0 ? A1 : tryI == 1 ? A3 : A2
+                        A = tryI == 0 ? A2 : tryI == 1 ? A1 : A3
                         if na(A) or not na(fa)
                             continue
                         int a = A
@@ -470,6 +470,34 @@ qualified(Zone z) =>
                 break
     q or z.ath
 
+// Arrival zone (strongest): the move away broke a trendline AND took out the previous swing high / low,
+// an opposing zone or an all-time high / low
+arrival(Zone z) =>
+    bool tl = false
+    if tlRemDir.size() > 0
+        for i = 0 to tlRemDir.size() - 1
+            if tlRemDir.get(i) == -z.dir and tlRemBar.get(i) >= z.t0 and tlRemBar.get(i) <= z.legBar + 5
+                tl := true
+                break
+    bool other = z.ath
+    if tl and not other
+        for o in zones
+            if o.dir != z.dir and o.removed and not na(o.remBar) and o.remBar >= z.t0 and o.remBar <= z.legBar + 5
+                other := true
+                break
+    if tl and not other
+        if z.dir > 0 and phP.size() > 0
+            for i = phP.size() - 1 to 0
+                if phB.get(i) < z.t0
+                    other := z.far > phP.get(i)
+                    break
+        if z.dir < 0 and plP.size() > 0
+            for i = plP.size() - 1 to 0
+                if plB.get(i) < z.t0
+                    other := z.far < plP.get(i)
+                    break
+    tl and other
+
 // Planner points (0-100) + Seiden / mentor odds checklist
 scoreZone(Zone z, float sl) =>
     risk = math.abs(z.prox - sl)
@@ -517,6 +545,9 @@ zoneNotes(Zone z, float medZ) =>
         zPl.push("2nd explosive candle")
     else
         zMi.push("only one explosive candle")
+    isArr = arrival(z)
+    if isArr
+        zPl.push("ARRIVAL zone: broke the trendline AND took out the previous high / low or a zone")
     if qualified(z)
         zPl.push(z.ath ? "in the chain: new " + (z.dir > 0 ? "high" : "low") : "in the chain: removed a zone / trendline")
     else
@@ -547,7 +578,7 @@ zoneNotes(Zone z, float medZ) =>
     xa = na(htfAtr) or htfAtr <= 0 ? 0.0 : math.abs(close - z.prox) / htfAtr
     if xa > liveATR
         zMi.push("far: " + str.tostring(xa, "#.0") + " x " + htf + " ATR")
-    verdict = zCr.size() > 0 ? "WEAK" : zPl.size() >= 5 and zMi.size() <= 1 ? "STRONG" : "OK"
+    verdict = zCr.size() > 0 ? "WEAK" : (zPl.size() >= 5 and zMi.size() <= 1) or isArr ? "STRONG" : "OK"
     shortWhy = zCr.size() > 0 ? zCr.get(0) + (zCr.size() > 1 ? ", " + zCr.get(1) : "") : verdict == "STRONG" ? zPl.get(0) + (zPl.size() > 1 ? ", " + zPl.get(1) : "") : zMi.size() > 0 ? zMi.get(0) : zPl.size() > 0 ? zPl.get(0) : ""
     full = verdict
     for t in zCr
@@ -695,7 +726,7 @@ if barstate.islast
                     int fa = na
                     float fsl = na
                     for tryI = 0 to 2
-                        A = tryI == 0 ? A1 : tryI == 1 ? A3 : A2
+                        A = tryI == 0 ? A2 : tryI == 1 ? A1 : A3
                         if na(A) or not na(fa)
                             continue
                         int a = A
@@ -901,8 +932,8 @@ if barstate.islast
             zi = idx.get(ord.get(n))
             isTrade = tradeOf.get(zi) > 0
             [verdict, shortWhy, full] = zoneNotes(z, medZ)
-            txt = showNames ? zname(z) + " | " + verdict + (shortWhy != "" ? ": " + shortWhy : "") + (isTrade ? " | " + tradeTxt.get(zi) : "") : ""
-            boxes.push(box.new(z.t0, z.prox, right, z.dist, border_color=z.dir > 0 ? cDemL : cSupL, bgcolor=z.dir > 0 ? cDemF : cSupF, text=txt, text_color=verdict == "WEAK" ? color.new(cTxt, 45) : cTxt, text_size=size.small, text_halign=text.align_left, text_valign=z.dir > 0 ? text.align_bottom : text.align_top))
+            txt = showNames ? (str.contains(full, "ARRIVAL") ? "ARRIVAL | " : "") + zname(z) + " | " + verdict + (shortWhy != "" ? ": " + shortWhy : "") + (isTrade ? " | " + tradeTxt.get(zi) : "") : ""
+            boxes.push(box.new(z.t0, z.prox, right, z.dist, border_color=z.dir > 0 ? cDemL : cSupL, border_width=str.contains(full, "ARRIVAL") ? 3 : 1, bgcolor=z.dir > 0 ? cDemF : cSupF, text=txt, text_color=verdict == "WEAK" ? color.new(cTxt, 45) : cTxt, text_size=size.small, text_halign=text.align_left, text_valign=z.dir > 0 ? text.align_bottom : text.align_top))
             if not (isTrade and (planLines == "All listed" or tradeOf.get(zi) == 1))
                 tagP.push(z.prox), tagT.push(str.tostring(z.prox, format.mintick)), tagC.push(z.dir > 0 ? cDemL : cSupL), tagTip.push(zname(z) + " - " + full)
                 tagP.push(z.dist), tagT.push(str.tostring(z.dist, format.mintick)), tagC.push(cTxt), tagTip.push("Distal line (far side) of the zone")

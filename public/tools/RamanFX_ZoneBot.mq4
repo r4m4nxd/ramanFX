@@ -22,7 +22,7 @@
 //|   2026.10.17 12:30,USD   (UTC time, currency)                    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.00"
+#property version   "1.10"
 #property strict
 
 enum BotMode   { MODE_SCANNER = 0, MODE_APPROVE = 1, MODE_AUTO = 2 };
@@ -571,15 +571,13 @@ int KLines(string s, int tf, KLine &out[])
          if(pzT[k] != want) continue;
          int b2 = pzB[k], a = -1, pb = prevB; double p2 = pzP[k], pp = prevP;
          prevB = b2; prevP = p2;
-         if(pb > 0 && (d > 0 ? pp < p2 : pp > p2)) { a = KFit(s, tf, pb, b2, p2, d, sl); if(KFlat(s, tf, a, b2, p2, sl, d)) a = -1; }
-         if(a < 0 && lastA > b2 && (d > 0 ? iLow(s, tf, lastA) < p2 : iHigh(s, tf, lastA) > p2)) { a = KFit(s, tf, lastA, b2, p2, d, sl); if(KFlat(s, tf, a, b2, p2, sl, d)) a = -1; }   // original starting point
-         if(a < 0)
-           {
-            int A = d > 0 ? iLowest(s, tf, MODE_LOW, bars - b2, b2 + 1) : iHighest(s, tf, MODE_HIGH, bars - b2, b2 + 1);
-            if(A < 0 || (d > 0 ? iLow(s, tf, A) >= p2 : iHigh(s, tf, A) <= p2)) continue;
-            a = KFit(s, tf, A, b2, p2, d, sl);
-            if(KFlat(s, tf, a, b2, p2, sl, d)) continue;
-           }
+         // top / bottom of the move first (the anchor moves to any peak it would cut = the two recent peaks),
+         // then the previous real one, then the line's original start; near-flat lines are dropped
+         int A = d > 0 ? iLowest(s, tf, MODE_LOW, bars - b2, b2 + 1) : iHighest(s, tf, MODE_HIGH, bars - b2, b2 + 1);
+         if(A > b2 && (d > 0 ? iLow(s, tf, A) < p2 : iHigh(s, tf, A) > p2)) { a = KFit(s, tf, A, b2, p2, d, sl); if(KFlat(s, tf, a, b2, p2, sl, d)) a = -1; }
+         if(a < 0 && pb > 0 && (d > 0 ? pp < p2 : pp > p2)) { a = KFit(s, tf, pb, b2, p2, d, sl); if(KFlat(s, tf, a, b2, p2, sl, d)) a = -1; }
+         if(a < 0 && lastA > b2 && (d > 0 ? iLow(s, tf, lastA) < p2 : iHigh(s, tf, lastA) > p2)) { a = KFit(s, tf, lastA, b2, p2, d, sl); if(KFlat(s, tf, a, b2, p2, sl, d)) a = -1; }
+         if(a < 0) continue;
          int n = ArraySize(out);
          if(n > 0 && out[n - 1].dir == d && out[n - 1].a == a) ArrayResize(out, n - 1);   // same anchor = the same line, updated
          KAdd(s, tf, out, d, a, b2, p2, sl, false);
@@ -870,6 +868,25 @@ bool Qualified(string s, int etf, Zone &z[], int i)
    for(int j = 0; j < ArraySize(gKE); j++) if(gKE[j].dir == -z[i].dir && gKE[j].removed && gKE[j].tRem >= b0 && gKE[j].tRem <= b1) return true;   // broke a trendline
    return false;
   }
+// Arrival zone (strongest): the move away broke a trendline AND took out the previous swing high / low,
+// an opposing zone or an all-time high / low
+bool Arrival(string s, int etf, Zone &z[], int i)
+  {
+   datetime b0 = iTime(s, etf, z[i].legBar + z[i].baseN), b1 = iTime(s, etf, MathMax(z[i].legBar - 5, 0));
+   bool tl = false;
+   for(int j = 0; j < ArraySize(gKE); j++) if(gKE[j].dir == -z[i].dir && gKE[j].removed && gKE[j].tRem >= b0 && gKE[j].tRem <= b1) { tl = true; break; }
+   if(!tl) return false;
+   if(z[i].ath) return true;
+   for(int j = 0; j < ArraySize(z); j++) if(z[j].dir != z[i].dir && z[j].removed && z[j].tRemoved >= b0 && z[j].tRemoved <= b1) return true;
+   int L = z[i].legBar, older = L + z[i].baseN + 1, nx = MathMax(L - 5, 1);
+   double legX = z[i].dir > 0 ? iHigh(s, etf, iHighest(s, etf, MODE_HIGH, L - nx + 1, nx)) : iLow(s, etf, iLowest(s, etf, MODE_LOW, L - nx + 1, nx));
+   for(int j = older; j < older + 300 && j < iBars(s, etf) - InpTLSwing - 1; j++)
+     {
+      if(z[i].dir > 0 && ZFrH(s, etf, j)) return legX > iHigh(s, etf, j);
+      if(z[i].dir < 0 && ZFrL(s, etf, j)) return legX < iLow(s, etf, j);
+     }
+   return false;
+  }
 bool AtHtfZone(Zone &zi, Zone &hz[], int hn, int want)                    // want = +dir (same side) or -dir (opposing)
   {
    for(int j = 0; j < hn; j++)
@@ -1034,7 +1051,7 @@ void Scan(string s, int k)
       if(reason == "") { int tb; bool cr; z[i].trap = FindTrap(s, etf, dir, z[i].prox, z[i].dist, z[i].legBar - 1, z[i].legBar + z[i].baseN, tb, cr); z[i].trapBar = tb; z[i].crowded = cr; }
       if(reason == "" && InpRequireTrap && z[i].trap == 0) reason = "no liquidity trap";
       int ps = 0; string pg = "";
-      if(reason == "") { ps = PlanScore(s, etf, htf, trend, z, i, hz, hn, curve, method); pg = PlanGrade(ps); if(!GradeAllowed(pg)) reason = StringFormat("grade %s (%d) filtered", pg, ps); }
+      if(reason == "") { ps = PlanScore(s, etf, htf, trend, z, i, hz, hn, curve, method); if(Arrival(s, etf, z, i)) ps = MathMin(100, ps + 8); pg = PlanGrade(ps); if(!GradeAllowed(pg)) reason = StringFormat("grade %s (%d) filtered", pg, ps); }
       if(reason == "" && tp == 0) reason = "no opposing zone for target";
       if(reason == "" && rr < InpMinRR) reason = StringFormat("R:R %.2f < %.2f", rr, InpMinRR);
       if(reason == "" && spread > risk * InpMaxSpreadPct / 100.0) reason = "spread too wide";
@@ -1077,6 +1094,7 @@ void Scan(string s, int k)
       { int ce = ChannelState(s, etf, gKE, dir, z[i].prox), ch = ChannelState(s, htf, gKH, dir, z[i].prox);
         string nt = KNear(s, etf, htf, dir, z[i].prox);
         info += "Channel: " + (ce == 1 || ch == 1 ? "zone in the golden area (trendline to 50%)" : "no respected trendline in this direction") + (nt != "" ? " | zone at the " + nt + " trendline" : "") + "\n"; }
+      if(Arrival(s, etf, z, i)) info += "ARRIVAL zone (strongest): broke the trendline AND took out the previous high / low\n";
       info += StringFormat("Chain: %s | space under stay-away %.0f%% of zone%s", z[i].ath ? (dir > 0 ? "made an all-time high" : "made an all-time low") : "removed an opposing zone", z[i].gap * 100, z[i].leg2 ? " | second explosive candle" : "");
       bool fresh = true;                                                 // approve mode: alert only for new / changed advice
       if(gMode == MODE_APPROVE) fresh = AddProposal(s, k, dir, entry, sl, tp, z[i].dist, method, g, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));
