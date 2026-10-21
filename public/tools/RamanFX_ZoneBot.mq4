@@ -1,5 +1,9 @@
 //+------------------------------------------------------------------+
-//| RamanFX_ZoneBot.mq4  (v1.60 - DEMO ONLY)                          |
+//| RamanFX_ZoneBot.mq4  (v1.61 - DEMO ONLY)                          |
+//| v1.61: Kevin audit (docs/ZoneBot_Kevin_Audit.md): Kevin best adds |
+//|  all-time chain, 3-CP, HTF-zone side, ETF trend / ITF support,   |
+//|  HTF-proximal stop, HTF target; intraday limits pulled for news; |
+//|  ITF support for limit removal; protection + state bug fixes.    |
 //| v1.60: zones, chain, grade/notes, trendlines and bias are ported |
 //|  1:1 from RamanFX_ZoneVision.mq4 v1.99: the bot trades exactly   |
 //|  the zones ZoneVision draws on the entry timeframe.              |
@@ -27,7 +31,7 @@
 //|   2026.10.17 12:30,USD   (UTC time, currency)                    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.60"
+#property version   "1.61"
 #property strict
 
 enum BotMode   { MODE_SCANNER = 0, MODE_APPROVE = 1, MODE_AUTO = 2 };
@@ -619,7 +623,7 @@ double FindTrap(string s, int tf, int dir, double prox, double dist, int fromBar
 //|  beyond the line; channel 50% from the newest confirmed line.    |
 //+------------------------------------------------------------------+
 struct KLine { int dir; int a, b; double pb, sl; bool removed, conf, ov; datetime tRem; int rb; };   // rb = ZoneVision removedBar (-1 = respected)
-KLine gKE[], gKH[];                                                     // entry-TF and HTF lines of the symbol being scanned
+KLine gKE[], gKH[], gKI[];                                              // entry-TF, HTF and (Kevin best / Zones 3R) ITF lines of the symbol being scanned
 int pzB[]; double pzP[]; int pzT[];
 void PzAdd(int b, double p, int t) { int n = ArraySize(pzB); ArrayResize(pzB, n + 1); ArrayResize(pzP, n + 1); ArrayResize(pzT, n + 1); pzB[n] = b; pzP[n] = p; pzT[n] = t; }
 bool ZFrL(string s, int tf, int i) { double v = iLow(s, tf, i);  for(int k = 1; k <= InpTLSwing; k++) if(i - k < 1 || v > iLow(s, tf, i + k) || v >= iLow(s, tf, i - k)) return false; return true; }
@@ -1231,7 +1235,8 @@ void Scan(string s, int k)
    Zone hz[];
    int hn = HtfZones(s, htf, hz);
    KLines(s, etf, gKE); KLines(s, htf, gKH);
-   VQualify(s, etf, z);                                                  // ZoneVision's chain / arrival on the entry TF lines
+   if(IsProt()) KLines(s, TF_I[k], gKI); else ArrayResize(gKI, 0);       // ITF lines: Kevin's "inside an ITF zone with the ITF trendline holding"
+   VQualify(s, etf, z);                                                 // ZoneVision's chain / arrival on the entry TF lines
    // ZoneVision's bias: HTF swings (HtfTrend), replaced by the newest HTF trendline break (TLBias)
    int trend = HtfTrend(s, htf);
    int kTrend = trend;
@@ -1247,7 +1252,7 @@ void Scan(string s, int k)
       ArrayResize(vzR, 0); ArrayResize(vzC, 0);
       VizTrendlines(s, etf, htf);
      }
-   KevinPendings(s, k, etf, hz, hn);                                     // Kevin: remove limits whose context changed
+   KevinPendings(s, k, etf, z, n, hz, hn);                               // Kevin: remove limits whose context changed
    int fI = -1; double fFar = 0, fAtr = 0;                                  // nearest zone that failed only on distance
    int best = -1; double bScore = 0, bEntry = 0, bSl = 0, bTp = 0, bRr = 0; string bMethod = "", bDecision = "", bPg = "", bV = ""; int bPs = 0; bool bCapped = false;
    bool acted = false;
@@ -1293,6 +1298,8 @@ void Scan(string s, int k)
         }
       bool cappedByHtf = false;
       if(hOpp > 0 && (tp == 0 || (dir > 0 && hOpp - spread < tp) || (dir < 0 && hOpp + spread > tp))) { tp = dir > 0 ? hOpp - spread : hOpp + spread; cappedByHtf = true; }
+      // Kevin best (Multiple Timeframe Analysis): entry inside a same-direction HTF zone -> hold toward the opposing HTF zone
+      if(IsBest() && hOpp > 0 && InZoneOf(hz, hn, dir, z[i].prox, spread)) { tp = dir > 0 ? hOpp - spread : hOpp + spread; cappedByHtf = true; }
       // never a noise-sized stop: at least InpMinStopPips and InpMinStopSpreads x spread
       double minStop = MathMax(MathMax(InpMinStopPips * pip, InpMinStopSpreads * spread), InpMinStopATR * iATR(s, etf, 14, 1));
       if(MathAbs(entry - sl) < minStop) sl = dir > 0 ? entry - minStop : entry + minStop;
@@ -1305,6 +1312,16 @@ void Scan(string s, int k)
          if(MetalOrOil(s)) volMin = MathMax(volMin, 0.35 * iATR(s, htf, 14, 1));
          if(tp > 0 && MathAbs(entry - sl) > 0) rr0 = MathAbs(tp - entry) / MathAbs(entry - sl);
          if(MathAbs(entry - sl) < volMin) { sl = dir > 0 ? entry - volMin : entry + volMin; volWide = true; }
+         // Kevin (Sunday zoom 1): entry zone at the proximal line of a same-direction HTF zone -> stop about 50% into the HTF zone
+         for(int j = 0; j < hn; j++)
+           {
+            if(hz[j].dir != dir || hz[j].removed) continue;
+            double hzh = MathAbs(hz[j].prox - hz[j].dist);
+            if(hzh <= 0 || MathAbs(z[i].dist - hz[j].prox) > 0.25 * hzh) continue;
+            double hzs = hz[j].prox - dir * 0.5 * hzh + (dir < 0 ? spread : 0);
+            if(dir * (sl - hzs) > 0) { sl = hzs; volWide = true; }
+            break;
+           }
         }
       if(IsZ3())                                                       // Zones 3R: just before the proximal, stop beyond the distal, fixed 1:N target
         {
@@ -1335,6 +1352,7 @@ void Scan(string s, int k)
          if(vWhy != "") reason = "best: ZoneVision trade NO (" + vWhy + ")";
          else if(vGrade != "A" && !(vGrade == "B" && z[i].arrival)) reason = "best: ZoneVision grade " + vGrade + (vGrade == "B" ? " without arrival" : "");
          else if(KCross(s, dir, z[i].prox) < 0) reason = "best: tl cross";
+         else reason = BestKevinRules(s, k, etf, htf, z, n, i, hz, hn, spread);
         }
       if(reason == "" && !IsZ3() && InpRequireITF) { int it = HtfTrend(s, TF_I[k]); if(it == -dir) reason = "intermediate TF " + TfName(TF_I[k]) + " against"; }
       if(reason == "" && !IsZ3() && InpCurveFilter)
@@ -1380,7 +1398,7 @@ void Scan(string s, int k)
       if(reason == "" && !IsZ3() && tp == 0) reason = "no opposing zone for target";
       if(reason == "" && !IsZ3() && rr < InpMinRR)
         {
-         if(volWide && rr0 >= InpMinRR) reason = "best: rr after vol stop";
+         if(volWide && rr0 >= InpMinRR) reason = "best: rr after the wider stop (ATR / HTF zone)";
          else reason = StringFormat("R:R %.2f < %.2f", rr, InpMinRR);
         }
       if(reason == "" && spread > risk * InpMaxSpreadPct / 100.0) reason = "spread too wide";
@@ -1388,7 +1406,7 @@ void Scan(string s, int k)
       if(reason == "" && IsProt())                                     // one order per zone (across timeframes), buys and sells may run together (hedge)
         {
          int zt = ZoneOrder(s, dir, z[i].prox, z[i].dist);
-         if(zt > 0) { BestModify(zt, s, etf, entry, sl, tp, MathAbs(z[i].prox - z[i].dist)); reason = "best: zone already traded"; }
+         if(zt > 0) { BestModify(zt, s, k, etf, entry, sl, tp, MathAbs(z[i].prox - z[i].dist)); reason = "best: zone already traded"; }
          else if(ZonePlacements(s, dir, z[i].prox, z[i].dist) >= 2) reason = "best: zone placed twice already";
          else
            {
@@ -1465,10 +1483,67 @@ void Act(string s, int k, Zone &z[], int i, double entry, double sl, double tp, 
 // Kevin, "When to Remove a Limit Order" (src/core/videoLessons.ts, lesson 10): no time / candle rule; remove the
 // order when the context changes. Checked on each new entry-TF bar for this symbol / timeframe's pending orders:
 //  1) price hit the opposing HTF zone before pulling back to the entry (the move happened, that zone is in control)
-//  2) the entry-TF trendline in the trade direction broke after the order was placed, unless the zone sits inside a
-//     same-direction HTF zone with the HTF trendline still holding
+//  2) the entry-TF trendline in the trade direction broke after the order was placed, or
+//  3) a nearer same-direction entry-TF zone (between price and the order) was removed after the order was placed:
+//     the order stays only if it sits inside a same-direction ITF zone with the ITF trendline still holding
+//     (Kevin: "inside a 15m zone (H1 even better) AND the 15m trend line is still holding"), or the same at the HTF
 // (target reached / InpCancelRunFrac of the way and zone removed are checked every tick in ManageOrders)
-void KevinPendings(string s, int k, int etf, Zone &hz[], int hn)
+// price inside a live zone of direction want (prox .. dist, widened by tol)
+bool InZoneOf(Zone &zs[], int cnt, int want, double price, double tol)
+  {
+   for(int j = 0; j < cnt && j < ArraySize(zs); j++)
+     {
+      if(zs[j].dir != want || zs[j].removed) continue;
+      double lo = MathMin(zs[j].prox, zs[j].dist) - tol, hi = MathMax(zs[j].prox, zs[j].dist) + tol;
+      if(price >= lo && price <= hi) return true;
+     }
+   return false;
+  }
+// Kevin: price inside a same-direction zone of timeframe tf AND that timeframe's trendline in the direction still holds
+bool TfSupport(string s, int tf, int dir, double price, double tol, KLine &L[])
+  {
+   Zone sz[]; int sn = HtfZones(s, tf, sz);
+   return InZoneOf(sz, sn, dir, price, tol) && KUse(L, dir) >= 0;
+  }
+// Kevin (Trend Trading): continuation zones in a row in this zone's direction, this one included (0 = not a CP).
+// DetectZones lists the oldest zone first; a VP, an opposing chain zone or a CP removed before this zone formed ends the run.
+int CpRun(Zone &z[], int i)
+  {
+   if(!z[i].cont || !z[i].chain) return 0;
+   int c = 1;
+   for(int j = i - 1; j >= 0; j--)
+     {
+      if(!z[j].chain || z[j].legBar <= z[i].legBar) continue;
+      if(z[j].dir != z[i].dir || !z[j].cont) break;
+      if(z[j].removed && z[j].tRemoved <= z[i].tLeg) break;
+      c++;
+     }
+   return c;
+  }
+// Kevin best: the rest of Kevin's placement rules ("" = allowed; sources in docs/ZoneBot_Kevin_Audit.md)
+string BestKevinRules(string s, int k, int etf, int htf, Zone &z[], int n, int i, Zone &hz[], int hn, double spread)
+  {
+   int dir = z[i].dir;
+   // chain: removed an opposing zone, removed a trendline or made an ALL-TIME high / low (a swing high / low does not count)
+   bool cO = false, cT = false, cN = false, cR = false;
+   ChainOf(s, etf, z, i, cO, cT, cN, cR);
+   if(!cO && !cT && !z[i].ath) return "best: chain by a swing high/low only (not all-time)";
+   // inside a HTF supply only sells, inside a HTF demand only buys
+   if(InZoneOf(hz, hn, -dir, z[i].prox, spread)) return "best: inside an opposing HTF zone";
+   // three continuation zones in a row = overextended: stop trading that way, wait for a pullback
+   if(CpRun(z, i) >= 3) return "best: 3rd CP in a row (overextended)";
+   // HTF and ETF trend the same way (ETF trend = its trendline in the trade direction still holding); once that line
+   // broke or a nearer ETF zone was removed, a zone is valid only inside an ITF zone with the ITF trendline holding
+   // (or the same at the HTF)
+   bool lost = false;
+   if(KUse(gKE, dir) < 0) for(int j = 0; j < ArraySize(gKE) && !lost; j++) if(gKE[j].dir == dir && gKE[j].removed) lost = true;
+   for(int j = 0; j < n && !lost; j++)
+      if(j != i && z[j].dir == dir && z[j].chain && z[j].removed && z[j].tRemoved > z[i].tLeg && dir * (z[j].prox - z[i].prox) > 0) lost = true;
+   if(lost && !TfSupport(s, TF_I[k], dir, z[i].prox, spread, gKI) && !TfSupport(s, htf, dir, z[i].prox, spread, gKH))
+      return "best: ETF trend lost, not inside an ITF zone";
+   return "";
+  }
+void KevinPendings(string s, int k, int etf, Zone &z[], int n, Zone &hz[], int hn)
   {
    if(!IsProt()) return;
    for(int i = OrdersTotal() - 1; i >= 0; i--)
@@ -1497,19 +1572,17 @@ void KevinPendings(string s, int k, int etf, Zone &hz[], int hn)
         }
       if(why == "")
         {
-         bool broke = false;
-         for(int j = 0; j < ArraySize(gKE) && !broke; j++) if(gKE[j].dir == dir && gKE[j].removed && gKE[j].tRem > t0) broke = true;
-         if(broke)
+         string lostWhy = "";
+         for(int j = 0; j < ArraySize(gKE) && lostWhy == ""; j++)
+            if(gKE[j].dir == dir && gKE[j].removed && gKE[j].tRem > t0) lostWhy = "the " + TF_N[k] + (dir > 0 ? " uptrend" : " downtrend") + " line broke";
+         for(int j = 0; j < n && lostWhy == ""; j++)
+            if(z[j].dir == dir && z[j].chain && z[j].removed && z[j].tRemoved > t0 && dir * (z[j].prox - op) > 0) lostWhy = "the nearer " + TF_N[k] + (dir > 0 ? " demand" : " supply") + " was removed";
+         if(lostWhy != "")
            {
-            bool inHtf = false;
-            double spr = MarketInfo(s, MODE_ASK) - MarketInfo(s, MODE_BID), zf = InpZ3Front;   // buy entries sit a spread (+ the Zones 3R front) above the proximal
-            for(int j = 0; j < hn && !inHtf; j++)
-              {
-               if(hz[j].dir != dir || hz[j].removed) continue;
-               double hh = MathAbs(hz[j].prox - hz[j].dist), lo = MathMin(hz[j].prox, hz[j].dist) - spr - zf * hh, hi = MathMax(hz[j].prox, hz[j].dist) + spr + zf * hh;
-               if(op >= lo && op <= hi) inHtf = true;
-              }
-            if(!(inHtf && KUse(gKH, dir) >= 0)) why = "Kevin: the " + TF_N[k] + (dir > 0 ? " uptrend" : " downtrend") + " line broke and the zone is not inside an HTF zone with the HTF line holding";
+            // buy entries sit a spread (+ the Zones 3R front) above the proximal, sell entries the front below it
+            double spr = MarketInfo(s, MODE_ASK) - MarketInfo(s, MODE_BID), tol = spr + (dist > 0 ? InpZ3Front * MathAbs(op - dist) : 0);
+            if(!TfSupport(s, TF_I[k], dir, op, tol, gKI) && !TfSupport(s, TF_H[k], dir, op, tol, gKH))
+               why = "Kevin: " + lostWhy + " and the zone is not inside an ITF / HTF zone with that trendline holding";
            }
         }
       if(why == "") continue;
@@ -1517,31 +1590,37 @@ void KevinPendings(string s, int k, int etf, Zone &hz[], int hn)
      }
   }
 
-// Confirmation: price touched an HTF zone in our direction within N entry bars, and an
-// opposing entry-TF zone was removed after that touch; the candidate formed after the touch.
+// Confirmation: price touched an HTF zone in our direction within N entry bars, and an opposing
+// entry-TF zone or trendline was removed after that touch; the candidate formed after the touch,
+// within about one HTF zone height of that HTF zone.
 bool ConfirmedBy(string s, int etf, int dir, Zone &ez[], Zone &cand, Zone &hz[], int n)
   {
    datetime since = iTime(s, etf, InpConfTouchBars);
-   datetime touch = 0;
+   datetime touch = 0; int ti = -1;
    for(int i = 0; i < n; i++)
      {
       if(hz[i].dir != dir || hz[i].removed || !hz[i].tested) continue;
-      if(hz[i].tTouched >= since && hz[i].tTouched > touch) touch = hz[i].tTouched;
+      if(hz[i].tTouched >= since && hz[i].tTouched > touch) { touch = hz[i].tTouched; ti = i; }
      }
-   if(touch == 0 || cand.tLeg < touch) return false;
+   if(touch == 0 || ti < 0 || cand.tLeg < touch) return false;
+   // Kevin (When to Remove a Limit Order): the confirmation forms within about one HTF zone height of the HTF zone
+   if(dir * (cand.prox - hz[ti].prox) > MathAbs(hz[ti].prox - hz[ti].dist)) return false;
    for(int j = 0; j < ArraySize(ez); j++)
       if(ez[j].dir == -dir && ez[j].removed && ez[j].tRemoved >= touch) return true;
+   // Kevin (Confirmation Trading): an opposing entry-TF trendline removed after the touch confirms too
+   for(int j = 0; j < ArraySize(gKE); j++)
+      if(gKE[j].dir == -dir && gKE[j].removed && gKE[j].tRem >= touch) return true;
    return false;
   }
 
 //+------------------------------------------------------------------+
 //| Filters                                                          |
 //+------------------------------------------------------------------+
-double dayStartEquity = 0; int dayStartDoy = -1;
+double dayStartEquity = 0; datetime dayStartDay = 0;
 bool DailyLossHit()
   {
-   int doy = TimeDayOfYear(TimeCurrent());
-   if(doy != dayStartDoy) { dayStartDoy = doy; dayStartEquity = AccountBalance(); }
+   datetime dd = DayOf(TimeCurrent());                                  // UTC day, like the other day rules (was the broker's day of year)
+   if(dd != dayStartDay) { dayStartDay = dd; dayStartEquity = AccountBalance(); }
    return dayStartEquity > 0 && (dayStartEquity - AccountEquity()) / dayStartEquity * 100.0 >= InpMaxDailyLossPct;
   }
 
@@ -1581,7 +1660,15 @@ string BlockedNow(string s, int etf = 0)
       bool asia = InpAsianStartUTC > InpAsianEndUTC ? (h >= InpAsianStartUTC || h < InpAsianEndUTC) : (h >= InpAsianStartUTC && h < InpAsianEndUTC);
       if(asia) return "Asian session";
      }
-   for(int i = 0; i < ArraySize(newsTime) && !(InpNewsIntradayOnly && etf >= PERIOD_H4); i++)
+   return NewsNow(s, etf);
+  }
+// "news CCY" while a release of the pair's currency is within the window ("" = none). Kevin: intraday limit orders do
+// not sit through high-impact data; daily swing orders need no filter (InpNewsIntradayOnly: H4 and up exempt)
+string NewsNow(string s, int etf)
+  {
+   if(InpNewsIntradayOnly && etf >= PERIOD_H4) return "";
+   datetime utc = NowUTC();
+   for(int i = 0; i < ArraySize(newsTime); i++)
      {
       if(StringFind(s, newsCcy[i]) < 0) continue;
       if(utc >= newsTime[i] - InpNewsBeforeMin * 60 && utc <= newsTime[i] + InpNewsAfterMin * 60) return "news " + newsCcy[i];
@@ -1867,17 +1954,25 @@ void ManageOrders()
             if(hAtr > 0 && MathAbs(pxNow - OrderOpenPrice()) > 3.0 * hAtr) why = "price moved more than 3 x HTF ATR away from the zone";
             if(why == "" && gPWeekStop) why = "weekly loss limit (Kevin best)";
             if(why == "" && gPDayStop) why = "daily loss limit (Kevin best)";
+            if(why == "" && gStreakStop) why = "loss streak pause (no fills until the next UTC day)";
             int pTk = OrderTicket();
             if(why == "" && InpMaxTradesDay > 0 && FillsToday(s) >= InpMaxTradesDay) why = "max trades per day reached";
             if(!OrderSelect(pTk, SELECT_BY_TICKET)) continue;              // FillsToday() moved the order selection
            }
-         if(fridayCut) why = "Friday cut-off";
-         if(InpMaxDailyLossPct > 0 && DailyLossHit()) why = "daily loss limit";
+         if(why == "" && fridayCut) why = "Friday cut-off";                 // never mask "zone removed" / "ran" (those spend the zone)
+         if(why == "" && InpMaxDailyLossPct > 0 && DailyLossHit()) why = "daily loss limit";
          if(why == "" && !IsProt() && iBarShift(s, etf, OrderOpenTime()) > InpPendingBars) why = "expired";   // Kevin: no time / candle-count removal
-         if(why == "" && !IsProt()) { string b = BlockedNow(s); if(StringFind(b, "news") == 0) why = b; }   // Kevin best: news only blocks new orders
+         if(why == "") why = NewsNow(s, etf);                              // Kevin: intraday limits don't sit through high-impact news
          int dTk = OrderTicket(), dDir = type == OP_BUYLIMIT ? 1 : -1; double dOp = OrderOpenPrice();
          bool spent = why == "zone removed" || ran;                       // the zone is done: never re-armed
-         if(why != "" && OrderDelete(dTk)) { gCancelled++; if(IsProt() && spent) SpendZone(s, dDir, dOp, dist > 0 ? dist : dOp); Print("Cancelled ", s, " limit #", dTk, ": ", why); }
+         bool paused = !spent && StringFind(why, "price moved") < 0;     // news / Friday / loss limits: not the zone's fault, it may be armed again
+         if(why != "" && OrderDelete(dTk))
+           {
+            gCancelled++;
+            if(IsProt() && spent) SpendZone(s, dDir, dOp, dist > 0 ? dist : dOp);
+            else if(IsProt() && paused) UnplaceZone(s, dDir, dOp, dist > 0 ? dist : dOp);
+            Print("Cancelled ", s, " limit #", dTk, ": ", why);
+           }
          continue;
         }
       // market order: never without a stop
@@ -1906,6 +2001,7 @@ void ManageOpen(int ticket, int k, int si)
    int digits = (int)MarketInfo(s, MODE_DIGITS); double point = MarketInfo(s, MODE_POINT);
    double open = OrderOpenPrice(), sl = OrderStopLoss(), tp = OrderTakeProfit();
    double R = si >= 0 ? stRpts[si] * point : 0;
+   if(R <= 0 && sl > 0 && dir * (open - sl) > 0) R = dir * (open - sl);   // no saved state (file lost): the stop, while still on the loss side, is the risk
    if(R <= 0) return;
    double px = dir > 0 ? MarketInfo(s, MODE_BID) : MarketInfo(s, MODE_ASK);
    double gainR = dir * (px - open) / R;
@@ -2519,7 +2615,8 @@ int InitIdx(int t) { for(int i = 0; i < ArraySize(bsT); i++) if(bsT[i] == t) ret
 // in this direction whose entry .. distal range overlaps the zone's proximal .. distal range, or -1.
 int ZoneOrder(string s, int dir, double prox, double dist)
   {
-   double tol = MathMax(MarketInfo(s, MODE_ASK) - MarketInfo(s, MODE_BID), 0);   // buy entries sit one spread above the proximal
+   double tol = MathMax(MarketInfo(s, MODE_ASK) - MarketInfo(s, MODE_BID), 0)   // buy entries sit one spread (+ the Zones 3R front) above the proximal
+                + (IsZ3() ? InpZ3Front * MathAbs(prox - dist) : 0);
    double cLo = MathMin(prox, dist) - tol, cHi = MathMax(prox, dist) + tol;
    for(int i = OrdersTotal() - 1; i >= 0; i--)
      {
@@ -2559,6 +2656,12 @@ void SpendZone(string s, int dir, double prox, double dist)
    int i = ZpIdx(s, dir, prox, dist);
    if(i >= 0) zpN[i] = 99;
   }
+// a limit cancelled by a pause (news, Friday, loss limits) does not use up one of the zone's two placements
+void UnplaceZone(string s, int dir, double prox, double dist)
+  {
+   int i = ZpIdx(s, dir, prox, dist);
+   if(i >= 0 && zpN[i] > 0 && zpN[i] < 99) zpN[i]--;
+  }
 void AddZonePlacement(string s, int dir, double prox, double dist)
   {
    int i = ZpIdx(s, dir, prox, dist);
@@ -2572,11 +2675,13 @@ void AddZonePlacement(string s, int dir, double prox, double dist)
   }
 // Kevin best: never cancel + re-place for recalculated levels. Modify the pending only when entry / stop / target
 // moved more than 0.1 x zone height, at most once per entry-TF bar, and never to a wider stop than the lots were sized on.
-void BestModify(int ticket, string s, int etf, double entry, double sl, double tp, double h)
+void BestModify(int ticket, string s, int k, int etf, double entry, double sl, double tp, double h)
   {
    if(!OrderSelect(ticket, SELECT_BY_TICKET) || OrderCloseTime() != 0) return;
    int type = OrderType();
    if(type != OP_BUYLIMIT && type != OP_SELLLIMIT) return;
+   int si = StIdx(ticket);
+   if((si >= 0 ? stK[si] : KOf(OrderMagicNumber())) != k) return;   // an overlapping zone of another timeframe: never move that order to this zone's levels
    double tol = 0.1 * h;
    if(tol <= 0) return;
    double oOpen = OrderOpenPrice(), oSl = OrderStopLoss(), oTp = OrderTakeProfit();
@@ -2597,7 +2702,6 @@ void BestModify(int ticket, string s, int etf, double entry, double sl, double t
    if(!OrderModify(ticket, ne, ns, nt, 0)) { Print("#", ticket, " ", s, " pending modify failed ", GetLastError()); return; }
    gModified++;
    Print("#", ticket, " ", s, " pending updated: entry ", DoubleToString(ne, digits), " stop ", DoubleToString(ns, digits), " target ", DoubleToString(nt, digits));
-   int si = StIdx(ticket);
    if(si >= 0 && point > 0) StSet(ticket, stK[si], stM[si], stDist[si], MathAbs(ne - ns) / point, stG[si]);
    int ii = InitIdx(ticket);
    if(ii >= 0) { bsSl[ii] = ns; bsTp[ii] = nt; }
@@ -2631,7 +2735,7 @@ int FillsToday(string s)
    for(int i = OrdersHistoryTotal() - 1; i >= 0; i--)
       if(OrderSelect(i, SELECT_BY_POS, MODE_HISTORY) && OrderSymbol() == s && OurMagic(OrderMagicNumber()) && OrderType() <= OP_SELL && StringFind(OrderComment(), "from #") < 0 && DayOf(OrderOpenTime()) == day) n++;
    for(int i = OrdersTotal() - 1; i >= 0; i--)
-      if(OrderSelect(i, SELECT_BY_POS) && OrderSymbol() == s && OurMagic(OrderMagicNumber()) && OrderType() <= OP_SELL && DayOf(OrderOpenTime()) == day) n++;
+      if(OrderSelect(i, SELECT_BY_POS) && OrderSymbol() == s && OurMagic(OrderMagicNumber()) && OrderType() <= OP_SELL && StringFind(OrderComment(), "from #") < 0 && DayOf(OrderOpenTime()) == day) n++;   // a partial-close remainder is the same fill
    return n;
   }
 // losing closes in a row (newest first by close time); recomputed only when the history grows
