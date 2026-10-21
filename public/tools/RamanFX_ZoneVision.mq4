@@ -177,6 +177,14 @@ void MarkEmotional()
 //+------------------------------------------------------------------+
 //| Helpers                                                          |
 //+------------------------------------------------------------------+
+// show an object only on its own timeframe and lower ones (lower-timeframe lines never clutter higher charts)
+int VisUpTo(int tf)
+  {
+   int p[9] = {PERIOD_M1, PERIOD_M5, PERIOD_M15, PERIOD_M30, PERIOD_H1, PERIOD_H4, PERIOD_D1, PERIOD_W1, PERIOD_MN1};
+   int f[9] = {OBJ_PERIOD_M1, OBJ_PERIOD_M5, OBJ_PERIOD_M15, OBJ_PERIOD_M30, OBJ_PERIOD_H1, OBJ_PERIOD_H4, OBJ_PERIOD_D1, OBJ_PERIOD_W1, OBJ_PERIOD_MN1};
+   int m = 0; for(int i = 0; i < 9; i++) if(p[i] <= tf) m |= f[i];
+   return m;
+  }
 // n steps up the timeframe ladder M1 M5 M15 H1 H4 D1 W1 MN1 (0 = none)
 int StepUp(int tf, int n)
   {
@@ -469,12 +477,13 @@ void Trendlines(string s, int tf)
          ObjectSetInteger(0, nm, OBJPROP_COLOR, c);
          ObjectSetInteger(0, nm, OBJPROP_STYLE, TL[i].removed || gTF != _Period ? STYLE_DOT : STYLE_SOLID);   // HTF lines: thin dotted gold
          ObjectSetInteger(0, nm, OBJPROP_WIDTH, 1);                     // all lines thin
+         ObjectSetInteger(0, nm, OBJPROP_TIMEFRAMES, VisUpTo(gTF));
          ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
          ObjectSetString(0, nm, OBJPROP_TOOLTIP, TfName(gTF) + (TL[i].conf ? " " : " overall ") + (up ? "uptrend line: real valley, then a higher high" : "downtrend line: real peak, then a lower low")
             + (TL[i].removed ? " | ENDED: a full candle closed " + (up ? "below" : "above") + " it on " + TimeToString(iTime(NULL, gTF, end), TIME_DATE | TIME_MINUTES) : " | respected so far"));
          if(gTF != _Period && InpShowTrendlines && !TL[i].removed)
            { string ln = nm + "l"; ObjectCreate(0, ln, OBJ_TEXT, 0, iTime(NULL, gTF, 0) + PeriodSeconds(gTF) * 3, pe); ObjectSetString(0, ln, OBJPROP_TEXT, " " + TfName(gTF) + " trendline");
-             ObjectSetInteger(0, ln, OBJPROP_COLOR, InpHtfTL); ObjectSetInteger(0, ln, OBJPROP_FONTSIZE, 7); ObjectSetInteger(0, ln, OBJPROP_ANCHOR, ANCHOR_LEFT); ObjectSetInteger(0, ln, OBJPROP_SELECTABLE, false); }
+             ObjectSetInteger(0, ln, OBJPROP_COLOR, InpHtfTL); ObjectSetInteger(0, ln, OBJPROP_FONTSIZE, 7); ObjectSetInteger(0, ln, OBJPROP_ANCHOR, ANCHOR_LEFT); ObjectSetInteger(0, ln, OBJPROP_SELECTABLE, false); ObjectSetInteger(0, ln, OBJPROP_TIMEFRAMES, VisUpTo(gTF)); }
         }
       // channel 50% (golden area / overextended) from the newest respected line: used by the checks, drawn only if asked
       if(use >= 0)
