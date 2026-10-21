@@ -20,7 +20,7 @@
 //| into a zone does not count as a touch. Removal needs a CLOSE.    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "0.50"
+#property version   "1.50"
 #property strict
 #property indicator_chart_window
 
@@ -422,7 +422,7 @@ void Trendlines(string s, int tf)
          int end = TL[i].removed ? TL[i].removedBar : 0;
          double pe = LineAt(TL[i].pb, TL[i].b, sl, end - (TL[i].removed ? 0 : 5));
          string nm = PFX + "tl" + (gTF == _Period ? "" : "H") + IntegerToString(i);
-         if(InpShowTrendlines) ObjectCreate(0, nm, OBJ_TREND, 0, iTime(NULL, gTF, TL[i).a], TL[i].pa, TL[i].removed ? iTime(NULL, gTF, end) : iTime(NULL, gTF, 0) + PeriodSeconds(gTF) * 3, pe);
+         if(InpShowTrendlines) ObjectCreate(0, nm, OBJ_TREND, 0, iTime(NULL, gTF, TL[i].a), TL[i].pa, TL[i].removed ? iTime(NULL, gTF, end) : iTime(NULL, gTF, 0) + PeriodSeconds(gTF) * 3, pe);
          ObjectSetInteger(0, nm, OBJPROP_RAY_RIGHT, false);
          ObjectSetInteger(0, nm, OBJPROP_COLOR, TL[i].removed ? InpMuted : (gTF == _Period ? InpTrend : InpHtfTL));
          ObjectSetInteger(0, nm, OBJPROP_STYLE, TL[i].removed ? STYLE_DOT : STYLE_SOLID);
@@ -440,7 +440,7 @@ void Trendlines(string s, int tf)
          if(up) { gUpOn = true; gUpS = sl; gUpP = TL[i].pb; gUpB = TL[i].b; gUpW = w; } else { gDnOn = true; gDnS = sl; gDnP = TL[i].pb; gDnB = TL[i].b; gDnW = w; }
          string cn = nm + "c";
          double off = up ? w / 2 : -w / 2;
-         if(InpShowTrendlines && gTF == _Period) ObjectCreate(0, cn, OBJ_TREND, 0, iTime(NULL, gTF, TL[i).a], TL[i].pa + off, iTime(NULL, gTF, 0) + PeriodSeconds(gTF) * 3, pe + off);
+         if(InpShowTrendlines && gTF == _Period) ObjectCreate(0, cn, OBJ_TREND, 0, iTime(NULL, gTF, TL[i].a), TL[i].pa + off, iTime(NULL, gTF, 0) + PeriodSeconds(gTF) * 3, pe + off);
          ObjectSetInteger(0, cn, OBJPROP_RAY_RIGHT, false); ObjectSetInteger(0, cn, OBJPROP_COLOR, InpMuted); ObjectSetInteger(0, cn, OBJPROP_STYLE, STYLE_DOT);
          ObjectSetInteger(0, cn, OBJPROP_SELECTABLE, false);
          ObjectSetString(0, cn, OBJPROP_TOOLTIP, "Channel 50%: between the trendline and this line = golden area. Beyond it = overextended, wait.");
@@ -675,7 +675,7 @@ void Explain(Zone &z)
 //+------------------------------------------------------------------+
 int HtfTrend(string s, int htf)
   {
-   double hi[2], lo[2]; int nh = 0, nl = 0;
+   double hi[2] = {0, 0}, lo[2] = {0, 0}; int nh = 0, nl = 0;
    for(int i = 3; i < 300 && (nh < 2 || nl < 2); i++)
      {
       double u = iFractals(s, htf, MODE_UPPER, i), d = iFractals(s, htf, MODE_LOWER, i);
@@ -742,15 +742,15 @@ void Panel()
       else if(trend != dir) why = "against HTF bias";
       else if(tp == 0) why = "no opposing zone for a target";
       else if(rr < InpMinRR) why = StringFormat("R:R %.1f below %.1f", rr, InpMinRR);
-      int htf = HtfOf(_Period); if(htf <= 0) htf = _Period;
-      double hatr = iATR(NULL, htf, 14, 1), far = MathAbs((Bid + Ask) / 2 - Z[i].prox), xatr = far / MathMax(hatr, Point);
-      string dline = StringFormat("Distance: %.1f x %s ATR (%s away, ATR %s)", xatr, TfName(htf), DoubleToString(far, Digits), DoubleToString(hatr, Digits));
+      int dtf = htf > 0 ? htf : _Period;
+      double hatr = iATR(NULL, dtf, 14, 1), far = MathAbs((Bid + Ask) / 2 - Z[i].prox), xatr = far / MathMax(hatr, Point);
+      string dline = StringFormat("Distance: %.1f x %s ATR (%s away, ATR %s)", xatr, TfName(dtf), DoubleToString(far, Digits), DoubleToString(hatr, Digits));
       if(why == "" && xatr > InpMaxDistATR)
         {
          static double hwProx = 0, hwHalf = 0;                         // halfway is fixed when the zone first shows as far
          if(MathAbs(hwProx - Z[i].prox) > Point) { hwProx = Z[i].prox; hwHalf = ((Bid + Ask) / 2 + Z[i].prox) / 2; }
          double half = hwHalf;
-         dline += StringFormat(" - FAR: needs ~%d %s candles one way, price often turns first. Planned only; alert at halfway %s", (int)MathCeil(xatr), TfName(htf), DoubleToString(half, Digits));
+         dline += StringFormat(" - FAR: needs ~%d %s candles one way, price often turns first. Planned only; alert at halfway %s", (int)MathCeil(xatr), TfName(dtf), DoubleToString(half, Digits));
          datetime h1 = Time[0], h2 = Time[0] + PeriodSeconds() * 18;
          HLine(PFX + "hw", h1, h2, half, clrGoldenrod, STYLE_DOT, 1); Txt(PFX + "hwt", h2, half, StringFormat(" halfway alert (zone %.1fx ATR away)", xatr), clrGoldenrod, 7, ANCHOR_LEFT);
          ObjectSetString(0, PFX + "hw", OBJPROP_TOOLTIP, dline);
