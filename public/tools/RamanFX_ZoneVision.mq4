@@ -20,7 +20,7 @@
 //| into a zone does not count as a touch. Removal needs a CLOSE.    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.91"
+#property version   "1.92"
 #property strict
 #property indicator_chart_window
 
@@ -55,7 +55,8 @@ input bool   InpShowHTFLines  = true;
 input int    InpHTFLevels     = 4;      // Higher timeframes whose trendlines are drawn here (M15 chart: H1, H4, D1, W1); top-down like your analysis
 input bool   InpTLBias        = true;   // Bias from the newest HTF trendline break (a broken daily downtrend line = bullish for H4 / H1)   // Also draw the higher-timeframe trendlines on this chart (precision on the entry TF)
 input color  InpHtfTL         = C'200,150,40';   // higher-timeframe lines still respected (thin dotted)
-input color  InpHtfTLBroken   = C'228,205,150';  // higher-timeframe lines already broken (lighter, end where they broke)
+input color  InpHtfTLBroken   = C'228,205,150';
+input bool   InpRefineHTF     = true;   // Re-anchor HTF lines on this chart's candles (exact top-most / bottom-most touch, no cut candles)  // higher-timeframe lines already broken (lighter, end where they broke)
 input int    InpTLSwing       = 2;      // Trendlines: swing points need N bars each side; REAL only after a new higher high / lower low
 input bool   InpShowHTF       = true;   // HTF zone band (closest above and below)
 input bool   InpShowPlan      = true;   // Bot's planned entry / SL / TP
@@ -439,6 +440,28 @@ void DedupeTL()
          ObjectDelete(0, del); ObjectDelete(0, del + "l");
         }
   }
+// HTF pivot bars aH / bH -> this chart's bars holding the extreme inside each, then the no-cut fit on this chart.
+// false when this chart's history does not reach back to the anchor (the HTF coordinates are used then).
+int ChartBarIn(int d, int hb)
+  {
+   datetime t0 = iTime(NULL, gTF, hb), t1 = hb > 0 ? iTime(NULL, gTF, hb - 1) : TimeCurrent() + 1;
+   if(t0 < Time[Bars - 1]) return -1;
+   int j0 = iBarShift(NULL, 0, t0), j1 = iBarShift(NULL, 0, t1);
+   if(Time[j1] >= t1) j1++;                                            // first chart bar of the next HTF bar is not ours
+   if(hb == 0) j1 = 0;
+   int cnt = j0 - j1 + 1;
+   if(cnt < 1) return -1;
+   return d > 0 ? iLowest(NULL, 0, MODE_LOW, cnt, j1) : iHighest(NULL, 0, MODE_HIGH, cnt, j1);
+  }
+bool RefineOnChart(int d, int aH, int bH, int &ca, int &cb, double &csl)
+  {
+   ca = ChartBarIn(d, aH); cb = ChartBarIn(d, bH);
+   if(ca < 0 || cb < 0 || ca <= cb) return false;
+   int keep = gTF; gTF = _Period;
+   ca = FitAnchor(ca, cb, d > 0 ? Low[cb] : High[cb], d, csl);
+   gTF = keep;
+   return true;
+  }
 bool Confirmed(int a, int b2, double p2, double sl, int d)
   {
    double ext = d > 0 ? -DBL_MAX : DBL_MAX;
@@ -532,7 +555,22 @@ void Trendlines(string s, int tf)
          double pe = LineAt(TL[i].pb, TL[i].b, sl, end - (TL[i].removed ? 0 : 3));
          string nm = PFX + "tl" + (gTF == _Period ? "" : "H" + IntegerToString(gTF) + "_") + IntegerToString(i);
          color c = gTF == _Period ? (TL[i].removed ? InpMuted : InpTrend) : (TL[i].removed ? InpHtfTLBroken : InpHtfTL);   // broken: light dotted; respected: thick dark
-         if(InpShowTrendlines) ObjectCreate(0, nm, OBJ_TREND, 0, iTime(NULL, gTF, TL[i].a), TL[i].pa, TL[i].removed ? iTime(NULL, gTF, end) : iTime(NULL, gTF, 0) + PeriodSeconds(gTF) * 3, pe);
+         datetime x1 = iTime(NULL, gTF, TL[i].a), x2 = TL[i].removed ? iTime(NULL, gTF, end) : iTime(NULL, gTF, 0) + PeriodSeconds(gTF) * 3;
+         double y1 = TL[i].pa;
+         // higher-timeframe line on this chart: re-anchor it on this chart's own candles - the top-most (bottom-most)
+         // candle inside each HTF pivot, then moved so it cuts no candle of this chart (clean, exact touch points)
+         if(gTF != _Period && InpRefineHTF)
+           {
+            int ca, cb; double csl;
+            if(RefineOnChart(d, TL[i].a, TL[i].b, ca, cb, csl))
+              {
+               double pcb = up ? Low[cb] : High[cb];
+               x1 = Time[ca]; y1 = up ? Low[ca] : High[ca];
+               if(TL[i].removed) { int ce = iBarShift(NULL, 0, iTime(NULL, gTF, end)); x2 = Time[ce]; pe = pcb + csl * (cb - ce); }
+               else { x2 = Time[0] + PeriodSeconds() * 3; pe = pcb + csl * (cb + 3); }
+              }
+           }
+         if(InpShowTrendlines) ObjectCreate(0, nm, OBJ_TREND, 0, x1, y1, x2, pe);
          ObjectSetInteger(0, nm, OBJPROP_RAY_RIGHT, false);
          ObjectSetInteger(0, nm, OBJPROP_COLOR, c);
          ObjectSetInteger(0, nm, OBJPROP_STYLE, TL[i].removed || gTF != _Period ? STYLE_DOT : STYLE_SOLID);   // HTF lines: thin dotted gold
@@ -542,7 +580,7 @@ void Trendlines(string s, int tf)
          ObjectSetString(0, nm, OBJPROP_TOOLTIP, TfName(gTF) + (TL[i].conf ? " " : " overall ") + (up ? "uptrend line: real valley, then a higher high" : "downtrend line: real peak, then a lower low")
             + (TL[i].removed ? " | ENDED: a full candle closed " + (up ? "below" : "above") + " it on " + TimeToString(iTime(NULL, gTF, end), TIME_DATE | TIME_MINUTES) : " | respected so far"));
          if(gTF != _Period && InpShowTrendlines && !TL[i].removed)
-           { string ln = nm + "l"; ObjectCreate(0, ln, OBJ_TEXT, 0, iTime(NULL, gTF, 0) + PeriodSeconds(gTF) * 3, pe); ObjectSetString(0, ln, OBJPROP_TEXT, " " + TfName(gTF) + " trendline");
+           { string ln = nm + "l"; ObjectCreate(0, ln, OBJ_TEXT, 0, x2, pe); ObjectSetString(0, ln, OBJPROP_TEXT, " " + TfName(gTF) + " trendline");
              ObjectSetInteger(0, ln, OBJPROP_COLOR, InpHtfTL); ObjectSetInteger(0, ln, OBJPROP_FONTSIZE, 7); ObjectSetInteger(0, ln, OBJPROP_ANCHOR, ANCHOR_LEFT); ObjectSetInteger(0, ln, OBJPROP_SELECTABLE, false); ObjectSetInteger(0, ln, OBJPROP_TIMEFRAMES, VisUpTo(gTF)); }
         }
       // channel 50% (golden area / overextended) from the newest respected line: used by the checks, drawn only if asked
