@@ -496,53 +496,39 @@ tfL3 = stepUp(3)
 [a1d1, a1dp1, a1d2, a1dp2, a1dw, a1db1, a1dbp1, a1dbe, a1dbpe] = request.security(syminfo.tickerid, tfL1 == "" ? timeframe.period : tfL1, kLine(-1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
 [a3u1, a3up1, a3u2, a3up2, a3uw, a3ub1, a3ubp1, a3ube, a3ubpe] = request.security(syminfo.tickerid, tfL3 == "" ? timeframe.period : tfL3, kLine(1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
 [a3d1, a3dp1, a3d2, a3dp2, a3dw, a3db1, a3dbp1, a3dbe, a3dbpe] = request.security(syminfo.tickerid, tfL3 == "" ? timeframe.period : tfL3, kLine(-1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
-// re-anchor an HTF line on this chart's candles: the top-most (bottom-most) candle inside each HTF pivot bar, then
-// moved so it cuts no candle of this chart. Returns [anchor bar, anchor price, pivot bar, pivot price, slope, end bar] or na.
-refineTL(int d, float t1, float t2, float tEnd, int durMs) =>
+// re-anchor an HTF line on this chart's candles: anchor = this chart's candle holding the extreme inside the HTF anchor
+// bar; touch = the swing point of THIS chart that keeps every other swing on the right side of the line (a tangent),
+// the way you refine touch points going down the timeframes. Returns [anchor bar, anchor price, touch bar, touch price, slope].
+refineTL(int d, float t1, int durMs, int N) =>
     int ca = na
-    int cb = na
-    int ce = na
     float va = na
-    float vb = na
-    if not na(t1) and not na(t2)
-        for off = 0 to math.min(bar_index, 4000)
+    if not na(t1)
+        for off = 0 to math.min(bar_index - 1, 4000)
             tt = time[off]
-            if not na(tEnd) and na(ce) and tt <= tEnd
-                ce := bar_index - off
             if tt < t1
                 break
-            v = d > 0 ? low[off] : high[off]
-            if tt >= t2 and tt < t2 + durMs and (na(vb) or (d > 0 ? v < vb : v > vb))
-                vb := v
-                cb := bar_index - off
-            if tt >= t1 and tt < t1 + durMs and (na(va) or (d > 0 ? v < va : v > va))
-                va := v
-                ca := bar_index - off
+            if tt < t1 + durMs
+                v = d > 0 ? low[off] : high[off]
+                if na(va) or (d > 0 ? v < va : v > va)
+                    va := v
+                    ca := bar_index - off
+    int cb = na
+    float vb = na
     float sl = na
-    float pa = na
-    if not na(ca) and not na(cb) and ca < cb
-        int a = ca
-        tol = 0.25 * atr
-        for it = 0 to 49
-            sl := (vb - (d > 0 ? low[bar_index - a] : high[bar_index - a])) / (cb - a)
-            int worst = -1
-            float exc = tol
-            if cb - 1 >= a + 1
-                for x = a + 1 to cb - 1
-                    lv = vb + sl * (x - cb)
-                    e = d > 0 ? lv - low[bar_index - x] : high[bar_index - x] - lv
-                    if e > exc
-                        exc := e
-                        worst := x
-            if worst < 0
-                break
-            a := worst
-        sl := (vb - (d > 0 ? low[bar_index - a] : high[bar_index - a])) / (cb - a)
-        pa := d > 0 ? low[bar_index - a] : high[bar_index - a]
-        ca := a
-    else
-        ca := na
-    [ca, pa, cb, vb, sl, ce]
+    if not na(ca) and bar_index - ca > 2 * N + 2
+        for off = bar_index - ca - N - 1 to N + 1
+            bool piv = true
+            for k = 1 to N
+                if d > 0 ? (low[off] > low[off + k] or low[off] >= low[off - k]) : (high[off] < high[off + k] or high[off] <= high[off - k])
+                    piv := false
+            if piv
+                v = d > 0 ? low[off] : high[off]
+                s0 = (v - va) / (bar_index - off - ca)
+                if (d > 0 ? s0 > 0 : s0 < 0) and (na(sl) or (d > 0 ? s0 < sl : s0 > sl))
+                    sl := s0
+                    cb := bar_index - off
+                    vb := v
+    [na(cb) ? na : ca, va, cb, vb, sl]
 
 hLineAt(float t1, float p1, float t2, float p2, float t) => na(t1) or t2 == t1 ? na : p2 + (p2 - p1) / (t2 - t1) * (t - t2)
 
@@ -842,6 +828,10 @@ if barstate.islast
     drS = array.new<float>()
     drB = array.new<int>()
     drP2 = array.new<float>()
+    drA = array.new<int>()
+    drL = array.new<line>()
+    gRA = array.new<int>()
+    gRB = array.new<int>()
     gT1 = array.new<float>()
     gP1 = array.new<float>()
     gT2 = array.new<float>()
@@ -998,9 +988,10 @@ if barstate.islast
                     lp2 = cP.get(q)
                     ls = cS.get(q)
                     x2 = cR.get(q) >= 0 ? cR.get(q) : bar_index + 3
-                    lines.push(line.new(la, lp2 + ls * (la - lb2), x2, lp2 + ls * (x2 - lb2), color=cR.get(q) >= 0 ? color.new(cTL, 60) : cTL, style=cR.get(q) >= 0 ? line.style_dotted : line.style_solid, width=1))
+                    ln0 = line.new(la, lp2 + ls * (la - lb2), x2, lp2 + ls * (x2 - lb2), color=cR.get(q) >= 0 ? color.new(cTL, 60) : cTL, style=cR.get(q) >= 0 ? line.style_dotted : line.style_solid, width=1)
+                    lines.push(ln0)
                     if cR.get(q) < 0
-                        drT1.push(time[bar_index - la]), drP1.push(lp2 + ls * (la - lb2)), drS.push(ls), drB.push(lb2), drP2.push(lp2)
+                        drT1.push(time[bar_index - la]), drP1.push(lp2 + ls * (la - lb2)), drS.push(ls), drB.push(lb2), drP2.push(lp2), drA.push(la), drL.push(ln0)
         // channel 50% from the newest respected line: drives the overextended check; the helper line only if asked
         if use >= 0
             la = cA.get(use)
@@ -1061,9 +1052,21 @@ if barstate.islast
                 if tfN != "" and tfN != timeframe.period and not na(ht1) and not (lvl == 1 and htf == tfL1) and not same
                     gT1.push(ht1), gP1.push(hp1), gT2.push(ht2), gP2.push(hp2)
                     tEnd = time + 5 * timeframe.in_seconds() * 1000
-                    [ra, rpa, rb, rpb, rsl, rce] = refineTL(d, ht1, ht2, na, timeframe.in_seconds(tfN) * 1000)
+                    [ra, rpa, rb, rpb, rsl] = refineTL(d, ht1, timeframe.in_seconds(tfN) * 1000, tlSwing)
                     if refineHtf and not na(ra)
-                        lines.push(line.new(ra, rpa, bar_index + 3, rpb + rsl * (bar_index + 3 - rb), color=cHtfTL, style=line.style_dotted, width=1))
+                        // same anchor and touch as a line already drawn = the same trendline: keep one (the higher timeframe)
+                        bool dupP = false
+                        if gRA.size() > 0
+                            for q4 = 0 to gRA.size() - 1
+                                if math.abs(gRA.get(q4) - ra) <= 3 and math.abs(gRB.get(q4) - rb) <= 3
+                                    dupP := true
+                        if not dupP
+                            if drA.size() > 0
+                                for q5 = 0 to drA.size() - 1
+                                    if math.abs(drA.get(q5) - ra) <= 3 and math.abs(drB.get(q5) - rb) <= 3
+                                        line.delete(drL.get(q5))
+                            gRA.push(ra), gRB.push(rb)
+                            lines.push(line.new(ra, rpa, bar_index + 3, rpb + rsl * (bar_index + 3 - rb), color=cHtfTL, style=line.style_dotted, width=1))
                     else
                         lines.push(line.new(int(ht1), hp1, int(tEnd), hLineAt(ht1, hp1, ht2, hp2, tEnd), xloc=xloc.bar_time, color=cHtfTL, style=line.style_dotted, width=1))
                     tagP.push(hLineAt(ht1, hp1, ht2, hp2, time)), tagT.push(tfN + " trendline"), tagC.push(cHtfTL), tagTip.push(tfN + (d > 0 ? " uptrend line (a higher high followed its valley)" : " downtrend line (a lower low followed its peak)") + ". Zones near it are stronger.")

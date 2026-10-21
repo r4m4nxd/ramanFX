@@ -20,7 +20,7 @@
 //| into a zone does not count as a touch. Removal needs a CLOSE.    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.92"
+#property version   "1.93"
 #property strict
 #property indicator_chart_window
 
@@ -418,27 +418,34 @@ int TLRank(string n)                                                   // this c
    int u = StringFind(n, "_", h);
    return (int)StringToInteger(StringSubstr(n, h + 3, u - h - 3));
   }
+// every drawn line: anchor time, touch time, direction, broken?, rank (the higher timeframe wins: it carries more weight)
+string rgN[]; datetime rgA[], rgB[]; int rgD[], rgR[]; bool rgX[];
+void RegTL(string n, datetime ta, datetime tb, int d, bool broken, int rank)
+  {
+   int k = ArraySize(rgN);
+   ArrayResize(rgN, k + 1); ArrayResize(rgA, k + 1); ArrayResize(rgB, k + 1); ArrayResize(rgD, k + 1); ArrayResize(rgR, k + 1); ArrayResize(rgX, k + 1);
+   rgN[k] = n; rgA[k] = ta; rgB[k] = tb; rgD[k] = d; rgR[k] = rank; rgX[k] = broken;
+  }
+// one line per pivot pair: lines from the same anchor candle to the same touch candle (or lying on top of each other)
+// are the same trendline - keep the respected one, then the highest timeframe's
 void DedupeTL()
   {
-   string nm[]; int n = 0;
-   for(int o = ObjectsTotal(0, 0, OBJ_TREND) - 1; o >= 0; o--)
-     {
-      string x = ObjectName(0, o, 0, OBJ_TREND);
-      if(StringFind(x, PFX + "tl") != 0 || StringFind(x, PFX + "tlc") == 0) continue;
-      color xc = (color)ObjectGetInteger(0, x, OBJPROP_COLOR);
-      if(xc == InpMuted || xc == InpHtfTLBroken) continue;            // broken lines stay as history
-      ArrayResize(nm, n + 1); nm[n++] = x;
-     }
+   int n = ArraySize(rgN);
+   long near = 3 * PeriodSeconds();
    double tol = 0.3 * iATR(NULL, 0, 14, 1);
    datetime ta = Time[0], tb = Time[MathMin(30, Bars - 1)];
    for(int i = 0; i < n; i++)
       for(int j = i + 1; j < n; j++)
         {
-         if(ObjectFind(0, nm[i]) < 0 || ObjectFind(0, nm[j]) < 0) continue;
-         if(MathAbs(TLPrice(nm[i], ta) - TLPrice(nm[j], ta)) > tol || MathAbs(TLPrice(nm[i], tb) - TLPrice(nm[j], tb)) > tol) continue;
-         string del = TLRank(nm[i]) >= TLRank(nm[j]) ? nm[j] : nm[i];
+         if(rgD[i] != rgD[j] || ObjectFind(0, rgN[i]) < 0 || ObjectFind(0, rgN[j]) < 0) continue;
+         bool samePiv = MathAbs((long)rgA[i] - (long)rgA[j]) <= near && MathAbs((long)rgB[i] - (long)rgB[j]) <= near;
+         bool onTop = !rgX[i] && !rgX[j] && MathAbs(TLPrice(rgN[i], ta) - TLPrice(rgN[j], ta)) <= tol && MathAbs(TLPrice(rgN[i], tb) - TLPrice(rgN[j], tb)) <= tol;
+         if(!samePiv && !onTop) continue;
+         long si = (rgX[i] ? 0 : 10000000) + rgR[i], sj = (rgX[j] ? 0 : 10000000) + rgR[j];
+         string del = si >= sj ? rgN[j] : rgN[i];
          ObjectDelete(0, del); ObjectDelete(0, del + "l");
         }
+   ArrayResize(rgN, 0); ArrayResize(rgA, 0); ArrayResize(rgB, 0); ArrayResize(rgD, 0); ArrayResize(rgR, 0); ArrayResize(rgX, 0);
   }
 // HTF pivot bars aH / bH -> this chart's bars holding the extreme inside each, then the no-cut fit on this chart.
 // false when this chart's history does not reach back to the anchor (the HTF coordinates are used then).
@@ -453,13 +460,26 @@ int ChartBarIn(int d, int hb)
    if(cnt < 1) return -1;
    return d > 0 ? iLowest(NULL, 0, MODE_LOW, cnt, j1) : iHighest(NULL, 0, MODE_HIGH, cnt, j1);
   }
-bool RefineOnChart(int d, int aH, int bH, int &ca, int &cb, double &csl)
+// anchor = this chart's candle holding the extreme inside the HTF anchor bar; touch = the swing point of THIS chart
+// that keeps every other swing on the right side of the line (a tangent), searched until the HTF break - the way you
+// refine touch points going down the timeframes. Falls back to the candle inside the HTF pivot bar.
+bool RefineOnChart(int d, int aH, int bH, int endH, int &ca, int &cb, double &csl)
   {
-   ca = ChartBarIn(d, aH); cb = ChartBarIn(d, bH);
-   if(ca < 0 || cb < 0 || ca <= cb) return false;
+   ca = ChartBarIn(d, aH);
+   if(ca < 0) return false;
+   int stop = endH >= 0 ? iBarShift(NULL, 0, iTime(NULL, gTF, endH)) + 1 : 1;
    int keep = gTF; gTF = _Period;
-   ca = FitAnchor(ca, cb, d > 0 ? Low[cb] : High[cb], d, csl);
+   double pa = d > 0 ? Low[ca] : High[ca], best = 0; cb = -1;
+   for(int j = ca - InpTLSwing - 1; j >= MathMax(stop, InpTLSwing + 1); j--)
+     {
+      if(!(d > 0 ? FrLow(j) : FrHigh(j))) continue;
+      double s0 = ((d > 0 ? Low[j] : High[j]) - pa) / (ca - j);
+      if((d > 0 && s0 <= 0) || (d < 0 && s0 >= 0)) continue;
+      if(cb < 0 || (d > 0 ? s0 < best : s0 > best)) { cb = j; best = s0; }
+     }
    gTF = keep;
+   if(cb < 0) { cb = ChartBarIn(d, bH); if(cb < 0 || cb >= ca) return false; }
+   csl = ((d > 0 ? Low[cb] : High[cb]) - pa) / (ca - cb);
    return true;
   }
 bool Confirmed(int a, int b2, double p2, double sl, int d)
@@ -562,7 +582,7 @@ void Trendlines(string s, int tf)
          if(gTF != _Period && InpRefineHTF)
            {
             int ca, cb; double csl;
-            if(RefineOnChart(d, TL[i].a, TL[i].b, ca, cb, csl))
+            if(RefineOnChart(d, TL[i].a, TL[i].b, TL[i].removed ? TL[i].removedBar : -1, ca, cb, csl))
               {
                double pcb = up ? Low[cb] : High[cb];
                x1 = Time[ca]; y1 = up ? Low[ca] : High[ca];
@@ -570,7 +590,9 @@ void Trendlines(string s, int tf)
                else { x2 = Time[0] + PeriodSeconds() * 3; pe = pcb + csl * (cb + 3); }
               }
            }
-         if(InpShowTrendlines) ObjectCreate(0, nm, OBJ_TREND, 0, x1, y1, x2, pe);
+         datetime tTouch = iTime(NULL, gTF, TL[i].b);
+         if(gTF != _Period && InpRefineHTF) { int ca2, cb2; double cs2; if(RefineOnChart(d, TL[i].a, TL[i].b, TL[i].removed ? TL[i].removedBar : -1, ca2, cb2, cs2)) tTouch = Time[cb2]; }
+         if(InpShowTrendlines) { ObjectCreate(0, nm, OBJ_TREND, 0, x1, y1, x2, pe); RegTL(nm, x1, tTouch, d, TL[i].removed, gTF == _Period ? 0 : gTF); }
          ObjectSetInteger(0, nm, OBJPROP_RAY_RIGHT, false);
          ObjectSetInteger(0, nm, OBJPROP_COLOR, c);
          ObjectSetInteger(0, nm, OBJPROP_STYLE, TL[i].removed || gTF != _Period ? STYLE_DOT : STYLE_SOLID);   // HTF lines: thin dotted gold
