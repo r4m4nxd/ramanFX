@@ -22,7 +22,7 @@
 //|   2026.10.17 12:30,USD   (UTC time, currency)                    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "0.92"
+#property version   "0.93"
 #property strict
 
 enum BotMode   { MODE_SCANNER = 0, MODE_APPROVE = 1, MODE_AUTO = 2 };
@@ -72,7 +72,7 @@ input double    InpMaxDistATR    = 2.0;          // Zone must be within N x HTF 
 input bool      InpHalfwayAlert  = true;         // Zone further than that: draw a halfway line and alert when price gets there
 input bool      InpUseMyLines    = true;         // Use YOUR trendlines on this chart for the trend, and YOUR rectangles as zones to advise
 input bool      InpRequireQualified = true;      // Kevin's chain rule: the move away removed an opposing zone or made an all-time high/low (your trendline is the third trigger - you check it)
-input int       InpTLSwing       = 3;            // Trendlines (same as ZoneVision): swing = N bars each side; REAL only after a new higher high / lower low
+input int       InpTLSwing       = 2;            // Trendlines (same as ZoneVision): swing = N bars each side; REAL only after a new higher high / lower low
 input bool      InpBlockOverext  = true;         // Kevin: no entries beyond the channel 50% (overextended); trade the golden area
 input double    InpMinGap        = 0.15;         // Kevin: space between stay-away candle and proximal (x zone height); less = drawable only, not traded
 input double    InpMinSizeVsMedian = 0.5;        // Kevin: a zone about half the size of the other zones is too small to trade
@@ -219,6 +219,7 @@ void OnDeinit(const int reason)
    Comment("");
    ObjectsDeleteAll(0, "RFXS_");
    ObjectsDeleteAll(0, "RFXW_");
+   ObjectsDeleteAll(0, "RFXT_");
   }
 
 // Far zones (more than InpMaxDistATR x HTF ATR from price): price usually needs several
@@ -503,7 +504,7 @@ double FindTrap(string s, int tf, int dir, double prox, double dist, int fromBar
 //|  anchored without cutting candles, removed by a full candle      |
 //|  beyond the line; channel 50% from the newest confirmed line.    |
 //+------------------------------------------------------------------+
-struct KLine { int dir; int a, b; double pb, sl; bool removed, conf; datetime tRem; };
+struct KLine { int dir; int a, b; double pb, sl; bool removed, conf, ov; datetime tRem; };
 KLine gKE[], gKH[];                                                     // entry-TF and HTF lines of the symbol being scanned
 int pzB[]; double pzP[]; int pzT[];
 void PzAdd(int b, double p, int t) { int n = ArraySize(pzB); ArrayResize(pzB, n + 1); ArrayResize(pzP, n + 1); ArrayResize(pzT, n + 1); pzB[n] = b; pzP[n] = p; pzT[n] = t; }
@@ -523,6 +524,28 @@ void Zz(string s, int tf, int bars)                                     // real 
      }
   }
 double KAt(KLine &k, int j) { return k.pb + k.sl * (k.b - j); }
+int KFit(string s, int tf, int A, int b2, double p2, int d, double &sl)       // move the anchor only for a real cut (> 0.25 ATR)
+  {
+   int a = A; double tol = 0.25 * iATR(s, tf, 14, 1);
+   for(int it = 0; it < 50; it++)
+     {
+      sl = (p2 - (d > 0 ? iLow(s, tf, a) : iHigh(s, tf, a))) / (a - b2);
+      int worst = -1; double ex = tol;
+      for(int j = a - 1; j > b2; j--) { double lv = p2 + sl * (b2 - j), e = d > 0 ? lv - iLow(s, tf, j) : iHigh(s, tf, j) - lv; if(e > ex) { ex = e; worst = j; } }
+      if(worst < 0) return a;
+      a = worst;
+     }
+   sl = (p2 - (d > 0 ? iLow(s, tf, a) : iHigh(s, tf, a))) / (a - b2);
+   return a;
+  }
+void KAdd(string s, int tf, KLine &out[], int d, int a, int b2, double p2, double sl, bool ov)
+  {
+   KLine t; t.dir = d; t.a = a; t.b = b2; t.pb = p2; t.sl = sl; t.removed = false; t.conf = true; t.ov = ov; t.tRem = 0;
+   for(int j = b2 - 1; j >= 1; j--) { double lv = KAt(t, j); if((d > 0 && iHigh(s, tf, j) < lv) || (d < 0 && iLow(s, tf, j) > lv)) { t.removed = true; t.tRem = iTime(s, tf, j); break; } }
+   int n = ArraySize(out); ArrayResize(out, n + 1); out[n] = t;
+  }
+// same lines as ZoneVision: newest real valley (peak) back to the previous one, or to the lowest (highest) point if that
+// is too flat; plus the overall line from the very bottom (top) of the window
 int KLines(string s, int tf, KLine &out[])
   {
    ArrayResize(out, 0);
@@ -531,40 +554,76 @@ int KLines(string s, int tf, KLine &out[])
    Zz(s, tf, bars);
    for(int d = -1; d <= 1; d += 2)
      {
-      int want = d > 0 ? -1 : 1, prev = -1;
+      int want = d > 0 ? -1 : 1, prevB = -1; double prevP = 0, sl = 0;
       for(int k = 0; k < ArraySize(pzB); k++)
         {
          if(pzT[k] != want) continue;
-         if(prev < 0) { prev = k; continue; }
-         int k1 = prev; prev = k;
-         if((d > 0 && pzP[k] <= pzP[k1]) || (d < 0 && pzP[k] >= pzP[k1])) continue;
-         int b2 = pzB[k]; double p2 = pzP[k], sl = d > 0 ? -DBL_MAX : DBL_MAX; int a = pzB[k1];
-         for(int j = pzB[k1]; j > b2; j--)
-           {
-            double v = d > 0 ? (p2 - iLow(s, tf, j)) / (j - b2) : (p2 - iHigh(s, tf, j)) / (j - b2);
-            if((d > 0 && v > sl) || (d < 0 && v < sl)) { sl = v; a = j; }
-           }
-         double mid = d > 0 ? -DBL_MAX : DBL_MAX;
-         for(int j = pzB[k1] - 1; j > b2; j--) mid = d > 0 ? MathMax(mid, iHigh(s, tf, j)) : MathMin(mid, iLow(s, tf, j));
-         KLine t; t.dir = d; t.a = a; t.b = b2; t.pb = p2; t.sl = sl; t.removed = false; t.conf = false; t.tRem = 0;
-         for(int j = b2 - 1; j >= 1; j--)
-           {
-            if(!t.conf && ((d > 0 && iHigh(s, tf, j) > mid) || (d < 0 && iLow(s, tf, j) < mid))) t.conf = true;
-            double lv = KAt(t, j);
-            if((d > 0 && iHigh(s, tf, j) < lv) || (d < 0 && iLow(s, tf, j) > lv)) { t.removed = true; t.tRem = iTime(s, tf, j); break; }
-           }
-         int n = ArraySize(out); ArrayResize(out, n + 1); out[n] = t;
+         int b2 = pzB[k], A = -1; double p2 = pzP[k];
+         if(prevB > 0 && (d > 0 ? prevP < p2 : prevP > p2) && MathAbs(prevP - p2) >= iATR(s, tf, 14, b2)) A = prevB;
+         else { A = d > 0 ? iLowest(s, tf, MODE_LOW, bars - b2, b2 + 1) : iHighest(s, tf, MODE_HIGH, bars - b2, b2 + 1); if(A < 0 || (d > 0 ? iLow(s, tf, A) >= p2 : iHigh(s, tf, A) <= p2)) A = -1; }
+         prevB = b2; prevP = p2;
+         if(A < 0) continue;
+         int a = KFit(s, tf, A, b2, p2, d, sl);
+         KAdd(s, tf, out, d, a, b2, p2, sl, false);
         }
+      int O = d > 0 ? iLowest(s, tf, MODE_LOW, bars, 1) : iHighest(s, tf, MODE_HIGH, bars, 1);
+      if(O < 0) continue;
+      double ov = d > 0 ? iLow(s, tf, O) : iHigh(s, tf, O), bs = 0; int bk = -1;
+      for(int k = 0; k < ArraySize(pzB); k++)
+        {
+         if(pzT[k] != want || pzB[k] >= O - 1) continue;
+         double s0 = (pzP[k] - ov) / (O - pzB[k]);
+         if((d > 0 && s0 <= 0) || (d < 0 && s0 >= 0)) continue;
+         if(bk < 0 || (d > 0 ? s0 < bs : s0 > bs)) { bk = k; bs = s0; }
+        }
+      if(bk >= 0) { int a = KFit(s, tf, O, pzB[bk], pzP[bk], d, sl); KAdd(s, tf, out, d, a, pzB[bk], pzP[bk], sl, true); }
      }
    return ArraySize(out);
   }
+// the line the bot uses in a direction: newest respected one, else the overall one (-1 = none)
+int KUse(KLine &L[], int dir)
+  {
+   for(int i = ArraySize(L) - 1; i >= 0; i--) if(L[i].dir == dir && !L[i].ov && !L[i].removed) return i;
+   for(int i = ArraySize(L) - 1; i >= 0; i--) if(L[i].dir == dir && L[i].ov && !L[i].removed) return i;
+   return -1;
+  }
+// zone within 1 entry-TF ATR of a respected trendline in its direction: "" or the timeframe name
+string KNear(string s, int etf, int htf, int dir, double price)
+  {
+   double atr = iATR(s, etf, 14, 1);
+   int i = KUse(gKE, dir); if(i >= 0 && MathAbs(price - KAt(gKE[i], 0)) <= atr) return TfName(etf);
+   i = KUse(gKH, dir);     if(i >= 0 && MathAbs(price - KAt(gKH[i], 0)) <= atr) return TfName(htf);
+   return "";
+  }
+// draw the lines on this chart: newest respected (thick) + overall (thin), entry TF grey, HTF gold
+void DrawKLines(string s, int tf, KLine &L[], string tag, color c)
+  {
+   ObjectsDeleteAll(0, "RFXT_" + tag);
+   for(int d = -1; d <= 1; d += 2)
+     {
+      int n = -1, o = -1;
+      for(int i = ArraySize(L) - 1; i >= 0; i--) if(L[i].dir == d && !L[i].removed) { if(L[i].ov) { if(o < 0) o = i; } else if(n < 0) n = i; }
+      for(int q = 0; q < 2; q++)
+        {
+         int i = q == 0 ? n : o;
+         if(i < 0 || (q == 1 && n >= 0 && L[n].a == L[o].a && L[n].b == L[o].b)) continue;
+         string nm = "RFXT_" + tag + (d > 0 ? "u" : "d") + IntegerToString(q);
+         datetime t2 = iTime(s, tf, 0) + PeriodSeconds(tf) * 3;
+         double p2 = L[i].pb + L[i].sl * (L[i].b + 3);
+         ObjectCreate(0, nm, OBJ_TREND, 0, iTime(s, tf, L[i].a), KAt(L[i], L[i].a), t2, p2);
+         ObjectSetInteger(0, nm, OBJPROP_RAY_RIGHT, false); ObjectSetInteger(0, nm, OBJPROP_COLOR, c);
+         ObjectSetInteger(0, nm, OBJPROP_WIDTH, q == 0 ? 2 : 1); ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false); ObjectSetInteger(0, nm, OBJPROP_BACK, true);
+         ObjectSetString(0, nm, OBJPROP_TOOLTIP, TfName(tf) + (q == 1 ? " overall " : " ") + (d > 0 ? "uptrend line: lowest point to a real valley (a higher high followed)" : "downtrend line: highest point to a real peak (a lower low followed)") + " - respected so far");
+        }
+     }
+  }
+
 // newest line in the trade direction: is the price beyond the channel 50%? (0 = no line / not confirmed / removed)
 int ChannelState(string s, int tf, KLine &L[], int dir, double price)
   {
-   for(int i = ArraySize(L) - 1; i >= 0; i--)
+   int use = KUse(L, dir);
+   for(int i = use; i >= 0 && i == use; i--)
      {
-      if(L[i].dir != dir) continue;
-      if(L[i].removed || !L[i].conf) return 0;
       double w = 0;
       for(int j = L[i].a; j >= 1; j--) w = MathMax(w, dir > 0 ? iHigh(s, tf, j) - KAt(L[i], j) : KAt(L[i], j) - iLow(s, tf, j));
       double mid = KAt(L[i], 0) + dir * w / 2;
@@ -869,6 +928,7 @@ void Scan(string s, int k)
    Zone hz[];
    int hn = HtfZones(s, htf, hz);
    KLines(s, etf, gKE); KLines(s, htf, gKH);
+   if(InpDraw && s == _Symbol && etf == _Period) { DrawKLines(s, etf, gKE, "E", clrDimGray); DrawKLines(s, htf, gKH, "H", clrGoldenrod); }
    // every fresh zone in the HTF direction is checked; the best one (VP > trap > grade > R:R) is acted on
    int fI = -1; double fFar = 0, fAtr = 0;                                  // nearest zone that failed only on distance
    int best = -1; double bScore = 0, bEntry = 0, bSl = 0, bTp = 0, bRr = 0; string bMethod = "", bDecision = "", bPg = ""; int bPs = 0; bool bCapped = false;
@@ -996,7 +1056,8 @@ void Scan(string s, int k)
       { double ha = iATR(s, htf, 14, 1), fr = MathAbs((dir > 0 ? MarketInfo(s, MODE_BID) : MarketInfo(s, MODE_ASK)) - z[i].prox);
         info += StringFormat("\nDistance: %.1f x %s ATR (%s away, ATR %s) - within reach (limit %.1f)\n", fr / MathMax(ha, point), TfName(htf), DoubleToString(fr, digits), DoubleToString(ha, digits), InpMaxDistATR); }
       { int ce = ChannelState(s, etf, gKE, dir, z[i].prox), ch = ChannelState(s, htf, gKH, dir, z[i].prox);
-        info += "Channel: " + (ce == 1 || ch == 1 ? "zone in the golden area (trendline to 50%)" : "no confirmed trendline in this direction") + "\n"; }
+        string nt = KNear(s, etf, htf, dir, z[i].prox);
+        info += "Channel: " + (ce == 1 || ch == 1 ? "zone in the golden area (trendline to 50%)" : "no respected trendline in this direction") + (nt != "" ? " | zone at the " + nt + " trendline" : "") + "\n"; }
       info += StringFormat("Chain: %s | space under stay-away %.0f%% of zone%s", z[i].ath ? (dir > 0 ? "made an all-time high" : "made an all-time low") : "removed an opposing zone", z[i].gap * 100, z[i].leg2 ? " | second explosive candle" : "");
       bool fresh = true;                                                 // approve mode: alert only for new / changed advice
       if(InpMode == MODE_APPROVE) fresh = AddProposal(s, k, dir, entry, sl, tp, z[i].dist, method, g, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));

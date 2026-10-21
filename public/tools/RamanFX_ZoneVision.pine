@@ -14,7 +14,7 @@ maxZoneATR = input.float(1.5, "Max zone height (x ATR14)", minval=0.2, step=0.1,
 minDep     = input.float(1.5, "Departure: price must leave >= N x zone height", minval=0.0, step=0.1, group=gR)
 lookback   = input.int(300, "Ignore zones older than (bars)", minval=50, maxval=2000, group=gR)
 swingN     = input.int(3, "Swing strength for liquidity-trap levels (bars each side)", minval=1, maxval=10, group=gR)
-tlSwing    = input.int(3, "Trendlines: swing = N bars each side; real only after a new higher high / lower low", minval=1, maxval=10, group=gR)
+tlSwing    = input.int(2, "Trendlines: swing = N bars each side; real only after a new higher high / lower low", minval=1, maxval=10, group=gR)
 trapATR    = input.float(1.0, "Liquidity trap: level within N x ATR in front of the zone", step=0.1, group=gR)
 minRR      = input.float(2.0, "Min reward:risk for the plan", step=0.1, group=gR)
 onlyChain  = input.bool(true, "Sunday rule: trade only zones in the chain (removed opp. zone or made a new all-time high/low)", group=gR)
@@ -34,6 +34,8 @@ showEmo     = input.bool(true, "Mark emotional candles (range > N x ATR, see Zon
 showTL      = input.bool(true, "Draw trendlines", group=gS)
 showUpTL    = input.bool(true, "  Rising trendline (higher lows)", group=gS)
 showDnTL    = input.bool(true, "  Falling trendline (lower highs)", group=gS)
+showHtfTL   = input.bool(true, "  Also draw the HTF trendlines on this chart (precision on the entry timeframe)", group=gS)
+cHtfTL      = input.color(color.new(#E8B04A, 15), "  HTF trendline colour", group=gS)
 showPlan    = input.bool(true, "Potential trades (entry / stop / target)", group=gS)
 nTrades     = input.int(3, "  How many potential trades to list", minval=1, maxval=5, group=gS)
 planLines   = input.string("Best only", "  Draw entry/stop/target lines for", options=["Best only", "All listed"], group=gS)
@@ -283,8 +285,158 @@ var float dnP = na
 var float dnS = na
 var float dnW = na
 var int dnB = na
+// Kevin's line on the series of the calling context (used for the HTF through request.security), last bar only.
+// Real valley = swing low followed by a higher high before it breaks; real peak = swing high followed by a lower low.
+// Newest respected line (previous real pivot -> newest, or lowest/highest point if too flat), else the overall line
+// from the very bottom/top. Returns [anchor time, anchor price, pivot time, pivot price, channel width] (na = none).
+kLine(int d, int N, int Lmax) =>
+    a14 = ta.atr(14)
+    float rt1 = na
+    float rp1 = na
+    float rt2 = na
+    float rp2 = na
+    float rw = na
+    L = math.min(Lmax, bar_index - 2 * N - 20)
+    if barstate.islast and L > 30
+        tol = 0.25 * a14
+        rB = array.new<int>()
+        rP = array.new<float>()
+        int fH = na
+        int fL = na
+        for off = L to N + 1
+            bool isLo = true
+            bool isHi = true
+            for k = 1 to N
+                if low[off] > low[off + k] or low[off] >= low[off - k]
+                    isLo := false
+                if high[off] < high[off + k] or high[off] <= high[off - k]
+                    isHi := false
+            if d > 0 and isLo and not na(fH)
+                for o2 = off - 1 to 1
+                    if low[o2] < low[off]
+                        break
+                    if high[o2] > high[fH]
+                        rB.push(off), rP.push(low[off])
+                        break
+            if d < 0 and isHi and not na(fL)
+                for o2 = off - 1 to 1
+                    if high[o2] > high[off]
+                        break
+                    if low[o2] < low[fL]
+                        rB.push(off), rP.push(high[off])
+                        break
+            if isLo
+                fL := off
+            if isHi
+                fH := off
+        // candidate lines (offsets: bigger = older); value at offset o = p2 + sl * (b2 - o)
+        int bestA = na
+        int bestB = na
+        float bestP = na
+        float bestS = na
+        int prevB = na
+        float prevP = na
+        for pass = 0 to 1
+            if pass == 1 and not na(bestA)
+                break
+            n = pass == 0 ? rB.size() : 1
+            if n > 0
+                for k = 0 to n - 1
+                    int b2 = na
+                    float p2 = na
+                    int A = na
+                    if pass == 0
+                        b2 := rB.get(k)
+                        p2 := rP.get(k)
+                        if not na(prevB) and (d > 0 ? prevP < p2 : prevP > p2) and math.abs(prevP - p2) >= a14[b2]
+                            A := prevB
+                        else
+                            float ex = na
+                            for o3 = b2 + 1 to L
+                                v = d > 0 ? low[o3] : high[o3]
+                                if na(ex) or (d > 0 ? v < ex : v > ex)
+                                    ex := v
+                                    A := o3
+                            if not na(ex) and (d > 0 ? ex >= p2 : ex <= p2)
+                                A := na
+                        prevB := b2
+                        prevP := p2
+                    else
+                        // overall: very bottom / top of the window to the real pivot keeping every other one on its side
+                        float ov = na
+                        for o3 = 1 to L
+                            v = d > 0 ? low[o3] : high[o3]
+                            if na(ov) or (d > 0 ? v < ov : v > ov)
+                                ov := v
+                                A := o3
+                        float bs = na
+                        if rB.size() > 0
+                            for k2 = 0 to rB.size() - 1
+                                o4 = rB.get(k2)
+                                if o4 < A - 1
+                                    s0 = (rP.get(k2) - ov) / (A - o4)
+                                    if (d > 0 ? s0 > 0 : s0 < 0) and (na(bs) or (d > 0 ? s0 < bs : s0 > bs))
+                                        bs := s0
+                                        b2 := o4
+                                        p2 := rP.get(k2)
+                        if na(b2)
+                            A := na
+                    if not na(A)
+                        int a = A
+                        float sl = (p2 - (d > 0 ? low[a] : high[a])) / (a - b2)
+                        for it = 0 to 49
+                            sl := (p2 - (d > 0 ? low[a] : high[a])) / (a - b2)
+                            int worst = -1
+                            float exc = tol
+                            if a - 1 >= b2 + 1
+                                for o5 = a - 1 to b2 + 1
+                                    lv = p2 + sl * (b2 - o5)
+                                    e = d > 0 ? lv - low[o5] : high[o5] - lv
+                                    if e > exc
+                                        exc := e
+                                        worst := o5
+                            if worst < 0
+                                break
+                            a := worst
+                        sl := (p2 - (d > 0 ? low[a] : high[a])) / (a - b2)
+                        bool rem = false
+                        if b2 - 1 >= 1
+                            for o6 = b2 - 1 to 1
+                                lv = p2 + sl * (b2 - o6)
+                                if d > 0 ? high[o6] < lv : low[o6] > lv
+                                    rem := true
+                                    break
+                        if not rem
+                            bestA := a
+                            bestB := b2
+                            bestP := p2
+                            bestS := sl
+        if not na(bestA)
+            float w = 0.0
+            for o7 = bestA to 0
+                lv = bestP + bestS * (bestB - o7)
+                w := math.max(w, d > 0 ? high[o7] - lv : lv - low[o7])
+            rt1 := time[bestA]
+            rp1 := bestP + bestS * (bestB - bestA)
+            rt2 := time[bestB]
+            rp2 := bestP
+            rw := w
+    [rt1, rp1, rt2, rp2, rw]
+
+[hu1, hup1, hu2, hup2, huw] = request.security(syminfo.tickerid, htf, kLine(1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
+[hd1, hdp1, hd2, hdp2, hdw] = request.security(syminfo.tickerid, htf, kLine(-1, tlSwing, lookback), lookahead=barmerge.lookahead_off)
+hLineAt(float t1, float p1, float t2, float p2, float t) => na(t1) or t2 == t1 ? na : p2 + (p2 - p1) / (t2 - t1) * (t - t2)
+
 overext(int d, float price) =>
-    d > 0 ? (upOn and price > upP + upS * (bar_index - upB) + upW / 2) : (dnOn and price < dnP + dnS * (bar_index - dnB) - dnW / 2)
+    hv = d > 0 ? hLineAt(hu1, hup1, hu2, hup2, time) : hLineAt(hd1, hdp1, hd2, hdp2, time)
+    hw = d > 0 ? huw : hdw
+    hx = not na(hv) and not na(hw) and (d > 0 ? price > hv + hw / 2 : price < hv - hw / 2)
+    hx or (d > 0 ? (upOn and price > upP + upS * (bar_index - upB) + upW / 2) : (dnOn and price < dnP + dnS * (bar_index - dnB) - dnW / 2))
+// zone within 1 ATR of a respected trendline in its direction: "" or the timeframe name
+nearTL(int d, float price) =>
+    cv = d > 0 ? (upOn ? upP + upS * (bar_index - upB) : na) : (dnOn ? dnP + dnS * (bar_index - dnB) : na)
+    hv = d > 0 ? hLineAt(hu1, hup1, hu2, hup2, time) : hLineAt(hd1, hdp1, hd2, hdp2, time)
+    not na(cv) and math.abs(price - cv) <= atr ? timeframe.period : not na(hv) and math.abs(price - hv) <= atr ? htf : ""
 
 qualified(Zone z) =>
     bool q = false
@@ -368,6 +520,9 @@ zoneNotes(Zone z, float medZ) =>
         zCr.push("against the " + htf + " trend")
     if overext(z.dir, z.prox)
         zCr.push("beyond channel 50% (overextended)")
+    ntl = nearTL(z.dir, z.prox)
+    if ntl != ""
+        zPl.push("at the " + ntl + " trendline")
     if trapFor(z) >= 0
         zPl.push("liquidity trap in front")
     xa = na(htfAtr) or htfAtr <= 0 ? 0.0 : math.abs(close - z.prox) / htfAtr
@@ -456,90 +611,141 @@ if barstate.islast
     for kd = 0 to 1
         d = kd == 0 ? 1 : -1
         want = d > 0 ? -1 : 1
-        int prev = -1
-        int la = na
-        int lb2 = na
-        float lp2 = na
-        float ls = na
-        int lrem = -1
-        bool lconf = false
-        if pvB.size() > 0
-            for k = 0 to pvB.size() - 1
-                if pvT.get(k) != want
-                    continue
-                if prev < 0
-                    prev := k
-                    continue
-                k1 = prev
-                prev := k
-                b1 = pvB.get(k1)
-                p1 = pvP.get(k1)
-                b2 = pvB.get(k)
-                p2 = pvP.get(k)
-                if d > 0 ? p2 <= p1 : p2 >= p1
-                    continue
-                float sl = d > 0 ? -1e10 : 1e10
-                int a = b1
-                for x = b1 to b2 - 1
-                    off = bar_index - x
-                    v = d > 0 ? (p2 - low[off]) / (b2 - x) : (p2 - high[off]) / (b2 - x)
-                    if d > 0 ? v > sl : v < sl
-                        sl := v
-                        a := x
-                float mid = d > 0 ? -1e10 : 1e10
-                if b2 - 1 >= b1 + 1
-                    for x = b1 + 1 to b2 - 1
-                        mid := d > 0 ? math.max(mid, high[bar_index - x]) : math.min(mid, low[bar_index - x])
-                bool conf = false
-                int rem = -1
-                if bar_index - 1 >= b2 + 1
-                    for x = b2 + 1 to bar_index - 1
-                        off = bar_index - x
-                        if not conf and (d > 0 ? high[off] > mid : low[off] < mid)
-                            conf := true
-                        lv = p2 + sl * (x - b2)
-                        if d > 0 ? high[off] < lv : low[off] > lv
-                            rem := x
-                            break
-                if rem >= 0
-                    tlRemDir.push(d), tlRemBar.push(rem)
-                la := a
-                lb2 := b2
-                lp2 := p2
-                ls := sl
-                lrem := rem
-                lconf := conf
-        if not na(la)
-            x2 = lrem >= 0 ? lrem : bar_index + 5
-            y1 = lp2 + ls * (la - lb2)
-            y2 = lp2 + ls * (x2 - lb2)
-            if showTL and (d > 0 ? showUpTL : showDnTL)
-                lines.push(line.new(la, y1, x2, y2, color=lrem >= 0 ? color.new(cTL, 65) : cTL, style=lrem >= 0 ? line.style_dotted : lconf ? line.style_solid : line.style_dashed, width=lrem >= 0 ? 1 : 2))
-            if lrem < 0 and lconf
-                float w = 0.0
-                for x = la to bar_index
-                    off = bar_index - x
-                    lv = lp2 + ls * (x - lb2)
-                    w := math.max(w, d > 0 ? high[off] - lv : lv - low[off])
+        // every candidate line (newest real pivot back to the previous one, or to the lowest / highest point if too flat);
+        // removals feed the chain rule, the newest respected one is drawn, plus the overall line from the very bottom / top
+        int nA = na
+        int nB = na
+        float nP = na
+        float nS = na
+        int oA = na
+        int oB = na
+        float oP = na
+        float oS = na
+        int prevB = na
+        float prevP = na
+        tol = 0.25 * atr
+        for pass = 0 to 1
+            cnt = pass == 0 ? pvB.size() : 1
+            if cnt > 0
+                for k = 0 to cnt - 1
+                    int b2 = na
+                    float p2 = na
+                    int A = na
+                    if pass == 0
+                        if pvT.get(k) != want
+                            continue
+                        b2 := pvB.get(k)
+                        p2 := pvP.get(k)
+                        if not na(prevB) and (d > 0 ? prevP < p2 : prevP > p2) and math.abs(prevP - p2) >= atr[bar_index - b2]
+                            A := prevB
+                        else
+                            float ex = na
+                            for x = bar_index - zL to b2 - 1
+                                v = d > 0 ? low[bar_index - x] : high[bar_index - x]
+                                if na(ex) or (d > 0 ? v < ex : v > ex)
+                                    ex := v
+                                    A := x
+                            if not na(ex) and (d > 0 ? ex >= p2 : ex <= p2)
+                                A := na
+                        prevB := b2
+                        prevP := p2
+                    else
+                        float ov = na
+                        for x = bar_index - zL to bar_index - 1
+                            v = d > 0 ? low[bar_index - x] : high[bar_index - x]
+                            if na(ov) or (d > 0 ? v < ov : v > ov)
+                                ov := v
+                                A := x
+                        float bs = na
+                        if pvB.size() > 0
+                            for k2 = 0 to pvB.size() - 1
+                                if pvT.get(k2) == want and pvB.get(k2) > A + 1
+                                    s0 = (pvP.get(k2) - ov) / (pvB.get(k2) - A)
+                                    if (d > 0 ? s0 > 0 : s0 < 0) and (na(bs) or (d > 0 ? s0 < bs : s0 > bs))
+                                        bs := s0
+                                        b2 := pvB.get(k2)
+                                        p2 := pvP.get(k2)
+                        if na(b2)
+                            A := na
+                    if not na(A)
+                        int a = A
+                        float sl = 0.0
+                        for it = 0 to 49
+                            sl := (p2 - (d > 0 ? low[bar_index - a] : high[bar_index - a])) / (b2 - a)
+                            int worst = -1
+                            float exc = tol
+                            if b2 - 1 >= a + 1
+                                for x = a + 1 to b2 - 1
+                                    lv = p2 + sl * (x - b2)
+                                    e = d > 0 ? lv - low[bar_index - x] : high[bar_index - x] - lv
+                                    if e > exc
+                                        exc := e
+                                        worst := x
+                            if worst < 0
+                                break
+                            a := worst
+                        sl := (p2 - (d > 0 ? low[bar_index - a] : high[bar_index - a])) / (b2 - a)
+                        int rem = -1
+                        if bar_index - 1 >= b2 + 1
+                            for x = b2 + 1 to bar_index - 1
+                                lv = p2 + sl * (x - b2)
+                                if d > 0 ? high[bar_index - x] < lv : low[bar_index - x] > lv
+                                    rem := x
+                                    break
+                        if rem >= 0
+                            if pass == 0
+                                tlRemDir.push(d), tlRemBar.push(rem)
+                        else if pass == 0
+                            nA := a
+                            nB := b2
+                            nP := p2
+                            nS := sl
+                        else
+                            oA := a
+                            oB := b2
+                            oP := p2
+                            oS := sl
+        // draw: newest respected line (thick) + overall line (thin) when different; channel from the one in use
+        for q = 0 to 1
+            la = q == 0 ? nA : oA
+            if not na(la) and not (q == 1 and nA == oA and nB == oB)
+                lb2 = q == 0 ? nB : oB
+                lp2 = q == 0 ? nP : oP
+                ls = q == 0 ? nS : oS
+                x2 = bar_index + 5
+                y1 = lp2 + ls * (la - lb2)
+                y2 = lp2 + ls * (x2 - lb2)
                 if showTL and (d > 0 ? showUpTL : showDnTL)
-                    lines.push(line.new(la, y1 + d * w / 2, x2, y2 + d * w / 2, color=color.new(cTL, 70), style=line.style_dotted))
-                if d > 0
-                    upOn := true
-                    upP := lp2
-                    upS := ls
-                    upB := lb2
-                    upW := w
-                else
-                    dnOn := true
-                    dnP := lp2
-                    dnS := ls
-                    dnB := lb2
-                    dnW := w
-                tlNote := tlNote + (tlNote == "" ? "" : " | ") + (d > 0 ? "Up channel: " : "Down channel: ") + (overext(d, close) ? "price beyond 50% = OVEREXTENDED, wait" : "price in the golden area (line to 50%)")
-            else if lrem >= 0
-                tlNote := tlNote + (tlNote == "" ? "" : " | ") + (d > 0 ? "Uptrend line removed by a full candle below it" : "Downtrend line removed by a full candle above it")
-            else
-                tlNote := tlNote + (tlNote == "" ? "" : " | ") + (d > 0 ? "Uptrend line not confirmed yet (needs a higher high)" : "Downtrend line not confirmed yet (needs a lower low)")
+                    lines.push(line.new(la, y1, x2, y2, color=cTL, width=q == 0 ? 2 : 1))
+                if q == 0 or na(nA)
+                    float w = 0.0
+                    for x = la to bar_index
+                        lv = lp2 + ls * (x - lb2)
+                        w := math.max(w, d > 0 ? high[bar_index - x] - lv : lv - low[bar_index - x])
+                    if showTL and (d > 0 ? showUpTL : showDnTL)
+                        lines.push(line.new(la, y1 + d * w / 2, x2, y2 + d * w / 2, color=color.new(cTL, 70), style=line.style_dotted))
+                    if d > 0
+                        upOn := true
+                        upP := lp2
+                        upS := ls
+                        upB := lb2
+                        upW := w
+                    else
+                        dnOn := true
+                        dnP := lp2
+                        dnS := ls
+                        dnB := lb2
+                        dnW := w
+                    tlNote := tlNote + (tlNote == "" ? "" : " | ") + (d > 0 ? "Up channel: " : "Down channel: ") + (overext(d, close) ? "price beyond 50% = OVEREXTENDED, wait" : "price in the golden area (line to 50%)")
+        // HTF line on this chart, for precision on the entry timeframe
+        ht1 = d > 0 ? hu1 : hd1
+        hp1 = d > 0 ? hup1 : hdp1
+        ht2 = d > 0 ? hu2 : hd2
+        hp2 = d > 0 ? hup2 : hdp2
+        if showTL and showHtfTL and (d > 0 ? showUpTL : showDnTL) and not na(ht1) and htf != timeframe.period
+            tEnd = time + 5 * timeframe.in_seconds() * 1000
+            lines.push(line.new(int(ht1), hp1, int(tEnd), hLineAt(ht1, hp1, ht2, hp2, tEnd), xloc=xloc.bar_time, color=cHtfTL, width=2))
+            tagP.push(hLineAt(ht1, hp1, ht2, hp2, time)), tagT.push(htf + " trendline"), tagC.push(cHtfTL), tagTip.push(htf + (d > 0 ? " uptrend line: lowest point to a real valley (a higher high followed)" : " downtrend line: highest point to a real peak (a lower low followed)") + ". Zones near it are stronger.")
 
     // potential trades: every fresh usable zone with a valid plan, ranked by planner score
     tIdx = array.new<int>()
