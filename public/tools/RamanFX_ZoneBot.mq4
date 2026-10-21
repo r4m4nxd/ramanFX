@@ -22,7 +22,7 @@
 //|   2026.10.17 12:30,USD   (UTC time, currency)                    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "0.91"
+#property version   "0.92"
 #property strict
 
 enum BotMode   { MODE_SCANNER = 0, MODE_APPROVE = 1, MODE_AUTO = 2 };
@@ -72,6 +72,8 @@ input double    InpMaxDistATR    = 2.0;          // Zone must be within N x HTF 
 input bool      InpHalfwayAlert  = true;         // Zone further than that: draw a halfway line and alert when price gets there
 input bool      InpUseMyLines    = true;         // Use YOUR trendlines on this chart for the trend, and YOUR rectangles as zones to advise
 input bool      InpRequireQualified = true;      // Kevin's chain rule: the move away removed an opposing zone or made an all-time high/low (your trendline is the third trigger - you check it)
+input double    InpSwingATR      = 2.0;          // Trendlines (same as ZoneVision): a real peak / valley = price turns >= N x ATR
+input bool      InpBlockOverext  = true;         // Kevin: no entries beyond the channel 50% (overextended); trade the golden area
 input double    InpMinGap        = 0.15;         // Kevin: space between stay-away candle and proximal (x zone height); less = drawable only, not traded
 input double    InpMinSizeVsMedian = 0.5;        // Kevin: a zone about half the size of the other zones is too small to trade
 input double    InpMetalOilStop  = 2.0;          // Kevin: wider stops on gold and oil (x the timeframe buffer)
@@ -495,6 +497,84 @@ double FindTrap(string s, int tf, int dir, double prox, double dist, int fromBar
    return best;
   }
 
+//+------------------------------------------------------------------+
+//| Kevin's trendlines (same rules as ZoneVision)                    |
+//|  two most recent real valleys (higher low) / peaks (lower high), |
+//|  anchored without cutting candles, removed by a full candle      |
+//|  beyond the line; channel 50% from the newest confirmed line.    |
+//+------------------------------------------------------------------+
+struct KLine { int dir; int a, b; double pb, sl; bool removed, conf; datetime tRem; };
+KLine gKE[], gKH[];                                                     // entry-TF and HTF lines of the symbol being scanned
+int pzB[]; double pzP[]; int pzT[];
+void PzAdd(int b, double p, int t) { int n = ArraySize(pzB); ArrayResize(pzB, n + 1); ArrayResize(pzP, n + 1); ArrayResize(pzT, n + 1); pzB[n] = b; pzP[n] = p; pzT[n] = t; }
+void Zz(string s, int tf, int bars)
+  {
+   ArrayResize(pzB, 0); ArrayResize(pzP, 0); ArrayResize(pzT, 0);
+   int dir = 0, hiB = bars, loB = bars; double hiP = iHigh(s, tf, bars), loP = iLow(s, tf, bars);
+   for(int i = bars - 1; i >= 1; i--)
+     {
+      double th = InpSwingATR * iATR(s, tf, 14, i), h = iHigh(s, tf, i), l = iLow(s, tf, i);
+      if(dir == 0)
+        {
+         if(h > hiP) { hiP = h; hiB = i; }
+         if(l < loP) { loP = l; loB = i; }
+         if(hiP - loP >= th) { if(hiB > loB) { PzAdd(hiB, hiP, 1); dir = -1; } else { PzAdd(loB, loP, -1); dir = 1; } }
+        }
+      else if(dir > 0) { if(h > hiP) { hiP = h; hiB = i; } else if(hiP - l >= th) { PzAdd(hiB, hiP, 1); dir = -1; loP = l; loB = i; } }
+      else { if(l < loP) { loP = l; loB = i; } else if(h - loP >= th) { PzAdd(loB, loP, -1); dir = 1; hiP = h; hiB = i; } }
+     }
+  }
+double KAt(KLine &k, int j) { return k.pb + k.sl * (k.b - j); }
+int KLines(string s, int tf, KLine &out[])
+  {
+   ArrayResize(out, 0);
+   int bars = MathMin(300, iBars(s, tf) - 20);
+   if(bars < 30) return 0;
+   Zz(s, tf, bars);
+   for(int d = -1; d <= 1; d += 2)
+     {
+      int want = d > 0 ? -1 : 1, prev = -1;
+      for(int k = 0; k < ArraySize(pzB); k++)
+        {
+         if(pzT[k] != want) continue;
+         if(prev < 0) { prev = k; continue; }
+         int k1 = prev; prev = k;
+         if((d > 0 && pzP[k] <= pzP[k1]) || (d < 0 && pzP[k] >= pzP[k1])) continue;
+         int b2 = pzB[k]; double p2 = pzP[k], sl = d > 0 ? -DBL_MAX : DBL_MAX; int a = pzB[k1];
+         for(int j = pzB[k1]; j > b2; j--)
+           {
+            double v = d > 0 ? (p2 - iLow(s, tf, j)) / (j - b2) : (p2 - iHigh(s, tf, j)) / (j - b2);
+            if((d > 0 && v > sl) || (d < 0 && v < sl)) { sl = v; a = j; }
+           }
+         double mid = d > 0 ? -DBL_MAX : DBL_MAX;
+         for(int j = pzB[k1] - 1; j > b2; j--) mid = d > 0 ? MathMax(mid, iHigh(s, tf, j)) : MathMin(mid, iLow(s, tf, j));
+         KLine t; t.dir = d; t.a = a; t.b = b2; t.pb = p2; t.sl = sl; t.removed = false; t.conf = false; t.tRem = 0;
+         for(int j = b2 - 1; j >= 1; j--)
+           {
+            if(!t.conf && ((d > 0 && iHigh(s, tf, j) > mid) || (d < 0 && iLow(s, tf, j) < mid))) t.conf = true;
+            double lv = KAt(t, j);
+            if((d > 0 && iHigh(s, tf, j) < lv) || (d < 0 && iLow(s, tf, j) > lv)) { t.removed = true; t.tRem = iTime(s, tf, j); break; }
+           }
+         int n = ArraySize(out); ArrayResize(out, n + 1); out[n] = t;
+        }
+     }
+   return ArraySize(out);
+  }
+// newest line in the trade direction: is the price beyond the channel 50%? (0 = no line / not confirmed / removed)
+int ChannelState(string s, int tf, KLine &L[], int dir, double price)
+  {
+   for(int i = ArraySize(L) - 1; i >= 0; i--)
+     {
+      if(L[i].dir != dir) continue;
+      if(L[i].removed || !L[i].conf) return 0;
+      double w = 0;
+      for(int j = L[i].a; j >= 1; j--) w = MathMax(w, dir > 0 ? iHigh(s, tf, j) - KAt(L[i], j) : KAt(L[i], j) - iLow(s, tf, j));
+      double mid = KAt(L[i], 0) + dir * w / 2;
+      return (dir > 0 ? price > mid : price < mid) ? 2 : 1;            // 2 = overextended, 1 = golden area
+     }
+   return 0;
+  }
+
 int DetectZones(string s, int tf, Zone &out[])
   {
    ArrayResize(out, 0);
@@ -711,6 +791,7 @@ bool Qualified(string s, int etf, Zone &z[], int i)
    datetime b0 = iTime(s, etf, z[i].legBar + z[i].baseN), b1 = iTime(s, etf, MathMax(z[i].legBar - 5, 0));
    if(z[i].ath) return true;                                            // made an all-time high / low
    for(int j = 0; j < ArraySize(z); j++) if(z[j].dir != z[i].dir && z[j].removed && z[j].tRemoved >= b0 && z[j].tRemoved <= b1) return true;
+   for(int j = 0; j < ArraySize(gKE); j++) if(gKE[j].dir == -z[i].dir && gKE[j].removed && gKE[j].tRem >= b0 && gKE[j].tRem <= b1) return true;   // broke a trendline
    return false;
   }
 bool AtHtfZone(Zone &zi, Zone &hz[], int hn, int want)                    // want = +dir (same side) or -dir (opposing)
@@ -789,6 +870,7 @@ void Scan(string s, int k)
    // fresh HTF zones: an opposing HTF zone in the way caps the target
    Zone hz[];
    int hn = HtfZones(s, htf, hz);
+   KLines(s, etf, gKE); KLines(s, htf, gKH);
    // every fresh zone in the HTF direction is checked; the best one (VP > trap > grade > R:R) is acted on
    int fI = -1; double fFar = 0, fAtr = 0;                                  // nearest zone that failed only on distance
    int best = -1; double bScore = 0, bEntry = 0, bSl = 0, bTp = 0, bRr = 0; string bMethod = "", bDecision = "", bPg = ""; int bPs = 0; bool bCapped = false;
@@ -848,7 +930,8 @@ void Scan(string s, int k)
          double lim = AtHtfZone(z[i], hz, hn, dir) ? 50 : 33;
          if((dir > 0 && curve > lim) || (dir < 0 && curve < 100 - lim)) reason = "zone not low/high enough in the HTF curve";
         }
-      if(reason == "" && InpRequireQualified && !Qualified(s, etf, z, i)) reason = "not in the chain (removed nothing, no all-time high/low)";
+      if(reason == "" && InpRequireQualified && !Qualified(s, etf, z, i)) reason = "not in the chain (removed nothing, no trendline, no all-time high/low)";
+      if(reason == "" && InpBlockOverext && (ChannelState(s, etf, gKE, dir, z[i].prox) == 2 || ChannelState(s, htf, gKH, dir, z[i].prox) == 2)) reason = "zone beyond the channel 50% (overextended) - wait for the golden area";
       if(reason == "" && z[i].gap < InpMinGap) reason = "drawable only: little space under the stay-away candle";
       if(reason == "" && InpMinSizeVsMedian > 0)
         {
@@ -914,6 +997,8 @@ void Scan(string s, int k)
       info += StringFormat("Why: fresh %s %s with the trend, stop %s, move away %.1fx, target %s %s", z[i].cont ? "CP" : "VP", z[i].cont ? (dir > 0 ? "RBR" : "DBD") : (dir > 0 ? "DBR" : "RBD"), z[i].cont ? "beyond distal" : "beyond swing " + (dir > 0 ? "valley" : "peak"), z[i].legRatio, cappedByHtf ? "before next" : "at nearest", cappedByHtf ? TfName(htf) + (dir > 0 ? " supply" : " demand") : (dir > 0 ? "swing high / supply" : "swing low / demand"));
       { double ha = iATR(s, htf, 14, 1), fr = MathAbs((dir > 0 ? MarketInfo(s, MODE_BID) : MarketInfo(s, MODE_ASK)) - z[i].prox);
         info += StringFormat("\nDistance: %.1f x %s ATR (%s away, ATR %s) - within reach (limit %.1f)\n", fr / MathMax(ha, point), TfName(htf), DoubleToString(fr, digits), DoubleToString(ha, digits), InpMaxDistATR); }
+      { int ce = ChannelState(s, etf, gKE, dir, z[i].prox), ch = ChannelState(s, htf, gKH, dir, z[i].prox);
+        info += "Channel: " + (ce == 1 || ch == 1 ? "zone in the golden area (trendline to 50%)" : "no confirmed trendline in this direction") + "\n"; }
       info += StringFormat("Chain: %s | space under stay-away %.0f%% of zone%s", z[i].ath ? (dir > 0 ? "made an all-time high" : "made an all-time low") : "removed an opposing zone", z[i].gap * 100, z[i].leg2 ? " | second explosive candle" : "");
       bool fresh = true;                                                 // approve mode: alert only for new / changed advice
       if(InpMode == MODE_APPROVE) fresh = AddProposal(s, k, dir, entry, sl, tp, z[i].dist, method, g, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));

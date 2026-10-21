@@ -385,8 +385,8 @@ void Trendlines(string s, int tf)
    for(int i = ArraySize(TL) - 1; i >= 0; i--)
      {
       bool up = TL[i].dir > 0;
-      if(!TL[i].removed) { if(up ? doneUp : doneDn) continue; if(up) doneUp = true; else doneDn = true; }
-      else { if(!InpShowBrokenTL || (up ? oldUp : oldDn)) continue; if(up) oldUp = true; else oldDn = true; }
+      if(up ? doneUp : doneDn) { if(!InpShowBrokenTL || !TL[i].removed || (up ? oldUp : oldDn)) continue; if(up) oldUp = true; else oldDn = true; }
+      else { if(up) doneUp = true; else doneDn = true; }             // newest pair each way, even if already removed (shown faint, ending where it broke)
       double sl = (TL[i].pb - TL[i].pa) / MathMax(1, TL[i].a - TL[i].b);
       int end = TL[i].removed ? TL[i].removedBar : 0;
       double pe = LineAt(TL[i].pb, TL[i].b, sl, end - (TL[i].removed ? 0 : 5));

@@ -148,6 +148,8 @@ function ZoneBot() {
           ['InpTF_M1 … InpTF_W1', 'Switch timeframes on/off (D1/W1 need more history to load).'],
           ['InpMinRR', 'Minimum reward:risk (2).'],
           ['InpMaxDistATR', 'How far a zone may be from price, in HTF ATR (2). ATR = average size of the last 14 HTF candles. A zone 2.5 x weekly ATR away needs about 3 weeks of one-way move, and price often turns first.'],
+          ['InpSwingATR', 'Trendlines like Kevin draws them: a real peak / valley is a turn of at least N x ATR (2). Lines join the two most recent ones and end when a full candle closes beyond them.'],
+          ['InpBlockOverext', 'No advice for a zone beyond the 50% line of the trendline channel (overextended). Kevin buys / sells only in the golden area between the trendline and 50%. A zone whose move broke a trendline now also counts as in the chain.'],
           ['InpHalfwayAlert', 'Far zones are not advised: the bot draws a gold halfway line and alerts when price gets there. Then look for a new lower-timeframe zone in the chain. Every advice shows its distance in ATR.'],
           ['InpCurveFilter', 'On = demand only in the lower third of the HTF curve, supply in the upper third.'],
           ['InpRequireQualified', 'On (default) = chain rule: the move away must remove an opposing zone or trendline, or make an all-time high/low.'],
