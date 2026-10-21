@@ -22,7 +22,7 @@
 //|   2026.10.17 12:30,USD   (UTC time, currency)                    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.10"
+#property version   "1.20"
 #property strict
 
 enum BotMode   { MODE_SCANNER = 0, MODE_APPROVE = 1, MODE_AUTO = 2 };
@@ -73,6 +73,7 @@ input bool      InpHalfwayAlert  = true;         // Zone further than that: draw
 input bool      InpUseMyLines    = true;         // Use YOUR trendlines on this chart for the trend, and YOUR rectangles as zones to advise
 input bool      InpRequireQualified = true;      // Kevin's chain rule: the move away removed an opposing zone or made an all-time high/low (your trendline is the third trigger - you check it)
 input int       InpTLSwing       = 2;            // Trendlines (same as ZoneVision): swing = N bars each side; REAL only after a new higher high / lower low
+input bool      InpTLBias        = true;         // Bias from the newest HTF trendline break (a broken daily downtrend line = bullish for H4 / H1); your own lines still win
 input bool      InpBlockOverext  = true;         // Kevin: no entries beyond the channel 50% (overextended); trade the golden area
 input double    InpMinGap        = 0.15;         // Kevin: space between stay-away candle and proximal (x zone height); less = drawable only, not traded
 input double    InpMinSizeVsMedian = 0.5;        // Kevin: a zone about half the size of the other zones is too small to trade
@@ -604,6 +605,28 @@ int KUse(KLine &L[], int dir)
    for(int i = ArraySize(L) - 1; i >= 0; i--) if(L[i].dir == dir && L[i].ov && !L[i].removed) return i;
    return -1;
   }
+// the newest broken HTF line decides the bias: a downtrend line broken = bullish, an uptrend line broken = bearish
+int KBias(KLine &L[])
+  {
+   int best = -1;
+   for(int i = 0; i < ArraySize(L); i++) if(L[i].removed && (best < 0 || L[i].tRem > L[best].tRem)) best = i;
+   return best < 0 ? 0 : -L[best].dir;
+  }
+// +1: price reaches the zone without crossing a respected trendline (the line sits beyond it);
+// -1: a respected line lies between price and the zone; 0: no line
+int KCross(string s, int dir, double prox)
+  {
+   double px = MarketInfo(s, MODE_BID); int res = 0;
+   for(int q = 0; q < 2; q++)
+     {
+      int i = q == 0 ? KUse(gKE, dir > 0 ? 1 : -1) : KUse(gKH, dir > 0 ? 1 : -1);
+      if(i < 0) continue;
+      double v = q == 0 ? KAt(gKE[i], 0) : KAt(gKH[i], 0);
+      if(dir < 0) { if(v > px && v < prox) return -1; if(v >= prox) res = 1; }
+      else        { if(v < px && v > prox) return -1; if(v <= prox) res = 1; }
+     }
+   return res;
+  }
 // zone within 1 entry-TF ATR of a respected trendline in its direction: "" or the timeframe name
 string KNear(string s, int etf, int htf, int dir, double price)
   {
@@ -964,6 +987,7 @@ void Scan(string s, int k)
    Zone hz[];
    int hn = HtfZones(s, htf, hz);
    KLines(s, etf, gKE); KLines(s, htf, gKH);
+   if(InpTLBias && !(InpUseMyLines && s == _Symbol && myTrend != 0)) { int tb = KBias(gKH); if(tb != 0) trend = tb; }   // newest HTF trendline break sets the bias
    if(InpDraw && s == _Symbol && etf == _Period) { DrawKLines(s, etf, gKE, "E", clrBlack); DrawKLines(s, htf, gKH, "H", clrGoldenrod); }
    // every fresh zone in the HTF direction is checked; the best one (VP > trap > grade > R:R) is acted on
    int fI = -1; double fFar = 0, fAtr = 0;                                  // nearest zone that failed only on distance
@@ -1051,7 +1075,7 @@ void Scan(string s, int k)
       if(reason == "") { int tb; bool cr; z[i].trap = FindTrap(s, etf, dir, z[i].prox, z[i].dist, z[i].legBar - 1, z[i].legBar + z[i].baseN, tb, cr); z[i].trapBar = tb; z[i].crowded = cr; }
       if(reason == "" && InpRequireTrap && z[i].trap == 0) reason = "no liquidity trap";
       int ps = 0; string pg = "";
-      if(reason == "") { ps = PlanScore(s, etf, htf, trend, z, i, hz, hn, curve, method); if(Arrival(s, etf, z, i)) ps = MathMin(100, ps + 8); pg = PlanGrade(ps); if(!GradeAllowed(pg)) reason = StringFormat("grade %s (%d) filtered", pg, ps); }
+      if(reason == "") { ps = PlanScore(s, etf, htf, trend, z, i, hz, hn, curve, method); if(Arrival(s, etf, z, i)) ps = MathMin(100, ps + 8); { int cx = KCross(s, dir, z[i].prox); ps = (int)MathMax(0, MathMin(100, ps + (cx > 0 ? 3 : (cx < 0 ? -5 : 0)))); } pg = PlanGrade(ps); if(!GradeAllowed(pg)) reason = StringFormat("grade %s (%d) filtered", pg, ps); }
       if(reason == "" && tp == 0) reason = "no opposing zone for target";
       if(reason == "" && rr < InpMinRR) reason = StringFormat("R:R %.2f < %.2f", rr, InpMinRR);
       if(reason == "" && spread > risk * InpMaxSpreadPct / 100.0) reason = "spread too wide";
@@ -1095,6 +1119,7 @@ void Scan(string s, int k)
         string nt = KNear(s, etf, htf, dir, z[i].prox);
         info += "Channel: " + (ce == 1 || ch == 1 ? "zone in the golden area (trendline to 50%)" : "no respected trendline in this direction") + (nt != "" ? " | zone at the " + nt + " trendline" : "") + "\n"; }
       if(Arrival(s, etf, z, i)) info += "ARRIVAL zone (strongest): broke the trendline AND took out the previous high / low\n";
+      { int cx = KCross(s, dir, z[i].prox); if(cx != 0) info += (cx > 0 ? "Price reaches the zone without crossing a trendline\n" : "Price must break a trendline before reaching the zone\n"); }
       info += StringFormat("Chain: %s | space under stay-away %.0f%% of zone%s", z[i].ath ? (dir > 0 ? "made an all-time high" : "made an all-time low") : "removed an opposing zone", z[i].gap * 100, z[i].leg2 ? " | second explosive candle" : "");
       bool fresh = true;                                                 // approve mode: alert only for new / changed advice
       if(gMode == MODE_APPROVE) fresh = AddProposal(s, k, dir, entry, sl, tp, z[i].dist, method, g, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));

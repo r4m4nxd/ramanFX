@@ -20,7 +20,7 @@
 //| into a zone does not count as a touch. Removal needs a CLOSE.    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.70"
+#property version   "1.80"
 #property strict
 #property indicator_chart_window
 
@@ -52,7 +52,8 @@ input int    InpTrendSwing    = 3;      // Swing strength for liquidity-trap lev
 input int    InpTLHistory     = 3;      // Trendlines drawn each way: the newest N (broken ones end where they broke)
 input bool   InpShowChannel   = false;  // Draw the channel 50% helper line (the overextension check works either way)
 input bool   InpShowHTFLines  = true;
-input int    InpHTFLevels     = 3;      // Higher timeframes whose trendlines are drawn here (M15 chart: 1 = H1, 2 = + H4, 3 = + D1)   // Also draw the higher-timeframe trendlines on this chart (precision on the entry TF)
+input int    InpHTFLevels     = 4;      // Higher timeframes whose trendlines are drawn here (M15 chart: H1, H4, D1, W1); top-down like your analysis
+input bool   InpTLBias        = true;   // Bias from the newest HTF trendline break (a broken daily downtrend line = bullish for H4 / H1)   // Also draw the higher-timeframe trendlines on this chart (precision on the entry TF)
 input color  InpHtfTL         = C'200,150,40';
 input int    InpTLSwing       = 2;      // Trendlines: swing points need N bars each side; REAL only after a new higher high / lower low
 input bool   InpShowHTF       = true;   // HTF zone band (closest above and below)
@@ -128,7 +129,7 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
    ObjectsDeleteAll(0, PFX);
    { int h0 = HtfOf(_Period); gTrend = h0 > 0 ? HtfTrend(_Symbol, h0) : 0; }
    Detect(_Symbol, _Period, Z, true);
-   gHTF = 0; gHUpOn = false; gHDnOn = false;
+   gHTF = 0; gHUpOn = false; gHDnOn = false; gHBias = 0; gHBiasTxt = "";
    { int h = HtfOf(_Period);                                          // HTF lines first, shown on this chart for precision
      // the higher timeframes above this chart (e.g. M15 -> H1, H4, D1): thin dotted gold, for multi-timeframe analysis
      if(InpShowHTFLines)
@@ -137,9 +138,10 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
            int t = StepUp(_Period, lv);
            if(t <= 0) continue;
            gTF = t; Trendlines(_Symbol, t);
-           if(t == h) { gHTF = h; gHUpOn = gUpOn; gHUpS = gUpS; gHUpP = gUpP; gHUpW = gUpW; gHUpB = gUpB; gHDnOn = gDnOn; gHDnS = gDnS; gHDnP = gDnP; gHDnW = gDnW; gHDnB = gDnB; }
+           if(t == h) { TLBias(); gHTF = h; gHUpOn = gUpOn; gHUpS = gUpS; gHUpP = gUpP; gHUpW = gUpW; gHUpB = gUpB; gHDnOn = gDnOn; gHDnS = gDnS; gHDnP = gDnP; gHDnW = gDnW; gHDnB = gDnB; }
           }
-     if(h > 0 && gHTF == 0 && InpShowHTFLines) { gTF = h; Trendlines(_Symbol, h); gHTF = h; gHUpOn = gUpOn; gHUpS = gUpS; gHUpP = gUpP; gHUpW = gUpW; gHUpB = gUpB; gHDnOn = gDnOn; gHDnS = gDnS; gHDnP = gDnP; gHDnW = gDnW; gHDnB = gDnB; } }
+     if(h > 0 && gHTF == 0) { gTF = h; Trendlines(_Symbol, h); TLBias(); gHTF = h; gHUpOn = gUpOn; gHUpS = gUpS; gHUpP = gUpP; gHUpW = gUpW; gHUpB = gUpB; gHDnOn = gDnOn; gHDnS = gDnS; gHDnP = gDnP; gHDnW = gDnW; gHDnB = gDnB; } }
+   if(InpTLBias && gHBias != 0) gTrend = gHBias;                    // a broken HTF trendline sets the bias (the newest break wins)
    gTF = _Period;
    Trendlines(_Symbol, _Period);                                     // this chart: chain + channel use it; drawn only if InpShowTrendlines
    Qualify();
@@ -494,7 +496,38 @@ void Trendlines(string s, int tf)
      }
   }
 // price beyond 50% of the channel, in the trend direction
+// supply: is the active downtrend line above the zone (+1: price reaches the zone without crossing it, the line
+// protects it) or between price and the zone (-1: price must break the line first)? Demand mirrored. 0 = no line.
+int CrossNeeded(int dir, double prox)
+  {
+   double px = (Bid + Ask) / 2, v[2]; int n = 0;
+   if(dir < 0 && gDnOn) v[n++] = LineAt(gDnP, gDnB, gDnS, 0);
+   if(dir > 0 && gUpOn) v[n++] = LineAt(gUpP, gUpB, gUpS, 0);
+   if(gHTF > 0)
+     {
+      int sh = iBarShift(NULL, gHTF, Time[0]);
+      if(dir < 0 && gHDnOn) v[n++] = gHDnP + gHDnS * (gHDnB - sh);
+      if(dir > 0 && gHUpOn) v[n++] = gHUpP + gHUpS * (gHUpB - sh);
+     }
+   int res = 0;
+   for(int i = 0; i < n; i++)
+     {
+      if(dir < 0) { if(v[i] > px && v[i] < prox) return -1; if(v[i] >= prox) res = 1; }
+      else        { if(v[i] < px && v[i] > prox) return -1; if(v[i] <= prox) res = 1; }
+     }
+   return res;
+  }
 bool   gHUpOn = false, gHDnOn = false; double gHUpS, gHUpP, gHUpW, gHDnS, gHDnP, gHDnW; int gHUpB, gHDnB, gHTF = 0;
+int gHBias = 0; string gHBiasTxt = "";
+// the newest broken line on the HTF decides: a downtrend line broken = bullish, an uptrend line broken = bearish
+void TLBias()
+  {
+   int best = -1;
+   for(int i = 0; i < ArraySize(TL); i++) if(TL[i].removed && (best < 0 || TL[i].removedBar < TL[best].removedBar)) best = i;
+   if(best < 0) { gHBias = 0; gHBiasTxt = ""; return; }
+   gHBias = -TL[best].dir;
+   gHBiasTxt = StringFormat("%s %s trendline broken on %s", TfName(gTF), TL[best].dir > 0 ? "uptrend" : "downtrend", TimeToString(iTime(NULL, gTF, TL[best].removedBar), TIME_DATE));
+  }
 // zone sits within 1 ATR of the respected trendline in its direction (chart or HTF): "", "chart" or the HTF name
 string NearTrendline(int dir, double price)
   {
@@ -639,6 +672,7 @@ string ZoneNotes(Zone &zs[], int i, string &verdict, string &shortWhy)
    if(gTrend == z.dir) Push(pl, "with the HTF trend"); else if(gTrend == -z.dir) Push(cr, "against the HTF trend");
    if(Overextended(z.dir, z.prox)) Push(cr, "beyond channel 50% (overextended)");
    { string nt = NearTrendline(z.dir, z.prox); if(nt != "") Push(pl, "at the " + nt + " trendline"); }
+   { int cx = CrossNeeded(z.dir, z.prox); if(cx > 0) Push(pl, "price reaches it without crossing a trendline"); else if(cx < 0) Push(mi, "price must cross a trendline to reach it"); }
    if(z.trap > 0) Push(pl, "liquidity trap in front");
    if(z.crowded) Push(mi, "on an obvious S/R level (crowded)");
    int htf = HtfOf(_Period); if(htf <= 0) htf = _Period;
@@ -768,6 +802,7 @@ void Panel()
    string L = StringFormat("ZoneVision  %s %s  ->  bias from %s\n", _Symbol, TfName(_Period), htf > 0 ? TfName(htf) : "-");
    L += "Bias: " + (trend > 0 ? "UP - buys only" : (trend < 0 ? "DOWN - sells only" : "unclear - bot waits")) + "\n";
    L += "Structure: " + StructureNow() + "\n";
+   if(gHBiasTxt != "") L += "Trendline bias: " + (gHBias > 0 ? "UP - " : "DOWN - ") + gHBiasTxt + "\n";
    { double mid = (Bid + Ask) / 2;
      if(Overextended(1, mid)) L += "Up channel: price beyond 50% = OVEREXTENDED - no buys, wait for the golden area\n";
      else if(gUpOn) L += "Up channel: price in the golden area (line to 50%)\n";

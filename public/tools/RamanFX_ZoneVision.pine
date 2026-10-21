@@ -462,6 +462,27 @@ overext(int d, float price) =>
     hw = d > 0 ? huw : hdw
     hx = not na(hv) and not na(hw) and (d > 0 ? price > hv + hw / 2 : price < hv - hw / 2)
     hx or (d > 0 ? (upOn and price > upP + upS * (bar_index - upB) + upW / 2) : (dnOn and price < dnP + dnS * (bar_index - dnB) - dnW / 2))
+// +1: price reaches the zone without crossing a respected trendline (the line sits beyond it, protecting it);
+// -1: a respected line lies between price and the zone; 0: no line
+crossNeeded(int d, float prox) =>
+    cv = d > 0 ? (upOn ? upP + upS * (bar_index - upB) : na) : (dnOn ? dnP + dnS * (bar_index - dnB) : na)
+    hv = d > 0 ? hLineAt(hu1, hup1, hu2, hup2, time) : hLineAt(hd1, hdp1, hd2, hdp2, time)
+    int res = 0
+    for v in array.from(cv, hv)
+        if not na(v)
+            if d < 0
+                if v > close and v < prox
+                    res := -1
+                    break
+                if v >= prox
+                    res := 1
+            else
+                if v < close and v > prox
+                    res := -1
+                    break
+                if v <= prox
+                    res := 1
+    res
 // zone within 1 ATR of a respected trendline in its direction: "" or the timeframe name
 nearTL(int d, float price) =>
     cv = d > 0 ? (upOn ? upP + upS * (bar_index - upB) : na) : (dnOn ? dnP + dnS * (bar_index - dnB) : na)
@@ -581,6 +602,11 @@ zoneNotes(Zone z, float medZ) =>
         zCr.push("against the " + htf + " trend")
     if overext(z.dir, z.prox)
         zCr.push("beyond channel 50% (overextended)")
+    cxn = crossNeeded(z.dir, z.prox)
+    if cxn > 0
+        zPl.push("price reaches it without crossing a trendline")
+    else if cxn < 0
+        zMi.push("price must cross a trendline to reach it")
     ntl = nearTL(z.dir, z.prox)
     if ntl != ""
         zPl.push("at the " + ntl + " trendline")
