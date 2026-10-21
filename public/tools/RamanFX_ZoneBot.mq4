@@ -72,7 +72,7 @@ input double    InpMaxDistATR    = 2.0;          // Zone must be within N x HTF 
 input bool      InpHalfwayAlert  = true;         // Zone further than that: draw a halfway line and alert when price gets there
 input bool      InpUseMyLines    = true;         // Use YOUR trendlines on this chart for the trend, and YOUR rectangles as zones to advise
 input bool      InpRequireQualified = true;      // Kevin's chain rule: the move away removed an opposing zone or made an all-time high/low (your trendline is the third trigger - you check it)
-input double    InpSwingATR      = 2.0;          // Trendlines (same as ZoneVision): a real peak / valley = price turns >= N x ATR
+input int       InpTLSwing       = 3;            // Trendlines (same as ZoneVision): swing = N bars each side; REAL only after a new higher high / lower low
 input bool      InpBlockOverext  = true;         // Kevin: no entries beyond the channel 50% (overextended); trade the golden area
 input double    InpMinGap        = 0.15;         // Kevin: space between stay-away candle and proximal (x zone height); less = drawable only, not traded
 input double    InpMinSizeVsMedian = 0.5;        // Kevin: a zone about half the size of the other zones is too small to trade
@@ -507,21 +507,19 @@ struct KLine { int dir; int a, b; double pb, sl; bool removed, conf; datetime tR
 KLine gKE[], gKH[];                                                     // entry-TF and HTF lines of the symbol being scanned
 int pzB[]; double pzP[]; int pzT[];
 void PzAdd(int b, double p, int t) { int n = ArraySize(pzB); ArrayResize(pzB, n + 1); ArrayResize(pzP, n + 1); ArrayResize(pzT, n + 1); pzB[n] = b; pzP[n] = p; pzT[n] = t; }
-void Zz(string s, int tf, int bars)
+bool ZFrL(string s, int tf, int i) { double v = iLow(s, tf, i);  for(int k = 1; k <= InpTLSwing; k++) if(i - k < 1 || v > iLow(s, tf, i + k) || v >= iLow(s, tf, i - k)) return false; return true; }
+bool ZFrH(string s, int tf, int i) { double v = iHigh(s, tf, i); for(int k = 1; k <= InpTLSwing; k++) if(i - k < 1 || v < iHigh(s, tf, i + k) || v <= iHigh(s, tf, i - k)) return false; return true; }
+void Zz(string s, int tf, int bars)                                     // real valley: higher high follows before it breaks; real peak: lower low follows
   {
    ArrayResize(pzB, 0); ArrayResize(pzP, 0); ArrayResize(pzT, 0);
-   int dir = 0, hiB = bars, loB = bars; double hiP = iHigh(s, tf, bars), loP = iLow(s, tf, bars);
-   for(int i = bars - 1; i >= 1; i--)
+   int fH = -1, fL = -1;
+   for(int i = bars; i > InpTLSwing; i--)
      {
-      double th = InpSwingATR * iATR(s, tf, 14, i), h = iHigh(s, tf, i), l = iLow(s, tf, i);
-      if(dir == 0)
-        {
-         if(h > hiP) { hiP = h; hiB = i; }
-         if(l < loP) { loP = l; loB = i; }
-         if(hiP - loP >= th) { if(hiB > loB) { PzAdd(hiB, hiP, 1); dir = -1; } else { PzAdd(loB, loP, -1); dir = 1; } }
-        }
-      else if(dir > 0) { if(h > hiP) { hiP = h; hiB = i; } else if(hiP - l >= th) { PzAdd(hiB, hiP, 1); dir = -1; loP = l; loB = i; } }
-      else { if(l < loP) { loP = l; loB = i; } else if(h - loP >= th) { PzAdd(loB, loP, -1); dir = 1; hiP = h; hiB = i; } }
+      bool lo = ZFrL(s, tf, i), hi = ZFrH(s, tf, i);
+      if(lo && fH > 0) { double v = iLow(s, tf, i), pk = iHigh(s, tf, fH); for(int j = i - 1; j >= 1; j--) { if(iLow(s, tf, j) < v) break; if(iHigh(s, tf, j) > pk) { PzAdd(i, v, -1); break; } } }
+      if(hi && fL > 0) { double v = iHigh(s, tf, i), vl = iLow(s, tf, fL); for(int j = i - 1; j >= 1; j--) { if(iHigh(s, tf, j) > v) break; if(iLow(s, tf, j) < vl) { PzAdd(i, v, 1); break; } } }
+      if(lo) fL = i;
+      if(hi) fH = i;
      }
   }
 double KAt(KLine &k, int j) { return k.pb + k.sl * (k.b - j); }

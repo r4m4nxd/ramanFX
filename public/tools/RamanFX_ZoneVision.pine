@@ -14,7 +14,7 @@ maxZoneATR = input.float(1.5, "Max zone height (x ATR14)", minval=0.2, step=0.1,
 minDep     = input.float(1.5, "Departure: price must leave >= N x zone height", minval=0.0, step=0.1, group=gR)
 lookback   = input.int(300, "Ignore zones older than (bars)", minval=50, maxval=2000, group=gR)
 swingN     = input.int(3, "Swing strength for liquidity-trap levels (bars each side)", minval=1, maxval=10, group=gR)
-swingATR   = input.float(2.0, "Trendlines: a real peak / valley = price turns at least N x ATR", minval=0.5, step=0.25, group=gR)
+tlSwing    = input.int(3, "Trendlines: swing = N bars each side; real only after a new higher high / lower low", minval=1, maxval=10, group=gR)
 trapATR    = input.float(1.0, "Liquidity trap: level within N x ATR in front of the zone", step=0.1, group=gR)
 minRR      = input.float(2.0, "Min reward:risk for the plan", step=0.1, group=gR)
 onlyChain  = input.bool(true, "Sunday rule: trade only zones in the chain (removed opp. zone or made a new all-time high/low)", group=gR)
@@ -410,54 +410,44 @@ if barstate.islast
     tagC = array.new<color>()
     tagTip = array.new<string>()
 
-    // ---- trendlines, Kevin's way: real peaks / valleys (zigzag turns >= swingATR x ATR), the two most recent,
-    // higher low / lower high, anchored so no candle is cut, drawn only until a full candle closes beyond it
+    // ---- trendlines, Kevin's way: a REAL valley is a swing low after which price makes a higher high (above the last
+    // swing high) before breaking the valley; a REAL peak is a swing high followed by a lower low. Lines join the two
+    // most recent real valleys (higher low) / peaks (lower high), anchored so no candle is cut, drawn until a full candle closes beyond
     zL = math.min(lookback, bar_index - 20)
     pvB = array.new<int>()
     pvP = array.new<float>()
     pvT = array.new<int>()
-    int zd = 0
-    int hiB = bar_index - zL
-    int loB = bar_index - zL
-    float hiP = high[zL]
-    float loP = low[zL]
-    for off = zL - 1 to 1
-        th = swingATR * atr[off]
+    int fH = na
+    int fL = na
+    for off = zL to tlSwing + 1
+        bool isLo = true
+        bool isHi = true
+        for k = 1 to tlSwing
+            if low[off] > low[off + k] or low[off] >= low[off - k]
+                isLo := false
+            if high[off] < high[off + k] or high[off] <= high[off - k]
+                isHi := false
         bi = bar_index - off
-        h = high[off]
-        l = low[off]
-        if zd == 0
-            if h > hiP
-                hiP := h
-                hiB := bi
-            if l < loP
-                loP := l
-                loB := bi
-            if hiP - loP >= th
-                if hiB < loB
-                    pvB.push(hiB), pvP.push(hiP), pvT.push(1)
-                    zd := -1
-                else
-                    pvB.push(loB), pvP.push(loP), pvT.push(-1)
-                    zd := 1
-        else if zd > 0
-            if h > hiP
-                hiP := h
-                hiB := bi
-            else if hiP - l >= th
-                pvB.push(hiB), pvP.push(hiP), pvT.push(1)
-                zd := -1
-                loP := l
-                loB := bi
-        else
-            if l < loP
-                loP := l
-                loB := bi
-            else if h - loP >= th
-                pvB.push(loB), pvP.push(loP), pvT.push(-1)
-                zd := 1
-                hiP := h
-                hiB := bi
+        if isLo and not na(fH)
+            pk = high[bar_index - fH]
+            for o2 = off - 1 to 1
+                if low[o2] < low[off]
+                    break
+                if high[o2] > pk
+                    pvB.push(bi), pvP.push(low[off]), pvT.push(-1)
+                    break
+        if isHi and not na(fL)
+            vl = low[bar_index - fL]
+            for o2 = off - 1 to 1
+                if high[o2] > high[off]
+                    break
+                if low[o2] < vl
+                    pvB.push(bi), pvP.push(high[off]), pvT.push(1)
+                    break
+        if isLo
+            fL := bi
+        if isHi
+            fH := bi
     upOn := false
     dnOn := false
     tlRemDir.clear()

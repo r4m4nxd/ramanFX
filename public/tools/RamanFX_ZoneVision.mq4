@@ -49,7 +49,7 @@ input bool   InpShowNames     = true;   // Zone name inside the box (e.g. Rally 
 input bool   InpShowTrendlines= true;   // Newest intact trendline each way (mentor rules)
 input bool   InpShowBrokenTL  = false;  // Also draw broken trendlines
 input int    InpTrendSwing    = 3;      // Swing strength for liquidity-trap levels (bars each side)
-input double InpSwingATR      = 2.0;    // Real peak / valley for trendlines: price must turn at least N x ATR
+input int    InpTLSwing       = 3;      // Trendlines: swing points need N bars each side; REAL only after a new higher high / lower low
 input bool   InpShowHTF       = true;   // HTF zone band (closest above and below)
 input bool   InpShowPlan      = true;   // Bot's planned entry / SL / TP
 input bool   InpShowPanel     = true;   // Compact info panel
@@ -304,7 +304,9 @@ int Detect(string s, int tf, Zone &out[], bool draw)
 
 //+------------------------------------------------------------------+
 //| Trendlines - Kevin's way                                         |
-//|  Real peaks / valleys = zigzag turns of >= InpSwingATR x ATR.    |
+//|  Real valley = a swing low after which price makes a HIGHER HIGH |
+//|  (above the last swing high) before breaking the valley. Real   |
+//|  peak = a swing high followed by a LOWER LOW the same way.      |
 //|  Up line: the two most recent valleys, higher low, a peak in     |
 //|  between, then a higher high (else dotted = not confirmed yet).  |
 //|  Anchored so no candle between the anchors is cut. Drawn only    |
@@ -312,29 +314,21 @@ int Detect(string s, int tf, Zone &out[], bool draw)
 //+------------------------------------------------------------------+
 int    pvBar[]; double pvP[]; int pvT[];             // zigzag turns, oldest first; pvT +1 peak, -1 valley
 void AddPiv(int b, double p, int t) { int n = ArraySize(pvBar); ArrayResize(pvBar, n + 1); ArrayResize(pvP, n + 1); ArrayResize(pvT, n + 1); pvBar[n] = b; pvP[n] = p; pvT[n] = t; }
-void ZigZag(int bars)
+bool FrLow(int i)  { for(int k = 1; k <= InpTLSwing; k++) if(i - k < 1 || Low[i] > Low[i + k] || Low[i] >= Low[i - k]) return false; return true; }
+bool FrHigh(int i) { for(int k = 1; k <= InpTLSwing; k++) if(i - k < 1 || High[i] < High[i + k] || High[i] <= High[i - k]) return false; return true; }
+void ZigZag(int bars)                                                // real peaks / valleys, oldest first
   {
    ArrayResize(pvBar, 0); ArrayResize(pvP, 0); ArrayResize(pvT, 0);
-   int dir = 0, hiB = bars, loB = bars; double hiP = High[bars], loP = Low[bars];
-   for(int i = bars - 1; i >= 1; i--)
+   int fH = -1, fL = -1;                                             // most recent swing high / low before i
+   for(int i = bars; i > InpTLSwing; i--)
      {
-      double th = InpSwingATR * iATR(NULL, 0, 14, i);
-      if(dir == 0)
-        {
-         if(High[i] > hiP) { hiP = High[i]; hiB = i; }
-         if(Low[i] < loP) { loP = Low[i]; loB = i; }
-         if(hiP - loP >= th) { if(hiB > loB) { AddPiv(hiB, hiP, 1); dir = -1; } else { AddPiv(loB, loP, -1); dir = 1; } }
-        }
-      else if(dir > 0)                                              // rising: track the peak until price turns down th
-        {
-         if(High[i] > hiP) { hiP = High[i]; hiB = i; }
-         else if(hiP - Low[i] >= th) { AddPiv(hiB, hiP, 1); dir = -1; loP = Low[i]; loB = i; }
-        }
-      else
-        {
-         if(Low[i] < loP) { loP = Low[i]; loB = i; }
-         else if(High[i] - loP >= th) { AddPiv(loB, loP, -1); dir = 1; hiP = High[i]; hiB = i; }
-        }
+      bool lo = FrLow(i), hi = FrHigh(i);
+      if(lo && fH > 0)
+         for(int j = i - 1; j >= 1; j--) { if(Low[j] < Low[i]) break; if(High[j] > High[fH]) { AddPiv(i, Low[i], -1); break; } }
+      if(hi && fL > 0)
+         for(int j = i - 1; j >= 1; j--) { if(High[j] > High[i]) break; if(Low[j] < Low[fL]) { AddPiv(i, High[i], 1); break; } }
+      if(lo) fL = i;
+      if(hi) fH = i;
      }
   }
 
