@@ -331,56 +331,56 @@ scoreZone(Zone z, float sl) =>
 
 // Strong / weak in a few words (Kevin + Seiden checks). WEAK = any deal-breaker; STRONG = 5+ strengths, at most one weakness
 zoneNotes(Zone z, float medZ) =>
-    pl = array.new<string>()
-    mi = array.new<string>()
-    cr = array.new<string>()
+    zPl = array.new<string>()
+    zMi = array.new<string>()
+    zCr = array.new<string>()
     if z.baseN <= 3
-        pl.push(str.tostring(z.baseN) + " base candle" + (z.baseN > 1 ? "s" : ""))
+        zPl.push(str.tostring(z.baseN) + " base candle" + (z.baseN > 1 ? "s" : ""))
     else if z.baseN > 6
-        mi.push("long base (" + str.tostring(z.baseN) + " candles)")
+        zMi.push("long base (" + str.tostring(z.baseN) + " candles)")
     if z.ratio >= 2.5
-        pl.push("explosive move away " + str.tostring(z.ratio, "#.0") + "x")
+        zPl.push("explosive move away " + str.tostring(z.ratio, "#.0") + "x")
     else if z.ratio < 1.8
-        mi.push("weak move away " + str.tostring(z.ratio, "#.0") + "x")
+        zMi.push("weak move away " + str.tostring(z.ratio, "#.0") + "x")
     if z.leg2
-        pl.push("2nd explosive candle")
+        zPl.push("2nd explosive candle")
     else
-        mi.push("only one explosive candle")
+        zMi.push("only one explosive candle")
     if qualified(z)
-        pl.push(z.ath ? "in the chain: new " + (z.dir > 0 ? "high" : "low") : "in the chain: removed a zone / trendline")
+        zPl.push(z.ath ? "in the chain: new " + (z.dir > 0 ? "high" : "low") : "in the chain: removed a zone / trendline")
     else
-        cr.push("not in the chain (removed nothing)")
+        zCr.push("not in the chain (removed nothing)")
     if z.gap < minGap
-        cr.push("drawable only: no space under the stay-away candle")
+        zCr.push("drawable only: no space under the stay-away candle")
     else if z.gap >= 0.25
-        pl.push("clear space " + str.tostring(math.round(z.gap * 100)) + "%")
+        zPl.push("clear space " + str.tostring(math.round(z.gap * 100)) + "%")
     if z.tested
-        cr.push("already tested")
+        zCr.push("already tested")
     else
-        pl.push("fresh")
+        zPl.push("fresh")
     if medZ > 0 and math.abs(z.prox - z.dist) < minSizeMed * medZ
-        cr.push("too small vs other zones")
+        zCr.push("too small vs other zones")
     if not z.cont
-        pl.push("VP (Kevin's favourite)")
+        zPl.push("VP (Kevin's favourite)")
     if htfTrend == z.dir
-        pl.push("with the " + htf + " trend")
+        zPl.push("with the " + htf + " trend")
     else if htfTrend == -z.dir
-        cr.push("against the " + htf + " trend")
+        zCr.push("against the " + htf + " trend")
     if overext(z.dir, z.prox)
-        cr.push("beyond channel 50% (overextended)")
+        zCr.push("beyond channel 50% (overextended)")
     if trapFor(z) >= 0
-        pl.push("liquidity trap in front")
+        zPl.push("liquidity trap in front")
     xa = na(htfAtr) or htfAtr <= 0 ? 0.0 : math.abs(close - z.prox) / htfAtr
     if xa > liveATR
-        mi.push("far: " + str.tostring(xa, "#.0") + " x " + htf + " ATR")
-    verdict = cr.size() > 0 ? "WEAK" : pl.size() >= 5 and mi.size() <= 1 ? "STRONG" : "OK"
-    shortWhy = cr.size() > 0 ? cr.get(0) + (cr.size() > 1 ? ", " + cr.get(1) : "") : verdict == "STRONG" ? pl.get(0) + (pl.size() > 1 ? ", " + pl.get(1) : "") : mi.size() > 0 ? mi.get(0) : pl.size() > 0 ? pl.get(0) : ""
+        zMi.push("far: " + str.tostring(xa, "#.0") + " x " + htf + " ATR")
+    verdict = zCr.size() > 0 ? "WEAK" : zPl.size() >= 5 and zMi.size() <= 1 ? "STRONG" : "OK"
+    shortWhy = zCr.size() > 0 ? zCr.get(0) + (zCr.size() > 1 ? ", " + zCr.get(1) : "") : verdict == "STRONG" ? zPl.get(0) + (zPl.size() > 1 ? ", " + zPl.get(1) : "") : zMi.size() > 0 ? zMi.get(0) : zPl.size() > 0 ? zPl.get(0) : ""
     full = verdict
-    for t in cr
+    for t in zCr
         full += "\n✘ " + t
-    for t in mi
+    for t in zMi
         full += "\n– " + t
-    for t in pl
+    for t in zPl
         full += "\n✔ " + t
     [verdict, shortWhy, full]
 
