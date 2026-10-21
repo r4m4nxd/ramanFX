@@ -734,8 +734,8 @@ string NoteHelp(string n)
    if(StringFind(n, "only one explosive candle") >= 0) return "\n      " + "the push stopped after one candle: weaker than two.";
    if(StringFind(n, "base candle") >= 0) return "\n      " + "few base candles = little time at the level = more orders left (Seiden: time at level).";
    if(StringFind(n, "long base") >= 0) return "\n      " + "price sat at the level for many candles: orders used up.";
-   if(StringFind(n, "in the chain") >= 0) return "\n      " + "the move away removed an opposing zone, broke a trendline or made a new high / low (Kevin's chain rule).";
    if(StringFind(n, "not in the chain") >= 0) return "\n      " + "the move away removed nothing: Kevin does not trade it.";
+   if(StringFind(n, "in the chain") >= 0) return "\n      " + "the move away removed an opposing zone, broke a trendline or made a new high / low (Kevin's chain rule).";
    if(StringFind(n, "ARRIVAL") >= 0) return "\n      " + "broke the trendline AND took out the previous high / low: the strongest kind of zone.";
    if(StringFind(n, "fresh") >= 0) return "\n      " + "price has not come back to the zone yet.";
    if(StringFind(n, "already tested") >= 0) return "\n      " + "price already came back into the zone: orders partly used.";
