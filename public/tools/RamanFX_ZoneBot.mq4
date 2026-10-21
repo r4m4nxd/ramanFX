@@ -8,7 +8,7 @@
 //|  - set & forget (limit at proximal) and/or confirmation          |
 //|    (HTF zone touched + an opposing entry-TF zone removed)        |
 //|  - SL beyond distal + spread, TP just before the opposing zone   |
-//|  - 1% risk, always a stop, 1 trade per symbol                    |
+//|  - 1% risk, always a stop, 1 order per symbol per entry TF       |
 //|  - cancels limits if the zone is removed or price reaches the    |
 //|    target first; news / Asian session / Friday / spread filters  |
 //|  - every filled trade is replayed with every TP & break-even     |
@@ -18,11 +18,13 @@
 //| Attach to ONE chart (any symbol). Allow live trading.            |
 //| Logs (MQL4\Files): RamanFX_Bot_Signals.csv,                      |
 //|                    RamanFX_Bot_Variants.csv                      |
+//| Strategy Tester (tester\files): RamanFX_Backtest_<sym>.csv,       |
+//|   _KPIs.csv, _Statement.htm (import into RamanFX), _Exits.csv     |
 //| News file (optional): MQL4\Files\RamanFX_News.csv with lines     |
 //|   2026.10.17 12:30,USD   (UTC time, currency)                    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.31"
+#property version   "1.40"
 #property strict
 
 enum BotMode   { MODE_SCANNER = 0, MODE_APPROVE = 1, MODE_AUTO = 2 };
@@ -33,6 +35,7 @@ enum TpMode    { TP_SWING = 0, TP_OPP_ZONE = 1, TP_NEAREST = 2 };
 enum Grades    { GR_ALL = 0, GR_A = 1, GR_AB = 2, GR_B = 3, GR_C = 4 };
 
 input BotMode   InpMode          = MODE_APPROVE; // Mode: Approve = bot finds + alerts, you check the chart and press Place
+input bool      InpAggressive    = false;        // Aggressive: all TFs, S&F + conf, grades A-C (C half risk), VP, 1 order/pair/TF (>=7/pair, 60 total). Zone rules, stops, R:R, risk %, news still apply
 input Grades    InpGrades        = GR_ALL;       // Which planner grades to trade: All / A only / A+B / B only / C only
 input bool      InpHalfRiskC     = true;         // Planner rule: low odds (grade C) risks half
 input EntryMode InpEntry         = ENTRY_BOTH;   // Entry method
@@ -71,7 +74,7 @@ input bool      InpCurveFilter   = false;        // Demand only in the lower thi
 input double    InpMaxDistATR    = 2.0;          // Zone must be within N x HTF ATR of price and in the first half of the way to target (no chasing)
 input bool      InpHalfwayAlert  = true;         // Zone further than that: draw a halfway line and alert when price gets there
 input bool      InpUseMyLines    = true;         // Use YOUR trendlines on this chart for the trend, and YOUR rectangles as zones to advise
-input bool      InpRequireQualified = true;      // Kevin's chain rule: the move away removed an opposing zone or made an all-time high/low (your trendline is the third trigger - you check it)
+input bool      InpRequireQualified = true;      // Kevin's chain rule (same as ZoneVision): the move away removed an opposing zone or a trendline, made a new high/low of the lookback, or took out the previous swing high/low
 input int       InpTLSwing       = 2;            // Trendlines (same as ZoneVision): swing = N bars each side; REAL only after a new higher high / lower low
 input bool      InpTLBias        = true;         // Bias from the newest HTF trendline break (a broken daily downtrend line = bullish for H4 / H1); your own lines still win
 input bool      InpBlockOverext  = true;         // Kevin: no entries beyond the channel 50% (overextended); trade the golden area
@@ -180,9 +183,11 @@ bool busy = false; string lastClickNm = ""; uint lastClickMs = 0;
 
 //+------------------------------------------------------------------+
 BotMode gMode = MODE_APPROVE;                                          // the tester has no buttons: it always runs AUTO
+double   gStartBal = 0; datetime gTestStart = 0;                       // tester: balance and time at the start, for the backtest report
 int OnInit()
   {
    gMode = IsTesting() ? MODE_AUTO : InpMode;
+   if(IsTesting()) { gStartBal = AccountBalance(); gTestStart = TimeCurrent(); }
    startedAt = TimeLocal();
    BuildSymbols();
    ArrayResize(lastBar, ArraySize(syms));
@@ -272,6 +277,7 @@ void SetWatch(string s, int k, int dir, double prox, double atr, double far, int
       ObjectSetString(0, tn, OBJPROP_TEXT, StringFormat(" halfway alert %s: %s zone %.1fx ATR away", TF_N[k], dir > 0 ? "demand" : "supply", far / MathMax(atr, Point)));
       ObjectSetInteger(0, tn, OBJPROP_COLOR, clrGoldenrod); ObjectSetInteger(0, tn, OBJPROP_FONTSIZE, 7); ObjectSetInteger(0, tn, OBJPROP_ANCHOR, ANCHOR_LEFT);
       ObjectSetInteger(0, tn, OBJPROP_SELECTABLE, false);
+      NoSelect(0, "RFXW_");
      }
   }
 void CheckWatches()
@@ -321,7 +327,8 @@ void Say(string s, int k, string msg)
 string lastStatus = "";
 void Status()
   {
-   string t = StringFormat("ZoneBot  %s | %s | %d pairs\n", gMode == MODE_AUTO ? "AUTO" : (gMode == MODE_APPROVE ? "APPROVE" : "SCANNER"), InpEntry == ENTRY_BOTH ? "S&F + conf" : (InpEntry == ENTRY_SF ? "set & forget" : "confirmation"), ArraySize(syms));
+   string t = StringFormat("ZoneBot  %s | %s | %d pairs\n", gMode == MODE_AUTO ? "AUTO" : (gMode == MODE_APPROVE ? "APPROVE" : "SCANNER"), EffEntry() == ENTRY_BOTH ? "S&F + conf" : (EffEntry() == ENTRY_SF ? "set & forget" : "confirmation"), ArraySize(syms));
+   if(InpAggressive) t = StringSubstr(t, 0, StringLen(t) - 1) + StringFormat(" | AGGRESSIVE (all TFs, A-C, %d/pair, %d max)\n", EffMaxPerSymbol(), EffMaxOrders());
    if(!IsTradeAllowed() || !TerminalInfoInteger(TERMINAL_TRADE_ALLOWED)) t += "! AutoTrading is OFF\n";
    string blocked = BlockedNow(ArraySize(syms) > 0 ? syms[0] : _Symbol);
    int pend = 0, open = 0;
@@ -344,6 +351,17 @@ void Status()
    for(int i = 0; i < n; i++) if(ls[i] != "") RightLabel(0, "RFXS_" + IntegerToString(i), ls[i], 20 + i * 15, i == 0 ? clrRoyalBlue : (StringFind(ls[i], "!") == 0 ? clrCrimson : clrDimGray), i == 0 ? 9 : 8);
   }
 
+// Nothing the bot draws can be selected or dragged by a stray click - except the panel BUTTONS (RFXB_), which must stay clickable.
+void NoSelect(long ch, string pre)
+  {
+   for(int o = ObjectsTotal(ch, -1, -1) - 1; o >= 0; o--)
+     {
+      string nm = ObjectName(ch, o);
+      if(StringFind(nm, pre) != 0 || StringFind(nm, "RFXB_") == 0) continue;
+      ObjectSetInteger(ch, nm, OBJPROP_SELECTABLE, false); ObjectSetInteger(ch, nm, OBJPROP_SELECTED, false);
+     }
+  }
+
 // One line of text anchored to the chart's top-right corner.
 void RightLabel(long ch, string nm, string text, int y, color c, int size)
   {
@@ -356,7 +374,7 @@ void RightLabel(long ch, string nm, string text, int y, color c, int size)
    ObjectSetString(ch, nm, OBJPROP_FONT, "Arial");
    ObjectSetInteger(ch, nm, OBJPROP_FONTSIZE, size);
    ObjectSetInteger(ch, nm, OBJPROP_COLOR, c);
-   ObjectSetInteger(ch, nm, OBJPROP_SELECTABLE, false);
+   ObjectSetInteger(ch, nm, OBJPROP_SELECTABLE, false); ObjectSetInteger(ch, nm, OBJPROP_SELECTED, false);
   }
 
 int qPos = 0;   // round-robin position over symbol x timeframe
@@ -378,7 +396,7 @@ void Work()
    int total = ArraySize(syms) * NTF, done = 0;
    uint w0 = GetTickCount();
    bool warm = TimeLocal() - startedAt < 20;                         // first 20 s: 1 scan per tick while MT4 loads history
-   for(int step = 0; step < total && done < (warm ? 1 : InpScansPerTick) && GetTickCount() - w0 < 400; step++)
+   for(int step = 0; step < total && done < (warm ? 1 : EffScansPerTick()) && GetTickCount() - w0 < 400; step++)
      {
       int idx = (qPos + step) % total, i = idx / NTF, k = idx % NTF;
       if(!TfOn(k)) continue;
@@ -404,6 +422,7 @@ void Work()
 
 bool TfOn(int k)
   {
+   if(InpAggressive) return k >= 0 && k < NTF;                         // aggressive preset: every entry timeframe
    if(k == 0) return InpTF_M1;
    if(k == 1) return InpTF_M5;
    if(k == 2) return InpTF_M15;
@@ -412,6 +431,14 @@ bool TfOn(int k)
    if(k == 5) return InpTF_D1;
    return InpTF_W1;
   }
+
+// Effective settings: InpAggressive widens WHAT may be traded (timeframes, entry types, grades, caps),
+// never the legitimacy rules (chain, gap, size, freshness, trend / trendline bias, overextension, R:R, stops, news).
+EntryMode EffEntry()       { return InpAggressive ? ENTRY_BOTH : InpEntry; }
+int       EffMaxPerSymbol() { return InpAggressive ? MathMax(InpMaxPerSymbol, NTF) : InpMaxPerSymbol; }
+int       EffMaxOrders()    { return InpAggressive ? MathMax(InpMaxOrders, 60) : InpMaxOrders; }
+bool      EffTradeVP()      { return InpAggressive || InpTradeVP; }
+int       EffScansPerTick() { return InpAggressive ? MathMax(InpScansPerTick, NTF) : InpScansPerTick; }
 
 //+------------------------------------------------------------------+
 //| Symbols                                                          |
@@ -576,7 +603,7 @@ void KAdd(string s, int tf, KLine &out[], int d, int a, int b2, double p2, doubl
 int KLines(string s, int tf, KLine &out[])
   {
    ArrayResize(out, 0);
-   int bars = MathMin(300, iBars(s, tf) - 20);
+   int bars = MathMin(InpLookback, iBars(s, tf) - 20);                  // same window as ZoneVision (InpLookback)
    if(bars < 30) return 0;
    Zz(s, tf, bars);
    for(int d = -1; d <= 1; d += 2)
@@ -610,16 +637,29 @@ int KLines(string s, int tf, KLine &out[])
          if((d > 0 && s0 <= 0) || (d < 0 && s0 >= 0)) continue;
          if(bk < 0 || (d > 0 ? s0 < bs : s0 > bs)) { bk = k; bs = s0; }
         }
-      if(bk >= 0) { int a = KFit(s, tf, O, pzB[bk], pzP[bk], d, sl); if(!KFlat(s, tf, a, pzB[bk], pzP[bk], sl, d) && KConf(s, tf, a, pzB[bk], pzP[bk], sl, d)) KAdd(s, tf, out, d, a, pzB[bk], pzP[bk], sl, true); }
+      if(bk >= 0)
+        {
+         int a = KFit(s, tf, O, pzB[bk], pzP[bk], d, sl);
+         bool dup = false;                                                // ZoneVision: an overall line on a pivot already used is the same line
+         for(int t = 0; t < ArraySize(out); t++) if(out[t].dir == d && (out[t].a == a || out[t].b == pzB[bk])) dup = true;
+         if(!dup && !KFlat(s, tf, a, pzB[bk], pzP[bk], sl, d) && KConf(s, tf, a, pzB[bk], pzP[bk], sl, d))
+           {
+            KAdd(s, tf, out, d, a, pzB[bk], pzP[bk], sl, true);
+            if(out[ArraySize(out) - 1].removed) ArrayResize(out, ArraySize(out) - 1);   // a broken overall line is dropped (ZoneVision)
+           }
+        }
      }
    return ArraySize(out);
   }
-// the line the bot uses in a direction: newest respected one, else the overall one (-1 = none)
+// the line the bot uses in a direction, as ZoneVision: the NEWEST line (latest touch pivot) if still respected,
+// else the respected overall line (-1 = none). An older respected line never stands in for a broken newest one.
 int KUse(KLine &L[], int dir)
   {
-   for(int i = ArraySize(L) - 1; i >= 0; i--) if(L[i].dir == dir && !L[i].ov && !L[i].removed) return i;
-   for(int i = ArraySize(L) - 1; i >= 0; i--) if(L[i].dir == dir && L[i].ov && !L[i].removed) return i;
-   return -1;
+   int newest = -1, use = -1;
+   for(int i = 0; i < ArraySize(L); i++) if(L[i].dir == dir && !L[i].ov && (newest < 0 || L[i].b < L[newest].b)) newest = i;
+   if(newest >= 0 && !L[newest].removed) return newest;
+   for(int i = 0; i < ArraySize(L); i++) if(L[i].dir == dir && L[i].ov && !L[i].removed) use = i;
+   return use;
   }
 // the newest broken HTF line decides the bias: a downtrend line broken = bullish, an uptrend line broken = bearish
 int KBias(KLine &L[])
@@ -632,7 +672,7 @@ int KBias(KLine &L[])
 // -1: a respected line lies between price and the zone; 0: no line
 int KCross(string s, int dir, double prox)
   {
-   double px = MarketInfo(s, MODE_BID); int res = 0;
+   double px = (MarketInfo(s, MODE_BID) + MarketInfo(s, MODE_ASK)) / 2; int res = 0;   // mid price, as ZoneVision
    for(int q = 0; q < 2; q++)
      {
       int i = q == 0 ? KUse(gKE, dir > 0 ? 1 : -1) : KUse(gKH, dir > 0 ? 1 : -1);
@@ -657,8 +697,9 @@ void DrawKLines(string s, int tf, KLine &L[], string tag, color c)
    ObjectsDeleteAll(0, "RFXT_" + tag);
    for(int d = -1; d <= 1; d += 2)
      {
-      int n = -1, o = -1;
-      for(int i = ArraySize(L) - 1; i >= 0; i--) if(L[i].dir == d && !L[i].removed) { if(L[i].ov) { if(o < 0) o = i; } else if(n < 0) n = i; }
+      int n = KUse(L, d), o = -1;                                       // the line the checks use + the respected overall line
+      if(n >= 0 && L[n].ov) n = -1;
+      for(int i = ArraySize(L) - 1; i >= 0; i--) if(L[i].dir == d && L[i].ov && !L[i].removed) { o = i; break; }
       for(int q = 0; q < 2; q++)
         {
          int i = q == 0 ? n : o;
@@ -672,6 +713,7 @@ void DrawKLines(string s, int tf, KLine &L[], string tag, color c)
          ObjectSetString(0, nm, OBJPROP_TOOLTIP, TfName(tf) + (q == 1 ? " overall " : " ") + (d > 0 ? "uptrend line: lowest point to a real valley (a higher high followed)" : "downtrend line: highest point to a real peak (a lower low followed)") + " - respected so far");
         }
      }
+   NoSelect(0, "RFXT_" + tag);
   }
 
 // newest line in the trade direction: is the price beyond the channel 50%? (0 = no line / not confirmed / removed)
@@ -899,32 +941,42 @@ void MyZones()
       if(dMy[d] && dSym[d] == _Symbol && StringFind(liveMy, "|" + dProx[d] + "|") < 0) { DropDismissed(d); ch = true; }
    if(ch) SaveProps();
   }
+// Kevin's chain, exactly as ZoneVision's Qualify(): the move away (the leg candle and up to 5 bars after it)
+// removed an older opposing zone or a trendline, made a new high / low of the lookback before the base,
+// or took out the previous swing high (demand) / low (supply).
+void ChainOf(string s, int etf, Zone &z[], int i, bool &oppZ, bool &tlB, bool &newHL, bool &rmHL)
+  {
+   oppZ = false; tlB = false; newHL = false; rmHL = false;
+   int L = z[i].legBar, dir = z[i].dir;
+   datetime t0 = iTime(s, etf, L), t1 = iTime(s, etf, MathMax(L - 5, 0));
+   for(int j = 0; j < ArraySize(z) && !oppZ; j++) if(z[j].dir == -dir && z[j].removed && z[j].legBar > L && z[j].tRemoved >= t0 && z[j].tRemoved <= t1) oppZ = true;
+   for(int j = 0; j < ArraySize(gKE) && !tlB; j++) if(gKE[j].dir == -dir && gKE[j].removed && gKE[j].tRem >= t0 && gKE[j].tRem <= t1) tlB = true;
+   int older = L + z[i].baseN + 1, nb = iBars(s, etf);
+   int span = MathMin(InpLookback, nb - older - 1);
+   if(span <= 5) return;
+   int nx = MathMax(L - 5, 1);
+   double legX = dir > 0 ? iHigh(s, etf, iHighest(s, etf, MODE_HIGH, L - nx + 1, nx)) : iLow(s, etf, iLowest(s, etf, MODE_LOW, L - nx + 1, nx));
+   if(dir > 0 && legX > iHigh(s, etf, iHighest(s, etf, MODE_HIGH, span, older))) newHL = true;
+   if(dir < 0 && legX < iLow(s, etf, iLowest(s, etf, MODE_LOW, span, older))) newHL = true;
+   for(int j = older; j < older + span && j < nb - InpTLSwing - 1; j++)
+     {
+      if(dir > 0 && ZFrH(s, etf, j)) { rmHL = legX > iHigh(s, etf, j); break; }
+      if(dir < 0 && ZFrL(s, etf, j)) { rmHL = legX < iLow(s, etf, j); break; }
+     }
+  }
 bool Qualified(string s, int etf, Zone &z[], int i)
   {
-   datetime b0 = iTime(s, etf, z[i].legBar + z[i].baseN), b1 = iTime(s, etf, MathMax(z[i].legBar - 5, 0));
-   if(z[i].ath) return true;                                            // made an all-time high / low
-   for(int j = 0; j < ArraySize(z); j++) if(z[j].dir != z[i].dir && z[j].removed && z[j].tRemoved >= b0 && z[j].tRemoved <= b1) return true;
-   for(int j = 0; j < ArraySize(gKE); j++) if(gKE[j].dir == -z[i].dir && gKE[j].removed && gKE[j].tRem >= b0 && gKE[j].tRem <= b1) return true;   // broke a trendline
-   return false;
+   bool oppZ, tlB, newHL, rmHL;
+   ChainOf(s, etf, z, i, oppZ, tlB, newHL, rmHL);
+   return oppZ || tlB || newHL || rmHL;
   }
-// Arrival zone (strongest): the move away broke a trendline AND took out the previous swing high / low,
-// an opposing zone or an all-time high / low
+// Arrival zone (strongest), as ZoneVision: the move away broke a trendline AND removed an opposing zone,
+// the previous swing high / low, or made a new high / low
 bool Arrival(string s, int etf, Zone &z[], int i)
   {
-   datetime b0 = iTime(s, etf, z[i].legBar + z[i].baseN), b1 = iTime(s, etf, MathMax(z[i].legBar - 5, 0));
-   bool tl = false;
-   for(int j = 0; j < ArraySize(gKE); j++) if(gKE[j].dir == -z[i].dir && gKE[j].removed && gKE[j].tRem >= b0 && gKE[j].tRem <= b1) { tl = true; break; }
-   if(!tl) return false;
-   if(z[i].ath) return true;
-   for(int j = 0; j < ArraySize(z); j++) if(z[j].dir != z[i].dir && z[j].removed && z[j].tRemoved >= b0 && z[j].tRemoved <= b1) return true;
-   int L = z[i].legBar, older = L + z[i].baseN + 1, nx = MathMax(L - 5, 1);
-   double legX = z[i].dir > 0 ? iHigh(s, etf, iHighest(s, etf, MODE_HIGH, L - nx + 1, nx)) : iLow(s, etf, iLowest(s, etf, MODE_LOW, L - nx + 1, nx));
-   for(int j = older; j < older + 300 && j < iBars(s, etf) - InpTLSwing - 1; j++)
-     {
-      if(z[i].dir > 0 && ZFrH(s, etf, j)) return legX > iHigh(s, etf, j);
-      if(z[i].dir < 0 && ZFrL(s, etf, j)) return legX < iLow(s, etf, j);
-     }
-   return false;
+   bool oppZ, tlB, newHL, rmHL;
+   ChainOf(s, etf, z, i, oppZ, tlB, newHL, rmHL);
+   return tlB && (oppZ || rmHL || newHL);
   }
 bool AtHtfZone(Zone &zi, Zone &hz[], int hn, int want)                    // want = +dir (same side) or -dir (opposing)
   {
@@ -971,6 +1023,7 @@ int PlanScore(string s, int etf, int htf, int trend, Zone &z[], int i, Zone &hz[
 string PlanGrade(int sc) { return sc >= 75 ? "A" : (sc >= 60 ? "B" : "C"); }
 bool GradeAllowed(string g)
   {
+   if(InpAggressive) return g == "A" || g == "B" || g == "C";         // aggressive preset: every grade (C keeps half risk via InpHalfRiskC)
    if(InpGrades == GR_ALL) return true;
    if(InpGrades == GR_A) return g == "A";
    if(InpGrades == GR_AB) return g == "A" || g == "B";
@@ -1012,7 +1065,7 @@ void Scan(string s, int k)
      {
       if(z[i].removed || z[i].consumed || z[i].pen > 0.25) continue;   // a shallow wick (< 25%) keeps it tradable
       if(z[i].legBar > InpMaxZoneAge) break;
-      if(!z[i].cont && !InpTradeVP) continue;                    // VP (reversal) zones only when enabled
+      if(!z[i].cont && !EffTradeVP()) continue;                    // VP (reversal) zones only when enabled
       if(gMode == MODE_APPROVE && IsDismissed(s, k, z[i].prox, false)) { Count("denied by you"); continue; }   // next-best zone gets advised
       int dir = z[i].dir;
       string reason = "";
@@ -1057,7 +1110,7 @@ void Scan(string s, int k)
 
       if(trend == 0) reason = "HTF trend unclear";
       else if(trend != dir) reason = "against HTF trend";
-      else if(InpEntry == ENTRY_SF && method == "CONF") method = "SF";
+      else if(EffEntry() == ENTRY_SF && method == "CONF") method = "SF";
       if(reason == "" && InpRequireITF) { int it = HtfTrend(s, TF_I[k]); if(it == -dir) reason = "intermediate TF " + TfName(TF_I[k]) + " against"; }
       if(reason == "" && InpCurveFilter)
         {
@@ -1087,7 +1140,7 @@ void Scan(string s, int k)
             if(far > InpMaxDistATR * ha && (fI < 0 || far < fFar)) { fI = i; fFar = far; fAtr = ha; }
            }
         }
-      if(reason == "" && InpEntry == ENTRY_CONF && method != "CONF") reason = "no confirmation";
+      if(reason == "" && EffEntry() == ENTRY_CONF && method != "CONF") reason = "no confirmation";
       if(reason == "") { int tb; bool cr; z[i].trap = FindTrap(s, etf, dir, z[i].prox, z[i].dist, z[i].legBar - 1, z[i].legBar + z[i].baseN, tb, cr); z[i].trapBar = tb; z[i].crowded = cr; }
       if(reason == "" && InpRequireTrap && z[i].trap == 0) reason = "no liquidity trap";
       int ps = 0; string pg = "";
@@ -1097,8 +1150,8 @@ void Scan(string s, int k)
       if(reason == "" && spread > risk * InpMaxSpreadPct / 100.0) reason = "spread too wide";
       if(reason == "") reason = BlockedNow(s, TF_E[k]);
       if(reason == "" && HasOrder(s, k)) reason = "already an order on this symbol/timeframe";
-      if(reason == "" && CountOrders(s) >= InpMaxPerSymbol) reason = "max orders on symbol";
-      if(reason == "" && CountOrders("") >= InpMaxOrders) reason = "max bot orders reached";
+      if(reason == "" && CountOrders(s) >= EffMaxPerSymbol()) reason = "max orders on symbol";
+      if(reason == "" && CountOrders("") >= EffMaxOrders()) reason = "max bot orders reached";
       if(reason == "")
         {
          double ask = MarketInfo(s, MODE_ASK), bid = MarketInfo(s, MODE_BID);
@@ -1136,7 +1189,10 @@ void Scan(string s, int k)
         info += "Channel: " + (ce == 1 || ch == 1 ? "zone in the golden area (trendline to 50%)" : "no respected trendline in this direction") + (nt != "" ? " | zone at the " + nt + " trendline" : "") + "\n"; }
       if(Arrival(s, etf, z, i)) info += "ARRIVAL zone (strongest): broke the trendline AND took out the previous high / low\n";
       { int cx = KCross(s, dir, z[i].prox); if(cx != 0) info += (cx > 0 ? "Price reaches the zone without crossing a trendline\n" : "Price must break a trendline before reaching the zone\n"); }
-      info += StringFormat("Chain: %s | space under stay-away %.0f%% of zone%s", z[i].ath ? (dir > 0 ? "made an all-time high" : "made an all-time low") : "removed an opposing zone", z[i].gap * 100, z[i].leg2 ? " | second explosive candle" : "");
+      { bool cO, cT, cN, cR; ChainOf(s, etf, z, i, cO, cT, cN, cR);
+        string cw = (cO ? "removed an opposing zone, " : "") + (cT ? "broke a trendline, " : "") + (cN ? (dir > 0 ? "made a new high, " : "made a new low, ") : "") + (cR ? (dir > 0 ? "took out the previous high, " : "took out the previous low, ") : "");
+        if(cw == "") cw = "not in the chain"; else cw = StringSubstr(cw, 0, StringLen(cw) - 2);
+        info += StringFormat("Chain: %s | space under stay-away %.0f%% of zone%s", cw, z[i].gap * 100, z[i].leg2 ? " | second explosive candle" : ""); }
       bool fresh = true;                                                 // approve mode: alert only for new / changed advice
       if(gMode == MODE_APPROVE) fresh = AddProposal(s, k, dir, entry, sl, tp, z[i].dist, method, g, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));
       if(fresh)
@@ -1380,6 +1436,7 @@ bool Place(string s, int k, int dir, double entry, double sl, double tp, double 
    int t = OrderSend(s, type, lots, entry, 3, sl, tp, cm, MagicFor(k, method), 0, dir > 0 ? clrLime : clrRed);
    if(t < 0) { int e = GetLastError(); Print("OrderSend failed ", s, " error ", e); placeErr = "broker rejected the order (error " + IntegerToString(e) + ")"; Count(placeErr); return false; }
    StSet(t, k, method, dist, stopDist / point, grade);
+   RecordInit(t, sl, tp);                                                // exact initial stop / target for the backtest report
    string lines[]; int n = StringSplit(info, '\n', lines);
    for(int i = 0; i < n; i++) Print("#", t, " ", lines[i]);
    LogOrder(t, s, info);
@@ -1453,6 +1510,7 @@ void Annotate(int t, string s, double price, string &lines[], double prox, doubl
       ObjectSetInteger(ch, zl, OBJPROP_FONTSIZE, 7); ObjectSetInteger(ch, zl, OBJPROP_COLOR, clrDimGray);
       ObjectSetInteger(ch, zl, OBJPROP_ANCHOR, dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
       // reasoning text is shown by ZoneVision (bottom-right) and in the Experts tab: no second copy here, so nothing overlaps
+      NoSelect(ch, "RFXO_");
       ChartRedraw(ch);
      }
   }
@@ -1778,6 +1836,7 @@ void DrawZones(Zone &z[])
       ObjectSetInteger(0, nm, OBJPROP_BACK, true);
       ObjectSetString(0, nm, OBJPROP_TOOLTIP, StringFormat("%s %s grade %s  leg %.1fx  base %d%s", z[i].dir > 0 ? "Demand" : "Supply", z[i].cont ? (z[i].dir > 0 ? "RBR" : "DBD") : (z[i].dir > 0 ? "DBR" : "RBD"), z[i].grade, z[i].legRatio, z[i].baseN, z[i].tested ? " (tested)" : ""));
      }
+   NoSelect(0, "RFXZ_");
   }
 
 //+------------------------------------------------------------------+
@@ -2001,6 +2060,7 @@ void DrawView(int i)
       ObjectSetString(0, pre + nm[j] + "l", OBJPROP_TEXT, " " + TF_N[p.k] + " " + lb[j] + " " + DoubleToString(pr[j], dg));
       ObjectSetInteger(0, pre + nm[j] + "l", OBJPROP_COLOR, cl[j]); ObjectSetInteger(0, pre + nm[j] + "l", OBJPROP_FONTSIZE, 8); ObjectSetInteger(0, pre + nm[j] + "l", OBJPROP_ANCHOR, ANCHOR_LEFT);
      }
+   NoSelect(0, pre);
   }
 // View: draws the advice on THIS chart and switches it to the advice's timeframe; the panel stays,
 // so you check the chart and press Approve or Deny on the same screen.
@@ -2105,45 +2165,412 @@ void Click(string sparam)
 //+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
-//| Backtest report: every closed bot trade in R, by grade, entry    |
-//| timeframe and entry type; plus why setups were skipped.          |
+//| Backtest report (Strategy Tester, called from OnDeinit)          |
+//|  KPIs computed with the SAME formulas as the RamanFX journal     |
+//|  (src/core/stats.ts), overall and grouped by entry timeframe,    |
+//|  grade, entry type, side, session, weekday, hold time and R.     |
+//|  Files (tester\files):                                           |
+//|   RamanFX_Backtest_<sym>.csv           one row per trade          |
+//|   RamanFX_Backtest_<sym>_KPIs.csv      overall + every group      |
+//|   RamanFX_Backtest_<sym>_Statement.htm MT4 statement -> journal   |
+//|   RamanFX_Backtest_<sym>_Exits.csv     initial SL/TP -> journal R |
 //+------------------------------------------------------------------+
-void BacktestReport()
+#define KNA -1.0e100                                                  // "not available" (no losses, too few days...)
+struct BTrade
   {
-   string key[]; int n[], w[]; double rs[], best[], worst[];
-   double totR = 0, grossW = 0, grossL = 0, peak = 0, run = 0, maxDD = 0; int all = 0, wins = 0;
-   int fh = FileOpen("RamanFX_Backtest_" + _Symbol + ".csv", FILE_WRITE | FILE_CSV | FILE_ANSI, ',');
-   if(fh != INVALID_HANDLE) FileWrite(fh, "ticket", "open time", "close time", "side", "grade", "timeframe", "entry", "open", "close", "R", "profit");
+   int      ticket, jid, dir, k, outcome;                             // outcome +1 win, -1 loss, 0 breakeven (|net| < 0.01)
+   string   sym, grade, method, sess, why, rsrc;
+   datetime ot, ct;
+   double   op, cp, sl0, tp0, lots, profit, comm, swap, net, R, hold;  // hold in minutes
+   bool     hasR;
+  };
+struct KStat
+  {
+   int      n, wins, losses, be, rN, cw, cl, days, green, red, sdays;
+   double   net, gw, gl, wr, pf, avgW, avgL, payoff, beWR, ex, avgR, totR, bigW, bigL, holdW, holdL;
+   double   dd, ddPct, rf, dayWR, bestDay, worstDay, avgDay, sharpe, sortino, score, sEdge, sPf, sPay, sDd, sCons;
+   datetime bestD, worstD;
+  };
+// initial stop / target of every order the bot placed this run (exact prices for the journal's R)
+int bsT[]; double bsSl[], bsTp[];
+void RecordInit(int t, double sl, double tp)
+  {
+   int n = ArraySize(bsT); ArrayResize(bsT, n + 1); ArrayResize(bsSl, n + 1); ArrayResize(bsTp, n + 1);
+   bsT[n] = t; bsSl[n] = sl; bsTp[n] = tp;
+  }
+int InitIdx(int t) { for(int i = 0; i < ArraySize(bsT); i++) if(bsT[i] == t) return i; return -1; }
+
+datetime ToUTC(datetime t) { return IsTesting() ? t - InpTesterGMT * 3600 : t - (datetime)(MathRound((TimeCurrent() - TimeGMT()) / 1800.0) * 1800); }
+datetime DayOf(datetime t) { datetime u = ToUTC(t); return u - u % 86400; }
+string   SessionOf(datetime t) { int h = TimeHour(ToUTC(t)); if(h >= 12 && h < 21) return "New York"; if(h >= 7 && h < 12) return "London"; if(h >= 23 || h < 7) return "Asia"; return "Off-hours"; }
+string   KF(double v, int d) { return v == KNA ? "n/a" : DoubleToString(v, d); }
+string   KP(double v) { return v == KNA ? "n/a" : DoubleToString(v * 100, 1) + "%"; }
+string   Dur(double m) { if(m < 60) return StringFormat("%.0fm", m); if(m < 1440) return StringFormat("%dh%02dm", (int)(m / 60), (int)m % 60); return StringFormat("%dd%02dh", (int)(m / 1440), ((int)m % 1440) / 60); }
+string   TStamp(datetime t) { return TimeToString(t, TIME_DATE | TIME_SECONDS); }
+int      AcctSmall() { int h = 0; for(int i = 0; i < StringLen(_Symbol); i++) h = (h * 31 + StringGetCharacter(_Symbol, i)) % 997; return 1 + h; }   // stable per symbol, 1..997
+
+// every closed bot trade of the test, sorted by close time
+int CollectTrades(BTrade &T[])
+  {
+   ArrayResize(T, 0);
+   int acc = AcctSmall();
    for(int i = 0; i < OrdersHistoryTotal(); i++)
      {
       if(!OrderSelect(i, SELECT_BY_POS, MODE_HISTORY) || !OurMagic(OrderMagicNumber()) || OrderType() > OP_SELL) continue;
-      int si = StIdx(OrderTicket());
-      double rp = si >= 0 ? stRpts[si] * MarketInfo(OrderSymbol(), MODE_POINT) : 0;
-      if(rp <= 0) continue;
-      int dir = OrderType() == OP_BUY ? 1 : -1;
-      double R = dir * (OrderClosePrice() - OrderOpenPrice()) / rp;
-      string g = stG[si], tf = TF_N[stK[si]], m = stM[si] == "CONF" ? "confirmation" : "set & forget";
-      all++; if(R > 0) { wins++; grossW += R; } else grossL -= R;
-      totR += R; run += R; peak = MathMax(peak, run); maxDD = MathMax(maxDD, peak - run);
-      string ks[4]; ks[0] = "All trades"; ks[1] = "Grade " + g; ks[2] = "Entry TF " + tf; ks[3] = "Entry " + m;
-      for(int q = 0; q < 4; q++)
+      BTrade t;
+      t.ticket = OrderTicket(); t.jid = acc * 1000000 + t.ticket % 1000000; t.sym = OrderSymbol(); t.dir = OrderType() == OP_BUY ? 1 : -1;
+      t.ot = OrderOpenTime(); t.ct = OrderCloseTime(); t.op = OrderOpenPrice(); t.cp = OrderClosePrice(); t.lots = OrderLots();
+      t.profit = OrderProfit(); t.comm = OrderCommission(); t.swap = OrderSwap(); t.net = t.profit + t.comm + t.swap;
+      string cm = OrderComment(); double curSl = OrderStopLoss(), curTp = OrderTakeProfit(); int magic = OrderMagicNumber();
+      int src = t.ticket, si = StIdx(t.ticket);
+      if(si < 0 && StringFind(cm, "from #") >= 0) { src = (int)StringToInteger(StringSubstr(cm, StringFind(cm, "from #") + 6)); si = StIdx(src); }   // rest of a partial close
+      t.k = si >= 0 ? stK[si] : KOf(magic); if(t.k < 0 || t.k >= NTF) t.k = KOf(magic);
+      t.grade = si >= 0 ? stG[si] : "?"; if(t.grade == "") t.grade = "?";
+      t.method = (si >= 0 ? stM[si] == "CONF" : magic - InpMagic >= 10) ? "Confirmation" : "Set & forget";
+      double point = MarketInfo(t.sym, MODE_POINT), rp = si >= 0 ? stRpts[si] * point : 0;
+      int ii = InitIdx(src);
+      t.sl0 = ii >= 0 ? bsSl[ii] : (rp > 0 ? t.op - t.dir * rp : curSl);
+      t.tp0 = ii >= 0 ? bsTp[ii] : curTp;
+      t.hasR = true; t.rsrc = "initial stop";
+      if(rp <= 0 && t.sl0 > 0 && t.dir * (t.op - t.sl0) > 0) { rp = MathAbs(t.op - t.sl0); t.rsrc = "stop"; }
+      if(rp > 0) t.R = t.dir * (t.cp - t.op) / rp;
+      else
         {
-         int x = -1; for(int j = 0; j < ArraySize(key); j++) if(key[j] == ks[q]) { x = j; break; }
-         if(x < 0) { x = ArraySize(key); ArrayResize(key, x + 1); ArrayResize(n, x + 1); ArrayResize(w, x + 1); ArrayResize(rs, x + 1); ArrayResize(best, x + 1); ArrayResize(worst, x + 1); key[x] = ks[q]; n[x] = 0; w[x] = 0; rs[x] = 0; best[x] = -1e9; worst[x] = 1e9; }
-         n[x]++; if(R > 0) w[x]++; rs[x] += R; best[x] = MathMax(best[x], R); worst[x] = MathMin(worst[x], R);
+         double rm = gStartBal * InpRiskPct / 100.0;                     // no stop known: money R at the planned risk
+         if(rm > 0) { t.R = t.net / rm; t.rsrc = "money"; } else { t.R = 0; t.hasR = false; t.rsrc = ""; }
         }
-      if(fh != INVALID_HANDLE) FileWrite(fh, OrderTicket(), TimeToString(OrderOpenTime()), TimeToString(OrderCloseTime()), dir > 0 ? "BUY" : "SELL", g, tf, m,
-                                         DoubleToString(OrderOpenPrice(), Digits), DoubleToString(OrderClosePrice(), Digits), DoubleToString(R, 2), DoubleToString(OrderProfit() + OrderSwap() + OrderCommission(), 2));
+      t.outcome = MathAbs(t.net) < 0.01 ? 0 : (t.net > 0 ? 1 : -1);
+      t.hold = MathMax(0, (double)(t.ct - t.ot) / 60.0);
+      t.sess = SessionOf(t.ot);
+      t.why = StringFind(cm, "[tp]") >= 0 ? "tp" : (StringFind(cm, "[sl]") >= 0 ? "sl" : (StringFind(cm, "so:") >= 0 || StringFind(cm, "[so]") >= 0 ? "so" : (StringFind(cm, "to #") >= 0 ? "ea" : "other")));
+      int nn = ArraySize(T); ArrayResize(T, nn + 1); T[nn] = t;
      }
-   if(fh != INVALID_HANDLE) FileClose(fh);
-   Print("=========== RamanFX ZoneBot backtest: ", _Symbol, " ===========");
-   Print(StringFormat("Trades %d | win rate %.0f%% | total %.1fR | avg %.2fR | profit factor %.2f | max drawdown %.1fR",
-         all, all > 0 ? 100.0 * wins / all : 0, totR, all > 0 ? totR / all : 0, grossL > 0 ? grossW / grossL : 0, maxDD));
-   for(int j = 0; j < ArraySize(key); j++)
-      Print(StringFormat("  %-24s %4d trades | win %3.0f%% | avg %5.2fR | total %6.1fR | best %.1fR | worst %.1fR", key[j], n[j], 100.0 * w[j] / MathMax(1, n[j]), rs[j] / MathMax(1, n[j]), rs[j], best[j], worst[j]));
+   int n = ArraySize(T);
+   for(int i = 1; i < n; i++)                                           // insertion sort by close time, then ticket
+     {
+      BTrade x = T[i]; int j = i - 1;
+      while(j >= 0 && (T[j].ct > x.ct || (T[j].ct == x.ct && T[j].ticket > x.ticket))) { T[j + 1] = T[j]; j--; }
+      T[j + 1] = x;
+     }
+   return n;
+  }
+
+// journal formulas (stats.ts computeStats / riskAdjusted / traderScore) over the trades ix[0..m-1]
+void Kpi(BTrade &T[], int &ix[], int m, bool full, KStat &s)
+  {
+   s.n = m; s.wins = 0; s.losses = 0; s.be = 0; s.rN = 0; s.cw = 0; s.cl = 0; s.days = 0; s.green = 0; s.red = 0; s.sdays = 0;
+   s.net = 0; s.gw = 0; s.gl = 0; s.bigW = 0; s.bigL = 0; s.dd = 0; s.ddPct = KNA; s.sharpe = KNA; s.sortino = KNA; s.score = KNA;
+   s.sEdge = 0; s.sPf = 0; s.sPay = 0; s.sDd = 0; s.sCons = 0; s.bestDay = 0; s.worstDay = 0; s.bestD = 0; s.worstD = 0;
+   double cum = 0, peak = 0, hw = 0, hl = 0, sumR = 0; int cw = 0, cl = 0;
+   datetime dD[]; double dP[]; int nd = 0;
+   for(int q = 0; q < m; q++)
+     {
+      int i = ix[q]; double v = T[i].net;
+      s.net += v;
+      if(T[i].outcome > 0)      { s.wins++;   s.gw += v; hw += T[i].hold; s.bigW = s.wins == 1 ? v : MathMax(s.bigW, v); cw++; cl = 0; s.cw = MathMax(s.cw, cw); }
+      else if(T[i].outcome < 0) { s.losses++; s.gl -= v; hl += T[i].hold; s.bigL = s.losses == 1 ? v : MathMin(s.bigL, v); cl++; cw = 0; s.cl = MathMax(s.cl, cl); }
+      else s.be++;                                                        // breakevens neither extend nor break a streak
+      if(T[i].hasR) { s.rN++; sumR += T[i].R; }
+      cum += v; peak = MathMax(peak, cum); s.dd = MathMax(s.dd, peak - cum);
+      datetime d = DayOf(T[i].ct);
+      if(nd == 0 || dD[nd - 1] != d) { ArrayResize(dD, nd + 1); ArrayResize(dP, nd + 1); dD[nd] = d; dP[nd] = 0; nd++; }
+      dP[nd - 1] += v;
+     }
+   int dec = s.wins + s.losses;
+   s.wr = dec > 0 ? (double)s.wins / dec : 0;
+   s.pf = s.gl > 0 ? s.gw / s.gl : KNA;
+   s.avgW = s.wins > 0 ? s.gw / s.wins : 0;
+   s.avgL = s.losses > 0 ? -s.gl / s.losses : 0;
+   s.payoff = (s.wins > 0 && s.losses > 0) ? s.avgW / MathAbs(s.avgL) : KNA;
+   s.beWR = s.payoff != KNA ? 1.0 / (1.0 + s.payoff) : KNA;
+   s.ex = m > 0 ? s.net / m : 0;
+   s.avgR = s.rN > 0 ? sumR / s.rN : KNA; s.totR = sumR;
+   s.holdW = s.wins > 0 ? hw / s.wins : 0; s.holdL = s.losses > 0 ? hl / s.losses : 0;
+   s.rf = s.dd > 0 ? s.net / s.dd : KNA;
+   s.days = nd;
+   for(int j = 0; j < nd; j++)
+     {
+      if(dP[j] >= 0.01) s.green++; else if(dP[j] <= -0.01) s.red++;
+      if(j == 0 || dP[j] > s.bestDay)  { s.bestDay = dP[j];  s.bestD = dD[j]; }
+      if(j == 0 || dP[j] < s.worstDay) { s.worstDay = dP[j]; s.worstD = dD[j]; }
+     }
+   s.dayWR = s.green + s.red > 0 ? (double)s.green / (s.green + s.red) : 0;
+   s.avgDay = nd > 0 ? s.net / nd : 0;
+   if(!full) return;
+   // max drawdown as % of the running peak balance (start balance + closed P/L)
+   if(gStartBal > 0)
+     {
+      double bal = gStartBal, pk = gStartBal, ddp = 0;
+      for(int q = 0; q < m; q++) { bal += T[ix[q]].net; pk = MathMax(pk, bal); if(pk > 0) ddp = MathMax(ddp, (pk - bal) / pk); }
+      s.ddPct = MathMin(1, ddp);
+     }
+   // Sharpe / Sortino: every weekday between the first and last trade day (no-trade days = 0), % of the day's start balance, x sqrt(252)
+   if(nd > 0)
+     {
+      double rets[]; int nr = 0, p = 0; double run = 0;
+      for(datetime d = dD[0]; d <= dD[nd - 1]; d += 86400)
+        {
+         int wd = TimeDayOfWeek(d); double pnl = 0; bool has = false;
+         if(p < nd && dD[p] == d) { pnl = dP[p]; has = true; p++; }
+         if((wd == 0 || wd == 6) && !has) continue;
+         double b = gStartBal + run;
+         ArrayResize(rets, nr + 1); rets[nr++] = b > 0 ? pnl / b : pnl;
+         run += pnl;
+        }
+      s.sdays = nr;
+      if(nr >= 20)
+        {
+         double mean = 0, sd = 0, dn = 0;
+         for(int j = 0; j < nr; j++) mean += rets[j];
+         mean /= nr;
+         for(int j = 0; j < nr; j++) { sd += (rets[j] - mean) * (rets[j] - mean); dn += MathPow(MathMin(0, rets[j]), 2); }
+         sd = MathSqrt(sd / (nr - 1)); dn = MathSqrt(dn / nr);
+         s.sharpe = sd > 0 ? mean / sd * MathSqrt(252) : KNA;
+         s.sortino = dn > 0 ? mean / dn * MathSqrt(252) : KNA;
+        }
+     }
+   // trader score (needs >= 20 trades), each axis 0..100, mean of the five
+   if(m >= 20)
+     {
+      double edge = s.beWR != KNA ? s.wr - s.beWR : s.wr - 0.5;
+      double pf = s.pf != KNA ? s.pf : (s.gw > 0 ? 3 : 0);
+      double best = (nd > 0 && s.net > 0) ? s.bestDay / s.net : 1;
+      s.sEdge = MathMax(0, MathMin(100, 50 + edge * 250));
+      s.sPf   = MathMax(0, MathMin(100, (pf - 1) / 1.5 * 100));
+      s.sPay  = MathMax(0, MathMin(100, (s.payoff != KNA ? s.payoff : 3) / 3 * 100));
+      s.sDd   = s.ddPct != KNA ? MathMax(0, MathMin(100, 100 - s.ddPct * 500)) : MathMax(0, MathMin(100, (s.rf != KNA ? s.rf : 0) / 3 * 100));
+      s.sCons = s.net > 0 ? MathMax(0, MathMin(100, 100 - MathMax(0, best - 0.2) * 200)) : MathMax(0, MathMin(100, s.dayWR * 50));
+      s.score = (s.sEdge + s.sPf + s.sPay + s.sDd + s.sCons) / 5;
+     }
+  }
+
+// groups: 0 entry TF, 1 grade, 2 entry type, 3 side, 4 session (UTC entry hour), 5 weekday (UTC), 6 hold time, 7 R bin (0.5R, -3..6)
+#define NDIM 8
+string DimName(int d)
+  {
+   switch(d) { case 0: return "Entry timeframe"; case 1: return "Grade"; case 2: return "Entry type"; case 3: return "Side"; case 4: return "Session (UTC entry)";
+               case 5: return "Weekday (UTC entry)"; case 6: return "Hold time"; }
+   return "R multiple (0.5R bins)";
+  }
+int DimKeys(int d, string &keys[])
+  {
+   ArrayResize(keys, 0);
+   if(d == 0) { ArrayResize(keys, NTF); for(int i = 0; i < NTF; i++) keys[i] = TF_N[i]; }
+   if(d == 1) { ArrayResize(keys, 4); keys[0] = "A"; keys[1] = "B"; keys[2] = "C"; keys[3] = "?"; }
+   if(d == 2) { ArrayResize(keys, 2); keys[0] = "Set & forget"; keys[1] = "Confirmation"; }
+   if(d == 3) { ArrayResize(keys, 2); keys[0] = "Long"; keys[1] = "Short"; }
+   if(d == 4) { ArrayResize(keys, 4); keys[0] = "Asia"; keys[1] = "London"; keys[2] = "New York"; keys[3] = "Off-hours"; }
+   if(d == 5) { ArrayResize(keys, 7); keys[0] = "Mon"; keys[1] = "Tue"; keys[2] = "Wed"; keys[3] = "Thu"; keys[4] = "Fri"; keys[5] = "Sat"; keys[6] = "Sun"; }
+   if(d == 6) { ArrayResize(keys, 6); keys[0] = "<5m"; keys[1] = "5-15m"; keys[2] = "15m-1h"; keys[3] = "1-4h"; keys[4] = "4h-1d"; keys[5] = ">1d"; }
+   if(d == 7) { ArrayResize(keys, 18); for(int b = -6; b < 12; b++) keys[b + 6] = RBinName(b); }
+   return ArraySize(keys);
+  }
+string RBinName(int b)
+  {
+   if(b <= -6) return "<-2.5R";
+   if(b >= 11) return ">=5.5R";
+   return StringFormat("%.1f to %.1fR", b * 0.5, (b + 1) * 0.5);
+  }
+string KeyOf(BTrade &t, int d)
+  {
+   if(d == 0) return TF_N[t.k];
+   if(d == 1) return t.grade;
+   if(d == 2) return t.method;
+   if(d == 3) return t.dir > 0 ? "Long" : "Short";
+   if(d == 4) return t.sess;
+   if(d == 5) { string w[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"}; return w[TimeDayOfWeek(ToUTC(t.ot))]; }
+   if(d == 6) { double h = t.hold; return h < 5 ? "<5m" : (h < 15 ? "5-15m" : (h < 60 ? "15m-1h" : (h < 240 ? "1-4h" : (h < 1440 ? "4h-1d" : ">1d")))); }
+   if(!t.hasR) return "";
+   double r = MathMax(-3.0, MathMin(5.999, t.R));
+   return RBinName((int)MathFloor(r / 0.5));
+  }
+int GroupIx(BTrade &T[], int d, string key, int &ix[])
+  {
+   ArrayResize(ix, 0); int m = 0;
+   for(int i = 0; i < ArraySize(T); i++) if(KeyOf(T[i], d) == key) { ArrayResize(ix, m + 1); ix[m++] = i; }
+   return m;
+  }
+string GroupLine(string key, KStat &g)
+  {
+   return StringFormat("  %-16s %6d %5d %5d %6.1f%% %12.2f %6s %10.2f %7s %8.1fR", key, g.n, g.wins, g.losses, g.wr * 100, g.net, KF(g.pf, 2), g.ex, KF(g.avgR, 2), g.totR);
+  }
+void KpiRow(int f, string grp, string key, KStat &k, bool full)
+  {
+   FileWrite(f, grp, key, k.n, k.wins, k.losses, k.be, DoubleToString(k.wr * 100, 2), DoubleToString(k.net, 2), DoubleToString(k.gw, 2), DoubleToString(k.gl, 2),
+             KF(k.pf, 3), DoubleToString(k.avgW, 2), DoubleToString(k.avgL, 2), KF(k.payoff, 3), k.beWR == KNA ? "n/a" : DoubleToString(k.beWR * 100, 2),
+             DoubleToString(k.ex, 2), KF(k.avgR, 3), DoubleToString(k.totR, 2), DoubleToString(k.bigW, 2), DoubleToString(k.bigL, 2),
+             DoubleToString(k.holdW, 1), DoubleToString(k.holdL, 1), k.cw, k.cl, DoubleToString(k.dd, 2), full && k.ddPct != KNA ? DoubleToString(k.ddPct * 100, 2) : "",
+             KF(k.rf, 3), k.days, k.green, k.red, DoubleToString(k.dayWR * 100, 2), DoubleToString(k.bestDay, 2), DoubleToString(k.worstDay, 2), DoubleToString(k.avgDay, 2),
+             full ? KF(k.sharpe, 3) : "", full ? KF(k.sortino, 3) : "", full ? KF(k.score, 1) : "");
+  }
+
+void BacktestReport()
+  {
+   BTrade T[]; int nT = CollectTrades(T);
+   string sym = _Symbol, ccy = AccountCurrency();
+   int acct = 900000 + AcctSmall();
+   int all[]; ArrayResize(all, nT); for(int i = 0; i < nT; i++) all[i] = i;
+   KStat S; Kpi(T, all, nT, true, S);
+   double endBal = gStartBal + S.net;
+   { datetime first = TimeCurrent(); for(int i = 0; i < nT; i++) if(T[i].ot < first) first = T[i].ot;
+     if(gTestStart == 0 || gTestStart > first) gTestStart = first - 60; }    // the deposit row must come before the first trade
+
+   //--- Journal block
+   Print("==================== RamanFX ZoneBot backtest: ", sym, " ====================");
+   Print(StringFormat("Mode %s | tested %s - %s | start balance %.2f %s | end %.2f %s", InpAggressive ? "AGGRESSIVE" : "normal",
+         TimeToString(gTestStart, TIME_DATE), TimeToString(TimeCurrent(), TIME_DATE), gStartBal, ccy, endBal, ccy));
+   if(nT == 0) Print("No closed bot trades in this test.");
+   else
+     {
+      Print(StringFormat("Trades %d (wins %d, losses %d, breakeven %d) | win rate %.1f%% | net %.2f %s | profit factor %s | expectancy %.2f per trade",
+            S.n, S.wins, S.losses, S.be, S.wr * 100, S.net, ccy, KF(S.pf, 2), S.ex));
+      Print(StringFormat("Gross win %.2f | gross loss %.2f | avg win %.2f | avg loss %.2f | payoff %s | breakeven win rate %s",
+            S.gw, S.gl, S.avgW, S.avgL, KF(S.payoff, 2), KP(S.beWR)));
+      Print(StringFormat("R: total %.1fR | avg %sR over %d trades | largest win %.2f | largest loss %.2f",
+            S.totR, KF(S.avgR, 2), S.rN, S.bigW, S.bigL));
+      Print(StringFormat("Hold: avg win %s | avg loss %s | max consecutive wins %d | max consecutive losses %d",
+            Dur(S.holdW), Dur(S.holdL), S.cw, S.cl));
+      Print(StringFormat("Drawdown: max %.2f %s (%s of peak balance) | recovery factor %s",
+            S.dd, ccy, KP(S.ddPct), KF(S.rf, 2)));
+      Print(StringFormat("Days %d: green %d, red %d, day win rate %.0f%% | best day %.2f (%s) | worst day %.2f (%s) | avg daily %.2f",
+            S.days, S.green, S.red, S.dayWR * 100, S.bestDay, TimeToString(S.bestD, TIME_DATE), S.worstDay, TimeToString(S.worstD, TIME_DATE), S.avgDay));
+      Print(StringFormat("Sharpe %s | Sortino %s (%d weekdays%s)", KF(S.sharpe, 2), KF(S.sortino, 2), S.sdays, S.sdays < 20 ? ", needs 20" : ""));
+      if(S.score != KNA)
+         Print(StringFormat("Trader score %.0f/100 (edge %.0f, profit factor %.0f, payoff %.0f, drawdown %.0f, consistency %.0f)", S.score, S.sEdge, S.sPf, S.sPay, S.sDd, S.sCons));
+      else Print("Trader score: needs at least 20 trades");
+     }
+
+   //--- groups (Journal + KPI file)
+   int fk = FileOpen("RamanFX_Backtest_" + sym + "_KPIs.csv", FILE_WRITE | FILE_CSV | FILE_ANSI, ',');
+   if(fk != INVALID_HANDLE)
+     {
+      FileWrite(fk, "group", "key", "trades", "wins", "losses", "breakeven", "win rate %", "net", "gross win", "gross loss", "profit factor", "avg win", "avg loss", "payoff",
+                "breakeven win rate %", "expectancy", "avg R", "total R", "largest win", "largest loss", "avg hold win min", "avg hold loss min", "max consec wins", "max consec losses",
+                "max drawdown", "max drawdown %", "recovery factor", "days", "green days", "red days", "day win rate %", "best day", "worst day", "avg daily pnl", "sharpe", "sortino", "trader score");
+      KpiRow(fk, "Overall", "All trades", S, true);
+     }
+   KStat tfS[NTF]; int tfN[NTF];
+   for(int i = 0; i < NTF; i++) tfN[i] = 0;
+   for(int d = 0; d < NDIM && nT > 0; d++)
+     {
+      string keys[]; int nk = DimKeys(d, keys);
+      Print("--- By ", DimName(d), " ---");
+      Print(StringFormat("  %-16s %6s %5s %5s %7s %12s %6s %10s %7s %9s", "group", "trades", "wins", "loss", "win%", "net", "PF", "expect.", "avgR", "totalR"));
+      for(int j = 0; j < nk; j++)
+        {
+         int ix[]; int m = GroupIx(T, d, keys[j], ix);
+         if(m == 0) continue;
+         KStat g; Kpi(T, ix, m, false, g);
+         Print(GroupLine(keys[j], g));
+         if(fk != INVALID_HANDLE) KpiRow(fk, DimName(d), keys[j], g, false);
+         if(d == 0) { tfS[j] = g; tfN[j] = m; }
+        }
+     }
+   if(fk != INVALID_HANDLE) FileClose(fk);
+
+   //--- best timeframe: ranked by total R and by expectancy, at least 10 trades
+   if(nT > 0)
+     {
+      int ord[]; int no = 0;
+      for(int i = 0; i < NTF; i++) if(tfN[i] >= 10) { ArrayResize(ord, no + 1); ord[no++] = i; }
+      Print("--- Best timeframe (at least 10 trades) ---");
+      if(no == 0) Print("  No entry timeframe has 10 trades yet - run a longer test (or InpAggressive) before trusting a ranking.");
+      for(int pass = 0; pass < 2 && no > 0; pass++)
+        {
+         for(int a = 0; a < no; a++) for(int b = a + 1; b < no; b++)
+           {
+            double va = pass == 0 ? tfS[ord[a]].totR : tfS[ord[a]].ex, vb = pass == 0 ? tfS[ord[b]].totR : tfS[ord[b]].ex;
+            if(vb > va) { int x = ord[a]; ord[a] = ord[b]; ord[b] = x; }
+           }
+         string ln = pass == 0 ? "  by total R:     " : "  by expectancy:  ";
+         for(int a = 0; a < no && a < 7; a++)
+            ln += StringFormat("%d) %s %s (%d tr)  ", a + 1, TF_N[ord[a]], pass == 0 ? StringFormat("%+.1fR", tfS[ord[a]].totR) : StringFormat("%+.2f/tr", tfS[ord[a]].ex), tfS[ord[a]].n);
+         Print(ln);
+        }
+      if(no > 0)
+        {
+         int bt = ord[0];                                                 // ord is sorted by expectancy after the 2nd pass
+         int br = -1; for(int a = 0; a < no; a++) if(br < 0 || tfS[ord[a]].totR > tfS[br].totR) br = ord[a];
+         Print(StringFormat("  BEST: %s by total R (%+.1fR, win rate %.0f%%, PF %s) | %s by expectancy (%+.2f per trade)",
+               TF_N[br], tfS[br].totR, tfS[br].wr * 100, KF(tfS[br].pf, 2), TF_N[bt], tfS[bt].ex));
+        }
+     }
+
+   //--- why setups were skipped
    int order[]; ArrayResize(order, ArraySize(cKey)); for(int i = 0; i < ArraySize(cKey); i++) order[i] = i;
    for(int i = 0; i < ArraySize(order); i++) for(int j = i + 1; j < ArraySize(order); j++) if(cVal[order[j]] > cVal[order[i]]) { int x = order[i]; order[i] = order[j]; order[j] = x; }
-   Print("  Most common reasons a setup was skipped:");
-   for(int i = 0; i < MathMin(8, ArraySize(order)); i++) Print(StringFormat("    %-60s %d", cKey[order[i]], cVal[order[i]]));
-   Print("  Every trade: MQL4/Files of the tester (tester/files) -> RamanFX_Backtest_", _Symbol, ".csv");
+   Print("--- Most common reasons a setup was skipped ---");
+   for(int i = 0; i < MathMin(8, ArraySize(order)); i++) Print(StringFormat("  %-60s %d", cKey[order[i]], cVal[order[i]]));
+
+   //--- a) one row per trade
+   int fh = FileOpen("RamanFX_Backtest_" + sym + ".csv", FILE_WRITE | FILE_CSV | FILE_ANSI, ',');
+   if(fh != INVALID_HANDLE)
+     {
+      FileWrite(fh, "ticket", "journal id", "open time", "close time", "side", "timeframe", "grade", "entry type", "open", "close", "sl initial", "tp",
+                "lots", "commission", "swap", "profit", "net", "R", "R source", "hold minutes", "session", "weekday", "exit");
+      for(int i = 0; i < nT; i++)
+        {
+         int dg = (int)MarketInfo(T[i].sym, MODE_DIGITS);
+         FileWrite(fh, T[i].ticket, T[i].jid, TStamp(T[i].ot), TStamp(T[i].ct), T[i].dir > 0 ? "BUY" : "SELL", TF_N[T[i].k], T[i].grade, T[i].method,
+                   DoubleToString(T[i].op, dg), DoubleToString(T[i].cp, dg), DoubleToString(T[i].sl0, dg), DoubleToString(T[i].tp0, dg), DoubleToString(T[i].lots, 2),
+                   DoubleToString(T[i].comm, 2), DoubleToString(T[i].swap, 2), DoubleToString(T[i].profit, 2), DoubleToString(T[i].net, 2),
+                   T[i].hasR ? DoubleToString(T[i].R, 3) : "", T[i].rsrc, DoubleToString(T[i].hold, 1), T[i].sess, KeyOf(T[i], 5), T[i].why);
+        }
+      FileClose(fh);
+     }
+
+   //--- c) MT4 "Detailed Statement" for the RamanFX journal (parseMT4)
+   int fs = FileOpen("RamanFX_Backtest_" + sym + "_Statement.htm", FILE_WRITE | FILE_TXT | FILE_ANSI);
+   if(fs != INVALID_HANDLE)
+     {
+      string nm = "ZoneBot Backtest " + sym + " " + TfName(_Period);
+      double sc = 0, ss = 0, sp = 0;
+      for(int i = 0; i < nT; i++) { sc += T[i].comm; ss += T[i].swap; sp += T[i].profit; }
+      FileWriteString(fs, "<html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"><title>Statement: " + IntegerToString(acct) + " - " + nm + "</title>\r\n");
+      FileWriteString(fs, "<style type=\"text/css\">td { font: 8pt Tahoma, Arial; }</style></head>\r\n<body topmargin=1 marginheight=1>\r\n");
+      FileWriteString(fs, "<div style=\"font: 14pt Times New Roman\"><b>RamanFX ZoneBot - Strategy Tester</b></div>\r\n");
+      FileWriteString(fs, "<table width=820 cellspacing=1 cellpadding=3 border=0>\r\n");
+      FileWriteString(fs, "<tr align=left><td colspan=2><b>Account: " + IntegerToString(acct) + "</b></td><td colspan=5><b>Name: " + nm + "</b></td><td colspan=2><b>Currency: " + ccy
+                          + "</b></td><td colspan=5 align=right><b>" + TimeToString(TimeCurrent(), TIME_DATE | TIME_MINUTES) + "</b></td></tr>\r\n");
+      FileWriteString(fs, "<tr align=left><td colspan=14><b>Closed Transactions:</b></td></tr>\r\n");
+      FileWriteString(fs, "<tr align=center bgcolor=\"#C0C0C0\"><td>Ticket</td><td nowrap>Open Time</td><td>Type</td><td>Size</td><td>Item</td><td>Price</td><td>S / L</td><td>T / P</td>"
+                          + "<td nowrap>Close Time</td><td>Price</td><td>Commission</td><td>Taxes</td><td>Swap</td><td>Profit</td></tr>\r\n");
+      FileWriteString(fs, "<tr align=right><td>0</td><td class=msdate nowrap>" + TStamp(gTestStart) + "</td><td>balance</td><td colspan=10 align=left>Deposit: backtest start balance</td><td>"
+                          + DoubleToString(gStartBal, 2) + "</td></tr>\r\n");
+      for(int i = 0; i < nT; i++)
+        {
+         int dg = (int)MarketInfo(T[i].sym, MODE_DIGITS); string lo = T[i].sym; StringToLower(lo);
+         FileWriteString(fs, StringFormat("<tr align=right><td>%d</td><td class=msdate nowrap>%s</td><td>%s</td><td class=mspt>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td>",
+                             T[i].jid, TStamp(T[i].ot), T[i].dir > 0 ? "buy" : "sell", DoubleToString(T[i].lots, 2), lo,
+                             DoubleToString(T[i].op, dg), DoubleToString(T[i].sl0, dg), DoubleToString(T[i].tp0, dg)));
+         FileWriteString(fs, StringFormat("<td class=msdate nowrap>%s</td><td>%s</td><td>%s</td><td>0.00</td><td>%s</td><td>%s</td></tr>\r\n",
+                             TStamp(T[i].ct), DoubleToString(T[i].cp, dg), DoubleToString(T[i].comm, 2), DoubleToString(T[i].swap, 2), DoubleToString(T[i].profit, 2)));
+        }
+      FileWriteString(fs, StringFormat("<tr align=right><td colspan=10><b>Closed P/L:</b></td><td>%.2f</td><td>0.00</td><td>%.2f</td><td>%.2f</td></tr>\r\n", sc, ss, sp));
+      FileWriteString(fs, "<tr align=left><td colspan=14><b>Summary:</b></td></tr>\r\n");
+      FileWriteString(fs, StringFormat("<tr align=right><td>Deposit/Withdrawal:</td><td>%.2f</td><td>Credit Facility:</td><td>0.00</td><td>Closed Trade P/L:</td><td>%.2f</td></tr>\r\n", gStartBal, S.net));
+      FileWriteString(fs, StringFormat("<tr align=right><td>Balance:</td><td>%.2f</td><td>Equity:</td><td>%.2f</td><td>Free Margin:</td><td>%.2f</td></tr>\r\n", endBal, endBal, endBal));
+      FileWriteString(fs, "</table></body></html>\r\n");
+      FileClose(fs);
+     }
+
+   //--- d) exits in the "Advanced Trade History Exporter" layout (parseExitCSV): initial SL/TP so the journal's R is right
+   int fx = FileOpen("RamanFX_Backtest_" + sym + "_Exits.csv", FILE_WRITE | FILE_TXT | FILE_ANSI);
+   if(fx != INVALID_HANDLE)
+     {
+      FileWriteString(fx, "Position ID,Symbol,Type,Open Time,Close Time,Duration (Hrs),Profit ($),Profit (Pts),Initial SL,Initial TP,Entry,Exit,Volume,Source,Exit Reason,Entry Order,Commission,Swap,Net ($),R,Entry TF,Grade,Entry Type\r\n");
+      for(int i = 0; i < nT; i++)
+        {
+         int dg = (int)MarketInfo(T[i].sym, MODE_DIGITS); double pt = MarketInfo(T[i].sym, MODE_POINT);
+         FileWriteString(fx, StringFormat("%d,%s,%s,%s,%s,%.2f,%.2f,%.1f,%s,%s,%s,%s,%.2f,ZoneBot tester,%s,limit,%.2f,%.2f,%.2f,%s,%s,%s,%s\r\n",
+                             T[i].jid, T[i].sym, T[i].dir > 0 ? "buy" : "sell", TStamp(T[i].ot), TStamp(T[i].ct), T[i].hold / 60.0, T[i].profit,
+                             pt > 0 ? T[i].dir * (T[i].cp - T[i].op) / pt : 0, DoubleToString(T[i].sl0, dg), DoubleToString(T[i].tp0, dg),
+                             DoubleToString(T[i].op, dg), DoubleToString(T[i].cp, dg), T[i].lots, T[i].why, T[i].comm, T[i].swap, T[i].net,
+                             T[i].hasR ? DoubleToString(T[i].R, 3) : "", TF_N[T[i].k], T[i].grade, T[i].method));
+        }
+      FileClose(fx);
+     }
+   Print("--- Files (tester\\files, i.e. <MT4 data folder>\\tester\\files) ---");
+   Print("  RamanFX_Backtest_", sym, ".csv (every trade) | RamanFX_Backtest_", sym, "_KPIs.csv (overall + every group)");
+   Print("  Import into RamanFX: RamanFX_Backtest_", sym, "_Statement.htm (account ", acct, ") and then RamanFX_Backtest_", sym, "_Exits.csv (initial stops for R)");
   }
