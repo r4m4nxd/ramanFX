@@ -20,7 +20,7 @@
 //| into a zone does not count as a touch. Removal needs a CLOSE.    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "0.30"
+#property version   "0.31"
 #property strict
 #property indicator_chart_window
 
@@ -38,6 +38,8 @@ input int    InpTrapSwing     = 3;      // Obvious level = swing with N bars eac
 input bool   InpOnlyQualified = true;   // Sunday rule: only zones in the chain (removed opp. zone / trendline / made a new high-low)
 input double InpMinGap        = 0.15;   // Space under the stay-away candle (x zone height) - below = drawable only, not tradable
 input double InpMinSizeVsMedian = 0.5;  // Zone smaller than this x the median zone = too small
+input double InpMaxDistATR    = 2.0;    // Zone further than N x HTF ATR = far: planned, halfway alert instead of live
+input bool   InpHalfwayAlert  = true;   // Alert once when price reaches halfway to a far zone
 input double InpMetalOilStop  = 2.0;    // Stop buffer multiplier on gold / silver / oil
 input string Sep2             = "-- What to show (clean by default) --"; // -----
 input int    InpMaxZones      = 4;      // Zones drawn: the N closest to price
@@ -576,6 +578,24 @@ void Panel()
       else if(trend != dir) why = "against HTF bias";
       else if(tp == 0) why = "no opposing zone for a target";
       else if(rr < InpMinRR) why = StringFormat("R:R %.1f below %.1f", rr, InpMinRR);
+      int htf = HtfOf(_Period); if(htf <= 0) htf = _Period;
+      double hatr = iATR(NULL, htf, 14, 1), far = MathAbs((Bid + Ask) / 2 - Z[i].prox), xatr = far / MathMax(hatr, Point);
+      string dline = StringFormat("Distance: %.1f x %s ATR (%s away, ATR %s)", xatr, TfName(htf), DoubleToString(far, Digits), DoubleToString(hatr, Digits));
+      if(why == "" && xatr > InpMaxDistATR)
+        {
+         static double hwProx = 0, hwHalf = 0;                         // halfway is fixed when the zone first shows as far
+         if(MathAbs(hwProx - Z[i].prox) > Point) { hwProx = Z[i].prox; hwHalf = ((Bid + Ask) / 2 + Z[i].prox) / 2; }
+         double half = hwHalf;
+         dline += StringFormat(" - FAR: needs ~%d %s candles one way, price often turns first. Planned only; alert at halfway %s", (int)MathCeil(xatr), TfName(htf), DoubleToString(half, Digits));
+         datetime h1 = Time[0], h2 = Time[0] + PeriodSeconds() * 18;
+         HLine(PFX + "hw", h1, h2, half, clrGoldenrod, STYLE_DOT, 1); Txt(PFX + "hwt", h2, half, StringFormat(" halfway alert (zone %.1fx ATR away)", xatr), clrGoldenrod, 7, ANCHOR_LEFT);
+         ObjectSetString(0, PFX + "hw", OBJPROP_TOOLTIP, dline);
+         static double alertedHalf = 0;
+         if(InpHalfwayAlert && MathAbs(alertedHalf - half) > 10 * Point && ((dir < 0 && Bid >= half) || (dir > 0 && Bid <= half)))
+           { alertedHalf = half; Alert("ZoneVision ", _Symbol, " ", TfName(_Period), ": halfway to the ", dir > 0 ? "demand " : "supply ", DoubleToString(Z[i].prox, Digits), " - check for a new lower-timeframe zone in the chain"); }
+        }
+      else if(why == "") dline += " - within reach";
+      L += dline + "\n";
       if(why == "")
          plan = StringFormat("Bot: %s %s  SL %s  TP %s  (1:%.1f, %s %s%s)", dir > 0 ? "BUY limit" : "SELL limit", DoubleToString(entry, Digits), DoubleToString(sl, Digits), DoubleToString(tp, Digits), rr, dir > 0 ? "RBR" : "DBD", Z[i].grade, Z[i].trap > 0 ? " + trap" : "");
       else

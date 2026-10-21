@@ -37,7 +37,8 @@ nTrades     = input.int(3, "  How many potential trades to list", minval=1, maxv
 planLines   = input.string("Best only", "  Draw entry/stop/target lines for", options=["Best only", "All listed"], group=gS)
 gradeF      = input.string("All", "  Grades to show", options=["All", "A only", "A + B", "B only", "C only"], group=gS)
 showCounter = input.bool(false, "  Also list counter-trend setups", group=gS)
-maxDist     = input.float(3.0, "  Only zones within N x HTF ATR of price (0 = any)", minval=0, step=0.5, group=gS)
+maxDist     = input.float(6.0, "  Ignore zones beyond N x HTF ATR (0 = any)", minval=0, step=0.5, group=gS)
+liveATR     = input.float(2.0, "  Within reach: zone <= N x HTF ATR away (further = FAR: planned, halfway alert)", minval=0.5, step=0.5, group=gS)
 showWhy     = input.bool(true, "  Explain the best trade (odds checklist)", group=gS)
 showPanel   = input.bool(true, "Info panel", group=gS)
 panelView   = input.string("Full", "Panel view (Pine has no buttons: switch here)", options=["Full", "Compact", "Header only"], group=gS)
@@ -368,6 +369,9 @@ if barstate.islast
     tpDone = array.new<float>()
     string bestWhy = ""
     string bestKey = ""
+    var float hwProx = na
+    var float hwHalf = na
+    var bool hwHit = false
     if nList > 0
         for n = 0 to nList - 1
             j = rank.get(n)
@@ -379,9 +383,25 @@ if barstate.islast
             ctr = htfTrend != 0 and z.dir != htfTrend
             tradeOf.set(tIdx.get(j), n + 1)
             tradeTxt.set(tIdx.get(j), "trade #" + str.tostring(n + 1) + " " + g + " " + str.tostring(sc))
-            rows.push("#" + str.tostring(n + 1) + " " + side + " limit " + str.tostring(z.prox, format.mintick) + "  SL " + str.tostring(sl, format.mintick) + "  TP " + str.tostring(tp, format.mintick) + "  1:" + str.tostring(rr, "#.0") + "  " + g + " " + str.tostring(sc) + (z.cont ? " CP" : " VP") + (g == "C" ? "  half risk" : "") + (ctr ? "  COUNTER-TREND" : ""))
+            xatr = na(htfAtr) or htfAtr <= 0 ? 0.0 : math.abs(close - z.prox) / htfAtr
+            isFar = xatr > liveATR
             if n == 0
-                bestWhy := why
+                if isFar
+                    if na(hwProx) or hwProx != z.prox
+                        hwProx := z.prox
+                        hwHalf := (close + z.prox) / 2
+                        hwHit := false
+                    lines.push(line.new(bar_index, hwHalf, right, hwHalf, color=color.new(#E8C46A, 20), style=line.style_dotted))
+                    tagP.push(hwHalf), tagT.push("halfway alert"), tagC.push(#E8C46A), tagTip.push("Zone is " + str.tostring(xatr, "#.0") + " x " + htf + " ATR away. Price needs about " + str.tostring(math.ceil(xatr)) + " " + htf + " candles one way to reach it and often turns first. Plan it; when price reaches this halfway line, look for a new lower-timeframe zone in the chain.")
+                    if not hwHit and (z.dir < 0 ? high >= hwHalf : low <= hwHalf)
+                        hwHit := true
+                        alert(syminfo.ticker + " " + timeframe.period + ": halfway to the " + (z.dir > 0 ? "demand " : "supply ") + str.tostring(z.prox, format.mintick) + " - check for a lower-timeframe zone in the chain", alert.freq_once_per_bar)
+                else
+                    hwProx := na
+            whyX = why + "\n" + (isFar ? "✘ Distance: " + str.tostring(xatr, "#.0") + " x " + htf + " ATR - FAR, planned only (halfway alert " + str.tostring(hwHalf, format.mintick) + ")" : "✔ Distance: " + str.tostring(xatr, "#.0") + " x " + htf + " ATR - within reach")
+            rows.push("#" + str.tostring(n + 1) + " " + side + " limit " + str.tostring(z.prox, format.mintick) + "  SL " + str.tostring(sl, format.mintick) + "  TP " + str.tostring(tp, format.mintick) + "  1:" + str.tostring(rr, "#.0") + "  " + g + " " + str.tostring(sc) + (z.cont ? " CP" : " VP") + (g == "C" ? "  half risk" : "") + (ctr ? "  COUNTER-TREND" : "") + "  " + str.tostring(xatr, "#.0") + "xATR" + (isFar ? " FAR" : ""))
+            if n == 0
+                bestWhy := whyX
                 bestKey := side + str.tostring(z.prox, format.mintick)
             if n == 0 or planLines == "All listed"
                 x1 = bar_index + 2, x2 = right
@@ -389,7 +409,7 @@ if barstate.islast
                 lines.push(line.new(x1, sl, x2, sl, color=cStop, style=line.style_dashed))
                 lines.push(line.new(x1, tp, x2, tp, color=cTgt, style=line.style_dashed))
                 // one label per trade (all numbers in it) so nothing stacks on the zone price tags
-                tagP.push(z.prox), tagT.push("#" + str.tostring(n + 1) + " " + side + " " + str.tostring(z.prox, format.mintick) + " | SL " + str.tostring(sl, format.mintick) + " | 1:" + str.tostring(rr, "#.0") + " | " + g), tagC.push(cEntry), tagTip.push(why)
+                tagP.push(z.prox), tagT.push("#" + str.tostring(n + 1) + " " + side + " " + str.tostring(z.prox, format.mintick) + " | SL " + str.tostring(sl, format.mintick) + " | 1:" + str.tostring(rr, "#.0") + " | " + g), tagC.push(cEntry), tagTip.push(whyX)
                 if not tpDone.includes(tp)
                     tpDone.push(tp)
                     tagP.push(tp), tagT.push("TP " + str.tostring(tp, format.mintick)), tagC.push(cTgt), tagTip.push("Target of trade #" + str.tostring(n + 1))

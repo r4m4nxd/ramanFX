@@ -22,7 +22,7 @@
 //|   2026.10.17 12:30,USD   (UTC time, currency)                    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "0.90"
+#property version   "0.91"
 #property strict
 
 enum BotMode   { MODE_SCANNER = 0, MODE_APPROVE = 1, MODE_AUTO = 2 };
@@ -69,6 +69,7 @@ input double    InpMinDeparture  = 1.5;          // Departure: price must travel
 input bool      InpRequireITF    = false;        // Skip when the intermediate TF trend points the other way (3-timeframe check)
 input bool      InpCurveFilter   = false;        // Demand only in the lower third of the HTF curve (half if at an HTF demand), supply mirrored
 input double    InpMaxDistATR    = 2.0;          // Zone must be within N x HTF ATR of price and in the first half of the way to target (no chasing)
+input bool      InpHalfwayAlert  = true;         // Zone further than that: draw a halfway line and alert when price gets there
 input bool      InpUseMyLines    = true;         // Use YOUR trendlines on this chart for the trend, and YOUR rectangles as zones to advise
 input bool      InpRequireQualified = true;      // Kevin's chain rule: the move away removed an opposing zone or made an all-time high/low (your trendline is the third trigger - you check it)
 input double    InpMinGap        = 0.15;         // Kevin: space between stay-away candle and proximal (x zone height); less = drawable only, not traded
@@ -215,6 +216,74 @@ void OnDeinit(const int reason)
    if(reason != REASON_CHARTCHANGE) ObjectsDeleteAll(0, "RFXP_");
    Comment("");
    ObjectsDeleteAll(0, "RFXS_");
+   ObjectsDeleteAll(0, "RFXW_");
+  }
+
+// Far zones (more than InpMaxDistATR x HTF ATR from price): price usually needs several
+// HTF candles one way to get there and often turns first. Plan it, alert at halfway.
+struct Watch { string sym; int k; int dir; double prox, half, atr, far; int htf; bool hit; };
+Watch watches[];
+int WatchIdx(string s, int k) { for(int i = 0; i < ArraySize(watches); i++) if(watches[i].sym == s && watches[i].k == k) return i; return -1; }
+void ClearWatch(string s, int k)
+  {
+   int i = WatchIdx(s, k); if(i < 0) return;
+   int n = ArraySize(watches); for(int j = i; j < n - 1; j++) watches[j] = watches[j + 1]; ArrayResize(watches, n - 1);
+   if(s == _Symbol) ObjectsDeleteAll(0, "RFXW_" + IntegerToString(k));
+  }
+string WatchText(Watch &w, int digits)
+  {
+   double c = w.far / MathMax(w.atr, Point);
+   return StringFormat("%s %s %s %s is %.1f x %s ATR away (%s, ATR %s): needs ~%d %s candles one way, price often turns first. Alert at halfway %s",
+      w.sym, TF_N[w.k], w.dir > 0 ? "demand" : "supply", DoubleToString(w.prox, digits), c, TfName(w.htf), DoubleToString(w.far, digits), DoubleToString(w.atr, digits),
+      (int)MathCeil(c), TfName(w.htf), DoubleToString(w.half, digits));
+  }
+void SetWatch(string s, int k, int dir, double prox, double atr, double far, int htf, int digits)
+  {
+   double px = MarketInfo(s, MODE_BID);
+   int i = WatchIdx(s, k);
+   if(i >= 0 && MathAbs(watches[i].prox - prox) < MarketInfo(s, MODE_POINT) * 2) { watches[i].atr = atr; watches[i].far = far; }
+   else
+     {
+      if(i < 0) { i = ArraySize(watches); ArrayResize(watches, i + 1); }
+      watches[i].sym = s; watches[i].k = k; watches[i].dir = dir; watches[i].prox = prox; watches[i].atr = atr; watches[i].far = far; watches[i].htf = htf;
+      watches[i].half = NormalizeDouble((px + prox) / 2, digits); watches[i].hit = false;
+      Print(WatchText(watches[i], digits));
+     }
+   if(s == _Symbol && InpHalfwayAlert)
+     {
+      string nm = "RFXW_" + IntegerToString(k);
+      datetime t1 = Time[0], t2 = Time[0] + PeriodSeconds() * 30;
+      if(ObjectFind(0, nm) < 0) ObjectCreate(0, nm, OBJ_TREND, 0, t1, watches[i].half, t2, watches[i].half);
+      ObjectMove(0, nm, 0, t1, watches[i].half); ObjectMove(0, nm, 1, t2, watches[i].half);
+      ObjectSetInteger(0, nm, OBJPROP_RAY_RIGHT, false); ObjectSetInteger(0, nm, OBJPROP_STYLE, STYLE_DOT); ObjectSetInteger(0, nm, OBJPROP_COLOR, clrGoldenrod);
+      ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false); ObjectSetString(0, nm, OBJPROP_TOOLTIP, WatchText(watches[i], digits));
+      string tn = nm + "t";
+      if(ObjectFind(0, tn) < 0) ObjectCreate(0, tn, OBJ_TEXT, 0, t2, watches[i].half);
+      ObjectMove(0, tn, 0, t2, watches[i].half);
+      ObjectSetString(0, tn, OBJPROP_TEXT, StringFormat(" halfway alert %s: %s zone %.1fx ATR away", TF_N[k], dir > 0 ? "demand" : "supply", far / MathMax(atr, Point)));
+      ObjectSetInteger(0, tn, OBJPROP_COLOR, clrGoldenrod); ObjectSetInteger(0, tn, OBJPROP_FONTSIZE, 7); ObjectSetInteger(0, tn, OBJPROP_ANCHOR, ANCHOR_LEFT);
+      ObjectSetInteger(0, tn, OBJPROP_SELECTABLE, false);
+     }
+  }
+void CheckWatches()
+  {
+   if(!InpHalfwayAlert) return;
+   for(int i = 0; i < ArraySize(watches); i++)
+     {
+      if(watches[i].hit) continue;
+      double px = MarketInfo(watches[i].sym, MODE_BID);
+      if(px <= 0) continue;
+      if((watches[i].dir < 0 && px >= watches[i].half) || (watches[i].dir > 0 && px <= watches[i].half))
+        {
+         watches[i].hit = true;
+         int dg = (int)MarketInfo(watches[i].sym, MODE_DIGITS);
+         string msg = StringFormat("%s %s: halfway to the %s %s. Check the chart: is a new lower-timeframe zone in the chain forming? If price keeps coming, the zone gets advised once it is within %.1f x ATR.",
+            watches[i].sym, TF_N[watches[i].k], watches[i].dir > 0 ? "demand" : "supply", DoubleToString(watches[i].prox, dg), InpMaxDistATR);
+         if(InpAlerts) Alert("RamanFX ZoneBot: ", msg);
+         if(InpPush && !IsTesting()) SendNotification("RamanFX: " + msg);
+         Print(msg);
+        }
+     }
   }
 
 void OnTick() { if(IsTesting()) Work(); }
@@ -296,6 +365,7 @@ void Work()
    if(TimeCurrent() - lastNewsLoad > 3600) LoadNews();
    if(InpUseMyLines && TimeLocal() - lastMine >= 5) { lastMine = TimeLocal(); myTrend = MyTrendlines(); MyZones(); }
    ManageOrders();
+   CheckWatches();
    int total = ArraySize(syms) * NTF, done = 0;
    uint w0 = GetTickCount();
    bool warm = TimeLocal() - startedAt < 20;                         // first 20 s: 1 scan per tick while MT4 loads history
@@ -720,6 +790,7 @@ void Scan(string s, int k)
    Zone hz[];
    int hn = HtfZones(s, htf, hz);
    // every fresh zone in the HTF direction is checked; the best one (VP > trap > grade > R:R) is acted on
+   int fI = -1; double fFar = 0, fAtr = 0;                                  // nearest zone that failed only on distance
    int best = -1; double bScore = 0, bEntry = 0, bSl = 0, bTp = 0, bRr = 0; string bMethod = "", bDecision = "", bPg = ""; int bPs = 0; bool bCapped = false;
    for(int i = n - 1; i >= 0; i--)
      {
@@ -792,7 +863,12 @@ void Scan(string s, int k)
         {
          int ix = dir > 0 ? iHighest(s, etf, MODE_HIGH, MathMax(1, z[i].legBar), 1) : iLowest(s, etf, MODE_LOW, MathMax(1, z[i].legBar), 1);
          if(ix >= 0 && ix < 2) reason = "no pullback yet (price still at the swing)";
-         else if(far > maxFar) reason = "zone too far from price";
+         else if(far > maxFar)
+           {
+            reason = "zone too far from price";
+            double ha = iATR(s, htf, 14, 1);
+            if(far > InpMaxDistATR * ha && (fI < 0 || far < fFar)) { fI = i; fFar = far; fAtr = ha; }
+           }
         }
       if(reason == "" && InpEntry == ENTRY_CONF && method != "CONF") reason = "no confirmation";
       if(reason == "") { int tb; bool cr; z[i].trap = FindTrap(s, etf, dir, z[i].prox, z[i].dist, z[i].legBar - 1, z[i].legBar + z[i].baseN, tb, cr); z[i].trapBar = tb; z[i].crowded = cr; }
@@ -823,7 +899,12 @@ void Scan(string s, int k)
       if(best < 0 || score > bScore) { best = i; bScore = score; bEntry = entry; bSl = sl; bTp = tp; bRr = rr; bMethod = method; bCapped = cappedByHtf; bDecision = decision; bPs = ps; bPg = pg; }
       continue;
      }
-   if(best < 0) return;
+   if(best < 0)
+     {
+      if(fI >= 0) SetWatch(s, k, z[fI].dir, z[fI].prox, fAtr, fFar, htf, digits); else ClearWatch(s, k);
+      return;
+     }
+   ClearWatch(s, k);
    {
       int i = best, dir = z[i].dir; double entry = bEntry, sl = bSl, tp = bTp, rr = bRr; string method = bMethod, decision = bDecision, g = bPg; bool cappedByHtf = bCapped;
       string tag = StringFormat("%s %s %s %s %s 1:%.1f grade %s%s", s, TF_N[k], dir > 0 ? "BUY" : "SELL", z[i].cont ? "CP" : "VP", method, rr, g, z[i].trap > 0 ? " + liquidity trap" : "");
@@ -831,7 +912,9 @@ void Scan(string s, int k)
       Count(decision);
       string info = StringFormat("%s %s %s zone (grade %s %d) | %s trend %s | %s%s\n", dir > 0 ? "BUY" : "SELL", TF_N[k], dir > 0 ? "demand" : "supply", g, bPs, TfName(htf), trend > 0 ? "up" : "down", method == "CONF" ? "confirmation" : "set & forget", z[i].trap > 0 ? " | liquidity trap" : "");
       info += StringFormat("Why: fresh %s %s with the trend, stop %s, move away %.1fx, target %s %s", z[i].cont ? "CP" : "VP", z[i].cont ? (dir > 0 ? "RBR" : "DBD") : (dir > 0 ? "DBR" : "RBD"), z[i].cont ? "beyond distal" : "beyond swing " + (dir > 0 ? "valley" : "peak"), z[i].legRatio, cappedByHtf ? "before next" : "at nearest", cappedByHtf ? TfName(htf) + (dir > 0 ? " supply" : " demand") : (dir > 0 ? "swing high / supply" : "swing low / demand"));
-      info += StringFormat("\nChain: %s | space under stay-away %.0f%% of zone%s", z[i].ath ? (dir > 0 ? "made an all-time high" : "made an all-time low") : "removed an opposing zone", z[i].gap * 100, z[i].leg2 ? " | second explosive candle" : "");
+      { double ha = iATR(s, htf, 14, 1), fr = MathAbs((dir > 0 ? MarketInfo(s, MODE_BID) : MarketInfo(s, MODE_ASK)) - z[i].prox);
+        info += StringFormat("\nDistance: %.1f x %s ATR (%s away, ATR %s) - within reach (limit %.1f)\n", fr / MathMax(ha, point), TfName(htf), DoubleToString(fr, digits), DoubleToString(ha, digits), InpMaxDistATR); }
+      info += StringFormat("Chain: %s | space under stay-away %.0f%% of zone%s", z[i].ath ? (dir > 0 ? "made an all-time high" : "made an all-time low") : "removed an opposing zone", z[i].gap * 100, z[i].leg2 ? " | second explosive candle" : "");
       bool fresh = true;                                                 // approve mode: alert only for new / changed advice
       if(InpMode == MODE_APPROVE) fresh = AddProposal(s, k, dir, entry, sl, tp, z[i].dist, method, g, rr, z[i].trap > 0, info, z[i].prox, iTime(s, etf, z[i].legBar + z[i].baseN));
       if(fresh)
