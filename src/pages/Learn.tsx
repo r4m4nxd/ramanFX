@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { VIDEO_LESSONS, type VideoLesson } from '@/core/videoLessons';
 import { ZOOM_SESSIONS, type ZoomSession } from '@/core/zoomSessions';
 import { SEIDEN_LESSONS } from '@/core/mentors/seiden';
 import { RAJA_LESSONS } from '@/core/mentors/raja';
 import { BAKER_LESSONS } from '@/core/mentors/baker';
+import { ListenBar } from '@/ui/listen/ListenBar';
 import { GLOSSARY, type GlossaryMentor } from '@/core/glossary';
 import { LessonFigures, RealCharts } from '@/ui/LessonMedia';
 import { GlossaryView } from '@/ui/GlossaryView';
@@ -12,9 +13,16 @@ import { Badge, Card, cx, Page, RevealText, spring } from '@/ui/kit';
 import { motion } from 'framer-motion';
 import { Icon } from '@/ui/Icon';
 import { hasDiagram, LessonDiagram } from '@/ui/LessonDiagrams';
+import { lessonKey, mastery, mentorMastery, mentorOfSrc, useDueCount, useTeachVersion } from '@/ui/teach/store';
+import { useInteractiveData } from '@/ui/teach/data';
+import { MasteryRing } from '@/ui/teach/Mastery';
+// The interactive layer (scenes, quizzes, flashcards) loads as its own chunk, only when a lesson or the review opens.
+const LearnIt = lazy(() => import('@/ui/teach/LearnIt'));
+const ReviewMode = lazy(() => import('@/ui/teach/Flashcards').then(m => ({ default: m.ReviewMode })));
+const TeachFallback = () => <Card aria-label="Loading"><div className="h-6 w-40 rounded bg-raised/60 animate-pulse" /><div className="h-48 mt-4 rounded-xl bg-raised/40 animate-pulse" /></Card>;
 
 type Mentor = 'course' | 'zoom' | 'seiden' | 'raja' | 'baker';
-type Src = Mentor | 'glossary';
+type Src = Mentor | 'glossary' | 'review';
 // one entry per mentor source; lessons stay separate per mentor
 const SRC: Record<Mentor, { list: VideoLesson[]; key: string; short: string; head: string; title: string; blurb: string; start: string; noun: string; name: string }> = {
   course: { list: VIDEO_LESSONS, key: 'rfx_lessons_done', short: 'Kevin · course', head: 'Video course', title: "Your mentor's video course, as notes", blurb: `All ${VIDEO_LESSONS.length} lessons written out with diagrams, his rules, the mistakes he warns about and a pre-trade check for each. Pick a lesson on the left. The Planner, Playbook and Guru link back here.`, start: 'Start lesson 1', noun: 'lessons', name: 'Kevin' },
@@ -23,7 +31,7 @@ const SRC: Record<Mentor, { list: VideoLesson[]; key: string; short: string; hea
   raja: { list: RAJA_LESSONS, key: 'rfx_raja_done', short: 'Raja', head: 'Raja · complete course', title: "Raja's course, as notes", blurb: `All ${RAJA_LESSONS.length} of Raja's lessons and sessions written out from the transcripts: strong zones (CP and arrival zones), change of direction and the curve, location and momentum, realignment, and his live sessions. Each has his rules, the mistakes he warns about and a pre-trade check. Uncertain readings of the captions are marked (likely).`, start: 'Start with the first lesson', noun: 'lessons', name: 'Raja' },
   baker: { list: BAKER_LESSONS, key: 'rfx_baker_done', short: 'Kevin Baker', head: 'Kevin Baker · the book', title: "Kevin Baker's book, as notes", blurb: `All ${BAKER_LESSONS.length} chapters of "We Don't Need No Stinkin' Indicators": candles, plotting zones, zone strength, investing, swing and day trading, gaps and broken zones, risk, stops and targets, the trading plan and options. Real charts from the book plus diagrams. Kevin Baker is a different person from your video-course mentor Kevin.`, start: 'Start with chapter 1', noun: 'chapters', name: 'Kevin Baker' },
 };
-const srcOf = (v: string | null): Src => v === 'zoom' || v === 'seiden' || v === 'raja' || v === 'baker' || v === 'glossary' ? v : 'course';
+const srcOf = (v: string | null): Src => v === 'zoom' || v === 'seiden' || v === 'raja' || v === 'baker' || v === 'glossary' || v === 'review' ? v : 'course';
 const GLOSS_FILTERS: { value: GlossaryMentor | 'all'; label: string }[] = [{ value: 'all', label: 'All' }, { value: 'kevin', label: 'Kevin' }, { value: 'seiden', label: 'Seiden' }, { value: 'baker', label: 'Baker' }, { value: 'bot', label: 'Bot' }];
 function useDone(key: string) {
   const [done, setDone] = useState<number[]>(() => { try { return JSON.parse(localStorage.getItem(key) ?? '[]'); } catch { return []; } });
@@ -45,7 +53,7 @@ function Bullets({ items, tone }: { items: string[]; tone?: 'profit' | 'loss' | 
   );
 }
 
-function LessonView({ l, src, list, done, toggle }: { l: VideoLesson; src: Mentor; list: VideoLesson[]; done: boolean; toggle: () => void }) {
+function LessonView({ l, src, list, done, toggle, interactive }: { l: VideoLesson; src: Mentor; list: VideoLesson[]; done: boolean; toggle: () => void; interactive: boolean }) {
   const i = list.findIndex(x => x.n === l.n);
   const prev = list[i - 1], next = list[i + 1];
   const diagrams = l.diagrams.filter(d => hasDiagram(d.key));
@@ -65,6 +73,9 @@ function LessonView({ l, src, list, done, toggle }: { l: VideoLesson; src: Mento
           <Link to="/plan" className="btn"><Icon name="target" size={14} />Plan a trade</Link>
         </div>
       </Card>
+      <ListenBar lesson={l} mentor={src === 'seiden' ? 'Sam Seiden' : src === 'raja' ? 'Raja' : src === 'baker' ? 'Kevin Baker' : 'Kevin'} />
+
+      {interactive && mentorOfSrc(src) && <Suspense fallback={<TeachFallback />}><LearnIt key={src + l.n} mentor={mentorOfSrc(src)!} n={l.n} /></Suspense>}
 
       {l.figures && l.figures.length > 0 && <LessonFigures figures={l.figures} />}
 
@@ -157,13 +168,22 @@ export default function Learn() {
   const [sp, setSp] = useSearchParams();
   const src = srcOf(sp.get('src'));
   const gloss = src === 'glossary';
+  const review = src === 'review';
+  const side = gloss || review;
+  const navigate = useNavigate();
+  const due = useDueCount();
+  useTeachVersion();
+  const data = useInteractiveData();
+  const im = side ? undefined : mentorOfSrc(src);
+  const ilNums = useMemo(() => new Set(im && data ? data.interactiveNumbers(im) : []), [im, data]);
+  const summary = im && ilNums.size ? mentorMastery(im, [...ilNums]) : null;
   const [gm, setGm] = useState<GlossaryMentor | 'all'>('all');
-  const S = SRC[gloss ? 'course' : src];
+  const S = SRC[side ? 'course' : (src as Mentor)];
   const LIST: VideoLesson[] = S.list;
-  const [done, toggle] = useDone(gloss ? 'rfx_lessons_done' : S.key);
+  const [done, toggle] = useDone(side ? 'rfx_lessons_done' : S.key);
   const [q, setQ] = useState('');
   const n = Number(sp.get('l')) || 0;
-  const lesson = gloss ? undefined : LIST.find(l => l.n === n);
+  const lesson = side ? undefined : LIST.find(l => l.n === n);
   useEffect(() => { window.scrollTo({ top: 0 }); }, [n, src]);
   const list = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -187,8 +207,15 @@ export default function Learn() {
                   <span className="inline-flex items-center gap-2">{k === 'glossary' && <Icon name="search" size={13} className="text-ink3" />}{short}</span><span className="num text-[12px] text-ink3">{count}</span>
                 </button>
               ))}
+              <button type="button" role="radio" aria-checked={review} onClick={() => { setQ(''); setSp({ src: 'review' }); }}
+                className={cx('flex items-center justify-between w-full px-3 py-2 rounded-lg text-[13px] text-left transition-colors', review ? 'bg-accent/15 text-ink font-semibold ring-1 ring-accent/40' : 'text-ink2 hover:bg-raised/60')}>
+                <span className="inline-flex items-center gap-2"><Icon name="layers" size={13} className="text-ink3" />Review flashcards</span>
+                <span className={cx('num text-[11.5px] rounded-full px-2 h-5 inline-flex items-center', due ? 'bg-accent text-on-accent font-semibold' : 'text-ink3')}>{due} due</span>
+              </button>
             </div>
-            {gloss ? (
+            {review ? (
+              <p className="text-[12.5px] text-ink3 mt-3 leading-relaxed">Flashcards from every lesson you have opened, across all mentors, scheduled by spaced repetition.</p>
+            ) : gloss ? (
               <>
                 <div className="label mt-3">Glossary · {GLOSSARY.length} terms</div>
                 <div className="flex flex-wrap gap-1 mt-2" role="radiogroup" aria-label="Filter by mentor">
@@ -205,7 +232,16 @@ export default function Learn() {
             )}
           </Card>
           {/* The list scrolls by itself (desktop), independent of the lesson beside it. */}
-          {!gloss && <Card className="p-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
+          {!side && <Card className="p-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
+            {summary && (
+              <div className="flex items-center gap-3 px-2.5 pt-1.5 pb-2.5 mb-1 border-b border-line">
+                <MasteryRing value={summary.avg} size={34} stroke={3.5} label={`Average mastery ${Math.round(summary.avg * 100)}%`} />
+                <div className="min-w-0 text-[12px] leading-snug">
+                  <div className="font-semibold text-ink">Learn it mastery <span className="num">{Math.round(summary.avg * 100)}%</span></div>
+                  <div className="text-ink3"><span className="num">{summary.started}</span> started · <span className="num">{summary.mastered}</span>/<span className="num">{summary.total}</span> mastered</div>
+                </div>
+              </div>
+            )}
             <ol className="flex flex-col">
               {list.map(l => (
                 <li key={l.n}>
@@ -213,7 +249,8 @@ export default function Learn() {
                     className={cx('relative w-full flex items-start gap-3 text-left px-2.5 py-2.5 rounded-lg transition-colors', l.n !== n && 'hover:bg-raised/60')}>
                     {l.n === n && <motion.span layoutId="lesson-pill" transition={spring} className="absolute inset-0 rounded-lg bg-accent/10" />}
                     <span className={cx('relative num min-w-6 h-6 px-1 rounded-full grid place-items-center text-[11px] font-semibold shrink-0', done.includes(l.n) ? 'bg-profit/15 text-profit' : 'bg-raised text-ink2')}>{done.includes(l.n) ? <Icon name="check" size={12} /> : l.n}</span>
-                    <span className="relative min-w-0"><span className="block text-[13px] font-medium leading-snug">{l.title}</span><span className="block text-[11.5px] text-ink3 mt-0.5">{isZoom(l) ? `${fmtDate(l.date)} · ${l.sections.length} sections · ${l.qa.length} Q&A` : `${KIND[l.kind]} · ${l.sections.length} sections`}</span></span>
+                    <span className="relative min-w-0 flex-1"><span className="block text-[13px] font-medium leading-snug">{l.title}</span><span className="block text-[11.5px] text-ink3 mt-0.5">{isZoom(l) ? `${fmtDate(l.date)} · ${l.sections.length} sections · ${l.qa.length} Q&A` : `${KIND[l.kind]} · ${l.sections.length} sections`}</span></span>
+                    {im && ilNums.has(l.n) && <MasteryRing value={mastery(lessonKey(im, l.n))} size={18} stroke={2.5} className="relative mt-0.5" label={`Learn it mastery ${Math.round(mastery(lessonKey(im, l.n)) * 100)}%`} />}
                   </button>
                 </li>
               ))}
@@ -222,10 +259,10 @@ export default function Learn() {
           </Card>}
         </aside>
         <div className="min-w-0">
-          {gloss ? <GlossaryView q={q} mentor={gm} /> : lesson ? (
+          {review ? <Suspense fallback={<TeachFallback />}><ReviewMode onOpen={href => navigate(href)} /></Suspense> : gloss ? <GlossaryView q={q} mentor={gm} /> : lesson ? (
             <>
               <button type="button" className="btn-ghost mb-3 lg:hidden" onClick={() => go({})}><Icon name="chevronLeft" size={14} />All {S.noun}</button>
-              <LessonView l={lesson} src={src as Mentor} list={LIST} done={done.includes(lesson.n)} toggle={() => toggle(lesson.n)} />
+              <LessonView l={lesson} src={src as Mentor} list={LIST} done={done.includes(lesson.n)} toggle={() => toggle(lesson.n)} interactive={!data || ilNums.has(lesson.n)} />
             </>
           ) : (
             <Card className="max-lg:hidden">
