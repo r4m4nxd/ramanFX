@@ -874,7 +874,7 @@ void Work()
 bool TfOn(int k)
   {
    if(!TfToggle(k)) return false;
-   if(IsProt()) return k >= 2 && k <= 4;
+   if(IsProt()) return k >= (IsZ3() ? 1 : 2) && k <= 4;                // Zones 3R may also use M5 (its toggle decides)
    return true;
   }
 bool TfToggle(int k)
