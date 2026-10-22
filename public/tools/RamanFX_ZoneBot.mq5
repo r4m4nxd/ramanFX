@@ -4207,7 +4207,8 @@ void KpiRow(int f, string grp, string key, KStat &k, bool full)
 void BacktestReport()
   {
    BTrade T[]; int nT = CollectTrades(T);
-   string sym = ArraySize(syms) > 1 ? "MULTI_" + _Symbol : _Symbol, ccy = AccountInfoString(ACCOUNT_CURRENCY);   // multi-symbol run: one set of files
+   string sym = ArraySize(syms) == 1 ? syms[0] : _Symbol, ccy = AccountInfoString(ACCOUNT_CURRENCY);   // files are named after the traded symbol(s), not the chart
+   if(nT > 0) { sym = T[0].sym; for(int q = 1; q < nT; q++) if(T[q].sym != sym) { sym = "MULTI"; break; } }
    int acct = 900000 + AcctSmall();
    int cf = InpTesterCommon ? FILE_COMMON : 0;
    int all[]; ArrayResize(all, nT); for(int i = 0; i < nT; i++) all[i] = i;
