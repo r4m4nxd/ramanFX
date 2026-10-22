@@ -1,5 +1,7 @@
 InpMode=1
 InpPreset=4
+InpGlobalRR=0
+InpGlobalRRMinCheck=true
 InpAggressive=false
 InpGrades=0
 InpHalfRiskC=true

@@ -49,6 +49,8 @@ enum Z3Zones   { Z3_STRONG = 0, Z3_ALL = 1 };
 
 input BotMode   InpMode          = MODE_APPROVE; // Mode: Approve = bot finds + alerts, you check the chart and press Place
 input BotPreset InpPreset        = PRESET_KEVIN_BEST; // Preset: Kevin best = M15/H1/H4, ZoneVision trade YES + grade A (B on arrival), ATR stop, BE at 2R. Zones 3R = every zone ZoneVision draws, 1:3, BE at 1R. Breakout = Kevin's stop order beyond the opposing zone. Impulse = market order after an impulse candle, 1:3, BE at 1R. All four: one order per zone, buys + sells together (hedge). Custom = your settings below. Aggressive = as InpAggressive
+input double    InpGlobalRR      = 0;            // Global target R:R for EVERY template (0 = each template's own target). Target = the NEAREST of: entry + RR x stop, the nearest fresh opposing zone (entry TF or HTF), the latest swing high/low beyond entry
+input bool      InpGlobalRRMinCheck = true;      // with InpGlobalRR: skip the trade if the nearest target gives less than InpMinRR
 input bool      InpAggressive    = false;        // Aggressive: TFs ticked below, S&F + conf, grades A-C (C half risk), VP, 1 order/pair/TF (>=7/pair, 60 total). Zone rules, stops, R:R, risk %, news still apply
 input Grades    InpGrades        = GR_ALL;       // Which planner grades to trade: All / A only / A+B / B only / C only
 input bool      InpHalfRiskC     = true;         // Planner rule: low odds (grade C) risks half
@@ -391,6 +393,7 @@ void Status()
    else if(IsBo()) t = StringSubstr(t, 0, StringLen(t) - 1) + StringFormat(" | BREAKOUT (stop order beyond the opposing zone, R:R >= %.1f, BE at %.1fR, hedge)\n", InpBoMinRR, InpBoBE);
    else if(IsImp()) t = StringSubstr(t, 0, StringLen(t) - 1) + StringFormat(" | IMPULSE (market after an impulse candle, %s, BE at %.1fR, half every %.1fR, hedge)\n", InpImpRR > 0 ? StringFormat("1:%.1f", InpImpRR) : "no TP", InpImpBE, InpHalfEveryR);
    else t = StringSubstr(t, 0, StringLen(t) - 1) + " | CUSTOM\n";
+   if(InpGlobalRR > 0) t += StringFormat("Global R:R 1:%.1f: target = nearest of R:R / opposing zone / swing%s\n", InpGlobalRR, InpGlobalRRMinCheck ? StringFormat(", skip below 1:%.1f", InpMinRR) : "");
    if(!IsTradeAllowed() || !TerminalInfoInteger(TERMINAL_TRADE_ALLOWED)) t += "! AutoTrading is OFF\n";
    string blocked = BlockedNow(ArraySize(syms) > 0 ? syms[0] : _Symbol);
    int pend = 0, open = 0;
@@ -1288,7 +1291,7 @@ void Scan(string s, int k)
      }
    KevinPendings(s, k, etf, z, n, hz, hn);                               // Kevin: remove limits / stops whose context changed
    if(IsBo())  { ClearWatch(s, k); ScanBreakout(s, k, z, n, sel, ns, hz, hn, trend); return; }   // Kevin's breakout stop order
-   if(IsImp()) { ClearWatch(s, k); ScanImpulse(s, k, z, n, trend); return; }                    // impulse candle -> market order
+   if(IsImp()) { ClearWatch(s, k); ScanImpulse(s, k, z, n, hz, hn, trend); return; }            // impulse candle -> market order
    int fI = -1; double fFar = 0, fAtr = 0;                                  // nearest zone that failed only on distance
    int best = -1; double bScore = 0, bEntry = 0, bSl = 0, bTp = 0, bRr = 0; string bMethod = "", bDecision = "", bPg = "", bV = ""; int bPs = 0; bool bCapped = false;
    bool acted = false;
@@ -1371,6 +1374,14 @@ void Scan(string s, int k)
         }
       double risk = MathAbs(entry - sl);
       if(tp > 0 && risk > 0) rr = MathAbs(tp - entry) / risk;
+      string gtSrc = "";                                               // InpGlobalRR: nearest of R:R / opposing zone / swing (every template)
+      if(InpGlobalRR > 0 && risk > 0)
+        {
+         tp = NormalizeDouble(GlobalTarget(s, etf, htf, dir, entry, sl, spread, z, n, hz, hn, gtSrc), digits);
+         rr = MathAbs(tp - entry) / risk;
+         cappedByHtf = gtSrc == "HTF zone";
+         vLine += StringFormat("\nGlobal R:R target: %s (nearest of 1:%.1f / opposing zone / swing)", gtSrc, InpGlobalRR);
+        }
       string method = ConfirmedBy(s, etf, dir, z, z[i], hz, hn) ? "CONF" : "SF";
       double curve = Curve(s, htf, z[i].prox);
 
@@ -1437,7 +1448,8 @@ void Scan(string s, int k)
          if(!IsProt() && !GradeAllowed(pg)) reason = StringFormat("grade %s (%d) filtered", pg, ps);
         }
       if(reason == "" && !IsZ3() && tp == 0) reason = "no opposing zone for target";
-      if(reason == "" && !IsZ3() && rr < InpMinRR)
+      if(reason == "" && InpGlobalRR > 0 && InpGlobalRRMinCheck && rr < InpMinRR) reason = StringFormat("global RR: nearest target only 1:%.1f (%s)", rr, gtSrc);
+      if(reason == "" && InpGlobalRR <= 0 && !IsZ3() && rr < InpMinRR)
         {
          if(volWide && rr0 >= InpMinRR) reason = "best: rr after the wider stop (ATR / HTF zone)";
          else reason = StringFormat("R:R %.2f < %.2f", rr, InpMinRR);
@@ -1505,7 +1517,7 @@ void ScanBreakout(string s, int k, Zone &z[], int n, int &sel[], int ns, Zone &h
      {
       int i = sel[q], dir = z[i].dir;
       if(gMode == MODE_APPROVE && IsDismissed(s, k, z[i].prox, false)) { Count("denied by you"); continue; }
-      string reason = "", tpWhy = "";
+      string reason = "", tpWhy = "", gtSrc = "";
       double bh = MathAbs(z[i].prox - z[i].dist), entry = 0, sl = 0, tp = 0, rr = 0, risk = 0;
       // 1) a HTF zone in our direction was contacted; our basing zone formed after that, within about one HTF zone height of it
       int ti = -1; datetime touch = 0;
@@ -1558,8 +1570,15 @@ void ScanBreakout(string s, int k, Zone &z[], int n, int &sel[], int ns, Zone &h
          entry = NormalizeDouble(entry, digits); sl = NormalizeDouble(sl, digits); tp = NormalizeDouble(tp, digits);
          risk = MathAbs(entry - sl);
          rr = risk > 0 ? dir * (tp - entry) / risk : 0;
+         if(InpGlobalRR > 0 && risk > 0)                                  // InpGlobalRR: nearest of R:R / opposing zone / swing
+           {
+            tp = NormalizeDouble(GlobalTarget(s, etf, htf, dir, entry, sl, spread, z, n, hz, hn, gtSrc), digits);
+            rr = dir * (tp - entry) / risk;
+            tpWhy = "global R:R: nearest of " + StringFormat("1:%.1f", InpGlobalRR) + " / opposing zone / swing = " + gtSrc;
+           }
          if(hBlock) reason = "bo: opposing HTF zone before the entry";
          else if(risk <= 0 || risk < InpMinStopSpreads * spread) reason = "bo: stop too small for the spread";
+         else if(InpGlobalRR > 0) { if(InpGlobalRRMinCheck && rr < InpMinRR) reason = StringFormat("global RR: nearest target only 1:%.1f (%s)", rr, gtSrc); }
          else if(rr < InpBoMinRR) reason = StringFormat("R:R %.2f < %.2f", rr, InpBoMinRR);
         }
       double now = dir > 0 ? ask : bid;
@@ -1589,7 +1608,8 @@ void ScanBreakout(string s, int k, Zone &z[], int n, int &sel[], int ns, Zone &h
                            DoubleToString(entry, digits), DoubleToString(sl, digits), tpWhy, rr);
       if(z[i].arrival) info += "\nARRIVAL basing zone (strongest)";
       info += "\nKevin: breakout = higher win rate, smaller R:R than the pullback limit";
-      string tag = StringFormat("%s %s %s STOP breakout 1:%.1f grade %s", s, TF_N[k], dir > 0 ? "BUY" : "SELL", rr, vGrade);
+      if(gtSrc != "") info += StringFormat("\nGlobal R:R target: %s (nearest of 1:%.1f / opposing zone / swing)", gtSrc, InpGlobalRR);
+      string tag = StringFormat("%s %s %s STOP breakout 1:%.1f grade %s", s, TF_N[k], dir > 0 ? "BUY" : "SELL", rr, vGrade) + (gtSrc != "" ? " TP " + gtSrc : "");
       ActX(s, k, dir, entry, sl, tp, rr, "BO", decision, vGrade, info, z[i].prox, z[i].dist, iTime(s, etf, z[i].legBar + z[i].baseN), tag);
      }
   }
@@ -1606,7 +1626,7 @@ bool ImpTaken(string s, int k, datetime t0)
       if(OrderSelect(i, SELECT_BY_POS, MODE_HISTORY) && OrderSymbol() == s && OurMagic(OrderMagicNumber()) && KOf(OrderMagicNumber()) == k && OrderOpenTime() >= t0) return true;
    return false;
   }
-void ScanImpulse(string s, int k, Zone &z[], int n, int trend)
+void ScanImpulse(string s, int k, Zone &z[], int n, Zone &hz[], int hn, int trend)
   {
    int etf = TF_E[k], htf = TF_H[k];
    double point = MarketInfo(s, MODE_POINT);
@@ -1654,6 +1674,8 @@ void ScanImpulse(string s, int k, Zone &z[], int n, int trend)
    double sl = dir > 0 ? ext - InpImpStopBuf * far - spread : ext + InpImpStopBuf * far + spread;
    double risk = MathAbs(entry - sl);
    double tp = InpImpRR > 0 ? entry + dir * InpImpRR * risk : 0, rr = InpImpRR;   // 0 = no fixed target (ladder)
+   string gtSrc = "";                                                   // InpGlobalRR overrides InpImpRR (the half-close ladder still runs)
+   if(InpGlobalRR > 0 && risk > 0) { tp = GlobalTarget(s, etf, htf, dir, entry, sl, spread, z, n, hz, hn, gtSrc); rr = dir * (tp - entry) / risk; }
    entry = NormalizeDouble(entry, digits); sl = NormalizeDouble(sl, digits); tp = NormalizeDouble(tp, digits);
    if(reason == "" && brk == "") reason = "imp: no structure break";
    if(reason == "" && InpImpBias && trend == -dir) reason = "imp: against the HTF bias";
@@ -1661,6 +1683,7 @@ void ScanImpulse(string s, int k, Zone &z[], int n, int trend)
    if(reason == "" && dir * (entry - ext) <= 0) reason = "imp: price already back beyond the candle extreme";
    if(reason == "" && risk > InpImpMaxStopATR * atr) reason = StringFormat("imp: stop %.1f x ATR > %.1f", risk / atr, InpImpMaxStopATR);
    if(reason == "" && risk < InpMinStopSpreads * spread) reason = "imp: stop too small for the spread";
+   if(reason == "" && gtSrc != "" && InpGlobalRRMinCheck && rr < InpMinRR) reason = StringFormat("global RR: nearest target only 1:%.1f (%s)", rr, gtSrc);
    if(reason == "" && spread > risk * InpMaxSpreadPct / 100.0) reason = "spread too wide";
    if(reason == "") reason = BlockedNow(s, etf);
    if(reason == "" && ImpTaken(s, k, iTime(s, etf, 0))) reason = "imp: impulse already traded";
@@ -1678,9 +1701,10 @@ void ScanImpulse(string s, int k, Zone &z[], int n, int trend)
    string info = StringFormat("%s %s impulse market order (your own method, not Kevin's) | %s bias %s\n", dir > 0 ? "BUY" : "SELL", TF_N[k], TfName(htf), DirTxt(trend));
    info += StringFormat("Why: impulse candle body %.1f x ATR, close in the outer 25%%, %s; stop beyond the %s %s, %s, break-even at %.1fR",
                         MathAbs(c1 - o1) / atr, brk, nb > 0 ? "base distal" : "candle extreme", DoubleToString(ext, digits),
-                        InpImpRR > 0 ? StringFormat("target 1:%.1f", InpImpRR) : "no fixed target", InpImpBE);
+                        gtSrc != "" ? StringFormat("target 1:%.1f (global R:R, %s)", rr, gtSrc) : (InpImpRR > 0 ? StringFormat("target 1:%.1f", InpImpRR) : "no fixed target"), InpImpBE);
+   if(gtSrc != "") info += StringFormat("\nGlobal R:R target: %s (nearest of 1:%.1f / opposing zone / swing)", gtSrc, InpGlobalRR);
    if(InpHalfEveryR > 0) info += StringFormat("\nLadder: at every +%.1fR close half, stop locks (level - %.1f)R", InpHalfEveryR, InpLockBackR);
-   string tag = StringFormat("%s %s %s impulse market %s", s, TF_N[k], dir > 0 ? "BUY" : "SELL", InpImpRR > 0 ? StringFormat("1:%.1f", rr) : "no TP (ladder)");
+   string tag = StringFormat("%s %s %s impulse market %s", s, TF_N[k], dir > 0 ? "BUY" : "SELL", tp > 0 ? StringFormat("1:%.1f", rr) + (gtSrc != "" ? " TP " + gtSrc : "") : "no TP (ladder)");
    ActX(s, k, dir, entry, sl, tp, rr, "IMP", decision, "", info, c1, ext, iTime(s, etf, 1 + nb), tag);
   }
 
@@ -1712,6 +1736,7 @@ void Act(string s, int k, Zone &z[], int i, double entry, double sl, double tp, 
    int digits = (int)MarketInfo(s, MODE_DIGITS); double point = MarketInfo(s, MODE_POINT);
    string tag = StringFormat("%s %s %s %s %s 1:%.1f grade %s%s", s, TF_N[k], dir > 0 ? "BUY" : "SELL", z[i].cont ? "CP" : "VP", method, rr, g, z[i].trap > 0 ? " + liquidity trap" : "");
    tag += StringFormat(" (score %d)", ps);
+   if(GtSrcOf(vLine) != "") tag += " TP " + GtSrcOf(vLine);
    Count(decision);
    string info = StringFormat("%s %s %s zone (grade %s %d) | %s bias %s | %s%s%s\n", dir > 0 ? "BUY" : "SELL", TF_N[k], dir > 0 ? "demand" : "supply", g, ps, TfName(htf), DirTxt(trend), method == "CONF" ? "confirmation" : "set & forget", z[i].trap > 0 ? " | liquidity trap" : "", IsZ3() ? StringFormat(" | Zones 3R 1:%.1f", InpZ3RR) : "");
    info += vLine + "\n";
@@ -1999,6 +2024,69 @@ double PickTarget(string s, int tf, Zone &z, double opp, double spread)
    return z.dir > 0 ? MathMin(swTp, opTp) : MathMax(swTp, opTp);     // nearest
   }
 
+// InpGlobalRR (every template): target = the NEAREST of entry + InpGlobalRR x stop, the nearest fresh (not removed /
+// consumed) opposing zone beyond the entry on the entry TF ("opp zone") or the HTF ("HTF zone"), placed at its proximal
+// -/+ spread, and the nearest unbroken swing high (buys) / low (sells) beyond the entry ("swing": ZoneVision fractal,
+// InpTLSwing bars each side, within InpLookback, no close beyond it since). Candidates closer than 0.5R are noise and
+// ignored; none nearer = the R:R target ("RR"). src returns the chosen source.
+double GlobalTarget(string s, int etf, int htf, int dir, double entry, double sl, double spread, Zone &z[], int n, Zone &hz[], int hn, string &src)
+  {
+   double gtR = MathAbs(entry - sl);
+   double gtBest = entry + dir * InpGlobalRR * gtR;
+   src = "RR";
+   if(gtR <= 0 || dir == 0 || htf <= 0) return gtBest;
+   double gtMin = 0.5 * gtR;
+   for(int j = 0; j < n; j++)
+     {
+      if(z[j].dir != -dir || z[j].removed || z[j].consumed) continue;
+      double gtT = z[j].prox - dir * spread;
+      double gtD = dir * (gtT - entry);
+      if(gtD >= gtMin && gtD < dir * (gtBest - entry)) { gtBest = gtT; src = "opp zone"; }
+     }
+   for(int j = 0; j < hn; j++)
+     {
+      if(hz[j].dir != -dir || hz[j].removed || hz[j].consumed) continue;
+      double gtT = hz[j].prox - dir * spread;
+      double gtD = dir * (gtT - entry);
+      if(gtD >= gtMin && gtD < dir * (gtBest - entry)) { gtBest = gtT; src = "HTF zone"; }
+     }
+   int gtMax = MathMin(InpLookback, iBars(s, etf) - InpTLSwing - 1);
+   double gtExt = 0;                                                     // most extreme close of the bars after the swing
+   for(int j = 1; j < gtMax; j++)
+     {
+      if(j > InpTLSwing && (dir > 0 ? ZFrH(s, etf, j) : ZFrL(s, etf, j)))
+        {
+         double gtLv = dir > 0 ? iHigh(s, etf, j) : iLow(s, etf, j);
+         bool gtBroken = j > 1 && dir * (gtExt - gtLv) > 0;
+         double gtT = gtLv - dir * spread;
+         double gtD = dir * (gtT - entry);
+         if(!gtBroken && gtD >= gtMin && gtD < dir * (gtBest - entry)) { gtBest = gtT; src = "swing"; }
+        }
+      double gtC = iClose(s, etf, j);
+      gtExt = j == 1 ? gtC : (dir > 0 ? MathMax(gtExt, gtC) : MathMin(gtExt, gtC));
+     }
+   return gtBest;
+  }
+// the InpGlobalRR target source written into an order's info ("Global R:R target: <src> (...)"), "" = not used
+string GtSrcOf(string info)
+  {
+   string key = "Global R:R target: ";
+   int p = StringFind(info, key);
+   if(p < 0) return "";
+   p += StringLen(key);
+   int e = StringFind(info, " (", p);
+   if(e < 0) e = StringLen(info);
+   return StringSubstr(info, p, e - p);
+  }
+string GtAbbr(string src) { if(src == "opp zone") return "OZ"; if(src == "HTF zone") return "HZ"; if(src == "swing") return "SW"; return src; }
+// order comment + target source, kept within the 31 characters the comment holds
+string GtCm(string cm, string src)
+  {
+   string a = " " + src;
+   if(StringLen(cm) + StringLen(a) > 31) a = " " + GtAbbr(src);
+   return StringLen(cm) + StringLen(a) <= 31 ? cm + a : cm;
+  }
+
 // Stop placement (mentor):
 //  CP zone (RBR / DBD continuation): a few pips beyond the distal line.
 //  VP zone (DBR / RBD reversal): a few pips beyond the swing valley (demand) / peak (supply) of the entry TF
@@ -2057,7 +2145,9 @@ bool Place(string s, int k, int dir, double entry, double sl, double tp, double 
    if(isImp)                                                            // market: fills now, the target is re-set from the fill price
      {
       entry = dir > 0 ? ask : bid;
-      tp = InpImpRR > 0 ? entry + dir * InpImpRR * MathAbs(entry - sl) : 0;
+      string gtPs = GtSrcOf(info);
+      if(gtPs == "") tp = InpImpRR > 0 ? entry + dir * InpImpRR * MathAbs(entry - sl) : 0;
+      else if(gtPs == "RR") tp = entry + dir * InpGlobalRR * MathAbs(entry - sl);   // InpGlobalRR: a zone / swing target keeps its level
      }
    entry = NormalizeDouble(entry, digits); sl = NormalizeDouble(sl, digits); tp = NormalizeDouble(tp, digits);
    // the broker rejects (error 130) a pending order on the wrong side of price or stops inside its stop level
@@ -2104,9 +2194,12 @@ bool Place(string s, int k, int dir, double entry, double sl, double tp, double 
    // e.g. "2 M5 demand A, H1 up, 1:4.8 trap" (MT4 keeps 31 characters)
    // Starts with a rank so the Comment column sorts 1 minute -> 1 month: 1 M1, 2 M5, 3 M15, 4 H1, 5 H4, 6 D1, 7 W1
    string cm = StringFormat("%d %s %s %s, %s %s, 1:%.1f", k + 1, TF_N[k], dir > 0 ? "demand" : "supply", grade, TfName(TF_H[k]), dir > 0 ? "up" : "down", rr);
+   string gtCs = GtSrcOf(info);                                        // InpGlobalRR: target source (RR / opp zone / HTF zone / swing)
+   if(gtCs != "") cm = GtCm(cm, gtCs);
    if(method == "CONF" && StringLen(cm) <= 26) cm += " conf";
    if(trap && StringLen(cm) <= 26) cm += " trap";
    if(isBo || isImp) cm = StringFormat("%d %s %s %s, %s", k + 1, TF_N[k], isBo ? "BO" : "IMP", isBo ? (dir > 0 ? "buy stop" : "sell stop") : (dir > 0 ? "buy" : "sell"), tp > 0 ? StringFormat("1:%.1f", rr) : "no TP");   // " BO " / " IMP " name the entry type in the report
+   if(gtCs != "" && (isBo || isImp)) cm = GtCm(cm, gtCs);
    int type = isImp ? (dir > 0 ? OP_BUY : OP_SELL) : (isBo ? (dir > 0 ? OP_BUYSTOP : OP_SELLSTOP) : (dir > 0 ? OP_BUYLIMIT : OP_SELLLIMIT));
    for(int w = 0; w < 30 && IsTradeContextBusy(); w++) Sleep(100);
    ResetLastError();

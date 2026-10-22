@@ -3,6 +3,8 @@
 ; format: name=value||start||step||stop||Y/N (Y = optimise this input); enums as integers
 InpMode=1||0||1||2||N
 InpPreset=3||0||1||5||N
+InpGlobalRR=0||0||0.5||6||N
+InpGlobalRRMinCheck=true||false||0||true||N
 InpAggressive=false||false||0||true||N
 InpGrades=0||0||1||4||N
 InpHalfRiskC=true||false||0||true||N

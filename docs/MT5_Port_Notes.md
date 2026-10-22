@@ -64,6 +64,8 @@ File: `public/tools/RamanFX_ZoneBot.mq5` (port of `RamanFX_ZoneBot.mq4` v1.62). 
 
 ### What stays the same
 
+- `InpGlobalRR` / `InpGlobalRRMinCheck` (after `InpPreset`, both files, all .set files at 0 / true): global target for every template = the nearest of entry + R:R x stop, the nearest fresh opposing entry-TF / HTF zone and the nearest unbroken swing beyond entry (candidates under 0.5R ignored); MT5 also skips the Zones 3R `InpZ3NeedRoom` check while it is on.
+
 All MQ4 inputs keep their names, defaults and order; the zone detection, chain / arrival, ZoneVision notes and grades, trendlines, bias, every preset (CUSTOM, KEVIN_BEST, AGGRESSIVE, ZONES_3R, BREAKOUT, IMPULSE), Kevin's limit-removal rules, capital protection, the half-close ladder, Approve-mode panel and buttons (non-selectable drawings, `OnChartEvent` + timer poll), the signal / variant / order logs, and the tester report (journal KPIs, `_KPIs.csv`, per-trade CSV, MT4-format `_Statement.htm` for the journal parser, `_Exits.csv`) are line-for-line ports. Bar reads go through MT4-style accessors, so the logic text is the MQ4 text.
 
 ### API mapping (MT4 -> MT5)
