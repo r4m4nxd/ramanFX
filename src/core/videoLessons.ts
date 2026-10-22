@@ -8,6 +8,10 @@ export interface VideoLesson {
   rules: string[]; mistakes: string[]; quotes: string[];
   diagrams: { key: DiagramKey | string; caption: string }[];
   checklist: string[]; journalTags: string[]; newVsPdfs: string[];
+  /** Hand-drawn SVG teaching diagrams (complete <svg> markup, viewBox set, no scripts). */
+  figures?: { svg: string; caption: string }[];
+  /** Real chart images from the mentor's material (paths under /lessons/...). */
+  images?: { src: string; caption: string; notes?: string[] }[];
 }
 
 export const VIDEO_LESSONS: VideoLesson[] = [
