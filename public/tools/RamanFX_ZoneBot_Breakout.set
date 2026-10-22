@@ -38,6 +38,7 @@ InpZ3Front=0.05
 InpZ3StopBuf=0.10
 InpZ3Zones=0
 InpZ3Bias=false
+InpBigTrend=true
 InpBestStopATR=0.5
 InpMinDeparture=1.5
 InpRequireITF=false

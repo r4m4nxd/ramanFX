@@ -87,6 +87,7 @@ input double    InpZ3Front       = 0.05;         // Zones 3R preset: enter this 
 input double    InpZ3StopBuf     = 0.10;         // Zones 3R preset: stop this fraction of the zone height beyond the distal (+ spread)
 input Z3Zones   InpZ3Zones       = Z3_STRONG;    // Zones 3R preset: Strong = every zone ZoneVision labels STRONG; All = also its OK / WEAK zones
 input bool      InpZ3Bias        = false;        // Zones 3R preset: true = skip zones against the HTF bias (ZoneVision's bias). false = trade every zone ZoneVision draws
+input bool      InpBigTrend      = true;         // Kevin top-down: skip zones against the bigger trend (the HTF of the HTF, e.g. W1 for H1 entries: swings, else its newest trendline break). Kevin best always; Zones 3R only with InpZ3Bias
 input double    InpBestStopATR   = 0.5;          // Kevin best preset: stop at least N x entry TF ATR(14) from entry (metals / oil also >= 0.35 x HTF ATR)
 input double    InpMinDeparture  = 1.5;          // Custom / Aggressive only: price must have travelled >= N x zone height away from the proximal line
 input bool      InpRequireITF    = false;        // Skip when the intermediate TF trend points the other way (3-timeframe check)
@@ -647,7 +648,7 @@ double FindTrap(string s, int tf, int dir, double prox, double dist, int fromBar
 //|  beyond the line; channel 50% from the newest confirmed line.    |
 //+------------------------------------------------------------------+
 struct KLine { int dir; int a, b; double pb, sl; bool removed, conf, ov; datetime tRem; int rb; };   // rb = ZoneVision removedBar (-1 = respected)
-KLine gKE[], gKH[], gKI[];                                              // entry-TF, HTF and (Kevin best / Zones 3R) ITF lines of the symbol being scanned
+KLine gKE[], gKH[], gKI[], gKB[];                                              // entry-TF, HTF and (Kevin best / Zones 3R) ITF lines of the symbol being scanned
 int pzB[]; double pzP[]; int pzT[];
 void PzAdd(int b, double p, int t) { int n = ArraySize(pzB); ArrayResize(pzB, n + 1); ArrayResize(pzP, n + 1); ArrayResize(pzT, n + 1); pzB[n] = b; pzP[n] = p; pzT[n] = t; }
 bool ZFrL(string s, int tf, int i) { double v = iLow(s, tf, i);  for(int k = 1; k <= InpTLSwing; k++) if(i - k < 1 || v > iLow(s, tf, i + k) || v >= iLow(s, tf, i - k)) return false; return true; }
@@ -771,6 +772,15 @@ int KUse(KLine &L[], int dir)
    return use;
   }
 // the newest broken HTF line decides the bias: a downtrend line broken = bullish, an uptrend line broken = bearish
+// Kevin top-down: the bigger trend = swings of the HTF's own HTF; its newest trendline break only when the swings are unclear
+int BigTrend(string s, int k)
+  {
+   int btf = TF_H[MathMin(k + 1, NTF - 1)];
+   int t = HtfTrend(s, btf);
+   if(t != 0) return t;
+   KLines(s, btf, gKB);
+   return KBias(gKB);
+  }
 int KBias(KLine &L[])
   {
    int best = -1;
@@ -1373,6 +1383,11 @@ void Scan(string s, int k)
       else if(trend == 0) reason = "HTF trend unclear";
       else if(trend != dir) reason = "against HTF trend";
       else if(EffEntry() == ENTRY_SF && method == "CONF") method = "SF";
+      if(reason == "" && InpBigTrend && (IsBest() || (IsZ3() && InpZ3Bias)))
+        {
+         int bt = BigTrend(s, k);
+         if(bt == -dir) reason = "against bigger trend (" + TfName(TF_H[MathMin(k + 1, NTF - 1)]) + ")";
+        }
       if(reason == "" && IsBest())                                     // Kevin best: ZoneVision must say YES with grade A (or B on an arrival zone)
         {
          if(vWhy != "") reason = "best: ZoneVision trade NO (" + vWhy + ")";
