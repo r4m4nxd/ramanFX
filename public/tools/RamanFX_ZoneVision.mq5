@@ -92,6 +92,14 @@ input bool   InpPush          = false;  // Also send alerts as push notification
 input bool   InpRedrawOnHTF   = true;   // Also redraw when a higher-timeframe candle opens (not only this chart's)
 input bool   InpExtraTF       = true;   // Support MT5-only timeframes (M2..M20, H2, H3, H6, H8, H12) via the nearest standard TF
 input bool   InpAutoTheme     = true;   // Dark chart background: switch default colours to readable dark-theme ones
+input group "-- Zone research (tester) --"
+input bool   InpResearch        = false;              // Zone research: log every zone + what happened next (always on in the Strategy Tester)
+input string InpResearchTFs     = "M15,H1,H4";        // Research timeframes (analysed whatever the chart timeframe is)
+input bool   InpResearchAlt     = true;               // Also log the ALT detector (ZigZag 3/2/2 pivot zones, II_SupDem idea)
+input int    InpResearchMaxBars = 200;                // Follow-up horizon in bars of the zone's timeframe
+input string InpResearchFile    = "RFX_ZoneResearch"; // CSV name: Terminal\Common\Files\<name>_<symbol>_<from>_<to>.csv
+input bool   InpResearchDraw    = true;               // Research on: still draw the chart (false = faster test, nothing drawn)
+input int    InpResearchGMT     = 2;                  // Server time minus GMT in hours (only for the session column)
 
 #define PFX "RFXV_"
 #define MAXTF 12
@@ -192,6 +200,61 @@ bool  gDark = false;
 color cDemandFill, cDemandLine, cSupplyFill, cSupplyLine, cTrap, cHtfFill, cMuted, cTrend, cText, cHtfTLBroken, cRemFill;
 color cPopBg, cPopFg, cPopHead, cPopBorder, cGood, cBad, cPlanEntry, cSec;
 
+// zone research (tester data collection) - only used when gRs is true
+struct RZone
+  {
+   string   crow;          // create columns, ready for the CSV row
+   int      slot;          // research timeframe slot
+   int      dir;           // +1 demand, -1 supply
+   double   prox, dist, hgt, spr, risk, oppR, endR;
+   int      age;           // closed bars of its timeframe since creation
+   bool     broken;        // close beyond distal (or a normal wick beyond it) - the ZoneVision removal rule
+   datetime brokenT;
+   int      brokenAge;
+   double   runout;        // move away until the first return, in zone heights
+   int      nT;            // touches started (max 3)
+   bool     inTr;          // a touch trade is running
+   bool     away;          // a candle closed fully outside the proximal since the last touch ended
+   double   mfe, dep;      // current touch: best R before the stop, depth into the zone (x height) before 1R
+   bool     r1;
+   double   mfeC;          // touch 1, close-stop model: best R before a CLOSE beyond the distal
+   bool     cOn;
+   int      cRes;          // 0 none, 1 stop, 2 target, 3 open
+   datetime tT[3];
+   int      tAge[3];
+   double   tDep[3], tMfe[3];
+   int      tRes[3];       // 0 none, 1 stop, 2 target (5R or opposing zone), 3 open at horizon / test end
+   datetime tEnd[3];
+   int      tEndAge[3];
+   bool     alt;           // zone from the ALT detector
+  };
+bool            gRs = false;          // research mode on (InpResearch or Strategy Tester)
+bool            gQuiet = false;       // research pass: detection only, nothing drawn, no alerts
+int             aNStd = MAXTF;        // ATR slots used by the chart itself (research slots come after)
+int             rsN = 0;
+ENUM_TIMEFRAMES rsTF[MAXTF];
+datetime        rsLast[MAXTF];
+RZone           RZ[];
+int             rsFile = INVALID_HANDLE;
+bool            rsFailed = false;
+bool            rsDirty = false;
+string          rsName = "", rsFrom = "";
+int             rsCount = 0;
+int             rsSeenS[]; int rsSeenD[]; datetime rsSeenT[];   // ALT pivots already handled
+// ZoneNotes exports (research only reads them)
+string gNGrade = "", gNTags = "";
+int    gNP = 0, gNM = 0, gNC = 0;
+// chart context saved while a research pass borrows the detection globals
+ENUM_TIMEFRAMES svCTF = PERIOD_CURRENT, svGTF = PERIOD_CURRENT, svHTF = PERIOD_CURRENT;
+int    svTrend = 0, svHBias = 0, svUpB = 0, svDnB = 0, svHUpB = 0, svHDnB = 0;
+bool   svUpOn = false, svDnOn = false, svHUpOn = false, svHDnOn = false;
+double svUpS = 0, svUpP = 0, svUpW = 0, svDnS = 0, svDnP = 0, svDnW = 0;
+double svHUpS = 0, svHUpP = 0, svHUpW = 0, svHDnS = 0, svHDnP = 0, svHDnW = 0;
+double svNEn = 0, svNSl = 0, svNTp = 0, svNRR = 0;
+string svHBiasTxt = "";
+Zone   svZ[];
+TLine  svTL[];
+
 //+------------------------------------------------------------------+
 //| Chart-series helpers (replace MT4 Time[] High[] Low[] ...)       |
 //+------------------------------------------------------------------+
@@ -257,7 +320,7 @@ bool DataReady()
 bool HtfChanged()
   {
    bool ch = false;
-   for(int k = 0; k < aN; k++) if(aTf[k] != CTF && iTime(_Symbol, aTf[k], 0) != aB0[k]) ch = true;
+   for(int k = 0; k < MathMin(aN, aNStd); k++) if(aTf[k] != CTF && iTime(_Symbol, aTf[k], 0) != aB0[k]) ch = true;   // research-only timeframes never trigger a redraw
    return ch;
   }
 
@@ -310,10 +373,13 @@ int OnInit()
    if(h > 0) AtrSlot(h);
    for(int lv = 1; lv <= MathMin(InpHTFLevels, 7); lv++) { ENUM_TIMEFRAMES t = StepUp(CTF, lv); if(t > 0) AtrSlot(t); }
    lastDraw = 0; gArmed = false; gTouchArmed = false; gTries = 0;
+   gRs = InpResearch || (bool)MQLInfoInteger(MQL_TESTER);
+   if(gRs) RsInit();
    return(INIT_SUCCEEDED);
   }
 void OnDeinit(const int r)
   {
+   if(gRs) RsClose();
    ObjectsDeleteAll(0, PFX); ObjectsDeleteAll(0, "RFXN_"); ObjectsDeleteAll(0, "RFXP2_"); ObjectsDeleteAll(0, "RFXS_"); Comment("");
    for(int k = 0; k < aN; k++) if(aH[k] != INVALID_HANDLE) IndicatorRelease(aH[k]);
    aN = 0;
@@ -538,6 +604,7 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
   {
    static datetime lastPanel = 0;
    static datetime lastNotes = 0;
+   if(gRs) { RsRun(); if(!InpResearchDraw) return rates_total; }   // research pass first; it restores everything the drawing uses
    bool htfNew = InpRedrawOnHTF && lastDraw > 0 && HtfChanged();
    if(cT(0) == lastDraw && prev_calculated > 0 && !htfNew)
      {
@@ -1022,6 +1089,7 @@ void Trendlines(string s, ENUM_TIMEFRAMES tf)
       int shown = 0;
       for(int i = ArraySize(TL) - 1; i >= 0; i--)
         {
+         if(gQuiet) break;                                              // research pass: lines are computed, never drawn or alerted
          if(TL[i].dir != d) continue;
          bool keep = i == newest || (!TL[i].conf && !TL[i].removed) || (TL[i].removed && newest >= 0 && TL[i].b > TL[newest].a);
          if(!keep || shown >= InpTLHistory) continue;
@@ -1080,7 +1148,7 @@ void Trendlines(string s, ENUM_TIMEFRAMES tf)
          double sl = (TL[i].pb - TL[i].pa) / MathMax(1, TL[i].a - TL[i].b), w = 0;
          for(int j = TL[i].a; j >= 1; j--) w = MathMax(w, up ? Hi(j) - LineAt(TL[i].pb, TL[i].b, sl, j) : LineAt(TL[i].pb, TL[i].b, sl, j) - Lo(j));
          if(up) { gUpOn = true; gUpS = sl; gUpP = TL[i].pb; gUpB = TL[i].b; gUpW = w; } else { gDnOn = true; gDnS = sl; gDnP = TL[i].pb; gDnB = TL[i].b; gDnW = w; }
-         if(InpShowChannel && InpShowTrendlines && gTF == CTF)
+         if(!gQuiet && InpShowChannel && InpShowTrendlines && gTF == CTF)
            {
             string cn = PFX + "tlc" + (up ? "u" : "d");
             double off = up ? w / 2 : -w / 2, pe = LineAt(TL[i].pb, TL[i].b, sl, -3);
@@ -1320,6 +1388,15 @@ string ZoneNotes(Zone &zs[], int i, string &verdict, string &shortWhy)
    double tp = opp > 0 ? (z.dir > 0 ? opp - spread : opp + spread) : 0, rr = tp > 0 ? MathAbs(tp - en) / MathMax(MathAbs(en - sl), _Point) : 0;
    gNEn = en; gNSl = sl; gNTp = tp; gNRR = rr;                       // MT5 extra: plan lines when the box is opened
    string grade = nc > 0 ? "C" : ((verdict == "STRONG" && (z.arrival || np >= 6) && rr >= 3) ? "A" : (rr >= InpMinRR && nm <= 2 ? "B" : "C"));
+   gNGrade = grade; gNP = np; gNM = nm; gNC = nc;                    // zone research reads these (no effect on the chart)
+   if(gRs)
+     {
+      string tg = "";
+      for(int ti = 0; ti < np; ti++) tg += "+" + pl[ti] + "|";
+      for(int ti = 0; ti < nm; ti++) tg += "-" + mi[ti] + "|";
+      for(int ti = 0; ti < nc; ti++) tg += "x" + cr[ti] + "|";
+      gNTags = tg;
+     }
    string why = nc > 0 ? cr[0] : (tp == 0 ? "no opposing zone for a target" : (rr < InpMinRR ? StringFormat("R:R 1:%.1f is below 1:%.1f", rr, InpMinRR) : ""));
    string t = StringFormat("Grade %s | %s | Trade: %s\n", grade, verdict, why == "" ? "YES" : "NO - " + why);
    if(tp > 0) t += StringFormat("Plan: %s %s  SL %s  TP %s  = 1:%.1f\n", z.dir > 0 ? "buy limit" : "sell limit", DoubleToString(en, _Digits), DoubleToString(sl, _Digits), DoubleToString(tp, _Digits), rr);
@@ -1676,5 +1753,605 @@ void BotNotes()
       ObjectSetInteger(0, nm, OBJPROP_COLOR, i == 0 ? cPlanEntry : cPopFg);
       ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
      }
+  }
+
+//+------------------------------------------------------------------+
+//| Zone research (Strategy Tester data collection)                  |
+//| On only when gRs (InpResearch, or always in the Strategy Tester). |
+//| For every research timeframe, on each new closed candle:         |
+//|  1) follow every zone already logged (closed candles only, no    |
+//|     repainting): touches, depth, R reached before the stop,      |
+//|     close-break, horizon;                                        |
+//|  2) run the SAME Detect / Trendlines / Qualify / ZoneNotes as    |
+//|     the chart, with that timeframe as the chart timeframe, and   |
+//|     log every zone that just appeared (why it was made);         |
+//|  3) optionally the ALT detector (II_SupDem idea, own code):      |
+//|     ZigZag 3/2/2 turns, zone = turn wick to the nearest body /   |
+//|     neighbour edge, judged with the same ZoneNotes.              |
+//| One CSV row per zone (create + outcome columns) is written when  |
+//| the zone resolves, and for every zone still open at OnDeinit.    |
+//| Trade model: entry at the proximal, stop at the distal (wick),   |
+//| spread added to the risk; 1R = zone height + spread.             |
+//+------------------------------------------------------------------+
+ENUM_TIMEFRAMES RsTfFromName(string nm)
+  {
+   string u = nm; StringTrimLeft(u); StringTrimRight(u); StringToUpper(u);
+   if(u == "M1") return PERIOD_M1;   if(u == "M2") return PERIOD_M2;   if(u == "M3") return PERIOD_M3;   if(u == "M4") return PERIOD_M4;
+   if(u == "M5") return PERIOD_M5;   if(u == "M6") return PERIOD_M6;   if(u == "M10") return PERIOD_M10; if(u == "M12") return PERIOD_M12;
+   if(u == "M15") return PERIOD_M15; if(u == "M20") return PERIOD_M20; if(u == "M30") return PERIOD_M30;
+   if(u == "H1") return PERIOD_H1;   if(u == "H2") return PERIOD_H2;   if(u == "H3") return PERIOD_H3;   if(u == "H4") return PERIOD_H4;
+   if(u == "H6") return PERIOD_H6;   if(u == "H8") return PERIOD_H8;   if(u == "H12") return PERIOD_H12;
+   if(u == "D1") return PERIOD_D1;   if(u == "W1") return PERIOD_W1;   if(u == "MN" || u == "MN1") return PERIOD_MN1;
+   return PERIOD_CURRENT;
+  }
+void RsInit()
+  {
+   aNStd = aN;                                                       // the chart's own ATR slots; research slots follow
+   rsN = 0; ArrayResize(RZ, 0); rsFile = INVALID_HANDLE; rsFailed = false; rsDirty = false; rsCount = 0;
+   ArrayResize(rsSeenS, 0); ArrayResize(rsSeenD, 0); ArrayResize(rsSeenT, 0);
+   string parts[];
+   int np = StringSplit(InpResearchTFs, ',', parts);
+   for(int i = 0; i < np && rsN < MAXTF; i++)
+     {
+      ENUM_TIMEFRAMES t = RsTfFromName(parts[i]);
+      if(t == PERIOD_CURRENT) continue;
+      bool dup = false;
+      for(int k = 0; k < rsN; k++) if(rsTF[k] == t) dup = true;
+      if(dup) continue;
+      rsTF[rsN] = t; rsLast[rsN] = 0; rsN++;
+      AtrSlot(t);
+      ENUM_TIMEFRAMES ht = HtfOf(t);
+      if(ht > 0) AtrSlot(ht);
+     }
+   if(rsN == 0) { gRs = false; Print("ZoneVision research: no valid timeframe in InpResearchTFs"); return; }
+   Print("ZoneVision research mode ON: ", InpResearchTFs, InpResearchAlt ? " (+ALT detector)" : "");
+  }
+
+// small CSV helpers
+string RsD(double v, int dg) { return DoubleToString(v, dg); }
+string RsI(long v) { return IntegerToString(v); }
+string RsB(bool v) { return v ? "1" : "0"; }
+string RsTime(datetime t) { return t > 0 ? TimeToString(t, TIME_DATE | TIME_MINUTES) : ""; }
+string RsStamp(datetime t) { MqlDateTime md; TimeToStruct(t, md); return StringFormat("%04d%02d%02d%02d%02d", md.year, md.mon, md.day, md.hour, md.min); }
+string RsDay(datetime t) { MqlDateTime md; TimeToStruct(t, md); return StringFormat("%04d%02d%02d", md.year, md.mon, md.day); }
+string RsClean(string v) { string o = v; StringReplace(o, ",", " "); StringReplace(o, "\n", " "); StringReplace(o, "\r", " "); StringReplace(o, "\"", "'"); return o; }
+string RsSym() { string u = _Symbol; StringReplace(u, "/", "_"); StringReplace(u, "\\", "_"); StringReplace(u, ":", "_"); StringReplace(u, "*", "_"); StringReplace(u, "?", "_"); return u; }
+void   RsC(string &row, string v) { row += (row == "" ? "" : ",") + v; }
+string RsRes(int r) { return r == 1 ? "stop" : (r == 2 ? "target" : (r == 3 ? "open" : "")); }
+
+// CSV header: create columns (why the zone was made), then outcome columns (what happened next). See docs/Zone_Research_HowTo.md.
+string RsHeader()
+  {
+   string hd = "detector,symbol,tf,id,created,base_start,base_end,type,pattern,proximal,distal,height,height_pts,height_atr,base_n,"
+               + "legin_atr,legout_atr,leg_ratio,moveaway_h_create,gap,emotional,tested_at_create,would_draw,verdict,grade,zgrade,score,"
+               + "n_plus,n_minus,n_crit,tags,alt_strength,arrival,chain,rm_opp_zone,rm_trendline,new_high_low,rm_prev_high_low,leg2,"
+               + "too_small,trap,crowded,htf_trend,tl_bias,bias,align,bigger_trend,bigger_align,nested,in_opp_htf,curve,opp_R,plan_rr,"
+               + "session,hour,weekday,atr,spread";
+   hd += ",status,resolved,age_bars,never_touched,runout_h,broken,broken_time,broken_bars,touches";
+   for(int k = 1; k <= 3; k++)
+     {
+      string p = ",t" + IntegerToString(k) + "_";
+      hd += p + "time" + p + "bars" + p + "depth" + p + "mfe" + p + "hit1" + p + "hit2" + p + "hit3" + p + "hit4" + p + "hit5"
+            + p + "opp" + p + "result" + p + "end_time" + p + "end_bars";
+     }
+   hd += ",t1c_mfe,t1c_result";
+   return hd;
+  }
+
+void RsOpen()
+  {
+   rsFrom = RsDay(TimeCurrent());
+   rsName = InpResearchFile + "_" + RsSym() + "_" + rsFrom + "_running.csv";
+   rsFile = FileOpen(rsName, FILE_WRITE | FILE_CSV | FILE_ANSI | FILE_COMMON | FILE_SHARE_READ, ',');
+   if(rsFile == INVALID_HANDLE) { rsFailed = true; Print("ZoneVision research: cannot open ", rsName, " error ", GetLastError()); return; }
+   FileWrite(rsFile, RsHeader());
+   FileFlush(rsFile);
+   Print("ZoneVision research: writing Terminal\\Common\\Files\\", rsName);
+  }
+void RsClose()
+  {
+   datetime now = TimeCurrent();
+   for(int i = ArraySize(RZ) - 1; i >= 0; i--) RsFinish(i, "test_end", now);
+   if(rsFile == INVALID_HANDLE) return;
+   FileClose(rsFile);
+   rsFile = INVALID_HANDLE;
+   string fin = InpResearchFile + "_" + RsSym() + "_" + rsFrom + "_" + RsDay(now) + ".csv";
+   if(FileMove(rsName, FILE_COMMON, fin, FILE_COMMON | FILE_REWRITE)) Print("ZoneVision research: ", rsCount, " zones saved to Terminal\\Common\\Files\\", fin);
+   else Print("ZoneVision research: ", rsCount, " zones saved to Terminal\\Common\\Files\\", rsName, " (rename failed, error ", GetLastError(), ")");
+  }
+
+void RsRun()
+  {
+   if(rsFile == INVALID_HANDLE && !rsFailed) RsOpen();
+   for(int s = 0; s < rsN; s++) RsSlot(s);
+   if(rsDirty && rsFile != INVALID_HANDLE) { FileFlush(rsFile); rsDirty = false; }
+  }
+
+void RsSlot(int s)
+  {
+   ENUM_TIMEFRAMES T = rsTF[s];
+   if(iBars(_Symbol, T) < InpLookback + InpMaxBase + 30) return;
+   datetime b1 = iTime(_Symbol, T, 1);
+   if(b1 <= 0 || b1 == rsLast[s]) return;
+   if(ATR(T, 1) <= 0) return;                                        // ATR not ready yet: try again next tick
+   datetime prev = rsLast[s];
+   rsLast[s] = b1;
+   if(prev > 0)
+     {
+      int from = iBarShift(_Symbol, T, prev, false);                 // the candle handled last time (normally shift 2)
+      if(from < 2) from = 2;
+      if(from > 60) from = 60;
+      for(int sh = from - 1; sh >= 1; sh--) RsUpdate(s, sh);
+     }
+   Zone zv[];
+   Detect(_Symbol, T, zv, false);
+   int nv[]; int cnt = 0;
+   if(prev > 0)                                                      // the first pass only sets the start point (no history zones)
+      for(int i = 0; i < ArraySize(zv); i++)
+         if(zv[i].saBar >= 1 && iTime(_Symbol, T, zv[i].saBar) > prev) { ArrayResize(nv, cnt + 1); nv[cnt] = i; cnt++; }
+   Zone alt[]; string altS[]; int na = 0;
+   if(InpResearchAlt) na = RsAlt(s, T, prev == 0, alt, altS);
+   if(cnt == 0 && na == 0) return;
+   RsCreate(s, T, zv, nv, alt, altS);
+  }
+
+//--- context switch: the chart's detection globals are borrowed and given back
+void CopyZones(Zone &src[], Zone &dst[]) { int n = ArraySize(src); ArrayResize(dst, n); for(int i = 0; i < n; i++) dst[i] = src[i]; }
+void CopyTLs(TLine &src[], TLine &dst[]) { int n = ArraySize(src); ArrayResize(dst, n); for(int i = 0; i < n; i++) dst[i] = src[i]; }
+void RsSave()
+  {
+   svCTF = CTF; svGTF = gTF; svHTF = gHTF; svTrend = gTrend; svHBias = gHBias; svHBiasTxt = gHBiasTxt;
+   svUpOn = gUpOn; svDnOn = gDnOn; svUpS = gUpS; svUpP = gUpP; svUpW = gUpW; svDnS = gDnS; svDnP = gDnP; svDnW = gDnW; svUpB = gUpB; svDnB = gDnB;
+   svHUpOn = gHUpOn; svHDnOn = gHDnOn; svHUpS = gHUpS; svHUpP = gHUpP; svHUpW = gHUpW; svHDnS = gHDnS; svHDnP = gHDnP; svHDnW = gHDnW; svHUpB = gHUpB; svHDnB = gHDnB;
+   svNEn = gNEn; svNSl = gNSl; svNTp = gNTp; svNRR = gNRR;
+   CopyZones(Z, svZ); CopyTLs(TL, svTL);
+  }
+void RsRestore()
+  {
+   CTF = svCTF; gTF = svGTF; gHTF = svHTF; gTrend = svTrend; gHBias = svHBias; gHBiasTxt = svHBiasTxt;
+   gUpOn = svUpOn; gDnOn = svDnOn; gUpS = svUpS; gUpP = svUpP; gUpW = svUpW; gDnS = svDnS; gDnP = svDnP; gDnW = svDnW; gUpB = svUpB; gDnB = svDnB;
+   gHUpOn = svHUpOn; gHDnOn = svHDnOn; gHUpS = svHUpS; gHUpP = svHUpP; gHUpW = svHUpW; gHDnS = svHDnS; gHDnP = svHDnP; gHDnW = svHDnW; gHUpB = svHUpB; gHDnB = svHDnB;
+   gNEn = svNEn; gNSl = svNSl; gNTp = svNTp; gNRR = svNRR;
+   CopyZones(svZ, Z); CopyTLs(svTL, TL);
+  }
+
+// the same steps Redraw() takes for the chart, with T as the chart timeframe, nothing drawn
+void RsCreate(int s, ENUM_TIMEFRAMES T, Zone &zv[], int &nv[], Zone &alt[], string &altS[])
+  {
+   RsSave();
+   gQuiet = true;
+   CTF = T;
+   ENUM_TIMEFRAMES ht = HtfOf(T);
+   gTrend = ht > 0 ? HtfTrend(_Symbol, ht) : 0;
+   int swing = gTrend;
+   gHTF = PERIOD_CURRENT; gHUpOn = false; gHDnOn = false; gHBias = 0; gHBiasTxt = "";
+   if(ht > 0) { gTF = ht; Trendlines(_Symbol, ht); TLBias(); CopyHtfLine(ht); }
+   int tlb = gHBias;
+   if(InpTLBias && gHBias != 0) gTrend = gHBias;
+   gTF = T;
+   Trendlines(_Symbol, T);
+   ENUM_TIMEFRAMES ht2 = ht > 0 ? HtfOf(ht) : PERIOD_CURRENT;
+   int big = ht2 > 0 ? HtfTrend(_Symbol, ht2) : 0;                   // bigger trend = swings of the HTF's own HTF (as ZoneBot)
+   Zone hz[];
+   if(ht > 0) Detect(_Symbol, ht, hz, false);
+   CopyZones(zv, Z);
+   Qualify();
+   int nz = ArraySize(Z);
+   for(int k = 0; k < ArraySize(nv); k++) RsLog(s, false, nv[k], "", swing, tlb, big, hz, nz);
+   int na = ArraySize(alt);
+   if(na > 0)
+     {
+      ArrayResize(Z, nz + na);
+      for(int k = 0; k < na; k++) Z[nz + k] = alt[k];
+      Qualify();
+      for(int k = 0; k < na; k++) RsLog(s, true, nz + k, altS[k], swing, tlb, big, hz, nz);
+     }
+   gQuiet = false;
+   RsRestore();
+  }
+
+// log one new zone Z[i] (why it was made) and start following it
+void RsLog(int s, bool isAlt, int i, string altStr, int swing, int tlb, int big, Zone &hz[], int nz)
+  {
+   ENUM_TIMEFRAMES T = rsTF[s];
+   int tb = -1; bool crw = false;
+   Z[i].trap = FindTrap(_Symbol, T, Z[i].dir, Z[i].prox, Z[i].dist, Z[i].saBar, Z[i].baseEnd, tb, crw);
+   Z[i].trapBar = tb == -1 ? -2 : tb; Z[i].crowded = crw;
+   string ver = "", why = "";
+   gNTags = ""; gNGrade = ""; gNP = 0; gNM = 0; gNC = 0;
+   ZoneNotes(Z, i, ver, why);
+   Zone z = Z[i];
+   double atr = ATR(T, 1), hg = MathAbs(z.prox - z.dist);
+   if(atr <= 0 || hg <= 0) return;
+   double spr = SAsk() - SBid();
+   if(spr <= 0) spr = (double)SymbolInfoInteger(_Symbol, SYMBOL_SPREAD) * _Point;
+   if(spr < 0) spr = 0;
+   datetime tB0 = iTime(_Symbol, T, z.legBar + z.baseN), tB1 = iTime(_Symbol, T, z.legBar + 1), tNow = iTime(_Symbol, T, 0);
+   string pat = z.dir > 0 ? (z.cont ? "RBR" : "DBR") : (z.cont ? "DBD" : "RBD");
+   double legIn = Rng(_Symbol, T, z.legBar + z.baseN + 1) / atr, legOut = Rng(_Symbol, T, z.legBar) / atr;
+   int cntA = MathMax(1, z.legBar);
+   double mv = z.dir > 0 ? (iHigh(_Symbol, T, iHighest(_Symbol, T, MODE_HIGH, cntA, 1)) - z.prox) / hg
+                         : (z.prox - iLow(_Symbol, T, iLowest(_Symbol, T, MODE_LOW, cntA, 1))) / hg;
+   bool emo = false;
+   for(int b = z.legBar; b <= z.legBar + z.baseN; b++) if(Emotional(_Symbol, T, b)) emo = true;
+   bool tooSm = TooSmall(Z, i);
+   bool wDraw = (!InpOnlyQualified || z.chain) && !tooSm && (!z.tested || InpShowTested);
+   string q = z.qual;
+   bool rmOpp = StringFind(q, "removed opp. zone") >= 0, rmTL = StringFind(q, "removed trendline") >= 0;
+   bool newHL = StringFind(q, "new high") >= 0 || StringFind(q, "new low") >= 0, rmPrev = StringFind(q, "removed the previous") >= 0;
+   int aln = gTrend == z.dir ? 1 : (gTrend == -z.dir ? -1 : 0), baln = big == z.dir ? 1 : (big == -z.dir ? -1 : 0);
+   bool nest = false, inOpp = false;
+   double zlo = MathMin(z.prox, z.dist), zhi = MathMax(z.prox, z.dist);
+   for(int j = 0; j < ArraySize(hz); j++)
+     {
+      if(hz[j].removed) continue;
+      double lo2 = MathMin(hz[j].prox, hz[j].dist), hi2 = MathMax(hz[j].prox, hz[j].dist);
+      if(MathMax(zlo, lo2) > MathMin(zhi, hi2)) continue;
+      if(hz[j].dir == z.dir) nest = true; else inOpp = true;
+     }
+   ENUM_TIMEFRAMES ht = HtfOf(T);
+   double cv = ht > 0 ? Curve(_Symbol, ht, z.prox) : 50;
+   // nearest opposing zone of the same detector (ZV: the detected list; ALT: live ALT zones + this candle's new ones)
+   double opp = 0;
+   for(int j = isAlt ? nz : 0; j < (isAlt ? ArraySize(Z) : nz); j++)
+     {
+      if(Z[j].dir == z.dir || Z[j].removed) continue;
+      if(z.dir > 0 && Z[j].prox > z.prox && (opp == 0 || Z[j].prox < opp)) opp = Z[j].prox;
+      if(z.dir < 0 && Z[j].prox < z.prox && (opp == 0 || Z[j].prox > opp)) opp = Z[j].prox;
+     }
+   if(isAlt)
+      for(int j = 0; j < ArraySize(RZ); j++)
+        {
+         if(RZ[j].slot != s || !RZ[j].alt || RZ[j].dir == z.dir || RZ[j].broken) continue;
+         if(z.dir > 0 && RZ[j].prox > z.prox && (opp == 0 || RZ[j].prox < opp)) opp = RZ[j].prox;
+         if(z.dir < 0 && RZ[j].prox < z.prox && (opp == 0 || RZ[j].prox > opp)) opp = RZ[j].prox;
+        }
+   double risk = hg + spr;
+   double oppR = opp > 0 ? ((z.dir > 0 ? opp - z.prox : z.prox - opp) - spr) / risk : 0;
+   if(oppR < 0) oppR = 0;
+   MqlDateTime md; TimeToStruct(tNow, md);
+   int hg0 = ((md.hour - InpResearchGMT) % 24 + 24) % 24;
+   string ses = hg0 < 7 ? "Asia" : (hg0 < 12 ? "London" : (hg0 < 16 ? "LonNY" : (hg0 < 21 ? "NewYork" : "Late")));
+   string wd[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+   string det = isAlt ? "ALT" : "ZV";
+   int dg = _Digits;
+   string c = "";
+   RsC(c, det);                                                      // detector
+   RsC(c, RsClean(_Symbol));                                         // symbol
+   RsC(c, TfName(T));                                                // tf
+   RsC(c, det + "-" + TfName(T) + "-" + (z.dir > 0 ? "D" : "S") + "-" + RsStamp(tB0));   // id
+   RsC(c, RsTime(tNow));                                             // created
+   RsC(c, RsTime(tB0));                                              // base_start
+   RsC(c, RsTime(tB1));                                              // base_end
+   RsC(c, z.dir > 0 ? "demand" : "supply");                          // type
+   RsC(c, pat);                                                      // pattern
+   RsC(c, RsD(z.prox, dg));                                          // proximal
+   RsC(c, RsD(z.dist, dg));                                          // distal
+   RsC(c, RsD(hg, dg));                                              // height
+   RsC(c, RsD(hg / _Point, 0));                                      // height_pts
+   RsC(c, RsD(hg / atr, 3));                                         // height_atr
+   RsC(c, RsI(z.baseN));                                             // base_n
+   RsC(c, RsD(legIn, 3));                                            // legin_atr
+   RsC(c, RsD(legOut, 3));                                           // legout_atr
+   RsC(c, RsD(z.legRatio, 3));                                       // leg_ratio
+   RsC(c, RsD(mv, 3));                                               // moveaway_h_create
+   RsC(c, RsD(z.gap, 3));                                            // gap
+   RsC(c, RsB(emo));                                                 // emotional
+   RsC(c, RsB(z.tested));                                            // tested_at_create
+   RsC(c, RsB(wDraw));                                               // would_draw
+   RsC(c, ver);                                                      // verdict
+   RsC(c, gNGrade);                                                  // grade
+   RsC(c, z.grade);                                                  // zgrade
+   RsC(c, RsI(gNP - gNM - 2 * gNC));                                 // score
+   RsC(c, RsI(gNP));                                                 // n_plus
+   RsC(c, RsI(gNM));                                                 // n_minus
+   RsC(c, RsI(gNC));                                                 // n_crit
+   RsC(c, RsClean(gNTags));                                          // tags
+   RsC(c, altStr);                                                   // alt_strength
+   RsC(c, RsB(z.arrival));                                           // arrival
+   RsC(c, RsB(z.chain));                                             // chain
+   RsC(c, RsB(rmOpp));                                               // rm_opp_zone
+   RsC(c, RsB(rmTL));                                                // rm_trendline
+   RsC(c, RsB(newHL));                                               // new_high_low
+   RsC(c, RsB(rmPrev));                                              // rm_prev_high_low
+   RsC(c, RsB(z.leg2));                                              // leg2
+   RsC(c, RsB(tooSm));                                               // too_small
+   RsC(c, RsB(z.trap > 0));                                          // trap
+   RsC(c, RsB(z.crowded));                                           // crowded
+   RsC(c, RsI(swing));                                               // htf_trend
+   RsC(c, RsI(tlb));                                                 // tl_bias
+   RsC(c, RsI(gTrend));                                              // bias
+   RsC(c, RsI(aln));                                                 // align
+   RsC(c, RsI(big));                                                 // bigger_trend
+   RsC(c, RsI(baln));                                                // bigger_align
+   RsC(c, RsB(nest));                                                // nested
+   RsC(c, RsB(inOpp));                                               // in_opp_htf
+   RsC(c, RsD(cv, 1));                                               // curve
+   RsC(c, RsD(oppR, 3));                                             // opp_R
+   RsC(c, RsD(gNRR, 3));                                             // plan_rr
+   RsC(c, ses);                                                      // session
+   RsC(c, RsI(md.hour));                                             // hour
+   RsC(c, wd[md.day_of_week % 7]);                                   // weekday
+   RsC(c, RsD(atr, dg + 1));                                         // atr
+   RsC(c, RsD(spr, dg + 1));                                         // spread
+   RZone nr; ZeroMemory(nr);
+   nr.crow = c; nr.slot = s; nr.dir = z.dir; nr.alt = isAlt;
+   nr.prox = z.prox; nr.dist = z.dist; nr.hgt = hg; nr.spr = spr; nr.risk = risk; nr.oppR = oppR;
+   nr.endR = MathMax(5.0, (oppR > 0 && oppR <= 20) ? oppR : 0.0);   // a touch trade runs until 5R or the opposing zone, whichever is further
+   nr.age = 0; nr.broken = false; nr.brokenT = 0; nr.brokenAge = 0;
+   nr.runout = MathMax(0, mv); nr.nT = 0; nr.inTr = false;
+   nr.away = z.dir > 0 ? iLow(_Symbol, T, 1) > z.prox : iHigh(_Symbol, T, 1) < z.prox;
+   nr.mfe = 0; nr.dep = 0; nr.r1 = false; nr.mfeC = 0; nr.cOn = false; nr.cRes = 0;
+   for(int k = 0; k < 3; k++) { nr.tT[k] = 0; nr.tAge[k] = 0; nr.tDep[k] = 0; nr.tMfe[k] = 0; nr.tRes[k] = 0; nr.tEnd[k] = 0; nr.tEndAge[k] = 0; }
+   int n = ArraySize(RZ);
+   ArrayResize(RZ, n + 1);
+   RZ[n] = nr;
+  }
+
+//--- outcome tracking: one closed candle (shift sh) of slot s for every zone of that timeframe
+void RsUpdate(int s, int sh)
+  {
+   ENUM_TIMEFRAMES T = rsTF[s];
+   double bh = iHigh(_Symbol, T, sh), bl = iLow(_Symbol, T, sh), bc = iClose(_Symbol, T, sh);
+   datetime bt = iTime(_Symbol, T, sh);
+   bool emo = Emotional(_Symbol, T, sh);
+   for(int i = ArraySize(RZ) - 1; i >= 0; i--)
+     {
+      if(RZ[i].slot != s) continue;
+      string st = RsStep(i, bh, bl, bc, emo, bt);
+      if(st != "") RsFinish(i, st, bt);
+     }
+  }
+double RsR(int i, double price) { return RZ[i].dir > 0 ? (price - RZ[i].prox - RZ[i].spr) / RZ[i].risk : (RZ[i].prox - price - RZ[i].spr) / RZ[i].risk; }
+void RsEndTouch(int i, int k, int res, datetime bt)
+  {
+   if(k < 0 || k > 2) return;
+   RZ[i].tMfe[k] = RZ[i].mfe; RZ[i].tDep[k] = RZ[i].dep; RZ[i].tRes[k] = res; RZ[i].tEnd[k] = bt; RZ[i].tEndAge[k] = RZ[i].age;
+   RZ[i].inTr = false; RZ[i].away = false;
+  }
+// returns "" while the zone is still followed, else the reason it resolved
+string RsStep(int i, double bh, double bl, double bc, bool emo, datetime bt)
+  {
+   int d = RZ[i].dir;
+   double px = RZ[i].prox, ds = RZ[i].dist, hz0 = RZ[i].hgt;
+   RZ[i].age++;
+   bool wick = d > 0 ? bl < ds : bh > ds;                            // stop order at the distal filled
+   bool cb = d > 0 ? bc < ds : bc > ds;                              // candle closed beyond the distal
+   bool touch = d > 0 ? bl <= px : bh >= px;
+   double fR = RsR(i, d > 0 ? bh : bl), cR = RsR(i, bc);
+   double pn = (d > 0 ? px - bl : bh - px) / hz0;                    // penetration into the zone, x height (1 = distal)
+   // touch 1, close-stop model (stop only on a close beyond the distal)
+   if(RZ[i].cOn)
+     {
+      if(cb) { RZ[i].cOn = false; RZ[i].cRes = 1; }
+      else
+        {
+         RZ[i].mfeC = MathMax(RZ[i].mfeC, fR);
+         if(RZ[i].mfeC >= RZ[i].endR) { RZ[i].cOn = false; RZ[i].cRes = 2; }
+        }
+     }
+   if(RZ[i].inTr)
+     {
+      int k = RZ[i].nT - 1;
+      if(wick) { if(!RZ[i].r1) RZ[i].dep = MathMax(RZ[i].dep, pn); RsEndTouch(i, k, 1, bt); }   // a candle that hits the stop never counts its other extreme
+      else
+        {
+         RZ[i].mfe = MathMax(RZ[i].mfe, fR);
+         if(!RZ[i].r1) RZ[i].dep = MathMax(RZ[i].dep, pn);
+         if(RZ[i].mfe >= 1) RZ[i].r1 = true;
+         if(RZ[i].mfe >= RZ[i].endR) RsEndTouch(i, k, 2, bt);
+        }
+     }
+   else if(!RZ[i].broken && RZ[i].nT < 3)
+     {
+      if(RZ[i].away && touch)
+        {
+         int k = RZ[i].nT;
+         RZ[i].nT++;
+         RZ[i].tT[k] = bt; RZ[i].tAge[k] = RZ[i].age;
+         RZ[i].inTr = true; RZ[i].away = false; RZ[i].r1 = false;
+         RZ[i].dep = MathMax(0, pn);
+         RZ[i].mfe = 0;
+         if(wick) RsEndTouch(i, k, 1, bt);
+         else
+           {
+            RZ[i].mfe = MathMax(0, cR);                               // touch candle: only its close counts (order inside the candle unknown)
+            if(RZ[i].mfe >= 1) RZ[i].r1 = true;
+            if(RZ[i].mfe >= RZ[i].endR) RsEndTouch(i, k, 2, bt);
+           }
+         if(k == 0) { RZ[i].cOn = !cb; RZ[i].cRes = cb ? 1 : 0; RZ[i].mfeC = cb ? 0 : MathMax(0, cR); }
+        }
+      else if(!touch) RZ[i].away = true;
+     }
+   if(RZ[i].nT == 0) RZ[i].runout = MathMax(RZ[i].runout, (d > 0 ? bh - px : px - bl) / hz0);
+   if(!RZ[i].broken && (cb || (wick && !emo))) { RZ[i].broken = true; RZ[i].brokenT = bt; RZ[i].brokenAge = RZ[i].age; }   // ZoneVision removal rule
+   bool idle = !RZ[i].inTr && !RZ[i].cOn;
+   if(idle && RZ[i].broken) return "broken";
+   if(idle && RZ[i].nT >= 3) return "touches3";
+   if(RZ[i].age >= InpResearchMaxBars) return "horizon";
+   return "";
+  }
+// write the zone's row (create + outcome) and stop following it
+void RsFinish(int i, string st, datetime when)
+  {
+   if(RZ[i].inTr) RsEndTouch(i, RZ[i].nT - 1, 3, when);
+   if(RZ[i].cOn) { RZ[i].cOn = false; RZ[i].cRes = 3; }
+   if(rsFile != INVALID_HANDLE)
+     {
+      string o = st + "," + RsTime(when) + "," + RsI(RZ[i].age) + "," + RsB(RZ[i].nT == 0) + "," + RsD(RZ[i].runout, 3) + "," + RsB(RZ[i].broken)
+                 + "," + RsTime(RZ[i].brokenT) + "," + (RZ[i].broken ? RsI(RZ[i].brokenAge) : "") + "," + RsI(RZ[i].nT);
+      for(int k = 0; k < 3; k++)
+        {
+         if(k >= RZ[i].nT) { for(int e = 0; e < 13; e++) o += ","; continue; }
+         double m = RZ[i].tMfe[k];
+         o += "," + RsTime(RZ[i].tT[k]) + "," + RsI(RZ[i].tAge[k]) + "," + RsD(RZ[i].tDep[k] * 100, 1) + "," + RsD(m, 3);
+         for(int r = 1; r <= 5; r++) o += "," + RsB(m >= r);
+         o += "," + RsB(RZ[i].oppR > 0 && m >= RZ[i].oppR) + "," + RsRes(RZ[i].tRes[k]) + "," + RsTime(RZ[i].tEnd[k]) + "," + RsI(RZ[i].tEndAge[k]);
+        }
+      o += "," + (RZ[i].nT > 0 ? RsD(RZ[i].mfeC, 3) : "") + "," + (RZ[i].nT > 0 ? RsRes(RZ[i].cRes) : "");
+      FileWrite(rsFile, RZ[i].crow + "," + o);
+      rsDirty = true;
+      rsCount++;
+     }
+   int n = ArraySize(RZ);
+   if(i < n - 1) RZ[i] = RZ[n - 1];
+   ArrayResize(RZ, n - 1);
+  }
+
+//--- ALT detector: the II_SupDem IDEA re-implemented (own code, nothing copied).
+// Classic ZigZag(depth 3, deviation 2 pips, backstep 2) on closed candles; every confirmed turn (not the last, still moving
+// one) is a candidate: peak -> supply, valley -> demand. Distal = the turn's wick; proximal = the nearest of the turn's body
+// edge and the neighbours' wick / body edges. Made when a later candle trades fully beyond the proximal (departure).
+// A newer turn whose wick reaches into an older live ALT zone of the same side is dropped (the older zone wins).
+// Strength (look-left): 2 older candles fully on the proximal side before 2 beyond the distal = STRONG, else WEAK.
+bool RsSeen(int s, int d, datetime t)
+  {
+   for(int i = ArraySize(rsSeenT) - 1; i >= 0; i--) if(rsSeenT[i] == t && rsSeenD[i] == d && rsSeenS[i] == s) return true;
+   return false;
+  }
+void RsMark(int s, int d, datetime t)
+  {
+   int n = ArraySize(rsSeenT);
+   if(n >= 600)
+     {
+      int keep = 400;
+      for(int i = 0; i < keep; i++) { rsSeenS[i] = rsSeenS[n - keep + i]; rsSeenD[i] = rsSeenD[n - keep + i]; rsSeenT[i] = rsSeenT[n - keep + i]; }
+      n = keep;
+     }
+   ArrayResize(rsSeenS, n + 1); ArrayResize(rsSeenD, n + 1); ArrayResize(rsSeenT, n + 1);
+   rsSeenS[n] = s; rsSeenD[n] = d; rsSeenT[n] = t;
+  }
+bool RsAltInside(int s, int d, double wk)
+  {
+   for(int i = 0; i < ArraySize(RZ); i++)
+     {
+      if(RZ[i].slot != s || !RZ[i].alt || RZ[i].dir != d || RZ[i].broken) continue;
+      if(d < 0 && wk > RZ[i].prox && wk <= RZ[i].dist) return true;
+      if(d > 0 && wk < RZ[i].prox && wk >= RZ[i].dist) return true;
+     }
+   return false;
+  }
+int RsAlt(int s, ENUM_TIMEFRAMES T, bool first, Zone &out[], string &str[])
+  {
+   ArrayResize(out, 0); ArrayResize(str, 0);
+   int n = MathMin(InpLookback + 50, iBars(_Symbol, T) - 5);
+   if(n < 40) return 0;
+   double ah[], al[], ao[], ac[]; datetime at[];                     // oldest first: index n-1 = the last closed candle (shift 1)
+   if(CopyHigh(_Symbol, T, 1, n, ah) != n || CopyLow(_Symbol, T, 1, n, al) != n || CopyOpen(_Symbol, T, 1, n, ao) != n
+      || CopyClose(_Symbol, T, 1, n, ac) != n || CopyTime(_Symbol, T, 1, n, at) != n) return 0;
+   double pip = (_Digits == 3 || _Digits == 5) ? 10 * _Point : _Point, dev = 2 * pip;
+   const int zDepth = 3, zBack = 2;
+   double hm[], lm[]; int zt[];
+   ArrayResize(hm, n); ArrayResize(lm, n); ArrayResize(zt, n);
+   ArrayInitialize(hm, 0); ArrayInitialize(lm, 0); ArrayInitialize(zt, 0);
+   double lastLo = 0, lastHi = 0;
+   for(int i = zDepth - 1; i < n; i++)
+     {
+      double v = al[ArrayMinimum(al, i - zDepth + 1, zDepth)];
+      if(v == lastLo) v = 0;
+      else
+        {
+         lastLo = v;
+         if(al[i] - v > dev) v = 0;
+         else for(int b = 1; b <= zBack && i - b >= 0; b++) if(lm[i - b] != 0 && lm[i - b] > v) lm[i - b] = 0;
+        }
+      lm[i] = (v != 0 && al[i] == v) ? v : 0;
+      double w = ah[ArrayMaximum(ah, i - zDepth + 1, zDepth)];
+      if(w == lastHi) w = 0;
+      else
+        {
+         lastHi = w;
+         if(w - ah[i] > dev) w = 0;
+         else for(int b = 1; b <= zBack && i - b >= 0; b++) if(hm[i - b] != 0 && hm[i - b] < w) hm[i - b] = 0;
+        }
+      hm[i] = (w != 0 && ah[i] == w) ? w : 0;
+     }
+   // alternate peaks and valleys; a more extreme point of the same kind replaces the previous one
+   int look = 0, lhP = -1, llP = -1; double lh = 0, ll = 0;
+   for(int i = zDepth - 1; i < n; i++)
+     {
+      if(look == 0)
+        {
+         if(hm[i] != 0) { lh = hm[i]; lhP = i; zt[i] = 1; look = -1; }
+         else if(lm[i] != 0) { ll = lm[i]; llP = i; zt[i] = -1; look = 1; }
+        }
+      else if(look == 1)
+        {
+         if(lm[i] != 0 && lm[i] < ll && hm[i] == 0) { if(llP >= 0) zt[llP] = 0; ll = lm[i]; llP = i; zt[i] = -1; }
+         if(hm[i] != 0 && lm[i] == 0) { lh = hm[i]; lhP = i; zt[i] = 1; look = -1; }
+        }
+      else
+        {
+         if(hm[i] != 0 && hm[i] > lh && lm[i] == 0) { if(lhP >= 0) zt[lhP] = 0; lh = hm[i]; lhP = i; zt[i] = 1; }
+         if(lm[i] != 0 && hm[i] == 0) { ll = lm[i]; llP = i; zt[i] = -1; look = 1; }
+        }
+     }
+   int pI[]; int np = 0;
+   for(int i = 0; i < n; i++) if(zt[i] != 0) { ArrayResize(pI, np + 1); pI[np] = i; np++; }
+   int made = 0;
+   for(int k = 0; k < np - 1; k++)                                   // the newest turn can still move: confirmed turns only
+     {
+      int q = pI[k];
+      if(q < 1 || q > n - 2 || q < n - 150) continue;
+      int d = zt[q] > 0 ? -1 : 1;                                    // peak -> supply, valley -> demand
+      if(RsSeen(s, d, at[q])) continue;
+      if(first) { RsMark(s, d, at[q]); continue; }                   // turns from before the start are not logged
+      double px = 0, ds = 0;
+      if(d < 0)
+        {
+         ds = ah[q];
+         px = MathMax(MathMin(ao[q], ac[q]), MathMax(MathMax(al[q - 1], al[q + 1]), MathMax(MathMin(ao[q - 1], ac[q - 1]), MathMin(ao[q + 1], ac[q + 1]))));
+        }
+      else
+        {
+         ds = al[q];
+         px = MathMin(MathMax(ao[q], ac[q]), MathMin(MathMin(ah[q - 1], ah[q + 1]), MathMin(MathMax(ao[q - 1], ac[q - 1]), MathMax(ao[q + 1], ac[q + 1]))));
+        }
+      if((d < 0 && px >= ds) || (d > 0 && px <= ds)) { RsMark(s, d, at[q]); continue; }
+      int depj = -1; bool dead = false;
+      for(int j = q + 1; j < n; j++)
+        {
+         if((d < 0 && ah[j] > ds) || (d > 0 && al[j] < ds)) { dead = true; break; }
+         if((d < 0 && ah[j] < px) || (d > 0 && al[j] > px)) { depj = j; break; }
+        }
+      if(dead) { RsMark(s, d, at[q]); continue; }
+      if(depj < 0) continue;                                         // price has not left yet: look again next candle
+      bool tst = false;
+      for(int j = depj + 1; j < n; j++)
+        {
+         if((d < 0 && ah[j] > ds) || (d > 0 && al[j] < ds)) { dead = true; break; }
+         if((d < 0 && ah[j] >= px) || (d > 0 && al[j] <= px)) tst = true;
+        }
+      RsMark(s, d, at[q]);
+      if(dead) continue;
+      if(RsAltInside(s, d, ds)) continue;
+      bool dupNew = false;
+      for(int j = 0; j < ArraySize(out); j++) if(out[j].dir == d && ((d < 0 && ds > out[j].prox && ds <= out[j].dist) || (d > 0 && ds < out[j].prox && ds >= out[j].dist))) dupNew = true;
+      if(dupNew) continue;
+      int cin = 0, cout = 0;
+      for(int j = q - 1; j >= 0 && cin < 2 && cout < 2; j--)
+        {
+         if((d < 0 && ah[j] < px) || (d > 0 && al[j] > px)) cin++;
+         if((d < 0 && ah[j] > ds) || (d > 0 && al[j] < ds)) cout++;
+        }
+      int sp = n - q;                                                // series shift of the turn candle
+      double hgt = MathAbs(px - ds);
+      double rb = MathMax(Rng(_Symbol, T, sp), _Point);
+      Zone z; ZeroMemory(z);
+      z.dir = d; z.prox = px; z.dist = ds;
+      z.legBar = sp - 1; z.baseN = 1; z.saBar = MathMax(1, sp - 2);  // base = the turn candle, leg out = the candle after it
+      z.legRatio = Rng(_Symbol, T, sp - 1) / rb;
+      z.cont = CDir(_Symbol, T, sp + 1) == d;
+      z.grade = z.legRatio >= 2.5 ? "A" : (z.legRatio >= 1.8 ? "B" : "C");
+      z.gap = d > 0 ? (iLow(_Symbol, T, z.saBar) - px) / hgt : (px - iHigh(_Symbol, T, z.saBar)) / hgt;
+      z.leg2 = !Basing(_Symbol, T, z.saBar) && CDir(_Symbol, T, z.saBar) == d && Rng(_Symbol, T, z.saBar) >= rb * InpMinLegRatio;
+      z.chain = false; z.arrival = false; z.tested = tst; z.removed = false; z.removedBar = -1; z.testedBar = -1;
+      z.qual = ""; z.trap = 0; z.trapBar = -1; z.crowded = false; z.baseEnd = sp;
+      int no = ArraySize(out);
+      ArrayResize(out, no + 1); ArrayResize(str, no + 1);
+      out[no] = z; str[no] = cout >= 2 ? "WEAK" : "STRONG";
+      made++;
+     }
+   return made;
   }
 //+------------------------------------------------------------------+
