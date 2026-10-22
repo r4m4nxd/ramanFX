@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { VIDEO_LESSONS, type VideoLesson } from '@/core/videoLessons';
 import { ZOOM_SESSIONS, type ZoomSession } from '@/core/zoomSessions';
 import { SEIDEN_LESSONS } from '@/core/mentors/seiden';
-import { Badge, Card, cx, Page, RevealText, Segmented, spring } from '@/ui/kit';
+import { Badge, Card, cx, Page, RevealText, spring } from '@/ui/kit';
 import { motion } from 'framer-motion';
 import { Icon } from '@/ui/Icon';
 import { hasDiagram, LessonDiagram } from '@/ui/LessonDiagrams';
@@ -163,8 +163,15 @@ export default function Learn() {
       <div className="grid gap-4 lg:grid-cols-[300px_1fr] items-start">
         <aside className={cx('flex flex-col gap-3 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)]', lesson && 'max-lg:hidden')}>
           <Card>
-            <Segmented label="Mentor" value={src} onChange={v => { setQ(''); setSp(v === 'course' ? {} : { src: v }); }}
-              options={(Object.keys(SRC) as Src[]).map(k => ({ value: k, label: `${SRC[k].short} · ${SRC[k].list.length}` }))} />
+            <div className="label mb-2">Mentor</div>
+            <div role="radiogroup" aria-label="Mentor" className="flex flex-col gap-1">
+              {(Object.keys(SRC) as Src[]).map(k => (
+                <button key={k} type="button" role="radio" aria-checked={k === src} onClick={() => { setQ(''); setSp(k === 'course' ? {} : { src: k }); }}
+                  className={cx('flex items-center justify-between w-full px-3 py-2 rounded-lg text-[13px] text-left transition-colors', k === src ? 'bg-accent/15 text-ink font-semibold ring-1 ring-accent/40' : 'text-ink2 hover:bg-raised/60')}>
+                  <span>{SRC[k].short}</span><span className="num text-[12px] text-ink3">{SRC[k].list.length}</span>
+                </button>
+              ))}
+            </div>
             <div className="flex items-baseline justify-between mt-3"><div className="label">{S.head}</div><span className="num text-[12px] text-ink3">{done.length}/{LIST.length} studied</span></div>
             <div className="h-1.5 rounded-full bg-line mt-2 overflow-hidden"><div className="h-full bg-accent rounded-full" style={{ width: `${pct * 100}%` }} /></div>
             <input className="field mt-3" placeholder={src === 'zoom' ? 'Search every session…' : src === 'seiden' ? 'Search every article…' : 'Search every lesson…'} aria-label="Search" value={q} onChange={e => setQ(e.target.value)} />
