@@ -2,12 +2,20 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { VIDEO_LESSONS, type VideoLesson } from '@/core/videoLessons';
 import { ZOOM_SESSIONS, type ZoomSession } from '@/core/zoomSessions';
+import { SEIDEN_LESSONS } from '@/core/mentors/seiden';
 import { Badge, Card, cx, Page, RevealText, Segmented, spring } from '@/ui/kit';
 import { motion } from 'framer-motion';
 import { Icon } from '@/ui/Icon';
 import { hasDiagram, LessonDiagram } from '@/ui/LessonDiagrams';
 
-type Src = 'course' | 'zoom';
+type Src = 'course' | 'zoom' | 'seiden';
+// one entry per mentor source; lessons stay separate per mentor
+const SRC: Record<Src, { list: VideoLesson[]; key: string; short: string; head: string; title: string; blurb: string; start: string }> = {
+  course: { list: VIDEO_LESSONS, key: 'rfx_lessons_done', short: 'Kevin · course', head: 'Video course', title: "Your mentor's video course, as notes", blurb: `All ${VIDEO_LESSONS.length} lessons written out with diagrams, his rules, the mistakes he warns about and a pre-trade check for each. Pick a lesson on the left. The Planner, Playbook and Guru link back here.`, start: 'Start lesson 1' },
+  zoom: { list: ZOOM_SESSIONS, key: 'rfx_zoom_done', short: 'Kevin · Sunday live', head: 'Sunday Zoom sessions', title: 'Sunday live sessions, as notes', blurb: `All ${ZOOM_SESSIONS.length} Sunday Zoom livestreams written out in full: every chart he walked through, every student question, the rules and mistakes, diagrams, and the rules as mechanical checks for the Planner and the bot.`, start: 'Start with the first session' },
+  seiden: { list: SEIDEN_LESSONS, key: 'rfx_seiden_done', short: 'Sam Seiden', head: 'Sam Seiden · 5 years of articles', title: 'Sam Seiden, 5 years of teaching, as notes', blurb: `All ${SEIDEN_LESSONS.length} articles from the 423-page collection: the teaching, every chart described (zones, entries, stops, targets), his rules, novice mistakes, a pre-trade check, and what differs from Kevin's course. Lesson numbers are the PDF page each article starts on.`, start: 'Start with the first article' },
+};
+const srcOf = (v: string | null): Src => v === 'zoom' || v === 'seiden' ? v : 'course';
 function useDone(key: string) {
   const [done, setDone] = useState<number[]>(() => { try { return JSON.parse(localStorage.getItem(key) ?? '[]'); } catch { return []; } });
   useEffect(() => { try { setDone(JSON.parse(localStorage.getItem(key) ?? '[]')); } catch { /* storage blocked */ } }, [key]);
@@ -33,12 +41,12 @@ function LessonView({ l, src, list, done, toggle }: { l: VideoLesson; src: Src; 
   const prev = list[i - 1], next = list[i + 1];
   const diagrams = l.diagrams.filter(d => hasDiagram(d.key));
   const z = isZoom(l) ? l : null;
-  const q = (n: number) => src === 'zoom' ? `/learn?src=zoom&l=${n}` : `/learn?l=${n}`;
+  const q = (n: number) => src === 'course' ? `/learn?l=${n}` : `/learn?src=${src}&l=${n}`;
   return (
     <article className="flex flex-col gap-4">
       <Card>
         <div className="flex flex-wrap items-center gap-2 mb-2">
-          {z ? <><Badge tone="violet">Sunday live</Badge><Badge>{fmtDate(z.date, true)}</Badge></> : <><Badge tone="accent">Lesson {l.n}</Badge><Badge>{KIND[l.kind]}</Badge></>}
+          {z ? <><Badge tone="violet">Sunday live</Badge><Badge>{fmtDate(z.date, true)}</Badge></> : <><Badge tone="accent">{src === 'seiden' ? `Page ${l.n}` : `Lesson ${l.n}`}</Badge><Badge>{src === 'seiden' ? 'Sam Seiden' : KIND[l.kind]}</Badge></>}
           {done && <Badge tone="profit">Studied</Badge>}
         </div>
         <RevealText key={src + l.n} as="h2" className="text-[22px] font-semibold tracking-tight" text={l.title} />
@@ -122,7 +130,7 @@ function LessonView({ l, src, list, done, toggle }: { l: VideoLesson; src: Src; 
         </Card>
       )}
 
-      {l.newVsPdfs.length > 0 && <Card><div className="label mb-3">{z ? 'New compared with the recorded lessons' : 'Not in the PDFs'}</div><Bullets items={l.newVsPdfs} /></Card>}
+      {l.newVsPdfs.length > 0 && <Card><div className="label mb-3">{z ? 'New compared with the recorded lessons' : src === 'seiden' ? "New or different vs Kevin's course" : 'Not in the PDFs'}</div><Bullets items={l.newVsPdfs} /></Card>}
 
       <nav className="grid grid-cols-2 gap-3" aria-label="Lesson navigation">
         {prev ? <Link to={q(prev.n)} className="card p-3 hover:bg-raised/60 transition-colors"><div className="label">Previous</div><div className="text-[13px] font-medium mt-1 truncate">{isZoom(prev) ? fmtDate(prev.date) : prev.n}. {prev.title}</div></Link> : <span />}
@@ -134,9 +142,10 @@ function LessonView({ l, src, list, done, toggle }: { l: VideoLesson; src: Src; 
 
 export default function Learn() {
   const [sp, setSp] = useSearchParams();
-  const src: Src = sp.get('src') === 'zoom' ? 'zoom' : 'course';
-  const LIST: VideoLesson[] = src === 'zoom' ? ZOOM_SESSIONS : VIDEO_LESSONS;
-  const [done, toggle] = useDone(src === 'zoom' ? 'rfx_zoom_done' : 'rfx_lessons_done');
+  const src = srcOf(sp.get('src'));
+  const S = SRC[src];
+  const LIST: VideoLesson[] = S.list;
+  const [done, toggle] = useDone(S.key);
   const [q, setQ] = useState('');
   const n = Number(sp.get('l')) || 0;
   const lesson = LIST.find(l => l.n === n);
@@ -147,18 +156,18 @@ export default function Learn() {
     return LIST.filter(l => [l.title, l.summary, ...l.rules, ...l.sections.flatMap(x => [x.heading, ...x.points]), ...(isZoom(l) ? l.qa.flatMap(x => [x.q, x.a]) : [])].join(' ').toLowerCase().includes(s));
   }, [q, LIST]);
   const pct = LIST.length ? done.length / LIST.length : 0;
-  const go = (p: Record<string, string>) => setSp(src === 'zoom' ? { src: 'zoom', ...p } : p);
+  const go = (p: Record<string, string>) => setSp(src === 'course' ? p : { src, ...p });
 
   return (
     <Page>
       <div className="grid gap-4 lg:grid-cols-[300px_1fr] items-start">
         <aside className={cx('flex flex-col gap-3 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)]', lesson && 'max-lg:hidden')}>
           <Card>
-            <Segmented label="Source" value={src} onChange={v => { setQ(''); setSp(v === 'zoom' ? { src: 'zoom' } : {}); }}
-              options={[{ value: 'course', label: `Video course · ${VIDEO_LESSONS.length}` }, { value: 'zoom', label: `Sunday live · ${ZOOM_SESSIONS.length}` }]} />
-            <div className="flex items-baseline justify-between mt-3"><div className="label">{src === 'zoom' ? 'Sunday Zoom sessions' : 'Video course'}</div><span className="num text-[12px] text-ink3">{done.length}/{LIST.length} studied</span></div>
+            <Segmented label="Mentor" value={src} onChange={v => { setQ(''); setSp(v === 'course' ? {} : { src: v }); }}
+              options={(Object.keys(SRC) as Src[]).map(k => ({ value: k, label: `${SRC[k].short} · ${SRC[k].list.length}` }))} />
+            <div className="flex items-baseline justify-between mt-3"><div className="label">{S.head}</div><span className="num text-[12px] text-ink3">{done.length}/{LIST.length} studied</span></div>
             <div className="h-1.5 rounded-full bg-line mt-2 overflow-hidden"><div className="h-full bg-accent rounded-full" style={{ width: `${pct * 100}%` }} /></div>
-            <input className="field mt-3" placeholder={src === 'zoom' ? 'Search every session…' : 'Search every lesson…'} aria-label="Search" value={q} onChange={e => setQ(e.target.value)} />
+            <input className="field mt-3" placeholder={src === 'zoom' ? 'Search every session…' : src === 'seiden' ? 'Search every article…' : 'Search every lesson…'} aria-label="Search" value={q} onChange={e => setQ(e.target.value)} />
           </Card>
           {/* The list scrolls by itself (desktop), independent of the lesson beside it. */}
           <Card className="p-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
@@ -180,16 +189,14 @@ export default function Learn() {
         <div className="min-w-0">
           {lesson ? (
             <>
-              <button type="button" className="btn-ghost mb-3 lg:hidden" onClick={() => go({})}><Icon name="chevronLeft" size={14} />All {src === 'zoom' ? 'sessions' : 'lessons'}</button>
+              <button type="button" className="btn-ghost mb-3 lg:hidden" onClick={() => go({})}><Icon name="chevronLeft" size={14} />All {src === 'zoom' ? 'sessions' : src === 'seiden' ? 'articles' : 'lessons'}</button>
               <LessonView l={lesson} src={src} list={LIST} done={done.includes(lesson.n)} toggle={() => toggle(lesson.n)} />
             </>
           ) : (
             <Card className="max-lg:hidden">
-              <RevealText key={src} as="h2" className="text-[20px] font-semibold" text={src === 'zoom' ? 'Sunday live sessions, as notes' : "Your mentor's video course, as notes"} />
-              <p className="text-[14px] text-ink2 mt-2 max-w-[70ch]">{src === 'zoom'
-                ? `All ${ZOOM_SESSIONS.length} Sunday Zoom livestreams written out in full: every chart he walked through, every student question, the rules and mistakes, diagrams, and the rules as mechanical checks for the Planner and the bot.`
-                : `All ${VIDEO_LESSONS.length} lessons written out with diagrams, his rules, the mistakes he warns about and a pre-trade check for each. Pick a lesson on the left. The Planner, Playbook and Guru link back here.`}</p>
-              {LIST.length > 0 && <button type="button" className="btn-primary mt-4" onClick={() => go({ l: String((LIST.find(l => !done.includes(l.n)) ?? LIST[0]).n) })}>{done.length ? 'Continue' : src === 'zoom' ? 'Start with the first session' : 'Start lesson 1'}<Icon name="chevronRight" size={14} /></button>}
+              <RevealText key={src} as="h2" className="text-[20px] font-semibold" text={S.title} />
+              <p className="text-[14px] text-ink2 mt-2 max-w-[70ch]">{S.blurb}</p>
+              {LIST.length > 0 && <button type="button" className="btn-primary mt-4" onClick={() => go({ l: String((LIST.find(l => !done.includes(l.n)) ?? LIST[0]).n) })}>{done.length ? 'Continue' : S.start}<Icon name="chevronRight" size={14} /></button>}
             </Card>
           )}
         </div>
