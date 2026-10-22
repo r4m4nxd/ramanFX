@@ -47,6 +47,7 @@
 #include <Trade\PositionInfo.mqh>
 #include <Trade\OrderInfo.mqh>
 #include <Trade\HistoryOrderInfo.mqh>
+#define KNA -1.0e100                                                  // "not available" (no losses, too few days...)
 
 enum BotMode   { MODE_SCANNER = 0, MODE_APPROVE = 1, MODE_AUTO = 2 };
 enum EntryMode { ENTRY_SF = 0, ENTRY_CONF = 1, ENTRY_BOTH = 2 };
@@ -3371,7 +3372,6 @@ void Click(string sparam)
 //|   RamanFX_Backtest_<sym>_Statement.htm MT4 statement -> journal   |
 //|   RamanFX_Backtest_<sym>_Exits.csv     initial SL/TP -> journal R |
 //+------------------------------------------------------------------+
-#define KNA -1.0e100                                                  // "not available" (no losses, too few days...)
 struct BTrade
   {
    ulong    ticket;                                                   // POSITION_IDENTIFIER
