@@ -44,6 +44,7 @@ function Install() {
       <div className="flex flex-wrap gap-2 mb-4">
         <a className="btn" href="/tools/RamanFX_ZoneBot.mq4" download><Icon name="download" size={14} />RamanFX_ZoneBot.mq4</a>
         <a className="btn" href="/tools/RamanFX_ZoneVision.mq4" download><Icon name="download" size={14} />RamanFX_ZoneVision.mq4</a>
+        <a className="btn" href="/tools/RamanFX_ZoneVision.mq5" download><Icon name="download" size={14} />RamanFX_ZoneVision.mq5 (MT5)</a>
       </div>
       <Steps items={[
         <>In MT4: <b>File → Open Data Folder → MQL4</b>. Put <K>RamanFX_ZoneBot.mq4</K> in <b>Experts</b> and <K>RamanFX_ZoneVision.mq4</K> in <b>Indicators</b>.</>,
