@@ -3,7 +3,7 @@
 import type { DiagramKey } from '@/ui/LessonDiagrams';
 
 export interface VideoLesson {
-  n: number; title: string; kind: 'video' | 'webinar' | 'podcast' | 'zoom'; summary: string;
+  n: number; title: string; kind: 'video' | 'webinar' | 'podcast' | 'zoom' | 'article'; summary: string;
   sections: { heading: string; points: string[] }[];
   rules: string[]; mistakes: string[]; quotes: string[];
   diagrams: { key: DiagramKey | string; caption: string }[];

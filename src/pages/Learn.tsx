@@ -15,7 +15,7 @@ function useDone(key: string) {
   return [done, toggle] as const;
 }
 
-const KIND: Record<VideoLesson['kind'], string> = { video: 'Video', webinar: 'Webinar', podcast: 'Podcast', zoom: 'Zoom' };
+const KIND: Record<VideoLesson['kind'], string> = { video: 'Video', webinar: 'Webinar', podcast: 'Podcast', zoom: 'Zoom', article: 'Article' };
 const isZoom = (l: VideoLesson): l is ZoomSession => 'qa' in l;
 const fmtDate = (d: string, long = false) => new Date(d + 'T12:00:00').toLocaleDateString(undefined, long ? { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' } : { day: 'numeric', month: 'short' });
 
