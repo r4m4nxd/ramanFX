@@ -3,19 +3,28 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { VIDEO_LESSONS, type VideoLesson } from '@/core/videoLessons';
 import { ZOOM_SESSIONS, type ZoomSession } from '@/core/zoomSessions';
 import { SEIDEN_LESSONS } from '@/core/mentors/seiden';
+import { RAJA_LESSONS } from '@/core/mentors/raja';
+import { BAKER_LESSONS } from '@/core/mentors/baker';
+import { GLOSSARY, type GlossaryMentor } from '@/core/glossary';
+import { LessonFigures, RealCharts } from '@/ui/LessonMedia';
+import { GlossaryView } from '@/ui/GlossaryView';
 import { Badge, Card, cx, Page, RevealText, spring } from '@/ui/kit';
 import { motion } from 'framer-motion';
 import { Icon } from '@/ui/Icon';
 import { hasDiagram, LessonDiagram } from '@/ui/LessonDiagrams';
 
-type Src = 'course' | 'zoom' | 'seiden';
+type Mentor = 'course' | 'zoom' | 'seiden' | 'raja' | 'baker';
+type Src = Mentor | 'glossary';
 // one entry per mentor source; lessons stay separate per mentor
-const SRC: Record<Src, { list: VideoLesson[]; key: string; short: string; head: string; title: string; blurb: string; start: string }> = {
-  course: { list: VIDEO_LESSONS, key: 'rfx_lessons_done', short: 'Kevin · course', head: 'Video course', title: "Your mentor's video course, as notes", blurb: `All ${VIDEO_LESSONS.length} lessons written out with diagrams, his rules, the mistakes he warns about and a pre-trade check for each. Pick a lesson on the left. The Planner, Playbook and Guru link back here.`, start: 'Start lesson 1' },
-  zoom: { list: ZOOM_SESSIONS, key: 'rfx_zoom_done', short: 'Kevin · Sunday live', head: 'Sunday Zoom sessions', title: 'Sunday live sessions, as notes', blurb: `All ${ZOOM_SESSIONS.length} Sunday Zoom livestreams written out in full: every chart he walked through, every student question, the rules and mistakes, diagrams, and the rules as mechanical checks for the Planner and the bot.`, start: 'Start with the first session' },
-  seiden: { list: SEIDEN_LESSONS, key: 'rfx_seiden_done', short: 'Sam Seiden', head: 'Sam Seiden · 5 years of articles', title: 'Sam Seiden, 5 years of teaching, as notes', blurb: `All ${SEIDEN_LESSONS.length} articles from the 423-page collection: the teaching, every chart described (zones, entries, stops, targets), his rules, novice mistakes, a pre-trade check, and what differs from Kevin's course. Lesson numbers are the PDF page each article starts on.`, start: 'Start with the first article' },
+const SRC: Record<Mentor, { list: VideoLesson[]; key: string; short: string; head: string; title: string; blurb: string; start: string; noun: string; name: string }> = {
+  course: { list: VIDEO_LESSONS, key: 'rfx_lessons_done', short: 'Kevin · course', head: 'Video course', title: "Your mentor's video course, as notes", blurb: `All ${VIDEO_LESSONS.length} lessons written out with diagrams, his rules, the mistakes he warns about and a pre-trade check for each. Pick a lesson on the left. The Planner, Playbook and Guru link back here.`, start: 'Start lesson 1', noun: 'lessons', name: 'Kevin' },
+  zoom: { list: ZOOM_SESSIONS, key: 'rfx_zoom_done', short: 'Kevin · Sunday live', head: 'Sunday Zoom sessions', title: 'Sunday live sessions, as notes', blurb: `All ${ZOOM_SESSIONS.length} Sunday Zoom livestreams written out in full: every chart he walked through, every student question, the rules and mistakes, diagrams, and the rules as mechanical checks for the Planner and the bot.`, start: 'Start with the first session', noun: 'sessions', name: 'Kevin' },
+  seiden: { list: SEIDEN_LESSONS, key: 'rfx_seiden_done', short: 'Sam Seiden', head: 'Sam Seiden · 5 years of articles', title: 'Sam Seiden, 5 years of teaching, as notes', blurb: `All ${SEIDEN_LESSONS.length} articles from the 423-page collection: the teaching, every chart described (zones, entries, stops, targets), his rules, novice mistakes, a pre-trade check, and what differs from Kevin's course. Lesson numbers are the PDF page each article starts on.`, start: 'Start with the first article', noun: 'articles', name: 'Sam Seiden' },
+  raja: { list: RAJA_LESSONS, key: 'rfx_raja_done', short: 'Raja', head: 'Raja · complete course', title: "Raja's course, as notes", blurb: `All ${RAJA_LESSONS.length} of Raja's lessons and sessions written out from the transcripts: strong zones (CP and arrival zones), change of direction and the curve, location and momentum, realignment, and his live sessions. Each has his rules, the mistakes he warns about and a pre-trade check. Uncertain readings of the captions are marked (likely).`, start: 'Start with the first lesson', noun: 'lessons', name: 'Raja' },
+  baker: { list: BAKER_LESSONS, key: 'rfx_baker_done', short: 'Kevin Baker', head: 'Kevin Baker · the book', title: "Kevin Baker's book, as notes", blurb: `All ${BAKER_LESSONS.length} chapters of "We Don't Need No Stinkin' Indicators": candles, plotting zones, zone strength, investing, swing and day trading, gaps and broken zones, risk, stops and targets, the trading plan and options. Real charts from the book plus diagrams. Kevin Baker is a different person from your video-course mentor Kevin.`, start: 'Start with chapter 1', noun: 'chapters', name: 'Kevin Baker' },
 };
-const srcOf = (v: string | null): Src => v === 'zoom' || v === 'seiden' ? v : 'course';
+const srcOf = (v: string | null): Src => v === 'zoom' || v === 'seiden' || v === 'raja' || v === 'baker' || v === 'glossary' ? v : 'course';
+const GLOSS_FILTERS: { value: GlossaryMentor | 'all'; label: string }[] = [{ value: 'all', label: 'All' }, { value: 'kevin', label: 'Kevin' }, { value: 'seiden', label: 'Seiden' }, { value: 'baker', label: 'Baker' }, { value: 'bot', label: 'Bot' }];
 function useDone(key: string) {
   const [done, setDone] = useState<number[]>(() => { try { return JSON.parse(localStorage.getItem(key) ?? '[]'); } catch { return []; } });
   useEffect(() => { try { setDone(JSON.parse(localStorage.getItem(key) ?? '[]')); } catch { /* storage blocked */ } }, [key]);
@@ -36,7 +45,7 @@ function Bullets({ items, tone }: { items: string[]; tone?: 'profit' | 'loss' | 
   );
 }
 
-function LessonView({ l, src, list, done, toggle }: { l: VideoLesson; src: Src; list: VideoLesson[]; done: boolean; toggle: () => void }) {
+function LessonView({ l, src, list, done, toggle }: { l: VideoLesson; src: Mentor; list: VideoLesson[]; done: boolean; toggle: () => void }) {
   const i = list.findIndex(x => x.n === l.n);
   const prev = list[i - 1], next = list[i + 1];
   const diagrams = l.diagrams.filter(d => hasDiagram(d.key));
@@ -46,7 +55,7 @@ function LessonView({ l, src, list, done, toggle }: { l: VideoLesson; src: Src; 
     <article className="flex flex-col gap-4">
       <Card>
         <div className="flex flex-wrap items-center gap-2 mb-2">
-          {z ? <><Badge tone="violet">Sunday live</Badge><Badge>{fmtDate(z.date, true)}</Badge></> : <><Badge tone="accent">{src === 'seiden' ? `Page ${l.n}` : `Lesson ${l.n}`}</Badge><Badge>{src === 'seiden' ? 'Sam Seiden' : KIND[l.kind]}</Badge></>}
+          {z ? <><Badge tone="violet">Sunday live</Badge><Badge>{fmtDate(z.date, true)}</Badge></> : <><Badge tone="accent">{src === 'seiden' ? `Page ${l.n}` : `Lesson ${l.n}`}</Badge><Badge>{src === 'seiden' || src === 'raja' || src === 'baker' ? SRC[src].name : KIND[l.kind]}</Badge>{src === 'raja' && <Badge>{KIND[l.kind]}</Badge>}{(l.images?.length ?? 0) > 0 && <Badge tone="violet">{l.images!.length} real chart{l.images!.length > 1 ? 's' : ''}</Badge>}</>}
           {done && <Badge tone="profit">Studied</Badge>}
         </div>
         <RevealText key={src + l.n} as="h2" className="text-[22px] font-semibold tracking-tight" text={l.title} />
@@ -56,6 +65,8 @@ function LessonView({ l, src, list, done, toggle }: { l: VideoLesson; src: Src; 
           <Link to="/plan" className="btn"><Icon name="target" size={14} />Plan a trade</Link>
         </div>
       </Card>
+
+      {l.figures && l.figures.length > 0 && <LessonFigures figures={l.figures} />}
 
       {(diagrams.length > 0 || (z && z.newDiagrams.length > 0)) && (
         <div className={cx('grid gap-3', diagrams.length + (z?.newDiagrams.length ?? 0) > 1 && 'md:grid-cols-2')}>
@@ -78,6 +89,8 @@ function LessonView({ l, src, list, done, toggle }: { l: VideoLesson; src: Src; 
           <Bullets items={s.points} />
         </Card>
       ))}
+
+      {l.images && l.images.length > 0 && <RealCharts images={l.images} />}
 
       {z && z.examples.length > 0 && (
         <Card>
@@ -130,7 +143,7 @@ function LessonView({ l, src, list, done, toggle }: { l: VideoLesson; src: Src; 
         </Card>
       )}
 
-      {l.newVsPdfs.length > 0 && <Card><div className="label mb-3">{z ? 'New compared with the recorded lessons' : src === 'seiden' ? "New or different vs Kevin's course" : 'Not in the PDFs'}</div><Bullets items={l.newVsPdfs} /></Card>}
+      {l.newVsPdfs.length > 0 && <Card><div className="label mb-3">{z ? 'New compared with the recorded lessons' : src === 'seiden' || src === 'raja' || src === 'baker' ? "New or different vs Kevin's course" : 'Not in the PDFs'}</div><Bullets items={l.newVsPdfs} /></Card>}
 
       <nav className="grid grid-cols-2 gap-3" aria-label="Lesson navigation">
         {prev ? <Link to={q(prev.n)} className="card p-3 hover:bg-raised/60 transition-colors"><div className="label">Previous</div><div className="text-[13px] font-medium mt-1 truncate">{isZoom(prev) ? fmtDate(prev.date) : prev.n}. {prev.title}</div></Link> : <span />}
@@ -143,20 +156,23 @@ function LessonView({ l, src, list, done, toggle }: { l: VideoLesson; src: Src; 
 export default function Learn() {
   const [sp, setSp] = useSearchParams();
   const src = srcOf(sp.get('src'));
-  const S = SRC[src];
+  const gloss = src === 'glossary';
+  const [gm, setGm] = useState<GlossaryMentor | 'all'>('all');
+  const S = SRC[gloss ? 'course' : src];
   const LIST: VideoLesson[] = S.list;
-  const [done, toggle] = useDone(S.key);
+  const [done, toggle] = useDone(gloss ? 'rfx_lessons_done' : S.key);
   const [q, setQ] = useState('');
   const n = Number(sp.get('l')) || 0;
-  const lesson = LIST.find(l => l.n === n);
+  const lesson = gloss ? undefined : LIST.find(l => l.n === n);
   useEffect(() => { window.scrollTo({ top: 0 }); }, [n, src]);
   const list = useMemo(() => {
     const s = q.trim().toLowerCase();
     if (!s) return LIST;
-    return LIST.filter(l => [l.title, l.summary, ...l.rules, ...l.sections.flatMap(x => [x.heading, ...x.points]), ...(isZoom(l) ? l.qa.flatMap(x => [x.q, x.a]) : [])].join(' ').toLowerCase().includes(s));
+    return LIST.filter(l => [l.title, l.summary, ...l.rules, ...l.sections.flatMap(x => [x.heading, ...x.points]), ...(isZoom(l) ? l.qa.flatMap(x => [x.q, x.a]) : []), ...(l.images ?? []).map(x => x.caption), ...(l.figures ?? []).map(x => x.caption)].join(' ').toLowerCase().includes(s));
   }, [q, LIST]);
   const pct = LIST.length ? done.length / LIST.length : 0;
   const go = (p: Record<string, string>) => setSp(src === 'course' ? p : { src, ...p });
+  const opts: { k: Src; short: string; count: number }[] = [...(Object.keys(SRC) as Mentor[]).map(k => ({ k: k as Src, short: SRC[k].short, count: SRC[k].list.length })), { k: 'glossary', short: 'Glossary', count: GLOSSARY.length }];
 
   return (
     <Page>
@@ -165,19 +181,31 @@ export default function Learn() {
           <Card>
             <div className="label mb-2">Mentor</div>
             <div role="radiogroup" aria-label="Mentor" className="flex flex-col gap-1">
-              {(Object.keys(SRC) as Src[]).map(k => (
+              {opts.map(({ k, short, count }) => (
                 <button key={k} type="button" role="radio" aria-checked={k === src} onClick={() => { setQ(''); setSp(k === 'course' ? {} : { src: k }); }}
-                  className={cx('flex items-center justify-between w-full px-3 py-2 rounded-lg text-[13px] text-left transition-colors', k === src ? 'bg-accent/15 text-ink font-semibold ring-1 ring-accent/40' : 'text-ink2 hover:bg-raised/60')}>
-                  <span>{SRC[k].short}</span><span className="num text-[12px] text-ink3">{SRC[k].list.length}</span>
+                  className={cx('flex items-center justify-between w-full px-3 py-2 rounded-lg text-[13px] text-left transition-colors', k === 'glossary' && 'mt-1 border-t border-line rounded-t-none pt-2.5', k === src ? 'bg-accent/15 text-ink font-semibold ring-1 ring-accent/40' : 'text-ink2 hover:bg-raised/60')}>
+                  <span className="inline-flex items-center gap-2">{k === 'glossary' && <Icon name="search" size={13} className="text-ink3" />}{short}</span><span className="num text-[12px] text-ink3">{count}</span>
                 </button>
               ))}
             </div>
-            <div className="flex items-baseline justify-between mt-3"><div className="label">{S.head}</div><span className="num text-[12px] text-ink3">{done.length}/{LIST.length} studied</span></div>
-            <div className="h-1.5 rounded-full bg-line mt-2 overflow-hidden"><div className="h-full bg-accent rounded-full" style={{ width: `${pct * 100}%` }} /></div>
-            <input className="field mt-3" placeholder={src === 'zoom' ? 'Search every session…' : src === 'seiden' ? 'Search every article…' : 'Search every lesson…'} aria-label="Search" value={q} onChange={e => setQ(e.target.value)} />
+            {gloss ? (
+              <>
+                <div className="label mt-3">Glossary · {GLOSSARY.length} terms</div>
+                <div className="flex flex-wrap gap-1 mt-2" role="radiogroup" aria-label="Filter by mentor">
+                  {GLOSS_FILTERS.map(f => <button key={f.value} type="button" role="radio" aria-checked={gm === f.value} onClick={() => setGm(f.value)} className={cx('px-2.5 h-7 rounded-full text-[12px] font-medium transition-colors', gm === f.value ? 'bg-accent/15 text-ink ring-1 ring-accent/40' : 'text-ink2 hover:bg-raised/60')}>{f.label}</button>)}
+                </div>
+                <input className="field mt-3" placeholder="Search every term…" aria-label="Search the glossary" value={q} onChange={e => setQ(e.target.value)} />
+              </>
+            ) : (
+              <>
+                <div className="flex items-baseline justify-between mt-3"><div className="label">{S.head}</div><span className="num text-[12px] text-ink3">{done.length}/{LIST.length} studied</span></div>
+                <div className="h-1.5 rounded-full bg-line mt-2 overflow-hidden"><div className="h-full bg-accent rounded-full" style={{ width: `${pct * 100}%` }} /></div>
+                <input className="field mt-3" placeholder={`Search every ${S.noun.replace(/s$/, '')}…`} aria-label="Search" value={q} onChange={e => setQ(e.target.value)} />
+              </>
+            )}
           </Card>
           {/* The list scrolls by itself (desktop), independent of the lesson beside it. */}
-          <Card className="p-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
+          {!gloss && <Card className="p-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
             <ol className="flex flex-col">
               {list.map(l => (
                 <li key={l.n}>
@@ -191,13 +219,13 @@ export default function Learn() {
               ))}
               {!list.length && <li className="p-3 text-[13px] text-ink3">{LIST.length ? `Nothing mentions “${q}”.` : 'Sessions are being written up.'}</li>}
             </ol>
-          </Card>
+          </Card>}
         </aside>
         <div className="min-w-0">
-          {lesson ? (
+          {gloss ? <GlossaryView q={q} mentor={gm} /> : lesson ? (
             <>
-              <button type="button" className="btn-ghost mb-3 lg:hidden" onClick={() => go({})}><Icon name="chevronLeft" size={14} />All {src === 'zoom' ? 'sessions' : src === 'seiden' ? 'articles' : 'lessons'}</button>
-              <LessonView l={lesson} src={src} list={LIST} done={done.includes(lesson.n)} toggle={() => toggle(lesson.n)} />
+              <button type="button" className="btn-ghost mb-3 lg:hidden" onClick={() => go({})}><Icon name="chevronLeft" size={14} />All {S.noun}</button>
+              <LessonView l={lesson} src={src as Mentor} list={LIST} done={done.includes(lesson.n)} toggle={() => toggle(lesson.n)} />
             </>
           ) : (
             <Card className="max-lg:hidden">

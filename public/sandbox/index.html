@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="en" class="h-full">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trading Sandbox</title>
+<meta name="description" content="Blind chart tests, drawing tools, trade critique against the mentor and a pattern-matching drill.">
+<meta name="theme-color" content="#0b0f17">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script>
+  tailwind.config = { theme: { extend: {
+    colors: { bg: '#0b0f17', panel: '#111723', panel2: '#161e2d', edge: '#243045', ink: '#e6edf7', ink2: '#a9b6c9', ink3: '#6f7f97', buy: '#22c55e', sell: '#ef4444', acc: '#38bdf8', gold: '#f59e0b', mentor: '#c084fc' },
+    fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'], mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'] } } } };
+</script>
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<style>
+  :root { color-scheme: dark; }
+  html, body { background: #0b0f17; }
+  .num { font-variant-numeric: tabular-nums; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; height: 2.25rem; padding: 0 .85rem; border-radius: .6rem; font-size: 13px; font-weight: 600; border: 1px solid #243045; background: #161e2d; color: #e6edf7; transition: background .15s, border-color .15s, color .15s, transform .1s; white-space: nowrap; }
+  .btn:hover { background: #1c2638; }
+  .btn:active { transform: translateY(1px); }
+  .btn:disabled { opacity: .45; pointer-events: none; }
+  .btn-pri { background: #0ea5e9; border-color: #0ea5e9; color: #04131d; }
+  .btn-pri:hover { background: #38bdf8; }
+  .btn svg, .tool svg, .chip svg { width: 16px; height: 16px; }
+  :focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
+  .tool { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: .6rem; color: #a9b6c9; border: 1px solid transparent; }
+  .tool:hover { background: #1c2638; color: #e6edf7; }
+  .tool[aria-pressed="true"] { background: rgba(56,189,248,.15); color: #38bdf8; border-color: rgba(56,189,248,.45); }
+  .chip { display: inline-flex; align-items: center; gap: .35rem; height: 2rem; padding: 0 .75rem; border-radius: 999px; font-size: 12.5px; font-weight: 600; border: 1px solid #243045; color: #a9b6c9; background: #111723; }
+  .chip:hover { color: #e6edf7; }
+  .chip[aria-pressed="true"] { color: #e6edf7; background: rgba(56,189,248,.15); border-color: rgba(56,189,248,.5); }
+  .field { width: 100%; height: 2.25rem; border-radius: .6rem; background: #0b0f17; border: 1px solid #243045; color: #e6edf7; padding: 0 .7rem; font-size: 13px; }
+  .field:focus { border-color: #38bdf8; outline: none; }
+  select.field { padding-right: 1.6rem; }
+  .label { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; color: #6f7f97; }
+  .card { background: #111723; border: 1px solid #1d2738; border-radius: 1rem; }
+  .side { height: 2.75rem; border-radius: .7rem; font-weight: 800; font-size: 13px; letter-spacing: .04em; border: 1px solid #243045; background: #0b0f17; color: #a9b6c9; display: inline-flex; align-items: center; justify-content: center; gap: .35rem; }
+  .side[data-s="buy"][aria-pressed="true"] { background: rgba(34,197,94,.16); color: #4ade80; border-color: rgba(34,197,94,.6); }
+  .side[data-s="sell"][aria-pressed="true"] { background: rgba(239,68,68,.16); color: #f87171; border-color: rgba(239,68,68,.6); }
+  .side[data-s="none"][aria-pressed="true"] { background: rgba(148,163,184,.14); color: #e6edf7; border-color: rgba(148,163,184,.6); }
+  .pick[aria-pressed="true"] { background: rgba(245,158,11,.18); color: #fbbf24; border-color: rgba(245,158,11,.6); }
+  #mask { transition: left 1.5s cubic-bezier(.4,0,.2,1); background: repeating-linear-gradient(135deg, #0d1320 0 10px, #0f1726 10px 20px); }
+  .shake { animation: shake .35s; }
+  @keyframes shake { 20%,60% { transform: translateX(-6px); } 40%,80% { transform: translateX(6px); } }
+  .pop { animation: pop .3s ease-out; }
+  @keyframes pop { 0% { transform: scale(.96); opacity: .4; } 100% { transform: scale(1); opacity: 1; } }
+  .ghost { position: fixed; pointer-events: none; z-index: 80; opacity: .9; transform: translate(-50%, -50%) rotate(-3deg); box-shadow: 0 18px 40px -10px rgba(0,0,0,.7); border-radius: .6rem; }
+  .drop-hot { border-color: #38bdf8 !important; background: rgba(56,189,248,.08) !important; }
+  .scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; } .scroll-thin::-webkit-scrollbar-thumb { background: #243045; border-radius: 8px; }
+  @media (prefers-reduced-motion: reduce) { #mask { transition: none; } .shake, .pop { animation: none; } }
+</style>
+</head>
+<body class="min-h-full bg-bg text-ink font-sans antialiased">
+<div class="max-w-[1500px] mx-auto px-4 sm:px-5 py-4 flex flex-col gap-4">
+
+  <header class="flex flex-wrap items-center gap-3">
+    <div class="flex items-center gap-2.5 mr-auto">
+      <span class="grid place-items-center w-9 h-9 rounded-xl bg-acc/15 text-acc"><i data-lucide="candlestick-chart"></i></span>
+      <div>
+        <h1 class="text-[17px] font-bold tracking-tight leading-tight">The Active Trading Sandbox</h1>
+        <p class="text-[12px] text-ink3 leading-tight" id="dataInfo">Loading exercises…</p>
+      </div>
+    </div>
+    <nav class="flex gap-1 p-1 rounded-xl bg-panel border border-edge" role="tablist" aria-label="Sandbox mode">
+      <button class="chip border-0" role="tab" id="tab-blind" aria-controls="view-blind" aria-selected="true" aria-pressed="true" data-tab="blind"><i data-lucide="eye-off"></i>Blind test</button>
+      <button class="chip border-0" role="tab" id="tab-match" aria-controls="view-match" aria-selected="false" aria-pressed="false" data-tab="match"><i data-lucide="puzzle"></i>Pattern matcher</button>
+      <button class="chip border-0" role="tab" id="tab-hist" aria-controls="view-hist" aria-selected="false" aria-pressed="false" data-tab="hist"><i data-lucide="history"></i>Journal &amp; stats</button>
+    </nav>
+  </header>
+
+  <!-- ───────────── BLIND TEST ───────────── -->
+  <section id="view-blind" role="tabpanel" aria-labelledby="tab-blind" class="flex flex-col gap-3">
+    <div class="card p-3 flex flex-wrap items-end gap-2">
+      <label class="flex flex-col gap-1 min-w-[120px] flex-1 sm:flex-none"><span class="label">Mentor</span><select id="fMentor" class="field"></select></label>
+      <label class="flex flex-col gap-1 min-w-[150px] flex-1 sm:flex-none"><span class="label">Pattern</span><select id="fPattern" class="field"></select></label>
+      <label class="flex flex-col gap-1 min-w-[150px] flex-1 sm:flex-none"><span class="label">Lesson</span><select id="fLesson" class="field"></select></label>
+      <label class="flex flex-col gap-1 min-w-[220px] flex-[2]"><span class="label">Chart</span><select id="fChart" class="field"></select></label>
+      <div class="flex gap-2">
+        <button class="btn" id="prevBtn" aria-label="Previous chart"><i data-lucide="chevron-left"></i></button>
+        <button class="btn" id="nextBtn" aria-label="Next chart"><i data-lucide="chevron-right"></i></button>
+        <button class="btn btn-pri" id="randBtn"><i data-lucide="shuffle"></i>Random</button>
+      </div>
+    </div>
+
+    <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_360px] items-start">
+      <div class="card p-3 flex flex-col gap-2 min-w-0">
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="min-w-0 mr-auto">
+            <div class="text-[15px] font-semibold truncate" id="exTitle">—</div>
+            <div class="text-[12px] text-ink3" id="exMeta"></div>
+          </div>
+          <div class="flex items-center gap-1 flex-wrap" role="toolbar" aria-label="Drawing tools">
+            <button class="tool" data-tool="cursor" aria-label="Cursor (V) - drag your trade lines" title="Cursor (V)"><i data-lucide="mouse-pointer-2"></i></button>
+            <button class="tool" data-tool="hline" aria-label="Horizontal support/resistance line (H)" title="S/R line (H)"><i data-lucide="minus"></i></button>
+            <button class="tool" data-tool="trend" aria-label="Trendline (T)" title="Trendline (T)"><i data-lucide="trending-up"></i></button>
+            <button class="tool" data-tool="rect" aria-label="Zone rectangle (R)" title="Zone (R)"><i data-lucide="square"></i></button>
+            <button class="tool" data-tool="fib" aria-label="Fibonacci retracement (F)" title="Fibonacci (F)"><i data-lucide="align-justify"></i></button>
+            <button class="tool" data-tool="pen" aria-label="Freehand pen (P)" title="Pen (P)"><i data-lucide="pencil"></i></button>
+            <button class="tool" data-tool="eraser" aria-label="Eraser (E) - tap a drawing to remove it" title="Eraser (E)"><i data-lucide="eraser"></i></button>
+            <span class="w-px h-6 bg-edge mx-1" aria-hidden="true"></span>
+            <div class="flex items-center gap-1" role="radiogroup" aria-label="Colour" id="colors"></div>
+            <span class="w-px h-6 bg-edge mx-1" aria-hidden="true"></span>
+            <button class="tool" id="undoBtn" aria-label="Undo (Ctrl+Z)" title="Undo (Ctrl+Z)"><i data-lucide="undo-2"></i></button>
+            <button class="tool" id="clearBtn" aria-label="Clear drawings" title="Clear drawings"><i data-lucide="trash-2"></i></button>
+          </div>
+        </div>
+        <div id="stageWrap" class="relative w-full flex justify-center rounded-xl bg-[#070a10] p-1 min-h-[280px]">
+          <div id="stage" class="relative select-none" style="width:0;height:0">
+            <img id="chartImg" alt="" class="absolute inset-0 w-full h-full" draggable="false">
+            <div id="mask" class="absolute top-0 bottom-0 right-0 flex items-center justify-center overflow-hidden" aria-hidden="true">
+              <div class="text-center px-2"><div class="mx-auto w-9 h-9 grid place-items-center rounded-full bg-black/40 text-ink3 mb-1"><i data-lucide="eye-off"></i></div><div class="text-[11px] font-bold tracking-widest text-ink3">OUTCOME<br>HIDDEN</div></div>
+            </div>
+            <canvas id="cv" class="absolute inset-0 w-full h-full" style="touch-action:none" tabindex="0" aria-label="Chart drawing surface. Use the toolbar to pick a tool."></canvas>
+            <div id="readout" class="absolute left-2 top-2 px-2 py-1 rounded-md bg-black/70 text-[11.5px] font-mono num text-ink pointer-events-none hidden"></div>
+            <div id="pickHint" class="absolute left-1/2 -translate-x-1/2 bottom-2 px-3 py-1.5 rounded-full bg-gold text-black text-[12px] font-bold pointer-events-none hidden"></div>
+          </div>
+          <div id="stageEmpty" class="absolute inset-0 grid place-items-center text-ink3 text-[13px]">Loading…</div>
+        </div>
+        <p class="text-[11.5px] text-ink3">Draw with mouse, finger or stylus. The shaded area right of the amber “now” line is the future: plan the trade, then reveal. Keys: V H T R F P E · Ctrl+Z undo · B / S / N side · 1 2 3 pick entry / stop / target.</p>
+      </div>
+
+      <aside class="flex flex-col gap-3">
+        <div class="card p-4 flex flex-col gap-3" id="tradePanel">
+          <div class="flex items-center justify-between"><div class="label">Your trade</div><span class="text-[11px] text-ink3" id="unitNote"></span></div>
+          <div class="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Trade side">
+            <button class="side" data-s="buy" role="radio" aria-pressed="false" aria-checked="false"><i data-lucide="arrow-up-right" class="w-4 h-4"></i>BUY</button>
+            <button class="side" data-s="sell" role="radio" aria-pressed="false" aria-checked="false"><i data-lucide="arrow-down-right" class="w-4 h-4"></i>SELL</button>
+            <button class="side" data-s="none" role="radio" aria-pressed="false" aria-checked="false"><i data-lucide="ban" class="w-4 h-4"></i>NO TRADE</button>
+          </div>
+          <div id="levels" class="flex flex-col gap-2">
+            <div class="grid grid-cols-[64px_1fr_auto] items-center gap-2"><label for="inEntry" class="text-[12.5px] font-semibold text-acc">Entry</label><input id="inEntry" class="field num" inputmode="decimal" autocomplete="off"><button class="btn pick px-2.5" data-pick="entry" aria-pressed="false" title="Click the chart to set (1)"><i data-lucide="crosshair"></i>Set</button></div>
+            <div class="grid grid-cols-[64px_1fr_auto] items-center gap-2"><label for="inSl" class="text-[12.5px] font-semibold text-sell">Stop</label><input id="inSl" class="field num" inputmode="decimal" autocomplete="off"><button class="btn pick px-2.5" data-pick="sl" aria-pressed="false" title="Click the chart to set (2)"><i data-lucide="crosshair"></i>Set</button></div>
+            <div class="grid grid-cols-[64px_1fr_auto] items-center gap-2"><label for="inTp" class="text-[12.5px] font-semibold text-buy">Target</label><input id="inTp" class="field num" inputmode="decimal" autocomplete="off"><button class="btn pick px-2.5" data-pick="tp" aria-pressed="false" title="Click the chart to set (3)"><i data-lucide="crosshair"></i>Set</button></div>
+          </div>
+          <div class="grid grid-cols-3 gap-2 text-center">
+            <div class="rounded-lg bg-bg border border-edge py-2"><div class="label">Risk</div><div class="num text-[13px] font-semibold mt-0.5" id="oRisk">—</div></div>
+            <div class="rounded-lg bg-bg border border-edge py-2"><div class="label">Reward</div><div class="num text-[13px] font-semibold mt-0.5" id="oRew">—</div></div>
+            <div class="rounded-lg bg-bg border border-edge py-2"><div class="label">R:R</div><div class="num text-[15px] font-bold mt-0.5" id="oRR">—</div></div>
+          </div>
+          <div id="tradeMsg" class="text-[12px] text-ink3 min-h-[1.2em]" role="status" aria-live="polite"></div>
+          <div class="flex gap-2">
+            <button class="btn btn-pri flex-1" id="revealBtn" disabled><i data-lucide="eye"></i>Reveal &amp; critique</button>
+            <button class="btn" id="resetBtn" title="Reset this chart"><i data-lucide="rotate-ccw"></i></button>
+          </div>
+        </div>
+
+        <div class="card p-4 hidden flex-col gap-3" id="critique" aria-live="polite"></div>
+
+        <div class="card p-4 hidden flex-col gap-3" id="psych">
+          <div class="label">Psychology log</div>
+          <p class="text-[12.5px] text-ink2 -mt-1">How did you feel while planning this one? Be honest: this is where the patterns in your trading show up.</p>
+          <div class="flex flex-wrap gap-1.5" id="emoChips" role="group" aria-label="Emotions"></div>
+          <label class="flex flex-col gap-1"><span class="flex justify-between"><span class="label">Confidence</span><span class="num text-[12px] text-ink2" id="confOut">50%</span></span><input type="range" id="conf" min="0" max="100" step="5" value="50" class="w-full accent-sky-400"></label>
+          <label class="flex flex-col gap-1"><span class="label">Note</span><textarea id="note" rows="3" class="field h-auto py-2 resize-y" placeholder="What did you see? What would you do differently?"></textarea></label>
+          <div class="flex gap-2"><button class="btn btn-pri flex-1" id="saveLog"><i data-lucide="save"></i>Save to journal</button><button class="btn" id="nextAfter"><i data-lucide="skip-forward"></i>Next</button></div>
+          <div class="text-[12px] text-ink3" id="saveMsg" role="status" aria-live="polite"></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ───────────── PATTERN MATCHER ───────────── -->
+  <section id="view-match" role="tabpanel" aria-labelledby="tab-match" class="hidden flex-col gap-3">
+    <div class="card p-4 flex flex-wrap items-center gap-3">
+      <div class="mr-auto min-w-[220px]">
+        <h2 class="text-[15px] font-semibold">Pattern matcher</h2>
+        <p class="text-[12.5px] text-ink2">Drag each chart onto the structure it shows (or select a chart, then a card, with the keyboard). +10 per match, −3 per miss.</p>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="text-center"><div class="label">Score</div><div class="num text-[20px] font-bold" id="mScore">0</div></div>
+        <div class="text-center"><div class="label">Time</div><div class="num text-[20px] font-bold" id="mTime">0:00</div></div>
+        <div class="text-center"><div class="label">Left</div><div class="num text-[20px] font-bold" id="mLeft">0</div></div>
+        <div class="text-center"><div class="label">Best</div><div class="num text-[20px] font-bold text-gold" id="mBest">—</div></div>
+      </div>
+      <label class="flex items-center gap-2 text-[12.5px] text-ink2"><span>Charts</span><select id="mCount" class="field w-auto"><option>6</option><option selected>8</option><option>12</option></select></label>
+      <button class="btn btn-pri" id="mNew"><i data-lucide="refresh-cw"></i>New round</button>
+    </div>
+    <div class="card p-3">
+      <div class="label mb-2">Charts to sort</div>
+      <div id="tray" class="flex gap-2 overflow-x-auto scroll-thin pb-1 min-h-[118px]" role="listbox" aria-label="Charts to sort"></div>
+    </div>
+    <div id="defs" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"></div>
+    <details class="card p-4 text-[13px] text-ink2">
+      <summary class="cursor-pointer font-semibold text-ink">Why no head-and-shoulders, flags or triangles?</summary>
+      <p class="mt-2 leading-relaxed">Kevin, Seiden, Raja and Baker read <em>where unfilled orders sit</em>, not shapes. A head-and-shoulders “right shoulder” is only worth trading if it happens to be a fresh rally-base-drop supply with room below; the shape itself carries no edge, and the crowd that trades the pattern is usually the liquidity the supply-and-demand trader sells to. So the drill uses the structures they actually trade: the four zone types, gaps, traps, retests and level quality.</p>
+    </details>
+  </section>
+
+  <!-- ───────────── HISTORY ───────────── -->
+  <section id="view-hist" role="tabpanel" aria-labelledby="tab-hist" class="hidden flex-col gap-3">
+    <div class="grid gap-3 grid-cols-2 md:grid-cols-5" id="statCards"></div>
+    <div class="grid gap-3 lg:grid-cols-[1fr_360px] items-start">
+      <div class="card p-3">
+        <div class="flex items-center justify-between px-1 pb-2"><div class="label">Attempts</div><div class="flex gap-2"><button class="btn h-8" id="exportBtn"><i data-lucide="download"></i>Export</button><button class="btn h-8" id="wipeBtn"><i data-lucide="trash-2"></i>Clear</button></div></div>
+        <div id="histList" class="flex flex-col divide-y divide-edge"></div>
+      </div>
+      <div class="card p-4 flex flex-col gap-3">
+        <div class="label">Emotion vs result</div>
+        <div id="emoStats" class="flex flex-col gap-2 text-[13px]"></div>
+        <p class="text-[11.5px] text-ink3">Average R per emotion you tagged. If FOMO or revenge trades lose and calm ones win, that is the lesson.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Preview dialog for the matcher thumbnails -->
+<div id="preview" class="fixed inset-0 z-[70] hidden items-center justify-center bg-black/80 p-4" role="dialog" aria-modal="true" aria-label="Chart preview">
+  <div class="relative max-w-[min(92vw,900px)]">
+    <img id="previewImg" alt="" class="max-h-[80vh] w-auto rounded-xl ring-1 ring-edge" style="image-rendering:auto">
+    <button class="btn absolute -top-3 -right-3 w-9 px-0 rounded-full" id="previewClose" aria-label="Close preview"><i data-lucide="x"></i></button>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+// ─────────── utilities ───────────
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } },
+};
+const icons = () => { try { window.lucide && window.lucide.createIcons(); } catch { /* icons are decoration */ } };
+const reduceMotion = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
+const shuffle = a => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+
+const FILES = ['charts_p001.json', 'charts_p081.json', 'charts_p161.json', 'charts_p241.json', 'charts_p321.json', 'charts_p401.json'];
+const BASE = '/sandbox/';
+const K_ATT = 'rfx_sandbox_attempts', K_BEST = 'rfx_sandbox_match_best', K_PREF = 'rfx_sandbox_prefs';
+const MENTOR = { seiden: 'Sam Seiden', kevin: 'Kevin', raja: 'Raja', baker: 'Kevin Baker' };
+const PATTERN_LABEL = { DBR: 'Drop-Base-Rally', RBR: 'Rally-Base-Rally', RBD: 'Rally-Base-Drop', DBD: 'Drop-Base-Drop', 'novice-gap': 'Novice gap', 'pro-gap': 'Pro gap', 'bull-trap': 'Bull trap', 'bear-trap': 'Bear trap', 'breakout-retest': 'Breakout & retest', 'failed-level': 'Failed level', 'stacked-levels': 'Stacked levels', other: 'Other' };
+const COLORS = ['#38bdf8', '#f59e0b', '#22c55e', '#ef4444', '#c084fc', '#e6edf7'];
+const EMOS = [['calm', 'Calm', 'leaf'], ['fomo', 'FOMO', 'zap'], ['fear', 'Fear', 'shield-alert'], ['greed', 'Greed', 'gem'], ['revenge', 'Revenge', 'flame'], ['unsure', 'Unsure', 'circle-help']];
+const FIB = [0, 0.382, 0.5, 0.618, 1];
+
+const valid = x => x && typeof x.id === 'string' && typeof x.src === 'string' && Array.isArray(x.path) && x.path.length >= 2 && x.truth && typeof x.maskX === 'number' && x.plot;
+
+// ─────────── state ───────────
+let EX = [];
+const S = {
+  tab: 'blind', list: [], ex: null, tool: 'hline', color: COLORS[0],
+  shapes: [], undo: [], draft: null, drag: null, hover: null, drawings: new Map(),
+  trade: { side: null, entry: null, sl: null, tp: null }, pick: null,
+  revealed: false, revealP: 0, res: null, mres: null, attemptId: null, emos: new Set(),
+};
+const W = () => stage.clientWidth, H = () => stage.clientHeight;
+const stage = $('#stage'), img = $('#chartImg'), cv = $('#cv'), ctx = cv.getContext('2d'), mask = $('#mask');
+
+// ─────────── price <-> y (image fractions, 0 = top) ───────────
+const hasAxis = ex => !!(ex && ex.axis && ex.axis.y1 !== ex.axis.y2);
+const priceAt = (ex, y) => { const a = ex.axis; return a.p1 + (y - a.y1) * (a.p2 - a.p1) / (a.y2 - a.y1); };
+const yAtPrice = (ex, p) => { const a = ex.axis; return a.y1 + (p - a.p1) * (a.y2 - a.y1) / (a.p2 - a.p1); };
+const decimals = ex => { if (!hasAxis(ex)) return 1; const d = Math.abs(ex.axis.p1 - ex.axis.p2) || 1; return clamp(Math.ceil(-Math.log10(d / 300)), 0, 5); };
+const pctAt = (ex, y) => (ex.plot.y1 - y) / ((ex.plot.y1 - ex.plot.y0) || 1) * 100;
+const yAtPct = (ex, p) => ex.plot.y1 - p / 100 * (ex.plot.y1 - ex.plot.y0);
+const fmtY = (ex, y) => y == null ? '' : hasAxis(ex) ? priceAt(ex, y).toFixed(decimals(ex)) : pctAt(ex, y).toFixed(1) + '%';
+const fmtVal = (ex, y) => y == null ? '' : hasAxis(ex) ? priceAt(ex, y).toFixed(decimals(ex)) : pctAt(ex, y).toFixed(1);
+const parseVal = (ex, v) => { const n = parseFloat(String(v).replace(',', '.').replace('%', '')); if (!isFinite(n)) return null; return hasAxis(ex) ? yAtPrice(ex, n) : yAtPct(ex, n); };
+const dist = (ex, ya, yb) => hasAxis(ex) ? Math.abs(priceAt(ex, ya) - priceAt(ex, yb)).toFixed(decimals(ex)) : (Math.abs(pctAt(ex, ya) - pctAt(ex, yb))).toFixed(1) + '%';
+
+// ─────────── trade evaluation against the hidden path ───────────
+// path[] = y fractions of price from the "now" line to the end of the chart; straight segments between them.
+function evaluate(ex, side, E, SL, TP) {
+  if (!side || side === 'none') return { kind: 'none' };
+  if (E == null || SL == null || TP == null) return { kind: 'invalid', why: 'Set entry, stop and target.' };
+  const P = ex.path.map(y => -y), e = -E, s = -SL, t = -TP, dir = side === 'buy' ? 1 : -1;
+  if (dir * (t - e) <= 0 || dir * (e - s) <= 0) return { kind: 'invalid', why: side === 'buy' ? 'For a BUY the stop must be below the entry and the target above it.' : 'For a SELL the stop must be above the entry and the target below it.' };
+  // TOL: a touch within ~1.2% of chart height counts (the path is hand-digitised from the image).
+  const risk = Math.abs(e - s), rr = Math.abs(t - e) / risk, TOL = 0.012;
+  const sT = s + dir * TOL, tT = t - dir * TOL;
+  let filled = Math.abs(P[0] - e) <= TOL, fillAt = filled ? 0 : null, type = filled ? 'market' : (dir * (e - P[0]) < 0 ? 'limit' : 'stop');
+  for (let i = 0; i < P.length - 1; i++) {
+    const A = P[i], B = P[i + 1], mn = Math.min(A, B), mx = Math.max(A, B); let a = A;
+    const at = lvl => i + (B === A ? 0 : clamp((lvl - A) / (B - A), 0, 1));
+    if (!filled) { if (e >= mn - TOL && e <= mx + TOL) { filled = true; a = clamp(e, mn, mx); fillAt = at(a); } else continue; }
+    const lo = Math.min(a, B), hi = Math.max(a, B);
+    const hs = sT >= lo && sT <= hi, ht = tT >= lo && tT <= hi;
+    if (hs && ht) { return Math.abs(sT - a) <= Math.abs(tT - a) ? { kind: 'loss', R: -1, rr, type, fillAt, at: at(sT) } : { kind: 'win', R: rr, rr, type, fillAt, at: at(tT) }; }
+    if (hs) return { kind: 'loss', R: -1, rr, type, fillAt, at: at(sT) };
+    if (ht) return { kind: 'win', R: rr, rr, type, fillAt, at: at(tT) };
+  }
+  if (!filled) return { kind: 'nofill', R: 0, rr, type };
+  return { kind: 'open', R: dir * (P[P.length - 1] - e) / risk, rr, type, fillAt, at: P.length - 1 };
+}
+const RES_TXT = {
+  win: r => `Target hit first: +${r.R.toFixed(2)}R`, loss: () => 'Stopped out: −1R', nofill: () => 'Not filled: price never reached your entry',
+  open: r => `Still open at the chart's end: ${r.R >= 0 ? '+' : ''}${r.R.toFixed(2)}R`, none: () => 'No trade', invalid: r => r.why,
+};
+
+// ─────────── loading ───────────
+async function load() {
+  const res = await Promise.all(FILES.map(f => fetch(BASE + f, { cache: 'no-cache' }).then(r => r.ok ? r.json() : []).catch(() => [])));
+  const seen = new Set();
+  EX = res.flat().filter(valid).filter(x => !seen.has(x.id) && seen.add(x.id));
+  EX.sort((a, b) => (a.lesson - b.lesson) || a.id.localeCompare(b.id));
+  const ok = res.filter(r => Array.isArray(r) && r.length).length;
+  $('#dataInfo').textContent = EX.length ? `${EX.length} charts from ${ok} of ${FILES.length} packs · ${new Set(EX.map(x => x.mentor)).size} mentor${new Set(EX.map(x => x.mentor)).size > 1 ? 's' : ''}` : 'No exercises found. Add charts_*.json to /sandbox.';
+}
+
+// ─────────── filters ───────────
+function opts(sel, items, keep) { const cur = keep ?? sel.value; sel.innerHTML = items.map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join(''); if (items.some(([v]) => v === cur)) sel.value = cur; }
+function refreshFilters(keepChart) {
+  const m = $('#fMentor').value || 'all', p = $('#fPattern').value || 'all';
+  opts($('#fMentor'), [['all', 'All mentors'], ...[...new Set(EX.map(x => x.mentor))].map(k => [k, MENTOR[k] || k])]);
+  const byM = EX.filter(x => m === 'all' || x.mentor === m);
+  const pc = {}; byM.forEach(x => { pc[x.pattern] = (pc[x.pattern] || 0) + 1; });
+  opts($('#fPattern'), [['all', `All patterns (${byM.length})`], ...Object.keys(pc).sort().map(k => [k, `${PATTERN_LABEL[k] || k} (${pc[k]})`])]);
+  const byP = byM.filter(x => p === 'all' || x.pattern === p);
+  const ls = [...new Set(byP.map(x => x.lesson))].sort((a, b) => a - b);
+  opts($('#fLesson'), [['all', 'All lessons'], ...ls.map(n => [String(n), `Lesson ${n}`])]);
+  const l = $('#fLesson').value || 'all';
+  S.list = byP.filter(x => l === 'all' || String(x.lesson) === l);
+  opts($('#fChart'), S.list.map(x => [x.id, `${x.title}`]), keepChart);
+}
+function onFilter() { refreshFilters(); if (S.list.length) loadEx(S.list.includes(S.ex) ? S.ex : S.list[0]); else showEmpty('No charts match these filters.'); }
+['#fMentor', '#fPattern', '#fLesson'].forEach(id => $(id).addEventListener('change', onFilter));
+$('#fChart').addEventListener('change', e => { const x = EX.find(x => x.id === e.target.value); if (x) loadEx(x); });
+const step = d => { if (!S.list.length) return; const i = S.list.indexOf(S.ex); loadEx(S.list[(i + d + S.list.length) % S.list.length]); };
+$('#prevBtn').onclick = () => step(-1);
+$('#nextBtn').onclick = () => step(1);
+$('#randBtn').onclick = () => { if (!S.list.length) return; const pool = S.list.length > 1 ? S.list.filter(x => x !== S.ex) : S.list; loadEx(pool[Math.floor(Math.random() * pool.length)]); };
+function showEmpty(t) { $('#stageEmpty').textContent = t; $('#stageEmpty').classList.remove('hidden'); stage.style.visibility = 'hidden'; }
+
+// ─────────── load one exercise ───────────
+function loadEx(ex) {
+  if (S.ex) S.drawings.set(S.ex.id, S.shapes);
+  S.ex = ex; S.shapes = S.drawings.get(ex.id) || []; S.undo = []; S.draft = null; S.pick = null;
+  S.trade = { side: null, entry: null, sl: null, tp: null }; S.revealed = false; S.revealP = 0; S.res = S.mres = null; S.attemptId = null; S.emos = new Set();
+  $('#fChart').value = ex.id;
+  $('#exTitle').textContent = ex.title;
+  $('#exMeta').textContent = `${MENTOR[ex.mentor] || ex.mentor} · lesson ${ex.lesson} · ${hasAxis(ex) ? 'price scale calibrated' : 'no price scale (levels in % of chart height)'}`;
+  $('#unitNote').textContent = hasAxis(ex) ? 'prices' : '% of chart height';
+  ['#inEntry', '#inSl', '#inTp'].forEach(s => { $(s).value = ''; $(s).placeholder = hasAxis(ex) ? 'price' : '% (0 = bottom)'; });
+  mask.style.transition = 'none'; mask.style.left = (ex.maskX * 100) + '%'; void mask.offsetWidth; mask.style.transition = '';
+  $('#critique').classList.add('hidden'); $('#critique').classList.remove('flex');
+  $('#psych').classList.add('hidden'); $('#psych').classList.remove('flex');
+  $('#tradePanel').querySelectorAll('input,button.side,button.pick').forEach(el => { el.disabled = false; });
+  $$('.side').forEach(b => { b.setAttribute('aria-pressed', 'false'); b.setAttribute('aria-checked', 'false'); }); $('#levels').style.opacity = '1'; setPick(null);
+  $('#stageEmpty').textContent = 'Loading chart…'; $('#stageEmpty').classList.remove('hidden');
+  stage.style.visibility = 'hidden';
+  img.onload = () => { $('#stageEmpty').classList.add('hidden'); stage.style.visibility = 'visible'; fit(); };
+  img.onerror = () => showEmpty('This chart image could not be loaded.');
+  img.alt = `Chart: ${ex.title} (outcome hidden)`;
+  img.src = ex.src;
+  syncTrade(); savePrefs();
+}
+
+// ─────────── stage sizing ───────────
+function fit() {
+  if (!img.naturalWidth) return;
+  const wrap = $('#stageWrap'), aw = wrap.clientWidth - 8, ah = Math.max(300, Math.min(window.innerHeight * 0.72, 760));
+  const s = Math.min(aw / img.naturalWidth, ah / img.naturalHeight);
+  stage.style.width = Math.round(img.naturalWidth * s) + 'px'; stage.style.height = Math.round(img.naturalHeight * s) + 'px';
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(W() * dpr); cv.height = Math.round(H() * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  draw();
+}
+try { new ResizeObserver(() => fit()).observe($('#stageWrap')); } catch { window.addEventListener('resize', fit); }
+
+// ─────────── drawing ───────────
+function line(x1, y1, x2, y2, c, w = 1.6, dash) { ctx.save(); ctx.strokeStyle = c; ctx.lineWidth = w; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function tag(x, y, text, bg, fg = '#04131d', align = 'right') {
+  ctx.save(); ctx.font = '600 10.5px Inter, system-ui, sans-serif'; const w = ctx.measureText(text).width + 10, h = 16;
+  const X = align === 'right' ? x - w : x, Y = clamp(y - h / 2, 0, H() - h);
+  ctx.fillStyle = bg; ctx.beginPath(); (ctx.roundRect ? ctx.roundRect(X, Y, w, h, 4) : ctx.rect(X, Y, w, h)); ctx.fill();
+  ctx.fillStyle = fg; ctx.textBaseline = 'middle'; ctx.fillText(text, X + 5, Y + h / 2 + 0.5); ctx.restore();
+}
+function drawShape(sh, ghost) {
+  const w = W(), h = H(), c = sh.c; ctx.save(); if (ghost) ctx.globalAlpha = 0.8;
+  if (sh.t === 'hline') { line(0, sh.y * h, w, sh.y * h, c, 1.6); tag(w - 2, sh.y * h, fmtY(S.ex, sh.y), c); }
+  else if (sh.t === 'trend') { const dx = sh.x2 - sh.x1, dy = sh.y2 - sh.y1; line(sh.x1 * w, sh.y1 * h, sh.x2 * w, sh.y2 * h, c, 1.8); if (Math.abs(dx) > 1e-4) { const k = (1 - sh.x2) / dx; if (k > 0) line(sh.x2 * w, sh.y2 * h, w, (sh.y2 + dy * k) * h, c, 1, [4, 4]); } }
+  else if (sh.t === 'rect') { const x = Math.min(sh.x1, sh.x2) * w, y = Math.min(sh.y1, sh.y2) * h, rw = Math.abs(sh.x2 - sh.x1) * w, rh = Math.abs(sh.y2 - sh.y1) * h; ctx.fillStyle = c + '2e'; ctx.fillRect(x, y, rw, rh); ctx.strokeStyle = c; ctx.lineWidth = 1.4; ctx.strokeRect(x, y, rw, rh); }
+  else if (sh.t === 'fib') {
+    const xa = Math.min(sh.x1, sh.x2) * w; line(sh.x1 * w, sh.y1 * h, sh.x2 * w, sh.y2 * h, c, 1, [3, 3]);
+    FIB.forEach(r => { const y = (sh.y2 + (sh.y1 - sh.y2) * r) * h; line(xa, y, w, y, c, r === 0.5 || r === 0.618 ? 1.6 : 1, r === 0 || r === 1 ? null : [6, 3]); ctx.save(); ctx.font = '600 10px Inter, system-ui'; ctx.fillStyle = c; ctx.fillText(`${r} · ${fmtY(S.ex, y / h)}`, xa + 4, y - 3); ctx.restore(); });
+    const y5 = (sh.y2 + (sh.y1 - sh.y2) * 0.5) * h, y6 = (sh.y2 + (sh.y1 - sh.y2) * 0.618) * h; ctx.fillStyle = c + '1f'; ctx.fillRect(xa, Math.min(y5, y6), w - xa, Math.abs(y6 - y5));
+  }
+  else if (sh.t === 'pen' && sh.pts.length > 1) { ctx.strokeStyle = c; ctx.lineWidth = 2; ctx.lineJoin = ctx.lineCap = 'round'; ctx.beginPath(); sh.pts.forEach(([x, y], i) => i ? ctx.lineTo(x * w, y * h) : ctx.moveTo(x * w, y * h)); ctx.stroke(); }
+  ctx.restore();
+}
+function pathXY(ex) { const n = ex.path.length, x0 = ex.maskX, x1 = Math.max(ex.plot.x1 || 1, x0 + 0.05); return ex.path.map((y, i) => [x0 + (x1 - x0) * (n > 1 ? i / (n - 1) : 0), y]); }
+function ptAt(ex, t) { const pts = pathXY(ex), i = clamp(Math.floor(t), 0, pts.length - 1), f = t - i; if (i >= pts.length - 1) return pts[pts.length - 1]; return [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * f, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * f]; }
+function drawTrade(tr, opt) {
+  const ex = S.ex, w = W(), h = H(), x0 = opt.x0 * w, lbl = opt.label;
+  const col = { entry: opt.entryC, sl: '#ef4444', tp: '#22c55e' };
+  if (tr.side && tr.side !== 'none' && tr.entry != null) {
+    if (tr.sl != null) { ctx.fillStyle = 'rgba(239,68,68,.12)'; ctx.fillRect(x0, Math.min(tr.entry, tr.sl) * h, w - x0, Math.abs(tr.sl - tr.entry) * h); }
+    if (tr.tp != null) { ctx.fillStyle = 'rgba(34,197,94,.10)'; ctx.fillRect(x0, Math.min(tr.entry, tr.tp) * h, w - x0, Math.abs(tr.tp - tr.entry) * h); }
+  }
+  [['entry', 'Entry'], ['sl', 'Stop'], ['tp', 'Target']].forEach(([k, n]) => { if (tr[k] == null) return; const y = tr[k] * h; line(opt.full ? 0 : x0, y, w, y, col[k], opt.width || 1.8, opt.dash); tag(opt.right ? w - 2 : x0 + 2, y, `${lbl}${n} ${fmtY(ex, tr[k])}`, col[k], '#04131d', opt.right ? 'right' : 'left'); });
+}
+function draw() {
+  const ex = S.ex; if (!ex) return; const w = W(), h = H(); ctx.clearRect(0, 0, w, h);
+  // "now" line
+  line(ex.maskX * w, 0, ex.maskX * w, h, '#f59e0b', 1.2, [5, 4]); if (!S.revealed) tag(ex.maskX * w - 3, 12, 'NOW', '#f59e0b');
+  // revealed: mentor zone, outcome path, mentor trade
+  if (S.revealed) {
+    const t = ex.truth, a = S.revealP;
+    if (ex.zone) { const zx = (ex.zone.x0 ?? 0) * w; ctx.fillStyle = 'rgba(192,132,252,.16)'; ctx.fillRect(zx, ex.zone.y0 * h, w - zx, (ex.zone.y1 - ex.zone.y0) * h); ctx.strokeStyle = 'rgba(192,132,252,.7)'; ctx.setLineDash([4, 3]); ctx.strokeRect(zx, ex.zone.y0 * h, w - zx, (ex.zone.y1 - ex.zone.y0) * h); ctx.setLineDash([]); }
+    const pts = pathXY(ex), upto = a * (pts.length - 1);
+    ctx.save(); ctx.strokeStyle = '#fde047'; ctx.lineWidth = 2.4; ctx.shadowColor = 'rgba(253,224,71,.5)'; ctx.shadowBlur = 6; ctx.beginPath();
+    for (let i = 0; i <= Math.ceil(upto) && i < pts.length; i++) { const [x, y] = i <= upto ? pts[i] : ptAt(ex, upto); i ? ctx.lineTo(x * w, y * h) : ctx.moveTo(x * w, y * h); }
+    ctx.stroke(); ctx.restore();
+    if (a >= 1) {
+      drawTrade({ side: t.side === 'none' ? 'none' : t.side, entry: t.entry, sl: t.sl, tp: t.tp }, { x0: Math.max(0, (ex.zone?.x0 ?? ex.maskX - 0.15)), label: 'S·', entryC: '#c084fc', dash: [7, 4], width: 1.4, right: false });
+      const marks = [[S.res, '#38bdf8'], [S.mres, '#c084fc']];
+      marks.forEach(([r, c]) => { if (!r || r.at == null) return; const [x, y] = ptAt(ex, r.at); ctx.beginPath(); ctx.arc(x * w, y * h, 6, 0, Math.PI * 2); ctx.fillStyle = r.kind === 'win' ? '#22c55e' : r.kind === 'loss' ? '#ef4444' : '#94a3b8'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = c; ctx.stroke(); });
+      if (S.res && S.res.fillAt != null) { const [x, y] = ptAt(ex, S.res.fillAt); ctx.beginPath(); ctx.arc(x * w, y * h, 4, 0, Math.PI * 2); ctx.fillStyle = '#38bdf8'; ctx.fill(); }
+    }
+  }
+  S.shapes.forEach(s => drawShape(s)); if (S.draft) drawShape(S.draft, true);
+  drawTrade(S.trade, { x0: ex.maskX, label: '', entryC: '#38bdf8', right: true, full: false });
+  if (S.hover && (S.pick || ['hline', 'trend', 'rect', 'fib'].includes(S.tool))) { line(0, S.hover.y * h, w, S.hover.y * h, 'rgba(230,237,247,.35)', 1, [2, 3]); line(S.hover.x * w, 0, S.hover.x * w, h, 'rgba(230,237,247,.18)', 1, [2, 3]); }
+}
+
+// ─────────── pointer input on the canvas ───────────
+const pos = e => { const r = cv.getBoundingClientRect(); return { x: clamp((e.clientX - r.left) / r.width, 0, 1), y: clamp((e.clientY - r.top) / r.height, 0, 1) }; };
+const segD = (px, py, ax, ay, bx, by) => { const dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy; const t = L ? clamp(((px - ax) * dx + (py - ay) * dy) / L, 0, 1) : 0; return Math.hypot(px - ax - t * dx, py - ay - t * dy); };
+function hitShape(p) {
+  const w = W(), h = H(), px = p.x * w, py = p.y * h, TH = 8;
+  for (let i = S.shapes.length - 1; i >= 0; i--) {
+    const s = S.shapes[i];
+    if (s.t === 'hline' && Math.abs(s.y * h - py) < TH) return i;
+    if (s.t === 'trend' && segD(px, py, s.x1 * w, s.y1 * h, s.x2 * w, s.y2 * h) < TH) return i;
+    if (s.t === 'rect' && px >= Math.min(s.x1, s.x2) * w - TH && px <= Math.max(s.x1, s.x2) * w + TH && py >= Math.min(s.y1, s.y2) * h - TH && py <= Math.max(s.y1, s.y2) * h + TH) return i;
+    if (s.t === 'fib' && px >= Math.min(s.x1, s.x2) * w - TH && FIB.some(r => Math.abs((s.y2 + (s.y1 - s.y2) * r) * h - py) < TH)) return i;
+    if (s.t === 'pen' && s.pts.some((q, k) => k && segD(px, py, s.pts[k - 1][0] * w, s.pts[k - 1][1] * h, q[0] * w, q[1] * h) < TH)) return i;
+  }
+  return -1;
+}
+const pushUndo = () => { S.undo.push(JSON.stringify(S.shapes)); if (S.undo.length > 100) S.undo.shift(); };
+function erase(p) { const i = hitShape(p); if (i >= 0) { pushUndo(); S.shapes.splice(i, 1); draw(); } }
+cv.addEventListener('pointerdown', e => {
+  if (!S.ex || (e.button !== 0 && e.pointerType === 'mouse')) return;
+  cv.setPointerCapture(e.pointerId); const p = pos(e); cv.focus({ preventScroll: true });
+  if (S.pick) { setLevel(S.pick, p.y); const order = ['entry', 'sl', 'tp']; const nx = order.find(k => S.trade[k] == null); setPick(nx && S.trade.side !== 'none' ? nx : null); return; }
+  if (S.tool === 'cursor') { if (S.revealed) return; const h = H(); const k = ['entry', 'sl', 'tp'].find(k => S.trade[k] != null && Math.abs(S.trade[k] * h - p.y * h) < 8); if (k) S.drag = k; return; }
+  if (S.tool === 'eraser') { S.draft = { t: 'eraser' }; erase(p); return; }
+  if (S.tool === 'hline') S.draft = { t: 'hline', y: p.y, c: S.color };
+  else if (S.tool === 'pen') S.draft = { t: 'pen', pts: [[p.x, p.y]], c: S.color };
+  else S.draft = { t: S.tool, x1: p.x, y1: p.y, x2: p.x, y2: p.y, c: S.color };
+  draw();
+});
+cv.addEventListener('pointermove', e => {
+  if (!S.ex) return; const p = pos(e); S.hover = p;
+  const ro = $('#readout'); ro.classList.remove('hidden'); ro.textContent = (hasAxis(S.ex) ? 'Price ' : 'Height ') + fmtY(S.ex, p.y);
+  if (S.drag) { setLevel(S.drag, p.y); return; }
+  const d = S.draft;
+  if (d) { if (d.t === 'eraser') erase(p); else if (d.t === 'hline') d.y = p.y; else if (d.t === 'pen') { const L = d.pts[d.pts.length - 1]; if (Math.hypot(L[0] - p.x, L[1] - p.y) > 0.003) d.pts.push([p.x, p.y]); } else { d.x2 = p.x; d.y2 = p.y; } }
+  if (S.tool === 'cursor' && !S.revealed) { const h = H(); cv.style.cursor = ['entry', 'sl', 'tp'].some(k => S.trade[k] != null && Math.abs(S.trade[k] * h - p.y * h) < 8) ? 'ns-resize' : 'default'; }
+  else cv.style.cursor = S.tool === 'eraser' ? 'cell' : 'crosshair';
+  draw();
+});
+const endPtr = () => {
+  if (S.drag) { S.drag = null; return; }
+  const d = S.draft; S.draft = null; if (!d || d.t === 'eraser') { draw(); return; }
+  const tiny = (d.t === 'trend' || d.t === 'rect' || d.t === 'fib') && Math.hypot((d.x2 - d.x1) * W(), (d.y2 - d.y1) * H()) < 6;
+  if (!tiny && !(d.t === 'pen' && d.pts.length < 2)) { pushUndo(); S.shapes.push(d); }
+  draw();
+};
+cv.addEventListener('pointerup', endPtr); cv.addEventListener('pointercancel', endPtr);
+cv.addEventListener('pointerleave', () => { S.hover = null; $('#readout').classList.add('hidden'); draw(); });
+
+// ─────────── tools ───────────
+function setTool(t) { S.tool = t; $$('.tool[data-tool]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tool === t))); setPick(null); savePrefs(); }
+$$('.tool[data-tool]').forEach(b => b.addEventListener('click', () => setTool(b.dataset.tool)));
+$('#colors').innerHTML = COLORS.map(c => `<button class="w-6 h-6 rounded-full ring-2 ring-transparent aria-checked:ring-white/80" role="radio" aria-checked="false" aria-label="Colour ${c}" data-c="${c}" style="background:${c}"></button>`).join('');
+function setColor(c) { S.color = c; $$('#colors [data-c]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.c === c))); savePrefs(); }
+$$('#colors [data-c]').forEach(b => b.addEventListener('click', () => setColor(b.dataset.c)));
+const undo = () => { if (!S.undo.length) return; S.shapes = JSON.parse(S.undo.pop()); draw(); };
+$('#undoBtn').onclick = undo;
+$('#clearBtn').onclick = () => { if (!S.shapes.length) return; pushUndo(); S.shapes = []; draw(); };
+
+// ─────────── trade panel ───────────
+const IN = { entry: $('#inEntry'), sl: $('#inSl'), tp: $('#inTp') };
+function setLevel(k, y) { S.trade[k] = y; IN[k].value = fmtVal(S.ex, y); syncTrade(); }
+function setSide(s) {
+  if (S.revealed) return; S.trade.side = s;
+  $$('.side').forEach(b => { const on = b.dataset.s === s; b.setAttribute('aria-pressed', String(on)); b.setAttribute('aria-checked', String(on)); });
+  $('#levels').style.opacity = s === 'none' ? '.4' : '1';
+  if (s !== 'none' && S.trade.entry == null) setPick('entry'); else setPick(null);
+  syncTrade();
+}
+function setPick(k) {
+  S.pick = k; $$('.pick').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pick === k)));
+  const hint = $('#pickHint'); if (k) { hint.textContent = `Click the chart to set your ${k === 'sl' ? 'stop' : k === 'tp' ? 'target' : 'entry'}`; hint.classList.remove('hidden'); } else hint.classList.add('hidden');
+  cv.style.cursor = k ? 'crosshair' : ''; draw();
+}
+$$('.side').forEach(b => b.addEventListener('click', () => setSide(b.dataset.s)));
+$$('.pick').forEach(b => b.addEventListener('click', () => setPick(S.pick === b.dataset.pick ? null : b.dataset.pick)));
+Object.entries(IN).forEach(([k, el]) => el.addEventListener('input', () => { S.trade[k] = el.value.trim() ? parseVal(S.ex, el.value) : null; syncTrade(); }));
+function syncTrade() {
+  const ex = S.ex, t = S.trade; if (!ex) return;
+  let msg = '', ok = false;
+  if (!t.side) msg = 'Pick BUY, SELL or NO TRADE.';
+  else if (t.side === 'none') { msg = 'You are passing on this chart. Reveal to see if the mentor agreed.'; ok = true; }
+  else {
+    const r = (t.entry != null && t.sl != null && t.tp != null) ? evaluate({ path: [0, 0] }, t.side, t.entry, t.sl, t.tp) : null;
+    if (!r) msg = 'Set entry, stop and target: click “Set” then the chart, or type them.';
+    else if (r.kind === 'invalid') msg = r.why;
+    else { ok = true; msg = r.rr < 3 ? `R:R ${r.rr.toFixed(2)} is below the 3:1 Seiden asks for.` : 'Plan is complete. Ready to reveal.'; }
+  }
+  const has = t.entry != null && t.sl != null && t.side && t.side !== 'none';
+  $('#oRisk').textContent = has ? dist(ex, t.entry, t.sl) : '—';
+  $('#oRew').textContent = has && t.tp != null ? dist(ex, t.entry, t.tp) : '—';
+  const rr = has && t.tp != null && Math.abs(t.entry - t.sl) > 1e-6 ? Math.abs(t.tp - t.entry) / Math.abs(t.entry - t.sl) : null;
+  const o = $('#oRR'); o.textContent = rr ? rr.toFixed(2) : '—'; o.className = 'num text-[15px] font-bold mt-0.5 ' + (rr == null ? '' : rr >= 3 ? 'text-buy' : rr >= 2 ? 'text-gold' : 'text-sell');
+  $('#tradeMsg').textContent = S.revealed ? '' : msg;
+  $('#revealBtn').disabled = !ok || S.revealed;
+  draw();
+}
+$('#resetBtn').onclick = () => { if (S.ex) { S.drawings.delete(S.ex.id); const ex = S.ex; S.ex = null; loadEx(ex); } };
+
+// ─────────── reveal & critique ───────────
+$('#revealBtn').onclick = reveal;
+function reveal() {
+  const ex = S.ex; if (!ex || S.revealed) return;
+  const t = S.trade; S.res = evaluate(ex, t.side, t.entry, t.sl, t.tp); if (S.res.kind === 'invalid') return;
+  S.mres = evaluate(ex, ex.truth.side, ex.truth.entry, ex.truth.sl, ex.truth.tp);
+  S.revealed = true; setPick(null); $('#revealBtn').disabled = true;
+  $('#tradePanel').querySelectorAll('input,button.side,button.pick').forEach(el => { el.disabled = true; });
+  img.alt = `Chart: ${ex.title} (outcome revealed)`;
+  mask.style.left = '100%';
+  const dur = reduceMotion() ? 0 : 1500, t0 = performance.now();
+  const tick = now => { S.revealP = dur ? clamp((now - t0) / dur, 0, 1) : 1; draw(); if (S.revealP < 1) requestAnimationFrame(tick); else finish(); };
+  requestAnimationFrame(tick);
+}
+function finish() {
+  const ex = S.ex, t = S.trade, tr = ex.truth, r = S.res, m = S.mres;
+  const agree = t.side === tr.side;
+  const att = { id: 'a' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ts: Date.now(), chart: ex.id, title: ex.title, pattern: ex.pattern, lesson: ex.lesson, mentor: ex.mentor,
+    side: t.side, entry: t.entry, sl: t.sl, tp: t.tp, entryTxt: fmtY(ex, t.entry), slTxt: fmtY(ex, t.sl), tpTxt: fmtY(ex, t.tp),
+    rr: r.rr ?? null, result: r.kind, R: r.kind === 'none' ? null : r.R, agree, mentorSide: tr.side, mentorResult: m.kind, mentorR: m.R ?? null,
+    noTradeCorrect: t.side === 'none' ? (tr.side === 'none' || m.kind === 'loss' || m.kind === 'nofill') : null, emotions: [], confidence: null, note: '' };
+  const list = store.get(K_ATT, []); list.unshift(att); store.set(K_ATT, list.slice(0, 1000)); S.attemptId = att.id;
+  renderCritique(att); openPsych();
+}
+function bullets(items) { return `<ul class="flex flex-col gap-1.5">${items.map(([tone, txt]) => `<li class="flex gap-2 text-[12.5px] leading-relaxed text-ink2"><span class="mt-[7px] w-1.5 h-1.5 rounded-full shrink-0 ${tone === 'good' ? 'bg-buy' : tone === 'bad' ? 'bg-sell' : 'bg-gold'}"></span><span>${txt}</span></li>`).join('')}</ul>`; }
+function coach(ex) {
+  const t = S.trade, tr = ex.truth, z = ex.zone, out = [];
+  const sideTxt = s => s === 'buy' ? 'BUY' : s === 'sell' ? 'SELL' : 'NO TRADE';
+  out.push(t.side === tr.side ? ['good', `Same call as ${esc(MENTOR[ex.mentor] || ex.mentor)}: ${sideTxt(tr.side)}.`] : ['bad', `You chose ${sideTxt(t.side)}; ${esc(MENTOR[ex.mentor] || ex.mentor)} chose ${sideTxt(tr.side)}.`]);
+  if (t.side === 'buy' || t.side === 'sell') {
+    if (tr.entry != null && Math.abs(t.entry - tr.entry) < 0.004) out.push(['good', 'Your entry matches his.']);
+    else if (tr.entry != null) out.push(['tip', `Your entry was ${dist(ex, t.entry, tr.entry)} ${(-t.entry > -tr.entry) ? 'above' : 'below'} his${t.side === tr.side ? '' : ' (opposite side)'}.`]);
+    if (z) {
+      const prox = t.side === 'buy' ? z.y0 : z.y1, distal = t.side === 'buy' ? z.y1 : z.y0, beyond = t.side === 'buy' ? t.sl > distal : t.sl < distal;
+      out.push(beyond ? ['good', 'Stop is beyond the distal line of the zone, where the idea is proven wrong.'] : ['bad', 'Stop sits inside the zone. Seiden places it just beyond the distal line, otherwise normal noise at the level stops you out.']);
+      const inZone = t.entry >= z.y0 - 0.01 && t.entry <= z.y1 + 0.01;
+      const chasing = t.side === 'buy' ? t.entry < z.y0 - 0.01 : t.entry > z.y1 + 0.01;
+      out.push(inZone ? ['good', 'Entry is at the zone (proximal line): you bought/sold where the unfilled orders are.'] : chasing ? ['bad', `Entry is away from the zone, ${dist(ex, t.entry, prox)} ${t.side === 'buy' ? 'above demand' : 'below supply'}: that is chasing and shrinks the profit margin.`] : ['tip', 'Entry is beyond the zone; the order would only fill if the level is already failing.']);
+    }
+    const rr = S.res.rr; if (rr) out.push(rr >= 3 ? ['good', `R:R ${rr.toFixed(2)}: meets the 3:1 rule.`] : ['bad', `R:R ${rr.toFixed(2)}: under 3:1. Either the stop is too wide or the target is short of the opposing level.`]);
+  }
+  if (t.side === 'none') out.push(tr.side === 'none' ? ['good', 'He passed too: no edge is a valid answer.'] : (S.mres.kind === 'win' ? ['bad', `His trade won ${S.mres.R.toFixed(1)}R. Look again at what made the level tradable.`] : ['tip', `His trade ${S.mres.kind === 'loss' ? 'lost' : 'did not fill'}, so standing aside cost you nothing here.`]));
+  return out;
+}
+function renderCritique(att) {
+  const ex = S.ex, r = S.res, m = S.mres, el = $('#critique');
+  const tone = r.kind === 'win' ? 'text-buy' : r.kind === 'loss' ? 'text-sell' : 'text-ink';
+  const yours = r.kind === 'none' ? (att.noTradeCorrect ? 'No trade: correct call' : 'No trade: you missed his trade') : RES_TXT[r.kind](r);
+  const his = ex.truth.side === 'none' ? 'He passed on this chart' : `${ex.truth.side.toUpperCase()} at ${fmtY(ex, ex.truth.entry)}, stop ${fmtY(ex, ex.truth.sl)}, target ${fmtY(ex, ex.truth.tp)} → ${RES_TXT[m.kind](m)}`;
+  el.innerHTML = `
+    <div class="flex items-center justify-between"><div class="label">Result</div><span class="text-[11px] px-2 py-0.5 rounded-full ${att.agree ? 'bg-buy/15 text-buy' : 'bg-sell/15 text-sell'}">${att.agree ? 'Agrees with mentor' : 'Differs from mentor'}</span></div>
+    <div class="pop"><div class="text-[18px] font-bold ${tone}">${esc(yours)}</div>${r.type ? `<div class="text-[11.5px] text-ink3 mt-0.5">${r.type === 'market' ? 'Filled at once (entry at the current price)' : r.type === 'limit' ? 'Limit order: price had to come back to your entry' : 'Stop order: price had to break through your entry'}</div>` : ''}</div>
+    <div class="rounded-xl border border-mentor/40 bg-mentor/10 p-3">
+      <div class="flex items-center gap-2 text-[12px] font-bold text-mentor"><i data-lucide="graduation-cap" class="w-4 h-4"></i>${esc(MENTOR[ex.mentor] || ex.mentor)}'s trade</div>
+      <div class="text-[12.5px] text-ink mt-1 num">${esc(his)}</div>
+      <p class="text-[12.5px] text-ink2 leading-relaxed mt-2">${esc(ex.truth.why)}</p>
+      <div class="text-[11px] text-ink3 mt-2">Pattern: ${esc(PATTERN_LABEL[ex.pattern] || ex.pattern)} · purple dashed lines and box on the chart · yellow line = what price did</div>
+    </div>
+    <div><div class="label mb-1.5">Critique</div>${bullets(coach(ex))}</div>`;
+  el.classList.remove('hidden'); el.classList.add('flex'); icons();
+}
+function openPsych() {
+  S.emos = new Set(); $('#conf').value = 50; $('#confOut').textContent = '50%'; $('#note').value = ''; $('#saveMsg').textContent = '';
+  $('#emoChips').innerHTML = EMOS.map(([k, l, ic]) => `<button class="chip" data-e="${k}" aria-pressed="false"><i data-lucide="${ic}"></i>${l}</button>`).join('');
+  $$('#emoChips [data-e]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.e; S.emos.has(k) ? S.emos.delete(k) : S.emos.add(k); b.setAttribute('aria-pressed', String(S.emos.has(k))); }));
+  const p = $('#psych'); p.classList.remove('hidden'); p.classList.add('flex'); icons();
+}
+$('#conf').addEventListener('input', e => { $('#confOut').textContent = e.target.value + '%'; });
+$('#saveLog').onclick = () => {
+  const list = store.get(K_ATT, []), a = list.find(x => x.id === S.attemptId);
+  if (!a) { $('#saveMsg').textContent = 'Could not find this attempt (storage may be blocked).'; return; }
+  a.emotions = [...S.emos]; a.confidence = +$('#conf').value; a.note = $('#note').value.trim().slice(0, 2000);
+  $('#saveMsg').textContent = store.set(K_ATT, list) ? 'Saved to your sandbox journal.' : 'Storage is blocked in this browser, so it was not saved.';
+};
+$('#nextAfter').onclick = () => $('#randBtn').click();
+
+// ─────────── keyboard ───────────
+document.addEventListener('keydown', e => {
+  const tag = (e.target.tagName || '').toLowerCase(); if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+  if (S.tab === 'blind') {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const map = { v: 'cursor', h: 'hline', t: 'trend', r: 'rect', f: 'fib', p: 'pen', e: 'eraser' }, k = e.key.toLowerCase();
+    if (map[k]) { setTool(map[k]); return; }
+    if (k === 'b') setSide('buy'); else if (k === 's') setSide('sell'); else if (k === 'n') setSide('none');
+    else if (k === '1' || k === '2' || k === '3') { if (!S.revealed) setPick(['entry', 'sl', 'tp'][+k - 1]); }
+    else if (e.key === 'Escape') { setPick(null); S.draft = null; draw(); }
+    else if (e.key === 'ArrowRight' && e.target === cv) step(1); else if (e.key === 'ArrowLeft' && e.target === cv) step(-1);
+  }
+  if (e.key === 'Escape' && !$('#preview').classList.contains('hidden')) closePreview();
+});
+
+// ─────────── tabs ───────────
+function setTab(t) {
+  S.tab = t;
+  $$('[data-tab]').forEach(b => { const on = b.dataset.tab === t; b.setAttribute('aria-selected', String(on)); b.setAttribute('aria-pressed', String(on)); b.tabIndex = on ? 0 : -1; });
+  ['blind', 'match', 'hist'].forEach(k => { const v = $('#view-' + k); v.classList.toggle('hidden', k !== t); v.classList.toggle('flex', k === t); });
+  if (t === 'hist') renderHistory(); if (t === 'match' && !M.items.length) newRound(); if (t === 'blind') fit();
+  savePrefs();
+}
+$$('[data-tab]').forEach(b => { b.addEventListener('click', () => setTab(b.dataset.tab)); b.addEventListener('keydown', e => { if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return; const tabs = $$('[data-tab]'), i = tabs.indexOf(b), n = tabs[(i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length]; n.focus(); setTab(n.dataset.tab); }); });
+
+// ─────────── history & stats ───────────
+function renderHistory() {
+  const list = store.get(K_ATT, []);
+  const trades = list.filter(a => a.side === 'buy' || a.side === 'sell');
+  const closed = trades.filter(a => a.result === 'win' || a.result === 'loss');
+  const wins = closed.filter(a => a.result === 'win').length;
+  const filled = trades.filter(a => a.result !== 'nofill' && typeof a.R === 'number');
+  const avgR = filled.length ? filled.reduce((s, a) => s + a.R, 0) / filled.length : null;
+  const agree = list.length ? list.filter(a => a.agree).length / list.length : null;
+  const nt = list.filter(a => a.side === 'none'), ntOk = nt.filter(a => a.noTradeCorrect).length;
+  const card = (l, v, sub, tone = '') => `<div class="card p-4"><div class="label">${l}</div><div class="num text-[22px] font-bold mt-1 ${tone}">${v}</div><div class="text-[11.5px] text-ink3 mt-0.5">${sub}</div></div>`;
+  $('#statCards').innerHTML = [
+    card('Attempts', list.length, `${trades.length} trades · ${nt.length} passes`),
+    card('Win rate', closed.length ? Math.round(wins / closed.length * 100) + '%' : '—', `${wins} of ${closed.length} closed trades`, closed.length ? (wins / closed.length >= 0.5 ? 'text-buy' : 'text-sell') : ''),
+    card('Avg R', avgR == null ? '—' : (avgR >= 0 ? '+' : '') + avgR.toFixed(2) + 'R', `over ${filled.length} filled trades`, avgR == null ? '' : avgR >= 0 ? 'text-buy' : 'text-sell'),
+    card('Agree with mentor', agree == null ? '—' : Math.round(agree * 100) + '%', 'same side (or same pass)'),
+    card('Good passes', nt.length ? `${ntOk}/${nt.length}` : '—', 'no-trade calls that saved R'),
+  ].join('');
+  $('#histList').innerHTML = list.length ? list.slice(0, 200).map(a => {
+    const tone = a.result === 'win' ? 'text-buy' : a.result === 'loss' ? 'text-sell' : 'text-ink2';
+    const res = a.result === 'none' ? (a.noTradeCorrect ? 'Pass ✓' : 'Pass ✗') : a.result === 'nofill' ? 'Not filled' : a.result === 'open' ? `Open ${a.R >= 0 ? '+' : ''}${a.R.toFixed(2)}R` : a.result === 'win' ? `+${a.R.toFixed(2)}R` : '−1R';
+    return `<button class="w-full text-left px-2 py-2.5 hover:bg-panel2 rounded-lg grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5" data-open="${esc(a.chart)}">
+      <span class="text-[13px] font-medium truncate">${esc(a.title)}</span><span class="num text-[13px] font-bold ${tone}">${esc(res)}</span>
+      <span class="text-[11.5px] text-ink3 truncate">${new Date(a.ts).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} · ${esc((a.side || '').toUpperCase())}${a.rr ? ' · ' + a.rr.toFixed(1) + ':1' : ''} · ${a.agree ? 'agreed' : 'differed'}${a.emotions && a.emotions.length ? ' · ' + a.emotions.map(esc).join(', ') : ''}${a.confidence != null ? ' · ' + a.confidence + '% sure' : ''}</span><span class="text-[11.5px] text-ink3">${esc(PATTERN_LABEL[a.pattern] || a.pattern)}</span>
+      ${a.note ? `<span class="col-span-2 text-[12px] text-ink2 italic truncate">“${esc(a.note)}”</span>` : ''}</button>`;
+  }).join('') : '<p class="p-3 text-[13px] text-ink3">No attempts yet. Take a blind test and reveal it to start your journal.</p>';
+  $$('#histList [data-open]').forEach(b => b.addEventListener('click', () => { const x = EX.find(x => x.id === b.dataset.open); if (!x) return; ['#fMentor', '#fPattern', '#fLesson'].forEach(s => { $(s).value = 'all'; }); refreshFilters(); setTab('blind'); loadEx(x); }));
+  const by = {}; list.forEach(a => (a.emotions || []).forEach(k => { if (typeof a.R !== 'number' || a.result === 'nofill') return; (by[k] = by[k] || []).push(a.R); }));
+  $('#emoStats').innerHTML = EMOS.map(([k, l]) => { const v = by[k]; if (!v) return ''; const m = v.reduce((s, x) => s + x, 0) / v.length; const w = clamp(Math.abs(m) / 3 * 100, 4, 100);
+    return `<div class="grid grid-cols-[72px_1fr_64px] items-center gap-2"><span class="text-ink2">${l}</span><span class="h-2 rounded-full bg-bg overflow-hidden"><span class="block h-full rounded-full ${m >= 0 ? 'bg-buy' : 'bg-sell'}" style="width:${w}%"></span></span><span class="num text-right ${m >= 0 ? 'text-buy' : 'text-sell'}">${m >= 0 ? '+' : ''}${m.toFixed(2)}R <span class="text-ink3">·${v.length}</span></span></div>`; }).join('') || '<p class="text-ink3 text-[12.5px]">Tag emotions in the psychology log to see this.</p>';
+  icons();
+}
+$('#exportBtn').onclick = () => { const blob = new Blob([JSON.stringify(store.get(K_ATT, []), null, 1)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'sandbox-journal.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); };
+$('#wipeBtn').onclick = () => { if (confirm('Delete every saved sandbox attempt? This cannot be undone.')) { store.set(K_ATT, []); renderHistory(); } };
+
+// ─────────── pattern matcher ───────────
+const DEFS = [
+  { k: 'DBR', name: 'Drop-Base-Rally (DBR)', kind: 'Demand · reversal', s: 'Price falls into a small base (1-6 candles), then rallies hard away from it. The base is where buy orders overwhelmed sellers.', r: 'Buy the first return at the proximal line, stop just under the distal. Highest R:R when it is low on the curve; against the HTF trend it needs more confirmation.' },
+  { k: 'RBR', name: 'Rally-Base-Rally (RBR)', kind: 'Demand · continuation', s: 'Rally, a brief pause, then a second rally. The pause left unfilled buy orders inside an uptrend.', r: 'With-trend buy on the pullback into the base; higher win rate but often a smaller margin, so check the 3:1 room to the next supply.' },
+  { k: 'RBD', name: 'Rally-Base-Drop (RBD)', kind: 'Supply · reversal', s: 'Price rallies into a small base, then drops sharply. Sellers overwhelmed buyers at the base.', r: 'Sell the first return at the proximal (base low), stop above the distal. Best high on the curve, where the buyer is a novice buying after a rally into supply.' },
+  { k: 'DBD', name: 'Drop-Base-Drop (DBD)', kind: 'Supply · continuation', s: 'Decline, a short pause, then a further decline. The pause holds unfilled sell orders inside a downtrend.', r: 'With-trend short on the rally back into the base; stop above the base, target the next demand.' },
+  { k: 'novice-gap', name: 'Novice gap', kind: 'Gap · fade it', s: 'A gap after a move, in the direction of that move, straight into an opposing level (gap up after a rally into supply). It comes at the end of moves.', r: 'Fade it: sell the gap into supply / buy the gap into demand, stop beyond the level, target the gap fill and the origin. The crowd is on the wrong side.' },
+  { k: 'pro-gap', name: 'Pro gap', kind: 'Gap · join it', s: 'A gap after a move, against that move, away from a level. It starts new moves and leaves a fresh zone at the gap origin.', r: 'Do not fade it. Trade with it on the first return to the gap origin; stop beyond the origin base.' },
+  { k: 'bull-trap', name: 'Bull trap', kind: 'Trap · sell', s: 'A breakout above an obvious high (prior day / Globex high) that runs straight into fresh supply, drawing in breakout buyers.', r: 'Pre-place the short at the supply above the high; trapped buyers\' stops fuel the drop. Stop above the supply distal, margin to demand below.' },
+  { k: 'bear-trap', name: 'Bear trap', kind: 'Trap · buy', s: 'A break below an obvious low or pivot line that runs into real demand just under it, drawing in breakout sellers.', r: 'Buy the demand below the bait line from the late sellers, stop under the demand distal; their stops add fuel to the rally.' },
+  { k: 'breakout-retest', name: 'Breakout & retest', kind: 'Flip · origin', s: 'A level is broken with a strong move (removed). Price comes back to the origin of the breakout, where the old level has switched side.', r: 'Prefer the return to the origin over chasing the break. Stop beyond the new zone; Kevin\'s breakout entry goes beyond the removed opposing zone.' },
+  { k: 'failed-level', name: 'Failed / low-odds level', kind: 'Skip it', s: 'A level with weak departure, repeated touches, a pocket of opposing orders nearby or a candle close through the distal: motion into mass has used it up.', r: 'Pass, or wait for it to flip. A no-trade here is a winning decision; trading it is paying for hope.' },
+  { k: 'stacked-levels', name: 'Stacked levels', kind: 'Levels on top of levels', s: 'Two same-side zones sitting right on top of each other (a proximal and a distal level).', r: 'Seiden: stacking raises the odds; Kevin: about 50/50. Enter at the inner level with the stop beyond the outer one, or split the size between both.' },
+];
+const M = { items: [], placed: new Map(), sel: null, score: 0, t0: 0, timer: null, done: false };
+function newRound() {
+  const n = +$('#mCount').value, by = {};
+  EX.filter(x => DEFS.some(d => d.k === x.pattern)).forEach(x => (by[x.pattern] = by[x.pattern] || []).push(x));
+  const pools = shuffle(Object.keys(by)).map(k => shuffle(by[k])), out = [];
+  while (out.length < n && pools.some(p => p.length)) pools.forEach(p => { if (p.length && out.length < n) out.push(p.pop()); });
+  M.items = shuffle(out); M.placed = new Map(); M.sel = null; M.score = 0; M.done = false; M.t0 = Date.now();
+  clearInterval(M.timer); M.timer = setInterval(tickTime, 500); tickTime(); renderMatch();
+}
+function tickTime() { if (M.done) return; const s = Math.floor((Date.now() - M.t0) / 1000); $('#mTime').textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
+const bestKey = () => K_BEST + '_' + $('#mCount').value;
+function renderMatch() {
+  const left = M.items.filter(x => !M.placed.has(x.id));
+  $('#mScore').textContent = M.score; $('#mLeft').textContent = left.length;
+  const best = store.get(bestKey(), null); $('#mBest').textContent = best ? best.score : '—';
+  $('#tray').innerHTML = left.length ? left.map(x => `<div class="relative shrink-0"><button class="thumb block w-[150px] rounded-lg overflow-hidden ring-1 ring-edge bg-bg touch-none ${M.sel === x.id ? 'ring-2 ring-acc' : ''}" role="option" aria-selected="${M.sel === x.id}" data-id="${esc(x.id)}" aria-label="${esc(x.title)}. Press Enter to pick it up, then choose a card."><img src="${esc(x.src)}" alt="" loading="lazy" draggable="false" class="w-full h-[100px] object-cover object-left pointer-events-none"><span class="block px-1.5 py-1 text-[10.5px] text-ink2 truncate text-left">${esc(x.title)}</span></button><button class="zoom absolute top-1 right-1 w-7 h-7 grid place-items-center rounded-full bg-black/60 text-white" data-z="${esc(x.id)}" aria-label="Preview ${esc(x.title)}"><i data-lucide="zoom-in" class="w-3.5 h-3.5"></i></button></div>`).join('')
+    : `<div class="w-full grid place-items-center text-center py-4"><div><div class="text-[16px] font-bold text-buy">Round complete: ${M.score} points</div><div class="text-[12.5px] text-ink2 mt-1">${esc($('#mTime').textContent)} · ${esc(M.summary || '')}</div></div></div>`;
+  const present = new Set(M.items.map(x => x.pattern));
+  $('#defs').innerHTML = DEFS.map(d => {
+    const got = M.items.filter(x => M.placed.get(x.id) === d.k);
+    return `<button class="def card p-4 text-left flex flex-col gap-1.5 border transition-colors ${M.sel ? 'hover:border-acc' : ''}" data-pat="${d.k}" aria-label="${esc(d.name)}${M.sel ? ': drop the selected chart here' : ''}">
+      <span class="flex items-center justify-between gap-2"><span class="text-[14px] font-semibold">${esc(d.name)}</span><span class="text-[10.5px] px-2 py-0.5 rounded-full bg-panel2 text-ink3 whitespace-nowrap">${esc(d.kind)}</span></span>
+      <span class="text-[12.5px] text-ink2 leading-relaxed"><b class="text-ink font-semibold">Structure:</b> ${esc(d.s)}</span>
+      <span class="text-[12.5px] text-ink2 leading-relaxed"><b class="text-ink font-semibold">Risk profile:</b> ${esc(d.r)}</span>
+      ${got.length ? `<span class="flex flex-wrap gap-1 mt-1">${got.map(x => `<img src="${esc(x.src)}" alt="${esc(x.title)}" title="${esc(x.title)}" class="pop w-14 h-10 object-cover object-left rounded ring-1 ring-buy/60">`).join('')}</span>` : ''}
+      ${!present.has(d.k) ? '<span class="text-[10.5px] text-ink3 mt-auto">Not in this round</span>' : ''}</button>`;
+  }).join('');
+  bindMatch(); icons();
+}
+function tryPlace(id, k) {
+  const x = M.items.find(x => x.id === id), card = $(`#defs [data-pat="${CSS.escape(k)}"]`); if (!x || M.done) return;
+  if (x.pattern === k) {
+    M.placed.set(id, k); M.score += 10; M.sel = null;
+    if (M.placed.size === M.items.length) {
+      M.done = true; clearInterval(M.timer); const secs = Math.floor((Date.now() - M.t0) / 1000); const bonus = Math.max(0, M.items.length * 10 - secs); M.score += bonus;
+      M.summary = `time bonus +${bonus}`; const best = store.get(bestKey(), null);
+      if (!best || M.score > best.score) { store.set(bestKey(), { score: M.score, secs, ts: Date.now() }); M.summary += ' · new best!'; }
+    }
+    renderMatch();
+  } else {
+    M.score -= 3; $('#mScore').textContent = M.score;
+    if (card) { card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake', 'border-sell'); setTimeout(() => card.classList.remove('border-sell'), 600); }
+  }
+}
+function bindMatch() {
+  $$('#tray .thumb').forEach(b => {
+    let start = null, ghost = null;
+    b.addEventListener('pointerdown', e => { if (e.button !== 0 && e.pointerType === 'mouse') return; start = { x: e.clientX, y: e.clientY }; b.setPointerCapture(e.pointerId); });
+    b.addEventListener('pointermove', e => {
+      if (!start) return;
+      if (!ghost && Math.hypot(e.clientX - start.x, e.clientY - start.y) > 6) { ghost = b.cloneNode(true); ghost.classList.add('ghost'); ghost.style.width = '150px'; document.body.appendChild(ghost); b.style.opacity = '.35'; }
+      if (ghost) { ghost.style.left = e.clientX + 'px'; ghost.style.top = e.clientY + 'px'; const t = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-pat]'); $$('#defs [data-pat]').forEach(c => c.classList.toggle('drop-hot', c === t)); }
+    });
+    const end = e => {
+      if (!start) return; const wasDrag = !!ghost; start = null;
+      if (ghost) { ghost.remove(); ghost = null; b.style.opacity = ''; $$('#defs .drop-hot').forEach(c => c.classList.remove('drop-hot')); const t = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-pat]'); if (t) tryPlace(b.dataset.id, t.dataset.pat); }
+      if (!wasDrag) { M.sel = M.sel === b.dataset.id ? null : b.dataset.id; renderMatch(); const nb = $(`#tray [data-id="${CSS.escape(b.dataset.id)}"]`); nb && nb.focus(); }
+    };
+    b.addEventListener('pointerup', end);
+    b.addEventListener('pointercancel', () => { start = null; if (ghost) { ghost.remove(); ghost = null; b.style.opacity = ''; } });
+    b.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); M.sel = M.sel === b.dataset.id ? null : b.dataset.id; renderMatch(); const f = M.sel ? $('#defs [data-pat]') : $(`#tray [data-id="${CSS.escape(b.dataset.id)}"]`); f && f.focus(); } });
+  });
+  $$('#defs [data-pat]').forEach(c => c.addEventListener('click', () => { if (M.sel) { const id = M.sel; tryPlace(id, c.dataset.pat); if (M.placed.has(id)) { const n = $('#tray .thumb'); n && n.focus(); } } }));
+  $$('#tray [data-z]').forEach(b => b.addEventListener('click', () => { const x = EX.find(x => x.id === b.dataset.z); if (x) openPreview(x); }));
+}
+$('#mNew').onclick = newRound;
+$('#mCount').onchange = newRound;
+let prevFocus = null;
+function openPreview(x) { prevFocus = document.activeElement; $('#previewImg').src = x.src; $('#previewImg').alt = x.title; const p = $('#preview'); p.classList.remove('hidden'); p.classList.add('flex'); $('#previewClose').focus(); }
+function closePreview() { const p = $('#preview'); p.classList.add('hidden'); p.classList.remove('flex'); prevFocus && prevFocus.focus && prevFocus.focus(); }
+$('#previewClose').onclick = closePreview;
+$('#preview').addEventListener('click', e => { if (e.target.id === 'preview') closePreview(); });
+
+// ─────────── prefs ───────────
+function savePrefs() { store.set(K_PREF, { tool: S.tool, color: S.color, tab: S.tab, chart: S.ex && S.ex.id }); }
+
+// ─────────── boot ───────────
+(async () => {
+  icons();
+  const pref = store.get(K_PREF, {}) || {};
+  setColor(COLORS.includes(pref.color) ? pref.color : COLORS[0]);
+  setTool(['cursor', 'hline', 'trend', 'rect', 'fib', 'pen', 'eraser'].includes(pref.tool) ? pref.tool : 'hline');
+  await load();
+  refreshFilters();
+  if (!EX.length) { showEmpty('No exercises found.'); return; }
+  const want = new URLSearchParams(location.search).get('chart') || pref.chart;
+  loadEx(EX.find(x => x.id === want) || S.list[Math.floor(Math.random() * S.list.length)]);
+  setTab(['blind', 'match', 'hist'].includes(pref.tab) ? pref.tab : 'blind');
+})();
+})();
+</script>
+</body>
+</html>

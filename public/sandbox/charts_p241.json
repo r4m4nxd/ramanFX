@@ -1,0 +1,563 @@
+[
+ {
+  "id": "p251-001",
+  "src": "/lessons/seiden/p251-001.jpg",
+  "mentor": "seiden",
+  "lesson": 248,
+  "title": "Alcoa: short the supply, not the neckline",
+  "maskX": 0.564,
+  "plot": {
+   "x0": 0.01,
+   "x1": 0.63,
+   "y0": 0.065,
+   "y1": 0.865
+  },
+  "axis": {
+   "y1": 0.12,
+   "p1": 12.0,
+   "y2": 0.435,
+   "p2": 9.0
+  },
+  "path": [
+   0.09,
+   0.19,
+   0.16,
+   0.3,
+   0.25
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.131,
+   "sl": 0.07,
+   "tp": 0.33,
+   "why": "The January pivot high that gapped down is fresh daily supply; shorting the return to it gives a small stop above the box and a large margin, while the textbook double-top trader waits to sell the neckline, which is demand."
+  },
+  "zone": {
+   "y0": 0.07,
+   "y1": 0.131,
+   "x0": 0.03
+  },
+  "pattern": "RBD"
+ },
+ {
+  "id": "p255-003",
+  "src": "/lessons/seiden/p255-003.jpg",
+  "mentor": "seiden",
+  "lesson": 252,
+  "title": "EBAY: doji gap into 5-min supply",
+  "maskX": 0.875,
+  "plot": {
+   "x0": 0.01,
+   "x1": 0.94,
+   "y0": 0.085,
+   "y1": 0.9
+  },
+  "axis": {
+   "y1": 0.108,
+   "p1": 24.5,
+   "y2": 0.769,
+   "p2": 24.0
+  },
+  "path": [
+   0.24,
+   0.36,
+   0.33,
+   0.6,
+   0.53,
+   0.56
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.178,
+   "sl": 0.09,
+   "tp": 0.57,
+   "why": "The open gaps up straight into the base that launched yesterday's sharp drop; graduates sell the doji at supply with a stop just above the box and target the gap fill near 24.15."
+  },
+  "zone": {
+   "y0": 0.092,
+   "y1": 0.178,
+   "x0": 0.17
+  },
+  "pattern": "novice-gap"
+ },
+ {
+  "id": "p265-004",
+  "src": "/lessons/seiden/p265-004.jpg",
+  "mentor": "seiden",
+  "lesson": 264,
+  "title": "ES 240-min: sell breakouts into Oct-2008 supply",
+  "maskX": 0.512,
+  "plot": {
+   "x0": 0.33,
+   "x1": 0.935,
+   "y0": 0.106,
+   "y1": 0.9
+  },
+  "axis": {
+   "y1": 0.203,
+   "p1": 1110,
+   "y2": 0.79,
+   "p2": 1050
+  },
+  "path": [
+   0.25,
+   0.45,
+   0.25,
+   0.68,
+   0.18,
+   0.38,
+   0.29,
+   0.44,
+   0.3
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.232,
+   "sl": 0.122,
+   "tp": 0.497,
+   "why": "The band is the origin of the October 2008 collapse; every breakout to a new high pokes into it, trapping breakout buyers, and XLT sells each touch with a stop above 1,118."
+  },
+  "zone": {
+   "y0": 0.122,
+   "y1": 0.232,
+   "x0": 0.33
+  },
+  "pattern": "bull-trap"
+ },
+ {
+  "id": "p268-005",
+  "src": "/lessons/seiden/p268-005.jpg",
+  "mentor": "seiden",
+  "lesson": 267,
+  "title": "Crude daily: supply to demand",
+  "maskX": 0.57,
+  "plot": {
+   "x0": 0.01,
+   "x1": 0.93,
+   "y0": 0.078,
+   "y1": 0.737
+  },
+  "axis": {
+   "y1": 0.1,
+   "p1": 82.0,
+   "y2": 0.585,
+   "p2": 70.0
+  },
+  "path": [
+   0.13,
+   0.28,
+   0.18,
+   0.33,
+   0.25,
+   0.6,
+   0.45
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.141,
+   "sl": 0.093,
+   "tp": 0.657,
+   "why": "Price returns to the October rally top (supply) with the late-September demand base far below, so the short at about 81 has a large margin and targets that demand near 68."
+  },
+  "zone": {
+   "y0": 0.093,
+   "y1": 0.141,
+   "x0": 0.43
+  },
+  "pattern": "RBD"
+ },
+ {
+  "id": "p276-008",
+  "src": "/lessons/seiden/p276-008.jpg",
+  "mentor": "seiden",
+  "lesson": 274,
+  "title": "Crude daily: long at a qualified demand level",
+  "maskX": 0.674,
+  "plot": {
+   "x0": 0.01,
+   "x1": 0.91,
+   "y0": 0.087,
+   "y1": 0.735
+  },
+  "axis": {
+   "y1": 0.163,
+   "p1": 82.0,
+   "y2": 0.634,
+   "p2": 70.0
+  },
+  "path": [
+   0.644,
+   0.47,
+   0.52,
+   0.35,
+   0.29
+  ],
+  "truth": {
+   "side": "buy",
+   "entry": 0.644,
+   "sl": 0.725,
+   "tp": 0.351,
+   "why": "The initial rally from the late-September base (about 70 to 82.5) is far more than three times the zone height, so the level qualifies; buy the first return at the proximal line, stop below the distal line, T1 at the December pivot."
+  },
+  "zone": {
+   "y0": 0.644,
+   "y1": 0.725,
+   "x0": 0.14
+  },
+  "pattern": "DBR"
+ },
+ {
+  "id": "p280-011",
+  "src": "/lessons/seiden/p280-011.jpg",
+  "mentor": "seiden",
+  "lesson": 278,
+  "title": "10-year note: short the return to supply",
+  "maskX": 0.78,
+  "plot": {
+   "x0": 0.0,
+   "x1": 0.91,
+   "y0": 0.064,
+   "y1": 0.762
+  },
+  "axis": {
+   "y1": 0.075,
+   "p1": 122.0,
+   "y2": 0.716,
+   "p2": 111.0
+  },
+  "path": [
+   0.18,
+   0.31,
+   0.26,
+   0.42,
+   0.48,
+   0.37
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.169,
+   "sl": 0.107,
+   "tp": 0.442,
+   "why": "Price rallies back into the March spike origin; supply plus a large margin down to the October pivot low makes the short at 120'08 high probability - no indicator needed."
+  },
+  "zone": {
+   "y0": 0.107,
+   "y1": 0.169,
+   "x0": 0.09
+  },
+  "pattern": "novice-gap"
+ },
+ {
+  "id": "p286-016",
+  "src": "/lessons/seiden/p286-016.jpg",
+  "mentor": "seiden",
+  "lesson": 284,
+  "title": "S&P daily: buy B even below a falling 20 MA",
+  "maskX": 0.37,
+  "plot": {
+   "x0": 0.0,
+   "x1": 0.95,
+   "y0": 0.0,
+   "y1": 0.97
+  },
+  "axis": {
+   "y1": 0.195,
+   "p1": 1220,
+   "y2": 0.76,
+   "p2": 1140
+  },
+  "path": [
+   0.45,
+   0.33,
+   0.18,
+   0.03,
+   0.45,
+   0.35,
+   0.68,
+   0.52,
+   0.15
+  ],
+  "truth": {
+   "side": "buy",
+   "entry": 0.433,
+   "sl": 0.475,
+   "tp": 0.1,
+   "why": "The A base launched a strong rally, so its first return (B) is demand; the moving-average filter says do not buy, but price turns at the level and rallies to new highs."
+  },
+  "zone": {
+   "y0": 0.433,
+   "y1": 0.468,
+   "x0": 0.07
+  },
+  "pattern": "RBR"
+ },
+ {
+  "id": "p289-017",
+  "src": "/lessons/seiden/p289-017.jpg",
+  "mentor": "seiden",
+  "lesson": 284,
+  "title": "NASDAQ: news spike into demand",
+  "maskX": 0.717,
+  "plot": {
+   "x0": 0.0,
+   "x1": 0.917,
+   "y0": 0.0,
+   "y1": 0.98
+  },
+  "axis": {
+   "y1": 0.098,
+   "p1": 1620,
+   "y2": 0.735,
+   "p2": 1480
+  },
+  "path": [
+   0.72,
+   0.53,
+   0.55,
+   0.38,
+   0.27,
+   0.19,
+   0.13,
+   0.06,
+   0.1,
+   0.0
+  ],
+  "truth": {
+   "side": "buy",
+   "entry": 0.699,
+   "sl": 0.76,
+   "tp": 0.19,
+   "why": "Bad news (the London bombings) drives price straight into the A demand base; buying the zone is low risk and price closes well off the low and rallies to new highs."
+  },
+  "zone": {
+   "y0": 0.699,
+   "y1": 0.754,
+   "x0": 0.155
+  },
+  "pattern": "other"
+ },
+ {
+  "id": "p291-018",
+  "src": "/lessons/seiden/p291-018.jpg",
+  "mentor": "seiden",
+  "lesson": 284,
+  "title": "CTXS: upgrade gap into supply",
+  "maskX": 0.534,
+  "plot": {
+   "x0": 0.0,
+   "x1": 0.633,
+   "y0": 0.33,
+   "y1": 0.958
+  },
+  "axis": {
+   "y1": 0.376,
+   "p1": 33.0,
+   "y2": 0.911,
+   "p2": 31.0
+  },
+  "path": [
+   0.4,
+   0.7,
+   0.933,
+   0.8
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.452,
+   "sl": 0.38,
+   "tp": 0.8,
+   "why": "The brokerage upgrade gaps price up into the 4/18 supply; the public buys what feels safe while the trained trader sells to them, and price collapses to about 31."
+  },
+  "zone": {
+   "y0": 0.389,
+   "y1": 0.452,
+   "x0": 0.39
+  },
+  "pattern": "novice-gap"
+ },
+ {
+  "id": "p305-025",
+  "src": "/lessons/seiden/p305-025.jpg",
+  "mentor": "seiden",
+  "lesson": 302,
+  "title": "QQQQ 5-min: switch up, oversold trigger",
+  "maskX": 0.465,
+  "plot": {
+   "x0": 0.01,
+   "x1": 0.945,
+   "y0": 0.08,
+   "y1": 0.632
+  },
+  "axis": {
+   "y1": 0.105,
+   "p1": 45.8,
+   "y2": 0.563,
+   "p2": 44.6
+  },
+  "path": [
+   0.41,
+   0.31,
+   0.37,
+   0.27,
+   0.3,
+   0.14,
+   0.24
+  ],
+  "truth": {
+   "side": "buy",
+   "entry": 0.41,
+   "sl": 0.445,
+   "tp": 0.18,
+   "why": "The 50-period MA slopes up so the switch says buy only; the slow stochastic crossing up below 20 is the trigger, and price rallies from about 45.0 to 45.7."
+  },
+  "pattern": "other"
+ },
+ {
+  "id": "p307-026",
+  "src": "/lessons/seiden/p307-026.jpg",
+  "mentor": "seiden",
+  "lesson": 302,
+  "title": "QQQQ 5-min: switch down, overbought trigger",
+  "maskX": 0.267,
+  "plot": {
+   "x0": 0.01,
+   "x1": 0.927,
+   "y0": 0.08,
+   "y1": 0.632
+  },
+  "axis": {
+   "y1": 0.159,
+   "p1": 45.0,
+   "y2": 0.573,
+   "p2": 42.5
+  },
+  "path": [
+   0.155,
+   0.3,
+   0.23,
+   0.37,
+   0.31,
+   0.47,
+   0.62,
+   0.51
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.155,
+   "sl": 0.12,
+   "tp": 0.33,
+   "why": "The 50-period MA is falling, so only sell signals count; the stochastic crossing down from above 80 triggers the short and price grinds lower with the trend."
+  },
+  "pattern": "other"
+ },
+ {
+  "id": "p308-027",
+  "src": "/lessons/seiden/p308-027.jpg",
+  "mentor": "seiden",
+  "lesson": 302,
+  "title": "NQ 5-min: CCI overbought in a downtrend",
+  "maskX": 0.691,
+  "plot": {
+   "x0": 0.01,
+   "x1": 0.915,
+   "y0": 0.084,
+   "y1": 0.615
+  },
+  "axis": {
+   "y1": 0.146,
+   "p1": 2030,
+   "y2": 0.524,
+   "p2": 1995
+  },
+  "path": [
+   0.4,
+   0.46,
+   0.43,
+   0.5,
+   0.58,
+   0.57
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.4,
+   "sl": 0.32,
+   "tp": 0.56,
+   "why": "With the MA sloping down the switch is sell-only; CCI spiking above +100 into the MA is the trigger, and price drops from about 2,008 to 1,990."
+  },
+  "pattern": "other"
+ },
+ {
+  "id": "p309-028",
+  "src": "/lessons/seiden/p309-028.jpg",
+  "mentor": "seiden",
+  "lesson": 302,
+  "title": "USDJPY 5-min: CCI oversold in an uptrend",
+  "maskX": 0.718,
+  "plot": {
+   "x0": 0.01,
+   "x1": 0.925,
+   "y0": 0.087,
+   "y1": 0.62
+  },
+  "axis": {
+   "y1": 0.136,
+   "p1": 105.55,
+   "y2": 0.573,
+   "p2": 105.2
+  },
+  "path": [
+   0.3,
+   0.18,
+   0.24,
+   0.17,
+   0.1
+  ],
+  "truth": {
+   "side": "buy",
+   "entry": 0.3,
+   "sl": 0.348,
+   "tp": 0.12,
+   "why": "The MA is rising so only buy signals count; CCI dropping below -100 on a pullback to the MA is the trigger, and price rallies to about 105.55."
+  },
+  "pattern": "other"
+ },
+ {
+  "id": "p318-032",
+  "src": "/lessons/seiden/p318-032.jpg",
+  "mentor": "seiden",
+  "lesson": 315,
+  "title": "GOOG daily: novice gap into supply",
+  "maskX": 0.895,
+  "plot": {
+   "x0": 0.0,
+   "x1": 0.935,
+   "y0": 0.065,
+   "y1": 0.913
+  },
+  "axis": {
+   "y1": 0.137,
+   "p1": 620,
+   "y2": 0.764,
+   "p2": 540
+  },
+  "path": [
+   0.39,
+   0.45,
+   0.53,
+   0.63
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.444,
+   "sl": 0.345,
+   "tp": 0.764,
+   "why": "The base before January's gap down is supply; March's gap up into it is novice buying, the S&P is near supply and VIX near demand, so Seiden shorts at the level without waiting for a red candle."
+  },
+  "zone": {
+   "y0": 0.351,
+   "y1": 0.444,
+   "x0": 0.43
+  },
+  "pattern": "novice-gap"
+ }
+]
