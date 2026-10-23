@@ -1,0 +1,16 @@
+{
+ "private/2026-02-02": {
+  "video_duration_s": 3495.2,
+  "audio_source": "m4a",
+  "duration_s": 3495.2,
+  "frames": 77,
+  "frame_candidates": 111,
+  "done": true,
+  "group": "private",
+  "safe": "2026-02-02",
+  "folder": "Feb 2, 2026",
+  "mp4_id": "10xerddBX3TRqqvFLR_OgbLS3R6KUEExg",
+  "m4a_id": "1XQaxm1fMNaHcdO9pHQD5J7qe-Ma37sTD",
+  "flac": "/tmp/claude-0/-home-user/3ca4625b-e0ba-5998-9044-928583dca530/scratchpad/raja_hi/audio/private/2026-02-02.flac"
+ }
+}
