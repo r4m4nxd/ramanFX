@@ -38,6 +38,7 @@ export const NAV: { to: string; label: string; short?: string; icon: IconName; m
   { to: '/news', label: 'Economic news', short: 'News', icon: 'clock', group: 'Plan & tools', hint: 'Economic calendar and headlines' },
   { to: '/notebook', label: 'Notebook', icon: 'notebook', group: 'Plan & tools', hint: 'Free-form notes' },
   { to: '/learn', label: 'Lessons', icon: 'playbook', group: 'Help', hint: 'Every mentor lesson as notes, plus the glossary' },
+  { to: '/ask', label: 'Ask your mentors', short: 'Ask', icon: 'sparkles', group: 'Help', hint: 'Search every lesson by meaning, on your device' },
   { to: '/practice', label: 'Sandbox', icon: 'grid', group: 'Help', hint: 'Blind chart tests, drawing tools and pattern drills' },
   { to: '/bot-guide', label: 'Bot guide', icon: 'target', group: 'Help', hint: 'How to use the MT4 ZoneBot and ZoneVision' },
   { to: '/guide', label: 'Guide', icon: 'info', group: 'Help', hint: 'How the app and the strategy work' },
@@ -386,7 +387,7 @@ export function Shell({ children }: { children: ReactNode }) {
               while a lazy page was still loading, leaving the new page invisible. */}
           <motion.div key={loc.pathname} data-page className={pageEnter}>
               {!deep && <motion.div className="lg:hidden land:hidden large-title mb-3 -mt-1 origin-left" aria-hidden="true" style={reduceMotion ? { opacity: bigOpacity } : { opacity: bigOpacity, filter: bigFilter, scale: bigScale }}>{title}</motion.div>}
-              {!hasTrades && !['/playbook', '/calculator', '/settings', '/risk', '/notebook', '/strategies', '/plan', '/guru', '/guide', '/news', '/chart', '/design', '/learn', '/practice', '/bot-guide'].some(p => loc.pathname.startsWith(p)) ? <Welcome onImport={() => setImportOpen(true)} /> : children}
+              {!hasTrades && !['/playbook', '/calculator', '/settings', '/risk', '/notebook', '/strategies', '/plan', '/guru', '/guide', '/news', '/chart', '/design', '/learn', '/ask', '/practice', '/bot-guide'].some(p => loc.pathname.startsWith(p)) ? <Welcome onImport={() => setImportOpen(true)} /> : children}
           </motion.div>
         </main>
       </div>
