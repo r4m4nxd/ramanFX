@@ -313,6 +313,7 @@ struct RZone
    double   mfeC;          // touch 1, close-stop model: best R before a CLOSE beyond the distal
    bool     cOn;
    int      cRes;          // 0 none, 1 stop, 2 target, 3 open
+   double   lossC;         // touch 1, close-stop model: the stop candle's close in R (<= -1: the real loss)
    datetime tT[3];
    int      tAge[3];
    double   tDep[3], tMfe[3];
@@ -1909,7 +1910,7 @@ string RsHeader()
       hd += p + "time" + p + "bars" + p + "depth" + p + "mfe" + p + "hit1" + p + "hit2" + p + "hit3" + p + "hit4" + p + "hit5"
             + p + "opp" + p + "result" + p + "end_time" + p + "end_bars";
      }
-   hd += ",t1c_mfe,t1c_result";
+   hd += ",t1c_mfe,t1c_result,t1c_loss";
    if(gRsDna)                                                        // v2 columns are appended: old analyzers read by name
      {
       ZoneDNA ex; LensOut eo; ZeroMemory(ex); ZeroMemory(eo);
@@ -2177,7 +2178,7 @@ void RsLog(int s, bool isAlt, int i, string altStr, int swing, int tlb, int big,
    nr.age = 0; nr.broken = false; nr.brokenT = 0; nr.brokenAge = 0;
    nr.runout = MathMax(0, mv); nr.nT = 0; nr.inTr = false;
    nr.away = z.dir > 0 ? SL(_Symbol, T, 1) > z.prox : SH(_Symbol, T, 1) < z.prox;
-   nr.mfe = 0; nr.dep = 0; nr.r1 = false; nr.mfeC = 0; nr.cOn = false; nr.cRes = 0;
+   nr.mfe = 0; nr.dep = 0; nr.r1 = false; nr.mfeC = 0; nr.cOn = false; nr.cRes = 0; nr.lossC = 0;
    for(int k = 0; k < 3; k++) { nr.tT[k] = 0; nr.tAge[k] = 0; nr.tDep[k] = 0; nr.tMfe[k] = 0; nr.tRes[k] = 0; nr.tEnd[k] = 0; nr.tEndAge[k] = 0; }
    nr.c2row = ""; nr.s1row = ""; nr.v1St = ""; nr.v1When = 0; nr.v1Age = 0; nr.s1Pend = false; nr.s1Lag = 0; nr.s1Dep = 0;
    nr.tBase = tB0; nr.zs = z; nr.b1R = -1; nr.b3R = -1; nr.mae = 0; nr.tgWow = -1; nr.tgOh = -1; nr.tgRo = -1;
@@ -2248,7 +2249,7 @@ string RsStep(int i, double bh, double bl, double bc, bool emo, datetime bt, int
    // touch 1, close-stop model (stop only on a close beyond the distal)
    if(RZ[i].cOn)
      {
-      if(cb) { RZ[i].cOn = false; RZ[i].cRes = 1; }
+      if(cb) { RZ[i].cOn = false; RZ[i].cRes = 1; RZ[i].lossC = cR; }
       else
         {
          RZ[i].mfeC = MathMax(RZ[i].mfeC, fR);
@@ -2284,7 +2285,7 @@ string RsStep(int i, double bh, double bl, double bc, bool emo, datetime bt, int
             if(RZ[i].mfe >= 1) RZ[i].r1 = true;
             if(RZ[i].mfe >= RZ[i].endR) RsEndTouch(i, k, 2, bt);
            }
-         if(k == 0) { RZ[i].cOn = !cb; RZ[i].cRes = cb ? 1 : 0; RZ[i].mfeC = cb ? 0 : MathMax(0, cR); }
+         if(k == 0) { RZ[i].cOn = !cb; RZ[i].cRes = cb ? 1 : 0; RZ[i].mfeC = cb ? 0 : MathMax(0, cR); RZ[i].lossC = cb ? cR : 0; }
         }
       else if(!touch) RZ[i].away = true;
      }
@@ -2385,7 +2386,7 @@ void RsFinish(int i, string st, datetime when)
          for(int r = 1; r <= 5; r++) o += "," + RsB(m >= r);
          o += "," + RsB(RZ[i].oppR > 0 && m >= RZ[i].oppR) + "," + RsRes(RZ[i].tRes[k]) + "," + RsTime(RZ[i].tEnd[k]) + "," + RsI(RZ[i].tEndAge[k]);
         }
-      o += "," + (RZ[i].nT > 0 ? RsD(RZ[i].mfeC, 3) : "") + "," + (RZ[i].nT > 0 ? RsRes(RZ[i].cRes) : "");
+      o += "," + (RZ[i].nT > 0 ? RsD(RZ[i].mfeC, 3) : "") + "," + (RZ[i].nT > 0 ? RsRes(RZ[i].cRes) : "") + "," + (RZ[i].nT > 0 && RZ[i].cRes == 1 ? RsD(RZ[i].lossC, 3) : "");
       if(gRsDna) o += RZ[i].c2row + (RZ[i].s1row != "" ? RZ[i].s1row : gRsS1Empty) + RsV2Out(i);   // v2 columns after the v1 ones
       FileWrite(rsFile, RZ[i].crow + "," + o);
       rsDirty = true;

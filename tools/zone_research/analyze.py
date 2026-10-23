@@ -116,12 +116,18 @@ def touch_trade(r, k, stop_mode):
     p = "t%d_" % k
     if not r.get(p + "time"):
         return None
+    stop_r = -1.0
     mfe = fnum(r.get(p + "mfe"), 0.0)
     res = r.get(p + "result", "")
     if stop_mode == "close" and k == 1 and r.get("t1c_result", "") != "":
         mfe = fnum(r.get("t1c_mfe"), 0.0)
         res = r.get("t1c_result", "")
-    return {"k": k, "mfe": mfe, "res": res, "depth": fnum(r.get(p + "depth")), "bars": fnum(r.get(p + "bars")),
+        loss = fnum(r.get("t1c_loss"), None) if r.get("t1c_loss", "") != "" else None
+        if res == "stop" and loss is not None:
+            stop_r = min(-1.0, loss)                     # the real close-stop loss (close beyond the distal)
+        elif res == "stop":
+            stop_r = -1.0                                # older CSV without t1c_loss: optimistic -1R
+    return {"k": k, "mfe": mfe, "res": res, "stopR": stop_r, "depth": fnum(r.get(p + "depth")), "bars": fnum(r.get(p + "bars")),
             "oppR": fnum(r.get("opp_R"), 0.0)}
 
 
@@ -138,7 +144,7 @@ def outcome_r(t, target):
     if t["mfe"] >= tr:
         return tr
     if t["res"] == "stop":
-        return -1.0
+        return t.get("stopR", -1.0)
     return 0.0
 
 
