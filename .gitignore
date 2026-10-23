@@ -5,3 +5,4 @@ public/lessons/**/.tmp/
 __pycache__/
 *.pyc
 tsconfig.tsbuildinfo
+tools/narration/out/
