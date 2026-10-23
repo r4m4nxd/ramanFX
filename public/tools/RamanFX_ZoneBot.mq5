@@ -414,7 +414,7 @@ ulong    knownTickets[];
 // Approve mode proposals
 struct Proposal { string sym; int k; int dir; double entry, sl, tp, dist, rr, prox; bool trap; string method, grade, info; datetime t, tZone; };
 string placeErr = "";
-string keep = "|";
+string gKeep = "|";
 int myTrend = 0; string myTrendWhy = ""; datetime lastMine = 0;
 Proposal props[]; string lastPanelSig = ""; int viewK = -1; int panelBottom = 120;
 string dSym[]; int dK[]; string dProx[]; datetime dTime[]; bool dMy[];   // advice you denied (expires when the zone goes or after 3 days)
@@ -773,7 +773,7 @@ int OnInit()
    EnsureHeaders();
    V2Init();                                                            // v2: core ATR handles + calibration (only with a v2 input on)
    LoadProps();
-   busy = false; keep = "|"; lastClickNm = ""; lastClickMs = 0;
+   busy = false; gKeep = "|"; lastClickNm = ""; lastClickMs = 0;
    vzOrdSig = ""; ArrayResize(vzSkip, 0);                              // globals survive a timeframe switch: redraw from scratch
    viewK = GlobalVariableCheck("RFX_view_" + _Symbol) ? (int)GlobalVariableGet("RFX_view_" + _Symbol) : -1;
    lastPanelSig = "-";
@@ -1824,7 +1824,7 @@ int ZScore(string s, int etf, int htf, int trend, BZone &z[], int i, BZone &hz[]
    int cTime = z[i].baseN <= 2 ? 1 : 0;
    int cFresh = z[i].pen <= 0 ? 2 : (z[i].pen < 0.25 ? 1 : 0);
    int cDep = z[i].departure >= 3 ? 1 : 0;
-   int cTrend = trend == dir ? 2 : 0;
+   int cTrd = trend == dir ? 2 : 0;
    double cv = ZoneCurve(hz, hn, z[i].prox);
    if(cv < 0) cv = CurveB(s, htf, z[i].prox);
    double depth = dir > 0 ? cv : 100 - cv;
@@ -1836,8 +1836,8 @@ int ZScore(string s, int etf, int htf, int trend, BZone &z[], int i, BZone &hz[]
    int cRoom = pm >= 5 ? 2 : (pm >= 3 ? 1 : 0);
    int cConf = MathMin(2, (KNear(s, etf, htf, dir, z[i].prox) != "" ? 1 : 0) + (AtHtfZone(z[i], hz, hn, dir) ? 1 : 0) + (z[i].trap > 0 ? 1 : 0));
    why = StringFormat("move %d, 2nd leg %d, time %d, fresh %d, departure %d, trend %d, curve %d, room %d, confluence %d",
-                      cMove, cLeg2, cTime, cFresh, cDep, cTrend, cCurve, cRoom, cConf);
-   return cMove + cLeg2 + cTime + cFresh + cDep + cTrend + cCurve + cRoom + cConf;
+                      cMove, cLeg2, cTime, cFresh, cDep, cTrd, cCurve, cRoom, cConf);
+   return cMove + cLeg2 + cTime + cFresh + cDep + cTrd + cCurve + cRoom + cConf;
   }
 
 //+------------------------------------------------------------------+
@@ -3659,7 +3659,7 @@ void DrawProposals()
    for(int i = 0; i < ArraySize(props); i++) sig += "|" + props[i].sym + TF_N[props[i].k] + IntegerToString(props[i].dir) + props[i].method + DoubleToString(props[i].prox, 6) + DoubleToString(props[i].rr, 1) + props[i].grade + (props[i].trap ? "t" : "");
    if(sig == lastPanelSig) return;
    lastPanelSig = sig;
-   keep = "|";
+   gKeep = "|";
    // right side, under the bot's status lines (max 5 lines from y 20): nothing overlaps
    int y = 112;
    Btn("RFXB_r0", "Refresh " + _Symbol + (ArraySize(props) == 0 ? "  (no advice yet)" : StringFormat("  (%d advice)", ArraySize(props))), x0, y, 392, clrDarkSlateGray);
