@@ -40,5 +40,61 @@
   "mp4_id": "1a36SRY-jESGQaFoqveGwBvzVDVBWyBAM",
   "m4a_id": "1jGZe8WZzSHOgJjChmLcLg2fLX_NiNDm2",
   "flac": "/tmp/claude-0/-home-user/3ca4625b-e0ba-5998-9044-928583dca530/scratchpad/raja_hi/audio/private/2026-02-18.flac"
+ },
+ "private/2026-02-25": {
+  "video_duration_s": 2177.9,
+  "audio_source": "m4a",
+  "duration_s": 2177.9,
+  "frames": 48,
+  "frame_candidates": 76,
+  "done": true,
+  "group": "private",
+  "safe": "2026-02-25",
+  "folder": "Feb 25, 2026",
+  "mp4_id": "1eVClUFobgKtfm1BRAjN88zyh2X0ftLxw",
+  "m4a_id": "1nmHUnVuEIc2dCHik2rbYUYHAPmV28jjn",
+  "flac": "/tmp/claude-0/-home-user/3ca4625b-e0ba-5998-9044-928583dca530/scratchpad/raja_hi/audio/private/2026-02-25.flac"
+ },
+ "private/2026-03-05": {
+  "video_duration_s": 3731.7,
+  "audio_source": "mp4",
+  "duration_s": 3731.7,
+  "frames": 82,
+  "frame_candidates": 119,
+  "done": true,
+  "group": "private",
+  "safe": "2026-03-05",
+  "folder": "March 5th, 2026",
+  "mp4_id": "1VNDV9zZnPNpO6gGXR1K3tcUdx_0m3PeC",
+  "m4a_id": null,
+  "flac": "/tmp/claude-0/-home-user/3ca4625b-e0ba-5998-9044-928583dca530/scratchpad/raja_hi/audio/private/2026-03-05.flac"
+ },
+ "private/2026-03-13": {
+  "video_duration_s": 2930.9,
+  "audio_source": "mp4",
+  "duration_s": 2930.9,
+  "frames": 65,
+  "frame_candidates": 118,
+  "done": true,
+  "group": "private",
+  "safe": "2026-03-13",
+  "folder": "March 13, 2026",
+  "mp4_id": "18RDfAHHYY4411jMIoSjgVT_obKcB623T",
+  "m4a_id": null,
+  "flac": "/tmp/claude-0/-home-user/3ca4625b-e0ba-5998-9044-928583dca530/scratchpad/raja_hi/audio/private/2026-03-13.flac"
+ },
+ "private/2026-03-27": {
+  "video_duration_s": 2035.8,
+  "audio_source": "mp4",
+  "duration_s": 2035.8,
+  "frames": 45,
+  "frame_candidates": 85,
+  "done": true,
+  "group": "private",
+  "safe": "2026-03-27",
+  "folder": "March 27, 2026",
+  "mp4_id": "1vQC9DUBqUNcy32doUHlbHwFKKBjqmsl7",
+  "m4a_id": null,
+  "flac": "/tmp/claude-0/-home-user/3ca4625b-e0ba-5998-9044-928583dca530/scratchpad/raja_hi/audio/private/2026-03-27.flac"
  }
 }
