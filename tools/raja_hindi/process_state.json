@@ -26,5 +26,19 @@
   "mp4_id": "1eEhC6nbfW2qZkJbtfMPzB8-2MhI7AWS2",
   "m4a_id": null,
   "flac": "/tmp/claude-0/-home-user/3ca4625b-e0ba-5998-9044-928583dca530/scratchpad/raja_hi/audio/private/2026-02-10.flac"
+ },
+ "private/2026-02-18": {
+  "video_duration_s": 2838.4,
+  "audio_source": "m4a",
+  "duration_s": 2838.4,
+  "frames": 63,
+  "frame_candidates": 96,
+  "done": true,
+  "group": "private",
+  "safe": "2026-02-18",
+  "folder": "Feb 18, 2026",
+  "mp4_id": "1a36SRY-jESGQaFoqveGwBvzVDVBWyBAM",
+  "m4a_id": "1jGZe8WZzSHOgJjChmLcLg2fLX_NiNDm2",
+  "flac": "/tmp/claude-0/-home-user/3ca4625b-e0ba-5998-9044-928583dca530/scratchpad/raja_hi/audio/private/2026-02-18.flac"
  }
 }
