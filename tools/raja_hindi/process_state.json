@@ -275,5 +275,19 @@
   "mp4_id": "1HuKTKucQqykZ0VHjO6jnRGdOMCjZwrLl",
   "m4a_id": null,
   "flac": "/tmp/claude-0/-home-user/3ca4625b-e0ba-5998-9044-928583dca530/scratchpad/raja_hi/audio/course/gmt20250228-161542-recording-1280x1024.flac"
+ },
+ "course/gmt20250405-115856-recording-1280x1024": {
+  "video_duration_s": 3841.7,
+  "audio_source": "mp4",
+  "duration_s": 3841.7,
+  "frames": 85,
+  "frame_candidates": 117,
+  "done": true,
+  "group": "course",
+  "safe": "gmt20250405-115856-recording-1280x1024",
+  "folder": "",
+  "mp4_id": "1wkiYD0OrXAc-3rAbD9F_2cxwzdH_bulU",
+  "m4a_id": null,
+  "flac": "/tmp/claude-0/-home-user/3ca4625b-e0ba-5998-9044-928583dca530/scratchpad/raja_hi/audio/course/gmt20250405-115856-recording-1280x1024.flac"
  }
 }
