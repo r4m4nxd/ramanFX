@@ -39,6 +39,10 @@ def load_wav(path):
         return np.frombuffer(w.readframes(w.getnframes()), np.int16).astype(np.float32) / 32768.0
 
 def _run(m, audio, offset, lang, task, temperature, **kw):
+    # Devanagari/Arabic UTF-8 gzips far better than Latin text, so the default
+    # compression_ratio_threshold (2.4) triggers temperature fallback on almost every
+    # normal window (6x slower). Use 3.2; real loops still exceed it and are caught below.
+    kw.setdefault("compression_ratio_threshold", 3.2)
     segs, info = m.transcribe(audio, language=lang, task=task, beam_size=5, vad_filter=True,
                               vad_parameters=dict(min_silence_duration_ms=700),
                               condition_on_previous_text=False, initial_prompt=PROMPT.get(lang),
@@ -65,7 +69,7 @@ def bad_spans(segs):
     """indices of segments that are loops: internal repetition or same text >3x in a row."""
     bad = set()
     for i, s in enumerate(segs):
-        if loops_in(s["text"]) or s.get("compression_ratio", 0) > 2.6:
+        if loops_in(s["text"]) or s.get("compression_ratio", 0) > 3.6:
             bad.add(i)
     i = 0
     while i < len(segs):
@@ -92,7 +96,7 @@ def fix_loops(m, audio, segs, lang, task):
         t0 = max(0.0, segs[a]["start"] - 1.0); t1 = segs[b]["end"] + 1.0
         clip = audio[int(t0 * SR):int(t1 * SR)]
         new = _run(m, clip, t0, lang, task, temperature=[0.2, 0.4, 0.6, 0.8, 1.0],
-                   compression_ratio_threshold=1.9, log_prob_threshold=-1.0, no_repeat_ngram_size=4)
+                   compression_ratio_threshold=2.8, log_prob_threshold=-1.0, no_repeat_ngram_size=4)
         for s in new:
             if loops_in(s["text"]):
                 s["text"] = collapse(s["text"]); s["loop_collapsed"] = True

@@ -2,3 +2,6 @@ node_modules
 dist
 *.local
 public/lessons/**/.tmp/
+__pycache__/
+*.pyc
+tsconfig.tsbuildinfo
