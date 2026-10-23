@@ -1,0 +1,1345 @@
+// RamanFX ZoneVision 2.00 - Direction (TradingView, Pine Script v6). Companion of RamanFX_ZoneVision.pine: the
+// top-down Direction box of the MT5 ZoneVision 2.00 (ETF -> ITF -> HTF -> Higher+1 states, the conflict rules, Raja's
+// curve 25 / 50 / 75 lines, the WOW ladder and the Direction / WOW alerts). Same core code as the main indicator
+// (newest-first arrays, closed candles, HTF packs); see docs/Pine_Port_Notes.md. Keep its inputs equal to the main one.
+//@version=6
+indicator("RamanFX ZoneVision 2.00 - Direction", shorttitle = "ZV Direction", overlay = true, max_lines_count = 100, max_labels_count = 100, max_bars_back = 5000)
+G1 = "-- Zone rules (keep equal to ZoneBot) --"
+InpMinLegRatio     = input.float(1.2, "Move-away range / largest base candle", group = G1)
+InpMaxBase         = input.int(6, "Max basing candles", minval = 1, group = G1)
+InpMaxZoneATR      = input.float(1.5, "Max zone height in ATR(14) (similar-size rule)", group = G1)
+InpLookback        = input.int(200, "Bars scanned", minval = 20, group = G1)
+InpEmoATR          = input.float(3.0, "Emotional candle: range > this x ATR (wick ignored)", group = G1)
+G2 = "-- What to show (clean by default) --"
+InpTLSwing         = input.int(2, "Trendlines: swing points need N bars each side; REAL only after a new higher high / lower low", minval = 1, group = G2)
+InpDemandLine      = input.color(#2E8B57, "Demand line", group = G2)
+InpSupplyLine      = input.color(#C83C3C, "Supply line", group = G2)
+InpMuted           = input.color(#AAAAAA, "Muted (broken lines, removed zones)", group = G2)
+InpText            = input.color(#5A5A5A, "Text", group = G2)
+G3 = "-- MT5 extras (detection unchanged) --"
+InpExtraTF         = input.bool(true, "Support non-standard timeframes (2m, 3m, 2H ...) via the nearest standard TF", group = G3)
+InpAutoTheme       = input.bool(true, "Dark chart background: switch default colours to readable dark-theme ones", group = G3)
+InpPanelRight      = input.bool(true, "Panel + Direction box in the top-RIGHT corner (false = top-left, as v1)", group = G3)
+G4 = "-- v2 Direction (top-down, display only) --"
+InpDirEngine       = input.bool(true, "Direction engine: ETF -> ITF -> HTF states + one Direction readout", group = G4)
+InpDirTable        = input.int(1, "TF stack: 0 = v1 (StepUp / HtfOf), 1 = Kevin lesson 4 (D1 -> 1M -> 3M), 2 = Kevin lesson 15 slide", minval = 0, maxval = 2, group = G4)
+InpDirPlus1        = input.bool(true, "Add the lesson-15 Higher+1 TF as a 4th row (H1 -> MN, H4 -> 3M, D1 -> 6M)", group = G4)
+InpDirMacro        = input.bool(false, "H4 / D1 charts: add the macro rows 1M, 3M, 6M, 12M", group = G4)
+InpDirRemovedN     = input.int(2, "Opposite zones removed after a trendline break for CHANGED (Raja: 2)", minval = 1, group = G4)
+InpDirDepartATR    = input.float(0, "0 = v1 cross (a full candle beyond the line); > 0 = Raja: close beyond with body >= x ATR", group = G4)
+InpRajaRemoval     = input.bool(false, "Direction counts a zone as removed only after a 2nd big close beyond the distal (Raja)", group = G4)
+InpRajaBigBody     = input.float(0.6, "Raja removal: 2nd close body >= x ATR", group = G4)
+InpCurveMode       = input.int(1, "Curve: 0 = v1 (position in the 100-bar HTF range), 1 = Raja (proximal to proximal of the HTF strong zones)", minval = 0, maxval = 1, group = G4)
+InpCurveLow        = input.float(25, "Low curve (%): buys only", group = G4)
+InpCurveHigh       = input.float(75, "High curve (%): sells only", group = G4)
+InpCurveLines      = input.bool(true, "Draw Raja's 25 / 50 / 75 curve lines between the HTF strong zones", group = G4)
+InpShowDirPanel    = input.bool(true, "Direction box under the compact panel", group = G4)
+InpAlertDir        = input.bool(true, "Alert once when the Direction or its quality changes (never on load)", group = G4)
+InpShowWOW         = input.bool(false, "Raja WOW ladder: targets at the origin zones of the broken HTF / ITF trendlines", group = G4)
+InpWOWLines        = input.int(4, "WOW ladder: lines kept each way", minval = 1, group = G4)
+InpPipXAU          = input.float(0.1, "Pip size on gold (WOW labels)", group = G4)
+InpAlertWOW        = input.bool(false, "Alert on a new WOW1 target with the guard clear (needs InpShowWOW)", group = G4)
+G6 = "-- v2 Display --"
+InpTheme           = input.int(0, "Colours: 0 = auto (follows the chart background), 1 = light, 2 = dark", minval = 0, maxval = 2, group = G6)
+G8 = "-- TradingView only --"
+TvHistory          = input.int(5000, "Chart bars read (MT5 reads the whole chart; Pine max 5000)", minval = 300, maxval = 5000, group = G8, tooltip = "Depth of this chart's history the analysis sees. Only the DNA all-time-high check (5000 bars) and the HTF-line refine on very old HTF pivots can reach that far.")
+TvSpreadPts        = input.float(0, "Spread in points for the plans (Pine has no bid / ask)", minval = 0, group = G8, tooltip = "MT5 uses ask - bid. Put your broker's typical spread here to get the same entry / stop / R:R.")
+TvTextSize         = input.string("tiny", "Text size of the chart labels", options = ["tiny", "small", "normal"], group = G8)
+TvPanelSize        = input.string("small", "Panel text size", options = ["tiny", "small", "normal"], group = G8)
+TvHtfCap           = input.int(330, "HTF bars read per higher timeframe", minval = 120, maxval = 600, group = G8, tooltip = "330 covers every MT5 HTF scan (HtfTrend reads 306 bars, Trendlines / Detect about 210).")
+
+// ---------------------------------------------------------------------------------------------------------------
+// Theme (MT5 ApplyTheme): inputs on a light chart; on a dark chart the colours still on their default switch
+// ---------------------------------------------------------------------------------------------------------------
+bgDark() =>
+    color bg = chart.bg_color
+    0.299 * color.r(bg) + 0.587 * color.g(bg) + 0.114 * color.b(bg) < 128
+gDark = InpTheme == 2 ? true : (InpTheme == 1 ? false : (InpAutoTheme and bgDark()))
+cDemandLine  = gDark and InpDemandLine == #2E8B57 ? #50C878 : InpDemandLine
+cSupplyLine  = gDark and InpSupplyLine == #C83C3C ? #EB5F5F : InpSupplyLine
+cMuted       = gDark and InpMuted == #AAAAAA ? #787878 : InpMuted
+cText        = gDark and InpText == #5A5A5A ? #C8C8C8 : InpText
+cPopBg       = gDark ? #24262E : #FFFFEC
+cPopFg       = gDark ? #BEBEBE : #696969
+cPopHead     = gDark ? color.white : color.black
+cPopBorder   = gDark ? #5A5A64 : #A9A9A9
+cNone        = color.new(color.black, 100)
+tvTxt        = TvTextSize == "small" ? size.small : (TvTextSize == "normal" ? size.normal : size.tiny)
+tvPan        = TvPanelSize == "tiny" ? size.tiny : (TvPanelSize == "normal" ? size.normal : size.small)
+cWow         = gDark ? #5AC8DC : #0096AA
+cCurve       = gDark ? #82828C : #969696
+// ===============================================================================================================
+// CORE (pure functions on newest-first arrays; mirrors RFX_ZoneCore.mqh). Nothing in this section draws.
+// MQL loop "for(j = a; j >= b; j--)" is written as a while loop that decrements first, so `continue` is safe and a
+// loop whose start is already past its end runs zero times (a Pine `for` would count the other way).
+// Demand / supply (up / down) twins are written once with the side d = +1 / -1: s.ad(d, i) = the adverse extreme
+// (low for d > 0, high for d < 0), s.ex(d, i) = the favourable one, and "d * (a - b) < 0" = MQL "a < b" for d > 0,
+// "a > b" for d < 0 (exact in floating point).
+// ===============================================================================================================
+gPt   = syminfo.mintick                      // MQL _Point
+gSymU = str.upper(syminfo.ticker)
+float DBLMAX = 1e308
+
+// MQL _Digits from the tick size
+digitsOf(float pt) =>
+    int dg = 0
+    float m = pt
+    while dg < 10 and math.abs(m - math.round(m)) > 1e-9
+        m := m * 10
+        dg += 1
+    dg
+gDigits = digitsOf(gPt)
+
+// ---- timeframes: seconds (MT5 PeriodSeconds), 0 = PERIOD_CURRENT / none; 3M / 6M / 12M = months x 30 days.
+// ladTF / StepUp / HtfOf / DirStd / DirUp / DirL15Top / DirTable / TvTf / isVs also feed request.security, so they are
+// only ever called with simple (chart-TF derived) arguments; series code uses VIsTF / TfName and the St fields.
+int TF_MN1 = 2592000
+int TFV_3M = 7776000
+int TFV_6M = 15552000
+int TFV_12M = 31104000
+ladTF(int k) =>
+    switch k
+        0 => 60
+        1 => 300
+        2 => 900
+        3 => 3600
+        4 => 14400
+        5 => 86400
+        6 => 604800
+        7 => 2592000
+        => 0
+isVs(int tf) => tf == 7776000 or tf == 15552000 or tf == 31104000
+VIsTF(int tf) => tf == TFV_3M or tf == TFV_6M or tf == TFV_12M
+// n steps up the ladder M1 M5 M15 H1 H4 D1 W1 MN1 (MQL StepUp; M30 -> M15 slot)
+StepUp(int tf, int n) =>
+    int i = -1
+    int k = 0
+    while k < 8
+        if ladTF(k) == tf
+            i := k
+        k += 1
+    if tf == 1800
+        i := 2
+    if i < 0 and InpExtraTF
+        int q = 7
+        while q >= 0
+            if ladTF(q) < tf
+                i := q
+                break
+            q -= 1
+    i < 0 ? 0 : (i + n < 8 ? ladTF(i + n) : 0)
+HtfOf(int tf) =>
+    int r = switch tf
+        60 => 900
+        300 => 3600
+        900 => 14400
+        3600 => 86400
+        14400 => 604800
+        86400 => TF_MN1
+        => 0
+    if r == 0 and InpExtraTF
+        r := (tf == 120 or tf == 180 or tf == 240) ? 900 : (tf == 360 or tf == 600 or tf == 720) ? 3600 : tf == 1200 ? 14400 : (tf == 7200 or tf == 10800) ? 86400 : (tf == 21600 or tf == 28800 or tf == 43200) ? 604800 : 0
+    r
+TfName(int tf) =>
+    string s = switch tf
+        60 => "M1"
+        300 => "M5"
+        900 => "M15"
+        1800 => "M30"
+        3600 => "H1"
+        14400 => "H4"
+        86400 => "D1"
+        604800 => "W1"
+        2592000 => "MN"
+        7776000 => "3M"
+        15552000 => "6M"
+        31104000 => "12M"
+        => ""
+    if s == ""
+        s := tf % 2592000 == 0 ? "MN" + str.tostring(tf / 2592000) : tf % 604800 == 0 ? "W" + str.tostring(tf / 604800) : tf % 86400 == 0 ? "D" + str.tostring(tf / 86400) : tf % 3600 == 0 ? "H" + str.tostring(tf / 3600) : tf % 60 == 0 ? "M" + str.tostring(tf / 60) : "S" + str.tostring(tf)
+    s
+// TradingView timeframe string of a TF (for request.security)
+TvTf(int tf) =>
+    tf <= 0 ? "" : tf % 2592000 == 0 ? (tf == 2592000 ? "M" : str.tostring(tf / 2592000) + "M") : tf % 604800 == 0 ? (tf == 604800 ? "W" : str.tostring(tf / 604800) + "W") : tf % 86400 == 0 ? (tf == 86400 ? "D" : str.tostring(tf / 86400) + "D") : tf % 60 == 0 ? str.tostring(tf / 60) : str.tostring(tf) + "S"
+
+// ---- series: newest first, index 0 = forming bar (MQL series order). After the n real bars the arrays hold PAD
+// zero bars, so an index up to n + PAD - 1 reads 0 like MT5 iHigh / iTime outside the history (no bounds test needed).
+int PAD = 8
+type Ser
+    int tf = 0
+    int n = 0
+    array<int> t
+    array<float> o
+    array<float> h
+    array<float> l
+    array<float> c
+    array<float> a                           // ATR(14) of the bar (MT5 iATR = SMA of true range; virtual TFs Wilder)
+
+method addBar(Ser s, int t, float o, float h, float l, float c, float a) =>
+    s.t.push(t)
+    s.o.push(o)
+    s.h.push(h)
+    s.l.push(l)
+    s.c.push(c)
+    s.a.push(na(a) ? 0.0 : a)
+    s
+// close the series: n = the real bars, then the zero pad
+method seal(Ser s) =>
+    s.n := s.t.size()
+    for k = 1 to PAD
+        s.addBar(0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    s
+newSer(int tf) => Ser.new(tf, 0, array.new<int>(), array.new<float>(), array.new<float>(), array.new<float>(), array.new<float>(), array.new<float>())
+emptySer(int tf) => newSer(tf).seal()
+
+// accessors (MQL SH / SL / SO / SC / ST / ATR)
+method sH(Ser s, int i) => s.h.get(i)
+method sL(Ser s, int i) => s.l.get(i)
+method sO(Ser s, int i) => s.o.get(i)
+method sC(Ser s, int i) => s.c.get(i)
+method sT(Ser s, int i) => s.t.get(i)
+method atr(Ser s, int i) => s.a.get(i)
+method ad(Ser s, int d, int i) => d > 0 ? s.l.get(i) : s.h.get(i)
+method ex(Ser s, int d, int i) => d > 0 ? s.h.get(i) : s.l.get(i)
+// MQL iHighest(MODE_HIGH) (hi = true) / iLowest(MODE_LOW): first strict extreme from start into the past, -1 = none
+SExt(Ser s, bool hi, int count, int start) =>
+    int best = -1
+    float bv = 0.0
+    int i = math.max(start, 0)
+    while i < start + count and i < s.n
+        float v = hi ? s.h.get(i) : -s.l.get(i)
+        if best < 0 or v > bv
+            best := i
+            bv := v
+        i += 1
+    best
+// MQL iBarShift(exact = false): the bar holding time t (newest bar whose open <= t), -1 = older than the history
+BarShift(Ser s, int t) =>
+    int r = -1
+    if s.n > 0
+        if s.t.get(0) <= t
+            r := 0
+        else if s.t.get(s.n - 1) <= t
+            int lo = 0
+            int hi = s.n - 1
+            while hi - lo > 1
+                int md = int((lo + hi) / 2)
+                if s.t.get(md) <= t
+                    hi := md
+                else
+                    lo := md
+            r := hi
+    r
+// MQL BarTime: i < 0 = bars in the future
+BarTime(Ser s, int i) => i >= 0 ? s.sT(i) : s.sT(0) + (-i) * s.tf * 1000
+
+Rng(Ser s, int i) => s.h.get(i) - s.l.get(i)
+Body(Ser s, int i) => math.abs(s.c.get(i) - s.o.get(i))
+Basing(Ser s, int i) =>
+    float r = Rng(s, i)
+    r > 0 and Body(s, i) / r < 0.5
+CDir(Ser s, int i) => int(math.sign(s.c.get(i) - s.o.get(i)))
+Emotional(Ser s, int i) =>
+    float a = s.atr(i + 1)
+    a > 0 and Rng(s, i) > InpEmoATR * a
+
+// HTF pack -> Ser (see f_pack below): p = [nClosed, curTimeClose, then the current HTF bar and every closed one, newest
+// first: t, o, h, l, c, atr]. chartTC = this chart candle's close time. When the HTF candle closes with it, MT5 (at the
+// next chart candle) sees that HTF candle as index 1; index 0 is the new forming HTF bar (placeholder: only its time
+// is read by the core).
+serFromPack(array<float> p, int tf, int chartTC, float chartClose) =>
+    Ser s = newSer(tf)
+    if not na(p)
+        if p.size() >= 8
+            bool done = not na(p.get(1)) and int(p.get(1)) <= chartTC
+            s.addBar(done ? int(p.get(1)) : int(p.get(2)), chartClose, chartClose, chartClose, chartClose, done ? p.get(7) : p.get(p.size() > 8 ? 13 : 7))
+            int k = done ? 0 : 1
+            while k <= int(p.get(0))
+                int b = 2 + 6 * k
+                s.addBar(int(p.get(b)), p.get(b + 1), p.get(b + 2), p.get(b + 3), p.get(b + 4), p.get(b + 5))
+                k += 1
+    s.seal()
+
+// ---------------------------------------------------------------------------------------------------------------
+// Zone / TLine (MQL structs)
+// ---------------------------------------------------------------------------------------------------------------
+type Zone
+    int baseEnd = 0
+    float trap = 0.0
+    bool crowded = false
+    int trapBar = -1
+    int dir = 0
+    float prox = 0.0
+    float dist = 0.0
+    int legBar = 0
+    int baseN = 0
+    int saBar = 0
+    float legRatio = 0.0
+    string grade = ""
+    bool cont = false
+    bool tested = false
+    bool removed = false
+    int removedBar = -1
+    int testedBar = -1
+    string qual = ""
+    float gap = 0.0
+    bool leg2 = false
+    bool chain = false
+    bool arrival = false
+
+type TLine
+    int dir = 0
+    int a = 0
+    int b = 0
+    float pa = 0.0
+    float pb = 0.0
+    bool removed = false
+    int removedBar = -1
+    bool conf = false
+
+type ZList
+    array<Zone> z
+
+type Rej
+    int L = 0
+    int k = 0
+    string why = ""
+
+// ---------------------------------------------------------------------------------------------------------------
+// Zone detection (MQL Detect). rej: rejected candidates (only filled when wantRej, the chart with InpShowRejected)
+// ---------------------------------------------------------------------------------------------------------------
+Detect(Ser s, bool wantRej, array<Rej> rej) =>
+    array<Zone> out = array.new<Zone>()
+    int L = math.min(InpLookback, s.n - InpMaxBase - 3) + 1
+    while L > 2
+        L -= 1
+        float lr = Rng(s, L)
+        int dir = CDir(s, L)
+        if lr <= 0 or Basing(s, L) or dir == 0
+            continue
+        int k = 0
+        float maxBase = 0.0
+        while k < InpMaxBase and Basing(s, L + 1 + k)
+            maxBase := math.max(maxBase, Rng(s, L + 1 + k))
+            k += 1
+        if k == 0 or maxBase <= 0
+            continue
+        float ratio = lr / maxBase
+        string why = ""
+        // prox / dist in side units (x dir): demand max(open, close) / min low, supply min(open, close) / max high
+        float pu = -DBLMAX
+        float du = DBLMAX
+        for b = L + 1 to L + k
+            pu := math.max(pu, math.max(dir * s.sO(b), dir * s.sC(b)))
+            du := math.min(du, dir * s.ad(dir, b))
+        du := math.min(du, dir * s.ad(dir, L))
+        float prox = dir * pu
+        float dist = dir * du
+        float h = math.abs(prox - dist)
+        float atr = s.atr(L)
+        int sa = L - 1
+        if ratio < InpMinLegRatio
+            why := ratio >= 1.0 ? "move away only " + str.tostring(ratio, "0.0") + "x base" : "-"
+        else if h <= 0
+            why := "-"
+        else if atr > 0 and h > InpMaxZoneATR * atr
+            why := "zone " + str.tostring(h / atr, "0.0") + " ATR - too big"
+        else if dir * (s.ad(dir, sa) - prox) <= 0
+            why := "no stay-away / no space"
+        if why != ""
+            if wantRej and why != "-"
+                rej.push(Rej.new(L, k, why))
+            continue
+        Zone z = Zone.new(0, 0.0, false, -1, dir, prox, dist, L, k, sa, ratio, (ratio >= 2.5 and k <= 3) ? "A" : (ratio >= 1.8 ? "B" : "C"), CDir(s, L + 1 + k) == dir)
+        z.gap := dir * (s.ad(dir, sa) - prox) / h
+        z.leg2 := sa >= 1 and not Basing(s, sa) and CDir(s, sa) == dir and Rng(s, sa) >= maxBase * InpMinLegRatio
+        int j = sa
+        while j > 1 and not z.removed
+            j -= 1
+            if dir * (s.sC(j) - dist) < 0 or (dir * (s.ad(dir, j) - dist) < 0 and not Emotional(s, j))
+                z.removed := true
+                z.removedBar := j
+            else if not z.tested and dir * (s.ad(dir, j) - prox) <= 0 and not Emotional(s, j)
+                z.tested := true
+                z.testedBar := j
+        z.baseEnd := L + k
+        out.push(z)
+    out
+
+// ---------------------------------------------------------------------------------------------------------------
+// Trendlines - Kevin's way (MQL ZigZag / FitAnchor / RemovedAt / AddTL / Confirmed / TooFlat / Trendlines)
+// ---------------------------------------------------------------------------------------------------------------
+type TLCtx
+    array<TLine> tl
+    bool upOn = false
+    bool dnOn = false
+    float upS = 0.0
+    float upP = 0.0
+    float upW = 0.0
+    int upB = 0
+    float dnS = 0.0
+    float dnP = 0.0
+    float dnW = 0.0
+    int dnB = 0
+    int newestUp = -1
+    int newestDn = -1
+    int upA = 0
+    float upPa = 0.0
+    int dnA = 0
+    float dnPa = 0.0
+newTL() => TLCtx.new(array.new<TLine>())
+
+// MQL FrLow (d = +1) / FrHigh (d = -1); bound = DnaFrac's extra "i + j < bars" test
+Fr(Ser s, int i, int d, bool bound) =>
+    bool ok = true
+    int k = 1
+    while k <= InpTLSwing and ok
+        if i - k < 1 or (bound and i + k >= s.n) or d * (s.ad(d, i) - s.ad(d, i + k)) > 0 or d * (s.ad(d, i) - s.ad(d, i - k)) >= 0
+            ok := false
+        k += 1
+    ok
+// real peaks / valleys, oldest first: pvBar / pvP / pvT (pvT +1 peak, -1 valley)
+type Piv
+    array<int> bar
+    array<float> p
+    array<int> t
+ZigZag(Ser s, int bars) =>
+    Piv pv = Piv.new(array.new<int>(), array.new<float>(), array.new<int>())
+    int fH = -1
+    int fL = -1
+    int i = bars + 1
+    while i > InpTLSwing + 1
+        i -= 1
+        bool lo = Fr(s, i, 1, false)
+        bool hi = Fr(s, i, -1, false)
+        for d = -1 to 1 by 2
+            // d = -1: a swing low after a swing high (valley); d = +1: a swing high after a swing low (peak)
+            int f = d < 0 ? fH : fL
+            if (d < 0 ? lo : hi) and f > 0
+                int j = i
+                while j > 1
+                    j -= 1
+                    if d * (s.ex(d, j) - s.ex(d, i)) > 0
+                        break
+                    if d * (s.ad(d, j) - s.ad(d, f)) < 0
+                        pv.bar.push(i)
+                        pv.p.push(s.ex(d, i))
+                        pv.t.push(d)
+                        break
+        if lo
+            fL := i
+        if hi
+            fH := i
+    pv
+
+LineAt(float p, int b, float sl, int j) => p + sl * (b - j)
+
+// Kevin: attach at the anchor; move it only when a candle really pokes through (MQL FitAnchor)
+type Fit
+    int a = -1
+    float sl = 0.0
+FitAnchor(Ser s, int A, int b2, float p2, int d) =>
+    Fit f = Fit.new(A, 0.0)
+    float tol = 0.05 * s.atr(1)
+    bool done = false
+    int it = 0
+    while it < 50 and not done
+        it += 1
+        f.sl := (p2 - s.ad(d, f.a)) / (f.a - b2)
+        int worst = -1
+        float ex = tol
+        int j = f.a
+        while j > b2 + 1
+            j -= 1
+            float e = d * (LineAt(p2, b2, f.sl, j) - s.ad(d, j))
+            if e > ex
+                ex := e
+                worst := j
+        done := worst < 0
+        if not done
+            f.a := worst
+    if not done
+        f.sl := (p2 - s.ad(d, f.a)) / (f.a - b2)
+    f
+RemovedAt(Ser s, int b2, float p2, float sl, int d) =>
+    int r = -1
+    int j = b2
+    while j > 1 and r < 0
+        j -= 1
+        if d * (s.ex(d, j) - LineAt(p2, b2, sl, j)) < 0
+            r := j
+    r
+AddTL(Ser s, array<TLine> tl, int d, int a, int b2, float p2, float sl, bool overall) =>
+    int rb = RemovedAt(s, b2, p2, sl, d)
+    TLine t = TLine.new(d, a, b2, LineAt(p2, b2, sl, a), p2, rb >= 0, rb, not overall)
+    tl.push(t)
+    t
+Confirmed(Ser s, int a, int b2, float p2, float sl, int d) =>
+    float ext = -DBLMAX
+    int j = a
+    while j > b2 + 1
+        j -= 1
+        ext := math.max(ext, d * s.ex(d, j))
+    bool res = false
+    if ext != -DBLMAX
+        int q = b2
+        while q > 1
+            q -= 1
+            if d * (s.ex(d, q) - LineAt(p2, b2, sl, q)) < 0
+                break
+            if d * s.ex(d, q) > ext
+                res := true
+                break
+    res
+TooFlat(Ser s, int a, int b2, float p2, float sl) =>
+    float atr = math.max(s.atr(b2), gPt)
+    math.abs(sl) < 0.015 * atr or math.abs(p2 - LineAt(p2, b2, sl, a)) < 1.5 * atr
+
+// MQL Trendlines(): the line set of one TF + the channel values (gUpOn ... gDnW) the checks use. Nothing drawn here;
+// tlPlan() below is the drawing part of the MQL function.
+Trendlines(Ser s) =>
+    TLCtx x = newTL()
+    int bars = math.min(InpLookback, s.n - 20)
+    Piv pv = ZigZag(s, bars)
+    int npv = pv.bar.size()
+    for d = -1 to 1 by 2
+        int prevB = -1
+        int lastA = -1
+        float prevP = 0.0
+        int k = 0
+        while k < npv
+            int kk = k
+            k += 1
+            if pv.t.get(kk) != -d
+                continue
+            int b2 = pv.bar.get(kk)
+            float p2 = pv.p.get(kk)
+            float sl = 0.0
+            int pb = prevB
+            float pp = prevP
+            prevB := b2
+            prevP := p2
+            int a = -1
+            int A = SExt(s, d < 0, bars - b2, b2 + 1)
+            // 1) the bottom / top of the move, 2) the previous real valley / peak, 3) the line's original start
+            for q = 0 to 2
+                if a < 0
+                    int cand = q == 0 ? A : (q == 1 ? pb : lastA)
+                    if q == 1 ? (pb > 0 and d * (pp - p2) < 0) : (cand > b2 and d * (s.ad(d, cand) - p2) < 0)
+                        Fit f = FitAnchor(s, cand, b2, p2, d)
+                        a := TooFlat(s, f.a, b2, p2, f.sl) ? -1 : f.a
+                        sl := f.sl
+            if a < 0 or not Confirmed(s, a, b2, p2, sl, d)
+                continue
+            int n = x.tl.size()
+            if n > 0
+                if x.tl.get(n - 1).dir == d and x.tl.get(n - 1).a == a
+                    x.tl.pop()
+            AddTL(s, x.tl, d, a, b2, p2, sl, false)
+            lastA := a
+        // overall line from the very bottom / top of the window
+        int O = SExt(s, d < 0, bars, 1)
+        float ov = O < 0 ? 0.0 : s.ad(d, O)
+        float bs = 0.0
+        int bk = -1
+        for q = 0 to npv - 1
+            if npv == 0
+                break
+            if pv.t.get(q) != -d or pv.bar.get(q) >= O - 1
+                continue
+            float s0 = (pv.p.get(q) - ov) / (O - pv.bar.get(q))
+            if d * s0 > 0 and (bk < 0 or d * (s0 - bs) < 0)
+                bk := q
+                bs := s0
+        if bk >= 0
+            int b2 = pv.bar.get(bk)
+            float p2 = pv.p.get(bk)
+            Fit f = FitAnchor(s, O, b2, p2, d)
+            bool dup = false
+            for t in x.tl
+                if t.dir == d and (t.a == f.a or t.b == b2)
+                    dup := true
+            if not dup and not TooFlat(s, f.a, b2, p2, f.sl) and Confirmed(s, f.a, b2, p2, f.sl, d)
+                if AddTL(s, x.tl, d, f.a, b2, p2, f.sl, true).removed
+                    x.tl.pop()
+    // per direction: the newest confirmed line, the line used by the channel checks, and the channel width
+    int nt = x.tl.size()
+    for dd = -1 to 1 by 2
+        int newest = -1
+        int use = -1
+        for i = 0 to nt - 1
+            if nt == 0
+                break
+            TLine t = x.tl.get(i)
+            if t.dir == dd and t.conf and (newest < 0 or t.b < x.tl.get(newest).b)
+                newest := i
+        if newest >= 0
+            if not x.tl.get(newest).removed
+                use := newest
+        if use < 0
+            for i = 0 to nt - 1
+                if nt == 0
+                    break
+                TLine t = x.tl.get(i)
+                if t.dir == dd and not t.conf and not t.removed
+                    use := i
+        if dd > 0
+            x.newestUp := newest
+        else
+            x.newestDn := newest
+        if use >= 0
+            TLine t = x.tl.get(use)
+            float sl = (t.pb - t.pa) / math.max(1, t.a - t.b)
+            float w = 0.0
+            int j = t.a + 1
+            while j > 1
+                j -= 1
+                w := math.max(w, dd * (s.ex(dd, j) - LineAt(t.pb, t.b, sl, j)))
+            if dd > 0
+                x.upOn := true
+                x.upS := sl
+                x.upP := t.pb
+                x.upB := t.b
+                x.upW := w
+                x.upA := t.a
+                x.upPa := t.pa
+            else
+                x.dnOn := true
+                x.dnS := sl
+                x.dnP := t.pb
+                x.dnB := t.b
+                x.dnW := w
+                x.dnA := t.a
+                x.dnPa := t.pa
+    x
+
+// date text of a bar (MT5 TimeToString TIME_DATE). D1+ bars: +7 h so a TradingView FX daily bar (opens 17:00 New
+// York the evening before) shows the trading day, as MT5 server time does.
+DateOf(int t, int tf) => str.format_time(t + (tf >= 86400 ? 7 * 3600000 : 0), "yyyy.MM.dd", syminfo.timezone)
+Px(float p) => str.tostring(p, format.mintick)          // MQL DoubleToString(p, _Digits)
+F0(float v) => str.tostring(v, "0")
+F1(float v) => str.tostring(v, "0.0")
+F2(float v) => str.tostring(v, "0.00")
+
+// ---------------------------------------------------------------------------------------------------------------
+// HTF trend (fractals, MT4 rule) + curve (MQL FracUp (d = +1, highs) / FracDn (d = -1, lows) / HtfTrend / Curve)
+// ---------------------------------------------------------------------------------------------------------------
+FracX(Ser s, int i, int d) =>
+    int bars = s.n
+    float r = 0.0
+    if not (i < 2 or i + 2 > bars - 1)
+        // u = the extreme in side units (high, or -low): every "c < p" of FracDn is "u > p" here
+        float c = d * s.ex(d, i)
+        float p1 = d * s.ex(d, i + 1)
+        float p2 = d * s.ex(d, i + 2)
+        float p3 = d * s.ex(d, i + 3)
+        float p4 = d * s.ex(d, i + 4)
+        float p5 = d * s.ex(d, i + 5)
+        float p6 = d * s.ex(d, i + 6)
+        int m = bars - i - 1
+        if c > d * s.ex(d, i - 1) and c > d * s.ex(d, i - 2)
+            if (c > p1 and c > p2) or (m >= 3 and c == p1 and c > p2 and c > p3) or (m >= 4 and c >= p1 and c == p2 and c > p3 and c > p4) or (m >= 5 and c >= p1 and c == p2 and c == p3 and c > p4 and c > p5) or (m >= 6 and c >= p1 and c == p2 and c >= p3 and c == p4 and c > p5 and c > p6)
+                r := s.ex(d, i)
+    r
+HtfTrend(Ser s) =>
+    float hi0 = 0.0
+    float hi1 = 0.0
+    float lo0 = 0.0
+    float lo1 = 0.0
+    int nh = 0
+    int nl = 0
+    int i = 3
+    while i < 300 and (nh < 2 or nl < 2)
+        float u = FracX(s, i, 1)
+        float d = FracX(s, i, -1)
+        if u > 0 and nh < 2
+            hi1 := nh == 0 ? hi1 : u
+            hi0 := nh == 0 ? u : hi0
+            nh += 1
+        if d > 0 and nl < 2
+            lo1 := nl == 0 ? lo1 : d
+            lo0 := nl == 0 ? d : lo0
+            nl += 1
+        i += 1
+    float c = s.sC(1)
+    nh < 2 or nl < 2 ? 0 : (hi0 > hi1 and lo0 > lo1) ? 1 : (hi0 < hi1 and lo0 < lo1) ? -1 : c > hi0 ? 1 : c < lo0 ? -1 : 0
+Curve(Ser s, float p) =>
+    int hiI = SExt(s, true, 100, 1)
+    int loI = SExt(s, false, 100, 1)
+    float hi = hiI >= 0 ? s.sH(hiI) : 0.0
+    float lo = loI >= 0 ? s.sL(loI) : 0.0
+    hiI >= 0 and loI >= 0 and hi > lo ? 100.0 * (p - lo) / (hi - lo) : 50.0
+
+// pip size: 10 points on 3 / 5 digit symbols, 1 point otherwise; gold = InpPipXAU
+PipSize() => (str.contains(gSymU, "XAU") or str.contains(gSymU, "GOLD")) ? InpPipXAU : ((gDigits == 3 or gDigits == 5) ? 10 * gPt : gPt)
+
+// ---------------------------------------------------------------------------------------------------------------
+// v2 Direction engine (MQL DirTable ... DirRun)
+// ---------------------------------------------------------------------------------------------------------------
+int DST_NA = 0
+int DST_TREND = 1
+int DST_TURN = 2
+int DST_CHG = 3
+int DST_PULL = 4
+int DST_RANGE = 5
+
+// the standard TF whose table row a chart TF uses (simple arguments only, see ladTF)
+DirStd(int tf) =>
+    int r = 0
+    int k = 0
+    while k < 8
+        if ladTF(k) == tf
+            r := tf
+        k += 1
+    if r == 0 and tf == 1800
+        r := 900
+    if r == 0 and InpExtraTF
+        int q = 7
+        while q >= 0
+            if ladTF(q) < tf
+                r := ladTF(q)
+                break
+            q -= 1
+    r
+// one step up the long ladder M1 M5 M15 H1 H4 D1 W1 MN 3M 6M 12M
+dirLad(int k) => k < 8 ? ladTF(k) : (k == 8 ? 7776000 : (k == 9 ? 15552000 : (k == 10 ? 31104000 : 0)))
+DirUp(int tf) =>
+    int r = 0
+    int k = 0
+    while k < 10
+        if dirLad(k) == tf
+            r := dirLad(k + 1)
+        k += 1
+    r
+DirL15Top(int b) =>
+    switch b
+        60 => 14400
+        300 => 86400
+        900 => 604800
+        3600 => 2592000
+        14400 => 7776000
+        86400 => 15552000
+        604800 => 31104000
+        => 0
+// ITF / HTF / Higher+1 for InpDirTable 0 / 1 / 2: [itf, htf, p1, ok]
+DirTable(int ctf) =>
+    int itf = 0
+    int htf = 0
+    int p1 = 0
+    int b = DirStd(ctf)
+    if b != 0
+        if InpDirTable == 2
+            // lesson 15: ITF two steps up (M1 -> M15 ... D1 -> MN), HTF = the slide's third column
+            itf := DirUp(DirUp(b))
+            htf := DirL15Top(b)
+            if htf == 0
+                htf := DirUp(itf)
+            p1 := DirUp(htf)
+        else
+            if InpDirTable == 0
+                itf := StepUp(ctf, 1)
+                htf := HtfOf(ctf)
+                if htf <= 0
+                    htf := StepUp(ctf, 2)
+                if itf <= 0 or itf >= htf
+                    itf := DirUp(b)
+            else
+                // lesson 4: M1 M5 M15 / ... / H4 D1 W1, D1 MN 3M, W1 MN 3M, MN 3M 6M
+                itf := b == 86400 ? 2592000 : DirUp(b)
+                htf := DirUp(itf)
+            p1 := DirL15Top(b)
+            if p1 == 0 or p1 <= htf
+                p1 := DirUp(htf)
+    [itf, htf, p1, b != 0 and htf != 0]
+
+type DirRow
+    int tf = 0
+    string role = ""
+    string note = ""
+    bool ok = false
+    int S = 0
+    int T = 0
+    int rm = 0
+    int st = 0
+    int side = 0
+    int cp = 0
+    int cpDir = 0
+    int inZ = 0
+    int tBar = -1
+    bool upOn = false
+    bool dnOn = false
+    bool swingOnly = false
+    int tTime = 0
+    float inLo = 0.0
+    float inHi = 0.0
+
+// the Direction engine state and outputs (MQL drRow ... gWowPx); made new for every run
+type Dir
+    array<DirRow> rows
+    int drE = -1
+    int drI = -1
+    int drH = -1
+    int drP = -1
+    array<Zone> drZ
+    array<int> drZRow
+    array<TLine> drTL
+    array<int> drTLRow
+    array<int> drTLX
+    bool ok = false
+    int dir = 0
+    int q = 0
+    int side = 0
+    int blocked = 0
+    bool realign = false
+    string head = ""
+    array<string> txt
+    array<int> tfState
+    bool curveOk = false
+    bool curveRaja = false
+    float curve = 50.0
+    float curvePd = 0.0
+    float curvePs = 0.0
+    int curveTf = 0
+    float rangeLo = 0.0
+    float rangeHi = 0.0
+    int lockSide = 0
+    float lockLo = 0.0
+    float lockHi = 0.0
+    int lockTF = 0
+    float wow1 = 0.0
+    float wow2 = 0.0
+    bool wowPend = false
+    array<string> wowTxt
+    array<float> wowPx
+    Ser hs
+    bool cpHit = false
+
+newDir() => Dir.new(array.new<DirRow>(), -1, -1, -1, -1, array.new<Zone>(), array.new<int>(), array.new<TLine>(), array.new<int>(), array.new<int>(), txt = array.new<string>(4, ""), tfState = array.new<int>(5, 0), wowTxt = array.new<string>(), wowPx = array.new<float>(), hs = emptySer(0))
+
+// row r, or an empty (not ok) row for -1
+rw(Dir D, int r) => r >= 0 and r < D.rows.size() ? D.rows.get(r) : DirRow.new()
+// moving side for the conflict rules (RANGE / n/a do not count); HTF side for rule 3 (a PULLBACK does not set it)
+DirRowSide(Dir D, int r) =>
+    DirRow w = rw(D, r)
+    w.ok and w.st != DST_RANGE and w.st != DST_NA ? w.side : 0
+DirTrendSide(Dir D, int r) =>
+    DirRow w = rw(D, r)
+    w.ok and (w.st == DST_TREND or w.st == DST_CHG or w.st == DST_TURN) ? w.side : 0
+
+// cross bar of a line: v1 rule (a full candle beyond it) or Raja's departure close (MQL DirCrossBar)
+DirCrossBar(Ser s, TLine t) =>
+    int r = InpDirDepartATR <= 0 ? (t.removed ? t.removedBar : -1) : -1
+    if InpDirDepartATR > 0
+        float slp = (t.pb - t.pa) / math.max(1, t.a - t.b)
+        int j = t.b
+        while j > 1 and r < 0
+            j -= 1
+            if t.dir * (s.sC(j) - LineAt(t.pb, t.b, slp, j)) < 0 and CDir(s, j) == -t.dir and s.atr(j) > 0 and Body(s, j) >= InpDirDepartATR * s.atr(j)
+                r := j
+    r
+// Raja removal (RJ-B): bar of the 2nd close beyond the distal with a big body, -1 = still live
+DirRajaRemoved(Ser s, Zone z) =>
+    int r = -1
+    int j = z.saBar
+    while j > 2 and r < 0
+        j -= 1
+        if z.dir * (s.sC(j) - z.dist) < 0 and z.dir * (s.sC(j - 1) - z.dist) < 0 and s.atr(j - 1) > 0 and Body(s, j - 1) >= InpRajaBigBody * s.atr(j - 1)
+            r := j - 1
+    r
+// fresh at entry: not removed, and untested or touched only by the visit that is still going on
+DirFreshAt(Ser s, Zone z) =>
+    bool r = not z.removed
+    if r and z.tested
+        int j = z.testedBar + 1
+        while j > 1 and r
+            j -= 1
+            r := not (s.sL(j) > math.max(z.prox, z.dist) or s.sH(j) < math.min(z.prox, z.dist))
+    r
+// Raja strong (type 1): the zone's move removed an opposite zone of the same row (the v1 Qualify window)
+DirRajaStrong(Dir D, int r, int i) =>
+    bool res = false
+    Zone zi = D.drZ.get(i)
+    for [j, zj] in D.drZ
+        if not res and D.drZRow.get(j) == r and zj.dir == -zi.dir and zj.removed and zj.legBar > zi.legBar and zj.removedBar <= zi.legBar and zj.removedBar >= zi.legBar - 5
+            res := true
+    res
+
+// one stack row: S, T, R, L, C and the state (MQL DirEvalTF). x / zz = Trendlines / Detect of this row's series.
+DirEvalTF(Dir D, int r, Ser s, TLCtx x, array<Zone> zz, float mid) =>
+    DirRow w = D.rows.get(r)
+    if w.tf != 0 and s.n >= 40 and s.atr(1) > 0
+        w.ok := true
+        w.S := HtfTrend(s)
+        w.upOn := x.upOn
+        w.dnOn := x.dnOn
+        int tb = -1
+        int td = 0
+        for t in x.tl
+            int cb = DirCrossBar(s, t)
+            D.drTL.push(t)
+            D.drTLRow.push(r)
+            D.drTLX.push(cb)
+            if cb >= 0 and (tb < 0 or cb < tb)
+                tb := cb
+                td := -t.dir
+        w.T := td
+        w.tBar := tb
+        w.tTime := tb >= 0 ? s.sT(tb) : 0
+        int nz = zz.size()
+        for z in zz
+            D.drZ.push(z)
+            D.drZRow.push(r)
+            // R: opposite zones removed since the newest cross (v1 removal, or Raja removal)
+            if td != 0 and z.dir == -td and z.removed
+                int rb = InpRajaRemoval ? DirRajaRemoved(s, z) : z.removedBar
+                w.rm += rb >= 1 and rb <= tb ? 1 : 0
+        // C: CP run, newest zone first (Detect lists oldest first)
+        if nz > 0
+            w.cpDir := zz.get(nz - 1).dir
+            int k = nz
+            while k > 0
+                k -= 1
+                if zz.get(k).dir != w.cpDir or not zz.get(k).cont
+                    break
+                w.cp += 1
+        // L: price inside a fresh zone of this TF (the newest one wins)
+        int i = nz
+        while i > 0 and w.inZ == 0
+            i -= 1
+            Zone z = zz.get(i)
+            if mid >= math.min(z.prox, z.dist) and mid <= math.max(z.prox, z.dist) and DirFreshAt(s, z)
+                w.inZ := z.dir
+                w.inLo := math.min(z.prox, z.dist)
+                w.inHi := math.max(z.prox, z.dist)
+        // state (spec 2.2), in this order
+        int S = w.S
+        int N = math.max(1, InpDirRemovedN)
+        w.swingOnly := td == 0 and not (S == 0 or (x.upOn and x.dnOn))
+        w.st := td == 0 ? (w.swingOnly ? DST_TREND : DST_RANGE) : S == -td ? (w.rm >= N ? DST_CHG : DST_PULL) : (td > 0 ? x.upOn : x.dnOn) ? DST_TREND : (w.rm >= N ? DST_CHG : DST_TURN)
+        w.side := td == 0 ? (w.swingOnly ? S : 0) : td
+    w.ok
+
+// curve (F18) and range edges from the HTF row's zones (MQL DirCurve); hs = the HTF row's series
+DirCurve(Dir D, Ser hs, float mid) =>
+    if rw(D, D.drH).ok
+        float pd = 0.0
+        float ps = 0.0
+        for [i, z] in D.drZ
+            if D.drZRow.get(i) == D.drH and DirFreshAt(hs, z)
+                bool dn = z.dir > 0
+                if dn and z.dist < mid and (D.rangeLo == 0 or z.prox > D.rangeLo)
+                    D.rangeLo := z.prox
+                if not dn and z.dist > mid and (D.rangeHi == 0 or z.prox < D.rangeHi)
+                    D.rangeHi := z.prox
+                if DirRajaStrong(D, D.drH, i)
+                    if dn and z.dist < mid and (pd == 0 or z.prox > pd)
+                        pd := z.prox
+                    if not dn and z.dist > mid and (ps == 0 or z.prox < ps)
+                        ps := z.prox
+        D.curveRaja := InpCurveMode == 1 and pd > 0 and ps > pd
+        D.curvePd := D.curveRaja ? pd : 0.0
+        D.curvePs := D.curveRaja ? ps : 0.0
+        D.curve := D.curveRaja ? 100.0 * (mid - pd) / (ps - pd) : Curve(hs, mid)
+        D.curveOk := true
+        D.curveTf := hs.tf
+    D.curveOk
+DirCurveAt(Dir D, Ser hs, float p) => not D.curveOk ? 50.0 : (D.curveRaja ? 100.0 * (p - D.curvePd) / (D.curvePs - D.curvePd) : Curve(hs, p))
+DirCurveWord(float c) => c >= InpCurveHigh ? "high curve: sells only" : (c <= InpCurveLow ? "low curve: buys only" : (c >= 45 and c <= 55 ? "50% line" : "middle: confirmation only"))
+
+// conflict rules (spec 2.3): the first rule that fires sets the side; later rules only downgrade (MQL DirCombine)
+DirCombine(Dir D) =>
+    int q = 2
+    int hSide = DirTrendSide(D, D.drH)
+    // rule 1: inside a fresh HTF (or Higher+1) zone
+    DirRow wl = rw(D, D.drH).inZ != 0 ? rw(D, D.drH) : rw(D, D.drP)
+    if wl.inZ != 0
+        D.lockSide := wl.inZ
+        D.lockLo := wl.inLo
+        D.lockHi := wl.inHi
+        D.lockTF := wl.tf
+    int side = D.lockSide
+    if side != 0 and hSide == -side
+        q := 1
+    // rule 2: Raja's high / low curve
+    int cv = not D.curveOk ? 0 : D.curve >= InpCurveHigh ? -1 : (D.curve <= InpCurveLow ? 1 : 0)
+    if cv != 0
+        D.blocked := -cv
+        if side == 0
+            side := cv
+            q := hSide == -side ? 1 : q
+        else if side != cv
+            q := math.min(q, 1)
+    // rule 3: the HTF is in control
+    side := side == 0 ? hSide : side
+    if side != 0
+        // rule 4: Higher+1 (or macro) disagrees
+        if D.drP >= 0 and DirRowSide(D, D.drP) == -side
+            q := math.min(q, 1)
+        for [r, w] in D.rows
+            if w.role == "MAC" and DirRowSide(D, r) == -side
+                q := math.min(q, 1)
+                break
+        // rule 5: the ITF pulls back / turns against the side -> wait until it realigns (unless price sits in the HTF zone)
+        DirRow wi = rw(D, D.drI)
+        D.realign := wi.ok and (wi.st == DST_PULL or wi.st == DST_TURN) and wi.side == -side and D.lockSide != side
+        q := D.realign ? 0 : q
+        // rule 6: ETF on the same side = full; rule 8: 3rd CP in a row on the ETF -> one step down
+        q := q > 0 and DirRowSide(D, D.drE) != side ? math.min(q, 1) : q
+        DirRow we = rw(D, D.drE)
+        D.cpHit := we.cp >= 3 and we.cpDir == side and q > 0
+        q -= D.cpHit ? 1 : 0
+    D.side := side
+    D.q := side == 0 ? 0 : q
+    D.dir := D.q > 0 ? side : 0
+    D.dir
+
+
+// ---- Direction display (texts, row lines, WOW ladder): the Direction indicator only
+DirTfName(int tf) => tf == 0 ? "-" : TfName(tf)
+DirSg(int v) => (v > 0 ? "+" : "") + str.tostring(v)
+DirSideWord(int d) => d > 0 ? "UP" : (d < 0 ? "DOWN" : "")
+DirStateName(int st, int side) => st == DST_TREND ? DirSideWord(side) : st == DST_TURN ? "TURNING " + DirSideWord(side) : st == DST_CHG ? "CHANGED " + DirSideWord(side) : st == DST_PULL ? "PULLBACK" : st == DST_RANGE ? "RANGE" : "n/a"
+DirStateCode(Dir D, int r) =>
+    DirRow w = rw(D, r)
+    not w.ok ? 0 : w.st == DST_RANGE ? 5 : w.st * (w.side >= 0 ? 1 : -1)
+DirRowDetail(DirRow w) => not w.ok ? "not enough bars" : w.T != 0 ? (w.T > 0 ? "downtrend line broken " : "uptrend line broken ") + DateOf(w.tTime, w.tf) + ", " + str.tostring(w.rm) + " " + (w.T > 0 ? (w.rm == 1 ? "supply" : "supplies") : (w.rm == 1 ? "demand" : "demands")) + " removed" : w.swingOnly ? "swings only, no line broken" : (w.upOn and w.dnOn) ? "both lines intact" : "no swing / line direction"
+DirRowLine(Dir D, int r) =>
+    DirRow w = D.rows.get(r)
+    w.role + " " + DirTfName(w.tf) + "  " + DirStateName(w.st, w.side) + (w.ok ? "  T" + DirSg(w.T) + " S" + DirSg(w.S) + " R" + str.tostring(w.rm) : "") + (r == D.drH and D.curveOk ? "  curve " + F0(D.curve) + "%" : "") + (w.inZ != 0 ? (w.inZ > 0 ? "  in demand" : "  in supply") : "") + (w.ok and w.cp >= 2 ? "  CP x" + str.tostring(w.cp) : "") + (w.note != "" ? "  (" + w.note + ")" : "")
+// state name of a row ("ETF H1 UP")
+DirRowName(Dir D, int r, string lab) =>
+    DirRow w = rw(D, r)
+    lab + DirTfName(w.tf) + " " + DirStateName(w.st, w.side)
+
+// the Direction texts (MQL DirCombine's header and reasons; the rules themselves are in DirCombine)
+DirTexts(Dir D) =>
+    int side = D.side
+    int cv = not D.curveOk ? 0 : D.curve >= InpCurveHigh ? -1 : (D.curve <= InpCurveLow ? 1 : 0)
+    string rsCv = D.lockSide != 0 and cv != 0 and D.lockSide != cv ? " (curve disagrees)" : ""
+    string rsP1 = side != 0 and D.drP >= 0 and DirRowSide(D, D.drP) == -side ? DirTfName(D.rows.get(D.drP).tf) + " " + (side > 0 ? "down" : "up") + " vs " + DirTfName(rw(D, D.drH).tf) + " " + (side > 0 ? "up" : "down") + ": correction, wait for confirmation" : ""
+    for [r, w] in D.rows
+        if side != 0 and rsP1 == "" and w.role == "MAC" and DirRowSide(D, r) == -side
+            rsP1 := "macro " + DirTfName(w.tf) + " disagrees: correction"
+    string rsCP = D.cpHit ? "ETF " + DirTfName(rw(D, D.drE).tf) + " CP x" + str.tostring(rw(D, D.drE).cp) + " in a row: do not chase" : ""
+    string sw = side > 0 ? "long" : "short"
+    D.head := (side == 0 ? "DIRECTION: WAIT" : D.realign ? "DIRECTION: WAIT - REALIGNING (" + sw + " side)" : D.q == 0 ? "DIRECTION: WAIT (" + sw + " side)" : "DIRECTION: " + str.upper(sw) + " - " + (D.q == 2 ? "FULL" : "REDUCED")) + (D.blocked > 0 ? " | buys BLOCKED" : D.blocked < 0 ? " | sells BLOCKED" : "")
+    // reasons (up to 4)
+    if D.drH >= 0
+        D.txt.set(0, DirRowName(D, D.drH, "HTF ") + " (" + DirRowDetail(D.rows.get(D.drH)) + ")" + rsCv + (side == 0 and D.rangeLo > 0 and D.rangeHi > 0 ? " | edges " + Px(D.rangeLo) + " / " + Px(D.rangeHi) : ""))
+    if D.drI >= 0
+        DirRow w = D.rows.get(D.drI)
+        D.txt.set(1, DirRowName(D, D.drI, "ITF ") + (D.realign ? " (" + str.tostring(w.rm) + " of " + str.tostring(math.max(1, InpDirRemovedN)) + " " + (w.T > 0 ? "supplies" : "demands") + " removed) -> wait for " + DirTfName(w.tf) + " to realign" : side != 0 ? (DirRowSide(D, D.drI) == side ? " agrees" : (DirRowSide(D, D.drI) == -side ? " against" : "")) : ""))
+    D.txt.set(2, (D.curveOk ? "Curve " + F0(D.curve) + "% (" + DirCurveWord(D.curve) + (D.curveRaja ? "" : ", v1 range") + ")" : "Curve n/a") + (D.lockSide != 0 ? " | inside " + DirTfName(D.lockTF) + " " + (D.lockSide > 0 ? "demand" : "supply") + " " + Px(D.lockLo) + "-" + Px(D.lockHi) : ""))
+    string l4 = rsP1 != "" ? rsP1 : D.drP >= 0 ? DirRowName(D, D.drP, "+1 ") + (side != 0 and DirRowSide(D, D.drP) == side ? " agrees" : "") : ""
+    if D.drE >= 0
+        l4 += (l4 == "" ? "" : " | ") + DirRowName(D, D.drE, "ETF ")
+    D.txt.set(3, l4 + (rsCP != "" ? " | " + rsCP : ""))
+    D.tfState.set(0, DirStateCode(D, D.drE))
+    D.tfState.set(1, DirStateCode(D, D.drI))
+    D.tfState.set(2, DirStateCode(D, D.drH))
+    D.tfState.set(3, DirStateCode(D, D.drP))
+    for [r, w] in D.rows
+        if w.role == "MAC"
+            D.tfState.set(4, DirStateCode(D, r))
+            break
+    D.dir
+
+// origin zone of a line: the fresh same-side zone whose base holds the line's older anchor (or the nearest within 3 bars)
+DirOrigin(Dir D, int r, Ser s, TLine t) =>
+    int best = -1
+    int bd = 4
+    for [i, z] in D.drZ
+        if D.drZRow.get(i) == r and z.dir == t.dir and DirFreshAt(s, z)
+            int dd = t.a < z.legBar ? z.legBar - t.a : (t.a > z.legBar + z.baseN ? t.a - z.legBar - z.baseN : 0)
+            if dd < bd
+                bd := dd
+                best := i
+    best
+// Raja's WOW ladder by trendline on the HTF and ITF rows (MQL DirWOW). rowSer: the Ser of each row; Z: chart zones
+DirWOW(Dir D, array<Ser> rowSer, array<Zone> Z, float mid, float spr) =>
+    if InpShowWOW
+        float pip = math.max(PipSize(), gPt)
+        for q = 0 to 1
+            int r = q == 0 ? D.drH : D.drI
+            DirRow w = rw(D, r)
+            // the newest crossed line of this row
+            int nl = -1
+            for [i, x] in D.drTLX
+                if D.drTLRow.get(i) == r and x >= 0 and (nl < 0 or x < D.drTLX.get(nl))
+                    nl := i
+            if not w.ok or nl < 0
+                continue
+            int ld = D.drTL.get(nl).dir
+            int md = -ld
+            // older lines of the same direction, newest anchor first (stable insertion sort by anchor)
+            array<int> used = array.new<int>()
+            for [i, t] in D.drTL
+                if D.drTLRow.get(i) == r and t.dir == ld and t.a >= D.drTL.get(nl).a
+                    int b1 = used.size()
+                    while b1 > 0 and D.drTL.get(used.get(math.max(b1 - 1, 0))).a > t.a
+                        b1 -= 1
+                    used.insert(b1, i)
+            array<float> tg = array.new<float>()
+            int u = 0
+            while u < used.size() and u < math.max(1, InpWOWLines) and tg.size() < 2
+                int oz = DirOrigin(D, r, rowSer.get(r), D.drTL.get(used.get(u)))
+                u += 1
+                if oz >= 0
+                    float px = D.drZ.get(oz).prox
+                    if md * (px - mid) > 0 and not (tg.size() == 1 and math.abs(px - tg.get(0)) < gPt)
+                        tg.push(px)
+            // risk for the R figure: the nearest fresh chart zone on the move's side
+            float risk = 0.0
+            float best = 0.0
+            for z in Z
+                if z.dir == md and not z.removed and not z.tested and (risk == 0 or math.abs(mid - z.prox) < best)
+                    best := math.abs(mid - z.prox)
+                    risk := math.abs(z.prox - z.dist) + spr
+            bool pend = w.inZ == ld
+            for [t, g] in tg
+                if D.wowTxt.size() >= 4 or (pend and t > 0)
+                    break
+                float dist = math.abs(g - mid)
+                D.wowTxt.push(pend ? "WOW pending " + DirTfName(w.tf) + ": remove " + Px(ld > 0 ? w.inHi : w.inLo) + " " + (ld > 0 ? "demand" : "supply") + " first" : "WOW" + str.tostring(t + 1) + " " + DirTfName(w.tf) + " -> " + Px(g) + " (" + (md > 0 ? "+" : "-") + F0(dist / pip) + " p" + (risk > 0 and t == 0 ? ", " + F1(dist / risk) + "R" : "") + ")")
+                D.wowPx.push(g)
+                if t == 0 and D.wow1 == 0
+                    D.wow1 := g
+                    D.wowPend := pend
+                else if t == 1 and D.wow2 == 0
+                    D.wow2 := g
+    D.wowTxt.size()
+
+// ---------------------------------------------------------------------------------------------------------------
+// Series context: every Ser this run can read (chart + HTF slots), with the Trendlines / Detect result per Ser
+// (computed once; MQL recomputes them per call on the same data, so the results are the same)
+// ---------------------------------------------------------------------------------------------------------------
+type Ctx
+    array<Ser> sers
+    array<TLCtx> tls
+    array<ZList> zs
+
+ctxIdx(Ctx X, int tf) =>
+    int r = -1
+    for [i, s] in X.sers
+        if r < 0 and s.tf == tf and s.n > 0
+            r := i
+    r
+ctxSer(Ctx X, int tf) =>
+    int i = ctxIdx(X, tf)
+    i >= 0 ? X.sers.get(i) : emptySer(tf)
+ctxTL(Ctx X, int tf) =>
+    int i = ctxIdx(X, tf)
+    if i >= 0 and na(X.tls.get(math.max(i, 0)))
+        X.tls.set(i, Trendlines(X.sers.get(i)))
+    i >= 0 ? X.tls.get(i) : Trendlines(emptySer(tf))
+ctxZ(Ctx X, int tf) =>
+    int i = ctxIdx(X, tf)
+    if i >= 0 and na(X.zs.get(math.max(i, 0)))
+        X.zs.set(i, ZList.new(Detect(X.sers.get(i), false, array.new<Rej>())))
+    i >= 0 ? X.zs.get(i).z : array.new<Zone>()
+
+// the Direction engine, once per redraw (MQL DirRun without the texts / WOW ladder: the Direction indicator adds
+// DirTexts + DirWOW). rowSer gets the Ser of every row.
+DirRun(Dir D, Ctx X, int ctf, float mid, array<Zone> Z, float spr, array<Ser> rowSer) =>
+    if InpDirEngine
+        [itf, htf, p1, okT] = DirTable(ctf)
+        int b = DirStd(ctf)
+        if okT
+            array<int> tfs = array.from(ctf, itf, htf)
+            if InpDirPlus1 and p1 != 0
+                tfs.push(p1)
+            if InpDirMacro and (b == 14400 or b == 86400)
+                tfs.concat(array.from(TF_MN1, TFV_3M, TFV_6M, TFV_12M))
+            for [r, tf] in tfs
+                DirRow w = DirRow.new(tf, r == 0 ? "ETF" : r == 1 ? "ITF" : r == 2 ? "HTF" : (r == 3 and InpDirPlus1 and p1 != 0) ? "+1" : "MAC")
+                D.rows.push(w)
+                // too little 3M / 6M / 12M history: the stack falls back to MN1
+                if VIsTF(w.tf) and ctxSer(X, w.tf).n < 40 and w.role != "MAC"
+                    w.note := TfName(w.tf) + " n/a: MN used"
+                    w.tf := TF_MN1
+                rowSer.push(ctxSer(X, w.tf))
+                DirEvalTF(D, r, rowSer.get(r), ctxTL(X, w.tf), ctxZ(X, w.tf), mid)
+            D.drE := 0
+            D.drI := 1
+            D.drH := 2
+            D.drP := InpDirPlus1 and p1 != 0 ? 3 : -1
+            D.hs := rowSer.get(2)
+            DirCurve(D, D.hs, mid)
+            DirCombine(D)
+            D.ok := true
+    D.ok
+
+// ---------------------------------------------------------------------------------------------------------------
+// One Direction run = the Direction part of MQL Redraw() (DirRun + its texts + WOW ladder), pure
+// ---------------------------------------------------------------------------------------------------------------
+type DRes
+    Dir D
+    array<Ser> rowSer
+    array<Zone> Z
+// ctf must be the simple chart TF (it feeds DirTable)
+RunDir(Ctx X, int ctf, float mid, float spr) =>
+    DRes R = DRes.new(newDir(), array.new<Ser>(), ctxZ(X, ctf))
+    DirRun(R.D, X, ctf, mid, R.Z, spr, R.rowSer)
+    if R.D.ok
+        DirTexts(R.D)
+        DirWOW(R.D, R.rowSer, R.Z, mid, spr)
+    R
+
+// ===============================================================================================================
+// GLUE (Direction indicator): data in, Direction box / curve lines / WOW ladder out, alerts
+// ===============================================================================================================
+// HTF pack, evaluated on the requested timeframe (lookahead_on + values of [1] = only closed HTF candles, no
+// repainting). Layout: [nClosed, curTimeClose, current bar t o h l c atr, closed bars newest first ...]. The big array
+// is only built for the HTF candle(s) at the end of the chart, where the analysis runs. tf: the slot TF (simple).
+f_pack(int tf) =>
+    float tr = ta.tr(true)
+    float aS = ta.sma(tr, 14)
+    float aW = ta.rma(tr, 14)
+    float atrv = isVs(tf) ? aW : aS
+    var array<float> body = array.new<float>()
+    var array<float> none = array.new<float>()
+    if bar_index > 0
+        body.unshift(nz(atrv[1]))
+        body.unshift(close[1])
+        body.unshift(low[1])
+        body.unshift(high[1])
+        body.unshift(open[1])
+        body.unshift(time[1])
+        while body.size() > (tf > 0 ? TvHtfCap : 0) * 6
+            body.pop()
+    array<float> out = none
+    if time_close >= last_bar_time
+        out := array.from(float(math.floor(body.size() / 6)), float(time_close), float(time), open, high, low, close, nz(atrv))
+        out.concat(body)
+    out
+
+// chart timeframe in seconds (MT5 PeriodSeconds; 1 month = 30 days as in MT5)
+ctfSec = timeframe.isseconds ? timeframe.multiplier : timeframe.isminutes ? timeframe.multiplier * 60 : timeframe.isdaily ? timeframe.multiplier * 86400 : timeframe.isweekly ? timeframe.multiplier * 604800 : timeframe.ismonthly ? timeframe.multiplier * 2592000 : 0
+
+// the Direction stack TFs (MT5 DirStackTFs): ITF, HTF, Higher+1, the macro rows, MN1 under a virtual TF. Simple only.
+slotNeed(int k) =>
+    [itf, htfD, p1, okT] = DirTable(ctfSec)
+    bool dirOn = InpDirEngine and okT
+    int bstd = DirStd(ctfSec)
+    bool mac = dirOn and InpDirMacro and (bstd == 14400 or bstd == 86400)
+    switch k
+        0 => dirOn ? itf : 0
+        1 => dirOn ? htfD : 0
+        2 => dirOn and InpDirPlus1 ? p1 : 0
+        3 => mac ? 2592000 : 0
+        4 => mac ? 7776000 : 0
+        5 => mac ? 15552000 : 0
+        6 => mac ? 31104000 : 0
+        7 => dirOn and (isVs(itf) or isVs(htfD) or (InpDirPlus1 and isVs(p1))) ? 2592000 : 0
+        => 0
+// the k-th distinct needed TF above the chart (0 = none); simple only (it feeds request.security)
+slotTf(int k) =>
+    int found = -1
+    int res = 0
+    int c = 0
+    while c < 8 and res == 0
+        int tf = slotNeed(c)
+        bool dup = tf <= ctfSec
+        int j = 0
+        while j < c and not dup
+            dup := slotNeed(j) == tf
+            j += 1
+        if not dup
+            found += 1
+            if found == k
+                res := tf
+        c += 1
+    res
+sTf0 = slotTf(0)
+sTf1 = slotTf(1)
+sTf2 = slotTf(2)
+sTf3 = slotTf(3)
+sTf4 = slotTf(4)
+sTf5 = slotTf(5)
+pk0 = request.security(syminfo.tickerid, TvTf(sTf0), f_pack(sTf0), lookahead = barmerge.lookahead_on)
+pk1 = request.security(syminfo.tickerid, TvTf(sTf1), f_pack(sTf1), lookahead = barmerge.lookahead_on)
+pk2 = request.security(syminfo.tickerid, TvTf(sTf2), f_pack(sTf2), lookahead = barmerge.lookahead_on)
+pk3 = request.security(syminfo.tickerid, TvTf(sTf3), f_pack(sTf3), lookahead = barmerge.lookahead_on)
+pk4 = request.security(syminfo.tickerid, TvTf(sTf4), f_pack(sTf4), lookahead = barmerge.lookahead_on)
+pk5 = request.security(syminfo.tickerid, TvTf(sTf5), f_pack(sTf5), lookahead = barmerge.lookahead_on)
+
+atrS = ta.sma(ta.tr(true), 14)
+
+var array<line> gLines = array.new<line>()
+var array<label> gLabels = array.new<label>()
+var table gPanel = na
+varip string gAl = "|"
+var int prevDir = -99
+var int prevQ = -99
+addL(int x1, float y1, int x2, float y2, color c, string st) => gLines.push(line.new(x1, y1, x2, y2, xloc = xloc.bar_time, color = c, style = st))
+addT(int t, float p, string txt, color c, string tip) => gLabels.push(label.new(t, p, txt, xloc = xloc.bar_time, style = label.style_label_left, color = cNone, textcolor = c, size = tvTxt, tooltip = tip))
+bool acDir = false
+bool acWow = false
+
+if barstate.isconfirmed and (barstate.islastconfirmedhistory or barstate.isrealtime) and ctfSec > 0
+    Ser C = newSer(ctfSec).addBar(time_close, close, close, close, close, atrS)
+    for i = 0 to math.min(bar_index + 1, TvHistory) - 1
+        C.addBar(time[i], open[i], high[i], low[i], close[i], atrS[i])
+    C.seal()
+    array<Ser> sers = array.from(C)
+    array<int> stf = array.from(sTf0, sTf1, sTf2, sTf3, sTf4, sTf5)
+    for [k, tfk] in stf
+        if tfk > 0
+            sers.push(serFromPack(k == 0 ? pk0 : k == 1 ? pk1 : k == 2 ? pk2 : k == 3 ? pk3 : k == 4 ? pk4 : pk5, tfk, time_close, close))
+    Ctx X = Ctx.new(sers, array.new<TLCtx>(sers.size()), array.new<ZList>(sers.size()))
+    DRes R = RunDir(X, ctfSec, close, TvSpreadPts * gPt)
+    Dir D = R.D
+    int right = C.sT(0) + ctfSec * 1000 * 18
+    for o in gLines
+        o.delete()
+    for o in gLabels
+        o.delete()
+    gLines.clear()
+    gLabels.clear()
+    // Raja curve 25 / 50 / 75 between the HTF strong zones, the WOW ladder (MQL DrawV2Lines)
+    for k = 1 to 3
+        if D.ok and InpCurveLines and D.curveRaja
+            float lv = D.curvePd + (D.curvePs - D.curvePd) * k / 4.0
+            addL(C.sT(math.min(80, C.n - 1)), lv, right, lv, cCurve, line.style_dotted)
+            addT(right, lv, " " + DirTfName(D.curveTf) + " curve " + str.tostring(k * 25) + "%", cCurve, "Raja curve " + str.tostring(k * 25) + "%: " + DirTfName(D.curveTf) + " demand proximal " + Px(D.curvePd) + " to supply proximal " + Px(D.curvePs) + ". Up to " + F0(InpCurveLow) + "% = low curve (buys only), from " + F0(InpCurveHigh) + "% = high curve (sells only).")
+    for [k, wp] in D.wowPx
+        if InpShowWOW and wp > 0
+            addL(C.sT(0), wp, right, wp, cWow, line.style_dashed)
+            addT(right, wp, " " + D.wowTxt.get(k), cWow, D.wowTxt.get(k) + " | Raja WOW ladder: origin zone of a broken trendline")
+    // the Direction box (MQL DrawDirBox)
+    if not na(gPanel)
+        gPanel.delete()
+    gPanel := na
+    if InpShowDirPanel and D.ok
+        array<string> rw = array.from(D.head)
+        array<color> rc = array.from(D.dir > 0 ? cDemandLine : (D.dir < 0 ? cSupplyLine : cPopHead))
+        for [r, w] in D.rows
+            rw.push(DirRowLine(D, r))
+            rc.push(not w.ok ? cMuted : DirRowSide(D, r) > 0 ? cDemandLine : DirRowSide(D, r) < 0 ? cSupplyLine : cPopFg)
+        for t in D.txt
+            if t != ""
+                rw.push(t)
+                rc.push(cPopFg)
+        for t in D.wowTxt
+            rw.push(t)
+            rc.push(cWow)
+        gPanel := table.new(InpPanelRight ? position.middle_right : position.middle_left, 1, rw.size() + 1, bgcolor = color.new(cPopBg, 15), frame_color = cPopBorder, frame_width = 1, border_width = 0)
+        for [r, t] in rw
+            gPanel.cell(0, r, t, text_color = rc.get(r), text_size = tvPan, text_halign = text.align_left, tooltip = "Top-down Direction (display only; the zone notes use the v1 bias unless InpBiasSource = 1)", text_formatting = r == 0 ? text.format_bold : text.format_none)
+    // one alert when the Direction or its quality changes (MQL DirAlert; nothing on load), a new WOW1 target (V2WowAlert)
+    if D.ok and InpAlertDir
+        string key = "D" + str.tostring(D.dir) + "_" + str.tostring(D.q) + "_" + str.tostring(C.sT(1))
+        if prevDir != -99 and (D.dir != prevDir or D.q != prevQ) and not str.contains(gAl, "|" + key + "|")
+            gAl += key + "|"
+            acDir := true
+            alert("ZoneVision " + syminfo.ticker + " " + TfName(ctfSec) + ": " + D.head + (D.txt.get(0) != "" ? " | " + D.txt.get(0) : ""), alert.freq_all)
+        prevDir := D.dir
+        prevQ := D.q
+    if InpAlertWOW and InpShowWOW and D.ok and D.wow1 > 0 and not D.wowPend and not str.contains(gAl, "|W" + Px(D.wow1) + "|")
+        gAl += "W" + Px(D.wow1) + "|"
+        acWow := true
+        alert("ZV " + syminfo.ticker + " " + TfName(ctfSec) + ": " + D.wowTxt.get(0) + (D.dir == 0 ? " | DIR WAIT" : " | DIR " + (D.dir > 0 ? "LONG" : "SHORT") + (D.q == 2 ? " FULL" : " REDUCED")), alert.freq_all)
+    gAl := str.length(gAl) > 30000 ? "|" : gAl
+
+alertcondition(acDir, "ZoneVision: Direction changed", "ZoneVision: the Direction or its quality changed")
+alertcondition(acWow, "ZoneVision: new WOW1 target", "ZoneVision: a new WOW1 target with the guard clear")
