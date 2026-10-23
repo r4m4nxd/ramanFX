@@ -1,22 +1,42 @@
-// Dump Kevin's course narration (buildNarration) to JSON for offline TTS rendering (tools/narration/render.py).
-// Run from the repo root: node tools/narration/dump-narration.mjs [lessonN|all] [outFile]
-//   node tools/narration/dump-narration.mjs 1 tools/narration/out/kevin_01/narration.json
-//   node tools/narration/dump-narration.mjs all tools/narration/out/kevin_all.json
+// Dump lesson narrations (buildNarration, exactly what the Listen player speaks) to JSON for offline TTS (render.py / batch.py).
+// Run from the repo root:
+//   node tools/narration/dump-narration.mjs                      -> tools/narration/out/narrations.json (all sources)
+//   node tools/narration/dump-narration.mjs course 1 out.json    -> one lesson (legacy single-lesson format)
+// Sources and mentor names mirror SRC in src/pages/Learn.tsx; listed in render order.
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { createServer } from 'vite';
 
-const which = process.argv[2] ?? '1';
-const out = process.argv[3] ?? `tools/narration/out/kevin_${String(which).padStart(2, '0')}/narration.json`;
+const SOURCES = [
+  ['course', '/src/core/mentors/kevin/index.ts', 'KEVIN_COURSE', 'Kevin'],
+  ['raja', '/src/core/mentors/raja/index.ts', 'RAJA_LESSONS', 'Raja'],
+  ['zoom', '/src/core/mentors/kevin/zoom.ts', 'KEVIN_ZOOM', 'Kevin'],
+  ['baker', '/src/core/mentors/baker/index.ts', 'BAKER_LESSONS', 'Kevin Baker'],
+  ['daily', '/src/core/mentors/kevin/daily/index.ts', 'KEVIN_DAILY', 'Kevin'],
+  ['seiden', '/src/core/mentors/seiden/index.ts', 'SEIDEN_LESSONS', 'Sam Seiden'],
+];
+const [onlySrc, onlyN, outArg] = process.argv.slice(2);
 const server = await createServer({ logLevel: 'warn', server: { middlewareMode: true, hmr: false, watch: null }, appType: 'custom' });
+const wc = t => t.replace(/\[\[pause:\d+\]\]/g, ' ').split(/\s+/).filter(Boolean).length;
 try {
   const { buildNarration } = await server.ssrLoadModule('/src/core/narration.ts');
-  const { KEVIN_COURSE } = await server.ssrLoadModule('/src/core/mentors/kevin/index.ts');
-  const lessons = which === 'all' ? KEVIN_COURSE : KEVIN_COURSE.filter(l => l.n === +which);
-  if (!lessons.length) throw new Error(`no Kevin lesson ${which}`);
-  const data = lessons.map(l => ({ n: l.n, title: l.title, chapters: buildNarration(l, 'Kevin') }));
+  const all = [];
+  for (const [source, mod, exp, mentor] of SOURCES) {
+    if (onlySrc && onlySrc !== source) continue;
+    let list;
+    try { list = (await server.ssrLoadModule(mod))[exp]; } catch (e) { list = undefined; console.error(`${source}: ${e.message}`); }
+    if (!Array.isArray(list)) { // module path guess failed: resolve by alias directory index
+      list = (await server.ssrLoadModule(mod.replace(/\.ts$/, '/index.ts')))[exp];
+    }
+    for (const l of list) {
+      if (onlyN && l.n !== +onlyN) continue;
+      all.push({ source, mentor, n: l.n, title: l.title, chapters: buildNarration(l, mentor) });
+    }
+    const mine = all.filter(x => x.source === source);
+    console.log(`${source}: ${mine.length} lessons, ${mine.reduce((a, d) => a + d.chapters.reduce((b, c) => b + wc(c.text), 0), 0)} words`);
+  }
+  const out = outArg ?? (onlyN ? `tools/narration/out/${onlySrc}_${onlyN}.json` : 'tools/narration/out/narrations.json');
   mkdirSync(dirname(out), { recursive: true });
-  writeFileSync(out, JSON.stringify(which === 'all' ? data : data[0], null, 2));
-  const words = data.reduce((a, d) => a + d.chapters.reduce((b, c) => b + c.text.replace(/\[\[pause:\d+\]\]/g, ' ').split(/\s+/).filter(Boolean).length, 0), 0);
-  console.log(`wrote ${out}: ${data.length} lesson(s), ${words} words`);
+  writeFileSync(out, JSON.stringify(onlyN ? all[0] : all, null, 1));
+  console.log(`wrote ${out}`);
 } finally { await server.close(); }

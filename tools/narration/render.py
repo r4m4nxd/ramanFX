@@ -25,6 +25,7 @@ MAX_CHUNK = 380         # characters per Kokoro call (stays well under its 510-p
 
 def fix_text(s: str) -> str:
     """Extra speech fixes on top of narration.ts speakable() (which we don't change). Mostly from video-frame notes."""
+    s = re.sub(r"https?:\s*(?:or\s*)*(?://)?(?:www\.)?([\w.-]+)[^\s,;)]*", r"\1", s)   # URLs: say the host only
     # Timeframe stacks "1W/4 hour/1 day/1 hour".
     tf = {"1W": "weekly", "1M": "monthly", "1 day": "daily", "1D": "daily", "4 hour": "four hour", "1 hour": "one hour"}
     def tfs(m):
@@ -59,13 +60,48 @@ def fix_text(s: str) -> str:
         (r"\bsam seiden\b", "Sam Seiden"), (r"\bcaptions'", "captions"),
         (r"\b(Drop|Rally)-Base-(Rally|Drop)\b", lambda m: f"{m.group(1)} base {m.group(2).lower()}"),
         (r"\bH(\d)\b", r"\1 hour"), (r"\bHTF\b", "higher time frame"),
-        (r"\b(\d+):(\d+)\b", lambda m: f"{m.group(1)} to {m.group(2)}"),  # leftover ratios like 1:3
     ]
     for a, b in rep:
         s = re.sub(a, b, s)
+    s = more_fixes(s)
     s = re.sub(r"\b(Also|On top of that|Now|thing:?), ([A-Z])(?=[a-z])", lambda m: f"{m.group(1)}, {m.group(2).lower()}", s)
     s = re.sub(r"\ba under\b", "an under", s)
     return re.sub(r"\s{2,}", " ", s).strip()
+
+
+MONTHS = dict(Jan="January", Feb="February", Mar="March", Apr="April", May="May", Jun="June", Jul="July", Aug="August",
+              Sep="September", Oct="October", Nov="November", Dec="December")
+INDEX = dict(SPX="S and P", US="U S", NAS="Nasdaq", UK="U K", FRA="France", SPA="Spain", GER="Germany", JPN="Japan", AUS="Aussie")
+LETTERS = ["XLT", "ATR", "PCP", "OCL", "OCO", "OSO", "UTC", "ES", "TY", "ZN", "ZG", "CL", "GC", "NQ", "QM", "EC", "DOM", "CME",
+           "CBOT", "FOMC", "ADP", "OTA", "GJ", "SZ", "CFD", "GTO", "IG", "EMA", "SMA", "TVC", "XLF", "SPY", "QQQ", "QQQQ", "DIA",
+           "AAPL", "INTC", "RIMM", "BAC", "GS", "JPM", "MS", "MSFT", "AMZN", "GOOG", "CSCO", "IBM", "XOM", "AA", "SLV", "SMH", "NYSE"]
+EMPH = ["LONG", "SHORT", "RED", "GREEN", "MUCH", "INTO", "GAP", "PUT", "CALL", "WOW", "OK", "PRO", "DOW"]
+
+
+def more_fixes(s: str) -> str:
+    """Generic fixes found by scanning every source's narration (see PROGRESS.md / report)."""
+    s = re.sub(r"\b([a-z0-9-]+)\.(com|net|org|io)\b", lambda m: f"{m.group(1).replace('-', ' ')} dot {m.group(2)}", s)
+    s = re.sub(r"\bwww\.", "", s)
+    s = re.sub(r"(?<![\w.])[@$](?=[A-Z])", "", s)                                     # @ES, $INX tickers
+    s = re.sub(r"~\s*(?=\d)", "about ", s)
+    s = re.sub(r"\bUTC\s*-\s*(\d+)", r"U T C minus \1", s)
+    s = re.sub(r"\b(\d{1,2}):00\s*(AM|PM)\b", lambda m: f"{m.group(1)} {' '.join(m.group(2))}", s)
+    s = re.sub(r"\b(\d{1,2}) to 00 (AM|PM)\b", lambda m: f"{m.group(1)} {' '.join(m.group(2))}", s)   # "8 to 00 AM" from speakable
+    s = re.sub(r"\b(AM|PM)\b", lambda m: " ".join(m.group(1)), s)
+    s = re.sub(r"\b(\d{1,2}):([0-5]\d)\b", r"\1 \2", s)                               # clock times 7:30 -> "7 30"
+    s = re.sub(r"\b(\d{1,2}(?:\.\d)?)\s?:\s?(\d{1,2}(?:\.\d)?)\b", r"\1 to \2", s)   # leftover ratios 1:3
+    s = re.sub(r"\b(\d+)\s?hrs?\b", r"\1 hour", s)
+    s = re.sub(r"\bp\.?\s?(\d+)\b", r"page \1", s)                                 # p80 / p.386
+    s = re.sub(r"\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(\d{2})\b", lambda m: f"{MONTHS[m.group(1)]} 20{m.group(2)}", s)
+    s = re.sub(r"\bT(\d)\b", r"target \1", s)
+    s = re.sub(r"\bCP(\d)\b", r"continuation pattern \1", s)
+    s = re.sub(r"\b(SPX|US|NAS|UK|FRA|SPA|GER|JPN|AUS)(\d{2,4})\b", lambda m: f"{INDEX[m.group(1)]} {m.group(2)}", s)
+    s = re.sub(r"\bMAs\b", "moving averages", s); s = re.sub(r"(\d) MA\b", r"\1 moving average", s); s = re.sub(r"\bMA\b", "moving average", s)
+    s = re.sub(r"\bTA\b", "technical analysis", s); s = re.sub(r"\bYT\b", "YouTube", s); s = re.sub(r"\bpart II\b", "part two", s)
+    s = re.sub(r"\b(\d)(?:st|nd|rd|th)-", lambda m: ["", "first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth"][int(m.group(1))] + " ", s)
+    s = re.sub(r"\b(" + "|".join(EMPH) + r")\b", lambda m: m.group(1).lower(), s)
+    s = re.sub(r"\b(" + "|".join(sorted(LETTERS, key=len, reverse=True)) + r")(s?)\b", lambda m: " ".join(m.group(1)) + ("'s" if m.group(2) else ""), s)
+    return s
 
 
 def split_chunks(text: str):
