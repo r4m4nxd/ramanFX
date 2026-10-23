@@ -10,11 +10,37 @@ TradingView refuses a script whose compiled code has more than 100,256 tokens (C
 - **`RamanFX_ZoneVision_Direction.pine` ("ZV Direction").** Moved here, unchanged: the Direction box (header, ETF / ITF / HTF / +1 / macro rows, row reasons), Raja's curve 25 / 50 / 75 lines, the WOW ladder and its lines, the Direction-change alert and the WOW alert, with their inputs (`InpShowDirPanel`, `InpAlertDir`, `InpCurveLines`, `InpShowWOW`, `InpWOWLines`, `InpAlertWOW`). It carries the same core code (Ser, packs, Detect, Trendlines, the Direction engine, DirOrigin / DirWOW) but not the zone drawing, DNA or lenses.
 - The only effect of the split on the main indicator: the main one does not compute the WOW ladder, so the tooltip's "TP = WOW1" fallback (only used with `InpShowWOW` on and no opposite zone) is not there. The DNA tooltip also dropped four detail fields (leg-out body / count / speed, leg-in ATR, session); the tag and the scores still use them.
 
-How the size was measured: TradingView does not tell the compiled count before you compile, so a lexical count was used (`tokcount.py`: identifiers, numbers, strings and operators, comments left out). The first file had 39,908 such tokens against 119,596 compiled, about 3.0 compiled per source token. Now: main 29,423 (about 88k compiled), Direction 13,427 (about 40k). If a later edit pushes the main one over again, the cheapest further move is the DNA tooltip text.
+How the size was measured: TradingView does not tell the compiled count before you compile, so a lexical count was used (`tokcount.py`: identifiers, numbers, strings and operators, comments left out). The first file had 39,908 such tokens against 119,596 compiled, about 3.0 compiled per source token. After the speed work (see Speed): main 31,070 (about 93k compiled), Direction 14,564 (about 44k). If a later edit pushes the main one over again, the cheapest further move is the DNA tooltip text.
 
 The compaction: the series arrays are padded with 8 zero bars, so accessors are plain `array.get` without bounds tests; high / low pairs share one side-aware helper (`s.ad(d, i)` adverse side, `s.ex(d, i)` extreme side) so long / short code is written once (`FrLow / FrHigh` -> `Fr`, `FracUp / FracDn` -> `FracX`, `SHighest / SLowest` -> `SExt`); one `f_pack` and one `slotTf` replace the per-TF request code (8 `request.security` calls in the main indicator, 6 in Direction; the most distinct TFs any input set needs is 6).
 
 The v6 compile errors found on TradingView were fixed in the same pass and the whole file was scanned for more of each kind: (1) functions that feed `request.security` (`ladTF isVs StepUp HtfOf DirStd dirLad DirUp DirL15Top DirTable TvTf slotNeed slotTf f_pack`) are only called with simple arguments (`RunAll` builds the four StepUp levels with constant arguments before its loop); (2) no tuple is destructured inside a loop: `FitAnchor` returns a `Fit` object, `RefineOnChart` a `Refine`, `ZoneNotes` a `Note`, `FindTrap` and `TLBias` set fields of the zone / state, and the remaining tuple calls (`DirTable`) are outside loops.
+
+## Speed (TradingView's calculation time limit)
+
+The first two-file version compiled but stopped after a while with "Calculation timed out". Both files were then made faster. All the changes are exact: they compute the same values in fewer Pine operations, so there is no Fast / Exact switch. The port test (see Verification) still matches MT5 on every check it matched before.
+
+How the work was measured: `pine_interp.py` counts one unit for every statement it executes and every call (user function, method or built-in, `array.get` included). `profile.py` runs one full analysis at the defaults on synthetic FX data: 2000 chart bars, with every HTF pack full (330 closed bars), the same way the glue does. "Before" also counts the old chart-series loop in the glue (2000 x `addBar`, about 32k units), which runs in neither the interpreter nor the new code.
+
+| Run (units) | D1 before | D1 after | H1 before | H1 after | M15 before | M15 after |
+|---|---|---|---|---|---|---|
+| Main, first run (load) | 474k | 130k (3.6x) | 485k | 126k (3.9x) | 562k | 156k (3.6x) |
+| Main, each new candle in realtime | 474k | 78k (6.1x) | 485k | 60k (8.1x) | 562k | 77k (7.3x) |
+| Direction, first run | 270k | 69k (3.9x) | 323k | 81k (4.0x) | 343k | 92k (3.7x) |
+| Direction, each new candle | 270k | 27k (10x) | 323k | 26k (12.6x) | 343k | 24k (14x) |
+
+"Each new candle" means a candle that does not also close an HTF candle. A candle that closes an HTF candle recomputes that one HTF, so its cost is in between.
+
+Before, the biggest costs (main, H1) were `SExt` (iHighest / iLowest loops, 92k), the `ad` / `ex` accessor calls (83k), `FitAnchor` (56k), `Detect` (32k), `Fr` (27k), `ZigZag` (21k), `Confirmed` (14k), `RefineOnChart` (12k), `serFromPack` (30k) and the chart-series loop (32k). What changed:
+
+- **Native array calls instead of Pine loops.** `SExt` is `slice` + `max` / `min` + `indexof` (the first index of the extreme = MQL's "first strict extreme"). The fractal tests (`Fr`, `SwingAt` and the fractals inside `ZigZag`) are a `slice` min / max on each side. `Confirmed`'s extreme between the anchors, `FindTrap`'s "swept since" test and a pre-check in `Detect` (did any bar since the stay-away reach the distal / proximal at all?) work the same way. `FitAnchor` builds its "line minus bar" row with matrix operations: the same float operations in the same order (`p2 + sl * (b2 - j) - q[j]`, then `x d`). It then takes `max` and `lastindexof`, which is the bar the MQL loop picks.
+- **Hot loops read the arrays directly** (`q.get(j)` on the side's array) instead of calling `ad` / `ex` / `LineAt` / `Rng` / `Basing` for every bar. `FracX` rejects a bar after its two newer neighbours before it reads six older ones. `RefineOnChart` tests the price condition before the fractal test.
+- **Nothing is computed twice in a run.** The chart zones are copies of the `Ctx` Detect result (before, the chart TF ran `Detect` twice). `FindTrap` computes each bar's swing test once for all the picked zones.
+- **HTF results are kept between runs.** The glue keeps the Trendlines / Detect result of every HTF series. It reuses a result while that series' bars are unchanged (same tf, bar count, and time of bar 0 and bar 1; these functions never read HTF bar 0's prices). In realtime, only the chart TF, plus an HTF that just closed a candle, is recomputed.
+- **Cheaper data in.** The chart candles are kept bar by bar in `var` arrays (only the last `TvHistory + 5`), and a run copies them with `slice` / `copy` / `reverse`. The 2000-iteration `time[i]` / `open[i]` ... loop is gone, and `max_bars_back = 5000` is no longer needed. The HTF pack is now 6 blocks (t, o, h, l, c, atr), so `serFromPack` copies 5 of them with `slice` + `concat`. Only the time block is still a loop (`int` conversion). `f_pack` per HTF bar: 6 `unshift` + at most 6 `pop`, the same as before.
+- **When it runs.** As before: once on the last confirmed history bar, then once per confirmed realtime candle (`barstate.isconfirmed`). Now it also never runs twice for the same candle (`time != gRunT`). The per-tick alert loop builds its alert keys only when the price condition is already true.
+
+The Pine VM's real cost per operation is not known here. If TradingView still times out, its Pine Profiler (Pine Editor, "More", "Profiler mode") shows the real time per line. The cheapest input changes are `InpHTFLevels` (each HTF trendline level costs about 10k units on the first run), `InpDNA` / `InpLenses` (about 5k to 7k units per drawn zone) and `InpLookback`.
 
 ## How the port is built
 
@@ -43,7 +69,7 @@ Lines and boxes use `xloc.bar_time` with the exact times from the arrays: `s.sT(
 
 ### Index conversion: higher timeframes
 
-MT5 reads the HTF series directly (`iHigh(_Symbol, tf, i)`). The port calls `request.security(..., f_pack(...), lookahead = barmerge.lookahead_on)`. `f_pack` runs on the HTF and keeps a `var` array of the CLOSED HTF candles, built from `[1]` values (time, OHLC and SMA-14 ATR, or Wilder ATR for 3M / 6M / 12M, as MT5 `VBuild` uses). It also returns the current HTF candle. `lookahead_on` together with `[1]` is the documented form that does not repaint. With `lookahead_off` plus `[1]`, the history would lag by one extra HTF candle.
+MT5 reads the HTF series directly (`iHigh(_Symbol, tf, i)`). The port calls `request.security(..., f_pack(...), lookahead = barmerge.lookahead_on)`. `f_pack` runs on the HTF and keeps `var` arrays of the CLOSED HTF candles (one per field), built from `[1]` values (time, OHLC and SMA-14 ATR, or Wilder ATR for 3M / 6M / 12M, as MT5 `VBuild` uses). It also returns the current HTF candle. `lookahead_on` together with `[1]` is the documented form that does not repaint. With `lookahead_off` plus `[1]`, the history would lag by one extra HTF candle.
 
 `serFromPack()` turns the pack into the `Ser`:
 
@@ -97,7 +123,7 @@ TFs are handled in seconds, as MT5 `PeriodSeconds` does (MN1 = 30 days, 3M = 90 
 
 - **Bid / ask.** Pine has none. Price = `close`, spread = `TvSpreadPts` (default 0). Plan entries, stops and R:R match MT5 only when you enter your broker's spread there. At 0, buy entries sit exactly at the proximal.
 - **Redraw moment.** The run happens at the candle close, with a synthetic bar 0, instead of at the first tick of the next candle. On a gap (the weekend open), MT5's bar 0 opens at the gap price and at the real new bar time, while the port uses the last close and `time_close`. That only moves the right end of the extended lines and boxes, plus DedupeTL's comparison point `cT(0)`, which can rarely keep the other one of two overlapping lines. This lasts until the first candle after the gap closes.
-- **History depth.** MT5 reads the whole chart (often 100k bars). Pine reads at most 5000 chart bars (`TvHistory`, the `max_bars_back` limit). Only two things can reach further: the DNA all-time-high check (InpATHBars 5000 bars back from the base) and RefineOnChart on very old HTF pivots. When the chart history does not reach a pivot, both MT5 and Pine draw the unrefined HTF line.
+- **History depth.** MT5 reads the whole chart (often 100k bars). Pine reads `TvHistory` chart bars (default 2000, at most 5000). Only two things can reach further: the DNA all-time-high check (InpATHBars 5000 bars back from the base) and RefineOnChart on very old HTF pivots. When the chart history does not reach a pivot, both MT5 and Pine draw the unrefined HTF line.
 - **HTF data source.** TradingView's own HTF candles are used (D1 sessions 17:00 New York for FX, the W1 week starting Monday). MT5 uses its broker's server-time candles. On brokers whose server day is not New-York-close aligned, the D1 / W1 candles themselves differ, and every HTF result can differ with them.
 - **3M / 6M / 12M ATR.** Wilder ATR on TradingView's native bars. MT5 builds the buckets from at most 1500 MN1 bars and drops a partial first bucket. Wilder converges, so the values match after the first few dozen buckets.
 - **Ties in iHighest / iLowest.** On exactly equal highs / lows the newer bar is taken, the same choice as the core's own `SHighest` for virtual TFs.
@@ -117,9 +143,9 @@ Zone research and CSV logging (`InpResearch*`, `RsRun`, the ALT detector), RFX_C
 |---|---|
 | 500 lines / boxes / labels | a few dozen of each: 4 chart zones (box, 2 lines, 2 price tags, name, tag, trap box), 2 HTF zones, up to 3 lines per direction per TF (chart + 4 HTF levels), curve lines, plan lines. Rejected candidates (debug) are capped at 120 |
 | 40 `request.*` calls | 8 (main), 6 (Direction) |
-| 100,256 compiled tokens | main about 88k, Direction about 40k (estimate, see "Two indicators") |
-| `max_bars_back` 5000 | the chart Ser reads `[0 .. TvHistory-1]` |
-| loop / execution time | the heavy run happens once on load and once per closed candle. The biggest loops are ZigZag (200 x 200 worst case), FitAnchor (50 x 200 per pivot) and DnaCompute's origin scan (1500 bars per drawn zone). If TradingView ever stops with "loop takes too long", lower `InpLookback` or `InpOriginBars`. Neither changes the zones near price on normal charts |
+| 100,256 compiled tokens | main about 93k, Direction about 44k (estimate, see "Two indicators") |
+| `max_bars_back` | not needed: the chart candles are kept in `var` arrays (the last `TvHistory + 5`), the only history references are `[1]` |
+| loop / execution time | the heavy run happens once on load and once per closed candle; see "Speed" for the measured work and what was done. If TradingView ever stops with "loop takes too long", lower `InpLookback` or `InpOriginBars`. Neither changes the zones near price on normal charts |
 
 ## Verification
 
@@ -139,7 +165,7 @@ TradingView cannot be run here, so the port was checked another way. The Pine co
 
 Coverage: chart TFs M15, H1, H4 and D1 (D1 runs the virtual 3M / 6M / 12M rows, and H4 runs the "3M n/a: MN used" fallback). The input sets were the defaults plus four variants: Raja cross, Raja removal and the v1 curve; tested / removed zones shown with merge mode 1; DirTable 0 with merge mode 2, side lock, curve filter, TLHistory 5, TLSwing 3 and Lookback 150; DirTable 2 with refine off, TLBias off, BiasSource 1 and WOW on. The check points were random candles plus candles that open a new D1, W1 and MN1 candle (the HTF boundary cases, most of them after a weekend gap).
 
-Result (two-file version: the main core, plus the Direction core loaded separately for the Direction rows, header, curve and WOW1): 34,618 checks (M15 9,155, H1 8,990, H4 8,004, D1 8,469; seeds 1-3, the five input sets). 34,617 are identical. The one that differs is one M15 check point right after a weekend gap (the one-file version had 8 such differences, all of this kind). There, DedupeTL keeps a different one of two near-identical H1 lines, because it compares the lines at `cT(0)`, which is the known bar-0 time difference after a gap (see Deliberate differences). It lasts until the first candle after the gap closes, when both sides compute on the same bars again. Along the way, the test showed that TradingView's HTF `time_close` (the end of the last session) decides when an HTF candle counts as closed. That is now how `serFromPack` treats it.
+Result (two-file version: the main core, plus the Direction core loaded separately for the Direction rows, header, curve and WOW1): 34,618 checks (M15 9,155, H1 8,990, H4 8,004, D1 8,469; seeds 1-3, the five input sets). 34,617 are identical, both before and after the speed work (the HTF pack layout in the test follows the new `f_pack`). The one that differs is one M15 check point right after a weekend gap (the one-file version had 8 such differences, all of this kind). There, DedupeTL keeps a different one of two near-identical H1 lines, because it compares the lines at `cT(0)`, which is the known bar-0 time difference after a gap (see Deliberate differences). It lasts until the first candle after the gap closes, when both sides compute on the same bars again. Along the way, the test showed that TradingView's HTF `time_close` (the end of the last session) decides when an HTF candle counts as closed. That is now how `serFromPack` treats it.
 
 Not covered by this test, so check these on TradingView: the Pine compiler itself (types, v6 rules; the file was syntax-parsed with pynescript, and every function is defined before it is used), the runtime behaviour of `request.security` that the pack relies on (arrays from `var` state, `lookahead_on`, `last_bar_time` in the HTF context, `time_close` of W / M bars), and the drawing / alert glue.
 

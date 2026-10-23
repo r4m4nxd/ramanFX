@@ -3,7 +3,7 @@
 // curve 25 / 50 / 75 lines, the WOW ladder and the Direction / WOW alerts). Same core code as the main indicator
 // (newest-first arrays, closed candles, HTF packs); see docs/Pine_Port_Notes.md. Keep its inputs equal to the main one.
 //@version=6
-indicator("RamanFX ZoneVision 2.00 - Direction", shorttitle = "ZV Dir", overlay = true, max_lines_count = 100, max_labels_count = 100, max_bars_back = 5000)
+indicator("RamanFX ZoneVision 2.00 - Direction", shorttitle = "ZV Dir", overlay = true, max_lines_count = 100, max_labels_count = 100)
 G1 = "-- Zone rules (keep equal to ZoneBot) --"
 InpMinLegRatio     = input.float(1.2, "Move-away range / largest base candle", group = G1)
 InpMaxBase         = input.int(6, "Max basing candles", minval = 1, group = G1)
@@ -203,16 +203,17 @@ method ad(Ser s, int d, int i) => d > 0 ? s.l.get(i) : s.h.get(i)
 method ex(Ser s, int d, int i) => d > 0 ? s.h.get(i) : s.l.get(i)
 // MQL iHighest(MODE_HIGH) (hi = true) / iLowest(MODE_LOW): first strict extreme from start into the past, -1 = none
 SExt(Ser s, bool hi, int count, int start) =>
-    int best = -1
-    float bv = 0.0
-    int i = math.max(start, 0)
-    while i < start + count and i < s.n
-        float v = hi ? s.h.get(i) : -s.l.get(i)
-        if best < 0 or v > bv
-            best := i
-            bv := v
-        i += 1
-    best
+    int i0 = math.max(start, 0)
+    int i1 = math.min(start + count, s.n)
+    int r = -1
+    if i1 > i0
+        array<float> w = array.slice(hi ? s.h : s.l, i0, i1)
+        r := i0 + w.indexof(hi ? w.max() : w.min())
+    r
+// min over the bars [i0, i1) of d x the adverse side (q = lows for d > 0, highs for d < 0); native array scan
+dLo(array<float> q, int d, int i0, int i1) =>
+    array<float> w = q.slice(i0, i1)
+    d > 0 ? w.min() : -w.max()
 // MQL iBarShift(exact = false): the bar holding time t (newest bar whose open <= t), -1 = older than the history
 BarShift(Ser s, int t) =>
     int r = -1
@@ -243,21 +244,26 @@ Emotional(Ser s, int i) =>
     float a = s.atr(i + 1)
     a > 0 and Rng(s, i) > InpEmoATR * a
 
-// HTF pack -> Ser (see f_pack below): p = [nClosed, curTimeClose, then the current HTF bar and every closed one, newest
-// first: t, o, h, l, c, atr]. chartTC = this chart candle's close time. When the HTF candle closes with it, MT5 (at the
+// HTF pack -> Ser (see f_pack below): p = [m = 1 + nClosed, curTimeClose, then 6 blocks of m values (t, o, h, l, c,
+// atr), each the current HTF bar first, then the closed ones newest first]. chartTC = this chart candle's close time. When the HTF candle closes with it, MT5 (at the
 // next chart candle) sees that HTF candle as index 1; index 0 is the new forming HTF bar (placeholder: only its time
 // is read by the core).
 serFromPack(array<float> p, int tf, int chartTC, float chartClose) =>
     Ser s = newSer(tf)
     if not na(p)
         if p.size() >= 8
+            int m = int(p.get(0))
             bool done = not na(p.get(1)) and int(p.get(1)) <= chartTC
-            s.addBar(done ? int(p.get(1)) : int(p.get(2)), chartClose, chartClose, chartClose, chartClose, done ? p.get(7) : p.get(p.size() > 8 ? 13 : 7))
             int k = done ? 0 : 1
-            while k <= int(p.get(0))
-                int b = 2 + 6 * k
-                s.addBar(int(p.get(b)), p.get(b + 1), p.get(b + 2), p.get(b + 3), p.get(b + 4), p.get(b + 5))
-                k += 1
+            s.addBar(done ? int(p.get(1)) : int(p.get(2)), chartClose, chartClose, chartClose, chartClose, p.get(2 + 5 * m + (done or m < 2 ? 0 : 1)))
+            if k < m
+                for j = k to m - 1
+                    s.t.push(int(p.get(2 + j)))
+                s.o.concat(p.slice(2 + m + k, 2 + 2 * m))
+                s.h.concat(p.slice(2 + 2 * m + k, 2 + 3 * m))
+                s.l.concat(p.slice(2 + 3 * m + k, 2 + 4 * m))
+                s.c.concat(p.slice(2 + 4 * m + k, 2 + 5 * m))
+                s.a.concat(p.slice(2 + 5 * m + k, 2 + 6 * m))
     s.seal()
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -311,16 +317,23 @@ type Rej
 Detect(Ser s, bool wantRej, array<Rej> rej) =>
     array<Zone> out = array.new<Zone>()
     int L = math.min(InpLookback, s.n - InpMaxBase - 3) + 1
+    array<float> C = s.c
     while L > 2
         L -= 1
-        float lr = Rng(s, L)
-        int dir = CDir(s, L)
-        if lr <= 0 or Basing(s, L) or dir == 0
+        float bd = C.get(L) - s.o.get(L)
+        float lr = s.h.get(L) - s.l.get(L)
+        if lr <= 0 or math.abs(bd) / lr < 0.5 or bd == 0
             continue
+        int dir = int(math.sign(bd))
+        array<float> q = dir > 0 ? s.l : s.h
         int k = 0
         float maxBase = 0.0
-        while k < InpMaxBase and Basing(s, L + 1 + k)
-            maxBase := math.max(maxBase, Rng(s, L + 1 + k))
+        while k < InpMaxBase
+            int jb = L + 1 + k
+            float r = s.h.get(jb) - s.l.get(jb)
+            if not (r > 0 and math.abs(C.get(jb) - s.o.get(jb)) / r < 0.5)
+                break
+            maxBase := math.max(maxBase, r)
             k += 1
         if k == 0 or maxBase <= 0
             continue
@@ -330,9 +343,9 @@ Detect(Ser s, bool wantRej, array<Rej> rej) =>
         float pu = -DBLMAX
         float du = DBLMAX
         for b = L + 1 to L + k
-            pu := math.max(pu, math.max(dir * s.sO(b), dir * s.sC(b)))
-            du := math.min(du, dir * s.ad(dir, b))
-        du := math.min(du, dir * s.ad(dir, L))
+            pu := math.max(pu, math.max(dir * s.o.get(b), dir * C.get(b)))
+            du := math.min(du, dir * q.get(b))
+        du := math.min(du, dir * q.get(L))
         float prox = dir * pu
         float dist = dir * du
         float h = math.abs(prox - dist)
@@ -353,13 +366,17 @@ Detect(Ser s, bool wantRej, array<Rej> rej) =>
         Zone z = Zone.new(0, 0.0, false, -1, dir, prox, dist, L, k, sa, ratio, (ratio >= 2.5 and k <= 3) ? "A" : (ratio >= 1.8 ? "B" : "C"), CDir(s, L + 1 + k) == dir)
         z.gap := dir * (s.ad(dir, sa) - prox) / h
         z.leg2 := sa >= 1 and not Basing(s, sa) and CDir(s, sa) == dir and Rng(s, sa) >= maxBase * InpMinLegRatio
-        int j = sa
-        while j > 1 and not z.removed
+        // native pre-check: no bar since the stay-away reached the distal / proximal -> the loop changes nothing
+        float m = dLo(q, dir, 1, sa)
+        bool canRm = m < dir * dist
+        int j = m <= dir * prox ? sa : 1
+        while j > 1 and not z.removed and (canRm or not z.tested)
             j -= 1
-            if dir * (s.sC(j) - dist) < 0 or (dir * (s.ad(dir, j) - dist) < 0 and not Emotional(s, j))
+            float v = q.get(j)
+            if dir * (C.get(j) - dist) < 0 or (dir * (v - dist) < 0 and not Emotional(s, j))
                 z.removed := true
                 z.removedBar := j
-            else if not z.tested and dir * (s.ad(dir, j) - prox) <= 0 and not Emotional(s, j)
+            else if not z.tested and dir * (v - prox) <= 0 and not Emotional(s, j)
                 z.tested := true
                 z.testedBar := j
         z.baseEnd := L + k
@@ -389,15 +406,6 @@ type TLCtx
     float dnPa = 0.0
 newTL() => TLCtx.new(array.new<TLine>())
 
-// MQL FrLow (d = +1) / FrHigh (d = -1); bound = DnaFrac's extra "i + j < bars" test
-Fr(Ser s, int i, int d, bool bound) =>
-    bool ok = true
-    int k = 1
-    while k <= InpTLSwing and ok
-        if i - k < 1 or (bound and i + k >= s.n) or d * (s.ad(d, i) - s.ad(d, i + k)) > 0 or d * (s.ad(d, i) - s.ad(d, i - k)) >= 0
-            ok := false
-        k += 1
-    ok
 // real peaks / valleys, oldest first: pvBar / pvP / pvT (pvT +1 peak, -1 valley)
 type Piv
     array<int> bar
@@ -407,24 +415,31 @@ ZigZag(Ser s, int bars) =>
     Piv pv = Piv.new(array.new<int>(), array.new<float>(), array.new<int>())
     int fH = -1
     int fL = -1
+    int w = InpTLSwing
     int i = bars + 1
-    while i > InpTLSwing + 1
+    while i > w + 1
         i -= 1
-        bool lo = Fr(s, i, 1, false)
-        bool hi = Fr(s, i, -1, false)
+        // Fr(s, i, +1 / -1, false) inline (native window min / max)
+        float lv = s.l.get(i)
+        float hv = s.h.get(i)
+        bool lo = lv <= s.l.slice(i + 1, i + 1 + w).min() and lv < s.l.slice(i - w, i).min()
+        bool hi = hv >= s.h.slice(i + 1, i + 1 + w).max() and hv > s.h.slice(i - w, i).max()
         for d = -1 to 1 by 2
             // d = -1: a swing low after a swing high (valley); d = +1: a swing high after a swing low (peak)
+            if not (lo or hi)
+                break
             int f = d < 0 ? fH : fL
             if (d < 0 ? lo : hi) and f > 0
-                int j = i
-                while j > 1
-                    j -= 1
-                    if d * (s.ex(d, j) - s.ex(d, i)) > 0
-                        break
-                    if d * (s.ad(d, j) - s.ad(d, f)) < 0
-                        pv.bar.push(i)
-                        pv.p.push(s.ex(d, i))
-                        pv.t.push(d)
+                array<float> e = d > 0 ? s.h : s.l
+                array<float> q = d > 0 ? s.l : s.h
+                float ei = e.get(i)
+                float qf = q.get(f)
+                for j = i - 1 to 1
+                    if d * (e.get(j) - ei) > 0 or d * (q.get(j) - qf) < 0
+                        if d * (e.get(j) - ei) <= 0
+                            pv.bar.push(i)
+                            pv.p.push(ei)
+                            pv.t.push(d)
                         break
         if lo
             fL := i
@@ -433,40 +448,50 @@ ZigZag(Ser s, int bars) =>
     pv
 
 LineAt(float p, int b, float sl, int j) => p + sl * (b - j)
+// 0, 1, 2 ... (grown on demand): bar offsets for FitAnchor's native rows
+var array<float> gRamp = array.new<float>()
 
 // Kevin: attach at the anchor; move it only when a candle really pokes through (MQL FitAnchor)
 type Fit
     int a = -1
     float sl = 0.0
 FitAnchor(Ser s, int A, int b2, float p2, int d) =>
+    array<float> q = d > 0 ? s.l : s.h
     Fit f = Fit.new(A, 0.0)
     float tol = 0.05 * s.atr(1)
     bool done = false
     int it = 0
     while it < 50 and not done
         it += 1
-        f.sl := (p2 - s.ad(d, f.a)) / (f.a - b2)
+        float sl = (p2 - q.get(f.a)) / (f.a - b2)
+        f.sl := sl
         int worst = -1
-        float ex = tol
-        int j = f.a
-        while j > b2 + 1
-            j -= 1
-            float e = d * (LineAt(p2, b2, f.sl, j) - s.ad(d, j))
-            if e > ex
-                ex := e
-                worst := j
+        int nj = f.a - b2 - 1
+        if nj > 0
+            // d x (line - bar) for the bars b2 + 1 ... f.a - 1 as one native row; the same float operations as
+            // d * (LineAt(p2, b2, sl, j) - q[j]); the worst bar = the newest-scanned maximum (lastindexof), as MQL
+            while gRamp.size() <= nj
+                gRamp.push(gRamp.size())
+            matrix<float> m = matrix.new<float>()
+            m.add_row(0, gRamp.slice(1, nj + 1))
+            matrix<float> mq = matrix.new<float>()
+            mq.add_row(0, q.slice(b2 + 1, f.a))
+            array<float> e = m.mult(-sl).sum(p2).diff(mq).mult(float(d)).row(0)
+            float ex = e.max()
+            worst := ex > tol ? b2 + 1 + e.lastindexof(ex) : -1
         done := worst < 0
         if not done
             f.a := worst
     if not done
-        f.sl := (p2 - s.ad(d, f.a)) / (f.a - b2)
+        f.sl := (p2 - q.get(f.a)) / (f.a - b2)
     f
 RemovedAt(Ser s, int b2, float p2, float sl, int d) =>
+    array<float> e = d > 0 ? s.h : s.l
     int r = -1
     int j = b2
     while j > 1 and r < 0
         j -= 1
-        if d * (s.ex(d, j) - LineAt(p2, b2, sl, j)) < 0
+        if d * (e.get(j) - (p2 + sl * (b2 - j))) < 0
             r := j
     r
 AddTL(Ser s, array<TLine> tl, int d, int a, int b2, float p2, float sl, bool overall) =>
@@ -475,19 +500,18 @@ AddTL(Ser s, array<TLine> tl, int d, int a, int b2, float p2, float sl, bool ove
     tl.push(t)
     t
 Confirmed(Ser s, int a, int b2, float p2, float sl, int d) =>
-    float ext = -DBLMAX
-    int j = a
-    while j > b2 + 1
-        j -= 1
-        ext := math.max(ext, d * s.ex(d, j))
+    array<float> e = d > 0 ? s.h : s.l
     bool res = false
-    if ext != -DBLMAX
+    if a > b2 + 1
+        array<float> w = e.slice(b2 + 1, a)
+        float ext = d > 0 ? w.max() : -w.min()
         int q = b2
         while q > 1
             q -= 1
-            if d * (s.ex(d, q) - LineAt(p2, b2, sl, q)) < 0
+            float v = e.get(q)
+            if d * (v - (p2 + sl * (b2 - q))) < 0
                 break
-            if d * s.ex(d, q) > ext
+            if d * v > ext
                 res := true
                 break
     res
@@ -591,10 +615,11 @@ Trendlines(Ser s) =>
             TLine t = x.tl.get(use)
             float sl = (t.pb - t.pa) / math.max(1, t.a - t.b)
             float w = 0.0
+            array<float> e = dd > 0 ? s.h : s.l
             int j = t.a + 1
             while j > 1
                 j -= 1
-                w := math.max(w, dd * (s.ex(dd, j) - LineAt(t.pb, t.b, sl, j)))
+                w := math.max(w, dd * (e.get(j) - (t.pb + sl * (t.b - j))))
             if dd > 0
                 x.upOn := true
                 x.upS := sl
@@ -627,19 +652,20 @@ F2(float v) => str.tostring(v, "0.00")
 FracX(Ser s, int i, int d) =>
     int bars = s.n
     float r = 0.0
+    array<float> e = d > 0 ? s.h : s.l
     if not (i < 2 or i + 2 > bars - 1)
         // u = the extreme in side units (high, or -low): every "c < p" of FracDn is "u > p" here
-        float c = d * s.ex(d, i)
-        float p1 = d * s.ex(d, i + 1)
-        float p2 = d * s.ex(d, i + 2)
-        float p3 = d * s.ex(d, i + 3)
-        float p4 = d * s.ex(d, i + 4)
-        float p5 = d * s.ex(d, i + 5)
-        float p6 = d * s.ex(d, i + 6)
-        int m = bars - i - 1
-        if c > d * s.ex(d, i - 1) and c > d * s.ex(d, i - 2)
+        float c = d * e.get(i)
+        if c > d * e.get(i - 1) and c > d * e.get(i - 2)
+            float p1 = d * e.get(i + 1)
+            float p2 = d * e.get(i + 2)
+            float p3 = d * e.get(i + 3)
+            float p4 = d * e.get(i + 4)
+            float p5 = d * e.get(i + 5)
+            float p6 = d * e.get(i + 6)
+            int m = bars - i - 1
             if (c > p1 and c > p2) or (m >= 3 and c == p1 and c > p2 and c > p3) or (m >= 4 and c >= p1 and c == p2 and c > p3 and c > p4) or (m >= 5 and c >= p1 and c == p2 and c == p3 and c > p4 and c > p5) or (m >= 6 and c >= p1 and c == p2 and c >= p3 and c == p4 and c > p5 and c > p6)
-                r := s.ex(d, i)
+                r := e.get(i)
     r
 HtfTrend(Ser s) =>
     float hi0 = 0.0
@@ -1189,28 +1215,49 @@ RunDir(Ctx X, int ctf, float mid, float spr) =>
 // GLUE (Direction indicator): data in, Direction box / curve lines / WOW ladder out, alerts
 // ===============================================================================================================
 // HTF pack, evaluated on the requested timeframe (lookahead_on + values of [1] = only closed HTF candles, no
-// repainting). Layout: [nClosed, curTimeClose, current bar t o h l c atr, closed bars newest first ...]. The big array
+// repainting). Layout: [m = 1 + nClosed, curTimeClose, 6 blocks of m: t, o, h, l, c, atr (current bar, then closed
+// bars newest first)], so serFromPack copies the blocks with native slices. The big array
 // is only built for the HTF candle(s) at the end of the chart, where the analysis runs. tf: the slot TF (simple).
 f_pack(int tf) =>
     float tr = ta.tr(true)
     float aS = ta.sma(tr, 14)
     float aW = ta.rma(tr, 14)
     float atrv = isVs(tf) ? aW : aS
-    var array<float> body = array.new<float>()
+    var array<float> bt = array.new<float>()
+    var array<float> bo = array.new<float>()
+    var array<float> bh = array.new<float>()
+    var array<float> bl = array.new<float>()
+    var array<float> bc = array.new<float>()
+    var array<float> ba = array.new<float>()
     var array<float> none = array.new<float>()
     if bar_index > 0
-        body.unshift(nz(atrv[1]))
-        body.unshift(close[1])
-        body.unshift(low[1])
-        body.unshift(high[1])
-        body.unshift(open[1])
-        body.unshift(time[1])
-        while body.size() > (tf > 0 ? TvHtfCap : 0) * 6
-            body.pop()
+        bt.unshift(time[1])
+        bo.unshift(open[1])
+        bh.unshift(high[1])
+        bl.unshift(low[1])
+        bc.unshift(close[1])
+        ba.unshift(nz(atrv[1]))
+        if bt.size() > (tf > 0 ? TvHtfCap : 0)
+            bt.pop()
+            bo.pop()
+            bh.pop()
+            bl.pop()
+            bc.pop()
+            ba.pop()
     array<float> out = none
     if time_close >= last_bar_time
-        out := array.from(float(math.floor(body.size() / 6)), float(time_close), float(time), open, high, low, close, nz(atrv))
-        out.concat(body)
+        out := array.from(float(1 + bt.size()), float(time_close), float(time))
+        out.concat(bt)
+        out.push(open)
+        out.concat(bo)
+        out.push(high)
+        out.concat(bh)
+        out.push(low)
+        out.concat(bl)
+        out.push(close)
+        out.concat(bc)
+        out.push(nz(atrv))
+        out.concat(ba)
     out
 
 // chart timeframe in seconds (MT5 PeriodSeconds; 1 month = 30 days as in MT5)
@@ -1276,18 +1323,68 @@ addT(int t, float p, string txt, color c, string tip) => gLabels.push(label.new(
 bool acDir = false
 bool acWow = false
 
-if barstate.isconfirmed and (barstate.islastconfirmedhistory or barstate.isrealtime) and ctfSec > 0
-    Ser C = newSer(ctfSec).addBar(time_close, close, close, close, close, atrS)
-    for i = 0 to math.min(bar_index + 1, TvHistory) - 1
-        C.addBar(time[i], open[i], high[i], low[i], close[i], atrS[i])
-    C.seal()
+// ---- the chart candles the analysis reads, oldest first, kept bar by bar (the last TvHistory + 5 closed ones), so a
+// run copies them with native array calls instead of reading time[i] / open[i] ... in a loop
+var array<int> vT = array.new<int>()
+var array<float> vO = array.new<float>()
+var array<float> vH = array.new<float>()
+var array<float> vL = array.new<float>()
+var array<float> vC = array.new<float>()
+var array<float> vA = array.new<float>()
+if barstate.isconfirmed and bar_index >= last_bar_index - TvHistory - 5
+    vT.push(time)
+    vO.push(open)
+    vH.push(high)
+    vL.push(low)
+    vC.push(close)
+    vA.push(nz(atrS))
+    if vT.size() > TvHistory + 5
+        vT.shift()
+        vO.shift()
+        vH.shift()
+        vL.shift()
+        vC.shift()
+        vA.shift()
+// newest first (MQL series order) with the new candle's placeholder x0 in front
+cArr(array<float> v, float x0) =>
+    array<float> r = v.slice(math.max(v.size() - TvHistory, 0), v.size()).copy()
+    r.reverse()
+    r.unshift(x0)
+    r
+// Trendlines / Detect of an HTF series whose bars did not change since the last run are reused (same bars, same
+// result: they never read HTF bar 0's prices). Key per series: tf, n, time of bar 0 and bar 1.
+var array<int> gCk = array.new<int>()
+var array<TLCtx> gCt = array.new<TLCtx>()
+var array<ZList> gCz = array.new<ZList>()
+var int gRunT = 0
+if barstate.isconfirmed and (barstate.islastconfirmedhistory or barstate.isrealtime) and ctfSec > 0 and time != gRunT
+    gRunT := time
+    array<int> tt = vT.slice(math.max(vT.size() - TvHistory, 0), vT.size()).copy()
+    tt.reverse()
+    tt.unshift(time_close)
+    Ser C = Ser.new(ctfSec, 0, tt, cArr(vO, close), cArr(vH, close), cArr(vL, close), cArr(vC, close), cArr(vA, nz(atrS))).seal()
     array<Ser> sers = array.from(C)
     array<int> stf = array.from(sTf0, sTf1, sTf2, sTf3, sTf4, sTf5)
     for [k, tfk] in stf
         if tfk > 0
             sers.push(serFromPack(k == 0 ? pk0 : k == 1 ? pk1 : k == 2 ? pk2 : k == 3 ? pk3 : k == 4 ? pk4 : pk5, tfk, time_close, close))
     Ctx X = Ctx.new(sers, array.new<TLCtx>(sers.size()), array.new<ZList>(sers.size()))
+    for [i, s] in sers
+        int m = gCt.size()
+        while i > 0 and m > 0
+            m -= 1
+            if gCk.get(4 * m) == s.tf and gCk.get(4 * m + 1) == s.n and gCk.get(4 * m + 2) == s.sT(0) and gCk.get(4 * m + 3) == s.sT(1)
+                X.tls.set(i, gCt.get(m))
+                X.zs.set(i, gCz.get(m))
     DRes R = RunDir(X, ctfSec, close, TvSpreadPts * gPt)
+    gCk.clear()
+    gCt.clear()
+    gCz.clear()
+    for [i, s] in sers
+        if i > 0
+            gCk.concat(array.from(s.tf, s.n, s.sT(0), s.sT(1)))
+            gCt.push(X.tls.get(i))
+            gCz.push(X.zs.get(i))
     Dir D = R.D
     int right = C.sT(0) + ctfSec * 1000 * 18
     for o in gLines
