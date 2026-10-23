@@ -46,7 +46,7 @@ def frames(video, tmp, scene, every, width):
     pat = os.path.join(tmp, 'f_%05d.jpg')
     vf = f"select='gt(scene,{scene})+isnan(prev_selected_t)+gte(t-prev_selected_t,{every})',scale={width}:-2,showinfo"
     cmd = ['ffmpeg', '-hide_banner', '-loglevel', 'info', '-i', video, '-vf', vf, '-vsync', 'vfr', '-q:v', '3', pat]
-    p = subprocess.run(cmd, stderr=subprocess.PIPE, text=True, errors='ignore')
+    p = subprocess.run(cmd, stdin=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True, errors='ignore')
     times = [float(x) for x in re.findall(r'pts_time:([\d.]+)', p.stderr)]
     files = sorted(glob.glob(os.path.join(tmp, 'f_*.jpg')))
     return list(zip(files, times + [0.0] * (len(files) - len(times))))
