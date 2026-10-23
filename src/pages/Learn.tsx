@@ -5,6 +5,7 @@ import { ZOOM_SESSIONS, type ZoomSession } from '@/core/zoomSessions';
 import { SEIDEN_LESSONS } from '@/core/mentors/seiden';
 import { RAJA_LESSONS } from '@/core/mentors/raja';
 import { BAKER_LESSONS } from '@/core/mentors/baker';
+import { KEVIN_COURSE } from '@/core/mentors/kevin';
 import { ListenBar } from '@/ui/listen/ListenBar';
 import { GLOSSARY, type GlossaryMentor } from '@/core/glossary';
 import { LessonFigures, RealCharts } from '@/ui/LessonMedia';
@@ -25,7 +26,7 @@ type Mentor = 'course' | 'zoom' | 'seiden' | 'raja' | 'baker';
 type Src = Mentor | 'glossary' | 'review';
 // one entry per mentor source; lessons stay separate per mentor
 const SRC: Record<Mentor, { list: VideoLesson[]; key: string; short: string; head: string; title: string; blurb: string; start: string; noun: string; name: string }> = {
-  course: { list: VIDEO_LESSONS, key: 'rfx_lessons_done', short: 'Kevin · course', head: 'Video course', title: "Your mentor's video course, as notes", blurb: `All ${VIDEO_LESSONS.length} lessons written out with diagrams, his rules, the mistakes he warns about and a pre-trade check for each. Pick a lesson on the left. The Planner, Playbook and Guru link back here.`, start: 'Start lesson 1', noun: 'lessons', name: 'Kevin' },
+  course: { list: KEVIN_COURSE, key: 'rfx_lessons_done', short: 'Kevin · course', head: 'Video course', title: "Your mentor's video course, as notes", blurb: `All ${VIDEO_LESSONS.length} lessons written out with diagrams, his rules, the mistakes he warns about and a pre-trade check for each. Pick a lesson on the left. The Planner, Playbook and Guru link back here.`, start: 'Start lesson 1', noun: 'lessons', name: 'Kevin' },
   zoom: { list: ZOOM_SESSIONS, key: 'rfx_zoom_done', short: 'Kevin · Sunday live', head: 'Sunday Zoom sessions', title: 'Sunday live sessions, as notes', blurb: `All ${ZOOM_SESSIONS.length} Sunday Zoom livestreams written out in full: every chart he walked through, every student question, the rules and mistakes, diagrams, and the rules as mechanical checks for the Planner and the bot.`, start: 'Start with the first session', noun: 'sessions', name: 'Kevin' },
   seiden: { list: SEIDEN_LESSONS, key: 'rfx_seiden_done', short: 'Sam Seiden', head: 'Sam Seiden · 5 years of articles', title: 'Sam Seiden, 5 years of teaching, as notes', blurb: `All ${SEIDEN_LESSONS.length} articles from the 423-page collection: the teaching, every chart described (zones, entries, stops, targets), his rules, novice mistakes, a pre-trade check, and what differs from Kevin's course. Lesson numbers are the PDF page each article starts on.`, start: 'Start with the first article', noun: 'articles', name: 'Sam Seiden' },
   raja: { list: RAJA_LESSONS, key: 'rfx_raja_done', short: 'Raja', head: 'Raja · complete course', title: "Raja's course, as notes", blurb: `All ${RAJA_LESSONS.length} of Raja's lessons and sessions written out from the transcripts: strong zones (CP and arrival zones), change of direction and the curve, location and momentum, realignment, and his live sessions. Each has his rules, the mistakes he warns about and a pre-trade check. Uncertain readings of the captions are marked (likely).`, start: 'Start with the first lesson', noun: 'lessons', name: 'Raja' },
