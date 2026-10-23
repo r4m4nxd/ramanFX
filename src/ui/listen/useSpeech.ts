@@ -1,9 +1,14 @@
-// Web Speech API read-aloud engine for lessons: sentence queue, natural-sounding variation, resume position,
-// Media Session (lock screen / headphone buttons) and the browser quirks (Chrome's long-utterance cutoff, lost onend
-// events, Safari's user-gesture rule, voices that load late).
+// Read-aloud engine for lessons: sentence queue, natural-sounding variation, resume position, Media Session
+// (lock screen / headphone buttons). Two voices behind one player:
+//  - "Device voice": the Web Speech API, with its browser quirks handled (Chrome's long-utterance cutoff, lost onend
+//    events, Safari's user-gesture rule, voices that load late).
+//  - "Natural": Kokoro-82M synthesised on-device in a Web Worker (./kokoro), a few sentences ahead of an <audio>
+//    element, so speed changes are instant (playbackRate with preservesPitch) and the lock screen sees real media.
 import { useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import { PAUSE_RE, type NarrationChapter } from '@/core/narration';
-import { currentVoice, getPrefs, getVoices, safeStorage, setPrefs, speechSupported, subscribePrefs, subscribeVoices } from './voices';
+import { currentVoice, getPrefs, getVoices, safeStorage, setPrefs, speechSupported, subscribePrefs, subscribeVoices, type Engine } from './voices';
+import { disposeKokoro, ensureKokoro, getKokoroStatus, kokoroSupported, noteFallback, setPlaybackRate, subscribeKokoro, synthesize } from './kokoro/client';
+import { Cancelled, SynthQueue, type Clip } from './kokoro/queue';
 
 // ─── Segmenting ───────────────────────────────────────────────────────
 
@@ -78,14 +83,16 @@ function claim(mine?: (id: number) => void) { owner = ++ownerSeq; const id = own
 
 const isIOS = () => typeof navigator !== 'undefined' && (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 let silent: HTMLAudioElement | null = null;
+let silentSrc = '';
 function silentUrl() {
+  if (silentSrc) return silentSrc;
   // 1 s of 8 kHz 8-bit mono silence.
   const n = 8000, buf = new ArrayBuffer(44 + n), v = new DataView(buf);
   const w = (o: number, s: string) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
   w(0, 'RIFF'); v.setUint32(4, 36 + n, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
   v.setUint32(24, 8000, true); v.setUint32(28, 8000, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true); w(36, 'data'); v.setUint32(40, n, true);
   for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
-  return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+  return (silentSrc = URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })));
 }
 function keepAlive(on: boolean) {
   if (isIOS()) return; // iOS ducks/stops speech when another audio session starts
@@ -101,7 +108,20 @@ function keepAlive(on: boolean) {
 
 export type Status = 'idle' | 'playing' | 'paused' | 'ended';
 export interface WordRange { start: number; end: number; estimated: boolean }
-export interface NarratorState { status: Status; index: number; word: WordRange | null; blocked: boolean }
+export interface NarratorState {
+  status: Status; index: number; word: WordRange | null; blocked: boolean;
+  /** Natural voice: playing, but waiting for the model to download or the sentence to be synthesised. */
+  buffering: boolean;
+}
+
+/** The word under character position `pos` of `text`. */
+function wordAt(text: string, pos: number): { start: number; end: number } {
+  const start = text.lastIndexOf(' ', Math.max(0, Math.min(text.length - 1, pos))) + 1;
+  const endAt = text.indexOf(' ', start);
+  return { start, end: endAt < 0 ? text.length : endAt };
+}
+const STALL_MS = 2500;
+const natural = () => getPrefs().engine === 'kokoro' && kokoroSupported();
 
 const posKey = (id: string) => `rfx_listen_pos:${id}`;
 
@@ -110,7 +130,7 @@ class Narrator {
   id = '';
   meta = { title: '', artist: '', album: '' };
   chapterTitles: string[] = [];
-  state: NarratorState = { status: 'idle', index: 0, word: null, blocked: false };
+  state: NarratorState = { status: 'idle', index: 0, word: null, blocked: false, buffering: false };
   private subs = new Set<() => void>();
   private token = 0;
   private me = 0;
@@ -123,6 +143,16 @@ class Narrator {
   private boundarySeen = false;
   private offs: (() => void)[] = [];
   private onVis = () => { if (!document.hidden) this.checkAlive(); };
+  // Natural (Kokoro) playback
+  private texts: string[] = [];
+  private queue: SynthQueue | null = null;
+  private audio: HTMLAudioElement | null = null;
+  private audioUrl = '';
+  private unlocked = false;
+  /** The sentence the <audio> element holds (for resume after pause), -1 if none. */
+  private kIndex = -1;
+  private fromAdvance = false;
+  private stalls = 0;
 
   /** Listen for other speakers, preference changes and tab visibility (mount). */
   attach() {
@@ -131,10 +161,21 @@ class Narrator {
     ownerSubs.add(f);
     let last = getPrefs();
     const offPrefs = subscribePrefs(() => {
-      const p = getPrefs();
-      const changed = p.rate !== last.rate || p.pitch !== last.pitch || p.voiceURI !== last.voiceURI;
+      const p = getPrefs(), was = last;
       last = p;
-      if (changed && this.state.status === 'playing') this.speakAt(this.state.index, this.lastChar); // apply mid-sentence
+      const playing = this.state.status === 'playing';
+      if (p.engine !== was.engine) {
+        this.silenceOutputs();
+        this.kIndex = -1;
+        if (p.engine === 'device') { this.queue?.clear(); disposeKokoro(); } // free the model's memory
+        if (playing) this.speakAt(this.state.index);
+        return;
+      }
+      if (!playing) return;
+      if (p.engine === 'kokoro') {
+        if (p.kokoroVoice !== was.kokoroVoice || p.kokoroCompact !== was.kokoroCompact) this.speakAt(this.state.index);
+        else if (p.rate !== was.rate) this.applyRate();
+      } else if (p.rate !== was.rate || p.pitch !== was.pitch || p.voiceURI !== was.voiceURI) this.speakAt(this.state.index, this.lastChar); // apply mid-sentence
     });
     document.addEventListener('visibilitychange', this.onVis);
     this.offs = [() => { ownerSubs.delete(f); }, offPrefs, () => document.removeEventListener('visibilitychange', this.onVis)];
@@ -152,9 +193,12 @@ class Narrator {
     // Runs during render: change state silently (no notify); the hook reads it straight after.
     if (this.state.status === 'playing') {
       this.token++; this.clearTimers();
-      if (speechSupported() && owner === this.me) window.speechSynthesis.cancel();
+      this.silenceOutputs();
       keepAlive(false);
     }
+    this.texts = segs.map(s => s.text);
+    this.queue?.clear(); // a different lesson: cancel any synthesis in flight
+    this.kIndex = -1;
     this.id = id;
     let index = 0;
     try {
@@ -162,25 +206,38 @@ class Narrator {
       if (saved && saved.n === segs.length && saved.i > 0 && saved.i < segs.length) index = saved.i;
     } catch { /* ignore */ }
     this.lastChar = 0;
-    this.state = { status: 'idle', index, word: null, blocked: false };
+    this.state = { status: 'idle', index, word: null, blocked: false, buffering: false };
   }
 
   private save(i: number) { if (this.id) safeStorage.set(posKey(this.id), JSON.stringify({ i, n: this.segs.length, t: Date.now() })); }
   private clearTimers() { window.clearTimeout(this.gapTimer); window.clearInterval(this.estTimer); window.clearInterval(this.watch); this.gapTimer = this.estTimer = this.watch = 0; }
 
+  /** Stop whatever is making sound (both engines), without touching state. */
+  private silenceOutputs() {
+    if (speechSupported() && owner === this.me) window.speechSynthesis.cancel();
+    try { this.audio?.pause(); } catch { /* ignore */ }
+  }
+
   /** Stop the voice but keep the position. */
   private halt(status: Status) {
     this.token++;
     this.clearTimers();
-    if (speechSupported() && owner === this.me) window.speechSynthesis.cancel();
+    this.silenceOutputs();
     keepAlive(false);
     this.save(this.state.index);
-    this.set({ status, word: null });
+    this.set({ status, word: null, buffering: false });
     this.media();
   }
 
   /** Must be called straight from a click/keypress the first time (iOS/Safari). */
   speakAt(i: number, fromChar = 0) {
+    const cont = this.fromAdvance;
+    this.fromAdvance = false;
+    if (natural()) { this.naturalAt(i, cont); return; }
+    this.deviceAt(i, fromChar);
+  }
+
+  private deviceAt(i: number, fromChar = 0) {
     if (!speechSupported() || !this.segs.length) return;
     const synth = window.speechSynthesis;
     i = Math.max(0, Math.min(this.segs.length - 1, i));
@@ -188,6 +245,8 @@ class Narrator {
     const tok = ++this.token;
     claim(id => { this.me = id; });
     synth.cancel();
+    try { this.audio?.pause(); } catch { /* ignore */ }
+    this.kIndex = -1;
     const seg = this.segs[i];
     // Resume from the start of the word we were on.
     const from = fromChar > 0 && fromChar < seg.text.length - 3 ? Math.max(0, seg.text.lastIndexOf(' ', fromChar) + 1) : 0;
@@ -224,7 +283,7 @@ class Narrator {
     if (synth.paused) synth.resume(); // Chrome can stay stuck paused after a pause() elsewhere
     keepAlive(true);
     this.startedAt = performance.now();
-    this.set({ status: 'playing', index: i, word: null, blocked: false });
+    this.set({ status: 'playing', index: i, word: null, blocked: false, buffering: false });
     this.media();
     // Watchdog: some engines lose onend (Chrome GC bug, Safari after a lock). If nothing is speaking, move on.
     const expected = (seg.text.length - from) / (CPS * u.rate) * 1000;
@@ -242,14 +301,142 @@ class Narrator {
     let lastStart = -1;
     this.estTimer = window.setInterval(() => {
       if (tok !== this.token || this.boundarySeen) { window.clearInterval(this.estTimer); return; }
-      const pos = Math.min(text.length - 1, from + ((performance.now() - t0) / 1000) * CPS * rate);
-      const start = text.lastIndexOf(' ', pos) + 1;
-      if (start === lastStart) return;
-      lastStart = start;
-      const endAt = text.indexOf(' ', start);
-      this.lastChar = start;
-      this.set({ word: { start, end: endAt < 0 ? text.length : endAt, estimated: true } });
+      const w = wordAt(text, from + ((performance.now() - t0) / 1000) * CPS * rate);
+      if (w.start === lastStart) return;
+      lastStart = w.start;
+      this.lastChar = w.start;
+      this.set({ word: { ...w, estimated: true } });
     }, 90);
+  }
+
+  // ── Natural voice (Kokoro) ──
+
+  private audioEl() {
+    if (!this.audio) {
+      const a = new Audio();
+      a.preload = 'auto';
+      a.preservesPitch = true;
+      (a as HTMLAudioElement & { webkitPreservesPitch?: boolean }).webkitPreservesPitch = true;
+      this.audio = a;
+    }
+    return this.audio;
+  }
+
+  /** iOS only lets an element play later if it first played inside a tap: play a blip of silence now. */
+  private unlock(a: HTMLAudioElement) {
+    if (this.unlocked) return;
+    this.unlocked = true;
+    try { a.src = silentUrl(); a.volume = 1; void a.play().catch((e: DOMException) => { if (e?.name === 'NotAllowedError') this.unlocked = false; }); } catch { /* ignore */ }
+  }
+
+  private ensureQueue() {
+    if (!this.queue) this.queue = new SynthQueue(synthesize, { ahead: 2, keepBehind: 1 });
+    this.queue.setScript(this.texts, getPrefs().kokoroVoice);
+    return this.queue;
+  }
+
+  private applyRate() {
+    const a = this.audio, seg = this.segs[this.state.index];
+    const r = getPrefs().rate;
+    setPlaybackRate(r);
+    if (!a) return;
+    const v = Math.min(3, Math.max(0.5, r * (seg?.rate ?? 1)));
+    try { a.defaultPlaybackRate = v; a.playbackRate = v; } catch { /* ignore */ }
+  }
+
+  private naturalAt(i: number, continuing: boolean) {
+    if (!this.segs.length) return;
+    i = Math.max(0, Math.min(this.segs.length - 1, i));
+    this.clearTimers();
+    const tok = ++this.token;
+    claim(id => { this.me = id; });
+    if (speechSupported()) window.speechSynthesis.cancel();
+    keepAlive(false);
+    const a = this.audioEl();
+    this.unlock(a);
+    try { a.pause(); } catch { /* ignore */ }
+    this.kIndex = -1;
+    const p = getPrefs();
+    const q = this.ensureQueue();
+    const wasReady = q.ready(i);
+    const t0 = performance.now();
+    this.set({ status: 'playing', index: i, word: null, blocked: false, buffering: !wasReady });
+    this.media();
+    ensureKokoro(p.kokoroCompact).then(() => (tok === this.token ? q.get(i) : Promise.reject(new Cancelled()))).then(
+      clip => {
+        if (tok !== this.token) return;
+        if (continuing && !wasReady && performance.now() - t0 > STALL_MS) this.onStall();
+        if (tok === this.token) this.playClip(tok, i, clip);
+      },
+      (err: unknown) => {
+        if (tok !== this.token || err instanceof Cancelled) return;
+        const st = getKokoroStatus();
+        if (st.phase === 'error') this.fallBack(`The natural voice could not start (${st.error ?? 'unknown error'}), so the device voice is reading instead.`);
+        else this.advance(i); // one sentence failed: skip it rather than stop
+      },
+    );
+  }
+
+  private playClip(tok: number, i: number, clip: Clip) {
+    const a = this.audioEl();
+    if (this.audioUrl) URL.revokeObjectURL(this.audioUrl);
+    this.audioUrl = URL.createObjectURL(new Blob([clip.wav], { type: 'audio/wav' }));
+    a.src = this.audioUrl;
+    this.kIndex = i;
+    this.applyRate(); // after src: loading resets playbackRate
+    a.onended = () => { if (tok === this.token) this.advance(i); };
+    a.onerror = () => { if (tok === this.token) this.advance(i); };
+    this.set({ buffering: false });
+    this.startAudio(tok, i);
+  }
+
+  private startAudio(tok: number, i: number) {
+    const a = this.audio!;
+    const pr = a.play();
+    pr?.catch((err: DOMException) => {
+      if (tok !== this.token) return;
+      if (err?.name === 'NotAllowedError') { this.halt('paused'); this.set({ blocked: true }); }
+    });
+    // Kokoro gives no word timings: follow the audio clock through the sentence (characters ~ time).
+    const text = this.segs[i].text;
+    let lastStart = -1;
+    window.clearInterval(this.estTimer);
+    this.estTimer = window.setInterval(() => {
+      if (tok !== this.token) { window.clearInterval(this.estTimer); return; }
+      const d = a.duration;
+      if (!Number.isFinite(d) || d <= 0) return;
+      const w = wordAt(text, (a.currentTime / d) * text.length);
+      if (w.start === lastStart) return;
+      lastStart = w.start;
+      this.lastChar = w.start;
+      this.set({ word: { ...w, estimated: true } });
+    }, 90);
+  }
+
+  /** Pick up a paused natural sentence exactly where it stopped. */
+  private resumeNatural() {
+    const a = this.audio!, i = this.kIndex;
+    this.clearTimers();
+    const tok = ++this.token;
+    claim(id => { this.me = id; });
+    if (speechSupported()) window.speechSynthesis.cancel();
+    a.onended = () => { if (tok === this.token) this.advance(i); };
+    a.onerror = () => { if (tok === this.token) this.advance(i); };
+    this.applyRate();
+    this.set({ status: 'playing', word: null, blocked: false, buffering: false });
+    this.media();
+    this.startAudio(tok, i);
+  }
+
+  private onStall() {
+    this.stalls++;
+    if (getKokoroStatus().slow && this.stalls >= 2) this.fallBack('The natural voice was slower than real time on this device, so the device voice took over.');
+  }
+
+  private fallBack(reason: string) {
+    this.stalls = 0;
+    noteFallback(reason);
+    setPrefs({ engine: 'device' }); // the prefs listener restarts this sentence with the device voice
   }
 
   private advance(i: number) {
@@ -267,13 +454,13 @@ class Narrator {
     this.lastChar = 0;
     const gap = this.segs[i].gapAfter / Math.max(0.8, getPrefs().rate);
     // Background tabs throttle timers hard: skip the breathing gaps there and chain straight on.
-    if (gap < 40 || (typeof document !== 'undefined' && document.hidden)) { this.speakAt(next); return; }
+    if (gap < 40 || (typeof document !== 'undefined' && document.hidden)) { this.fromAdvance = true; this.speakAt(next); return; }
     this.set({ index: next, word: null });
-    this.gapTimer = window.setTimeout(() => { if (tok === this.token) this.speakAt(next); }, gap);
+    this.gapTimer = window.setTimeout(() => { if (tok === this.token) { this.fromAdvance = true; this.speakAt(next); } }, gap);
   }
 
   private checkAlive() {
-    if (this.state.status !== 'playing' || this.gapTimer || !speechSupported()) return;
+    if (this.state.status !== 'playing' || this.gapTimer || !speechSupported() || natural()) return;
     const s = window.speechSynthesis;
     if (!s.speaking && !s.pending) this.speakAt(this.state.index, this.lastChar);
   }
@@ -282,16 +469,19 @@ class Narrator {
   play() {
     if (this.state.status === 'playing') return;
     if (this.state.status === 'ended') { this.speakAt(0); return; }
+    const a = this.audio;
+    if (natural() && a && this.kIndex === this.state.index && a.currentTime > 0 && !a.ended) { this.resumeNatural(); return; }
     this.speakAt(this.state.index, this.lastChar);
   }
   pause() { if (this.state.status === 'playing') this.halt('paused'); }
   toggle() { if (this.state.status === 'playing') this.pause(); else this.play(); }
-  stop() { this.halt('idle'); this.lastChar = 0; }
+  stop() { this.halt('idle'); this.lastChar = 0; this.kIndex = -1; this.queue?.clear(); }
   seek(i: number, autoplay = this.state.status === 'playing') {
     i = Math.max(0, Math.min(this.segs.length - 1, i));
     this.lastChar = 0;
+    this.kIndex = -1;
     if (autoplay) this.speakAt(i);
-    else { this.token++; this.clearTimers(); if (speechSupported() && owner === this.me) window.speechSynthesis.cancel(); this.set({ index: i, word: null, status: this.state.status === 'ended' ? 'paused' : this.state.status === 'idle' ? 'idle' : 'paused' }); this.save(i); this.media(); }
+    else { this.token++; this.clearTimers(); this.silenceOutputs(); this.set({ index: i, word: null, buffering: false, status: this.state.status === 'ended' ? 'paused' : this.state.status === 'idle' ? 'idle' : 'paused' }); this.save(i); this.media(); }
   }
   next() { this.seek(this.state.index + 1); }
   prev() { this.seek(this.lastChar > 12 ? this.state.index : this.state.index - 1); }
@@ -328,6 +518,9 @@ class Narrator {
   /** Unmount: stop speaking (keeping the place), drop listeners and lock-screen controls. */
   detach() {
     if (this.state.status === 'playing') this.halt('paused'); else { this.token++; this.clearTimers(); }
+    this.queue?.clear();
+    this.kIndex = -1;
+    if (this.audioUrl) { URL.revokeObjectURL(this.audioUrl); this.audioUrl = ''; }
     this.detachListeners();
     this.mediaBound = false;
     if (typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
@@ -339,6 +532,9 @@ class Narrator {
 
 // ─── React hook ───────────────────────────────────────────────────────
 
+export function useKokoroStatus() {
+  return useSyncExternalStore(subscribeKokoro, getKokoroStatus, getKokoroStatus);
+}
 export function useVoiceList() {
   return useSyncExternalStore(subscribeVoices, getVoices, getVoices);
 }
@@ -357,10 +553,11 @@ export function useSpeech({ id, chapters, title, artist, album }: UseSpeechOptio
   const titles = useMemo(() => chapters.map(c => c.title), [chapters]);
   if (n) n.load(id, segs, titles, { title, artist, album: album ?? title }); // sync load so the first render shows the resume point
 
-  const empty: NarratorState = useMemo(() => ({ status: 'idle', index: 0, word: null, blocked: false }), []);
+  const empty: NarratorState = useMemo(() => ({ status: 'idle', index: 0, word: null, blocked: false, buffering: false }), []);
   const state = useSyncExternalStore(n ? n.subscribe : noopSub, n ? n.getState : () => empty, () => empty);
   const prefs = usePrefs();
   const voices = useVoiceList();
+  const kokoro = useKokoroStatus();
   useEffect(() => { if (!n) return; n.attach(); return () => n.detach(); }, [n]);
 
   // Timing, from word counts.
@@ -376,7 +573,7 @@ export function useSpeech({ id, chapters, title, artist, album }: UseSpeechOptio
 
   return {
     supported, segments: segs, chapters, state, status: state.status, index: i, chapter, word: state.word,
-    progress, remainingSec, totalSec, prefs, voices,
+    progress, remainingSec, totalSec, prefs, voices, kokoro, buffering: state.buffering,
     started: state.status !== 'idle' || i > 0,
     play: () => n?.play(), pause: () => n?.pause(), toggle: () => n?.toggle(), stop: () => n?.stop(),
     seek: (k: number, autoplay?: boolean) => n?.seek(k, autoplay), next: () => n?.next(), prev: () => n?.prev(),
@@ -385,6 +582,9 @@ export function useSpeech({ id, chapters, title, artist, album }: UseSpeechOptio
     seekFraction: (f: number, autoplay?: boolean) => { const w = f * totalWords; let k = 0; while (k < segs.length - 1 && cum[k + 1] <= w) k++; n?.seek(k, autoplay); },
     chapterFraction: (c: number) => { const k = segs.findIndex(s => s.chapter === c); return k < 0 ? 0 : cum[k] / totalWords; },
     setRate: (rate: number) => setPrefs({ rate }), setPitch: (pitch: number) => setPrefs({ pitch }), setVoice: (voiceURI: string | null) => setPrefs({ voiceURI }),
+    setEngine: (engine: Engine) => { if (engine === 'kokoro') noteFallback(null); setPrefs({ engine }); },
+    setKokoroVoice: (kokoroVoice: string) => setPrefs({ kokoroVoice }),
+    setKokoroCompact: (kokoroCompact: boolean) => setPrefs({ kokoroCompact }),
   };
 }
 const noopSub = () => () => undefined;
@@ -432,4 +632,34 @@ export function speak(text: string, opts: { rate?: number; pitch?: number; onEnd
   return () => { if (tok === oneOffToken && !done) { oneOffToken++; synth.cancel(); } off(); finish(); };
 }
 export function stopSpeaking() { if (speechSupported()) { claim(); oneOffToken++; window.speechSynthesis.cancel(); } }
+
+/**
+ * Preview a natural (Kokoro) voice: downloads the model on first use, pauses anything else speaking.
+ * Call it from a click. Returns a stop function.
+ */
+export function previewNatural(text: string, voice: string, opts: { compact?: boolean; onStart?: () => void; onEnd?: (err?: string) => void } = {}): () => void {
+  const me = claim();
+  if (speechSupported()) window.speechSynthesis.cancel();
+  const a = new Audio();
+  a.preservesPitch = true;
+  try { a.src = silentUrl(); void a.play().then(() => a.pause(), () => undefined); } catch { /* unlock for iOS */ }
+  let done = false, url = '', job: { cancel: () => void } | null = null;
+  const finish = (err?: string) => { if (done) return; done = true; off(); job?.cancel(); try { a.pause(); } catch { /* ignore */ } if (url) URL.revokeObjectURL(url); opts.onEnd?.(err); };
+  const off = (() => { const f = (o: number) => { if (o !== me) finish(); }; ownerSubs.add(f); return () => { ownerSubs.delete(f); }; })();
+  ensureKokoro(opts.compact).then(() => {
+    if (done) return;
+    const j = synthesize(text, voice, true);
+    job = j;
+    return j.promise.then(clip => {
+      if (done) return;
+      url = URL.createObjectURL(new Blob([clip.wav], { type: 'audio/wav' }));
+      a.src = url;
+      a.playbackRate = getPrefs().rate;
+      a.onended = () => finish();
+      opts.onStart?.();
+      return a.play();
+    });
+  }).catch((e: unknown) => { if (!(e instanceof Cancelled)) finish(getKokoroStatus().error ?? (e as Error)?.message ?? 'failed'); });
+  return () => finish();
+}
 export { speechSupported } from './voices';

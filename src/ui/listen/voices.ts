@@ -89,20 +89,57 @@ export function getVoices() { initVoices(); return voices; }
 
 // ─── Preferences ──────────────────────────────────────────────────────
 
+// ─── Natural voices (Kokoro-82M, runs on-device in a Web Worker) ──────
+
+export type Engine = 'device' | 'kokoro';
+export interface KokoroVoice { id: string; name: string; desc: string; lang: 'en-us' | 'en-gb' | 'hi' }
+/** A short curated list: the best-graded Kokoro voices, plus the Hindi ones for Hindi lessons later. */
+export const KOKORO_VOICES: KokoroVoice[] = [
+  { id: 'af_heart', name: 'Heart', desc: 'US English · female · warm', lang: 'en-us' },
+  { id: 'af_bella', name: 'Bella', desc: 'US English · female · bright', lang: 'en-us' },
+  { id: 'am_michael', name: 'Michael', desc: 'US English · male', lang: 'en-us' },
+  { id: 'am_fenrir', name: 'Fenrir', desc: 'US English · male · deeper', lang: 'en-us' },
+  { id: 'bf_emma', name: 'Emma', desc: 'British English · female', lang: 'en-gb' },
+  { id: 'bm_george', name: 'George', desc: 'British English · male', lang: 'en-gb' },
+  { id: 'hf_alpha', name: 'Alpha', desc: 'Hindi · female', lang: 'hi' },
+  { id: 'hf_beta', name: 'Beta', desc: 'Hindi · female', lang: 'hi' },
+  { id: 'hm_omega', name: 'Omega', desc: 'Hindi · male', lang: 'hi' },
+  { id: 'hm_psi', name: 'Psi', desc: 'Hindi · male', lang: 'hi' },
+];
+export const KOKORO_DEFAULT_VOICE = 'af_heart';
+export const kokoroVoice = (id: string) => KOKORO_VOICES.find(v => v.id === id) ?? KOKORO_VOICES[0];
+
 export const RATE_MIN = 0.8, RATE_MAX = 2.0, RATE_DEFAULT = 1.05, PITCH_DEFAULT = 1.0;
 const K_VOICE = 'rfx_listen_voice', K_RATE = 'rfx_listen_rate', K_PITCH = 'rfx_listen_pitch';
+const K_ENGINE = 'rfx_listen_engine', K_KVOICE = 'rfx_listen_kvoice', K_KCOMPACT = 'rfx_listen_kcompact';
 const clamp = (n: number, a: number, b: number) => Math.min(b, Math.max(a, n));
-export interface SpeechPrefs { voiceURI: string | null; rate: number; pitch: number }
+export interface SpeechPrefs {
+  voiceURI: string | null; rate: number; pitch: number;
+  /** Which narrator speaks lessons: the browser's own voices or Kokoro. */
+  engine: Engine;
+  /** Kokoro voice id (see KOKORO_VOICES). */
+  kokoroVoice: string;
+  /** Force the small CPU (WASM q8) model even where WebGPU is available. */
+  kokoroCompact: boolean;
+}
 let prefs: SpeechPrefs = {
   voiceURI: store.get(K_VOICE),
   rate: clamp(Number(store.get(K_RATE)) || RATE_DEFAULT, RATE_MIN, RATE_MAX),
   pitch: clamp(Number(store.get(K_PITCH)) || PITCH_DEFAULT, 0.5, 1.5),
+  engine: store.get(K_ENGINE) === 'kokoro' ? 'kokoro' : 'device',
+  kokoroVoice: kokoroVoice(store.get(K_KVOICE) || KOKORO_DEFAULT_VOICE).id,
+  kokoroCompact: store.get(K_KCOMPACT) === '1',
 };
 const prefSubs = new Set<() => void>();
 export const getPrefs = () => prefs;
 export function setPrefs(p: Partial<SpeechPrefs>) {
-  prefs = { ...prefs, ...p, rate: clamp(p.rate ?? prefs.rate, RATE_MIN, RATE_MAX), pitch: clamp(p.pitch ?? prefs.pitch, 0.5, 1.5) };
+  prefs = {
+    ...prefs, ...p,
+    rate: clamp(p.rate ?? prefs.rate, RATE_MIN, RATE_MAX), pitch: clamp(p.pitch ?? prefs.pitch, 0.5, 1.5),
+    kokoroVoice: kokoroVoice(p.kokoroVoice ?? prefs.kokoroVoice).id,
+  };
   store.set(K_VOICE, prefs.voiceURI); store.set(K_RATE, String(prefs.rate)); store.set(K_PITCH, String(prefs.pitch));
+  store.set(K_ENGINE, prefs.engine); store.set(K_KVOICE, prefs.kokoroVoice); store.set(K_KCOMPACT, prefs.kokoroCompact ? '1' : '0');
   prefSubs.forEach(f => f());
 }
 export function subscribePrefs(f: () => void) { prefSubs.add(f); return () => { prefSubs.delete(f); }; }

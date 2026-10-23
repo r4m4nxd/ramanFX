@@ -1,0 +1,23 @@
+<!doctype html>
+<!-- Dev-only test page for the Kokoro narrator engine (not part of the app build).
+     npx vite, then open http://localhost:5173/scripts/kokoro-harness.html  (?gpu=1 to allow WebGPU, ?voice=bm_george)
+     scripts/kokoro-bench.mjs drives it headless and prints the realtime factor. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kokoro harness</title>
+  <style>
+    :root { color-scheme: light dark; --bg: #fff; --ink: #111; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #111; --ink: #eee; } }
+    body { background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, sans-serif; margin: 16px; }
+    pre { white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Kokoro narrator harness</h1>
+  <p><button id="go">Run</button> <button id="play" disabled>Play results</button></p>
+  <pre id="log"></pre>
+  <script type="module" src="./kokoro-harness.ts"></script>
+</body>
+</html>

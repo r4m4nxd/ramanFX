@@ -1,13 +1,15 @@
 // "Listen to this lesson": a calm audiobook-style player that reads the lesson notes aloud as a lively script.
-// <ListenBar lesson={l} mentor="Kevin" /> at the top of a lesson. Web Speech API only; no audio files.
+// <ListenBar lesson={l} mentor="Kevin" /> at the top of a lesson. Two voices: the device's own (Web Speech API) or a
+// natural neural voice (Kokoro-82M) synthesised on this device; no audio files on our side either way.
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { buildNarration } from '@/core/narration';
 import type { VideoLesson } from '@/core/videoLessons';
 import { cx, ease, Segmented, spring } from '../kit';
-import { speak, useSpeech, type WordRange } from './useSpeech';
-import { currentVoice, isRecommended, safeStorage, sortVoices, voiceLabel } from './voices';
+import { expectedDownloadMB, hasWebGPU, isMobile, kokoroSupported, type KokoroStatus } from './kokoro/client';
+import { previewNatural, speak, useSpeech, type WordRange } from './useSpeech';
+import { currentVoice, isRecommended, KOKORO_VOICES, kokoroVoice, safeStorage, sortVoices, voiceLabel, type Engine } from './voices';
 
 // ─── Icons (player glyphs the shared set doesn't have) ────────────────
 const G = {
@@ -40,6 +42,18 @@ const fmtLeft = (sec: number) => (sec >= 3600 ? `${Math.floor(sec / 3600)} h ${M
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
 const K_FOLLOW = 'rfx_listen_follow';
 const editable = (el: EventTarget | null) => el instanceof HTMLElement && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
+
+const mb = (b: number) => (b / 1e6).toFixed(0);
+/** One line about the natural voice's download / readiness, or null when there is nothing to say. */
+function naturalLine(k: KokoroStatus, buffering: boolean, compact: boolean): string | null {
+  if (k.phase === 'loading') {
+    return k.total > 0 && k.loaded < k.total
+      ? `Downloading the natural voice: ${Math.floor((k.loaded / k.total) * 100)}% (${mb(k.loaded)} of ${mb(k.total)} MB, one time only)`
+      : `Getting the natural voice ready (about ${expectedDownloadMB(compact)} MB the first time, then cached)…`;
+  }
+  if (buffering) return 'Preparing the next sentence…';
+  return null;
+}
 
 const HINT = 'Best voices: Microsoft Edge (Natural voices) or Chrome; on iPhone use Settings > Accessibility > Spoken Content > Voices to download an Enhanced voice.';
 
@@ -158,6 +172,7 @@ export function ListenBar({ lesson, mentor = 'Kevin', className }: { lesson: Vid
           <VoicePanel sp={sp} />
         </Reveal>
 
+        <NaturalNotices sp={sp} />
         {sp.state.blocked && <p role="alert" className="relative mt-3 text-cap text-warn">Tap play to start. Your browser needs a tap before it can speak.</p>}
         <p className="sr-only" aria-live="polite">{seg && sp.status === 'playing' && seg.firstOfChapter ? `Chapter: ${chTitle}` : ''}</p>
       </section>
@@ -371,7 +386,141 @@ function FollowAlong({ sp }: { sp: SP }) {
   );
 }
 
+/** Download progress, slow-device hint and fallback notice for the natural voice, on the main card. */
+function NaturalNotices({ sp }: { sp: SP }) {
+  const k = sp.kokoro;
+  const natural = sp.prefs.engine === 'kokoro';
+  const line = natural && sp.status === 'playing' ? naturalLine(k, sp.buffering, sp.prefs.kokoroCompact) : null;
+  const pct = k.total > 0 ? Math.min(100, (k.loaded / k.total) * 100) : 0;
+  return (
+    <>
+      {line && (
+        <div className="relative mt-3" aria-live="polite">
+          <p className="text-cap text-ink3">{line}</p>
+          {k.phase === 'loading' && (
+            <span aria-hidden="true" className="mt-1.5 block h-1 w-full rounded-full bg-raised overflow-hidden">
+              <span className="block h-full bg-accent/70 rounded-full transition-[width] duration-300" style={{ width: `${pct}%` }} />
+            </span>
+          )}
+        </div>
+      )}
+      {natural && k.slow && (
+        <p role="status" className="relative mt-3 text-cap text-warn flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span>The natural voice is slower than real time on this device{k.rtf ? ` (${(1 / k.rtf).toFixed(1)}× real time)` : ''}, so you may hear pauses.</span>
+          <button type="button" className="underline font-semibold" onClick={() => sp.setEngine('device')}>Use device voice</button>
+        </p>
+      )}
+      {!natural && k.fellBack && (
+        <p role="status" className="relative mt-3 text-cap text-ink3 flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span>{k.fellBack}</span>
+          <button type="button" className="underline font-semibold" onClick={() => sp.setEngine('kokoro')}>Try natural again</button>
+        </p>
+      )}
+    </>
+  );
+}
+
+function EnginePicker({ sp }: { sp: SP }) {
+  return (
+    <div className="grid gap-1.5">
+      <span className="text-cap font-semibold text-ink2">Voice engine</span>
+      <div className="min-w-0 overflow-x-auto [scrollbar-width:none] -my-1 py-1">
+        <Segmented<Engine> size="sm" label="Voice engine" value={sp.prefs.engine} onChange={v => sp.setEngine(v)}
+          options={[{ value: 'device', label: 'Device voice' }, { value: 'kokoro', label: 'Natural (Kokoro)' }]} />
+      </div>
+    </div>
+  );
+}
+
+const PREVIEW = 'Hi! This is how your lessons will sound. Quick question: ready to trade with the big players?';
+const PREVIEW_HI = 'नमस्ते! आपके पाठ ऐसे सुनाई देंगे। क्या आप तैयार हैं?';
+
+function NaturalPanel({ sp }: { sp: SP }) {
+  const id = useId();
+  const k = sp.kokoro;
+  const v = kokoroVoice(sp.prefs.kokoroVoice);
+  const [previewing, setPreviewing] = useState<'off' | 'wait' | 'on'>('off');
+  const [err, setErr] = useState<string | null>(null);
+  const stopRef = useRef<() => void>();
+  useEffect(() => () => stopRef.current?.(), []);
+  const preview = () => {
+    if (previewing !== 'off') { stopRef.current?.(); return; }
+    setErr(null);
+    setPreviewing('wait');
+    stopRef.current = previewNatural(v.lang === 'hi' ? PREVIEW_HI : PREVIEW, v.id, {
+      compact: sp.prefs.kokoroCompact, onStart: () => setPreviewing('on'),
+      onEnd: e => { setPreviewing('off'); if (e) setErr(e); },
+    });
+  };
+  const en = KOKORO_VOICES.filter(x => x.lang !== 'hi'), hi = KOKORO_VOICES.filter(x => x.lang === 'hi');
+  const pct = k.total > 0 ? Math.min(100, (k.loaded / k.total) * 100) : 0;
+  const gpuChoice = hasWebGPU() && !isMobile();
+  if (!kokoroSupported()) return <p className="text-cap text-warn">This browser can't run the natural voice (it needs Web Workers and WebAssembly). The device voice still works.</p>;
+  return (
+    <>
+      <div className="grid gap-1.5">
+        <label htmlFor={id} className="text-cap font-semibold text-ink2">Natural voice</label>
+        <div className="flex gap-2">
+          <select id={id} className="field h-9 touch:h-11 px-3 text-[13px] min-w-0 flex-1" value={v.id} onChange={e => sp.setKokoroVoice(e.target.value)}>
+            <optgroup label="English">
+              {en.map(x => <option key={x.id} value={x.id}>{x.name} · {x.desc}</option>)}
+            </optgroup>
+            <optgroup label="Hindi (for Hindi lessons)">
+              {hi.map(x => <option key={x.id} value={x.id}>{x.name} · {x.desc}</option>)}
+            </optgroup>
+          </select>
+          <button type="button" className="btn shrink-0 touch:h-11" onClick={preview} aria-pressed={previewing !== 'off'}>
+            <Glyph d={previewing !== 'off' ? G.pause : G.speaker} size={15} fill={previewing !== 'off'} />
+            {previewing === 'wait' ? 'Loading…' : previewing === 'on' ? 'Stop' : 'Preview'}
+          </button>
+        </div>
+        {v.lang === 'hi' && <p className="text-micro text-ink3">Hindi voices are meant for Hindi lessons; on English text they read with an Indian-English accent.</p>}
+      </div>
+      <div className="grid gap-1" aria-live="polite">
+        {k.phase === 'off' && <p className="text-micro text-ink3">Runs entirely on this device: nothing you listen to leaves it. The first time it downloads about {expectedDownloadMB(sp.prefs.kokoroCompact)} MB, then it's cached for next time.</p>}
+        {k.phase === 'loading' && (
+          <>
+            <p className="text-micro text-ink3">{k.total > 0 ? `Downloading ${mb(k.loaded)} of ${mb(k.total)} MB (one time only)…` : 'Loading the voice model…'}</p>
+            <span aria-hidden="true" className="block h-1 w-full rounded-full bg-raised overflow-hidden">
+              <span className="block h-full bg-accent/70 rounded-full transition-[width] duration-300" style={{ width: `${pct}%` }} />
+            </span>
+          </>
+        )}
+        {k.phase === 'ready' && (
+          <p className="text-micro text-ink3">
+            Ready, running on this device ({k.device === 'webgpu' ? 'GPU' : 'CPU'}).
+            {k.rtf != null && (k.rtf < 0.9
+              ? <> Speaking {(1 / k.rtf).toFixed(1)}× faster than real time.</>
+              : <> Synthesis runs at {(1 / k.rtf).toFixed(2)}× real time here, too slow for smooth playback.</>)}
+            {k.note && <> {k.note}.</>}
+          </p>
+        )}
+        {(k.phase === 'error' || err) && <p className="text-micro text-warn">The natural voice couldn't load: {k.error ?? err}. The device voice still works.</p>}
+      </div>
+      {gpuChoice && (
+        <label className="flex items-start gap-2 text-micro text-ink3 cursor-pointer">
+          <input type="checkbox" className="mt-0.5 accent-[rgb(var(--accent))]" checked={sp.prefs.kokoroCompact} onChange={e => sp.setKokoroCompact(e.target.checked)} />
+          <span>Use the compact model ({expectedDownloadMB(true)} MB, runs on the CPU) instead of the GPU model ({expectedDownloadMB(false)} MB, faster on most computers).</span>
+        </label>
+      )}
+    </>
+  );
+}
+
 function VoicePanel({ sp }: { sp: SP }) {
+  if (sp.prefs.engine === 'kokoro') {
+    return (
+      <div className="rounded-2xl border border-line/70 bg-raised/40 p-3.5 grid gap-3">
+        <EnginePicker sp={sp} />
+        <NaturalPanel sp={sp} />
+        <p className="text-micro text-ink3">Keys: Space play or pause, ← → one sentence, Shift + ← → one chapter.</p>
+      </div>
+    );
+  }
+  return <DevicePanel sp={sp} />;
+}
+
+function DevicePanel({ sp }: { sp: SP }) {
   const id = useId();
   const sorted = useMemo(() => sortVoices(sp.voices), [sp.voices]);
   const rec = sorted.filter(isRecommended).slice(0, 8);
@@ -388,6 +537,7 @@ function VoicePanel({ sp }: { sp: SP }) {
   };
   return (
     <div className="rounded-2xl border border-line/70 bg-raised/40 p-3.5 grid gap-3">
+      <EnginePicker sp={sp} />
       <div className="grid gap-1.5">
         <label htmlFor={id} className="text-cap font-semibold text-ink2">Voice</label>
         <div className="flex gap-2">
