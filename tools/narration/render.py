@@ -25,21 +25,32 @@ MAX_CHUNK = 380         # characters per Kokoro call (stays well under its 510-p
 
 def fix_text(s: str) -> str:
     """Extra speech fixes on top of narration.ts speakable() (which we don't change). Mostly from video-frame notes."""
-    # Video timestamps "00:00, " / "02:18, 02:24, " at the start of a note: drop them.
-    s = re.sub(r"(?:(?<=^)|(?<=[\s.:]))\d{1,2}:\d{2}(?:,\s*\d{1,2}:\d{2})?,\s*", "", s)
-    s = re.sub(r"(\d) dollars(?=[a-z])", r"\1 dollar ", s)            # "62 dollarsstack" -> "62 dollar stack"
-    s = re.sub(r"<\s*(\d)", r"under \1", s)                           # "<50 percent" -> "under 50 percent"
-    s = re.sub(r">\s*(\d)", r"over \1", s)
     # Timeframe stacks "1W/4 hour/1 day/1 hour".
     tf = {"1W": "weekly", "1M": "monthly", "1 day": "daily", "1D": "daily", "4 hour": "four hour", "1 hour": "one hour"}
     def tfs(m):
         parts = [tf.get(p.strip(), p.strip()) for p in m.group(0).split("/")]
         return ", ".join(parts[:-1]) + " and " + parts[-1]
-    s = re.sub(r"\b(?:1W|1M|1D|\d+ (?:hour|day|minute))(?:/(?:1W|1D|\d+ (?:hour|day|minute)))+", tfs, s)
+    s = re.sub(r"\b(?:1W|1M|1D|\d+ (?:hour|day|minute))(?:/(?:1W|1M|1D|\d+ (?:hour|day|minute)))+", tfs, s)
+    # Video timestamps "00:00, " / "02:18, 02:24, " at the start of a note: drop them.
+    s = re.sub(r"(?:(?<=^)|(?<=[\s.:]))\d{1,2}:\d{2}(?:,\s*\d{1,2}:\d{2})?,\s*", "", s)
+    s = re.sub(r"\b\d{2}:\d{2}(?:\s*(?:,|to|-)\s*\d{2}:\d{2})?,?\s*", "", s)   # mid-sentence timestamps
+    s = re.sub(r"\b(\d+)M\b", lambda m: f"{m.group(1)} month", s)                # 3M/12M monthly charts
+    s = re.sub(r"\b(\d+(?:\.\d+)?)R\b", r"\1 R", s)                             # 10R -> "10 R"
+    s = re.sub(r"\b(\d+)s\b", lambda m: f"{m.group(1)} second", s)               # 1s, 30s seconds charts
+    s = re.sub(r"\b(\d+)(W|L|BE)\b", lambda m: f"{m.group(1)} {dict(W='wins', L='losses', BE='break even')[m.group(2)]}", s)
+    s = re.sub(r"\.(?:JPG|jpg|png|PNG)\b", "", s)
+    s = re.sub(r"(\d)\s*/\s*(\d)", r"\1 to \2", s)
+    s = re.sub(r"\s*/\s*", " or ", s)
+    s = re.sub(r"\bSPX500USD\b", "S and P 500", s)
+    s = re.sub(r"\bR\s?:\s?R\b", "risk to reward", s)
+    s = re.sub(r"\bDZ\b", "demand zone", s)
+    s = re.sub(r"(\d) dollars(?=[a-z])", r"\1 dollar ", s)            # "62 dollarsstack" -> "62 dollar stack"
+    s = re.sub(r"<\s*(\d)", r"under \1", s)                           # "<50 percent" -> "under 50 percent"
+    s = re.sub(r">\s*(\d)", r"over \1", s)
     # Zone ranges "about 62.0, 64.3" / "at about 91.5, 94.5" -> "about 62 to 64.3".
     num = r"\d+(?:\.\d+)?(?: point(?: \d)+)?"
     s = re.sub(rf"\b(about|at|of) ({num}), ({num})\b", r"\1 \2 to \3", s)
-    s = re.sub(rf"\blive, ({num}), ({num})", r"live, \1 to \2", s)
+    s = re.sub(rf"\b(live,|and|The) ({num}), ({num})\b", r"\1 \2 to \3", s)
     s = re.sub(r"\b(\d+)\.0\b", r"\1", s)                               # 62.0 -> 62
     # Symbols / tickers / brands the voice mangles.
     rep = [
@@ -52,6 +63,8 @@ def fix_text(s: str) -> str:
     ]
     for a, b in rep:
         s = re.sub(a, b, s)
+    s = re.sub(r"\b(Also|On top of that|Now|thing:?), ([A-Z])(?=[a-z])", lambda m: f"{m.group(1)}, {m.group(2).lower()}", s)
+    s = re.sub(r"\ba under\b", "an under", s)
     return re.sub(r"\s{2,}", " ", s).strip()
 
 
