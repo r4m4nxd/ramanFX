@@ -44,6 +44,7 @@ InpZ3StopBuf=0.1||0.1||0.01||1||N
 InpZ3Zones=0||0||1||1||N
 InpZ3Bias=true||false||0||true||N
 InpBigTrend=true||false||0||true||N
+InpMacroSide=0||0||1||4||N
 InpBestStopATR=0.5||0.5||0.05||5||N
 InpMinDeparture=1.5||1.5||0.15||15||N
 InpRequireITF=false||false||0||true||N

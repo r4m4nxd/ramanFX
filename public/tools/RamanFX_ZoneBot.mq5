@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| RamanFX_ZoneBot.mq5  (v1.63 - DEMO ONLY)                          |
+//| RamanFX_ZoneBot.mq5  (v1.64 - DEMO ONLY)                          |
 //| MT5 port of RamanFX_ZoneBot.mq4 v1.62: same rules, inputs and     |
 //|  defaults. Needs a HEDGING account for the hedging presets; on a  |
 //|  NETTING account opposite-direction entries are disabled. Tester: |
@@ -46,7 +46,7 @@
 //|   2026.10.17 12:30,USD   (UTC time, currency)                    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.63"
+#property version   "1.64"
 
 #include <Trade\Trade.mqh>
 #include <Trade\PositionInfo.mqh>
@@ -106,6 +106,7 @@ input double    InpZ3StopBuf     = 0.10;         // Zones 3R preset: stop this f
 input Z3Zones   InpZ3Zones       = Z3_STRONG;    // Zones 3R preset: Strong = every zone ZoneVision labels STRONG; All = also its OK / WEAK zones
 input bool      InpZ3Bias        = false;        // Zones 3R preset: true = skip zones against the HTF bias (ZoneVision's bias). false = trade every zone ZoneVision draws
 input bool      InpBigTrend      = true;         // Kevin top-down: skip zones against the bigger trend (the HTF of the HTF, e.g. W1 for H1 entries: swings, else its newest trendline break). Kevin best always; Zones 3R only with InpZ3Bias
+input int       InpMacroSide     = 0;            // Macro trend side filter (all presets): 0 = off, 1 = trade only with the WEEKLY swing trend (daily if the weekly is unclear), 2 = only with the DAILY swing trend, 3 = longs only, 4 = shorts only
 input double    InpBestStopATR   = 0.5;          // Kevin best preset: stop at least N x entry TF ATR(14) from entry (metals / oil also >= 0.35 x HTF ATR)
 input double    InpMinDeparture  = 1.5;          // Custom / Aggressive only: price must have travelled >= N x zone height away from the proximal line
 input bool      InpRequireITF    = false;        // Skip when the intermediate TF trend points the other way (3-timeframe check)
@@ -2221,6 +2222,14 @@ void Scan(string s, int k)
         {
          int bt = BigTrend(s, k);
          if(bt == -dir) reason = "against bigger trend (" + TfNameB(TF_H[MathMin(k + 1, NTF - 1)]) + ")";
+        }
+      if(reason == "" && InpMacroSide > 0)                             // macro side: the W1 / D1 swing trend, whatever the entry timeframe
+        {
+         int ms = 0;
+         if(InpMacroSide == 1) { ms = HtfTrendB(s, PERIOD_W1); if(ms == 0) ms = HtfTrendB(s, PERIOD_D1); }
+         else if(InpMacroSide == 2) ms = HtfTrendB(s, PERIOD_D1);
+         else ms = InpMacroSide == 3 ? 1 : -1;
+         if(ms == -dir) reason = InpMacroSide <= 2 ? "against the macro trend (" + (InpMacroSide == 1 ? "W1" : "D1") + ")" : (dir > 0 ? "longs off" : "shorts off");
         }
       if(reason == "" && IsBest())                                     // Kevin best: ZoneVision must say YES with grade A (or B on an arrival zone)
         {
