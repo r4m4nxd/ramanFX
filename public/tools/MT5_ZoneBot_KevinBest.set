@@ -1,4 +1,4 @@
-; RamanFX ZoneBot MT5 (RamanFX_ZoneBot.mq5 v1.62) - preset KevinBest
+; RamanFX ZoneBot MT5 (RamanFX_ZoneBot.mq5 v1.63) - preset KevinBest
 ; same overrides as RamanFX_ZoneBot_KevinBest.set (MT4); MT5 inputs added at their defaults
 ; format: name=value||start||step||stop||Y/N (Y = optimise this input); enums as integers
 InpMode=1||0||1||2||N
@@ -130,3 +130,20 @@ InpBE_R=2||2||0.2||20||N
 InpZ3NeedRoom=true||false||0||true||N
 InpRiskCapNearOnly=true||false||0||true||N
 InpMinScore=0||0||1||10||N
+SepV2=-- v2: ZoneVision 2.00 core (all off = v1.62) --
+InpZoneSource=0||0||1||2||N
+InpMinConsensus=0||0||5||90||N
+InpMinVerdict=0||0||1||3||N
+InpMinHistE=0||0||0.05||0.5||N
+InpMinHistN=30||10||10||200||N
+InpTPFromHist=false||false||0||true||N
+InpRiskByHist=false||false||0||true||N
+InpEntryByLens=0||0||1||2||N
+InpUseDirection=false||false||0||true||N
+InpDirTable=1||0||1||2||N
+InpWKevin=30||0||5||60||N
+InpWSeiden=20||0||5||60||N
+InpWRaja=40||0||5||60||N
+InpWBaker=10||0||5||60||N
+InpUseCalWeights=false||false||0||true||N
+InpCalFile=RFX_Calib.csv

@@ -1,11 +1,16 @@
 //+------------------------------------------------------------------+
-//| RamanFX_ZoneBot.mq5  (v1.62 - DEMO ONLY)                          |
+//| RamanFX_ZoneBot.mq5  (v1.63 - DEMO ONLY)                          |
 //| MT5 port of RamanFX_ZoneBot.mq4 v1.62: same rules, inputs and     |
 //|  defaults. Needs a HEDGING account for the hedging presets; on a  |
 //|  NETTING account opposite-direction entries are disabled. Tester: |
 //|  multi-symbol (InpSymbols), OnTester() custom criterion = avg R x |
 //|  sqrt(trades) - InpOptDDPenalty x max drawdown (docs/MT5_Port_   |
 //|  Notes.md, section ZoneBot).                                     |
+//| v1.63: ZoneVision 2.00's shared core (RFX_ZoneCore.mqh, keep it   |
+//|  in the same folder). New inputs, all off = v1.62: InpZoneSource  |
+//|  (trade only zones ZoneVision draws / cross-check its export),    |
+//|  gates InpMinConsensus, InpMinVerdict, InpMinHistE, InpTPFromHist,|
+//|  InpRiskByHist, InpEntryByLens, InpUseDirection.                  |
 //| v1.62: two presets to A/B test against Zones 3R: BREAKOUT (4) =   |
 //|  Kevin's breakout buy / sell STOP beyond the opposing zone, stop  |
 //|  beyond our basing zone; IMPULSE (5) = market order after an      |
@@ -41,7 +46,7 @@
 //|   2026.10.17 12:30,USD   (UTC time, currency)                    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.62"
+#property version   "1.63"
 
 #include <Trade\Trade.mqh>
 #include <Trade\PositionInfo.mqh>
@@ -187,6 +192,160 @@ input double    InpBE_R          = -1;           // Review R3: break-even trigge
 input bool      InpZ3NeedRoom    = true;         // Review: Zones 3R: skip when the nearest opposing HTF zone is closer than the target
 input bool      InpRiskCapNearOnly = true;       // Review R10: pending orders count toward InpMaxOpenRiskPct only within 1 HTF ATR of price
 input int       InpMinScore      = 0;            // Review: minimum odds-enhancer zone score 0-15 (0 = off; shown on zone labels and in the report)
+input string    SepV2            = "-- v2: ZoneVision 2.00 core (all off = v1.62) --"; // -----
+input int       InpZoneSource    = 0;            // v2 zones: 0 = v1.62 internal (default), 1 = trade only zones the shared ZoneVision core also draws (chart symbol), 2 = 1 + live cross-check with ZoneVision's export (InpExportGV)
+input double    InpMinConsensus  = 0;            // v2 gate: skip a zone whose mentor consensus (0-100) is below this (0 = off)
+input int       InpMinVerdict    = 0;            // v2 gate: 0 = any, 1 = B or better, 2 = A or better, 3 = A+ only (as ZoneVision InpAlertMinVerdict)
+input double    InpMinHistE      = 0;            // v2 gate: skip when the calibrated best expectancy (R, RFX_Calib.csv) is below this (0 = off; needs a cell with InpMinHistN zones)
+input int       InpMinHistN      = 30;           // v2: samples a calibrated cell needs before InpMinHistE / InpTPFromHist / InpRiskByHist use it
+input bool      InpTPFromHist    = false;        // v2: target = the cell's best R x risk (capped before an opposing HTF zone); off = v1 target
+input bool      InpRiskByHist    = false;        // v2: risk x clamp(0.5 + calibrated p(3R), 0.5, 1.0)
+input int       InpEntryByLens   = 0;            // v2 entry: 0 = v1, 1 = Raja (set & forget only on strong + fresh, else confirmation), 2 = Seiden (9-10 limit, 8 confirmation, else skip)
+input bool      InpUseDirection  = false;        // v2: trade only with the Direction engine (replaces the v1 bias): REDUCED = half risk, WAIT / BLOCKED = skip
+input int       InpDirTable      = 1;            // v2 Direction stack (keep equal to ZoneVision): 0 = v1, 1 = Kevin lesson 4 (D1 -> 1M -> 3M), 2 = Kevin lesson 15
+input double    InpWKevin        = 30;           // v2 consensus weight Kevin (keep equal to ZoneVision)
+input double    InpWSeiden       = 20;           // v2 consensus weight Seiden
+input double    InpWRaja         = 40;           // v2 consensus weight Raja
+input double    InpWBaker        = 10;           // v2 consensus weight Baker
+input bool      InpUseCalWeights = false;        // v2: consensus uses the fitted lens weights of RFX_Calib.csv (W rows)
+input string    InpCalFile       = "RFX_Calib.csv"; // v2 calibration table (Terminal\Common\Files, else MQL5\Files)
+
+//+------------------------------------------------------------------+
+//| v2 shared core (RFX_ZoneCore.mqh, same folder): host contract.   |
+//| The core is ZoneVision 2.00's own code; here it runs headless on |
+//| the chart symbol (gQuiet, nothing drawn). Zone-rule inputs are   |
+//| the bot's own inputs above (same names = parity, spec I5); the   |
+//| ZoneVision-only settings below are fixed at ZoneVision's         |
+//| defaults. Nothing here runs unless a v2 input above is on.       |
+//+------------------------------------------------------------------+
+#define PFX "RFXBC_"
+#define RFXB_ATRN 16
+struct Zone
+  {
+   int      baseEnd;
+   double   trap;
+   bool     crowded;
+   int      trapBar;
+   int      dir;
+   double   prox, dist;
+   int      legBar, baseN, saBar;
+   double   legRatio;
+   string   grade;
+   bool     cont, tested, removed;
+   int      removedBar, testedBar;
+   string   qual;
+   double   gap;
+   bool     leg2;
+   bool     chain;
+   bool     arrival;
+  };
+struct TLine
+  {
+   int      dir;
+   int      a, b;
+   double   pa, pb;
+   bool     removed;
+   int      removedBar;
+   bool     conf;
+  };
+// ZoneVision inputs the core reads that the bot does not have (ZoneVision 2.00 defaults)
+bool   InpOnlyQualified = true;     // = InpRequireQualified (set in OnInit)
+bool   InpShowTested = false, InpShowRemoved = false, InpShowNames = true, InpShowTrendlines = true, InpShowChannel = false, InpShowRejected = false;
+bool   InpAlertTL = false, InpExtraTF = true;
+color  InpHtfTL = C'200,150,40';
+bool   InpDirEngine = true, InpDirPlus1 = true, InpDirMacro = false, InpRajaRemoval = false, InpLockSide = false, InpShowWOW = false;
+int    InpBiasSource = 0, InpDirRemovedN = 2, InpCurveMode = 1, InpWOWLines = 4;
+double InpDirDepartATR = 0, InpRajaBigBody = 0.6, InpCurveLow = 25, InpCurveHigh = 75, InpPipXAU = 0.1;
+bool   InpDNA = true, InpLenses = true, InpIndexOpen = false, InpKevinPlus = false, InpCalCommon = true;
+int    InpBaseMedianN = 20, InpATHBars = 5000, InpOriginBars = 1500, InpSeidenDepth = 0, InpMergeOverlap = 0, InpResearchGMT = 2, InpCalMinN = 30;
+double InpGapATR = 0.10, InpNestTolH = 1.0, InpConfOffsetFrac = 0.05, InpMergeMinPct = 50, InpCalPrior = 20;
+// ZoneVision globals the core works on (the bot never reads them directly; CoreEval fills ce* below)
+ENUM_TIMEFRAMES CTF = PERIOD_CURRENT;
+Zone  Z[], HZ[];
+int   gTrend = 0;
+TLine TL[];
+int    pvBar[]; double pvP[]; int pvT[];
+ENUM_TIMEFRAMES gTF = PERIOD_CURRENT;
+bool gUpOn = false, gDnOn = false;
+double gUpS = 0, gUpP = 0, gUpW = 0, gDnS = 0, gDnP = 0, gDnW = 0;
+int gUpB = 0, gDnB = 0;
+bool gHUpOn = false, gHDnOn = false;
+double gHUpS = 0, gHUpP = 0, gHUpW = 0, gHDnS = 0, gHDnP = 0, gHDnW = 0;
+int gHUpB = 0, gHDnB = 0;
+ENUM_TIMEFRAMES gHTF = PERIOD_CURRENT;
+int gHBias = 0; string gHBiasTxt = "";
+string rgN[]; datetime rgA[], rgB[]; int rgD[], rgR[]; bool rgX[];
+double gNEn = 0, gNSl = 0, gNTp = 0, gNRR = 0;
+string gNGrade = "", gNTags = "";
+int    gNP = 0, gNM = 0, gNC = 0;
+bool   gArmed = false, gRs = false, gQuiet = true;
+color  cDemandFill = clrGray, cDemandLine = clrGray, cSupplyFill = clrGray, cSupplyLine = clrGray, cTrap = clrGray, cHtfFill = clrGray;
+color  cMuted = clrGray, cTrend = clrGray, cText = clrGray, cHtfTLBroken = clrGray, cRemFill = clrGray;
+// ATR(14) of _Symbol, MT5 handles + a per-bar cache (the same values as ZoneVision's ATR)
+int             caN = 0;
+ENUM_TIMEFRAMES caTf[RFXB_ATRN];
+int             caH[RFXB_ATRN];
+datetime        caSt[RFXB_ATRN];
+int             caCnt[RFXB_ATRN];
+int             caCap = 0;
+double          caV[];
+
+#include "RFX_ZoneCore.mqh"
+
+int CaSlot(ENUM_TIMEFRAMES tf)
+  {
+   for(int k = 0; k < caN; k++) if(caTf[k] == tf) return k;
+   if(caN >= RFXB_ATRN) return -1;
+   int h = iATR(_Symbol, tf, 14);
+   if(h == INVALID_HANDLE) return -1;
+   if(caCap <= 0) { caCap = MathMax(InpLookback, 20) + 80; ArrayResize(caV, RFXB_ATRN * caCap); ArrayInitialize(caV, 0); }
+   caTf[caN] = tf; caH[caN] = h; caSt[caN] = 0; caCnt[caN] = 0; caN++;
+   return caN - 1;
+  }
+double ATR(ENUM_TIMEFRAMES tf, int shift)
+  {
+   if(tf == PERIOD_CURRENT) tf = CTF;
+   if(VIsTF(tf)) return VAtr(tf, shift);
+   int k = CaSlot(tf);
+   if(k < 0 || shift < 0) return 0;
+   if(shift >= 1 && shift < caCap)
+     {
+      datetime st = iTime(_Symbol, tf, 1);
+      if(caCnt[k] <= 0 || caSt[k] != st)
+        {
+         caCnt[k] = 0; caSt[k] = 0;
+         int avail = BarsCalculated(caH[k]);
+         int want = MathMin(caCap - 1, avail - 1);
+         if(want > 0)
+           {
+            double b[]; ArraySetAsSeries(b, true);
+            int got = CopyBuffer(caH[k], 0, 1, want, b);
+            if(got > 0) { for(int i = 0; i < got; i++) caV[k * caCap + 1 + i] = b[i]; caCnt[k] = got; caSt[k] = st; }
+           }
+        }
+      if(shift <= caCnt[k]) return caV[k * caCap + shift];
+      if(caCnt[k] > 0) return 0;
+     }
+   double one[];
+   if(CopyBuffer(caH[k], 0, shift, 1, one) == 1) return one[0];
+   return 0;
+  }
+void     CaRelease() { for(int k = 0; k < caN; k++) if(caH[k] != INVALID_HANDLE) IndicatorRelease(caH[k]); caN = 0; }
+datetime cT(int i) { return ST(_Symbol, CTF, i); }
+double   cH(int i) { return SH(_Symbol, CTF, i); }
+double   cL(int i) { return SL(_Symbol, CTF, i); }
+int      cBars()   { return SBars(_Symbol, CTF); }
+double   SBid()    { return SymbolInfoDouble(_Symbol, SYMBOL_BID); }
+double   SAsk()    { return SymbolInfoDouble(_Symbol, SYMBOL_ASK); }
+double   Mid()     { return (SBid() + SAsk()) / 2; }
+// drawing / alert hooks of the host: the bot's core run is quiet, so these are never reached
+void     Txt(string nm, datetime t, double p, string txt, color c, int size, int anchor) { }
+void     HLine(string nm, datetime t1, datetime t2, double p, color c, int style, int width) { }
+long     VisUpTo(ENUM_TIMEFRAMES tf) { return 0; }
+bool     Alerted(string key) { return true; }
+void     MarkAlerted(string key) { }
+void     Notify(string m) { Print("RamanFX ZoneBot core: ", m); }
+void     RegZone(string id, string txt, Zone &z, string verdict, string state, datetime t1) { }
 
 //--- timeframe pairs (mentor's combos)
 #define NTF 7
@@ -195,7 +354,7 @@ int TF_H[NTF] = {PERIOD_M15, PERIOD_H1, PERIOD_H4, PERIOD_D1, PERIOD_W1, PERIOD_
 int TF_I[NTF] = {PERIOD_M5, PERIOD_M15, PERIOD_H1, PERIOD_H4, PERIOD_D1, PERIOD_W1, PERIOD_MN1};   // intermediate TF
 string TF_N[NTF] = {"M1", "M5", "M15", "H1", "H4", "D1", "W1"};
 
-struct Zone
+struct BZone
   {
    double   gap;        // space between the stay-away candle and the proximal line / zone height (Kevin's main quality grade)
    bool     ath;        // the move away made an all-time high/low (within the loaded history)
@@ -574,7 +733,7 @@ double PipOf(string s)
    if(!InpPipFix) return mt4;
    string u = s; StringToUpper(u);
    if(StringFind(u, "XAU") >= 0 || StringFind(u, "GOLD") >= 0) return 0.1;
-   if(MetalOrOil(s)) return 0.01;                                       // silver, WTI / Brent
+   if(MetalOrOilB(s)) return 0.01;                                       // silver, WTI / Brent
    if(SymCalcMode(s) == 0) return mt4;                                  // forex
    double ts = SymTickSize(s);
    return ts > 0 ? 10 * ts : mt4;
@@ -612,6 +771,7 @@ int OnInit()
    if(!InTester()) { LoadSims(); StLoad(); }                          // tester: tickets restart at 1, old state would mix in
    LoadNews();
    EnsureHeaders();
+   V2Init();                                                            // v2: core ATR handles + calibration (only with a v2 input on)
    LoadProps();
    busy = false; keep = "|"; lastClickNm = ""; lastClickMs = 0;
    vzOrdSig = ""; ArrayResize(vzSkip, 0);                              // globals survive a timeframe switch: redraw from scratch
@@ -652,6 +812,7 @@ void OnDeinit(const int reason)
    ObjectsDeleteAll(0, "RFXT_");
    ObjectsDeleteAll(0, "RFXK_");
    ObjectsDeleteAll(0, "RFXV_");
+   CaRelease();                                                         // v2 core ATR handles (none unless a v2 input is on)
    FreeBars();
   }
 
@@ -688,8 +849,8 @@ string WatchText(Watch &w, int digits)
   {
    double c = w.far / MathMax(w.atr, _Point);
    return StringFormat("%s %s %s %s is %.1f x %s ATR away (%s, ATR %s): needs ~%d %s candles one way, price often turns first. Alert at halfway %s",
-      w.sym, TF_N[w.k], w.dir > 0 ? "demand" : "supply", DoubleToString(w.prox, digits), c, TfName(w.htf), DoubleToString(w.far, digits), DoubleToString(w.atr, digits),
-      (int)MathCeil(c), TfName(w.htf), DoubleToString(w.half, digits));
+      w.sym, TF_N[w.k], w.dir > 0 ? "demand" : "supply", DoubleToString(w.prox, digits), c, TfNameB(w.htf), DoubleToString(w.far, digits), DoubleToString(w.atr, digits),
+      (int)MathCeil(c), TfNameB(w.htf), DoubleToString(w.half, digits));
   }
 void SetWatch(string s, int k, int dir, double prox, double atr, double far, int htf, int digits)
   {
@@ -843,6 +1004,7 @@ void Work()
    if(TimeCurrent() - lastNewsLoad > 3600) LoadNews();
    if(InpUseMyLines && TimeLocal() - lastMine >= 5) { lastMine = TimeLocal(); myTrend = MyTrendlines(); MyZones(); }
    ProtectUpdate();
+   V2Tick();                                                            // v2: RFX_Calib.csv reload every 60 s (only with a v2 input on)
    ManageOrders();
    VizSync();
    CheckWatches();
@@ -973,10 +1135,10 @@ int SymIdx(string s) { for(int i = 0; i < ArraySize(syms); i++) if(syms[i] == s)
 //+------------------------------------------------------------------+
 //| Candle helpers                                                   |
 //+------------------------------------------------------------------+
-double Rng(string s, int tf, int i)  { return BHigh(s, tf, i) - BLow(s, tf, i); }
-double Body(string s, int tf, int i) { return MathAbs(BClose(s, tf, i) - BOpen(s, tf, i)); }
-bool   Basing(string s, int tf, int i) { double r = Rng(s, tf, i); return r > 0 && Body(s, tf, i) / r < 0.5; }   // "50% candle"
-int    CDir(string s, int tf, int i) { return BClose(s, tf, i) > BOpen(s, tf, i) ? 1 : (BClose(s, tf, i) < BOpen(s, tf, i) ? -1 : 0); }
+double RngB(string s, int tf, int i)  { return BHigh(s, tf, i) - BLow(s, tf, i); }
+double BodyB(string s, int tf, int i) { return MathAbs(BClose(s, tf, i) - BOpen(s, tf, i)); }
+bool   BasingB(string s, int tf, int i) { double r = RngB(s, tf, i); return r > 0 && BodyB(s, tf, i) / r < 0.5; }   // "50% candle"
+int    CDirB(string s, int tf, int i) { return BClose(s, tf, i) > BOpen(s, tf, i) ? 1 : (BClose(s, tf, i) < BOpen(s, tf, i) ? -1 : 0); }
 
 //+------------------------------------------------------------------+
 //| Zone detection (mentor's 4 parts)                                |
@@ -992,7 +1154,7 @@ int    CDir(string s, int tf, int i) { return BClose(s, tf, i) > BOpen(s, tf, i)
 //| side). In front = between price and the proximal line, within    |
 //| InpTrapATR x ATR. Stops still resting = not swept since.         |
 //+------------------------------------------------------------------+
-bool SwingAt(string s, int tf, int i, int dir)        // dir +1 swing low, -1 swing high
+bool SwingAtB(string s, int tf, int i, int dir)        // dir +1 swing low, -1 swing high
   {
    for(int j = 1; j <= InpTrapSwing; j++)
      {
@@ -1003,7 +1165,7 @@ bool SwingAt(string s, int tf, int i, int dir)        // dir +1 swing low, -1 sw
    return true;
   }
 // Returns the trap level (0 = none). crowded = an obvious level sits inside the zone itself.
-double FindTrap(string s, int tf, int dir, double prox, double dist, int fromBar, int baseEnd, int &trapBar, bool &crowded)
+double FindTrapB(string s, int tf, int dir, double prox, double dist, int fromBar, int baseEnd, int &trapBar, bool &crowded)
   {
    trapBar = -1; crowded = false;
    double atr = BATR(s, tf, 14, 1), best = 0;
@@ -1013,7 +1175,7 @@ double FindTrap(string s, int tf, int dir, double prox, double dist, int fromBar
      {
       for(int kind = -1; kind <= 1; kind += 2)                   // swing highs and swing lows
         {
-         if(!SwingAt(s, tf, i, kind)) continue;
+         if(!SwingAtB(s, tf, i, kind)) continue;
          double lv = kind > 0 ? BLow(s, tf, i) : BHigh(s, tf, i);
          double lo = MathMin(prox, dist), hi = MathMax(prox, dist);
          if(lv >= lo && lv <= hi && i > baseEnd + InpTrapSwing) { crowded = true; continue; }   // zone built on an older obvious level
@@ -1165,7 +1327,7 @@ int KUse(KLine &L[], int dir)
 int BigTrend(string s, int k)
   {
    int btf = TF_H[MathMin(k + 1, NTF - 1)];
-   int t = HtfTrend(s, btf);
+   int t = HtfTrendB(s, btf);
    if(t != 0) return t;
    KLines(s, btf, gKB);
    return KBias(gKB);
@@ -1195,8 +1357,8 @@ int KCross(string s, int dir, double prox)
 string KNear(string s, int etf, int htf, int dir, double price)
   {
    double atr = BATR(s, etf, 14, 1);
-   int i = KUse(gKE, dir); if(i >= 0 && MathAbs(price - KAt(gKE[i], 0)) <= atr) return TfName(etf);
-   i = KUse(gKH, dir);     if(i >= 0 && MathAbs(price - KAt(gKH[i], 0)) <= atr) return TfName(htf);
+   int i = KUse(gKE, dir); if(i >= 0 && MathAbs(price - KAt(gKE[i], 0)) <= atr) return TfNameB(etf);
+   i = KUse(gKH, dir);     if(i >= 0 && MathAbs(price - KAt(gKH[i], 0)) <= atr) return TfNameB(htf);
    return "";
   }
 // newest line in the trade direction: is the price beyond the channel 50%? (0 = no line / not confirmed / removed)
@@ -1215,23 +1377,23 @@ int ChannelState(string s, int tf, KLine &L[], int dir, double price)
 
 // ZoneVision's Detect(), line for line (same inputs and defaults); the extra fields the bot needs are computed
 // on the side and never filter a zone out.
-bool Emotional(string s, int tf, int i) { double a = BATR(s, tf, 14, i + 1); return a > 0 && Rng(s, tf, i) > InpEmoATR * a; }
-int DetectZones(string s, int tf, Zone &out[])
+bool EmotionalB(string s, int tf, int i) { double a = BATR(s, tf, 14, i + 1); return a > 0 && RngB(s, tf, i) > InpEmoATR * a; }
+int DetectZones(string s, int tf, BZone &out[])
   {
    ArrayResize(out, 0);
    int bars = MathMin(InpLookback, BCount(s, tf) - InpMaxBase - 3);
    for(int L = bars; L >= 2; L--)
      {
-      double lr = Rng(s, tf, L);
-      if(lr <= 0 || Basing(s, tf, L)) continue;
-      int dir = CDir(s, tf, L);
+      double lr = RngB(s, tf, L);
+      if(lr <= 0 || BasingB(s, tf, L)) continue;
+      int dir = CDirB(s, tf, L);
       if(dir == 0) continue;
       int k = 0; double maxBase = 0;
-      while(k < InpMaxBase && Basing(s, tf, L + 1 + k)) { maxBase = MathMax(maxBase, Rng(s, tf, L + 1 + k)); k++; }
+      while(k < InpMaxBase && BasingB(s, tf, L + 1 + k)) { maxBase = MathMax(maxBase, RngB(s, tf, L + 1 + k)); k++; }
       if(k == 0 || maxBase <= 0) continue;
       double ratio = lr / maxBase;
       if(ratio < InpMinLegRatio) continue;
-      int legIn = CDir(s, tf, L + 1 + k);
+      int legIn = CDirB(s, tf, L + 1 + k);
       bool cont = (legIn == dir);
       double prox = 0, dist = 0;
       if(dir > 0)
@@ -1253,24 +1415,24 @@ int DetectZones(string s, int tf, Zone &out[])
       int sa = L - 1;
       if((dir > 0 && BLow(s, tf, sa) <= prox) || (dir < 0 && BHigh(s, tf, sa) >= prox)) continue;
 
-      Zone z;
+      BZone z;
       z.dir = dir; z.prox = prox; z.dist = dist; z.legBar = L; z.baseN = k; z.saBar = sa; z.legRatio = ratio; z.cont = cont;
       z.grade = (ratio >= 2.5 && k <= 3) ? "A" : (ratio >= 1.8 ? "B" : "C");
       z.gap = dir > 0 ? (BLow(s, tf, sa) - prox) / h : (prox - BHigh(s, tf, sa)) / h;
-      z.leg2 = sa >= 1 && !Basing(s, tf, sa) && CDir(s, tf, sa) == dir && Rng(s, tf, sa) >= maxBase * InpMinLegRatio;
+      z.leg2 = sa >= 1 && !BasingB(s, tf, sa) && CDirB(s, tf, sa) == dir && RngB(s, tf, sa) >= maxBase * InpMinLegRatio;
       z.chain = false; z.arrival = false;
       z.tested = false; z.removed = false; z.removedBar = -1; z.testedBar = -1; z.trap = 0; z.trapBar = -1; z.crowded = false;
       for(int j = sa - 1; j >= 1; j--)
         {
          if(dir > 0)
            {
-            if(BClose(s, tf, j) < dist || (BLow(s, tf, j) < dist && !Emotional(s, tf, j))) { z.removed = true; z.removedBar = j; break; }
-            if(!z.tested && BLow(s, tf, j) <= prox && !Emotional(s, tf, j)) { z.tested = true; z.testedBar = j; }
+            if(BClose(s, tf, j) < dist || (BLow(s, tf, j) < dist && !EmotionalB(s, tf, j))) { z.removed = true; z.removedBar = j; break; }
+            if(!z.tested && BLow(s, tf, j) <= prox && !EmotionalB(s, tf, j)) { z.tested = true; z.testedBar = j; }
            }
          else
            {
-            if(BClose(s, tf, j) > dist || (BHigh(s, tf, j) > dist && !Emotional(s, tf, j))) { z.removed = true; z.removedBar = j; break; }
-            if(!z.tested && BHigh(s, tf, j) >= prox && !Emotional(s, tf, j)) { z.tested = true; z.testedBar = j; }
+            if(BClose(s, tf, j) > dist || (BHigh(s, tf, j) > dist && !EmotionalB(s, tf, j))) { z.removed = true; z.removedBar = j; break; }
+            if(!z.tested && BHigh(s, tf, j) >= prox && !EmotionalB(s, tf, j)) { z.tested = true; z.testedBar = j; }
            }
         }
       z.baseEnd = L + k;
@@ -1294,7 +1456,7 @@ int DetectZones(string s, int tf, Zone &out[])
          z.ath = ix >= 0 && (dir > 0 ? ext > BHigh(s, tf, ix) : ext < BLow(s, tf, ix));
         }
       double clo = BLow(s, tf, L), chi = BHigh(s, tf, L), ccl = BClose(s, tf, L);
-      z.erc = Body(s, tf, L) / lr >= 0.6 && (dir > 0 ? (ccl - clo) / lr >= 0.8 : (chi - ccl) / lr >= 0.8);
+      z.erc = BodyB(s, tf, L) / lr >= 0.6 && (dir > 0 ? (ccl - clo) / lr >= 0.8 : (chi - ccl) / lr >= 0.8);
       // penetration since the stay-away up to the removal: consumed = closed inside or >= 50% deep
       z.pen = 0; z.consumed = z.removed;
       int stopJ = z.removedBar >= 0 ? z.removedBar + 1 : 1;
@@ -1313,7 +1475,7 @@ int DetectZones(string s, int tf, Zone &out[])
 //+------------------------------------------------------------------+
 //| HTF trend from fractal swings: HH+HL = up, LH+LL = down          |
 //+------------------------------------------------------------------+
-int HtfTrend(string s, int htf)
+int HtfTrendB(string s, int htf)
   {
    double hi[2] = {0, 0}, lo[2] = {0, 0}; int nh = 0, nl = 0;
    for(int i = 3; i < 300 && (nh < 2 || nl < 2); i++)
@@ -1333,7 +1495,7 @@ int HtfTrend(string s, int htf)
   }
 
 // Position of price in the HTF curve (0 = bottom, 100 = top of the last 100 HTF bars).
-double Curve(string s, int htf, double p)
+double CurveB(string s, int htf, double p)
   {
    int hiI = BHighest(s, htf, 100, 1), loI = BLowest(s, htf, 100, 1);
    if(hiI < 0 || loI < 0) return 50;
@@ -1422,7 +1584,7 @@ void MyZones()
 // Kevin's chain, exactly as ZoneVision's Qualify(): the move away (the leg candle and up to 5 bars after it)
 // removed an older opposing zone or a trendline, made a new high / low of the lookback before the base,
 // or took out the previous swing high (demand) / low (supply).
-void ChainOf(string s, int etf, Zone &z[], int i, bool &oppZ, bool &tlB, bool &newHL, bool &rmHL)
+void ChainOf(string s, int etf, BZone &z[], int i, bool &oppZ, bool &tlB, bool &newHL, bool &rmHL)
   {
    oppZ = false; tlB = false; newHL = false; rmHL = false;
    int L = z[i].legBar, dir = z[i].dir;
@@ -1442,7 +1604,7 @@ void ChainOf(string s, int etf, Zone &z[], int i, bool &oppZ, bool &tlB, bool &n
       if(dir < 0 && ZFrL(s, etf, j)) { rmHL = legX < BLow(s, etf, j); break; }
      }
   }
-bool Qualified(string s, int etf, Zone &z[], int i)
+bool Qualified(string s, int etf, BZone &z[], int i)
   {
    bool oppZ = false, tlB = false, newHL = false, rmHL = false;
    ChainOf(s, etf, z, i, oppZ, tlB, newHL, rmHL);
@@ -1450,7 +1612,7 @@ bool Qualified(string s, int etf, Zone &z[], int i)
   }
 // Arrival zone (strongest), as ZoneVision: the move away broke a trendline AND removed an opposing zone,
 // the previous swing high / low, or made a new high / low
-bool Arrival(string s, int etf, Zone &z[], int i)
+bool Arrival(string s, int etf, BZone &z[], int i)
   {
    bool oppZ = false, tlB = false, newHL = false, rmHL = false;
    ChainOf(s, etf, z, i, oppZ, tlB, newHL, rmHL);
@@ -1463,7 +1625,7 @@ bool Arrival(string s, int etf, Zone &z[], int i)
 //| gKE = ZoneVision's chart-TF TL[] (gUp* / gDn*), gKH = its HTF     |
 //| lines (gHUp* / gHDn*). Call after KLines() for etf and htf.       |
 //+------------------------------------------------------------------+
-void VQualify(string s, int etf, Zone &z[])
+void VQualify(string s, int etf, BZone &z[])
   {
    for(int i = 0; i < ArraySize(z); i++)
      {
@@ -1474,7 +1636,7 @@ void VQualify(string s, int etf, Zone &z[])
      }
   }
 // Sunday rule: about half the usual size is too small (median of the zones that are not removed, 4+ zones)
-bool VTooSmall(Zone &zs[], int i)
+bool VTooSmall(BZone &zs[], int i)
   {
    double hs[]; int n = 0;
    for(int j = 0; j < ArraySize(zs); j++) if(!zs[j].removed) { ArrayResize(hs, n + 1); hs[n++] = MathAbs(zs[j].prox - zs[j].dist); }
@@ -1485,7 +1647,7 @@ bool VTooSmall(Zone &zs[], int i)
   }
 // the entry-TF zones ZoneVision draws (DrawZones, htf = false, default display inputs: no tested, no removed),
 // closest to price first; the liquidity trap is worked out for them exactly as ZoneVision does
-int VSelect(string s, int etf, Zone &zs[], int &sel[])
+int VSelect(string s, int etf, BZone &zs[], int &sel[])
   {
    ArrayResize(sel, 0);
    double px = (SymBid(s) + SymAsk(s)) / 2;
@@ -1510,7 +1672,7 @@ int VSelect(string s, int etf, Zone &zs[], int &sel[])
       if(zs[zi].trapBar == -1)
         {
          int tb = -1; bool cr = false;
-         zs[zi].trap = FindTrap(s, etf, zs[zi].dir, zs[zi].prox, zs[zi].dist, zs[zi].saBar, zs[zi].baseEnd, tb, cr);
+         zs[zi].trap = FindTrapB(s, etf, zs[zi].dir, zs[zi].prox, zs[zi].dist, zs[zi].saBar, zs[zi].baseEnd, tb, cr);
          zs[zi].trapBar = tb == -1 ? -2 : tb; zs[zi].crowded = cr;
         }
       ArrayResize(sel, m + 1); sel[m++] = zi;
@@ -1525,10 +1687,10 @@ bool VOverext(string s, int etf, int htf, int dir, double price)
 void VPush(string &a[], string v) { int n = ArraySize(a); ArrayResize(a, n + 1); a[n] = v; }
 // ZoneVision ZoneNotes(): verdict STRONG / OK / WEAK, grade A/B/C, why ("" = Trade: YES) and the plan
 // (entry at the proximal, stop past the distal + buffer, target just before the nearest opposing zone)
-string VNotes(string s, int etf, int htf, int trend, Zone &zs[], int i, string &verdict, string &shortWhy, string &grade, string &why,
+string VNotes(string s, int etf, int htf, int trend, BZone &zs[], int i, string &verdict, string &shortWhy, string &grade, string &why,
               double &en, double &sl, double &tp, double &rr)
   {
-   Zone z = zs[i];
+   BZone z = zs[i];
    double point = SymPoint(s), bid = SymBid(s), ask = SymAsk(s);
    int digits = SymDigits(s);
    string pl[], mi[], cr[];
@@ -1548,14 +1710,14 @@ string VNotes(string s, int etf, int htf, int trend, Zone &zs[], int i, string &
    if(z.trap > 0) VPush(pl, "liquidity trap in front");
    if(z.crowded) VPush(mi, "on an obvious S/R level (crowded)");
    double xa = MathAbs((bid + ask) / 2 - z.prox) / MathMax(BATR(s, htf, 14, 1), point);
-   if(xa > InpMaxDistATR) VPush(mi, StringFormat("far: %.1f x %s ATR", xa, TfName(htf)));
+   if(xa > InpMaxDistATR) VPush(mi, StringFormat("far: %.1f x %s ATR", xa, TfNameB(htf)));
    int np = ArraySize(pl), nm = ArraySize(mi), nc = ArraySize(cr);
    verdict = nc > 0 ? "WEAK" : (((np >= 5 && nm <= 1) || z.arrival) ? "STRONG" : "OK");
    shortWhy = "";
    if(nc > 0) shortWhy = cr[0] + (nc > 1 ? ", " + cr[1] : "");
    else if(verdict == "STRONG") shortWhy = pl[0] + (np > 1 ? ", " + pl[1] : "");
    else shortWhy = (nm > 0 ? mi[0] : (np > 0 ? pl[0] : ""));
-   double spread = ask - bid, buf = InpStopBufferPts * BufPoint(s) * (MetalOrOil(s) ? InpMetalOilStop : 1.0), opp = 0;
+   double spread = ask - bid, buf = InpStopBufferPts * BufPoint(s) * (MetalOrOilB(s) ? InpMetalOilStop : 1.0), opp = 0;
    for(int j = 0; j < ArraySize(zs); j++)
      {
       if(zs[j].dir == z.dir || zs[j].removed) continue;
@@ -1576,13 +1738,13 @@ string VNotes(string s, int etf, int htf, int trend, Zone &zs[], int i, string &
    return t;
   }
 // ZoneVision name inside the box
-string VZoneName(Zone &z)
+string VZoneName(BZone &z)
   {
    if(z.dir > 0) return z.cont ? "Rally Base Rally Demand (CP)" : "Drop Base Rally Demand (PV)";
    return z.cont ? "Drop Base Drop Supply (CP)" : "Rally Base Drop Supply (PV)";
   }
 
-bool AtHtfZone(Zone &zi, Zone &hz[], int hn, int want)                    // want = +dir (same side) or -dir (opposing)
+bool AtHtfZone(BZone &zi, BZone &hz[], int hn, int want)                    // want = +dir (same side) or -dir (opposing)
   {
    for(int j = 0; j < hn; j++)
      {
@@ -1592,7 +1754,7 @@ bool AtHtfZone(Zone &zi, Zone &hz[], int hn, int want)                    // wan
      }
    return false;
   }
-int PlanScore(string s, int etf, int htf, int trend, Zone &z[], int i, Zone &hz[], int hn, double curve, string method)
+int PlanScore(string s, int etf, int htf, int trend, BZone &z[], int i, BZone &hz[], int hn, double curve, string method)
   {
    int dir = z[i].dir, sc = 0;
    double h = MathAbs(z[i].prox - z[i].dist);
@@ -1621,7 +1783,7 @@ int PlanScore(string s, int etf, int htf, int trend, Zone &z[], int i, Zone &hz[
    double depth = dir > 0 ? curve : 100 - curve;                                          // low in the curve for buys
    sc += (int)MathRound(MathMax(0, MathMin(1, (100 - depth) / 100)) * 6);
    if(z[i].trap > 0) sc += 3;                                                             // liquidity trap
-   if(method == "CONF") sc += 4; else if(HtfTrend(s, etf) == dir) sc += 3;               // confirmation / ETF trend with you
+   if(method == "CONF") sc += 4; else if(HtfTrendB(s, etf) == dir) sc += 3;               // confirmation / ETF trend with you
    return MathMin(100, sc);
   }
 string PlanGrade(int sc) { return sc >= 75 ? "A" : (sc >= 60 ? "B" : "C"); }
@@ -1638,7 +1800,7 @@ bool GradeAllowed(string g)
 
 // Review section 2 #6: price position between the nearest live HTF demand below and HTF supply above (0 = at the demand,
 // 100 = at the supply; -1 = no such pair)
-double ZoneCurve(Zone &hz[], int hn, double p)
+double ZoneCurve(BZone &hz[], int hn, double p)
   {
    double dem = 0, sup = 0;
    for(int j = 0; j < hn; j++)
@@ -1654,7 +1816,7 @@ double ZoneCurve(Zone &hz[], int hn, double p)
 // time at the level (base <= 2) 1, freshness 0-2, departure >= 3 zone heights 1, with the HTF bias 2, curve (HTF demand ..
 // supply) right third 2 / right half 1, profit margin to the opposing HTF zone >= 5R 2 / >= 3R 1, confluence (trendline,
 // same-side HTF zone, liquidity trap) max 2. Display + InpMinScore only: it never changes ZoneVision's zones.
-int ZScore(string s, int etf, int htf, int trend, Zone &z[], int i, Zone &hz[], int hn, double entry, double risk, string &why)
+int ZScore(string s, int etf, int htf, int trend, BZone &z[], int i, BZone &hz[], int hn, double entry, double risk, string &why)
   {
    int dir = z[i].dir;
    int cMove = (z[i].legRatio >= 2.5 || z[i].erc) ? 2 : (z[i].legRatio >= 1.8 ? 1 : 0);
@@ -1664,7 +1826,7 @@ int ZScore(string s, int etf, int htf, int trend, Zone &z[], int i, Zone &hz[], 
    int cDep = z[i].departure >= 3 ? 1 : 0;
    int cTrend = trend == dir ? 2 : 0;
    double cv = ZoneCurve(hz, hn, z[i].prox);
-   if(cv < 0) cv = Curve(s, htf, z[i].prox);
+   if(cv < 0) cv = CurveB(s, htf, z[i].prox);
    double depth = dir > 0 ? cv : 100 - cv;
    int cCurve = depth <= 100.0 / 3 ? 2 : (depth <= 50 ? 1 : 0);
    double opp = 0;
@@ -1679,12 +1841,217 @@ int ZScore(string s, int etf, int htf, int trend, Zone &z[], int i, Zone &hz[], 
   }
 
 //+------------------------------------------------------------------+
+//| v2 (spec 7): ZoneVision 2.00's core inside the bot. All inputs   |
+//| off = v1.62: nothing below runs, no reason / target / risk /     |
+//| text changes. With a v2 input on, CoreEval() runs ZoneVision's   |
+//| own Redraw steps on the chart symbol for the entry TF (once per  |
+//| scan), and each zone the bot considers is matched to the zone    |
+//| ZoneVision draws (same side + base-start time). Other symbols    |
+//| read ZoneVision's global-variable export (InpExportGV, live).    |
+//| Skip reasons use the GV field names (cons, v2v, be, pn, dir ...) |
+//+------------------------------------------------------------------+
+struct BotV2
+  {
+   bool     ok;           // zone found (core on the chart symbol, or the ZoneVision export)
+   string   src;          // "core" / "ZV"
+   int      v2v, em, kv, kg, sS, sR, rt, sB, pn, bt, lvl;
+   double   cons, p3, be;
+   bool     cal;          // a calibrated cell / prior was found
+   bool     dirOk;        // Direction known for this symbol / TF
+   int      dir, dirq, blocked;
+   string   verdict, rtName;
+  };
+bool     gV2Ready = false;      // CoreEval succeeded for the TF being scanned (chart symbol)
+ulong    gV2Stamp = 0;          // Work() pass of the last CoreEval
+int      gV2Tf = 0;
+datetime gV2CalAt = 0;
+bool     gV2NoteSym = false, gV2NoteTester = false;
+bool V2Gates() { return InpMinConsensus > 0 || InpMinVerdict > 0 || InpMinHistE != 0 || InpTPFromHist || InpRiskByHist || InpEntryByLens > 0 || InpUseDirection; }
+bool V2Need()  { return InpZoneSource > 0 || V2Gates(); }
+// once per OnInit with v2 on: the core's ATR handles for every traded TF and its Direction stack load with the bot
+void V2Init()
+  {
+   InpOnlyQualified = InpRequireQualified;
+   if(!V2Need()) return;
+   for(int k = 0; k < NTF; k++)
+     {
+      if(!TfOn(k)) continue;
+      CTF = TfE(TF_E[k]);
+      ATR(CTF, 1);
+      ENUM_TIMEFRAMES h = HtfOf(CTF);
+      if(h > 0) ATR(h, 1);
+      ENUM_TIMEFRAMES ds[]; int nd = DirStackTFs(ds);
+      for(int j = 0; j < nd; j++) ATR(ds[j], 1);
+     }
+   ATR(PERIOD_D1, 1);
+   gV2CalAt = TimeLocal(); CalCheck();
+   Print("RamanFX ZoneBot v2: shared core ", RFX_CORE_VER, ", cfg ", IntegerToString((long)RFX_CfgHash()), " (", RFX_CfgText(), "), zone source ", InpZoneSource,
+         ", chart symbol ", _Symbol, InpZoneSource == 2 && InTester() ? " - tester: no ZoneVision export, source 2 works as 1" : "");
+  }
+// ZoneVision's evaluation of entry TF etf on the chart symbol (cached for one Work() pass)
+bool V2Eval(string s, int etf)
+  {
+   if(s != _Symbol) { gV2Ready = false; return false; }
+   if(gV2Stamp == gStamp && gV2Tf == etf) return gV2Ready;
+   gV2Stamp = gStamp; gV2Tf = etf;
+   gV2Ready = CoreEval(TfE(etf));
+   return gV2Ready;
+  }
+double V2GV(string pre, string k, string f) { double v = 0; if(!GlobalVariableGet(pre + k + "|" + f, v)) return -1e300; return v; }
+// ZoneVision's export (InpExportGV) of symbol s, TF k: the zone with side d and base-start time tb. why = "" when found.
+bool V2FromGV(string s, int k, int d, datetime tb, double prox, double dist, BotV2 &o, string &why)
+  {
+   why = "";
+   string pre = RFX_GVPrefix(s, TF_N[k]);
+   double cfg = V2GV(pre, "h", "cfg"), ts = V2GV(pre, "h", "ts"), nz = V2GV(pre, "h", "n");
+   if(cfg < -1e299 || ts < -1e299 || nz < -1e299) { why = "ZV mismatch: no export (ZoneVision with InpExportGV on " + s + " " + TF_N[k] + ")"; return false; }
+   if((uint)cfg != RFX_CfgHash()) { why = StringFormat("ZV mismatch: cfg=%u, bot cfg=%u (zone-rule inputs differ)", (uint)cfg, RFX_CfgHash()); return false; }
+   if(TimeCurrent() - (datetime)(long)ts > 2 * PSec(TF_E[k])) { why = "ZV mismatch: export older than 2 bars (ts)"; return false; }
+   o.dirOk = true; o.dir = (int)V2GV(pre, "h", "dir"); o.dirq = (int)V2GV(pre, "h", "dirq"); o.blocked = 0;
+   double pt = SymPoint(s);
+   for(int e = 0; e < (int)nz && e < 32; e++)
+     {
+      string ks = IntegerToString(e);
+      if((datetime)(long)V2GV(pre, ks, "id") != tb || (int)V2GV(pre, ks, "d") != d) continue;
+      if(MathAbs(V2GV(pre, ks, "prox") - prox) > 0.5 * pt || MathAbs(V2GV(pre, ks, "dist") - dist) > 0.5 * pt) { why = "ZV mismatch: prox / dist differ"; return false; }
+      o.ok = true; o.src = "ZV";
+      o.cons = V2GV(pre, ks, "cons"); o.v2v = (int)V2GV(pre, ks, "v2v"); o.em = (int)V2GV(pre, ks, "em");
+      o.kv = (int)V2GV(pre, ks, "kv"); o.kg = (int)V2GV(pre, ks, "kg");
+      o.sS = (int)V2GV(pre, ks, "sS"); o.sR = (int)V2GV(pre, ks, "sR"); o.rt = (int)V2GV(pre, ks, "rt"); o.sB = (int)V2GV(pre, ks, "sB");
+      o.pn = (int)V2GV(pre, ks, "pn"); o.p3 = V2GV(pre, ks, "p3"); o.bt = (int)V2GV(pre, ks, "bt"); o.be = V2GV(pre, ks, "be"); o.lvl = (int)V2GV(pre, ks, "lvl");
+      o.cal = o.pn > 0;
+      string vn[5] = {"X", "C", "B", "A", "A+"};
+      o.verdict = o.v2v >= 0 && o.v2v <= 4 ? vn[o.v2v] : "?";
+      o.rtName = DnaTypeName(o.rt);
+      return true;
+     }
+   why = "ZV mismatch: ZoneVision does not draw this zone (id / d)";
+   return false;
+  }
+// v2 data of one bot zone + the zone-source check. reason = "" when the zone may be traded (as far as v2 is concerned)
+bool V2Zone(string s, int k, BZone &z, BotV2 &o, string &reason)
+  {
+   ZeroMemory(o); o.ok = false; o.src = ""; o.verdict = ""; o.rtName = ""; o.dirOk = false;
+   reason = "";
+   int etf = TF_E[k];
+   datetime tb = BTime(s, etf, z.legBar + z.baseN);
+   double pt = SymPoint(s);
+   if(s == _Symbol)
+     {
+      if(!V2Eval(s, etf)) { if(InpZoneSource > 0 || V2Gates()) reason = "v2: core not ready (history / ATR loading)"; return false; }
+      o.dirOk = gDirOk; o.dir = gDir; o.dirq = gDirQ; o.blocked = gDirBlocked;
+      int c = CoreFind(z.dir, tb);
+      if(c < 0) { if(InpZoneSource > 0) reason = "core mismatch: ZoneVision does not draw this zone"; }
+      else if(MathAbs(ceZ[c].prox - z.prox) > 0.5 * pt || MathAbs(ceZ[c].dist - z.dist) > 0.5 * pt) { if(InpZoneSource > 0) reason = "core mismatch: prox / dist differ from ZoneVision"; c = -1; }
+      if(c >= 0)
+        {
+         o.ok = true; o.src = "core";
+         o.kv = RFX_KvCode(ceVer[c]); o.kg = RFX_KgCode(ceGrade[c]);
+         if(ceLens[c].ok)
+           {
+            o.cons = ceLens[c].cons; o.v2v = ceLens[c].vcode; o.verdict = ceLens[c].verdict; o.em = RFX_EmCode(ceLens[c]);
+            o.sS = ceLens[c].scoreS; o.sR = ceLens[c].scoreR; o.sB = ceLens[c].scoreB;
+           }
+         else { o.verdict = "?"; o.v2v = -1; }
+         if(ceDna[c].ok) { o.rt = ceDna[c].rajaCode; o.rtName = ceDna[c].rajaType; }
+         if(ceCal[c].ok)
+           {
+            o.cal = true; o.pn = ceCal[c].n; o.p3 = CalP(ceCal[c], 3); o.bt = ceCal[c].bestT; o.be = ceCal[c].bestE; o.lvl = ceCal[c].prior ? -1 : ceCal[c].level;
+           }
+        }
+      if(reason == "" && InpZoneSource == 2 && !InTester())
+        {
+         BotV2 g; ZeroMemory(g);
+         string why = "";
+         if(!V2FromGV(s, k, z.dir, tb, z.prox, z.dist, g, why)) reason = why;
+        }
+      return o.ok;
+     }
+   // another symbol: only ZoneVision's live export can tell (the core runs on the chart symbol)
+   if(!gV2NoteSym && InpZoneSource > 0) { gV2NoteSym = true; Print("RamanFX ZoneBot v2: the shared core runs on the chart symbol ", _Symbol, " only; other symbols use ZoneVision's export (InpExportGV) when it is there, else v1.62 zones"); }
+   string why = "";
+   if(V2FromGV(s, k, z.dir, tb, z.prox, z.dist, o, why)) return true;
+   if(InpZoneSource == 2 && !InTester()) reason = why;
+   return false;
+  }
+// once per Work() pass: reload RFX_Calib.csv when it changed (every 60 s)
+void V2Tick()
+  {
+   if(!V2Need() || TimeLocal() - gV2CalAt < 60) return;
+   gV2CalAt = TimeLocal();
+   CalCheck();
+  }
+// the Direction of symbol s, entry TF k for InpUseDirection: +1 / -1, 0 = WAIT or unknown
+int V2DirOf(string s, int k)
+  {
+   if(s == _Symbol) return (V2Eval(s, TF_E[k]) && gDirOk) ? gDir : 0;
+   string pre = RFX_GVPrefix(s, TF_N[k]);
+   double gd = V2GV(pre, "h", "dir"), gc = V2GV(pre, "h", "cfg");
+   if(gd < -1e299 || gc < -1e299 || (uint)gc != RFX_CfgHash()) return 0;
+   return (int)gd;
+  }
+// the v2 gates (spec 7.3), in a fixed order; "" = pass. method = SF / CONF from the v1 logic.
+string V2Gate(BotV2 &o, int dir, string method)
+  {
+   if(!V2Gates()) return "";
+   if(!o.ok) return "v2: no data for this zone (core: chart symbol only; other symbols need ZoneVision InpExportGV)";
+   if(InpUseDirection)
+     {
+      if(!o.dirOk) return "v2 direction: n/a";
+      if(o.blocked == dir) return StringFormat("v2 direction: dir=%d dirq=%d, %s BLOCKED by the curve", o.dir, o.dirq, dir > 0 ? "buys" : "sells");
+      if(o.dir != dir) return StringFormat("v2 direction: dir=%d dirq=%d (%s)", o.dir, o.dirq, o.dir == 0 ? "WAIT" : "against");
+     }
+   if(InpMinConsensus > 0 && o.cons < InpMinConsensus) return StringFormat("v2: cons=%.0f < %.0f", o.cons, InpMinConsensus);
+   if(InpMinVerdict > 0 && o.v2v < InpMinVerdict + 1) return StringFormat("v2: v2v=%d (%s) below InpMinVerdict %d", o.v2v, o.verdict, InpMinVerdict);   // 1 = B (2), 2 = A (3), 3 = A+ (4)
+   if(InpMinHistE != 0)
+     {
+      if(!o.cal) return "v2 history: no calibrated cell (RFX_Calib.csv)";
+      if(o.pn < InpMinHistN) return StringFormat("v2 history: pn=%d < %d", o.pn, InpMinHistN);
+      if(o.be < InpMinHistE) return StringFormat("v2 history: be=%.2f < %.2f (bt=%d pn=%d)", o.be, InpMinHistE, o.bt, o.pn);
+     }
+   if(InpEntryByLens > 0)
+     {
+      int em = InpEntryByLens == 1 ? (o.em / 10) % 10 : (o.em / 100) % 10;
+      string ln = InpEntryByLens == 1 ? "Raja" : "Seiden";
+      if(em == 0) return StringFormat("v2 lens %s: no trade (em=%d)", ln, o.em);
+      if(em == 2 && method != "CONF") return StringFormat("v2 lens %s: confirmation entry needed (em=%d)", ln, o.em);
+     }
+   return "";
+  }
+// risk multiplier of a zone that passed (1 = v1 risk); written into the order text as "v2 risk xN" and read back by Place()
+double V2RiskMul(BotV2 &o)
+  {
+   double m = 1.0;
+   if(InpRiskByHist && o.ok && o.cal && o.pn >= InpMinHistN) m *= MathMax(0.5, MathMin(1.0, 0.5 + o.p3));
+   if(InpUseDirection && o.ok && o.dirOk && o.dirq == 1) m *= 0.5;
+   return m;
+  }
+double V2RiskMulOf(string info)
+  {
+   int p = StringFind(info, "v2 risk x");
+   if(p < 0) return 1.0;
+   double m = StringToDouble(StringSubstr(info, p + 9, 6));
+   return (m > 0 && m <= 1.0) ? m : 1.0;
+  }
+// one line for the order text / chart (only with a v2 input on)
+string V2Line(BotV2 &o, string why)
+  {
+   if(!o.ok) return "\nv2: " + (why != "" ? why : "no ZoneVision data for this zone");
+   string kw[3] = {"WEAK", "OK", "STRONG"};
+   string t = StringFormat("\nv2 (%s): %s | cons %.0f | Kevin %s | Seiden %d | Raja %s %d | Baker %d", o.src, o.verdict, o.cons, kw[MathMax(0, MathMin(2, o.kv))], o.sS, o.rtName, o.sR, o.sB);
+   if(o.cal) t += StringFormat(" | history pn %d p3 %.0f%% best %s E %+.2fR%s", o.pn, 100.0 * o.p3, o.bt == 0 ? "opp" : IntegerToString(o.bt) + "R", o.be, o.lvl < 0 ? " (prior)" : "");
+   if(o.dirOk) t += StringFormat(" | dir %d dirq %d", o.dir, o.dirq);
+   return t;
+  }
+
+
+//+------------------------------------------------------------------+
 //| Scan one symbol / entry timeframe                                |
 //+------------------------------------------------------------------+
 void Scan(string s, int k)
   {
    int etf = TF_E[k], htf = TF_H[k];
-   Zone z[];
+   BZone z[];
    int n = DetectZones(s, etf, z);
    double point = SymPoint(s);
    int digits = SymDigits(s);
@@ -1697,13 +2064,13 @@ void Scan(string s, int k)
    if(dch) SaveProps();
 
    // fresh HTF zones: an opposing HTF zone in the way caps the target
-   Zone hz[];
+   BZone hz[];
    int hn = HtfZones(s, htf, hz);
    KLines(s, etf, gKE); KLines(s, htf, gKH);
    if(IsProt()) KLines(s, TF_I[k], gKI); else ArrayResize(gKI, 0);       // ITF lines: Kevin's "inside an ITF zone with the ITF trendline holding"
    VQualify(s, etf, z);                                                 // ZoneVision's chain / arrival on the entry TF lines
    // ZoneVision's bias: HTF swings (HtfTrend), replaced by the newest HTF trendline break (TLBias)
-   int trend = HtfTrend(s, htf);
+   int trend = HtfTrendB(s, htf);
    int kTrend = trend;
    int kBias = KBias(gKH);
    if(InpTLBias && kBias != 0) trend = kBias;
@@ -1713,13 +2080,15 @@ void Scan(string s, int k)
    if(Viz() && s == _Symbol && etf == _Period)                           // this chart's timeframe: ZoneVision's zones and trendlines (new bar only)
      {
       VizZones(s, k, etf, htf, trend, z, sel, ns);
-      gVizTrend = StringFormat("HTF %s: swings %s, TL break %s = bias %s", TfName(htf), DirTxt(kTrend), DirTxt(kBias), DirTxt(trend));
+      gVizTrend = StringFormat("HTF %s: swings %s, TL break %s = bias %s", TfNameB(htf), DirTxt(kTrend), DirTxt(kBias), DirTxt(trend));
       ArrayResize(vzR, 0); ArrayResize(vzC, 0);
       VizTrendlines(s, etf, htf);
      }
    KevinPendings(s, k, etf, z, n, hz, hn);                               // Kevin: remove limits / stops whose context changed
    if(IsBo())  { ClearWatch(s, k); ScanBreakout(s, k, z, n, sel, ns, hz, hn, trend); return; }   // Kevin's breakout stop order
    if(IsImp()) { ClearWatch(s, k); ScanImpulse(s, k, z, n, hz, hn, trend); return; }            // impulse candle -> market order
+   bool v2On = V2Need();                                                 // v2 (spec 7.3): every v2 input off = v1.62, nothing below runs
+   if(v2On && InpUseDirection) trend = V2DirOf(s, k);                     // Direction engine instead of the v1 bias (0 = WAIT / unknown)
    int fI = -1; double fFar = 0, fAtr = 0;                                  // nearest zone that failed only on distance
    int best = -1; double bScore = 0, bEntry = 0, bSl = 0, bTp = 0, bRr = 0; string bMethod = "", bDecision = "", bPg = "", bV = ""; int bPs = 0; bool bCapped = false;
    bool acted = false;
@@ -1735,6 +2104,8 @@ void Scan(string s, int k)
       string vVerdict = "", vShort = "", vGrade = "", vWhy = ""; double vEn = 0, vSl = 0, vTp = 0, vRr = 0;
       VNotes(s, etf, htf, trend, z, i, vVerdict, vShort, vGrade, vWhy, vEn, vSl, vTp, vRr);
       string vLine = StringFormat("ZoneVision: %s%s | %s | grade %s | Trade: %s", z[i].arrival ? "ARRIVAL | " : "", VZoneName(z[i]), vVerdict, vGrade, vWhy == "" ? "YES" : "NO - " + vWhy);
+      BotV2 v2z; ZeroMemory(v2z); string v2Src = "";
+      if(v2On) { V2Zone(s, k, z[i], v2z, v2Src); vLine += V2Line(v2z, v2Src); }   // ZoneVision's view of this zone (core / export)
       // opposing fresh zone = target
       double opp = 0;
       for(int j = 0; j < n; j++)
@@ -1776,7 +2147,7 @@ void Scan(string s, int k)
       if(IsBest())
         {
          double volMin = InpBestStopATR * BATR(s, etf, 14, 1);
-         if(MetalOrOil(s)) volMin = MathMax(volMin, 0.35 * BATR(s, htf, 14, 1));
+         if(MetalOrOilB(s)) volMin = MathMax(volMin, 0.35 * BATR(s, htf, 14, 1));
          if(tp > 0 && MathAbs(entry - sl) > 0) rr0 = MathAbs(tp - entry) / MathAbs(entry - sl);
          if(MathAbs(entry - sl) < volMin) { sl = dir > 0 ? entry - volMin : entry + volMin; volWide = true; }
          // Kevin (Sunday zoom 1): entry zone at the proximal line of a same-direction HTF zone -> stop about 50% into the HTF zone
@@ -1802,7 +2173,7 @@ void Scan(string s, int k)
          // review: volatility floor applied AFTER the stop beyond the distal; the target stays InpZ3RR x the final stop and the
          // lots follow the final stop (Place sizes on |entry - sl|)
          double zr = MathAbs(entry - sl), eAtr = BATR(s, etf, 14, 1), zFloor = InpZ3MinStopATR * eAtr;
-         if(MetalOrOil(s) && InpZ3MinStopHTF > 0) zFloor = MathMax(zFloor, InpZ3MinStopHTF * BATR(s, htf, 14, 1));
+         if(MetalOrOilB(s) && InpZ3MinStopHTF > 0) zFloor = MathMax(zFloor, InpZ3MinStopHTF * BATR(s, htf, 14, 1));
          if(zFloor > 0 && zr < zFloor)
            {
             zr = zFloor; sl = NormalizeDouble(entry - dir * zr, digits);
@@ -1811,6 +2182,13 @@ void Scan(string s, int k)
          if(reason == "" && InpZ3MaxStopATR > 0 && eAtr > 0 && zr > InpZ3MaxStopATR * eAtr) reason = StringFormat("zones3r: stop %.1f x ATR above %.1f", zr / eAtr, InpZ3MaxStopATR);
          // review: profit margin - the nearest live opposing HTF zone must lie beyond the target
          if(reason == "" && InpZ3NeedRoom && InpGlobalRR <= 0 && hOpp > 0 && dir * ((hOpp - dir * spread) - tp) < 0) reason = "zones3r: opposing HTF zone before the target (no room)";
+        }
+      if(v2On && InpTPFromHist && InpGlobalRR <= 0 && v2z.ok && v2z.cal && v2z.pn >= InpMinHistN && v2z.bt >= 1 && MathAbs(entry - sl) > 0)
+        {                                                              // v2: the cell's best target in R, never through an opposing HTF zone
+         double tpH = entry + dir * v2z.bt * MathAbs(entry - sl);
+         if(hOpp > 0 && dir * ((hOpp - dir * spread) - tpH) < 0) { tpH = hOpp - dir * spread; cappedByHtf = true; }
+         tp = NormalizeDouble(tpH, digits);
+         vLine += StringFormat("\nv2 target: history best %dR (bt=%d pn=%d)", v2z.bt, v2z.bt, v2z.pn);
         }
       double risk = MathAbs(entry - sl);
       if(tp > 0 && risk > 0) rr = MathAbs(tp - entry) / risk;
@@ -1823,7 +2201,7 @@ void Scan(string s, int k)
          vLine += StringFormat("\nGlobal R:R target: %s (nearest of 1:%.1f / opposing zone / swing)", gtSrc, InpGlobalRR);
         }
       string method = ConfirmedBy(s, etf, dir, z, z[i], hz, hn) ? "CONF" : "SF";
-      double curve = Curve(s, htf, z[i].prox);
+      double curve = CurveB(s, htf, z[i].prox);
 
       // Zones 3R: every zone ZoneVision draws is traded - no grade / strength / trade YES-NO filter; bias only with InpZ3Bias
       if(IsZ3())
@@ -1837,7 +2215,7 @@ void Scan(string s, int k)
       if(reason == "" && InpBigTrend && (IsBest() || (IsZ3() && InpZ3Bias)))
         {
          int bt = BigTrend(s, k);
-         if(bt == -dir) reason = "against bigger trend (" + TfName(TF_H[MathMin(k + 1, NTF - 1)]) + ")";
+         if(bt == -dir) reason = "against bigger trend (" + TfNameB(TF_H[MathMin(k + 1, NTF - 1)]) + ")";
         }
       if(reason == "" && IsBest())                                     // Kevin best: ZoneVision must say YES with grade A (or B on an arrival zone)
         {
@@ -1846,7 +2224,7 @@ void Scan(string s, int k)
          else if(KCross(s, dir, z[i].prox) < 0) reason = "best: tl cross";
          else reason = BestKevinRules(s, k, etf, htf, z, n, i, hz, hn, spread);
         }
-      if(reason == "" && !IsZ3() && InpRequireITF) { int it = HtfTrend(s, TF_I[k]); if(it == -dir) reason = "intermediate TF " + TfName(TF_I[k]) + " against"; }
+      if(reason == "" && !IsZ3() && InpRequireITF) { int it = HtfTrendB(s, TF_I[k]); if(it == -dir) reason = "intermediate TF " + TfNameB(TF_I[k]) + " against"; }
       if(reason == "" && !IsZ3() && InpCurveFilter)
         {
          double lim = AtHtfZone(z[i], hz, hn, dir) ? 50 : 33;
@@ -1882,6 +2260,8 @@ void Scan(string s, int k)
       string scWhy = ""; int zsc = ZScore(s, etf, htf, trend, z, i, hz, hn, entry, MathAbs(entry - sl), scWhy);
       vLine += StringFormat("\nZone score %d/15 (%s)", zsc, scWhy);
       if(reason == "" && InpMinScore > 0 && zsc < InpMinScore) reason = StringFormat("zone score %d below %d", zsc, InpMinScore);
+      if(reason == "" && v2On && v2Src != "") reason = v2Src;            // v2 zone source: core / ZoneVision mismatch
+      if(reason == "" && v2On) reason = V2Gate(v2z, dir, method);        // v2 gates (consensus, verdict, history, lens entry, Direction)
       int ps = 0; string pg = "";
       if(reason == "")
         {
@@ -1923,6 +2303,7 @@ void Scan(string s, int k)
          if(dir > 0 && ask - entry <= stopLvl) reason = "price too close to zone";
          if(dir < 0 && entry - bid <= stopLvl) reason = "price too close to zone";
         }
+      if(reason == "" && v2On) { double v2m = V2RiskMul(v2z); if(v2m < 1.0) vLine += StringFormat("\nv2 risk x%.2f", v2m); }   // read back by Place()
       string decision = reason == "" ? (gMode == MODE_AUTO ? "ORDER" : (gMode == MODE_APPROVE ? "PROPOSE" : "ALERT")) : "SKIP";
       LogSignal(s, k, z[i], entry, sl, tp, rr, trend, curve, method, spread / point, decision, reason, digits);
       Say(s, k, decision == "SKIP" ? "skip - " + reason + StringFormat(" (%s %s %s, grade %s)", TF_N[k], dir > 0 ? "demand" : "supply", DoubleToString(z[i].prox, digits), vGrade + " " + vVerdict) : decision);
@@ -1950,7 +2331,7 @@ void Scan(string s, int k)
 // sells): buy stop just beyond the opposing zone's distal line, stop safely beyond our basing zone's distal line. No
 // basing zone = no trade. Target: the next opposing zone beyond the one being broken or the opposing HTF zone, whichever
 // is nearer, else InpBoRRCap x risk. Breakout = higher win rate, smaller R:R than the pullback limit (Kevin: ~1.5R vs ~10R).
-void ScanBreakout(string s, int k, Zone &z[], int n, int &sel[], int ns, Zone &hz[], int hn, int trend)
+void ScanBreakout(string s, int k, BZone &z[], int n, int &sel[], int ns, BZone &hz[], int hn, int trend)
   {
    int etf = TF_E[k], htf = TF_H[k];
    double point = SymPoint(s);
@@ -2008,7 +2389,7 @@ void ScanBreakout(string s, int k, Zone &z[], int n, int &sel[], int ns, Zone &h
             if(dir * (hz[j].prox - z[i].prox) <= 0) continue;
             if(dir * (hz[j].prox - entry) <= 0) { hBlock = true; continue; }
             double th = hz[j].prox - dir * spread;
-            if(t1 == 0 || dir * (th - t1) < 0) { t1 = th; tpWhy = "before the " + TfName(htf) + (dir > 0 ? " supply" : " demand"); }
+            if(t1 == 0 || dir * (th - t1) < 0) { t1 = th; tpWhy = "before the " + TfNameB(htf) + (dir > 0 ? " supply" : " demand"); }
            }
          if(t1 > 0) tp = t1;
          else { tp = entry + dir * InpBoRRCap * risk; tpWhy = StringFormat("fixed 1:%.1f (no opposing zone beyond)", InpBoRRCap); }
@@ -2042,16 +2423,16 @@ void ScanBreakout(string s, int k, Zone &z[], int n, int &sel[], int ns, Zone &h
          else reason = BestBlocked(s, dir);
         }
       string decision = reason == "" ? (gMode == MODE_AUTO ? "ORDER" : (gMode == MODE_APPROVE ? "PROPOSE" : "ALERT")) : "SKIP";
-      LogSignal(s, k, z[i], entry, sl, tp, rr, trend, Curve(s, htf, z[i].prox), "BO", spread / point, decision, reason, digits);
+      LogSignal(s, k, z[i], entry, sl, tp, rr, trend, CurveB(s, htf, z[i].prox), "BO", spread / point, decision, reason, digits);
       Say(s, k, decision == "SKIP" ? "skip - " + reason + StringFormat(" (%s %s basing %s)", TF_N[k], dir > 0 ? "demand" : "supply", DoubleToString(z[i].prox, digits)) : decision);
       if(reason != "" && Viz() && s == _Symbol && etf == _Period) { VizSkip(s, k, etf, z[i], reason); VizTally(reason); }
       if(reason != "") { Count(reason); if(StringFind(reason, "Friday") == 0 || StringFind(reason, "weekend") == 0 || StringFind(reason, "Asian") == 0 || StringFind(reason, "news") == 0) return; continue; }
       string vVerdict = "", vShort = "", vGrade = "", vWhy = ""; double vEn = 0, vSl = 0, vTp = 0, vRr = 0;
       VNotes(s, etf, htf, trend, z, i, vVerdict, vShort, vGrade, vWhy, vEn, vSl, vTp, vRr);
       string info = StringFormat("%s %s breakout (Kevin's confirmation breakout method) | basing zone: %s, grade %s %s | %s bias %s\n",
-                                 dir > 0 ? "BUY STOP" : "SELL STOP", TF_N[k], VZoneName(z[i]), vGrade, vVerdict, TfName(htf), DirTxt(trend));
+                                 dir > 0 ? "BUY STOP" : "SELL STOP", TF_N[k], VZoneName(z[i]), vGrade, vVerdict, TfNameB(htf), DirTxt(trend));
       info += StringFormat("Why: %s; opposing %s %s %s - %s in the way; entry %s just beyond its distal, stop %s beyond the basing zone's distal, target %s (1:%.1f)",
-                           ti >= 0 ? "price contacted the " + TfName(htf) + (dir > 0 ? " demand " : " supply ") + DoubleToString(hz[ti].prox, digits) : "no HTF contact required",
+                           ti >= 0 ? "price contacted the " + TfNameB(htf) + (dir > 0 ? " demand " : " supply ") + DoubleToString(hz[ti].prox, digits) : "no HTF contact required",
                            TF_N[k], dir > 0 ? "supply" : "demand", DoubleToString(z[oi].prox, digits), DoubleToString(z[oi].dist, digits),
                            DoubleToString(entry, digits), DoubleToString(sl, digits), tpWhy, rr);
       if(z[i].arrival) info += "\nARRIVAL basing zone (strongest)";
@@ -2077,7 +2458,7 @@ bool ImpTaken(string s, int k, datetime t0)
       if(gHO[i].sym == s && KOf(gHO[i].magic) == k && gHO[i].setup >= t0) return true;
    return false;
   }
-void ScanImpulse(string s, int k, Zone &z[], int n, Zone &hz[], int hn, int trend)
+void ScanImpulse(string s, int k, BZone &z[], int n, BZone &hz[], int hn, int trend)
   {
    int etf = TF_E[k], htf = TF_H[k];
    double point = SymPoint(s);
@@ -2085,7 +2466,7 @@ void ScanImpulse(string s, int k, Zone &z[], int n, Zone &hz[], int hn, int tren
    double ask = SymAsk(s), bid = SymBid(s), spread = ask - bid;
    double atr = BATR(s, etf, 14, 2);                                    // ATR before the impulse candle (as ZoneVision's emotional-candle test)
    double o1 = BOpen(s, etf, 1), c1 = BClose(s, etf, 1), h1 = BHigh(s, etf, 1), l1 = BLow(s, etf, 1), rg = h1 - l1;
-   int dir = CDir(s, etf, 1);
+   int dir = CDirB(s, etf, 1);
    if(dir == 0 || rg <= 0 || atr <= 0 || point <= 0) return;
    if(MathAbs(c1 - o1) < InpImpATR * atr) return;                         // no impulse candle: nothing to report
    string reason = "", brk = "";
@@ -2106,7 +2487,7 @@ void ScanImpulse(string s, int k, Zone &z[], int n, Zone &hz[], int hn, int tren
       if(z[j].dir == -dir && z[j].removed && z[j].removedBar == 1) brk = "removed the " + TF_N[k] + (dir > 0 ? " supply " : " demand ") + DoubleToString(z[j].prox, digits);
    // the base the move left from: basing candles right behind the impulse, built as ZoneVision's Detect builds a zone
    double ext = dir > 0 ? l1 : h1, mb = 0; int nb = 0;
-   while(nb < InpMaxBase && Basing(s, etf, 2 + nb)) { mb = MathMax(mb, Rng(s, etf, 2 + nb)); nb++; }
+   while(nb < InpMaxBase && BasingB(s, etf, 2 + nb)) { mb = MathMax(mb, RngB(s, etf, 2 + nb)); nb++; }
    if(nb > 0 && mb > 0 && rg / mb >= InpMinLegRatio)
      {
       double bp = dir > 0 ? -DBL_MAX : DBL_MAX, bd = ext;
@@ -2140,17 +2521,17 @@ void ScanImpulse(string s, int k, Zone &z[], int n, Zone &hz[], int hn, int tren
    if(reason == "") reason = NettingBlock(s, dir);
    if(reason == "" && ImpTaken(s, k, BTime(s, etf, 0))) reason = "imp: impulse already traded";
    if(reason == "") reason = BestBlocked(s, dir);
-   Zone iz;                                                              // the impulse as a zone record (log, chart marks, order box)
+   BZone iz;                                                              // the impulse as a zone record (log, chart marks, order box)
    iz.gap = 0; iz.ath = false; iz.leg2 = false; iz.departure = 0; iz.erc = true; iz.trap = 0; iz.crowded = false; iz.trapBar = -1;
    iz.dir = dir; iz.prox = c1; iz.dist = ext; iz.legBar = 1; iz.tLeg = BTime(s, etf, 1); iz.baseN = nb; iz.legRatio = mb > 0 ? rg / mb : 0;
    iz.grade = ""; iz.cont = true; iz.tested = false; iz.pen = 0; iz.consumed = false; iz.removed = false; iz.tRemoved = 0; iz.tTouched = 0;
    iz.saBar = 0; iz.baseEnd = 1 + nb; iz.removedBar = -1; iz.testedBar = -1; iz.chain = brk != ""; iz.arrival = false;
    string decision = reason == "" ? (gMode == MODE_AUTO ? "ORDER" : (gMode == MODE_APPROVE ? "PROPOSE" : "ALERT")) : "SKIP";
-   LogSignal(s, k, iz, entry, sl, tp, rr, trend, Curve(s, htf, c1), "IMP", spread / point, decision, reason, digits);
+   LogSignal(s, k, iz, entry, sl, tp, rr, trend, CurveB(s, htf, c1), "IMP", spread / point, decision, reason, digits);
    Say(s, k, decision == "SKIP" ? "skip - " + reason + StringFormat(" (%s %s impulse)", TF_N[k], dir > 0 ? "bullish" : "bearish") : decision);
    if(reason != "" && Viz() && s == _Symbol && etf == _Period) { VizSkip(s, k, etf, iz, reason); VizTally(reason); }
    if(reason != "") { Count(reason); return; }
-   string info = StringFormat("%s %s impulse market order (your own method, not Kevin's) | %s bias %s\n", dir > 0 ? "BUY" : "SELL", TF_N[k], TfName(htf), DirTxt(trend));
+   string info = StringFormat("%s %s impulse market order (your own method, not Kevin's) | %s bias %s\n", dir > 0 ? "BUY" : "SELL", TF_N[k], TfNameB(htf), DirTxt(trend));
    info += StringFormat("Why: impulse candle body %.1f x ATR, close in the outer 25%%, %s; stop beyond the %s %s, %s, break-even at %.1fR",
                         MathAbs(c1 - o1) / atr, brk, nb > 0 ? "base distal" : "candle extreme", DoubleToString(ext, digits),
                         gtSrc != "" ? StringFormat("target 1:%.1f (global R:R, %s)", rr, gtSrc) : (InpImpRR > 0 ? StringFormat("target 1:%.1f", InpImpRR) : "no fixed target"), InpImpBE);
@@ -2182,7 +2563,7 @@ string OrdTxt(string method, int dir)
   }
 
 // Alert / propose / place one zone (reasoning goes to the order log, the Experts tab and ZoneVision's bottom-right notes)
-void Act(string s, int k, Zone &z[], int i, double entry, double sl, double tp, double rr, string method, string decision, string g, int ps, bool cappedByHtf, int trend, string vLine)
+void Act(string s, int k, BZone &z[], int i, double entry, double sl, double tp, double rr, string method, string decision, string g, int ps, bool cappedByHtf, int trend, string vLine)
   {
    int etf = TF_E[k], htf = TF_H[k], dir = z[i].dir;
    int digits = SymDigits(s); double point = SymPoint(s);
@@ -2190,20 +2571,20 @@ void Act(string s, int k, Zone &z[], int i, double entry, double sl, double tp, 
    tag += StringFormat(" (score %d)", ps);
    if(GtSrcOf(vLine) != "") tag += " TP " + GtSrcOf(vLine);
    Count(decision);
-   string info = StringFormat("%s %s %s zone (grade %s %d) | %s bias %s | %s%s%s\n", dir > 0 ? "BUY" : "SELL", TF_N[k], dir > 0 ? "demand" : "supply", g, ps, TfName(htf), DirTxt(trend), method == "CONF" ? "confirmation" : "set & forget", z[i].trap > 0 ? " | liquidity trap" : "", IsZ3() ? StringFormat(" | Zones 3R 1:%.1f", InpZ3RR) : "");
+   string info = StringFormat("%s %s %s zone (grade %s %d) | %s bias %s | %s%s%s\n", dir > 0 ? "BUY" : "SELL", TF_N[k], dir > 0 ? "demand" : "supply", g, ps, TfNameB(htf), DirTxt(trend), method == "CONF" ? "confirmation" : "set & forget", z[i].trap > 0 ? " | liquidity trap" : "", IsZ3() ? StringFormat(" | Zones 3R 1:%.1f", InpZ3RR) : "");
    info += vLine + "\n";
    info += StringFormat("Why: fresh %s %s, stop %s, move away %.1fx, target %s", z[i].cont ? "CP" : "VP", z[i].cont ? (dir > 0 ? "RBR" : "DBD") : (dir > 0 ? "DBR" : "RBD"),
                         IsZ3() ? "beyond distal" : (z[i].cont ? "beyond distal" : "beyond swing " + (dir > 0 ? "valley" : "peak")), z[i].legRatio,
-                        IsZ3() ? StringFormat("fixed 1:%.1f", InpZ3RR) : (cappedByHtf ? "before next " + TfName(htf) + (dir > 0 ? " supply" : " demand") : (dir > 0 ? "at nearest swing high / supply" : "at nearest swing low / demand")));
+                        IsZ3() ? StringFormat("fixed 1:%.1f", InpZ3RR) : (cappedByHtf ? "before next " + TfNameB(htf) + (dir > 0 ? " supply" : " demand") : (dir > 0 ? "at nearest swing high / supply" : "at nearest swing low / demand")));
    { double ha = BATR(s, htf, 14, 1), fr = MathAbs((dir > 0 ? SymBid(s) : SymAsk(s)) - z[i].prox);
-     info += StringFormat("\nDistance: %.1f x %s ATR (%s away, ATR %s) - within reach (limit %.1f)\n", fr / MathMax(ha, point), TfName(htf), DoubleToString(fr, digits), DoubleToString(ha, digits), InpMaxDistATR); }
+     info += StringFormat("\nDistance: %.1f x %s ATR (%s away, ATR %s) - within reach (limit %.1f)\n", fr / MathMax(ha, point), TfNameB(htf), DoubleToString(fr, digits), DoubleToString(ha, digits), InpMaxDistATR); }
    { int ce = ChannelState(s, etf, gKE, dir, z[i].prox), ch = ChannelState(s, htf, gKH, dir, z[i].prox);
      string nt = KNear(s, etf, htf, dir, z[i].prox);
      info += "Channel: " + (ce == 1 || ch == 1 ? "zone in the golden area (trendline to 50%)" : (ce == 2 || ch == 2 ? "zone beyond the channel 50% (overextended)" : "no respected trendline in this direction")) + (nt != "" ? " | zone at the " + nt + " trendline" : "") + "\n"; }
    if(z[i].arrival) info += "ARRIVAL zone (strongest): broke the trendline AND took out the previous high / low\n";
    { int cx = KCross(s, dir, z[i].prox); if(cx != 0) info += (cx > 0 ? "Price reaches the zone without crossing a trendline\n" : "Price must break a trendline before reaching the zone\n"); }
-   { bool cO = false, cT = false, cN = false, cR = false; ChainOf(s, etf, z, i, cO, cT, cN, cR);
-     string cw = (cO ? "removed an opposing zone, " : "") + (cT ? "broke a trendline, " : "") + (cN ? (dir > 0 ? "made a new high, " : "made a new low, ") : "") + (cR ? (dir > 0 ? "took out the previous high, " : "took out the previous low, ") : "");
+   { bool cO = false, cTl = false, cN = false, cR = false; ChainOf(s, etf, z, i, cO, cTl, cN, cR);
+     string cw = (cO ? "removed an opposing zone, " : "") + (cTl ? "broke a trendline, " : "") + (cN ? (dir > 0 ? "made a new high, " : "made a new low, ") : "") + (cR ? (dir > 0 ? "took out the previous high, " : "took out the previous low, ") : "");
      if(cw == "") cw = "not in the chain"; else cw = StringSubstr(cw, 0, StringLen(cw) - 2);
      info += StringFormat("Chain: %s | space under stay-away %.0f%% of zone%s", cw, z[i].gap * 100, z[i].leg2 ? " | second explosive candle" : ""); }
    bool fresh = true;                                                 // approve mode: alert only for new / changed advice
@@ -2225,7 +2606,7 @@ void Act(string s, int k, Zone &z[], int i, double entry, double sl, double tp, 
 //     (Kevin: "inside a 15m zone (H1 even better) AND the 15m trend line is still holding"), or the same at the HTF
 // (target reached / InpCancelRunFrac of the way and zone removed are checked every tick in ManageOrders)
 // price inside a live zone of direction want (prox .. dist, widened by tol)
-bool InZoneOf(Zone &zs[], int cnt, int want, double price, double tol)
+bool InZoneOf(BZone &zs[], int cnt, int want, double price, double tol)
   {
    for(int j = 0; j < cnt && j < ArraySize(zs); j++)
      {
@@ -2238,12 +2619,12 @@ bool InZoneOf(Zone &zs[], int cnt, int want, double price, double tol)
 // Kevin: price inside a same-direction zone of timeframe tf AND that timeframe's trendline in the direction still holds
 bool TfSupport(string s, int tf, int dir, double price, double tol, KLine &L[])
   {
-   Zone sz[]; int sn = HtfZones(s, tf, sz);
+   BZone sz[]; int sn = HtfZones(s, tf, sz);
    return InZoneOf(sz, sn, dir, price, tol) && KUse(L, dir) >= 0;
   }
 // Kevin (Trend Trading): continuation zones in a row in this zone's direction, this one included (0 = not a CP).
 // DetectZones lists the oldest zone first; a VP, an opposing chain zone or a CP removed before this zone formed ends the run.
-int CpRun(Zone &z[], int i)
+int CpRun(BZone &z[], int i)
   {
    if(!z[i].cont || !z[i].chain) return 0;
    int c = 1;
@@ -2257,13 +2638,13 @@ int CpRun(Zone &z[], int i)
    return c;
   }
 // Kevin best: the rest of Kevin's placement rules ("" = allowed; sources in docs/ZoneBot_Kevin_Audit.md)
-string BestKevinRules(string s, int k, int etf, int htf, Zone &z[], int n, int i, Zone &hz[], int hn, double spread)
+string BestKevinRules(string s, int k, int etf, int htf, BZone &z[], int n, int i, BZone &hz[], int hn, double spread)
   {
    int dir = z[i].dir;
    // chain: removed an opposing zone, removed a trendline or made an ALL-TIME high / low (a swing high / low does not count)
-   bool cO = false, cT = false, cN = false, cR = false;
-   ChainOf(s, etf, z, i, cO, cT, cN, cR);
-   if(!cO && !cT && !z[i].ath) return "best: chain by a swing high/low only (not all-time)";
+   bool cO = false, cTl = false, cN = false, cR = false;
+   ChainOf(s, etf, z, i, cO, cTl, cN, cR);
+   if(!cO && !cTl && !z[i].ath) return "best: chain by a swing high/low only (not all-time)";
    // inside a HTF supply only sells, inside a HTF demand only buys
    if(InZoneOf(hz, hn, -dir, z[i].prox, spread)) return "best: inside an opposing HTF zone";
    // three continuation zones in a row = overextended: stop trading that way, wait for a pullback
@@ -2279,7 +2660,7 @@ string BestKevinRules(string s, int k, int etf, int htf, Zone &z[], int n, int i
       return "best: ETF trend lost, not inside an ITF zone";
    return "";
   }
-void KevinPendings(string s, int k, int etf, Zone &z[], int n, Zone &hz[], int hn)
+void KevinPendings(string s, int k, int etf, BZone &z[], int n, BZone &hz[], int hn)
   {
    if(!IsProt()) return;
    BOrd a[]; int na = Snap(a);
@@ -2305,8 +2686,8 @@ void KevinPendings(string s, int k, int etf, Zone &z[], int n, Zone &hz[], int h
          for(int j = 0; j < hn && why == ""; j++)
            {
             if(hz[j].dir != -dir || hz[j].removed || hz[j].tLeg >= t0) continue;
-            if(dir > 0 && hz[j].prox > op && hz[j].prox > pb && ext >= hz[j].prox) why = "Kevin: price hit the opposing " + TfName(TF_H[k]) + " supply before the fill";
-            if(dir < 0 && hz[j].prox < op && hz[j].prox < pb && ext <= hz[j].prox) why = "Kevin: price hit the opposing " + TfName(TF_H[k]) + " demand before the fill";
+            if(dir > 0 && hz[j].prox > op && hz[j].prox > pb && ext >= hz[j].prox) why = "Kevin: price hit the opposing " + TfNameB(TF_H[k]) + " supply before the fill";
+            if(dir < 0 && hz[j].prox < op && hz[j].prox < pb && ext <= hz[j].prox) why = "Kevin: price hit the opposing " + TfNameB(TF_H[k]) + " demand before the fill";
            }
         }
       if(why == "")
@@ -2334,7 +2715,7 @@ void KevinPendings(string s, int k, int etf, Zone &z[], int n, Zone &hz[], int h
 // Confirmation: price touched an HTF zone in our direction within N entry bars, and an opposing
 // entry-TF zone or trendline was removed after that touch; the candidate formed after the touch,
 // within about one HTF zone height of that HTF zone.
-bool ConfirmedBy(string s, int etf, int dir, Zone &ez[], Zone &cand, Zone &hz[], int n)
+bool ConfirmedBy(string s, int etf, int dir, BZone &ez[], BZone &cand, BZone &hz[], int n)
   {
    datetime since = BTime(s, etf, InpConfTouchBars);
    datetime touch = 0; int ti = -1;
@@ -2367,8 +2748,8 @@ bool DailyLossHit()
 
 // Higher-timeframe zones change only when a new HTF candle opens: detect once per symbol/HTF bar, reuse after.
 #define HCAP 40
-string hKey[]; datetime hTime[]; int hCount[]; Zone hStore[];
-int HtfZones(string s, int htf, Zone &out[])
+string hKey[]; datetime hTime[]; int hCount[]; BZone hStore[];
+int HtfZones(string s, int htf, BZone &out[])
   {
    string key = s + "|" + IntegerToString(htf);
    datetime t = BTime(s, htf, 0);
@@ -2377,7 +2758,7 @@ int HtfZones(string s, int htf, Zone &out[])
    if(slot < 0) { slot = ArraySize(hKey); ArrayResize(hKey, slot + 1); ArrayResize(hTime, slot + 1); ArrayResize(hCount, slot + 1); ArrayResize(hStore, (slot + 1) * HCAP); hKey[slot] = key; hTime[slot] = 0; hCount[slot] = 0; }
    if(hTime[slot] != t)
      {
-      Zone z[]; int n = DetectZones(s, htf, z), c = 0;
+      BZone z[]; int n = DetectZones(s, htf, z), c = 0;
       for(int i = n - 1; i >= 0 && c < HCAP; i--) if(!z[i].removed) hStore[slot * HCAP + c++] = z[i];   // newest live zones
       hCount[slot] = c; hTime[slot] = t;
      }
@@ -2477,7 +2858,7 @@ int CountOrders(string s)
 
 // Target: the recent swing extreme of the move that left the zone (lowest low since the zone for sells,
 // highest high for buys) - where you take profit manually - or the next opposing zone, per InpTpMode.
-double PickTarget(string s, int tf, Zone &z, double opp, double spread)
+double PickTarget(string s, int tf, BZone &z, double opp, double spread)
   {
    double sw = 0;
    int n = z.legBar;                                                  // from the move away up to the last closed candle
@@ -2499,7 +2880,7 @@ double PickTarget(string s, int tf, Zone &z, double opp, double spread)
 // -/+ spread, and the nearest unbroken swing high (buys) / low (sells) beyond the entry ("swing": ZoneVision fractal,
 // InpTLSwing bars each side, within InpLookback, no close beyond it since). Candidates closer than 0.5R are noise and
 // ignored; none nearer = the R:R target ("RR"). src returns the chosen source.
-double GlobalTarget(string s, int etf, int htf, int dir, double entry, double sl, double spread, Zone &z[], int n, Zone &hz[], int hn, string &src)
+double GlobalTarget(string s, int etf, int htf, int dir, double entry, double sl, double spread, BZone &z[], int n, BZone &hz[], int hn, string &src)
   {
    double gtR = MathAbs(entry - sl);
    double gtBest = entry + dir * InpGlobalRR * gtR;
@@ -2566,10 +2947,10 @@ double TfStopPips(int tf)
    switch(tf) { case PERIOD_M1: return 1; case PERIOD_M5: return 1.5; case PERIOD_M15: return 3; case PERIOD_H1: return 5; case PERIOD_H4: return 10; case PERIOD_D1: return 20; }
    return 40;
   }
-bool MetalOrOil(string s) { string u = s; StringToUpper(u); return StringFind(u, "XAU") >= 0 || StringFind(u, "GOLD") >= 0 || StringFind(u, "XAG") >= 0 || StringFind(u, "OIL") >= 0 || StringFind(u, "WTI") >= 0 || StringFind(u, "BRENT") >= 0 || StringFind(u, "XTI") >= 0 || StringFind(u, "XBR") >= 0; }
-double StopFor(string s, int tf, Zone &z, double pip)
+bool MetalOrOilB(string s) { string u = s; StringToUpper(u); return StringFind(u, "XAU") >= 0 || StringFind(u, "GOLD") >= 0 || StringFind(u, "XAG") >= 0 || StringFind(u, "OIL") >= 0 || StringFind(u, "WTI") >= 0 || StringFind(u, "BRENT") >= 0 || StringFind(u, "XTI") >= 0 || StringFind(u, "XBR") >= 0; }
+double StopFor(string s, int tf, BZone &z, double pip)
   {
-   double buf = TfStopPips(tf) * InpStopScale * pip * (MetalOrOil(s) ? InpMetalOilStop : 1.0);
+   double buf = TfStopPips(tf) * InpStopScale * pip * (MetalOrOilB(s) ? InpMetalOilStop : 1.0);
    if(z.cont) return z.dist - z.dir * buf;
    // VP: the swing valley (peak) is the lowest low (highest high) of the whole drop (rally) into the zone:
    // walk back from the move away until price was last above the move-away high (below its low), max 150 bars
@@ -2607,6 +2988,7 @@ bool Place(string s, int k, int dir, double entry, double sl, double tp, double 
      { placeErr = "AutoTrading is OFF - press the AutoTrading button (Algo Trading) on the MT5 toolbar (green) and tick 'Allow Algo Trading' in the bot's settings (F7)"; Print(s, ": ", placeErr); return false; }
    { string nb = NettingBlock(s, dir); if(nb != "") { placeErr = nb; Print(s, ": ", placeErr); Count(nb); return false; } }
    double riskPctUse = (IsProt() ? BestRiskPct() : InpRiskPct) * ((InpHalfRiskC && grade == "C" && !IsZ3() && !IsBo() && !IsImp()) ? 0.5 : 1.0);   // low odds = half risk (Zones 3R / Breakout / Impulse: full risk)
+   riskPctUse *= V2RiskMulOf(info);                                      // v2: InpRiskByHist / Direction REDUCED ("v2 risk xN" in the text; 1 without it)
    int digits = SymDigits(s);
    double point = SymPoint(s), pip = PipOf(s);
    double ask = SymAsk(s), bid = SymBid(s);
@@ -2663,7 +3045,7 @@ bool Place(string s, int k, int dir, double entry, double sl, double tp, double 
    // short human comment (MT5 keeps 31 characters); full reasoning goes to the log, Experts tab and chart
    // e.g. "2 M5 demand A, H1 up, 1:4.8 trap" (MT5 keeps 31 characters)
    // Starts with a rank so the Comment column sorts 1 minute -> 1 month: 1 M1, 2 M5, 3 M15, 4 H1, 5 H4, 6 D1, 7 W1
-   string cm = StringFormat("%d %s %s %s, %s %s, 1:%.1f", k + 1, TF_N[k], dir > 0 ? "demand" : "supply", grade, TfName(TF_H[k]), dir > 0 ? "up" : "down", rr);
+   string cm = StringFormat("%d %s %s %s, %s %s, 1:%.1f", k + 1, TF_N[k], dir > 0 ? "demand" : "supply", grade, TfNameB(TF_H[k]), dir > 0 ? "up" : "down", rr);
    string gtCs = GtSrcOf(info);                                        // InpGlobalRR: target source (RR / opp zone / HTF zone / swing)
    if(gtCs != "") cm = GtCm(cm, gtCs);
    if(method == "CONF" && StringLen(cm) <= 26) cm += " conf";
@@ -2886,7 +3268,7 @@ void ManageOpen(ulong ticket, int k, int si)
       if(trailBar[ti] != b0)                                         // once per new entry-TF candle
         {
          trailBar[ti] = b0;
-         Zone z[]; int n = DetectZones(s, etf, z);
+         BZone z[]; int n = DetectZones(s, etf, z);
          for(int i = n - 1; i >= 0; i--)
            {
             if(z[i].dir != dir || z[i].removed || !z[i].cont) continue;
@@ -3098,7 +3480,7 @@ int OpenAppend(string name)
 
 // Signals are kept in memory and written once a minute in one go; a zone is logged again only when its decision changes.
 string sigBuf[]; string sigKey[]; string sigLast[]; datetime lastFlush = 0;
-void LogSignal(string s, int k, Zone &z, double entry, double sl, double tp, double rr, int trend, double curve, string method, double spreadPts, string decision, string reason, int digits)
+void LogSignal(string s, int k, BZone &z, double entry, double sl, double tp, double rr, int trend, double curve, string method, double spreadPts, string decision, string reason, int digits)
   {
    if(decision == "SKIP" && !InpLogSkips) return;                       // keep the log small: orders only by default
    string key = s + TF_N[k] + DoubleToString(z.prox, digits), state = decision + reason;
@@ -3108,7 +3490,7 @@ void LogSignal(string s, int k, Zone &z, double entry, double sl, double tp, dou
    if(ki < 0) { ki = ArraySize(sigKey); ArrayResize(sigKey, ki + 1); ArrayResize(sigLast, ki + 1); sigKey[ki] = key; if(ki > 3000) { ArrayResize(sigKey, 0); ArrayResize(sigLast, 0); ki = 0; ArrayResize(sigKey, 1); ArrayResize(sigLast, 1); sigKey[0] = key; } }
    sigLast[ki] = state;
    string line = StringFormat("%s,%s,%s,%s,%s,%s,%s,%s,%d,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s",
-                 TimeToString(TimeCurrent(), TIME_DATE | TIME_MINUTES), s, TF_N[k], TfName(TF_H[k]), z.dir > 0 ? "BUY" : "SELL", z.dir > 0 ? "RBR" : "DBD", z.grade,
+                 TimeToString(TimeCurrent(), TIME_DATE | TIME_MINUTES), s, TF_N[k], TfNameB(TF_H[k]), z.dir > 0 ? "BUY" : "SELL", z.dir > 0 ? "RBR" : "DBD", z.grade,
                  DoubleToString(z.legRatio, 2), z.baseN, DoubleToString(z.prox, digits), DoubleToString(z.dist, digits),
                  DoubleToString(entry, digits), DoubleToString(sl, digits), DoubleToString(tp, digits), DoubleToString(rr, 2),
                  trend > 0 ? "up" : (trend < 0 ? "down" : "side"), DoubleToString(curve, 0), method, DoubleToString(spreadPts, 0), decision, reason,
@@ -3136,7 +3518,7 @@ void LogVariant(Sim &m, string tpv, string bev, double r, datetime ex, string wh
    FileClose(f);
   }
 
-string TfName(int tf)
+string TfNameB(int tf)
   {
    switch(tf) { case PERIOD_M1: return "M1"; case PERIOD_M5: return "M5"; case PERIOD_M15: return "M15"; case PERIOD_H1: return "H1"; case PERIOD_H4: return "H4"; case PERIOD_D1: return "D1"; case PERIOD_W1: return "W1"; case PERIOD_MN1: return "MN"; }
    return IntegerToString(tf);
@@ -3216,7 +3598,7 @@ bool ExpireDismissed()
    return ch;
   }
 // a denied scanner zone that is no longer live (removed / consumed / out of the lookback) is forgotten
-bool PruneDismissed(string s, int k, Zone &z[], int n)
+bool PruneDismissed(string s, int k, BZone &z[], int n)
   {
    bool ch = false;
    for(int d = ArraySize(dSym) - 1; d >= 0; d--)
@@ -3714,14 +4096,14 @@ string BestBlocked(string s, int dir)
 //+------------------------------------------------------------------+
 bool Viz() { if(InTester()) return (MQLInfoInteger(MQL_VISUAL_MODE) != 0); return InpDraw; }
 // the zones ZoneVision draws on this chart (same pick, colours, names and notes) + its HTF band (2 closest HTF zones)
-void VizZones(string s, int k, int etf, int htf, int trend, Zone &z[], int &sel[], int ns)
+void VizZones(string s, int k, int etf, int htf, int trend, BZone &z[], int &sel[], int ns)
   {
    string pre = "RFXZ_v";
    ObjectsDeleteAll(0, pre);
    datetime right = BTime(_Symbol, _Period, 0) + PeriodSeconds() * 18;
    int digits = SymDigits(s);
    // HTF band first, underneath (ZoneVision InpShowHTF): the 2 closest live HTF zones
-   Zone h[]; int hn = DetectZones(s, htf, h);
+   BZone h[]; int hn = DetectZones(s, htf, h);
    {
     double px = (SymBid(s) + SymAsk(s)) / 2;
     int used[]; ArrayResize(used, MathMax(hn, 1)); ArrayInitialize(used, 0);
@@ -3740,10 +4122,10 @@ void VizZones(string s, int k, int etf, int htf, int trend, Zone &z[], int &sel[
        datetime t1 = BTime(s, htf, h[bi].legBar + h[bi].baseN);
        ObjectCreate(0, id, OBJ_RECTANGLE, 0, t1, h[bi].prox, right, h[bi].dist);
        ObjectSetInteger(0, id, OBJPROP_COLOR, C'224,216,250'); ObjectSetInteger(0, id, OBJPROP_BACK, true); ObjectSetInteger(0, id, OBJPROP_FILL, true);
-       ObjectSetString(0, id, OBJPROP_TOOLTIP, TfName(htf) + " " + VZoneName(h[bi]));
+       ObjectSetString(0, id, OBJPROP_TOOLTIP, TfNameB(htf) + " " + VZoneName(h[bi]));
        string tn = id + "n";
        ObjectCreate(0, tn, OBJ_TEXT, 0, t1, h[bi].dist);
-       ObjectSetString(0, tn, OBJPROP_TEXT, TfName(htf) + " " + (h[bi].dir > 0 ? "demand" : "supply"));
+       ObjectSetString(0, tn, OBJPROP_TEXT, TfNameB(htf) + " " + (h[bi].dir > 0 ? "demand" : "supply"));
        ObjectSetString(0, tn, OBJPROP_FONT, "Arial"); ObjectSetInteger(0, tn, OBJPROP_FONTSIZE, 7); ObjectSetInteger(0, tn, OBJPROP_COLOR, C'90,90,90');
        ObjectSetInteger(0, tn, OBJPROP_ANCHOR, h[bi].dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
       }
@@ -3917,12 +4299,12 @@ void VDrawTL(int tf, KLine &L[])
          ObjectSetInteger(0, nm, OBJPROP_RAY_RIGHT, false); ObjectSetInteger(0, nm, OBJPROP_COLOR, c);
          ObjectSetInteger(0, nm, OBJPROP_STYLE, L[i].removed || !chart ? STYLE_DOT : STYLE_SOLID); ObjectSetInteger(0, nm, OBJPROP_WIDTH, 1);
          ObjectSetInteger(0, nm, OBJPROP_TIMEFRAMES, VVisUpTo(tf)); ObjectSetInteger(0, nm, OBJPROP_BACK, true);
-         ObjectSetString(0, nm, OBJPROP_TOOLTIP, TfName(tf) + (L[i].conf ? " " : " overall ") + (up ? "uptrend line: real valley, then a higher high" : "downtrend line: real peak, then a lower low")
+         ObjectSetString(0, nm, OBJPROP_TOOLTIP, TfNameB(tf) + (L[i].conf ? " " : " overall ") + (up ? "uptrend line: real valley, then a higher high" : "downtrend line: real peak, then a lower low")
             + (L[i].removed ? " | ENDED: a full candle closed " + (up ? "below" : "above") + " it on " + TimeToString(BTime(_Symbol, tf, end), TIME_DATE | TIME_MINUTES) : " | respected so far"));
          if(!chart && !L[i].removed)
            {
             string ln = nm + "l";
-            ObjectCreate(0, ln, OBJ_TEXT, 0, x2, pe); ObjectSetString(0, ln, OBJPROP_TEXT, " " + TfName(tf) + " trendline");
+            ObjectCreate(0, ln, OBJ_TEXT, 0, x2, pe); ObjectSetString(0, ln, OBJPROP_TEXT, " " + TfNameB(tf) + " trendline");
             ObjectSetInteger(0, ln, OBJPROP_COLOR, C'200,150,40'); ObjectSetInteger(0, ln, OBJPROP_FONTSIZE, 7); ObjectSetInteger(0, ln, OBJPROP_ANCHOR, ANCHOR_LEFT); ObjectSetInteger(0, ln, OBJPROP_TIMEFRAMES, VVisUpTo(tf));
            }
         }
@@ -3946,7 +4328,7 @@ void VizTrendlines(string s, int etf, int htf)
    NoSelect(0, "RFXT_");
   }
 // short skip reason next to the zone; only the latest 10 stay on the chart
-void VizSkip(string s, int k, int etf, Zone &zi, string reason)
+void VizSkip(string s, int k, int etf, BZone &zi, string reason)
   {
    datetime t1 = BTime(s, etf, zi.legBar + zi.baseN);
    string nm = "RFXK_" + IntegerToString(k) + "_" + IntegerToString((int)t1) + (zi.dir > 0 ? "b" : "s");
@@ -4424,7 +4806,7 @@ void BacktestReport()
    int fs = FileOpen("RamanFX_Backtest_" + sym + "_Statement.htm", FILE_WRITE | FILE_TXT | FILE_ANSI | cf);
    if(fs != INVALID_HANDLE)
      {
-      string nm = "ZoneBot Backtest " + sym + " " + TfName(_Period);
+      string nm = "ZoneBot Backtest " + sym + " " + TfNameB(_Period);
       double sc = 0, ss = 0, sp = 0;
       for(int i = 0; i < nT; i++) { sc += T[i].comm; ss += T[i].swap; sp += T[i].profit; }
       FileWriteString(fs, "<html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"><title>Statement: " + IntegerToString(acct) + " - " + nm + "</title>\r\n");

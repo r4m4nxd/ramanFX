@@ -45,11 +45,13 @@ function Install() {
         <a className="btn" href="/tools/RamanFX_ZoneBot.mq4" download><Icon name="download" size={14} />RamanFX_ZoneBot.mq4</a>
         <a className="btn" href="/tools/RamanFX_ZoneVision.mq4" download><Icon name="download" size={14} />RamanFX_ZoneVision.mq4</a>
         <a className="btn" href="/tools/RamanFX_ZoneVision.mq5" download><Icon name="download" size={14} />RamanFX_ZoneVision.mq5 (MT5)</a>
+        <a className="btn" href="/tools/RFX_ZoneCore.mqh" download><Icon name="download" size={14} />RFX_ZoneCore.mqh (MT5 shared core)</a>
       </div>
       <Steps items={[
         <>In MT4: <b>File → Open Data Folder → MQL4</b>. Put <K>RamanFX_ZoneBot.mq4</K> in <b>Experts</b> and <K>RamanFX_ZoneVision.mq4</K> in <b>Indicators</b>.</>,
         <>Open each file in MetaEditor (F4) and press <b>F7</b> to compile. It must say <b>0 errors</b>. Warnings are fine.</>,
         <>Back in MT4, right-click <b>Navigator → Refresh</b>. Both show up under Expert Advisors and Indicators.</>,
+        <>MT5 (ZoneVision 2.00, ZoneBot 1.63): put <K>RFX_ZoneCore.mqh</K> in the <b>same folder</b> as each .mq5 that uses it (Indicators for ZoneVision, Experts for ZoneBot), then compile. Both files read the same core, so the bot and the indicator find the same zones.</>,
         <>Updating to a new version: download again, overwrite, compile, then <b>remove the bot from the chart and drag it on again</b>. MT4 keeps your old settings if you only recompile, so new defaults would not load.</>,
       ]} />
     </Section>
@@ -191,6 +193,15 @@ function ZoneBot() {
           ['InpSkipAsian / news / Friday', 'Session, news (RamanFX_News.csv) and Friday filters.'],
           ['InpAlerts / InpPush', 'Pop-up and phone push for new advice.'],
           ['InpUseMyLines', 'Use your trendlines and rectangles (on).'],
+          ['InpZoneSource', 'MT5 v1.63, default 0 = the v1.62 zones. 1 = trade only zones that the shared ZoneVision 2.00 core (RFX_ZoneCore.mqh) also draws on the chart symbol; any other zone is skipped as core mismatch. 2 = the same plus a live cross-check with the ZoneVision export (ZoneVision input InpExportGV on that chart, same zone rules = same cfg checksum). In the Strategy Tester 2 works as 1.'],
+          ['InpMinConsensus', 'Off by default (0). Skip a zone whose mentor consensus (Raja 40, Kevin 30, Seiden 20, Baker 10) is below this number (0-100).'],
+          ['InpMinVerdict', 'Off by default (0). 1 = B or better, 2 = A or better, 3 = A+ only (the ZoneVision 2.00 verdict, same scale as its InpAlertMinVerdict).'],
+          ['InpMinHistE / InpMinHistN', 'Off by default (0 / 30). Skip a zone when its calibrated history (RFX_Calib.csv from analyze.py) has a best expectancy below InpMinHistE R, or fewer than InpMinHistN zones.'],
+          ['InpTPFromHist', 'Off by default. Target = the best R of the zone history cell x the risk, never beyond an opposing HTF zone.'],
+          ['InpRiskByHist', 'Off by default. Risk x (0.5 + calibrated chance of 3R), kept between 0.5 and 1.0.'],
+          ['InpEntryByLens', 'Default 0 = v1 entries. 1 = Raja: set and forget only on a strong, fresh zone, otherwise a confirmation entry is needed. 2 = Seiden: 9-10 points limit, 8 points confirmation, less = skip.'],
+          ['InpUseDirection', 'Off by default. Use the ZoneVision Direction engine instead of the v1 bias: WAIT or BLOCKED = skip, REDUCED = half risk.'],
+          ['InpDirTable / InpWKevin ... InpWBaker / InpUseCalWeights / InpCalFile', 'Keep these equal to ZoneVision: the Direction timeframe stack (1 = Kevin lesson 4, D1 to 1M to 3M), the consensus weights, and the calibration file. They only matter when a v2 input above is on.'],
         ]} />
       </Section>
 
@@ -287,6 +298,16 @@ function ZoneVision() {
           ['InpShowRejected', 'Debug: shows rejected candidates and why.'],
           ['InpTrapATR / InpTrapSwing', 'How close and how obvious a level must be to count as a liquidity trap.'],
           ['Colours', 'Demand/supply fill and line, trap, HTF band, text.'],
+          ['InpDirEngine / InpShowDirPanel', 'MT5 2.00, on by default: the top-down Direction box under the panel (ETF, ITF, HTF and Higher+1 states, one readout such as LONG - FULL or WAIT - REALIGNING). It only reads the zones and lines; the v1 drawing does not change.'],
+          ['InpDirTable', 'Timeframe stack: 1 (default) = Kevin lesson 4 (D1 to 1M to 3M, built from monthly bars), 0 = the v1 mapping, 2 = Kevin lesson 15 slide.'],
+          ['InpCurveMode / InpCurveLines / InpCurveFilter', 'Raja curve between the HTF strong zones with 25 / 50 / 75 lines (default on). The filter that hides zones on the wrong side of the curve is off by default.'],
+          ['InpDNA / InpLenses / InpLensTag', 'Zone DNA, the four mentor lenses and the consensus verdict A+ / A / B / C / X, shown as a small tag inside each drawn zone. Click the tag or the zone for the Mentors, DNA, History and Plans sections.'],
+          ['InpWRaja / InpWKevin / InpWSeiden / InpWBaker', 'Consensus weights, default 40 / 30 / 20 / 10. Keep them equal in ZoneBot.'],
+          ['InpCalFile / InpShowHist', 'RFX_Calib.csv from analyze.py --calibrate, in Terminal Common Files. With it the tag shows the history, for example 3R 64% n212.'],
+          ['InpShowWOW / InpMergeOverlap / InpTheme', 'Off or neutral by default: Raja WOW target ladder, merging of overlapping zones, forced light or dark colours.'],
+          ['InpAlertBreak / InpAlertDepth / InpAlertDir', 'Zone break and depth alerts (off), Direction change alert (on, never on load).'],
+          ['InpExportGV / InpExportN', 'Off by default. Writes the drawn zones, Direction and history as global variables for ZoneBot (InpZoneSource = 2).'],
+          ['InpDumpObjects', 'Developer check (off): writes every v1 object to a CSV so two versions can be compared byte for byte.'],
         ]} />
       </Section>
 

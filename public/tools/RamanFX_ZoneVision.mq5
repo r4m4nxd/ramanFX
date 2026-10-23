@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| RamanFX_ZoneVision.mq5  (MT5 port of RamanFX_ZoneVision.mq4 1.99) |
+//| RamanFX_ZoneVision.mq5 v2.00 (MT5; v1 part = port of the .mq4 1.99)|
 //| See the chart through the ZoneBot's eyes. Uses the SAME zone     |
 //| rules and defaults as RamanFX_ZoneBot so you can spot where      |
 //| the bot disagrees with you (and with the mentor).                |
@@ -23,12 +23,14 @@
 //| panel, strong-zone / trendline-break alerts + push, extra MT5    |
 //| timeframes, dark / light chart colours, ATR handle cache.        |
 //| Detection of zones and trendlines is identical to the MQ4.       |
-//| v2 (in progress, see docs/ZoneVision_v2_Spec.md): shared core    |
+//| v2.00 (docs/ZoneVision_v2_Spec.md): shared core                  |
 //| RFX_ZoneCore.mqh (keep it in the same folder), top-down Direction|
 //| box, Raja curve lines, optional WOW ladder and location filters, |
 //| Zone DNA + mentor lenses (Kevin / Seiden / Raja / Baker) and the |
 //| consensus verdict A+ / A / B / C / X: compact tag per zone,      |
-//| click-box sections, filtered alerts, optional merge overlap.     |
+//| click-box sections, filtered alerts, optional merge overlap,     |
+//| research DNA columns + RFX_Calib.csv history, and the ZoneBot    |
+//| export (InpExportGV: global variables RFX2|sym|tf|k|field).      |
 //| With the v2 drawing inputs at default, the v1 objects are        |
 //| unchanged (golden master: InpDumpObjects).                       |
 //+------------------------------------------------------------------+
@@ -179,6 +181,9 @@ input bool   InpResearchDNA   = true;   // Research: also log DNA, lens scores, 
 input group "-- v2 developer --"
 input bool     InpDumpObjects = false;  // Golden master: write every v1 object (RFXV_ RFXN_ RFXS_ RFXP2_) to Common\Files\RFX_Dump_<sym>_<tf>.csv
 input datetime InpDumpAt      = 0;      // Golden master: dump once at the first redraw at / after this bar time (0 = after every redraw)
+input group "-- v2 ZoneBot export --"
+input bool     InpExportGV    = false;  // Export the drawn zones (nearest first), Direction and history as global variables RFX2|sym|tf|k|field for ZoneBot (InpZoneSource = 2)
+input int      InpExportN     = 8;      // Zones exported at most (never more than the zones drawn, InpMaxZones)
 
 #define PFX "RFXV_"
 #define MAXTF 12
@@ -520,6 +525,7 @@ void OnDeinit(const int r)
    if(gRs) RsClose();
    ObjectsDeleteAll(0, PFX); ObjectsDeleteAll(0, "RFXN_"); ObjectsDeleteAll(0, "RFXP2_"); ObjectsDeleteAll(0, "RFXS_"); Comment("");
    ObjectsDeleteAll(0, "RFXV2_");
+   if(InpExportGV) GlobalVariablesDeleteAll(RFX_GVPrefix(_Symbol, TfName(CTF)));   // v2 M10: no stale export
    for(int k = 0; k < aN; k++) if(aH[k] != INVALID_HANDLE) IndicatorRelease(aH[k]);
    aN = 0;
   }
@@ -835,6 +841,7 @@ void Redraw()
    if(gDirOk && InpAlertDir) DirAlert();
    V2BreakAlerts();
    V2WowAlert();
+   if(InpExportGV) V2ExportGV();                                     // v2 M10: ZoneBot export (off by default)
    gArmed = true;
    ChartRedraw();
    if(InpDumpObjects) DumpObjects();                                 // v2 M0 golden master (off by default)
@@ -1622,6 +1629,65 @@ void V2WowAlert()
 //| RFX_DumpVTF_<sym>.csv (the 3M / 6M / 12M series, for the         |
 //| TradingView spot check).                                         |
 //+------------------------------------------------------------------+
+//+------------------------------------------------------------------+
+//| v2 M10: ZoneBot export (spec 7.2). Global variables              |
+//| RFX2|<sym>|<tf>|<k>|<field>: header k = h (ts ver cfg n dir dirq |
+//| wow1 wow2 calv), zones k = 0..n-1 in the drawn order (nearest    |
+//| first). This chart is the only writer; stale zone slots are      |
+//| deleted on every redraw, the whole set on deinit.                |
+//+------------------------------------------------------------------+
+void V2GVSet(string pre, string k, string f, double v) { GlobalVariableSet(pre + k + "|" + f, v); }
+void V2ExportGV()
+  {
+   string pre = RFX_GVPrefix(_Symbol, TfName(CTF));
+   if(StringLen(pre) + 8 > 63) return;                               // a GV name holds at most 63 characters
+   int nz = MathMin(MathMax(0, MathMin(InpExportN, 32)), ArraySize(zKey));
+   for(int k = 0; k < nz; k++)
+     {
+      string ks = IntegerToString(k);
+      bool dOk = gV2Ok && k < ArraySize(zDna) && zDna[k].ok;
+      bool lOk = dOk && k < ArraySize(zLens) && zLens[k].ok;
+      bool cOk = dOk && k < ArraySize(zCal) && zCal[k].ok;
+      V2GVSet(pre, ks, "id", (double)(long)zT1[k]);
+      V2GVSet(pre, ks, "d", zDir[k]);
+      V2GVSet(pre, ks, "prox", zProx[k]);
+      V2GVSet(pre, ks, "dist", zDist[k]);
+      V2GVSet(pre, ks, "st", zState[k] == "removed" ? 2 : (zState[k] == "tested" ? 1 : 0));
+      V2GVSet(pre, ks, "ntest", dOk ? zDna[k].nTests : 0);
+      V2GVSet(pre, ks, "depth", dOk ? zDna[k].depthMax : 0);
+      V2GVSet(pre, ks, "kv", RFX_KvCode(zVer[k]));
+      V2GVSet(pre, ks, "kg", RFX_KgCode(k < ArraySize(zGrade) ? zGrade[k] : ""));
+      V2GVSet(pre, ks, "sS", lOk ? zLens[k].scoreS : 0);
+      V2GVSet(pre, ks, "sR", lOk ? zLens[k].scoreR : 0);
+      V2GVSet(pre, ks, "rt", dOk ? zDna[k].rajaCode : 0);
+      V2GVSet(pre, ks, "sB", lOk ? zLens[k].scoreB : 0);
+      V2GVSet(pre, ks, "cons", lOk ? zLens[k].cons : 0);
+      V2GVSet(pre, ks, "v2v", lOk ? zLens[k].vcode : -1);
+      V2GVSet(pre, ks, "em", lOk ? RFX_EmCode(zLens[k]) : 0);
+      V2GVSet(pre, ks, "p3", cOk ? CalP(zCal[k], 3) : 0);
+      V2GVSet(pre, ks, "pn", cOk ? zCal[k].n : 0);
+      V2GVSet(pre, ks, "bt", cOk ? zCal[k].bestT : 0);
+      V2GVSet(pre, ks, "be", cOk ? zCal[k].bestE : 0);
+      V2GVSet(pre, ks, "lvl", cOk ? (zCal[k].prior ? -1 : zCal[k].level) : -2);
+      V2GVSet(pre, ks, "en", zEn[k]);
+      V2GVSet(pre, ks, "sl", zSl[k]);
+      V2GVSet(pre, ks, "tp", zTp[k]);
+      V2GVSet(pre, ks, "rr", zRR[k]);
+      V2GVSet(pre, ks, "nest", dOk && zDna[k].nested ? 10 + RFX_TfIndex(zDna[k].nestTf) : 0);
+      V2GVSet(pre, ks, "room", dOk ? zDna[k].roomR : 0);
+     }
+   for(int k = nz; k < 32; k++) GlobalVariablesDeleteAll(pre + IntegerToString(k) + "|");
+   V2GVSet(pre, "h", "ver", RFX_CORE_VER);
+   V2GVSet(pre, "h", "cfg", (double)RFX_CfgHash());
+   V2GVSet(pre, "h", "n", nz);
+   V2GVSet(pre, "h", "dir", gDirOk ? gDir : 0);
+   V2GVSet(pre, "h", "dirq", gDirOk ? gDirQ : 0);
+   V2GVSet(pre, "h", "wow1", gDirOk ? gWow1 : 0);
+   V2GVSet(pre, "h", "wow2", gDirOk ? gWow2 : 0);
+   V2GVSet(pre, "h", "calv", gCalOk ? (double)(gCalMod / 2) : 0);
+   V2GVSet(pre, "h", "ts", (double)(long)TimeCurrent());               // written last: the set is complete
+  }
+
 string DumpEsc(string v) { string o = v; StringReplace(o, "\t", "\\t"); StringReplace(o, "\r", ""); StringReplace(o, "\n", "\\n"); return o; }
 string DumpI(string o, ENUM_OBJECT_PROPERTY_INTEGER p) { return IntegerToString(ObjectGetInteger(0, o, p)); }
 void DumpPrefixes(string file, string pfxList)
