@@ -180,5 +180,19 @@
   "mp4_id": "1SwdzfXLqqjAw2BG6Qllj3SWjwFoQfOtY",
   "m4a_id": null,
   "flac": "/tmp/claude-0/-home-user/3ca4625b-e0ba-5998-9044-928583dca530/scratchpad/raja_hi/audio/course/3-trendline-change-high-curve-low-curve.flac"
+ },
+ "course/4-impulse-and-correction-momentum-vs-location": {
+  "video_duration_s": 2779.7,
+  "audio_source": "mp4",
+  "duration_s": 2779.7,
+  "frames": 61,
+  "frame_candidates": 97,
+  "done": true,
+  "group": "course",
+  "safe": "4-impulse-and-correction-momentum-vs-location",
+  "folder": "4. impulse and correction ,Momentum Vs Location",
+  "mp4_id": "1be4b2ZygHty3phmvGctzKR-9uDO2zWV-",
+  "m4a_id": null,
+  "flac": "/tmp/claude-0/-home-user/3ca4625b-e0ba-5998-9044-928583dca530/scratchpad/raja_hi/audio/course/4-impulse-and-correction-momentum-vs-location.flac"
  }
 }
