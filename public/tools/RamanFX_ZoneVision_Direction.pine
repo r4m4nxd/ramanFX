@@ -3,7 +3,7 @@
 // curve 25 / 50 / 75 lines, the WOW ladder and the Direction / WOW alerts). Same core code as the main indicator
 // (newest-first arrays, closed candles, HTF packs); see docs/Pine_Port_Notes.md. Keep its inputs equal to the main one.
 //@version=6
-indicator("RamanFX ZoneVision 2.00 - Direction", shorttitle = "ZV Direction", overlay = true, max_lines_count = 100, max_labels_count = 100, max_bars_back = 5000)
+indicator("RamanFX ZoneVision 2.00 - Direction", shorttitle = "ZV Dir", overlay = true, max_lines_count = 100, max_labels_count = 100, max_bars_back = 5000)
 G1 = "-- Zone rules (keep equal to ZoneBot) --"
 InpMinLegRatio     = input.float(1.2, "Move-away range / largest base candle", group = G1)
 InpMaxBase         = input.int(6, "Max basing candles", minval = 1, group = G1)

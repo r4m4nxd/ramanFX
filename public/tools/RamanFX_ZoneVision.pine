@@ -2496,7 +2496,7 @@ if doRun
                     bs := k
         rw.concat(array.from("ZoneVision  " + syminfo.ticker + " " + TfName(ctfSec), "Bias: " + (g.trend > 0 ? "UP - buys only" : (g.trend < 0 ? "DOWN - sells only" : "unclear - bot waits")), "   why: " + (g.trend == 0 ? "no clear HTF structure" : ((InpTLBias and g.hBias != 0 and g.hBias == g.trend) ? g.hBiasTxt : (h > 0 ? TfName(h) + " swing highs / lows" : "-"))), "Structure: " + StructureNow(g.tlc), bd >= 0 ? "Strong demand: " + Px(gZ.get(bd).prox) + "  (" + F1(math.abs(mid - gZ.get(bd).prox) / hatr) + " x " + TfName(h > 0 ? h : ctfSec) + " ATR)" : "Strong demand: none in view", bs >= 0 ? "Strong supply: " + Px(gZ.get(bs).prox) + "  (" + F1(math.abs(mid - gZ.get(bs).prox) / hatr) + " x " + TfName(h > 0 ? h : ctfSec) + " ATR)" : "Strong supply: none in view", "Zones in view: " + str.tostring(act) + "  (fresh " + str.tostring(fr) + ")"))
         rc.concat(array.from(g.trend == 0 ? cPopHead : cB, cB, cPopFg, cPopFg, bd >= 0 ? cDemandLine : cPopFg, bs >= 0 ? cSupplyLine : cPopFg, cPopFg))
-        for dd = 1 to -1 by -2
+        for dd = 1 to -1 by 2
             if Overextended(g, dd, mid)
                 rw.push(dd > 0 ? "Up channel OVEREXTENDED - no buys, wait" : "Down channel OVEREXTENDED - no sells, wait")
                 rc.push(cBad)
