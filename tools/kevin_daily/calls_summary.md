@@ -103,15 +103,15 @@ Counted as the number of sessions in which the rule is stated or applied (exampl
 | lower zone below liquidity | 7 | 2026-07-10, 2026-08-05, 2026-08-18 |
 | move away quality | 7 | 2026-07-17, 2026-07-21, 2026-07-22 |
 | commodities aggressive | 7 | 2026-08-04, 2026-08-05, 2026-08-11 |
-| zone scale still valid | 6 | 2026-07-09, 2026-07-14, 2026-08-07 |
-| be when overextended | 6 | 2026-07-09, 2026-07-21, 2026-07-28 |
 | removal zone strong | 6 | 2026-07-09, 2026-07-10, 2026-07-14 |
+| be when overextended | 6 | 2026-07-09, 2026-07-21, 2026-07-28 |
+| zone scale still valid | 6 | 2026-07-09, 2026-07-14, 2026-08-07 |
 | counter bias aggressive mgmt | 6 | 2026-07-10, 2026-07-17, 2026-07-22 |
 | basing too big | 6 | 2026-07-15, 2026-07-16, 2026-07-24 |
 | wait pullback to tl | 6 | 2026-07-23, 2026-08-12, 2026-08-20 |
 | follow htf control | 6 | 2026-07-30, 2026-08-06, 2026-08-13 |
-| zone touched conservative | 6 | 2026-08-04, 2026-08-12, 2026-08-13 |
 | When many pairs pull into the same zone on one dollar move, the trades are correlated - caution. | 6 | 2026-08-04, 2026-09-17, 2026-09-24 |
+| zone touched conservative | 6 | 2026-08-04, 2026-08-12, 2026-08-13 |
 | no htf trend small rr | 6 | 2026-09-02, 2026-09-03, 2026-09-09 |
 | confirmation removes tl | 5 | 2026-07-14, 2026-08-05, 2026-09-30 |
 | htf zone in control | 5 | 2026-07-21, 2026-07-23, 2026-09-29 |

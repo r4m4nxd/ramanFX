@@ -20,8 +20,7 @@ export interface AskSourceMeta {
 export const ASK_SOURCES: AskSourceMeta[] = [
   { id: 'course', label: 'Kevin course', mentor: 'Kevin', interactive: 'kevin-course' },
   { id: 'zoom', label: 'Kevin Sunday', mentor: 'Kevin', interactive: 'kevin-zoom' },
-  // Flip linkable to true once src/pages/Learn.tsx opens /learn?src=daily&l=N (today it would fall back to the Kevin course).
-  { id: 'daily', label: 'Kevin daily', mentor: 'Kevin', linkable: false },
+  { id: 'daily', label: 'Kevin daily', mentor: 'Kevin', linkable: true },
   { id: 'raja', label: 'Raja', mentor: 'Raja', interactive: 'raja' },
   { id: 'seiden', label: 'Seiden', mentor: 'Sam Seiden', interactive: 'seiden' },
   { id: 'baker', label: 'Baker', mentor: 'Kevin Baker', interactive: 'baker' },
