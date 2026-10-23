@@ -68,6 +68,7 @@ InpShowPanel       = input.bool(true, "Compact info panel", group = G2)
 InpExplain         = input.bool(false, "Explain mode: label the 4 parts on the bot's zone", group = G2)
 InpShowEmotional   = input.bool(true, "Mark emotional candles (range > InpEmoATR x ATR) with a star", group = G2)
 InpEmoColor        = input.color(#DAA520, "Emotional candle star", group = G2)
+InpTipFull         = input.bool(false, "Zone tooltip: full MT5 click box (off = short: name, grade, plan, consensus)", group = G2)
 InpShowLegend      = input.bool(true, "Short key of the abbreviations (panel tooltip)", group = G2)
 InpShowRejected    = input.bool(false, "Debug: rejected candidates + reason", group = G2)
 InpDemandFill      = input.color(#C8E8CB, "Demand fill", group = G2)
@@ -142,7 +143,7 @@ InpAlertNestedOnly = input.bool(false, "Zone alerts only for zones nested in a f
 InpAlertWithDir    = input.bool(false, "Zone alerts only for zones on the Direction side", group = G7)
 
 G8 = "-- TradingView only --"
-TvHistory          = input.int(5000, "Chart bars read (MT5 reads the whole chart; Pine max 5000)", minval = 300, maxval = 5000, group = G8, tooltip = "Depth of this chart's history the analysis sees. Only the DNA all-time-high check (5000 bars) and the HTF-line refine on very old HTF pivots can reach that far.")
+TvHistory          = input.int(2000, "Chart bars read (MT5 reads the whole chart; Pine max 5000)", minval = 300, maxval = 5000, group = G8, tooltip = "Depth of this chart's history the analysis sees. Only the DNA all-time-high check (5000 bars) and the HTF-line refine on very old HTF pivots can reach that far.")
 TvSpreadPts        = input.float(0, "Spread in points for the plans (Pine has no bid / ask)", minval = 0, group = G8, tooltip = "MT5 uses ask - bid. Put your broker's typical spread here to get the same entry / stop / R:R.")
 TvFillTransp       = input.int(55, "Zone fill transparency (MT5 draws the fill behind the candles)", minval = 0, maxval = 100, group = G8)
 TvTextSize         = input.string("tiny", "Text size of the chart labels", options = ["tiny", "small", "normal"], group = G8)
@@ -2265,8 +2266,8 @@ atrS = ta.sma(ta.tr(true), 14)
 
 // emotional candles (MQL MarkEmotional: the last ~200 closed candles, star at the high / low)
 emoBar = InpShowEmotional and barstate.isconfirmed and last_bar_index - bar_index < 200 and nz(atrS[1]) > 0 and high - low > InpEmoATR * atrS[1]
-plotshape(emoBar and close >= open, "Emotional candle (up)", shape.xcross, location.abovebar, InpEmoColor, size = size.tiny)
-plotshape(emoBar and close < open, "Emotional candle (down)", shape.xcross, location.belowbar, InpEmoColor, size = size.tiny)
+plotshape(emoBar and close >= open, "Emotional candle (up)", shape.xcross, location.abovebar, InpEmoColor, size = size.tiny, display = display.pane)
+plotshape(emoBar and close < open, "Emotional candle (down)", shape.xcross, location.belowbar, InpEmoColor, size = size.tiny, display = display.pane)
 
 // ---- objects of the last redraw (deleted and drawn again on every redraw, as MT5 ObjectsDeleteAll) ----
 var array<line> gLines = array.new<line>()
@@ -2305,6 +2306,15 @@ var int gDirSideV = 0
 var bool gDirOkV = false
 
 addL(int x1, float y1, int x2, float y2, color c, string st, int w) => gLines.push(line.new(x1, y1, x2, y2, xloc = xloc.bar_time, color = c, style = st, width = w))
+// short hover box: the first 5 lines of the click box (name, grade, plan, space) + the consensus line
+TipShort(string tip, string cons) =>
+    array<string> ln = str.split(tip, "\n")
+    string o = ""
+    int n = math.min(ln.size(), 5)
+    for i = 0 to n - 1
+        if i < n
+            o += (i > 0 ? "\n" : "") + ln.get(i)
+    o + (cons != "" ? "\n" + cons : "") + "\n(full box: setting 'Zone tooltip: full')"
 addT(int t, float p, string txt, color c, string st, string tip) => gLabels.push(label.new(t, p, txt, xloc = xloc.bar_time, style = st, color = cNone, textcolor = c, size = tvTxt, tooltip = tip))
 addB(int t1, float p1, int t2, float p2, color c) => gBoxes.push(box.new(t1, math.max(p1, p2), t2, math.min(p1, p2), border_color = cNone, bgcolor = color.new(c, TvFillTransp), xloc = xloc.bar_time))
 // alert filters (MQL V2AlertPass; all off by default)
@@ -2422,7 +2432,7 @@ if doRun
             tip += "\nLocation: " + (x.nested ? "nested in " + TfName(x.nestTf) + " " + dsz(x.d) : "not nested") + (x.inOppHtf ? " | inside " + TfName(x.oppHtfTf) + " " + dsz(-x.d) + "!" : "") + " | curve " + F0(x.curveZone) + "% (" + x.curveBucket + ") | room " + V2Room(x.roomR)
             tip += "\nTests " + str.tostring(x.nTests) + ", deepest " + F0(x.depthMax) + "% (" + x.depthGrade + ") | run-out " + F1(x.runoutH) + "h | " + str.tostring(x.minFromOpen) + " min after the open"
             tip += "\n\nPLANS\nBaker deep entry " + Px(o.ok ? o.bDeep : x.dist + x.d * 0.25 * x.h) + " | Seiden confirm " + (x.d > 0 ? "buy stop " : "sell stop ") + Px(x.prox + x.d * InpConfOffsetFrac * x.h) + (x.wowPx > 0 ? " | TP=WOW1 " + Px(x.wowPx) + " = 1:" + F1(math.abs(x.wowPx - n.en) / math.max(math.abs(n.en - n.sl), gPt)) : "")
-        tip := str.length(tip) > 3800 ? str.substring(tip, 0, 3795) + "..." : tip
+        tip := InpTipFull ? (str.length(tip) > 3800 ? str.substring(tip, 0, 3795) + "..." : tip) : TipShort(tip, o.ok ? "Consensus " + F0(o.cons) + " -> " + o.verdict + " (" + str.tostring(o.nPass) + " of 4 pass)" : "")
         addB(t1, z.prox, t2, z.dist, z.removed ? cRemFill : (z.dir > 0 ? cDemandFill : cSupplyFill))
         addL(t1, z.prox, t2, z.prox, lnc, line.style_solid, z.arrival ? 2 : 1)
         addL(t1, z.dist, t2, z.dist, lnc, line.style_solid, z.arrival ? 2 : 1)

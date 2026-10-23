@@ -42,7 +42,7 @@ InpAlertWOW        = input.bool(false, "Alert on a new WOW1 target with the guar
 G6 = "-- v2 Display --"
 InpTheme           = input.int(0, "Colours: 0 = auto (follows the chart background), 1 = light, 2 = dark", minval = 0, maxval = 2, group = G6)
 G8 = "-- TradingView only --"
-TvHistory          = input.int(5000, "Chart bars read (MT5 reads the whole chart; Pine max 5000)", minval = 300, maxval = 5000, group = G8, tooltip = "Depth of this chart's history the analysis sees. Only the DNA all-time-high check (5000 bars) and the HTF-line refine on very old HTF pivots can reach that far.")
+TvHistory          = input.int(2000, "Chart bars read (MT5 reads the whole chart; Pine max 5000)", minval = 300, maxval = 5000, group = G8, tooltip = "Depth of this chart's history the analysis sees. Only the DNA all-time-high check (5000 bars) and the HTF-line refine on very old HTF pivots can reach that far.")
 TvSpreadPts        = input.float(0, "Spread in points for the plans (Pine has no bid / ask)", minval = 0, group = G8, tooltip = "MT5 uses ask - bid. Put your broker's typical spread here to get the same entry / stop / R:R.")
 TvTextSize         = input.string("tiny", "Text size of the chart labels", options = ["tiny", "small", "normal"], group = G8)
 TvPanelSize        = input.string("small", "Panel text size", options = ["tiny", "small", "normal"], group = G8)
