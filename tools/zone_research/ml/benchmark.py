@@ -3,8 +3,9 @@
 
 Usage (CSVs are data; run with python -I, the script adds its own folder to sys.path):
     python -I tools/zone_research/ml/benchmark.py --is IS_DIR --oos OOS_DIR --out OUT_DIR
-        [--models lgbm,lr,tabpfn,tabicl,lgbm_s1,lgbm_age,lgbm_y2,lgbm_y5] [--splits F,Fplus,R]
-        [--hf-dir DIR_WITH_CKPTS] [--cap 10000] [--boot 2000]
+        [--models lgbm,lr,tabpfn,tabicl,lgbm_s1,lgbm_s1nd,lgbm_age,lgbm_y2,lgbm_y5] [--splits F,Fplus,R]
+        [--hf-dir DIR_WITH_CKPTS] [--cap 6000] [--cap-tabpfn 3000] [--tabpfn-feats 40] [--boot 2000]
+    lightgbm runs single-threaded (OpenMP threads were 30x slower on a shared 4-core box).
 
 Writes OUT_DIR/results.json, OUT_DIR/tables.md and OUT_DIR/shap_*.csv. Seeds are fixed (SEED = 7).
 Pre-registered protocol and pass criteria: docs/research/Zone_ML_Benchmark.md section 0.
@@ -159,20 +160,29 @@ def cap_sample(d, cap, strat, ycol):
     return pd.concat(parts).sort_values("created_dt")
 
 
+HF_EST = {"tabpfn": 2, "tabicl": 2}   # ensemble members (CPU time and memory on a shared 4-core / 16 GB box)
+
+
 def fit_tabpfn(Xtr, ytr, hf_dir):
+    """TabPFN v2 (Prior-Labs/TabPFN-v2-clf, Prior Labs License 1.1 = Apache-2.0 + attribution), CPU."""
+    import torch
     from tabpfn import TabPFNClassifier
+    torch.set_num_threads(4)
     path = os.path.join(hf_dir, "tabpfn-v2-classifier.ckpt")
-    m = TabPFNClassifier(model_path=path, device="cpu", n_estimators=4, random_state=SEED,
-                         ignore_pretraining_limits=True)
+    m = TabPFNClassifier(model_path=path, device="cpu", n_estimators=HF_EST["tabpfn"], random_state=SEED,
+                         ignore_pretraining_limits=True, fit_mode="fit_with_cache")
     m.fit(Xtr, ytr)
     return m
 
 
 def fit_tabicl(Xtr, ytr, hf_dir):
+    """TabICL v2 (jingang/TabICL, BSD-3-Clause), CPU, train context cached."""
+    import torch
     from tabicl import TabICLClassifier
-    path = os.path.join(hf_dir, "tabicl-classifier-v1.1-0506.ckpt")
-    m = TabICLClassifier(model_path=path, allow_auto_download=False, device="cpu", n_estimators=4, random_state=SEED,
-                         checkpoint_version="tabicl-classifier-v1.1-0506.ckpt")
+    torch.set_num_threads(4)
+    ck = "tabicl-classifier-v2-20260212.ckpt"
+    m = TabICLClassifier(model_path=os.path.join(hf_dir, ck), allow_auto_download=False, checkpoint_version=ck,
+                         device="cpu", n_estimators=HF_EST["tabicl"], random_state=SEED, kv_cache=True)
     m.fit(Xtr, ytr)
     return m
 
@@ -283,32 +293,37 @@ def run(args):
         num = drop_constant(Z.NUM_FEATURES, trT)
         base_F = Frame(num, Z.CAT_FEATURES, ALL)
         # references
-        refs = {"random": rng.random(len(test)), "cons": test["cons"].fillna(-1).to_numpy()}
+        # non-ML references: random, the indicator's consensus score, and the cheapest feature (low spread per R)
+        refs = {"random": rng.random(len(test)), "cons": test["cons"].fillna(-1).to_numpy(),
+                "lowspread": -test["spread_R"].to_numpy()}
         refs_cal = {"random": rng.random(len(cal)) if cal is not None else None,
-                    "cons": cal["cons"].fillna(-1).to_numpy() if cal is not None else None}
-        for name in models + ["cons", "random"]:
+                    "cons": cal["cons"].fillna(-1).to_numpy() if cal is not None else None,
+                    "lowspread": -cal["spread_R"].to_numpy() if cal is not None else None}
+        for name in models + ["cons", "lowspread", "random"]:
             ycol, rcol = "y3", "R3"
             if name == "lgbm_y2":
                 ycol, rcol = "y2", "R2"
             if name == "lgbm_y5":
                 ycol, rcol = "y5", "R5"
-            if name == "lgbm_s1" and sp != "Fplus":
+            if name in ("lgbm_s1", "lgbm_s1nd") and sp != "Fplus":
                 continue
             if name in ("lgbm_y2", "lgbm_y5") and sp == "R":
                 continue
-            if name in ("lgbm_s1",) and sp == "Fplus":
+            if name == "lgbm_s1":
                 F = Frame(num + drop_constant(s1, trT), Z.CAT_FEATURES, ALL)
+            elif name == "lgbm_s1nd":       # s1_ set without s1_touch_depth (the touch candle's own depth)
+                F = Frame(num + drop_constant([c for c in s1 if c != "s1_touch_depth"], trT), Z.CAT_FEATURES, ALL)
             elif name == "lgbm_age":
                 F = Frame(num + ["t1_bars_f"], Z.CAT_FEATURES, ALL)
             else:
                 F = base_F
             tt = time.time()
             p_cal_raw = None
-            if name in ("cons", "random"):
+            if name in ("cons", "lowspread", "random"):
                 s_test = refs[name]
                 p_cal_raw = refs_cal[name]
             elif name.startswith("lgbm"):
-                base = "lgbm" if name == "lgbm_s1" else name
+                base = "lgbm" if name in ("lgbm_s1", "lgbm_s1nd") else name
                 if sp == "Fplus":       # same hyper-parameters as F (pre-registered)
                     prm, nest = out["tuning"][base + "_F"]["params"], out["tuning"][base + "_F"]["n_est"]
                 else:
@@ -318,7 +333,7 @@ def run(args):
                 s_test = m.predict_proba(F.lgb(test))[:, 1]
                 if cal is not None:
                     p_cal_raw = m.predict_proba(F.lgb(cal))[:, 1]
-                if name in ("lgbm", "lgbm_s1", "lgbm_age"):
+                if name in ("lgbm", "lgbm_s1", "lgbm_s1nd", "lgbm_age"):
                     tst = test[test.traded]
                     contrib = m.booster_.predict(F.lgb(tst), pred_contrib=True)[:, :-1]
                     imp = pd.Series(np.abs(contrib).mean(0), index=F.num + F.cat).sort_values(ascending=False)
@@ -336,12 +351,24 @@ def run(args):
                 if cal is not None:
                     p_cal_raw = m.predict_proba(cal[F.num + F.cat])[:, 1]
             elif name in ("tabpfn", "tabicl"):
-                sub = cap_sample(trT, args.cap, S["strat"], ycol)
+                cap = args.cap if name == "tabicl" else args.cap_tabpfn
+                sub = cap_sample(trT, cap, S["strat"], ycol)
+                if name == "tabpfn":
+                    # CPU cost grows with rows x features: keep the top-k features by LightGBM gain on THIS split's
+                    # training trades (no test information), the rest of the allow-list is dropped
+                    k2 = "lgbm_F" if sp == "Fplus" else "lgbm_" + sp
+                    g = lgb_model(out["tuning"][k2]["params"], out["tuning"][k2]["n_est"], base_F.num + base_F.cat)
+                    g.fit(base_F.lgb(trT), trT[ycol])
+                    gain = pd.Series(g.booster_.feature_importance("gain"), index=base_F.num + base_F.cat)
+                    keep = list(gain.sort_values(ascending=False).index[:args.tabpfn_feats])
+                    F = Frame([c for c in keep if c in base_F.num], [c for c in keep if c in base_F.cat], ALL)
+                    out["tuning"]["tabpfn_features_" + sp] = keep
                 fit = fit_tabpfn if name == "tabpfn" else fit_tabicl
                 m = fit(F.dense(sub), sub[ycol].to_numpy(), args.hf_dir)
-                s_test = predict_batched(m, F.dense(test))
+                bs = 1000
+                s_test = predict_batched(m, F.dense(test), bs)
                 if cal is not None:
-                    p_cal_raw = predict_batched(m, F.dense(cal))
+                    p_cal_raw = predict_batched(m, F.dense(cal), bs)
                 out["tuning"]["%s_%s" % (name, sp)] = dict(train_rows=int(len(sub)))
             else:
                 raise SystemExit("unknown model " + name)
@@ -354,7 +381,7 @@ def run(args):
             else:
                 tr_ = test.traded.to_numpy()
                 thr = (np.quantile(s_test[tr_], 0.9), np.quantile(s_test[tr_], 0.8))
-                p_test = s_test if name not in ("cons", "random") else None
+                p_test = s_test if name not in ("cons", "lowspread", "random") else None
                 base_cal = None
             res = evaluate(test, s_test, p_test, thr, args.boot, rcol=rcol, ycol=ycol, base_cal=base_cal)
             res["criteria"] = criteria(res, sp)
@@ -376,7 +403,9 @@ def main():
     ap.add_argument("--models", default="lgbm,lr")
     ap.add_argument("--splits", default="F,Fplus,R")
     ap.add_argument("--hf-dir", default=None)
-    ap.add_argument("--cap", type=int, default=10000)
+    ap.add_argument("--cap", type=int, default=6000, help="TabICL training rows")
+    ap.add_argument("--cap-tabpfn", type=int, default=3000, help="TabPFN training rows (CPU)")
+    ap.add_argument("--tabpfn-feats", type=int, default=40, help="TabPFN: top-k features by LightGBM gain")
     ap.add_argument("--boot", type=int, default=2000)
     run(ap.parse_args())
 

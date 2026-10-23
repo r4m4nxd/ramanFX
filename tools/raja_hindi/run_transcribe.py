@@ -4,7 +4,7 @@ import argparse, json, os, subprocess, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import transcribe as T, process as P
 
-ap = argparse.ArgumentParser(); ap.add_argument("--model", default="large-v3"); ap.add_argument("--lang", default="hi")
+ap = argparse.ArgumentParser(); ap.add_argument("--model", default="large-v3"); ap.add_argument("--lang", default="ur")
 ap.add_argument("--translate", action="store_true"); a = ap.parse_args()
 OUT = P.TOOLS + "/transcripts"
 

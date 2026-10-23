@@ -24,6 +24,7 @@ PROMPT = {
            "daily, weekly, Kevin, Sam Seiden. دیکھو، یہاں پہ demand zone بنا ہے، اب price واپس آئے گا۔"),
 }
 _models = {}
+BATCH = int(os.environ.get("RAJA_BATCH", "0"))  # >0: BatchedInferencePipeline for full-file passes
 
 def model(name="large-v3", compute="int8", threads=4):
     k = (name, compute)
@@ -43,7 +44,13 @@ def _run(m, audio, offset, lang, task, temperature, **kw):
     # compression_ratio_threshold (2.4) triggers temperature fallback on almost every
     # normal window (6x slower). Use 3.2; real loops still exceed it and are caught below.
     kw.setdefault("compression_ratio_threshold", 3.2)
-    segs, info = m.transcribe(audio, language=lang, task=task, beam_size=5, vad_filter=True,
+    if BATCH and offset == 0.0 and len(audio) > 60 * SR:
+        from faster_whisper import BatchedInferencePipeline
+        segs, info = BatchedInferencePipeline(m).transcribe(audio, batch_size=BATCH, language=lang, task=task, beam_size=5,
+                              vad_filter=True, condition_on_previous_text=False, initial_prompt=PROMPT.get(lang),
+                              temperature=temperature, **kw)
+    else:
+      segs, info = m.transcribe(audio, language=lang, task=task, beam_size=5, vad_filter=True,
                               vad_parameters=dict(min_silence_duration_ms=700),
                               condition_on_previous_text=False, initial_prompt=PROMPT.get(lang),
                               temperature=temperature, **kw)

@@ -1,0 +1,144 @@
+{
+ "meta": {
+  "model": "large-v3-turbo",
+  "compute": "int8",
+  "language": "hi",
+  "beam_size": 5,
+  "vad_filter": true,
+  "condition_on_previous_text": false,
+  "duration_s": 180.0,
+  "runtime_s": 154.4,
+  "rtf": 0.858,
+  "loop_spans_rerun": 0
+ },
+ "segments": [
+  {
+   "start": 0.0,
+   "end": 30.03,
+   "text": "तो यह देखाँ, volume peaks बन रही होती है, ठीक है, तो वाली पे वो, जैसे कश्मीर वाली हो गया, ठीक है, peak level हो गया, हिंदुकाश हो गया, ठीक है, तो यह इस तरह के volume peaks मिलेगे, तो यह, एक simple supply and demand में, volume peaks, और चाह, जो advance है, उसमें आपको मिलेगी CP level, और हम इसे कहते हैं, continuation pattern,",
+   "avg_logprob": -0.167,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.07
+  },
+  {
+   "start": 30.03,
+   "end": 31.17,
+   "text": "वालिम पीक देखना है",
+   "avg_logprob": -0.201,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.74
+  },
+  {
+   "start": 31.17,
+   "end": 33.57,
+   "text": "वालिम पीक के लिए रूल ये के",
+   "avg_logprob": -0.201,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.74
+  },
+  {
+   "start": 33.57,
+   "end": 35.01,
+   "text": "मार्कीट फस्ट ड्रॉप होगी",
+   "avg_logprob": -0.201,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.74
+  },
+  {
+   "start": 35.01,
+   "end": 37.23,
+   "text": "उपर से नीचे वी बनाने के लिए देखना है",
+   "avg_logprob": -0.201,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.74
+  },
+  {
+   "start": 37.23,
+   "end": 38.71,
+   "text": "उपर से नीचे नी परती है",
+   "avg_logprob": -0.201,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.74
+  },
+  {
+   "start": 38.71,
+   "end": 40.75,
+   "text": "फिर उपर से नीचे से उपर ठीक है",
+   "avg_logprob": -0.201,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.74
+  },
+  {
+   "start": 40.75,
+   "end": 43.11,
+   "text": "तो इस में के पहले मार्कीट नीचे ड्रॉप होगी",
+   "avg_logprob": -0.201,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.74
+  },
+  {
+   "start": 43.11,
+   "end": 74.49,
+   "text": "टॉप से बॉटम, ठीक है, तो हम इसे कहते हैं, डॉप, फिर ये बेस कैंडल है, बेस कैंडल मेंस इस टॉपर कैंडल माजीद मारकी नीचे नहीं जाएगी, यह इसे रिवर्स होके ऊपर के तरफ चले जाएगी, ठीक है, तो इसमें के डॉप, बेस, बेस बेले, ठीक है, तो",
+   "avg_logprob": -0.179,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.59
+  },
+  {
+   "start": 74.49,
+   "end": 105.19,
+   "text": "तो सबसे पहले रूल यह के ड्रॉप जो केंडल हैं वह और रेडी बेस केंडल के अरिये में हो ठीक है और लिविंग केंडल जो है वह भी बेस केंडल के अरिये को छोड़ हो यह हमारी ड्रॉप है तो हम इसे कहते हैं कि लैग वन यह हमारी ड्रॉप लैग होगी जो और रेड",
+   "avg_logprob": -0.178,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.75
+  },
+  {
+   "start": 105.19,
+   "end": 110.53,
+   "text": "होगी ठीक है और लेग टू यह होगी लेग वन लेग टू और यह हमारी पेस केंडल होगी",
+   "avg_logprob": -0.243,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.67
+  },
+  {
+   "start": 110.53,
+   "end": 128.39,
+   "text": "तो इसमेन के यह हमारी डिमान लेवल बन गया जी ठीक है और सप्प्लाई लेवल के लिए स्थी के लिए राली और बेस दें ड्रॉप तो यह हमने जब ड्रॉप करना है तो हमारी टो विक प्लस थिक बोड़ी बोटम विक को हमने छोड़ देना हमार कीट रिस्पेक्ट",
+   "avg_logprob": -0.286,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.42
+  },
+  {
+   "start": 128.39,
+   "end": 142.07,
+   "text": "तो यह इस तरह हमने ट्रेड करनी है तो यह हमारी लैग वन यह होगी बुलिश लैग होगी और यह हमारी बैडिश होगी यह मारा वाली पीक है ठीक है",
+   "avg_logprob": -0.19,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.54
+  },
+  {
+   "start": 142.07,
+   "end": 172.81,
+   "text": "और कोई भी पेर है, ठीक है, कोई भी पेर आप जब उस पे जाओगे, थार एक टाइम फ्रेम पे अलग से वाली पीक बन रही होती है, लो टाइम फ्रेम से अलग से बन रही होती है, हाई टाइम फ्रेम पे अलग से, इवन के वान मिनट टाइम फ्रेम पे भी सब्लाई डिमां",
+   "avg_logprob": -0.15,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.79
+  },
+  {
+   "start": 172.81,
+   "end": 177.45,
+   "text": "छोटी से, draw base वाली, ठीक है, draw base वाली, draw base वाली,",
+   "avg_logprob": -0.281,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 1.69
+  },
+  {
+   "start": 177.45,
+   "end": 179.69,
+   "text": "यह demand levels है, ठीक है?",
+   "avg_logprob": -0.281,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 1.69
+  }
+ ]
+}

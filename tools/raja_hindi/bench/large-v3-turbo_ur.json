@@ -1,0 +1,398 @@
+{
+ "meta": {
+  "model": "large-v3-turbo",
+  "compute": "int8",
+  "language": "ur",
+  "beam_size": 5,
+  "vad_filter": true,
+  "condition_on_previous_text": false,
+  "duration_s": 180.0,
+  "runtime_s": 181.3,
+  "rtf": 1.007,
+  "loop_spans_rerun": 1
+ },
+ "segments": [
+  {
+   "start": 0.0,
+   "end": 4.0,
+   "text": "انسوریلز پہ، تو یہ دیکھا، والی اند پیکس بن رہی ہوتی ہیں، ٹھیک ہے؟",
+   "avg_logprob": -0.29,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 1.93,
+   "refixed": true
+  },
+  {
+   "start": 4.0,
+   "end": 10.0,
+   "text": "تو والی پہ وہ، جیسے کشمیر والی ہو گیا، ٹیک ہے، پیک لیور ہو گیا ہندوکاش ہو گیا ٹھک ہے؟",
+   "avg_logprob": -0.29,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 1.93,
+   "refixed": true
+  },
+  {
+   "start": 10.0,
+   "end": 20.0,
+   "text": "تو یہ اس طرح کے والی ان پیکس ملے گی، تو یہ ایک simple supply and demand میں والی انپیکس، اور اچھا جو advance ہے، اس میں آپ کو ملےگی CP level،",
+   "avg_logprob": -0.29,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 1.93,
+   "refixed": true
+  },
+  {
+   "start": 20.0,
+   "end": 28.03,
+   "text": "اور ہم اسے کہتے ہیں continuation pattern, potential continuation pattern, means PCP level, potential and CP level، ٹکی؟",
+   "avg_logprob": -0.29,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 1.93,
+   "refixed": true
+  },
+  {
+   "start": 28.03,
+   "end": 29.97,
+   "text": "تو سب سے پہلے ہم انہیں",
+   "avg_logprob": -0.231,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 1.03,
+   "refixed": true
+  },
+  {
+   "start": 29.97,
+   "end": 31.01,
+   "text": "اولیم پیک دیکھنے",
+   "avg_logprob": -0.231,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 1.03,
+   "refixed": true
+  },
+  {
+   "start": 30.03,
+   "end": 31.17,
+   "text": "ولیم پیک دیکھنا ہے",
+   "avg_logprob": -0.253,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.36
+  },
+  {
+   "start": 31.17,
+   "end": 33.57,
+   "text": "ولیم پیک کے لئے رول یہ ہے کہ",
+   "avg_logprob": -0.253,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.36
+  },
+  {
+   "start": 33.57,
+   "end": 35.03,
+   "text": "مارکیٹ فس دراب ہوگی",
+   "avg_logprob": -0.253,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.36
+  },
+  {
+   "start": 35.03,
+   "end": 35.95,
+   "text": "اوپر سے نیچے",
+   "avg_logprob": -0.253,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.36
+  },
+  {
+   "start": 35.95,
+   "end": 37.21,
+   "text": "وی بنانے کے لئے دیکھا ہے",
+   "avg_logprob": -0.253,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.36
+  },
+  {
+   "start": 37.21,
+   "end": 38.73,
+   "text": "اوپر سے نیچے کھینچنی بڑھتی ہے",
+   "avg_logprob": -0.253,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.36
+  },
+  {
+   "start": 38.73,
+   "end": 40.45,
+   "text": "پھر اوپر سے نیچے سے اوپر",
+   "avg_logprob": -0.253,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.36
+  },
+  {
+   "start": 40.45,
+   "end": 40.75,
+   "text": "ٹھیک ہے",
+   "avg_logprob": -0.253,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.36
+  },
+  {
+   "start": 40.75,
+   "end": 43.11,
+   "text": "پہلے مارکیٹ نیچے دراب ہوگی",
+   "avg_logprob": -0.253,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.36
+  },
+  {
+   "start": 43.11,
+   "end": 43.87,
+   "text": "ٹاپ سے بوٹم",
+   "avg_logprob": -0.253,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.36
+  },
+  {
+   "start": 43.87,
+   "end": 44.51,
+   "text": "ٹھیک ہے",
+   "avg_logprob": -0.253,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.36
+  },
+  {
+   "start": 44.51,
+   "end": 45.41,
+   "text": "تو ہم اسے کہتے ہیں",
+   "avg_logprob": -0.253,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.36
+  },
+  {
+   "start": 45.41,
+   "end": 45.81,
+   "text": "ڈراب",
+   "avg_logprob": -0.253,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.36
+  },
+  {
+   "start": 45.81,
+   "end": 47.31,
+   "text": "پھر یہ بیس کینڈل ہے",
+   "avg_logprob": -0.253,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.36
+  },
+  {
+   "start": 47.31,
+   "end": 47.83,
+   "text": "بیس کینڈل",
+   "avg_logprob": -0.253,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.36
+  },
+  {
+   "start": 47.83,
+   "end": 47.85,
+   "text": "بیس کینڈل",
+   "avg_logprob": -0.253,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.36
+  },
+  {
+   "start": 47.85,
+   "end": 76.07,
+   "text": "سب سے پہلے رول یہ ہے کہ",
+   "avg_logprob": -0.525,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 0.83
+  },
+  {
+   "start": 76.07,
+   "end": 79.37,
+   "text": "ڈروپ جو کینڈلز ہیں وہ آر ایڈی بیس کینڈل کے ایریا میں ہوں",
+   "avg_logprob": -0.266,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.5
+  },
+  {
+   "start": 80.58,
+   "end": 84.68,
+   "text": "ٹھیک ہے اور لیونگ کینڈل جو ہے وہ بھی بیس کینڈل کے ایریا کو چھوڑ ہی ہو",
+   "avg_logprob": -0.266,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.5
+  },
+  {
+   "start": 84.68,
+   "end": 85.88,
+   "text": "یہ ہماری ڈروپ ہے",
+   "avg_logprob": -0.266,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.5
+  },
+  {
+   "start": 86.87,
+   "end": 90.37,
+   "text": "تو ہم اسے کہتے ہیں کہ لیک ون یہ ہماری ڈروپ لیک ہوگی",
+   "avg_logprob": -0.266,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.5
+  },
+  {
+   "start": 90.37,
+   "end": 92.67,
+   "text": "جو آر ایڈی بیس کینڈل ایریا میں ہے ٹھیک ہے",
+   "avg_logprob": -0.266,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.5
+  },
+  {
+   "start": 92.97,
+   "end": 94.17,
+   "text": "ٹوٹل بیس کینڈل ایریا",
+   "avg_logprob": -0.266,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.5
+  },
+  {
+   "start": 94.77,
+   "end": 97.57,
+   "text": "جو وکس ہیں ٹھیک ہے",
+   "avg_logprob": -0.266,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.5
+  },
+  {
+   "start": 98.17,
+   "end": 100.77,
+   "text": "آچھا اور یہ ہماری لیونگ کینڈل ہے",
+   "avg_logprob": -0.266,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.5
+  },
+  {
+   "start": 100.77,
+   "end": 102.95,
+   "text": "یعنی بولیش کینڈا یا رالی سے کہتے ہیں",
+   "avg_logprob": -0.293,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 102.95,
+   "end": 105.53,
+   "text": "سو یہ لیکن ون یہ ہوگی",
+   "avg_logprob": -0.293,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 105.53,
+   "end": 107.37,
+   "text": "ٹھیک ہے اور لیکن ٹو یہ ہوگی",
+   "avg_logprob": -0.293,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 107.37,
+   "end": 110.55,
+   "text": "لیکن ون لیکن ٹو اور یہ ہماری پیس کینڈل ہوگی",
+   "avg_logprob": -0.293,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 110.55,
+   "end": 113.07,
+   "text": "سو اٹس مین کہ یہ ہماری ڈیمان لیول بن گیا",
+   "avg_logprob": -0.293,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 113.07,
+   "end": 115.73,
+   "text": "ٹھیک ہے اور سپلائی لیول کے لیے",
+   "avg_logprob": -0.293,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 115.73,
+   "end": 117.85,
+   "text": "اس لیے رالی اور بیس",
+   "avg_logprob": -0.293,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 117.85,
+   "end": 119.15,
+   "text": "دن روپ",
+   "avg_logprob": -0.293,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 119.15,
+   "end": 120.29,
+   "text": "اور دن روپ",
+   "avg_logprob": -0.293,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 120.29,
+   "end": 123.73,
+   "text": "تو یہ ہمارے جب دراؤ کرنا ہے",
+   "avg_logprob": -0.293,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 123.73,
+   "end": 125.11,
+   "text": "تو ہماری توب وک اور پلس",
+   "avg_logprob": -0.293,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 125.11,
+   "end": 127.43,
+   "text": "تھک باڈی بوٹم وک کو ہم نے چھوڑ دینا",
+   "avg_logprob": -0.293,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 127.43,
+   "end": 128.43,
+   "text": "ہمارے کیٹ ریسپیکٹ",
+   "avg_logprob": -0.594,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 0.78
+  },
+  {
+   "start": 158.17,
+   "end": 170.27,
+   "text": "so , یہ دکھیں , drop , base , rally , drop , base , rally , rally , base , peak level , rally , drop , base ,",
+   "avg_logprob": -0.92,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.01
+  },
+  {
+   "start": 170.27,
+   "end": 179.25,
+   "text": "B-shape , v-shape , چھوٹی سے , drop , base , drop , base , drop , base , demand",
+   "avg_logprob": -0.92,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 2.01
+  },
+  {
+   "start": 179.25,
+   "end": 179.71,
+   "text": "ہم ٹھیک ہے",
+   "avg_logprob": -0.692,
+   "no_speech_prob": 0.0,
+   "compression_ratio": 0.67
+  }
+ ]
+}

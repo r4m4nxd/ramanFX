@@ -1,0 +1,440 @@
+{
+ "meta": {
+  "model": "large-v3",
+  "compute": "int8",
+  "language": "ur",
+  "beam_size": 5,
+  "vad_filter": true,
+  "condition_on_previous_text": false,
+  "duration_s": 180.0,
+  "runtime_s": 460.7,
+  "rtf": 2.559,
+  "loop_spans_rerun": 0
+ },
+ "segments": [
+  {
+   "start": 0.0,
+   "end": 13.8,
+   "text": "تو یہ دیکھا ہے والی اینڈ پیکس بننی ہوتی ہیں، ٹھیک ہے، تو والی پہ وہ جیسے کشمیر والی ہو گیا، ٹھیک ہے، پیک لیور ہو گیا، ہندو کاش ہو گیا، ٹھیک ہے، تو یہ اس طرح کے والی اینڈ پیکس ملے گی۔",
+   "avg_logprob": -0.174,
+   "no_speech_prob": 0.005,
+   "compression_ratio": 2.02
+  },
+  {
+   "start": 13.8,
+   "end": 27.87,
+   "text": "تو یہ ایک simple supply and demand میں ہے والی اینڈ پیکس، جو advance ہے اس میں آپ کو ملے گی CP level اور ہم اسے کہتے ہیں continuation pattern and potential continuation pattern, that means PCP level, potential and CP level.",
+   "avg_logprob": -0.174,
+   "no_speech_prob": 0.005,
+   "compression_ratio": 2.02
+  },
+  {
+   "start": 27.87,
+   "end": 32.53,
+   "text": "اوکی تو سب سے پہلے ہم نے والیم پیک دیکھنا ہے والیم پیک کے لیے",
+   "avg_logprob": -0.107,
+   "no_speech_prob": 0.72,
+   "compression_ratio": 2.36
+  },
+  {
+   "start": 32.53,
+   "end": 36.59,
+   "text": "رول یہ ہے کہ مارکیٹ فرسٹ ڈراب ہوگی اوپر سے نیچے وی بنانے",
+   "avg_logprob": -0.107,
+   "no_speech_prob": 0.72,
+   "compression_ratio": 2.36
+  },
+  {
+   "start": 36.59,
+   "end": 39.49,
+   "text": "کے لیے دیکھا ہے اوپر سے نیچے کھینچ نہیں پڑتی ہے پھر اوپر سے",
+   "avg_logprob": -0.107,
+   "no_speech_prob": 0.72,
+   "compression_ratio": 2.36
+  },
+  {
+   "start": 39.49,
+   "end": 42.53,
+   "text": "نیچے سے اوپر ٹھیک ہے سو ایٹس مین کہ پہلے مارکیٹ نیچے",
+   "avg_logprob": -0.107,
+   "no_speech_prob": 0.72,
+   "compression_ratio": 2.36
+  },
+  {
+   "start": 42.53,
+   "end": 46.55,
+   "text": "ڈراب ہوگی ٹاپ سے بوٹم ٹھیک ہے تو ہم اسے کہتے ہیں ڈراب پھر یہ",
+   "avg_logprob": -0.107,
+   "no_speech_prob": 0.72,
+   "compression_ratio": 2.36
+  },
+  {
+   "start": 46.55,
+   "end": 50.25,
+   "text": "بیس کینڈل ہے بیس کینڈل میز سٹوپر کینڈل مزید مارکین نیچے نہیں",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.896,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 50.25,
+   "end": 53.59,
+   "text": "جائے گی یہ اس ریورس ہو کے اوپر کے طرف چلے جائے گی ٹھیک ہے سو",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.896,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 53.59,
+   "end": 61.35,
+   "text": "ایٹس مین کہ ڈراب بیس بیس پہلے آر رالی ٹھیک ہے تو یہ ہمارا وی",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.896,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 61.35,
+   "end": 65.87,
+   "text": "شیئر بن گیا اور یہ اسی کے ہم ٹریڈ کریں گے ٹھیک ہے اچھا اس پہ",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.896,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 65.87,
+   "end": 69.71,
+   "text": "ہمارے پاس رول ہے رول یاد رکھیں کہ جیسے میں نے بتایا نا کہ بیس",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.896,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 69.71,
+   "end": 73.61,
+   "text": "کینڈل کے بعد ڈیپارچر اگر بنتی ہے تو پھر بیس کینڈل ہم کہیں گے",
+   "avg_logprob": -0.065,
+   "no_speech_prob": 0.92,
+   "compression_ratio": 2.39
+  },
+  {
+   "start": 73.61,
+   "end": 76.85,
+   "text": "ویسے نہیں کہیں گے ٹھیک ہے تو سب سے پہلے رول یہ ہے کہ ڈراب جو",
+   "avg_logprob": -0.065,
+   "no_speech_prob": 0.92,
+   "compression_ratio": 2.39
+  },
+  {
+   "start": 76.85,
+   "end": 81.48,
+   "text": "کینڈلز ہیں وہ آر ایڈی بیس کینڈل کے ایریے میں ہو ٹھیک ہے اور",
+   "avg_logprob": -0.065,
+   "no_speech_prob": 0.92,
+   "compression_ratio": 2.39
+  },
+  {
+   "start": 81.48,
+   "end": 84.68,
+   "text": "لیونگ کینڈل جو ہے وہ بھی بیس کینڈل کے ایریے کو چھوڑ رہی ہو",
+   "avg_logprob": -0.065,
+   "no_speech_prob": 0.92,
+   "compression_ratio": 2.39
+  },
+  {
+   "start": 84.68,
+   "end": 89.41,
+   "text": "یہ ہماری ڈراب ہے آہ تو ہم اسے کہتے ہیں کہ لیگ ون یہ ہماری",
+   "avg_logprob": -0.065,
+   "no_speech_prob": 0.92,
+   "compression_ratio": 2.39
+  },
+  {
+   "start": 89.41,
+   "end": 91.67,
+   "text": "drop lag ہوگی جو already in base candle",
+   "avg_logprob": -0.197,
+   "no_speech_prob": 0.842,
+   "compression_ratio": 1.95
+  },
+  {
+   "start": 91.67,
+   "end": 92.65,
+   "text": "area میں ہے ٹھیک ہے",
+   "avg_logprob": -0.197,
+   "no_speech_prob": 0.842,
+   "compression_ratio": 1.95
+  },
+  {
+   "start": 92.65,
+   "end": 94.13,
+   "text": "total base candle area",
+   "avg_logprob": -0.197,
+   "no_speech_prob": 0.842,
+   "compression_ratio": 1.95
+  },
+  {
+   "start": 94.13,
+   "end": 97.29,
+   "text": "with wicks ہیں",
+   "avg_logprob": -0.197,
+   "no_speech_prob": 0.842,
+   "compression_ratio": 1.95
+  },
+  {
+   "start": 97.29,
+   "end": 97.59,
+   "text": "ٹھیک ہے",
+   "avg_logprob": -0.197,
+   "no_speech_prob": 0.842,
+   "compression_ratio": 1.95
+  },
+  {
+   "start": 97.59,
+   "end": 100.79,
+   "text": "اور یہ ہماری leaving candle ہے",
+   "avg_logprob": -0.197,
+   "no_speech_prob": 0.842,
+   "compression_ratio": 1.95
+  },
+  {
+   "start": 100.79,
+   "end": 102.99,
+   "text": "یعنی bullish candle یا rally جیسے کہتے ہیں",
+   "avg_logprob": -0.197,
+   "no_speech_prob": 0.842,
+   "compression_ratio": 1.95
+  },
+  {
+   "start": 102.99,
+   "end": 105.51,
+   "text": "so یہ lag 1 یہ ہوگی",
+   "avg_logprob": -0.197,
+   "no_speech_prob": 0.842,
+   "compression_ratio": 1.95
+  },
+  {
+   "start": 105.51,
+   "end": 107.39,
+   "text": "ٹھیک ہے اور lag 2 یہ ہوگی",
+   "avg_logprob": -0.197,
+   "no_speech_prob": 0.842,
+   "compression_ratio": 1.95
+  },
+  {
+   "start": 107.39,
+   "end": 109.17,
+   "text": "lag 1 lag 2 اور",
+   "avg_logprob": -0.197,
+   "no_speech_prob": 0.842,
+   "compression_ratio": 1.95
+  },
+  {
+   "start": 109.17,
+   "end": 110.79,
+   "text": "یہ ہماری base candle ہوگی",
+   "avg_logprob": -0.197,
+   "no_speech_prob": 0.842,
+   "compression_ratio": 1.95
+  },
+  {
+   "start": 110.79,
+   "end": 113.29,
+   "text": "so it's mean کہ یہ ہماری demand level بن گیا جائے",
+   "avg_logprob": -0.197,
+   "no_speech_prob": 0.842,
+   "compression_ratio": 1.95
+  },
+  {
+   "start": 113.29,
+   "end": 113.81,
+   "text": "ٹھیک ہے",
+   "avg_logprob": -0.197,
+   "no_speech_prob": 0.842,
+   "compression_ratio": 1.95
+  },
+  {
+   "start": 113.81,
+   "end": 116.43,
+   "text": "اور supply level کے لیے اس لیے rally",
+   "avg_logprob": -0.197,
+   "no_speech_prob": 0.842,
+   "compression_ratio": 1.95
+  },
+  {
+   "start": 116.43,
+   "end": 117.85,
+   "text": "اور base",
+   "avg_logprob": -0.197,
+   "no_speech_prob": 0.842,
+   "compression_ratio": 1.95
+  },
+  {
+   "start": 117.85,
+   "end": 123.01,
+   "text": "تو یہ ہمارے جب",
+   "avg_logprob": -0.169,
+   "no_speech_prob": 0.953,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 123.01,
+   "end": 124.13,
+   "text": "جب ڈراؤ کرنا ہے تو ہماری",
+   "avg_logprob": -0.169,
+   "no_speech_prob": 0.953,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 124.13,
+   "end": 126.11,
+   "text": "تو ویک او پلس تھک باڈی",
+   "avg_logprob": -0.169,
+   "no_speech_prob": 0.953,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 126.11,
+   "end": 128.37,
+   "text": "بوٹم ویک کو ہم نے چھوڑ دینا ہماری کیٹ ریسپیکٹ",
+   "avg_logprob": -0.169,
+   "no_speech_prob": 0.953,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 128.37,
+   "end": 130.01,
+   "text": "موسلی نہیں کرتی بس",
+   "avg_logprob": -0.169,
+   "no_speech_prob": 0.953,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 130.01,
+   "end": 131.91,
+   "text": "بہت زفر کر جاتی ہے لو ٹائم فرام پہ",
+   "avg_logprob": -0.169,
+   "no_speech_prob": 0.953,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 131.91,
+   "end": 134.09,
+   "text": "تو یہ اس طرف",
+   "avg_logprob": -0.169,
+   "no_speech_prob": 0.953,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 134.09,
+   "end": 136.09,
+   "text": "ہم نے ٹریڈ کرنی ہے تو یہ ہماری",
+   "avg_logprob": -0.169,
+   "no_speech_prob": 0.953,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 136.09,
+   "end": 138.85,
+   "text": "لیک ون یہ ہوگی بولیش لیک ہوگی",
+   "avg_logprob": -0.169,
+   "no_speech_prob": 0.953,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 138.85,
+   "end": 140.19,
+   "text": "اور یہ ہماری بیلیش ہوگی",
+   "avg_logprob": -0.169,
+   "no_speech_prob": 0.953,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 140.19,
+   "end": 141.71,
+   "text": "یہ ہمارا وارین پیکس ہے",
+   "avg_logprob": -0.169,
+   "no_speech_prob": 0.953,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 141.71,
+   "end": 145.37,
+   "text": "اور کوئی بھی پیئر ہے",
+   "avg_logprob": -0.169,
+   "no_speech_prob": 0.953,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 145.37,
+   "end": 147.21,
+   "text": "کوئی بھی پیئر ہے",
+   "avg_logprob": -0.169,
+   "no_speech_prob": 0.953,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 147.21,
+   "end": 151.87,
+   "text": "جب اس پہ جاؤ گے ہر ایک time frame پہ الگ سے volume peak بن رہی ہوتی ہے",
+   "avg_logprob": -0.104,
+   "no_speech_prob": 0.847,
+   "compression_ratio": 2.26
+  },
+  {
+   "start": 151.87,
+   "end": 155.51,
+   "text": "low time frame سے الگ سے بن رہی ہوتی ہے high time frame پہ الگ سے",
+   "avg_logprob": -0.104,
+   "no_speech_prob": 0.847,
+   "compression_ratio": 2.26
+  },
+  {
+   "start": 155.51,
+   "end": 159.15,
+   "text": "even کے one minute time frame پہ بھی supply and demand بن رہی ہوتی ہے",
+   "avg_logprob": -0.104,
+   "no_speech_prob": 0.847,
+   "compression_ratio": 2.26
+  },
+  {
+   "start": 159.15,
+   "end": 164.37,
+   "text": "ٹھیک ہے تو یہ دیکھیں drop base rally okay rally base drop drop base rally",
+   "avg_logprob": -0.104,
+   "no_speech_prob": 0.847,
+   "compression_ratio": 2.26
+  },
+  {
+   "start": 164.37,
+   "end": 168.89,
+   "text": "rally base drop ٹھیک ہے rally base drop peak level یہ دیکھیں rally base",
+   "avg_logprob": -0.104,
+   "no_speech_prob": 0.847,
+   "compression_ratio": 2.26
+  },
+  {
+   "start": 168.89,
+   "end": 173.13,
+   "text": "drop ٹھیک ہے پھر drop base rally v شیپ ہو گیا یہ v شیپ ہو گیا چھوٹی",
+   "avg_logprob": -0.104,
+   "no_speech_prob": 0.847,
+   "compression_ratio": 2.26
+  },
+  {
+   "start": 173.13,
+   "end": 177.13,
+   "text": "صحیح. آہ. ڈراؤ بیس والی ٹھیک ہے ڈراؤ بیس والی ڈراؤ بیس",
+   "avg_logprob": -0.221,
+   "no_speech_prob": 0.811,
+   "compression_ratio": 1.6
+  },
+  {
+   "start": 177.13,
+   "end": 181.67,
+   "text": "والی یہ ڈیمان لیولز ہیں ٹھیک ہے",
+   "avg_logprob": -0.221,
+   "no_speech_prob": 0.811,
+   "compression_ratio": 1.6
+  }
+ ]
+}

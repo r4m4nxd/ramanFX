@@ -13,7 +13,7 @@ runs = [("large-v3", "hi"), ("medium", "hi"), ("large-v3", "ur"), ("large-v3-tur
 if len(sys.argv) > 3: runs = [tuple(r.split(":")) for r in sys.argv[3].split(",")]
 res = {}
 for name, lang in runs:
-    lab = os.path.basename(name.rstrip("/"))
+    lab = os.path.basename(name.rstrip("/")) + (f"_b{T.BATCH}" if T.BATCH else "")
     meta = T.transcribe(wav, f"{B}/{lab}_{lang}", name, lang)
     res[f"{lab}_{lang}"] = meta["rtf"]; print(name, lang, "rtf", meta["rtf"], flush=True)
     T._models.clear()

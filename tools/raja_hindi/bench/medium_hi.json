@@ -1,0 +1,264 @@
+{
+ "meta": {
+  "model": "medium",
+  "compute": "int8",
+  "language": "hi",
+  "beam_size": 5,
+  "vad_filter": true,
+  "condition_on_previous_text": false,
+  "duration_s": 180.0,
+  "runtime_s": 619.5,
+  "rtf": 3.442,
+  "loop_spans_rerun": 0
+ },
+ "segments": [
+  {
+   "start": 0.0,
+   "end": 14.0,
+   "text": "यहाँ वाली और पीक्स बन रही होती है, तो वाली पे कषमीर वाली हो गया, पीक लेवर हो गया, हिंदुकाश हो गया, तो इस तराके वाली और पीक्स मेलेगे।",
+   "avg_logprob": -0.292,
+   "no_speech_prob": 0.707,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 14.0,
+   "end": 20.0,
+   "text": "तो यह एक simple supply and demand में है, वाली और पीक्स, जो advance है, उस में आपको मिलेगे CP level,",
+   "avg_logprob": -0.292,
+   "no_speech_prob": 0.707,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 50.03,
+   "end": 53.03,
+   "text": "यह इसे रवर्स हो के उपर के तर्व चड़े जाएगे।",
+   "avg_logprob": -0.34,
+   "no_speech_prob": 0.812,
+   "compression_ratio": 1.92
+  },
+  {
+   "start": 53.03,
+   "end": 59.41,
+   "text": "So it means drop, base, rally.",
+   "avg_logprob": -0.34,
+   "no_speech_prob": 0.812,
+   "compression_ratio": 1.92
+  },
+  {
+   "start": 59.41,
+   "end": 62.41,
+   "text": "तो यह हमारा वी शेब बान किया।",
+   "avg_logprob": -0.34,
+   "no_speech_prob": 0.812,
+   "compression_ratio": 1.92
+  },
+  {
+   "start": 62.41,
+   "end": 65.41,
+   "text": "और यह इसी के हम ट्रेड करेंगे।",
+   "avg_logprob": -0.34,
+   "no_speech_prob": 0.812,
+   "compression_ratio": 1.92
+  },
+  {
+   "start": 65.41,
+   "end": 67.41,
+   "text": "अच्छा इस पे हमारे पास रूल है।",
+   "avg_logprob": -0.34,
+   "no_speech_prob": 0.812,
+   "compression_ratio": 1.92
+  },
+  {
+   "start": 67.41,
+   "end": 69.41,
+   "text": "रूल याद रखे कि जैसे मैं बताया नहीं कि",
+   "avg_logprob": -0.34,
+   "no_speech_prob": 0.812,
+   "compression_ratio": 1.92
+  },
+  {
+   "start": 69.41,
+   "end": 71.99,
+   "text": "बेस कैंडल के बाद डिपाचर अगर बनती हैं",
+   "avg_logprob": -0.261,
+   "no_speech_prob": 0.844,
+   "compression_ratio": 2.66
+  },
+  {
+   "start": 71.99,
+   "end": 74.61,
+   "text": "तो फिर बेस कैंडल हम कहेंगे वैसे नहीं कहेंगे",
+   "avg_logprob": -0.261,
+   "no_speech_prob": 0.844,
+   "compression_ratio": 2.66
+  },
+  {
+   "start": 74.61,
+   "end": 79.41,
+   "text": "तो सबसे पहले रूल ही है कि द्रॉप जो कैंडल्स हैं वो आरेडी बेस कैंडल के एरिये में हो",
+   "avg_logprob": -0.261,
+   "no_speech_prob": 0.844,
+   "compression_ratio": 2.66
+  },
+  {
+   "start": 79.41,
+   "end": 85.92,
+   "text": "और लिएविंग कैंडल जो है वो भी बेस कैंडल के एरिये को छोड यो ये हमारी ड्राप है",
+   "avg_logprob": -0.28,
+   "no_speech_prob": 0.813,
+   "compression_ratio": 2.76
+  },
+  {
+   "start": 85.92,
+   "end": 90.11,
+   "text": "तो हम इसे कहते हैं कि लेविंग कैंडल ये हमारी ड्राप लेविंग होगी",
+   "avg_logprob": -0.28,
+   "no_speech_prob": 0.813,
+   "compression_ratio": 2.76
+  },
+  {
+   "start": 90.11,
+   "end": 94.11,
+   "text": "जो आरेडिन बेस कैंडल एरिये में हैं तोटर बेस कैंडल एरिये",
+   "avg_logprob": -0.28,
+   "no_speech_prob": 0.813,
+   "compression_ratio": 2.76
+  },
+  {
+   "start": 94.11,
+   "end": 98.11,
+   "text": "जो विक सेन तीके",
+   "avg_logprob": -0.28,
+   "no_speech_prob": 0.813,
+   "compression_ratio": 2.76
+  },
+  {
+   "start": 98.11,
+   "end": 103.31,
+   "text": "अच्छा, और ये हमारी लिएविंग कैंडल है, यानिक बॉलिश कैंडल, या राली दिसे कहते हैं।",
+   "avg_logprob": -0.279,
+   "no_speech_prob": 0.557,
+   "compression_ratio": 2.52
+  },
+  {
+   "start": 103.31,
+   "end": 107.55,
+   "text": "तो ये लेग वन ये होगी, तीक हैं, और लेग टू ये होगी।",
+   "avg_logprob": -0.279,
+   "no_speech_prob": 0.557,
+   "compression_ratio": 2.52
+  },
+  {
+   "start": 107.55,
+   "end": 110.67,
+   "text": "लेग वन, लेग टू और ये हमारी पेस कैंडल होगी।",
+   "avg_logprob": -0.279,
+   "no_speech_prob": 0.557,
+   "compression_ratio": 2.52
+  },
+  {
+   "start": 110.67,
+   "end": 113.47,
+   "text": "तो यह हमारी दिमान लेवल बन गया है।",
+   "avg_logprob": -0.357,
+   "no_speech_prob": 0.413,
+   "compression_ratio": 2.45
+  },
+  {
+   "start": 113.47,
+   "end": 121.15,
+   "text": "तीकह? और सप्लाई लेवल के लिए से लिए राली और बेस और रॉप और रॉप तीकह?",
+   "avg_logprob": -0.357,
+   "no_speech_prob": 0.413,
+   "compression_ratio": 2.45
+  },
+  {
+   "start": 121.15,
+   "end": 126.19,
+   "text": "तो यह हमारी जब रॉप करना है तो हमारी टोव विक उप्लस थिक बाड़ी",
+   "avg_logprob": -0.357,
+   "no_speech_prob": 0.413,
+   "compression_ratio": 2.45
+  },
+  {
+   "start": 126.19,
+   "end": 130.19,
+   "text": "बौटुम विक्यों हम नहीं चोट देना मार्कीट रिस्पेक्ट, मौसली नहीं करते हैं।",
+   "avg_logprob": -0.381,
+   "no_speech_prob": 0.853,
+   "compression_ratio": 2.28
+  },
+  {
+   "start": 130.19,
+   "end": 132.19,
+   "text": "बहुत सब कर जाते हैं लो टाइम फ्राम पे थींगें।",
+   "avg_logprob": -0.381,
+   "no_speech_prob": 0.853,
+   "compression_ratio": 2.28
+  },
+  {
+   "start": 132.19,
+   "end": 135.19,
+   "text": "तो यह इस तरफा हमने ट्रेट करने हैं।",
+   "avg_logprob": -0.381,
+   "no_speech_prob": 0.853,
+   "compression_ratio": 2.28
+  },
+  {
+   "start": 135.19,
+   "end": 142.19,
+   "text": "तो यह हमारी लेक वान यह होगी, पुलिश लेक होगी, और यह हमारी बैड़िश होगी, यह हमारा वालिन पीक्स हैं।",
+   "avg_logprob": -0.237,
+   "no_speech_prob": 0.902,
+   "compression_ratio": 2.57
+  },
+  {
+   "start": 142.19,
+   "end": 151.93,
+   "text": "और कोई भी पेर हैं, कोई भी पेर आप जब उस पे जाओगे तहार एक टाइम फ्राम पे अलक से वालिन पीक बन रही होती हैं।",
+   "avg_logprob": -0.237,
+   "no_speech_prob": 0.902,
+   "compression_ratio": 2.57
+  },
+  {
+   "start": 151.93,
+   "end": 155.93,
+   "text": "लो टाइम फ्रेम से अलक से परन रही होती है, हाई टाइम फ्रेम पे अलक से",
+   "avg_logprob": -0.234,
+   "no_speech_prob": 0.823,
+   "compression_ratio": 2.99
+  },
+  {
+   "start": 155.93,
+   "end": 158.93,
+   "text": "इवन के वान मिना टाइम फ्रेम पे भी सब्लाइन डमान पर रही होती हैं",
+   "avg_logprob": -0.234,
+   "no_speech_prob": 0.823,
+   "compression_ratio": 2.99
+  },
+  {
+   "start": 158.93,
+   "end": 161.93,
+   "text": "तो यह देखे ड्रॉप बेस राली",
+   "avg_logprob": -0.234,
+   "no_speech_prob": 0.823,
+   "compression_ratio": 2.99
+  },
+  {
+   "start": 161.93,
+   "end": 165.93,
+   "text": "ड्रॉप बेस राली, ड्रॉप बेस राली, ड्रॉप बेस राली",
+   "avg_logprob": -0.234,
+   "no_speech_prob": 0.823,
+   "compression_ratio": 2.99
+  },
+  {
+   "start": 165.93,
+   "end": 179.93,
+   "text": "राली बेस रॉप, पीक लेवल, राली बेस रॉप, फिर रॉप बेस रॉप, वी शेप हो गया, यह वी शेप हो गया, चोटी से, रॉप बेस रॉप, रॉप बेस रॉप, रॉप बेस रॉप, यह दिमान लेवल सें, तीकह?",
+   "avg_logprob": -0.238,
+   "no_speech_prob": 0.605,
+   "compression_ratio": 2.7
+  }
+ ]
+}
