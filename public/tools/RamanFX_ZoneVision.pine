@@ -68,6 +68,7 @@ InpShowPanel       = input.bool(true, "Compact info panel", group = G2)
 InpExplain         = input.bool(false, "Explain mode: label the 4 parts on the bot's zone", group = G2)
 InpShowEmotional   = input.bool(true, "Mark emotional candles (range > InpEmoATR x ATR) with a star", group = G2)
 InpEmoColor        = input.color(#DAA520, "Emotional candle star", group = G2)
+InpPriceTags       = input.bool(false, "Price tags (12.34) at the right end of each zone", group = G2)
 InpTipFull         = input.bool(false, "Zone tooltip: full MT5 click box (off = short: name, grade, plan, consensus)", group = G2)
 InpShowLegend      = input.bool(true, "Short key of the abbreviations (panel tooltip)", group = G2)
 InpShowRejected    = input.bool(false, "Debug: rejected candidates + reason", group = G2)
@@ -2398,8 +2399,10 @@ if doRun
         int t2 = z.removed ? hs.sT(z.removedBar) : right
         string nm = TfName(R.hzTf) + " " + ZoneName(z)
         addB(t1, z.prox, t2, z.dist, cHtfFill)
-        addT(t2, z.prox, "(" + Px(z.prox) + ")", cText, label.style_label_right, nm)
-        addT(t2, z.dist, "(" + Px(z.dist) + ")", cText, label.style_label_right, nm)
+        if InpPriceTags
+            addT(t2, z.prox, "(" + Px(z.prox) + ")", cText, label.style_label_right, nm)
+        if InpPriceTags
+            addT(t2, z.dist, "(" + Px(z.dist) + ")", cText, label.style_label_right, nm)
         if InpShowNames
             addT(t1, z.dist, TfName(R.hzTf) + " " + dsz(z.dir), cText, z.dir > 0 ? label.style_label_upper_left : label.style_label_lower_left, nm)
     // ---- chart zones (DrawZones(Z, false) + V2Zones tags); the click box = the name label's tooltip
@@ -2436,8 +2439,10 @@ if doRun
         addB(t1, z.prox, t2, z.dist, z.removed ? cRemFill : (z.dir > 0 ? cDemandFill : cSupplyFill))
         addL(t1, z.prox, t2, z.prox, lnc, line.style_solid, z.arrival ? 2 : 1)
         addL(t1, z.dist, t2, z.dist, lnc, line.style_solid, z.arrival ? 2 : 1)
-        addT(t2, z.prox, "(" + Px(z.prox) + ")", lnc, label.style_label_right, ZoneName(z) + " | " + n.ver)
-        addT(t2, z.dist, "(" + Px(z.dist) + ")", lnc, label.style_label_right, ZoneName(z) + " | " + n.ver)
+        if InpPriceTags
+            addT(t2, z.prox, "(" + Px(z.prox) + ")", lnc, label.style_label_right, ZoneName(z) + " | " + n.ver)
+        if InpPriceTags
+            addT(t2, z.dist, "(" + Px(z.dist) + ")", lnc, label.style_label_right, ZoneName(z) + " | " + n.ver)
         if z.trap > 0 and z.trapBar > 0
             addB(C.sT(z.trapBar), z.trap, t2, z.trap - z.dir * math.max(math.abs(z.prox - z.dist) * 0.12, 2 * gPt), cTrap)
         string side = z.dir > 0 ? label.style_label_upper_left : label.style_label_lower_left
