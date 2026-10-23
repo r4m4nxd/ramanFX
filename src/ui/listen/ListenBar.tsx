@@ -55,7 +55,7 @@ function naturalLine(k: KokoroStatus, buffering: boolean, compact: boolean): str
   return null;
 }
 
-const HINT = 'Best voices: Microsoft Edge (Natural voices) or Chrome; on iPhone use Settings > Accessibility > Spoken Content > Voices to download an Enhanced voice.';
+const HINT = 'Best voices: Microsoft Edge (Natural voices) or Chrome. iPhone: download an Enhanced voice in Settings > Accessibility > Spoken Content > Voices > English, then fully close Safari (or the home-screen app) and reopen it so the new voice appears here. Some Apple voices (Premium, Siri, Personal Voice) may not be offered to websites at all.';
 
 export function ListenBar({ lesson, mentor = 'Kevin', className }: { lesson: VideoLesson; mentor?: string; className?: string }) {
   const chapters = useMemo(() => buildNarration(lesson, mentor), [lesson, mentor]);

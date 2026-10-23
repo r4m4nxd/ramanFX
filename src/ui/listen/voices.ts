@@ -17,17 +17,21 @@ const APPLE_GOOD = /\b(Samantha|Ava|Daniel|Karen|Moira|Tessa|Serena|Alex|Allison
 /** Robotic engines and macOS novelty voices: never pick these automatically. */
 const ROBOTIC = /espeak|e-speak|mbrola|festival|pico|flite|robot|whisper|bad news|good news|bells|boing|bubbles|cellos|zarvox|trinoids|jester|organ|superstar|wobble|albert|fred\b|junior|ralph|kathy|bahh|deranged|hysterical|princess|grandma|grandpa|eddy|flo\b|reed|rocko|sandy|shelley/i;
 
+// iOS / macOS give the Enhanced and Premium downloads the SAME name as the compact voice ("Ava");
+// only the voiceURI tells them apart (com.apple.voice.enhanced.en-US.Ava / ...premium...).
+const tier = (v: SpeechSynthesisVoice) => `${v.name} ${v.voiceURI || ''}`;
+
 export function rankVoice(v: SpeechSynthesisVoice): number {
   const lang = (v.lang || '').replace('_', '-').toLowerCase();
-  const name = v.name;
+  const name = v.name, t = tier(v);
   if (!lang.startsWith('en')) return -1000;
   let s = 0;
   if (lang === 'en-us' || lang === 'en-gb') s += 6; else if (/^en-(au|ie|ca|nz|za|in)/.test(lang)) s += 3;
   if (ROBOTIC.test(name)) s -= 500;
   if (/natural/i.test(name)) s += 100;
   if (/neural/i.test(name)) s += 90;
-  if (/premium/i.test(name)) s += 85;
-  if (/enhanced/i.test(name)) s += 75;
+  if (/premium/i.test(t)) s += 85;
+  if (/enhanced/i.test(t)) s += 75;
   if (/online/i.test(name)) s += 55;
   if (/microsoft/i.test(name) && EDGE_NATURAL.test(name)) s += 40;
   if (/^Google UK English Female/i.test(name)) s += 58;
@@ -36,7 +40,7 @@ export function rankVoice(v: SpeechSynthesisVoice): number {
   else if (/^Google/i.test(name)) s += 20;
   if (APPLE_GOOD.test(name) && !/microsoft|google/i.test(name)) s += /^(Samantha|Ava)/.test(name) ? 36 : 28;
   if (/microsoft (david|zira|mark|hazel|george|susan|james|linda|richard|catherine|heera|ravi)/i.test(name)) s += 10;
-  if (/compact/i.test(name)) s -= 15;
+  if (/compact/i.test(t)) s -= 15;
   if (v.default) s += 2;
   return s;
 }
@@ -47,7 +51,8 @@ export const isEnglish = (v: SpeechSynthesisVoice) => rankVoice(v) > -1000;
 /** "Microsoft Aria Online (Natural) - English (United States)" -> "Aria · Natural · US". */
 export function voiceLabel(v: SpeechSynthesisVoice): string {
   const region = (v.lang || '').split(/[-_]/)[1]?.toUpperCase() ?? '';
-  const quality = /natural/i.test(v.name) ? 'Natural' : /neural/i.test(v.name) ? 'Neural' : /premium/i.test(v.name) ? 'Premium' : /enhanced/i.test(v.name) ? 'Enhanced' : '';
+  const t = tier(v);
+  const quality = /natural/i.test(v.name) ? 'Natural' : /neural/i.test(v.name) ? 'Neural' : /premium/i.test(t) ? 'Premium' : /enhanced/i.test(t) ? 'Enhanced' : '';
   let base = v.name
     .replace(/\s*[-–]\s*English.*$/i, '')
     .replace(/\((natural|neural|premium|enhanced)\)/gi, '')
