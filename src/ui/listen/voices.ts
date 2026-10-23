@@ -63,7 +63,8 @@ export function voiceLabel(v: SpeechSynthesisVoice): string {
 }
 
 export function sortVoices(list: SpeechSynthesisVoice[]) {
-  return list.filter(isEnglish).sort((a, b) => rankVoice(b) - rankVoice(a) || a.name.localeCompare(b.name));
+  // novelty voices (Albert, Bad News, Bubbles, Zarvox ...) are never offered
+  return list.filter(v => isEnglish(v) && rankVoice(v) > -400).sort((a, b) => rankVoice(b) - rankVoice(a) || a.name.localeCompare(b.name));
 }
 
 // ─── Voices store (they load asynchronously, and Safari sometimes never fires voiceschanged) ───
