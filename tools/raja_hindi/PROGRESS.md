@@ -1,14 +1,14 @@
 # Raja Hindi transcription progress
 
-Updated 2026-10-23 20:25 UTC
+Updated 2026-10-23 22:45 UTC
 
-Model large-v3 int8, language=ur. Done 0/21 recordings, 0.0 h of 15.3 h audio. ETA 15.3 h (rtf None).
+Model large-v3 int8, language=ur. Done 1/21 recordings, 1.0 h of 15.3 h audio. ETA 34.2 h (rtf 2.376).
 
-Currently: private/2026-02-02
+Currently: private/2026-02-10
 
 | | recording | hours | frames |
 |---|---|---|---|
-| todo | private/2026-02-02 | 0.97 | 77 |
+| done | private/2026-02-02 | 0.97 | 77 |
 | todo | private/2026-02-10 | 0.66 | 52 |
 | todo | private/2026-02-18 | 0.79 | 63 |
 | todo | private/2026-02-25 | 0.60 | 48 |
