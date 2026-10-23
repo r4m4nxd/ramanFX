@@ -415,6 +415,7 @@ ulong    knownTickets[];
 struct Proposal { string sym; int k; int dir; double entry, sl, tp, dist, rr, prox; bool trap; string method, grade, info; datetime t, tZone; };
 string placeErr = "";
 string gKeep = "|";
+int gStatusN = 0;   // status lines drawn bottom-right (the advice list stacks above them)
 int myTrend = 0; string myTrendWhy = ""; datetime lastMine = 0;
 Proposal props[]; string lastPanelSig = ""; int viewK = -1; int panelBottom = 120;
 string dSym[]; int dK[]; string dProx[]; datetime dTime[]; bool dMy[];   // advice you denied (expires when the zone goes or after 3 days)
@@ -807,7 +808,7 @@ void OnDeinit(const int reason)
    ObjectsDeleteAll(0, "RFXN2_");
    if(reason != REASON_CHARTCHANGE) ObjectsDeleteAll(0, "RFXP_");
    Comment("");
-   ObjectsDeleteAll(0, "RFXS_");
+   ObjectsDeleteAll(0, "RFXBS_");
    ObjectsDeleteAll(0, "RFXW_");
    ObjectsDeleteAll(0, "RFXT_");
    ObjectsDeleteAll(0, "RFXK_");
@@ -957,8 +958,12 @@ void Status()
    if(t == lastStatus) return;                                         // nothing changed: no redraw
    lastStatus = t;
    string ls[]; int n = StringSplit(t, '\n', ls);
-   for(int i = n; i < 16; i++) ObjectDelete(0, "RFXS_" + IntegerToString(i));
-   for(int i = 0; i < n; i++) if(ls[i] != "") RightLabel(0, "RFXS_" + IntegerToString(i), ls[i], 20 + i * 15, i == 0 ? clrRoyalBlue : (StringFind(ls[i], "!") == 0 ? clrCrimson : clrDimGray), i == 0 ? 9 : 8);
+   while(n > 0 && ls[n - 1] == "") n--;
+   gStatusN = n;
+   for(int i = n; i < 16; i++) ObjectDelete(0, "RFXBS_" + IntegerToString(i));
+   // bottom-right corner (ZoneVision's panel sits top-right): last line nearest the bottom
+   for(int i = 0; i < n; i++) if(ls[i] != "") { RightLabel(0, "RFXBS_" + IntegerToString(i), ls[i], 20 + (n - 1 - i) * 15, i == 0 ? clrRoyalBlue : (StringFind(ls[i], "!") == 0 ? clrCrimson : clrDimGray), i == 0 ? 9 : 8); ObjectSetInteger(0, "RFXBS_" + IntegerToString(i), OBJPROP_CORNER, CORNER_RIGHT_LOWER); ObjectSetInteger(0, "RFXBS_" + IntegerToString(i), OBJPROP_ANCHOR, ANCHOR_RIGHT_LOWER); }
+   if(gMode == MODE_APPROVE) { lastPanelSig = ""; DrawProposals(); }   // the advice list sits above these lines
   }
 
 // Nothing the bot draws can be selected or dragged by a stray click - except the panel BUTTONS (RFXB_), which must stay clickable.
@@ -3654,14 +3659,16 @@ void DrawProposals()
       bool gone = HasOrder(p.sym, p.k) || broke || (p.dir > 0 && (ask <= p.entry || (p.tp > 0 && bid >= p.entry + 0.8 * (p.tp - p.entry)))) || (p.dir < 0 && (bid >= p.entry || (p.tp > 0 && ask <= p.entry - 0.8 * (p.entry - p.tp))));
       if(gone) { if(p.k == viewK && p.sym == _Symbol) ClearView(); DropProposal(i); }
      }
-   int W = (int)ChartGetInteger(0, CHART_WIDTH_IN_PIXELS), x0 = MathMax(10, W - 12 - 392);
-   string sig = IntegerToString(viewK) + "|" + IntegerToString(W);
+   int W = (int)ChartGetInteger(0, CHART_WIDTH_IN_PIXELS), H = (int)ChartGetInteger(0, CHART_HEIGHT_IN_PIXELS), x0 = MathMax(10, W - 12 - 392);
+   string sig = IntegerToString(viewK) + "|" + IntegerToString(W) + "|" + IntegerToString(H) + "|" + IntegerToString(gStatusN);
    for(int i = 0; i < ArraySize(props); i++) sig += "|" + props[i].sym + TF_N[props[i].k] + IntegerToString(props[i].dir) + props[i].method + DoubleToString(props[i].prox, 6) + DoubleToString(props[i].rr, 1) + props[i].grade + (props[i].trap ? "t" : "");
    if(sig == lastPanelSig) return;
    lastPanelSig = sig;
    gKeep = "|";
-   // right side, under the bot's status lines (max 5 lines from y 20): nothing overlaps
-   int y = 112;
+   // bottom-right, above the bot's status lines; the viewed advice's reasoning goes under the list
+   int nr = 0;
+   if(viewK >= 0) for(int i = 0; i < ArraySize(props); i++) if(props[i].k == viewK && props[i].sym == _Symbol) { string tl[]; nr = StringSplit(props[i].info, '\n', tl); break; }
+   int y = MathMax(20, H - 20 - gStatusN * 15 - 10 - nr * 14 - 6 - 26 * (ArraySize(props) + 1));
    Btn("RFXB_r0", "Refresh " + _Symbol + (ArraySize(props) == 0 ? "  (no advice yet)" : StringFormat("  (%d advice)", ArraySize(props))), x0, y, 392, clrDarkSlateGray);
    y += 26;
    // rows sorted by timeframe M1 .. W1; button names carry timeframe AND symbol, so a click always hits the right advice
@@ -3686,7 +3693,7 @@ void DrawProposals()
    for(int o = ObjectsTotal(0, -1, -1) - 1; o >= 0; o--)               // remove buttons of advice that is gone
      {
       string nm = ObjectName(0, o);
-      if(StringFind(nm, "RFXB_") == 0 && StringFind(keep, "|" + nm + "|") < 0) ObjectDelete(0, nm);
+      if(StringFind(nm, "RFXB_") == 0 && StringFind(gKeep, "|" + nm + "|") < 0) ObjectDelete(0, nm);
      }
    // reasoning of the advice being viewed, right under the list
    ObjectsDeleteAll(0, "RFXN2_");
@@ -3700,7 +3707,7 @@ void DrawProposals()
   }
 void Btn(string nm, string text, int x, int y, int w, color bg)
   {
-   keep += nm + "|";
+   gKeep += nm + "|";
    if(ObjectFind(0, nm) < 0)
      {
       ObjectCreate(0, nm, OBJ_BUTTON, 0, 0, 0);

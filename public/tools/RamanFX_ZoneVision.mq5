@@ -95,7 +95,9 @@ input color  InpText          = C'90,90,90';
 input string Sep3             = "-- MT5 extras (detection unchanged) --"; // -----
 input bool   InpRichPopup     = true;   // Click box: sectioned (grade & trade / plan / why / drills), coloured header, close x
 input bool   InpClickPlan     = true;   // Click box open: draw that zone's entry / SL / TP lines (dashed) with prices
-input bool   InpCompactPanel  = true;   // Panel as a compact top-left box (click its header to collapse); false = MT4-style Comment
+input bool   InpCompactPanel  = true;   // Panel as a compact box (click its header to collapse); false = MT4-style Comment
+input bool   InpPanelRight    = true;   // Panel + Direction box in the top-RIGHT corner (false = top-left, as v1)
+input bool   InpPanelSeeThru  = true;   // Panel boxes drawn behind the candles, so candles stay visible through them
 input bool   InpAlertStrong   = true;   // Alert when price reaches a fresh STRONG zone (once per zone)
 input bool   InpAlertTL       = true;   // Alert when a drawn trendline (this chart or HTF) breaks on the last closed candle
 input bool   InpPush          = false;  // Also send alerts as push notifications (set up MetaQuotes ID in Tools > Options > Notifications)
@@ -262,7 +264,10 @@ string sR[]; color sC[];
 // compact panel
 bool   gPanelOpen = true;
 string gPanL = "", gPanPlan = "";
-int    gPanX = 0, gPanY = 0, gPanW = 0, gPanH = 0;
+int    gPanX = 0, gPanY = 0, gPanW = 0, gPanH = 0, gChartW = 0;
+// panel x: top-right (InpPanelRight) or v1 top-left
+int PanelX(int bw) { int W = (int)ChartGetInteger(0, CHART_WIDTH_IN_PIXELS); gChartW = W; return InpPanelRight ? MathMax(8, W - bw - 8) : 8; }
+void SeeThru(string nm) { if(InpPanelSeeThru) ObjectSetInteger(0, nm, OBJPROP_BACK, true); }
 // v2 Direction box (under the compact panel)
 bool   gDirOpen = true;
 int    gDbX = 0, gDbY = 0, gDbW = 0, gDbH = 0;
@@ -762,6 +767,8 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
       HidePop();
       return;
      }
+   if(id == CHARTEVENT_CHART_CHANGE && InpCompactPanel && InpPanelRight && (int)ChartGetInteger(0, CHART_WIDTH_IN_PIXELS) != gChartW)  // resized: keep the panel in the corner
+     { DrawCompact(); NoSelect("RFXS_"); DrawDirBox(); ChartRedraw(); }
    if(id == CHARTEVENT_CHART_CHANGE && InpAutoTheme && InpTheme == 0 && BgIsDark() != gDark)  // chart colours changed: redraw in the new theme
      {
       ApplyTheme(); HidePop();
@@ -1060,9 +1067,9 @@ void DrawCompact()
      }
    int rows = ArraySize(sR), w = StringLen(head);
    for(int i = 0; i < rows; i++) w = MathMax(w, StringLen(sR[i]));
-   int x0 = 8, y0 = 22, bw = MathMax(w * 6 + 22, StringLen(head) * 7 + 22), bh = 22 + 14 * rows + (rows > 0 ? 6 : 0);
+   int bw = MathMax(w * 6 + 22, StringLen(head) * 7 + 22), x0 = PanelX(bw), y0 = 22, bh = 22 + 14 * rows + (rows > 0 ? 6 : 0);
    string tip = gPanL; if(StringLen(tip) > 900) tip = StringSubstr(tip, 0, 895) + "...";
-   Box("RFXS_bg", x0, y0, bw, bh, cPopBg, cPopBorder);
+   Box("RFXS_bg", x0, y0, bw, bh, cPopBg, cPopBorder); SeeThru("RFXS_bg");
    ObjectSetString(0, "RFXS_bg", OBJPROP_TOOLTIP, tip);
    Lbl("RFXS_h", x0 + 8, y0 + 4, head, gTrend > 0 ? cDemandLine : (gTrend < 0 ? cSupplyLine : cPopHead), "Arial Bold", 9);
    ObjectSetString(0, "RFXS_h", OBJPROP_TOOLTIP, "Click to collapse / expand. Full panel:\n" + tip);
@@ -1099,9 +1106,9 @@ void DrawDirBox()
    string head = gDirHead + (gDirOpen ? "   [-]" : "   [+]");
    int bw = StringLen(head) * 7 + 22;
    for(int i = 0; i < n; i++) bw = MathMax(bw, StringLen(rw[i]) * 6 + 22);
-   int x0 = 8, y0 = gPanW > 0 ? gPanY + gPanH + 4 : 22, bh = 22 + 14 * n + (n > 0 ? 6 : 0);
+   int x0 = PanelX(bw), y0 = gPanW > 0 ? gPanY + gPanH + 4 : 22, bh = 22 + 14 * n + (n > 0 ? 6 : 0);
    string tip = "Top-down Direction (display only; the zone notes still use the v1 bias unless InpBiasSource = 1). Click the header to collapse / expand.";
-   Box("RFXV2_dbg", x0, y0, bw, bh, cPopBg, cPopBorder);
+   Box("RFXV2_dbg", x0, y0, bw, bh, cPopBg, cPopBorder); SeeThru("RFXV2_dbg");
    ObjectSetString(0, "RFXV2_dbg", OBJPROP_TOOLTIP, tip);
    Lbl("RFXV2_dh", x0 + 8, y0 + 4, head, gDir > 0 ? cDemandLine : (gDir < 0 ? cSupplyLine : cPopHead), "Arial Bold", 9);
    ObjectSetString(0, "RFXV2_dh", OBJPROP_TOOLTIP, tip);
