@@ -1,0 +1,795 @@
+[
+ {
+  "session": "2026-07-08_1643",
+  "plan_for": "2026-07-09",
+  "t": "00:37",
+  "symbol": "EURUSD",
+  "timeframes": [
+   "1H",
+   "5m"
+  ],
+  "direction": "short",
+  "htf_bias": {
+   "bias": "short",
+   "reason": "1H trendline down"
+  },
+  "zone_type": null,
+  "zone_tf": null,
+  "proximal": null,
+  "distal": null,
+  "entry_type": "confirmation (5m shorts under 1H trendline)",
+  "stop": null,
+  "target": null,
+  "conditions": "only while the 1H down trendline holds; he considers the opposing 4H up trendline stronger",
+  "status_in_later_sessions": [],
+  "confidence": "high",
+  "frame": null
+ },
+ {
+  "session": "2026-07-08_1643",
+  "plan_for": "2026-07-09",
+  "t": "00:45",
+  "symbol": "EURUSD",
+  "timeframes": [
+   "4H",
+   "15m"
+  ],
+  "direction": "long",
+  "htf_bias": {
+   "bias": "long",
+   "reason": "4H trendline up, stronger than the 1H down line"
+  },
+  "zone_type": null,
+  "zone_tf": null,
+  "proximal": null,
+  "distal": null,
+  "entry_type": "confirmation (15m longs off 4H trendline)",
+  "stop": null,
+  "target": null,
+  "conditions": "while the 4H up trendline holds",
+  "status_in_later_sessions": [],
+  "confidence": "high",
+  "frame": null
+ },
+ {
+  "session": "2026-07-08_1643",
+  "plan_for": "2026-07-09",
+  "t": "01:37",
+  "symbol": "GBPUSD",
+  "timeframes": [
+   "1H",
+   "5m"
+  ],
+  "direction": "long",
+  "htf_bias": {
+   "bias": "long",
+   "reason": "1H trendline up"
+  },
+  "zone_type": "demand",
+  "zone_tf": "1H",
+  "proximal": 1.33458,
+  "distal": 1.33298,
+  "entry_type": "limit at proximal (quick trade) / 5m longs on trendline",
+  "stop": null,
+  "target": null,
+  "conditions": "pullback into the 1H demand; he is not in love with the zone",
+  "status_in_later_sessions": [],
+  "confidence": "med",
+  "frame": "public/lessons/kevin_daily/2026-07-08_1643/f-017_t01m47s.jpg"
+ },
+ {
+  "session": "2026-07-08_1643",
+  "plan_for": "2026-07-09",
+  "t": "01:53",
+  "symbol": "GBPUSD",
+  "timeframes": [
+   "4H",
+   "15m"
+  ],
+  "direction": "long",
+  "htf_bias": {
+   "bias": "long",
+   "reason": "4H trendline (updated after a high was removed)"
+  },
+  "zone_type": null,
+  "zone_tf": null,
+  "proximal": null,
+  "distal": null,
+  "entry_type": "confirmation (15m longs)",
+  "stop": null,
+  "target": null,
+  "conditions": "while 4H trendline holds",
+  "status_in_later_sessions": [],
+  "confidence": "high",
+  "frame": null
+ },
+ {
+  "session": "2026-07-08_1643",
+  "plan_for": "2026-07-09",
+  "t": "02:08",
+  "symbol": "USDCAD",
+  "timeframes": [
+   "1H",
+   "5m"
+  ],
+  "direction": "short",
+  "htf_bias": {
+   "bias": "short",
+   "reason": "1H trendline down"
+  },
+  "zone_type": null,
+  "zone_tf": null,
+  "proximal": null,
+  "distal": null,
+  "entry_type": "confirmation (5m shorts)",
+  "stop": null,
+  "target": null,
+  "conditions": "wait for a pullback towards the 1H trendline",
+  "status_in_later_sessions": [],
+  "confidence": "high",
+  "frame": "public/lessons/kevin_daily/2026-07-08_1643/f-020_t02m06s.jpg"
+ },
+ {
+  "session": "2026-07-08_1643",
+  "plan_for": "2026-07-09",
+  "t": "02:22",
+  "symbol": "AUDUSD",
+  "timeframes": [
+   "1H",
+   "5m"
+  ],
+  "direction": "short",
+  "htf_bias": {
+   "bias": "short",
+   "reason": "1H trendline down"
+  },
+  "zone_type": null,
+  "zone_tf": null,
+  "proximal": null,
+  "distal": null,
+  "entry_type": "confirmation (5m shorts)",
+  "stop": null,
+  "target": 0.6898,
+  "conditions": "while the trendline holds; profit margin down to the 1H demand",
+  "status_in_later_sessions": [],
+  "confidence": "high",
+  "frame": "public/lessons/kevin_daily/2026-07-08_1643/f-026_t02m43s.jpg"
+ },
+ {
+  "session": "2026-07-08_1643",
+  "plan_for": "2026-07-09",
+  "t": "02:30",
+  "symbol": "AUDUSD",
+  "timeframes": [
+   "1H"
+  ],
+  "direction": "long",
+  "htf_bias": {
+   "bias": "long",
+   "reason": "1H demand with liquidity above it"
+  },
+  "zone_type": "demand",
+  "zone_tf": "1H",
+  "proximal": 0.6898,
+  "distal": 0.68868,
+  "entry_type": "limit at proximal",
+  "stop": null,
+  "target": null,
+  "conditions": "prefers another reaction off the liquidity above first (liquidity trap) to raise odds",
+  "status_in_later_sessions": [],
+  "confidence": "med",
+  "frame": "public/lessons/kevin_daily/2026-07-08_1643/f-026_t02m43s.jpg"
+ },
+ {
+  "session": "2026-07-08_1643",
+  "plan_for": "2026-07-09",
+  "t": "02:55",
+  "symbol": "USDCHF",
+  "timeframes": [
+   "4H",
+   "15m"
+  ],
+  "direction": "short",
+  "htf_bias": {
+   "bias": "short",
+   "reason": "4H trendline down, stronger than 1H"
+  },
+  "zone_type": null,
+  "zone_tf": null,
+  "proximal": null,
+  "distal": null,
+  "entry_type": "confirmation (15m shorts)",
+  "stop": null,
+  "target": null,
+  "conditions": "higher-odds side",
+  "status_in_later_sessions": [],
+  "confidence": "high",
+  "frame": "public/lessons/kevin_daily/2026-07-08_1643/f-028_t02m56s.jpg"
+ },
+ {
+  "session": "2026-07-08_1643",
+  "plan_for": "2026-07-09",
+  "t": "02:58",
+  "symbol": "USDCHF",
+  "timeframes": [
+   "1H",
+   "5m"
+  ],
+  "direction": "long",
+  "htf_bias": {
+   "bias": "long",
+   "reason": "1H trendline up"
+  },
+  "zone_type": null,
+  "zone_tf": null,
+  "proximal": null,
+  "distal": null,
+  "entry_type": "confirmation (5m longs)",
+  "stop": null,
+  "target": null,
+  "conditions": "only if bullish; lower odds than the 4H shorts",
+  "status_in_later_sessions": [],
+  "confidence": "high",
+  "frame": "public/lessons/kevin_daily/2026-07-08_1643/f-028_t02m56s.jpg"
+ },
+ {
+  "session": "2026-07-08_1643",
+  "plan_for": "2026-07-09",
+  "t": "03:28",
+  "symbol": "XAUUSD",
+  "timeframes": [
+   "4H"
+  ],
+  "direction": "short",
+  "htf_bias": {
+   "bias": "short",
+   "reason": "strong push down from supply; with trend but overextended"
+  },
+  "zone_type": "supply",
+  "zone_tf": "4H",
+  "proximal": 4179.102,
+  "distal": 4215.255,
+  "entry_type": "limit at proximal",
+  "stop": null,
+  "target": null,
+  "conditions": "older zone with liquidity in front - aggressive trade management",
+  "status_in_later_sessions": [],
+  "confidence": "low",
+  "frame": "public/lessons/kevin_daily/2026-07-08_1643/f-032_t03m21s.jpg"
+ },
+ {
+  "session": "2026-07-08_1643",
+  "plan_for": "2026-07-09",
+  "t": "03:49",
+  "symbol": "WTICOUSD",
+  "timeframes": [
+   "1H"
+  ],
+  "direction": "long",
+  "htf_bias": {
+   "bias": "long",
+   "reason": "reacting off higher-timeframe demand, strong push up"
+  },
+  "zone_type": "demand",
+  "zone_tf": "1H",
+  "proximal": 69.913,
+  "distal": 69.408,
+  "entry_type": "limit at proximal (69.91)",
+  "stop": null,
+  "target": null,
+  "conditions": "pullback entry",
+  "status_in_later_sessions": [],
+  "confidence": "high",
+  "frame": "public/lessons/kevin_daily/2026-07-08_1643/f-041_t04m18s.jpg"
+ },
+ {
+  "session": "2026-07-08_1643",
+  "plan_for": "2026-07-09",
+  "t": "04:13",
+  "symbol": "WTICOUSD",
+  "timeframes": [
+   "1H"
+  ],
+  "direction": "long",
+  "htf_bias": {
+   "bias": "long",
+   "reason": "reacting off HTF demand"
+  },
+  "zone_type": "demand",
+  "zone_tf": "1H",
+  "proximal": 73.0,
+  "distal": null,
+  "entry_type": "limit at proximal",
+  "stop": null,
+  "target": null,
+  "conditions": "not in his chain analysis (grey) - lower grade; about 73",
+  "status_in_later_sessions": [],
+  "confidence": "low",
+  "frame": "public/lessons/kevin_daily/2026-07-08_1643/f-041_t04m18s.jpg"
+ },
+ {
+  "session": "2026-07-08_1643",
+  "plan_for": "2026-07-09",
+  "t": "04:29",
+  "symbol": "NATGAS",
+  "timeframes": [
+   "4H"
+  ],
+  "direction": "long",
+  "htf_bias": {
+   "bias": "long",
+   "reason": "pullback in progress"
+  },
+  "zone_type": "demand",
+  "zone_tf": "4H",
+  "proximal": 3.115,
+  "distal": 3.079,
+  "entry_type": "limit at proximal",
+  "stop": null,
+  "target": null,
+  "conditions": "be patient for the pullback",
+  "status_in_later_sessions": [],
+  "confidence": "med",
+  "frame": "public/lessons/kevin_daily/2026-07-08_1643/f-043_t04m30s.jpg"
+ },
+ {
+  "session": "2026-07-08_1643",
+  "plan_for": "2026-07-09",
+  "t": "05:07",
+  "symbol": "GBPJPY",
+  "timeframes": [
+   "1H",
+   "4H",
+   "15m",
+   "5m"
+  ],
+  "direction": "long",
+  "htf_bias": {
+   "bias": "long",
+   "reason": "1H and 4H trendlines up"
+  },
+  "zone_type": null,
+  "zone_tf": null,
+  "proximal": null,
+  "distal": null,
+  "entry_type": "confirmation (15m/5m longs)",
+  "stop": null,
+  "target": null,
+  "conditions": "while trendlines hold",
+  "status_in_later_sessions": [],
+  "confidence": "high",
+  "frame": "public/lessons/kevin_daily/2026-07-08_1643/f-049_t05m08s.jpg"
+ },
+ {
+  "session": "2026-07-08_1643",
+  "plan_for": "2026-07-09",
+  "t": "05:22",
+  "symbol": "CADJPY",
+  "timeframes": [
+   "4H"
+  ],
+  "direction": "short",
+  "htf_bias": {
+   "bias": "short",
+   "reason": "decent but ageing supply; daily trendline breaking"
+  },
+  "zone_type": "supply",
+  "zone_tf": "4H",
+  "proximal": 115.094,
+  "distal": 115.248,
+  "entry_type": "limit at proximal",
+  "stop": null,
+  "target": null,
+  "conditions": "expect only a small move; aggressive trade management",
+  "status_in_later_sessions": [],
+  "confidence": "med",
+  "frame": "public/lessons/kevin_daily/2026-07-08_1643/f-053_t05m33s.jpg"
+ },
+ {
+  "session": "2026-07-08_1643",
+  "plan_for": "2026-07-09",
+  "t": "05:40",
+  "symbol": "CADJPY",
+  "timeframes": [
+   "1H",
+   "5m"
+  ],
+  "direction": "long",
+  "htf_bias": {
+   "bias": "long",
+   "reason": "1H trendline up"
+  },
+  "zone_type": null,
+  "zone_tf": null,
+  "proximal": null,
+  "distal": null,
+  "entry_type": "confirmation (5m longs)",
+  "stop": null,
+  "target": null,
+  "conditions": "if bullish",
+  "status_in_later_sessions": [],
+  "confidence": "high",
+  "frame": "public/lessons/kevin_daily/2026-07-08_1643/f-053_t05m33s.jpg"
+ },
+ {
+  "session": "2026-07-08_1643",
+  "plan_for": "2026-07-09",
+  "t": "05:46",
+  "symbol": "EURJPY",
+  "timeframes": [
+   "1H",
+   "5m"
+  ],
+  "direction": "long",
+  "htf_bias": {
+   "bias": "long",
+   "reason": "1H trendline up; demand that removes a proven supply would be strong"
+  },
+  "zone_type": null,
+  "zone_tf": null,
+  "proximal": null,
+  "distal": null,
+  "entry_type": "confirmation (5m longs)",
+  "stop": null,
+  "target": null,
+  "conditions": "if the supply is removed, any demand there is good for longs",
+  "status_in_later_sessions": [],
+  "confidence": "med",
+  "frame": "public/lessons/kevin_daily/2026-07-08_1643/f-056_t05m52s.jpg"
+ },
+ {
+  "session": "2026-07-08_1643",
+  "plan_for": "2026-07-09",
+  "t": "06:03",
+  "symbol": "EURGBP",
+  "timeframes": [
+   "15m"
+  ],
+  "direction": "short",
+  "htf_bias": {
+   "bias": "short",
+   "reason": "overextended"
+  },
+  "zone_type": null,
+  "zone_tf": null,
+  "proximal": null,
+  "distal": null,
+  "entry_type": "confirmation (15m shorts)",
+  "stop": null,
+  "target": null,
+  "conditions": "only if price pulls back near the trendline; he would not trade it otherwise",
+  "status_in_later_sessions": [],
+  "confidence": "med",
+  "frame": null
+ },
+ {
+  "session": "2026-07-29_1628",
+  "plan_for": "2026-07-30",
+  "t": "00:22",
+  "symbol": "DXY",
+  "timeframes": [
+   "4H"
+  ],
+  "direction": "short",
+  "htf_bias": {
+   "bias": "long",
+   "reason": "weekly and monthly demand in control; drop looks emotional"
+  },
+  "zone_type": "supply",
+  "zone_tf": "4H",
+  "proximal": 101.351,
+  "distal": 101.495,
+  "entry_type": "none (context only)",
+  "stop": null,
+  "target": null,
+  "conditions": "decent zone, small move expected; he expects dollar strength to return",
+  "status_in_later_sessions": [],
+  "confidence": "med",
+  "frame": "public/lessons/kevin_daily/2026-07-29_1628/f-003_t00m24s.jpg"
+ },
+ {
+  "session": "2026-07-29_1628",
+  "plan_for": "2026-07-30",
+  "t": "01:00",
+  "symbol": "EURUSD",
+  "timeframes": [
+   "4H",
+   "1H"
+  ],
+  "direction": "long",
+  "htf_bias": {
+   "bias": "long",
+   "reason": "tested supply broke; potential new 4H demand"
+  },
+  "zone_type": "demand",
+  "zone_tf": "4H",
+  "proximal": null,
+  "distal": null,
+  "entry_type": "limit at proximal",
+  "stop": null,
+  "target": null,
+  "conditions": "only if the 4H stay-away candle confirms the zone (check next morning); prefers 4H over the 1H zone; overextended",
+  "status_in_later_sessions": [],
+  "confidence": "low",
+  "frame": null
+ },
+ {
+  "session": "2026-07-29_1628",
+  "plan_for": "2026-07-30",
+  "t": "01:53",
+  "symbol": "GBPUSD",
+  "timeframes": [
+   "1H"
+  ],
+  "direction": "long",
+  "htf_bias": {
+   "bias": "neutral",
+   "reason": "bullish only short-term; dollar-bullish overall"
+  },
+  "zone_type": "demand",
+  "zone_tf": "1H",
+  "proximal": 1.33065,
+  "distal": 1.32878,
+  "entry_type": "limit at proximal",
+  "stop": null,
+  "target": null,
+  "conditions": "if bullish; aggressive trade management",
+  "status_in_later_sessions": [],
+  "confidence": "high",
+  "frame": "public/lessons/kevin_daily/2026-07-29_1628/f-015_t02m03s.jpg"
+ },
+ {
+  "session": "2026-07-29_1628",
+  "plan_for": "2026-07-30",
+  "t": "02:03",
+  "symbol": "GBPUSD",
+  "timeframes": [
+   "1H"
+  ],
+  "direction": "short",
+  "htf_bias": {
+   "bias": "short",
+   "reason": "still bullish on the dollar"
+  },
+  "zone_type": "supply",
+  "zone_tf": null,
+  "proximal": 1.342,
+  "distal": null,
+  "entry_type": "limit at proximal",
+  "stop": null,
+  "target": null,
+  "conditions": "supply still decent for a short at 1.342 (said aloud)",
+  "status_in_later_sessions": [],
+  "confidence": "low",
+  "frame": null
+ },
+ {
+  "session": "2026-07-29_1628",
+  "plan_for": "2026-07-30",
+  "t": "02:43",
+  "symbol": "USDCAD",
+  "timeframes": [
+   "1H"
+  ],
+  "direction": "short",
+  "htf_bias": {
+   "bias": "long",
+   "reason": "dollar-bullish but 1H trendline broke"
+  },
+  "zone_type": "supply",
+  "zone_tf": "1H",
+  "proximal": 1.40899,
+  "distal": 1.40998,
+  "entry_type": "limit at proximal",
+  "stop": null,
+  "target": null,
+  "conditions": "small move expected; aggressive trade management",
+  "status_in_later_sessions": [],
+  "confidence": "high",
+  "frame": "public/lessons/kevin_daily/2026-07-29_1628/f-020_t02m44s.jpg"
+ },
+ {
+  "session": "2026-07-29_1628",
+  "plan_for": "2026-07-30",
+  "t": "03:08",
+  "symbol": "AUDUSD",
+  "timeframes": [
+   "4H",
+   "15m"
+  ],
+  "direction": "short",
+  "htf_bias": {
+   "bias": "short",
+   "reason": "4H trendline down; supply above already tested"
+  },
+  "zone_type": null,
+  "zone_tf": null,
+  "proximal": null,
+  "distal": null,
+  "entry_type": "confirmation (15m shorts)",
+  "stop": null,
+  "target": null,
+  "conditions": "if bearish; if trendline or supply breaks, any demand becomes a long setup",
+  "status_in_later_sessions": [],
+  "confidence": "med",
+  "frame": null
+ },
+ {
+  "session": "2026-07-29_1628",
+  "plan_for": "2026-07-30",
+  "t": "03:46",
+  "symbol": "USDCHF",
+  "timeframes": [
+   "1H"
+  ],
+  "direction": "short",
+  "htf_bias": {
+   "bias": "long",
+   "reason": "dollar-bullish; trendline broke and new supply formed"
+  },
+  "zone_type": "supply",
+  "zone_tf": "1H",
+  "proximal": null,
+  "distal": null,
+  "entry_type": "limit at proximal",
+  "stop": null,
+  "target": null,
+  "conditions": "quick short only",
+  "status_in_later_sessions": [],
+  "confidence": "med",
+  "frame": "public/lessons/kevin_daily/2026-07-29_1628/f-028_t03m50s.jpg"
+ },
+ {
+  "session": "2026-07-29_1628",
+  "plan_for": "2026-07-30",
+  "t": "04:16",
+  "symbol": "USDJPY",
+  "timeframes": [
+   "4H",
+   "15m"
+  ],
+  "direction": "long",
+  "htf_bias": {
+   "bias": "long",
+   "reason": "4H trendline holding"
+  },
+  "zone_type": null,
+  "zone_tf": null,
+  "proximal": null,
+  "distal": null,
+  "entry_type": "confirmation (15m longs)",
+  "stop": null,
+  "target": null,
+  "conditions": "as long as the 4H trendline holds",
+  "status_in_later_sessions": [],
+  "confidence": "high",
+  "frame": null
+ },
+ {
+  "session": "2026-07-29_1628",
+  "plan_for": "2026-07-30",
+  "t": "04:52",
+  "symbol": "WTICOUSD",
+  "timeframes": [
+   "1H"
+  ],
+  "direction": "short",
+  "htf_bias": {
+   "bias": "neutral",
+   "reason": "wild swings (-8% then +8%)"
+  },
+  "zone_type": "supply",
+  "zone_tf": "1H",
+  "proximal": 90.574,
+  "distal": 91.429,
+  "entry_type": "limit at proximal",
+  "stop": null,
+  "target": null,
+  "conditions": "little short; aggressive trade management",
+  "status_in_later_sessions": [],
+  "confidence": "high",
+  "frame": "public/lessons/kevin_daily/2026-07-29_1628/f-037_t05m04s.jpg"
+ },
+ {
+  "session": "2026-07-29_1628",
+  "plan_for": "2026-07-30",
+  "t": "05:13",
+  "symbol": "NATGAS",
+  "timeframes": [
+   "4H",
+   "15m"
+  ],
+  "direction": "short",
+  "htf_bias": {
+   "bias": "short",
+   "reason": "4H trendline down"
+  },
+  "zone_type": null,
+  "zone_tf": null,
+  "proximal": null,
+  "distal": null,
+  "entry_type": "confirmation (15m shorts)",
+  "stop": null,
+  "target": null,
+  "conditions": "if trendline breaks, any demand is a long opportunity",
+  "status_in_later_sessions": [],
+  "confidence": "high",
+  "frame": null
+ },
+ {
+  "session": "2026-07-29_1628",
+  "plan_for": "2026-07-30",
+  "t": "05:38",
+  "symbol": "SPX500",
+  "timeframes": [
+   "4H"
+  ],
+  "direction": "long",
+  "htf_bias": {
+   "bias": "long",
+   "reason": "prefers longs on indices; price into demand"
+  },
+  "zone_type": "demand",
+  "zone_tf": "4H",
+  "proximal": 7313.2,
+  "distal": 7259.7,
+  "entry_type": "none (wait)",
+  "stop": null,
+  "target": null,
+  "conditions": "zone already traded once; really wants a trendline break and a new demand before going long",
+  "status_in_later_sessions": [],
+  "confidence": "med",
+  "frame": "public/lessons/kevin_daily/2026-07-29_1628/f-041_t05m36s.jpg"
+ },
+ {
+  "session": "2026-07-29_1628",
+  "plan_for": "2026-07-30",
+  "t": "07:13",
+  "symbol": "EURJPY",
+  "timeframes": [
+   "4H",
+   "15m"
+  ],
+  "direction": "long",
+  "htf_bias": {
+   "bias": "long",
+   "reason": "updated 4H trendline up"
+  },
+  "zone_type": null,
+  "zone_tf": null,
+  "proximal": null,
+  "distal": null,
+  "entry_type": "confirmation (15m longs)",
+  "stop": null,
+  "target": null,
+  "conditions": "very overextended - wait for a pullback near the trendline",
+  "status_in_later_sessions": [],
+  "confidence": "high",
+  "frame": null
+ },
+ {
+  "session": "2026-07-29_1628",
+  "plan_for": "2026-07-30",
+  "t": "07:30",
+  "symbol": "EURGBP",
+  "timeframes": [
+   "4H"
+  ],
+  "direction": "long",
+  "htf_bias": {
+   "bias": "long",
+   "reason": "waiting for demand; weekly trendline down"
+  },
+  "zone_type": "demand",
+  "zone_tf": "4H",
+  "proximal": 0.85046,
+  "distal": 0.84906,
+  "entry_type": "limit at proximal",
+  "stop": null,
+  "target": null,
+  "conditions": "be patient; aggressive management due to downward trendline; 5m longs on the 1H trendline meanwhile",
+  "status_in_later_sessions": [],
+  "confidence": "high",
+  "frame": "public/lessons/kevin_daily/2026-07-29_1628/f-056_t07m40s.jpg"
+ }
+]
