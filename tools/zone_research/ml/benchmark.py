@@ -99,7 +99,7 @@ def lgb_model(params, n_est, mono_feats):
     mono = [Z.MONOTONE.get(c, 0) for c in mono_feats]
     return lgb.LGBMClassifier(objective="binary", n_estimators=n_est, subsample=0.8, subsample_freq=1,
                               max_bin=63, min_split_gain=0.0, random_state=SEED, deterministic=True,
-                              force_col_wise=True, n_jobs=4, verbose=-1, monotone_constraints=mono,
+                              force_col_wise=True, n_jobs=1, verbose=-1, monotone_constraints=mono,
                               monotone_constraints_method="advanced", **params)
 
 
