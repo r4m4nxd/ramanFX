@@ -521,8 +521,8 @@ def build_report(rows, files, stop_mode, min_n, detector, only_drawn):
 
 
 # ============================================================================= v2 (spec 6.2 - 6.4)
-# Decision values come from the touch-1 snapshot (s1_ columns, taken on the touch candle's close) when it
-# exists, else from the creation columns. The calibration cell key, the lens passes, the LR features and
+# Decision values come from the creation columns (default). With --decision touch they come from the touch-1
+# snapshot (s1_ columns), which is taken on the touch candle's CLOSE, after the limit filled: look-ahead. The calibration cell key, the lens passes, the LR features and
 # the bins all read through gv(), so the indicator (which builds the key from a zone's CURRENT DNA) and
 # the table agree on what a field means.
 CAL_TARGETS = [1, 2, 3, 5, "opp"]            # the E columns of a cell row: E1, E2, E3, E5, Eopp
@@ -544,8 +544,11 @@ def has_v2(rows):
     return any(r.get("s1_ok") not in (None, "") for r in rows[:2000])
 
 
+USE_S1 = False   # --decision touch: read the s1_ snapshot (taken on the touch candle's CLOSE = after the fill: look-ahead)
+
+
 def s1ok(r):
-    return r.get("s1_ok") == "1"
+    return USE_S1 and r.get("s1_ok") == "1"
 
 
 def gv(r, name, cname=None):
@@ -1357,8 +1360,12 @@ def main(argv=None):
     ap.add_argument("--min-lens-n", type=int, default=100, help="v2: trades needed on each side for a lens weight (default 100)")
     ap.add_argument("--lr-max", type=int, default=10000, help="v2: most IS trades used to fit the logistic model (default 10000)")
     ap.add_argument("--cells-from", choices=["is", "all"], default="is", help="v2: cells from IS only (default) or IS + OOS")
+    ap.add_argument("--decision", choices=["creation", "touch"], default="creation",
+                    help="v2 decision values: creation columns (default, no look-ahead) or the s1_ touch snapshot (closes after the fill: look-ahead, kept only for comparison)")
     ap.add_argument("--pine", default=None, help="v2: also write a Pine array snippet (top 300 cells, L0-L3)")
     a = ap.parse_args(argv)
+    global USE_S1
+    USE_S1 = a.decision == "touch"
     files = expand_inputs(a.inputs)
     if not files:
         print("no input files", file=sys.stderr)
