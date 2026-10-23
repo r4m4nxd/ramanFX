@@ -290,7 +290,8 @@ const RES_TXT = {
 
 // ─────────── loading ───────────
 async function load() {
-  const res = await Promise.all(FILES.map(f => fetch(BASE + f, { cache: 'no-cache' }).then(r => r.ok ? r.json() : []).catch(() => [])));
+  // data is inlined by the app (src/pages/Sandbox.tsx); the page has no public URL
+  const res = window.__SANDBOX_DATA__ || await Promise.all(FILES.map(f => fetch(BASE + f, { cache: 'no-cache' }).then(r => r.ok ? r.json() : []).catch(() => [])));
   const seen = new Set();
   EX = res.flat().filter(valid).filter(x => !seen.has(x.id) && seen.add(x.id));
   EX.sort((a, b) => (a.lesson - b.lesson) || a.id.localeCompare(b.id));
