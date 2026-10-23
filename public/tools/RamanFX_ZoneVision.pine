@@ -3214,19 +3214,21 @@ RunAll(Ctx X, int ctf, float mid, float spr) =>
         int lv = InpHTFLevels + 1
         while lv > 1
             lv -= 1
-            int t = StepUp(ctf, lv)
+            // constant level per call: StepUp also feeds request.security, so its n must stay a simple int
+            int t = lv >= 4 ? StepUp(ctf, 4) : lv == 3 ? StepUp(ctf, 3) : lv == 2 ? StepUp(ctf, 2) : StepUp(ctf, 1)
             if t <= 0
                 continue
             Ser s = ctxSer(X, t)
             TLCtx x = ctxTL(X, t)
             tlPlan(x, s, C, R.tld)
             if t == h
-                [b0, t0] = TLBias(x, s)
-                g.hBias := b0
-                g.hBiasTxt := t0
                 g.htf := h
                 g.H := s
                 g.htl := x
+    if g.htf != 0
+        [b0, t0] = TLBias(g.htl, g.H)
+        g.hBias := b0
+        g.hBiasTxt := t0
     if h > 0 and g.htf == 0
         Ser s = ctxSer(X, h)
         TLCtx x = ctxTL(X, h)
