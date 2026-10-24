@@ -1,0 +1,84 @@
+{
+ "source": "raja",
+ "n": 55,
+ "title": "Basics: drawing supply and demand zones (base, departure, proximal and distal, fresh vs retested)",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 679.38,
+   "textHash": "a7d742bfba95fb05",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Why supply and demand",
+     "start": 90.88
+    },
+    {
+     "id": "s1",
+     "title": "The box: entry, stop and target",
+     "start": 148.84
+    },
+    {
+     "id": "s2",
+     "title": "Base and departure candles",
+     "start": 202.41
+    },
+    {
+     "id": "s3",
+     "title": "Two families: valleys or peaks and continuation pattern levels",
+     "start": 284.4
+    },
+    {
+     "id": "s4",
+     "title": "Gaps",
+     "start": 369.51
+    },
+    {
+     "id": "s5",
+     "title": "Fresh, original, retested and multiple zones",
+     "start": 386.99
+    },
+    {
+     "id": "s6",
+     "title": "Why it works: market makers versus retail",
+     "start": 442.95
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 470.01
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 519.76
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 546.23
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 563.1
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 620.47
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 662.65
+    }
+   ]
+  }
+ }
+}

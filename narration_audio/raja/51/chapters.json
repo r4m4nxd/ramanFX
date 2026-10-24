@@ -1,0 +1,84 @@
+{
+ "source": "raja",
+ "n": 51,
+ "title": "Strong Zones I: strong vs weak, wow trade and arrival zones",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 829.85,
+   "textHash": "41429b4482a2b075",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Fresh zones versus strong zones",
+     "start": 62.86
+    },
+    {
+     "id": "s1",
+     "title": "First touch only",
+     "start": 159.14
+    },
+    {
+     "id": "s2",
+     "title": "Strong zone 2: the wow trade",
+     "start": 183.76
+    },
+    {
+     "id": "s3",
+     "title": "Strong zone 3: the arrival zone",
+     "start": 269.27
+    },
+    {
+     "id": "s4",
+     "title": "Trendlines, impulse and correction",
+     "start": 358.01
+    },
+    {
+     "id": "s5",
+     "title": "Why he trusts this",
+     "start": 417.27
+    },
+    {
+     "id": "s6",
+     "title": "On his charts",
+     "start": 450.29
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 569.77
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 619.43
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 650.76
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 668.76
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 773.41
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 813.42
+    }
+   ]
+  }
+ }
+}

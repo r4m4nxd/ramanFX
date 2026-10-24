@@ -1,0 +1,68 @@
+[
+ {
+  "source": "raja",
+  "n": 50,
+  "title": "Wow Trade (Topic 6): trading the pips between zones",
+  "voice": "am_michael",
+  "file": "raja/50/am_michael.m4a",
+  "bytes": 9432225,
+  "seconds": 1139.12,
+  "sha256": "ed50df74c557f3a9c7105cbe05c96a81f1509dc2c07acd306268e4c5f793a759",
+  "textHash": "6ea6f8c8fce6d62a"
+ },
+ {
+  "source": "raja",
+  "n": 51,
+  "title": "Strong Zones I: strong vs weak, wow trade and arrival zones",
+  "voice": "am_michael",
+  "file": "raja/51/am_michael.m4a",
+  "bytes": 6847492,
+  "seconds": 829.85,
+  "sha256": "046e499b300188bb2a71ddf1349f25b2eb23e4f2f7554616884d2868c3393e30",
+  "textHash": "41429b4482a2b075"
+ },
+ {
+  "source": "raja",
+  "n": 52,
+  "title": "Strong Zones II: tested zones, confirmation, inheritance, overlap and flip zones",
+  "voice": "am_michael",
+  "file": "raja/52/am_michael.m4a",
+  "bytes": 8127601,
+  "seconds": 988.98,
+  "sha256": "30c40e256bbee169bc21ee84c1563b05b4c2d48271af6ed21de541b86499f77e",
+  "textHash": "39522ce5cc62d984"
+ },
+ {
+  "source": "raja",
+  "n": 53,
+  "title": "Risk Management: the seven-step check before a trade",
+  "voice": "am_michael",
+  "file": "raja/53/am_michael.m4a",
+  "bytes": 9855068,
+  "seconds": 1188.73,
+  "sha256": "0473df3c427c0e451cc852b8576a5e721f06f6df0e78ab1f19f36a7c22cc4ebe",
+  "textHash": "2e8fe13b08049671"
+ },
+ {
+  "source": "raja",
+  "n": 54,
+  "title": "Live Pair Review: HTF direction, 15-minute entries and the departure candle",
+  "voice": "am_michael",
+  "file": "raja/54/am_michael.m4a",
+  "bytes": 5892650,
+  "seconds": 714.77,
+  "sha256": "09575a392777d7598c0a108b5a56df140910616dbe1818df6c930f45e1add935",
+  "textHash": "3badd9030fae13b2"
+ },
+ {
+  "source": "raja",
+  "n": 55,
+  "title": "Basics: drawing supply and demand zones (base, departure, proximal and distal, fresh vs retested)",
+  "voice": "am_michael",
+  "file": "raja/55/am_michael.m4a",
+  "bytes": 5591870,
+  "seconds": 679.38,
+  "sha256": "95dd840bacadaf8c033dbed3be4a5a197184807c2d8b5baccb1bb291cc4e5bd5",
+  "textHash": "a7d742bfba95fb05"
+ }
+]

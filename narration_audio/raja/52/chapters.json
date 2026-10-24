@@ -1,0 +1,99 @@
+{
+ "source": "raja",
+ "n": 52,
+ "title": "Strong Zones II: tested zones, confirmation, inheritance, overlap and flip zones",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 988.98,
+   "textHash": "39522ce5cc62d984",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "How many times a zone can be used",
+     "start": 63.18
+    },
+    {
+     "id": "s1",
+     "title": "What confirmation is",
+     "start": 86.23
+    },
+    {
+     "id": "s2",
+     "title": "Worked example, pound yen",
+     "start": 174.19
+    },
+    {
+     "id": "s3",
+     "title": "Inheritance zone",
+     "start": 233.13
+    },
+    {
+     "id": "s4",
+     "title": "Overlap zone, Example B",
+     "start": 313.95
+    },
+    {
+     "id": "s5",
+     "title": "Flip zone",
+     "start": 367.18
+    },
+    {
+     "id": "s6",
+     "title": "Out-of-trendline zone",
+     "start": 432.03
+    },
+    {
+     "id": "s7",
+     "title": "Summary: 9 zone types",
+     "start": 454.73
+    },
+    {
+     "id": "s8",
+     "title": "More on touches and confirmation, Urdu recordings and live sessions",
+     "start": 483.13
+    },
+    {
+     "id": "s9",
+     "title": "On his charts",
+     "start": 594.68
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 695.41
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 763.54
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 801.31
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 818.44
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 933.71
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 973.14
+    }
+   ]
+  }
+ }
+}
