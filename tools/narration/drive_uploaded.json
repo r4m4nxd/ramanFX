@@ -28,10 +28,17 @@
   "textHash": "0fe17e3c23b86e04"
  },
  "course:5:am_michael": {
-  "bytes": 7934845,
+  "bytes": 8022740,
   "id": "1brinluCX5YK7TWb-WkDTRGhr5DO-icc7",
   "name": "05 - Trend vs Momentum.m4a",
-  "seconds": 962.96,
-  "textHash": "e08771411dc8de22"
+  "seconds": 977.08,
+  "textHash": "3443b70d13616dcd"
+ },
+ "raja:1:am_michael": {
+  "bytes": 4521950,
+  "id": "1loZqTmOQjcUx5J6xxCemzuJthiMXo88X",
+  "name": "01 - Strong Zones- CP Zones and Arrival Zones.m4a",
+  "seconds": 553.12,
+  "textHash": "59637ac4c7a31e47"
  }
 }
