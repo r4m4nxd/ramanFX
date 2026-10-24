@@ -1,0 +1,64 @@
+{
+ "source": "raja",
+ "n": 102,
+ "title": "Private session (Mar 5, 2026): Live review - the zone nearest the trendline, two ways to use the low timeframe, brokers and a cent account",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 647.75,
+   "textHash": "64b4e9ff3cf13fd1",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "What he taught",
+     "start": 79.86
+    },
+    {
+     "id": "s1",
+     "title": "Chart walk-throughs",
+     "start": 227.88
+    },
+    {
+     "id": "s2",
+     "title": "Questions you asked",
+     "start": 385.66
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 460.21
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 504.7
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 530.88
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 548.45
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 604.03
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 634.81
+    }
+   ]
+  }
+ }
+}

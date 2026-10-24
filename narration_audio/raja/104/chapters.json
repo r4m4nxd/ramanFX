@@ -1,0 +1,59 @@
+{
+ "source": "raja",
+ "n": 104,
+ "title": "Private session (Mar 27, 2026): Live review - flip zones, P vs CP, wick fills and the three blind-entry places",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 516.0,
+   "textHash": "3cdce3bf0b91e930",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "What he taught",
+     "start": 77.05
+    },
+    {
+     "id": "s1",
+     "title": "Pairs reviewed",
+     "start": 200.26
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 346.23
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 387.02
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 403.94
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 416.38
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 467.68
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 498.24
+    }
+   ]
+  }
+ }
+}
