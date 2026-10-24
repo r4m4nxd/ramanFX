@@ -1,0 +1,74 @@
+{
+ "source": "raja",
+ "n": 5,
+ "title": "Impulse vs Correction and When a Zone Has Done Its Job",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 453.58,
+   "textHash": "30c87c539c9c79d3",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Impulse and correction",
+     "start": 64.32
+    },
+    {
+     "id": "s1",
+     "title": "Trading corrections on high timeframes",
+     "start": 106.09
+    },
+    {
+     "id": "s2",
+     "title": "Weak and overlap demand",
+     "start": 181.84
+    },
+    {
+     "id": "s3",
+     "title": "The 2.5 times guide",
+     "start": 206.94
+    },
+    {
+     "id": "s4",
+     "title": "Lower timeframes: impulses only",
+     "start": 235.19
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 304.77
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 343.16
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 359.73
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 376.65
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 408.85
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 440.8
+    }
+   ]
+  }
+ }
+}

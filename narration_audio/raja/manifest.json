@@ -31,5 +31,60 @@
   "seconds": 443.72,
   "sha256": "ac58c53b67660df9c6fa68519a79e46dc6825f1e3fb8cb47e716c72b8067ceda",
   "textHash": "363c269c6de2c0b1"
+ },
+ {
+  "source": "raja",
+  "n": 4,
+  "title": "High Curve and Low Curve, Trendline-Close Confirmation and Trailing Stops",
+  "voice": "am_michael",
+  "file": "raja/04/am_michael.m4a",
+  "bytes": 5249964,
+  "seconds": 639.99,
+  "sha256": "3bdeb5c9e3d6ef0024c40913e3694a5c5579c681bfbde0a32a30ffc7c9d77e5b",
+  "textHash": "0f6185f4bcd50a89"
+ },
+ {
+  "source": "raja",
+  "n": 5,
+  "title": "Impulse vs Correction and When a Zone Has Done Its Job",
+  "voice": "am_michael",
+  "file": "raja/05/am_michael.m4a",
+  "bytes": 3719563,
+  "seconds": 453.58,
+  "sha256": "ffec5bccd4063c541f1ee08000c35a97f9846eee9a679267e9d8f44f186ea081",
+  "textHash": "30c87c539c9c79d3"
+ },
+ {
+  "source": "raja",
+  "n": 6,
+  "title": "Momentum and Location (Nested Zones)",
+  "voice": "am_michael",
+  "file": "raja/06/am_michael.m4a",
+  "bytes": 2982773,
+  "seconds": 364.06,
+  "sha256": "2a2fd85f021cefe4f2c954ddf8671bcc2a5e4942966d6f2aa77f50f7e1ac6818",
+  "textHash": "ef3e97799d6dc23f"
+ },
+ {
+  "source": "raja",
+  "n": 7,
+  "title": "Risk Management and Three Trader Rules",
+  "voice": "am_michael",
+  "file": "raja/07/am_michael.m4a",
+  "bytes": 2439936,
+  "seconds": 300.27,
+  "sha256": "e25d061dd9a6389575307b803dfa1cdb8796cb470f5f1e920d1a30afc8d1175d",
+  "textHash": "4e1b3b96c010566a"
+ },
+ {
+  "source": "raja",
+  "n": 8,
+  "title": "Sequence and Realignment",
+  "voice": "am_michael",
+  "file": "raja/08/am_michael.m4a",
+  "bytes": 2117393,
+  "seconds": 259.56,
+  "sha256": "ed43f34ea273567cc914aa6eab1d0516ff760a7643823a2df8f043d2e4a5278c",
+  "textHash": "38ca59504d4b03c0"
  }
 ]
