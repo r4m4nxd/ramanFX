@@ -86,5 +86,16 @@
   "seconds": 591.32,
   "sha256": "575d93a6c506bcd7f05f354abd9ea221a18986f3de2fd88a805240c96b6ad63f",
   "textHash": "e07d5ace189edf09"
+ },
+ {
+  "source": "daily",
+  "n": 29,
+  "title": "Daily plan for Fri, Aug 28",
+  "voice": "am_michael",
+  "file": "daily/29/am_michael.m4a",
+  "bytes": 4528568,
+  "seconds": 548.5,
+  "sha256": "87109051dfe0a67b5351da9de791a2fd2049d46e545a3ebd5730c2259939b47a",
+  "textHash": "9eed8d122f2daf67"
  }
 ]
