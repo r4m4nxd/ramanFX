@@ -1,0 +1,89 @@
+{
+ "source": "raja",
+ "n": 4,
+ "title": "High Curve and Low Curve, Trendline-Close Confirmation and Trailing Stops",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 870.23,
+   "textHash": "b2695a05a992ad76",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Drawing the curve",
+     "start": 77.25
+    },
+    {
+     "id": "s1",
+     "title": "Who trades where",
+     "start": 134.56
+    },
+    {
+     "id": "s2",
+     "title": "Trailing the stop to fresh zones",
+     "start": 187.13
+    },
+    {
+     "id": "s3",
+     "title": "When is the trendline really crossed?",
+     "start": 224.3
+    },
+    {
+     "id": "s4",
+     "title": "euro dollar Q and A",
+     "start": 261.57
+    },
+    {
+     "id": "s5",
+     "title": "Curve and trendline-close details from the live sessions",
+     "start": 355.32
+    },
+    {
+     "id": "s6",
+     "title": "Drawing and trusting the trendline",
+     "start": 481.2
+    },
+    {
+     "id": "s7",
+     "title": "On his charts",
+     "start": 548.46
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 617.13
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 680.76
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 707.35
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 728.92
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 814.22
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 851.57
+    }
+   ]
+  }
+ }
+}

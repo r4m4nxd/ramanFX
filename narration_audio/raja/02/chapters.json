@@ -1,0 +1,89 @@
+{
+ "source": "raja",
+ "n": 2,
+ "title": "Weak Zones and the Confirmation Rule (Retests, Inheritance, Flip, Overlap)",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 838.23,
+   "textHash": "bec9b274b6b74628",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Retested zones count as weak",
+     "start": 74.71
+    },
+    {
+     "id": "s1",
+     "title": "The confirmation rule",
+     "start": 114.63
+    },
+    {
+     "id": "s2",
+     "title": "Inheritance zone",
+     "start": 209.89
+    },
+    {
+     "id": "s3",
+     "title": "Flip zones",
+     "start": 306.78
+    },
+    {
+     "id": "s4",
+     "title": "Overlap zones",
+     "start": 356.8
+    },
+    {
+     "id": "s5",
+     "title": "Summary table he gives",
+     "start": 374.92
+    },
+    {
+     "id": "s6",
+     "title": "From the live sessions: confirmation and weak zones",
+     "start": 402.81
+    },
+    {
+     "id": "s7",
+     "title": "On his charts",
+     "start": 507.16
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 592.91
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 654.07
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 677.7
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 696.23
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 784.8
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 824.22
+    }
+   ]
+  }
+ }
+}

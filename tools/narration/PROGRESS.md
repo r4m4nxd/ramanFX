@@ -1,14 +1,14 @@
 # Narration render progress
 
-Updated: 2026-10-24 03:20:02 UTC  
+Updated: 2026-10-24 07:40:36 UTC  FINISHED in 0.2 h
 
-- Files done: **2 / 15** (13 remaining; voices am_michael)
-- Audio rendered: **0.3 h**; remaining about 2.3 h
-- Render speed: (measuring)
-- ETA: about **1.1 h** (finish around 2026-10-24 04:27)
-- Disk used by tools/narration/out: 0.10 GB; free: 9.2 GB (pauses below 3.0 GB)
-- Now: raja 3 am_michael: Change of Direction: Trendline Cross + Two Opposite Zones
+- Files done: **4 / 4** (0 remaining; voices am_michael)
+- Audio rendered: **0.8 h**; remaining about 0.0 h
+- Render speed this run: 0.24 x realtime (render s / audio s)
+- ETA: about **0.0 h** (finish around 2026-10-24 07:40)
+- Disk used by tools/narration/out: 0.03 GB; free: 29.9 GB (pauses below 3.0 GB)
+- Now: -
 
 | source | lessons | files done | files total | audio h |
 |---|---|---|---|---|
-| raja | 15 | 2 | 15 | 0.34 |
+| raja | 4 | 4 | 4 | 0.84 |

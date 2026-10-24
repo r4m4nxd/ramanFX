@@ -1,0 +1,46 @@
+[
+ {
+  "source": "raja",
+  "n": 1,
+  "title": "Strong Zones: CP Zones and Arrival Zones",
+  "voice": "am_michael",
+  "file": "raja/01/am_michael.m4a",
+  "bytes": 5711009,
+  "seconds": 697.12,
+  "sha256": "8a963560d7e111d5a0a89a28f9f3ad254eadeccbf37972b384d890e7ea8cb3a7",
+  "textHash": "467586892c7baf66"
+ },
+ {
+  "source": "raja",
+  "n": 2,
+  "title": "Weak Zones and the Confirmation Rule (Retests, Inheritance, Flip, Overlap)",
+  "voice": "am_michael",
+  "file": "raja/02/am_michael.m4a",
+  "bytes": 6908567,
+  "seconds": 838.23,
+  "sha256": "14486e30ac9e530e8e64bac008e7bd42633bf657f7e02360716615bba12cbb3d",
+  "textHash": "bec9b274b6b74628"
+ },
+ {
+  "source": "raja",
+  "n": 3,
+  "title": "Change of Direction: Trendline Cross + Two Opposite Zones",
+  "voice": "am_michael",
+  "file": "raja/03/am_michael.m4a",
+  "bytes": 4923325,
+  "seconds": 601.24,
+  "sha256": "acbd4ca5babd4429b6991a345579b16523bb36180f9a32b837e9e98b6c6d5b19",
+  "textHash": "2fa614cc9694b545"
+ },
+ {
+  "source": "raja",
+  "n": 4,
+  "title": "High Curve and Low Curve, Trendline-Close Confirmation and Trailing Stops",
+  "voice": "am_michael",
+  "file": "raja/04/am_michael.m4a",
+  "bytes": 7152694,
+  "seconds": 870.23,
+  "sha256": "4dffe64b38043e45e095db2fb32a69e62c71e0857502f54dbd37a81246639526",
+  "textHash": "b2695a05a992ad76"
+ }
+]
