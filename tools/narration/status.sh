@@ -14,3 +14,11 @@ for ref in $(git ls-remote origin "refs/heads/audio/*" | awk '{print $2}'); do
 done
 echo "rendered_on_branches $total (+5 course on Drive from local)"
 python3 -I -c "import json;print('uploaded', len(json.load(open('/root/.config/ramanfx/drive_uploaded.json'))))"
+# Raja transcription: one cloud session per recording, branch audio/rajatx-*
+git fetch -q origin '+refs/heads/audio/rajatx-*:refs/remotes/origin/audio/rajatx-*' 2>/dev/null
+tx=0; nt=0
+for r in $(git for-each-ref --format='%(refname)' refs/remotes/origin/audio/rajatx-); do
+  git ls-tree -r --name-only "$r" tools/raja_hindi/transcripts | grep -q . && n=$(git ls-tree -r --name-only "$r" tools/raja_hindi/transcripts | grep -c '\.json$') && [ "$n" -gt 1 ] && tx=$((tx+1))
+  git ls-tree -r --name-only "$r" tools/raja_hindi/lessons | grep -c '_notes.md$' | grep -qv '^1$' && nt=$((nt+1))
+done
+echo "raja_transcribed $tx/20 raja_notes $nt/20"
