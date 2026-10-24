@@ -1,0 +1,222 @@
+[
+ {
+  "source": "daily",
+  "n": 41,
+  "title": "Daily plan for Tue, Sep 22",
+  "voice": "am_michael",
+  "file": "daily/41/am_michael.m4a",
+  "bytes": 5421060,
+  "seconds": 655.91,
+  "sha256": "e8538594e696755d745eb05ab006241e32fd25224ddb4b81f1ebd9580c84c058",
+  "textHash": "c70703a4697a4b46"
+ },
+ {
+  "source": "daily",
+  "n": 42,
+  "title": "Daily plan for Wed, Sep 23",
+  "voice": "am_michael",
+  "file": "daily/42/am_michael.m4a",
+  "bytes": 4167915,
+  "seconds": 505.21,
+  "sha256": "0161424167c89f91ab5bd9177c2add89f171a5b00838aa832f28bb9d5c370525",
+  "textHash": "8b296d036fd69b47"
+ },
+ {
+  "source": "daily",
+  "n": 43,
+  "title": "Daily plan for Thu, Sep 24",
+  "voice": "am_michael",
+  "file": "daily/43/am_michael.m4a",
+  "bytes": 4550943,
+  "seconds": 549.18,
+  "sha256": "4a5c17a9f12a5f3b5daf373b4627c0a71c677c79fb6f448520ab0fa54a9994b4",
+  "textHash": "e54e5eb587e967c5"
+ },
+ {
+  "source": "daily",
+  "n": 44,
+  "title": "Daily plan for Fri, Sep 25",
+  "voice": "am_michael",
+  "file": "daily/44/am_michael.m4a",
+  "bytes": 4544498,
+  "seconds": 547.74,
+  "sha256": "4026079e6969c4fa9f3e5ec4f05a181a1e4a25d0ef40846a047305a84e1a29ea",
+  "textHash": "4617f4fbd1679f3f"
+ },
+ {
+  "source": "daily",
+  "n": 45,
+  "title": "Daily plan for Tue, Sep 29",
+  "voice": "am_michael",
+  "file": "daily/45/am_michael.m4a",
+  "bytes": 4665914,
+  "seconds": 565.98,
+  "sha256": "4c76baf8928ef907f00f43d19ff1446460abea1cb9a8235aa1e206c7031f34f4",
+  "textHash": "a030ac89466a6545"
+ },
+ {
+  "source": "daily",
+  "n": 46,
+  "title": "Daily plan for Wed, Sep 30",
+  "voice": "am_michael",
+  "file": "daily/46/am_michael.m4a",
+  "bytes": 4439002,
+  "seconds": 535.37,
+  "sha256": "1c88dbd9b56ee3399c9a1a4eb92895cb8c07df8ec86ef4fc8469e8e3a39f6762",
+  "textHash": "cfc0bb32a971ab28"
+ },
+ {
+  "source": "daily",
+  "n": 47,
+  "title": "Daily plan for Thu, Oct 1",
+  "voice": "am_michael",
+  "file": "daily/47/am_michael.m4a",
+  "bytes": 4380824,
+  "seconds": 528.87,
+  "sha256": "fdca5561de08dc6b363197cc6afe2c9060c41dc50d70709a1b8ea0e6f0fcd98c",
+  "textHash": "1c4e5d39c9b90f0a"
+ },
+ {
+  "source": "daily",
+  "n": 48,
+  "title": "Daily plan for Fri, Oct 2",
+  "voice": "am_michael",
+  "file": "daily/48/am_michael.m4a",
+  "bytes": 4485445,
+  "seconds": 543.15,
+  "sha256": "2e417c67c343ca7be20d4916f9d51dce8ffb502f259a6aee1a081432c8da36e1",
+  "textHash": "92f866eb1fda9a83"
+ },
+ {
+  "source": "daily",
+  "n": 49,
+  "title": "Daily plan for Tue, Oct 6",
+  "voice": "am_michael",
+  "file": "daily/49/am_michael.m4a",
+  "bytes": 4550330,
+  "seconds": 548.51,
+  "sha256": "d64dc3d55c89322593bf664206912b567ba037d63a82343a27dbe7014f262de5",
+  "textHash": "b8da454872cbf4ac"
+ },
+ {
+  "source": "daily",
+  "n": 50,
+  "title": "Daily plan for Wed, Oct 7",
+  "voice": "am_michael",
+  "file": "daily/50/am_michael.m4a",
+  "bytes": 4224739,
+  "seconds": 509.15,
+  "sha256": "b489773982126a7581a97c264e38a5e2311969e8bdcded4eb9130aa10fcab697",
+  "textHash": "919015860a231ef6"
+ },
+ {
+  "source": "daily",
+  "n": 51,
+  "title": "Daily plan for Thu, Oct 8",
+  "voice": "am_michael",
+  "file": "daily/51/am_michael.m4a",
+  "bytes": 4561896,
+  "seconds": 550.88,
+  "sha256": "cf23b07955a795f578993186dc0724daec8970923cbef07c56e30795b2cf184c",
+  "textHash": "9b15728a9af30870"
+ },
+ {
+  "source": "daily",
+  "n": 52,
+  "title": "Daily plan for Fri, Oct 9",
+  "voice": "am_michael",
+  "file": "daily/52/am_michael.m4a",
+  "bytes": 4580617,
+  "seconds": 551.68,
+  "sha256": "e922de3c61d967fb5e15e7592d6a026b3d8f48e5f0adb97aafab7585777044ad",
+  "textHash": "2c59acce3f6efed7"
+ },
+ {
+  "source": "daily",
+  "n": 53,
+  "title": "Daily plan for Tue, Oct 13",
+  "voice": "am_michael",
+  "file": "daily/53/am_michael.m4a",
+  "bytes": 4139971,
+  "seconds": 502.05,
+  "sha256": "25da83a85ea258a63f453dc0d1ec42985db3e6848c6be8694a6f79d2983473e3",
+  "textHash": "8825cedd801b44ff"
+ },
+ {
+  "source": "daily",
+  "n": 54,
+  "title": "Daily plan for Wed, Oct 14",
+  "voice": "am_michael",
+  "file": "daily/54/am_michael.m4a",
+  "bytes": 4602866,
+  "seconds": 554.1,
+  "sha256": "75b3e56dbbe3c40f1851c3d784505f391e84a99ab59aee1ad85a953e8643cb51",
+  "textHash": "29e35087e1161903"
+ },
+ {
+  "source": "daily",
+  "n": 55,
+  "title": "Daily plan for Thu, Oct 15",
+  "voice": "am_michael",
+  "file": "daily/55/am_michael.m4a",
+  "bytes": 4146876,
+  "seconds": 503.12,
+  "sha256": "2e1f27f4e988735a6109edda5e485894af153f0d827a330016403ac30a80c3e7",
+  "textHash": "2efc088d17628e50"
+ },
+ {
+  "source": "daily",
+  "n": 56,
+  "title": "Daily plan for Fri, Oct 16",
+  "voice": "am_michael",
+  "file": "daily/56/am_michael.m4a",
+  "bytes": 4724065,
+  "seconds": 571.13,
+  "sha256": "4e125bcaea3bf1d414ab7ff7f05708a3deb56addc6bf3d6e73024a189319917a",
+  "textHash": "a38877b32fc72b73"
+ },
+ {
+  "source": "daily",
+  "n": 57,
+  "title": "Daily plan for Tue, Oct 20",
+  "voice": "am_michael",
+  "file": "daily/57/am_michael.m4a",
+  "bytes": 4867585,
+  "seconds": 589.25,
+  "sha256": "81e74234119444d418cfae5ad192f539885cf8be476b8e95eaade88c6c94ab89",
+  "textHash": "c0fdd64493d6ce99"
+ },
+ {
+  "source": "daily",
+  "n": 58,
+  "title": "Daily plan for Wed, Oct 21",
+  "voice": "am_michael",
+  "file": "daily/58/am_michael.m4a",
+  "bytes": 4450870,
+  "seconds": 537.78,
+  "sha256": "058684cae2027c73ac9b62eeafc28728283e8a322226d991e30b49237425c612",
+  "textHash": "15efec7cad094ed8"
+ },
+ {
+  "source": "daily",
+  "n": 59,
+  "title": "Daily plan for Thu, Oct 22",
+  "voice": "am_michael",
+  "file": "daily/59/am_michael.m4a",
+  "bytes": 4350643,
+  "seconds": 525.43,
+  "sha256": "c683ee59e08c11a596eac05edacaef58364cfa22e8c04f7b13191e8f7ae587e1",
+  "textHash": "fbf4e9803901538e"
+ },
+ {
+  "source": "daily",
+  "n": 60,
+  "title": "Daily plan for Fri, Oct 23",
+  "voice": "am_michael",
+  "file": "daily/60/am_michael.m4a",
+  "bytes": 5269620,
+  "seconds": 635.18,
+  "sha256": "2bdaf9c6f38616c44d8c82cb9418208e9d8854322de108b3b3ca9594ddd08879",
+  "textHash": "8eea6fd0a8abd3f9"
+ }
+]
