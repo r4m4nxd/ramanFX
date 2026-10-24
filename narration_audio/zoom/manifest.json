@@ -86,5 +86,16 @@
   "seconds": 1862.02,
   "sha256": "757716abde0b1f59534a163417e3e51e1fcd518575a3126750962eca9461b1e1",
   "textHash": "f72c4945d9eb6614"
+ },
+ {
+  "source": "zoom",
+  "n": 9,
+  "title": "Chain analysis: don't force zones, all-time lows, and updating/ending trendlines",
+  "voice": "am_michael",
+  "file": "zoom/09/am_michael.m4a",
+  "bytes": 14568547,
+  "seconds": 1769.03,
+  "sha256": "dca1bc8a5fc0ea5dfd0c01ec504944a18d1ea4aa8fa61427381ab1d156917c94",
+  "textHash": "e6cca4f7c5a5bd0c"
  }
 ]
