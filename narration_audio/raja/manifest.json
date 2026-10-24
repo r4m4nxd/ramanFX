@@ -1,0 +1,35 @@
+[
+ {
+  "source": "raja",
+  "n": 1,
+  "title": "Strong Zones: CP Zones and Arrival Zones",
+  "voice": "am_michael",
+  "file": "raja/01/am_michael.m4a",
+  "bytes": 4522129,
+  "seconds": 553.12,
+  "sha256": "1c49a1410b5f1621daaf2356c8fcb2e1002baa742063bfbe1b005f91a372a4e5",
+  "textHash": "59637ac4c7a31e47"
+ },
+ {
+  "source": "raja",
+  "n": 2,
+  "title": "Weak Zones and the Confirmation Rule (Retests, Inheritance, Flip, Overlap)",
+  "voice": "am_michael",
+  "file": "raja/02/am_michael.m4a",
+  "bytes": 5616510,
+  "seconds": 681.26,
+  "sha256": "0237763fca0005255c40ef94a2a97a183370e3cac29908071b93aedfeffe1e1c",
+  "textHash": "0c3913ab2c5ac32d"
+ },
+ {
+  "source": "raja",
+  "n": 3,
+  "title": "Change of Direction: Trendline Cross + Two Opposite Zones",
+  "voice": "am_michael",
+  "file": "raja/03/am_michael.m4a",
+  "bytes": 3619888,
+  "seconds": 443.72,
+  "sha256": "ac58c53b67660df9c6fa68519a79e46dc6825f1e3fb8cb47e716c72b8067ceda",
+  "textHash": "363c269c6de2c0b1"
+ }
+]

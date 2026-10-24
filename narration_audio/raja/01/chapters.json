@@ -1,0 +1,79 @@
+{
+ "source": "raja",
+ "n": 1,
+ "title": "Strong Zones: CP Zones and Arrival Zones",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 553.12,
+   "textHash": "59637ac4c7a31e47",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Only strong zones are tradable",
+     "start": 80.88
+    },
+    {
+     "id": "s1",
+     "title": "Strong zone type 1: the continuation pattern level that removes the opposite zone",
+     "start": 102.61
+    },
+    {
+     "id": "s2",
+     "title": "Strong zone type 2: the arrival zone",
+     "start": 161.11
+    },
+    {
+     "id": "s3",
+     "title": "Chart walk-throughs he shows",
+     "start": 206.91
+    },
+    {
+     "id": "s4",
+     "title": "Set and forget",
+     "start": 269.22
+    },
+    {
+     "id": "s5",
+     "title": "On his charts",
+     "start": 290.54
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 366.21
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 397.56
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 408.85
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 430.86
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 510.59
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 538.73
+    }
+   ]
+  }
+ }
+}

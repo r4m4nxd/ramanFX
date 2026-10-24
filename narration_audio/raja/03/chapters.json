@@ -1,0 +1,69 @@
+{
+ "source": "raja",
+ "n": 3,
+ "title": "Change of Direction: Trendline Cross + Two Opposite Zones",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 443.72,
+   "textHash": "363c269c6de2c0b1",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "The rule",
+     "start": 60.21
+    },
+    {
+     "id": "s1",
+     "title": "Examples",
+     "start": 113.4
+    },
+    {
+     "id": "s2",
+     "title": "After the change: the entry",
+     "start": 170.28
+    },
+    {
+     "id": "s3",
+     "title": "On his charts",
+     "start": 194.12
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 270.16
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 301.34
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 312.3
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 330.46
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 398.45
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 428.88
+    }
+   ]
+  }
+ }
+}
