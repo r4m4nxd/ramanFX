@@ -108,5 +108,16 @@
   "seconds": 2368.65,
   "sha256": "1dd355cc50ba8a0ee01c4cfbe22d0cc41fa35eb41b1e685a5919422e4ccdc4a8",
   "textHash": "ec0195b7981ea531"
+ },
+ {
+  "source": "zoom",
+  "n": 11,
+  "title": "Chain-analysis homework review: trendline anatomy, borderline zones and homework format",
+  "voice": "am_michael",
+  "file": "zoom/11/am_michael.m4a",
+  "bytes": 14658109,
+  "seconds": 1784.39,
+  "sha256": "50be109290fecea1b8db34957a5e1179da3e855d668176669a1d8d67944011ac",
+  "textHash": "7147f866965f8cc8"
  }
 ]
