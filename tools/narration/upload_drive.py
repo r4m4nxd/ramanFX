@@ -61,6 +61,22 @@ def scan():
                     f = next((x for x in alt if os.path.basename(os.path.dirname(x)).lstrip('0') == str(e['n'])), None)
                 if f and os.path.exists(f):
                     found[(src, e['n'])] = (e, f)
+    # files without a manifest entry (a session's later manifest can miss earlier lessons): title from narrations.json
+    try:
+        titles = {(l['source'], l['n']): l['title'] for l in json.load(open(os.path.join(ROOT, 'tools/narration/out/narrations.json')))}
+    except Exception:
+        titles = {}
+    import hashlib
+    for base in (os.path.join(ROOT, 'tools/narration/out'), os.path.join(ROOT, 'narration_audio')):
+        for f in glob.glob(os.path.join(base, '*', '*', VOICE + '.m4a')):
+            src = os.path.basename(os.path.dirname(os.path.dirname(f)))
+            try:
+                n = int(os.path.basename(os.path.dirname(f)))
+            except ValueError:
+                continue
+            if (src, n) not in found and src in FOLDERS:
+                h = 'file:' + hashlib.sha1(open(f, 'rb').read()).hexdigest()[:16]
+                found[(src, n)] = ({'n': n, 'title': titles.get((src, n), ''), 'textHash': h, 'voice': VOICE}, f)
     return found
 
 def run_once():

@@ -1,4 +1,39 @@
 {
+ "baker:10:am_michael": {
+  "bytes": 3976231,
+  "id": "1azEA1NAlrm8khNNXXB4oWrqqv9lE8_Ns",
+  "name": "10 - Risk Management Rules.m4a",
+  "seconds": null,
+  "textHash": "file:57a97050ffd826a7"
+ },
+ "baker:11:am_michael": {
+  "bytes": 5517472,
+  "id": "1HErOB-oBw8GTlVXPAB-62Mcc_lPQ_FrD",
+  "name": "11 - Using Zones to Set Stops, Targets and Size.m4a",
+  "seconds": null,
+  "textHash": "file:d842fa483d371354"
+ },
+ "baker:12:am_michael": {
+  "bytes": 2856238,
+  "id": "1-pMggFL_hiHw_5j1MFaUspBJLc1s8Te6",
+  "name": "12 - Writing a Trading Plan.m4a",
+  "seconds": null,
+  "textHash": "file:0b50a3f9231bd0ae"
+ },
+ "baker:13:am_michael": {
+  "bytes": 4177064,
+  "id": "1xCGo1xr3WfDScWyhSN4ygf2oZ6Fn-Nvg",
+  "name": "13 - Options Basics for Zone Traders.m4a",
+  "seconds": null,
+  "textHash": "file:197ba7299d99d1ed"
+ },
+ "baker:14:am_michael": {
+  "bytes": 2708055,
+  "id": "1d1LHbkuvDiSng8mHOpPVTk95PVtoWX7_",
+  "name": "14 - Putting It Together- The Whole Method.m4a",
+  "seconds": null,
+  "textHash": "file:d75a65fb94ebbfbe"
+ },
  "baker:1:am_michael": {
   "bytes": 3568757,
   "id": "1slrDDGcGPsOCP2KT_XPmWuTjSgMekcsg",
@@ -48,6 +83,20 @@
   "seconds": 458.74,
   "textHash": "07fb7eee31b7583c"
  },
+ "baker:8:am_michael": {
+  "bytes": 5672045,
+  "id": "1nO_Mxx_FV5GvSMqzZ2y4WKQlMpBd_4qb",
+  "name": "08 - Day Trading- Daily Zones, Intraday Execution.m4a",
+  "seconds": null,
+  "textHash": "file:2414dcad0e3849df"
+ },
+ "baker:9:am_michael": {
+  "bytes": 4036238,
+  "id": "1h9s6-92HMR4vUdxZrmh2_5xgM0uAiFzw",
+  "name": "09 - Gaps, Broken Zones and All-Time Highs.m4a",
+  "seconds": null,
+  "textHash": "file:4779a4facf919bb8"
+ },
  "course:1:am_michael": {
   "bytes": 7665340,
   "id": "1MDGV1TqLO6t1MfAnXHHGHYxB13QoNthK",
@@ -82,6 +131,62 @@
   "name": "05 - Trend vs Momentum.m4a",
   "seconds": 977.08,
   "textHash": "3443b70d13616dcd"
+ },
+ "daily:10:am_michael": {
+  "bytes": 4315044,
+  "id": "1rD5OSnbsaagDNh7zPAsk58sd5AvzJF8N",
+  "name": "10 - Daily plan for Fri, Jul 24.m4a",
+  "seconds": 523.97,
+  "textHash": "aee7ee4af7b09385"
+ },
+ "daily:11:am_michael": {
+  "bytes": 4683647,
+  "id": "1PMCKwJWq_CeIrBVym876jPmTK2whB2oV",
+  "name": "11 - Daily plan for Tue, Jul 28.m4a",
+  "seconds": 565.12,
+  "textHash": "4a937adb79208168"
+ },
+ "daily:12:am_michael": {
+  "bytes": 3281025,
+  "id": "1qJuYPO5X3sXkz0XxP1otarNQ3mh9gOpd",
+  "name": "12 - Daily plan for Wed, Jul 29.m4a",
+  "seconds": 398.23,
+  "textHash": "562f85318364e824"
+ },
+ "daily:13:am_michael": {
+  "bytes": 5224778,
+  "id": "1JZ8N5WmUi-9fI-phXhay5Bk8C0EwKvY1",
+  "name": "13 - Daily plan for Thu, Jul 30.m4a",
+  "seconds": 632.89,
+  "textHash": "28f9fc1271a8a552"
+ },
+ "daily:14:am_michael": {
+  "bytes": 4885919,
+  "id": "1HoqvrFgHHH1EB6xn52s_wCaEbQLpVLZH",
+  "name": "14 - Daily plan for Tue, Aug 4.m4a",
+  "seconds": 590.84,
+  "textHash": "ef14753f496c2cc8"
+ },
+ "daily:15:am_michael": {
+  "bytes": 5167102,
+  "id": "16V2F_N2t5lvG9M8Htrkg95XIWZ9vojyM",
+  "name": "15 - Daily plan for Wed, Aug 5.m4a",
+  "seconds": 623.87,
+  "textHash": "d844ef52f4473c83"
+ },
+ "daily:16:am_michael": {
+  "bytes": 4236333,
+  "id": "1BZ5dlm6pUpCKgXF5Fiu8JhJ5yhW_vRth",
+  "name": "16 - Daily plan for Thu, Aug 6.m4a",
+  "seconds": 511.95,
+  "textHash": "cea7cc10c805530d"
+ },
+ "daily:1:am_michael": {
+  "bytes": 5422876,
+  "id": "13PtkRrHs54kw9aJGzF1JPx9VeRIUwpLO",
+  "name": "01 - Daily plan for Thu, Jul 9.m4a",
+  "seconds": 654.83,
+  "textHash": "a2eaaa5ee20a2bb3"
  },
  "daily:21:am_michael": {
   "bytes": 4587250,
@@ -145,6 +250,62 @@
   "name": "29 - Daily plan for Fri, Aug 28.m4a",
   "seconds": 548.5,
   "textHash": "9eed8d122f2daf67"
+ },
+ "daily:2:am_michael": {
+  "bytes": 5738077,
+  "id": "1PhcfMG29x33tfrJyKZ1ejoRTQ_bd_M1N",
+  "name": "02 - Daily plan for Fri, Jul 10.m4a",
+  "seconds": 690.24,
+  "textHash": "162c624bad5246d8"
+ },
+ "daily:3:am_michael": {
+  "bytes": 5403704,
+  "id": "1Utqg28k3_LaE1OnbLTJpqbyB8RKWmRP1",
+  "name": "03 - Daily plan for Tue, Jul 14.m4a",
+  "seconds": 650.08,
+  "textHash": "8447d24f3f961db8"
+ },
+ "daily:4:am_michael": {
+  "bytes": 4780310,
+  "id": "1dJAZOU04prZQyZlKBmTcEWkxkQq4QeS8",
+  "name": "04 - Daily plan for Wed, Jul 15.m4a",
+  "seconds": 577.94,
+  "textHash": "47c0786ef76d070e"
+ },
+ "daily:5:am_michael": {
+  "bytes": 4201714,
+  "id": "154XPWxmTOJ6JrcgHKzW8P6AYsVj17f88",
+  "name": "05 - Daily plan for Thu, Jul 16.m4a",
+  "seconds": 507.76,
+  "textHash": "11a98568c125ab3a"
+ },
+ "daily:6:am_michael": {
+  "bytes": 4612169,
+  "id": "10vxDQFtWdD_6dftCDxgYDer8ES3zgqLc",
+  "name": "06 - Daily plan for Fri, Jul 17.m4a",
+  "seconds": 556.72,
+  "textHash": "727969ffc746b7e3"
+ },
+ "daily:7:am_michael": {
+  "bytes": 4964533,
+  "id": "1O0Wcm0Ohl3olEUpti2gTobzYFMgdvFV7",
+  "name": "07 - Daily plan for Tue, Jul 21.m4a",
+  "seconds": 597.41,
+  "textHash": "f64a3f7d48f4f392"
+ },
+ "daily:8:am_michael": {
+  "bytes": 4342885,
+  "id": "1FUnsiXYfyFoAdG-hpMGDnhI1_aRas5Pc",
+  "name": "08 - Daily plan for Wed, Jul 22.m4a",
+  "seconds": 524.74,
+  "textHash": "b9ac6732267e01ac"
+ },
+ "daily:9:am_michael": {
+  "bytes": 4187268,
+  "id": "1uXORGGS3nZxkSBkamuWoWYXOtpDC-E0k",
+  "name": "09 - Daily plan for Thu, Jul 23.m4a",
+  "seconds": 505.19,
+  "textHash": "1287e610ae5d059d"
  },
  "raja:1:am_michael": {
   "bytes": 4521950,
@@ -271,6 +432,83 @@
   "name": "260 - Important Questions Answered on Trading Styles.m4a",
   "seconds": 241.51,
   "textHash": "c48908bd07d25e49"
+ },
+ "seiden:264:am_michael": {
+  "bytes": 3190702,
+  "id": "1SVx5k6Y2n0XHzPINyk6wxpQQvOEvZ-WS",
+  "name": "264 - Out-Thinking Your Competition.m4a",
+  "seconds": 387.21,
+  "textHash": "c2aa4da846c8119b"
+ },
+ "seiden:267:am_michael": {
+  "bytes": 3197753,
+  "id": "1YV_n4lgds3LXr6LtM7J_ynneL_n_jxAU",
+  "name": "267 - The Many Ways to Benefit from Proper Supply and Demand Analysis.m4a",
+  "seconds": 390.44,
+  "textHash": "b6275ff20a9a856e"
+ },
+ "seiden:271:am_michael": {
+  "bytes": 1968403,
+  "id": "1xsJSpymhemTDBLJTAxG7rWGaSUSR48Je",
+  "name": "271 - Don't Be a Blind Donor.m4a",
+  "seconds": 241.92,
+  "textHash": "ea15de4bcd0ccd47"
+ },
+ "seiden:274:am_michael": {
+  "bytes": 3676084,
+  "id": "1geI5JlOkiYpubVl9lfJF7sDA8DW_frEd",
+  "name": "274 - A Key Rule, Often Overlooked.m4a",
+  "seconds": 446.9,
+  "textHash": "505d1eef6a0e60d4"
+ },
+ "seiden:278:am_michael": {
+  "bytes": 3338105,
+  "id": "1QF_zGFprEUG0TOQOBVopDzRk893vFatD",
+  "name": "278 - Planes, Trains and Automobiles.m4a",
+  "seconds": 404.82,
+  "textHash": "b54051c83617e4ea"
+ },
+ "seiden:284:am_michael": {
+  "bytes": 4681569,
+  "id": "1Hjp7JqLBEydIHX3qxxdxNEIu1zaqidlb",
+  "name": "284 - Trade What is Real, Not What You Feel.m4a",
+  "seconds": 569.38,
+  "textHash": "ed4480ac919086af"
+ },
+ "seiden:295:am_michael": {
+  "bytes": 2973711,
+  "id": "1RLpaXs1yWGd63A-RSkPqaXvwpWGKyjsf",
+  "name": "295 - Trading Tools You May Not Find in Books.m4a",
+  "seconds": 361.19,
+  "textHash": "04a10f34cbdf4432"
+ },
+ "seiden:299:am_michael": {
+  "bytes": 2066962,
+  "id": "1gACN-Ez9kw8TpxKGjsewWOgxPZ_oDrdG",
+  "name": "299 - Your Questions Answered.m4a",
+  "seconds": 253.0,
+  "textHash": "9e514388cd4a3feb"
+ },
+ "seiden:302:am_michael": {
+  "bytes": 3816396,
+  "id": "1Rj2_rXQQWJhIrmOCECQo-98cSWMf7p4i",
+  "name": "302 - System Trading - A Complex World with Simple Answers.m4a",
+  "seconds": 462.36,
+  "textHash": "d67241e439738019"
+ },
+ "seiden:311:am_michael": {
+  "bytes": 2010179,
+  "id": "1iwcQDR0ZBoxHkec4mtyTdz3fnpfyYiVO",
+  "name": "311 - Got Questions- Sam has Answers!.m4a",
+  "seconds": 247.46,
+  "textHash": "6301b3a213cc28ae"
+ },
+ "seiden:315:am_michael": {
+  "bytes": 3354625,
+  "id": "12f3NaPDqO_bonUFnNKXYGkB1r3-KcUgQ",
+  "name": "315 - Patience and Probabilities.m4a",
+  "seconds": 407.21,
+  "textHash": "e67b0d4d5e7ff6fc"
  },
  "seiden:319:am_michael": {
   "bytes": 2493649,
