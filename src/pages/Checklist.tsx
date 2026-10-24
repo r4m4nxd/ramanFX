@@ -339,6 +339,38 @@ function PrintSheet({ what }: { what: PrintWhat }) {
   );
 }
 
+// ─── PDF file (built from the data by jsPDF, loaded only when the PDF sheet opens) ──────────────────────────
+// window.print() does nothing in an iPhone home-screen app, so the sheet hands over a real PDF file instead:
+// the share sheet where files can be shared (Save to Files, Print, AirDrop, WhatsApp), a download elsewhere.
+type Pdf = import('@/core/checklists/pdf').ChecklistPdf;
+const pdfCache = new Map<PrintWhat, Promise<Pdf>>();
+function getPdf(what: PrintWhat): Promise<Pdf> {
+  let p = pdfCache.get(what);
+  if (!p) {
+    p = import('@/core/checklists/pdf').then(mod => mod.buildChecklistPdf(what));
+    p.catch(() => pdfCache.delete(what));
+    pdfCache.set(what, p);
+  }
+  return p;
+}
+const isStandalone = () => window.matchMedia?.('(display-mode: standalone)').matches || !!(navigator as Navigator & { standalone?: boolean }).standalone;
+const isIOS = () => /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const canShareFile = (f: File) => { try { return typeof navigator.share === 'function' && !!navigator.canShare?.({ files: [f] }); } catch { return false; } };
+const canShareFiles = () => { try { return typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && navigator.canShare({ files: [new File(['x'], 'x.pdf', { type: 'application/pdf' })] }); } catch { return false; } };
+function downloadPdf(pdf: Pdf) {
+  const url = URL.createObjectURL(pdf.blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = pdf.name; a.rel = 'noopener'; a.style.display = 'none';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+/** Open the PDF in the browser's viewer (it has its own Share and Print). False if a popup blocker said no. */
+function openPdf(pdf: Pdf): boolean {
+  const url = URL.createObjectURL(pdf.blob);
+  setTimeout(() => URL.revokeObjectURL(url), 5 * 60_000);
+  return !!window.open(url, '_blank');
+}
+
 // ─── Page ───────────────────────────────────────────────────────────────────────────────────────────────
 export default function ChecklistPage() {
   const [sp, setSp] = useSearchParams();
@@ -375,6 +407,40 @@ export default function ChecklistPage() {
     setPdfOpen(false);
     // Let the sheet render the chosen mentor(s) and the bottom sheet leave before the print dialog takes over.
     setTimeout(() => window.print(), 350);
+  };
+  // The PDF is built as soon as the sheet opens (or the choice changes), so the tap that shares it still has the
+  // user activation navigator.share needs; the buttons wait for it instead of awaiting inside the tap.
+  const [pdfWhat, setPdfWhat] = useState<PrintWhat>(m);
+  const [pdf, setPdf] = useState<{ what: PrintWhat; pdf?: Pdf; failed?: boolean } | null>(null);
+  const [pdfTry, setPdfTry] = useState(0);
+  const [shareOk] = useState(canShareFiles);
+  const appMode = useMemo(() => isStandalone() || isIOS(), []);
+  useEffect(() => { if (pdfOpen) setPdfWhat(m); }, [pdfOpen, m]);
+  const wantPdf = pdfOpen || preview;
+  const wantWhat = pdfOpen ? pdfWhat : printWhat;
+  useEffect(() => {
+    if (!wantPdf) return;
+    let live = true;
+    setPdf(cur => (cur?.what === wantWhat && cur.pdf ? cur : { what: wantWhat }));
+    getPdf(wantWhat).then(p => { if (live) setPdf({ what: wantWhat, pdf: p }); }, () => { if (live) setPdf({ what: wantWhat, failed: true }); });
+    return () => { live = false; };
+  }, [wantPdf, wantWhat, pdfTry]);
+  const ready = pdf?.what === wantWhat ? pdf.pdf : undefined;
+  const retryPdf = () => setPdfTry(n => n + 1);
+  const sharePdf = (p: Pdf) => {
+    if (!canShareFile(p.file)) { downloadPdf(p); toast(`Downloaded ${p.name}`, 'ok'); return; }
+    navigator.share({ files: [p.file], title: p.title }).then(() => setPdfOpen(false), (e: unknown) => {
+      const name = (e as { name?: string })?.name;
+      if (name === 'AbortError') return; // cancelled in the share sheet
+      if (name === 'NotAllowedError') { toast('Tap Save or share once more', 'info'); return; }
+      downloadPdf(p);
+    });
+  };
+  const viewPdf = (p: Pdf) => { if (!openPdf(p)) { downloadPdf(p); toast(`Downloaded ${p.name}`, 'ok'); } };
+  const printPdf = (p: Pdf | undefined, what: PrintWhat) => {
+    // Home-screen app / iPhone: window.print() is dead there, so open the PDF; its viewer has Share > Print.
+    if (appMode) { if (p) viewPdf(p); return; }
+    doPrint(what);
   };
   const reset = () => {
     const before = ticks;
@@ -421,10 +487,28 @@ export default function ChecklistPage() {
 
       <Sheet bottom open={pdfOpen} onClose={() => setPdfOpen(false)} title="Save as PDF">
         <div className="flex flex-col gap-2.5">
-          <button type="button" className="btn-primary h-12 w-full" onClick={() => doPrint(m)}><Icon name="download" size={15} />{list.short} only</button>
-          <button type="button" className="btn h-12 w-full" onClick={() => doPrint('all')}><Icon name="layers" size={15} />All four mentors</button>
-          <button type="button" className="btn-ghost h-11 w-full" onClick={() => { setPdfOpen(false); navigate(`/checklist?m=${m}&view=print&print=${m}`); }}><Icon name="eye" size={15} />Preview the sheet</button>
-          <p className="text-[12px] text-ink3 leading-relaxed mt-1">A4, two columns, 1-2 pages per mentor. iPhone: in the print screen tap Share (top right), then Save to Files.</p>
+          <div className="flex justify-center">
+            <Segmented label="Which checklist" value={pdfWhat} onChange={setPdfWhat} options={[{ value: m as PrintWhat, label: `${list.short} only` }, { value: 'all' as PrintWhat, label: 'All four mentors' }]} />
+          </div>
+          {pdf?.failed && pdf.what === pdfWhat ? (
+            <button type="button" className="btn-primary h-12 w-full" onClick={retryPdf}><Icon name="refresh" size={15} />Could not build the PDF. Try again</button>
+          ) : (
+            <button type="button" className="btn-primary h-12 w-full" disabled={!ready} aria-busy={!ready} onClick={() => ready && sharePdf(ready)}>
+              <Icon name={ready ? (shareOk ? 'upload' : 'download') : 'clock'} size={15} />
+              {!ready ? 'Preparing PDF…' : shareOk ? 'Save or share PDF' : 'Download PDF'}
+            </button>
+          )}
+          <div className="grid grid-cols-2 gap-2.5">
+            <button type="button" className="btn h-11 w-full" disabled={!ready} onClick={() => ready && viewPdf(ready)}><Icon name="eye" size={15} />Open PDF</button>
+            <button type="button" className="btn h-11 w-full" disabled={appMode && !ready} onClick={() => printPdf(ready, pdfWhat)}><Icon name="layers" size={15} />Print</button>
+          </div>
+          <button type="button" className="btn-ghost h-11 w-full" onClick={() => { setPdfOpen(false); navigate(`/checklist?m=${m}&view=print&print=${pdfWhat}`); }}><Icon name="eye" size={15} />Preview the sheet</button>
+          <p className="text-[12px] text-ink3 leading-relaxed mt-1">
+            A4, two columns, 1-2 pages per mentor{ready ? ` (${ready.pages} ${ready.pages === 1 ? 'page' : 'pages'})` : ''}.{' '}
+            {shareOk
+              ? 'iPhone: Save or share opens the share sheet. Pick Save to Files, Print, AirDrop or WhatsApp.'
+              : 'The PDF downloads to your device. Open PDF shows it in a new tab, with its own Print.'}
+          </p>
         </div>
       </Sheet>
 
@@ -433,7 +517,7 @@ export default function ChecklistPage() {
         <div className="ck-preview-bar">
           <button type="button" className="btn h-10" onClick={() => navigate(`/checklist?m=${m}`)}><Icon name="chevronLeft" size={15} />Back</button>
           <Segmented size="sm" label="Sheet" value={printWhat} onChange={setPrintWhat} options={[...MENTOR_ORDER.map(k => ({ value: k as PrintWhat, label: CHECKLISTS[k].short })), { value: 'all' as PrintWhat, label: 'All' }]} />
-          <button type="button" className="btn-primary h-10" onClick={() => window.print()}><Icon name="download" size={15} />Print</button>
+          <button type="button" className="btn-primary h-10" disabled={appMode && !ready} onClick={() => (appMode ? ready && sharePdf(ready) : window.print())}><Icon name="download" size={15} />{appMode ? 'Save PDF' : 'Print'}</button>
         </div>,
         document.body,
       )}
