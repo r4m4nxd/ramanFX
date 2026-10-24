@@ -1,0 +1,59 @@
+{
+ "source": "daily",
+ "n": 7,
+ "title": "Daily plan for Tue, Jul 21",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 597.41,
+   "textHash": "f64a3f7d48f4f392",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "The plan",
+     "start": 91.22
+    },
+    {
+     "id": "s1",
+     "title": "Market bias",
+     "start": 192.43
+    },
+    {
+     "id": "s2",
+     "title": "Setups he is watching",
+     "start": 252.38
+    },
+    {
+     "id": "s3",
+     "title": "Rules and lessons",
+     "start": 295.75
+    },
+    {
+     "id": "s4",
+     "title": "Trade reviews, earlier calls",
+     "start": 370.19
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 405.81
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 464.01
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 579.68
+    }
+   ]
+  }
+ }
+}

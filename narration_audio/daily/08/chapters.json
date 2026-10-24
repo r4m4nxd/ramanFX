@@ -1,0 +1,59 @@
+{
+ "source": "daily",
+ "n": 8,
+ "title": "Daily plan for Wed, Jul 22",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 524.74,
+   "textHash": "b9ac6732267e01ac",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "The plan",
+     "start": 84.77
+    },
+    {
+     "id": "s1",
+     "title": "Market bias",
+     "start": 167.53
+    },
+    {
+     "id": "s2",
+     "title": "Setups he is watching",
+     "start": 230.32
+    },
+    {
+     "id": "s3",
+     "title": "Rules and lessons",
+     "start": 264.92
+    },
+    {
+     "id": "s4",
+     "title": "Trade reviews, earlier calls",
+     "start": 330.63
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 359.37
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 404.75
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 508.06
+    }
+   ]
+  }
+ }
+}
