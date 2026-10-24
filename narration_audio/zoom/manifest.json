@@ -42,5 +42,16 @@
   "seconds": 2017.5,
   "sha256": "1cf7a541188be5cd211932f614cc83e278fdc231c023ccaf8d1debb29e0a3690",
   "textHash": "23a505b02961a371"
+ },
+ {
+  "source": "zoom",
+  "n": 5,
+  "title": "The four parts of a zone, full-close trendline removal, ending overextended trendlines and why huge trendlines miss the chain",
+  "voice": "am_michael",
+  "file": "zoom/05/am_michael.m4a",
+  "bytes": 17335313,
+  "seconds": 2101.72,
+  "sha256": "59427350178994ae3d4a4e46ad6f314cbc8809d36091d23ea1bae2da66973fe8",
+  "textHash": "d3417ae51c330928"
  }
 ]
