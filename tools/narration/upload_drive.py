@@ -49,7 +49,7 @@ def safe(s):
 def scan():
     found = {}
     for base in (os.path.join(ROOT, 'tools/narration/out'), os.path.join(ROOT, 'narration_audio')):
-        for man in glob.glob(os.path.join(base, '*', 'manifest.json')):
+        for man in glob.glob(os.path.join(base, '*', 'manifest*.json')):
             src = os.path.basename(os.path.dirname(man))
             for e in json.load(open(man)):
                 if e.get('voice') != VOICE: continue
@@ -83,7 +83,12 @@ def fetch_branches():
     subprocess.run('git fetch -q origin "+refs/heads/audio/*:refs/remotes/origin/audio/*"', shell=True, cwd=ROOT)
     out = subprocess.run('git for-each-ref --format="%(refname)" refs/remotes/origin/audio/', shell=True, cwd=ROOT, capture_output=True, text=True).stdout.split()
     for ref in out:
-        subprocess.run(f'git archive {ref} narration_audio | tar -x -C {ROOT}', shell=True, cwd=ROOT, stderr=subprocess.DEVNULL)
+        # every commit on the branch (oldest first): a session may push a later commit with fewer files
+        revs = subprocess.run(f'git rev-list --reverse {ref} -- narration_audio', shell=True, cwd=ROOT, capture_output=True, text=True).stdout.split()
+        for rev in revs:
+            subprocess.run(f'git archive {rev} narration_audio | tar -x -C {ROOT}', shell=True, cwd=ROOT, stderr=subprocess.DEVNULL)
+            for man in glob.glob(os.path.join(ROOT, 'narration_audio', '*', 'manifest.json')):
+                os.replace(man, man.replace('manifest.json', f'manifest.{rev[:10]}.json'))
 
 if __name__ == '__main__':
     if '--watch' in sys.argv:
