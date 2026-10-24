@@ -1,0 +1,64 @@
+{
+ "source": "seiden",
+ "n": 264,
+ "title": "Out-Thinking Your Competition",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 387.21,
+   "textHash": "c2aa4da846c8119b",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Two kinds of edge",
+     "start": 54.44
+    },
+    {
+     "id": "s1",
+     "title": "The three factors",
+     "start": 68.19
+    },
+    {
+     "id": "s2",
+     "title": "Charts",
+     "start": 126.25
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 195.73
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 226.48
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 246.86
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 260.72
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 344.26
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 371.99
+    }
+   ]
+  }
+ }
+}

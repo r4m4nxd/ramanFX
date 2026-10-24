@@ -1,0 +1,74 @@
+{
+ "source": "seiden",
+ "n": 284,
+ "title": "Trade What is Real, Not What You Feel",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 569.38,
+   "textHash": "ed4480ac919086af",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Moving averages illusion",
+     "start": 53.74
+    },
+    {
+     "id": "s1",
+     "title": "News illusion",
+     "start": 81.83
+    },
+    {
+     "id": "s2",
+     "title": "Fundamental illusion",
+     "start": 102.65
+    },
+    {
+     "id": "s3",
+     "title": "Three laws of price movement",
+     "start": 131.9
+    },
+    {
+     "id": "s4",
+     "title": "Charts",
+     "start": 163.19
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 335.66
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 367.53
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 387.85
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 406.5
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 528.1
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 552.85
+    }
+   ]
+  }
+ }
+}

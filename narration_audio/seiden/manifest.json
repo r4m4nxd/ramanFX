@@ -163,5 +163,126 @@
   "seconds": 241.51,
   "sha256": "a44766dc21e879840c854f83a915583fd34a0f08c7fbbc86fd6288f740521258",
   "textHash": "c48908bd07d25e49"
+ },
+ {
+  "source": "seiden",
+  "n": 264,
+  "title": "Out-Thinking Your Competition",
+  "voice": "am_michael",
+  "file": "seiden/264/am_michael.m4a",
+  "bytes": 3190702,
+  "seconds": 387.21,
+  "sha256": "6fa64f9301ff45f10c400985a87604b94c2add6d3325a2272f21a78f6053e16c",
+  "textHash": "c2aa4da846c8119b"
+ },
+ {
+  "source": "seiden",
+  "n": 267,
+  "title": "The Many Ways to Benefit from Proper Supply and Demand Analysis",
+  "voice": "am_michael",
+  "file": "seiden/267/am_michael.m4a",
+  "bytes": 3197753,
+  "seconds": 390.44,
+  "sha256": "3c140085086f02ebce893cca450ab7a0d59162641db0cce73139c4834ae5ea4e",
+  "textHash": "b6275ff20a9a856e"
+ },
+ {
+  "source": "seiden",
+  "n": 271,
+  "title": "Don't Be a Blind Donor",
+  "voice": "am_michael",
+  "file": "seiden/271/am_michael.m4a",
+  "bytes": 1968403,
+  "seconds": 241.92,
+  "sha256": "a0b51cd6a4cbac151e7c5ff6177ddd14c168357306a079b74b20b86c1c994354",
+  "textHash": "ea15de4bcd0ccd47"
+ },
+ {
+  "source": "seiden",
+  "n": 274,
+  "title": "A Key Rule, Often Overlooked",
+  "voice": "am_michael",
+  "file": "seiden/274/am_michael.m4a",
+  "bytes": 3676084,
+  "seconds": 446.9,
+  "sha256": "bee3136bd3292e3edbf0bcee173c98f6bd276edaf0b598eda4610028321f0d81",
+  "textHash": "505d1eef6a0e60d4"
+ },
+ {
+  "source": "seiden",
+  "n": 278,
+  "title": "Planes, Trains and Automobiles",
+  "voice": "am_michael",
+  "file": "seiden/278/am_michael.m4a",
+  "bytes": 3338105,
+  "seconds": 404.82,
+  "sha256": "f60a0e95f81e8ce07b51437bd0c76e1f25029a0cb4e7f90aa78573d818eb4017",
+  "textHash": "b54051c83617e4ea"
+ },
+ {
+  "source": "seiden",
+  "n": 284,
+  "title": "Trade What is Real, Not What You Feel",
+  "voice": "am_michael",
+  "file": "seiden/284/am_michael.m4a",
+  "bytes": 4681569,
+  "seconds": 569.38,
+  "sha256": "60e27d83d7e2b23f58bd58828d1d39008d67136f5a3243b17635f13b0352a5ae",
+  "textHash": "ed4480ac919086af"
+ },
+ {
+  "source": "seiden",
+  "n": 295,
+  "title": "Trading Tools You May Not Find in Books",
+  "voice": "am_michael",
+  "file": "seiden/295/am_michael.m4a",
+  "bytes": 2973711,
+  "seconds": 361.19,
+  "sha256": "df146ce94a292dc9471181ceb4912d0735f239d783294cd983d3e0532ece0962",
+  "textHash": "04a10f34cbdf4432"
+ },
+ {
+  "source": "seiden",
+  "n": 299,
+  "title": "Your Questions Answered",
+  "voice": "am_michael",
+  "file": "seiden/299/am_michael.m4a",
+  "bytes": 2066962,
+  "seconds": 253.0,
+  "sha256": "d8cfd30998833b48ee3f9550c8946d489a3603bc196deb3d54dabfa2640d3707",
+  "textHash": "9e514388cd4a3feb"
+ },
+ {
+  "source": "seiden",
+  "n": 302,
+  "title": "System Trading - A Complex World with Simple Answers",
+  "voice": "am_michael",
+  "file": "seiden/302/am_michael.m4a",
+  "bytes": 3816396,
+  "seconds": 462.36,
+  "sha256": "549e9196d8e3c4947fb73a4bee206e34ef0c1605082aae7d1d3955ca15549af0",
+  "textHash": "d67241e439738019"
+ },
+ {
+  "source": "seiden",
+  "n": 311,
+  "title": "Got Questions? Sam has Answers!",
+  "voice": "am_michael",
+  "file": "seiden/311/am_michael.m4a",
+  "bytes": 2010179,
+  "seconds": 247.46,
+  "sha256": "f9873d83395a676e930243f1e7aad45c82718321d014a1d6fce11cc598e994d8",
+  "textHash": "6301b3a213cc28ae"
+ },
+ {
+  "source": "seiden",
+  "n": 315,
+  "title": "Patience and Probabilities",
+  "voice": "am_michael",
+  "file": "seiden/315/am_michael.m4a",
+  "bytes": 3354625,
+  "seconds": 407.21,
+  "sha256": "d9fb21191980d9e09d1311bd422b88bdb9a22766bad85122415afe4935fb1004",
+  "textHash": "e67b0d4d5e7ff6fc"
  }
 ]

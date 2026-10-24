@@ -1,0 +1,69 @@
+{
+ "source": "seiden",
+ "n": 315,
+ "title": "Patience and Probabilities",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 407.21,
+   "textHash": "e67b0d4d5e7ff6fc",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Patience",
+     "start": 55.7
+    },
+    {
+     "id": "s1",
+     "title": "Odds enhancers for the GOOG short",
+     "start": 71.53
+    },
+    {
+     "id": "s2",
+     "title": "No waiting for confirmation",
+     "start": 108.79
+    },
+    {
+     "id": "s3",
+     "title": "Charts",
+     "start": 127.58
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 198.62
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 225.33
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 243.19
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 254.83
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 362.54
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 391.89
+    }
+   ]
+  }
+ }
+}

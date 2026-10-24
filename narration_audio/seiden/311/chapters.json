@@ -1,0 +1,69 @@
+{
+ "source": "seiden",
+ "n": 311,
+ "title": "Got Questions? Sam has Answers!",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 247.46,
+   "textHash": "6301b3a213cc28ae",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Sideways markets",
+     "start": 49.91
+    },
+    {
+     "id": "s1",
+     "title": "Gaps as demand",
+     "start": 68.82
+    },
+    {
+     "id": "s2",
+     "title": "Longer-term, IRA, view",
+     "start": 86.31
+    },
+    {
+     "id": "s3",
+     "title": "Hand charting",
+     "start": 108.76
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 126.9
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 152.31
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 173.72
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 186.54
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 208.06
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 232.44
+    }
+   ]
+  }
+ }
+}

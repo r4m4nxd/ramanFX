@@ -1,0 +1,64 @@
+{
+ "source": "seiden",
+ "n": 295,
+ "title": "Trading Tools You May Not Find in Books",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 361.19,
+   "textHash": "04a10f34cbdf4432",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Trend strength by pivot spacing",
+     "start": 52.47
+    },
+    {
+     "id": "s1",
+     "title": "Volume",
+     "start": 77.53
+    },
+    {
+     "id": "s2",
+     "title": "Charts",
+     "start": 99.52
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 157.29
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 184.06
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 204.58
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 220.94
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 320.01
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 344.02
+    }
+   ]
+  }
+ }
+}

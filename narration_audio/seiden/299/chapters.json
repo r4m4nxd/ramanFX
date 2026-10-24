@@ -1,0 +1,64 @@
+{
+ "source": "seiden",
+ "n": 299,
+ "title": "Your Questions Answered",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 253.0,
+   "textHash": "9e514388cd4a3feb",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Which timeframe?",
+     "start": 54.68
+    },
+    {
+     "id": "s1",
+     "title": "Single-stock plan, RIMM",
+     "start": 78.44
+    },
+    {
+     "id": "s2",
+     "title": "Trend",
+     "start": 120.25
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 145.64
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 171.68
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 189.91
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 206.35
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 217.35
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 237.81
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,64 @@
+{
+ "source": "seiden",
+ "n": 274,
+ "title": "A Key Rule, Often Overlooked",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 446.9,
+   "textHash": "505d1eef6a0e60d4",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Why quantify",
+     "start": 52.81
+    },
+    {
+     "id": "s1",
+     "title": "The rule",
+     "start": 76.54
+    },
+    {
+     "id": "s2",
+     "title": "Charts",
+     "start": 111.25
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 202.42
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 233.89
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 256.58
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 273.85
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 400.73
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 426.88
+    }
+   ]
+  }
+ }
+}

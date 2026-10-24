@@ -1,0 +1,64 @@
+{
+ "source": "seiden",
+ "n": 278,
+ "title": "Planes, Trains and Automobiles",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 404.82,
+   "textHash": "b54051c83617e4ea",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Price only",
+     "start": 51.39
+    },
+    {
+     "id": "s1",
+     "title": "Indicators as confirmation",
+     "start": 67.61
+    },
+    {
+     "id": "s2",
+     "title": "Charts",
+     "start": 110.3
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 199.14
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 223.77
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 246.34
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 266.1
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 363.33
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 388.53
+    }
+   ]
+  }
+ }
+}
