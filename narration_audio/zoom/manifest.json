@@ -97,5 +97,16 @@
   "seconds": 1769.03,
   "sha256": "dca1bc8a5fc0ea5dfd0c01ec504944a18d1ea4aa8fa61427381ab1d156917c94",
   "textHash": "e6cca4f7c5a5bd0c"
+ },
+ {
+  "source": "zoom",
+  "n": 10,
+  "title": "Chain-analysis homework review: higher-high trendlines, borderline zones, emotional wicks and the channel tool",
+  "voice": "am_michael",
+  "file": "zoom/10/am_michael.m4a",
+  "bytes": 19439479,
+  "seconds": 2368.65,
+  "sha256": "1dd355cc50ba8a0ee01c4cfbe22d0cc41fa35eb41b1e685a5919422e4ccdc4a8",
+  "textHash": "ec0195b7981ea531"
  }
 ]
