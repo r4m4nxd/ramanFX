@@ -1,0 +1,59 @@
+{
+ "source": "daily",
+ "n": 21,
+ "title": "Daily plan for Fri, Aug 14",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 552.25,
+   "textHash": "ba02903786d6be00",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "The plan",
+     "start": 79.9
+    },
+    {
+     "id": "s1",
+     "title": "Market bias",
+     "start": 168.06
+    },
+    {
+     "id": "s2",
+     "title": "Setups he is watching",
+     "start": 227.28
+    },
+    {
+     "id": "s3",
+     "title": "Rules and lessons",
+     "start": 276.81
+    },
+    {
+     "id": "s4",
+     "title": "Trade reviews, earlier calls",
+     "start": 349.34
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 373.55
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 435.6
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 535.57
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,46 @@
+[
+ {
+  "source": "daily",
+  "n": 21,
+  "title": "Daily plan for Fri, Aug 14",
+  "voice": "am_michael",
+  "file": "daily/21/am_michael.m4a",
+  "bytes": 4587250,
+  "seconds": 552.25,
+  "sha256": "6e0c6fa5293675dc122b695c93019150627ad5ff1b8f0774aa431636bb404a7b",
+  "textHash": "ba02903786d6be00"
+ },
+ {
+  "source": "daily",
+  "n": 22,
+  "title": "Daily plan for Tue, Aug 18",
+  "voice": "am_michael",
+  "file": "daily/22/am_michael.m4a",
+  "bytes": 5197281,
+  "seconds": 628.54,
+  "sha256": "fdff6268086500b8d6687668a96f3330590d1bad1f26fe911064526dadac9765",
+  "textHash": "b68528e1aee58116"
+ },
+ {
+  "source": "daily",
+  "n": 23,
+  "title": "Daily plan for Wed, Aug 19",
+  "voice": "am_michael",
+  "file": "daily/23/am_michael.m4a",
+  "bytes": 4605130,
+  "seconds": 555.75,
+  "sha256": "478c21ebf914f66037b372eff6bde7feb966f645cb23daaca697eb6c121a79c8",
+  "textHash": "f52e4cc4605aad30"
+ },
+ {
+  "source": "daily",
+  "n": 24,
+  "title": "Daily plan for Thu, Aug 20",
+  "voice": "am_michael",
+  "file": "daily/24/am_michael.m4a",
+  "bytes": 4398024,
+  "seconds": 530.73,
+  "sha256": "4d818423b4da2e17f711e6f93d43cc8ebb3d64926af713c5bbf0099ac450dc93",
+  "textHash": "65a2b55ec39d9ee5"
+ }
+]
