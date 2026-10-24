@@ -1,0 +1,79 @@
+{
+ "source": "baker",
+ "n": 5,
+ "title": "Zone Strength: Speed, Freshness and Time",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 531.46,
+   "textHash": "854fa2dc306f9dcc",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Zones versus. support and resistance",
+     "start": 70.62
+    },
+    {
+     "id": "s1",
+     "title": "Test 1: speed out and speed in",
+     "start": 115.95
+    },
+    {
+     "id": "s2",
+     "title": "Test 2: freshness, and look left",
+     "start": 141.55
+    },
+    {
+     "id": "s3",
+     "title": "Test 3: time in the zone",
+     "start": 184.13
+    },
+    {
+     "id": "s4",
+     "title": "Three rules worth the price of the book",
+     "start": 201.41
+    },
+    {
+     "id": "s5",
+     "title": "Homework before reading on",
+     "start": 233.0
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 253.25
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 301.18
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 336.87
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 353.25
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 481.6
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 516.68
+    }
+   ]
+  }
+ }
+}

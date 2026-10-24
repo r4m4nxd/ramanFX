@@ -1,0 +1,79 @@
+[
+ {
+  "source": "baker",
+  "n": 1,
+  "title": "Why Baker Drops Technical Indicators",
+  "voice": "am_michael",
+  "file": "baker/01/am_michael.m4a",
+  "bytes": 3568757,
+  "seconds": 436.03,
+  "sha256": "5b8eb276ee8c4c01dc2395151bee2ae40ca9cff827d48b3441e11a46392e9613",
+  "textHash": "150099d02b2d0b24"
+ },
+ {
+  "source": "baker",
+  "n": 2,
+  "title": "Candlesticks: Only the Doji, Hammer and Shooting Star",
+  "voice": "am_michael",
+  "file": "baker/02/am_michael.m4a",
+  "bytes": 3583307,
+  "seconds": 435.3,
+  "sha256": "6a84feeff271f155d4dd60b0b80d6126cff5c56eaf0c001f00c4a31ce271f2f6",
+  "textHash": "a8a267af3c32c8cf"
+ },
+ {
+  "source": "baker",
+  "n": 3,
+  "title": "Supply and Demand: The Forces Behind Price",
+  "voice": "am_michael",
+  "file": "baker/03/am_michael.m4a",
+  "bytes": 3155240,
+  "seconds": 382.68,
+  "sha256": "bfeab218dbb3d0817b601ef5e871b81c67ceb05ec856fd9d76823f7a17e005d5",
+  "textHash": "2654d0c093ede379"
+ },
+ {
+  "source": "baker",
+  "n": 4,
+  "title": "Plotting Zones: Four Ways to Find Them",
+  "voice": "am_michael",
+  "file": "baker/04/am_michael.m4a",
+  "bytes": 4314197,
+  "seconds": 523.65,
+  "sha256": "582238c7f96b77a25eee839e2c65d90a47824e8c3c5d82a9304bff52e365b6f6",
+  "textHash": "34abadc2d42332e9"
+ },
+ {
+  "source": "baker",
+  "n": 5,
+  "title": "Zone Strength: Speed, Freshness and Time",
+  "voice": "am_michael",
+  "file": "baker/05/am_michael.m4a",
+  "bytes": 4389113,
+  "seconds": 531.46,
+  "sha256": "f3c49e4339aaa17c7ad54e2579ab79c67b0f29bdd01d2a3e39df4aace5bd14b9",
+  "textHash": "854fa2dc306f9dcc"
+ },
+ {
+  "source": "baker",
+  "n": 6,
+  "title": "Long-Term Investing with Weekly Zones",
+  "voice": "am_michael",
+  "file": "baker/06/am_michael.m4a",
+  "bytes": 3639806,
+  "seconds": 440.22,
+  "sha256": "c51dda24b0fdf35202b7b83c73360e90dda8f34bb0c8f0381e311a99c418880f",
+  "textHash": "7ad0a9f22f8ebaef"
+ },
+ {
+  "source": "baker",
+  "n": 7,
+  "title": "Swing Trading: With the Trend and Against It",
+  "voice": "am_michael",
+  "file": "baker/07/am_michael.m4a",
+  "bytes": 3793502,
+  "seconds": 458.74,
+  "sha256": "7b7c817c4759d856525db9d1dbdf1fd6c537e7a58c42e39c578b582d6e4939a3",
+  "textHash": "07fb7eee31b7583c"
+ }
+]

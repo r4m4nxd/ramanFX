@@ -1,0 +1,69 @@
+{
+ "source": "baker",
+ "n": 1,
+ "title": "Why Baker Drops Technical Indicators",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 436.03,
+   "textHash": "150099d02b2d0b24",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "What indicators are and why they disappoint",
+     "start": 66.02
+    },
+    {
+     "id": "s1",
+     "title": "What really makes the profitable minority profitable",
+     "start": 120.67
+    },
+    {
+     "id": "s2",
+     "title": "Indicators as superstition",
+     "start": 158.38
+    },
+    {
+     "id": "s3",
+     "title": "Stop hunters",
+     "start": 193.09
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 232.14
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 268.14
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 302.64
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 329.3
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 391.0
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 421.21
+    }
+   ]
+  }
+ }
+}

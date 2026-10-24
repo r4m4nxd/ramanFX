@@ -1,0 +1,74 @@
+{
+ "source": "baker",
+ "n": 4,
+ "title": "Plotting Zones: Four Ways to Find Them",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 523.65,
+   "textHash": "34abadc2d42332e9",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Method 1: the pivot candle",
+     "start": 62.37
+    },
+    {
+     "id": "s1",
+     "title": "Refining a zone that is too wide",
+     "start": 99.79
+    },
+    {
+     "id": "s2",
+     "title": "Method 2: tight range, then a dramatic move",
+     "start": 143.2
+    },
+    {
+     "id": "s3",
+     "title": "Method 3: mid-trend indecision",
+     "start": 178.08
+    },
+    {
+     "id": "s4",
+     "title": "Method 4: gaps",
+     "start": 204.95
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 242.82
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 284.28
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 322.39
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 338.42
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 480.74
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 510.09
+    }
+   ]
+  }
+ }
+}

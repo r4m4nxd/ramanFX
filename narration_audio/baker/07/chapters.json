@@ -1,0 +1,64 @@
+{
+ "source": "baker",
+ "n": 7,
+ "title": "Swing Trading: With the Trend and Against It",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 458.74,
+   "textHash": "07fb7eee31b7583c",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Strategy 1: with the trend",
+     "start": 63.73
+    },
+    {
+     "id": "s1",
+     "title": "Broken zones flip",
+     "start": 116.19
+    },
+    {
+     "id": "s2",
+     "title": "Strategy 2: against the trend",
+     "start": 141.81
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 186.73
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 229.09
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 259.06
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 274.26
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 409.34
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 447.16
+    }
+   ]
+  }
+ }
+}
