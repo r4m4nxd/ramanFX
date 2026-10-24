@@ -1,16 +1,57 @@
-// RamanFX ZoneVision 2.00 - Direction (TradingView, Pine Script v6). Companion of RamanFX_ZoneVision.pine: the
-// top-down Direction box of the MT5 ZoneVision 2.00 (ETF -> ITF -> HTF -> Higher+1 states, the conflict rules, Raja's
+// RamanFX ZoneVision 2.10 - Direction (TradingView, Pine Script v6). Companion of RamanFX_ZoneVision.pine: the
+// top-down Direction box of the MT5 ZoneVision 2.10 (ETF -> ITF -> HTF -> Higher+1 states, the conflict rules, Raja's
 // curve 25 / 50 / 75 lines, the WOW ladder and the Direction / WOW alerts). Same core code as the main indicator
 // (newest-first arrays, closed candles, HTF packs); see docs/Pine_Port_Notes.md. Keep its inputs equal to the main one.
+// Since 2.10 (main script at the token limit) it also draws the HTF zone band, the rejected-candidates debug, the Raja
+// v2.1 B parts (Raja TF table, nested curve, realignment areas, 250% projection, sideways check) and the Raja v2.1 C
+// chart-only parts (confirmation / management alerts, wick-fill marks, gold note, trendline touch labels).
 //@version=6
-indicator("RamanFX ZoneVision 2.00 - Direction", shorttitle = "ZV Dir", overlay = true, max_lines_count = 100, max_labels_count = 100)
+indicator("RamanFX ZoneVision 2.10 - Direction", shorttitle = "ZV Dir", overlay = true, max_lines_count = 150, max_labels_count = 300, max_boxes_count = 200)
+// ---- Raja v2.1 (MT5 2.10 groups "Raja (v2.1 A / B / C)"): every default = 2.00. Preset Raja = ZV_Template_Raja.set.
+G0 = "Raja v2.1"
+PR = input.string("Custom", "Preset", options = ["Custom", "Raja"], group = G0, tooltip = "Pine has no .set files. Raja = the MT5 template ZV_Template_Raja.set: forces TF stack 3, Raja departure 0.6 ATR, Raja removal, WOW ladder + WOW alert, and every Raja v2.1 switch below ON (removal 1, stop mode 1, sideways on the zone TF or the HTF). The inputs below are then ignored where forced. Custom = every input as set. Use the same preset in ZoneVision.") == "Raja"
+iRemovalMode       = input.int(0, "Zone removal: 0 = close or a normal wick beyond the distal (v1, = ZoneBot), 1 = close only (Raja)", minval = 0, maxval = 1, group = G0, tooltip = "Keep equal to ZoneVision.")
+InpRemovalMode     = PR ? 1 : iRemovalMode
+InpRjAStrongRun    = input.bool(false, "Raja strong = removed an opposite zone anywhere in the run-out (curve zones)", group = G0) or PR
+InpRjATLTouches    = input.bool(false, "Trendline touch labels at this chart's lines (4th touch = likely break, 3-5 tests = weak)", group = G0) or PR
+InpRjBLtfItf       = input.int(0, "TF stack 3 (Raja): M15 / M30 charts use H1 (0) or H4 (1) as the ITF", minval = 0, maxval = 1, group = G0, tooltip = "HTF D1, +1 W1; M1 / M5 always H1.")
+InpRjBNestedCurve  = input.bool(false, "Raja nested curve (L4): also draw one nested level, D1 curve inside W1 / W1 inside MN", group = G0) or PR
+InpRjBRealign      = input.bool(false, "Raja realignment chain H4 -> D1 -> W1 -> MN (L8): lower + upper TF confluence area, 'use once'", group = G0, tooltip = "After a cross + N opposite zones removed on a H4+ row: the lower-TF zone of the new side inside / next to an upper-TF zone of that side. Status: use once / 1st visit: entry area / USED: do not reuse.") or PR
+InpRjBProj         = input.bool(false, "Raja 250% projection (L5): no fresh opposite zone ahead -> impulse target on the WOW ladder (needs the WOW ladder)", group = G0) or PR
+InpRjBProjX        = input.float(2.5, "Projection = this x the last correction (100% + 100% + 50%), from the correction's end", minval = 0.1, group = G0)
+InpRjBChop         = input.bool(false, "Raja: never trade sideways (last swings overlap, no new HH-HL / LL-LH) - shown in the box", group = G0, tooltip = "MT5 also blocks the Raja lens with it; the ZoneVision lens here does not (token limit).") or PR
+InpRjBChopSwings   = input.int(3, "Sideways check: swing highs and lows compared (2-8)", minval = 2, maxval = 8, group = G0)
+iRjBChopTF         = input.int(0, "Sideways check on: 0 = this chart's TF, 1 = this chart's TF or the Direction HTF", minval = 0, maxval = 1, group = G0)
+InpRjBChopTF       = PR ? 1 : iRjBChopTF
+iSlMode            = input.int(0, "Stop in the alerts: 0 = v1 (stop buffer points beyond the distal), 1 = Raja: % of the zone height", minval = 0, maxval = 1, group = G0, tooltip = "Keep equal to ZoneVision.")
+InpSlMode          = PR ? 1 : iSlMode
+InpSlPctLTF        = input.float(25, "Stop % of zone height: M1-M30", group = G0)
+InpSlPctH1         = input.float(20, "Stop % of zone height: H1 (H2, H3)", group = G0)
+InpSlPctH4         = input.float(15, "Stop % of zone height: H4 (H6-H12)", group = G0)
+InpSlPctD1         = input.float(10, "Stop % of zone height: D1", group = G0)
+InpSlPctW1         = input.float(5, "Stop % of zone height: W1, MN and 3M+", group = G0)
+InpSlMinPips       = input.float(3, "% stop: never closer than this many pips beyond the distal", group = G0)
+InpRjAlertConfirm  = input.bool(false, "Alerts: candle closes back across the proximal after a wick into a zone; trendline cross + opposite zone removed inside a tested HTF zone", group = G0) or PR
+InpRjAlertManage   = input.bool(false, "Alerts on the latest touched zone (open idea): 1st / 2nd same-side zone removed against it (2nd = close), new fresh zone = trail", group = G0) or PR
+InpRjWickFill      = input.bool(false, "Mark the 50% of long wicks (likely to be filled) until price trades there", group = G0) or PR
+InpRjWickFillATR   = input.float(1.5, "Long wick: wick > x ATR(14)", group = G0)
+InpRjGoldNote      = input.bool(false, "XAUUSD below H1: box note 'Raja: prefer XAUAUD on LTF'", group = G0) or PR
 G1 = "-- Zone rules (keep equal to ZoneBot) --"
 InpMinLegRatio     = input.float(1.2, "Move-away range / largest base candle", group = G1)
 InpMaxBase         = input.int(6, "Max basing candles", minval = 1, group = G1)
 InpMaxZoneATR      = input.float(1.5, "Max zone height in ATR(14) (similar-size rule)", group = G1)
 InpLookback        = input.int(200, "Bars scanned", minval = 20, group = G1)
 InpEmoATR          = input.float(3.0, "Emotional candle: range > this x ATR (wick ignored)", group = G1)
+InpMaxZoneAge      = input.int(200, "Ignore zones older than this many bars", group = G1)
+InpStopBufferPts   = input.float(10, "Stop buffer beyond distal (points)", group = G1)
+InpMetalOilStop    = input.float(2.0, "Stop buffer multiplier on gold / silver / oil", group = G1)
 G2 = "-- What to show (clean by default) --"
+InpShowHTF         = input.bool(true, "HTF zone band (closest above and below)", group = G2, tooltip = "Drawn by ZV Direction since 2.10 (it was in ZoneVision).")
+InpShowNames       = input.bool(true, "Zone name inside the box (HTF band)", group = G2)
+InpPriceTags       = input.bool(false, "Price tags (12.34) at the right end of each zone (HTF band)", group = G2)
+InpTLHistory       = input.int(3, "Trendlines drawn each way: the newest N (keep equal to ZoneVision; touch labels)", minval = 1, group = G2)
+InpShowRejected    = input.bool(false, "Debug: rejected candidates + reason", group = G2, tooltip = "Drawn by ZV Direction since 2.10 (it was in ZoneVision).")
+InpHtfFill         = input.color(#E0D8FA, "HTF zones on this chart (lavender)", group = G2)
 InpTLSwing         = input.int(2, "Trendlines: swing points need N bars each side; REAL only after a new higher high / lower low", minval = 1, group = G2)
 InpDemandLine      = input.color(#2E8B57, "Demand line", group = G2)
 InpSupplyLine      = input.color(#C83C3C, "Supply line", group = G2)
@@ -22,12 +63,14 @@ InpAutoTheme       = input.bool(true, "Dark chart background: switch default col
 InpPanelRight      = input.bool(true, "Panel + Direction box in the top-RIGHT corner (false = top-left, as v1)", group = G3)
 G4 = "-- v2 Direction (top-down, display only) --"
 InpDirEngine       = input.bool(true, "Direction engine: ETF -> ITF -> HTF states + one Direction readout", group = G4)
-InpDirTable        = input.int(1, "TF stack: 0 = v1 (StepUp / HtfOf), 1 = Kevin lesson 4 (D1 -> 1M -> 3M), 2 = Kevin lesson 15 slide", minval = 0, maxval = 2, group = G4)
+iDirTable          = input.int(1, "TF stack: 0 = v1 (StepUp / HtfOf), 1 = Kevin lesson 4 (D1 -> 1M -> 3M), 2 = Kevin lesson 15 slide, 3 = Raja", minval = 0, maxval = 3, group = G4, tooltip = "3 = Raja (v2.1): H1 -> H4 -> D1 -> W1, H4 -> D1 -> W1 -> MN, D1 -> W1 -> MN, LTF -> H1 / H4 -> D1 -> W1; direction only from D / W / M (an intraday ETF does not grade it).")
+InpDirTable        = PR ? 3 : iDirTable
 InpDirPlus1        = input.bool(true, "Add the lesson-15 Higher+1 TF as a 4th row (H1 -> MN, H4 -> 3M, D1 -> 6M)", group = G4)
 InpDirMacro        = input.bool(false, "H4 / D1 charts: add the macro rows 1M, 3M, 6M, 12M", group = G4)
 InpDirRemovedN     = input.int(2, "Opposite zones removed after a trendline break for CHANGED (Raja: 2)", minval = 1, group = G4)
-InpDirDepartATR    = input.float(0, "0 = v1 cross (a full candle beyond the line); > 0 = Raja: close beyond with body >= x ATR", group = G4)
-InpRajaRemoval     = input.bool(false, "Direction counts a zone as removed only after a 2nd big close beyond the distal (Raja)", group = G4)
+iDirDepartATR      = input.float(0, "0 = v1 cross (a full candle beyond the line); > 0 = Raja: close beyond with body >= x ATR", group = G4)
+InpDirDepartATR    = PR ? 0.6 : iDirDepartATR
+InpRajaRemoval     = input.bool(false, "Direction counts a zone as removed only after a 2nd big close beyond the distal (Raja)", group = G4) or PR
 InpRajaBigBody     = input.float(0.6, "Raja removal: 2nd close body >= x ATR", group = G4)
 InpCurveMode       = input.int(1, "Curve: 0 = v1 (position in the 100-bar HTF range), 1 = Raja (proximal to proximal of the HTF strong zones)", minval = 0, maxval = 1, group = G4)
 InpCurveLow        = input.float(25, "Low curve (%): buys only", group = G4)
@@ -35,15 +78,17 @@ InpCurveHigh       = input.float(75, "High curve (%): sells only", group = G4)
 InpCurveLines      = input.bool(true, "Draw Raja's 25 / 50 / 75 curve lines between the HTF strong zones", group = G4)
 InpShowDirPanel    = input.bool(true, "Direction box under the compact panel", group = G4)
 InpAlertDir        = input.bool(true, "Alert once when the Direction or its quality changes (never on load)", group = G4)
-InpShowWOW         = input.bool(false, "Raja WOW ladder: targets at the origin zones of the broken HTF / ITF trendlines", group = G4)
+InpShowWOW         = input.bool(false, "Raja WOW ladder: targets at the origin zones of the broken HTF / ITF trendlines", group = G4) or PR
 InpWOWLines        = input.int(4, "WOW ladder: lines kept each way", minval = 1, group = G4)
 InpPipXAU          = input.float(0.1, "Pip size on gold (WOW labels)", group = G4)
-InpAlertWOW        = input.bool(false, "Alert on a new WOW1 target with the guard clear (needs InpShowWOW)", group = G4)
+InpAlertWOW        = input.bool(false, "Alert on a new WOW1 target with the guard clear (needs InpShowWOW)", group = G4) or PR
+InpNestTolH        = input.float(1.0, "Nested = within this x the HTF zone height of a same-side HTF zone (Raja realignment pairing; DNA in ZoneVision)", group = G4)
 G6 = "-- v2 Display --"
 InpTheme           = input.int(0, "Colours: 0 = auto (follows the chart background), 1 = light, 2 = dark", minval = 0, maxval = 2, group = G6)
 G8 = "-- TradingView only --"
 TvHistory          = input.int(2000, "Chart bars read (MT5 reads the whole chart; Pine max 5000)", minval = 300, maxval = 5000, group = G8, tooltip = "Depth of this chart's history the analysis sees. Only the DNA all-time-high check (5000 bars) and the HTF-line refine on very old HTF pivots can reach that far.")
 TvSpreadPts        = input.float(0, "Spread in points for the plans (Pine has no bid / ask)", minval = 0, group = G8, tooltip = "MT5 uses ask - bid. Put your broker's typical spread here to get the same entry / stop / R:R.")
+TvFillTransp       = input.int(55, "Zone fill transparency (HTF band)", minval = 0, maxval = 100, group = G8)
 TvTextSize         = input.string("tiny", "Text size of the chart labels", options = ["tiny", "small", "normal"], group = G8)
 TvPanelSize        = input.string("small", "Panel text size", options = ["tiny", "small", "normal"], group = G8)
 TvHtfCap           = input.int(330, "HTF bars read per higher timeframe", minval = 120, maxval = 600, group = G8, tooltip = "330 covers every MT5 HTF scan (HtfTrend reads 306 bars, Trendlines / Detect about 210).")
@@ -68,6 +113,8 @@ tvTxt        = TvTextSize == "small" ? size.small : (TvTextSize == "normal" ? si
 tvPan        = TvPanelSize == "tiny" ? size.tiny : (TvPanelSize == "normal" ? size.normal : size.small)
 cWow         = gDark ? #5AC8DC : #0096AA
 cCurve       = gDark ? #82828C : #969696
+cHtfFill     = gDark and InpHtfFill == #E0D8FA ? #3A3260 : InpHtfFill
+cBad         = gDark ? #F06E64 : #B22222
 // ===============================================================================================================
 // CORE (pure functions on newest-first arrays; mirrors RFX_ZoneCore.mqh). Nothing in this section draws.
 // MQL loop "for(j = a; j >= b; j--)" is written as a while loop that decrements first, so `continue` is safe and a
@@ -373,7 +420,7 @@ Detect(Ser s, bool wantRej, array<Rej> rej) =>
         while j > 1 and not z.removed and (canRm or not z.tested)
             j -= 1
             float v = q.get(j)
-            if dir * (C.get(j) - dist) < 0 or (dir * (v - dist) < 0 and not Emotional(s, j))
+            if dir * (C.get(j) - dist) < 0 or (InpRemovalMode == 0 and dir * (v - dist) < 0 and not Emotional(s, j))   // Raja v2.1 (A): mode 1 = close only
                 z.removed := true
                 z.removedBar := j
             else if not z.tested and dir * (v - prox) <= 0 and not Emotional(s, j)
@@ -699,6 +746,64 @@ Curve(Ser s, float p) =>
 // pip size: 10 points on 3 / 5 digit symbols, 1 point otherwise; gold = InpPipXAU
 PipSize() => (str.contains(gSymU, "XAU") or str.contains(gSymU, "GOLD")) ? InpPipXAU : ((gDigits == 3 or gDigits == 5) ? 10 * gPt : gPt)
 
+// ---- Raja v2.1 helpers (same code as ZoneVision where it has them)
+// MQL FrLow (d = +1) / FrHigh (d = -1); bound = DnaFrac's extra "i + j < bars" test
+Fr(Ser s, int i, int d, bool bound) =>
+    int w = InpTLSwing
+    array<float> q = d > 0 ? s.l : s.h
+    float v = d * q.get(i)
+    i - w >= 1 and not (bound and i + w >= s.n) and v <= (d > 0 ? q.slice(i + 1, i + 1 + w).min() : -q.slice(i + 1, i + 1 + w).max()) and v < (d > 0 ? q.slice(i - w, i).min() : -q.slice(i - w, i).max())
+zLo(Zone z) => math.min(z.prox, z.dist)
+zHi(Zone z) => math.max(z.prox, z.dist)
+zDst(Zone z, float px) => math.min(math.abs(z.prox - px), math.abs(z.dist - px))
+dsz(int d) => d > 0 ? "demand" : "supply"
+ZoneName(Zone z) => z.dir > 0 ? (z.cont ? "Rally Base Rally Demand (CP)" : "Drop Base Rally Demand (PV)") : (z.cont ? "Drop Base Drop Supply (CP)" : "Rally Base Drop Supply (PV)")
+MetalOrOil() => str.contains(gSymU, "XAU") or str.contains(gSymU, "GOLD") or str.contains(gSymU, "XAG") or str.contains(gSymU, "OIL") or str.contains(gSymU, "WTI") or str.contains(gSymU, "BRENT") or str.contains(gSymU, "XTI") or str.contains(gSymU, "XBR")
+// Raja v2.1 (C): stop distance beyond the distal (v1 points buffer, or InpSlMode 1: a % of the zone height per TF, >= min pips)
+RjStopBuf(float h, int tf) => InpSlMode != 1 ? InpStopBufferPts * gPt * (MetalOrOil() ? InpMetalOilStop : 1.0) : math.max((VIsTF(tf) or tf >= 604800 ? InpSlPctW1 : tf <= 1800 ? InpSlPctLTF : tf <= 10800 ? InpSlPctH1 : tf < 86400 ? InpSlPctH4 : InpSlPctD1) / 100.0 * h, InpSlMinPips * math.max(PipSize(), gPt))
+// nearest first: the indices idx (with distances dst) in pick order, at most want (the DrawZones pick loop)
+PickNear(array<int> idx, array<float> dst, int want) =>
+    array<int> sel = array.new<int>()
+    for pick = 1 to want
+        int best = -1
+        for [j, v] in idx
+            if v >= 0 and (best < 0 or dst.get(j) < dst.get(math.max(best, 0)))
+                best := j
+        if best < 0
+            break
+        sel.push(idx.get(best))
+        idx.set(best, -1)
+    sel
+// Raja v2.1 (A): touches of a line from its anchor a to bar e: separate visits within 0.1 ATR of it (a new visit needs a
+// candle clear of the line first). Raja: 1st-3rd touch fine, the 4th usually breaks it, 3-5 tests = weak.
+RjTch(Ser s, int d, int a, float pb, int b, float sl, int e) =>
+    float tol = 0.1 * s.atr(1)
+    int n = 0
+    bool inT = false
+    int j = a + 1
+    while j > math.max(e, 1)
+        j -= 1
+        bool t = d * (s.ad(d, j) - LineAt(pb, b, sl, j)) <= tol
+        n += t and not inT ? 1 : 0
+        inT := t
+    n
+RjTW(int n) => n <= 0 ? "" : n >= 4 ? "x" + str.tostring(n) + ": weak line, likely break" : n == 3 ? "x3: weak, the 4th touch likely breaks it" : "x" + str.tostring(n)
+// Raja v2.1 (B), L8 never trade sideways: the last K swing highs / lows overlap in one band, no new HH + HL / LL + LH, and
+// the last close is still inside the swings
+RjSideways(Ser s) =>
+    array<float> hs = array.new<float>()
+    array<float> ls = array.new<float>()
+    int K = InpRjBChopSwings
+    int j = InpTLSwing
+    while j < math.min(s.n - InpTLSwing - 1, 400) - 1 and (hs.size() < K or ls.size() < K)
+        j += 1
+        if hs.size() < K and Fr(s, j, -1, true)
+            hs.push(s.sH(j))
+        if ls.size() < K and Fr(s, j, 1, true)
+            ls.push(s.sL(j))
+    float c = s.sC(1)
+    hs.size() >= K and ls.size() >= K and (hs.get(0) - hs.get(1)) * (ls.get(0) - ls.get(1)) <= 0 and hs.min() > ls.max() and c <= hs.max() and c >= ls.min()
+
 // ---------------------------------------------------------------------------------------------------------------
 // v2 Direction engine (MQL DirTable ... DirRun)
 // ---------------------------------------------------------------------------------------------------------------
@@ -747,14 +852,20 @@ DirL15Top(int b) =>
         86400 => 15552000
         604800 => 31104000
         => 0
-// ITF / HTF / Higher+1 for InpDirTable 0 / 1 / 2: [itf, htf, p1, ok]
+// ITF / HTF / Higher+1 for InpDirTable 0 / 1 / 2 / 3 (Raja): [itf, htf, p1, ok]
 DirTable(int ctf) =>
     int itf = 0
     int htf = 0
     int p1 = 0
     int b = DirStd(ctf)
     if b != 0
-        if InpDirTable == 2
+        if InpDirTable == 3
+            // Raja v2.1 (B), L8: H1 -> H4 -> D1 -> W1, H4 -> D1 -> W1 -> MN, D1 -> W1 -> MN (no +1), M1 / M5 -> H1 -> D1 -> W1,
+            // M15 / M30 -> H1 (or H4) -> D1 -> W1; W1 / MN: the next steps up
+            itf := b <= 300 ? 3600 : (b == 900 ? (InpRjBLtfItf == 1 ? 14400 : 3600) : (b == 3600 ? 14400 : DirUp(b)))
+            htf := b <= 3600 ? 86400 : DirUp(itf)
+            p1 := b <= 3600 ? 604800 : (b == 14400 ? TF_MN1 : 0)
+        else if InpDirTable == 2
             // lesson 15: ITF two steps up (M1 -> M15 ... D1 -> MN), HTF = the slide's third column
             itf := DirUp(DirUp(b))
             htf := DirL15Top(b)
@@ -885,8 +996,10 @@ DirFreshAt(Ser s, Zone z) =>
 DirRajaStrong(Dir D, int r, int i) =>
     bool res = false
     Zone zi = D.drZ.get(i)
+    // Raja v2.1 (A): with InpRjAStrongRun anywhere in the run-out (to the first return, the removal or the last closed candle)
+    int lo = InpRjAStrongRun ? math.min(zi.legBar - 5, zi.tested ? zi.testedBar : (zi.removed ? zi.removedBar : 1)) : zi.legBar - 5
     for [j, zj] in D.drZ
-        if not res and D.drZRow.get(j) == r and zj.dir == -zi.dir and zj.removed and zj.legBar > zi.legBar and zj.removedBar <= zi.legBar and zj.removedBar >= zi.legBar - 5
+        if not res and D.drZRow.get(j) == r and zj.dir == -zi.dir and zj.removed and zj.legBar > zi.legBar and zj.removedBar <= zi.legBar and zj.removedBar >= lo
             res := true
     res
 
@@ -1010,7 +1123,7 @@ DirCombine(Dir D) =>
         D.realign := wi.ok and (wi.st == DST_PULL or wi.st == DST_TURN) and wi.side == -side and D.lockSide != side
         q := D.realign ? 0 : q
         // rule 6: ETF on the same side = full; rule 8: 3rd CP in a row on the ETF -> one step down
-        q := q > 0 and DirRowSide(D, D.drE) != side ? math.min(q, 1) : q
+        q := q > 0 and DirRowSide(D, D.drE) != side and not (InpDirTable == 3 and D.drE >= 0 and rw(D, D.drE).tf < 86400) ? math.min(q, 1) : q   // Raja v2.1 (B): table 3 = D / W / M only
         DirRow we = rw(D, D.drE)
         D.cpHit := we.cp >= 3 and we.cpDir == side and q > 0
         q -= D.cpHit ? 1 : 0
@@ -1202,13 +1315,123 @@ type DRes
     Dir D
     array<Ser> rowSer
     array<Zone> Z
+    // ---- Raja v2.1 (B): nested curve (row, demand / supply proximal, inner = D1 inside W1), realignment areas
+    int ncRow = -1
+    float ncPd = 0.0
+    float ncPs = 0.0
+    bool ncInner = false
+    array<float> raLo
+    array<float> raHi
+    array<int> raDir
+    array<bool> raUsed
+    array<int> raT
+    array<string> raTxt
+
+// ---- Raja v2.1 (B) ----
+// Raja curve of one stack row: nearest fresh strong demand proximal below price, supply proximal above (as DirCurve)
+RjRowCurve(Dir D, int r, Ser s, float mid) =>
+    float pd = 0.0
+    float ps = 0.0
+    for [i, z] in D.drZ
+        if D.drZRow.get(i) == r and DirFreshAt(s, z) and DirRajaStrong(D, r, i)
+            if z.dir > 0 and z.dist < mid and (pd == 0 or z.prox > pd)
+                pd := z.prox
+            if z.dir < 0 and z.dist > mid and (ps == 0 or z.prox < ps)
+                ps := z.prox
+    [pd, ps]
+// realignment chain (L8): a lower row (H4+) crossed its line and removed N opposite zones -> price returns to the lower-TF
+// zone of the new side that sits inside / next to an upper-TF zone of that side. Used once.
+RjRealign(DRes R, float mid) =>
+    Dir D = R.D
+    int r = -1
+    while r < D.rows.size() - 2 and R.raLo.size() < 3
+        r += 1
+        DirRow wl = D.rows.get(r)
+        DirRow wu = D.rows.get(r + 1)
+        int T = wl.T
+        if wl.ok and wu.ok and wl.role != "MAC" and wl.tf >= 14400 and wu.tf > wl.tf and T != 0 and wl.tBar >= 1 and wl.rm >= math.max(1, InpDirRemovedN)
+            int bl = -1
+            float bd = 0.0
+            for [i, z] in D.drZ
+                if D.drZRow.get(i) == r and z.dir == T and not z.removed and T * (mid - z.dist) > 0
+                    bool paired = false
+                    for [j, u] in D.drZ
+                        float tol = InpNestTolH * (zHi(u) - zLo(u))
+                        paired := paired or (D.drZRow.get(j) == r + 1 and u.dir == T and not u.removed and zHi(z) >= zLo(u) - tol and zLo(z) <= zHi(u) + tol)
+                    if paired and (bl < 0 or math.abs(mid - z.prox) < bd)
+                        bl := i
+                        bd := math.abs(mid - z.prox)
+            if bl >= 0
+                Zone z = D.drZ.get(bl)
+                Ser ls = R.rowSer.get(r)
+                int vis = 0
+                bool inNow = false
+                int k = math.min(wl.tBar - 1, z.saBar - 1) + 1
+                while k > 0
+                    k -= 1
+                    bool hit = ls.sL(k) <= zHi(z) and ls.sH(k) >= zLo(z)
+                    vis += hit and not inNow ? 1 : 0
+                    inNow := hit
+                R.raLo.push(zLo(z))
+                R.raHi.push(zHi(z))
+                R.raDir.push(T)
+                R.raUsed.push(vis >= 1 and not inNow)
+                R.raT.push(ls.sT(wl.tBar))
+                R.raTxt.push("REALIGN " + TfName(wu.tf) + "+" + TfName(wl.tf) + " " + dsz(T) + " (" + TfName(wl.tf) + " cross, " + str.tostring(wl.rm) + " removed): " + (vis == 0 ? "use once" : (vis == 1 and inNow) ? "1st visit: entry area" : "USED: do not reuse"))
+    R.raLo.size()
+// 250% projection (L5): no fresh opposite zone ahead on this or a higher row -> measure the correction (buy: the newest swing
+// low and the swing high before it); the impulse runs 100% + 100% + 50% of it from the low. Ladder only (WOW1 / alerts stay).
+RjProj(Dir D, array<Ser> rowSer, float mid) =>
+    float pip = math.max(PipSize(), gPt)
+    for q = 0 to 1
+        int r = q == 0 ? D.drH : D.drI
+        DirRow w = rw(D, r)
+        int md = w.T != 0 ? w.T : DirTrendSide(D, r)
+        if D.wowTxt.size() < 4 and w.ok and md != 0
+            Ser s = rowSer.get(r)
+            bool opp = false
+            for [i, z] in D.drZ
+                int zr = D.drZRow.get(i)
+                opp := opp or (rw(D, zr).tf >= w.tf and z.dir == -md and md * (z.prox - mid) > 0 and DirFreshAt(rowSer.get(zr), z))
+            int be = -1
+            int bs = -1
+            int j = InpTLSwing
+            while not opp and j < math.min(s.n - InpTLSwing - 1, 400) - 1 and bs < 0
+                j += 1
+                if be < 0
+                    be := Fr(s, j, md, true) ? j : -1
+                else if Fr(s, j, -md, true)
+                    bs := j
+            if bs >= 0
+                float cEnd = s.ad(md, be)
+                float cSt = s.ex(md, bs)
+                float corr = md * (cSt - cEnd)
+                float px = cEnd + md * InpRjBProjX * corr
+                if corr > 0 and md * (px - mid) > 0 and not D.wowPx.includes(px)
+                    D.wowTxt.push("P" + F0(InpRjBProjX * 100) + " " + DirTfName(w.tf) + " -> " + Px(px) + " (" + (md > 0 ? "+" : "-") + F0(math.abs(px - mid) / pip) + " p, " + F1(InpRjBProjX) + "x corr " + Px(cSt) + "-" + Px(cEnd) + ", no opposite zone)")
+                    D.wowPx.push(px)
+    D.wowTxt.size()
+
 // ctf must be the simple chart TF (it feeds DirTable)
 RunDir(Ctx X, int ctf, float mid, float spr) =>
-    DRes R = DRes.new(newDir(), array.new<Ser>(), ctxZ(X, ctf))
+    DRes R = DRes.new(newDir(), array.new<Ser>(), ctxZ(X, ctf), raLo = array.new<float>(), raHi = array.new<float>(), raDir = array.new<int>(), raUsed = array.new<bool>(), raT = array.new<int>(), raTxt = array.new<string>())
     DirRun(R.D, X, ctf, mid, R.Z, spr, R.rowSer)
     if R.D.ok
-        DirTexts(R.D)
-        DirWOW(R.D, R.rowSer, R.Z, mid, spr)
+        Dir D = R.D
+        DirTexts(D)
+        DirWOW(D, R.rowSer, R.Z, mid, spr)
+        // Raja v2.1 (B): nested level = the D1+ ITF row under the HTF (inner), else the Higher+1 row (outer)
+        if InpRjBNestedCurve and rw(D, D.drH).ok
+            int htf = rw(D, D.drH).tf
+            R.ncInner := rw(D, D.drI).ok and rw(D, D.drI).tf >= 86400 and rw(D, D.drI).tf != htf
+            R.ncRow := R.ncInner ? D.drI : (rw(D, D.drP).ok and rw(D, D.drP).tf != htf ? D.drP : -1)
+        [pd, ps] = RjRowCurve(D, R.ncRow, R.rowSer.get(math.max(R.ncRow, 0)), mid)
+        R.ncPd := pd
+        R.ncPs := ps
+        if InpRjBRealign
+            RjRealign(R, mid)
+        if InpRjBProj and InpShowWOW
+            RjProj(D, R.rowSer, mid)
     R
 
 // ===============================================================================================================
@@ -1263,7 +1486,7 @@ f_pack(int tf) =>
 // chart timeframe in seconds (MT5 PeriodSeconds; 1 month = 30 days as in MT5)
 ctfSec = timeframe.isseconds ? timeframe.multiplier : timeframe.isminutes ? timeframe.multiplier * 60 : timeframe.isdaily ? timeframe.multiplier * 86400 : timeframe.isweekly ? timeframe.multiplier * 604800 : timeframe.ismonthly ? timeframe.multiplier * 2592000 : 0
 
-// the Direction stack TFs (MT5 DirStackTFs): ITF, HTF, Higher+1, the macro rows, MN1 under a virtual TF. Simple only.
+// the Direction stack TFs (MT5 DirStackTFs): ITF, HTF, Higher+1, the macro rows, MN1 under a virtual TF, HtfOf. Simple only.
 slotNeed(int k) =>
     [itf, htfD, p1, okT] = DirTable(ctfSec)
     bool dirOn = InpDirEngine and okT
@@ -1278,13 +1501,14 @@ slotNeed(int k) =>
         5 => mac ? 15552000 : 0
         6 => mac ? 31104000 : 0
         7 => dirOn and (isVs(itf) or isVs(htfD) or (InpDirPlus1 and isVs(p1))) ? 2592000 : 0
+        8 => InpShowHTF or InpRjAlertConfirm ? HtfOf(ctfSec) : 0         // HTF band / Raja confirmation in a tested HTF zone
         => 0
 // the k-th distinct needed TF above the chart (0 = none); simple only (it feeds request.security)
 slotTf(int k) =>
     int found = -1
     int res = 0
     int c = 0
-    while c < 8 and res == 0
+    while c < 9 and res == 0
         int tf = slotNeed(c)
         bool dup = tf <= ctfSec
         int j = 0
@@ -1314,6 +1538,7 @@ atrS = ta.sma(ta.tr(true), 14)
 
 var array<line> gLines = array.new<line>()
 var array<label> gLabels = array.new<label>()
+var array<box> gBoxes = array.new<box>()
 var table gPanel = na
 varip string gAl = "|"
 var int prevDir = -99
@@ -1322,6 +1547,9 @@ addL(int x1, float y1, int x2, float y2, color c, string st) => gLines.push(line
 addT(int t, float p, string txt, color c, string tip) => gLabels.push(label.new(t, p, txt, xloc = xloc.bar_time, style = label.style_label_left, color = cNone, textcolor = c, size = tvTxt, tooltip = tip))
 bool acDir = false
 bool acWow = false
+bool acRjConf = false
+bool acRjMgmt = false
+fresh(string key) => not str.contains(gAl, "|" + key + "|")
 
 // ---- the chart candles the analysis reads, oldest first, kept bar by bar (the last TvHistory + 5 closed ones), so a
 // run copies them with native array calls instead of reading time[i] / open[i] ... in a loop
@@ -1393,6 +1621,90 @@ if barstate.isconfirmed and (barstate.islastconfirmedhistory or barstate.isrealt
         o.delete()
     gLines.clear()
     gLabels.clear()
+    for o in gBoxes
+        o.delete()
+    gBoxes.clear()
+    float spr = TvSpreadPts * gPt
+    int ht = HtfOf(ctfSec)
+    // ---- rejected candidates (debug; moved here from ZoneVision in 2.10)
+    if InpShowRejected
+        array<Rej> rej = array.new<Rej>()
+        Detect(C, true, rej)
+        for [k, rj] in rej
+            if k < 120
+                float hi = C.sH(rj.L)
+                float lo = C.sL(rj.L)
+                for b = rj.L + 1 to rj.L + rj.k
+                    hi := math.max(hi, C.sH(b))
+                    lo := math.min(lo, C.sL(b))
+                gBoxes.push(box.new(BarTime(C, rj.L + math.max(rj.k, 1)), hi, BarTime(C, rj.L - 1), lo, border_color = cMuted, border_style = line.style_dotted, bgcolor = cNone, xloc = xloc.bar_time))
+                gLabels.push(label.new(BarTime(C, rj.L), hi, "x " + rj.why, xloc = xloc.bar_time, style = label.style_label_lower_left, color = cNone, textcolor = cMuted, size = tvTxt, tooltip = "Rejected: " + rj.why))
+    // ---- HTF zone band: the 2 closest HtfOf zones that are not removed (MQL DrawZones(HZ, true); moved here in 2.10)
+    if InpShowHTF and ht > 0
+        Ser hs = ctxSer(X, ht)
+        array<Zone> HZ = ctxZ(X, ht)
+        array<int> idx = array.new<int>()
+        array<float> dst = array.new<float>()
+        for [i, z] in HZ
+            if not z.removed
+                idx.push(i)
+                dst.push(zDst(z, close))
+        array<int> pk = PickNear(idx, dst, 2)
+        for zi in pk
+            Zone z = HZ.get(zi)
+            int t1 = hs.sT(z.legBar + z.baseN)
+            int t2 = z.removed ? hs.sT(z.removedBar) : right
+            string nm = TfName(ht) + " " + ZoneName(z)
+            gBoxes.push(box.new(t1, math.max(z.prox, z.dist), t2, math.min(z.prox, z.dist), border_color = cNone, bgcolor = color.new(cHtfFill, TvFillTransp), xloc = xloc.bar_time))
+            for pq = 0 to 1
+                if InpPriceTags
+                    gLabels.push(label.new(t2, pq == 0 ? z.prox : z.dist, "(" + Px(pq == 0 ? z.prox : z.dist) + ")", xloc = xloc.bar_time, style = label.style_label_right, color = cNone, textcolor = cText, size = tvTxt, tooltip = nm))
+            if InpShowNames
+                gLabels.push(label.new(t1, z.dist, TfName(ht) + " " + dsz(z.dir), xloc = xloc.bar_time, style = z.dir > 0 ? label.style_label_upper_left : label.style_label_lower_left, color = cNone, textcolor = cText, size = tvTxt, tooltip = nm))
+    // ---- Raja v2.1 (A): touch count at the right end of this chart's drawn, respected lines (ZoneVision's tlPlan choice)
+    if InpRjATLTouches
+        TLCtx cx = ctxTL(X, ctfSec)
+        for d = -1 to 1 by 2
+            int newest = d > 0 ? cx.newestUp : cx.newestDn
+            int shown = 0
+            int i = cx.tl.size()
+            while i > 0
+                i -= 1
+                TLine t = cx.tl.get(i)
+                bool drawn = t.dir == d and shown < InpTLHistory and (i == newest or (not t.conf and not t.removed) or (t.removed and newest >= 0 and t.b > cx.tl.get(math.max(newest, 0)).a))
+                shown += drawn ? 1 : 0
+                float sl = (t.pb - t.pa) / math.max(1, t.a - t.b)
+                int n = drawn and not t.removed ? RjTch(C, d, t.a, t.pb, t.b, sl, 1) : 0
+                if n > 0
+                    addT(C.sT(0) + ctfSec * 1000 * 3, LineAt(t.pb, t.b, sl, -3), " TL " + RjTW(n), cText, "Raja: trendline touches " + RjTW(n) + " (1st-3rd fine, the 4th usually breaks it; 3-5 tests = weak)")
+    // ---- Raja v2.1 (B): nested curve lines and realignment areas
+    if D.ok and InpRjBNestedCurve and R.ncRow >= 0 and R.ncPd > 0 and R.ncPs > R.ncPd
+        string ntf = DirTfName(rw(D, R.ncRow).tf)
+        string rel = ntf + (R.ncInner ? " curve inside " : " curve around ") + DirTfName(rw(D, D.drH).tf)
+        float nv = 100.0 * (close - R.ncPd) / (R.ncPs - R.ncPd)
+        for k = 1 to 3
+            float lv = R.ncPd + (R.ncPs - R.ncPd) * k / 4.0
+            addL(C.sT(math.min(80, C.n - 1)), lv, right, lv, cCurve, line.style_dashed)
+            addT(right, lv, " " + ntf + " curve " + str.tostring(k * 25) + "%" + (k == 2 ? " (price " + F0(nv) + "%)" : ""), cCurve, "Raja nested curve " + str.tostring(k * 25) + "% (" + rel + "): " + ntf + " demand proximal " + Px(R.ncPd) + " to supply proximal " + Px(R.ncPs) + ". Price at " + F0(nv) + "% of it.")
+    for [k, rt] in R.raTxt
+        bool used = R.raUsed.get(k)
+        color c = used ? cMuted : cWow
+        gBoxes.push(box.new(R.raT.get(k), R.raHi.get(k), right, R.raLo.get(k), border_color = c, border_style = used ? line.style_dotted : line.style_dashed, bgcolor = cNone, xloc = xloc.bar_time))
+        gLabels.push(label.new(right, R.raDir.get(k) > 0 ? R.raLo.get(k) : R.raHi.get(k), " " + rt, xloc = xloc.bar_time, style = R.raDir.get(k) > 0 ? label.style_label_upper_left : label.style_label_lower_left, color = cNone, textcolor = c, size = tvTxt, tooltip = rt + " | Raja realignment area: enter on the lower-TF zone next to the higher-TF zone; after one retest do not use it again"))
+    // ---- Raja v2.1 (C): long wicks get filled (L101, L105): the 50% of the newest 6 long wicks not traded back to yet
+    if InpRjWickFill
+        int shown = 0
+        int i = 0
+        while i < math.min(math.min(InpLookback, 100), C.n - 20) - 1 and shown < 6
+            i += 1
+            float a = C.atr(i + 1)
+            for sd = -1 to 1 by 2
+                float w = sd < 0 ? C.sH(i) - math.max(C.sO(i), C.sC(i)) : math.min(C.sO(i), C.sC(i)) - C.sL(i)
+                float lv = sd < 0 ? C.sH(i) - w / 2 : C.sL(i) + w / 2
+                if a > 0 and shown < 6 and w > InpRjWickFillATR * a and not (sd < 0 ? C.h.slice(0, i).max() >= lv : C.l.slice(0, i).min() <= lv)
+                    shown += 1
+                    addL(C.sT(i), lv, right, lv, cWow, line.style_dotted)
+                    addT(right, lv, " wick 50% " + Px(lv), cWow, "Raja: long " + (sd < 0 ? "upper" : "lower") + " wick (" + F1(w / a) + " x ATR) - its 50% " + Px(lv) + " is likely to be filled")
     // Raja curve 25 / 50 / 75 between the HTF strong zones, the WOW ladder (MQL DrawV2Lines)
     for k = 1 to 3
         if D.ok and InpCurveLines and D.curveRaja
@@ -1403,6 +1715,10 @@ if barstate.isconfirmed and (barstate.islastconfirmedhistory or barstate.isrealt
         if InpShowWOW and wp > 0
             addL(C.sT(0), wp, right, wp, cWow, line.style_dashed)
             addT(right, wp, " " + D.wowTxt.get(k), cWow, D.wowTxt.get(k) + " | Raja WOW ladder: origin zone of a broken trendline")
+    // Raja v2.1 (B) sideways check (L8) on this chart's TF, or also the Direction HTF (box row)
+    bool swE = InpRjBChop and D.ok and RjSideways(C)
+    bool swH = InpRjBChop and InpRjBChopTF == 1 and D.ok and rw(D, D.drH).ok and RjSideways(R.rowSer.get(math.max(D.drH, 0)))
+    string swTxt = swE or swH ? "SIDEWAYS " + (swE ? TfName(ctfSec) : "") + (swE and swH ? " + " : "") + (swH ? DirTfName(rw(D, D.drH).tf) : "") + ": swings overlap, no new HH-HL / LL-LH - Raja: never trade" : ""
     // the Direction box (MQL DrawDirBox)
     if not na(gPanel)
         gPanel.delete()
@@ -1420,6 +1736,12 @@ if barstate.isconfirmed and (barstate.islastconfirmedhistory or barstate.isrealt
         for t in D.wowTxt
             rw.push(t)
             rc.push(cWow)
+        if swTxt != ""
+            rw.push(swTxt)
+            rc.push(cBad)
+        if InpRjGoldNote and ctfSec < 3600 and (str.contains(gSymU, "XAUUSD") or (str.contains(gSymU, "GOLD") and not str.contains(gSymU, "AUD")))
+            rw.push("Raja: prefer XAUAUD on LTF (gold hunts stops below H1)")
+            rc.push(cBad)
         gPanel := table.new(InpPanelRight ? position.middle_right : position.middle_left, 1, rw.size() + 1, bgcolor = color.new(cPopBg, 15), frame_color = cPopBorder, frame_width = 1, border_width = 0)
         for [r, t] in rw
             gPanel.cell(0, r, t, text_color = rc.get(r), text_size = tvPan, text_halign = text.align_left, tooltip = "Top-down Direction (display only; the zone notes use the v1 bias unless InpBiasSource = 1)", text_formatting = r == 0 ? text.format_bold : text.format_none)
@@ -1436,7 +1758,79 @@ if barstate.isconfirmed and (barstate.islastconfirmedhistory or barstate.isrealt
         gAl += "W" + Px(D.wow1) + "|"
         acWow := true
         alert("ZV " + syminfo.ticker + " " + TfName(ctfSec) + ": " + D.wowTxt.get(0) + (D.dir == 0 ? " | DIR WAIT" : " | DIR " + (D.dir > 0 ? "LONG" : "SHORT") + (D.q == 2 ? " FULL" : " REDUCED")), alert.freq_all)
+    // ---- Raja v2.1 (C) confirmation (item 10) and management (item 12) alerts, once per closed candle; nothing on load
+    if (InpRjAlertConfirm or InpRjAlertManage) and C.n > 15
+        string bt = str.tostring(C.sT(1))
+        string zh = "ZV " + syminfo.ticker + " " + TfName(ctfSec)
+        if InpRjAlertConfirm
+            // (a) a wick into the zone, then a candle closes back across the proximal (L2, L105)
+            for z in R.Z
+                int d = z.dir
+                string key = "Ca" + bt + Px(z.prox) + (d > 0 ? "d" : "s")
+                if not z.removed and z.legBar <= InpMaxZoneAge and z.saBar > 2 and d * (C.sC(1) - z.prox) > 0 and d * (C.sC(1) - z.dist) > 0 and d * (C.sC(2) - z.dist) > 0 and (d * (C.ad(d, 1) - z.prox) <= 0 or d * (C.sC(2) - z.prox) <= 0) and fresh(key)
+                    gAl += key + "|"
+                    acRjConf := true
+                    alert(zh + " " + dsz(d) + " " + Px(z.prox) + ": Raja confirmation - a candle closed back " + (d > 0 ? "above" : "below") + " the proximal after a wick into the zone (SL " + Px(z.dist - d * RjStopBuf(math.abs(z.prox - z.dist), ctfSec) + (d > 0 ? 0.0 : spr)) + ")", alert.freq_all)
+            // (b) inside a tested HTF zone: this chart's trendline crossed + an opposite zone removed (arrival / direction change)
+            if ht > 0
+                int tl0 = -1
+                int tl1 = -1
+                int rm0 = -1
+                int rm1 = -1
+                array<TLine> ctl = ctxTL(X, ctfSec).tl
+                for t in ctl
+                    if t.removed and t.removedBar >= 1
+                        tl0 := t.dir < 0 and (tl0 < 0 or t.removedBar < tl0) ? t.removedBar : tl0
+                        tl1 := t.dir > 0 and (tl1 < 0 or t.removedBar < tl1) ? t.removedBar : tl1
+                for z in R.Z
+                    if z.removed and z.removedBar >= 1
+                        rm0 := z.dir < 0 and (rm0 < 0 or z.removedBar < rm0) ? z.removedBar : rm0
+                        rm1 := z.dir > 0 and (rm1 < 0 or z.removedBar < rm1) ? z.removedBar : rm1
+                float lo1 = C.l.slice(1, 11).min()
+                float hi1 = C.h.slice(1, 11).max()
+                array<Zone> hzs = ctxZ(X, ht)
+                for hz in hzs
+                    int d = hz.dir
+                    int tb = d > 0 ? tl0 : tl1
+                    int rb = d > 0 ? rm0 : rm1
+                    string key = "Cb" + bt + Px(hz.prox) + (d > 0 ? "d" : "s")
+                    if not hz.removed and hz.tested and (d > 0 ? lo1 <= hz.prox and C.sC(1) > hz.dist : hi1 >= hz.prox and C.sC(1) < hz.dist) and tb >= 0 and rb >= 0 and math.max(tb, rb) <= 10 and math.min(tb, rb) == 1 and not DirFreshAt(ctxSer(X, ht), hz) and fresh(key)
+                        gAl += key + "|"
+                        acRjConf := true
+                        alert(zh + ": Raja confirmation in the tested " + TfName(ht) + " " + dsz(d) + " " + Px(hz.prox) + " - " + TfName(ctfSec) + " trendline crossed + " + (d > 0 ? "a supply" : "a demand") + " removed: " + (d > 0 ? "buy" : "sell") + " with the new " + TfName(ctfSec) + " zone that did it" + (D.ok ? " | " + D.head : ""), alert.freq_all)
+        if InpRjAlertManage
+            // the latest touched chart zone = the open idea (L3, L4, L7, L53)
+            int ii = -1
+            for [i, z] in R.Z
+                if z.tested and not z.removed and z.testedBar >= 1 and z.legBar <= InpMaxZoneAge and (ii < 0 or z.testedBar < R.Z.get(math.max(ii, 0)).testedBar)
+                    ii := i
+            if ii >= 0
+                Zone zi = R.Z.get(ii)
+                int d = zi.dir
+                string idk = str.tostring(C.sT(zi.legBar + zi.baseN)) + (d > 0 ? "d" : "s")
+                string idea = "the " + (d > 0 ? "buy" : "sell") + " idea from the " + dsz(d) + " " + Px(zi.prox)
+                // same-side zones newer than the idea zone, removed after the touch = structure removed against the idea
+                int nAg = 0
+                int rb = -1
+                for [j, z] in R.Z
+                    if j != ii and z.dir == d and z.removed and z.legBar < zi.legBar and z.removedBar >= 1 and z.removedBar < zi.testedBar
+                        nAg += 1
+                        rb := rb < 0 ? z.removedBar : math.min(rb, z.removedBar)
+                string key = "Cm" + idk + str.tostring(math.min(nAg, 2))
+                if nAg >= 1 and rb == 1 and fresh(key)
+                    gAl += key + "|"
+                    acRjMgmt := true
+                    alert(zh + ": " + (nAg >= 2 ? "2nd " + dsz(d) + " zone removed against " + idea + " - Raja: close it (two zones removed = direction change)" : "1st " + dsz(d) + " zone removed against " + idea + " - Raja: SL behind the next zone, close if a 2nd one goes"), alert.freq_all)
+                // a new fresh zone formed in the trade direction after the touch: trail (L7, L53)
+                for [j, z] in R.Z
+                    string k2 = "Ct" + str.tostring(C.sT(z.legBar + z.baseN)) + (d > 0 ? "d" : "s")
+                    if j != ii and z.dir == d and not z.removed and not z.tested and z.saBar == 1 and z.legBar < zi.testedBar and fresh(k2)
+                        gAl += k2 + "|"
+                        acRjMgmt := true
+                        alert(zh + ": new fresh " + dsz(d) + " " + Px(zLo(z)) + "-" + Px(zHi(z)) + " in the trade direction of " + idea + " - Raja: trail the SL to " + Px(z.dist - d * RjStopBuf(math.abs(z.prox - z.dist), ctfSec) + (d > 0 ? 0.0 : spr)), alert.freq_all)
     gAl := str.length(gAl) > 30000 ? "|" : gAl
 
+alertcondition(acRjConf, "ZoneVision: Raja confirmation", "ZoneVision: Raja confirmation (close back across the proximal, or trendline cross + removal inside a tested HTF zone)")
+alertcondition(acRjMgmt, "ZoneVision: Raja management", "ZoneVision: Raja management (zone removed against the open idea, or a new fresh zone to trail to)")
 alertcondition(acDir, "ZoneVision: Direction changed", "ZoneVision: the Direction or its quality changed")
 alertcondition(acWow, "ZoneVision: new WOW1 target", "ZoneVision: a new WOW1 target with the guard clear")

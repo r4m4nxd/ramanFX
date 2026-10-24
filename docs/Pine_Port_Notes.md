@@ -1,4 +1,4 @@
-# Pine Port Notes - ZoneVision 2.00
+# Pine Port Notes - ZoneVision 2.10 (2.00 port + Raja v2.1)
 
 Files: `public/tools/RamanFX_ZoneVision.pine` (main indicator) and `public/tools/RamanFX_ZoneVision_Direction.pine` (the Direction box, "ZV Direction"), both Pine Script v6. Port of `public/tools/RamanFX_ZoneVision.mq5` (2.00) and its core `public/tools/RFX_ZoneCore.mqh`. It replaces the older v1 Pine port, whose trendlines were not the MT5 ones. The new file comes from the MQL source, not from the old port.
 
@@ -15,6 +15,23 @@ How the size was measured: TradingView does not tell the compiled count before y
 The compaction: the series arrays are padded with 8 zero bars, so accessors are plain `array.get` without bounds tests; high / low pairs share one side-aware helper (`s.ad(d, i)` adverse side, `s.ex(d, i)` extreme side) so long / short code is written once (`FrLow / FrHigh` -> `Fr`, `FracUp / FracDn` -> `FracX`, `SHighest / SLowest` -> `SExt`); one `f_pack` and one `slotTf` replace the per-TF request code (8 `request.security` calls in the main indicator, 6 in Direction; the most distinct TFs any input set needs is 6).
 
 The v6 compile errors found on TradingView were fixed in the same pass and the whole file was scanned for more of each kind: (1) functions that feed `request.security` (`ladTF isVs StepUp HtfOf DirStd dirLad DirUp DirL15Top DirTable TvTf slotNeed slotTf f_pack`) are only called with simple arguments (`RunAll` builds the four StepUp levels with constant arguments before its loop); (2) no tuple is destructured inside a loop: `FitAnchor` returns a `Fit` object, `RefineOnChart` a `Refine`, `ZoneNotes` a `Note`, `FindTrap` and `TLBias` set fields of the zone / state, and the remaining tuple calls (`DirTable`) are outside loops.
+
+## 2.10: Raja v2.1 (port of the MT5 "Raja (v2.1 A / B / C)" inputs)
+
+Both indicators have a "Raja v2.1" input group at the top. `Preset` = Custom (every input as set) or Raja (Pine has no .set files: forces the values of `ZV_Template_Raja.set` - TF stack 3, bias source 1, Raja departure 0.6, Raja removal, curve filter, side lock, lens weights K0 S0 R100 B0, break alerts with Direction + consensus >= 70, WOW ladder + alert, and every v2.1 switch on except the strong / arrival-only filter). Set the same preset in both. All switches off = 2.00, and the Kevin defaults are unchanged.
+
+The main indicator was already near the token limit (lexical 31,006 before, 32,892 after = about 98.5k compiled at 3.0 per token). To make room, these moved to ZV Direction (same output when both indicators are on the chart): the HTF zone band (`InpShowHTF`), the rejected-candidates debug (`InpShowRejected`), and the new chart-only Raja parts. The full tooltip (`InpTipFull`, off by default) lost its conflict lines and shows DNA / PLANS as one compact line each. ZV Direction: 20,637 (about 62k).
+
+| Raja v2.1 part | Where | Notes |
+|---|---|---|
+| A: close-only removal (`InpRemovalMode`), strong over the run-out, close-cross arrival, per-TF touch allowance + "needs confirmation" tested zones, adjacent overlap, flip after a trendline cross, opposite-HTF veto, trendline touches + near-line / far flag (lens), CP x3 skip, P vs CP, did its job | main (removal and run-out strong also in Direction: Detect / curve) | as MT5 A |
+| A: trendline touch labels | Direction | chart lines only (the HTF lines' labels show no count) |
+| B: Raja TF table (stack 3, `InpRjBLtfItf`), rule 6 from D / W / M | both | as MT5 B |
+| B: nested curve, realignment areas (use once), 250% projection on the WOW ladder | Direction | as MT5 B |
+| B: sideways check | Direction box row | MT5 also blocks the Raja lens; the main lens does not (token limit) |
+| C: % zone-height stop per TF + min pips, TP offset, Raja labels / verdict / click box, Kevin overlays off, BLIND OK | main | the panel's bot plan keeps the v1 buffer (= ZoneBot); MT5 also prints Raja's SL / TP beside it, Pine does not |
+| C: strong / arrival-only filter | main | reduced: keeps zones whose move removed an opposite zone (within 5 bars of the leg, or up to now with the run-out rule) instead of a DNA pass per zone |
+| C: confirmation alerts (close back across the proximal; trendline cross + removal inside a tested HTF zone), management alerts, wick-fill marks, gold note | Direction | full (Direction loads the HtfOf TF for them); alertconditions "Raja confirmation" / "Raja management" |
 
 ## Speed (TradingView's calculation time limit)
 
