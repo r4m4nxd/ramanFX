@@ -1,6 +1,6 @@
-; RamanFX ZoneVision 2.00 template: Raja
+; RamanFX ZoneVision 2.10 template: Raja
 ; Raja: proximal-to-proximal curve (buys low curve, sells high curve), realignment = 2 opposite zones removed, removal only after a 2nd big close, WOW targets, Raja lens only
-; Load: indicator Inputs tab > Load. Display/alerts only - zone detection rules are unchanged.
+; Load: indicator Inputs tab > Load. Raja v2.1: zones removed only by a candle close (InpRemovalMode=1), stop = % of zone height per TF, Raja TF ladder, Raja labels.
 ; Alerts: only zones scoring >= 70 on this mentor's own lens (the A+/A/B grade always uses all four mentors, so it is not used here)
 InpMinLegRatio=1.2
 InpMaxBase=6
