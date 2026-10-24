@@ -97,6 +97,13 @@
   "seconds": null,
   "textHash": "file:4779a4facf919bb8"
  },
+ "course:10:am_michael": {
+  "bytes": 8652707,
+  "id": "1cJTezm0-F8fD48HemzFiamvTLr-5DBGK",
+  "name": "10 - When to Remove a Limit Order.m4a",
+  "seconds": 1047.14,
+  "textHash": "c17ebfd01fbe3e1f"
+ },
  "course:1:am_michael": {
   "bytes": 7665340,
   "id": "1MDGV1TqLO6t1MfAnXHHGHYxB13QoNthK",
@@ -131,6 +138,34 @@
   "name": "05 - Trend vs Momentum.m4a",
   "seconds": 977.08,
   "textHash": "3443b70d13616dcd"
+ },
+ "course:6:am_michael": {
+  "bytes": 7636963,
+  "id": "1UQIrbwGn5LPkRT68wW7ZdlEKKB2Fzh45",
+  "name": "06 - Entry, Stop Loss & Take Profit.m4a",
+  "seconds": 924.88,
+  "textHash": "d5f1d9260d013d17"
+ },
+ "course:7:am_michael": {
+  "bytes": 8372383,
+  "id": "1MzzeRBwgPmsP_0Wh1j1yT0p9OsYL8Hxw",
+  "name": "07 - Multiple Sequence Analysis.m4a",
+  "seconds": 1019.96,
+  "textHash": "f06c3939440525e0"
+ },
+ "course:8:am_michael": {
+  "bytes": 7375406,
+  "id": "1WvT7ACiY0BsXywgagIt-M45fI7lxKu2w",
+  "name": "08 - Trend Trading.m4a",
+  "seconds": 895.12,
+  "textHash": "3a9e035963b28767"
+ },
+ "course:9:am_michael": {
+  "bytes": 6521633,
+  "id": "14L_Oo7lo6AvFrGNO9_KAGkW-OJHtIayp",
+  "name": "09 - Dividend Investing Using Supply and Demand Zones.m4a",
+  "seconds": 790.03,
+  "textHash": "2cb63790756e0c3e"
  },
  "daily:10:am_michael": {
   "bytes": 4315044,
@@ -328,6 +363,48 @@
   "seconds": 443.72,
   "textHash": "363c269c6de2c0b1"
  },
+ "raja:4:am_michael": {
+  "bytes": 5249964,
+  "id": "16Jf6a_-IT3T-dET6vAfDI__u1mY9Ik7T",
+  "name": "04 - High Curve and Low Curve, Trendline-Close Confirmation and Trailing Stops.m4a",
+  "seconds": 639.99,
+  "textHash": "0f6185f4bcd50a89"
+ },
+ "raja:5:am_michael": {
+  "bytes": 3719563,
+  "id": "1xGIukSEMzVCr1jg19N-_YLpTlm7-si1n",
+  "name": "05 - Impulse vs Correction and When a Zone Has Done Its Job.m4a",
+  "seconds": 453.58,
+  "textHash": "30c87c539c9c79d3"
+ },
+ "raja:6:am_michael": {
+  "bytes": 2982773,
+  "id": "1e8XNucb5EqaMRP-cY8rRKCcvFrk-jEyS",
+  "name": "06 - Momentum and Location (Nested Zones).m4a",
+  "seconds": 364.06,
+  "textHash": "ef3e97799d6dc23f"
+ },
+ "raja:7:am_michael": {
+  "bytes": 2439936,
+  "id": "1xBj1JDGire-A7KjqCdogUDyvBatZjqsL",
+  "name": "07 - Risk Management and Three Trader Rules.m4a",
+  "seconds": 300.27,
+  "textHash": "4e1b3b96c010566a"
+ },
+ "raja:8:am_michael": {
+  "bytes": 2117393,
+  "id": "1hcHTYptjfcl5Kvg8c-beRJV2NwnKexb2",
+  "name": "08 - Sequence and Realignment.m4a",
+  "seconds": 259.56,
+  "textHash": "38ca59504d4b03c0"
+ },
+ "seiden:14:am_michael": {
+  "bytes": 3781737,
+  "id": "1TOB4DuOWdIRreZSzFPzoh1nAq5Evm7I8",
+  "name": "14 - Success in the 30-Year Bond.m4a",
+  "seconds": 459.81,
+  "textHash": "311781d509a9a20b"
+ },
  "seiden:193:am_michael": {
   "bytes": 3598155,
   "id": "1avcjL1cEFbdAhPVkffuZ9274_FFggm2e",
@@ -341,6 +418,13 @@
   "name": "198 - The Straight Answers to the Most Frequently Asked Questions.m4a",
   "seconds": 374.85,
   "textHash": "8b68b8861dfc2ce0"
+ },
+ "seiden:1:am_michael": {
+  "bytes": 5338546,
+  "id": "1I6qBoxG17f7PhTnumrFhGVAy4_Om0bRJ",
+  "name": "01 - Probability Enhancer (Odds Enhancer Score Sheet).m4a",
+  "seconds": 650.07,
+  "textHash": "4d68afd2aafb27dc"
  },
  "seiden:201:am_michael": {
   "bytes": 3432352,
@@ -614,6 +698,20 @@
   "name": "373 - Price and Time.m4a",
   "seconds": 398.29,
   "textHash": "49c27678e34d9318"
+ },
+ "seiden:5:am_michael": {
+  "bytes": 3836001,
+  "id": "1dGKFyuYKYsBGB69XRjalX62oL-_FLHH1",
+  "name": "05 - Trading Notes (XLT).m4a",
+  "seconds": 465.15,
+  "textHash": "518e31077835b370"
+ },
+ "seiden:9:am_michael": {
+  "bytes": 4528871,
+  "id": "1xEfKwfOSAymLPLu5GnigMqK-lPjEa4i9",
+  "name": "09 - A Key Factor for Trade Success.m4a",
+  "seconds": 549.49,
+  "textHash": "ef50c09f143ec24d"
  },
  "zoom:1:am_michael": {
   "bytes": 18602150,
