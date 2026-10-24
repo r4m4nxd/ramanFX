@@ -1,0 +1,74 @@
+{
+ "source": "seiden",
+ "n": 345,
+ "title": "Motion Into Mass: Your Questions Answered",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 434.49,
+   "textHash": "1222997e60aabee1",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Why not buy the gap-up origin? JP",
+     "start": 58.69
+    },
+    {
+     "id": "s1",
+     "title": "The big candle at the end of a move, Beth",
+     "start": 83.71
+    },
+    {
+     "id": "s2",
+     "title": "Weak departure but still shorted, Philippe",
+     "start": 105.82
+    },
+    {
+     "id": "s3",
+     "title": "Ask the right questions",
+     "start": 129.12
+    },
+    {
+     "id": "s4",
+     "title": "Charts",
+     "start": 144.96
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 212.02
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 240.91
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 263.76
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 277.32
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 391.27
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 417.39
+    }
+   ]
+  }
+ }
+}

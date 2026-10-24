@@ -1,0 +1,79 @@
+{
+ "source": "seiden",
+ "n": 331,
+ "title": "You Have Questions - Sam has Answers!",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 352.6,
+   "textHash": "7d7c690a1188fc4f",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "The four questions, from his Market Traps talk",
+     "start": 44.84
+    },
+    {
+     "id": "s1",
+     "title": "Time at the level",
+     "start": 69.53
+    },
+    {
+     "id": "s2",
+     "title": "Distance before return",
+     "start": 93.43
+    },
+    {
+     "id": "s3",
+     "title": "Conflicting trends across timeframes, Gloria",
+     "start": 112.44
+    },
+    {
+     "id": "s4",
+     "title": "Old supply becoming demand, Susan",
+     "start": 143.09
+    },
+    {
+     "id": "s5",
+     "title": "Where a newbie should start, Ray",
+     "start": 166.88
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 197.61
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 239.43
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 269.15
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 288.69
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 309.5
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 338.05
+    }
+   ]
+  }
+ }
+}

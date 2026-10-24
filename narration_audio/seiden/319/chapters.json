@@ -1,0 +1,59 @@
+{
+ "source": "seiden",
+ "n": 319,
+ "title": "Patience and Probabilities, Part 2",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 304.72,
+   "textHash": "57aaff4d19af6e87",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Aligning stocks with the index",
+     "start": 49.65
+    },
+    {
+     "id": "s1",
+     "title": "Charts",
+     "start": 76.32
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 136.0
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 158.78
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 174.33
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 185.37
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 263.29
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 287.67
+    }
+   ]
+  }
+ }
+}

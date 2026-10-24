@@ -1,0 +1,74 @@
+{
+ "source": "seiden",
+ "n": 335,
+ "title": "The Check List",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 288.8,
+   "textHash": "79ac4a62d6766d04",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Why entry matters most",
+     "start": 47.52
+    },
+    {
+     "id": "s1",
+     "title": "first, how did price leave the level?",
+     "start": 66.86
+    },
+    {
+     "id": "s2",
+     "title": "second, how much time did price spend at the level?",
+     "start": 83.51
+    },
+    {
+     "id": "s3",
+     "title": "third, how far did price move before returning?",
+     "start": 105.73
+    },
+    {
+     "id": "s4",
+     "title": "Resources he suggests",
+     "start": 139.98
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 155.6
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 183.99
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 203.88
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 222.37
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 249.06
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 274.24
+    }
+   ]
+  }
+ }
+}

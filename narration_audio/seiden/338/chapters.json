@@ -1,0 +1,59 @@
+{
+ "source": "seiden",
+ "n": 338,
+ "title": "Sam Answers Your Questions",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 246.01,
+   "textHash": "d91a77f2b037defd",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "After-hours levels, Joe",
+     "start": 51.61
+    },
+    {
+     "id": "s1",
+     "title": "Does it work in all markets? Asian markets",
+     "start": 85.84
+    },
+    {
+     "id": "s2",
+     "title": "Supply or demand versus support or resistance, John",
+     "start": 102.53
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 135.47
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 161.55
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 185.62
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 201.96
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 228.43
+    }
+   ]
+  }
+ }
+}
