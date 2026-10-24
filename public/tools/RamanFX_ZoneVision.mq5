@@ -114,7 +114,7 @@ input bool   InpResearchDraw    = true;               // Research on: still draw
 input int    InpResearchGMT     = 2;                  // Server time minus GMT in hours (only for the session column)
 input group "-- v2 Direction (top-down, display only) --"
 input bool   InpDirEngine     = true;   // Direction engine: ETF -> ITF -> HTF states + one Direction readout (draws only RFXV2_ objects)
-input int    InpDirTable      = 1;      // TF stack: 0 = v1 (StepUp / HtfOf), 1 = Kevin lesson 4 (D1 -> 1M -> 3M), 2 = Kevin lesson 15 slide
+input int    InpDirTable      = 1;      // TF stack: 0 = v1 (StepUp / HtfOf), 1 = Kevin lesson 4 (D1 -> 1M -> 3M), 2 = Kevin lesson 15 slide, 3 = Raja (H1 -> H4 -> D1 -> W1, H4 -> D1 -> W1 -> MN, D1 -> W1 -> MN)
 input bool   InpDirPlus1      = true;   // Add the lesson-15 "Higher+1" TF as a 4th row (H1 -> MN, H4 -> 3M, D1 -> 6M)
 input bool   InpDirMacro      = false;  // H4 / D1 charts: add the macro rows 1M, 3M, 6M, 12M
 input int    InpBiasSource    = 0;      // Bias used by the zone notes: 0 = v1 (HTF swings + trendline), 1 = Direction engine (changes verdict texts)
@@ -133,6 +133,15 @@ input bool   InpAlertDir      = true;   // Alert once when the Direction or its 
 input bool   InpShowWOW       = false;  // Raja WOW ladder: targets at the origin zones of the broken HTF / ITF trendlines (RFXV2_W)
 input int    InpWOWLines      = 4;      // WOW ladder: lines kept each way
 input double InpPipXAU        = 0.1;    // Pip size on gold (WOW labels)
+input group "Raja (v2.1 B)"
+input int    InpRjBLtfItf     = 0;      // InpDirTable 3 (Raja): M15 / M30 charts use H1 (0) or H4 (1) as the ITF (HTF D1, +1 W1; M1 / M5 always H1)
+input bool   InpRjBNestedCurve= false;  // Raja nested curve (L4): also draw one nested level, D1 curve inside W1 / W1 inside MN (25 / 50 / 75, RFXV2_jB)
+input bool   InpRjBRealign    = false;  // Raja realignment chain H4 -> D1 -> W1 -> MN (L8): after a cross + N opposite zones removed, draw the lower+upper TF confluence area and its 'use once' status
+input bool   InpRjBProj       = false;  // Raja 250% projection (L5): no fresh opposite zone ahead -> add the impulse target to the WOW ladder (needs InpShowWOW)
+input double InpRjBProjX      = 2.5;    // Projection = this x the last correction (swing high -> its low for a buy: 100% + 100% + 50%), measured from the correction's end
+input bool   InpRjBChop       = false;  // Raja lens: never trade sideways (last swings overlap, no new HH-HL / LL-LH) -> the Raja lens does not pass
+input int    InpRjBChopSwings = 3;      // Sideways check: swing highs and lows compared (2-8; swings = InpTLSwing bars each side)
+input int    InpRjBChopTF     = 0;      // Sideways check on: 0 = the zone's TF, 1 = the zone's TF or the Direction HTF
 input group "-- v2 Zone DNA + mentor lenses (display only) --"
 input bool   InpDNA           = true;   // Zone DNA for every drawn zone (departure, base, chain, tests, nested, curve, room, origin ...)
 input int    InpBaseMedianN   = 20;     // DNA: base_rel = base candles / median of the last N zones
@@ -845,6 +854,7 @@ void Redraw()
    if(InpShowBotOrders) BotNotes();
    NoSelect(PFX); NoSelect("RFXN_"); NoSelect("RFXS_");
    DrawV2Lines();                                                    // v2: curve lines / WOW ladder (RFXV2_ objects only)
+   RjB_Draw();                                                       // Raja v2.1 (B): nested curve + realignment areas (RFXV2_jB objects only)
    DrawDirBox();
    if(gDirOk && InpAlertDir) DirAlert();
    V2BreakAlerts();
@@ -1190,6 +1200,48 @@ void DrawV2Lines()
          Txt(nm + "t", t2, gWowPx[k], " " + gWowTxt[k], WowColor(), 7, ANCHOR_LEFT);
         }
    NoSelect("RFXV2_");
+  }
+// ---- Raja v2.1 (B) ---- nested curve lines and realignment areas (computed by RjB_Run in the core)
+void RjB_Draw()
+  {
+   ObjectsDeleteAll(0, "RFXV2_jB");
+   if(!gDirOk) return;
+   datetime t1 = cT(MathMin(80, cBars() - 1)), t2 = cT(0) + PeriodSeconds() * 18;
+   if(InpRjBNestedCurve && rjbNcOk && rjbNcRow >= 0 && rjbNcRow < drN)
+     {
+      string ntf = DirTfName(drRow[rjbNcRow].tf), rjbHtfN = drH >= 0 ? DirTfName(drRow[drH].tf) : "-";
+      string rel = rjbNcInner ? ntf + " curve inside " + rjbHtfN : ntf + " curve around " + rjbHtfN;
+      for(int k = 1; k <= 3; k++)
+        {
+         double lv = rjbNcPd + (rjbNcPs - rjbNcPd) * k / 4.0;
+         string nm = "RFXV2_jBn" + IntegerToString(k * 25);
+         HLine(nm, t1, t2, lv, cP1Line, STYLE_DASHDOTDOT, 1);
+         ObjectSetInteger(0, nm, OBJPROP_BACK, true);
+         ObjectSetString(0, nm, OBJPROP_TOOLTIP, StringFormat("Raja nested curve %d%% (%s): %s demand proximal %s to supply proximal %s. Price at %.0f%% of it.",
+                         k * 25, rel, ntf, DoubleToString(rjbNcPd, _Digits), DoubleToString(rjbNcPs, _Digits), rjbNcVal));
+         string lb = StringFormat(" %s curve %d%%", ntf, k * 25);
+         if(k == 2) lb += StringFormat(" (price %.0f%%)", rjbNcVal);
+         Txt(nm + "t", t2, lv, lb, cP1Line, 7, ANCHOR_LEFT);
+        }
+     }
+   if(InpRjBRealign)
+      for(int k = 0; k < rjbRaN; k++)
+        {
+         string nm = "RFXV2_jBr" + IntegerToString(k);
+         bool used = rjbRaVis[k] >= 1 && !rjbRaIn[k];
+         color c = used ? cMuted : cItfLine;
+         datetime ta = rjbRaT[k] > 0 ? rjbRaT[k] : t1;
+         ObjectCreate(0, nm, OBJ_RECTANGLE, 0, ta, rjbRaHi[k], t2, rjbRaLo[k]);
+         ObjectSetInteger(0, nm, OBJPROP_COLOR, c);
+         ObjectSetInteger(0, nm, OBJPROP_STYLE, used ? STYLE_DOT : STYLE_DASH);
+         ObjectSetInteger(0, nm, OBJPROP_WIDTH, 1);
+         ObjectSetInteger(0, nm, OBJPROP_FILL, false);
+         ObjectSetInteger(0, nm, OBJPROP_BACK, true);
+         ObjectSetString(0, nm, OBJPROP_TOOLTIP, rjbRaTxt[k] + " | Raja realignment area: enter on the lower-TF zone next to the higher-TF zone; after one retest do not use it again");
+         double ly = rjbRaDir[k] > 0 ? rjbRaLo[k] : rjbRaHi[k];
+         Txt(nm + "t", t2, ly, " " + rjbRaTxt[k], c, 7, rjbRaDir[k] > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
+        }
+   NoSelect("RFXV2_jB");
   }
 // one alert when the Direction or its quality changes (nothing that was true at load)
 void DirAlert()

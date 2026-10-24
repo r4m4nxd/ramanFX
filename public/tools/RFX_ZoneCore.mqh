@@ -1087,7 +1087,7 @@ ENUM_TIMEFRAMES DirL15Top(ENUM_TIMEFRAMES b)
      }
    return PERIOD_CURRENT;
   }
-// ITF / HTF / Higher+1 of a chart TF for InpDirTable 0 (v1), 1 (Kevin lesson 4) or 2 (Kevin lesson 15)
+// ITF / HTF / Higher+1 of a chart TF for InpDirTable 0 (v1), 1 (Kevin lesson 4), 2 (Kevin lesson 15) or 3 (Raja, v2.1 B)
 bool DirTable(ENUM_TIMEFRAMES ctf, ENUM_TIMEFRAMES &itf, ENUM_TIMEFRAMES &htf, ENUM_TIMEFRAMES &p1)
   {
    itf = PERIOD_CURRENT; htf = PERIOD_CURRENT; p1 = PERIOD_CURRENT;
@@ -1118,6 +1118,24 @@ bool DirTable(ENUM_TIMEFRAMES ctf, ENUM_TIMEFRAMES &itf, ENUM_TIMEFRAMES &htf, E
       if(itf <= 0 || itf >= htf) itf = DirUp(b);
       p1 = DirL15Top(b);
       if(p1 == PERIOD_CURRENT || p1 <= htf) p1 = DirUp(htf);
+     }
+   else if(InpDirTable == 3)
+     {
+      // ---- Raja v2.1 (B) ---- Raja table (L8, low-TF class): direction only from D1 / W1 / MN
+      // H1 -> H4 -> D1 -> W1, H4 -> D1 -> W1 -> MN, D1 -> W1 -> MN, LTF (M1-M30) -> H1 / H4 -> D1 -> W1
+      ENUM_TIMEFRAMES rjbLit = InpRjBLtfItf == 1 ? PERIOD_H4 : PERIOD_H1;
+      switch(b)
+        {
+         case PERIOD_M1:  itf = PERIOD_H1;  htf = PERIOD_D1;  p1 = PERIOD_W1;  break;
+         case PERIOD_M5:  itf = PERIOD_H1;  htf = PERIOD_D1;  p1 = PERIOD_W1;  break;
+         case PERIOD_M15: itf = rjbLit;     htf = PERIOD_D1;  p1 = PERIOD_W1;  break;   // M30 maps to the M15 row (DirStd)
+         case PERIOD_H1:  itf = PERIOD_H4;  htf = PERIOD_D1;  p1 = PERIOD_W1;  break;
+         case PERIOD_H4:  itf = PERIOD_D1;  htf = PERIOD_W1;  p1 = PERIOD_MN1; break;
+         case PERIOD_D1:  itf = PERIOD_W1;  htf = PERIOD_MN1; break;                    // no Higher+1 row
+         case PERIOD_W1:  itf = PERIOD_MN1; htf = (ENUM_TIMEFRAMES)TFV_3M; break;      // beyond the table: next steps up
+         case PERIOD_MN1: itf = (ENUM_TIMEFRAMES)TFV_3M; htf = (ENUM_TIMEFRAMES)TFV_6M; break;
+         default: break;
+        }
      }
    else
      {
@@ -1410,7 +1428,7 @@ void DirCombine()
       // rule 5: the ITF pulls back / turns against the side -> wait until it realigns (unless price sits in the HTF zone)
       if(drI >= 0 && drRow[drI].ok && (drRow[drI].st == DST_PULL || drRow[drI].st == DST_TURN) && drRow[drI].side == -side && gLockSide != side) { realign = true; q = 0; }
       // rule 6: ETF on the same side = full (3-TF confluence); otherwise at most reduced
-      if(q > 0 && DirRowSide(drE) != side) q = MathMin(q, 1);
+      if(q > 0 && DirRowSide(drE) != side && !(InpDirTable == 3 && drE >= 0 && drRow[drE].tf < PERIOD_D1)) q = MathMin(q, 1);   // Raja v2.1 (B): table 3 = direction from D / W / M only, an intraday ETF does not grade it
       // rule 8: 3rd CP in a row on the ETF -> one step down
       if(drE >= 0 && drRow[drE].cp >= 3 && drRow[drE].cpDir == side && q > 0) { q--; rsCP = StringFormat("ETF %s CP x%d in a row: do not chase", DirTfName(drRow[drE].tf), drRow[drE].cp); }
      }
@@ -1530,6 +1548,191 @@ void DirWOW()
      }
   }
 
+// ---- Raja v2.1 (B) ----
+// Nested curve (L4): the HTF curve plus one nested level (D1 inside W1, W1 inside MN), realignment chain
+// H4 -> D1 -> W1 -> MN with Raja's 'use once' rule (L8), the 250% projection target (L5, Feb 18) and the
+// 'never trade sideways' check (L8) for the Raja lens. Host inputs: InpRjBLtfItf, InpRjBNestedCurve,
+// InpRjBRealign, InpRjBProj, InpRjBProjX, InpRjBChop, InpRjBChopSwings, InpRjBChopTF (all default off).
+#define RJB_MAXRA 3
+bool     rjbNcOk = false;            // nested curve found
+int      rjbNcRow = -1;              // its stack row
+double   rjbNcPd = 0, rjbNcPs = 0;   // its demand proximal (0%) / supply proximal (100%)
+double   rjbNcVal = 50;              // price on the nested curve (%)
+bool     rjbNcInner = false;         // true = inner level (D1 inside W1), false = outer level (W1 around D1)
+int      rjbRaN = 0;                 // realignment areas found
+double   rjbRaLo[RJB_MAXRA], rjbRaHi[RJB_MAXRA];
+int      rjbRaDir[RJB_MAXRA], rjbRaVis[RJB_MAXRA];
+bool     rjbRaIn[RJB_MAXRA];
+datetime rjbRaT[RJB_MAXRA];
+string   rjbRaTxt[RJB_MAXRA];
+ENUM_TIMEFRAMES rjbChTf[]; datetime rjbChT[]; bool rjbChV[];   // sideways cache (TF + last closed bar)
+
+// Raja curve of one stack row: nearest fresh strong demand proximal below price, supply proximal above (as DirCurve)
+bool RjB_RowCurve(int r, double &pd, double &ps)
+  {
+   pd = 0; ps = 0;
+   if(r < 0 || r >= drN || !drRow[r].ok) return false;
+   ENUM_TIMEFRAMES tf = drRow[r].tf;
+   double mid = Mid();
+   for(int i = 0; i < ArraySize(drZ); i++)
+     {
+      if(drZRow[i] != r || !DirFreshAt(tf, drZ[i]) || !DirRajaStrong(r, i)) continue;
+      if(drZ[i].dir > 0 && drZ[i].dist < mid && (pd == 0 || drZ[i].prox > pd)) pd = drZ[i].prox;
+      if(drZ[i].dir < 0 && drZ[i].dist > mid && (ps == 0 || drZ[i].prox < ps)) ps = drZ[i].prox;
+     }
+   return pd > 0 && ps > pd;
+  }
+// nested level: the D1+ row under the HTF (inner), else the Higher+1 row (outer)
+void RjB_Nested()
+  {
+   rjbNcOk = false; rjbNcRow = -1; rjbNcPd = 0; rjbNcPs = 0; rjbNcVal = 50; rjbNcInner = false;
+   if(!InpRjBNestedCurve || drH < 0 || drH >= drN || !drRow[drH].ok) return;
+   int r = -1;
+   if(drI >= 0 && drRow[drI].ok && drRow[drI].tf >= PERIOD_D1 && drRow[drI].tf != drRow[drH].tf) { r = drI; rjbNcInner = true; }
+   else if(drP >= 0 && drRow[drP].ok && drRow[drP].tf != drRow[drH].tf) { r = drP; rjbNcInner = false; }
+   if(r < 0) return;
+   double pd = 0, ps = 0;
+   if(!RjB_RowCurve(r, pd, ps)) return;
+   rjbNcOk = true; rjbNcRow = r; rjbNcPd = pd; rjbNcPs = ps;
+   rjbNcVal = 100.0 * (Mid() - pd) / (ps - pd);
+  }
+// realignment chain (L8): a lower row (H4+) crossed its line and removed N opposite zones -> price returns to
+// the lower-TF zone of the new side that sits inside / next to an upper-TF zone of that side. Used once.
+void RjB_Realign()
+  {
+   rjbRaN = 0;
+   if(!InpRjBRealign) return;
+   double mid = Mid();
+   int N = MathMax(1, InpDirRemovedN);
+   for(int r = 0; r + 1 < drN && rjbRaN < RJB_MAXRA; r++)
+     {
+      int u = r + 1;
+      if(!drRow[r].ok || !drRow[u].ok || drRow[r].role == "MAC") continue;
+      ENUM_TIMEFRAMES lt = drRow[r].tf, ut = drRow[u].tf;
+      if(lt < PERIOD_H4 || ut <= lt) continue;
+      int T = drRow[r].T, tb = drRow[r].tBar;
+      if(T == 0 || tb < 1 || drRow[r].rm < N) continue;
+      int bl = -1; double bd = 0;
+      for(int i = 0; i < ArraySize(drZ); i++)
+        {
+         if(drZRow[i] != r || drZ[i].dir != T || drZ[i].removed) continue;
+         if(T > 0 ? drZ[i].dist >= mid : drZ[i].dist <= mid) continue;        // on the retrace side of price
+         double llo = MathMin(drZ[i].prox, drZ[i].dist), lhi = MathMax(drZ[i].prox, drZ[i].dist);
+         bool paired = false;
+         for(int j = 0; j < ArraySize(drZ) && !paired; j++)
+           {
+            if(drZRow[j] != u || drZ[j].dir != T || drZ[j].removed) continue;
+            double ulo = MathMin(drZ[j].prox, drZ[j].dist), uhi = MathMax(drZ[j].prox, drZ[j].dist);
+            double tol = InpNestTolH * (uhi - ulo);
+            if(lhi >= ulo - tol && llo <= uhi + tol) paired = true;               // inside or next to the upper zone
+           }
+         if(!paired) continue;
+         double dd = MathAbs(mid - drZ[i].prox);
+         if(bl < 0 || dd < bd) { bl = i; bd = dd; }
+        }
+      if(bl < 0) continue;
+      double lo = MathMin(drZ[bl].prox, drZ[bl].dist), hi = MathMax(drZ[bl].prox, drZ[bl].dist);
+      int fromBar = MathMin(tb - 1, drZ[bl].saBar - 1);
+      int vis = 0; bool inNow = false;
+      for(int k = fromBar; k >= 0; k--)
+        {
+         bool hit = SL(_Symbol, lt, k) <= hi && SH(_Symbol, lt, k) >= lo;
+         if(hit && !inNow) vis++;
+         inNow = hit;
+        }
+      string st = vis == 0 ? "use once" : ((vis == 1 && inNow) ? "1st visit: entry area" : "USED: do not reuse");
+      int n = rjbRaN;
+      rjbRaLo[n] = lo; rjbRaHi[n] = hi; rjbRaDir[n] = T; rjbRaVis[n] = vis; rjbRaIn[n] = inNow;
+      rjbRaT[n] = ST(_Symbol, lt, tb);
+      rjbRaTxt[n] = StringFormat("REALIGN %s+%s %s (%s cross, %d removed): %s", TfName(ut), TfName(lt), T > 0 ? "demand" : "supply", TfName(lt), drRow[r].rm, st);
+      rjbRaN++;
+     }
+  }
+// 250% projection (L5, Feb 18): no fresh opposite zone ahead on this or a higher row -> measure the correction
+// (buy: the newest swing low and the swing high before it); the impulse runs 100% + 100% + 50% of it from the low.
+void RjB_Proj()
+  {
+   if(!InpRjBProj || !InpShowWOW) return;
+   double mid = Mid(), pip = MathMax(PipSize(), _Point);
+   int rows[2]; rows[0] = drH; rows[1] = drI;
+   for(int q = 0; q < 2 && gWowN < 4; q++)
+     {
+      int r = rows[q];
+      if(r < 0 || r >= drN || !drRow[r].ok) continue;
+      ENUM_TIMEFRAMES tf = drRow[r].tf;
+      int md = drRow[r].T != 0 ? drRow[r].T : DirTrendSide(r);
+      if(md == 0) continue;
+      bool opp = false;
+      for(int i = 0; i < ArraySize(drZ) && !opp; i++)
+        {
+         int zr = drZRow[i];
+         if(zr < 0 || zr >= drN || drRow[zr].tf < tf || drZ[i].dir != -md) continue;
+         if(!DirFreshAt(drRow[zr].tf, drZ[i])) continue;
+         if(md > 0 ? drZ[i].prox > mid : drZ[i].prox < mid) opp = true;
+        }
+      if(opp) continue;
+      int nb = SBars(_Symbol, tf), lim = MathMin(nb - InpTLSwing - 1, 400);
+      int be = -1, bs = -1;
+      for(int j = InpTLSwing + 1; j < lim; j++)
+        {
+         if(be < 0) { if(DnaFrac(tf, j, md)) be = j; continue; }             // correction end: swing low (buy) / swing high (sell)
+         if(DnaFrac(tf, j, -md)) { bs = j; break; }                          // correction start: the swing high (buy) / low (sell) before it
+        }
+      if(be < 0 || bs < 0) continue;
+      double cEnd = md > 0 ? SL(_Symbol, tf, be) : SH(_Symbol, tf, be);
+      double cStart = md > 0 ? SH(_Symbol, tf, bs) : SL(_Symbol, tf, bs);
+      double corr = md * (cStart - cEnd);
+      if(corr <= 0) continue;
+      double px = cEnd + md * MathMax(0.1, InpRjBProjX) * corr;
+      if(md * (px - mid) <= 0) continue;                                     // reached: the impulse is done, expect a correction
+      bool dup = false;
+      for(int k = 0; k < gWowN; k++) if(MathAbs(gWowPx[k] - px) < _Point) dup = true;
+      if(dup) continue;
+      gWowTxt[gWowN] = StringFormat("P%.0f %s -> %s (%s%.0f p, %.1fx corr %s-%s, no opposite zone)", InpRjBProjX * 100, DirTfName(tf), DoubleToString(px, _Digits),
+                                    md > 0 ? "+" : "-", MathAbs(px - mid) / pip, InpRjBProjX, DoubleToString(cStart, _Digits), DoubleToString(cEnd, _Digits));
+      gWowPx[gWowN] = px; gWowN++;                                           // ladder only: gWow1 / gWow2 (alerts, export) stay the WOW targets
+     }
+  }
+// never trade sideways (L8): the last swings overlap with no new HH + HL / LL + LH and no close outside them
+bool RjB_Sideways(ENUM_TIMEFRAMES tf)
+  {
+   datetime t1 = ST(_Symbol, tf, 1);
+   for(int c = 0; c < ArraySize(rjbChTf); c++) if(rjbChTf[c] == tf && rjbChT[c] == t1) return rjbChV[c];
+   int K = MathMax(2, MathMin(8, InpRjBChopSwings));
+   double hs[8], ls[8];
+   int nh = 0, nl = 0;
+   int nb = SBars(_Symbol, tf), lim = MathMin(nb - InpTLSwing - 1, 400);
+   for(int j = InpTLSwing + 1; j < lim && (nh < K || nl < K); j++)
+     {
+      if(nh < K && DnaFrac(tf, j, -1)) { hs[nh] = SH(_Symbol, tf, j); nh++; }
+      if(nl < K && DnaFrac(tf, j, 1))  { ls[nl] = SL(_Symbol, tf, j); nl++; }
+     }
+   bool v = false;
+   if(nh >= K && nl >= K)
+     {
+      bool up = hs[0] > hs[1] && ls[0] > ls[1], dn = hs[0] < hs[1] && ls[0] < ls[1];
+      if(!up && !dn)
+        {
+         double minH = hs[0], maxH = hs[0], minL = ls[0], maxL = ls[0];
+         for(int k = 1; k < K; k++) { minH = MathMin(minH, hs[k]); maxH = MathMax(maxH, hs[k]); minL = MathMin(minL, ls[k]); maxL = MathMax(maxL, ls[k]); }
+         double c = SC(_Symbol, tf, 1);
+         v = minH > maxL && c <= maxH && c >= minL;                            // one common band, price still inside the swings
+        }
+     }
+   int n = ArraySize(rjbChTf);
+   if(n >= 16) { n = 0; ArrayResize(rjbChTf, 0); ArrayResize(rjbChT, 0); ArrayResize(rjbChV, 0); }
+   ArrayResize(rjbChTf, n + 1); ArrayResize(rjbChT, n + 1); ArrayResize(rjbChV, n + 1);
+   rjbChTf[n] = tf; rjbChT[n] = t1; rjbChV[n] = v;
+   return v;
+  }
+void RjB_Run()
+  {
+   RjB_Nested();
+   RjB_Realign();
+   RjB_Proj();
+  }
+// ---- end Raja v2.1 (B) ----
+
 // the whole engine, once per redraw (after the chart's Detect / Trendlines / Qualify)
 void DirRun()
   {
@@ -1568,6 +1771,7 @@ void DirRun()
    DirCurve();
    DirCombine();
    DirWOW();
+   RjB_Run();                                                        // Raja v2.1 (B): nested curve, realignment areas, 250% projection (all default off)
    gDirOk = true;
   }
 
@@ -2142,6 +2346,13 @@ void LensRun(ZoneDNA &x, string kVer, string kGrade, int np, int nm, int nc, Len
    o.scoreR = MathMin(10, sr);
    o.passR = strong && fresh && !cWrong && x.roomR >= 2 && (x.tf >= PERIOD_D1 || x.impulse);
    o.emR = (strong && fresh) ? 1 : (tm == 0 ? 0 : 2);
+   // ---- Raja v2.1 (B) ---- never trade sideways (L8): the zone's TF (or also the Direction HTF) is stuck in a range
+   if(InpRjBChop)
+     {
+      bool rjbSw = RjB_Sideways(x.tf);
+      if(!rjbSw && InpRjBChopTF == 1 && gDirOk && drH >= 0 && drH < drN && drRow[drH].ok) rjbSw = RjB_Sideways(drRow[drH].tf);
+      if(rjbSw) { o.passR = false; o.emR = 0; o.rNote += "sideways (swings overlap, no new HH-HL / LL-LH): never trade; "; }
+     }
    //--- Baker: speed out, speed in, fresh, time in zone, don't trade into supply / demand
    o.bOut = x.departure;
    o.bIn = x.leginSpd >= 1.0 ? 2 : (x.leginSpd >= 0.6 ? 1 : 0);

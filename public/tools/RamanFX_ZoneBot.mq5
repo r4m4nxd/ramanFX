@@ -260,6 +260,10 @@ double InpDirDepartATR = 0, InpRajaBigBody = 0.6, InpCurveLow = 25, InpCurveHigh
 bool   InpDNA = true, InpLenses = true, InpIndexOpen = false, InpKevinPlus = false, InpCalCommon = true;
 int    InpBaseMedianN = 20, InpATHBars = 5000, InpOriginBars = 1500, InpSeidenDepth = 0, InpMergeOverlap = 0, InpResearchGMT = 2, InpCalMinN = 30;
 double InpGapATR = 0.10, InpNestTolH = 1.0, InpConfOffsetFrac = 0.05, InpMergeMinPct = 50, InpCalPrior = 20;
+// Raja v2.1 (B): ZoneVision inputs the core reads (defaults = off; InpDirTable 3 = Raja table works here too)
+bool   InpRjBNestedCurve = false, InpRjBRealign = false, InpRjBProj = false, InpRjBChop = false;
+int    InpRjBLtfItf = 0, InpRjBChopSwings = 3, InpRjBChopTF = 0;
+double InpRjBProjX = 2.5;
 // ZoneVision globals the core works on (the bot never reads them directly; CoreEval fills ce* below)
 ENUM_TIMEFRAMES CTF = PERIOD_CURRENT;
 Zone  Z[], HZ[];
