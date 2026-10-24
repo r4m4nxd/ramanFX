@@ -65,11 +65,15 @@ def main():
     ap.add_argument("--threads", type=int, default=2)
     ap.add_argument("--sources", default=",".join(ORDER))
     ap.add_argument("--narrations", default=str(OUT / "narrations.json"))
+    ap.add_argument("--ns", default="", help="only lessons with lo <= n <= hi, e.g. 1-30 (parallel machines split a source)")
     args = ap.parse_args()
     voices = args.voices.split(",")
     srcs = args.sources.split(",")
     lessons = [l for l in json.load(open(args.narrations)) if l["source"] in srcs]
     lessons.sort(key=lambda l: (srcs.index(l["source"]), l["n"]))
+    if args.ns:
+        lo, hi = (int(x) for x in args.ns.split("-"))
+        lessons = [l for l in lessons if lo <= l["n"] <= hi]
     jobs = []
     for l in lessons:
         chapters = [{"id": c["id"], "title": c["title"], "text": fix_text(c["text"])} for c in l["chapters"]]
