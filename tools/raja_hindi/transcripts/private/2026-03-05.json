@@ -1,0 +1,6866 @@
+{
+ "meta": {
+  "model": "large-v3",
+  "compute": "int8",
+  "language": "ur",
+  "beam_size": 5,
+  "vad_filter": true,
+  "condition_on_previous_text": false,
+  "duration_s": 3731.7,
+  "runtime_s": 4983.9,
+  "rtf": 1.336,
+  "loop_spans_rerun": 0,
+  "recording": "private/2026-03-05",
+  "source_id": "1VNDV9zZnPNpO6gGXR1K3tcUdx_0m3PeC"
+ },
+ "segments": [
+  {
+   "start": 0.62,
+   "end": 6.42,
+   "text": "وہ نیچے والی نے، نیچے والی نے توڑا کچھ نہیں تھا، لیکن پھر بھی وہ نیچے کو ڈچ کرے گی۔",
+   "avg_logprob": -0.117,
+   "no_speech_prob": 0.057,
+   "compression_ratio": 2.31
+  },
+  {
+   "start": 6.42,
+   "end": 24.51,
+   "text": "جی، بلکل، بلکل، لیکن یہ اس لیے دے رہا ہوں کہ ٹرینڈ لائن کے ساتھ ساتھ ہے نا، یہ ٹرینڈ لائن یہ والی بن گیا، ٹھیک ہے، اب یہ والا ایریا بن گیا ہے، اب اس کے ایریا میں وہ آ جائے گا نا، وہ والا ایریا، کدھر گیا، یہ والا ایریا، ٹھیک ہے،",
+   "avg_logprob": -0.117,
+   "no_speech_prob": 0.057,
+   "compression_ratio": 2.31
+  },
+  {
+   "start": 24.51,
+   "end": 46.95,
+   "text": "سیکنڈ ٹائم اس کو تو نہیں کچھ نہیں کرے گی جو بھی اتنو کرنا ہے کیونکہ اوپر نیچے ہے زوم نیچے ہے اور یہاں پہ اگر دیکھے جائیں نا یہ دیکھیں ٹرین لائن کراس کیا دیکھا اس کا پہلی ویش ہے یہی بنتی ہے یعنی کہ ہم نے اگر ٹریڈ لینی بھی ہوئی نا تو ہم نے ٹی ٹی ادھر لگانی ہے اور پھر مارکیٹ ایسے پہلے پھر وہ ٹرین لائن کراس کرے گے تو پھر ہی جائیں گے اس کے پہلے",
+   "avg_logprob": -0.162,
+   "no_speech_prob": 0.983,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 46.95,
+   "end": 51.34,
+   "text": "ٹھیک ہے اس دوران کیا ہوگا کرپٹو اوپر چلے جائیں گے وہ کوئی",
+   "avg_logprob": -0.156,
+   "no_speech_prob": 0.987,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 51.34,
+   "end": 56.74,
+   "text": "چھہتر سو ڈالر تک چلی جائے گی آہ چھہترزاہ ڈالر تک جو",
+   "avg_logprob": -0.156,
+   "no_speech_prob": 0.987,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 56.74,
+   "end": 59.62,
+   "text": "ایریا بنتا ہے اس کا ایج فور کا ابھی ڈراب ہو رہا ہے بہت زیادہ",
+   "avg_logprob": -0.156,
+   "no_speech_prob": 0.987,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 59.62,
+   "end": 63.88,
+   "text": "چانسی تھے کہ مارکیٹ اندر سے کافی در سے سائیڈ بیس جا رہی",
+   "avg_logprob": -0.156,
+   "no_speech_prob": 0.987,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 63.88,
+   "end": 67.36,
+   "text": "تھی ایک دم سے بریک آٹ ہوا ہے اب جی جی بالکل تو یہ والا ایریا",
+   "avg_logprob": -0.156,
+   "no_speech_prob": 0.987,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 67.36,
+   "end": 72.82,
+   "text": "بنتا ہے اس کا اور آہ آہ ابھی ایک دو کینڈل بنے گی ٹھیک ہے",
+   "avg_logprob": -0.156,
+   "no_speech_prob": 0.987,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 72.82,
+   "end": 76.24,
+   "text": "ہے کیونکہ ڈیلی ٹائم فرام ابھی شروع نہیں ہوا نا تو ادھر بنے",
+   "avg_logprob": -0.097,
+   "no_speech_prob": 0.87,
+   "compression_ratio": 2.05
+  },
+  {
+   "start": 76.24,
+   "end": 80.44,
+   "text": "جائے گی تو پھر وہ شاید ایک کینڈل بنے اوپر سے ہو جائے اور جو",
+   "avg_logprob": -0.097,
+   "no_speech_prob": 0.87,
+   "compression_ratio": 2.05
+  },
+  {
+   "start": 80.44,
+   "end": 83.82,
+   "text": "اگر ایڈی اے کو دیکھیں نا کہ جو ٹیک پرافٹ ہے اس کو ٹرین لائن",
+   "avg_logprob": -0.097,
+   "no_speech_prob": 0.87,
+   "compression_ratio": 2.05
+  },
+  {
+   "start": 83.82,
+   "end": 86.94,
+   "text": "کو اس طرح کھینچے تو آپ کو پتہ چلے گیا کہ جو ٹیکنیکلی بنتا",
+   "avg_logprob": -0.097,
+   "no_speech_prob": 0.87,
+   "compression_ratio": 2.05
+  },
+  {
+   "start": 86.94,
+   "end": 90.96,
+   "text": "ہے اب سیزا لیکن ہم نے یہاں پہ کنفرمیشن یوز کرنا ہے ٹھیک ہے",
+   "avg_logprob": -0.097,
+   "no_speech_prob": 0.87,
+   "compression_ratio": 2.05
+  },
+  {
+   "start": 90.96,
+   "end": 93.08,
+   "text": "یہ پہلے آتا ہے جو صحیح جو",
+   "avg_logprob": -0.102,
+   "no_speech_prob": 0.635,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 93.08,
+   "end": 95.36,
+   "text": "زون بن رہا ہے جو ٹرین لائن کے نزدیک",
+   "avg_logprob": -0.102,
+   "no_speech_prob": 0.635,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 95.36,
+   "end": 97.32,
+   "text": "ہے یہ والا نہیں ہے یہ والا",
+   "avg_logprob": -0.102,
+   "no_speech_prob": 0.635,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 97.32,
+   "end": 99.99,
+   "text": "ہے ٹھیک ہے کیونکہ ہم نے",
+   "avg_logprob": -0.102,
+   "no_speech_prob": 0.635,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 99.99,
+   "end": 102.13,
+   "text": "دیکھنا ہوتا ہے نا کہ سپیس کتنی پڑی رہی ہے",
+   "avg_logprob": -0.102,
+   "no_speech_prob": 0.635,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 102.13,
+   "end": 103.93,
+   "text": "ایسے ایسے کر کے نا",
+   "avg_logprob": -0.102,
+   "no_speech_prob": 0.635,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 103.93,
+   "end": 106.83,
+   "text": "ٹھیک ہے اور یہ بن رہا ہے",
+   "avg_logprob": -0.102,
+   "no_speech_prob": 0.635,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 106.83,
+   "end": 107.97,
+   "text": "اور پھر ایسے ڈراب ہو رہا ہے",
+   "avg_logprob": -0.102,
+   "no_speech_prob": 0.635,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 107.97,
+   "end": 110.09,
+   "text": "لیکن یہ والا میڈل میں ہے تو ہم کنفرمیشن",
+   "avg_logprob": -0.102,
+   "no_speech_prob": 0.635,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 110.09,
+   "end": 111.71,
+   "text": "کا اپلائی کریں گے لیکن جو",
+   "avg_logprob": -0.102,
+   "no_speech_prob": 0.635,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 111.71,
+   "end": 113.85,
+   "text": "ڈیمانڈ ادھر سے بائے کریں اس کی ٹیک پرافٹ",
+   "avg_logprob": -0.102,
+   "no_speech_prob": 0.635,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 113.85,
+   "end": 117.67,
+   "text": "آپ نے جو ہے نا دو اگر چھوٹی چھوٹی دو لینی ہے ایک ادھر لگا دیں",
+   "avg_logprob": -0.121,
+   "no_speech_prob": 0.751,
+   "compression_ratio": 2.11
+  },
+  {
+   "start": 117.67,
+   "end": 120.71,
+   "text": "اور دوسری کا ویٹ کریں کہ وہ اگر لو ٹائم فرام کو ٹرین لائن",
+   "avg_logprob": -0.121,
+   "no_speech_prob": 0.751,
+   "compression_ratio": 2.11
+  },
+  {
+   "start": 120.71,
+   "end": 124.61,
+   "text": "کراس نہیں نکرتی تو پھر اس کو ہولی کریں اس کو اس پر کیتی",
+   "avg_logprob": -0.121,
+   "no_speech_prob": 0.751,
+   "compression_ratio": 2.11
+  },
+  {
+   "start": 124.61,
+   "end": 128.53,
+   "text": "لگا دیں یہ تھوڑا سا پریکشن پہ ہوتا ہے ڈوجیز ہوتا ہے اس لیے",
+   "avg_logprob": -0.121,
+   "no_speech_prob": 0.751,
+   "compression_ratio": 2.11
+  },
+  {
+   "start": 128.53,
+   "end": 132.01,
+   "text": "میں لڑکوں کو کہتا ہوں کہ آپ جو ہے نا کوشش کرنا کہ اون دا ٹائم",
+   "avg_logprob": -0.121,
+   "no_speech_prob": 0.751,
+   "compression_ratio": 2.11
+  },
+  {
+   "start": 132.01,
+   "end": 135.77,
+   "text": "کلوز کریں مفید باز دفعہ ویٹ کرتا ہے لیکن جو سیل کی",
+   "avg_logprob": -0.121,
+   "no_speech_prob": 0.751,
+   "compression_ratio": 2.11
+  },
+  {
+   "start": 135.77,
+   "end": 139.11,
+   "text": "پوزیشن لینی ہوتی ہے نا پھر ہم ڈیپ جانے کوشش کرتے ہیں جو",
+   "avg_logprob": -0.083,
+   "no_speech_prob": 0.964,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 139.11,
+   "end": 142.27,
+   "text": "لوکیشن ایریا ہوتا ہے لوکیشن نہ بھی ملے ہماری کوشش ہوتی",
+   "avg_logprob": -0.083,
+   "no_speech_prob": 0.964,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 142.27,
+   "end": 145.93,
+   "text": "ہے کہ ٹرین لائن کے نزدیک جا کے اٹھ کرے تو پھر ہم سر کریں پہلے",
+   "avg_logprob": -0.083,
+   "no_speech_prob": 0.964,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 145.93,
+   "end": 153.03,
+   "text": "نہیں ہے ٹھیک ہے اور یہ ایک اور چیز میں بتا دوں شاید اس",
+   "avg_logprob": -0.083,
+   "no_speech_prob": 0.964,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 153.03,
+   "end": 160.06,
+   "text": "تاپک میں بات کی ہو نہیں ہو کہ عموماً ایک دفعہ اٹھ کریں",
+   "avg_logprob": -0.083,
+   "no_speech_prob": 0.964,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 160.06,
+   "end": 163.26,
+   "text": "ٹھیک ہے دو دفعہ کریں اور تیسری دفعہ کریں چوتھی بڑی رسکی",
+   "avg_logprob": -0.083,
+   "no_speech_prob": 0.964,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 163.26,
+   "end": 167.44,
+   "text": "ہوتی ہے ٹریڈ تو ہم کر سکتے ہیں آہ یعنی کہ بہت زیادہ ہے لیکن",
+   "avg_logprob": -0.056,
+   "no_speech_prob": 0.855,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 167.44,
+   "end": 171.84,
+   "text": "اس مین کے مارکیٹ مومنٹم ٹوٹرنگ کے چانسز وہاں پہ بہت زیادہ",
+   "avg_logprob": -0.056,
+   "no_speech_prob": 0.855,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 171.84,
+   "end": 176.12,
+   "text": "ہوتے ہیں ٹھیک ہے تو اب اگر آپ دیکھو کہ ڈیلی ٹائم فریم کا تو",
+   "avg_logprob": -0.056,
+   "no_speech_prob": 0.855,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 176.12,
+   "end": 180.12,
+   "text": "اس کا دیکھو ایک دو یعنی کہ تیسری دفعہ کرنے جا رہی ہے ٹھیک",
+   "avg_logprob": -0.056,
+   "no_speech_prob": 0.855,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 180.12,
+   "end": 185.21,
+   "text": "ہے ٹھیک ہو گیا نا تیسری دفعہ کرنے جا رہی ہے تو اس مین کے ابھی",
+   "avg_logprob": -0.056,
+   "no_speech_prob": 0.855,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 185.21,
+   "end": 190.46,
+   "text": "بھی چانسی سے اچھا اب چونکہ اگر تو مارکیٹ نے ویسے ادھر سے اگر",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.469,
+   "compression_ratio": 2.14
+  },
+  {
+   "start": 190.46,
+   "end": 197.44,
+   "text": "لڑکی نا مارکیٹ تو مارکیٹ پچھ پنزار تک چلی جائے گی اگر ڈراب",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.469,
+   "compression_ratio": 2.14
+  },
+  {
+   "start": 197.44,
+   "end": 202.6,
+   "text": "ہوتی ہے لیکن یہاں پہ اگر کوئی سٹرونگ زون مل جاتا تو ٹرین لائن",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.469,
+   "compression_ratio": 2.14
+  },
+  {
+   "start": 202.6,
+   "end": 206.58,
+   "text": "ذرا سے ایسے کراس کر گی نا پھر گئے ہو پھر تو ایک دو ہی کینڈل",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.469,
+   "compression_ratio": 2.14
+  },
+  {
+   "start": 206.58,
+   "end": 211.42,
+   "text": "بنے گی یعنی کہ ایک لاکھ کو کراس کہا جائے گی کیونکہ اب یہ",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.469,
+   "compression_ratio": 2.14
+  },
+  {
+   "start": 211.42,
+   "end": 216.14,
+   "text": "ٹرین لائن کے نیچے ہے تو ہم نے کیا کرنا ہے ہم ایک سیچویشن",
+   "avg_logprob": -0.124,
+   "no_speech_prob": 0.899,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 216.14,
+   "end": 219.46,
+   "text": "ہوتی ہے لانگ ٹرم پہ جیسے میں منثلی کا ایک دفعہ شیئر دیا",
+   "avg_logprob": -0.124,
+   "no_speech_prob": 0.899,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 219.46,
+   "end": 223.3,
+   "text": "تھا بائی کر کے چھوڑ دیں وہ مارکیٹ جا رہی ہے یہ منثلی جا",
+   "avg_logprob": -0.124,
+   "no_speech_prob": 0.899,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 223.3,
+   "end": 226.24,
+   "text": "رہی ہے اب سیکنڈ ٹائم کو چھوڑنے کوشش کرے گی یہ لانگ ٹرم",
+   "avg_logprob": -0.124,
+   "no_speech_prob": 0.899,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 226.24,
+   "end": 230.64,
+   "text": "ہوتا ہے لیکن جو صحیح جو ایگزیکٹ ہے نا اب میں ٹریڈ کرنا",
+   "avg_logprob": -0.124,
+   "no_speech_prob": 0.899,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 230.64,
+   "end": 235.38,
+   "text": "ہے وہ چیز کو جو ابھی آپ کو مارکیٹ شوک چارٹ",
+   "avg_logprob": -0.124,
+   "no_speech_prob": 0.899,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 235.38,
+   "end": 240.12,
+   "text": "اس کا ہائی ٹائم فریم یعنی ہائی ٹائم فریم لگ رہا ہے کہ ادھر",
+   "avg_logprob": -0.105,
+   "no_speech_prob": 0.873,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 240.12,
+   "end": 244.62,
+   "text": "تک جا سکتی مارکی ہاں یہ ہو سکتا ہے کوئی اگر بمش ہم ایک دوسرے",
+   "avg_logprob": -0.105,
+   "no_speech_prob": 0.873,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 244.62,
+   "end": 249.18,
+   "text": "کو زیادہ مار دے تو ایک دم سے وہ مارکیٹ ڈیمانڈ کو توڑ دے",
+   "avg_logprob": -0.105,
+   "no_speech_prob": 0.873,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 249.18,
+   "end": 256.28,
+   "text": "ویسے ٹیکنیکلی ابھی جو ایریا رہا ہے وہ مارکیٹ ملٹی پل وہ",
+   "avg_logprob": -0.105,
+   "no_speech_prob": 0.873,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 256.28,
+   "end": 260.06,
+   "text": "بناتی جا رہی ہے یعنی کہ اگر دیکھا جائے تو یہ بنا اس کا ٹھیک",
+   "avg_logprob": -0.105,
+   "no_speech_prob": 0.873,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 260.06,
+   "end": 263.58,
+   "text": "ہے پھر یہ بنا ہے اب یہ والا ہے اس کو ہم پریفر کرنے کوشی",
+   "avg_logprob": -0.105,
+   "no_speech_prob": 0.873,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 263.58,
+   "end": 268.68,
+   "text": "کریں یہ والا ویک زون ہوگا کہ کوئی بڑا قریب ہی ہے ٹھیک ہے اور",
+   "avg_logprob": -0.105,
+   "no_speech_prob": 0.767,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 268.68,
+   "end": 272.46,
+   "text": "می بی کنفرمیشن مل جائے لیکن بہتر یہی ہے کہ آپ اسی کو پریفر",
+   "avg_logprob": -0.105,
+   "no_speech_prob": 0.767,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 272.46,
+   "end": 276.08,
+   "text": "کرنے کوشی کریں کیونکہ اس کا سٹرونگ ایمبیلسیز ہے تو آیا کہ",
+   "avg_logprob": -0.105,
+   "no_speech_prob": 0.767,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 276.08,
+   "end": 282.18,
+   "text": "یہ والا ایریا بھی توڑا ہوا ہے اس نے اور آ یہ فلپ ایریا آ یہ",
+   "avg_logprob": -0.105,
+   "no_speech_prob": 0.767,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 282.18,
+   "end": 287.64,
+   "text": "فلپ ایریا بن جائے گا تو لیکن یہ کہ ٹھیک زون ہے ٹریڈ کے لیے",
+   "avg_logprob": -0.105,
+   "no_speech_prob": 0.767,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 287.64,
+   "end": 290.76,
+   "text": "نیچے والے فرم کنفرمیشن یوز کروں گے یا سیٹ این فرگیٹ",
+   "avg_logprob": -0.105,
+   "no_speech_prob": 0.767,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 290.76,
+   "end": 294.64,
+   "text": "نا سیٹ ایم فرگیٹ جیوز ہوگا اس میں بھی سیٹ ایم فرگیٹ ہوگا ایتھیریم پہ بھی",
+   "avg_logprob": -0.105,
+   "no_speech_prob": 0.139,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 294.64,
+   "end": 301.3,
+   "text": "اور یعنی کہ یہ تھوڑا سا اوپر ہے نا تو یہ ہمارے پاس ایریا دیکھیں",
+   "avg_logprob": -0.105,
+   "no_speech_prob": 0.139,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 301.3,
+   "end": 306.22,
+   "text": "سپیس ایریا بہت ہے تو مارکیٹس کو فل کرے گی ایٹس مین فل اس طرح کرے گی",
+   "avg_logprob": -0.105,
+   "no_speech_prob": 0.139,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 306.22,
+   "end": 312.0,
+   "text": "کہ یہ تھوڑا وقت لگائے گی یعنی کہ ادھر آتی ہے نا ٹھیک ہے تو",
+   "avg_logprob": -0.105,
+   "no_speech_prob": 0.139,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 312.0,
+   "end": 315.74,
+   "text": "ایسے ایسے میشنگ کرنا شروع کر دے گی پھر جا کے چھوڑے گی جو بھی",
+   "avg_logprob": -0.105,
+   "no_speech_prob": 0.139,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 315.74,
+   "end": 321.78,
+   "text": "اس نے چھوڑنا ہے تو لیکن یہ کہ اس کی جو ٹی پی لیول ہے نا اب اس",
+   "avg_logprob": -0.083,
+   "no_speech_prob": 0.194,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 321.78,
+   "end": 324.98,
+   "text": "کو نکالنے کے لیے آپ نے ویکلی پہ جانا ہے وہ ٹرین لائن کو",
+   "avg_logprob": -0.083,
+   "no_speech_prob": 0.194,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 324.98,
+   "end": 328.28,
+   "text": "کھیچنا ہے تو اگر ٹرین لائن کو کھیچے نہیں اس طرح پراپر اس کے",
+   "avg_logprob": -0.083,
+   "no_speech_prob": 0.194,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 328.28,
+   "end": 332.58,
+   "text": "ساتھ بھی تو یہاں چونکہ یہ منتھلی سے اٹھنے جا رہی ہے تو",
+   "avg_logprob": -0.083,
+   "no_speech_prob": 0.194,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 332.58,
+   "end": 337.12,
+   "text": "اٹس مین کہ یہ جا کے چھبی سو ڈالر تک تو ایزیلی چلی جائے گی",
+   "avg_logprob": -0.083,
+   "no_speech_prob": 0.194,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 337.12,
+   "end": 341.38,
+   "text": "چھبی سو ستائی سو ڈالر تک یہ طرح یہ والا ایریا تو اس کے پاس",
+   "avg_logprob": -0.083,
+   "no_speech_prob": 0.194,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 341.38,
+   "end": 345.4,
+   "text": "پھر ٹرین لائن آ جاتی ہے پھر اس کے بعد یہ مشنگ سٹارٹ کرے گی اور",
+   "avg_logprob": -0.079,
+   "no_speech_prob": 0.555,
+   "compression_ratio": 2.05
+  },
+  {
+   "start": 345.4,
+   "end": 349.1,
+   "text": "اگر تو اس نے ایسے کر لیا تو پھر ڈراب ہو جائے گی پھر تو وہ گے",
+   "avg_logprob": -0.079,
+   "no_speech_prob": 0.555,
+   "compression_ratio": 2.05
+  },
+  {
+   "start": 349.1,
+   "end": 353.32,
+   "text": "ہو یعنی کہ یہ پھر کوئی چودہ سو پندرہ سو ڈالر کو اٹ کر لے گی",
+   "avg_logprob": -0.079,
+   "no_speech_prob": 0.555,
+   "compression_ratio": 2.05
+  },
+  {
+   "start": 353.32,
+   "end": 357.28,
+   "text": "فیوٹر میں جا کے لیکن ہم نے اپنی پوزیشن کو آہ اگر بائی کرنا",
+   "avg_logprob": -0.079,
+   "no_speech_prob": 0.555,
+   "compression_ratio": 2.05
+  },
+  {
+   "start": 357.28,
+   "end": 360.96,
+   "text": "ہے نا کلوز کر دینا چھوٹی سو ڈالر پہ انف ہے یعنی چار پانچ سو",
+   "avg_logprob": -0.079,
+   "no_speech_prob": 0.555,
+   "compression_ratio": 2.05
+  },
+  {
+   "start": 360.96,
+   "end": 366.11,
+   "text": "ڈالر پہ ٹھیک ہے ٹھیک ہے تو اس طرح کے پیئر نا آپ زیادہ",
+   "avg_logprob": -0.102,
+   "no_speech_prob": 0.969,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 366.11,
+   "end": 372.05,
+   "text": "پریفر کیا کریں اور جب بھی کوئی ٹریڈ دیکھیں جب آہ اچھا اس",
+   "avg_logprob": -0.102,
+   "no_speech_prob": 0.969,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 372.05,
+   "end": 375.55,
+   "text": "میں یو ایس تھرٹی کو دیکھتا ہوں میں ایج فور پہ میں نے سیل کا دیا",
+   "avg_logprob": -0.102,
+   "no_speech_prob": 0.969,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 375.55,
+   "end": 381.94,
+   "text": "ہوا تھا لڑکے کو آہ ڈراب ہو گیا جی یہ کیا آنا ٹھیک ہے اور",
+   "avg_logprob": -0.102,
+   "no_speech_prob": 0.969,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 381.94,
+   "end": 386.54,
+   "text": "لانگ وک ہے فل کرنے لگی ہے یہ ڈاؤ جانز ہے آہ ڈاؤ جانز ہے یہ",
+   "avg_logprob": -0.102,
+   "no_speech_prob": 0.969,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 386.54,
+   "end": 392.24,
+   "text": "یو اس تھٹی کا اور یہ بڑی اچھی ٹریڈ ہے یہ صبح بھی میں نے دی",
+   "avg_logprob": -0.065,
+   "no_speech_prob": 0.28,
+   "compression_ratio": 2.07
+  },
+  {
+   "start": 392.24,
+   "end": 395.24,
+   "text": "تھی نیس ون ہنڈرڈ بھی میں نے میرے خیال میں سیل کے لیے دیا تھا",
+   "avg_logprob": -0.065,
+   "no_speech_prob": 0.28,
+   "compression_ratio": 2.07
+  },
+  {
+   "start": 395.24,
+   "end": 402.07,
+   "text": "تو اچھا اس کا اب دیکھ لیں کہ ٹرین لائن ہماری پاس ایک جے جا",
+   "avg_logprob": -0.065,
+   "no_speech_prob": 0.28,
+   "compression_ratio": 2.07
+  },
+  {
+   "start": 402.07,
+   "end": 408.05,
+   "text": "رہی ہے مارکیر نے اس کو ہٹ کیا ہے ٹھیک ہے لیکن اس کے ادھر سے",
+   "avg_logprob": -0.065,
+   "no_speech_prob": 0.28,
+   "compression_ratio": 2.07
+  },
+  {
+   "start": 408.05,
+   "end": 411.65,
+   "text": "لگ رہا ہے کہ یہ مزید ڈراب ہو سکتی ہے یہ اس کو شاید توڑ دے",
+   "avg_logprob": -0.065,
+   "no_speech_prob": 0.28,
+   "compression_ratio": 2.07
+  },
+  {
+   "start": 411.65,
+   "end": 414.55,
+   "text": "کیونکہ ہائی ٹائم فریم پہ دیکھیں کوئی سٹرونگ زون ہی نہیں",
+   "avg_logprob": -0.065,
+   "no_speech_prob": 0.28,
+   "compression_ratio": 2.07
+  },
+  {
+   "start": 414.55,
+   "end": 419.11,
+   "text": "نا ری الائن کس کے ساتھ کرے گی اگر تو ادھر سے ہم دیکھیں کہ",
+   "avg_logprob": -0.08,
+   "no_speech_prob": 0.736,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 419.11,
+   "end": 425.8,
+   "text": "ہمارے پاس زون ہے وہ یہ والا بن رہا ہے ٹیسٹیر زون ہے لیکن اگر",
+   "avg_logprob": -0.08,
+   "no_speech_prob": 0.736,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 425.8,
+   "end": 429.52,
+   "text": "ایک دفعہ ٹرین لائن کراس کر گی تو پھر تو گئے ہو ایک ابھی ٹائم",
+   "avg_logprob": -0.08,
+   "no_speech_prob": 0.736,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 429.52,
+   "end": 434.41,
+   "text": "آنے لگا ہے بہت جلد مارکیٹ کریش کرے گی یو ایس اے کی نا تو یہ",
+   "avg_logprob": -0.08,
+   "no_speech_prob": 0.736,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 434.41,
+   "end": 438.41,
+   "text": "بری بری کی طرح کرے گی کیونکہ وہ اس طرح یہ حاصل نہیں کر پا رہے",
+   "avg_logprob": -0.08,
+   "no_speech_prob": 0.736,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 438.41,
+   "end": 442.43,
+   "text": "وہ بتا تو رہے ہیں میڈیا میں کہ ہم نے ادھر مارا ادھر مارا لیکن",
+   "avg_logprob": -0.08,
+   "no_speech_prob": 0.736,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 442.43,
+   "end": 448.19,
+   "text": "وہ اصلی چیز ہے ان کے کیریئرز تبانی نہ ہو پا رہے اور میں وہ جی ڈی",
+   "avg_logprob": -0.067,
+   "no_speech_prob": 0.205,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 448.19,
+   "end": 452.99,
+   "text": "بکشی صاحب ہیں انڈیا کے نا وہ بڑے لائک ہیں اس معاملے میں تو وہ دیکھ",
+   "avg_logprob": -0.067,
+   "no_speech_prob": 0.205,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 452.99,
+   "end": 456.25,
+   "text": "رہا تھا تو وہ بتا رہے تھے کہ عموماً یہ ہوتا ہے نا کہ جب ناگا",
+   "avg_logprob": -0.067,
+   "no_speech_prob": 0.205,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 456.25,
+   "end": 460.73,
+   "text": "ساکھی پہ ہیروشیما پہ انہوں نے بم وغیرہ گرائے نا تو وہ گرائے",
+   "avg_logprob": -0.067,
+   "no_speech_prob": 0.205,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 460.73,
+   "end": 464.79,
+   "text": "انہوں نے شہروں پہ گرائے ٹوکیوں پہ نہیں گرائے ٹوکیوں پہ اس",
+   "avg_logprob": -0.067,
+   "no_speech_prob": 0.205,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 464.79,
+   "end": 468.57,
+   "text": "وجہ سے نہیں گرائے کہ وہاں پہ وہ لوگ بیٹھتے تھے رجیم جو بھی",
+   "avg_logprob": -0.067,
+   "no_speech_prob": 0.205,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 468.57,
+   "end": 472.35,
+   "text": "تھی ان کی کیونکہ اگر آپ گفتگو ہی نہیں کرو گے تو پھر کیا کرو",
+   "avg_logprob": -0.081,
+   "no_speech_prob": 0.269,
+   "compression_ratio": 2.09
+  },
+  {
+   "start": 472.35,
+   "end": 475.63,
+   "text": "گیا وہ ڈی سینٹر رائز جائیں وہ آرمی خود ہی لگی ہوئے مانے ان",
+   "avg_logprob": -0.081,
+   "no_speech_prob": 0.269,
+   "compression_ratio": 2.09
+  },
+  {
+   "start": 475.63,
+   "end": 479.23,
+   "text": "کو آپس میں لنک ہی نہیں ہے فون نمبر ہی نہیں ان کے پاس وہ لگے",
+   "avg_logprob": -0.081,
+   "no_speech_prob": 0.269,
+   "compression_ratio": 2.09
+  },
+  {
+   "start": 479.23,
+   "end": 484.09,
+   "text": "ہوئے تو یہ پھر یہ کیجویلٹیز بہت زیادہ ہو رہی ہیں تو ان سے",
+   "avg_logprob": -0.081,
+   "no_speech_prob": 0.269,
+   "compression_ratio": 2.09
+  },
+  {
+   "start": 484.09,
+   "end": 487.27,
+   "text": "اب کوئی سمجھ نہیں آ رہی کیونکہ رجیم چینج کرنی ہے تو گرونڈ",
+   "avg_logprob": -0.081,
+   "no_speech_prob": 0.269,
+   "compression_ratio": 2.09
+  },
+  {
+   "start": 487.27,
+   "end": 490.99,
+   "text": "پہ اترنا پڑے گا آپ کو ٹروپس بیجنے پڑے گا اور ایران دس لاکھ",
+   "avg_logprob": -0.081,
+   "no_speech_prob": 0.269,
+   "compression_ratio": 2.09
+  },
+  {
+   "start": 490.99,
+   "end": 494.59,
+   "text": "آرمی ہے وہ کدھر سنبھالے گی میں یعنی سنبھالے گی نہیں وہ وہ",
+   "avg_logprob": -0.072,
+   "no_speech_prob": 0.126,
+   "compression_ratio": 2.07
+  },
+  {
+   "start": 494.59,
+   "end": 499.85,
+   "text": "تو افغانستان ہے بیس سال لگے ہیں ویتنام میں بیس سال لگے ہیں تو یہ",
+   "avg_logprob": -0.072,
+   "no_speech_prob": 0.126,
+   "compression_ratio": 2.07
+  },
+  {
+   "start": 499.85,
+   "end": 505.57,
+   "text": "چیز تھی اب وہ فسے ہوں گے تو یہ پھر خیر فریکچوئیٹ ابھی مارکیٹ",
+   "avg_logprob": -0.072,
+   "no_speech_prob": 0.126,
+   "compression_ratio": 2.07
+  },
+  {
+   "start": 505.57,
+   "end": 511.49,
+   "text": "کرتی جائے گی تو مجھے لگ رہا ہے کہ ٹیکنیکلی بٹ کوئن کو اس",
+   "avg_logprob": -0.072,
+   "no_speech_prob": 0.126,
+   "compression_ratio": 2.07
+  },
+  {
+   "start": 511.49,
+   "end": 515.87,
+   "text": "اس زون تک آنا چاہیے اور ہمارے پاس کوئی زون ہی نہیں ہے کیونکہ",
+   "avg_logprob": -0.072,
+   "no_speech_prob": 0.126,
+   "compression_ratio": 2.07
+  },
+  {
+   "start": 515.87,
+   "end": 522.01,
+   "text": "وجہ یہ دیکھیں نا ٹرین لائن کراس ہوگی نا وہ جو زون ہے نا وہ ایک",
+   "avg_logprob": -0.18,
+   "no_speech_prob": 0.742,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 522.01,
+   "end": 529.13,
+   "text": "کنسیڈر ہو جائے گا آٹومیٹکلی ویک سو تو اب کیا کر رہی ہے مارکیٹ",
+   "avg_logprob": -0.18,
+   "no_speech_prob": 0.742,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 529.13,
+   "end": 533.21,
+   "text": "ادھر تک آئے گی ٹھیک ہے جو بھی وہ ٹریل لینی ہے اس نے تو یہ ویک",
+   "avg_logprob": -0.18,
+   "no_speech_prob": 0.742,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 533.21,
+   "end": 537.59,
+   "text": "بن جائے گی پھر اس کو فل کرے گی جو ڈا کمنگ ویک ہوگا اس طرح کر",
+   "avg_logprob": -0.18,
+   "no_speech_prob": 0.742,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 537.59,
+   "end": 542.68,
+   "text": "کے نا ٹھیک ہے اسی زار تک بنتا ہے اس کا ایک نہیں تو پھر اس کے بہت",
+   "avg_logprob": -0.18,
+   "no_speech_prob": 0.742,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 542.68,
+   "end": 547.7,
+   "text": "زیادہ چانسز دے ایسے ڈراؤپ ہو ٹھیک ہے اور پھر ایسے پھر جا کے",
+   "avg_logprob": -0.103,
+   "no_speech_prob": 0.843,
+   "compression_ratio": 2.03
+  },
+  {
+   "start": 547.7,
+   "end": 551.74,
+   "text": "اس کو ہٹ کرے گی اور میش کر کے اگر تو اگر اس کو کراس کر گی",
+   "avg_logprob": -0.103,
+   "no_speech_prob": 0.843,
+   "compression_ratio": 2.03
+  },
+  {
+   "start": 551.74,
+   "end": 556.31,
+   "text": "اور زون ہی نہیں ہے مستعیزہ ڈالر اور یہ ہو جائے تو میں تو",
+   "avg_logprob": -0.103,
+   "no_speech_prob": 0.843,
+   "compression_ratio": 2.03
+  },
+  {
+   "start": 556.31,
+   "end": 559.37,
+   "text": "یقین مانے سب کو کہوں اپنے گھر بیج گئے یہ لے لو",
+   "avg_logprob": -0.103,
+   "no_speech_prob": 0.843,
+   "compression_ratio": 2.03
+  },
+  {
+   "start": 559.37,
+   "end": 564.64,
+   "text": "ٹائم لگے گا لیکن ایک میلین ڈالر یہ دے گی لازمی یہ آخری",
+   "avg_logprob": -0.103,
+   "no_speech_prob": 0.843,
+   "compression_ratio": 2.03
+  },
+  {
+   "start": 564.64,
+   "end": 568.28,
+   "text": "میرے ہمیں گولڈن چانس ہوگا دس سال میں یہ یہ جو ابھی",
+   "avg_logprob": -0.103,
+   "no_speech_prob": 0.843,
+   "compression_ratio": 2.03
+  },
+  {
+   "start": 568.28,
+   "end": 576.69,
+   "text": "میلیں گی ہمم تو دیکھتے ہیں اب کیا بنتی ہے آہ پھر جلدی",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.937,
+   "compression_ratio": 2.1
+  },
+  {
+   "start": 576.69,
+   "end": 582.91,
+   "text": "آنا پڑے گا آنی یہ نہیں یہ آپ کر لیں گے ٹریڈ نا وہ انشاءاللہ",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.937,
+   "compression_ratio": 2.1
+  },
+  {
+   "start": 582.91,
+   "end": 586.77,
+   "text": "آپ کر لوگے اس سے پہلے پہلے اچھا یہ جتنے بھی کرپٹوز اب اس",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.937,
+   "compression_ratio": 2.1
+  },
+  {
+   "start": 586.77,
+   "end": 590.03,
+   "text": "کو فالو کریں گی کرپٹوز سے تھوڑے نکلتے ہیں اب گولڈ کے طرف",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.937,
+   "compression_ratio": 2.1
+  },
+  {
+   "start": 590.03,
+   "end": 594.77,
+   "text": "جاتے ہیں یہ پونڈ گولڈ ہے آہ ہائی ٹائم فریم پہ وہ بنا رہا ہے",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.937,
+   "compression_ratio": 2.1
+  },
+  {
+   "start": 594.77,
+   "end": 598.33,
+   "text": "ہمارے پاس کوئی زون نہیں ہے زون جو ہے یہ والا ایریا بن رہا",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.937,
+   "compression_ratio": 2.1
+  },
+  {
+   "start": 598.33,
+   "end": 604.68,
+   "text": "اس کا ٹھیک ہے یہ سیل پہ جائے گا ابھی لوہ پہ دیکھتے ہیں ہاں لوہ",
+   "avg_logprob": -0.101,
+   "no_speech_prob": 0.231,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 604.68,
+   "end": 608.78,
+   "text": "پہ آ یہ وری ٹرین لائن کو اس نے کراس کر دیا ٹھیک ہے فس ٹی پی",
+   "avg_logprob": -0.101,
+   "no_speech_prob": 0.231,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 608.78,
+   "end": 611.86,
+   "text": "لیبر فارگزمپل ہم اس کو کنسیڈر کرتے ہیں علاقے کوئی اتنا",
+   "avg_logprob": -0.101,
+   "no_speech_prob": 0.231,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 611.86,
+   "end": 616.28,
+   "text": "اچھا زون نہیں ہے لیکن فرڈ شارٹ کے لیے سیل ٹریڈرز کے لیے یہ",
+   "avg_logprob": -0.101,
+   "no_speech_prob": 0.231,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 616.28,
+   "end": 620.5,
+   "text": "والا ایریا بنتا ہے اور یہاں پہ یہ وری ٹرین لائن کے نیچے نیچے جو",
+   "avg_logprob": -0.101,
+   "no_speech_prob": 0.231,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 620.5,
+   "end": 624.8,
+   "text": "آپ کی شارٹ بنتی ہے ایک اور ڈپارچر بن گی تو یہ آپ کی سپلائی",
+   "avg_logprob": -0.101,
+   "no_speech_prob": 0.231,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 624.8,
+   "end": 630.14,
+   "text": "ہوجائے گی آپ اس کو یوز کیجئے گا شارٹ کے لیے یہ پاؤنٹ آہ گولڈ",
+   "avg_logprob": -0.113,
+   "no_speech_prob": 0.784,
+   "compression_ratio": 2.09
+  },
+  {
+   "start": 630.14,
+   "end": 635.49,
+   "text": "پاؤنڈ ہے ٹھیک ہے اچھا جاپنیز ین ہے گولڈ کا یہ اچھی بات انہوں نے",
+   "avg_logprob": -0.113,
+   "no_speech_prob": 0.784,
+   "compression_ratio": 2.09
+  },
+  {
+   "start": 635.49,
+   "end": 641.0,
+   "text": "نکال دی ہیں پیر پہلے تو تھے نہیں پہلے یہ صرف یو ایس کا ہویا",
+   "avg_logprob": -0.113,
+   "no_speech_prob": 0.784,
+   "compression_ratio": 2.09
+  },
+  {
+   "start": 641.0,
+   "end": 645.9,
+   "text": "نا آہ یو ایس کا ہوتا تھا تو اب یہ کہ ان کے نا ان کے پاس ہیں جو",
+   "avg_logprob": -0.113,
+   "no_speech_prob": 0.784,
+   "compression_ratio": 2.09
+  },
+  {
+   "start": 645.9,
+   "end": 650.11,
+   "text": "آسٹریلین ہیں نا بروکرز ہیں یہ دیتے ہیں تو یہ سیم فالو کرتے ہیں",
+   "avg_logprob": -0.113,
+   "no_speech_prob": 0.784,
+   "compression_ratio": 2.09
+  },
+  {
+   "start": 650.11,
+   "end": 654.77,
+   "text": "اور یو ایس والے کو یا اس کا نہیں جو اس میں نا جو سب سے خطرناک",
+   "avg_logprob": -0.113,
+   "no_speech_prob": 0.784,
+   "compression_ratio": 2.09
+  },
+  {
+   "start": 654.77,
+   "end": 659.75,
+   "text": "نا وہ آسٹریلین ڈالر کا ہے ویسے بھی جو دنیا میں جو ریزرفز",
+   "avg_logprob": -0.082,
+   "no_speech_prob": 0.152,
+   "compression_ratio": 2.05
+  },
+  {
+   "start": 659.75,
+   "end": 663.21,
+   "text": "ہے نا جس پہ سب سے زیادہ پہلے ٹریڈ کی جاتی تھی وہ اچھلی",
+   "avg_logprob": -0.082,
+   "no_speech_prob": 0.152,
+   "compression_ratio": 2.05
+  },
+  {
+   "start": 663.21,
+   "end": 667.91,
+   "text": "آسٹریلیا ڈالر کے ساتھ گولڈ کو ٹریڈ کیا جاتا تھا بعد میں",
+   "avg_logprob": -0.082,
+   "no_speech_prob": 0.152,
+   "compression_ratio": 2.05
+  },
+  {
+   "start": 667.91,
+   "end": 671.87,
+   "text": "یویس سے شامل ہوا دباکی ہوئے تو سب سے جو پرانا پیر ہے نا وہ",
+   "avg_logprob": -0.082,
+   "no_speech_prob": 0.152,
+   "compression_ratio": 2.05
+  },
+  {
+   "start": 671.87,
+   "end": 676.54,
+   "text": "ہے لیکن اس پیر پہ نا ہر ایک بروکر نہیں دیتا وہ پیر وہ کیونکہ",
+   "avg_logprob": -0.082,
+   "no_speech_prob": 0.152,
+   "compression_ratio": 2.05
+  },
+  {
+   "start": 676.54,
+   "end": 680.78,
+   "text": "مومنٹ بہت زیادہ ہے نا ٹھیک ہے وہ بڑے بڑے ڈوب جاتے ہیں تو یہ",
+   "avg_logprob": -0.082,
+   "no_speech_prob": 0.152,
+   "compression_ratio": 2.05
+  },
+  {
+   "start": 680.78,
+   "end": 684.76,
+   "text": "straight move کرتا ہے یعنی کوئی glitchy زیادہ نہیں آتے اوپر جاتا",
+   "avg_logprob": -0.1,
+   "no_speech_prob": 0.694,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 684.76,
+   "end": 688.06,
+   "text": "ہے اوپر جاتا ہے نیچے جاتا ہے نیچے جاتا ہے ٹھیک ہے تو اب جو",
+   "avg_logprob": -0.1,
+   "no_speech_prob": 0.694,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 688.06,
+   "end": 691.38,
+   "text": "کہ condition سب کی ایک جیسی بنی ہوئی ہے تو اس کو trade کریں گے",
+   "avg_logprob": -0.1,
+   "no_speech_prob": 0.694,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 691.38,
+   "end": 695.3,
+   "text": "تو ایک چھوٹی سی candle پہنے اس کی جو pips ہے نا اس میں بہت",
+   "avg_logprob": -0.1,
+   "no_speech_prob": 0.694,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 695.3,
+   "end": 700.56,
+   "text": "زیادہ یہ دیکھیں اس میں نو سو pips گم ہے یہ ٹھیک ہے تو یہ چیز",
+   "avg_logprob": -0.1,
+   "no_speech_prob": 0.694,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 700.56,
+   "end": 707.1,
+   "text": "ہے وہ دوسرے پہ کم ہوگی جو ڈالر ہے نا وہ کیا نام ہے وہ",
+   "avg_logprob": -0.1,
+   "no_speech_prob": 0.694,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 707.1,
+   "end": 711.98,
+   "text": "مومنٹ اس کی کم ہے یو سٹی ڈالر کی اس کی مومنٹ بہت زیادہ ہے",
+   "avg_logprob": -0.102,
+   "no_speech_prob": 0.591,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 711.98,
+   "end": 715.3,
+   "text": "یہ زیادہ سے ٹریڈ لیتے ہیں نا آپ یہ ایک دم سے موف کرتا ہے بہت",
+   "avg_logprob": -0.102,
+   "no_speech_prob": 0.591,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 715.3,
+   "end": 719.62,
+   "text": "زیادہ یعنی رزقی بھی ہے آسٹریلین ڈالر تو یہ بھی بلکل اسی",
+   "avg_logprob": -0.102,
+   "no_speech_prob": 0.591,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 719.62,
+   "end": 723.64,
+   "text": "طرح ہی موف کرتا ہے اور یعنی کہ سب کے اگینس نہیں جاتا ہے اور",
+   "avg_logprob": -0.102,
+   "no_speech_prob": 0.591,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 723.64,
+   "end": 727.6,
+   "text": "یہ ایکس اے جی آسٹریلین ڈالر کے ساتھ دے رہا ہوں سلور کو سلور",
+   "avg_logprob": -0.102,
+   "no_speech_prob": 0.591,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 727.6,
+   "end": 733.42,
+   "text": "is the dropping now جی لیکن یہ ڈیمان لیول کے پاس یہ اتنا زیادہ",
+   "avg_logprob": -0.102,
+   "no_speech_prob": 0.591,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 733.42,
+   "end": 739.1,
+   "text": "drop ہو سکتا یہ stay کرے گا ادھر اس کا لو ٹائم فریم دیکھیں لو پہ",
+   "avg_logprob": -0.107,
+   "no_speech_prob": 0.518,
+   "compression_ratio": 2.03
+  },
+  {
+   "start": 739.1,
+   "end": 745.85,
+   "text": "شارٹ ملتی ہے تو لو پہ یہ والا area تھا جو اس نے لے لیا ہے نیچے",
+   "avg_logprob": -0.107,
+   "no_speech_prob": 0.518,
+   "compression_ratio": 2.03
+  },
+  {
+   "start": 745.85,
+   "end": 749.21,
+   "text": "والا کوئی area strong نہیں ہے کیونکہ اس نے اس کو close نہیں کیا",
+   "avg_logprob": -0.107,
+   "no_speech_prob": 0.518,
+   "compression_ratio": 2.03
+  },
+  {
+   "start": 749.21,
+   "end": 753.89,
+   "text": "اچھا اب لو ٹائم فریم کا یہ میں بتا دوں کہ اے ہم نے لو ٹائم",
+   "avg_logprob": -0.107,
+   "no_speech_prob": 0.518,
+   "compression_ratio": 2.03
+  },
+  {
+   "start": 753.89,
+   "end": 758.45,
+   "text": "فریم کب لینی ہے کہ جب ہائی نہ ملے ٹھیک ہے اس کا طریقہ دو ہیں",
+   "avg_logprob": -0.107,
+   "no_speech_prob": 0.518,
+   "compression_ratio": 2.03
+  },
+  {
+   "start": 758.45,
+   "end": 762.83,
+   "text": "ایک یہ ہے کہ جیسے مجھے پتا چل گیا کہ یہ daily ٹائم فریم کا",
+   "avg_logprob": -0.107,
+   "no_speech_prob": 0.518,
+   "compression_ratio": 2.03
+  },
+  {
+   "start": 762.83,
+   "end": 767.33,
+   "text": "ڈیمانڈ تھا ٹھیک ہے میں یوز نہیں کر پیا یا مرکی راستے سے واپس",
+   "avg_logprob": -0.086,
+   "no_speech_prob": 0.89,
+   "compression_ratio": 2.28
+  },
+  {
+   "start": 767.33,
+   "end": 772.32,
+   "text": "چلے گی انٹری لے گی ٹھیک ہے پھر آپ نے ایک دم اس کو چھوڑ دینا",
+   "avg_logprob": -0.086,
+   "no_speech_prob": 0.89,
+   "compression_ratio": 2.28
+  },
+  {
+   "start": 772.32,
+   "end": 777.0,
+   "text": "آپ لو پہ چلے جانا ہے یعنی کہ یہ جیسے ایج فور ہے نا ایج فور سے",
+   "avg_logprob": -0.086,
+   "no_speech_prob": 0.89,
+   "compression_ratio": 2.28
+  },
+  {
+   "start": 777.0,
+   "end": 781.8,
+   "text": "انٹری مس ہو گی تو آپ نے پھر ایج ون پہ جانا ہے ٹھیک ہے اب جب ایج",
+   "avg_logprob": -0.086,
+   "no_speech_prob": 0.89,
+   "compression_ratio": 2.28
+  },
+  {
+   "start": 781.8,
+   "end": 785.34,
+   "text": "ون پہ جائیں گے تو اس پہ آپ کو ٹرین لائن مل جائے گی کیونکہ ایج",
+   "avg_logprob": -0.086,
+   "no_speech_prob": 0.89,
+   "compression_ratio": 2.28
+  },
+  {
+   "start": 785.34,
+   "end": 789.54,
+   "text": "فور پہ تو انٹری لے گی ہے اس کو آپ ٹریڈ کریں ٹھیک ہے اب سمجھیں",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.492,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 789.54,
+   "end": 793.14,
+   "text": "کہ اگر ایج فور کی یہ ڈیمانڈ کو بھی ایج وان نے ٹیسٹ کر لیا پھر",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.492,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 793.14,
+   "end": 797.22,
+   "text": "آپ جائیں ایم ففٹین پہ یہ ایم تھرٹی پہ وہاں پہ پھر آپ کو ٹریڈ",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.492,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 797.22,
+   "end": 802.44,
+   "text": "ملے گی ٹھیک ہے تو ابھی کیا ہے کہ ابھی تو یہ زون تو ٹریڈ ہو",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.492,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 802.44,
+   "end": 806.46,
+   "text": "چکی ہے نا ٹھیک ہے تو اب جو ٹرین لائن کے نیچے بن رہا ہے یہ",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.492,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 806.46,
+   "end": 809.64,
+   "text": "والا ایریا بننا ہے ادھر ہمیں کوئی شارٹ ڈونڈنی پڑے گی اب ہم",
+   "avg_logprob": -0.113,
+   "no_speech_prob": 0.887,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 809.64,
+   "end": 813.48,
+   "text": "لوگ کی طرف جائیں گے تو ہمیں کوئی سپلائی ملے گی جو ٹریڈ کے",
+   "avg_logprob": -0.113,
+   "no_speech_prob": 0.887,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 813.48,
+   "end": 818.97,
+   "text": "قابل ہو ابھی تو ہمارے پاس سپلائی یہ ایک ہے یہ والی ٹھیک ہے",
+   "avg_logprob": -0.113,
+   "no_speech_prob": 0.887,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 818.97,
+   "end": 823.24,
+   "text": "یا کیونکہ اوٹرین لائن تھوڑی سے نیچے کینچی ہے یہ بنتی ہے",
+   "avg_logprob": -0.113,
+   "no_speech_prob": 0.887,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 823.24,
+   "end": 827.8,
+   "text": "ٹھیک ہے یعنی کہ یہ ہماری اب ہو گیا لو ٹائم فریم کی سیل کی",
+   "avg_logprob": -0.113,
+   "no_speech_prob": 0.887,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 827.8,
+   "end": 831.22,
+   "text": "ٹریڈ ہے ہم ففٹین پہ کیوں کیونکہ ہمیں کوئی زون ہی نہیں ملا",
+   "avg_logprob": -0.113,
+   "no_speech_prob": 0.887,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 831.22,
+   "end": 834.7,
+   "text": "zone تھا وہ test ہو گیا ہے تو it's mean کہ وہ لازم نہیں ہے کہ",
+   "avg_logprob": -0.09,
+   "no_speech_prob": 0.242,
+   "compression_ratio": 1.94
+  },
+  {
+   "start": 834.7,
+   "end": 837.94,
+   "text": "market وہاں پہ پھر جائے دوبارہ test کرے وہ راستے سے ہی",
+   "avg_logprob": -0.09,
+   "no_speech_prob": 0.242,
+   "compression_ratio": 1.94
+  },
+  {
+   "start": 837.94,
+   "end": 842.46,
+   "text": "واپس جا سکتی ہے تو لیکن وہ close جانے کی کوشش کرتی ہے market",
+   "avg_logprob": -0.09,
+   "no_speech_prob": 0.242,
+   "compression_ratio": 1.94
+  },
+  {
+   "start": 842.46,
+   "end": 847.3,
+   "text": "ٹھیک ہے یہ والا پھر یہ بڑی m fifteen کی آپ trade لوگے اب آپ",
+   "avg_logprob": -0.09,
+   "no_speech_prob": 0.242,
+   "compression_ratio": 1.94
+  },
+  {
+   "start": 847.3,
+   "end": 851.06,
+   "text": "نے رک جانا ہے اب آپ نے m five پہ نہیں جانا ہو ٹھیک ہے کیونکہ",
+   "avg_logprob": -0.09,
+   "no_speech_prob": 0.242,
+   "compression_ratio": 1.94
+  },
+  {
+   "start": 851.06,
+   "end": 856.18,
+   "text": "یہاں پہ آپ کو zone مل گیا ہے ٹھیک ہے یہ ایک بہترین طریقہ ہے",
+   "avg_logprob": -0.09,
+   "no_speech_prob": 0.242,
+   "compression_ratio": 1.94
+  },
+  {
+   "start": 856.18,
+   "end": 858.98,
+   "text": "کہ پہلے high time frame کو دیکھو وہاں پہ نہیں ملتا لیکن",
+   "avg_logprob": -0.09,
+   "no_speech_prob": 0.242,
+   "compression_ratio": 1.94
+  },
+  {
+   "start": 858.98,
+   "end": 862.88,
+   "text": "انٹری اس نے لے لی ہو اور ڈریکشن اس سائیڈ پہ ہو پھر آپ لوگ کی طرف",
+   "avg_logprob": -0.084,
+   "no_speech_prob": 0.105,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 862.88,
+   "end": 867.9,
+   "text": "جائیں تو اس پہ پھر آپ نے مزید لوگ کی طرف جانا ہے اچھا یہ ایک",
+   "avg_logprob": -0.084,
+   "no_speech_prob": 0.105,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 867.9,
+   "end": 871.56,
+   "text": "طریقہ ہو گیا ٹھیک ہے دوسرا طریقہ یہ ہے کہ آپ نے ایک فکس",
+   "avg_logprob": -0.084,
+   "no_speech_prob": 0.105,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 871.56,
+   "end": 876.72,
+   "text": "ٹائم فریم کو رکھ لینا ہے جیسے ایج ون ہے ٹھیک ہے ایج ون کو دے",
+   "avg_logprob": -0.084,
+   "no_speech_prob": 0.105,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 876.72,
+   "end": 880.68,
+   "text": "کے پھر آپ نے ایم ففٹین کو دیکھنا ہے اور اس کے بعد ہم نے ایم",
+   "avg_logprob": -0.084,
+   "no_speech_prob": 0.105,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 880.68,
+   "end": 884.1,
+   "text": "فائی پہ دیکھنا ہے وہاں پہ آپ کو ایکچولی ٹریڈ ملے گی بائی",
+   "avg_logprob": -0.084,
+   "no_speech_prob": 0.105,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 884.1,
+   "end": 888.06,
+   "text": "کی یا سیل کی تو وہ آپ نے ٹریڈ کرنی ہے یعنی کریکشن پہ لیکن میں",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.846,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 888.06,
+   "end": 891.72,
+   "text": "عموماً لڑکوں کو یہی کہتا ہوں کہ اچھا ٹریڈر بننا ہے تو کریکشن",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.846,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 891.72,
+   "end": 896.16,
+   "text": "پہ ٹریڈ لو ٹائم فریم پہ نہ کریں کیونکہ لو ٹائم فریم کو کوئی",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.846,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 896.16,
+   "end": 900.66,
+   "text": "رول ایک جگہ نہیں یعنی کہ وہ مارکیٹ اگریسیف ٹرین لائن",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.846,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 900.66,
+   "end": 906.53,
+   "text": "کرنا شروع کر دیتی ہے ٹھیک ہے جیسے یہ نا یہ منتھلی اور ویکلی",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.846,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 906.53,
+   "end": 914.02,
+   "text": "ہو گیا نا تو وہ جاتے ہیں یہ ایسے جا رہے نا ٹھیک ہے ایسے ہی",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.846,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 914.02,
+   "end": 918.46,
+   "text": "جا رہے وہ پھر آتے ہیں ڈراب ہوتے ہیں اور ایسے ایسے جاتے ہیں لیکن",
+   "avg_logprob": -0.086,
+   "no_speech_prob": 0.804,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 918.46,
+   "end": 922.26,
+   "text": "جب آپ ایج فورک سے لو دیکھتے ہو نا تو وہ یہ ہوا ٹھیک ہے یہ",
+   "avg_logprob": -0.086,
+   "no_speech_prob": 0.804,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 922.26,
+   "end": 926.18,
+   "text": "ڈیمانڈ بنی اب لازم نہیں ہے وہ ہٹ کریں وہ ایسے نیو اگریسیو",
+   "avg_logprob": -0.086,
+   "no_speech_prob": 0.804,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 926.18,
+   "end": 931.21,
+   "text": "ٹرین لائن بنانا شروع کر دیتے ہیں ایسے پھر اس کے بھی آگے ہاں",
+   "avg_logprob": -0.086,
+   "no_speech_prob": 0.804,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 931.21,
+   "end": 934.79,
+   "text": "ہاں جی آہ یعنی ٹرین لائن بنا کے امپلسیس پریکشن کے طرف",
+   "avg_logprob": -0.086,
+   "no_speech_prob": 0.804,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 934.79,
+   "end": 938.29,
+   "text": "چلے جاتے ہیں نا تو امپلسیس پہ وہ ٹرین لائن نیو اگریسیو",
+   "avg_logprob": -0.086,
+   "no_speech_prob": 0.804,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 938.29,
+   "end": 941.83,
+   "text": "بنا دیتا ہے لیکن اس کو جب آپ زوم ان کرو گے نا ادھر زوم ان",
+   "avg_logprob": -0.105,
+   "no_speech_prob": 0.571,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 941.83,
+   "end": 944.77,
+   "text": "کرو گے تو آپ کو پتہ چلے گا کہ میں نے یہاں سے اگر کوئی سیل",
+   "avg_logprob": -0.105,
+   "no_speech_prob": 0.571,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 944.77,
+   "end": 948.89,
+   "text": "کی پوزیشن پکڑ لی تو پھر کیا ہوگا کہ یہاں سے یہاں تک میرے",
+   "avg_logprob": -0.105,
+   "no_speech_prob": 0.571,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 948.89,
+   "end": 953.51,
+   "text": "پاس چھ سات سو پپس ہیں لیکن یہاں پہ اگر میں نے یہاں پہ اس",
+   "avg_logprob": -0.105,
+   "no_speech_prob": 0.571,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 953.51,
+   "end": 956.93,
+   "text": "سپلائی کو سیل کرنے کی کوشش کی تو وہ شاید دو پپس ہوں اور",
+   "avg_logprob": -0.105,
+   "no_speech_prob": 0.571,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 956.93,
+   "end": 961.28,
+   "text": "مارکیٹ اوپر چلی جائے تو کریکشن کو آپ ایوائیڈ کریں گے تو وہ",
+   "avg_logprob": -0.105,
+   "no_speech_prob": 0.571,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 961.28,
+   "end": 966.02,
+   "text": "اچھے ٹریڈر بن جائیں گے ٹھیک ہو گیا تو کیا کرنا ہے کہ ایچ",
+   "avg_logprob": -0.085,
+   "no_speech_prob": 0.99,
+   "compression_ratio": 2.33
+  },
+  {
+   "start": 966.02,
+   "end": 971.11,
+   "text": "ون پہ دیکھیں پھر آپ نے لو ٹائم فرام کی طرف جانا ہے ایم",
+   "avg_logprob": -0.085,
+   "no_speech_prob": 0.99,
+   "compression_ratio": 2.33
+  },
+  {
+   "start": 971.11,
+   "end": 974.35,
+   "text": "تھرٹی ایم تھرٹی تو ویسے ہی اسی ہوتا ہے ایم ففٹین کو دیکھ لیں",
+   "avg_logprob": -0.085,
+   "no_speech_prob": 0.99,
+   "compression_ratio": 2.33
+  },
+  {
+   "start": 974.35,
+   "end": 978.27,
+   "text": "ایم ففٹین کو دیکھ کے پھر فائیو منٹ ٹائم فرام پہ دیکھیں گے جو",
+   "avg_logprob": -0.085,
+   "no_speech_prob": 0.99,
+   "compression_ratio": 2.33
+  },
+  {
+   "start": 978.27,
+   "end": 981.65,
+   "text": "ٹریڈ ملتی ہے ایکچلی فائیو منٹ ٹائم فرام پہ بھی اس کا یہی",
+   "avg_logprob": -0.085,
+   "no_speech_prob": 0.99,
+   "compression_ratio": 2.33
+  },
+  {
+   "start": 981.65,
+   "end": 984.77,
+   "text": "ایریا مل رہا ہے ٹھیک ہے یہ ریالائنمنٹ ایریا جہاں پہ ایم",
+   "avg_logprob": -0.085,
+   "no_speech_prob": 0.99,
+   "compression_ratio": 2.33
+  },
+  {
+   "start": 984.77,
+   "end": 992.48,
+   "text": "ففٹین اور فائیو گٹھے ہوتے ہیں کلیر ہو گیا اب جو اچھا یہ ایک",
+   "avg_logprob": -0.092,
+   "no_speech_prob": 0.929,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 992.48,
+   "end": 997.26,
+   "text": "طریقہ کا ہے دوسرا طریقہ کا یہ ہے کہ میں جب بھی ٹرین لوں تو میں",
+   "avg_logprob": -0.092,
+   "no_speech_prob": 0.929,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 997.26,
+   "end": 1002.71,
+   "text": "ویٹ کروں کہ ٹرین لائن کو کراس ہو جائے یعنی کہ ٹرین لائن کراس",
+   "avg_logprob": -0.092,
+   "no_speech_prob": 0.929,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 1002.71,
+   "end": 1006.23,
+   "text": "ہو جائے اور وہ سٹرکچر بریک ہو جائے تو ایٹس مین کہ وہ جا کے",
+   "avg_logprob": -0.092,
+   "no_speech_prob": 0.929,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 1006.23,
+   "end": 1010.63,
+   "text": "نیچے والے زون کو اٹ کرے گا تو میں پھر لو ٹائم فرام پہ جا کے",
+   "avg_logprob": -0.092,
+   "no_speech_prob": 0.929,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 1010.63,
+   "end": 1015.11,
+   "text": "وہاں پہ جو جو زون بلو دن ٹرین لائن انڈر دی ٹرین لائن ہے",
+   "avg_logprob": -0.092,
+   "no_speech_prob": 0.929,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 1015.11,
+   "end": 1018.95,
+   "text": "ہم اس کو یوز کریں گے ٹریڈ کے لیے اگر اب دیکھا جائے تو یہ",
+   "avg_logprob": -0.094,
+   "no_speech_prob": 0.991,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 1018.95,
+   "end": 1022.91,
+   "text": "ادھر ہو گیا جی ٹھیک ہو گیا اب یہ ہمیں جو ٹریڈ ملے گی وہ",
+   "avg_logprob": -0.094,
+   "no_speech_prob": 0.991,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 1022.91,
+   "end": 1026.69,
+   "text": "نیکس ٹریڈ یہ ادھر والی ملے گی جو کیوں کیوں کہ یہ انڈر ترین",
+   "avg_logprob": -0.094,
+   "no_speech_prob": 0.991,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 1026.69,
+   "end": 1031.45,
+   "text": "لائن ہے اور پھر اسی کو مارکیٹ ٹیس کرنے کی کوشش کرتی ہے",
+   "avg_logprob": -0.094,
+   "no_speech_prob": 0.991,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 1031.45,
+   "end": 1045.63,
+   "text": "یا وہاں پہ تک جانے کے لیے اچھا جی میں میں ویٹ کرتا ہوں جیسے",
+   "avg_logprob": -0.094,
+   "no_speech_prob": 0.991,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 1045.63,
+   "end": 1050.59,
+   "text": "ہمارے پرانے دیکشن لگے ہیں ٹرین لائن کروس کرے اور زون کو",
+   "avg_logprob": -0.094,
+   "no_speech_prob": 0.991,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 1050.59,
+   "end": 1053.77,
+   "text": "break کرے تب ہی میں confirm کرتا ہوں کہ نیچے جائے گی",
+   "avg_logprob": -0.108,
+   "no_speech_prob": 0.99,
+   "compression_ratio": 1.93
+  },
+  {
+   "start": 1053.77,
+   "end": 1058.01,
+   "text": "market یا اوپری کئی کئی بار trend line کو cross کر دیتی ہے",
+   "avg_logprob": -0.108,
+   "no_speech_prob": 0.99,
+   "compression_ratio": 1.93
+  },
+  {
+   "start": 1058.01,
+   "end": 1060.79,
+   "text": "candle close بھی کر دیتی ہے لیکن پھر اوپر گھوم جاتی ہے",
+   "avg_logprob": -0.108,
+   "no_speech_prob": 0.99,
+   "compression_ratio": 1.93
+  },
+  {
+   "start": 1060.79,
+   "end": 1067.66,
+   "text": "بینہ supply یا demand توڑے جی جی بالکل وہ یعنی",
+   "avg_logprob": -0.108,
+   "no_speech_prob": 0.99,
+   "compression_ratio": 1.93
+  },
+  {
+   "start": 1067.66,
+   "end": 1071.87,
+   "text": "miss کر جاتی ہے entry نہیں نہیں نہیں جیسے اس نے trend",
+   "avg_logprob": -0.108,
+   "no_speech_prob": 0.99,
+   "compression_ratio": 1.93
+  },
+  {
+   "start": 1071.87,
+   "end": 1075.09,
+   "text": "line کو cross کر دیا candle بھی close کر دیا trend line کے",
+   "avg_logprob": -0.108,
+   "no_speech_prob": 0.99,
+   "compression_ratio": 1.93
+  },
+  {
+   "start": 1075.09,
+   "end": 1079.15,
+   "text": "اس پار لیکن اس نے opposite zone کر move نہیں کیا وہ",
+   "avg_logprob": -0.108,
+   "no_speech_prob": 0.99,
+   "compression_ratio": 1.93
+  },
+  {
+   "start": 1079.15,
+   "end": 1081.07,
+   "text": "وہ اوپر چلی جائے گی",
+   "avg_logprob": -0.094,
+   "no_speech_prob": 0.875,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 1081.07,
+   "end": 1083.39,
+   "text": "کیونکہ اصلی جو میجر چیز ہے",
+   "avg_logprob": -0.094,
+   "no_speech_prob": 0.875,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 1083.39,
+   "end": 1085.49,
+   "text": "وہ سپلائی اور ڈیمانڈ ہے",
+   "avg_logprob": -0.094,
+   "no_speech_prob": 0.875,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 1085.49,
+   "end": 1087.29,
+   "text": "تو جو یہ جو باقی ہے",
+   "avg_logprob": -0.094,
+   "no_speech_prob": 0.875,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 1087.29,
+   "end": 1089.11,
+   "text": "کیا نام ہے ٹرین لائن ہم یوز کرتے ہیں",
+   "avg_logprob": -0.094,
+   "no_speech_prob": 0.875,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 1089.11,
+   "end": 1091.43,
+   "text": "یہ ایسے ٹول کے طور پر یوز کر رہے ہوتے ہیں",
+   "avg_logprob": -0.094,
+   "no_speech_prob": 0.875,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 1091.43,
+   "end": 1093.33,
+   "text": "جو ٹرین لائن ہے",
+   "avg_logprob": -0.094,
+   "no_speech_prob": 0.875,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 1093.33,
+   "end": 1095.05,
+   "text": "وہ رولز میں شامل نہیں ہے",
+   "avg_logprob": -0.094,
+   "no_speech_prob": 0.875,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 1095.05,
+   "end": 1097.61,
+   "text": "لیکن سیفٹی کے لیے یہی ہے",
+   "avg_logprob": -0.094,
+   "no_speech_prob": 0.875,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 1097.61,
+   "end": 1099.39,
+   "text": "کہ ہم نے ڈریکشن کو ایڈنٹیفائی",
+   "avg_logprob": -0.094,
+   "no_speech_prob": 0.875,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 1099.39,
+   "end": 1101.21,
+   "text": "کرنا ہوتا ہے تو ہم اس کو یوز کرنے کی",
+   "avg_logprob": -0.094,
+   "no_speech_prob": 0.875,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 1101.21,
+   "end": 1102.21,
+   "text": "کوشش کرتے ہیں",
+   "avg_logprob": -0.094,
+   "no_speech_prob": 0.875,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 1102.21,
+   "end": 1105.3,
+   "text": "تو اس کے ساتھ ساتھ پھر ٹریڈ کرنے کی کوشش کرتے ہیں",
+   "avg_logprob": -0.082,
+   "no_speech_prob": 0.95,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 1105.3,
+   "end": 1108.26,
+   "text": "اچھا تو پھر آپ نے وہی چیوز کرنا ہے",
+   "avg_logprob": -0.082,
+   "no_speech_prob": 0.95,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 1108.26,
+   "end": 1109.68,
+   "text": "کہ جو آپ کو لگے",
+   "avg_logprob": -0.082,
+   "no_speech_prob": 0.95,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 1109.68,
+   "end": 1112.36,
+   "text": "کہ ہمیں واو ٹریڈ دے سکتا ہے",
+   "avg_logprob": -0.082,
+   "no_speech_prob": 0.95,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 1112.36,
+   "end": 1113.62,
+   "text": "یعنی سیل کی دے سکتا ہے",
+   "avg_logprob": -0.082,
+   "no_speech_prob": 0.95,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 1113.62,
+   "end": 1114.72,
+   "text": "بائی کی دے سکتا ہے",
+   "avg_logprob": -0.082,
+   "no_speech_prob": 0.95,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 1114.72,
+   "end": 1117.5,
+   "text": "اب یہ دیکھیں نا یہ بائی کی جا سکتی ہے",
+   "avg_logprob": -0.082,
+   "no_speech_prob": 0.95,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 1117.5,
+   "end": 1117.88,
+   "text": "ٹھیک ہے",
+   "avg_logprob": -0.082,
+   "no_speech_prob": 0.95,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 1117.88,
+   "end": 1122.56,
+   "text": "تو اس ٹائمنگ ایسی ہوئی ہے",
+   "avg_logprob": -0.082,
+   "no_speech_prob": 0.95,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 1122.56,
+   "end": 1124.34,
+   "text": "کل بھی بڑا لیٹ میں پہنچا گھر میں",
+   "avg_logprob": -0.082,
+   "no_speech_prob": 0.95,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 1124.34,
+   "end": 1126.14,
+   "text": "تو ٹریفک کی ٹریفک ہوئی ہے بس",
+   "avg_logprob": -0.082,
+   "no_speech_prob": 0.95,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 1126.14,
+   "end": 1128.3,
+   "text": "اب ہم نے ویٹ کرنا ہے",
+   "avg_logprob": -0.082,
+   "no_speech_prob": 0.95,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 1128.3,
+   "end": 1132.56,
+   "text": "ہماری یہ بڑی سپلائی ٹوٹ جائے جو میجر سپلائی ہے نا ہم یہ",
+   "avg_logprob": -0.089,
+   "no_speech_prob": 0.893,
+   "compression_ratio": 2.35
+  },
+  {
+   "start": 1132.56,
+   "end": 1137.0,
+   "text": "ٹوٹ جائے اور آہ پھر ہم آہ یعنی یہ والی ٹرین لائن تو اس نے",
+   "avg_logprob": -0.089,
+   "no_speech_prob": 0.893,
+   "compression_ratio": 2.35
+  },
+  {
+   "start": 1137.0,
+   "end": 1140.9,
+   "text": "کراس کی ہوئے لیکن یہ سپلائی ہے اچھا جب یہ ٹوٹ گئے تو پھر آپ",
+   "avg_logprob": -0.089,
+   "no_speech_prob": 0.893,
+   "compression_ratio": 2.35
+  },
+  {
+   "start": 1140.9,
+   "end": 1144.98,
+   "text": "کیا کرو گے پھر آپ نیو ایک ٹرین لائن کو کھینچو گے جو نیو",
+   "avg_logprob": -0.089,
+   "no_speech_prob": 0.893,
+   "compression_ratio": 2.35
+  },
+  {
+   "start": 1144.98,
+   "end": 1149.48,
+   "text": "بنتی جائے گی اس طرح کا کی ٹھیک ہے پھر آپ نے کیا کرنا ہے کہ",
+   "avg_logprob": -0.089,
+   "no_speech_prob": 0.893,
+   "compression_ratio": 2.35
+  },
+  {
+   "start": 1149.48,
+   "end": 1152.48,
+   "text": "اس کے ساتھ ساتھ ٹریڈ کرنا ہے یہ تو ابھی ٹوٹ جائے گی نا نیو",
+   "avg_logprob": -0.089,
+   "no_speech_prob": 0.893,
+   "compression_ratio": 2.35
+  },
+  {
+   "start": 1152.48,
+   "end": 1155.94,
+   "text": "ڈیمانڈ ملے گا پھر آپ ڈیمانڈ کو یوز کرو گے ٹریڈ کے لیے",
+   "avg_logprob": -0.083,
+   "no_speech_prob": 0.965,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 1155.94,
+   "end": 1159.44,
+   "text": "ٹھیک ہو گیا جی یہاں پہ ابھی آپ ٹریڈ نہیں کر سکتے کیونکہ",
+   "avg_logprob": -0.083,
+   "no_speech_prob": 0.965,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 1159.44,
+   "end": 1165.14,
+   "text": "سپلائی یوزڈ ہے ٹھیک ہے اور آرموسٹ ڈیمانڈ بھی دیکھیں نا",
+   "avg_logprob": -0.083,
+   "no_speech_prob": 0.965,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 1165.14,
+   "end": 1170.47,
+   "text": "زوم کریں دیکھا یوزڈ ہے یعنی دونوں نہیں کر سکتے اب یہاں",
+   "avg_logprob": -0.083,
+   "no_speech_prob": 0.965,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 1170.47,
+   "end": 1174.91,
+   "text": "پہ ہم ویٹ کرتے ہیں اس میں سائیڈ ویس پہ جائے گی سائیڈ ویس جو",
+   "avg_logprob": -0.083,
+   "no_speech_prob": 0.965,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 1174.91,
+   "end": 1178.57,
+   "text": "میں نے بتایا ہوگا کسی سیشن میں نا کہ جب سپلائی اور",
+   "avg_logprob": -0.083,
+   "no_speech_prob": 0.965,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 1178.57,
+   "end": 1182.55,
+   "text": "دمانڈ دونوں نزدیک آ جائیں ایک دوسرے کے تو وہ مزید پھر",
+   "avg_logprob": -0.107,
+   "no_speech_prob": 0.98,
+   "compression_ratio": 2.04
+  },
+  {
+   "start": 1182.55,
+   "end": 1185.51,
+   "text": "لو ٹائم فرام پہ ٹریڈ ہو سکتی ہے ادھر اس ٹائم فرام پہ",
+   "avg_logprob": -0.107,
+   "no_speech_prob": 0.98,
+   "compression_ratio": 2.04
+  },
+  {
+   "start": 1185.51,
+   "end": 1189.03,
+   "text": "نہیں ہو سکتی جس کو تین دفعہ چار دفعہ اٹھ کر چکی ہے وہ",
+   "avg_logprob": -0.107,
+   "no_speech_prob": 0.98,
+   "compression_ratio": 2.04
+  },
+  {
+   "start": 1189.03,
+   "end": 1194.92,
+   "text": "ویک ہوگا اسی کو توڑنے کوشش کریں ٹھیک ہے آج آہ آہ فائیو",
+   "avg_logprob": -0.107,
+   "no_speech_prob": 0.98,
+   "compression_ratio": 2.04
+  },
+  {
+   "start": 1194.92,
+   "end": 1200.5,
+   "text": "منٹ ٹائم فرام دیکھتے ہیں یہ ابھی ہے موسم کیسا ہے سردی",
+   "avg_logprob": -0.107,
+   "no_speech_prob": 0.98,
+   "compression_ratio": 2.04
+  },
+  {
+   "start": 1200.5,
+   "end": 1205.64,
+   "text": "ہوگی ابھی بھی یہاں ابھی گرمی ہوگی ہے چھوڑی سی جدا",
+   "avg_logprob": -0.107,
+   "no_speech_prob": 0.98,
+   "compression_ratio": 2.04
+  },
+  {
+   "start": 1205.64,
+   "end": 1208.88,
+   "text": "زیادہ نہیں ہے سر بھی کیلگری میں آہ ٹرانٹو میں اس بار",
+   "avg_logprob": -0.143,
+   "no_speech_prob": 0.954,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 1208.88,
+   "end": 1213.67,
+   "text": "زیادہ پڑی ہے آہ بتا رہے تھے وہ آپ کی سیسٹر ہے نا",
+   "avg_logprob": -0.143,
+   "no_speech_prob": 0.954,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 1213.67,
+   "end": 1224.19,
+   "text": "یا آہ وہ کیلگری میں ہوتی ہے ہمم تو یہ پاکستانی اور",
+   "avg_logprob": -0.143,
+   "no_speech_prob": 0.954,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 1224.19,
+   "end": 1227.67,
+   "text": "انڈینز کافی زیادہ ہیں آہ کسی زمانے میں گئے تھے بہت",
+   "avg_logprob": -0.143,
+   "no_speech_prob": 0.954,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 1227.67,
+   "end": 1230.91,
+   "text": "بہت تو کیلگری میں پاکستانی بہت زیادہ ہے آہ لیکن جو",
+   "avg_logprob": -0.143,
+   "no_speech_prob": 0.954,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 1230.91,
+   "end": 1234.27,
+   "text": "سردار فیملی ہے نا وہ بڑی کمیاب ہے ادھر ماشاءاللہ وہ",
+   "avg_logprob": -0.143,
+   "no_speech_prob": 0.954,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 1234.27,
+   "end": 1239.12,
+   "text": "پرانے گئے ہوئے ہیں ادھر بہت زیادہ ہے نا ہمم بنیاب بہت",
+   "avg_logprob": -0.163,
+   "no_speech_prob": 0.84,
+   "compression_ratio": 2.08
+  },
+  {
+   "start": 1239.12,
+   "end": 1248.5,
+   "text": "زیادہ ہے ادھر اچھا جی یہ ہے اور اس کو ہٹ کرنے کوشش کرے گی",
+   "avg_logprob": -0.163,
+   "no_speech_prob": 0.84,
+   "compression_ratio": 2.08
+  },
+  {
+   "start": 1248.5,
+   "end": 1251.98,
+   "text": "یہاں پہ ہم کنفرمیشن ہی یوز کر سکتے ہیں سیٹ ایم فرگیٹ نہیں",
+   "avg_logprob": -0.163,
+   "no_speech_prob": 0.84,
+   "compression_ratio": 2.08
+  },
+  {
+   "start": 1251.98,
+   "end": 1256.48,
+   "text": "کیونکہ وہ کوئی سٹرونگ زون نہیں ہے لیکن اگر صحیح جو",
+   "avg_logprob": -0.163,
+   "no_speech_prob": 0.84,
+   "compression_ratio": 2.08
+  },
+  {
+   "start": 1256.48,
+   "end": 1259.42,
+   "text": "ایکچل زون بن رہا ہے وہ یہ بن رہا ہے جو ٹرین لائن کے نزدیک",
+   "avg_logprob": -0.163,
+   "no_speech_prob": 0.84,
+   "compression_ratio": 2.08
+  },
+  {
+   "start": 1259.42,
+   "end": 1264.08,
+   "text": "ہے اب چونکہ یہ منسلی پہ ہم نے ویکلی پہ جانا ہے دیکھیں گے",
+   "avg_logprob": -0.163,
+   "no_speech_prob": 0.84,
+   "compression_ratio": 2.08
+  },
+  {
+   "start": 1264.08,
+   "end": 1268.22,
+   "text": "فالو کریں گے نئے ویکلی پہ سٹرونگ زون ہے یہ جب تک ٹوٹ نہ جائے",
+   "avg_logprob": -0.142,
+   "no_speech_prob": 0.828,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 1268.22,
+   "end": 1275.0,
+   "text": "تو ہم ٹرین نہیں دے سکتے شاید یہ ایک دفعہ آ یعنی کہ بیرش",
+   "avg_logprob": -0.142,
+   "no_speech_prob": 0.828,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 1275.0,
+   "end": 1279.62,
+   "text": "کی طرف لے کے جائے یہ اتنا نئی ویک زونی ہے تو آتا بھی ہے تو یہ",
+   "avg_logprob": -0.142,
+   "no_speech_prob": 0.828,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 1279.62,
+   "end": 1282.8,
+   "text": "مارا ٹرگر بن جائے گا یعنی کہ اب ہم سیل کی طرف جائیں گے",
+   "avg_logprob": -0.142,
+   "no_speech_prob": 0.828,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 1282.8,
+   "end": 1286.16,
+   "text": "کیونکہ ہائی کرو میں مارکیٹ ہے ٹھیک ہے منتھلی پہ تو وہ اتر",
+   "avg_logprob": -0.142,
+   "no_speech_prob": 0.828,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 1286.16,
+   "end": 1289.46,
+   "text": "تک جائے گی لیکن پہلے اس کو توڑے گی تو جائے گی تو ٹیپ کرے",
+   "avg_logprob": -0.142,
+   "no_speech_prob": 0.828,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 1289.46,
+   "end": 1292.94,
+   "text": "کرے گی بھی کرے گی پھر اب ہم جاتے ہیں ڈیلی پہ اور دیکھتے ہیں کہ",
+   "avg_logprob": -0.13,
+   "no_speech_prob": 0.97,
+   "compression_ratio": 2.34
+  },
+  {
+   "start": 1292.94,
+   "end": 1296.24,
+   "text": "مارکیٹ آیا کہ ٹرین لائن کو فالو کریے کہ نہیں کر رہی یعنی",
+   "avg_logprob": -0.13,
+   "no_speech_prob": 0.97,
+   "compression_ratio": 2.34
+  },
+  {
+   "start": 1296.24,
+   "end": 1299.6,
+   "text": "کہ ڈیلی ٹائم فریم کی ابھی بھی ٹرین لائن کو آلموسٹ فالو ہی",
+   "avg_logprob": -0.13,
+   "no_speech_prob": 0.97,
+   "compression_ratio": 2.34
+  },
+  {
+   "start": 1299.6,
+   "end": 1303.32,
+   "text": "کر رہی ہے تو ہم ویٹ کریں گے کہ یہ ڈیلی ٹائم فریم کراس کرے",
+   "avg_logprob": -0.13,
+   "no_speech_prob": 0.97,
+   "compression_ratio": 2.34
+  },
+  {
+   "start": 1303.32,
+   "end": 1307.16,
+   "text": "ٹرین لائن کو تو جب کراس کرے گی تو یہ ساری آپ کی سیل کے پیپس",
+   "avg_logprob": -0.13,
+   "no_speech_prob": 0.97,
+   "compression_ratio": 2.34
+  },
+  {
+   "start": 1307.16,
+   "end": 1312.08,
+   "text": "آ جائیں گے ٹھیک ہے ٹھیک ہے آپ نے سیل والی سائیڈ کو مائنڈ رکھ",
+   "avg_logprob": -0.13,
+   "no_speech_prob": 0.97,
+   "compression_ratio": 2.34
+  },
+  {
+   "start": 1312.08,
+   "end": 1315.4,
+   "text": "کے آہ مائنڈ بھی رکھ کے نا یہ ٹریڈ کرنا ہے تو جب یہ ٹرین",
+   "avg_logprob": -0.111,
+   "no_speech_prob": 0.974,
+   "compression_ratio": 2.14
+  },
+  {
+   "start": 1315.4,
+   "end": 1319.16,
+   "text": "لائن نہ کراس ہو تو آپ نے اس پیر کو ٹرین نہیں کرنا لیکن اس",
+   "avg_logprob": -0.111,
+   "no_speech_prob": 0.974,
+   "compression_ratio": 2.14
+  },
+  {
+   "start": 1319.16,
+   "end": 1327.79,
+   "text": "کو پریفر لازمی دیجیے کہ پریفرنس اس کو اس ٹیپ میں ہاں کھولے",
+   "avg_logprob": -0.111,
+   "no_speech_prob": 0.974,
+   "compression_ratio": 2.14
+  },
+  {
+   "start": 1327.79,
+   "end": 1332.93,
+   "text": "رکھیں جی جی ایک لو ٹائم فریم پہ آہ مجھے ایشو آتا ہے کیونکہ",
+   "avg_logprob": -0.111,
+   "no_speech_prob": 0.974,
+   "compression_ratio": 2.14
+  },
+  {
+   "start": 1332.93,
+   "end": 1335.97,
+   "text": "یہ سپریڈ تھوڑا زیادہ ہو جاتا ہے اور ٹیپ کر کے سٹاپ لوس نیچے",
+   "avg_logprob": -0.111,
+   "no_speech_prob": 0.974,
+   "compression_ratio": 2.14
+  },
+  {
+   "start": 1335.97,
+   "end": 1340.13,
+   "text": "چل جاتی ہے یہ کرتے کیونکہ وہ وہ مارکیٹ میکرز جو ہے نا وہ",
+   "avg_logprob": -0.111,
+   "no_speech_prob": 0.974,
+   "compression_ratio": 2.14
+  },
+  {
+   "start": 1340.13,
+   "end": 1344.49,
+   "text": "نہیں کرتے ہیں سپریڈ بڑا رکھنا آہ یہ انکریز کرتے ہیں اور یہ",
+   "avg_logprob": -0.064,
+   "no_speech_prob": 0.686,
+   "compression_ratio": 2.26
+  },
+  {
+   "start": 1344.49,
+   "end": 1348.83,
+   "text": "ہوتا کیا ہے کہ یہ بروکرز کی طرف سے ہوتا ہے یعنی کہ میں جس",
+   "avg_logprob": -0.064,
+   "no_speech_prob": 0.686,
+   "compression_ratio": 2.26
+  },
+  {
+   "start": 1348.83,
+   "end": 1352.45,
+   "text": "طرح نا بروکرز سٹارٹ کرنے لگا تھا نا تو میں گیا نا دبئی میں",
+   "avg_logprob": -0.064,
+   "no_speech_prob": 0.686,
+   "compression_ratio": 2.26
+  },
+  {
+   "start": 1352.45,
+   "end": 1358.17,
+   "text": "تو وہ رومینیا ورہ میں تو انفرمیشن لی ہمم مجھے یہ پتہ",
+   "avg_logprob": -0.064,
+   "no_speech_prob": 0.686,
+   "compression_ratio": 2.26
+  },
+  {
+   "start": 1358.17,
+   "end": 1361.45,
+   "text": "چل گیا کہ لیکوٹیٹی پروائیڈر ہوتے ہیں جو ان کو آہ یعنی",
+   "avg_logprob": -0.064,
+   "no_speech_prob": 0.686,
+   "compression_ratio": 2.26
+  },
+  {
+   "start": 1361.45,
+   "end": 1365.25,
+   "text": "کہ ہم ان کو فیسیں دیتے ہیں بروکرز ورہ وہ لیکوٹیٹی پیسہ",
+   "avg_logprob": -0.064,
+   "no_speech_prob": 0.686,
+   "compression_ratio": 2.26
+  },
+  {
+   "start": 1365.25,
+   "end": 1368.61,
+   "text": "دیتے ہیں یہ جو بڑے بڑے ہوتے ہیں لان مسک ورن کے پیسے یوں سے ہو",
+   "avg_logprob": -0.058,
+   "no_speech_prob": 0.388,
+   "compression_ratio": 2.26
+  },
+  {
+   "start": 1368.61,
+   "end": 1374.31,
+   "text": "رہے تھے تو اس میں مجھے یہ پتا چلا کہ اگر کہ میں سپریڈ اگر زیادہ",
+   "avg_logprob": -0.058,
+   "no_speech_prob": 0.388,
+   "compression_ratio": 2.26
+  },
+  {
+   "start": 1374.31,
+   "end": 1379.71,
+   "text": "انکریز کروں تو آہ یعنی کہ اگر تو آپ زیادہ پیسہ ہے تو پھر تو",
+   "avg_logprob": -0.058,
+   "no_speech_prob": 0.388,
+   "compression_ratio": 2.26
+  },
+  {
+   "start": 1379.71,
+   "end": 1383.61,
+   "text": "آپ کو لیکوٹی پروائیڈر بھی اچھا مل جاتا ہے تو اگر آپ کے پاس",
+   "avg_logprob": -0.058,
+   "no_speech_prob": 0.388,
+   "compression_ratio": 2.26
+  },
+  {
+   "start": 1383.61,
+   "end": 1389.69,
+   "text": "تھوڑا پیسہ ہے تو وہ پھر سپریڈ آہ یعنی پانچ چھ جو نا وہ پہلے",
+   "avg_logprob": -0.058,
+   "no_speech_prob": 0.388,
+   "compression_ratio": 2.26
+  },
+  {
+   "start": 1389.69,
+   "end": 1395.53,
+   "text": "جو پپس بنتی ہیں وہ لے لیتا ہے لیکوڈی پروائیڈر لے لیتا ہے تو",
+   "avg_logprob": -0.051,
+   "no_speech_prob": 0.188,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 1395.53,
+   "end": 1400.41,
+   "text": "بروکر کے پاس پھر بچتا کچھ نہیں ہے یعنی کہ اس پہ نا تو وہ پھر",
+   "avg_logprob": -0.051,
+   "no_speech_prob": 0.188,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 1400.41,
+   "end": 1404.39,
+   "text": "کیا کرتا ہے وہ سٹاپ لاس ہنڈ کروانے کی کوشش کرتا ہے وہ بندہ",
+   "avg_logprob": -0.051,
+   "no_speech_prob": 0.188,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 1404.39,
+   "end": 1408.25,
+   "text": "ہائر کر لیتا ہے ٹھیک ہے کمپیوٹر پہ بیٹھے ہوتے ہیں اور جب آپ",
+   "avg_logprob": -0.051,
+   "no_speech_prob": 0.188,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 1408.25,
+   "end": 1413.11,
+   "text": "نے ٹریڈ لی ہوئی ہے تو وہ دیکھتا ہے کہ ادھر تو اس نے اس کے پاس",
+   "avg_logprob": -0.051,
+   "no_speech_prob": 0.188,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 1413.11,
+   "end": 1417.11,
+   "text": "کتنے پیسے ہیں یعنی فارگزمپل دو سو تین سو ڈالر ہیں اس نے",
+   "avg_logprob": -0.051,
+   "no_speech_prob": 0.188,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 1417.11,
+   "end": 1420.27,
+   "text": "ٹریڈ کون سے لیے گول کی اوپن کی ہے اب گول کی اوپن کی ہے اس کو",
+   "avg_logprob": -0.085,
+   "no_speech_prob": 0.503,
+   "compression_ratio": 2.32
+  },
+  {
+   "start": 1420.27,
+   "end": 1424.79,
+   "text": "پتا ہے کہ یہ لے کے چلا جائے گا ان پیسوں کو تو وہ پھر کیا کرتے",
+   "avg_logprob": -0.085,
+   "no_speech_prob": 0.503,
+   "compression_ratio": 2.32
+  },
+  {
+   "start": 1424.79,
+   "end": 1428.73,
+   "text": "ہیں کہ جیسے آپ نے سٹاپ لاس ادھر لگایا ہوا نا ٹھیک ہے وہ کیا",
+   "avg_logprob": -0.085,
+   "no_speech_prob": 0.503,
+   "compression_ratio": 2.32
+  },
+  {
+   "start": 1428.73,
+   "end": 1433.41,
+   "text": "کرتے ہیں کہ ادھر ہنٹ کروا کے نا سٹاپ لاس کو پھر ساتھ گرا ان کو",
+   "avg_logprob": -0.085,
+   "no_speech_prob": 0.503,
+   "compression_ratio": 2.32
+  },
+  {
+   "start": 1433.41,
+   "end": 1436.57,
+   "text": "سٹاپ لاس آپ کا پتا ہوتا ہے نا جیسے ایسے کیا نا تھوڑا سی ایسے",
+   "avg_logprob": -0.085,
+   "no_speech_prob": 0.503,
+   "compression_ratio": 2.32
+  },
+  {
+   "start": 1436.57,
+   "end": 1442.27,
+   "text": "کر کے فیک فیک بناتے ہیں کینڈو فیک وہ وہ ایکشنی آہ ٹریڈنگ",
+   "avg_logprob": -0.085,
+   "no_speech_prob": 0.503,
+   "compression_ratio": 2.32
+  },
+  {
+   "start": 1442.27,
+   "end": 1444.95,
+   "text": "ویو میں کئی دفعہ شو ہی نہیں ہو رہی ہوتی کہہ لو یعنی",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.846,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 1444.95,
+   "end": 1448.55,
+   "text": "ٹریڈنگ ویو میں کیا تھا کہ تین زہر ہے نا تین زہر سے",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.846,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 1448.55,
+   "end": 1451.85,
+   "text": "یہاں سے ڈراب ہو گیا گول ٹھیک ہے لیکن اس پہ کیا ہوگا",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.846,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 1451.85,
+   "end": 1456.27,
+   "text": "کہ تین زہر چھے سو آہ بارہ چودہ پپس اوپر اس لیے میں",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.846,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 1456.27,
+   "end": 1458.93,
+   "text": "لڑکوں کو کہتوں کہ آپ نے اگر سٹاپ لاس لگا نہ ہوتا",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.846,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 1458.93,
+   "end": 1462.61,
+   "text": "نا تو آپ نے کیا کرنا ہے کوئی دس بارہ پپس اوپر لگا",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.846,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 1462.61,
+   "end": 1465.59,
+   "text": "لیا کریں یہ ہنڈ کر کے اگر جاتا ہے نا تو پھر آپ کیا",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.846,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 1465.59,
+   "end": 1469.81,
+   "text": "کرتے ہو کہ آہ ٹریڈنگ ویو میں جا کے اس کو چیک کرتے ہو چارٹس",
+   "avg_logprob": -0.073,
+   "no_speech_prob": 0.788,
+   "compression_ratio": 2.07
+  },
+  {
+   "start": 1469.81,
+   "end": 1474.47,
+   "text": "میں کتنا فرق آیا پھر آپ ان کو آہ ہر پلائن پہ کال کرتے ہیں جو",
+   "avg_logprob": -0.073,
+   "no_speech_prob": 0.788,
+   "compression_ratio": 2.07
+  },
+  {
+   "start": 1474.47,
+   "end": 1477.35,
+   "text": "بھی کو کہتے ہو کہ میرا سٹاپ لاس ہنٹ کروائے لے ازا پیسے دو",
+   "avg_logprob": -0.073,
+   "no_speech_prob": 0.788,
+   "compression_ratio": 2.07
+  },
+  {
+   "start": 1477.35,
+   "end": 1481.97,
+   "text": "تو وہ دے دیتے ہیں ٹھیک ہے اچھا لیکن یہاں پہ ابھی کیا مسئلہ",
+   "avg_logprob": -0.073,
+   "no_speech_prob": 0.788,
+   "compression_ratio": 2.07
+  },
+  {
+   "start": 1481.97,
+   "end": 1485.65,
+   "text": "ہے کہ ہمیں عموماً سارے لوگوں کو نہیں پتا ہو تو یہ چیز ہوتا",
+   "avg_logprob": -0.073,
+   "no_speech_prob": 0.788,
+   "compression_ratio": 2.07
+  },
+  {
+   "start": 1485.65,
+   "end": 1488.95,
+   "text": "ہے وہ ان سے نہ ڈسکس کرنا پڑتی ہے ان کو سٹیٹمنٹ بتانا پڑتی",
+   "avg_logprob": -0.073,
+   "no_speech_prob": 0.788,
+   "compression_ratio": 2.07
+  },
+  {
+   "start": 1488.95,
+   "end": 1491.71,
+   "text": "وہ وہ مجبور ہوتے ہیں بیجنے پڑتے ہیں otherwise ان کا ہوتا",
+   "avg_logprob": -0.134,
+   "no_speech_prob": 0.974,
+   "compression_ratio": 2.03
+  },
+  {
+   "start": 1491.71,
+   "end": 1496.27,
+   "text": "ہے کہ ہمارا نام نہ پتہ نام ہو تو اب جتنے بھی جو خاص",
+   "avg_logprob": -0.134,
+   "no_speech_prob": 0.974,
+   "compression_ratio": 2.03
+  },
+  {
+   "start": 1496.27,
+   "end": 1498.85,
+   "text": "ہیں وہ لوکل بروکرز ہیں وہ جن کو میں منع کر رہا ہوتا",
+   "avg_logprob": -0.134,
+   "no_speech_prob": 0.974,
+   "compression_ratio": 2.03
+  },
+  {
+   "start": 1498.85,
+   "end": 1501.85,
+   "text": "ہوں کہ ان کے پاس نہ جائیں وہ دن بار بیٹھے ایک ہی جگہ",
+   "avg_logprob": -0.134,
+   "no_speech_prob": 0.974,
+   "compression_ratio": 2.03
+  },
+  {
+   "start": 1501.85,
+   "end": 1503.89,
+   "text": "نہیں ساری ٹریڈز ایسا ہی ہوتی ہیں آپ نے دیکھا ہوگا",
+   "avg_logprob": -0.134,
+   "no_speech_prob": 0.974,
+   "compression_ratio": 2.03
+  },
+  {
+   "start": 1503.89,
+   "end": 1507.25,
+   "text": "کئی دفعہ سیل پہ جا رہی ہو جیسی آپ نے ٹریڈ بائی کیلئے",
+   "avg_logprob": -0.134,
+   "no_speech_prob": 0.974,
+   "compression_ratio": 2.03
+  },
+  {
+   "start": 1507.25,
+   "end": 1510.01,
+   "text": "اور ایک دم سے مارکیٹ اوپر جانا شروع ہو گی بس یہ ہی",
+   "avg_logprob": -0.134,
+   "no_speech_prob": 0.974,
+   "compression_ratio": 2.03
+  },
+  {
+   "start": 1510.01,
+   "end": 1514.87,
+   "text": "ہوتا ہے یہ ہی ہوتا ہے سپریڈ بڑھ جاتا ہے سپریڈ بڑھ جاتا ہے آہ",
+   "avg_logprob": -0.135,
+   "no_speech_prob": 0.968,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 1514.87,
+   "end": 1518.17,
+   "text": "سٹاپ روس کے نزدیک آگے ایک دم سپریڈ بڑھ جاتا ہے ہنٹ کروا",
+   "avg_logprob": -0.135,
+   "no_speech_prob": 0.968,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 1518.17,
+   "end": 1520.99,
+   "text": "گے نیچے آئے خاند کروا گئے یہ بیٹھے ہوتے ہیں دیکھ رہے ہوتے",
+   "avg_logprob": -0.135,
+   "no_speech_prob": 0.968,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 1520.99,
+   "end": 1523.87,
+   "text": "ہیں اسی وجہ سے میں ادھر گیا جب میں نے دیکھا ہے میں نے کہا اگر",
+   "avg_logprob": -0.135,
+   "no_speech_prob": 0.968,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 1523.87,
+   "end": 1527.71,
+   "text": "ہنٹ ہی نہ کروا ہوں یا تو میرے پاس پیسہ اتنا زیادہ ہو ٹھیک",
+   "avg_logprob": -0.135,
+   "no_speech_prob": 0.968,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 1527.71,
+   "end": 1531.19,
+   "text": "ہے آہ یعنی بلین ڈالر ہو کہ وہ کوئی بڑا بروکر جس طرح",
+   "avg_logprob": -0.135,
+   "no_speech_prob": 0.968,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 1531.19,
+   "end": 1534.85,
+   "text": "پیپر سٹون ہو گئے یا اسی مارکیٹ تو ان کی تو سپریڈ ہی نایت ہی",
+   "avg_logprob": -0.151,
+   "no_speech_prob": 0.421,
+   "compression_ratio": 2.04
+  },
+  {
+   "start": 1534.85,
+   "end": 1540.07,
+   "text": "لو ہوتی ہے تو یہ جو نارمل سے بنتے ہیں بروکرز وہ یعنی کہ آپ",
+   "avg_logprob": -0.151,
+   "no_speech_prob": 0.421,
+   "compression_ratio": 2.04
+  },
+  {
+   "start": 1540.07,
+   "end": 1544.51,
+   "text": "کے پاس کوئی پچاس ساٹھ ہزار ڈالر ہوتا آپ بنا سکتے ہو سٹارٹ",
+   "avg_logprob": -0.151,
+   "no_speech_prob": 0.421,
+   "compression_ratio": 2.04
+  },
+  {
+   "start": 1544.51,
+   "end": 1549.49,
+   "text": "میں نا تو پھر وہ بعد میں بندہ ہو انکریز کرتا ہے لیکن ان کی پچیز",
+   "avg_logprob": -0.151,
+   "no_speech_prob": 0.421,
+   "compression_ratio": 2.04
+  },
+  {
+   "start": 1549.49,
+   "end": 1552.91,
+   "text": "ہزار ڈالر ہر مہینے کا اگر میں دینا ہے تو یہ میں اگر سٹاپ لاس",
+   "avg_logprob": -0.151,
+   "no_speech_prob": 0.421,
+   "compression_ratio": 2.04
+  },
+  {
+   "start": 1552.91,
+   "end": 1556.99,
+   "text": "ہنڈ نہ کروائے تو میں نے کہا یہ نہیں میں کھاتا راہ مال کیونکہ",
+   "avg_logprob": -0.151,
+   "no_speech_prob": 0.421,
+   "compression_ratio": 2.04
+  },
+  {
+   "start": 1556.99,
+   "end": 1562.47,
+   "text": "کہ یہ ایکچلی آگینسٹ ہو جاتا ہے تو وہ پھر میں نے نہیں کیا",
+   "avg_logprob": -0.11,
+   "no_speech_prob": 0.918,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 1562.47,
+   "end": 1566.03,
+   "text": "تو میں نے دیکھا کہ یہ ٹھیک نہیں ہے بروکر کا جو کام کرتے ہیں",
+   "avg_logprob": -0.11,
+   "no_speech_prob": 0.918,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 1566.03,
+   "end": 1569.43,
+   "text": "نہیں یہ صحیح نہیں کھماتے ہیں یہ مکس کرتے ہیں یعنی کہ",
+   "avg_logprob": -0.11,
+   "no_speech_prob": 0.918,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 1569.43,
+   "end": 1573.41,
+   "text": "وہ صحیح پیسہ نہیں بنتا آج کے تو لوگ پروپمز بہت کھونے لگے ہیں",
+   "avg_logprob": -0.11,
+   "no_speech_prob": 0.918,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 1573.41,
+   "end": 1578.47,
+   "text": "اپنی آہ وہ کہہ رہے ہیں نا وہ ایک پاکستانی لڑکا ہے تو وہ",
+   "avg_logprob": -0.11,
+   "no_speech_prob": 0.918,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 1578.47,
+   "end": 1582.19,
+   "text": "کے نام ہے اس کا کیا نام ہے رکیل نام ہے اس کا راجہ بینکس کے",
+   "avg_logprob": -0.11,
+   "no_speech_prob": 0.918,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 1582.19,
+   "end": 1588.23,
+   "text": "نام سے اس طرح کا ہے وہ کیا نام ہے وہ سٹارٹ میں مجھے فالو",
+   "avg_logprob": -0.09,
+   "no_speech_prob": 0.952,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 1588.23,
+   "end": 1591.59,
+   "text": "کرتا تھا میں اس کی بڑی ہیلو کرتا رہا لڑکے کی تو کینیڈا تھا",
+   "avg_logprob": -0.09,
+   "no_speech_prob": 0.952,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 1591.59,
+   "end": 1595.53,
+   "text": "کینیڈا میں ادھر کوئی دار لیا اس نے تو ادھر سے باہر کے پاکستان",
+   "avg_logprob": -0.09,
+   "no_speech_prob": 0.952,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 1595.53,
+   "end": 1600.19,
+   "text": "آیا راورپنڈی میں ہوتا تھا تو پھر راورپنڈی میں اس کا نام تھا",
+   "avg_logprob": -0.09,
+   "no_speech_prob": 0.952,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 1600.73,
+   "end": 1605.71,
+   "text": "کہ گروپ کا کہ وکس ڈونٹ لائی ٹھیک ہے پھر اس کے بعد وہ یہاں سے",
+   "avg_logprob": -0.09,
+   "no_speech_prob": 0.952,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 1605.71,
+   "end": 1609.17,
+   "text": "باہر گیا ادھر گیا تو اس کے ایک بندہ تھا ڈاکٹر پتہ نہیں کیا",
+   "avg_logprob": -0.09,
+   "no_speech_prob": 0.952,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 1609.17,
+   "end": 1612.91,
+   "text": "نام تھا ٹیٹ کے نام سے اس نے مجھے میسج بیجا تھا پارٹرشپ کیلئے",
+   "avg_logprob": -0.089,
+   "no_speech_prob": 0.961,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 1612.91,
+   "end": 1616.91,
+   "text": "میں نے ایکسپٹ نہیں کی اور پھر اس کے بعد میں نے اس کو بلاک مارا",
+   "avg_logprob": -0.089,
+   "no_speech_prob": 0.961,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 1616.91,
+   "end": 1620.45,
+   "text": "اس کو رکیل کو کیونکہ سب کو نا میسج جیسے آپ نے کومنٹس لکھا",
+   "avg_logprob": -0.089,
+   "no_speech_prob": 0.961,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 1620.45,
+   "end": 1624.21,
+   "text": "نا کہ راجہ صاحب وہاں اسے یعنی آس کے تو ان کو پرائیویٹ میسج",
+   "avg_logprob": -0.089,
+   "no_speech_prob": 0.961,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 1624.21,
+   "end": 1628.75,
+   "text": "بیجتا تھا کہ راجہ صاحب چنگیز کا میٹیریل میرے پاس ہے تو میں",
+   "avg_logprob": -0.089,
+   "no_speech_prob": 0.961,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 1628.75,
+   "end": 1632.31,
+   "text": "دیتا ہوں آپ کو پیسے دیں یہ فراڈ کرتا رہا وہ میں نے فراڈ کی",
+   "avg_logprob": -0.089,
+   "no_speech_prob": 0.961,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 1632.31,
+   "end": 1635.67,
+   "text": "میں آپ سے سیکھا ہے آہ نہیں مجھ سے ڈریکٹ نہیں سیکھا لیکن میں",
+   "avg_logprob": -0.168,
+   "no_speech_prob": 0.984,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 1635.67,
+   "end": 1638.01,
+   "text": "help بہت زیادہ کرتا رہا ہوں میں اس کو مٹیریئر ویڈا دیتا",
+   "avg_logprob": -0.168,
+   "no_speech_prob": 0.984,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 1638.01,
+   "end": 1641.43,
+   "text": "رہا ہوں میں نے پھر بلاک کیا تھا اس کا ہمم تو یعنی کہ بڑا",
+   "avg_logprob": -0.168,
+   "no_speech_prob": 0.984,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 1641.43,
+   "end": 1646.41,
+   "text": "پہلے بڑے نہیں ابھی تو وہ آہ وہ سارا کچھ ہے لیکن ٹوٹل",
+   "avg_logprob": -0.168,
+   "no_speech_prob": 0.984,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 1646.41,
+   "end": 1651.27,
+   "text": "فیک ہے سارا کچھ ان کا وہ یوٹیوب پہ بیٹھ کے نا تو بروکرج",
+   "avg_logprob": -0.168,
+   "no_speech_prob": 0.984,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 1651.27,
+   "end": 1657.46,
+   "text": "اپنا بنایا ہو ہے تو بروکرج آہ میں ڈیمو کونڈ چل رہا ہے اس",
+   "avg_logprob": -0.168,
+   "no_speech_prob": 0.984,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 1657.46,
+   "end": 1660.48,
+   "text": "اس کا پتہ نہیں کتنے ملین ڈالر کا تو وہ شو کر رہا ہوتا ہے کہ",
+   "avg_logprob": -0.095,
+   "no_speech_prob": 0.968,
+   "compression_ratio": 2.31
+  },
+  {
+   "start": 1660.48,
+   "end": 1663.98,
+   "text": "لائف ہے کیونکہ اس میں تو نہیں ہوتا نا جیسے بروکر ہے آپ کا تو",
+   "avg_logprob": -0.095,
+   "no_speech_prob": 0.968,
+   "compression_ratio": 2.31
+  },
+  {
+   "start": 1663.98,
+   "end": 1667.9,
+   "text": "آپ ڈیمو کی لائف پہ کر سکتے ہو نا وہ چلا آ کے تو اس میں دکھا",
+   "avg_logprob": -0.095,
+   "no_speech_prob": 0.968,
+   "compression_ratio": 2.31
+  },
+  {
+   "start": 1667.9,
+   "end": 1672.26,
+   "text": "رہا ہوتا ہے اور ادھر بارہ مزار پونڈ کی بارہ مزار اس کے",
+   "avg_logprob": -0.095,
+   "no_speech_prob": 0.968,
+   "compression_ratio": 2.31
+  },
+  {
+   "start": 1672.26,
+   "end": 1678.08,
+   "text": "درموں تو وہ گاڑیاں بارہ نا آ کر لیتا ہے آ کھولی ہے اس نے",
+   "avg_logprob": -0.095,
+   "no_speech_prob": 0.968,
+   "compression_ratio": 2.31
+  },
+  {
+   "start": 1678.08,
+   "end": 1681.94,
+   "text": "ڈومینین مارکٹ ہے اپنا پتہ نہیں کونسی ایسے ہی کچھ کر کے",
+   "avg_logprob": -0.095,
+   "no_speech_prob": 0.968,
+   "compression_ratio": 2.31
+  },
+  {
+   "start": 1681.94,
+   "end": 1686.0,
+   "text": "بروکر ہے اس کا اس کا بھائی بھی ہے کوئی اس کا بھائی بھی کر رہا ہے",
+   "avg_logprob": -0.103,
+   "no_speech_prob": 0.969,
+   "compression_ratio": 2.35
+  },
+  {
+   "start": 1686.0,
+   "end": 1691.3,
+   "text": "پتہ نہیں لیکن یہ سارے فراڈی ہیں یہ بڑے بڑے چور ہیں میں بڑے",
+   "avg_logprob": -0.103,
+   "no_speech_prob": 0.969,
+   "compression_ratio": 2.35
+  },
+  {
+   "start": 1691.3,
+   "end": 1695.08,
+   "text": "بڑے لوگ ان کے تھو آئے ہیں اور یہ کرتے ہیں یہ دبے ہی چلے گئے",
+   "avg_logprob": -0.103,
+   "no_speech_prob": 0.969,
+   "compression_ratio": 2.35
+  },
+  {
+   "start": 1695.08,
+   "end": 1698.68,
+   "text": "میں گیا نا دبے ہی تو میں نے جب دیکھا وہاں پہ اور ہمارے ادھر",
+   "avg_logprob": -0.103,
+   "no_speech_prob": 0.969,
+   "compression_ratio": 2.35
+  },
+  {
+   "start": 1698.68,
+   "end": 1703.38,
+   "text": "رش بڑھی ہوئی ہم انڈینز اور پاکستانیوں کے ٹریڈرز ہیں تو وہ",
+   "avg_logprob": -0.103,
+   "no_speech_prob": 0.969,
+   "compression_ratio": 2.35
+  },
+  {
+   "start": 1703.38,
+   "end": 1706.92,
+   "text": "ایکسپو لگا ہوں میں گیا ہوں تو میں نے کہا یہ سارے فراڈی ہیں",
+   "avg_logprob": -0.103,
+   "no_speech_prob": 0.969,
+   "compression_ratio": 2.35
+  },
+  {
+   "start": 1706.92,
+   "end": 1710.48,
+   "text": "ہمارے ادھر پہنچے ہوئے ہیں وہ ادھر لوگوں کو نا عربیوں کو بس",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.936,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 1710.48,
+   "end": 1713.34,
+   "text": "لوٹ رہے ہیں اور کوئی آئے نہیں ہے آ یعنی کہ نا ٹیکس بچانے",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.936,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 1713.34,
+   "end": 1718.34,
+   "text": "جا رہے ہیں وہاں پانچ پرسن ٹیکس ہے نا ہوتا ہے لیکن اب کیا",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.936,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 1718.34,
+   "end": 1722.24,
+   "text": "ہوا کہ اب وہ مارے نا اس میں بم ایران نے شب آ گئے ہیں ادھر سے",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.936,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 1722.24,
+   "end": 1726.74,
+   "text": "بلڈنگوں سے اب ایران نے ان کو فارق کیا ہے سب کو تو یہ چیز ہے",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.936,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 1726.74,
+   "end": 1733.51,
+   "text": "لکھنی ہے کہ فراد بہت زیادہ کرتے ہیں آ تو اس میں یہ کہ اچھا",
+   "avg_logprob": -0.093,
+   "no_speech_prob": 0.936,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 1733.51,
+   "end": 1737.71,
+   "text": "ٹریڈر ہوتا ہے یار وہ اتنا ٹائم ہی نہیں ملتا یہ کام کرنے",
+   "avg_logprob": -0.052,
+   "no_speech_prob": 0.887,
+   "compression_ratio": 2.33
+  },
+  {
+   "start": 1737.71,
+   "end": 1742.43,
+   "text": "کے لیے میں خود بڑا تنگ پڑا ہوا تھا لیکن یہ کہ میں جو اپنا",
+   "avg_logprob": -0.052,
+   "no_speech_prob": 0.887,
+   "compression_ratio": 2.33
+  },
+  {
+   "start": 1742.43,
+   "end": 1746.43,
+   "text": "استاد تھا میرا وہ بڑا اچھا ٹریڈر تھا لیکن وہ کہتا تھا کہ",
+   "avg_logprob": -0.052,
+   "no_speech_prob": 0.887,
+   "compression_ratio": 2.33
+  },
+  {
+   "start": 1746.43,
+   "end": 1750.67,
+   "text": "اس میں فراڈ میں فراڈ بچتا ہی نہیں ہے ایک ٹریڈر اچھا ٹریڈر",
+   "avg_logprob": -0.052,
+   "no_speech_prob": 0.887,
+   "compression_ratio": 2.33
+  },
+  {
+   "start": 1750.67,
+   "end": 1755.0,
+   "text": "ہوگا نا وہ فراڈ ہی نہیں ہوگا یہ مارکیٹ کو بس بدنام کرتے",
+   "avg_logprob": -0.052,
+   "no_speech_prob": 0.887,
+   "compression_ratio": 2.33
+  },
+  {
+   "start": 1755.0,
+   "end": 1758.8,
+   "text": "رہتے ہیں وہ ابھی کرتے ہیں آپ کے جو ٹیچر سے ابھی ٹریڈ",
+   "avg_logprob": -0.052,
+   "no_speech_prob": 0.887,
+   "compression_ratio": 2.33
+  },
+  {
+   "start": 1758.8,
+   "end": 1763.24,
+   "text": "کرتے ہیں نہیں یہ ایک یاسر نام تھا جی اور آہ وہ لڑکا جو ہے",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.832,
+   "compression_ratio": 2.04
+  },
+  {
+   "start": 1763.24,
+   "end": 1767.3,
+   "text": "نا وہ یو ایس اے میں چلا گیا اور اس سے بات ہوتی رہتی لیکن اس",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.832,
+   "compression_ratio": 2.04
+  },
+  {
+   "start": 1767.3,
+   "end": 1776.05,
+   "text": "نے میرے ہن میں فورکس چھوڑ دی ہے یہ یاسر جی کے تو لاس میسج",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.832,
+   "compression_ratio": 2.04
+  },
+  {
+   "start": 1776.05,
+   "end": 1780.45,
+   "text": "میں نے بیجا ہے اس کو دوزار پچیس نتیس میں یہ یوکے میں چلا",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.832,
+   "compression_ratio": 2.04
+  },
+  {
+   "start": 1780.45,
+   "end": 1785.77,
+   "text": "گیا ہے اس سے میں نے سپلائن نمان سیکھی تھی سٹارٹ میں اور لیکن",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.832,
+   "compression_ratio": 2.04
+  },
+  {
+   "start": 1785.77,
+   "end": 1794.28,
+   "text": "یہ یعنی کہ یہ آج سے نو سال پہلے نہیں نو نہیں گیارہ سال",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.467,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 1794.28,
+   "end": 1799.73,
+   "text": "پہلے تو لیکن یہ بیسکس بڑا سمجھ تھا تھا لیکن اس کے بعد جو",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.467,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 1799.73,
+   "end": 1808.89,
+   "text": "ہے نا وہ یعنی کہ نہیں کیا اس نے چھوڑ دی تھی چھوڑ دی تھی",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.467,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 1808.89,
+   "end": 1813.63,
+   "text": "اس کی نا کیونکہ اس کے ساتھ بڑا کہتے ہیں کہ ایک معاملہ ہو",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.467,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 1813.63,
+   "end": 1818.65,
+   "text": "گیا تھا کہ یہ ٹریڈنگ کرتا رہا ہے بچارہ رات پوری لگا رہا تو اس کے",
+   "avg_logprob": -0.049,
+   "no_speech_prob": 0.595,
+   "compression_ratio": 2.25
+  },
+  {
+   "start": 1818.65,
+   "end": 1823.49,
+   "text": "دوست کا ایکسیڈنٹ ہو گیا گئی تو یہ پیسے بنائی جا رہا تھا تو ایک",
+   "avg_logprob": -0.049,
+   "no_speech_prob": 0.595,
+   "compression_ratio": 2.25
+  },
+  {
+   "start": 1823.49,
+   "end": 1827.31,
+   "text": "ہفتے سے اس نے کیا کیا کہ ٹریڈز لینی ہے دینی ہے اس نے فون بند کر",
+   "avg_logprob": -0.049,
+   "no_speech_prob": 0.595,
+   "compression_ratio": 2.25
+  },
+  {
+   "start": 1827.31,
+   "end": 1832.21,
+   "text": "دی تو وہ دوست بڑا قریبی تھا اس کا کوئی بائیک پہ ایکسیڈنٹ ہوا",
+   "avg_logprob": -0.049,
+   "no_speech_prob": 0.595,
+   "compression_ratio": 2.25
+  },
+  {
+   "start": 1832.21,
+   "end": 1836.67,
+   "text": "تو وہ کوئی اسپیٹل میں خون کی ضرورت تھی تو اس کا بھی وہ نیگیٹیو",
+   "avg_logprob": -0.049,
+   "no_speech_prob": 0.595,
+   "compression_ratio": 2.25
+  },
+  {
+   "start": 1836.67,
+   "end": 1842.84,
+   "text": "تھا تو وہ بچارہ مر گیا تو بعد میں جب ایک ہفتے بعد اس نے اس",
+   "avg_logprob": -0.049,
+   "no_speech_prob": 0.595,
+   "compression_ratio": 2.25
+  },
+  {
+   "start": 1842.84,
+   "end": 1845.96,
+   "text": "تو اس کے بھائی نے اٹھایا اس نے بتایا وہ تو مر گیا تم کہاں تھے",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.9,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 1845.96,
+   "end": 1848.92,
+   "text": "ہاں تمہیں بڑا ہی ہم نے ڈونڈا ہے گھر والوں کو اس نے کہا تھا",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.9,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 1848.92,
+   "end": 1853.86,
+   "text": "کوئی بھی آئے بتانا کہ نہیں ہے تو خیر وہ جب ہوا تو اس نے کہا",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.9,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 1853.86,
+   "end": 1856.98,
+   "text": "لانت بے جو ٹریڈنگ کو چھوڑی دیتی اس نے ٹریڈنگ چھوڑی بہت",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.9,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 1856.98,
+   "end": 1860.24,
+   "text": "دل پر لگا لیا کہ ٹریڈنگ نے میرا دوست لے لیا ہاں اس نے کہا",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.9,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 1860.24,
+   "end": 1863.38,
+   "text": "دوست لے لیا ایسے پیسے کو کیا کام کرو کہ بلڈ کی ضرورت",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.9,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 1863.38,
+   "end": 1869.06,
+   "text": "ایک اور جو دوسرا میرا استاد تھا وہ تو فوت ہو گیا وہ اس پہ لکھو",
+   "avg_logprob": -0.115,
+   "no_speech_prob": 0.996,
+   "compression_ratio": 2.28
+  },
+  {
+   "start": 1869.06,
+   "end": 1878.63,
+   "text": "گی نا آپ گوگل میں بھی مارک ڈیگلرز یہ تو بہت بڑا بندہ تھا",
+   "avg_logprob": -0.115,
+   "no_speech_prob": 0.996,
+   "compression_ratio": 2.28
+  },
+  {
+   "start": 1878.63,
+   "end": 1882.37,
+   "text": "بہت بڑا بندہ تھا یہ یوکے میں میں نے اس کے آہ یوکے میں سیکھا تھا",
+   "avg_logprob": -0.115,
+   "no_speech_prob": 0.996,
+   "compression_ratio": 2.28
+  },
+  {
+   "start": 1882.37,
+   "end": 1888.25,
+   "text": "میں نے دوزار آٹھ میں اس کے اچھا یہ دوزار چودہ میں بکس لکھتا ہے",
+   "avg_logprob": -0.115,
+   "no_speech_prob": 0.996,
+   "compression_ratio": 2.28
+  },
+  {
+   "start": 1888.25,
+   "end": 1892.49,
+   "text": "بہت بڑی آہ یہ اس کی ٹریڈنگ انڈا زون ہے اور اس میں میں مٹیریم",
+   "avg_logprob": -0.115,
+   "no_speech_prob": 0.996,
+   "compression_ratio": 2.28
+  },
+  {
+   "start": 1892.49,
+   "end": 1896.05,
+   "text": "میرے پاس ایک پڑا ہوگا آہ اس میں میں خود بھی بیٹھا ہوں اس کے",
+   "avg_logprob": -0.115,
+   "no_speech_prob": 0.996,
+   "compression_ratio": 2.28
+  },
+  {
+   "start": 1896.05,
+   "end": 1899.61,
+   "text": "پیچھے نا میں اگر ہوا تو اپ لوڈ کرنے کی کوشش کروں گا اس میں",
+   "avg_logprob": -0.091,
+   "no_speech_prob": 0.943,
+   "compression_ratio": 2.11
+  },
+  {
+   "start": 1899.61,
+   "end": 1907.28,
+   "text": "ٹریڈنگ انڈا زون وہ بھی سائیکالوجی بھی تھی یہ ہے اس میں",
+   "avg_logprob": -0.091,
+   "no_speech_prob": 0.943,
+   "compression_ratio": 2.11
+  },
+  {
+   "start": 1907.28,
+   "end": 1912.25,
+   "text": "نا ادھر میں بھی بیک سائیڈ پہ پیچھے بھی بیٹھا ہوں اس پہ",
+   "avg_logprob": -0.091,
+   "no_speech_prob": 0.943,
+   "compression_ratio": 2.11
+  },
+  {
+   "start": 1912.25,
+   "end": 1917.15,
+   "text": "بتانی نظر آ رہا ہوں اگر نہیں یہ یوکے میں تھا اور یہ یوکے",
+   "avg_logprob": -0.091,
+   "no_speech_prob": 0.943,
+   "compression_ratio": 2.11
+  },
+  {
+   "start": 1917.15,
+   "end": 1921.77,
+   "text": "میں سات زار پونٹ جمع کرائے تھے اس کے سائیکالوجی کو سمجھنے کے",
+   "avg_logprob": -0.091,
+   "no_speech_prob": 0.943,
+   "compression_ratio": 2.11
+  },
+  {
+   "start": 1921.77,
+   "end": 1927.07,
+   "text": "لیے یعنی کہ آپ لگا لیں دوزار آٹھ کی بات بتا رہا ہوں تو اس",
+   "avg_logprob": -0.091,
+   "no_speech_prob": 0.943,
+   "compression_ratio": 2.11
+  },
+  {
+   "start": 1927.07,
+   "end": 1930.33,
+   "text": "نے اس کو میں نے کہا تھا کہ مجھے سچ یہ واحد بندہ ہے کہ جس",
+   "avg_logprob": -0.067,
+   "no_speech_prob": 0.981,
+   "compression_ratio": 2.26
+  },
+  {
+   "start": 1930.33,
+   "end": 1934.13,
+   "text": "کی میں نے لارٹ سائز جو اور نہ زندگی میں بڑی دیکھی میں نے ابھی",
+   "avg_logprob": -0.067,
+   "no_speech_prob": 0.981,
+   "compression_ratio": 2.26
+  },
+  {
+   "start": 1934.13,
+   "end": 1937.95,
+   "text": "تک نہیں دیکھی یہ اتنی لارٹ سائز یوز کرتا تھا لارٹ کدھر گیا",
+   "avg_logprob": -0.067,
+   "no_speech_prob": 0.981,
+   "compression_ratio": 2.26
+  },
+  {
+   "start": 1937.95,
+   "end": 1947.33,
+   "text": "یہ اتنی اور ایک ہزار آہ ایک ہزار دس ہزار تک لے کے جاتا تھا",
+   "avg_logprob": -0.067,
+   "no_speech_prob": 0.981,
+   "compression_ratio": 2.26
+  },
+  {
+   "start": 1947.33,
+   "end": 1951.05,
+   "text": "یہ بینک کے پیسے یوز کرتا تھا اور ٹریڈ لو ٹائم فرام پہ",
+   "avg_logprob": -0.067,
+   "no_speech_prob": 0.981,
+   "compression_ratio": 2.26
+  },
+  {
+   "start": 1951.05,
+   "end": 1955.05,
+   "text": "کرتا تھا تو مجھے پھر بعد میں پتا چلا کہ یہ مارکیٹ میکرز",
+   "avg_logprob": -0.067,
+   "no_speech_prob": 0.981,
+   "compression_ratio": 2.26
+  },
+  {
+   "start": 1955.05,
+   "end": 1957.69,
+   "text": "کیسے ہوتے ہیں اور اس نے مجھے بتایا تھا کہ گورنمنٹ کے کوئی",
+   "avg_logprob": -0.073,
+   "no_speech_prob": 0.619,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 1957.69,
+   "end": 1961.75,
+   "text": "پیسے ہیں اکونٹ بھی اس کا پتہ نہیں کتنے کوئی میل ہے ون پوائنٹ",
+   "avg_logprob": -0.073,
+   "no_speech_prob": 0.619,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 1961.75,
+   "end": 1966.75,
+   "text": "نائن بلین ڈالر کا تھا اکونٹ اور میں نے اتنا بڑا نہیں اکونٹ",
+   "avg_logprob": -0.073,
+   "no_speech_prob": 0.619,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 1966.75,
+   "end": 1969.87,
+   "text": "دیکھا بعد میں دیکھیں میلینز میں تو لیکن اتنا بھی فسٹ ٹائم",
+   "avg_logprob": -0.073,
+   "no_speech_prob": 0.619,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 1969.87,
+   "end": 1974.71,
+   "text": "تھا تو جب میں نے کہا اس کو کہ آیا کہ آپ سے بھی کوئی اچھے بہتر",
+   "avg_logprob": -0.073,
+   "no_speech_prob": 0.619,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 1974.71,
+   "end": 1979.67,
+   "text": "ٹریڈر ہیں تو اس نے کہا ہیں وہ مارکیٹ میکرز ہیں اور وہ وہ",
+   "avg_logprob": -0.073,
+   "no_speech_prob": 0.619,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 1979.67,
+   "end": 1983.95,
+   "text": "والا ایک گروپ ہوتا ہے کہ جو پوری دنیا کو کنٹرول کرتا ہے تو وہ",
+   "avg_logprob": -0.072,
+   "no_speech_prob": 0.429,
+   "compression_ratio": 2.34
+  },
+  {
+   "start": 1983.95,
+   "end": 1988.57,
+   "text": "ٹریڈ کرتا ہے سپلائی انڈیمانڈ بھی پھر مجھے محسوس ہوا کہ سپلائی",
+   "avg_logprob": -0.072,
+   "no_speech_prob": 0.429,
+   "compression_ratio": 2.34
+  },
+  {
+   "start": 1988.57,
+   "end": 1992.69,
+   "text": "انڈیمانڈ جو انہوں نے بیسیکلی اس کے بقول کہ وہ کنٹرول کرتی",
+   "avg_logprob": -0.072,
+   "no_speech_prob": 0.429,
+   "compression_ratio": 2.34
+  },
+  {
+   "start": 1992.69,
+   "end": 1996.53,
+   "text": "ہے پوری مارکیٹ کو باقی جتنے بھی نیچے میتھڈز انہوں وہ ورک",
+   "avg_logprob": -0.072,
+   "no_speech_prob": 0.429,
+   "compression_ratio": 2.34
+  },
+  {
+   "start": 1996.53,
+   "end": 2001.94,
+   "text": "کر رہے ہوتی ہیں اس کے تو جو میجر چیز ہے سپلائی انڈیمانڈ ہے لیکن",
+   "avg_logprob": -0.072,
+   "no_speech_prob": 0.429,
+   "compression_ratio": 2.34
+  },
+  {
+   "start": 2001.94,
+   "end": 2005.64,
+   "text": "یہ خود بیسیکلی سپلائی انڈیمانڈ نہیں کرتا تھا یہ سائیکالوجی کو",
+   "avg_logprob": -0.073,
+   "no_speech_prob": 0.449,
+   "compression_ratio": 2.25
+  },
+  {
+   "start": 2005.64,
+   "end": 2008.96,
+   "text": "سٹرونگ کرتا تھا اس نے خود بھی رکھا ہوا تھا ٹریڈر ایک اس کا",
+   "avg_logprob": -0.073,
+   "no_speech_prob": 0.449,
+   "compression_ratio": 2.25
+  },
+  {
+   "start": 2008.96,
+   "end": 2012.48,
+   "text": "پتہ نہیں کیا نام تھا اس کا وہ بوڑا سا تھا آیا تھا ملنے کے لیے",
+   "avg_logprob": -0.073,
+   "no_speech_prob": 0.449,
+   "compression_ratio": 2.25
+  },
+  {
+   "start": 2012.48,
+   "end": 2019.12,
+   "text": "ادھر اس کو اس دور میں یہ تقریباً دو دو لاکھ ڈالر دیتا تھا وہ",
+   "avg_logprob": -0.073,
+   "no_speech_prob": 0.449,
+   "compression_ratio": 2.25
+  },
+  {
+   "start": 2019.12,
+   "end": 2023.28,
+   "text": "اس کی سائیکالوجی پہ ورک کرتا تھا وہ کہتا تھا یہ کہ جو منٹر",
+   "avg_logprob": -0.073,
+   "no_speech_prob": 0.449,
+   "compression_ratio": 2.25
+  },
+  {
+   "start": 2023.28,
+   "end": 2027.36,
+   "text": "ہے نا منٹر وہ یہ ہوتا ہے کہ آپ کی سائیکالوجی کو درست کرے",
+   "avg_logprob": -0.073,
+   "no_speech_prob": 0.449,
+   "compression_ratio": 2.25
+  },
+  {
+   "start": 2027.36,
+   "end": 2029.7,
+   "text": "یعنی آپ کی ایک بہیویر کو",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.084,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 2029.7,
+   "end": 2031.18,
+   "text": "چینج کرنے کی کوشش کریں",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.084,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 2031.18,
+   "end": 2032.68,
+   "text": "کہ کس جگہ پہ ٹرین لینی",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.084,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 2032.68,
+   "end": 2034.14,
+   "text": "کس جگہ پہ نہیں کرنی ہے",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.084,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 2034.14,
+   "end": 2036.16,
+   "text": "اور آپ کو بتائیں بہت سی چیزیں",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.084,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 2036.16,
+   "end": 2037.96,
+   "text": "آپ نے دیکھا ہوگا میں کیا کر رہا ہوتا ہوں",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.084,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 2037.96,
+   "end": 2039.9,
+   "text": "جب بات ہو رہا ہوتا ہوں میں کبھی",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.084,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 2039.9,
+   "end": 2042.56,
+   "text": "ابھی میں جیسے ریشیا کے",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.084,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 2042.56,
+   "end": 2044.86,
+   "text": "ایران کی تفصیل کے ساتھ آپ کو بتایا",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.084,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 2044.86,
+   "end": 2046.86,
+   "text": "تو یہ وہ ساری",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.084,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 2046.86,
+   "end": 2049.18,
+   "text": "اسی سے میں نے سیکھی تھی",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.084,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 2049.18,
+   "end": 2051.06,
+   "text": "کہ آپ نہ صرف وہ فورکس",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.084,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 2051.06,
+   "end": 2053.04,
+   "text": "کے علاوہ اس کے آنے والی",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.084,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 2053.04,
+   "end": 2054.66,
+   "text": "نیوز کبھی بتاؤ کہ",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.084,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 2054.66,
+   "end": 2056.68,
+   "text": "یہ چیز امپیکٹ ڈال سکتی ہے",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.435,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 2056.68,
+   "end": 2059.02,
+   "text": "یہ وجہ ہے کہ لوگ فیر فیل کرتے ہیں",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.435,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 2059.02,
+   "end": 2060.34,
+   "text": "یہ چیزیں بھی بتایا کرو",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.435,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 2060.34,
+   "end": 2062.74,
+   "text": "اور یہ سائیکالوجی میں بڑا",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.435,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 2062.74,
+   "end": 2064.8,
+   "text": "فٹ تھا یہ کینڈر سٹک پیٹرنز",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.435,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 2064.8,
+   "end": 2065.78,
+   "text": "میں تھا مائر نا",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.435,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 2065.78,
+   "end": 2067.52,
+   "text": "تو اچھا تھا اس کا",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.435,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 2067.52,
+   "end": 2070.68,
+   "text": "لیکن یہ کہ یہ کھل کے",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.435,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 2070.68,
+   "end": 2073.4,
+   "text": "بتاتے نہیں ہیں جو بڑے تھے نا",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.435,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 2073.4,
+   "end": 2074.18,
+   "text": "جیسی یہ ہے",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.435,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 2074.18,
+   "end": 2076.92,
+   "text": "یہ بیسیکلی جو خود والیم کو بھی",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.435,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 2076.92,
+   "end": 2078.76,
+   "text": "یوز کرتا تھا والیم کا بھی",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.435,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 2078.76,
+   "end": 2080.18,
+   "text": "میں نے اس سے سیکھا ہے تھوڑا بہت",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.435,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 2080.18,
+   "end": 2083.31,
+   "text": "تو یہ سیمنارز بہرہ",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.435,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 2083.31,
+   "end": 2087.23,
+   "text": "اس نے یوکے کا یہ اب فوت ہو گیا ہے اور اس کا بیٹا بھی اچھا",
+   "avg_logprob": -0.157,
+   "no_speech_prob": 0.985,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 2087.23,
+   "end": 2090.89,
+   "text": "ٹریڈر سیمینارز بھی آپ کے ویسے آپ شیئر کرتے ہیں اسٹرونز کے",
+   "avg_logprob": -0.157,
+   "no_speech_prob": 0.985,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 2090.89,
+   "end": 2094.85,
+   "text": "ساتھ یا ویسے نہیں سیمینارز تو وہ میں میں بیہ دوں گا یہ",
+   "avg_logprob": -0.157,
+   "no_speech_prob": 0.985,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 2094.85,
+   "end": 2097.53,
+   "text": "سائیکالوجی کو سمجھنے کے لیے بڑا بہتر ہے میں بیہ دوں گا آپ",
+   "avg_logprob": -0.157,
+   "no_speech_prob": 0.985,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 2097.53,
+   "end": 2102.51,
+   "text": "کو میں نے کوئی ویڈیو میرا ایسا ہے کہ میں جو بھی سیکھتا ہوں میں",
+   "avg_logprob": -0.157,
+   "no_speech_prob": 0.985,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 2102.51,
+   "end": 2107.45,
+   "text": "ہنڈر پرسنٹ ہی سیکھتا ہوں آہ نہیں بلکل اس میں نا نہیں نہیں",
+   "avg_logprob": -0.157,
+   "no_speech_prob": 0.985,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 2107.45,
+   "end": 2112.27,
+   "text": "وہ کرنا چاہیے آہ ویسے بھی کترہ کترہ کلزم ہیں اور علم جو",
+   "avg_logprob": -0.124,
+   "no_speech_prob": 0.797,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 2112.27,
+   "end": 2117.75,
+   "text": "ہے نا جہاں سے ملے وہ کالنا چاہیے بلکل ایسے یہ میرا مین",
+   "avg_logprob": -0.124,
+   "no_speech_prob": 0.797,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 2117.75,
+   "end": 2121.51,
+   "text": "ٹارگر تو یہ ہے کہ گھر والوں کو ریٹائر کروں جلدی یار نہیں",
+   "avg_logprob": -0.124,
+   "no_speech_prob": 0.797,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 2121.51,
+   "end": 2124.87,
+   "text": "نہیں اللہ کرے یار اللہ کمیاب کرے تو گھر والی ادھر پیچھے ہی",
+   "avg_logprob": -0.124,
+   "no_speech_prob": 0.797,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 2124.87,
+   "end": 2130.73,
+   "text": "ہیں پنجاب میں ہی ہیں پنجاب میں ہی ہیں تو اللہ کرے گا یار بلا",
+   "avg_logprob": -0.124,
+   "no_speech_prob": 0.797,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 2130.73,
+   "end": 2135.35,
+   "text": "لیں ان کو ادھر ہی کہتے ہیں ہمارا دل نہیں لگتا آئے تھے",
+   "avg_logprob": -0.124,
+   "no_speech_prob": 0.797,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 2135.35,
+   "end": 2139.45,
+   "text": "لیکن ان کا دل پنجام میں لگتا ہے میرا یہی ہے میں کہہ پہک مانگے انڈیا",
+   "avg_logprob": -0.115,
+   "no_speech_prob": 0.407,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 2139.45,
+   "end": 2143.41,
+   "text": "چلے جانا ہے. آہ بالکل یہ ادھر تو ویسے بھی یار ان کے آگے بڑے",
+   "avg_logprob": -0.115,
+   "no_speech_prob": 0.407,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 2143.41,
+   "end": 2146.97,
+   "text": "الہات خراب ہونے یہ وار شر سٹارٹ ہوئی نا ہمارے پھر کنٹری تھوڑے",
+   "avg_logprob": -0.115,
+   "no_speech_prob": 0.407,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 2146.97,
+   "end": 2150.05,
+   "text": "بچہ تو ہو جائیں گے ادھر برا یہ حال ہونا ہے یہ ویسے نکالیں گے",
+   "avg_logprob": -0.115,
+   "no_speech_prob": 0.407,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 2150.05,
+   "end": 2155.51,
+   "text": "ابھی آگے ابھی تو نہیں کہہ سکتے آگے بڑے الہات خراب ہوں گے کیونکہ",
+   "avg_logprob": -0.115,
+   "no_speech_prob": 0.407,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 2155.51,
+   "end": 2159.65,
+   "text": "یہ ریشیہ نکلے گا چینہ نکلے گا آگے پتہ نہیں کیا کیا ہونا ہے",
+   "avg_logprob": -0.169,
+   "no_speech_prob": 0.963,
+   "compression_ratio": 2.11
+  },
+  {
+   "start": 2159.65,
+   "end": 2165.74,
+   "text": "اچھا جی یہ لیکن یہ ڈاکومنٹس بنوا لیجئے گا ڈاکومنٹس اپنے",
+   "avg_logprob": -0.169,
+   "no_speech_prob": 0.963,
+   "compression_ratio": 2.11
+  },
+  {
+   "start": 2165.74,
+   "end": 2170.1,
+   "text": "نہ بنوا آئے گا اگر سٹوڈنٹ پی ہیں تو کسی طریقے سے اپنا وہ پی",
+   "avg_logprob": -0.169,
+   "no_speech_prob": 0.963,
+   "compression_ratio": 2.11
+  },
+  {
+   "start": 2170.1,
+   "end": 2175.64,
+   "text": "آر یہ جو بھی ایک کو کھل لیں جائیں تین ڈاٹس پہ کلک کرو گے شاید",
+   "avg_logprob": -0.169,
+   "no_speech_prob": 0.963,
+   "compression_ratio": 2.11
+  },
+  {
+   "start": 2175.64,
+   "end": 2181.57,
+   "text": "میں ابھی ہوئے رائٹ سائٹ پہ نہیں وہ اپشن کھلی چاہ رہے ہوں",
+   "avg_logprob": -0.169,
+   "no_speech_prob": 0.963,
+   "compression_ratio": 2.11
+  },
+  {
+   "start": 2181.57,
+   "end": 2186.25,
+   "text": "کو ریفریج کر رہے ہیں میرے لئے کوٹ ٹریڈنگ بھی تھی کوٹ ٹریڈنگ",
+   "avg_logprob": -0.158,
+   "no_speech_prob": 0.737,
+   "compression_ratio": 2.44
+  },
+  {
+   "start": 2186.25,
+   "end": 2190.09,
+   "text": "میڈیوم ٹریڈرز یوز کر رہے ہوتے ہیں یہ بڑا اچھا میتھڈ ہوتا ہے",
+   "avg_logprob": -0.158,
+   "no_speech_prob": 0.737,
+   "compression_ratio": 2.44
+  },
+  {
+   "start": 2190.09,
+   "end": 2194.33,
+   "text": "اس میں یہ ہوتا ہے کہ جیسے ہے نا پیپر سٹون ہو گیا آئی سی مارکیٹ",
+   "avg_logprob": -0.158,
+   "no_speech_prob": 0.737,
+   "compression_ratio": 2.44
+  },
+  {
+   "start": 2194.33,
+   "end": 2198.59,
+   "text": "ہو گیا ہاں جی اس میں لوگ ٹریڈ کر رہے ہیں نا اس میں مارکیٹ میکرز",
+   "avg_logprob": -0.158,
+   "no_speech_prob": 0.737,
+   "compression_ratio": 2.44
+  },
+  {
+   "start": 2198.59,
+   "end": 2201.51,
+   "text": "بھی ٹریڈ کر رہے ہوتے ہیں نارویڈ ٹریڈرز بھی اور میڈیوم ٹریڈرز",
+   "avg_logprob": -0.158,
+   "no_speech_prob": 0.737,
+   "compression_ratio": 2.44
+  },
+  {
+   "start": 2201.51,
+   "end": 2205.97,
+   "text": "بھی اور ایکسچینجرز بھی ان کو پتا ہوتا ہے کہ مارکیٹ میکرز",
+   "avg_logprob": -0.096,
+   "no_speech_prob": 0.871,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 2205.97,
+   "end": 2210.05,
+   "text": "نے یورو یو سٹی ڈالر سیل کی ہے یا بائی کی ہے یہ اپنی خوشیہ",
+   "avg_logprob": -0.096,
+   "no_speech_prob": 0.871,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 2210.05,
+   "end": 2215.99,
+   "text": "انفرمیشن کیا نام تھا ہے سی سی ایسٹی امریکہ کے دارہ ہے اس",
+   "avg_logprob": -0.096,
+   "no_speech_prob": 0.871,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 2215.99,
+   "end": 2220.09,
+   "text": "کو جمع کرواتے ہیں یہ جو یہ ولایت دارہ ہے کیا نام تھا",
+   "avg_logprob": -0.096,
+   "no_speech_prob": 0.871,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 2220.09,
+   "end": 2227.65,
+   "text": "کومیٹیٹیز آ یہ کمیٹمنٹ آف ٹریڈرز کے نام تھا سی ایف",
+   "avg_logprob": -0.096,
+   "no_speech_prob": 0.871,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 2227.65,
+   "end": 2232.77,
+   "text": "ٹی فری ٹھیک ہے جو بروکر ہے نا وہ یو ایس کی گورنمنٹ",
+   "avg_logprob": -0.096,
+   "no_speech_prob": 0.871,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 2232.77,
+   "end": 2237.37,
+   "text": "کے جو اپنے ٹریڈرز ہیں جو ٹریڈ کرتے ہیں یا ان کے جو پیسہ",
+   "avg_logprob": -0.066,
+   "no_speech_prob": 0.337,
+   "compression_ratio": 2.38
+  },
+  {
+   "start": 2237.37,
+   "end": 2243.17,
+   "text": "بنانے والی شیئرز مارکیٹ ہے اس میں جو مارکیٹ میکر سے جو جن",
+   "avg_logprob": -0.066,
+   "no_speech_prob": 0.337,
+   "compression_ratio": 2.38
+  },
+  {
+   "start": 2243.17,
+   "end": 2248.29,
+   "text": "کا پیسہ جن دیا ہوتا ہے بڑے بڑے انویسٹروں نے ان کو یہ آفر",
+   "avg_logprob": -0.066,
+   "no_speech_prob": 0.337,
+   "compression_ratio": 2.38
+  },
+  {
+   "start": 2248.29,
+   "end": 2252.57,
+   "text": "دیتے ہیں کہ آپ جو ہے نا مارکیٹ میکرز کے ساتھ ٹریڈ کرو",
+   "avg_logprob": -0.066,
+   "no_speech_prob": 0.337,
+   "compression_ratio": 2.38
+  },
+  {
+   "start": 2252.57,
+   "end": 2257.83,
+   "text": "ٹھیک ہے اب جو مارکیٹ میکر ہے نا ٹھیک ہے ایک چیز کو یاد رکھے",
+   "avg_logprob": -0.066,
+   "no_speech_prob": 0.337,
+   "compression_ratio": 2.38
+  },
+  {
+   "start": 2257.83,
+   "end": 2260.95,
+   "text": "کہ ایک ہوتی ہے اسٹیبلشمنٹ نا وہ بڑی ہوتی ہے ٹھیک ہے اس کے",
+   "avg_logprob": -0.066,
+   "no_speech_prob": 0.337,
+   "compression_ratio": 2.38
+  },
+  {
+   "start": 2260.95,
+   "end": 2265.05,
+   "text": "پھر کنٹرول میں آگے ہوتی ہے آپ کے ممالک ہوتے ہیں اور جو یو ایسے",
+   "avg_logprob": -0.05,
+   "no_speech_prob": 0.477,
+   "compression_ratio": 2.33
+  },
+  {
+   "start": 2265.05,
+   "end": 2268.25,
+   "text": "اور یہ اس طرح کے بڑے کنٹریز ہیں نا اس میں جو کنٹرول کرتے ہیں",
+   "avg_logprob": -0.05,
+   "no_speech_prob": 0.477,
+   "compression_ratio": 2.33
+  },
+  {
+   "start": 2268.25,
+   "end": 2272.43,
+   "text": "نا وہ بیسیکلی آہ بڑی کمپنیز کرتی ہیں وہ بڑی کمپنی کون سے",
+   "avg_logprob": -0.05,
+   "no_speech_prob": 0.477,
+   "compression_ratio": 2.33
+  },
+  {
+   "start": 2272.43,
+   "end": 2276.73,
+   "text": "جو اسلحہ بنانے والی ہوتی ہے اور یہ پریشان کرتی ہیں آپ جنگیں",
+   "avg_logprob": -0.05,
+   "no_speech_prob": 0.477,
+   "compression_ratio": 2.33
+  },
+  {
+   "start": 2276.73,
+   "end": 2279.61,
+   "text": "بھی کرو اور اسلحہ بھی یوزو وہ انڈیا کو بھی دے رہے ہوتے ہیں",
+   "avg_logprob": -0.05,
+   "no_speech_prob": 0.477,
+   "compression_ratio": 2.33
+  },
+  {
+   "start": 2279.61,
+   "end": 2281.99,
+   "text": "پاکستان کو بھی دے رہے ہوں انہوں نے اسلحہ بیچنا ہے ان کو جنگیں",
+   "avg_logprob": -0.05,
+   "no_speech_prob": 0.477,
+   "compression_ratio": 2.33
+  },
+  {
+   "start": 2281.99,
+   "end": 2285.53,
+   "text": "چاہیے پھر اس کے بعد جو سیکنڈ ہوتی ہے نا وہ ہوتی ہے ریل سٹیٹ",
+   "avg_logprob": -0.057,
+   "no_speech_prob": 0.406,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 2285.53,
+   "end": 2289.41,
+   "text": "وزنس والے لیکن وہ سامنے فوڈ کا کاری ہوتے ہیں جیسے آپ کا جو",
+   "avg_logprob": -0.057,
+   "no_speech_prob": 0.406,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 2289.41,
+   "end": 2293.43,
+   "text": "میک ڈونلڈ ہے نا کیف سی ہے نا یہ ہمیں لگ رہا ہے کہ فوڈ کا کام",
+   "avg_logprob": -0.057,
+   "no_speech_prob": 0.406,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 2293.43,
+   "end": 2297.81,
+   "text": "ہے لیکن یہ بیسیکلی ریل سٹیٹ وزنس ہے ان کا جہاں بھی یہ بنتا",
+   "avg_logprob": -0.057,
+   "no_speech_prob": 0.406,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 2297.81,
+   "end": 2301.65,
+   "text": "ہے نا تو یہ گورنمنٹ کے ساتھ ایک کنٹریکٹ سائن کرتا ہے وہ کہتا",
+   "avg_logprob": -0.057,
+   "no_speech_prob": 0.406,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 2301.65,
+   "end": 2306.3,
+   "text": "ہے کہ یہ جو ایریا ہے جو ہم لیں گے وہ ہمارا ہی رہے گا اگر",
+   "avg_logprob": -0.057,
+   "no_speech_prob": 0.406,
+   "compression_ratio": 2.18
+  },
+  {
+   "start": 2306.3,
+   "end": 2310.56,
+   "text": "کل کے ایف سی بند ہو جائے پوری دنیا میں تو ان کے پاس لینڈ",
+   "avg_logprob": -0.049,
+   "no_speech_prob": 0.927,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 2310.56,
+   "end": 2313.66,
+   "text": "اتنی زیادہ ہے وہ لینڈ آپ نے دیکھا ہوگا کے ایف سی جہاں پہ",
+   "avg_logprob": -0.049,
+   "no_speech_prob": 0.927,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 2313.66,
+   "end": 2316.94,
+   "text": "انڈیا میں بنے گا پاکستان میں بنے گا اس ایریے کی پرائزز",
+   "avg_logprob": -0.049,
+   "no_speech_prob": 0.927,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 2316.94,
+   "end": 2321.34,
+   "text": "ہائی ہو جاتی ہیں ریل سٹیٹ تو یہ بسیکلی ریل سٹیٹ کا بزنس",
+   "avg_logprob": -0.049,
+   "no_speech_prob": 0.927,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 2321.34,
+   "end": 2324.98,
+   "text": "ہے بیک سائیڈ پہ اب یہ جو بڑے کمپنیز ہیں یہ ٹیکس بھی",
+   "avg_logprob": -0.049,
+   "no_speech_prob": 0.927,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 2324.98,
+   "end": 2328.78,
+   "text": "بہت زیادہ دیتی ہیں گورنمنٹ کو تو گورنمنٹ ان کو فسیلٹی",
+   "avg_logprob": -0.049,
+   "no_speech_prob": 0.927,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 2328.78,
+   "end": 2333.76,
+   "text": "دیتی ہے کہ جو ٹریڈز گورنمنٹ اپنے بینکس میں لیتی ہے جو مارکیٹ",
+   "avg_logprob": -0.038,
+   "no_speech_prob": 0.367,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 2333.76,
+   "end": 2337.68,
+   "text": "میکرز آگے ٹریڈ کر رہے ہوتے ہیں بینکس کے یا دوسرے تو وہ جو",
+   "avg_logprob": -0.038,
+   "no_speech_prob": 0.367,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 2337.68,
+   "end": 2341.74,
+   "text": "ہے نا وہ خفیہ رپورٹ جو ہے نا انہیں بروکر کو کہا گیا ہے کہ ہمیں",
+   "avg_logprob": -0.038,
+   "no_speech_prob": 0.367,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 2341.74,
+   "end": 2346.39,
+   "text": "جو ہے نا آپ جمع کروایا کریں کہ وہ لے کہاں پہ رہے پھر وہ",
+   "avg_logprob": -0.038,
+   "no_speech_prob": 0.367,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 2346.39,
+   "end": 2349.69,
+   "text": "گورنمنٹ کیا کرتی ہے یہ والا دارہ کیا کرتا ہے ان ٹریڈرز کو",
+   "avg_logprob": -0.038,
+   "no_speech_prob": 0.367,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 2349.69,
+   "end": 2353.75,
+   "text": "دیتا ہے جو پرائیوٹ بڑی بڑی کمپنیز کے مالک ہوتے کیونکہ وہ",
+   "avg_logprob": -0.038,
+   "no_speech_prob": 0.367,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 2353.75,
+   "end": 2356.89,
+   "text": "ان کے یہ ہوتا ہے کہ میں آپ کو پیسے دوں گا لیکن میرا نقصان نہیں",
+   "avg_logprob": -0.056,
+   "no_speech_prob": 0.754,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 2356.89,
+   "end": 2360.97,
+   "text": "ہونا چاہیے جو ٹریڈر ہوتا ہے وہ دنیا کا کتنا بڑا ٹریڈر کیوں",
+   "avg_logprob": -0.056,
+   "no_speech_prob": 0.754,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 2360.97,
+   "end": 2365.29,
+   "text": "نہ ہو مارکیٹ جو کہ سنٹرائز جو نہیں ہے نا ڈی سنٹرائز ہے نا",
+   "avg_logprob": -0.056,
+   "no_speech_prob": 0.754,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 2365.29,
+   "end": 2369.55,
+   "text": "یعنی کہ ہر ایک شخص ہی یوز کر رہا ہے نا ٹھیک ہے وہ کنٹرول نہیں",
+   "avg_logprob": -0.056,
+   "no_speech_prob": 0.754,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 2369.55,
+   "end": 2372.93,
+   "text": "ہے کسی کے پاس آفیس نہیں ہے تو وہ بھی نقصان اٹھا لیتے ہیں مارکیٹ",
+   "avg_logprob": -0.056,
+   "no_speech_prob": 0.754,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 2372.93,
+   "end": 2376.97,
+   "text": "میکرز بھی لیکن یہ جو بڑے کمپنیز ہوتی ہیں یہ نہیں نقصان",
+   "avg_logprob": -0.056,
+   "no_speech_prob": 0.754,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 2376.97,
+   "end": 2380.75,
+   "text": "اٹھاتی پھر کیا ہوتا ہے کہ جو بروکر ہوتا ہے وہ خفیہ رپورٹ",
+   "avg_logprob": -0.053,
+   "no_speech_prob": 0.746,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 2380.75,
+   "end": 2385.67,
+   "text": "یعنی کہ اس نے بائی کیا ہوا ہے سیل کیا ہوا ہے وہ جمع کرواتا",
+   "avg_logprob": -0.053,
+   "no_speech_prob": 0.746,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 2385.67,
+   "end": 2389.73,
+   "text": "ہے اس ادارے کو ٹھیک ہے یہ ادارہ وہ رپورٹ جو ہے نا ان کو دے",
+   "avg_logprob": -0.053,
+   "no_speech_prob": 0.746,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 2389.73,
+   "end": 2393.61,
+   "text": "دیتا ہے وہ ٹریٹ کرتے ہیں پھر جو پبلک اب چونکہ ان پہ پھر",
+   "avg_logprob": -0.053,
+   "no_speech_prob": 0.746,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 2393.61,
+   "end": 2396.79,
+   "text": "کیس بن گیا تھا کہ آپ لوگ تو خفیہ رپورٹ دے رہے تو آپ",
+   "avg_logprob": -0.053,
+   "no_speech_prob": 0.746,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 2396.79,
+   "end": 2399.79,
+   "text": "ریٹیلرز کو ہنٹ کرنے کوشش کر رہے ہو انہوں نے کہا نہیں جی",
+   "avg_logprob": -0.053,
+   "no_speech_prob": 0.746,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 2399.79,
+   "end": 2403.91,
+   "text": "ہم ریٹیلرز کو بھی دیا کریں گے لیکن ہر ہفتے کے انڈ پہ فرائیڈے",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.853,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 2403.91,
+   "end": 2408.77,
+   "text": "والے دن ٹھیک ہے یہ فرائیڈے والے دن اپنی رپورٹ کو شائع کر دیتے",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.853,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 2408.77,
+   "end": 2413.83,
+   "text": "یا ایک ان کے سروس ملتی ہے کوئی جو بھی ان کے وہ یہ دیکھے نا",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.853,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 2413.83,
+   "end": 2418.27,
+   "text": "ویکلی سویپ رپورٹ ٹھیک ہے اب جو کوئی فنڈیمنٹر ٹریڈر ہے وہ",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.853,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 2418.27,
+   "end": 2422.21,
+   "text": "تو سمجھ لے جائے گا یہ والا تو یہ والی جو انہیں رپورٹس جب ملتی",
+   "avg_logprob": -0.088,
+   "no_speech_prob": 0.853,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 2422.21,
+   "end": 2426.65,
+   "text": "ہیں تو یہ کوٹ ٹریڈنگ والے جو ہے نا اس کو یوز کر کے نا آگے فیوچر",
+   "avg_logprob": -0.081,
+   "no_speech_prob": 0.767,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 2426.65,
+   "end": 2431.7,
+   "text": "کی پریڈکٹ کرنے کی کوشش کر رہے ہوتے ہیں اب کیا ہوتا ہے کہ فرائیڈے",
+   "avg_logprob": -0.081,
+   "no_speech_prob": 0.767,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 2431.7,
+   "end": 2437.64,
+   "text": "والے دن یہ شائع کرتے ہیں اب فرائیڈے اسے میزی کلوزنگ ڈے",
+   "avg_logprob": -0.081,
+   "no_speech_prob": 0.767,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 2437.64,
+   "end": 2441.88,
+   "text": "ٹھیک ہے اب کیا ہوتا ہے کہ وہ ایک دن آپ کو فرائیڈے کا ملتا ہے",
+   "avg_logprob": -0.081,
+   "no_speech_prob": 0.767,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 2441.88,
+   "end": 2445.28,
+   "text": "منڈے کا ملتا ہے پھر زیادی باتوں کو چینج ہو جاتی ہے نیو ریپورٹ",
+   "avg_logprob": -0.081,
+   "no_speech_prob": 0.767,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 2445.28,
+   "end": 2448.94,
+   "text": "جاتی ہے یعنی کہ ایک دن یہ ریٹیلرز کو دیتے ہیں تھوڑا بہت سمجھ",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.845,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 2448.94,
+   "end": 2454.4,
+   "text": "لو یہ چیز ہے لیکن اس پہ جو اس کے اوپر جو کنٹرول کرتا ہے وہ سپلائی",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.845,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 2454.4,
+   "end": 2457.1,
+   "text": "انڈیمانڈ سپلائی انڈیمانڈ کا یہ ہوتا ہے کہ آپ کا نیو زون بن جاتا",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.845,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 2457.1,
+   "end": 2461.96,
+   "text": "ہے لیکن کوٹ ٹریڈنگ بھی ویلیڈ ہوتی ہے اور اس کے یعنی کہ آپ دے",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.845,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 2461.96,
+   "end": 2468.26,
+   "text": "کے اور ان کے سویپ انٹرس دے کے اس میں آپ جو ہے نا اس میں ڈیٹا نکال",
+   "avg_logprob": -0.098,
+   "no_speech_prob": 0.845,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 2468.26,
+   "end": 2471.56,
+   "text": "لیتے ہو یہ جتنا بھی ہے نا ڈیٹا ٹھیک ہے یہ آپ کو بتا دیتا ہے",
+   "avg_logprob": -0.108,
+   "no_speech_prob": 0.739,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 2471.56,
+   "end": 2475.82,
+   "text": "کہ آہ یعنی کہ فکس فلوٹ کتنا یہ سارا کو جینا اس میں پھر وہ",
+   "avg_logprob": -0.108,
+   "no_speech_prob": 0.739,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 2475.82,
+   "end": 2479.36,
+   "text": "میتھڈ ہے وہ پراپری آپ ریڈ کر کے نا پریڈکٹ کر سکتے ہو یہ",
+   "avg_logprob": -0.108,
+   "no_speech_prob": 0.739,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 2479.36,
+   "end": 2484.56,
+   "text": "کوٹ ٹریڈنگ میڈیم ٹریڈر یوز کرتے ہیں جو مارکیٹ میکرز ہیں",
+   "avg_logprob": -0.108,
+   "no_speech_prob": 0.739,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 2484.56,
+   "end": 2488.34,
+   "text": "وہ سپلائن ڈیمان پھر میڈیم ٹریڈر جو درمیان میں بینکس کے",
+   "avg_logprob": -0.108,
+   "no_speech_prob": 0.739,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 2488.34,
+   "end": 2492.36,
+   "text": "ٹریڈرز ہیں وہ کوٹ ٹریڈنگ کرتے ہیں ڈیٹا کو دیکھتے ہیں شیئرز",
+   "avg_logprob": -0.089,
+   "no_speech_prob": 0.79,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 2492.36,
+   "end": 2495.18,
+   "text": "مارکیٹ میں وہ ٹریڈ کر جاتے ہیں لیکن فورکس میں وہ کمیاب نہیں",
+   "avg_logprob": -0.089,
+   "no_speech_prob": 0.79,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 2495.18,
+   "end": 2499.56,
+   "text": "ہوتے کیونکہ فورکس کا ڈیٹا اتنا آہ یعنی کہ وہ فورکس مارکیٹ",
+   "avg_logprob": -0.089,
+   "no_speech_prob": 0.79,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 2499.56,
+   "end": 2503.46,
+   "text": "موو بہت جلتی کرتی ہے نا لیکن یہ شیئرز مارکیٹ کو بڑے اچھے سے",
+   "avg_logprob": -0.089,
+   "no_speech_prob": 0.79,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 2503.46,
+   "end": 2506.82,
+   "text": "کنٹرول کرتے ہیں اگر شیئرز پہ کسی نے ٹریڈ کرنا ہو اس سے بیس",
+   "avg_logprob": -0.089,
+   "no_speech_prob": 0.79,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 2506.82,
+   "end": 2511.5,
+   "text": "کوئی چیز نہیں ہے کوٹ ریڈنگ ہے تو پھر آہ باقی جو جتنے بھی ہیں",
+   "avg_logprob": -0.138,
+   "no_speech_prob": 0.925,
+   "compression_ratio": 2.11
+  },
+  {
+   "start": 2511.5,
+   "end": 2514.98,
+   "text": "ریٹیلرز ٹریڈر نیچے آ جاتے ہیں وہ سارے جتنے بھی ہم میسٹڈ",
+   "avg_logprob": -0.138,
+   "no_speech_prob": 0.925,
+   "compression_ratio": 2.11
+  },
+  {
+   "start": 2514.98,
+   "end": 2520.62,
+   "text": "یوز کرتے ہیں وہ پرائز ایکشن سے لے کے تک ٹھیک ہے یہ آپ سکھاتے",
+   "avg_logprob": -0.138,
+   "no_speech_prob": 0.925,
+   "compression_ratio": 2.11
+  },
+  {
+   "start": 2520.62,
+   "end": 2524.94,
+   "text": "ہو کوٹ بھی نہیں اب نہیں میں یہ یوز کی ہوئے میں نے دیکھا ہے یہ",
+   "avg_logprob": -0.138,
+   "no_speech_prob": 0.925,
+   "compression_ratio": 2.11
+  },
+  {
+   "start": 2524.94,
+   "end": 2528.36,
+   "text": "وقت کا ضیا ہوتا تھا کیونکہ اس میں رپورٹ یہ کئی دفعہ شائع نہیں",
+   "avg_logprob": -0.138,
+   "no_speech_prob": 0.925,
+   "compression_ratio": 2.11
+  },
+  {
+   "start": 2528.36,
+   "end": 2532.38,
+   "text": "کرتے اور آپ کے آپ ویٹ کر رہے ہوتے رپورٹ کا رپورٹ آپ کو وقت",
+   "avg_logprob": -0.138,
+   "no_speech_prob": 0.925,
+   "compression_ratio": 2.11
+  },
+  {
+   "start": 2532.38,
+   "end": 2535.2,
+   "text": "پہ نہیں ملتی ہے تھوڑا بہت مارجن مل جاتا ہے ٹریڈ کرنے کا لیکن",
+   "avg_logprob": -0.161,
+   "no_speech_prob": 0.931,
+   "compression_ratio": 1.95
+  },
+  {
+   "start": 2535.2,
+   "end": 2538.5,
+   "text": "ابھی لوگ کرتے ہیں کچھ لیکن میں نے کوئی بارہ چودہ method پہلے",
+   "avg_logprob": -0.161,
+   "no_speech_prob": 0.931,
+   "compression_ratio": 1.95
+  },
+  {
+   "start": 2538.5,
+   "end": 2542.28,
+   "text": "سیکھے ہوئے تھے یہ اچھا تو میں نے پھر ابھی ان کو چھوڑا ملکا",
+   "avg_logprob": -0.161,
+   "no_speech_prob": 0.931,
+   "compression_ratio": 1.95
+  },
+  {
+   "start": 2542.28,
+   "end": 2545.64,
+   "text": "میں ان چیزوں کو میں اپنا نہیں کوشش کروں یہ جتنے بھی ہیں نا",
+   "avg_logprob": -0.161,
+   "no_speech_prob": 0.931,
+   "compression_ratio": 1.95
+  },
+  {
+   "start": 2545.64,
+   "end": 2550.56,
+   "text": "course اب آ یہ دیکھیں اس میں یہ میں نے buy کیے تھے اس وقت پیسوں",
+   "avg_logprob": -0.161,
+   "no_speech_prob": 0.931,
+   "compression_ratio": 1.95
+  },
+  {
+   "start": 2550.56,
+   "end": 2557.88,
+   "text": "کے نا اب کھل جائے یہ میری drive بہت heavy ہیں وہ دو دو دی پی",
+   "avg_logprob": -0.161,
+   "no_speech_prob": 0.931,
+   "compression_ratio": 1.95
+  },
+  {
+   "start": 2557.88,
+   "end": 2567.54,
+   "text": "کی تیٹی جی آہ ٹریڈنگ ٹریڈ ٹریننگ آہ یہ جو ہے نا یہ آنفانسو",
+   "avg_logprob": -0.157,
+   "no_speech_prob": 0.954,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 2567.54,
+   "end": 2570.66,
+   "text": "کی بھی پرانی ویڈیو پیڑی ہوئی ہیں اس وقت نا کسی نے بیجی تھی",
+   "avg_logprob": -0.157,
+   "no_speech_prob": 0.954,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 2570.66,
+   "end": 2575.46,
+   "text": "اسے فائیو ڈے ٹریڈنگ ایک ویڈیو تھی یہ آرڈر فلو یہ دیکھا",
+   "avg_logprob": -0.157,
+   "no_speech_prob": 0.954,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 2575.46,
+   "end": 2580.44,
+   "text": "نا پچ فورٹ بیسکس پرائز ایکشن اور یہ سارے پیسوں سے لیے ہوئے",
+   "avg_logprob": -0.157,
+   "no_speech_prob": 0.954,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 2580.44,
+   "end": 2583.62,
+   "text": "اس میں ایک دو چیزیں ہیں جو یہ فری میں ہیں لڑکوں کے بیجی تھی اس",
+   "avg_logprob": -0.157,
+   "no_speech_prob": 0.954,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 2583.62,
+   "end": 2587.7,
+   "text": "یہ ہے یہ فری میں آیا تھا یہ ویسے والیم ہو گیا کلب ہو گیا وی پی اے",
+   "avg_logprob": -0.169,
+   "no_speech_prob": 0.842,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 2587.7,
+   "end": 2591.3,
+   "text": "ہو گیا ٹریڈنگ مارسنگ گلفنگ کے اندر سوارا اچھا اس کے علاوہ بھی",
+   "avg_logprob": -0.169,
+   "no_speech_prob": 0.842,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 2591.3,
+   "end": 2595.14,
+   "text": "اتنا وہ ڈیٹا پڑا ہوا ہے پتہ نہیں کتنا تو یہ اس وقت لیتا رہوں",
+   "avg_logprob": -0.169,
+   "no_speech_prob": 0.842,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 2595.14,
+   "end": 2599.76,
+   "text": "پیسوں کا لیکن اس میں کیا تھا نائنٹی نائن پرسن فیکڈ کو چیزیں",
+   "avg_logprob": -0.169,
+   "no_speech_prob": 0.842,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 2599.76,
+   "end": 2603.66,
+   "text": "کام ہی نہیں کرتی ساری بک بک کیے ہوئے انہوں نے آ یعنی کہ",
+   "avg_logprob": -0.169,
+   "no_speech_prob": 0.842,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 2603.66,
+   "end": 2607.14,
+   "text": "تھیورٹیکلی اتنے لمبے کورس کیے ہوئے ہیں چیز کو کام کی ہوتی",
+   "avg_logprob": -0.169,
+   "no_speech_prob": 0.842,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 2607.14,
+   "end": 2612.24,
+   "text": "نہیں ہے رولز بتاتے نہیں ہیں صحیح تو وہ سارا پتہ ہے یہ ویڈیو سے کوئی",
+   "avg_logprob": -0.201,
+   "no_speech_prob": 0.994,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 2612.24,
+   "end": 2618.61,
+   "text": "نہیں سیکھتا چیکس نو یہ چیز ہے لیکن یہ ایک کوٹ فریڈنگ ہے میں آپ کو یہ",
+   "avg_logprob": -0.201,
+   "no_speech_prob": 0.994,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 2618.61,
+   "end": 2628.66,
+   "text": "پڑا ہوئے ٹھہریں دیتا ہوں آپ جتنا بھی ابھی تک میں نے سیکھا آپ سے سارا",
+   "avg_logprob": -0.201,
+   "no_speech_prob": 0.994,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 2628.66,
+   "end": 2633.22,
+   "text": "کام کر رہا ہے لیکن میری سیکالوجی ایسے ہو جاتی ہے میں ایموشن فومو آ",
+   "avg_logprob": -0.201,
+   "no_speech_prob": 0.994,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 2633.22,
+   "end": 2637.12,
+   "text": "جاتا ہوں میں مس کر رہا ہوں پہلے ٹریڈ لیتا ہوں یا بہت اردی لیتا ہوں",
+   "avg_logprob": -0.201,
+   "no_speech_prob": 0.994,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 2637.12,
+   "end": 2641.54,
+   "text": "نہیں نہیں وہ جب آپ میں سیشنز ابھی کریں گے میں نرسیس سیشنز",
+   "avg_logprob": -0.076,
+   "no_speech_prob": 0.668,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 2641.54,
+   "end": 2645.7,
+   "text": "کریں گے نا تو پھر آپ نے کیا کرنا ہے کہ اس میں پریکٹیس کرنی",
+   "avg_logprob": -0.076,
+   "no_speech_prob": 0.668,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 2645.7,
+   "end": 2649.3,
+   "text": "ہے پھر میں آپ کا خود ورک دیکھوں گا وہ چیز پتہ چل جائے گی",
+   "avg_logprob": -0.076,
+   "no_speech_prob": 0.668,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 2649.3,
+   "end": 2653.08,
+   "text": "کس چیز میں بھی کہ ہم اس میں ڈسکس کریں گے تو اس میں میں شیئر",
+   "avg_logprob": -0.076,
+   "no_speech_prob": 0.668,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 2653.08,
+   "end": 2655.62,
+   "text": "کروں گا سکرین پھر آپ دیکھیں گے میری ٹیٹس آ جی جی",
+   "avg_logprob": -0.076,
+   "no_speech_prob": 0.668,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 2655.62,
+   "end": 2660.42,
+   "text": "بلکل بلکل یہ میری ہمیں ڈی جی صاحب کی تھی نا یہ انڈیا کے",
+   "avg_logprob": -0.076,
+   "no_speech_prob": 0.668,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 2660.42,
+   "end": 2662.44,
+   "text": "اس نے کلپ شیئر کیا اور نیچے لکھا ہے",
+   "avg_logprob": -0.078,
+   "no_speech_prob": 0.037,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 2662.44,
+   "end": 2664.38,
+   "text": "کہ ٹرمپ کا ایران پر حملہ",
+   "avg_logprob": -0.078,
+   "no_speech_prob": 0.037,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 2664.38,
+   "end": 2665.88,
+   "text": "انڈیا میڈیا کا موقف",
+   "avg_logprob": -0.078,
+   "no_speech_prob": 0.037,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 2665.88,
+   "end": 2668.5,
+   "text": "سوال یہ ہے کہ کیا پاکستان بھی",
+   "avg_logprob": -0.078,
+   "no_speech_prob": 0.037,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 2668.5,
+   "end": 2670.64,
+   "text": "اسی طرح اوپنلی بات کر سکتا ہے",
+   "avg_logprob": -0.078,
+   "no_speech_prob": 0.037,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 2670.64,
+   "end": 2671.46,
+   "text": "انڈیا کے خلاف",
+   "avg_logprob": -0.078,
+   "no_speech_prob": 0.037,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 2671.46,
+   "end": 2673.32,
+   "text": "یعنی کہ انڈیا کے تریف کر رہے دوست",
+   "avg_logprob": -0.078,
+   "no_speech_prob": 0.037,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 2673.32,
+   "end": 2675.42,
+   "text": "یہ کیا نام ہے",
+   "avg_logprob": -0.078,
+   "no_speech_prob": 0.037,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 2675.42,
+   "end": 2678.58,
+   "text": "یعنی کہ ہمارے جو ادھر اس طرح ہوتا ہے",
+   "avg_logprob": -0.078,
+   "no_speech_prob": 0.037,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 2678.58,
+   "end": 2680.56,
+   "text": "جیسے ڈی جی صاحب",
+   "avg_logprob": -0.078,
+   "no_speech_prob": 0.037,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 2680.56,
+   "end": 2682.56,
+   "text": "ان کی ویڈیوز آتی رہتی ہیں",
+   "avg_logprob": -0.078,
+   "no_speech_prob": 0.037,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 2682.56,
+   "end": 2683.52,
+   "text": "ہم دیکھتے ہیں سارے",
+   "avg_logprob": -0.078,
+   "no_speech_prob": 0.037,
+   "compression_ratio": 2.0
+  },
+  {
+   "start": 2683.52,
+   "end": 2687.2,
+   "text": "نا یعنی کہ وہ پتہ چل جاتے کہ یہ صحیح ہے غلط ہے تو ہم اس کو",
+   "avg_logprob": -0.058,
+   "no_speech_prob": 0.486,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 2687.2,
+   "end": 2691.36,
+   "text": "کرتے ہیں یعنی کہ بڑا پریز کرتے ہیں تو اس نے لکھا ہے کہ پاکستان",
+   "avg_logprob": -0.058,
+   "no_speech_prob": 0.486,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 2691.36,
+   "end": 2695.36,
+   "text": "بھی ہے یعنی کہ پاکستان کنٹرول ہے نا یو ایس اے کا تو یہ اس",
+   "avg_logprob": -0.058,
+   "no_speech_prob": 0.486,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 2695.36,
+   "end": 2698.48,
+   "text": "چیز پہ لگا ہوا ہے کہہ رہا ہے کہ یہ پاکستان میں اتنی بھی",
+   "avg_logprob": -0.058,
+   "no_speech_prob": 0.486,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 2698.48,
+   "end": 2703.88,
+   "text": "ازادی ہے تو کہہ رہا ہے یہ چیز ہے ابھی نیچے جا رہی ہے تو آپ",
+   "avg_logprob": -0.058,
+   "no_speech_prob": 0.486,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 2703.88,
+   "end": 2707.34,
+   "text": "نے سیل کر سکتے ہیں ڈیلی تھائنگ فریم کی یہ بڑی ٹریڈ اگر",
+   "avg_logprob": -0.058,
+   "no_speech_prob": 0.486,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 2707.34,
+   "end": 2714.04,
+   "text": "ملتی ہے تو اس کو ٹریٹ کرنی ملتی ہے اوپر جائے مارکی تو پھر",
+   "avg_logprob": -0.11,
+   "no_speech_prob": 0.984,
+   "compression_ratio": 2.25
+  },
+  {
+   "start": 2714.04,
+   "end": 2719.18,
+   "text": "آپ سیل کر لیں گے ٹھیک ہے اور کوئی کوئی سن ہے تو آپ بتا",
+   "avg_logprob": -0.11,
+   "no_speech_prob": 0.984,
+   "compression_ratio": 2.25
+  },
+  {
+   "start": 2719.18,
+   "end": 2726.22,
+   "text": "سکتے ہیں کوئی سن بس یہ ہے کہ بس ابھی سیکھے ایسے لگ رہا ہے",
+   "avg_logprob": -0.11,
+   "no_speech_prob": 0.984,
+   "compression_ratio": 2.25
+  },
+  {
+   "start": 2726.22,
+   "end": 2729.88,
+   "text": "کہ میں بہت مسکر رہا ہوں مارکٹس اوپر نیچے بہت جا رہی ہے پتہ",
+   "avg_logprob": -0.11,
+   "no_speech_prob": 0.984,
+   "compression_ratio": 2.25
+  },
+  {
+   "start": 2729.88,
+   "end": 2732.32,
+   "text": "نہیں کیوں اندر سے ایسے فیرنگ آ رہی ہے کہ میں سٹارٹ کر دوں",
+   "avg_logprob": -0.11,
+   "no_speech_prob": 0.984,
+   "compression_ratio": 2.25
+  },
+  {
+   "start": 2732.32,
+   "end": 2736.4,
+   "text": "ابھی لگانے پیسے نہیں نہیں ابھی نہ کریں میں اس طرح کرتا ہوں",
+   "avg_logprob": -0.11,
+   "no_speech_prob": 0.984,
+   "compression_ratio": 2.25
+  },
+  {
+   "start": 2736.4,
+   "end": 2739.7,
+   "text": "دو تین ہمارے سیشنز ہونے دیں نیل سی سیشنز نیکس ویک سے سٹارٹ",
+   "avg_logprob": -0.086,
+   "no_speech_prob": 0.29,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 2739.7,
+   "end": 2742.82,
+   "text": "کرتے ہیں پھر میں دیکھتا ہوں آپ کا کام دیکھتا ہوں کہ وہ کیسے",
+   "avg_logprob": -0.086,
+   "no_speech_prob": 0.29,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 2742.82,
+   "end": 2746.26,
+   "text": "ٹریڈ کریں ہیں ڈیمو پہ کریں یا آپ اس طرح کریں سینٹ کا اکاؤنٹ",
+   "avg_logprob": -0.086,
+   "no_speech_prob": 0.29,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 2746.26,
+   "end": 2751.32,
+   "text": "کر لیں اس کو یوز کریں اور پھر اس کے بعد سینٹ اکاؤنٹ نا کچھ",
+   "avg_logprob": -0.086,
+   "no_speech_prob": 0.29,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 2751.32,
+   "end": 2755.36,
+   "text": "بروکرز ہیں جو آپ ٹین ڈالر ڈالیں ٹوئنٹی ڈالے تو وہ دوزار",
+   "avg_logprob": -0.086,
+   "no_speech_prob": 0.29,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 2755.36,
+   "end": 2759.18,
+   "text": "شو کرتے ہیں یعنی کہ لیبریج زیادہ دے دیتا ہے تین دار چار",
+   "avg_logprob": -0.086,
+   "no_speech_prob": 0.29,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 2759.18,
+   "end": 2763.06,
+   "text": "لیبریج دیتا ہے اس میں زیرو ڈار زیرو ون کی لائنگ مائیکرو ٹریڈ",
+   "avg_logprob": -0.1,
+   "no_speech_prob": 0.664,
+   "compression_ratio": 2.29
+  },
+  {
+   "start": 2763.06,
+   "end": 2767.02,
+   "text": "لگے گی نارمل سینٹ کے ساب سے یعنی کہ ون ہنڈر مائیکروز کے بعد ایک",
+   "avg_logprob": -0.1,
+   "no_speech_prob": 0.664,
+   "compression_ratio": 2.29
+  },
+  {
+   "start": 2767.02,
+   "end": 2772.0,
+   "text": "نارمل سینٹ بنے گا ٹھیک ہے اور اس کے پھر منی بی ٹریڈ بھی ہے اس میں",
+   "avg_logprob": -0.1,
+   "no_speech_prob": 0.664,
+   "compression_ratio": 2.29
+  },
+  {
+   "start": 2772.0,
+   "end": 2775.76,
+   "text": "تو یعنی کہ وہ شو کر رہا ہوتا ہے اگر سٹینڈر لارڈ لیتے ہو",
+   "avg_logprob": -0.1,
+   "no_speech_prob": 0.664,
+   "compression_ratio": 2.29
+  },
+  {
+   "start": 2775.76,
+   "end": 2780.06,
+   "text": "نا ون والی تو وہ آپ کو شو کر رہا ہوگا ادھر کیا کہتے ہیں اس کی",
+   "avg_logprob": -0.1,
+   "no_speech_prob": 0.664,
+   "compression_ratio": 2.29
+  },
+  {
+   "start": 2780.06,
+   "end": 2784.31,
+   "text": "زیرو ڈار زیرو ون سینٹ کا ہوگا وہ ٹریڈ ہوگی وہ میں بتاؤں",
+   "avg_logprob": -0.1,
+   "no_speech_prob": 0.664,
+   "compression_ratio": 2.29
+  },
+  {
+   "start": 2784.31,
+   "end": 2788.51,
+   "text": "آپ کو وہ اس پہ پریکٹیس کیجئے گا یعنی کہ آپ کے پیسے بیس پچیس",
+   "avg_logprob": -0.108,
+   "no_speech_prob": 0.873,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 2788.51,
+   "end": 2791.69,
+   "text": "ڈالر تو لگیں گے تو اس میں یہ کہ پریکٹیس ہو جائے گی ڈیمو سے وہ",
+   "avg_logprob": -0.108,
+   "no_speech_prob": 0.873,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 2791.69,
+   "end": 2795.47,
+   "text": "بہتر ہے یعنی کہ لائف کا تھوڑا سا ہوگا تو پھر اس کے بعد اس پہ",
+   "avg_logprob": -0.108,
+   "no_speech_prob": 0.873,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 2795.47,
+   "end": 2798.37,
+   "text": "پریکٹیس کر کے آپ نارمل جو ناکون پہ بنا دیتے ہیں ٹھیک ہو",
+   "avg_logprob": -0.108,
+   "no_speech_prob": 0.873,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 2798.37,
+   "end": 2802.87,
+   "text": "اوکی کونسا ہے سینٹ ایسی انٹی آہ نہیں سینٹ نہیں اس کا کیا نام ہے",
+   "avg_logprob": -0.108,
+   "no_speech_prob": 0.873,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 2802.87,
+   "end": 2809.82,
+   "text": "اس کا بروکر کا ایکس نیکس بروکر ہے ایکس نیکس بروکر",
+   "avg_logprob": -0.108,
+   "no_speech_prob": 0.873,
+   "compression_ratio": 2.21
+  },
+  {
+   "start": 2809.82,
+   "end": 2814.85,
+   "text": "گلوبل بروکر ہے یہ کیا یہ ہے میری خیال میں یہ دیتا ہے آپ کو",
+   "avg_logprob": -0.09,
+   "no_speech_prob": 0.366,
+   "compression_ratio": 2.14
+  },
+  {
+   "start": 2814.85,
+   "end": 2817.81,
+   "text": "سینٹ اکونڈ یہ اوپن نہیں ہو رہا پاکستان میں انہوں نے بلاک کی",
+   "avg_logprob": -0.09,
+   "no_speech_prob": 0.366,
+   "compression_ratio": 2.14
+  },
+  {
+   "start": 2817.81,
+   "end": 2821.69,
+   "text": "ہوئی کیونکہ ایکس نیس سے ابھی کوئی اتنا اچھا بروکر نہیں ہے",
+   "avg_logprob": -0.09,
+   "no_speech_prob": 0.366,
+   "compression_ratio": 2.14
+  },
+  {
+   "start": 2821.69,
+   "end": 2828.4,
+   "text": "یعنی فراڈی ہے نا سینٹ کا وہ دے رہے ہیں تو انہوں نے جو نا بند",
+   "avg_logprob": -0.09,
+   "no_speech_prob": 0.366,
+   "compression_ratio": 2.14
+  },
+  {
+   "start": 2828.4,
+   "end": 2833.32,
+   "text": "کیا ہوئے کافی بروکرز میں تو لیکن یہ آپ ادھر اوپن ہو جائے گی",
+   "avg_logprob": -0.09,
+   "no_speech_prob": 0.366,
+   "compression_ratio": 2.14
+  },
+  {
+   "start": 2833.32,
+   "end": 2837.0,
+   "text": "آپ کی نا میں بیجوں گا وہ چیک کروں نا پہلے بروکر ایک دو ایک",
+   "avg_logprob": -0.09,
+   "no_speech_prob": 0.366,
+   "compression_ratio": 2.14
+  },
+  {
+   "start": 2837.0,
+   "end": 2846.93,
+   "text": "تو ایکس نیس گلوبل ہے میری خیال میں گلوبل پاکستان میں انہوں نے بات",
+   "avg_logprob": -0.202,
+   "no_speech_prob": 0.972,
+   "compression_ratio": 2.39
+  },
+  {
+   "start": 2846.93,
+   "end": 2851.9,
+   "text": "کی ہے یہ ہے میری خیال میں یہی ہے ایکس نیس ہی ہے یہ یہ اوپن نہیں",
+   "avg_logprob": -0.202,
+   "no_speech_prob": 0.972,
+   "compression_ratio": 2.39
+  },
+  {
+   "start": 2851.9,
+   "end": 2855.44,
+   "text": "ہو رہا اچھا جی ایک اور ادھر اوپن نہیں ہو رہا لیکن یہ کہ یہ",
+   "avg_logprob": -0.202,
+   "no_speech_prob": 0.972,
+   "compression_ratio": 2.39
+  },
+  {
+   "start": 2855.44,
+   "end": 2865.27,
+   "text": "ہے گلوبل اچھا رہا ہے ایف ایف ایکس سی ان نہیں یہ نہیں ایک ایک",
+   "avg_logprob": -0.202,
+   "no_speech_prob": 0.972,
+   "compression_ratio": 2.39
+  },
+  {
+   "start": 2865.27,
+   "end": 2871.28,
+   "text": "کیا نہ ہے ایف بی ایس ایف بی ایس یہ پتہ نہیں ایف بی ایس بروکر",
+   "avg_logprob": -0.116,
+   "no_speech_prob": 0.6,
+   "compression_ratio": 2.43
+  },
+  {
+   "start": 2871.28,
+   "end": 2876.74,
+   "text": "ہاں یہ بھی دیتا تھا سینٹ اکاؤنٹ نہیں یہ میرے ہم بھاگے ہیں",
+   "avg_logprob": -0.116,
+   "no_speech_prob": 0.6,
+   "compression_ratio": 2.43
+  },
+  {
+   "start": 2876.74,
+   "end": 2883.86,
+   "text": "ایکس ایم چل رہا ہے یہ پتہ نہیں بڑے پرانے بروکر ہیں یہ نام",
+   "avg_logprob": -0.116,
+   "no_speech_prob": 0.6,
+   "compression_ratio": 2.43
+  },
+  {
+   "start": 2883.86,
+   "end": 2890.59,
+   "text": "یاد ہے کچھ ہوں کہ ایکس ایم یہ بھی ہاں یہ ایکس ایم آہ ایکس ایم",
+   "avg_logprob": -0.116,
+   "no_speech_prob": 0.6,
+   "compression_ratio": 2.43
+  },
+  {
+   "start": 2890.59,
+   "end": 2894.91,
+   "text": "جو ہے آہ بروکر نا یہ بھی انہوں نے بند کی ہے پاکستان میں انہوں",
+   "avg_logprob": -0.116,
+   "no_speech_prob": 0.6,
+   "compression_ratio": 2.43
+  },
+  {
+   "start": 2894.91,
+   "end": 2900.18,
+   "text": "نے بند کی ہوئے سارا تو لیکن یہ ہم اس میں کھل جاتا ہے کیا نام",
+   "avg_logprob": -0.116,
+   "no_speech_prob": 0.6,
+   "compression_ratio": 2.43
+  },
+  {
+   "start": 2900.18,
+   "end": 2905.21,
+   "text": "ہے ویڈیو پہ وہ یوز کرتے ہیں اس پہ کھول جاتا ہے کہ انہوں نے",
+   "avg_logprob": -0.189,
+   "no_speech_prob": 0.93,
+   "compression_ratio": 2.07
+  },
+  {
+   "start": 2905.21,
+   "end": 2908.09,
+   "text": "اصل میں پیسہ بڑا کمائے ہیں نہ پاکستان سے نہ ٹیکس دیتے ہیں",
+   "avg_logprob": -0.189,
+   "no_speech_prob": 0.93,
+   "compression_ratio": 2.07
+  },
+  {
+   "start": 2908.09,
+   "end": 2913.49,
+   "text": "نہ کچھ اس طرح انہوں نے بند کی ہوئے تو ادھر بھی آپ جو نا اس",
+   "avg_logprob": -0.189,
+   "no_speech_prob": 0.93,
+   "compression_ratio": 2.07
+  },
+  {
+   "start": 2913.49,
+   "end": 2918.47,
+   "text": "پہ اکاؤنٹ بنا سکتے ہیں اکاؤنٹ ٹائپس یہ دیکھیں سٹینڈر ہے",
+   "avg_logprob": -0.189,
+   "no_speech_prob": 0.93,
+   "compression_ratio": 2.07
+  },
+  {
+   "start": 2918.47,
+   "end": 2925.26,
+   "text": "آلٹرا شیئرز ہے اور پہ سنٹ ختم کر دیا انہوں نے نہیں یہ نہیں ہے",
+   "avg_logprob": -0.189,
+   "no_speech_prob": 0.93,
+   "compression_ratio": 2.07
+  },
+  {
+   "start": 2925.26,
+   "end": 2929.83,
+   "text": "پھر وہ یہ ایکس این ایس میں سٹینڈر ہی شو ہو رہا ہے بس",
+   "avg_logprob": -0.189,
+   "no_speech_prob": 0.93,
+   "compression_ratio": 2.07
+  },
+  {
+   "start": 2929.83,
+   "end": 2940.48,
+   "text": "منیمم ڈپوزٹ ٹین ڈالر اس میں نہیں آ اس میں جاتا ہوں اور ڈیمو",
+   "avg_logprob": -0.302,
+   "no_speech_prob": 0.659,
+   "compression_ratio": 1.89
+  },
+  {
+   "start": 2940.48,
+   "end": 2945.2,
+   "text": "ٹریٹنگ کاؤنٹ پروفیشنل کاؤنٹ اور سٹینڈرڈ کاؤنٹ تین طرح کے",
+   "avg_logprob": -0.302,
+   "no_speech_prob": 0.659,
+   "compression_ratio": 1.89
+  },
+  {
+   "start": 2945.2,
+   "end": 2951.43,
+   "text": "کاؤنٹ شو رہا ہے ایکس نیس میں جیسے میں ایک کولڈ بے منیمم ڈپوزٹ",
+   "avg_logprob": -0.302,
+   "no_speech_prob": 0.659,
+   "compression_ratio": 1.89
+  },
+  {
+   "start": 2951.43,
+   "end": 2967.27,
+   "text": "سنٹر پونٹ تھا رہی ہے اس میں بھی ونٹیج ایف ایف ٹی ایم او",
+   "avg_logprob": -0.179,
+   "no_speech_prob": 0.734,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 2967.27,
+   "end": 2981.01,
+   "text": "لوکل کا اس کا چیک کرتا ہوں کیونکہ میں لڑکوں کو دیئے ہوئے",
+   "avg_logprob": -0.179,
+   "no_speech_prob": 0.734,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 2981.01,
+   "end": 2985.89,
+   "text": "بنا کے نا ایکس نیکس کے نا کوئی سٹوڈنٹ ہے نا جو ذریبات",
+   "avg_logprob": -0.179,
+   "no_speech_prob": 0.734,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 2985.89,
+   "end": 2989.33,
+   "text": "ان کے نہیں ہے پیسے نہیں ہیں ان کو میں نے دیئے ہوئے میں نے",
+   "avg_logprob": -0.179,
+   "no_speech_prob": 0.734,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 2989.33,
+   "end": 2992.35,
+   "text": "کہا کہ میں ڈال دیتا ہوں آپ لوگ اس میں پریکٹیس کرو پریکٹیس",
+   "avg_logprob": -0.179,
+   "no_speech_prob": 0.734,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 2992.35,
+   "end": 2995.91,
+   "text": "کر کے اس میں پیسے بناو یا پیسے بن جائے تو پھر آپ نارمل",
+   "avg_logprob": -0.179,
+   "no_speech_prob": 0.734,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 2995.91,
+   "end": 2999.37,
+   "text": "account میں لے لو یعنی کہ میں اس کو بیس چیز ڈال کر کے نا پتہ نہیں",
+   "avg_logprob": -0.198,
+   "no_speech_prob": 0.865,
+   "compression_ratio": 1.8
+  },
+  {
+   "start": 2999.37,
+   "end": 3004.35,
+   "text": "کتنے کچھ پچیس چیز ہوں گے students ان کو دیئے ہوئے دیکھتا ہوں",
+   "avg_logprob": -0.198,
+   "no_speech_prob": 0.865,
+   "compression_ratio": 1.8
+  },
+  {
+   "start": 3004.35,
+   "end": 3017.39,
+   "text": "اگر وہ login ہو جاتا ہے یہ start ہونا دل نے تسلیج مل دیا تھا",
+   "avg_logprob": -0.198,
+   "no_speech_prob": 0.865,
+   "compression_ratio": 1.8
+  },
+  {
+   "start": 3017.39,
+   "end": 3021.47,
+   "text": "dinner گال کر کے بھی ہاں actual veg monument پر بھی مر گیا نہیں",
+   "avg_logprob": -0.198,
+   "no_speech_prob": 0.865,
+   "compression_ratio": 1.8
+  },
+  {
+   "start": 3021.47,
+   "end": 3024.73,
+   "text": "کوئی نہیں وہ practice کریں گے اللہ کرے کہ انشاء اللہ",
+   "avg_logprob": -0.198,
+   "no_speech_prob": 0.865,
+   "compression_ratio": 1.8
+  },
+  {
+   "start": 3024.73,
+   "end": 3031.28,
+   "text": "اچھا دی یہ vintage market بوگی والا بنتا ہے نا اس نے vintage",
+   "avg_logprob": -0.198,
+   "no_speech_prob": 0.865,
+   "compression_ratio": 1.8
+  },
+  {
+   "start": 3031.28,
+   "end": 3035.04,
+   "text": "مرکیٹ میں پیسے لگائے تھے راسٹ ٹائم وہ ہاں ضائع ہوئے",
+   "avg_logprob": -0.168,
+   "no_speech_prob": 0.978,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 3035.04,
+   "end": 3041.44,
+   "text": "کر گیا تھا یہ دو نمبر ہے نا کس کے کسی کے سگننس",
+   "avg_logprob": -0.168,
+   "no_speech_prob": 0.978,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 3041.44,
+   "end": 3045.88,
+   "text": "انہیں یوز کر کے بائے کر لیا تھا بٹکوائن وغیرہ ہاں",
+   "avg_logprob": -0.168,
+   "no_speech_prob": 0.978,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 3045.88,
+   "end": 3055.1,
+   "text": "بالکل بالکل بالکل ٹکنیکی تو پورے ہوا میں بھی",
+   "avg_logprob": -0.168,
+   "no_speech_prob": 0.978,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 3055.1,
+   "end": 3057.94,
+   "text": "ایسے ٹکنیکی بی پین یوز کر کر کے انڈیا میں کرتا",
+   "avg_logprob": -0.168,
+   "no_speech_prob": 0.978,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 3057.94,
+   "end": 3062.8,
+   "text": "تھا آہ بہت میں کرتا رہوں میں کمپیوٹر کا میں کافی",
+   "avg_logprob": -0.168,
+   "no_speech_prob": 0.978,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 3062.8,
+   "end": 3065.48,
+   "text": "کرتا رہوں سافٹ ویڈ بارہ بھی بنوانا تھوڑا بہت",
+   "avg_logprob": -0.168,
+   "no_speech_prob": 0.978,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 3065.48,
+   "end": 3097.68,
+   "text": "آتا ہے میرا بھی یہی کام ہے ڈیلی کا ابھی ہیلو وہ انہوں نے زوم",
+   "avg_logprob": -0.226,
+   "no_speech_prob": 0.979,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 3097.68,
+   "end": 3102.6,
+   "text": "والے انہیں دوبارہ کر دیا اس کا نا میں کہاں کال کٹ ہو گیا میرے",
+   "avg_logprob": -0.226,
+   "no_speech_prob": 0.979,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 3102.6,
+   "end": 3105.78,
+   "text": "ساتھ اسے وی پین کنیک کیا نا اس لیے شاید ہو گیا وی پین کنیک",
+   "avg_logprob": -0.226,
+   "no_speech_prob": 0.979,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 3105.78,
+   "end": 3123.08,
+   "text": "کیا نا وہ پھر اس نے وہ کٹ ہو گی کال آج سامنے ڈیوائیسز",
+   "avg_logprob": -0.226,
+   "no_speech_prob": 0.979,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 3123.08,
+   "end": 3126.5,
+   "text": "والا لگی ہوئے تو وہ اس کو نا تھوڑا سا روکنے کوشش کر رہے",
+   "avg_logprob": -0.226,
+   "no_speech_prob": 0.979,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 3126.5,
+   "end": 3130.18,
+   "text": "ایکس نیس پرو انہوں نے چینل کی ہوئی ہے پتہ نہیں",
+   "avg_logprob": -0.14,
+   "no_speech_prob": 0.918,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 3130.18,
+   "end": 3134.04,
+   "text": "ایسا ہوگی کھولی نہیں ایکس نیس ڈاٹ کام یہی ہے",
+   "avg_logprob": -0.14,
+   "no_speech_prob": 0.918,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 3134.04,
+   "end": 3138.92,
+   "text": "ابھی مجھے اس کا پاسپورٹ بھی نہیں یاد پتہ نہیں",
+   "avg_logprob": -0.14,
+   "no_speech_prob": 0.918,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 3138.92,
+   "end": 3147.75,
+   "text": "کیا رکھا تھا آپ یوکے یوکے بھی گئے ہو پہلے",
+   "avg_logprob": -0.14,
+   "no_speech_prob": 0.918,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 3147.75,
+   "end": 3151.51,
+   "text": "ہاں یوکے میں تھا رو مارک ڈاگلس کے رو تو ای میل",
+   "avg_logprob": -0.14,
+   "no_speech_prob": 0.918,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 3151.51,
+   "end": 3154.13,
+   "text": "ورہ اوپرانا ڈیٹا ہوئی ہے میں نے میری سٹیڈی بھی",
+   "avg_logprob": -0.14,
+   "no_speech_prob": 0.918,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 3154.13,
+   "end": 3158.17,
+   "text": "ادھر کی ہے لیڈز کی ہے اچھا میرے ڈیڈی وہاں بارہ",
+   "avg_logprob": -0.14,
+   "no_speech_prob": 0.918,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 3158.17,
+   "end": 3162.76,
+   "text": "رہے ہیں ماشاءاللہ کون سے سٹی میں رہے ہیں وہ وہ ویسٹ بروم",
+   "avg_logprob": -0.141,
+   "no_speech_prob": 0.84,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 3162.76,
+   "end": 3168.59,
+   "text": "بچ ہے اچھا اچھا جا میں آہ برمنگم میں ادھر قریب ہی تھا",
+   "avg_logprob": -0.141,
+   "no_speech_prob": 0.84,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 3168.59,
+   "end": 3175.93,
+   "text": "یہ دیکھیں یہ لڑکا یہ فربا یہ ویان ایک لڑکا ہے پھر ان انڈ",
+   "avg_logprob": -0.141,
+   "no_speech_prob": 0.84,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 3175.93,
+   "end": 3180.03,
+   "text": "یہ اس میں نا یہ شو کر رہا ہے کہ اس نے کہ اس کے پاس تین دار",
+   "avg_logprob": -0.141,
+   "no_speech_prob": 0.84,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 3180.03,
+   "end": 3184.57,
+   "text": "پڑے ہیں تیس ڈالر پڑے ہیں اس کے پاس آہ یو ایس ڈی سی پڑے",
+   "avg_logprob": -0.141,
+   "no_speech_prob": 0.84,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 3184.57,
+   "end": 3188.83,
+   "text": "ہوئے ہیں ون پوائنٹ فور پندر سے یعنی کہ ڈیڈ ڈالر پڑا ہوئے",
+   "avg_logprob": -0.113,
+   "no_speech_prob": 0.925,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 3188.83,
+   "end": 3192.75,
+   "text": "اس کا ایک سو پجاسی یعنی کہ یہ والے جو سینٹ اکاؤنٹ ہے دیکھ",
+   "avg_logprob": -0.113,
+   "no_speech_prob": 0.925,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 3192.75,
+   "end": 3196.45,
+   "text": "لیا یہ والے اچھا یہ پتہ نہیں یہ ڈی ایکٹیویٹ ہو گئے ہیں جو",
+   "avg_logprob": -0.113,
+   "no_speech_prob": 0.925,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 3196.45,
+   "end": 3199.79,
+   "text": "لڑکے پریکٹیس کرتے رہے ہیں کیونکہ میں ڈال کے دیتا رہا ہوں",
+   "avg_logprob": -0.113,
+   "no_speech_prob": 0.925,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 3199.79,
+   "end": 3204.63,
+   "text": "ٹوٹر یو ایس ٹی ڈالر پڑے ہوئے ہیں اٹھتالیس اس میں تو یہ ان",
+   "avg_logprob": -0.113,
+   "no_speech_prob": 0.925,
+   "compression_ratio": 2.17
+  },
+  {
+   "start": 3204.63,
+   "end": 3207.99,
+   "text": "کو نا میں دیتا رہتا ہوں کہ آپ لوگ نا ڈیمو سے بہتر ہیں",
+   "avg_logprob": -0.135,
+   "no_speech_prob": 0.965,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 3207.99,
+   "end": 3210.69,
+   "text": "اس پہ پریکٹیس کر لو تو وہ کر کے تو وہ پھر اس پہ لائیو",
+   "avg_logprob": -0.135,
+   "no_speech_prob": 0.965,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 3210.69,
+   "end": 3214.07,
+   "text": "پہ چلے جاتے ہیں اچھا پھر ریل مارکٹ کی فیل آ جاتی ہیں",
+   "avg_logprob": -0.135,
+   "no_speech_prob": 0.965,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 3214.07,
+   "end": 3217.47,
+   "text": "یہاں نا ہاں ہوتی ہے ہاں ریل ہی ہوتا ہے لیکن اس میں میں نے",
+   "avg_logprob": -0.135,
+   "no_speech_prob": 0.965,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 3217.47,
+   "end": 3220.61,
+   "text": "کہا تھا ان کو جیسی یہ تھا این این پتہ نہیں ہماری اس",
+   "avg_logprob": -0.135,
+   "no_speech_prob": 0.965,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 3220.61,
+   "end": 3222.81,
+   "text": "کا کہتے ہیں یہ تین ایکٹیو ہیں میرے خیال میں دوے فارق",
+   "avg_logprob": -0.135,
+   "no_speech_prob": 0.965,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 3222.81,
+   "end": 3227.27,
+   "text": "کر گیا ہیں کوٹ یا انہوں نے پرسا ہو گیا میرے خیال میں",
+   "avg_logprob": -0.135,
+   "no_speech_prob": 0.965,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 3227.27,
+   "end": 3231.25,
+   "text": "بنی ہوئے ہیں یہ کب بنے آگست میں گئے ہیں آٹومیٹلی ڈلیٹ ہوئے ہیں",
+   "avg_logprob": -0.114,
+   "no_speech_prob": 0.667,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 3231.25,
+   "end": 3235.65,
+   "text": "تو یہ پڑا ہوا ہے اس کا تو جیسے یہ ہے نا دوزار ٹھیک ہے جب آپ",
+   "avg_logprob": -0.114,
+   "no_speech_prob": 0.667,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 3235.65,
+   "end": 3241.63,
+   "text": "ٹریل لوگے نا زیرو ڈار زیرو ون لار سائز کی جیسے یہ آہ اس میں",
+   "avg_logprob": -0.114,
+   "no_speech_prob": 0.667,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 3241.63,
+   "end": 3246.47,
+   "text": "ہے تین زار تیس ڈالر پڑے ہوئے ہیں فائد سمپر تیس ڈالر",
+   "avg_logprob": -0.114,
+   "no_speech_prob": 0.667,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 3246.47,
+   "end": 3250.55,
+   "text": "ادھر کیا کر رہا ہے اس کا نا اس کو لیورج دے دیا ہے اس نے دو",
+   "avg_logprob": -0.114,
+   "no_speech_prob": 0.667,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 3250.55,
+   "end": 3254.81,
+   "text": "زار کا یا جو بھی ہے تو وہ تیس ڈالر کو نا وہ یہاں پہ تین",
+   "avg_logprob": -0.114,
+   "no_speech_prob": 0.667,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 3254.81,
+   "end": 3260.27,
+   "text": "ہزار ڈالر بتا رہا ہے ٹھیک ہے تو اب یہ تین ہزار مائیکرو سینٹ",
+   "avg_logprob": -0.124,
+   "no_speech_prob": 0.686,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 3260.27,
+   "end": 3267.03,
+   "text": "ہے ٹھیک ہے تو یعنی کہ سو مائیکرو سینٹ کے بعد ایک نارمل سینٹ",
+   "avg_logprob": -0.124,
+   "no_speech_prob": 0.686,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 3267.03,
+   "end": 3271.19,
+   "text": "بنتا ہے سمجھئے ہاں جی ہاں جی تو یہاں بھی جب آپ ڈریڈ لیتے",
+   "avg_logprob": -0.124,
+   "no_speech_prob": 0.686,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 3271.19,
+   "end": 3276.62,
+   "text": "ہو نا یہ والی تو وہ اگر جب آپ سٹینڈر لو کے نا یہ والی تو",
+   "avg_logprob": -0.124,
+   "no_speech_prob": 0.686,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 3276.62,
+   "end": 3280.84,
+   "text": "ایٹس میل کے یہ ڈریکٹ ون سینٹ کی ہوگی تو آپ جب زیرو ڈار",
+   "avg_logprob": -0.124,
+   "no_speech_prob": 0.686,
+   "compression_ratio": 2.13
+  },
+  {
+   "start": 3280.84,
+   "end": 3287.73,
+   "text": "زیرو ون لوگ کے تو یہ سو مائیکرو سینٹ کے بعد نا ایک وہ سینٹ",
+   "avg_logprob": -0.064,
+   "no_speech_prob": 0.786,
+   "compression_ratio": 2.25
+  },
+  {
+   "start": 3287.73,
+   "end": 3291.43,
+   "text": "میں ہوا آئے گا تو یہ بہتر ہے نا پریکٹیس کے لیے اس میں چاکا بھی",
+   "avg_logprob": -0.064,
+   "no_speech_prob": 0.786,
+   "compression_ratio": 2.25
+  },
+  {
+   "start": 3291.43,
+   "end": 3296.33,
+   "text": "نکل کھل جاتا ہے آپ کا تو اس میں پریکٹیس بھی ہو جاتی ہے یعنی",
+   "avg_logprob": -0.064,
+   "no_speech_prob": 0.786,
+   "compression_ratio": 2.25
+  },
+  {
+   "start": 3296.33,
+   "end": 3299.19,
+   "text": "کہ بندے کو عادت ہو دے پھر جب بھی ڈالتا ہے اتنی پیسے ڈال",
+   "avg_logprob": -0.064,
+   "no_speech_prob": 0.786,
+   "compression_ratio": 2.25
+  },
+  {
+   "start": 3299.19,
+   "end": 3302.43,
+   "text": "کے وہ پریکٹیس کرتا رہتا ہے وہ پھر ٹھیک ہے چیز ہے پریکٹیس",
+   "avg_logprob": -0.064,
+   "no_speech_prob": 0.786,
+   "compression_ratio": 2.25
+  },
+  {
+   "start": 3302.43,
+   "end": 3306.25,
+   "text": "کے لیے اس کا ایک مسئلہ ہے سپریڈ زیادہ آئی بتاتا ہے یہ اور",
+   "avg_logprob": -0.064,
+   "no_speech_prob": 0.786,
+   "compression_ratio": 2.25
+  },
+  {
+   "start": 3306.25,
+   "end": 3308.61,
+   "text": "اس میں یہ کرتے ہیں",
+   "avg_logprob": -0.15,
+   "no_speech_prob": 0.795,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 3308.61,
+   "end": 3310.29,
+   "text": "یعنی کہ ٹریڈز ویڈیو جو بھی ہے",
+   "avg_logprob": -0.15,
+   "no_speech_prob": 0.795,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 3310.29,
+   "end": 3312.21,
+   "text": "یہ اکاؤنٹ میں کیسے اوپن کروں",
+   "avg_logprob": -0.15,
+   "no_speech_prob": 0.795,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 3312.21,
+   "end": 3314.05,
+   "text": "اس کا یہ سینٹ والا شو ہی نہیں ہو رہا ہے",
+   "avg_logprob": -0.15,
+   "no_speech_prob": 0.795,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 3314.05,
+   "end": 3316.26,
+   "text": "سینٹ والا نہیں شو رہا",
+   "avg_logprob": -0.15,
+   "no_speech_prob": 0.795,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 3316.26,
+   "end": 3317.94,
+   "text": "چلے میں خود بنا دوں گا آپ کو نا",
+   "avg_logprob": -0.15,
+   "no_speech_prob": 0.795,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 3317.94,
+   "end": 3319.78,
+   "text": "ادھر بیس ڈالر ڈال دوں گا نا",
+   "avg_logprob": -0.15,
+   "no_speech_prob": 0.795,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 3319.78,
+   "end": 3321.84,
+   "text": "اس میں دوزار شو ہوگا تو آپ",
+   "avg_logprob": -0.15,
+   "no_speech_prob": 0.795,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 3321.84,
+   "end": 3325.07,
+   "text": "ٹریڈ کرتے رہیے گا",
+   "avg_logprob": -0.15,
+   "no_speech_prob": 0.795,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 3325.07,
+   "end": 3325.81,
+   "text": "کیونکہ اس میں",
+   "avg_logprob": -0.15,
+   "no_speech_prob": 0.795,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 3325.81,
+   "end": 3329.17,
+   "text": "ٹھہرے اس میں",
+   "avg_logprob": -0.15,
+   "no_speech_prob": 0.795,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 3329.17,
+   "end": 3331.55,
+   "text": "نیوزون کا اکاؤنٹ",
+   "avg_logprob": -0.15,
+   "no_speech_prob": 0.795,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 3331.55,
+   "end": 3333.47,
+   "text": "مہدار سے بعد کھولا ہے اس کو",
+   "avg_logprob": -0.15,
+   "no_speech_prob": 0.795,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 3333.47,
+   "end": 3335.72,
+   "text": "اکاؤنٹ",
+   "avg_logprob": -0.15,
+   "no_speech_prob": 0.795,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 3335.72,
+   "end": 3337.91,
+   "text": "اچھا",
+   "avg_logprob": -0.15,
+   "no_speech_prob": 0.795,
+   "compression_ratio": 2.16
+  },
+  {
+   "start": 3337.91,
+   "end": 3357.0,
+   "text": "اوپن اکاؤنٹ نا یہ صرف فوریکس کرنے کے لیے ایکس نیس بروکر ہے",
+   "avg_logprob": -0.125,
+   "no_speech_prob": 0.911,
+   "compression_ratio": 2.3
+  },
+  {
+   "start": 3357.0,
+   "end": 3360.4,
+   "text": "یہ ویسے نارمل بھی کرتے ہیں نا نا یہ فوریکس ٹریڈ کرنے کے لیے",
+   "avg_logprob": -0.125,
+   "no_speech_prob": 0.911,
+   "compression_ratio": 2.3
+  },
+  {
+   "start": 3360.4,
+   "end": 3364.52,
+   "text": "اچھا یہ سٹینڈر سینٹ اکاؤنٹ ہے سٹینڈر ہے یہ دس ڈالر سے",
+   "avg_logprob": -0.125,
+   "no_speech_prob": 0.911,
+   "compression_ratio": 2.3
+  },
+  {
+   "start": 3364.52,
+   "end": 3368.96,
+   "text": "سٹارٹ ہوتا ہے اور وہ ہوتا ہے باقی الگ الگ ہے زیرو سپریڈ",
+   "avg_logprob": -0.125,
+   "no_speech_prob": 0.911,
+   "compression_ratio": 2.3
+  },
+  {
+   "start": 3368.96,
+   "end": 3372.24,
+   "text": "کے نا ٹھیک ہے تو یہ والا ہم نے چوز کرنا ہے ٹھیک ہے اور",
+   "avg_logprob": -0.125,
+   "no_speech_prob": 0.911,
+   "compression_ratio": 2.3
+  },
+  {
+   "start": 3372.24,
+   "end": 3374.88,
+   "text": "انلیمیٹیڈ ہے اس کی دیکھ رہے ہیں میکسیمن لیورج کے طور پر",
+   "avg_logprob": -0.125,
+   "no_speech_prob": 0.911,
+   "compression_ratio": 2.3
+  },
+  {
+   "start": 3374.88,
+   "end": 3378.72,
+   "text": "ان لیمٹیڈ ہے اس کو ہم کلک کرتے ہیں اور کانٹینیو کرتے ہیں جی",
+   "avg_logprob": -0.115,
+   "no_speech_prob": 0.586,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 3378.72,
+   "end": 3384.5,
+   "text": "اچھا جی ریل اکاؤنٹ اور یو اس ٹی سینٹ پہ یو اس ٹی سی ہی ہوگا",
+   "avg_logprob": -0.115,
+   "no_speech_prob": 0.586,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 3384.5,
+   "end": 3389.3,
+   "text": "سینٹ پہ ٹھیک ہے سٹینڈر ہے ادھر نام آپ کا لکھ دیتا ہوں کیا نام",
+   "avg_logprob": -0.115,
+   "no_speech_prob": 0.586,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 3389.3,
+   "end": 3397.65,
+   "text": "ہے بھول گیا رمن جوت رمن جوت ہاں جی رمن جوت یہ ہے سپیننگ",
+   "avg_logprob": -0.115,
+   "no_speech_prob": 0.586,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 3397.65,
+   "end": 3401.41,
+   "text": "اس کے ہاں جی ہاں جی ٹھیک ہو گیا اس کا کیا مطلب ہے رمن جوت کا",
+   "avg_logprob": -0.115,
+   "no_speech_prob": 0.586,
+   "compression_ratio": 2.2
+  },
+  {
+   "start": 3401.41,
+   "end": 3408.24,
+   "text": "اچھا رام سورہ جوت ہندی",
+   "avg_logprob": -0.183,
+   "no_speech_prob": 0.38,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 3408.24,
+   "end": 3410.82,
+   "text": "جوت تک ہنو پتہ ہی ہے جو لائٹ ہے",
+   "avg_logprob": -0.183,
+   "no_speech_prob": 0.38,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 3410.82,
+   "end": 3413.36,
+   "text": "یہ ایمٹی فور ہے",
+   "avg_logprob": -0.183,
+   "no_speech_prob": 0.38,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 3413.36,
+   "end": 3416.52,
+   "text": "ہاں بالکل بالکل چلے اللہ تعالیٰ آپ کو کمیاب کرے جی",
+   "avg_logprob": -0.183,
+   "no_speech_prob": 0.38,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 3416.52,
+   "end": 3420.42,
+   "text": "اس میں اس نے خود ہی کوئی یہ نکال لیا ہے پاسورڈ",
+   "avg_logprob": -0.183,
+   "no_speech_prob": 0.38,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 3420.42,
+   "end": 3423.72,
+   "text": "یا اس پہ آپ کا کر دیتوں جیسے",
+   "avg_logprob": -0.183,
+   "no_speech_prob": 0.38,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 3423.72,
+   "end": 3426.76,
+   "text": "ایمٹی فائیو کر دو یا میں ایمٹی فائیو میں تھوڑا زیادہ کمپٹیبل ہوں",
+   "avg_logprob": -0.183,
+   "no_speech_prob": 0.38,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 3426.76,
+   "end": 3431.12,
+   "text": "ایمٹی فائیو کرتے ہیں میں ایمٹی فائیو کدھی یوز نہیں کیتا لیکن یہ کہ",
+   "avg_logprob": -0.183,
+   "no_speech_prob": 0.38,
+   "compression_ratio": 2.12
+  },
+  {
+   "start": 3431.12,
+   "end": 3434.36,
+   "text": "اس پہ پاسورٹ جیسے دیکھتے دوں",
+   "avg_logprob": -0.24,
+   "no_speech_prob": 0.695,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 3434.36,
+   "end": 3438.71,
+   "text": "کنیڈا",
+   "avg_logprob": -0.24,
+   "no_speech_prob": 0.695,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 3438.71,
+   "end": 3439.47,
+   "text": "ٹھیک ہے",
+   "avg_logprob": -0.24,
+   "no_speech_prob": 0.695,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 3439.47,
+   "end": 3442.95,
+   "text": "تاریخ پتایش تواری کے لیے کلیسان دی ہے",
+   "avg_logprob": -0.24,
+   "no_speech_prob": 0.695,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 3442.95,
+   "end": 3444.28,
+   "text": "ایٹی ٹو",
+   "avg_logprob": -0.24,
+   "no_speech_prob": 0.695,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 3444.28,
+   "end": 3446.34,
+   "text": "ایٹی تھری ایٹی فائیو نائنٹی",
+   "avg_logprob": -0.24,
+   "no_speech_prob": 0.695,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 3446.34,
+   "end": 3447.84,
+   "text": "نائنٹی سکس",
+   "avg_logprob": -0.24,
+   "no_speech_prob": 0.695,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 3447.84,
+   "end": 3449.7,
+   "text": "نائنٹی سکس کر دیا",
+   "avg_logprob": -0.24,
+   "no_speech_prob": 0.695,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 3449.7,
+   "end": 3452.01,
+   "text": "نائنٹی سکس",
+   "avg_logprob": -0.24,
+   "no_speech_prob": 0.695,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 3452.01,
+   "end": 3452.49,
+   "text": "ٹھیک ہے",
+   "avg_logprob": -0.24,
+   "no_speech_prob": 0.695,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 3452.49,
+   "end": 3454.49,
+   "text": "کنیڈا نائنٹی سکس ہے",
+   "avg_logprob": -0.24,
+   "no_speech_prob": 0.695,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 3454.49,
+   "end": 3456.15,
+   "text": "کنیڈا کا کپیٹر بڑا ہے",
+   "avg_logprob": -0.24,
+   "no_speech_prob": 0.695,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 3456.15,
+   "end": 3458.61,
+   "text": "ٹھیک ہے",
+   "avg_logprob": -0.24,
+   "no_speech_prob": 0.695,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 3458.61,
+   "end": 3460.25,
+   "text": "یہ سپیلنگ نے کنیڈا نے",
+   "avg_logprob": -0.24,
+   "no_speech_prob": 0.695,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 3460.25,
+   "end": 3462.11,
+   "text": "یہی آندا نا بیچے",
+   "avg_logprob": -0.24,
+   "no_speech_prob": 0.695,
+   "compression_ratio": 2.23
+  },
+  {
+   "start": 3462.11,
+   "end": 3468.55,
+   "text": "ایہ یہ یہ ہے سوئی هي ہاں تعالی چلے آ یورو کونٹ میلی ناٹ اوپن",
+   "avg_logprob": -0.412,
+   "no_speech_prob": 0.982,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 3468.55,
+   "end": 3474.47,
+   "text": "پلیس چواہی ڈیٹر پتہ نہیں کیا وجہ ہاں ہو گیا ہو گیا ہو گیا",
+   "avg_logprob": -0.412,
+   "no_speech_prob": 0.982,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 3474.47,
+   "end": 3482.34,
+   "text": "ہو گیا ٹھیک ہے اچھا جی یہ ہے ٹھیک ہے اس میں اب ہم ڈپوزٹ",
+   "avg_logprob": -0.412,
+   "no_speech_prob": 0.982,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 3482.34,
+   "end": 3486.24,
+   "text": "کریں گے ایکچھلی ڈپوزٹ کریں گے ہم ٹرانسفر کریں گے اکتالیس",
+   "avg_logprob": -0.412,
+   "no_speech_prob": 0.982,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 3486.24,
+   "end": 3496.76,
+   "text": "میں ٹھیک ہے آ بہتر سے اکتالیس میں لے کے جائیں گے تو یہ میں",
+   "avg_logprob": -0.412,
+   "no_speech_prob": 0.982,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 3496.76,
+   "end": 3502.75,
+   "text": "ایمپلی فائی میں یوز کروں گا پاسورڈ ہے نا جی جی آ بیٹوین",
+   "avg_logprob": -0.412,
+   "no_speech_prob": 0.982,
+   "compression_ratio": 2.24
+  },
+  {
+   "start": 3502.75,
+   "end": 3510.22,
+   "text": "اپنے اکاؤنٹس اور ٹھیک ہے کیا تھا اس میں تیس ڈالر سے اسے کس",
+   "avg_logprob": -0.186,
+   "no_speech_prob": 0.545,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 3510.22,
+   "end": 3515.42,
+   "text": "کی طرف لے کے جانا تھا میں اکتالیس پہ اکتالیس پہ ٹھیک ہے اس",
+   "avg_logprob": -0.186,
+   "no_speech_prob": 0.545,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 3515.42,
+   "end": 3523.01,
+   "text": "پہ یو ایس ٹی سی جی بنتے ہیں نا اس پہ کرتے تو وہ دوزار کر",
+   "avg_logprob": -0.186,
+   "no_speech_prob": 0.545,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 3523.01,
+   "end": 3526.55,
+   "text": "لیتے ہوں ٹھیک ہے یو ایس ٹی سی وہ بھی وہ دیکھیں گا اس کا",
+   "avg_logprob": -0.186,
+   "no_speech_prob": 0.545,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 3526.55,
+   "end": 3531.45,
+   "text": "بھی اکاؤنٹ خالی ہو گئی ہے میرے بعد میں وہ کرواتوں گا اس",
+   "avg_logprob": -0.186,
+   "no_speech_prob": 0.545,
+   "compression_ratio": 2.19
+  },
+  {
+   "start": 3531.45,
+   "end": 3535.71,
+   "text": "ایک دو تین چاہتے ہیں یعنی ٹوئنٹی ڈالر توڑے در جاتے ہیں",
+   "avg_logprob": -0.167,
+   "no_speech_prob": 0.896,
+   "compression_ratio": 1.97
+  },
+  {
+   "start": 3535.71,
+   "end": 3543.59,
+   "text": "ٹھیک ہے اچھا جی یہ ہو گیا جی اب سرور ویرائز کا دیکھتے ہیں",
+   "avg_logprob": -0.167,
+   "no_speech_prob": 0.896,
+   "compression_ratio": 1.97
+  },
+  {
+   "start": 3543.59,
+   "end": 3548.07,
+   "text": "اچھا ٹرانسفر ہو گیا جی اب چلتے ہیں کونس کی طرف",
+   "avg_logprob": -0.167,
+   "no_speech_prob": 0.896,
+   "compression_ratio": 1.97
+  },
+  {
+   "start": 3548.07,
+   "end": 3571.94,
+   "text": "چھوڑو نکالا وہ ریڈ کرتے تھوڑا سا ٹائم لگاتا ہے",
+   "avg_logprob": -0.167,
+   "no_speech_prob": 0.896,
+   "compression_ratio": 1.97
+  },
+  {
+   "start": 3571.94,
+   "end": 3579.32,
+   "text": "یہ ہے ٹھیک ہے جی اس میں آگے نا جیسے ایمٹی فائیو ٹھیک ہو گیا",
+   "avg_logprob": -0.167,
+   "no_speech_prob": 0.896,
+   "compression_ratio": 1.97
+  },
+  {
+   "start": 3579.32,
+   "end": 3587.54,
+   "text": "اچھا جی اس کا جو آہ سرور ہے وہ دیکھو کون کون سا ہے جیس ریبریج",
+   "avg_logprob": -0.154,
+   "no_speech_prob": 0.312,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 3587.54,
+   "end": 3607.9,
+   "text": "انفرم اکاؤنٹ انفرمیشن یہ ہے جی اور آہ سرور ایکس نیس یہ سرور",
+   "avg_logprob": -0.154,
+   "no_speech_prob": 0.312,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 3607.9,
+   "end": 3627.08,
+   "text": "ہے اور آہ یہ لاغن ہے میں اچھا پاسورڈ اس کا کنیڈا انڈرسکور",
+   "avg_logprob": -0.154,
+   "no_speech_prob": 0.312,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 3627.08,
+   "end": 3640.12,
+   "text": "چانوے ہو گیا ٹھیک ہو گیا اوکی ٹھیک ہے اب یہ لاغن کر کے آپ دیکھ",
+   "avg_logprob": -0.154,
+   "no_speech_prob": 0.312,
+   "compression_ratio": 2.06
+  },
+  {
+   "start": 3640.12,
+   "end": 3643.9,
+   "text": "لی جائے گا اس پہ جہاں پہ بھی ہوتا ہے تو اس پہ ٹریڈ کریں ٹھیک ہے",
+   "avg_logprob": -0.131,
+   "no_speech_prob": 0.268,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 3643.9,
+   "end": 3647.02,
+   "text": "زیرو ڈارز زیرو ون لارڈ سائز یوز کریں سپریڈ تھوڑی آئی ہوگی",
+   "avg_logprob": -0.131,
+   "no_speech_prob": 0.268,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 3647.02,
+   "end": 3650.26,
+   "text": "ہر ایک پیر کی گولڈ کی بھی آ رہے لیکن اس میں یہ فائدہ ہو جائے گا",
+   "avg_logprob": -0.131,
+   "no_speech_prob": 0.268,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 3650.26,
+   "end": 3654.52,
+   "text": "کہ آپ کو عادت پڑ جائے گی یعنی کہ آپ کو بے فکر ہو کے کریں گے",
+   "avg_logprob": -0.131,
+   "no_speech_prob": 0.268,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 3654.52,
+   "end": 3658.84,
+   "text": "نا دوزار تک در شو کر رہا ہے لیکن وہ بیس ہی ڈالر ہے نا کھوڑے",
+   "avg_logprob": -0.131,
+   "no_speech_prob": 0.268,
+   "compression_ratio": 2.15
+  },
+  {
+   "start": 3658.84,
+   "end": 3663.22,
+   "text": "کتنے ہوں گے تو یہ اس پہ کریں گے وہ انشاء اللہ ہو جائے گا",
+   "avg_logprob": -0.113,
+   "no_speech_prob": 0.702,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 3663.22,
+   "end": 3668.44,
+   "text": "پھر جب آپ لائف میں جاؤ گی نا تو وہ اتنی ڈال کے یعنی کہ کچھ",
+   "avg_logprob": -0.113,
+   "no_speech_prob": 0.702,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 3668.44,
+   "end": 3671.68,
+   "text": "پانچ سو زیادہ زیادہ لوگ پانچ ڈالر ڈالتے ہیں یہ کرتے ہیں",
+   "avg_logprob": -0.113,
+   "no_speech_prob": 0.702,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 3671.68,
+   "end": 3676.48,
+   "text": "ساتھ نا تو یعنی کہ پیکٹری صاحب کی ہو جائے گی پھر جب لائف",
+   "avg_logprob": -0.113,
+   "no_speech_prob": 0.702,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 3676.48,
+   "end": 3679.48,
+   "text": "میں کبھی بھی گئے نا اس پہ پھر آپ پیپر سٹون پہ بنا لی جائے گا",
+   "avg_logprob": -0.113,
+   "no_speech_prob": 0.702,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 3679.48,
+   "end": 3682.78,
+   "text": "یا اسی مارکیٹ پہ تو اتنی ڈال کے وہ اس میں ٹریڈ کر لی جائے",
+   "avg_logprob": -0.113,
+   "no_speech_prob": 0.702,
+   "compression_ratio": 2.27
+  },
+  {
+   "start": 3682.78,
+   "end": 3688.24,
+   "text": "ٹھیک ہو گئی تھی ٹھیک ہو گیا لوگین میرا لوگین ہو گیا ہاں دے شو",
+   "avg_logprob": -0.239,
+   "no_speech_prob": 0.978,
+   "compression_ratio": 2.01
+  },
+  {
+   "start": 3688.24,
+   "end": 3691.48,
+   "text": "کر رہا ہے اس میں پیسے ہاں جی دو ہیار شو کر رہا ہے ایک کیوٹی",
+   "avg_logprob": -0.239,
+   "no_speech_prob": 0.978,
+   "compression_ratio": 2.01
+  },
+  {
+   "start": 3691.48,
+   "end": 3699.7,
+   "text": "بیلنس آہ لیکن وہ دوزار نہیں ہم بیس ڈال رہے ہیں تو اس میں کریں",
+   "avg_logprob": -0.239,
+   "no_speech_prob": 0.978,
+   "compression_ratio": 2.01
+  },
+  {
+   "start": 3699.7,
+   "end": 3702.64,
+   "text": "پریکٹس بڑا کریں آہ اس طرح سے کر کے انکریز کر لیجی گا کونو",
+   "avg_logprob": -0.239,
+   "no_speech_prob": 0.978,
+   "compression_ratio": 2.01
+  },
+  {
+   "start": 3702.64,
+   "end": 3707.5,
+   "text": "ڈیمو سے بہتر ہے نا یعنی کہ لائف بھی مچر رہے تو یہ بڑی جب لیں",
+   "avg_logprob": -0.239,
+   "no_speech_prob": 0.978,
+   "compression_ratio": 2.01
+  },
+  {
+   "start": 3707.5,
+   "end": 3712.0,
+   "text": "گی نا ون کی ون لارڈ سائز کی تو یہ نارمل زیرو ڈار زیرو",
+   "avg_logprob": -0.21,
+   "no_speech_prob": 0.174,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 3712.0,
+   "end": 3715.72,
+   "text": "ون سینٹ کی لگے گی ٹھیک ہے تو آپ کوشش کریں زیرو ڈار زیرو",
+   "avg_logprob": -0.21,
+   "no_speech_prob": 0.174,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 3715.72,
+   "end": 3718.9,
+   "text": "ون کی یوز کریں اور پھر آہستہ آہستہ جو گناہ اس میں وہ",
+   "avg_logprob": -0.21,
+   "no_speech_prob": 0.174,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 3718.9,
+   "end": 3722.62,
+   "text": "پڑھا لیتے گا ٹھیک ہو گیا ٹھیک ہے آپ پریکٹس کریں پھر",
+   "avg_logprob": -0.21,
+   "no_speech_prob": 0.174,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 3722.62,
+   "end": 3728.4,
+   "text": "انشاء اللہ ہوتی ہے ٹھیک ہے ٹھیک ہے بھائی بھائی یہ شیئر",
+   "avg_logprob": -0.21,
+   "no_speech_prob": 0.174,
+   "compression_ratio": 2.22
+  },
+  {
+   "start": 3728.4,
+   "end": 3733.5,
+   "text": "کر دینا ویڈیو آپ آہ میں میں میں بیجتا ہوں میں بیجتا ہوں",
+   "avg_logprob": -0.21,
+   "no_speech_prob": 0.174,
+   "compression_ratio": 2.22
+  }
+ ]
+}
