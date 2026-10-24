@@ -142,6 +142,24 @@ input double InpRjBProjX      = 2.5;    // Projection = this x the last correcti
 input bool   InpRjBChop       = false;  // Raja lens: never trade sideways (last swings overlap, no new HH-HL / LL-LH) -> the Raja lens does not pass
 input int    InpRjBChopSwings = 3;      // Sideways check: swing highs and lows compared (2-8; swings = InpTLSwing bars each side)
 input int    InpRjBChopTF     = 0;      // Sideways check on: 0 = the zone's TF, 1 = the zone's TF or the Direction HTF
+input group "Raja (v2.1 C)"
+input int    InpSlMode        = 0;      // Stop: 0 = v1 (InpStopBufferPts beyond the distal), 1 = Raja: a % of the zone height beyond the distal (per TF below)
+input double InpSlPctLTF      = 25;     // Stop % of the zone height, M1-M30 (Raja: LTF spread hunts, keep it wider)
+input double InpSlPctH1       = 20;     // Stop % of the zone height, H1 (H2, H3)
+input double InpSlPctH4       = 15;     // Stop % of the zone height, H4 (H6-H12) (Raja: 3-4 pips beyond)
+input double InpSlPctD1       = 10;     // Stop % of the zone height, D1 (Raja: about on the distal)
+input double InpSlPctW1       = 5;      // Stop % of the zone height, W1, MN and 3M+
+input double InpSlMinPips     = 3;      // % stop: never closer than this many pips beyond the distal
+input double InpTpOffsetPips  = 0;      // TP this many pips before the opposite zone's proximal (0 = v1; Raja 5-10)
+input bool   InpRjLabels      = false;  // Box labels / click box header in Raja words: type (ARR WOW STR OVL INH FLP OTL TST) + Raja verdict, not Kevin's STRONG/OK/WEAK + grade
+input bool   InpRjKevinOff    = false;  // Raja template: Kevin overlays off (Sunday rule InpOnlyQualified, trap box, channel 50% overextended, stay-away gap, far-zone halfway alert)
+input bool   InpRjOnlyStrongArrival = false; // Filter: draw only Raja strong / arrival / WOW zones (ARR WOW STR)
+input bool   InpRjAlertConfirm = false; // Alerts: candle closes back across the proximal after a wick into a zone; LTF trendline cross + opposite zone removed inside a tested HTF zone
+input bool   InpRjAlertManage = false;  // Alerts on the latest touched zone (open idea): 1st / 2nd same-side zone removed against it (2nd = close), new fresh zone = trail
+input bool   InpRjWickFill    = false;  // Mark the 50% of long wicks (likely to be filled) until price trades there
+input double InpRjWickFillATR = 1.5;    // Long wick: wick > x ATR(14)
+input bool   InpRjBlindFlag   = false;  // Label "BLIND OK": fresh WOW zone, fresh arrival zone, or fresh zone at the trendline before its 4th tap
+input bool   InpRjGoldNote    = false;  // XAUUSD below H1: panel note "Raja: prefer XAUAUD on LTF"
 input group "-- v2 Zone DNA + mentor lenses (display only) --"
 input bool   InpDNA           = true;   // Zone DNA for every drawn zone (departure, base, chain, tests, nested, curve, room, origin ...)
 input int    InpBaseMedianN   = 20;     // DNA: base_rel = base candles / median of the last N zones
@@ -197,6 +215,8 @@ input bool     InpExportGV    = false;  // Export the drawn zones (nearest first
 input int      InpExportN     = 8;      // Zones exported at most (never more than the zones drawn, InpMaxZones)
 
 #define PFX "RFXV_"
+#define RFX_RJC                         // Raja v2.1 C: this host has the InpSl* / InpRj* inputs (RFX_ZoneCore.mqh uses them)
+#define RJC_CONF_WIN 10                 // Raja v2.1 C: LTF trendline cross + opposite removal within this many bars
 #define MAXTF 12
 
 struct Zone
@@ -563,7 +583,7 @@ void CheckTouch()
    double b = SBid();
    for(int k = 0; k < ArraySize(zKey); k++)
      {
-      if(zVer[k] != "STRONG" || zState[k] != "fresh") continue;
+      if(!RjC_TouchStrong(k) || zState[k] != "fresh") continue;      // Raja v2.1 C: Raja strong types with InpRjLabels
       double lvT = InpAlertAtLimit ? zProx[k] + zDir[k] * InpZ3Front * MathAbs(zProx[k] - zDist[k]) : zProx[k];   // v2: at the bot's limit (off = v1)
       bool hit = zDir[k] > 0 ? b <= lvT : b >= lvT;
       if(!hit) continue;
@@ -660,9 +680,9 @@ void ShowPopRich(int zi, int x, int y)
    ArrayResize(gV2HdrRow, 0); ArrayResize(gV2HdrKey, 0);
    string ln[]; int n = StringSplit(zTxt[zi], '\n', ln);
    const int WR = 66;
-   string head = (n > 0 ? ln[0] : "Zone") + "  |  " + zVer[zi];
+   string head = (n > 0 ? ln[0] : "Zone") + "  |  " + RjC_HeadVer(zi);
    string grade = n > 1 ? ln[1] : "";
-   PRow("GRADE & TRADE", cSec, 1);
+   PRow(InpRjLabels ? "RAJA TYPE & TRADE" : "GRADE & TRADE", cSec, 1);
    PWrap(grade, StringFind(grade, "Trade: YES") >= 0 ? cGood : cBad, WR);
    string plan = "", drills = "";
    for(int i = 2; i < n; i++)
@@ -707,7 +727,7 @@ void ShowPopRich(int zi, int x, int y)
    int bx = x + 18 + bw > cw ? MathMax(4, x - 18 - bw) : x + 18;   // flips to the left of the click near the right edge
    int by = MathMax(4, MathMin(y - bh / 2, ch - bh - 4));
    Box("RFXP2_bg", bx, by, bw, bh, cPopBg, cPopBorder);
-   Box("RFXP2_hd", bx, by, bw, hh, VerdictColor(zVer[zi]), VerdictColor(zVer[zi]));
+   Box("RFXP2_hd", bx, by, bw, hh, RjC_HeadColor(zi), RjC_HeadColor(zi));
    Lbl("RFXP2_ht", bx + 8, by + 4, head, clrWhite, "Arial Bold", 9);
    Lbl("RFXP2_x", bx + bw - 16, by + 2, "x", clrWhite, "Arial Bold", 11);
    ObjectSetString(0, "RFXP2_x", OBJPROP_TOOLTIP, "close");
@@ -846,10 +866,12 @@ void Redraw()
    DirRun();                                                         // v2 Direction engine: reads the v1 results, draws nothing itself
    if(InpBiasSource == 1 && gDirOk) gTrend = gDir;                   // off by default: v1 gTrend drives the zone notes
    if(InpShowHTF) { ENUM_TIMEFRAMES h = HtfOf(CTF); if(h > 0) { Detect(_Symbol, h, HZ, false); DrawZones(HZ, true); } }   // HTF band first, underneath
+   RjC_PrepareHide();                                                // Raja v2.1 C: InpRjOnlyStrongArrival (off by default: nothing hidden)
    V2MergePrepare();                                                 // v2 merge overlap (off by default: nothing hidden)
    DrawZones(Z, false);
    V2Zones();                                                        // v2: DNA + lenses for the drawn zones, compact tags (RFXV2_t / RFXV2_m only)
    if(InpShowEmotional) MarkEmotional();
+   if(InpRjWickFill) RjC_WickFill();                                 // Raja v2.1 C (off by default)
    if(InpShowPanel || InpShowPlan) Panel();
    if(InpShowBotOrders) BotNotes();
    NoSelect(PFX); NoSelect("RFXN_"); NoSelect("RFXS_");
@@ -859,6 +881,7 @@ void Redraw()
    if(gDirOk && InpAlertDir) DirAlert();
    V2BreakAlerts();
    V2WowAlert();
+   RjC_Alerts();                                                     // Raja v2.1 C: confirmation + management alerts (off by default)
    if(InpExportGV) V2ExportGV();                                     // v2 M10: ZoneBot export (off by default)
    gArmed = true;
    ChartRedraw();
@@ -954,7 +977,8 @@ void Panel()
    L += "Structure: " + StructureNow() + "\n";
    if(InpShowLegend) L += "Key: VP = valley/peak (reversal), CP = continuation, clear space = gap under the stay-away candle,\n      ATR = average candle size, HTF = higher timeframe, x = deal-breaker, - = weakness, + = strength\n";
    if(gHBiasTxt != "") L += "Trendline bias: " + (gHBias > 0 ? "UP - " : "DOWN - ") + gHBiasTxt + "\n";
-   { double mid = Mid();
+   if(RjC_GoldLTF()) L += "Raja: prefer XAUAUD on LTF (gold hunts stops below H1)\n";   // Raja v2.1 C
+   if(!RjC_KevinOff()) { double mid = Mid();
      if(Overextended(1, mid)) L += "Up channel: price beyond 50% = OVEREXTENDED - no buys, wait for the golden area\n";
      else if(gUpOn) L += "Up channel: price in the golden area (line to 50%)\n";
      if(Overextended(-1, mid)) L += "Down channel: price beyond 50% = OVEREXTENDED - no sells, wait for the golden area\n";
@@ -989,7 +1013,7 @@ void Panel()
       ENUM_TIMEFRAMES dtf = htf > 0 ? htf : CTF;
       double hatr = ATR(dtf, 1), far = MathAbs(Mid() - Z[i].prox), xatr = far / MathMax(hatr, _Point);
       string dline = StringFormat("Distance: %.1f x %s ATR (%s away, ATR %s)", xatr, TfName(dtf), DoubleToString(far, _Digits), DoubleToString(hatr, _Digits));
-      if(why == "" && xatr > InpMaxDistATR)
+      if(why == "" && xatr > InpMaxDistATR && !RjC_KevinOff())        // Raja v2.1 C: halfway overlay / alert off with InpRjKevinOff
         {
          static double hwProx = 0, hwHalf = 0;                         // halfway is fixed when the zone first shows as far
          if(MathAbs(hwProx - Z[i].prox) > _Point) { hwProx = Z[i].prox; hwHalf = (Mid() + Z[i].prox) / 2; }
@@ -1003,10 +1027,16 @@ void Panel()
          if(InpHalfwayAlert && MathAbs(alertedHalf - half) > 10 * _Point && ((dir < 0 && bid >= half) || (dir > 0 && bid <= half)) && V2HalfwayOk(i))
            { alertedHalf = half; Notify("ZoneVision " + _Symbol + " " + TfName(CTF) + ": halfway to the " + (dir > 0 ? "demand " : "supply ") + DoubleToString(Z[i].prox, _Digits) + " - check for a new lower-timeframe zone in the chain"); }
         }
-      else if(why == "") dline += " - within reach";
+      else if(why == "") dline += xatr > InpMaxDistATR ? " - far" : " - within reach";
       L += dline + "\n";
       if(why == "")
          plan = StringFormat("Bot: %s %s  SL %s  TP %s  (1:%.1f, %s %s%s)", dir > 0 ? "BUY limit" : "SELL limit", DoubleToString(entry, _Digits), DoubleToString(sl, _Digits), DoubleToString(tp, _Digits), rr, dir > 0 ? "RBR" : "DBD", Z[i].grade, Z[i].trap > 0 ? " + trap" : "");
+      if(why == "" && (InpSlMode == 1 || InpTpOffsetPips > 0))       // Raja v2.1 C: the bot keeps its own buffer; Raja's stop / target shown beside it
+        {
+         double rjSl = dir > 0 ? Z[i].dist - RjC_StopBuf(MathAbs(Z[i].prox - Z[i].dist), CTF) : Z[i].dist + RjC_StopBuf(MathAbs(Z[i].prox - Z[i].dist), CTF) + spread;
+         double rjTp = dir > 0 ? tp - RjC_TpOff() : tp + RjC_TpOff();
+         plan += StringFormat(" | Raja SL %s TP %s (1:%.1f)", DoubleToString(rjSl, _Digits), DoubleToString(rjTp, _Digits), MathAbs(rjTp - entry) / MathMax(MathAbs(entry - rjSl), _Point));
+        }
       else
          plan = StringFormat("Bot: watching %s at %s - no trade: %s", dir > 0 ? "demand" : "supply", DoubleToString(Z[i].prox, _Digits), why);
       if(InpShowPlan && why == "")
@@ -1065,15 +1095,16 @@ void DrawCompact()
         {
          if(zState[k] == "removed") continue;
          act++; if(zState[k] == "fresh") fr++;
-         if(zVer[k] != "STRONG") continue;
+         if(!RjC_TouchStrong(k)) continue;
          if(zDir[k] > 0 && (bd < 0 || MathAbs(mid - zProx[k]) < MathAbs(mid - zProx[bd]))) bd = k;
          if(zDir[k] < 0 && (bs < 0 || MathAbs(mid - zProx[k]) < MathAbs(mid - zProx[bs]))) bs = k;
         }
       SRow(bd >= 0 ? StringFormat("Strong demand: %s  (%.1f x %s ATR)", DoubleToString(zProx[bd], _Digits), MathAbs(mid - zProx[bd]) / hatr, TfName(dtf)) : "Strong demand: none in view", bd >= 0 ? cDemandLine : cPopFg);
       SRow(bs >= 0 ? StringFormat("Strong supply: %s  (%.1f x %s ATR)", DoubleToString(zProx[bs], _Digits), MathAbs(mid - zProx[bs]) / hatr, TfName(dtf)) : "Strong supply: none in view", bs >= 0 ? cSupplyLine : cPopFg);
       SRow(StringFormat("Zones in view: %d  (fresh %d)", act, fr), cPopFg);
-      if(Overextended(1, mid)) SRow("Up channel OVEREXTENDED - no buys, wait", cBad);
-      if(Overextended(-1, mid)) SRow("Down channel OVEREXTENDED - no sells, wait", cBad);
+      if(RjC_Overext(1, mid)) SRow("Up channel OVEREXTENDED - no buys, wait", cBad);
+      if(RjC_Overext(-1, mid)) SRow("Down channel OVEREXTENDED - no sells, wait", cBad);
+      if(RjC_GoldLTF()) SRow("Raja: prefer XAUAUD on LTF", cBad);   // Raja v2.1 C
       SRow(gPanPlan, StringFind(gPanPlan, "limit") >= 0 ? cPlanEntry : cPopHead);
      }
    int rows = ArraySize(sR), w = StringLen(head);
@@ -1382,6 +1413,7 @@ void V2Zones()
         }
       if(gCalOk) CalLookup(zDna[k], zLens[k], zCal[k]);
       if(InpLensTag || InpShowNested || InpShowSize || InpShowRunOut || InpShowDepth) V2DrawTag(k);
+      if(InpRjLabels || InpRjBlindFlag) RjC_ApplyLabel(k);           // Raja v2.1 C (off by default)
      }
    V2DrawMergeLines();
    NoSelect("RFXV2_");
@@ -1677,6 +1709,273 @@ void V2WowAlert()
    MarkAlerted(key);
    if(gArmed) Notify("ZV " + _Symbol + " " + TfName(CTF) + ": " + gWowTxt[0] + (V2DirShort() != "" ? " | " + V2DirShort() : ""));
   }
+
+// ---- Raja v2.1 (C) ----
+// Raja labels (InpRjLabels), the strong / arrival / WOW filter (InpRjOnlyStrongArrival), confirmation and management
+// alerts (InpRjAlertConfirm, InpRjAlertManage), long-wick fill marks (InpRjWickFill), the blind-entry flag (InpRjBlindFlag)
+// and the gold note (InpRjGoldNote). Every switch is off by default: nothing here runs or changes the chart then.
+int      gRjCHL[]; int gRjCHD[];                                     // zones hidden by InpRjOnlyStrongArrival (legBar + dir)
+
+bool RjC_IsStrongCode(int c) { return c == RT_ARR || c == RT_WOW || c == RT_STR; }
+// called by V2Hide (core) for the chart zones
+bool RjC_Hidden(Zone &z)
+  {
+   if(!InpRjOnlyStrongArrival) return false;
+   for(int k = 0; k < ArraySize(gRjCHL); k++) if(gRjCHL[k] == z.legBar && gRjCHD[k] == z.dir) return true;
+   return false;
+  }
+// once per redraw, before the zones are picked: the Raja type of every chart zone (DNA F26), the weak ones are hidden
+void RjC_PrepareHide()
+  {
+   ArrayResize(gRjCHL, 0); ArrayResize(gRjCHD, 0);
+   if(!InpRjOnlyStrongArrival) return;
+   DnaPrepare();
+   for(int i = 0; i < ArraySize(Z); i++)
+     {
+      if(Z[i].legBar > InpMaxZoneAge) continue;
+      ZoneDNA x;
+      DnaCompute(CTF, Z, i, x);
+      if(x.ok && RjC_IsStrongCode(x.rajaCode)) continue;
+      int n = ArraySize(gRjCHL);
+      ArrayResize(gRjCHL, n + 1); ArrayResize(gRjCHD, n + 1);
+      gRjCHL[n] = Z[i].legBar; gRjCHD[n] = Z[i].dir;
+     }
+  }
+// "strong" for the touch alert and the panel: Kevin's STRONG (v1), or Raja's ARR / WOW / STR with InpRjLabels
+bool RjC_TouchStrong(int k)
+  {
+   if(k < 0 || k >= ArraySize(zVer)) return false;
+   if(!InpRjLabels) return zVer[k] == "STRONG";
+   return k < ArraySize(zDna) && zDna[k].ok && RjC_IsStrongCode(zDna[k].rajaCode);
+  }
+// Raja verdict of drawn zone k: TAKE (lens passes), WAIT (strong + fresh, but curve / room / impulse say no), CONFIRM, SKIP
+string RjC_Verdict(int k)
+  {
+   if(k < 0 || k >= ArraySize(zDna) || !zDna[k].ok) return (k >= 0 && k < ArraySize(zVer)) ? zVer[k] : "";
+   if(k < ArraySize(zLens) && zLens[k].ok)
+     {
+      if(zLens[k].passR) return "TAKE";
+      if(zLens[k].emR == 1) return "WAIT";
+      if(zLens[k].emR == 2) return "CONFIRM";
+      return "SKIP";
+     }
+   return RjC_IsStrongCode(zDna[k].rajaCode) ? "STRONG" : "CONFIRM";
+  }
+string RjC_HeadVer(int zi) { return InpRjLabels ? RjC_Verdict(zi) : zVer[zi]; }
+color  RjC_HeadColor(int zi)
+  {
+   if(!InpRjLabels) return VerdictColor(zVer[zi]);
+   string v = RjC_Verdict(zi);
+   return (v == "TAKE" || v == "STRONG") ? C'46,139,87' : ((v == "CONFIRM" || v == "WAIT") ? C'70,110,170' : C'140,140,140');
+  }
+// TODO(Raja v2.1): taps on the trendline nearest the zone (4th tap = likely break, L4 / L103 / L107). The trendline
+// touch counting belongs to the trendline work; until it exists this returns -1 (unknown) and the blind flag only
+// needs the zone to sit at a respected trendline (NearTrendline, DNA nearTl).
+int RjC_TouchCountHook(int dir, double price) { return -1; }
+// blind entry (L104): a fresh WOW zone, a fresh arrival zone, or a fresh zone at the trendline before the line's 4th tap
+bool RjC_Blind(int k)
+  {
+   if(!InpRjBlindFlag || k < 0 || k >= ArraySize(zDna) || !zDna[k].ok) return false;
+   if(zDna[k].removed || zDna[k].nTests > 0) return false;
+   int c = zDna[k].rajaCode;
+   if(c == RT_WOW || c == RT_ARR) return true;
+   if(!zDna[k].nearTl) return false;
+   int taps = RjC_TouchCountHook(zDna[k].d, zDna[k].prox);
+   return taps < 3;                                                   // -1 = unknown; < 3 taps so far = the next one is not the 4th
+  }
+// after V2DrawTag: the box label, the box tooltip and the click-box text in Raja's words; the blind flag
+void RjC_ApplyLabel(int k)
+  {
+   if(k < 0 || k >= ArraySize(zDna) || !zDna[k].ok || k >= ArraySize(zKey)) return;
+   string id = zKey[k], nm = id + "n";
+   if(InpRjLabels)
+     {
+      ZoneDNA x = zDna[k];
+      bool lok = k < ArraySize(zLens) && zLens[k].ok;
+      string ver = RjC_Verdict(k);
+      string side = x.d > 0 ? "demand" : "supply";
+      string why = lok ? zLens[k].rTouch + ", " + zLens[k].rCurve + ", room " + V2Room(x.roomR) : "";
+      string lab = CalPat(x) + " " + side + " | " + x.rajaType + " | " + ver + (why == "" ? "" : ": " + why);
+      if(ObjectFind(0, nm) >= 0)
+        {
+         ObjectSetString(0, nm, OBJPROP_TEXT, lab);
+         ObjectSetInteger(0, nm, OBJPROP_COLOR, ver == "SKIP" ? cMuted : cText);
+        }
+      if(ObjectFind(0, id) >= 0) ObjectSetString(0, id, OBJPROP_TOOLTIP, CalPat(x) + " " + side + " | Raja " + x.rajaType + " " + ver + " - click for details");
+      // click box: Raja's line instead of Kevin's grade line; Kevin-only notes (chain, VP) dropped
+      string ln[];
+      int n = StringSplit(zTxt[k], '\n', ln);
+      string trade = "";
+      if(lok && zLens[k].passR)
+         trade = zTp[k] <= 0 ? "NO - no opposing zone for a target" : (zRR[k] < InpMinRR ? StringFormat("NO - R:R 1:%.1f is below 1:%.1f", zRR[k], InpMinRR) : "YES");
+      else if(ver == "CONFIRM") trade = "CONFIRMATION only (" + (lok ? zLens[k].rTouch : "weak zone") + ")";
+      else trade = "NO - " + ((lok && zLens[k].rNote != "") ? zLens[k].rNote : (lok ? zLens[k].rTouch : ver));
+      string t = (n > 0 ? ln[0] : side) + "\n" + "Raja " + x.rajaType + " | " + ver + " | Trade: " + trade;
+      for(int i = 2; i < n; i++)
+        {
+         if(StringFind(ln[i], "chain") >= 0 || StringFind(ln[i], "VP (") >= 0 || StringFind(ln[i], "Kevin") >= 0) continue;
+         t += "\n" + ln[i];
+        }
+      if(StringLen(t) > 900) t = StringSubstr(t, 0, 895) + "...";
+      zTxt[k] = t;
+     }
+   if(RjC_Blind(k) && ObjectFind(0, nm) >= 0)
+     {
+      ObjectSetString(0, nm, OBJPROP_TEXT, ObjectGetString(0, nm, OBJPROP_TEXT) + " | BLIND OK");
+      ObjectSetString(0, nm, OBJPROP_TOOLTIP, "Raja blind entry (L104): fresh WOW / fresh arrival / fresh zone at the trendline before its 4th tap - click the box for details");
+     }
+  }
+// XAUUSD below H1 (L53): gold hunts stops on the LTF, Raja prefers XAUAUD there
+bool RjC_GoldLTF()
+  {
+   if(!InpRjGoldNote || CTF >= PERIOD_H1) return false;
+   string u = _Symbol; StringToUpper(u);
+   return StringFind(u, "XAUUSD") >= 0 || (StringFind(u, "GOLD") >= 0 && StringFind(u, "AUD") < 0);
+  }
+// long wicks get filled (L101, L105): the 50% of every long wick (> InpRjWickFillATR x ATR) not traded back to yet, newest 6
+void RjC_WickFill()
+  {
+   int bars = MathMin(MathMin(InpLookback, 100), cBars() - 20), shown = 0;
+   datetime right = cT(0) + PeriodSeconds() * 18;
+   for(int i = 1; i < bars && shown < 6; i++)
+     {
+      double a = ATR(CTF, i + 1);
+      if(a <= 0) continue;
+      double top = MathMax(cO(i), cC(i)), bot = MathMin(cO(i), cC(i));
+      for(int s = -1; s <= 1 && shown < 6; s += 2)                   // -1 upper wick, +1 lower wick
+        {
+         double w = s < 0 ? cH(i) - top : bot - cL(i);
+         if(w <= InpRjWickFillATR * a) continue;
+         double lv = s < 0 ? cH(i) - w / 2 : cL(i) + w / 2;
+         bool filled = false;
+         for(int j = i - 1; j >= 0 && !filled; j--) if(s < 0 ? cH(j) >= lv : cL(j) <= lv) filled = true;
+         if(filled) continue;
+         string nm = PFX + "rjw" + IntegerToString(i) + (s < 0 ? "u" : "d");
+         HLine(nm, cT(i), right, lv, cWow, STYLE_DOT, 1);
+         ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
+         ObjectSetString(0, nm, OBJPROP_TOOLTIP, StringFormat("Raja: long %s wick (%.1f x ATR) - its 50%% %s is likely to be filled", s < 0 ? "upper" : "lower", w / a, DoubleToString(lv, _Digits)));
+         Txt(nm + "t", right, lv, " wick 50% " + DoubleToString(lv, _Digits), cWow, 7, ANCHOR_LEFT);
+         shown++;
+        }
+     }
+  }
+// once per redraw (new candle): Raja confirmation (item 10) and management (item 12) alerts; nothing on load
+void RjC_Alerts()
+  {
+   if(!InpRjAlertConfirm && !InpRjAlertManage) return;
+   if(cBars() < RJC_CONF_WIN + 5) return;
+   string tfn = TfName(CTF), bt = IntegerToString((long)cT(1));
+   double spread = SAsk() - SBid();
+   if(InpRjAlertConfirm)
+     {
+      // (a) a wick into the zone, then a candle closes back across the proximal (L2, L105)
+      for(int i = 0; i < ArraySize(Z); i++)
+        {
+         if(Z[i].removed || Z[i].legBar > InpMaxZoneAge || Z[i].saBar <= 2) continue;
+         int d = Z[i].dir;
+         double pr = Z[i].prox, ds = Z[i].dist;
+         bool out1 = d > 0 ? cC(1) > pr : cC(1) < pr;
+         bool wick1 = d > 0 ? cL(1) <= pr : cH(1) >= pr;
+         bool in2 = d > 0 ? cC(2) <= pr : cC(2) >= pr;
+         bool held = d > 0 ? (cC(1) > ds && cC(2) > ds) : (cC(1) < ds && cC(2) < ds);
+         if(!out1 || !held || !(wick1 || in2)) continue;
+         string key = "RjCa" + bt + DoubleToString(pr, _Digits) + (d > 0 ? "d" : "s");
+         if(Alerted(key)) continue;
+         MarkAlerted(key);
+         double buf = RjC_StopBuf(MathAbs(pr - ds), CTF);
+         double sl = d > 0 ? ds - buf : ds + buf + spread;
+         string tail = "";
+         for(int k = 0; k < ArraySize(zZi); k++) if(zZi[k] == i) { tail = V2AlertTail(k); break; }
+         if(gArmed)
+            Notify(StringFormat("ZV %s %s %s %s: Raja confirmation - a candle closed back %s the proximal after a wick into the zone (SL %s)", _Symbol, tfn,
+                                d > 0 ? "demand" : "supply", V2Px(pr), d > 0 ? "above" : "below", V2Px(sl)) + tail);
+        }
+      // (b) inside a tested HTF zone: this chart's trendline crossed + an opposite zone removed (arrival / direction change, L105)
+      ENUM_TIMEFRAMES ht = HtfOf(CTF);
+      if(ht > 0)
+        {
+         int tlBar[2] = {-1, -1}, rmBar[2] = {-1, -1};                 // [0] buy side (down line / supply), [1] sell side
+         for(int t = 0; t < ArraySize(TL); t++)
+           {
+            if(!TL[t].removed || TL[t].removedBar < 1) continue;
+            int s = TL[t].dir < 0 ? 0 : 1;
+            if(tlBar[s] < 0 || TL[t].removedBar < tlBar[s]) tlBar[s] = TL[t].removedBar;
+           }
+         for(int i = 0; i < ArraySize(Z); i++)
+           {
+            if(!Z[i].removed || Z[i].removedBar < 1) continue;
+            int s = Z[i].dir < 0 ? 0 : 1;
+            if(rmBar[s] < 0 || Z[i].removedBar < rmBar[s]) rmBar[s] = Z[i].removedBar;
+           }
+         Zone hz[];
+         Detect(_Symbol, ht, hz, false);
+         double lo1 = cL(1), hi1 = cH(1);
+         for(int b = 2; b <= RJC_CONF_WIN; b++) { lo1 = MathMin(lo1, cL(b)); hi1 = MathMax(hi1, cH(b)); }
+         for(int j = 0; j < ArraySize(hz); j++)
+           {
+            if(hz[j].removed || !hz[j].tested || DirFreshAt(ht, hz[j])) continue;   // tested before this visit
+            int d = hz[j].dir, s = d > 0 ? 0 : 1;
+            bool reached = d > 0 ? (lo1 <= hz[j].prox && cC(1) > hz[j].dist) : (hi1 >= hz[j].prox && cC(1) < hz[j].dist);
+            if(!reached) continue;
+            if(tlBar[s] < 0 || rmBar[s] < 0 || MathMax(tlBar[s], rmBar[s]) > RJC_CONF_WIN || MathMin(tlBar[s], rmBar[s]) != 1) continue;
+            string key = "RjCb" + bt + DoubleToString(hz[j].prox, _Digits) + (d > 0 ? "d" : "s");
+            if(Alerted(key)) continue;
+            MarkAlerted(key);
+            if(gArmed)
+               Notify(StringFormat("ZV %s %s: Raja confirmation in the tested %s %s %s - %s trendline crossed + %s removed: %s with the new %s zone that did it", _Symbol, tfn,
+                                   TfName(ht), d > 0 ? "demand" : "supply", V2Px(hz[j].prox), tfn, d > 0 ? "a supply" : "a demand", d > 0 ? "buy" : "sell", tfn)
+                      + (V2DirShort() != "" ? " | " + V2DirShort() : ""));
+           }
+        }
+     }
+   if(InpRjAlertManage)
+     {
+      // the latest touched chart zone = the open idea (L3, L4, L7, L53)
+      int ii = -1;
+      for(int i = 0; i < ArraySize(Z); i++)
+         if(Z[i].tested && !Z[i].removed && Z[i].testedBar >= 1 && Z[i].legBar <= InpMaxZoneAge && (ii < 0 || Z[i].testedBar < Z[ii].testedBar)) ii = i;
+      if(ii >= 0)
+        {
+         int d = Z[ii].dir, tb = Z[ii].testedBar;
+         string idk = IntegerToString((long)cT(Z[ii].legBar + Z[ii].baseN)) + (d > 0 ? "d" : "s");
+         string idea = StringFormat("the %s idea from the %s %s", d > 0 ? "buy" : "sell", d > 0 ? "demand" : "supply", V2Px(Z[ii].prox));
+         // same-side zones newer than the idea zone, removed after the touch = structure removed against the idea
+         int nAg = 0, rb = -1;
+         for(int j = 0; j < ArraySize(Z); j++)
+           {
+            if(j == ii || Z[j].dir != d || !Z[j].removed || Z[j].legBar >= Z[ii].legBar || Z[j].removedBar < 1 || Z[j].removedBar >= tb) continue;
+            nAg++;
+            if(rb < 0 || Z[j].removedBar < rb) rb = Z[j].removedBar;
+           }
+         if(nAg >= 1 && rb == 1)
+           {
+            string key = "RjCm" + idk + IntegerToString(MathMin(nAg, 2));
+            if(!Alerted(key))
+              {
+               MarkAlerted(key);
+               if(gArmed)
+                  Notify(nAg >= 2 ? StringFormat("ZV %s %s: 2nd %s zone removed against %s - Raja: close it (two zones removed = direction change)", _Symbol, tfn, d > 0 ? "demand" : "supply", idea)
+                                  : StringFormat("ZV %s %s: 1st %s zone removed against %s - Raja: SL behind the next zone, close if a 2nd one goes", _Symbol, tfn, d > 0 ? "demand" : "supply", idea));
+              }
+           }
+         // a new fresh zone formed in the trade direction after the touch: trail (L7, L53)
+         for(int j = 0; j < ArraySize(Z); j++)
+           {
+            if(j == ii || Z[j].dir != d || Z[j].removed || Z[j].tested || Z[j].saBar != 1 || Z[j].legBar >= tb) continue;
+            string key = "RjCt" + IntegerToString((long)cT(Z[j].legBar + Z[j].baseN)) + (d > 0 ? "d" : "s");
+            if(Alerted(key)) continue;
+            MarkAlerted(key);
+            double buf = RjC_StopBuf(MathAbs(Z[j].prox - Z[j].dist), CTF);
+            double tsl = d > 0 ? Z[j].dist - buf : Z[j].dist + buf + spread;
+            if(gArmed)
+               Notify(StringFormat("ZV %s %s: new fresh %s %s-%s in the trade direction of %s - Raja: trail the SL to %s", _Symbol, tfn, d > 0 ? "demand" : "supply",
+                                   V2Px(MathMin(Z[j].prox, Z[j].dist)), V2Px(MathMax(Z[j].prox, Z[j].dist)), idea, V2Px(tsl)));
+           }
+        }
+     }
+  }
+// ---- end Raja v2.1 (C) ----
+
 
 //+------------------------------------------------------------------+
 //| v2 M0 golden master: object dump (InpDumpObjects, default off)   |
