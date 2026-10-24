@@ -53,5 +53,38 @@
   "seconds": 1047.14,
   "sha256": "fdf950bffb7dbb289d9defd4a083b128689c4380207c3034c8766b7a561ed809",
   "textHash": "c17ebfd01fbe3e1f"
+ },
+ {
+  "source": "course",
+  "n": 11,
+  "title": "Having the Right Mindset in Trading",
+  "voice": "am_michael",
+  "file": "course/11/am_michael.m4a",
+  "bytes": 8675444,
+  "seconds": 1051.39,
+  "sha256": "e34d2172a1bc3d47c090b00ab787f5e5bd2d5faeda0b09aa69ce86307eb5f38b",
+  "textHash": "b057a9a56881c748"
+ },
+ {
+  "source": "course",
+  "n": 12,
+  "title": "Day trading (webinar)",
+  "voice": "am_michael",
+  "file": "course/12/am_michael.m4a",
+  "bytes": 10322967,
+  "seconds": 1250.59,
+  "sha256": "0c858bf2a29cf2a0793504fb4d4dca250bf534e3467549524e4c2e021947c609",
+  "textHash": "cbbd24ed05ac25a1"
+ },
+ {
+  "source": "course",
+  "n": 13,
+  "title": "High vs low quality zones (webinar)",
+  "voice": "am_michael",
+  "file": "course/13/am_michael.m4a",
+  "bytes": 18248778,
+  "seconds": 2206.42,
+  "sha256": "36c577c952f9688c44809deb153e6cc48deb076627861b861a90cdce9caeb97f",
+  "textHash": "f5ed882b56e114ec"
  }
 ]

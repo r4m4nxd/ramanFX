@@ -1,0 +1,89 @@
+{
+ "source": "course",
+ "n": 11,
+ "title": "Having the Right Mindset in Trading",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 1051.39,
+   "textHash": "b057a9a56881c748",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Process over predictions and money",
+     "start": 48.81
+    },
+    {
+     "id": "s1",
+     "title": "Being flat is a position",
+     "start": 88.17
+    },
+    {
+     "id": "s2",
+     "title": "Prediction versus trading",
+     "start": 124.09
+    },
+    {
+     "id": "s3",
+     "title": "Stick to one side: long, short or flat",
+     "start": 152.61
+    },
+    {
+     "id": "s4",
+     "title": "Each setup is one of thousands",
+     "start": 197.79
+    },
+    {
+     "id": "s5",
+     "title": "Extra details and his own experience",
+     "start": 254.46
+    },
+    {
+     "id": "s6",
+     "title": "On his charts",
+     "start": 359.92
+    },
+    {
+     "id": "s7",
+     "title": "Corrected from his video",
+     "start": 551.74
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 680.97
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 709.89
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 745.28
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 785.51
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 1004.25
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 1035.31
+    }
+   ]
+  }
+ }
+}

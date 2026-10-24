@@ -1,0 +1,119 @@
+{
+ "source": "course",
+ "n": 13,
+ "title": "High vs low quality zones (webinar)",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 2206.42,
+   "textHash": "f5ed882b56e114ec",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Look of the zone: good or bad, not a score",
+     "start": 62.88
+    },
+    {
+     "id": "s1",
+     "title": "higher time frame context changes quality without the look changing",
+     "start": 166.62
+    },
+    {
+     "id": "s2",
+     "title": "Tests: how many, and how deep",
+     "start": 234.65
+    },
+    {
+     "id": "s3",
+     "title": "Trading a good zone against a higher time frame zone",
+     "start": 323.88
+    },
+    {
+     "id": "s4",
+     "title": "Rules versus subjectivity, and his views",
+     "start": 367.43
+    },
+    {
+     "id": "s5",
+     "title": "Overextended trends and embedded zones, pound yen, dollar yen Q and A",
+     "start": 426.65
+    },
+    {
+     "id": "s6",
+     "title": "Macro confirmation, euro dollar Q and A, and other markets",
+     "start": 558.96
+    },
+    {
+     "id": "s7",
+     "title": "Psychology, strategy and testing",
+     "start": 629.5
+    },
+    {
+     "id": "s8",
+     "title": "Why he rejects score-based rule books",
+     "start": 714.98
+    },
+    {
+     "id": "s9",
+     "title": "His own trading notes from the session",
+     "start": 795.89
+    },
+    {
+     "id": "s10",
+     "title": "Retail strategies versus supply and demand, member Q and A",
+     "start": 912.22
+    },
+    {
+     "id": "s11",
+     "title": "Memory, testing and timeframe",
+     "start": 995.55
+    },
+    {
+     "id": "s12",
+     "title": "On his charts",
+     "start": 1049.57
+    },
+    {
+     "id": "s13",
+     "title": "Corrected from his video",
+     "start": 1480.5
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 1731.04
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 1803.31
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 1861.61
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 1906.81
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 2112.71
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 2192.33
+    }
+   ]
+  }
+ }
+}

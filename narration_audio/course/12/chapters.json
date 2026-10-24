@@ -1,0 +1,99 @@
+{
+ "source": "course",
+ "n": 12,
+ "title": "Day trading (webinar)",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 1250.59,
+   "textHash": "cbbd24ed05ac25a1",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Pros and cons of day trading",
+     "start": 58.51
+    },
+    {
+     "id": "s1",
+     "title": "Chart layouts",
+     "start": 162.92
+    },
+    {
+     "id": "s2",
+     "title": "The three day-trading sequences, higher time frame, entry",
+     "start": 196.18
+    },
+    {
+     "id": "s3",
+     "title": "Top-down plan example, 15 minute higher time frame, 1 minute entry, euro dollar",
+     "start": 299.23
+    },
+    {
+     "id": "s4",
+     "title": "Time of day, Eastern time",
+     "start": 430.61
+    },
+    {
+     "id": "s5",
+     "title": "News and economic data",
+     "start": 455.02
+    },
+    {
+     "id": "s6",
+     "title": "Q and A",
+     "start": 541.5
+    },
+    {
+     "id": "s7",
+     "title": "Extra details",
+     "start": 556.9
+    },
+    {
+     "id": "s8",
+     "title": "On his charts",
+     "start": 652.96
+    },
+    {
+     "id": "s9",
+     "title": "Corrected from his video",
+     "start": 818.89
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 915.91
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 964.69
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 1000.41
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 1028.7
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 1176.4
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 1228.96
+    }
+   ]
+  }
+ }
+}
