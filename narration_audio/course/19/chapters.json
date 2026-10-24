@@ -1,0 +1,74 @@
+{
+ "source": "course",
+ "n": 19,
+ "title": "When to Remove a Trendline",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 648.29,
+   "textHash": "6a40745c01dfd7a6",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "When a trendline becomes irrelevant",
+     "start": 47.6
+    },
+    {
+     "id": "s1",
+     "title": "Reminder: momentum line versus trendline",
+     "start": 103.07
+    },
+    {
+     "id": "s2",
+     "title": "How he spotted it",
+     "start": 122.3
+    },
+    {
+     "id": "s3",
+     "title": "On his charts",
+     "start": 145.7
+    },
+    {
+     "id": "s4",
+     "title": "Corrected from his video",
+     "start": 250.73
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 359.19
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 398.45
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 407.31
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 427.42
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 600.41
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 630.92
+    }
+   ]
+  }
+ }
+}

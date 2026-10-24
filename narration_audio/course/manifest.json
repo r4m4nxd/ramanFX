@@ -119,5 +119,60 @@
   "seconds": 1616.02,
   "sha256": "d36cfbc62dc6f5c64b2ac64372d27fc92c7507795f80c30d0ecc9e66c15e6a18",
   "textHash": "6ac1a7176c7c3b3c"
+ },
+ {
+  "source": "course",
+  "n": 17,
+  "title": "Discipline & Sticking to Your Trading Plan",
+  "voice": "am_michael",
+  "file": "course/17/am_michael.m4a",
+  "bytes": 7708255,
+  "seconds": 934.57,
+  "sha256": "b4a14de3b0fa0b5cee2d0718a825dcc2a8e9326b075f9abd9bc970418b85c144",
+  "textHash": "5deaddd48c5138db"
+ },
+ {
+  "source": "course",
+  "n": 18,
+  "title": "Zoom Meeting \u2013 What IS and what is NOT a supply and demand zone",
+  "voice": "am_michael",
+  "file": "course/18/am_michael.m4a",
+  "bytes": 15013240,
+  "seconds": 1821.18,
+  "sha256": "5427958c7de93f0ccb04d02f15a12161364adb9fdeb8fde53fe1671a888fd5f5",
+  "textHash": "d7a3e16cca8237f9"
+ },
+ {
+  "source": "course",
+  "n": 19,
+  "title": "When to Remove a Trendline",
+  "voice": "am_michael",
+  "file": "course/19/am_michael.m4a",
+  "bytes": 5335262,
+  "seconds": 648.29,
+  "sha256": "ec500016d2823156379fd5762880518ad3b5d36b8dfdd8a00d06df875e9b33f7",
+  "textHash": "6a40745c01dfd7a6"
+ },
+ {
+  "source": "course",
+  "n": 20,
+  "title": "Low Odds Trading Conditions - when is the best time to trade",
+  "voice": "am_michael",
+  "file": "course/20/am_michael.m4a",
+  "bytes": 6917752,
+  "seconds": 838.32,
+  "sha256": "125ca288af18aa8bea1cf22c3afb6d76c70b5c7fd649fff089a3765a284a94e8",
+  "textHash": "0f8be2d4248873b9"
+ },
+ {
+  "source": "course",
+  "n": 21,
+  "title": "When is a zone removed",
+  "voice": "am_michael",
+  "file": "course/21/am_michael.m4a",
+  "bytes": 3686192,
+  "seconds": 446.44,
+  "sha256": "57ace7b570a871da6c900e2f62a4a4bd6ccbd0f7cd70b01db59b4b3579237db8",
+  "textHash": "8c90d10155c8394e"
  }
 ]

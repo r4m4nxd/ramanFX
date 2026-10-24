@@ -1,0 +1,79 @@
+{
+ "source": "course",
+ "n": 20,
+ "title": "Low Odds Trading Conditions - when is the best time to trade",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 838.32,
+   "textHash": "0f8be2d4248873b9",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "The core idea",
+     "start": 47.3
+    },
+    {
+     "id": "s1",
+     "title": "dollar yen example",
+     "start": 85.61
+    },
+    {
+     "id": "s2",
+     "title": "Messy ranges",
+     "start": 144.87
+    },
+    {
+     "id": "s3",
+     "title": "Extra points from the dollar yen example",
+     "start": 183.91
+    },
+    {
+     "id": "s4",
+     "title": "On his charts",
+     "start": 236.57
+    },
+    {
+     "id": "s5",
+     "title": "Corrected from his video",
+     "start": 378.88
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 481.96
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 519.56
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 537.02
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 571.46
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 781.83
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 824.03
+    }
+   ]
+  }
+ }
+}
