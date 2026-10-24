@@ -1,11 +1,11 @@
 # Narration render progress
 
-Updated: 2026-10-24 01:16:16 UTC  
+Updated: 2026-10-24 02:40:21 UTC  
 
-- Files done: **8 / 458** (450 remaining; voices af_heart, am_michael)
-- Audio rendered: **2.6 h**; remaining about 71.8 h
+- Files done: **8 / 130** (122 remaining; voices af_heart, am_michael)
+- Audio rendered: **2.6 h**; remaining about 33.6 h
 - Render speed: (measuring)
-- ETA: about **34.5 h** (finish around 2026-10-25 11:43)
+- ETA: about **16.1 h** (finish around 2026-10-24 18:47)
 - Disk used by tools/narration/out: 0.09 GB; free: 9.3 GB (pauses below 3.0 GB)
 - Now: course 5 af_heart: Trend vs Momentum
 
@@ -15,5 +15,3 @@ Updated: 2026-10-24 01:16:16 UTC
 | raja | 15 | 0 | 30 | 0.00 |
 | zoom | 13 | 0 | 26 | 0.00 |
 | baker | 14 | 0 | 28 | 0.00 |
-| daily | 60 | 0 | 120 | 0.00 |
-| seiden | 104 | 0 | 208 | 0.00 |
