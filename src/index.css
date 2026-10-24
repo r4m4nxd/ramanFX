@@ -488,3 +488,35 @@
 @keyframes stepIn { from { opacity: 0; transform: translateX(var(--step-from, 14px)); } }
 .step-in { animation: stepIn 0.24s var(--ease-out) both; }
 @media (prefers-reduced-motion: reduce) { .step-in { animation: pageInFade 0.15s ease both; } }
+
+/* ── Checklist print sheet (src/pages/Checklist.tsx): hidden on screen, the only thing printed from /checklist. ── */
+.ck-print { display: none; font: 8.4pt/1.32 Inter, -apple-system, system-ui, sans-serif; color: #111; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; -webkit-user-select: text; user-select: text; }
+html.ck-preview #root, html.ck-preview #splash { display: none; }
+html.ck-preview body { background: #d4d4d4; }
+html.ck-preview .ck-print { display: block; max-width: 210mm; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 76px) 10mm 12mm; box-shadow: 0 0 24px rgb(0 0 0 / .18); min-height: 100vh; }
+.ck-preview-bar { position: fixed; top: 0; inset-inline: 0; z-index: 60; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; padding: calc(env(safe-area-inset-top) + 8px) 16px 8px; background: var(--material); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-shadow: inset 0 -1px 0 var(--hairline); }
+@media print {
+  @page { size: A4; margin: 11mm 10mm; }
+  html, body { background: #fff !important; }
+  body > *:not(.ck-print) { display: none !important; }
+  .ck-print { display: block !important; max-width: none !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; min-height: 0 !important; }
+}
+.ckp-mentor + .ckp-mentor { break-before: page; }
+.ckp-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 6mm; border-bottom: 1.4pt solid #111; padding-bottom: 2mm; margin-bottom: 3.2mm; }
+.ckp-title { font-size: 15pt; font-weight: 800; letter-spacing: -0.01em; line-height: 1.15; }
+.ckp-tag { font-size: 7.8pt; color: #555; margin-top: 0.8mm; }
+.ckp-meta { font-size: 6.8pt; color: #666; text-align: right; white-space: nowrap; }
+.ckp-cols { column-count: 2; column-gap: 7mm; }
+.ckp-stage { break-inside: avoid; margin: 0 0 3.2mm; }
+.ckp-stage h3 { display: flex; align-items: center; gap: 1.8mm; font-size: 9.4pt; font-weight: 700; margin: 0 0 1.3mm; break-after: avoid; }
+.ckp-n { display: inline-grid; place-items: center; width: 4.4mm; height: 4.4mm; border-radius: 50%; background: #111; color: #fff; font-size: 6.8pt; font-weight: 700; flex-shrink: 0; }
+.ckp-never, .ckp-visual { border: 0.8pt solid #b91c1c; border-radius: 2mm; padding: 1.8mm 2.2mm 1mm; }
+.ckp-never .ckp-n { background: #b91c1c; }
+.ckp-visual { border-color: #6d28d9; }
+.ckp-visual .ckp-n { background: #6d28d9; }
+.ckp-stage ul { list-style: none; margin: 0; padding: 0; }
+.ckp-stage li { position: relative; padding-left: 4mm; margin: 0 0 0.9mm; }
+.ckp-box { position: absolute; left: 0; top: 0.55mm; width: 2.4mm; height: 2.4mm; border: 0.7pt solid #444; border-radius: 0.5mm; }
+.ckp-src { font-size: 6.2pt; color: #7a7a7a; white-space: nowrap; }
+.ckp-diff { font-size: 6.2pt; color: #b45309; font-style: italic; }
+.ckp-notes li { padding-left: 0; font-size: 6.8pt; color: #444; }

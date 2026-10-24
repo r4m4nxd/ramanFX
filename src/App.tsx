@@ -14,6 +14,7 @@ const TradeDetail = lazy(() => import('@/pages/TradeDetail'));
 const Reports = lazy(() => import('@/pages/Reports'));
 const DesignSystem = lazy(() => import('@/pages/DesignSystem'));
 const Learn = lazy(() => import('@/pages/Learn'));
+const ChecklistPage = lazy(() => import('@/pages/Checklist'));
 const Ask = lazy(() => import('@/pages/Ask'));
 const Sandbox = lazy(() => import('@/pages/Sandbox'));
 const BotGuide = lazy(() => import('@/pages/BotGuide'));
@@ -33,7 +34,7 @@ const Exits = lazy(() => import('@/pages/Exits'));
 const Settings = lazy(() => import('@/pages/Settings'));
 
 // Fetch every page in the background once the app is idle, so taps never wait on a download.
-const PRELOAD = [() => import('@/pages/Guide'), () => import('@/pages/News'), () => import('@/pages/ChartPage'), () => import('@/pages/Journal'), () => import('@/pages/Trades'), () => import('@/pages/TradeDetail'), () => import('@/pages/Reports'), () => import('@/pages/CalendarPage'), () => import('@/pages/Heatmaps'), () => import('@/pages/Planner'), () => import('@/pages/Guru'), () => import('@/pages/Playbook'), () => import('@/pages/Calculator'), () => import('@/pages/Risk'), () => import('@/pages/Strategies'), () => import('@/pages/Notebook'), () => import('@/pages/Exits'), () => import('@/pages/Settings')];
+const PRELOAD = [() => import('@/pages/Guide'), () => import('@/pages/News'), () => import('@/pages/ChartPage'), () => import('@/pages/Journal'), () => import('@/pages/Trades'), () => import('@/pages/TradeDetail'), () => import('@/pages/Reports'), () => import('@/pages/CalendarPage'), () => import('@/pages/Heatmaps'), () => import('@/pages/Planner'), () => import('@/pages/Guru'), () => import('@/pages/Playbook'), () => import('@/pages/Calculator'), () => import('@/pages/Risk'), () => import('@/pages/Strategies'), () => import('@/pages/Notebook'), () => import('@/pages/Exits'), () => import('@/pages/Settings'), () => import('@/pages/Checklist')];
 
 function Loading() {
   return (
@@ -89,6 +90,7 @@ export default function App() {
               <Route path="/settings" element={<Settings />} />
               <Route path="/design" element={<DesignSystem />} />
               <Route path="/learn" element={<Learn />} />
+              <Route path="/checklist" element={<ChecklistPage />} />
               <Route path="/ask" element={<Ask />} />
               <Route path="/practice" element={<Sandbox />} />
               <Route path="*" element={<Dashboard />} />

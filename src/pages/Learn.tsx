@@ -36,6 +36,8 @@ const SRC: Record<Mentor, { list: VideoLesson[]; key: string; short: string; hea
   raja: { list: RAJA_LESSONS, key: 'rfx_raja_done', short: 'Raja', head: 'Raja · complete course', title: "Raja's course, as notes", blurb: `All ${RAJA_LESSONS.length} of Raja's lessons and sessions written out from the transcripts: strong zones (CP and arrival zones), change of direction and the curve, location and momentum, realignment, and his live sessions. Each has his rules, the mistakes he warns about and a pre-trade check. Uncertain readings of the captions are marked (likely).`, start: 'Start with the first lesson', noun: 'lessons', name: 'Raja' },
   baker: { list: BAKER_LESSONS, key: 'rfx_baker_done', short: 'Kevin Baker', head: 'Kevin Baker · the book', title: "Kevin Baker's book, as notes", blurb: `All ${BAKER_LESSONS.length} chapters of "We Don't Need No Stinkin' Indicators": candles, plotting zones, zone strength, investing, swing and day trading, gaps and broken zones, risk, stops and targets, the trading plan and options. Real charts from the book plus diagrams. Kevin Baker is a different person from your video-course mentor Kevin.`, start: 'Start with chapter 1', noun: 'chapters', name: 'Kevin Baker' },
 };
+/** The checklist that goes with each lesson source (all three Kevin sources share his). */
+const CHECK_OF: Record<Src, { m: string; name: string }> = { course: { m: 'kevin', name: 'Kevin' }, zoom: { m: 'kevin', name: 'Kevin' }, daily: { m: 'kevin', name: 'Kevin' }, raja: { m: 'raja', name: 'Raja' }, seiden: { m: 'seiden', name: 'Seiden' }, baker: { m: 'baker', name: 'Baker' }, glossary: { m: 'raja', name: 'Raja' }, review: { m: 'raja', name: 'Raja' } };
 const srcOf = (v: string | null): Src => v === 'zoom' || v === 'daily' || v === 'seiden' || v === 'raja' || v === 'baker' || v === 'glossary' || v === 'review' ? v : 'course';
 const GLOSS_FILTERS: { value: GlossaryMentor | 'all'; label: string }[] = [{ value: 'all', label: 'All' }, { value: 'kevin', label: 'Kevin' }, { value: 'seiden', label: 'Seiden' }, { value: 'baker', label: 'Baker' }, { value: 'bot', label: 'Bot' }];
 function useDone(key: string) {
@@ -224,6 +226,7 @@ export default function Learn() {
                 <span className={cx('num text-[11.5px] rounded-full px-2 h-5 inline-flex items-center', due ? 'bg-accent text-on-accent font-semibold' : 'text-ink3')}>{due} due</span>
               </button>
             </div>
+            <Link to={`/checklist?m=${CHECK_OF[src].m}`} className="btn w-full mt-3 h-10"><Icon name="check" size={14} />{CHECK_OF[src].name} checklist · PDF</Link>
             {review ? (
               <p className="text-[12.5px] text-ink3 mt-3 leading-relaxed">Flashcards from every lesson you have opened, across all mentors, scheduled by spaced repetition.</p>
             ) : gloss ? (
@@ -279,7 +282,7 @@ export default function Learn() {
             <Card className="max-lg:hidden">
               <RevealText key={src} as="h2" className="text-[20px] font-semibold" text={S.title} />
               <p className="text-[14px] text-ink2 mt-2 max-w-[70ch]">{S.blurb}</p>
-              {LIST.length > 0 && <button type="button" className="btn-primary mt-4" onClick={() => go({ l: String((LIST.find(l => !done.includes(l.n)) ?? LIST[0]).n) })}>{done.length ? 'Continue' : S.start}<Icon name="chevronRight" size={14} /></button>}
+              <div className="flex flex-wrap gap-2 mt-4">{LIST.length > 0 && <button type="button" className="btn-primary" onClick={() => go({ l: String((LIST.find(l => !done.includes(l.n)) ?? LIST[0]).n) })}>{done.length ? 'Continue' : S.start}<Icon name="chevronRight" size={14} /></button>}<Link to={`/checklist?m=${CHECK_OF[src].m}`} className="btn"><Icon name="check" size={14} />Cradle-to-grave checklist</Link></div>
             </Card>
           )}
         </div>
