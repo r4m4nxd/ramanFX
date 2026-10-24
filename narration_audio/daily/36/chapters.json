@@ -1,0 +1,59 @@
+{
+ "source": "daily",
+ "n": 36,
+ "title": "Daily plan for Fri, Sep 11",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 539.08,
+   "textHash": "ae67d64e20ac0084",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "The plan",
+     "start": 79.61
+    },
+    {
+     "id": "s1",
+     "title": "Market bias",
+     "start": 198.09
+    },
+    {
+     "id": "s2",
+     "title": "Setups he is watching",
+     "start": 237.73
+    },
+    {
+     "id": "s3",
+     "title": "Rules and lessons",
+     "start": 309.36
+    },
+    {
+     "id": "s4",
+     "title": "Trade reviews, earlier calls",
+     "start": 361.37
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 385.53
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 429.09
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 524.41
+    }
+   ]
+  }
+ }
+}
