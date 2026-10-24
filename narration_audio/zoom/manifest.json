@@ -64,5 +64,16 @@
   "seconds": 1915.68,
   "sha256": "d51865595228de787dde0f44e649c9e8c54edfb4c9e6d81ad1e60e8253e2cdb0",
   "textHash": "bfbc62c819a9373a"
+ },
+ {
+  "source": "zoom",
+  "n": 7,
+  "title": "Chain analysis Jan 1996 to Jan 1997: emotional wicks, the stay-away candle, starting trendlines from the recent valley and mapping all-time highs",
+  "voice": "am_michael",
+  "file": "zoom/07/am_michael.m4a",
+  "bytes": 14263309,
+  "seconds": 1734.24,
+  "sha256": "fde2e4e90ad15762f77e0197edead7a96620756abc8f6d960ab343deffe678ea",
+  "textHash": "9c1685fe245f9797"
  }
 ]
