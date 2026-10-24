@@ -71,6 +71,7 @@ def fix_text(s: str) -> str:
 
 MONTHS = dict(Jan="January", Feb="February", Mar="March", Apr="April", May="May", Jun="June", Jul="July", Aug="August",
               Sep="September", Oct="October", Nov="November", Dec="December")
+DAYS = dict(Mon="Monday", Tue="Tuesday", Wed="Wednesday", Thu="Thursday", Fri="Friday", Sat="Saturday")
 INDEX = dict(SPX="S and P", US="U S", NAS="Nasdaq", UK="U K", FRA="France", SPA="Spain", GER="Germany", JPN="Japan", AUS="Aussie")
 LETTERS = ["XLT", "ATR", "PCP", "OCL", "OCO", "OSO", "UTC", "ES", "TY", "ZN", "ZG", "CL", "GC", "NQ", "QM", "EC", "DOM", "CME",
            "CBOT", "FOMC", "ADP", "OTA", "GJ", "SZ", "CFD", "GTO", "IG", "EMA", "SMA", "TVC", "XLF", "SPY", "QQQ", "QQQQ", "DIA",
@@ -93,6 +94,10 @@ def more_fixes(s: str) -> str:
     s = re.sub(r"\b(\d+)\s?hrs?\b", r"\1 hour", s)
     s = re.sub(r"\bp\.?\s?(\d+)\b", r"page \1", s)                                 # p80 / p.386
     s = re.sub(r"\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(\d{2})\b", lambda m: f"{MONTHS[m.group(1)]} 20{m.group(2)}", s)
+    s = re.sub(r"\b(Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)\b(?=[\s,.\-:)]|$)", lambda m: MONTHS[m.group(1)[:3]], s)  # "Apr 10" was read "Aperton"
+    s = re.sub(r"\b(Mon|Tue|Tues|Wed|Thu|Thur|Fri|Sat)\b", lambda m: DAYS[m.group(1)[:3]], s)
+    s = re.sub(r"\bSun(?=-|\s?to\s(?:Fri|Friday))", "Sunday", s)
+    s = re.sub(r"\b(January|February|March|April|May|June|July|August|September|October|November|December|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)-(?=[A-Z])", r"\1 to ", s)
     s = re.sub(r"\bT(\d)\b", r"target \1", s)
     s = re.sub(r"\bCP(\d)\b", r"continuation pattern \1", s)
     s = re.sub(r"\b(SPX|US|NAS|UK|FRA|SPA|GER|JPN|AUS)(\d{2,4})\b", lambda m: f"{INDEX[m.group(1)]} {m.group(2)}", s)
@@ -161,7 +166,7 @@ def synth(k, chapters, voice, speed, max_seconds=None):
 
 
 def encode(wav: Path, dest: Path, fmt: str):
-    loud = "loudnorm=I=-16:TP=-1.5:LRA=11"
+    loud = "loudnorm=I=-16:TP=-1.5:LRA=11,alimiter=limit=0.63:level=0:attack=2:release=50"
     codec = ["-c:a", "aac", "-b:a", "64k", "-movflags", "+faststart"] if fmt == "m4a" else ["-c:a", "libopus", "-b:a", "32k", "-application", "voip"]
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(wav), "-af", loud, "-ar", "48000" if fmt == "webm" else "44100",
                     "-ac", "1", *codec, str(dest)], check=True)
