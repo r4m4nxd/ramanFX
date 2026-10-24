@@ -130,5 +130,16 @@
   "seconds": 2182.34,
   "sha256": "f5592e681340f52df4aa6a12f913c37a0a48c1fd17e31d57dcdf476265fd3e25",
   "textHash": "f438b528770193b3"
+ },
+ {
+  "source": "zoom",
+  "n": 13,
+  "title": "Trendlines vs momentum, updated trendlines and the two exceptions to the drawing rules",
+  "voice": "am_michael",
+  "file": "zoom/13/am_michael.m4a",
+  "bytes": 14014002,
+  "seconds": 1705.42,
+  "sha256": "ab2fcc6ef74356ed24d7df57497a56b6eb6df25059f3ea21c09d5d68ca29d122",
+  "textHash": "045fee0efef1a96c"
  }
 ]
