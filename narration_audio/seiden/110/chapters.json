@@ -1,0 +1,74 @@
+{
+ "source": "seiden",
+ "n": 110,
+ "title": "Markets and Market Timing",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 478.34,
+   "textHash": "238efe4531e6f740",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Macro view and volatility",
+     "start": 61.83
+    },
+    {
+     "id": "s1",
+     "title": "The nasdaq trade",
+     "start": 93.04
+    },
+    {
+     "id": "s2",
+     "title": "Trading near the open",
+     "start": 141.77
+    },
+    {
+     "id": "s3",
+     "title": "Stocks: time trades with the indexes",
+     "start": 159.23
+    },
+    {
+     "id": "s4",
+     "title": "Chart, p113: E-mini nasdaq 2-minutes",
+     "start": 187.12
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 265.31
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 303.34
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 326.81
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 338.29
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 430.32
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 461.71
+    }
+   ]
+  }
+ }
+}

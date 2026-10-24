@@ -1,0 +1,79 @@
+{
+ "source": "seiden",
+ "n": 130,
+ "title": "Setting the Trap",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 560.93,
+   "textHash": "d76cea55ecf8484b",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Traps in everyday life",
+     "start": 59.07
+    },
+    {
+     "id": "s1",
+     "title": "Trap 1: the short at 914",
+     "start": 74.61
+    },
+    {
+     "id": "s2",
+     "title": "Trap 2: the red-line bait",
+     "start": 113.01
+    },
+    {
+     "id": "s3",
+     "title": "Chart 1, p131: S and P futures 20-minutes, student short",
+     "start": 150.76
+    },
+    {
+     "id": "s4",
+     "title": "Chart 2, p132: S and P 5-minutes, demand zone and the bait",
+     "start": 224.86
+    },
+    {
+     "id": "s5",
+     "title": "Chart 3, p133: S and P 5-minutes, the long on 1/15",
+     "start": 261.91
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 313.0
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 347.05
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 367.13
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 377.89
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 514.91
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 543.93
+    }
+   ]
+  }
+ }
+}

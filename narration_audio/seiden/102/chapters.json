@@ -1,0 +1,69 @@
+{
+ "source": "seiden",
+ "n": 102,
+ "title": "Trading and Gambling",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 297.18,
+   "textHash": "8f2b02e8960386d8",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Trading as stacked-odds gambling",
+     "start": 55.07
+    },
+    {
+     "id": "s1",
+     "title": "When to buy: a pullback to demand, plus odds enhancers",
+     "start": 72.51
+    },
+    {
+     "id": "s2",
+     "title": "Casino discipline",
+     "start": 119.36
+    },
+    {
+     "id": "s3",
+     "title": "Charts",
+     "start": 143.28
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 150.08
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 184.68
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 203.19
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 216.56
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 253.21
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 285.44
+    }
+   ]
+  }
+ }
+}

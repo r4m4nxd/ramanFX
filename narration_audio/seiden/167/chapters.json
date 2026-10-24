@@ -1,0 +1,74 @@
+{
+ "source": "seiden",
+ "n": 167,
+ "title": "Some Thoughts on Trading Psychology",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 419.13,
+   "textHash": "ae333d1f2cd32746",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Two kinds of invitations",
+     "start": 54.44
+    },
+    {
+     "id": "s1",
+     "title": "Discipline is a belief problem",
+     "start": 81.43
+    },
+    {
+     "id": "s2",
+     "title": "All influences are reflected in price",
+     "start": 105.81
+    },
+    {
+     "id": "s3",
+     "title": "Chart: BAC 60-minute, Figure 1, p169",
+     "start": 139.86
+    },
+    {
+     "id": "s4",
+     "title": "Diagram: inputs to action, Figure 2, p170",
+     "start": 188.15
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 213.29
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 237.79
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 263.74
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 279.6
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 378.21
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 403.76
+    }
+   ]
+  }
+ }
+}

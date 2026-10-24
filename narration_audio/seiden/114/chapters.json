@@ -1,0 +1,74 @@
+{
+ "source": "seiden",
+ "n": 114,
+ "title": "Whose Supply and Demand Is It?",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 504.52,
+   "textHash": "8344e6e555fc1152",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Definitions",
+     "start": 57.67
+    },
+    {
+     "id": "s1",
+     "title": "Whose demand is it?",
+     "start": 88.89
+    },
+    {
+     "id": "s2",
+     "title": "Chart 1, p115: euro pound 10-minutes, supply and demand zones",
+     "start": 122.78
+    },
+    {
+     "id": "s3",
+     "title": "Chart 2, p116: Whose demand is this? diagram",
+     "start": 179.39
+    },
+    {
+     "id": "s4",
+     "title": "Chart 3, p117: euro yen 15-minutes, bank demand",
+     "start": 228.04
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 287.8
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 313.21
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 334.5
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 346.6
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 464.94
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 486.89
+    }
+   ]
+  }
+ }
+}

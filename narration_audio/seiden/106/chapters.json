@@ -1,0 +1,64 @@
+{
+ "source": "seiden",
+ "n": 106,
+ "title": "Where Is The Dow Going?",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 338.05,
+   "textHash": "004b3cb4eb1e1f23",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Why repeated tests weaken a level",
+     "start": 56.42
+    },
+    {
+     "id": "s1",
+     "title": "Two steps",
+     "start": 94.66
+    },
+    {
+     "id": "s2",
+     "title": "Chart, p106: Dow Jones Industrial Average monthly",
+     "start": 110.04
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 168.81
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 192.14
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 207.95
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 222.06
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 298.8
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 323.84
+    }
+   ]
+  }
+ }
+}

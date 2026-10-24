@@ -1,0 +1,79 @@
+{
+ "source": "seiden",
+ "n": 140,
+ "title": "Q&A With Sam Seiden",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 486.83,
+   "textHash": "79570fedc8c7444b",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Khoi: pro gap versus novice gap in an uptrend",
+     "start": 61.12
+    },
+    {
+     "id": "s1",
+     "title": "Tom: best time of day for equities",
+     "start": 83.75
+    },
+    {
+     "id": "s2",
+     "title": "Lisa: what is profit margin?",
+     "start": 111.11
+    },
+    {
+     "id": "s3",
+     "title": "Chart 1, p141: QQQQ 30-minutes, professional gap in an uptrend",
+     "start": 132.22
+    },
+    {
+     "id": "s4",
+     "title": "Chart 2, p142: SPY 30-minutes, novice gap in an uptrend",
+     "start": 181.66
+    },
+    {
+     "id": "s5",
+     "title": "Chart 3, p144: RIMM 5-minutes, profit margin example",
+     "start": 232.3
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 265.73
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 289.73
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 307.44
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 317.76
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 445.48
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 469.07
+    }
+   ]
+  }
+ }
+}

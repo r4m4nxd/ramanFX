@@ -1,0 +1,79 @@
+{
+ "source": "seiden",
+ "n": 125,
+ "title": "Set It And Forget It",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 586.11,
+   "textHash": "35a6fdbc3e52ecad",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Why most traders fail",
+     "start": 52.37
+    },
+    {
+     "id": "s1",
+     "title": "Pre-planning the trades",
+     "start": 89.97
+    },
+    {
+     "id": "s2",
+     "title": "Set it and forget it",
+     "start": 122.17
+    },
+    {
+     "id": "s3",
+     "title": "Chart 1, p127: E-mini nasdaq 30-minutes, 12/17/08",
+     "start": 152.02
+    },
+    {
+     "id": "s4",
+     "title": "Chart 2, p128: Crude oil 15-minutes, XLT trade 12/10/08",
+     "start": 227.16
+    },
+    {
+     "id": "s5",
+     "title": "Figure, p129: OCO order menu",
+     "start": 283.63
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 338.83
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 368.49
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 385.39
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 397.33
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 542.36
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 572.19
+    }
+   ]
+  }
+ }
+}

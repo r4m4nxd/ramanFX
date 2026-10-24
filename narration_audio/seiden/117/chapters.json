@@ -1,0 +1,74 @@
+{
+ "source": "seiden",
+ "n": 117,
+ "title": "Translating Floor Trading Emotion into Screen-Based Trading",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 445.41,
+   "textHash": "4a7b95e9031b2b2c",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Lessons from the floor",
+     "start": 60.85
+    },
+    {
+     "id": "s1",
+     "title": "The two novice mistakes",
+     "start": 86.4
+    },
+    {
+     "id": "s2",
+     "title": "Task, tools and analysis",
+     "start": 111.21
+    },
+    {
+     "id": "s3",
+     "title": "Why most people trade backwards",
+     "start": 159.65
+    },
+    {
+     "id": "s4",
+     "title": "Chart, p122: dollar Swiss franc 30-minutes, short at pivot-high supply",
+     "start": 189.07
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 257.73
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 288.07
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 312.07
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 327.77
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 400.63
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 429.04
+    }
+   ]
+  }
+ }
+}

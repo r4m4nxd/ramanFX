@@ -1,0 +1,69 @@
+{
+ "source": "seiden",
+ "n": 190,
+ "title": "Simple Logic Always Beats Complex Illusion",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 330.56,
+   "textHash": "88127d02000bb134",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "The illusive obvious",
+     "start": 53.36
+    },
+    {
+     "id": "s1",
+     "title": "Lemonade stand logic",
+     "start": 67.87
+    },
+    {
+     "id": "s2",
+     "title": "Shawn's AA trade",
+     "start": 87.99
+    },
+    {
+     "id": "s3",
+     "title": "Chart: Alcoa daily, Figure 1, p192",
+     "start": 119.96
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 160.46
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 184.97
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 206.02
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 217.93
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 291.57
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 315.75
+    }
+   ]
+  }
+ }
+}

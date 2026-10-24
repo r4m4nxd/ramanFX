@@ -1,0 +1,79 @@
+{
+ "source": "seiden",
+ "n": 174,
+ "title": "Governing Dynamics and Trading Psychology",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 476.46,
+   "textHash": "16080483ceba2eae",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Our job is to search, not to trade",
+     "start": 56.76
+    },
+    {
+     "id": "s1",
+     "title": "Reading emotion on the small timeframe",
+     "start": 77.73
+    },
+    {
+     "id": "s2",
+     "title": "Two-fold challenge",
+     "start": 106.83
+    },
+    {
+     "id": "s3",
+     "title": "Chart: nasdaq futures 30-minute before, Figure 1, p175",
+     "start": 123.82
+    },
+    {
+     "id": "s4",
+     "title": "Chart: nasdaq futures 30-minute after, Figure 2, p176",
+     "start": 169.55
+    },
+    {
+     "id": "s5",
+     "title": "Chart: nasdaq futures daily, Figure 3, p177",
+     "start": 195.98
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 244.98
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 269.25
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 291.3
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 306.73
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 437.96
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 460.96
+    }
+   ]
+  }
+ }
+}

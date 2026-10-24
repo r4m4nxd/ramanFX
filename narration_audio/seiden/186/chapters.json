@@ -1,0 +1,84 @@
+{
+ "source": "seiden",
+ "n": 186,
+ "title": "Demand and Supply and Your Nest Egg",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 453.08,
+   "textHash": "d2e419e6af298a5d",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Turning points everywhere",
+     "start": 53.06
+    },
+    {
+     "id": "s1",
+     "title": "Mutual funds",
+     "start": 68.82
+    },
+    {
+     "id": "s2",
+     "title": "Currency risk",
+     "start": 85.82
+    },
+    {
+     "id": "s3",
+     "title": "Hedging",
+     "start": 108.53
+    },
+    {
+     "id": "s4",
+     "title": "Chart: Schwab Tech Fund monthly, Figure 1, p187",
+     "start": 131.49
+    },
+    {
+     "id": "s5",
+     "title": "Chart: US Dollar Index monthly, Figure 2, p188",
+     "start": 161.22
+    },
+    {
+     "id": "s6",
+     "title": "Chart: SPY daily, Figure 3, p189",
+     "start": 200.51
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 236.44
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 264.37
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 278.88
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 293.38
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 413.58
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 436.57
+    }
+   ]
+  }
+ }
+}

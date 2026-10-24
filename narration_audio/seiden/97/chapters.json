@@ -1,0 +1,79 @@
+{
+ "source": "seiden",
+ "n": 97,
+ "title": "The Bigger Picture",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 483.08,
+   "textHash": "2cd96cd5ed69363f",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Why the larger timeframe matters",
+     "start": 49.57
+    },
+    {
+     "id": "s1",
+     "title": "Weekly review in the XLT, three reasons",
+     "start": 79.72
+    },
+    {
+     "id": "s2",
+     "title": "News",
+     "start": 108.7
+    },
+    {
+     "id": "s3",
+     "title": "Chart 1, p99: DIA, Dow entry time frame, monthly",
+     "start": 122.96
+    },
+    {
+     "id": "s4",
+     "title": "Chart 2, p100: Gold futures monthly",
+     "start": 163.15
+    },
+    {
+     "id": "s5",
+     "title": "Chart 3, p101: Crude oil futures monthly",
+     "start": 203.57
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 241.36
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 272.01
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 293.38
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 308.04
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 442.54
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 470.99
+    }
+   ]
+  }
+ }
+}

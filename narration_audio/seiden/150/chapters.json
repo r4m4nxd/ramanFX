@@ -1,0 +1,64 @@
+{
+ "source": "seiden",
+ "n": 150,
+ "title": "News and Price, A Relationship Often Misunderstood",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 334.63,
+   "textHash": "ec31aa97b66f0c0b",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "The news illusion",
+     "start": 57.86
+    },
+    {
+     "id": "s1",
+     "title": "The 4/1/2009 example",
+     "start": 82.67
+    },
+    {
+     "id": "s2",
+     "title": "Chart, p152: E-mini nasdaq 60-minutes",
+     "start": 118.58
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 173.53
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 196.24
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 210.57
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 220.53
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 294.94
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 319.39
+    }
+   ]
+  }
+ }
+}

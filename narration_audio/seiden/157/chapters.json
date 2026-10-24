@@ -1,0 +1,69 @@
+{
+ "source": "seiden",
+ "n": 157,
+ "title": "Scanning for Opportunity, the Old-Fashioned Way",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 380.47,
+   "textHash": "0bdb2e9a7012c570",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Background",
+     "start": 62.71
+    },
+    {
+     "id": "s1",
+     "title": "The three-step top-down scan",
+     "start": 82.7
+    },
+    {
+     "id": "s2",
+     "title": "Dropping automated scanners",
+     "start": 119.88
+    },
+    {
+     "id": "s3",
+     "title": "Chart, p160: SPY 60-minutes, unfilled gap as demand",
+     "start": 142.52
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 206.19
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 233.84
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 249.42
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 258.14
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 339.4
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 365.7
+    }
+   ]
+  }
+ }
+}

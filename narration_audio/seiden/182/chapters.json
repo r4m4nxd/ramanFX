@@ -1,0 +1,74 @@
+{
+ "source": "seiden",
+ "n": 182,
+ "title": "Pay Attention",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 425.77,
+   "textHash": "637eaa2e4fdf8a73",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Price action tells you",
+     "start": 56.37
+    },
+    {
+     "id": "s1",
+     "title": "Building the supply zone",
+     "start": 67.94
+    },
+    {
+     "id": "s2",
+     "title": "Student email, Zak",
+     "start": 104.2
+    },
+    {
+     "id": "s3",
+     "title": "Chart: live XLT screen, Figure 1, p183",
+     "start": 132.77
+    },
+    {
+     "id": "s4",
+     "title": "Chart: E-mini S and P 10-minute, Figure 2, p184",
+     "start": 160.42
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 219.92
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 241.36
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 261.23
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 273.2
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 384.97
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 409.84
+    }
+   ]
+  }
+ }
+}

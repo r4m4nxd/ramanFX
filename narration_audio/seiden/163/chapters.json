@@ -1,0 +1,79 @@
+{
+ "source": "seiden",
+ "n": 163,
+ "title": "Advanced Price Action Analysis: The Odds Enhancers",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 496.74,
+   "textHash": "6fcaa708464a5744",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Why score levels",
+     "start": 61.22
+    },
+    {
+     "id": "s1",
+     "title": "Strength of move, max second",
+     "start": 84.74
+    },
+    {
+     "id": "s2",
+     "title": "Profit margin, max second",
+     "start": 102.48
+    },
+    {
+     "id": "s3",
+     "title": "Big picture, max second",
+     "start": 115.79
+    },
+    {
+     "id": "s4",
+     "title": "Remaining enhancers and usage",
+     "start": 132.87
+    },
+    {
+     "id": "s5",
+     "title": "Chart: Gold 60-minute Probability Scoring slide, Figure 1, p165",
+     "start": 167.34
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 262.86
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 307.38
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 329.1
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 342.94
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 443.18
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 476.37
+    }
+   ]
+  }
+ }
+}

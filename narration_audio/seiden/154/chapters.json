@@ -1,0 +1,69 @@
+{
+ "source": "seiden",
+ "n": 154,
+ "title": "Identifying Turning Points Begins With Proper Focus",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 420.48,
+   "textHash": "2ddc79d61cd00e14",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Why entries matter most",
+     "start": 56.54
+    },
+    {
+     "id": "s1",
+     "title": "The shift in focus",
+     "start": 72.48
+    },
+    {
+     "id": "s2",
+     "title": "Chart 1, p155: Crude oil, QM, 60-minutes, demand",
+     "start": 103.48
+    },
+    {
+     "id": "s3",
+     "title": "Chart 2, p156: Qualcomm 60-minutes, supply",
+     "start": 162.57
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 213.29
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 233.95
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 249.06
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 264.93
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 379.96
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 403.95
+    }
+   ]
+  }
+ }
+}
