@@ -75,5 +75,16 @@
   "seconds": 1734.24,
   "sha256": "fde2e4e90ad15762f77e0197edead7a96620756abc8f6d960ab343deffe678ea",
   "textHash": "9c1685fe245f9797"
+ },
+ {
+  "source": "zoom",
+  "n": 8,
+  "title": "Chain analysis Jan 1996-Jan 1997: zones with no basing, trendline updates and overextended lines",
+  "voice": "am_michael",
+  "file": "zoom/08/am_michael.m4a",
+  "bytes": 15367847,
+  "seconds": 1862.02,
+  "sha256": "757716abde0b1f59534a163417e3e51e1fcd518575a3126750962eca9461b1e1",
+  "textHash": "f72c4945d9eb6614"
  }
 ]
