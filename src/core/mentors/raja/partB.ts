@@ -70,6 +70,17 @@ export const RAJA_PARTB: VideoLesson[] = [
     ]
    },
    {
+    "heading": "From the Urdu recordings and live sessions",
+    "points": [
+     "Two wow areas (course 5): the first, smaller one opens when the first zone breaks; the second, bigger one when the next zone goes. EURUSD daily: from the big black candle through the trendline down to the weak demand was about 300+ pips (area 1); the next zone below added about 1,100 (about 1,400-1,500 in all). Hold one position for the second area.",
+     "On the lower timeframe the same holds even if it is only 10 pips: from the trendline break to the demand level is a wow area (course 5, EURUSD H4).",
+     "With a clear wow area you could even buy blindly and price would follow within days (course 2). His three 'blind entry' places (Mar 27): a wow trade, a fresh arrival zone, and a zone near the trendline that has not been tapped a 4th time. Such zones are rare.",
+     "Never ignore the wow trade on any timeframe (low-TF part 2): if an H1 supply breaks, the run goes to the trendline; there, go to M15 and wait for the cross and the opposite-zone removal before the next trade.",
+     "A wow trade on a clean HTF valley/peak structure is the first-priority pair (Apr 2025 class). With no supply above to target, use the 250% impulse projection (Feb 18).",
+     "A heavily tested demand area: when it finally breaks, everything down to the next demand is sell pips (course 2)."
+    ]
+   },
+   {
     "heading": "On his charts",
     "points": [
      "00:00-02:44 Bitcoin monthly, then H1: he sketches two parallel ascending lines, a curved path back down into a box (ticked) and a lower box: crossing the line starts the drop to demand #1; removing it opens the run to demand #2.",
@@ -95,7 +106,8 @@ export const RAJA_PARTB: VideoLesson[] = [
    "Use monthly / weekly for direction only; take entries on the daily and lower timeframes.",
    "If an opposite zone sits near the trendline, the zone has priority over the trendline.",
    "Skip setups with little room to the next zone; choose pairs with good pips.",
-   "Part 2 of a wow trade starts only when the zone at the end of part 1 is removed."
+   "Part 2 of a wow trade starts only when the zone at the end of part 1 is removed.",
+   "The first wow area (after the first zone breaks) is smaller than the second; hold one position for the second."
   ],
   "mistakes": [
    "Selling right after a trendline break while price is already inside a demand.",
@@ -271,6 +283,14 @@ export const RAJA_PARTB: VideoLesson[] = [
     "notes": [
      "Part 1 runs to the nearest demand; part 2 only after it is removed.",
      "If you hold, move the stop down; if the zone breaks you can sell again."
+    ]
+   },
+   {
+    "src": "/lessons/raja_hi/course/5-the-realignment-the-sequence-wow/f-023_t17m04s.jpg",
+    "caption": "[17:04] WOW drawing on EURMXN monthly (Urdu course 5): supply I on top, supply II below, and a rally that breaks II",
+    "notes": [
+     "Once II is removed, I is the target either way (retest first or straight up).",
+     "The pips in between are the extension of pips."
     ]
    }
   ]
@@ -602,6 +622,16 @@ export const RAJA_PARTB: VideoLesson[] = [
     ]
    },
    {
+    "heading": "More on touches and confirmation (Urdu recordings and live sessions)",
+    "points": [
+     "Daily zone: look for the confirmation on H1. If H1 gives no entry, let the zone be removed and trade the new opposite zone instead (course 2, 43:14).",
+     "Higher timeframes follow the rules more and can give repeated confirmations; lower timeframes make more fakes (tap once, remove the next time) (course 2). HTF zones survive more taps: an H1 zone often breaks on the 2nd tap, a monthly or H4 zone can hold 3-4 if HTF pressure is there (Apr 2025 class). Mar 5 in short: 1st, 2nd and 3rd touch fine, the 4th very risky.",
+     "When the HTF is heading the other way (or its zone is weak), any strong LTF zone gets retested once, moves a little, and is broken on the 2nd or 3rd visit (2022 meeting).",
+     "A confirmation needs a proper close beyond the zone, not just a rejection (2022 meeting). Even one pip beyond counts as broken (Feb 2025 class, likely).",
+     "The confirmation trade happens inside the HTF candle: the LTF crosses and removes the zone while the monthly shows only a wick, so take it on the spot on the LTF or the pips are lost (course 2, 35:58; Feb 2025 class)."
+    ]
+   },
+   {
     "heading": "On his charts",
     "points": [
      "21:43 EURJPY monthly sketch: a supply box with big HTF candles reaching it, and the LTF zigzag rising along a trendline into the box. Confirmation = the LTF crosses the line and removes the last demand.",
@@ -622,14 +652,16 @@ export const RAJA_PARTB: VideoLesson[] = [
    "Confirmation timeframes: monthly/weekly -> daily/H4; daily -> H1; H1 -> 15m/5m/1m.",
    "No confirmation = no trade; move to an easier pair.",
    "Inheritance, overlap, flip, out-of-trendline, tested and plain weak zones get confirmation only, never a blind limit order.",
-   "A zone formed inside an old opposite zone (no gap) is an overlap zone and weak, even if it removed a zone."
+   "A zone formed inside an old opposite zone (no gap) is an overlap zone and weak, even if it removed a zone.",
+   "A daily zone without an H1 confirmation is skipped; wait for it to be removed and trade the new zone."
   ],
   "mistakes": [
    "Using set & forget on a zone that has already been tested.",
    "Trading an overlap zone because it 'removed' something.",
    "Picking the lowest (inheritance) demand instead of the one that removed the opposite zone.",
    "Forcing a trade when the lower timeframe gives no confirmation.",
-   "Using a set & forget order on a still-fresh zone after the major trendline has turned against it."
+   "Using a set & forget order on a still-fresh zone after the major trendline has turned against it.",
+   "Taking a rejection wick as confirmation instead of waiting for a close."
   ],
   "quotes": [
    "Confirmation is the main key of the Forex trading.",
@@ -838,6 +870,18 @@ export const RAJA_PARTB: VideoLesson[] = [
     ]
    },
    {
+    "heading": "Brokers, accounts and practice (live sessions)",
+    "points": [
+     "Brokers: he prefers Australian-regulated brokers, Pepperstone first (Razor account), then IC Markets (course 2; Apr 2025 class; Mar 5). Avoid small local brokers: they can widen spreads or print fake candles to hunt stops. If a stop is hunted, compare with TradingView and claim it back (Mar 5).",
+     "Each broker's server time shapes the candles differently, so analyse and trade on your own broker's chart (Apr 7).",
+     "Practise on a cent account before going live: a 10-20 USD deposit shows as roughly 1,000-2,000 cents and 0.01 lot risks almost nothing. It feels more real than a demo, though spreads are higher (Mar 5).",
+     "Not live yet: finish the sessions, practise 3-4 weeks and have him review your trades first (Feb 25, Mar 5, Apr 2025 class).",
+     "Timing: Tuesday to Thursday are best for the LTF; Monday's open and Friday's close are volatile (Apr 30). The NFP release on Friday jumps the market (low-TF part 2). Crypto often retraces at the weekend and resumes on Monday evening (Jun 25).",
+     "Gold on the low timeframes is full of fakes (high spread, many small traders). For LTF gold he uses XAUAUD, which moves more cleanly in steps (Mar 5, Apr 7, Jun 25). Stocks and indices: stay on the daily and above (Feb 18, Apr 7).",
+     "He does not use bots or indicators (Mar 13). The EMA 5/15 crossover he once showed was only for a struggling student; supply and demand is enough (Apr 2025 class)."
+    ]
+   },
+   {
     "heading": "On his charts",
     "points": [
      "00:00 AUDJPY H4: an ascending and a descending trendline crossing, with a box where they meet (the pair he returns to at the end).",
@@ -860,7 +904,9 @@ export const RAJA_PARTB: VideoLesson[] = [
    "Match the instrument to your equity: no BTC, bonds or US30 on a $100 account.",
    "Entries: a pullback limit on a strong zone; a breakout via H1 demand above the H1 trendline (short-term); the flip area with confirmation (long-term).",
    "No structure (meshing) = no trade.",
-   "Swing management: move the stop to the second-latest zone, keeping one zone as a buffer."
+   "Swing management: move the stop to the second-latest zone, keeping one zone as a buffer.",
+   "Practise on a cent or demo account until your trades have been reviewed.",
+   "Keep XAUUSD off the low timeframes; use XAUAUD there."
   ],
   "mistakes": [
    "Trading when supply and demand are so close that the reward is smaller than the stop.",
@@ -868,7 +914,9 @@ export const RAJA_PARTB: VideoLesson[] = [
    "Marrying one instrument (e.g. only gold).",
    "Holding a range trade as if it were a trend trade.",
    "Using a buy limit on a flip / overlap area without confirmation.",
-   "Trading a meshing market with no structure."
+   "Trading a meshing market with no structure.",
+   "Trading XAUUSD on M1-M15.",
+   "Going live before finishing the sessions."
   ],
   "quotes": [
    "You need at least three time or two time reward.",
@@ -1078,6 +1126,18 @@ export const RAJA_PARTB: VideoLesson[] = [
      "Set & forget on a strong zone; confirmation on 1m is risky, so prefer 15m with 5m confirmation.",
      "Practice makes perfect: it looks simple when he explains it and harder on your own chart."
     ]
+   },
+   {
+    "heading": "Three low-timeframe styles (low-TF class part 2, live session Mar 5)",
+    "points": [
+     "Use the LTF only when the HTF gives nothing. Style 1, missed HTF entry: if the daily/H4 entry was taken or missed, drop to H1 and trade its zone on the trendline; if H1 is tested too, go to M15/M30. Stop at M15 once you have a zone; do not go down to M5 (Mar 5).",
+     "Style 2: a fixed chain H1 -> M15 -> M5 with the entry on M5 (Mar 5). Or: you know an H1 demand will break, so sell the pips to the next demand on the LTF after its trendline cross (low-TF part 2).",
+     "Style 3: flip areas on an M15 line chart. Each structure break makes the last low or high a flip area; trade the zones near them, preferring the one that broke its last low/high over a CP in between. It works on the HTF too, but the stop gets too big.",
+     "Do not trade corrections on the LTF: it builds aggressive new trendlines in the impulses. A correction sell might pay 2 pips while the impulse pays 600-700 (Mar 5). The realignment area is where the M15 and M5 zones coincide.",
+     "On the LTF the market can reverse within one candle: no zone, no trade (low-TF part 2). About 90% of LTF moves fake (stop hunts); the HTF needs big news to hunt stops (Jun 25).",
+     "Market makers rarely look below the daily; swing traders and retail watch H4, so more entries form on H4. If H4 is missed, M15 keeps giving entries because the market runs in sequence (low-TF part 2).",
+     "Missed-entry formula (Jun 25): if price starts dropping early and breaks its LTF trendline, sell directly; the stop is close. After a big candle beyond the departure, wait for a long-wick retrace and buy directly on the LTF: the market fills the wick."
+    ]
    }
   ],
   "rules": [
@@ -1086,14 +1146,18 @@ export const RAJA_PARTB: VideoLesson[] = [
    "A trendline break needs a big departure candle closing beyond it; small candles drifting across do not count.",
    "Do not buy into a supply that has not been removed; wait for its removal (or sell it).",
    "Long, lengthy candles are not a base.",
-   "If the supply above is removed, look only for buys."
+   "If the supply above is removed, look only for buys.",
+   "Use the LTF only when the HTF gives no entry; stop at M15 once you have a zone.",
+   "No zone on the LTF = no trade."
   ],
   "mistakes": [
    "Taking a trendline break on a series of small candles.",
    "Using the 1m chart for confirmation.",
    "Selling from an H4 supply that overlaps a demand (it gets run over).",
    "Not moving the stop once the trade has moved off the last demand.",
-   "Buying in the high curve area from a zone already tested once."
+   "Buying in the high curve area from a zone already tested once.",
+   "Selling corrections on M5/M15.",
+   "Going down to M1/M5 when M15 already has a zone."
   ],
   "quotes": [
    "You find the target from the high time frame, use the low time frame for the entry.",
@@ -1135,6 +1199,167 @@ export const RAJA_PARTB: VideoLesson[] = [
    "The fixed 15m entry / 5m confirmation pairing is Raja's preference; Kevin's confirmation pairs depend on the trading timeframe.",
    "'High curve / low curve area' matches the curve location (buy low, sell high in the HTF range) in Kevin's and Seiden's material.",
    "Removing a long-candle range as 'not a base' matches the course's basing-candle definition (body < 50% of range)."
+  ],
+  "images": [
+   {
+    "src": "/lessons/raja_hi/course/low-tf-2/f-022_t14m36s.jpg",
+    "caption": "[14:36] AUDUSD M15 line chart (low-TF part 2): the flip area box after the structure break",
+    "notes": [
+     "Each break of the last low/high makes a new flip area.",
+     "Prefer the zone that broke the last low/high over a CP in between."
+    ]
+   }
+  ]
+ },
+ {
+  "n": 55,
+  "title": "Basics: drawing supply and demand zones (base, departure, proximal and distal, fresh vs retested)",
+  "kind": "video",
+  "summary": "Raja's Urdu basics class (course 1, about 44 min), with points from the first class of a 2025 group (Feb 28). Price moves between higher-timeframe supply and demand because market makers trade it. A zone is a base (1-6 small candles) followed by a departure that travels at least twice the base's size; the box runs from the wick to the thick body, the proximal line is the entry, the distal line the stop, and the opposite zone's proximal line the target. Zones come in two families: valleys/peaks (reversal) and CP levels (continuation); a CP that removed the opposite zone is a PCP. Trade fresh and original zones with the trend; retested zones are weaker.",
+  "sections": [
+   {
+    "heading": "Why supply and demand",
+    "points": [
+     "He spent about eight years on S&D after 10-12 other methods. S&D works because market makers use it; retail uses Elliott waves, Gann or plain price action.",
+     "Milk-shop analogy: when demand is bigger than supply the price goes up (you pay double for the last packets); when there is too much supply about to expire it is sold cheap and the price drops.",
+     "The market moves between higher-timeframe (monthly) supply and demand: the supply's target is the demand and the other way round. Lower-timeframe valleys, peaks and trades happen in between.",
+     "Follow the daily, weekly and monthly (market makers do not look below the daily). Practise the HTF first to read direction; entries can then be on any timeframe, even M5."
+    ]
+   },
+   {
+    "heading": "The box: entry, stop and target",
+    "points": [
+     "Supply on top, demand at the bottom. The proximal line is the limit entry (buy limit at the top of a demand, sell limit at the bottom of a supply); the distal line is the stop; the take profit is the proximal line of the opposite zone.",
+     "Never sell into a falling market 'on execution', even on a 1,000-pip day: wait for price to reach the zone. Trade only from a zone, even if you wait a month.",
+     "Price often tests only the thick body, but sometimes runs to the distal line and reverses: hold until the distal line is crossed. A broken zone usually drops a lot.",
+     "Follow pips, not money: the same rules with 10 USD or 100,000; small size, grow the account."
+    ]
+   },
+   {
+    "heading": "Base and departure candles",
+    "points": [
+     "Big candles are departure candles (any big or engulfing candle); small ones are base candles, like a wall's foundation. Colour does not matter (course 2; Feb 2025 class).",
+     "The departure must travel at least twice the base area away. No departure, no zone. Wait for the departure candle to close (beyond 50% of the base area) before drawing.",
+     "Draw a demand from the bottom wick to the thick body and ignore the top wick; a supply from the top wick to the body.",
+     "Leg-in candles must be in or near the base area; the leg-out leaves it. Ignore far wicks on the low timeframes.",
+     "Base count: 1-6 candles inside the box range is tradable; more than 6 is a weak zone. Three stair-stepping candles (each opening and closing above the last) are weak; one or two are fine.",
+     "Base shapes: the hammer is the most common; a marubozu (no wicks) shows strong imbalance; a doji is weak and its wick gets filled, so never trade a single doji; an extended range candle that fills the departure area can still be drawn; for an engulfing supply take the top wick and the thick body."
+    ]
+   },
+   {
+    "heading": "Two families: valleys/peaks and CP levels",
+    "points": [
+     "Valleys and peaks: a V shape is a demand (drop-base-rally), an inverted V a supply (rally-base-drop). This is where reversals happen, so prefer them (Feb 2025 class).",
+     "CP = continuation pattern: drop-base-drop or rally-base-rally. Like a bus stopping at a station to refuel on the way to its destination: the trend continues. After three CPs do not trade the next one; mostly the market retraces or reverses.",
+     "PCP: a CP (or just a departure) that removes the opposite zone; any CP formed after removing the opposite zone is also a PCP. A plain CP is just a zone formed on the way to the destination.",
+     "Every timeframe, even M1, has its own valleys and peaks (AUDUSD monthly example)."
+    ]
+   },
+   {
+    "heading": "Gaps",
+    "points": [
+     "Weekend news (for example a military strike) can open Monday with a gap. Gaps always get filled, even after a year (Bitcoin weekly examples).",
+     "Use the zone before the gap, not the gap itself."
+    ]
+   },
+   {
+    "heading": "Fresh, original, retested and multiple zones",
+    "points": [
+     "Fresh = drop, base, reverse, and not revisited since (check the right side of the chart). Retested = revisited. Original = a zone formed by itself, with no prior zone behind it.",
+     "Multiple zones ('hierarchy'): zone 1 is strong but retested; zone 2 formed because of zone 1's impact; zone 3 from zone 2's impact (fresh); zone 4 formed by itself (original). Trade fresh and original zones; retested zones are usable on the monthly/daily, but strong zones are preferred.",
+     "You cannot trade every zone, only strong ones (the next lessons). S&D works with the trend: trade fresh zones along the trendline; when the trendline is crossed a bearish market becomes bullish and you start buying."
+    ]
+   },
+   {
+    "heading": "Why it works: market makers vs retail",
+    "points": [
+     "Market makers (banks, big firms) make fake signals: retail sells on the LTF, makers buy, retail is stopped out, revenge-buys, and makers drop it again. That is how CP levels form. Trade with the market makers, not against them.",
+     "Retail is retail whether the account is 1 USD or 100,000."
+    ]
+   }
+  ],
+  "rules": [
+   "Proximal line = entry, distal line = stop, opposite zone's proximal line = target.",
+   "A zone needs a departure of at least twice the base size, and the departure candle must have closed.",
+   "Demand: bottom wick to thick body; supply: top wick to thick body.",
+   "1-6 base candles; more than 6 = weak; never a single doji.",
+   "Use the zone before a gap, not the gap.",
+   "Trade fresh and original zones with the trend; prefer valleys and peaks for reversals.",
+   "After three CPs, do not trade the next CP."
+  ],
+  "mistakes": [
+   "Selling into a falling market without a zone.",
+   "Drawing a zone before the departure candle has closed.",
+   "Treating a base of more than six candles, or a single doji, as a good zone.",
+   "Trading the gap zone instead of the zone before the gap.",
+   "Judging a base by candle colour."
+  ],
+  "quotes": [
+   "Trade only with a zone, even if you have to wait a month.",
+   "Market makers use supply and demand; that is why it is accurate.",
+   "Follow the pips, not the money."
+  ],
+  "diagrams": [],
+  "checklist": [
+   "Is there a clear base (1-6 candles) and a departure of at least 2x its size?",
+   "Has the departure candle closed?",
+   "Box drawn from the wick to the thick body, ignoring the far wick?",
+   "Valley/peak or CP? Did it remove the opposite zone (PCP)?",
+   "Fresh, original or retested?",
+   "Is there a gap? Then use the zone before it.",
+   "Entry at proximal, stop at distal, target at the opposite proximal line?"
+  ],
+  "journalTags": [
+   "raja",
+   "basics",
+   "base-candle",
+   "departure",
+   "proximal-distal",
+   "cp",
+   "pcp",
+   "valley-peak",
+   "fresh-zone",
+   "gap"
+  ],
+  "newVsPdfs": [
+   "The 2x departure rule and the 1-6 base-candle count are close to the course rulebook's basing definition; Raja adds that more than six candles or three stair-steps make a zone weak.",
+   "'Original' zone (formed by itself, no zone behind it) and the zone 'hierarchy' are his own terms.",
+   "PCP (a CP that removed the opposite zone) is his name for what Kevin calls a qualified continuation zone.",
+   "Gap rule (gaps always fill; use the zone before the gap) is not in the PDFs."
+  ],
+  "images": [
+   {
+    "src": "/lessons/raja_hi/course/1-complete-basic/f-005_t03m51s.jpg",
+    "caption": "[03:51] AUDUSD monthly as a board: supply box (S) on top, demand box (D) at the bottom",
+    "notes": [
+     "Proximal line = entry, distal line = stop.",
+     "Target = the opposite zone's proximal line."
+    ]
+   },
+   {
+    "src": "/lessons/raja_hi/course/1-complete-basic/f-012_t10m00s.jpg",
+    "caption": "[10:00] Topic 1: valleys (V) and peaks (inverted V)",
+    "notes": [
+     "V = drop-base-rally demand; inverted V = rally-base-drop supply.",
+     "The other family is the CP (continuation) level."
+    ]
+   },
+   {
+    "src": "/lessons/raja_hi/course/1-complete-basic/f-027_t22m58s.jpg",
+    "caption": "[22:58] EURUSD monthly as a board: base-candle shapes drawn as boxes",
+    "notes": [
+     "Hammer, marubozu, doji, extended range candle, engulfing.",
+     "Never trade a single doji: its wick gets filled."
+    ]
+   },
+   {
+    "src": "/lessons/raja_hi/course/1-complete-basic/f-039_t32m13s.jpg",
+    "caption": "[32:13] Bitcoin monthly: multiple zones (the hierarchy) under the price",
+    "notes": [
+     "Zones formed from an earlier zone's impact vs an original zone formed by itself.",
+     "Trade fresh and original zones."
+    ]
+   }
   ]
  }
 ];

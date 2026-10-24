@@ -21,7 +21,7 @@ export const RAJA_PARTA: VideoLesson[] = [
     "heading": "Strong zone type 1: the CP level that removes the opposite zone",
     "points": [
      "When price drops it forms a CP (drop-base-drop) supply. If that zone's leg-out closes below the opposite (earlier) demand, the supply becomes a strong zone.",
-     "He says 'CP or PCP' here. His charts only show plain drop-base-drop bases, so PCP is probably the same idea at a pivot (likely).",
+     "He says 'CP or PCP' here. His basics class (Urdu course recording 1) defines it: a PCP is a CP level, or any departure, that removed the opposite zone; a plain CP is just a pause on the way to the destination. So a strong CP zone is a PCP.",
      "Why it is strong: price used that base to take out the opposing demand, which shows real sellers there.",
      "On the chart he boxes the whole basing area of the CP level as one rectangle, from the base highs (distal) to the base lows (proximal), and extends it to the right until price returns.",
      "Only a fresh strong zone can be traded set and forget."
@@ -52,6 +52,17 @@ export const RAJA_PARTA: VideoLesson[] = [
     ]
    },
    {
+    "heading": "From the Urdu recordings: entry, stop and arrival details",
+    "points": [
+     "Entry, stop, target (course 1 and 2): the proximal line is the limit entry, the distal line is the stop, and the take profit is the proximal line of the opposite zone. Wait for price to come back to the zone; do not jump in as it leaves (Feb 2025 class).",
+     "Stop placement (course 2, 05:43): on a daily zone the stop goes exactly at the distal line, because a daily stop is already big (about 40 pips minimum, depending on the pair). On H4 put it 3-4 pips beyond the distal line. Market makers watch the daily and above and hunt the stops below that.",
+     "One opposite zone is enough for an arrival zone: breaking the first opposite zone already breaks the structure (course 2, 11:23). Two removed zones is the separate direction-change rule.",
+     "After an arrival zone the market usually does not reverse quickly; it runs first and comes back later. Market makers trade from one arrival zone to the other, while retail trades the lower timeframe in between (course 2, 12:00).",
+     "A strong zone against the higher-timeframe direction gives one entry and is then removed; an arrival zone can give two or three entries (course 2, 34:00).",
+     "If a supply hits a demand but cannot break it, both are weak and price will come back to break one of them. If the demand later breaks the supply, the demand becomes the strong zone and the supply the weak one (Feb 2025 class, 18:15)."
+    ]
+   },
+   {
     "heading": "On his charts",
     "points": [
      "[00:02] Opens on XAUUSD monthly, then switches to EURUSD monthly for the first example.",
@@ -66,16 +77,20 @@ export const RAJA_PARTA: VideoLesson[] = [
    "Trade only strong zones; skip weak ones or treat them with the confirmation rule.",
    "A zone is strong when its leg-out closes beyond the opposite zone.",
    "Arrival zone = the move away crosses the trendline AND removes the opposite zone.",
-   "Set and forget (limit order) is allowed only on fresh strong / arrival zones."
+   "Set and forget (limit order) is allowed only on fresh strong / arrival zones.",
+   "Stop exactly at the distal line on daily zones; 3-4 pips beyond it on H4.",
+   "Removing one opposite zone (plus the trendline cross) is enough to make an arrival zone."
   ],
   "mistakes": [
    "Trading every supply and demand level a falling or rising market leaves behind.",
-   "Using set and forget on zones that never removed an opposite zone."
+   "Using set and forget on zones that never removed an opposite zone.",
+   "Entering as price leaves the zone instead of waiting for it to return."
   ],
   "quotes": [
    "We cannot use all supply and demand levels; we only choose the strong zone for the trade.",
    "Arrival means: crossed the trendline plus removed the opposite zone.",
-   "Set and forget means buy limit order and sell limit order."
+   "Set and forget means buy limit order and sell limit order.",
+   "Market makers trade between two arrival zones; retail trades the low time frame in between."
   ],
   "diagrams": [],
   "figures": [
@@ -108,7 +123,8 @@ export const RAJA_PARTA: VideoLesson[] = [
   "newVsPdfs": [
    "Kevin also requires a zone to be 'qualified' (it removes an opposing zone or a trendline). Raja splits this into two named types: CP strong zone and arrival zone (trendline AND opposite zone).",
    "Seiden does not count a DBD/RBR base as a real zone. Raja trades CP (continuation) levels as strong zones when they remove the opposite zone.",
-   "Raja links the order type to zone strength: limit orders only for fresh strong or arrival zones. Seiden decides with an odds-enhancer score."
+   "Raja links the order type to zone strength: limit orders only for fresh strong or arrival zones. Seiden decides with an odds-enhancer score.",
+   "PCP, as defined in his Urdu basics class: any CP that removed the opposite zone. That settles the 'CP or PCP' wording in this lesson."
   ],
   "images": [
    {
@@ -170,6 +186,22 @@ export const RAJA_PARTA: VideoLesson[] = [
      "Same chart: price now ranges between the two strong zones.",
      "Arrival zones usually sit at a peak or valley, as this one does at the 2017 low."
     ]
+   },
+   {
+    "src": "/lessons/raja_hi/course/2-strong-zones-confirmation-rules-inht-sr-flip-zones/f-010_t05m42s.jpg",
+    "caption": "[05:42] Urdu course 2 board on BTCUSD monthly: a supply whose drop broke the demand below, with SL marked at its top",
+    "notes": [
+     "Sell limit at the proximal line, stop at the distal line.",
+     "Daily zone: stop exactly at the distal; H4: 3-4 pips beyond."
+    ]
+   },
+   {
+    "src": "/lessons/raja_hi/course/2-strong-zones-confirmation-rules-inht-sr-flip-zones/f-015_t10m53s.jpg",
+    "caption": "[10:53] Urdu course 2 board: '3 ARRIVAL' - (1) T, trendline crossed, (2) Opp, opposite zone removed",
+    "notes": [
+     "Both rules on the same move make the arrival zone.",
+     "One removed opposite zone is enough."
+    ]
    }
   ]
  },
@@ -212,7 +244,8 @@ export const RAJA_PARTA: VideoLesson[] = [
     "heading": "Flip zones",
     "points": [
      "A broken resistance becomes support (and the reverse). In S&D he calls these flip areas or flip zones: a zigzag area where price can reverse.",
-     "Price often forms a CP level near the old support or resistance. You can trade that CP, but a flip zone uses the confirmation rule."
+     "Price often forms a CP level near the old support or resistance. You can trade that CP, but a flip zone uses the confirmation rule.",
+     "In plain words (live session, Mar 27): price makes a higher low, and each new leg comes back to the previous higher-low area, so resistance becomes support and back again. On a clean chart price keeps hitting the same area. If no proper zone sits at the flip, use confirmation only; otherwise the lower timeframe gives a zone at the next area."
     ]
    },
    {
@@ -228,6 +261,16 @@ export const RAJA_PARTA: VideoLesson[] = [
      "Set and forget: strong zone (removed the opposite zone) and arrival zone (crossed the trendline and removed the opposite zone).",
      "Confirmation rule: weak zones, retested zones, inheritance zones, flip areas and overlap zones.",
      "An intraday trader who can sit at the screen may apply confirmation even on strong zones. He calls confirmation 'safe trading'."
+    ]
+   },
+   {
+    "heading": "From the live sessions: confirmation and weak zones",
+    "points": [
+     "The simple form of confirmation on a weak zone (Feb 18): the market must properly leave the zone, come back, and only then do you trade it.",
+     "A second kind of confirmation without going lower (Apr 7 and Apr 30): let price come into the zone; when it turns and crosses back over the proximal line (upward for a demand, downward for a supply), enter at market with the stop beyond the zone. The stop is a little bigger than a limit order's, but it is much safer, and if you can watch the screen you do not miss the trade.",
+     "Meshing marks a zone as tested (Feb 18): if price pokes a few pips through a zone and chops there, it is no longer fresh. The market usually taps a zone 1, 2, 3, 4 times while meshing and then crosses it.",
+     "Overlap in practice: a demand with strong imbalance is still weak if it was built inside a supply level (2022 meeting); a CP supply on a descending trendline that sits on an old demand is an overlap (Apr 7). The student admitted most of his mistakes came from overlap zones.",
+     "During news (Apr 30) the market mostly respects valleys, while CP and PCP levels get blown through. Thick base candles take longer to break, even when the zone is only an overlap (course 4)."
     ]
    },
    {
@@ -250,12 +293,15 @@ export const RAJA_PARTA: VideoLesson[] = [
    "Confirmation = on a lower timeframe, the trendline is crossed AND the last opposite zone is removed. Then trade the new CP or valley/peak zone.",
    "Monthly zone: touch 1 set and forget, touches 2-3 confirmation, touch 4 expect a break.",
    "Daily/weekly zone: touch 1 set and forget, touch 2 confirmation, touch 3 risky.",
-   "Inheritance, flip and overlap zones get confirmation only."
+   "Inheritance, flip and overlap zones get confirmation only.",
+   "Confirmation can also be: price returns into the zone and closes back across the proximal line; enter there with the stop beyond the zone.",
+   "A flip area without a clean zone is confirmation only."
   ],
   "mistakes": [
    "Using only set and forget: he blames this for '90% of S&D traders' losses'.",
    "Treating an inheritance zone at the peak as strong because of where it sits.",
-   "Setting a limit order on a supply that formed inside an old demand (overlap)."
+   "Setting a limit order on a supply that formed inside an old demand (overlap).",
+   "Treating a zone that price has already poked through and meshed in as fresh."
   ],
   "quotes": [
    "First time we can use set and forget, but the second time it is a retested zone.",
@@ -286,7 +332,8 @@ export const RAJA_PARTA: VideoLesson[] = [
    "Is it an inheritance, flip or overlap zone?",
    "If weak: on the LTF, has price crossed the trendline?",
    "Has the last opposite LTF zone been removed?",
-   "Trade the new CP / valley (peak) zone that did the removing."
+   "Trade the new CP / valley (peak) zone that did the removing.",
+   "Has price already poked into this zone and meshed there (then it is tested)?"
   ],
   "journalTags": [
    "raja",
@@ -394,6 +441,14 @@ export const RAJA_PARTA: VideoLesson[] = [
     "notes": [
      "The lower timeframe where the confirmation would appear."
     ]
+   },
+   {
+    "src": "/lessons/raja_hi/private/2026-03-27/f-020_t17m35s.jpg",
+    "caption": "[17:35] USDPLN daily (live session, Mar 27): boxes at the earlier areas price keeps coming back to along the descending trendline",
+    "notes": [
+     "Flip area: the previous higher low or lower high gets revisited each leg.",
+     "No clean zone at the flip: confirmation only."
+    ]
    }
   ]
  },
@@ -430,6 +485,17 @@ export const RAJA_PARTA: VideoLesson[] = [
     ]
    },
    {
+    "heading": "From the live sessions and Urdu recordings",
+    "points": [
+     "A trendline cross and a direction change are two different things (Feb 10). Direction changes only with the cross plus two opposite zones removed. If price crosses and even closes beyond the line but does not remove the opposite zone, it goes back (Mar 5): supply and demand is the main thing, the trendline is a tool for direction and safety.",
+     "One opposite zone removed with the trendline crossed is still the same trend. When the second goes too, the old trendline is finished and you stop using it (course 3, 01:05).",
+     "Where the new move goes: back to where the move started, the opposite higher-timeframe arrival zone (course 3, 01:45; Feb 10). When the market crosses an ascending trendline it usually goes to the zone on the descending side, not to the nearby CP (Feb 10).",
+     "Every timeframe has its own direction (Feb 10). His example: NZDCHF M5 crossed its trendline and removed two opposite zones, so M5 headed up to the H1 zone (or else the H4 one), with low-curve buys and the TP there. He also showed EURNZD monthly, GBPCAD H4 and NOKSEK daily (likely in that order).",
+     "Risk rule for an open trade (Feb 10): when the first opposite zone breaks, move the stop behind the second; when the second breaks, close at a loss, because price is now heading back to where it started. The student had held a trade hoping for the HTF zone and gave back about 200 pips of profit. Course 3 says the same: most S&D traders lose here, and news can remove the reversal zone you are hoping for.",
+     "Gold (course 3): on the weekly the trendline was crossed and the opposite zone removed (arrival zone); the first supply broke, then the second, and a new bullish trendline started. His own gold buy was retested once and twice before the break."
+    ]
+   },
+   {
     "heading": "On his charts",
     "points": [
      "[00:00-01:30] XAUUSD monthly, then a board drawing over it: HTF box on top and bottom, an uptrend line with demand boxes, the top two crossed out, the drop, two supplies at the bottom right, and the rally that removes them.",
@@ -445,15 +511,18 @@ export const RAJA_PARTA: VideoLesson[] = [
    "Direction change on a timeframe = trendline crossed + TWO opposite zones removed.",
    "One opposite zone removed is not yet a direction change.",
    "After a change, target the HTF strong or arrival zone in the new direction.",
-   "Enter on the retest at the new CP level or peak/valley level."
+   "Enter on the retest at the new CP level or peak/valley level.",
+   "Open trade against the move: first opposite zone gone -> stop behind the second; second gone -> close."
   ],
   "mistakes": [
    "Calling a reversal after only one opposite zone is removed.",
-   "Selling or buying against the move before the second zone has gone."
+   "Selling or buying against the move before the second zone has gone.",
+   "Holding the old-direction trade after two opposite zones are removed, hoping the HTF zone will save it."
   ],
   "quotes": [
    "If market removes the second zone, it means market just changed their direction on this particular time frame.",
-   "We wait for the market to remove the two demand levels, then the market can drop."
+   "We wait for the market to remove the two demand levels, then the market can drop.",
+   "Trendline cross and direction change are two different things."
   ],
   "diagrams": [],
   "figures": [
@@ -556,6 +625,14 @@ export const RAJA_PARTA: VideoLesson[] = [
     "notes": [
      "The rising line under the lows and the box where he entered."
     ]
+   },
+   {
+    "src": "/lessons/raja_hi/course/3-trendline-change-high-curve-low-curve/f-006_t04m00s.jpg",
+    "caption": "[04:00] XAUUSD daily (Urdu course 3): the descending trendline crossed out of the base boxes, then the rally",
+    "notes": [
+     "Trendline crossed, first and then second opposite zone removed: the trendline changed.",
+     "The new move runs toward the opposite HTF zone."
+    ]
    }
   ]
  },
@@ -612,6 +689,27 @@ export const RAJA_PARTA: VideoLesson[] = [
     ]
    },
    {
+    "heading": "Curve and trendline-close details from the live sessions",
+    "points": [
+     "Draw the curve with the Fibonacci retracement, 0 to 100 with the 50% line (Feb 10, on XAUUSD monthly and daily); hand-drawn lines work too.",
+     "Buyers may buy up to the 50% line (course 3 says even the 75% area, likely), but a demand found in the high curve cannot be used: price can drop at any time without reaching the supply. The same holds for a supply in the low curve.",
+     "Nested curves (Feb 10, GBPNZD): the daily can sit in the weekly's low curve (a daily buy area) while the weekly sits in the monthly's high curve. Then wait for a break before trading the bigger move.",
+     "Gold daily (Feb 10): a zone usually breaks on the 4th tap, but here the 4th visit went to the 50% line first and then entered: that area was for selling, not buying.",
+     "HTF supply already hit once or twice: do not buy a lower-timeframe demand under it. Let the lower timeframe remove the HTF zone first; then its new zone is strong and usable (course 3, 16:09).",
+     "The trendline-close rule in full (Feb 10, low-TF class): a long, full OHLC candle must close beyond the line. Small candles drifting through are a fake signal. A big candle that has crossed but not yet closed can still leave a long wick and reverse. Even after a full close, if a demand sits right below, no sell limit: wait for that demand to break or take a confirmation entry.",
+     "Sideways crosses with small candles: wait for one big candle; if price simply runs far, the cross is clear anyway (Feb 18). A wick-only poke through the line does not matter unless price closes back inside the departure (Jun 25)."
+    ]
+   },
+   {
+    "heading": "Drawing and trusting the trendline",
+    "points": [
+     "Draw it through the two most recent valleys (uptrend) or peaks (downtrend) (low-TF class; Feb 10). Do not keep redrawing it with every new swing; keep the old one, and add an aggressive line only for impulses (Feb 10).",
+     "Draw a new trendline only after the new low or high has formed (Jun 25). Do not over-draw; use what is easy for you (course 5).",
+     "Touches: the 1st, 2nd and 3rd touch of a trendline are fine; the 4th is very risky and usually breaks it (Mar 5, Mar 13). A line tested 3, 4, 5 times is very weak: direction can change any time, so wait for a new valley (Jun 25).",
+     "The best demand sits just above the trendline. A zone 25-30 pips away from the line often gets broken when price comes down to hit the trendline (Jun 25)."
+    ]
+   },
+   {
     "heading": "On his charts",
     "points": [
      "[07:18-08:22] GBPTRY daily, then GBPTRY monthly as a blank canvas: two boxes (top and bottom) and a line across the middle for the 50%.",
@@ -629,12 +727,17 @@ export const RAJA_PARTA: VideoLesson[] = [
    "Buy only in the low curve and sell only in the high curve; ignore LTF zones on the wrong side.",
    "A trendline is crossed only when a candle closes beyond it (wait for the next candle to open).",
    "Trail the stop to each new fresh zone; drop a fixed TP when the target zone is weak.",
-   "Close the position if price removes two opposite zones against you."
+   "Close the position if price removes two opposite zones against you.",
+   "A demand in the high curve, or a supply in the low curve, is not tradable.",
+   "Draw the trendline through the two latest valleys/peaks and do not keep redrawing it.",
+   "Treat the 4th touch of a trendline as a likely break."
   ],
   "mistakes": [
    "Buying LTF demand right under HTF supply (high curve).",
    "Treating a wick through the trendline as a break.",
-   "Leaving a static stop when fresh zones keep forming behind the trade."
+   "Leaving a static stop when fresh zones keep forming behind the trade.",
+   "Selling a trendline cross while a demand sits right under the closing candle.",
+   "Redrawing the trendline after every swing."
   ],
   "quotes": [
    "High curve is for sellers, and from the low curve 0 to 25% area is for the buyers.",
@@ -665,7 +768,8 @@ export const RAJA_PARTA: VideoLesson[] = [
    "Is price in the high curve, the low curve or the middle?",
    "Is my LTF zone on the correct side of the curve?",
    "Did the trendline break on a candle close?",
-   "Where is the next fresh zone to trail my stop to?"
+   "Where is the next fresh zone to trail my stop to?",
+   "How many times has this trendline been touched (4th touch = likely break)?"
   ],
   "journalTags": [
    "raja",
@@ -766,6 +870,14 @@ export const RAJA_PARTA: VideoLesson[] = [
      "The small box formed inside the previous demand: overlap, so it failed.",
      "The supply box above was the better sell-limit area; first TP about 60 pips."
     ]
+   },
+   {
+    "src": "/lessons/raja_hi/private/2026-02-10/f-040_t32m01s.jpg",
+    "caption": "[32:01] XAUUSD monthly (live session, Feb 10): supply and demand boxes with the Fibonacci lines between them",
+    "notes": [
+     "High curve = sell entries only; low curve = buy entries only.",
+     "Here the 4th visit went to the 50% area first: that area was for sellers."
+    ]
    }
   ]
  },
@@ -805,7 +917,7 @@ export const RAJA_PARTA: VideoLesson[] = [
     "heading": "The 2.5x guide",
     "points": [
      "With the trend, an impulse is often about 2.5 times the size of the correction before it.",
-     "If price removes one supply and there is no second one, the move may run about 1.5x the previous impulse (as transcribed; likely meant as a rough extension guide).",
+     "If price removes one supply and there is no second one to target, project the move instead (Feb 18 session): measure the correction from the last higher high down to its low; the impulse usually travels 100% of it, another 100%, then half, i.e. 250%. The '1.5x' heard in the English recording was likely this same projection.",
      "After roughly 2.5x, price usually starts correcting again."
     ]
    },
@@ -817,6 +929,19 @@ export const RAJA_PARTA: VideoLesson[] = [
      "H4 example: the impulse leg paid about 159 pips; buying the correction would have paid about 26 pips, and another correction trade only about 28 pips. Low-timeframe traders lose because they do not understand impulse vs correction.",
      "Find the trend on the high timeframe, then find the zones on the low timeframe and trade with that trend."
     ]
+   },
+   {
+    "heading": "From the live sessions and Urdu recordings",
+    "points": [
+     "How to recognise an impulse (course 4): (1) a structure break and (2) a strong move with big departure candles. Corrections print small candles, sometimes one or two big ones when the demand is far away.",
+     "Market makers avoid building strong zones on the correction side, because they need to break them easily later. A strong zone on the correction gets tapped again and again, meshes, and breaks around the 4th time (Feb 18).",
+     "Correction trade targets (Feb 18; course 4): the target is the demand, or the trendline if that is closer. Price often turns before the demand (market makers close their sells, retail sells near the low, then a sharp rally; common in crypto), so take profit before it. Use the 3x profit levels and close when price crosses the third, because it is now in the buying area.",
+     "When the lower timeframe crosses its trendline against your correction trade, close it: the HTF impulse comes back fast and hurts (course 4, 15:20).",
+     "Pip comparison on H4 (course 4, 21:13): the impulse legs paid about 200, 90 and 80 pips; the correction sells about 44, 5 and 37. Follow the newest trendline on any timeframe; the market may build a new, more aggressive line instead of returning to the old one.",
+     "The zone that already did its job (Feb 18 drawing): a strong supply formed after the trendline was crossed, but price fell to the target without touching it. If a CP level sits near the peak, prefer it (market makers hunt the stops at the peak, test it, then drop); if the CP is far away with a gap, the nearer supply gets used. Once the target has been hit, the supply is tapped once more and broken on the second visit.",
+     "Strong daily zone against the HTF (Feb 18; 2022 meeting): the market taps it first, which makes it weak, and breaks it the second time. With the HTF trend behind it, a strong daily zone drops at once with speed: that is the impulse.",
+     "Pair selection by structure (Feb 18): first, pairs moving in clear impulse and correction with a clear monthly/weekly direction (they give wow trades); second, pairs clear on the daily that are in a correction with the target below; third, pairs zig-zagging on the HTF without a clear direction, traded only on H1/H4."
+    ]
    }
   ],
   "rules": [
@@ -824,17 +949,21 @@ export const RAJA_PARTA: VideoLesson[] = [
    "Trade corrections only on monthly, weekly or daily, and do not hold them long.",
    "Once a zone's target is achieved, expect its next test to hold only briefly and then break; use confirmation.",
    "A demand that removed no supply is weak; use confirmation only.",
-   "Use the 2.5x impulse-to-correction ratio as a rough exhaustion guide."
+   "Use the 2.5x impulse-to-correction ratio as a rough exhaustion guide.",
+   "With no zone above to target, project the impulse as 100% + 100% + 50% of the correction.",
+   "On correction trades take profit before the target zone, and close if the LTF trendline crosses back."
   ],
   "mistakes": [
    "Selling small corrections on low timeframes against the HTF trend.",
    "Holding a counter-trend trade long term after the zone already reached its target.",
-   "Expecting a weak or overlap demand to hold."
+   "Expecting a weak or overlap demand to hold.",
+   "Holding a correction trade for the exact demand; price often turns before it."
   ],
   "quotes": [
    "When market follows the trendline, market will move fast.",
    "The main purpose of the supply level: market drops and hits the target.",
-   "Try to catch impulses."
+   "Try to catch impulses.",
+   "A good trader catches impulses."
   ],
   "diagrams": [],
   "figures": [
@@ -869,6 +998,24 @@ export const RAJA_PARTA: VideoLesson[] = [
    "Kevin contrasts trend with momentum and trades only with trends. Raja allows HTF correction trades but forbids them on H4 and below.",
    "The 'zone purpose / target achieved' idea (a zone weakens once it has reached its target) is not stated as a rule by Kevin or Seiden.",
    "The 2.5x impulse-to-correction ratio is unique to Raja."
+  ],
+  "images": [
+   {
+    "src": "/lessons/raja_hi/private/2026-02-18/f-005_t02m44s.jpg",
+    "caption": "[02:44] GBPAUD monthly used as a board (live session, Feb 18): impulse and correction along the trendline",
+    "notes": [
+     "Measure the correction; the impulse runs about 100% + 100% + 50% of it.",
+     "Impulse legs: big, fast candles. Corrections: small ones."
+    ]
+   },
+   {
+    "src": "/lessons/raja_hi/private/2026-02-18/f-009_t09m30s.jpg",
+    "caption": "[09:30] Same board, second scenario: stacked CP boxes near the peak and the supply that reached its target without a retest",
+    "notes": [
+     "A CP near the peak is preferred; a far one with a gap is skipped for the nearer supply.",
+     "Target already hit: tapped once more, broken on the second visit."
+    ]
+   }
   ]
  },
  {
@@ -905,13 +1052,27 @@ export const RAJA_PARTA: VideoLesson[] = [
      "Q: if price never comes back to the first zone? Let it go and use any new fresh zone. And once price hits the target, the zone's main purpose is finished.",
      "To judge a trader, look at their charts: if they trade momentum plus location, they are a good trader."
     ]
+   },
+   {
+    "heading": "Location in practice (live sessions and Urdu recordings)",
+    "points": [
+     "Stops shrink as you drill down: monthly about 1,000 pips, weekly 500, daily 200, H4 100 or 50 (course 4). The 2022 class gives about 700, 300, 150, 70 and 50.",
+     "EURUSD (course 4): monthly supply, weekly zone, then a fresh daily/H4 strong zone with about a 56-pip stop; the drop gave about 1,900 pips. In a second example he skipped the broken and retested zones and used the fresh one: about an 83-pip stop (likely) and a drop of about 1,700 pips.",
+     "EURUSD (Feb 18): monthly to weekly to daily, then the H4 zone that broke the opposite zone, about a 60-pip stop against a 900-pip move. In the newer area the weekly had only one zone, and the daily had a broken weak zone, a used strong one and tested ones, so only the fresh location zone was left: about a 66-pip stop. Sometimes the location is missed.",
+     "Several zones inside the location area (course 5, 26:20; Feb 18): take the strongest one, with the best departure candles that removed the opposite zone. Usually that is the lower daily zone for a supply and the upper one for a demand, unless its departure is weak. If all are weak, use the top one. Below H4, add 5-10 pips to the stop.",
+     "If the location zone is not fresh, wait for a new fresh one and use it (2022 class). Plain momentum is when a zone is made but price leaves without coming back to it.",
+     "Momentum (Feb 18): impulse and correction make two momentums, buy and sell, and market makers trade them. A fresh weekly candle is bullish momentum for the lower timeframes until price reaches the weekly demand, or the trendline is crossed and two opposite zones are removed.",
+     "His own swing style (Apr 30): weekly location areas, stops of 300-600 pips, a focus on valleys and peaks; sometimes 3-4 trades a month, sometimes one."
+    ]
    }
   ],
   "rules": [
    "Use monthly/weekly for direction, but enter on a nested lower-timeframe zone (the location).",
    "Pick the smallest valid zone nested inside the HTF zone to minimise the stop and maximise reward.",
    "Inside the HTF zone use only fresh LTF zones; skip retested ones.",
-   "Enter where momentum (zone created, then retested) and location coincide."
+   "Enter where momentum (zone created, then retested) and location coincide.",
+   "Inside the location area pick the strongest zone; if all are weak, use the top one.",
+   "Below H4 add 5-10 pips to the stop."
   ],
   "mistakes": [
    "Trading the monthly zone directly with a 1000-pip stop.",
@@ -949,6 +1110,16 @@ export const RAJA_PARTA: VideoLesson[] = [
   "newVsPdfs": [
    "Kevin and Seiden both refine HTF zones into LTF zones (Rulebook: refine big zones / three-TF check). Raja calls the refined entry the 'location area' and requires momentum (a return to the zone) at that location.",
    "Raja's 'momentum' means the waves of the line chart. In Kevin's course 'momentum' is a steep, unsustainable move he avoids. Same word, different meaning."
+  ],
+  "images": [
+   {
+    "src": "/lessons/raja_hi/course/2022-05-19-18-20-01-raja-sahil-changaiz-s-personal-meeting-r/f-032_t24m03s.jpg",
+    "caption": "[24:03] Boxes inside boxes on GBPCHF monthly (2022 class): monthly, weekly, daily, H4",
+    "notes": [
+     "Nested zones: the smallest box inside the bigger ones is the location.",
+     "Minimum stop, maximum profit."
+    ]
+   }
   ]
  },
  {
@@ -988,23 +1159,45 @@ export const RAJA_PARTA: VideoLesson[] = [
      "With $1000, still use 0.01 until you have made at least $100 and can control your emotions.",
      "Big lots mean fear and aggression: you keep reopening MT4 and close positions early."
     ]
+   },
+   {
+    "heading": "From the live sessions: lot size, two positions, stops and targets",
+    "points": [
+     "Risk per trade: 1-2% at most (course 4). Other methods risk 3-10%.",
+     "Three rules that save the account (Feb 25): never ignore the HTF, even when trading M5 (if the monthly/weekly have a long wow trade and the LTF is shorting, wait for the demand); keep positions small; follow pips, not money (pick the pair with about 1,000 pips of room over one with 100).",
+     "He tells the same story in several sessions: a student with a large account (the figure varies between sessions) kept losing with random lot sizes and wide stops, traded 0.01 lots for months to learn what pips mean (EURUSD 200 pips is about 20 USD at 0.01), then scaled up slowly and became profitable.",
+     "Step-up plan (Feb 25 board '1000 / 0.01 / 200 / 0.10'): with 100-1,000 USD trade 0.01 until you have made 100-200 USD, then step up to 0.10. Losses and stop hunts come out of that cushion, never out of the deposit.",
+     "Two positions per zone (Feb 25, Mar 13, Jun 25, course 5): split one size into two at the same price (0.04 becomes 2 x 0.02). Close one at the near target or when the LTF trendline crosses into a correction; hold the other. Re-enter two at the next zone. At most two positions per zone; four stacked positions is a fake trader (course 4).",
+     "The held position's stop stays at the original (HTF/daily) zone, not at breakeven, because breakeven gets hunted. As new fresh H4 zones and CP levels form, move it there; near the target move it behind the last demand (Mar 13). Once the H1 trendline has been tested 4-5 times, trail on H1 instead of giving back H4 swings (Jun 25).",
+     "Stop distance (Mar 5, Mar 27): keep it 10-15 pips beyond the zone on H4/daily; small brokers widen the spread to hunt tight stops.",
+     "Take profit (Apr 2025 class; Apr 30): 5-10 pips before the opposite zone, not at it, because the market often turns early or makes a new valley/peak. Close and re-enter if it comes back. An LTF entry targets the HTF zone (H1 entry, daily target); lock the stop into profit as new zones form.",
+     "No revenge trading (course 4): after a loss stop for the day and come back fresh; revenge flips get caught when price returns to the zone.",
+     "Pair priority (Feb 25): (a) pairs with a wow trade; (b) pairs in sequence; (c) pairs that already moved on the monthly/weekly and left a long wick on the open candle: wait for the retracement and buy from below to fill it; (d) pairs sideways between an HTF supply and demand: trade them only on the LTF until they break."
+    ]
    }
   ],
   "rules": [
    "Require about 3:1 room to the opposite zone; 2:1 is the minimum; 1:1 means no trade.",
    "Direction only from monthly, weekly or daily.",
    "Follow pips (zone to zone), not money.",
-   "Start at 0.01 lots; increase only after building a profit cushion, so losses come from profit."
+   "Start at 0.01 lots; increase only after building a profit cushion, so losses come from profit.",
+   "Risk at most 1-2% per trade and at most two positions per zone.",
+   "Take profit 5-10 pips before the opposite zone.",
+   "The held position's stop stays at the zone (not breakeven) until new fresh zones form."
   ],
   "mistakes": [
    "Trading when the stop is larger than the room to the next zone.",
    "Taking direction from H1 or lower.",
-   "Using big lots on low timeframes and then reacting emotionally."
+   "Using big lots on low timeframes and then reacting emotionally.",
+   "Moving the stop to breakeven too early (it gets hunted).",
+   "Revenge trading after a loss.",
+   "Stacking four positions on one zone."
   ],
   "quotes": [
    "Three-time profit margin is good, two-time we can use, but one time we cannot.",
    "You must follow the pips; don't follow the money.",
-   "If you take a big lot size, you cannot control your emotional level."
+   "If you take a big lot size, you cannot control your emotional level.",
+   "Small positions, small losses."
   ],
   "diagrams": [],
   "figures": [
@@ -1017,7 +1210,8 @@ export const RAJA_PARTA: VideoLesson[] = [
    "Room to the nearest opposite zone >= 2x (ideally 3x) the stop?",
    "Is direction taken from daily or higher?",
    "Am I targeting the next zone (pips) rather than a money amount?",
-   "Is the lot size small enough that a loss comes from profit, not the deposit?"
+   "Is the lot size small enough that a loss comes from profit, not the deposit?",
+   "Two half-size positions instead of one? Which one closes at the near target?"
   ],
   "journalTags": [
    "raja",
@@ -1029,13 +1223,23 @@ export const RAJA_PARTA: VideoLesson[] = [
   "newVsPdfs": [
    "Matches the Rulebook's profit-margin rule (Kevin about 3:1, 2:1 accepted). Raja adds that 1:1 means a sideways market.",
    "The 'risk only profit money' lot-size plan (0.01 until a cushion is built) is specific to Raja; the PDFs do not give account-size rules like this."
+  ],
+  "images": [
+   {
+    "src": "/lessons/raja_hi/course/2022-05-19-18-20-01-raja-sahil-changaiz-s-personal-meeting-r/f-045_t33m39s.jpg",
+    "caption": "[33:39] His sizing note on CADJPY monthly (2022 class): '100 / 0.01 / 50'",
+    "notes": [
+     "With 100 USD trade 0.01 and make 50 USD first.",
+     "Then trade bigger out of that profit; the deposit stays as backup."
+    ]
+   }
   ]
  },
  {
   "n": 8,
   "title": "Sequence and Realignment",
   "kind": "video",
-  "summary": "Sequence: when the monthly and weekly point the same way, trade the daily in that direction using new fresh CP or peak/valley zones. Realignment: when the daily has run, crossed its trendline and removed two opposite zones, wait for price to return to the higher-timeframe area where a weekly zone and a daily zone sit together, and enter on that daily zone.",
+  "summary": "Sequence: when the monthly and weekly point the same way, trade the daily in that direction using new fresh CP or peak/valley zones. Realignment: when the daily has run, crossed its trendline and removed two opposite zones, wait for price to return to the higher-timeframe area where a weekly zone and a daily zone sit together, and enter on that daily zone. The Urdu recordings and live sessions add the full realignment chain (H4 to daily, daily to weekly, weekly to monthly), the 'never trade sideways' rule and when sequence zones go out of trendline.",
   "sections": [
    {
     "heading": "Sequence",
@@ -1054,20 +1258,50 @@ export const RAJA_PARTA: VideoLesson[] = [
      "EURUSD example: price crossed the daily trendline and removed two opposite zones, then went back to the weekly zone (the high-curve area), where a daily zone sat inside it. That was the trade.",
      "After the realignment area has been retested once, he does not use it again. If there is another weekly + daily pair further on, price can react there again."
     ]
+   },
+   {
+    "heading": "Sequence in detail (Urdu recordings and live sessions)",
+    "points": [
+     "Three market states (Apr 2025 class): up, down and sideways. Never trade sideways; emotions are hardest there and 99% of traders lose. Sideways is what the market does while it is realigning, so skip pairs stuck there.",
+     "Sequence = trading each new zone below (or above) the trendline, one after another, before the HTF target is hit. His drawing (low-TF class): H4 dropping from H4 supplies, a CP on H1, and on M15/M30 the market making and using supplies below its trendline. Every pair in the world is in sequence on some timeframe.",
+     "Timeframe sets (course 2; low-TF class): monthly + weekly for direction, daily + H4 for entries; daily + H4 down means sell H1 supplies below the trendline; H4 + H1 means trade M15. For most trades go no lower than H1.",
+     "Prefer zones near peaks; after about three CPs the market usually reverses (2022 class). After 3-4 CPs, rest the pair and look at another (course 2).",
+     "To cross the trendline the market first builds gaps and stacked zones; it rarely crosses in one go (2022 class). Once it has crossed, the sequence zones are out of trendline: stop using them and use the higher zone instead (low-TF class, EURUSD daily 2019)."
+    ]
+   },
+   {
+    "heading": "The realignment chain",
+    "points": [
+     "The chain (low-TF class; course 5; Apr 2025 class): when H4 crosses its trendline, the market realigns with the daily zone; a daily cross goes to the weekly zone; a weekly cross goes to the monthly, even to the 6-month or yearly candle's zone. On the low timeframes: an M5 cross heads for the H1 zone, and when M15 breaks it realigns with H1.",
+     "After the LTF crosses and removes the opposite zone, stop using the LTF zones and use the H4/H1 zone: that is where the market realigns and what it respects (low-TF class). He calls this the most important low-timeframe rule; follow it and you rarely take a loss, even scalping.",
+     "How to spot the area (Apr 2025 class): two trendlines, and the realignment area is where they point; it is often visible directly on the weekly. Most of the time the realignment area is also the arrival zone, especially H1/H4 coming into a daily strong zone (course 5).",
+     "Even after a cross, a demand right next to the line blocks selling until it breaks (low-TF class).",
+     "A realignment area can be tapped again. HTF zones survive more taps (monthly/H4 3-4, while an H1 zone usually breaks on the 2nd), but once tapped use confirmation (Apr 2025 class). If the weekly realignment CP is weak: always confirmation, never set and forget (Feb 25).",
+     "Do not panic-close when a small trendline breaks: it only realigns with the next timeframe; lock profit once it moves (Apr 2025 class).",
+     "After a big HTF candle, do not buy on top of it (Feb 25, AUDNZD): the market retraces to the daily realignment area first, then fills the candle from there.",
+     "A student's loss (course 5): he sold the first drop (the left shoulder) with an H1 confirmation and was stopped out; that sell sat inside a demand level, so it was never valid."
+    ]
    }
   ],
   "rules": [
    "Sequence: HTF (monthly + weekly) agree, so trade fresh daily zones in that direction.",
    "Realignment: after a daily trendline cross + two opposite zones removed, wait for the return to the weekly + daily confluence and enter on the daily zone.",
-   "Use a realignment area once; after it is retested, do not reuse it."
+   "Use a realignment area once; after it is retested, do not reuse it.",
+   "Never trade a sideways market; skip pairs stuck between zones.",
+   "Realignment chain: H4 cross -> daily zone; daily cross -> weekly zone; weekly cross -> monthly zone.",
+   "Once the trendline is crossed, the sequence zones are out of trendline: switch to the HTF realignment zone."
   ],
   "mistakes": [
    "Re-using the daily zones that were just removed.",
-   "Re-using a realignment area after it has been retested."
+   "Re-using a realignment area after it has been retested.",
+   "Trading a sideways (realigning) market.",
+   "Buying on top of a just-formed big HTF candle.",
+   "Closing in panic when a small trendline breaks."
   ],
   "quotes": [
    "When two time frames come together, a weekly strong zone and a daily strong zone, we use it for the trade.",
-   "Market will reverse back to realign with the high time frame."
+   "Market will reverse back to realign with the high time frame.",
+   "Whenever the low time frame crosses its trendline, it goes to the high time frame realignment area."
   ],
   "diagrams": [],
   "figures": [
@@ -1080,7 +1314,9 @@ export const RAJA_PARTA: VideoLesson[] = [
    "Are the monthly and weekly in sequence (same direction)?",
    "Has the daily crossed its trendline and removed two opposite zones?",
    "Is there a daily zone inside or next to a weekly strong zone?",
-   "Has that realignment area already been used?"
+   "Has that realignment area already been used?",
+   "Is the market sideways? Then skip it.",
+   "Which HTF zone will this LTF trendline cross realign with?"
   ],
   "journalTags": [
    "raja",
@@ -1091,6 +1327,32 @@ export const RAJA_PARTA: VideoLesson[] = [
   "newVsPdfs": [
    "Close to the Rulebook's three-timeframe check (the HTF of the HTF for the curve). Raja names the weekly + daily confluence the 'realignment area' and triggers it with his two-zone direction change.",
    "Neither Kevin nor Seiden ties the HTF return to 'trendline crossed + two zones removed' on the lower timeframe."
+  ],
+  "images": [
+   {
+    "src": "/lessons/raja_hi/course/low-tf/f-002_t00m39s.jpg",
+    "caption": "[00:39] Sequence drawing on GBPSGD monthly used as a board (low-TF class): supplies used one after another under the falling line, the target demand below",
+    "notes": [
+     "Each new supply below the trendline gets used in turn.",
+     "Once the trendline is crossed, those zones are out of trendline."
+    ]
+   },
+   {
+    "src": "/lessons/raja_hi/course/gmt20250405-115856-recording-1280x1024/f-050_t40m14s.jpg",
+    "caption": "[40:14] Realignment board on EURUSD monthly (Apr 2025 class): stacked daily, weekly and monthly zones",
+    "notes": [
+     "Daily crosses its trendline -> realigns with the weekly zone.",
+     "Weekly crosses -> realigns with the monthly."
+    ]
+   },
+   {
+    "src": "/lessons/raja_hi/private/2026-02-25/f-023_t20m06s.jpg",
+    "caption": "[20:06] Sequence drawing on GBPSGD monthly (live session, Feb 25): the daily zigzag along a rising trendline",
+    "notes": [
+     "Monthly and weekly up: trade each new daily zone along the trendline.",
+     "Highest win chances when the sequence is clear."
+    ]
+   }
   ]
  },
  {
