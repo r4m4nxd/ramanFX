@@ -1,19 +1,19 @@
-; RamanFX ZoneBot MT5 (RamanFX_ZoneBot.mq5 v1.63) - preset KevinBest
-; same overrides as RamanFX_ZoneBot_KevinBest.set (MT4); MT5 inputs added at their defaults
+; RamanFX ZoneBot MT5 (RamanFX_ZoneBot.mq5 v1.64) - bot test A: baseline (Zones3R)
+; same overrides as RamanFX_ZoneBot_Zones3R.set (MT4); MT5 inputs added at their defaults
 ; format: name=value||start||step||stop||Y/N (Y = optimise this input); enums as integers
 InpMode=1||0||1||2||N
-InpPreset=1||0||1||5||N
+InpPreset=3||0||1||5||N
 InpGlobalRR=0||0||0.5||6||N
 InpGlobalRRMinCheck=true||false||0||true||N
 InpAggressive=false||false||0||true||N
 InpGrades=0||0||1||4||N
 InpHalfRiskC=true||false||0||true||N
 InpEntry=2||0||1||2||N
-InpSymbols=
+InpSymbols=XAUUSD
 InpScansPerTick=4||4||1||40||N
 InpSuffix=
 InpTF_M1=false||false||0||true||N
-InpTF_M5=false||false||0||true||N
+InpTF_M5=true||false||0||true||N
 InpTF_M15=true||false||0||true||N
 InpTF_H1=true||false||0||true||N
 InpTF_H4=true||false||0||true||N
@@ -42,9 +42,8 @@ InpZ3RR=3||3||0.3||30||N
 InpZ3Front=0.05||0.05||0.005||0.5||N
 InpZ3StopBuf=0.1||0.1||0.01||1||N
 InpZ3Zones=0||0||1||1||N
-InpZ3Bias=false||false||0||true||N
+InpZ3Bias=true||false||0||true||N
 InpBigTrend=true||false||0||true||N
-InpMacroSide=0||0||1||4||N
 InpBestStopATR=0.5||0.5||0.05||5||N
 InpMinDeparture=1.5||1.5||0.15||15||N
 InpRequireITF=false||false||0||true||N
@@ -127,7 +126,7 @@ InpPipFix=true||false||0||true||N
 InpZ3MinStopATR=0.75||0.75||0.075||7.5||N
 InpZ3MinStopHTF=0.25||0.25||0.025||2.5||N
 InpZ3MaxStopATR=2||2||0.2||20||N
-InpBE_R=2||2||0.2||20||N
+InpBE_R=1||1||0.1||10||N
 InpZ3NeedRoom=true||false||0||true||N
 InpRiskCapNearOnly=true||false||0||true||N
 InpMinScore=0||0||1||10||N
@@ -148,3 +147,4 @@ InpWRaja=40||0||5||60||N
 InpWBaker=10||0||5||60||N
 InpUseCalWeights=false||false||0||true||N
 InpCalFile=RFX_Calib.csv
+InpMacroSide=0||0||1||4||N
