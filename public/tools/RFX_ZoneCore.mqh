@@ -750,6 +750,41 @@ bool MetalOrOil()
   }
 
 void Push(string &a[], string v) { int n = ArraySize(a); ArrayResize(a, n + 1); a[n] = v; }
+// ---- Raja v2.1 (C) ----
+// Stops as a % of the zone height beyond the distal (InpSlMode 1, owner's decision), TP offset before the opposite proximal,
+// Kevin overlays switched off for the Raja template (InpRjKevinOff). The host defines RFX_RJC when it has these inputs
+// (ZoneVision); without it (ZoneBot) the stubs below give exactly the v1 numbers.
+#ifdef RFX_RJC
+// per-timeframe stop % of the zone height: M1-M30 / H1-H3 / H4-H12 / D1 / W1, MN and the virtual 3M+
+double RjC_SlPct(ENUM_TIMEFRAMES tf)
+  {
+   if(VIsTF(tf)) return InpSlPctW1;
+   int sec = PeriodSeconds(tf);
+   if(sec <= 1800) return InpSlPctLTF;
+   if(sec <= 3 * 3600) return InpSlPctH1;
+   if(sec < 86400) return InpSlPctH4;
+   if(sec < 7 * 86400) return InpSlPctD1;
+   return InpSlPctW1;
+  }
+// distance of the stop beyond the distal for a zone of height h on timeframe tf
+double RjC_StopBuf(double h, ENUM_TIMEFRAMES tf)
+  {
+   if(InpSlMode != 1) return InpStopBufferPts * _Point * (MetalOrOil() ? InpMetalOilStop : 1.0);
+   return MathMax(RjC_SlPct(tf) / 100.0 * h, InpSlMinPips * MathMax(PipSize(), _Point));
+  }
+double RjC_TpOff() { return InpTpOffsetPips > 0 ? InpTpOffsetPips * MathMax(PipSize(), _Point) : 0; }
+// extra risk for the DNA room (risk = height + spread in v1): the % stop, only in InpSlMode 1
+double RjC_RoomBuf(double h, ENUM_TIMEFRAMES tf) { return InpSlMode == 1 ? RjC_StopBuf(h, tf) : 0; }
+bool   RjC_KevinOff() { return InpRjKevinOff; }
+#else
+double RjC_StopBuf(double h, ENUM_TIMEFRAMES tf) { return InpStopBufferPts * _Point * (MetalOrOil() ? InpMetalOilStop : 1.0); }
+double RjC_TpOff() { return 0; }
+double RjC_RoomBuf(double h, ENUM_TIMEFRAMES tf) { return 0; }
+bool   RjC_KevinOff() { return false; }
+#endif
+bool   RjC_OnlyQual() { return InpOnlyQualified && !RjC_KevinOff(); }                  // Kevin's Sunday rule (off with InpRjKevinOff)
+bool   RjC_Overext(int dir, double price) { return !RjC_KevinOff() && Overextended(dir, price); }   // Kevin's channel 50% (off with InpRjKevinOff)
+// ---- end Raja v2.1 (C) ----
 // one-line explanation shown under each note in the tooltip
 string NoteHelp(string n)
   {
@@ -790,19 +825,19 @@ string ZoneNotes(Zone &zs[], int i, string &verdict, string &shortWhy)
    if(z.leg2) Push(pl, "2nd explosive candle"); else Push(mi, "only one explosive candle");
    if(z.arrival) Push(pl, "ARRIVAL: broke the trendline + the previous high/low");
    if(z.chain) Push(pl, "in the chain"); else Push(cr, "not in the chain (removed nothing)");
-   if(z.gap < InpMinGap) Push(cr, "drawable only: no space under the stay-away candle"); else if(z.gap >= 0.25) Push(pl, StringFormat("clear space %.0f%%", z.gap * 100));
+   if(z.gap < InpMinGap && !RjC_KevinOff()) Push(cr, "drawable only: no space under the stay-away candle"); else if(z.gap >= 0.25) Push(pl, StringFormat("clear space %.0f%%", z.gap * 100));
    if(z.tested) Push(cr, "already tested"); else Push(pl, "fresh");
    if(TooSmall(zs, i)) Push(cr, "too small vs other zones");
    if(!z.cont) Push(pl, "VP (Kevin's favourite)");
    if(gTrend == z.dir) Push(pl, "with the HTF trend"); else if(gTrend == -z.dir) Push(cr, "against the HTF trend");
-   if(Overextended(z.dir, z.prox)) Push(cr, "beyond channel 50% (overextended)");
+   if(RjC_Overext(z.dir, z.prox)) Push(cr, "beyond channel 50% (overextended)");
    { string nt = NearTrendline(z.dir, z.prox); if(nt != "") Push(pl, "at the " + nt + " trendline"); }
    { int cx = CrossNeeded(z.dir, z.prox); if(cx > 0) Push(pl, "price reaches it without crossing a trendline"); else if(cx < 0) Push(mi, "price must cross a trendline to reach it"); }
-   if(z.trap > 0) Push(pl, "liquidity trap in front");
-   if(z.crowded) Push(mi, "on an obvious S/R level (crowded)");
+   if(z.trap > 0 && !RjC_KevinOff()) Push(pl, "liquidity trap in front");
+   if(z.crowded && !RjC_KevinOff()) Push(mi, "on an obvious S/R level (crowded)");
    ENUM_TIMEFRAMES htf = HtfOf(CTF); if(htf <= 0) htf = CTF;
    double xa = MathAbs(Mid() - z.prox) / MathMax(ATR(htf, 1), _Point);
-   if(xa > InpMaxDistATR) Push(mi, StringFormat("far: %.1f x %s ATR", xa, TfName(htf)));
+   if(xa > InpMaxDistATR && !RjC_KevinOff()) Push(mi, StringFormat("far: %.1f x %s ATR", xa, TfName(htf)));
    int np = ArraySize(pl), nm = ArraySize(mi), nc = ArraySize(cr);
    verdict = nc > 0 ? "WEAK" : ((np >= 5 && nm <= 1) || z.arrival ? "STRONG" : "OK");
    if(nc > 0) shortWhy = cr[0] + (nc > 1 ? ", " + cr[1] : "");
@@ -810,7 +845,7 @@ string ZoneNotes(Zone &zs[], int i, string &verdict, string &shortWhy)
    else shortWhy = (nm > 0 ? mi[0] : (np > 0 ? pl[0] : ""));
    // the plan, the way the drills taught it: entry at the proximal, stop past the distal + buffer (x2 gold / oil),
    // target just before the nearest fresh opposing zone
-   double spread = SAsk() - SBid(), buf = InpStopBufferPts * _Point * (MetalOrOil() ? InpMetalOilStop : 1.0), opp = 0;
+   double spread = SAsk() - SBid(), buf = RjC_StopBuf(MathAbs(z.prox - z.dist), CTF), opp = 0;   // Raja v2.1 C: v1 buffer unless InpSlMode = 1
    for(int j = 0; j < ArraySize(zs); j++)
      {
       if(zs[j].dir == z.dir || zs[j].removed) continue;
@@ -818,7 +853,10 @@ string ZoneNotes(Zone &zs[], int i, string &verdict, string &shortWhy)
       if(z.dir < 0 && zs[j].prox < z.prox && (opp == 0 || zs[j].prox > opp)) opp = zs[j].prox;
      }
    double en = z.dir > 0 ? z.prox + spread : z.prox, sl = z.dir > 0 ? z.dist - buf : z.dist + buf + spread;
-   double tp = opp > 0 ? (z.dir > 0 ? opp - spread : opp + spread) : 0, rr = tp > 0 ? MathAbs(tp - en) / MathMax(MathAbs(en - sl), _Point) : 0;
+   double tpo = RjC_TpOff();                                          // Raja v2.1 C: TP offset before the opposite proximal (0 = v1)
+   double tp = opp > 0 ? (z.dir > 0 ? opp - spread - tpo : opp + spread + tpo) : 0;
+   if(tpo > 0 && tp > 0 && z.dir * (tp - en) <= 0) tp = 0;
+   double rr = tp > 0 ? MathAbs(tp - en) / MathMax(MathAbs(en - sl), _Point) : 0;
    gNEn = en; gNSl = sl; gNTp = tp; gNRR = rr;                       // MT5 extra: plan lines when the box is opened
    string grade = nc > 0 ? "C" : ((verdict == "STRONG" && (z.arrival || np >= 6) && rr >= 3) ? "A" : (rr >= InpMinRR && nm <= 2 ? "B" : "C"));
    gNGrade = grade; gNP = np; gNM = nm; gNC = nc;                    // zone research reads these (no effect on the chart)
@@ -841,7 +879,7 @@ string ZoneNotes(Zone &zs[], int i, string &verdict, string &shortWhy)
    string ls = "";
    if(MetalOrOil()) ls += "wider stop on gold/oil (drill 10); ";
    if(z.tested) ls += "tested = skip (drill 10); ";
-   if(Overextended(z.dir, z.prox)) ls += "overextended = wait (drill 9); ";
+   if(RjC_Overext(z.dir, z.prox)) ls += "overextended = wait (drill 9); ";
    ls += "TP before the next zone, not past it (drills 2, 6, 7)";
    t += "Drills: " + ls;
    if(StringLen(t) > 900) t = StringSubstr(t, 0, 895) + "...";        // keep the details text to tooltip size
@@ -860,7 +898,7 @@ void DrawZones(Zone &zs[], bool htf)
       if(!htf && zs[i].legBar > InpMaxZoneAge) continue;
       if(zs[i].removed && (htf || !InpShowRemoved)) continue;
       if(zs[i].tested && !htf && !InpShowTested) continue;
-      if(!htf && InpOnlyQualified && !zs[i].chain && !zs[i].removed) continue;
+      if(!htf && RjC_OnlyQual() && !zs[i].chain && !zs[i].removed) continue;
       if(!htf && TooSmall(zs, i)) continue;
       if(!htf && V2Hide(zs[i])) continue;                            // v2 location filters (InpLockSide / InpCurveFilter, both off by default)
       ArrayResize(idx, n + 1); ArrayResize(dst, n + 1);
@@ -893,7 +931,7 @@ void DrawZones(Zone &zs[], bool htf)
         }
       PriceTag(id + "pp", t2, z.prox, htf ? cText : line);
       PriceTag(id + "dp", t2, z.dist, htf ? cText : line);
-      if(!htf && z.trap > 0 && z.trapBar > 0)
+      if(!htf && z.trap > 0 && z.trapBar > 0 && !RjC_KevinOff())
         {
          double th = MathMax(MathAbs(z.prox - z.dist) * 0.12, 2 * _Point);
          ObjectCreate(0, id + "lt", OBJ_RECTANGLE, 0, cT(z.trapBar), z.trap, t2, z.dir > 0 ? z.trap - th : z.trap + th);
@@ -1335,6 +1373,9 @@ int      gMgL[]; int gMgD[]; int gMgKeep[]; int gMgDrop[];
 bool V2Hide(Zone &z)
   {
    if(InpMergeOverlap > 0) for(int k = 0; k < ArraySize(gMgL); k++) if(gMgL[k] == z.legBar && gMgD[k] == z.dir) return true;
+#ifdef RFX_RJC
+   if(RjC_Hidden(z)) return true;                                    // Raja v2.1 C: InpRjOnlyStrongArrival (off by default)
+#endif
    if(!gDirOk) return false;
    if(InpLockSide && gLockSide != 0 && z.dir == -gLockSide) return true;
    if(InpCurveFilter && gCurveOk)
@@ -1806,7 +1847,7 @@ void DnaCompute(ENUM_TIMEFRAMES tf, Zone &zs[], int i, ZoneDNA &x)
    if(A <= 0) A = A1;
    if(A1 <= 0) A1 = A;
    if(A <= 0) return;
-   double spr = MathMax(SAsk() - SBid(), 0.0), risk = h + spr, pip = MathMax(PipSize(), _Point);
+   double spr = MathMax(SAsk() - SBid(), 0.0), risk = h + spr + RjC_RoomBuf(h, tf), pip = MathMax(PipSize(), _Point);   // Raja v2.1 C: + % stop (InpSlMode 1)
    x.tf = tf; x.d = d; x.L = L; x.k = k; x.B = B; x.sa = sa; x.prox = z.prox; x.dist = z.dist; x.h = h; x.A = A; x.A1 = A1;
    x.cont = z.cont; x.removed = z.removed;
    x.key = TfName(tf) + "|" + IntegerToString(d) + "|" + IntegerToString((long)ST(_Symbol, tf, B));
@@ -1941,7 +1982,7 @@ void DnaCompute(ENUM_TIMEFRAMES tf, Zone &zs[], int i, ZoneDNA &x)
       if(d < 0 && zs[j].prox < z.prox && (opp == 0 || zs[j].prox > opp)) opp = zs[j].prox;
      }
    x.hasOpp = opp > 0;
-   x.oppR = x.hasOpp ? MathMax(0.0, (d * (opp - z.prox) - spr) / risk) : 0;
+   x.oppR = x.hasOpp ? MathMax(0.0, (d * (opp - z.prox) - spr - RjC_TpOff()) / risk) : 0;
    double oh = 0;
    if(gDirOk)
       for(int j = 0; j < ArraySize(drZ); j++)
@@ -1952,7 +1993,7 @@ void DnaCompute(ENUM_TIMEFRAMES tf, Zone &zs[], int i, ZoneDNA &x)
          if(oh == 0 || d * (drZ[j].prox - oh) < 0) oh = drZ[j].prox;
         }
    x.hasOppHtf = oh > 0;
-   x.oppHtfR = x.hasOppHtf ? MathMax(0.0, (d * (oh - z.prox) - spr) / risk) : 0;
+   x.oppHtfR = x.hasOppHtf ? MathMax(0.0, (d * (oh - z.prox) - spr - RjC_TpOff()) / risk) : 0;
    x.roomR = 99;                                                     // 99 = no opposing level in view ("open")
    if(x.hasOpp) x.roomR = x.oppR;
    if(x.hasOppHtf) x.roomR = MathMin(x.roomR, x.oppHtfR);
@@ -2202,7 +2243,7 @@ int V2MergeSelect(double px, int &sel[])
       if(Z[i].legBar > InpMaxZoneAge) continue;
       if(Z[i].removed && !InpShowRemoved) continue;
       if(Z[i].tested && !InpShowTested) continue;
-      if(InpOnlyQualified && !Z[i].chain && !Z[i].removed) continue;
+      if(RjC_OnlyQual() && !Z[i].chain && !Z[i].removed) continue;
       if(TooSmall(Z, i)) continue;
       if(V2Hide(Z[i])) continue;
       ArrayResize(idx, n + 1); ArrayResize(dst, n + 1);
