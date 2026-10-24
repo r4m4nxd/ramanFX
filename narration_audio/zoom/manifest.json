@@ -9,5 +9,16 @@
   "seconds": 2255.53,
   "sha256": "5a85efddb70f842b9d20008cfa53a24964b4de374bd57dfe48302ba5b319c50d",
   "textHash": "7e11ee7bf183bd66"
+ },
+ {
+  "source": "zoom",
+  "n": 2,
+  "title": "EURUSD daily chain analysis, borderline zones and following homework instructions",
+  "voice": "am_michael",
+  "file": "zoom/02/am_michael.m4a",
+  "bytes": 15074571,
+  "seconds": 1829.31,
+  "sha256": "5f4f07879352447292b327bd0e8b4b3eb817b488d2364451f126f552b46d30cd",
+  "textHash": "4e666cd906bc7673"
  }
 ]
