@@ -2,14 +2,15 @@
 // lock-screen controls and offline saving. Falls back to <ListenBar> (device / on-device neural voice) when a lesson
 // has no recording yet, or when the reader picks "Device voice".
 import { motion, useReducedMotion } from 'framer-motion';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { VideoLesson } from '@/core/videoLessons';
 import { cx, ease, Segmented } from '../kit';
-import { Eq, fmtLeft, G, Glyph, IconBtn, ListenBar, nearestSpeed, PlayButton, Reveal, SPEEDS, Toggle } from './ListenBar';
-import { isSaved, recordedIndex, removeSaved, savedBlob, saveOffline, streamUrl, type Recorded } from './recorded';
+import { Eq, fmtLeft, G, Glyph, IconBtn, ListenBar, PlayButton, Reveal, SPEEDS, Toggle } from './ListenBar';
+import { isSaved, recordedIndex, removeSaved, saveOffline, type Recorded } from './recorded';
+import { useRecordedAudio } from './useRecordedAudio';
 import { safeStorage } from './voices';
 
-const K_MODE = 'rfx_listen_mode', K_RATE = 'rfx_rec_rate', K_POS = 'rfx_rec_pos:';
+const K_MODE = 'rfx_listen_mode';
 const mbs = (b: number) => `${Math.max(1, Math.round(b / 1e6))} MB`;
 const clock = (s: number) => { s = Math.max(0, Math.floor(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 
@@ -32,88 +33,14 @@ export function LessonListen({ source, lesson, mentor }: { source: string; lesso
 
 function RecordedPlayer({ k, rec, lesson, mentor, source, onDevice }: { k: string; rec: Recorded; lesson: VideoLesson; mentor: string; source: string; onDevice: () => void }) {
   const reduce = useReducedMotion();
-  const audio = useRef<HTMLAudioElement | null>(null);
-  const blobUrl = useRef<string | null>(null);
-  const [playing, setPlaying] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [t, setT] = useState(() => Number(safeStorage.get(K_POS + k)) || 0);
-  const [rate, setRateS] = useState(() => nearestSpeed(Number(safeStorage.get(K_RATE)) || 1));
+  const { playing, loading, t, rate, err, setErr, ch, toggle, seek, curT, jumpChapter, setRate } = useRecordedAudio(k, rec, { title: lesson.title, artist: `${mentor} · RamanFX`, album: source === 'seiden' ? 'Sam Seiden' : mentor });
   const [panel, setPanel] = useState<'none' | 'chapters' | 'offline'>('none');
   const [saved, setSaved] = useState(false);
   const [dl, setDl] = useState<number | null>(null);
-  const [err, setErr] = useState<string | null>(null);
   const dur = rec.s;
   const chapters = rec.c;
-  const ch = useMemo(() => { let i = 0; chapters.forEach(([s], j) => { if (s <= t + 0.25) i = j; }); return i; }, [chapters, t]);
 
   useEffect(() => { isSaved(k, rec.h).then(setSaved); }, [k, rec.h]);
-  useEffect(() => () => {
-    audio.current?.pause();
-    if (blobUrl.current) URL.revokeObjectURL(blobUrl.current);
-    if ('mediaSession' in navigator) navigator.mediaSession.metadata = null;
-  }, []);
-
-  /** Creates the <audio> on first play: the saved copy if there is one, else the stream. */
-  const ensure = useCallback(async (): Promise<HTMLAudioElement> => {
-    if (audio.current) return audio.current;
-    const a = new Audio();
-    a.preload = 'auto';
-    const blob = await savedBlob(k, rec.h);
-    if (blob) { blobUrl.current = URL.createObjectURL(blob); a.src = blobUrl.current; } else a.src = await streamUrl(k);
-    a.playbackRate = rate;
-    let retried = false;
-    a.ontimeupdate = () => { setT(a.currentTime); if (Math.round(a.currentTime) % 5 === 0) safeStorage.set(K_POS + k, String(a.currentTime)); };
-    a.onplay = () => { setPlaying(true); setErr(null); };
-    a.onpause = () => { setPlaying(false); safeStorage.set(K_POS + k, String(a.currentTime)); };
-    a.onwaiting = () => setLoading(true);
-    a.onplaying = a.oncanplay = () => setLoading(false);
-    a.onended = () => { setPlaying(false); safeStorage.set(K_POS + k, '0'); };
-    a.onerror = async () => {
-      setLoading(false);
-      if (blobUrl.current || retried) { setErr(navigator.onLine ? 'Could not play the recording. Try again, or use the device voice.' : 'You are offline and this lesson is not saved on this device.'); setPlaying(false); return; }
-      retried = true; // the stream link carries a sign-in token that expires: get a fresh one and carry on
-      const at = a.currentTime || t;
-      a.src = await streamUrl(k); a.currentTime = at; a.play().catch(() => setPlaying(false));
-    };
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.metadata = new MediaMetadata({ title: lesson.title, artist: `${mentor} · RamanFX`, album: source === 'seiden' ? 'Sam Seiden' : mentor });
-      const ms = navigator.mediaSession;
-      ms.setActionHandler('play', () => a.play());
-      ms.setActionHandler('pause', () => a.pause());
-      ms.setActionHandler('seekbackward', () => { a.currentTime = Math.max(0, a.currentTime - 15); });
-      ms.setActionHandler('seekforward', () => { a.currentTime = Math.min(dur, a.currentTime + 30); });
-      ms.setActionHandler('previoustrack', () => jumpChapter(-1));
-      ms.setActionHandler('nexttrack', () => jumpChapter(1));
-    }
-    audio.current = a;
-    a.currentTime = t >= dur - 2 ? 0 : t;
-    return a;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [k, rec.h]);
-
-  const toggle = async () => {
-    setErr(null);
-    if (!audio.current) setLoading(true);
-    const a = await ensure();
-    if (a.paused) a.play().catch(e => { setLoading(false); if (e?.name !== 'AbortError') setErr('Tap play again to start.'); });
-    else a.pause();
-  };
-  const seek = async (s: number, play = false) => {
-    s = Math.min(Math.max(0, s), dur - 0.5);
-    setT(s); safeStorage.set(K_POS + k, String(s));
-    if (!audio.current && !play) return;
-    const a = await ensure(); a.currentTime = s;
-    if (play && a.paused) a.play().catch(() => {});
-  };
-  const curT = () => audio.current?.currentTime ?? t;
-  function jumpChapter(d: number) {
-    const now = curT();
-    let i = 0; chapters.forEach(([s], j) => { if (s <= now + 0.25) i = j; });
-    // "previous" restarts the current chapter unless we're right at its start
-    const target = d < 0 && now - chapters[i][0] > 3 ? i : Math.min(chapters.length - 1, Math.max(0, i + d));
-    seek(chapters[target][0], true);
-  }
-  const setRate = (r: number) => { setRateS(r); safeStorage.set(K_RATE, String(r)); if (audio.current) audio.current.playbackRate = r; };
 
   const save = async () => {
     setErr(null); setDl(0);

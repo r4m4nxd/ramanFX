@@ -21,6 +21,7 @@ import { useInteractiveData } from '@/ui/teach/data';
 import { MasteryRing } from '@/ui/teach/Mastery';
 // The interactive layer (scenes, quizzes, flashcards) loads as its own chunk, only when a lesson or the review opens.
 const LearnIt = lazy(() => import('@/ui/teach/LearnIt'));
+const Reader = lazy(() => import('@/ui/reader/Reader'));
 const ReviewMode = lazy(() => import('@/ui/teach/Flashcards').then(m => ({ default: m.ReviewMode })));
 const TeachFallback = () => <Card aria-label="Loading"><div className="h-6 w-40 rounded bg-raised/60 animate-pulse" /><div className="h-48 mt-4 rounded-xl bg-raised/40 animate-pulse" /></Card>;
 
@@ -63,6 +64,10 @@ function LessonView({ l, src, list, done, toggle, interactive }: { l: VideoLesso
   const diagrams = l.diagrams.filter(d => hasDiagram(d.key));
   const z = isZoom(l) ? l : null;
   const q = (n: number) => src === 'course' ? `/learn?l=${n}` : `/learn?src=${src}&l=${n}`;
+  const [reading, setReading] = useState(false);
+  useEffect(() => setReading(false), [src, l.n]);
+  const mentor = src === 'seiden' ? 'Sam Seiden' : src === 'raja' ? 'Raja' : src === 'baker' ? 'Kevin Baker' : 'Kevin';
+  const label = z ? `Sunday live · ${fmtDate(z.date)}` : src === 'seiden' ? `Page ${l.n}` : src === 'baker' ? `Chapter ${l.n}` : `Lesson ${l.n}`;
   return (
     <article className="flex flex-col gap-4">
       <Card>
@@ -74,10 +79,12 @@ function LessonView({ l, src, list, done, toggle, interactive }: { l: VideoLesso
         <p className="text-[14px] text-ink2 mt-2 max-w-[75ch] leading-relaxed">{l.summary}</p>
         <div className="flex flex-wrap gap-2 mt-4">
           <button type="button" className={done ? 'btn' : 'btn-primary'} onClick={toggle}><Icon name="check" size={14} />{done ? 'Mark as not studied' : 'Mark as studied'}</button>
+          <button type="button" className="btn" onClick={() => setReading(true)} onPointerEnter={() => import('@/ui/reader/Reader')}><Icon name="playbook" size={14} />Read</button>
           <Link to="/plan" className="btn"><Icon name="target" size={14} />Plan a trade</Link>
         </div>
       </Card>
-      <LessonListen key={src + l.n} source={src} lesson={l} mentor={src === 'seiden' ? 'Sam Seiden' : src === 'raja' ? 'Raja' : src === 'baker' ? 'Kevin Baker' : 'Kevin'} />
+      <LessonListen key={src + l.n} source={src} lesson={l} mentor={mentor} />
+      {reading && <Suspense fallback={null}><Reader lesson={l} source={src} mentor={mentor} label={label} onClose={() => setReading(false)} /></Suspense>}
 
       {interactive && mentorOfSrc(src) && <Suspense fallback={<TeachFallback />}><LearnIt key={src + l.n} mentor={mentorOfSrc(src)!} n={l.n} /></Suspense>}
 
