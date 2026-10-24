@@ -13,4 +13,4 @@ for ref in $(git ls-remote origin "refs/heads/audio/*" | awk '{print $2}'); do
   total=$((total+n)); echo "$b $n"
 done
 echo "rendered_on_branches $total (+5 course on Drive from local)"
-python3 -I -c "import json;print('uploaded', len(json.load(open('tools/narration/drive_uploaded.json'))))"
+python3 -I -c "import json;print('uploaded', len(json.load(open('/root/.config/ramanfx/drive_uploaded.json'))))"

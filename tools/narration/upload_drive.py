@@ -8,7 +8,7 @@ import json, os, re, sys, time, glob, subprocess, urllib.request, urllib.parse, 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 TOK = os.path.expanduser('~/.config/ramanfx/drive_token.json')
 FOLDERS = json.load(open(os.path.join(ROOT, 'tools/narration/drive_folders.json')))
-LEDGER = os.path.join(ROOT, 'tools/narration/drive_uploaded.json')
+LEDGER = os.path.expanduser('~/.config/ramanfx/drive_uploaded.json')  # outside git: written constantly
 CID, CSEC = '202264815644.apps.googleusercontent.com', 'X4Z3ca8xfWDb1Voo-F9a7ZxJ'  # rclone's public desktop client
 VOICE = 'am_michael'
 _tok = {'t': None, 'exp': 0}

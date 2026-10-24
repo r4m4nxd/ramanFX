@@ -7,3 +7,4 @@ __pycache__/
 tsconfig.tsbuildinfo
 tools/narration/out/
 narration_audio/
+tools/narration/drive_uploaded.json
