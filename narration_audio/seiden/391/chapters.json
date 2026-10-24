@@ -1,0 +1,64 @@
+{
+ "source": "seiden",
+ "n": 391,
+ "title": "Supply, Demand and Time",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 311.06,
+   "textHash": "58a6bf9577912410",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Logic",
+     "start": 41.94
+    },
+    {
+     "id": "s1",
+     "title": "The example",
+     "start": 55.28
+    },
+    {
+     "id": "s2",
+     "title": "Charts",
+     "start": 89.17
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 144.31
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 166.82
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 181.62
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 196.57
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 271.68
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 296.13
+    }
+   ]
+  }
+ }
+}

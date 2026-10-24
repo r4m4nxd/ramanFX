@@ -1,0 +1,64 @@
+{
+ "source": "seiden",
+ "n": 403,
+ "title": "Do You Have a Copy - Paste Mentality in Your Trading?",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 592.01,
+   "textHash": "f9dd727180a2fc68",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "The copy, paste mind",
+     "start": 60.33
+    },
+    {
+     "id": "s1",
+     "title": "The QQQ XLT trade, the logic",
+     "start": 102.89
+    },
+    {
+     "id": "s2",
+     "title": "Charts",
+     "start": 165.82
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 313.44
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 357.13
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 375.46
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 399.24
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 538.11
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 574.46
+    }
+   ]
+  }
+ }
+}

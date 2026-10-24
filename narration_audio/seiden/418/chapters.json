@@ -1,0 +1,84 @@
+{
+ "source": "seiden",
+ "n": 418,
+ "title": "Learn the Answers to Your Questions on Strategy with Sam",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 544.11,
+   "textHash": "ef7f6757a9c073ef",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Which timeframes, Jacqueline",
+     "start": 62.1
+    },
+    {
+     "id": "s1",
+     "title": "After the first revisit, Eliza",
+     "start": 98.07
+    },
+    {
+     "id": "s2",
+     "title": "Win rate on larger timeframes, Michael",
+     "start": 135.82
+    },
+    {
+     "id": "s3",
+     "title": "Strong versus weak levels and reversal trades",
+     "start": 180.61
+    },
+    {
+     "id": "s4",
+     "title": "Touch count versus penetration depth",
+     "start": 205.19
+    },
+    {
+     "id": "s5",
+     "title": "Counter-trend, Fibonacci or pivots, candlesticks",
+     "start": 238.86
+    },
+    {
+     "id": "s6",
+     "title": "Closing",
+     "start": 287.09
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 319.08
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 382.98
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 416.63
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 440.6
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 485.96
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 525.38
+    }
+   ]
+  }
+ }
+}

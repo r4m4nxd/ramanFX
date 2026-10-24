@@ -1,0 +1,69 @@
+{
+ "source": "seiden",
+ "n": 394,
+ "title": "Remove the Veil of Illusion from Trading and Investing",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 566.52,
+   "textHash": "779d1d835d01149f",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Illusion versus reality",
+     "start": 56.23
+    },
+    {
+     "id": "s1",
+     "title": "Moving averages",
+     "start": 84.58
+    },
+    {
+     "id": "s2",
+     "title": "The news",
+     "start": 143.69
+    },
+    {
+     "id": "s3",
+     "title": "Charts",
+     "start": 183.71
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 302.73
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 328.81
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 353.4
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 373.64
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 520.23
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 547.39
+    }
+   ]
+  }
+ }
+}

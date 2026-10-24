@@ -1,0 +1,74 @@
+{
+ "source": "seiden",
+ "n": 408,
+ "title": "How Do You Find Market Turning Points in Advance?",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 355.51,
+   "textHash": "5fe6c69f9678b8fd",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Why the entry matters most",
+     "start": 59.35
+    },
+    {
+     "id": "s1",
+     "title": "Odds Enhancer 1: how did price leave the level?",
+     "start": 82.23
+    },
+    {
+     "id": "s2",
+     "title": "Odds Enhancer 2: how much time did price spend at the level?",
+     "start": 104.6
+    },
+    {
+     "id": "s3",
+     "title": "Odds Enhancer 3: how far did price move away before returning?",
+     "start": 133.59
+    },
+    {
+     "id": "s4",
+     "title": "Resources he points to",
+     "start": 175.52
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 192.47
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 227.29
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 252.09
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 275.33
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 311.38
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 342.17
+    }
+   ]
+  }
+ }
+}

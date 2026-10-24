@@ -1,0 +1,64 @@
+{
+ "source": "seiden",
+ "n": 385,
+ "title": "Is it a Duck or a Lobster?",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 414.33,
+   "textHash": "173b9683d7908be8",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Keep it simple",
+     "start": 46.92
+    },
+    {
+     "id": "s1",
+     "title": "The Euro trade",
+     "start": 71.01
+    },
+    {
+     "id": "s2",
+     "title": "Charts",
+     "start": 106.78
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 199.53
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 225.37
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 240.1
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 252.14
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 377.84
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 399.74
+    }
+   ]
+  }
+ }
+}
