@@ -1,0 +1,109 @@
+{
+ "source": "course",
+ "n": 7,
+ "title": "Multiple Sequence Analysis",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 1019.96,
+   "textHash": "f06c3939440525e0",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "What multiple sequence analysis is",
+     "start": 53.55
+    },
+    {
+     "id": "s1",
+     "title": "The sequences",
+     "start": 107.57
+    },
+    {
+     "id": "s2",
+     "title": "Natural gas example, three-timeframe confluence",
+     "start": 167.3
+    },
+    {
+     "id": "s3",
+     "title": "Risk sizing by confluence",
+     "start": 206.8
+    },
+    {
+     "id": "s4",
+     "title": "Edge and expectations",
+     "start": 276.07
+    },
+    {
+     "id": "s5",
+     "title": "Homework",
+     "start": 332.37
+    },
+    {
+     "id": "s6",
+     "title": "Where multiple sequence analysis came from",
+     "start": 349.53
+    },
+    {
+     "id": "s7",
+     "title": "The question above the weekly",
+     "start": 371.94
+    },
+    {
+     "id": "s8",
+     "title": "euro dollar daily-to-5 minute hold idea",
+     "start": 397.2
+    },
+    {
+     "id": "s9",
+     "title": "How to build your own sequence",
+     "start": 424.41
+    },
+    {
+     "id": "s10",
+     "title": "On his charts",
+     "start": 443.77
+    },
+    {
+     "id": "s11",
+     "title": "Corrected from his video",
+     "start": 600.58
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 723.53
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 762.04
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 780.17
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 817.4
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 961.67
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 1005.04
+    }
+   ]
+  }
+ }
+}

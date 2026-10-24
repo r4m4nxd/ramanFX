@@ -1,0 +1,89 @@
+{
+ "source": "course",
+ "n": 9,
+ "title": "Dividend Investing Using Supply and Demand Zones",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 790.03,
+   "textHash": "2cb63790756e0c3e",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "What makes it different",
+     "start": 45.0
+    },
+    {
+     "id": "s1",
+     "title": "Sizing by timeframe",
+     "start": 66.53
+    },
+    {
+     "id": "s2",
+     "title": "Examples",
+     "start": 91.56
+    },
+    {
+     "id": "s3",
+     "title": "Investing in a rising market",
+     "start": 125.7
+    },
+    {
+     "id": "s4",
+     "title": "Investing in a falling market",
+     "start": 149.01
+    },
+    {
+     "id": "s5",
+     "title": "Extra details from the examples",
+     "start": 172.1
+    },
+    {
+     "id": "s6",
+     "title": "On his charts",
+     "start": 273.66
+    },
+    {
+     "id": "s7",
+     "title": "Corrected from his video",
+     "start": 403.03
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 498.6
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 532.25
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 546.62
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 575.82
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 737.07
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 776.98
+    }
+   ]
+  }
+ }
+}

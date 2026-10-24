@@ -1,0 +1,104 @@
+{
+ "source": "course",
+ "n": 6,
+ "title": "Entry, Stop Loss & Take Profit",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 924.88,
+   "textHash": "d5f1d9260d013d17",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Mindset",
+     "start": 47.95
+    },
+    {
+     "id": "s1",
+     "title": "Entry and stop placement",
+     "start": 67.76
+    },
+    {
+     "id": "s2",
+     "title": "Other entry types, test them",
+     "start": 114.67
+    },
+    {
+     "id": "s3",
+     "title": "His personal method",
+     "start": 151.92
+    },
+    {
+     "id": "s4",
+     "title": "Take-profit methods",
+     "start": 179.92
+    },
+    {
+     "id": "s5",
+     "title": "Managing the trade",
+     "start": 224.85
+    },
+    {
+     "id": "s6",
+     "title": "How to test",
+     "start": 235.08
+    },
+    {
+     "id": "s7",
+     "title": "Spread example details",
+     "start": 247.17
+    },
+    {
+     "id": "s8",
+     "title": "Zone-within-zone example",
+     "start": 297.78
+    },
+    {
+     "id": "s9",
+     "title": "On his charts",
+     "start": 309.96
+    },
+    {
+     "id": "s10",
+     "title": "Corrected from his video",
+     "start": 464.27
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 639.25
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 660.83
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 678.97
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 708.73
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 876.69
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 909.21
+    }
+   ]
+  }
+ }
+}

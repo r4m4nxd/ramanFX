@@ -1,0 +1,99 @@
+{
+ "source": "course",
+ "n": 10,
+ "title": "When to Remove a Limit Order",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 1047.14,
+   "textHash": "c17ebfd01fbe3e1f",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Framing, Q from Melo",
+     "start": 51.05
+    },
+    {
+     "id": "s1",
+     "title": "When a zone counts as tested",
+     "start": 77.36
+    },
+    {
+     "id": "s2",
+     "title": "Confirmation: what can offset a tested zone",
+     "start": 110.54
+    },
+    {
+     "id": "s3",
+     "title": "Confirmation: the zone you trade must stay in control",
+     "start": 158.16
+    },
+    {
+     "id": "s4",
+     "title": "Confirmation: distance and timing",
+     "start": 196.95
+    },
+    {
+     "id": "s5",
+     "title": "Set and forget: move the order to the nearest zone",
+     "start": 239.47
+    },
+    {
+     "id": "s6",
+     "title": "Set and forget: after a loss or trend-line break",
+     "start": 293.08
+    },
+    {
+     "id": "s7",
+     "title": "Extra details from the examples",
+     "start": 355.01
+    },
+    {
+     "id": "s8",
+     "title": "On his charts",
+     "start": 455.97
+    },
+    {
+     "id": "s9",
+     "title": "Corrected from his video",
+     "start": 616.1
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 719.94
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 775.7
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 816.37
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 850.0
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 975.21
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 1031.93
+    }
+   ]
+  }
+ }
+}

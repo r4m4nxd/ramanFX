@@ -1,0 +1,94 @@
+{
+ "source": "course",
+ "n": 8,
+ "title": "Trend Trading",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 895.12,
+   "textHash": "3a9e035963b28767",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Definition",
+     "start": 47.53
+    },
+    {
+     "id": "s1",
+     "title": "When the nearest zone is removed",
+     "start": 95.49
+    },
+    {
+     "id": "s2",
+     "title": "Overextension: the three-continuation pattern rule",
+     "start": 127.66
+    },
+    {
+     "id": "s3",
+     "title": "Zone quality still matters",
+     "start": 184.68
+    },
+    {
+     "id": "s4",
+     "title": "Homework",
+     "start": 204.76
+    },
+    {
+     "id": "s5",
+     "title": "Details from the examples",
+     "start": 216.57
+    },
+    {
+     "id": "s6",
+     "title": "Terminology",
+     "start": 290.2
+    },
+    {
+     "id": "s7",
+     "title": "On his charts",
+     "start": 299.29
+    },
+    {
+     "id": "s8",
+     "title": "Corrected from his video",
+     "start": 450.59
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 576.82
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 619.13
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 642.74
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 672.51
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 843.05
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 880.01
+    }
+   ]
+  }
+ }
+}

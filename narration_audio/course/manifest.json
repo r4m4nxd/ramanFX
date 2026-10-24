@@ -1,0 +1,57 @@
+[
+ {
+  "source": "course",
+  "n": 6,
+  "title": "Entry, Stop Loss & Take Profit",
+  "voice": "am_michael",
+  "file": "course/06/am_michael.m4a",
+  "bytes": 7636963,
+  "seconds": 924.88,
+  "sha256": "cd3986569d249f30c90230302523daad330984ce525ece7d3646996c9fa89a11",
+  "textHash": "d5f1d9260d013d17"
+ },
+ {
+  "source": "course",
+  "n": 7,
+  "title": "Multiple Sequence Analysis",
+  "voice": "am_michael",
+  "file": "course/07/am_michael.m4a",
+  "bytes": 8372383,
+  "seconds": 1019.96,
+  "sha256": "53c8f12d7e5e0c6efe216e92814ee535de9da9e5efd794f7ebe300b5ee54df4e",
+  "textHash": "f06c3939440525e0"
+ },
+ {
+  "source": "course",
+  "n": 8,
+  "title": "Trend Trading",
+  "voice": "am_michael",
+  "file": "course/08/am_michael.m4a",
+  "bytes": 7375406,
+  "seconds": 895.12,
+  "sha256": "4f60aee9a52d35e4f0b60ade0cb1dcb3084acb987b8bbbcfb8454cf97c6df41c",
+  "textHash": "3a9e035963b28767"
+ },
+ {
+  "source": "course",
+  "n": 9,
+  "title": "Dividend Investing Using Supply and Demand Zones",
+  "voice": "am_michael",
+  "file": "course/09/am_michael.m4a",
+  "bytes": 6521633,
+  "seconds": 790.03,
+  "sha256": "fdd0a030aa52c2ac99b50f0a3ccd78f8b0483a4ef33dbffe811ece5748eb5de0",
+  "textHash": "2cb63790756e0c3e"
+ },
+ {
+  "source": "course",
+  "n": 10,
+  "title": "When to Remove a Limit Order",
+  "voice": "am_michael",
+  "file": "course/10/am_michael.m4a",
+  "bytes": 8652707,
+  "seconds": 1047.14,
+  "sha256": "fdf950bffb7dbb289d9defd4a083b128689c4380207c3034c8766b7a561ed809",
+  "textHash": "c17ebfd01fbe3e1f"
+ }
+]
