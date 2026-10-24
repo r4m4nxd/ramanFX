@@ -1,0 +1,37 @@
+{
+ "course:1:am_michael": {
+  "bytes": 7665340,
+  "id": "1MDGV1TqLO6t1MfAnXHHGHYxB13QoNthK",
+  "name": "01 - Intro to Supply & Demand.m4a",
+  "seconds": 935.57,
+  "textHash": "8d9d0bd8fc092bd5"
+ },
+ "course:2:am_michael": {
+  "bytes": 8403675,
+  "id": "1fCYexYPDHnC5ogzsppumjX_uDmG-UbeP",
+  "name": "02 - Qualifying Zones.m4a",
+  "seconds": 1017.72,
+  "textHash": "da447b7b86cb2831"
+ },
+ "course:3:am_michael": {
+  "bytes": 8186519,
+  "id": "1Y6H6gdcJk-u5Hib-687wLJ-ibClYysXO",
+  "name": "03 - Drawing Zones.m4a",
+  "seconds": 995.88,
+  "textHash": "599283db119991da"
+ },
+ "course:4:am_michael": {
+  "bytes": 8212576,
+  "id": "1o131yG_HQ1RbtumwOh8__VNxM8aviFyA",
+  "name": "04 - Multiple Timeframe Analysis.m4a",
+  "seconds": 994.77,
+  "textHash": "0fe17e3c23b86e04"
+ },
+ "course:5:am_michael": {
+  "bytes": 7934845,
+  "id": "1brinluCX5YK7TWb-WkDTRGhr5DO-icc7",
+  "name": "05 - Trend vs Momentum.m4a",
+  "seconds": 962.96,
+  "textHash": "e08771411dc8de22"
+ }
+}

@@ -6,3 +6,4 @@ __pycache__/
 *.pyc
 tsconfig.tsbuildinfo
 tools/narration/out/
+narration_audio/
