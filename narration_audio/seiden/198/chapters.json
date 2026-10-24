@@ -1,0 +1,69 @@
+{
+ "source": "seiden",
+ "n": 198,
+ "title": "The Straight Answers to the Most Frequently Asked Questions",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 374.85,
+   "textHash": "8b68b8861dfc2ce0",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "How long to become successful?",
+     "start": 52.01
+    },
+    {
+     "id": "s1",
+     "title": "GENZ student question",
+     "start": 77.71
+    },
+    {
+     "id": "s2",
+     "title": "Best trading book?",
+     "start": 120.01
+    },
+    {
+     "id": "s3",
+     "title": "Chart: Genzyme 30-minute, Figure 1, p200",
+     "start": 135.89
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 190.76
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 216.18
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 237.84
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 255.73
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 333.99
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 361.24
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,68 @@
+[
+ {
+  "source": "seiden",
+  "n": 193,
+  "title": "Breakout Entries",
+  "voice": "am_michael",
+  "file": "seiden/193/am_michael.m4a",
+  "bytes": 3598155,
+  "seconds": 437.42,
+  "sha256": "017abdb71c46d2b9083e8bc157563056b9f549b729093cfea9f6c4340aefd0b5",
+  "textHash": "2af4159b7a632970"
+ },
+ {
+  "source": "seiden",
+  "n": 198,
+  "title": "The Straight Answers to the Most Frequently Asked Questions",
+  "voice": "am_michael",
+  "file": "seiden/198/am_michael.m4a",
+  "bytes": 3077905,
+  "seconds": 374.85,
+  "sha256": "9e8bbd611fa9f2031e3a049955dc514f0d9c44539d93eac860e96104b66c48ed",
+  "textHash": "8b68b8861dfc2ce0"
+ },
+ {
+  "source": "seiden",
+  "n": 201,
+  "title": "Same Tools, Different Thoughts",
+  "voice": "am_michael",
+  "file": "seiden/201/am_michael.m4a",
+  "bytes": 3432352,
+  "seconds": 417.29,
+  "sha256": "31be986da36735d6da913ef42c50dd030201a9ae8bfaff1fe405632b31a32f36",
+  "textHash": "4afbc725afafc7f8"
+ },
+ {
+  "source": "seiden",
+  "n": 205,
+  "title": "Where Most People Get It Wrong",
+  "voice": "am_michael",
+  "file": "seiden/205/am_michael.m4a",
+  "bytes": 3709833,
+  "seconds": 449.66,
+  "sha256": "2c646adc96874bb2b16e265695a4c08ddd46451a26b0357a8b9b69964a52a062",
+  "textHash": "986c948c7c1500c4"
+ },
+ {
+  "source": "seiden",
+  "n": 210,
+  "title": "Foolsville, Part 1",
+  "voice": "am_michael",
+  "file": "seiden/210/am_michael.m4a",
+  "bytes": 3966766,
+  "seconds": 481.19,
+  "sha256": "b7a29b05d2d6166c77ddedaffb83cff815838efb4925a077cc1282a2bbfe5301",
+  "textHash": "31de71838c7b288e"
+ },
+ {
+  "source": "seiden",
+  "n": 217,
+  "title": "Motion Into Mass",
+  "voice": "am_michael",
+  "file": "seiden/217/am_michael.m4a",
+  "bytes": 3949253,
+  "seconds": 479.97,
+  "sha256": "fbeb47aaaa446e439bf51d721394d5b01ba56e56954c42c9bd270c416c9caf40",
+  "textHash": "1618fe6b18d0014e"
+ }
+]

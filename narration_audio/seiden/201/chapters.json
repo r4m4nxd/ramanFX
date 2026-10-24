@@ -1,0 +1,74 @@
+{
+ "source": "seiden",
+ "n": 201,
+ "title": "Same Tools, Different Thoughts",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 417.29,
+   "textHash": "4afbc725afafc7f8",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Think differently",
+     "start": 52.98
+    },
+    {
+     "id": "s1",
+     "title": "Trend health from pivot spacing",
+     "start": 67.64
+    },
+    {
+     "id": "s2",
+     "title": "Moving average cross as a locator",
+     "start": 95.33
+    },
+    {
+     "id": "s3",
+     "title": "Chart: pivot-low spacing, Figure 1, p203",
+     "start": 125.09
+    },
+    {
+     "id": "s4",
+     "title": "Chart: DryShips daily with two MAs, Figure 2, p204",
+     "start": 159.91
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 217.65
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 240.76
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 253.51
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 267.4
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 379.31
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 399.94
+    }
+   ]
+  }
+ }
+}

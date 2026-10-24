@@ -1,0 +1,79 @@
+{
+ "source": "seiden",
+ "n": 193,
+ "title": "Breakout Entries",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 437.42,
+   "textHash": "2af4159b7a632970",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Two key questions",
+     "start": 51.1
+    },
+    {
+     "id": "s1",
+     "title": "The logic",
+     "start": 68.34
+    },
+    {
+     "id": "s2",
+     "title": "The setup and action",
+     "start": 90.11
+    },
+    {
+     "id": "s3",
+     "title": "Higher timeframe",
+     "start": 132.22
+    },
+    {
+     "id": "s4",
+     "title": "Chart: breakout example, Figure 1, p195",
+     "start": 143.17
+    },
+    {
+     "id": "s5",
+     "title": "Slides: breakout versus retracement, p196",
+     "start": 183.6
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 218.77
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 251.83
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 270.49
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 282.69
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 393.99
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 423.38
+    }
+   ]
+  }
+ }
+}

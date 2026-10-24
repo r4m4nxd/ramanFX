@@ -1,0 +1,79 @@
+{
+ "source": "seiden",
+ "n": 205,
+ "title": "Where Most People Get It Wrong",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 449.66,
+   "textHash": "986c948c7c1500c4",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Two reasons for losses",
+     "start": 51.01
+    },
+    {
+     "id": "s1",
+     "title": "The pizza owner",
+     "start": 78.22
+    },
+    {
+     "id": "s2",
+     "title": "Aug 19 XLT session",
+     "start": 101.02
+    },
+    {
+     "id": "s3",
+     "title": "Chart: live XLT screen, Figure 1, p208",
+     "start": 127.22
+    },
+    {
+     "id": "s4",
+     "title": "Chart: QQQQ 30-minute, Figure 2, p209",
+     "start": 153.9
+    },
+    {
+     "id": "s5",
+     "title": "Chart: Cisco 60-minute, Figure 3, p210",
+     "start": 190.12
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 230.92
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 251.05
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 271.33
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 286.06
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 415.06
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 435.91
+    }
+   ]
+  }
+ }
+}

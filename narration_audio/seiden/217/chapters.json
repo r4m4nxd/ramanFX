@@ -1,0 +1,79 @@
+{
+ "source": "seiden",
+ "n": 217,
+ "title": "Motion Into Mass",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 479.97,
+   "textHash": "1618fe6b18d0014e",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Mass means demand and supply",
+     "start": 52.87
+    },
+    {
+     "id": "s1",
+     "title": "Revisits remove mass",
+     "start": 75.99
+    },
+    {
+     "id": "s2",
+     "title": "Switch sides",
+     "start": 106.81
+    },
+    {
+     "id": "s3",
+     "title": "Chart: Principia page, Figure 1, p218",
+     "start": 129.99
+    },
+    {
+     "id": "s4",
+     "title": "Chart: SPY 30-minute, Figure 2, p219",
+     "start": 147.98
+    },
+    {
+     "id": "s5",
+     "title": "Chart: SPY 5-minute, Figure 3, p221",
+     "start": 210.0
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 255.29
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 289.51
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 306.81
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 323.36
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 441.88
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 466.18
+    }
+   ]
+  }
+ }
+}
