@@ -1,0 +1,64 @@
+{
+ "source": "seiden",
+ "n": 256,
+ "title": "Three Ways to Speculate the Markets, Which is Best For You?",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 266.04,
+   "textHash": "6232921191be340d",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Day trading",
+     "start": 48.16
+    },
+    {
+     "id": "s1",
+     "title": "Swing trading",
+     "start": 77.6
+    },
+    {
+     "id": "s2",
+     "title": "Longer-term position trading",
+     "start": 115.24
+    },
+    {
+     "id": "s3",
+     "title": "Constant strategy",
+     "start": 138.39
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 153.12
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 183.51
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 207.27
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 225.86
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 250.07
+    }
+   ]
+  }
+ }
+}

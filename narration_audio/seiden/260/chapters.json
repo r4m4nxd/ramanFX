@@ -1,0 +1,64 @@
+{
+ "source": "seiden",
+ "n": 260,
+ "title": "Important Questions Answered on Trading Styles",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 241.51,
+   "textHash": "c48908bd07d25e49",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "The basics never die, R.M.",
+     "start": 54.26
+    },
+    {
+     "id": "s1",
+     "title": "Swing timeframes, E.B.",
+     "start": 78.17
+    },
+    {
+     "id": "s2",
+     "title": "Does swing need different analysis? B.L.",
+     "start": 116.92
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 136.15
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 157.98
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 177.8
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 189.96
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 203.5
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 225.82
+    }
+   ]
+  }
+ }
+}

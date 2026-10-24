@@ -1,0 +1,64 @@
+{
+ "source": "seiden",
+ "n": 248,
+ "title": "Conventional Technical Analysis Strategies, A Flawed School of Thought",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 355.35,
+   "textHash": "48c8a22b99fcd03f",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "The member's trade",
+     "start": 53.71
+    },
+    {
+     "id": "s1",
+     "title": "Why the double top is flawed",
+     "start": 80.47
+    },
+    {
+     "id": "s2",
+     "title": "Charts",
+     "start": 113.09
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 174.4
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 206.27
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 227.11
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 242.23
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 316.61
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 340.13
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,64 @@
+{
+ "source": "seiden",
+ "n": 246,
+ "title": "Market Traps, Novice Traders Beware",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 381.88,
+   "textHash": "2ec8dbedfc582806",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "The logic of a trap",
+     "start": 52.23
+    },
+    {
+     "id": "s1",
+     "title": "Charts",
+     "start": 89.46
+    },
+    {
+     "id": "s2",
+     "title": "Mental side",
+     "start": 167.45
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 184.32
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 219.35
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 241.1
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 255.65
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 335.01
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 363.8
+    }
+   ]
+  }
+ }
+}

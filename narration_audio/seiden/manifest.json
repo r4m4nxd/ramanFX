@@ -108,5 +108,60 @@
   "seconds": 397.53,
   "sha256": "a024146ac4fe512e069c547bc4c9082b6b79306b1aaca30cdc6b368e485475cf",
   "textHash": "bc47f8a254df3ff7"
+ },
+ {
+  "source": "seiden",
+  "n": 246,
+  "title": "Market Traps, Novice Traders Beware",
+  "voice": "am_michael",
+  "file": "seiden/246/am_michael.m4a",
+  "bytes": 3135391,
+  "seconds": 381.88,
+  "sha256": "bd172dc3102d47d0bc261386bfbbf0ddbef57019be94fc1ee6b9c949e0a157d8",
+  "textHash": "2ec8dbedfc582806"
+ },
+ {
+  "source": "seiden",
+  "n": 248,
+  "title": "Conventional Technical Analysis Strategies, A Flawed School of Thought",
+  "voice": "am_michael",
+  "file": "seiden/248/am_michael.m4a",
+  "bytes": 2928122,
+  "seconds": 355.35,
+  "sha256": "c271635d4e11246fa35ff5f147a33ca83f1f9855df5e3727cca08ede44fbd9d5",
+  "textHash": "48c8a22b99fcd03f"
+ },
+ {
+  "source": "seiden",
+  "n": 252,
+  "title": "Mixed Feelings",
+  "voice": "am_michael",
+  "file": "seiden/252/am_michael.m4a",
+  "bytes": 3035482,
+  "seconds": 369.21,
+  "sha256": "9521de7b14b381967905c2a6a3bcb6de17a8568110fa6f26b90cf4a3b32b6f91",
+  "textHash": "ea1fe46cb2e12159"
+ },
+ {
+  "source": "seiden",
+  "n": 256,
+  "title": "Three Ways to Speculate the Markets, Which is Best For You?",
+  "voice": "am_michael",
+  "file": "seiden/256/am_michael.m4a",
+  "bytes": 2173755,
+  "seconds": 266.04,
+  "sha256": "27f8790a48450c9d5cd8cccfe4d965a5b501c951e69a798e0cc491c80d7039fe",
+  "textHash": "6232921191be340d"
+ },
+ {
+  "source": "seiden",
+  "n": 260,
+  "title": "Important Questions Answered on Trading Styles",
+  "voice": "am_michael",
+  "file": "seiden/260/am_michael.m4a",
+  "bytes": 1969081,
+  "seconds": 241.51,
+  "sha256": "a44766dc21e879840c854f83a915583fd34a0f08c7fbbc86fd6288f740521258",
+  "textHash": "c48908bd07d25e49"
  }
 ]
