@@ -1,0 +1,64 @@
+{
+ "source": "seiden",
+ "n": 349,
+ "title": "News, Price, Supply, and Demand",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 349.32,
+   "textHash": "dda3520444b03508",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "The conditioning conflict",
+     "start": 51.54
+    },
+    {
+     "id": "s1",
+     "title": "INTC earnings, April 15 Hour With The Pros",
+     "start": 76.29
+    },
+    {
+     "id": "s2",
+     "title": "Charts",
+     "start": 107.66
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 160.14
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 184.22
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 205.76
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 220.97
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 308.54
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 332.69
+    }
+   ]
+  }
+ }
+}

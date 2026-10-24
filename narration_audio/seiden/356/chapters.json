@@ -1,0 +1,79 @@
+{
+ "source": "seiden",
+ "n": 356,
+ "title": "The Psychology of Trading and Investing",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 538.55,
+   "textHash": "15b8d6910c5e8955",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Two types of invitations",
+     "start": 54.67
+    },
+    {
+     "id": "s1",
+     "title": "The S and P Yuan example",
+     "start": 77.2
+    },
+    {
+     "id": "s2",
+     "title": "Beliefs and discipline",
+     "start": 105.11
+    },
+    {
+     "id": "s3",
+     "title": "Two rules",
+     "start": 146.42
+    },
+    {
+     "id": "s4",
+     "title": "INTC and BP",
+     "start": 161.02
+    },
+    {
+     "id": "s5",
+     "title": "Charts",
+     "start": 200.76
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 302.62
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 331.89
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 354.92
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 374.33
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 494.88
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 521.44
+    }
+   ]
+  }
+ }
+}

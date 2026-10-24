@@ -1,0 +1,64 @@
+{
+ "source": "seiden",
+ "n": 366,
+ "title": "Key Trading Nuggets Q&A",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 265.53,
+   "textHash": "7364656d99a225ab",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Weak versus better demand, Mat",
+     "start": 48.78
+    },
+    {
+     "id": "s1",
+     "title": "Odds enhancers, Jakob",
+     "start": 84.02
+    },
+    {
+     "id": "s2",
+     "title": "Fresh level, Olga",
+     "start": 113.93
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 139.29
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 164.65
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 183.21
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 202.06
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 225.03
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 250.96
+    }
+   ]
+  }
+ }
+}

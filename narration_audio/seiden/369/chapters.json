@@ -1,0 +1,69 @@
+{
+ "source": "seiden",
+ "n": 369,
+ "title": "Who Can You Trust?",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 423.0,
+   "textHash": "5c83e76985c10896",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Real orders versus screens",
+     "start": 58.26
+    },
+    {
+     "id": "s1",
+     "title": "AAPL example",
+     "start": 98.46
+    },
+    {
+     "id": "s2",
+     "title": "Educational idea: XLNX",
+     "start": 123.54
+    },
+    {
+     "id": "s3",
+     "title": "Charts",
+     "start": 152.19
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 226.28
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 252.85
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 273.92
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 288.1
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 383.74
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 406.29
+    }
+   ]
+  }
+ }
+}

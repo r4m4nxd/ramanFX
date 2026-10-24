@@ -97,5 +97,71 @@
   "seconds": 434.49,
   "sha256": "1c0a46e9df1cd709a5cf00e8460a9ee77076078759f463a9dcc8a209e2acba96",
   "textHash": "1222997e60aabee1"
+ },
+ {
+  "source": "seiden",
+  "n": 349,
+  "title": "News, Price, Supply, and Demand",
+  "voice": "am_michael",
+  "file": "seiden/349/am_michael.m4a",
+  "bytes": 2856094,
+  "seconds": 349.32,
+  "sha256": "48a54f4ca4d439a5e5728e4f7f72ca47e4e1884121d5829ed71993f63202ebb7",
+  "textHash": "dda3520444b03508"
+ },
+ {
+  "source": "seiden",
+  "n": 352,
+  "title": "News, Price, Supply and Demand, Part 2",
+  "voice": "am_michael",
+  "file": "seiden/352/am_michael.m4a",
+  "bytes": 2683832,
+  "seconds": 327.7,
+  "sha256": "ba2915f265397ead88fa61da8d6932ec98c18bab3edce542d37702dba55d341b",
+  "textHash": "c0d7142ec764ea23"
+ },
+ {
+  "source": "seiden",
+  "n": 356,
+  "title": "The Psychology of Trading and Investing",
+  "voice": "am_michael",
+  "file": "seiden/356/am_michael.m4a",
+  "bytes": 4427620,
+  "seconds": 538.55,
+  "sha256": "5504c11c8f0215d0bdf436715b67d0cd6d6f455a7859985e95f53135bf4bb550",
+  "textHash": "15b8d6910c5e8955"
+ },
+ {
+  "source": "seiden",
+  "n": 366,
+  "title": "Key Trading Nuggets Q&A",
+  "voice": "am_michael",
+  "file": "seiden/366/am_michael.m4a",
+  "bytes": 2164590,
+  "seconds": 265.53,
+  "sha256": "dfe6b90d21ec9baa9426728ca5b659e3ba74e89f0b351e0fe3b4256eaad91b0f",
+  "textHash": "7364656d99a225ab"
+ },
+ {
+  "source": "seiden",
+  "n": 369,
+  "title": "Who Can You Trust?",
+  "voice": "am_michael",
+  "file": "seiden/369/am_michael.m4a",
+  "bytes": 3483932,
+  "seconds": 423.0,
+  "sha256": "71b2d7dd530801a2a6d26b4fa1e8c72060a6bbcdd2b869f8a6785a98797c0566",
+  "textHash": "5c83e76985c10896"
+ },
+ {
+  "source": "seiden",
+  "n": 373,
+  "title": "Price and Time",
+  "voice": "am_michael",
+  "file": "seiden/373/am_michael.m4a",
+  "bytes": 3282171,
+  "seconds": 398.29,
+  "sha256": "344e9e8f87b859ddc29e914c209f239742d0beb699e21d8375281a34b7c2d407",
+  "textHash": "49c27678e34d9318"
  }
 ]
