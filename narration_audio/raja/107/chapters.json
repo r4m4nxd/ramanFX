@@ -1,0 +1,59 @@
+{
+ "source": "raja",
+ "n": 107,
+ "title": "Private session (Jun 25, 2026): Trade review - limit orders near the trendline, trailing with two positions and leaving gold",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 603.33,
+   "textHash": "f034f016338ca285",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "What he taught",
+     "start": 88.91
+    },
+    {
+     "id": "s1",
+     "title": "Charts reviewed",
+     "start": 236.22
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 427.38
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 476.68
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 498.53
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 511.32
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 556.07
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 586.04
+    }
+   ]
+  }
+ }
+}

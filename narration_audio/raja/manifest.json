@@ -1,0 +1,35 @@
+[
+ {
+  "source": "raja",
+  "n": 105,
+  "title": "Private session (Apr 7, 2026): Analysis review - realigning timeframes, long-wick fills and two kinds of confirmation",
+  "voice": "am_michael",
+  "file": "raja/105/am_michael.m4a",
+  "bytes": 5256622,
+  "seconds": 634.95,
+  "sha256": "766c5777091234692221b908932ff1aa0b3cf4b39d7fa63fe5353d22ac11437b",
+  "textHash": "23fbe61b601ea602"
+ },
+ {
+  "source": "raja",
+  "n": 106,
+  "title": "Private session (Apr 30, 2026): Analysis review - full-candle breaks, overlap zones, booking half and stocks",
+  "voice": "am_michael",
+  "file": "raja/106/am_michael.m4a",
+  "bytes": 4401430,
+  "seconds": 534.84,
+  "sha256": "6a141aabbb433123f6333faea3fe13c17160e77c747288f857d0356f08108a72",
+  "textHash": "8f2c0232890a66c8"
+ },
+ {
+  "source": "raja",
+  "n": 107,
+  "title": "Private session (Jun 25, 2026): Trade review - limit orders near the trendline, trailing with two positions and leaving gold",
+  "voice": "am_michael",
+  "file": "raja/107/am_michael.m4a",
+  "bytes": 4968416,
+  "seconds": 603.33,
+  "sha256": "311c3623bb7bd405b9c4079988fe2e920291bcf72d91ebfc0416b67d07ddb53d",
+  "textHash": "f034f016338ca285"
+ }
+]

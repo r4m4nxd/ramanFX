@@ -1,0 +1,59 @@
+{
+ "source": "raja",
+ "n": 106,
+ "title": "Private session (Apr 30, 2026): Analysis review - full-candle breaks, overlap zones, booking half and stocks",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 534.84,
+   "textHash": "8f2c0232890a66c8",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "What he taught",
+     "start": 79.83
+    },
+    {
+     "id": "s1",
+     "title": "Charts reviewed",
+     "start": 244.95
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 376.92
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 414.12
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 432.96
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 445.36
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 491.76
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 521.05
+    }
+   ]
+  }
+ }
+}
