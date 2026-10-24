@@ -48,8 +48,10 @@ def safe(s):
 
 def scan():
     found = {}
-    for base in (os.path.join(ROOT, 'tools/narration/out'), os.path.join(ROOT, 'narration_audio')):
-        for man in glob.glob(os.path.join(base, '*', 'manifest*.json')):
+    # oldest manifest first so a re-render (newer commit / newer local file) wins
+    mans = [(base, m) for base in (os.path.join(ROOT, 'tools/narration/out'), os.path.join(ROOT, 'narration_audio'))
+            for m in glob.glob(os.path.join(base, '*', 'manifest*.json'))]
+    for base, man in sorted(mans, key=lambda x: os.path.getmtime(x[1])):
             src = os.path.basename(os.path.dirname(man))
             for e in json.load(open(man)):
                 if e.get('voice') != VOICE: continue
