@@ -1,0 +1,119 @@
+{
+ "source": "course",
+ "n": 22,
+ "title": "Sunday Zoom Session lessons",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 1651.44,
+   "textHash": "6a7114584d8b128c",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Recap: what a zone is, 3 parts",
+     "start": 56.29
+    },
+    {
+     "id": "s1",
+     "title": "Recap: what a trendline is",
+     "start": 105.12
+    },
+    {
+     "id": "s2",
+     "title": "Drawing and adjusting trendlines",
+     "start": 163.07
+    },
+    {
+     "id": "s3",
+     "title": "When a trendline is removed",
+     "start": 221.07
+    },
+    {
+     "id": "s4",
+     "title": "Chain analysis rules, the homework",
+     "start": 280.26
+    },
+    {
+     "id": "s5",
+     "title": "Basing position and all-time highs",
+     "start": 357.21
+    },
+    {
+     "id": "s6",
+     "title": "Borderline zones and judgement calls",
+     "start": 410.26
+    },
+    {
+     "id": "s7",
+     "title": "Q and A: proven zones, old zones, higher time frame control",
+     "start": 457.34
+    },
+    {
+     "id": "s8",
+     "title": "Zone drawing corrections from homework review",
+     "start": 551.44
+    },
+    {
+     "id": "s9",
+     "title": "Homework logistics and mindset",
+     "start": 608.84
+    },
+    {
+     "id": "s10",
+     "title": "More walkthrough details, Jan 1990 to Jan 1991",
+     "start": 678.74
+    },
+    {
+     "id": "s11",
+     "title": "Extra homework-review corrections",
+     "start": 790.52
+    },
+    {
+     "id": "s12",
+     "title": "On his charts",
+     "start": 888.53
+    },
+    {
+     "id": "s13",
+     "title": "Corrected from his video",
+     "start": 1054.55
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 1166.89
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 1260.39
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 1351.1
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 1385.12
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 1549.74
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 1634.35
+    }
+   ]
+  }
+ }
+}

@@ -174,5 +174,27 @@
   "seconds": 446.44,
   "sha256": "57ace7b570a871da6c900e2f62a4a4bd6ccbd0f7cd70b01db59b4b3579237db8",
   "textHash": "8c90d10155c8394e"
+ },
+ {
+  "source": "course",
+  "n": 22,
+  "title": "Sunday Zoom Session lessons",
+  "voice": "am_michael",
+  "file": "course/22/am_michael.m4a",
+  "bytes": 13600816,
+  "seconds": 1651.44,
+  "sha256": "0af1bd9963335a72f00b94c7e8b99164c1fdb85b671d017e717c61a82fa79bf2",
+  "textHash": "6a7114584d8b128c"
+ },
+ {
+  "source": "course",
+  "n": 23,
+  "title": "The difference between Set & Forget and Confirmation Trading",
+  "voice": "am_michael",
+  "file": "course/23/am_michael.m4a",
+  "bytes": 5429581,
+  "seconds": 661.16,
+  "sha256": "caf4152f6aadbca741f1f2db0981ac3d3fdc6ede8648233ab2c873bc432281c5",
+  "textHash": "2d26de313dfaf6a4"
  }
 ]
