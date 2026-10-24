@@ -12,7 +12,7 @@ import { previewNatural, speak, useSpeech, type WordRange } from './useSpeech';
 import { currentVoice, isRecommended, KOKORO_VOICES, kokoroVoice, safeStorage, sortVoices, voiceLabel, type Engine } from './voices';
 
 // ─── Icons (player glyphs the shared set doesn't have) ────────────────
-const G = {
+export const G = {
   play: 'M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z',
   pause: 'M7 5h3.2v14H7zM13.8 5H17v14h-3.2z',
   back: 'M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5',
@@ -27,7 +27,7 @@ const G = {
   x: 'M6 6l12 12M18 6 6 18',
   up: 'M6 15l6-6 6 6',
 };
-function Glyph({ d, size = 18, fill = false, className }: { d: string; size?: number; fill?: boolean; className?: string }) {
+export function Glyph({ d, size = 18, fill = false, className }: { d: string; size?: number; fill?: boolean; className?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}
       fill={fill ? 'currentColor' : 'none'} stroke={fill ? 'none' : 'currentColor'} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
@@ -36,9 +36,9 @@ function Glyph({ d, size = 18, fill = false, className }: { d: string; size?: nu
   );
 }
 
-const SPEEDS = [0.9, 1, 1.25, 1.5, 1.75, 2];
-const nearestSpeed = (r: number) => SPEEDS.reduce((a, b) => (Math.abs(b - r) < Math.abs(a - r) ? b : a), SPEEDS[0]);
-const fmtLeft = (sec: number) => (sec >= 3600 ? `${Math.floor(sec / 3600)} h ${Math.round((sec % 3600) / 60)} min` : sec >= 60 ? `${Math.round(sec / 60)} min` : `${Math.max(0, sec)} s`);
+export const SPEEDS = [0.9, 1, 1.25, 1.5, 1.75, 2];
+export const nearestSpeed = (r: number) => SPEEDS.reduce((a, b) => (Math.abs(b - r) < Math.abs(a - r) ? b : a), SPEEDS[0]);
+export const fmtLeft = (sec: number) => (sec >= 3600 ? `${Math.floor(sec / 3600)} h ${Math.round((sec % 3600) / 60)} min` : sec >= 60 ? `${Math.round(sec / 60)} min` : `${Math.max(0, sec)} s`);
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
 const K_FOLLOW = 'rfx_listen_follow';
 const editable = (el: EventTarget | null) => el instanceof HTMLElement && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
@@ -195,11 +195,11 @@ function handleKey(e: KeyboardEvent, sp: SP) {
 
 // ─── Pieces ───────────────────────────────────────────────────────────
 
-function PlayButton({ playing, onClick, size, label }: { playing: boolean; onClick: () => void; size: number; label: string }) {
+export function PlayButton({ playing, onClick, size, label }: { playing: boolean; onClick: () => void; size: number; label: string }) {
   return (
     <button type="button" onClick={onClick} aria-label={label} aria-pressed={playing}
       style={{ width: size, height: size }}
-      className="btn-primary !h-auto !px-0 !rounded-full shrink-0 press">
+      className="btn-primary !px-0 !rounded-full shrink-0 press">
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.span key={playing ? 'p' : 'l'} className="grid place-items-center"
           initial={{ opacity: 0, scale: 0.6, filter: 'blur(3px)' }} animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }} exit={{ opacity: 0, scale: 0.6, filter: 'blur(3px)' }}
@@ -211,7 +211,7 @@ function PlayButton({ playing, onClick, size, label }: { playing: boolean; onCli
   );
 }
 
-function IconBtn({ label, onClick, d, fill }: { label: string; onClick: () => void; d: string; fill?: boolean }) {
+export function IconBtn({ label, onClick, d, fill }: { label: string; onClick: () => void; d: string; fill?: boolean }) {
   return (
     <button type="button" onClick={onClick} aria-label={label} title={label}
       className="h-9 w-9 touch:h-11 touch:w-11 grid place-items-center rounded-full text-ink2 hover:text-ink hover:bg-raised transition-colors press">
@@ -220,7 +220,7 @@ function IconBtn({ label, onClick, d, fill }: { label: string; onClick: () => vo
   );
 }
 
-function Toggle({ on, onClick, label, d }: { on: boolean; onClick: () => void; label: string; d: string }) {
+export function Toggle({ on, onClick, label, d }: { on: boolean; onClick: () => void; label: string; d: string }) {
   return (
     <button type="button" onClick={onClick} aria-pressed={on} aria-label={label} title={label}
       className={cx('h-8 touch:h-10 inline-flex items-center gap-1.5 rounded-full px-2.5 sm:px-3 text-xs font-semibold border transition-colors press',
@@ -232,7 +232,7 @@ function Toggle({ on, onClick, label, d }: { on: boolean; onClick: () => void; l
 }
 
 /** Three little bars that dance while the voice is speaking. */
-function Eq({ playing }: { playing: boolean }) {
+export function Eq({ playing }: { playing: boolean }) {
   const reduce = useReducedMotion();
   return (
     <span aria-hidden="true" className={cx('inline-flex items-end gap-[2px] h-3 transition-opacity', playing ? 'opacity-100 text-accent' : 'opacity-0')}>
@@ -245,7 +245,7 @@ function Eq({ playing }: { playing: boolean }) {
   );
 }
 
-function Reveal({ show, children }: { show: boolean; children: ReactNode }) {
+export function Reveal({ show, children }: { show: boolean; children: ReactNode }) {
   const reduce = useReducedMotion();
   return (
     <AnimatePresence initial={false}>

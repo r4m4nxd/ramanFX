@@ -8,7 +8,7 @@ import { BAKER_LESSONS } from '@/core/mentors/baker';
 import { KEVIN_COURSE } from '@/core/mentors/kevin';
 import { KEVIN_ZOOM } from '@/core/mentors/kevin/zoom';
 import { KEVIN_DAILY } from '@/core/mentors/kevin/daily';
-import { ListenBar } from '@/ui/listen/ListenBar';
+import { LessonListen } from '@/ui/listen/RecordedPlayer';
 import { GLOSSARY, type GlossaryMentor } from '@/core/glossary';
 import { LessonFigures, RealCharts } from '@/ui/LessonMedia';
 import { GlossaryView } from '@/ui/GlossaryView';
@@ -77,7 +77,7 @@ function LessonView({ l, src, list, done, toggle, interactive }: { l: VideoLesso
           <Link to="/plan" className="btn"><Icon name="target" size={14} />Plan a trade</Link>
         </div>
       </Card>
-      <ListenBar lesson={l} mentor={src === 'seiden' ? 'Sam Seiden' : src === 'raja' ? 'Raja' : src === 'baker' ? 'Kevin Baker' : 'Kevin'} />
+      <LessonListen key={src + l.n} source={src} lesson={l} mentor={src === 'seiden' ? 'Sam Seiden' : src === 'raja' ? 'Raja' : src === 'baker' ? 'Kevin Baker' : 'Kevin'} />
 
       {interactive && mentorOfSrc(src) && <Suspense fallback={<TeachFallback />}><LearnIt key={src + l.n} mentor={mentorOfSrc(src)!} n={l.n} /></Suspense>}
 
