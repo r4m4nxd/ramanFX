@@ -1,0 +1,64 @@
+{
+ "source": "seiden",
+ "n": 70,
+ "title": "The Morning Gap, Part 2",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 322.71,
+   "textHash": "fd2f2b63bbdf2b57",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Morning prep",
+     "start": 51.11
+    },
+    {
+     "id": "s1",
+     "title": "The IMCL short",
+     "start": 74.37
+    },
+    {
+     "id": "s2",
+     "title": "Charts",
+     "start": 116.28
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 153.91
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 178.63
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 195.36
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 208.18
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 280.03
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 305.57
+    }
+   ]
+  }
+ }
+}

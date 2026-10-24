@@ -1,0 +1,79 @@
+{
+ "source": "seiden",
+ "n": 5,
+ "title": "Trading Notes (XLT)",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 465.15,
+   "textHash": "518e31077835b370",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Definitions and trend context",
+     "start": 54.06
+    },
+    {
+     "id": "s1",
+     "title": "Four stages of the market, Stan Weinstein, Secrets for Profiting in Bull and Bear Markets",
+     "start": 83.47
+    },
+    {
+     "id": "s2",
+     "title": "Top-down analysis",
+     "start": 119.91
+    },
+    {
+     "id": "s3",
+     "title": "Entries",
+     "start": 154.02
+    },
+    {
+     "id": "s4",
+     "title": "Time at level and turning points",
+     "start": 221.55
+    },
+    {
+     "id": "s5",
+     "title": "Charts",
+     "start": 255.86
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 261.59
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 322.72
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 351.04
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 364.44
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 414.98
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 451.73
+    }
+   ]
+  }
+ }
+}

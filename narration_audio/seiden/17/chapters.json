@@ -1,0 +1,64 @@
+{
+ "source": "seiden",
+ "n": 17,
+ "title": "A Lesson on Supply and Demand",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 468.02,
+   "textHash": "bb1aa55350cd01ca",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Why trade turning points",
+     "start": 53.74
+    },
+    {
+     "id": "s1",
+     "title": "Big-picture context and price only",
+     "start": 99.23
+    },
+    {
+     "id": "s2",
+     "title": "Charts",
+     "start": 134.98
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 237.56
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 267.36
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 292.37
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 308.82
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 427.78
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 454.83
+    }
+   ]
+  }
+ }
+}

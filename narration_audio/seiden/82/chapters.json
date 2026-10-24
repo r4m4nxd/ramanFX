@@ -1,0 +1,79 @@
+{
+ "source": "seiden",
+ "n": 82,
+ "title": "The Most Popular Entry Strategy in Forex Trading",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 605.85,
+   "textHash": "7a1ede776eb5ba32",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Support or resistance breakout",
+     "start": 63.79
+    },
+    {
+     "id": "s1",
+     "title": "Trend-line breakout",
+     "start": 113.77
+    },
+    {
+     "id": "s2",
+     "title": "Same logic in every market",
+     "start": 151.13
+    },
+    {
+     "id": "s3",
+     "title": "Chart 1, p83: euro dollar 30-minutes, horizontal resistance breakout",
+     "start": 179.1
+    },
+    {
+     "id": "s4",
+     "title": "Chart 2, p85: euro dollar 15-minutes, down-trend line break, long",
+     "start": 250.08
+    },
+    {
+     "id": "s5",
+     "title": "Chart 3, p86: euro dollar 5-minutes, up-trend line break, short",
+     "start": 330.31
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 372.33
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 410.52
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 428.08
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 439.67
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 556.67
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 588.06
+    }
+   ]
+  }
+ }
+}

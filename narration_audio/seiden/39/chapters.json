@@ -1,0 +1,69 @@
+{
+ "source": "seiden",
+ "n": 39,
+ "title": "New Newsletter for Online Trading Academy Swing Traders",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 459.97,
+   "textHash": "dba7bba4e6be7fec",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Disney, DIS, swing short",
+     "start": 55.99
+    },
+    {
+     "id": "s1",
+     "title": "Moving-average lesson",
+     "start": 89.13
+    },
+    {
+     "id": "s2",
+     "title": "Sector and stock plans",
+     "start": 112.22
+    },
+    {
+     "id": "s3",
+     "title": "Charts",
+     "start": 158.52
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 259.83
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 294.57
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 313.21
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 325.0
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 416.49
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 443.91
+    }
+   ]
+  }
+ }
+}

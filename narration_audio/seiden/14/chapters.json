@@ -1,0 +1,64 @@
+{
+ "source": "seiden",
+ "n": 14,
+ "title": "Success in the 30-Year Bond",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 459.81,
+   "textHash": "311781d509a9a20b",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Quality of a level",
+     "start": 48.09
+    },
+    {
+     "id": "s1",
+     "title": "Using a sector chart as a guide",
+     "start": 77.14
+    },
+    {
+     "id": "s2",
+     "title": "Charts",
+     "start": 101.36
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 239.44
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 268.53
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 285.52
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 295.97
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 418.18
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 445.95
+    }
+   ]
+  }
+ }
+}

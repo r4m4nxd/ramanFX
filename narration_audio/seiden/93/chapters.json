@@ -1,0 +1,69 @@
+{
+ "source": "seiden",
+ "n": 93,
+ "title": "The Morning Gap, Part 3",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 408.06,
+   "textHash": "1341aa4b6d14ef6f",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Quality versus non-quality support",
+     "start": 56.25
+    },
+    {
+     "id": "s1",
+     "title": "Who is selling the gap down?",
+     "start": 84.5
+    },
+    {
+     "id": "s2",
+     "title": "Position note",
+     "start": 108.64
+    },
+    {
+     "id": "s3",
+     "title": "Chart, p94: E-mini S and P 15-minutes, non-quality A versus quality C",
+     "start": 122.72
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 215.04
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 244.23
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 264.94
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 276.58
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 366.71
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 393.23
+    }
+   ]
+  }
+ }
+}

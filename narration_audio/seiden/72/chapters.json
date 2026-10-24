@@ -1,0 +1,74 @@
+{
+ "source": "seiden",
+ "n": 72,
+ "title": "Think Like A Goose",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 372.85,
+   "textHash": "12b51250a688332c",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Illusion versus reality",
+     "start": 55.35
+    },
+    {
+     "id": "s1",
+     "title": "News illusion",
+     "start": 94.08
+    },
+    {
+     "id": "s2",
+     "title": "Fundamental illusion",
+     "start": 127.54
+    },
+    {
+     "id": "s3",
+     "title": "Act like a goose",
+     "start": 181.04
+    },
+    {
+     "id": "s4",
+     "title": "Charts",
+     "start": 203.14
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 238.59
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 265.72
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 294.12
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 309.07
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 331.78
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 355.66
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,64 @@
+{
+ "source": "seiden",
+ "n": 87,
+ "title": "Trading and Time Part II",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 369.75,
+   "textHash": "e3c4d05035d1e9bc",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Context",
+     "start": 59.17
+    },
+    {
+     "id": "s1",
+     "title": "Pivot versus cluster",
+     "start": 78.7
+    },
+    {
+     "id": "s2",
+     "title": "Chart, p88: E-mini S and P 60-minutes, Jun08, pivot A versus cluster B",
+     "start": 122.46
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 208.8
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 231.54
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 246.45
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 261.18
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 330.46
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 354.93
+    }
+   ]
+  }
+ }
+}

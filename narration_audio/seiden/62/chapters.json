@@ -1,0 +1,69 @@
+{
+ "source": "seiden",
+ "n": 62,
+ "title": "The Dollar, In Real Money Terms",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 531.32,
+   "textHash": "71f74c7fdbeac2db",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Real-money view of stocks",
+     "start": 56.62
+    },
+    {
+     "id": "s1",
+     "title": "Dollar and gold",
+     "start": 134.83
+    },
+    {
+     "id": "s2",
+     "title": "Supply and demand on the dollar and bonds",
+     "start": 186.1
+    },
+    {
+     "id": "s3",
+     "title": "Charts",
+     "start": 226.32
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 311.37
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 333.28
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 350.53
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 367.96
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 489.58
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 513.21
+    }
+   ]
+  }
+ }
+}

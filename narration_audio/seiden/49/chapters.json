@@ -1,0 +1,69 @@
+{
+ "source": "seiden",
+ "n": 49,
+ "title": "Find The Novice Trader",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 420.63,
+   "textHash": "72dc85be75035632",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "The two novice mistakes",
+     "start": 56.9
+    },
+    {
+     "id": "s1",
+     "title": "Chart walk-through, A to E",
+     "start": 90.89
+    },
+    {
+     "id": "s2",
+     "title": "The CME pit story",
+     "start": 137.04
+    },
+    {
+     "id": "s3",
+     "title": "Charts",
+     "start": 183.01
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 222.49
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 257.37
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 280.92
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 295.5
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 372.23
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 402.2
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,84 @@
+{
+ "source": "seiden",
+ "n": 1,
+ "title": "Probability Enhancer (Odds Enhancer Score Sheet)",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 650.07,
+   "textHash": "4d68afd2aafb27dc",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Strength of the move away, max second",
+     "start": 67.34
+    },
+    {
+     "id": "s1",
+     "title": "Reward or risk, max second",
+     "start": 102.34
+    },
+    {
+     "id": "s2",
+     "title": "Big picture, max second",
+     "start": 137.87
+    },
+    {
+     "id": "s3",
+     "title": "Retracements or tests, max second",
+     "start": 170.5
+    },
+    {
+     "id": "s4",
+     "title": "Time at level, max first, and arrival, max first",
+     "start": 199.28
+    },
+    {
+     "id": "s5",
+     "title": "Total score and entry type",
+     "start": 239.51
+    },
+    {
+     "id": "s6",
+     "title": "Charts, score-sheet diagrams, pages 1 to 2",
+     "start": 303.07
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 376.48
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 431.43
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 460.51
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 475.83
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 578.93
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 627.92
+    }
+   ]
+  }
+ }
+}

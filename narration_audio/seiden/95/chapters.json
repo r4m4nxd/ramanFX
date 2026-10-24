@@ -1,0 +1,64 @@
+{
+ "source": "seiden",
+ "n": 95,
+ "title": "Keeping it Simple in XLT",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 345.14,
+   "textHash": "0d8e7ed54f7eee16",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "What makes a level special",
+     "start": 65.81
+    },
+    {
+     "id": "s1",
+     "title": "Two thoughts to focus on",
+     "start": 86.42
+    },
+    {
+     "id": "s2",
+     "title": "Chart, p96: E-mini S and P 30-minutes, 1263 to 1264 demand",
+     "start": 109.52
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 179.89
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 203.36
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 221.97
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 234.35
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 308.76
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 332.21
+    }
+   ]
+  }
+ }
+}

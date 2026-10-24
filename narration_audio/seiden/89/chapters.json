@@ -1,0 +1,74 @@
+{
+ "source": "seiden",
+ "n": 89,
+ "title": "Three Simple Principles",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 393.57,
+   "textHash": "02702357f41b619d",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Earthquake analogy",
+     "start": 59.67
+    },
+    {
+     "id": "s1",
+     "title": "Principle 1: price is a function of supply and demand",
+     "start": 78.56
+    },
+    {
+     "id": "s2",
+     "title": "Principle 2: all influences are reflected in price",
+     "start": 114.47
+    },
+    {
+     "id": "s3",
+     "title": "Principle 3: motion starts when one force reaches zero",
+     "start": 141.7
+    },
+    {
+     "id": "s4",
+     "title": "Diagram, p92: two competing forces at 20.50 dollars",
+     "start": 167.08
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 221.66
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 244.52
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 265.2
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 280.57
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 356.06
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 379.99
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,64 @@
+{
+ "source": "seiden",
+ "n": 29,
+ "title": "Take Advantage of the Equity Market Volatility!",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 475.76,
+   "textHash": "95b38aaed50b5a6c",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Any and all influences on price are reflected in price",
+     "start": 55.6
+    },
+    {
+     "id": "s1",
+     "title": "Novice action to fade",
+     "start": 99.33
+    },
+    {
+     "id": "s2",
+     "title": "Charts",
+     "start": 131.67
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 266.37
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 297.28
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 317.18
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 333.29
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 432.69
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 458.91
+    }
+   ]
+  }
+ }
+}

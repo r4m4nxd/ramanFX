@@ -1,0 +1,69 @@
+{
+ "source": "seiden",
+ "n": 78,
+ "title": "Supply and Demand Q&A With Sam Seiden",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 380.06,
+   "textHash": "559a8b32de538819",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "The DIA demand setup",
+     "start": 58.3
+    },
+    {
+     "id": "s1",
+     "title": "Q1: where to draw the lines, opens, closes, wicks?",
+     "start": 83.98
+    },
+    {
+     "id": "s2",
+     "title": "Q2, continues in next part",
+     "start": 125.48
+    },
+    {
+     "id": "s3",
+     "title": "Charts",
+     "start": 157.45
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 192.7
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 222.17
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 237.79
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 252.16
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 338.12
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 365.39
+    }
+   ]
+  }
+ }
+}

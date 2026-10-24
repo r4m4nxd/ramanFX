@@ -1,0 +1,64 @@
+{
+ "source": "seiden",
+ "n": 25,
+ "title": "Important Rules to Follow",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 437.11,
+   "textHash": "f66d5d2480ca872c",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Day-trading rules",
+     "start": 51.41
+    },
+    {
+     "id": "s1",
+     "title": "What makes either entry work",
+     "start": 104.16
+    },
+    {
+     "id": "s2",
+     "title": "Charts",
+     "start": 137.68
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 234.16
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 269.56
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 294.62
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 305.61
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 395.3
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 424.72
+    }
+   ]
+  }
+ }
+}

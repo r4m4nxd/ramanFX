@@ -1,0 +1,69 @@
+{
+ "source": "seiden",
+ "n": 46,
+ "title": "Trading and Time",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 406.28,
+   "textHash": "e66d2cc1d413df7f",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Managing the XLF trade",
+     "start": 50.64
+    },
+    {
+     "id": "s1",
+     "title": "Three states of a market",
+     "start": 74.2
+    },
+    {
+     "id": "s2",
+     "title": "Old levels",
+     "start": 97.89
+    },
+    {
+     "id": "s3",
+     "title": "Charts",
+     "start": 138.25
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 194.63
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 219.45
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 239.71
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 253.68
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 362.25
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 390.58
+    }
+   ]
+  }
+ }
+}

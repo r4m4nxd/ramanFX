@@ -1,0 +1,74 @@
+{
+ "source": "seiden",
+ "n": 81,
+ "title": "Q&A: Two-Line Zones, Entry Signals and Market Makers (continued)",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 336.52,
+   "textHash": "679b3f5517a6e7a9",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Where the ideas come from",
+     "start": 64.15
+    },
+    {
+     "id": "s1",
+     "title": "Two lines instead of an exact turning point",
+     "start": 82.14
+    },
+    {
+     "id": "s2",
+     "title": "Entry signals",
+     "start": 118.04
+    },
+    {
+     "id": "s3",
+     "title": "Are market makers just manipulating price?",
+     "start": 143.07
+    },
+    {
+     "id": "s4",
+     "title": "Charts",
+     "start": 183.08
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 195.09
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 230.71
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 256.8
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 270.94
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 295.3
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 322.76
+    }
+   ]
+  }
+ }
+}

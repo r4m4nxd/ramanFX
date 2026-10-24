@@ -1,0 +1,64 @@
+{
+ "source": "seiden",
+ "n": 60,
+ "title": "The Morning Gap, Low Risk Opportunity for the Astute Market Speculator",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 364.9,
+   "textHash": "ded52ab87ece7fef",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Why the open",
+     "start": 51.97
+    },
+    {
+     "id": "s1",
+     "title": "Reading it",
+     "start": 104.43
+    },
+    {
+     "id": "s2",
+     "title": "Charts",
+     "start": 128.57
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 178.71
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 208.3
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 228.5
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 242.03
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 324.21
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 350.59
+    }
+   ]
+  }
+ }
+}
