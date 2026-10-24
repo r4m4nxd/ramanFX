@@ -409,6 +409,7 @@ double svUpS = 0, svUpP = 0, svUpW = 0, svDnS = 0, svDnP = 0, svDnW = 0;
 double svHUpS = 0, svHUpP = 0, svHUpW = 0, svHDnS = 0, svHDnP = 0, svHDnW = 0;
 double svNEn = 0, svNSl = 0, svNTp = 0, svNRR = 0;
 string svHBiasTxt = "";
+int    svRjUpT = 0, svRjDnT = 0, svRjHUpT = 0, svRjHDnT = 0;   // Raja v2.1 (A) line touches
 Zone   svZ[];
 TLine  svTL[];
 
@@ -1049,12 +1050,15 @@ void Panel()
       else if(why == "") dline += xatr > InpMaxDistATR ? " - far" : " - within reach";
       L += dline + "\n";
       if(why == "")
-         plan = StringFormat("Bot: %s %s  SL %s  TP %s  (1:%.1f, %s %s%s)", dir > 0 ? "BUY limit" : "SELL limit", DoubleToString(entry, _Digits), DoubleToString(sl, _Digits), DoubleToString(tp, _Digits), rr, dir > 0 ? "RBR" : "DBD", Z[i].grade, Z[i].trap > 0 ? " + trap" : "");
-      if(why == "" && (InpSlMode == 1 || InpTpOffsetPips > 0))       // Raja v2.1 C: the bot keeps its own buffer; Raja's stop / target shown beside it
         {
-         double rjSl = dir > 0 ? Z[i].dist - RjC_StopBuf(MathAbs(Z[i].prox - Z[i].dist), CTF) : Z[i].dist + RjC_StopBuf(MathAbs(Z[i].prox - Z[i].dist), CTF) + spread;
-         double rjTp = dir > 0 ? tp - RjC_TpOff() : tp + RjC_TpOff();
-         plan += StringFormat(" | Raja SL %s TP %s (1:%.1f)", DoubleToString(rjSl, _Digits), DoubleToString(rjTp, _Digits), MathAbs(rjTp - entry) / MathMax(MathAbs(entry - rjSl), _Point));
+         plan = StringFormat("Bot: %s %s  SL %s  TP %s  (1:%.1f, %s %s%s)", dir > 0 ? "BUY limit" : "SELL limit", DoubleToString(entry, _Digits), DoubleToString(sl, _Digits), DoubleToString(tp, _Digits), rr, dir > 0 ? "RBR" : "DBD", Z[i].grade, Z[i].trap > 0 ? " + trap" : "");
+         if(InpSlMode == 1 || InpTpOffsetPips > 0)                    // Raja v2.1 C: the bot keeps its own buffer; Raja's stop / target shown beside it
+           {
+            double rjBuf = RjC_StopBuf(MathAbs(Z[i].prox - Z[i].dist), CTF);
+            double rjSl = dir > 0 ? Z[i].dist - rjBuf : Z[i].dist + rjBuf + spread;
+            double rjTp = dir > 0 ? tp - RjC_TpOff() : tp + RjC_TpOff();
+            plan += StringFormat(" | Raja SL %s TP %s (1:%.1f)", DoubleToString(rjSl, _Digits), DoubleToString(rjTp, _Digits), MathAbs(rjTp - entry) / MathMax(MathAbs(entry - rjSl), _Point));
+           }
         }
       else
          plan = StringFormat("Bot: watching %s at %s - no trade: %s", dir > 0 ? "demand" : "supply", DoubleToString(Z[i].prox, _Digits), why);
@@ -1791,10 +1795,38 @@ color  RjC_HeadColor(int zi)
    string v = RjC_Verdict(zi);
    return (v == "TAKE" || v == "STRONG") ? C'46,139,87' : ((v == "CONFIRM" || v == "WAIT") ? C'70,110,170' : C'140,140,140');
   }
-// TODO(Raja v2.1): taps on the trendline nearest the zone (4th tap = likely break, L4 / L103 / L107). The trendline
-// touch counting belongs to the trendline work; until it exists this returns -1 (unknown) and the blind flag only
-// needs the zone to sit at a respected trendline (NearTrendline, DNA nearTl).
-int RjC_TouchCountHook(int dir, double price) { return -1; }
+// taps on the trendline the zone sits at (4th tap = likely break, L4 / L103 / L107), from the Raja v2.1 (A) trendline
+// touch counter: the same line NearTrendline matched (this chart's respected line first, else the HtfOf one).
+// Chart line: RjA_UpT / RjA_DnT when InpRjATLTouches counted it, else counted here (RjA_LineTouches on TL).
+// HTF line: RjA_HUpT / RjA_HDnT (counted only with InpRjATLTouches). -1 = unknown. Display only (the blind flag).
+int RjC_TouchCountHook(int dir, double price)
+  {
+   double atr = ATR(CTF, 1);
+   bool on = dir > 0 ? gUpOn : gDnOn;
+   if(on && MathAbs(price - (dir > 0 ? LineAt(gUpP, gUpB, gUpS, 0) : LineAt(gDnP, gDnB, gDnS, 0))) <= atr)
+     {
+      int nt = dir > 0 ? RjA_UpT : RjA_DnT;
+      if(nt > 0) return nt;
+      if(gTF != CTF) return -1;
+      int lb = dir > 0 ? gUpB : gDnB;
+      double lp = dir > 0 ? gUpP : gDnP;
+      for(int t = ArraySize(TL) - 1; t >= 0; t--)
+         if(TL[t].dir == dir && !TL[t].removed && TL[t].b == lb && MathAbs(TL[t].pb - lp) < _Point) return RjA_LineTouches(TL[t]);
+      return -1;
+     }
+   if(gHTF > 0)
+     {
+      int sh = iBarShift(_Symbol, gHTF, cT(0));
+      bool hon = dir > 0 ? gHUpOn : gHDnOn;
+      double hlv = dir > 0 ? gHUpP + gHUpS * (gHUpB - sh) : gHDnP + gHDnS * (gHDnB - sh);
+      if(hon && MathAbs(price - hlv) <= atr)
+        {
+         int ht = dir > 0 ? RjA_HUpT : RjA_HDnT;
+         return ht > 0 ? ht : -1;
+        }
+     }
+   return -1;
+  }
 // blind entry (L104): a fresh WOW zone, a fresh arrival zone, or a fresh zone at the trendline before the line's 4th tap
 bool RjC_Blind(int k)
   {
@@ -1804,7 +1836,7 @@ bool RjC_Blind(int k)
    if(c == RT_WOW || c == RT_ARR) return true;
    if(!zDna[k].nearTl) return false;
    int taps = RjC_TouchCountHook(zDna[k].d, zDna[k].prox);
-   return taps < 3;                                                   // -1 = unknown; < 3 taps so far = the next one is not the 4th
+   return taps < 4;                                                   // the line has < 4 touches (-1 = unknown: the zone only needs to sit at the line)
   }
 // after V2DrawTag: the box label, the box tooltip and the click-box text in Raja's words; the blind flag
 void RjC_ApplyLabel(int k)
@@ -1917,7 +1949,8 @@ void RjC_Alerts()
       ENUM_TIMEFRAMES ht = HtfOf(CTF);
       if(ht > 0)
         {
-         int tlBar[2] = {-1, -1}, rmBar[2] = {-1, -1};                 // [0] buy side (down line / supply), [1] sell side
+         int tlBar[2], rmBar[2];                                       // [0] buy side (down line / supply), [1] sell side
+         tlBar[0] = -1; tlBar[1] = -1; rmBar[0] = -1; rmBar[1] = -1;
          for(int t = 0; t < ArraySize(TL); t++)
            {
             if(!TL[t].removed || TL[t].removedBar < 1) continue;
@@ -2362,6 +2395,7 @@ void RsSave()
    svUpOn = gUpOn; svDnOn = gDnOn; svUpS = gUpS; svUpP = gUpP; svUpW = gUpW; svDnS = gDnS; svDnP = gDnP; svDnW = gDnW; svUpB = gUpB; svDnB = gDnB;
    svHUpOn = gHUpOn; svHDnOn = gHDnOn; svHUpS = gHUpS; svHUpP = gHUpP; svHUpW = gHUpW; svHDnS = gHDnS; svHDnP = gHDnP; svHDnW = gHDnW; svHUpB = gHUpB; svHDnB = gHDnB;
    svNEn = gNEn; svNSl = gNSl; svNTp = gNTp; svNRR = gNRR;
+   svRjUpT = RjA_UpT; svRjDnT = RjA_DnT; svRjHUpT = RjA_HUpT; svRjHDnT = RjA_HDnT;   // Raja v2.1 (A)
    CopyZones(Z, svZ); CopyTLs(TL, svTL);
   }
 void RsRestore()
@@ -2370,6 +2404,7 @@ void RsRestore()
    gUpOn = svUpOn; gDnOn = svDnOn; gUpS = svUpS; gUpP = svUpP; gUpW = svUpW; gDnS = svDnS; gDnP = svDnP; gDnW = svDnW; gUpB = svUpB; gDnB = svDnB;
    gHUpOn = svHUpOn; gHDnOn = svHDnOn; gHUpS = svHUpS; gHUpP = svHUpP; gHUpW = svHUpW; gHDnS = svHDnS; gHDnP = svHDnP; gHDnW = svHDnW; gHUpB = svHUpB; gHDnB = svHDnB;
    gNEn = svNEn; gNSl = svNSl; gNTp = svNTp; gNRR = svNRR;
+   RjA_UpT = svRjUpT; RjA_DnT = svRjDnT; RjA_HUpT = svRjHUpT; RjA_HDnT = svRjHDnT;   // Raja v2.1 (A)
    CopyZones(svZ, Z); CopyTLs(svTL, TL);
   }
 
