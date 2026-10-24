@@ -1,0 +1,74 @@
+{
+ "source": "baker",
+ "n": 8,
+ "title": "Day Trading: Daily Zones, Intraday Execution",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 688.51,
+   "textHash": "f878aead57af6e49",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Common advice Baker disagrees with",
+     "start": 71.84
+    },
+    {
+     "id": "s1",
+     "title": "Account mechanics, US stocks",
+     "start": 139.07
+    },
+    {
+     "id": "s2",
+     "title": "Timeframes and zone quality",
+     "start": 180.16
+    },
+    {
+     "id": "s3",
+     "title": "Worked example: ALK short",
+     "start": 199.39
+    },
+    {
+     "id": "s4",
+     "title": "Worked example: BBY long and the falling knife",
+     "start": 260.3
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 368.0
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 414.39
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 455.71
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 470.46
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 638.62
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 674.33
+    }
+   ]
+  }
+ }
+}

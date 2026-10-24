@@ -1,0 +1,64 @@
+{
+ "source": "baker",
+ "n": 9,
+ "title": "Gaps, Broken Zones and All-Time Highs",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 488.23,
+   "textHash": "615b6e8ff0a86446",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Gap through a zone, found pre-market",
+     "start": 76.53
+    },
+    {
+     "id": "s1",
+     "title": "A zone broken on the daily can still pay intraday",
+     "start": 129.64
+    },
+    {
+     "id": "s2",
+     "title": "All-time highs and lows",
+     "start": 157.08
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 206.88
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 249.19
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 284.73
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 308.99
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 437.5
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 470.6
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,64 @@
+{
+ "source": "baker",
+ "n": 14,
+ "title": "Putting It Together: The Whole Method",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 330.0,
+   "textHash": "ca23ca39cb6356db",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "The routine",
+     "start": 57.33
+    },
+    {
+     "id": "s1",
+     "title": "Entry styles in the book",
+     "start": 127.02
+    },
+    {
+     "id": "s2",
+     "title": "Where to go next",
+     "start": 169.33
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 187.49
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 218.26
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 240.59
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 247.76
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 285.87
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 315.86
+    }
+   ]
+  }
+ }
+}

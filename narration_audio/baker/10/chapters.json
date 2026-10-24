@@ -1,0 +1,74 @@
+{
+ "source": "baker",
+ "n": 10,
+ "title": "Risk Management Rules",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 482.05,
+   "textHash": "873478c50b9c4d12",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "The poker lesson",
+     "start": 69.21
+    },
+    {
+     "id": "s1",
+     "title": "Preserve capital and define risk",
+     "start": 92.0
+    },
+    {
+     "id": "s2",
+     "title": "Emotions",
+     "start": 139.34
+    },
+    {
+     "id": "s3",
+     "title": "Reward-to-risk",
+     "start": 186.37
+    },
+    {
+     "id": "s4",
+     "title": "Stop-loss orders",
+     "start": 233.8
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 261.92
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 301.76
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 338.18
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 356.57
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 435.57
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 466.36
+    }
+   ]
+  }
+ }
+}

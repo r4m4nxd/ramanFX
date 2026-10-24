@@ -1,0 +1,79 @@
+{
+ "source": "baker",
+ "n": 11,
+ "title": "Using Zones to Set Stops, Targets and Size",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 670.85,
+   "textHash": "912808868d23f051",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "How others place stops",
+     "start": 77.37
+    },
+    {
+     "id": "s1",
+     "title": "The setup: Realty Income, O",
+     "start": 110.52
+    },
+    {
+     "id": "s2",
+     "title": "Option A: buy inside the zone",
+     "start": 164.46
+    },
+    {
+     "id": "s3",
+     "title": "Why not an ATR stop?",
+     "start": 213.87
+    },
+    {
+     "id": "s4",
+     "title": "Option B: wait for a break back above the zone",
+     "start": 257.6
+    },
+    {
+     "id": "s5",
+     "title": "Doing it with options",
+     "start": 302.83
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 368.07
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 413.98
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 442.11
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 462.71
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 622.37
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 656.14
+    }
+   ]
+  }
+ }
+}
