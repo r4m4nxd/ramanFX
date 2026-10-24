@@ -1,0 +1,74 @@
+{
+ "source": "seiden",
+ "n": 223,
+ "title": "Losing To Win, It's All In Your Perception",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 407.77,
+   "textHash": "137cd0b52ff76fee",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Attitude",
+     "start": 56.44
+    },
+    {
+     "id": "s1",
+     "title": "Perception of loss",
+     "start": 72.52
+    },
+    {
+     "id": "s2",
+     "title": "AAPL example",
+     "start": 91.45
+    },
+    {
+     "id": "s3",
+     "title": "Chart: AAPL weekly, Figure 1, p225",
+     "start": 124.69
+    },
+    {
+     "id": "s4",
+     "title": "Account windows, Figures 2 to 4, p226 to 227",
+     "start": 160.01
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 213.62
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 236.2
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 253.66
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 267.51
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 368.36
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 390.72
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,79 @@
+{
+ "source": "seiden",
+ "n": 233,
+ "title": "Foolsville, Part 2",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 449.85,
+   "textHash": "036a1484de00ffbb",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Day 1: the Foolsville strategy",
+     "start": 56.85
+    },
+    {
+     "id": "s1",
+     "title": "Day 2: the trade",
+     "start": 94.16
+    },
+    {
+     "id": "s2",
+     "title": "Foolsville belief system",
+     "start": 117.7
+    },
+    {
+     "id": "s3",
+     "title": "Slide: Foolsville Sell Setup, Figure 1, p234",
+     "start": 133.8
+    },
+    {
+     "id": "s4",
+     "title": "Chart: live XLT screen, Figure 2, p237",
+     "start": 168.59
+    },
+    {
+     "id": "s5",
+     "title": "Chart: QQQQ 5-minute, Figure 3, p238",
+     "start": 192.37
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 237.45
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 256.28
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 277.18
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 290.64
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 409.77
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 434.31
+    }
+   ]
+  }
+ }
+}

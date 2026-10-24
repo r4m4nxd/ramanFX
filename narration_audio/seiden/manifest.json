@@ -64,5 +64,49 @@
   "seconds": 479.97,
   "sha256": "fbeb47aaaa446e439bf51d721394d5b01ba56e56954c42c9bd270c416c9caf40",
   "textHash": "1618fe6b18d0014e"
+ },
+ {
+  "source": "seiden",
+  "n": 223,
+  "title": "Losing To Win, It's All In Your Perception",
+  "voice": "am_michael",
+  "file": "seiden/223/am_michael.m4a",
+  "bytes": 3353005,
+  "seconds": 407.77,
+  "sha256": "c6d5bd1e2713cbfca636d74da2d1c3480fcbf698e936b17f708b7496a7b6b44a",
+  "textHash": "137cd0b52ff76fee"
+ },
+ {
+  "source": "seiden",
+  "n": 228,
+  "title": "Questions and Answers: Things You May Want To Know",
+  "voice": "am_michael",
+  "file": "seiden/228/am_michael.m4a",
+  "bytes": 2586273,
+  "seconds": 317.0,
+  "sha256": "810a642107d23e70a0a58b47db8677f8e38a29ad9df175e93bddf12ad209e588",
+  "textHash": "ba2b98985a50478b"
+ },
+ {
+  "source": "seiden",
+  "n": 233,
+  "title": "Foolsville, Part 2",
+  "voice": "am_michael",
+  "file": "seiden/233/am_michael.m4a",
+  "bytes": 3693616,
+  "seconds": 449.85,
+  "sha256": "c7d0ceef427309c6ff9b43428b44455887387710e59b88d7e60652fbd02519ee",
+  "textHash": "036a1484de00ffbb"
+ },
+ {
+  "source": "seiden",
+  "n": 241,
+  "title": "A Smart Trading Group, Getting Smarter",
+  "voice": "am_michael",
+  "file": "seiden/241/am_michael.m4a",
+  "bytes": 3249159,
+  "seconds": 397.53,
+  "sha256": "a024146ac4fe512e069c547bc4c9082b6b79306b1aaca30cdc6b368e485475cf",
+  "textHash": "bc47f8a254df3ff7"
  }
 ]

@@ -1,0 +1,74 @@
+{
+ "source": "seiden",
+ "n": 241,
+ "title": "A Smart Trading Group, Getting Smarter",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 397.53,
+   "textHash": "bc47f8a254df3ff7",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Opening trades and early exits, Barbara",
+     "start": 58.83
+    },
+    {
+     "id": "s1",
+     "title": "Slippage in spot Forex, W. Jones, pound Swiss franc",
+     "start": 107.83
+    },
+    {
+     "id": "s2",
+     "title": "Volume at turning points, Tim",
+     "start": 150.98
+    },
+    {
+     "id": "s3",
+     "title": "Hesitating at a valid signal, Jermal",
+     "start": 175.55
+    },
+    {
+     "id": "s4",
+     "title": "Scaling up size, Keith, BBBY and QLD",
+     "start": 203.33
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 242.42
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 288.78
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 318.04
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 339.19
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 352.28
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 381.68
+    }
+   ]
+  }
+ }
+}

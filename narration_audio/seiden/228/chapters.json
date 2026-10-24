@@ -1,0 +1,79 @@
+{
+ "source": "seiden",
+ "n": 228,
+ "title": "Questions and Answers: Things You May Want To Know",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 317.0,
+   "textHash": "ba2b98985a50478b",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "FESX",
+     "start": 53.42
+    },
+    {
+     "id": "s1",
+     "title": "Scaling in versus adding to a loser",
+     "start": 66.38
+    },
+    {
+     "id": "s2",
+     "title": "Position trading",
+     "start": 91.36
+    },
+    {
+     "id": "s3",
+     "title": "VIX as an odds enhancer",
+     "start": 106.74
+    },
+    {
+     "id": "s4",
+     "title": "Fresh versus historical levels",
+     "start": 132.47
+    },
+    {
+     "id": "s5",
+     "title": "Charts",
+     "start": 158.97
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 167.7
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 204.77
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 222.91
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 236.46
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 272.11
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 300.38
+    }
+   ]
+  }
+ }
+}
