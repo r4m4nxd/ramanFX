@@ -31,5 +31,16 @@
   "seconds": 1950.21,
   "sha256": "a6d3b62e543eb433e098503c999d7add055dc28a26fc16474b2bbf2372eeb502",
   "textHash": "7a248807ad715fc2"
+ },
+ {
+  "source": "zoom",
+  "n": 4,
+  "title": "Fresh chain-analysis chart: measuring moves away, single-candle basing, and grading student homework",
+  "voice": "am_michael",
+  "file": "zoom/04/am_michael.m4a",
+  "bytes": 16612177,
+  "seconds": 2017.5,
+  "sha256": "1cf7a541188be5cd211932f614cc83e278fdc231c023ccaf8d1debb29e0a3690",
+  "textHash": "23a505b02961a371"
  }
 ]
