@@ -20,5 +20,16 @@
   "seconds": 1829.31,
   "sha256": "5f4f07879352447292b327bd0e8b4b3eb817b488d2364451f126f552b46d30cd",
   "textHash": "4e666cd906bc7673"
+ },
+ {
+  "source": "zoom",
+  "n": 3,
+  "title": "EURUSD chain-analysis review: trendline breaks, re-anchoring and not forcing zones",
+  "voice": "am_michael",
+  "file": "zoom/03/am_michael.m4a",
+  "bytes": 16007187,
+  "seconds": 1950.21,
+  "sha256": "a6d3b62e543eb433e098503c999d7add055dc28a26fc16474b2bbf2372eeb502",
+  "textHash": "7a248807ad715fc2"
  }
 ]
