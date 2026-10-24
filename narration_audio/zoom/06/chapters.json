@@ -1,0 +1,139 @@
+{
+ "source": "zoom",
+ "n": 6,
+ "title": "Chain analysis homework: trendline drawing, updated trendlines and the zone that removes a trendline",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 1915.68,
+   "textHash": "bfbc62c819a9373a",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Opening and the chain-analysis rules",
+     "start": 124.85
+    },
+    {
+     "id": "s1",
+     "title": "Trendline 1: highest point, no cutting through wicks, ending an overextended line",
+     "start": 198.91
+    },
+    {
+     "id": "s2",
+     "title": "Trendline 2 and identifying the supply that removed the demand",
+     "start": 261.08
+    },
+    {
+     "id": "s3",
+     "title": "No demand from basing candles below the downward trendline",
+     "start": 358.67
+    },
+    {
+     "id": "s4",
+     "title": "Trendline lesson: picking the right peaks and checking with a channel",
+     "start": 386.18
+    },
+    {
+     "id": "s5",
+     "title": "Possible future rule: two explosive moves in a row",
+     "start": 444.13
+    },
+    {
+     "id": "s6",
+     "title": "The demand that removed the trendlines: basing at or below the line",
+     "start": 492.69
+    },
+    {
+     "id": "s7",
+     "title": "When a trendline is removed: full candle close",
+     "start": 568.94
+    },
+    {
+     "id": "s8",
+     "title": "Updated trendlines after a new high or low",
+     "start": 608.77
+    },
+    {
+     "id": "s9",
+     "title": "Older zone trade and the next demand, measuring a close call",
+     "start": 666.52
+    },
+    {
+     "id": "s10",
+     "title": "Homework review: common corrections",
+     "start": 731.59
+    },
+    {
+     "id": "s11",
+     "title": "All-time highs on any timeframe and the zoom effect",
+     "start": 868.97
+    },
+    {
+     "id": "s12",
+     "title": "Stops with a higher-timeframe zone in control",
+     "start": 930.1
+    },
+    {
+     "id": "s13",
+     "title": "Economic data, fundamentals and time away from the charts",
+     "start": 967.5
+    },
+    {
+     "id": "s14",
+     "title": "On his charts",
+     "start": 1049.66
+    },
+    {
+     "id": "s15",
+     "title": "Corrected from his video",
+     "start": 1090.38
+    },
+    {
+     "id": "examples",
+     "title": "Live examples",
+     "start": 1105.33
+    },
+    {
+     "id": "qa",
+     "title": "Student questions",
+     "start": 1311.02
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 1458.54
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 1599.76
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 1687.52
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 1736.39
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 1824.96
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 1899.16
+    }
+   ]
+  }
+ }
+}

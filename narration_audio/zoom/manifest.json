@@ -53,5 +53,16 @@
   "seconds": 2101.72,
   "sha256": "59427350178994ae3d4a4e46ad6f314cbc8809d36091d23ea1bae2da66973fe8",
   "textHash": "d3417ae51c330928"
+ },
+ {
+  "source": "zoom",
+  "n": 6,
+  "title": "Chain analysis homework: trendline drawing, updated trendlines and the zone that removes a trendline",
+  "voice": "am_michael",
+  "file": "zoom/06/am_michael.m4a",
+  "bytes": 15754067,
+  "seconds": 1915.68,
+  "sha256": "d51865595228de787dde0f44e649c9e8c54edfb4c9e6d81ad1e60e8253e2cdb0",
+  "textHash": "bfbc62c819a9373a"
  }
 ]
