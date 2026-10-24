@@ -119,5 +119,16 @@
   "seconds": 1784.39,
   "sha256": "50be109290fecea1b8db34957a5e1179da3e855d668176669a1d8d67944011ac",
   "textHash": "7147f866965f8cc8"
+ },
+ {
+  "source": "zoom",
+  "n": 12,
+  "title": "Space between stay-away grades the zone; homework chain and first trade reviews",
+  "voice": "am_michael",
+  "file": "zoom/12/am_michael.m4a",
+  "bytes": 17895459,
+  "seconds": 2182.34,
+  "sha256": "f5592e681340f52df4aa6a12f913c37a0a48c1fd17e31d57dcdf476265fd3e25",
+  "textHash": "f438b528770193b3"
  }
 ]
