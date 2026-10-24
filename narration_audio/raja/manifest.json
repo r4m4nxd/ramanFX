@@ -119,5 +119,49 @@
   "seconds": 829.85,
   "sha256": "046e499b300188bb2a71ddf1349f25b2eb23e4f2f7554616884d2868c3393e30",
   "textHash": "41429b4482a2b075"
+ },
+ {
+  "source": "raja",
+  "n": 52,
+  "title": "Strong Zones II: tested zones, confirmation, inheritance, overlap and flip zones",
+  "voice": "am_michael",
+  "file": "raja/52/am_michael.m4a",
+  "bytes": 7206411,
+  "seconds": 876.85,
+  "sha256": "3a720301f8b5abe38cbb78e88a7a91e49dbae3c08eb8b12f5529f34831e69c8c",
+  "textHash": "3954254b4e84a5d5"
+ },
+ {
+  "source": "raja",
+  "n": 53,
+  "title": "Risk Management: the seven-step check before a trade",
+  "voice": "am_michael",
+  "file": "raja/53/am_michael.m4a",
+  "bytes": 8639310,
+  "seconds": 1047.33,
+  "sha256": "1a37eb3cc09a96ecdb4f0632c6c1e7755d15415b360e5e642ce28a1e01836ffb",
+  "textHash": "fa62d2912ebf0efc"
+ },
+ {
+  "source": "raja",
+  "n": 54,
+  "title": "Live Pair Review: HTF direction, 15-minute entries and the departure candle",
+  "voice": "am_michael",
+  "file": "raja/54/am_michael.m4a",
+  "bytes": 4223108,
+  "seconds": 513.14,
+  "sha256": "77546578e167ceae1341a9589e853751013efc5406832fbb906de5266dc31fac",
+  "textHash": "95928d0c45925a07"
+ },
+ {
+  "source": "raja",
+  "n": 101,
+  "title": "Private session 1 (Feb 2, 2026): Which zones get limit orders - strong, wow and arrival vs the six weak zones",
+  "voice": "am_michael",
+  "file": "raja/101/am_michael.m4a",
+  "bytes": 12149329,
+  "seconds": 1471.21,
+  "sha256": "836e39bdf08decf827fa9ab37c2f2eb1b1f588547cc7278d0491793374670b98",
+  "textHash": "f8f69488d57a6e42"
  }
 ]
