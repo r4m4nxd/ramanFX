@@ -1,0 +1,84 @@
+{
+ "source": "raja",
+ "n": 50,
+ "title": "Wow Trade (Topic 6): trading the pips between zones",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 1023.7,
+   "textHash": "4a6e89b3d45610c0",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Version 1: zone to zone, extension of pips",
+     "start": 88.61
+    },
+    {
+     "id": "s1",
+     "title": "Version 2: a lower-timeframe trendline break",
+     "start": 134.07
+    },
+    {
+     "id": "s2",
+     "title": "Do not trade into an opposite zone",
+     "start": 249.58
+    },
+    {
+     "id": "s3",
+     "title": "When is a zone removed?",
+     "start": 340.64
+    },
+    {
+     "id": "s4",
+     "title": "Timeframes and choosing pairs",
+     "start": 376.86
+    },
+    {
+     "id": "s5",
+     "title": "Managing a two-part wow trade",
+     "start": 457.63
+    },
+    {
+     "id": "s6",
+     "title": "On his charts",
+     "start": 513.56
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 733.86
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 806.83
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 839.99
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 857.59
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 962.62
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 1005.64
+    }
+   ]
+  }
+ }
+}

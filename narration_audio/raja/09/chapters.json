@@ -1,0 +1,69 @@
+{
+ "source": "raja",
+ "n": 9,
+ "title": "Zoom Q&A: Target First, Then Lower Timeframes",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 570.16,
+   "textHash": "02210ad83e175b84",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Process",
+     "start": 62.45
+    },
+    {
+     "id": "s1",
+     "title": "Examples",
+     "start": 116.59
+    },
+    {
+     "id": "s2",
+     "title": "Answers to student questions",
+     "start": 272.78
+    },
+    {
+     "id": "s3",
+     "title": "On his charts",
+     "start": 306.76
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 380.53
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 416.09
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 431.14
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 449.6
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 526.61
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 557.12
+    }
+   ]
+  }
+ }
+}

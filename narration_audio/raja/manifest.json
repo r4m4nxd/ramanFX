@@ -86,5 +86,38 @@
   "seconds": 259.56,
   "sha256": "ed43f34ea273567cc914aa6eab1d0516ff760a7643823a2df8f043d2e4a5278c",
   "textHash": "38ca59504d4b03c0"
+ },
+ {
+  "source": "raja",
+  "n": 9,
+  "title": "Zoom Q&A: Target First, Then Lower Timeframes",
+  "voice": "am_michael",
+  "file": "raja/09/am_michael.m4a",
+  "bytes": 4693639,
+  "seconds": 570.16,
+  "sha256": "4090224496c89bab91a3aa6ff54d9d3d14a9dca830f688628085e9d48166f642",
+  "textHash": "02210ad83e175b84"
+ },
+ {
+  "source": "raja",
+  "n": 50,
+  "title": "Wow Trade (Topic 6): trading the pips between zones",
+  "voice": "am_michael",
+  "file": "raja/50/am_michael.m4a",
+  "bytes": 8482276,
+  "seconds": 1023.7,
+  "sha256": "4de68f0a55d258a46dde8502d318e559ddf8004ff6ba46ab3139c5fe5af62296",
+  "textHash": "4a6e89b3d45610c0"
+ },
+ {
+  "source": "raja",
+  "n": 51,
+  "title": "Strong Zones I: strong vs weak, wow trade and arrival zones",
+  "voice": "am_michael",
+  "file": "raja/51/am_michael.m4a",
+  "bytes": 6847492,
+  "seconds": 829.85,
+  "sha256": "046e499b300188bb2a71ddf1349f25b2eb23e4f2f7554616884d2868c3393e30",
+  "textHash": "41429b4482a2b075"
  }
 ]
