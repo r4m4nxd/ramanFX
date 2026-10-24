@@ -1,0 +1,54 @@
+{
+ "source": "daily",
+ "n": 25,
+ "title": "Daily plan for Fri, Aug 21",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 553.1,
+   "textHash": "bf9b0c0511850973",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "The plan",
+     "start": 86.04
+    },
+    {
+     "id": "s1",
+     "title": "Market bias",
+     "start": 209.23
+    },
+    {
+     "id": "s2",
+     "title": "Setups he is watching",
+     "start": 255.15
+    },
+    {
+     "id": "s3",
+     "title": "Rules and lessons",
+     "start": 331.26
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 376.01
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 426.73
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 538.27
+    }
+   ]
+  }
+ }
+}

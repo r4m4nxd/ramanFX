@@ -42,5 +42,49 @@
   "seconds": 530.73,
   "sha256": "4d818423b4da2e17f711e6f93d43cc8ebb3d64926af713c5bbf0099ac450dc93",
   "textHash": "65a2b55ec39d9ee5"
+ },
+ {
+  "source": "daily",
+  "n": 25,
+  "title": "Daily plan for Fri, Aug 21",
+  "voice": "am_michael",
+  "file": "daily/25/am_michael.m4a",
+  "bytes": 4582147,
+  "seconds": 553.1,
+  "sha256": "213b0e4158f66ba2897801d5f851cab4e87da9c5af112a9ffe7a416fcf39aab6",
+  "textHash": "bf9b0c0511850973"
+ },
+ {
+  "source": "daily",
+  "n": 26,
+  "title": "Daily plan for Tue, Aug 25",
+  "voice": "am_michael",
+  "file": "daily/26/am_michael.m4a",
+  "bytes": 4527001,
+  "seconds": 544.92,
+  "sha256": "82155381198358f137819d3f7024e68ff4a141a58b358660391fd99c4a4b53c3",
+  "textHash": "c2dd787c501cf8df"
+ },
+ {
+  "source": "daily",
+  "n": 27,
+  "title": "Daily plan for Wed, Aug 26",
+  "voice": "am_michael",
+  "file": "daily/27/am_michael.m4a",
+  "bytes": 4086623,
+  "seconds": 496.11,
+  "sha256": "83970ca7f1ed487708b5c200c0c7132814bd6a5013a4f92152e59e6b66d525ea",
+  "textHash": "d7bbf9f04c78aa3d"
+ },
+ {
+  "source": "daily",
+  "n": 28,
+  "title": "Daily plan for Thu, Aug 27",
+  "voice": "am_michael",
+  "file": "daily/28/am_michael.m4a",
+  "bytes": 4887973,
+  "seconds": 591.32,
+  "sha256": "575d93a6c506bcd7f05f354abd9ea221a18986f3de2fd88a805240c96b6ad63f",
+  "textHash": "e07d5ace189edf09"
  }
 ]

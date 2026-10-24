@@ -1,0 +1,59 @@
+{
+ "source": "daily",
+ "n": 26,
+ "title": "Daily plan for Tue, Aug 25",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 544.92,
+   "textHash": "c2dd787c501cf8df",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "The plan",
+     "start": 90.62
+    },
+    {
+     "id": "s1",
+     "title": "Market bias",
+     "start": 214.77
+    },
+    {
+     "id": "s2",
+     "title": "Setups he is watching",
+     "start": 277.45
+    },
+    {
+     "id": "s3",
+     "title": "Rules and lessons",
+     "start": 344.52
+    },
+    {
+     "id": "s4",
+     "title": "Trade reviews, earlier calls",
+     "start": 386.54
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 401.04
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 448.49
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 528.4
+    }
+   ]
+  }
+ }
+}
