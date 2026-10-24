@@ -136,19 +136,11 @@ export default function Settings() {
         </div>
       </div>
       <Card>
-        <CardHead title="Zone bot (MT4 · demo only)" sub="Expert Advisor built from your mentor's rules: finds fresh continuation zones, trades with the HTF trend at 1% risk, always with a stop, and logs every setup plus a replay of every take-profit and break-even variant." />
+        <CardHead title="Trading tools" sub="ZoneBot, ZoneVision, the Excursions and Charts scripts and every preset, for MT5, MT4 and TradingView, are on one page." />
         <div className="flex flex-wrap gap-2">
-          <a className="btn" href="/tools/RamanFX_ZoneBot.mq4" download><Icon name="download" size={14} />RamanFX_ZoneBot.mq4</a>
-          <a className="btn" href="/tools/RamanFX_ZoneVision.mq4" download><Icon name="download" size={14} />RamanFX_ZoneVision.mq4 (indicator)</a>
-          <a className="btn" href="/tools/RamanFX_ZoneVision.pine" download><Icon name="download" size={14} />ZoneVision for TradingView (.pine)</a>
-          <Link to="/bot-guide" className="btn-primary"><Icon name="info" size={14} />Full guide</Link>
+          <Link to="/tools" className="btn-primary"><Icon name="download" size={14} />All tools<Icon name="chevronRight" size={14} /></Link>
+          <Link to="/bot-guide" className="btn"><Icon name="info" size={14} />Bot guide</Link>
         </div>
-        <ol className="mt-3 text-[12.5px] text-ink2 list-decimal pl-5 flex flex-col gap-1">
-          <li>MT4: File → Open Data Folder → MQL4 → Experts. Put the file there, then press F7 in MetaEditor to compile.</li>
-          <li>Drag RamanFX_ZoneBot onto any one chart, tick "Allow live trading", pick the mode (Scanner / Approve / Auto). Demo account only.</li>
-          <li>ZoneVision indicator (MQL4 → Indicators): draws exactly what the bot sees — zones with their 4 parts labelled, trendlines, HTF zones, rejected candidates and the trade it would take. Use it to spot what needs correcting.</li>
-          <li>Logs land in MQL4\Files: RamanFX_Bot_Signals.csv (every zone and why it was traded or skipped) and RamanFX_Bot_Variants.csv (TP / break-even replays).</li>
-        </ol>
       </Card>
     </Page>
   );

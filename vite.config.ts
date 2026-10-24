@@ -2,9 +2,15 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
+import fs from 'node:fs';
+
+// Byte size of every downloadable tool, read at build time for the /tools page.
+const toolsDir = path.resolve(__dirname, 'public/tools');
+const toolSizes = Object.fromEntries((fs.existsSync(toolsDir) ? fs.readdirSync(toolsDir) : []).map(f => [f, fs.statSync(path.join(toolsDir, f)).size]));
 
 export default defineConfig({
   plugins: [react()],
+  define: { __TOOL_SIZES__: JSON.stringify(toolSizes) },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

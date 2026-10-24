@@ -1,4 +1,4 @@
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { Badge, Card, cx, Page, RevealText } from '@/ui/kit';
 import { Icon } from '@/ui/Icon';
@@ -42,10 +42,7 @@ function Install() {
   return (
     <Section title="Install (both tools)">
       <div className="flex flex-wrap gap-2 mb-4">
-        <a className="btn" href="/tools/RamanFX_ZoneBot.mq4" download><Icon name="download" size={14} />RamanFX_ZoneBot.mq4</a>
-        <a className="btn" href="/tools/RamanFX_ZoneVision.mq4" download><Icon name="download" size={14} />RamanFX_ZoneVision.mq4</a>
-        <a className="btn" href="/tools/RamanFX_ZoneVision.mq5" download><Icon name="download" size={14} />RamanFX_ZoneVision.mq5 (MT5)</a>
-        <a className="btn" href="/tools/RFX_ZoneCore.mqh" download><Icon name="download" size={14} />RFX_ZoneCore.mqh (MT5 shared core)</a>
+        <Link to="/tools" className="btn-primary"><Icon name="download" size={14} />All tools (MT5 · MT4 · TradingView)<Icon name="chevronRight" size={14} /></Link>
       </div>
       <Steps items={[
         <>In MT4: <b>File → Open Data Folder → MQL4</b>. Put <K>RamanFX_ZoneBot.mq4</K> in <b>Experts</b> and <K>RamanFX_ZoneVision.mq4</K> in <b>Indicators</b>.</>,
@@ -242,7 +239,7 @@ function ZoneVision() {
       </Section>
 
       <Section title="TradingView version">
-        <div className="flex flex-wrap gap-2 mb-3"><a className="btn" href="/tools/RamanFX_ZoneVision.pine" download><Icon name="download" size={14} />RamanFX_ZoneVision.pine</a></div>
+        <div className="flex flex-wrap gap-2 mb-3"><a className="btn" href="/tools/RamanFX_ZoneVision.pine" download><Icon name="download" size={14} />RamanFX_ZoneVision.pine</a><Link to="/tools?p=tv" className="btn"><Icon name="copy" size={14} />Copy code on a phone</Link></div>
         <Steps items={[
           <>Open the file in a text editor and copy everything.</>,
           <>TradingView: <b>Pine Editor</b> (bottom) → <b>Open → New blank indicator</b> → select all, paste → <b>Save</b> → <b>Add to chart</b>.</>,

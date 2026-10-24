@@ -18,6 +18,7 @@ const ChecklistPage = lazy(() => import('@/pages/Checklist'));
 const Ask = lazy(() => import('@/pages/Ask'));
 const Sandbox = lazy(() => import('@/pages/Sandbox'));
 const BotGuide = lazy(() => import('@/pages/BotGuide'));
+const Tools = lazy(() => import('@/pages/Tools'));
 const CalendarPage = lazy(() => import('@/pages/CalendarPage'));
 const Heatmaps = lazy(() => import('@/pages/Heatmaps'));
 const Planner = lazy(() => import('@/pages/Planner'));
@@ -34,7 +35,7 @@ const Exits = lazy(() => import('@/pages/Exits'));
 const Settings = lazy(() => import('@/pages/Settings'));
 
 // Fetch every page in the background once the app is idle, so taps never wait on a download.
-const PRELOAD = [() => import('@/pages/Guide'), () => import('@/pages/News'), () => import('@/pages/ChartPage'), () => import('@/pages/Journal'), () => import('@/pages/Trades'), () => import('@/pages/TradeDetail'), () => import('@/pages/Reports'), () => import('@/pages/CalendarPage'), () => import('@/pages/Heatmaps'), () => import('@/pages/Planner'), () => import('@/pages/Guru'), () => import('@/pages/Playbook'), () => import('@/pages/Calculator'), () => import('@/pages/Risk'), () => import('@/pages/Strategies'), () => import('@/pages/Notebook'), () => import('@/pages/Exits'), () => import('@/pages/Settings'), () => import('@/pages/Checklist')];
+const PRELOAD = [() => import('@/pages/Guide'), () => import('@/pages/News'), () => import('@/pages/ChartPage'), () => import('@/pages/Journal'), () => import('@/pages/Trades'), () => import('@/pages/TradeDetail'), () => import('@/pages/Reports'), () => import('@/pages/CalendarPage'), () => import('@/pages/Heatmaps'), () => import('@/pages/Planner'), () => import('@/pages/Guru'), () => import('@/pages/Playbook'), () => import('@/pages/Calculator'), () => import('@/pages/Risk'), () => import('@/pages/Strategies'), () => import('@/pages/Notebook'), () => import('@/pages/Exits'), () => import('@/pages/Settings'), () => import('@/pages/Checklist'), () => import('@/pages/Tools')];
 
 function Loading() {
   return (
@@ -77,6 +78,7 @@ export default function App() {
               <Route path="/guru" element={<Guru />} />
               <Route path="/guide" element={<Guide />} />
               <Route path="/bot-guide" element={<BotGuide />} />
+              <Route path="/tools" element={<Tools />} />
               <Route path="/news" element={<News />} />
               <Route path="/chart" element={<ChartPage />} />
               <Route path="/plan" element={<Planner />} />
