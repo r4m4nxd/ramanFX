@@ -1,0 +1,84 @@
+{
+ "source": "course",
+ "n": 14,
+ "title": "Trendline Tips",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 633.3,
+   "textHash": "e85e0af5135586b8",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "What a trendline needs",
+     "start": 46.72
+    },
+    {
+     "id": "s1",
+     "title": "Obvious peak and obvious valley",
+     "start": 69.8
+    },
+    {
+     "id": "s2",
+     "title": "Adjusting the trendline",
+     "start": 94.37
+    },
+    {
+     "id": "s3",
+     "title": "Wicks versus real valleys",
+     "start": 131.99
+    },
+    {
+     "id": "s4",
+     "title": "Nuance",
+     "start": 158.24
+    },
+    {
+     "id": "s5",
+     "title": "On his charts",
+     "start": 169.57
+    },
+    {
+     "id": "s6",
+     "title": "Corrected from his video",
+     "start": 300.28
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 384.99
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 412.58
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 436.15
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 455.44
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 589.67
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 620.4
+    }
+   ]
+  }
+ }
+}

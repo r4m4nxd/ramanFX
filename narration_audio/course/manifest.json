@@ -86,5 +86,38 @@
   "seconds": 2206.42,
   "sha256": "36c577c952f9688c44809deb153e6cc48deb076627861b861a90cdce9caeb97f",
   "textHash": "f5ed882b56e114ec"
+ },
+ {
+  "source": "course",
+  "n": 14,
+  "title": "Trendline Tips",
+  "voice": "am_michael",
+  "file": "course/14/am_michael.m4a",
+  "bytes": 5195162,
+  "seconds": 633.3,
+  "sha256": "3ebccb64b0ce71a8bdd8d4e4492d9760cb99fc557ef900a992780c90e86e6337",
+  "textHash": "e85e0af5135586b8"
+ },
+ {
+  "source": "course",
+  "n": 15,
+  "title": "Confirmation Trading",
+  "voice": "am_michael",
+  "file": "course/15/am_michael.m4a",
+  "bytes": 15127581,
+  "seconds": 1837.72,
+  "sha256": "4d875e81435fe5b70846fae292fb143d1452ebeac06b97475d21e02d5570d73f",
+  "textHash": "bc11dd84d1a77ee1"
+ },
+ {
+  "source": "course",
+  "n": 16,
+  "title": "Supply and Demand Trading",
+  "voice": "am_michael",
+  "file": "course/16/am_michael.m4a",
+  "bytes": 13367387,
+  "seconds": 1616.02,
+  "sha256": "d36cfbc62dc6f5c64b2ac64372d27fc92c7507795f80c30d0ecc9e66c15e6a18",
+  "textHash": "6ac1a7176c7c3b3c"
  }
 ]

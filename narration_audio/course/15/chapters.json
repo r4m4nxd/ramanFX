@@ -1,0 +1,119 @@
+{
+ "source": "course",
+ "n": 15,
+ "title": "Confirmation Trading",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 1837.72,
+   "textHash": "bc11dd84d1a77ee1",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "What confirmation trading is",
+     "start": 64.93
+    },
+    {
+     "id": "s1",
+     "title": "The two confirmation entry methods",
+     "start": 108.83
+    },
+    {
+     "id": "s2",
+     "title": "Which timeframes to use",
+     "start": 196.28
+    },
+    {
+     "id": "s3",
+     "title": "When to use confirmation",
+     "start": 323.11
+    },
+    {
+     "id": "s4",
+     "title": "Trendline confirmation",
+     "start": 443.43
+    },
+    {
+     "id": "s5",
+     "title": "Q and A: is a zone removed by a wick?",
+     "start": 504.88
+    },
+    {
+     "id": "s6",
+     "title": "Q and A: stacked zones, level on top of level",
+     "start": 537.24
+    },
+    {
+     "id": "s7",
+     "title": "Targets and trade management",
+     "start": 601.46
+    },
+    {
+     "id": "s8",
+     "title": "Adding to a winner, Q and A",
+     "start": 654.12
+    },
+    {
+     "id": "s9",
+     "title": "Testing, data, confidence and homework",
+     "start": 728.79
+    },
+    {
+     "id": "s10",
+     "title": "Q and A: euro dollar daily supply short, targets",
+     "start": 847.87
+    },
+    {
+     "id": "s11",
+     "title": "Extra details",
+     "start": 896.89
+    },
+    {
+     "id": "s12",
+     "title": "On his charts",
+     "start": 1030.34
+    },
+    {
+     "id": "s13",
+     "title": "Corrected from his video",
+     "start": 1273.03
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 1448.3
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 1521.73
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 1567.33
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 1605.23
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 1744.93
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 1821.55
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,114 @@
+{
+ "source": "course",
+ "n": 16,
+ "title": "Supply and Demand Trading",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 1616.02,
+   "textHash": "6ac1a7176c7c3b3c",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Supply and demand versus supply and demand zone trading",
+     "start": 63.4
+    },
+    {
+     "id": "s1",
+     "title": "How to draw it correctly",
+     "start": 132.67
+    },
+    {
+     "id": "s2",
+     "title": "What is not a zone, red flags",
+     "start": 184.09
+    },
+    {
+     "id": "s3",
+     "title": "Analysis must be done before the fact",
+     "start": 236.46
+    },
+    {
+     "id": "s4",
+     "title": "Avoid zones on trendlines and old support and resistance, trade against retail",
+     "start": 284.45
+    },
+    {
+     "id": "s5",
+     "title": "Poker analogy: exploitative play",
+     "start": 365.48
+    },
+    {
+     "id": "s6",
+     "title": "Testing, journal and drawdowns",
+     "start": 393.18
+    },
+    {
+     "id": "s7",
+     "title": "Mindset and gurus",
+     "start": 485.49
+    },
+    {
+     "id": "s8",
+     "title": "Extra details on zones",
+     "start": 591.19
+    },
+    {
+     "id": "s9",
+     "title": "Extra details on trendlines and retail traps",
+     "start": 662.59
+    },
+    {
+     "id": "s10",
+     "title": "Extra details on testing and systems",
+     "start": 734.25
+    },
+    {
+     "id": "s11",
+     "title": "On his charts",
+     "start": 862.37
+    },
+    {
+     "id": "s12",
+     "title": "Corrected from his video",
+     "start": 1083.35
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 1179.67
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 1236.92
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 1291.26
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 1332.44
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 1537.74
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 1601.29
+    }
+   ]
+  }
+ }
+}
