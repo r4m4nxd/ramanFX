@@ -1,0 +1,69 @@
+{
+ "source": "raja",
+ "n": 6,
+ "title": "Momentum and Location (Nested Zones)",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 555.19,
+   "textHash": "f859937731d4b22b",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Momentum",
+     "start": 53.28
+    },
+    {
+     "id": "s1",
+     "title": "Location: nested zones",
+     "start": 88.22
+    },
+    {
+     "id": "s2",
+     "title": "Momentum location",
+     "start": 178.89
+    },
+    {
+     "id": "s3",
+     "title": "Location in practice, live sessions and Urdu recordings",
+     "start": 218.4
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 384.64
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 433.16
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 444.05
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 461.74
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 505.89
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 539.33
+    }
+   ]
+  }
+ }
+}

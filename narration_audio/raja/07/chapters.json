@@ -1,0 +1,74 @@
+{
+ "source": "raja",
+ "n": 7,
+ "title": "Risk Management and Three Trader Rules",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 594.76,
+   "textHash": "ae6cca466dba567f",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Profit margin",
+     "start": 55.01
+    },
+    {
+     "id": "s1",
+     "title": "Rule 1: direction from daily or higher",
+     "start": 79.94
+    },
+    {
+     "id": "s2",
+     "title": "Rule 2: follow the pips, not the money",
+     "start": 101.39
+    },
+    {
+     "id": "s3",
+     "title": "Rule 3: always a small lot size",
+     "start": 119.94
+    },
+    {
+     "id": "s4",
+     "title": "From the live sessions: lot size, two positions, stops and targets",
+     "start": 164.38
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 404.59
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 452.63
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 480.58
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 505.16
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 542.6
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 578.33
+    }
+   ]
+  }
+ }
+}

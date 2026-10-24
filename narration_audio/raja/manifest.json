@@ -1,0 +1,46 @@
+[
+ {
+  "source": "raja",
+  "n": 5,
+  "title": "Impulse vs Correction and When a Zone Has Done Its Job",
+  "voice": "am_michael",
+  "file": "raja/05/am_michael.m4a",
+  "bytes": 5850819,
+  "seconds": 707.86,
+  "sha256": "b1391564ea9a98d7cd5a14b70764e428e00e5b4bb109ef3d36f903849f544808",
+  "textHash": "7dcc13f474dcbd09"
+ },
+ {
+  "source": "raja",
+  "n": 6,
+  "title": "Momentum and Location (Nested Zones)",
+  "voice": "am_michael",
+  "file": "raja/06/am_michael.m4a",
+  "bytes": 4556357,
+  "seconds": 555.19,
+  "sha256": "07703eae16f5e585c16304541cd9af60efeb538b18eaa8aa9186b21fa41f6fcf",
+  "textHash": "f859937731d4b22b"
+ },
+ {
+  "source": "raja",
+  "n": 7,
+  "title": "Risk Management and Three Trader Rules",
+  "voice": "am_michael",
+  "file": "raja/07/am_michael.m4a",
+  "bytes": 4872634,
+  "seconds": 594.76,
+  "sha256": "972fec641b72cc0751b2efc9a367f6620a6db1b161775e932000bff2375ca3d7",
+  "textHash": "ae6cca466dba567f"
+ },
+ {
+  "source": "raja",
+  "n": 8,
+  "title": "Sequence and Realignment",
+  "voice": "am_michael",
+  "file": "raja/08/am_michael.m4a",
+  "bytes": 5494249,
+  "seconds": 665.5,
+  "sha256": "895369ef6cb8259957e354a99c8f587efc8ee1c35d136f937d5c9eb19c715211",
+  "textHash": "9d82cec7031e2dfa"
+ }
+]

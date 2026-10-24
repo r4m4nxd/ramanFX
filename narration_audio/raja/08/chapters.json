@@ -1,0 +1,69 @@
+{
+ "source": "raja",
+ "n": 8,
+ "title": "Sequence and Realignment",
+ "voices": {
+  "am_michael": {
+   "file": "am_michael.m4a",
+   "seconds": 665.5,
+   "textHash": "9d82cec7031e2dfa",
+   "chapters": [
+    {
+     "id": "intro",
+     "title": "Intro",
+     "start": 0.0
+    },
+    {
+     "id": "s0",
+     "title": "Sequence",
+     "start": 69.27
+    },
+    {
+     "id": "s1",
+     "title": "Realignment",
+     "start": 94.35
+    },
+    {
+     "id": "s2",
+     "title": "Sequence in detail, Urdu recordings and live sessions",
+     "start": 154.95
+    },
+    {
+     "id": "s3",
+     "title": "The realignment chain",
+     "start": 261.58
+    },
+    {
+     "id": "rules",
+     "title": "The rules",
+     "start": 428.53
+    },
+    {
+     "id": "mistakes",
+     "title": "Mistakes to avoid",
+     "start": 483.06
+    },
+    {
+     "id": "quotes",
+     "title": "In his words",
+     "start": 508.37
+    },
+    {
+     "id": "charts",
+     "title": "On the charts",
+     "start": 533.7
+    },
+    {
+     "id": "checklist",
+     "title": "Pre-trade countdown",
+     "start": 611.67
+    },
+    {
+     "id": "outro",
+     "title": "Wrap-up",
+     "start": 649.56
+    }
+   ]
+  }
+ }
+}
