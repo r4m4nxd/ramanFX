@@ -13,6 +13,9 @@
 //|     verdict and the merge-overlap selection (see the end).       |
 //| M5/M6: research-context save / restore of the Direction state,   |
 //|     the calibration loader + lookup (RFX_Calib.csv), LensW().    |
+//| v2.10 (Raja, A): RjA_* globals (all default = v2.00): close-only |
+//|     removal, run-out strong, close-cross arrival, touch rules,   |
+//|     trendline touches, near-line / P vs CP / did-its-job notes.  |
 //|                                                                  |
 //| Host contract (the including .mq5 declares these BEFORE the      |
 //| #include line): structs Zone and TLine; the v1 inputs (Inp...);  |
@@ -26,7 +29,26 @@
 #ifndef RFX_ZONECORE_MQH
 #define RFX_ZONECORE_MQH
 
-#define RFX_CORE_VER 200
+#define RFX_CORE_VER 210
+
+// ---- Raja v2.1 (A) ----
+// Settings of the Raja v2.1 (A) rules. Plain globals (not inputs) so ZoneBot, which includes this core and never sets
+// them, keeps the v1 / v2.00 behaviour; ZoneVision copies its InpRemovalMode / InpRjA* inputs here in OnInit.
+// Every default below = the v2.00 behaviour.
+int    RjA_RmMode       = 0;      // zone removal: 0 = close or a normal wick beyond the distal (v1), 1 = close only (Raja)
+bool   RjA_StrongRun    = false;  // Raja strong = removed an opposite zone anywhere in the run-out (false = within 5 bars of the leg)
+bool   RjA_ArrDepart    = false;  // Raja arrival = the run-out crossed a trendline by a close / departure candle (false = v1 full-candle removal)
+bool   RjA_TouchTF      = false;  // Raja touch allowance per TF (H1 2nd tap breaks, H4 / MN 3-4, D / W 3rd risky)
+bool   RjA_ShowTested   = false;  // draw tested zones still inside that allowance (tagged "needs confirmation")
+bool   RjA_Adjacent     = false;  // overlap also = formed right next to a live opposite zone, no gap
+bool   RjA_FlipTL       = false;  // flip only after a trendline was crossed before the base
+bool   RjA_OppHtfVeto   = false;  // Raja lens: strong zone inside / next to an opposite HTF zone = no trade
+bool   RjA_TLTouch      = false;  // count trendline touches (label on the line, Raja lens notes)
+bool   RjA_NearLine     = false;  // Raja lens: prefer the zone nearest its trendline, flag zones far from it
+double RjA_FarPips      = 25;     // far from the trendline: more than this many pips
+bool   RjA_Lens8        = false;  // Raja lens: 3 CPs in a row = skip, P vs CP note, "zone already did its job"
+int    RjA_UpT = 0, RjA_DnT = 0;     // touches of the chart's newest respected up / down line (0 = none / not counted)
+int    RjA_HUpT = 0, RjA_HDnT = 0;   // the same for the HtfOf(chart) lines (set by the host with the gHUp* copy)
 
 //+------------------------------------------------------------------+
 //| Virtual timeframes: 3M / 6M / 12M built from MN1 bars            |
@@ -291,16 +313,17 @@ int Detect(string s, ENUM_TIMEFRAMES tf, Zone &out[], bool draw)
       z.leg2 = sa >= 1 && !Basing(s, tf, sa) && CDir(s, tf, sa) == dir && Rng(s, tf, sa) >= maxBase * InpMinLegRatio;
       z.chain = false; z.arrival = false;
       z.tested = false; z.removed = false; z.removedBar = -1; z.testedBar = -1; z.qual = ""; z.trap = 0; z.trapBar = -1; z.crowded = false;
+      bool rjaWick = RjA_RmMode == 0;                                   // Raja v2.1 (A): mode 1 = only a close beyond the distal removes
       for(int j = sa - 1; j >= 1; j--)
         {
          if(dir > 0)
            {
-            if(SC(s, tf, j) < dist || (SL(s, tf, j) < dist && !Emotional(s, tf, j))) { z.removed = true; z.removedBar = j; break; }
+            if(SC(s, tf, j) < dist || (rjaWick && SL(s, tf, j) < dist && !Emotional(s, tf, j))) { z.removed = true; z.removedBar = j; break; }
             if(!z.tested && SL(s, tf, j) <= prox && !Emotional(s, tf, j)) { z.tested = true; z.testedBar = j; }
            }
          else
            {
-            if(SC(s, tf, j) > dist || (SH(s, tf, j) > dist && !Emotional(s, tf, j))) { z.removed = true; z.removedBar = j; break; }
+            if(SC(s, tf, j) > dist || (rjaWick && SH(s, tf, j) > dist && !Emotional(s, tf, j))) { z.removed = true; z.removedBar = j; break; }
             if(!z.tested && SH(s, tf, j) >= prox && !Emotional(s, tf, j)) { z.tested = true; z.testedBar = j; }
            }
         }
@@ -365,6 +388,33 @@ void AddTL(int d, int a, int b2, double p2, double sl, bool overall)
    t.dir = d; t.a = a; t.b = b2; t.pb = p2; t.pa = LineAt(p2, b2, sl, a); t.removedBar = RemovedAt(b2, p2, sl, d); t.removed = t.removedBar >= 0; t.conf = !overall;
    int n = ArraySize(TL); ArrayResize(TL, n + 1); TL[n] = t;
   }
+// ---- Raja v2.1 (A) ----
+// touches of a trendline on gTF (Raja: 1st-3rd touch fine, the 4th usually breaks it, a line tested 3-5 times is weak):
+// separate visits from the anchor to the break (or the last closed candle). A visit = candles within 0.1 ATR of the
+// line (or through it without a full candle beyond); a new visit needs a candle clear of the line first.
+int RjA_LineTouches(TLine &t)
+  {
+   double sl = (t.pb - t.pa) / MathMax(1, t.a - t.b);
+   double tol = 0.1 * ATR(gTF, 1);
+   int end = t.removed ? t.removedBar + 1 : 1;
+   int n = 0;
+   bool inT = false;
+   for(int j = t.a; j >= end && j >= 1; j--)
+     {
+      double lv = LineAt(t.pb, t.b, sl, j);
+      bool touch = t.dir > 0 ? Lo(j) <= lv + tol : Hi(j) >= lv - tol;
+      if(touch && !inT) n++;
+      inT = touch;
+     }
+   return n;
+  }
+string RjA_TouchWord(int n)
+  {
+   if(n <= 0) return "";
+   if(n >= 4) return StringFormat("x%d: weak line, likely break", n);
+   if(n == 3) return "x3: weak, the 4th touch likely breaks it";
+   return StringFormat("x%d", n);
+  }
 
 // two drawn lines that sit on top of each other (an H1 and an H4 line on the same pivots, or a gold line on this
 // chart's own line): keep one - this chart's line first, else the higher timeframe - and delete the rest
@@ -405,7 +455,7 @@ void DedupeTL()
          if(!samePiv && !onTop) continue;
          long si = (rgX[i] ? 0 : 10000000) + rgR[i], sj = (rgX[j] ? 0 : 10000000) + rgR[j];
          string del = si >= sj ? rgN[j] : rgN[i];
-         ObjectDelete(0, del); ObjectDelete(0, del + "l");
+         ObjectDelete(0, del); ObjectDelete(0, del + "l"); ObjectDelete(0, del + "k");   // "k": Raja v2.1 (A) touch label
         }
    ArrayResize(rgN, 0); ArrayResize(rgA, 0); ArrayResize(rgB, 0); ArrayResize(rgD, 0); ArrayResize(rgR, 0); ArrayResize(rgX, 0);
   }
@@ -484,6 +534,7 @@ bool TooFlat(int a, int b2, double p2, double sl)
 void Trendlines(string s, ENUM_TIMEFRAMES tf)
   {
    ArrayResize(TL, 0); gUpOn = false; gDnOn = false;
+   RjA_UpT = 0; RjA_DnT = 0;                                          // Raja v2.1 (A): touches of the newest respected lines
    int bars = MathMin(InpLookback, SBars(_Symbol, gTF) - 20);
    ZigZag(bars);
    for(int d = -1; d <= 1; d += 2)
@@ -579,9 +630,22 @@ void Trendlines(string s, ENUM_TIMEFRAMES tf)
          ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
          ObjectSetString(0, nm, OBJPROP_TOOLTIP, TfName(gTF) + (TL[i].conf ? " " : " overall ") + (up ? "uptrend line: real valley, then a higher high" : "downtrend line: real peak, then a lower low")
             + (TL[i].removed ? " | ENDED: a full candle closed " + (up ? "below" : "above") + " it on " + TimeToString(iTime(_Symbol, gTF, end), TIME_DATE | TIME_MINUTES) : " | respected so far"));
+         string rjk = (RjA_TLTouch && InpShowTrendlines && !TL[i].removed) ? RjA_TouchWord(RjA_LineTouches(TL[i])) : "";   // Raja v2.1 (A)
+         if(rjk != "") ObjectSetString(0, nm, OBJPROP_TOOLTIP, ObjectGetString(0, nm, OBJPROP_TOOLTIP) + " | touches " + rjk);
          if(gTF != CTF && InpShowTrendlines && !TL[i].removed)
            { string ln = nm + "l"; ObjectCreate(0, ln, OBJ_TEXT, 0, x2, pe); ObjectSetString(0, ln, OBJPROP_TEXT, " " + TfName(gTF) + " trendline");
              ObjectSetInteger(0, ln, OBJPROP_COLOR, InpHtfTL); ObjectSetInteger(0, ln, OBJPROP_FONTSIZE, 7); ObjectSetInteger(0, ln, OBJPROP_ANCHOR, ANCHOR_LEFT); ObjectSetInteger(0, ln, OBJPROP_SELECTABLE, false); ObjectSetInteger(0, ln, OBJPROP_TIMEFRAMES, VisUpTo(gTF)); }
+         if(rjk != "")                                                  // Raja v2.1 (A): touch count at the line's end
+           {
+            if(gTF != CTF) ObjectSetString(0, nm + "l", OBJPROP_TEXT, " " + TfName(gTF) + " trendline " + rjk);
+            else
+              {
+               string kn = nm + "k";
+               ObjectCreate(0, kn, OBJ_TEXT, 0, x2, pe); ObjectSetString(0, kn, OBJPROP_TEXT, " TL " + rjk);
+               ObjectSetInteger(0, kn, OBJPROP_COLOR, cTrend); ObjectSetInteger(0, kn, OBJPROP_FONTSIZE, 7); ObjectSetInteger(0, kn, OBJPROP_ANCHOR, ANCHOR_LEFT);
+               ObjectSetInteger(0, kn, OBJPROP_SELECTABLE, false); ObjectSetInteger(0, kn, OBJPROP_TIMEFRAMES, VisUpTo(gTF));
+              }
+           }
          // MT5 extra: a drawn line broken by the last closed candle of its timeframe -> one alert
          if(InpAlertTL && TL[i].removed && TL[i].removedBar == 1)
            {
@@ -600,6 +664,7 @@ void Trendlines(string s, ENUM_TIMEFRAMES tf)
          double sl = (TL[i].pb - TL[i].pa) / MathMax(1, TL[i].a - TL[i].b), w = 0;
          for(int j = TL[i].a; j >= 1; j--) w = MathMax(w, up ? Hi(j) - LineAt(TL[i].pb, TL[i].b, sl, j) : LineAt(TL[i].pb, TL[i].b, sl, j) - Lo(j));
          if(up) { gUpOn = true; gUpS = sl; gUpP = TL[i].pb; gUpB = TL[i].b; gUpW = w; } else { gDnOn = true; gDnS = sl; gDnP = TL[i].pb; gDnB = TL[i].b; gDnW = w; }
+         if(RjA_TLTouch) { if(up) RjA_UpT = RjA_LineTouches(TL[i]); else RjA_DnT = RjA_LineTouches(TL[i]); }   // Raja v2.1 (A)
          if(!gQuiet && InpShowChannel && InpShowTrendlines && gTF == CTF)
            {
             string cn = PFX + "tlc" + (up ? "u" : "d");
@@ -886,6 +951,38 @@ string ZoneNotes(Zone &zs[], int i, string &verdict, string &shortWhy)
    return t;
   }
 
+// ---- Raja v2.1 (A) ----
+// Raja touch allowance (RjA_TouchTF / RjA_ShowTested). TF class: 3 = MN and up, 2 = D1 / W1, 1 = H4 (H6-H12 too), 0 = H1 and below
+int RjA_TfClass(ENUM_TIMEFRAMES tf) { if(VIsTF(tf) || tf >= PERIOD_MN1) return 3; if(tf >= PERIOD_D1) return 2; if(tf >= PERIOD_H4) return 1; return 0; }
+// earlier touches a tested zone may have and still be traded with confirmation: H1 and below 1 (the 2nd tap often breaks it),
+// H4 / D1 / W1 / MN 2 (H4 and MN hold 3-4 taps, the 4th usually breaks; on D1 / W1 the 3rd touch is already risky)
+int RjA_TouchCap(ENUM_TIMEFRAMES tf) { return RjA_TfClass(tf) == 0 ? 1 : 2; }
+// touches after the stay-away, counted like DnaTests (F16): a new touch needs a candle fully outside the proximal first,
+// emotional candles do not count; stops at the removal
+int RjA_TouchN(ENUM_TIMEFRAMES tf, Zone &z)
+  {
+   int n = 0;
+   bool away = true, inT = false;
+   int stop = z.removed ? z.removedBar : 0;
+   for(int j = z.saBar - 1; j >= 1 && j > stop; j--)
+     {
+      double adv = z.dir > 0 ? SL(_Symbol, tf, j) : SH(_Symbol, tf, j);
+      bool touch = z.dir > 0 ? adv <= z.prox : adv >= z.prox;
+      if(touch && Emotional(_Symbol, tf, j)) continue;
+      if(touch) { if(!inT && away) { n++; inT = true; away = false; } }
+      else { away = true; inT = false; }
+     }
+   return n;
+  }
+// v1 rule "tested zones hidden unless InpShowTested", plus: with RjA_ShowTested a tested zone inside Raja's allowance stays
+bool RjA_HideTested(ENUM_TIMEFRAMES tf, Zone &z)
+  {
+   if(InpShowTested) return false;
+   if(!RjA_ShowTested || z.removed) return true;
+   int n = RjA_TouchN(tf, z);
+   return n < 1 || n > RjA_TouchCap(tf);
+  }
+
 // The N zones closest to price, mentor style: light fill, solid border, prices at the right edge.
 void DrawZones(Zone &zs[], bool htf)
   {
@@ -897,7 +994,7 @@ void DrawZones(Zone &zs[], bool htf)
      {
       if(!htf && zs[i].legBar > InpMaxZoneAge) continue;
       if(zs[i].removed && (htf || !InpShowRemoved)) continue;
-      if(zs[i].tested && !htf && !InpShowTested) continue;
+      if(zs[i].tested && !htf && RjA_HideTested(tf, zs[i])) continue;   // = !InpShowTested unless RjA_ShowTested (Raja v2.1 A)
       if(!htf && RjC_OnlyQual() && !zs[i].chain && !zs[i].removed) continue;
       if(!htf && TooSmall(zs, i)) continue;
       if(!htf && V2Hide(zs[i])) continue;                            // v2 location filters (InpLockSide / InpCurveFilter, both off by default)
@@ -1076,18 +1173,21 @@ bool     drSvUpOn = false, drSvDnOn = false, drSvQuiet = false;
 double   drSvUpS = 0, drSvUpP = 0, drSvUpW = 0, drSvDnS = 0, drSvDnP = 0, drSvDnW = 0;
 int      drSvUpB = 0, drSvDnB = 0;
 TLine    drSvTL[];
+int      drSvRjUpT = 0, drSvRjDnT = 0;                   // Raja v2.1 (A) line touches
 
 void DirSave()
   {
    drSvGTF = gTF; drSvQuiet = gQuiet;
    drSvUpOn = gUpOn; drSvDnOn = gDnOn; drSvUpS = gUpS; drSvUpP = gUpP; drSvUpW = gUpW; drSvDnS = gDnS; drSvDnP = gDnP; drSvDnW = gDnW; drSvUpB = gUpB; drSvDnB = gDnB;
    int n = ArraySize(TL); ArrayResize(drSvTL, n); for(int i = 0; i < n; i++) drSvTL[i] = TL[i];
+   drSvRjUpT = RjA_UpT; drSvRjDnT = RjA_DnT;                          // Raja v2.1 (A)
   }
 void DirRestore()
   {
    gTF = drSvGTF; gQuiet = drSvQuiet;
    gUpOn = drSvUpOn; gDnOn = drSvDnOn; gUpS = drSvUpS; gUpP = drSvUpP; gUpW = drSvUpW; gDnS = drSvDnS; gDnP = drSvDnP; gDnW = drSvDnW; gUpB = drSvUpB; gDnB = drSvDnB;
    int n = ArraySize(drSvTL); ArrayResize(TL, n); for(int i = 0; i < n; i++) TL[i] = drSvTL[i];
+   RjA_UpT = drSvRjUpT; RjA_DnT = drSvRjDnT;                          // Raja v2.1 (A)
   }
 
 //--- timeframe tables (spec 2.1)
@@ -1272,13 +1372,18 @@ bool DirFreshAt(ENUM_TIMEFRAMES tf, Zone &z)
    for(int j = z.testedBar; j >= 1; j--) if(SL(_Symbol, tf, j) > hi || SH(_Symbol, tf, j) < lo) return false;
    return true;
   }
+// ---- Raja v2.1 (A) ----
+// last bar of a zone's run-out: the bar of the first return to the proximal, else of the removal, else the last closed candle
+int RjA_RunEnd(Zone &z) { return z.tested ? z.testedBar : (z.removed ? z.removedBar : 1); }
 // Raja strong (type 1): the zone's move removed an opposite zone (the v1 Qualify window: removed within 5 bars of the leg)
 bool DirRajaStrong(int r, int i)
   {
+   int lo = drZ[i].legBar - 5;
+   if(RjA_StrongRun) lo = MathMin(lo, RjA_RunEnd(drZ[i]));           // Raja v2.1 (A): anywhere in the run-out
    for(int j = 0; j < ArraySize(drZ); j++)
      {
       if(drZRow[j] != r || drZ[j].dir != -drZ[i].dir || !drZ[j].removed) continue;
-      if(drZ[j].legBar > drZ[i].legBar && drZ[j].removedBar <= drZ[i].legBar && drZ[j].removedBar >= drZ[i].legBar - 5) return true;
+      if(drZ[j].legBar > drZ[i].legBar && drZ[j].removedBar <= drZ[i].legBar && drZ[j].removedBar >= lo) return true;
      }
    return false;
   }
@@ -1904,6 +2009,16 @@ struct ZoneDNA
    int      dir, dirq, align, stE, stI, stH, stP;
    // F29 plan
    double   planRR, stopAtr;
+   // ---- Raja v2.1 (A) ---- (all 0 / false unless the RjA_* switches are on)
+   bool     rjaTL;                   // the run-out crossed an opposite trendline by a close / departure candle (RjA_ArrDepart)
+   bool     rjaAdj;                  // formed right next to a live older opposite zone, no gap (RjA_Adjacent)
+   bool     rjaNextOppHtf;           // inside or within one zone height of an opposite HtfOf zone (RjA_OppHtfVeto)
+   double   rjaLineDist;             // pips from the zone to its own-side trendline now (-1 = no line; RjA_NearLine / RjA_TLTouch)
+   int      rjaLineT;                // touches of that line (0 = not counted)
+   bool     rjaNearest;              // the live same-side zone nearest that line
+   int      rjaPCP;                  // P vs CP: -1 a P sits right next to this CP (prefer the P), 1 this P has a CP next to it, 2 CP with a gap from the P
+   bool     rjaDidJob;               // the run-out reached its target (next opposite zone) before price came back
+   double   rjaJobPx;                // that target
   };
 
 struct LensOut
@@ -2035,6 +2150,108 @@ void DnaPrepare()
    else gLensD1 = HtfTrend(_Symbol, PERIOD_D1);
   }
 
+// ---- Raja v2.1 (A) ----
+// cross bar of a chart (CTF) line, Raja style: with InpDirDepartATR > 0 the departure close of DirCrossBar, else the
+// first candle that CLOSES beyond the line (any body). -1 = not crossed.
+int RjA_CrossBar(TLine &t)
+  {
+   if(InpDirDepartATR > 0) return DirCrossBar(CTF, t);
+   double slp = (t.pb - t.pa) / MathMax(1, t.a - t.b);
+   for(int j = t.b - 1; j >= 1; j--)
+     {
+      double lv = LineAt(t.pb, t.b, slp, j), c = SC(_Symbol, CTF, j);
+      if(t.dir > 0 ? c < lv : c > lv) return j;
+     }
+   return -1;
+  }
+// a chart line of direction ldir crossed (RjA_CrossBar) on a bar in [lo, hi] (TL = this chart's lines)
+bool RjA_TLCrossIn(int ldir, int lo, int hi)
+  {
+   for(int t = 0; t < ArraySize(TL); t++)
+     {
+      if(TL[t].dir != ldir) continue;
+      int cb = RjA_CrossBar(TL[t]);
+      if(cb >= 0 && cb >= lo && cb <= hi) return true;
+     }
+   return false;
+  }
+// the zone's own-side trendline now (demand: the up line, supply: the down line): this chart's newest respected one,
+// else the HtfOf one; false = none. lv = its price on the current bar, nt = its touches (0 = not counted)
+bool RjA_LineNow(int d, double &lv, int &nt)
+  {
+   lv = 0; nt = 0;
+   if(d > 0 && gUpOn) { lv = LineAt(gUpP, gUpB, gUpS, 0); nt = RjA_UpT; return true; }
+   if(d < 0 && gDnOn) { lv = LineAt(gDnP, gDnB, gDnS, 0); nt = RjA_DnT; return true; }
+   if(gHTF > 0)
+     {
+      int sh = iBarShift(_Symbol, gHTF, cT(0));
+      if(d > 0 && gHUpOn) { lv = gHUpP + gHUpS * (gHUpB - sh); nt = RjA_HUpT; return true; }
+      if(d < 0 && gHDnOn) { lv = gHDnP + gHDnS * (gHDnB - sh); nt = RjA_HDnT; return true; }
+     }
+   return false;
+  }
+// pips from a price level to a zone's range (0 = the level is inside the zone)
+double RjA_PipsTo(double lv, double p1, double p2)
+  {
+   double lo = MathMin(p1, p2), hi = MathMax(p1, p2), pip = MathMax(PipSize(), _Point);
+   if(lv >= lo && lv <= hi) return 0;
+   return MathMin(MathAbs(lv - lo), MathAbs(lv - hi)) / pip;
+  }
+// DNA extras of the Raja v2.1 (A) rules (only with their switches on; chart TF only, like the other line reads)
+void RjA_DnaExtra(ENUM_TIMEFRAMES tf, Zone &zs[], int i, ZoneDNA &x)
+  {
+   x.rjaLineDist = -1; x.rjaLineT = 0; x.rjaNearest = false; x.rjaPCP = 0; x.rjaDidJob = false; x.rjaJobPx = 0; x.rjaNextOppHtf = false;
+   if(tf != CTF) return;
+   int nz = ArraySize(zs), d = x.d;
+   double h = x.h, zlo = MathMin(x.prox, x.dist), zhi = MathMax(x.prox, x.dist);
+   //--- distance to its trendline, the line's touches, nearest live same-side zone to that line (L4, Mar 5, Jun 25)
+   double lv = 0; int nt = 0;
+   if((RjA_NearLine || RjA_TLTouch) && RjA_LineNow(d, lv, nt))
+     {
+      x.rjaLineT = nt;
+      x.rjaLineDist = RjA_PipsTo(lv, x.prox, x.dist);
+      x.rjaNearest = true;
+      for(int j = 0; j < nz && x.rjaNearest; j++)
+        {
+         if(j == i || zs[j].dir != d || zs[j].removed || zs[j].legBar > InpMaxZoneAge) continue;
+         if(RjA_PipsTo(lv, zs[j].prox, zs[j].dist) < x.rjaLineDist) x.rjaNearest = false;
+        }
+     }
+   //--- strong zone inside / right next to an opposite HtfOf zone (private 2022: it gets removed, not respected)
+   if(RjA_OppHtfVeto)
+      for(int j = 0; j < ArraySize(dnHz); j++)
+        {
+         if(dnHz[j].removed || dnHz[j].dir == d) continue;
+         double lo2 = MathMin(dnHz[j].prox, dnHz[j].dist), hi2 = MathMax(dnHz[j].prox, dnHz[j].dist);
+         if(MathMax(zlo, lo2) - MathMin(zhi, hi2) <= h) { x.rjaNextOppHtf = true; break; }
+        }
+   if(!RjA_Lens8) return;
+   //--- P vs CP (L104): a CP right next to the P (no gap) -> prefer the P; a CP that formed nearer price with a gap -> use the CP
+   double bestGap = -1; int bj = -1;
+   for(int j = 0; j < nz; j++)
+     {
+      if(j == i || zs[j].dir != d || zs[j].removed || zs[j].cont == x.cont) continue;
+      double lo2 = MathMin(zs[j].prox, zs[j].dist), hi2 = MathMax(zs[j].prox, zs[j].dist);
+      double gp = MathMax(0.0, MathMax(zlo, lo2) - MathMin(zhi, hi2));
+      if(bj < 0 || gp < bestGap) { bj = j; bestGap = gp; }
+     }
+   if(bj >= 0)
+     {
+      if(bestGap <= 0.1 * h) x.rjaPCP = x.cont ? -1 : 1;
+      else if(x.cont && bestGap <= 3 * h && d * (x.prox - zs[bj].prox) > 0) x.rjaPCP = 2;
+     }
+   //--- the zone already did its job (L5, Feb 18): the run-out reached the next opposite zone (one it did not remove) before price came back
+   double tg = 0;
+   for(int j = 0; j < nz; j++)
+     {
+      if(zs[j].dir == d || zs[j].legBar <= x.L) continue;              // older opposite zones only
+      if(zs[j].removed && zs[j].removedBar >= x.runoutBar) continue;   // removed before the base or by this run-out: not the target
+      if(d * (zs[j].prox - x.prox) <= 0) continue;
+      if(tg == 0 || d * (zs[j].prox - tg) < 0) tg = zs[j].prox;
+     }
+   if(tg != 0 && d * (x.runoutPx - tg) >= 0) { x.rjaDidJob = true; x.rjaJobPx = tg; }
+  }
+
 // the whole DNA of zs[i] on timeframe tf (spec 3, F01-F29; planRR / stopAtr are set by the host from the v1 plan)
 void DnaCompute(ENUM_TIMEFRAMES tf, Zone &zs[], int i, ZoneDNA &x)
   {
@@ -2106,6 +2323,13 @@ void DnaCompute(ENUM_TIMEFRAMES tf, Zone &zs[], int i, ZoneDNA &x)
    x.newHL = StringFind(q, "new high") >= 0 || StringFind(q, "new low") >= 0; x.rmPrevHL = StringFind(q, "removed the previous") >= 0;
    x.arrivalRaja = x.rmTL && x.rmOppN >= 1;
    x.rajaStrong = x.rmOppN >= 1;
+   // Raja v2.1 (A): strong = an opposite zone removed anywhere in the run-out; arrival = the run-out also crossed the trendline by a close
+   if(RjA_StrongRun) { x.rajaStrong = x.rmOppMove >= 1; x.arrivalRaja = x.rmTL && x.rmOppMove >= 1; }
+   if(RjA_ArrDepart && tf == CTF)
+     {
+      x.rjaTL = RjA_TLCrossIn(-d, MathMin(bb, L - 5), L);
+      x.arrivalRaja = x.rjaTL && (RjA_StrongRun ? x.rmOppMove : x.rmOppN) >= 1;
+     }
    //--- F13 ATH and F20 origin: long scans, once per zone (cached by id)
    int ci = DnaCacheFind(x.key);
    double leftLv = 0;
@@ -2244,12 +2468,13 @@ void DnaCompute(ENUM_TIMEFRAMES tf, Zone &zs[], int i, ZoneDNA &x)
       double gp = d * (z.dist - zs[j].prox);                         // >= 0: the other zone's proximal sits just beyond this distal
       if(gp >= 0 && gp <= 0.5 * h) { x.stacked = true; break; }
      }
+   RjA_DnaExtra(tf, zs, i, x);                                       // Raja v2.1 (A): line distance / touches, P vs CP, did its job, next to an opposite HTF zone
    //--- F25 weak types (Raja RJ-B)
    int tTouch = x.touch1Bar >= 0 ? x.touch1Bar : 0;
    bool swingBase = false;
    for(int j = L; j <= B && !swingBase; j++) if(DnaAdv(tf, d, j) == z.dist && DnaFrac(tf, j, d)) swingBase = true;
    x.inherit = false;
-   if(swingBase && x.rmTL && x.rmOppN == 0)
+   if(swingBase && ((RjA_ArrDepart && tf == CTF) ? x.rjaTL : x.rmTL) && (RjA_StrongRun ? x.rmOppMove : x.rmOppN) == 0)   // Raja v2.1 (A) switches; off = v2.00
       for(int j = i + 1; j < nz; j++)
          if(zs[j].dir == d && zs[j].legBar < L && zs[j].saBar > tTouch && DnaRmOpp(zs, j, zs[j].legBar - 5) >= 1) { x.inherit = true; break; }
    x.overlap = false; x.flip = false;
@@ -2257,9 +2482,14 @@ void DnaCompute(ENUM_TIMEFRAMES tf, Zone &zs[], int i, ZoneDNA &x)
      {
       if(zs[j].dir == d || zs[j].legBar <= L) continue;              // older opposite zones only
       double lo2 = MathMin(zs[j].prox, zs[j].dist), hi2 = MathMax(zs[j].prox, zs[j].dist);
-      if(MathMax(zlo, lo2) > MathMin(zhi, hi2)) continue;
+      if(MathMax(zlo, lo2) > MathMin(zhi, hi2))
+        {
+         // Raja v2.1 (A): a zone formed right next to a live opposite zone (no gap) is an overlap zone too (L52)
+         if(RjA_Adjacent && (!zs[j].removed || zs[j].removedBar < B) && MathMax(zlo, lo2) - MathMin(zhi, hi2) <= 0.1 * h) { x.overlap = true; x.rjaAdj = true; }
+         continue;
+        }
       if(!zs[j].removed || zs[j].removedBar < B) x.overlap = true;  // still live when this base formed: formed inside it
-      else x.flip = true;                                            // removed before this base: polarity flip
+      else if(!RjA_FlipTL || tf != CTF || RjA_TLCrossIn(-d, B, 1000000)) x.flip = true;   // removed before this base: polarity flip (Raja v2.1 A: only after a trendline cross)
      }
    x.outTl = false;
    if(gDirOk && drH >= 0 && x.nTests == 0 && !z.removed)
@@ -2308,6 +2538,64 @@ ENUM_TIMEFRAMES LensConfTF(ENUM_TIMEFRAMES tf)
      }
    if(VIsTF(tf)) return PERIOD_MN1;
    return PERIOD_CURRENT;
+  }
+
+// ---- Raja v2.1 (A) ----
+// Raja's touch allowance per TF for a tested, live zone (x.nTests earlier touches): H1 and below - the 2nd tap often breaks
+// it (confirmation only with HTF pressure, else skip); H4 and MN - touches 2-3 confirmation, the 4th usually breaks;
+// D1 / W1 - 2nd confirmation, 3rd risky, 4th skip
+void RjA_RajaTouch(ZoneDNA &x, string &txt, int &tm)
+  {
+   int tc = RjA_TfClass(x.tf), nx = x.nTests + 1;
+   if(tc == 3 || tc == 1)
+     {
+      if(x.nTests <= 2) { txt = StringFormat("touch %d: needs confirmation (%s zones hold 3-4 taps)", nx, tc == 3 ? "MN" : "H4"); tm = 2; }
+      else { txt = StringFormat("touch %d: the 4th usually breaks - skip", nx); tm = 0; }
+     }
+   else if(tc == 2)
+     {
+      if(x.nTests == 1) { txt = "2nd touch: needs confirmation"; tm = 2; }
+      else if(x.nTests == 2) { txt = "3rd touch: risky, needs confirmation"; tm = 2; }
+      else { txt = StringFormat("touch %d: skip", nx); tm = 0; }
+     }
+   else
+     {
+      bool press = x.nested || x.impulse;                             // HTF pressure behind the zone
+      if(x.nTests == 1 && press) { txt = "2nd touch: H1 zones often break here - needs confirmation"; tm = 2; }
+      else if(x.nTests == 1) { txt = "2nd touch: no HTF pressure, H1 zones break on the 2nd tap - skip"; tm = 0; }
+      else { txt = StringFormat("touch %d: skip", nx); tm = 0; }
+     }
+  }
+// Raja lens notes of the v2.1 (A) rules; returns the Raja score change
+int RjA_LensNotes(ZoneDNA &x, string &rn)
+  {
+   int adj = 0;
+   if(RjA_TLTouch && x.rjaLineT >= 3)
+      rn += x.rjaLineT >= 4 ? StringFormat("trendline touched %d times: weak, likely breaks; ", x.rjaLineT) : "trendline touched 3 times: the 4th touch likely breaks it; ";
+   if(RjA_NearLine && x.rjaLineDist >= 0)
+     {
+      if(x.rjaNearest) { rn += "nearest zone to the trendline: preferred; "; adj++; }
+      if(x.rjaLineDist > RjA_FarPips) { rn += StringFormat("%.0f pips from the trendline: often breaks when price comes to the line; ", x.rjaLineDist); adj--; }
+     }
+   if(RjA_Adjacent && x.rjaAdj) rn += "formed right next to an opposite zone (no gap): overlap, confirmation only; ";
+   if(RjA_Lens8)
+     {
+      if(x.cpRun >= 3) rn += StringFormat("CP x%d in a row: do not trade the next one (it reverses); ", x.cpRun);
+      if(x.rjaPCP == -1) rn += "a P sits right next to this CP (no gap): prefer the P; ";
+      else if(x.rjaPCP == 1) rn += "CP right next to this P (no gap): the P is preferred; ";
+      else if(x.rjaPCP == 2) rn += "CP formed with a gap from the P: use the CP; ";
+      if(x.rjaDidJob) rn += "already did its job (reached " + DoubleToString(x.rjaJobPx, _Digits) + " before coming back): tapped once, breaks on the 2nd visit - confirmation only; ";
+     }
+   if(RjA_OppHtfVeto && x.rjaNextOppHtf && (x.rajaCode == RT_ARR || x.rajaCode == RT_WOW || x.rajaCode == RT_STR))
+      rn += "strong zone next to an opposite HTF zone: no trade (it gets removed); ";
+   return adj;
+  }
+// Raja lens vetoes of the v2.1 (A) rules
+void RjA_LensVeto(ZoneDNA &x, bool strong, LensOut &o)
+  {
+   if(RjA_OppHtfVeto && strong && x.rjaNextOppHtf) { o.passR = false; o.emR = 0; }
+   if(RjA_Lens8 && x.cpRun >= 3) { o.passR = false; o.emR = 0; }
+   if(RjA_Lens8 && x.rjaDidJob && !x.removed) { o.passR = false; if(o.emR == 1) o.emR = 2; }   // no set & forget: confirmation only
   }
 
 // the four mentor lenses and the consensus for one zone (spec 4). kVer / kGrade / np / nm / nc = the v1 ZoneNotes result.
@@ -2369,6 +2657,7 @@ void LensRun(ZoneDNA &x, string kVer, string kGrade, int np, int nm, int nc, Len
    else if(tfc == 2) { if(x.nTests <= 2) { o.rTouch = StringFormat("touch %d: confirmation", x.nTests + 1); tm = 2; } else { o.rTouch = "4th touch: expect a break"; tm = 0; } }
    else if(tfc == 1) { if(x.nTests == 1) { o.rTouch = "2nd touch: confirmation"; tm = 2; } else if(x.nTests == 2) { o.rTouch = "3rd touch: risky, confirmation only"; tm = 2; } else { o.rTouch = "4th touch: skip"; tm = 0; } }
    else { if(x.nTests == 1) { o.rTouch = "2nd touch: confirmation"; tm = 2; } else { o.rTouch = "3rd touch: skip"; tm = 0; } }
+   if(RjA_TouchTF && !x.removed && !fresh) { string rjT = o.rTouch; RjA_RajaTouch(x, rjT, tm); o.rTouch = rjT; }   // Raja v2.1 (A): per-TF touch allowance
    double cz = x.curveZone;
    bool cRight = d > 0 ? cz <= InpCurveLow : cz >= InpCurveHigh;
    bool cWrong = d > 0 ? cz >= InpCurveHigh : cz <= InpCurveLow;
@@ -2379,6 +2668,7 @@ void LensRun(ZoneDNA &x, string kVer, string kGrade, int np, int nm, int nc, Len
    if(x.tf < PERIOD_D1 && !x.impulse) rn += "correction side: short-term only / confirmation; ";
    if(x.roomR < 2) rn += "margin < 2x: skip (1x = sideways); "; else if(x.roomR < 3) rn += "margin 2x: acceptable; ";
    if(x.rajaLive) rn += "Raja: still live (1 close only); ";
+   int rjAdj = RjA_LensNotes(x, rn);                                 // Raja v2.1 (A): notes + score change (0 with the switches off)
    o.rNote = rn;
    int sr = (x.rajaCode == RT_ARR || x.rajaCode == RT_WOW) ? 4 : (x.rajaCode == RT_STR ? 3 : 0);
    sr += fresh ? 2 : ((x.nTests == 1 && !x.removed) ? 1 : 0);
@@ -2387,6 +2677,8 @@ void LensRun(ZoneDNA &x, string kVer, string kGrade, int np, int nm, int nc, Len
    o.scoreR = MathMin(10, sr);
    o.passR = strong && fresh && !cWrong && x.roomR >= 2 && (x.tf >= PERIOD_D1 || x.impulse);
    o.emR = (strong && fresh) ? 1 : (tm == 0 ? 0 : 2);
+   if(rjAdj != 0) o.scoreR = (int)MathMax(0, MathMin(10, sr + rjAdj));
+   RjA_LensVeto(x, strong, o);                                       // Raja v2.1 (A): no-trade / confirmation-only cases (none with the switches off)
    // ---- Raja v2.1 (B) ---- never trade sideways (L8): the zone's TF (or also the Direction HTF) is stuck in a range
    if(InpRjBChop)
      {
@@ -2453,7 +2745,7 @@ int V2MergeSelect(double px, int &sel[])
      {
       if(Z[i].legBar > InpMaxZoneAge) continue;
       if(Z[i].removed && !InpShowRemoved) continue;
-      if(Z[i].tested && !InpShowTested) continue;
+      if(Z[i].tested && RjA_HideTested(CTF, Z[i])) continue;          // = !InpShowTested unless RjA_ShowTested (Raja v2.1 A)
       if(RjC_OnlyQual() && !Z[i].chain && !Z[i].removed) continue;
       if(TooSmall(Z, i)) continue;
       if(V2Hide(Z[i])) continue;
@@ -2908,7 +3200,8 @@ uint RFX_Crc32(string s)
 string RFX_CfgText()
   {
    return StringFormat("%.4f|%d|%.4f|%.4f|%d|%d|%.4f|%.4f|%d|%d|%d", InpMinLegRatio, InpMaxBase, InpMaxZoneATR, InpEmoATR, InpLookback, InpMaxZoneAge,
-                       InpMinGap, InpMinSizeVsMedian, InpTLSwing, InpTLHistory, InpTLBias ? 1 : 0);
+                       InpMinGap, InpMinSizeVsMedian, InpTLSwing, InpTLHistory, InpTLBias ? 1 : 0)
+          + (RjA_RmMode != 0 ? "|rm" + IntegerToString(RjA_RmMode) : "");   // Raja v2.1 (A): close-only removal changes the zones (default: text unchanged)
   }
 uint   RFX_CfgHash() { return RFX_Crc32(RFX_CfgText()); }
 string RFX_GVName(string sym, string tf, string k, string f) { return "RFX2|" + sym + "|" + tf + "|" + k + "|" + f; }
@@ -2964,6 +3257,7 @@ bool CoreEval(ENUM_TIMEFRAMES T)
      {
       gTF = h0; Trendlines(_Symbol, h0); TLBias();
       gHTF = h0; gHUpOn = gUpOn; gHUpS = gUpS; gHUpP = gUpP; gHUpW = gUpW; gHUpB = gUpB; gHDnOn = gDnOn; gHDnS = gDnS; gHDnP = gDnP; gHDnW = gDnW; gHDnB = gDnB;
+      RjA_HUpT = RjA_UpT; RjA_HDnT = RjA_DnT;                         // Raja v2.1 (A)
      }
    if(InpTLBias && gHBias != 0) gTrend = gHBias;
    gTF = CTF;

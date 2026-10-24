@@ -152,3 +152,16 @@ InpRjWickFill=true
 InpRjWickFillATR=1.5
 InpRjBlindFlag=true
 InpRjGoldNote=true
+; Raja v2.1 A
+InpRemovalMode=1
+InpRjAStrongRun=true
+InpRjAArrClose=true
+InpRjATouchTF=true
+InpRjAShowTested=true
+InpRjAAdjacent=true
+InpRjAFlipTL=true
+InpRjAOppHtfVeto=true
+InpRjATLTouches=true
+InpRjANearLine=true
+InpRjFarFromLinePips=25
+InpRjALens8=true

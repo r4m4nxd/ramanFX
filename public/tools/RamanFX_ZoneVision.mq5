@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| RamanFX_ZoneVision.mq5 v2.00 (MT5; v1 part = port of the .mq4 1.99)|
+//| RamanFX_ZoneVision.mq5 v2.10 (MT5; v1 part = port of the .mq4 1.99)|
 //| See the chart through the ZoneBot's eyes. Uses the SAME zone     |
 //| rules and defaults as RamanFX_ZoneBot so you can spot where      |
 //| the bot disagrees with you (and with the mentor).                |
@@ -33,9 +33,10 @@
 //| export (InpExportGV: global variables RFX2|sym|tf|k|field).      |
 //| With the v2 drawing inputs at default, the v1 objects are        |
 //| unchanged (golden master: InpDumpObjects).                       |
+//| v2.10: Raja inputs ("Raja (v2.1 ...)" groups), all off = v2.00. |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "2.00"
+#property version   "2.10"
 #property indicator_chart_window
 #property indicator_buffers 0
 #property indicator_plots   0
@@ -160,6 +161,19 @@ input bool   InpRjWickFill    = false;  // Mark the 50% of long wicks (likely to
 input double InpRjWickFillATR = 1.5;    // Long wick: wick > x ATR(14)
 input bool   InpRjBlindFlag   = false;  // Label "BLIND OK": fresh WOW zone, fresh arrival zone, or fresh zone at the trendline before its 4th tap
 input bool   InpRjGoldNote    = false;  // XAUUSD below H1: panel note "Raja: prefer XAUAUD on LTF"
+input group "Raja (v2.1 A)"
+input int    InpRemovalMode   = 0;      // Zone removal: 0 = close or a normal wick beyond the distal (v1, = ZoneBot), 1 = close only (Raja); drawn / removed / fresh / tested follow it
+input bool   InpRjAStrongRun  = false;  // Raja strong = removed an opposite zone anywhere in the run-out (false = within 5 bars of the leg)
+input bool   InpRjAArrClose   = false;  // Raja arrival = the run-out crossed the trendline by a close (departure candle with InpDirDepartATR > 0), not the v1 full-candle removal
+input bool   InpRjATouchTF    = false;  // Raja touch allowance per TF (H1: 2nd tap breaks; H4 / MN: 3-4 taps; D1 / W1: 3rd risky)
+input bool   InpRjAShowTested = false;  // Also draw tested zones still inside that allowance, tagged "needs confirmation"
+input bool   InpRjAAdjacent   = false;  // Overlap also = formed right next to an opposite zone with no gap (L52)
+input bool   InpRjAFlipTL     = false;  // Flip zone only after a trendline was crossed before its base (L106)
+input bool   InpRjAOppHtfVeto = false;  // Raja lens: strong zone inside / next to an opposite HTF zone = no trade
+input bool   InpRjATLTouches  = false;  // Count trendline touches (label at the line, 4th touch = likely break, 3-5 tests = weak)
+input bool   InpRjANearLine   = false;  // Raja lens: prefer the zone nearest the trendline, flag zones far from it
+input double InpRjFarFromLinePips = 25; // Far from the trendline: more than this many pips
+input bool   InpRjALens8      = false;  // Raja lens: 3 CPs in a row = skip, P vs CP note, "zone already did its job" flag
 input group "-- v2 Zone DNA + mentor lenses (display only) --"
 input bool   InpDNA           = true;   // Zone DNA for every drawn zone (departure, base, chain, tests, nested, curve, room, origin ...)
 input int    InpBaseMedianN   = 20;     // DNA: base_rel = base candles / median of the last N zones
@@ -540,6 +554,10 @@ void ApplyTheme()
 int OnInit()
   {
    CTF = Period();
+   // ---- Raja v2.1 (A) ---- inputs -> core switches (the core defaults = v2.00, which ZoneBot keeps)
+   RjA_RmMode = InpRemovalMode; RjA_StrongRun = InpRjAStrongRun; RjA_ArrDepart = InpRjAArrClose; RjA_TouchTF = InpRjATouchTF;
+   RjA_ShowTested = InpRjAShowTested; RjA_Adjacent = InpRjAAdjacent; RjA_FlipTL = InpRjAFlipTL; RjA_OppHtfVeto = InpRjAOppHtfVeto;
+   RjA_TLTouch = InpRjATLTouches; RjA_NearLine = InpRjANearLine; RjA_FarPips = InpRjFarFromLinePips; RjA_Lens8 = InpRjALens8;
    ApplyTheme();
    aCap = MathMax(InpLookback, 20) + 80;
    ArrayResize(aV, MAXTF * aCap);
@@ -836,6 +854,7 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
 void CopyHtfLine(ENUM_TIMEFRAMES h)
   {
    gHTF = h; gHUpOn = gUpOn; gHUpS = gUpS; gHUpP = gUpP; gHUpW = gUpW; gHUpB = gUpB; gHDnOn = gDnOn; gHDnS = gDnS; gHDnP = gDnP; gHDnW = gDnW; gHDnB = gDnB;
+   RjA_HUpT = RjA_UpT; RjA_HDnT = RjA_DnT;                            // Raja v2.1 (A) line touches
   }
 void Redraw()
   {
@@ -1349,6 +1368,10 @@ string V2TagText(int k)
    if(InpShowSize) ex += (ex == "" ? "" : " ") + StringFormat("%.1fp %.1fATR", zDna[k].heightPips, zDna[k].heightAtr);
    if(InpShowRunOut) ex += (ex == "" ? "" : " ") + StringFormat("run %.1fh", zDna[k].runoutH);
    if(InpShowDepth && zDna[k].nTests > 0) ex += (ex == "" ? "" : " ") + StringFormat("T%d %.0f%%", zDna[k].nTests, zDna[k].depthMax);
+   if(InpRjAShowTested && zDna[k].nTests > 0 && !zDna[k].removed)   // Raja v2.1 (A): tested zone shown inside the touch allowance
+      ex += (ex == "" ? "" : " ") + StringFormat("touch %d: needs confirmation", zDna[k].nTests + 1);
+   if(InpRjALens8 && zDna[k].rjaDidJob) ex += (ex == "" ? "" : " ") + "did its job";
+   if(InpRjANearLine && zDna[k].rjaLineDist > InpRjFarFromLinePips) ex += (ex == "" ? "" : " ") + StringFormat("%.0fp from TL", zDna[k].rjaLineDist);
    if(ex != "") t += (t == "" ? "" : sep) + ex;
    return t;
   }
