@@ -9,6 +9,7 @@ import { KEVIN_COURSE } from '@/core/mentors/kevin';
 import { KEVIN_ZOOM } from '@/core/mentors/kevin/zoom';
 import { KEVIN_DAILY } from '@/core/mentors/kevin/daily';
 import { LessonListen } from '@/ui/listen/RecordedPlayer';
+import { KevinPodcasts } from '@/ui/KevinPodcasts';
 import { GLOSSARY, type GlossaryMentor } from '@/core/glossary';
 import { LessonFigures, RealCharts, safeFigures } from '@/ui/LessonMedia';
 import { BarPill, Collapsible, ExpandAll, JumpMenu, PillBar, PillTag, scrollToSection, useActiveSection, useOpenSet } from '@/ui/Collapse';
@@ -327,6 +328,7 @@ export default function Learn() {
               </>
             )}
           </Card>
+          {!review && !gloss && (src === 'course' || src === 'zoom' || src === 'daily') && <KevinPodcasts />}
           {!side && !lesson && LIST.length > 0 && (upNext ? (
             <button type="button" onClick={() => go({ l: String(upNext.n) })} className="press card p-3.5 flex lg:hidden items-center gap-3 text-left w-full ring-1 ring-accent/25 hover:bg-raised/60 transition-colors">
               <span className="w-10 h-10 rounded-xl bg-accent/15 text-accent grid place-items-center shrink-0"><Icon name="play" size={16} /></span>
