@@ -6128,5 +6128,499 @@ export const ZOOM_SESSIONS: ZoomSession[] = [
     "plannerStep": "Verdict"
    }
   ]
+ },
+ {
+  "n": 14,
+  "title": "Removals that give no zone, wick-only trendlines and targets set by the higher timeframe",
+  "kind": "zoom",
+  "date": "2026-10-25",
+  "summary": "After another rough October week, Kevin walks the AUDUSD daily chain analysis from January 2003 to January 2004. The theme is not forcing zones: a demand candidate fails because, sized like his other zones, its stay-away candle touches the proximal line; two trendlines and a supply are removed with no zone at all; a supply that removed a trendline is drawn but was never a trade because it only qualified on that close. He re-teaches attaching a trendline off a wick, checks overextension with the channel tool (a little overextended but hovering is fine), and shows the removal candle again. The homework review centres on trendlines: wick-only valleys, lines too large (weekly), momentum lines, unattached lines, a trendline extension that no student made, and when to start a line from the top. Trade reviews stress matching the target to the higher timeframe (1:1 against it, 3:1 with it, 5:1 plus only with an HTF trendline AND an HTF zone in control), no break-of-structure confirmation, and basing as big as the move away. Next homework is AUDUSD daily on FXCM, January 2004 to January 2005. He may miss next week's meeting.",
+  "sections": [
+   {
+    "heading": "Opening: rough month, fake gurus, next week",
+    "points": [
+     "October has been rough. If you are struggling, it is okay: he has not been doing great either, after about 7 years of trading.",
+     "A 3, 4 or 5 trade losing streak is totally reasonable. Weeks like this show why you should drop online gurus who never seem to lose and were somehow on the other side of every losing trade: they mess with your head.",
+     "His second child is due around 31 October, so he will very likely miss next week's meeting and maybe a couple of breakdown videos. He will try to make it up and keep members updated; for new members this is rare."
+    ]
+   },
+   {
+    "heading": "Homework recap and the drawing rules",
+    "points": [
+     "This homework ran from January 2003 to January 2004, starting from the two zones he drew last time, copied exactly.",
+     "For new members: only draw zones that remove an opposing zone, remove a trendline, or make an all-time high or low.",
+     "The last two zones: one removed a supply, the other removed the downward trendline, all within the rules."
+    ]
+   },
+   {
+    "heading": "Part 1: a demand candidate that is not a zone",
+    "points": [
+     "Price respected an older supply from a previous homework, then broke it. Older zones are not expected to hold that well.",
+     "The only candidate for the demand that removed it is one explosive move away. The problem is drawing it.",
+     "Drawn over all the basing it gets too large, and it would combine two different sets of basing (one candle, then a second set). He does not want to combine them.",
+     "Drawn on the one basing candle it is too small compared with the other zones on the chart.",
+     "If you extend the proximal line to make it a proper size like the other zones, the stay-away candle no longer stays away: it touches the proximal line. So it is not a zone.",
+     "The only way it is a zone is drawn really tiny. That is not far off, just a little too small for his liking; he accepts it in homework but leaves it off the chart.",
+     "So the existing zone is credited with removing both areas of supply."
+    ]
+   },
+   {
+    "heading": "Part 2: trendline from the recent valley, adjusted off a wick",
+    "points": [
+     "Last week's trendline got so overextended it was ended. The aggressive push up makes everything look small, so zoom properly.",
+     "Zoomed out there is a trendline: a blatant peak, a blatant valley and a higher high. Everybody should have it.",
+     "What he does not want: a line along a steep rally. That is momentum. Everything is technically a peak and valley; he wants obvious ones.",
+     "Attach from the recent valley to the next valley. Go to the lowest point possible (here a red wick), then adjust so the line does not cut through that wick.",
+     "Channel tool check: it got a little overextended but kept hovering around the line, so keep it and extend it to where it was removed. One more aggressive leg up would have meant ending it."
+    ]
+   },
+   {
+    "heading": "Part 3: removals that give no zone",
+    "points": [
+     "Price pushed into a supply tested from earlier; clearly lots of supply there, with another massive drop. That supply was later removed.",
+     "He sees no demand that removed it, so no zone. Just because a zone or a trendline was removed does not mean there is a zone. Do not force zones.",
+     "The closest candidate is not a good enough move away: those are obvious basing candles, one of them a larger basing candle.",
+     "With no supply above either, the area is a bunch of nothing."
+    ]
+   },
+   {
+    "heading": "Part 4: downtrend lines and the removal candle",
+    "points": [
+     "A good peak, valley and lower low gives a downtrend line.",
+     "It was removed when the green candle closed above it with wick and body not touching the line. The red candle before it still had its wick touching the line, so it was not removed yet.",
+     "Another peak, valley and lower low gives another downtrend line, later removed.",
+     "Rule 2 says a removed trendline gives a zone, but here there is no demand, so no zone is drawn."
+    ]
+   },
+   {
+    "heading": "Part 5: the supply that was never a trade",
+    "points": [
+     "The old uptrend line was removed when a candle closed below it. Going up to find the supply that removed it, it is right there.",
+     "It is drawn even though it was already tested, but it would not have been a trade: it was not a zone until that candle closed below the trendline.",
+     "So one trendline has no zone, the other trendline has this supply as its zone."
+    ]
+   },
+   {
+    "heading": "Part 6: the 0.65 demand",
+    "points": [
+     "With that downtrend line and the supply both removed, his eye goes straight to the demand at about 0.65.",
+     "Pretty decent: he likes that it removed both a downward trendline and an opposing zone. He says '2-1' here (unclear: possibly a 2:1 or 'two for one').",
+     "No pullback came. Price got so far away that a later break is no surprise: a supply came into control in 2008, about 5 years later, so the zone is pretty much irrelevant by then.",
+     "In a real trading situation: wait for the pullback to the daily zone, switch to H1, and look for confirmation trades to the upside, as on gold this week.",
+     "Gold this week: the daily zone ended up breaking; he broke even on both confirmation trades, some members made money on both."
+    ]
+   },
+   {
+    "heading": "Where the analysis ends: garbage price action",
+    "points": [
+     "The last part is absolute garbage price action: no trendline, no zones, and no supply to remove, so the chain analysis ends there.",
+     "The period was decent, with a lot of tests that you did not force zones.",
+     "It reminds him of the USDCAD daily right now, one of the worst charts he has seen: since the trendline broke it is straight up, straight down, no explosive moves."
+    ]
+   },
+   {
+    "heading": "Homework review: trendlines",
+    "points": [
+     "A valley without enough body is not a trendline ('little boo-boo trend line'). He wants bodies in the valleys, not a line resting on one wick here and one wick there.",
+     "Even if the valley had bodies, the line would start from the lowest point, not partway up.",
+     "Extending a line that got very overextended (and was not a trendline anyway) is a mistake; it becomes irrelevant.",
+     "Starting a trendline from up top is something he does only when a line from the bottom would be too horizontal. With a fair enough angle, start from the bottom.",
+     "Many students drew a very large trendline. It is not wrong, but it represents a weekly chart; he would not draw it. Close calls like this are borderline, not 'way off'.",
+     "Not a single student extended the one trendline that needed extending. It was a close call, but price kept coming back to it. A little overextended and hovering is fine; if price takes off, end the line.",
+     "Missing that extension cost students the supply that removed it.",
+     "A valley and a peak without a lower low after them is not a downtrend line. Lines that are 'too momentum-y' are not trendlines.",
+     "Attach your trendlines; a student's lines were floating, not attached.",
+     "When a trendline is wrong, delete and fix everything after it."
+    ]
+   },
+   {
+    "heading": "Homework review: zones",
+    "points": [
+     "Good: most students did not force zones in the empty areas.",
+     "'What did this remove?' A zone that accomplished nothing should not be on the chart: you have your rules, so follow them.",
+     "A student asked whether a 3-candle move can be an imbalance: no. The initial candle has to be the explosive move away; three ordinary candles are not enough.",
+     "No 'little boo-boo basing candle zones'.",
+     "A first-time student marking zones on GBPUSD (FxPro) was about 50-50: power through all the video lessons and do all their homework until you get it right, then join the Sunday homework.",
+     "Homework on the 15-minute chart again cannot be marked. Share the AUDUSD daily: copy the chart link, post it in the homework tab, and leave it saved on the daily.",
+     "Overall many positives, but still some crucial mistakes that cannot be made."
+    ]
+   },
+   {
+    "heading": "Next week's homework",
+    "points": [
+     "AUDUSD daily, FXCM, January 2004 to January 2005.",
+     "From his chart link in the Discord, draw both older zones exactly as he did, because they come into play.",
+     "It looks like a decent week for trendlines, not many zones. He tries to vary the meetings because some periods are just bad."
+    ]
+   },
+   {
+    "heading": "Trade reviews: zone quality",
+    "points": [
+     "A loss off a basing-candle move away: not a zone, probably why it lost.",
+     "A 15m set-and-forget win with nice basing and a very explosive move away: picture perfect, doesn't get better.",
+     "A 15m zone drawn far too large: it should be the single candle. It would not have changed the trade (looked like a news event).",
+     "An AUDUSD demand where the basing is about the same size as the move away (he measured both with the width tool): not a demand, even though it worked.",
+     "AUDCHF daily supply above, wider stop, 1:2R: single candle basing, very explosive move away, great zone.",
+     "A 15m set-and-forget win that technically qualifies (good trendline, removed it) but with a wick and a quick return: low quality, he would not have traded it.",
+     "A student did not treat the daily demand as removed because he read the wick as emotional. Kevin: the wick is about on par, the demand was removed; the loss was probably due to that.",
+     "Please don't send screenshots with no candle detail, and don't show dollar amounts."
+    ]
+   },
+   {
+    "heading": "Trade reviews: higher timeframe and targets",
+    "points": [
+     "H1 supply as the higher timeframe with 5m confirmation: the trendline was elsewhere but gave the same zone. A normal loss, nothing wrong with the setup.",
+     "A daily supply with a 15m entry, not from the chain analysis: fine, but going from daily straight to 15m is not the best idea in his opinion.",
+     "Why he likes chain analysis: it prevents too many zones on the chart, and he believes there is an edge in the idea that banks bought here and then broke where they previously bought.",
+     "CADJPY: daily bearish, H1 demand that removed a trendline, extremely wide stop. The line drawn was not a trendline (no lower low after the valley); the real one gave the same zone. He targeted only 1:1 because of the daily downtrend: very good.",
+     "Crude oil: daily bullish, H1 demand that removed several supplies, drawn bigger than his own zone. With the trend he took 3:1. Larger zones are getting filled more often for some members, which 'might be something we have to adjust'.",
+     "That is professional: aggressive trade management against the higher timeframe, less aggressive with it. It separates beginners from pros.",
+     "Gold with a daily demand in control but sideways: he looked for about 3:1, not the high, and broke even twice. For 5:1, 10:1 he wants both an HTF uptrend line AND an HTF zone in control; here only the zone.",
+     "An older EUR zone with a liquidity trap: only 1:1 because it was an older zone. Giving up profit margin does not matter.",
+     "A loss with the higher timeframe trend was a larger risk-reward opportunity; he would take it all day.",
+     "Wider stop, wider entry, larger position when targeting a lower risk-reward; a tighter stop when the situation calls for a larger risk-reward.",
+     "When a trade is near the target and you are unsure, you could bump your stop to lock in 1:1.",
+     "AUDUSD H1 with a 5m break-of-structure confirmation: we do not use break of structure for confirmation (not saying you can't), and the zone was weird.",
+     "A 4H USDJPY trade outside his chain analysis was still a beauty; a quick Dow 1:2 'nothing beats this'."
+    ]
+   },
+   {
+    "heading": "Wrap-up",
+    "points": [
+     "A much better week for members, with even the losing trades mostly good setups.",
+     "There is no chain analysis video: the Sunday meetings are the chain analysis lessons, so watch as many in the Sunday Meeting tab as you can.",
+     "He may miss next Sunday and will keep members updated; the first part of the week should be normal."
+    ]
+   }
+  ],
+  "rules": [
+   "Only draw zones that remove an opposing zone, remove a trendline or make an all-time high/low.",
+   "A removed zone or trendline does not guarantee a zone: if no explosive move removed it, draw nothing.",
+   "Size a zone like the other zones on the chart; if at that size the stay-away candle touches the proximal line, it is not a zone.",
+   "Do not combine two separate sets of basing into one zone.",
+   "A trendline needs a blatant peak, a blatant valley and a higher high (uptrend) or lower low (downtrend).",
+   "Attach the trendline at the lowest point, then adjust it so it does not cut through a wick.",
+   "Valleys and peaks need candle bodies, not just one wick.",
+   "Start a trendline from the top only when a line from the bottom would be too horizontal.",
+   "Keep a slightly overextended trendline if price keeps hovering around it; end it when price takes off.",
+   "A trendline is removed only by a candle that closes beyond it with body and wick clear of the line.",
+   "A zone that qualified only on a later close was not a trade before that close; draw it, don't count it as a trade.",
+   "Do not draw very large (weekly-sized) trendlines on the daily homework.",
+   "The first candle of a zone's move away must be explosive; three ordinary candles are not an imbalance.",
+   "Basing about the same size as the move away is not a zone.",
+   "Against the higher timeframe target 1:1; with it look for about 3:1; look for 5:1 plus only with an HTF trendline and an HTF zone in control.",
+   "Target 1:1 on older zones.",
+   "Do not use break of structure as confirmation.",
+   "Leave the homework saved on AUDUSD, FXCM, daily."
+  ],
+  "mistakes": [
+   "Forcing a zone after every removal.",
+   "Enlarging a too-small zone without checking that the stay-away candle still stays away.",
+   "Combining two sets of basing candles.",
+   "Drawing momentum lines as trendlines.",
+   "Drawing trendlines on wick-only valleys.",
+   "Starting a trendline partway up instead of from the lowest point.",
+   "Not extending a trendline that was only slightly overextended.",
+   "Extending a very overextended line.",
+   "Drawing downtrend lines without a lower low.",
+   "Leaving trendlines unattached.",
+   "Drawing zones that removed nothing.",
+   "Calling three ordinary candles an imbalance.",
+   "Little basing-candle zones and basing as big as the move away.",
+   "Drawing a lower-timeframe zone far too large.",
+   "Ignoring a removal because the wick looked emotional.",
+   "Homework on the 15-minute chart.",
+   "Low-detail screenshots and showing dollar amounts.",
+   "Following gurus who never seem to lose."
+  ],
+  "quotes": [
+   "Just because we have a zone removed, or a trend line removed, doesn't mean we have a zone.",
+   "We're not gonna force any zones here.",
+   "Everything is technically a peak and valley. What we're looking for is these obvious peaks and valleys.",
+   "We gotta have bodies in it as well.",
+   "Whenever I see price action like this, it bums me out. It's absolute garbage.",
+   "Aggressive with trade management on this one, less aggressive with trade management on this one. That's what separates the beginners from the pros.",
+   "We do not look for break of structure for confirmation."
+  ],
+  "diagrams": [
+   {
+    "key": "draw",
+    "caption": "Drawn over all the basing it is too big; on one candle too small; at a normal size the stay-away candle touches the proximal, so no zone."
+   },
+   {
+    "key": "trend-momentum",
+    "caption": "A line along a steep rally is momentum; a trendline needs obvious peaks and valleys with bodies, and a higher high."
+   },
+   {
+    "key": "trendline",
+    "caption": "Attach at the lowest wick, then adjust so the line doesn't cut through it; keep a slightly overextended line that price hovers around."
+   },
+   {
+    "key": "zone-removed",
+    "caption": "Removal is the first candle that closes beyond the line with body and wick clear; a removal without an explosive move gives no zone."
+   },
+   {
+    "key": "quality",
+    "caption": "Basing as big as the move away, wicks and quick returns are low quality; single candle basing with an explosive move away is the best."
+   },
+   {
+    "key": "mtf",
+    "caption": "The higher timeframe sets the target: 1:1 against it, about 3:1 with it, 5:1 plus only with an HTF trendline and HTF zone in control."
+   }
+  ],
+  "checklist": [
+   "Did an explosive move actually remove the zone or trendline, or is there nothing to draw?",
+   "Sized like the other zones, does the stay-away candle still stay away from the proximal?",
+   "Am I combining two sets of basing?",
+   "Is the trendline built on obvious peaks and valleys with bodies, plus a higher high or lower low?",
+   "Does the trendline cut through a wick, and is it attached?",
+   "Would a line from the bottom be too horizontal (only then start from the top)?",
+   "Is price only slightly overextended and hovering, or has it taken off?",
+   "Did this zone qualify before the entry, or only on a later close?",
+   "Is the basing smaller than the move away?",
+   "Am I trading with or against the higher timeframe, and does my target match?",
+   "Is this an older zone (target 1:1)?"
+  ],
+  "journalTags": [
+   "forced zone",
+   "stay-away touches proximal",
+   "combined basing",
+   "momentum as trendline",
+   "wick-only trendline",
+   "trendline not extended",
+   "trendline not attached",
+   "no lower low",
+   "zone removed nothing",
+   "basing as big as move away",
+   "zone too large",
+   "target ignores HTF",
+   "BOS confirmation",
+   "ignored removal"
+  ],
+  "newVsPdfs": [
+   "The size test for a candidate zone: enlarge it to the chart's normal zone size and check the stay-away candle; if it now touches the proximal line, there is no zone.",
+   "Do not combine two separate sets of basing into one zone.",
+   "Removals without an explosive move give no zone at all: rule 2 does not force a zone.",
+   "Trendline valleys need bodies, not a single wick; start from the top only when the line from the bottom would be too horizontal.",
+   "A slightly overextended trendline that price keeps hovering around is kept and extended.",
+   "Target ladder by the higher timeframe: 1:1 against it, about 3:1 with it, 5:1 plus only with both an HTF trendline and an HTF zone in control.",
+   "Wider stop and entry with a bigger position for lower risk-reward targets; tighter stops for larger risk-reward situations.",
+   "Larger zones may be getting filled more often; he said this might need adjusting (not a rule yet)."
+  ],
+  "examples": [
+   {
+    "market": "AUDUSD",
+    "timeframe": "Daily (FXCM)",
+    "setup": "Demand candidate under a broken older supply",
+    "reasoning": "Too large over all basing (two sets), too small on one candle; at normal size the stay-away candle touches the proximal.",
+    "outcome": "Not a zone; left off the chart."
+   },
+   {
+    "market": "AUDUSD",
+    "timeframe": "Daily (FXCM)",
+    "setup": "Uptrend line from the recent valley",
+    "reasoning": "Blatant peak, valley and higher high; attached off the lowest red wick so it doesn't cut it; channel shows only slight overextension.",
+    "outcome": "Kept and extended to its removal."
+   },
+   {
+    "market": "AUDUSD",
+    "timeframe": "Daily (FXCM)",
+    "setup": "Tested supply removed",
+    "reasoning": "Nothing that looks like demand; the nearest candidate is basing, not a move away.",
+    "outcome": "No zone."
+   },
+   {
+    "market": "AUDUSD",
+    "timeframe": "Daily (FXCM)",
+    "setup": "Two downtrend lines removed",
+    "reasoning": "Removed on full closes above; no demand at the removal.",
+    "outcome": "No zones."
+   },
+   {
+    "market": "AUDUSD",
+    "timeframe": "Daily (FXCM)",
+    "setup": "Supply that removed the old uptrend line",
+    "reasoning": "Drawn even though tested; only qualified on the close below the line.",
+    "outcome": "A zone but not a trade."
+   },
+   {
+    "market": "AUDUSD",
+    "timeframe": "Daily (FXCM)",
+    "setup": "Demand at about 0.6447 to 0.6508",
+    "reasoning": "Removed a downtrend line and an opposing supply.",
+    "outcome": "No pullback; broken years later (2008)."
+   },
+   {
+    "market": "Gold",
+    "timeframe": "Daily / H1",
+    "setup": "Daily demand in control, H1 confirmation trades",
+    "reasoning": "Sideways, so no trend: about 3:1 target, not the high.",
+    "outcome": "He broke even on both; some members won."
+   },
+   {
+    "market": "CADJPY",
+    "timeframe": "Daily / H1",
+    "setup": "H1 demand that removed a trendline, daily bearish",
+    "reasoning": "Line drawn was not a trendline but the real one gives the same zone; 1:1 against the daily.",
+    "outcome": "1:1 win with a wide stop."
+   },
+   {
+    "market": "Crude oil",
+    "timeframe": "Daily / H1",
+    "setup": "H1 demand that removed several supplies, daily bullish",
+    "reasoning": "With the trend, so a larger target; zone drawn larger than his.",
+    "outcome": "3:1 win."
+   },
+   {
+    "market": "AUDUSD",
+    "timeframe": "H1 / 5m",
+    "setup": "H1 zone with a 5m break-of-structure entry",
+    "reasoning": "Not how they confirm; weird zone.",
+    "outcome": "1:1 win."
+   },
+   {
+    "market": "AUDUSD",
+    "timeframe": "Unspecified (student)",
+    "setup": "Demand with basing the size of the move away",
+    "reasoning": "Not a demand.",
+    "outcome": "Win, but he would not count it."
+   },
+   {
+    "market": "EURUSD",
+    "timeframe": "Unspecified (student)",
+    "setup": "Older zone after a liquidity trap",
+    "reasoning": "Older zone, so 1:1 only.",
+    "outcome": "1:1 win."
+   },
+   {
+    "market": "AUDCHF",
+    "timeframe": "Unspecified (student)",
+    "setup": "Single-candle-basing zone, daily supply above, wider stop",
+    "reasoning": "Great zone; wide position for a lower R:R target.",
+    "outcome": "1:2R win."
+   },
+   {
+    "market": "Unspecified (student)",
+    "timeframe": "15m set and forget",
+    "setup": "Zone that removed a trendline, with a wick and a quick return",
+    "reasoning": "Technically qualifies, low quality.",
+    "outcome": "Win; he would not have traded it."
+   },
+   {
+    "market": "Unspecified (student)",
+    "timeframe": "Daily / intraday",
+    "setup": "Trade after ignoring a daily demand removal (wick read as emotional)",
+    "reasoning": "The wick was on par; the demand was removed.",
+    "outcome": "Loss, probably because of that."
+   }
+  ],
+  "qa": [
+   {
+    "q": "Is a peak and valley the same as a higher high?",
+    "a": "No. A peak and valley is an obvious, blatant peak and valley. Higher highs and higher lows are any little higher high; that is momentum."
+   },
+   {
+    "q": "The 50% candle, not a CP?",
+    "a": "He wasn't sure what was meant; 50% candles can be part of a CP zone, yes."
+   },
+   {
+    "q": "Can these 3 candles be considered an imbalance?",
+    "a": "No. It doesn't matter if it's 3 candles: the initial candle has to be an explosive move away."
+   },
+   {
+    "q": "Do you have a video on chain analysis?",
+    "a": "No. That is what all the Sunday meetings are about: go to the Sunday Meeting tab and watch as many as you can."
+   },
+   {
+    "q": "I didn't remove the daily demand when you did, because I saw the wick as emotional.",
+    "a": "Be careful: the wick is pretty much on par, just a little bigger. The demand was removed there, and the loss was probably due to that."
+   },
+   {
+    "q": "How do I share the homework correctly?",
+    "a": "Open AUDUSD daily, copy the chart link, post it in the homework tab, and leave it on the daily (not the 1 hour or 15 minute)."
+   }
+  ],
+  "newDiagrams": [
+   {
+    "id": "stay-away-touch",
+    "title": "The size test: does the stay-away candle still stay away?",
+    "caption": "Drawn on one basing candle the zone is too small; enlarged to the chart's normal size, the stay-away candle touches the proximal line, so it is not a zone.",
+    "svg": "<rect x='40' y='118' width='250' height='10' fill='#34d399' fill-opacity='0.2' stroke='#34d399' stroke-dasharray='3 2'/><text x='200' y='138' fill='#34d399' font-size='9'>too small (one candle)</text><rect x='40' y='92' width='250' height='36' fill='#34d399' fill-opacity='0.12' stroke='#34d399'/><text x='200' y='88' fill='#34d399' font-size='9'>normal size: proximal here</text><line x1='60' y1='112' x2='60' y2='132' stroke='#94a3b8'/><rect x='56' y='118' width='8' height='10' fill='#94a3b8'/><line x1='76' y1='70' x2='76' y2='124' stroke='#34d399'/><rect x='72' y='76' width='8' height='44' fill='#34d399'/><line x1='92' y1='86' x2='92' y2='100' stroke='#f87171'/><rect x='88' y='88' width='8' height='8' fill='#f87171'/><circle cx='92' cy='94' r='9' fill='none' stroke='#a78bfa'/><text x='104' y='60' fill='#a78bfa' font-size='9'>stay-away candle touches the proximal</text><line x1='108' y1='40' x2='108' y2='80' stroke='#34d399'/><rect x='104' y='46' width='8' height='30' fill='#34d399'/><text x='40' y='170' fill='#94a3b8' font-size='10'>Size it like the others, then re-check the stay-away</text>"
+   },
+   {
+    "id": "htf-target-ladder",
+    "title": "The higher timeframe sets the target",
+    "caption": "Against the HTF trend: 1:1. HTF zone in control but sideways: about 3:1. HTF uptrend line AND HTF zone in control: 5:1 and more.",
+    "svg": "<rect x='20' y='120' width='90' height='12' fill='#34d399' fill-opacity='0.25' stroke='#34d399'/><polyline points='20,40 50,70 80,95 100,118' fill='none' stroke='#f87171'/><text x='22' y='150' fill='#f87171' font-size='9'>against HTF</text><text x='22' y='162' fill='#94a3b8' font-size='9'>target 1:1</text><rect x='120' y='120' width='90' height='12' fill='#34d399' fill-opacity='0.25' stroke='#34d399'/><polyline points='120,100 140,80 160,105 180,85 200,118' fill='none' stroke='#94a3b8'/><text x='122' y='150' fill='#94a3b8' font-size='9'>HTF zone, sideways</text><text x='122' y='162' fill='#94a3b8' font-size='9'>about 3:1</text><rect x='220' y='120' width='90' height='12' fill='#34d399' fill-opacity='0.25' stroke='#34d399'/><line x1='220' y1='140' x2='310' y2='100' stroke='#a78bfa' stroke-width='1.5'/><polyline points='220,90 245,60 265,100 285,40 300,118' fill='none' stroke='#34d399'/><text x='222' y='150' fill='#a78bfa' font-size='9'>HTF trendline + zone</text><text x='222' y='162' fill='#34d399' font-size='9'>5:1 and more</text><text x='20' y='20' fill='#94a3b8' font-size='10'>Pick the target from the higher timeframe</text>"
+   },
+   {
+    "id": "body-valleys",
+    "title": "Trendline valleys need bodies",
+    "caption": "A line resting on one wick here and one wick there is not a trendline; the valleys must contain candle bodies, and the line starts from the lowest point.",
+    "svg": "<line x1='20' y1='150' x2='150' y2='95' stroke='#f87171' stroke-width='1.5' stroke-dasharray='4 3'/><line x1='40' y1='120' x2='40' y2='142' stroke='#94a3b8'/><rect x='36' y='120' width='8' height='8' fill='#94a3b8'/><line x1='110' y1='92' x2='110' y2='112' stroke='#94a3b8'/><rect x='106' y='92' width='8' height='6' fill='#94a3b8'/><text x='20' y='170' fill='#f87171' font-size='9'>wick-only valleys: no</text><line x1='170' y1='150' x2='310' y2='90' stroke='#34d399' stroke-width='1.5'/><rect x='186' y='128' width='10' height='14' fill='#94a3b8'/><rect x='200' y='124' width='10' height='14' fill='#94a3b8'/><rect x='266' y='100' width='10' height='14' fill='#94a3b8'/><rect x='280' y='96' width='10' height='14' fill='#94a3b8'/><text x='176' y='170' fill='#34d399' font-size='9'>valleys with bodies: yes</text><text x='20' y='20' fill='#94a3b8' font-size='10'>Bodies in the valleys, start from the lowest point</text>"
+   }
+  ],
+  "botRules": [
+   {
+    "rule": "No removal-by-explosive-move, no zone",
+    "detail": "When an opposing zone or trendline is removed, only create a zone if an explosive move away caused the removal; otherwise draw nothing.",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Stay-away check at normal size",
+    "detail": "Resize a candidate zone to the median zone height on the chart; reject it if the stay-away candle then touches or crosses the proximal line.",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Single basing set",
+    "detail": "Reject zones that span two separate basing sets; use one set only.",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Trendline needs bodied pivots",
+    "detail": "Require an obvious peak and valley containing candle bodies (not a single wick) plus a higher high or lower low; depth is visual (discretionary).",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "Trendline anchor",
+    "detail": "Anchor at the lowest (highest) point; if the line cuts a wick, move the anchor until it doesn't. Use a top anchor only if the bottom-anchored line would be too horizontal (discretionary angle).",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "Overextension tolerance",
+    "detail": "Keep the trendline while price keeps returning near the channel; end it after an aggressive leg away (discretionary distance).",
+    "plannerStep": "Context"
+   },
+   {
+    "rule": "Qualify before entry",
+    "detail": "A zone counts for trading only after the close that removed the zone or trendline; touches before that are not trades.",
+    "plannerStep": "Setup"
+   },
+   {
+    "rule": "Move away larger than basing",
+    "detail": "Reject when the basing range is about equal to the move-away candle range; the first candle of the move must be explosive.",
+    "plannerStep": "Zone"
+   },
+   {
+    "rule": "Target by HTF",
+    "detail": "Against the HTF trend: 1:1. HTF zone in control without trend: about 3:1. HTF trendline and HTF zone in control: 5:1 or more allowed.",
+    "plannerStep": "Levels"
+   },
+   {
+    "rule": "Older zone target",
+    "detail": "On older zones, target 1:1.",
+    "plannerStep": "Levels"
+   },
+   {
+    "rule": "No BOS confirmation",
+    "detail": "Do not use break of structure as the entry-timeframe confirmation.",
+    "plannerStep": "Setup"
+   },
+   {
+    "rule": "Quality flags",
+    "detail": "Downgrade zones with a large wick and a quick return, or drawn much larger than one basing candle on a lower timeframe.",
+    "plannerStep": "Verdict"
+   }
+  ]
  }
 ];
