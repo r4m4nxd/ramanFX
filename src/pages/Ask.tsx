@@ -154,9 +154,9 @@ export default function Ask() {
           <button type="submit" className="btn-primary h-11" disabled={!draft.trim()}><Icon name="search" size={15} />Ask</button>
         </form>
         <div className="flex flex-wrap gap-1.5 mt-3" role="group" aria-label="Only search">
-          <button type="button" aria-pressed={!only.size} onClick={() => setOnly(new Set())} className={cx('px-2.5 h-7 rounded-full text-[12px] font-medium transition-colors', !only.size ? 'bg-accent/15 text-ink ring-1 ring-accent/40' : 'text-ink2 hover:bg-raised/60')}>All</button>
+          <button type="button" aria-pressed={!only.size} onClick={() => setOnly(new Set())} className={cx('px-2.5 h-7 touch:h-9 touch:px-3 rounded-full text-[12px] font-medium transition-colors', !only.size ? 'bg-accent/15 text-ink ring-1 ring-accent/40' : 'text-ink2 hover:bg-raised/60')}>All</button>
           {ASK_SOURCES.filter(s => !idx || idx.lessons.some(l => l.src === s.id)).map(s => (
-            <button key={s.id} type="button" aria-pressed={only.has(s.id)} onClick={() => toggle(s.id)} className={cx('px-2.5 h-7 rounded-full text-[12px] font-medium transition-colors', only.has(s.id) ? 'bg-accent/15 text-ink ring-1 ring-accent/40' : 'text-ink2 hover:bg-raised/60')}>{s.label}</button>
+            <button key={s.id} type="button" aria-pressed={only.has(s.id)} onClick={() => toggle(s.id)} className={cx('px-2.5 h-7 touch:h-9 touch:px-3 rounded-full text-[12px] font-medium transition-colors', only.has(s.id) ? 'bg-accent/15 text-ink ring-1 ring-accent/40' : 'text-ink2 hover:bg-raised/60')}>{s.label}</button>
           ))}
         </div>
         <div className="mt-4 rounded-xl border border-line bg-raised/40 p-3 text-[12.5px] text-ink2 leading-relaxed" aria-live="polite">
@@ -181,7 +181,7 @@ export default function Ask() {
       {!q && (
         <Card>
           <div className="label mb-2">Try</div>
-          <div className="flex flex-wrap gap-2">{EXAMPLES.map(x => <button key={x} type="button" className="btn h-8 px-3 text-[12.5px] whitespace-normal text-left" onClick={() => ask(x)}>{x}</button>)}</div>
+          <div className="flex flex-wrap gap-2">{EXAMPLES.map(x => <button key={x} type="button" className="btn h-auto min-h-[36px] touch:min-h-[44px] py-2 px-3 text-[12.5px] leading-snug whitespace-normal text-left shrink max-w-full" onClick={() => ask(x)}>{x}</button>)}</div>
         </Card>
       )}
 

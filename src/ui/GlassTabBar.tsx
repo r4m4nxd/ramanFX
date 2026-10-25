@@ -3,6 +3,7 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon, type IconName } from './Icon';
 import { cx, softNavigate } from './kit';
+import { prefetchRoute } from '@/routes';
 
 type Tab = { to: string; label: string; icon: IconName; end?: boolean };
 
@@ -44,7 +45,13 @@ export function GlassTabBar({ tabs, active, onMore, moreActive, onSearch }: { ta
     return () => c.stop();
   }, [sel, w]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const go = (i: number) => { navigator.vibrate?.(6); if (i === tabs.length) onMore(); else { const to = tabs[i].to; softNavigate(() => nav(to)); } };
+  // Tapping the tab you're already on scrolls that page back to the top (iOS convention) instead of doing nothing.
+  const go = (i: number) => {
+    navigator.vibrate?.(6);
+    if (i === tabs.length) { onMore(); return; }
+    if (i === sel && !moreActive) { window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' }); return; }
+    const to = tabs[i].to; softNavigate(() => nav(to));
+  };
   const nearest = (lx: number) => { let best = 0, d = Infinity; for (let i = 0; i < count; i++) { const dd = Math.abs(left(i) - lx); if (dd < d) { d = dd; best = i; } } return best; };
 
   return (
@@ -70,8 +77,8 @@ export function GlassTabBar({ tabs, active, onMore, moreActive, onSearch }: { ta
           const on = t.i === sel;
           return (
             <button key={t.label} ref={el => { items.current[t.i] = el; }} type="button" aria-current={on ? 'page' : undefined} aria-haspopup={t.i === tabs.length ? 'dialog' : undefined}
-              onClick={() => { if (!drag.current?.moved) go(t.i); }}
-              className={cx('relative flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 rounded-full text-[10.5px] leading-none select-none transition-colors duration-200', on ? 'text-ink font-semibold' : 'text-ink2 font-medium')}>
+              onClick={() => { if (!drag.current?.moved) go(t.i); }} onPointerDown={() => { if (t.to) prefetchRoute(t.to); }}
+              className={cx('tab-press relative flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 rounded-full text-[10.5px] leading-none select-none transition-colors duration-200', on ? 'text-ink font-semibold' : 'text-ink2 font-medium')}>
               <Icon name={t.icon} size={21} className={cx('transition-colors duration-200', on && 'text-accent')} />
               <span className="truncate max-w-full px-0.5">{t.label}</span>
             </button>

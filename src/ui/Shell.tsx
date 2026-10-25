@@ -14,6 +14,7 @@ import { GlassTabBar } from './GlassTabBar';
 import { installLiveCards } from './liveCards';
 import { installRubberBand } from './rubberBand';
 import { presets, RangePicker } from './RangePicker';
+import { prefetchProps, prefetchRoute } from '@/routes';
 
 type Group = 'Today' | 'Review' | 'Plan & tools' | 'Help';
 /**
@@ -156,6 +157,8 @@ function CommandPalette({ open, onClose, actions, instant }: { open: boolean; on
   useEffect(() => { setI(0); }, [q]);
   useEffect(() => { if (!open) setQ(''); }, [open]);
   useEffect(() => { list.current?.querySelector(`[data-k="${i}"]`)?.scrollIntoView({ block: 'nearest' }); }, [i]);
+  // The highlighted page starts downloading before Enter, so the jump lands on content, not a skeleton.
+  useEffect(() => { const it = items[i]; if (open && it?.group === 'Pages') prefetchRoute(it.key); }, [open, i, items]);
   const pick = (c: Cmd) => { onClose(); c.run(); };
   return (
     <AnimatePresence>
@@ -201,7 +204,7 @@ function CommandPalette({ open, onClose, actions, instant }: { open: boolean; on
 function SideLink({ n }: { n: (typeof NAV)[number] }) {
   const nav = useNavigate();
   return (
-    <NavLink to={n.to} end={n.to === '/'} onClick={softClick(() => nav(n.to))} className={({ isActive }) => cx('relative flex items-center gap-3 h-10 short:h-9 px-3 rounded-xl text-[13.5px] font-medium transition-colors shrink-0', isActive ? 'text-ink' : 'text-ink3 hover:text-ink2 hover:bg-raised/60')}>
+    <NavLink to={n.to} end={n.to === '/'} {...prefetchProps(n.to)} onClick={softClick(() => nav(n.to))} className={({ isActive }) => cx('relative flex items-center gap-3 h-10 short:h-9 px-3 rounded-xl text-[13.5px] font-medium transition-colors shrink-0', isActive ? 'text-ink' : 'text-ink3 hover:text-ink2 hover:bg-raised/60')}>
       {({ isActive }) => (<>
         {isActive && <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-xl side-on" transition={spring} />}
         <Icon name={n.icon} size={16} className={cx('relative', isActive && 'text-accent')} /><span className="relative">{n.label}</span>
@@ -324,7 +327,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const groups: Group[] = ['Today', 'Review', 'Plan & tools'];
   return (
     <MotionConfig reducedMotion="user">
-    <div className="min-h-screen flex land:pl-[calc(80px+env(safe-area-inset-left))]">
+    <div className="min-h-screen min-h-dvh flex land:pl-[calc(80px+env(safe-area-inset-left))]">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[80] btn-primary">Skip to content</a>
       <Ambient />
       {/* Desktop sidebar: logo, a scrolling nav, and a pinned footer so nothing is ever cut off on a short screen. */}
@@ -397,7 +400,7 @@ export function Shell({ children }: { children: ReactNode }) {
       {/* Phone landscape: slim icon rail on the left keeps the full height for content */}
       <nav aria-label="Main" className="vt-side hidden land:flex fixed left-[max(8px,env(safe-area-inset-left))] inset-y-2 z-40 w-[64px] flex-col items-center justify-center gap-1 glass rounded-[26px]">
         {NAV.filter(n => n.mobile).map(n => (
-          <NavLink key={n.to} to={n.to} end={n.to === '/'} onClick={softClick(() => navTo(n.to))} className={({ isActive }) => cx('press relative w-14 h-12 rounded-xl flex flex-col items-center justify-center gap-0.5 text-micro', isActive ? 'text-ink font-semibold [&_svg]:text-accent' : 'text-ink3 font-medium')}>
+          <NavLink key={n.to} to={n.to} end={n.to === '/'} {...prefetchProps(n.to)} onClick={softClick(() => navTo(n.to))} className={({ isActive }) => cx('press relative w-14 h-12 rounded-xl flex flex-col items-center justify-center gap-0.5 text-micro', isActive ? 'text-ink font-semibold [&_svg]:text-accent' : 'text-ink3 font-medium')}>
             {({ isActive }) => (<>{isActive && <motion.span layoutId="rail-chip" transition={spring} className="absolute inset-0 rounded-xl bg-accent/15" />}<Icon name={n.icon} size={19} className="relative" /><span className="relative">{n.short ?? n.label}</span></>)}
           </NavLink>
         ))}
@@ -512,7 +515,7 @@ function MoreMenu({ onSearch, go }: { onSearch: () => void; go: (to: string) => 
               k++;
               return (
                 <motion.div key={n.to} variants={intro} custom={k}>
-                  <NavLink to={n.to} onClick={softClick(() => go(n.to))} aria-current={on ? 'page' : undefined}
+                  <NavLink to={n.to} {...prefetchProps(n.to)} onClick={softClick(() => go(n.to))} aria-current={on ? 'page' : undefined}
                     className={cx('more-tile press flex flex-col items-center justify-center gap-2.5 py-4 land:py-2 land:gap-1.5 rounded-[20px] text-[12.5px] font-medium text-center leading-tight', on ? 'is-on text-ink' : 'text-ink2')}>
                     <AppIcon to={n.to} icon={n.icon} />{n.label}
                   </NavLink>
@@ -524,7 +527,7 @@ function MoreMenu({ onSearch, go }: { onSearch: () => void; go: (to: string) => 
       ))}
       <motion.div variants={intro} className="more-list rounded-[20px] overflow-hidden">
         {NAV.filter(n => n.group === 'Help').map(n => (
-          <NavLink key={n.to} to={n.to} onClick={softClick(() => go(n.to))} className="press flex items-center gap-3 h-[52px] px-3.5 text-[15px] text-ink active:bg-white/5">
+          <NavLink key={n.to} to={n.to} {...prefetchProps(n.to)} onClick={softClick(() => go(n.to))} className="press flex items-center gap-3 h-[52px] px-3.5 text-[15px] text-ink active:bg-white/5">
             <AppIcon to={n.to} icon={n.icon} size={30} /><span className="flex-1">{n.label}</span><Icon name="chevronRight" size={16} className="text-ink3" />
           </NavLink>
         ))}

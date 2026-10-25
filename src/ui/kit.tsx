@@ -74,6 +74,8 @@ export const spring = { type: 'spring', bounce: 0, duration: 0.4 } as const;
 export const momentumSpring = { type: 'spring', bounce: 0.2, duration: 0.3 } as const;
 /** Strong ease-out (same curve as --ease-out in index.css). */
 export const ease = [0.23, 1, 0.32, 1] as const;
+/** Durations in seconds, the JS twin of --motion-fast/base/slow in index.css. press = touch-down feedback, exit = dismissals. */
+export const dur = { press: 0.1, fast: 0.15, exit: 0.2, base: 0.25, slow: 0.45 } as const;
 
 export const stagger = {
   hidden: {},
@@ -352,7 +354,7 @@ export function Peek({ at, owner, onClose, children, label }: { at: { x: number;
         <motion.div ref={box} role="dialog" aria-label={label} key="peek"
           initial={{ opacity: 0, transform: 'scale(0.96)' }} animate={{ opacity: 1, transform: 'scale(1)' }} exit={{ opacity: 0, transform: 'scale(0.97)', transition: { duration: 0.12 } }} transition={{ duration: 0.18, ease }}
           className="fixed z-[90] w-[min(260px,calc(100vw-24px))] glass-pop rounded-2xl p-3.5 text-[13px]"
-          style={{ left: Math.max(12, Math.min(vw - 12 - Math.min(260, vw - 24), at.x - 130)), top: below ? at.y + 14 : undefined, bottom: below ? undefined : `calc(100vh - ${at.y - 10}px)`, transformOrigin: below ? 'top center' : 'bottom center' }}>
+          style={{ left: Math.max(12, Math.min(vw - 12 - Math.min(260, vw - 24), at.x - 130)), top: below ? at.y + 14 : undefined, bottom: below ? undefined : window.innerHeight - at.y + 10, transformOrigin: below ? 'top center' : 'bottom center' }}>
           {children}
         </motion.div>
       )}
@@ -456,7 +458,7 @@ export function Sheet({ open, onClose, title, children, width = 520, bottom = fa
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={title}>
-          <motion.div className="absolute inset-0 bg-black/40" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
+          <motion.div className="absolute inset-0 bg-black/40" initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { duration: dur.base, ease } }} exit={{ opacity: 0, transition: { duration: dur.exit, ease } }} onClick={onClose} />
           <motion.div ref={panel} layoutId={morph ? morphId : undefined}
             className={cx('absolute glass-pop flex flex-col', bottom
               ? 'inset-x-0 bottom-0 mx-auto w-full max-w-[560px] max-h-sheet rounded-t-2xl border-t border-x'
@@ -465,7 +467,7 @@ export function Sheet({ open, onClose, title, children, width = 520, bottom = fa
             initial={off}
             animate={{ x: 0, y: 0, opacity: 1 }}
             // Exit faster than enter: dismissal is the user's intent, so get out of the way (ease-out, 200ms).
-            exit={{ ...off, transition: { duration: reduce ? 0.15 : 0.2, ease } }}
+            exit={{ ...off, transition: { duration: reduce ? dur.fast : dur.exit, ease } }}
             transition={reduce ? { duration: 0.2 } : morph ? spring : momentumSpring}
             // Bottom sheets follow the finger down and dismiss past ~110px or on a quick flick, like a native sheet.
             drag={fromBottom && !reduce ? 'y' : false} dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0.12, bottom: 0.9 }} dragListener={false}
