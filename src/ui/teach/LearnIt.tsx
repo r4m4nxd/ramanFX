@@ -2,7 +2,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import type { MentorId } from '@/core/interactive/types';
-import { Card, ease, Tabs } from '@/ui/kit';
+import { Card, cx, ease, Tabs } from '@/ui/kit';
 import { Icon } from '@/ui/Icon';
 import { useInteractiveData } from './data';
 import { StoryCard } from './StoryCard';
@@ -19,7 +19,8 @@ const TABS: { value: Tab; label: string }[] = [
 ];
 const TAB_KEY = 'rfx_teach_tab';
 
-export default function LearnIt({ mentor, n }: { mentor: MentorId; n: number }) {
+/** `bare`: drawn inside a collapsible section card (no card or title of its own). */
+export default function LearnIt({ mentor, n, bare }: { mentor: MentorId; n: number; bare?: boolean }) {
   const data = useInteractiveData();
   const il = data?.getInteractive(mentor, n);
   const reduce = useReducedMotion();
@@ -30,16 +31,19 @@ export default function LearnIt({ mentor, n }: { mentor: MentorId; n: number }) 
   const goto = (t: Tab) => { pick(t); top.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' }); };
   useEffect(() => { if (il) markOpened(il); }, [il]);
 
-  if (!data) return <Card aria-label="Loading"><div className="h-6 w-40 rounded bg-raised/60 animate-pulse" /><div className="h-48 mt-4 rounded-xl bg-raised/40 animate-pulse" /></Card>;
-  if (!il) return null;
+  if (!data) return bare ? <div aria-label="Loading"><div className="h-48 rounded-xl bg-raised/40 animate-pulse" /></div> : <Card aria-label="Loading"><div className="h-6 w-40 rounded bg-raised/60 animate-pulse" /><div className="h-48 mt-4 rounded-xl bg-raised/40 animate-pulse" /></Card>;
+  if (!il) return bare ? <p className="text-[13px] text-ink3">No interactive version of this lesson yet.</p> : null;
   const k = lessonKey(mentor, n);
+  const Wrap = bare ? 'div' : Card;
 
   return (
-    <Card className="p-4 sm:p-5 scroll-mt-24" aria-label="Learn it, interactive lesson">
-      <div ref={top} className="flex flex-wrap items-start justify-between gap-3 mb-4 scroll-mt-24">
+    <Wrap className={bare ? 'jump-target' : 'p-4 sm:p-5 scroll-mt-24'} aria-label="Learn it, interactive lesson">
+      <div ref={top} className={cx('flex flex-wrap items-start justify-between gap-3 mb-4', bare ? 'jump-target' : 'scroll-mt-24')}>
         <div className="min-w-0">
-          <div className="label flex items-center gap-1.5 text-accent"><Icon name="sparkles" size={12} />Learn it</div>
-          <h3 className="text-[16px] font-semibold mt-1">Understand it, see it, try it, keep it</h3>
+          {bare ? <p className="text-[13px] text-ink2">Understand it, see it, try it, keep it.</p> : <>
+            <div className="label flex items-center gap-1.5 text-accent"><Icon name="sparkles" size={12} />Learn it</div>
+            <h3 className="text-[16px] font-semibold mt-1">Understand it, see it, try it, keep it</h3>
+          </>}
         </div>
         <MasteryBreakdown k={k} value={mastery(k)} />
       </div>
@@ -55,6 +59,6 @@ export default function LearnIt({ mentor, n }: { mentor: MentorId; n: number }) 
           {tab === 'cards' && <LessonFlashcards il={il} />}
         </motion.div>
       </AnimatePresence>
-    </Card>
+    </Wrap>
   );
 }

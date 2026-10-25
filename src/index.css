@@ -544,3 +544,31 @@ html.ck-preview .ck-print { display: block; max-width: 210mm; margin: 0 auto; pa
 .ckp-src { font-size: 6.2pt; color: #7a7a7a; white-space: nowrap; }
 .ckp-diff { font-size: 6.2pt; color: #b45309; font-style: italic; }
 .ckp-notes li { padding-left: 0; font-size: 6.8pt; color: #444; }
+
+/* ─── Collapsible sections + sticky pill bar (Learn, Checklist) ─────────────────────────────────────── */
+/* Bottom edge of the app header: safe area + 6px top margin + the 56px bar (48px in phone landscape). */
+:root { --app-top: calc(env(safe-area-inset-top, 0px) + 62px); }
+@media (orientation: landscape) and (max-height: 520px) { :root { --app-top: calc(env(safe-area-inset-top, 0px) + 54px); } }
+/* Sits just under the header (never behind it), above the iOS scroll-edge blur band (z 29). */
+.pill-bar { position: sticky; top: calc(var(--app-top) + 6px); z-index: 30; }
+/* Jump targets land below the header and the pill bar, not under them. */
+.jump-target { scroll-margin-top: calc(var(--app-top) + 64px); }
+/* Fixed under its pill bar (top/right set inline from the bar). */
+.jump-menu { position: fixed; z-index: 45; width: min(360px, calc(100vw - 32px)); transform-origin: top right;
+  /* Never reaches the tab bar / mini player: stop above the bottom chrome and scroll inside. */
+  max-height: calc(100dvh - var(--jm-top, 120px) - max(12px, env(safe-area-inset-bottom)) - 88px);
+  overflow-y: auto; overscroll-behavior: contain; }
+@media (min-width: 1024px), (orientation: landscape) and (max-height: 520px) { .jump-menu { max-height: calc(100dvh - var(--jm-top, 120px) - 24px); } }
+.sec-head, .bar-pill, .jump-row { -webkit-user-select: none; user-select: none; touch-action: manipulation; transition: background-color 0.15s ease; }
+.sec-head:active, .jump-row:active { background-color: rgb(var(--raised) / 0.6); }
+.bar-pill > span { transition: transform 0.4s var(--ease-spring), background-color 0.15s ease; }
+.bar-pill:active > span { transform: scale(0.96); transition: transform 100ms var(--ease-out); }
+@media (hover: hover) and (pointer: fine) { .sec-head:hover, .jump-row:hover { background-color: rgb(var(--raised) / 0.45); } }
+.sec-head:focus-visible, .bar-pill:focus-visible, .jump-row:focus-visible { outline: 2px solid rgb(var(--accent)); outline-offset: -2px; }
+.sec-chev { transition: transform 200ms var(--ease-out); }
+.sec-chev.is-open { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .sec-chev { transition: none; } .bar-pill:active > span { transform: none; } }
+/* The lesson mini player floats above the tab bar: give the page enough room to scroll its last card clear of both. */
+body:has([data-listen-mini]) #main { padding-bottom: calc(max(12px, env(safe-area-inset-bottom)) + 76px + 84px); }
+@media (orientation: landscape) and (max-height: 520px) { body:has([data-listen-mini]) #main { padding-bottom: 96px; } }
+@media (min-width: 1024px) { body:has([data-listen-mini]) #main { padding-bottom: 112px; } }

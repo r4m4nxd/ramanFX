@@ -19,29 +19,35 @@ export function safeSvg(markup: string): string | null {
   return s;
 }
 
-export function LessonFigures({ figures }: { figures: Figure[] }) {
-  const ok = figures.map(f => ({ ...f, html: safeSvg(f.svg) })).filter((f): f is Figure & { html: string } => !!f.html);
+/** Figures that render (bad SVG markup is dropped), so callers can count them before showing a section. */
+export const safeFigures = (figures: Figure[]) => figures.map(f => ({ ...f, html: safeSvg(f.svg) })).filter((f): f is Figure & { html: string } => !!f.html);
+
+/** `bare`: no cards of its own (it sits inside a collapsible section card). */
+export function LessonFigures({ figures, bare }: { figures: Figure[]; bare?: boolean }) {
+  const ok = safeFigures(figures);
   if (!ok.length) return null;
   return (
     <div className={cx('grid gap-3', ok.length > 1 && 'md:grid-cols-2')}>
-      {ok.map((f, k) => (
-        <Card key={k} as="div" className="p-3">
+      {ok.map((f, k) => {
+        const fig = (
           <figure>
             <div className="rounded-lg bg-bg/60 ring-1 ring-line overflow-hidden [&>svg]:block [&>svg]:w-full [&>svg]:h-auto" role="img" aria-label={f.caption} dangerouslySetInnerHTML={{ __html: f.html }} />
             <figcaption className="text-[12.5px] text-ink2 mt-2.5 leading-snug">{f.caption}</figcaption>
           </figure>
-        </Card>
-      ))}
+        );
+        return bare ? <div key={k}>{fig}</div> : <Card key={k} as="div" className="p-3">{fig}</Card>;
+      })}
     </div>
   );
 }
 
-export function RealCharts({ images }: { images: Img[] }) {
+export function RealCharts({ images, bare }: { images: Img[]; bare?: boolean }) {
   const [open, setOpen] = useState<number | null>(null);
   if (!images.length) return null;
+  const Wrap = bare ? 'div' : Card;
   return (
-    <Card>
-      <div className="flex items-baseline justify-between mb-3"><div className="label">Real charts</div><span className="text-[12px] text-ink3">{images.length} chart{images.length > 1 ? 's' : ''} · tap to zoom</span></div>
+    <Wrap>
+      {bare ? <p className="text-[12px] text-ink3 mb-3">Tap a chart to zoom.</p> : <div className="flex items-baseline justify-between mb-3"><div className="label">Real charts</div><span className="text-[12px] text-ink3">{images.length} chart{images.length > 1 ? 's' : ''} · tap to zoom</span></div>}
       <div className={cx('grid gap-4', images.length > 1 && 'sm:grid-cols-2')}>
         {images.map((im, k) => (
           <figure key={im.src + k} className="flex flex-col gap-2 min-w-0">
@@ -60,7 +66,7 @@ export function RealCharts({ images }: { images: Img[] }) {
         ))}
       </div>
       {open !== null && <Lightbox images={images} index={open} onIndex={setOpen} onClose={() => setOpen(null)} />}
-    </Card>
+    </Wrap>
   );
 }
 

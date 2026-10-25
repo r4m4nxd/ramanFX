@@ -1,11 +1,12 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { CHECKLISTS, isChecklistMentor, MENTOR_ORDER, type CheckItem, type Checklist, type ChecklistMentor, type Stage } from '@/core/checklists';
 import { tradeProgress } from '@/core/checklistProgress';
 import { Card, cx, Page, Segmented, Sheet, spring, useToast } from '@/ui/kit';
 import { Icon } from '@/ui/Icon';
+import { BarPill, Collapsible, ExpandAll, JumpMenu, PillBar, PillTag, scrollToSection, useActiveSection, useOpenSet, type OpenSet } from '@/ui/Collapse';
 
 type Mode = 'check' | 'memorize' | 'read';
 type Recall = 'reveal' | 'cloze';
@@ -56,21 +57,20 @@ function SrcTag({ it, className }: { it: CheckItem; className?: string }) {
   );
 }
 
-function StageHead({ s, right }: { s: Stage; right?: ReactNode }) {
-  return (
-    <div className="flex items-start gap-3">
-      <span className={cx('num w-8 h-8 rounded-full grid place-items-center text-[13px] font-bold shrink-0', s.kind === 'never' ? 'bg-loss/15 text-loss' : s.kind === 'visual' ? 'bg-violet/15 text-violet' : 'bg-accent/15 text-accent')}>{stageMark(s)}</span>
-      <div className="min-w-0 flex-1">
-        <h3 className="text-[15px] font-semibold leading-tight">{s.title}</h3>
-        {s.goal && <p className="text-[12px] text-ink3 mt-0.5 leading-snug">{s.goal}</p>}
-      </div>
-      {right}
-    </div>
-  );
+const stageLabel = (s: Stage) => (s.kind === 'never' ? 'Never list' : s.kind === 'visual' ? s.title : `Stage ${s.n} · ${s.title}`);
+const ckId = (id: string) => `ck-${id}`;
+
+function StageMark({ s, small }: { s: Stage; small?: boolean }) {
+  return <span className={cx('num rounded-full grid place-items-center font-bold shrink-0', small ? 'w-6 h-6 text-[11px]' : 'w-8 h-8 text-[13px]', s.kind === 'never' ? 'bg-loss/15 text-loss' : s.kind === 'visual' ? 'bg-violet/15 text-violet' : 'bg-accent/15 text-accent')}>{stageMark(s)}</span>;
 }
 
-function StageJump({ list }: { list: Checklist }) {
-  const jump = (id: string) => document.getElementById(`ck-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+/** Ticked / known count for a stage header: a check and the count once every item is done. */
+function StagePill({ done, total, word }: { done: number; total: number; word?: string }) {
+  const full = total > 0 && done === total;
+  return <PillTag tone={full ? 'profit' : 'neutral'}>{full && <Icon name="check" size={11} strokeWidth={2.8} />}{done}/{total}{word && ` ${word}`}</PillTag>;
+}
+
+function StageJump({ list, jump }: { list: Checklist; jump: (id: string) => void }) {
   return (
     <nav aria-label="Jump to stage" className="flex flex-wrap gap-1.5">
       {list.stages.map(s => (
@@ -156,24 +156,48 @@ function TradeProgress({ list, ticks, onReset }: { list: Checklist; ticks: strin
 }
 
 // ─── Check mode ─────────────────────────────────────────────────────────────────────────────────────────
-function CheckMode({ list, ticks, setTicks }: { list: Checklist; ticks: string[]; setTicks: (t: string[]) => void }) {
+function CheckMode({ list, ticks, setTicks, os, barRef }: { list: Checklist; ticks: string[]; setTicks: (t: string[]) => void; os: OpenSet; barRef: RefObject<HTMLDivElement> }) {
   const on = useMemo(() => new Set(ticks), [ticks]);
-  const flip = (id: string) => setTicks(on.has(id) ? ticks.filter(x => x !== id) : [...ticks, id]);
+  const reduce = !!useReducedMotion();
+  const timers = useRef<number[]>([]);
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  const flip = (s: Stage, id: string) => {
+    const was = on.has(id);
+    const next = was ? ticks.filter(x => x !== id) : [...ticks, id];
+    setTicks(next);
+    if (was) return;
+    const now = new Set(next);
+    if (!s.items.every(i => now.has(i.id))) return;
+    // Stage complete: a beat to see the last tick land, then it folds away (✓ n/n in its header) and the next open stage opens.
+    const open = (x: Stage) => x.items.some(i => !now.has(i.id));
+    const idx = list.stages.indexOf(s);
+    const nxt = list.stages.slice(idx + 1).find(open) ?? list.stages.slice(0, idx).find(open);
+    timers.current.push(window.setTimeout(() => {
+      os.set(s.id, false);
+      if (!nxt) return;
+      os.set(nxt.id, true);
+      timers.current.push(window.setTimeout(() => {
+        const el = document.getElementById(ckId(nxt.id));
+        if (!el) return;
+        const top = el.getBoundingClientRect().top, line = barRef.current?.getBoundingClientRect().bottom ?? 120;
+        if (top < line || top > window.innerHeight * 0.6) el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+      }, 240));
+    }, 320));
+  };
   return (
     <>
       {list.stages.map(s => {
         const done = s.items.filter(i => on.has(i.id)).length;
-        const full = done === s.items.length;
         return (
-          <Card key={s.id} className="p-4 sm:p-5 scroll-mt-24" aria-label={s.title}>
-            <div id={`ck-${s.id}`} className="scroll-mt-24" />
-            <StageHead s={s} right={<span className={cx('num text-[12px] font-semibold mt-1.5 shrink-0', full ? 'text-profit' : 'text-ink3')}>{done}/{s.items.length}</span>} />
-            <ul className="mt-3 flex flex-col">
+          <Collapsible key={s.id} id={ckId(s.id)} open={os.isOpen(s.id)} onToggle={() => os.toggle(s.id)} lead={<StageMark s={s} />} title={s.title}
+            preview={s.goal} pill={<StagePill done={done} total={s.items.length} />} bodyClassName="pt-0">
+            {s.goal && <p className="text-[12px] text-ink3 leading-snug -mt-1.5 mb-1 pl-11">{s.goal}</p>}
+            <ul className="flex flex-col">
               {s.items.map(it => {
                 const ticked = on.has(it.id);
                 return (
                   <li key={it.id}>
-                    <button type="button" role="checkbox" aria-checked={ticked} onClick={() => flip(it.id)}
+                    <button type="button" role="checkbox" aria-checked={ticked} onClick={() => flip(s, it.id)}
                       className="press w-full flex items-start gap-3 text-left py-2.5 px-2 -mx-2 rounded-xl min-h-[52px] active:bg-raised/60 transition-colors">
                       <span className={cx('mt-0.5 w-6 h-6 rounded-full grid place-items-center shrink-0 border-[1.5px] transition-colors', ticked ? 'bg-profit border-profit text-on-status' : s.kind === 'never' ? 'border-loss/50' : 'border-line2')}>
                         {ticked && <Icon name="check" size={14} strokeWidth={2.6} />}
@@ -187,7 +211,7 @@ function CheckMode({ list, ticks, setTicks }: { list: Checklist; ticks: string[]
                 );
               })}
             </ul>
-          </Card>
+          </Collapsible>
         );
       })}
     </>
@@ -253,38 +277,26 @@ function MemorizeStage({ s, recall, sr, grade, open, onToggle }: { s: Stage; rec
   const knownCount = s.items.filter(i => known(sr[i.id])).length;
   const cur = s.items[step];
   return (
-    <Card className="p-0 overflow-hidden" aria-label={s.title}>
-      <button type="button" onClick={onToggle} aria-expanded={open} className="w-full text-left p-4 sm:p-5 active:bg-raised/40 transition-colors">
-        <StageHead s={{ ...s, goal: undefined }} right={
-          <span className="flex flex-col items-end gap-1 mt-0.5 shrink-0">
-            <span className="num text-[12px] font-semibold text-ink2">{s.items.length} bullets</span>
-            <span className="num text-[11px] text-ink3">{knownCount} known</span>
-          </span>} />
-      </button>
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={spring} className="overflow-hidden">
-            <div className="px-4 sm:px-5 pb-4 sm:pb-5 flex flex-col gap-2">
-              {s.items.slice(0, step).map((it, k) => (
-                <div key={it.id} className="flex gap-2.5 text-[13.5px] leading-snug text-ink2">
-                  <span className="num text-[11px] text-ink3 mt-0.5 w-4 shrink-0">{k + 1}</span>
-                  <span className="min-w-0 flex-1">{it.text}</span>
-                  <Dots s={sr[it.id]} />
-                </div>
-              ))}
-              {cur ? (
-                <RecallCard key={cur.id} it={cur} recall={recall} score={sr[cur.id]} index={step} total={s.items.length} onGrade={knew => { grade(cur.id, knew); setStep(x => x + 1); }} />
-              ) : (
-                <div className="rounded-2xl border border-profit/30 bg-profit/5 p-4 text-[13.5px] text-ink2 flex items-center justify-between gap-3">
-                  <span>Stage done. <span className="num font-semibold text-ink">{knownCount}/{s.items.length}</span> known.</span>
-                  <button type="button" className="btn h-10" onClick={() => setStep(0)}><Icon name="refresh" size={14} />Again</button>
-                </div>
-              )}
-            </div>
-          </motion.div>
+    <Collapsible id={ckId(s.id)} open={open} onToggle={onToggle} lead={<StageMark s={s} />} title={s.title} preview={`${s.items.length} bullets`}
+      pill={<StagePill done={knownCount} total={s.items.length} word="known" />}>
+      <div className="flex flex-col gap-2">
+        {s.items.slice(0, step).map((it, k) => (
+          <div key={it.id} className="flex gap-2.5 text-[13.5px] leading-snug text-ink2">
+            <span className="num text-[11px] text-ink3 mt-0.5 w-4 shrink-0">{k + 1}</span>
+            <span className="min-w-0 flex-1">{it.text}</span>
+            <Dots s={sr[it.id]} />
+          </div>
+        ))}
+        {cur ? (
+          <RecallCard key={cur.id} it={cur} recall={recall} score={sr[cur.id]} index={step} total={s.items.length} onGrade={knew => { grade(cur.id, knew); setStep(x => x + 1); }} />
+        ) : (
+          <div className="rounded-2xl border border-profit/30 bg-profit/5 p-4 text-[13.5px] text-ink2 flex items-center justify-between gap-3">
+            <span>Stage done. <span className="num font-semibold text-ink">{knownCount}/{s.items.length}</span> known.</span>
+            <button type="button" className="btn h-10" onClick={() => setStep(0)}><Icon name="refresh" size={14} />Again</button>
+          </div>
         )}
-      </AnimatePresence>
-    </Card>
+      </div>
+    </Collapsible>
   );
 }
 
@@ -318,10 +330,10 @@ function Drill({ list, items, recall, sr, grade, onDone }: { list: Checklist; it
   );
 }
 
-function MemorizeMode({ list, recall, sr, grade }: { list: Checklist; recall: Recall; sr: Record<string, Score>; grade: (id: string, knew: boolean) => void }) {
-  const [open, setOpen] = useState<string | null>(null);
+// One stage open at a time: Memorize reveals bullet by bullet, so the open stage is the one being drilled.
+function MemorizeMode({ list, recall, sr, grade, open, setOpen }: { list: Checklist; recall: Recall; sr: Record<string, Score>; grade: (id: string, knew: boolean) => void; open: string | null; setOpen: (f: (o: string | null) => string | null) => void }) {
   const [drill, setDrill] = useState<CheckItem[] | null>(null);
-  useEffect(() => { setOpen(null); setDrill(null); }, [list.id]);
+  useEffect(() => { setDrill(null); }, [list.id]);
   const all = useMemo(() => list.stages.flatMap(s => s.items), [list]);
   const knownAll = all.filter(i => known(sr[i.id])).length;
   // Weakest first; among equals the oldest drill, and a random pick among never-drilled ones so every stage gets a turn.
@@ -345,14 +357,14 @@ function MemorizeMode({ list, recall, sr, grade }: { list: Checklist; recall: Re
 }
 
 // ─── Read mode ──────────────────────────────────────────────────────────────────────────────────────────
-function ReadMode({ list }: { list: Checklist }) {
+function ReadMode({ list, os }: { list: Checklist; os: OpenSet }) {
   return (
     <>
       {list.stages.map(s => (
-        <Card key={s.id} className="p-4 sm:p-5" aria-label={s.title}>
-          <div id={`ck-${s.id}`} className="scroll-mt-24" />
-          <StageHead s={s} />
-          <ul className="mt-3 flex flex-col gap-2.5">
+        <Collapsible key={s.id} id={ckId(s.id)} open={os.isOpen(s.id)} onToggle={() => os.toggle(s.id)} lead={<StageMark s={s} />} title={s.title}
+          preview={s.goal ?? s.items[0]?.text} pill={<PillTag>{s.items.length}</PillTag>} bodyClassName="pt-0">
+          {s.goal && <p className="text-[12px] text-ink3 leading-snug -mt-1.5 mb-2 pl-11">{s.goal}</p>}
+          <ul className="flex flex-col gap-2.5">
             {s.items.map(it => (
               <li key={it.id} className="flex gap-2.5">
                 <span className={cx('mt-[8px] w-1.5 h-1.5 rounded-full shrink-0', s.kind === 'never' ? 'bg-loss' : s.kind === 'visual' ? 'bg-violet' : 'bg-accent')} />
@@ -360,7 +372,7 @@ function ReadMode({ list }: { list: Checklist }) {
               </li>
             ))}
           </ul>
-        </Card>
+        </Collapsible>
       ))}
       {list.notes.length > 0 && (
         <Card className="p-4 sm:p-5">
@@ -515,6 +527,27 @@ export default function ChecklistPage() {
     if (appMode) { if (p) viewPdf(p); return; }
     doPrint(what);
   };
+  // Which stages are open, per mentor and mode (remembered). Check opens the stage you're on; Read opens the first.
+  const pr = useMemo(() => tradeProgress(list, ticks), [list, ticks]);
+  const osCheck = useOpenSet(`rfx_checklist_open_${m}_check`, [pr.cur?.s.id ?? list.stages[0]?.id].filter(Boolean) as string[]);
+  const osRead = useOpenSet(`rfx_checklist_open_${m}_read`, list.stages[0] ? [list.stages[0].id] : []);
+  const [memOpen, setMemOpen] = useState<string | null>(null);
+  useEffect(() => setMemOpen(null), [m]);
+  const os = mode === 'check' ? osCheck : mode === 'read' ? osRead : null;
+  const stageIds = list.stages.map(s => s.id);
+  const openCount = os ? stageIds.filter(os.isOpen).length : 0;
+  const allOpen = !!os && openCount === stageIds.length;
+  const reduce = !!useReducedMotion();
+  const bar = useRef<HTMLDivElement>(null);
+  const active = useActiveSection(stageIds.map(ckId), bar);
+  const activeStage = list.stages.find(s => ckId(s.id) === active) ?? (mode === 'check' ? pr.cur?.s : undefined) ?? list.stages[0];
+  const [menu, setMenu] = useState(false);
+  useEffect(() => setMenu(false), [m, mode]);
+  const jump = (id: string) => { if (os) os.set(id, true); else setMemOpen(id); scrollToSection(ckId(id), !reduce); };
+  const allItems = useMemo(() => list.stages.flatMap(s => s.items), [list]);
+  const knownAll = allItems.filter(i => known(sr[i.id])).length;
+  const tickOn = useMemo(() => new Set(ticks), [ticks]);
+
   const reset = () => {
     const before = ticks;
     setTicks([]);
@@ -540,12 +573,37 @@ export default function ChecklistPage() {
           </div>
         </div>
         {mode === 'check' && <TradeProgress list={list} ticks={ticks} onReset={reset} />}
-        {mode !== 'memorize' && <div className="mt-4"><StageJump list={list} /></div>}
+        {os && (
+          <div className="mt-4 flex items-start justify-between gap-2">
+            <StageJump list={list} jump={jump} />
+            <ExpandAll allOpen={allOpen} onChange={on => os.setMany(stageIds, on)} className="-mr-2 -mt-1" />
+          </div>
+        )}
       </Card>
 
-      {mode === 'check' && <CheckMode list={list} ticks={ticks} setTicks={setTicks} />}
-      {mode === 'memorize' && <MemorizeMode list={list} recall={recall} sr={sr} grade={grade} />}
-      {mode === 'read' && <ReadMode list={list} />}
+      <PillBar barRef={bar} label="Where you are in the checklist" menu={
+        <JumpMenu anchor={bar} open={menu} onClose={() => setMenu(false)} active={active} onPick={id => jump(id.slice(3))}
+          head={<><span className="label">{list.stages.length} stages{os ? ` · ${openCount} open` : ''}</span>{os ? <ExpandAll allOpen={allOpen} onChange={on => { os.setMany(stageIds, on); setMenu(false); }} className="-mr-1.5" /> : <span className="h-11" />}</>}
+          items={list.stages.map(s => ({
+            id: ckId(s.id), title: s.title, lead: <StageMark s={s} small />,
+            pill: mode === 'memorize' ? <StagePill done={s.items.filter(i => known(sr[i.id])).length} total={s.items.length} /> : mode === 'check' ? <StagePill done={s.items.filter(i => tickOn.has(i.id)).length} total={s.items.length} /> : <PillTag>{s.items.length}</PillTag>,
+            open: os ? os.isOpen(s.id) : memOpen === s.id,
+          }))} />
+      }>
+        <BarPill onClick={() => window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' })} label={`${list.short} checklist. Back to the top to switch mentor or mode`}>{list.short}</BarPill>
+        <BarPill grow menuTrigger tone="accent" onClick={() => setMenu(o => !o)} aria-haspopup="menu" aria-expanded={menu} label={`${activeStage ? stageLabel(activeStage) : ''}. Jump to a stage`}>
+          <span className="truncate">{activeStage ? stageLabel(activeStage) : 'Stages'}</span><Icon name="chevronDown" size={13} className={cx('sec-chev shrink-0 -mr-0.5', menu && 'is-open')} />
+        </BarPill>
+        {mode === 'check'
+          ? <BarPill tone={pr.ready ? 'profit' : 'neutral'} onClick={pr.cur ? () => jump(pr.cur!.s.id) : undefined} label={`${pr.done} of ${pr.total} ticked${pr.cur ? '. Go to the stage you are on' : ''}`}><span className="num">{pr.done}/{pr.total}</span><Icon name="check" size={12} strokeWidth={2.8} className={pr.ready ? '' : 'text-ink3'} /></BarPill>
+          : mode === 'memorize'
+            ? <BarPill label={`${knownAll} of ${allItems.length} known`}><span className="num">{knownAll}/{allItems.length}</span><span className="text-ink3 font-medium">known</span></BarPill>
+            : <BarPill label={`${list.count} points`}><span className="num">{list.count}</span><span className="text-ink3 font-medium">points</span></BarPill>}
+      </PillBar>
+
+      {mode === 'check' && <CheckMode list={list} ticks={ticks} setTicks={setTicks} os={osCheck} barRef={bar} />}
+      {mode === 'memorize' && <MemorizeMode list={list} recall={recall} sr={sr} grade={grade} open={memOpen} setOpen={setMemOpen} />}
+      {mode === 'read' && <ReadMode list={list} os={osRead} />}
 
       <Sheet bottom open={pdfOpen} onClose={() => setPdfOpen(false)} title="Save as PDF">
         <div className="flex flex-col gap-2.5">

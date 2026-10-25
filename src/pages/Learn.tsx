@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { VIDEO_LESSONS, type VideoLesson } from '@/core/videoLessons';
 import { ZOOM_SESSIONS, type ZoomSession } from '@/core/zoomSessions';
@@ -10,9 +10,10 @@ import { KEVIN_ZOOM } from '@/core/mentors/kevin/zoom';
 import { KEVIN_DAILY } from '@/core/mentors/kevin/daily';
 import { LessonListen } from '@/ui/listen/RecordedPlayer';
 import { GLOSSARY, type GlossaryMentor } from '@/core/glossary';
-import { LessonFigures, RealCharts } from '@/ui/LessonMedia';
+import { LessonFigures, RealCharts, safeFigures } from '@/ui/LessonMedia';
+import { BarPill, Collapsible, ExpandAll, JumpMenu, PillBar, PillTag, scrollToSection, useActiveSection, useOpenSet } from '@/ui/Collapse';
 import { GlossaryView } from '@/ui/GlossaryView';
-import { Badge, Card, cx, Page, RevealText, spring } from '@/ui/kit';
+import { Badge, Card, cx, ease, Page, RevealText, spring } from '@/ui/kit';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Icon } from '@/ui/Icon';
 import { hasDiagram, LessonDiagram } from '@/ui/LessonDiagrams';
@@ -70,7 +71,32 @@ function Bullets({ items, tone }: { items: string[]; tone?: 'profit' | 'loss' | 
   );
 }
 
-function LessonView({ l, src, list, done, toggle, interactive }: { l: VideoLesson; src: Mentor; list: VideoLesson[]; done: boolean; toggle: () => void; interactive: boolean }) {
+/** Long sources split into groups for the lesson list (none for short ones). */
+type LGroup = { key: string; title: string; items: VideoLesson[] };
+const monthOf = (d: string) => new Date(d.slice(0, 10) + 'T12:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+function groupKey(src: Mentor, l: VideoLesson): { key: string; title: string } | null {
+  if (src === 'daily' && 'planFor' in l) { const d = String((l as { planFor: string }).planFor); return { key: d.slice(0, 7), title: monthOf(d) }; }
+  if (src === 'zoom' && isZoom(l)) return { key: l.date.slice(0, 7), title: monthOf(l.date) };
+  if (src === 'seiden') { const b = Math.floor((l.n - 1) / 80); return { key: `p${b}`, title: `Pages ${b * 80 + 1}-${b * 80 + 80}` }; }
+  if (src === 'raja') return l.n >= 101 ? { key: 'private', title: 'Private 1:1 sessions' } : l.n >= 50 ? { key: 'topics', title: 'Topic lessons' } : { key: 'course', title: 'Core course' };
+  return null;
+}
+function groupsOf(src: Mentor, list: VideoLesson[]): LGroup[] | null {
+  const out: LGroup[] = [];
+  for (const l of list) {
+    const g = groupKey(src, l);
+    if (!g) return null;
+    const last = out[out.length - 1];
+    if (last?.key === g.key) last.items.push(l); else out.push({ ...g, items: [l] });
+  }
+  return out.length > 1 ? out : null;
+}
+
+const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const CountPill = ({ n, of }: { n: number; of: string }) => <PillTag className="min-w-6 justify-center"><span aria-hidden="true">{n}</span><span className="sr-only">{plural(n, of)}</span></PillTag>;
+type Sec = { id: string; title: string; pill?: ReactNode; preview?: string; body: ReactNode };
+
+function LessonView({ l, src, list, done, toggle, interactive, onBack }: { l: VideoLesson; src: Mentor; list: VideoLesson[]; done: boolean; toggle: () => void; interactive: boolean; onBack: () => void }) {
   const i = list.findIndex(x => x.n === l.n);
   const prev = list[i - 1], next = list[i + 1];
   const diagrams = l.diagrams.filter(d => hasDiagram(d.key));
@@ -78,10 +104,101 @@ function LessonView({ l, src, list, done, toggle, interactive }: { l: VideoLesso
   const q = (n: number) => src === 'course' ? `/learn?l=${n}` : `/learn?src=${src}&l=${n}`;
   const [reading, setReading] = useState(false);
   useEffect(() => setReading(false), [src, l.n]);
+  const reduce = !!useReducedMotion();
   const mentor = src === 'seiden' ? 'Sam Seiden' : src === 'raja' ? 'Raja' : src === 'baker' ? 'Kevin Baker' : 'Kevin';
   const label = z ? `Sunday live · ${fmtDate(z.date)}` : src === 'seiden' ? `Page ${l.n}` : src === 'baker' ? `Chapter ${l.n}` : `Lesson ${l.n}`;
+  const short = z ? fmtDate(z.date) : src === 'seiden' ? `p.${l.n}` : src === 'baker' ? `Ch ${l.n}` : `L${l.n}`;
+  const mid = mentorOfSrc(src);
+  const figs = l.figures ? safeFigures(l.figures) : [];
+  const nDiag = diagrams.length + (z?.newDiagrams.length ?? 0);
+
+  // Every block below the summary is a collapsible section, in reading order.
+  const secs: Sec[] = [];
+  if (interactive && mid) {
+    const m = Math.round(mastery(lessonKey(mid, l.n)) * 100);
+    secs.push({ id: 'learn', title: 'Learn it', pill: <PillTag tone={m >= 80 ? 'profit' : m > 0 ? 'accent' : 'neutral'}>{m > 0 ? `${m}% mastered` : 'Interactive'}</PillTag>, preview: 'Story, walkthrough, practice, quiz and flashcards',
+      body: <Suspense fallback={<div className="h-48 rounded-xl bg-raised/40 animate-pulse" />}><LearnIt key={src + l.n} mentor={mid} n={l.n} bare /></Suspense> });
+  }
+  if (figs.length) secs.push({ id: 'figures', title: 'Figures', pill: <CountPill n={figs.length} of="figure" />, preview: figs[0].caption, body: <LessonFigures figures={l.figures!} bare /> });
+  if (nDiag > 0) secs.push({ id: 'diagrams', title: 'Diagrams', pill: <CountPill n={nDiag} of="diagram" />, preview: diagrams[0]?.caption ?? z?.newDiagrams[0]?.title, body: (
+    <div className={cx('grid gap-3', nDiag > 1 && 'md:grid-cols-2')}>
+      {diagrams.map((d, k) => hasDiagram(d.key) && <LessonDiagram key={k} k={d.key} caption={d.caption} />)}
+      {z?.newDiagrams.map(d => (
+        <figure key={d.id} className="rounded-xl border border-line bg-raised/40 p-3">
+          <div className="text-[12px] font-semibold text-ink2 mb-1.5">{d.title}</div>
+          <svg viewBox="0 0 320 180" className="w-full h-auto" role="img" aria-label={d.title} style={{ fontFamily: 'Inter, system-ui, sans-serif' }} dangerouslySetInnerHTML={{ __html: d.svg }} />
+          <figcaption className="text-[12px] text-ink3 mt-2 leading-snug">{d.caption}</figcaption>
+        </figure>
+      ))}
+    </div>
+  ) });
+  if (l.rules.length) secs.push({ id: 'rules', title: 'Rules', pill: <CountPill n={l.rules.length} of="rule" />, preview: l.rules[0], body: <Bullets items={l.rules} tone="accent" /> });
+  l.sections.forEach((x, k) => secs.push({ id: `s${k}`, title: x.heading, pill: <CountPill n={x.points.length} of="point" />, preview: x.points[0], body: <Bullets items={x.points} /> }));
+  if (l.images?.length) secs.push({ id: 'charts', title: 'Real charts', pill: <CountPill n={l.images.length} of="chart" />, preview: l.images[0].caption, body: <RealCharts images={l.images} bare /> });
+  if (z && z.examples.length) secs.push({ id: 'examples', title: 'Charts he walked through', pill: <CountPill n={z.examples.length} of="chart" />, preview: z.examples[0].setup, body: (
+    <div className="flex flex-col gap-3">
+      {z.examples.map((e, k) => (
+        <div key={k} className="rounded-xl border border-line p-3">
+          <div className="flex flex-wrap items-center gap-2 mb-1.5">{e.market && <Badge>{e.market}</Badge>}{e.timeframe && <Badge tone="accent">{e.timeframe}</Badge>}</div>
+          {e.setup && <p className="text-[13.5px] text-ink leading-relaxed">{e.setup}</p>}
+          {e.reasoning && <p className="text-[13px] text-ink2 leading-relaxed mt-1.5"><span className="font-semibold text-ink3">Why: </span>{e.reasoning}</p>}
+          {e.outcome && <p className="text-[13px] text-ink2 leading-relaxed mt-1"><span className="font-semibold text-ink3">Result: </span>{e.outcome}</p>}
+        </div>
+      ))}
+    </div>
+  ) });
+  if (z && z.qa.length) secs.push({ id: 'qa', title: 'Student questions', pill: <CountPill n={z.qa.length} of="question" />, preview: z.qa[0].q, body: (
+    <div className="flex flex-col divide-y divide-line">
+      {z.qa.map((x, k) => (
+        <details key={k} className="group py-2.5">
+          <summary className="cursor-pointer list-none flex gap-2 text-[13.5px] font-medium text-ink min-h-[32px]"><Icon name="chevronRight" size={14} className="mt-1 shrink-0 transition-transform group-open:rotate-90 text-ink3" />{x.q}</summary>
+          <p className="text-[13.5px] text-ink2 leading-relaxed mt-2 pl-6">{x.a}</p>
+        </details>
+      ))}
+    </div>
+  ) });
+  if (l.mistakes.length) secs.push({ id: 'mistakes', title: 'Mistakes he warns about', pill: <CountPill n={l.mistakes.length} of="mistake" />, preview: l.mistakes[0], body: <Bullets items={l.mistakes} tone="loss" /> });
+  if (l.checklist.length) secs.push({ id: 'check', title: 'Before you trade', pill: <CountPill n={l.checklist.length} of="check" />, preview: l.checklist[0], body: <Bullets items={l.checklist} tone="profit" /> });
+  if (z && z.botRules.length) secs.push({ id: 'bot', title: 'As mechanical rules', pill: <CountPill n={z.botRules.length} of="rule" />, preview: 'Used by the Planner and the bot', body: (
+    <ul className="flex flex-col gap-2.5">
+      {z.botRules.map((r, k) => <li key={k} className="text-[13.5px] leading-relaxed"><span className="font-medium text-ink">{r.rule}</span><span className="text-ink3"> · {r.plannerStep}</span>{r.detail && r.detail !== 'discretionary' && <span className="block text-ink2 text-[13px]">{r.detail}</span>}</li>)}
+    </ul>
+  ) });
+  if (l.quotes.length) secs.push({ id: 'quotes', title: 'In his words', pill: <CountPill n={l.quotes.length} of="quote" />, preview: `“${l.quotes[0]}”`, body: <div className="flex flex-col gap-3">{l.quotes.map((x, k) => <blockquote key={k} className="border-l-2 border-accent pl-3 text-[14px] italic text-ink2">“{x}”</blockquote>)}</div> });
+  if (l.newVsPdfs.length) secs.push({ id: 'new', title: z ? 'New compared with the recorded lessons' : src === 'seiden' || src === 'raja' || src === 'baker' ? "New or different vs Kevin's course" : 'Not in the PDFs', pill: <CountPill n={l.newVsPdfs.length} of="point" />, preview: l.newVsPdfs[0], body: <Bullets items={l.newVsPdfs} /> });
+
+  const ids = secs.map(x => x.id);
+  const domId = (id: string) => `sec-${id}`;
+  // Summary + the first reading section start open (Learn it loads on demand); the reader's own choice is remembered per lesson.
+  const firstRead = secs.find(x => x.id !== 'learn')?.id;
+  const os = useOpenSet(`rfx_learn_open_${src}_${l.n}`, firstRead ? [firstRead] : []);
+  const openCount = ids.filter(os.isOpen).length;
+  const allOpen = ids.length > 0 && openCount === ids.length;
+  const setAll = (on: boolean) => os.setMany(ids, on);
+
+  const bar = useRef<HTMLDivElement>(null);
+  const active = useActiveSection(ids.map(domId), bar);
+  const cur = secs.find(x => domId(x.id) === active);
+  const [menu, setMenu] = useState(false);
+  useEffect(() => setMenu(false), [src, l.n]);
+  const jump = (id: string) => { os.set(id, true); scrollToSection(domId(id), !reduce); };
+
   return (
     <article className="flex flex-col gap-4">
+      <PillBar barRef={bar} label="This lesson" menu={
+        <JumpMenu anchor={bar} open={menu} onClose={() => setMenu(false)} active={active} onPick={id => (id === '__top' ? window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' }) : jump(id.slice(4)))}
+          head={<><span className="label">{plural(secs.length, 'section')} · {openCount} open</span><ExpandAll allOpen={allOpen} onChange={on => { setAll(on); setMenu(false); }} className="-mr-1.5" /></>}
+          items={[{ id: '__top', title: 'Summary', lead: <Icon name="info" size={14} className="text-ink3 shrink-0" /> }, ...secs.map(x => ({ id: domId(x.id), title: x.title, pill: x.pill, open: os.isOpen(x.id) }))]} />
+      }>
+        <BarPill onClick={onBack} label={`All ${SRC[src].name} ${SRC[src].noun}`}><Icon name="chevronLeft" size={13} className="-ml-1" />{SRC[src].name.replace('Sam ', '')}</BarPill>
+        <BarPill grow tone="accent" onClick={() => window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' })} label={`${label}: ${l.title}. Back to the top`}><span className="num shrink-0">{short}</span><span className="text-ink3 shrink-0">·</span><span className="truncate">{l.title}</span></BarPill>
+        {secs.length > 0 && (
+          <BarPill menuTrigger className="shrink-0 max-w-[44%]" onClick={() => setMenu(o => !o)} aria-haspopup="menu" aria-expanded={menu} label={`Section: ${cur?.title ?? 'Summary'}. Jump to a section`}>
+            <span className="truncate">{cur?.title ?? 'Summary'}</span><Icon name="chevronDown" size={13} className={cx('sec-chev shrink-0 -mr-0.5', menu && 'is-open')} />
+          </BarPill>
+        )}
+      </PillBar>
+
       <Card>
         <div className="flex flex-wrap items-center gap-2 mb-2">
           {z ? <><Badge tone="violet">Sunday live</Badge><Badge>{fmtDate(z.date, true)}</Badge>{(l.images?.length ?? 0) > 0 && <Badge tone="violet">{l.images!.length} real chart{l.images!.length > 1 ? 's' : ''}</Badge>}</> : <><Badge tone="accent">{src === 'seiden' ? `Page ${l.n}` : `Lesson ${l.n}`}</Badge><Badge>{src === 'seiden' || src === 'raja' || src === 'baker' ? SRC[src].name : KIND[l.kind]}</Badge>{src === 'raja' && <Badge>{KIND[l.kind]}</Badge>}{(l.images?.length ?? 0) > 0 && <Badge tone="violet">{l.images!.length} real chart{l.images!.length > 1 ? 's' : ''}</Badge>}</>}
@@ -98,86 +215,15 @@ function LessonView({ l, src, list, done, toggle, interactive }: { l: VideoLesso
       <LessonListen key={src + l.n} source={src} lesson={l} mentor={mentor} />
       {reading && <Suspense fallback={null}><Reader lesson={l} source={src} mentor={mentor} label={label} onClose={() => setReading(false)} /></Suspense>}
 
-      {interactive && mentorOfSrc(src) && <Suspense fallback={<TeachFallback />}><LearnIt key={src + l.n} mentor={mentorOfSrc(src)!} n={l.n} /></Suspense>}
-
-      {l.figures && l.figures.length > 0 && <LessonFigures figures={l.figures} />}
-
-      {(diagrams.length > 0 || (z && z.newDiagrams.length > 0)) && (
-        <div className={cx('grid gap-3', diagrams.length + (z?.newDiagrams.length ?? 0) > 1 && 'md:grid-cols-2')}>
-          {diagrams.map((d, k) => hasDiagram(d.key) && <LessonDiagram key={k} k={d.key} caption={d.caption} />)}
-          {z?.newDiagrams.map(d => (
-            <figure key={d.id} className="rounded-xl border border-line bg-raised/40 p-3">
-              <div className="text-[12px] font-semibold text-ink2 mb-1.5">{d.title}</div>
-              <svg viewBox="0 0 320 180" className="w-full h-auto" role="img" aria-label={d.title} style={{ fontFamily: 'Inter, system-ui, sans-serif' }} dangerouslySetInnerHTML={{ __html: d.svg }} />
-              <figcaption className="text-[12px] text-ink3 mt-2 leading-snug">{d.caption}</figcaption>
-            </figure>
-          ))}
+      {secs.length > 1 && (
+        <div className="flex items-center justify-between gap-2 -my-1.5 pl-1">
+          <span className="label">{plural(secs.length, 'section')} · <span className="num">{openCount}</span> open</span>
+          <ExpandAll allOpen={allOpen} onChange={setAll} className="-mr-2" />
         </div>
       )}
-
-      {l.rules.length > 0 && <Card><div className="label mb-3">Rules</div><Bullets items={l.rules} tone="accent" /></Card>}
-
-      {l.sections.map((s, k) => (
-        <Card key={k}>
-          <h3 className="text-[15px] font-semibold mb-3">{s.heading}</h3>
-          <Bullets items={s.points} />
-        </Card>
+      {secs.map(x => (
+        <Collapsible key={x.id} id={domId(x.id)} title={x.title} pill={x.pill} preview={x.preview} open={os.isOpen(x.id)} onToggle={() => os.toggle(x.id)}>{x.body}</Collapsible>
       ))}
-
-      {l.images && l.images.length > 0 && <RealCharts images={l.images} />}
-
-      {z && z.examples.length > 0 && (
-        <Card>
-          <div className="label mb-3">Charts he walked through</div>
-          <div className="flex flex-col gap-3">
-            {z.examples.map((e, k) => (
-              <div key={k} className="rounded-xl border border-line p-3">
-                <div className="flex flex-wrap items-center gap-2 mb-1.5">{e.market && <Badge>{e.market}</Badge>}{e.timeframe && <Badge tone="accent">{e.timeframe}</Badge>}</div>
-                {e.setup && <p className="text-[13.5px] text-ink leading-relaxed">{e.setup}</p>}
-                {e.reasoning && <p className="text-[13px] text-ink2 leading-relaxed mt-1.5"><span className="font-semibold text-ink3">Why: </span>{e.reasoning}</p>}
-                {e.outcome && <p className="text-[13px] text-ink2 leading-relaxed mt-1"><span className="font-semibold text-ink3">Result: </span>{e.outcome}</p>}
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      {z && z.qa.length > 0 && (
-        <Card>
-          <div className="label mb-3">Student questions</div>
-          <div className="flex flex-col divide-y divide-line">
-            {z.qa.map((x, k) => (
-              <details key={k} className="group py-2.5">
-                <summary className="cursor-pointer list-none flex gap-2 text-[13.5px] font-medium text-ink"><Icon name="chevronRight" size={14} className="mt-1 shrink-0 transition-transform group-open:rotate-90 text-ink3" />{x.q}</summary>
-                <p className="text-[13.5px] text-ink2 leading-relaxed mt-2 pl-6">{x.a}</p>
-              </details>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      <div className="grid gap-4 md:grid-cols-2">
-        {l.mistakes.length > 0 && <Card><div className="label mb-3">Mistakes he warns about</div><Bullets items={l.mistakes} tone="loss" /></Card>}
-        {l.checklist.length > 0 && <Card><div className="label mb-3">Before you trade</div><Bullets items={l.checklist} tone="profit" /></Card>}
-      </div>
-
-      {z && z.botRules.length > 0 && (
-        <Card>
-          <div className="label mb-3">As mechanical rules (used by the Planner and the bot)</div>
-          <ul className="flex flex-col gap-2.5">
-            {z.botRules.map((r, k) => <li key={k} className="text-[13.5px] leading-relaxed"><span className="font-medium text-ink">{r.rule}</span><span className="text-ink3"> · {r.plannerStep}</span>{r.detail && r.detail !== 'discretionary' && <span className="block text-ink2 text-[13px]">{r.detail}</span>}</li>)}
-          </ul>
-        </Card>
-      )}
-
-      {l.quotes.length > 0 && (
-        <Card>
-          <div className="label mb-3">In his words</div>
-          <div className="flex flex-col gap-3">{l.quotes.map((x, k) => <blockquote key={k} className="border-l-2 border-accent pl-3 text-[14px] italic text-ink2">“{x}”</blockquote>)}</div>
-        </Card>
-      )}
-
-      {l.newVsPdfs.length > 0 && <Card><div className="label mb-3">{z ? 'New compared with the recorded lessons' : src === 'seiden' || src === 'raja' || src === 'baker' ? "New or different vs Kevin's course" : 'Not in the PDFs'}</div><Bullets items={l.newVsPdfs} /></Card>}
 
       <nav className="grid grid-cols-2 gap-3" aria-label="Lesson navigation">
         {prev ? <Link to={q(prev.n)} className="card p-3 hover:bg-raised/60 transition-colors"><div className="label">Previous</div><div className="text-[13px] font-medium mt-1 truncate">{isZoom(prev) ? fmtDate(prev.date) : prev.n}. {prev.title}</div></Link> : <span />}
@@ -222,6 +268,22 @@ export default function Learn() {
   const resumed = last != null && studied > 0;
   const go = (p: Record<string, string>) => setSp(src === 'course' ? p : { src, ...p });
   const opts: { k: Src; short: string; count: number }[] = [...(Object.keys(SRC) as Mentor[]).map(k => ({ k: k as Src, short: SRC[k].short, count: SRC[k].list.length })), { k: 'glossary', short: 'Glossary', count: GLOSSARY.length }];
+
+  const searching = !!q.trim();
+  const groups = useMemo(() => (side ? null : groupsOf(src as Mentor, list)), [side, src, list]);
+  // Groups: the one holding the lesson you'd continue with starts open; your own choice is remembered per source.
+  const gs = useOpenSet(side ? null : `rfx_learn_groups_${src}`, (() => { const g = upNext ? groupKey(src as Mentor, upNext) : null; return g ? [g.key] : []; })());
+  const ROW = (l: VideoLesson) => (
+                <li key={l.n}>
+                  <button type="button" onClick={() => go({ l: String(l.n) })} aria-current={l.n === n ? 'page' : undefined}
+                    className={cx('relative w-full flex items-start gap-3 text-left px-2.5 py-2.5 rounded-lg transition-colors', l.n !== n && 'hover:bg-raised/60')}>
+                    {l.n === n && <motion.span layoutId="lesson-pill" transition={spring} className="absolute inset-0 rounded-lg bg-accent/10" />}
+                    <span className={cx('relative num min-w-6 h-6 px-1 rounded-full grid place-items-center text-[11px] font-semibold shrink-0', done.includes(l.n) ? 'bg-profit/15 text-profit' : 'bg-raised text-ink2')}>{done.includes(l.n) ? <Icon name="check" size={12} /> : l.n}</span>
+                    <span className="relative min-w-0 flex-1"><span className="block text-[13px] font-medium leading-snug">{l.title}</span><span className="block text-[11.5px] text-ink3 mt-0.5">{isZoom(l) ? `${fmtDate(l.date)} · ${l.sections.length} sections · ${l.qa.length} Q&A` : `${KIND[l.kind]} · ${l.sections.length} sections`}</span></span>
+                    {im && ilNums.has(l.n) && <MasteryRing value={mastery(lessonKey(im, l.n))} size={18} stroke={2.5} className="relative mt-0.5" label={`Learn it mastery ${Math.round(mastery(lessonKey(im, l.n)) * 100)}%`} />}
+                  </button>
+                </li>
+  );
 
   return (
     <Page>
@@ -292,27 +354,40 @@ export default function Learn() {
                 </div>
               </div>
             )}
+            {groups ? (
+              <div className="flex flex-col">
+                {groups.map(g => {
+                  const isOpen = searching || gs.isOpen(g.key) || g.items.some(x => x.n === n);
+                  const gDone = g.items.filter(x => done.includes(x.n)).length;
+                  return (
+                    <section key={g.key} aria-labelledby={`lg-${g.key}`} className="border-b border-line last:border-b-0">
+                      <button type="button" id={`lg-${g.key}`} aria-expanded={isOpen} aria-controls={`lg-${g.key}-list`} disabled={searching} onClick={() => gs.toggle(g.key)}
+                        className="sec-head w-full min-h-[48px] flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left">
+                        <span className="min-w-0 flex-1 text-[13px] font-semibold text-ink">{g.title}</span>
+                        <PillTag tone={gDone === g.items.length ? 'profit' : 'neutral'}>{gDone === g.items.length ? <><Icon name="check" size={11} />{g.items.length}</> : <>{gDone}/{g.items.length}</>}</PillTag>
+                        {!searching && <Icon name="chevronDown" size={15} className={cx('sec-chev shrink-0 text-ink3', isOpen && 'is-open')} />}
+                      </button>
+                      <motion.div id={`lg-${g.key}-list`} initial={false} animate={isOpen ? { height: 'auto', opacity: 1 } : { height: 0, opacity: 0 }}
+                        transition={reduce ? { height: { duration: 0 }, opacity: { duration: 0.15 } } : { duration: 0.2, ease }} className="overflow-hidden">
+                        <ol className="flex flex-col pb-1" {...((isOpen ? {} : { inert: '' }) as Record<string, string>)}>{g.items.map(l => ROW(l))}</ol>
+                      </motion.div>
+                    </section>
+                  );
+                })}
+                {!list.length && <p className="p-3 text-[13px] text-ink3">{`Nothing mentions “${q}”.`}</p>}
+              </div>
+            ) : (
             <ol className="flex flex-col">
-              {list.map(l => (
-                <li key={l.n}>
-                  <button type="button" onClick={() => go({ l: String(l.n) })} aria-current={l.n === n ? 'page' : undefined}
-                    className={cx('relative w-full flex items-start gap-3 text-left px-2.5 py-2.5 rounded-lg transition-colors', l.n !== n && 'hover:bg-raised/60')}>
-                    {l.n === n && <motion.span layoutId="lesson-pill" transition={spring} className="absolute inset-0 rounded-lg bg-accent/10" />}
-                    <span className={cx('relative num min-w-6 h-6 px-1 rounded-full grid place-items-center text-[11px] font-semibold shrink-0', done.includes(l.n) ? 'bg-profit/15 text-profit' : 'bg-raised text-ink2')}>{done.includes(l.n) ? <Icon name="check" size={12} /> : l.n}</span>
-                    <span className="relative min-w-0 flex-1"><span className="block text-[13px] font-medium leading-snug">{l.title}</span><span className="block text-[11.5px] text-ink3 mt-0.5">{isZoom(l) ? `${fmtDate(l.date)} · ${l.sections.length} sections · ${l.qa.length} Q&A` : `${KIND[l.kind]} · ${l.sections.length} sections`}</span></span>
-                    {im && ilNums.has(l.n) && <MasteryRing value={mastery(lessonKey(im, l.n))} size={18} stroke={2.5} className="relative mt-0.5" label={`Learn it mastery ${Math.round(mastery(lessonKey(im, l.n)) * 100)}%`} />}
-                  </button>
-                </li>
-              ))}
+              {list.map(l => ROW(l))}
               {!list.length && <li className="p-3 text-[13px] text-ink3">{LIST.length ? `Nothing mentions “${q}”.` : 'Sessions are being written up.'}</li>}
             </ol>
+            )}
           </Card>}
         </aside>
         <div className="min-w-0">
           {review ? <Suspense fallback={<TeachFallback />}><ReviewMode onOpen={href => navigate(href)} /></Suspense> : gloss ? <GlossaryView q={q} mentor={gm} /> : lesson ? (
             <>
-              <button type="button" className="btn-ghost mb-3 lg:hidden" onClick={() => go({})}><Icon name="chevronLeft" size={14} />All {S.noun}</button>
-              <LessonView l={lesson} src={src as Mentor} list={LIST} done={done.includes(lesson.n)} toggle={() => toggle(lesson.n)} interactive={!data || ilNums.has(lesson.n)} />
+              <LessonView l={lesson} src={src as Mentor} list={LIST} done={done.includes(lesson.n)} toggle={() => toggle(lesson.n)} interactive={!data || ilNums.has(lesson.n)} onBack={() => go({})} />
             </>
           ) : (
             <Card className="max-lg:hidden">
