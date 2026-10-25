@@ -10,7 +10,7 @@ export function LessonChips({ nums, label = 'Study' }: { nums: number[]; label?:
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       <span className="label mr-1">{label}</span>
-      {ls.map(l => <Link key={l.n} to={`/learn?l=${l.n}`} className="chip"><Icon name="playbook" size={12} />{l.n}. {l.title}</Link>)}
+      {ls.map(l => <Link key={l.n} to={`/learn?l=${l.n}`} className="chip max-w-full min-w-0"><Icon name="playbook" size={12} className="shrink-0" /><span className="truncate">{l.n}. {l.title}</span></Link>)}
     </div>
   );
 }
@@ -21,7 +21,7 @@ export function ZoomChips({ nums, label = 'Sunday live' }: { nums: number[]; lab
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       <span className="label mr-1">{label}</span>
-      {nums.map(n => <Link key={n} to={`/learn?src=zoom&l=${n}`} className="chip"><Icon name="calendar" size={12} />{zoomLabel(n)}</Link>)}
+      {nums.map(n => <Link key={n} to={`/learn?src=zoom&l=${n}`} className="chip max-w-full min-w-0"><Icon name="calendar" size={12} className="shrink-0" /><span className="truncate">{zoomLabel(n)}</span></Link>)}
     </div>
   );
 }
