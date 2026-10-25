@@ -13,7 +13,7 @@ import { GLOSSARY, type GlossaryMentor } from '@/core/glossary';
 import { LessonFigures, RealCharts } from '@/ui/LessonMedia';
 import { GlossaryView } from '@/ui/GlossaryView';
 import { Badge, Card, cx, Page, RevealText, spring } from '@/ui/kit';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Icon } from '@/ui/Icon';
 import { hasDiagram, LessonDiagram } from '@/ui/LessonDiagrams';
 import { lessonKey, mastery, mentorMastery, mentorOfSrc, useDueCount, useTeachVersion } from '@/ui/teach/store';
@@ -45,6 +45,16 @@ function useDone(key: string) {
   useEffect(() => { try { setDone(JSON.parse(localStorage.getItem(key) ?? '[]')); } catch { /* storage blocked */ } }, [key]);
   const toggle = (n: number) => setDone(d => { const next = d.includes(n) ? d.filter(x => x !== n) : [...d, n]; try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* storage blocked */ } return next; });
   return [done, toggle] as const;
+}
+
+/** The last lesson opened per source, so "Continue where you left off" picks up after it. */
+const lastKey = (src: string) => `rfx_learn_last_${src}`;
+const readLast = (src: string): number | null => { try { const v = Number(localStorage.getItem(lastKey(src))); return v > 0 ? v : null; } catch { return null; } };
+const writeLast = (src: string, n: number) => { try { localStorage.setItem(lastKey(src), String(n)); } catch { /* storage blocked */ } };
+/** The next unstudied lesson after the last one opened, wrapping to the first unstudied. */
+function nextUnstudied(list: VideoLesson[], done: number[], last: number | null): VideoLesson | undefined {
+  const at = last == null ? -1 : list.findIndex(l => l.n === last);
+  return list.slice(at + 1).find(l => !done.includes(l.n)) ?? list.find(l => !done.includes(l.n));
 }
 
 const KIND: Record<VideoLesson['kind'], string> = { video: 'Video', webinar: 'Webinar', podcast: 'Podcast', zoom: 'Zoom', article: 'Article' };
@@ -203,14 +213,20 @@ export default function Learn() {
     if (!s) return LIST;
     return LIST.filter(l => [l.title, l.summary, ...l.rules, ...l.sections.flatMap(x => [x.heading, ...x.points]), ...(isZoom(l) ? l.qa.flatMap(x => [x.q, x.a]) : []), ...(l.images ?? []).map(x => x.caption), ...(l.figures ?? []).map(x => x.caption)].join(' ').toLowerCase().includes(s));
   }, [q, LIST]);
-  const pct = LIST.length ? done.length / LIST.length : 0;
+  const studied = useMemo(() => LIST.filter(l => done.includes(l.n)).length, [LIST, done]);
+  const pct = LIST.length ? studied / LIST.length : 0;
+  const reduce = useReducedMotion();
+  useEffect(() => { if (lesson && !side) writeLast(src, lesson.n); }, [lesson, side, src]);
+  const last = useMemo(() => (side ? null : readLast(src)), [src, side, n]); // eslint-disable-line react-hooks/exhaustive-deps
+  const upNext = side ? undefined : nextUnstudied(LIST, done, last);
+  const resumed = last != null && studied > 0;
   const go = (p: Record<string, string>) => setSp(src === 'course' ? p : { src, ...p });
   const opts: { k: Src; short: string; count: number }[] = [...(Object.keys(SRC) as Mentor[]).map(k => ({ k: k as Src, short: SRC[k].short, count: SRC[k].list.length })), { k: 'glossary', short: 'Glossary', count: GLOSSARY.length }];
 
   return (
     <Page>
       <div className="grid gap-4 lg:grid-cols-[300px_1fr] items-start">
-        <aside className={cx('flex flex-col gap-3 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)]', lesson && 'max-lg:hidden')}>
+        <aside className={cx('min-w-0 flex flex-col gap-3 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)]', lesson && 'max-lg:hidden')}>
           <Card>
             <div className="label mb-2">Mentor</div>
             <div role="radiogroup" aria-label="Mentor" className="flex flex-col gap-1">
@@ -239,12 +255,32 @@ export default function Learn() {
               </>
             ) : (
               <>
-                <div className="flex items-baseline justify-between mt-3"><div className="label">{S.head}</div><span className="num text-[12px] text-ink3">{done.length}/{LIST.length} studied</span></div>
-                <div className="h-1.5 rounded-full bg-line mt-2 overflow-hidden"><div className="h-full bg-accent rounded-full" style={{ width: `${pct * 100}%` }} /></div>
+                <div className="label mt-3">{S.head}</div>
+                <div className="flex items-baseline justify-between gap-2 mt-1.5">
+                  <span className="text-[13px] font-semibold text-ink">{S.name}: <span className="num">{studied}</span> of <span className="num">{LIST.length}</span> studied</span>
+                  <span className={cx('num text-[12px] font-semibold', pct >= 1 ? 'text-profit' : 'text-ink3')}>{Math.round(pct * 100)}%</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-line mt-2 overflow-hidden"><motion.div className={cx('h-full w-full rounded-full origin-left', pct >= 1 ? 'bg-profit' : 'bg-accent')} initial={false} animate={{ transform: `scaleX(${pct})` }} transition={reduce ? { duration: 0 } : spring} /></div>
                 <input className="field mt-3" placeholder={`Search every ${S.noun.replace(/s$/, '')}…`} aria-label="Search" value={q} onChange={e => setQ(e.target.value)} />
               </>
             )}
           </Card>
+          {!side && !lesson && LIST.length > 0 && (upNext ? (
+            <button type="button" onClick={() => go({ l: String(upNext.n) })} className="press card p-3.5 flex lg:hidden items-center gap-3 text-left w-full ring-1 ring-accent/25 hover:bg-raised/60 transition-colors">
+              <span className="w-10 h-10 rounded-xl bg-accent/15 text-accent grid place-items-center shrink-0"><Icon name="play" size={16} /></span>
+              <span className="min-w-0 flex-1">
+                <span className="label block">{resumed ? 'Continue where you left off' : studied ? 'Next up' : S.start}</span>
+                <span className="block text-[13.5px] font-semibold leading-snug mt-0.5 truncate">{isZoom(upNext) ? fmtDate(upNext.date) : upNext.n}. {upNext.title}</span>
+                <span className="block text-[11.5px] text-ink3 mt-0.5 num">{LIST.length - studied} left · {KIND[upNext.kind]} · {upNext.sections.length} sections</span>
+              </span>
+              <Icon name="chevronRight" size={16} className="text-ink3 shrink-0" />
+            </button>
+          ) : (
+            <div className="card p-3.5 flex lg:hidden items-center gap-3 ring-1 ring-profit/30">
+              <span className="w-10 h-10 rounded-xl bg-profit/15 text-profit grid place-items-center shrink-0"><Icon name="check" size={16} /></span>
+              <span className="text-[13px] text-ink2 leading-snug"><span className="font-semibold text-ink">All {LIST.length} {S.noun} studied.</span> Review the flashcards to keep them fresh.</span>
+            </div>
+          ))}
           {/* The list scrolls by itself (desktop), independent of the lesson beside it. */}
           {!side && <Card className="p-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
             {summary && (
@@ -282,7 +318,8 @@ export default function Learn() {
             <Card className="max-lg:hidden">
               <RevealText key={src} as="h2" className="text-[20px] font-semibold" text={S.title} />
               <p className="text-[14px] text-ink2 mt-2 max-w-[70ch]">{S.blurb}</p>
-              <div className="flex flex-wrap gap-2 mt-4">{LIST.length > 0 && <button type="button" className="btn-primary" onClick={() => go({ l: String((LIST.find(l => !done.includes(l.n)) ?? LIST[0]).n) })}>{done.length ? 'Continue' : S.start}<Icon name="chevronRight" size={14} /></button>}<Link to={`/checklist?m=${CHECK_OF[src].m}`} className="btn"><Icon name="check" size={14} />Cradle-to-grave checklist</Link></div>
+              {upNext && studied > 0 && <p className="text-[13px] text-ink3 mt-3"><span className="font-medium text-ink2">{resumed ? 'Continue where you left off:' : 'Next up:'}</span> {isZoom(upNext) ? fmtDate(upNext.date) : upNext.n}. {upNext.title} · <span className="num">{LIST.length - studied}</span> left</p>}
+              <div className="flex flex-wrap gap-2 mt-4">{LIST.length > 0 && <button type="button" className="btn-primary" onClick={() => go({ l: String((upNext ?? LIST[0]).n) })}>{studied ? 'Continue' : S.start}<Icon name="chevronRight" size={14} /></button>}<Link to={`/checklist?m=${CHECK_OF[src].m}`} className="btn"><Icon name="check" size={14} />Cradle-to-grave checklist</Link></div>
             </Card>
           )}
         </div>

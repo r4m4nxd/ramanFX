@@ -6,6 +6,8 @@ import { DEFAULT_RISK_RULES, useStore } from '@/data/store';
 import { useEnriched } from '@/data/derived';
 import { usePlans } from '@/data/guru';
 import { positionSize } from '@/core/instruments';
+import { riskStatus } from '@/core/risk';
+import { mostTraded, rajaStop, rajaTarget, readCombo, readMentor, room, ROOM_GOOD, ROOM_MIN, writeCombo, writeMentor, type Mentor } from '@/core/plannerDefaults';
 import { blankPlan, evaluatePlan, formation, SD_COMBOS, trendRel, type ConfSignal, type MoveAway, type Plan, type PlanStatus } from '@/core/strategy';
 import { money, num, price } from '@/lib/format';
 import { Badge, Card, CardHead, cx, Empty, Field, Page, Segmented, useIsMobile, useToast } from '@/ui/kit';
@@ -35,6 +37,25 @@ export const STATUS: Record<PlanStatus, { t: string; tone: 'neutral' | 'accent' 
   ordered: { t: 'Order placed', tone: 'violet' }, filled: { t: 'In trade / done', tone: 'profit' }, skipped: { t: 'Skipped', tone: 'neutral' }, missed: { t: 'Missed', tone: 'loss' },
 };
 
+/** A small "auto" tag on a value the planner filled in from the mentor's rules. */
+function AutoTag() {
+  return <span className="ml-1.5 inline-flex items-center h-[18px] px-1.5 rounded-full bg-accent/12 text-accent text-[10px] font-semibold tracking-wide align-middle">auto</span>;
+}
+/** Field with a rich label: the "auto" tag while the value is the rule's, a reset link once overridden. */
+function LevelField({ label, auto, onReset, children, hint }: { label: string; auto?: boolean; onReset?: () => void; children: React.ReactNode; hint?: React.ReactNode }) {
+  return (
+    <label className="flex flex-col gap-1.5 min-w-0">
+      <span className="text-xs font-medium text-ink2 flex items-center min-h-[18px] gap-1 flex-wrap">
+        {label}{auto && <AutoTag />}
+        {onReset && <button type="button" onClick={e => { e.preventDefault(); onReset(); }} className="press ml-auto text-[11px] font-medium text-accent py-1 -my-1">Reset to auto</button>}
+      </span>
+      {children}
+      {hint && <span className="text-[11px] text-ink3">{hint}</span>}
+    </label>
+  );
+}
+const MENTORS: { value: Mentor; label: string }[] = [{ value: 'raja', label: 'Raja' }, { value: 'kevin', label: 'Kevin' }];
+
 function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) => void }) {
   const save = useStore(s => s.savePlan);
   const rules = { ...DEFAULT_RISK_RULES, ...useStore(s => s.riskRules) };
@@ -56,21 +77,43 @@ function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) =
   const [buffer, setBuffer] = useState(10);
   const [bal, setBal] = useState(String(balance ?? 10000));
   const combo = SD_COMBOS[p.combo];
+  const all = useEnriched();
+  const day = useMemo(() => riskStatus(all, rules), [all, rules.maxDailyLoss, rules.maxDailyTrades]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Mentor preset: Raja (the owner's rules, the default) pre-fills stop, target and risk; Kevin keeps the pip buffer and R chips.
+  const [mentor, setMentorState] = useState<Mentor>(readMentor);
+  const setMentor = (m: Mentor) => { setMentorState(m); writeMentor(m); };
+  const raja = mentor === 'raja';
+  // Values the trader typed over. A saved plan's own levels count as typed, so opening it never moves them.
+  const [manual, setManual] = useState(() => ({ stop: initial.stop != null, target: initial.target != null, risk: initial.riskPct != null }));
+  const own = (k: keyof typeof manual, on = true) => setManual(m => (m[k] === on ? m : { ...m, [k]: on }));
 
   // Levels follow the zone: stop just beyond the distal line, entry at the proximal, target from the prescribed R.
   const dirn = p.side === 'buy' ? 1 : -1;
   const autoStop = p.distal != null ? +(p.distal - dirn * buffer * pip).toFixed(digits) : null;
-  useEffect(() => { if (autoStop != null) set({ stop: autoStop }); /* eslint-disable-next-line */ }, [p.distal, buffer, p.side]);
+  useEffect(() => { if (!raja && autoStop != null) set({ stop: autoStop }); /* eslint-disable-next-line */ }, [p.distal, buffer, p.side, raja]);
+  // Raja: stop = distal + a % of the zone height for the entry timeframe (min 3 pips); target = 7 pips before the opposite zone.
+  const rStop = raja && p.proximal != null && p.distal != null ? rajaStop({ side: p.side, proximal: p.proximal, distal: p.distal, tf: combo.etf, pip, digits }) : null;
+  const rTarget = raja && p.opposingHtf != null ? rajaTarget({ side: p.side, entry: p.entry ?? p.proximal, opposite: p.opposingHtf, pip, digits }) : null;
+  useEffect(() => { if (rStop && !manual.stop && p.stop !== rStop.stop) set({ stop: rStop.stop, stopStyle: 'standard' }); /* eslint-disable-next-line */ }, [rStop?.stop, manual.stop]);
+  useEffect(() => { if (rTarget != null && !manual.target && p.target !== rTarget) set({ target: rTarget, tpMethod: 'zone' }); /* eslint-disable-next-line */ }, [rTarget, manual.target]);
   useEffect(() => { if (p.proximal != null && (p.entry == null || initial.entry == null)) set({ entry: p.proximal }); /* eslint-disable-next-line */ }, [p.proximal]);
-  useEffect(() => { if (p.riskPct == null || p.riskPct > v.mgmt.maxRiskPct) set({ riskPct: v.mgmt.maxRiskPct }); /* eslint-disable-next-line */ }, [v.mgmt.maxRiskPct]);
+  // Risk follows the rule (your risk % on high odds, half on low odds) until you type your own, which still never passes the max.
+  useEffect(() => { if (!manual.risk || p.riskPct == null || p.riskPct > v.mgmt.maxRiskPct) set({ riskPct: v.mgmt.maxRiskPct }); /* eslint-disable-next-line */ }, [v.mgmt.maxRiskPct, manual.risk]);
   const riskDist = p.entry != null && p.stop != null ? Math.abs(p.entry - p.stop) : 0;
   const riskAmt = (+bal || 0) * (p.riskPct ?? 0) / 100;
   const size = riskDist ? positionSize({ riskAmount: riskAmt, entry: 0, stop: riskDist, unitValue: spec.uv.value, lotStep: 0.01, minLot: 0.01 }) : null;
   const tpFor = (r: number) => (p.entry != null && riskDist ? +(p.entry + dirn * riskDist * r).toFixed(digits) : null);
+  // Risk in context: the money, its share of the balance, the room to the target, and today's loss against the limit.
+  const balNum = +bal || 0;
+  const rm = room({ side: p.side, entry: p.entry, stop: p.stop, target: p.target ?? p.opposingHtf });
+  const fmt = (x: number) => money(x, { ccy: spec.ccy });
+  const dayLeft = rules.maxDailyLoss > 0 ? Math.max(0, rules.maxDailyLoss - day.lossToday) : null;
 
   const go = (d: number) => { setDir(d); setStep(s => Math.max(0, Math.min(STEPS.length - 1, s + d))); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const commit = () => {
     const out = { ...p, lots: size?.lots ?? p.lots ?? null, riskAmount: size?.riskAtLots ?? null, account: p.account ?? (active !== 'all' ? active : null) };
+    if (!p.retro) writeCombo(p.combo);
     save(out); toast(v.tradeable ? 'Plan saved' : 'Saved as a skipped setup'); onDone(out);
   };
 
@@ -191,25 +234,54 @@ function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) =
           <Choice on={p.entryType === 'stop'} onClick={() => set({ entryType: 'stop' })} title="Breakout stop" sub="Worse R:R" tone="warn" />
         </div>
       </Question>
-      <Question q="Stop beyond the distal line" hint="Standard, wide or very conservative — pick one and stick to it. Your Playbook says 10–15 pips beyond the valley/peak.">
-        <div className="flex gap-2 flex-wrap">{[0, 5, 10, 15, 20, 30].map(b => <button key={b} type="button" onClick={() => { setBuffer(b); set({ stopStyle: b <= 10 ? 'standard' : b <= 20 ? 'wide' : 'conservative' }); }} className={cx('chip', buffer === b && 'border-accent text-accent bg-accent/10')}>{b === 0 ? 'At distal' : `${b} pips`}</button>)}<span className="text-[11.5px] text-ink3 self-center capitalize">{p.stopStyle === 'conservative' ? 'very conservative' : p.stopStyle}</span></div>
-      </Question>
+      {raja ? (
+        <div className="rounded-xl border border-line bg-raised/40 px-3.5 py-3 text-[12.5px] leading-relaxed text-ink2">
+          <div className="font-medium text-ink">Stop beyond the distal by {rStop ? Math.round(rStop.pct * 100) : '—'}% of the zone{rStop && <span className="text-ink3 font-normal"> · {combo.etf}</span>}</div>
+          {rStop
+            ? <div className="num">{num(rStop.zonePips, 1)}-pip zone → {num(rStop.bufferPips, 1)} pips beyond the distal{rStop.minApplied && ' (3-pip minimum)'}</div>
+            : <div>Enter the proximal and distal lines and the stop fills itself.</div>}
+          <div className="text-ink3 mt-0.5">Target: 7 pips before the opposite zone. Room: 2× the stop minimum, 3× good.</div>
+        </div>
+      ) : (
+        <Question q="Stop beyond the distal line" hint="Standard, wide or very conservative — pick one and stick to it. Your Playbook says 10–15 pips beyond the valley/peak.">
+          <div className="flex gap-2 flex-wrap">{[0, 5, 10, 15, 20, 30].map(b => <button key={b} type="button" onClick={() => { setBuffer(b); set({ stopStyle: b <= 10 ? 'standard' : b <= 20 ? 'wide' : 'conservative' }); }} className={cx('chip', buffer === b && 'border-accent text-accent bg-accent/10')}>{b === 0 ? 'At distal' : `${b} pips`}</button>)}<span className="text-[11.5px] text-ink3 self-center capitalize">{p.stopStyle === 'conservative' ? 'very conservative' : p.stopStyle}</span></div>
+        </Question>
+      )}
+      {raja && (
+        <Field label={`Opposite ${combo.htf} zone (proximal)`} hint="Where price meets the other side. The target sits 7 pips before it.">
+          <input type="number" step="any" inputMode="decimal" className="field num" value={p.opposingHtf ?? ''} onChange={e => { set({ opposingHtf: e.target.value === '' ? null : +e.target.value }); own('target', false); }} />
+        </Field>
+      )}
       <div className="grid grid-cols-3 gap-3">
         <Field label="Entry (limit)"><input type="number" step="any" inputMode="decimal" className="field num" value={p.entry ?? ''} onChange={e => set({ entry: e.target.value === '' ? null : +e.target.value })} /></Field>
-        <Field label="Stop"><input type="number" step="any" inputMode="decimal" className="field num" value={p.stop ?? ''} onChange={e => set({ stop: e.target.value === '' ? null : +e.target.value })} /></Field>
-        <Field label="Target"><input type="number" step="any" inputMode="decimal" className="field num" value={p.target ?? ''} onChange={e => set({ target: e.target.value === '' ? null : +e.target.value })} /></Field>
+        <LevelField label="Stop" auto={raja && !!rStop && !manual.stop && p.stop === rStop.stop} onReset={raja && rStop && manual.stop ? () => own('stop', false) : undefined}>
+          <input type="number" step="any" inputMode="decimal" className="field num" value={p.stop ?? ''} onChange={e => { set({ stop: e.target.value === '' ? null : +e.target.value }); own('stop'); }} />
+        </LevelField>
+        <LevelField label="Target" auto={raja && rTarget != null && !manual.target && p.target === rTarget} onReset={raja && rTarget != null && manual.target ? () => own('target', false) : undefined}>
+          <input type="number" step="any" inputMode="decimal" className="field num" value={p.target ?? ''} onChange={e => { set({ target: e.target.value === '' ? null : +e.target.value }); own('target'); }} />
+        </LevelField>
       </div>
+      {raja && p.opposingHtf != null && rTarget == null && <p className="text-[12px] text-loss -mt-2">The opposite zone is behind the entry or inside 7 pips. Check the {p.side === 'buy' ? 'supply' : 'demand'} price.</p>}
+      {rm && (
+        <div className={cx('flex items-center gap-2 text-[12.5px] -mt-1', rm.verdict === 'skip' ? 'text-loss' : rm.verdict === 'good' ? 'text-profit' : 'text-warn')}>
+          <span className="num font-semibold">Room {num(rm.x, 1)}× the stop</span>
+          <Icon name={rm.verdict === 'skip' ? 'x' : 'check'} size={14} strokeWidth={2.4} />
+          <span className="text-ink3">{rm.verdict === 'skip' ? `under ${ROOM_MIN}×, skip it` : rm.verdict === 'good' ? `${ROOM_GOOD}× or more, good` : `${ROOM_MIN}× minimum met, ${ROOM_GOOD}× is better`}</span>
+        </div>
+      )}
       <div className="flex gap-2 flex-wrap">
-        {[1, 2, 3, 4].map(r => <button key={r} type="button" disabled={!riskDist} onClick={() => set({ target: tpFor(r) })} className={cx('chip', r === v.mgmt.targetR && 'border-accent text-accent')}>{r}R{r === v.mgmt.targetR ? ' · prescribed' : ''}</button>)}
-        <span className="text-[11.5px] text-ink3 self-center">or type the opposing zone's price</span>
+        {[1, 2, 3, 4].map(r => <button key={r} type="button" disabled={!riskDist} onClick={() => { set({ target: tpFor(r), tpMethod: 'fixed' }); own('target'); }} className={cx('chip', r === v.mgmt.targetR && 'border-accent text-accent')}>{r}R{r === v.mgmt.targetR ? ' · prescribed' : ''}</button>)}
+        {!raja && <span className="text-[11.5px] text-ink3 self-center">or type the opposing zone's price</span>}
       </div>
-      <Field label={`Opposing ${combo.htf} zone (proximal)`} hint="Your profit margin — how far price can travel before the HTF pushes back.">
-        <input type="number" step="any" inputMode="decimal" className="field num" value={p.opposingHtf ?? ''} onChange={e => set({ opposingHtf: e.target.value === '' ? null : +e.target.value })} />
-      </Field>
+      {!raja && (
+        <Field label={`Opposing ${combo.htf} zone (proximal)`} hint="Your profit margin — how far price can travel before the HTF pushes back.">
+          <input type="number" step="any" inputMode="decimal" className="field num" value={p.opposingHtf ?? ''} onChange={e => set({ opposingHtf: e.target.value === '' ? null : +e.target.value })} />
+        </Field>
+      )}
       <Question q="Take profit">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <Choice on={p.tpMethod === 'fixed'} onClick={() => set({ tpMethod: 'fixed', target: tpFor(v.mgmt.targetR) })} title="Fixed R:R" sub={`1:${v.mgmt.targetR}`} />
-          <Choice on={p.tpMethod === 'zone'} onClick={() => set({ tpMethod: 'zone', target: p.opposingHtf ?? p.target })} title="Opposing zone" sub="Natural exit" />
+          <Choice on={p.tpMethod === 'fixed'} onClick={() => { set({ tpMethod: 'fixed', target: tpFor(v.mgmt.targetR) }); own('target'); }} title="Fixed R:R" sub={`1:${v.mgmt.targetR}`} />
+          <Choice on={p.tpMethod === 'zone'} onClick={() => { if (raja && rTarget != null) own('target', false); else set({ tpMethod: 'zone', target: p.opposingHtf ?? p.target }); }} title="Opposing zone" sub={raja ? '7 pips before it' : 'Natural exit'} />
           <Choice on={p.tpMethod === 'structure'} onClick={() => set({ tpMethod: 'structure' })} title="Opposing structure" sub="Previous high/low" />
           <Choice on={p.tpMethod === 'trail'} onClick={() => set({ tpMethod: 'trail' })} title="No TP — trail" sub="Room to run" />
         </div>
@@ -224,8 +296,21 @@ function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) =
       </Question>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Balance"><input type="number" inputMode="decimal" className="field num" value={bal} onChange={e => setBal(e.target.value)} /></Field>
-        <Field label={`Risk % (max ${v.mgmt.maxRiskPct}%)`}><input type="number" step="0.05" inputMode="decimal" className="field num" value={p.riskPct ?? ''} onChange={e => set({ riskPct: e.target.value === '' ? null : +e.target.value })} /></Field>
+        <LevelField label={`Risk % (max ${v.mgmt.maxRiskPct}%)`} auto={!manual.risk && p.riskPct === v.mgmt.maxRiskPct} onReset={manual.risk && p.riskPct !== v.mgmt.maxRiskPct ? () => own('risk', false) : undefined}>
+          <input type="number" step="0.05" inputMode="decimal" className="field num" value={p.riskPct ?? ''} onChange={e => { const x = e.target.value === '' ? null : +e.target.value; set({ riskPct: x != null ? Math.min(x, v.mgmt.maxRiskPct) : null }); own('risk'); }} />
+        </LevelField>
       </div>
+      {size && balNum > 0 && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] text-ink2 -mt-1">
+          <span className="num"><b className="text-ink font-semibold">{fmt(size.riskAtLots)}</b> = {num((size.riskAtLots / balNum) * 100, 2).replace(/\.?0+$/, '')}% of {fmt(balNum)}</span>
+          {rm && <span className={cx('num font-medium', rm.verdict === 'skip' ? 'text-loss' : 'text-profit')}>room {num(rm.x, 1)}× {rm.verdict === 'skip' ? '✗' : '✓'}</span>}
+          {dayLeft != null && (
+            <span className={cx('num', day.lossToday + size.riskAtLots > rules.maxDailyLoss ? 'text-loss font-medium' : 'text-ink3')}>
+              today {fmt(day.lossToday)} of {fmt(rules.maxDailyLoss)} daily loss used{day.lossToday + size.riskAtLots > rules.maxDailyLoss ? ' · this stop would pass it' : ''}
+            </span>
+          )}
+        </div>
+      )}
       <div className="rounded-xl bg-raised/60 border border-line p-4 grid grid-cols-3 gap-3 [&>div]:min-w-0">
         <div><div className="label">Size</div><div className="num text-lg sm:text-2xl font-semibold mt-1 truncate">{size ? size.lots.toFixed(2) : '—'}</div><div className="text-[11px] text-ink3">lots</div></div>
         <div><div className="label">Risk</div><div className="num text-lg sm:text-2xl font-semibold mt-1 truncate">{size ? money(size.riskAtLots) : '—'}</div><div className="text-[11px] text-ink3 num">{riskDist ? `${num(riskDist / pip, 1)} pips` : ''}</div></div>
@@ -257,6 +342,13 @@ function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) =
             <div className="font-semibold min-w-0 truncate">{initial.retro ? 'Grade this trade' : 'Plan a trade'}{p.symbol && <span className="text-ink3 font-normal"> · {p.symbol} {p.side === 'buy' ? 'long' : 'short'}</span>}</div>
             <span className="ml-auto text-xs text-ink3 num shrink-0">{step + 1}/{STEPS.length}</span>
           </div>
+          {!initial.retro && (
+            <div className="flex items-center gap-2 mt-2.5">
+              <span className="text-[11.5px] text-ink3">Rules</span>
+              <Segmented size="sm" label="Mentor rules" value={mentor} onChange={setMentor} options={MENTORS} />
+              <span className="text-[11.5px] text-ink3 truncate min-w-0 max-sm:hidden">{raja ? 'Stop, target and risk fill themselves' : 'Pip buffer and R targets'}</span>
+            </div>
+          )}
           <div className="flex gap-1.5 mt-3" role="tablist" aria-label="Steps">
             {STEPS.map((s, i) => (
               <button key={s} role="tab" aria-selected={i === step} onClick={() => { setDir(i > step ? 1 : -1); setStep(i); }} className="flex-1 group text-left py-2 -my-2">
@@ -351,6 +443,7 @@ export default function Planner() {
   const nav = useNavigate();
   const plans = usePlans();
   const et = useEnriched();
+  const trades = useStore(s => s.trades);
   const [filter, setFilter] = useState<'active' | 'done' | 'all'>('active');
 
   const editing = useMemo(() => {
@@ -361,9 +454,12 @@ export default function Planner() {
         const n = (v: string | number) => { const x = typeof v === 'number' ? v : parseFloat(v); return isFinite(x) && x !== 0 ? x : null; };
         return blankPlan({ retro: true, tradeId: t.id, symbol: t.sym, side: t.type, entry: t.openPrice, proximal: t.openPrice, stop: n(t.sl), target: n(t.tp), status: 'filled', createdAt: t.open.getTime() - 60_000, account: t.account });
       }
-      return blankPlan({ symbol: params.get('symbol') ?? '' });
+      // Smart defaults: the pair you trade most and the timeframes you used last.
+      const combo = readCombo(SD_COMBOS.length);
+      return blankPlan({ symbol: params.get('symbol') ?? mostTraded(trades), ...(combo != null ? { combo } : {}) });
     }
     return id ? plans.find(p => p.id === id) ?? null : null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, params, et, plans]);
 
   if (id) {

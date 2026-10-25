@@ -1,8 +1,9 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { CHECKLISTS, isChecklistMentor, MENTOR_ORDER, type CheckItem, type Checklist, type ChecklistMentor, type Stage } from '@/core/checklists';
+import { tradeProgress } from '@/core/checklistProgress';
 import { Card, cx, Page, Segmented, Sheet, spring, useToast } from '@/ui/kit';
 import { Icon } from '@/ui/Icon';
 
@@ -79,6 +80,78 @@ function StageJump({ list }: { list: Checklist }) {
         </button>
       ))}
     </nav>
+  );
+}
+
+// ─── Trade progress (goal gradient) ──────────────────────────────────────────────────────────────────────
+function ProgressRing({ value, ready, reduce }: { value: number; ready: boolean; reduce: boolean }) {
+  const r = 17, c = 2 * Math.PI * r;
+  return (
+    <svg width="44" height="44" viewBox="0 0 44 44" className="shrink-0 -rotate-90" aria-hidden="true">
+      <circle cx="22" cy="22" r={r} fill="none" strokeWidth="4" className="stroke-line" />
+      <motion.circle cx="22" cy="22" r={r} fill="none" strokeWidth="4" strokeLinecap="round" strokeDasharray={c}
+        className={ready ? 'stroke-profit' : 'stroke-accent'} initial={false}
+        animate={{ strokeDashoffset: c * (1 - value) }} transition={reduce ? { duration: 0 } : spring} />
+    </svg>
+  );
+}
+
+function TradeProgress({ list, ticks, onReset }: { list: Checklist; ticks: string[]; onReset: () => void }) {
+  const reduce = !!useReducedMotion();
+  const pr = useMemo(() => tradeProgress(list, ticks), [list, ticks]);
+  const pctTxt = `${Math.round(pr.pct * 100)}%`;
+  const stepTitle = pr.cur ? (pr.cur.s.kind === 'never' ? 'Clear every Never' : pr.cur.s.title) : '';
+  // Numbers match the stage badges (Raja's stage 0 is the mindset, before a chart is open).
+  const lastN = Math.max(0, ...list.stages.map(s => s.n ?? 0));
+  const where = pr.cur?.s.kind === 'never' ? 'Last gate · the Never list' : `Stage ${pr.cur?.s.n ?? 0} of ${lastN}`;
+  return (
+    <div className="mt-4">
+      <div className={cx('rounded-2xl border p-3 flex items-center gap-3 transition-colors duration-300', pr.ready ? 'border-profit/40 bg-profit/[0.07]' : 'border-line bg-raised/30')}>
+        <div className="relative grid place-items-center">
+          <ProgressRing value={pr.done ? pr.pct : 0.04} ready={pr.ready} reduce={reduce} />
+          <AnimatePresence initial={false}>
+            {pr.ready && (
+              <motion.span key="ok" className="absolute inset-0 grid place-items-center text-profit"
+                initial={reduce ? { opacity: 0 } : { opacity: 0, transform: 'scale(0.6)' }} animate={reduce ? { opacity: 1 } : { opacity: 1, transform: 'scale(1)' }} exit={{ opacity: 0 }}
+                transition={reduce ? { duration: 0.15 } : { type: 'spring', bounce: 0.35, duration: 0.45 }}>
+                <Icon name="check" size={18} strokeWidth={2.8} />
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </div>
+        <div className="min-w-0 flex-1" aria-live="polite">
+          {pr.ready ? (
+            <>
+              <div className="text-[15px] font-semibold text-profit leading-tight">Ready to place</div>
+              <div className="text-[12px] text-ink2 mt-0.5 leading-snug">Every stage and every Never cleared for this trade.</div>
+            </>
+          ) : pr.done === 0 ? (
+            <>
+              <div className="label num">{where}</div>
+              <div className="text-[14px] font-semibold leading-snug mt-0.5 line-clamp-2">Start with: {stepTitle}</div>
+            </>
+          ) : (
+            <>
+              <div className="label num">{where} · {pctTxt}</div>
+              <div className="text-[14px] font-semibold leading-snug mt-0.5 line-clamp-2">{stepTitle}</div>
+            </>
+          )}
+        </div>
+        {pr.ready
+          ? <Link to="/plan/new" className="btn-primary h-10 shrink-0"><Icon name="target" size={14} />Plan it</Link>
+          : <button type="button" className="btn-ghost h-9 px-3 text-[12.5px] shrink-0" onClick={onReset} disabled={!ticks.length}><Icon name="refresh" size={13} />Reset</button>}
+      </div>
+      {/* One segment per stage: the bar fills stage by stage, so the next one always looks within reach. */}
+      <div className="flex gap-1 mt-2.5" aria-hidden="true">
+        {pr.per.map(x => (
+          <span key={x.s.id} className={cx('h-1.5 flex-1 rounded-full overflow-hidden', x.s.kind === 'never' ? 'bg-loss/15' : 'bg-line')} style={{ flexGrow: Math.max(1, x.total) }}>
+            <motion.span className={cx('block h-full w-full rounded-full origin-left', pr.ready ? 'bg-profit' : x.done === x.total ? 'bg-profit' : 'bg-accent')} initial={false}
+              animate={{ transform: `scaleX(${x.total ? x.done / x.total : 0})` }} transition={reduce ? { duration: 0 } : spring} />
+          </span>
+        ))}
+      </div>
+      <div className="flex justify-between mt-1.5 text-[11.5px] text-ink3"><span className="num">{pr.done}/{pr.total} ticked</span>{pr.ready && <button type="button" className="text-ink3 py-1 -my-1" onClick={onReset}>Start the next trade</button>}</div>
+    </div>
   );
 }
 
@@ -448,9 +521,6 @@ export default function ChecklistPage() {
     toast(`Cleared ${before.length} ticks`, 'info', { action: { label: 'Undo', run: () => setTicks(before) } });
   };
 
-  const total = list.count;
-  const pct = total ? ticks.length / total : 0;
-
   return (
     <Page className="max-w-[760px] mx-auto w-full">
       <Card className="p-4 sm:p-5">
@@ -469,15 +539,7 @@ export default function ChecklistPage() {
             {mode === 'memorize' && <Segmented size="sm" label="Recall style" value={recall} onChange={setRecall} options={[{ value: 'reveal', label: 'Reveal' }, { value: 'cloze', label: 'Key words' }]} />}
           </div>
         </div>
-        {mode === 'check' && (
-          <div className="mt-4">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-[12.5px] text-ink2"><span className="num font-semibold text-ink">{ticks.length}</span>/<span className="num">{total}</span> ticked</span>
-              <button type="button" className="btn-ghost h-9 px-3 text-[12.5px]" onClick={reset} disabled={!ticks.length}><Icon name="refresh" size={13} />Reset</button>
-            </div>
-            <div className="h-1.5 rounded-full bg-line mt-2 overflow-hidden"><motion.div className="h-full w-full bg-profit rounded-full origin-left" animate={{ transform: `scaleX(${pct})` }} transition={spring} /></div>
-          </div>
-        )}
+        {mode === 'check' && <TradeProgress list={list} ticks={ticks} onReset={reset} />}
         {mode !== 'memorize' && <div className="mt-4"><StageJump list={list} /></div>}
       </Card>
 
