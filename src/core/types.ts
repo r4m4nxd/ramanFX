@@ -101,6 +101,8 @@ export interface TradeNote {
   riskOverride?: number | null;
   /** Lines, zones and notes drawn on the trade chart. Times are UTC seconds. */
   drawings?: Drawing[];
+  /** Rule check: Raja's key rules ticked followed (y) / broken (n) / not applicable (na), keyed by rule id (core/ruleScore). */
+  rules?: Partial<Record<string, 'y' | 'n' | 'na'>>;
 }
 
 export type DrawKind = 'hline' | 'trend' | 'rect' | 'text';

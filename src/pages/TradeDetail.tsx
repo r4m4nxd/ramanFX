@@ -20,6 +20,9 @@ import { TradeChart } from '@/ui/TradeChart';
 import { useGradedTrade } from '@/data/guru';
 import { exitOutcome, ORDER_LABEL, ptsToR, REASON_LABEL } from '@/core/exitInsights';
 import { ALL_MISTAKE_TAGS as LESSON_MISTAKE_TAGS } from '@/core/lessonLinks';
+import { RuleCheck } from '@/ui/RuleCheck';
+import { useRuleChecks, useRuleScore } from '@/data/ruleChecks';
+import { autoMarks, type RuleMarks } from '@/core/ruleScore';
 
 const EMOTIONS = ['calm', 'focused', 'confident', 'anxious', 'fomo', 'greedy', 'revenge', 'tired', 'bored'];
 const TRENDS: [Trend, string, string][] = [['up', '↑', 'Uptrend'], ['down', '↓', 'Downtrend'], ['side', '✖', 'Sideways']];
@@ -40,6 +43,8 @@ export default function TradeDetail() {
   const fmt = useMoney();
   const toast = useToast();
   const graded = useGradedTrade(id);
+  const ruleCheck = useRuleChecks().find(c => c.g.t.id === id);
+  const { scores: ruleScores } = useRuleScore({ allTime: true });
 
   const loc = useLocation();
   const mobile = useIsMobile();
@@ -212,6 +217,11 @@ export default function TradeDetail() {
     </Card>
   );
 
+  // The trend read on this page feeds the direction / sideways rules live, before the note is saved.
+  const rulesCard = ruleCheck && (
+    <RuleCheck stored={(draft.rules ?? {}) as RuleMarks} auto={autoMarks({ ...ruleCheck.ctx, align: draft.align ?? null })} onChange={r => set({ rules: r })} scores={ruleScores} />
+  );
+
   const pipLabel = spec.assetClass === 'forex' || spec.assetClass === 'metal' ? 'pips' : 'pts';
 
   return (
@@ -251,6 +261,7 @@ export default function TradeDetail() {
       </Card>
 
       {mobile && journal}
+      {mobile && rulesCard}
 
       {graded && <VerdictCard g={graded} />}
 
@@ -280,6 +291,7 @@ export default function TradeDetail() {
           </Card>
 
           {!mobile && journal}
+          {!mobile && rulesCard}
         </div>
 
         <div className="flex flex-col gap-4 min-w-0">

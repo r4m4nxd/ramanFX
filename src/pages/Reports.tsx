@@ -11,6 +11,7 @@ import { pct, rMult, tone, useMoney } from '@/lib/format';
 import { Card, CardHead, cx, Empty, Page, Stat, Tabs, useIsMobile } from '@/ui/kit';
 import { Icon } from '@/ui/Icon';
 import { ChartTip, DivergingBars, useAxisW, useColors } from '@/ui/charts';
+import { RuleScoreView } from '@/ui/RuleScoreView';
 
 /** Local UTC offset, e.g. "UTC+05:30", so hour-based views name their clock. */
 function utcOffset() {
@@ -18,7 +19,7 @@ function utcOffset() {
   return `UTC${m >= 0 ? '+' : '−'}${String(Math.floor(Math.abs(m) / 60)).padStart(2, '0')}:${String(Math.abs(m) % 60).padStart(2, '0')}`;
 }
 
-type Tab = 'overview' | 'strategy' | 'time' | 'setups' | 'symbols' | 'risk' | 'compare';
+type Tab = 'overview' | 'strategy' | 'rules' | 'time' | 'setups' | 'symbols' | 'risk' | 'compare';
 
 /** Width of an element, live. Tables pick their layout from the card they sit in, not the screen. */
 function useWidth<T extends HTMLElement>() {
@@ -398,7 +399,7 @@ export default function Reports() {
   return (
     <Page>
       <Tabs label="Report" value={tab} onChange={v => { setParams({ tab: v }, { replace: true }); window.scrollTo({ top: 0 }); }} options={[
-        { value: 'overview', label: 'Overview' }, { value: 'strategy', label: 'Strategy' }, { value: 'time', label: 'Time' }, { value: 'setups', label: 'Setups' },
+        { value: 'overview', label: 'Overview' }, { value: 'strategy', label: 'Strategy' }, { value: 'rules', label: 'Rules' }, { value: 'time', label: 'Time' }, { value: 'setups', label: 'Setups' },
         { value: 'symbols', label: 'Symbols' }, { value: 'risk', label: 'Risk & R' }, { value: 'compare', label: 'Win/Loss' },
       ]} />
       {tab === 'overview' && <Overview />}
@@ -408,6 +409,7 @@ export default function Reports() {
       {tab === 'risk' && <RiskTab et={et} />}
       {tab === 'compare' && <CompareTab et={et} />}
       {tab === 'strategy' && <StrategyTab />}
+      {tab === 'rules' && <RuleScoreView />}
     </Page>
   );
 }
