@@ -30,6 +30,7 @@ export const NAV: { to: string; label: string; short?: string; icon: IconName; m
   { to: '/calendar', label: 'P&L calendar', short: 'P&L cal', icon: 'calendar', group: 'Review', hint: 'Daily results on a calendar', scoped: true },
   { to: '/heatmaps', label: 'Heat maps', icon: 'flame', group: 'Review', hint: 'When and where you make money', scoped: true },
   { to: '/exits', label: 'MAE / MFE lab', short: 'MAE/MFE', icon: 'exit', group: 'Review', hint: 'How far trades went against and for you', scoped: true },
+  { to: '/zones', label: 'Zone scorecard', short: 'Zones', icon: 'star', group: 'Review', hint: 'Which ZoneVision setups paid in MT5 research runs (Raja types, curve, room)' },
   { to: '/guru', label: 'Guru', icon: 'sparkles', group: 'Review', hint: 'Growth projection and coaching', scoped: true },
   { to: '/playbook', label: 'Playbook', icon: 'playbook', group: 'Plan & tools', hint: 'Setups and their rules', scoped: true },
   { to: '/strategies', label: 'Strategies', icon: 'strategy', group: 'Plan & tools', hint: 'Strategy performance', scoped: true },
@@ -392,7 +393,7 @@ export function Shell({ children }: { children: ReactNode }) {
               while a lazy page was still loading, leaving the new page invisible. */}
           <motion.div key={loc.pathname} data-page className={pageEnter}>
               {!deep && <motion.div className="lg:hidden land:hidden large-title mb-3 -mt-1 origin-left" aria-hidden="true" style={reduceMotion ? { opacity: bigOpacity } : { opacity: bigOpacity, filter: bigFilter, scale: bigScale }}>{title}</motion.div>}
-              {!hasTrades && !['/playbook', '/calculator', '/settings', '/risk', '/notebook', '/strategies', '/plan', '/guru', '/guide', '/news', '/chart', '/design', '/learn', '/ask', '/practice', '/bot-guide', '/checklist', '/tools'].some(p => loc.pathname.startsWith(p)) ? <Welcome onImport={() => setImportOpen(true)} /> : children}
+              {!hasTrades && !['/playbook', '/calculator', '/settings', '/risk', '/notebook', '/strategies', '/plan', '/guru', '/guide', '/news', '/chart', '/design', '/learn', '/ask', '/practice', '/bot-guide', '/checklist', '/tools', '/zones'].some(p => loc.pathname.startsWith(p)) ? <Welcome onImport={() => setImportOpen(true)} /> : children}
           </motion.div>
         </main>
       </div>

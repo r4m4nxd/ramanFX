@@ -44,13 +44,14 @@ export const Strategies = lazyPage(() => import('@/pages/Strategies'));
 export const Notebook = lazyPage(() => import('@/pages/Notebook'));
 export const Exits = lazyPage(() => import('@/pages/Exits'));
 export const Settings = lazyPage(() => import('@/pages/Settings'));
+export const Zones = lazyPage(() => import('@/pages/Zones'));
 
 /** First path segment → page, for prefetching on hover / touch-down / focus of a link. */
 const BY_PATH: Record<string, LazyPage> = {
   journal: Journal, trades: Trades, reports: Reports, design: DesignSystem, learn: Learn, checklist: ChecklistPage, ask: Ask,
   practice: Sandbox, 'bot-guide': BotGuide, tools: Tools, calendar: CalendarPage, heatmaps: Heatmaps, plan: Planner, guru: Guru,
   guide: Guide, news: News, chart: ChartPage, playbook: Playbook, calculator: Calculator, risk: Risk, strategies: Strategies,
-  notebook: Notebook, exits: Exits, settings: Settings,
+  notebook: Notebook, exits: Exits, settings: Settings, zones: Zones,
 };
 
 /** Start downloading the page behind `to` (no-op for the dashboard, which ships in the main bundle). */
@@ -64,4 +65,4 @@ export function prefetchRoute(to: string) {
 export const prefetchProps = (to: string) => ({ onPointerEnter: () => prefetchRoute(to), onPointerDown: () => prefetchRoute(to), onFocus: () => prefetchRoute(to) });
 
 /** Idle preload order: the pages a phone user reaches first, then the rest; heavy reading pages last. */
-export const PRELOAD: LazyPage[] = [Journal, Trades, TradeDetail, Planner, Reports, CalendarPage, Heatmaps, Guru, Playbook, Calculator, Risk, Strategies, Notebook, Exits, Settings, ChecklistPage, Tools, Guide, News, ChartPage, Ask, BotGuide, Sandbox, Learn];
+export const PRELOAD: LazyPage[] = [Journal, Trades, TradeDetail, Planner, Reports, CalendarPage, Heatmaps, Guru, Playbook, Calculator, Risk, Strategies, Notebook, Exits, Zones, Settings, ChecklistPage, Tools, Guide, News, ChartPage, Ask, BotGuide, Sandbox, Learn];
