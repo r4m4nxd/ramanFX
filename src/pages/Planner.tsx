@@ -10,6 +10,7 @@ import { riskStatus } from '@/core/risk';
 import { mostTraded, rajaStop, rajaTarget, readCombo, readMentor, room, ROOM_GOOD, ROOM_MIN, writeCombo, writeMentor, type Mentor } from '@/core/plannerDefaults';
 import { blankPlan, evaluatePlan, formation, SD_COMBOS, trendRel, type ConfSignal, type MoveAway, type Plan, type PlanStatus } from '@/core/strategy';
 import { money, num, price } from '@/lib/format';
+import { fmtR } from '@/core/ruleScore';
 import { Badge, Card, CardHead, cx, Empty, Field, Page, Segmented, useIsMobile, useToast } from '@/ui/kit';
 import { Icon } from '@/ui/Icon';
 import { Choice, CurveSlider, MoveAwayArt, Question, VerdictPanel, YesNo } from '@/ui/PlanParts';
@@ -17,6 +18,7 @@ import { SymbolPicker, useSpec } from './calcShared';
 import { ZoneBoard } from '@/ui/ZoneBoard';
 import { PLANNER_LESSONS, PLANNER_ZOOM } from '@/core/lessonLinks';
 import { LessonChips, MentorChecks, ZoomChips } from '@/ui/LessonLinks';
+import { PlanRuleWarnings, usePlanWarnings } from '@/ui/RuleScoreView';
 
 const STEPS = ['Setup', 'Zone', 'Context', 'Levels', 'Verdict'] as const;
 const MOVES: { v: MoveAway; t: string; s: string }[] = [
@@ -108,13 +110,15 @@ function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) =
   const balNum = +bal || 0;
   const rm = room({ side: p.side, entry: p.entry, stop: p.stop, target: p.target ?? p.opposingHtf });
   const fmt = (x: number) => money(x, { ccy: spec.ccy });
+  const ruleWarnings = usePlanWarnings(p, pip, digits);
   const dayLeft = rules.maxDailyLoss > 0 ? Math.max(0, rules.maxDailyLoss - day.lossToday) : null;
 
   const go = (d: number) => { setDir(d); setStep(s => Math.max(0, Math.min(STEPS.length - 1, s + d))); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const commit = () => {
     const out = { ...p, lots: size?.lots ?? p.lots ?? null, riskAmount: size?.riskAtLots ?? null, account: p.account ?? (active !== 'all' ? active : null) };
     if (!p.retro) writeCombo(p.combo);
-    save(out); toast(v.tradeable ? 'Plan saved' : 'Saved as a skipped setup'); onDone(out);
+    const w = ruleWarnings[0];
+    save(out); toast(`${v.tradeable ? 'Plan saved' : 'Saved as a skipped setup'}${w ? ` · breaking "${w.rule.name}": ${w.score.broken.n} trades, ${fmtR(w.score.cost!)}` : ''}`); onDone(out);
   };
 
   const body = [
@@ -320,6 +324,7 @@ function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) =
     // 5 ─ Verdict
     <div key="ver" className="flex flex-col gap-5">
       <VerdictPanel v={v} />
+      <PlanRuleWarnings warnings={ruleWarnings} />
       {v.tradeable && p.entry != null && p.stop != null && (
         <div className="rounded-xl border border-line2 bg-bg/60 p-4 font-mono text-[13px] leading-relaxed">
           <div className="label mb-2 font-sans">Order ticket</div>
