@@ -1280,9 +1280,9 @@ void BuildTLs(int s)
    BuildTLsDir(s, -1);
    BuildTLsDir(s, 1);
   }
-int FindTL(int s, datetime t1, int dir)
+int FindTL(int s, datetime t2, int dir)        // anchor 2 is unique per slot / direction (anchor 1 can be shared)
   {
-   for(int i = 0; i < ArraySize(gTL); i++) if(gTL[i].slot == s && gTL[i].t1 == t1 && gTL[i].dir == dir) return i;
+   for(int i = 0; i < ArraySize(gTL); i++) if(gTL[i].slot == s && gTL[i].t2 == t2 && gTL[i].dir == dir) return i;
    return -1;
   }
 double EvLineAt(int e, int k)
@@ -2619,8 +2619,8 @@ void DrawTLs()
            {
             if(gTL[ti].slot != s || gTL[ti].dir != d || gTL[ti].dead != 0) continue;
             string tip = Tip(TLText(ti, false));
-            string n1 = Nm("T", s, (long)gTL[ti].t1, d + 1, "l");
-            string n2 = Nm("T", s, (long)gTL[ti].t1, d + 1, "t");
+            string n1 = Nm("T", s, (long)gTL[ti].t2, d + 1, "l");
+            string n2 = Nm("T", s, (long)gTL[ti].t2, d + 1, "t");
             double v = TLVal(ti, last + 1);
             ObjTrend(n1, gTL[ti].t1, gTL[ti].p1, gTNow, v, SlotColor(s), STYLE_DASH, 1, false, tip);
             ObjText(n2, gTNow, v, SlotShort(s) + " TL " + (d < 0 ? "dn " : "up ") + IntegerToString(gTL[ti].touches) + "/" + IntegerToString(InpTLMaxTouches), SlotColor(s), 7, ANCHOR_LEFT_UPPER, tip);
@@ -2994,7 +2994,7 @@ void RenderCard(string txt)
    ObjectsDeleteAll(0, PFX_CARD);
    int lh = InpFontSize + 7;
    int w = IMax(260, InpCardWidth);
-   int maxc = IMin(63, IMax(30, (int)((w - 20) / (IMax(6, InpFontSize) * 0.78))));
+   int maxc = IMin(60, IMax(30, (int)((w - 20) / (IMax(6, InpFontSize) * 0.78))));
    WrapRows(txt, maxc);
    int ch = (int)ChartGetInteger(0, CHART_HEIGHT_IN_PIXELS);
    int maxRows = IMax(5, (ch - 50) / lh);
@@ -3062,7 +3062,7 @@ void DoAlerts()
       MarkSeen(key);
       if(!gAlertArmed || !InpAlertStory) continue;
       if(gSt[st].slot >= 3 && !InpAlertMini) continue;
-      if((long)(now - gSt[st].startT) > 3L * PeriodSeconds(S[gSt[st].bslot].tf)) continue;
+      if((long)(now - gSt[st].startT) > (long)3 * PeriodSeconds(S[gSt[st].bslot].tf)) continue;
       int bi = gSt[st].bo;
       Notify("MSNR " + _Symbol + ": " + SlotLong(gSt[st].slot) + " " + DirTxt(gSt[st].dir) + " " + StoryTypeTxt(gSt[st].type) + (gSt[st].cont ? " continuation" : "") + " storyline started (" + SlotName(gSt[st].bslot) + " " + (gBO[bi].external ? "external" : "internal") + " QM breakout @" + D2S(gBO[bi].sigPx) + ")");
      }
@@ -3074,7 +3074,7 @@ void DoAlerts()
       MarkSeen(key);
       if(!gAlertArmed || !InpAlertSetup) continue;
       if(gSt[gSu[su].st].slot >= 3 && !InpAlertMini) continue;
-      if((long)(now - gSu[su].armT) > 3L * PeriodSeconds(S[gEntrySlot].tf)) continue;
+      if((long)(now - gSu[su].armT) > (long)3 * PeriodSeconds(S[gEntrySlot].tf)) continue;
       Notify("MSNR " + _Symbol + ": price at " + SlotName(gSt[gSu[su].st].slot) + " " + SetupName(su) + " " + D2S(gLad[li].px) + " - wait for a confirmation");
      }
    for(int m = 0; m < ArraySize(gEn); m++)
@@ -3084,7 +3084,7 @@ void DoAlerts()
       MarkSeen(key);
       if(!gAlertArmed || !InpAlertEntry) continue;
       if(gSt[gEn[m].st].slot >= 3 && !InpAlertMini) continue;
-      if((long)(now - gEn[m].t) > 3L * PeriodSeconds(S[gEn[m].cslot].tf)) continue;
+      if((long)(now - gEn[m].t) > (long)3 * PeriodSeconds(S[gEn[m].cslot].tf)) continue;
       Notify("MSNR " + _Symbol + " " + (gEn[m].dir > 0 ? "BUY" : "SELL") + " (" + SlotName(gSt[gEn[m].st].slot) + " storyline, " + SetupName(gEn[m].setup) + ", " + ConfName(gEn[m].conf) + ") entry " + D2S(gEn[m].entry) + " SL " + D2S(gEn[m].sl) + " TP " + D2S(gEn[m].tp) + " RR " + DoubleToString(gEn[m].rr, 1) + " " + LotsTxt(gEn[m].lots));
      }
    gAlertArmed = true;
@@ -3161,6 +3161,7 @@ void Outcome(int d, double entry, double sl, double tp, int startBar, ORes &o)
    double fill = d > 0 ? entry + sp0 * pt : entry;
    double R = d > 0 ? fill - sl : sl - fill;
    if(R <= 0.0) R = gMinStop;
+   if(R <= 0.0) R = gPip;                                  // InpMinStopPips = 0: avoid a zero divide
    o.resW = 0; o.resC = 0;
    bool doneW = false, doneC = false;
    int lim = IMin(LastClosed(es), startBar + IMax(10, InpRsHorizon));
@@ -3332,7 +3333,7 @@ void RsTry()
    gRsMode = true;
    bool ok = true;
    int warm = IMax(InpLevelMaxAge, InpTLMaxAge) + 100;
-   datetime to = AddSec(InpRsTo, (long)(IMax(10, InpRsHorizon) + 20) * PeriodSeconds(SlotTf(gEvalSlot)) + 7L * 86400L);
+   datetime to = AddSec(InpRsTo, (long)(IMax(10, InpRsHorizon) + 20) * PeriodSeconds(SlotTf(gEvalSlot)) + (long)7 * 86400);
    for(int s = 0; s < NSLOT && ok; s++)
      {
       if(!S[s].need) continue;
@@ -3383,7 +3384,7 @@ void DrawAll()
    gTNow = iTime(_Symbol, PERIOD_CURRENT, 0);
    if(gTNow == 0) gTNow = TimeCurrent();
    gPs = PeriodSeconds(PERIOD_CURRENT);
-   gTLbl = AddSec(gTNow, 2L * gPs);
+   gTLbl = AddSec(gTNow, (long)2 * gPs);
    ObjectsDeleteAll(0, PFX_DRAW);
    DrawLineChart();
    DrawLevels();
