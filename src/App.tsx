@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { useStore } from '@/data/store';
 import { Shell } from '@/ui/Shell';
@@ -7,35 +7,8 @@ import { DATA_MODE } from '@/data/derived';
 import { ToastProvider } from '@/ui/kit';
 import Dashboard from '@/pages/Dashboard';
 
-// Secondary pages are split so the dashboard paints first.
-const Journal = lazy(() => import('@/pages/Journal'));
-const Trades = lazy(() => import('@/pages/Trades'));
-const TradeDetail = lazy(() => import('@/pages/TradeDetail'));
-const Reports = lazy(() => import('@/pages/Reports'));
-const DesignSystem = lazy(() => import('@/pages/DesignSystem'));
-const Learn = lazy(() => import('@/pages/Learn'));
-const ChecklistPage = lazy(() => import('@/pages/Checklist'));
-const Ask = lazy(() => import('@/pages/Ask'));
-const Sandbox = lazy(() => import('@/pages/Sandbox'));
-const BotGuide = lazy(() => import('@/pages/BotGuide'));
-const Tools = lazy(() => import('@/pages/Tools'));
-const CalendarPage = lazy(() => import('@/pages/CalendarPage'));
-const Heatmaps = lazy(() => import('@/pages/Heatmaps'));
-const Planner = lazy(() => import('@/pages/Planner'));
-const Guru = lazy(() => import('@/pages/Guru'));
-const Guide = lazy(() => import('@/pages/Guide'));
-const News = lazy(() => import('@/pages/News'));
-const ChartPage = lazy(() => import('@/pages/ChartPage'));
-const Playbook = lazy(() => import('@/pages/Playbook'));
-const Calculator = lazy(() => import('@/pages/Calculator'));
-const Risk = lazy(() => import('@/pages/Risk'));
-const Strategies = lazy(() => import('@/pages/Strategies'));
-const Notebook = lazy(() => import('@/pages/Notebook'));
-const Exits = lazy(() => import('@/pages/Exits'));
-const Settings = lazy(() => import('@/pages/Settings'));
-
-// Fetch every page in the background once the app is idle, so taps never wait on a download.
-const PRELOAD = [() => import('@/pages/Guide'), () => import('@/pages/News'), () => import('@/pages/ChartPage'), () => import('@/pages/Journal'), () => import('@/pages/Trades'), () => import('@/pages/TradeDetail'), () => import('@/pages/Reports'), () => import('@/pages/CalendarPage'), () => import('@/pages/Heatmaps'), () => import('@/pages/Planner'), () => import('@/pages/Guru'), () => import('@/pages/Playbook'), () => import('@/pages/Calculator'), () => import('@/pages/Risk'), () => import('@/pages/Strategies'), () => import('@/pages/Notebook'), () => import('@/pages/Exits'), () => import('@/pages/Settings'), () => import('@/pages/Checklist'), () => import('@/pages/Tools')];
+// Secondary pages are split so the dashboard paints first (src/routes.tsx: lazy pages that skip the skeleton once loaded).
+import { Ask, BotGuide, Calculator, CalendarPage, ChartPage, ChecklistPage, DesignSystem, Exits, Guide, Guru, Heatmaps, Journal, Learn, News, Notebook, Planner, Playbook, PRELOAD, Reports, Risk, Sandbox, Settings, Strategies, Tools, TradeDetail, Trades } from '@/routes';
 
 function Loading() {
   return (
@@ -51,7 +24,8 @@ export default function App() {
   const initCloud = useStore(s => s.initCloud);
   useEffect(() => { void initCloud(); }, [initCloud]);
   useEffect(() => {
-    const go = () => PRELOAD.forEach((f, i) => setTimeout(() => void f().catch(() => {}), i * 120));
+    // Fetch every page in the background once the app is idle, so taps never wait on a download (or flash a skeleton).
+    const go = () => PRELOAD.forEach((p, i) => setTimeout(() => void p.preload().catch(() => {}), i * 120));
     const ric = (window as unknown as { requestIdleCallback?: (cb: () => void) => void }).requestIdleCallback;
     if (ric) ric(go); else setTimeout(go, 1200);
   }, []);
