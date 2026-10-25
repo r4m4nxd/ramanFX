@@ -97,6 +97,24 @@ export const TOOLS: Tool[] = [
     guide: { to: '/bot-guide', label: 'Bot guide' },
   },
   {
+    id: 'msnr5', platform: 'mt5', name: 'Malaysian SNR', version: '1.00', kind: 'Indicator',
+    purpose: 'Malaysian SNR 2.0 (Pitchou.FX) on the chart: fresh A / V / Gap levels per timeframe, trendlines, external QM breakouts, Classic and Advanced storylines, QMS setups, 5M EMA and other entry confirmations, and a display-only risk plan. Hover or click any object for the reason. Optional research CSV. Never trades.',
+    files: [{ file: 'RamanFX_MalaysianSNR.mq5', note: 'standalone, no include file' }],
+    install: [
+      'MT5: File → Open Data Folder → MQL5 → Indicators. Put RamanFX_MalaysianSNR.mq5 there.',
+      mt5Compile,
+      'Drag it onto a chart (XAUUSD M15 / H1 is a good start) → Inputs → Load → MSNR_Default.set.',
+      'Give it a few seconds the first time: it loads MN, W1, D1, H4, H1, M30, M15 and M5 history.',
+      'Research: set InpResearch = true and the date range; the CSV lands in Terminal\\Common\\Files (Max bars in chart = Unlimited).',
+    ],
+    presets: [
+      {
+        title: 'Preset', note: 'Indicator Inputs tab → Load.',
+        files: [{ file: 'MSNR_Default.set', note: 'Book defaults: 30-pip min stop, 1% risk, external QM, 5M EMA 9' }],
+      },
+    ],
+  },
+  {
     id: 'exc5', platform: 'mt5', name: 'Excursions', version: '2.00', kind: 'Script',
     purpose: 'Exact MAE / MFE for every closed position, the opening stop, how it closed and R-level touches. Import the CSV into the MAE / MFE lab.',
     files: [{ file: 'RamanFX_Excursions.mq5' }],

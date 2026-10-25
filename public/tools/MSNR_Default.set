@@ -1,0 +1,140 @@
+; RamanFX Malaysian SNR 1.00 - default preset (book defaults, XAUUSD focus; works on FX / indices)
+; Load: indicator Inputs tab > Load. Colours and research dates are not in this file (they keep the indicator defaults).
+; Book refs: levels p17-25, TF map p99, rejection p93, QM p34-44, storylines p202-372, setups p374-412, entries p413-434, SL/TP p435-550.
+; Risk 1% (the book's own risk examples are wrong: 5-30% per trade on personal accounts, p611-617).
+; --- 1. Levels (SNR p17-25, p96, p139)
+InpLvlMN=true
+InpLvlW1=true
+InpLvlD1=true
+InpLvlH4=true
+InpLvlH1=true
+InpLvlChart=true
+InpUseA=true
+InpUseV=true
+InpUseGap=true
+InpJunction=0
+InpBreakMode=0
+InpFreshSkip=1
+InpCCBar=2
+InpCCKeeps=true
+InpMaxUses=2
+InpLevelMaxAge=300
+InpMaxLevelsPerTF=3
+InpShowLevels=true
+InpShowUnfresh=false
+InpMergePips=5
+InpShowLineChart=false
+InpLineChartBars=300
+; --- 2. Trendlines (SNR p28-30, p114-160)
+InpUseTL=true
+InpTLMN=true
+InpTLW1=true
+InpTLD1=true
+InpTLH4=false
+InpTLPivot=2
+InpTLMinBars=3
+InpTLMaxTouches=5
+InpTLTolATR=0.10
+InpTLMaxAge=300
+InpTLShow=2
+; --- 3. Breakout engine (SNR p31-79, p93, p99, p121-127)
+InpBoMap=MN1:D1,W1:H4,D1:H1,H4:H1|M30|M15,H1:M30|M15,M30:M5,M15:M1
+InpSwingStrength=0
+InpStrongBody=0.50
+InpBodyATR=0.0
+InpRequireQM=true
+InpRejGate=true
+InpLtfInternal=false
+InpEarlyBO=false
+InpBoMaxBars=120
+; --- 4. Storylines (SNR p202-372)
+InpUseClassic=true
+InpUseAdvanced=true
+InpMidFrom=0.33
+InpEndFrom=0.75
+InpMergeBars=12
+InpMaxCont=6
+InpStoryMaxBars=400
+InpShowStoryMarks=true
+InpMaxMarks=12
+InpShowLadder=true
+; --- 5. QMS setups (SNR p374-412, p489-550)
+InpSetRBS=true
+InpSetLS=true
+InpSetGap=true
+InpSetApex=true
+InpSetERS=true
+InpSetCont=true
+InpGapNeedsAlign=true
+InpSetupMaxBars=60
+InpProxPips=10
+InpSetupBreakPips=20
+InpEqualTolPips=5
+InpSpikeWick=0.60
+; --- 6. Entry confirmations (SNR p413-434)
+InpEntryTF=5
+InpRejTF=15
+InpQMTF=5
+InpConfEMA=true
+InpConfRej=true
+InpConfGap=true
+InpConfTL=true
+InpConfQM=true
+InpEmaLen=9
+InpRejOppColour=true
+InpConfMaxBars=48
+InpPullbackBars=12
+InpSwingLook=10
+InpMicroLook=36
+; --- 7. Risk plan, display only (SNR p435-441, p547-550, p611-617)
+InpRiskPct=1.0
+InpRiskOnEquity=false
+InpMinStopPips=30
+InpIndexMinStop=50
+InpIndexPoint=1.0
+InpPipOverride=0
+InpSLBufferPips=1
+InpRiskAddSpread=true
+InpTPLadder=true
+InpContTP=0
+InpContRR=3.0
+InpFallbackRR=3.0
+InpTPMinR=1.0
+InpShowPlan=true
+; --- 8. Panel, tooltips, click card
+InpShowPanel=true
+InpPanelX=10
+InpPanelY=18
+InpFontSize=8
+InpCardFont=Segoe UI Symbol
+InpUnicodeMarks=true
+InpTipMax=600
+InpCardWidth=400
+InpHighlightSec=10
+; --- 9. Alerts (once per signal, never on load)
+InpAlertStory=true
+InpAlertSetup=false
+InpAlertEntry=true
+InpAlertMini=false
+InpAlertPopup=true
+InpAlertPush=false
+InpAlertSound=false
+InpSoundFile=alert.wav
+; --- 10. Research (CSV, no look-ahead)
+InpResearch=false
+InpRsEvalTF=5
+InpRsHorizon=4000
+InpRsSpread=true
+InpRsTouches=true
+InpRsSetups=true
+InpRsMaxBars=400000
+; --- 11. Data (bars loaded per TF, live)
+InpBarsMN=300
+InpBarsW1=600
+InpBarsD1=1200
+InpBarsH4=2500
+InpBarsH1=3000
+InpBarsM30=3000
+InpBarsM15=3000
+InpBarsM5=3000
+InpBarsM1=3000
