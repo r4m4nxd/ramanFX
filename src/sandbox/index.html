@@ -1,93 +1,302 @@
 <!doctype html>
-<html lang="en" class="h-full">
+<html lang="en" data-theme="dark">
 <head>
 <meta name="robots" content="noindex, nofollow">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Trading Sandbox</title>
 <meta name="description" content="Blind chart tests, drawing tools, trade critique against the mentor and a pattern-matching drill.">
-<meta name="theme-color" content="#0b0f17">
+<meta name="theme-color" content="#0B0C10">
 <link rel="stylesheet" href="sandbox.css">
 <script src="lucide.min.js"></script>
 <style>
-  :root { color-scheme: dark; }
-  html, body { background: #0b0f17; }
-  .num { font-variant-numeric: tabular-nums; }
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; height: 2.25rem; padding: 0 .85rem; border-radius: .6rem; font-size: 13px; font-weight: 600; border: 1px solid #243045; background: #161e2d; color: #e6edf7; transition: background .15s, border-color .15s, color .15s, transform .1s; white-space: nowrap; }
-  .btn:hover { background: #1c2638; }
-  .btn:active { transform: translateY(1px); }
-  .btn:disabled { opacity: .45; pointer-events: none; }
-  .btn-pri { background: #0ea5e9; border-color: #0ea5e9; color: #04131d; }
-  .btn-pri:hover { background: #38bdf8; }
-  .btn svg, .tool svg, .chip svg { width: 16px; height: 16px; }
-  :focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
-  .tool { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: .6rem; color: #a9b6c9; border: 1px solid transparent; }
-  .tool:hover { background: #1c2638; color: #e6edf7; }
-  .tool[aria-pressed="true"] { background: rgba(56,189,248,.15); color: #38bdf8; border-color: rgba(56,189,248,.45); }
-  .chip { display: inline-flex; align-items: center; gap: .35rem; height: 2rem; padding: 0 .75rem; border-radius: 999px; font-size: 12.5px; font-weight: 600; border: 1px solid #243045; color: #a9b6c9; background: #111723; }
-  .chip:hover { color: #e6edf7; }
-  .chip[aria-pressed="true"] { color: #e6edf7; background: rgba(56,189,248,.15); border-color: rgba(56,189,248,.5); }
-  .field { width: 100%; height: 2.25rem; border-radius: .6rem; background: #0b0f17; border: 1px solid #243045; color: #e6edf7; padding: 0 .7rem; font-size: 13px; }
-  .field:focus { border-color: #38bdf8; outline: none; }
-  select.field { padding-right: 1.6rem; }
-  .label { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; color: #6f7f97; }
-  .card { background: #111723; border: 1px solid #1d2738; border-radius: 1rem; }
-  .side { height: 2.75rem; border-radius: .7rem; font-weight: 800; font-size: 13px; letter-spacing: .04em; border: 1px solid #243045; background: #0b0f17; color: #a9b6c9; display: inline-flex; align-items: center; justify-content: center; gap: .35rem; }
-  .side[data-s="buy"][aria-pressed="true"] { background: rgba(34,197,94,.16); color: #4ade80; border-color: rgba(34,197,94,.6); }
-  .side[data-s="sell"][aria-pressed="true"] { background: rgba(239,68,68,.16); color: #f87171; border-color: rgba(239,68,68,.6); }
-  .side[data-s="none"][aria-pressed="true"] { background: rgba(148,163,184,.14); color: #e6edf7; border-color: rgba(148,163,184,.6); }
-  .pick[aria-pressed="true"] { background: rgba(245,158,11,.18); color: #fbbf24; border-color: rgba(245,158,11,.6); }
-  #mask { transition: left 1.5s cubic-bezier(.4,0,.2,1); background: repeating-linear-gradient(135deg, #0d1320 0 10px, #0f1726 10px 20px); }
+  /* Theme tokens (RGB triplets, same names as the app). These are fallbacks: the app injects its live tokens
+     (#app-tokens, after this block) and keeps them in sync when the theme changes. */
+  :root, [data-theme='dark'] {
+    --bg: 11 12 16; --surface: 22 23 30; --raised: 30 31 40; --line: 40 41 49; --line2: 54 55 66;
+    --ink: 243 244 246; --ink2: 156 163 175; --ink3: 138 141 155;
+    --accent: 139 92 246; --accent-hi: 124 58 237; --accent-press: 109 40 217; --on-accent: 255 255 255;
+    --profit: 16 185 129; --loss: 239 68 68; --warn: 245 158 11; --violet: 124 58 237; --on-status: 11 12 16;
+    --pill-on-bg: rgb(139 92 246 / .15); --pill-on-edge: rgb(139 92 246 / .40); --pill-on-ink: 243 244 246;
+    --radius-xs: 6px; --radius-control: 10px; --radius-inner: 12px; --radius-card: 16px; --radius-panel: 24px;
+    --glass-tint: rgb(34 35 46 / .84); --glass-tint-2: rgb(22 23 30 / .80); --glass-rim: rgb(255 255 255 / .22); --glass-spec: rgb(255 255 255 / .38);
+    --pop-tint: rgb(28 29 38 / .86); --pop-tint-2: rgb(20 21 27 / .9); --lens-tint: rgb(255 255 255 / .12);
+    --spec-soft: rgb(255 255 255 / .07); --ctl-hi: rgb(255 255 255 / .10); --ctl-hi-hover: rgb(255 255 255 / .15); --ctl-lo: rgb(255 255 255 / .04);
+    --card-fill: rgba(255, 255, 255, .03); --card-edge: rgba(255, 255, 255, .08); --hairline: rgb(255 255 255 / .09);
+    --mentor: 192 132 252; --stage: 7 8 11; --scrim: rgb(0 0 0 / .5);
+    color-scheme: dark;
+  }
+  [data-theme='light'] {
+    --bg: 242 242 242; --surface: 255 255 255; --raised: 246 246 246; --line: 235 235 235; --line2: 222 222 222;
+    --ink: 17 17 17; --ink2: 82 82 82; --ink3: 108 108 108;
+    --accent: 194 68 31; --accent-hi: 194 68 31; --accent-press: 174 58 24; --on-accent: 255 255 255;
+    --profit: 4 120 87; --loss: 200 30 70; --warn: 180 83 9; --violet: 109 40 217; --on-status: 255 255 255;
+    --pill-on-bg: rgb(17 17 17); --pill-on-edge: rgb(17 17 17); --pill-on-ink: 255 255 255;
+    --radius-xs: 7px; --radius-control: 12px; --radius-inner: 16px; --radius-card: 24px; --radius-panel: 28px;
+    --glass-tint: rgb(255 255 255 / .88); --glass-tint-2: rgb(246 246 248 / .82); --glass-rim: rgb(255 255 255 / .9); --glass-spec: rgb(255 255 255 / 1);
+    --pop-tint: rgb(255 255 255 / .88); --pop-tint-2: rgb(250 250 252 / .92); --lens-tint: rgb(17 17 17 / .06);
+    --spec-soft: rgb(255 255 255 / 1); --ctl-hi: rgb(255 255 255 / .95); --ctl-hi-hover: rgb(255 255 255 / 1); --ctl-lo: rgb(245 245 247 / .9);
+    --card-fill: rgba(255, 255, 255, 0); --card-edge: rgba(17, 17, 17, .06); --hairline: rgb(0 0 0 / .14);
+    --mentor: 109 40 217; --stage: 232 232 234; --scrim: rgb(0 0 0 / .28);
+    color-scheme: light;
+  }
+  :root { --ease-out: cubic-bezier(0.23, 1, 0.32, 1); --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1); --top: 64px; --peek: calc(90px + env(safe-area-inset-bottom, 0px)); --tap: 40px; }
+  @media (pointer: coarse) { :root { --tap: 44px; } }
+
+  /* ── base ───────────────────────────────────────────────── */
+  html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; overscroll-behavior: none; }
+  html, body { height: 100%; background: rgb(var(--bg)); }
+  body { color: rgb(var(--ink)); font-feature-settings: 'cv11', 'ss01'; overflow: hidden; }
+  button, a, select, summary, [role="button"] { touch-action: manipulation; }
+  button, [role="tab"], [role="radio"], summary { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  ::selection { background: rgb(var(--accent) / .3); }
+  :focus-visible { outline: 2px solid rgb(var(--accent)); outline-offset: 2px; }
+  * { scrollbar-width: thin; scrollbar-color: rgb(var(--line2)) transparent; }
+  svg.lucide { width: 18px; height: 18px; flex: none; }
+  .num { font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; color: rgb(var(--ink3)); }
+  .h-title { letter-spacing: -0.012em; }
+
+  /* ── surfaces ───────────────────────────────────────────── */
+  .card { background: linear-gradient(var(--card-fill), var(--card-fill)), rgb(var(--surface)); border: 1px solid var(--card-edge); border-radius: var(--radius-card); box-shadow: inset 0 1px 0 var(--spec-soft); }
+  .glass { background: linear-gradient(180deg, var(--glass-tint), var(--glass-tint-2)); -webkit-backdrop-filter: blur(24px) saturate(190%); backdrop-filter: blur(24px) saturate(190%); }
+  .glass-pop { background: radial-gradient(120% 60% at 50% 0%, rgb(255 255 255 / .06), transparent 60%), linear-gradient(180deg, var(--pop-tint), var(--pop-tint-2)); -webkit-backdrop-filter: blur(32px) saturate(180%); backdrop-filter: blur(32px) saturate(180%); border: .5px solid var(--glass-rim); box-shadow: inset 0 1px 0 var(--glass-spec), 0 -12px 40px -12px rgb(0 0 0 / .4); }
+  @media (prefers-reduced-transparency: reduce) { .glass, .glass-pop { background: rgb(var(--surface)); -webkit-backdrop-filter: none; backdrop-filter: none; } }
+  .tile { border-radius: var(--radius-inner); background: rgb(var(--raised) / .7); border: 1px solid rgb(var(--line)); }
+
+  /* ── controls: one geometry, press feedback on pointer-down ── */
+  .btn, .ibtn, .btn-pri { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; height: var(--tap); border-radius: 999px; font-size: 13.5px; font-weight: 600; white-space: nowrap; flex: none;
+    border: .5px solid var(--glass-rim); color: rgb(var(--ink)); background: linear-gradient(180deg, var(--ctl-hi), var(--ctl-lo)); box-shadow: inset 0 1px 0 var(--spec-soft), 0 1px 2px rgb(0 0 0 / .12);
+    transition: transform 140ms var(--ease-out), background-color 150ms ease, opacity 150ms ease; }
+  .btn { padding: 0 1rem; }
+  .ibtn { width: var(--tap); padding: 0; }
+  .btn-pri { padding: 0 1.1rem; border-color: transparent; color: rgb(var(--on-accent)); background: linear-gradient(180deg, rgb(var(--accent-hi)), rgb(var(--accent-press))); box-shadow: 0 6px 18px -6px rgb(var(--accent) / .55), inset 0 1px 0 rgb(255 255 255 / .3); }
+  [data-theme='light'] .btn-pri { background: rgb(var(--accent)); box-shadow: 0 4px 14px rgb(var(--accent) / .25); }
+  .btn:active, .ibtn:active, .btn-pri:active, .press:active { transform: scale(.96); }
+  .btn:disabled, .ibtn:disabled, .btn-pri:disabled { opacity: .42; pointer-events: none; }
+  @media (hover: hover) and (pointer: fine) { .btn:hover, .ibtn:hover { background: linear-gradient(180deg, var(--ctl-hi-hover), var(--ctl-lo)); } .btn-pri:hover { filter: brightness(1.08); } }
+  .press { transition: transform 140ms var(--ease-out), background-color 150ms ease, color 150ms ease, border-color 150ms ease; }
+
+  /* segmented pill with a sliding thumb */
+  .seg { position: relative; display: flex; padding: 3px; gap: 2px; border-radius: 999px; background: rgb(var(--raised) / .75); border: 1px solid rgb(var(--line)); }
+  .seg-thumb { position: absolute; top: 3px; bottom: 3px; left: 0; border-radius: 999px; background: var(--pill-on-bg); border: .5px solid var(--pill-on-edge); box-shadow: inset 0 1px 0 var(--glass-spec), 0 4px 12px -4px rgb(0 0 0 / .35);
+    transition: transform 320ms var(--ease-out), width 320ms var(--ease-out); pointer-events: none; }
+  .seg > button { position: relative; z-index: 1; flex: 1 1 0; min-width: 0; height: var(--tap); padding: 0 .9rem; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: .45rem;
+    font-size: 13.5px; font-weight: 600; color: rgb(var(--ink2)); transition: color 200ms ease, transform 140ms var(--ease-out); white-space: nowrap; }
+  .seg > button:active { transform: scale(.96); }
+  .seg > button[aria-selected="true"], .seg > button[aria-checked="true"] { color: rgb(var(--pill-on-ink)); }
+  .seg svg.lucide { width: 16px; height: 16px; }
+  #countSeg > button { flex: none; min-width: var(--tap); padding: 0 .6rem; }
+
+  /* drawing tools */
+  .tool { display: grid; place-items: center; width: var(--tap); height: var(--tap); border-radius: var(--radius-control); color: rgb(var(--ink2)); flex: none; transition: background-color 150ms ease, color 150ms ease, transform 140ms var(--ease-out); }
+  .tool:active { transform: scale(.92); }
+  @media (hover: hover) and (pointer: fine) { .tool:hover { background: rgb(var(--raised)); color: rgb(var(--ink)); } }
+  .tool[aria-pressed="true"] { background: rgb(var(--accent) / .16); color: rgb(var(--accent)); box-shadow: inset 0 0 0 1px rgb(var(--accent) / .45); }
+  .swatch { display: grid; place-items: center; width: 30px; height: var(--tap); flex: none; }
+  @media (pointer: coarse) { .swatch { width: var(--tap); } }
+  .swatch > span { width: 20px; height: 20px; border-radius: 999px; box-shadow: inset 0 0 0 1px rgb(0 0 0 / .15); transition: transform 160ms var(--ease-out), box-shadow 160ms ease; }
+  .swatch[aria-checked="true"] > span { transform: scale(1.15); box-shadow: 0 0 0 2px rgb(var(--bg)), 0 0 0 4px rgb(var(--ink) / .8); }
+  .sep { width: 1px; height: 22px; background: rgb(var(--line2)); margin: 0 4px; flex: none; }
+  .scroll-x { display: flex; align-items: center; gap: 2px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 calc(100% - 18px), transparent); mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 calc(100% - 18px), transparent); padding: 0 10px; }
+  .scroll-x::-webkit-scrollbar { display: none; }
+
+  .chip { display: inline-flex; align-items: center; gap: .4rem; height: 36px; padding: 0 .85rem; border-radius: 999px; font-size: 13px; font-weight: 600; border: 1px solid rgb(var(--line2)); color: rgb(var(--ink2)); background: rgb(var(--raised) / .6); }
+  @media (pointer: coarse) { .chip { height: 44px; padding: 0 1rem; } }
+  .chip svg.lucide { width: 16px; height: 16px; }
+  .chip[aria-pressed="true"] { color: rgb(var(--ink)); background: rgb(var(--accent) / .15); border-color: rgb(var(--accent) / .5); }
+  .field { width: 100%; height: var(--tap); border-radius: var(--radius-control); background: rgb(var(--raised)); border: 1px solid rgb(var(--line2)); color: rgb(var(--ink)); padding: 0 .8rem; font-size: 14px; }
+  @media (pointer: coarse) { .field, textarea.field { font-size: 16px; } }
+  .field::placeholder { color: rgb(var(--ink3)); }
+  .field:focus { border-color: rgb(var(--accent)); box-shadow: 0 0 0 3px rgb(var(--accent) / .2); outline: none; }
+  select.field { appearance: none; -webkit-appearance: none; padding-right: 2rem; text-overflow: ellipsis; background-repeat: no-repeat; background-position: right .7rem center; background-size: 14px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238A8D9B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); }
+  input[type="range"] { accent-color: rgb(var(--accent)); height: var(--tap); }
+
+  /* buy / sell / no-trade */
+  .side { height: var(--tap); border-radius: 999px; font-weight: 700; font-size: 13px; letter-spacing: .03em; display: inline-flex; align-items: center; justify-content: center; gap: .3rem; color: rgb(var(--ink2)); transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 140ms var(--ease-out); }
+  .side:active { transform: scale(.95); }
+  .side svg.lucide { width: 16px; height: 16px; }
+  .side[data-s="buy"][aria-checked="true"] { background: rgb(var(--profit) / .18); color: rgb(var(--profit)); box-shadow: inset 0 0 0 1px rgb(var(--profit) / .55); }
+  .side[data-s="sell"][aria-checked="true"] { background: rgb(var(--loss) / .16); color: rgb(var(--loss)); box-shadow: inset 0 0 0 1px rgb(var(--loss) / .55); }
+  .side[data-s="none"][aria-checked="true"] { background: rgb(var(--ink) / .1); color: rgb(var(--ink)); box-shadow: inset 0 0 0 1px rgb(var(--ink) / .35); }
+  .side:disabled { opacity: .55; }
+  .pick { height: var(--tap); padding: 0 .8rem; font-size: 13px; }
+  .pick[aria-pressed="true"] { background: rgb(var(--warn) / .18); color: rgb(var(--warn)); border-color: rgb(var(--warn) / .6); }
+
+  /* ── layout ─────────────────────────────────────────────── */
+  .app { position: relative; height: 100%; height: 100dvh; overflow: hidden; padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+  .topbar { position: absolute; z-index: 30; inset: 0 0 auto 0; padding: calc(8px + env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) 8px max(12px, env(safe-area-inset-left, 0px)); display: flex; align-items: center; gap: 12px; box-shadow: inset 0 -.5px 0 var(--hairline); }
+  .brand { display: flex; align-items: center; gap: 10px; min-width: 0; margin-right: auto; }
+  .topbar .seg { flex: 0 1 460px; }
+  .view { position: absolute; inset: 0; padding-top: calc(var(--top) + env(safe-area-inset-top, 0px)); }
+  .view.scroll { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+  .view.scroll > .inner { max-width: 1280px; margin: 0 auto; padding: 14px 14px calc(24px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 12px; }
+  [hidden] { display: none !important; }
+  .view:not([hidden]) { animation: viewIn 220ms var(--ease-out); }
+  @keyframes viewIn { from { opacity: 0; transform: translateY(6px); } }
+
+  /* Blind test: chart column + trade panel, filling the frame */
+  .blind { display: grid; grid-template-columns: minmax(0, 1fr) 340px; grid-template-rows: auto minmax(0, 1fr); gap: 10px 12px; padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px)); height: 100%; }
+  .blind-main { display: flex; flex-direction: column; gap: 10px; min-height: 0; min-width: 0; }
+  .filterbar { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .filters { display: flex; gap: 8px; flex: 1; min-width: 0; }
+  .filters .fl { flex: 0 1 160px; min-width: 0; }
+  .filters .fl:nth-of-type(2) { flex-basis: 210px; }
+  .filters .fl-chart { flex: 1 1 260px; }
+  .filters .sheet-head, .compact-only { display: none; }
+  .chartcard { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+  .toolbar { padding: 6px 0; border-bottom: 1px solid rgb(var(--line)); }
+  #stageWrap { position: relative; flex: 1; min-height: 160px; display: grid; place-items: center; background: rgb(var(--stage)); overflow: hidden; }
+  #stage { border-radius: 4px; overflow: hidden; box-shadow: 0 8px 30px -10px rgb(0 0 0 / .45); }
+  .caption { display: flex; align-items: baseline; gap: 10px; padding: 8px 14px 10px; min-width: 0; border-top: 1px solid rgb(var(--line)); }
+  #mask { transition: left 1.5s cubic-bezier(.4, 0, .2, 1); background: repeating-linear-gradient(135deg, rgb(var(--surface) / .97) 0 10px, rgb(var(--raised) / .97) 10px 20px); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); box-shadow: inset 1px 0 0 rgb(var(--warn) / .6); }
+
+  /* trade panel: a side column on wide screens, a draggable bottom sheet on phones */
+  .tsheet { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  .ts-handle { display: none; }
+  .ts-peek { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; align-items: center; padding: 12px 12px 0; }
+  .sides { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; padding: 3px; border-radius: 999px; background: rgb(var(--raised) / .75); border: 1px solid rgb(var(--line)); }
+  .ts-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+  .lvl { display: grid; grid-template-columns: 58px minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+
+  .def { transition: border-color 160ms ease, background-color 160ms ease, transform 140ms var(--ease-out); }
+  .def:active { transform: scale(.985); }
+  .thumb { transition: transform 140ms var(--ease-out), box-shadow 160ms ease; }
+  .thumb:active { transform: scale(.96); }
+  .tray { display: flex; gap: 10px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; padding: 2px 2px 6px; min-height: 140px; }
+  .tray > * { scroll-snap-align: start; }
+  @media (pointer: coarse) { .thumb { touch-action: manipulation !important; } }
+  .stat { text-align: center; padding: 8px 4px; }
+
+  /* modal sheet + scrim (phones) */
+  .scrim { position: fixed; inset: 0; z-index: 60; background: var(--scrim); opacity: 0; pointer-events: none; transition: opacity 240ms ease; }
+  .scrim.on { opacity: 1; pointer-events: auto; }
+
+  /* ── compact (phone / narrow frame) ─────────────────────── */
+  /* phone portrait / narrow frame */
+  @media (max-width: 899px) and (min-height: 481px), (max-width: 639px) {
+    :root { --top: 62px; }
+    .topbar { padding-top: calc(6px + env(safe-area-inset-top, 0px)); padding-bottom: 6px; }
+    .brand, .wide-only { display: none !important; }
+    .topbar .seg { flex: 1 1 auto; }
+    .seg > button { padding: 0 .5rem; font-size: 13px; }
+    .compact-only { display: revert; }
+    .blind { display: flex; flex-direction: column; gap: 8px; padding: 8px 10px calc(var(--peek) + 8px); }
+    .blind-main { flex: 1; gap: 8px; }
+    .filterbar > .filters { position: fixed; z-index: 70; left: 0; right: 0; bottom: 0; flex-direction: column; gap: 12px; padding: 18px 16px max(16px, env(safe-area-inset-bottom, 0px));
+      border-radius: var(--radius-panel) var(--radius-panel) 0 0; transform: translateY(105%); visibility: hidden; transition: transform 360ms var(--ease-drawer), visibility 0s linear 360ms; max-height: 86%; overflow-y: auto; }
+    .filterbar > .filters.open { transform: none; visibility: visible; transition: transform 360ms var(--ease-drawer), visibility 0s; }
+    .filters .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .filters .fl, .filters .fl-chart, .filters .fl:nth-of-type(2) { flex: none; }
+    .filters .sr-label { position: static; width: auto; height: auto; margin: 0 0 6px; clip: auto; overflow: visible; white-space: normal; }
+    #filtersBtn { flex: 1; min-width: 0; height: var(--tap); display: flex; align-items: center; gap: 10px; padding: 0 12px 0 14px; justify-content: flex-start; }
+    .caption { display: none; }
+    .toolbar { padding: 4px 0; }
+    #stageWrap { min-height: 120px; }
+    /* bottom sheet */
+    .tsheet { position: absolute; z-index: 40; left: 0; right: 0; bottom: 0; max-height: calc(100% - var(--top) - env(safe-area-inset-top, 0px) - 12px);
+      border-radius: var(--radius-panel) var(--radius-panel) 0 0; border-bottom: 0; transform: translateY(calc(100% - var(--peek))); transition: transform 380ms var(--ease-drawer); will-change: transform;
+      padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+    .tsheet[data-open="true"] { transform: translateY(0); box-shadow: 0 -20px 50px -10px rgb(0 0 0 / .5); }
+    .ts-handle { display: flex; align-items: center; justify-content: center; height: 30px; width: 100%; touch-action: none; cursor: grab; flex: none; }
+    .ts-handle::before { content: ''; width: 36px; height: 5px; border-radius: 99px; background: rgb(var(--ink3) / .55); }
+    .ts-peek { padding: 0 12px; grid-template-columns: minmax(0, 1fr) auto; }
+    .ts-body { padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)); }
+    .view.scroll > .inner { padding: 10px 10px calc(20px + env(safe-area-inset-bottom, 0px)); }
+  }
+  /* short and wide (phone held sideways): two columns, filters in a sheet, drawing tools as a rail beside the chart */
+  @media (max-height: 480px) and (min-width: 640px) and (max-width: 1099px) {
+    :root { --top: 56px; }
+    .topbar { padding-top: calc(6px + env(safe-area-inset-top, 0px)); padding-bottom: 6px; }
+    .brand, .wide-only { display: none !important; }
+    .topbar .seg { flex: 1 1 auto; }
+    .compact-only { display: revert; }
+    .blind { grid-template-columns: minmax(0, 1fr) 300px; gap: 8px; padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px)); }
+    .filterbar { grid-column: 1; }
+    .tsheet { grid-column: 2; grid-row: 1 / span 2; }
+    #filtersBtn { flex: 1; min-width: 0; height: var(--tap); display: flex; align-items: center; gap: 10px; padding: 0 12px 0 14px; justify-content: flex-start; }
+    .filterbar > .filters { position: fixed; z-index: 70; left: 0; right: 0; bottom: 0; flex-direction: column; gap: 10px; padding: 14px 16px max(14px, env(safe-area-inset-bottom, 0px));
+      border-radius: var(--radius-panel) var(--radius-panel) 0 0; transform: translateY(105%); visibility: hidden; transition: transform 360ms var(--ease-drawer), visibility 0s linear 360ms; max-height: 92%; overflow-y: auto; }
+    .filterbar > .filters.open { transform: none; visibility: visible; transition: transform 360ms var(--ease-drawer), visibility 0s; }
+    .filters .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .filters .fl, .filters .fl-chart, .filters .fl:nth-of-type(2) { flex: none; }
+    .chartcard { flex-direction: row; }
+    .toolbar { flex-direction: column; overflow-x: hidden; overflow-y: auto; padding: 6px 4px; border-bottom: 0; border-right: 1px solid rgb(var(--line));
+      -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 8px, #000 calc(100% - 14px), transparent); mask-image: linear-gradient(180deg, transparent 0, #000 8px, #000 calc(100% - 14px), transparent); }
+    .toolbar .sep { width: 22px; height: 1px; margin: 4px 0; }
+    #colors { flex-direction: column; }
+    .swatch { height: calc(var(--tap) - 6px); }
+    .caption { display: none; }
+    #stageWrap { min-height: 0; }
+  }
+  @media (max-width: 380px) { .seg > button .lbl-long { display: none; } }
+  @media (max-width: 440px) { .side svg.lucide { display: none; } .ts-peek .btn-pri { padding: 0 .95rem; } }
+  @media (max-width: 300px) { .ts-peek .rev-lbl { display: none; } }
+  #mask { container-type: inline-size; }
+  @container (max-width: 76px) { .mask-txt { display: none; } }
+  @media (min-width: 381px) { .seg > button .lbl-short { display: none; } }
+  @media (max-width: 1099px) and (min-width: 381px) { .seg > button .lbl-long { display: none; } .seg > button .lbl-short { display: inline; } }
+
+  @media (min-width: 900px) { .filters.glass-pop { background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; } }
+  .sr-label { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
   .shake { animation: shake .35s; }
   @keyframes shake { 20%,60% { transform: translateX(-6px); } 40%,80% { transform: translateX(6px); } }
-  .pop { animation: pop .3s ease-out; }
+  .pop { animation: pop .3s var(--ease-out); }
   @keyframes pop { 0% { transform: scale(.96); opacity: .4; } 100% { transform: scale(1); opacity: 1; } }
-  .ghost { position: fixed; pointer-events: none; z-index: 80; opacity: .9; transform: translate(-50%, -50%) rotate(-3deg); box-shadow: 0 18px 40px -10px rgba(0,0,0,.7); border-radius: .6rem; }
-  .drop-hot { border-color: #38bdf8 !important; background: rgba(56,189,248,.08) !important; }
-  .scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; } .scroll-thin::-webkit-scrollbar-thumb { background: #243045; border-radius: 8px; }
-  @media (prefers-reduced-motion: reduce) { #mask { transition: none; } .shake, .pop { animation: none; } }
+  .ghost { position: fixed; pointer-events: none; z-index: 80; opacity: .92; transform: translate(-50%, -50%) rotate(-3deg) scale(1.04); box-shadow: 0 18px 40px -10px rgb(0 0 0 / .6); border-radius: var(--radius-control); }
+  .drop-hot { border-color: rgb(var(--accent)) !important; background: rgb(var(--accent) / .08) !important; }
+  #preview { padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+  @media (prefers-reduced-motion: reduce) {
+    #mask { transition: none; } .shake, .pop, .view:not([hidden]) { animation: none; }
+    .tsheet, .filterbar > .filters, .seg-thumb { transition-duration: 0ms !important; }
+    .btn:active, .ibtn:active, .btn-pri:active, .press:active, .tool:active, .side:active, .seg > button:active, .thumb:active, .def:active { transform: none; }
+  }
 </style>
 </head>
-<body class="min-h-full bg-bg text-ink font-sans antialiased">
-<div class="max-w-[1500px] mx-auto px-4 sm:px-5 py-4 flex flex-col gap-4">
+<body class="font-sans antialiased">
+<div class="app" id="app">
 
-  <header class="flex flex-wrap items-center gap-3">
-    <div class="flex items-center gap-2.5 mr-auto">
-      <span class="grid place-items-center w-9 h-9 rounded-xl bg-acc/15 text-acc"><i data-lucide="candlestick-chart"></i></span>
-      <div>
-        <h1 class="text-[17px] font-bold tracking-tight leading-tight">The Active Trading Sandbox</h1>
-        <p class="text-[12px] text-ink3 leading-tight" id="dataInfo">Loading exercises…</p>
+  <header class="topbar glass">
+    <div class="brand">
+      <span class="grid place-items-center w-9 h-9 rounded-xl bg-acc/15 text-acc shrink-0"><i data-lucide="candlestick-chart"></i></span>
+      <div class="min-w-0">
+        <h1 class="text-[15px] font-semibold h-title leading-tight truncate">Trading Sandbox</h1>
+        <p class="text-[12px] text-ink3 leading-tight truncate" id="dataInfo">Loading exercises…</p>
       </div>
     </div>
-    <nav class="flex gap-1 p-1 rounded-xl bg-panel border border-edge" role="tablist" aria-label="Sandbox mode">
-      <button class="chip border-0" role="tab" id="tab-blind" aria-controls="view-blind" aria-selected="true" aria-pressed="true" data-tab="blind"><i data-lucide="eye-off"></i>Blind test</button>
-      <button class="chip border-0" role="tab" id="tab-match" aria-controls="view-match" aria-selected="false" aria-pressed="false" data-tab="match"><i data-lucide="puzzle"></i>Pattern matcher</button>
-      <button class="chip border-0" role="tab" id="tab-hist" aria-controls="view-hist" aria-selected="false" aria-pressed="false" data-tab="hist"><i data-lucide="history"></i>Journal &amp; stats</button>
+    <nav class="seg" role="tablist" aria-label="Sandbox mode" id="modeSeg">
+      <span class="seg-thumb" aria-hidden="true"></span>
+      <button role="tab" id="tab-blind" aria-controls="view-blind" aria-selected="true" data-tab="blind"><i data-lucide="eye-off"></i><span class="lbl-long">Blind test</span><span class="lbl-short">Blind</span></button>
+      <button role="tab" id="tab-match" aria-controls="view-match" aria-selected="false" data-tab="match"><i data-lucide="puzzle"></i><span class="lbl-long">Pattern matcher</span><span class="lbl-short">Match</span></button>
+      <button role="tab" id="tab-hist" aria-controls="view-hist" aria-selected="false" data-tab="hist"><i data-lucide="history"></i><span class="lbl-long">Journal &amp; stats</span><span class="lbl-short">Journal</span></button>
     </nav>
+    <a id="fullBtn" class="ibtn wide-only" target="_blank" rel="noopener noreferrer" aria-label="Open full window" title="Open full window" hidden><i data-lucide="maximize-2"></i></a>
   </header>
 
   <!-- ───────────── BLIND TEST ───────────── -->
-  <section id="view-blind" role="tabpanel" aria-labelledby="tab-blind" class="flex flex-col gap-3">
-    <div class="card p-3 flex flex-wrap items-end gap-2">
-      <label class="flex flex-col gap-1 min-w-[120px] flex-1 sm:flex-none"><span class="label">Mentor</span><select id="fMentor" class="field"></select></label>
-      <label class="flex flex-col gap-1 min-w-[150px] flex-1 sm:flex-none"><span class="label">Pattern</span><select id="fPattern" class="field"></select></label>
-      <label class="flex flex-col gap-1 min-w-[150px] flex-1 sm:flex-none"><span class="label">Lesson</span><select id="fLesson" class="field"></select></label>
-      <label class="flex flex-col gap-1 min-w-[220px] flex-[2]"><span class="label">Chart</span><select id="fChart" class="field"></select></label>
-      <div class="flex gap-2">
-        <button class="btn" id="prevBtn" aria-label="Previous chart"><i data-lucide="chevron-left"></i></button>
-        <button class="btn" id="nextBtn" aria-label="Next chart"><i data-lucide="chevron-right"></i></button>
-        <button class="btn btn-pri" id="randBtn"><i data-lucide="shuffle"></i>Random</button>
-      </div>
-    </div>
-
-    <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_360px] items-start">
-      <div class="card p-3 flex flex-col gap-2 min-w-0">
-        <div class="flex flex-wrap items-center gap-2">
-          <div class="min-w-0 mr-auto">
-            <div class="text-[15px] font-semibold truncate" id="exTitle">—</div>
-            <div class="text-[12px] text-ink3" id="exMeta"></div>
+  <section id="view-blind" class="view" role="tabpanel" aria-labelledby="tab-blind">
+    <div class="blind">
+      <div class="filterbar">
+          <button class="btn compact-only" id="filtersBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="filters">
+            <i data-lucide="sliders-horizontal" class="text-ink3"></i>
+            <span class="min-w-0 flex-1 text-left leading-tight"><span class="block truncate text-[14px]" id="pickTitle">Choose a chart</span><span class="block truncate text-[11.5px] font-medium text-ink3" id="pickMeta"></span></span>
+            <i data-lucide="chevron-down" class="text-ink3"></i>
+          </button>
+          <div class="filters glass-pop" id="filters" aria-label="Choose a chart">
+            <div class="sheet-head"><div><div class="text-[17px] font-semibold h-title">Choose a chart</div><div class="text-[12px] text-ink3" id="dataInfo2"></div></div><button class="btn-pri" id="filtersDone">Done</button></div>
+            <label class="fl"><span class="sr-label label">Mentor</span><select id="fMentor" class="field"></select></label>
+            <label class="fl"><span class="sr-label label">Pattern</span><select id="fPattern" class="field"></select></label>
+            <label class="fl"><span class="sr-label label">Lesson</span><select id="fLesson" class="field"></select></label>
+            <label class="fl fl-chart"><span class="sr-label label">Chart</span><select id="fChart" class="field"></select></label>
           </div>
-          <div class="flex items-center gap-1 flex-wrap" role="toolbar" aria-label="Drawing tools">
+          <button class="ibtn" id="prevBtn" aria-label="Previous chart"><i data-lucide="chevron-left"></i></button>
+          <button class="ibtn" id="nextBtn" aria-label="Next chart"><i data-lucide="chevron-right"></i></button>
+          <button class="btn-pri" id="randBtn" aria-label="Random chart"><i data-lucide="shuffle"></i><span class="wide-only">Random</span></button>
+        </div>
+      <div class="blind-main">
+        <div class="card chartcard">
+          <div class="toolbar scroll-x" role="toolbar" aria-label="Drawing tools">
             <button class="tool" data-tool="cursor" aria-label="Cursor (V) - drag your trade lines" title="Cursor (V)"><i data-lucide="mouse-pointer-2"></i></button>
             <button class="tool" data-tool="hline" aria-label="Horizontal support/resistance line (H)" title="S/R line (H)"><i data-lucide="minus"></i></button>
             <button class="tool" data-tool="trend" aria-label="Trendline (T)" title="Trendline (T)"><i data-lucide="trending-up"></i></button>
@@ -95,117 +304,142 @@
             <button class="tool" data-tool="fib" aria-label="Fibonacci retracement (F)" title="Fibonacci (F)"><i data-lucide="align-justify"></i></button>
             <button class="tool" data-tool="pen" aria-label="Freehand pen (P)" title="Pen (P)"><i data-lucide="pencil"></i></button>
             <button class="tool" data-tool="eraser" aria-label="Eraser (E) - tap a drawing to remove it" title="Eraser (E)"><i data-lucide="eraser"></i></button>
-            <span class="w-px h-6 bg-edge mx-1" aria-hidden="true"></span>
-            <div class="flex items-center gap-1" role="radiogroup" aria-label="Colour" id="colors"></div>
-            <span class="w-px h-6 bg-edge mx-1" aria-hidden="true"></span>
+            <span class="sep" aria-hidden="true"></span>
+            <div class="flex items-center" role="radiogroup" aria-label="Colour" id="colors"></div>
+            <span class="sep" aria-hidden="true"></span>
             <button class="tool" id="undoBtn" aria-label="Undo (Ctrl+Z)" title="Undo (Ctrl+Z)"><i data-lucide="undo-2"></i></button>
             <button class="tool" id="clearBtn" aria-label="Clear drawings" title="Clear drawings"><i data-lucide="trash-2"></i></button>
           </div>
-        </div>
-        <div id="stageWrap" class="relative w-full flex justify-center rounded-xl bg-[#070a10] p-1 min-h-[280px]">
-          <div id="stage" class="relative select-none" style="width:0;height:0">
-            <img id="chartImg" alt="" class="absolute inset-0 w-full h-full" draggable="false">
-            <div id="mask" class="absolute top-0 bottom-0 right-0 flex items-center justify-center overflow-hidden" aria-hidden="true">
-              <div class="text-center px-2"><div class="mx-auto w-9 h-9 grid place-items-center rounded-full bg-black/40 text-ink3 mb-1"><i data-lucide="eye-off"></i></div><div class="text-[11px] font-bold tracking-widest text-ink3">OUTCOME<br>HIDDEN</div></div>
+          <div id="stageWrap">
+            <div id="stage" class="relative select-none" style="width:0;height:0">
+              <img id="chartImg" alt="" class="absolute inset-0 w-full h-full" draggable="false">
+              <div id="mask" class="absolute top-0 bottom-0 right-0 flex items-center justify-center overflow-hidden" aria-hidden="true">
+                <div class="text-center px-2"><div class="mx-auto w-9 h-9 grid place-items-center rounded-full bg-panel2 text-ink3 mb-1.5"><i data-lucide="eye-off"></i></div><div class="mask-txt text-[10.5px] font-bold tracking-[.14em] text-ink3">OUTCOME<br>HIDDEN</div></div>
+              </div>
+              <canvas id="cv" class="absolute inset-0 w-full h-full" style="touch-action:none" tabindex="0" aria-label="Chart drawing surface. Use the toolbar to pick a tool."></canvas>
+              <div id="readout" class="absolute left-2 top-2 px-2 py-1 rounded-md bg-black/70 text-[11.5px] num text-white pointer-events-none hidden"></div>
+              <div id="pickHint" class="absolute left-1/2 -translate-x-1/2 bottom-2 px-3 py-1.5 rounded-full bg-gold text-black text-[12px] font-bold pointer-events-none whitespace-nowrap shadow-lg hidden"></div>
             </div>
-            <canvas id="cv" class="absolute inset-0 w-full h-full" style="touch-action:none" tabindex="0" aria-label="Chart drawing surface. Use the toolbar to pick a tool."></canvas>
-            <div id="readout" class="absolute left-2 top-2 px-2 py-1 rounded-md bg-black/70 text-[11.5px] font-mono num text-ink pointer-events-none hidden"></div>
-            <div id="pickHint" class="absolute left-1/2 -translate-x-1/2 bottom-2 px-3 py-1.5 rounded-full bg-gold text-black text-[12px] font-bold pointer-events-none hidden"></div>
+            <div id="stageEmpty" class="absolute inset-0 grid place-items-center text-ink3 text-[13px]">Loading…</div>
           </div>
-          <div id="stageEmpty" class="absolute inset-0 grid place-items-center text-ink3 text-[13px]">Loading…</div>
+          <div class="caption">
+            <div class="min-w-0 flex-1"><div class="text-[14px] font-semibold truncate h-title" id="exTitle">—</div><div class="text-[12px] text-ink3 truncate" id="exMeta"></div></div>
+            <p class="text-[11.5px] text-ink3 text-right max-w-[46%] leading-snug hidden xl:block" id="tip">The shaded area right of the amber “now” line is the future. Keys: V H T R F P E · Ctrl+Z · B / S / N · 1 2 3</p>
+          </div>
         </div>
-        <p class="text-[11.5px] text-ink3">Draw with mouse, finger or stylus. The shaded area right of the amber “now” line is the future: plan the trade, then reveal. Keys: V H T R F P E · Ctrl+Z undo · B / S / N side · 1 2 3 pick entry / stop / target.</p>
       </div>
 
-      <aside class="flex flex-col gap-3">
-        <div class="card p-4 flex flex-col gap-3" id="tradePanel">
-          <div class="flex items-center justify-between"><div class="label">Your trade</div><span class="text-[11px] text-ink3" id="unitNote"></span></div>
-          <div class="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Trade side">
-            <button class="side" data-s="buy" role="radio" aria-pressed="false" aria-checked="false"><i data-lucide="arrow-up-right" class="w-4 h-4"></i>BUY</button>
-            <button class="side" data-s="sell" role="radio" aria-pressed="false" aria-checked="false"><i data-lucide="arrow-down-right" class="w-4 h-4"></i>SELL</button>
-            <button class="side" data-s="none" role="radio" aria-pressed="false" aria-checked="false"><i data-lucide="ban" class="w-4 h-4"></i>NO TRADE</button>
+      <aside class="tsheet card" id="tradeSheet" data-open="false" aria-label="Your trade">
+        <button class="ts-handle" id="sheetToggle" aria-expanded="false" aria-controls="tsBody" aria-label="Show trade details"></button>
+        <div class="ts-peek">
+          <div class="sides" role="radiogroup" aria-label="Trade side">
+            <button class="side" data-s="buy" role="radio" aria-checked="false"><i data-lucide="arrow-up-right"></i>BUY</button>
+            <button class="side" data-s="sell" role="radio" aria-checked="false"><i data-lucide="arrow-down-right"></i>SELL</button>
+            <button class="side" data-s="none" role="radio" aria-checked="false"><i data-lucide="ban"></i>PASS</button>
           </div>
-          <div id="levels" class="flex flex-col gap-2">
-            <div class="grid grid-cols-[64px_1fr_auto] items-center gap-2"><label for="inEntry" class="text-[12.5px] font-semibold text-acc">Entry</label><input id="inEntry" class="field num" inputmode="decimal" autocomplete="off"><button class="btn pick px-2.5" data-pick="entry" aria-pressed="false" title="Click the chart to set (1)"><i data-lucide="crosshair"></i>Set</button></div>
-            <div class="grid grid-cols-[64px_1fr_auto] items-center gap-2"><label for="inSl" class="text-[12.5px] font-semibold text-sell">Stop</label><input id="inSl" class="field num" inputmode="decimal" autocomplete="off"><button class="btn pick px-2.5" data-pick="sl" aria-pressed="false" title="Click the chart to set (2)"><i data-lucide="crosshair"></i>Set</button></div>
-            <div class="grid grid-cols-[64px_1fr_auto] items-center gap-2"><label for="inTp" class="text-[12.5px] font-semibold text-buy">Target</label><input id="inTp" class="field num" inputmode="decimal" autocomplete="off"><button class="btn pick px-2.5" data-pick="tp" aria-pressed="false" title="Click the chart to set (3)"><i data-lucide="crosshair"></i>Set</button></div>
-          </div>
-          <div class="grid grid-cols-3 gap-2 text-center">
-            <div class="rounded-lg bg-bg border border-edge py-2"><div class="label">Risk</div><div class="num text-[13px] font-semibold mt-0.5" id="oRisk">—</div></div>
-            <div class="rounded-lg bg-bg border border-edge py-2"><div class="label">Reward</div><div class="num text-[13px] font-semibold mt-0.5" id="oRew">—</div></div>
-            <div class="rounded-lg bg-bg border border-edge py-2"><div class="label">R:R</div><div class="num text-[15px] font-bold mt-0.5" id="oRR">—</div></div>
-          </div>
-          <div id="tradeMsg" class="text-[12px] text-ink3 min-h-[1.2em]" role="status" aria-live="polite"></div>
-          <div class="flex gap-2">
-            <button class="btn btn-pri flex-1" id="revealBtn" disabled><i data-lucide="eye"></i>Reveal &amp; critique</button>
-            <button class="btn" id="resetBtn" title="Reset this chart"><i data-lucide="rotate-ccw"></i></button>
-          </div>
+          <button class="btn-pri" id="revealBtn" disabled aria-label="Reveal and critique"><i data-lucide="eye"></i><span class="rev-lbl">Reveal</span></button>
         </div>
+        <div class="ts-body" id="tsBody">
+          <div class="flex flex-col gap-3" id="tradePanel">
+            <div class="flex items-center justify-between"><div class="label">Your trade</div><span class="text-[11.5px] text-ink3" id="unitNote"></span></div>
+            <div id="levels" class="flex flex-col gap-2">
+              <div class="lvl"><label for="inEntry" class="text-[13px] font-semibold text-acc">Entry</label><input id="inEntry" class="field num" inputmode="decimal" autocomplete="off" enterkeyhint="next"><button class="btn pick" data-pick="entry" aria-pressed="false" title="Tap the chart to set (1)"><i data-lucide="crosshair"></i>Set</button></div>
+              <div class="lvl"><label for="inSl" class="text-[13px] font-semibold text-sell">Stop</label><input id="inSl" class="field num" inputmode="decimal" autocomplete="off" enterkeyhint="next"><button class="btn pick" data-pick="sl" aria-pressed="false" title="Tap the chart to set (2)"><i data-lucide="crosshair"></i>Set</button></div>
+              <div class="lvl"><label for="inTp" class="text-[13px] font-semibold text-buy">Target</label><input id="inTp" class="field num" inputmode="decimal" autocomplete="off" enterkeyhint="done"><button class="btn pick" data-pick="tp" aria-pressed="false" title="Tap the chart to set (3)"><i data-lucide="crosshair"></i>Set</button></div>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-center">
+              <div class="tile py-2"><div class="label">Risk</div><div class="num text-[14px] font-semibold mt-0.5" id="oRisk">—</div></div>
+              <div class="tile py-2"><div class="label">Reward</div><div class="num text-[14px] font-semibold mt-0.5" id="oRew">—</div></div>
+              <div class="tile py-2"><div class="label">R:R</div><div class="num text-[16px] font-bold mt-0.5" id="oRR">—</div></div>
+            </div>
+            <div class="flex items-start gap-2">
+              <div id="tradeMsg" class="flex-1 text-[12.5px] text-ink2 min-h-[1.2em] leading-snug pt-1" role="status" aria-live="polite"></div>
+              <button class="btn" id="resetBtn" title="Reset this chart" aria-label="Reset this chart"><i data-lucide="rotate-ccw"></i><span>Reset</span></button>
+            </div>
+            <p class="compact-only text-[11.5px] text-ink3 leading-snug">Draw with your finger. The shaded area right of the amber “now” line is the future: plan the trade, then reveal.</p>
+          </div>
 
-        <div class="card p-4 hidden flex-col gap-3" id="critique" aria-live="polite"></div>
+          <div class="hidden flex-col gap-3 border-t border-line pt-3" id="critique" aria-live="polite"></div>
 
-        <div class="card p-4 hidden flex-col gap-3" id="psych">
-          <div class="label">Psychology log</div>
-          <p class="text-[12.5px] text-ink2 -mt-1">How did you feel while planning this one? Be honest: this is where the patterns in your trading show up.</p>
-          <div class="flex flex-wrap gap-1.5" id="emoChips" role="group" aria-label="Emotions"></div>
-          <label class="flex flex-col gap-1"><span class="flex justify-between"><span class="label">Confidence</span><span class="num text-[12px] text-ink2" id="confOut">50%</span></span><input type="range" id="conf" min="0" max="100" step="5" value="50" class="w-full accent-sky-400"></label>
-          <label class="flex flex-col gap-1"><span class="label">Note</span><textarea id="note" rows="3" class="field h-auto py-2 resize-y" placeholder="What did you see? What would you do differently?"></textarea></label>
-          <div class="flex gap-2"><button class="btn btn-pri flex-1" id="saveLog"><i data-lucide="save"></i>Save to journal</button><button class="btn" id="nextAfter"><i data-lucide="skip-forward"></i>Next</button></div>
-          <div class="text-[12px] text-ink3" id="saveMsg" role="status" aria-live="polite"></div>
+          <div class="hidden flex-col gap-3 border-t border-line pt-3" id="psych">
+            <div class="label">Psychology log</div>
+            <p class="text-[12.5px] text-ink2 -mt-1 leading-relaxed">How did you feel while planning this one? Be honest: this is where the patterns in your trading show up.</p>
+            <div class="flex flex-wrap gap-1.5" id="emoChips" role="group" aria-label="Emotions"></div>
+            <label class="flex flex-col"><span class="flex justify-between"><span class="label">Confidence</span><span class="num text-[12.5px] text-ink2" id="confOut">50%</span></span><input type="range" id="conf" min="0" max="100" step="5" value="50" class="w-full"></label>
+            <label class="flex flex-col gap-1.5"><span class="label">Note</span><textarea id="note" rows="3" class="field h-auto py-2 resize-y" placeholder="What did you see? What would you do differently?"></textarea></label>
+            <div class="flex gap-2"><button class="btn-pri flex-1" id="saveLog"><i data-lucide="save"></i>Save to journal</button><button class="btn" id="nextAfter"><i data-lucide="skip-forward"></i>Next</button></div>
+            <div class="text-[12.5px] text-ink3" id="saveMsg" role="status" aria-live="polite"></div>
+          </div>
         </div>
       </aside>
     </div>
   </section>
 
   <!-- ───────────── PATTERN MATCHER ───────────── -->
-  <section id="view-match" role="tabpanel" aria-labelledby="tab-match" class="hidden flex-col gap-3">
-    <div class="card p-4 flex flex-wrap items-center gap-3">
-      <div class="mr-auto min-w-[220px]">
-        <h2 class="text-[15px] font-semibold">Pattern matcher</h2>
-        <p class="text-[12.5px] text-ink2">Drag each chart onto the structure it shows (or select a chart, then a card, with the keyboard). +10 per match, −3 per miss.</p>
+  <section id="view-match" class="view scroll" role="tabpanel" aria-labelledby="tab-match" hidden>
+    <div class="inner">
+      <div class="card p-4 flex flex-col gap-3">
+        <div class="flex flex-wrap items-start gap-3">
+          <div class="mr-auto min-w-[220px] flex-1">
+            <h2 class="text-[17px] font-semibold h-title">Pattern matcher</h2>
+            <p class="text-[13px] text-ink2 leading-relaxed mt-0.5"><span class="hidden [@media(pointer:fine)]:inline">Drag each chart onto the structure it shows, or select a chart and then a card.</span><span class="[@media(pointer:fine)]:hidden">Tap a chart, then tap the structure it shows.</span> +10 per match, −3 per miss.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="seg" role="radiogroup" aria-label="Charts per round" id="countSeg">
+              <span class="seg-thumb" aria-hidden="true"></span>
+              <button role="radio" aria-checked="false" data-count="6" aria-label="6 charts">6</button>
+              <button role="radio" aria-checked="true" data-count="8" aria-label="8 charts">8</button>
+              <button role="radio" aria-checked="false" data-count="12" aria-label="12 charts">12</button>
+            </div>
+            <input type="hidden" id="mCount" value="8">
+            <button class="btn-pri" id="mNew"><i data-lucide="refresh-cw"></i>New round</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-4 gap-2">
+          <div class="tile stat"><div class="label">Score</div><div class="num text-[20px] font-bold" id="mScore">0</div></div>
+          <div class="tile stat"><div class="label">Time</div><div class="num text-[20px] font-bold" id="mTime">0:00</div></div>
+          <div class="tile stat"><div class="label">Left</div><div class="num text-[20px] font-bold" id="mLeft">0</div></div>
+          <div class="tile stat"><div class="label">Best</div><div class="num text-[20px] font-bold text-gold" id="mBest">—</div></div>
+        </div>
       </div>
-      <div class="flex items-center gap-4">
-        <div class="text-center"><div class="label">Score</div><div class="num text-[20px] font-bold" id="mScore">0</div></div>
-        <div class="text-center"><div class="label">Time</div><div class="num text-[20px] font-bold" id="mTime">0:00</div></div>
-        <div class="text-center"><div class="label">Left</div><div class="num text-[20px] font-bold" id="mLeft">0</div></div>
-        <div class="text-center"><div class="label">Best</div><div class="num text-[20px] font-bold text-gold" id="mBest">—</div></div>
+      <div class="card p-3">
+        <div class="flex items-center justify-between px-1 mb-2"><div class="label">Charts to sort</div><div class="text-[12px] text-ink3" id="selNote" aria-live="polite"></div></div>
+        <div id="tray" class="tray" role="listbox" aria-label="Charts to sort"></div>
       </div>
-      <label class="flex items-center gap-2 text-[12.5px] text-ink2"><span>Charts</span><select id="mCount" class="field w-auto"><option>6</option><option selected>8</option><option>12</option></select></label>
-      <button class="btn btn-pri" id="mNew"><i data-lucide="refresh-cw"></i>New round</button>
+      <div id="defs" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"></div>
+      <details class="card p-4 text-[13px] text-ink2">
+        <summary class="cursor-pointer font-semibold text-ink min-h-[var(--tap)] flex items-center">Why no head-and-shoulders, flags or triangles?</summary>
+        <p class="mt-2 leading-relaxed">Kevin, Seiden, Raja and Baker read <em>where unfilled orders sit</em>, not shapes. A head-and-shoulders “right shoulder” is only worth trading if it happens to be a fresh rally-base-drop supply with room below; the shape itself carries no edge, and the crowd that trades the pattern is usually the liquidity the supply-and-demand trader sells to. So the drill uses the structures they actually trade: the four zone types, gaps, traps, retests and level quality.</p>
+      </details>
     </div>
-    <div class="card p-3">
-      <div class="label mb-2">Charts to sort</div>
-      <div id="tray" class="flex gap-2 overflow-x-auto scroll-thin pb-1 min-h-[118px]" role="listbox" aria-label="Charts to sort"></div>
-    </div>
-    <div id="defs" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"></div>
-    <details class="card p-4 text-[13px] text-ink2">
-      <summary class="cursor-pointer font-semibold text-ink">Why no head-and-shoulders, flags or triangles?</summary>
-      <p class="mt-2 leading-relaxed">Kevin, Seiden, Raja and Baker read <em>where unfilled orders sit</em>, not shapes. A head-and-shoulders “right shoulder” is only worth trading if it happens to be a fresh rally-base-drop supply with room below; the shape itself carries no edge, and the crowd that trades the pattern is usually the liquidity the supply-and-demand trader sells to. So the drill uses the structures they actually trade: the four zone types, gaps, traps, retests and level quality.</p>
-    </details>
   </section>
 
   <!-- ───────────── HISTORY ───────────── -->
-  <section id="view-hist" role="tabpanel" aria-labelledby="tab-hist" class="hidden flex-col gap-3">
-    <div class="grid gap-3 grid-cols-2 md:grid-cols-5" id="statCards"></div>
-    <div class="grid gap-3 lg:grid-cols-[1fr_360px] items-start">
-      <div class="card p-3">
-        <div class="flex items-center justify-between px-1 pb-2"><div class="label">Attempts</div><div class="flex gap-2"><button class="btn h-8" id="exportBtn"><i data-lucide="download"></i>Export</button><button class="btn h-8" id="wipeBtn"><i data-lucide="trash-2"></i>Clear</button></div></div>
-        <div id="histList" class="flex flex-col divide-y divide-edge"></div>
-      </div>
-      <div class="card p-4 flex flex-col gap-3">
-        <div class="label">Emotion vs result</div>
-        <div id="emoStats" class="flex flex-col gap-2 text-[13px]"></div>
-        <p class="text-[11.5px] text-ink3">Average R per emotion you tagged. If FOMO or revenge trades lose and calm ones win, that is the lesson.</p>
+  <section id="view-hist" class="view scroll" role="tabpanel" aria-labelledby="tab-hist" hidden>
+    <div class="inner">
+      <div class="grid gap-2.5 grid-cols-2 md:grid-cols-5 [&>*:first-child]:col-span-2 md:[&>*:first-child]:col-span-1" id="statCards"></div>
+      <div class="grid gap-3 lg:grid-cols-[1fr_340px] items-start">
+        <div class="card p-3">
+          <div class="flex items-center justify-between gap-2 px-1 pb-2"><div class="label">Attempts</div><div class="flex gap-2"><button class="btn" id="exportBtn"><i data-lucide="download"></i>Export</button><button class="btn" id="wipeBtn"><i data-lucide="trash-2"></i>Clear</button></div></div>
+          <div id="histList" class="flex flex-col divide-y divide-line"></div>
+        </div>
+        <div class="card p-4 flex flex-col gap-3">
+          <div class="label">Emotion vs result</div>
+          <div id="emoStats" class="flex flex-col gap-2.5 text-[13px]"></div>
+          <p class="text-[12px] text-ink3 leading-relaxed">Average R per emotion you tagged. If FOMO or revenge trades lose and calm ones win, that is the lesson.</p>
+        </div>
       </div>
     </div>
   </section>
 </div>
 
+<div class="scrim" id="scrim" aria-hidden="true"></div>
+
 <!-- Preview dialog for the matcher thumbnails -->
-<div id="preview" class="fixed inset-0 z-[70] hidden items-center justify-center bg-black/80 p-4" role="dialog" aria-modal="true" aria-label="Chart preview">
-  <div class="relative max-w-[min(92vw,900px)]">
-    <img id="previewImg" alt="" class="max-h-[80vh] w-auto rounded-xl ring-1 ring-edge" style="image-rendering:auto">
-    <button class="btn absolute -top-3 -right-3 w-9 px-0 rounded-full" id="previewClose" aria-label="Close preview"><i data-lucide="x"></i></button>
+<div id="preview" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/80" role="dialog" aria-modal="true" aria-label="Chart preview">
+  <div class="relative max-w-[min(92vw,900px)] pop">
+    <img id="previewImg" alt="" class="max-h-[78vh] max-h-[78dvh] w-auto rounded-2xl ring-1 ring-white/10" style="image-rendering:auto">
+    <button class="ibtn absolute -top-4 -right-2" id="previewClose" aria-label="Close preview"><i data-lucide="x"></i></button>
   </div>
 </div>
 
@@ -222,6 +456,11 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } },
 };
 const icons = () => { try { window.lucide && window.lucide.createIcons(); } catch { /* icons are decoration */ } };
+// phone / narrow-frame layout (same breakpoint as the CSS)
+const compactMq = matchMedia('(max-width: 899px) and (min-height: 481px), (max-width: 639px)');
+const compact = () => compactMq.matches;
+// filters live in a bottom sheet on phones in either orientation
+const filterSheetMq = matchMedia('(max-width: 899px) and (min-height: 481px), (max-width: 639px), (max-height: 480px) and (min-width: 640px) and (max-width: 1099px)');
 const reduceMotion = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
 const shuffle = a => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
 
@@ -296,7 +535,8 @@ async function load() {
   EX = res.flat().filter(valid).filter(x => !seen.has(x.id) && seen.add(x.id));
   EX.sort((a, b) => (a.lesson - b.lesson) || a.id.localeCompare(b.id));
   const ok = res.filter(r => Array.isArray(r) && r.length).length;
-  $('#dataInfo').textContent = EX.length ? `${EX.length} charts from ${ok} of ${FILES.length} packs · ${new Set(EX.map(x => x.mentor)).size} mentor${new Set(EX.map(x => x.mentor)).size > 1 ? 's' : ''}` : 'No exercises found. Add charts_*.json to /sandbox.';
+  const info = EX.length ? `${EX.length} charts from ${ok} of ${FILES.length} packs · ${new Set(EX.map(x => x.mentor)).size} mentor${new Set(EX.map(x => x.mentor)).size > 1 ? 's' : ''}` : 'No exercises found. Add charts_*.json to /sandbox.';
+  $('#dataInfo').textContent = info; $('#dataInfo2').textContent = info;
 }
 
 // ─────────── filters ───────────
@@ -331,13 +571,15 @@ function loadEx(ex) {
   $('#fChart').value = ex.id;
   $('#exTitle').textContent = ex.title;
   $('#exMeta').textContent = `${MENTOR[ex.mentor] || ex.mentor} · lesson ${ex.lesson} · ${hasAxis(ex) ? 'price scale calibrated' : 'no price scale (levels in % of chart height)'}`;
+  $('#pickTitle').textContent = ex.title; $('#pickMeta').textContent = `${MENTOR[ex.mentor] || ex.mentor} · lesson ${ex.lesson} · ${S.list.indexOf(ex) + 1} of ${S.list.length}`;
   $('#unitNote').textContent = hasAxis(ex) ? 'prices' : '% of chart height';
   ['#inEntry', '#inSl', '#inTp'].forEach(s => { $(s).value = ''; $(s).placeholder = hasAxis(ex) ? 'price' : '% (0 = bottom)'; });
   mask.style.transition = 'none'; mask.style.left = (ex.maskX * 100) + '%'; void mask.offsetWidth; mask.style.transition = '';
   $('#critique').classList.add('hidden'); $('#critique').classList.remove('flex');
   $('#psych').classList.add('hidden'); $('#psych').classList.remove('flex');
+  setSheet(false); $('#tsBody').scrollTop = 0;
   $('#tradePanel').querySelectorAll('input,button.side,button.pick').forEach(el => { el.disabled = false; });
-  $$('.side').forEach(b => { b.setAttribute('aria-pressed', 'false'); b.setAttribute('aria-checked', 'false'); }); $('#levels').style.opacity = '1'; setPick(null);
+  $$('.side').forEach(b => b.setAttribute('aria-checked', 'false')); $('#levels').style.opacity = '1'; setPick(null);
   $('#stageEmpty').textContent = 'Loading chart…'; $('#stageEmpty').classList.remove('hidden');
   stage.style.visibility = 'hidden';
   img.onload = () => { $('#stageEmpty').classList.add('hidden'); stage.style.visibility = 'visible'; fit(); };
@@ -350,7 +592,9 @@ function loadEx(ex) {
 // ─────────── stage sizing ───────────
 function fit() {
   if (!img.naturalWidth) return;
-  const wrap = $('#stageWrap'), aw = wrap.clientWidth - 8, ah = Math.max(300, Math.min(window.innerHeight * 0.72, 760));
+  // the chart fills whatever room its card has (the card flexes to the frame height)
+  const wrap = $('#stageWrap'), pad = filterSheetMq.matches ? 8 : 20, aw = wrap.clientWidth - pad, ah = wrap.clientHeight - pad;
+  if (aw <= 0 || ah <= 0) return;
   const s = Math.min(aw / img.naturalWidth, ah / img.naturalHeight);
   stage.style.width = Math.round(img.naturalWidth * s) + 'px'; stage.style.height = Math.round(img.naturalHeight * s) + 'px';
   const dpr = window.devicePixelRatio || 1;
@@ -460,13 +704,14 @@ const endPtr = () => {
   if (!tiny && !(d.t === 'pen' && d.pts.length < 2)) { pushUndo(); S.shapes.push(d); }
   draw();
 };
-cv.addEventListener('pointerup', endPtr); cv.addEventListener('pointercancel', endPtr);
+cv.addEventListener('pointerup', e => { endPtr(); if (e.pointerType === 'touch') { S.hover = null; $('#readout').classList.add('hidden'); draw(); } }); cv.addEventListener('pointercancel', endPtr);
 cv.addEventListener('pointerleave', () => { S.hover = null; $('#readout').classList.add('hidden'); draw(); });
 
 // ─────────── tools ───────────
 function setTool(t) { S.tool = t; $$('.tool[data-tool]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tool === t))); setPick(null); savePrefs(); }
 $$('.tool[data-tool]').forEach(b => b.addEventListener('click', () => setTool(b.dataset.tool)));
-$('#colors').innerHTML = COLORS.map(c => `<button class="w-6 h-6 rounded-full ring-2 ring-transparent aria-checked:ring-white/80" role="radio" aria-checked="false" aria-label="Colour ${c}" data-c="${c}" style="background:${c}"></button>`).join('');
+const COLOR_NAME = { '#38bdf8': 'sky', '#f59e0b': 'amber', '#22c55e': 'green', '#ef4444': 'red', '#c084fc': 'violet', '#e6edf7': 'white' };
+$('#colors').innerHTML = COLORS.map(c => `<button class="swatch" role="radio" aria-checked="false" aria-label="Colour ${COLOR_NAME[c] || c}" data-c="${c}"><span style="background:${c}"></span></button>`).join('');
 function setColor(c) { S.color = c; $$('#colors [data-c]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.c === c))); savePrefs(); }
 $$('#colors [data-c]').forEach(b => b.addEventListener('click', () => setColor(b.dataset.c)));
 const undo = () => { if (!S.undo.length) return; S.shapes = JSON.parse(S.undo.pop()); draw(); };
@@ -478,14 +723,15 @@ const IN = { entry: $('#inEntry'), sl: $('#inSl'), tp: $('#inTp') };
 function setLevel(k, y) { S.trade[k] = y; IN[k].value = fmtVal(S.ex, y); syncTrade(); }
 function setSide(s) {
   if (S.revealed) return; S.trade.side = s;
-  $$('.side').forEach(b => { const on = b.dataset.s === s; b.setAttribute('aria-pressed', String(on)); b.setAttribute('aria-checked', String(on)); });
+  $$('.side').forEach(b => b.setAttribute('aria-checked', String(b.dataset.s === s)));
   $('#levels').style.opacity = s === 'none' ? '.4' : '1';
   if (s !== 'none' && S.trade.entry == null) setPick('entry'); else setPick(null);
   syncTrade();
 }
 function setPick(k) {
   S.pick = k; $$('.pick').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pick === k)));
-  const hint = $('#pickHint'); if (k) { hint.textContent = `Click the chart to set your ${k === 'sl' ? 'stop' : k === 'tp' ? 'target' : 'entry'}`; hint.classList.remove('hidden'); } else hint.classList.add('hidden');
+  if (k && compact()) setSheet(false);
+  const hint = $('#pickHint'); if (k) { hint.textContent = `${matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click'} the chart to set your ${k === 'sl' ? 'stop' : k === 'tp' ? 'target' : 'entry'}`; hint.classList.remove('hidden'); } else hint.classList.add('hidden');
   cv.style.cursor = k ? 'crosshair' : ''; draw();
 }
 $$('.side').forEach(b => b.addEventListener('click', () => setSide(b.dataset.s)));
@@ -506,7 +752,7 @@ function syncTrade() {
   $('#oRisk').textContent = has ? dist(ex, t.entry, t.sl) : '—';
   $('#oRew').textContent = has && t.tp != null ? dist(ex, t.entry, t.tp) : '—';
   const rr = has && t.tp != null && Math.abs(t.entry - t.sl) > 1e-6 ? Math.abs(t.tp - t.entry) / Math.abs(t.entry - t.sl) : null;
-  const o = $('#oRR'); o.textContent = rr ? rr.toFixed(2) : '—'; o.className = 'num text-[15px] font-bold mt-0.5 ' + (rr == null ? '' : rr >= 3 ? 'text-buy' : rr >= 2 ? 'text-gold' : 'text-sell');
+  const o = $('#oRR'); o.textContent = rr ? rr.toFixed(2) : '—'; o.className = 'num text-[16px] font-bold mt-0.5 ' + (rr == null ? '' : rr >= 3 ? 'text-buy' : rr >= 2 ? 'text-gold' : 'text-sell');
   $('#tradeMsg').textContent = S.revealed ? '' : msg;
   $('#revealBtn').disabled = !ok || S.revealed;
   draw();
@@ -536,6 +782,8 @@ function finish() {
     noTradeCorrect: t.side === 'none' ? (tr.side === 'none' || m.kind === 'loss' || m.kind === 'nofill') : null, emotions: [], confidence: null, note: '' };
   const list = store.get(K_ATT, []); list.unshift(att); store.set(K_ATT, list.slice(0, 1000)); S.attemptId = att.id;
   renderCritique(att); openPsych();
+  if (compact()) setSheet(true);
+  requestAnimationFrame(() => { const b = $('#tsBody'); b.scrollTo({ top: Math.max(0, b.scrollTop + $('#critique').getBoundingClientRect().top - b.getBoundingClientRect().top - 8), behavior: reduceMotion() ? 'auto' : 'smooth' }); });
 }
 function bullets(items) { return `<ul class="flex flex-col gap-1.5">${items.map(([tone, txt]) => `<li class="flex gap-2 text-[12.5px] leading-relaxed text-ink2"><span class="mt-[7px] w-1.5 h-1.5 rounded-full shrink-0 ${tone === 'good' ? 'bg-buy' : tone === 'bad' ? 'bg-sell' : 'bg-gold'}"></span><span>${txt}</span></li>`).join('')}</ul>`; }
 function coach(ex) {
@@ -563,9 +811,9 @@ function renderCritique(att) {
   const yours = r.kind === 'none' ? (att.noTradeCorrect ? 'No trade: correct call' : 'No trade: you missed his trade') : RES_TXT[r.kind](r);
   const his = ex.truth.side === 'none' ? 'He passed on this chart' : `${ex.truth.side.toUpperCase()} at ${fmtY(ex, ex.truth.entry)}, stop ${fmtY(ex, ex.truth.sl)}, target ${fmtY(ex, ex.truth.tp)} → ${RES_TXT[m.kind](m)}`;
   el.innerHTML = `
-    <div class="flex items-center justify-between"><div class="label">Result</div><span class="text-[11px] px-2 py-0.5 rounded-full ${att.agree ? 'bg-buy/15 text-buy' : 'bg-sell/15 text-sell'}">${att.agree ? 'Agrees with mentor' : 'Differs from mentor'}</span></div>
-    <div class="pop"><div class="text-[18px] font-bold ${tone}">${esc(yours)}</div>${r.type ? `<div class="text-[11.5px] text-ink3 mt-0.5">${r.type === 'market' ? 'Filled at once (entry at the current price)' : r.type === 'limit' ? 'Limit order: price had to come back to your entry' : 'Stop order: price had to break through your entry'}</div>` : ''}</div>
-    <div class="rounded-xl border border-mentor/40 bg-mentor/10 p-3">
+    <div class="flex items-center justify-between"><div class="label">Result</div><span class="text-[11.5px] font-semibold px-2.5 py-1 rounded-full ${att.agree ? 'bg-buy/15 text-buy' : 'bg-sell/15 text-sell'}">${att.agree ? 'Agrees with mentor' : 'Differs from mentor'}</span></div>
+    <div class="pop"><div class="text-[19px] font-bold h-title ${tone}">${esc(yours)}</div>${r.type ? `<div class="text-[11.5px] text-ink3 mt-0.5">${r.type === 'market' ? 'Filled at once (entry at the current price)' : r.type === 'limit' ? 'Limit order: price had to come back to your entry' : 'Stop order: price had to break through your entry'}</div>` : ''}</div>
+    <div class="rounded-2xl border border-mentor/30 bg-mentor/10 p-3.5">
       <div class="flex items-center gap-2 text-[12px] font-bold text-mentor"><i data-lucide="graduation-cap" class="w-4 h-4"></i>${esc(MENTOR[ex.mentor] || ex.mentor)}'s trade</div>
       <div class="text-[12.5px] text-ink mt-1 num">${esc(his)}</div>
       <p class="text-[12.5px] text-ink2 leading-relaxed mt-2">${esc(ex.truth.why)}</p>
@@ -592,7 +840,7 @@ $('#nextAfter').onclick = () => $('#randBtn').click();
 // ─────────── keyboard ───────────
 document.addEventListener('keydown', e => {
   const tag = (e.target.tagName || '').toLowerCase(); if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
-  if (S.tab === 'blind') {
+  if (S.tab === 'blind' && !$('#filters').classList.contains('open')) {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const map = { v: 'cursor', h: 'hline', t: 'trend', r: 'rect', f: 'fib', p: 'pen', e: 'eraser' }, k = e.key.toLowerCase();
@@ -603,13 +851,15 @@ document.addEventListener('keydown', e => {
     else if (e.key === 'ArrowRight' && e.target === cv) step(1); else if (e.key === 'ArrowLeft' && e.target === cv) step(-1);
   }
   if (e.key === 'Escape' && !$('#preview').classList.contains('hidden')) closePreview();
+  if (e.key === 'Escape' && $('#filters').classList.contains('open')) closeFilters(true);
 });
 
 // ─────────── tabs ───────────
 function setTab(t) {
   S.tab = t;
-  $$('[data-tab]').forEach(b => { const on = b.dataset.tab === t; b.setAttribute('aria-selected', String(on)); b.setAttribute('aria-pressed', String(on)); b.tabIndex = on ? 0 : -1; });
-  ['blind', 'match', 'hist'].forEach(k => { const v = $('#view-' + k); v.classList.toggle('hidden', k !== t); v.classList.toggle('flex', k === t); });
+  $$('[data-tab]').forEach(b => { const on = b.dataset.tab === t; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; });
+  ['blind', 'match', 'hist'].forEach(k => { $('#view-' + k).hidden = k !== t; });
+  moveThumb($('#modeSeg')); moveThumb($('#countSeg')); closeFilters();
   if (t === 'hist') renderHistory(); if (t === 'match' && !M.items.length) newRound(); if (t === 'blind') fit();
   savePrefs();
 }
@@ -625,7 +875,7 @@ function renderHistory() {
   const avgR = filled.length ? filled.reduce((s, a) => s + a.R, 0) / filled.length : null;
   const agree = list.length ? list.filter(a => a.agree).length / list.length : null;
   const nt = list.filter(a => a.side === 'none'), ntOk = nt.filter(a => a.noTradeCorrect).length;
-  const card = (l, v, sub, tone = '') => `<div class="card p-4"><div class="label">${l}</div><div class="num text-[22px] font-bold mt-1 ${tone}">${v}</div><div class="text-[11.5px] text-ink3 mt-0.5">${sub}</div></div>`;
+  const card = (l, v, sub, tone = '') => `<div class="card p-3.5 sm:p-4 min-w-0"><div class="label truncate">${l}</div><div class="num text-[22px] font-bold h-title mt-1 ${tone}">${v}</div><div class="text-[11.5px] text-ink3 mt-0.5 leading-snug">${sub}</div></div>`;
   $('#statCards').innerHTML = [
     card('Attempts', list.length, `${trades.length} trades · ${nt.length} passes`),
     card('Win rate', closed.length ? Math.round(wins / closed.length * 100) + '%' : '—', `${wins} of ${closed.length} closed trades`, closed.length ? (wins / closed.length >= 0.5 ? 'text-buy' : 'text-sell') : ''),
@@ -636,7 +886,7 @@ function renderHistory() {
   $('#histList').innerHTML = list.length ? list.slice(0, 200).map(a => {
     const tone = a.result === 'win' ? 'text-buy' : a.result === 'loss' ? 'text-sell' : 'text-ink2';
     const res = a.result === 'none' ? (a.noTradeCorrect ? 'Pass ✓' : 'Pass ✗') : a.result === 'nofill' ? 'Not filled' : a.result === 'open' ? `Open ${a.R >= 0 ? '+' : ''}${a.R.toFixed(2)}R` : a.result === 'win' ? `+${a.R.toFixed(2)}R` : '−1R';
-    return `<button class="w-full text-left px-2 py-2.5 hover:bg-panel2 rounded-lg grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5" data-open="${esc(a.chart)}">
+    return `<button class="press w-full text-left px-2.5 py-3 min-h-[48px] hover:bg-panel2 rounded-xl grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-0.5" data-open="${esc(a.chart)}">
       <span class="text-[13px] font-medium truncate">${esc(a.title)}</span><span class="num text-[13px] font-bold ${tone}">${esc(res)}</span>
       <span class="text-[11.5px] text-ink3 truncate">${new Date(a.ts).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} · ${esc((a.side || '').toUpperCase())}${a.rr ? ' · ' + a.rr.toFixed(1) + ':1' : ''} · ${a.agree ? 'agreed' : 'differed'}${a.emotions && a.emotions.length ? ' · ' + a.emotions.map(esc).join(', ') : ''}${a.confidence != null ? ' · ' + a.confidence + '% sure' : ''}</span><span class="text-[11.5px] text-ink3">${esc(PATTERN_LABEL[a.pattern] || a.pattern)}</span>
       ${a.note ? `<span class="col-span-2 text-[12px] text-ink2 italic truncate">“${esc(a.note)}”</span>` : ''}</button>`;
@@ -644,7 +894,7 @@ function renderHistory() {
   $$('#histList [data-open]').forEach(b => b.addEventListener('click', () => { const x = EX.find(x => x.id === b.dataset.open); if (!x) return; ['#fMentor', '#fPattern', '#fLesson'].forEach(s => { $(s).value = 'all'; }); refreshFilters(); setTab('blind'); loadEx(x); }));
   const by = {}; list.forEach(a => (a.emotions || []).forEach(k => { if (typeof a.R !== 'number' || a.result === 'nofill') return; (by[k] = by[k] || []).push(a.R); }));
   $('#emoStats').innerHTML = EMOS.map(([k, l]) => { const v = by[k]; if (!v) return ''; const m = v.reduce((s, x) => s + x, 0) / v.length; const w = clamp(Math.abs(m) / 3 * 100, 4, 100);
-    return `<div class="grid grid-cols-[72px_1fr_64px] items-center gap-2"><span class="text-ink2">${l}</span><span class="h-2 rounded-full bg-bg overflow-hidden"><span class="block h-full rounded-full ${m >= 0 ? 'bg-buy' : 'bg-sell'}" style="width:${w}%"></span></span><span class="num text-right ${m >= 0 ? 'text-buy' : 'text-sell'}">${m >= 0 ? '+' : ''}${m.toFixed(2)}R <span class="text-ink3">·${v.length}</span></span></div>`; }).join('') || '<p class="text-ink3 text-[12.5px]">Tag emotions in the psychology log to see this.</p>';
+    return `<div class="grid grid-cols-[72px_1fr_64px] items-center gap-2"><span class="text-ink2">${l}</span><span class="h-2 rounded-full bg-panel2 overflow-hidden"><span class="block h-full rounded-full ${m >= 0 ? 'bg-buy' : 'bg-sell'}" style="width:${w}%"></span></span><span class="num text-right ${m >= 0 ? 'text-buy' : 'text-sell'}">${m >= 0 ? '+' : ''}${m.toFixed(2)}R <span class="text-ink3">·${v.length}</span></span></div>`; }).join('') || '<p class="text-ink3 text-[12.5px]">Tag emotions in the psychology log to see this.</p>';
   icons();
 }
 $('#exportBtn').onclick = () => { const blob = new Blob([JSON.stringify(store.get(K_ATT, []), null, 1)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'sandbox-journal.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); };
@@ -678,14 +928,15 @@ const bestKey = () => K_BEST + '_' + $('#mCount').value;
 function renderMatch() {
   const left = M.items.filter(x => !M.placed.has(x.id));
   $('#mScore').textContent = M.score; $('#mLeft').textContent = left.length;
+  $('#selNote').textContent = M.sel && M.items.some(x => x.id === M.sel) ? 'Now tap the matching card' : '';
   const best = store.get(bestKey(), null); $('#mBest').textContent = best ? best.score : '—';
-  $('#tray').innerHTML = left.length ? left.map(x => `<div class="relative shrink-0"><button class="thumb block w-[150px] rounded-lg overflow-hidden ring-1 ring-edge bg-bg touch-none ${M.sel === x.id ? 'ring-2 ring-acc' : ''}" role="option" aria-selected="${M.sel === x.id}" data-id="${esc(x.id)}" aria-label="${esc(x.title)}. Press Enter to pick it up, then choose a card."><img src="${esc(x.src)}" alt="" loading="lazy" draggable="false" class="w-full h-[100px] object-cover object-left pointer-events-none"><span class="block px-1.5 py-1 text-[10.5px] text-ink2 truncate text-left">${esc(x.title)}</span></button><button class="zoom absolute top-1 right-1 w-7 h-7 grid place-items-center rounded-full bg-black/60 text-white" data-z="${esc(x.id)}" aria-label="Preview ${esc(x.title)}"><i data-lucide="zoom-in" class="w-3.5 h-3.5"></i></button></div>`).join('')
+  $('#tray').innerHTML = left.length ? left.map(x => `<div class="relative shrink-0"><button class="thumb block w-[150px] rounded-xl overflow-hidden ring-1 ring-edge bg-panel2 touch-none ${M.sel === x.id ? 'ring-[3px] ring-acc -translate-y-0.5' : ''}" role="option" aria-selected="${M.sel === x.id}" data-id="${esc(x.id)}" aria-label="${esc(x.title)}. Press Enter to pick it up, then choose a card."><img src="${esc(x.src)}" alt="" loading="lazy" draggable="false" class="w-full h-[100px] object-cover object-left pointer-events-none"><span class="block px-2 py-1.5 text-[11.5px] text-ink2 truncate text-left">${esc(x.title)}</span></button><button class="zoom press absolute top-0 right-0 w-11 h-11 grid place-items-center" data-z="${esc(x.id)}" aria-label="Preview ${esc(x.title)}"><span class="w-7 h-7 grid place-items-center rounded-full bg-black/60 text-white"><i data-lucide="zoom-in" class="!w-3.5 !h-3.5"></i></span></button></div>`).join('')
     : `<div class="w-full grid place-items-center text-center py-4"><div><div class="text-[16px] font-bold text-buy">Round complete: ${M.score} points</div><div class="text-[12.5px] text-ink2 mt-1">${esc($('#mTime').textContent)} · ${esc(M.summary || '')}</div></div></div>`;
   const present = new Set(M.items.map(x => x.pattern));
   $('#defs').innerHTML = DEFS.map(d => {
     const got = M.items.filter(x => M.placed.get(x.id) === d.k);
-    return `<button class="def card p-4 text-left flex flex-col gap-1.5 border transition-colors ${M.sel ? 'hover:border-acc' : ''}" data-pat="${d.k}" aria-label="${esc(d.name)}${M.sel ? ': drop the selected chart here' : ''}">
-      <span class="flex items-center justify-between gap-2"><span class="text-[14px] font-semibold">${esc(d.name)}</span><span class="text-[10.5px] px-2 py-0.5 rounded-full bg-panel2 text-ink3 whitespace-nowrap">${esc(d.kind)}</span></span>
+    return `<button class="def card p-4 text-left flex flex-col gap-1.5 ${M.sel ? 'hover:border-acc ring-1 ring-acc/30' : ''}" data-pat="${d.k}" aria-label="${esc(d.name)}${M.sel ? ': drop the selected chart here' : ''}">
+      <span class="flex items-center justify-between gap-2"><span class="text-[14px] font-semibold">${esc(d.name)}</span><span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-panel2 text-ink3 whitespace-nowrap">${esc(d.kind)}</span></span>
       <span class="text-[12.5px] text-ink2 leading-relaxed"><b class="text-ink font-semibold">Structure:</b> ${esc(d.s)}</span>
       <span class="text-[12.5px] text-ink2 leading-relaxed"><b class="text-ink font-semibold">Risk profile:</b> ${esc(d.r)}</span>
       ${got.length ? `<span class="flex flex-wrap gap-1 mt-1">${got.map(x => `<img src="${esc(x.src)}" alt="${esc(x.title)}" title="${esc(x.title)}" class="pop w-14 h-10 object-cover object-left rounded ring-1 ring-buy/60">`).join('')}</span>` : ''}
@@ -730,12 +981,65 @@ function bindMatch() {
   $$('#tray [data-z]').forEach(b => b.addEventListener('click', () => { const x = EX.find(x => x.id === b.dataset.z); if (x) openPreview(x); }));
 }
 $('#mNew').onclick = newRound;
-$('#mCount').onchange = newRound;
+$$('#countSeg [data-count]').forEach(b => b.addEventListener('click', () => { setCount(b.dataset.count); newRound(); }));
+function setCount(n) { $('#mCount').value = n; $$('#countSeg [data-count]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.count === n))); moveThumb($('#countSeg')); }
 let prevFocus = null;
 function openPreview(x) { prevFocus = document.activeElement; $('#previewImg').src = x.src; $('#previewImg').alt = x.title; const p = $('#preview'); p.classList.remove('hidden'); p.classList.add('flex'); $('#previewClose').focus(); }
 function closePreview() { const p = $('#preview'); p.classList.add('hidden'); p.classList.remove('flex'); prevFocus && prevFocus.focus && prevFocus.focus(); }
 $('#previewClose').onclick = closePreview;
 $('#preview').addEventListener('click', e => { if (e.target.id === 'preview') closePreview(); });
+
+// ─────────── app chrome: segmented thumbs, filter sheet, trade sheet, full window ───────────
+function moveThumb(seg) {
+  if (!seg) return; const th = seg.querySelector('.seg-thumb'), on = seg.querySelector('[aria-selected="true"], [aria-checked="true"]');
+  if (!th || !on || !on.offsetWidth) return;
+  th.style.width = on.offsetWidth + 'px'; th.style.transform = `translateX(${on.offsetLeft}px)`;
+}
+try { new ResizeObserver(() => { moveThumb($('#modeSeg')); moveThumb($('#countSeg')); }).observe(document.body); } catch { /* thumbs re-measure on tab change */ }
+// Filters: inline on wide screens, a modal bottom sheet on phones.
+let filterReturn = null;
+function openFilters() { if (!filterSheetMq.matches) return; filterReturn = document.activeElement; const f = $('#filters'); f.classList.add('open'); f.setAttribute('role', 'dialog'); f.setAttribute('aria-modal', 'true'); $('#scrim').classList.add('on'); $('#filtersBtn').setAttribute('aria-expanded', 'true'); setTimeout(() => $('#fMentor').focus({ preventScroll: true }), 60); }
+function closeFilters(restore) { const f = $('#filters'); if (!f.classList.contains('open')) return; f.classList.remove('open'); f.removeAttribute('role'); f.removeAttribute('aria-modal'); $('#scrim').classList.remove('on'); $('#filtersBtn').setAttribute('aria-expanded', 'false'); if (restore && filterReturn && filterReturn.focus) filterReturn.focus({ preventScroll: true }); }
+$('#filtersBtn').onclick = openFilters;
+$('#filtersDone').onclick = () => closeFilters(true);
+$('#scrim').onclick = () => closeFilters(true);
+// Trade sheet (phones): a peek with the side picker and Reveal; drag or tap the handle for the rest.
+const sheet = $('#tradeSheet');
+function setSheet(open) {
+  sheet.dataset.open = String(!!open); sheet.style.transform = '';
+  const h = $('#sheetToggle'); h.setAttribute('aria-expanded', String(!!open)); h.setAttribute('aria-label', open ? 'Hide trade details' : 'Show trade details');
+}
+(() => {
+  const h = $('#sheetToggle'); let d = null;
+  const closedY = () => { const peek = $('.ts-peek'); return Math.max(0, sheet.offsetHeight - (peek.offsetTop + peek.offsetHeight + 12)); };
+  h.addEventListener('pointerdown', e => {
+    if (!compact() || (e.pointerType === 'mouse' && e.button)) return;
+    h.setPointerCapture(e.pointerId);
+    const y0 = sheet.dataset.open === 'true' ? 0 : closedY();
+    d = { id: e.pointerId, sy: e.clientY, y0, y: y0, moved: false, hist: [[e.clientY, performance.now()]] };
+  });
+  h.addEventListener('pointermove', e => {
+    if (!d || d.id !== e.pointerId) return;
+    const dy = e.clientY - d.sy; if (!d.moved && Math.abs(dy) < 6) return;
+    if (!d.moved) { d.moved = true; sheet.style.transition = 'none'; }
+    const max = closedY(); let y = d.y0 + dy;
+    if (y < 0) y = -Math.sqrt(-y) * 2;            // rubber band past fully open
+    if (y > max) y = max + (y - max) * 0.25;      // and past the peek
+    d.y = y; sheet.style.transform = `translateY(${y}px)`;
+    d.hist.push([e.clientY, performance.now()]); if (d.hist.length > 5) d.hist.shift();
+  });
+  const end = e => {
+    if (!d || d.id !== e.pointerId) return; const was = d; d = null;
+    sheet.style.transition = '';
+    if (!was.moved) { setSheet(sheet.dataset.open !== 'true'); return; }
+    const a = was.hist[0], b = was.hist[was.hist.length - 1], v = (b[0] - a[0]) / Math.max(1, b[1] - a[1]) * 1000; // px/s
+    setSheet(was.y + v * 0.18 < closedY() / 2); // project the flick, then snap to the nearer state
+  };
+  h.addEventListener('pointerup', end); h.addEventListener('pointercancel', end);
+})();
+try { [compactMq, filterSheetMq].forEach(m => m.addEventListener('change', () => { closeFilters(); setSheet(false); fit(); })); } catch { /* old Safari: layout still follows CSS */ }
+// The app sets the full-window link (a per-session blob URL) when it embeds this page; standalone it stays hidden.
+(() => { const f = $('#fullBtn'); const sync = () => { f.hidden = !f.getAttribute('href'); }; try { new MutationObserver(sync).observe(f, { attributes: true, attributeFilter: ['href'] }); } catch { /* static */ } sync(); })();
 
 // ─────────── prefs ───────────
 function savePrefs() { store.set(K_PREF, { tool: S.tool, color: S.color, tab: S.tab, chart: S.ex && S.ex.id }); }
@@ -752,6 +1056,7 @@ function savePrefs() { store.set(K_PREF, { tool: S.tool, color: S.color, tab: S.
   const want = new URLSearchParams(location.search).get('chart') || pref.chart;
   loadEx(EX.find(x => x.id === want) || S.list[Math.floor(Math.random() * S.list.length)]);
   setTab(['blind', 'match', 'hist'].includes(pref.tab) ? pref.tab : 'blind');
+  requestAnimationFrame(() => { moveThumb($('#modeSeg')); moveThumb($('#countSeg')); });
 })();
 })();
 </script>
