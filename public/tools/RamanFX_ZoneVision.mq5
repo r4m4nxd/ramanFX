@@ -34,9 +34,10 @@
 //| With the v2 drawing inputs at default, the v1 objects are        |
 //| unchanged (golden master: InpDumpObjects).                       |
 //| v2.10: Raja inputs ("Raja (v2.1 ...)" groups), all off = v2.00. |
+//| v2.11: Labels ON/OFF button (InpLabelButton).                     |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "2.10"
+#property version   "2.11"
 #property indicator_chart_window
 #property indicator_buffers 0
 #property indicator_plots   0
@@ -83,6 +84,7 @@ input bool   InpExplain       = false;  // Explain mode: label the 4 parts on th
 input bool   InpShowEmotional = true;   // Mark emotional candles (range > InpEmoATR x ATR) with a star
 input color  InpEmoColor      = clrGoldenrod;
 input bool   InpShowLegend    = true;   // Short key of the abbreviations in the panel
+input bool   InpLabelButton   = true;   // On-chart button (bottom-left) that hides / shows every text label at once
 input bool   InpShowRejected  = false;  // Debug: rejected candidates + reason
 input color  InpDemandFill    = C'200,232,203';
 input color  InpDemandLine    = C'46,139,87';
@@ -552,9 +554,55 @@ void ApplyTheme()
 //+------------------------------------------------------------------+
 //| Init / deinit                                                    |
 //+------------------------------------------------------------------+
+//--- Labels ON/OFF button: hides every chart text label (zone names, tags, prices, trendline text) in one click
+#define LBL_BTN "RFXB_lbl"
+bool gLblOff = false;
+string LblKey() { return "RFXZV_lblOff_" + IntegerToString(ChartID()); }
+bool LblOurs(string nm)
+  {
+   if(StringFind(nm, "RFXV2_d") == 0 || StringFind(nm, "RFXV2_P") == 0 || StringFind(nm, "RFXP2_") == 0 || StringFind(nm, "RFXS_") == 0) return(false);   // panels / click-box plan stay
+   return(StringFind(nm, PFX) == 0 || StringFind(nm, "RFXV2_") == 0 || StringFind(nm, "RFXN_") == 0);
+  }
+void LblApply()
+  {
+   int n = ObjectsTotal(0, -1, -1);
+   for(int i = n - 1; i >= 0; i--)
+     {
+      string nm = ObjectName(0, i, -1, -1);
+      if(!LblOurs(nm)) continue;
+      if((ENUM_OBJECT)ObjectGetInteger(0, nm, OBJPROP_TYPE) != OBJ_TEXT) continue;
+      ObjectSetInteger(0, nm, OBJPROP_TIMEFRAMES, gLblOff ? OBJ_NO_PERIODS : OBJ_ALL_PERIODS);
+     }
+  }
+void LblButton()
+  {
+   if(!InpLabelButton) { ObjectDelete(0, LBL_BTN); return; }
+   if(ObjectFind(0, LBL_BTN) < 0)
+     {
+      ObjectCreate(0, LBL_BTN, OBJ_BUTTON, 0, 0, 0);
+      ObjectSetInteger(0, LBL_BTN, OBJPROP_CORNER, CORNER_LEFT_LOWER);
+      ObjectSetInteger(0, LBL_BTN, OBJPROP_XDISTANCE, 8);
+      ObjectSetInteger(0, LBL_BTN, OBJPROP_YDISTANCE, 30);
+      ObjectSetInteger(0, LBL_BTN, OBJPROP_XSIZE, 96);
+      ObjectSetInteger(0, LBL_BTN, OBJPROP_YSIZE, 22);
+      ObjectSetString(0, LBL_BTN, OBJPROP_FONT, "Arial");
+      ObjectSetInteger(0, LBL_BTN, OBJPROP_FONTSIZE, 8);
+      ObjectSetInteger(0, LBL_BTN, OBJPROP_SELECTABLE, false);
+      ObjectSetInteger(0, LBL_BTN, OBJPROP_HIDDEN, true);
+      ObjectSetInteger(0, LBL_BTN, OBJPROP_ZORDER, 10);
+     }
+   ObjectSetString(0, LBL_BTN, OBJPROP_TEXT, gLblOff ? "Labels: OFF" : "Labels: ON");
+   ObjectSetInteger(0, LBL_BTN, OBJPROP_STATE, false);
+   ObjectSetInteger(0, LBL_BTN, OBJPROP_BGCOLOR, gLblOff ? C'70,70,70' : C'60,90,160');
+   ObjectSetInteger(0, LBL_BTN, OBJPROP_COLOR, clrWhite);
+   ObjectSetInteger(0, LBL_BTN, OBJPROP_BORDER_COLOR, gLblOff ? C'70,70,70' : C'60,90,160');
+  }
+
 int OnInit()
   {
    CTF = Period();
+   gLblOff = GlobalVariableCheck(LblKey()) && GlobalVariableGet(LblKey()) > 0.5;   // remembered per chart (survives a timeframe change)
+   LblButton();
    // ---- Raja v2.1 (A) ---- inputs -> core switches (the core defaults = v2.00, which ZoneBot keeps)
    RjA_RmMode = InpRemovalMode; RjA_StrongRun = InpRjAStrongRun; RjA_ArrDepart = InpRjAArrClose; RjA_TouchTF = InpRjATouchTF;
    RjA_ShowTested = InpRjAShowTested; RjA_Adjacent = InpRjAAdjacent; RjA_FlipTL = InpRjAFlipTL; RjA_OppHtfVeto = InpRjAOppHtfVeto;
@@ -579,6 +627,7 @@ void OnDeinit(const int r)
    if(gRs) RsClose();
    ObjectsDeleteAll(0, PFX); ObjectsDeleteAll(0, "RFXN_"); ObjectsDeleteAll(0, "RFXP2_"); ObjectsDeleteAll(0, "RFXS_"); Comment("");
    ObjectsDeleteAll(0, "RFXV2_");
+   ObjectDelete(0, LBL_BTN);
    if(InpExportGV) GlobalVariablesDeleteAll(RFX_GVPrefix(_Symbol, TfName(CTF)));   // v2 M10: no stale export
    for(int k = 0; k < aN; k++) if(aH[k] != INVALID_HANDLE) IndicatorRelease(aH[k]);
    aN = 0;
@@ -797,6 +846,7 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
   {
    if(id == CHARTEVENT_OBJECT_CLICK)
      {
+      if(sparam == LBL_BTN) { gLblOff = !gLblOff; GlobalVariableSet(LblKey(), gLblOff ? 1.0 : 0.0); LblButton(); LblApply(); ChartRedraw(); return; }
       if(sparam == "RFXS_h") { gPanelOpen = !gPanelOpen; DrawCompact(); NoSelect("RFXS_"); DrawDirBox(); ChartRedraw(); return; }
       if(sparam == "RFXV2_dh") { gDirOpen = !gDirOpen; DrawDirBox(); ChartRedraw(); return; }
       if(StringFind(sparam, "RFXV2_d") == 0) return;                                        // a click inside the Direction box keeps the click box open
@@ -904,6 +954,7 @@ void Redraw()
    RjC_Alerts();                                                     // Raja v2.1 C: confirmation + management alerts (off by default)
    if(InpExportGV) V2ExportGV();                                     // v2 M10: ZoneBot export (off by default)
    gArmed = true;
+   LblButton(); if(gLblOff) LblApply();                              // v2.11: keep labels hidden after every redraw
    ChartRedraw();
    if(InpDumpObjects) DumpObjects();                                 // v2 M0 golden master (off by default)
   }
