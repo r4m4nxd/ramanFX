@@ -1,11 +1,11 @@
 // The daily S&P 500 scan written by tools/stock_scanner (GitHub Actions) to public/scanner/latest.json.
 // Rule-based (Raja first, Kevin second); fundamentals are context only. Holdings never appear here beyond a symbol.
 
-/** Zone timeframes: D1, W1 and MN only (nothing below D1). */
-export type ZoneTF = 'D1' | 'W1' | 'MN';
-export const ZONE_TFS: ZoneTF[] = ['D1', 'W1', 'MN'];
+/** Zone timeframes: W1, MN and 3M (D1 in scan files before the top-down rule). */
+export type ZoneTF = 'D1' | 'W1' | 'MN' | '3M';
+export const ZONE_TFS: ZoneTF[] = ['W1', 'MN', '3M'];
 export type RuleStatus = 'pass' | 'fail' | 'warn' | 'unknown' | 'info';
-export interface ScanRule { status: RuleStatus; text: string; ref: string }
+export interface ScanRule { status: RuleStatus; text: string; ref: string; short?: string }
 export type SignalKind = 'BUY' | 'WATCH';
 
 export interface ScanSignal {
@@ -56,6 +56,10 @@ export interface ScanSignal {
   index_state?: GaugeState | null; index_aligned?: boolean;
   gauge_state?: GaugeState; demand_pct_away?: number; supply_pct_away?: number | null;
   /** Home listing of an interlisted name (e.g. 'TSX:RY'; '' = a US company), price currency, issuer country. */
+  /** Owner's top-down location (newer scans): code (inside / top / below / above / untouched / none / unknown), pass, text, chain. */
+  loc?: string | null; loc_ok?: boolean | null; loc_text?: string | null; chain_text?: string | null; chain?: unknown[];
+  /** 3M / 6M states and the 6M context line (newer scans). */
+  m3?: string; m6?: string; ctx6?: unknown;
   home?: string; currency?: string; country?: string;
 }
 
@@ -89,7 +93,7 @@ export const indexesOf = (scan?: Pick<ScanFile, 'index_meta'> | null): IndexMeta
 export const indexShort = (code: string, meta: IndexMeta[] = DEFAULT_INDEXES) => meta.find(m => m.code === code)?.short ?? code;
 /** "S&P 500, Nasdaq-100 and TSX 60". */
 export const indexList = (meta: IndexMeta[]) => meta.length > 1 ? `${meta.slice(0, -1).map(m => m.label).join(', ')} and ${meta[meta.length - 1].label}` : (meta[0]?.label ?? '');
-export interface RegimeRow { symbol: string; close: number; sma200: number | null; above200: boolean | null; curve: number | null; direction: string }
+export interface RegimeRow { symbol: string; close: number; sma200: number | null; above200: boolean | null; curve: number | null; curve_raja?: boolean; direction: string }
 export interface ScanExit { symbol: string; sector?: string; indexes?: IndexCode[]; reasons: string[] }
 
 export interface ScanFile {
@@ -281,17 +285,21 @@ export interface IndexRow {
   mz?: [string, string, number | null, number, number, number];
   /** Raja status on that zone: 'BUY' / 'WATCH' / 'ok' (rules pass) / 'dir' (supply side) / a rule key (BLOCK_LABEL). */
   mr?: string;
+  /** Top-down location of the bucket's zone (newer scans): [code, text]. */
+  ml?: [string, string];
 }
 export type BucketCode = 'IS' | 'AS' | 'LS' | 'M' | 'LD' | 'AD' | 'ID';
 export interface ScanIndex { date: string; generated_at: string; fixture: boolean; tickers: IndexRow[] }
 
-export interface DetailZone { tf: ZoneTF; side: 'demand' | 'supply'; proximal: number; distal: number; type: string; score: number | null; fresh: boolean; touches: number; made: string; pattern: string }
+export interface DetailZone { tf: ZoneTF; side: 'demand' | 'supply'; proximal: number; distal: number; type: string; score: number | null; fresh: boolean; touches: number; made: string; pattern: string; loc?: string | null; loc_text?: string | null }
 export interface NearZone { tf: string; proximal: number; distal: number; type: string; dist_pct: number }
 export interface DetailCheck {
   zone: NearZone; kind: 'BUY' | 'no trade'; score: number | null; entry: number; stop: number; target: number | null; rr: number | null;
   next_supply: number | null; supply_distal?: number | null; target_kind?: 'supply' | 'projection' | null; stop_pct_of_height: number; rules: ScanRule[];
   pz1?: number | null; pz2?: number | null; pz3?: number | null; rr_pz1?: number | null; rr_pz2?: number | null; rr_pz3?: number | null;
   seiden_score?: number; seiden_parts?: Record<string, number>; fv_dist_atr?: number | null; fv_inside?: boolean; index_state?: GaugeState | null; index_aligned?: boolean;
+  /** Owner's top-down location (newer scans): code (inside / top / below / above / untouched / none / unknown), pass, text, chain. */
+  loc?: string | null; loc_ok?: boolean | null; loc_text?: string | null; chain_text?: string | null; chain?: unknown[];
 }
 export interface TickerDetail {
   symbol: string; name: string; sector: string; indexes: IndexCode[]; exchange?: string; chart?: string; date: string; price: number;
@@ -300,6 +308,8 @@ export interface TickerDetail {
   fundamentals_rows: [string, string][]; bars: { t0: string; dt: number[]; b: [number, number, number, number][] };
   gauge?: { state: GaugeState; demand: GaugeZone | null; supply: GaugeZone | null };
   fv?: { lo: number; hi: number; method: string } | null;
+  /** Newer scans: 3M / 6M states, 6M context, the zone timeframes and the curve timeframe. */
+  m3?: string; m6?: string; ctx6?: unknown; tfs?: string[]; curve_tf?: string;
 }
 
 // ─── Watchlist (per viewer, this device) ──────────────────────────────────────────────────────────────────
@@ -396,7 +406,7 @@ export const isBucket = (v: unknown): v is Bucket => typeof v === 'string' && BU
 export const STRONG_TYPES = new Set(['ARR', 'WOW', 'STR']);
 /** The scanner's first blocking rule (index row `br`) in words; same labels as the Python BLOCK_LABEL. */
 export const BLOCK_LABEL: Record<string, string> = {
-  curve: 'high on curve', 'HTF align': 'direction not long', 'no HTF supply': 'monthly supply on top', 'not sideways': 'sideways market',
+  location: 'HTF area not reached', curve: 'high on curve', 'HTF align': 'direction not long', 'no HTF supply': 'monthly supply on top', 'not sideways': 'sideways market',
   strong: 'weak zone type', fresh: 'zone already tested', clean: 'overlap / flip zone', 'not used': 'zone already did its job',
   'no 3rd CP': '3rd CP in a row', room: 'room < 2x the stop (supply or 250% projection)', earnings: 'earnings within 10 days', 'near entry': 'price not near the entry',
 };

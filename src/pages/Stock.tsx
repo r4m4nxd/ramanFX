@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { bucketMeta, checkPlanLink, CODE_BUCKET, DEFAULT_INDEXES, detailFrom, indexList, listingText, px, findBySlug, shardUrl, tvChart, unpackBars, type DetailZone, type IndexRow, type TickerDetail } from '@/core/scanner';
 import { num } from '@/lib/format';
-import { Badge, Card, cx, Empty, Page, Stat } from '@/ui/kit';
+import { Badge, Card, cx, Empty, Page } from '@/ui/kit';
+import { Explain } from '@/ui/Explain';
+import { bucketTip, ctx6Text, locTip, curveTip, directionTip, distTip, freshTip, G, rajaTip, tfStateTip, zoneBadgeTip, zoneLineTip, zoneScoreTip } from '@/core/scannerGlossary';
 import { Icon } from '@/ui/Icon';
-import { ContextFlags, FundTable, IDX_SHORT, loadIndex, PLAN_V, PzChips, RuleList, ScoreChips, StarButton, TfBadge, TickerSearch, typeTone, useWatchlist, ZoneChart } from '@/ui/ScanParts';
+import { ChainLine, ContextFlags, FundTable, IndexChips, loadIndex, PlanGrid, PzChips, RuleList, ScoreChips, StarButton, TfBadge, TickerSearch, TipStat, TypeBadge, useWatchlist, ZoneChart } from '@/ui/ScanParts';
 import { ZoneGauge } from '@/ui/ZoneGauge';
 import type { MiniZone } from '@/ui/ZoneMiniChart';
 
@@ -38,14 +40,15 @@ function ZoneRow({ z, price }: { z: DetailZone; price: number }) {
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5 flex-wrap">
           <TfBadge tf={z.tf} />
-          <span className="text-[13px] font-semibold">{z.side}</span>
-          <Badge tone={typeTone(z.type)} className="h-5 px-2 text-[10.5px]">{z.type}</Badge>
-          <span className={cx('text-[11px] font-medium', z.fresh ? 'text-profit' : 'text-ink3')}>{z.fresh ? 'fresh' : `touch ${z.touches + 1}`}</span>
-          {z.score != null && <span className="num text-[11px] text-ink3">score {z.score}/10</span>}
+          <Explain doc={{ title: z.side === 'demand' ? 'Demand zone' : 'Supply zone', body: z.side === 'demand' ? 'Where buyers left price in a hurry: the scanner buys at its proximal (upper edge). Green bar.' : 'Where sellers left price in a hurry: the target sits just before it, holders get an exit warning near it. Red bar.' }} className="text-[13px] font-semibold">{z.side}</Explain>
+          <TypeBadge t={z.type} />
+          <Explain doc={freshTip(z.touches)} className={cx('text-[11px] font-medium', z.fresh ? 'text-profit' : 'text-ink3')}>{z.fresh ? 'fresh' : `touch ${z.touches + 1}`}</Explain>
+          {z.score != null && <Explain doc={zoneScoreTip(z.score, z.side)} className="num text-[11px] text-ink3">score {z.score}/10</Explain>}
         </div>
-        <div className="num text-[12px] text-ink3 mt-0.5">{px(Math.min(z.proximal, z.distal))}–{px(Math.max(z.proximal, z.distal))} · {z.pattern} · made {z.made}</div>
+        {z.loc_text && <div className="text-[11.5px] mt-0.5"><Explain doc={locTip(z.loc, z.loc_text)!} className={z.loc === 'inside' || z.loc === 'top' ? 'text-profit' : 'text-ink3'}>{z.loc === 'inside' || z.loc === 'top' ? '✓' : '✗'} {z.loc_text}</Explain></div>}
+        <div className="num text-[12px] text-ink3 mt-0.5"><Explain doc={z.side === 'demand' ? zoneLineTip({ tf: z.tf, zone_type: z.type, pattern: z.pattern, proximal: z.proximal, distal: z.distal, made: z.made, price }) : { ...G.proxDist, title: `Supply ${px(z.proximal)}–${px(z.distal)}`, body: `Proximal ${px(z.proximal)} = the lowest base body (where price hits it first); distal ${px(z.distal)} = the highest wick. ${z.pattern}, made ${z.made}. Removed only by a close above the distal.` }}>{px(Math.min(z.proximal, z.distal))}–{px(Math.max(z.proximal, z.distal))} · {z.pattern} · made {z.made}</Explain></div>
       </div>
-      <span className={cx('num text-[12px] shrink-0 text-right', Math.abs(dist) <= 3 ? 'text-accent' : 'text-ink3')}>{dist >= 0 ? `${num(dist, 1)}%` : `−${num(-dist, 1)}%`}<span className="block text-[10.5px] text-ink3">{dist < 0 ? 'inside' : z.side === 'demand' ? 'below' : 'above'}</span></span>
+      <Explain doc={distTip(dist, z.side, z)} className={cx('num text-[12px] shrink-0 text-right', Math.abs(dist) <= 3 ? 'text-accent' : 'text-ink3')}>{dist >= 0 ? `${num(dist, 1)}%` : `−${num(-dist, 1)}%`}<span className="block text-[10.5px] text-ink3">{dist < 0 ? 'inside' : z.side === 'demand' ? 'below' : 'above'}</span></Explain>
     </li>
   );
 }
@@ -57,6 +60,14 @@ export default function Stock() {
   const mb = load.state === 'ok' && load.row.mb && load.row.mb !== 'M' ? CODE_BUCKET[load.row.mb] : null;
   const bars = useMemo(() => (d ? unpackBars(d.bars) : []), [d]);
   const watch = useWatchlist();
+  const checkZone = useMemo(() => {
+    const c = d?.check;
+    if (!c) return undefined;
+    const z = d!.zones.find(x => x.side === 'demand' && x.proximal === c.zone.proximal && x.tf === c.zone.tf);
+    const cr = c.rules.find(r => r.short === 'curve' || /^Curve \d/.test(r.text));
+    const m = cr ? /Curve (\d+(?:\.\d+)?)%/.exec(cr.text) : null;
+    return { type: c.zone.type, touches: z?.touches ?? null, curve: m ? Number(m[1]) : null };
+  }, [d]);
   const zones: MiniZone[] = useMemo(() => (d ? d.zones.map(z => ({ proximal: z.proximal, distal: z.distal, side: z.side })) : []), [d]);
 
   return (
@@ -75,17 +86,17 @@ export default function Stock() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-[22px] font-semibold tracking-tight">{d.symbol}</h2>
-                  {d.signal && <Badge tone={d.signal === 'BUY' ? 'profit' : 'warn'}>{d.signal} today</Badge>}
-                  {listingText(d) && <Badge tone="neutral">{listingText(d)}</Badge>}
-                  {mb && <Link to={`/scanner?view=map&b=${mb}`} className="h-6 px-2 rounded-full border border-line text-[11px] font-semibold text-ink2 inline-flex items-center hover:text-ink" title="Its list in the market map (and Telegram)">{bucketMeta(mb).label}</Link>}
+                  {d.signal && <Explain u={false} doc={G.signal(d.signal)}><Badge tone={d.signal === 'BUY' ? 'profit' : 'warn'}><span className="tip-u">{d.signal} today</span></Badge></Explain>}
+                  {listingText(d) && <Explain u={false} doc={G.listing(listingText(d))}><Badge tone="neutral"><span className="tip-u">{listingText(d)}</span></Badge></Explain>}
+                  {mb && <Explain control doc={{ ...bucketTip(bucketMeta(mb).label, mb), lines: ['Tap to open this list in the market map (the same list as Telegram).'] }}><Link to={`/scanner?view=map&b=${mb}`} className="h-6 px-2 rounded-full border border-line text-[11px] font-semibold text-ink2 inline-flex items-center hover:text-ink">{bucketMeta(mb).label}</Link></Explain>}
                 </div>
-                <p className="text-[13px] text-ink3 mt-0.5">{d.name}{d.sector ? ` · ${d.sector}` : ''}</p>
-                {!!d.indexes.length && <div className="flex gap-1 mt-1.5 flex-wrap" aria-label="Indexes">{d.indexes.map(i => <span key={i} className="h-5 px-1.5 rounded-md border border-line text-[10.5px] font-semibold text-ink2 grid place-items-center">{IDX_SHORT[i] ?? i}</span>)}</div>}
+                <p className="text-[13px] text-ink3 mt-0.5">{d.name}{d.sector ? <> · <Explain doc={G.sector(d.sector)}>{d.sector}</Explain></> : ''}</p>
+                <IndexChips codes={d.indexes} />
               </div>
               <StarButton symbol={d.symbol} on={watch.has(d.symbol)} onToggle={() => watch.toggle(d.symbol)} />
               <div className="text-right shrink-0">
-                <div className="num text-[18px] font-semibold">{px(d.price)} <span className="text-[11px] font-medium text-ink3">{d.currency ?? 'USD'}</span></div>
-                <div className="text-[11.5px] text-ink3">close {d.date}</div>
+                <div className="num text-[18px] font-semibold"><Explain doc={G.price(d.price, d.currency ?? 'USD', d.date)}>{px(d.price)} <span className="text-[11px] font-medium text-ink3">{d.currency ?? 'USD'}</span></Explain></div>
+                <div className="text-[11.5px] text-ink3"><Explain doc={{ title: `Close ${d.date}`, body: 'The session of the last daily close the scan read (after the US close; a run during market hours drops the unfinished candle).' }}>close {d.date}</Explain></div>
               </div>
             </div>
             {d.gauge && <ZoneGauge demand={d.gauge.demand} supply={d.gauge.supply} state={d.gauge.state} />}
@@ -94,24 +105,25 @@ export default function Stock() {
                 levels={{ price: d.price, fvLo: d.fv?.lo, fvHi: d.fv?.hi, ...(d.check ? { pz1: d.check.pz1, pz2: d.check.pz2 } : {}), ...(d.check ? { proximal: d.check.zone.proximal, distal: d.check.zone.distal, entry: d.check.entry, stop: d.check.stop, target: d.check.target, supply: d.check.next_supply, supplyDistal: d.check.supply_distal ?? null } : {}) }} />
             )}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 rounded-xl bg-raised/50 border border-line/70 p-3">
-              <Stat label="Direction" value={d.direction} className="!whitespace-normal" />
-              <Stat label="W1 · MN" value={`${d.w1} · ${d.mn}`} className="!whitespace-normal" />
-              <Stat label="Curve (MN)" value={d.curve != null ? `${Math.round(d.curve)}%` : '—'} />
-              <Stat label="D1" value={d.d1} className="!whitespace-normal" />
+              <TipStat doc={directionTip(d.direction)} label="Direction" value={d.direction} className="!whitespace-normal" />
+              <TipStat doc={tfStateTip('W1 · MN', `${d.w1} · ${d.mn}`)} label="W1 · MN" value={`${d.w1} · ${d.mn}`} className="!whitespace-normal" />
+              <TipStat doc={curveTip(d.curve, d.curve_raja, d.curve_tf ?? 'MN')} label={`Curve (${d.curve_tf ?? 'MN'})`} value={d.curve != null ? `${Math.round(d.curve)}%` : '—'} />
+              {d.m3 ? <TipStat doc={{ ...tfStateTip(d.m6 ? '3M · 6M' : '3M', d.m6 ? `${d.m3} · ${d.m6}` : d.m3), lines: [...(tfStateTip(d.m6 ? '3M · 6M' : '3M', d.m6 ? `${d.m3} · ${d.m6}` : d.m3).lines ?? []), ...(ctx6Text(d.ctx6) ? [ctx6Text(d.ctx6)!] : [])] }} label={d.m6 ? '3M · 6M' : '3M'} value={d.m6 ? `${d.m3} · ${d.m6}` : d.m3} className="!whitespace-normal" />
+                : d.d1 && d.d1 !== 'not used' ? <TipStat doc={tfStateTip('D1', d.d1)} label="D1" value={d.d1} className="!whitespace-normal" /> : null}
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-xl border border-line/70 p-3 min-w-0">
-                <div className="label">Nearest demand</div>
+              <Explain as="div" u={false} doc={d.nearest_demand ? distTip(d.nearest_demand.dist_pct, 'demand', d.nearest_demand) : { title: 'No demand below', body: 'No active D1 / W1 / MN demand zone under the price.' }} className="rounded-xl border border-line/70 p-3 min-w-0">
+                <div className="label"><span className="tip-u">Nearest demand</span></div>
                 {d.nearest_demand ? <><div className="num text-[13px] font-medium mt-0.5">{px(d.nearest_demand.distal)}–{px(d.nearest_demand.proximal)}</div><div className="text-[11.5px] text-ink3">{d.nearest_demand.tf} {d.nearest_demand.type} · {num(d.nearest_demand.dist_pct, 1)}% below</div></> : <div className="text-[13px] text-ink3 mt-0.5">none under price</div>}
-              </div>
-              <div className="rounded-xl border border-line/70 p-3 min-w-0">
-                <div className="label">Nearest supply</div>
+              </Explain>
+              <Explain as="div" u={false} doc={d.nearest_supply ? distTip(d.nearest_supply.dist_pct, 'supply', d.nearest_supply) : { title: 'No supply above', body: "No fresh supply above the price (all-time-high area): a BUY's target becomes Raja's 250% projection (L5).", ref: 'Raja L5 · L101' }} className="rounded-xl border border-line/70 p-3 min-w-0">
+                <div className="label"><span className="tip-u">Nearest supply</span></div>
                 {d.nearest_supply ? <><div className="num text-[13px] font-medium mt-0.5">{px(d.nearest_supply.proximal)}–{px(d.nearest_supply.distal)}</div><div className="text-[11.5px] text-ink3">{d.nearest_supply.tf} {d.nearest_supply.type} · {num(d.nearest_supply.dist_pct, 1)}% above</div></> : <div className="text-[13px] text-ink3 mt-0.5">none above: 250% projection target (L5)</div>}
-              </div>
+              </Explain>
             </div>
             <div className="flex gap-2">
-              {checkPlanLink(d) && <Link to={checkPlanLink(d)!} className={cx(d.check?.kind === 'BUY' ? 'btn-primary' : 'btn', 'h-10 flex-1 sm:flex-none')}><Icon name="target" size={15} />Plan it</Link>}
-              <a href={tvChart(d)} target="_blank" rel="noopener noreferrer" className="btn h-10 flex-1 sm:flex-none"><Icon name="link" size={15} />TradingView</a>
+              {checkPlanLink(d) && <Explain control doc={G.planIt}><Link to={checkPlanLink(d)!} className={cx(d.check?.kind === 'BUY' ? 'btn-primary' : 'btn', 'h-10 flex-1 sm:flex-none')}><Icon name="target" size={15} />Plan it</Link></Explain>}
+              <Explain control doc={G.tv}><a href={tvChart(d)} target="_blank" rel="noopener noreferrer" className="btn h-10 flex-1 sm:flex-none"><Icon name="link" size={15} />TradingView</a></Explain>
             </div>
           </Card>
 
@@ -119,26 +131,22 @@ export default function Stock() {
             <Card className="flex flex-col gap-3 p-4 sm:p-5" aria-label="Rule check">
               <div className="flex items-start gap-2 flex-wrap">
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-[15px] font-semibold">{d.signal === 'BUY' ? "Today's BUY: rule check" : 'Nearest demand as a BUY'}</h3>
-                  <p className="num text-[12px] text-ink3 mt-0.5">{d.check.zone.tf} {d.check.zone.type} demand {px(d.check.zone.distal)}–{px(d.check.zone.proximal)}{d.check.score != null ? ` · score ${d.check.score}/10` : ''}</p>
+                  <h3 className="text-[15px] font-semibold"><Explain doc={{ title: d.signal === 'BUY' ? "Today's BUY" : 'Nearest demand as a BUY', body: d.signal === 'BUY' ? "Today's signal zone with every rule it passed." : 'The nearest demand under the price, checked against every BUY rule as if it were a signal, so you can see what blocks it.' }}>{d.signal === 'BUY' ? "Today's BUY: rule check" : 'Nearest demand as a BUY'}</Explain></h3>
+                  <p className="num text-[12px] text-ink3 mt-0.5"><Explain doc={zoneBadgeTip(d.check.zone.tf, d.check.zone.type)}>{d.check.zone.tf} {d.check.zone.type} demand {px(d.check.zone.distal)}–{px(d.check.zone.proximal)}</Explain>{d.check.score != null ? <> · <Explain doc={rajaTip(d.check.score, checkZone)}>score {d.check.score}/10</Explain></> : ''}</p>
                 </div>
-                <Badge tone={d.check.kind === 'BUY' ? 'profit' : 'neutral'}>{d.check.kind === 'BUY' ? 'Passes every rule' : 'No trade'}</Badge>
+                <Explain u={false} doc={d.check.kind === 'BUY' ? { title: 'Passes every rule', body: 'No ✗ in the list below: a set-and-forget BUY at the proximal.' } : { title: 'No trade', body: 'At least one rule below is ✗: no BUY on this zone. No zone, no trade.' }}><Badge tone={d.check.kind === 'BUY' ? 'profit' : 'neutral'}><span className="tip-u">{d.check.kind === 'BUY' ? 'Passes every rule' : 'No trade'}</span></Badge></Explain>
               </div>
-              <div className="grid grid-cols-4 gap-2 rounded-xl bg-raised/50 border border-line/70 p-3">
-                <Stat label="Entry" value={px(d.check.entry)} className={PLAN_V} />
-                <Stat label="Stop" value={px(d.check.stop)} className={cx(PLAN_V, 'text-loss')} />
-                <Stat label="Target" value={px(d.check.target)} className={cx(PLAN_V, 'text-profit')} />
-                <Stat label="R:R" value={d.check.rr != null ? num(d.check.rr, 1) : '—'} className={PLAN_V} />
-              </div>
-              <ScoreChips raja={d.check.score} seiden={d.check.seiden_score} parts={d.check.seiden_parts} />
-              <PzChips s={d.check} />
+              <ChainLine s={d.check} />
+              <PlanGrid p={{ ...d.check, tf: d.check.zone.tf, proximal: d.check.zone.proximal, distal: d.check.zone.distal, price: d.price }} />
+              <ScoreChips raja={d.check.score} seiden={d.check.seiden_score} parts={d.check.seiden_parts} zone={checkZone} />
+              <PzChips s={{ ...d.check, price: d.price, fv_lo: d.fv?.lo, fv_hi: d.fv?.hi }} />
               <ContextFlags s={d.check} />
               <RuleList rules={d.check.rules} open />
             </Card>
           )}
 
           <Card className="p-4 sm:p-5" aria-label="Active zones">
-            <h3 className="text-[15px] font-semibold">Active zones <span className="text-ink3 font-normal text-[13px]">D1 + W1 + MN · {d.zones.length}</span></h3>
+            <h3 className="text-[15px] font-semibold"><Explain doc={{ title: `Active zones · ${d.zones.length}`, body: `Every zone on ${(d.tfs?.length ? d.tfs : ['D1', 'W1', 'MN']).join(', ')} not yet removed by a close, made in the last 200 bars, highest first. The % on the right is from the close to the proximal.` }}>Active zones</Explain> <span className="text-ink3 font-normal text-[13px]">{(d.tfs?.length ? d.tfs : ['D1', 'W1', 'MN']).join(' + ')} · {d.zones.length}</span></h3>
             {d.zones.length ? <ul className="divide-y divide-line mt-1">{d.zones.map((z, i) => <ZoneRow key={i} z={z} price={d.price} />)}</ul>
               : <p className="text-[13px] text-ink3 mt-2">No active zone in the last 200 bars.</p>}
           </Card>

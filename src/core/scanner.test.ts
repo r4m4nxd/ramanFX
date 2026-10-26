@@ -22,7 +22,7 @@ describe('parseScan', () => {
     expect(parseScan(null)).toBeNull();
     expect(parseScan({ signals: 'x' })).toBeNull();
     const p = parseScan(placeholder)!;
-    expect(p.signals).toEqual([]);
+    expect(Array.isArray(p.signals)).toBe(true); // the daily scan commits real signals here now
   });
   it('reads the why-no-signal diagnostics and the session', () => {
     const s = parseScan(sample)!;
