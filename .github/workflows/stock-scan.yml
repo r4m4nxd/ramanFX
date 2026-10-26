@@ -31,6 +31,8 @@ jobs:
       SCANNER_WORKERS: '6'
       TELEGRAM_TOP_N: ${{ vars.TELEGRAM_TOP_N || '5' }}
       SCANNER_SEC_PER_RUN: '600'
+      SCANNER_SEC_COLD_CAP: '150'     # never-cached companies per run: a cold SEC cache fills over a few runs
+      SCANNER_BUDGET_MIN: '50'        # no new download after 50 min: the scan goes on with what it has
     steps:
       - uses: actions/checkout@v4
 
@@ -39,8 +41,10 @@ jobs:
           python-version: '3.12'
 
       # Price + SEC cache between runs: after the first full download only the last month is fetched per ticker.
+      # restore + an explicit save with always(): actions/cache's own post step saves only when the job succeeds, so a
+      # failed or timed-out cold run would throw away everything it downloaded and the next run would be cold again.
       - name: Restore data cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: tools/stock_scanner/.cache
           key: scanner-data-${{ github.run_id }}
@@ -61,7 +65,10 @@ jobs:
         env:
           SEC_UA: ${{ secrets.SEC_UA }}
 
+      # Step timeout < job timeout, so the cache save and the commit below still run if the scan hangs.
       - name: Scan + notify
+        id: scan
+        timeout-minutes: 70
         run: |
           ARGS=""
           if [ -n "${{ github.event.inputs.tickers }}" ]; then ARGS="--tickers ${{ github.event.inputs.tickers }}"; fi
@@ -74,7 +81,17 @@ jobs:
           WATCHLIST_APPROACH_PCT: ${{ vars.WATCHLIST_APPROACH_PCT || '3' }}
           SEC_UA: ${{ secrets.SEC_UA }}
 
+      - name: Save data cache
+        if: ${{ always() && hashFiles('tools/stock_scanner/.cache/daily/*.json') != '' }}
+        uses: actions/cache/save@v4
+        with:
+          path: tools/stock_scanner/.cache
+          key: scanner-data-${{ github.run_id }}
+
+      # Runs even when the scan step failed or timed out (partial results written before the budget ran out are
+      # committed); skipped only when the run was cancelled or there is no output at all.
       - name: Commit results
+        if: ${{ !cancelled() && hashFiles('public/scanner/latest.json') != '' }}
         run: |
           git config user.name "ramanfx-scanner[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

@@ -76,6 +76,17 @@ Env: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `HOLDINGS_JSON`, `WATCHLIST`, `WA
 `SCANNER_PAUSE` (seconds between requests per host, default 0.15), `SCANNER_MIN_PRICE` (5), `SCANNER_MIN_DOLLAR_VOL`
 (5e6), `TELEGRAM_TOP_N` (5), `SCANNER_APP_URL`.
 
+**Bounded runtime**: `SCANNER_BUDGET_MIN` (50) is a global time budget: after it no new download starts, queued
+tickers use their stale cache and the scan, write and notify go on with what there is (`latest.json` gets
+`"partial": true`). Each host has a circuit breaker: after `SCANNER_BREAKER_N` (5) consecutive 401 / 403 / 429 / 5xx /
+timeouts / wrong bodies (e.g. Stooq's HTML limit page instead of CSV) it is skipped for `SCANNER_BREAKER_COOLDOWN`
+(300 s) and the next source is used. Requests time out after `SCANNER_TIMEOUT` (15 s max), a Retry-After above 5 s
+fails the call instead of waiting, and the Yahoo earnings lookup stops after its first 401 (crumb). SEC downloads are
+capped per run at `SCANNER_SEC_PER_RUN` companies, `SCANNER_SEC_COLD_CAP` (150) of them never cached before, and
+`SCANNER_SEC_BUDGET_MIN` (8) minutes. The log prints progress every 50 tickers and the time of each phase
+(fetch / fundamentals / analyse / write / notify). In the workflow the scan step times out at 70 min (job: 90), and
+the cache save and the commit run even when the scan failed, so partial results and downloads are kept.
+
 ## Universes
 
 | Code | Index | Source |

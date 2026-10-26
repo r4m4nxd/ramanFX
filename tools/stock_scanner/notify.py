@@ -240,7 +240,7 @@ def send(messages: List[str], pause: float = 1.1) -> bool:
         for attempt in range(4):
             req = urllib.request.Request(f'https://api.telegram.org/bot{token}/sendMessage', data=body)
             try:
-                with urllib.request.urlopen(req, timeout=30) as r:
+                with urllib.request.urlopen(req, timeout=15) as r:
                     ok = ok and json.loads(r.read()).get('ok', False)
                 break
             except urllib.error.HTTPError as e:
@@ -250,7 +250,7 @@ def send(messages: List[str], pause: float = 1.1) -> bool:
                 except Exception:  # noqa: BLE001
                     pass
                 if e.code == 429 and attempt < 3:
-                    time.sleep(max(wait, 1) + 0.5)
+                    time.sleep(min(max(wait, 1), 30) + 0.5)
                     continue
                 print(f'Telegram send failed: HTTP {e.code}', file=sys.stderr)   # never print the token / URL
                 ok = False

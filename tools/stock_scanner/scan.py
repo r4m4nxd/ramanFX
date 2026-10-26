@@ -589,6 +589,17 @@ def run(universe: List[Dict], get_bars, get_cf, get_earnings, holdings: List[Dic
     regime = []
     last_date = today or ''
     rfx = None
+    import time
+    t_run = time.time()
+    t_earn = [0.0, 0]
+
+    def earnings(sym):
+        t = time.time()
+        try:
+            return get_earnings(sym)
+        finally:
+            t_earn[0] += time.time() - t
+            t_earn[1] += 1
     try:
         rfx = index_context(composite_bars({k: get_bars(k)[0] for k in INDEX_PARTS}))
     except Exception as e:  # noqa: BLE001
@@ -623,7 +634,7 @@ def run(universe: List[Dict], get_bars, get_cf, get_earnings, holdings: List[Dic
         if sym in info and not illiquid:
             pre = symbol_signals(an, None)
             if pre and any(s['kind'] == 'BUY' or s['kind'] == 'WATCH' for s in pre):
-                er = get_earnings(sym)
+                er = earnings(sym)
                 found = symbol_signals(an, er) if er else pre
                 if found:
                     for s in found:
@@ -655,8 +666,9 @@ def run(universe: List[Dict], get_bars, get_cf, get_earnings, holdings: List[Dic
                               'indexes': (u.get('indexes') or '').split(',') if u.get('indexes') else [], 'price': round(an.price, 2), 'warnings': ex,
                               'entry': held[sym].get('entry'), 'stop': held[sym].get('stop'), 'shares': held[sym].get('shares'),
                               'chart': DATA.tradingview_url(sym, meta.get('exchange', ''))})
-        if log and (n + 1) % 50 == 0:
-            log(f'{n + 1}/{len(syms)} scanned')
+        if log and ((n + 1) % 50 == 0 or n + 1 == len(syms)):
+            log(f'analyse {n + 1}/{len(syms)} in {time.time() - t_run:.0f}s ({t_earn[0]:.0f}s in {t_earn[1]} earnings calls), '
+                f'{len(sigs)} signals, {len(errors)} without data')
     order = {'BUY': 0, 'WATCH': 1}
     sigs.sort(key=lambda s: (order[s['kind']], -s.get('score', 0), -(s.get('rr') or 0), abs(s['to_entry_pct'])))
     return {'date': last_date, 'generated_at': dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
@@ -677,6 +689,7 @@ def public_json(res: Dict, fixture: bool = False) -> Dict:
         'filtered_liquidity': res.get('filtered_liquidity', 0),
         'liquidity_rule': f'Russell 2000-only names need price >= ${MIN_PRICE:g} and 20-day average dollar volume >= ${MIN_DOLLAR_VOL / 1e6:g}M',
         'rut_snapshot': res.get('rut_snapshot', ''),
+        'partial': bool(res.get('partial')),
         'regime': res.get('regime', []),
         'rfx_index': res.get('rfx_index'),
         'signals': res['signals'],
@@ -726,14 +739,14 @@ def write_outputs(res: Dict, out_dir: str, fixture: bool = False, history: bool 
     return path
 
 
-def refresh_signal_fundamentals(res: Dict, ciks: Dict[str, str], bars: Dict) -> None:
+def refresh_signal_fundamentals(res: Dict, ciks: Dict[str, str], bars: Dict, budget_s: Optional[float] = None, log=None) -> None:
     """Today's signalled tickers get fundamentals at most a day old (the rest refresh weekly)."""
     import fundamentals as F
     syms = sorted({s['symbol'] for s in res['signals']})
     todo = F.refresh_plan([], [ciks.get(s, '') for s in syms], per_run=0)
     if not todo:
         return
-    F.refresh_bases(todo, workers=4)
+    F.refresh_bases(todo, workers=4, budget_s=budget_s, log=log)
     for s in res['signals']:
         b = F.cached_base(ciks.get(s['symbol'], ''))[0]
         if b and s['symbol'] in bars:
@@ -755,6 +768,12 @@ def main(argv=None) -> int:
     ap.add_argument('--no-sec', action='store_true', help='skip the SEC fundamentals refresh (use the cache)')
     ap.add_argument('--sec-per-run', type=int, default=int(os.environ.get('SCANNER_SEC_PER_RUN', '600')),
                     help='max companies refreshed from SEC per run (each at most weekly; signalled daily)')
+    ap.add_argument('--budget-min', type=float, default=float(os.environ.get('SCANNER_BUDGET_MIN', '50')),
+                    help='global time budget (minutes): after it no new download starts and the scan goes on with what it has')
+    ap.add_argument('--sec-budget-min', type=float, default=float(os.environ.get('SCANNER_SEC_BUDGET_MIN', '8')),
+                    help='at most this many minutes of SEC downloads per run')
+    ap.add_argument('--sec-cold-cap', type=int, default=int(os.environ.get('SCANNER_SEC_COLD_CAP', '150')),
+                    help='max never-cached companies fetched from SEC per run (a cold cache fills over a few runs)')
     ap.add_argument('--no-notify', action='store_true')
     ap.add_argument('--no-write', action='store_true')
     ap.add_argument('--out', default=os.path.join(ROOT, 'public', 'scanner'))
@@ -769,6 +788,17 @@ def main(argv=None) -> int:
     import fundamentals as F
     import universe as U
     t0 = time.time()
+    DATA.set_budget(a.budget_min)
+    phases: Dict[str, float] = {}
+
+    def log(m: str) -> None:
+        print(f'[{time.time() - t0:6.0f}s] {m}', file=sys.stderr, flush=True)
+
+    def phase(name: str, since: float) -> float:
+        now = time.time()
+        phases[name] = phases.get(name, 0.0) + now - since
+        log(f'phase {name}: {now - since:.1f}s (budget left {max(0.0, DATA.time_left()) / 60:.1f} min)')
+        return now
     if a.universes:
         os.environ['SCANNER_UNIVERSES'] = a.universes
     uni = U.load()
@@ -780,9 +810,11 @@ def main(argv=None) -> int:
         uni = uni[:a.limit]
     holdings = load_holdings()
     syms = sorted({u['symbol'] for u in uni} | {str(h.get('symbol', '')).upper() for h in holdings} | set(REGIME) | set(INDEX_PARTS))
-    print(f'{len(syms)} tickers, {a.workers} download threads', file=sys.stderr)
-    pre = DATA.fetch_many(syms, workers=a.workers, offline=a.offline, log=lambda m: print(m, file=sys.stderr))
+    log(f'{len(syms)} tickers, {a.workers} download threads, budget {a.budget_min:g} min')
+    tp = time.time()
+    pre = DATA.fetch_many(syms, workers=a.workers, offline=a.offline, log=log)
     fetch_err = pre.pop('__errors__', {})
+    tp = phase('fetch', tp)
 
     def get_bars(s):
         if s in pre:
@@ -797,11 +829,21 @@ def main(argv=None) -> int:
         except (OSError, ValueError):
             pass
         cik = {u['symbol']: u.get('cik', '') for u in uni}
-        todo = F.refresh_plan([c for c in cik.values() if c], [cik.get(s, '') for s in prev], per_run=a.sec_per_run)
-        F.refresh_bases(todo, workers=4, log=lambda m: print(m, file=sys.stderr))
+        todo = F.refresh_plan([c for c in cik.values() if c], [cik.get(s, '') for s in prev], per_run=a.sec_per_run,
+                              cold_cap=a.sec_cold_cap)
+        log(f'SEC: {len(todo)} companies to refresh (cap {a.sec_per_run}, cold cap {a.sec_cold_cap})')
+        F.refresh_bases(todo, workers=4, log=log, budget_s=a.sec_budget_min * 60)
+        tp = phase('fundamentals', tp)
     watchlist = load_watchlist()
     res = run(uni, get_bars, lambda c: F.cached_base(c)[0] if c else None,
-              (lambda s: None) if a.offline else DATA.fetch_earnings, holdings, log=lambda m: print(m, file=sys.stderr), watchlist=watchlist)
+              (lambda s: None) if a.offline else DATA.fetch_earnings, holdings, log=log, watchlist=watchlist)
+    tp = phase('analyse', tp)
+    if DATA.over_budget() or any('time budget' in str(e) for e in fetch_err.values()):
+        res['partial'] = True
+        res['notes'].append('time budget spent: some tickers were not refreshed (stale cache) or are missing')
+    if DATA.breaker_state():
+        res['notes'].append(f'failing hosts: {DATA.breaker_state()}')
+        log(f'failing hosts at the end of the scan: {DATA.breaker_state()}')
     if res.get('watch_alerts'):
         sp = os.path.join(DATA.CACHE, 'alerts_state.json')
         try:
@@ -813,18 +855,26 @@ def main(argv=None) -> int:
         os.makedirs(DATA.CACHE, exist_ok=True)
         with open(sp, 'w') as fh:
             json.dump(st, fh)
-    if not a.offline and not a.no_sec:
-        refresh_signal_fundamentals(res, {u['symbol']: u.get('cik', '') for u in uni}, pre)
+    if not a.offline and not a.no_sec and not DATA.over_budget():
+        refresh_signal_fundamentals(res, {u['symbol']: u.get('cik', '') for u in uni}, pre,
+                                    budget_s=min(120.0, max(0.0, DATA.time_left())), log=log)
+        tp = phase('fundamentals', tp)
     res['rut_snapshot'] = U.snapshot_date()
     if not a.no_write:
-        print('wrote', write_outputs(res, a.out))
-    msgs = notify.build_messages(res, top=a.top)
-    if a.no_notify:
-        print('\n\n'.join(msgs))
-    else:
-        notify.send(msgs)
-    print(f"done in {time.time() - t0:.0f}s: {res['scanned']} scanned, {res['filtered_liquidity']} filtered (liquidity), "
-          f"{len(res['errors'])} without data", file=sys.stderr)
+        log(f'wrote {write_outputs(res, a.out)}')
+        tp = phase('write', tp)
+    try:                      # a Telegram problem never fails the run (the results are already written)
+        msgs = notify.build_messages(res, top=a.top)
+        if a.no_notify:
+            print('\n\n'.join(msgs))
+        else:
+            notify.send(msgs)
+    except Exception as e:  # noqa: BLE001
+        log(f'notify failed: {type(e).__name__}')
+    tp = phase('notify', tp)
+    log(f"done in {time.time() - t0:.0f}s: {res['scanned']} scanned, {res['filtered_liquidity']} filtered (liquidity), "
+        f"{len(res['errors'])} without data{' (PARTIAL: time budget spent)' if res.get('partial') else ''}; "
+        f"phases {', '.join(f'{k} {v:.0f}s' for k, v in phases.items())}")
     return 0 if res['scanned'] > 0 else 1
 
 
