@@ -1,0 +1,302 @@
+# US top liquid (universe TOP): built by universe.py refresh_top; 4477 candidates, >= 50M USD/day 20-day median, cap 300, other universes excluded
+symbol,name,sector,cik,exchange,dv20_musd
+SKHY,SK hynix Inc.,Other,,NASDAQ,2927.0
+CRDO,Credo Technology Group Holding Ltd,Other,,NASDAQ,1603.0
+IREN,IREN Limited,Other,,NASDAQ,1602.7
+CBRS,Cerebras Systems Inc.,Other,,NASDAQ,1456.1
+SNOW,Snowflake Inc.,Other,,NYSE,1356.0
+AAOI,"Applied Optoelectronics, Inc.",Other,,NASDAQ,1090.3
+NET,"Cloudflare, Inc.",Other,,NYSE,934.1
+IONQ,"IonQ, Inc.",Other,,NYSE,796.4
+BMNR,"BitMine Immersion Technologies, Inc.",Other,,NYSE,789.3
+CRCL,"Circle Internet Group, Inc.",Other,,NYSE,782.8
+AAL,American Airlines Group Inc.,Other,,NASDAQ,757.5
+MDB,"MongoDB, Inc.",Other,,NASDAQ,718.1
+ASTS,"AST SpaceMobile, Inc.",Other,,NASDAQ,706.6
+NTRA,"Natera, Inc.",Other,,NASDAQ,634.9
+OKTA,"Okta, Inc.",Other,,NASDAQ,626.1
+SOFI,"SoFi Technologies, Inc.",Other,,NASDAQ,617.3
+ZS,"Zscaler, Inc.",Other,,NASDAQ,591.8
+APLD,Applied Digital Corporation,Other,,NASDAQ,582.2
+AXTI,AXT Inc,Other,,NASDAQ,571.0
+CDE,"Coeur Mining, Inc.",Other,,NYSE,521.8
+SMTC,Semtech Corporation,Other,,NASDAQ,492.6
+TSEM,Tower Semiconductor Ltd.,Other,,NASDAQ,490.9
+HL,Hecla Mining Company,Other,,NYSE,479.8
+CIFR,Cipher Digital Inc.,Other,,NASDAQ,464.6
+TEAM,Atlassian Corporation,Other,,NASDAQ,459.5
+LNG,Cheniere Energy Inc,Other,,NYSE,456.4
+WULF,TeraWulf Inc.,Other,,NASDAQ,453.3
+RKT,"Rocket Companies, Inc.",Other,,NYSE,437.7
+TEM,"Tempus AI, Inc.",Other,,NASDAQ,425.4
+RBLX,Roblox Corporation,Other,,NYSE,423.4
+MTSI,"MACOM Technology Solutions Holdings, Inc.",Other,,NASDAQ,419.5
+HUT,Hut 8 Corp.,Other,,NASDAQ,412.4
+UTHR,United Therapeutics Corporation,Other,,NASDAQ,411.2
+DT,"Dynatrace, Inc.",Other,,NYSE,404.8
+TWST,Twist Bioscience Corporation,Other,,NASDAQ,398.1
+PATH,"UiPath, Inc.",Other,,NYSE,382.1
+TTMI,"TTM Technologies, Inc.",Other,,NASDAQ,375.6
+TLN,Talen Energy Corporation,Other,,NASDAQ,373.8
+ENTG,"Entegris, Inc.",Other,,NASDAQ,362.9
+U,Unity Software Inc.,Other,,NYSE,361.2
+RVMD,"Revolution Medicines, Inc.",Other,,NASDAQ,356.4
+FN,Fabrinet,Other,,NYSE,348.1
+XP,XP Inc.,Other,,NASDAQ,340.7
+BURL,"BURLINGTON STORES, INC.",Other,,NYSE,324.9
+DKS,"Dick's Sporting Goods, Inc.",Other,,NYSE,324.7
+ONON,On Holding AG,Other,,NYSE,323.8
+MARA,"MARA Holdings, Inc.",Other,,NASDAQ,316.1
+RBRK,"Rubrik, Inc.",Other,,NYSE,311.5
+RIVN,"Rivian Automotive, Inc.",Other,,NASDAQ,308.3
+CTVA,"Corteva, Inc.",Other,,NYSE,308.1
+MKSI,MKS Inc.,Other,,NASDAQ,306.6
+ONDS,Ondas Inc.,Other,,NASDAQ,302.4
+CLF,Cleveland-Cliffs Inc.,Other,,NYSE,298.3
+NVT,nVent Electric plc,Other,,NYSE,297.9
+TXG,"10x Genomics, Inc.",Other,,NASDAQ,295.8
+GH,"Guardant Health, Inc.",Other,,NASDAQ,291.1
+MTZ,"MasTec, Inc.",Other,,NYSE,290.8
+INSM,Insmed Incorporated,Other,,NASDAQ,289.6
+MDLN,Medline Inc.,Other,,NASDAQ,288.2
+AGNC,AGNC Investment Corp.,Other,,NASDAQ,284.2
+OKLO,Oklo Inc.,Other,,NYSE,282.0
+GME,GameStop Corp. Class A,Other,,NYSE,279.2
+STRL,"Sterling Infrastructure, Inc.",Other,,NASDAQ,277.2
+MXL,"MaxLinear, Inc.",Other,,NASDAQ,275.9
+VIK,Viking Holdings Ltd,Other,,NYSE,274.2
+FPS,"Forgent Power Solutions, Inc.",Other,,NYSE,273.2
+HIMS,"Hims & Hers Health, Inc.",Other,,NYSE,273.1
+SUNB,"Sunbelt Rentals Holdings, Inc.",Other,,NYSE,271.6
+CRS,Carpenter Technology Corp,Other,,NYSE,268.7
+ONTO,Onto Innovation Inc.,Other,,NYSE,266.5
+FTAI,FTAI Aviation Ltd.,Other,,NASDAQ,264.9
+PINS,"Pinterest, Inc.",Other,,NYSE,261.9
+HUBS,"HUBSPOT, INC.",Other,,NYSE,260.8
+ATI,ATI Inc.,Other,,NYSE,259.3
+GFS,GlobalFoundries Inc.,Other,,NASDAQ,258.7
+RIOT,"Riot Platforms, Inc.",Other,,NASDAQ,257.0
+DKNG,DraftKings Inc.,Other,,NASDAQ,253.2
+SITM,SiTime Corporation,Other,,NASDAQ,253.0
+DINO,HF Sinclair Corporation,Other,,NYSE,248.0
+MMED,"MiniMed Group, Inc.",Other,,NASDAQ,247.2
+VICR,Vicor Corporation,Other,,NASDAQ,246.9
+DOCN,"DigitalOcean Holdings, Inc.",Other,,NYSE,246.2
+HALO,"Halozyme Therapeutics, Inc.",Other,,NASDAQ,245.3
+PBF,PBF ENERGY INC.,Other,,NYSE,243.4
+AFRM,"Affirm Holdings, Inc.",Other,,NASDAQ,243.0
+ZM,"Zoom Communications, Inc.",Other,,NASDAQ,243.0
+TRU,TransUnion,Other,,NYSE,242.0
+MOD,Modine Manufacturing Co,Other,,NYSE,239.2
+BJ,"BJs Wholesale Club Holdings, Inc.",Other,,NYSE,235.5
+QXO,"QXO, Inc.",Other,,NYSE,231.8
+ROKU,"Roku, Inc.",Other,,NASDAQ,230.8
+NLY,Annaly Capital Management. Inc.,Other,,NYSE,229.6
+LPLA,LPL Financial Holdings Inc.,Other,,NASDAQ,228.5
+RIG,Transocean LTD.,Other,,NYSE,228.2
+EAT,"Brinker International, Inc.",Other,,NYSE,228.2
+ASST,"Strive, Inc.",Other,,NASDAQ,228.2
+TOST,"Toast, Inc.",Other,,NYSE,227.7
+SNAP,Snap Inc.,Other,,NYSE,227.5
+LSCC,Lattice Semiconductor Corporation,Other,,NASDAQ,227.0
+PENG,"Penguin Solutions, Inc.",Other,,NASDAQ,226.1
+W,Wayfair Inc.,Other,,NYSE,220.8
+WWD,"Woodward, Inc.",Other,,NASDAQ,220.6
+MP,MP Materials Corp.,Other,,NYSE,220.3
+S,"SentinelOne, Inc.",Other,,NYSE,218.2
+ETSY,"Etsy, Inc.",Other,,NYSE,216.1
+RGEN,Repligen Corporation,Other,,NASDAQ,214.9
+CW,Curtiss-Wright Corp.,Other,,NYSE,213.2
+FIG,"Figma, Inc.",Other,,NYSE,211.0
+FWONK,Liberty Media Corporation Series C,Other,,NASDAQ,210.4
+FIVE,"Five Below, Inc.",Other,,NASDAQ,209.9
+ZETA,Zeta Global Holdings Corp.,Other,,NYSE,207.6
+WCC,Wesco International Inc.,Other,,NYSE,207.4
+OVV,Ovintiv Inc.,Other,,NYSE,207.3
+CPNG,"Coupang, Inc.",Other,,NYSE,206.5
+CORZ,"Core Scientific, Inc.",Other,,NASDAQ,206.5
+SMR,NuScale Power Corporation,Other,,NYSE,206.4
+FRO,Frontline Plc,Other,,NYSE,206.1
+KTOS,"Kratos Defense & Security Solutions, Inc.",Other,,NASDAQ,203.2
+PR,Permian Resources Corporation,Other,,NYSE,202.1
+SEI,"Solaris Energy Infrastructure, Inc.",Other,,NYSE,202.1
+ROIV,Roivant Sciences Ltd.,Other,,NASDAQ,201.7
+PBR.A,Petroleo Brasileiro S.A.-Petrobras,Other,,NYSE,200.5
+QBTS,D-Wave Quantum Inc.,Other,,NASDAQ,200.1
+SN,"SharkNinja, Inc.",Other,,NYSE,199.0
+SNX,TD SYNNEX Corporation,Other,,NYSE,199.0
+KNX,Knight-Swift Transportation Holdings Inc.,Other,,NYSE,198.8
+TXRH,"Texas Roadhouse, Inc.",Other,,NASDAQ,198.3
+SCCO,Southern Copper Corporation,Other,,NYSE,196.4
+VIAV,Viavi Solutions Inc.,Other,,NASDAQ,196.2
+RGTI,"Rigetti Computing, Inc.",Other,,NASDAQ,196.2
+AU,AngloGold Ashanti plc,Other,,NYSE,190.6
+AEHR,Aehr Test Systems,Other,,NASDAQ,190.5
+GTLB,GitLab Inc.,Other,,NASDAQ,190.0
+GWRE,"GUIDEWIRE SOFTWARE, INC.",Other,,NYSE,189.6
+BRK.A,Berkshire Hathaway Inc.,Other,,NYSE,189.4
+AA,Alcoa Corporation,Other,,NYSE,188.9
+MEDP,"Medpace Holdings, Inc.",Other,,NASDAQ,186.8
+TTD,"The Trade Desk, Inc.",Other,,NASDAQ,184.3
+AMKR,"Amkor Technology, Inc.",Other,,NASDAQ,183.4
+NBIX,"Neurocrine Biosciences, Inc.",Other,,NASDAQ,183.1
+JHX,James Hardie Industries plc,Other,,NYSE,180.8
+AVAV,"AeroVironment, Inc.",Other,,NASDAQ,180.2
+BWXT,"BWX Technologies, Inc.",Other,,NYSE,177.1
+NVTS,Navitas Semiconductor Corporation,Other,,NASDAQ,176.5
+BBIO,"BridgeBio Pharma, Inc.",Other,,NASDAQ,176.3
+FTI,TechnipFMC plc Ordinary Share,Other,,NYSE,175.6
+RPRX,Royalty Pharma plc,Other,,NASDAQ,174.7
+HNGE,"Hinge Health, Inc.",Other,,NYSE,174.3
+CRBG,"Corebridge Financial, Inc.",Other,,NYSE,174.1
+XPO,"XPO, Inc.",Other,,NYSE,172.3
+SIMO,Silicon Motion Technology Corporation,Other,,NASDAQ,172.0
+JAZZ,Jazz Pharmaceuticals plc,Other,,NASDAQ,171.8
+BROS,Dutch Bros Inc.,Other,,NYSE,171.5
+DOCU,"DocuSign, Inc.",Other,,NASDAQ,170.3
+PCOR,"Procore Technologies, Inc.",Other,,NYSE,170.3
+MOH,"Molina Healthcare, Inc.",Other,,NYSE,169.6
+CNH,CNH INDUSTRIAL N.V.,Other,,NYSE,169.1
+CLSK,"CleanSpark, Inc.",Other,,NASDAQ,168.6
+FORM,"FormFactor, Inc. FormFactor, Inc.",Other,,NASDAQ,168.1
+OWL,Blue Owl Capital Inc.,Other,,NYSE,168.0
+ANF,Abercrombie & Fitch Co.,Other,,NYSE,167.9
+IOVA,"Iovance Biotherapeutics, Inc.",Other,,NASDAQ,167.9
+CAG,"Conagra Brands, Inc.",Other,,NYSE,167.8
+ET,Energy Transfer LP,Other,,NYSE,167.3
+PCVX,"Vaxcyte, Inc.",Other,,NASDAQ,166.9
+ALLY,Ally Financial Inc.,Other,,NYSE,166.1
+IOT,Samsara Inc.,Other,,NYSE,166.1
+LYFT,"Lyft, Inc.",Other,,NASDAQ,164.7
+ASND,Ascendis Pharma A/S Ordinary Share,Other,,NASDAQ,163.7
+NTNX,"Nutanix, Inc.",Other,,NASDAQ,163.2
+WSO,"Watsco, Inc.",Other,,NYSE,162.5
+AS,"Amer Sports, Inc.",Other,,NYSE,162.3
+USFD,US Foods Holding Corp.,Other,,NYSE,161.0
+KMX,CarMax Inc.,Other,,NYSE,160.2
+LQDA,Liquidia Corporation,Other,,NASDAQ,159.3
+OSCR,"Oscar Health, Inc.",Other,,NYSE,159.3
+CZR,"Caesars Entertainment, Inc.",Other,,NASDAQ,159.0
+VG,"Venture Global, Inc.",Other,,NYSE,158.7
+SGI,Somnigroup International Inc.,Other,,NYSE,157.3
+NXT,Nextpower Inc.,Other,,NASDAQ,157.3
+CACI,CACI INTERNATIONAL CLA,Other,,NYSE,157.1
+CAVA,"CAVA Group, Inc.",Other,,NYSE,156.3
+RMBS,Rambus Inc.,Other,,NASDAQ,156.1
+VKTX,"Viking Therapeutics, Inc.",Other,,NASDAQ,153.7
+ESTC,Elastic N.V.,Other,,NYSE,153.6
+RRX,Regal Rexnord Corporation,Other,,NYSE,153.4
+DY,"Dycom Industries, Inc.",Other,,NYSE,152.4
+CART,Maplebear Inc.,Other,,NASDAQ,151.9
+USAR,"USA Rare Earth, Inc.",Other,,NASDAQ,150.8
+CHWY,"Chewy, Inc.",Other,,NYSE,150.5
+PL,Planet Labs PBC,Other,,NYSE,150.1
+GKOS,Glaukos Corporation,Other,,NYSE,149.4
+EVR,Evercore Inc.,Other,,NYSE,148.4
+VFC,V.F. Corporation,Other,,NYSE,148.1
+LW,"Lamb Weston Holdings, Inc.",Other,,NYSE,147.9
+CELH,"Celsius Holdings, Inc.",Other,,NASDAQ,147.8
+AXSM,"Axsome Therapeutics, Inc.",Other,,NASDAQ,147.8
+OLLI,"Ollie's Bargain Outlet Holdings, Inc.",Other,,NASDAQ,147.1
+MSGS,Madison Square Garden Sports Corp.,Other,,NYSE,146.8
+CPB,The Campbell's Company,Other,,NASDAQ,146.0
+AEIS,"Advanced Energy Industries, Inc.",Other,,NASDAQ,145.2
+AR,ANTERO RESOURCES CORPORATION,Other,,NYSE,145.1
+ITT,ITT Inc.,Other,,NYSE,144.8
+TOL,"Toll Brothers, Inc.",Other,,NYSE,144.7
+ENPH,"Enphase Energy, Inc.",Other,,NASDAQ,144.3
+TW,Tradeweb Markets Inc.,Other,,NASDAQ,143.9
+ICLR,ICON plc,Other,,NASDAQ,143.8
+HEI,HEICO Corporation,Other,,NYSE,141.1
+M,Macy's Inc.,Other,,NYSE,140.2
+ONB,Old National Bancorp,Other,,NASDAQ,140.0
+BWA,BorgWarner Inc.,Other,,NYSE,139.2
+PAYC,"PAYCOM SOFTWARE, INC.",Other,,NYSE,138.5
+EXEL,"Exelixis, Inc.",Other,,NASDAQ,138.2
+ESI,Element Solutions Inc.,Other,,NYSE,137.9
+THC,Tenet Healthcare Corporation New,Other,,NYSE,137.9
+ALK,"Alaska Air Group, Inc.",Other,,NYSE,137.6
+MDGL,"Madrigal Pharmaceuticals, Inc.",Other,,NASDAQ,137.6
+CAKE,Cheesecake Factory Incorporated (The),Other,,NASDAQ,137.6
+WING,Wingstop Inc.,Other,,NASDAQ,137.5
+JLL,"Jones Lang LaSalle, Inc.",Other,,NYSE,137.2
+COMP,"Compass, Inc.",Other,,NYSE,136.6
+FHN,First Horizon Corporation,Other,,NYSE,136.3
+TENB,"Tenable Holdings, Inc.",Other,,NASDAQ,136.0
+QLYS,"Qualys, Inc.",Other,,NASDAQ,134.8
+KOD,Kodiak Sciences Inc,Other,,NASDAQ,134.3
+AHR,"American Healthcare REIT, Inc.",Other,,NYSE,134.1
+BMRN,BioMarin Pharmaceutical Inc.,Other,,NASDAQ,133.7
+CSL,"Carlisle Companies, Inc.",Other,,NYSE,133.2
+UNM,Unum Group,Other,,NYSE,133.0
+SFM,"Sprouts Farmers Market, Inc.",Other,,NASDAQ,133.0
+CG,The Carlyle Group Inc.,Other,,NASDAQ,132.8
+PRAX,"Praxis Precision Medicines, Inc.",Other,,NASDAQ,132.7
+RNR,RenaissanceRe Holdings Ltd.,Other,,NYSE,132.5
+CLH,"Clean Harbors, Inc",Other,,NYSE,132.4
+VSAT,"ViaSat, Inc.",Other,,NASDAQ,132.3
+VSXY,Victorias Secret & Co.,Other,,NYSE,132.0
+FCNCA,"First Citizens BancShares, Inc.",Other,,NASDAQ,131.9
+EPD,Enterprise Products Partners L.P.,Other,,NYSE,131.4
+FIGR,"Figure Technology Solutions, Inc.",Other,,NASDAQ,130.0
+RGLD,"Royal Gold, Inc.",Other,,NASDAQ,129.8
+ONC,BeOne Medicines Ltd.,Other,,NASDAQ,129.4
+BRKR,Bruker Corporation,Other,,NASDAQ,129.3
+H,Hyatt Hotels Corporation,Other,,NYSE,129.1
+SANM,Sanmina Corporation,Other,,NASDAQ,129.1
+SUI,"Sun Communities, Inc",Other,,NYSE,128.5
+MAT,"Mattel, Inc.",Other,,NASDAQ,128.4
+NYT,New York Times Co.,Other,,NYSE,128.2
+RBC,RBC Bearings Incorporated,Other,,NYSE,128.0
+AVTR,"Avantor, Inc.",Other,,NYSE,127.9
+BBWI,"Bath & Body Works, Inc.",Other,,NYSE,127.1
+AVT,"Avnet, Inc.",Other,,NASDAQ,126.9
+DK,"Delek US Holdings, Inc.",Other,,NYSE,125.9
+NTSK,"Netskope, Inc.",Other,,NASDAQ,125.1
+MTCH,"Match Group, Inc.",Other,,NASDAQ,124.9
+DAR,DARLING INGREDIENTS INC.,Other,,NYSE,124.9
+PURR,Hyperliquid Strategies Inc,Other,,NASDAQ,124.8
+CELC,Celcuity Inc.,Other,,NASDAQ,124.7
+FSLY,"Fastly, Inc.",Other,,NASDAQ,124.0
+BLDR,"Builders FirstSource, Inc.",Other,,NYSE,124.0
+MANH,"Manhattan Associates, Inc.",Other,,NASDAQ,124.0
+TAP,Molson Coors Beverage Company Class B,Other,,NYSE,123.9
+CCC,CCC Intelligent Solutions Holdings Inc.,Other,,NASDAQ,123.8
+LTH,"Life Time Group Holdings, Inc.",Other,,NYSE,123.7
+EHC,Encompass Health Corporation,Other,,NYSE,123.5
+DUOL,"Duolingo, Inc.",Other,,NASDAQ,123.2
+OC,Owens Corning,Other,,NYSE,123.0
+FROG,JFrog Ltd.,Other,,NASDAQ,122.8
+MHK,"Mohawk Industries, Inc.",Other,,NYSE,122.3
+EQH,"Equitable Holdings, Inc.",Other,,NYSE,122.2
+TTAN,"ServiceTitan, Inc.",Other,,NASDAQ,122.1
+GGG,Graco Inc,Other,,NYSE,122.1
+IONS,"Ionis Pharmaceuticals, Inc.",Other,,NASDAQ,121.2
+FUTU,Futu Holdings Limited,Other,,NASDAQ,120.8
+AMRZ,Amrize Ltd,Other,,NYSE,120.2
+GRAL,"GRAIL, Inc.",Other,,NASDAQ,120.1
+FND,"Floor & Decor Holdings, Inc.",Other,,NYSE,119.9
+CYTK,"Cytokinetics, Incorporated",Other,,NASDAQ,119.6
+IBRX,"ImmunityBio, Inc.",Other,,NASDAQ,119.3
+POOL,Pool Corporation,Other,,NASDAQ,119.2
+MKL,Markel Group Inc.,Other,,NYSE,119.0
+ELF,"e.l.f. Beauty, Inc.",Other,,NYSE,118.5
+TPG,TPG Inc.,Other,,NASDAQ,118.2
+MKTX,"MarketAxess Holdings, Inc.",Other,,NASDAQ,118.2
+PRIM,Primoris Services Corporation,Other,,NYSE,118.1
+CROX,"Crocs, Inc.",Other,,NASDAQ,117.8
+GLXY,Galaxy Digital Inc.,Other,,NASDAQ,117.4
+ELS,"Equity Lifestyle Properties, Inc.",Other,,NYSE,117.2
+RNG,"RINGCENTRAL, INC.",Other,,NYSE,117.0
+PFGC,Performance Food Group Company,Other,,NYSE,116.6
+AGX,"Argan, Inc",Other,,NYSE,116.4
+VSH,"Vishay Intertechnology, Inc.",Other,,NYSE,116.1
+DHT,"DHT HOLDINGS, INC.",Other,,NYSE,116.0
+SOLS,Solstice Advanced Materials Inc.,Other,,NASDAQ,115.7
+JOBY,"Joby Aviation, Inc.",Other,,NYSE,115.5
+GAP,"The Gap, Inc.",Other,,NYSE,115.3
+EPAM,"EPAM SYSTEMS, INC.",Other,,NYSE,114.1
+PNFP,"Pinnacle Financial Partners, Inc.",Other,,NYSE,114.0
+PEN,"Penumbra, Inc.",Other,,NYSE,113.7
+Z,"Zillow Group, Inc. Class C Capital Stock",Other,,NASDAQ,113.3
+RGA,"Reinsurance Group of America, Incorporated",Other,,NYSE,113.2
