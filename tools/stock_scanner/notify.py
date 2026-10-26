@@ -72,6 +72,11 @@ def _curve_word(c) -> str:
     return f'{word} {int(round(c)) + 0}%'
 
 
+def _curve_owner(s: Dict) -> bool:
+    """The curve rule passed by the owner's ATH rule (no MN supply overhead, W1 + MN trend up)."""
+    return any(r.get('short') == 'curve' and 'owner rule' in (r.get('text') or '') for r in s.get('rules') or [])
+
+
 def _rules_short(s: Dict) -> str:
     out = []
     for r in s['rules']:
@@ -123,10 +128,11 @@ def signal_card(s: Dict) -> str:
     state = 'fresh' if s['touches'] == 0 else f"touch {s['touches'] + 1}"
     lines = [head,
              f"Zone: {s['tf']} demand {s['proximal']:.2f}–{s['distal']:.2f} ({state}, {s['zone_type']} type, score {s.get('score', 0)}/10)",
-             f"Entry {_f(s['entry'])} · Stop {_f(s['stop'])} · Target {_f(s['target'])} · R:R {_f(s['rr'], 1)}",
+             f"Entry {_f(s['entry'])} · Stop {_f(s['stop'])} · Target {_f(s['target'])}"
+             + (' (250% projection, no supply above, L5)' if s.get('target_kind') == 'projection' else '') + f" · R:R {_f(s['rr'], 1)}",
              _pz_line(s),
              f"Scores: Raja {s.get('score', 0)}/10 · Seiden odds {_f(s.get('seiden_score'), 1)}/10" + _flags(s),
-             f"Curve: {_curve_word(s.get('curve'))} · Trend: {esc(s['direction'])} (W1 {esc(s['w1'])}, MN {esc(s['mn'])})",
+             f"Curve: {_curve_word(s.get('curve'))}" + (' (ATH area, W1 + MN up: allowed)' if _curve_owner(s) else '') + " · Trend: {esc(s['direction'])} (W1 {esc(s['w1'])}, MN {esc(s['mn'])})",
              'Rules: ' + esc(_rules_short(s))]
     if kind == 'WATCH':
         lines.append('Note: ' + esc('new zone, price still far' if s.get('watch') == 'new' else 'tested: needs a lower-TF confirmation'))

@@ -34,7 +34,7 @@ BLOCK_ORDER = ['curve', 'HTF align', 'no HTF supply', 'not sideways', 'strong', 
 BLOCK_LABEL = {'curve': 'high on curve', 'HTF align': 'direction not long', 'no HTF supply': 'monthly supply on top',
                'not sideways': 'sideways market', 'strong': 'weak zone type', 'fresh': 'zone already tested',
                'clean': 'overlap / flip zone', 'not used': 'zone already did its job', 'no 3rd CP': '3rd CP in a row',
-               'room': 'room < 2x the stop or no target', 'earnings': 'earnings within 10 days',
+               'room': 'room < 2x the stop (supply or 250% projection)', 'earnings': 'earnings within 10 days',
                'near entry': 'price not near the entry'}
 
 

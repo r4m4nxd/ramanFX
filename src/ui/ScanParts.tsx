@@ -193,7 +193,7 @@ export function PzChips({ s }: { s: { pz1?: number | null; pz2?: number | null; 
   return (
     <div className="flex flex-wrap gap-1.5" aria-label="Profit zones">
       {items.map(x => (
-        <span key={x.k} className="h-6 px-2 rounded-md border border-profit/30 bg-profit/10 text-profit text-[11px] font-semibold inline-flex items-center gap-1 num" title={x.k === 'pz3' ? 'PZ3 = the Raja target, 0.5% before the next supply' : x.k === 'pz1' ? 'PZ1: the higher of fair value near edge and 2R, below PZ3 (Raja: close one half here, hold the other)' : 'PZ2: the higher of fair value far edge and 3R, below PZ3'}>
+        <span key={x.k} className="h-6 px-2 rounded-md border border-profit/30 bg-profit/10 text-profit text-[11px] font-semibold inline-flex items-center gap-1 num" title={x.k === 'pz3' ? 'PZ3 = the Raja target, 0.5% before the next supply (none above: the 250% projection, L5)' : x.k === 'pz1' ? 'PZ1: the higher of fair value near edge and 2R, below PZ3 (Raja: close one half here, hold the other)' : 'PZ2: the higher of fair value far edge and 3R, below PZ3'}>
           {x.k.toUpperCase()} {px(x.v)}{x.r != null && <span className="font-medium opacity-80">· {num(x.r, 1)}R</span>}
         </span>
       ))}

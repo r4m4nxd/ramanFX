@@ -168,12 +168,42 @@ class SidewaysCurveDirectionTest(unittest.TestCase):
         self.assertEqual((d.dir, d.q), (1, 1))                               # ETF against: reduced
         d = Z.dir_combine(up('D1'), self._row('W1', Z.DST_TURN, -1), up('MN'), mid)
         self.assertEqual((d.dir, d.realign), (0, True))                      # ITF turning against: wait to realign
-        d = Z.dir_combine(up('D1'), up('W1'), up('MN'), Z.Curve(ok=True, value=80))
+        d = Z.dir_combine(up('D1'), up('W1'), up('MN'), Z.Curve(ok=True, raja=True, value=80))
         self.assertEqual((d.dir, d.blocked, d.q), (-1, 1, 1))                # high curve: sells only, buys blocked
+        d = Z.dir_combine(up('D1'), up('W1'), up('MN'), Z.Curve(ok=True, value=95))
+        self.assertEqual((d.dir, d.blocked, d.q), (1, 0, 2))                 # owner: no MN supply (ATH) + W1 / MN up: no sell vote
+        d = Z.dir_combine(up('D1'), self._row('W1', Z.DST_TURN, 1), up('MN'), Z.Curve(ok=True, value=95))
+        self.assertEqual((d.dir <= 0, d.blocked), (True, 1))                 # W1 only TURNING up: the fallback curve still blocks
         d = Z.dir_combine(up('D1'), up('W1'), self._row('MN', Z.DST_TREND, -1), Z.Curve(ok=True, value=10))
         self.assertEqual((d.side, d.q), (1, 1))                              # low curve gives buys only, HTF against: reduced
         d = Z.dir_combine(self._row('D1', Z.DST_TREND, 1, cp=3, cp_dir=1), up('W1'), up('MN'), mid)
         self.assertEqual(d.q, 1)                                             # 3rd CP in a row: one step down
+
+
+    def test_trend_up_states(self):
+        self.assertTrue(Z.trend_up(self._row('W1', Z.DST_TREND, 1)))
+        self.assertTrue(Z.trend_up(self._row('W1', Z.DST_CHG, 1)))
+        for st, side in ((Z.DST_TURN, 1), (Z.DST_PULL, 1), (Z.DST_RANGE, 0), (Z.DST_TREND, -1), (Z.DST_CHG, -1)):
+            self.assertFalse(Z.trend_up(self._row('W1', st, side)), (st, side))
+        up = self._row('W1', Z.DST_TREND, 1)
+        self.assertTrue(Z.ath_curve_ok(Z.Curve(ok=True, value=99), up, up))
+        self.assertFalse(Z.ath_curve_ok(Z.Curve(ok=True, raja=True, value=99), up, up))   # measurable curve: unchanged
+
+
+class ProjectionTest(unittest.TestCase):
+    def test_250_projection_on_the_correction(self):
+        # up to a high of 120, correction down to a demand base around 100, departure up (oldest first)
+        cl = path([90, 120, 101]) + [100.5, 100.2, 100.4, 106, 108, 110]
+        S = Z.Series(bars_from_closes(cl, wick=0.3))
+        # a synthetic demand whose base ends at shift 7: the older bars are the correction down from the 120 high
+        z = Z.Zone(tf='D1', dir=1, prox=100.7, dist=99.9, leg_bar=4, base_n=3, sa_bar=3, leg_ratio=3, cont=False, gap=0, leg2=False)
+        self.assertEqual(z.base_end, 7)
+        tgt, hh = Z.projection(S, z)
+        self.assertAlmostEqual(hh, 120.3)                                     # the last higher high (its wick)
+        self.assertAlmostEqual(tgt, 99.9 + 2.5 * (120.3 - 99.9))              # low + 100% + 100% + 50% of the correction
+        # no correction above the zone (the bars before the base are all below the proximal): no projection
+        z2 = Z.Zone(tf='D1', dir=1, prox=200, dist=199, leg_bar=4, base_n=3, sa_bar=3, leg_ratio=3, cont=False, gap=0, leg2=False)
+        self.assertEqual(Z.projection(S, z2), (0.0, 0.0))
 
 
 if __name__ == '__main__':

@@ -96,7 +96,7 @@ function SignalCard({ s, bars, starred, onStar }: { s: ScanSignal; bars?: MiniBa
       <ContextFlags s={s} />
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-ink3 -mt-1">
         <span>Stop: distal − {s.stop_pct_of_height}% of the zone</span>
-        <span>Target: 0.5% before supply {px(s.next_supply)}</span>
+        <span>{s.target_kind === 'projection' ? 'Target: 250% projection target (no supply above, L5)' : <>Target: 0.5% before supply {px(s.next_supply)}</>}</span>
         <span>Curve {Math.round(s.curve)}%</span>
         <span>{s.direction} · W1 {s.w1} · MN {s.mn}</span>
         {s.earnings && <span>Earnings {s.earnings}</span>}

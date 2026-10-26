@@ -106,7 +106,7 @@ export default function Stock() {
               </div>
               <div className="rounded-xl border border-line/70 p-3 min-w-0">
                 <div className="label">Nearest supply</div>
-                {d.nearest_supply ? <><div className="num text-[13px] font-medium mt-0.5">{px(d.nearest_supply.proximal)}–{px(d.nearest_supply.distal)}</div><div className="text-[11.5px] text-ink3">{d.nearest_supply.tf} {d.nearest_supply.type} · {num(d.nearest_supply.dist_pct, 1)}% above</div></> : <div className="text-[13px] text-ink3 mt-0.5">none above: no known target</div>}
+                {d.nearest_supply ? <><div className="num text-[13px] font-medium mt-0.5">{px(d.nearest_supply.proximal)}–{px(d.nearest_supply.distal)}</div><div className="text-[11.5px] text-ink3">{d.nearest_supply.tf} {d.nearest_supply.type} · {num(d.nearest_supply.dist_pct, 1)}% above</div></> : <div className="text-[13px] text-ink3 mt-0.5">none above: 250% projection target (L5)</div>}
               </div>
             </div>
             <div className="flex gap-2">

@@ -34,6 +34,59 @@ class PlanTest(unittest.TestCase):
         self.assertEqual(scan.trading_days_until('2026-10-23', '2026-10-01'), -1)
 
 
+class AthCurveRuleTest(unittest.TestCase):
+    """Owner rule: no MN supply above (Raja curve not measurable) + W1 / MN trend up -> the curve does not block."""
+
+    def _an(self, w1_st, mn_st, raja=False, cv=92.0, mn_side=1):
+        S = Z.Series([Bar('2026-01-0%d' % (i + 1), 100, 101, 99, 100) for i in range(3)])
+        row = lambda tf, st, side: Z.Row(tf=tf, S=S, ok=True, st=st, side=side)
+        w1, mn = row('W1', w1_st, 1), row('MN', mn_st, mn_side)
+        curve = Z.Curve(ok=True, raja=raja, value=cv, pd=50 if raja else 0, ps=105 if raja else 0)
+        D = Z.dir_combine(row('D1', Z.DST_TREND, 1), w1, mn, curve)
+        return scan.Analysis(price=100.0, date='2026-01-03', d1=row('D1', Z.DST_TREND, 1), w1=w1, mn=mn, direction=D, curve=curve)
+
+    def _rule(self, an, short, curve_zone=92.0):
+        z = Z.Zone(tf='W1', dir=1, prox=99.0, dist=97.0, leg_bar=10, base_n=2, sa_bar=9, leg_ratio=3, cont=False, gap=1, leg2=False)
+        x = Z.DNA(code='STR', curve_zone=curve_zone, stop_buf=Z.stop_buffer(2.0, 'W1'), proj=150.0)
+        return next(r for r in scan.zone_rules(an, z, x, None) if r.short == short)
+
+    def test_ath_trend_up_passes(self):
+        an = self._an(Z.DST_TREND, Z.DST_TREND)
+        r = self._rule(an, 'curve')
+        self.assertEqual(r.status, scan.WARN)
+        self.assertIn('No MN supply overhead (ATH area)'.lower(), r.text.lower())
+        self.assertIn('owner rule', r.text)
+        self.assertEqual(self._rule(an, 'HTF align').status, scan.PASS)      # the fallback curve casts no sell vote
+        self.assertEqual(self._an(Z.DST_CHG, Z.DST_TREND).direction.dir, 1)  # CHANGED UP counts as up
+
+    def test_ath_mn_not_up_fails(self):
+        for mn_st, side in ((Z.DST_TURN, 1), (Z.DST_PULL, 1), (Z.DST_RANGE, 0), (Z.DST_TREND, -1)):
+            an = self._an(Z.DST_TREND, mn_st, mn_side=side)
+            r = self._rule(an, 'curve')
+            self.assertEqual(r.status, scan.FAIL, mn_st)
+            self.assertIn('upper half, no buys', r.text)
+
+    def test_measurable_curve_unchanged(self):
+        an = self._an(Z.DST_TREND, Z.DST_TREND, raja=True, cv=80)
+        self.assertEqual(self._rule(an, 'curve', 80).status, scan.FAIL)
+        self.assertNotEqual(an.direction.dir, 1)
+        self.assertEqual(self._rule(an, 'curve', 30).status, scan.WARN)
+        self.assertEqual(self._rule(an, 'curve', 20).status, scan.PASS)
+
+    def test_projection_target_and_room(self):
+        z = Z.Zone(tf='W1', dir=1, prox=100.0, dist=98.0, leg_bar=10, base_n=2, sa_bar=9, leg_ratio=3, cont=False, gap=1, leg2=False)
+        x = Z.DNA(has_opp=False, stop_buf=Z.stop_buffer(2.0, 'W1'), proj=98.0 + 2.5 * (110.0 - 98.0))
+        p = scan.plan(z, x)
+        self.assertEqual((p['target'], p['target_kind'], p['next_supply']), (128.0, 'projection', None))
+        self.assertAlmostEqual(p['rr'], round(28.0 / 2.1, 2))
+        r = self._rule(self._an(Z.DST_TREND, Z.DST_TREND), 'room')
+        self.assertIn('250% projection target', r.text)
+        self.assertIn('(no supply above, L5)', r.text)
+        # a supply above still wins over the projection
+        x2 = Z.DNA(has_opp=True, opp=120.0, stop_buf=x.stop_buf, proj=128.0)
+        self.assertEqual(scan.plan(z, x2)['target_kind'], 'supply')
+
+
 class RulesTest(unittest.TestCase):
     def test_every_buy_passes_every_rule(self):
         res = selftest.run_fixture()

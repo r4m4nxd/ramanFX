@@ -192,10 +192,10 @@ supply above; without that pair the 100-bar MN range (v1). ≤ 25% low curve (bu
 | Fresh: first touch, not removed | L2 · L52 |
 | Zone type ARR / WOW / STR (D1, W1 or MN; nothing below D1) | L1 · L51 |
 | Direction LONG (FULL or REDUCED) from D1 → W1 → MN | L7 · L8 · L3 |
-| Curve below 50% (≤ 25% best; 25-50% flagged) | L4 |
+| Curve below 50% (≤ 25% best; 25-50% flagged). Owner rule: no MN strong supply above (ATH area, Raja curve not measurable, 100-bar MN range fallback) **and** W1 + MN both TREND UP or CHANGED UP (`zones.trend_up`; TURNING / PULLBACK / RANGE do not count) → allowed (flagged), and the fallback curve casts no sell vote in the direction | L4 · owner |
 | Not inside / next to a monthly supply, price not inside one | L50 · L52 (RjA_OppHtfVeto) |
 | Room to the next supply ≥ 2x the stop (≥ 3x good, 2-3x flagged) | L7 · L53 |
-| A known target (a supply above) | L101 ("never without a WOW target") |
+| A known target: a supply above, else Raja's 250% projection (correction = last higher high before the base down to the zone's distal; target = distal + 2.5x that; only while the run-out has not reached it) | L101 · L5 (Feb 18: "100%, another 100%, then half") |
 | Not sideways on the zone TF or MN | L8 · L101 (RjB_Sideways, InpRjBChopTF=1) |
 | Not the 3rd CP in a row | Raja lens · Kevin L8 · L13 |
 | Has not already done its job | L5 · Feb 18 (RjA_Lens8) |
@@ -205,7 +205,7 @@ supply above; without that pair the 100-bar MN range (v1). ≤ 25% low curve (bu
 
 **Plan**: entry = proximal (limit); **stop = distal − 10% of the zone height on D1, 5% on W1, 3% on MN** (the owner's rule,
 ZV 2.10, min 0.03); **target = 0.5% before the next supply's proximal** (the nearest of the zone TF's live supplies
-and the fresh W1 / MN supplies); R:R from those. Score = Raja lens score (`LensRun`): type 4/3 + fresh 2 + curve 2 +
+and the fresh W1 / MN supplies; no supply above: the 250% projection, `target_kind: 'projection'`); R:R from those. Score = Raja lens score (`LensRun`): type 4/3 + fresh 2 + curve 2 +
 room 2, max 10.
 
 **WATCH**: strong fresh zones made in the last 5 sessions that pass everything but the approach; tested zones

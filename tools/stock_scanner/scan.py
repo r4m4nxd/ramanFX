@@ -7,7 +7,8 @@
     python tools/stock_scanner/scan.py --preview-telegram   # the Telegram messages of the published JSON, not sent
 
 BUY   price is approaching a FRESH demand zone (D1, W1 or MN; nothing below D1) of type ARR / WOW / STR, direction up (D1 -> W1 -> MN),
-      demand below 50% of the curve, no HTF supply on top of it, room >= 2x the stop (3x = good), a known target,
+      demand below 50% of the curve (owner: no MN supply overhead + W1 / MN trend up = allowed), no HTF supply on top
+      of it, room >= 2x the stop (3x = good) to the next supply (none above: the 250% projection, L5),
       not sideways, no 3rd CP, no earnings in the next 10 trading days (when the date is known).
 WATCH new strong zones of the last 5 sessions with price still far, and tested zones (2nd / 3rd touch) that need a
       confirmation one timeframe lower (MN -> W1, W1 -> D1; a D1 zone: a D1 close back above the proximal).
@@ -176,8 +177,11 @@ def plan(z: Z.Zone, x: Z.DNA) -> Dict:
     nxt = [(v, dd) for v, dd in ((x.opp, x.opp_dist) if x.has_opp else (0, 0), (x.opp_htf, x.opp_htf_dist) if x.has_opp_htf else (0, 0)) if v > entry]
     supply, supply_d = min(nxt) if nxt else (None, None)
     target = supply * (1 - TP_OFFSET) if supply else None
+    kind = 'supply' if target else None
+    if target is None and x.proj > entry:             # no supply above: Raja's 250% projection (L5, Feb 18)
+        target, kind = x.proj, 'projection'
     rr = (target - entry) / (entry - stop) if target and entry > stop else None
-    return {'entry': round(entry, 2), 'stop': round(stop, 2), 'target': round(target, 2) if target else None,
+    return {'entry': round(entry, 2), 'stop': round(stop, 2), 'target': round(target, 2) if target else None, 'target_kind': kind,
             'rr': round(rr, 2) if rr is not None else None, 'next_supply': round(supply, 2) if supply else None,
             'supply_distal': round(supply_d, 2) if supply_d else None,
             'stop_pct_of_height': RAJA['sl_pct'].get(z.tf, 5.0)}
@@ -202,8 +206,14 @@ def zone_rules(an: Analysis, z: Z.Zone, x: Z.DNA, earnings: Optional[str]) -> Li
                   + (f"; {'; '.join(D.notes)}" if D.notes else ''), 'L7 · L8 · L3'))
     cz = x.curve_zone
     ctxt = f'Curve {cz:.0f}% ' + ('(MN strong zones, proximal to proximal)' if an.curve.raja else '(no MN strong pair: 100-bar MN range)')
-    R.append(Rule(PASS if cz <= RAJA['curve_low'] else (WARN if cz < 50 else FAIL),
-                  ctxt + (': low curve, buyers only' if cz <= RAJA['curve_low'] else ': below 50%, confirmation side' if cz < 50 else ': upper half, no buys'), 'L4'))
+    if cz >= 50 and Z.ath_curve_ok(an.curve, an.w1, an.mn):
+        # owner rule: no MN supply overhead (all-time-high area), the Raja curve cannot be measured; W1 + MN trend up
+        R.append(Rule(WARN, f'Curve {cz:.0f}% (100-bar MN range): no MN supply overhead (ATH area); W1 {an.w1.state_name} + '
+                      f'MN {an.mn.state_name} trend up -> allowed (owner rule)', 'L4 · owner'))
+    else:
+        R.append(Rule(PASS if cz <= RAJA['curve_low'] else (WARN if cz < 50 else FAIL),
+                      ctxt + (': low curve, buyers only' if cz <= RAJA['curve_low'] else ': below 50%, confirmation side' if cz < 50
+                              else ': upper half, no buys' + ('' if an.curve.raja else ' (W1 + MN not both trending up)')), 'L4'))
     in_supply = D.lock < 0
     R.append(Rule(FAIL if (x.next_opp_htf or in_supply) else PASS,
                   'Inside / next to a monthly supply: it gets removed, no trade' if x.next_opp_htf
@@ -211,11 +221,15 @@ def zone_rules(an: Analysis, z: Z.Zone, x: Z.DNA, earnings: Optional[str]) -> Li
                   else 'No monthly supply on top of the zone', 'L50 · L52'))
     p = plan(z, x)
     if p['target'] is None:
-        R.append(Rule(FAIL, 'No supply zone above: no known target (never trade without a WOW target)', 'L101'))
+        R.append(Rule(FAIL, 'No supply zone above and no 250% projection (no correction to measure, or the run-out already '
+                      'reached it): no known target', 'L101 · L5'))
     else:
         rr = p['rr'] or 0
+        to = (f"the next supply {p['next_supply']:.2f}" if p['target_kind'] == 'supply'
+              else f"the 250% projection target {p['target']:.2f} (no supply above, L5)")
         R.append(Rule(PASS if rr >= 3 else (WARN if rr >= 2 else FAIL),
-                      f"Room {rr:.1f}x the stop to the next supply {p['next_supply']:.2f}" + (' (3x: good)' if rr >= 3 else ' (2x minimum)' if rr >= 2 else ' (< 2x: skip)'), 'L7 · L53'))
+                      f"Room {rr:.1f}x the stop to {to}" + (' (3x: good)' if rr >= 3 else ' (2x minimum)' if rr >= 2 else ' (< 2x: skip)'),
+                      'L7 · L53' + (' · L5' if p['target_kind'] == 'projection' else '')))
     sw = an.sideways.get(z.tf, False) or an.sideways.get('MN', False)
     R.append(Rule(FAIL if sw else PASS, f"Sideways on {z.tf if an.sideways.get(z.tf) else 'MN'}: never trade a meshing market" if sw
                   else f'Not sideways on {z.tf} or MN', 'L8 · L101'))

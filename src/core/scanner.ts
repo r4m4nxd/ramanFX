@@ -37,6 +37,8 @@ export interface ScanSignal {
   rr: number | null;
   next_supply: number | null;
   supply_distal?: number | null;
+  /** 'supply' = 0.5% before the next supply; 'projection' = Raja's 250% projection (no supply above, L5). */
+  target_kind?: 'supply' | 'projection' | null;
   stop_pct_of_height: number;
   price: number;
   to_entry_pct: number;
@@ -287,7 +289,7 @@ export interface DetailZone { tf: ZoneTF; side: 'demand' | 'supply'; proximal: n
 export interface NearZone { tf: string; proximal: number; distal: number; type: string; dist_pct: number }
 export interface DetailCheck {
   zone: NearZone; kind: 'BUY' | 'no trade'; score: number | null; entry: number; stop: number; target: number | null; rr: number | null;
-  next_supply: number | null; supply_distal?: number | null; stop_pct_of_height: number; rules: ScanRule[];
+  next_supply: number | null; supply_distal?: number | null; target_kind?: 'supply' | 'projection' | null; stop_pct_of_height: number; rules: ScanRule[];
   pz1?: number | null; pz2?: number | null; pz3?: number | null; rr_pz1?: number | null; rr_pz2?: number | null; rr_pz3?: number | null;
   seiden_score?: number; seiden_parts?: Record<string, number>; fv_dist_atr?: number | null; fv_inside?: boolean; index_state?: GaugeState | null; index_aligned?: boolean;
 }
@@ -396,7 +398,7 @@ export const STRONG_TYPES = new Set(['ARR', 'WOW', 'STR']);
 export const BLOCK_LABEL: Record<string, string> = {
   curve: 'high on curve', 'HTF align': 'direction not long', 'no HTF supply': 'monthly supply on top', 'not sideways': 'sideways market',
   strong: 'weak zone type', fresh: 'zone already tested', clean: 'overlap / flip zone', 'not used': 'zone already did its job',
-  'no 3rd CP': '3rd CP in a row', room: 'room < 2x the stop or no target', earnings: 'earnings within 10 days', 'near entry': 'price not near the entry',
+  'no 3rd CP': '3rd CP in a row', room: 'room < 2x the stop (supply or 250% projection)', earnings: 'earnings within 10 days', 'near entry': 'price not near the entry',
 };
 
 /** The row's bucket: the scan's own (mb, newer files), else from the gauge state and the distances (older files have

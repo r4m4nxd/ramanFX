@@ -15,7 +15,7 @@ All functions are pure: they take a Series (and lists built from it) and return 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List, Optional, Sequence
+from typing import List, Optional, Sequence, Tuple
 
 # ---- settings: ZV_Template_Raja.set (only the inputs the ported functions read) -------------------------------
 RAJA = {
@@ -692,6 +692,19 @@ def trend_side(r: Optional[Row]) -> int:
     return r.side if r.st in (DST_TREND, DST_CHG, DST_TURN) else 0
 
 
+def trend_up(r: Optional[Row]) -> bool:
+    """Strict 'trend up' of one row for the owner's ATH curve rule: TREND UP (swings up and the up trendline in force)
+    or CHANGED UP (down line crossed up + 2 opposite zones removed: Raja's 'direction clear', L3 / Feb 18). TURNING UP
+    (crossed, not yet confirmed), PULLBACK, RANGE and n/a do not count."""
+    return r is not None and r.ok and r.side > 0 and r.st in (DST_TREND, DST_CHG)
+
+
+def ath_curve_ok(curve: 'Curve', w1: Optional[Row], mn: Optional[Row]) -> bool:
+    """Owner rule: no MN strong supply above (near all-time highs), so the Raja curve cannot be measured (fallback
+    100-bar MN range curve), and W1 + MN both trend up -> the curve does not block a buy."""
+    return curve.ok and not curve.raja and trend_up(w1) and trend_up(mn)
+
+
 def run_end(z: Zone) -> int:
     return z.tested_bar if z.tested else (z.removed_bar if z.removed else 1)
 
@@ -783,6 +796,9 @@ def dir_combine(e: Row, i: Row, h: Row, curve: Curve, p=RAJA) -> Direction:
         D.notes.append(f"inside a fresh {h.tf} {'demand' if h.in_z > 0 else 'supply'}")
     if curve.ok:
         cv = -1 if curve.value >= p['curve_high'] else (1 if curve.value <= p['curve_low'] else 0)
+        if cv < 0 and ath_curve_ok(curve, i, h):
+            cv = 0                                  # owner rule: no MN supply overhead + W1 / MN up, no sell vote
+            D.notes.append('no MN supply overhead (ATH area), W1 + MN up: curve not used')
         if cv != 0:
             D.blocked = -cv
             if side == 0:
@@ -844,6 +860,32 @@ class DNA:
     risk: float = 0.0
     tp_off: float = 0.0
     gap_away: bool = False
+    proj: float = 0.0          # 250% projection target (L5 / Feb 18), 0 = none
+    proj_hh: float = 0.0       # the correction's start (last higher high) the projection is measured on
+
+
+PROJ_X = 2.5          # Raja L5 (Feb 18): impulse = 100% + 100% + 50% of the correction
+PROJ_LOOKBACK = 100   # bars searched before the base for the correction's start
+
+
+def projection(S: Series, z: 'Zone', lookback: int = PROJ_LOOKBACK) -> Tuple[float, float]:
+    """(target, correction start) of Raja's 250% projection for zone z (L5, Feb 18 private session 02:05-03:50:
+    'measure the correction from the last higher high to its low; the market goes 100% of it, another 100%, then
+    half (= 250%). When there is no supply above to target, use this projection.').
+    Demand: the correction low = the zone's distal (lowest wick of base + departure); its start = the highest high of
+    the bars before the base, walking back until a low under that distal (where the earlier up move began) or
+    `lookback` bars. Target = low + 2.5 x (high - low). Supply mirrored. (0, 0) when there is no correction."""
+    d, lo = z.dir, z.dist
+    best = 0.0
+    for j in range(z.base_end + 1, min(S.n, z.base_end + 1 + lookback)):
+        if d * (S.L[j] if d > 0 else S.H[j]) < d * lo:
+            break
+        v = S.H[j] if d > 0 else S.L[j]
+        if best == 0.0 or d * (v - best) > 0:
+            best = v
+    if best == 0.0 or d * (best - z.prox) <= 0:
+        return 0.0, 0.0
+    return lo + d * PROJ_X * abs(best - lo), best
 
 
 def stop_buffer(h: float, tf: str, p=RAJA) -> float:
@@ -977,6 +1019,10 @@ def dna(S: Series, zs: List[Zone], i: int, tl: TLState, higher: List[Row], htf_o
     x.code = ('ARR' if x.arrival else 'WOW' if x.wow else 'STR' if x.strong else 'OVL' if x.overlap
               else 'FLP' if x.flip else 'TST' if x.n_tests >= 1 else 'WK')
     x.tp_off = tp_off_frac
+    # 250% projection (L5): only a target while the run-out has not reached it yet (after ~2.5x price corrects again)
+    pj, hh = projection(S, z)
+    if pj and d * (x.runout_px - pj) < 0:
+        x.proj, x.proj_hh = pj, hh
     # F06 gap away (DnaCompute): the departure opened beyond the last base close by >= 0.10 ATR, or a window between
     # the last base candle and the stay-away candle
     a = S.atr(L) or S.atr(1)
