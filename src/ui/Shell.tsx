@@ -394,7 +394,7 @@ export function Shell({ children }: { children: ReactNode }) {
               while a lazy page was still loading, leaving the new page invisible. */}
           <motion.div key={loc.pathname} data-page className={pageEnter}>
               {!deep && <motion.div className="lg:hidden land:hidden large-title mb-3 -mt-1 origin-left" aria-hidden="true" style={reduceMotion ? { opacity: bigOpacity } : { opacity: bigOpacity, filter: bigFilter, scale: bigScale }}>{title}</motion.div>}
-              {!hasTrades && !['/playbook', '/calculator', '/settings', '/risk', '/notebook', '/strategies', '/plan', '/guru', '/guide', '/news', '/chart', '/design', '/learn', '/ask', '/practice', '/bot-guide', '/checklist', '/tools', '/zones', '/scanner'].some(p => loc.pathname.startsWith(p)) ? <Welcome onImport={() => setImportOpen(true)} /> : children}
+              {!hasTrades && !['/playbook', '/calculator', '/settings', '/risk', '/notebook', '/strategies', '/plan', '/guru', '/guide', '/news', '/chart', '/design', '/learn', '/ask', '/practice', '/bot-guide', '/checklist', '/tools', '/zones', '/scanner', '/fx'].some(p => loc.pathname.startsWith(p)) ? <Welcome onImport={() => setImportOpen(true)} /> : children}
           </motion.div>
         </main>
       </div>
