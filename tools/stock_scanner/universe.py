@@ -5,10 +5,13 @@ Indexes (each can be switched off with env SCANNER_UNIVERSES, e.g. "SPX,NDX,DJI"
   NDX  Nasdaq-100    Wikipedia List_of_NASDAQ-100_companies (the table moved off the "Nasdaq-100" article in July
                      2026; ICB industry mapped to the GICS sector names)
   DJI  Dow Jones 30  Wikipedia List_of_Dow_Jones_Industrial_Average_companies
-  RUT  Russell 2000  iShares IWM holdings CSV (equity rows, "Sector" column); fallback the committed snapshot
-                     russell2000_snapshot.csv (its first line records the snapshot date)
+  RUT  Russell 2000  iShares IWM holdings CSV (equity rows, "Sector" column), a few plain public URL variants; on
+                     CI runners iShares answers with an HTML page, then the committed snapshot
+                     russell2000_snapshot.csv (our format with a "# ... <date>" first line, or the raw IWM holdings
+                     CSV downloaded from the iShares page in a browser); neither: RUT stays empty (logged)
 A ticker in several indexes is one row with e.g. indexes "SPX,NDX,DJI". CIKs missing from Wikipedia come from SEC
-company_tickers.json (generic project User-Agent, see fundamentals.SEC_UA); missing stays empty (= fundamentals n/a).
+company_tickers.json, only when env SEC_UA (a contact User-Agent; SEC answers 403 without one) is set; otherwise that
+lookup is skipped and those CIKs stay empty (= fundamentals n/a; companyfacts itself works without SEC_UA).
 
     python tools/stock_scanner/universe.py            # refresh if older than 7 days
     python tools/stock_scanner/universe.py --force
@@ -35,8 +38,13 @@ SOURCES = {
     'SPX': WIKI + 'List_of_S%26P_500_companies',
     'NDX': WIKI + 'List_of_NASDAQ-100_companies',
     'DJI': WIKI + 'List_of_Dow_Jones_Industrial_Average_companies',
-    'RUT': 'https://www.ishares.com/us/products/239710/ishares-russell-2000-etf/1467271812596.ajax?fileType=csv&fileName=IWM_holdings&dataType=fund',
 }
+IWM_PAGE = 'https://www.ishares.com/us/products/239710/ishares-russell-2000-etf'
+RUT_URLS = [                     # plain public GETs only (no cookies, no JS); tried in order
+    IWM_PAGE + '/1467271812596.ajax?fileType=csv&fileName=IWM_holdings&dataType=fund',
+    IWM_PAGE + '/1467271812596.ajax?fileType=csv&fileName=IWM_holdings&dataType=fund&asOfDate={asof}',
+    IWM_PAGE + '/1521942788811.ajax?fileType=csv&fileName=IWM_holdings&dataType=fund',
+]
 INDEXES = ['SPX', 'NDX', 'DJI', 'RUT']
 INDEX_NAME = {'SPX': 'S&P 500', 'NDX': 'Nasdaq-100', 'DJI': 'Dow 30', 'RUT': 'Russell 2000'}
 MIN_ROWS = {'SPX': 400, 'NDX': 90, 'DJI': 28, 'RUT': 1500}
@@ -154,6 +162,32 @@ def parse_wiki(page: str, index: str) -> List[Dict[str, str]]:
     return out
 
 
+def looks_ishares(b: bytes) -> bool:
+    """The holdings CSV, not the HTML page iShares serves to some clients (e.g. CI runners)."""
+    head = b[:20000].lstrip(b'\xef\xbb\xbf \r\n\t')
+    return head[:1] != b'<' and (head.startswith(b'Ticker,') or head.startswith(b'"Ticker"')
+                                 or b'\nTicker,' in head or b'\n"Ticker"' in head)
+
+
+def _last_business_day(d: Optional[dt.date] = None) -> dt.date:
+    d = (d or dt.date.today()) - dt.timedelta(days=1)
+    while d.weekday() >= 5:
+        d -= dt.timedelta(days=1)
+    return d
+
+
+def fetch_ishares() -> List[Dict[str, str]]:
+    """Russell 2000 members from the first iShares URL variant that returns the CSV; raises when none does."""
+    errs = []
+    for u in RUT_URLS:
+        url = u.format(asof=_last_business_day().strftime('%Y%m%d'))
+        try:
+            return parse_ishares(http_get(url, ua=UA, accept='text/csv', expect=looks_ishares).decode('utf-8-sig', 'replace'))
+        except Exception as e:  # noqa: BLE001
+            errs.append(type(e).__name__)
+    raise RuntimeError(f'no CSV from {len(RUT_URLS)} iShares URL variants: {", ".join(errs)}')
+
+
 def parse_ishares(text: str) -> List[Dict[str, str]]:
     """iShares holdings CSV: some preamble lines, then a header with Ticker,Name,Sector,Asset Class,...; equity rows only."""
     lines = text.splitlines()
@@ -174,13 +208,17 @@ def parse_ishares(text: str) -> List[Dict[str, str]]:
 
 
 def load_rut_snapshot() -> List[Dict[str, str]]:
+    """The committed snapshot: our format (first line '# ... <date>', then FIELDS) or a raw IWM holdings CSV."""
     if not os.path.exists(RUT_SNAPSHOT):
         return []
-    with open(RUT_SNAPSHOT, newline='') as f:
-        first = f.readline()
-        if not first.startswith('#'):
-            f.seek(0)
-        return list(csv.DictReader(f))
+    with open(RUT_SNAPSHOT, newline='', encoding='utf-8-sig') as f:
+        text = f.read()
+    if looks_ishares(text.encode('utf-8')):
+        return parse_ishares(text)
+    lines = text.splitlines(True)
+    if lines and lines[0].startswith('#'):
+        lines = lines[1:]
+    return list(csv.DictReader(io.StringIO(''.join(lines))))
 
 
 def save_rut_snapshot(rows: List[Dict[str, str]]) -> None:
@@ -194,9 +232,19 @@ def save_rut_snapshot(rows: List[Dict[str, str]]) -> None:
 def snapshot_date() -> str:
     if not os.path.exists(RUT_SNAPSHOT):
         return ''
-    with open(RUT_SNAPSHOT) as f:
-        first = f.readline().strip()
-    return first.rsplit(' ', 1)[-1] if first.startswith('#') else ''
+    with open(RUT_SNAPSHOT, encoding='utf-8-sig') as f:
+        head = [f.readline().strip() for _ in range(12)]
+    if head[0].startswith('#'):
+        return head[0].rsplit(' ', 1)[-1]
+    for line in head:                                   # raw iShares file: 'Fund Holdings as of,"Oct 23, 2026"'
+        if line.lower().startswith('fund holdings as of'):
+            raw = line.split(',', 1)[-1].strip().strip('"')
+            for fmt in ('%b %d, %Y', '%B %d, %Y', '%m/%d/%Y'):
+                try:
+                    return dt.datetime.strptime(raw, fmt).date().isoformat()
+                except ValueError:
+                    continue
+    return ''
 
 
 def merge(lists: List[List[Dict[str, str]]]) -> List[Dict[str, str]]:
@@ -225,10 +273,13 @@ def fill_ciks(rows: List[Dict[str, str]], raw: Optional[bytes] = None) -> int:
     missing = [r for r in rows if not r.get('cik')]
     if not missing:
         return 0
+    if raw is None and not os.environ.get('SEC_UA', '').strip():
+        print(f'SEC company_tickers.json skipped: set env SEC_UA ("<project> <contact>") to fill {len(missing)} '
+              'missing CIKs (fundamentals n/a for them until then)', file=sys.stderr)
+        return 0
     try:
         if raw is None:
-            import fundamentals as F
-            raw = http_get(SEC_TICKERS, ua=F.SEC_UA, accept='application/json')
+            raw = http_get(SEC_TICKERS, ua=os.environ['SEC_UA'].strip(), accept='application/json')
         js = json.loads(raw)
         m = {str(v['ticker']).upper(): str(v['cik_str']).zfill(10) for v in js.values()}
     except Exception as e:  # noqa: BLE001
@@ -266,11 +317,18 @@ def refresh(force: bool = False, max_age_days: float = 7, log=print) -> List[Dic
         try:
             if idx == 'RUT':
                 try:
-                    rows = parse_ishares(http_get(SOURCES[idx], ua=UA, accept='text/csv').decode('utf-8-sig', 'replace'))
+                    rows = fetch_ishares()
                     save_rut_snapshot(rows)
                 except Exception as e:  # noqa: BLE001
                     rows = load_rut_snapshot()
-                    log(f'RUT: iShares unavailable ({type(e).__name__}); snapshot {snapshot_date() or "missing"} ({len(rows)} rows)')
+                    if rows:
+                        log(f'RUT: iShares unavailable ({e}); using russell2000_snapshot.csv of '
+                            f'{snapshot_date() or "unknown date"} ({len(rows)} rows)')
+                    else:
+                        rows = old.get(idx, [])
+                        log(f'RUT: iShares unavailable ({e}) and no russell2000_snapshot.csv: '
+                            + (f'kept the previous {len(rows)} rows' if rows else 'RUT is EMPTY')
+                            + ' (commit a snapshot by hand, see README "Russell 2000 snapshot")')
             else:
                 rows = parse_wiki(http_get(SOURCES[idx], ua=UA, accept='text/html').decode('utf-8', 'replace'), idx)
         except Exception as e:  # noqa: BLE001

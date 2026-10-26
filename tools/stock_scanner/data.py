@@ -1,4 +1,6 @@
-"""Daily OHLCV (~10 years) per ticker: Yahoo chart API (split + dividend adjusted via adjclose), Stooq CSV fallback.
+"""Daily OHLCV (~10 years) per ticker. Primary source: Alpaca Market Data (official API, free account; keys from env
+ALPACA_KEY_ID / ALPACA_SECRET_KEY; multi-symbol historical bars, split + dividend adjusted). Fallbacks (they may
+work locally but not from CI runners): Yahoo chart API (adjusted via adjclose), then Stooq CSV.
 Weekly / monthly bars are built from the daily bars. Local cache under tools/stock_scanner/.cache (gitignored).
 
 Network etiquette: one generic User-Agent, a pause between requests, retries with back-off. Nothing personal is ever
@@ -24,7 +26,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 CACHE = os.environ.get('SCANNER_CACHE', os.path.join(HERE, '.cache'))
 UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
 PAUSE = float(os.environ.get('SCANNER_PAUSE', '0.15'))   # seconds between two requests to the same host (all threads)
-HOST_PAUSE = {'data.sec.gov': 0.2, 'www.sec.gov': 0.2}  # SEC allows 10 req/s; we stay near 5/s
+HOST_PAUSE = {'data.sec.gov': 0.2, 'www.sec.gov': 0.2,   # SEC allows 10 req/s; we stay near 5/s
+              'data.alpaca.markets': 0.31, 'paper-api.alpaca.markets': 0.31}  # Alpaca: 200 req/min per account
 TIMEOUT = min(15.0, float(os.environ.get('SCANNER_TIMEOUT', '15')))           # per request, seconds (never above 15)
 BREAKER_N = int(os.environ.get('SCANNER_BREAKER_N', '5'))                      # consecutive failures that open a host
 BREAKER_COOLDOWN = float(os.environ.get('SCANNER_BREAKER_COOLDOWN', '300'))    # seconds an open host is skipped
@@ -110,6 +113,7 @@ def reset_net_state() -> None:
         _host_open_until.clear()
         _host_next.clear()
     _deadline = None
+    reset_alpaca_state()
 
 
 def _wait_turn(url: str) -> None:
@@ -133,11 +137,25 @@ def looks_json(b: bytes) -> bool: return b.lstrip()[:1] in (b'{', b'[')
 def looks_stooq(b: bytes) -> bool: return b[:4].lower() == b'date' or b.strip()[:7].lower() == b'no data'
 
 
+def _retry_wait(e: urllib.error.HTTPError, k: int) -> float:
+    """Seconds to wait before retrying a 429 / 5xx: Retry-After, else X-RateLimit-Reset (epoch seconds, Alpaca), else
+    exponential back-off."""
+    h = e.headers if e.headers else {}
+    ra = h.get('Retry-After')
+    if ra and ra.strip().isdigit():
+        return int(ra)
+    rs = h.get('X-RateLimit-Reset') or h.get('X-Ratelimit-Reset')
+    if rs and rs.strip().isdigit() and int(rs) > 1e9:
+        return max(1.0, int(rs) - time.time())
+    return BACKOFF * 2 ** k
+
+
 def http_get(url: str, ua: str = UA, retries: int = 2, timeout: Optional[float] = None, accept: str = '*/*',
-             expect=None) -> bytes:
+             expect=None, headers: Optional[Dict[str, str]] = None, max_retry_after: Optional[float] = None) -> bytes:
     """GET, rate-limited per host across threads, failing fast: nothing starts once the time budget is spent or while
     the host's breaker is open; 401 / 403 are not retried; 429 / 5xx / network errors get one short retry (a
-    Retry-After above MAX_RETRY_AFTER seconds is not waited for: the call fails at once). `expect(body) -> bool` rejects wrong payloads (BadBody). Each final failure (and each
+    Retry-After above MAX_RETRY_AFTER (or `max_retry_after`) seconds is not waited for: the call fails at once).
+    `headers` are extra request headers (API keys: never logged). `expect(body) -> bool` rejects wrong payloads (BadBody). Each final failure (and each
     rejected body) counts towards the host's breaker; a good answer, or a 404, resets it."""
     timeout = min(timeout or TIMEOUT, TIMEOUT)
     err: Optional[Exception] = None
@@ -148,7 +166,8 @@ def http_get(url: str, ua: str = UA, retries: int = 2, timeout: Optional[float] 
             raise HostDown(f'{_host(url)}: circuit breaker open')
         _wait_turn(url)
         try:
-            req = urllib.request.Request(url, headers={'User-Agent': ua, 'Accept': accept, 'Accept-Encoding': 'identity'})
+            req = urllib.request.Request(url, headers={'User-Agent': ua, 'Accept': accept, 'Accept-Encoding': 'identity',
+                                                       **(headers or {})})
             with urllib.request.urlopen(req, timeout=timeout) as r:
                 body = r.read()
         except urllib.error.HTTPError as e:
@@ -159,9 +178,9 @@ def http_get(url: str, ua: str = UA, retries: int = 2, timeout: Optional[float] 
             if e.code in (401, 403):
                 report_bad(url)
                 raise
-            ra = e.headers.get('Retry-After') if e.headers else None
-            wait = int(ra) if ra and ra.isdigit() else BACKOFF * 2 ** k
-            if wait > MAX_RETRY_AFTER:      # "come back in a minute": give up on this call, let the breaker count it
+            wait = _retry_wait(e, k)
+            if wait > (MAX_RETRY_AFTER if max_retry_after is None else max_retry_after):
+                # "come back in a minute": give up on this call, let the breaker count it
                 break
             if k + 1 < retries:
                 _sleep_capped(wait)
@@ -252,6 +271,287 @@ def yahoo_url(sym: str, rng: str = '10y') -> str:
             '&includeAdjustedClose=true&events=div%2Csplit')
 
 
+# ---- Alpaca Market Data (primary) ------------------------------------------------------------------------------------
+ALPACA_BARS = 'https://data.alpaca.markets/v2/stocks/bars'
+ALPACA_ASSETS = 'https://paper-api.alpaca.markets/v2/assets?status=active&asset_class=us_equity'
+ALPACA_BATCH_COLD = int(os.environ.get('ALPACA_BATCH_COLD', '100'))     # symbols per request, full 10-year history
+ALPACA_BATCH_UPDATE = int(os.environ.get('ALPACA_BATCH_UPDATE', '200'))  # symbols per request, incremental update
+ALPACA_LIMIT = 10000                                                    # bars per page (the API maximum)
+ALPACA_MAX_WAIT = 65.0                                                  # a 429 waits at most this long (1 min window)
+ALPACA_FEED_RECHECK_DAYS = 7                                            # a remembered iex fallback re-tries sip weekly
+HISTORY_DAYS = 3660
+UPDATE_OVERLAP_DAYS = 20                                                # incremental: re-read ~3 weeks to verify
+_feed_lock = threading.Lock()
+_feed: Optional[str] = None
+
+
+def alpaca_keys() -> Optional[Tuple[str, str]]:
+    k, s = os.environ.get('ALPACA_KEY_ID', '').strip(), os.environ.get('ALPACA_SECRET_KEY', '').strip()
+    return (k, s) if k and s else None
+
+
+def _alpaca_headers() -> Dict[str, str]:
+    k = alpaca_keys()
+    return {'APCA-API-KEY-ID': k[0], 'APCA-API-SECRET-KEY': k[1]} if k else {}
+
+
+def alpaca_symbol(sym: str) -> str:
+    """Alpaca keeps the class dot (BRK.B, BF.B, MOG.A); Yahoo-style dashes are turned back into dots."""
+    return sym.strip().upper().replace('-', '.').replace('/', '.')
+
+
+def _feed_path() -> str: return os.path.join(CACHE, 'alpaca_feed.json')
+
+
+def alpaca_feed() -> str:
+    """'sip' (all US exchanges) unless an earlier call / run found the plan limited to 'iex' (remembered a week)."""
+    global _feed
+    with _feed_lock:
+        if _feed is None:
+            _feed = 'sip'
+            try:
+                with open(_feed_path()) as f:
+                    js = json.load(f)
+                if js.get('feed') == 'iex' and time.time() - float(js.get('at', 0)) < ALPACA_FEED_RECHECK_DAYS * 86400:
+                    _feed = 'iex'
+            except (OSError, ValueError):
+                pass
+        return _feed
+
+
+def _set_feed(feed: str) -> None:
+    global _feed
+    with _feed_lock:
+        _feed = feed
+    try:
+        os.makedirs(CACHE, exist_ok=True)
+        with open(_feed_path(), 'w') as f:
+            json.dump({'feed': feed, 'at': time.time()}, f)
+    except OSError:
+        pass
+
+
+def reset_alpaca_state() -> None:
+    global _feed
+    with _feed_lock:
+        _feed = None
+
+
+def alpaca_url(symbols: List[str], start: str, end: str, feed: str, page_token: str = '') -> str:
+    q = {'symbols': ','.join(symbols), 'timeframe': '1Day', 'start': start, 'end': end, 'adjustment': 'all',
+         'feed': feed, 'limit': str(ALPACA_LIMIT), 'sort': 'asc'}
+    if page_token:
+        q['page_token'] = page_token
+    return ALPACA_BARS + '?' + urllib.parse.urlencode(q, safe=',:')
+
+
+def parse_alpaca(raw: bytes) -> Tuple[Dict[str, List[Bar]], str]:
+    """({symbol: bars}, next_page_token) of one page of /v2/stocks/bars."""
+    js = json.loads(raw)
+    out: Dict[str, List[Bar]] = {}
+    for sym, rows in (js.get('bars') or {}).items():
+        for r in rows or []:
+            try:
+                o, h, l, c = float(r['o']), float(r['h']), float(r['l']), float(r['c'])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if c <= 0:
+                continue
+            out.setdefault(sym, []).append(Bar(str(r['t'])[:10], o, h, l, c, float(r.get('v') or 0)))
+    return out, js.get('next_page_token') or ''
+
+
+def _alpaca_get(url_of, log=None) -> bytes:
+    """One page; sip -> iex fallback when the plan refuses SIP (403), remembered for later calls and runs."""
+    feed = alpaca_feed()
+    try:
+        return http_get(url_of(feed), headers=_alpaca_headers(), accept='application/json', expect=looks_json,
+                        retries=4, max_retry_after=ALPACA_MAX_WAIT)
+    except urllib.error.HTTPError as e:
+        if e.code == 403 and feed == 'sip':
+            _set_feed('iex')
+            if log:
+                log('alpaca: feed=sip refused (403, plan without SIP): using feed=iex from now on')
+            return http_get(url_of('iex'), headers=_alpaca_headers(), accept='application/json', expect=looks_json,
+                            retries=4, max_retry_after=ALPACA_MAX_WAIT)
+        raise
+
+
+def alpaca_bars(symbols: List[str], start: str, end: str, log=None) -> Dict[str, List[Bar]]:
+    """Daily bars for many symbols, all pages (the limit applies to the whole multi-symbol answer), keyed by the
+    symbols as asked. A 400 / 422 (e.g. one malformed symbol) splits the batch in halves; a symbol that still fails
+    alone is left out. Symbols Alpaca does not know are simply missing from the result."""
+    back = {alpaca_symbol(s): s for s in symbols}
+    asked = sorted(back)
+    got: Dict[str, List[Bar]] = {}
+    try:
+        token = ''
+        while True:
+            raw = _alpaca_get(lambda feed, t=token: alpaca_url(asked, start, end, feed, t), log)
+            page, token = parse_alpaca(raw)
+            for k, v in page.items():
+                got.setdefault(k, []).extend(v)
+            if not token:
+                break
+    except urllib.error.HTTPError as e:
+        if e.code in (400, 422):
+            if len(symbols) == 1:
+                return {}
+            mid = len(symbols) // 2
+            return {**alpaca_bars(symbols[:mid], start, end, log), **alpaca_bars(symbols[mid:], start, end, log)}
+        if e.code in (401, 403):            # keys rejected (or no data permission at all): stop using Alpaca now
+            report_bad(ALPACA_BARS, trip=True)
+        raise
+    return {back[k]: dedupe(v) for k, v in got.items() if k in back}
+
+
+def alpaca_exchanges(max_age_days: float = 7, log=None) -> Dict[str, str]:
+    """{symbol: exchange} (NASDAQ / NYSE / ARCA / AMEX / BATS) from the trading API's asset list (paper-trading keys
+    work for it), cached a week, best effort: only used for the TradingView links and the exchange shown in the app."""
+    p = os.path.join(CACHE, 'alpaca_assets.json')
+    old: Dict[str, str] = {}
+    try:
+        with open(p) as f:
+            js = json.load(f)
+        old = js.get('ex') or {}
+        if time.time() - float(js.get('at', 0)) < max_age_days * 86400:
+            return old
+    except (OSError, ValueError):
+        pass
+    if not alpaca_keys() or host_open(ALPACA_ASSETS) or over_budget():
+        return old
+    try:
+        rows = json.loads(http_get(ALPACA_ASSETS, headers=_alpaca_headers(), accept='application/json', expect=looks_json))
+        ex = {str(r['symbol']).upper(): str(r.get('exchange') or '') for r in rows if r.get('symbol')}
+        os.makedirs(CACHE, exist_ok=True)
+        with open(p, 'w') as f:
+            json.dump({'at': time.time(), 'ex': ex}, f)
+        return ex
+    except Exception as e:  # noqa: BLE001
+        if log:
+            log(f'alpaca assets unavailable ({_why(e)}): exchange names from the cache only')
+        return old
+
+
+def _why(e: Exception) -> str:
+    if isinstance(e, urllib.error.HTTPError):
+        return f'HTTP {e.code}'
+    return f'{type(e).__name__}: {str(e)[:80]}'
+
+
+def _alpaca_end() -> str:
+    """Free plans may not query the last 15 minutes of SIP data: end 16 minutes ago (RFC 3339, UTC)."""
+    return (dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=16)).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+
+def alpaca_prefetch(symbols: List[str], max_age_h: float = 12.0, workers: int = 3, log=None) -> Dict[str, str]:
+    """Fill the cache from Alpaca for every symbol whose cache is older than max_age_h, in multi-symbol batches: a
+    stale cache gets the last ~3 weeks (the overlap must agree, else a new split / dividend changed the adjustment and
+    the full history is fetched again), a cold one the full 10 years. Returns {symbol: why} for the symbols Alpaca
+    did not serve (they go on to the per-ticker fallbacks). Honours the time budget and the breaker; without keys
+    it does nothing."""
+    from concurrent.futures import ThreadPoolExecutor
+    if not alpaca_keys():
+        return {s: 'alpaca: no keys' for s in symbols}
+    t0 = time.time()
+    end = _alpaca_end()
+    today = dt.date.today()
+    cold_start = (today - dt.timedelta(days=HISTORY_DAYS)).isoformat()
+    cached: Dict[str, Tuple[List[Bar], Dict, float]] = {}
+    upd: List[str] = []
+    cold: List[str] = []
+    for s in symbols:
+        c = load_cached(s)
+        if c and t0 - c[2] < max_age_h * 3600:
+            continue
+        if c and c[0] and (today - dt.date.fromisoformat(c[0][-1].d)).days < 300:
+            cached[s] = c
+            upd.append(s)
+        else:
+            cold.append(s)
+    miss: Dict[str, str] = {}
+    if not upd and not cold:
+        return miss
+    ex = alpaca_exchanges(log=log)
+    stats = {'updated': 0, 'full': 0}
+    lock = threading.Lock()
+
+    def meta_of(s: str, bars: List[Bar], prev: Optional[Dict]) -> Dict:
+        m = {**(prev or {}), 'source': 'alpaca', 'feed': alpaca_feed(), 'currency': 'USD', 'price': bars[-1].c}
+        m.pop('stale', None)
+        m['exchange'] = ex.get(alpaca_symbol(s)) or (prev or {}).get('exchange', '')
+        return m
+
+    def run_batches(names: List[str], size: int, fn) -> None:
+        batches = [names[i:i + size] for i in range(0, len(names), max(1, size))]
+        if not batches:
+            return
+        with ThreadPoolExecutor(max_workers=max(1, min(workers, len(batches)))) as pool:
+            for b, err in zip(batches, pool.map(fn, batches)):
+                if err:
+                    with lock:
+                        for s in b:
+                            miss.setdefault(s, f'alpaca: {err}')
+
+    def gate() -> Optional[str]:
+        if over_budget():
+            return 'time budget spent'
+        if host_open(ALPACA_BARS):
+            return 'circuit breaker open'
+        return None
+
+    def do_update(batch: List[str]) -> Optional[str]:
+        g = gate()
+        if g:
+            return g
+        start = (min(dt.date.fromisoformat(cached[s][0][-1].d) for s in batch) - dt.timedelta(days=UPDATE_OVERLAP_DAYS)).isoformat()
+        try:
+            got = alpaca_bars(batch, start, end, log)
+        except Exception as e:  # noqa: BLE001
+            return _why(e)
+        for s in batch:
+            old = cached[s]
+            merged = merge_update(old[0], got.get(s) or [])
+            if not merged:
+                with lock:
+                    cold.append(s)          # re-adjusted (split / dividend) or no overlap: full history again
+                continue
+            cut = (dt.date.fromisoformat(merged[-1].d) - dt.timedelta(days=HISTORY_DAYS)).isoformat()
+            merged = [b for b in merged if b.d >= cut]
+            save_cached(s, merged, meta_of(s, merged, old[1]))
+            with lock:
+                stats['updated'] += 1
+        return None
+
+    def do_full(batch: List[str]) -> Optional[str]:
+        g = gate()
+        if g:
+            return g
+        try:
+            got = alpaca_bars(batch, cold_start, end, log)
+        except Exception as e:  # noqa: BLE001
+            return _why(e)
+        for s in batch:
+            bars = got.get(s) or []
+            if len(bars) < 60:
+                with lock:
+                    miss[s] = f'alpaca: too few bars ({len(bars)})' if bars else 'alpaca: no data'
+                continue
+            prev = cached.get(s) or load_cached(s)
+            save_cached(s, bars, meta_of(s, bars, prev[1] if prev else None))
+            with lock:
+                stats['full'] += 1
+        return None
+    if log:
+        log(f'alpaca: {len(upd)} to update, {len(cold)} cold (feed {alpaca_feed()})')
+    run_batches(upd, ALPACA_BATCH_UPDATE, do_update)
+    run_batches(sorted(set(cold)), ALPACA_BATCH_COLD, do_full)
+    if log:
+        log(f'alpaca done in {time.time() - t0:.0f}s: {stats["updated"]} updated, {stats["full"]} full histories, '
+            f'{len(miss)} not served (feed {alpaca_feed()}, failing hosts {breaker_state()})')
+    return miss
+
+
 def merge_update(old: List[Bar], new: List[Bar], tol: float = 0.002) -> Optional[List[Bar]]:
     """Append a short update to the cached history. None when the overlap disagrees (a split / dividend changed
     the adjustment of the whole history) or does not connect: then the full 10 years are fetched again."""
@@ -268,15 +568,25 @@ def merge_update(old: List[Bar], new: List[Bar], tol: float = 0.002) -> Optional
     return dedupe(old + new)
 
 
-def fetch_daily(sym: str, max_age_h: float = 12.0, offline: bool = False) -> Tuple[List[Bar], Dict]:
-    """10y daily bars for one ticker: a fresh cache as is; a stale cache updated with the last month (Yahoo);
-    else the full 10 years from Yahoo, else Stooq, else the stale cache."""
+def fetch_daily(sym: str, max_age_h: float = 12.0, offline: bool = False, alpaca: bool = True) -> Tuple[List[Bar], Dict]:
+    """10y daily bars for one ticker: a fresh cache as is; else Alpaca (when keys are set and alpaca=True; fetch_many
+    has already asked Alpaca for the whole batch and passes False); else a stale cache updated with the last month
+    (Yahoo); else the full 10 years from Yahoo, else Stooq, else the stale cache."""
     cached = load_cached(sym)
     if cached and (offline or time.time() - cached[2] < max_age_h * 3600):
         return cached[0], cached[1]
     if offline:
         raise FileNotFoundError(f'{sym}: not cached (offline)')
     errs: List[str] = []
+    if alpaca and alpaca_keys() and not host_open(ALPACA_BARS) and not over_budget():
+        why = alpaca_prefetch([sym], max_age_h, workers=1).get(sym)
+        if why:
+            errs.append(why)
+        else:
+            c = load_cached(sym)
+            if c:
+                return c[0], c[1]
+        cached = load_cached(sym) or cached
 
     def stale(why: str):
         if cached:
@@ -328,12 +638,17 @@ def fetch_many(symbols: List[str], workers: int = 6, offline: bool = False, log=
     errors: Dict[str, str] = {}
     src: Dict[str, int] = {}
     t0 = time.time()
+    if not offline:
+        if alpaca_keys():
+            alpaca_prefetch(symbols, 12.0, workers=min(3, max(1, workers)), log=log)
+        elif log:
+            log('data: ALPACA_KEY_ID / ALPACA_SECRET_KEY not set: Alpaca skipped, trying Yahoo / Stooq per ticker')
 
     def tally(meta: Dict) -> None:
         k = 'stale' if meta.get('stale') else meta.get('source', '?')
         src[k] = src.get(k, 0) + 1
     with ThreadPoolExecutor(max_workers=max(1, workers)) as ex:
-        futs = {ex.submit(fetch_daily, s, 12.0, offline): s for s in symbols}
+        futs = {ex.submit(fetch_daily, s, 12.0, offline, False): s for s in symbols}
         stopped = False
         for k, f in enumerate(as_completed(futs)):
             s = futs[f]
@@ -443,7 +758,7 @@ def closed_htf(bars: List[Bar], tf: str) -> List[Bar]:
     return agg if complete else agg[:-1]
 
 
-TV_EXCHANGE = {'NMS': 'NASDAQ', 'NGM': 'NASDAQ', 'NCM': 'NASDAQ', 'NasdaqGS': 'NASDAQ', 'NasdaqGM': 'NASDAQ', 'NasdaqCM': 'NASDAQ',
+TV_EXCHANGE = {'NASDAQ': 'NASDAQ', 'ARCA': 'AMEX', 'AMEX': 'AMEX', 'BATS': 'CBOE', 'NMS': 'NASDAQ', 'NGM': 'NASDAQ', 'NCM': 'NASDAQ', 'NasdaqGS': 'NASDAQ', 'NasdaqGM': 'NASDAQ', 'NasdaqCM': 'NASDAQ',
                'NYQ': 'NYSE', 'NYSE': 'NYSE', 'ASE': 'AMEX', 'PCX': 'AMEX', 'NYSEArca': 'AMEX', 'BTS': 'CBOE'}
 
 

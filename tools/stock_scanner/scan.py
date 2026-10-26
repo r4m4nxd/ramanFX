@@ -709,9 +709,9 @@ def write_outputs(res: Dict, out_dir: str, fixture: bool = False, history: bool 
     with open(path, 'w') as f:
         json.dump(pub, f, separators=(',', ':'))
         f.write('\n')
-    if history:
+    if history and res.get('date'):         # no date = no bars at all: never a history file without a date
         os.makedirs(os.path.join(out_dir, 'history'), exist_ok=True)
-        with open(os.path.join(out_dir, 'history', f"{res['date'] or 'unknown'}.json"), 'w') as f:
+        with open(os.path.join(out_dir, 'history', f"{res['date']}.json"), 'w') as f:
             json.dump({k: v for k, v in pub.items() if k != 'bars'}, f, separators=(',', ':'))
             f.write('\n')
     details = res.get('details') or {}
@@ -755,6 +755,58 @@ def refresh_signal_fundamentals(res: Dict, ciks: Dict[str, str], bars: Dict, bud
             s['fundamentals'], s['fundamentals_rows'] = fz, F.rows(fz)
             if s['symbol'] in res.get('details', {}):
                 res['details'][s['symbol']]['fundamentals_rows'] = s['fundamentals_rows']
+
+
+MIN_COVERAGE = float(os.environ.get('SCANNER_MIN_COVERAGE', '0.5'))   # below this share of tickers with data: no output
+
+
+def coverage(universe: List[Dict], pre: Dict) -> Tuple[int, int]:
+    """(tickers of the universe with daily bars, universe size)."""
+    syms = {u['symbol'] for u in universe}
+    return sum(1 for s in syms if s in pre and pre[s][0]), len(syms)
+
+
+def failure_reason(fetch_err: Dict[str, str], have: int, total: int) -> str:
+    """One line: how many tickers had data, whether the Alpaca keys are missing, which hosts failed, the most
+    common error."""
+    import data as DATA
+    parts = [f'{have}/{total} tickers with data']
+    if not DATA.alpaca_keys():
+        parts.append('ALPACA_KEY_ID / ALPACA_SECRET_KEY not set')
+    if DATA.breaker_state():
+        parts.append('failing hosts ' + ', '.join(sorted(DATA.breaker_state())))
+    counts: Dict[str, int] = {}
+    for sym, e in fetch_err.items():
+        e = (e[len(sym) + 2:] if e.startswith(sym + ': ') else e)[:120]
+        counts[e] = counts.get(e, 0) + 1
+    if counts:
+        top = max(counts.items(), key=lambda kv: kv[1])
+        parts.append(f'most common error ({top[1]}x): {top[0]}')
+    return '; '.join(parts)
+
+
+def notify_failure(reason: str, today: str, log=print) -> bool:
+    """One short Telegram message per day at most (state in .cache/fail_notice.json). Never raises."""
+    import data as DATA
+    import notify
+    sp = os.path.join(DATA.CACHE, 'fail_notice.json')
+    try:
+        with open(sp) as fh:
+            if json.load(fh).get('date') == today:
+                log('scan failed: Telegram notice already sent today')
+                return False
+    except (OSError, ValueError):
+        pass
+    try:
+        notify.send(['<b>RamanFX scanner: scan failed: no price data</b>\n' + notify.esc(reason) +
+                     '\nNothing was published; the previous results stay in the app.'])
+        os.makedirs(DATA.CACHE, exist_ok=True)
+        with open(sp, 'w') as fh:
+            json.dump({'date': today}, fh)
+        return True
+    except Exception as e:  # noqa: BLE001
+        log(f'failure notice not sent: {type(e).__name__}')
+        return False
 
 
 def main(argv=None) -> int:
@@ -808,13 +860,25 @@ def main(argv=None) -> int:
             {'symbol': t, 'name': t, 'sector': '', 'cik': '', 'indexes': ''} for t in want - {u['symbol'] for u in U.load(indexes=U.INDEXES)}]
     if a.limit:
         uni = uni[:a.limit]
+    if not a.tickers and 'RUT' in U.enabled() and not any('RUT' in (u.get('indexes') or '').split(',') for u in uni):
+        log('RUT: no Russell 2000 tickers in universe.csv (iShares CSV unavailable, no russell2000_snapshot.csv): '
+            'RUT is empty; see README "Russell 2000 snapshot"')
     holdings = load_holdings()
-    syms = sorted({u['symbol'] for u in uni} | {str(h.get('symbol', '')).upper() for h in holdings} | set(REGIME) | set(INDEX_PARTS))
+    syms =sorted({u['symbol'] for u in uni} | {str(h.get('symbol', '')).upper() for h in holdings} | set(REGIME) | set(INDEX_PARTS))
     log(f'{len(syms)} tickers, {a.workers} download threads, budget {a.budget_min:g} min')
     tp = time.time()
     pre = DATA.fetch_many(syms, workers=a.workers, offline=a.offline, log=log)
     fetch_err = pre.pop('__errors__', {})
     tp = phase('fetch', tp)
+    have, total = coverage(uni, pre)
+    if total and have < MIN_COVERAGE * total:
+        # A data outage, not a market without signals: the published files (latest / index / shards / history) stay
+        # as they are, no signal is sent, the run fails so it shows red.
+        reason = failure_reason(fetch_err, have, total)
+        log(f'SCAN FAILED: no price data ({reason}); below {MIN_COVERAGE:.0%} coverage: nothing written, no signals sent')
+        if not a.no_notify:
+            notify_failure(reason, dt.date.today().isoformat(), log=log)
+        return 2
 
     def get_bars(s):
         if s in pre:

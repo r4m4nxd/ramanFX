@@ -16,7 +16,7 @@ Standard library only (Python 3.10+). No `pip install`.
 | File | What it does |
 |---|---|
 | `universe.py` | Index lists → `universe.csv` (symbol, name, sector, cik, indexes). Weekly refresh. |
-| `data.py` | Daily OHLCV (10 y) from Yahoo (split + dividend adjusted via `adjclose`), Stooq fallback; incremental updates, cache, rate limit, threads; weekly / monthly bars. |
+| `data.py` | Daily OHLCV (10 y) from **Alpaca Market Data** (primary, multi-symbol batches, split + dividend adjusted), Yahoo / Stooq per-ticker fallbacks; incremental updates, cache, rate limit, threads; weekly / monthly bars. |
 | `zones.py` | The Python port of the ZoneVision Raja logic (pure functions). |
 | `scan.py` | The rules → BUY / WATCH / EXIT, JSON for the app, CLI. |
 | `fundamentals.py` | SEC EDGAR XBRL companyfacts → compact table (context only). |
@@ -29,6 +29,12 @@ Standard library only (Python 3.10+). No `pip install`.
 
 ## Setup (once)
 
+0. **Price data: a free Alpaca account** (required on GitHub Actions: Yahoo answers 429 and Stooq a browser check
+   to GitHub runners). Sign up at alpaca.markets (free, no funding needed) → open the **Paper Trading** account →
+   **API Keys** → *Generate New Keys* → copy the **Key ID** and the **Secret Key** (shown once). Add them as the
+   repository secrets **`ALPACA_KEY_ID`** and **`ALPACA_SECRET_KEY`** (step 2). The free plan's market data is
+   enough: the scanner asks for the consolidated `sip` feed (history ending 16 minutes ago, which the free plan
+   allows) and switches to the `iex` feed by itself, remembered for a week, if Alpaca refuses `sip` (403).
 1. **Telegram bot**: in Telegram open **@BotFather** → `/newbot` → pick a name → copy the **token**.
    Send your new bot any message, then open `https://api.telegram.org/bot<TOKEN>/getUpdates` in a browser and copy
    `message.chat.id` (a group: add the bot to the group, send a message there, the id starts with `-`).
@@ -36,11 +42,21 @@ Standard library only (Python 3.10+). No `pip install`.
    - `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` (required for Telegram; without them the scan only prints).
    - optional `HOLDINGS_JSON`: your positions, e.g. `[{"symbol":"AAPL","entry":190,"stop":182,"shares":10,"date":"2026-09-01"}]`
      (keeps positions out of the repository; `holdings.json` is used when the secret is empty).
-   - optional `SEC_UA`: only if SEC refuses the generic `RamanFX-scanner/1.0` User-Agent (403). SEC wants a
-     contact in the UA ("RamanFX-scanner your-contact"); it is read from the secret only, never written anywhere.
+   - `ALPACA_KEY_ID` and `ALPACA_SECRET_KEY` (step 0).
+   - optional `SEC_UA`: a User-Agent with a contact, e.g. "RamanFX-scanner your-contact". SEC companyfacts
+     (data.sec.gov, the fundamentals) works without it; `www.sec.gov/files/company_tickers.json` (CIKs the index
+     lists do not give, mostly Russell 2000 names) answers 403 without a contact, so without `SEC_UA` that lookup is
+     skipped with a one-line hint and those tickers show fundamentals n/a. Read from the secret only, never written.
 3. Optional repository **variables**: `SCANNER_UNIVERSES` (default `SPX,NDX,DJI,RUT`), `TELEGRAM_TOP_N` (default 5).
 4. Actions tab → **Stock scan** → *Run workflow* once to test. The first run downloads 10 years for every ticker
-   (~2,600 requests); later runs fetch only the last month per ticker (cache via `actions/cache`).
+   from Alpaca in batches of 100 symbols (~10,000 bars per page, a few hundred requests, a few minutes at Alpaca's
+   200 requests/min); later runs fetch only the last ~3 weeks in batches of 200 (one request per batch; a ticker
+   whose overlap no longer matches after a split / dividend gets its full history again). Cache via `actions/cache`.
+
+**No data, no output**: when fewer than half of the tickers (`SCANNER_MIN_COVERAGE`, 0.5) have price data, the scan
+writes nothing (`latest.json`, `index.json`, the shards and the history stay as they were), sends no signals, sends
+at most one short Telegram message per day ("scan failed: no price data" with the reason: missing Alpaca keys,
+failing hosts, the most common error) and exits 2 so the run shows red.
 
 Each run commits `public/scanner/latest.json` (signals), `public/scanner/history/<date>.json`,
 `public/scanner/index.json` (every ticker, for the app's search) and `public/scanner/t/<0-63>.json` (that redeploys
@@ -72,7 +88,9 @@ python tools/stock_scanner/scan.py --selftest                   # fixtures, prin
 python -m unittest discover tools/stock_scanner/tests
 ```
 
-Env: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `HOLDINGS_JSON`, `WATCHLIST`, `WATCHLIST_APPROACH_PCT`, `SEC_UA`, `SCANNER_UNIVERSES`, `SCANNER_WORKERS`,
+Env: `ALPACA_KEY_ID`, `ALPACA_SECRET_KEY` (without them: Yahoo / Stooq only, which may work from a home connection),
+`ALPACA_BATCH_COLD` (100), `ALPACA_BATCH_UPDATE` (200), `SCANNER_MIN_COVERAGE` (0.5),
+`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `HOLDINGS_JSON`, `WATCHLIST`, `WATCHLIST_APPROACH_PCT`, `SEC_UA`, `SCANNER_UNIVERSES`, `SCANNER_WORKERS`,
 `SCANNER_PAUSE` (seconds between requests per host, default 0.15), `SCANNER_MIN_PRICE` (5), `SCANNER_MIN_DOLLAR_VOL`
 (5e6), `TELEGRAM_TOP_N` (5), `SCANNER_APP_URL`.
 
@@ -80,8 +98,9 @@ Env: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `HOLDINGS_JSON`, `WATCHLIST`, `WA
 tickers use their stale cache and the scan, write and notify go on with what there is (`latest.json` gets
 `"partial": true`). Each host has a circuit breaker: after `SCANNER_BREAKER_N` (5) consecutive 401 / 403 / 429 / 5xx /
 timeouts / wrong bodies (e.g. Stooq's HTML limit page instead of CSV) it is skipped for `SCANNER_BREAKER_COOLDOWN`
-(300 s) and the next source is used. Requests time out after `SCANNER_TIMEOUT` (15 s max), a Retry-After above 5 s
-fails the call instead of waiting, and the Yahoo earnings lookup stops after its first 401 (crumb). SEC downloads are
+(300 s) and the next source is used (Alpaca: a 401 / 403 on the `iex` feed, i.e. rejected keys, opens it at once).
+Requests time out after `SCANNER_TIMEOUT` (15 s max), a Retry-After above 5 s fails the call instead of waiting
+(Alpaca: a 429 waits for its Retry-After / X-RateLimit-Reset up to 65 s, requests are spaced 0.31 s apart), and the Yahoo earnings lookup stops after its first 401 (crumb). SEC downloads are
 capped per run at `SCANNER_SEC_PER_RUN` companies, `SCANNER_SEC_COLD_CAP` (150) of them never cached before, and
 `SCANNER_SEC_BUDGET_MIN` (8) minutes. The log prints progress every 50 tickers and the time of each phase
 (fetch / fundamentals / analyse / write / notify). In the workflow the scan step times out at 70 min (job: 90), and
@@ -94,9 +113,25 @@ the cache save and the commit run even when the scan failed, so partial results 
 | SPX | S&P 500 | Wikipedia `List_of_S%26P_500_companies` (GICS sector, CIK) |
 | NDX | Nasdaq-100 | Wikipedia `List_of_NASDAQ-100_companies` (the table moved off the `Nasdaq-100` article in July 2026; ICB industry mapped to GICS names) |
 | DJI | Dow 30 | Wikipedia `List_of_Dow_Jones_Industrial_Average_companies` |
-| RUT | Russell 2000 | iShares IWM holdings CSV (equity rows, `Sector` column); fallback `russell2000_snapshot.csv` (first line = snapshot date) |
+| RUT | Russell 2000 | iShares IWM holdings CSV (equity rows, `Sector` column; three plain public URL variants); fallback `russell2000_snapshot.csv` |
 
-Tickers in several indexes are one row (`indexes` = `SPX,NDX,DJI`). Missing CIKs come from SEC `company_tickers.json`.
+Tickers in several indexes are one row (`indexes` = `SPX,NDX,DJI`). Missing CIKs come from SEC `company_tickers.json`
+(only with `SEC_UA`).
+
+### Russell 2000 snapshot
+
+From GitHub runners iShares returns an HTML page instead of the holdings CSV (every URL variant tried is a plain
+public GET; no cookies or browser tricks are used). Then RUT comes from `tools/stock_scanner/russell2000_snapshot.csv`,
+and without that file RUT is empty (the refresh and the scan log say so). To add or update the snapshot by hand:
+
+1. Open the iShares Russell 2000 ETF (IWM) page in a browser → *Holdings* → **Detailed Holdings and Analytics** /
+   *Download* (CSV).
+2. Save the downloaded `IWM_holdings.csv` as `tools/stock_scanner/russell2000_snapshot.csv`, unchanged (the scanner
+   reads the raw iShares file: the preamble's "Fund Holdings as of" line becomes the snapshot date, equity rows only).
+3. Commit it and run the workflow with *Refresh the index lists* ticked (or `python tools/stock_scanner/universe.py
+   --force` locally, which also works when iShares serves the CSV to your connection and then rewrites the snapshot).
+
+Refresh it every month or two; `latest.json` records the snapshot date (`rut_snapshot`).
 **Liquidity filter**: names that are only in the Russell 2000 must close ≥ $5 with a 20-day average dollar volume
 ≥ $5M; the number skipped is reported in Telegram and the app.
 
@@ -214,5 +249,8 @@ says trust only when the out-of-sample CI is above zero with 30+ trades.
 - **Survivorship bias**: the backtest uses today's index members only (companies that left the index are missing),
   which flatters results, most of all for the Russell 2000.
 - **No intraday**: no H1 / H4 confirmation, so tested zones are WATCH only; entries assume a resting limit order.
-- Yahoo / Stooq / SEC / iShares are unofficial or rate-limited sources; a ticker without data is skipped and counted.
-- The Russell 2000 list needs the iShares CSV once (or a committed snapshot); when both are missing RUT is empty.
+- Prices come from Alpaca (official API; the free plan's `iex` fallback covers one exchange's trades only, so its
+  daily volumes are smaller and highs / lows can differ slightly from the consolidated tape). Yahoo / Stooq / SEC /
+  iShares are unofficial or rate-limited sources; a ticker without data is skipped and counted.
+- The Russell 2000 list needs the iShares CSV (not served to GitHub runners) or a committed snapshot (see
+  "Russell 2000 snapshot"); when both are missing RUT is empty.

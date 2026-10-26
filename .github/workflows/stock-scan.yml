@@ -64,6 +64,8 @@ jobs:
           fi
         env:
           SEC_UA: ${{ secrets.SEC_UA }}
+          ALPACA_KEY_ID: ${{ secrets.ALPACA_KEY_ID }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
 
       # Step timeout < job timeout, so the cache save and the commit below still run if the scan hangs.
       - name: Scan + notify
@@ -80,6 +82,10 @@ jobs:
           WATCHLIST: ${{ secrets.WATCHLIST }}
           WATCHLIST_APPROACH_PCT: ${{ vars.WATCHLIST_APPROACH_PCT || '3' }}
           SEC_UA: ${{ secrets.SEC_UA }}
+          # Daily bars: Alpaca Market Data (free account, paper-trading keys). Without them the scan falls back to
+          # Yahoo / Stooq, which refuse GitHub runners: then the no-data guard fails the run and publishes nothing.
+          ALPACA_KEY_ID: ${{ secrets.ALPACA_KEY_ID }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
 
       - name: Save data cache
         if: ${{ always() && hashFiles('tools/stock_scanner/.cache/daily/*.json') != '' }}
@@ -89,7 +95,9 @@ jobs:
           key: scanner-data-${{ github.run_id }}
 
       # Runs even when the scan step failed or timed out (partial results written before the budget ran out are
-      # committed); skipped only when the run was cancelled or there is no output at all.
+      # committed); skipped only when the run was cancelled or there is no output at all. When fewer than half of the
+      # tickers had data the scan writes nothing (exit 2), so there is nothing to commit and the app keeps the last
+      # good results.
       - name: Commit results
         if: ${{ !cancelled() && hashFiles('public/scanner/latest.json') != '' }}
         run: |

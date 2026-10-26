@@ -30,6 +30,7 @@ class FakeNet:
 
     def __init__(self, rules, delay=0.0):
         self.rules, self.delay, self.calls, self.lock = rules, delay, {}, threading.Lock()
+        self.reqs = []
 
     def __call__(self, req, timeout=None):
         url = req.full_url
@@ -37,6 +38,7 @@ class FakeNet:
             if key in url:
                 with self.lock:
                     self.calls[key] = self.calls.get(key, 0) + 1
+                    self.reqs.append(req)
                 if self.delay:
                     time.sleep(self.delay)
                 return _Resp(fn(url))
@@ -53,9 +55,11 @@ class NetBase(unittest.TestCase):
         self.patches = [mock.patch.object(DATA, 'CACHE', self.tmp), mock.patch.object(F, 'CACHE', self.tmp),
                         mock.patch.object(DATA, 'PAUSE', 0.0), mock.patch.object(DATA, 'BACKOFF', 0.05),
                         mock.patch.object(DATA, 'BREAKER_N', 5), mock.patch.object(DATA, 'BREAKER_COOLDOWN', 300.0),
-                        mock.patch.object(F, 'CACHE', self.tmp)]
+                        mock.patch.object(F, 'CACHE', self.tmp), mock.patch.dict(os.environ)]
         for p in self.patches:
             p.start()
+        for k in ('ALPACA_KEY_ID', 'ALPACA_SECRET_KEY', 'SEC_UA'):   # no real keys / contact reach a test
+            os.environ.pop(k, None)
         DATA.reset_net_state()
 
     def tearDown(self):
