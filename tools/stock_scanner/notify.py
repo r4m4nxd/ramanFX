@@ -3,12 +3,13 @@
 1) Header: date, regime (SPY / QQQ / IWM vs the 200-day average + curve), counts, sectors ranked by BUYs.
 2) Signals first, when there are any: one message per sector (emoji + bold name): BUY cards (top N by Raja score),
    WATCH cards, EXIT cards. Fixed labels on every card so it reads (and parses) the same each day.
-3) Every day, the zone lists (lists.py; the same lists as latest.json zone_lists and the app's market map), D1 / W1 /
-   MN zones only, grouped by sector, top TELEGRAM_LIST_CAP per section by zone score, the rest "+N more on the app":
+3) Every day, the zone lists (lists.py; the same lists as latest.json zone_lists and the app's market map), W1 / MN /
+   3M zones only (owner: never below W1), grouped by sector, top TELEGRAM_LIST_CAP per section by zone score, the rest "+N more on the app":
      DEMAND  🟢 In demand now · ⬇️ Approaching demand (close <= 3% above the proximal) · ↗️ Left demand (bounced)
      SUPPLY  🔴 In supply · ⬆️ Approaching supply · ↘️ Left supply (rejected)
    Each line: TICKER (TSX:… when Canadian) price · zone TF type score · % to the zone · Raja status (BUY or the first
-   rule that blocks a BUY; supply: the direction).
+   rule that blocks a BUY; supply: the direction) · the HTF location (📍 in touched MN / ⏳ MN still below -8%).
+   Signal cards carry the top-down chain (3M demand … touched ✓ → MN demand … touched ✓ → W1 entry …) and the 6M context.
 4) Every message < 4000 UTF-16 units, split only between blocks. >= 1.1 s between sends; a 429 waits retry_after.
 5) Last line: link to the full list in the app. Footer: "Not financial advice — zone rules only."
 
@@ -20,6 +21,7 @@ from __future__ import annotations
 import html
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -77,6 +79,32 @@ def _curve_owner(s: Dict) -> bool:
     return any(r.get('short') == 'curve' and 'owner rule' in (r.get('text') or '') for r in s.get('rules') or [])
 
 
+HTF_OF = {'W1': 'MN', 'MN': '3M', '3M': '6M'}
+
+
+def loc_short(r: Dict) -> str:
+    """Compact HTF location of a list row / signal: '📍 in touched MN', '⏳ MN still below -8.0%', '⏳ MN not touched',
+    '✗ no MN area', '🔝 top TF'; '' when the row has none (older files)."""
+    code, txt = r.get('loc') or '', r.get('loc_text') or ''
+    h = HTF_OF.get(r.get('tf') or '', 'HTF')
+    m = re.search(r'\(([+-]\d+(?:\.\d+)?)%\)', txt)
+    pct = f' {m.group(1)}%' if m else ''
+    if code == 'inside':
+        return f'📍 in touched {h}'
+    if code in ('below', 'above'):
+        lvl = re.search(r'strong (\w+) (?:demand|supply)', txt)
+        return f"⏳ {lvl.group(1) if lvl else h} still {code}{pct}"
+    if code == 'untouched':
+        return f'⏳ {h} not touched{pct}'
+    if code == 'none':
+        return f'✗ no {h} area'
+    if code == 'top':
+        return '🔝 top TF'
+    if code == 'unknown':
+        return f'? {h} n/a'
+    return ''
+
+
 def _rules_short(s: Dict) -> str:
     out = []
     for r in s['rules']:
@@ -132,7 +160,10 @@ def signal_card(s: Dict) -> str:
              + (' (250% projection, no supply above, L5)' if s.get('target_kind') == 'projection' else '') + f" · R:R {_f(s['rr'], 1)}",
              _pz_line(s),
              f"Scores: Raja {s.get('score', 0)}/10 · Seiden odds {_f(s.get('seiden_score'), 1)}/10" + _flags(s),
-             f"Curve: {_curve_word(s.get('curve'))}" + (' (ATH area, W1 + MN up: allowed)' if _curve_owner(s) else '') + " · Trend: {esc(s['direction'])} (W1 {esc(s['w1'])}, MN {esc(s['mn'])})",
+             f"Curve: {_curve_word(s.get('curve'))}" + (' (ATH area, HTFs up: allowed)' if _curve_owner(s) else '')
+             + f" · Trend: {esc(s['direction'])} (W1 {esc(s['w1'])}, MN {esc(s['mn'])}, 3M {esc(s.get('m3') or 'n/a')})",
+             'Location: ' + esc(s.get('chain_text') or s.get('loc_text') or 'n/a'),
+             'Context: ' + esc(s.get('ctx6') or '6M: n/a'),
              'Rules: ' + esc(_rules_short(s))]
     if kind == 'WATCH':
         lines.append('Note: ' + esc('new zone, price still far' if s.get('watch') == 'new' else 'tested: needs a lower-TF confirmation'))
@@ -168,7 +199,7 @@ def regime_text(res: Dict) -> str:
     for r in res.get('regime') or []:
         a = r.get('above200')
         side = 'above' if a else ('below' if a is not None else 'n/a vs')
-        out.append(f"{r['symbol']} {side} 200D · MN curve {_curve_word(r.get('curve'))} · {r['direction']}")
+        out.append(f"{r['symbol']} {side} 200D · {r.get('curve_tf') or 'MN'} curve {_curve_word(r.get('curve'))} · {r['direction']}")
     return '\n'.join(esc(x) for x in out) if out else 'Regime: n/a'
 
 
@@ -226,7 +257,7 @@ def build_messages(res: Dict, top: int = 5, cap: int = LIST_CAP) -> List[str]:
 
 STRONG_CAP = 10
 MAP_URL = FULL_LIST + '?view=map'
-SIDE_HEAD = {'demand': '🟢 <b>DEMAND</b> · D1 / W1 / MN zones', 'supply': '🔴 <b>SUPPLY</b> · D1 / W1 / MN zones'}
+SIDE_HEAD = {'demand': '🟢 <b>DEMAND</b> · W1 / MN / 3M zones', 'supply': '🔴 <b>SUPPLY</b> · W1 / MN / 3M zones'}
 SECTION_HEAD = {('demand', 'in'): '🟢 <b>In demand now</b>', ('demand', 'near'): '⬇️ <b>Approaching demand</b>',
                 ('demand', 'left'): '↗️ <b>Left demand</b>', ('supply', 'in'): '🔴 <b>In supply</b>',
                 ('supply', 'near'): '⬆️ <b>Approaching supply</b>', ('supply', 'left'): '↘️ <b>Left supply</b>'}
@@ -255,7 +286,8 @@ def list_line(r: Dict) -> str:
         where = f"{r['pct']:.1f}% {'above' if r['side'] == 'demand' else 'below'}"
     st, lab = r.get('status') or '', r.get('label') or ''
     stat = '✅ BUY' if st == 'BUY' else '🟡 WATCH' if st == 'WATCH' else '✓ rules pass' if st == 'ok' else (lab if st == 'dir' else f'✗ {lab}' if lab else '')
-    return f"{name} {_f(r.get('px'))} · {esc(zone)} · {where}" + (f' · {esc(stat)}' if stat else '')
+    ls = loc_short(r)
+    return f"{name} {_f(r.get('px'))} · {esc(zone)} · {where}" + (f' · {esc(stat)}' if stat else '') + (f' · {esc(ls)}' if ls else '')
 
 
 def section_blocks(zl: Dict, side: str, sec: str, cap: int = LIST_CAP) -> List[str]:

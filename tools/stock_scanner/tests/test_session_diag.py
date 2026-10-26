@@ -154,7 +154,7 @@ class MarketMapTest(unittest.TestCase):
         for r in rows:
             if 'dz' in r:
                 tf, typ, score, touches = r['dz']
-                self.assertIn(tf, ('D1', 'W1', 'MN'))
+                self.assertIn(tf, ('W1', 'MN', '3M'))
                 self.assertIn(typ, Z.ZONE_TYPE_TEXT)
                 self.assertTrue(0 <= score <= 10 and touches >= 0)
                 self.assertIn('dd', r)

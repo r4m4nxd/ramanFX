@@ -96,7 +96,7 @@ class CompositeIndexTest(unittest.TestCase):
 
 class NeverAGateTest(unittest.TestCase):
     def test_buys_do_not_depend_on_the_extras(self):
-        b = synth.ticker(693, selftest.END)
+        b = synth.ticker(2259, selftest.END)
         an = scan.analyse(b, DATA.closed_htf(b, 'W1'), DATA.closed_htf(b, 'MN'))
         base = [s['entry'] for s in scan.symbol_signals(an) if s['kind'] == 'BUY']
         self.assertTrue(base)
@@ -117,11 +117,11 @@ class NeverAGateTest(unittest.TestCase):
 class WatchAlertTest(unittest.TestCase):
     def test_approach_in_zone_and_dedupe(self):
         b = synth.zone_series()                                         # demand 99.1-100.3, last close 103.2
-        an = scan.analyse(b, [], [])
+        an = scan.analyse(b, b, [])                                     # the same bars as W1 (no D1 zones)
         self.assertEqual(scan.watch_alerts('X', an, b[-1], pct=5)[0]['kind'], 'APPROACH')
         self.assertEqual(scan.watch_alerts('X', an, b[-1], pct=1), [])
         touch = b + [Bar('2026-12-01', 103.2, 103.4, 100.1, 101.0)]
-        an2 = scan.analyse(touch, [], [])
+        an2 = scan.analyse(touch, touch, [])
         a = scan.watch_alerts('X', an2, touch[-1])
         self.assertEqual(a[0]['kind'], 'IN ZONE')
         st = {}

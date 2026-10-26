@@ -1,4 +1,4 @@
-"""Daily zone lists: every stock by where its last close sits against its D1 / W1 / MN zones, per side.
+"""Daily zone lists: every stock by where its last close sits against its W1 / MN / 3M zones, per side.
 
     DEMAND  in      the close is inside a demand (distal <= close <= proximal)
             left    a demand was touched in the last LEFT_SESSIONS sessions (low <= proximal) and the close is back
@@ -6,8 +6,10 @@
             near    the close is at most NEAR_PCT % above a demand proximal (approaching)
     SUPPLY  the mirror (in supply, left = rejected, near = approaching from below)
 
-Zones: fresh or tested (at most MAX_TOUCHES touches), not removed, on D1 / W1 / MN only. Each stock lands in ONE
-bucket (in > left > approaching > middle), so the Telegram lists, latest.json and the app's market map agree.
+Zones: fresh or tested (at most MAX_TOUCHES touches), not removed, on W1 / MN / 3M only (owner: stocks never below
+W1; D1 bars only give the close). Each stock lands in ONE bucket (in > left > approaching > middle), so the Telegram
+lists, latest.json and the app's market map agree. Each row also carries the zone's top-down HTF location
+(loc / loc_text: "inside the touched MN demand ..." / "strong MN demand ... still below (-8%)"), from the scan.
 Works on the per-ticker detail dicts (t/<k>.json shards), so the same code runs in the scan and on committed files.
 """
 from __future__ import annotations
@@ -19,7 +21,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 NEAR_PCT = float(os.environ.get('SCANNER_NEAR_PCT') or '3')     # approaching: close within X% of the proximal
 LEFT_SESSIONS = int(os.environ.get('SCANNER_LEFT_SESSIONS') or '3')
 MAX_TOUCHES = 3                                                # fresh, 2nd or 3rd touch (Raja: no 4th)
-TFS = ('D1', 'W1', 'MN')                                       # nothing below D1
+TFS = ('W1', 'MN', '3M')                                       # owner: nothing below W1 for stocks
 STRONG = ('ARR', 'WOW', 'STR')
 SECTIONS = ('in', 'left', 'near')
 # index.json bucket codes, supply side first (the app's column order)
@@ -29,9 +31,9 @@ BUCKET_ORDER = ['IS', 'AS', 'LS', 'M', 'LD', 'AD', 'ID']
 
 # Veto priority for "the first failing rule": market gates first (curve, direction, HTF supply, sideways), then
 # zone quality, then the trade geometry, the calendar and last the distance.
-BLOCK_ORDER = ['curve', 'HTF align', 'no HTF supply', 'not sideways', 'strong', 'fresh', 'clean', 'not used',
+BLOCK_ORDER = ['location', 'curve', 'HTF align', 'no HTF supply', 'not sideways', 'strong', 'fresh', 'clean', 'not used',
                'no 3rd CP', 'room', 'earnings', 'near entry']
-BLOCK_LABEL = {'curve': 'high on curve', 'HTF align': 'direction not long', 'no HTF supply': 'monthly supply on top',
+BLOCK_LABEL = {'location': 'HTF area not reached', 'curve': 'high on curve', 'HTF align': 'direction not long', 'no HTF supply': 'monthly supply on top',
                'not sideways': 'sideways market', 'strong': 'weak zone type', 'fresh': 'zone already tested',
                'clean': 'overlap / flip zone', 'not used': 'zone already did its job', 'no 3rd CP': '3rd CP in a row',
                'room': 'room < 2x the stop (supply or 250% projection)', 'earnings': 'earnings within 10 days',
@@ -151,7 +153,8 @@ def classify(detail: Dict, near_pct: float = NEAR_PCT, left_n: int = LEFT_SESSIO
             'h': detail.get('home') or '', 'cur': detail.get('currency') or 'USD', 'ix': detail.get('indexes') or [],
             'px': detail.get('price'), 'side': side, 'section': sec, 'b': BUCKET[(side, sec)],
             'tf': z['tf'], 'type': z.get('type') or '', 'score': z.get('score'), 'touches': int(z.get('touches') or 0),
-            'prox': z['proximal'], 'dist': z['distal'], 'pct': round(pct, 2), 'status': code, 'label': words}
+            'prox': z['proximal'], 'dist': z['distal'], 'pct': round(pct, 2), 'status': code, 'label': words,
+            'loc': z.get('loc') or '', 'loc_text': z.get('loc_text') or ''}
 
 
 def zone_lists(details: Dict[str, Dict], rows: Optional[Dict[str, Dict]] = None, near_pct: float = NEAR_PCT,
@@ -172,8 +175,12 @@ def zone_lists(details: Dict[str, Dict], rows: Optional[Dict[str, Dict]] = None,
 
 
 def row_fields(item: Optional[Dict]) -> Dict:
-    """index.json fields of a stock's bucket: mb code, mz [tf, type, score, touches, pct, proximal], mr status."""
+    """index.json fields of a stock's bucket: mb code, mz [tf, type, score, touches, pct, proximal], mr status,
+    ml [location code, location text] (new; absent when the zone has no location)."""
     if not item:
         return {'mb': 'M'}
-    return {'mb': item['b'], 'mz': [item['tf'], item['type'], item['score'], item['touches'], item['pct'], item['prox']],
-            'mr': item['status'] or None}
+    out = {'mb': item['b'], 'mz': [item['tf'], item['type'], item['score'], item['touches'], item['pct'], item['prox']],
+           'mr': item['status'] or None}
+    if item.get('loc'):
+        out['ml'] = [item['loc'], item.get('loc_text') or '']
+    return out

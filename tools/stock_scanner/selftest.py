@@ -18,15 +18,17 @@ import notify  # noqa: E402
 import scan  # noqa: E402
 import synth  # noqa: E402
 
-# seeds found by searching fixtures/synth.ticker(): each produces the case named (see tests/test_selftest.py)
+# seeds found by searching fixtures/synth.ticker() under the W1 / MN / 3M top-down rules: SYNA W1 BUY, SYNB MN BUY,
+# SYNC W1 BUY, SYND W1 WATCH (tested), SYNE 3M BUY, SYNF W1 WATCH, SYNG near a located supply (EXIT),
+# SYNH stop (EXIT). No seed in 20,000 gives a WATCH 'new' (a located zone made in the last 5 sessions).
 FIXTURES = [
-    {'symbol': 'SYNA', 'seed': 474, 'name': 'Synthetic Alpha (fixture)', 'sector': 'Information Technology', 'indexes': 'SPX,NDX'},
-    {'symbol': 'SYNB', 'seed': 693, 'name': 'Synthetic Beta (fixture)', 'sector': 'Health Care', 'indexes': 'SPX'},
-    {'symbol': 'SYNC', 'seed': 771, 'name': 'Synthetic Gamma (fixture)', 'sector': 'Industrials', 'indexes': 'SPX,DJI'},
-    {'symbol': 'SYND', 'seed': 648, 'name': 'Synthetic Delta (fixture)', 'sector': 'Information Technology', 'indexes': 'NDX'},
-    {'symbol': 'SYNE', 'seed': 275, 'name': 'Synthetic Epsilon (fixture, interlisted)', 'sector': 'Consumer Staples', 'indexes': 'TSX60,TSX', 'home': 'TSX:SYE'},
-    {'symbol': 'SYNF', 'seed': 512, 'name': 'Synthetic Zeta (fixture, interlisted)', 'sector': 'Energy', 'indexes': 'TSX', 'home': 'TSX:SYZ'},
-    {'symbol': 'SYNG', 'seed': 16, 'name': 'Synthetic Eta (fixture)', 'sector': 'Utilities', 'indexes': 'SPX'},
+    {'symbol': 'SYNA', 'seed': 2259, 'name': 'Synthetic Alpha (fixture)', 'sector': 'Information Technology', 'indexes': 'SPX,NDX'},
+    {'symbol': 'SYNB', 'seed': 10260, 'name': 'Synthetic Beta (fixture)', 'sector': 'Health Care', 'indexes': 'SPX'},
+    {'symbol': 'SYNC', 'seed': 17960, 'name': 'Synthetic Gamma (fixture)', 'sector': 'Industrials', 'indexes': 'SPX,DJI'},
+    {'symbol': 'SYND', 'seed': 1225, 'name': 'Synthetic Delta (fixture)', 'sector': 'Information Technology', 'indexes': 'NDX'},
+    {'symbol': 'SYNE', 'seed': 12076, 'name': 'Synthetic Epsilon (fixture, interlisted)', 'sector': 'Consumer Staples', 'indexes': 'TSX60,TSX', 'home': 'TSX:SYE'},
+    {'symbol': 'SYNF', 'seed': 5545, 'name': 'Synthetic Zeta (fixture, interlisted)', 'sector': 'Energy', 'indexes': 'TSX', 'home': 'TSX:SYZ'},
+    {'symbol': 'SYNG', 'seed': 3513, 'name': 'Synthetic Eta (fixture)', 'sector': 'Utilities', 'indexes': 'SPX'},
     {'symbol': 'SYNH', 'seed': 3, 'name': 'Synthetic Theta (fixture)', 'sector': 'Materials', 'indexes': 'SPX'},
     {'symbol': 'SYI.TO', 'seed': 857, 'name': 'Synthetic Iota (fixture, TSX only)', 'sector': 'Financials', 'indexes': 'TSX', 'home': 'TSX:SYI', 'feed': 'tsx'},
 ]

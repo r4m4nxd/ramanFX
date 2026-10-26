@@ -24,7 +24,7 @@ def detail(zones, bars, **kw):
             'check': kw.get('check'), 'zones': zones, 'bars': {'t0': '2026-10-01', 'dt': list(range(len(bars))), 'b': bars}}
 
 
-def dz(prox, dist, tf='D1', typ='ARR', score=8, touches=0, **kw):
+def dz(prox, dist, tf='W1', typ='ARR', score=8, touches=0, **kw):
     return {'tf': tf, 'side': 'demand', 'proximal': prox, 'distal': dist, 'type': typ, 'score': score, 'touches': touches, **kw}
 
 
@@ -69,7 +69,7 @@ class ClassifyTest(unittest.TestCase):
         self.assertEqual((it['b'], it['tf'], it['status']), ('ID', 'W1', 'BUY'))
 
     def test_old_format_status_from_check_rules(self):
-        chk = {'kind': 'no trade', 'zone': {'tf': 'D1', 'proximal': 100},
+        chk = {'kind': 'no trade', 'zone': {'tf': 'W1', 'proximal': 100},
                'rules': [{'status': 'fail', 'short': 'near entry'}, {'status': 'fail', 'short': 'HTF align'}]}
         it = L.classify(detail([dz(100, 95)], FLAT[:-1] + [(102, 103, 101.5, 102)], check=chk))
         self.assertEqual(it['label'], 'direction not long')
@@ -136,11 +136,13 @@ class TimeframeTest(unittest.TestCase):
     def test_mn_stop_is_three_percent(self):
         self.assertAlmostEqual(Z.stop_buffer(10.0, 'MN'), 0.3)
         self.assertAlmostEqual(Z.stop_buffer(10.0, 'W1'), 0.5)
-        self.assertAlmostEqual(Z.stop_buffer(10.0, 'D1'), 1.0)
+        self.assertAlmostEqual(Z.stop_buffer(10.0, '3M'), 0.2)
 
     def test_no_sub_daily_tf(self):
-        self.assertEqual(scan.TRADE_TFS, ('D1', 'W1', 'MN'))
-        self.assertTrue(all('H1' not in v and 'H4' not in v for v in scan.LOWER_CONFIRM.values()))
+        self.assertEqual(scan.TRADE_TFS, ('W1', 'MN', '3M'))                 # owner: no D1 entries for stocks
+        self.assertNotIn('D1', L.TFS)
+        self.assertNotIn('D1', scan.LOWER_CONFIRM)
+        self.assertTrue(all('H1' not in v and 'H4' not in v and 'W1 -> D1' not in v for v in scan.LOWER_CONFIRM.values()))
         res = selftest.run_fixture()
         for d in res['details'].values():
             for z in d['zones']:
@@ -153,7 +155,7 @@ class TimeframeTest(unittest.TestCase):
         import synth
         b = synth.ticker(3, selftest.END)
         an = scan.analyse(b, DATA.closed_htf(b, 'W1'), DATA.closed_htf(b, 'MN'))
-        self.assertEqual([r.tf for r, _ in scan.stack(an)], ['D1', 'W1', 'MN'])
+        self.assertEqual([r.tf for r, _ in scan.stack(an)], ['W1', 'MN', '3M'])
         mn_dem = [z for z in an.mn.zones if z.dir > 0 and not z.removed and z.dist < an.price] if an.mn.ok else []
         for z in mn_dem:
             self.assertIn(z.zid, an.dna)

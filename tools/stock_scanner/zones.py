@@ -1,8 +1,9 @@
 """Python port of the ZoneVision Raja-template logic (public/tools/RFX_ZoneCore.mqh + RamanFX_ZoneVision.mq5,
 settings from public/tools/ZV_Template_Raja.set) for daily stock data.
 
-Only what the stock scanner needs is ported: zone detection (D1 / W1 / MN), Kevin-style trendlines (used by
-Raja's arrival and direction rules), HtfTrend swings, the Direction engine rows for the Raja table D1 -> W1 -> MN,
+Only what the stock scanner needs is ported: zone detection (W1 / MN / 3M; owner: stocks never below W1, D1 bars
+are used for price checks only), Kevin-style trendlines (used by Raja's arrival and direction rules), HtfTrend swings,
+the Direction engine rows for the Raja table W1 -> MN -> 3M, the owner's top-down location rule (location()),
 the Raja curve, the zone DNA fields behind Raja's zone types (ARR / WOW / STR / OVL / FLP / TST / WK), the Raja lens
 vetoes and the sideways check.
 
@@ -35,14 +36,20 @@ RAJA = {
     'curve_high': 75,          # InpCurveHigh
     'chop_swings': 3,          # InpRjBChopSwings
     'chop_tf_htf': True,       # InpRjBChopTF=1 (zone TF or the Direction HTF)
-    'sl_pct': {'D1': 10.0, 'W1': 5.0, 'MN': 3.0},   # InpSlPctD1 / InpSlPctW1 / MN (owner's stop rule)
+    'sl_pct': {'W1': 5.0, 'MN': 3.0, '3M': 2.0},    # owner's stop rule: % of the zone height beyond the distal
     'sl_min': 0.03,            # InpSlMinPips=3 with a 0.01 point on stocks
     'atr_period': 14,          # iATR(_Symbol, tf, 14)
 }
 
 DST_NA, DST_TREND, DST_TURN, DST_CHG, DST_PULL, DST_RANGE = 0, 1, 2, 3, 4, 5
 STATE_NAME = {DST_NA: 'n/a', DST_TREND: 'TREND', DST_TURN: 'TURNING', DST_CHG: 'CHANGED', DST_PULL: 'PULLBACK', DST_RANGE: 'RANGE'}
-TF_CLASS = {'D1': 2, 'W1': 2, 'MN': 3}
+TF_CLASS = {'D1': 2, 'W1': 2, 'MN': 3, '3M': 3, '6M': 3}
+ZONE_TFS = ('W1', 'MN', '3M')            # the only zone / entry timeframes (owner: for stocks never below W1)
+HTF_OF = {'W1': 'MN', 'MN': '3M', '3M': '6M', '6M': None}   # the location chain one level up (6M = context level)
+MIN_ROW_BARS = {'3M': 21, '6M': 16}      # Direction row minimum (SBars incl. the forming bar); default 40.
+                                         # Alpaca serves from 2016: ~43 quarters, ~21 half-years.
+SOFT_TFS = ('6M',)                       # context levels: they only block when a strong zone is within reach
+SOFT_REACH_PCT = 30.0                    # ... = its proximal within 30% of price
 
 
 @dataclass
@@ -623,7 +630,7 @@ class Row:
 def eval_row(S: Series, p=RAJA) -> Row:
     """DirEvalTF: S, T, R, C, L and the state of one timeframe. The price-dependent L part (in_z) uses S.price."""
     r = Row(tf=S.tf, S=S)
-    if S.n < 40 or S.atr(1) <= 0:
+    if S.n < MIN_ROW_BARS.get(S.tf, 40) or S.atr(1) <= 0:
         return r
     r.ok = True
     r.swings = htf_trend(S)
@@ -699,10 +706,12 @@ def trend_up(r: Optional[Row]) -> bool:
     return r is not None and r.ok and r.side > 0 and r.st in (DST_TREND, DST_CHG)
 
 
-def ath_curve_ok(curve: 'Curve', w1: Optional[Row], mn: Optional[Row]) -> bool:
-    """Owner rule: no MN strong supply above (near all-time highs), so the Raja curve cannot be measured (fallback
-    100-bar MN range curve), and W1 + MN both trend up -> the curve does not block a buy."""
-    return curve.ok and not curve.raja and trend_up(w1) and trend_up(mn)
+def ath_curve_ok(curve: 'Curve', *htf: Optional[Row]) -> bool:
+    """Owner rule: no strong HTF supply above (near all-time highs), so the Raja curve cannot be measured (fallback
+    100-bar range curve), and the next two higher timeframes both trend up -> the curve does not block a buy.
+    W1 entry: MN + 3M; MN entry: 3M; 3M entry: 3M itself (None rows are skipped, at least one row needed)."""
+    rows = [r for r in htf if r is not None]
+    return curve.ok and not curve.raja and bool(rows) and all(trend_up(r) for r in rows)
 
 
 def run_end(z: Zone) -> int:
@@ -783,8 +792,9 @@ class Direction:
         return ('LONG' if self.side > 0 else 'SHORT') + (' - FULL' if self.q == 2 else ' - REDUCED')
 
 
-def dir_combine(e: Row, i: Row, h: Row, curve: Curve, p=RAJA) -> Direction:
-    """DirCombine for the Raja table (InpDirTable=3) on a D1 chart: ETF D1, ITF W1, HTF MN (no Higher+1 row)."""
+def dir_combine(e: Optional[Row], i: Optional[Row], h: Optional[Row], curve: Curve, p=RAJA) -> Direction:
+    """DirCombine for the Raja table (InpDirTable=3), one chain per entry TF: W1 entry = ETF W1, ITF MN, HTF 3M;
+    MN entry = MN, 3M, 3M; 3M entry = 3M, -, 3M (no Higher+1 row)."""
     D = Direction(curve=curve)
     side, q, realign = 0, 2, False
     h_side = trend_side(h)
@@ -797,8 +807,9 @@ def dir_combine(e: Row, i: Row, h: Row, curve: Curve, p=RAJA) -> Direction:
     if curve.ok:
         cv = -1 if curve.value >= p['curve_high'] else (1 if curve.value <= p['curve_low'] else 0)
         if cv < 0 and ath_curve_ok(curve, i, h):
-            cv = 0                                  # owner rule: no MN supply overhead + W1 / MN up, no sell vote
-            D.notes.append('no MN supply overhead (ATH area), W1 + MN up: curve not used')
+            cv = 0                                  # owner rule: no HTF supply overhead + the HTFs up, no sell vote
+            ups = ' + '.join(dict.fromkeys(r.tf for r in (i, h) if r is not None))
+            D.notes.append(f'no {curve.tf} supply overhead (ATH area), {ups} up: curve not used')
         if cv != 0:
             D.blocked = -cv
             if side == 0:
@@ -889,7 +900,7 @@ def projection(S: Series, z: 'Zone', lookback: int = PROJ_LOOKBACK) -> Tuple[flo
 
 
 def stop_buffer(h: float, tf: str, p=RAJA) -> float:
-    """RjC_StopBuf with InpSlMode=1: a % of the zone height beyond the distal (D1 10%, W1 5%, MN 3%), min 3 points."""
+    """RjC_StopBuf with InpSlMode=1: a % of the zone height beyond the distal (W1 5%, MN 3%, 3M 2%), min 3 points."""
     return max(p['sl_pct'].get(tf, 5.0) / 100.0 * h, p['sl_min'])
 
 
@@ -1031,6 +1042,193 @@ def dna(S: Series, zs: List[Zone], i: int, tl: TLState, higher: List[Row], htf_o
         win = sa >= 1 and d * (adv(sa) - ext(L + 1)) > 0
         x.gap_away = gap_open >= 0.10 or win
     return x
+
+
+# ---- 3M bars + the owner's top-down location rule ------------------------------------------------------------------
+def period_key(tf: str, d: str):
+    """The bucket of an ISO date on tf: W1 ISO week, MN (year, month), 3M (year, quarter 0-3), D1 the date."""
+    y, m = int(d[:4]), int(d[5:7])
+    if tf == 'MN':
+        return (y, m)
+    if tf == '3M':
+        return (y, (m - 1) // 3)
+    if tf == '6M':
+        return (y, (m - 1) // 6)
+    if tf == 'W1':
+        import datetime as _dt
+        return tuple(_dt.date.fromisoformat(d[:10]).isocalendar()[:2])
+    return d
+
+
+def to_quarters(mn: Sequence[Bar], months: int = 3) -> List[Bar]:
+    """3M bars (Jan-Mar, Apr-Jun, Jul-Sep, Oct-Dec; months=6: 6M Jan-Jun, Jul-Dec) from CLOSED monthly bars, oldest
+    first. A period is closed once its last month is in the list (the forming one is dropped); a first period whose
+    first month is missing (history starts mid-period) is dropped too (its open and range are unknown).
+    Date = the period's first day."""
+    tf = '6M' if months == 6 else '3M'
+    groups: List[Tuple[tuple, List[Bar]]] = []
+    for b in mn:
+        k = period_key(tf, b.d)
+        if groups and groups[-1][0] == k:
+            groups[-1][1].append(b)
+        else:
+            groups.append((k, [b]))
+    out: List[Bar] = []
+    months_n = months
+    for n, (k, bs) in enumerate(groups):
+        months = {int(b.d[5:7]) for b in bs}
+        if months_n * (k[1] + 1) not in months:
+            continue                                   # the forming period (or a gap at its end)
+        if n == 0 and months_n * k[1] + 1 not in months:
+            continue                                   # history starts mid-period
+        out.append(Bar(bs[0].d, bs[0].o, max(b.h for b in bs), min(b.l for b in bs), bs[-1].c, sum(b.v for b in bs)))
+    return out
+
+
+def to_halves(mn: Sequence[Bar]) -> List[Bar]:
+    """6M bars (Jan-Jun, Jul-Dec) from closed monthly bars (see to_quarters)."""
+    return to_quarters(mn, 6)
+
+
+LOC_TOL = 0.25        # a zone may sit up to 25% of the HTF zone's height beyond the HTF proximal and still be "at" it
+LOC_AWAY = 2.0        # the current visit ends (walking back) at a bar more than 2 HTF zone heights beyond the proximal
+
+
+def visit_touched(z: Zone, d1: Optional[Series], htf: Series, away: float = LOC_AWAY) -> bool:
+    """The HTF zone z was touched in the CURRENT visit: walking back from the newest bar (D1 bars first, so this
+    month's / quarter's touch counts before the HTF bar closes; then the older HTF bars), a bar whose low (supply:
+    high) reached the proximal comes before a bar more than `away` zone heights beyond it. Bars of the zone's own
+    stay-away period or older never count (the base itself sits at the proximal)."""
+    d, made = z.dir, period_key(z.tf, z.made) if z.made else None
+    lim = z.prox + d * away * z.h
+
+    def look(lo, hi):
+        if (lo <= z.prox) if d > 0 else (hi >= z.prox):
+            return True
+        if (lo > lim) if d > 0 else (hi < lim):
+            return False
+        return None
+    first = ''
+    if d1 is not None:
+        for j in range(0, d1.n):
+            if made is not None and period_key(z.tf, d1.T[j]) <= made:
+                return False
+            r = look(d1.L[j], d1.H[j])
+            if r is not None:
+                return r
+        first = d1.T[-1] if d1.n else ''
+    for j in range(1, min(z.sa_bar, htf.n)):
+        if first and htf.T[j] >= first:
+            continue
+        r = look(htf.L[j], htf.H[j])
+        if r is not None:
+            return r
+    return False
+
+
+@dataclass
+class Loc:
+    ok: bool                 # the zone may give BUY / WATCH (a supply: an EXIT / short-side warning)
+    code: str                # inside / top / below / above / untouched / none / unknown (see location())
+    text: str
+    chain: List[dict] = field(default_factory=list)   # top-down steps, the zone itself last
+    host: Optional[Zone] = None
+    pending: Optional[Zone] = None
+    pending_pct: float = 0.0
+    tl_open: bool = False
+
+    @property
+    def chain_text(self) -> str:
+        return chain_text(self.chain)
+
+
+def _step(z: Zone, touched: Optional[bool], entry: bool = False) -> dict:
+    return {'tf': z.tf, 'side': 'demand' if z.dir > 0 else 'supply', 'proximal': round(z.prox, 2),
+            'distal': round(z.dist, 2), 'touched': touched, 'entry': entry}
+
+
+def chain_text(chain: List[dict]) -> str:
+    """'3M demand 80.00–74.00 touched ✓ → MN demand 82.00–79.00 touched ✓ → W1 entry 81.20–80.10'."""
+    out = []
+    for c in chain:
+        zz = f"{c['proximal']:.2f}–{c['distal']:.2f}"
+        if c.get('entry'):
+            out.append(f"{c['tf']} entry {zz}")
+        else:
+            out.append(f"{c['tf']} {c['side']} {zz} " + ('touched ✓' if c.get('touched') else 'not touched ✗'))
+    return ' → '.join(out)
+
+
+def location(z: Zone, rows: dict, price: float, eligible, touched, tol: float = LOC_TOL, p=RAJA) -> Loc:
+    """Owner's top-down rule (both sides mirrored): a W1 zone trades only inside an MN area, an MN zone only inside a
+    3M area, a 3M zone is the top level.
+      inside     the nearest eligible (strong ARR / WOW / STR, <= 3 touches, not removed) HTF zone of the same side
+                 that the zone overlaps (or sits within tol x its height beyond its proximal) was touched in the
+                 current visit -> ok. One level further up (3M for a W1 zone) must not still hold an untouched
+                 strong area beyond / around that host (then: 'below' / 'untouched' of the host, blocked).
+      below      (supply: above) no touched host, and a strong untouched HTF zone still lies beyond the zone: price
+                 likely sells (rallies) into it first -> blocked
+      untouched  the host HTF zone exists but price has not reached its proximal yet -> blocked
+      none       no strong HTF zone at the zone -> blocked (no higher-timeframe area)
+      unknown    no HTF row (short history) -> blocked for buys (the caller may allow exits)
+      top        3M zone -> ok
+    eligible(row, i) -> bool and touched(row, zone) -> bool are given by the caller (DNA type / visit touch)."""
+    d = z.dir
+    side = 'demand' if d > 0 else 'supply'
+    me = _step(z, None, True)
+    htf = HTF_OF.get(z.tf)
+    if htf is None:
+        return Loc(True, 'top', f'{z.tf} {side}: the top timeframe (no higher area to wait for)', [me])
+    H = rows.get(htf)
+    soft = htf in SOFT_TFS
+    if soft and (H is None or not H.ok):
+        return Loc(True, 'top', f'{z.tf} {side}: top tradeable timeframe ({htf} n/a: short history)', [me])
+    if H is None or not H.ok:
+        return Loc(False, 'unknown', f'no {htf} history to locate the {z.tf} {side}', [me])
+    host, host_t, pend = None, False, None
+    for i, o in enumerate(H.zones):
+        if o.dir != d or o.removed or o.leg_bar > p['max_zone_age'] or not eligible(H, i):
+            continue
+        b_lo, b_hi = (o.lo, o.prox + tol * o.h) if d > 0 else (o.prox - tol * o.h, o.hi)
+        if z.lo <= b_hi and z.hi >= b_lo:
+            t = touched(H, o)
+            if host is None or (t and not host_t) or (t == host_t and d * (o.prox - host.prox) > 0):
+                host, host_t = o, t
+            continue
+        beyond = b_hi < z.lo if d > 0 else b_lo > z.hi
+        if soft and abs(o.prox - price) / price * 100 > SOFT_REACH_PCT:
+            continue                                   # a context level counts only within reach
+        if beyond and d * (price - o.prox) > 0 and not touched(H, o) and (pend is None or d * (o.prox - pend.prox) > 0):
+            pend = o
+    R = rows.get(z.tf)
+    tl_open = False
+    if R is not None and R.ok:
+        t = R.tl.dn if d > 0 else R.tl.up
+        tl_open = bool((R.tl.dn_on if d > 0 else R.tl.up_on) and t is not None and t.cross_bar < 0)
+    word = 'down' if d > 0 else 'up'
+    tl_txt = f'; the {z.tf} {word} trendline is not crossed yet' if tl_open else ''
+    if host is not None and host_t:
+        up = location(host, rows, price, eligible, touched, tol, p)
+        chain = (up.chain[:-1] if up.code in ('inside', 'below', 'above', 'untouched') else []) + [_step(host, True), me]
+        if up.code in ('below', 'above', 'untouched'):
+            return Loc(False, up.code, f'inside the touched {htf} {side} {host.prox:.2f}–{host.dist:.2f}, but {up.text}',
+                       chain, host, up.pending, up.pending_pct, up.tl_open)
+        return Loc(True, 'inside', f'inside the touched {htf} {side} {host.prox:.2f}–{host.dist:.2f}', chain, host)
+    if soft and host is not None and abs(host.prox - price) / price * 100 > SOFT_REACH_PCT:
+        host = None
+    if pend is not None:
+        pct = (pend.prox - price) / price * 100
+        far = 'below' if d > 0 else 'above'
+        verb = 'sells' if d > 0 else 'rallies'
+        return Loc(False, far, f'HTF area not reached: strong {htf} {side} at {pend.prox:.2f}–{pend.dist:.2f} still {far} '
+                   f'({pct:+.1f}%), price likely {verb} into it first{tl_txt}', [_step(pend, False), me], None, pend, pct, tl_open)
+    if host is not None:
+        pct = (host.prox - price) / price * 100
+        return Loc(False, 'untouched', f'{htf} {side} {host.prox:.2f}–{host.dist:.2f} not touched yet ({pct:+.1f}%): '
+                   f'wait for price to reach the {htf} area{tl_txt}', [_step(host, False), me], None, host, pct, tl_open)
+    if soft:
+        return Loc(True, 'top', f'{z.tf} {side}: top tradeable timeframe (no strong {htf} {side} within reach)', [me])
+    return Loc(False, 'none', f'no strong {htf} {side} at the zone: no higher-timeframe area to trade from', [me])
 
 
 ZONE_TYPE_TEXT = {

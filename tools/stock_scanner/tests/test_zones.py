@@ -114,9 +114,10 @@ class DnaTest(unittest.TestCase):
         self.assertFalse(Z.dna(S, zs, i, Z.TLState(), [], [far], Z.Curve(), None).next_opp_htf)
 
     def test_stop_buffer_owner_rule(self):
-        self.assertAlmostEqual(Z.stop_buffer(2.0, 'D1'), 0.2)
         self.assertAlmostEqual(Z.stop_buffer(2.0, 'W1'), 0.1)
-        self.assertAlmostEqual(Z.stop_buffer(0.1, 'D1'), 0.03)               # minimum 3 points
+        self.assertAlmostEqual(Z.stop_buffer(2.0, 'MN'), 0.06)
+        self.assertAlmostEqual(Z.stop_buffer(10.0, '3M'), 0.2)
+        self.assertAlmostEqual(Z.stop_buffer(0.1, 'W1'), 0.03)               # minimum 3 points               # minimum 3 points
 
 
 class TrendlineTest(unittest.TestCase):

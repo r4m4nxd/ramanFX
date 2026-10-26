@@ -46,10 +46,10 @@ OOS_FRAC = 0.30
 
 
 def htf_index(bars: List[Bar], tf: str):
-    """For each daily index d: the closed W1 / MN bars as of d (list prefix length) + the aggregated bars."""
+    """For each daily index d: the closed W1 / MN / 3M / 6M bars as of d (list prefix length) + the aggregated bars."""
     agg: List[Bar] = []
     last_idx: List[int] = []
-    key = (lambda d: d.isocalendar()[:2]) if tf == 'W1' else (lambda d: (d.year, d.month))
+    key = (lambda d: d.isocalendar()[:2]) if tf == 'W1' else (lambda d: Z.period_key(tf, d.isoformat()))
     cur = None
     for i, b in enumerate(bars):
         k = key(dt.date.fromisoformat(b.d))
@@ -75,29 +75,42 @@ def _calendar_complete(d: str, key) -> bool:
     return key(DATA._next_business_day(x)) != key(x)
 
 
-def candidates(bars: List[Bar]) -> Dict[int, List[str]]:
-    """Cheap pre-filter: days where some D1 / W1 demand zone (found on the whole history, known by that day, not yet
-    removed or tested by then) is within the approach distance under the close. analyse() then decides for real."""
+MIN_HTF = {'W1': 60, 'MN': 40, '3M': 20}
+
+
+def candidates(bars: List[Bar], tfs=None) -> Dict[int, List[str]]:
+    """Cheap pre-filter: days where some W1 / MN / 3M demand zone (found on the whole history, known by that day, not
+    yet removed or tested by then) is within the approach distance under the daily close (D1 bars: the price only).
+    analyse() then decides for real. tfs = the zone TFs (default scan.TRADE_TFS; the legacy comparison passes D1)."""
     out: Dict[int, List[str]] = defaultdict(list)
     n = len(bars)
-    full = Z.Series(bars, bars[-1].c, 'D1')
-    p = dict(RAJA, lookback=n)
-    abs_ = lambda s: n - s   # shift -> daily index
-    for z in Z.detect(full, p):
-        if z.dir < 0:
-            continue
-        known, L = abs_(z.sa_bar), abs_(z.leg_bar)
-        dead = min(abs_(z.removed_bar) if z.removed else n, abs_(z.tested_bar) if z.tested else n)
-        for d in range(max(known, WARMUP), min(dead, n)):
-            if d - L > RAJA['max_zone_age']:
-                break
-            c = bars[d].c
-            if z.dist < c and c - z.prox <= max(scan.APPROACH_H * z.h, scan.APPROACH_PCT * c):
-                out[d].append(z.zid)
-    # W1 zones: approach test on the daily close, zone known once its stay-away week closed
-    w1, upto = htf_index(bars, 'W1')
-    if len(w1) > 60:
-        Sw = Z.Series(w1, w1[-1].c, 'W1')
+    tfs = tuple(tfs or scan.TRADE_TFS)
+    if 'D1' in tfs:
+        full = Z.Series(bars, bars[-1].c, 'D1')
+        p = dict(RAJA, lookback=n)
+        abs_ = lambda s: n - s   # shift -> daily index
+        for z in Z.detect(full, p):
+            if z.dir < 0:
+                continue
+            known, L = abs_(z.sa_bar), abs_(z.leg_bar)
+            dead = min(abs_(z.removed_bar) if z.removed else n, abs_(z.tested_bar) if z.tested else n)
+            for d in range(max(known, WARMUP), min(dead, n)):
+                if d - L > RAJA['max_zone_age']:
+                    break
+                c = bars[d].c
+                if z.dist < c and c - z.prox <= max(scan.APPROACH_H * z.h, scan.APPROACH_PCT * c):
+                    out[d].append(z.zid)
+    # HTF zones: approach test on the daily close, zone known once its stay-away week / month / quarter closed
+    for tf in (t for t in tfs if t != 'D1'):
+        _htf_candidates(bars, tf, out)
+    return out
+
+
+def _htf_candidates(bars: List[Bar], tf: str, out) -> None:
+    n = len(bars)
+    w1, upto = htf_index(bars, tf)
+    if len(w1) > MIN_HTF.get(tf, 20):
+        Sw = Z.Series(w1, w1[-1].c, tf)
         nw = len(w1)
         pw = dict(RAJA, lookback=nw)
         first_day = {}
@@ -114,7 +127,6 @@ def candidates(bars: List[Bar]) -> Dict[int, List[str]]:
                 c = bars[d].c
                 if d >= WARMUP and z.dist < c and c - z.prox <= max(scan.APPROACH_H * z.h, scan.APPROACH_PCT * c):
                     out[d].append(z.zid)
-    return out
 
 
 _IDX_MEMO: Dict[str, Optional[Dict]] = {}

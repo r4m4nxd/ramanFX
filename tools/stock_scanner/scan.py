@@ -6,13 +6,19 @@
     python tools/stock_scanner/scan.py --offline            # cached data only
     python tools/stock_scanner/scan.py --preview-telegram   # the Telegram messages of the published JSON, not sent
 
-BUY   price is approaching a FRESH demand zone (D1, W1 or MN; nothing below D1) of type ARR / WOW / STR, direction up (D1 -> W1 -> MN),
-      demand below 50% of the curve (owner: no MN supply overhead + W1 / MN trend up = allowed), no HTF supply on top
-      of it, room >= 2x the stop (3x = good) to the next supply (none above: the 250% projection, L5),
+Owner (TFSA, holds weeks to a year): zones on W1, MN and 3M only (never below W1; D1 bars are used only for the
+close / approach / touch checks), top-down: a W1 zone only inside an MN demand price has ALREADY touched, an MN zone
+only inside a touched 3M demand, 3M is the top (zones.location()). A strong untouched HTF demand still below = "an
+area left to be sold first": no BUY / WATCH there. Supply mirrored (EXIT warnings only at a located supply).
+
+BUY   price is approaching a FRESH demand zone (W1, MN or 3M) of type ARR / WOW / STR, located in a touched HTF
+      demand (above), direction up (chain W1 -> MN -> 3M, one level up for MN / 3M zones), demand below 50% of the
+      curve (3M, MN fallback; owner: no HTF supply overhead + the next two HTFs trend up = allowed), no HTF supply on
+      top of it, room >= 2x the stop (3x = good) to the next supply (none above: the 250% projection, L5),
       not sideways, no 3rd CP, no earnings in the next 10 trading days (when the date is known).
-WATCH new strong zones of the last 5 sessions with price still far, and tested zones (2nd / 3rd touch) that need a
-      confirmation one timeframe lower (MN -> W1, W1 -> D1; a D1 zone: a D1 close back above the proximal).
-EXIT  holdings (holdings.json or env HOLDINGS_JSON) near the next supply, demand broken by a close, stop hit by close.
+WATCH new strong located zones of the last 5 sessions with price still far, and tested zones (2nd / 3rd touch) that
+      need a confirmation one timeframe lower (3M -> MN, MN -> W1; a W1 zone: a W1 close back above the proximal).
+EXIT  holdings (holdings.json or env HOLDINGS_JSON) near the next located supply, demand broken by a close, stop hit by close.
 Every signal carries the list of rules it was checked against (pass / fail / warn / unknown).
 """
 from __future__ import annotations
@@ -86,11 +92,16 @@ def supply_score(x: Z.DNA, fresh: bool) -> int:
 class Analysis:
     price: float
     date: str
-    d1: Z.Row
+    d1: Z.Row                  # D1 bars for price checks only (never evaluated: no D1 zones, no D1 direction)
     w1: Z.Row
     mn: Z.Row
-    direction: Z.Direction
+    direction: Z.Direction     # the W1 entry's direction (W1 -> MN -> 3M); per entry TF in dirs
     curve: Z.Curve
+    q3: Optional[Z.Row] = None
+    h6: Optional[Z.Row] = None        # 6M (half-year) context level above 3M (never an entry TF)
+    dirs: Dict[str, Z.Direction] = field(default_factory=dict)
+    crow: Optional[Z.Row] = None      # the curve's row (3M, MN fallback)
+    memo: Dict = field(default_factory=dict)
     dna: Dict[str, Z.DNA] = field(default_factory=dict)
     sideways: Dict[str, bool] = field(default_factory=dict)
     d1_dates: List[str] = field(default_factory=list)
@@ -99,13 +110,14 @@ class Analysis:
 
 
 def analyse(d1_bars: List[Bar], w1_bars: List[Bar], mn_bars: List[Bar], price: Optional[float] = None,
-            row_cache: Optional[dict] = None, p=RAJA) -> Analysis:
-    """Everything the rules need at the last closed D1 bar. w1_bars / mn_bars = CLOSED weekly / monthly bars.
-    row_cache (backtest): reuses the W1 / MN rows while no new W1 / MN bar has closed (they read closed bars only)."""
+            row_cache: Optional[dict] = None, p=RAJA, q3_bars: Optional[List[Bar]] = None) -> Analysis:
+    """Everything the rules need at the last closed D1 bar. w1_bars / mn_bars = CLOSED weekly / monthly bars, 3M =
+    the closed quarters built from mn_bars unless q3_bars is given. row_cache (backtest): reuses the W1 / MN / 3M rows
+    while no new bar of that TF has closed (they read closed bars only). D1 is never a zone / direction row."""
     d1_bars = d1_bars[-D1_WINDOW:]
     px = d1_bars[-1].c if price is None else price
     S1 = Series(d1_bars, px, 'D1')
-    d1 = Z.eval_row(S1, p)
+    d1 = Z.Row(tf='D1', S=S1)
 
     def row(bars, tf):
         key = (tf, bars[-1].d if bars else '', len(bars))
@@ -118,44 +130,126 @@ def analyse(d1_bars: List[Bar], w1_bars: List[Bar], mn_bars: List[Bar], price: O
             row_cache[key] = r
         return r
     w1, mn = row(w1_bars, 'W1'), row(mn_bars, 'MN')
-    curve = Z.dir_curve(mn, px)
-    direction = Z.dir_combine(d1, w1, mn, curve, p)
-    an = Analysis(price=px, date=d1_bars[-1].d, d1=d1, w1=w1, mn=mn, direction=direction, curve=curve,
-                  d1_dates=[b.d for b in d1_bars])
+    q3 = row(q3_bars if q3_bars is not None else Z.to_quarters(mn_bars), '3M')
+    h6 = row(Z.to_halves(mn_bars), '6M')
+    crow = q3 if q3.ok else mn                                  # curve: 3M strong zones, MN when 3M is too short
+    curve = Z.dir_curve(crow, px)
+    dirs = {'W1': Z.dir_combine(w1, mn, q3, curve, p), 'MN': Z.dir_combine(mn, q3, q3, curve, p),
+            '3M': Z.dir_combine(q3, None, q3, curve, p)}
+    an = Analysis(price=px, date=d1_bars[-1].d, d1=d1, w1=w1, mn=mn, direction=dirs['W1'], curve=curve, q3=q3, h6=h6,
+                  dirs=dirs, crow=crow if crow.ok else None, d1_dates=[b.d for b in d1_bars])
     an.fv = Z.fair_value(S1, FV_BARS)
-    an.sideways = {'D1': Z.sideways(S1, p) if d1.ok else False, 'W1': Z.sideways(w1.S, p) if w1.ok else False,
-                   'MN': Z.sideways(mn.S, p) if mn.ok else False}
-    # DNA of the demand zones under price (the scanner is long only) on D1, W1 and MN (MN has no higher row: its own
+    an.sideways = {r.tf: Z.sideways(r.S, p) if r.ok else False for r in (w1, mn, q3)}
+    # DNA of the demand zones under price (the scanner is long only) on W1, MN and 3M (3M has no higher row: its own
     # supplies give the room, no HTF veto above it)
     for r, higher in stack(an):
         if not r.ok:
             continue
         for i, z in enumerate(r.zones):
             if z.dir > 0 and not z.removed and z.dist < px:
-                an.dna[z.zid] = Z.dna(r.S, r.zones, i, r.tl, higher, htf_opp(an, r), curve, mn if mn.ok else None, TP_OFFSET, p)
+                an.dna[z.zid] = Z.dna(r.S, r.zones, i, r.tl, higher, htf_opp(an, r), curve, an.crow, TP_OFFSET, p)
     return an
 
 
-TRADE_TFS = ('D1', 'W1', 'MN')   # the only zone timeframes (owner: nothing smaller than D1)
+TRADE_TFS = Z.ZONE_TFS           # ('W1', 'MN', '3M'): the only zone timeframes (owner: for stocks never below W1)
+
+
+def zone_rows(an: 'Analysis') -> List[Z.Row]:
+    """The zone rows W1, MN, 3M (3M absent on a hand-built Analysis)."""
+    return [r for r in (an.w1, an.mn, an.q3) if r is not None]
+
+
+def row_of(an: 'Analysis', tf: Optional[str]) -> Optional[Z.Row]:
+    return {'W1': an.w1, 'MN': an.mn, '3M': an.q3, '6M': an.h6}.get(tf or '')
 
 
 def stack(an: 'Analysis') -> List[Tuple[Z.Row, List[Z.Row]]]:
-    """The tradeable rows with the rows above each: D1 [W1, MN], W1 [MN], MN []."""
-    return [(an.d1, [an.w1, an.mn]), (an.w1, [an.mn]), (an.mn, [])]
+    """The tradeable rows with the rows above each: W1 [MN, 3M], MN [3M], 3M []."""
+    rs = zone_rows(an)
+    return [(r, rs[k + 1:]) for k, r in enumerate(rs)]
 
 
 def htf_opp(an: 'Analysis', r: Z.Row) -> List[Z.Zone]:
-    """Zones of the HTF veto ('inside / next to an opposite HTF zone'): MN for D1 / W1, none for MN itself."""
-    return an.mn.zones if an.mn.ok and r is not an.mn else []
+    """Zones of the HTF veto ('inside / next to an opposite HTF zone'): one level up (W1 -> MN, MN -> 3M), none for 3M."""
+    h = row_of(an, Z.HTF_OF.get(r.tf))
+    return h.zones if h is not None and h.ok and h.tf not in Z.SOFT_TFS else []
 
 
 def dna_of(an: 'Analysis', r: Z.Row, i: int) -> Z.DNA:
     z = r.zones[i]
-    x = an.dna.get(z.zid)
+    x = an.dna.get(z.zid) or an.memo.get(('dna', z.zid))
     if x is None:
         higher = dict((id(a), h) for a, h in stack(an)).get(id(r), [])
-        x = Z.dna(r.S, r.zones, i, r.tl, higher, htf_opp(an, r), an.curve, an.mn if an.mn.ok else None, TP_OFFSET)
+        x = Z.dna(r.S, r.zones, i, r.tl, higher, htf_opp(an, r), an.curve, an.crow, TP_OFFSET)
+        an.memo[('dna', z.zid)] = x
     return x
+
+
+def loc_of(an: 'Analysis', z: Z.Zone) -> Z.Loc:
+    """The owner's top-down location of zone z (zones.location), memoised per analysis. HTF zones count when they
+    are strong (ARR / WOW / STR), <= 3 touches, not removed; touched = in the current visit (D1 lows / highs first)."""
+    key = ('loc', z.zid)
+    if key in an.memo:
+        return an.memo[key]
+    rows = {'W1': an.w1, 'MN': an.mn, '3M': an.q3, '6M': an.h6}
+
+    def eligible(R, i):
+        x = dna_of(an, R, i)
+        return x.code in STRONG and x.n_tests <= L.MAX_TOUCHES
+
+    def touched(R, o):
+        k = ('touch', o.zid)
+        if k not in an.memo:
+            an.memo[k] = Z.visit_touched(o, an.d1.S, R.S)
+        return an.memo[k]
+    lc = Z.location(z, rows, an.price, eligible, touched)
+    an.memo[key] = lc
+    return lc
+
+
+def loc_fields(lc: Z.Loc) -> Dict:
+    """JSON of a location: loc (code), loc_ok, loc_text, chain (top-down steps) and chain_text."""
+    return {'loc': lc.code, 'loc_ok': lc.ok, 'loc_text': lc.text, 'chain': lc.chain, 'chain_text': lc.chain_text}
+
+
+def ath_rows(an: 'Analysis', tf: str) -> List[Z.Row]:
+    """The next two HTFs of an entry TF for the owner's ATH curve rule: W1 -> MN + 3M, MN -> 3M, 3M -> 3M."""
+    a = Z.HTF_OF.get(tf)
+    b = Z.HTF_OF.get(a) if a else None
+    out = [r for r in (row_of(an, a), row_of(an, b)) if r is not None and (r.ok or r.tf not in Z.SOFT_TFS)]
+    return out or [r for r in (row_of(an, tf),) if r is not None]
+
+
+def six_context(an: 'Analysis') -> Dict:
+    """6M (half-year) context shown on every signal / detail: trend state and where price sits against the nearest
+    fresh 6M zones (in demand / approaching demand / in supply / approaching supply / middle). 'n/a (short history)'
+    when there are too few half-year bars (Alpaca from 2016 gives ~20)."""
+    if ('ctx6',) in an.memo:
+        return an.memo[('ctx6',)]
+    an.memo[('ctx6',)] = out = _six_context(an)
+    return out
+
+
+def _six_context(an: 'Analysis') -> Dict:
+    h = an.h6
+    if h is None or not h.ok:
+        return {'tf': '6M', 'ok': False, 'trend': 'n/a', 'where': 'n/a', 'text': '6M: n/a (short history)'}
+    px, where, zz = an.price, 'middle', None
+    dem = [z for z in h.zones if z.dir > 0 and Z.fresh_at(h.S, z) and z.dist < px]
+    sup = [z for z in h.zones if z.dir < 0 and Z.fresh_at(h.S, z) and z.dist > px]
+    dz = max(dem, key=lambda z: z.prox) if dem else None
+    sz = min(sup, key=lambda z: z.prox) if sup else None
+    if dz is not None and px <= dz.prox:
+        where, zz = 'in demand', dz
+    elif sz is not None and px >= sz.prox:
+        where, zz = 'in supply', sz
+    elif dz is not None and (px - dz.prox) / px * 100 <= Z.SOFT_REACH_PCT / 3:
+        where, zz = 'approaching demand', dz
+    elif sz is not None and (sz.prox - px) / px * 100 <= Z.SOFT_REACH_PCT / 3:
+        where, zz = 'approaching supply', sz
+    txt = f'6M: {where}' + (f' {zz.prox:.2f}–{zz.dist:.2f}' if zz is not None else '') + f' · trend {h.state_name}'
+    return {'tf': '6M', 'ok': True, 'trend': h.state_name, 'where': where,
+            'zone': [round(zz.prox, 2), round(zz.dist, 2)] if zz is not None else None, 'text': txt}
 
 
 def trading_days_until(today: str, date: str) -> int:
@@ -171,7 +265,7 @@ def trading_days_until(today: str, date: str) -> int:
 
 
 def plan(z: Z.Zone, x: Z.DNA) -> Dict:
-    """Owner's stop rule: distal - % of the zone height (D1 10%, W1 5%, MN 3%); target just before the next supply."""
+    """Owner's stop rule: distal - % of the zone height (W1 5%, MN 3%, 3M 2%); target just before the next supply."""
     entry = z.prox
     stop = z.dist - x.stop_buf
     nxt = [(v, dd) for v, dd in ((x.opp, x.opp_dist) if x.has_opp else (0, 0), (x.opp_htf, x.opp_htf_dist) if x.has_opp_htf else (0, 0)) if v > entry]
@@ -188,7 +282,9 @@ def plan(z: Z.Zone, x: Z.DNA) -> Dict:
 
 
 def zone_rules(an: Analysis, z: Z.Zone, x: Z.DNA, earnings: Optional[str]) -> List[Rule]:
-    px, D = an.price, an.direction
+    px, D = an.price, an.dirs.get(z.tf, an.direction)
+    htf = Z.HTF_OF.get(z.tf) or z.tf
+    ctf = an.curve.tf or htf
     approach = max(APPROACH_H * z.h, APPROACH_PCT * px)
     gap = px - z.prox
     R: List[Rule] = []
@@ -201,24 +297,29 @@ def zone_rules(an: Analysis, z: Z.Zone, x: Z.DNA, earnings: Optional[str]) -> Li
     strong = x.code in ('ARR', 'WOW', 'STR')
     R.append(Rule(PASS if strong else FAIL, f'Zone type {x.code}: {Z.ZONE_TYPE_TEXT[x.code]}', 'L1 · L51'))
     up = D.dir > 0
-    R.append(Rule(PASS if up else FAIL,
-                  f'Direction {D.head} (W1 {an.w1.state_name}, MN {an.mn.state_name}, D1 {an.d1.state_name})'
-                  + (f"; {'; '.join(D.notes)}" if D.notes else ''), 'L7 · L8 · L3'))
+    chain_tfs = [z.tf] + [t for t in (Z.HTF_OF.get(z.tf), Z.HTF_OF.get(Z.HTF_OF.get(z.tf) or '')) if t]
+    states = ', '.join(f'{t} {r.state_name}' for t in dict.fromkeys(chain_tfs) for r in (row_of(an, t),) if r is not None)
+    R.append(Rule(PASS if up else FAIL, f'Direction {D.head} ({states})' + (f"; {'; '.join(D.notes)}" if D.notes else ''),
+                  'L7 · L8 · L3'))
     cz = x.curve_zone
-    ctxt = f'Curve {cz:.0f}% ' + ('(MN strong zones, proximal to proximal)' if an.curve.raja else '(no MN strong pair: 100-bar MN range)')
-    if cz >= 50 and Z.ath_curve_ok(an.curve, an.w1, an.mn):
-        # owner rule: no MN supply overhead (all-time-high area), the Raja curve cannot be measured; W1 + MN trend up
-        R.append(Rule(WARN, f'Curve {cz:.0f}% (100-bar MN range): no MN supply overhead (ATH area); W1 {an.w1.state_name} + '
-                      f'MN {an.mn.state_name} trend up -> allowed (owner rule)', 'L4 · owner'))
+    ctxt = f'Curve {cz:.0f}% ' + (f'({ctf} strong zones, proximal to proximal)' if an.curve.raja else f'(no {ctf} strong pair: 100-bar {ctf} range)')
+    hr = ath_rows(an, z.tf)
+    ups = ' + '.join(f'{r.tf} {r.state_name}' for r in hr)
+    if cz >= 50 and Z.ath_curve_ok(an.curve, *hr):
+        # owner rule: no HTF supply overhead (all-time-high area), the Raja curve cannot be measured; the HTFs trend up
+        R.append(Rule(WARN, f'Curve {cz:.0f}% (100-bar {ctf} range): no {ctf} supply overhead (ATH area); {ups} '
+                      f'trend up -> allowed (owner rule)', 'L4 · owner'))
     else:
+        both = ' + '.join(r.tf for r in hr)
         R.append(Rule(PASS if cz <= RAJA['curve_low'] else (WARN if cz < 50 else FAIL),
                       ctxt + (': low curve, buyers only' if cz <= RAJA['curve_low'] else ': below 50%, confirmation side' if cz < 50
-                              else ': upper half, no buys' + ('' if an.curve.raja else ' (W1 + MN not both trending up)')), 'L4'))
+                              else ': upper half, no buys' + ('' if an.curve.raja else f' ({both} not all trending up)')), 'L4'))
     in_supply = D.lock < 0
+    lock_tf = an.q3.tf if an.q3 is not None and an.q3.ok else 'HTF'
     R.append(Rule(FAIL if (x.next_opp_htf or in_supply) else PASS,
-                  'Inside / next to a monthly supply: it gets removed, no trade' if x.next_opp_htf
-                  else 'Price sits inside a fresh monthly supply: wait until it is removed' if in_supply
-                  else 'No monthly supply on top of the zone', 'L50 · L52'))
+                  f'Inside / next to a {htf} supply: it gets removed, no trade' if x.next_opp_htf
+                  else f'Price sits inside a fresh {lock_tf} supply: wait until it is removed' if in_supply
+                  else f'No {htf} supply on top of the zone', 'L50 · L52'))
     p = plan(z, x)
     if p['target'] is None:
         R.append(Rule(FAIL, 'No supply zone above and no 250% projection (no correction to measure, or the run-out already '
@@ -230,9 +331,9 @@ def zone_rules(an: Analysis, z: Z.Zone, x: Z.DNA, earnings: Optional[str]) -> Li
         R.append(Rule(PASS if rr >= 3 else (WARN if rr >= 2 else FAIL),
                       f"Room {rr:.1f}x the stop to {to}" + (' (3x: good)' if rr >= 3 else ' (2x minimum)' if rr >= 2 else ' (< 2x: skip)'),
                       'L7 · L53' + (' · L5' if p['target_kind'] == 'projection' else '')))
-    sw = an.sideways.get(z.tf, False) or an.sideways.get('MN', False)
-    R.append(Rule(FAIL if sw else PASS, f"Sideways on {z.tf if an.sideways.get(z.tf) else 'MN'}: never trade a meshing market" if sw
-                  else f'Not sideways on {z.tf} or MN', 'L8 · L101'))
+    sw = an.sideways.get(z.tf, False) or an.sideways.get(htf, False)
+    R.append(Rule(FAIL if sw else PASS, f"Sideways on {z.tf if an.sideways.get(z.tf) else htf}: never trade a meshing market" if sw
+                  else f'Not sideways on {z.tf}' + (f' or {htf}' if htf != z.tf else ''), 'L8 · L101'))
     R.append(Rule(FAIL if x.cp_run >= 3 else PASS, f'CP x{x.cp_run} in a row: do not trade the next one' if x.cp_run >= 3
                   else 'Not the 3rd CP in a row', 'L8 · Kevin L13'))
     R.append(Rule(FAIL if x.did_job else PASS, 'Already did its job (reached the next supply before coming back): confirmation only'
@@ -250,6 +351,11 @@ def zone_rules(an: Analysis, z: Z.Zone, x: Z.DNA, earnings: Optional[str]) -> Li
         R.append(Rule(UNKNOWN, 'Earnings date unknown: check before the order', 'Kevin L12'))
     for k, r in enumerate(R):
         r.short = SHORT[k] if k < len(SHORT) else ''
+    # owner's top-down location (the key rule, first in the list): W1 inside a touched MN demand, MN inside a touched
+    # 3M demand, 3M = top; a strong untouched HTF demand still below blocks (price likely sells into it first)
+    lc = loc_of(an, z)
+    R.insert(0, Rule(PASS if lc.ok else FAIL, ('HTF location: ' + lc.text if lc.ok else lc.text)
+                     + (f' ({lc.chain_text})' if len(lc.chain) > 1 else ''), 'owner · L7', 'location'))
     # Pinndx-inspired context lines: never FAIL, so they can never block or change a BUY (Raja rules decide)
     fd = fv_dist_atr(an, z)
     if an.fv is not None and fd is not None:
@@ -267,18 +373,18 @@ def zone_rules(an: Analysis, z: Z.Zone, x: Z.DNA, earnings: Optional[str]) -> Li
 
 
 def fv_dist_atr(an: Analysis, z: Z.Zone) -> Optional[float]:
-    """(fair value low - demand proximal) / ATR14 (D1); positive = the zone sits below fair value."""
-    a = an.d1.S.atr(1) if an.d1.ok else 0
+    """(fair value low - demand proximal) / ATR14 (D1 bars, a price measure only); positive = below fair value."""
+    a = an.d1.S.atr(1) if an.d1.S.n > 1 else 0
     if an.fv is None or a <= 0:
         return None
     return (an.fv.lo - z.prox) / a if z.dir > 0 else (z.prox - an.fv.hi) / a
 
 
 def nearest_fresh(an: Analysis):
-    """(state, nearest fresh demand below + its row index, nearest fresh supply above + its row index) on D1 / W1 / MN.
+    """(state, nearest fresh demand below + its row index, nearest fresh supply above + its row index) on W1 / MN / 3M.
     state = 'demand' / 'supply' when price is inside a fresh zone, else 'middle'."""
     px, dem, sup, state = an.price, None, None, 'middle'
-    for r in (an.d1, an.w1, an.mn):
+    for r in zone_rows(an):
         if not r.ok:
             continue
         for i, z in enumerate(r.zones):
@@ -294,7 +400,7 @@ def nearest_fresh(an: Analysis):
 
 
 def gauge(an: Analysis) -> Dict:
-    """Nearest fresh D1 / W1 / MN demand below / supply above, % away, and the state (in demand / in supply / middle)."""
+    """Nearest fresh W1 / MN / 3M demand below / supply above, % away, and the state (in demand / in supply / middle)."""
     px = an.price
     state, dm, sp = nearest_fresh(an)
     dem, sup = (dm[0] if dm else None), (sp[0] if sp else None)
@@ -387,6 +493,7 @@ def index_context(bars: List[Bar]) -> Optional[Dict]:
     an = analyse(bars, DATA.closed_htf(bars, 'W1'), DATA.closed_htf(bars, 'MN'))
     g = gauge(an)
     g.update({'symbol': 'RFX', 'name': 'RFX index (equal-weight SPY, QQQ, IWM, DIA)', 'w1': an.w1.state_name, 'mn': an.mn.state_name,
+              'm3': an.q3.state_name if an.q3 is not None else 'n/a',
               'curve': round(an.curve.value, 1) if an.curve.ok else None, 'bars': compact_bars(bars)})
     g['aligned'] = index_aligned(g)
     return g
@@ -428,21 +535,21 @@ def _zone_dict(an: Analysis, z: Z.Zone, x: Z.DNA) -> Dict:
 def known_date(an: Analysis, z: Z.Zone) -> str:
     """The D1 session on which the zone became known: its stay-away candle's close. z.made is the stay-away bar's
     FIRST trading day, which on W1 is the Monday of that week; the week closes on its last session (usually Friday).
-    Comparing the Monday against "5 sessions ago" dropped every W1 zone made last week from WATCH 'new'."""
+    Comparing the Monday against "5 sessions ago" dropped every W1 zone made last week from WATCH 'new'. Same for
+    MN (the month's last session) and 3M (the quarter's last session)."""
     if z.tf == 'D1' or not z.made:
         return z.made
     try:
-        md = dt.date.fromisoformat(z.made)
+        dt.date.fromisoformat(z.made)
     except ValueError:
         return z.made
-    key = (lambda d: (d.year, d.month)) if z.tf == 'MN' else (lambda d: d.isocalendar()[:2])
-    wk = key(md)
-    same = [d for d in an.d1_dates if key(dt.date.fromisoformat(d)) == wk]
+    wk = Z.period_key(z.tf, z.made)
+    same = [d for d in an.d1_dates if Z.period_key(z.tf, d) == wk]
     return same[-1] if same else z.made
 
 
-LOWER_CONFIRM = {'MN': 'MN -> W1: trendline cross + opposite zone removed', 'W1': 'W1 -> D1: trendline cross + opposite zone removed',
-                 'D1': 'no TF below D1 is used: wait for a D1 close back above the proximal'}
+LOWER_CONFIRM = {'3M': '3M -> MN: trendline cross + opposite zone removed', 'MN': 'MN -> W1: trendline cross + opposite zone removed',
+                 'W1': 'no TF below W1 is used for stocks: wait for a W1 close back above the proximal'}
 
 
 def symbol_signals(an: Analysis, earnings: Optional[str] = None) -> List[Dict]:
@@ -450,7 +557,7 @@ def symbol_signals(an: Analysis, earnings: Optional[str] = None) -> List[Dict]:
     out: List[Dict] = []
     px = an.price
     recent = an.d1_dates[-NEW_ZONE_SESSIONS] if len(an.d1_dates) >= NEW_ZONE_SESSIONS else an.d1_dates[0]
-    for r in (an.d1, an.w1, an.mn):
+    for r in zone_rows(an):
         if not r.ok:
             continue
         for z in r.zones:
@@ -462,8 +569,10 @@ def symbol_signals(an: Analysis, earnings: Optional[str] = None) -> List[Dict]:
             approach_rule = next(k for k in rules if k.ref == 'Scanner')
             p = plan(z, x)
             base = {**_zone_dict(an, z, x), **p, **pinndx_fields(an, z, x, p), 'price': round(px, 2), 'score': raja_score(x, x.n_tests == 0 and not z.removed),
-                    'to_entry_pct': round((px - z.prox) / px * 100, 2), 'direction': an.direction.head,
-                    'w1': an.w1.state_name, 'mn': an.mn.state_name, 'rules': [k.as_dict() for k in rules]}
+                    'to_entry_pct': round((px - z.prox) / px * 100, 2), 'direction': an.dirs.get(z.tf, an.direction).head,
+                    'w1': an.w1.state_name, 'mn': an.mn.state_name, 'm3': an.q3.state_name if an.q3 is not None else 'n/a',
+                    'm6': an.h6.state_name if an.h6 is not None else 'n/a', 'ctx6': six_context(an)['text'],
+                    **loc_fields(loc_of(an, z)), 'rules': [k.as_dict() for k in rules]}
             if not fails:
                 out.append({**base, 'kind': 'BUY', 'note': 'Set and forget: limit at the proximal, stop and target in the market.'})
                 continue
@@ -492,14 +601,16 @@ def symbol_signals(an: Analysis, earnings: Optional[str] = None) -> List[Dict]:
 
 
 def holding_exits(an: Analysis, h: Dict) -> List[Dict]:
-    """EXIT warnings for one holding: stop hit by close, the demand under the entry broken by a close, price within
-    one zone height of the next supply's proximal (or inside it)."""
+    """EXIT warnings for one holding: stop hit by close, the W1 / MN / 3M demand under the entry broken by a close,
+    price within one zone height of the next LOCATED supply's proximal (or inside it). Located = the owner's top-down
+    rule mirrored: a W1 supply only inside an MN supply price has already touched, MN inside a touched 3M supply, 3M
+    the top (a strong untouched HTF supply still above: price likely rallies into it first, hold)."""
     px, out = an.price, []
     entry, stop = float(h.get('entry') or 0), h.get('stop')
     if stop is not None and px <= float(stop):
         out.append({'reason': 'stop', 'text': f'Stop hit by the close ({px:.2f} <= {float(stop):.2f}): close the position.'})
     since = str(h.get('date') or '') or (an.d1_dates[-NEW_ZONE_SESSIONS] if len(an.d1_dates) >= NEW_ZONE_SESSIONS else '')
-    for r in (an.d1, an.w1, an.mn):
+    for r in zone_rows(an):
         if not r.ok:
             continue
         for z in sorted(r.zones, key=lambda z: -z.prox):
@@ -510,19 +621,23 @@ def holding_exits(an: Analysis, h: Dict) -> List[Dict]:
                 out.append({'reason': 'demand_broken', 'text': f'{z.tf} demand {z.dist:.2f}-{z.prox:.2f} under the entry broken by a close on {when}.'})
                 break
     sup = []
-    for r in (an.d1, an.w1, an.mn):
+    for r in zone_rows(an):
         if not r.ok:
             continue
         for z in r.zones:
             if z.dir < 0 and Z.fresh_at(r.S, z) and z.dist > px:
-                sup.append(z)
+                lc = loc_of(an, z)
+                if lc.ok or lc.code == 'unknown':
+                    sup.append((z, lc))
     if sup:
-        z = min(sup, key=lambda z: z.prox)
+        z, lc = min(sup, key=lambda t: t[0].prox)
+        lf = {'loc': lc.code, 'loc_text': lc.text, 'chain_text': lc.chain_text}
         if z.prox <= px:
-            out.append({'reason': 'in_supply', 'tf': z.tf, 'lo': round(z.prox, 2), 'hi': round(z.dist, 2), 'dist_pct': 0.0,
-                        'text': f'Inside the {z.tf} supply {z.prox:.2f}-{z.dist:.2f}: take profit (exit before the opposite zone).'})
+            out.append({'reason': 'in_supply', 'tf': z.tf, 'lo': round(z.prox, 2), 'hi': round(z.dist, 2), 'dist_pct': 0.0, **lf,
+                        'text': f'Inside the {z.tf} supply {z.prox:.2f}-{z.dist:.2f} ({lc.chain_text}): take profit (exit before the opposite zone).'})
         elif z.prox - px <= z.h:
-            out.append({'reason': 'near_supply', 'tf': z.tf, 'lo': round(z.prox, 2), 'hi': round(z.dist, 2), 'dist_pct': round((z.prox - px) / px * 100, 2), 'text': f'{(z.prox - px) / px * 100:.1f}% below the {z.tf} supply at {z.prox:.2f}: exit before the opposite zone.'})
+            out.append({'reason': 'near_supply', 'tf': z.tf, 'lo': round(z.prox, 2), 'hi': round(z.dist, 2), 'dist_pct': round((z.prox - px) / px * 100, 2), **lf,
+                        'text': f'{(z.prox - px) / px * 100:.1f}% below the {z.tf} supply at {z.prox:.2f} ({lc.chain_text}): exit before the opposite zone.'})
     return out
 
 
@@ -573,8 +688,9 @@ def pack_bars(bars: List[Bar], n: int = DETAIL_BARS) -> Dict:
 
 def ticker_detail(sym: str, u: Dict, an: Analysis, bars: List[Bar], meta: Dict, fund_rows, signals: List[Dict],
                   block: Optional[Dict] = None) -> Tuple[Dict, Dict]:
-    """(detail for the stock page, row for the search index). Every active D1 / W1 / MN zone with its Raja type, the
-    nearest demand / supply, and the nearest demand checked against every BUY rule as if it were a signal."""
+    """(detail for the stock page, row for the search index). Every active W1 / MN / 3M zone with its Raja type (and,
+    within 25% of price, its top-down location: loc / loc_text), the nearest demand / supply, the 6M context, and the
+    nearest demand checked against every BUY rule as if it were a signal."""
     import data as DATA
     px = an.price
     zl, near_d, near_s = [], None, None
@@ -591,6 +707,9 @@ def ticker_detail(sym: str, u: Dict, an: Analysis, bars: List[Bar], meta: Dict, 
                   'made': z.made, 'pattern': z.pattern}
             if z.dir > 0 and x.n_tests <= L.MAX_TOUCHES and z.dist < px * 1.25:
                 zd['br'] = first_block(zone_rules(an, z, x, None)) or ''      # the first rule blocking a BUY on it
+            if x.n_tests <= L.MAX_TOUCHES and abs(z.prox - px) <= 0.25 * px:
+                lc = loc_of(an, z)
+                zd['loc'], zd['loc_text'] = lc.code, lc.text
             zl.append(zd)
             if z.dir > 0 and z.dist < px and (near_d is None or z.prox > near_d[0].prox):
                 near_d = (z, x)
@@ -610,19 +729,23 @@ def ticker_detail(sym: str, u: Dict, an: Analysis, bars: List[Bar], meta: Dict, 
     if buy is not None:                                   # the signal's own zone and rule list
         check = {'zone': {'tf': buy['tf'], 'proximal': buy['proximal'], 'distal': buy['distal'], 'type': buy['zone_type'],
                           'dist_pct': buy['to_entry_pct']}, 'kind': 'BUY', 'score': buy.get('score'),
-                 **{k: buy.get(k) for k in ('entry', 'stop', 'target', 'rr', 'next_supply', 'supply_distal', 'stop_pct_of_height')},
+                 **{k: buy.get(k) for k in ('entry', 'stop', 'target', 'rr', 'next_supply', 'supply_distal', 'stop_pct_of_height',
+                                            'loc', 'loc_ok', 'loc_text', 'chain', 'chain_text')},
                  'rules': buy['rules']}
     elif near_d is not None:
         z, x = near_d
         rules = zone_rules(an, z, x, None)
         check = {'zone': nz(near_d), 'kind': 'BUY' if not any(k.status == FAIL for k in rules) else 'no trade',
-                 'score': raja_score(x, x.n_tests == 0), **plan(z, x), 'rules': [k.as_dict() for k in rules]}
+                 'score': raja_score(x, x.n_tests == 0), **plan(z, x), **loc_fields(loc_of(an, z)), 'rules': [k.as_dict() for k in rules]}
     sig = 'BUY' if 'BUY' in kinds else ('WATCH' if 'WATCH' in kinds else None)
     detail = {'symbol': sym, 'name': u.get('name', sym), 'sector': u.get('sector', '') or 'Other',
               'indexes': [i for i in (u.get('indexes') or '').split(',') if i], 'exchange': meta.get('exchange', ''),
               'chart': DATA.tradingview_url(sym, meta.get('exchange', ''), u.get('home', '')), 'date': an.date, 'price': round(px, 2),
-              **listing(u), 'signal': sig, 'direction': an.direction.head, 'd1': an.d1.state_name, 'w1': an.w1.state_name,
-              'mn': an.mn.state_name, 'curve': round(an.curve.value, 1) if an.curve.ok else None, 'curve_raja': an.curve.raja,
+              **listing(u), 'signal': sig, 'direction': an.direction.head, 'd1': 'not used', 'w1': an.w1.state_name,
+              'mn': an.mn.state_name, 'm3': an.q3.state_name if an.q3 is not None else 'n/a',
+              'm6': an.h6.state_name if an.h6 is not None else 'n/a', 'ctx6': six_context(an),
+              'tfs': list(TRADE_TFS), 'curve_tf': an.curve.tf or None,
+              'curve': round(an.curve.value, 1) if an.curve.ok else None, 'curve_raja': an.curve.raja,
               'zones': zl, 'nearest_demand': nz(near_d), 'nearest_supply': nz(near_s), 'check': check,
               'fundamentals_rows': fund_rows or [], 'bars': pack_bars(bars)}
     g = gauge(an)
@@ -661,7 +784,8 @@ def regime_line(an: Analysis, sym: str) -> Dict:
     sma = sum(c) / len(c) if len(c) >= 200 else None
     return {'symbol': sym, 'close': round(an.price, 2), 'sma200': round(sma, 2) if sma else None,
             'above200': (an.price > sma) if sma else None, 'curve': round(an.curve.value, 1) if an.curve.ok else None,
-            'curve_raja': an.curve.raja, 'direction': an.direction.head, 'w1': an.w1.state_name, 'mn': an.mn.state_name}
+            'curve_raja': an.curve.raja, 'curve_tf': an.curve.tf or None, 'direction': an.direction.head, 'w1': an.w1.state_name,
+            'mn': an.mn.state_name, 'm3': an.q3.state_name if an.q3 is not None else 'n/a', 'ctx6': six_context(an)['text']}
 
 
 # ---- intraday guard ------------------------------------------------------------------------------------------------
@@ -704,9 +828,9 @@ CLOSEST_N = 10
 
 
 def diag_candidate(an: Analysis, pct: float = DIAG_PCT) -> Optional[Tuple[Z.Zone, Z.DNA]]:
-    """The nearest (highest proximal) fresh D1 / W1 / MN demand with price inside it or at most pct% above it."""
+    """The nearest (highest proximal) fresh W1 / MN / 3M demand with price inside it or at most pct% above it."""
     px, best = an.price, None
-    for r in (an.d1, an.w1, an.mn):
+    for r in zone_rows(an):
         if not r.ok:
             continue
         for z in r.zones:
@@ -740,8 +864,8 @@ def diag_row(sym: str, u: Dict, an: Analysis, earnings: Optional[str] = None) ->
             'indexes': [i for i in (u.get('indexes') or 'SPX').split(',') if i], 'tf': z.tf, 'zone_type': x.code,
             'proximal': round(z.prox, 2), 'distal': round(z.dist, 2), 'price': round(an.price, 2),
             'to_entry_pct': round((an.price - z.prox) / an.price * 100, 2), 'rule': k, 'label': BLOCK_LABEL.get(k, k),
-            'fails': [r.short for r in rules if r.status == FAIL], 'direction': an.direction.head,
-            'curve': round(x.curve_zone, 1)}
+            'fails': [r.short for r in rules if r.status == FAIL], 'direction': an.dirs.get(z.tf, an.direction).head,
+            'curve': round(x.curve_zone, 1), 'loc': loc_of(an, z).code, 'loc_text': loc_of(an, z).text}
 
 
 def blocked_summary(rows: List[Dict], pct: float = DIAG_PCT, n: int = CLOSEST_N) -> Tuple[Dict, List[Dict]]:
@@ -919,7 +1043,9 @@ def public_json(res: Dict, fixture: bool = False) -> Dict:
     return {
         'version': 1, 'fixture': fixture, 'date': res['date'], 'generated_at': res['generated_at'],
         'universe': res['universe'], 'scanned': res['scanned'], 'errors': len(res['errors']),
-        'rules': 'Raja (ZoneVision Raja template): D1 / W1 / MN zones (nothing below D1), direction D1 -> W1 -> MN, curve, room. Kevin second.',
+        'rules': 'Raja (ZoneVision Raja template) + owner: W1 / MN / 3M zones only (never below W1), top-down location '
+                 '(W1 inside a touched MN zone, MN inside a touched 3M zone, 6M context), direction W1 -> MN -> 3M, curve, room. Kevin second.',
+        'tfs': list(TRADE_TFS),
         'disclaimer': DISCLAIMER,
         'counts': {k: sum(1 for s in res['signals'] if s['kind'] == k) for k in ('BUY', 'WATCH')} | {'EXIT': len(res['exits'])},
         'universes': res.get('universes', []), 'index_meta': res.get('index_meta', []), 'index_sizes': res.get('index_sizes', {}),

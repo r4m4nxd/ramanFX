@@ -51,7 +51,7 @@ Standard library only (Python 3.10+). No `pip install`.
      skipped with a one-line hint and those tickers show fundamentals n/a. Read from the secret only, never written.
 3. Optional repository **variables**: `SCANNER_UNIVERSES` (default `SPX,NDX,DJI,TSX60,TSX`), `TELEGRAM_TOP_N` (default 5),
    `SCANNER_TSX_FEED` (empty; `eodhd` + the secret `EODHD_API_KEY` switches the paid TSX feed on, see Canada).
-4. Actions tab → **Stock scan** → *Run workflow* once to test. The first run downloads up to 20 years for every ticker (Alpaca serves from 2016; MN zones need the long history)
+4. Actions tab → **Stock scan** → *Run workflow* once to test. The first run downloads up to 20 years for every ticker (Alpaca serves from 2016: ~43 quarterly and ~21 half-year bars; MN / 3M zones need the long history)
    from Alpaca in batches of 100 symbols (~10,000 bars per page, a few hundred requests, a few minutes at Alpaca's
    200 requests/min); later runs fetch only the last ~3 weeks in batches of 200 (one request per batch; a ticker
    whose overlap no longer matches after a split / dividend gets its full history again). A cache from the older 10-year
@@ -67,12 +67,14 @@ Each run commits `public/scanner/latest.json` (signals), `public/scanner/history
 the app).
 
 **Zone lists** (`lists.py`; Telegram, `latest.json` `zone_lists`, the app's Market map: the same lists): every
-stock in ONE of seven buckets by where its close sits against its D1 / W1 / MN zones (fresh or tested, ≤ 3 touches):
+stock in ONE of seven buckets by where its close sits against its W1 / MN / 3M zones (fresh or tested, ≤ 3 touches):
 in supply · approaching supply (close ≤ `SCANNER_NEAR_PCT` 3% below the proximal) · left supply (touched in the last
 `SCANNER_LEFT_SESSIONS` 3 sessions, closed back below = rejected) · middle · left demand (bounced) · approaching
 demand · in demand; in > left > approaching. Each item: TF, type, score, touches, % to the proximal and the Raja
 status (BUY / WATCH, or the first rule that blocks a BUY on that zone; supply: the direction). `index.json` rows carry
-`mb` (bucket code IS / AS / LS / M / LD / AD / ID), `mz` ([tf, type, score, touches, %, proximal]) and `mr` (status);
+`mb` (bucket code IS / AS / LS / M / LD / AD / ID), `mz` ([tf, type, score, touches, %, proximal]), `mr` (status) and `ml` ([location code, location text], the zone's
+top-down HTF location; list items carry `loc` / `loc_text`, signals `loc`, `loc_ok`, `loc_text`, `chain`,
+`chain_text`, `m3`, `m6`, `ctx6`; details `m3`, `m6`, `ctx6`, `tfs`, `curve_tf`, zones `loc` / `loc_text`);
 older files without them fall back to `dz` / `sz` / `br` (nearest fresh zones, no "left" buckets). Telegram sends a
 DEMAND and a SUPPLY message every day: top `TELEGRAM_LIST_CAP` (15) per section by zone score, grouped by sector,
 "+N more on the app" linking to `/scanner?view=map&b=<bucket>`. Preview without sending:
@@ -80,7 +82,7 @@ DEMAND and a SUPPLY message every day: top `TELEGRAM_LIST_CAP` (15) per section 
 when the file predates them).
 
 **Search any ticker**: every analysed ticker (signal or not) gets a detail record: last 120
-daily bars (packed), all active D1 / W1 / MN zones with type / score / fresh / touches, nearest demand and supply with the
+daily bars (packed), all active W1 / MN / 3M zones with type / score / fresh / touches, nearest demand and supply with the
 distance, the direction / curve state, the nearest demand checked against every BUY rule as if it were a signal, and
 the fundamentals when cached. The app opens it at `/scanner/<TICKER>` (BRK.B -> BRK-B).
 Why 64 shard files and not one file per ticker: the daily commit then touches ~67 files instead of ~2,600 (smaller
@@ -178,48 +180,74 @@ close, body ≥ 0.6 ATR (RjA_ArrDepart, InpDirDepartATR; L1 · L51); WOW = stron
 L101). Trendlines = `Trendlines()` (two latest real valleys / peaks, confirmed by a new high / low, never cut a
 candle; L4 · Feb 10).
 
-**Direction (`eval_row` + `dir_combine`, port of `DirEvalTF` / `DirCombine`, Raja table D1 → W1 → MN)**: per TF the
-swings (HH+HL), the newest trendline cross, opposite zones removed since (Raja 2-close removal); CHANGED = cross + 2
-opposite zones removed (L3), one = PULLBACK / TURNING (L3). Rules: inside a fresh MN zone locks the side; the curve
-blocks the wrong side; MN in control; W1 pulling back against = WAIT to realign; D1 against = REDUCED; 3rd CP = one
-step down (L7 · L8).
+**Timeframes (owner, TFSA buy-and-hold for weeks to a year): zones only on W1, MN and 3M — for stocks never below
+W1.** 3M bars = calendar quarters built from the closed months (`zones.to_quarters`, Jan-Mar, Apr-Jun, …; the
+forming quarter and a first partial quarter are dropped); 6M = half-years (`to_halves`, Jan-Jun, Jul-Dec), a
+context level above 3M only. D1 bars are used for price checks only (close, approach %, touches in the current
+visit, fair value, the intraday guard), never for zones or direction. Rows need 40 bars (W1 / MN), 21 (3M) and 16
+(6M, incl. the forming bar; `zones.MIN_ROW_BARS`): with Alpaca from 2016 3M has ~43 and 6M ~21 bars, so 6M is often
+"n/a (short history)".
 
-**Curve (`dir_curve`, port of `DirCurve`)**: proximal to proximal of the nearest fresh STRONG MN demand below and
-supply above; without that pair the 100-bar MN range (v1). ≤ 25% low curve (buyers only), ≥ 75% high curve (L4).
+**Top-down location (`zones.location`, the owner's key rule, first in every rule list)**: "show a zone only when
+the real strong higher-TF zone has already been touched, then find the location area one TF lower." A W1 zone may
+give BUY / WATCH only when the nearest strong (ARR / WOW / STR, ≤ 3 touches, not removed) MN demand that the W1 zone
+overlaps (or sits within 25% of the MN zone's height above its proximal, `LOC_TOL`) was **touched in the current
+visit** (walking back over the D1 bars, then older MN bars: a low at / under the proximal before any bar more than
+2 MN zone heights above it, `LOC_AWAY`); one level further up, no strong untouched 3M demand may still lie below /
+around that MN zone. An MN zone needs the same from a 3M demand. A 3M zone is the top tradeable level; the 6M
+level only blocks it when a strong 6M demand is within 30% of price (`SOFT_REACH_PCT`) and untouched (below it or
+around it), else it is ignored. Blocked cases: `below` ("HTF area not reached: strong MN demand at X–Y still below
+(−Z%), price likely sells into it first", plus "the W1 down trendline is not crossed yet" when that line is in
+force), `untouched` (the host zone not reached yet), `none` (no strong HTF demand at the zone), `unknown` (no HTF
+history). Each signal carries the chain, e.g. `3M demand 80.00–74.00 touched ✓ → MN demand 82.00–79.00 touched ✓ →
+W1 entry 81.20–80.10`. Supply mirrored: EXIT warnings near / inside a supply only for a located supply (a strong
+untouched HTF supply still above = price likely rallies into it first: hold).
+
+**Direction (`eval_row` + `dir_combine`, port of `DirEvalTF` / `DirCombine`, Raja table one level up)**: W1 entry
+= W1 → MN → 3M, MN entry = MN → 3M → 3M, 3M entry = 3M → 3M. Per TF the swings (HH+HL), the newest trendline cross,
+opposite zones removed since (Raja 2-close removal); CHANGED = cross + 2 opposite zones removed (L3), one = PULLBACK
+/ TURNING (L3). Rules: inside a fresh 3M zone locks the side; the curve blocks the wrong side; the HTF in control;
+the ITF pulling back against = WAIT to realign; the entry TF against = REDUCED; 3rd CP = one step down (L7 · L8).
+The 6M trend is shown as context (`ctx6`, `m6`) on every signal / detail, never a gate.
+
+**Curve (`dir_curve`, port of `DirCurve`)**: on 3M (MN when 3M is too short): proximal to proximal of the nearest
+fresh STRONG demand below and supply above; without that pair the 100-bar range (v1). ≤ 25% low curve (buyers
+only), ≥ 75% high curve (L4).
 
 | BUY rule (all must pass) | Source |
 |---|---|
+| Located: inside a touched strong HTF demand (W1 in MN, MN in 3M; 3M top), nothing strong left below to be sold into first | owner · L7 |
 | Fresh: first touch, not removed | L2 · L52 |
-| Zone type ARR / WOW / STR (D1, W1 or MN; nothing below D1) | L1 · L51 |
-| Direction LONG (FULL or REDUCED) from D1 → W1 → MN | L7 · L8 · L3 |
-| Curve below 50% (≤ 25% best; 25-50% flagged). Owner rule: no MN strong supply above (ATH area, Raja curve not measurable, 100-bar MN range fallback) **and** W1 + MN both TREND UP or CHANGED UP (`zones.trend_up`; TURNING / PULLBACK / RANGE do not count) → allowed (flagged), and the fallback curve casts no sell vote in the direction | L4 · owner |
-| Not inside / next to a monthly supply, price not inside one | L50 · L52 (RjA_OppHtfVeto) |
+| Zone type ARR / WOW / STR (W1, MN or 3M; nothing below W1) | L1 · L51 |
+| Direction LONG (FULL or REDUCED) on the entry TF's chain (W1 → MN → 3M) | L7 · L8 · L3 |
+| Curve below 50% (≤ 25% best; 25-50% flagged). Owner rule: no strong HTF supply above (ATH area, Raja curve not measurable, 100-bar range fallback) **and** the next two HTFs TREND UP or CHANGED UP (W1 entry: MN + 3M; MN: 3M; 3M: 3M; `zones.trend_up`; TURNING / PULLBACK / RANGE do not count) → allowed (flagged), and the fallback curve casts no sell vote in the direction | L4 · owner |
+| Not inside / next to a supply one TF up (W1: MN, MN: 3M), price not inside a fresh 3M supply | L50 · L52 (RjA_OppHtfVeto) |
 | Room to the next supply ≥ 2x the stop (≥ 3x good, 2-3x flagged) | L7 · L53 |
 | A known target: a supply above, else Raja's 250% projection (correction = last higher high before the base down to the zone's distal; target = distal + 2.5x that; only while the run-out has not reached it) | L101 · L5 (Feb 18: "100%, another 100%, then half") |
-| Not sideways on the zone TF or MN | L8 · L101 (RjB_Sideways, InpRjBChopTF=1) |
+| Not sideways on the zone TF or one TF up | L8 · L101 (RjB_Sideways, InpRjBChopTF=1) |
 | Not the 3rd CP in a row | Raja lens · Kevin L8 · L13 |
 | Has not already done its job | L5 · Feb 18 (RjA_Lens8) |
 | Not an overlap / flip zone | L52 ("never set and forget" list) |
 | Price within max(1.0x zone height, 3% of price) above the proximal | scanner (InpApproach) |
 | No earnings in the next 10 trading days (when the date is known; unknown = "?") | Kevin L12 |
 
-**Plan**: entry = proximal (limit); **stop = distal − 10% of the zone height on D1, 5% on W1, 3% on MN** (the owner's rule,
+**Plan**: entry = proximal (limit); **stop = distal − 5% of the zone height on W1, 3% on MN, 2% on 3M** (the owner's rule,
 ZV 2.10, min 0.03); **target = 0.5% before the next supply's proximal** (the nearest of the zone TF's live supplies
-and the fresh W1 / MN supplies; no supply above: the 250% projection, `target_kind: 'projection'`); R:R from those. Score = Raja lens score (`LensRun`): type 4/3 + fresh 2 + curve 2 +
+and the fresh supplies of the higher zone TFs; no supply above: the 250% projection, `target_kind: 'projection'`); R:R from those. Score = Raja lens score (`LensRun`): type 4/3 + fresh 2 + curve 2 +
 room 2, max 10.
 
 **WATCH**: strong fresh zones made in the last 5 sessions that pass everything but the approach; tested zones
 (2nd / 3rd touch, allowance of RjA_TouchCap) that pass everything but freshness → confirm one TF lower, never
-below D1 (MN → W1, W1 → D1; a D1 zone: a D1 close back above the proximal) (L52 · L101). MN zones are tradeable
-like D1 / W1 (no higher row: their own supplies give the room). **EXIT** (holdings): stop hit by a close; the demand under the entry broken by a close (since the
-holding's `date`, else the last 5 sessions); price within one zone height of the next supply's proximal or inside it
+below W1 (3M → MN, MN → W1; a W1 zone: a W1 close back above the proximal) (L52 · L101); both need the location
+rule to pass. 3M zones have no higher zone row (their own supplies give the room). **EXIT** (holdings): stop hit by a close; the demand under the entry broken by a close (since the
+holding's `date`, else the last 5 sessions); price within one zone height of the next located supply's proximal or inside it
 (L7 · L106 "exit before the opposite zone").
 
-A W1 / MN zone counts as "made" on the close of its stay-away week / month (its last session), not on the first day it is dated by.
+A W1 / MN / 3M zone counts as "made" on the close of its stay-away week / month / quarter (its last session), not on the first day it is dated by.
 
 **Why no signal** (`blocked` / `closest` in latest.json): every ticker without a BUY whose nearest fresh demand is
 within `SCANNER_DIAG_PCT` (5) % above price, or holds price, is a candidate; it counts once under its first failing
-rule in the order curve → direction → monthly supply → sideways → zone type → fresh → overlap / flip → did its job →
+rule in the order HTF location → curve → direction → monthly supply → sideways → zone type → fresh → overlap / flip → did its job →
 3rd CP → room → earnings → near entry. The run log, Telegram ("No BUY … Top reasons") and the app's empty state show
 the top reasons; `closest` holds the 10 candidates nearest to their entry. Diagnostics only: they never change a signal.
 
@@ -228,8 +256,7 @@ so every rule reads closed sessions only; the output then says `"session": "intr
 last closed session.
 
 Deliberate differences from the MT5 code: overlap / flip zones are vetoed even when strong (the checklist's never
-list; ZoneVision ranks ARR / STR above OVL); W1 zones use the MN zones for the HTF-supply veto (ZoneVision has no
-HTF row above W1 on a D1 chart). Not ported: WOW trendline ladder, nested curve, realignment areas, 250% projection,
+list; ZoneVision ranks ARR / STR above OVL); the HTF-supply veto reads one TF up (W1: MN, MN: 3M). Not ported: WOW trendline ladder, nested curve, realignment areas, 250% projection,
 inheritance / out-of-trendline types, near-trendline pips (pips mean nothing on stocks), Kevin / Seiden / Baker
 lenses.
 
@@ -268,7 +295,7 @@ python tools/stock_scanner/backtest.py --fixture                      # code-pat
 ```
 
 Walk-forward, no look-ahead: on each candidate day the scanner's own `analyse()` runs on the bars up to that day
-(W1 / MN = buckets closed by then); a zone exists only after its stay-away candle closed (a unit test proves the
+(W1 / MN / 3M = buckets closed by then; the location rule applies exactly as in the scan); a zone exists only after its stay-away candle closed (a unit test proves the
 pre-filtered walk equals scanning every day). Orders: limit at the proximal from the next day (gap-down fills at the
 open), cancelled when price reaches the target first, the zone is removed by a close, or after 40 sessions. Exits:
 target, or the stop in two variants (`wick` and `close`), same-bar = stop, time exit 250 sessions, 5 bps per side.
@@ -287,7 +314,7 @@ says trust only when the out-of-sample CI is above zero with 30+ trades.
   unadjusted TradingView chart.
 - **Survivorship bias**: the backtest uses today's index members only (companies that left the index are missing),
   which flatters results.
-- **No intraday, by design**: zones only on D1, W1 and MN (nothing smaller than D1), so tested zones are WATCH only;
+- **No intraday, by design**: zones only on W1, MN and 3M (nothing smaller than W1), so tested zones are WATCH only;
   entries assume a resting limit order.
 - Prices come from Alpaca (official API; the free plan's `iex` fallback covers one exchange's trades only, so its
   daily volumes are smaller and highs / lows can differ slightly from the consolidated tape). Yahoo / Stooq / SEC /

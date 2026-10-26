@@ -840,7 +840,11 @@ def aggregate(bars: List[Bar], tf: str) -> Tuple[List[Bar], bool]:
 
 
 def closed_htf(bars: List[Bar], tf: str) -> List[Bar]:
-    """Closed weekly / monthly bars only (the forming bucket is dropped; the rules read closed bars)."""
+    """Closed weekly / monthly / quarterly (3M, built from the closed months) bars only (the forming bucket is
+    dropped; the rules read closed bars)."""
+    if tf in ('3M', '6M'):
+        import zones as Z
+        return Z.to_quarters(closed_htf(bars, 'MN'), 3 if tf == '3M' else 6)
     agg, complete = aggregate(bars, tf)
     return agg if complete else agg[:-1]
 
