@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { INDEX_URL, parseIndex, readWatch, ruleIcon, searchTickers, SEIDEN_PARTS, stockPath, toggleWatch, WATCH_KEY, writeWatch, type IndexRow, type RfxIndex, type RuleStatus, type ScanIndex, type ScanRule } from '@/core/scanner';
+import { INDEX_URL, parseIndex, px, readWatch, ruleIcon, searchTickers, SEIDEN_PARTS, stockPath, toggleWatch, WATCH_KEY, writeWatch, type IndexRow, type RfxIndex, type RuleStatus, type ScanIndex, type ScanRule } from '@/core/scanner';
 import { ZoneGauge } from './ZoneGauge';
 import { num } from '@/lib/format';
 import { cx, Sheet } from '@/ui/kit';
@@ -10,6 +10,8 @@ import { ZoneMiniChart, type MiniBar, type MiniLevels, type MiniZone } from '@/u
 export const IDX_SHORT: Record<string, string> = { SPX: 'S&P', NDX: 'NDX', DJI: 'Dow', RUT: 'R2K' };
 export const typeTone = (t: string) => (t === 'ARR' || t === 'WOW' ? 'accent' : t === 'STR' ? 'violet' : 'neutral') as 'accent' | 'violet' | 'neutral';
 const RULE_TONE: Record<RuleStatus, string> = { pass: 'text-profit bg-profit/10', fail: 'text-loss bg-loss/10', warn: 'text-warn bg-warn/10', unknown: 'text-ink3 bg-raised', info: 'text-ink3 bg-raised' };
+/** The plan numbers (entry / stop / target / R:R) are the point of a card: one step up from the other stats. */
+export const PLAN_V = '!text-[16px] !font-semibold';
 const summary = 'flex items-center gap-2 min-h-[44px] cursor-pointer list-none text-[13px] font-semibold select-none';
 
 export function RuleList({ rules, open, title = 'Rules checked' }: { rules: ScanRule[]; open?: boolean; title?: string }) {
@@ -67,7 +69,7 @@ export function ZoneChart({ symbol, tf, bars, levels, zones, show = 60, height =
       </button>
       <Sheet open={big} onClose={() => setBig(false)} title={`${symbol} · last ${bars.length} sessions`} width={760}>
         <ZoneMiniChart bars={bars} levels={levels} zones={zones} height={280} label={label} />
-        <p className="text-[12px] text-ink3 mt-3">Green: the {tf ?? ''} demand zone of the plan{zones?.length ? ' (dotted: other active zones)' : ''}. Red: the next supply (target zone). Dashed: entry (E), stop (S), target (T). P = last close. Daily bars, split and dividend adjusted.</p>
+        <p className="text-[12px] text-ink3 mt-3 leading-relaxed">Green band: the {tf ?? ''} demand zone of the plan{zones?.length ? ' (dotted bands: other active zones)' : ''}. Red band: the next supply (the target zone). Amber band (FV): fair value, the 20-bar value area. Dashed lines: entry (E), stop (S) and target (T, or PZ3 when profit zones are shown); dotted lines: PZ1 / PZ2. P = last close. Daily bars, split and dividend adjusted.</p>
       </Sheet>
     </>
   );
@@ -120,7 +122,7 @@ export function TickerSearch() {
           }} />
       </div>
       {show && (
-        <ul id={`${id}-list`} role="listbox" aria-label="Stocks" className="absolute z-30 left-0 right-0 mt-1.5 rounded-2xl border border-line bg-surface shadow-xl overflow-hidden max-h-[60vh] overflow-y-auto">
+        <ul id={`${id}-list`} role="listbox" aria-label="Stocks" className="absolute z-30 left-0 right-0 mt-1.5 rounded-2xl border border-line bg-surface shadow-xl overflow-hidden max-h-[min(60vh,calc(100dvh-18rem))] overflow-y-auto overscroll-contain">
           {idx === undefined ? <li className="px-4 py-3 text-[13px] text-ink3">Loading the list…</li>
             : idx === null ? <li className="px-4 py-3 text-[13px] text-ink3">The stock list is not available yet.</li>
             : !res.length ? <li className="px-4 py-3 text-[13px] text-ink3">No stock matches “{q}”.</li>
@@ -134,9 +136,9 @@ export function TickerSearch() {
                   <span className="block text-[11px] text-ink3 truncate">{[r.sec, r.ix.map(i2 => IDX_SHORT[i2] ?? i2).join(' ')].filter(Boolean).join(' · ')}</span>
                 </span>
                 <span className="text-right shrink-0">
-                  <span className="block num text-[13px]">{num(r.px)}</span>
+                  <span className="block num text-[13px]">{px(r.px)}</span>
                   {r.sig ? <span className={cx('block text-[11px] font-semibold', r.sig === 'BUY' ? 'text-profit' : 'text-warn')}>{r.sig}</span>
-                    : r.dd != null ? <span className="block num text-[11px] text-ink3">demand {num(r.dd, 1)}%</span> : null}
+                    : r.dd != null ? <span className="block num text-[11px] text-ink3">{num(r.dd, 1)}% to demand</span> : null}
                 </span>
               </li>
             ))}
@@ -153,10 +155,10 @@ export function ScoreChips({ raja, seiden, parts }: { raja?: number | null; seid
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex flex-wrap items-center gap-1.5">
-        {raja != null && <span className="h-6 px-2.5 rounded-full border border-accent/30 bg-accent/10 text-accent text-[11px] font-semibold inline-flex items-center num" title="Raja lens score: zone type, freshness, curve, room. The headline and part of the BUY rules.">Raja {raja}/10</span>}
+        {raja != null && <span className="h-7 touch:h-9 px-2.5 rounded-full border border-accent/30 bg-accent/10 text-accent text-[11px] font-semibold inline-flex items-center num" title="Raja lens score: zone type, freshness, curve, room. The headline and part of the BUY rules.">Raja {raja}/10</span>}
         {seiden != null && (
           <button type="button" aria-expanded={open} aria-controls={id} onClick={() => setOpen(o => !o)}
-            className="h-6 px-2.5 rounded-full border border-line2 bg-raised text-ink2 text-[11px] font-semibold inline-flex items-center gap-1 num">
+            className="h-7 touch:h-9 px-3 rounded-full border border-line2 bg-raised text-ink2 text-[11px] font-semibold inline-flex items-center gap-1 num hover:text-ink transition-colors">
             Seiden odds {num(seiden, seiden % 1 ? 1 : 0)}/10<Icon name="chevronDown" size={11} className={cx('transition-transform', open && 'rotate-180')} />
           </button>
         )}
@@ -180,7 +182,7 @@ export function PzChips({ s }: { s: { pz1?: number | null; pz2?: number | null; 
     <div className="flex flex-wrap gap-1.5" aria-label="Profit zones">
       {items.map(x => (
         <span key={x.k} className="h-6 px-2 rounded-md border border-profit/30 bg-profit/10 text-profit text-[11px] font-semibold inline-flex items-center gap-1 num" title={x.k === 'pz3' ? 'PZ3 = the Raja target, 0.5% before the next supply' : x.k === 'pz1' ? 'PZ1: the higher of fair value near edge and 2R, below PZ3 (Raja: close one half here, hold the other)' : 'PZ2: the higher of fair value far edge and 3R, below PZ3'}>
-          {x.k.toUpperCase()} {num(x.v!)}{x.r != null && <span className="font-medium opacity-80">· {num(x.r, 1)}R</span>}
+          {x.k.toUpperCase()} {px(x.v)}{x.r != null && <span className="font-medium opacity-80">· {num(x.r, 1)}R</span>}
         </span>
       ))}
     </div>
@@ -225,7 +227,7 @@ export function RfxPanel({ ix }: { ix: RfxIndex }) {
       <div className="flex items-baseline gap-2 flex-wrap">
         <span className="font-semibold text-[13px]">RFX index</span>
         <span className="text-[11px] text-ink3">equal-weight SPY · QQQ · IWM · DIA</span>
-        <span className="num text-[13px] font-semibold ml-auto">{num(ix.price)}</span>
+        <span className="num text-[13px] font-semibold ml-auto">{px(ix.price)}</span>
       </div>
       <ZoneGauge className="mt-2" demand={ix.demand} supply={ix.supply} state={ix.state} />
       <div className="text-[11px] text-ink3 mt-1">{ix.direction}{ix.aligned ? ' · aligned: +1 Seiden bonus on buys' : ix.state === 'supply' ? ' · in supply: opposite-zone flag on buys (never blocks)' : ''}</div>

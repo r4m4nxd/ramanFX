@@ -26,7 +26,7 @@ export interface MiniZone { proximal: number; distal: number; side: 'demand' | '
 const LABEL_W = 58;              // right gutter for the price labels, so they never sit on candles
 const PAD_T = 6, PAD_B = 6;
 const C = (v: string, a = 1) => `rgb(var(--${v}) / ${a})`;
-const fmt = (v: number) => (v >= 1000 ? v.toFixed(0) : v >= 100 ? v.toFixed(1) : v.toFixed(2));
+const fmt = (v: number) => (v >= 1000 ? v.toFixed(0) : v >= 100 ? v.toFixed(1) : v >= 1 ? v.toFixed(2) : v >= 0.1 ? v.toFixed(3) : v.toFixed(4));
 const num = (v: number | null | undefined): v is number => v != null && Number.isFinite(v);
 
 /** Fills its container's width (measured), fixed height. */

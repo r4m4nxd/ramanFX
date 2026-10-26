@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { checkPlanLink, detailFrom, findBySlug, shardUrl, tvChart, unpackBars, type DetailZone, type TickerDetail } from '@/core/scanner';
+import { checkPlanLink, detailFrom, px, findBySlug, shardUrl, tvChart, unpackBars, type DetailZone, type TickerDetail } from '@/core/scanner';
 import { num } from '@/lib/format';
 import { Badge, Card, cx, Empty, Page, Stat } from '@/ui/kit';
 import { Icon } from '@/ui/Icon';
-import { ContextFlags, FundTable, IDX_SHORT, loadIndex, PzChips, RuleList, ScoreChips, StarButton, TickerSearch, typeTone, useWatchlist, ZoneChart } from '@/ui/ScanParts';
+import { ContextFlags, FundTable, IDX_SHORT, loadIndex, PLAN_V, PzChips, RuleList, ScoreChips, StarButton, TickerSearch, typeTone, useWatchlist, ZoneChart } from '@/ui/ScanParts';
 import { ZoneGauge } from '@/ui/ZoneGauge';
 import type { MiniZone } from '@/ui/ZoneMiniChart';
 
 type Load = { state: 'loading' } | { state: 'missing' } | { state: 'error' } | { state: 'ok'; d: TickerDetail };
 
-function useDetail(slug: string): Load {
+function useDetail(slug: string): [Load, () => void] {
   const [s, setS] = useState<Load>({ state: 'loading' });
+  const [n, setN] = useState(0);
   useEffect(() => {
     let live = true;
     setS({ state: 'loading' });
@@ -25,8 +26,8 @@ function useDetail(slug: string): Load {
       if (live) setS(d ? { state: 'ok', d } : { state: 'error' });
     })().catch(() => { if (live) setS({ state: 'error' }); });
     return () => { live = false; };
-  }, [slug]);
-  return s;
+  }, [slug, n]);
+  return [s, () => setN(x => x + 1)];
 }
 
 function ZoneRow({ z, price }: { z: DetailZone; price: number }) {
@@ -41,16 +42,16 @@ function ZoneRow({ z, price }: { z: DetailZone; price: number }) {
           <span className={cx('text-[11px] font-medium', z.fresh ? 'text-profit' : 'text-ink3')}>{z.fresh ? 'fresh' : `touch ${z.touches + 1}`}</span>
           {z.score != null && <span className="num text-[11px] text-ink3">score {z.score}/10</span>}
         </div>
-        <div className="num text-[12px] text-ink3 mt-0.5">{num(Math.min(z.proximal, z.distal))}–{num(Math.max(z.proximal, z.distal))} · {z.pattern} · made {z.made}</div>
+        <div className="num text-[12px] text-ink3 mt-0.5">{px(Math.min(z.proximal, z.distal))}–{px(Math.max(z.proximal, z.distal))} · {z.pattern} · made {z.made}</div>
       </div>
-      <span className={cx('num text-[12px] shrink-0', Math.abs(dist) <= 3 ? 'text-accent' : 'text-ink3')}>{dist >= 0 ? '' : '−'}{num(Math.abs(dist), 1)}%</span>
+      <span className={cx('num text-[12px] shrink-0 text-right', Math.abs(dist) <= 3 ? 'text-accent' : 'text-ink3')}>{dist >= 0 ? `${num(dist, 1)}%` : `−${num(-dist, 1)}%`}<span className="block text-[10.5px] text-ink3">{dist < 0 ? 'inside' : z.side === 'demand' ? 'below' : 'above'}</span></span>
     </li>
   );
 }
 
 export default function Stock() {
   const { ticker = '' } = useParams();
-  const load = useDetail(ticker);
+  const [load, retry] = useDetail(ticker);
   const d = load.state === 'ok' ? load.d : null;
   const bars = useMemo(() => (d ? unpackBars(d.bars) : []), [d]);
   const watch = useWatchlist();
@@ -64,7 +65,7 @@ export default function Stock() {
       <TickerSearch />
       {load.state === 'loading' && <div className="skeleton h-72 rounded-2xl" aria-busy="true" aria-label="Loading" />}
       {load.state === 'missing' && <Card><Empty icon="search" title={`${decodeURIComponent(ticker).toUpperCase()} is not in the scan`}>The scanner covers the S&amp;P 500, Nasdaq-100, Dow 30 and Russell 2000. Try the search above.</Empty></Card>}
-      {load.state === 'error' && <Card><Empty icon="cloudOff" title="Could not load this stock">{navigator.onLine ? 'The scan files are missing or unreadable.' : 'You are offline.'}</Empty></Card>}
+      {load.state === 'error' && <Card><Empty icon="cloudOff" title="Could not load this stock" action={<button type="button" className="btn h-11 px-5" onClick={retry}><Icon name="refresh" size={15} />Try again</button>}>{navigator.onLine ? 'The scan files are missing or unreadable.' : 'You are offline.'}</Empty></Card>}
       {d && (
         <>
           <Card className="flex flex-col gap-3.5 p-4 sm:p-5" aria-label={`${d.symbol} zones`}>
@@ -80,7 +81,7 @@ export default function Stock() {
               </div>
               <StarButton symbol={d.symbol} on={watch.has(d.symbol)} onToggle={() => watch.toggle(d.symbol)} />
               <div className="text-right shrink-0">
-                <div className="num text-[18px] font-semibold">{num(d.price)}</div>
+                <div className="num text-[18px] font-semibold">{px(d.price)}</div>
                 <div className="text-[11.5px] text-ink3">close {d.date}</div>
               </div>
             </div>
@@ -90,19 +91,19 @@ export default function Stock() {
                 levels={{ price: d.price, fvLo: d.fv?.lo, fvHi: d.fv?.hi, ...(d.check ? { pz1: d.check.pz1, pz2: d.check.pz2 } : {}), ...(d.check ? { proximal: d.check.zone.proximal, distal: d.check.zone.distal, entry: d.check.entry, stop: d.check.stop, target: d.check.target, supply: d.check.next_supply, supplyDistal: d.check.supply_distal ?? null } : {}) }} />
             )}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 rounded-xl bg-raised/50 border border-line/70 p-3">
-              <Stat label="Direction" value={d.direction} />
-              <Stat label="W1 · MN" value={`${d.w1} · ${d.mn}`} />
+              <Stat label="Direction" value={d.direction} className="!whitespace-normal" />
+              <Stat label="W1 · MN" value={`${d.w1} · ${d.mn}`} className="!whitespace-normal" />
               <Stat label="Curve (MN)" value={d.curve != null ? `${Math.round(d.curve)}%` : '—'} />
-              <Stat label="D1" value={d.d1} />
+              <Stat label="D1" value={d.d1} className="!whitespace-normal" />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="rounded-xl border border-line/70 p-3 min-w-0">
                 <div className="label">Nearest demand</div>
-                {d.nearest_demand ? <><div className="num text-[13px] font-medium mt-0.5">{num(d.nearest_demand.distal)}–{num(d.nearest_demand.proximal)}</div><div className="text-[11.5px] text-ink3">{d.nearest_demand.tf} {d.nearest_demand.type} · {num(d.nearest_demand.dist_pct, 1)}% below</div></> : <div className="text-[13px] text-ink3 mt-0.5">none under price</div>}
+                {d.nearest_demand ? <><div className="num text-[13px] font-medium mt-0.5">{px(d.nearest_demand.distal)}–{px(d.nearest_demand.proximal)}</div><div className="text-[11.5px] text-ink3">{d.nearest_demand.tf} {d.nearest_demand.type} · {num(d.nearest_demand.dist_pct, 1)}% below</div></> : <div className="text-[13px] text-ink3 mt-0.5">none under price</div>}
               </div>
               <div className="rounded-xl border border-line/70 p-3 min-w-0">
                 <div className="label">Nearest supply</div>
-                {d.nearest_supply ? <><div className="num text-[13px] font-medium mt-0.5">{num(d.nearest_supply.proximal)}–{num(d.nearest_supply.distal)}</div><div className="text-[11.5px] text-ink3">{d.nearest_supply.tf} {d.nearest_supply.type} · {num(d.nearest_supply.dist_pct, 1)}% above</div></> : <div className="text-[13px] text-ink3 mt-0.5">none above: no known target</div>}
+                {d.nearest_supply ? <><div className="num text-[13px] font-medium mt-0.5">{px(d.nearest_supply.proximal)}–{px(d.nearest_supply.distal)}</div><div className="text-[11.5px] text-ink3">{d.nearest_supply.tf} {d.nearest_supply.type} · {num(d.nearest_supply.dist_pct, 1)}% above</div></> : <div className="text-[13px] text-ink3 mt-0.5">none above: no known target</div>}
               </div>
             </div>
             <div className="flex gap-2">
@@ -116,15 +117,15 @@ export default function Stock() {
               <div className="flex items-start gap-2 flex-wrap">
                 <div className="flex-1 min-w-0">
                   <h3 className="text-[15px] font-semibold">{d.signal === 'BUY' ? "Today's BUY: rule check" : 'Nearest demand as a BUY'}</h3>
-                  <p className="num text-[12px] text-ink3 mt-0.5">{d.check.zone.tf} {d.check.zone.type} demand {num(d.check.zone.distal)}–{num(d.check.zone.proximal)}{d.check.score != null ? ` · score ${d.check.score}/10` : ''}</p>
+                  <p className="num text-[12px] text-ink3 mt-0.5">{d.check.zone.tf} {d.check.zone.type} demand {px(d.check.zone.distal)}–{px(d.check.zone.proximal)}{d.check.score != null ? ` · score ${d.check.score}/10` : ''}</p>
                 </div>
                 <Badge tone={d.check.kind === 'BUY' ? 'profit' : 'neutral'}>{d.check.kind === 'BUY' ? 'Passes every rule' : 'No trade'}</Badge>
               </div>
               <div className="grid grid-cols-4 gap-2 rounded-xl bg-raised/50 border border-line/70 p-3">
-                <Stat label="Entry" value={num(d.check.entry)} />
-                <Stat label="Stop" value={num(d.check.stop)} className="text-loss" />
-                <Stat label="Target" value={d.check.target != null ? num(d.check.target) : '—'} className="text-profit" />
-                <Stat label="R:R" value={d.check.rr != null ? num(d.check.rr, 1) : '—'} />
+                <Stat label="Entry" value={px(d.check.entry)} className={PLAN_V} />
+                <Stat label="Stop" value={px(d.check.stop)} className={cx(PLAN_V, 'text-loss')} />
+                <Stat label="Target" value={px(d.check.target)} className={cx(PLAN_V, 'text-profit')} />
+                <Stat label="R:R" value={d.check.rr != null ? num(d.check.rr, 1) : '—'} className={PLAN_V} />
               </div>
               <ScoreChips raja={d.check.score} seiden={d.check.seiden_score} parts={d.check.seiden_parts} />
               <PzChips s={d.check} />

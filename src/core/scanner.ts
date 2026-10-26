@@ -147,6 +147,17 @@ export const EXIT_REASON: Record<string, string> = {
   in_supply: 'Price is inside a supply',
 };
 
+/**
+ * A stock price for display: 2 decimals with thousands separators (4,500.00), more decimals below $1 so a
+ * sub-dollar price never collapses to "0.01" (0.0123 -> 0.0123). Same rule as the zone chart's labels.
+ */
+export function px(n: number | null | undefined): string {
+  if (n == null || !Number.isFinite(n)) return '—';
+  const a = Math.abs(n);
+  const dp = a === 0 || a >= 1 ? 2 : a >= 0.1 ? 3 : 4;
+  return n.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp });
+}
+
 /** TradingView chart link (the scan supplies it with the exchange prefix when it knows it). */
 export const tvChart = (s: Pick<ScanSignal, 'symbol' | 'chart'>) => s.chart && s.chart.startsWith('https://www.tradingview.com/') ? s.chart : `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(s.symbol)}`;
 

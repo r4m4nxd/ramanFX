@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { blankPlan } from './strategy';
-import { ago, readWatch, seidenText, sortSignals, toggleWatch, WATCH_KEY, writeWatch, checkPlanLink, detailFrom, findBySlug, matches, parseIndex, parseScan, planFromParams, planLink, searchTickers, sectorsOf, slug, stockPath, tvChart, unpackBars, type IndexRow, type ScanSignal } from './scanner';
+import { ago, px, readWatch, seidenText, sortSignals, toggleWatch, WATCH_KEY, writeWatch, checkPlanLink, detailFrom, findBySlug, matches, parseIndex, parseScan, planFromParams, planLink, searchTickers, sectorsOf, slug, stockPath, tvChart, unpackBars, type IndexRow, type ScanSignal } from './scanner';
 
 const sample = JSON.parse(readFileSync(resolve(process.cwd(), 'tools/stock_scanner/fixtures/sample/latest.json'), 'utf8'));
 const placeholder = JSON.parse(readFileSync(resolve(process.cwd(), 'public/scanner/latest.json'), 'utf8'));
@@ -167,5 +167,16 @@ describe('Pinndx-inspired extras', () => {
     expect(['demand', 'supply', 'middle']).toContain(d.gauge!.state);
     expect(d.fv!.lo).toBeLessThanOrEqual(d.fv!.hi);
     expect(['D', 'S', 'M']).toContain(r.st);
+  });
+});
+
+describe('px', () => {
+  it('keeps sub-dollar prices readable and big prices grouped', () => {
+    expect(px(0.0123)).toBe('0.0123');
+    expect(px(0.456)).toBe('0.456');
+    expect(px(24.3)).toBe('24.30');
+    expect(px(4500)).toBe('4,500.00');
+    expect(px(null)).toBe('—');
+    expect(px(Number.NaN)).toBe('—');
   });
 });
