@@ -1,4 +1,4 @@
-"""Compact fundamentals per signalled ticker from SEC EDGAR XBRL companyfacts, plus price-derived ratios.
+"""Compact fundamentals per ticker from SEC EDGAR XBRL companyfacts, plus price-derived ratios.
 
 CONTEXT ONLY: none of these numbers is part of the supply & demand rules. A signal never depends on them.
 
@@ -31,21 +31,72 @@ ST_DEBT = ['LongTermDebtCurrent', 'DebtCurrent', 'ShortTermBorrowings', 'Commerc
 
 
 def fetch_companyfacts(cik: str, max_age_days: float = 7, offline: bool = False) -> Optional[dict]:
+    """Raw companyfacts (not cached: the files are megabytes each; the scanner caches the small `base()` instead)."""
+    if not cik or offline:
+        return None
+    raw = http_get(f'https://data.sec.gov/api/xbrl/companyfacts/CIK{cik.zfill(10)}.json', ua=SEC_UA, accept='application/json')
+    return json.loads(raw)
+
+
+def _lite_path(cik: str) -> str: return os.path.join(CACHE, 'sec_lite', f'CIK{cik.zfill(10)}.json')
+
+
+def cached_base(cik: str) -> Tuple[Optional[Dict], float]:
+    """(price-independent fundamentals, age in days) from the small local cache; (None, inf) when missing."""
     if not cik:
-        return None
-    cik = cik.zfill(10)
-    path = os.path.join(CACHE, 'sec', f'CIK{cik}.json')
-    if os.path.exists(path) and (offline or time.time() - os.path.getmtime(path) < max_age_days * 86400):
-        with open(path) as f:
-            return json.load(f)
-    if offline:
-        return None
-    raw = http_get(f'https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json', ua=SEC_UA, accept='application/json')
-    js = json.loads(raw)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, 'w') as f:
-        json.dump(js, f)
-    return js
+        return None, float('inf')
+    p = _lite_path(cik)
+    if not os.path.exists(p):
+        return None, float('inf')
+    try:
+        with open(p) as fh:
+            js = json.load(fh)
+        return js.get('base'), (time.time() - float(js.get('fetched', 0))) / 86400
+    except (OSError, ValueError):
+        return None, float('inf')
+
+
+def fetch_base(cik: str, max_age_days: float = 7, offline: bool = False) -> Optional[Dict]:
+    """Small cached fundamentals for one company, refreshed from SEC when older than max_age_days."""
+    b, age = cached_base(cik)
+    if not cik or offline or age < max_age_days:
+        return b
+    try:
+        cf = fetch_companyfacts(cik)
+    except Exception:  # noqa: BLE001 - keep the stale copy
+        return b
+    nb = base(cf) if cf else None
+    if nb is not None:
+        os.makedirs(os.path.dirname(_lite_path(cik)), exist_ok=True)
+        with open(_lite_path(cik), 'w') as fh:
+            json.dump({'fetched': time.time(), 'base': nb}, fh)
+    return nb or b
+
+
+def refresh_plan(ciks: List[str], urgent: List[str], per_run: int = 600, weekly: float = 7, daily: float = 1) -> List[str]:
+    """Which CIKs to download this run: urgent (signalled) ones older than a day, then the others older than a week,
+    oldest first, at most per_run in total. Spreads the whole universe over the week and keeps SEC traffic polite."""
+    out, seen = [], set()
+    for c in urgent:
+        if c and c not in seen and cached_base(c)[1] >= daily:
+            out.append(c)
+            seen.add(c)
+    rest = sorted(((cached_base(c)[1], c) for c in set(ciks) - seen if c), reverse=True)
+    for age, c in rest:
+        if len(out) >= per_run:
+            break
+        if age >= weekly:
+            out.append(c)
+    return out[:max(per_run, len([c for c in urgent if c]))]
+
+
+def refresh_bases(ciks: List[str], workers: int = 4, log=None) -> int:
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=max(1, workers)) as ex:
+        n = sum(1 for b in ex.map(lambda c: fetch_base(c, max_age_days=0), ciks) if b)
+    if log:
+        log(f'SEC: refreshed {n}/{len(ciks)} companies')
+    return n
 
 
 # ---- fact helpers -----------------------------------------------------------------------------------------------
@@ -178,16 +229,8 @@ def filing_dates(cf: dict) -> List[str]:
 
 
 # ---- the table ----------------------------------------------------------------------------------------------------
-def compute(cf: Optional[dict], price: float, daily_highs: List[float], daily_lows: List[float]) -> Dict:
-    """Fundamentals dict (raw numbers + period end dates). Missing values are None (shown as n/a)."""
-    out: Dict = {'context_only': True, 'source': 'SEC EDGAR XBRL companyfacts' if cf else None}
-    last252_h, last252_l = (max(daily_highs[-252:]), min(daily_lows[-252:])) if daily_highs else (None, None)
-    ath = max(daily_highs) if daily_highs else None
-    out['range52_pos'] = (price - last252_l) / (last252_h - last252_l) if last252_h and last252_h > last252_l else None
-    out['from_ath'] = price / ath - 1 if ath else None
-    out['price'] = round(price, 2)
-    if not cf:
-        return {k: round(v, 4) if isinstance(v, float) else v for k, v in out.items()}
+def base(cf: dict) -> Dict:
+    """Price-independent fundamentals from companyfacts (what the cache keeps)."""
     rev, rev_g, rev_end = ttm_yoy(facts(cf, REVENUE))
     eps, eps_g, eps_end = ttm_yoy(facts(cf, EPS, unit_pref=('USD/shares',)))
     ni, _, ni_end = ttm_yoy(facts(cf, NET_INCOME))
@@ -196,7 +239,7 @@ def compute(cf: Optional[dict], price: float, daily_highs: List[float], daily_lo
     eq = latest_instant(facts(cf, EQUITY))
     debt = total_debt(cf)
     sh, sh_chg, sh_end = shares_trend(cf)
-    out.update({
+    return {
         'revenue_ttm': rev, 'revenue_yoy': rev_g, 'revenue_end': rev_end,
         'eps_ttm': eps, 'eps_yoy': eps_g, 'eps_end': eps_end,
         'net_margin': ni / rev if ni is not None and rev else None, 'net_income_end': ni_end,
@@ -204,9 +247,27 @@ def compute(cf: Optional[dict], price: float, daily_highs: List[float], daily_lo
         'debt': debt[0] if debt else None, 'equity': eq[0] if eq else None,
         'debt_to_equity': debt[0] / eq[0] if debt and eq and eq[0] > 0 else None, 'balance_end': (debt or eq or (None, ''))[1],
         'shares': sh, 'shares_yoy': sh_chg, 'shares_end': sh_end,
-        'pe': price / eps if eps and eps > 0 else None,
-        'market_cap': price * sh if sh else None,
-    })
+        'filings': filing_dates(cf)[-16:],
+    }
+
+
+def compute(cf: Optional[dict], price: float, daily_highs: List[float], daily_lows: List[float]) -> Dict:
+    """Fundamentals dict (raw numbers + period end dates). cf = raw companyfacts or a cached base().
+    Missing values are None (shown as n/a)."""
+    out: Dict = {'context_only': True, 'source': 'SEC EDGAR XBRL companyfacts' if cf else None}
+    last252_h, last252_l = (max(daily_highs[-252:]), min(daily_lows[-252:])) if daily_highs else (None, None)
+    ath = max(daily_highs) if daily_highs else None
+    out['range52_pos'] = (price - last252_l) / (last252_h - last252_l) if last252_h and last252_h > last252_l else None
+    out['from_ath'] = price / ath - 1 if ath else None
+    out['price'] = round(price, 2)
+    if not cf:
+        return {k: round(v, 4) if isinstance(v, float) else v for k, v in out.items()}
+    b = base(cf) if 'facts' in cf else dict(cf)
+    b.pop('filings', None)
+    out.update(b)
+    eps, sh = b.get('eps_ttm'), b.get('shares')
+    out['pe'] = price / eps if eps and eps > 0 else None
+    out['market_cap'] = price * sh if sh else None
     return {k: (round(v, 4) if abs(v) < 1e4 else round(v)) if isinstance(v, float) else v for k, v in out.items()}
 
 

@@ -2,9 +2,9 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { blankPlan } from './strategy';
-import { ago, matches, parseScan, planFromParams, planLink, sectorsOf, tvChart, type ScanSignal } from './scanner';
+import { ago, checkPlanLink, detailFrom, findBySlug, matches, parseIndex, parseScan, planFromParams, planLink, searchTickers, sectorsOf, slug, stockPath, tvChart, unpackBars, type IndexRow, type ScanSignal } from './scanner';
 
-const sample = JSON.parse(readFileSync(resolve(process.cwd(), 'tools/stock_scanner/fixtures/latest.sample.json'), 'utf8'));
+const sample = JSON.parse(readFileSync(resolve(process.cwd(), 'tools/stock_scanner/fixtures/sample/latest.json'), 'utf8'));
 const placeholder = JSON.parse(readFileSync(resolve(process.cwd(), 'public/scanner/latest.json'), 'utf8'));
 
 describe('parseScan', () => {
@@ -81,5 +81,47 @@ describe('helpers', () => {
     expect(ago('2026-10-26T02:00:00Z', now)).toBe('10 h ago');
     expect(ago('2026-10-20T12:00:00Z', now)).toBe('6 days ago');
     expect(ago('nope', now)).toBe('');
+  });
+});
+
+const sampleIndex = JSON.parse(readFileSync(resolve(process.cwd(), 'tools/stock_scanner/fixtures/sample/index.json'), 'utf8'));
+const shard = (k: number) => JSON.parse(readFileSync(resolve(process.cwd(), `tools/stock_scanner/fixtures/sample/t/${k}.json`), 'utf8'));
+
+describe('ticker search + detail', () => {
+  const idx = parseIndex(sampleIndex)!;
+  it('index lists every ticker with its shard', () => {
+    expect(idx.tickers.length).toBeGreaterThan(5);
+    for (const r of idx.tickers) expect(detailFrom(shard(r.k), r.s)?.symbol).toBe(r.s);
+    expect(parseIndex(JSON.parse(readFileSync(resolve(process.cwd(), 'public/scanner/index.json'), 'utf8')))!.tickers).toEqual([]);
+    expect(parseIndex({ nope: 1 })).toBeNull();
+  });
+  it('searches by ticker and name', () => {
+    const rows: IndexRow[] = [
+      { s: 'AAPL', n: 'Apple Inc.', sec: 'Information Technology', ix: ['SPX'], px: 1, k: 0 },
+      { s: 'AA', n: 'Alcoa', sec: 'Materials', ix: ['RUT'], px: 1, k: 1 },
+      { s: 'BRK.B', n: 'Berkshire Hathaway', sec: 'Financials', ix: ['SPX'], px: 1, k: 2 },
+      { s: 'PINE', n: 'Alpine Income', sec: 'Real Estate', ix: ['RUT'], px: 1, k: 3 },
+    ];
+    expect(searchTickers(rows, 'aa').map(r => r.s)).toEqual(['AA', 'AAPL']);
+    expect(searchTickers(rows, 'apple').map(r => r.s)).toEqual(['AAPL']);
+    expect(searchTickers(rows, 'brk-b').map(r => r.s)).toEqual(['BRK.B']);
+    expect(searchTickers(rows, 'pine').map(r => r.s)).toEqual(['PINE']);
+    expect(searchTickers(rows, '  ')).toEqual([]);
+    expect(slug('BRK.B')).toBe('BRK-B');
+    expect(stockPath('BRK.B')).toBe('/scanner/BRK-B');
+    expect(findBySlug(rows, 'brk-b')?.s).toBe('BRK.B');
+    expect(findBySlug(rows, 'XYZ')).toBeNull();
+  });
+  it('unpacks bars and builds a plan link', () => {
+    const r = idx.tickers.find(t => t.sig === 'BUY')!;
+    const d = detailFrom(shard(r.k), r.s)!;
+    const bars = unpackBars(d.bars);
+    expect(bars.length).toBe(d.bars.b.length);
+    expect(bars[0][0]).toBe(d.bars.t0);
+    expect(bars.every((b, i) => i === 0 || b[0] > bars[i - 1][0])).toBe(true);
+    const link = checkPlanLink(d)!;
+    expect(link).toMatch(/^\/plan\/new\?/);
+    expect(new URL(link, 'https://x.test').searchParams.get('entry')).toBe(String(d.check!.entry));
+    expect(d.check!.kind).toBe('BUY');
   });
 });

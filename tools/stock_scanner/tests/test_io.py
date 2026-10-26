@@ -225,3 +225,34 @@ class NotifyTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class SecCacheTest(unittest.TestCase):
+    def test_refresh_plan_weekly_daily_and_cap(self):
+        import tempfile
+        import time
+        old = F.CACHE
+        F.CACHE = tempfile.mkdtemp()
+        try:
+            def put(cik, days):
+                os.makedirs(os.path.join(F.CACHE, 'sec_lite'), exist_ok=True)
+                with open(F._lite_path(cik), 'w') as f:
+                    json.dump({'fetched': time.time() - days * 86400, 'base': {'eps_ttm': 1.0}}, f)
+            put('1', 0.5); put('2', 3); put('3', 8); put('4', 30)
+            plan = F.refresh_plan(['1', '2', '3', '4', '5'], urgent=['2'], per_run=3)
+            self.assertEqual(plan, ['2', '5', '4'])          # urgent first, then missing / oldest; '1' fresh, cap 3
+            self.assertEqual(F.refresh_plan(['1'], urgent=['1'], per_run=5), [])
+            self.assertEqual(F.cached_base('3')[0], {'eps_ttm': 1.0})
+            self.assertEqual(F.fetch_base('3', offline=True), {'eps_ttm': 1.0})
+        finally:
+            F.CACHE = old
+
+    def test_base_round_trip(self):
+        with open(os.path.join(PKG, 'fixtures', 'companyfacts_sample.json')) as f:
+            cf = json.load(f)
+        b = json.loads(json.dumps(F.base(cf)))
+        self.assertIn('2026-07-31', b['filings'])
+        self.assertEqual(F.compute(cf, 100, [90, 110], [80, 95]), F.compute(b, 100, [90, 110], [80, 95]))
+
+    def test_sec_pace(self):
+        self.assertGreaterEqual(DATA.HOST_PAUSE['data.sec.gov'], 0.2)   # <= 5 requests a second

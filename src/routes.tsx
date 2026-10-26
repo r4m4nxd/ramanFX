@@ -46,6 +46,7 @@ export const Exits = lazyPage(() => import('@/pages/Exits'));
 export const Settings = lazyPage(() => import('@/pages/Settings'));
 export const Zones = lazyPage(() => import('@/pages/Zones'));
 export const Scanner = lazyPage(() => import('@/pages/Scanner'));
+export const Stock = lazyPage(() => import('@/pages/Stock'));
 
 /** First path segment → page, for prefetching on hover / touch-down / focus of a link. */
 const BY_PATH: Record<string, LazyPage> = {
@@ -58,7 +59,7 @@ const BY_PATH: Record<string, LazyPage> = {
 /** Start downloading the page behind `to` (no-op for the dashboard, which ships in the main bundle). */
 export function prefetchRoute(to: string) {
   const seg = to.split(/[?#]/)[0].split('/').filter(Boolean);
-  const page = seg[0] === 'trades' && seg.length > 1 ? TradeDetail : BY_PATH[seg[0] ?? ''];
+  const page = seg[0] === 'trades' && seg.length > 1 ? TradeDetail : seg[0] === 'scanner' && seg.length > 1 ? Stock : BY_PATH[seg[0] ?? ''];
   void page?.preload().catch(() => {});
 }
 
@@ -66,4 +67,4 @@ export function prefetchRoute(to: string) {
 export const prefetchProps = (to: string) => ({ onPointerEnter: () => prefetchRoute(to), onPointerDown: () => prefetchRoute(to), onFocus: () => prefetchRoute(to) });
 
 /** Idle preload order: the pages a phone user reaches first, then the rest; heavy reading pages last. */
-export const PRELOAD: LazyPage[] = [Journal, Trades, TradeDetail, Planner, Reports, CalendarPage, Heatmaps, Guru, Playbook, Calculator, Risk, Strategies, Notebook, Exits, Zones, Scanner, Settings, ChecklistPage, Tools, Guide, News, ChartPage, Ask, BotGuide, Sandbox, Learn];
+export const PRELOAD: LazyPage[] = [Journal, Trades, TradeDetail, Planner, Reports, CalendarPage, Heatmaps, Guru, Playbook, Calculator, Risk, Strategies, Notebook, Exits, Zones, Scanner, Stock, Settings, ChecklistPage, Tools, Guide, News, ChartPage, Ask, BotGuide, Sandbox, Learn];

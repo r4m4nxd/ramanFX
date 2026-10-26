@@ -21,7 +21,7 @@ import json
 import os
 import sys
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -313,6 +313,82 @@ def compact_bars(bars: List[Bar], n: int = CHART_BARS) -> list:
     return [[b.d, round(b.o, nd), round(b.h, nd), round(b.l, nd), round(b.c, nd)] for b in bars[-n:]]
 
 
+SHARDS = 64          # per-ticker details live in 64 shard files (see write_outputs)
+DETAIL_BARS = 120
+
+
+def shard_of(sym: str) -> int:
+    import zlib
+    return zlib.crc32(sym.encode()) % SHARDS
+
+
+def pack_bars(bars: List[Bar], n: int = DETAIL_BARS) -> Dict:
+    """Compact bars: first date, day offsets, [o, h, l, c] rounded (2 decimals; 4 under $1)."""
+    bs = bars[-n:]
+    if not bs:
+        return {'t0': '', 'dt': [], 'b': []}
+    d0 = dt.date.fromisoformat(bs[0].d)
+    nd = 2 if bs[-1].c >= 1 else 4
+    return {'t0': bs[0].d, 'dt': [(dt.date.fromisoformat(b.d) - d0).days for b in bs],
+            'b': [[round(b.o, nd), round(b.h, nd), round(b.l, nd), round(b.c, nd)] for b in bs]}
+
+
+def ticker_detail(sym: str, u: Dict, an: Analysis, bars: List[Bar], meta: Dict, fund_rows, signals: List[Dict], illiquid: bool) -> Tuple[Dict, Dict]:
+    """(detail for the stock page, row for the search index). Every active D1 / W1 zone with its Raja type, the
+    nearest demand / supply, and the nearest demand checked against every BUY rule as if it were a signal."""
+    import data as DATA
+    px = an.price
+    zl, near_d, near_s = [], None, None
+    for r, higher in ((an.d1, [an.w1, an.mn]), (an.w1, [an.mn])):
+        if not r.ok:
+            continue
+        for i, z in enumerate(r.zones):
+            if z.removed or z.leg_bar > RAJA['max_zone_age']:
+                continue
+            x = an.dna.get(z.zid) or Z.dna(r.S, r.zones, i, r.tl, higher, an.mn.zones if an.mn.ok else [], an.curve, an.mn if an.mn.ok else None, TP_OFFSET)
+            fresh = x.n_tests == 0
+            zl.append({'tf': z.tf, 'side': 'demand' if z.dir > 0 else 'supply', 'proximal': round(z.prox, 2), 'distal': round(z.dist, 2),
+                       'type': x.code, 'score': raja_score(x, fresh) if z.dir > 0 else None, 'fresh': fresh, 'touches': x.n_tests,
+                       'made': z.made, 'pattern': z.pattern})
+            if z.dir > 0 and z.dist < px and (near_d is None or z.prox > near_d[0].prox):
+                near_d = (z, x)
+            if z.dir < 0 and z.dist > px and Z.fresh_at(r.S, z) and (near_s is None or z.prox < near_s[0].prox):
+                near_s = (z, x)
+    zl.sort(key=lambda q: -q['proximal'])
+
+    def nz(t):
+        if t is None:
+            return None
+        z = t[0]
+        return {'tf': z.tf, 'proximal': round(z.prox, 2), 'distal': round(z.dist, 2), 'type': t[1].code,
+                'dist_pct': round((px - z.prox) / px * 100 if z.dir > 0 else (z.prox - px) / px * 100, 2)}
+    check = None
+    kinds = [x['kind'] for x in signals]
+    buy = next((x for x in signals if x['kind'] == 'BUY'), None)
+    if buy is not None:                                   # the signal's own zone and rule list
+        check = {'zone': {'tf': buy['tf'], 'proximal': buy['proximal'], 'distal': buy['distal'], 'type': buy['zone_type'],
+                          'dist_pct': buy['to_entry_pct']}, 'kind': 'BUY', 'score': buy.get('score'),
+                 **{k: buy.get(k) for k in ('entry', 'stop', 'target', 'rr', 'next_supply', 'supply_distal', 'stop_pct_of_height')},
+                 'rules': buy['rules']}
+    elif near_d is not None:
+        z, x = near_d
+        rules = zone_rules(an, z, x, None)
+        check = {'zone': nz(near_d), 'kind': 'BUY' if not any(k.status == FAIL for k in rules) else 'no trade',
+                 'score': raja_score(x, x.n_tests == 0), **plan(z, x), 'rules': [k.as_dict() for k in rules]}
+    sig = 'BUY' if 'BUY' in kinds else ('WATCH' if 'WATCH' in kinds else None)
+    detail = {'symbol': sym, 'name': u.get('name', sym), 'sector': u.get('sector', '') or 'Other',
+              'indexes': [i for i in (u.get('indexes') or '').split(',') if i], 'exchange': meta.get('exchange', ''),
+              'chart': DATA.tradingview_url(sym, meta.get('exchange', '')), 'date': an.date, 'price': round(px, 2),
+              'illiquid': illiquid, 'signal': sig, 'direction': an.direction.head, 'd1': an.d1.state_name, 'w1': an.w1.state_name,
+              'mn': an.mn.state_name, 'curve': round(an.curve.value, 1) if an.curve.ok else None, 'curve_raja': an.curve.raja,
+              'zones': zl, 'nearest_demand': nz(near_d), 'nearest_supply': nz(near_s), 'check': check,
+              'fundamentals_rows': fund_rows or [], 'bars': pack_bars(bars)}
+    row = {'s': sym, 'n': detail['name'], 'sec': detail['sector'], 'ix': detail['indexes'], 'px': detail['price'],
+           'dd': detail['nearest_demand']['dist_pct'] if near_d else None, 'ds': detail['nearest_supply']['dist_pct'] if near_s else None,
+           'sig': sig, 'il': illiquid or None, 'k': shard_of(sym)}
+    return detail, {k: v for k, v in row.items() if v is not None}
+
+
 def regime_line(an: Analysis, sym: str) -> Dict:
     c = [b for b in an.d1.S.C[1:201]]
     sma = sum(c) / len(c) if len(c) >= 200 else None
@@ -343,6 +419,8 @@ def run(universe: List[Dict], get_bars, get_cf, get_earnings, holdings: List[Dic
     sigs, exits, errors, notes = [], [], [], []
     filtered: List[str] = []
     chart_bars: Dict[str, list] = {}
+    details: Dict[str, Dict] = {}
+    index_rows: List[Dict] = []
     regime = []
     last_date = today or ''
     for sym in REGIME:
@@ -363,13 +441,13 @@ def run(universe: List[Dict], get_bars, get_cf, get_earnings, holdings: List[Dic
             continue
         last_date = max(last_date, bars[-1].d)
         u0 = info.get(sym)
-        if u0 is not None and sym not in held and not liquid(u0, bars):
+        illiquid = u0 is not None and sym not in held and not liquid(u0, bars)
+        if illiquid:
             filtered.append(sym)
-            continue
         an = analyse(bars, DATA.closed_htf(bars, 'W1'), DATA.closed_htf(bars, 'MN'))
         u = info.get(sym, {'symbol': sym, 'name': sym, 'sector': '', 'cik': ''})
         found = []
-        if sym in info:
+        if sym in info and not illiquid:
             pre = symbol_signals(an, None)
             if pre and any(s['kind'] == 'BUY' or s['kind'] == 'WATCH' for s in pre):
                 er = get_earnings(sym)
@@ -381,13 +459,17 @@ def run(universe: List[Dict], get_bars, get_cf, get_earnings, holdings: List[Dic
             s.update({'symbol': sym, 'name': u.get('name', sym), 'sector': u.get('sector', '') or 'Other',
                       'indexes': (u.get('indexes') or 'SPX').split(','), 'exchange': meta.get('exchange', ''),
                       'chart': DATA.tradingview_url(sym, meta.get('exchange', ''))})
+        try:
+            cf = get_cf(u.get('cik', ''))
+        except Exception as e:  # noqa: BLE001
+            cf = None
+            notes.append(f'{sym} SEC: {e}')
+        fz = F.compute(cf, an.price, [b.h for b in bars], [b.l for b in bars])
+        if sym in info:
+            d, row = ticker_detail(sym, u, an, bars, meta, F.rows(fz) if cf else [], found, illiquid)
+            details[sym] = d
+            index_rows.append(row)
         if found:
-            try:
-                cf = get_cf(u.get('cik', ''))
-            except Exception as e:  # noqa: BLE001
-                cf = None
-                notes.append(f'{sym} SEC: {e}')
-            fz = F.compute(cf, an.price, [b.h for b in bars], [b.l for b in bars])
             for s in found:
                 s['fundamentals'] = fz
                 s['fundamentals_rows'] = F.rows(fz)
@@ -406,7 +488,7 @@ def run(universe: List[Dict], get_bars, get_cf, get_earnings, holdings: List[Dic
     sigs.sort(key=lambda s: (order[s['kind']], -s.get('score', 0), -(s.get('rr') or 0), abs(s['to_entry_pct'])))
     return {'date': last_date, 'generated_at': dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
             'universe': len(universe), 'scanned': len(syms) - len(errors) - len(filtered), 'errors': errors, 'notes': notes, 'signals': sigs, 'exits': exits,
-            'filtered_liquidity': len(filtered), 'bars': chart_bars, 'regime': regime, 'universes': sorted({i for u in universe for i in (u.get('indexes') or 'SPX').split(',')}),
+            'filtered_liquidity': len(filtered), 'bars': chart_bars, 'details': details, 'index': index_rows, 'regime': regime, 'universes': sorted({i for u in universe for i in (u.get('indexes') or 'SPX').split(',')}),
             'index_sizes': {i: sum(1 for u in universe if i in (u.get('indexes') or 'SPX').split(',')) for i in ('SPX', 'NDX', 'DJI', 'RUT')}}
 
 
@@ -430,17 +512,62 @@ def public_json(res: Dict, fixture: bool = False) -> Dict:
     }
 
 
-def write_outputs(res: Dict, out_dir: str, fixture: bool = False) -> str:
+def write_outputs(res: Dict, out_dir: str, fixture: bool = False, history: bool = True) -> str:
+    """latest.json (signals, the app's list), history/<date>.json, index.json (every ticker, for search) and the
+    per-ticker details in SHARDS shard files t/<n>.json. Shards, not one file per ticker: the daily commit touches ~67
+    files instead of ~2,600, each shard stays ~0.3 MB raw (~60 KB gzipped) and git packs yesterday's shard as a delta."""
     pub = public_json(res, fixture)
-    os.makedirs(os.path.join(out_dir, 'history'), exist_ok=True)
+    os.makedirs(out_dir, exist_ok=True)
     path = os.path.join(out_dir, 'latest.json')
     with open(path, 'w') as f:
         json.dump(pub, f, separators=(',', ':'))
         f.write('\n')
-    with open(os.path.join(out_dir, 'history', f"{res['date'] or 'unknown'}.json"), 'w') as f:
-        json.dump(pub, f, separators=(',', ':'))
-        f.write('\n')
+    if history:
+        os.makedirs(os.path.join(out_dir, 'history'), exist_ok=True)
+        with open(os.path.join(out_dir, 'history', f"{res['date'] or 'unknown'}.json"), 'w') as f:
+            json.dump({k: v for k, v in pub.items() if k != 'bars'}, f, separators=(',', ':'))
+            f.write('\n')
+    details = res.get('details') or {}
+    if details:
+        tdir = os.path.join(out_dir, 't')
+        os.makedirs(tdir, exist_ok=True)
+        shards: Dict[int, Dict] = {}
+        for sym, d in details.items():
+            shards.setdefault(shard_of(sym), {})[sym] = d
+        keep = set()
+        for k, m in shards.items():
+            name = f'{k}.json'
+            keep.add(name)
+            with open(os.path.join(tdir, name), 'w') as f:
+                json.dump({'date': res['date'], 'tickers': dict(sorted(m.items()))}, f, separators=(',', ':'))
+                f.write('\n')
+        for name in os.listdir(tdir):
+            if name.endswith('.json') and name not in keep:
+                os.remove(os.path.join(tdir, name))
+        idx = {'version': 1, 'date': res['date'], 'generated_at': res['generated_at'], 'fixture': fixture, 'shards': SHARDS,
+               'tickers': sorted(res.get('index') or [], key=lambda r: r['s'])}
+        with open(os.path.join(out_dir, 'index.json'), 'w') as f:
+            json.dump(idx, f, separators=(',', ':'))
+            f.write('\n')
     return path
+
+
+def refresh_signal_fundamentals(res: Dict, ciks: Dict[str, str], bars: Dict) -> None:
+    """Today's signalled tickers get fundamentals at most a day old (the rest refresh weekly)."""
+    import fundamentals as F
+    syms = sorted({s['symbol'] for s in res['signals']})
+    todo = F.refresh_plan([], [ciks.get(s, '') for s in syms], per_run=0)
+    if not todo:
+        return
+    F.refresh_bases(todo, workers=4)
+    for s in res['signals']:
+        b = F.cached_base(ciks.get(s['symbol'], ''))[0]
+        if b and s['symbol'] in bars:
+            bb = bars[s['symbol']][0]
+            fz = F.compute(b, s['price'], [x.h for x in bb], [x.l for x in bb])
+            s['fundamentals'], s['fundamentals_rows'] = fz, F.rows(fz)
+            if s['symbol'] in res.get('details', {}):
+                res['details'][s['symbol']]['fundamentals_rows'] = s['fundamentals_rows']
 
 
 def main(argv=None) -> int:
@@ -451,6 +578,9 @@ def main(argv=None) -> int:
     ap.add_argument('--workers', type=int, default=int(os.environ.get('SCANNER_WORKERS', '6')), help='download threads')
     ap.add_argument('--top', type=int, default=int(os.environ.get('TELEGRAM_TOP_N', '5')), help='Telegram: top N per sector')
     ap.add_argument('--offline', action='store_true', help='use cached data only')
+    ap.add_argument('--no-sec', action='store_true', help='skip the SEC fundamentals refresh (use the cache)')
+    ap.add_argument('--sec-per-run', type=int, default=int(os.environ.get('SCANNER_SEC_PER_RUN', '600')),
+                    help='max companies refreshed from SEC per run (each at most weekly; signalled daily)')
     ap.add_argument('--no-notify', action='store_true')
     ap.add_argument('--no-write', action='store_true')
     ap.add_argument('--out', default=os.path.join(ROOT, 'public', 'scanner'))
@@ -484,8 +614,21 @@ def main(argv=None) -> int:
         if s in pre:
             return pre[s]
         raise RuntimeError(fetch_err.get(s, 'no data'))
-    res = run(uni, get_bars, lambda c: F.fetch_companyfacts(c, offline=a.offline),
+    if not a.offline and not a.no_sec:
+        # weekly per company (oldest first, capped per run), daily for the tickers that signalled yesterday
+        prev = set()
+        try:
+            with open(os.path.join(a.out, 'latest.json')) as fh:
+                prev = {s['symbol'] for s in json.load(fh).get('signals', [])}
+        except (OSError, ValueError):
+            pass
+        cik = {u['symbol']: u.get('cik', '') for u in uni}
+        todo = F.refresh_plan([c for c in cik.values() if c], [cik.get(s, '') for s in prev], per_run=a.sec_per_run)
+        F.refresh_bases(todo, workers=4, log=lambda m: print(m, file=sys.stderr))
+    res = run(uni, get_bars, lambda c: F.cached_base(c)[0] if c else None,
               (lambda s: None) if a.offline else DATA.fetch_earnings, holdings, log=lambda m: print(m, file=sys.stderr))
+    if not a.offline and not a.no_sec:
+        refresh_signal_fundamentals(res, {u['symbol']: u.get('cik', '') for u in uni}, pre)
     res['rut_snapshot'] = U.snapshot_date()
     if not a.no_write:
         print('wrote', write_outputs(res, a.out))

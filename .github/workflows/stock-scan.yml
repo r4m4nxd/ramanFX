@@ -30,6 +30,7 @@ jobs:
       SCANNER_UNIVERSES: ${{ vars.SCANNER_UNIVERSES || 'SPX,NDX,DJI,RUT' }}
       SCANNER_WORKERS: '6'
       TELEGRAM_TOP_N: ${{ vars.TELEGRAM_TOP_N || '5' }}
+      SCANNER_SEC_PER_RUN: '600'
     steps:
       - uses: actions/checkout@v4
 

@@ -8,7 +8,7 @@ import { ToastProvider } from '@/ui/kit';
 import Dashboard from '@/pages/Dashboard';
 
 // Secondary pages are split so the dashboard paints first (src/routes.tsx: lazy pages that skip the skeleton once loaded).
-import { Ask, BotGuide, Calculator, CalendarPage, ChartPage, ChecklistPage, DesignSystem, Exits, Guide, Guru, Heatmaps, Journal, Learn, News, Notebook, Planner, Playbook, PRELOAD, Reports, Risk, Sandbox, Scanner, Settings, Strategies, Tools, TradeDetail, Trades, Zones } from '@/routes';
+import { Ask, BotGuide, Calculator, CalendarPage, ChartPage, ChecklistPage, DesignSystem, Exits, Guide, Guru, Heatmaps, Journal, Learn, News, Notebook, Planner, Playbook, PRELOAD, Reports, Risk, Sandbox, Scanner, Stock, Settings, Strategies, Tools, TradeDetail, Trades, Zones } from '@/routes';
 
 function Loading() {
   return (
@@ -71,6 +71,7 @@ export default function App() {
               <Route path="/practice" element={<Sandbox />} />
               <Route path="/zones" element={<Zones />} />
               <Route path="/scanner" element={<Scanner />} />
+              <Route path="/scanner/:ticker" element={<Stock />} />
               <Route path="*" element={<Dashboard />} />
             </Routes>
           </Suspense>

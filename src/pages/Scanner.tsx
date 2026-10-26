@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ago, EXIT_REASON, INDEXES, matches, parseScan, planLink, ruleIcon, SCAN_URL, SECTOR_SHORT, sectorsOf, tvChart, type IndexFilter, type RuleStatus, type ScanExit, type ScanFile, type ScanSignal } from '@/core/scanner';
+import { ago, EXIT_REASON, INDEXES, matches, parseScan, planLink, SCAN_URL, SECTOR_SHORT, sectorsOf, stockPath, tvChart, type IndexFilter, type ScanExit, type ScanFile, type ScanSignal } from '@/core/scanner';
 import { num } from '@/lib/format';
-import { Badge, Card, cx, Empty, Page, Segmented, Sheet, Stat } from '@/ui/kit';
-import { ZoneMiniChart, type MiniBar, type MiniLevels } from '@/ui/ZoneMiniChart';
+import { Badge, Card, cx, Empty, Page, Segmented, Stat } from '@/ui/kit';
+import type { MiniBar } from '@/ui/ZoneMiniChart';
+import { FundTable, IDX_SHORT, RuleList, TickerSearch, typeTone, ZoneChart } from '@/ui/ScanParts';
 import { Icon } from '@/ui/Icon';
 
 type Pill = 'BUY' | 'WATCH' | 'EXIT';
@@ -13,7 +14,6 @@ const savePill = (v: Pill) => { try { localStorage.setItem(KEY, v); } catch { /*
 const IDX_KEY = 'rfx_scanner_index';
 const readIdx = (): IndexFilter => { try { const v = localStorage.getItem(IDX_KEY); return v === 'SPX' || v === 'NDX' || v === 'DJI' || v === 'RUT' ? v : 'all'; } catch { return 'all'; } };
 const saveIdx = (v: IndexFilter) => { try { localStorage.setItem(IDX_KEY, v); } catch { /* storage blocked */ } };
-const IDX_SHORT: Record<string, string> = { SPX: 'S&P', NDX: 'NDX', DJI: 'Dow', RUT: 'R2K' };
 
 type Load = { state: 'loading' } | { state: 'ok'; scan: ScanFile | null } | { state: 'error' };
 
@@ -30,74 +30,6 @@ function useScan(): Load {
   return s;
 }
 
-const RULE_TONE: Record<RuleStatus, string> = { pass: 'text-profit bg-profit/10', fail: 'text-loss bg-loss/10', warn: 'text-warn bg-warn/10', unknown: 'text-ink3 bg-raised' };
-const typeTone = (t: string) => (t === 'ARR' || t === 'WOW' ? 'accent' : t === 'STR' ? 'violet' : 'neutral') as 'accent' | 'violet' | 'neutral';
-
-function Rules({ s }: { s: ScanSignal }) {
-  const n = s.rules.length;
-  const ok = s.rules.filter(r => r.status === 'pass').length;
-  const bad = s.rules.filter(r => r.status === 'fail').length;
-  return (
-    <details className="group rounded-xl border border-line px-3" open={s.kind === 'BUY'}>
-      <summary className="flex items-center gap-2 min-h-[44px] cursor-pointer list-none text-[13px] font-semibold select-none">
-        <Icon name="chevronRight" size={14} className="transition-transform group-open:rotate-90 text-ink3 shrink-0" />
-        <span className="flex-1">Rules checked</span>
-        <span className="num text-xs font-medium text-ink3">{ok}/{n} pass{bad ? ` · ${bad} fail` : ''}</span>
-      </summary>
-      <ul className="pb-3 flex flex-col gap-1.5">
-        {s.rules.map((r, i) => (
-          <li key={i} className="flex gap-2.5 text-[12.5px] leading-relaxed">
-            <span aria-label={r.status} className={cx('w-5 h-5 rounded-full grid place-items-center shrink-0 text-[11px] font-bold mt-px', RULE_TONE[r.status])}>{ruleIcon[r.status]}</span>
-            <span className="min-w-0 flex-1 text-ink2 [overflow-wrap:anywhere]">{r.text}</span>
-            <span className="num text-[11px] text-ink3 shrink-0 mt-px max-w-[34%] text-right">{r.ref}</span>
-          </li>
-        ))}
-      </ul>
-    </details>
-  );
-}
-
-function Fundamentals({ s }: { s: ScanSignal }) {
-  const rows = s.fundamentals_rows ?? [];
-  if (!rows.length) return null;
-  return (
-    <details className="group rounded-xl border border-line px-3">
-      <summary className="flex items-center gap-2 min-h-[44px] cursor-pointer list-none text-[13px] font-semibold select-none">
-        <Icon name="chevronRight" size={14} className="transition-transform group-open:rotate-90 text-ink3 shrink-0" />
-        <span className="flex-1">Fundamentals</span>
-        <span className="text-[11px] font-medium text-ink3">context only · SEC filings</span>
-      </summary>
-      <table className="w-full text-[12.5px] mb-3">
-        <tbody className="divide-y divide-line">
-          {rows.map(([k, v]) => (
-            <tr key={k}><th scope="row" className="text-left font-medium text-ink3 py-1.5 pr-3 whitespace-nowrap align-top">{k}</th><td className="num text-ink py-1.5 text-right [overflow-wrap:anywhere]">{v}</td></tr>
-          ))}
-        </tbody>
-      </table>
-      <p className="text-[11.5px] text-ink3 pb-3 -mt-1">Not part of the supply and demand rules. A signal never depends on these numbers.</p>
-    </details>
-  );
-}
-
-const levelsOf = (s: ScanSignal): MiniLevels => ({ proximal: s.proximal, distal: s.distal, entry: s.entry, stop: s.stop, target: s.target, supply: s.next_supply, supplyDistal: s.supply_distal ?? null, price: s.price });
-
-function ZoneChart({ s, bars }: { s: ScanSignal; bars?: MiniBar[] }) {
-  const [big, setBig] = useState(false);
-  if (!bars?.length) return null;
-  const label = `${s.symbol} daily chart: demand ${s.distal} to ${s.proximal}, entry ${s.entry}, stop ${s.stop}${s.target != null ? `, target ${s.target}` : ''}`;
-  return (
-    <>
-      <button type="button" onClick={() => setBig(true)} aria-label={`Enlarge the ${s.symbol} chart`} className="block w-full rounded-xl border border-line/70 bg-raised/30 p-1.5 press">
-        <ZoneMiniChart bars={bars.slice(-60)} levels={levelsOf(s)} label={label} />
-      </button>
-      <Sheet open={big} onClose={() => setBig(false)} title={`${s.symbol} · last ${bars.length} sessions`} width={760}>
-        <ZoneMiniChart bars={bars} levels={levelsOf(s)} height={280} label={label} />
-        <p className="text-[12px] text-ink3 mt-3">Green: the {s.tf} demand zone. Red: the next supply (target zone). Dashed: entry (E), stop (S), target (T). P = last close. Daily bars, split and dividend adjusted.</p>
-      </Sheet>
-    </>
-  );
-}
-
 function SignalCard({ s, bars }: { s: ScanSignal; bars?: MiniBar[] }) {
   const away = s.to_entry_pct;
   return (
@@ -105,7 +37,7 @@ function SignalCard({ s, bars }: { s: ScanSignal; bars?: MiniBar[] }) {
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="text-[18px] font-semibold tracking-tight">{s.symbol}</h3>
+            <h3 className="text-[18px] font-semibold tracking-tight"><Link to={stockPath(s.symbol)} className="hover:text-accent underline-offset-4 hover:underline">{s.symbol}</Link></h3>
             <Badge tone={typeTone(s.zone_type)}>{s.tf} · {s.zone_type}</Badge>
             {s.score != null && <Badge className="num">Score {s.score}/10</Badge>}
             {s.kind === 'WATCH' && <Badge tone="warn">{s.watch === 'tested' ? `Touch ${s.touches + 1} · confirm` : 'New · price far'}</Badge>}
@@ -123,7 +55,7 @@ function SignalCard({ s, bars }: { s: ScanSignal; bars?: MiniBar[] }) {
         {s.zone_type_text}. {s.pattern} demand {num(s.distal)}–{num(s.proximal)}, {s.base_candles}-candle base, made {s.made}.
       </p>
 
-      <ZoneChart s={s} bars={bars} />
+      {!!bars?.length && <ZoneChart symbol={s.symbol} tf={s.tf} bars={bars} levels={{ proximal: s.proximal, distal: s.distal, entry: s.entry, stop: s.stop, target: s.target, supply: s.next_supply, supplyDistal: s.supply_distal ?? null, price: s.price }} />}
 
       <div className="grid grid-cols-4 gap-2 rounded-xl bg-raised/50 border border-line/70 p-3">
         <Stat label="Entry" value={num(s.entry)} />
@@ -140,12 +72,13 @@ function SignalCard({ s, bars }: { s: ScanSignal; bars?: MiniBar[] }) {
       </div>
       {s.note && <p className="text-[12.5px] text-ink2 leading-relaxed">{s.note}</p>}
 
-      <Rules s={s} />
-      <Fundamentals s={s} />
+      <RuleList rules={s.rules} open={s.kind === 'BUY'} />
+      <FundTable rows={s.fundamentals_rows ?? []} />
 
       <div className="flex gap-2">
         <Link to={planLink(s)} className={cx(s.kind === 'BUY' ? 'btn-primary' : 'btn', 'h-10 flex-1 sm:flex-none')}><Icon name="target" size={15} />Plan it</Link>
         <a href={tvChart(s)} target="_blank" rel="noopener noreferrer" className="btn h-10 flex-1 sm:flex-none"><Icon name="link" size={15} />Chart</a>
+        <Link to={stockPath(s.symbol)} className="btn h-10 flex-1 sm:flex-none" aria-label={`${s.symbol} details`}><Icon name="layers" size={15} />Zones</Link>
       </div>
     </Card>
   );
@@ -221,6 +154,8 @@ export default function Scanner() {
           </p>
         </div>
       </Card>
+
+      <TickerSearch />
 
       {load.state === 'loading' && <div className="skeleton h-64 rounded-2xl" aria-busy="true" aria-label="Loading" />}
       {load.state === 'error' && <Card><Empty icon="cloudOff" title="Could not load the scan">{navigator.onLine ? 'The scan file is missing or unreadable. It is written by the daily GitHub workflow.' : 'You are offline. The scan needs a connection once.'}</Empty></Card>}
