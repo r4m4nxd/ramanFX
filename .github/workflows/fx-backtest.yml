@@ -1,0 +1,83 @@
+name: FX backtest
+
+# Walk-forward backtest of the live FX rules (tools/fx_scanner/fx_backtest.py) on OANDA history: same signal code as
+# the scanner, limit fills on bid / ask, spread paid, stop-first within a candle, in-sample vs out-of-sample, ablations.
+# Manual only. Writes public/fx/backtest.json + docs/research/FX_Backtest.md and commits them. Stdlib only.
+on:
+  workflow_dispatch:
+    inputs:
+      years:
+        description: "Test period in years back from today, or 'max' (since 2005, after a 1500-bar H4 warm-up)"
+        required: false
+        default: 'max'
+      instruments:
+        description: "Optional: comma-separated Pepperstone / OANDA names, or 'watchlist'; default: every scanned instrument"
+        required: false
+        default: ''
+      max_instruments:
+        description: 'Optional: only the first N instruments (watchlist first); 0 = all'
+        required: false
+        default: '0'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fx-backtest
+  cancel-in-progress: false
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 345
+    env:
+      OANDA_ENV: ${{ vars.OANDA_ENV || 'practice' }}
+      FX_INCLUDE_CFD: ${{ vars.FX_INCLUDE_CFD || 'false' }}
+      FX_MAX_SPREAD_FRAC: ${{ vars.FX_MAX_SPREAD_FRAC || '0.10' }}
+      FX_SOFT_REACH_PCT: ${{ vars.FX_SOFT_REACH_PCT || '5' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Full-history candles (tools/fx_scanner/.cache/bt), restored + saved like the scan workflow's cache.
+      - name: Restore candle cache
+        uses: actions/cache/restore@v4
+        with:
+          path: tools/fx_scanner/.cache
+          key: fx-bt-${{ github.run_id }}
+          restore-keys: |
+            fx-bt-
+
+      - name: Unit tests
+        run: python -m unittest discover -s tools/fx_scanner/tests
+
+      - name: Backtest
+        timeout-minutes: 320
+        run: |
+          ARGS="--years ${{ github.event.inputs.years || 'max' }} --max-instruments ${{ github.event.inputs.max_instruments || '0' }} --budget-min 270"
+          if [ -n "${{ github.event.inputs.instruments }}" ]; then ARGS="$ARGS --instruments ${{ github.event.inputs.instruments }}"; fi
+          if [ "$FX_INCLUDE_CFD" = "true" ]; then ARGS="$ARGS --include-cfd"; fi
+          python tools/fx_scanner/fx_backtest.py $ARGS
+        env:
+          OANDA_API_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
+          FX_WATCHLIST: ${{ secrets.FX_WATCHLIST }}
+
+      - name: Save candle cache
+        if: ${{ always() && hashFiles('tools/fx_scanner/.cache/**') != '' }}
+        uses: actions/cache/save@v4
+        with:
+          path: tools/fx_scanner/.cache
+          key: fx-bt-${{ github.run_id }}
+
+      - name: Commit results
+        if: ${{ !cancelled() && hashFiles('public/fx/backtest.json') != '' }}
+        run: |
+          git config user.name "ramanfx-scanner[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/fx/backtest.json docs/research/FX_Backtest.md
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "fx: backtest $(date -u +%Y-%m-%dT%H:%MZ)"
+          for i in 1 2 3; do git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && break; sleep 5; done

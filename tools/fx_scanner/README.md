@@ -132,3 +132,24 @@ breaker (401 / 403 open it at once; 429 / 5xx one short retry).
 
 MT5 users can cross-check any signal with ZoneVision (`public/tools/RamanFX_ZoneVision.mq5`, Raja template) on the
 Pepperstone chart.
+
+## Backtest (do the rules make money?)
+
+`fx_backtest.py` replays the live rules walk-forward on real OANDA history: at every H4 close it calls the scanner's
+own `fxcore.analyse` + `fxcore.signals` on the bars closed at that moment (no look-ahead), turns each new BUY / SELL
+into a limit order at the proximal with the scanner's stop and target, and simulates it on H4 bid / ask (spread paid;
+stop first when one candle hits both; the fill candle cannot hit the target; expiry H4 5 / D1 15 / W1 45 / MN 120
+days; cancelled when price reaches the target first). Stats per class, entry TF, zone type, pattern, Raja score and
+side: fill rate, win rate, expectancy R, profit factor, max drawdown R, longest losing streak, bootstrap 95% CI,
+in-sample (older 70%) vs out-of-sample (recent 30%). Ablations: (a) full rules, (b) without the top-down nesting
+rule, (c) without the spread filter, (d) watchlist majors only.
+
+Run it from GitHub: Actions -> **FX backtest** -> Run workflow (inputs `years` = `max` or a number, `instruments` =
+names or `watchlist`, `max_instruments`). It caches the full history (`fx-bt-*`), stops evaluating after 270 minutes
+(results then say `partial`) and commits `public/fx/backtest.json` + `docs/research/FX_Backtest.md`.
+
+```bash
+python3 tools/fx_scanner/fx_backtest.py --selftest                   # synthetic, no network
+python3 tools/fx_scanner/fx_backtest.py --instruments EURUSD --years 3
+python3 -m unittest tools/fx_scanner/tests/test_fx_backtest.py
+```
