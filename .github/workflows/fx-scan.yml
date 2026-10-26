@@ -58,7 +58,8 @@ jobs:
       # a failing unit test skips the scan: say so on Telegram (at most one failure message per day)
       - name: Notify unit test failure
         if: ${{ failure() && steps.tests.outcome == 'failure' }}
-        run: python tools/fx_scanner/fxscan.py --notify-failure "unit tests failed: no scan this run (see the Actions log)"
+        run: >-
+          python tools/fx_scanner/fxscan.py --notify-failure "unit tests failed - no scan this run, see the Actions log"
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
