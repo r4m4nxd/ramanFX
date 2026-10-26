@@ -19,7 +19,7 @@ Standard library only (Python 3.10+). No `pip install`.
 | `adr_list.csv` | Curated US-listed foreign large caps (ADR universe): symbol, name, country, GICS sector, SEC CIK, ADR ratio. |
 | `top_liquid.csv` | US top liquid list (TOP universe), rebuilt by the Monday refresh from Alpaca bars. |
 | `tsx_us_map.csv` | TSX symbol → its NYSE / Nasdaq listing, hand-checked by company name (`us` empty = TSX-only). |
-| `data.py` | Daily OHLCV (10 y) from **Alpaca Market Data** (primary, multi-symbol batches, split + dividend adjusted), Yahoo / Stooq per-ticker fallbacks; incremental updates, cache, rate limit, threads; weekly / monthly bars. |
+| `data.py` | Daily OHLCV (20 y asked, Alpaca serves from 2016) from **Alpaca Market Data** (primary, multi-symbol batches, **split-adjusted only**, like the TradingView default chart), Yahoo / Stooq per-ticker fallbacks; incremental updates, cache, rate limit, threads; weekly / monthly bars. |
 | `zones.py` | The Python port of the ZoneVision Raja logic (pure functions). |
 | `scan.py` | The rules → BUY / WATCH / EXIT, JSON for the app, CLI. |
 | `fundamentals.py` | SEC EDGAR XBRL companyfacts → compact table (context only). |
@@ -210,10 +210,15 @@ Settings = `public/tools/ZV_Template_Raja.set`. Checklist lines = `src/core/chec
 `kevin.ts`.
 
 **Zones (`zones.detect`, port of `Detect`)**: base of 1-6 basing candles (body < 50% of range) + a departure candle
-≥ 1.2x the biggest base candle (InpMinLegRatio; the card warns when < 2x because L55 says 2x); demand proximal = the
+≥ 1.2x the biggest base candle (InpMinLegRatio, detection only); **a BUY needs a departure ≥ 2x the base (L55, FAIL
+below 2x)**; demand proximal = the
 highest base body, distal = the lowest wick of base + departure (L55); zone ≤ 1.5 ATR(14) (InpMaxZoneATR); the
 stay-away candle must leave space. Removal **only by a close** beyond the distal (InpRemovalMode=1, "never count a
-wick", L4 · L50). Tested = a later low at the proximal (emotional > 3 ATR candles ignored).
+wick", L4 · L50). Tested = a later low at the proximal (emotional > 3 ATR candles ignored). **Forming period counts**:
+a D1 session of the week / month / quarter that is still forming and reached the proximal (or price inside the zone
+now) is a touch (`zones.forming_touched`, `scan.zone_dna`): the limit at the proximal was filled that day, so the
+zone is no longer fresh / set-and-forget (L2 · L52; owner). It never removes a zone (removal = a closed candle of the
+zone TF, L52).
 
 **Zone type (`zones.dna`, port of `DnaCompute` with the Raja v2.1 A switches)**: STRONG = an opposite zone removed
 anywhere in the run-out (RjA_StrongRun; L1 · L51); ARRIVAL = the run-out also crossed a trendline by a departure
@@ -237,23 +242,34 @@ visit** (walking back over the D1 bars, then older MN bars: a low at / under the
 2 MN zone heights above it, `LOC_AWAY`); one level further up, no strong untouched 3M demand may still lie below /
 around that MN zone. An MN zone needs the same from a 3M demand. A 3M zone is the top tradeable level; the 6M
 level only blocks it when a strong 6M demand is within 30% of price (`SOFT_REACH_PCT`) and untouched (below it or
-around it), else it is ignored. Blocked cases: `below` ("HTF area not reached: strong MN demand at X–Y still below
+around it), else it is ignored. **Reach and freshness (owner, audit P1)**: an MN zone (traded directly or as a W1
+zone's host: one code path, `strict_chain`) is located when its 3M area was touched in the current visit **or no
+strong 3M demand is within 25% of price** (`BLOCK_REACH_PCT`; 3M / 6M are reach-limited levels, `LOC_SOFT_TFS`); the
+MN level stays hard for a W1 zone (a W1 zone always needs a touched MN area). "An area left to be sold first" =
+only a **fresh** (0 touches, forming period included) strong HTF zone within 25% of price; HTF zones tested before
+are context, not blockers. A host that is not located itself (`untouched`, `below`, `none`, `unknown`) blocks the
+zone it hosts. No 3M history (short listing) = `unknown` for W1 and MN zones = no trade. Blocked cases: `below` ("HTF area not reached: strong MN demand at X–Y still below
 (−Z%), price likely sells into it first", plus "the W1 down trendline is not crossed yet" when that line is in
 force), `untouched` (the host zone not reached yet), `none` (no strong HTF demand at the zone), `unknown` (no HTF
 history). Each signal carries the chain, e.g. `3M demand 80.00–74.00 touched ✓ → MN demand 82.00–79.00 touched ✓ →
 W1 entry 81.20–80.10`. Supply mirrored: EXIT warnings near / inside a supply only for a located supply (a strong
 untouched HTF supply still above = price likely rallies into it first: hold).
 
-**Direction (`eval_row` + `dir_combine`, port of `DirEvalTF` / `DirCombine`, Raja table one level up)**: W1 entry
-= W1 → MN → 3M, MN entry = MN → 3M → 3M, 3M entry = 3M → 3M. Per TF the swings (HH+HL), the newest trendline cross,
+**Direction (`eval_row` + `dir_combine`, port of `DirEvalTF` / `DirCombine`, ZoneVision Raja table,
+RFX_ZoneCore.mqh `InpDirTable == 3`)**: W1 entry = W1 → ITF MN → HTF 3M; MN entry = MN → 3M → **6M** (the table's
+MN1 row: itf 3M, htf 6M); 3M entry (beyond the table: next steps up) = 3M → 6M → 6M. Without 6M history the MN / 3M
+chain falls back to 3M as HTF. Per TF the swings (HH+HL), the newest trendline cross,
 opposite zones removed since (Raja 2-close removal); CHANGED = cross + 2 opposite zones removed (L3), one = PULLBACK
 / TURNING (L3). Rules: inside a fresh 3M zone locks the side; the curve blocks the wrong side; the HTF in control;
 the ITF pulling back against = WAIT to realign; the entry TF against = REDUCED; 3rd CP = one step down (L7 · L8).
-The 6M trend is shown as context (`ctx6`, `m6`) on every signal / detail, never a gate.
+Direction REDUCED (not every row agrees) still passes but is flagged (WARN); the entry TF itself CHANGED DOWN
+fails (L3 · L7, stricter reading). 6M context (`ctx6`, `m6`) is shown on every signal / detail.
 
-**Curve (`dir_curve`, port of `DirCurve`)**: on 3M (MN when 3M is too short): proximal to proximal of the nearest
-fresh STRONG demand below and supply above; without that pair the 100-bar range (v1). ≤ 25% low curve (buyers
-only), ≥ 75% high curve (L4).
+**Curve (`dir_curve`, port of `DirCurve`, measured on the entry's HTF row like `drH`)**: W1 zones on 3M (MN when
+3M is too short), MN zones on 6M (3M fallback), 3M zones on 6M only: a 3M zone is never measured on 3M zones (the
+nearest strong 3M demand IS the zone: ~0%, always passes); no 6M history = curve unknown = FAIL. Proximal to
+proximal of the nearest fresh STRONG demand below and supply above; without that pair the 100-bar range (v1).
+≤ 25% low curve (buyers only), ≥ 75% high curve (L4).
 
 | BUY rule (all must pass) | Source |
 |---|---|
@@ -261,16 +277,17 @@ only), ≥ 75% high curve (L4).
 | Fresh: first touch, not removed | L2 · L52 |
 | Zone type ARR / WOW / STR (W1, MN or 3M; nothing below W1) | L1 · L51 |
 | Direction LONG (FULL or REDUCED) on the entry TF's chain (W1 → MN → 3M) | L7 · L8 · L3 |
-| Curve below 50% (≤ 25% best; 25-50% flagged). Owner rule: no strong HTF supply above (ATH area, Raja curve not measurable, 100-bar range fallback) **and** the next two HTFs TREND UP or CHANGED UP (W1 entry: MN + 3M; MN: 3M; 3M: 3M; `zones.trend_up`; TURNING / PULLBACK / RANGE do not count) → allowed (flagged), and the fallback curve casts no sell vote in the direction | L4 · owner |
-| Not inside / next to a supply one TF up (W1: MN, MN: 3M), price not inside a fresh 3M supply | L50 · L52 (RjA_OppHtfVeto) |
-| Room to the next supply ≥ 2x the stop (≥ 3x good, 2-3x flagged) | L7 · L53 |
+| Departure ≥ 2x the base (FAIL below) | L55 |
+| Curve below 50% (≤ 25% best; 25-50% flagged), on the entry's HTF (above). Owner ATH rule (`scan.ath_ok`, one helper for the direction and the curve rule): no measurable Raja curve, the **entry TF and its next HTF** TREND UP or CHANGED UP (W1 entry: W1 + MN, owner's words; MN: MN + 3M; 3M: 3M + 6M; `zones.trend_up`; TURNING / PULLBACK / RANGE do not count) **and no strong fresh HTF supply within 30% above price** (then it is not an ATH area: never exempt) → allowed (flagged), and the fallback curve casts no sell vote in the direction | L4 · owner |
+| Not inside / next to a supply one TF up (W1: MN, MN: 3M, 3M: 6M within 30% of price), price not inside a fresh HTF supply | L50 · L52 (RjA_OppHtfVeto) |
+| Room to the next supply ≥ 2x the stop (≥ 3x good, 2-3x flagged); the supplies of every higher row count (W1: MN, 3M, 6M; MN: 3M, 6M; 3M: 6M) | L7 · L53 |
 | A known target: a supply above, else Raja's 250% projection (correction = last higher high before the base down to the zone's distal; target = distal + 2.5x that; only while the run-out has not reached it) | L101 · L5 (Feb 18: "100%, another 100%, then half") |
 | Not sideways on the zone TF or one TF up | L8 · L101 (RjB_Sideways, InpRjBChopTF=1) |
 | Not the 3rd CP in a row | Raja lens · Kevin L8 · L13 |
 | Has not already done its job | L5 · Feb 18 (RjA_Lens8) |
 | Not an overlap / flip zone | L52 ("never set and forget" list) |
 | Price within max(1.0x zone height, 3% of price) above the proximal | scanner (InpApproach) |
-| No earnings in the next 10 trading days (when the date is known; unknown = "?") | Kevin L12 |
+| *Earnings: information only* (next date when known, "unknown" otherwise). Not a mentor rule: the owner holds weeks to months, so the trade crosses earnings anyway; the old "Kevin L12" citation was wrong (that lesson is an FX plan) and is removed | info |
 
 **Plan**: entry = proximal (limit); **stop = distal − 5% of the zone height on W1, 3% on MN, 2% on 3M** (the owner's rule,
 ZV 2.10, min 0.03); **target = 0.5% before the next supply's proximal** (the nearest of the zone TF's live supplies
@@ -280,16 +297,22 @@ room 2, max 10.
 **WATCH**: strong fresh zones made in the last 5 sessions that pass everything but the approach; tested zones
 (2nd / 3rd touch, allowance of RjA_TouchCap) that pass everything but freshness → confirm one TF lower, never
 below W1 (3M → MN, MN → W1; a W1 zone: a W1 close back above the proximal) (L52 · L101); both need the location
-rule to pass. 3M zones have no higher zone row (their own supplies give the room). **EXIT** (holdings): stop hit by a close; the demand under the entry broken by a close (since the
+rule to pass. **EXIT** (holdings): stop hit by a close; the demand under the entry broken by a close (since the
 holding's `date`, else the last 5 sessions); price within one zone height of the next located supply's proximal or inside it
-(L7 · L106 "exit before the opposite zone").
+(L7 · L106 "exit before the opposite zone"); **L3 trail**: a new fresh W1 / MN demand formed above the entry (after
+the holding's `date`) → "trail the stop to its distal − buffer"; a demand formed above the entry broken by a close →
+"stop behind the next demand", a 2nd one broken → "close" (L3, raja.ts:116-118); **trend change**: W1 / MN / 3M
+CHANGED DOWN → warning (L3). **Currency**: the scanned levels are the listing's currency (USD for US and interlisted
+names, scanned on the US listing). A holding may carry `"currency"`; a US symbol defaults to USD; an interlisted TSX
+holding must say it (`"currency": "USD"` = US-listing entry / stop). Any other currency is never compared raw: the
+exit then says so and skips the entry / stop checks (supply / trend warnings still run).
 
 A W1 / MN / 3M zone counts as "made" on the close of its stay-away week / month / quarter (its last session), not on the first day it is dated by.
 
 **Why no signal** (`blocked` / `closest` in latest.json): every ticker without a BUY whose nearest fresh demand is
 within `SCANNER_DIAG_PCT` (5) % above price, or holds price, is a candidate; it counts once under its first failing
 rule in the order HTF location → curve → direction → monthly supply → sideways → zone type → fresh → overlap / flip → did its job →
-3rd CP → room → earnings → near entry. The run log, Telegram ("No BUY … Top reasons") and the app's empty state show
+3rd CP → room → near entry. The run log, Telegram ("No BUY … Top reasons") and the app's empty state show
 the top reasons; `closest` holds the 10 candidates nearest to their entry. Diagnostics only: they never change a signal.
 
 **Intraday guard**: a run while the US market is open (before 16:20 New York) drops the partial daily bar dated today,
@@ -360,8 +383,13 @@ out-of-sample CI is above zero with 30+ trades.
 
 - **Earnings gaps**: daily data cannot see the overnight gap risk; the stop can be jumped (the backtest counts it).
   Future earnings dates come from Yahoo best-effort; unknown = "?" (check yourself). `earnings.csv` (symbol,date) overrides.
-- **Adjusted prices**: zones are drawn on split + dividend adjusted data; old zones sit slightly lower than on an
-  unadjusted TradingView chart.
+- **Adjusted prices**: split-adjusted only (Alpaca `adjustment=split`, Yahoo quote O/H/L/C), dividends not adjusted:
+  the TradingView default chart. The cache records `adjustment`; a cache written with the old split + dividend
+  adjustment is fetched again in full once. The backtest's returns therefore exclude dividends.
+- **History from 2016** (Alpaca): ~43 quarters, ~21 half-years. A strong 3M / 6M zone made before 2016 is invisible
+  (no blocker, no host, no curve end from it); `data_note` in latest.json says so.
+- **IEX feed**: when Alpaca refuses SIP (plan without it) the scan falls back to `feed=iex` and warns loudly: a
+  `WARNING` log line, `feed_iex: true` and `data_warning` (banner text, shown in the app and Telegram) in latest.json.
 - **Survivorship bias**: the backtest uses today's index members only (companies that left the index are missing),
   which flatters results.
 - **No intraday, by design**: zones only on W1, MN and 3M (nothing smaller than W1), so tested zones are WATCH only;
@@ -369,5 +397,5 @@ out-of-sample CI is above zero with 30+ trades.
 - Prices come from Alpaca (official API; the free plan's `iex` fallback covers one exchange's trades only, so its
   daily volumes are smaller and highs / lows can differ slightly from the consolidated tape). Yahoo / Stooq / SEC /
   iShares are unofficial or rate-limited sources; a ticker without data is skipped and counted.
-- Interlisted TSX names are scanned on their US listing (USD, US hours); zones can differ slightly from the TSX
-  chart. TSX-only names need the (paid, off) TSX feed.
+- Interlisted TSX names are scanned on their US listing: every level is labelled "US listing · USD", the primary
+  chart link is the NYSE / Nasdaq chart and "TSX chart (CAD)" is a secondary link (its zones differ). TSX-only names need the (paid, off) TSX feed.

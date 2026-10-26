@@ -96,7 +96,7 @@ class CompositeIndexTest(unittest.TestCase):
 
 class NeverAGateTest(unittest.TestCase):
     def test_buys_do_not_depend_on_the_extras(self):
-        b = synth.ticker(2259, selftest.END)
+        b = synth.ticker(7496, selftest.END)
         an = scan.analyse(b, DATA.closed_htf(b, 'W1'), DATA.closed_htf(b, 'MN'))
         base = [s['entry'] for s in scan.symbol_signals(an) if s['kind'] == 'BUY']
         self.assertTrue(base)

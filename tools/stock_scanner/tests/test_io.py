@@ -37,16 +37,19 @@ class AggregateTest(unittest.TestCase):
         self.assertEqual([x.d[:7] for x in m], ['2026-08', '2026-09', '2026-10'])
         self.assertFalse(complete)
 
-    def test_parse_yahoo_adjusts_ohlc(self):
+    def test_parse_yahoo_split_only(self):
+        """Yahoo quote O/H/L/C are split-adjusted, not dividend-adjusted: kept as they are (the TradingView default
+        chart); adjclose (dividends) is ignored."""
         js = {'chart': {'result': [{'meta': {'exchangeName': 'NMS', 'gmtoffset': -14400}, 'timestamp': [1761226200, 1761312600],
                                     'indicators': {'quote': [{'open': [10, 11], 'high': [12, 13], 'low': [9, 10], 'close': [11, 12], 'volume': [5, 6]}],
                                                    'adjclose': [{'adjclose': [5.5, 12]}]}}]}}
         bars, meta = DATA.parse_yahoo(json.dumps(js).encode())
         self.assertEqual(meta['exchange'], 'NMS')
+        self.assertEqual(meta['adjustment'], 'split')
         self.assertEqual(len(bars), 2)
-        self.assertAlmostEqual(bars[0].o, 5.0)                  # factor 0.5 (a 2:1 split later)
-        self.assertAlmostEqual(bars[0].h, 6.0)
-        self.assertAlmostEqual(bars[0].c, 5.5)
+        self.assertAlmostEqual(bars[0].o, 10)
+        self.assertAlmostEqual(bars[0].h, 12)
+        self.assertAlmostEqual(bars[0].c, 11)
         self.assertAlmostEqual(bars[1].c, 12)
 
     def test_parse_stooq(self):

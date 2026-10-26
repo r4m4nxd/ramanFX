@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ago, CODE_BUCKET, EXIT_REASON, isBucket, indexesOf, indexList, listingText, px, reasonsText, rowSectors, stateWord, matches, parseScan, planLink, SCAN_URL, SECTOR_SHORT, sectorsOf, sortSignals, stockPath, tvChart, type IndexFilter, type ScanExit, type ScanFile, type ScanSignal, type SortKey } from '@/core/scanner';
+import { ago, CODE_BUCKET, EXIT_REASON, homeChart, isBucket, indexesOf, indexList, listingText, px, reasonsText, rowSectors, stateWord, matches, parseScan, planLink, SCAN_URL, SECTOR_SHORT, sectorsOf, sortSignals, stockPath, tvChart, type IndexFilter, type ScanExit, type ScanFile, type ScanSignal, type SortKey } from '@/core/scanner';
 import { num } from '@/lib/format';
 import { Badge, Card, cx, Empty, Page, Segmented, useIsMobile } from '@/ui/kit';
 import type { MiniBar } from '@/ui/ZoneMiniChart';
@@ -100,7 +100,7 @@ function SignalCard({ s, bars, starred, onStar }: { s: ScanSignal; bars?: MiniBa
         <Explain doc={curveTip(s.curve)}>Curve {Math.round(s.curve)}%</Explain>
         <span><Explain doc={directionTip(s.direction)}>{s.direction}</Explain> · <Explain doc={tfStateTip('W1', s.w1)}>W1 {s.w1}</Explain> · <Explain doc={tfStateTip('MN', s.mn)}>MN {s.mn}</Explain>{s.m3 && <> · <Explain doc={tfStateTip('3M', s.m3)}>3M {s.m3}</Explain></>}</span>
         {ctx6Text(s.ctx6) && <Explain doc={ctx6Tip(ctx6Text(s.ctx6)!)}>{ctx6Text(s.ctx6)}</Explain>}
-        {s.earnings && <Explain doc={G.earnings(s.earnings)}>Earnings {s.earnings}</Explain>}
+        <Explain doc={G.earnings(s.earnings || 'unknown')}>Next earnings {s.earnings || 'unknown'} (info)</Explain>
       </div>
       {s.note && <p className="text-[12.5px] text-ink2 leading-relaxed">{s.note}</p>}
 
@@ -109,7 +109,8 @@ function SignalCard({ s, bars, starred, onStar }: { s: ScanSignal; bars?: MiniBa
 
       <div className="flex gap-2">
         <Explain control doc={G.planIt}><Link to={planLink(s)} className={cx(s.kind === 'BUY' ? 'btn-primary' : 'btn', 'h-10 flex-1 sm:flex-none')}><Icon name="target" size={15} />Plan it</Link></Explain>
-        <Explain control doc={G.tv}><a href={tvChart(s)} target="_blank" rel="noopener noreferrer" className="btn h-10 flex-1 sm:flex-none"><Icon name="link" size={15} />Chart</a></Explain>
+        <Explain control doc={G.tv}><a href={tvChart(s)} target="_blank" rel="noopener noreferrer" className="btn h-10 flex-1 sm:flex-none"><Icon name="link" size={15} />Chart{homeChart(s) ? ' (US · USD)' : ''}</a></Explain>
+        {homeChart(s) && <a href={homeChart(s)!.url} target="_blank" rel="noopener noreferrer" className="btn h-10 flex-1 sm:flex-none"><Icon name="link" size={15} />{homeChart(s)!.label}</a>}
         <Explain control doc={G.zonesBtn}><Link to={stockPath(s.symbol)} className="btn h-10 flex-1 sm:flex-none" aria-label={`${s.symbol} details`}><Icon name="layers" size={15} />Zones</Link></Explain>
       </div>
     </Card>
@@ -153,7 +154,7 @@ function NoBuy({ scan, filtered }: { scan: ScanFile; filtered: boolean }) {
   return (
     <Card aria-label="No buy today" className="p-0">
       <Empty icon="target" title={filtered ? 'No buy setup here today' : 'No BUY today'}>
-        {filtered ? 'Nothing for this index or sector. Try All.' : why ? <>Top reasons: {scan.blocked!.reasons.slice(0, 4).map((r, i) => <Fragment key={r.rule}>{i ? ', ' : ''}<Explain doc={blockTip(r.rule)}>{r.label} ({r.count.toLocaleString()})</Explain></Fragment>)}. <Explain doc={{ title: `${scan.blocked!.candidates.toLocaleString()} candidates`, body: `Stocks without a BUY whose nearest fresh demand is within ${num(scan.blocked!.within_pct, 0)}% below the close, or holds it. Each counts once, under the first rule that blocks it (curve → direction → monthly supply → sideways → zone type → fresh → overlap / flip → did its job → 3rd CP → room → earnings → near entry). Diagnostics only.` }}>{scan.blocked!.candidates.toLocaleString()} stocks sit within {num(scan.blocked!.within_pct, 0)}%</Explain> of a fresh demand or inside one, each counted by the first rule that blocks it. No zone, no trade.</> : 'No zone passed every rule. No zone, no trade: waiting is a position.'}
+        {filtered ? 'Nothing for this index or sector. Try All.' : why ? <>Top reasons: {scan.blocked!.reasons.slice(0, 4).map((r, i) => <Fragment key={r.rule}>{i ? ', ' : ''}<Explain doc={blockTip(r.rule)}>{r.label} ({r.count.toLocaleString()})</Explain></Fragment>)}. <Explain doc={{ title: `${scan.blocked!.candidates.toLocaleString()} candidates`, body: `Stocks without a BUY whose nearest fresh demand is within ${num(scan.blocked!.within_pct, 0)}% below the close, or holds it. Each counts once, under the first rule that blocks it (curve → direction → monthly supply → sideways → zone type → fresh → overlap / flip → did its job → 3rd CP → room → near entry; earnings are information only). Diagnostics only.` }}>{scan.blocked!.candidates.toLocaleString()} stocks sit within {num(scan.blocked!.within_pct, 0)}%</Explain> of a fresh demand or inside one, each counted by the first rule that blocks it. No zone, no trade.</> : 'No zone passed every rule. No zone, no trade: waiting is a position.'}
       </Empty>
       {!filtered && !!closest.length && (
         <div className="border-t border-line">
@@ -249,6 +250,7 @@ export default function Scanner() {
               <span className="inline-flex items-center gap-1.5"><Icon name="clock" size={13} /><Explain doc={G.updated(ago(scan!.generated_at))}>Updated {new Date(scan!.generated_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })} · {ago(scan!.generated_at)}</Explain></span>
               <Explain doc={G.scanned(scan!.date, scan!.scanned, scan!.universe)} className="num">Close of {scan!.date} · {scan!.scanned.toLocaleString()}/{scan!.universe.toLocaleString()} stocks</Explain>
               {scan!.session === 'intraday-dropped' && <Explain doc={G.intraday} className="text-warn">Ran during market hours: last closed session used</Explain>}
+              {!!scan!.data_warning && <span role="alert" className="text-warn font-medium">{scan!.data_warning}</span>}
               {!!uncoveredN && <Explain doc={G.uncovered(uncoveredN, scan!.uncovered!.map(u => u.symbol).join(', '))}>{uncoveredN} TSX-only names need a TSX data feed</Explain>}
             </> : load.state === 'loading' ? <span>Loading the latest scan…</span> : load.state === 'error' ? <span>The scan could not be loaded.</span> : <span>No scan has run yet.</span>}
           </div>

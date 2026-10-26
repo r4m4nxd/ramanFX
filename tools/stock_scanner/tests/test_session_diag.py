@@ -196,9 +196,12 @@ class MarketMapTest(unittest.TestCase):
         self.assertNotIn('filtered_liquidity', pub)
         sig = next(s for s in self.res['signals'] if s['symbol'] == 'SYNE')
         self.assertEqual((sig['home'], sig['currency'], sig['country']), ('TSX:SYE', 'USD', 'CA'))
-        self.assertIn('symbol=TSX:SYE', sig['chart'])
+        self.assertIn('symbol=NYSE:SYNE', sig['chart'])          # the US chart: the levels are its USD prices
+        self.assertIn('symbol=TSX:SYE', sig['chart_home'])
         import notify
-        self.assertIn('TSX: SYE · US listing (USD)', notify.signal_card(sig))
+        card = notify.signal_card(sig)
+        self.assertIn('TSX: SYE · US listing · USD', card)
+        self.assertIn('TSX chart (CAD)', card)
 
 
 if __name__ == '__main__':

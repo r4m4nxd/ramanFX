@@ -85,7 +85,7 @@ class TestAlpacaBars(AlpacaBase):
         self.assertEqual(got['AAA'][-1].d, self.series['AAA'][-1].d)
         self.assertGreater(fake.n, 4)                                   # ~5000 bars / 1000 per page
         p = q(fake.urls[0])
-        self.assertEqual((p['timeframe'], p['adjustment'], p['feed'], p['symbols']), ('1Day', 'all', 'sip', 'AAA,BRK.B'))
+        self.assertEqual((p['timeframe'], p['adjustment'], p['feed'], p['symbols']), ('1Day', 'split', 'sip', 'AAA,BRK.B'))
         self.assertIn('page_token', q(fake.urls[1]))
         r = net.reqs[0]
         self.assertEqual(r.get_header('Apca-api-key-id'), 'kid')
@@ -173,7 +173,7 @@ class TestAlpacaPrefetch(AlpacaBase):
 
     def test_incremental_update(self):
         full = self.series['AAA']
-        DATA.save_cached('AAA', full[:-5], {'source': 'alpaca', 'exchange': 'NASDAQ', 'history_days': DATA.HISTORY_DAYS})
+        DATA.save_cached('AAA', full[:-5], {'source': 'alpaca', 'exchange': 'NASDAQ', 'history_days': DATA.HISTORY_DAYS, 'adjustment': 'split'})
         age_cache('AAA', time.time() - 86400)
         fake = FakeAlpaca(self.series)
         self.serve(fake)
@@ -191,7 +191,7 @@ class TestAlpacaPrefetch(AlpacaBase):
         """A cache from the old 10-year fetch (no history_days) gets one full fetch from the 20-year start (MN zones);
         after that only incremental updates, even though the source has less history."""
         full = self.series['AAA']
-        DATA.save_cached('AAA', full[:-5], {'source': 'alpaca', 'exchange': 'NASDAQ'})
+        DATA.save_cached('AAA', full[:-5], {'source': 'alpaca', 'exchange': 'NASDAQ', 'adjustment': 'split'})
         age_cache('AAA', time.time() - 86400)
         self.assertTrue(DATA.needs_extend(full[:-5], {}))
         fake = FakeAlpaca(self.series)
@@ -223,8 +223,23 @@ class TestAlpacaPrefetch(AlpacaBase):
         self.assertEqual(DATA.alpaca_prefetch(['AAA']), {})
         self.assertAlmostEqual(DATA.load_cached('AAA')[0][0].c, full[0].c, places=3)    # the full, re-adjusted history
 
+    def test_old_adjustment_cache_is_fetched_again_once(self):
+        """Cache version bump: a cache written with adjustment=all (or none recorded) is fetched again in full even when
+        it is fresh; the new cache records adjustment=split and is then left alone."""
+        full = self.series['AAA']
+        DATA.save_cached('AAA', full, {'source': 'alpaca', 'history_days': DATA.HISTORY_DAYS})
+        fake = FakeAlpaca(self.series)
+        self.serve(fake)
+        self.assertEqual(DATA.alpaca_prefetch(['AAA']), {})
+        self.assertGreater(fake.n, 0)
+        self.assertEqual(q(fake.urls[0])['start'][:10], (dt.date.today() - dt.timedelta(days=DATA.HISTORY_DAYS)).isoformat())
+        self.assertEqual(DATA.load_cached('AAA')[1]['adjustment'], 'split')
+        n = fake.n
+        self.assertEqual(DATA.alpaca_prefetch(['AAA']), {})
+        self.assertEqual(fake.n, n)                                     # fresh and current: no request
+
     def test_fresh_cache_and_no_keys_make_no_request(self):
-        DATA.save_cached('AAA', self.series['AAA'], {'source': 'alpaca'})
+        DATA.save_cached('AAA', self.series['AAA'], {'source': 'alpaca', 'adjustment': 'split'})
         fake = FakeAlpaca(self.series)
         net = self.serve(fake)
         self.assertEqual(DATA.alpaca_prefetch(['AAA']), {})

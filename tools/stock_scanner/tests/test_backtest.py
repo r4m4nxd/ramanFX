@@ -118,7 +118,7 @@ class NoLookAheadTest(unittest.TestCase):
         self.assertEqual(scan.symbol_signals(a1), scan.symbol_signals(a2))
 
     def test_backtest_runs_on_a_fixture(self):
-        tr = BT.backtest_ticker('FX', synth.ticker(474), 'Synthetic', None, 5.0)
+        tr = BT.backtest_ticker('FX', synth.ticker(11132), 'Synthetic', None, 5.0)
         self.assertTrue(tr)
         for t in tr:
             if t['status'] == 'filled':

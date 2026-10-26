@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { blankPlan } from './strategy';
-import { ago, bucketOf, indexesOf, indexList, listingText, mapTag, mapZone, marketMap, px, readWatch, reasonsText, seidenText, sortSignals, toggleWatch, WATCH_KEY, writeWatch, checkPlanLink, detailFrom, findBySlug, matches, parseIndex, parseScan, planFromParams, planLink, searchTickers, sectorsOf, slug, stockPath, tvChart, unpackBars, type IndexRow, type ScanSignal } from './scanner';
+import { ago, bucketOf, homeChart, indexesOf, indexList, listingText, mapTag, mapZone, marketMap, px, readWatch, reasonsText, seidenText, sortSignals, toggleWatch, WATCH_KEY, writeWatch, checkPlanLink, detailFrom, findBySlug, matches, parseIndex, parseScan, planFromParams, planLink, searchTickers, sectorsOf, slug, stockPath, tvChart, unpackBars, type IndexRow, type ScanSignal } from './scanner';
 
 const sample = JSON.parse(readFileSync(resolve(process.cwd(), 'tools/stock_scanner/fixtures/sample/latest.json'), 'utf8'));
 const placeholder = JSON.parse(readFileSync(resolve(process.cwd(), 'public/scanner/latest.json'), 'utf8'));
@@ -207,7 +207,10 @@ describe('index registry and listings', () => {
     expect(s.coverage!.TSX).toEqual({ covered: 2, total: 3 });
   });
   it('labels an interlisted name', () => {
-    expect(listingText({ home: 'TSX:RY' })).toBe('TSX: RY · US listing');
+    expect(listingText({ home: 'TSX:RY' })).toBe('TSX: RY · US listing · USD');
+    expect(homeChart({ chart_home: 'https://www.tradingview.com/chart/?symbol=TSX:RY' })).toEqual({ url: 'https://www.tradingview.com/chart/?symbol=TSX:RY', label: 'TSX chart (CAD)' });
+    expect(homeChart({})).toBeNull();
+    expect(parseScan({ version: 1, signals: [], exits: [], data_warning: 'Data warning: IEX', feed_iex: true })?.data_warning).toBe('Data warning: IEX');
     expect(listingText({ home: '' })).toBe('');
   });
 });

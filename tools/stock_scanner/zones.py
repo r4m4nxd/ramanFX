@@ -806,12 +806,15 @@ class Direction:
         return ('LONG' if self.side > 0 else 'SHORT') + (' - FULL' if self.q == 2 else ' - REDUCED')
 
 
-def dir_combine(e: Optional[Row], i: Optional[Row], h: Optional[Row], curve: Curve, p=RAJA, p1: Optional[Row] = None) -> Direction:
+def dir_combine(e: Optional[Row], i: Optional[Row], h: Optional[Row], curve: Curve, p=RAJA, p1: Optional[Row] = None,
+                ath: Optional[bool] = None) -> Direction:
     """DirCombine for the Raja table (InpDirTable=3), one chain per entry TF: W1 entry = ETF W1, ITF MN, HTF 3M;
     MN entry = MN, 3M, 3M; 3M entry = 3M, -, 3M (no Higher+1 row).
     p1 = the optional Higher+1 row (InpDirPlus1, FX: MN for an H4 entry): its fresh zone locks the side when the HTF
     row has none, and its trend against the side makes the direction REDUCED (MQH:1549, 1566-1570). None = the old
-    behaviour (stock scanner)."""
+    behaviour (stock scanner).
+    ath = the caller's owner-ATH verdict (stock scanner: entry TF + next HTF trend up and no strong HTF supply in
+    reach, scan.ath_ok); None = ath_curve_ok(curve, i, h) as before."""
     D = Direction(curve=curve)
     side, q, realign = 0, 2, False
     h_side = trend_side(h)
@@ -829,9 +832,9 @@ def dir_combine(e: Optional[Row], i: Optional[Row], h: Optional[Row], curve: Cur
         D.notes.append(f"inside a fresh {p1.tf} {'demand' if p1.in_z > 0 else 'supply'}")
     if curve.ok:
         cv = -1 if curve.value >= p['curve_high'] else (1 if curve.value <= p['curve_low'] else 0)
-        if cv < 0 and ath_curve_ok(curve, i, h):
+        if cv < 0 and (ath_curve_ok(curve, i, h) if ath is None else ath):
             cv = 0                                  # owner rule: no HTF supply overhead + the HTFs up, no sell vote
-            ups = ' + '.join(dict.fromkeys(r.tf for r in (i, h) if r is not None))
+            ups = ' + '.join(dict.fromkeys(r.tf for r in ((i, h) if ath is None else (e, i)) if r is not None))
             D.notes.append(f'no {curve.tf} supply overhead (ATH area), {ups} up: curve not used')
         if cv > 0 and p.get('mirror_ath') and atl_curve_ok(curve, i, h):
             cv = 0                                  # the same rule mirrored for two-way markets (FX): no buy vote
@@ -1217,7 +1220,7 @@ def chain_text(chain: List[dict]) -> str:
 
 
 def location(z: Zone, rows: dict, price: float, eligible, touched, tol: float = LOC_TOL, p=RAJA, htf_of=None,
-             soft_tfs=None, reach_pct=None, nd: int = 2, strict_chain: bool = False) -> Loc:
+             soft_tfs=None, reach_pct=None, nd: int = 2, strict_chain: bool = False, blocker=None) -> Loc:
     """Owner's top-down rule (both sides mirrored): a W1 zone trades only inside an MN area, an MN zone only inside a
     3M area, a 3M zone is the top level.
       inside     the nearest eligible (strong ARR / WOW / STR, <= 3 touches, not removed) HTF zone of the same side
@@ -1235,7 +1238,9 @@ def location(z: Zone, rows: dict, price: float, eligible, touched, tol: float = 
     their reach (% of price) and the price decimals of the texts; the defaults are the stock scanner's.
     strict_chain (FX): the host's own location must succeed too, all the way up: a host with no strong HTF zone of
     its own ('none') or no HTF history ('unknown') blocks instead of ending the chain (owner: MN -> W1 -> D1 -> H4,
-    every level touched). Default False = the stock scanner's behaviour."""
+    every level touched). Default False = the stock scanner's behaviour.
+    blocker(row, i, zone) -> bool (optional): which untouched HTF zones count as "an area left to be sold first"
+    (stock scanner: fresh, 0 touches, within reach); None = every eligible untouched zone beyond (as before)."""
     htf_of = HTF_OF if htf_of is None else htf_of
     soft_tfs = SOFT_TFS if soft_tfs is None else soft_tfs
     reach_pct = SOFT_REACH_PCT if reach_pct is None else reach_pct
@@ -1265,7 +1270,8 @@ def location(z: Zone, rows: dict, price: float, eligible, touched, tol: float = 
         beyond = b_hi < z.lo if d > 0 else b_lo > z.hi
         if soft and abs(o.prox - price) / price * 100 > reach_pct:
             continue                                   # a context level counts only within reach
-        if beyond and d * (price - o.prox) > 0 and not touched(H, o) and (pend is None or d * (o.prox - pend.prox) > 0):
+        if (beyond and d * (price - o.prox) > 0 and not touched(H, o) and (blocker is None or blocker(H, i, o))
+                and (pend is None or d * (o.prox - pend.prox) > 0)):
             pend = o
     R = rows.get(z.tf)
     tl_open = False
@@ -1275,7 +1281,7 @@ def location(z: Zone, rows: dict, price: float, eligible, touched, tol: float = 
     word = 'down' if d > 0 else 'up'
     tl_txt = f'; the {z.tf} {word} trendline is not crossed yet' if tl_open else ''
     if host is not None and host_t:
-        up = location(host, rows, price, eligible, touched, tol, p, htf_of, soft_tfs, reach_pct, nd, strict_chain)
+        up = location(host, rows, price, eligible, touched, tol, p, htf_of, soft_tfs, reach_pct, nd, strict_chain, blocker)
         stops = ('below', 'above', 'untouched') + (('none', 'unknown') if strict_chain else ())
         chain = (up.chain[:-1] if up.code in ('inside',) + stops else []) + [_step(host, True, False, nd), me]
         if up.code in stops:

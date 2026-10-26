@@ -219,12 +219,13 @@ def parse_yahoo(raw: bytes) -> Tuple[List[Bar], Dict]:
         o, h, l, c, v = (q.get(k, [None] * len(ts))[i] for k in ('open', 'high', 'low', 'close', 'volume'))
         if None in (o, h, l, c) or c <= 0:
             continue
-        a = adj[i] if i < len(adj) and adj[i] else c
-        f = a / c                                                   # split + dividend factor of that day
+        # Yahoo's quote O/H/L/C are split-adjusted, NOT dividend-adjusted (adjclose is): the same prices as the
+        # TradingView default chart the owner reads (ADJUSTMENT = 'split'). adjclose is ignored on purpose.
         d = dt.datetime.fromtimestamp(t + off, dt.timezone.utc).date().isoformat()
-        bars.append(Bar(d, o * f, h * f, l * f, a, float(v or 0)))
+        bars.append(Bar(d, o, h, l, c, float(v or 0)))
     return keep_history(dedupe(bars)), {'exchange': meta.get('exchangeName') or meta.get('fullExchangeName') or '',
-                          'currency': meta.get('currency') or 'USD', 'price': meta.get('regularMarketPrice'), 'source': 'yahoo'}
+                          'currency': meta.get('currency') or 'USD', 'price': meta.get('regularMarketPrice'), 'source': 'yahoo',
+                          'adjustment': ADJUSTMENT}
 
 
 def parse_stooq(raw: bytes) -> Tuple[List[Bar], Dict]:
@@ -237,7 +238,7 @@ def parse_stooq(raw: bytes) -> Tuple[List[Bar], Dict]:
             bars.append(Bar(row['Date'], float(row['Open']), float(row['High']), float(row['Low']), float(row['Close']), float(row.get('Volume') or 0)))
         except (KeyError, ValueError):
             continue
-    return keep_history(dedupe(bars)), {'exchange': '', 'currency': 'USD', 'source': 'stooq'}
+    return keep_history(dedupe(bars)), {'exchange': '', 'currency': 'USD', 'source': 'stooq', 'adjustment': ADJUSTMENT}
 
 
 def keep_history(bars: List[Bar]) -> List[Bar]:
@@ -280,6 +281,12 @@ def yahoo_url(sym: str, rng: str = 'max') -> str:
 
 # ---- Alpaca Market Data (primary) ------------------------------------------------------------------------------------
 ALPACA_BARS = 'https://data.alpaca.markets/v2/stocks/bars'
+# Price adjustment: 'split' = split-adjusted, dividends NOT adjusted, the TradingView default chart the owner reads
+# (an 'all' = split + dividend history put old MN / 3M zones lower by the cumulative yield, ~25-40% on a 4-6%
+# yielder since 2016). A cache written with another adjustment (meta 'adjustment' missing or different) is fetched
+# again in full once (cache version bump).
+ADJUSTMENT = 'split'
+HISTORY_FROM = '2016'     # Alpaca serves daily bars from 2016: ~43 quarters, ~21 half-years (no pre-2016 3M / 6M zones)
 ALPACA_ASSETS = 'https://paper-api.alpaca.markets/v2/assets?status=active&asset_class=us_equity'
 ALPACA_BATCH_COLD = int(os.environ.get('ALPACA_BATCH_COLD', '100'))     # symbols per request, full history (20 years asked)
 ALPACA_BATCH_UPDATE = int(os.environ.get('ALPACA_BATCH_UPDATE', '200'))  # symbols per request, incremental update
@@ -347,7 +354,7 @@ def reset_alpaca_state() -> None:
 
 
 def alpaca_url(symbols: List[str], start: str, end: str, feed: str, page_token: str = '') -> str:
-    q = {'symbols': ','.join(symbols), 'timeframe': '1Day', 'start': start, 'end': end, 'adjustment': 'all',
+    q = {'symbols': ','.join(symbols), 'timeframe': '1Day', 'start': start, 'end': end, 'adjustment': ADJUSTMENT,
          'feed': feed, 'limit': str(ALPACA_LIMIT), 'sort': 'asc'}
     if page_token:
         q['page_token'] = page_token
@@ -380,7 +387,7 @@ def _alpaca_get(url_of, log=None) -> bytes:
         if e.code == 403 and feed == 'sip':
             _set_feed('iex')
             if log:
-                log('alpaca: feed=sip refused (403, plan without SIP): using feed=iex from now on')
+                log('WARNING alpaca: feed=sip refused (403, plan without SIP): falling back to feed=iex (IEX trades only: wicks, distals and closes differ from the TradingView chart)')
             return http_get(url_of('iex'), headers=_alpaca_headers(), accept='application/json', expect=looks_json,
                             retries=4, max_retry_after=ALPACA_MAX_WAIT)
         raise
@@ -540,6 +547,9 @@ def alpaca_prefetch(symbols: List[str], max_age_h: float = 12.0, workers: int = 
     cold: List[str] = []
     for s in symbols:
         c = load_cached(s)
+        if c and not adjustment_ok(c[1]):
+            cold.append(s)                  # written with another price adjustment: the full history again, once
+            continue
         if c and t0 - c[2] < max_age_h * 3600:
             continue
         if c and c[0] and (today - dt.date.fromisoformat(c[0][-1].d)).days < 300 and not needs_extend(c[0], c[1], today):
@@ -555,7 +565,7 @@ def alpaca_prefetch(symbols: List[str], max_age_h: float = 12.0, workers: int = 
     lock = threading.Lock()
 
     def meta_of(s: str, bars: List[Bar], prev: Optional[Dict], full: bool = False) -> Dict:
-        m = {**(prev or {}), 'source': 'alpaca', 'feed': alpaca_feed(), 'currency': 'USD', 'price': bars[-1].c}
+        m = {**(prev or {}), 'source': 'alpaca', 'feed': alpaca_feed(), 'currency': 'USD', 'price': bars[-1].c, 'adjustment': ADJUSTMENT}
         if full:                    # the whole asked history was requested once: never extended again
             m['history_days'] = HISTORY_DAYS
         m.pop('stale', None)
@@ -632,6 +642,11 @@ def alpaca_prefetch(symbols: List[str], max_age_h: float = 12.0, workers: int = 
     return miss
 
 
+def adjustment_ok(meta: Dict) -> bool:
+    """The cached bars use the current price adjustment (ADJUSTMENT). Older caches carry no 'adjustment' key."""
+    return (meta or {}).get('adjustment') == ADJUSTMENT
+
+
 def needs_extend(bars: List[Bar], meta: Dict, today: Optional[dt.date] = None) -> bool:
     """A cache filled with a shorter history than HISTORY_DAYS (the old 10-year fetch) gets one full fetch: MN zones
     need the long history. Once a full fetch was asked (meta history_days), never again, even when the source has
@@ -664,7 +679,7 @@ def fetch_daily(sym: str, max_age_h: float = 12.0, offline: bool = False, alpaca
     has already asked Alpaca for the whole batch and passes False); else a stale cache updated with the last month
     (Yahoo; a short cache is extended once); else the full history from Yahoo, else Stooq, else the stale cache."""
     cached = load_cached(sym)
-    if cached and (offline or time.time() - cached[2] < max_age_h * 3600):
+    if cached and (offline or (time.time() - cached[2] < max_age_h * 3600 and adjustment_ok(cached[1]))):
         return cached[0], cached[1]
     if offline:
         raise FileNotFoundError(f'{sym}: not cached (offline)')
@@ -685,7 +700,7 @@ def fetch_daily(sym: str, max_age_h: float = 12.0, offline: bool = False, alpaca
         raise RuntimeError(f'{sym}: {why}')
     if over_budget():
         return stale('time budget spent')
-    if cached and cached[1].get('source') == 'yahoo' and not needs_extend(cached[0], cached[1]) and not host_open(yahoo_url(sym)):
+    if cached and cached[1].get('source') == 'yahoo' and adjustment_ok(cached[1]) and not needs_extend(cached[0], cached[1]) and not host_open(yahoo_url(sym)):
         try:
             new, meta = parse_yahoo(http_get(yahoo_url(sym, '1mo'), expect=looks_json))
             merged = merge_update(cached[0], new)
@@ -854,8 +869,16 @@ TV_EXCHANGE = {'NASDAQ': 'NASDAQ', 'ARCA': 'AMEX', 'AMEX': 'AMEX', 'BATS': 'CBOE
 
 
 def tradingview_url(sym: str, exchange: str = '', home: str = '') -> str:
-    """Chart link; a Canadian name links to its home listing (home = 'TSX:RY'), not the US one we scan."""
-    if home and ':' in home:
-        return f"https://www.tradingview.com/chart/?symbol={urllib.parse.quote(home, safe=':.')}"
+    """Primary chart link = the listing whose bars were scanned. An interlisted Canadian name (home = 'TSX:RY') is
+    scanned on its US listing in USD, so its levels match the NYSE / Nasdaq chart, not the TSX chart (CAD, other
+    wicks): the primary link is the US one; the TSX chart is the secondary link (home_chart_url). `home` is kept in
+    the signature for the callers and ignored."""
     ex = TV_EXCHANGE.get(exchange, '')
     return f"https://www.tradingview.com/chart/?symbol={ex + ':' if ex else ''}{sym}"
+
+
+def home_chart_url(home: str) -> str:
+    """Secondary link 'TSX chart (CAD)' of an interlisted name ('' for a US company)."""
+    if home and ':' in home:
+        return f"https://www.tradingview.com/chart/?symbol={urllib.parse.quote(home, safe=':.')}"
+    return ''

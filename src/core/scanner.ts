@@ -61,10 +61,14 @@ export interface ScanSignal {
   /** 3M / 6M states and the 6M context line (newer scans). */
   m3?: string; m6?: string; ctx6?: unknown;
   home?: string; currency?: string; country?: string;
+  /** Interlisted names: levels are the US listing in USD ('US listing · USD'); chart = US chart, chart_home = TSX chart (CAD). */
+  listing_label?: string; levels_ccy?: string; chart_home?: string; chart_home_label?: string;
 }
 
-/** "TSX: RY · US listing" for an interlisted name, '' otherwise. */
-export const listingText = (x: { home?: string | null; h?: string }) => { const h = x.home || x.h || ''; return h.includes(':') ? `${h.replace(':', ': ')} · US listing` : ''; };
+/** "TSX: RY · US listing · USD" for an interlisted name (levels from the US listing, in USD), '' otherwise. */
+export const listingText = (x: { home?: string | null; h?: string }) => { const h = x.home || x.h || ''; return h.includes(':') ? `${h.replace(':', ': ')} · US listing · USD` : ''; };
+/** Secondary chart link of an interlisted name: its TSX chart (CAD). null for a US company. */
+export const homeChart = (x: { chart_home?: string; chart_home_label?: string }) => x.chart_home && x.chart_home.startsWith('https://www.tradingview.com/') ? { url: x.chart_home, label: x.chart_home_label || 'TSX chart (CAD)' } : null;
 
 export type GaugeState = 'demand' | 'supply' | 'middle';
 export interface GaugeZone { tf: string; proximal: number; distal: number; height?: number; pct: number }
@@ -121,6 +125,9 @@ export interface ScanFile {
   bars?: Record<string, [string, number, number, number, number][]>;
   /** 'intraday-dropped' = the scan ran while the US market was open: today's partial bar was left out. */
   session?: 'closed' | 'intraday-dropped';
+  /** Banner text when price data is degraded (e.g. Alpaca IEX feed instead of SIP); '' = none. */
+  data_warning?: string;
+  feed_iex?: boolean;
   /** Why no signal: candidates (nearest fresh demand within `within_pct`% or in it) counted by first failing rule. */
   blocked?: ScanBlocked;
   /** The candidates closest to their entry, with the rule that blocks each. */
@@ -179,6 +186,8 @@ export function parseScan(js: unknown): ScanFile | null {
     rfx_index: o.rfx_index && typeof o.rfx_index === 'object' && typeof o.rfx_index.price === 'number' ? o.rfx_index : null,
     bars: o.bars && typeof o.bars === 'object' ? Object.fromEntries(Object.entries(o.bars).filter(([, v]) => Array.isArray(v)).map(([k, v]) => [k, v.filter(b => Array.isArray(b) && b.length === 5 && b.slice(1).every(n => typeof n === 'number' && Number.isFinite(n)))])) : {},
     session: o.session === 'intraday-dropped' ? 'intraday-dropped' : 'closed',
+    data_warning: typeof o.data_warning === 'string' ? o.data_warning : '',
+    feed_iex: !!o.feed_iex,
     blocked: parseBlocked(o.blocked),
     closest: parseClosest(o.closest),
   };
@@ -208,6 +217,10 @@ export const EXIT_REASON: Record<string, string> = {
   demand_broken: 'Demand under the entry broken by a close',
   near_supply: 'Within one zone height of the next supply',
   in_supply: 'Price is inside a supply',
+  trail: 'Trail the stop behind a new demand (L3)',
+  trail_broken: 'Trail demand broken by a close (L3)',
+  trend_change: 'Direction changed down',
+  currency: 'Holding currency differs from the scanned listing',
 };
 
 /**
@@ -303,7 +316,7 @@ export interface DetailCheck {
 }
 export interface TickerDetail {
   symbol: string; name: string; sector: string; indexes: IndexCode[]; exchange?: string; chart?: string; date: string; price: number;
-  home?: string; currency?: string; country?: string; signal: SignalKind | null; direction: string; d1: string; w1: string; mn: string; curve: number | null; curve_raja: boolean;
+  home?: string; currency?: string; country?: string; chart_home?: string; chart_home_label?: string; signal: SignalKind | null; direction: string; d1: string; w1: string; mn: string; curve: number | null; curve_raja: boolean;
   zones: DetailZone[]; nearest_demand: NearZone | null; nearest_supply: NearZone | null; check: DetailCheck | null;
   fundamentals_rows: [string, string][]; bars: { t0: string; dt: number[]; b: [number, number, number, number][] };
   gauge?: { state: GaugeState; demand: GaugeZone | null; supply: GaugeZone | null };
@@ -408,7 +421,7 @@ export const STRONG_TYPES = new Set(['ARR', 'WOW', 'STR']);
 export const BLOCK_LABEL: Record<string, string> = {
   location: 'HTF area not reached', curve: 'high on curve', 'HTF align': 'direction not long', 'no HTF supply': 'monthly supply on top', 'not sideways': 'sideways market',
   strong: 'weak zone type', fresh: 'zone already tested', clean: 'overlap / flip zone', 'not used': 'zone already did its job',
-  'no 3rd CP': '3rd CP in a row', room: 'room < 2x the stop (supply or 250% projection)', earnings: 'earnings within 10 days', 'near entry': 'price not near the entry',
+  'no 3rd CP': '3rd CP in a row', room: 'room < 2x the stop (supply or 250% projection)', leg: 'departure < 2x the base', 'near entry': 'price not near the entry',
 };
 
 /** The row's bucket: the scan's own (mb, newer files), else from the gauge state and the distances (older files have

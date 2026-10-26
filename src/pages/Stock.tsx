@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { bucketMeta, checkPlanLink, CODE_BUCKET, DEFAULT_INDEXES, detailFrom, indexList, listingText, px, findBySlug, shardUrl, tvChart, unpackBars, type DetailZone, type IndexRow, type TickerDetail } from '@/core/scanner';
+import { bucketMeta, checkPlanLink, CODE_BUCKET, DEFAULT_INDEXES, detailFrom, homeChart, indexList, listingText, px, findBySlug, shardUrl, tvChart, unpackBars, type DetailZone, type IndexRow, type TickerDetail } from '@/core/scanner';
 import { num } from '@/lib/format';
 import { Badge, Card, cx, Empty, Page } from '@/ui/kit';
 import { Explain } from '@/ui/Explain';
@@ -123,7 +123,8 @@ export default function Stock() {
             </div>
             <div className="flex gap-2">
               {checkPlanLink(d) && <Explain control doc={G.planIt}><Link to={checkPlanLink(d)!} className={cx(d.check?.kind === 'BUY' ? 'btn-primary' : 'btn', 'h-10 flex-1 sm:flex-none')}><Icon name="target" size={15} />Plan it</Link></Explain>}
-              <Explain control doc={G.tv}><a href={tvChart(d)} target="_blank" rel="noopener noreferrer" className="btn h-10 flex-1 sm:flex-none"><Icon name="link" size={15} />TradingView</a></Explain>
+              <Explain control doc={G.tv}><a href={tvChart(d)} target="_blank" rel="noopener noreferrer" className="btn h-10 flex-1 sm:flex-none"><Icon name="link" size={15} />TradingView{homeChart(d) ? ' (US · USD)' : ''}</a></Explain>
+              {homeChart(d) && <a href={homeChart(d)!.url} target="_blank" rel="noopener noreferrer" className="btn h-10 flex-1 sm:flex-none"><Icon name="link" size={15} />{homeChart(d)!.label}</a>}
             </div>
           </Card>
 

@@ -112,21 +112,29 @@ class RulesTest(unittest.TestCase):
                 fails = [r for r in s['rules'] if r['status'] == 'fail']
                 self.assertTrue(all(r['ref'] in ('L2 · L52', 'Scanner') for r in fails))
 
-    def test_earnings_rule_blocks(self):
-        b, an = analysis_of(2259)
+    def test_earnings_is_information_only(self):
+        """Owner: holds weeks to months, earnings never block (the old 'Kevin L12' citation was wrong). The rule shows
+        the next date when known, 'unknown' otherwise, with status info."""
+        b, an = analysis_of(7496)
         ok = [s for s in scan.symbol_signals(an, None) if s['kind'] == 'BUY']
         self.assertTrue(ok)
-        blocked = [s for s in scan.symbol_signals(an, '2026-10-28') if s['kind'] == 'BUY']
-        self.assertFalse(blocked)                                # earnings in 3 trading days -> no BUY
-        r = [x for x in scan.zone_rules(an, an.w1.zones[0], an.dna.get(an.w1.zones[0].zid) or Z.DNA(), None) if x.ref == 'Kevin L12']
-        self.assertEqual(r[0].status, 'unknown')
+        soon = [s for s in scan.symbol_signals(an, '2026-10-28') if s['kind'] == 'BUY']
+        self.assertEqual(len(soon), len(ok))                     # earnings in 3 trading days: still a BUY
+        z = ok[0]
+        er = next(r for r in z['rules'] if r['short'] == 'earnings')
+        self.assertEqual((er['status'], er['ref']), ('info', 'info'))
+        self.assertIn('unknown', er['text'])
+        er2 = next(r for r in soon[0]['rules'] if r['short'] == 'earnings')
+        self.assertIn('2026-10-28', er2['text'])
+        for s_ in ok + soon:
+            self.assertFalse(any('Kevin L12' in r['ref'] for r in s_['rules']))
 
     def test_rules_carry_references(self):
-        b, an = analysis_of(2259)
+        b, an = analysis_of(7496)
         for s in scan.symbol_signals(an, None):
             self.assertGreaterEqual(len(s['rules']), 12)
             for r in s['rules']:
-                self.assertIn(r['status'], ('pass', 'fail', 'warn', 'unknown'))
+                self.assertIn(r['status'], ('pass', 'fail', 'warn', 'unknown', 'info'))
                 self.assertTrue(r['ref'])
 
     def test_short_history_gives_wait(self):
@@ -210,7 +218,10 @@ class SearchOutputTest(unittest.TestCase):
         cad = next(r for r in self.idx['tickers'] if r['s'] == 'SYNE')
         self.assertEqual(cad['h'], 'TSX:SYE')
         self.assertEqual(self.shard(cad['k'])['SYNE']['country'], 'CA')
-        self.assertIn('TSX:SYE', self.shard(cad['k'])['SYNE']['chart'])
+        d = self.shard(cad['k'])['SYNE']
+        self.assertNotIn('TSX:SYE', d['chart'])                  # levels are the US listing: primary link = US chart
+        self.assertIn('TSX:SYE', d['chart_home'])
+        self.assertEqual((d['chart_home_label'], d['listing_label'], d['levels_ccy']), ('TSX chart (CAD)', 'US listing · USD', 'USD'))
         for r in self.idx['tickers']:
             self.assertEqual(r['k'], scan.shard_of(r['s']))
             d = self.shard(r['k'])[r['s']]

@@ -67,7 +67,7 @@ export function zoneLineTip(z: { tf: string; zone_type: string; pattern: string;
 
 export const G = {
   price: (p: number, cur = 'USD', date?: string): TipDoc => ({ title: `Last close ${px(p)} ${cur}`, body: `The last daily close${date ? ` (${date})` : ''}, split and dividend adjusted. Every % on this card is measured from it; the scan reads closed sessions only.` }),
-  listing: (t: string): TipDoc => ({ title: t, body: 'A Canadian company scanned through its US listing (NYSE / Nasdaq, prices in USD). The TradingView link opens the TSX chart; zones can differ slightly from it.' }),
+  listing: (t: string): TipDoc => ({ title: t, body: 'A Canadian company scanned through its US listing (NYSE / Nasdaq). Every level (entry, stop, target, zones) is in USD on the US chart: the main chart link opens the US listing; the TSX chart (CAD) is a secondary link and its zones differ.' }),
   index: (code: string, label?: string): TipDoc => ({ title: `${code}${label ? ` · ${label}` : ''}`, body: `A member of the ${label ?? code} index. The index pills above filter by membership; one stock can sit in several indexes.` }),
   sector: (s: string): TipDoc => ({ title: s, body: 'GICS sector from the index list. The sector pills filter by it.' }),
   watchNew: { title: 'WATCH · new zone, price far', body: 'A strong fresh zone made in the last 5 sessions that passes every rule except the approach: price is still too far above. Wait for it to come back.', ref: 'Raja L52 · L101' },
@@ -77,7 +77,7 @@ export const G = {
     : { title: 'WATCH', body: 'A strong zone that passes everything but one thing: price is still far (a new zone), or it is a 2nd / 3rd touch that needs a lower-timeframe confirmation.', ref: 'Raja L52 · L101' },
   proxDist: { title: 'Proximal · distal', body: 'Proximal = the highest base body: the entry edge. Distal = the lowest wick of the base + departure: the far edge. A zone is removed only by a close below the distal, never by a wick.', ref: 'Raja L55 · L4 · L50' },
   stopRule: (pct: number, tf: string): TipDoc => ({ title: `Stop: distal − ${pct}%`, body: `The owner's stop rule: ${pct}% of the zone height below the distal for a ${tf} zone (${stopRuleText(tf)}; min 0.03).`, ref: 'ZV 2.10 · owner' }),
-  earnings: (d: string): TipDoc => ({ title: `Earnings ${d}`, body: 'Next earnings date (Yahoo, best effort). A BUY needs no earnings within the next 10 trading days; unknown shows "?": check it yourself.', ref: 'Kevin L12' }),
+  earnings: (d: string): TipDoc => ({ title: `Earnings ${d}`, body: 'Next earnings date (Yahoo or the owner\'s earnings.csv, best effort; "unknown" when not found). Information only: the trades are held weeks to months and cross earnings, so it never blocks a BUY.' }),
   rulesSummary: (pass: number, total: number, fail: number): TipDoc => ({ title: `${pass}/${total} pass${fail ? ` · ${fail} fail` : ''}`, body: 'Every BUY rule checked on this zone. A BUY needs zero ✗. ! = allowed but flagged, ? = unknown (check yourself), · = context only. The last lines (fair value, RFX index) never fail.' }),
   fundHead: { title: 'Fundamentals · context only', body: 'From SEC EDGAR filings (XBRL companyfacts), refreshed at most weekly per company. Not part of the supply and demand rules: a signal never depends on them.' },
   fundCA: { title: 'n/a (Canadian filer)', body: 'Canadian issuers file 40-F / 6-K reports with IFRS numbers, so SEC companyfacts has no US-GAAP figures to show.' },

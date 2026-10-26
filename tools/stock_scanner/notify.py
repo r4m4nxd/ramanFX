@@ -152,7 +152,7 @@ def signal_card(s: Dict) -> str:
     kind = s['kind']
     head = ('🟢 BUY' if kind == 'BUY' else '🟡 WATCH') + f" <b>{esc(s['symbol'])}</b> · {esc(s.get('name', ''))}{esc(_idx(s))}"
     if s.get('home'):
-        head += f" · {esc(s['home'].replace(':', ': '))} · US listing ({esc(s.get('currency') or 'USD')})"
+        head += f" · {esc(s['home'].replace(':', ': '))} · {esc(s.get('listing_label') or 'US listing · ' + (s.get('currency') or 'USD'))}"
     state = 'fresh' if s['touches'] == 0 else f"touch {s['touches'] + 1}"
     lines = [head,
              f"Zone: {s['tf']} demand {s['proximal']:.2f}–{s['distal']:.2f} ({state}, {s['zone_type']} type, score {s.get('score', 0)}/10)",
@@ -170,24 +170,30 @@ def signal_card(s: Dict) -> str:
     fr = _fund_row(s)
     if fr:
         lines.append(fr)
+    if s.get('earnings'):
+        lines.append(f"Next earnings {esc(s['earnings'])} (information only)")
     if s.get('chart'):
-        lines.append(f"<a href=\"{esc(s['chart'])}\">Chart</a>")
+        lines.append(f"<a href=\"{esc(s['chart'])}\">Chart{' (US listing · USD)' if s.get('chart_home') else ''}</a>"
+                     + (f" · <a href=\"{esc(s['chart_home'])}\">{esc(s.get('chart_home_label') or 'TSX chart (CAD)')}</a>" if s.get('chart_home') else ''))
     return '\n'.join(lines)
+
+
+EXIT_WORDS = {'stop': 'stop hit by the close', 'demand_broken': 'demand under the entry broken by a close',
+              'near_supply': 'near the next supply', 'in_supply': 'inside a supply',
+              'trail': 'trail the stop behind a new demand (L3)', 'trail_broken': 'trail demand broken by a close (L3)',
+              'trend_change': 'direction changed down', 'currency': 'holding currency differs from the scanned listing'}
 
 
 def exit_card(e: Dict) -> str:
     if 'warnings' not in e:                  # the published file keeps only the warning kinds (no position data)
-        words = {'stop': 'stop hit by the close', 'demand_broken': 'demand under the entry broken by a close',
-                 'near_supply': 'near the next supply', 'in_supply': 'inside a supply'}
+        words = EXIT_WORDS
         return f"🔴 EXIT <b>{esc(e['symbol'])}</b> · " + esc(' · '.join(words.get(r, r) for r in e.get('reasons') or []))
     parts = []
     for w in e['warnings']:
         if w['reason'] in ('near_supply', 'in_supply'):
             parts.append(f"{'near' if w['reason'] == 'near_supply' else 'inside'} {w['tf']} supply {w['lo']:.2f}–{w['hi']:.2f} · distance {w['dist_pct']:.1f}%")
-        elif w['reason'] == 'stop':
-            parts.append('stop hit by the close')
         else:
-            parts.append('demand under the entry broken by a close')
+            parts.append(EXIT_WORDS.get(w['reason'], w['reason']))
     pos = ', '.join(x for x in (f"entry {e['entry']}" if e.get('entry') is not None else '', f"stop {e['stop']}" if e.get('stop') is not None else '',
                                 f"{e['shares']} sh" if e.get('shares') is not None else '') if x)
     return (f"🔴 EXIT <b>{esc(e['symbol'])}</b> · " + esc(' · '.join(parts)) + f"\nPrice {e['price']:.2f}" + (f' ({esc(pos)})' if pos else '')
@@ -235,7 +241,8 @@ def build_messages(res: Dict, top: int = 5, cap: int = LIST_CAP) -> List[str]:
               + (f" · {len(res['uncovered'])} TSX-only names need a TSX data feed" if res.get('uncovered') else '') + '\n'
               + f"BUYs by sector: {esc(ranked)}"
               + (f"\nBy index: {esc(' · '.join(f'{k} {v}' for k, v in sorted(idx_counts.items())))}" if idx_counts else '')
-              + '\nRaja rules (ZoneVision Raja template), Kevin second.')
+              + '\nRaja rules (ZoneVision Raja template), Kevin second.'
+              + (f"\n⚠️ <b>{esc(res['data_warning'])}</b>" if res.get('data_warning') else ''))
     msgs = [header]
     wb = watch_block(res.get('watch_alerts') or [])
     if wb:

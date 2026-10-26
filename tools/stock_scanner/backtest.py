@@ -1,4 +1,4 @@
-"""Walk-forward backtest of the scanner's CURRENT BUY rules on real daily data (Alpaca, split + dividend adjusted).
+"""Walk-forward backtest of the scanner's CURRENT BUY rules on real daily data (Alpaca, split-adjusted; dividends not adjusted, like the TradingView default chart).
 
     python tools/stock_scanner/backtest.py --offline                     # every cached ticker
     python tools/stock_scanner/backtest.py --tickers AAPL,MSFT --workers 4
@@ -522,7 +522,7 @@ def spy_buy_hold(spy: List[Bar], start: str, end: str) -> Dict:
         dd = max(dd, 1 - x.c / peak)
     tot = b[-1].c / b[0].c
     return {'from': b[0].d, 'to': b[-1].d, 'total_pct': round((tot - 1) * 100, 1), 'cagr_pct': round((tot ** (1 / yrs) - 1) * 100, 1),
-            'max_dd_pct': round(dd * 100, 1), 'note': 'SPY adjusted closes (dividends reinvested), no costs'}
+            'max_dd_pct': round(dd * 100, 1), 'note': 'SPY split-adjusted closes (dividends not included, same as the trades), no costs'}
 
 
 def summarize(trades: List[Dict], spy: Optional[List[Bar]] = None) -> Dict:
@@ -672,7 +672,7 @@ def render_md(summary: Dict, params: Dict) -> str:
          '- Exits: target, stop (stop first on the same bar; an open below the stop exits at that open), or time after 52 weeks. '
          'Trades still running at the data end are not scored.',
          f"- Costs {params.get('cost_bps')} bps spread + {params.get('slip_bps')} bps slippage per side. "
-         'Split + dividend adjusted prices (Alpaca adjustment=all), so dividends are in the returns.',
+         'Split-adjusted prices (Alpaca adjustment=split, the TradingView default chart): dividends are NOT in the returns.',
          f"- Period: signals {(s.get('period') or ['?', '?'])[0]} to {(s.get('period') or ['?', '?'])[1]}; "
          f"out of sample = signals from {s.get('oos_from', '?')} (newest 30%).", '',
          '"wick" = stop order in the market (the live plan). "close" = exit only on a daily close below the stop.', '',
