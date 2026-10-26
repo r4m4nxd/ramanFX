@@ -1,0 +1,526 @@
+"""Automated FX zone scanner (Raja rules, top-down MN -> W1 -> D1 -> H4, 3M context), Pepperstone symbols, OANDA data.
+
+    python tools/fx_scanner/fxscan.py                    # scan if a new H4 candle closed, write public/fx, Telegram
+    python tools/fx_scanner/fxscan.py --force            # scan even without a new H4 candle
+    python tools/fx_scanner/fxscan.py --only EURUSD,XAUAUD --no-notify
+    python tools/fx_scanner/fxscan.py --selftest         # synthetic data end to end, prints the Telegram text
+    python tools/fx_scanner/fxscan.py --preview-telegram # the daily summary of the published public/fx/latest.json
+
+Outputs (contract: tools/fx_scanner/SCHEMA.md): public/fx/latest.json and public/fx/d/<class>.json (per-instrument
+detail with bars for the charts). Dedupe state for Telegram: <cache>/state.json (actions/cache).
+"""
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import json
+import math
+import os
+import sys
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
+from typing import Callable, Dict, List, Optional, Tuple
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+STOCK = os.path.join(os.path.dirname(HERE), 'stock_scanner')
+for _p in (HERE, STOCK, os.path.join(HERE, 'fixtures')):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
+import data as SD  # noqa: E402
+import fxcfg as C  # noqa: E402
+import fxcore as F  # noqa: E402
+import fxnotify as N  # noqa: E402
+import oanda as O  # noqa: E402
+import watchlist as W  # noqa: E402
+from zones import Bar  # noqa: E402
+
+DISCLAIMER = ('Rule-based scan, not financial advice. Levels come from the OANDA feed; Pepperstone quotes can differ by '
+              'a few pips: check on your Pepperstone chart (ZoneVision MT5) before placing.')
+CHART_BARS = {'H4': 80, 'D1': 80, 'W1': 52}
+USDX_PARTS = {'EUR_USD': -0.576, 'USD_JPY': 0.136, 'GBP_USD': -0.119, 'USD_CAD': 0.091, 'USD_SEK': 0.042, 'USD_CHF': 0.036}
+USDX_K = 50.14348112
+USDX_META = {'name': 'USDX', 'type': 'INDEX', 'displayName': 'US Dollar Index (synthetic)', 'pipLocation': -2, 'displayPrecision': 3}
+
+
+def now_utc() -> dt.datetime:
+    return dt.datetime.now(dt.timezone.utc).replace(tzinfo=None)
+
+
+# ---- universe --------------------------------------------------------------------------------------------------------
+def universe(instruments: List[Dict], wl: Dict, include_cfd: Optional[bool] = None) -> List[Dict]:
+    """CURRENCY + METAL (+ CFD with FX_INCLUDE_CFD) + every watchlist instrument (CFDs included), each with sym
+    (Pepperstone name), cls, group (watchlist section) and wl."""
+    by = {i['name']: i for i in instruments}
+    pick = {i['name']: i for i in C.select(instruments, include_cfd)}
+    for n in wl['names']:
+        if n == 'USDX':
+            pick[n] = {**USDX_META, 'cls': 'cfd'}
+        elif n in by and n not in pick:
+            i = by[n]
+            pick[n] = {**i, 'cls': C.fx_class(n, i.get('type') or 'CFD')}
+        elif n not in by and n not in pick and not by:
+            pick[n] = {'name': n, 'type': 'CFD', 'cls': C.fx_class(n, 'CFD')}
+    sym_of = {it['instrument']: W.tv_ticker(it['symbol']) for it in wl['items'] if it['instrument']}
+    out = []
+    for n, i in pick.items():
+        sym = sym_of.get(n) or W.pepper_symbol(n)
+        out.append({**i, 'sym': sym, 'tv': f'PEPPERSTONE:{sym}', 'group': wl['sections'].get(n, ''), 'wl': n in wl['sections']})
+    order = {n: k for k, n in enumerate(wl['names'])}
+    return sorted(out, key=lambda i: (not i['wl'], order.get(i['name'], 0), C.CLASSES.index(i['cls']), i['sym']))
+
+
+def synth_usdx(parts: Dict[str, Dict[str, List[Bar]]]) -> Dict[str, List[Bar]]:
+    """ICE dollar index from OANDA pairs: 50.14348112 x EURUSD^-0.576 x USDJPY^0.136 x GBPUSD^-0.119 x USDCAD^0.091
+    x USDSEK^0.042 x USDCHF^0.036, per bar label present in every part. Open / close exact; high / low the bound of
+    the parts' extremes (each part's high or low, by the sign of its weight)."""
+    out: Dict[str, List[Bar]] = {}
+    for tf in ('H4', 'D1', 'W1', 'MN'):
+        maps = {n: {b.d: b for b in parts[n].get(tf, [])} for n in USDX_PARTS}
+        common = sorted(set.intersection(*(set(m) for m in maps.values()))) if maps else []
+        bars = []
+        for lbl in common:
+            def val(pick):
+                v = USDX_K
+                for n, w in USDX_PARTS.items():
+                    v *= getattr(maps[n][lbl], pick(w)) ** w
+                return v
+            o, c = val(lambda w: 'o'), val(lambda w: 'c')
+            h, l = val(lambda w: 'h' if w > 0 else 'l'), val(lambda w: 'l' if w > 0 else 'h')
+            bars.append(Bar(lbl, o, max(h, o, c), min(l, o, c), c))
+        out[tf] = bars
+    return out
+
+
+# ---- the scan --------------------------------------------------------------------------------------------------------
+BarsGetter = Callable[[Dict], Tuple[Dict[str, List[Bar]], Optional[float]]]
+
+
+def run(uni: List[Dict], get_bars: BarsGetter, workers: int = 4, log=print) -> Dict:
+    """Fetch + analyse every instrument. Returns {'analyses': {sym: FxAnalysis}, 'signals', 'watch', 'hits', 'errors',
+    'uni'}."""
+    bars: Dict[str, Dict[str, List[Bar]]] = {}
+    spread: Dict[str, Optional[float]] = {}
+    errors: Dict[str, str] = {}
+    lock = threading.Lock()
+
+    def one(i):
+        if i['name'] == 'USDX':
+            return
+        try:
+            b, sp = get_bars(i)
+            with lock:
+                bars[i['name']], spread[i['name']] = b, sp
+        except Exception as e:  # noqa: BLE001
+            with lock:
+                errors[i['sym']] = f'{type(e).__name__}: {str(e)[:120]}'
+    with ThreadPoolExecutor(max_workers=max(1, workers)) as ex:
+        list(ex.map(one, uni))
+    if any(i['name'] == 'USDX' for i in uni):
+        missing = [n for n in USDX_PARTS if n not in bars]
+        for n in missing:                                   # parts outside the universe: fetch them too
+            try:
+                bars[n], _ = get_bars({'name': n, 'type': 'CURRENCY', 'sym': n.replace('_', '')})
+            except Exception as e:  # noqa: BLE001
+                errors['USDX'] = f'part {n}: {type(e).__name__}'
+        if all(n in bars for n in USDX_PARTS):
+            bars['USDX'], spread['USDX'] = synth_usdx(bars), None
+    analyses, sigs, watch, hits = {}, [], [], {}
+    for i in uni:
+        b = bars.get(i['name'])
+        if not b or len(b.get('H4') or []) < 60:
+            if i['sym'] not in errors and i['name'] in bars:
+                errors[i['sym']] = 'too little H4 history'
+            continue
+        try:
+            an = F.analyse(i, b, spread.get(i['name']))
+            ss = F.signals(an)
+            hh = F.zone_hits(an)
+        except Exception as e:  # noqa: BLE001
+            errors[i['sym']] = f'analysis: {type(e).__name__}: {e}'
+            continue
+        analyses[i['sym']] = an
+        meta = inst_fields(i)
+        for s in ss:
+            s.update(meta)
+            s['ctx3'] = F.six(an.rows['3M'], an.price, an.nd)
+            (sigs if s['kind'] in ('BUY', 'SELL') else watch).append(s)
+        hits[i['sym']] = [{**h, **meta, 'px': round(an.price, an.nd)} for h in hh]
+    sigs.sort(key=lambda s: (not s['wl'], -s['score'], abs(s['to_entry_pips'])))
+    watch.sort(key=lambda s: (not s['wl'], -s['score']))
+    return {'analyses': analyses, 'signals': sigs, 'watch': watch, 'hits': hits, 'errors': errors, 'uni': uni}
+
+
+def inst_fields(i: Dict) -> Dict:
+    return {'sym': i['sym'], 'oanda': i['name'], 'cls': i['cls'], 'group': i.get('group') or '', 'wl': bool(i.get('wl')),
+            'tv': i.get('tv') or f"PEPPERSTONE:{i['sym']}", 'digits': C.digits_of(i), 'pip': C.pip_of(i),
+            'exotic': i['cls'] == 'exotic'}
+
+
+def pack(bars: List[Bar], n: int, nd: int) -> List[list]:
+    return [[b.d, round(b.o, nd), round(b.h, nd), round(b.l, nd), round(b.c, nd)] for b in bars[-n:]]
+
+
+def detail(an: F.FxAnalysis, hits: List[Dict], sigs: List[Dict]) -> Dict:
+    i, nd = an.inst, an.nd
+    zs = []
+    for tf in C.ENTRY_TFS + C.CONTEXT_TFS:
+        r = an.rows[tf]
+        if not r.ok:
+            continue
+        for z in r.zones:
+            x = an.dna.get(z.zid)
+            if x is None or x.n_tests > C.MAX_TOUCHES:
+                continue
+            lc = F.loc_of(an, z) if tf in C.ENTRY_TFS else None
+            zs.append({**F.zone_dict(an, z, x), 'pips': round(abs(an.price - z.prox) / an.pip, 1),
+                       'loc': lc.code if lc else 'context', 'loc_ok': lc.ok if lc else None, 'loc_text': lc.text if lc else '3M context level'})
+    zs.sort(key=lambda z: z['pips'])
+    return {**inst_fields(i), 'price': round(an.price, nd), 'date': an.date,
+            'spread_pips': round(an.spread / an.pip, 1) if an.spread is not None else None,
+            'states': {t: an.rows[t].state_name for t in F.ROW_TFS}, 'dirs': {t: an.dirs[t].head for t in C.ENTRY_TFS},
+            'curves': {t: round(an.curves[t].value, 1) for t in C.ENTRY_TFS if an.curves[t].ok},
+            'ctx3': F.six(an.rows['3M'], an.price, nd), 'zones': zs[:16], 'hits': hits, 'checks': F.nearest_checks(an),
+            'signals': [s['kind'] + ' ' + s['tf'] for s in sigs],
+            'bars': {tf: pack(_closed(an, tf), n, nd) for tf, n in CHART_BARS.items()}}
+
+
+def _closed(an: F.FxAnalysis, tf: str) -> List[Bar]:
+    S = an.rows[tf].S
+    return [Bar(S.T[j], S.O[j], S.H[j], S.L[j], S.C[j]) for j in range(S.n - 1, 0, -1)]
+
+
+def lists(res: Dict) -> Dict:
+    out = {'demand': {k: [] for k in F.SECTIONS}, 'supply': {k: [] for k in F.SECTIONS}}
+    for sym, hh in res['hits'].items():
+        b = F.bucket_of(hh)
+        if b:
+            out[b['side']][b['section']].append(_item(b))
+    for side in out:
+        for sec in out[side]:
+            out[side][sec].sort(key=lambda r: (not r['wl'], not r['loc_ok'], -r['score'], r['pips']))
+    return out
+
+
+def _item(h: Dict) -> Dict:
+    keep = ('sym', 'oanda', 'cls', 'group', 'wl', 'px', 'digits', 'tf', 'side', 'type', 'touches', 'score', 'prox', 'dist',
+            'pips', 'loc', 'loc_ok', 'loc_text', 'chain_text', 'status', 'label', 'b')
+    return {**{k: h.get(k) for k in keep}, 'sec': h['section']}
+
+
+def public(res: Dict, h4: str, fixture: bool = False, partial: bool = False, extra: Optional[Dict] = None) -> Tuple[Dict, Dict[str, Dict]]:
+    """(latest.json, {class: detail shard})."""
+    zl = lists(res)
+    sig_of = {}
+    for s in res['signals'] + res['watch']:
+        sig_of.setdefault(s['sym'], s['kind'])
+    rows, shards = [], {c: {} for c in C.CLASSES}
+    for i in res['uni']:
+        an = res['analyses'].get(i['sym'])
+        if an is None:
+            continue
+        hh = res['hits'].get(i['sym'], [])
+        b = F.bucket_of(hh)
+        rows.append({**{k: v for k, v in inst_fields(i).items() if k not in ('tv',)}, 'px': round(an.price, an.nd),
+                     'b': b['b'] if b else 'M', 'z': _item(b) if b else None, 'dir': {t: an.dirs[t].head for t in C.ENTRY_TFS},
+                     'states': {t: an.rows[t].state_name for t in F.ROW_TFS},
+                     'sp': round(an.spread / an.pip, 1) if an.spread is not None else None, 'sig': sig_of.get(i['sym']), 'k': i['cls']})
+        shards[i['cls']][i['sym']] = detail(an, hh, [s for s in res['signals'] + res['watch'] if s['sym'] == i['sym']])
+    blocked: Dict[str, int] = {}
+    for hh in res['hits'].values():
+        for h in hh:
+            if h['status'] not in ('BUY', 'SELL'):
+                blocked[h['status']] = blocked.get(h['status'], 0) + 1
+    groups = []
+    for i in res['uni']:
+        if i.get('wl') and i['sym'] in res['analyses']:
+            if not groups or groups[-1]['name'] != i['group']:
+                groups.append({'name': i['group'], 'symbols': []})
+            groups[-1]['symbols'].append(i['sym'])
+    cls_n = {c: sum(1 for r in rows if r['cls'] == c) for c in C.CLASSES}
+    pub = {
+        'version': 1, 'generated': now_utc().strftime('%Y-%m-%dT%H:%M:%SZ'), 'h4': h4,
+        'h4_close_utc': C.h4_close_utc(h4).strftime('%Y-%m-%dT%H:%M:%SZ') if h4 else None,
+        'fixture': fixture, 'partial': partial, 'broker': 'Pepperstone', 'feed': 'OANDA ' + (os.environ.get('OANDA_ENV') or 'practice'),
+        'clock': 'Pepperstone server time (GMT+2 winter / GMT+3 summer, day closes 17:00 New York)',
+        'config': {'chain': ['MN', 'W1', 'D1', 'H4'], 'context': '3M', 'sl_pct': C.SL_PCT, 'approach_h': C.APPROACH_H,
+                   'near_h': C.NEAR_H, 'left_bars': C.LEFT_BARS, 'max_spread_frac': C.MAX_SPREAD_FRAC,
+                   'soft_reach_pct': C.SOFT_REACH_PCT, 'gold_usd_min_tf': C.GOLD_USD_MIN_TF},
+        'counts': {'instruments': len(rows), 'BUY': sum(s['kind'] == 'BUY' for s in res['signals']),
+                   'SELL': sum(s['kind'] == 'SELL' for s in res['signals']), 'WATCH': len(res['watch']), 'errors': len(res['errors'])},
+        'classes': [{'id': c, 'label': C.CLASS_LABEL[c], 'n': cls_n[c]} for c in C.CLASSES if cls_n[c]],
+        'groups': groups, 'signals': res['signals'], 'watch': res['watch'], 'invalidated': [], 'lists': zl,
+        'map': rows, 'blocked': dict(sorted(blocked.items(), key=lambda kv: -kv[1])),
+        'block_labels': F.BLOCK_LABEL, 'unmapped': [], 'errors': res['errors'], 'disclaimer': DISCLAIMER,
+    }
+    pub.update(extra or {})
+    gen = pub['generated']
+    return pub, {c: {'generated': gen, 'instruments': v} for c, v in shards.items() if v}
+
+
+def write(pub: Dict, shards: Dict[str, Dict], out_dir: str = C.OUT_DIR) -> str:
+    os.makedirs(os.path.join(out_dir, 'd'), exist_ok=True)
+    for c, js in shards.items():
+        _dump(os.path.join(out_dir, 'd', f'{c}.json'), js)
+    for c in C.CLASSES:
+        if c not in shards and os.path.exists(os.path.join(out_dir, 'd', f'{c}.json')):
+            os.remove(os.path.join(out_dir, 'd', f'{c}.json'))
+    path = os.path.join(out_dir, 'latest.json')
+    _dump(path, pub)
+    return path
+
+
+def _dump(path: str, obj) -> None:
+    tmp = path + '.tmp'
+    with open(tmp, 'w') as f:
+        json.dump(obj, f, separators=(',', ':'), ensure_ascii=False, allow_nan=False, default=_json_default)
+    os.replace(tmp, path)
+
+
+def _json_default(o):
+    if isinstance(o, float) and not math.isfinite(o):
+        return None
+    raise TypeError(type(o).__name__)
+
+
+# ---- Telegram events + dedupe state ----------------------------------------------------------------------------------
+def sig_key(s: Dict) -> str:
+    return f"{s['sym']}|{s['kind']}|{s['tf']}|{s['side']}|{s['base_start']}"
+
+
+def zone_key(h: Dict) -> str:
+    return f"{h['sym']}|{h['section']}|{h['zid']}"
+
+
+def gone_reason(res: Dict, old: Dict) -> str:
+    an = res['analyses'].get(old['sym'])
+    if an is None:
+        return 'no data this run'
+    r = an.rows.get(old['tf'])
+    z = next((z for z in (r.zones if r and r.ok else []) if z.base_start == old['base_start'] and F.SIDE[z.dir] == old['side']), None)
+    px, d = an.price, 1 if old['side'] == 'demand' else -1
+    if old.get('stop') is not None and d * (px - old['stop']) <= 0:
+        return f"price {px:.{an.nd}f} beyond the stop {old['stop']:.{an.nd}f}: invalidated"
+    if z is None or z.removed:
+        return 'zone removed by a close: invalidated'
+    x = an.dna.get(z.zid)
+    if x is None:
+        return 'zone no longer on the right side of price'
+    if x.n_tests > 0:
+        return 'price reached the entry (zone tested): limit filled or touched — manage the trade on the platform'
+    fb = F.first_block(F.zone_rules(an, z, x))
+    return f"rule failing now: {F.BLOCK_LABEL.get(fb, fb)}" if fb else 'replaced by a nearer zone'
+
+
+def events(res: Dict, state: Dict, now: dt.datetime) -> Tuple[Dict, Dict]:
+    """(events, new_state). New BUY / SELL (all), cancelled signals (all), new WATCH and zone in / near of LOCATED
+    strong zones (watchlist only, re-sent per zone at most every DEDUPE_HOURS)."""
+    prev_sig = state.get('signals') or {}
+    prev_watch = set(state.get('watch') or [])
+    prev_zone = set(state.get('zones_now') or [])
+    sent = dict(state.get('zones_sent') or {})
+    cur = {sig_key(s): s for s in res['signals']}
+    ev = {'signals': [s for k, s in cur.items() if k not in prev_sig], 'gone': [], 'watch': [], 'zones': []}
+    for k, old in prev_sig.items():
+        if k not in cur:
+            ev['gone'].append({**old, 'reason': gone_reason(res, old)})
+    wkeys = {sig_key(s): s for s in res['watch'] if s.get('wl')}
+    ev['watch'] = [s for k, s in wkeys.items() if k not in prev_watch]
+    zkeys = {}
+    for sym, hh in res['hits'].items():
+        for h in hh:
+            if h.get('wl') and h['loc_ok'] and h['section'] in ('in', 'near'):
+                zkeys[zone_key(h)] = h
+    cutoff = (now - dt.timedelta(hours=C.DEDUPE_HOURS)).isoformat()
+    for k, h in zkeys.items():
+        if k not in prev_zone and sent.get(k, '') < cutoff:
+            ev['zones'].append({**h, 'sec': h['section']})
+            sent[k] = now.isoformat()
+    sent = {k: v for k, v in sent.items() if v >= (now - dt.timedelta(days=7)).isoformat()}
+    keep = ('sym', 'kind', 'tf', 'side', 'base_start', 'entry', 'stop', 'digits')
+    new = {**state, 'signals': {k: {f: s.get(f) for f in keep} for k, s in cur.items()}, 'watch': sorted(wkeys),
+           'zones_now': sorted(zkeys), 'zones_sent': sent}
+    return ev, new
+
+
+def state_path() -> str:
+    return os.path.join(C.CACHE, 'state.json')
+
+
+def load_state() -> Dict:
+    try:
+        with open(state_path()) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def save_state(st: Dict) -> None:
+    os.makedirs(C.CACHE, exist_ok=True)
+    _dump(state_path(), st)
+
+
+def notify_failure(reason: str, state: Dict, notify: bool, log=print) -> None:
+    """At most one failure message per day."""
+    day = now_utc().date().isoformat()
+    log(f'FX scan failed: {reason}')
+    if notify and state.get('fail_day') != day:
+        N.send([N.failure_message(reason)])
+        state['fail_day'] = day
+        save_state(state)
+
+
+# ---- OANDA getter ----------------------------------------------------------------------------------------------------
+def oanda_bars(i: Dict) -> Tuple[Dict[str, List[Bar]], Optional[float]]:
+    out, sp = {}, None
+    for tf in C.ENTRY_TFS:
+        bars, rec = O.update(i['name'], tf)
+        out[tf] = bars
+        if tf == 'H4':
+            sp = F.typical_spread(O.spreads(rec))
+    return out, sp
+
+
+# ---- selftest --------------------------------------------------------------------------------------------------------
+SELFTEST = [  # (Pepperstone symbol, OANDA name, type, start price, vol, seed, watchlist group): seeds found by a search
+    ('EURUSD', 'EUR_USD', 'CURRENCY', 1.10, 0.0016, 15, 'FX MAJORS'), ('GBPJPY', 'GBP_JPY', 'CURRENCY', 185.0, 0.0016, 827, 'FX CROSSES'),
+    ('AUDUSD', 'AUD_USD', 'CURRENCY', 0.68, 0.0016, 63, ''), ('EURCAD', 'EUR_CAD', 'CURRENCY', 1.48, 0.0016, 506, ''),
+    ('USDZAR', 'USD_ZAR', 'CURRENCY', 18.2, 0.0016, 72, ''), ('XAUAUD', 'XAU_AUD', 'METAL', 3900.0, 0.0016, 636, 'METALS'),
+    ('XAUUSD', 'XAU_USD', 'METAL', 2600.0, 0.0016, 1077, 'METALS'), ('US500', 'SPX500_USD', 'CFD', 5600.0, 0.0016, 4, 'INDICES'),
+]
+
+
+def selftest_universe(seeds: Optional[Dict[str, int]] = None):
+    import synth_fx
+    insts, data = [], {}
+    for sym, name, kind, start, vol, seed, grp in SELFTEST:
+        seed = (seeds or {}).get(sym, seed)
+        i = {'name': name, 'type': kind, 'pipLocation': -2 if name.endswith('JPY') or name.startswith('XAU') else (0 if kind == 'CFD' else -4),
+             'displayPrecision': 3 if name.endswith('JPY') else (2 if name.startswith('XAU') or kind == 'CFD' else 5)}
+        insts.append(i)
+        data[name] = synth_fx.instrument(seed, start=start, vol=vol)
+    wl = {'names': [n for (_, n, *_r, g) in SELFTEST if g], 'sections': {n: g for (_, n, *_r, g) in SELFTEST if g},
+          'items': [{'symbol': f'PEPPERSTONE:{s}', 'instrument': n, 'section': g} for (s, n, *_r, g) in SELFTEST if g],
+          'unmapped': [{'symbol': 'PEPPERSTONE:VIX', 'section': 'INDICES', 'note': 'not on OANDA'}], 'source': 'selftest'}
+    uni = universe(insts, wl, include_cfd=False)
+    return uni, data, wl
+
+
+def selftest(out_dir: Optional[str] = None, send: bool = False) -> int:
+    uni, data, wl = selftest_universe()
+    res = run(uni, lambda i: (data[i['name']], 0.6 * C.pip_of(i)), log=None)
+    h4 = max(b['H4'][-1].d for b in data.values())
+    pub, shards = public(res, h4, fixture=True, extra={'unmapped': wl['unmapped'], 'watchlist_source': 'selftest'})
+    if out_dir:
+        write(pub, shards, out_dir)
+    ev, st = events(res, {'signals': {}}, now_utc())
+    msgs = N.alert_messages({**ev, 'h4': h4}) + N.summary_messages(pub)
+    for m in msgs:
+        print(m)
+        print('\n' + '-' * 40 + '\n')
+    if send:
+        N.send(msgs)
+    c = pub['counts']
+    print(f"selftest: {c['instruments']} instruments, {c['BUY']} BUY, {c['SELL']} SELL, {c['WATCH']} WATCH, "
+          f"{sum(len(v) for v in pub['lists']['demand'].values()) + sum(len(v) for v in pub['lists']['supply'].values())} listed, "
+          f"{len(msgs)} message(s), max {max(N.u16(m) for m in msgs)} UTF-16 units")
+    ok = c['instruments'] == len(uni) and not res['errors'] and all(N.u16(m) <= 4096 for m in msgs)
+    return 0 if ok else 1
+
+
+# ---- main ------------------------------------------------------------------------------------------------------------
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument('--force', action='store_true', help='scan even when no new H4 candle closed')
+    ap.add_argument('--only', default='', help='comma-separated Pepperstone symbols or OANDA names')
+    ap.add_argument('--no-notify', action='store_true')
+    ap.add_argument('--no-write', action='store_true')
+    ap.add_argument('--summary', action='store_true', help='send the daily summary now')
+    ap.add_argument('--selftest', action='store_true')
+    ap.add_argument('--preview-telegram', action='store_true')
+    ap.add_argument('--workers', type=int, default=int(os.environ.get('FX_WORKERS') or 4))
+    a = ap.parse_args(argv)
+    if a.selftest:
+        return selftest(os.path.join(HERE, 'fixtures', 'sample'))
+    if a.preview_telegram:
+        try:
+            with open(os.path.join(C.OUT_DIR, 'latest.json')) as f:
+                pub = json.load(f)
+        except OSError:
+            with open(os.path.join(HERE, 'fixtures', 'sample', 'latest.json')) as f:
+                pub = json.load(f)
+        for m in N.summary_messages(pub):
+            print(m)
+            print('\n' + '-' * 40 + '\n')
+        return 0
+    t0 = time.time()
+    SD.set_budget(C.BUDGET_MIN)
+    state = load_state()
+    notify = not a.no_notify
+    try:
+        O.token()
+        h4 = O.latest_h4()
+    except O.NoToken as e:
+        notify_failure(str(e), state, notify)
+        return 2
+    except Exception as e:  # noqa: BLE001
+        notify_failure(f'OANDA not reachable ({type(e).__name__}: {str(e)[:100]})', state, notify)
+        return 2
+    if not h4:
+        print('no complete H4 candle returned')
+        return 0
+    if h4 == state.get('last_h4') and not (a.force or a.summary or a.only):
+        print(f'no new H4 candle since {h4} (server time): nothing to do')
+        return 0
+    instruments, src = O.account_instruments(log=print)
+    known = {i['name'] for i in instruments} if src != 'fallback' else None
+    wl = W.load(known)
+    if wl['unmapped']:
+        print(f"watchlist ({wl['source']}): {len(wl['unmapped'])} not on OANDA: " + ', '.join(u['symbol'] for u in wl['unmapped']))
+    uni = universe(instruments, wl)
+    if a.only:
+        want = {s.strip().upper() for s in a.only.split(',') if s.strip()}
+        uni = [i for i in uni if i['sym'].upper() in want or i['name'].upper() in want]
+    print(f'{len(uni)} instruments ({src} list, watchlist {len(wl["names"])} from {wl["source"]}), newest H4 {h4} server time')
+    res = run(uni, oanda_bars, workers=a.workers)
+    have = len(res['analyses'])
+    print(f'analysed {have}/{len(uni)} in {time.time() - t0:.0f}s; {len(res["errors"])} errors')
+    for s, e in list(res['errors'].items())[:15]:
+        print(f'  {s}: {e}')
+    if have < max(1, C.MIN_COVERAGE * len(uni)):
+        notify_failure(f'only {have}/{len(uni)} instruments have data; nothing published', state, notify)
+        return 2
+    pub, shards = public(res, h4, partial=SD.over_budget(), extra={
+        'unmapped': wl['unmapped'], 'watchlist_source': wl['source'], 'instrument_source': src})
+    bootstrap = 'signals' not in state
+    ev, new_state = events(res, state, now_utc())
+    pub['invalidated'] = [{k: g.get(k) for k in ('sym', 'kind', 'tf', 'side', 'entry', 'reason')} for g in ev['gone']]
+    if not a.no_write and not a.only:
+        print('wrote', write(pub, shards))
+    eur = res['analyses'].get('EURUSD') or next(iter(res['analyses'].values()))
+    d1 = eur.rows['D1'].S.T[1] if eur.rows['D1'].S.n > 1 else ''
+    msgs = []
+    if bootstrap:
+        msgs.append(f"✅ <b>FX scanner started</b>: {len(uni)} instruments, {pub['counts']['BUY']} BUY / "
+                    f"{pub['counts']['SELL']} SELL now. From here on only new events are sent, plus a daily summary.")
+    else:
+        msgs += N.alert_messages({**ev, 'h4': h4})
+    if a.summary or bootstrap or (d1 and d1 != state.get('summary_d1')):
+        msgs += N.summary_messages(pub)
+        new_state['summary_d1'] = d1
+    if notify and msgs:
+        N.send(msgs)
+    elif msgs:
+        for m in msgs:
+            print(m + '\n' + '-' * 40)
+    if not a.only:
+        new_state['last_h4'] = h4
+        save_state(new_state)
+    print(f'done in {time.time() - t0:.0f}s: {len(ev["signals"])} new signals, {len(ev["gone"])} cancelled, '
+          f'{len(ev["zones"])} zone alerts, {len(msgs)} message(s)')
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

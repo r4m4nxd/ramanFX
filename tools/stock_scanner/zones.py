@@ -714,6 +714,18 @@ def ath_curve_ok(curve: 'Curve', *htf: Optional[Row]) -> bool:
     return curve.ok and not curve.raja and bool(rows) and all(trend_up(r) for r in rows)
 
 
+def trend_down(r: Optional[Row]) -> bool:
+    """trend_up mirrored: TREND DOWN or CHANGED DOWN."""
+    return r is not None and r.ok and r.side < 0 and r.st in (DST_TREND, DST_CHG)
+
+
+def atl_curve_ok(curve: 'Curve', *htf: Optional[Row]) -> bool:
+    """ath_curve_ok mirrored for shorts (two-way markets): no strong HTF demand below (Raja curve not measurable)
+    and the next two higher timeframes both trend down."""
+    rows = [r for r in htf if r is not None]
+    return curve.ok and not curve.raja and bool(rows) and all(trend_down(r) for r in rows)
+
+
 def run_end(z: Zone) -> int:
     return z.tested_bar if z.tested else (z.removed_bar if z.removed else 1)
 
@@ -810,6 +822,10 @@ def dir_combine(e: Optional[Row], i: Optional[Row], h: Optional[Row], curve: Cur
             cv = 0                                  # owner rule: no HTF supply overhead + the HTFs up, no sell vote
             ups = ' + '.join(dict.fromkeys(r.tf for r in (i, h) if r is not None))
             D.notes.append(f'no {curve.tf} supply overhead (ATH area), {ups} up: curve not used')
+        if cv > 0 and p.get('mirror_ath') and atl_curve_ok(curve, i, h):
+            cv = 0                                  # the same rule mirrored for two-way markets (FX): no buy vote
+            dns = ' + '.join(dict.fromkeys(r.tf for r in (i, h) if r is not None))
+            D.notes.append(f'no {curve.tf} demand below (ATL area), {dns} down: curve not used')
         if cv != 0:
             D.blocked = -cv
             if side == 0:
@@ -1094,12 +1110,14 @@ LOC_TOL = 0.25        # a zone may sit up to 25% of the HTF zone's height beyond
 LOC_AWAY = 2.0        # the current visit ends (walking back) at a bar more than 2 HTF zone heights beyond the proximal
 
 
-def visit_touched(z: Zone, d1: Optional[Series], htf: Series, away: float = LOC_AWAY) -> bool:
+def visit_touched(z: Zone, d1: Optional[Series], htf: Series, away: float = LOC_AWAY, key=None) -> bool:
     """The HTF zone z was touched in the CURRENT visit: walking back from the newest bar (D1 bars first, so this
     month's / quarter's touch counts before the HTF bar closes; then the older HTF bars), a bar whose low (supply:
     high) reached the proximal comes before a bar more than `away` zone heights beyond it. Bars of the zone's own
-    stay-away period or older never count (the base itself sits at the proximal)."""
-    d, made = z.dir, period_key(z.tf, z.made) if z.made else None
+    stay-away period or older never count (the base itself sits at the proximal). `key(tf, date)` buckets a fine
+    bar's date into the zone's TF period (default period_key; the FX scanner passes its own for H4 / D1 / W1)."""
+    period_key_ = key or period_key
+    d, made = z.dir, period_key_(z.tf, z.made) if z.made else None
     lim = z.prox + d * away * z.h
 
     def look(lo, hi):
@@ -1111,7 +1129,7 @@ def visit_touched(z: Zone, d1: Optional[Series], htf: Series, away: float = LOC_
     first = ''
     if d1 is not None:
         for j in range(0, d1.n):
-            if made is not None and period_key(z.tf, d1.T[j]) <= made:
+            if made is not None and period_key_(z.tf, d1.T[j]) <= made:
                 return False
             r = look(d1.L[j], d1.H[j])
             if r is not None:
@@ -1142,16 +1160,20 @@ class Loc:
         return chain_text(self.chain)
 
 
-def _step(z: Zone, touched: Optional[bool], entry: bool = False) -> dict:
-    return {'tf': z.tf, 'side': 'demand' if z.dir > 0 else 'supply', 'proximal': round(z.prox, 2),
-            'distal': round(z.dist, 2), 'touched': touched, 'entry': entry}
+def _step(z: Zone, touched: Optional[bool], entry: bool = False, nd: int = 2) -> dict:
+    out = {'tf': z.tf, 'side': 'demand' if z.dir > 0 else 'supply', 'proximal': round(z.prox, nd),
+           'distal': round(z.dist, nd), 'touched': touched, 'entry': entry}
+    if nd != 2:
+        out['nd'] = nd                                 # price decimals (FX); stocks keep the 2-decimal default
+    return out
 
 
 def chain_text(chain: List[dict]) -> str:
     """'3M demand 80.00–74.00 touched ✓ → MN demand 82.00–79.00 touched ✓ → W1 entry 81.20–80.10'."""
     out = []
     for c in chain:
-        zz = f"{c['proximal']:.2f}–{c['distal']:.2f}"
+        nd = c.get('nd', 2)
+        zz = f"{c['proximal']:.{nd}f}–{c['distal']:.{nd}f}"
         if c.get('entry'):
             out.append(f"{c['tf']} entry {zz}")
         else:
@@ -1159,7 +1181,8 @@ def chain_text(chain: List[dict]) -> str:
     return ' → '.join(out)
 
 
-def location(z: Zone, rows: dict, price: float, eligible, touched, tol: float = LOC_TOL, p=RAJA) -> Loc:
+def location(z: Zone, rows: dict, price: float, eligible, touched, tol: float = LOC_TOL, p=RAJA, htf_of=None,
+             soft_tfs=None, reach_pct=None, nd: int = 2) -> Loc:
     """Owner's top-down rule (both sides mirrored): a W1 zone trades only inside an MN area, an MN zone only inside a
     3M area, a 3M zone is the top level.
       inside     the nearest eligible (strong ARR / WOW / STR, <= 3 touches, not removed) HTF zone of the same side
@@ -1172,15 +1195,21 @@ def location(z: Zone, rows: dict, price: float, eligible, touched, tol: float = 
       none       no strong HTF zone at the zone -> blocked (no higher-timeframe area)
       unknown    no HTF row (short history) -> blocked for buys (the caller may allow exits)
       top        3M zone -> ok
-    eligible(row, i) -> bool and touched(row, zone) -> bool are given by the caller (DNA type / visit touch)."""
+    eligible(row, i) -> bool and touched(row, zone) -> bool are given by the caller (DNA type / visit touch).
+    htf_of / soft_tfs / reach_pct / nd: another TF chain (FX: H4 -> D1 -> W1 -> MN, 3M context), its context levels,
+    their reach (% of price) and the price decimals of the texts; the defaults are the stock scanner's."""
+    htf_of = HTF_OF if htf_of is None else htf_of
+    soft_tfs = SOFT_TFS if soft_tfs is None else soft_tfs
+    reach_pct = SOFT_REACH_PCT if reach_pct is None else reach_pct
+    f = lambda v: f'{v:.{nd}f}'  # noqa: E731
     d = z.dir
     side = 'demand' if d > 0 else 'supply'
-    me = _step(z, None, True)
-    htf = HTF_OF.get(z.tf)
+    me = _step(z, None, True, nd)
+    htf = htf_of.get(z.tf)
     if htf is None:
         return Loc(True, 'top', f'{z.tf} {side}: the top timeframe (no higher area to wait for)', [me])
     H = rows.get(htf)
-    soft = htf in SOFT_TFS
+    soft = htf in soft_tfs
     if soft and (H is None or not H.ok):
         return Loc(True, 'top', f'{z.tf} {side}: top tradeable timeframe ({htf} n/a: short history)', [me])
     if H is None or not H.ok:
@@ -1196,7 +1225,7 @@ def location(z: Zone, rows: dict, price: float, eligible, touched, tol: float = 
                 host, host_t = o, t
             continue
         beyond = b_hi < z.lo if d > 0 else b_lo > z.hi
-        if soft and abs(o.prox - price) / price * 100 > SOFT_REACH_PCT:
+        if soft and abs(o.prox - price) / price * 100 > reach_pct:
             continue                                   # a context level counts only within reach
         if beyond and d * (price - o.prox) > 0 and not touched(H, o) and (pend is None or d * (o.prox - pend.prox) > 0):
             pend = o
@@ -1208,24 +1237,24 @@ def location(z: Zone, rows: dict, price: float, eligible, touched, tol: float = 
     word = 'down' if d > 0 else 'up'
     tl_txt = f'; the {z.tf} {word} trendline is not crossed yet' if tl_open else ''
     if host is not None and host_t:
-        up = location(host, rows, price, eligible, touched, tol, p)
-        chain = (up.chain[:-1] if up.code in ('inside', 'below', 'above', 'untouched') else []) + [_step(host, True), me]
+        up = location(host, rows, price, eligible, touched, tol, p, htf_of, soft_tfs, reach_pct, nd)
+        chain = (up.chain[:-1] if up.code in ('inside', 'below', 'above', 'untouched') else []) + [_step(host, True, False, nd), me]
         if up.code in ('below', 'above', 'untouched'):
-            return Loc(False, up.code, f'inside the touched {htf} {side} {host.prox:.2f}–{host.dist:.2f}, but {up.text}',
+            return Loc(False, up.code, f'inside the touched {htf} {side} {f(host.prox)}–{f(host.dist)}, but {up.text}',
                        chain, host, up.pending, up.pending_pct, up.tl_open)
-        return Loc(True, 'inside', f'inside the touched {htf} {side} {host.prox:.2f}–{host.dist:.2f}', chain, host)
-    if soft and host is not None and abs(host.prox - price) / price * 100 > SOFT_REACH_PCT:
+        return Loc(True, 'inside', f'inside the touched {htf} {side} {f(host.prox)}–{f(host.dist)}', chain, host)
+    if soft and host is not None and abs(host.prox - price) / price * 100 > reach_pct:
         host = None
     if pend is not None:
         pct = (pend.prox - price) / price * 100
         far = 'below' if d > 0 else 'above'
         verb = 'sells' if d > 0 else 'rallies'
-        return Loc(False, far, f'HTF area not reached: strong {htf} {side} at {pend.prox:.2f}–{pend.dist:.2f} still {far} '
-                   f'({pct:+.1f}%), price likely {verb} into it first{tl_txt}', [_step(pend, False), me], None, pend, pct, tl_open)
+        return Loc(False, far, f'HTF area not reached: strong {htf} {side} at {f(pend.prox)}–{f(pend.dist)} still {far} '
+                   f'({pct:+.1f}%), price likely {verb} into it first{tl_txt}', [_step(pend, False, False, nd), me], None, pend, pct, tl_open)
     if host is not None:
         pct = (host.prox - price) / price * 100
-        return Loc(False, 'untouched', f'{htf} {side} {host.prox:.2f}–{host.dist:.2f} not touched yet ({pct:+.1f}%): '
-                   f'wait for price to reach the {htf} area{tl_txt}', [_step(host, False), me], None, host, pct, tl_open)
+        return Loc(False, 'untouched', f'{htf} {side} {f(host.prox)}–{f(host.dist)} not touched yet ({pct:+.1f}%): '
+                   f'wait for price to reach the {htf} area{tl_txt}', [_step(host, False, False, nd), me], None, host, pct, tl_open)
     if soft:
         return Loc(True, 'top', f'{z.tf} {side}: top tradeable timeframe (no strong {htf} {side} within reach)', [me])
     return Loc(False, 'none', f'no strong {htf} {side} at the zone: no higher-timeframe area to trade from', [me])
