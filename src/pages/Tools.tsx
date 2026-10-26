@@ -97,9 +97,9 @@ function FileRow({ f, onView, compact }: { f: ToolFile; onView: (file: string) =
         <div className="text-[11.5px] text-ink3 mt-0.5">{[f.note, sizeOf(f.file)].filter(Boolean).join(' · ')}</div>
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
-        {pine && <button type="button" className="btn-primary h-8 px-3 text-xs" onClick={() => void copy(f.file)}><Icon name="copy" size={13} />Copy code</button>}
-        <button type="button" className="btn h-8 px-3 text-xs" onClick={() => onView(f.file)} aria-label={`View ${f.file}`}><Icon name="code" size={13} />View</button>
-        <a className={cx(pine ? 'btn' : 'btn-primary', 'h-8 px-3 text-xs')} href={toolUrl(f.file)} download aria-label={`Download ${f.file}`}><Icon name="download" size={13} />{compact ? '' : 'Download'}</a>
+        {pine && <button type="button" className="btn-primary h-8 touch:h-11 px-3 text-xs" onClick={() => void copy(f.file)}><Icon name="copy" size={13} />Copy code</button>}
+        <button type="button" className="btn h-8 touch:h-11 px-3 text-xs" onClick={() => onView(f.file)} aria-label={`View ${f.file}`}><Icon name="code" size={13} />View</button>
+        <a className={cx(pine ? 'btn' : 'btn-primary', 'h-8 touch:h-11 px-3 touch:px-3.5 text-xs')} href={toolUrl(f.file)} download aria-label={`Download ${f.file}`}><Icon name="download" size={13} />{compact ? '' : 'Download'}</a>
       </div>
     </li>
   );

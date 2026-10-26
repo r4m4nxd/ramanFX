@@ -71,13 +71,13 @@ function DailyCard() {
   return (
     <Card>
       <div className="flex items-center justify-between mb-3"><div className="label flex items-center gap-1.5"><Icon name="sparkles" size={12} />Rule of the day</div>
-        <div className="flex gap-1"><button className="btn-ghost w-8 h-8 px-0" aria-label="Previous rule" onClick={() => setI((i - 1 + CARDS.length) % CARDS.length)}><Icon name="chevronLeft" size={15} /></button><button className="btn-ghost w-8 h-8 px-0" aria-label="Next rule" onClick={() => setI((i + 1) % CARDS.length)}><Icon name="chevronRight" size={15} /></button></div></div>
+        <div className="flex gap-1"><button className="btn-ghost w-8 h-8 touch:w-11 touch:h-11 px-0" aria-label="Previous rule" onClick={() => setI((i - 1 + CARDS.length) % CARDS.length)}><Icon name="chevronLeft" size={15} /></button><button className="btn-ghost w-8 h-8 touch:w-11 touch:h-11 px-0" aria-label="Next rule" onClick={() => setI((i + 1) % CARDS.length)}><Icon name="chevronRight" size={15} /></button></div></div>
       <AnimatePresence mode="wait">
         <motion.div key={i} initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3, ease }}>
           <div className="text-[11px] text-accent font-semibold uppercase tracking-wider">{card.topic}</div>
           <div className="text-xl font-semibold tracking-tight mt-1">{card.title}</div>
           <p className="text-[14px] text-ink2 mt-2 leading-relaxed">{card.body}</p>
-          {card.lesson && <Link to={`/learn?l=${card.lesson}`} className="inline-flex items-center gap-1 text-[12.5px] text-accent hover:underline mt-2">Open lesson {card.lesson}<Icon name="chevronRight" size={13} /></Link>}
+          {card.lesson && <Link to={`/learn?l=${card.lesson}`} className="inline-flex items-center gap-1 text-[12.5px] text-accent hover:underline mt-2 touch:min-h-11">Open lesson {card.lesson}<Icon name="chevronRight" size={13} /></Link>}
           {card.zoom && <Link to={`/learn?src=zoom&l=${card.zoom}`} className="inline-flex items-center gap-1 text-[12.5px] text-accent hover:underline mt-2">Open Sunday session<Icon name="chevronRight" size={13} /></Link>}
         </motion.div>
       </AnimatePresence>

@@ -109,7 +109,7 @@ export default function Trades() {
   const search = (
     <div className="relative min-w-0 flex-1 md:min-w-[180px]">
       <Icon name="search" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink3" />
-      <input ref={searchRef} aria-label="Search trades" placeholder={mobile ? 'Search symbol, ticket, tag, note' : 'Search symbol, ticket, tag or note  ( / )'} value={q} onChange={e => setParam('q', e.target.value)} className="field pl-9" />
+      <input ref={searchRef} aria-label="Search trades" placeholder={mobile ? 'Symbol, ticket, tag…' : 'Search symbol, ticket, tag or note  ( / )'} value={q} onChange={e => setParam('q', e.target.value)} className="field pl-9" />
     </div>
   );
 

@@ -28,7 +28,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 function Table({ rows, head }: { rows: ReactNode[][]; head: string[] }) {
   return (
-    <div className="overflow-x-auto -mx-1">
+    <div className="overflow-x-auto -mx-1 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent" tabIndex={0} role="region" aria-label={`Table: ${head.join(', ')}`}>
       <table className="w-full text-[13px]">
         <thead><tr className="text-left text-ink3">{head.map(h => <th key={h} className="label font-normal px-1 pb-2">{h}</th>)}</tr></thead>
         <tbody>{rows.map((r, i) => <tr key={i} className="border-t border-line align-top">{r.map((c, j) => <td key={j} className={cx('px-1 py-2', j === 0 ? 'font-mono text-[12px] whitespace-nowrap' : 'text-ink2')}>{c}</td>)}</tr>)}</tbody>
