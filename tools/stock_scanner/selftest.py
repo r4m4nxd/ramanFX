@@ -30,7 +30,8 @@ FIXTURES = [
     {'symbol': 'SYNH', 'seed': 3, 'name': 'Synthetic Theta (fixture)', 'sector': 'Materials', 'indexes': 'SPX'},
     {'symbol': 'SYNI', 'seed': 857, 'name': 'Synthetic Iota (fixture, illiquid)', 'sector': 'Financials', 'indexes': 'RUT', 'thin': True},
 ]
-REGIME_SEEDS = {'SPY': 101, 'QQQ': 102, 'IWM': 103}
+REGIME_SEEDS = {'SPY': 101, 'QQQ': 102, 'IWM': 103, 'DIA': 104}
+WATCHLIST = ['SYNB', 'SYND', 'SYNE', 'SYNF']
 END = '2026-10-23'
 
 
@@ -59,7 +60,7 @@ def run_fixture():
     uni = [{'symbol': fx['symbol'], 'name': fx['name'], 'sector': fx['sector'], 'cik': '0001234567', 'indexes': fx['indexes']} for fx in FIXTURES]
     exch = {'SYNA': 'NMS', 'SYNB': 'NYQ', 'SYND': 'NMS'}
     res = scan.run(uni, lambda s: (bars[s], {'exchange': exch.get(s, 'NYQ'), 'source': 'fixture'}), lambda c: cf,
-                   lambda s: '2026-11-19' if s == 'SYNB' else None, holdings_fixture(bars), log=None)
+                   lambda s: '2026-11-19' if s == 'SYNB' else None, holdings_fixture(bars), log=None, watchlist=WATCHLIST)
     res['fixture'] = True
     res['rut_snapshot'] = 'fixture'
     return res

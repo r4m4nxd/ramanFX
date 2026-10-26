@@ -1,7 +1,7 @@
 // The daily S&P 500 scan written by tools/stock_scanner (GitHub Actions) to public/scanner/latest.json.
 // Rule-based (Raja first, Kevin second); fundamentals are context only. Holdings never appear here beyond a symbol.
 
-export type RuleStatus = 'pass' | 'fail' | 'warn' | 'unknown';
+export type RuleStatus = 'pass' | 'fail' | 'warn' | 'unknown' | 'info';
 export interface ScanRule { status: RuleStatus; text: string; ref: string }
 export type SignalKind = 'BUY' | 'WATCH';
 
@@ -44,7 +44,26 @@ export interface ScanSignal {
   earnings?: string | null;
   rules: ScanRule[];
   fundamentals_rows?: [string, string][];
+  // Pinndx-inspired extras (display only; the Raja rules alone decide BUY)
+  fv_lo?: number | null; fv_hi?: number | null; fv_dist_atr?: number | null; fv_inside?: boolean;
+  pz1?: number | null; pz2?: number | null; pz3?: number | null; rr_pz1?: number | null; rr_pz2?: number | null; rr_pz3?: number | null;
+  seiden_score?: number; seiden_parts?: Record<string, number>;
+  index_state?: GaugeState | null; index_aligned?: boolean;
+  gauge_state?: GaugeState; demand_pct_away?: number; supply_pct_away?: number | null;
 }
+
+export type GaugeState = 'demand' | 'supply' | 'middle';
+export interface GaugeZone { tf: string; proximal: number; distal: number; height?: number; pct: number }
+/** The RFX composite index (equal-weight SPY, QQQ, IWM, DIA) with its own zones. */
+export interface RfxIndex { symbol: string; name: string; price: number; state: GaugeState; date: string; direction: string; demand: GaugeZone | null; supply: GaugeZone | null; aligned: boolean; w1?: string; mn?: string; curve?: number | null; bars?: [string, number, number, number, number][] }
+
+export const SEIDEN_PARTS: Record<string, string> = {
+  departure: 'Departure (gap 2, ≥ 2x base 1)', time: 'Time at level (1-3 candles 1, 4-6 ½)', fresh: 'Freshness (1st 2, 2nd 1)',
+  margin: 'Profit margin (≥ 3R 2, ≥ 2R 1)', trend: 'Trend (Raja direction FULL 2, REDUCED 1)', curve: 'Curve (≤ 25% 1, ≤ 50% ½)',
+  fv_bonus: 'Bonus: ≥ 1 ATR below fair value', index_bonus: 'Bonus: RFX index aligned',
+};
+export const seidenText = (p?: Record<string, number>) => (p ? Object.entries(p).map(([k, v]) => `${SEIDEN_PARTS[k] ?? k}: ${v}`).join('\n') : '');
+export const stateWord = (s?: GaugeState | null) => (s === 'demand' ? 'In demand' : s === 'supply' ? 'In supply' : 'Middle');
 
 export type IndexCode = 'SPX' | 'NDX' | 'DJI' | 'RUT';
 export const INDEXES: { value: IndexCode; label: string }[] = [
@@ -70,6 +89,7 @@ export interface ScanFile {
   liquidity_rule?: string;
   rut_snapshot?: string;
   regime?: RegimeRow[];
+  rfx_index?: RfxIndex | null;
   /** Last ~6 months of daily bars per signalled ticker: [date, o, h, l, c]. */
   bars?: Record<string, [string, number, number, number, number][]>;
 }
@@ -96,6 +116,7 @@ export function parseScan(js: unknown): ScanFile | null {
     filtered_liquidity: Number(o.filtered_liquidity ?? 0), liquidity_rule: typeof o.liquidity_rule === 'string' ? o.liquidity_rule : undefined,
     rut_snapshot: typeof o.rut_snapshot === 'string' ? o.rut_snapshot : '',
     regime: Array.isArray(o.regime) ? o.regime.filter(r => r && typeof r.symbol === 'string') : [],
+    rfx_index: o.rfx_index && typeof o.rfx_index === 'object' && typeof o.rfx_index.price === 'number' ? o.rfx_index : null,
     bars: o.bars && typeof o.bars === 'object' ? Object.fromEntries(Object.entries(o.bars).filter(([, v]) => Array.isArray(v)).map(([k, v]) => [k, v.filter(b => Array.isArray(b) && b.length === 5 && b.slice(1).every(n => typeof n === 'number' && Number.isFinite(n)))])) : {},
   };
 }
@@ -158,7 +179,7 @@ export function planFromParams(p: URLSearchParams) {
   return out;
 }
 
-export const ruleIcon: Record<RuleStatus, string> = { pass: '✓', fail: '✗', warn: '!', unknown: '?' };
+export const ruleIcon: Record<RuleStatus, string> = { pass: '✓', fail: '✗', warn: '!', unknown: '?', info: '·' };
 
 /** "x minutes / hours / days ago" for the last-updated line. */
 export function ago(iso: string, now = Date.now()): string {
@@ -177,7 +198,7 @@ export const shardUrl = (k: number) => `/scanner/t/${k}.json`;
 
 /** One search row: s symbol, n name, sec sector, ix indexes, px last close, dd / ds distance % to the nearest
  *  demand / supply, sig today's signal, il illiquid (skipped by the liquidity filter), k shard number. */
-export interface IndexRow { s: string; n: string; sec: string; ix: IndexCode[]; px: number; dd?: number; ds?: number; sig?: SignalKind; il?: boolean; k: number }
+export interface IndexRow { s: string; n: string; sec: string; ix: IndexCode[]; px: number; dd?: number; ds?: number; sig?: SignalKind; il?: boolean; k: number; /** D in demand, S in supply, M middle */ st?: 'D' | 'S' | 'M' }
 export interface ScanIndex { date: string; generated_at: string; fixture: boolean; tickers: IndexRow[] }
 
 export interface DetailZone { tf: 'D1' | 'W1'; side: 'demand' | 'supply'; proximal: number; distal: number; type: string; score: number | null; fresh: boolean; touches: number; made: string; pattern: string }
@@ -185,12 +206,28 @@ export interface NearZone { tf: string; proximal: number; distal: number; type: 
 export interface DetailCheck {
   zone: NearZone; kind: 'BUY' | 'no trade'; score: number | null; entry: number; stop: number; target: number | null; rr: number | null;
   next_supply: number | null; supply_distal?: number | null; stop_pct_of_height: number; rules: ScanRule[];
+  pz1?: number | null; pz2?: number | null; pz3?: number | null; rr_pz1?: number | null; rr_pz2?: number | null; rr_pz3?: number | null;
+  seiden_score?: number; seiden_parts?: Record<string, number>; fv_dist_atr?: number | null; fv_inside?: boolean; index_state?: GaugeState | null; index_aligned?: boolean;
 }
 export interface TickerDetail {
   symbol: string; name: string; sector: string; indexes: IndexCode[]; exchange?: string; chart?: string; date: string; price: number;
   illiquid: boolean; signal: SignalKind | null; direction: string; d1: string; w1: string; mn: string; curve: number | null; curve_raja: boolean;
   zones: DetailZone[]; nearest_demand: NearZone | null; nearest_supply: NearZone | null; check: DetailCheck | null;
   fundamentals_rows: [string, string][]; bars: { t0: string; dt: number[]; b: [number, number, number, number][] };
+  gauge?: { state: GaugeState; demand: GaugeZone | null; supply: GaugeZone | null };
+  fv?: { lo: number; hi: number; method: string } | null;
+}
+
+// ─── Watchlist (per viewer, this device) ──────────────────────────────────────────────────────────────────
+export const WATCH_KEY = 'rfx_scanner_watchlist';
+export function readWatch(): string[] { try { const v = JSON.parse(localStorage.getItem(WATCH_KEY) ?? '[]'); return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []; } catch { return []; } }
+export function writeWatch(list: string[]) { try { localStorage.setItem(WATCH_KEY, JSON.stringify([...new Set(list)].sort())); } catch { /* storage blocked */ } }
+export const toggleWatch = (list: string[], sym: string) => (list.includes(sym) ? list.filter(s => s !== sym) : [...list, sym].sort());
+
+export type SortKey = 'score' | 'seiden' | 'near' | 'rr';
+export function sortSignals<T extends ScanSignal>(list: T[], key: SortKey): T[] {
+  const v = (s: T) => key === 'score' ? -(s.score ?? 0) : key === 'seiden' ? -(s.seiden_score ?? 0) : key === 'rr' ? -(s.rr ?? 0) : Math.abs(s.to_entry_pct);
+  return [...list].sort((a, b) => v(a) - v(b) || (b.score ?? 0) - (a.score ?? 0));
 }
 
 export function parseIndex(js: unknown): ScanIndex | null {

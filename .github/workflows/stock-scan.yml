@@ -70,6 +70,8 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           HOLDINGS_JSON: ${{ secrets.HOLDINGS_JSON }}
+          WATCHLIST: ${{ secrets.WATCHLIST }}
+          WATCHLIST_APPROACH_PCT: ${{ vars.WATCHLIST_APPROACH_PCT || '3' }}
           SEC_UA: ${{ secrets.SEC_UA }}
 
       - name: Commit results

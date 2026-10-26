@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { INDEX_URL, parseIndex, ruleIcon, searchTickers, stockPath, type IndexRow, type RuleStatus, type ScanIndex, type ScanRule } from '@/core/scanner';
+import { INDEX_URL, parseIndex, readWatch, ruleIcon, searchTickers, SEIDEN_PARTS, stockPath, toggleWatch, WATCH_KEY, writeWatch, type IndexRow, type RfxIndex, type RuleStatus, type ScanIndex, type ScanRule } from '@/core/scanner';
+import { ZoneGauge } from './ZoneGauge';
 import { num } from '@/lib/format';
 import { cx, Sheet } from '@/ui/kit';
 import { Icon } from '@/ui/Icon';
@@ -8,7 +9,7 @@ import { ZoneMiniChart, type MiniBar, type MiniLevels, type MiniZone } from '@/u
 
 export const IDX_SHORT: Record<string, string> = { SPX: 'S&P', NDX: 'NDX', DJI: 'Dow', RUT: 'R2K' };
 export const typeTone = (t: string) => (t === 'ARR' || t === 'WOW' ? 'accent' : t === 'STR' ? 'violet' : 'neutral') as 'accent' | 'violet' | 'neutral';
-const RULE_TONE: Record<RuleStatus, string> = { pass: 'text-profit bg-profit/10', fail: 'text-loss bg-loss/10', warn: 'text-warn bg-warn/10', unknown: 'text-ink3 bg-raised' };
+const RULE_TONE: Record<RuleStatus, string> = { pass: 'text-profit bg-profit/10', fail: 'text-loss bg-loss/10', warn: 'text-warn bg-warn/10', unknown: 'text-ink3 bg-raised', info: 'text-ink3 bg-raised' };
 const summary = 'flex items-center gap-2 min-h-[44px] cursor-pointer list-none text-[13px] font-semibold select-none';
 
 export function RuleList({ rules, open, title = 'Rules checked' }: { rules: ScanRule[]; open?: boolean; title?: string }) {
@@ -141,6 +142,93 @@ export function TickerSearch() {
             ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+// ─── Pinndx-inspired display pieces (scores, PZ chips, watchlist star, RFX index panel) ─────────────────
+export function ScoreChips({ raja, seiden, parts }: { raja?: number | null; seiden?: number | null; parts?: Record<string, number> }) {
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
+        {raja != null && <span className="h-6 px-2.5 rounded-full border border-accent/30 bg-accent/10 text-accent text-[11px] font-semibold inline-flex items-center num" title="Raja lens score: zone type, freshness, curve, room. The headline and part of the BUY rules.">Raja {raja}/10</span>}
+        {seiden != null && (
+          <button type="button" aria-expanded={open} aria-controls={id} onClick={() => setOpen(o => !o)}
+            className="h-6 px-2.5 rounded-full border border-line2 bg-raised text-ink2 text-[11px] font-semibold inline-flex items-center gap-1 num">
+            Seiden odds {num(seiden, seiden % 1 ? 1 : 0)}/10<Icon name="chevronDown" size={11} className={cx('transition-transform', open && 'rotate-180')} />
+          </button>
+        )}
+      </div>
+      {open && seiden != null && (
+        <div id={id} className="rounded-xl border border-line bg-raised/40 p-3 text-[12px]">
+          <p className="text-ink3 mb-1.5">Display only: Seiden's odds enhancers. Raja's rules alone decide a BUY.</p>
+          <ul className="flex flex-col gap-1">
+            {Object.entries(parts ?? {}).map(([k, v]) => <li key={k} className="flex justify-between gap-3"><span className="text-ink2 min-w-0">{SEIDEN_PARTS[k] ?? k}</span><span className="num font-semibold shrink-0">{v}</span></li>)}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function PzChips({ s }: { s: { pz1?: number | null; pz2?: number | null; pz3?: number | null; rr_pz1?: number | null; rr_pz2?: number | null; rr_pz3?: number | null; target?: number | null } }) {
+  const items = (['pz1', 'pz2', 'pz3'] as const).map(k => ({ k, v: s[k], r: s[`rr_${k}` as const] })).filter(x => x.v != null);
+  if (!items.length) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5" aria-label="Profit zones">
+      {items.map(x => (
+        <span key={x.k} className="h-6 px-2 rounded-md border border-profit/30 bg-profit/10 text-profit text-[11px] font-semibold inline-flex items-center gap-1 num" title={x.k === 'pz3' ? 'PZ3 = the Raja target, 0.5% before the next supply' : x.k === 'pz1' ? 'PZ1: the higher of fair value near edge and 2R, below PZ3 (Raja: close one half here, hold the other)' : 'PZ2: the higher of fair value far edge and 3R, below PZ3'}>
+          {x.k.toUpperCase()} {num(x.v!)}{x.r != null && <span className="font-medium opacity-80">· {num(x.r, 1)}R</span>}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+export function ContextFlags({ s }: { s: { fv_inside?: boolean; fv_dist_atr?: number | null; index_aligned?: boolean; index_state?: string | null } }) {
+  const f: { t: string; tone: string }[] = [];
+  if (s.fv_inside) f.push({ t: 'Inside fair value', tone: 'text-warn border-warn/30 bg-warn/10' });
+  else if (s.fv_dist_atr != null && s.fv_dist_atr >= 1) f.push({ t: `${num(s.fv_dist_atr, 1)} ATR below fair value`, tone: 'text-ink2 border-line2 bg-raised' });
+  if (s.index_aligned) f.push({ t: 'RFX index aligned', tone: 'text-profit border-profit/30 bg-profit/10' });
+  else if (s.index_state === 'supply') f.push({ t: 'RFX index in supply', tone: 'text-warn border-warn/30 bg-warn/10' });
+  if (!f.length) return null;
+  return <div className="flex flex-wrap gap-1.5">{f.map(x => <span key={x.t} className={cx('h-6 px-2 rounded-md border text-[11px] font-semibold inline-flex items-center', x.tone)}>{x.t}</span>)}</div>;
+}
+
+/** Starred tickers, kept on this device; every page using it stays in sync. */
+export function useWatchlist() {
+  const [list, setList] = useState<string[]>(readWatch);
+  useEffect(() => {
+    const on = (e: StorageEvent | Event) => { if (!(e instanceof StorageEvent) || e.key === WATCH_KEY) setList(readWatch()); };
+    window.addEventListener('storage', on);
+    window.addEventListener('rfx-watch', on);
+    return () => { window.removeEventListener('storage', on); window.removeEventListener('rfx-watch', on); };
+  }, []);
+  const toggle = (sym: string) => { const next = toggleWatch(readWatch(), sym); writeWatch(next); setList(next); window.dispatchEvent(new Event('rfx-watch')); };
+  return { list, toggle, has: (s: string) => list.includes(s) };
+}
+
+export function StarButton({ symbol, on, onToggle }: { symbol: string; on: boolean; onToggle: () => void }) {
+  return (
+    <button type="button" onClick={onToggle} aria-pressed={on} aria-label={on ? `Remove ${symbol} from the watchlist` : `Add ${symbol} to the watchlist`}
+      className={cx('w-10 h-10 -m-1.5 rounded-full grid place-items-center shrink-0 transition-colors', on ? 'text-warn' : 'text-ink3 hover:text-ink2')}>
+      <Icon name="star" size={18} fill={on ? 'currentColor' : 'none'} />
+    </button>
+  );
+}
+
+export function RfxPanel({ ix }: { ix: RfxIndex }) {
+  return (
+    <div className="rounded-xl border border-line/70 bg-raised/40 px-3 py-2.5" aria-label="RFX composite index">
+      <div className="flex items-baseline gap-2 flex-wrap">
+        <span className="font-semibold text-[13px]">RFX index</span>
+        <span className="text-[11px] text-ink3">equal-weight SPY · QQQ · IWM · DIA</span>
+        <span className="num text-[13px] font-semibold ml-auto">{num(ix.price)}</span>
+      </div>
+      <ZoneGauge className="mt-2" demand={ix.demand} supply={ix.supply} state={ix.state} />
+      <div className="text-[11px] text-ink3 mt-1">{ix.direction}{ix.aligned ? ' · aligned: +1 Seiden bonus on buys' : ix.state === 'supply' ? ' · in supply: opposite-zone flag on buys (never blocks)' : ''}</div>
     </div>
   );
 }

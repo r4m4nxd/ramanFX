@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { blankPlan } from './strategy';
-import { ago, checkPlanLink, detailFrom, findBySlug, matches, parseIndex, parseScan, planFromParams, planLink, searchTickers, sectorsOf, slug, stockPath, tvChart, unpackBars, type IndexRow, type ScanSignal } from './scanner';
+import { ago, readWatch, seidenText, sortSignals, toggleWatch, WATCH_KEY, writeWatch, checkPlanLink, detailFrom, findBySlug, matches, parseIndex, parseScan, planFromParams, planLink, searchTickers, sectorsOf, slug, stockPath, tvChart, unpackBars, type IndexRow, type ScanSignal } from './scanner';
 
 const sample = JSON.parse(readFileSync(resolve(process.cwd(), 'tools/stock_scanner/fixtures/sample/latest.json'), 'utf8'));
 const placeholder = JSON.parse(readFileSync(resolve(process.cwd(), 'public/scanner/latest.json'), 'utf8'));
@@ -123,5 +123,49 @@ describe('ticker search + detail', () => {
     expect(link).toMatch(/^\/plan\/new\?/);
     expect(new URL(link, 'https://x.test').searchParams.get('entry')).toBe(String(d.check!.entry));
     expect(d.check!.kind).toBe('BUY');
+  });
+});
+
+describe('Pinndx-inspired extras', () => {
+  const s = parseScan(sample)!;
+  it('signals carry gauge, fair value, PZ and Seiden fields; PZ3 = the Raja target', () => {
+    for (const x of s.signals) {
+      expect(['demand', 'supply', 'middle']).toContain(x.gauge_state);
+      expect(x.pz3).toBe(x.target);
+      if (x.pz1 != null) expect(x.pz1).toBeGreaterThan(x.entry);
+      if (x.pz1 != null && x.target != null) expect(x.pz1).toBeLessThan(x.target);
+      expect(x.seiden_score).toBeGreaterThanOrEqual(0);
+      expect(x.seiden_score).toBeLessThanOrEqual(10);
+      expect(x.fv_lo).toBeLessThanOrEqual(x.fv_hi!);
+      expect(x.rules.some(r => r.status === 'fail' && /Fair value|RFX index/.test(r.text))).toBe(false);
+    }
+    expect(s.rfx_index?.symbol).toBe('RFX');
+    expect(seidenText({ fresh: 2 })).toContain('Freshness');
+  });
+  it('sorts by score, Seiden, nearest and R:R', () => {
+    const mk = (score: number, seiden: number, near: number, rr: number) => ({ score, seiden_score: seiden, to_entry_pct: near, rr } as ScanSignal);
+    const l = [mk(8, 9, 3, 2), mk(10, 5, 1, 4), mk(9, 7, -2, 9)];
+    expect(sortSignals(l, 'score').map(x => x.score)).toEqual([10, 9, 8]);
+    expect(sortSignals(l, 'seiden').map(x => x.seiden_score)).toEqual([9, 7, 5]);
+    expect(sortSignals(l, 'near').map(x => x.to_entry_pct)).toEqual([1, -2, 3]);
+    expect(sortSignals(l, 'rr').map(x => x.rr)).toEqual([9, 4, 2]);
+  });
+  it('watchlist toggles and survives storage', () => {
+    localStorage.removeItem(WATCH_KEY);
+    expect(readWatch()).toEqual([]);
+    writeWatch(toggleWatch(toggleWatch([], 'MSFT'), 'AAPL'));
+    expect(readWatch()).toEqual(['AAPL', 'MSFT']);
+    writeWatch(toggleWatch(readWatch(), 'MSFT'));
+    expect(readWatch()).toEqual(['AAPL']);
+    localStorage.setItem(WATCH_KEY, '{bad');
+    expect(readWatch()).toEqual([]);
+  });
+  it('details carry the gauge and fair value', () => {
+    const idx = parseIndex(sampleIndex)!;
+    const r = idx.tickers[0];
+    const d = detailFrom(shard(r.k), r.s)!;
+    expect(['demand', 'supply', 'middle']).toContain(d.gauge!.state);
+    expect(d.fv!.lo).toBeLessThanOrEqual(d.fv!.hi);
+    expect(['D', 'S', 'M']).toContain(r.st);
   });
 });

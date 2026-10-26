@@ -38,6 +38,7 @@ import scan  # noqa: E402
 import zones as Z  # noqa: E402
 from zones import RAJA, Bar  # noqa: E402
 
+EXTRA_FIELDS = ('seiden_score', 'fv_dist_atr', 'fv_inside', 'index_aligned', 'index_state', 'pz1', 'pz2', 'rr_pz1', 'rr_pz2')
 WARMUP = 300          # D1 bars before the first scan day (the rules look back up to ~420 bars; MN needs 40 months)
 MAX_EVALS = 10        # candidate days evaluated per zone
 ORDER_LIFE = 40       # sessions a limit order lives
@@ -117,6 +118,30 @@ def candidates(bars: List[Bar]) -> Dict[int, List[str]]:
     return out
 
 
+_IDX_MEMO: Dict[str, Optional[Dict]] = {}
+
+
+def index_at(index_bars: List[Bar], day: str) -> Optional[Dict]:
+    """The composite index's gauge as of `day` (its bars up to and including that day only)."""
+    if day not in _IDX_MEMO:
+        upto = [b for b in index_bars if b.d <= day]
+        g = scan.index_context(upto) if len(upto) >= 250 else None
+        _IDX_MEMO[day] = {k: v for k, v in g.items() if k != 'bars'} if g else None
+    return _IDX_MEMO[day]
+
+
+_COMPOSITE: List[Optional[List[Bar]]] = []
+
+
+def composite_cached(offline: bool) -> Optional[List[Bar]]:
+    if not _COMPOSITE:
+        try:
+            _COMPOSITE.append(scan.composite_bars({k: DATA.fetch_daily(k, offline=offline)[0] for k in scan.INDEX_PARTS}) or None)
+        except Exception:  # noqa: BLE001
+            _COMPOSITE.append(None)
+    return _COMPOSITE[0]
+
+
 def simulate(bars: List[Bar], d: int, sig: Dict, cost_bps: float) -> Optional[Dict]:
     """Order from d+1, then both stop variants. None = never filled."""
     entry, stop, target = sig['entry'], sig['stop'], sig['target']
@@ -177,11 +202,19 @@ def simulate(bars: List[Bar], d: int, sig: Dict, cost_bps: float) -> Optional[Di
         res[f'{variant}_gap'] = gap
         res[f'{variant}_r'] = round((ex - fill) / risk - cost, 4)
         res[f'{variant}_bars'] = ex_i - fill_i
+        if variant == 'wick':
+            # PZ1 / PZ2 reached before the exit bar (the fill bar never counts); "half at PZ1, rest to PZ3"
+            hi = max((bars[i].h for i in range(fill_i + 1, ex_i)), default=0.0)
+            for k in ('pz1', 'pz2'):
+                v = sig.get(k)
+                res[f'{k}_hit'] = bool(v) and (hi >= v or (why == 'target' and ex >= v))
+            pz1 = sig.get('pz1')
+            res['half_pz1_r'] = round(0.5 * ((pz1 - fill) / risk - cost) + 0.5 * res['wick_r'], 4) if pz1 and res['pz1_hit'] else res['wick_r']
     return res
 
 
 def backtest_ticker(sym: str, bars: List[Bar], sector: str = '', filings: Optional[List[str]] = None, cost_bps: float = 5.0,
-                    indexes: str = 'SPX') -> List[Dict]:
+                    indexes: str = 'SPX', index_bars: Optional[List[Bar]] = None) -> List[Dict]:
     if len(bars) < WARMUP + 50:
         return []
     w1, w_upto = htf_index(bars, 'W1')
@@ -201,6 +234,7 @@ def backtest_ticker(sym: str, bars: List[Bar], sector: str = '', filings: Option
         if not scan.liquid({'indexes': indexes}, bars[:d + 1]):        # same liquidity filter as the live scan, as of d
             continue
         an = scan.analyse(bars[:d + 1], w1[:w_upto[d]], mn[:m_upto[d]], row_cache=cache)
+        an.index = index_at(index_bars, bars[d].d) if index_bars else None
         for s in scan.symbol_signals(an, None):
             zid = f"{s['tf']}:D:{s['base_start']}"
             if s['kind'] != 'BUY' or zid in done:
@@ -211,7 +245,8 @@ def backtest_ticker(sym: str, bars: List[Bar], sector: str = '', filings: Option
                 continue
             t = {'symbol': sym, 'sector': sector, 'indexes': indexes, 'signal_date': bars[d].d, 'tf': s['tf'], 'zone_type': s['zone_type'],
                  'pattern': s['pattern'], 'entry': s['entry'], 'stop': s['stop'], 'target': s['target'], 'rr': s['rr'],
-                 'curve': s['curve'], 'direction': s['direction'], 'to_entry_pct': s['to_entry_pct'], **sim}
+                 'curve': s['curve'], 'direction': s['direction'], 'to_entry_pct': s['to_entry_pct'], 'score': s.get('score'),
+                 **{k: s.get(k) for k in EXTRA_FIELDS}, **sim}
             if sim['status'] == 'filled' and filings:
                 end = t.get('close_exit_date') or t['fill_date']
                 t['filing'] = any(t['fill_date'] <= f <= end for f in filings)
@@ -237,7 +272,7 @@ def _worker(args):
         filings = (b or {}).get('filings') or None
     except Exception:  # noqa: BLE001
         filings = None
-    return sym, backtest_ticker(sym, bars, sector, filings, cost, indexes), ''
+    return sym, backtest_ticker(sym, bars, sector, filings, cost, indexes, composite_cached(offline)), ''
 
 
 # ---- statistics ---------------------------------------------------------------------------------------------------
@@ -259,6 +294,14 @@ def stats(rs: List[float]) -> Dict:
     return {'trades': len(rs), 'win_rate': round(len(w) / len(rs), 3), 'avg_r': round(sum(rs) / len(rs), 3),
             'expectancy_ci95': [round(lo, 3), round(hi, 3)] if lo is not None else None,
             'profit_factor': round(sum(w) / gl, 2) if gl > 0 else None, 'total_r': round(sum(rs), 1)}
+
+
+EXTRA_BUCKETS = [
+    ('seiden_score', lambda t: '>=8' if (t.get('seiden_score') or 0) >= 8 else '<8'),
+    ('fv_inside', lambda t: 'inside FV' if t.get('fv_inside') else 'outside FV'),
+    ('fv_1atr_below', lambda t: '>=1 ATR below FV' if (t.get('fv_dist_atr') or -9) >= 1 else '<1 ATR'),
+    ('index_aligned', lambda t: 'aligned' if t.get('index_aligned') else ('index in supply' if t.get('index_state') == 'supply' else 'not aligned')),
+]
 
 
 def summarize(trades: List[Dict]) -> Dict:
@@ -287,6 +330,18 @@ def summarize(trades: List[Dict]) -> Dict:
             for i in (t.get('indexes') or '?').split(','):
                 gi[i].append(t[key])
         block['by_universe'] = {k: stats(x) for k, x in sorted(gi.items())}
+        # Pinndx-inspired fields: reported in and out of sample, none of them is a filter
+        bx = {}
+        for name, fn in EXTRA_BUCKETS:
+            g2 = defaultdict(list)
+            for t in filled:
+                g2[(fn(t), 'oos' if t['signal_date'] >= split else 'is')].append(t[key])
+            bx[name] = {f'{b}|{part}': stats(x) for (b, part), x in sorted(g2.items())}
+        block['by_extra'] = bx
+        if v == 'wick':
+            block['half_at_pz1'] = {'all': stats([t.get('half_pz1_r', t[key]) for t in filled]),
+                                    'out_of_sample': stats([t.get('half_pz1_r', t[key]) for t in filled if t['signal_date'] >= split])}
+            block['pz_hit_rate'] = {k: round(sum(1 for t in filled if t.get(f'{k}_hit')) / max(1, sum(1 for t in filled if t.get(k))), 3) for k in ('pz1', 'pz2')}
         out[v] = block
     return out
 
@@ -321,6 +376,10 @@ def print_summary(s: Dict) -> None:
         b = s[v]
         print(f"\n[{v}-stop] all {b['all']}\n  in-sample {b['in_sample']}\n  out-of-sample (from {s['oos_from']}) {b['out_of_sample']}")
         print(f"  gap through stop: {b['gap_through_stop']}, holding through a filing: {b['holding_through_filing']}")
+        for name, rows in b.get('by_extra', {}).items():
+            print(f'  {name}: ' + '; '.join(f"{k} n={x['trades']} avg {x.get('avg_r', 0):+.2f}R" for k, x in rows.items()))
+        if 'half_at_pz1' in b:
+            print(f"  half at PZ1, rest to PZ3: {b['half_at_pz1']['all']} (OOS {b['half_at_pz1']['out_of_sample']}); PZ hit rate {b['pz_hit_rate']}")
         for dim in ('universe', 'zone_type', 'tf'):
             print(f'  by {dim}: ' + '; '.join(f"{k} n={x['trades']} avg {x.get('avg_r', 0):+.2f}R" for k, x in b[f'by_{dim}'].items()))
     print('\nVERDICT: ' + verdict(s))
@@ -342,7 +401,8 @@ def main(argv=None) -> int:
         sys.path.insert(0, os.path.join(HERE, 'fixtures'))
         import synth
         for seed in range(a.limit or 12):
-            trades += backtest_ticker(f'FX{seed}', synth.ticker(seed), 'Synthetic', None, a.cost_bps, ['SPX', 'NDX', 'DJI', 'RUT'][seed % 4])
+            comp = scan.composite_bars({k: synth.ticker(s_) for k, s_ in zip(scan.INDEX_PARTS, (101, 102, 103, 104))})
+            trades += backtest_ticker(f'FX{seed}', synth.ticker(seed), 'Synthetic', None, a.cost_bps, ['SPX', 'NDX', 'DJI', 'RUT'][seed % 4], comp)
     else:
         import universe as U
         if a.universes:

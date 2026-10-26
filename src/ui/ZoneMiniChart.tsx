@@ -12,12 +12,18 @@ export interface MiniLevels {
   supply?: number | null;        // next supply proximal (red band)
   supplyDistal?: number | null;
   price: number;
+  /** Fair value band (20-bar value area). */
+  fvLo?: number | null;
+  fvHi?: number | null;
+  /** Profit zones; PZ3 = the target. */
+  pz1?: number | null;
+  pz2?: number | null;
 }
 
 /** Other zones to shade (the stock page shows every active zone). */
 export interface MiniZone { proximal: number; distal: number; side: 'demand' | 'supply' }
 
-const LABEL_W = 46;              // right gutter for the price labels, so they never sit on candles
+const LABEL_W = 58;              // right gutter for the price labels, so they never sit on candles
 const PAD_T = 6, PAD_B = 6;
 const C = (v: string, a = 1) => `rgb(var(--${v}) / ${a})`;
 const fmt = (v: number) => (v >= 1000 ? v.toFixed(0) : v >= 100 ? v.toFixed(1) : v.toFixed(2));
@@ -52,7 +58,8 @@ function ZoneSvg({ bars, levels, zones = [], height = 120, width, label }: { bar
     const bl = Math.min(...bars.map(b => b[3])), bh = Math.max(...bars.map(b => b[2]));
     const span = bh - bl || bh * 0.05 || 1;
     // plan levels always in view; other zones only when near the bars (within 35% of the range)
-    const vals = [L.proximal, L.distal, L.stop, L.price, L.target, L.supply].filter(num);
+    const vals = [L.proximal, L.distal, L.stop, L.price, L.target, L.supply, L.pz1, L.pz2].filter(num);
+    for (const v of [L.fvLo, L.fvHi]) if (num(v) && v > bl - span * 0.35 && v < bh + span * 0.35) vals.push(v);
     for (const z of zones) for (const v of [z.proximal, z.distal]) if (v > bl - span * 0.35 && v < bh + span * 0.35) vals.push(v);
     let lo = Math.min(bl, ...vals);
     let hi = Math.max(bh, ...vals);
@@ -64,7 +71,10 @@ function ZoneSvg({ bars, levels, zones = [], height = 120, width, label }: { bar
     const step = plotW / Math.max(bars.length, 1);
     const bw = Math.max(1, Math.min(7, step * 0.62));
     const raw: { k: string; v: number; tone: string }[] = [];
-    if (num(L.target)) raw.push({ k: 'T', v: L.target, tone: 'profit' });
+    const pzs = num(L.pz1) || num(L.pz2);
+    if (num(L.target)) raw.push({ k: pzs ? 'PZ3' : 'T', v: L.target, tone: 'profit' });
+    if (num(L.pz2)) raw.push({ k: 'PZ2', v: L.pz2, tone: 'profit' });
+    if (num(L.pz1)) raw.push({ k: 'PZ1', v: L.pz1, tone: 'profit' });
     if (num(L.entry)) raw.push({ k: 'E', v: L.entry, tone: 'accent' });
     if (num(L.stop)) raw.push({ k: 'S', v: L.stop, tone: 'loss' });
     raw.push({ k: 'P', v: L.price, tone: 'ink' });
@@ -88,6 +98,7 @@ function ZoneSvg({ bars, levels, zones = [], height = 120, width, label }: { bar
           const t = z.side === 'demand' ? 'profit' : 'loss';
           return <rect key={i} x="0" y={b.y} width={g.plotW} height={b.h} fill={C(t, 0.08)} stroke={C(t, 0.3)} strokeWidth="0.5" strokeDasharray="2 2" />;
         })}
+        {num(L.fvLo) && num(L.fvHi) && (() => { const b = band(L.fvHi!, L.fvLo!); return <g><rect x="0" y={b.y} width={g.plotW} height={b.h} fill={C('warn', 0.1)} stroke={C('warn', 0.35)} strokeWidth="0.5" /><text x="3" y={b.y + 9} fontSize="8.5" fontWeight={600} fill={C('warn', 0.9)}>FV</text></g>; })()}
         {dz && <rect x="0" y={dz.y} width={g.plotW} height={dz.h} fill={C('profit', 0.16)} stroke={C('profit', 0.5)} strokeWidth="0.75" />}
         {sz && <rect x="0" y={sz.y} width={g.plotW} height={sz.h} fill={C('loss', 0.14)} stroke={C('loss', 0.45)} strokeWidth="0.75" />}
         {bars.map((b, i) => {
@@ -103,6 +114,8 @@ function ZoneSvg({ bars, levels, zones = [], height = 120, width, label }: { bar
           );
         })}
         {hline(L.target, 'profit')}
+        {num(L.pz1) && <line x1="0" x2={g.plotW} y1={g.y(L.pz1)} y2={g.y(L.pz1)} stroke={C('profit', 0.6)} strokeDasharray="1 3" strokeWidth="1" />}
+        {num(L.pz2) && <line x1="0" x2={g.plotW} y1={g.y(L.pz2)} y2={g.y(L.pz2)} stroke={C('profit', 0.6)} strokeDasharray="1 3" strokeWidth="1" />}
         {hline(L.entry, 'accent')}
         {hline(L.stop, 'loss')}
       </g>

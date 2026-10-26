@@ -68,6 +68,7 @@ class Series:
         self.L = [p] + [b.l for b in rb]
         self.C = [p] + [b.c for b in rb]
         self.T = [rb[0].d if rb else ''] + [b.d for b in rb]
+        self.V = [0.0] + [float(b.v or 0) for b in rb]
         self.n = len(self.C)            # SBars (includes the forming bar, like MQL)
         n = self.n
         tr = [0.0] * n
@@ -842,6 +843,7 @@ class DNA:
     stop_buf: float = 0.0
     risk: float = 0.0
     tp_off: float = 0.0
+    gap_away: bool = False
 
 
 def stop_buffer(h: float, tf: str, p=RAJA) -> float:
@@ -975,6 +977,13 @@ def dna(S: Series, zs: List[Zone], i: int, tl: TLState, higher: List[Row], htf_o
     x.code = ('ARR' if x.arrival else 'WOW' if x.wow else 'STR' if x.strong else 'OVL' if x.overlap
               else 'FLP' if x.flip else 'TST' if x.n_tests >= 1 else 'WK')
     x.tp_off = tp_off_frac
+    # F06 gap away (DnaCompute): the departure opened beyond the last base close by >= 0.10 ATR, or a window between
+    # the last base candle and the stay-away candle
+    a = S.atr(L) or S.atr(1)
+    if a > 0:
+        gap_open = d * (S.O[L] - S.C[L + 1]) / a
+        win = sa >= 1 and d * (adv(sa) - ext(L + 1)) > 0
+        x.gap_away = gap_open >= 0.10 or win
     return x
 
 
@@ -987,3 +996,95 @@ ZONE_TYPE_TEXT = {
     'TST': 'Tested',
     'WK': 'Weak (removed nothing)',
 }
+
+
+# ---- Pinndx-inspired extras (display / score only; Raja rules stay the gate) -------------------------------------
+@dataclass
+class FairValue:
+    lo: float
+    hi: float
+    poc: float
+    method: str          # 'volume' (70% value area) or 'closes' (25th-75th percentile fallback)
+
+
+def fair_value(S: Series, n: int = 20, area: float = 0.70, bins: int = 48) -> Optional[FairValue]:
+    """Value area of the last n CLOSED bars: each bar's volume spread evenly over its high-low range on a price grid,
+    then the point of control widened bin by bin (the larger neighbour first) until it holds `area` of the volume.
+    No volume -> the 25th-75th percentile of the closes. Uses shifts 1..n only (no forming bar, no look-ahead)."""
+    idx = [i for i in range(1, min(n, S.n - 1) + 1)]
+    if len(idx) < 5:
+        return None
+    lo, hi = min(S.L[i] for i in idx), max(S.H[i] for i in idx)
+    vol = sum(S.V[i] for i in idx)
+    if vol <= 0 or hi <= lo:
+        cs = sorted(S.C[i] for i in idx)
+        q = lambda p: cs[min(len(cs) - 1, max(0, int(round(p * (len(cs) - 1)))))]
+        return FairValue(q(0.25), q(0.75), q(0.5), 'closes')
+    w = (hi - lo) / bins
+    hist = [0.0] * bins
+    for i in idx:
+        bl, bh, v = S.L[i], S.H[i], S.V[i]
+        if v <= 0:
+            continue
+        if bh <= bl:
+            hist[min(bins - 1, int((bl - lo) / w))] += v
+            continue
+        for k in range(int((bl - lo) / w), min(bins, int((bh - lo) / w) + 1)):
+            a0, a1 = lo + k * w, lo + (k + 1) * w
+            ov = min(a1, bh) - max(a0, bl)
+            if ov > 0:
+                hist[k] += v * ov / (bh - bl)
+    poc = max(range(bins), key=lambda k: hist[k])
+    a, b, got, total = poc, poc, hist[poc], sum(hist)
+    while got < area * total and (a > 0 or b < bins - 1):
+        left = hist[a - 1] if a > 0 else -1
+        right = hist[b + 1] if b < bins - 1 else -1
+        if right >= left:
+            b += 1
+            got += hist[b]
+        else:
+            a -= 1
+            got += hist[a]
+    return FairValue(lo + a * w, lo + (b + 1) * w, lo + (poc + 0.5) * w, 'volume')
+
+
+def pz_levels(entry: float, stop: float, target: Optional[float], fv: Optional[FairValue]) -> dict:
+    """PZ1 / PZ2 / PZ3 (our own definitions, Pinndx-inspired): PZ3 = the Raja target (just before the next supply);
+    PZ1 = the higher of the fair value's near edge and 2R, PZ2 = the higher of its far edge and 3R, in each case the
+    highest candidate that still lies below PZ3 (PZ2 also above PZ1). R:R per level."""
+    risk = entry - stop
+    out = {'pz1': None, 'pz2': None, 'pz3': target, 'rr_pz1': None, 'rr_pz2': None, 'rr_pz3': None}
+    if risk <= 0 or not target:
+        return out
+    near = fv.lo if fv and fv.lo > entry else (fv.hi if fv and fv.hi > entry else None)
+    far = fv.hi if fv and fv.hi > entry else None
+    c1 = [v for v in (near, entry + 2 * risk) if v is not None and v < target]
+    c2 = [v for v in (far, entry + 3 * risk) if v is not None and v < target]
+    out['pz1'] = max(c1) if c1 else None
+    p2 = max(c2) if c2 else None
+    if p2 is not None and (out['pz1'] is None or p2 > out['pz1']):
+        out['pz2'] = p2
+    for k in ('pz1', 'pz2', 'pz3'):
+        if out[k] is not None:
+            out[k] = round(out[k], 2)
+            out['rr_' + k] = round((out[k] - entry) / risk, 2)
+    return out
+
+
+def seiden_score(z: Zone, x: 'DNA', direction: 'Direction', fv_dist_atr: Optional[float], index_aligned: bool) -> dict:
+    """Seiden odds-enhancer score 0-10 (display only, never a gate): departure (gap 2, >= 2x the base 1), time at
+    level (1-3 base candles 1, 4-6 0.5), freshness (2 / 1 / 0), profit margin (room >= 3R 2, >= 2R 1), trend (Raja
+    direction with the zone FULL 2, REDUCED 1), curve (<= 25% 1, <= 50% 0.5); bonuses +1 when the zone is >= 1 ATR
+    below fair value, +1 when the composite index is aligned. Capped at 10."""
+    d = z.dir
+    parts = {
+        'departure': 2.0 if x.gap_away else (1.0 if z.leg_ratio >= 2 else 0.0),
+        'time': 1.0 if z.base_n <= 3 else (0.5 if z.base_n <= 6 else 0.0),
+        'fresh': 2.0 if x.n_tests == 0 else (1.0 if x.n_tests == 1 else 0.0),
+        'margin': 2.0 if x.room_r >= 3 else (1.0 if x.room_r >= 2 else 0.0),
+        'trend': (2.0 if direction.q == 2 else 1.0) if direction.dir == d else 0.0,
+        'curve': (1.0 if x.curve_zone <= 25 else (0.5 if x.curve_zone <= 50 else 0.0)) if d > 0 else (1.0 if x.curve_zone >= 75 else (0.5 if x.curve_zone >= 50 else 0.0)),
+        'fv_bonus': 1.0 if fv_dist_atr is not None and fv_dist_atr >= 1 else 0.0,
+        'index_bonus': 1.0 if index_aligned else 0.0,
+    }
+    return {'score': min(10.0, sum(parts.values())), 'parts': parts}

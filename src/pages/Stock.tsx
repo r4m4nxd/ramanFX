@@ -4,7 +4,8 @@ import { checkPlanLink, detailFrom, findBySlug, shardUrl, tvChart, unpackBars, t
 import { num } from '@/lib/format';
 import { Badge, Card, cx, Empty, Page, Stat } from '@/ui/kit';
 import { Icon } from '@/ui/Icon';
-import { FundTable, IDX_SHORT, loadIndex, RuleList, TickerSearch, typeTone, ZoneChart } from '@/ui/ScanParts';
+import { ContextFlags, FundTable, IDX_SHORT, loadIndex, PzChips, RuleList, ScoreChips, StarButton, TickerSearch, typeTone, useWatchlist, ZoneChart } from '@/ui/ScanParts';
+import { ZoneGauge } from '@/ui/ZoneGauge';
 import type { MiniZone } from '@/ui/ZoneMiniChart';
 
 type Load = { state: 'loading' } | { state: 'missing' } | { state: 'error' } | { state: 'ok'; d: TickerDetail };
@@ -52,6 +53,7 @@ export default function Stock() {
   const load = useDetail(ticker);
   const d = load.state === 'ok' ? load.d : null;
   const bars = useMemo(() => (d ? unpackBars(d.bars) : []), [d]);
+  const watch = useWatchlist();
   const zones: MiniZone[] = useMemo(() => (d ? d.zones.map(z => ({ proximal: z.proximal, distal: z.distal, side: z.side })) : []), [d]);
 
   return (
@@ -76,14 +78,16 @@ export default function Stock() {
                 <p className="text-[13px] text-ink3 mt-0.5">{d.name}{d.sector ? ` · ${d.sector}` : ''}</p>
                 {!!d.indexes.length && <div className="flex gap-1 mt-1.5 flex-wrap" aria-label="Indexes">{d.indexes.map(i => <span key={i} className="h-5 px-1.5 rounded-md border border-line text-[10.5px] font-semibold text-ink2 grid place-items-center">{IDX_SHORT[i] ?? i}</span>)}</div>}
               </div>
+              <StarButton symbol={d.symbol} on={watch.has(d.symbol)} onToggle={() => watch.toggle(d.symbol)} />
               <div className="text-right shrink-0">
                 <div className="num text-[18px] font-semibold">{num(d.price)}</div>
                 <div className="text-[11.5px] text-ink3">close {d.date}</div>
               </div>
             </div>
+            {d.gauge && <ZoneGauge demand={d.gauge.demand} supply={d.gauge.supply} state={d.gauge.state} />}
             {bars.length > 0 && (
               <ZoneChart symbol={d.symbol} tf={d.check?.zone.tf} bars={bars} zones={zones} show={bars.length} height={180}
-                levels={{ price: d.price, ...(d.check ? { proximal: d.check.zone.proximal, distal: d.check.zone.distal, entry: d.check.entry, stop: d.check.stop, target: d.check.target, supply: d.check.next_supply, supplyDistal: d.check.supply_distal ?? null } : {}) }} />
+                levels={{ price: d.price, fvLo: d.fv?.lo, fvHi: d.fv?.hi, ...(d.check ? { pz1: d.check.pz1, pz2: d.check.pz2 } : {}), ...(d.check ? { proximal: d.check.zone.proximal, distal: d.check.zone.distal, entry: d.check.entry, stop: d.check.stop, target: d.check.target, supply: d.check.next_supply, supplyDistal: d.check.supply_distal ?? null } : {}) }} />
             )}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 rounded-xl bg-raised/50 border border-line/70 p-3">
               <Stat label="Direction" value={d.direction} />
@@ -122,6 +126,9 @@ export default function Stock() {
                 <Stat label="Target" value={d.check.target != null ? num(d.check.target) : '—'} className="text-profit" />
                 <Stat label="R:R" value={d.check.rr != null ? num(d.check.rr, 1) : '—'} />
               </div>
+              <ScoreChips raja={d.check.score} seiden={d.check.seiden_score} parts={d.check.seiden_parts} />
+              <PzChips s={d.check} />
+              <ContextFlags s={d.check} />
               <RuleList rules={d.check.rules} open />
             </Card>
           )}

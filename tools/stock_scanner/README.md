@@ -72,7 +72,7 @@ python tools/stock_scanner/scan.py --selftest                   # fixtures, prin
 python -m unittest discover tools/stock_scanner/tests
 ```
 
-Env: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `HOLDINGS_JSON`, `SEC_UA`, `SCANNER_UNIVERSES`, `SCANNER_WORKERS`,
+Env: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `HOLDINGS_JSON`, `WATCHLIST`, `WATCHLIST_APPROACH_PCT`, `SEC_UA`, `SCANNER_UNIVERSES`, `SCANNER_WORKERS`,
 `SCANNER_PAUSE` (seconds between requests per host, default 0.15), `SCANNER_MIN_PRICE` (5), `SCANNER_MIN_DOLLAR_VOL`
 (5e6), `TELEGRAM_TOP_N` (5), `SCANNER_APP_URL`.
 
@@ -148,6 +148,32 @@ HTF row above W1 on a D1 chart). Not ported: WOW trendline ladder, nested curve,
 inheritance / out-of-trendline types, near-trendline pips (pips mean nothing on stocks), Kevin / Seiden / Baker
 lenses.
 
+## Pinndx-inspired extras (display only)
+
+From `docs/research/Pinndx_Spec.md` (P1). **None of these changes which BUY / WATCH / EXIT signals appear**; Raja's
+rules stay the only gate and win every conflict. Each shows as a line in the rule list (status pass / warn / info,
+never fail) and is logged by the backtest so it can be judged out of sample before it ever becomes a filter.
+
+- **Zone gauge** on every card, the stock page and the watchlist: nearest fresh demand below and supply above,
+  "% away" each side, state In demand / Middle / In supply.
+- **Fair value** (`zones.fair_value`): the value area of the last 20 closed D1 bars (each bar's volume spread over its
+  range, the point of control widened until it holds 70%; no volume -> 25th-75th percentile of closes). Drawn as a
+  band on the charts. Flag "inside fair value" (Seiden L46 · L89: never at equilibrium); +1 Seiden point when the
+  zone is >= 1 ATR below it. The Raja MN curve (25 / 50 / 75) stays the gate.
+- **PZ1 / PZ2 / PZ3** (`zones.pz_levels`): PZ3 = the Raja target; PZ1 = the higher of the fair value's near edge and
+  2R, PZ2 = the higher of its far edge and 3R, each only below PZ3. Raja's management maps to "close half at PZ1,
+  hold the rest to PZ3"; no breakeven stop (Raja L7 · L103 beats Seiden L223).
+- **RFX index**: equal-weight composite of SPY, QQQ, IWM, DIA (100 on the first common date) analysed like any
+  ticker, with its own zones. Per signal: `index_aligned` (index in, or within the approach above, a fresh demand)
+  = +1 Seiden point; `index_state` = supply -> warning flag. Never blocks.
+- **Seiden odds score** 0-10 (`zones.seiden_score`) next to the Raja score: departure, time at level, freshness,
+  margin, trend (Raja direction), curve, plus the two bonuses. Display and sort only.
+- **Watchlist**: star any stock in the app (stored on that device). Telegram alerts use the `WATCHLIST` secret
+  (e.g. `AAPL,MSFT,NVDA`): APPROACH = close within `WATCHLIST_APPROACH_PCT` (3) % above a fresh demand proximal,
+  IN ZONE = the low reached the proximal and the close held above the distal, IN SUPPLY, and INDEX when the RFX index
+  sits in a zone. The same alert for the same zone is sent at most once in 5 days (`.cache/alerts_state.json`).
+  The watchlist and its alerts never reach the public JSON.
+
 ## Backtest
 
 ```bash
@@ -161,6 +187,8 @@ Walk-forward, no look-ahead: on each candidate day the scanner's own `analyse()`
 pre-filtered walk equals scanning every day). Orders: limit at the proximal from the next day (gap-down fills at the
 open), cancelled when price reaches the target first, the zone is removed by a close, or after 40 sessions. Exits:
 target, or the stop in two variants (`wick` and `close`), same-bar = stop, time exit 250 sessions, 5 bps per side.
+Every trade also logs the Seiden score, fair-value distance / inside flag, index alignment, PZ1 / PZ2 and whether
+they were hit; the summary reports each as buckets in and out of sample plus a "half at PZ1, rest to PZ3" variant.
 Output `backtest_out/trades.csv` + `summary.json`: trades, win rate, avg R, expectancy with a bootstrap 95% CI,
 profit factor, by zone type / TF / sector / **universe**, in-sample vs the last 30% (out of sample), gap-through-
 stop count, trades held through a 10-Q / 10-K filing (proxy for earnings, from cached SEC data). The verdict line

@@ -30,7 +30,7 @@ SECTOR_EMOJI = {'Information Technology': '💻', 'Health Care': '🩺', 'Financ
 SECTOR_SHORT = {'Information Technology': 'Tech', 'Health Care': 'Health', 'Financials': 'Financials', 'Consumer Discretionary': 'Discretionary',
                 'Consumer Staples': 'Staples', 'Industrials': 'Industrials', 'Energy': 'Energy', 'Materials': 'Materials',
                 'Utilities': 'Utilities', 'Real Estate': 'Real estate', 'Communication Services': 'Comms', 'Other': 'Other'}
-ICON = {'pass': '✓', 'fail': '✗', 'warn': '!', 'unknown': '?'}
+ICON = {'pass': '✓', 'fail': '✗', 'warn': '!', 'unknown': '?', 'info': '·'}
 
 
 def esc(s) -> str: return html.escape(str(s), quote=False)
@@ -71,6 +71,40 @@ def _rules_short(s: Dict) -> str:
     return ' '.join(out)
 
 
+def _pz_line(s: Dict) -> str:
+    parts = [f"{k.upper()} {_f(s.get(k))} ({_f(s.get('rr_' + k), 1)}R)" for k in ('pz1', 'pz2', 'pz3') if s.get(k) is not None]
+    return 'Targets: ' + (' · '.join(parts) if parts else 'n/a')
+
+
+def _flags(s: Dict) -> str:
+    f = []
+    if s.get('fv_inside'):
+        f.append('inside fair value')
+    elif s.get('fv_dist_atr') is not None and s['fv_dist_atr'] >= 1:
+        f.append(f"{s['fv_dist_atr']:.1f} ATR below FV")
+    if s.get('index_aligned'):
+        f.append('index aligned')
+    elif s.get('index_state') == 'supply':
+        f.append('⚠ index in supply')
+    return (' · ' + ' · '.join(f)) if f else ''
+
+
+def index_text(ix) -> str:
+    if not ix:
+        return ''
+    def z(k):
+        v = ix.get(k)
+        return f"{k} {v['pct']:.1f}% {'below' if k == 'demand' else 'above'}" if v else f'no {k}'
+    return f"RFX index (SPY·QQQ·IWM·DIA) {ix['price']:.2f}: {ix['state'].upper() if ix['state'] != 'middle' else 'middle'} · {z('demand')} · {z('supply')} · {ix['direction']}"
+
+
+def watch_block(alerts) -> str:
+    if not alerts:
+        return ''
+    icon = {'APPROACH': '🔔', 'IN ZONE': '🎯', 'IN SUPPLY': '⛔', 'INDEX': '🌐'}
+    return '⭐ <b>Watchlist alerts</b>\n' + '\n'.join(f"{icon.get(a['kind'], '•')} {esc(a['kind'])} · {esc(a['text'])}" for a in alerts)
+
+
 def signal_card(s: Dict) -> str:
     kind = s['kind']
     head = ('🟢 BUY' if kind == 'BUY' else '🟡 WATCH') + f" <b>{esc(s['symbol'])}</b> · {esc(s.get('name', ''))}{esc(_idx(s))}"
@@ -78,6 +112,8 @@ def signal_card(s: Dict) -> str:
     lines = [head,
              f"Zone: {s['tf']} demand {s['proximal']:.2f}–{s['distal']:.2f} ({state}, {s['zone_type']} type, score {s.get('score', 0)}/10)",
              f"Entry {_f(s['entry'])} · Stop {_f(s['stop'])} · Target {_f(s['target'])} · R:R {_f(s['rr'], 1)}",
+             _pz_line(s),
+             f"Scores: Raja {s.get('score', 0)}/10 · Seiden odds {_f(s.get('seiden_score'), 1)}/10" + _flags(s),
              f"Curve: {_curve_word(s.get('curve'))} · Trend: {esc(s['direction'])} (W1 {esc(s['w1'])}, MN {esc(s['mn'])})",
              'Rules: ' + esc(_rules_short(s))]
     if kind == 'WATCH':
@@ -141,12 +177,16 @@ def build_messages(res: Dict, top: int = 5) -> List[str]:
     title = '🧪 SELFTEST (synthetic data) · ' if res.get('fixture') else ''
     header = (f"{title}<b>RamanFX stock scan · {esc(res.get('date', ''))}</b>\n"
               f"{regime_text(res)}\n"
-              f"<b>{len(buys)}</b> BUY · {len(watch)} WATCH · {len(exits)} EXIT · {res.get('scanned', 0)} stocks scanned"
+              + (esc(index_text(res.get('rfx_index'))) + '\n' if res.get('rfx_index') else '')
+              + f"<b>{len(buys)}</b> BUY · {len(watch)} WATCH · {len(exits)} EXIT · {res.get('scanned', 0)} stocks scanned"
               + (f" · {res['filtered_liquidity']} illiquid skipped" if res.get('filtered_liquidity') else '') + '\n'
-              f"BUYs by sector: {esc(ranked)}"
+              + f"BUYs by sector: {esc(ranked)}"
               + (f"\nBy index: {esc(' · '.join(f'{k} {v}' for k, v in sorted(idx_counts.items())))}" if idx_counts else '')
               + '\nRaja rules (ZoneVision Raja template), Kevin second.')
     msgs = [header]
+    wb = watch_block(res.get('watch_alerts') or [])
+    if wb:
+        msgs.extend(pack_cards(wb.split('\n', 1)[0], ['\n'.join(wb.split('\n')[1:])]))
     for sector, (b, w, e) in groups.items():
         cards = [signal_card(s) for s in b[:top]] + [signal_card(s) for s in w[:top]] + [exit_card(x) for x in e]
         more = max(0, len(b) - top) + max(0, len(w) - top)
