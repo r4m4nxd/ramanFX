@@ -294,17 +294,26 @@ python tools/stock_scanner/backtest.py --universes TSX --offline
 python tools/stock_scanner/backtest.py --fixture                      # code-path check on synthetic data only
 ```
 
-Walk-forward, no look-ahead: on each candidate day the scanner's own `analyse()` runs on the bars up to that day
-(W1 / MN / 3M = buckets closed by then; the location rule applies exactly as in the scan); a zone exists only after its stay-away candle closed (a unit test proves the
-pre-filtered walk equals scanning every day). Orders: limit at the proximal from the next day (gap-down fills at the
-open), cancelled when price reaches the target first, the zone is removed by a close, or after 40 sessions. Exits:
-target, or the stop in two variants (`wick` and `close`), same-bar = stop, time exit 250 sessions, 5 bps per side.
-Every trade also logs the Seiden score, fair-value distance / inside flag, index alignment, PZ1 / PZ2 and whether
-they were hit; the summary reports each as buckets in and out of sample plus a "half at PZ1, rest to PZ3" variant.
-Output `backtest_out/trades.csv` + `summary.json`: trades, win rate, avg R, expectancy with a bootstrap 95% CI,
-profit factor, by zone type / TF / sector / **universe**, in-sample vs the last 30% (out of sample), gap-through-
-stop count, trades held through a 10-Q / 10-K filing (proxy for earnings, from cached SEC data). The verdict line
-says trust only when the out-of-sample CI is above zero with 30+ trades.
+On real data: Actions -> **Stock backtest** -> Run workflow (inputs `years`, `tickers`, `max_tickers`). It restores
+the scan's data cache, runs the backtest (budget 4 h 20 min, partial results are still reported), commits
+`public/scanner/backtest.json` + `docs/research/Stock_Backtest.md` and prints the summary in the log.
+
+Walk-forward, no look-ahead: on each evaluation day the scanner's own `analyse()` + `symbol_signals()` run on the
+bars up to that day (W1 / MN / 3M = buckets closed by then; nesting, ATH rule, 250% projection and the W1 5% / MN 3% /
+3M 2% stops exactly as in the scan); a zone exists only after its stay-away candle closed. **Weekly cadence**: the
+rules run on the last session of each week. Orders: limit at the proximal from the next session, filled only when
+traded through (gap-down fills at the open), cancelled when price reaches the target first, the zone is removed by a
+close, or after 40 sessions. Exits: target, or the stop in two variants (`wick` = stop order in the market, an open
+below it exits at that open; `close`), same bar = stop, time exit after 52 weeks; trades still open at the data end are
+not scored. Costs `--cost-bps` 5 + `--slip-bps` 5 per side.
+Reported: trades, fill rate, win rate, avg R (expectancy) with a bootstrap 95% CI, profit factor, average % return per
+trade and its annualised form, average holding weeks, max drawdown in R, longest losing streak; by entry TF / zone
+type / index / sector / Raja score / nesting status / target kind; in sample vs the newest 30% (out of sample).
+Ablations: `no_nesting` (location rule off, split nested vs not), `no_ath` (owner ATH curve exception off); the old D1
+rules are no longer selectable. Baselines: a seeded random entry on the same ticker with the same stop / target %,
+and SPY buy-and-hold (whole period and each trade's own window). The Pinndx fields (Seiden score, fair value, index
+alignment, PZ1 / PZ2, "half at PZ1") are bucketed in and out of sample. The verdict line says trust only when the
+out-of-sample CI is above zero with 30+ trades.
 
 ## Limitations
 

@@ -1,3 +1,4 @@
+import datetime as dt
 import unittest
 
 import helpers  # noqa: F401
@@ -123,6 +124,97 @@ class NoLookAheadTest(unittest.TestCase):
             if t['status'] == 'filled':
                 self.assertGreaterEqual(t['fill_date'], t['signal_date'])
                 self.assertGreater(t['fill_date'], t['signal_date'])   # never the signal bar itself
+
+
+class WalkForwardRulesTest(unittest.TestCase):
+    def test_htf_aggregation_ignores_future_bars(self):
+        """The closed W1 / MN candles at day d are the same whether the history ends at d or years later, and the
+        forming week / month is never among them."""
+        b = synth.ticker(11)
+        for tf in ('W1', 'MN'):
+            full, upto = BT.htf_index(b, tf)
+            for d in (500, 503, 777, 1201, len(b) - 3):
+                cut, cut_upto = BT.htf_index(b[:d + 1], tf)
+                n = upto[d]
+                self.assertEqual(n, cut_upto[d])
+                self.assertEqual([(x.d, x.o, x.h, x.l, x.c) for x in full[:n]], [(x.d, x.o, x.h, x.l, x.c) for x in cut[:n]])
+                key = lambda x: BT.Z.period_key(tf, x)  # noqa: E731
+                if d + 1 < len(b) and key(b[d + 1].d) == key(b[d].d):   # day d's bucket is still forming ...
+                    self.assertNotEqual(key(full[n - 1].d), key(b[d].d))  # ... so it is not visible
+                    self.assertEqual(key(full[n].d), key(b[d].d))
+
+    def test_mid_week_sees_last_week_only(self):
+        b = bars_from_closes([100 + i * 0.1 for i in range(30)], start=dt.date(2026, 1, 5))   # Monday 5 Jan
+        w1, upto = BT.htf_index(b, 'W1')
+        wed = next(i for i, x in enumerate(b) if x.d == '2026-01-14')
+        fri = next(i for i, x in enumerate(b) if x.d == '2026-01-16')
+        self.assertEqual(upto[wed], 1)                 # week of 5 Jan closed, week of 12 Jan still forming
+        self.assertEqual(upto[fri], 2)                 # Friday close: that week is closed
+        self.assertIn(fri, BT.week_ends(b))
+        self.assertNotIn(wed, BT.week_ends(b))
+
+    def test_touch_is_not_a_fill(self):
+        b = bars([(101, 102, 100.5, 101), (101, 101.5, 100.0, 100.6), (100.6, 101, 100.2, 100.8)])
+        self.assertEqual(BT.simulate(b, 0, sig(), 0)['status'], 'pending')   # low == entry: not traded through
+
+    def test_gap_through_stop_on_the_fill_bar(self):
+        b = bars([(101, 102, 100.5, 101), (97.0, 97.5, 96.0, 96.5), (96.5, 107, 96.4, 106)])
+        r = BT.simulate(b, 0, sig(), cost_bps=0)
+        self.assertEqual(r['fill'], 97.0)              # limit filled at the open below the stop ...
+        self.assertTrue(r['gap_fill'])
+        self.assertEqual(r['wick_why'], 'stop')        # ... and the stop order exits at that open
+        self.assertTrue(r['wick_gap'])
+        self.assertEqual(r['wick_exit'], 97.0)
+        self.assertEqual(r['wick_exit_date'], b[1].d)
+
+    def test_same_bar_stop_and_target_takes_the_stop(self):
+        b = bars([(101, 102, 100.5, 101), (101, 101, 99.5, 100.2), (100.2, 106.5, 97.5, 104)])
+        r = BT.simulate(b, 0, sig(), cost_bps=0)
+        self.assertEqual(r['wick_why'], 'stop')
+        self.assertAlmostEqual(r['wick_r'], -1.0)
+        # the fill bar never takes the target, even when its high is above it
+        b = bars([(101, 102, 100.5, 101), (101, 106.5, 99.5, 106), (106, 106.2, 104, 105)])
+        r = BT.simulate(b, 0, sig(), cost_bps=0)
+        self.assertEqual(r['wick_exit_date'], b[2].d)
+
+    def test_time_exit_after_52_weeks(self):
+        cl = [101.0, 99.9] + [100.6 + 0.001 * i for i in range(400)]
+        b = bars_from_closes(cl, wick=0.2)
+        r = BT.simulate(b, 0, sig(stop=90.0, target=150.0, distal=91.0), cost_bps=0)
+        self.assertEqual(r['wick_why'], 'time')
+        days = (dt.date.fromisoformat(r['wick_exit_date']) - dt.date.fromisoformat(r['fill_date'])).days
+        self.assertTrue(358 <= days <= 364)
+
+    def test_random_baseline_deterministic(self):
+        b = synth.ticker(21)
+        t = {'status': 'filled', 'entry': 50.0, 'stop': 48.0, 'target': 56.0, 'signal_date': b[900].d, 'tf': 'W1'}
+        days = sorted(d for d in BT.week_ends(b) if d >= BT.WARMUP)
+        a1 = BT.random_entries('ABC', b, t, days, 5.0, seed=7)
+        a2 = BT.random_entries('ABC', b, t, days, 5.0, seed=7)
+        self.assertEqual(a1, a2)
+        self.assertEqual(len(a1), BT.RANDOM_K)
+        self.assertNotEqual([x['signal_date'] for x in a1], [x['signal_date'] for x in BT.random_entries('ABC', b, t, days, 5.0, seed=8)])
+        for x in a1:                                  # same geometry: stop 4% / target 12% of the entry
+            self.assertGreater(x['fill_date'], x['signal_date'])
+            if x['wick_why'] == 'stop' and not x['wick_gap']:
+                self.assertAlmostEqual(x['wick_exit'] / x['fill'], 0.96, places=3)
+
+    def test_rule_variants_restore_the_live_functions(self):
+        f_ath, f_loc = BT.Z.ath_curve_ok, scan.loc_of
+        with BT.rule_variant('no_ath'):
+            self.assertIsNot(BT.Z.ath_curve_ok, f_ath)
+        with BT.rule_variant('no_nesting'):
+            self.assertIsNot(scan.loc_of, f_loc)
+        self.assertIs(BT.Z.ath_curve_ok, f_ath)
+        self.assertIs(scan.loc_of, f_loc)
+
+    def test_metrics(self):
+        tr = [{'status': 'filled', 'wick_r': r, 'wick_ret': r * 2, 'wick_weeks': 10, 'wick_exit_date': f'2020-01-{i + 1:02d}', 'wick_why': 'x'}
+              for i, r in enumerate([2, -1, -1, -1, 3, -1])]
+        m = BT.metrics(tr, 'wick')
+        self.assertEqual(m['losing_streak'], 3)
+        self.assertEqual(m['max_dd_r'], 3.0)
+        self.assertAlmostEqual(m['avg_r'], 1 / 6, places=3)
 
 
 if __name__ == '__main__':
