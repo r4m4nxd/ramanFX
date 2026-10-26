@@ -15,7 +15,9 @@ Standard library only (Python 3.10+). No `pip install`.
 
 | File | What it does |
 |---|---|
-| `universe.py` | Index registry + lists → `universe.csv` (symbol, name, sector, cik, indexes, home, currency, feed). Weekly refresh. |
+| `universe.py` | Index registry + lists → `universe.csv` (symbol, name, sector, cik, indexes, home, currency, feed, country). Weekly refresh. |
+| `adr_list.csv` | Curated US-listed foreign large caps (ADR universe): symbol, name, country, GICS sector, SEC CIK, ADR ratio. |
+| `top_liquid.csv` | US top liquid list (TOP universe), rebuilt by the Monday refresh from Alpaca bars. |
 | `tsx_us_map.csv` | TSX symbol → its NYSE / Nasdaq listing, hand-checked by company name (`us` empty = TSX-only). |
 | `data.py` | Daily OHLCV (10 y) from **Alpaca Market Data** (primary, multi-symbol batches, split + dividend adjusted), Yahoo / Stooq per-ticker fallbacks; incremental updates, cache, rate limit, threads; weekly / monthly bars. |
 | `zones.py` | The Python port of the ZoneVision Raja logic (pure functions). |
@@ -134,11 +136,49 @@ the cache save and the commit run even when the scan failed, so partial results 
 | DJI | Dow 30 | Wikipedia `List_of_Dow_Jones_Industrial_Average_companies` |
 | TSX60 | S&P/TSX 60 | Wikipedia `S%26P/TSX_60` (first symbol + company table; Morningstar sector names mapped to GICS) |
 | TSX | S&P/TSX Composite | Wikipedia `S%26P/TSX_Composite_Index` (`components` table) |
+| ADR | Global leaders (US-listed ADRs) | `adr_list.csv`, ~107 curated foreign large caps on NYSE / Nasdaq (BABA, TSM, ASML, NVO, TM, SAP, SHEL ...) |
+| TOP | US top liquid | `top_liquid.csv`: the most traded other US common stocks / ADRs (see below) |
 
 `universe.INDEX_META` is the one registry (label, short label, country, source): `latest.json` carries it as
 `index_meta`, and the app builds its index pills and texts from it, so a new index needs no app change.
-Tickers in several indexes are one row (`indexes` = `SPX,NDX,DJI`). Missing CIKs come from SEC `company_tickers.json`
-(only with `SEC_UA`).
+Tickers in several indexes are one row (`indexes` = `SPX,NDX,DJI`; an ADR in the Nasdaq-100 is `NDX,ADR`). Missing
+CIKs come from SEC `company_tickers.json` (only with `SEC_UA`), which also corrects a curated CIK (ADR list, TSX map)
+that SEC lists differently. Default universes (workflow): `SPX,NDX,DJI,TSX60,TSX,ADR,TOP`, ~1,100 tickers (a repository
+variable `SCANNER_UNIVERSES` overrides it: add `,ADR,TOP` there if it is set).
+
+### Global leaders (ADR)
+
+`adr_list.csv` is hand-curated (quality, liquid foreign large caps; OTC-only names such as TCEHY, NSRGY, ABBNY,
+LVMUY, RHHBY are left out on purpose). Every refresh keeps only the rows Alpaca's asset list has **active, tradable
+and on NYSE / NASDAQ / ARCA / AMEX** (dropped ones are logged); without Alpaca keys the previous checked rows stay.
+Rows: currency USD, `country` = the issuer's ISO code, sector from the list. `adr_ratio` = ordinary shares per ADS
+(blank = unknown), used by the fundamentals for P/E and market cap.
+
+### US top liquid (TOP)
+
+The Monday refresh (`universe.py --force`, Alpaca keys needed) takes every active, tradable Alpaca US equity on NYSE /
+Nasdaq that looks like a common stock or ADR. Alpaca has no security-type field, so `universe.is_common` decides by
+symbol shape (1-5 letters, optional class letter like `BRK.B`; no `.U` / `.W` / `.R`, no preferred suffixes) and name
+(no ETF / ETN / fund / warrant / right / unit / preferred / note / `%` / SPAC wording, no ETF issuer brand such as
+iShares / SPDR / ProShares / Direxion, no bitcoin / gold / "Trust, Series 1" product trusts; "Common Units" MLPs and
+REIT "Trust" names stay). It fetches one month of daily bars for them (multi-symbol bars, 200 a request: ~30 requests,
+well inside the 200 / min limit), ranks them by the **20-day median dollar volume** and keeps those
+≥ `SCANNER_TOP_MIN_DV` (default 50e6 USD/day) that are **in no other universe**, at most `SCANNER_TOP_MAX` (300). Sector:
+SEC SIC code (submissions API, needs `SEC_UA`) mapped to GICS, else "Other". A failed or unfinished download (budget
+`SCANNER_TOP_BUDGET_S`, 420 s) keeps the committed `top_liquid.csv`; the daily scan only reads `universe.csv`. On an
+IEX-only Alpaca plan the dollar-volume floor is off (IEX is a few % of the volume) and only the ranking applies.
+
+### Fundamentals of foreign and Canadian filers
+
+`fundamentals.py` reads SEC companyfacts in **us-gaap and ifrs-full** (20-F / 40-F filers) and in the company's
+**reporting currency** (the unit of its newest revenue / profit facts: EUR, JPY, TWD, CNY, CAD ...). Money values
+show the code (`EUR 44.0B`); annual-only filers show fiscal-year values (`(FY 2025-12)`, YoY = fiscal year vs fiscal
+year); a `Source` row names `SEC ifrs` / `FMP`, the currency and FY. Growth, margins and debt / equity are always
+safe. Market cap = price × shares ÷ ADR ratio (1 for US and Canadian interlisted filers); P/E also needs EPS in USD,
+otherwise `n/a (EPS in EUR)` / `n/a (ADR ratio unknown)`. CIKs are committed in `adr_list.csv` and `tsx_us_map.csv`
+(no SEC lookup needed); a curated CIK whose SEC entity name does not match the company is ignored. Optional fallback:
+secret `FMP_API_KEY` (Financial Modeling Prep, free tier) fills companies with no SEC revenue / EPS from annual
+statements (source FMP, at most `FMP_PER_RUN` = 60 downloads a run). Off without the key.
 
 ### Canada (interlisted first)
 
@@ -160,8 +200,9 @@ are **not scanned**; `latest.json` lists them (`uncovered`) with the per-index `
 
 **Paid TSX feed (off)**: `data.fetch_tsx` / `parse_eodhd` read EODHD's end-of-day API (`SYMBOL.TO`, adjusted,
 CAD). It is used only when `SCANNER_TSX_FEED=eodhd` and `EODHD_API_KEY` are both set; then the TSX-only names are
-fetched from it and scanned like the rest (currency CAD), with no app change. Fundamentals: Canadian issuers file
-40-F / 6-K (IFRS), so SEC companyfacts rarely has US-GAAP numbers: the app shows "n/a (Canadian filer)".
+fetched from it and scanned like the rest (currency CAD), with no app change. Fundamentals: interlisted Canadian
+issuers (40-F, IFRS in CAD, or 10-K) are read from SEC's ifrs-full / us-gaap facts (see above); TSX-only names have no
+SEC filings and show "n/a (Canadian filer)".
 
 ## The rules (each mapped to the lesson / checklist line)
 
