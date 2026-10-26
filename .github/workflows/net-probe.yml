@@ -1,0 +1,21 @@
+name: Net probe
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe data hosts
+        run: |
+          UA='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
+          for u in \
+            "https://query1.finance.yahoo.com/v8/finance/chart/AAPL?range=1mo&interval=1d" \
+            "https://query2.finance.yahoo.com/v8/finance/chart/AAPL?range=1mo&interval=1d" \
+            "https://stooq.com/q/d/l/?s=aapl.us&i=d" \
+            "https://www.sec.gov/files/company_tickers.json" \
+            "https://data.sec.gov/api/xbrl/companyfacts/CIK0000320193.json" \
+            "https://www.ishares.com/us/products/239710/ishares-russell-2000-etf/1467271812596.ajax?fileType=csv&fileName=IWM_holdings&dataType=fund" \
+            "https://data.nasdaq.com/" ; do
+            echo "== $u"
+            curl -sS -m 20 -A "$UA" -o body -w "HTTP %{http_code} %{size_download}B %{content_type}\n" "$u" || true
+            head -c 200 body | tr -d '\0' ; echo
+          done
