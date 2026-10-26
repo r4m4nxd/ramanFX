@@ -25,12 +25,95 @@ CACHE = os.environ.get('SCANNER_CACHE', os.path.join(HERE, '.cache'))
 UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
 PAUSE = float(os.environ.get('SCANNER_PAUSE', '0.15'))   # seconds between two requests to the same host (all threads)
 HOST_PAUSE = {'data.sec.gov': 0.2, 'www.sec.gov': 0.2}  # SEC allows 10 req/s; we stay near 5/s
+TIMEOUT = min(15.0, float(os.environ.get('SCANNER_TIMEOUT', '15')))           # per request, seconds (never above 15)
+BREAKER_N = int(os.environ.get('SCANNER_BREAKER_N', '5'))                      # consecutive failures that open a host
+BREAKER_COOLDOWN = float(os.environ.get('SCANNER_BREAKER_COOLDOWN', '300'))    # seconds an open host is skipped
+BREAKER_CODES = (401, 403, 429, 500, 502, 503, 504)
+BACKOFF = 1.5                                                                   # first retry pause, seconds
+MAX_RETRY_AFTER = 5                                                             # longer Retry-After: fail the call
 _host_lock = threading.Lock()
 _host_next: Dict[str, float] = {}
+_host_fail: Dict[str, int] = {}
+_host_open_until: Dict[str, float] = {}
+_deadline: Optional[float] = None
+
+
+class BudgetExceeded(RuntimeError):
+    """The run's time budget is spent: no new network request is started."""
+
+
+class HostDown(RuntimeError):
+    """The host's circuit breaker is open (too many consecutive 401 / 403 / 429 / 5xx / timeouts / wrong bodies)."""
+
+
+class BadBody(ValueError):
+    """HTTP 200 but not the expected payload (e.g. an HTML rate-limit page instead of CSV / JSON)."""
+
+
+# ---- global time budget -------------------------------------------------------------------------------------------
+def set_budget(minutes: Optional[float]) -> None:
+    """No network request starts later than `minutes` from now (None / <= 0: no budget)."""
+    global _deadline
+    _deadline = time.time() + minutes * 60 if minutes and minutes > 0 else None
+
+
+def time_left() -> float:
+    return float('inf') if _deadline is None else _deadline - time.time()
+
+
+def over_budget() -> bool: return time_left() <= 0
+
+
+# ---- per-host circuit breaker ---------------------------------------------------------------------------------------
+def _host(url: str) -> str: return urllib.parse.urlsplit(url).netloc if '://' in url else url
+
+
+def host_open(url: str) -> bool:
+    """True while the host's breaker is open. After the cooldown calls go through again; one more failure re-opens
+    it at once (the count is still >= BREAKER_N), a success closes it."""
+    h = _host(url)
+    with _host_lock:
+        return _host_fail.get(h, 0) >= BREAKER_N and time.time() < _host_open_until.get(h, 0.0)
+
+
+def report_bad(url: str, trip: bool = False) -> None:
+    """One more consecutive failure for the host of `url`; trip=True opens its breaker at once."""
+    h = _host(url)
+    opened = False
+    with _host_lock:
+        n = max(_host_fail.get(h, 0) + 1, BREAKER_N if trip else 0)
+        _host_fail[h] = n
+        if n >= BREAKER_N:
+            opened = time.time() >= _host_open_until.get(h, 0.0)
+            _host_open_until[h] = time.time() + BREAKER_COOLDOWN
+    if opened:
+        import sys
+        print(f'circuit breaker OPEN: {h} after {n} consecutive failures, skipped for {BREAKER_COOLDOWN:.0f}s', file=sys.stderr)
+
+
+def report_ok(url: str) -> None:
+    with _host_lock:
+        _host_fail[_host(url)] = 0
+
+
+def breaker_state() -> Dict[str, int]:
+    """{host: consecutive failures} for every host that is failing right now."""
+    with _host_lock:
+        return {h: n for h, n in _host_fail.items() if n}
+
+
+def reset_net_state() -> None:
+    """Forget breakers, the budget and the request schedule (tests)."""
+    global _deadline
+    with _host_lock:
+        _host_fail.clear()
+        _host_open_until.clear()
+        _host_next.clear()
+    _deadline = None
 
 
 def _wait_turn(url: str) -> None:
-    host = urllib.parse.urlsplit(url).netloc
+    host = _host(url)
     with _host_lock:
         now = time.time()
         at = max(now, _host_next.get(host, 0.0))
@@ -39,26 +122,61 @@ def _wait_turn(url: str) -> None:
         time.sleep(at - now)
 
 
-def http_get(url: str, ua: str = UA, retries: int = 3, timeout: int = 25, accept: str = '*/*') -> bytes:
-    """GET, rate-limited per host across threads, exponential back-off on 429 / 5xx / network errors."""
+def _sleep_capped(s: float) -> None:
+    left = time_left()
+    if left <= 0:
+        raise BudgetExceeded('time budget spent')
+    time.sleep(max(0.0, min(s, left)))
+
+
+def looks_json(b: bytes) -> bool: return b.lstrip()[:1] in (b'{', b'[')
+def looks_stooq(b: bytes) -> bool: return b[:4].lower() == b'date' or b.strip()[:7].lower() == b'no data'
+
+
+def http_get(url: str, ua: str = UA, retries: int = 2, timeout: Optional[float] = None, accept: str = '*/*',
+             expect=None) -> bytes:
+    """GET, rate-limited per host across threads, failing fast: nothing starts once the time budget is spent or while
+    the host's breaker is open; 401 / 403 are not retried; 429 / 5xx / network errors get one short retry (a
+    Retry-After above MAX_RETRY_AFTER seconds is not waited for: the call fails at once). `expect(body) -> bool` rejects wrong payloads (BadBody). Each final failure (and each
+    rejected body) counts towards the host's breaker; a good answer, or a 404, resets it."""
+    timeout = min(timeout or TIMEOUT, TIMEOUT)
     err: Optional[Exception] = None
-    for k in range(retries):
+    for k in range(max(1, retries)):
+        if over_budget():
+            raise BudgetExceeded('time budget spent')
+        if host_open(url):
+            raise HostDown(f'{_host(url)}: circuit breaker open')
         _wait_turn(url)
         try:
             req = urllib.request.Request(url, headers={'User-Agent': ua, 'Accept': accept, 'Accept-Encoding': 'identity'})
             with urllib.request.urlopen(req, timeout=timeout) as r:
-                return r.read()
+                body = r.read()
         except urllib.error.HTTPError as e:
             err = e
-            if e.code not in (429, 500, 502, 503, 504):
+            if e.code not in BREAKER_CODES:
+                report_ok(url)              # e.g. 404 for an unknown ticker: the host itself answers
+                raise
+            if e.code in (401, 403):
+                report_bad(url)
                 raise
             ra = e.headers.get('Retry-After') if e.headers else None
-            if ra and ra.isdigit():
-                time.sleep(min(60, int(ra)))
+            wait = int(ra) if ra and ra.isdigit() else BACKOFF * 2 ** k
+            if wait > MAX_RETRY_AFTER:      # "come back in a minute": give up on this call, let the breaker count it
+                break
+            if k + 1 < retries:
+                _sleep_capped(wait)
+            continue
         except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as e:
             err = e
-        if k + 1 < retries:
-            time.sleep(2 ** k * 1.5)
+            if k + 1 < retries:
+                _sleep_capped(BACKOFF * 2 ** k)
+            continue
+        if expect is not None and not expect(body):
+            report_bad(url)
+            raise BadBody(f'{_host(url)}: unexpected body {body[:40]!r}')
+        report_ok(url)
+        return body
+    report_bad(url)
     raise err if err else RuntimeError('request failed')
 
 
@@ -158,10 +276,17 @@ def fetch_daily(sym: str, max_age_h: float = 12.0, offline: bool = False) -> Tup
         return cached[0], cached[1]
     if offline:
         raise FileNotFoundError(f'{sym}: not cached (offline)')
-    errs = []
-    if cached and cached[1].get('source') == 'yahoo':
+    errs: List[str] = []
+
+    def stale(why: str):
+        if cached:
+            return cached[0], {**cached[1], 'stale': True}
+        raise RuntimeError(f'{sym}: {why}')
+    if over_budget():
+        return stale('time budget spent')
+    if cached and cached[1].get('source') == 'yahoo' and not host_open(yahoo_url(sym)):
         try:
-            new, meta = parse_yahoo(http_get(yahoo_url(sym, '1mo')))
+            new, meta = parse_yahoo(http_get(yahoo_url(sym, '1mo'), expect=looks_json))
             merged = merge_update(cached[0], new)
             if merged:
                 meta = {**cached[1], **{k: v for k, v in meta.items() if v}}
@@ -169,42 +294,74 @@ def fetch_daily(sym: str, max_age_h: float = 12.0, offline: bool = False) -> Tup
                 merged = [b for b in merged if b.d >= cut]
                 save_cached(sym, merged, meta)
                 return merged, meta
+        except BudgetExceeded:
+            return stale('time budget spent')
         except Exception as e:  # noqa: BLE001 - fall back to a full download
             errs.append(f'update: {e}')
-    for name, url, parse in (
-        ('yahoo', yahoo_url(sym), parse_yahoo),
-        ('stooq', f'https://stooq.com/q/d/l/?s={stooq_symbol(sym)}&i=d', parse_stooq),
+    for name, url, parse, expect in (
+        ('yahoo', yahoo_url(sym), parse_yahoo, looks_json),
+        ('stooq', f'https://stooq.com/q/d/l/?s={stooq_symbol(sym)}&i=d', parse_stooq, looks_stooq),
     ):
+        if host_open(url):
+            errs.append(f'{name}: circuit breaker open')
+            continue
         try:
-            bars, meta = parse(http_get(url))
+            bars, meta = parse(http_get(url, expect=expect))
             if len(bars) < 60:
                 raise ValueError('too few bars')
             if cached and not meta.get('exchange'):
                 meta['exchange'] = cached[1].get('exchange', '')
             save_cached(sym, bars, meta)
             return bars, meta
+        except BudgetExceeded:
+            return stale('time budget spent')
         except Exception as e:  # noqa: BLE001 - try the next source
             errs.append(f'{name}: {e}')
-    if cached:
-        return cached[0], {**cached[1], 'stale': True}
-    raise RuntimeError(f'{sym}: ' + '; '.join(errs))
+    return stale('; '.join(errs))
 
 
-def fetch_many(symbols: List[str], workers: int = 6, offline: bool = False, log=None) -> Dict[str, Tuple[List[Bar], Dict]]:
-    """Daily bars for many tickers with a small thread pool (requests stay rate-limited per host)."""
+def fetch_many(symbols: List[str], workers: int = 6, offline: bool = False, log=None, every: int = 50) -> Dict[str, Tuple[List[Bar], Dict]]:
+    """Daily bars for many tickers with a small thread pool (requests stay rate-limited per host). Logs progress
+    every `every` tickers; once the time budget is spent the queued tickers get their stale cache (or an error)."""
     from concurrent.futures import ThreadPoolExecutor, as_completed
     out: Dict[str, Tuple[List[Bar], Dict]] = {}
     errors: Dict[str, str] = {}
+    src: Dict[str, int] = {}
+    t0 = time.time()
+
+    def tally(meta: Dict) -> None:
+        k = 'stale' if meta.get('stale') else meta.get('source', '?')
+        src[k] = src.get(k, 0) + 1
     with ThreadPoolExecutor(max_workers=max(1, workers)) as ex:
         futs = {ex.submit(fetch_daily, s, 12.0, offline): s for s in symbols}
+        stopped = False
         for k, f in enumerate(as_completed(futs)):
             s = futs[f]
+            if f.cancelled():
+                continue
             try:
                 out[s] = f.result()
+                tally(out[s][1])
             except Exception as e:  # noqa: BLE001
                 errors[s] = str(e)[:200]
-            if log and (k + 1) % 200 == 0:
-                log(f'data {k + 1}/{len(symbols)}')
+            if not stopped and over_budget():
+                stopped = True
+                n = sum(1 for g in futs if g.cancel())
+                if log:
+                    log(f'data: time budget spent after {time.time() - t0:.0f}s, {n} tickers not fetched (stale cache used)')
+            if log and (k + 1) % every == 0:
+                log(f'data {k + 1}/{len(symbols)} in {time.time() - t0:.0f}s, sources {src}, {len(errors)} errors, '
+                    f'failing hosts {breaker_state()}')
+    for f, s in futs.items():
+        if f.cancelled():
+            c = load_cached(s)
+            if c:
+                out[s] = (c[0], {**c[1], 'stale': True})
+                tally(out[s][1])
+            else:
+                errors[s] = 'time budget spent'
+    if log:
+        log(f'data done: {len(out)}/{len(symbols)} in {time.time() - t0:.0f}s, sources {src}, {len(errors)} errors')
     out['__errors__'] = errors  # type: ignore[assignment]
     return out
 
@@ -227,8 +384,18 @@ def fetch_earnings(sym: str) -> Optional[str]:
             for row in csv.reader(f):
                 if len(row) >= 2 and row[0].strip().upper() == sym.upper():
                     return row[1].strip()
+    url = f'https://query2.finance.yahoo.com/v10/finance/quoteSummary/{yahoo_symbol(sym)}?modules=calendarEvents'
+    if over_budget() or host_open(url):
+        return None
     try:
-        raw = http_get(f'https://query2.finance.yahoo.com/v10/finance/quoteSummary/{yahoo_symbol(sym)}?modules=calendarEvents', retries=1)
+        raw = http_get(url, retries=1, timeout=8, expect=looks_json)
+    except urllib.error.HTTPError as e:
+        if e.code in (401, 403):        # crumb / cookie demanded: every further call would fail the same way
+            report_bad(url, trip=True)
+        return None
+    except Exception:  # noqa: BLE001
+        return None
+    try:
         js = json.loads(raw)
         ev = js['quoteSummary']['result'][0]['calendarEvents']['earnings']['earningsDate']
         if ev:

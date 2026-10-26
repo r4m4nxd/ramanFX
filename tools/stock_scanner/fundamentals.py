@@ -14,10 +14,11 @@ import os
 import time
 from typing import Dict, List, Optional, Tuple
 
-from data import CACHE, http_get
+from data import CACHE, host_open, http_get, looks_json, over_budget
 
 SEC_UA = os.environ.get('SEC_UA') or 'RamanFX-scanner/1.0'
 NA = 'n/a'
+SEC_FACTS = 'https://data.sec.gov/api/xbrl/companyfacts'
 
 REVENUE = ['Revenues', 'RevenueFromContractWithCustomerExcludingAssessedTax', 'RevenueFromContractWithCustomerIncludingAssessedTax',
            'SalesRevenueNet', 'SalesRevenueGoodsNet', 'RevenuesNetOfInterestExpense', 'InterestAndDividendIncomeOperating']
@@ -34,7 +35,7 @@ def fetch_companyfacts(cik: str, max_age_days: float = 7, offline: bool = False)
     """Raw companyfacts (not cached: the files are megabytes each; the scanner caches the small `base()` instead)."""
     if not cik or offline:
         return None
-    raw = http_get(f'https://data.sec.gov/api/xbrl/companyfacts/CIK{cik.zfill(10)}.json', ua=SEC_UA, accept='application/json')
+    raw = http_get(f'{SEC_FACTS}/CIK{cik.zfill(10)}.json', ua=SEC_UA, accept='application/json', expect=looks_json)
     return json.loads(raw)
 
 
@@ -73,29 +74,47 @@ def fetch_base(cik: str, max_age_days: float = 7, offline: bool = False) -> Opti
     return nb or b
 
 
-def refresh_plan(ciks: List[str], urgent: List[str], per_run: int = 600, weekly: float = 7, daily: float = 1) -> List[str]:
+def refresh_plan(ciks: List[str], urgent: List[str], per_run: int = 600, weekly: float = 7, daily: float = 1,
+                 cold_cap: Optional[int] = None) -> List[str]:
     """Which CIKs to download this run: urgent (signalled) ones older than a day, then the others older than a week,
-    oldest first, at most per_run in total. Spreads the whole universe over the week and keeps SEC traffic polite."""
+    oldest first, at most per_run in total, of which at most cold_cap never cached before (a cold cache fills over
+    a few runs instead of one long one). Spreads the whole universe over the week and keeps SEC traffic polite."""
     out, seen = [], set()
     for c in urgent:
         if c and c not in seen and cached_base(c)[1] >= daily:
             out.append(c)
             seen.add(c)
     rest = sorted(((cached_base(c)[1], c) for c in set(ciks) - seen if c), reverse=True)
+    cold = 0
     for age, c in rest:
         if len(out) >= per_run:
             break
+        if age == float('inf'):
+            if cold_cap is not None and cold >= cold_cap:
+                continue
+            cold += 1
         if age >= weekly:
             out.append(c)
     return out[:max(per_run, len([c for c in urgent if c]))]
 
 
-def refresh_bases(ciks: List[str], workers: int = 4, log=None) -> int:
+def refresh_bases(ciks: List[str], workers: int = 4, log=None, budget_s: Optional[float] = None) -> int:
+    """Refresh the cached bases. Stops starting downloads after budget_s seconds, when the global time budget is
+    spent, or while the SEC host's circuit breaker is open (e.g. 403 for a missing SEC_UA): the stale copies stay."""
     from concurrent.futures import ThreadPoolExecutor
+    t0 = time.time()
+    stop_at = t0 + budget_s if budget_s else float('inf')
+    skipped = [0]
+
+    def one(c: str) -> Optional[Dict]:
+        if time.time() >= stop_at or over_budget() or host_open(SEC_FACTS):
+            skipped[0] += 1
+            return None
+        return fetch_base(c, max_age_days=0)
     with ThreadPoolExecutor(max_workers=max(1, workers)) as ex:
-        n = sum(1 for b in ex.map(lambda c: fetch_base(c, max_age_days=0), ciks) if b)
+        n = sum(1 for b in ex.map(one, ciks) if b)
     if log:
-        log(f'SEC: refreshed {n}/{len(ciks)} companies')
+        log(f'SEC: refreshed {n}/{len(ciks)} companies in {time.time() - t0:.0f}s ({skipped[0]} skipped: budget / breaker)')
     return n
 
 
