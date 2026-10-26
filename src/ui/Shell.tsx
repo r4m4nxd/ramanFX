@@ -389,7 +389,7 @@ export function Shell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <main id="main" ref={mainRef} tabIndex={-1} className="flex-1 w-full max-w-[1360px] mx-auto px-4 lg:px-7 pt-5 land:pt-4 pb-28 land:pb-10 lg:pb-12 outline-none">
+        <main id="main" ref={mainRef} tabIndex={-1} className="flex-1 w-full overflow-x-clip max-w-[1360px] mx-auto px-4 lg:px-7 pt-5 land:pt-4 pb-28 land:pb-10 lg:pb-12 outline-none">
           {/* Plain keyed fade-in. An exit-then-enter handoff (AnimatePresence "wait") could stall
               while a lazy page was still loading, leaving the new page invisible. */}
           <motion.div key={loc.pathname} data-page className={pageEnter}>

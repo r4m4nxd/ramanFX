@@ -1,51 +1,59 @@
+import { readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { bucketText, groupBySection, parseFx, pepperSymbol, sortFxSignals, tvLink } from './fx';
+import { bucketText, groupBySection, OFF_LIST, parseDetail, parseFx, pepperSymbol, tvLink, wideSpread, fxPx } from './fx';
 
-describe('fx mapping', () => {
+const SAMPLE = 'tools/fx_scanner/fixtures/sample';
+const read = (p: string) => JSON.parse(readFileSync(p, 'utf8'));
+
+describe('fx helpers', () => {
   it('normalises symbols and TradingView links', () => {
     expect(pepperSymbol('PEPPERSTONE:EURUSD')).toBe('EURUSD');
     expect(pepperSymbol('EUR_USD')).toBe('EURUSD');
-    expect(tvLink('XAU_USD')).toBe('https://www.tradingview.com/chart/?symbol=PEPPERSTONE:XAUUSD');
+    expect(tvLink('PEPPERSTONE:XAUUSD')).toBe('https://www.tradingview.com/chart/?symbol=PEPPERSTONE:XAUUSD');
+    expect(fxPx(122.4921, 3)).toBe('122.492');
+    expect(bucketText('AS')).toBe('Approaching supply');
+    expect(bucketText('M')).toBe('Middle');
   });
 
-  it('parses per-instrument signals, buckets and unmapped symbols', () => {
-    const f = parseFx({
-      generated_at: '2026-10-26T20:00:00Z', last_h4_close: '2026-10-26T17:00:00Z',
-      instruments: [
-        { instrument: 'USD_TRY', symbol: 'USDTRY', section: '###FX EXOTICS', cls: 'exotic', price: 34.2, bucket: { tf: 'W1', side: 'demand', section: 'in', type: 'ARR' },
-          signals: [{ kind: 'BUY', tf: 'W1', side: 'demand', entry: 34, stop: 33, target: 37, rr: 3, spread_pips: 120 }] },
-        { instrument: 'EUR_USD', symbol: 'EURUSD', section: 'FX MAJORS', price: 1.08, signals: [{ kind: 'SELL', tf: 'D1', side: 'supply', rr: 4 }] },
-      ],
-      unmapped: [{ symbol: 'PEPPERSTONE:CATTLE', section: 'COMMODITIES' }],
-    })!;
-    expect(f.signals).toHaveLength(2);
-    expect(f.signals[0]).toMatchObject({ symbol: 'USDTRY', section: 'FX EXOTICS', exotic: true, wide_spread: true, rr: 3 });
-    expect(sortFxSignals(f.signals)[0].symbol).toBe('EURUSD');
-    expect(f.unmapped[0]).toEqual({ symbol: 'CATTLE', section: 'COMMODITIES', note: 'not on OANDA' });
-    expect(groupBySection(f.instruments).map(g => g.section)).toEqual(['FX MAJORS', 'FX EXOTICS']);
-    expect(bucketText(f.instruments[0].bucket)).toBe('In demand');
+  it('wide spread = exotic or spread > 10% of stop', () => {
+    expect(wideSpread({ exotic: true, spread_pips: 1, stop_pips: 100 })).toBe(true);
+    expect(wideSpread({ exotic: false, spread_pips: 12, stop_pips: 100 })).toBe(true);
+    expect(wideSpread({ exotic: false, spread_pips: 0.6, stop_pips: 32 })).toBe(false);
   });
 
-  it('tolerates junk', () => {
+  it('groups rows by watchlist section in file order, off-list last', () => {
+    const rows = [{ group: 'METALS', wl: true }, { group: '', wl: false }, { group: 'FX MAJORS', wl: true }, { group: 'FX CROSSES', wl: true }];
+    expect(groupBySection(rows, ['FX MAJORS', 'METALS']).map(g => g.section)).toEqual(['FX MAJORS', 'METALS', 'FX CROSSES', OFF_LIST]);
+  });
+
+  it('tolerates junk and the placeholder', () => {
     expect(parseFx(null)).toBeNull();
-    const f = parseFx({ status: 'no scan yet' })!;
+    const f = parseFx({ version: 1, generated: '', h4: '', h4_close_utc: null, counts: {}, signals: [], watch: [], map: [], unmapped: [], disclaimer: 'No scan yet.' })!;
+    expect(f.generated).toBe('');
     expect(f.signals).toEqual([]);
-    expect(f.generated_at).toBe('');
+    expect(f.map).toEqual([]);
   });
 });
 
-describe('fxscan.py shape', () => {
-  it('reads map / watch / generated / h4_close_utc', () => {
-    const f = parseFx({
-      generated: '2026-10-26T21:00:00Z', h4_close_utc: '2026-10-26T21:00:00Z',
-      signals: [{ sym: 'GBPJPY', oanda: 'GBP_JPY', group: 'FX CROSSES', kind: 'SELL', tf: 'D1', side: 'supply', entry: 195.1, stop: 196, target: 190, rr: 5.6, exotic: false }],
-      watch: [{ sym: 'USDZAR', oanda: 'USD_ZAR', group: 'FX EXOTICS', kind: 'WATCH', exotic: true }],
-      map: [{ sym: 'GBPJPY', oanda: 'GBP_JPY', group: 'FX CROSSES', px: 194.2, sp: 2.1, z: { tf: 'D1', side: 'supply', sec: 'near', type: 'WOW', pips: 90 } }],
-    })!;
-    expect(f.generated_at).toBe('2026-10-26T21:00:00Z');
-    expect(f.signals.map(s => s.kind)).toEqual(['SELL', 'WATCH']);
-    expect(f.signals[1].wide_spread).toBe(true);
-    expect(f.instruments[0]).toMatchObject({ symbol: 'GBPJPY', section: 'FX CROSSES', price: 194.2, spread_pips: 2.1 });
-    expect(bucketText(f.instruments[0].bucket)).toBe('Approaching supply');
+describe('engine sample (SCHEMA.md)', () => {
+  const f = parseFx(read(`${SAMPLE}/latest.json`))!;
+  it('parses latest.json', () => {
+    expect(f.generated).toMatch(/Z$/);
+    expect(f.signals.length).toBe(f.counts.BUY + f.counts.SELL);
+    expect(f.watch.length).toBe(f.counts.WATCH);
+    expect(f.map.length).toBe(f.counts.instruments);
+    for (const s of [...f.signals, ...f.watch]) { expect(s.sym).toMatch(/^[A-Z0-9]+$/); expect(['BUY', 'SELL', 'WATCH']).toContain(s.kind); }
+    for (const r of f.map) expect(r.k).toBeTruthy();
+  });
+  it('parses every detail shard', () => {
+    for (const file of readdirSync(`${SAMPLE}/d`)) {
+      const js = read(`${SAMPLE}/d/${file}`);
+      for (const sym of Object.keys(js.instruments)) {
+        const d = parseDetail(js, sym)!;
+        expect(d.sym).toBe(sym);
+        expect(Object.values(d.bars).some(b => b.length > 0)).toBe(true);
+      }
+    }
+    expect(parseDetail({}, 'EURUSD')).toBeNull();
   });
 });

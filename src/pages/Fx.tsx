@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Badge, Card, Empty, Page } from '@/ui/kit';
 import { Icon } from '@/ui/Icon';
 import { ScannerSwitch } from '@/ui/ScannerSwitch';
 import { FxSignalCard } from '@/ui/fx/FxSignalCard';
 import { FxMarketMap } from '@/ui/fx/FxMarketMap';
 import { FxUnmapped } from '@/ui/fx/FxUnmapped';
-import { FX_DATA_NOTE, FX_URL, parseFx, sortFxSignals, type FxFile } from '@/core/fx';
+import { FX_DATA_NOTE, FX_URL, parseFx, type FxFile } from '@/core/fx';
 
 type Load = { state: 'loading' } | { state: 'ok'; scan: FxFile | null } | { state: 'error' };
 const when = (s: string) => { const d = new Date(s); return Number.isNaN(d.getTime()) ? s : d.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }); };
@@ -22,10 +22,9 @@ export default function Fx() {
     return () => { live = false; };
   }, [n]);
   const scan = load.state === 'ok' ? load.scan : null;
-  const signals = useMemo(() => (scan ? sortFxSignals(scan.signals) : []), [scan]);
-  const act = signals.filter(s => s.kind !== 'WATCH');
-  const watch = signals.filter(s => s.kind === 'WATCH');
-  const has = !!scan?.generated_at;
+  const act = scan?.signals ?? [];
+  const watch = scan?.watch ?? [];
+  const has = !!scan?.generated;
 
   return (
     <Page className="pb-24">
@@ -37,11 +36,12 @@ export default function Fx() {
           {scan?.fixture && <Badge tone="warn" className="self-start">Sample data · synthetic fixture</Badge>}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink3">
             {has ? <>
-              <span className="inline-flex items-center gap-1.5"><Icon name="clock" size={13} />As of {when(scan!.generated_at)}</span>
-              {scan!.last_h4_close && <span className="num">Last H4 close {when(scan!.last_h4_close)}</span>}
+              <span className="inline-flex items-center gap-1.5"><Icon name="clock" size={13} />As of {when(scan!.generated)}</span>
+              {scan!.h4 && <span className="num" title={scan!.clock}>Last H4 close {scan!.h4} server time{scan!.h4_close_utc ? ` (${when(scan!.h4_close_utc)} local)` : ''}</span>}
+              {scan!.partial && <span className="text-warn">Partial scan: some instruments stale</span>}
             </> : load.state === 'loading' ? <span>Loading…</span> : <span>No scan yet</span>}
           </div>
-          <p className="text-[12px] text-warn font-medium">{scan?.note || FX_DATA_NOTE}</p>
+          <p className="text-[12px] text-warn font-medium">{FX_DATA_NOTE}{scan?.feed ? ` (${scan.feed})` : ''}</p>
         </div>
       </Card>
 
@@ -51,17 +51,18 @@ export default function Fx() {
       {has && <>
         <section aria-label="Signals" className="flex flex-col gap-3">
           <h2 className="text-[15px] font-semibold px-1">Signals <span className="num text-ink3 font-medium">{act.length}</span></h2>
-          {act.length ? act.map((s, i) => <FxSignalCard key={`${s.symbol}-${s.tf}-${s.side}-${i}`} s={s} />) : <p className="text-[13px] text-ink3 px-1">No BUY or SELL setups on this close.</p>}
+          {act.length ? act.map((s, i) => <FxSignalCard key={`${s.sym}-${s.tf}-${s.side}-${i}`} s={s} />) : <p className="text-[13px] text-ink3 px-1">No BUY or SELL setups on this close.</p>}
           {!!watch.length && <>
             <h3 className="text-[14px] font-semibold px-1 mt-1">Watch <span className="num text-ink3 font-medium">{watch.length}</span></h3>
-            {watch.map((s, i) => <FxSignalCard key={`w-${s.symbol}-${s.tf}-${i}`} s={s} />)}
+            {watch.map((s, i) => <FxSignalCard key={`w-${s.sym}-${s.tf}-${i}`} s={s} />)}
           </>}
         </section>
         <section aria-label="Market map" className="flex flex-col gap-3">
           <h2 className="text-[15px] font-semibold px-1">Market map</h2>
-          <FxMarketMap instruments={scan!.instruments} />
+          <FxMarketMap rows={scan!.map} order={scan!.groups.map(g => g.name)} />
         </section>
         <FxUnmapped items={scan!.unmapped} />
+        {scan!.disclaimer && <p className="text-[11.5px] text-ink3 px-1">{scan!.disclaimer}</p>}
       </>}
     </Page>
   );
