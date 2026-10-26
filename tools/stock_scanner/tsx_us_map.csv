@@ -1,112 +1,113 @@
 # TSX symbol -> its NYSE / Nasdaq / NYSE American listing, hand-checked by company name. us empty = no US exchange
 # listing (OTC only or none): TSX-only, needs a TSX data feed. Rows here win over the automatic same-symbol match
 # (which also needs an active Alpaca asset whose name matches). name = corrects a wrong source name (optional).
-tsx,us,note,name
-AEM,AEM,Agnico Eagle Mines (NYSE),
-AGI,AGI,Alamos Gold (NYSE),
-AQN,AQN,Algonquin Power & Utilities (NYSE),
-AAUC,AAUC,Allied Gold (NYSE American),
-USA,USAS,Americas Gold and Silver (NYSE American): symbol differs,
-ARIS,ARMN,Aris Mining (NYSE American): symbol differs,
-ATS,ATS,ATS Corporation (NYSE),
-ASM,ASM,Avino Silver & Gold (NYSE American),
-BTO,BTG,B2Gold (NYSE American): symbol differs,
-BMO,BMO,Bank of Montreal (NYSE),
-BNS,BNS,Bank of Nova Scotia (NYSE),
-ABX,B,Barrick Mining (NYSE ticker B since May 2025): symbol and name differ,
-BHC,BHC,Bausch Health (NYSE),
-BTE,BTE,Baytex Energy (NYSE),
-BCE,BCE,BCE Inc. (NYSE),
-BB,BB,BlackBerry (NYSE),
-BAM,BAM,Brookfield Asset Management (NYSE),
-BBUC,BBUC,Brookfield Business Corp (NYSE),
-BN,BN,Brookfield Corporation (NYSE),
-BIP.UN,BIP,Brookfield Infrastructure Partners (NYSE): units trade as BIP,
-BEP.UN,BEP,Brookfield Renewable Partners (NYSE): units trade as BEP,
-DOO,DOOO,BRP Inc. (Nasdaq): symbol differs,
-CAE,CAE,CAE Inc. (NYSE),
-CCO,CCJ,Cameco (NYSE): symbol differs,
-CM,CM,Canadian Imperial Bank of Commerce (NYSE),
-CNR,CNI,Canadian National Railway (NYSE): symbol differs,
-CNQ,CNQ,Canadian Natural Resources (NYSE),
-CP,CP,Canadian Pacific Kansas City (NYSE),
-CLS,CLS,Celestica (NYSE),
-CVE,CVE,Cenovus Energy (NYSE),
-CG,CGAU,Centerra Gold (NYSE): symbol differs,
-GIB.A,GIB,CGI Inc. (NYSE): class A trades as GIB,
-CIGI,CIGI,Colliers International (Nasdaq),
-DML,DNN,Denison Mines (NYSE American): symbol differs,
-DSG,DSGX,Descartes Systems (Nasdaq): symbol differs,
-ELD,EGO,Eldorado Gold (NYSE): symbol differs,
-ENB,ENB,Enbridge (NYSE),
-EDR,EXK,Endeavour Silver (NYSE): symbol differs,
-EFR,UUUU,Energy Fuels (NYSE American): symbol differs,
-EFX,EFXT,Enerflex (NYSE EFXT; the source lists TSX:EFX as Equifax by mistake - US EFX is Equifax),Enerflex Ltd.
-EQX,EQX,Equinox Gold (NYSE American),
-ERO,ERO,Ero Copper (NYSE),
-AG,AG,First Majestic Silver (NYSE),
-FSV,FSV,FirstService (Nasdaq),
-FTS,FTS,Fortis (NYSE),
-FVI,FSM,Fortuna Mining (NYSE): symbol differs,
-FNV,FNV,Franco-Nevada (NYSE),
-GFL,GFL,GFL Environmental (NYSE),
-GIL,GIL,Gildan Activewear (NYSE),
-HBM,HBM,Hudbay Minerals (NYSE),
-IAU,IAUX,i-80 Gold (NYSE American): symbol differs (US IAU is a gold ETF),
-IMG,IAG,Iamgold (NYSE): symbol differs (TSX IAG is iA Financial),
-IMO,IMO,Imperial Oil (NYSE American),
-K,KGC,Kinross Gold (NYSE): symbol differs,
-LSPD,LSPD,Lightspeed Commerce (NYSE),
-LAC,LAC,Lithium Americas (NYSE),
-MG,MGA,Magna International (NYSE): symbol differs,
-MFC,MFC,Manulife Financial (NYSE),
-MX,MEOH,Methanex (Nasdaq): symbol differs,
-NXE,NXE,NexGen Energy (NYSE),
-NG,NG,NovaGold Resources (NYSE American),
-NTR,NTR,Nutrien (NYSE),
-OTEX,OTEX,Open Text (Nasdaq),
-OLA,ORLA,Orla Mining (NYSE American): symbol differs,
-OR,OR,Osisko Gold Royalties (NYSE),
-PAAS,PAAS,Pan American Silver (NYSE),
-PPL,PBA,Pembina Pipeline (NYSE): symbol differs (US PPL is PPL Corp),
-PPTA,PPTA,Perpetua Resources (Nasdaq),
-RBA,RBA,RB Global (NYSE),
-QSR,QSR,Restaurant Brands International (NYSE),
-RCI.B,RCI,Rogers Communications (NYSE): class B trades as RCI,
-RY,RY,Royal Bank of Canada (NYSE),
-SEA,SA,Seabridge Gold (NYSE): symbol differs,
-SHOP,SHOP,Shopify (Nasdaq),
-SVM,SVM,Silvercorp Metals (NYSE American),
-SKE,SKE,Skeena Resources (NYSE),
-SOBO,SOBO,South Bow (NYSE),
-SII,SII,Sprott Inc. (NYSE),
-SSRM,SSRM,SSR Mining (Nasdaq),
-STN,STN,Stantec (NYSE),
-SLF,SLF,Sun Life Financial (NYSE),
-SU,SU,Suncor Energy (NYSE),
-TKO,TGB,Taseko Mines (NYSE American): symbol differs,
-TRP,TRP,TC Energy (NYSE),
-TECK.B,TECK,Teck Resources (NYSE): class B trades as TECK,
-T,TU,TELUS (NYSE TU): symbol differs (US T is AT&T),
-TFII,TFII,TFI International (NYSE),
-TRI,TRI,Thomson Reuters (NYSE / Nasdaq),
-TD,TD,Toronto-Dominion Bank (NYSE),
-TA,TAC,TransAlta (NYSE): symbol differs,
-TFPM,TFPM,Triple Flag Precious Metals (NYSE),
-VET,VET,Vermilion Energy (NYSE),
-VZLA,VZLA,Vizsla Silver (NYSE American),
-WCN,WCN,Waste Connections (NYSE),
-WFG,WFG,West Fraser Timber (NYSE),
-WPM,WPM,Wheaton Precious Metals (NYSE),
-ATD,,Alimentation Couche-Tard: OTC only,
-BBD.B,,Bombardier: OTC only,
-CSU,,Constellation Software: OTC only,
-DOL,,Dollarama: OTC only,
-FFH,,Fairfax Financial: OTC only,
-L,,Loblaw: OTC only (US L is Loews),
-SAP,,Saputo: OTC only (US SAP is SAP SE),
-KEY,,Keyera: OTC only (US KEY is KeyCorp),
-PBH,,Premium Brands: OTC only (US PBH is Prestige Consumer Healthcare),
-IAG,,iA Financial: OTC only (US IAG is Iamgold),
-X,,TMX Group: OTC only,
-BYD,,Boyd Group Services: not on a US exchange (US BYD is Boyd Gaming),
+# cik = SEC CIK of the US listing (committed so no SEC lookup is needed; a CIK whose SEC entity name does not match is ignored).
+tsx,us,note,name,cik
+AEM,AEM,Agnico Eagle Mines (NYSE),,2809
+AGI,AGI,Alamos Gold (NYSE),,1178819
+AQN,AQN,Algonquin Power & Utilities (NYSE),,
+AAUC,AAUC,Allied Gold (NYSE American),,
+USA,USAS,Americas Gold and Silver (NYSE American): symbol differs,,
+ARIS,ARMN,Aris Mining (NYSE American): symbol differs,,
+ATS,ATS,ATS Corporation (NYSE),,
+ASM,ASM,Avino Silver & Gold (NYSE American),,
+BTO,BTG,B2Gold (NYSE American): symbol differs,,
+BMO,BMO,Bank of Montreal (NYSE),,927971
+BNS,BNS,Bank of Nova Scotia (NYSE),,9631
+ABX,B,Barrick Mining (NYSE ticker B since May 2025): symbol and name differ,,756894
+BHC,BHC,Bausch Health (NYSE),,
+BTE,BTE,Baytex Energy (NYSE),,
+BCE,BCE,BCE Inc. (NYSE),,718940
+BB,BB,BlackBerry (NYSE),,1070235
+BAM,BAM,Brookfield Asset Management (NYSE),,1937926
+BBUC,BBUC,Brookfield Business Corp (NYSE),,
+BN,BN,Brookfield Corporation (NYSE),,1001085
+BIP.UN,BIP,Brookfield Infrastructure Partners (NYSE): units trade as BIP,,1406234
+BEP.UN,BEP,Brookfield Renewable Partners (NYSE): units trade as BEP,,1533232
+DOO,DOOO,BRP Inc. (Nasdaq): symbol differs,,
+CAE,CAE,CAE Inc. (NYSE),,1173382
+CCO,CCJ,Cameco (NYSE): symbol differs,,1009001
+CM,CM,Canadian Imperial Bank of Commerce (NYSE),,1045520
+CNR,CNI,Canadian National Railway (NYSE): symbol differs,,16868
+CNQ,CNQ,Canadian Natural Resources (NYSE),,1017413
+CP,CP,Canadian Pacific Kansas City (NYSE),,16875
+CLS,CLS,Celestica (NYSE),,1030894
+CVE,CVE,Cenovus Energy (NYSE),,1475260
+CG,CGAU,Centerra Gold (NYSE): symbol differs,,
+GIB.A,GIB,CGI Inc. (NYSE): class A trades as GIB,,1061574
+CIGI,CIGI,Colliers International (Nasdaq),,
+DML,DNN,Denison Mines (NYSE American): symbol differs,,
+DSG,DSGX,Descartes Systems (Nasdaq): symbol differs,,
+ELD,EGO,Eldorado Gold (NYSE): symbol differs,,
+ENB,ENB,Enbridge (NYSE),,895728
+EDR,EXK,Endeavour Silver (NYSE): symbol differs,,
+EFR,UUUU,Energy Fuels (NYSE American): symbol differs,,
+EFX,EFXT,Enerflex (NYSE EFXT; the source lists TSX:EFX as Equifax by mistake - US EFX is Equifax),Enerflex Ltd.,
+EQX,EQX,Equinox Gold (NYSE American),,
+ERO,ERO,Ero Copper (NYSE),,
+AG,AG,First Majestic Silver (NYSE),,
+FSV,FSV,FirstService (Nasdaq),,
+FTS,FTS,Fortis (NYSE),,1666175
+FVI,FSM,Fortuna Mining (NYSE): symbol differs,,
+FNV,FNV,Franco-Nevada (NYSE),,1456346
+GFL,GFL,GFL Environmental (NYSE),,
+GIL,GIL,Gildan Activewear (NYSE),,1061894
+HBM,HBM,Hudbay Minerals (NYSE),,
+IAU,IAUX,i-80 Gold (NYSE American): symbol differs (US IAU is a gold ETF),,
+IMG,IAG,Iamgold (NYSE): symbol differs (TSX IAG is iA Financial),,
+IMO,IMO,Imperial Oil (NYSE American),,49938
+K,KGC,Kinross Gold (NYSE): symbol differs,,701818
+LSPD,LSPD,Lightspeed Commerce (NYSE),,
+LAC,LAC,Lithium Americas (NYSE),,
+MG,MGA,Magna International (NYSE): symbol differs,,749098
+MFC,MFC,Manulife Financial (NYSE),,1086888
+MX,MEOH,Methanex (Nasdaq): symbol differs,,
+NXE,NXE,NexGen Energy (NYSE),,
+NG,NG,NovaGold Resources (NYSE American),,
+NTR,NTR,Nutrien (NYSE),,1725964
+OTEX,OTEX,Open Text (Nasdaq),,1002638
+OLA,ORLA,Orla Mining (NYSE American): symbol differs,,
+OR,OR,Osisko Gold Royalties (NYSE),,
+PAAS,PAAS,Pan American Silver (NYSE),,771992
+PPL,PBA,Pembina Pipeline (NYSE): symbol differs (US PPL is PPL Corp),,
+PPTA,PPTA,Perpetua Resources (Nasdaq),,
+RBA,RBA,RB Global (NYSE),,
+QSR,QSR,Restaurant Brands International (NYSE),,1618756
+RCI.B,RCI,Rogers Communications (NYSE): class B trades as RCI,,733099
+RY,RY,Royal Bank of Canada (NYSE),,1000275
+SEA,SA,Seabridge Gold (NYSE): symbol differs,,
+SHOP,SHOP,Shopify (Nasdaq),,1594805
+SVM,SVM,Silvercorp Metals (NYSE American),,
+SKE,SKE,Skeena Resources (NYSE),,
+SOBO,SOBO,South Bow (NYSE),,
+SII,SII,Sprott Inc. (NYSE),,
+SSRM,SSRM,SSR Mining (Nasdaq),,
+STN,STN,Stantec (NYSE),,
+SLF,SLF,Sun Life Financial (NYSE),,1097362
+SU,SU,Suncor Energy (NYSE),,311337
+TKO,TGB,Taseko Mines (NYSE American): symbol differs,,
+TRP,TRP,TC Energy (NYSE),,1232384
+TECK.B,TECK,Teck Resources (NYSE): class B trades as TECK,,886986
+T,TU,TELUS (NYSE TU): symbol differs (US T is AT&T),,868675
+TFII,TFII,TFI International (NYSE),,
+TRI,TRI,Thomson Reuters (NYSE / Nasdaq),,1075124
+TD,TD,Toronto-Dominion Bank (NYSE),,947263
+TA,TAC,TransAlta (NYSE): symbol differs,,
+TFPM,TFPM,Triple Flag Precious Metals (NYSE),,
+VET,VET,Vermilion Energy (NYSE),,
+VZLA,VZLA,Vizsla Silver (NYSE American),,
+WCN,WCN,Waste Connections (NYSE),,1318220
+WFG,WFG,West Fraser Timber (NYSE),,
+WPM,WPM,Wheaton Precious Metals (NYSE),,1323404
+ATD,,Alimentation Couche-Tard: OTC only,,
+BBD.B,,Bombardier: OTC only,,
+CSU,,Constellation Software: OTC only,,
+DOL,,Dollarama: OTC only,,
+FFH,,Fairfax Financial: OTC only,,
+L,,Loblaw: OTC only (US L is Loews),,
+SAP,,Saputo: OTC only (US SAP is SAP SE),,
+KEY,,Keyera: OTC only (US KEY is KeyCorp),,
+PBH,,Premium Brands: OTC only (US PBH is Prestige Consumer Healthcare),,
+IAG,,iA Financial: OTC only (US IAG is Iamgold),,
+X,,TMX Group: OTC only,,
+BYD,,Boyd Group Services: not on a US exchange (US BYD is Boyd Gaming),,
