@@ -4,7 +4,7 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/((?!legacy\\.html|assets/).*)",
+      "source": "/((?!legacy\\.html|assets/|scanner/.*\\.json).*)",
       "destination": "/index.html"
     }
   ],
@@ -27,6 +27,24 @@
         {
           "key": "Content-Security-Policy",
           "value": "frame-ancestors 'self'"
+        }
+      ]
+    },
+    {
+      "source": "/scanner/(.*)\\.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/index.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
         }
       ]
     },

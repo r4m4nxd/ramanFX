@@ -4,12 +4,13 @@
     python tools/stock_scanner/scan.py --tickers AAPL,MSFT  # a few tickers
     python tools/stock_scanner/scan.py --selftest           # synthetic fixtures end to end, prints the Telegram text
     python tools/stock_scanner/scan.py --offline            # cached data only
+    python tools/stock_scanner/scan.py --preview-telegram   # the Telegram messages of the published JSON, not sent
 
-BUY   price is approaching a FRESH demand zone (D1 or W1) of type ARR / WOW / STR, direction up (D1 -> W1 -> MN),
+BUY   price is approaching a FRESH demand zone (D1, W1 or MN; nothing below D1) of type ARR / WOW / STR, direction up (D1 -> W1 -> MN),
       demand below 50% of the curve, no HTF supply on top of it, room >= 2x the stop (3x = good), a known target,
       not sideways, no 3rd CP, no earnings in the next 10 trading days (when the date is known).
 WATCH new strong zones of the last 5 sessions with price still far, and tested zones (2nd / 3rd touch) that need a
-      lower-TF confirmation.
+      confirmation one timeframe lower (MN -> W1, W1 -> D1; a D1 zone: a D1 close back above the proximal).
 EXIT  holdings (holdings.json or env HOLDINGS_JSON) near the next supply, demand broken by a close, stop hit by close.
 Every signal carries the list of rules it was checked against (pass / fail / warn / unknown).
 """
@@ -27,6 +28,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
 
+import lists as L  # noqa: E402
 import zones as Z  # noqa: E402
 from zones import RAJA, Bar, Series  # noqa: E402
 
@@ -64,6 +66,17 @@ def raja_score(x: Z.DNA, fresh: bool) -> int:
     sr += 2 if fresh else (1 if x.n_tests == 1 else 0)
     cz = x.curve_zone
     sr += 2 if cz <= RAJA['curve_low'] else (0 if cz >= RAJA['curve_high'] else 1)
+    sr += 2 if x.room_r >= 3 else (1 if x.room_r >= 2 else 0)
+    return min(10, sr)
+
+
+def supply_score(x: Z.DNA, fresh: bool) -> int:
+    """The Raja score mirrored for a supply (display / ranking only, the scanner never sells): type 4 / 3, fresh 2
+    (2nd touch 1), HIGH curve 2 (middle 1), room below 3x 2, 2x 1."""
+    sr = 4 if x.code in ('ARR', 'WOW') else (3 if x.code == 'STR' else 0)
+    sr += 2 if fresh else (1 if x.n_tests == 1 else 0)
+    cz = x.curve_zone
+    sr += 2 if cz >= RAJA['curve_high'] else (0 if cz <= RAJA['curve_low'] else 1)
     sr += 2 if x.room_r >= 3 else (1 if x.room_r >= 2 else 0)
     return min(10, sr)
 
@@ -111,14 +124,37 @@ def analyse(d1_bars: List[Bar], w1_bars: List[Bar], mn_bars: List[Bar], price: O
     an.fv = Z.fair_value(S1, FV_BARS)
     an.sideways = {'D1': Z.sideways(S1, p) if d1.ok else False, 'W1': Z.sideways(w1.S, p) if w1.ok else False,
                    'MN': Z.sideways(mn.S, p) if mn.ok else False}
-    # DNA of the demand zones under price (the scanner is long only) on D1 and W1
-    for r, higher in ((d1, [w1, mn]), (w1, [mn])):
+    # DNA of the demand zones under price (the scanner is long only) on D1, W1 and MN (MN has no higher row: its own
+    # supplies give the room, no HTF veto above it)
+    for r, higher in stack(an):
         if not r.ok:
             continue
         for i, z in enumerate(r.zones):
             if z.dir > 0 and not z.removed and z.dist < px:
-                an.dna[z.zid] = Z.dna(r.S, r.zones, i, r.tl, higher, mn.zones if mn.ok else [], curve, mn if mn.ok else None, TP_OFFSET, p)
+                an.dna[z.zid] = Z.dna(r.S, r.zones, i, r.tl, higher, htf_opp(an, r), curve, mn if mn.ok else None, TP_OFFSET, p)
     return an
+
+
+TRADE_TFS = ('D1', 'W1', 'MN')   # the only zone timeframes (owner: nothing smaller than D1)
+
+
+def stack(an: 'Analysis') -> List[Tuple[Z.Row, List[Z.Row]]]:
+    """The tradeable rows with the rows above each: D1 [W1, MN], W1 [MN], MN []."""
+    return [(an.d1, [an.w1, an.mn]), (an.w1, [an.mn]), (an.mn, [])]
+
+
+def htf_opp(an: 'Analysis', r: Z.Row) -> List[Z.Zone]:
+    """Zones of the HTF veto ('inside / next to an opposite HTF zone'): MN for D1 / W1, none for MN itself."""
+    return an.mn.zones if an.mn.ok and r is not an.mn else []
+
+
+def dna_of(an: 'Analysis', r: Z.Row, i: int) -> Z.DNA:
+    z = r.zones[i]
+    x = an.dna.get(z.zid)
+    if x is None:
+        higher = dict((id(a), h) for a, h in stack(an)).get(id(r), [])
+        x = Z.dna(r.S, r.zones, i, r.tl, higher, htf_opp(an, r), an.curve, an.mn if an.mn.ok else None, TP_OFFSET)
+    return x
 
 
 def trading_days_until(today: str, date: str) -> int:
@@ -134,7 +170,7 @@ def trading_days_until(today: str, date: str) -> int:
 
 
 def plan(z: Z.Zone, x: Z.DNA) -> Dict:
-    """Owner's stop rule: distal - % of the zone height (D1 10%, W1 5%); target just before the next supply."""
+    """Owner's stop rule: distal - % of the zone height (D1 10%, W1 5%, MN 3%); target just before the next supply."""
     entry = z.prox
     stop = z.dist - x.stop_buf
     nxt = [(v, dd) for v, dd in ((x.opp, x.opp_dist) if x.has_opp else (0, 0), (x.opp_htf, x.opp_htf_dist) if x.has_opp_htf else (0, 0)) if v > entry]
@@ -225,10 +261,10 @@ def fv_dist_atr(an: Analysis, z: Z.Zone) -> Optional[float]:
 
 
 def nearest_fresh(an: Analysis):
-    """(state, nearest fresh demand below + its row index, nearest fresh supply above + its row index) on D1 / W1.
+    """(state, nearest fresh demand below + its row index, nearest fresh supply above + its row index) on D1 / W1 / MN.
     state = 'demand' / 'supply' when price is inside a fresh zone, else 'middle'."""
     px, dem, sup, state = an.price, None, None, 'middle'
-    for r in (an.d1, an.w1):
+    for r in (an.d1, an.w1, an.mn):
         if not r.ok:
             continue
         for i, z in enumerate(r.zones):
@@ -244,7 +280,7 @@ def nearest_fresh(an: Analysis):
 
 
 def gauge(an: Analysis) -> Dict:
-    """Nearest fresh D1 / W1 demand below / supply above, % away, and the state (in demand / in supply / middle)."""
+    """Nearest fresh D1 / W1 / MN demand below / supply above, % away, and the state (in demand / in supply / middle)."""
     px = an.price
     state, dm, sp = nearest_fresh(an)
     dem, sup = (dm[0] if dm else None), (sp[0] if sp else None)
@@ -382,11 +418,17 @@ def known_date(an: Analysis, z: Z.Zone) -> str:
     if z.tf == 'D1' or not z.made:
         return z.made
     try:
-        wk = dt.date.fromisoformat(z.made).isocalendar()[:2]
+        md = dt.date.fromisoformat(z.made)
     except ValueError:
         return z.made
-    same = [d for d in an.d1_dates if dt.date.fromisoformat(d).isocalendar()[:2] == wk]
+    key = (lambda d: (d.year, d.month)) if z.tf == 'MN' else (lambda d: d.isocalendar()[:2])
+    wk = key(md)
+    same = [d for d in an.d1_dates if key(dt.date.fromisoformat(d)) == wk]
     return same[-1] if same else z.made
+
+
+LOWER_CONFIRM = {'MN': 'MN -> W1: trendline cross + opposite zone removed', 'W1': 'W1 -> D1: trendline cross + opposite zone removed',
+                 'D1': 'no TF below D1 is used: wait for a D1 close back above the proximal'}
 
 
 def symbol_signals(an: Analysis, earnings: Optional[str] = None) -> List[Dict]:
@@ -394,7 +436,7 @@ def symbol_signals(an: Analysis, earnings: Optional[str] = None) -> List[Dict]:
     out: List[Dict] = []
     px = an.price
     recent = an.d1_dates[-NEW_ZONE_SESSIONS] if len(an.d1_dates) >= NEW_ZONE_SESSIONS else an.d1_dates[0]
-    for r in (an.d1, an.w1):
+    for r in (an.d1, an.w1, an.mn):
         if not r.ok:
             continue
         for z in r.zones:
@@ -421,7 +463,7 @@ def symbol_signals(an: Analysis, earnings: Optional[str] = None) -> List[Dict]:
                   and (px - z.prox) <= 2 * max(APPROACH_H * z.h, APPROACH_PCT * px)):
                 word = '2nd' if x.n_tests == 1 else '3rd'
                 out.append({**base, 'kind': 'WATCH', 'watch': 'tested',
-                            'note': f'{word} touch: needs confirmation one timeframe lower (D1 -> H1: trendline cross + opposite zone removed, or a close back above the proximal).'})
+                            'note': f'{word} touch: needs confirmation one timeframe lower ({LOWER_CONFIRM[z.tf]}).'})
     # one BUY per timeframe: the nearest zone to price (Raja: trade the nearest zone until it is removed)
     best: Dict[str, Dict] = {}
     rest = []
@@ -443,7 +485,7 @@ def holding_exits(an: Analysis, h: Dict) -> List[Dict]:
     if stop is not None and px <= float(stop):
         out.append({'reason': 'stop', 'text': f'Stop hit by the close ({px:.2f} <= {float(stop):.2f}): close the position.'})
     since = str(h.get('date') or '') or (an.d1_dates[-NEW_ZONE_SESSIONS] if len(an.d1_dates) >= NEW_ZONE_SESSIONS else '')
-    for r in (an.d1, an.w1):
+    for r in (an.d1, an.w1, an.mn):
         if not r.ok:
             continue
         for z in sorted(r.zones, key=lambda z: -z.prox):
@@ -517,22 +559,25 @@ def pack_bars(bars: List[Bar], n: int = DETAIL_BARS) -> Dict:
 
 def ticker_detail(sym: str, u: Dict, an: Analysis, bars: List[Bar], meta: Dict, fund_rows, signals: List[Dict],
                   block: Optional[Dict] = None) -> Tuple[Dict, Dict]:
-    """(detail for the stock page, row for the search index). Every active D1 / W1 zone with its Raja type, the
+    """(detail for the stock page, row for the search index). Every active D1 / W1 / MN zone with its Raja type, the
     nearest demand / supply, and the nearest demand checked against every BUY rule as if it were a signal."""
     import data as DATA
     px = an.price
     zl, near_d, near_s = [], None, None
-    for r, higher in ((an.d1, [an.w1, an.mn]), (an.w1, [an.mn])):
+    for r, _ in stack(an):
         if not r.ok:
             continue
         for i, z in enumerate(r.zones):
             if z.removed or z.leg_bar > RAJA['max_zone_age']:
                 continue
-            x = an.dna.get(z.zid) or Z.dna(r.S, r.zones, i, r.tl, higher, an.mn.zones if an.mn.ok else [], an.curve, an.mn if an.mn.ok else None, TP_OFFSET)
+            x = dna_of(an, r, i)
             fresh = x.n_tests == 0
-            zl.append({'tf': z.tf, 'side': 'demand' if z.dir > 0 else 'supply', 'proximal': round(z.prox, 2), 'distal': round(z.dist, 2),
-                       'type': x.code, 'score': raja_score(x, fresh) if z.dir > 0 else None, 'fresh': fresh, 'touches': x.n_tests,
-                       'made': z.made, 'pattern': z.pattern})
+            zd = {'tf': z.tf, 'side': 'demand' if z.dir > 0 else 'supply', 'proximal': round(z.prox, 2), 'distal': round(z.dist, 2),
+                  'type': x.code, 'score': raja_score(x, fresh) if z.dir > 0 else supply_score(x, fresh), 'fresh': fresh, 'touches': x.n_tests,
+                  'made': z.made, 'pattern': z.pattern}
+            if z.dir > 0 and x.n_tests <= L.MAX_TOUCHES and z.dist < px * 1.25:
+                zd['br'] = first_block(zone_rules(an, z, x, None)) or ''      # the first rule blocking a BUY on it
+            zl.append(zd)
             if z.dir > 0 and z.dist < px and (near_d is None or z.prox > near_d[0].prox):
                 near_d = (z, x)
             if z.dir < 0 and z.dist > px and Z.fresh_at(r.S, z) and (near_s is None or z.prox < near_s[0].prox):
@@ -579,6 +624,7 @@ def ticker_detail(sym: str, u: Dict, an: Analysis, bars: List[Bar], meta: Dict, 
            'dd': g['demand']['pct'] if g['demand'] else None, 'ds': g['supply']['pct'] if g['supply'] else None,
            'sig': sig, 'k': shard_of(sym), **map_fields(an), 'br': block['rule'] if block and not sig else None,
            'h': u.get('home') or None, 'cur': u.get('currency') if u.get('currency') not in (None, '', 'USD') else None}
+    row.update(L.row_fields(L.classify(detail, row=row)))
     return detail, {k: v for k, v in row.items() if v is not None}
 
 
@@ -587,13 +633,11 @@ def map_fields(an: Analysis) -> Dict:
     sz = [tf, type, touches]; types are the Raja zone types (ARR / WOW / STR strong)."""
     out: Dict = {}
     _, dm, sp = nearest_fresh(an)
-    mn = an.mn if an.mn.ok else None
     for key, t in (('dz', dm), ('sz', sp)):
         if t is None:
             continue
         z, r, i = t
-        higher = [an.w1, an.mn] if r is an.d1 else [an.mn]
-        x = an.dna.get(z.zid) or Z.dna(r.S, r.zones, i, r.tl, higher, mn.zones if mn else [], an.curve, mn, TP_OFFSET)
+        x = dna_of(an, r, i)
         out[key] = [z.tf, x.code, raja_score(x, x.n_tests == 0), x.n_tests] if key == 'dz' else [z.tf, x.code, x.n_tests]
     return out
 
@@ -641,22 +685,14 @@ def drop_partial(bars: List[Bar], now_utc: Optional[dt.datetime] = None) -> Tupl
 
 # ---- "why no signal" diagnostics -----------------------------------------------------------------------------------
 DIAG_PCT = float(os.environ.get('SCANNER_DIAG_PCT', '5'))   # candidate: nearest fresh demand within X% above, or in it
-# Veto priority for "the first failing rule": market gates first (curve, direction, HTF supply, sideways), then
-# zone quality, then the trade geometry, the calendar and last the distance. Each candidate counts once.
-BLOCK_ORDER = ['curve', 'HTF align', 'no HTF supply', 'not sideways', 'strong', 'fresh', 'clean', 'not used',
-               'no 3rd CP', 'room', 'earnings', 'near entry']
-BLOCK_LABEL = {'curve': 'high on curve', 'HTF align': 'direction not long', 'no HTF supply': 'monthly supply on top',
-               'not sideways': 'sideways market', 'strong': 'weak zone type', 'fresh': 'zone already tested',
-               'clean': 'overlap / flip zone', 'not used': 'zone already did its job', 'no 3rd CP': '3rd CP in a row',
-               'room': 'room < 2x the stop or no target', 'earnings': 'earnings within 10 days',
-               'near entry': 'price not near the entry'}
+BLOCK_ORDER, BLOCK_LABEL = L.BLOCK_ORDER, L.BLOCK_LABEL     # veto priority of "the first failing rule"
 CLOSEST_N = 10
 
 
 def diag_candidate(an: Analysis, pct: float = DIAG_PCT) -> Optional[Tuple[Z.Zone, Z.DNA]]:
-    """The nearest (highest proximal) fresh D1 / W1 demand with price inside it or at most pct% above it."""
+    """The nearest (highest proximal) fresh D1 / W1 / MN demand with price inside it or at most pct% above it."""
     px, best = an.price, None
-    for r in (an.d1, an.w1):
+    for r in (an.d1, an.w1, an.mn):
         if not r.ok:
             continue
         for z in r.zones:
@@ -837,6 +873,7 @@ def run(universe: List[Dict], get_bars, get_cf, get_earnings, holdings: List[Dic
             'universe': len(universe), 'scanned': len(syms) - len(errors), 'errors': errors, 'notes': notes, 'signals': sigs, 'exits': exits,
             'bars': chart_bars, 'details': details, 'index': index_rows, 'regime': regime, 'rfx_index': rfx, 'watch_alerts': walerts + index_alert(rfx) if watch else [],
             'strong_in_demand': sorted(strong_in, key=lambda r: (-r['score'], r['symbol'])),
+            'zone_lists': L.zone_lists(details, {r['s']: r for r in index_rows}),
             **universe_meta(universe + uncovered, uncovered, feeds)}
 
 
@@ -868,7 +905,7 @@ def public_json(res: Dict, fixture: bool = False) -> Dict:
     return {
         'version': 1, 'fixture': fixture, 'date': res['date'], 'generated_at': res['generated_at'],
         'universe': res['universe'], 'scanned': res['scanned'], 'errors': len(res['errors']),
-        'rules': 'Raja (ZoneVision Raja template): D1 / W1 zones, direction D1 -> W1 -> MN, curve, room. Kevin second.',
+        'rules': 'Raja (ZoneVision Raja template): D1 / W1 / MN zones (nothing below D1), direction D1 -> W1 -> MN, curve, room. Kevin second.',
         'disclaimer': DISCLAIMER,
         'counts': {k: sum(1 for s in res['signals'] if s['kind'] == k) for k in ('BUY', 'WATCH')} | {'EXIT': len(res['exits'])},
         'universes': res.get('universes', []), 'index_meta': res.get('index_meta', []), 'index_sizes': res.get('index_sizes', {}),
@@ -880,6 +917,7 @@ def public_json(res: Dict, fixture: bool = False) -> Dict:
         'regime': res.get('regime', []),
         'rfx_index': res.get('rfx_index'),
         'signals': res['signals'],
+        'zone_lists': res.get('zone_lists') or L.zone_lists(res.get('details') or {}),
         'bars': res.get('bars', {}),
         'exits': [{'symbol': e['symbol'], 'sector': e.get('sector', ''), 'indexes': e.get('indexes', []),
                    'reasons': sorted({w['reason'] for w in e['warnings']})} for e in res['exits']],
@@ -1017,8 +1055,13 @@ def main(argv=None) -> int:
     ap.add_argument('--no-write', action='store_true')
     ap.add_argument('--out', default=os.path.join(ROOT, 'public', 'scanner'))
     ap.add_argument('--selftest', action='store_true', help='run the whole pipeline on synthetic fixtures')
+    ap.add_argument('--preview-telegram', action='store_true',
+                    help='print the exact Telegram messages of the published scan (--out, default public/scanner); sends nothing')
     a = ap.parse_args(argv)
     import notify
+    if a.preview_telegram:
+        notify.preview(a.out, top=a.top)
+        return 0
     if a.selftest:
         import selftest
         return selftest.main(a.out if '--out' in (argv or sys.argv) else None)

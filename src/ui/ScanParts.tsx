@@ -9,6 +9,10 @@ import { ZoneMiniChart, type MiniBar, type MiniLevels, type MiniZone } from '@/u
 
 /** Short index labels (unknown codes show as themselves). */
 export const IDX_SHORT: Record<string, string> = Object.fromEntries(DEFAULT_INDEXES.map(m => [m.code, m.short]));
+/** Zone timeframe badge: D1, W1 or MN (the scanner reads nothing below D1). */
+export function TfBadge({ tf, className }: { tf: string; className?: string }) {
+  return <span className={cx('h-5 px-1.5 rounded-md border text-[10.5px] font-semibold grid place-items-center num whitespace-nowrap', tf === 'MN' ? 'border-accent/50 text-accent' : tf === 'W1' ? 'border-violet/40 text-violet' : 'border-line text-ink2', className)} title={tf === 'MN' ? 'Monthly zone' : tf === 'W1' ? 'Weekly zone' : 'Daily zone'}>{tf}</span>;
+}
 export const typeTone = (t: string) => (t === 'ARR' || t === 'WOW' ? 'accent' : t === 'STR' ? 'violet' : 'neutral') as 'accent' | 'violet' | 'neutral';
 const RULE_TONE: Record<RuleStatus, string> = { pass: 'text-profit bg-profit/10', fail: 'text-loss bg-loss/10', warn: 'text-warn bg-warn/10', unknown: 'text-ink3 bg-raised', info: 'text-ink3 bg-raised' };
 /** The plan numbers (entry / stop / target / R:R) are the point of a card: one step up from the other stats. */
@@ -88,6 +92,8 @@ export function loadIndex(): Promise<ScanIndex | null> {
 export function useScanIndex(eager = false) {
   const [idx, setIdx] = useState<ScanIndex | null | undefined>(undefined);
   const [want, setWant] = useState(eager);
+  // eager can turn true after mount (Signals -> Market map): start the fetch then, not only on the first render
+  useEffect(() => { if (eager) setWant(true); }, [eager]);
   useEffect(() => { if (!want) return; let live = true; void loadIndex().then(v => { if (live) setIdx(v); }); return () => { live = false; }; }, [want]);
   return { idx, load: () => setWant(true) };
 }
@@ -142,6 +148,8 @@ export function TickerSearch() {
                 <span className="text-right shrink-0">
                   <span className="block num text-[13px]">{px(r.px)}</span>
                   {r.sig ? <span className={cx('block text-[11px] font-semibold', r.sig === 'BUY' ? 'text-profit' : 'text-warn')}>{r.sig}</span>
+                    : r.st === 'S' ? <span className="block text-[11px] text-loss">in supply</span>
+                    : r.dd != null && (r.st === 'D' || r.dd <= 0) ? <span className="block text-[11px] text-profit">in demand</span>
                     : r.dd != null ? <span className="block num text-[11px] text-ink3">{num(r.dd, 1)}% to demand</span> : null}
                 </span>
               </li>

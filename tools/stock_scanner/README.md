@@ -21,7 +21,8 @@ Standard library only (Python 3.10+). No `pip install`.
 | `zones.py` | The Python port of the ZoneVision Raja logic (pure functions). |
 | `scan.py` | The rules → BUY / WATCH / EXIT, JSON for the app, CLI. |
 | `fundamentals.py` | SEC EDGAR XBRL companyfacts → compact table (context only). |
-| `notify.py` | Telegram messages (HTML, per sector, split < 4000 UTF-16 units). |
+| `notify.py` | Telegram messages (HTML, per sector, split < 4000 UTF-16 units), `--preview-telegram`. |
+| `lists.py` | Zone lists (in / approaching / left, per side) shared by Telegram, `latest.json` and the app. |
 | `backtest.py` | Walk-forward backtest of the same rules. |
 | `selftest.py` | Whole pipeline on synthetic fixtures (`scan.py --selftest`). |
 | `holdings.json` | Your positions for EXIT warnings (or the `HOLDINGS_JSON` secret, preferred). |
@@ -50,10 +51,11 @@ Standard library only (Python 3.10+). No `pip install`.
      skipped with a one-line hint and those tickers show fundamentals n/a. Read from the secret only, never written.
 3. Optional repository **variables**: `SCANNER_UNIVERSES` (default `SPX,NDX,DJI,TSX60,TSX`), `TELEGRAM_TOP_N` (default 5),
    `SCANNER_TSX_FEED` (empty; `eodhd` + the secret `EODHD_API_KEY` switches the paid TSX feed on, see Canada).
-4. Actions tab → **Stock scan** → *Run workflow* once to test. The first run downloads 10 years for every ticker
+4. Actions tab → **Stock scan** → *Run workflow* once to test. The first run downloads up to 20 years for every ticker (Alpaca serves from 2016; MN zones need the long history)
    from Alpaca in batches of 100 symbols (~10,000 bars per page, a few hundred requests, a few minutes at Alpaca's
    200 requests/min); later runs fetch only the last ~3 weeks in batches of 200 (one request per batch; a ticker
-   whose overlap no longer matches after a split / dividend gets its full history again). Cache via `actions/cache`.
+   whose overlap no longer matches after a split / dividend gets its full history again). A cache from the older 10-year
+   fetch is extended once with a full fetch (`history_days` in its meta marks it done). Cache via `actions/cache`.
 
 **No data, no output**: when fewer than half of the tickers (`SCANNER_MIN_COVERAGE`, 0.5) have price data, the scan
 writes nothing (`latest.json`, `index.json`, the shards and the history stay as they were), sends no signals, sends
@@ -64,15 +66,21 @@ Each run commits `public/scanner/latest.json` (signals), `public/scanner/history
 `public/scanner/index.json` (every ticker, for the app's search) and `public/scanner/t/<0-63>.json` (that redeploys
 the app).
 
-**Market map** (`/scanner` → Market map): every stock in five buckets by where price sits against its nearest
-fresh D1 / W1 zones (in supply · near supply ≤ 3% · middle · near demand ≤ 3% · in demand), strongest zone first,
-even when the rules block a BUY. Built from `index.json` alone: each row carries `dz` (nearest fresh demand:
-TF, Raja type, score, touches), `sz` (nearest fresh supply: TF, type, touches) and `br` (the first rule that blocks a
-BUY, when there is no signal). Telegram adds "In strong demand (rules blocked)": up to 10 tickers inside a fresh
-ARR / WOW / STR demand without a BUY, with their reason, by sector.
+**Zone lists** (`lists.py`; Telegram, `latest.json` `zone_lists`, the app's Market map: the same lists): every
+stock in ONE of seven buckets by where its close sits against its D1 / W1 / MN zones (fresh or tested, ≤ 3 touches):
+in supply · approaching supply (close ≤ `SCANNER_NEAR_PCT` 3% below the proximal) · left supply (touched in the last
+`SCANNER_LEFT_SESSIONS` 3 sessions, closed back below = rejected) · middle · left demand (bounced) · approaching
+demand · in demand; in > left > approaching. Each item: TF, type, score, touches, % to the proximal and the Raja
+status (BUY / WATCH, or the first rule that blocks a BUY on that zone; supply: the direction). `index.json` rows carry
+`mb` (bucket code IS / AS / LS / M / LD / AD / ID), `mz` ([tf, type, score, touches, %, proximal]) and `mr` (status);
+older files without them fall back to `dz` / `sz` / `br` (nearest fresh zones, no "left" buckets). Telegram sends a
+DEMAND and a SUPPLY message every day: top `TELEGRAM_LIST_CAP` (15) per section by zone score, grouped by sector,
+"+N more on the app" linking to `/scanner?view=map&b=<bucket>`. Preview without sending:
+`python tools/stock_scanner/scan.py --preview-telegram` (reads `public/scanner`, rebuilds the lists from the shards
+when the file predates them).
 
 **Search any ticker**: every analysed ticker (signal or not) gets a detail record: last 120
-daily bars (packed), all active D1 / W1 zones with type / score / fresh / touches, nearest demand and supply with the
+daily bars (packed), all active D1 / W1 / MN zones with type / score / fresh / touches, nearest demand and supply with the
 distance, the direction / curve state, the nearest demand checked against every BUY rule as if it were a signal, and
 the fundamentals when cached. The app opens it at `/scanner/<TICKER>` (BRK.B -> BRK-B).
 Why 64 shard files and not one file per ticker: the daily commit then touches ~67 files instead of ~2,600 (smaller
@@ -182,7 +190,7 @@ supply above; without that pair the 100-bar MN range (v1). ≤ 25% low curve (bu
 | BUY rule (all must pass) | Source |
 |---|---|
 | Fresh: first touch, not removed | L2 · L52 |
-| Zone type ARR / WOW / STR (D1 or W1) | L1 · L51 |
+| Zone type ARR / WOW / STR (D1, W1 or MN; nothing below D1) | L1 · L51 |
 | Direction LONG (FULL or REDUCED) from D1 → W1 → MN | L7 · L8 · L3 |
 | Curve below 50% (≤ 25% best; 25-50% flagged) | L4 |
 | Not inside / next to a monthly supply, price not inside one | L50 · L52 (RjA_OppHtfVeto) |
@@ -195,18 +203,19 @@ supply above; without that pair the 100-bar MN range (v1). ≤ 25% low curve (bu
 | Price within max(1.0x zone height, 3% of price) above the proximal | scanner (InpApproach) |
 | No earnings in the next 10 trading days (when the date is known; unknown = "?") | Kevin L12 |
 
-**Plan**: entry = proximal (limit); **stop = distal − 10% of the zone height on D1, 5% on W1** (the owner's rule,
+**Plan**: entry = proximal (limit); **stop = distal − 10% of the zone height on D1, 5% on W1, 3% on MN** (the owner's rule,
 ZV 2.10, min 0.03); **target = 0.5% before the next supply's proximal** (the nearest of the zone TF's live supplies
 and the fresh W1 / MN supplies); R:R from those. Score = Raja lens score (`LensRun`): type 4/3 + fresh 2 + curve 2 +
 room 2, max 10.
 
 **WATCH**: strong fresh zones made in the last 5 sessions that pass everything but the approach; tested zones
-(2nd / 3rd touch, D1 / W1 allowance of RjA_TouchCap) that pass everything but freshness → confirm one TF lower
-(L52 · L101). **EXIT** (holdings): stop hit by a close; the demand under the entry broken by a close (since the
+(2nd / 3rd touch, allowance of RjA_TouchCap) that pass everything but freshness → confirm one TF lower, never
+below D1 (MN → W1, W1 → D1; a D1 zone: a D1 close back above the proximal) (L52 · L101). MN zones are tradeable
+like D1 / W1 (no higher row: their own supplies give the room). **EXIT** (holdings): stop hit by a close; the demand under the entry broken by a close (since the
 holding's `date`, else the last 5 sessions); price within one zone height of the next supply's proximal or inside it
 (L7 · L106 "exit before the opposite zone").
 
-A W1 zone counts as "made" on the close of its stay-away week (its last session), not on the Monday it is dated by.
+A W1 / MN zone counts as "made" on the close of its stay-away week / month (its last session), not on the first day it is dated by.
 
 **Why no signal** (`blocked` / `closest` in latest.json): every ticker without a BUY whose nearest fresh demand is
 within `SCANNER_DIAG_PCT` (5) % above price, or holds price, is a candidate; it counts once under its first failing
@@ -278,7 +287,8 @@ says trust only when the out-of-sample CI is above zero with 30+ trades.
   unadjusted TradingView chart.
 - **Survivorship bias**: the backtest uses today's index members only (companies that left the index are missing),
   which flatters results.
-- **No intraday**: no H1 / H4 confirmation, so tested zones are WATCH only; entries assume a resting limit order.
+- **No intraday, by design**: zones only on D1, W1 and MN (nothing smaller than D1), so tested zones are WATCH only;
+  entries assume a resting limit order.
 - Prices come from Alpaca (official API; the free plan's `iex` fallback covers one exchange's trades only, so its
   daily volumes are smaller and highs / lows can differ slightly from the consolidated tape). Yahoo / Stooq / SEC /
   iShares are unofficial or rate-limited sources; a ticker without data is skipped and counted.

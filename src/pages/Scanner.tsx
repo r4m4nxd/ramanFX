@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ago, EXIT_REASON, indexesOf, indexList, listingText, px, reasonsText, rowSectors, stateWord, matches, parseScan, planLink, SCAN_URL, SECTOR_SHORT, sectorsOf, sortSignals, stockPath, tvChart, type IndexFilter, type ScanExit, type ScanFile, type ScanSignal, type SortKey } from '@/core/scanner';
+import { Link, useSearchParams } from 'react-router-dom';
+import { ago, CODE_BUCKET, EXIT_REASON, isBucket, indexesOf, indexList, listingText, px, reasonsText, rowSectors, stateWord, matches, parseScan, planLink, SCAN_URL, SECTOR_SHORT, sectorsOf, sortSignals, stockPath, tvChart, type IndexFilter, type ScanExit, type ScanFile, type ScanSignal, type SortKey } from '@/core/scanner';
 import { num } from '@/lib/format';
 import { Badge, Card, cx, Empty, Page, Segmented, Stat, useIsMobile } from '@/ui/kit';
 import type { MiniBar } from '@/ui/ZoneMiniChart';
@@ -211,7 +211,11 @@ export default function Scanner() {
   const [idx, setIdxState] = useState<IndexFilter>(readIdx);
   const setIdx = (v: IndexFilter) => { setIdxState(v); saveIdx(v); };
   const [sector, setSector] = useState('all');
-  const [view, setViewState] = useState<View>(readView);
+  // a link like /scanner?view=map&b=near_demand (Telegram's "+N more on the app") opens that view and bucket
+  const [sp] = useSearchParams();
+  const qb = sp.get('b');
+  const linkBucket = isBucket(qb) ? qb : qb && qb in CODE_BUCKET ? CODE_BUCKET[qb as keyof typeof CODE_BUCKET] : null;
+  const [view, setViewState] = useState<View>(() => (sp.get('view') === 'map' || linkBucket ? 'map' : sp.get('view') === 'signals' ? 'signals' : readView()));
   const setView = (v: View) => { setViewState(v); saveView(v); };
   const scan = load.state === 'ok' ? load.scan : null;
   const { idx: tickIdx } = useScanIndex(view === 'map');
@@ -235,7 +239,7 @@ export default function Scanner() {
         <div className="flex flex-col gap-3">
           <div className="min-w-0">
             <h2 className="text-xl font-semibold tracking-tight">US stock zone scan</h2>
-            <p className="text-[13px] text-ink2 mt-1 leading-relaxed max-w-[62ch]">{indexList(indexes)} after each US close: fresh D1 / W1 demand zones checked rule by rule (Raja first, Kevin second), plus exit warnings for your holdings.</p>
+            <p className="text-[13px] text-ink2 mt-1 leading-relaxed max-w-[62ch]">{indexList(indexes)} after each US close: fresh D1 / W1 / MN demand zones checked rule by rule (Raja first, Kevin second), plus exit warnings for your holdings.</p>
           </div>
           {scan?.fixture && <Badge tone="warn" className="self-start">Sample data · synthetic fixture</Badge>}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink3">
@@ -309,7 +313,7 @@ export default function Scanner() {
             {view === 'signals' ? <SectorPills sectors={sectors} sector={sector} setSector={setSector} allCount={count('BUY')} />
               : <SectorPills sectors={mapSectors} sector={sector} setSector={setSector} />}
           </div>
-          {view === 'map' ? <MarketMap rows={tickIdx?.tickers ?? null} idx={idx} sector={sector} loading={tickIdx === undefined} /> : pill === 'STAR' ? <WatchList syms={watch.list} onStar={watch.toggle} /> : pill === 'EXIT' ? <ExitList exits={exits} /> : list.length ? (
+          {view === 'map' ? <MarketMap rows={tickIdx?.tickers ?? null} idx={idx} sector={sector} loading={tickIdx === undefined} initial={linkBucket} /> : pill === 'STAR' ? <WatchList syms={watch.list} onStar={watch.toggle} /> : pill === 'EXIT' ? <ExitList exits={exits} /> : list.length ? (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">{list.map(s => <SignalCard key={`${s.kind}${s.symbol}${s.tf}${s.made}`} s={s} bars={scan.bars?.[s.symbol]} starred={watch.has(s.symbol)} onStar={() => watch.toggle(s.symbol)} />)}</div>
           ) : pill === 'BUY' ? <NoBuy scan={scan} filtered={idx !== 'all' || sector !== 'all'} /> : (
             <Card><Empty icon="eye" title="Nothing to watch here">

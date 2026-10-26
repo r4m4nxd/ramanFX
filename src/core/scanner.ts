@@ -1,6 +1,9 @@
 // The daily S&P 500 scan written by tools/stock_scanner (GitHub Actions) to public/scanner/latest.json.
 // Rule-based (Raja first, Kevin second); fundamentals are context only. Holdings never appear here beyond a symbol.
 
+/** Zone timeframes: D1, W1 and MN only (nothing below D1). */
+export type ZoneTF = 'D1' | 'W1' | 'MN';
+export const ZONE_TFS: ZoneTF[] = ['D1', 'W1', 'MN'];
 export type RuleStatus = 'pass' | 'fail' | 'warn' | 'unknown' | 'info';
 export interface ScanRule { status: RuleStatus; text: string; ref: string }
 export type SignalKind = 'BUY' | 'WATCH';
@@ -17,7 +20,7 @@ export interface ScanSignal {
   score?: number;
   exchange?: string;
   chart?: string;
-  tf: 'D1' | 'W1';
+  tf: ZoneTF;
   zone_type: string;
   zone_type_text: string;
   pattern: string;
@@ -269,10 +272,18 @@ export interface IndexRow {
   s: string; n: string; sec: string; ix: IndexCode[]; px: number; dd?: number; ds?: number; sig?: SignalKind; k: number;
   /** D in demand, S in supply, M middle */ st?: 'D' | 'S' | 'M';
   dz?: [string, string, number, number]; sz?: [string, string, number]; br?: string; h?: string; cur?: string;
+  /** Zone-list bucket (newer scans; same lists as Telegram): IS in supply, AS approaching supply, LS left supply,
+   *  M middle, LD left demand, AD approaching demand, ID in demand. */
+  mb?: BucketCode;
+  /** The bucket's zone: [tf, type, score | null, touches, % from the close to the proximal, proximal]. */
+  mz?: [string, string, number | null, number, number, number];
+  /** Raja status on that zone: 'BUY' / 'WATCH' / 'ok' (rules pass) / 'dir' (supply side) / a rule key (BLOCK_LABEL). */
+  mr?: string;
 }
+export type BucketCode = 'IS' | 'AS' | 'LS' | 'M' | 'LD' | 'AD' | 'ID';
 export interface ScanIndex { date: string; generated_at: string; fixture: boolean; tickers: IndexRow[] }
 
-export interface DetailZone { tf: 'D1' | 'W1'; side: 'demand' | 'supply'; proximal: number; distal: number; type: string; score: number | null; fresh: boolean; touches: number; made: string; pattern: string }
+export interface DetailZone { tf: ZoneTF; side: 'demand' | 'supply'; proximal: number; distal: number; type: string; score: number | null; fresh: boolean; touches: number; made: string; pattern: string }
 export interface NearZone { tf: string; proximal: number; distal: number; type: string; dist_pct: number }
 export interface DetailCheck {
   zone: NearZone; kind: 'BUY' | 'no trade'; score: number | null; entry: number; stop: number; target: number | null; rr: number | null;
@@ -306,10 +317,13 @@ export function parseIndex(js: unknown): ScanIndex | null {
   const o = js as ScanIndex;
   const tickers = o.tickers.filter(r => r && typeof r.s === 'string' && typeof r.k === 'number')
     .map(r => {
-      const { dz, sz, ...rest } = r;
+      const { dz, sz, mb, mz, mr, ...rest } = r;
       const okDz = Array.isArray(dz) && dz.length === 4 && typeof dz[1] === 'string';
       const okSz = Array.isArray(sz) && sz.length === 3 && typeof sz[1] === 'string';
-      return { ...rest, n: String(r.n ?? r.s), sec: String(r.sec ?? ''), ix: Array.isArray(r.ix) ? r.ix.filter(isIndex) : [], ...(okDz ? { dz } : {}), ...(okSz ? { sz } : {}) };
+      const okMb = typeof mb === 'string' && mb in CODE_BUCKET;
+      const okMz = Array.isArray(mz) && mz.length === 6 && typeof mz[0] === 'string' && typeof mz[1] === 'string' && isNum(mz[4]) && isNum(mz[5]);
+      return { ...rest, n: String(r.n ?? r.s), sec: String(r.sec ?? ''), ix: Array.isArray(r.ix) ? r.ix.filter(isIndex) : [], ...(okDz ? { dz } : {}), ...(okSz ? { sz } : {}),
+        ...(okMb ? { mb } : {}), ...(okMb && okMz ? { mz } : {}), ...(okMb && typeof mr === 'string' ? { mr } : {}) };
     });
   return { date: String(o.date ?? ''), generated_at: String(o.generated_at ?? ''), fixture: !!o.fixture, tickers };
 }
@@ -361,14 +375,22 @@ export function checkPlanLink(d: TickerDetail): string | null {
 }
 
 // ─── Market map: every stock by where its price sits against the fresh zones (index.json, no shard loads) ──────
-export type Bucket = 'in_supply' | 'near_supply' | 'middle' | 'near_demand' | 'in_demand';
-/** Distance (%) that counts as "near" a zone. */
+export type Bucket = 'in_supply' | 'near_supply' | 'left_supply' | 'middle' | 'left_demand' | 'near_demand' | 'in_demand';
+/** Distance (%) that counts as "approaching" a zone (the scan's default; newer files carry their own buckets). */
 export const NEAR_PCT = 3;
-export const BUCKETS: { key: Bucket; label: string; short: string }[] = [
-  { key: 'in_supply', label: 'In supply', short: 'In supply' }, { key: 'near_supply', label: `Near supply (≤ ${NEAR_PCT}%)`, short: 'Near supply' },
-  { key: 'middle', label: 'Middle', short: 'Middle' }, { key: 'near_demand', label: `Near demand (≤ ${NEAR_PCT}%)`, short: 'Near demand' },
-  { key: 'in_demand', label: 'In demand', short: 'In demand' },
+export type Side = 'supply' | 'middle' | 'demand';
+export const BUCKETS: { key: Bucket; label: string; short: string; side: Side; hint: string }[] = [
+  { key: 'in_supply', label: 'In supply', short: 'In', side: 'supply', hint: 'Close inside a supply zone' },
+  { key: 'near_supply', label: 'Approaching supply', short: 'Approaching', side: 'supply', hint: `Close within ${NEAR_PCT}% below a supply` },
+  { key: 'left_supply', label: 'Left supply', short: 'Left', side: 'supply', hint: 'Touched a supply in the last 3 sessions and closed back below it (rejected)' },
+  { key: 'middle', label: 'Middle', short: 'Middle', side: 'middle', hint: 'Not in, near or just off a zone' },
+  { key: 'left_demand', label: 'Left demand', short: 'Left', side: 'demand', hint: 'Touched a demand in the last 3 sessions and closed back above it (bounced)' },
+  { key: 'near_demand', label: 'Approaching demand', short: 'Approaching', side: 'demand', hint: `Close within ${NEAR_PCT}% above a demand` },
+  { key: 'in_demand', label: 'In demand', short: 'In', side: 'demand', hint: 'Close inside a demand zone' },
 ];
+export const CODE_BUCKET: Record<BucketCode, Bucket> = { IS: 'in_supply', AS: 'near_supply', LS: 'left_supply', M: 'middle', LD: 'left_demand', AD: 'near_demand', ID: 'in_demand' };
+export const bucketMeta = (b: Bucket) => BUCKETS.find(x => x.key === b)!;
+export const isBucket = (v: unknown): v is Bucket => typeof v === 'string' && BUCKETS.some(b => b.key === v);
 export const STRONG_TYPES = new Set(['ARR', 'WOW', 'STR']);
 /** The scanner's first blocking rule (index row `br`) in words; same labels as the Python BLOCK_LABEL. */
 export const BLOCK_LABEL: Record<string, string> = {
@@ -377,7 +399,10 @@ export const BLOCK_LABEL: Record<string, string> = {
   'no 3rd CP': '3rd CP in a row', room: 'room < 2x the stop or no target', earnings: 'earnings within 10 days', 'near entry': 'price not near the entry',
 };
 
-export function bucketOf(r: Pick<IndexRow, 'st' | 'dd' | 'ds'>, near = NEAR_PCT): Bucket {
+/** The row's bucket: the scan's own (mb, newer files), else from the gauge state and the distances (older files have
+ *  no "left" information: those buckets stay empty until the next scan). */
+export function bucketOf(r: Pick<IndexRow, 'st' | 'dd' | 'ds' | 'mb'>, near = NEAR_PCT): Bucket {
+  if (r.mb && r.mb in CODE_BUCKET) return CODE_BUCKET[r.mb];
   if (r.st === 'S') return 'in_supply';
   if (r.st === 'D') return 'in_demand';
   const nd = r.dd != null && r.dd >= 0 && r.dd <= near;
@@ -388,19 +413,26 @@ export function bucketOf(r: Pick<IndexRow, 'st' | 'dd' | 'ds'>, near = NEAR_PCT)
 
 export interface MapZone { side: 'demand' | 'supply'; tf: string; type: string; score: number | null; touches: number; pct: number | null; strong: boolean; fresh: boolean }
 
-/** The zone a row is shown with in its bucket: the supply on the supply side, else the demand. */
+/** The zone a row is shown with in its bucket: the scan's bucket zone (mz), else the nearest fresh supply on the
+ *  supply side and the nearest fresh demand elsewhere. */
 export function mapZone(r: IndexRow, b: Bucket): MapZone | null {
-  const sup = b === 'in_supply' || b === 'near_supply';
+  const sup = bucketMeta(b).side === 'supply';
+  if (r.mz && r.mb) {
+    const [tf, type, score, touches, pct] = r.mz;
+    return { side: sup ? 'supply' : 'demand', tf, type, score, touches, pct: b.startsWith('in_') ? 0 : pct, strong: STRONG_TYPES.has(type), fresh: touches === 0 };
+  }
   const z = sup ? r.sz : r.dz;
   if (!z) return null;
   const touches = sup ? r.sz![2] : r.dz![3];
   return { side: sup ? 'supply' : 'demand', tf: z[0], type: z[1], score: sup ? null : r.dz![2], touches, pct: (sup ? r.ds : r.dd) ?? null, strong: STRONG_TYPES.has(z[1]), fresh: touches === 0 };
 }
 
-/** Strongest zones first: strong type, then untouched, then Raja score, then the nearest. */
+/** Strongest zones first. Newer files: zone score, then the nearest (the Telegram order, so its top 15 = the top
+ *  of the column). Older files: strong type, then untouched, then Raja score, then the nearest. */
 function strengthKey(r: IndexRow, b: Bucket): number[] {
   const z = mapZone(r, b);
   if (!z) return [1, 1, 0, 999];
+  if (r.mz && r.mb) return [-(z.score ?? ((z.type === 'ARR' || z.type === 'WOW' ? 4 : z.type === 'STR' ? 3 : 0) + (z.touches === 0 ? 2 : z.touches === 1 ? 1 : 0))), Math.abs(z.pct ?? 999)];
   return [z.strong ? 0 : 1, z.fresh ? 0 : 1, -(z.score ?? 0), Math.abs(z.pct ?? 999)];
 }
 
@@ -418,8 +450,14 @@ export function marketMap(rows: IndexRow[], idx: IndexFilter = 'all', sector = '
 }
 
 /** The small tag of a map row: today's signal, else the rule that blocks a BUY. */
-export const mapTag = (r: IndexRow): { text: string; tone: 'profit' | 'warn' | 'neutral' } | null =>
-  r.sig ? { text: r.sig, tone: r.sig === 'BUY' ? 'profit' : 'warn' } : r.br ? { text: BLOCK_LABEL[r.br] ?? r.br, tone: 'neutral' } : null;
+export function mapTag(r: IndexRow): { text: string; tone: 'profit' | 'warn' | 'neutral' } | null {
+  if (r.sig) return { text: r.sig, tone: r.sig === 'BUY' ? 'profit' : 'warn' };
+  const k = r.mb ? r.mr : r.br;
+  if (!k || k === 'dir') return null;
+  if (k === 'BUY' || k === 'WATCH') return { text: k, tone: k === 'BUY' ? 'profit' : 'warn' };
+  if (k === 'ok') return { text: 'rules pass', tone: 'neutral' };
+  return { text: BLOCK_LABEL[k] ?? k, tone: 'neutral' };
+}
 
 /** Sectors of the index rows, most rows first. */
 export const rowSectors = (rows: IndexRow[]) => [...rows.reduce((m, r) => m.set(r.sec || 'Other', (m.get(r.sec || 'Other') ?? 0) + 1), new Map<string, number>())]

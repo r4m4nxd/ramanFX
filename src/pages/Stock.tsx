@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { checkPlanLink, DEFAULT_INDEXES, detailFrom, indexList, listingText, px, findBySlug, shardUrl, tvChart, unpackBars, type DetailZone, type TickerDetail } from '@/core/scanner';
+import { bucketMeta, checkPlanLink, CODE_BUCKET, DEFAULT_INDEXES, detailFrom, indexList, listingText, px, findBySlug, shardUrl, tvChart, unpackBars, type DetailZone, type IndexRow, type TickerDetail } from '@/core/scanner';
 import { num } from '@/lib/format';
 import { Badge, Card, cx, Empty, Page, Stat } from '@/ui/kit';
 import { Icon } from '@/ui/Icon';
-import { ContextFlags, FundTable, IDX_SHORT, loadIndex, PLAN_V, PzChips, RuleList, ScoreChips, StarButton, TickerSearch, typeTone, useWatchlist, ZoneChart } from '@/ui/ScanParts';
+import { ContextFlags, FundTable, IDX_SHORT, loadIndex, PLAN_V, PzChips, RuleList, ScoreChips, StarButton, TfBadge, TickerSearch, typeTone, useWatchlist, ZoneChart } from '@/ui/ScanParts';
 import { ZoneGauge } from '@/ui/ZoneGauge';
 import type { MiniZone } from '@/ui/ZoneMiniChart';
 
-type Load = { state: 'loading' } | { state: 'missing' } | { state: 'error' } | { state: 'ok'; d: TickerDetail };
+type Load = { state: 'loading' } | { state: 'missing' } | { state: 'error' } | { state: 'ok'; d: TickerDetail; row: IndexRow };
 
 function useDetail(slug: string): [Load, () => void] {
   const [s, setS] = useState<Load>({ state: 'loading' });
@@ -23,7 +23,7 @@ function useDetail(slug: string): [Load, () => void] {
       if (!row) return live && setS({ state: 'missing' });
       const r = await fetch(shardUrl(row.k), { cache: 'no-cache' });
       const d = r.ok ? detailFrom(await r.json(), row.s) : null;
-      if (live) setS(d ? { state: 'ok', d } : { state: 'error' });
+      if (live) setS(d ? { state: 'ok', d, row } : { state: 'error' });
     })().catch(() => { if (live) setS({ state: 'error' }); });
     return () => { live = false; };
   }, [slug, n]);
@@ -37,7 +37,8 @@ function ZoneRow({ z, price }: { z: DetailZone; price: number }) {
       <span className={cx('w-1.5 self-stretch rounded-full shrink-0', z.side === 'demand' ? 'bg-profit' : 'bg-loss')} aria-hidden="true" />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[13px] font-semibold">{z.tf} {z.side}</span>
+          <TfBadge tf={z.tf} />
+          <span className="text-[13px] font-semibold">{z.side}</span>
           <Badge tone={typeTone(z.type)} className="h-5 px-2 text-[10.5px]">{z.type}</Badge>
           <span className={cx('text-[11px] font-medium', z.fresh ? 'text-profit' : 'text-ink3')}>{z.fresh ? 'fresh' : `touch ${z.touches + 1}`}</span>
           {z.score != null && <span className="num text-[11px] text-ink3">score {z.score}/10</span>}
@@ -53,6 +54,7 @@ export default function Stock() {
   const { ticker = '' } = useParams();
   const [load, retry] = useDetail(ticker);
   const d = load.state === 'ok' ? load.d : null;
+  const mb = load.state === 'ok' && load.row.mb && load.row.mb !== 'M' ? CODE_BUCKET[load.row.mb] : null;
   const bars = useMemo(() => (d ? unpackBars(d.bars) : []), [d]);
   const watch = useWatchlist();
   const zones: MiniZone[] = useMemo(() => (d ? d.zones.map(z => ({ proximal: z.proximal, distal: z.distal, side: z.side })) : []), [d]);
@@ -75,6 +77,7 @@ export default function Stock() {
                   <h2 className="text-[22px] font-semibold tracking-tight">{d.symbol}</h2>
                   {d.signal && <Badge tone={d.signal === 'BUY' ? 'profit' : 'warn'}>{d.signal} today</Badge>}
                   {listingText(d) && <Badge tone="neutral">{listingText(d)}</Badge>}
+                  {mb && <Link to={`/scanner?view=map&b=${mb}`} className="h-6 px-2 rounded-full border border-line text-[11px] font-semibold text-ink2 inline-flex items-center hover:text-ink" title="Its list in the market map (and Telegram)">{bucketMeta(mb).label}</Link>}
                 </div>
                 <p className="text-[13px] text-ink3 mt-0.5">{d.name}{d.sector ? ` · ${d.sector}` : ''}</p>
                 {!!d.indexes.length && <div className="flex gap-1 mt-1.5 flex-wrap" aria-label="Indexes">{d.indexes.map(i => <span key={i} className="h-5 px-1.5 rounded-md border border-line text-[10.5px] font-semibold text-ink2 grid place-items-center">{IDX_SHORT[i] ?? i}</span>)}</div>}
@@ -135,7 +138,7 @@ export default function Stock() {
           )}
 
           <Card className="p-4 sm:p-5" aria-label="Active zones">
-            <h3 className="text-[15px] font-semibold">Active zones <span className="text-ink3 font-normal text-[13px]">D1 + W1 · {d.zones.length}</span></h3>
+            <h3 className="text-[15px] font-semibold">Active zones <span className="text-ink3 font-normal text-[13px]">D1 + W1 + MN · {d.zones.length}</span></h3>
             {d.zones.length ? <ul className="divide-y divide-line mt-1">{d.zones.map((z, i) => <ZoneRow key={i} z={z} price={d.price} />)}</ul>
               : <p className="text-[13px] text-ink3 mt-2">No active zone in the last 200 bars.</p>}
           </Card>

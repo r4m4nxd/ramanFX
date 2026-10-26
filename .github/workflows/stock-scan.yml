@@ -81,6 +81,11 @@ jobs:
           HOLDINGS_JSON: ${{ secrets.HOLDINGS_JSON }}
           WATCHLIST: ${{ secrets.WATCHLIST }}
           WATCHLIST_APPROACH_PCT: ${{ vars.WATCHLIST_APPROACH_PCT || '3' }}
+          # Daily zone lists (Telegram + app): approaching = close within X% of a proximal, left = touched in the last
+          # N sessions; top N per Telegram section.
+          SCANNER_NEAR_PCT: ${{ vars.SCANNER_NEAR_PCT || '3' }}
+          SCANNER_LEFT_SESSIONS: ${{ vars.SCANNER_LEFT_SESSIONS || '3' }}
+          TELEGRAM_LIST_CAP: ${{ vars.TELEGRAM_LIST_CAP || '15' }}
           SEC_UA: ${{ secrets.SEC_UA }}
           # Daily bars: Alpaca Market Data (free account, paper-trading keys). Without them the scan falls back to
           # Yahoo / Stooq, which refuse GitHub runners: then the no-data guard fails the run and publishes nothing.

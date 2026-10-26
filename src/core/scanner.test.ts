@@ -241,6 +241,40 @@ describe('market map', () => {
     expect(mapTag(rows[3])).toEqual({ text: 'WATCH', tone: 'warn' });
     expect(mapTag(rows[0])).toBeNull();
   });
+  it('uses the buckets of the scan (mb / mz / mr) when the file has them', () => {
+    const rows = [
+      row('LD', { st: 'M', dd: 1, mb: 'LD', mz: ['D1', 'ARR', 8, 1, 1.2, 9.9], mr: 'curve' }),
+      row('AS', { st: 'M', ds: 2, mb: 'AS', mz: ['MN', 'WOW', 7, 0, 2, 10.2], mr: 'dir' }),
+      row('LS', { st: 'M', mb: 'LS', mz: ['W1', 'STR', 5, 1, 0.8, 10.1], mr: 'dir' }),
+      row('ID', { st: 'M', mb: 'ID', mz: ['W1', 'WOW', 9, 1, 0, 10.5], mr: 'BUY' }),
+      row('ID2', { st: 'M', mb: 'ID', mz: ['D1', 'WK', 3, 0, 0, 10.4], mr: 'ok' }),
+      row('M', { st: 'D', mb: 'M' }),
+    ];
+    const m = marketMap(rows);
+    expect(m.left_demand.map(r => r.s)).toEqual(['LD']);
+    expect(m.near_supply.map(r => r.s)).toEqual(['AS']);
+    expect(m.left_supply.map(r => r.s)).toEqual(['LS']);
+    expect(m.in_demand.map(r => r.s)).toEqual(['ID', 'ID2']);
+    expect(m.middle.map(r => r.s)).toEqual(['M']);              // mb wins over the old state
+    expect(mapZone(rows[1], 'near_supply')).toMatchObject({ side: 'supply', tf: 'MN', type: 'WOW', score: 7, pct: 2 });
+    expect(mapTag(rows[0])).toEqual({ text: 'high on curve', tone: 'neutral' });
+    expect(mapTag(rows[1])).toBeNull();
+    expect(mapTag(rows[3])).toEqual({ text: 'BUY', tone: 'profit' });
+    expect(mapTag(rows[4])).toEqual({ text: 'rules pass', tone: 'neutral' });
+    const p = parseIndex({ tickers: [{ s: 'A', k: 1, mb: 'XX', mz: ['D1', 'WK', 1, 0, 1, 2] }, { s: 'B', k: 1, mb: 'LD', mz: ['D1'] }] })!;
+    expect(p.tickers[0].mb).toBeUndefined();
+    expect(p.tickers[0].mz).toBeUndefined();
+    expect(p.tickers[1].mb).toBe('LD');
+    expect(p.tickers[1].mz).toBeUndefined();
+  });
+  it('maps the real published index (older format: no left buckets) without losing a stock', () => {
+    const real = parseIndex(JSON.parse(readFileSync(resolve(process.cwd(), 'public/scanner/index.json'), 'utf8')))!;
+    expect(real.tickers.length).toBeGreaterThan(500);
+    const m = marketMap(real.tickers);
+    expect(Object.values(m).reduce((a, v) => a + v.length, 0)).toBe(real.tickers.length);
+    expect(m.in_demand.length + m.in_supply.length).toBeGreaterThan(0);
+    for (const r of m.in_demand.slice(0, 20)) expect(mapZone(r, 'in_demand')?.side).toBe('demand');
+  });
   it('reads the compact zone fields of the selftest index, dropping malformed ones', () => {
     expect(parseIndex(sampleIndex)!.tickers.some(r => r.dz && r.dz.length === 4)).toBe(true);
     const p = parseIndex({ tickers: [{ s: 'A', k: 1, dz: ['D1'], sz: ['D1', 'STR', 0] }] })!;

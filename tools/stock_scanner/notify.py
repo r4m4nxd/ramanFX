@@ -1,12 +1,19 @@
 """Telegram messages for the daily scan (Bot API sendMessage, parse_mode HTML, <>& escaped), grouped by SECTOR.
 
 1) Header: date, regime (SPY / QQQ / IWM vs the 200-day average + curve), counts, sectors ranked by BUYs.
-2) One message per sector (emoji + bold name): BUY cards (top N by Raja score), WATCH cards, EXIT cards.
-   Fixed labels on every card so it reads (and parses) the same each day.
-3) Every message < 4000 UTF-16 units, split only between cards. >= 1.1 s between sends; a 429 waits retry_after.
-4) Last line: link to the full list in the app. Footer: "Not financial advice — zone rules only."
+2) Signals first, when there are any: one message per sector (emoji + bold name): BUY cards (top N by Raja score),
+   WATCH cards, EXIT cards. Fixed labels on every card so it reads (and parses) the same each day.
+3) Every day, the zone lists (lists.py; the same lists as latest.json zone_lists and the app's market map), D1 / W1 /
+   MN zones only, grouped by sector, top TELEGRAM_LIST_CAP per section by zone score, the rest "+N more on the app":
+     DEMAND  🟢 In demand now · ⬇️ Approaching demand (close <= 3% above the proximal) · ↗️ Left demand (bounced)
+     SUPPLY  🔴 In supply · ⬆️ Approaching supply · ↘️ Left supply (rejected)
+   Each line: TICKER (TSX:… when Canadian) price · zone TF type score · % to the zone · Raja status (BUY or the first
+   rule that blocks a BUY; supply: the direction).
+4) Every message < 4000 UTF-16 units, split only between blocks. >= 1.1 s between sends; a 429 waits retry_after.
+5) Last line: link to the full list in the app. Footer: "Not financial advice — zone rules only."
 
-Env: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (unset -> printed instead). TELEGRAM_TOP_N (default 5).
+Env: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (unset -> printed instead). TELEGRAM_TOP_N (default 5), TELEGRAM_LIST_CAP (15).
+Preview without sending: python tools/stock_scanner/scan.py --preview-telegram (reads the published JSON).
 """
 from __future__ import annotations
 
@@ -18,7 +25,9 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
+
+import lists as L
 
 LIMIT = 4096
 SAFE = 4000
@@ -30,6 +39,7 @@ SECTOR_EMOJI = {'Information Technology': '💻', 'Health Care': '🩺', 'Financ
 SECTOR_SHORT = {'Information Technology': 'Tech', 'Health Care': 'Health', 'Financials': 'Financials', 'Consumer Discretionary': 'Discretionary',
                 'Consumer Staples': 'Staples', 'Industrials': 'Industrials', 'Energy': 'Energy', 'Materials': 'Materials',
                 'Utilities': 'Utilities', 'Real Estate': 'Real estate', 'Communication Services': 'Comms', 'Other': 'Other'}
+LIST_CAP = int(os.environ.get('TELEGRAM_LIST_CAP') or '15')
 ICON = {'pass': '✓', 'fail': '✗', 'warn': '!', 'unknown': '?', 'info': '·'}
 
 
@@ -129,6 +139,10 @@ def signal_card(s: Dict) -> str:
 
 
 def exit_card(e: Dict) -> str:
+    if 'warnings' not in e:                  # the published file keeps only the warning kinds (no position data)
+        words = {'stop': 'stop hit by the close', 'demand_broken': 'demand under the entry broken by a close',
+                 'near_supply': 'near the next supply', 'in_supply': 'inside a supply'}
+        return f"🔴 EXIT <b>{esc(e['symbol'])}</b> · " + esc(' · '.join(words.get(r, r) for r in e.get('reasons') or []))
     parts = []
     for w in e['warnings']:
         if w['reason'] in ('near_supply', 'in_supply'):
@@ -165,7 +179,7 @@ def by_sector(res: Dict) -> Dict[str, Tuple[List[Dict], List[Dict], List[Dict]]]
     return dict(sorted(g.items(), key=lambda kv: (-len(kv[1][0]), -len(kv[1][2]), -len(kv[1][1]), kv[0])))
 
 
-def build_messages(res: Dict, top: int = 5) -> List[str]:
+def build_messages(res: Dict, top: int = 5, cap: int = LIST_CAP) -> List[str]:
     sigs = res.get('signals', [])
     buys = [s for s in sigs if s['kind'] == 'BUY']
     watch = [s for s in sigs if s['kind'] == 'WATCH']
@@ -195,9 +209,8 @@ def build_messages(res: Dict, top: int = 5) -> List[str]:
         title = f"{SECTOR_EMOJI.get(sector, '📦')} <b>{esc(sector)}</b> · {len(b)} BUY · {len(w)} WATCH · {len(e)} EXIT"
         tail = f'+{more} more: full list {FULL_LIST}' if more else ''
         msgs.extend(pack_cards(title, cards, tail))
-    sb = strong_block(res.get('strong_in_demand') or [])
-    if sb:
-        msgs.extend(pack_cards(sb[0], sb[1:]))
+    zl = res.get('zone_lists') or L.zone_lists(res.get('details') or {})
+    msgs.extend(list_messages(zl, cap=cap))
     if not buys:
         why = ', '.join(f"{r['label']} ({r['count']})" for r in ((res.get('blocked') or {}).get('reasons') or [])[:4])
         msgs.append('No BUY setup passed every rule today. No zone, no trade.' + (f'\nTop reasons: {esc(why)}' if why else ''))
@@ -206,6 +219,100 @@ def build_messages(res: Dict, top: int = 5) -> List[str]:
 
 
 STRONG_CAP = 10
+MAP_URL = FULL_LIST + '?view=map'
+SIDE_HEAD = {'demand': '🟢 <b>DEMAND</b> · D1 / W1 / MN zones', 'supply': '🔴 <b>SUPPLY</b> · D1 / W1 / MN zones'}
+SECTION_HEAD = {('demand', 'in'): '🟢 <b>In demand now</b>', ('demand', 'near'): '⬇️ <b>Approaching demand</b>',
+                ('demand', 'left'): '↗️ <b>Left demand</b>', ('supply', 'in'): '🔴 <b>In supply</b>',
+                ('supply', 'near'): '⬆️ <b>Approaching supply</b>', ('supply', 'left'): '↘️ <b>Left supply</b>'}
+SECTION_NOTE = {'in': 'close inside the zone', 'near': 'close within {near}% of the proximal',
+                'left': 'touched in the last {n} sessions, closed back {way} the proximal'}
+SECTION_ORDER = ('in', 'near', 'left')
+
+
+def touch_word(r: Dict) -> str:
+    """fresh / 2x tested; inside or just off the zone the count includes this touch: '1st touch'."""
+    n = int(r.get('touches') or 0)
+    if n == 0:
+        return 'fresh'
+    if r.get('section') in ('in', 'left'):
+        return {1: '1st touch', 2: '2nd touch', 3: '3rd touch'}.get(n, f'touch {n}')
+    return f'{n}x tested'
+
+
+def list_line(r: Dict) -> str:
+    """AAPL 347.73 · W1 STR 7/10 fresh · +2.1% · ✗ high on curve (one stock of a zone list)."""
+    name = f"<b>{esc(r['s'])}</b>" + (f" ({esc(r['h'])})" if r.get('h') else '')
+    zone = f"{r['tf']} {r['type']}" + (f" {r['score']}/10" if r.get('score') is not None else '') + ' ' + touch_word(r)
+    if r['section'] == 'in':
+        where = 'in zone'
+    else:
+        where = f"{r['pct']:.1f}% {'above' if r['side'] == 'demand' else 'below'}"
+    st, lab = r.get('status') or '', r.get('label') or ''
+    stat = '✅ BUY' if st == 'BUY' else '🟡 WATCH' if st == 'WATCH' else '✓ rules pass' if st == 'ok' else (lab if st == 'dir' else f'✗ {lab}' if lab else '')
+    return f"{name} {_f(r.get('px'))} · {esc(zone)} · {where}" + (f' · {esc(stat)}' if stat else '')
+
+
+def section_blocks(zl: Dict, side: str, sec: str, cap: int = LIST_CAP) -> List[str]:
+    """[header, one block per sector (emoji + short name, then a line per stock), '+N more' link]: the top `cap` by
+    zone score, grouped by sector (most stocks first)."""
+    rows = (zl.get(side) or {}).get(sec) or []
+    note = SECTION_NOTE[sec].format(near=f"{zl.get('near_pct', L.NEAR_PCT):g}", n=zl.get('left_sessions', L.LEFT_SESSIONS),
+                                    way='above' if side == 'demand' else 'below')
+    head = f"{SECTION_HEAD[(side, sec)]} · {len(rows)}" + (f' (top {cap})' if len(rows) > cap else '') + f"\n<i>{esc(note)}</i>"
+    if not rows:
+        return [head + '\nnone today']
+    top = rows[:cap]
+    by: Dict[str, List[Dict]] = {}
+    for r in top:
+        by.setdefault(r.get('sec') or 'Other', []).append(r)
+    blocks = [head]
+    for k, v in sorted(by.items(), key=lambda kv: (-len(kv[1]), kv[0])):
+        blocks.append(f"{SECTOR_EMOJI.get(k, '📦')} <b>{esc(SECTOR_SHORT.get(k, k))}</b>\n" + '\n'.join(list_line(r) for r in v))
+    if len(rows) > cap:
+        blocks.append(f'+{len(rows) - cap} more on the app: {MAP_URL}&b={sec}_{side}')
+    return blocks
+
+
+def list_messages(zl: Dict, cap: int = LIST_CAP) -> List[str]:
+    """One DEMAND and one SUPPLY message (split when long), every section present even when empty."""
+    out: List[str] = []
+    for side in ('demand', 'supply'):
+        blocks: List[str] = []
+        for sec in SECTION_ORDER:
+            blocks.extend(section_blocks(zl, side, sec, cap))
+        out.extend(pack_cards(SIDE_HEAD[side], blocks))
+    return out
+
+
+def load_published(out_dir: str) -> Dict:
+    """The committed scan as a result dict for build_messages: latest.json + the ticker details of the shards (the
+    zone lists come from latest.json when it has them, else they are rebuilt from the shards and index.json)."""
+    with open(os.path.join(out_dir, 'latest.json')) as f:
+        res = json.load(f)
+    rows: Dict[str, Dict] = {}
+    try:
+        with open(os.path.join(out_dir, 'index.json')) as f:
+            rows = {r['s']: r for r in json.load(f).get('tickers') or []}
+    except (OSError, ValueError):
+        pass
+    if not res.get('zone_lists'):
+        details: Dict[str, Dict] = {}
+        tdir = os.path.join(out_dir, 't')
+        for name in sorted(os.listdir(tdir)) if os.path.isdir(tdir) else []:
+            if name.endswith('.json'):
+                with open(os.path.join(tdir, name)) as f:
+                    details.update(json.load(f).get('tickers') or {})
+        res['zone_lists'] = L.zone_lists(details, rows)
+    return res
+
+
+def preview(out_dir: str, top: int = 5, cap: int = LIST_CAP, out=sys.stdout) -> List[str]:
+    """Print the exact messages of the published scan, never sending (the length of each in UTF-16 units)."""
+    msgs = build_messages(load_published(out_dir), top=top, cap=cap)
+    for k, m in enumerate(msgs):
+        print(f'----- message {k + 1}/{len(msgs)} · {u16(m)} UTF-16 units -----', file=out)
+        print(m, file=out)
+    return msgs
 
 
 def strong_block(rows: List[Dict], cap: int = STRONG_CAP) -> List[str]:

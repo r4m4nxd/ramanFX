@@ -1,4 +1,4 @@
-"""Daily OHLCV (~10 years) per ticker. Primary source: Alpaca Market Data (official API, free account; keys from env
+"""Daily OHLCV (up to 20 years: MN zones need it) per ticker. Primary source: Alpaca Market Data (official API, free account; keys from env
 ALPACA_KEY_ID / ALPACA_SECRET_KEY; multi-symbol historical bars, split + dividend adjusted). Fallbacks (they may
 work locally but not from CI runners): Yahoo chart API (adjusted via adjclose), then Stooq CSV.
 Weekly / monthly bars are built from the daily bars. Local cache under tools/stock_scanner/.cache (gitignored).
@@ -223,7 +223,7 @@ def parse_yahoo(raw: bytes) -> Tuple[List[Bar], Dict]:
         f = a / c                                                   # split + dividend factor of that day
         d = dt.datetime.fromtimestamp(t + off, dt.timezone.utc).date().isoformat()
         bars.append(Bar(d, o * f, h * f, l * f, a, float(v or 0)))
-    return dedupe(bars), {'exchange': meta.get('exchangeName') or meta.get('fullExchangeName') or '',
+    return keep_history(dedupe(bars)), {'exchange': meta.get('exchangeName') or meta.get('fullExchangeName') or '',
                           'currency': meta.get('currency') or 'USD', 'price': meta.get('regularMarketPrice'), 'source': 'yahoo'}
 
 
@@ -237,8 +237,15 @@ def parse_stooq(raw: bytes) -> Tuple[List[Bar], Dict]:
             bars.append(Bar(row['Date'], float(row['Open']), float(row['High']), float(row['Low']), float(row['Close']), float(row.get('Volume') or 0)))
         except (KeyError, ValueError):
             continue
-    cut = (dt.date.today() - dt.timedelta(days=3660)).isoformat()
-    return dedupe([b for b in bars if b.d >= cut]), {'exchange': '', 'currency': 'USD', 'source': 'stooq'}
+    return keep_history(dedupe(bars)), {'exchange': '', 'currency': 'USD', 'source': 'stooq'}
+
+
+def keep_history(bars: List[Bar]) -> List[Bar]:
+    """The last HISTORY_DAYS of bars (Yahoo range=max can reach back decades)."""
+    if not bars:
+        return bars
+    cut = (dt.date.fromisoformat(bars[-1].d) - dt.timedelta(days=HISTORY_DAYS)).isoformat()
+    return [b for b in bars if b.d >= cut]
 
 
 def dedupe(bars: List[Bar]) -> List[Bar]:
@@ -266,7 +273,7 @@ def save_cached(sym: str, bars: List[Bar], meta: Dict) -> None:
         json.dump({'fetched': time.time(), 'meta': meta, 'bars': [[b.d, round(b.o, 4), round(b.h, 4), round(b.l, 4), round(b.c, 4), b.v] for b in bars]}, f)
 
 
-def yahoo_url(sym: str, rng: str = '10y') -> str:
+def yahoo_url(sym: str, rng: str = 'max') -> str:
     return (f'https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_symbol(sym)}?range={rng}&interval=1d'
             '&includeAdjustedClose=true&events=div%2Csplit')
 
@@ -274,12 +281,14 @@ def yahoo_url(sym: str, rng: str = '10y') -> str:
 # ---- Alpaca Market Data (primary) ------------------------------------------------------------------------------------
 ALPACA_BARS = 'https://data.alpaca.markets/v2/stocks/bars'
 ALPACA_ASSETS = 'https://paper-api.alpaca.markets/v2/assets?status=active&asset_class=us_equity'
-ALPACA_BATCH_COLD = int(os.environ.get('ALPACA_BATCH_COLD', '100'))     # symbols per request, full 10-year history
+ALPACA_BATCH_COLD = int(os.environ.get('ALPACA_BATCH_COLD', '100'))     # symbols per request, full history (20 years asked)
 ALPACA_BATCH_UPDATE = int(os.environ.get('ALPACA_BATCH_UPDATE', '200'))  # symbols per request, incremental update
 ALPACA_LIMIT = 10000                                                    # bars per page (the API maximum)
 ALPACA_MAX_WAIT = 65.0                                                  # a 429 waits at most this long (1 min window)
 ALPACA_FEED_RECHECK_DAYS = 7                                            # a remembered iex fallback re-tries sip weekly
-HISTORY_DAYS = 3660
+HISTORY_DAYS = 7305                                                     # 20 years asked (MN zones need a long history);
+                                                                        # Alpaca serves what it has (from 2016)
+HISTORY_SLACK_DAYS = 45                                                 # a cache starting this much later than asked is short
 UPDATE_OVERLAP_DAYS = 20                                                # incremental: re-read ~3 weeks to verify
 _feed_lock = threading.Lock()
 _feed: Optional[str] = None
@@ -516,7 +525,7 @@ def _alpaca_end() -> str:
 def alpaca_prefetch(symbols: List[str], max_age_h: float = 12.0, workers: int = 3, log=None) -> Dict[str, str]:
     """Fill the cache from Alpaca for every symbol whose cache is older than max_age_h, in multi-symbol batches: a
     stale cache gets the last ~3 weeks (the overlap must agree, else a new split / dividend changed the adjustment and
-    the full history is fetched again), a cold one the full 10 years. Returns {symbol: why} for the symbols Alpaca
+    the full history is fetched again), a cold one (or a cache shorter than HISTORY_DAYS, once) the full 20 years. Returns {symbol: why} for the symbols Alpaca
     did not serve (they go on to the per-ticker fallbacks). Honours the time budget and the breaker; without keys
     it does nothing."""
     from concurrent.futures import ThreadPoolExecutor
@@ -533,7 +542,7 @@ def alpaca_prefetch(symbols: List[str], max_age_h: float = 12.0, workers: int = 
         c = load_cached(s)
         if c and t0 - c[2] < max_age_h * 3600:
             continue
-        if c and c[0] and (today - dt.date.fromisoformat(c[0][-1].d)).days < 300:
+        if c and c[0] and (today - dt.date.fromisoformat(c[0][-1].d)).days < 300 and not needs_extend(c[0], c[1], today):
             cached[s] = c
             upd.append(s)
         else:
@@ -545,8 +554,10 @@ def alpaca_prefetch(symbols: List[str], max_age_h: float = 12.0, workers: int = 
     stats = {'updated': 0, 'full': 0}
     lock = threading.Lock()
 
-    def meta_of(s: str, bars: List[Bar], prev: Optional[Dict]) -> Dict:
+    def meta_of(s: str, bars: List[Bar], prev: Optional[Dict], full: bool = False) -> Dict:
         m = {**(prev or {}), 'source': 'alpaca', 'feed': alpaca_feed(), 'currency': 'USD', 'price': bars[-1].c}
+        if full:                    # the whole asked history was requested once: never extended again
+            m['history_days'] = HISTORY_DAYS
         m.pop('stale', None)
         m['exchange'] = ex.get(alpaca_symbol(s)) or (prev or {}).get('exchange', '')
         return m
@@ -607,7 +618,7 @@ def alpaca_prefetch(symbols: List[str], max_age_h: float = 12.0, workers: int = 
                     miss[s] = f'alpaca: too few bars ({len(bars)})' if bars else 'alpaca: no data'
                 continue
             prev = cached.get(s) or load_cached(s)
-            save_cached(s, bars, meta_of(s, bars, prev[1] if prev else None))
+            save_cached(s, bars, meta_of(s, bars, prev[1] if prev else None, full=True))
             with lock:
                 stats['full'] += 1
         return None
@@ -621,9 +632,20 @@ def alpaca_prefetch(symbols: List[str], max_age_h: float = 12.0, workers: int = 
     return miss
 
 
+def needs_extend(bars: List[Bar], meta: Dict, today: Optional[dt.date] = None) -> bool:
+    """A cache filled with a shorter history than HISTORY_DAYS (the old 10-year fetch) gets one full fetch: MN zones
+    need the long history. Once a full fetch was asked (meta history_days), never again, even when the source has
+    less (Alpaca starts in 2016)."""
+    if not bars or int(meta.get('history_days') or 0) >= HISTORY_DAYS:
+        return False
+    today = today or dt.date.today()
+    want = today - dt.timedelta(days=HISTORY_DAYS - HISTORY_SLACK_DAYS)
+    return dt.date.fromisoformat(bars[0].d) > want
+
+
 def merge_update(old: List[Bar], new: List[Bar], tol: float = 0.002) -> Optional[List[Bar]]:
     """Append a short update to the cached history. None when the overlap disagrees (a split / dividend changed
-    the adjustment of the whole history) or does not connect: then the full 10 years are fetched again."""
+    the adjustment of the whole history) or does not connect: then the full history is fetched again."""
     if not old or not new:
         return None
     by = {b.d: b for b in old}
@@ -638,9 +660,9 @@ def merge_update(old: List[Bar], new: List[Bar], tol: float = 0.002) -> Optional
 
 
 def fetch_daily(sym: str, max_age_h: float = 12.0, offline: bool = False, alpaca: bool = True) -> Tuple[List[Bar], Dict]:
-    """10y daily bars for one ticker: a fresh cache as is; else Alpaca (when keys are set and alpaca=True; fetch_many
+    """Daily bars (up to 20 years) for one ticker: a fresh cache as is; else Alpaca (when keys are set and alpaca=True; fetch_many
     has already asked Alpaca for the whole batch and passes False); else a stale cache updated with the last month
-    (Yahoo); else the full 10 years from Yahoo, else Stooq, else the stale cache."""
+    (Yahoo; a short cache is extended once); else the full history from Yahoo, else Stooq, else the stale cache."""
     cached = load_cached(sym)
     if cached and (offline or time.time() - cached[2] < max_age_h * 3600):
         return cached[0], cached[1]
@@ -663,13 +685,13 @@ def fetch_daily(sym: str, max_age_h: float = 12.0, offline: bool = False, alpaca
         raise RuntimeError(f'{sym}: {why}')
     if over_budget():
         return stale('time budget spent')
-    if cached and cached[1].get('source') == 'yahoo' and not host_open(yahoo_url(sym)):
+    if cached and cached[1].get('source') == 'yahoo' and not needs_extend(cached[0], cached[1]) and not host_open(yahoo_url(sym)):
         try:
             new, meta = parse_yahoo(http_get(yahoo_url(sym, '1mo'), expect=looks_json))
             merged = merge_update(cached[0], new)
             if merged:
                 meta = {**cached[1], **{k: v for k, v in meta.items() if v}}
-                cut = (dt.date.fromisoformat(merged[-1].d) - dt.timedelta(days=3660)).isoformat()
+                cut = (dt.date.fromisoformat(merged[-1].d) - dt.timedelta(days=HISTORY_DAYS)).isoformat()
                 merged = [b for b in merged if b.d >= cut]
                 save_cached(sym, merged, meta)
                 return merged, meta
@@ -690,6 +712,7 @@ def fetch_daily(sym: str, max_age_h: float = 12.0, offline: bool = False, alpaca
                 raise ValueError('too few bars')
             if cached and not meta.get('exchange'):
                 meta['exchange'] = cached[1].get('exchange', '')
+            meta['history_days'] = HISTORY_DAYS
             save_cached(sym, bars, meta)
             return bars, meta
         except BudgetExceeded:

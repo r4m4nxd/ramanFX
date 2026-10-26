@@ -35,7 +35,7 @@ RAJA = {
     'curve_high': 75,          # InpCurveHigh
     'chop_swings': 3,          # InpRjBChopSwings
     'chop_tf_htf': True,       # InpRjBChopTF=1 (zone TF or the Direction HTF)
-    'sl_pct': {'D1': 10.0, 'W1': 5.0, 'MN': 5.0},   # InpSlPctD1 / InpSlPctW1 (owner's stop rule)
+    'sl_pct': {'D1': 10.0, 'W1': 5.0, 'MN': 3.0},   # InpSlPctD1 / InpSlPctW1 / MN (owner's stop rule)
     'sl_min': 0.03,            # InpSlMinPips=3 with a 0.01 point on stocks
     'atr_period': 14,          # iATR(_Symbol, tf, 14)
 }
@@ -847,7 +847,7 @@ class DNA:
 
 
 def stop_buffer(h: float, tf: str, p=RAJA) -> float:
-    """RjC_StopBuf with InpSlMode=1: a % of the zone height beyond the distal (D1 10%, W1+ 5%), min 3 points."""
+    """RjC_StopBuf with InpSlMode=1: a % of the zone height beyond the distal (D1 10%, W1 5%, MN 3%), min 3 points."""
     return max(p['sl_pct'].get(tf, 5.0) / 100.0 * h, p['sl_min'])
 
 

@@ -173,7 +173,7 @@ class TestAlpacaPrefetch(AlpacaBase):
 
     def test_incremental_update(self):
         full = self.series['AAA']
-        DATA.save_cached('AAA', full[:-5], {'source': 'alpaca', 'exchange': 'NASDAQ'})
+        DATA.save_cached('AAA', full[:-5], {'source': 'alpaca', 'exchange': 'NASDAQ', 'history_days': DATA.HISTORY_DAYS})
         age_cache('AAA', time.time() - 86400)
         fake = FakeAlpaca(self.series)
         self.serve(fake)
@@ -186,6 +186,32 @@ class TestAlpacaPrefetch(AlpacaBase):
         self.assertEqual(bars[-1].d, full[-1].d)
         self.assertEqual(len(bars), len(full))
         self.assertEqual((meta['source'], meta['exchange']), ('alpaca', 'NASDAQ'))
+
+    def test_short_cache_is_extended_once(self):
+        """A cache from the old 10-year fetch (no history_days) gets one full fetch from the 20-year start (MN zones);
+        after that only incremental updates, even though the source has less history."""
+        full = self.series['AAA']
+        DATA.save_cached('AAA', full[:-5], {'source': 'alpaca', 'exchange': 'NASDAQ'})
+        age_cache('AAA', time.time() - 86400)
+        self.assertTrue(DATA.needs_extend(full[:-5], {}))
+        fake = FakeAlpaca(self.series)
+        self.serve(fake)
+        self.assertEqual(DATA.alpaca_prefetch(['AAA']), {})
+        start = q(fake.urls[0])['start'][:10]
+        self.assertEqual(start, (dt.date.today() - dt.timedelta(days=DATA.HISTORY_DAYS)).isoformat())
+        self.assertEqual(DATA.load_cached('AAA')[1]['history_days'], DATA.HISTORY_DAYS)
+        age_cache('AAA', time.time() - 86400)
+        n = fake.n
+        self.assertEqual(DATA.alpaca_prefetch(['AAA']), {})
+        start2 = q(fake.urls[n])['start'][:10]
+        self.assertGreater(start2, (dt.date.today() - dt.timedelta(days=60)).isoformat())   # an update, not a full fetch
+
+    def test_twenty_years_asked(self):
+        self.assertGreaterEqual(DATA.HISTORY_DAYS, 20 * 365)
+        long = [DATA.Bar((dt.date(2000, 1, 3) + dt.timedelta(days=i)).isoformat(), 1, 1, 1, 1) for i in range(0, 9500, 1)]
+        kept = DATA.keep_history(long)
+        self.assertGreaterEqual((dt.date.fromisoformat(kept[-1].d) - dt.date.fromisoformat(kept[0].d)).days, DATA.HISTORY_DAYS - 1)
+        self.assertLess(len(kept), len(long))
 
     def test_readjusted_history_is_fetched_again(self):
         full = self.series['AAA']

@@ -154,7 +154,7 @@ class MarketMapTest(unittest.TestCase):
         for r in rows:
             if 'dz' in r:
                 tf, typ, score, touches = r['dz']
-                self.assertIn(tf, ('D1', 'W1'))
+                self.assertIn(tf, ('D1', 'W1', 'MN'))
                 self.assertIn(typ, Z.ZONE_TYPE_TEXT)
                 self.assertTrue(0 <= score <= 10 and touches >= 0)
                 self.assertIn('dd', r)
@@ -185,8 +185,8 @@ class MarketMapTest(unittest.TestCase):
         self.assertNotIn('S03', body)
         self.assertEqual(len(b), 3)                                   # one line per sector
         self.assertEqual(notify.strong_block([]), [])
-        txt = '\n'.join(notify.build_messages(dict(self.res, strong_in_demand=rows[:2])))
-        self.assertIn('In strong demand', txt)
+        txt = '\n'.join(notify.build_messages(self.res))
+        self.assertIn('In demand now', txt)                          # the zone lists replace the strong block
 
     def test_universe_meta_and_uncovered(self):
         pub = scan.public_json(self.res)
