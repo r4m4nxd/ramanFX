@@ -34,14 +34,26 @@
 //| With the v2 drawing inputs at default, the v1 objects are        |
 //| unchanged (golden master: InpDumpObjects).                       |
 //| v2.10: Raja inputs ("Raja (v2.1 ...)" groups), all off = v2.00. |
-//| v2.11: Labels ON/OFF button (InpLabelButton).                     |
+//| v2.11: Labels ON/OFF button. v2.12: "LABELS" input group.        |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "2.11"
+#property version   "2.12"
 #property indicator_chart_window
 #property indicator_buffers 0
 #property indicator_plots   0
 
+input group "== LABELS: show / hide each kind of text on the chart =="
+input bool   InpLabelButton   = true;   // Labels ON/OFF button (bottom-left): one click hides / shows ALL text below
+input bool   InpLblZonePrices = true;   // Zone prices: (1.23456) at each box's proximal / distal line
+input bool   InpShowNames     = true;   // Zone names inside the box (e.g. Rally Base Rally Demand (CP) | STRONG)
+input bool   InpLensTag       = true;   // Zone tags at the proximal: verdict, K+/K-, Seiden, Raja type, Baker, consensus
+input bool   InpLblTrendlines = true;   // Trendline text: "H4 trendline", "TL x3"
+input bool   InpLblPlan       = true;   // Plan text: entry / SL / TP words on the bot's plan lines (the lines stay)
+input bool   InpLblCurve      = true;   // Curve text: "D1 curve 25% / 50% / 75%"
+input bool   InpLblWow        = true;   // WOW ladder text (targets)
+input bool   InpLblRaja       = true;   // Raja extras text: nested curve, realignment areas, wick 50%
+input bool   InpLblHalfway    = true;   // "halfway alert" text
+input group "-- Settings --"
 input string Sep1             = "-- Zone rules (keep equal to ZoneBot) --"; // -----
 input double InpMinLegRatio   = 1.2;    // Move-away range / largest base candle
 input int    InpMaxBase       = 6;      // Max basing candles
@@ -63,7 +75,6 @@ input string Sep2             = "-- What to show (clean by default) --"; // ----
 input int    InpMaxZones      = 4;      // Zones drawn: the N closest to price
 input bool   InpShowTested    = false;  // Also draw tested zones
 input bool   InpShowRemoved   = false;  // Also draw removed zones (faded)
-input bool   InpShowNames     = true;   // Zone name inside the box (e.g. Rally Base Rally Demand (CP))
 input bool   InpShowTrendlines= true;   // Newest intact trendline each way (mentor rules)
 input bool   InpShowBrokenTL  = false;  // Also draw broken trendlines
 input int    InpTrendSwing    = 3;      // Swing strength for liquidity-trap levels (bars each side)
@@ -84,7 +95,6 @@ input bool   InpExplain       = false;  // Explain mode: label the 4 parts on th
 input bool   InpShowEmotional = true;   // Mark emotional candles (range > InpEmoATR x ATR) with a star
 input color  InpEmoColor      = clrGoldenrod;
 input bool   InpShowLegend    = true;   // Short key of the abbreviations in the panel
-input bool   InpLabelButton   = true;   // On-chart button (bottom-left) that hides / shows every text label at once
 input bool   InpShowRejected  = false;  // Debug: rejected candidates + reason
 input color  InpDemandFill    = C'200,232,203';
 input color  InpDemandLine    = C'46,139,87';
@@ -193,7 +203,6 @@ input bool   InpKevinPlus     = false;  // Kevin+ notes also gate the Kevin lens
 input int    InpSeidenDepth   = 0;      // Seiden tests: 0 = early rule (0 / 1 / 2+ touches = 2 / 1 / 0 pts), 1 = late rule (a test 25%+ deep = 0)
 input double InpConfOffsetFrac= 0.05;   // Seiden confirmation entry: x zone height outside the proximal as price leaves
 input group "-- v2 Display --"
-input bool   InpLensTag       = true;   // Compact tag at each drawn zone's proximal (RFXV2_t): verdict, K+/K-, Seiden, Raja type, Baker, consensus
 input bool   InpAsciiTags     = true;   // Tag separators and ticks in plain ASCII (" | ", K+ / K-)
 input bool   InpShowNested    = true;   // Tag: "in H4 D" when nested in a fresh HTF zone, "in W1 S!" when inside an opposite HTF zone
 input bool   InpShowSize      = false;  // Tag: zone height in pips and ATR
@@ -563,6 +572,21 @@ bool LblOurs(string nm)
    if(StringFind(nm, "RFXV2_d") == 0 || StringFind(nm, "RFXV2_P") == 0 || StringFind(nm, "RFXP2_") == 0 || StringFind(nm, "RFXS_") == 0) return(false);   // panels / click-box plan stay
    return(StringFind(nm, PFX) == 0 || StringFind(nm, "RFXV2_") == 0 || StringFind(nm, "RFXN_") == 0);
   }
+bool LblEnds(string nm, string suf) { int n = StringLen(nm), k = StringLen(suf); return(n >= k && StringSubstr(nm, n - k) == suf); }
+bool LblIsZone(string nm) { return(StringFind(nm, PFX + "Z") == 0 || StringFind(nm, PFX + "H") == 0); }   // RFXV_Z<n>.. / RFXV_H<n>.. (HTF band)
+// false = this text object belongs to a kind the Labels inputs switch off
+bool LblWanted(string nm)
+  {
+   if(LblIsZone(nm) && (LblEnds(nm, "pp") || LblEnds(nm, "dp"))) return(InpLblZonePrices);
+   if(StringFind(nm, PFX + "tl") == 0) return(InpLblTrendlines);
+   if(nm == PFX + "pet" || nm == PFX + "pst" || nm == PFX + "ptt") return(InpLblPlan);
+   if(nm == PFX + "hwt") return(InpLblHalfway);
+   if(StringFind(nm, "RFXV2_c") == 0) return(InpLblCurve);
+   if(StringFind(nm, "RFXV2_W") == 0) return(InpLblWow);
+   if(StringFind(nm, "RFXV2_jB") == 0 || StringFind(nm, PFX + "rjw") == 0) return(InpLblRaja);
+   return(true);                                                     // names / tags have their own draw switches (InpShowNames, InpLensTag)
+  }
+// hides text objects: all of them while the button is OFF, otherwise only the kinds switched off in the Labels group
 void LblApply()
   {
    int n = ObjectsTotal(0, -1, -1);
@@ -571,7 +595,7 @@ void LblApply()
       string nm = ObjectName(0, i, -1, -1);
       if(!LblOurs(nm)) continue;
       if((ENUM_OBJECT)ObjectGetInteger(0, nm, OBJPROP_TYPE) != OBJ_TEXT) continue;
-      ObjectSetInteger(0, nm, OBJPROP_TIMEFRAMES, gLblOff ? OBJ_NO_PERIODS : OBJ_ALL_PERIODS);
+      if(gLblOff || !LblWanted(nm)) ObjectSetInteger(0, nm, OBJPROP_TIMEFRAMES, OBJ_NO_PERIODS);
      }
   }
 void LblButton()
@@ -846,7 +870,7 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
   {
    if(id == CHARTEVENT_OBJECT_CLICK)
      {
-      if(sparam == LBL_BTN) { gLblOff = !gLblOff; GlobalVariableSet(LblKey(), gLblOff ? 1.0 : 0.0); LblButton(); LblApply(); ChartRedraw(); return; }
+      if(sparam == LBL_BTN) { gLblOff = !gLblOff; GlobalVariableSet(LblKey(), gLblOff ? 1.0 : 0.0); LblButton(); if(gLblOff) LblApply(); else if(lastDraw > 0) Redraw(); ChartRedraw(); return; }
       if(sparam == "RFXS_h") { gPanelOpen = !gPanelOpen; DrawCompact(); NoSelect("RFXS_"); DrawDirBox(); ChartRedraw(); return; }
       if(sparam == "RFXV2_dh") { gDirOpen = !gDirOpen; DrawDirBox(); ChartRedraw(); return; }
       if(StringFind(sparam, "RFXV2_d") == 0) return;                                        // a click inside the Direction box keeps the click box open
@@ -954,7 +978,7 @@ void Redraw()
    RjC_Alerts();                                                     // Raja v2.1 C: confirmation + management alerts (off by default)
    if(InpExportGV) V2ExportGV();                                     // v2 M10: ZoneBot export (off by default)
    gArmed = true;
-   LblButton(); if(gLblOff) LblApply();                              // v2.11: keep labels hidden after every redraw
+   LblButton(); LblApply();                                          // v2.11: Labels group + ON/OFF button, after every redraw
    ChartRedraw();
    if(InpDumpObjects) DumpObjects();                                 // v2 M0 golden master (off by default)
   }

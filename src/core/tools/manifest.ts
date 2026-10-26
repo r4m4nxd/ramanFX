@@ -39,7 +39,7 @@ const pineSteps = (name: string, preset = true) => [
 export const TOOLS: Tool[] = [
   // ─── MT5 ────────────────────────────────────────────────────────────
   {
-    id: 'zv5', platform: 'mt5', name: 'ZoneVision', version: '2.11', kind: 'Indicator',
+    id: 'zv5', platform: 'mt5', name: 'ZoneVision', version: '2.12', kind: 'Indicator',
     purpose: 'Draws the zones, trendlines, Direction box and mentor grades exactly as the ZoneBot sees them. Never trades.',
     files: [{ file: 'RamanFX_ZoneVision.mq5' }, { file: 'RFX_ZoneCore.mqh', note: 'shared core, same folder' }],
     install: [
