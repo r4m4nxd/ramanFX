@@ -194,7 +194,8 @@ def build_messages(res: Dict, top: int = 5) -> List[str]:
         tail = f'+{more} more: full list {FULL_LIST}' if more else ''
         msgs.extend(pack_cards(title, cards, tail))
     if not buys:
-        msgs.append('No BUY setup passed every rule today. No zone, no trade.')
+        why = ', '.join(f"{r['label']} ({r['count']})" for r in ((res.get('blocked') or {}).get('reasons') or [])[:4])
+        msgs.append('No BUY setup passed every rule today. No zone, no trade.' + (f'\nTop reasons: {esc(why)}' if why else ''))
     msgs.append(f'full list: {FULL_LIST}\n<i>{esc(FOOTER)}</i>')
     return msgs
 

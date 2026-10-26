@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { blankPlan } from './strategy';
-import { ago, px, readWatch, seidenText, sortSignals, toggleWatch, WATCH_KEY, writeWatch, checkPlanLink, detailFrom, findBySlug, matches, parseIndex, parseScan, planFromParams, planLink, searchTickers, sectorsOf, slug, stockPath, tvChart, unpackBars, type IndexRow, type ScanSignal } from './scanner';
+import { ago, px, readWatch, reasonsText, seidenText, sortSignals, toggleWatch, WATCH_KEY, writeWatch, checkPlanLink, detailFrom, findBySlug, matches, parseIndex, parseScan, planFromParams, planLink, searchTickers, sectorsOf, slug, stockPath, tvChart, unpackBars, type IndexRow, type ScanSignal } from './scanner';
 
 const sample = JSON.parse(readFileSync(resolve(process.cwd(), 'tools/stock_scanner/fixtures/sample/latest.json'), 'utf8'));
 const placeholder = JSON.parse(readFileSync(resolve(process.cwd(), 'public/scanner/latest.json'), 'utf8'));
@@ -23,6 +23,19 @@ describe('parseScan', () => {
     expect(parseScan({ signals: 'x' })).toBeNull();
     const p = parseScan(placeholder)!;
     expect(p.signals).toEqual([]);
+  });
+  it('reads the why-no-signal diagnostics and the session', () => {
+    const s = parseScan(sample)!;
+    expect(s.blocked!.reasons.reduce((a, r) => a + r.count, 0)).toBe(s.blocked!.candidates);
+    expect(s.closest!.every(c => c.fails.includes(c.rule))).toBe(true);
+    const j = parseScan({ version: 1, signals: [], exits: [], session: 'intraday-dropped',
+      blocked: { candidates: 452, within_pct: 5, reasons: [{ rule: 'curve', label: 'high on curve', count: 312 }, { rule: 'HTF align', label: 'direction not long', count: 140 }, { rule: 'x' }] },
+      closest: [{ symbol: 'AAPL', name: 'Apple', tf: 'W1', zone_type: 'STR', proximal: 320, distal: 310, price: 330, to_entry_pct: 3.1, rule: 'curve', label: 'high on curve', fails: ['curve'] }, { symbol: 'BAD' }] })!;
+    expect(j.session).toBe('intraday-dropped');
+    expect(j.blocked!.reasons).toHaveLength(2);
+    expect(reasonsText(j.blocked)).toBe('high on curve (312), direction not long (140)');
+    expect(j.closest!.map(c => c.symbol)).toEqual(['AAPL']);
+    expect(parseScan({ version: 1, signals: [], exits: [] })!.blocked).toBeUndefined();
   });
   it('drops malformed signals', () => {
     const s = parseScan({ version: 1, signals: [{ kind: 'BUY' }, { kind: 'SELL', symbol: 'X', rules: [] }], exits: [{ symbol: 'A', reasons: ['stop'], entry: 5 }] })!;
@@ -92,7 +105,8 @@ describe('ticker search + detail', () => {
   it('index lists every ticker with its shard', () => {
     expect(idx.tickers.length).toBeGreaterThan(5);
     for (const r of idx.tickers) expect(detailFrom(shard(r.k), r.s)?.symbol).toBe(r.s);
-    expect(parseIndex(JSON.parse(readFileSync(resolve(process.cwd(), 'public/scanner/index.json'), 'utf8')))!.tickers).toEqual([]);
+    // the committed public index is whatever the last daily scan wrote (placeholder or real): it must parse
+    expect(Array.isArray(parseIndex(JSON.parse(readFileSync(resolve(process.cwd(), 'public/scanner/index.json'), 'utf8')))!.tickers)).toBe(true);
     expect(parseIndex({ nope: 1 })).toBeNull();
   });
   it('searches by ticker and name', () => {

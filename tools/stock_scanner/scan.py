@@ -361,6 +361,20 @@ def _zone_dict(an: Analysis, z: Z.Zone, x: Z.DNA) -> Dict:
             'curve': round(x.curve_zone, 1), 'room_r': round(x.room_r, 2) if x.room_r < 99 else None}
 
 
+def known_date(an: Analysis, z: Z.Zone) -> str:
+    """The D1 session on which the zone became known: its stay-away candle's close. z.made is the stay-away bar's
+    FIRST trading day, which on W1 is the Monday of that week; the week closes on its last session (usually Friday).
+    Comparing the Monday against "5 sessions ago" dropped every W1 zone made last week from WATCH 'new'."""
+    if z.tf == 'D1' or not z.made:
+        return z.made
+    try:
+        wk = dt.date.fromisoformat(z.made).isocalendar()[:2]
+    except ValueError:
+        return z.made
+    same = [d for d in an.d1_dates if dt.date.fromisoformat(d).isocalendar()[:2] == wk]
+    return same[-1] if same else z.made
+
+
 def symbol_signals(an: Analysis, earnings: Optional[str] = None) -> List[Dict]:
     """BUY and WATCH signals of one ticker from its analysis."""
     out: List[Dict] = []
@@ -387,7 +401,7 @@ def symbol_signals(an: Analysis, earnings: Optional[str] = None) -> List[Dict]:
             if not strong:
                 continue
             others = [k for k in fails if k is not approach_rule]
-            if x.n_tests == 0 and z.made >= recent and not others and approach_rule.status == FAIL:
+            if x.n_tests == 0 and known_date(an, z) >= recent and not others and approach_rule.status == FAIL:
                 out.append({**base, 'kind': 'WATCH', 'watch': 'new', 'note': f'New {z.tf} zone made {z.made}; price still far. Wait for it to come back.'})
             elif (1 <= x.n_tests <= 2 and not z.removed and all(k.ref in ('L2 · L52', 'Scanner') for k in fails)
                   and (px - z.prox) <= 2 * max(APPROACH_H * z.h, APPROACH_PCT * px)):
@@ -570,18 +584,127 @@ def liquid(u: Dict, bars: List[Bar]) -> bool:
     return px >= MIN_PRICE and dv >= MIN_DOLLAR_VOL
 
 
+# ---- intraday guard ------------------------------------------------------------------------------------------------
+CLOSE_ET = dt.time(16, 0)        # regular session close, America/New_York
+SETTLE_MIN = 20                  # the daily bar is taken as final this many minutes after the close
+
+
+def _nth_sunday(year: int, month: int, n: int) -> dt.date:
+    d = dt.date(year, month, 1)
+    d += dt.timedelta(days=(6 - d.weekday()) % 7)
+    return d + dt.timedelta(weeks=n - 1)
+
+
+def us_eastern(now_utc: dt.datetime) -> dt.datetime:
+    """UTC -> New York wall time (naive) without tzdata: EDT (UTC-4) from the 2nd Sunday of March 07:00 UTC to the
+    1st Sunday of November 06:00 UTC, else EST (UTC-5). A naive input is taken as UTC."""
+    u = now_utc.astimezone(dt.timezone.utc).replace(tzinfo=None) if now_utc.tzinfo else now_utc
+    start = dt.datetime.combine(_nth_sunday(u.year, 3, 2), dt.time(7))
+    end = dt.datetime.combine(_nth_sunday(u.year, 11, 1), dt.time(6))
+    return u - dt.timedelta(hours=4 if start <= u < end else 5)
+
+
+def drop_partial(bars: List[Bar], now_utc: Optional[dt.datetime] = None) -> Tuple[List[Bar], bool]:
+    """(bars, dropped): the last daily bar is dropped when it is dated today (New York) or later and the session has
+    not closed yet (+ SETTLE_MIN). An intraday bar is not a closed candle and every rule reads closed candles: a
+    forming bar became stay-away candles, touches and direction changes out of half a session."""
+    if not bars:
+        return bars, False
+    et = us_eastern(now_utc or dt.datetime.now(dt.timezone.utc))
+    settle = (dt.datetime.combine(et.date(), CLOSE_ET) + dt.timedelta(minutes=SETTLE_MIN)).time()
+    if bars[-1].d >= et.date().isoformat() and et.time() < settle:
+        return bars[:-1], True
+    return bars, False
+
+
+# ---- "why no signal" diagnostics -----------------------------------------------------------------------------------
+DIAG_PCT = float(os.environ.get('SCANNER_DIAG_PCT', '5'))   # candidate: nearest fresh demand within X% above, or in it
+# Veto priority for "the first failing rule": market gates first (curve, direction, HTF supply, sideways), then
+# zone quality, then the trade geometry, the calendar and last the distance. Each candidate counts once.
+BLOCK_ORDER = ['curve', 'HTF align', 'no HTF supply', 'not sideways', 'strong', 'fresh', 'clean', 'not used',
+               'no 3rd CP', 'room', 'earnings', 'near entry']
+BLOCK_LABEL = {'curve': 'high on curve', 'HTF align': 'direction not long', 'no HTF supply': 'monthly supply on top',
+               'not sideways': 'sideways market', 'strong': 'weak zone type', 'fresh': 'zone already tested',
+               'clean': 'overlap / flip zone', 'not used': 'zone already did its job', 'no 3rd CP': '3rd CP in a row',
+               'room': 'room < 2x the stop or no target', 'earnings': 'earnings within 10 days',
+               'near entry': 'price not near the entry'}
+CLOSEST_N = 10
+
+
+def diag_candidate(an: Analysis, pct: float = DIAG_PCT) -> Optional[Tuple[Z.Zone, Z.DNA]]:
+    """The nearest (highest proximal) fresh D1 / W1 demand with price inside it or at most pct% above it."""
+    px, best = an.price, None
+    for r in (an.d1, an.w1):
+        if not r.ok:
+            continue
+        for z in r.zones:
+            if z.dir < 0 or z.leg_bar > RAJA['max_zone_age'] or not Z.fresh_at(r.S, z):
+                continue
+            x = an.dna.get(z.zid)
+            if x is None or (px - z.prox) / px * 100 > pct:
+                continue
+            if best is None or z.prox > best[0].prox:
+                best = (z, x)
+    return best
+
+
+def first_block(rules: List[Rule]) -> Optional[str]:
+    """The highest-priority failing rule (BLOCK_ORDER), None when nothing fails."""
+    fails = sorted({r.short for r in rules if r.status == FAIL})
+    return next((k for k in BLOCK_ORDER if k in fails), fails[0] if fails else None)
+
+
+def diag_row(sym: str, u: Dict, an: Analysis, earnings: Optional[str] = None) -> Optional[Dict]:
+    """One blocked candidate: its zone, distance and first failing rule (None = no candidate, or nothing fails)."""
+    c = diag_candidate(an)
+    if c is None:
+        return None
+    z, x = c
+    rules = zone_rules(an, z, x, earnings)
+    k = first_block(rules)
+    if k is None:
+        return None
+    return {'symbol': sym, 'name': u.get('name', sym), 'sector': u.get('sector', '') or 'Other',
+            'indexes': [i for i in (u.get('indexes') or 'SPX').split(',') if i], 'tf': z.tf, 'zone_type': x.code,
+            'proximal': round(z.prox, 2), 'distal': round(z.dist, 2), 'price': round(an.price, 2),
+            'to_entry_pct': round((an.price - z.prox) / an.price * 100, 2), 'rule': k, 'label': BLOCK_LABEL.get(k, k),
+            'fails': [r.short for r in rules if r.status == FAIL], 'direction': an.direction.head,
+            'curve': round(x.curve_zone, 1)}
+
+
+def blocked_summary(rows: List[Dict], pct: float = DIAG_PCT, n: int = CLOSEST_N) -> Tuple[Dict, List[Dict]]:
+    """({candidates, within_pct, reasons: [{rule, label, count}] most first}, the n candidates closest to entry)."""
+    cnt: Dict[str, int] = {}
+    for r in rows:
+        cnt[r['rule']] = cnt.get(r['rule'], 0) + 1
+    order = {k: i for i, k in enumerate(BLOCK_ORDER)}
+    reasons = [{'rule': k, 'label': BLOCK_LABEL.get(k, k), 'count': v}
+               for k, v in sorted(cnt.items(), key=lambda kv: (-kv[1], order.get(kv[0], 99)))]
+    closest = sorted(rows, key=lambda r: (abs(r['to_entry_pct']), len(r['fails']), r['symbol']))[:n]
+    return {'candidates': len(rows), 'within_pct': pct, 'reasons': reasons}, closest
+
+
 def run(universe: List[Dict], get_bars, get_cf, get_earnings, holdings: List[Dict], today: Optional[str] = None,
-        log=print, watchlist: Optional[List[str]] = None) -> Dict:
+        log=print, watchlist: Optional[List[str]] = None, now: Optional[dt.datetime] = None) -> Dict:
     """Scan every ticker. get_bars(sym) -> (daily bars, meta); get_cf(cik) -> companyfacts or None;
     get_earnings(sym) -> ISO date or None. Returns the full result (holdings details included)."""
     import data as DATA
     import fundamentals as F
+    raw_bars, dropped = get_bars, set()
+
+    def get_bars(sym):                     # noqa: F811 - every caller below sees closed sessions only
+        b, m = raw_bars(sym)
+        b, cut = drop_partial(b, now)
+        if cut:
+            dropped.add(sym)
+        return b, m
     held = {str(h.get('symbol', '')).upper(): h for h in holdings}
     watch = set(watchlist or [])
     walerts: List[Dict] = []
     syms = {u['symbol'] for u in universe} | set(held) | watch
     info = {u['symbol']: u for u in universe}
     sigs, exits, errors, notes = [], [], [], []
+    diag: List[Dict] = []
     filtered: List[str] = []
     chart_bars: Dict[str, list] = {}
     details: Dict[str, Dict] = {}
@@ -632,13 +755,17 @@ def run(universe: List[Dict], get_bars, get_cf, get_earnings, holdings: List[Dic
         u = info.get(sym, {'symbol': sym, 'name': sym, 'sector': '', 'cik': ''})
         found = []
         if sym in info and not illiquid:
-            pre = symbol_signals(an, None)
+            pre, er = symbol_signals(an, None), None
             if pre and any(s['kind'] == 'BUY' or s['kind'] == 'WATCH' for s in pre):
                 er = earnings(sym)
                 found = symbol_signals(an, er) if er else pre
                 if found:
                     for s in found:
                         s['earnings'] = er
+            if not any(s['kind'] == 'BUY' for s in found):
+                dr = diag_row(sym, u0 or {}, an, er)
+                if dr:
+                    diag.append(dr)
         for s in found:
             s.update({'symbol': sym, 'name': u.get('name', sym), 'sector': u.get('sector', '') or 'Other',
                       'indexes': (u.get('indexes') or 'SPX').split(','), 'exchange': meta.get('exchange', ''),
@@ -671,7 +798,17 @@ def run(universe: List[Dict], get_bars, get_cf, get_earnings, holdings: List[Dic
                 f'{len(sigs)} signals, {len(errors)} without data')
     order = {'BUY': 0, 'WATCH': 1}
     sigs.sort(key=lambda s: (order[s['kind']], -s.get('score', 0), -(s.get('rr') or 0), abs(s['to_entry_pct'])))
-    return {'date': last_date, 'generated_at': dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+    blocked, closest = blocked_summary(diag)
+    session = 'intraday-dropped' if dropped else 'closed'
+    if dropped:
+        notes.append(f'US market open at scan time: the partial daily bar of today was dropped for {len(dropped)} tickers (last closed session used)')
+    if log:
+        if dropped:
+            log(notes[-1])
+        top = ', '.join(f"{r['label']} ({r['count']})" for r in blocked['reasons'][:5]) or 'none'
+        log(f"why no signal: {blocked['candidates']} candidates (fresh demand within {blocked['within_pct']:g}% or in it) "
+            f"blocked; top reasons: {top}")
+    return {'date': last_date, 'session': session, 'blocked': blocked, 'closest': closest, 'generated_at': dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
             'universe': len(universe), 'scanned': len(syms) - len(errors) - len(filtered), 'errors': errors, 'notes': notes, 'signals': sigs, 'exits': exits,
             'filtered_liquidity': len(filtered), 'bars': chart_bars, 'details': details, 'index': index_rows, 'regime': regime, 'rfx_index': rfx, 'watch_alerts': walerts + index_alert(rfx) if watch else [], 'universes': sorted({i for u in universe for i in (u.get('indexes') or 'SPX').split(',')}),
             'index_sizes': {i: sum(1 for u in universe if i in (u.get('indexes') or 'SPX').split(',')) for i in ('SPX', 'NDX', 'DJI', 'RUT')}}
@@ -690,6 +827,9 @@ def public_json(res: Dict, fixture: bool = False) -> Dict:
         'liquidity_rule': f'Russell 2000-only names need price >= ${MIN_PRICE:g} and 20-day average dollar volume >= ${MIN_DOLLAR_VOL / 1e6:g}M',
         'rut_snapshot': res.get('rut_snapshot', ''),
         'partial': bool(res.get('partial')),
+        'session': res.get('session', 'closed'),
+        'blocked': res.get('blocked') or {'candidates': 0, 'within_pct': DIAG_PCT, 'reasons': []},
+        'closest': res.get('closest') or [],
         'regime': res.get('regime', []),
         'rfx_index': res.get('rfx_index'),
         'signals': res['signals'],

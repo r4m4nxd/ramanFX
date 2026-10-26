@@ -188,6 +188,18 @@ room 2, max 10.
 holding's `date`, else the last 5 sessions); price within one zone height of the next supply's proximal or inside it
 (L7 · L106 "exit before the opposite zone").
 
+A W1 zone counts as "made" on the close of its stay-away week (its last session), not on the Monday it is dated by.
+
+**Why no signal** (`blocked` / `closest` in latest.json): every ticker without a BUY whose nearest fresh demand is
+within `SCANNER_DIAG_PCT` (5) % above price, or holds price, is a candidate; it counts once under its first failing
+rule in the order curve → direction → monthly supply → sideways → zone type → fresh → overlap / flip → did its job →
+3rd CP → room → earnings → near entry. The run log, Telegram ("No BUY … Top reasons") and the app's empty state show
+the top reasons; `closest` holds the 10 candidates nearest to their entry. Diagnostics only: they never change a signal.
+
+**Intraday guard**: a run while the US market is open (before 16:20 New York) drops the partial daily bar dated today,
+so every rule reads closed sessions only; the output then says `"session": "intraday-dropped"` and its date is the
+last closed session.
+
 Deliberate differences from the MT5 code: overlap / flip zones are vetoed even when strong (the checklist's never
 list; ZoneVision ranks ARR / STR above OVL); W1 zones use the MN zones for the HTF-supply veto (ZoneVision has no
 HTF row above W1 on a D1 chart). Not ported: WOW trendline ladder, nested curve, realignment areas, 250% projection,

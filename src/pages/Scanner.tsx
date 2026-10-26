@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ago, EXIT_REASON, px, stateWord, INDEXES, matches, parseScan, planLink, SCAN_URL, SECTOR_SHORT, sectorsOf, sortSignals, stockPath, tvChart, type IndexFilter, type ScanExit, type ScanFile, type ScanSignal, type SortKey } from '@/core/scanner';
+import { ago, EXIT_REASON, px, reasonsText, stateWord, INDEXES, matches, parseScan, planLink, SCAN_URL, SECTOR_SHORT, sectorsOf, sortSignals, stockPath, tvChart, type IndexFilter, type ScanExit, type ScanFile, type ScanSignal, type SortKey } from '@/core/scanner';
 import { num } from '@/lib/format';
 import { Badge, Card, cx, Empty, Page, Segmented, Stat, useIsMobile } from '@/ui/kit';
 import type { MiniBar } from '@/ui/ZoneMiniChart';
@@ -122,6 +122,43 @@ function WatchList({ syms, onStar }: { syms: string[]; onStar: (s: string) => vo
   );
 }
 
+/** 0 BUY: the top blocking reasons and the setups closest to their entry, each with the rule that blocks it. */
+function NoBuy({ scan, filtered }: { scan: ScanFile; filtered: boolean }) {
+  const why = reasonsText(scan.blocked);
+  const closest = scan.closest ?? [];
+  return (
+    <Card aria-label="No buy today" className="p-0">
+      <Empty icon="target" title={filtered ? 'No buy setup here today' : 'No BUY today'}>
+        {filtered ? 'Nothing for this index or sector. Try All.' : why ? <>Top reasons: {why}. {scan.blocked!.candidates.toLocaleString()} stocks sit within {num(scan.blocked!.within_pct, 0)}% of a fresh demand or inside one, each counted by the first rule that blocks it. No zone, no trade.</> : 'No zone passed every rule. No zone, no trade: waiting is a position.'}
+      </Empty>
+      {!filtered && !!closest.length && (
+        <div className="border-t border-line">
+          <h3 className="text-[13px] font-semibold px-4 sm:px-5 pt-3.5 pb-1">Closest setups</h3>
+          <ul className="divide-y divide-line" aria-label="Closest setups">
+            {closest.map(c => (
+              <li key={c.symbol}>
+                <Link to={stockPath(c.symbol)} className="flex items-center gap-3 px-4 sm:px-5 py-3 min-h-[44px] hover:bg-raised/40">
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-baseline gap-2 min-w-0">
+                      <span className="font-semibold text-[15px]">{c.symbol}</span>
+                      <span className="text-[12px] text-ink3 truncate">{c.name}</span>
+                    </span>
+                    <span className="block text-[12px] text-ink3 num">{c.tf} · {c.zone_type} demand {px(c.distal)}–{px(c.proximal)}</span>
+                  </span>
+                  <span className="text-right shrink-0">
+                    <span className={cx('block num text-[12.5px]', Math.abs(c.to_entry_pct) <= 3 ? 'text-accent' : 'text-ink2')}>{c.to_entry_pct >= 0 ? `${num(c.to_entry_pct, 1)}% above` : 'in the zone'}</span>
+                    <span title={`Fails: ${c.fails.join(' · ')}`}><Badge tone="warn" className="mt-0.5">{c.label}</Badge></span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 function ExitList({ exits }: { exits: ScanExit[] }) {
   if (!exits.length) return <Card><Empty icon="shield" title="No exit warnings">None of your holdings sits near a supply, broke its demand or closed below its stop.</Empty></Card>;
   return (
@@ -176,6 +213,7 @@ export default function Scanner() {
             {has ? <>
               <span className="inline-flex items-center gap-1.5"><Icon name="clock" size={13} />Updated {new Date(scan!.generated_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })} · {ago(scan!.generated_at)}</span>
               <span className="num">Close of {scan!.date} · {scan!.scanned.toLocaleString()}/{scan!.universe.toLocaleString()} stocks</span>
+              {scan!.session === 'intraday-dropped' && <span className="text-warn" title="The scan ran while the US market was open: today's unfinished candle was left out.">Ran during market hours: last closed session used</span>}
               {!!scan!.filtered_liquidity && <span title={scan!.liquidity_rule}>{scan!.filtered_liquidity} illiquid small caps skipped</span>}
             </> : load.state === 'loading' ? <span>Loading the latest scan…</span> : load.state === 'error' ? <span>The scan could not be loaded.</span> : <span>No scan has run yet.</span>}
           </div>
@@ -252,9 +290,9 @@ export default function Scanner() {
           </div>
           {pill === 'STAR' ? <WatchList syms={watch.list} onStar={watch.toggle} /> : pill === 'EXIT' ? <ExitList exits={exits} /> : list.length ? (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">{list.map(s => <SignalCard key={`${s.kind}${s.symbol}${s.tf}${s.made}`} s={s} bars={scan.bars?.[s.symbol]} starred={watch.has(s.symbol)} onStar={() => watch.toggle(s.symbol)} />)}</div>
-          ) : (
-            <Card><Empty icon={pill === 'BUY' ? 'target' : 'eye'} title={pill === 'BUY' ? 'No buy setup here today' : 'Nothing to watch here'}>
-              {idx !== 'all' || sector !== 'all' ? 'Nothing for this index or sector. Try All.' : pill === 'BUY' ? 'No zone passed every rule. No zone, no trade: waiting is a position.' : 'No new strong zone and no tested zone that needs a confirmation.'}
+          ) : pill === 'BUY' ? <NoBuy scan={scan} filtered={idx !== 'all' || sector !== 'all'} /> : (
+            <Card><Empty icon="eye" title="Nothing to watch here">
+              {idx !== 'all' || sector !== 'all' ? 'Nothing for this index or sector. Try All.' : 'No new strong zone and no tested zone that needs a confirmation.'}
             </Empty></Card>
           )}
         </>

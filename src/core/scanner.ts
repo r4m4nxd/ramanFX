@@ -92,7 +92,39 @@ export interface ScanFile {
   rfx_index?: RfxIndex | null;
   /** Last ~6 months of daily bars per signalled ticker: [date, o, h, l, c]. */
   bars?: Record<string, [string, number, number, number, number][]>;
+  /** 'intraday-dropped' = the scan ran while the US market was open: today's partial bar was left out. */
+  session?: 'closed' | 'intraday-dropped';
+  /** Why no signal: candidates (nearest fresh demand within `within_pct`% or in it) counted by first failing rule. */
+  blocked?: ScanBlocked;
+  /** The candidates closest to their entry, with the rule that blocks each. */
+  closest?: ScanClosest[];
 }
+
+export interface BlockReason { rule: string; label: string; count: number }
+export interface ScanBlocked { candidates: number; within_pct: number; reasons: BlockReason[] }
+export interface ScanClosest {
+  symbol: string; name: string; sector?: string; indexes?: IndexCode[]; tf: string; zone_type: string; proximal: number; distal: number;
+  price: number; to_entry_pct: number; rule: string; label: string; fails: string[]; direction?: string; curve?: number;
+}
+
+const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+
+/** Blocked counts from the file (bad rows dropped; null when the field is missing). */
+export function parseBlocked(v: unknown): ScanBlocked | undefined {
+  if (!v || typeof v !== 'object') return undefined;
+  const o = v as Partial<ScanBlocked>;
+  const reasons = Array.isArray(o.reasons) ? o.reasons.filter((r): r is BlockReason => !!r && typeof r.rule === 'string' && typeof r.label === 'string' && isNum(r.count)) : [];
+  return { candidates: isNum(o.candidates) ? o.candidates : reasons.reduce((a, r) => a + r.count, 0), within_pct: isNum(o.within_pct) ? o.within_pct : 5, reasons };
+}
+
+function parseClosest(v: unknown): ScanClosest[] {
+  if (!Array.isArray(v)) return [];
+  return v.filter((r): r is ScanClosest => !!r && typeof r === 'object' && typeof r.symbol === 'string' && typeof r.rule === 'string' && isNum(r.to_entry_pct) && isNum(r.proximal))
+    .map(r => ({ ...r, name: String(r.name ?? r.symbol), label: String(r.label ?? r.rule), fails: Array.isArray(r.fails) ? r.fails.map(String) : [], indexes: Array.isArray(r.indexes) ? r.indexes.filter(isIndex) : [] }));
+}
+
+/** "high on curve (312), direction not long (140), …" (top n). */
+export const reasonsText = (b: ScanBlocked | undefined, n = 4) => (b?.reasons ?? []).slice(0, n).map(r => `${r.label} (${r.count.toLocaleString()})`).join(', ');
 
 export const SCAN_URL = '/scanner/latest.json';
 
@@ -118,6 +150,9 @@ export function parseScan(js: unknown): ScanFile | null {
     regime: Array.isArray(o.regime) ? o.regime.filter(r => r && typeof r.symbol === 'string') : [],
     rfx_index: o.rfx_index && typeof o.rfx_index === 'object' && typeof o.rfx_index.price === 'number' ? o.rfx_index : null,
     bars: o.bars && typeof o.bars === 'object' ? Object.fromEntries(Object.entries(o.bars).filter(([, v]) => Array.isArray(v)).map(([k, v]) => [k, v.filter(b => Array.isArray(b) && b.length === 5 && b.slice(1).every(n => typeof n === 'number' && Number.isFinite(n)))])) : {},
+    session: o.session === 'intraday-dropped' ? 'intraday-dropped' : 'closed',
+    blocked: parseBlocked(o.blocked),
+    closest: parseClosest(o.closest),
   };
 }
 
