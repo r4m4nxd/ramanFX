@@ -8,6 +8,7 @@ import { usePlans } from '@/data/guru';
 import { positionSize } from '@/core/instruments';
 import { riskStatus } from '@/core/risk';
 import { mostTraded, rajaStop, rajaTarget, readCombo, readMentor, room, ROOM_GOOD, ROOM_MIN, writeCombo, writeMentor, type Mentor } from '@/core/plannerDefaults';
+import { planFromParams } from '@/core/scanner';
 import { blankPlan, evaluatePlan, formation, SD_COMBOS, trendRel, type ConfSignal, type MoveAway, type Plan, type PlanStatus } from '@/core/strategy';
 import { money, num, price } from '@/lib/format';
 import { fmtR } from '@/core/ruleScore';
@@ -461,7 +462,7 @@ export default function Planner() {
       }
       // Smart defaults: the pair you trade most and the timeframes you used last.
       const combo = readCombo(SD_COMBOS.length);
-      return blankPlan({ symbol: params.get('symbol') ?? mostTraded(trades), ...(combo != null ? { combo } : {}) });
+      return blankPlan({ symbol: params.get('symbol') ?? mostTraded(trades), ...(combo != null ? { combo } : {}), ...planFromParams(params) });
     }
     return id ? plans.find(p => p.id === id) ?? null : null;
     // eslint-disable-next-line react-hooks/exhaustive-deps

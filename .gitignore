@@ -8,3 +8,5 @@ tsconfig.tsbuildinfo
 tools/narration/out/
 narration_audio/
 tools/narration/drive_uploaded.json
+tools/stock_scanner/.cache/
+tools/stock_scanner/backtest_out/

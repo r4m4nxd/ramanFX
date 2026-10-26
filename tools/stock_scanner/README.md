@@ -1,0 +1,163 @@
+# RamanFX stock scanner
+
+Daily scan of US stocks (S&P 500, Nasdaq-100, Dow 30, Russell 2000) for **BUY setups at fresh demand zones** and
+**EXIT warnings near supply**, strictly by the mentors' supply & demand rules: **Raja first, Kevin second**, exactly
+as ZoneVision's Raja template implements them. Results go to Telegram (grouped by sector) and to the app at
+`/scanner`.
+
+> Rule-based scan, not financial advice. **Untested on stocks until the backtest says otherwise.** The rules were
+> taught on forex charts; our own forex research on the mechanical zone rules was negative after costs
+> (docs/research/Evidence_Review_2026-10.md). Run the backtest before trusting a single signal.
+
+Standard library only (Python 3.10+). No `pip install`.
+
+## Files
+
+| File | What it does |
+|---|---|
+| `universe.py` | Index lists → `universe.csv` (symbol, name, sector, cik, indexes). Weekly refresh. |
+| `data.py` | Daily OHLCV (10 y) from Yahoo (split + dividend adjusted via `adjclose`), Stooq fallback; incremental updates, cache, rate limit, threads; weekly / monthly bars. |
+| `zones.py` | The Python port of the ZoneVision Raja logic (pure functions). |
+| `scan.py` | The rules → BUY / WATCH / EXIT, JSON for the app, CLI. |
+| `fundamentals.py` | SEC EDGAR XBRL companyfacts → compact table (context only). |
+| `notify.py` | Telegram messages (HTML, per sector, split < 4000 UTF-16 units). |
+| `backtest.py` | Walk-forward backtest of the same rules. |
+| `selftest.py` | Whole pipeline on synthetic fixtures (`scan.py --selftest`). |
+| `holdings.json` | Your positions for EXIT warnings (or the `HOLDINGS_JSON` secret, preferred). |
+| `fixtures/` | Synthetic price generator, a hand-made SEC companyfacts file, `latest.sample.json` (app demo data). |
+| `../../.github/workflows/stock-scan.yml` | Weekdays 21:45 UTC: tests, scan, Telegram, commit `public/scanner/*.json`. |
+
+## Setup (once)
+
+1. **Telegram bot**: in Telegram open **@BotFather** → `/newbot` → pick a name → copy the **token**.
+   Send your new bot any message, then open `https://api.telegram.org/bot<TOKEN>/getUpdates` in a browser and copy
+   `message.chat.id` (a group: add the bot to the group, send a message there, the id starts with `-`).
+2. **GitHub secrets** (repo → Settings → Secrets and variables → Actions → New repository secret):
+   - `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` (required for Telegram; without them the scan only prints).
+   - optional `HOLDINGS_JSON`: your positions, e.g. `[{"symbol":"AAPL","entry":190,"stop":182,"shares":10,"date":"2026-09-01"}]`
+     (keeps positions out of the repository; `holdings.json` is used when the secret is empty).
+   - optional `SEC_UA`: only if SEC refuses the generic `RamanFX-scanner/1.0` User-Agent (403). SEC wants a
+     contact in the UA ("RamanFX-scanner your-contact"); it is read from the secret only, never written anywhere.
+3. Optional repository **variables**: `SCANNER_UNIVERSES` (default `SPX,NDX,DJI,RUT`), `TELEGRAM_TOP_N` (default 5).
+4. Actions tab → **Stock scan** → *Run workflow* once to test. The first run downloads 10 years for every ticker
+   (~2,600 requests); later runs fetch only the last month per ticker (cache via `actions/cache`).
+
+Each run commits `public/scanner/latest.json` + `public/scanner/history/<date>.json` (that redeploys the app).
+Holdings never reach the JSON beyond the symbol and the warning kind; entries, stops and sizes go only to Telegram.
+
+## Run locally
+
+```bash
+python tools/stock_scanner/universe.py --force                  # index lists (needs Wikipedia / iShares / SEC)
+python tools/stock_scanner/scan.py --tickers AAPL,MSFT --no-notify
+python tools/stock_scanner/scan.py --universes SPX,DJI --workers 6
+python tools/stock_scanner/scan.py --offline --no-write --no-notify   # cached data only
+python tools/stock_scanner/scan.py --selftest                   # fixtures, prints the Telegram text
+python -m unittest discover tools/stock_scanner/tests
+```
+
+Env: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `HOLDINGS_JSON`, `SEC_UA`, `SCANNER_UNIVERSES`, `SCANNER_WORKERS`,
+`SCANNER_PAUSE` (seconds between requests per host, default 0.15), `SCANNER_MIN_PRICE` (5), `SCANNER_MIN_DOLLAR_VOL`
+(5e6), `TELEGRAM_TOP_N` (5), `SCANNER_APP_URL`.
+
+## Universes
+
+| Code | Index | Source |
+|---|---|---|
+| SPX | S&P 500 | Wikipedia `List_of_S%26P_500_companies` (GICS sector, CIK) |
+| NDX | Nasdaq-100 | Wikipedia `List_of_NASDAQ-100_companies` (the table moved off the `Nasdaq-100` article in July 2026; ICB industry mapped to GICS names) |
+| DJI | Dow 30 | Wikipedia `List_of_Dow_Jones_Industrial_Average_companies` |
+| RUT | Russell 2000 | iShares IWM holdings CSV (equity rows, `Sector` column); fallback `russell2000_snapshot.csv` (first line = snapshot date) |
+
+Tickers in several indexes are one row (`indexes` = `SPX,NDX,DJI`). Missing CIKs come from SEC `company_tickers.json`.
+**Liquidity filter**: names that are only in the Russell 2000 must close ≥ $5 with a 20-day average dollar volume
+≥ $5M; the number skipped is reported in Telegram and the app.
+
+## The rules (each mapped to the lesson / checklist line)
+
+Settings = `public/tools/ZV_Template_Raja.set`. Checklist lines = `src/core/checklists/raja.ts` (L = lesson) and
+`kevin.ts`.
+
+**Zones (`zones.detect`, port of `Detect`)**: base of 1-6 basing candles (body < 50% of range) + a departure candle
+≥ 1.2x the biggest base candle (InpMinLegRatio; the card warns when < 2x because L55 says 2x); demand proximal = the
+highest base body, distal = the lowest wick of base + departure (L55); zone ≤ 1.5 ATR(14) (InpMaxZoneATR); the
+stay-away candle must leave space. Removal **only by a close** beyond the distal (InpRemovalMode=1, "never count a
+wick", L4 · L50). Tested = a later low at the proximal (emotional > 3 ATR candles ignored).
+
+**Zone type (`zones.dna`, port of `DnaCompute` with the Raja v2.1 A switches)**: STRONG = an opposite zone removed
+anywhere in the run-out (RjA_StrongRun; L1 · L51); ARRIVAL = the run-out also crossed a trendline by a departure
+close, body ≥ 0.6 ATR (RjA_ArrDepart, InpDirDepartATR; L1 · L51); WOW = strong with an opposite zone ahead (L50 ·
+L101). Trendlines = `Trendlines()` (two latest real valleys / peaks, confirmed by a new high / low, never cut a
+candle; L4 · Feb 10).
+
+**Direction (`eval_row` + `dir_combine`, port of `DirEvalTF` / `DirCombine`, Raja table D1 → W1 → MN)**: per TF the
+swings (HH+HL), the newest trendline cross, opposite zones removed since (Raja 2-close removal); CHANGED = cross + 2
+opposite zones removed (L3), one = PULLBACK / TURNING (L3). Rules: inside a fresh MN zone locks the side; the curve
+blocks the wrong side; MN in control; W1 pulling back against = WAIT to realign; D1 against = REDUCED; 3rd CP = one
+step down (L7 · L8).
+
+**Curve (`dir_curve`, port of `DirCurve`)**: proximal to proximal of the nearest fresh STRONG MN demand below and
+supply above; without that pair the 100-bar MN range (v1). ≤ 25% low curve (buyers only), ≥ 75% high curve (L4).
+
+| BUY rule (all must pass) | Source |
+|---|---|
+| Fresh: first touch, not removed | L2 · L52 |
+| Zone type ARR / WOW / STR (D1 or W1) | L1 · L51 |
+| Direction LONG (FULL or REDUCED) from D1 → W1 → MN | L7 · L8 · L3 |
+| Curve below 50% (≤ 25% best; 25-50% flagged) | L4 |
+| Not inside / next to a monthly supply, price not inside one | L50 · L52 (RjA_OppHtfVeto) |
+| Room to the next supply ≥ 2x the stop (≥ 3x good, 2-3x flagged) | L7 · L53 |
+| A known target (a supply above) | L101 ("never without a WOW target") |
+| Not sideways on the zone TF or MN | L8 · L101 (RjB_Sideways, InpRjBChopTF=1) |
+| Not the 3rd CP in a row | Raja lens · Kevin L8 · L13 |
+| Has not already done its job | L5 · Feb 18 (RjA_Lens8) |
+| Not an overlap / flip zone | L52 ("never set and forget" list) |
+| Price within max(1.0x zone height, 3% of price) above the proximal | scanner (InpApproach) |
+| No earnings in the next 10 trading days (when the date is known; unknown = "?") | Kevin L12 |
+
+**Plan**: entry = proximal (limit); **stop = distal − 10% of the zone height on D1, 5% on W1** (the owner's rule,
+ZV 2.10, min 0.03); **target = 0.5% before the next supply's proximal** (the nearest of the zone TF's live supplies
+and the fresh W1 / MN supplies); R:R from those. Score = Raja lens score (`LensRun`): type 4/3 + fresh 2 + curve 2 +
+room 2, max 10.
+
+**WATCH**: strong fresh zones made in the last 5 sessions that pass everything but the approach; tested zones
+(2nd / 3rd touch, D1 / W1 allowance of RjA_TouchCap) that pass everything but freshness → confirm one TF lower
+(L52 · L101). **EXIT** (holdings): stop hit by a close; the demand under the entry broken by a close (since the
+holding's `date`, else the last 5 sessions); price within one zone height of the next supply's proximal or inside it
+(L7 · L106 "exit before the opposite zone").
+
+Deliberate differences from the MT5 code: overlap / flip zones are vetoed even when strong (the checklist's never
+list; ZoneVision ranks ARR / STR above OVL); W1 zones use the MN zones for the HTF-supply veto (ZoneVision has no
+HTF row above W1 on a D1 chart). Not ported: WOW trendline ladder, nested curve, realignment areas, 250% projection,
+inheritance / out-of-trendline types, near-trendline pips (pips mean nothing on stocks), Kevin / Seiden / Baker
+lenses.
+
+## Backtest
+
+```bash
+python tools/stock_scanner/backtest.py --offline --workers 4          # after one scan filled the cache
+python tools/stock_scanner/backtest.py --universes RUT --offline
+python tools/stock_scanner/backtest.py --fixture                      # code-path check on synthetic data only
+```
+
+Walk-forward, no look-ahead: on each candidate day the scanner's own `analyse()` runs on the bars up to that day
+(W1 / MN = buckets closed by then); a zone exists only after its stay-away candle closed (a unit test proves the
+pre-filtered walk equals scanning every day). Orders: limit at the proximal from the next day (gap-down fills at the
+open), cancelled when price reaches the target first, the zone is removed by a close, or after 40 sessions. Exits:
+target, or the stop in two variants (`wick` and `close`), same-bar = stop, time exit 250 sessions, 5 bps per side.
+Output `backtest_out/trades.csv` + `summary.json`: trades, win rate, avg R, expectancy with a bootstrap 95% CI,
+profit factor, by zone type / TF / sector / **universe**, in-sample vs the last 30% (out of sample), gap-through-
+stop count, trades held through a 10-Q / 10-K filing (proxy for earnings, from cached SEC data). The verdict line
+says trust only when the out-of-sample CI is above zero with 30+ trades.
+
+## Limitations
+
+- **Earnings gaps**: daily data cannot see the overnight gap risk; the stop can be jumped (the backtest counts it).
+  Future earnings dates come from Yahoo best-effort; unknown = "?" (check yourself). `earnings.csv` (symbol,date) overrides.
+- **Adjusted prices**: zones are drawn on split + dividend adjusted data; old zones sit slightly lower than on an
+  unadjusted TradingView chart.
+- **Survivorship bias**: the backtest uses today's index members only (companies that left the index are missing),
+  which flatters results, most of all for the Russell 2000.
+- **No intraday**: no H1 / H4 confirmation, so tested zones are WATCH only; entries assume a resting limit order.
+- Yahoo / Stooq / SEC / iShares are unofficial or rate-limited sources; a ticker without data is skipped and counted.
+- The Russell 2000 list needs the iShares CSV once (or a committed snapshot); when both are missing RUT is empty.

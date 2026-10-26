@@ -31,7 +31,7 @@
       ]
     },
     {
-      "source": "/(sandbox|lessons|ask|tools)/(.*)",
+      "source": "/(sandbox|lessons|ask|tools|scanner)/(.*)",
       "headers": [
         {
           "key": "X-Robots-Tag",

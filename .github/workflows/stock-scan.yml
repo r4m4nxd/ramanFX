@@ -1,0 +1,81 @@
+name: Stock scan
+
+# Weekdays after the US close (21:45 UTC), or by hand. Scans S&P 500 + Nasdaq-100 + Dow 30 + Russell 2000
+# (switch universes with the SCANNER_UNIVERSES repository variable), sends Telegram, commits public/scanner/*.json.
+on:
+  schedule:
+    - cron: '45 21 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      tickers:
+        description: 'Optional comma-separated tickers (default: every enabled universe)'
+        required: false
+      refresh_universe:
+        description: 'Refresh the index lists now'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: stock-scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      SCANNER_UNIVERSES: ${{ vars.SCANNER_UNIVERSES || 'SPX,NDX,DJI,RUT' }}
+      SCANNER_WORKERS: '6'
+      TELEGRAM_TOP_N: ${{ vars.TELEGRAM_TOP_N || '5' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Price + SEC cache between runs: after the first full download only the last month is fetched per ticker.
+      - name: Restore data cache
+        uses: actions/cache@v4
+        with:
+          path: tools/stock_scanner/.cache
+          key: scanner-data-${{ github.run_id }}
+          restore-keys: |
+            scanner-data-
+
+      - name: Unit tests
+        run: python -m unittest discover tools/stock_scanner/tests
+
+      - name: Refresh index lists (Mondays, or on request)
+        if: ${{ github.event.inputs.refresh_universe == 'true' || github.event_name == 'schedule' }}
+        run: |
+          if [ "$(date -u +%u)" = "1" ] || [ "${{ github.event.inputs.refresh_universe }}" = "true" ]; then
+            python tools/stock_scanner/universe.py --force
+          else
+            echo "not Monday: keeping the committed universe.csv"
+          fi
+        env:
+          SEC_UA: ${{ secrets.SEC_UA }}
+
+      - name: Scan + notify
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.tickers }}" ]; then ARGS="--tickers ${{ github.event.inputs.tickers }}"; fi
+          python tools/stock_scanner/scan.py $ARGS
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          HOLDINGS_JSON: ${{ secrets.HOLDINGS_JSON }}
+          SEC_UA: ${{ secrets.SEC_UA }}
+
+      - name: Commit results
+        run: |
+          git config user.name "ramanfx-scanner[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/scanner tools/stock_scanner/universe.csv tools/stock_scanner/russell2000_snapshot.csv 2>/dev/null || git add public/scanner tools/stock_scanner/universe.csv
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "scanner: daily scan $(date -u +%Y-%m-%d)"
+          for i in 1 2 3; do git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && break; sleep 5; done

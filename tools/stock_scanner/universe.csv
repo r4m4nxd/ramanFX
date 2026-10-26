@@ -1,0 +1,519 @@
+symbol,name,sector,cik,indexes
+A,Agilent Technologies,Health Care,0001090872,SPX
+AAPL,Apple Inc.,Information Technology,0000320193,"SPX,NDX,DJI"
+ABBV,AbbVie,Health Care,0001551152,SPX
+ABNB,Airbnb,Consumer Discretionary,0001559720,"SPX,NDX"
+ABT,Abbott Laboratories,Health Care,0000001800,SPX
+ACGL,Arch Capital Group,Financials,0000947484,SPX
+ACN,Accenture,Information Technology,0001467373,SPX
+ADBE,Adobe Inc.,Information Technology,0000796343,"SPX,NDX"
+ADI,Analog Devices,Information Technology,0000006281,"SPX,NDX"
+ADM,Archer Daniels Midland,Consumer Staples,0000007084,SPX
+ADP,Automatic Data Processing,Industrials,0000008670,"SPX,NDX"
+ADSK,Autodesk,Information Technology,0000769397,"SPX,NDX"
+AEE,Ameren,Utilities,0001002910,SPX
+AEP,American Electric Power,Utilities,0000004904,"SPX,NDX"
+AES,AES Corporation,Utilities,0000874761,SPX
+AFL,Aflac,Financials,0000004977,SPX
+AIG,American International Group,Financials,0000005272,SPX
+AIZ,Assurant,Financials,0001267238,SPX
+AJG,Arthur J. Gallagher & Co.,Financials,0000354190,SPX
+AKAM,Akamai Technologies,Information Technology,0001086222,SPX
+ALAB,Astera Labs,Information Technology,,NDX
+ALB,Albemarle Corporation,Materials,0000915913,SPX
+ALGN,Align Technology,Health Care,0001097149,SPX
+ALL,Allstate,Financials,0000899051,SPX
+ALLE,Allegion,Industrials,0001579241,SPX
+ALNY,Alnylam Pharmaceuticals,Health Care,,NDX
+AMAT,Applied Materials,Information Technology,0000006951,"SPX,NDX"
+AMCR,Amcor,Materials,0001748790,SPX
+AMD,Advanced Micro Devices,Information Technology,0000002488,"SPX,NDX"
+AME,Ametek,Industrials,0001037868,SPX
+AMGN,Amgen,Health Care,0000318154,"SPX,NDX,DJI"
+AMP,Ameriprise Financial,Financials,0000820027,SPX
+AMT,American Tower,Real Estate,0001053507,SPX
+AMZN,Amazon,Consumer Discretionary,0001018724,"SPX,NDX,DJI"
+ANET,Arista Networks,Information Technology,0001596532,SPX
+AON,Aon plc,Financials,0000315293,SPX
+AOS,A. O. Smith,Industrials,0000091142,SPX
+APA,APA Corporation,Energy,0001841666,SPX
+APD,Air Products,Materials,0000002969,SPX
+APH,Amphenol,Information Technology,0000820313,SPX
+APO,Apollo Global Management,Financials,0001858681,SPX
+APP,AppLovin,Communication Services,0001751008,"SPX,NDX"
+APTV,Aptiv,Consumer Discretionary,0001521332,SPX
+ARE,Alexandria Real Estate Equities,Real Estate,0001035443,SPX
+ARES,Ares Management,Financials,0001176948,SPX
+ARM,Arm Holdings,Information Technology,,NDX
+ASML,ASML Holding,Information Technology,,NDX
+ATO,Atmos Energy,Utilities,0000731802,SPX
+AVGO,Broadcom,Information Technology,0001730168,"SPX,NDX"
+AVY,Avery Dennison,Materials,0000008818,SPX
+AWK,American Water Works,Utilities,0001410636,SPX
+AXON,Axon Enterprise,Industrials,0001069183,"SPX,NDX"
+AXP,American Express,Financials,0000004962,"SPX,DJI"
+AZO,AutoZone,Consumer Discretionary,0000866787,SPX
+BA,Boeing,Industrials,0000012927,"SPX,DJI"
+BAC,Bank of America,Financials,0000070858,SPX
+BALL,Ball Corporation,Materials,0000009389,SPX
+BAX,Baxter International,Health Care,0000010456,SPX
+BBY,Best Buy,Consumer Discretionary,0000764478,SPX
+BDX,Becton Dickinson,Health Care,0000010795,SPX
+BE,Bloom Energy,Industrials,0001664703,SPX
+BEN,Franklin Resources,Financials,0000038777,SPX
+BF.B,Brown–Forman,Consumer Staples,0000014693,SPX
+BG,Bunge Global,Consumer Staples,0001996862,SPX
+BIIB,Biogen,Health Care,0000875045,SPX
+BKNG,Booking Holdings,Consumer Discretionary,0001075531,"SPX,NDX"
+BKR,Baker Hughes,Energy,0001701605,"SPX,NDX"
+BLK,BlackRock,Financials,0002012383,SPX
+BMY,Bristol Myers Squibb,Health Care,0000014272,SPX
+BNY,BNY Mellon,Financials,0001390777,SPX
+BR,Broadridge Financial Solutions,Industrials,0001383312,SPX
+BRK.B,Berkshire Hathaway,Financials,0001067983,SPX
+BRO,Brown & Brown,Financials,0000079282,SPX
+BSX,Boston Scientific,Health Care,0000885725,SPX
+BX,Blackstone Inc.,Financials,0001393818,SPX
+BXP,"BXP, Inc.",Real Estate,0001037540,SPX
+C,Citigroup,Financials,0000831001,SPX
+CAH,Cardinal Health,Health Care,0000721371,SPX
+CARR,Carrier Global,Industrials,0001783180,SPX
+CASY,Casey's,Consumer Staples,0000726958,SPX
+CAT,Caterpillar Inc.,Industrials,0000018230,"SPX,DJI"
+CB,Chubb Limited,Financials,0000896159,SPX
+CBOE,Cboe Global Markets,Financials,0001374310,SPX
+CBRE,CBRE Group,Real Estate,0001138118,SPX
+CCEP,Coca-Cola Europacific Partners,Consumer Staples,,NDX
+CCI,Crown Castle,Real Estate,0001051470,SPX
+CCL,Carnival Corporation,Consumer Discretionary,0000815097,SPX
+CDNS,Cadence Design Systems,Information Technology,0000813672,"SPX,NDX"
+CDW,CDW Corporation,Information Technology,0001402057,SPX
+CEG,Constellation Energy,Utilities,0001868275,"SPX,NDX"
+CF,CF Industries,Materials,0001324404,SPX
+CFG,Citizens Financial Group,Financials,0000759944,SPX
+CHD,Church & Dwight,Consumer Staples,0000313927,SPX
+CHRW,C.H. Robinson,Industrials,0001043277,SPX
+CHTR,Charter Communications,Communication Services,0001091667,SPX
+CI,Cigna,Health Care,0001739940,SPX
+CIEN,Ciena,Information Technology,0000936395,SPX
+CINF,Cincinnati Financial,Financials,0000020286,SPX
+CL,Colgate-Palmolive,Consumer Staples,0000021665,SPX
+CLX,Clorox,Consumer Staples,0000021076,SPX
+CMCSA,Comcast,Communication Services,0001166691,"SPX,NDX"
+CME,CME Group,Financials,0001156375,SPX
+CMG,Chipotle Mexican Grill,Consumer Discretionary,0001058090,SPX
+CMI,Cummins,Industrials,0000026172,SPX
+CMS,CMS Energy,Utilities,0000811156,SPX
+CNC,Centene Corporation,Health Care,0001071739,SPX
+CNP,CenterPoint Energy,Utilities,0001130310,SPX
+COF,Capital One,Financials,0000927628,SPX
+COHR,Coherent Corp.,Information Technology,0000820318,SPX
+COIN,Coinbase,Financials,0001679788,SPX
+COO,Cooper Companies (The),Health Care,0000711404,SPX
+COP,ConocoPhillips,Energy,0001163165,SPX
+COR,Cencora,Health Care,0001140859,SPX
+COST,Costco,Consumer Staples,0000909832,"SPX,NDX"
+CPAY,Corpay,Financials,0001175454,SPX
+CPRT,Copart,Industrials,0000900075,"SPX,NDX"
+CPT,Camden Property Trust,Real Estate,0000906345,SPX
+CRH,CRH plc,Materials,0000849395,SPX
+CRL,Charles River Laboratories,Health Care,0001100682,SPX
+CRM,Salesforce,Information Technology,0001108524,"SPX,DJI"
+CRWD,CrowdStrike,Information Technology,0001535527,"SPX,NDX"
+CRWV,CoreWeave,Information Technology,,NDX
+CSCO,Cisco,Information Technology,0000858877,"SPX,NDX,DJI"
+CSGP,CoStar Group,Real Estate,0001057352,SPX
+CSX,CSX Corporation,Industrials,0000277948,"SPX,NDX"
+CTAS,Cintas,Industrials,0000723254,"SPX,NDX"
+CTSH,Cognizant,Information Technology,0001058290,SPX
+CVNA,Carvana,Consumer Discretionary,0001690820,SPX
+CVS,CVS Health,Health Care,0000064803,SPX
+CVX,Chevron Corporation,Energy,0000093410,"SPX,DJI"
+D,Dominion Energy,Utilities,0000715957,SPX
+DAL,Delta Air Lines,Industrials,0000027904,SPX
+DASH,DoorDash,Consumer Discretionary,0001792789,"SPX,NDX"
+DD,DuPont,Industrials,0001666700,SPX
+DDOG,Datadog,Information Technology,0001561550,"SPX,NDX"
+DE,Deere & Company,Industrials,0000315189,SPX
+DECK,Deckers Brands,Consumer Discretionary,0000910521,SPX
+DELL,Dell Technologies,Information Technology,0001571996,SPX
+DG,Dollar General,Consumer Staples,0000029534,SPX
+DGX,Quest Diagnostics,Health Care,0001022079,SPX
+DHI,D. R. Horton,Consumer Discretionary,0000882184,SPX
+DHR,Danaher Corporation,Health Care,0000313616,SPX
+DIS,Walt Disney Company (The),Communication Services,0001744489,"SPX,DJI"
+DLR,Digital Realty,Real Estate,0001297996,SPX
+DLTR,Dollar Tree,Consumer Staples,0000935703,SPX
+DOC,Healthpeak Properties,Real Estate,0000765880,SPX
+DOV,Dover Corporation,Industrials,0000029905,SPX
+DOW,Dow Inc.,Materials,0001751788,SPX
+DPZ,Domino's,Consumer Discretionary,0001286681,SPX
+DRI,Darden Restaurants,Consumer Discretionary,0000940944,SPX
+DTE,DTE Energy,Utilities,0000936340,SPX
+DUK,Duke Energy,Utilities,0001326160,SPX
+DVA,DaVita,Health Care,0000927066,SPX
+DVN,Devon Energy,Energy,0001090012,SPX
+DXCM,Dexcom,Health Care,0001093557,"SPX,NDX"
+EBAY,eBay Inc.,Consumer Discretionary,0001065088,SPX
+ECHO,EchoStar,Communication Services,0001415404,SPX
+ECL,Ecolab,Materials,0000031462,SPX
+ED,Consolidated Edison,Utilities,0001047862,SPX
+EFX,Equifax,Industrials,0000033185,SPX
+EG,Everest Group,Financials,0001095073,SPX
+EIX,Edison International,Utilities,0000827052,SPX
+EL,Estée Lauder Companies (The),Consumer Staples,0001001250,SPX
+ELV,Elevance Health,Health Care,0001156039,SPX
+EME,Emcor,Industrials,0000105634,SPX
+EMR,Emerson Electric,Industrials,0000032604,SPX
+EOG,EOG Resources,Energy,0000821189,SPX
+EQIX,Equinix,Real Estate,0001101239,SPX
+EQT,EQT Corporation,Energy,0000033213,SPX
+ERIE,Erie Indemnity,Financials,0000922621,SPX
+ES,Eversource Energy,Utilities,0000072741,SPX
+ESS,Essex Property Trust,Real Estate,0000920522,SPX
+ETN,Eaton Corporation,Industrials,0001551182,SPX
+ETR,Entergy,Utilities,0000065984,SPX
+EVRG,Evergy,Utilities,0001711269,SPX
+EW,Edwards Lifesciences,Health Care,0001099800,SPX
+EXC,Exelon,Utilities,0001109357,"SPX,NDX"
+EXE,Expand Energy,Energy,0000895126,SPX
+EXPD,Expeditors International,Industrials,0000746515,SPX
+EXPE,Expedia Group,Consumer Discretionary,0001324424,SPX
+EXR,Extra Space Storage,Real Estate,0001289490,SPX
+F,Ford Motor Company,Consumer Discretionary,0000037996,SPX
+FANG,Diamondback Energy,Energy,0001539838,"SPX,NDX"
+FAST,Fastenal,Industrials,0000815556,"SPX,NDX"
+FCX,Freeport-McMoRan,Materials,0000831259,SPX
+FDS,FactSet,Financials,0001013237,SPX
+FDX,FedEx,Industrials,0001048911,SPX
+FDXF,FedEx Freight,Industrials,0002082247,SPX
+FE,FirstEnergy,Utilities,0001031296,SPX
+FER,Ferrovial,Industrials,,NDX
+FERG,Ferguson Enterprises,Industrials,0002011641,SPX
+FFIV,"F5, Inc.",Information Technology,0001048695,SPX
+FICO,Fair Isaac,Information Technology,0000814547,SPX
+FIS,Fidelity National Information Services,Financials,0001136893,SPX
+FISV,Fiserv,Financials,0000798354,SPX
+FITB,Fifth Third Bancorp,Financials,0000035527,SPX
+FIX,Comfort Systems USA,Industrials,0001035983,SPX
+FLEX,Flex Ltd.,Information Technology,0000866374,SPX
+FOX,Fox Corporation (Class B),Communication Services,0001754301,SPX
+FOXA,Fox Corporation (Class A),Communication Services,0001754301,SPX
+FRT,Federal Realty Investment Trust,Real Estate,0000034903,SPX
+FSLR,First Solar,Information Technology,0001274494,SPX
+FTNT,Fortinet,Information Technology,0001262039,"SPX,NDX"
+FTV,Fortive,Industrials,0001659166,SPX
+GD,General Dynamics,Industrials,0000040533,SPX
+GDDY,GoDaddy,Information Technology,0001609711,SPX
+GE,GE Aerospace,Industrials,0000040545,SPX
+GEHC,GE HealthCare,Health Care,0001932393,"SPX,NDX"
+GEN,Gen Digital,Information Technology,0000849399,SPX
+GEV,GE Vernova,Industrials,0001996810,SPX
+GILD,Gilead Sciences,Health Care,0000882095,"SPX,NDX"
+GIS,General Mills,Consumer Staples,0000040704,SPX
+GL,Globe Life,Financials,0000320335,SPX
+GLW,Corning Inc.,Information Technology,0000024741,SPX
+GM,General Motors,Consumer Discretionary,0001467858,SPX
+GNRC,Generac,Industrials,0001474735,SPX
+GOOG,Alphabet Inc. (Class C),Communication Services,0001652044,"SPX,NDX"
+GOOGL,Alphabet Inc. (Class A),Communication Services,0001652044,"SPX,NDX,DJI"
+GPC,Genuine Parts Company,Consumer Discretionary,0000040987,SPX
+GPN,Global Payments,Financials,0001123360,SPX
+GRMN,Garmin,Consumer Discretionary,0001121788,SPX
+GS,Goldman Sachs,Financials,0000886982,"SPX,DJI"
+GWW,W. W. Grainger,Industrials,0000277135,SPX
+HAL,Halliburton,Energy,0000045012,SPX
+HAS,Hasbro,Consumer Discretionary,0000046080,SPX
+HBAN,Huntington Bancshares,Financials,0000049196,SPX
+HCA,HCA Healthcare,Health Care,0000860730,SPX
+HD,Home Depot (The),Consumer Discretionary,0000354950,"SPX,DJI"
+HIG,Hartford (The),Financials,0000874766,SPX
+HII,Huntington Ingalls Industries,Industrials,0001501585,SPX
+HLT,Hilton Worldwide,Consumer Discretionary,0001585689,SPX
+HON,Honeywell Technologies,Industrials,0000773840,"SPX,NDX,DJI"
+HONA,Honeywell Aerospace,Industrials,0002089271,"SPX,NDX"
+HOOD,Robinhood Markets,Financials,0001783879,SPX
+HPE,Hewlett Packard Enterprise,Information Technology,0001645590,SPX
+HPQ,HP Inc.,Information Technology,0000047217,SPX
+HRL,Hormel Foods,Consumer Staples,0000048465,SPX
+HSIC,Henry Schein,Health Care,0001000228,SPX
+HST,Host Hotels & Resorts,Real Estate,0001070750,SPX
+HSY,Hershey Company (The),Consumer Staples,0000047111,SPX
+HUBB,Hubbell Incorporated,Industrials,0000048898,SPX
+HUM,Humana,Health Care,0000049071,SPX
+HWM,Howmet Aerospace,Industrials,0000004281,SPX
+IBKR,Interactive Brokers,Financials,0001381197,SPX
+IBM,IBM,Information Technology,0000051143,"SPX,DJI"
+ICE,Intercontinental Exchange,Financials,0001571949,SPX
+IDXX,Idexx Laboratories,Health Care,0000874716,"SPX,NDX"
+IEX,IDEX Corporation,Industrials,0000832101,SPX
+IFF,International Flavors & Fragrances,Materials,0000051253,SPX
+ILMN,"Illumina, Inc.",Health Care,0001110803,SPX
+INCY,Incyte,Health Care,0000879169,SPX
+INTC,Intel,Information Technology,0000050863,"SPX,NDX"
+INTU,Intuit,Information Technology,0000896878,"SPX,NDX"
+INVH,Invitation Homes,Real Estate,0001687229,SPX
+IP,International Paper,Materials,0000051434,SPX
+IQV,IQVIA,Health Care,0001478242,SPX
+IR,Ingersoll Rand,Industrials,0001699150,SPX
+IRM,Iron Mountain,Real Estate,0001020569,SPX
+ISRG,Intuitive Surgical,Health Care,0001035267,"SPX,NDX"
+IT,Gartner,Information Technology,0000749251,SPX
+ITW,Illinois Tool Works,Industrials,0000049826,SPX
+IVZ,Invesco,Financials,0000914208,SPX
+J,Jacobs Solutions,Industrials,0000052988,SPX
+JBHT,J.B. Hunt,Industrials,0000728535,SPX
+JBL,Jabil,Information Technology,0000898293,SPX
+JCI,Johnson Controls,Industrials,0000833444,SPX
+JKHY,Jack Henry & Associates,Financials,0000779152,SPX
+JNJ,Johnson & Johnson,Health Care,0000200406,"SPX,DJI"
+JPM,JPMorgan Chase,Financials,0000019617,"SPX,DJI"
+KDP,Keurig Dr Pepper,Consumer Staples,0001418135,"SPX,NDX"
+KEY,KeyCorp,Financials,0000091576,SPX
+KEYS,Keysight Technologies,Information Technology,0001601046,SPX
+KHC,Kraft Heinz,Consumer Staples,0001637459,SPX
+KIM,Kimco Realty,Real Estate,0000879101,SPX
+KKR,KKR & Co.,Financials,0001404912,SPX
+KLAC,KLA Corporation,Information Technology,0000319201,"SPX,NDX"
+KMB,Kimberly-Clark,Consumer Staples,0000055785,SPX
+KMI,Kinder Morgan,Energy,0001506307,SPX
+KO,Coca-Cola Company (The),Consumer Staples,0000021344,"SPX,DJI"
+KR,Kroger,Consumer Staples,0000056873,SPX
+KVUE,Kenvue,Consumer Staples,0001944048,SPX
+L,Loews Corporation,Financials,0000060086,SPX
+LDOS,Leidos,Industrials,0001336920,SPX
+LEN,Lennar,Consumer Discretionary,0000920760,SPX
+LH,Labcorp,Health Care,0000920148,SPX
+LHX,L3Harris,Industrials,0000202058,SPX
+LII,Lennox International,Industrials,0001069202,SPX
+LIN,Linde plc,Materials,0001707925,"SPX,NDX"
+LITE,Lumentum,Information Technology,0001633978,"SPX,NDX"
+LLY,Lilly (Eli),Health Care,0000059478,SPX
+LMT,Lockheed Martin,Industrials,0000936468,SPX
+LNT,Alliant Energy,Utilities,0000352541,SPX
+LOW,Lowe's,Consumer Discretionary,0000060667,SPX
+LRCX,Lam Research,Information Technology,0000707549,"SPX,NDX"
+LULU,Lululemon Athletica,Consumer Discretionary,0001397187,SPX
+LUV,Southwest Airlines,Industrials,0000092380,SPX
+LVS,Las Vegas Sands,Consumer Discretionary,0001300514,SPX
+LYB,LyondellBasell,Materials,0001489393,SPX
+LYV,Live Nation Entertainment,Communication Services,0001335258,SPX
+MA,Mastercard,Financials,0001141391,SPX
+MAA,Mid-America Apartment Communities,Real Estate,0000912595,SPX
+MAR,Marriott International,Consumer Discretionary,0001048286,"SPX,NDX"
+MAS,Masco,Industrials,0000062996,SPX
+MCD,McDonald's,Consumer Discretionary,0000063908,"SPX,DJI"
+MCHP,Microchip Technology,Information Technology,0000827054,"SPX,NDX"
+MCK,McKesson,Health Care,0000927653,SPX
+MCO,Moody's Corporation,Financials,0001059556,SPX
+MDLZ,Mondelez International,Consumer Staples,0001103982,"SPX,NDX"
+MDT,Medtronic,Health Care,0001613103,SPX
+MELI,Mercado Libre,Consumer Discretionary,,NDX
+MET,MetLife,Financials,0001099219,SPX
+META,Meta Platforms,Communication Services,0001326801,"SPX,NDX"
+MGM,MGM Resorts,Consumer Discretionary,0000789570,SPX
+MKC,McCormick & Company,Consumer Staples,0000063754,SPX
+MLM,Martin Marietta Materials,Materials,0000916076,SPX
+MMM,3M,Industrials,0000066740,"SPX,DJI"
+MNST,Monster Beverage,Consumer Staples,0000865752,"SPX,NDX"
+MO,Altria,Consumer Staples,0000764180,SPX
+MOS,Mosaic Company (The),Materials,0001285785,SPX
+MPC,Marathon Petroleum,Energy,0001510295,SPX
+MPWR,Monolithic Power Systems,Information Technology,0001280452,"SPX,NDX"
+MRK,Merck & Co.,Health Care,0000310158,"SPX,DJI"
+MRNA,Moderna,Health Care,0001682852,"SPX,NDX"
+MRSH,Marsh McLennan,Financials,0000062709,SPX
+MRVL,Marvell Technology,Information Technology,0001835632,"SPX,NDX"
+MS,Morgan Stanley,Financials,0000895421,SPX
+MSCI,MSCI,Financials,0001408198,SPX
+MSFT,Microsoft,Information Technology,0000789019,"SPX,NDX,DJI"
+MSI,Motorola Solutions,Information Technology,0000068505,SPX
+MSTR,MicroStrategy,Information Technology,,NDX
+MTB,M&T Bank,Financials,0000036270,SPX
+MTD,Mettler Toledo,Health Care,0001037646,SPX
+MU,Micron Technology,Information Technology,0000723125,"SPX,NDX"
+NBIS,Nebius Group,Information Technology,,NDX
+NCLH,Norwegian Cruise Line Holdings,Consumer Discretionary,0001513761,SPX
+NDAQ,"Nasdaq, Inc.",Financials,0001120193,SPX
+NDSN,Nordson Corporation,Industrials,0000072331,SPX
+NEE,NextEra Energy,Utilities,0000753308,SPX
+NEM,Newmont,Materials,0001164727,SPX
+NFLX,Netflix,Communication Services,0001065280,"SPX,NDX"
+NI,NiSource,Utilities,0001111711,SPX
+NKE,"Nike, Inc.",Consumer Discretionary,0000320187,"SPX,DJI"
+NOC,Northrop Grumman,Industrials,0001133421,SPX
+NOW,ServiceNow,Information Technology,0001373715,SPX
+NRG,NRG Energy,Utilities,0001013871,SPX
+NSC,Norfolk Southern,Industrials,0000702165,SPX
+NTAP,NetApp,Information Technology,0001002047,SPX
+NTRS,Northern Trust,Financials,0000073124,SPX
+NUE,Nucor,Materials,0000073309,SPX
+NVDA,Nvidia,Information Technology,0001045810,"SPX,NDX,DJI"
+NVR,"NVR, Inc.",Consumer Discretionary,0000906163,SPX
+NWS,News Corp (Class B),Communication Services,0001564708,SPX
+NWSA,News Corp (Class A),Communication Services,0001564708,SPX
+NXPI,NXP Semiconductors,Information Technology,0001413447,"SPX,NDX"
+O,Realty Income,Real Estate,0000726728,SPX
+ODFL,Old Dominion,Industrials,0000878927,"SPX,NDX"
+OKE,Oneok,Energy,0001039684,SPX
+OMC,Omnicom Group,Communication Services,0000029989,SPX
+ON,ON Semiconductor,Information Technology,0001097864,SPX
+ORCL,Oracle Corporation,Information Technology,0001341439,SPX
+ORLY,O'Reilly Automotive,Consumer Discretionary,0000898173,"SPX,NDX"
+OTIS,Otis Worldwide,Industrials,0001781335,SPX
+OXY,Occidental Petroleum,Energy,0000797468,SPX
+P,Everpure,Information Technology,0001474432,SPX
+PANW,Palo Alto Networks,Information Technology,0001327567,"SPX,NDX"
+PAYX,Paychex,Industrials,0000723531,"SPX,NDX"
+PCAR,Paccar,Industrials,0000075362,"SPX,NDX"
+PCG,PG&E Corporation,Utilities,0001004980,SPX
+PDD,PDD Holdings,Information Technology,,NDX
+PEG,Public Service Enterprise Group,Utilities,0000788784,SPX
+PEP,PepsiCo,Consumer Staples,0000077476,"SPX,NDX"
+PFE,Pfizer,Health Care,0000078003,SPX
+PFG,Principal Financial Group,Financials,0001126328,SPX
+PG,Procter & Gamble,Consumer Staples,0000080424,"SPX,DJI"
+PGR,Progressive Corporation,Financials,0000080661,SPX
+PH,Parker Hannifin,Industrials,0000076334,SPX
+PHM,PulteGroup,Consumer Discretionary,0000822416,SPX
+PKG,Packaging Corporation of America,Materials,0000075677,SPX
+PLD,Prologis,Real Estate,0001045609,SPX
+PLTR,Palantir Technologies,Information Technology,0001321655,"SPX,NDX"
+PM,Philip Morris International,Consumer Staples,0001413329,SPX
+PNC,PNC Financial Services,Financials,0000713676,SPX
+PNR,Pentair,Industrials,0000077360,SPX
+PNW,Pinnacle West Capital,Utilities,0000764622,SPX
+PODD,Insulet Corporation,Health Care,0001145197,SPX
+PPG,PPG Industries,Materials,0000079879,SPX
+PPL,PPL Corporation,Utilities,0000922224,SPX
+PRU,Prudential Financial,Financials,0001137774,SPX
+PSA,Public Storage,Real Estate,0001393311,SPX
+PSX,Phillips 66,Energy,0001534701,SPX
+PTC,PTC Inc.,Information Technology,0000857005,SPX
+PWR,Quanta Services,Industrials,0001050915,SPX
+PYPL,PayPal,Financials,0001633917,"SPX,NDX"
+Q,Qnity Electronics,Information Technology,0002058873,SPX
+QCOM,Qualcomm,Information Technology,0000804328,"SPX,NDX"
+RCL,Royal Caribbean Group,Consumer Discretionary,0000884887,SPX
+RDDT,Reddit,Communication Services,0001713445,SPX
+REG,Regency Centers,Real Estate,0000910606,SPX
+REGN,Regeneron Pharmaceuticals,Health Care,0000872589,"SPX,NDX"
+RF,Regions Financial Corporation,Financials,0001281761,SPX
+RJF,Raymond James Financial,Financials,0000720005,SPX
+RKLB,Rocket Lab,Industrials,,NDX
+RL,Ralph Lauren Corporation,Consumer Discretionary,0001037038,SPX
+RMD,ResMed,Health Care,0000943819,SPX
+ROK,Rockwell Automation,Industrials,0001024478,SPX
+ROL,"Rollins, Inc.",Industrials,0000084839,SPX
+ROP,Roper Technologies,Information Technology,0000882835,"SPX,NDX"
+ROST,Ross Stores,Consumer Discretionary,0000745732,"SPX,NDX"
+RSG,Republic Services,Industrials,0001060391,SPX
+RTX,RTX Corporation,Industrials,0000101829,SPX
+RVTY,Revvity,Health Care,0000031791,SPX
+SBAC,SBA Communications,Real Estate,0001034054,SPX
+SBUX,Starbucks,Consumer Discretionary,0000829224,"SPX,NDX"
+SCHW,Charles Schwab Corporation,Financials,0000316709,SPX
+SHOP,Shopify,Information Technology,,NDX
+SHW,Sherwin-Williams,Materials,0000089800,"SPX,DJI"
+SJM,J.M. Smucker Company (The),Consumer Staples,0000091419,SPX
+SKYD,Skydance,Communication Services,0002041610,SPX
+SLB,Schlumberger,Energy,0000087347,SPX
+SMCI,Supermicro,Information Technology,0001375365,SPX
+SNA,Snap-on,Industrials,0000091440,SPX
+SNDK,Sandisk,Information Technology,0002023554,"SPX,NDX"
+SNPS,Synopsys,Information Technology,0000883241,"SPX,NDX"
+SO,Southern Company,Utilities,0000092122,SPX
+SOLV,Solventum,Health Care,0001964738,SPX
+SPCX,SpaceX,Communication Services,,NDX
+SPG,Simon Property Group,Real Estate,0001063761,SPX
+SPGI,S&P Global,Financials,0000064040,SPX
+SRE,Sempra,Utilities,0001032208,SPX
+STE,Steris,Health Care,0001757898,SPX
+STLD,Steel Dynamics,Materials,0001022671,SPX
+STT,State Street Corporation,Financials,0000093751,SPX
+STX,Seagate Technology,Information Technology,0001137789,"SPX,NDX"
+STZ,Constellation Brands,Consumer Staples,0000016918,SPX
+SW,Smurfit Westrock,Materials,0002005951,SPX
+SWK,Stanley Black & Decker,Industrials,0000093556,SPX
+SWKS,Skyworks Solutions,Information Technology,0000004127,SPX
+SYF,Synchrony Financial,Financials,0001601712,SPX
+SYK,Stryker Corporation,Health Care,0000310764,SPX
+SYY,Sysco,Consumer Staples,0000096021,SPX
+T,AT&T,Communication Services,0000732717,SPX
+TDG,TransDigm Group,Industrials,0001260221,SPX
+TDY,Teledyne Technologies,Information Technology,0001094285,SPX
+TECH,Bio-Techne,Health Care,0000842023,SPX
+TEL,TE Connectivity,Information Technology,0001385157,SPX
+TER,Teradyne,Information Technology,0000097210,"SPX,NDX"
+TFC,Truist Financial,Financials,0000092230,SPX
+TGT,Target Corporation,Consumer Staples,0000027419,SPX
+TJX,TJX Companies,Consumer Discretionary,0000109198,SPX
+TKO,TKO Group Holdings,Communication Services,0001973266,SPX
+TMO,Thermo Fisher Scientific,Health Care,0000097745,SPX
+TMUS,T-Mobile US,Communication Services,0001283699,"SPX,NDX"
+TPL,Texas Pacific Land Corporation,Energy,0001811074,SPX
+TPR,"Tapestry, Inc.",Consumer Discretionary,0001116132,SPX
+TRGP,Targa Resources,Energy,0001389170,SPX
+TRI,Thomson Reuters,Information Technology,,NDX
+TRMB,Trimble Inc.,Information Technology,0000864749,SPX
+TROW,T. Rowe Price,Financials,0001113169,SPX
+TRV,Travelers Companies (The),Financials,0000086312,"SPX,DJI"
+TSCO,Tractor Supply,Consumer Discretionary,0000916365,SPX
+TSLA,"Tesla, Inc.",Consumer Discretionary,0001318605,"SPX,NDX"
+TSN,Tyson Foods,Consumer Staples,0000100493,SPX
+TT,Trane Technologies,Industrials,0001466258,SPX
+TTWO,Take-Two Interactive,Communication Services,0000946581,"SPX,NDX"
+TWLO,Twilio,Information Technology,0001447669,SPX
+TXN,Texas Instruments,Information Technology,0000097476,"SPX,NDX"
+TXT,Textron,Industrials,0000217346,SPX
+TYL,Tyler Technologies,Information Technology,0000860731,SPX
+UAL,United Airlines Holdings,Industrials,0000100517,SPX
+UBER,Uber,Industrials,0001543151,SPX
+UDR,"UDR, Inc.",Real Estate,0000074208,SPX
+UHS,Universal Health Services,Health Care,0000352915,SPX
+ULTA,Ulta Beauty,Consumer Discretionary,0001403568,SPX
+UNH,UnitedHealth Group,Health Care,0000731766,"SPX,DJI"
+UNP,Union Pacific Corporation,Industrials,0000100885,SPX
+UPS,United Parcel Service,Industrials,0001090727,SPX
+URI,United Rentals,Industrials,0001067701,SPX
+USB,U.S. Bancorp,Financials,0000036104,SPX
+V,Visa Inc.,Financials,0001403161,"SPX,DJI"
+VEEV,Veeva Systems,Health Care,0001393052,SPX
+VICI,Vici Properties,Real Estate,0001705696,SPX
+VLO,Valero Energy,Energy,0001035002,SPX
+VLTO,Veralto,Industrials,0001967680,SPX
+VMC,Vulcan Materials Company,Materials,0001396009,SPX
+VMRK,Vivmark Residential,Real Estate,0000906107,SPX
+VRSK,Verisk Analytics,Industrials,0001442145,SPX
+VRSN,Verisign,Information Technology,0001014473,SPX
+VRT,Vertiv,Industrials,0001674101,SPX
+VRTX,Vertex Pharmaceuticals,Health Care,0000875320,"SPX,NDX"
+VST,Vistra Corp.,Utilities,0001692819,SPX
+VTR,Ventas,Real Estate,0000740260,SPX
+VTRS,Viatris,Health Care,0001792044,SPX
+VYLR,Vylor,Consumer Staples,0002128626,SPX
+VZ,Verizon,Communication Services,0000732712,SPX
+WAB,Wabtec,Industrials,0000943452,SPX
+WAT,Waters Corporation,Health Care,0001000697,SPX
+WDAY,"Workday, Inc.",Information Technology,0001327811,"SPX,NDX"
+WDC,Western Digital,Information Technology,0000106040,"SPX,NDX"
+WEC,WEC Energy Group,Utilities,0000783325,SPX
+WELL,Welltower,Real Estate,0000766704,SPX
+WFC,Wells Fargo,Financials,0000072971,SPX
+WM,Waste Management,Industrials,0000823768,SPX
+WMB,Williams Companies,Energy,0000107263,SPX
+WMT,Walmart,Consumer Staples,0000104169,"SPX,NDX,DJI"
+WRB,W. R. Berkley Corporation,Financials,0000011544,SPX
+WSM,"Williams-Sonoma, Inc.",Consumer Discretionary,0000719955,SPX
+WST,West Pharmaceutical Services,Health Care,0000105770,SPX
+WTW,Willis Towers Watson,Financials,0001140536,SPX
+WY,Weyerhaeuser,Real Estate,0000106535,SPX
+WYNN,Wynn Resorts,Consumer Discretionary,0001174922,SPX
+XEL,Xcel Energy,Utilities,0000072903,"SPX,NDX"
+XOM,ExxonMobil,Energy,0002115436,SPX
+XYL,Xylem Inc.,Industrials,0001524472,SPX
+XYZ,"Block, Inc.",Financials,0001512673,SPX
+YUM,Yum! Brands,Consumer Discretionary,0001041061,SPX
+ZBH,Zimmer Biomet,Health Care,0001136869,SPX
+ZBRA,Zebra Technologies,Information Technology,0000877212,SPX
+ZTS,Zoetis,Health Care,0001555280,SPX

@@ -214,6 +214,7 @@ export const IN_APP: { to: string; label: string; hint: string }[] = [
   { to: '/risk', label: 'Risk rules', hint: 'Daily loss and trade limits' },
   { to: '/exits', label: 'MAE / MFE lab', hint: 'Import the Excursions CSV' },
   { to: '/practice', label: 'Sandbox', hint: 'Blind chart tests and drills' },
+  { to: '/scanner', label: 'Stock scanner', hint: 'Daily S&P 500 zone scan (Raja rules), also sent to Telegram' },
 ];
 
 export const toolUrl = (file: string) => `/tools/${file}`;
