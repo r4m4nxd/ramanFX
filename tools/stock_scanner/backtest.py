@@ -232,9 +232,9 @@ def _worker(args):
     try:
         import fundamentals as F
         import universe as U
-        cik = next((u['cik'] for u in U.load() if u['symbol'] == sym), '')
-        cf = F.fetch_companyfacts(cik, offline=True)
-        filings = F.filing_dates(cf) if cf else None
+        cik = next((u['cik'] for u in U.load(indexes=U.INDEXES) if u['symbol'] == sym), '')
+        b, _ = F.cached_base(cik)
+        filings = (b or {}).get('filings') or None
     except Exception:  # noqa: BLE001
         filings = None
     return sym, backtest_ticker(sym, bars, sector, filings, cost, indexes), ''

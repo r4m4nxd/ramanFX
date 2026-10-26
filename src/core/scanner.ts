@@ -170,3 +170,79 @@ export function ago(iso: string, now = Date.now()): string {
   if (h < 48) return `${h} h ago`;
   return `${Math.round(h / 24)} days ago`;
 }
+
+// ─── Search: every ticker of the universe (public/scanner/index.json + shard files t/<k>.json) ─────────────
+export const INDEX_URL = '/scanner/index.json';
+export const shardUrl = (k: number) => `/scanner/t/${k}.json`;
+
+/** One search row: s symbol, n name, sec sector, ix indexes, px last close, dd / ds distance % to the nearest
+ *  demand / supply, sig today's signal, il illiquid (skipped by the liquidity filter), k shard number. */
+export interface IndexRow { s: string; n: string; sec: string; ix: IndexCode[]; px: number; dd?: number; ds?: number; sig?: SignalKind; il?: boolean; k: number }
+export interface ScanIndex { date: string; generated_at: string; fixture: boolean; tickers: IndexRow[] }
+
+export interface DetailZone { tf: 'D1' | 'W1'; side: 'demand' | 'supply'; proximal: number; distal: number; type: string; score: number | null; fresh: boolean; touches: number; made: string; pattern: string }
+export interface NearZone { tf: string; proximal: number; distal: number; type: string; dist_pct: number }
+export interface DetailCheck {
+  zone: NearZone; kind: 'BUY' | 'no trade'; score: number | null; entry: number; stop: number; target: number | null; rr: number | null;
+  next_supply: number | null; supply_distal?: number | null; stop_pct_of_height: number; rules: ScanRule[];
+}
+export interface TickerDetail {
+  symbol: string; name: string; sector: string; indexes: IndexCode[]; exchange?: string; chart?: string; date: string; price: number;
+  illiquid: boolean; signal: SignalKind | null; direction: string; d1: string; w1: string; mn: string; curve: number | null; curve_raja: boolean;
+  zones: DetailZone[]; nearest_demand: NearZone | null; nearest_supply: NearZone | null; check: DetailCheck | null;
+  fundamentals_rows: [string, string][]; bars: { t0: string; dt: number[]; b: [number, number, number, number][] };
+}
+
+export function parseIndex(js: unknown): ScanIndex | null {
+  if (!js || typeof js !== 'object' || !Array.isArray((js as ScanIndex).tickers)) return null;
+  const o = js as ScanIndex;
+  const tickers = o.tickers.filter(r => r && typeof r.s === 'string' && typeof r.k === 'number')
+    .map(r => ({ ...r, n: String(r.n ?? r.s), sec: String(r.sec ?? ''), ix: Array.isArray(r.ix) ? r.ix.filter(isIndex) : [] }));
+  return { date: String(o.date ?? ''), generated_at: String(o.generated_at ?? ''), fixture: !!o.fixture, tickers };
+}
+
+/** The ticker's detail from its shard file (null when missing or malformed). */
+export function detailFrom(js: unknown, symbol: string): TickerDetail | null {
+  const t = (js as { tickers?: Record<string, TickerDetail> } | null)?.tickers?.[symbol];
+  if (!t || typeof t !== 'object' || !t.bars || !Array.isArray(t.bars.b) || !Array.isArray(t.zones)) return null;
+  return { ...t, indexes: Array.isArray(t.indexes) ? t.indexes.filter(isIndex) : [], fundamentals_rows: Array.isArray(t.fundamentals_rows) ? t.fundamentals_rows : [] };
+}
+
+/** URL-safe ticker (BRK.B -> BRK-B; a dot in the path would look like a file extension). */
+export const slug = (sym: string) => sym.replace(/\./g, '-');
+export const stockPath = (sym: string) => `/scanner/${encodeURIComponent(slug(sym))}`;
+export const findBySlug = (rows: IndexRow[], s: string) => {
+  const k = decodeURIComponent(s).toUpperCase();
+  return rows.find(r => slug(r.s).toUpperCase() === k || r.s.toUpperCase() === k) ?? null;
+};
+
+/** Type-ahead: exact ticker, then ticker prefix, then name word prefix, then name contains. */
+export function searchTickers(rows: IndexRow[], q: string, limit = 8): IndexRow[] {
+  const t = q.trim().toUpperCase();
+  if (!t) return [];
+  const score = (r: IndexRow) => {
+    const s = r.s.toUpperCase(), n = r.n.toUpperCase();
+    if (s === t || slug(s) === t) return 0;
+    if (s.startsWith(t)) return 1 + s.length / 100;
+    if (n.split(/[\s.,&-]+/).some(w => w.startsWith(t))) return 3;
+    if (t.length >= 2 && n.includes(t)) return 4;
+    return -1;
+  };
+  return rows.map(r => [score(r), r] as const).filter(([s]) => s >= 0).sort((a, b) => a[0] - b[0] || a[1].s.localeCompare(b[1].s)).slice(0, limit).map(([, r]) => r);
+}
+
+/** Packed bars -> [date, o, h, l, c]. */
+export function unpackBars(p: TickerDetail['bars']): [string, number, number, number, number][] {
+  if (!p?.t0) return [];
+  const d0 = Date.parse(`${p.t0}T00:00:00Z`);
+  return p.b.map((b, i) => [new Date(d0 + (p.dt[i] ?? i) * 86400000).toISOString().slice(0, 10), b[0], b[1], b[2], b[3]]);
+}
+
+/** A Plan-it link from a detail's rule check (the nearest demand as if it were a BUY). */
+export function checkPlanLink(d: TickerDetail): string | null {
+  const c = d.check;
+  if (!c) return null;
+  const z = d.zones.find(x => x.side === 'demand' && x.proximal === c.zone.proximal && x.tf === c.zone.tf);
+  return planLink({ symbol: d.symbol, entry: c.entry, stop: c.stop, target: c.target, proximal: c.zone.proximal, distal: c.zone.distal,
+    curve: d.curve ?? 50, pattern: z?.pattern ?? 'DBR', base_candles: 2, next_supply: c.next_supply } as ScanSignal);
+}

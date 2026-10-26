@@ -132,3 +132,67 @@ class OutputTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class SearchOutputTest(unittest.TestCase):
+    def setUp(self):
+        import os
+        import tempfile
+        self.dir = tempfile.mkdtemp()
+        self.res = selftest.run_fixture()
+        scan.write_outputs(self.res, self.dir, fixture=True, history=False)
+        with open(os.path.join(self.dir, 'index.json')) as f:
+            self.idx = json.load(f)
+        self.os = os
+
+    def shard(self, k):
+        with open(self.os.path.join(self.dir, 't', f'{k}.json')) as f:
+            return json.load(f)['tickers']
+
+    def test_every_universe_ticker_is_searchable(self):
+        syms = {r['s'] for r in self.idx['tickers']}
+        self.assertEqual(syms, {fx['symbol'] for fx in selftest.FIXTURES})          # illiquid one included
+        thin = next(r for r in self.idx['tickers'] if r['s'] == 'SYNI')
+        self.assertTrue(thin['il'])
+        self.assertNotIn('sig', thin)
+        for r in self.idx['tickers']:
+            self.assertEqual(r['k'], scan.shard_of(r['s']))
+            d = self.shard(r['k'])[r['s']]
+            self.assertEqual(d['symbol'], r['s'])
+            self.assertEqual(len(d['bars']['b']), len(d['bars']['dt']))
+            self.assertLessEqual(len(d['bars']['b']), scan.DETAIL_BARS)
+            for z in d['zones']:
+                self.assertIn(z['side'], ('demand', 'supply'))
+                self.assertIn(z['type'], ('ARR', 'WOW', 'STR', 'OVL', 'FLP', 'TST', 'WK'))
+
+    def test_detail_check_matches_the_signal(self):
+        buys = {s['symbol'] for s in self.res['signals'] if s['kind'] == 'BUY'}
+        for r in self.idx['tickers']:
+            d = self.shard(r['k'])[r['s']]
+            if r['s'] in buys:
+                self.assertEqual(r['sig'], 'BUY')
+                self.assertEqual(d['check']['kind'], 'BUY')
+                self.assertGreaterEqual(len(d['check']['rules']), 12)
+            if d['nearest_demand']:
+                self.assertLess(d['nearest_demand']['distal'], d['price'])
+            if d['nearest_supply']:
+                self.assertGreater(d['nearest_supply']['distal'], d['price'])
+
+    def test_no_holdings_in_details(self):
+        txt = json.dumps(self.idx) + ''.join(open(self.os.path.join(self.dir, 't', n)).read() for n in self.os.listdir(self.os.path.join(self.dir, 't')))
+        self.assertNotIn('"shares": 10', txt)
+        self.assertNotIn('"warnings"', txt)
+
+    def test_stale_shards_removed(self):
+        open(self.os.path.join(self.dir, 't', '63x.json'), 'w').write('{}')
+        scan.write_outputs(self.res, self.dir, fixture=True, history=False)
+        self.assertNotIn('63x.json', self.os.listdir(self.os.path.join(self.dir, 't')))
+
+    def test_shard_and_bars(self):
+        self.assertEqual(scan.shard_of('AAPL'), scan.shard_of('AAPL'))
+        self.assertTrue(all(0 <= scan.shard_of(s) < scan.SHARDS for s in ('A', 'BRK.B', 'ZZZZ')))
+        b = synth.zone_series()
+        p = scan.pack_bars(b, 10)
+        self.assertEqual(p['t0'], b[-10].d)
+        self.assertEqual(p['dt'][0], 0)
+        self.assertEqual(p['b'][-1], [round(b[-1].o, 2), round(b[-1].h, 2), round(b[-1].l, 2), round(b[-1].c, 2)])

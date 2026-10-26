@@ -42,7 +42,23 @@ Standard library only (Python 3.10+). No `pip install`.
 4. Actions tab → **Stock scan** → *Run workflow* once to test. The first run downloads 10 years for every ticker
    (~2,600 requests); later runs fetch only the last month per ticker (cache via `actions/cache`).
 
-Each run commits `public/scanner/latest.json` + `public/scanner/history/<date>.json` (that redeploys the app).
+Each run commits `public/scanner/latest.json` (signals), `public/scanner/history/<date>.json`,
+`public/scanner/index.json` (every ticker, for the app's search) and `public/scanner/t/<0-63>.json` (that redeploys
+the app).
+
+**Search any ticker**: every analysed ticker (signal or not, illiquid ones flagged) gets a detail record: last 120
+daily bars (packed), all active D1 / W1 zones with type / score / fresh / touches, nearest demand and supply with the
+distance, the direction / curve state, the nearest demand checked against every BUY rule as if it were a signal, and
+the fundamentals when cached. The app opens it at `/scanner/<TICKER>` (BRK.B -> BRK-B).
+Why 64 shard files and not one file per ticker: the daily commit then touches ~67 files instead of ~2,600 (smaller
+tree objects, faster checkouts and deploys); each shard is ~0.3 MB raw / ~60 KB gzipped, so a detail view downloads
+one small shard; git stores yesterday's shard as a delta. The shard of a ticker is `crc32(symbol) % 64`, written in
+index.json (`k`) so the app never has to compute it.
+
+**Fundamentals for every ticker, politely**: SEC companyfacts is fetched at ~5 requests/s (SEC allows 10), each
+company at most weekly (oldest first, capped at `SCANNER_SEC_PER_RUN`=600 per run, so the ~2,600 names spread over
+the week), and the tickers that signalled get a refresh when older than a day. Only a small price-independent summary
+is cached (`.cache/sec_lite`, kept by actions/cache); the multi-megabyte raw files are never stored.
 Holdings never reach the JSON beyond the symbol and the warning kind; entries, stops and sizes go only to Telegram.
 
 ## Run locally

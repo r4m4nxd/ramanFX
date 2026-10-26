@@ -65,15 +65,14 @@ def run_fixture():
     return res
 
 
+SAMPLE_DIR = os.path.join(HERE, 'fixtures', 'sample')
+
+
 def main(out_dir=None, send=False) -> int:
     res = run_fixture()
-    path = os.path.join(HERE, 'fixtures', 'latest.sample.json')
-    pub = scan.public_json(res, fixture=True)
-    with open(path, 'w') as f:
-        json.dump(pub, f, separators=(',', ':'))
-        f.write('\n')
-    if out_dir:
-        scan.write_outputs(res, out_dir, fixture=True)
+    path = scan.write_outputs(res, out_dir or SAMPLE_DIR, fixture=True, history=False)
+    with open(path) as f:
+        pub = json.load(f)
     msgs = notify.build_messages(res)
     if send:
         notify.send(msgs)

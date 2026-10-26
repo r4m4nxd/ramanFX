@@ -4,28 +4,27 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 export type MiniBar = [string, number, number, number, number];
 
 export interface MiniLevels {
-  proximal: number;
-  distal: number;
-  entry: number;
-  stop: number;
-  target: number | null;
-  supply?: number | null;        // next supply proximal
-  supplyDistal?: number | null;  // its distal
+  proximal?: number | null;      // the demand zone of the plan (green band)
+  distal?: number | null;
+  entry?: number | null;
+  stop?: number | null;
+  target?: number | null;
+  supply?: number | null;        // next supply proximal (red band)
+  supplyDistal?: number | null;
   price: number;
 }
+
+/** Other zones to shade (the stock page shows every active zone). */
+export interface MiniZone { proximal: number; distal: number; side: 'demand' | 'supply' }
 
 const LABEL_W = 46;              // right gutter for the price labels, so they never sit on candles
 const PAD_T = 6, PAD_B = 6;
 const C = (v: string, a = 1) => `rgb(var(--${v}) / ${a})`;
 const fmt = (v: number) => (v >= 1000 ? v.toFixed(0) : v >= 100 ? v.toFixed(1) : v.toFixed(2));
+const num = (v: number | null | undefined): v is number => v != null && Number.isFinite(v);
 
-/**
- * Inline SVG candlestick for a zone: demand band (green), supply / target band (red), dashed entry / stop / target
- * lines with right-edge labels, and a last-price marker. Colours come from the theme tokens (light and dark).
- * Labels sit in a fixed right gutter, spaced so they never overlap.
- */
 /** Fills its container's width (measured), fixed height. */
-export function ZoneMiniChart(props: { bars: MiniBar[]; levels: MiniLevels; height?: number; label: string }) {
+export function ZoneMiniChart(props: { bars: MiniBar[]; levels: MiniLevels; zones?: MiniZone[]; height?: number; label: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [w, setW] = useState(0);
   useEffect(() => {
@@ -38,46 +37,58 @@ export function ZoneMiniChart(props: { bars: MiniBar[]; levels: MiniLevels; heig
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  return <div ref={ref} style={{ height: props.height ?? 120 }}>{w > 0 && <ZoneSvg {...props} width={w} />}</div>;
+  return <div ref={ref} style={{ height: props.height ?? 120 }}>{w > 0 && props.bars.length > 0 && <ZoneSvg {...props} width={w} />}</div>;
 }
 
-function ZoneSvg({ bars, levels, height = 120, width, label }: { bars: MiniBar[]; levels: MiniLevels; height?: number; width: number; label: string }) {
+/**
+ * Inline SVG candlestick for a zone: demand band (green), supply / target band (red), dashed entry / stop / target
+ * lines with right-edge labels, and a last-price marker. Colours come from the theme tokens (light and dark).
+ * Labels sit in a fixed right gutter, spaced so they never overlap. Extra zones far outside the bars' range are clipped.
+ */
+function ZoneSvg({ bars, levels, zones = [], height = 120, width, label }: { bars: MiniBar[]; levels: MiniLevels; zones?: MiniZone[]; height?: number; width: number; label: string }) {
   const clip = useId().replace(/:/g, '');
+  const L = levels;
   const g = useMemo(() => {
-    const L = levels;
-    const vals = [L.proximal, L.distal, L.stop, L.price, ...(L.target != null ? [L.target] : []), ...(L.supply != null ? [L.supply] : [])];
-    let lo = Math.min(...bars.map(b => b[3]), ...vals);
-    let hi = Math.max(...bars.map(b => b[2]), ...vals);
-    if (L.supplyDistal != null && L.supply != null) hi = Math.max(hi, Math.min(L.supplyDistal, L.supply + (L.supply - lo) * 0.15));
+    const bl = Math.min(...bars.map(b => b[3])), bh = Math.max(...bars.map(b => b[2]));
+    const span = bh - bl || bh * 0.05 || 1;
+    // plan levels always in view; other zones only when near the bars (within 35% of the range)
+    const vals = [L.proximal, L.distal, L.stop, L.price, L.target, L.supply].filter(num);
+    for (const z of zones) for (const v of [z.proximal, z.distal]) if (v > bl - span * 0.35 && v < bh + span * 0.35) vals.push(v);
+    let lo = Math.min(bl, ...vals);
+    let hi = Math.max(bh, ...vals);
+    if (num(L.supplyDistal) && num(L.supply)) hi = Math.max(hi, Math.min(L.supplyDistal, L.supply + (L.supply - lo) * 0.15));
     const pad = (hi - lo) * 0.04 || 1;
     lo -= pad; hi += pad;
     const plotW = width - LABEL_W;
     const y = (v: number) => PAD_T + (hi - v) / (hi - lo) * (height - PAD_T - PAD_B);
     const step = plotW / Math.max(bars.length, 1);
     const bw = Math.max(1, Math.min(7, step * 0.62));
-    // right-edge labels: keep 11px apart so they never overlap
-    const raw: { k: string; v: number; tone: string }[] = [
-      ...(L.target != null ? [{ k: 'T', v: L.target, tone: 'profit' }] : []),
-      { k: 'E', v: L.entry, tone: 'accent' },
-      { k: 'S', v: L.stop, tone: 'loss' },
-      { k: 'P', v: L.price, tone: 'ink' },
-    ];
+    const raw: { k: string; v: number; tone: string }[] = [];
+    if (num(L.target)) raw.push({ k: 'T', v: L.target, tone: 'profit' });
+    if (num(L.entry)) raw.push({ k: 'E', v: L.entry, tone: 'accent' });
+    if (num(L.stop)) raw.push({ k: 'S', v: L.stop, tone: 'loss' });
+    raw.push({ k: 'P', v: L.price, tone: 'ink' });
     const tags = raw.map(t => ({ ...t, y: y(t.v) })).sort((a, b) => a.y - b.y);
     for (let i = 1; i < tags.length; i++) if (tags[i].y - tags[i - 1].y < 11) tags[i].y = tags[i - 1].y + 11;
     const over = tags.length ? tags[tags.length - 1].y - (height - 5) : 0;
     if (over > 0) tags.forEach(t => { t.y -= over; });
     return { y, step, bw, plotW, tags };
-  }, [bars, levels, height, width]);
+  }, [bars, L, zones, height, width]);
 
-  const L = levels;
   const band = (a: number, b: number) => ({ y: Math.min(g.y(a), g.y(b)), h: Math.max(1, Math.abs(g.y(a) - g.y(b))) });
-  const dz = band(L.proximal, L.distal);
-  const sz = L.supply != null ? band(L.supply, L.supplyDistal ?? L.supply) : null;
+  const dz = num(L.proximal) && num(L.distal) ? band(L.proximal, L.distal) : null;
+  const sz = num(L.supply) ? band(L.supply, L.supplyDistal ?? L.supply) : null;
+  const hline = (v: number | null | undefined, tone: string) => num(v) && <line x1="0" x2={g.plotW} y1={g.y(v)} y2={g.y(v)} stroke={C(tone)} strokeDasharray="4 3" strokeWidth="1" />;
   return (
     <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} role="img" aria-label={label} className="block select-none">
       <defs><clipPath id={clip}><rect x="0" y="0" width={g.plotW} height={height} /></clipPath></defs>
       <g clipPath={`url(#${clip})`}>
-        <rect x="0" y={dz.y} width={g.plotW} height={dz.h} fill={C('profit', 0.16)} stroke={C('profit', 0.5)} strokeWidth="0.75" />
+        {zones.map((z, i) => {
+          const b = band(z.proximal, z.distal);
+          const t = z.side === 'demand' ? 'profit' : 'loss';
+          return <rect key={i} x="0" y={b.y} width={g.plotW} height={b.h} fill={C(t, 0.08)} stroke={C(t, 0.3)} strokeWidth="0.5" strokeDasharray="2 2" />;
+        })}
+        {dz && <rect x="0" y={dz.y} width={g.plotW} height={dz.h} fill={C('profit', 0.16)} stroke={C('profit', 0.5)} strokeWidth="0.75" />}
         {sz && <rect x="0" y={sz.y} width={g.plotW} height={sz.h} fill={C('loss', 0.14)} stroke={C('loss', 0.45)} strokeWidth="0.75" />}
         {bars.map((b, i) => {
           const x = g.step * i + g.step / 2;
@@ -91,14 +102,14 @@ function ZoneSvg({ bars, levels, height = 120, width, label }: { bars: MiniBar[]
             </g>
           );
         })}
-        {L.target != null && <line x1="0" x2={g.plotW} y1={g.y(L.target)} y2={g.y(L.target)} stroke={C('profit')} strokeDasharray="4 3" strokeWidth="1" />}
-        <line x1="0" x2={g.plotW} y1={g.y(L.entry)} y2={g.y(L.entry)} stroke={C('accent')} strokeDasharray="4 3" strokeWidth="1" />
-        <line x1="0" x2={g.plotW} y1={g.y(L.stop)} y2={g.y(L.stop)} stroke={C('loss')} strokeDasharray="4 3" strokeWidth="1" />
+        {hline(L.target, 'profit')}
+        {hline(L.entry, 'accent')}
+        {hline(L.stop, 'loss')}
       </g>
       <circle cx={g.plotW - 2} cy={g.y(L.price)} r="2.5" fill={C('ink')} />
       {g.tags.map(t => (
         <text key={t.k} x={width - 2} y={t.y + 3.5} textAnchor="end" fontSize="9.5" fontWeight={t.k === 'P' ? 700 : 600}
-          fill={t.tone === 'ink' ? C('ink') : C(t.tone)} className="num">{t.k} {fmt(t.v)}</text>
+          fill={C(t.tone)} className="num">{t.k} {fmt(t.v)}</text>
       ))}
     </svg>
   );

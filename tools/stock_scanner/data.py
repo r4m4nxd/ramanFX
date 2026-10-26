@@ -24,6 +24,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 CACHE = os.environ.get('SCANNER_CACHE', os.path.join(HERE, '.cache'))
 UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
 PAUSE = float(os.environ.get('SCANNER_PAUSE', '0.15'))   # seconds between two requests to the same host (all threads)
+HOST_PAUSE = {'data.sec.gov': 0.2, 'www.sec.gov': 0.2}  # SEC allows 10 req/s; we stay near 5/s
 _host_lock = threading.Lock()
 _host_next: Dict[str, float] = {}
 
@@ -33,7 +34,7 @@ def _wait_turn(url: str) -> None:
     with _host_lock:
         now = time.time()
         at = max(now, _host_next.get(host, 0.0))
-        _host_next[host] = at + PAUSE
+        _host_next[host] = at + HOST_PAUSE.get(host, PAUSE)
     if at > now:
         time.sleep(at - now)
 
