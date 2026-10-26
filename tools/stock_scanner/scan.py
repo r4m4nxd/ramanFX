@@ -53,8 +53,6 @@ class Rule:
 
 SHORT = ['leg', 'fresh', 'strong', 'HTF align', 'curve', 'no HTF supply', 'room', 'not sideways', 'no 3rd CP',
          'not used', 'clean', 'near entry', 'earnings']
-MIN_PRICE = float(os.environ.get('SCANNER_MIN_PRICE', '5'))            # Russell 2000 liquidity filter
-MIN_DOLLAR_VOL = float(os.environ.get('SCANNER_MIN_DOLLAR_VOL', '5e6'))  # 20-day average dollar volume
 REGIME = ['SPY', 'QQQ', 'IWM']
 INDEX_PARTS = ['SPY', 'QQQ', 'IWM', 'DIA']   # the RFX composite index: equal weight, 100 on the first common date
 FV_BARS = 20
@@ -226,21 +224,30 @@ def fv_dist_atr(an: Analysis, z: Z.Zone) -> Optional[float]:
     return (an.fv.lo - z.prox) / a if z.dir > 0 else (z.prox - an.fv.hi) / a
 
 
-def gauge(an: Analysis) -> Dict:
-    """Nearest fresh D1 / W1 demand below / supply above, % away, and the state (in demand / in supply / middle)."""
+def nearest_fresh(an: Analysis):
+    """(state, nearest fresh demand below + its row index, nearest fresh supply above + its row index) on D1 / W1.
+    state = 'demand' / 'supply' when price is inside a fresh zone, else 'middle'."""
     px, dem, sup, state = an.price, None, None, 'middle'
     for r in (an.d1, an.w1):
         if not r.ok:
             continue
-        for z in r.zones:
+        for i, z in enumerate(r.zones):
             if z.leg_bar > RAJA['max_zone_age'] or not Z.fresh_at(r.S, z):
                 continue
             if z.lo <= px <= z.hi:
                 state = 'demand' if z.dir > 0 else 'supply'
-            if z.dir > 0 and z.dist < px and (dem is None or z.prox > dem.prox):
-                dem = z
-            if z.dir < 0 and z.dist > px and (sup is None or z.prox < sup.prox):
-                sup = z
+            if z.dir > 0 and z.dist < px and (dem is None or z.prox > dem[0].prox):
+                dem = (z, r, i)
+            if z.dir < 0 and z.dist > px and (sup is None or z.prox < sup[0].prox):
+                sup = (z, r, i)
+    return state, dem, sup
+
+
+def gauge(an: Analysis) -> Dict:
+    """Nearest fresh D1 / W1 demand below / supply above, % away, and the state (in demand / in supply / middle)."""
+    px = an.price
+    state, dm, sp = nearest_fresh(an)
+    dem, sup = (dm[0] if dm else None), (sp[0] if sp else None)
     nz = lambda z, pct: None if z is None else {'tf': z.tf, 'proximal': round(z.prox, 2), 'distal': round(z.dist, 2), 'height': round(z.h, 2), 'pct': round(pct, 2)}
     return {'price': round(px, 2), 'state': state, 'date': an.date, 'direction': an.direction.head,
             'demand': nz(dem, (px - dem.prox) / px * 100 if dem else 0), 'supply': nz(sup, (sup.prox - px) / px * 100 if sup else 0)}
@@ -352,6 +359,13 @@ def pinndx_fields(an: Analysis, z: Z.Zone, x: Z.DNA, p: Dict) -> Dict:
             'index_state': an.index['state'] if an.index else None, 'index_aligned': al,
             'gauge_state': state, 'demand_pct_away': round((px - z.prox) / px * 100, 2),
             'supply_pct_away': round((sup - px) / px * 100, 2) if sup else None}
+
+
+def listing(u: Dict) -> Dict:
+    """Where the scanned symbol lives: home listing (e.g. 'TSX:RY' for an interlisted Canadian name, '' for a US
+    one), the price currency and the issuer country (a Canadian filer has no SEC fundamentals: the app says so)."""
+    home = u.get('home', '') or ''
+    return {'home': home, 'currency': u.get('currency') or 'USD', 'country': 'CA' if home.startswith('TSX:') else 'US'}
 
 
 def _zone_dict(an: Analysis, z: Z.Zone, x: Z.DNA) -> Dict:
@@ -501,7 +515,8 @@ def pack_bars(bars: List[Bar], n: int = DETAIL_BARS) -> Dict:
             'b': [[round(b.o, nd), round(b.h, nd), round(b.l, nd), round(b.c, nd)] for b in bs]}
 
 
-def ticker_detail(sym: str, u: Dict, an: Analysis, bars: List[Bar], meta: Dict, fund_rows, signals: List[Dict], illiquid: bool) -> Tuple[Dict, Dict]:
+def ticker_detail(sym: str, u: Dict, an: Analysis, bars: List[Bar], meta: Dict, fund_rows, signals: List[Dict],
+                  block: Optional[Dict] = None) -> Tuple[Dict, Dict]:
     """(detail for the stock page, row for the search index). Every active D1 / W1 zone with its Raja type, the
     nearest demand / supply, and the nearest demand checked against every BUY rule as if it were a signal."""
     import data as DATA
@@ -546,8 +561,8 @@ def ticker_detail(sym: str, u: Dict, an: Analysis, bars: List[Bar], meta: Dict, 
     sig = 'BUY' if 'BUY' in kinds else ('WATCH' if 'WATCH' in kinds else None)
     detail = {'symbol': sym, 'name': u.get('name', sym), 'sector': u.get('sector', '') or 'Other',
               'indexes': [i for i in (u.get('indexes') or '').split(',') if i], 'exchange': meta.get('exchange', ''),
-              'chart': DATA.tradingview_url(sym, meta.get('exchange', '')), 'date': an.date, 'price': round(px, 2),
-              'illiquid': illiquid, 'signal': sig, 'direction': an.direction.head, 'd1': an.d1.state_name, 'w1': an.w1.state_name,
+              'chart': DATA.tradingview_url(sym, meta.get('exchange', ''), u.get('home', '')), 'date': an.date, 'price': round(px, 2),
+              **listing(u), 'signal': sig, 'direction': an.direction.head, 'd1': an.d1.state_name, 'w1': an.w1.state_name,
               'mn': an.mn.state_name, 'curve': round(an.curve.value, 1) if an.curve.ok else None, 'curve_raja': an.curve.raja,
               'zones': zl, 'nearest_demand': nz(near_d), 'nearest_supply': nz(near_s), 'check': check,
               'fundamentals_rows': fund_rows or [], 'bars': pack_bars(bars)}
@@ -562,8 +577,25 @@ def ticker_detail(sym: str, u: Dict, an: Analysis, bars: List[Bar], meta: Dict, 
                                                          'fv_dist_atr', 'fv_inside', 'index_state', 'index_aligned')})
     row = {'s': sym, 'n': detail['name'], 'st': g['state'][0].upper(), 'sec': detail['sector'], 'ix': detail['indexes'], 'px': detail['price'],
            'dd': g['demand']['pct'] if g['demand'] else None, 'ds': g['supply']['pct'] if g['supply'] else None,
-           'sig': sig, 'il': illiquid or None, 'k': shard_of(sym)}
+           'sig': sig, 'k': shard_of(sym), **map_fields(an), 'br': block['rule'] if block and not sig else None,
+           'h': u.get('home') or None, 'cur': u.get('currency') if u.get('currency') not in (None, '', 'USD') else None}
     return detail, {k: v for k, v in row.items() if v is not None}
+
+
+def map_fields(an: Analysis) -> Dict:
+    """Market map (index.json, compact): the nearest fresh demand dz = [tf, type, Raja score, touches] and supply
+    sz = [tf, type, touches]; types are the Raja zone types (ARR / WOW / STR strong)."""
+    out: Dict = {}
+    _, dm, sp = nearest_fresh(an)
+    mn = an.mn if an.mn.ok else None
+    for key, t in (('dz', dm), ('sz', sp)):
+        if t is None:
+            continue
+        z, r, i = t
+        higher = [an.w1, an.mn] if r is an.d1 else [an.mn]
+        x = an.dna.get(z.zid) or Z.dna(r.S, r.zones, i, r.tl, higher, mn.zones if mn else [], an.curve, mn, TP_OFFSET)
+        out[key] = [z.tf, x.code, raja_score(x, x.n_tests == 0), x.n_tests] if key == 'dz' else [z.tf, x.code, x.n_tests]
+    return out
 
 
 def regime_line(an: Analysis, sym: str) -> Dict:
@@ -572,16 +604,6 @@ def regime_line(an: Analysis, sym: str) -> Dict:
     return {'symbol': sym, 'close': round(an.price, 2), 'sma200': round(sma, 2) if sma else None,
             'above200': (an.price > sma) if sma else None, 'curve': round(an.curve.value, 1) if an.curve.ok else None,
             'curve_raja': an.curve.raja, 'direction': an.direction.head, 'w1': an.w1.state_name, 'mn': an.mn.state_name}
-
-
-def liquid(u: Dict, bars: List[Bar]) -> bool:
-    """Russell 2000 only names (not in SPX / NDX / DJI) must trade >= $5 with >= $5M average dollar volume (20 days)."""
-    idx = set((u.get('indexes') or 'SPX').split(','))
-    if idx - {'RUT'}:
-        return True
-    import data as DATA
-    px, dv = DATA.liquidity(bars)
-    return px >= MIN_PRICE and dv >= MIN_DOLLAR_VOL
 
 
 # ---- intraday guard ------------------------------------------------------------------------------------------------
@@ -685,7 +707,8 @@ def blocked_summary(rows: List[Dict], pct: float = DIAG_PCT, n: int = CLOSEST_N)
 
 
 def run(universe: List[Dict], get_bars, get_cf, get_earnings, holdings: List[Dict], today: Optional[str] = None,
-        log=print, watchlist: Optional[List[str]] = None, now: Optional[dt.datetime] = None) -> Dict:
+        log=print, watchlist: Optional[List[str]] = None, now: Optional[dt.datetime] = None,
+        feeds: Tuple[str, ...] = ()) -> Dict:
     """Scan every ticker. get_bars(sym) -> (daily bars, meta); get_cf(cik) -> companyfacts or None;
     get_earnings(sym) -> ISO date or None. Returns the full result (holdings details included)."""
     import data as DATA
@@ -698,6 +721,8 @@ def run(universe: List[Dict], get_bars, get_cf, get_earnings, holdings: List[Dic
         if cut:
             dropped.add(sym)
         return b, m
+    import universe as U
+    universe, uncovered = U.split_covered(universe, feeds)      # TSX-only names wait for a TSX feed
     held = {str(h.get('symbol', '')).upper(): h for h in holdings}
     watch = set(watchlist or [])
     walerts: List[Dict] = []
@@ -705,7 +730,7 @@ def run(universe: List[Dict], get_bars, get_cf, get_earnings, holdings: List[Dic
     info = {u['symbol']: u for u in universe}
     sigs, exits, errors, notes = [], [], [], []
     diag: List[Dict] = []
-    filtered: List[str] = []
+    strong_in: List[Dict] = []
     chart_bars: Dict[str, list] = {}
     details: Dict[str, Dict] = {}
     index_rows: List[Dict] = []
@@ -745,16 +770,13 @@ def run(universe: List[Dict], get_bars, get_cf, get_earnings, holdings: List[Dic
             continue
         last_date = max(last_date, bars[-1].d)
         u0 = info.get(sym)
-        illiquid = u0 is not None and sym not in held and not liquid(u0, bars)
-        if illiquid:
-            filtered.append(sym)
         an = analyse(bars, DATA.closed_htf(bars, 'W1'), DATA.closed_htf(bars, 'MN'))
         an.index = rfx
         if sym in watch:
             walerts.extend(watch_alerts(sym, an, bars[-1]))
         u = info.get(sym, {'symbol': sym, 'name': sym, 'sector': '', 'cik': ''})
-        found = []
-        if sym in info and not illiquid:
+        found, dr = [], None
+        if sym in info:
             pre, er = symbol_signals(an, None), None
             if pre and any(s['kind'] == 'BUY' or s['kind'] == 'WATCH' for s in pre):
                 er = earnings(sym)
@@ -769,7 +791,7 @@ def run(universe: List[Dict], get_bars, get_cf, get_earnings, holdings: List[Dic
         for s in found:
             s.update({'symbol': sym, 'name': u.get('name', sym), 'sector': u.get('sector', '') or 'Other',
                       'indexes': (u.get('indexes') or 'SPX').split(','), 'exchange': meta.get('exchange', ''),
-                      'chart': DATA.tradingview_url(sym, meta.get('exchange', ''))})
+                      'chart': DATA.tradingview_url(sym, meta.get('exchange', ''), u.get('home', '')), **listing(u)})
         try:
             cf = get_cf(u.get('cik', ''))
         except Exception as e:  # noqa: BLE001
@@ -777,9 +799,12 @@ def run(universe: List[Dict], get_bars, get_cf, get_earnings, holdings: List[Dic
             notes.append(f'{sym} SEC: {e}')
         fz = F.compute(cf, an.price, [b.h for b in bars], [b.l for b in bars])
         if sym in info:
-            d, row = ticker_detail(sym, u, an, bars, meta, F.rows(fz) if cf else [], found, illiquid)
+            d, row = ticker_detail(sym, u, an, bars, meta, F.rows(fz) if cf else [], found, dr)
             details[sym] = d
             index_rows.append(row)
+            si = strong_in_demand(row, u)
+            if si:
+                strong_in.append(si)
         if found:
             for s in found:
                 s['fundamentals'] = fz
@@ -792,7 +817,7 @@ def run(universe: List[Dict], get_bars, get_cf, get_earnings, holdings: List[Dic
                 exits.append({'symbol': sym, 'name': u.get('name', sym), 'sector': u.get('sector', '') or 'Other',
                               'indexes': (u.get('indexes') or '').split(',') if u.get('indexes') else [], 'price': round(an.price, 2), 'warnings': ex,
                               'entry': held[sym].get('entry'), 'stop': held[sym].get('stop'), 'shares': held[sym].get('shares'),
-                              'chart': DATA.tradingview_url(sym, meta.get('exchange', ''))})
+                              'chart': DATA.tradingview_url(sym, meta.get('exchange', ''), u.get('home', ''))})
         if log and ((n + 1) % 50 == 0 or n + 1 == len(syms)):
             log(f'analyse {n + 1}/{len(syms)} in {time.time() - t_run:.0f}s ({t_earn[0]:.0f}s in {t_earn[1]} earnings calls), '
                 f'{len(sigs)} signals, {len(errors)} without data')
@@ -809,9 +834,33 @@ def run(universe: List[Dict], get_bars, get_cf, get_earnings, holdings: List[Dic
         log(f"why no signal: {blocked['candidates']} candidates (fresh demand within {blocked['within_pct']:g}% or in it) "
             f"blocked; top reasons: {top}")
     return {'date': last_date, 'session': session, 'blocked': blocked, 'closest': closest, 'generated_at': dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
-            'universe': len(universe), 'scanned': len(syms) - len(errors) - len(filtered), 'errors': errors, 'notes': notes, 'signals': sigs, 'exits': exits,
-            'filtered_liquidity': len(filtered), 'bars': chart_bars, 'details': details, 'index': index_rows, 'regime': regime, 'rfx_index': rfx, 'watch_alerts': walerts + index_alert(rfx) if watch else [], 'universes': sorted({i for u in universe for i in (u.get('indexes') or 'SPX').split(',')}),
-            'index_sizes': {i: sum(1 for u in universe if i in (u.get('indexes') or 'SPX').split(',')) for i in ('SPX', 'NDX', 'DJI', 'RUT')}}
+            'universe': len(universe), 'scanned': len(syms) - len(errors), 'errors': errors, 'notes': notes, 'signals': sigs, 'exits': exits,
+            'bars': chart_bars, 'details': details, 'index': index_rows, 'regime': regime, 'rfx_index': rfx, 'watch_alerts': walerts + index_alert(rfx) if watch else [],
+            'strong_in_demand': sorted(strong_in, key=lambda r: (-r['score'], r['symbol'])),
+            **universe_meta(universe + uncovered, uncovered, feeds)}
+
+
+def universe_meta(rows: List[Dict], uncovered: List[Dict], feeds: Tuple[str, ...] = ()) -> Dict:
+    """Index registry for the app (labels in pill order, sizes), the Canadian coverage and the uncovered names."""
+    import universe as U
+    present = [i for i in U.INDEXES if any(i in (u.get('indexes') or 'SPX').split(',') for u in rows)]
+    return {'universes': present, 'index_meta': U.index_meta(present),
+            'index_sizes': {i: sum(1 for u in rows if i in (u.get('indexes') or 'SPX').split(',')) for i in present},
+            'coverage': U.coverage(rows, feeds),
+            'uncovered': [{'symbol': (u.get('home') or u['symbol']).split(':')[-1], 'name': u.get('name', ''),
+                           'indexes': [i for i in (u.get('indexes') or '').split(',') if i]} for u in sorted(uncovered, key=lambda u: u['symbol'])]}
+
+
+STRONG = ('ARR', 'WOW', 'STR')
+
+
+def strong_in_demand(row: Dict, u: Dict) -> Optional[Dict]:
+    """A ticker sitting inside a fresh STRONG demand without a BUY (the rules block it): for Telegram and the map."""
+    dz = row.get('dz')
+    if row.get('st') != 'D' or not dz or dz[1] not in STRONG or row.get('sig') == 'BUY':
+        return None
+    return {'symbol': row['s'], 'name': row['n'], 'sector': row.get('sec') or 'Other', 'tf': dz[0], 'type': dz[1], 'score': dz[2],
+            'rule': row.get('br') or '', 'label': BLOCK_LABEL.get(row.get('br') or '', row.get('sig') or '')}
 
 
 def public_json(res: Dict, fixture: bool = False) -> Dict:
@@ -822,10 +871,8 @@ def public_json(res: Dict, fixture: bool = False) -> Dict:
         'rules': 'Raja (ZoneVision Raja template): D1 / W1 zones, direction D1 -> W1 -> MN, curve, room. Kevin second.',
         'disclaimer': DISCLAIMER,
         'counts': {k: sum(1 for s in res['signals'] if s['kind'] == k) for k in ('BUY', 'WATCH')} | {'EXIT': len(res['exits'])},
-        'universes': res.get('universes', []), 'index_sizes': res.get('index_sizes', {}),
-        'filtered_liquidity': res.get('filtered_liquidity', 0),
-        'liquidity_rule': f'Russell 2000-only names need price >= ${MIN_PRICE:g} and 20-day average dollar volume >= ${MIN_DOLLAR_VOL / 1e6:g}M',
-        'rut_snapshot': res.get('rut_snapshot', ''),
+        'universes': res.get('universes', []), 'index_meta': res.get('index_meta', []), 'index_sizes': res.get('index_sizes', {}),
+        'coverage': res.get('coverage', {}), 'uncovered': res.get('uncovered', []),
         'partial': bool(res.get('partial')),
         'session': res.get('session', 'closed'),
         'blocked': res.get('blocked') or {'candidates': 0, 'within_pct': DIAG_PCT, 'reasons': []},
@@ -952,7 +999,7 @@ def notify_failure(reason: str, today: str, log=print) -> bool:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--tickers', help='comma-separated subset (default: every enabled universe in universe.csv)')
-    ap.add_argument('--universes', help='e.g. SPX,NDX,DJI,RUT (default env SCANNER_UNIVERSES or all four)')
+    ap.add_argument('--universes', help='e.g. SPX,NDX,DJI,TSX60,TSX (default env SCANNER_UNIVERSES or all)')
     ap.add_argument('--limit', type=int, default=0, help='first N tickers only')
     ap.add_argument('--workers', type=int, default=int(os.environ.get('SCANNER_WORKERS', '6')), help='download threads')
     ap.add_argument('--top', type=int, default=int(os.environ.get('TELEGRAM_TOP_N', '5')), help='Telegram: top N per sector')
@@ -1000,14 +1047,16 @@ def main(argv=None) -> int:
             {'symbol': t, 'name': t, 'sector': '', 'cik': '', 'indexes': ''} for t in want - {u['symbol'] for u in U.load(indexes=U.INDEXES)}]
     if a.limit:
         uni = uni[:a.limit]
-    if not a.tickers and 'RUT' in U.enabled() and not any('RUT' in (u.get('indexes') or '').split(',') for u in uni):
-        log('RUT: no Russell 2000 tickers in universe.csv (iShares CSV unavailable, no russell2000_snapshot.csv): '
-            'RUT is empty; see README "Russell 2000 snapshot"')
+    feeds = DATA.feeds_on()
+    uni_all = uni
+    uni, uncov = U.split_covered(uni, feeds)
+    if uncov:
+        log(f'{len(uncov)} TSX-only names need a TSX data feed (SCANNER_TSX_FEED=eodhd + EODHD_API_KEY): not scanned')
     holdings = load_holdings()
     syms =sorted({u['symbol'] for u in uni} | {str(h.get('symbol', '')).upper() for h in holdings} | set(REGIME) | set(INDEX_PARTS))
     log(f'{len(syms)} tickers, {a.workers} download threads, budget {a.budget_min:g} min')
     tp = time.time()
-    pre = DATA.fetch_many(syms, workers=a.workers, offline=a.offline, log=log)
+    pre = DATA.fetch_many(syms, workers=a.workers, offline=a.offline, log=log, tsx={u['symbol'] for u in uni if u.get('feed') == 'tsx'})
     fetch_err = pre.pop('__errors__', {})
     tp = phase('fetch', tp)
     have, total = coverage(uni, pre)
@@ -1039,8 +1088,8 @@ def main(argv=None) -> int:
         F.refresh_bases(todo, workers=4, log=log, budget_s=a.sec_budget_min * 60)
         tp = phase('fundamentals', tp)
     watchlist = load_watchlist()
-    res = run(uni, get_bars, lambda c: F.cached_base(c)[0] if c else None,
-              (lambda s: None) if a.offline else DATA.fetch_earnings, holdings, log=log, watchlist=watchlist)
+    res = run(uni_all, get_bars, lambda c: F.cached_base(c)[0] if c else None,
+              (lambda s: None) if a.offline else DATA.fetch_earnings, holdings, log=log, watchlist=watchlist, feeds=feeds)
     tp = phase('analyse', tp)
     if DATA.over_budget() or any('time budget' in str(e) for e in fetch_err.values()):
         res['partial'] = True
@@ -1063,7 +1112,6 @@ def main(argv=None) -> int:
         refresh_signal_fundamentals(res, {u['symbol']: u.get('cik', '') for u in uni}, pre,
                                     budget_s=min(120.0, max(0.0, DATA.time_left())), log=log)
         tp = phase('fundamentals', tp)
-    res['rut_snapshot'] = U.snapshot_date()
     if not a.no_write:
         log(f'wrote {write_outputs(res, a.out)}')
         tp = phase('write', tp)
@@ -1076,7 +1124,7 @@ def main(argv=None) -> int:
     except Exception as e:  # noqa: BLE001
         log(f'notify failed: {type(e).__name__}')
     tp = phase('notify', tp)
-    log(f"done in {time.time() - t0:.0f}s: {res['scanned']} scanned, {res['filtered_liquidity']} filtered (liquidity), "
+    log(f"done in {time.time() - t0:.0f}s: {res['scanned']} scanned, {len(res.get('uncovered') or [])} uncovered (TSX feed off), "
         f"{len(res['errors'])} without data{' (PARTIAL: time budget spent)' if res.get('partial') else ''}; "
         f"phases {', '.join(f'{k} {v:.0f}s' for k, v in phases.items())}")
     return 0 if res['scanned'] > 0 else 1

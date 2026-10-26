@@ -1,6 +1,6 @@
 """Alpaca Market Data as the primary daily-bars source, without a network: a fake /v2/stocks/bars server that
 paginates, batches, leaves unknown symbols out, refuses SIP (403) and rate-limits (429). Plus the scan's
-no-data guard, the SEC_UA skip and the Russell 2000 snapshot handling."""
+no-data guard, the SEC_UA skip and the (switched-off) TSX feed adapter."""
 import datetime as dt
 import json
 import os
@@ -238,12 +238,12 @@ class TestNoDataGuard(NetBase):
         out = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, out, True)
         res = {'date': '', 'generated_at': '', 'universe': 0, 'scanned': 0, 'errors': [], 'notes': [], 'signals': [],
-               'exits': [], 'filtered_liquidity': 0, 'bars': {}, 'details': {}, 'index': [], 'regime': []}
+               'exits': [], 'bars': {}, 'details': {}, 'index': [], 'regime': []}
         scan.write_outputs(res, out)
         self.assertFalse(os.path.exists(os.path.join(out, 'history')))
 
 
-class TestSecAndRussell(NetBase):
+class TestSecAndTsxFeed(NetBase):
     def test_company_tickers_skipped_without_sec_ua(self):
         import universe as U
         fake = self.net({'sec.gov': lambda u: b'{}'})
@@ -254,25 +254,22 @@ class TestSecAndRussell(NetBase):
         self.net({'www.sec.gov': lambda u: json.dumps({'0': {'ticker': 'AAA', 'cik_str': 5}}).encode()})
         self.assertEqual(U.fill_ciks(rows), 1)
 
-    def test_ishares_html_is_rejected_and_snapshot_formats(self):
-        import universe as U
-        self.assertFalse(U.looks_ishares(b'<!DOCTYPE html><html>...</html>'))
-        pre = '﻿iShares Russell 2000 ETF\nFund Holdings as of,"Oct 23, 2026"\n\n'
-        csv = pre + 'Ticker,Name,Sector,Asset Class,Market Value\n' + ''.join(f'R{i},RCO {i},Energy,Equity,1\n' for i in range(1600))
-        self.assertTrue(U.looks_ishares(csv.encode()))
-        self.net({'ishares.com': lambda u: b'<html>verify</html>'})
+    def test_eodhd_adapter_off_by_default_and_parses(self):
+        self.assertEqual(DATA.tsx_feed(), '')
+        self.assertEqual(DATA.feeds_on(), ())
+        with mock.patch.dict(os.environ, {'SCANNER_TSX_FEED': 'eodhd'}):
+            self.assertEqual(DATA.tsx_feed(), '')                       # no key: still off
+        with mock.patch.dict(os.environ, {'SCANNER_TSX_FEED': 'eodhd', 'EODHD_API_KEY': 'k'}):
+            self.assertEqual(DATA.feeds_on(), ('tsx',))
+            self.assertIn('/eod/RY.TO?', DATA.eodhd_url('RY.TO', '2020-01-01'))
+        raw = json.dumps([{'date': '2026-10-22', 'open': 10, 'high': 12, 'low': 9, 'close': 11, 'adjusted_close': 5.5, 'volume': 7},
+                          {'date': 'bad'}]).encode()
+        bars, meta = DATA.parse_eodhd(raw)
+        self.assertEqual(len(bars), 1)
+        self.assertEqual((bars[0].o, bars[0].h, bars[0].c), (5.0, 6.0, 5.5))
+        self.assertEqual(meta['currency'], 'CAD')
         with self.assertRaises(RuntimeError):
-            U.fetch_ishares()
-        snap = os.path.join(self.tmp, 'snap.csv')
-        with open(snap, 'w', encoding='utf-8') as f:
-            f.write(csv)
-        with mock.patch.object(U, 'RUT_SNAPSHOT', snap):
-            rows = U.load_rut_snapshot()
-            self.assertEqual(len(rows), 1600)
-            self.assertEqual(rows[0]['indexes'], 'RUT')
-            self.assertEqual(U.snapshot_date(), '2026-10-23')
-            U.save_rut_snapshot(rows[:3])
-            self.assertEqual(len(U.load_rut_snapshot()), 3)
+            DATA.fetch_tsx('ZZZ.TO')                                    # feed off, no cache
 
 
 if __name__ == '__main__':

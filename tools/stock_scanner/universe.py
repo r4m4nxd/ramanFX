@@ -1,17 +1,23 @@
-"""Scan universe -> universe.csv (symbol, name, sector, cik, indexes). Committed as a cache; refreshed weekly.
+"""Scan universe -> universe.csv (symbol, name, sector, cik, indexes, home, currency, feed). Committed as a cache;
+refreshed weekly.
 
-Indexes (each can be switched off with env SCANNER_UNIVERSES, e.g. "SPX,NDX,DJI"; default all four):
-  SPX  S&P 500       Wikipedia List_of_S%26P_500_companies (GICS sector, CIK)
-  NDX  Nasdaq-100    Wikipedia List_of_NASDAQ-100_companies (the table moved off the "Nasdaq-100" article in July
-                     2026; ICB industry mapped to the GICS sector names)
-  DJI  Dow Jones 30  Wikipedia List_of_Dow_Jones_Industrial_Average_companies
-  RUT  Russell 2000  iShares IWM holdings CSV (equity rows, "Sector" column), a few plain public URL variants; on
-                     CI runners iShares answers with an HTML page, then the committed snapshot
-                     russell2000_snapshot.csv (our format with a "# ... <date>" first line, or the raw IWM holdings
-                     CSV downloaded from the iShares page in a browser); neither: RUT stays empty (logged)
-A ticker in several indexes is one row with e.g. indexes "SPX,NDX,DJI". CIKs missing from Wikipedia come from SEC
-company_tickers.json, only when env SEC_UA (a contact User-Agent; SEC answers 403 without one) is set; otherwise that
-lookup is skipped and those CIKs stay empty (= fundamentals n/a; companyfacts itself works without SEC_UA).
+Indexes (INDEX_META is the one registry: label, short label, country, source; switch some off with env
+SCANNER_UNIVERSES, e.g. "SPX,NDX,DJI"; default all):
+  SPX    S&P 500        Wikipedia List_of_S%26P_500_companies (GICS sector, CIK)
+  NDX    Nasdaq-100     Wikipedia List_of_NASDAQ-100_companies (ICB industry mapped to the GICS sector names)
+  DJI    Dow 30         Wikipedia List_of_Dow_Jones_Industrial_Average_companies
+  TSX60  S&P/TSX 60     Wikipedia S%26P/TSX_60 (constituents table)
+  TSX    S&P/TSX Comp.  Wikipedia S%26P/TSX_Composite_Index ("components" table)
+A ticker in several indexes is one row with e.g. indexes "SPX,NDX,DJI".
+
+Canada (interlisted first): a TSX name is scanned through its NYSE / Nasdaq / NYSE American listing (prices in USD,
+`home` = "TSX:RY", currency USD). The mapping: tsx_us_map.csv (hand-checked by company name, wins), else the same
+symbol when Alpaca's asset list has it active on a US exchange AND its company name matches; without Alpaca keys the
+previous refresh's checked mapping is kept. Names without a US listing get symbol "<SYM>.TO", currency CAD and
+feed "tsx": they need a TSX data feed (data.tsx_feed(); off by default) and are reported as uncovered until then.
+
+CIKs missing from Wikipedia come from SEC company_tickers.json, only when env SEC_UA (a contact User-Agent; SEC
+answers 403 without one) is set; otherwise those CIKs stay empty (= fundamentals n/a).
 
     python tools/stock_scanner/universe.py            # refresh if older than 7 days
     python tools/stock_scanner/universe.py --force
@@ -19,45 +25,49 @@ lookup is skipped and those CIKs stay empty (= fundamentals n/a; companyfacts it
 from __future__ import annotations
 
 import csv
-import datetime as dt
 import html
-import io
 import json
 import os
+import re
 import sys
 import time
+import unicodedata
 from html.parser import HTMLParser
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from data import UA, http_get  # noqa: E402
 
 WIKI = 'https://en.wikipedia.org/wiki/'
-SOURCES = {
-    'SPX': WIKI + 'List_of_S%26P_500_companies',
-    'NDX': WIKI + 'List_of_NASDAQ-100_companies',
-    'DJI': WIKI + 'List_of_Dow_Jones_Industrial_Average_companies',
+# The registry: order = the app's index pills. country: where the index lives (the scanned listing may be US).
+INDEX_META: Dict[str, Dict[str, str]] = {
+    'SPX': {'label': 'S&P 500', 'short': 'S&P', 'country': 'US', 'url': WIKI + 'List_of_S%26P_500_companies'},
+    'NDX': {'label': 'Nasdaq-100', 'short': 'NDX', 'country': 'US', 'url': WIKI + 'List_of_NASDAQ-100_companies'},
+    'DJI': {'label': 'Dow 30', 'short': 'Dow', 'country': 'US', 'url': WIKI + 'List_of_Dow_Jones_Industrial_Average_companies'},
+    'TSX60': {'label': 'TSX 60', 'short': 'TSX60', 'country': 'CA', 'url': WIKI + 'S%26P/TSX_60'},
+    'TSX': {'label': 'TSX Composite', 'short': 'TSX', 'country': 'CA', 'url': WIKI + 'S%26P/TSX_Composite_Index'},
 }
-IWM_PAGE = 'https://www.ishares.com/us/products/239710/ishares-russell-2000-etf'
-RUT_URLS = [                     # plain public GETs only (no cookies, no JS); tried in order
-    IWM_PAGE + '/1467271812596.ajax?fileType=csv&fileName=IWM_holdings&dataType=fund',
-    IWM_PAGE + '/1467271812596.ajax?fileType=csv&fileName=IWM_holdings&dataType=fund&asOfDate={asof}',
-    IWM_PAGE + '/1521942788811.ajax?fileType=csv&fileName=IWM_holdings&dataType=fund',
-]
-INDEXES = ['SPX', 'NDX', 'DJI', 'RUT']
-INDEX_NAME = {'SPX': 'S&P 500', 'NDX': 'Nasdaq-100', 'DJI': 'Dow 30', 'RUT': 'Russell 2000'}
-MIN_ROWS = {'SPX': 400, 'NDX': 90, 'DJI': 28, 'RUT': 1500}
+INDEXES = list(INDEX_META)
+SOURCES = {k: v['url'] for k, v in INDEX_META.items()}
+MIN_ROWS = {'SPX': 400, 'NDX': 90, 'DJI': 28, 'TSX60': 55, 'TSX': 180}
+TABLE_IDS = ('constituents', 'components')
 CSV_PATH = os.path.join(HERE, 'universe.csv')
-RUT_SNAPSHOT = os.path.join(HERE, 'russell2000_snapshot.csv')
-FIELDS = ['symbol', 'name', 'sector', 'cik', 'indexes']
+MAP_PATH = os.path.join(HERE, 'tsx_us_map.csv')
+FIELDS = ['symbol', 'name', 'sector', 'cik', 'indexes', 'home', 'currency', 'feed']
 SEC_TICKERS = 'https://www.sec.gov/files/company_tickers.json'
+US_EXCHANGES = {'NYSE', 'NASDAQ', 'AMEX', 'ARCA', 'BATS'}
+NAME_MATCH = 0.6
 
-# ICB industry (Nasdaq-100 list) -> GICS sector name used everywhere else
+# ICB industry (Nasdaq-100, TSX 60 lists) -> GICS sector name used everywhere else
 ICB_TO_GICS = {'Technology': 'Information Technology', 'Telecommunications': 'Communication Services', 'Health Care': 'Health Care',
                'Financials': 'Financials', 'Real Estate': 'Real Estate', 'Consumer Discretionary': 'Consumer Discretionary',
                'Consumer Staples': 'Consumer Staples', 'Industrials': 'Industrials', 'Basic Materials': 'Materials',
-               'Energy': 'Energy', 'Utilities': 'Utilities'}
+               'Energy': 'Energy', 'Utilities': 'Utilities', 'Communication Services': 'Communication Services',
+               'Information Technology': 'Information Technology', 'Materials': 'Materials',
+               # Morningstar-style names (the TSX 60 article)
+               'Consumer Cyclical': 'Consumer Discretionary', 'Consumer Defensive': 'Consumer Staples',
+               'Financial Services': 'Financials', 'Healthcare': 'Health Care', 'Communication': 'Communication Services'}
 GICS = ['Communication Services', 'Consumer Discretionary', 'Consumer Staples', 'Energy', 'Financials', 'Health Care',
         'Industrials', 'Information Technology', 'Materials', 'Real Estate', 'Utilities']
 
@@ -66,6 +76,12 @@ def enabled() -> List[str]:
     raw = os.environ.get('SCANNER_UNIVERSES', '')
     want = [x.strip().upper() for x in raw.split(',') if x.strip()] if raw else INDEXES
     return [x for x in INDEXES if x in want]
+
+
+def index_meta(codes: Optional[List[str]] = None) -> List[Dict[str, str]]:
+    """[{code, label, short, country}] in pill order (what the app shows; nothing hard-coded there)."""
+    return [{'code': k, 'label': v['label'], 'short': v['short'], 'country': v['country']}
+            for k, v in INDEX_META.items() if codes is None or k in codes]
 
 
 def norm_sector(s: str) -> str:
@@ -82,48 +98,39 @@ def norm_sector(s: str) -> str:
 
 
 class _Tables(HTMLParser):
-    """Rows of the first table with id="constituents" (all three Wikipedia lists use that id)."""
+    """Every top-level table of the page: (attrs, rows of cell texts). Footnote markers are cut off."""
 
     def __init__(self):
         super().__init__()
         self.depth = 0
-        self.rows: List[List[str]] = []
-        self.cell: List[str] = []
+        self.tables: List[Tuple[Dict[str, str], List[List[str]]]] = []
+        self.cell: Optional[List[str]] = None
         self.row: List[str] = []
-        self.in_cell = False
-        self.done = False
 
     def handle_starttag(self, tag, attrs):
-        if self.done:
-            return
-        a = dict(attrs)
         if tag == 'table':
-            if self.depth:
-                self.depth += 1
-            elif a.get('id') == 'constituents':
-                self.depth = 1
+            self.depth += 1
+            if self.depth == 1:
+                self.tables.append((dict((k, v or '') for k, v in attrs), []))
         elif self.depth == 1 and tag == 'tr':
             self.row = []
         elif self.depth == 1 and tag in ('td', 'th'):
-            self.in_cell, self.cell = True, []
-        elif self.in_cell and tag in ('sup', 'style'):
+            self.cell = []
+        elif self.cell is not None and tag in ('sup', 'style'):
             self.cell.append('\x00')                # footnote markers: cut the text there
 
     def handle_endtag(self, tag):
-        if self.done or not self.depth:
-            return
-        if tag == 'table':
+        if tag == 'table' and self.depth:
             self.depth -= 1
-            if self.depth == 0:
-                self.done = True
-        elif self.depth == 1 and tag in ('td', 'th') and self.in_cell:
+        elif self.depth == 1 and tag in ('td', 'th') and self.cell is not None:
             self.row.append(' '.join(''.join(self.cell).split('\x00')[0].split()))
-            self.in_cell = False
+            self.cell = None
         elif self.depth == 1 and tag == 'tr' and self.row:
-            self.rows.append(self.row)
+            self.tables[-1][1].append(self.row)
+            self.row = []
 
     def handle_data(self, data):
-        if self.in_cell:
+        if self.cell is not None:
             self.cell.append(data)
 
 
@@ -135,12 +142,27 @@ def _col(head: List[str], *names) -> int:
     return -1
 
 
+def _pick_table(tables, index: str) -> List[List[str]]:
+    """The table with id constituents / components, else the first table with a symbol and a company column and
+    enough rows (the TSX 60 article's table has no id)."""
+    for a, rows in tables:
+        if a.get('id') in TABLE_IDS and rows:
+            return rows
+    for _, rows in tables:
+        if len(rows) > MIN_ROWS[index]:
+            head = [h.lower() for h in rows[0]]
+            if min(_col(head, 'symbol', 'ticker'), _col(head, 'security', 'company')) >= 0:
+                return rows
+    return []
+
+
 def parse_wiki(page: str, index: str) -> List[Dict[str, str]]:
     p = _Tables()
     p.feed(page)
-    if not p.rows:
+    rows = _pick_table(p.tables, index)
+    if not rows:
         raise ValueError(f'{index}: constituents table not found')
-    head = [h.lower() for h in p.rows[0]]
+    head = [h.lower() for h in rows[0]]
     i_sym = _col(head, 'symbol', 'ticker')
     i_name = _col(head, 'security', 'company')
     i_sec = _col(head, 'gics sector', 'icb industry', 'sector', 'industry')
@@ -148,7 +170,7 @@ def parse_wiki(page: str, index: str) -> List[Dict[str, str]]:
     if min(i_sym, i_name) < 0:
         raise ValueError(f'{index}: columns missing: {head}')
     out = []
-    for r in p.rows[1:]:
+    for r in rows[1:]:
         if len(r) <= max(i_sym, i_name, i_sec):
             continue
         sym = html.unescape(r[i_sym]).strip().upper().replace(' ', '')
@@ -162,93 +184,97 @@ def parse_wiki(page: str, index: str) -> List[Dict[str, str]]:
     return out
 
 
-def looks_ishares(b: bytes) -> bool:
-    """The holdings CSV, not the HTML page iShares serves to some clients (e.g. CI runners)."""
-    head = b[:20000].lstrip(b'\xef\xbb\xbf \r\n\t')
-    return head[:1] != b'<' and (head.startswith(b'Ticker,') or head.startswith(b'"Ticker"')
-                                 or b'\nTicker,' in head or b'\n"Ticker"' in head)
+# ---- TSX -> US listing ---------------------------------------------------------------------------------------------
+_STOP = {'inc', 'corp', 'corporation', 'ltd', 'limited', 'company', 'co', 'the', 'plc', 'lp', 'l', 'p', 'of', 'and', 'sa',
+         'nv', 'common', 'stock', 'shares', 'share', 'class', 'a', 'b', 'subordinate', 'voting', 'ordinary', 'units', 'unit',
+         'new', 'ads', 'adr', 'depositary', 'non', 'variable', 'restricted', 'partnership', 'partners', 'trust', 'holdings'}
 
 
-def _last_business_day(d: Optional[dt.date] = None) -> dt.date:
-    d = (d or dt.date.today()) - dt.timedelta(days=1)
-    while d.weekday() >= 5:
-        d -= dt.timedelta(days=1)
-    return d
+def name_tokens(s: str) -> set:
+    s = unicodedata.normalize('NFKD', s or '').encode('ascii', 'ignore').decode().lower().replace('&', ' and ')
+    return {t for t in re.split(r'[^a-z0-9]+', s) if t and t not in _STOP}
 
 
-def fetch_ishares() -> List[Dict[str, str]]:
-    """Russell 2000 members from the first iShares URL variant that returns the CSV; raises when none does."""
-    errs = []
-    for u in RUT_URLS:
-        url = u.format(asof=_last_business_day().strftime('%Y%m%d'))
-        try:
-            return parse_ishares(http_get(url, ua=UA, accept='text/csv', expect=looks_ishares).decode('utf-8-sig', 'replace'))
-        except Exception as e:  # noqa: BLE001
-            errs.append(type(e).__name__)
-    raise RuntimeError(f'no CSV from {len(RUT_URLS)} iShares URL variants: {", ".join(errs)}')
+def name_match(tsx_name: str, us_name: str) -> float:
+    """Share of the TSX company's significant name words found in the US asset's name (1.0 = all)."""
+    a, b = name_tokens(tsx_name), name_tokens(us_name)
+    return len(a & b) / len(a) if a else 0.0
 
 
-def parse_ishares(text: str) -> List[Dict[str, str]]:
-    """iShares holdings CSV: some preamble lines, then a header with Ticker,Name,Sector,Asset Class,...; equity rows only."""
-    lines = text.splitlines()
-    start = next((i for i, l in enumerate(lines) if l.startswith('Ticker,') or l.startswith('"Ticker"')), -1)
-    if start < 0:
-        raise ValueError('RUT: holdings header not found')
+def tsx_feed_symbol(tsx: str) -> str:
+    """The symbol a TSX feed uses (Yahoo / EODHD style): BBD.B -> BBD-B.TO, AP.UN -> AP-UN.TO, RY -> RY.TO."""
+    return tsx.replace('.', '-') + '.TO'
+
+
+def load_map(path: str = MAP_PATH) -> Dict[str, Dict[str, str]]:
+    """{tsx: {us, note, name}} from the hand-checked map (comment lines start with #)."""
+    if not os.path.exists(path):
+        return {}
+    with open(path, newline='', encoding='utf-8') as f:
+        lines = [l for l in f if l.strip() and not l.startswith('#')]
+    return {r['tsx'].strip().upper(): {'us': (r.get('us') or '').strip().upper(), 'note': (r.get('note') or '').strip(),
+                                        'name': (r.get('name') or '').strip()} for r in csv.DictReader(lines) if r.get('tsx')}
+
+
+def map_tsx(rows: List[Dict[str, str]], overrides: Dict[str, Dict[str, str]], assets: Optional[Dict[str, Dict]],
+            previous: Optional[Dict[str, str]] = None, log=print) -> List[Dict[str, str]]:
+    """TSX index rows -> universe rows: the US listing when checked (see the module doc), else the TSX-feed row.
+    assets = data.alpaca_assets() ({symbol: {name, exchange, status, tradable}}) or None when unavailable;
+    previous = {tsx: us} of the last refresh (used only without assets)."""
     out = []
-    for r in csv.DictReader(io.StringIO('\n'.join(lines[start:]))):
-        if (r.get('Asset Class') or '').strip().lower() != 'equity':
-            continue
-        sym = (r.get('Ticker') or '').strip().upper().replace(' ', '.')
-        if not sym or sym == '-' or not sym.replace('.', '').isalnum():
-            continue
-        out.append({'symbol': sym, 'name': (r.get('Name') or '').strip().title(), 'sector': norm_sector(r.get('Sector') or ''), 'cik': '', 'indexes': 'RUT'})
-    if len(out) < MIN_ROWS['RUT']:
-        raise ValueError(f'RUT: only {len(out)} equity rows')
+    for r in rows:
+        tsx = r['symbol']
+        ov = overrides.get(tsx)
+        name = (ov or {}).get('name') or r['name']
+        us, why = '', ''
+        if ov is not None:
+            us = ov['us']
+            if us and assets is not None:
+                a = assets.get(us)
+                if not a or a.get('status') != 'active' or a.get('exchange') not in US_EXCHANGES:
+                    why, us = f'override {us} not an active US-exchange asset', ''
+                elif name_match(name, a.get('name', '')) < NAME_MATCH:
+                    log(f'TSX {tsx} -> {us}: name check low ({name!r} vs {a.get("name")!r}); kept (hand-checked map)')
+        elif assets is not None:
+            a = assets.get(tsx) if '.' not in tsx else None
+            if a and a.get('status') == 'active' and a.get('exchange') in US_EXCHANGES and name_match(name, a.get('name', '')) >= NAME_MATCH:
+                us = tsx
+            elif a:
+                why = f'same symbol {tsx} on {a.get("exchange")} is {a.get("name")!r}: not the same company'
+        elif previous and previous.get(tsx):
+            us = previous[tsx]
+        if why:
+            log(f'TSX {tsx} ({name}): {why}')
+        base = {'name': name, 'sector': r.get('sector', ''), 'cik': '', 'indexes': r['indexes'], 'home': f'TSX:{tsx}'}
+        if us:
+            out.append({'symbol': us, **base, 'currency': 'USD', 'feed': ''})
+        else:
+            out.append({'symbol': tsx_feed_symbol(tsx), **base, 'currency': 'CAD', 'feed': 'tsx'})
     return out
 
 
-def load_rut_snapshot() -> List[Dict[str, str]]:
-    """The committed snapshot: our format (first line '# ... <date>', then FIELDS) or a raw IWM holdings CSV."""
-    if not os.path.exists(RUT_SNAPSHOT):
-        return []
-    with open(RUT_SNAPSHOT, newline='', encoding='utf-8-sig') as f:
-        text = f.read()
-    if looks_ishares(text.encode('utf-8')):
-        return parse_ishares(text)
-    lines = text.splitlines(True)
-    if lines and lines[0].startswith('#'):
-        lines = lines[1:]
-    return list(csv.DictReader(io.StringIO(''.join(lines))))
+def coverage(rows: List[Dict[str, str]], feeds_on: Tuple[str, ...] = ()) -> Dict[str, Dict[str, int]]:
+    """{index: {covered, total}} for the Canadian indexes (covered = a feed that is on serves it)."""
+    out: Dict[str, Dict[str, int]] = {}
+    for r in rows:
+        for i in (r.get('indexes') or '').split(','):
+            if INDEX_META.get(i, {}).get('country') != 'CA':
+                continue
+            c = out.setdefault(i, {'covered': 0, 'total': 0})
+            c['total'] += 1
+            c['covered'] += 1 if not r.get('feed') or r['feed'] in feeds_on else 0
+    return out
 
 
-def save_rut_snapshot(rows: List[Dict[str, str]]) -> None:
-    with open(RUT_SNAPSHOT, 'w', newline='') as f:
-        f.write(f'# iShares IWM holdings snapshot {dt.date.today().isoformat()}\n')
-        w = csv.DictWriter(f, fieldnames=FIELDS)
-        w.writeheader()
-        w.writerows(rows)
-
-
-def snapshot_date() -> str:
-    if not os.path.exists(RUT_SNAPSHOT):
-        return ''
-    with open(RUT_SNAPSHOT, encoding='utf-8-sig') as f:
-        head = [f.readline().strip() for _ in range(12)]
-    if head[0].startswith('#'):
-        return head[0].rsplit(' ', 1)[-1]
-    for line in head:                                   # raw iShares file: 'Fund Holdings as of,"Oct 23, 2026"'
-        if line.lower().startswith('fund holdings as of'):
-            raw = line.split(',', 1)[-1].strip().strip('"')
-            for fmt in ('%b %d, %Y', '%B %d, %Y', '%m/%d/%Y'):
-                try:
-                    return dt.datetime.strptime(raw, fmt).date().isoformat()
-                except ValueError:
-                    continue
-    return ''
+def split_covered(rows: List[Dict[str, str]], feeds_on: Tuple[str, ...] = ()) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
+    """(rows the scan can fetch, rows that need a feed that is off)."""
+    ok = [r for r in rows if not r.get('feed') or r['feed'] in feeds_on]
+    return ok, [r for r in rows if r.get('feed') and r['feed'] not in feeds_on]
 
 
 def merge(lists: List[List[Dict[str, str]]]) -> List[Dict[str, str]]:
-    """Dedupe by symbol: the first list's name / sector / CIK win (SPX first), indexes are joined."""
+    """Dedupe by symbol: the first list's name / sector / CIK win (SPX first), indexes are joined, an empty home /
+    currency / feed is filled from a later row."""
     by: Dict[str, Dict[str, str]] = {}
     for rows in lists:
         for r in rows:
@@ -261,16 +287,16 @@ def merge(lists: List[List[Dict[str, str]]]) -> List[Dict[str, str]]:
             for i in r['indexes'].split(','):
                 if i not in idx:
                     idx.append(i)
-            x['indexes'] = ','.join(sorted(idx, key=INDEXES.index))
-            for k in ('name', 'sector', 'cik'):
+            x['indexes'] = ','.join(sorted(idx, key=lambda i: INDEXES.index(i) if i in INDEXES else 99))
+            for k in ('name', 'sector', 'cik', 'home', 'currency', 'feed'):
                 if not x.get(k) and r.get(k):
                     x[k] = r[k]
     return [by[k] for k in sorted(by)]
 
 
 def fill_ciks(rows: List[Dict[str, str]], raw: Optional[bytes] = None) -> int:
-    """CIKs from SEC company_tickers.json for rows without one. Returns how many were filled."""
-    missing = [r for r in rows if not r.get('cik')]
+    """CIKs from SEC company_tickers.json for rows without one (US listings only). Returns how many were filled."""
+    missing = [r for r in rows if not r.get('cik') and r.get('feed', '') == '']
     if not missing:
         return 0
     if raw is None and not os.environ.get('SEC_UA', '').strip():
@@ -298,47 +324,49 @@ def load(path: str = CSV_PATH, indexes: Optional[List[str]] = None) -> List[Dict
     with open(path, newline='') as f:
         rows = list(csv.DictReader(f))
     for r in rows:
-        r.setdefault('indexes', 'SPX')
         r['indexes'] = r.get('indexes') or 'SPX'
+        for k in ('home', 'feed'):
+            r[k] = r.get(k) or ''
+        r['currency'] = r.get('currency') or 'USD'
     want = set(indexes if indexes is not None else enabled())
     return [r for r in rows if want & set(r['indexes'].split(','))]
 
 
-def refresh(force: bool = False, max_age_days: float = 7, log=print) -> List[Dict[str, str]]:
+def _previous_tsx(rows: List[Dict[str, str]]) -> Dict[str, str]:
+    return {r['home'][4:]: r['symbol'] for r in rows if r.get('home', '').startswith('TSX:') and not r.get('feed')}
+
+
+def refresh(force: bool = False, max_age_days: float = 7, log=print, assets=None) -> List[Dict[str, str]]:
     if not force and os.path.exists(CSV_PATH) and time.time() - os.path.getmtime(CSV_PATH) < max_age_days * 86400:
         return load()
-    old = {}
+    old: Dict[str, List[Dict[str, str]]] = {}
+    prev_rows: List[Dict[str, str]] = []
     if os.path.exists(CSV_PATH):
-        for r in load(indexes=INDEXES):
+        prev_rows = load(indexes=INDEXES)
+        for r in prev_rows:
             for i in r['indexes'].split(','):
                 old.setdefault(i, []).append(dict(r, indexes=i))
+    if assets is None and any(INDEX_META[i]['country'] == 'CA' for i in INDEXES):
+        import data as DATA
+        assets = DATA.alpaca_assets(log=log) or None
+        if assets is None:
+            log('TSX: Alpaca asset list unavailable (no keys?): hand-checked map + the previous checked mapping only')
+    overrides = load_map()
     lists = []
     for idx in INDEXES:
         try:
-            if idx == 'RUT':
-                try:
-                    rows = fetch_ishares()
-                    save_rut_snapshot(rows)
-                except Exception as e:  # noqa: BLE001
-                    rows = load_rut_snapshot()
-                    if rows:
-                        log(f'RUT: iShares unavailable ({e}); using russell2000_snapshot.csv of '
-                            f'{snapshot_date() or "unknown date"} ({len(rows)} rows)')
-                    else:
-                        rows = old.get(idx, [])
-                        log(f'RUT: iShares unavailable ({e}) and no russell2000_snapshot.csv: '
-                            + (f'kept the previous {len(rows)} rows' if rows else 'RUT is EMPTY')
-                            + ' (commit a snapshot by hand, see README "Russell 2000 snapshot")')
-            else:
-                rows = parse_wiki(http_get(SOURCES[idx], ua=UA, accept='text/html').decode('utf-8', 'replace'), idx)
+            rows = parse_wiki(http_get(SOURCES[idx], ua=UA, accept='text/html').decode('utf-8', 'replace'), idx)
+            if INDEX_META[idx]['country'] == 'CA':
+                rows = map_tsx(rows, overrides, assets, _previous_tsx(prev_rows), log=log)
         except Exception as e:  # noqa: BLE001
             rows = old.get(idx, [])
             log(f'{idx}: refresh failed ({e}); kept the previous {len(rows)} rows')
         lists.append(rows)
-        log(f'{idx}: {len(rows)} tickers')
+        n_us = sum(1 for r in rows if not r.get('feed'))
+        log(f'{idx}: {len(rows)} tickers' + (f' ({n_us} with a US listing)' if INDEX_META[idx]['country'] == 'CA' else ''))
     rows = merge(lists)
     n = fill_ciks(rows)
-    log(f'CIK filled from SEC: {n}; still missing: {sum(1 for r in rows if not r["cik"])}')
+    log(f'CIK filled from SEC: {n}; still missing: {sum(1 for r in rows if not r["cik"] and not r.get("feed"))}')
     with open(CSV_PATH, 'w', newline='') as f:
         w = csv.DictWriter(f, fieldnames=FIELDS)
         w.writeheader()

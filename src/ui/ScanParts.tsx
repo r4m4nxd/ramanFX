@@ -1,13 +1,14 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { INDEX_URL, parseIndex, px, readWatch, ruleIcon, searchTickers, SEIDEN_PARTS, stockPath, toggleWatch, WATCH_KEY, writeWatch, type IndexRow, type RfxIndex, type RuleStatus, type ScanIndex, type ScanRule } from '@/core/scanner';
+import { DEFAULT_INDEXES, INDEX_URL, parseIndex, px, readWatch, ruleIcon, searchTickers, SEIDEN_PARTS, stockPath, toggleWatch, WATCH_KEY, writeWatch, type IndexRow, type RfxIndex, type RuleStatus, type ScanIndex, type ScanRule } from '@/core/scanner';
 import { ZoneGauge } from './ZoneGauge';
 import { num } from '@/lib/format';
 import { cx, Sheet } from '@/ui/kit';
 import { Icon } from '@/ui/Icon';
 import { ZoneMiniChart, type MiniBar, type MiniLevels, type MiniZone } from '@/ui/ZoneMiniChart';
 
-export const IDX_SHORT: Record<string, string> = { SPX: 'S&P', NDX: 'NDX', DJI: 'Dow', RUT: 'R2K' };
+/** Short index labels (unknown codes show as themselves). */
+export const IDX_SHORT: Record<string, string> = Object.fromEntries(DEFAULT_INDEXES.map(m => [m.code, m.short]));
 export const typeTone = (t: string) => (t === 'ARR' || t === 'WOW' ? 'accent' : t === 'STR' ? 'violet' : 'neutral') as 'accent' | 'violet' | 'neutral';
 const RULE_TONE: Record<RuleStatus, string> = { pass: 'text-profit bg-profit/10', fail: 'text-loss bg-loss/10', warn: 'text-warn bg-warn/10', unknown: 'text-ink3 bg-raised', info: 'text-ink3 bg-raised' };
 /** The plan numbers (entry / stop / target / R:R) are the point of a card: one step up from the other stats. */
@@ -37,8 +38,11 @@ export function RuleList({ rules, open, title = 'Rules checked' }: { rules: Scan
   );
 }
 
-export function FundTable({ rows, open }: { rows: [string, string][]; open?: boolean }) {
-  if (!rows.length) return null;
+export function FundTable({ rows, open, country }: { rows: [string, string][]; open?: boolean; country?: string }) {
+  if (!rows.length) {
+    // Canadian issuers file 40-F / 6-K with IFRS numbers: no SEC companyfacts in the US-GAAP shape the table reads.
+    return country === 'CA' ? <p className="text-[12px] text-ink3 rounded-xl border border-line px-3 min-h-[44px] flex items-center"><span className="font-semibold text-ink2 mr-1.5">Fundamentals</span> n/a (Canadian filer)</p> : null;
+  }
   return (
     <details className="group rounded-xl border border-line px-3" open={open}>
       <summary className={summary}>

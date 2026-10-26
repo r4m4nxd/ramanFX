@@ -12,8 +12,7 @@ sessions. Exits: target (limit, at the open on a gap up), or the stop in two var
   wick  - a low at / below the stop exits at the stop (at the open if it gapped through)
   close - only a daily close at / below the stop exits, at that close (Raja: a break counts on a close)
 Same bar stop + target = the stop (conservative); the fill bar never takes the target. Time exit after 250 sessions.
-Costs: --cost-bps per side (default 5). Results are also split per universe (SPX / NDX / DJI / RUT): small caps
-may behave very differently. Russell 2000-only names pass the scanner's liquidity filter as of each signal day.
+Costs: --cost-bps per side (default 5). Results are also split per universe (SPX / NDX / DJI / TSX60 / TSX).
  Gap-through-stop trades are flagged (earnings gaps are the usual cause);
 with SEC data cached, trades holding through a 10-Q / 10-K filing date are flagged as 'filing'.
 """
@@ -231,8 +230,6 @@ def backtest_ticker(sym: str, bars: List[Bar], sector: str = '', filings: Option
             continue
         for z in zids:
             evals[z] += 1
-        if not scan.liquid({'indexes': indexes}, bars[:d + 1]):        # same liquidity filter as the live scan, as of d
-            continue
         an = scan.analyse(bars[:d + 1], w1[:w_upto[d]], mn[:m_upto[d]], row_cache=cache)
         an.index = index_at(index_bars, bars[d].d) if index_bars else None
         for s in scan.symbol_signals(an, None):
@@ -389,7 +386,7 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--tickers')
     ap.add_argument('--limit', type=int, default=0)
-    ap.add_argument('--universes', help='e.g. SPX,RUT (default env SCANNER_UNIVERSES or all four)')
+    ap.add_argument('--universes', help='e.g. SPX,TSX (default env SCANNER_UNIVERSES or all)')
     ap.add_argument('--offline', action='store_true')
     ap.add_argument('--workers', type=int, default=max(1, (os.cpu_count() or 2) - 1))
     ap.add_argument('--cost-bps', type=float, default=5.0)
@@ -402,7 +399,7 @@ def main(argv=None) -> int:
         import synth
         for seed in range(a.limit or 12):
             comp = scan.composite_bars({k: synth.ticker(s_) for k, s_ in zip(scan.INDEX_PARTS, (101, 102, 103, 104))})
-            trades += backtest_ticker(f'FX{seed}', synth.ticker(seed), 'Synthetic', None, a.cost_bps, ['SPX', 'NDX', 'DJI', 'RUT'][seed % 4], comp)
+            trades += backtest_ticker(f'FX{seed}', synth.ticker(seed), 'Synthetic', None, a.cost_bps, ['SPX', 'NDX', 'DJI', 'TSX'][seed % 4], comp)
     else:
         import universe as U
         if a.universes:

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ago, EXIT_REASON, px, reasonsText, stateWord, INDEXES, matches, parseScan, planLink, SCAN_URL, SECTOR_SHORT, sectorsOf, sortSignals, stockPath, tvChart, type IndexFilter, type ScanExit, type ScanFile, type ScanSignal, type SortKey } from '@/core/scanner';
+import { ago, EXIT_REASON, indexesOf, indexList, listingText, px, reasonsText, rowSectors, stateWord, matches, parseScan, planLink, SCAN_URL, SECTOR_SHORT, sectorsOf, sortSignals, stockPath, tvChart, type IndexFilter, type ScanExit, type ScanFile, type ScanSignal, type SortKey } from '@/core/scanner';
 import { num } from '@/lib/format';
 import { Badge, Card, cx, Empty, Page, Segmented, Stat, useIsMobile } from '@/ui/kit';
 import type { MiniBar } from '@/ui/ZoneMiniChart';
 import { ContextFlags, FundTable, IDX_SHORT, PLAN_V, PzChips, RfxPanel, RuleList, ScoreChips, StarButton, TickerSearch, typeTone, useScanIndex, useWatchlist, ZoneChart } from '@/ui/ScanParts';
 import { ZoneGauge } from '@/ui/ZoneGauge';
+import { MarketMap } from '@/ui/MarketMap';
 import { Icon } from '@/ui/Icon';
 
 type Pill = 'BUY' | 'WATCH' | 'EXIT' | 'STAR';
@@ -13,8 +14,29 @@ const KEY = 'rfx_scanner_pill';
 const readPill = (): Pill => { try { const v = localStorage.getItem(KEY); return v === 'WATCH' || v === 'EXIT' || v === 'STAR' ? v : 'BUY'; } catch { return 'BUY'; } };
 const savePill = (v: Pill) => { try { localStorage.setItem(KEY, v); } catch { /* storage blocked */ } };
 const IDX_KEY = 'rfx_scanner_index';
-const readIdx = (): IndexFilter => { try { const v = localStorage.getItem(IDX_KEY); return v === 'SPX' || v === 'NDX' || v === 'DJI' || v === 'RUT' ? v : 'all'; } catch { return 'all'; } };
+const readIdx = (): IndexFilter => { try { const v = localStorage.getItem(IDX_KEY); return v && /^[A-Z0-9]{2,8}$/.test(v) ? v : 'all'; } catch { return 'all'; } };
 const saveIdx = (v: IndexFilter) => { try { localStorage.setItem(IDX_KEY, v); } catch { /* storage blocked */ } };
+type View = 'signals' | 'map';
+const VIEW_KEY = 'rfx_scanner_view';
+const readView = (): View => { try { return localStorage.getItem(VIEW_KEY) === 'map' ? 'map' : 'signals'; } catch { return 'signals'; } };
+const saveView = (v: View) => { try { localStorage.setItem(VIEW_KEY, v); } catch { /* storage blocked */ } };
+
+function SectorPills({ sectors, sector, setSector, allCount }: { sectors: { sector: string; buys?: number }[]; sector: string; setSector: (s: string) => void; allCount?: number }) {
+  if (sectors.length < 2) return null;
+  return (
+    <div role="group" aria-label="Sector" className="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-0.5">
+      {[{ sector: 'all', buys: allCount }, ...sectors].map(x => {
+        const on = sector === x.sector;
+        return (
+          <button key={x.sector} type="button" aria-pressed={on} onClick={() => setSector(x.sector)}
+            className={cx('h-8 touch:h-9 px-3 rounded-full border text-xs font-semibold whitespace-nowrap shrink-0 transition-colors', on ? 'bg-accent/15 border-accent/40 text-ink' : 'border-line text-ink3 hover:text-ink2')}>
+            {x.sector === 'all' ? 'All sectors' : SECTOR_SHORT[x.sector] ?? x.sector}{x.sector !== 'all' && x.buys ? <span className="num text-accent ml-1">{x.buys}</span> : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 type Load = { state: 'loading' } | { state: 'ok'; scan: ScanFile | null } | { state: 'error' };
 
@@ -45,11 +67,12 @@ function SignalCard({ s, bars, starred, onStar }: { s: ScanSignal; bars?: MiniBa
             {s.kind === 'WATCH' && <Badge tone="warn">{s.watch === 'tested' ? `Touch ${s.touches + 1} · confirm` : 'New · price far'}</Badge>}
           </div>
           <p className="text-[12.5px] text-ink3 mt-0.5 line-clamp-2 [overflow-wrap:anywhere]">{s.name}{s.sector ? ` · ${s.sector}` : ''}</p>
+          {listingText(s) && <p className="text-[11.5px] text-ink2 mt-0.5 font-medium">{listingText(s)}</p>}
           {!!s.indexes?.length && <div className="flex gap-1 mt-1.5 flex-wrap" aria-label="Indexes">{s.indexes.map(i => <span key={i} className="h-5 px-1.5 rounded-md border border-line text-[10.5px] font-semibold text-ink2 grid place-items-center">{IDX_SHORT[i] ?? i}</span>)}</div>}
         </div>
         <StarButton symbol={s.symbol} on={starred} onToggle={onStar} />
         <div className="text-right shrink-0">
-          <div className="num text-[15px] font-semibold">{px(s.price)}</div>
+          <div className="num text-[15px] font-semibold">{px(s.price)} <span className="text-[10.5px] font-medium text-ink3">{s.currency ?? 'USD'}</span></div>
           <div className={cx('num text-[11.5px]', Math.abs(away) <= 3 ? 'text-accent' : 'text-ink3')}>{away >= 0 ? `${num(away, 1)}% above entry` : `${num(-away, 1)}% in the zone`}</div>
         </div>
       </div>
@@ -81,7 +104,7 @@ function SignalCard({ s, bars, starred, onStar }: { s: ScanSignal; bars?: MiniBa
       {s.note && <p className="text-[12.5px] text-ink2 leading-relaxed">{s.note}</p>}
 
       <RuleList rules={s.rules} />
-      <FundTable rows={s.fundamentals_rows ?? []} />
+      <FundTable rows={s.fundamentals_rows ?? []} country={s.country} />
 
       <div className="flex gap-2">
         <Link to={planLink(s)} className={cx(s.kind === 'BUY' ? 'btn-primary' : 'btn', 'h-10 flex-1 sm:flex-none')}><Icon name="target" size={15} />Plan it</Link>
@@ -188,7 +211,13 @@ export default function Scanner() {
   const [idx, setIdxState] = useState<IndexFilter>(readIdx);
   const setIdx = (v: IndexFilter) => { setIdxState(v); saveIdx(v); };
   const [sector, setSector] = useState('all');
+  const [view, setViewState] = useState<View>(readView);
+  const setView = (v: View) => { setViewState(v); saveView(v); };
   const scan = load.state === 'ok' ? load.scan : null;
+  const { idx: tickIdx } = useScanIndex(view === 'map');
+  const indexes = indexesOf(scan);
+  const mapSectors = useMemo(() => rowSectors(tickIdx?.tickers ?? []).map(sector => ({ sector })), [tickIdx]);
+  const uncoveredN = scan?.uncovered?.length ?? 0;
   const shown = useMemo(() => (scan ? scan.signals.filter(s => matches(s, idx, sector)) : []), [scan, idx, sector]);
   const exits = useMemo(() => (scan ? scan.exits.filter(e => matches(e, idx, sector)) : []), [scan, idx, sector]);
   const [sort, setSort] = useState<SortKey>('score');
@@ -206,7 +235,7 @@ export default function Scanner() {
         <div className="flex flex-col gap-3">
           <div className="min-w-0">
             <h2 className="text-xl font-semibold tracking-tight">US stock zone scan</h2>
-            <p className="text-[13px] text-ink2 mt-1 leading-relaxed max-w-[62ch]">S&amp;P 500, Nasdaq-100, Dow 30 and Russell 2000 after each US close: fresh D1 / W1 demand zones checked rule by rule (Raja first, Kevin second), plus exit warnings for your holdings.</p>
+            <p className="text-[13px] text-ink2 mt-1 leading-relaxed max-w-[62ch]">{indexList(indexes)} after each US close: fresh D1 / W1 demand zones checked rule by rule (Raja first, Kevin second), plus exit warnings for your holdings.</p>
           </div>
           {scan?.fixture && <Badge tone="warn" className="self-start">Sample data · synthetic fixture</Badge>}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink3">
@@ -214,7 +243,7 @@ export default function Scanner() {
               <span className="inline-flex items-center gap-1.5"><Icon name="clock" size={13} />Updated {new Date(scan!.generated_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })} · {ago(scan!.generated_at)}</span>
               <span className="num">Close of {scan!.date} · {scan!.scanned.toLocaleString()}/{scan!.universe.toLocaleString()} stocks</span>
               {scan!.session === 'intraday-dropped' && <span className="text-warn" title="The scan ran while the US market was open: today's unfinished candle was left out.">Ran during market hours: last closed session used</span>}
-              {!!scan!.filtered_liquidity && <span title={scan!.liquidity_rule}>{scan!.filtered_liquidity} illiquid small caps skipped</span>}
+              {!!uncoveredN && <span title={scan!.uncovered!.map(u => u.symbol).join(', ')}>{uncoveredN} TSX-only names need a TSX data feed</span>}
             </> : load.state === 'loading' ? <span>Loading the latest scan…</span> : load.state === 'error' ? <span>The scan could not be loaded.</span> : <span>No scan has run yet.</span>}
           </div>
           {has && (!!scan!.regime?.length || scan!.rfx_index) && (
@@ -258,37 +287,29 @@ export default function Scanner() {
         <>
           <div className="flex flex-col gap-2.5">
             <div className="overflow-x-auto -mx-1 px-1 pb-0.5">
+              <Segmented label="View" value={view} onChange={setView} options={[{ value: 'signals' as View, label: 'Signals' }, { value: 'map' as View, label: 'Market map' }]} />
+            </div>
+            {view === 'signals' && <div className="overflow-x-auto -mx-1 px-1 pb-0.5">
               <Segmented label="Signals" value={pill} onChange={setPill} swap="page" options={[
                 { value: 'BUY', label: `Buy ${count('BUY')}` },
                 { value: 'WATCH', label: `Watch ${count('WATCH')}` },
                 { value: 'EXIT', label: `Exit ${exits.length}` },
                 { value: 'STAR', label: `★ ${watch.list.length}` },
               ]} />
-            </div>
+            </div>}
             <div className="overflow-x-auto -mx-1 px-1 pb-0.5">
-              <Segmented label="Index" size="sm" value={idx} onChange={setIdx} options={[{ value: 'all' as IndexFilter, label: 'All' }, ...INDEXES.map(i => ({ value: i.value as IndexFilter, label: i.label }))]} />
+              <Segmented label="Index" size="sm" value={idx} onChange={setIdx} options={[{ value: 'all' as IndexFilter, label: 'All' }, ...indexes.map(i => ({ value: i.code as IndexFilter, label: i.label }))]} />
             </div>
-            {(pill === 'BUY' || pill === 'WATCH') && (
+            {view === 'signals' && (pill === 'BUY' || pill === 'WATCH') && (
               <div className="flex items-center gap-2 overflow-x-auto -mx-1 px-1 pb-0.5">
                 <span className="text-[12px] text-ink3 shrink-0">Sort</span>
                 <Segmented label="Sort" size="sm" value={sort} onChange={setSort} options={[{ value: 'score', label: 'Raja' }, { value: 'seiden', label: 'Seiden' }, { value: 'near', label: 'Nearest' }, { value: 'rr', label: 'R:R' }]} />
               </div>
             )}
-            {sectors.length > 1 && (
-              <div role="group" aria-label="Sector" className="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-0.5">
-                {[{ sector: 'all', buys: count('BUY'), total: 0 }, ...sectors].map(x => {
-                  const on = sector === x.sector;
-                  return (
-                    <button key={x.sector} type="button" aria-pressed={on} onClick={() => setSector(x.sector)}
-                      className={cx('h-8 touch:h-9 px-3 rounded-full border text-xs font-semibold whitespace-nowrap shrink-0 transition-colors', on ? 'bg-accent/15 border-accent/40 text-ink' : 'border-line text-ink3 hover:text-ink2')}>
-                      {x.sector === 'all' ? 'All sectors' : SECTOR_SHORT[x.sector] ?? x.sector}{x.sector !== 'all' && x.buys ? <span className="num text-accent ml-1">{x.buys}</span> : null}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            {view === 'signals' ? <SectorPills sectors={sectors} sector={sector} setSector={setSector} allCount={count('BUY')} />
+              : <SectorPills sectors={mapSectors} sector={sector} setSector={setSector} />}
           </div>
-          {pill === 'STAR' ? <WatchList syms={watch.list} onStar={watch.toggle} /> : pill === 'EXIT' ? <ExitList exits={exits} /> : list.length ? (
+          {view === 'map' ? <MarketMap rows={tickIdx?.tickers ?? null} idx={idx} sector={sector} loading={tickIdx === undefined} /> : pill === 'STAR' ? <WatchList syms={watch.list} onStar={watch.toggle} /> : pill === 'EXIT' ? <ExitList exits={exits} /> : list.length ? (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">{list.map(s => <SignalCard key={`${s.kind}${s.symbol}${s.tf}${s.made}`} s={s} bars={scan.bars?.[s.symbol]} starred={watch.has(s.symbol)} onStar={() => watch.toggle(s.symbol)} />)}</div>
           ) : pill === 'BUY' ? <NoBuy scan={scan} filtered={idx !== 'all' || sector !== 'all'} /> : (
             <Card><Empty icon="eye" title="Nothing to watch here">

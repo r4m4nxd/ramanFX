@@ -13,7 +13,6 @@ jobs:
             "https://stooq.com/q/d/l/?s=aapl.us&i=d" \
             "https://www.sec.gov/files/company_tickers.json" \
             "https://data.sec.gov/api/xbrl/companyfacts/CIK0000320193.json" \
-            "https://www.ishares.com/us/products/239710/ishares-russell-2000-etf/1467271812596.ajax?fileType=csv&fileName=IWM_holdings&dataType=fund" \
             "https://data.nasdaq.com/" ; do
             echo "== $u"
             curl -sS -m 20 -A "$UA" -o body -w "HTTP %{http_code} %{size_download}B %{content_type}\n" "$u" || true

@@ -85,13 +85,51 @@ class UniverseTest(unittest.TestCase):
         out = U.parse_wiki(page, 'NDX')
         self.assertEqual({r['sector'] for r in out}, {'Information Technology', 'Materials'})
 
-    def test_parse_ishares_equity_only(self):
-        pre = 'iShares Russell 2000 ETF\nFund Holdings as of,"Oct 24, 2026"\n\n'
-        head = 'Ticker,Name,Sector,Asset Class,Market Value,Weight (%)\n'
-        rows = ''.join(f'R{i},RCO {i} INC,Health Care,Equity,1,0.01\n' for i in range(1600)) + 'XTSLA,BLK CSH FND,Cash and/or Derivatives,Money Market,1,1\nUSD,USD CASH,Cash,Cash,1,1\n'
-        out = U.parse_ishares(pre + head + rows)
-        self.assertEqual(len(out), 1600)
-        self.assertEqual(out[0], {'symbol': 'R0', 'name': 'Rco 0 Inc', 'sector': 'Health Care', 'cik': '', 'indexes': 'RUT'})
+    def test_parse_tsx60_without_table_id(self):
+        page = ('<table class="wikitable sortable"><tr><th>Symbol</th><th>Company</th><th>Sector</th></tr>'
+                + ''.join(f'<tr><td>C{i}</td><td>Co {i}</td><td>Basic Materials</td></tr>' for i in range(60)) + '</table>')
+        out = U.parse_wiki(page, 'TSX60')
+        self.assertEqual(len(out), 60)
+        self.assertEqual(out[0]['sector'], 'Materials')
+
+    def test_name_match(self):
+        self.assertEqual(U.name_match('Royal Bank of Canada', 'Royal Bank of Canada Common Stock'), 1.0)
+        self.assertLess(U.name_match('Boyd Group Services Inc.', 'Boyd Gaming Corporation'), U.NAME_MATCH)
+        self.assertLess(U.name_match('Telus Corporation', 'AT&T Inc.'), U.NAME_MATCH)
+        self.assertGreaterEqual(U.name_match('AtkinsRéalis Group Inc.', 'AtkinsRealis Group Inc'), U.NAME_MATCH)
+
+    def test_map_tsx(self):
+        rows = [{'symbol': s, 'name': n, 'sector': 'Financials', 'cik': '', 'indexes': 'TSX'} for s, n in
+                [('RY', 'Royal Bank of Canada'), ('T', 'Telus Corporation'), ('BYD', 'Boyd Group Services Inc.'),
+                 ('CNR', 'Canadian National Railway Company'), ('ATD', 'Alimentation Couche-Tard Inc.'), ('BBD.B', 'Bombardier Inc.'),
+                 ('EFX', 'Equifax Inc.'), ('XYZ', 'Xyz Mining Ltd.')]]
+        ov = {'T': {'us': 'TU', 'note': '', 'name': ''}, 'CNR': {'us': 'CNI', 'note': '', 'name': ''},
+              'ATD': {'us': '', 'note': 'OTC', 'name': ''}, 'EFX': {'us': 'EFXT', 'note': '', 'name': 'Enerflex Ltd.'}}
+        act = lambda n, ex='NYSE': {'name': n, 'exchange': ex, 'status': 'active', 'tradable': True}
+        assets = {'RY': act('Royal Bank of Canada'), 'TU': act('TELUS Corporation'), 'T': act('AT&T Inc.'),
+                  'BYD': act('Boyd Gaming Corporation'), 'CNI': act('Canadian National Railway Company'),
+                  'EFXT': act('Enerflex Ltd.'), 'XYZ': act('Xyz Mining Ltd', 'OTC')}
+        logs = []
+        m = {r['home']: r for r in U.map_tsx(rows, ov, assets, log=logs.append)}
+        self.assertEqual((m['TSX:RY']['symbol'], m['TSX:RY']['currency'], m['TSX:RY']['feed']), ('RY', 'USD', ''))
+        self.assertEqual(m['TSX:T']['symbol'], 'TU')                     # never AT&T
+        self.assertEqual(m['TSX:CNR']['symbol'], 'CNI')
+        self.assertEqual((m['TSX:EFX']['symbol'], m['TSX:EFX']['name']), ('EFXT', 'Enerflex Ltd.'))
+        for k, sym in (('TSX:BYD', 'BYD.TO'), ('TSX:ATD', 'ATD.TO'), ('TSX:BBD.B', 'BBD-B.TO'), ('TSX:XYZ', 'XYZ.TO')):
+            self.assertEqual((m[k]['symbol'], m[k]['currency'], m[k]['feed']), (sym, 'CAD', 'tsx'))
+        self.assertTrue(any('Boyd Gaming' in l for l in logs))
+        # without the asset list: the hand-checked map and the previous checked mapping only
+        m2 = {r['home']: r['symbol'] for r in U.map_tsx(rows, ov, None, previous={'RY': 'RY'}, log=logs.append)}
+        self.assertEqual((m2['TSX:RY'], m2['TSX:T'], m2['TSX:BYD']), ('RY', 'TU', 'BYD.TO'))
+        ok, out = U.split_covered(list(m.values()))
+        self.assertEqual(len(out), 4)
+        self.assertEqual(len(U.split_covered(list(m.values()), ('tsx',))[1]), 0)
+        self.assertEqual(U.coverage(list(m.values()))['TSX'], {'covered': 4, 'total': 8})
+
+    def test_committed_tsx_map(self):
+        m = U.load_map()
+        self.assertEqual((m['T']['us'], m['CNR']['us'], m['RY']['us'], m['ATD']['us']), ('TU', 'CNI', 'RY', ''))
+        self.assertTrue(all(k == k.upper() for k in m))
 
     def test_merge_dedupes_and_joins_indexes(self):
         a = [{'symbol': 'AAPL', 'name': 'Apple', 'sector': 'Information Technology', 'cik': '1', 'indexes': 'SPX'}]
@@ -120,10 +158,6 @@ class UniverseTest(unittest.TestCase):
             self.assertEqual(U.enabled(), ['DJI'])
         finally:
             del os.environ['SCANNER_UNIVERSES']
-
-    def test_liquidity(self):
-        bars = [Bar('2026-10-01', 10, 11, 9, 10, 100_000)] * 20
-        self.assertEqual(DATA.liquidity(bars), (10, 1_000_000))
 
     def test_merge_update(self):
         old = [Bar(f'2026-10-{d:02d}', 1, 2, 0.5, 1.0 + d / 100) for d in range(1, 20)]

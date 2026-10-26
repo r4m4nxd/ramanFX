@@ -1,6 +1,6 @@
 name: Stock scan
 
-# Weekdays after the US close (21:45 UTC), or by hand. Scans S&P 500 + Nasdaq-100 + Dow 30 + Russell 2000
+# Weekdays after the US close (21:45 UTC), or by hand. Scans S&P 500 + Nasdaq-100 + Dow 30 + S&P/TSX 60 + S&P/TSX Composite (US listings of the TSX names)
 # (switch universes with the SCANNER_UNIVERSES repository variable), sends Telegram, commits public/scanner/*.json.
 on:
   schedule:
@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
-      SCANNER_UNIVERSES: ${{ vars.SCANNER_UNIVERSES || 'SPX,NDX,DJI,RUT' }}
+      SCANNER_UNIVERSES: ${{ vars.SCANNER_UNIVERSES || 'SPX,NDX,DJI,TSX60,TSX' }}
       SCANNER_WORKERS: '6'
       TELEGRAM_TOP_N: ${{ vars.TELEGRAM_TOP_N || '5' }}
       SCANNER_SEC_PER_RUN: '600'
@@ -86,6 +86,10 @@ jobs:
           # Yahoo / Stooq, which refuse GitHub runners: then the no-data guard fails the run and publishes nothing.
           ALPACA_KEY_ID: ${{ secrets.ALPACA_KEY_ID }}
           ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+          # TSX-only names (no US listing) stay uncovered until a paid feed is switched on: repository variable
+          # SCANNER_TSX_FEED=eodhd + secret EODHD_API_KEY.
+          SCANNER_TSX_FEED: ${{ vars.SCANNER_TSX_FEED || '' }}
+          EODHD_API_KEY: ${{ secrets.EODHD_API_KEY }}
 
       - name: Save data cache
         if: ${{ always() && hashFiles('tools/stock_scanner/.cache/daily/*.json') != '' }}
@@ -103,7 +107,7 @@ jobs:
         run: |
           git config user.name "ramanfx-scanner[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/scanner tools/stock_scanner/universe.csv tools/stock_scanner/russell2000_snapshot.csv 2>/dev/null || git add public/scanner tools/stock_scanner/universe.csv
+          git add public/scanner tools/stock_scanner/universe.csv
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
           git commit -m "scanner: daily scan $(date -u +%Y-%m-%d)"
           for i in 1 2 3; do git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && break; sleep 5; done

@@ -1,6 +1,6 @@
 # RamanFX stock scanner
 
-Daily scan of US stocks (S&P 500, Nasdaq-100, Dow 30, Russell 2000) for **BUY setups at fresh demand zones** and
+Daily scan of US and Canadian stocks (S&P 500, Nasdaq-100, Dow 30, S&P/TSX 60, S&P/TSX Composite) for **BUY setups at fresh demand zones** and
 **EXIT warnings near supply**, strictly by the mentors' supply & demand rules: **Raja first, Kevin second**, exactly
 as ZoneVision's Raja template implements them. Results go to Telegram (grouped by sector) and to the app at
 `/scanner`.
@@ -15,7 +15,8 @@ Standard library only (Python 3.10+). No `pip install`.
 
 | File | What it does |
 |---|---|
-| `universe.py` | Index lists → `universe.csv` (symbol, name, sector, cik, indexes). Weekly refresh. |
+| `universe.py` | Index registry + lists → `universe.csv` (symbol, name, sector, cik, indexes, home, currency, feed). Weekly refresh. |
+| `tsx_us_map.csv` | TSX symbol → its NYSE / Nasdaq listing, hand-checked by company name (`us` empty = TSX-only). |
 | `data.py` | Daily OHLCV (10 y) from **Alpaca Market Data** (primary, multi-symbol batches, split + dividend adjusted), Yahoo / Stooq per-ticker fallbacks; incremental updates, cache, rate limit, threads; weekly / monthly bars. |
 | `zones.py` | The Python port of the ZoneVision Raja logic (pure functions). |
 | `scan.py` | The rules → BUY / WATCH / EXIT, JSON for the app, CLI. |
@@ -45,9 +46,10 @@ Standard library only (Python 3.10+). No `pip install`.
    - `ALPACA_KEY_ID` and `ALPACA_SECRET_KEY` (step 0).
    - optional `SEC_UA`: a User-Agent with a contact, e.g. "RamanFX-scanner your-contact". SEC companyfacts
      (data.sec.gov, the fundamentals) works without it; `www.sec.gov/files/company_tickers.json` (CIKs the index
-     lists do not give, mostly Russell 2000 names) answers 403 without a contact, so without `SEC_UA` that lookup is
+     lists do not give) answers 403 without a contact, so without `SEC_UA` that lookup is
      skipped with a one-line hint and those tickers show fundamentals n/a. Read from the secret only, never written.
-3. Optional repository **variables**: `SCANNER_UNIVERSES` (default `SPX,NDX,DJI,RUT`), `TELEGRAM_TOP_N` (default 5).
+3. Optional repository **variables**: `SCANNER_UNIVERSES` (default `SPX,NDX,DJI,TSX60,TSX`), `TELEGRAM_TOP_N` (default 5),
+   `SCANNER_TSX_FEED` (empty; `eodhd` + the secret `EODHD_API_KEY` switches the paid TSX feed on, see Canada).
 4. Actions tab → **Stock scan** → *Run workflow* once to test. The first run downloads 10 years for every ticker
    from Alpaca in batches of 100 symbols (~10,000 bars per page, a few hundred requests, a few minutes at Alpaca's
    200 requests/min); later runs fetch only the last ~3 weeks in batches of 200 (one request per batch; a ticker
@@ -62,7 +64,14 @@ Each run commits `public/scanner/latest.json` (signals), `public/scanner/history
 `public/scanner/index.json` (every ticker, for the app's search) and `public/scanner/t/<0-63>.json` (that redeploys
 the app).
 
-**Search any ticker**: every analysed ticker (signal or not, illiquid ones flagged) gets a detail record: last 120
+**Market map** (`/scanner` → Market map): every stock in five buckets by where price sits against its nearest
+fresh D1 / W1 zones (in supply · near supply ≤ 3% · middle · near demand ≤ 3% · in demand), strongest zone first,
+even when the rules block a BUY. Built from `index.json` alone: each row carries `dz` (nearest fresh demand:
+TF, Raja type, score, touches), `sz` (nearest fresh supply: TF, type, touches) and `br` (the first rule that blocks a
+BUY, when there is no signal). Telegram adds "In strong demand (rules blocked)": up to 10 tickers inside a fresh
+ARR / WOW / STR demand without a BUY, with their reason, by sector.
+
+**Search any ticker**: every analysed ticker (signal or not) gets a detail record: last 120
 daily bars (packed), all active D1 / W1 zones with type / score / fresh / touches, nearest demand and supply with the
 distance, the direction / curve state, the nearest demand checked against every BUY rule as if it were a signal, and
 the fundamentals when cached. The app opens it at `/scanner/<TICKER>` (BRK.B -> BRK-B).
@@ -80,7 +89,7 @@ Holdings never reach the JSON beyond the symbol and the warning kind; entries, s
 ## Run locally
 
 ```bash
-python tools/stock_scanner/universe.py --force                  # index lists (needs Wikipedia / iShares / SEC)
+python tools/stock_scanner/universe.py --force                  # index lists (needs Wikipedia; Alpaca keys check the TSX map; SEC)
 python tools/stock_scanner/scan.py --tickers AAPL,MSFT --no-notify
 python tools/stock_scanner/scan.py --universes SPX,DJI --workers 6
 python tools/stock_scanner/scan.py --offline --no-write --no-notify   # cached data only
@@ -91,8 +100,8 @@ python -m unittest discover tools/stock_scanner/tests
 Env: `ALPACA_KEY_ID`, `ALPACA_SECRET_KEY` (without them: Yahoo / Stooq only, which may work from a home connection),
 `ALPACA_BATCH_COLD` (100), `ALPACA_BATCH_UPDATE` (200), `SCANNER_MIN_COVERAGE` (0.5),
 `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `HOLDINGS_JSON`, `WATCHLIST`, `WATCHLIST_APPROACH_PCT`, `SEC_UA`, `SCANNER_UNIVERSES`, `SCANNER_WORKERS`,
-`SCANNER_PAUSE` (seconds between requests per host, default 0.15), `SCANNER_MIN_PRICE` (5), `SCANNER_MIN_DOLLAR_VOL`
-(5e6), `TELEGRAM_TOP_N` (5), `SCANNER_APP_URL`.
+`SCANNER_PAUSE` (seconds between requests per host, default 0.15), `SCANNER_DIAG_PCT` (5), `SCANNER_TSX_FEED`,
+`EODHD_API_KEY`, `TELEGRAM_TOP_N` (5), `SCANNER_APP_URL`.
 
 **Bounded runtime**: `SCANNER_BUDGET_MIN` (50) is a global time budget: after it no new download starts, queued
 tickers use their stale cache and the scan, write and notify go on with what there is (`latest.json` gets
@@ -113,27 +122,36 @@ the cache save and the commit run even when the scan failed, so partial results 
 | SPX | S&P 500 | Wikipedia `List_of_S%26P_500_companies` (GICS sector, CIK) |
 | NDX | Nasdaq-100 | Wikipedia `List_of_NASDAQ-100_companies` (the table moved off the `Nasdaq-100` article in July 2026; ICB industry mapped to GICS names) |
 | DJI | Dow 30 | Wikipedia `List_of_Dow_Jones_Industrial_Average_companies` |
-| RUT | Russell 2000 | iShares IWM holdings CSV (equity rows, `Sector` column; three plain public URL variants); fallback `russell2000_snapshot.csv` |
+| TSX60 | S&P/TSX 60 | Wikipedia `S%26P/TSX_60` (first symbol + company table; Morningstar sector names mapped to GICS) |
+| TSX | S&P/TSX Composite | Wikipedia `S%26P/TSX_Composite_Index` (`components` table) |
 
+`universe.INDEX_META` is the one registry (label, short label, country, source): `latest.json` carries it as
+`index_meta`, and the app builds its index pills and texts from it, so a new index needs no app change.
 Tickers in several indexes are one row (`indexes` = `SPX,NDX,DJI`). Missing CIKs come from SEC `company_tickers.json`
 (only with `SEC_UA`).
 
-### Russell 2000 snapshot
+### Canada (interlisted first)
 
-From GitHub runners iShares returns an HTML page instead of the holdings CSV (every URL variant tried is a plain
-public GET; no cookies or browser tricks are used). Then RUT comes from `tools/stock_scanner/russell2000_snapshot.csv`,
-and without that file RUT is empty (the refresh and the scan log say so). To add or update the snapshot by hand:
+A TSX name is scanned through its **US listing** (NYSE / Nasdaq / NYSE American, prices in USD, Alpaca data):
+`universe.csv` row `symbol` = the US symbol, `home` = `TSX:RY`, `currency` = `USD`. Cards and the stock page say
+"TSX: RY · US listing" and the TradingView link opens `TSX:RY`. The mapping, checked at every universe refresh:
 
-1. Open the iShares Russell 2000 ETF (IWM) page in a browser → *Holdings* → **Detailed Holdings and Analytics** /
-   *Download* (CSV).
-2. Save the downloaded `IWM_holdings.csv` as `tools/stock_scanner/russell2000_snapshot.csv`, unchanged (the scanner
-   reads the raw iShares file: the preamble's "Fund Holdings as of" line becomes the snapshot date, equity rows only).
-3. Commit it and run the workflow with *Refresh the index lists* ticked (or `python tools/stock_scanner/universe.py
-   --force` locally, which also works when iShares serves the CSV to your connection and then rewrites the snapshot).
+1. `tsx_us_map.csv` (hand-checked by company name; `us` empty = no US exchange listing, e.g. OTC only). It wins, and
+   catches the traps a symbol match would fall into: TSX `T` (TELUS) is US `TU` (US `T` is AT&T), `CNR` is `CNI`,
+   `CCO` is `CCJ`, `ABX` is `B`, `IMG` is `IAG` (TSX `IAG` is iA Financial), `EFX` is Enerflex `EFXT`.
+2. Otherwise the same symbol, only when Alpaca's asset list (`/v2/assets`, the paper-trading keys) has it **active on
+   a US exchange and its company name matches** (≥ 60% of the TSX name's words); a same symbol with another company
+   (TSX `BYD` Boyd Group vs US `BYD` Boyd Gaming) is rejected and logged.
+3. Without Alpaca keys the refresh keeps the previous checked mapping.
 
-Refresh it every month or two; `latest.json` records the snapshot date (`rut_snapshot`).
-**Liquidity filter**: names that are only in the Russell 2000 must close ≥ $5 with a 20-day average dollar volume
-≥ $5M; the number skipped is reported in Telegram and the app.
+Names without a US listing get `symbol` `RY.TO`-style, `currency` CAD, `feed` = `tsx`: they need a TSX data feed and
+are **not scanned**; `latest.json` lists them (`uncovered`) with the per-index `coverage`, the app says
+"N TSX-only names need a TSX data feed". Today (map + Wikipedia, Oct 2026): TSX 60 42/60, Composite 96/220 covered.
+
+**Paid TSX feed (off)**: `data.fetch_tsx` / `parse_eodhd` read EODHD's end-of-day API (`SYMBOL.TO`, adjusted,
+CAD). It is used only when `SCANNER_TSX_FEED=eodhd` and `EODHD_API_KEY` are both set; then the TSX-only names are
+fetched from it and scanned like the rest (currency CAD), with no app change. Fundamentals: Canadian issuers file
+40-F / 6-K (IFRS), so SEC companyfacts rarely has US-GAAP numbers: the app shows "n/a (Canadian filer)".
 
 ## The rules (each mapped to the lesson / checklist line)
 
@@ -236,7 +254,7 @@ never fail) and is logged by the backtest so it can be judged out of sample befo
 
 ```bash
 python tools/stock_scanner/backtest.py --offline --workers 4          # after one scan filled the cache
-python tools/stock_scanner/backtest.py --universes RUT --offline
+python tools/stock_scanner/backtest.py --universes TSX --offline
 python tools/stock_scanner/backtest.py --fixture                      # code-path check on synthetic data only
 ```
 
@@ -259,10 +277,10 @@ says trust only when the out-of-sample CI is above zero with 30+ trades.
 - **Adjusted prices**: zones are drawn on split + dividend adjusted data; old zones sit slightly lower than on an
   unadjusted TradingView chart.
 - **Survivorship bias**: the backtest uses today's index members only (companies that left the index are missing),
-  which flatters results, most of all for the Russell 2000.
+  which flatters results.
 - **No intraday**: no H1 / H4 confirmation, so tested zones are WATCH only; entries assume a resting limit order.
 - Prices come from Alpaca (official API; the free plan's `iex` fallback covers one exchange's trades only, so its
   daily volumes are smaller and highs / lows can differ slightly from the consolidated tape). Yahoo / Stooq / SEC /
   iShares are unofficial or rate-limited sources; a ticker without data is skipped and counted.
-- The Russell 2000 list needs the iShares CSV (not served to GitHub runners) or a committed snapshot (see
-  "Russell 2000 snapshot"); when both are missing RUT is empty.
+- Interlisted TSX names are scanned on their US listing (USD, US hours); zones can differ slightly from the TSX
+  chart. TSX-only names need the (paid, off) TSX feed.

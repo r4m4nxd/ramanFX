@@ -50,7 +50,12 @@ export interface ScanSignal {
   seiden_score?: number; seiden_parts?: Record<string, number>;
   index_state?: GaugeState | null; index_aligned?: boolean;
   gauge_state?: GaugeState; demand_pct_away?: number; supply_pct_away?: number | null;
+  /** Home listing of an interlisted name (e.g. 'TSX:RY'; '' = a US company), price currency, issuer country. */
+  home?: string; currency?: string; country?: string;
 }
+
+/** "TSX: RY · US listing" for an interlisted name, '' otherwise. */
+export const listingText = (x: { home?: string | null; h?: string }) => { const h = x.home || x.h || ''; return h.includes(':') ? `${h.replace(':', ': ')} · US listing` : ''; };
 
 export type GaugeState = 'demand' | 'supply' | 'middle';
 export interface GaugeZone { tf: string; proximal: number; distal: number; height?: number; pct: number }
@@ -65,10 +70,20 @@ export const SEIDEN_PARTS: Record<string, string> = {
 export const seidenText = (p?: Record<string, number>) => (p ? Object.entries(p).map(([k, v]) => `${SEIDEN_PARTS[k] ?? k}: ${v}`).join('\n') : '');
 export const stateWord = (s?: GaugeState | null) => (s === 'demand' ? 'In demand' : s === 'supply' ? 'In supply' : 'Middle');
 
-export type IndexCode = 'SPX' | 'NDX' | 'DJI' | 'RUT';
-export const INDEXES: { value: IndexCode; label: string }[] = [
-  { value: 'SPX', label: 'S&P 500' }, { value: 'NDX', label: 'Nasdaq-100' }, { value: 'DJI', label: 'Dow 30' }, { value: 'RUT', label: 'Russell 2000' },
+/** An index code from the scan's registry (SPX, NDX, DJI, TSX60, TSX, …): the app hard-codes none of them. */
+export type IndexCode = string;
+export interface IndexMeta { code: IndexCode; label: string; short: string; country: string }
+/** Used only when a scan file has no index_meta (older files); a new index needs no change here. */
+export const DEFAULT_INDEXES: IndexMeta[] = [
+  { code: 'SPX', label: 'S&P 500', short: 'S&P', country: 'US' }, { code: 'NDX', label: 'Nasdaq-100', short: 'NDX', country: 'US' },
+  { code: 'DJI', label: 'Dow 30', short: 'Dow', country: 'US' }, { code: 'TSX60', label: 'TSX 60', short: 'TSX60', country: 'CA' },
+  { code: 'TSX', label: 'TSX Composite', short: 'TSX', country: 'CA' },
 ];
+/** The scan's indexes in pill order (its registry, else the default list). */
+export const indexesOf = (scan?: Pick<ScanFile, 'index_meta'> | null): IndexMeta[] => (scan?.index_meta?.length ? scan.index_meta : DEFAULT_INDEXES);
+export const indexShort = (code: string, meta: IndexMeta[] = DEFAULT_INDEXES) => meta.find(m => m.code === code)?.short ?? code;
+/** "S&P 500, Nasdaq-100 and TSX 60". */
+export const indexList = (meta: IndexMeta[]) => meta.length > 1 ? `${meta.slice(0, -1).map(m => m.label).join(', ')} and ${meta[meta.length - 1].label}` : (meta[0]?.label ?? '');
 export interface RegimeRow { symbol: string; close: number; sma200: number | null; above200: boolean | null; curve: number | null; direction: string }
 export interface ScanExit { symbol: string; sector?: string; indexes?: IndexCode[]; reasons: string[] }
 
@@ -85,9 +100,12 @@ export interface ScanFile {
   signals: ScanSignal[];
   exits: ScanExit[];
   index_sizes?: Partial<Record<IndexCode, number>>;
-  filtered_liquidity?: number;
-  liquidity_rule?: string;
-  rut_snapshot?: string;
+  /** The index registry (labels in pill order). */
+  index_meta?: IndexMeta[];
+  /** Canadian coverage: {TSX60: {covered, total}, …} (covered = scanned through a US listing or a TSX feed). */
+  coverage?: Record<string, { covered: number; total: number }>;
+  /** Index members without data (TSX-only names until a TSX feed is switched on). */
+  uncovered?: { symbol: string; name: string; indexes: IndexCode[] }[];
   regime?: RegimeRow[];
   rfx_index?: RfxIndex | null;
   /** Last ~6 months of daily bars per signalled ticker: [date, o, h, l, c]. */
@@ -145,8 +163,9 @@ export function parseScan(js: unknown): ScanFile | null {
       ...(typeof e.sector === 'string' && e.sector ? { sector: e.sector } : {}), ...(Array.isArray(e.indexes) ? { indexes: e.indexes.filter(isIndex) } : {}),
     })),
     index_sizes: o.index_sizes && typeof o.index_sizes === 'object' ? o.index_sizes : {},
-    filtered_liquidity: Number(o.filtered_liquidity ?? 0), liquidity_rule: typeof o.liquidity_rule === 'string' ? o.liquidity_rule : undefined,
-    rut_snapshot: typeof o.rut_snapshot === 'string' ? o.rut_snapshot : '',
+    index_meta: Array.isArray(o.index_meta) ? o.index_meta.filter((m): m is IndexMeta => !!m && typeof m.code === 'string' && typeof m.label === 'string').map(m => ({ ...m, short: String(m.short || m.code), country: String(m.country || '') })) : [],
+    coverage: o.coverage && typeof o.coverage === 'object' ? o.coverage : {},
+    uncovered: Array.isArray(o.uncovered) ? o.uncovered.filter(u => u && typeof u.symbol === 'string').map(u => ({ symbol: u.symbol, name: String(u.name ?? ''), indexes: Array.isArray(u.indexes) ? u.indexes.filter(isIndex) : [] })) : [],
     regime: Array.isArray(o.regime) ? o.regime.filter(r => r && typeof r.symbol === 'string') : [],
     rfx_index: o.rfx_index && typeof o.rfx_index === 'object' && typeof o.rfx_index.price === 'number' ? o.rfx_index : null,
     bars: o.bars && typeof o.bars === 'object' ? Object.fromEntries(Object.entries(o.bars).filter(([, v]) => Array.isArray(v)).map(([k, v]) => [k, v.filter(b => Array.isArray(b) && b.length === 5 && b.slice(1).every(n => typeof n === 'number' && Number.isFinite(n)))])) : {},
@@ -156,7 +175,7 @@ export function parseScan(js: unknown): ScanFile | null {
   };
 }
 
-const isIndex = (v: unknown): v is IndexCode => v === 'SPX' || v === 'NDX' || v === 'DJI' || v === 'RUT';
+const isIndex = (v: unknown): v is IndexCode => typeof v === 'string' && /^[A-Z0-9]{2,8}$/.test(v);
 
 export type IndexFilter = 'all' | IndexCode;
 /** Signals / exits in an index and a sector ('all' = any). */
@@ -242,9 +261,15 @@ export function ago(iso: string, now = Date.now()): string {
 export const INDEX_URL = '/scanner/index.json';
 export const shardUrl = (k: number) => `/scanner/t/${k}.json`;
 
-/** One search row: s symbol, n name, sec sector, ix indexes, px last close, dd / ds distance % to the nearest
- *  demand / supply, sig today's signal, il illiquid (skipped by the liquidity filter), k shard number. */
-export interface IndexRow { s: string; n: string; sec: string; ix: IndexCode[]; px: number; dd?: number; ds?: number; sig?: SignalKind; il?: boolean; k: number; /** D in demand, S in supply, M middle */ st?: 'D' | 'S' | 'M' }
+/** One search row: s symbol, n name, sec sector, ix indexes, px last close, dd / ds distance % to the nearest fresh
+ *  demand / supply, sig today's signal, k shard number. Market map: dz nearest fresh demand [tf, type, Raja score,
+ *  touches], sz nearest fresh supply [tf, type, touches], br the first rule blocking a BUY (no signal), h home
+ *  listing ('TSX:RY'), cur currency when not USD. */
+export interface IndexRow {
+  s: string; n: string; sec: string; ix: IndexCode[]; px: number; dd?: number; ds?: number; sig?: SignalKind; k: number;
+  /** D in demand, S in supply, M middle */ st?: 'D' | 'S' | 'M';
+  dz?: [string, string, number, number]; sz?: [string, string, number]; br?: string; h?: string; cur?: string;
+}
 export interface ScanIndex { date: string; generated_at: string; fixture: boolean; tickers: IndexRow[] }
 
 export interface DetailZone { tf: 'D1' | 'W1'; side: 'demand' | 'supply'; proximal: number; distal: number; type: string; score: number | null; fresh: boolean; touches: number; made: string; pattern: string }
@@ -257,7 +282,7 @@ export interface DetailCheck {
 }
 export interface TickerDetail {
   symbol: string; name: string; sector: string; indexes: IndexCode[]; exchange?: string; chart?: string; date: string; price: number;
-  illiquid: boolean; signal: SignalKind | null; direction: string; d1: string; w1: string; mn: string; curve: number | null; curve_raja: boolean;
+  home?: string; currency?: string; country?: string; signal: SignalKind | null; direction: string; d1: string; w1: string; mn: string; curve: number | null; curve_raja: boolean;
   zones: DetailZone[]; nearest_demand: NearZone | null; nearest_supply: NearZone | null; check: DetailCheck | null;
   fundamentals_rows: [string, string][]; bars: { t0: string; dt: number[]; b: [number, number, number, number][] };
   gauge?: { state: GaugeState; demand: GaugeZone | null; supply: GaugeZone | null };
@@ -280,7 +305,12 @@ export function parseIndex(js: unknown): ScanIndex | null {
   if (!js || typeof js !== 'object' || !Array.isArray((js as ScanIndex).tickers)) return null;
   const o = js as ScanIndex;
   const tickers = o.tickers.filter(r => r && typeof r.s === 'string' && typeof r.k === 'number')
-    .map(r => ({ ...r, n: String(r.n ?? r.s), sec: String(r.sec ?? ''), ix: Array.isArray(r.ix) ? r.ix.filter(isIndex) : [] }));
+    .map(r => {
+      const { dz, sz, ...rest } = r;
+      const okDz = Array.isArray(dz) && dz.length === 4 && typeof dz[1] === 'string';
+      const okSz = Array.isArray(sz) && sz.length === 3 && typeof sz[1] === 'string';
+      return { ...rest, n: String(r.n ?? r.s), sec: String(r.sec ?? ''), ix: Array.isArray(r.ix) ? r.ix.filter(isIndex) : [], ...(okDz ? { dz } : {}), ...(okSz ? { sz } : {}) };
+    });
   return { date: String(o.date ?? ''), generated_at: String(o.generated_at ?? ''), fixture: !!o.fixture, tickers };
 }
 
@@ -329,3 +359,68 @@ export function checkPlanLink(d: TickerDetail): string | null {
   return planLink({ symbol: d.symbol, entry: c.entry, stop: c.stop, target: c.target, proximal: c.zone.proximal, distal: c.zone.distal,
     curve: d.curve ?? 50, pattern: z?.pattern ?? 'DBR', base_candles: 2, next_supply: c.next_supply } as ScanSignal);
 }
+
+// ─── Market map: every stock by where its price sits against the fresh zones (index.json, no shard loads) ──────
+export type Bucket = 'in_supply' | 'near_supply' | 'middle' | 'near_demand' | 'in_demand';
+/** Distance (%) that counts as "near" a zone. */
+export const NEAR_PCT = 3;
+export const BUCKETS: { key: Bucket; label: string; short: string }[] = [
+  { key: 'in_supply', label: 'In supply', short: 'In supply' }, { key: 'near_supply', label: `Near supply (≤ ${NEAR_PCT}%)`, short: 'Near supply' },
+  { key: 'middle', label: 'Middle', short: 'Middle' }, { key: 'near_demand', label: `Near demand (≤ ${NEAR_PCT}%)`, short: 'Near demand' },
+  { key: 'in_demand', label: 'In demand', short: 'In demand' },
+];
+export const STRONG_TYPES = new Set(['ARR', 'WOW', 'STR']);
+/** The scanner's first blocking rule (index row `br`) in words; same labels as the Python BLOCK_LABEL. */
+export const BLOCK_LABEL: Record<string, string> = {
+  curve: 'high on curve', 'HTF align': 'direction not long', 'no HTF supply': 'monthly supply on top', 'not sideways': 'sideways market',
+  strong: 'weak zone type', fresh: 'zone already tested', clean: 'overlap / flip zone', 'not used': 'zone already did its job',
+  'no 3rd CP': '3rd CP in a row', room: 'room < 2x the stop or no target', earnings: 'earnings within 10 days', 'near entry': 'price not near the entry',
+};
+
+export function bucketOf(r: Pick<IndexRow, 'st' | 'dd' | 'ds'>, near = NEAR_PCT): Bucket {
+  if (r.st === 'S') return 'in_supply';
+  if (r.st === 'D') return 'in_demand';
+  const nd = r.dd != null && r.dd >= 0 && r.dd <= near;
+  const ns = r.ds != null && r.ds >= 0 && r.ds <= near;
+  if (nd && ns) return r.dd! <= r.ds! ? 'near_demand' : 'near_supply';
+  return nd ? 'near_demand' : ns ? 'near_supply' : 'middle';
+}
+
+export interface MapZone { side: 'demand' | 'supply'; tf: string; type: string; score: number | null; touches: number; pct: number | null; strong: boolean; fresh: boolean }
+
+/** The zone a row is shown with in its bucket: the supply on the supply side, else the demand. */
+export function mapZone(r: IndexRow, b: Bucket): MapZone | null {
+  const sup = b === 'in_supply' || b === 'near_supply';
+  const z = sup ? r.sz : r.dz;
+  if (!z) return null;
+  const touches = sup ? r.sz![2] : r.dz![3];
+  return { side: sup ? 'supply' : 'demand', tf: z[0], type: z[1], score: sup ? null : r.dz![2], touches, pct: (sup ? r.ds : r.dd) ?? null, strong: STRONG_TYPES.has(z[1]), fresh: touches === 0 };
+}
+
+/** Strongest zones first: strong type, then untouched, then Raja score, then the nearest. */
+function strengthKey(r: IndexRow, b: Bucket): number[] {
+  const z = mapZone(r, b);
+  if (!z) return [1, 1, 0, 999];
+  return [z.strong ? 0 : 1, z.fresh ? 0 : 1, -(z.score ?? 0), Math.abs(z.pct ?? 999)];
+}
+
+export function marketMap(rows: IndexRow[], idx: IndexFilter = 'all', sector = 'all'): Record<Bucket, IndexRow[]> {
+  const out = Object.fromEntries(BUCKETS.map(b => [b.key, [] as IndexRow[]])) as unknown as Record<Bucket, IndexRow[]>;
+  for (const r of rows) if (matches({ indexes: r.ix, sector: r.sec }, idx, sector)) out[bucketOf(r)].push(r);
+  for (const b of BUCKETS) {
+    out[b.key].sort((x, y) => {
+      const a = strengthKey(x, b.key), c = strengthKey(y, b.key);
+      for (let i = 0; i < a.length; i++) if (a[i] !== c[i]) return a[i] - c[i];
+      return x.s.localeCompare(y.s);
+    });
+  }
+  return out;
+}
+
+/** The small tag of a map row: today's signal, else the rule that blocks a BUY. */
+export const mapTag = (r: IndexRow): { text: string; tone: 'profit' | 'warn' | 'neutral' } | null =>
+  r.sig ? { text: r.sig, tone: r.sig === 'BUY' ? 'profit' : 'warn' } : r.br ? { text: BLOCK_LABEL[r.br] ?? r.br, tone: 'neutral' } : null;
+
+/** Sectors of the index rows, most rows first. */
+export const rowSectors = (rows: IndexRow[]) => [...rows.reduce((m, r) => m.set(r.sec || 'Other', (m.get(r.sec || 'Other') ?? 0) + 1), new Map<string, number>())]
+  .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([s]) => s);

@@ -24,11 +24,11 @@ FIXTURES = [
     {'symbol': 'SYNB', 'seed': 693, 'name': 'Synthetic Beta (fixture)', 'sector': 'Health Care', 'indexes': 'SPX'},
     {'symbol': 'SYNC', 'seed': 771, 'name': 'Synthetic Gamma (fixture)', 'sector': 'Industrials', 'indexes': 'SPX,DJI'},
     {'symbol': 'SYND', 'seed': 648, 'name': 'Synthetic Delta (fixture)', 'sector': 'Information Technology', 'indexes': 'NDX'},
-    {'symbol': 'SYNE', 'seed': 275, 'name': 'Synthetic Epsilon (fixture)', 'sector': 'Consumer Staples', 'indexes': 'RUT'},
-    {'symbol': 'SYNF', 'seed': 512, 'name': 'Synthetic Zeta (fixture)', 'sector': 'Energy', 'indexes': 'RUT'},
+    {'symbol': 'SYNE', 'seed': 275, 'name': 'Synthetic Epsilon (fixture, interlisted)', 'sector': 'Consumer Staples', 'indexes': 'TSX60,TSX', 'home': 'TSX:SYE'},
+    {'symbol': 'SYNF', 'seed': 512, 'name': 'Synthetic Zeta (fixture, interlisted)', 'sector': 'Energy', 'indexes': 'TSX', 'home': 'TSX:SYZ'},
     {'symbol': 'SYNG', 'seed': 16, 'name': 'Synthetic Eta (fixture)', 'sector': 'Utilities', 'indexes': 'SPX'},
     {'symbol': 'SYNH', 'seed': 3, 'name': 'Synthetic Theta (fixture)', 'sector': 'Materials', 'indexes': 'SPX'},
-    {'symbol': 'SYNI', 'seed': 857, 'name': 'Synthetic Iota (fixture, illiquid)', 'sector': 'Financials', 'indexes': 'RUT', 'thin': True},
+    {'symbol': 'SYI.TO', 'seed': 857, 'name': 'Synthetic Iota (fixture, TSX only)', 'sector': 'Financials', 'indexes': 'TSX', 'home': 'TSX:SYI', 'feed': 'tsx'},
 ]
 REGIME_SEEDS = {'SPY': 101, 'QQQ': 102, 'IWM': 103, 'DIA': 104}
 WATCHLIST = ['SYNB', 'SYND', 'SYNE', 'SYNF']
@@ -43,11 +43,7 @@ def holdings_fixture(bars_by_sym):
 
 
 def fixture_bars():
-    from zones import Bar
-    bars = {fx['symbol']: synth.ticker(fx['seed'], END) for fx in FIXTURES}
-    for fx in FIXTURES:
-        if fx.get('thin'):                                   # a Russell 2000 name trading ~$1M a day: filtered out
-            bars[fx['symbol']] = [Bar(b.d, b.o, b.h, b.l, b.c, 1e3) for b in bars[fx['symbol']]]
+    bars = {fx['symbol']: synth.ticker(fx['seed'], END) for fx in FIXTURES if not fx.get('feed')}
     for sym, seed in REGIME_SEEDS.items():
         bars[sym] = synth.ticker(seed, END)
     return bars
@@ -57,12 +53,12 @@ def run_fixture():
     with open(os.path.join(HERE, 'fixtures', 'companyfacts_sample.json')) as f:
         cf = json.load(f)
     bars = fixture_bars()
-    uni = [{'symbol': fx['symbol'], 'name': fx['name'], 'sector': fx['sector'], 'cik': '0001234567', 'indexes': fx['indexes']} for fx in FIXTURES]
+    uni = [{'symbol': fx['symbol'], 'name': fx['name'], 'sector': fx['sector'], 'cik': '0001234567', 'indexes': fx['indexes'],
+            'home': fx.get('home', ''), 'currency': 'CAD' if fx.get('feed') else 'USD', 'feed': fx.get('feed', '')} for fx in FIXTURES]
     exch = {'SYNA': 'NMS', 'SYNB': 'NYQ', 'SYND': 'NMS'}
     res = scan.run(uni, lambda s: (bars[s], {'exchange': exch.get(s, 'NYQ'), 'source': 'fixture'}), lambda c: cf,
                    lambda s: '2026-11-19' if s == 'SYNB' else None, holdings_fixture(bars), log=None, watchlist=WATCHLIST)
     res['fixture'] = True
-    res['rut_snapshot'] = 'fixture'
     return res
 
 
@@ -82,8 +78,8 @@ def main(out_dir=None, send=False) -> int:
             print(m)
             print('\n' + '-' * 40 + '\n')
     c = pub['counts']
-    print(f"selftest: {c['BUY']} BUY, {c['WATCH']} WATCH, {c['EXIT']} EXIT, {pub['filtered_liquidity']} illiquid skipped, {len(msgs)} message(s), max {max(notify.u16(m) for m in msgs)} UTF-16 units -> {path}")
-    return 0 if c['BUY'] and c['WATCH'] and c['EXIT'] and pub['filtered_liquidity'] else 1
+    print(f"selftest: {c['BUY']} BUY, {c['WATCH']} WATCH, {c['EXIT']} EXIT, {len(pub['uncovered'])} uncovered (TSX feed off), {len(msgs)} message(s), max {max(notify.u16(m) for m in msgs)} UTF-16 units -> {path}")
+    return 0 if c['BUY'] and c['WATCH'] and c['EXIT'] and pub['uncovered'] else 1
 
 
 if __name__ == '__main__':

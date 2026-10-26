@@ -151,10 +151,12 @@ class SearchOutputTest(unittest.TestCase):
 
     def test_every_universe_ticker_is_searchable(self):
         syms = {r['s'] for r in self.idx['tickers']}
-        self.assertEqual(syms, {fx['symbol'] for fx in selftest.FIXTURES})          # illiquid one included
-        thin = next(r for r in self.idx['tickers'] if r['s'] == 'SYNI')
-        self.assertTrue(thin['il'])
-        self.assertNotIn('sig', thin)
+        self.assertEqual(syms, {fx['symbol'] for fx in selftest.FIXTURES if not fx.get('feed')})   # TSX-only: uncovered
+        self.assertEqual([u['symbol'] for u in self.res['uncovered']], ['SYI'])
+        cad = next(r for r in self.idx['tickers'] if r['s'] == 'SYNE')
+        self.assertEqual(cad['h'], 'TSX:SYE')
+        self.assertEqual(self.shard(cad['k'])['SYNE']['country'], 'CA')
+        self.assertIn('TSX:SYE', self.shard(cad['k'])['SYNE']['chart'])
         for r in self.idx['tickers']:
             self.assertEqual(r['k'], scan.shard_of(r['s']))
             d = self.shard(r['k'])[r['s']]

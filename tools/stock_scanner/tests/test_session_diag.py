@@ -143,5 +143,63 @@ class DiagnosticsTest(unittest.TestCase):
         self.assertIn('Top reasons: high on curve (2)', txt)
 
 
+class MarketMapTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.res = selftest.run_fixture()
+
+    def test_index_rows_carry_zone_fields(self):
+        rows = self.res['index']
+        self.assertTrue(rows)
+        for r in rows:
+            if 'dz' in r:
+                tf, typ, score, touches = r['dz']
+                self.assertIn(tf, ('D1', 'W1'))
+                self.assertIn(typ, Z.ZONE_TYPE_TEXT)
+                self.assertTrue(0 <= score <= 10 and touches >= 0)
+                self.assertIn('dd', r)
+            if 'sz' in r:
+                self.assertEqual(len(r['sz']), 3)
+            if 'br' in r:
+                self.assertNotIn('sig', r)
+                self.assertIn(r['br'], scan.BLOCK_LABEL)
+        self.assertLess(len(json.dumps(rows[0])), 400)          # compact
+
+    def test_strong_in_demand(self):
+        row = {'s': 'X', 'n': 'X Co', 'sec': 'Energy', 'st': 'D', 'dz': ['W1', 'WOW', 9, 0], 'br': 'curve'}
+        si = scan.strong_in_demand(row, {})
+        self.assertEqual((si['symbol'], si['label'], si['score']), ('X', 'high on curve', 9))
+        self.assertIsNone(scan.strong_in_demand(dict(row, st='M'), {}))
+        self.assertIsNone(scan.strong_in_demand(dict(row, dz=['D1', 'WK', 3, 0]), {}))
+        self.assertIsNone(scan.strong_in_demand(dict(row, sig='BUY'), {}))
+
+    def test_telegram_strong_block_capped_by_sector(self):
+        import notify
+        rows = [{'symbol': f'S{i:02d}', 'sector': 'Energy' if i % 2 else 'Financials', 'score': i, 'label': 'high on curve'} for i in range(14)]
+        b = notify.strong_block(rows)
+        self.assertIn('In strong demand (rules blocked)', b[0])
+        self.assertIn('(top 10)', b[0])
+        body = '\n'.join(b[1:])
+        self.assertEqual(body.count('(high on curve)'), 10)
+        self.assertIn('S13 (high on curve)', body)
+        self.assertNotIn('S03', body)
+        self.assertEqual(len(b), 3)                                   # one line per sector
+        self.assertEqual(notify.strong_block([]), [])
+        txt = '\n'.join(notify.build_messages(dict(self.res, strong_in_demand=rows[:2])))
+        self.assertIn('In strong demand', txt)
+
+    def test_universe_meta_and_uncovered(self):
+        pub = scan.public_json(self.res)
+        self.assertEqual([m['code'] for m in pub['index_meta']], ['SPX', 'NDX', 'DJI', 'TSX60', 'TSX'])
+        self.assertEqual(pub['uncovered'], [{'symbol': 'SYI', 'name': 'Synthetic Iota (fixture, TSX only)', 'indexes': ['TSX']}])
+        self.assertEqual(pub['coverage']['TSX'], {'covered': 2, 'total': 3})
+        self.assertNotIn('filtered_liquidity', pub)
+        sig = next(s for s in self.res['signals'] if s['symbol'] == 'SYNE')
+        self.assertEqual((sig['home'], sig['currency'], sig['country']), ('TSX:SYE', 'USD', 'CA'))
+        self.assertIn('symbol=TSX:SYE', sig['chart'])
+        import notify
+        self.assertIn('TSX: SYE · US listing (USD)', notify.signal_card(sig))
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -108,6 +108,8 @@ def watch_block(alerts) -> str:
 def signal_card(s: Dict) -> str:
     kind = s['kind']
     head = ('🟢 BUY' if kind == 'BUY' else '🟡 WATCH') + f" <b>{esc(s['symbol'])}</b> · {esc(s.get('name', ''))}{esc(_idx(s))}"
+    if s.get('home'):
+        head += f" · {esc(s['home'].replace(':', ': '))} · US listing ({esc(s.get('currency') or 'USD')})"
     state = 'fresh' if s['touches'] == 0 else f"touch {s['touches'] + 1}"
     lines = [head,
              f"Zone: {s['tf']} demand {s['proximal']:.2f}–{s['distal']:.2f} ({state}, {s['zone_type']} type, score {s.get('score', 0)}/10)",
@@ -179,7 +181,7 @@ def build_messages(res: Dict, top: int = 5) -> List[str]:
               f"{regime_text(res)}\n"
               + (esc(index_text(res.get('rfx_index'))) + '\n' if res.get('rfx_index') else '')
               + f"<b>{len(buys)}</b> BUY · {len(watch)} WATCH · {len(exits)} EXIT · {res.get('scanned', 0)} stocks scanned"
-              + (f" · {res['filtered_liquidity']} illiquid skipped" if res.get('filtered_liquidity') else '') + '\n'
+              + (f" · {len(res['uncovered'])} TSX-only names need a TSX data feed" if res.get('uncovered') else '') + '\n'
               + f"BUYs by sector: {esc(ranked)}"
               + (f"\nBy index: {esc(' · '.join(f'{k} {v}' for k, v in sorted(idx_counts.items())))}" if idx_counts else '')
               + '\nRaja rules (ZoneVision Raja template), Kevin second.')
@@ -193,11 +195,32 @@ def build_messages(res: Dict, top: int = 5) -> List[str]:
         title = f"{SECTOR_EMOJI.get(sector, '📦')} <b>{esc(sector)}</b> · {len(b)} BUY · {len(w)} WATCH · {len(e)} EXIT"
         tail = f'+{more} more: full list {FULL_LIST}' if more else ''
         msgs.extend(pack_cards(title, cards, tail))
+    sb = strong_block(res.get('strong_in_demand') or [])
+    if sb:
+        msgs.extend(pack_cards(sb[0], sb[1:]))
     if not buys:
         why = ', '.join(f"{r['label']} ({r['count']})" for r in ((res.get('blocked') or {}).get('reasons') or [])[:4])
         msgs.append('No BUY setup passed every rule today. No zone, no trade.' + (f'\nTop reasons: {esc(why)}' if why else ''))
     msgs.append(f'full list: {FULL_LIST}\n<i>{esc(FOOTER)}</i>')
     return msgs
+
+
+STRONG_CAP = 10
+
+
+def strong_block(rows: List[Dict], cap: int = STRONG_CAP) -> List[str]:
+    """[title, one line per sector]: tickers inside a fresh strong demand that the rules block (top `cap` by Raja
+    score), 'TICKER (reason)' grouped by sector."""
+    if not rows:
+        return []
+    top = sorted(rows, key=lambda r: (-(r.get('score') or 0), r['symbol']))[:cap]
+    by: Dict[str, List[Dict]] = {}
+    for r in top:
+        by.setdefault(r.get('sector') or 'Other', []).append(r)
+    title = f"🧲 <b>In strong demand (rules blocked)</b> · {len(rows)}" + (f' (top {cap})' if len(rows) > cap else '')
+    return [title] + [f"{SECTOR_EMOJI.get(k, '📦')} {esc(SECTOR_SHORT.get(k, k))}: " + ', '.join(
+        f"{esc(r['symbol'])} ({esc(r.get('label') or r.get('rule') or '?')})" for r in v)
+        for k, v in sorted(by.items(), key=lambda kv: (-len(kv[1]), kv[0]))]
 
 
 def pack_cards(title: str, cards: List[str], tail: str = '', limit: int = SAFE) -> List[str]:

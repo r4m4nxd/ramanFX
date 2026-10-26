@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { blankPlan } from './strategy';
-import { ago, px, readWatch, reasonsText, seidenText, sortSignals, toggleWatch, WATCH_KEY, writeWatch, checkPlanLink, detailFrom, findBySlug, matches, parseIndex, parseScan, planFromParams, planLink, searchTickers, sectorsOf, slug, stockPath, tvChart, unpackBars, type IndexRow, type ScanSignal } from './scanner';
+import { ago, bucketOf, indexesOf, indexList, listingText, mapTag, mapZone, marketMap, px, readWatch, reasonsText, seidenText, sortSignals, toggleWatch, WATCH_KEY, writeWatch, checkPlanLink, detailFrom, findBySlug, matches, parseIndex, parseScan, planFromParams, planLink, searchTickers, sectorsOf, slug, stockPath, tvChart, unpackBars, type IndexRow, type ScanSignal } from './scanner';
 
 const sample = JSON.parse(readFileSync(resolve(process.cwd(), 'tools/stock_scanner/fixtures/sample/latest.json'), 'utf8'));
 const placeholder = JSON.parse(readFileSync(resolve(process.cwd(), 'public/scanner/latest.json'), 'utf8'));
@@ -71,9 +71,10 @@ describe('plan link', () => {
 describe('filters', () => {
   const s = parseScan(sample)!;
   it('index and sector', () => {
-    const rut = s.signals.filter(x => matches(x, 'RUT', 'all'));
-    expect(rut.length).toBeGreaterThan(0);
-    expect(rut.every(x => x.indexes!.includes('RUT'))).toBe(true);
+    const tsx = s.signals.filter(x => matches(x, 'TSX', 'all'));
+    expect(tsx.length).toBeGreaterThan(0);
+    expect(tsx.every(x => x.indexes!.includes('TSX'))).toBe(true);
+    expect(tsx.every(x => listingText(x).startsWith('TSX: ') && x.currency === 'USD')).toBe(true);
     const all = s.signals.filter(x => matches(x, 'all', 'all'));
     expect(all.length).toBe(s.signals.length);
     const sec = sectorsOf(s);
@@ -112,9 +113,9 @@ describe('ticker search + detail', () => {
   it('searches by ticker and name', () => {
     const rows: IndexRow[] = [
       { s: 'AAPL', n: 'Apple Inc.', sec: 'Information Technology', ix: ['SPX'], px: 1, k: 0 },
-      { s: 'AA', n: 'Alcoa', sec: 'Materials', ix: ['RUT'], px: 1, k: 1 },
+      { s: 'AA', n: 'Alcoa', sec: 'Materials', ix: ['NDX'], px: 1, k: 1 },
       { s: 'BRK.B', n: 'Berkshire Hathaway', sec: 'Financials', ix: ['SPX'], px: 1, k: 2 },
-      { s: 'PINE', n: 'Alpine Income', sec: 'Real Estate', ix: ['RUT'], px: 1, k: 3 },
+      { s: 'PINE', n: 'Alpine Income', sec: 'Real Estate', ix: ['TSX'], px: 1, k: 3 },
     ];
     expect(searchTickers(rows, 'aa').map(r => r.s)).toEqual(['AA', 'AAPL']);
     expect(searchTickers(rows, 'apple').map(r => r.s)).toEqual(['AAPL']);
@@ -192,5 +193,58 @@ describe('px', () => {
     expect(px(4500)).toBe('4,500.00');
     expect(px(null)).toBe('—');
     expect(px(Number.NaN)).toBe('—');
+  });
+});
+
+describe('index registry and listings', () => {
+  it('takes the index labels from the scan file', () => {
+    const s = parseScan(sample)!;
+    expect(indexesOf(s).map(m => m.code)).toEqual(['SPX', 'NDX', 'DJI', 'TSX60', 'TSX']);
+    expect(indexesOf(parseScan({ version: 1, signals: [], exits: [], index_meta: [{ code: 'XYZ', label: 'Xyz 10' }] })).map(m => m.short)).toEqual(['XYZ']);
+    expect(indexesOf(null).some(m => m.code === 'TSX60')).toBe(true);
+    expect(indexList(indexesOf(s))).toBe('S&P 500, Nasdaq-100, Dow 30, TSX 60 and TSX Composite');
+    expect(s.uncovered!.map(u => u.symbol)).toEqual(['SYI']);
+    expect(s.coverage!.TSX).toEqual({ covered: 2, total: 3 });
+  });
+  it('labels an interlisted name', () => {
+    expect(listingText({ home: 'TSX:RY' })).toBe('TSX: RY · US listing');
+    expect(listingText({ home: '' })).toBe('');
+  });
+});
+
+describe('market map', () => {
+  const row = (s: string, o: Partial<IndexRow>): IndexRow => ({ s, n: s, sec: 'Financials', ix: ['SPX'], px: 10, k: 0, ...o });
+  it('buckets by where price sits', () => {
+    expect(bucketOf({ st: 'S' })).toBe('in_supply');
+    expect(bucketOf({ st: 'D', dd: -0.5 })).toBe('in_demand');
+    expect(bucketOf({ st: 'M', dd: 2.5, ds: 9 })).toBe('near_demand');
+    expect(bucketOf({ st: 'M', dd: 2.5, ds: 1 })).toBe('near_supply');
+    expect(bucketOf({ st: 'M', dd: 3.5, ds: 5 })).toBe('middle');
+    expect(bucketOf({ st: 'M' })).toBe('middle');
+  });
+  it('sorts by zone strength and filters', () => {
+    const rows = [
+      row('WEAK', { st: 'D', dd: -1, dz: ['D1', 'WK', 3, 0] }),
+      row('TESTED', { st: 'D', dd: -1, dz: ['W1', 'ARR', 9, 1], br: 'curve' }),
+      row('BEST', { st: 'D', dd: -1, dz: ['W1', 'WOW', 9, 0], br: 'HTF align' }),
+      row('GOOD', { st: 'D', dd: -1, dz: ['D1', 'STR', 7, 0], sig: 'WATCH' }),
+      row('CA', { st: 'S', ds: -1, sz: ['D1', 'STR', 0], ix: ['TSX'], sec: 'Energy' }),
+    ];
+    const m = marketMap(rows);
+    expect(m.in_demand.map(r => r.s)).toEqual(['BEST', 'GOOD', 'TESTED', 'WEAK']);
+    expect(m.in_supply.map(r => r.s)).toEqual(['CA']);
+    expect(marketMap(rows, 'TSX').in_demand).toEqual([]);
+    expect(marketMap(rows, 'all', 'Energy').in_supply.length).toBe(1);
+    expect(mapZone(rows[2], 'in_demand')).toMatchObject({ side: 'demand', type: 'WOW', strong: true, fresh: true, score: 9 });
+    expect(mapZone(rows[4], 'in_supply')).toMatchObject({ side: 'supply', type: 'STR', score: null });
+    expect(mapTag(rows[2])).toEqual({ text: 'direction not long', tone: 'neutral' });
+    expect(mapTag(rows[3])).toEqual({ text: 'WATCH', tone: 'warn' });
+    expect(mapTag(rows[0])).toBeNull();
+  });
+  it('reads the compact zone fields of the selftest index, dropping malformed ones', () => {
+    expect(parseIndex(sampleIndex)!.tickers.some(r => r.dz && r.dz.length === 4)).toBe(true);
+    const p = parseIndex({ tickers: [{ s: 'A', k: 1, dz: ['D1'], sz: ['D1', 'STR', 0] }] })!;
+    expect(p.tickers[0].dz).toBeUndefined();
+    expect(p.tickers[0].sz).toEqual(['D1', 'STR', 0]);
   });
 });

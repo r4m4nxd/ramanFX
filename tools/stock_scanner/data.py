@@ -405,16 +405,17 @@ def alpaca_bars(symbols: List[str], start: str, end: str, log=None) -> Dict[str,
     return {back[k]: dedupe(v) for k, v in got.items() if k in back}
 
 
-def alpaca_exchanges(max_age_days: float = 7, log=None) -> Dict[str, str]:
-    """{symbol: exchange} (NASDAQ / NYSE / ARCA / AMEX / BATS) from the trading API's asset list (paper-trading keys
-    work for it), cached a week, best effort: only used for the TradingView links and the exchange shown in the app."""
+def alpaca_assets(max_age_days: float = 7, log=None) -> Dict[str, Dict]:
+    """{symbol: {name, exchange, status, tradable}} from the trading API's asset list (paper-trading keys work for
+    it), cached a week, best effort ({} without keys and cache). Used for the exchange names / TradingView links and to
+    check the TSX -> US listing map (universe.map_tsx)."""
     p = os.path.join(CACHE, 'alpaca_assets.json')
-    old: Dict[str, str] = {}
+    old: Dict[str, Dict] = {}
     try:
         with open(p) as f:
             js = json.load(f)
-        old = js.get('ex') or {}
-        if time.time() - float(js.get('at', 0)) < max_age_days * 86400:
+        old = js.get('assets') or {s: {'name': '', 'exchange': e, 'status': 'active', 'tradable': True} for s, e in (js.get('ex') or {}).items()}
+        if js.get('assets') and time.time() - float(js.get('at', 0)) < max_age_days * 86400:
             return old
     except (OSError, ValueError):
         pass
@@ -422,15 +423,83 @@ def alpaca_exchanges(max_age_days: float = 7, log=None) -> Dict[str, str]:
         return old
     try:
         rows = json.loads(http_get(ALPACA_ASSETS, headers=_alpaca_headers(), accept='application/json', expect=looks_json))
-        ex = {str(r['symbol']).upper(): str(r.get('exchange') or '') for r in rows if r.get('symbol')}
+        got = {str(r['symbol']).upper(): {'name': str(r.get('name') or ''), 'exchange': str(r.get('exchange') or ''),
+                                           'status': str(r.get('status') or ''), 'tradable': bool(r.get('tradable'))}
+               for r in rows if r.get('symbol')}
         os.makedirs(CACHE, exist_ok=True)
         with open(p, 'w') as f:
-            json.dump({'at': time.time(), 'ex': ex}, f)
-        return ex
+            json.dump({'at': time.time(), 'assets': got}, f)
+        return got
     except Exception as e:  # noqa: BLE001
         if log:
-            log(f'alpaca assets unavailable ({_why(e)}): exchange names from the cache only')
+            log(f'alpaca assets unavailable ({_why(e)}): from the cache only')
         return old
+
+
+def alpaca_exchanges(max_age_days: float = 7, log=None) -> Dict[str, str]:
+    """{symbol: exchange} (NASDAQ / NYSE / ARCA / AMEX / BATS), see alpaca_assets."""
+    return {s: a.get('exchange', '') for s, a in alpaca_assets(max_age_days, log).items()}
+
+
+# ---- TSX feed (pluggable; off unless SCANNER_TSX_FEED=eodhd and EODHD_API_KEY are set) ------------------------------
+EODHD_EOD = 'https://eodhd.com/api/eod/'
+
+
+def tsx_feed() -> str:
+    """The TSX data feed that is switched on ('' = none: TSX-only names stay uncovered). One adapter today: eodhd."""
+    want = os.environ.get('SCANNER_TSX_FEED', '').strip().lower()
+    if want == 'eodhd' and os.environ.get('EODHD_API_KEY', '').strip():
+        return 'eodhd'
+    return ''
+
+
+def feeds_on() -> Tuple[str, ...]:
+    """Universe `feed` values the scan can fetch now (see universe.split_covered)."""
+    return ('tsx',) if tsx_feed() else ()
+
+
+def eodhd_url(sym: str, start: str) -> str:
+    q = urllib.parse.urlencode({'api_token': os.environ.get('EODHD_API_KEY', '').strip(), 'fmt': 'json', 'from': start, 'period': 'd'})
+    return f'{EODHD_EOD}{urllib.parse.quote(sym)}?{q}'
+
+
+def parse_eodhd(raw: bytes) -> Tuple[List[Bar], Dict]:
+    """EODHD /api/eod JSON rows {date, open, high, low, close, adjusted_close, volume}: O/H/L scaled by
+    adjusted_close / close (split + dividend adjusted like the other sources)."""
+    rows = json.loads(raw)
+    if not isinstance(rows, list):
+        raise BadBody('eodhd: not a list')
+    out = []
+    for r in rows:
+        try:
+            c, ac = float(r['close']), float(r.get('adjusted_close') or r['close'])
+            f = ac / c if c else 1.0
+            out.append(Bar(str(r['date'])[:10], float(r['open']) * f, float(r['high']) * f, float(r['low']) * f, ac, float(r.get('volume') or 0)))
+        except (KeyError, TypeError, ValueError):
+            continue
+    return dedupe(out), {'source': 'eodhd', 'exchange': 'TSX', 'currency': 'CAD'}
+
+
+def fetch_tsx(sym: str, max_age_h: float = 12.0, offline: bool = False) -> Tuple[List[Bar], Dict]:
+    """Daily bars of a TSX-only name (sym like RY.TO) from the switched-on TSX feed, cached like the others."""
+    cached = load_cached(sym)
+    if cached and (offline or time.time() - cached[2] < max_age_h * 3600):
+        return cached[0], cached[1]
+    if offline or not tsx_feed():
+        if cached:
+            return cached[0], {**cached[1], 'stale': True}
+        raise RuntimeError(f'{sym}: no TSX feed switched on')
+    start = (dt.date.today() - dt.timedelta(days=HISTORY_DAYS)).isoformat()
+    try:
+        bars, meta = parse_eodhd(http_get(eodhd_url(sym, start), accept='application/json', expect=looks_json))
+        if len(bars) < 60:
+            raise ValueError('too few bars')
+        save_cached(sym, bars, meta)
+        return bars, meta
+    except BudgetExceeded:
+        if cached:
+            return cached[0], {**cached[1], 'stale': True}
+        raise
 
 
 def _why(e: Exception) -> str:
@@ -630,17 +699,20 @@ def fetch_daily(sym: str, max_age_h: float = 12.0, offline: bool = False, alpaca
     return stale('; '.join(errs))
 
 
-def fetch_many(symbols: List[str], workers: int = 6, offline: bool = False, log=None, every: int = 50) -> Dict[str, Tuple[List[Bar], Dict]]:
+def fetch_many(symbols: List[str], workers: int = 6, offline: bool = False, log=None, every: int = 50,
+               tsx: Optional[set] = None) -> Dict[str, Tuple[List[Bar], Dict]]:
     """Daily bars for many tickers with a small thread pool (requests stay rate-limited per host). Logs progress
-    every `every` tickers; once the time budget is spent the queued tickers get their stale cache (or an error)."""
+    every `every` tickers; once the time budget is spent the queued tickers get their stale cache (or an error).
+    tsx = symbols served by the TSX feed (fetch_tsx) instead of the US chain."""
     from concurrent.futures import ThreadPoolExecutor, as_completed
     out: Dict[str, Tuple[List[Bar], Dict]] = {}
     errors: Dict[str, str] = {}
     src: Dict[str, int] = {}
     t0 = time.time()
+    tsx = set(tsx or ())
     if not offline:
         if alpaca_keys():
-            alpaca_prefetch(symbols, 12.0, workers=min(3, max(1, workers)), log=log)
+            alpaca_prefetch([s for s in symbols if s not in tsx], 12.0, workers=min(3, max(1, workers)), log=log)
         elif log:
             log('data: ALPACA_KEY_ID / ALPACA_SECRET_KEY not set: Alpaca skipped, trying Yahoo / Stooq per ticker')
 
@@ -648,7 +720,7 @@ def fetch_many(symbols: List[str], workers: int = 6, offline: bool = False, log=
         k = 'stale' if meta.get('stale') else meta.get('source', '?')
         src[k] = src.get(k, 0) + 1
     with ThreadPoolExecutor(max_workers=max(1, workers)) as ex:
-        futs = {ex.submit(fetch_daily, s, 12.0, offline, False): s for s in symbols}
+        futs = {(ex.submit(fetch_tsx, s, 12.0, offline) if s in tsx else ex.submit(fetch_daily, s, 12.0, offline, False)): s for s in symbols}
         stopped = False
         for k, f in enumerate(as_completed(futs)):
             s = futs[f]
@@ -679,14 +751,6 @@ def fetch_many(symbols: List[str], workers: int = 6, offline: bool = False, log=
         log(f'data done: {len(out)}/{len(symbols)} in {time.time() - t0:.0f}s, sources {src}, {len(errors)} errors')
     out['__errors__'] = errors  # type: ignore[assignment]
     return out
-
-
-def liquidity(bars: List[Bar], days: int = 20) -> Tuple[float, float]:
-    """(last close, average dollar volume of the last `days` sessions)."""
-    if not bars:
-        return 0.0, 0.0
-    last = bars[-days:]
-    return bars[-1].c, sum(b.c * b.v for b in last) / len(last)
 
 
 def fetch_earnings(sym: str) -> Optional[str]:
@@ -762,6 +826,9 @@ TV_EXCHANGE = {'NASDAQ': 'NASDAQ', 'ARCA': 'AMEX', 'AMEX': 'AMEX', 'BATS': 'CBOE
                'NYQ': 'NYSE', 'NYSE': 'NYSE', 'ASE': 'AMEX', 'PCX': 'AMEX', 'NYSEArca': 'AMEX', 'BTS': 'CBOE'}
 
 
-def tradingview_url(sym: str, exchange: str = '') -> str:
+def tradingview_url(sym: str, exchange: str = '', home: str = '') -> str:
+    """Chart link; a Canadian name links to its home listing (home = 'TSX:RY'), not the US one we scan."""
+    if home and ':' in home:
+        return f"https://www.tradingview.com/chart/?symbol={urllib.parse.quote(home, safe=':.')}"
     ex = TV_EXCHANGE.get(exchange, '')
     return f"https://www.tradingview.com/chart/?symbol={ex + ':' if ex else ''}{sym}"

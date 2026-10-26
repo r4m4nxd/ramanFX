@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { checkPlanLink, detailFrom, px, findBySlug, shardUrl, tvChart, unpackBars, type DetailZone, type TickerDetail } from '@/core/scanner';
+import { checkPlanLink, DEFAULT_INDEXES, detailFrom, indexList, listingText, px, findBySlug, shardUrl, tvChart, unpackBars, type DetailZone, type TickerDetail } from '@/core/scanner';
 import { num } from '@/lib/format';
 import { Badge, Card, cx, Empty, Page, Stat } from '@/ui/kit';
 import { Icon } from '@/ui/Icon';
@@ -64,7 +64,7 @@ export default function Stock() {
       </div>
       <TickerSearch />
       {load.state === 'loading' && <div className="skeleton h-72 rounded-2xl" aria-busy="true" aria-label="Loading" />}
-      {load.state === 'missing' && <Card><Empty icon="search" title={`${decodeURIComponent(ticker).toUpperCase()} is not in the scan`}>The scanner covers the S&amp;P 500, Nasdaq-100, Dow 30 and Russell 2000. Try the search above.</Empty></Card>}
+      {load.state === 'missing' && <Card><Empty icon="search" title={`${decodeURIComponent(ticker).toUpperCase()} is not in the scan`}>The scanner covers {indexList(DEFAULT_INDEXES)} (TSX names through their US listing). Try the search above.</Empty></Card>}
       {load.state === 'error' && <Card><Empty icon="cloudOff" title="Could not load this stock" action={<button type="button" className="btn h-11 px-5" onClick={retry}><Icon name="refresh" size={15} />Try again</button>}>{navigator.onLine ? 'The scan files are missing or unreadable.' : 'You are offline.'}</Empty></Card>}
       {d && (
         <>
@@ -74,14 +74,14 @@ export default function Stock() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-[22px] font-semibold tracking-tight">{d.symbol}</h2>
                   {d.signal && <Badge tone={d.signal === 'BUY' ? 'profit' : 'warn'}>{d.signal} today</Badge>}
-                  {d.illiquid && <Badge tone="warn">Illiquid: skipped</Badge>}
+                  {listingText(d) && <Badge tone="neutral">{listingText(d)}</Badge>}
                 </div>
                 <p className="text-[13px] text-ink3 mt-0.5">{d.name}{d.sector ? ` · ${d.sector}` : ''}</p>
                 {!!d.indexes.length && <div className="flex gap-1 mt-1.5 flex-wrap" aria-label="Indexes">{d.indexes.map(i => <span key={i} className="h-5 px-1.5 rounded-md border border-line text-[10.5px] font-semibold text-ink2 grid place-items-center">{IDX_SHORT[i] ?? i}</span>)}</div>}
               </div>
               <StarButton symbol={d.symbol} on={watch.has(d.symbol)} onToggle={() => watch.toggle(d.symbol)} />
               <div className="text-right shrink-0">
-                <div className="num text-[18px] font-semibold">{px(d.price)}</div>
+                <div className="num text-[18px] font-semibold">{px(d.price)} <span className="text-[11px] font-medium text-ink3">{d.currency ?? 'USD'}</span></div>
                 <div className="text-[11.5px] text-ink3">close {d.date}</div>
               </div>
             </div>
@@ -140,7 +140,7 @@ export default function Stock() {
               : <p className="text-[13px] text-ink3 mt-2">No active zone in the last 200 bars.</p>}
           </Card>
 
-          {!!d.fundamentals_rows.length && <FundTable rows={d.fundamentals_rows} open />}
+          <FundTable rows={d.fundamentals_rows} open country={d.country} />
           <p className="text-[12px] text-ink3">Rule-based scan, not financial advice. Untested on stocks until the backtest says otherwise.</p>
         </>
       )}
