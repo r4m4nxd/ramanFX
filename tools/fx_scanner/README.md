@@ -39,15 +39,17 @@ Standard library only (Python 3.10+).
   crosses, exotics) and `METAL` are scanned; CFDs (indices, energy, softs, bonds) only with `FX_INCLUDE_CFD=true`, **except
   watchlist CFDs, which are always scanned**. Classes: Majors (USD vs G8) · Crosses (two G8, no USD) · Exotics (any non-G8
   currency, tagged "exotic · wide spread") · Metals · CFDs.
-- **Watchlist mapping** (`watchlist.py`): `BASEQUOTE` → `BASE_QUOTE` (reversed pair tried), plus Pepperstone CFD
+- **Watchlist mapping** (`watchlist.py`): `BASEQUOTE` → `BASE_QUOTE` (the reversed pair is **never** used: CHFSGD
+  on SGD_CHF would invert every level; it is listed unmapped "only the inverse pair on OANDA"), plus Pepperstone CFD
   names: SPOTCRUDE→WTICO_USD, SPOTBRENT→BCO_USD, NATGAS→NATGAS_USD, COPPER→XCU_USD, US500→SPX500_USD, US30, NAS100,
-  US2000, GER40→DE30_EUR, FRA40→FR40_EUR, EUSTX50→EU50_EUR, UK100→UK100_GBP, JPN225→JP225_USD, AUS200→AU200_AUD,
+  US2000, GER40→DE30_EUR, FRA40→FR40_EUR, EUSTX50→EU50_EUR, UK100→UK100_GBP, JPN225→JP225Y_JPY (else JP225_USD), CHINAH→CHINAH_HKD, AUS200→AU200_AUD,
   HK50→HK33_HKD, CN50, NETH25→NL25_EUR, SPA35→ESPIX_EUR, SWI20→CH20_CHF, CORN, WHEAT, SOYBEANS→SOYBN_USD, SUGAR,
-  BTCUSD→BTC_USD …, each checked against the account's list. Not on OANDA (CA60, CHINAH, SCI25, VIX, CATTLE, COCOA,
+  BTCUSD→BTC_USD …, each checked against the account's list. Not on OANDA (CA60, SCI25, VIX, CATTLE, COCOA,
   COFFEE, COTTON, LDSUGAR, GASOLINE, EURX, JPYX, most crypto on OANDA Canada) → `unmapped` in `latest.json` ("not on
   OANDA"). **USDX** is computed from OANDA pairs with the ICE formula
   `50.14348112 × EURUSD^-0.576 × USDJPY^0.136 × GBPUSD^-0.119 × USDCAD^0.091 × USDSEK^0.042 × USDCHF^0.036`
-  (open / close exact, wicks = the bound of the parts' extremes).
+  (open / close exact, wicks = the bound of the parts' extremes; D1 / W1 / MN wicks from the synthetic H4 bars where
+  the H4 history covers them). USDX and the futures CFDs are **context only** (see Rules).
 - **Gold**: Raja does not trade XAUUSD on the low timeframes and prefers XAUAUD: XAUUSD H4 zones are blocked
   (`FX_GOLD_USD_MIN_TF=D1`), every gold signal carries the note.
 
@@ -60,39 +62,106 @@ labelled in server time (`fxcfg.label`, New York + 7 h): H4 bars start at 00/04/
 month). Only `complete: true` candles are used. Crypto CFDs trade at weekends: their weekend candles are kept, but the
 workflow does not run on Saturdays.
 
-## The rules (same as the stock scanner, FX chain)
+## Rules
 
-- **Top-down location (first rule)**: an H4 zone counts only once price has touched (in the current visit, H4 bars
-  first) a strong D1 zone (ARR / WOW / STR, ≤ 3 touches, not removed) of the same side that it overlaps; a D1 zone
-  needs a touched W1 zone, a W1 zone a touched MN zone, and so on up to MN, the top tradeable level. The 3M level is
-  context: it blocks only when a strong untouched 3M zone is within `FX_SOFT_REACH_PCT` (5%) of price. An untouched
-  strong HTF zone still in the way → blocked **"HTF area not reached"**. Supply mirrored for shorts. Each signal
-  carries the chain, e.g. `MN demand … touched ✓ → W1 demand … touched ✓ → D1 demand … touched ✓ → H4 entry …`.
-- **Direction** (Raja table one level up): H4 = H4 → D1 → W1, D1 = D1 → W1 → MN, W1 = W1 → MN → 3M, MN = MN → 3M;
-  the curve on the chain's top row; the owner's ATH curve rule, mirrored for shorts (ATL).
-- Fresh, zone type ARR / WOW / STR, no opposite HTF zone on top, room ≥ 2x the stop to the next opposite zone (else
-  the 250% projection), not sideways, no 3rd CP, has not done its job, not overlap / flip, price within 1x the zone
-  height of the proximal, **spread ≤ 10% of the stop** (`FX_MAX_SPREAD_FRAC`; typical spread = median H4 close
-  spread from OANDA bid / ask candles).
-- **Plan**: entry = proximal; **stop = distal + % of the zone height: H4 15%, D1 10%, W1 5%, MN 3%** (min 3 pips);
-  target = 0.05% of price before the next opposite proximal. Pips via OANDA's `pipLocation` / `displayPrecision`
-  (JPY pairs 0.01, gold 2 decimals).
-- **BUY** at a located demand, **SELL** at a located supply, **WATCH** (new located zone with price still away, or a
-  2nd / 3rd touch that needs a confirmation one TF lower). Lists per side: **in / approaching / left** (left = touched
+Same Raja logic as the stock scanner (`zones.py`), on the FX chain. **Owner: "I don't want any false signals"**: where
+a lesson is ambiguous the scanner takes the **stricter** reading (marked *stricter*). Citations: L-numbers of
+`src/core/mentors/raja/*` and the checklist `src/core/checklists/raja.ts`; ZV = ZoneVision (`RFX_ZoneCore.mqh`, Raja
+template). A BUY / SELL needs **every** rule below to pass; a strong zone that fails only *confirmation-only* rules
+(marked **→ WATCH**) becomes a WATCH (confirm one TF lower / wait), any other failure drops it.
+
+**Zones and data**
+- Zones are built on **BID** candles (OANDA `price=BA`): Pepperstone MT4 / MT5 charts and ZoneVision plot bid. Base 1-6
+  basing candles (body < 50% of the range); **7+ basing candles = not a zone** (L55). Proximal on the bodies, distal on
+  the wicks (L55). Removed only by a candle **close** beyond the distal (L4, L50, L54, L106).
+- **Departure ≥ 2x the biggest base candle** for set and forget (L55; ZV accepts 1.2x) **→ WATCH**.
+- **Fresh = first touch only** (L1, L2, L52). A touch is any bar reaching the proximal on the zone's TF **or by an H4
+  bar of the HTF bar that is still forming** (a W1 zone hit on Tuesday is tested, not fresh), price inside the zone
+  counts as a touch, and a news (emotional) candle's tap counts too (*stricter*; it is still ignored for removal,
+  L2 Apr 30). 2nd / 3rd touch **→ WATCH 'tested'**; more = dropped.
+- Zone type ARR / WOW / STR (L1, L51); overlap / flip = confirmation only, never set and forget (L2, L52, L104); not
+  a zone that already did its job (L5, Feb 18); not the 3rd CP in a row (L8, Kevin L13); never sideways (L8, L101).
+
+**Top-down location (owner + L6, L7)**
+- An H4 zone needs a **touched D1 host**, that D1 host a **touched W1 host**, that W1 host a **touched MN host**:
+  the **full chain MN → W1 → D1 → H4**, no gap (a host with no strong zone above it blocks; *stricter*,
+  `zones.location(strict_chain=True)`). 3M is context: it blocks only with a strong untouched 3M zone within 5%.
+- A host must be strong (ARR / WOW / STR), not overlap / flip / done, penetrated ≤ 75% (Kevin L13), and **at most 1
+  earlier visit on D1 / W1, 2 on MN** (Raja: MN 2nd / 3rd confirm, 4th breaks; D1 / W1 3rd touch risky, L2, L52,
+  L102, Mar 5; ZV cap 2; *stricter*: D1 / W1 1). A host visited before is only confirmed by an **arrival** entry
+  zone (L2, L52, L105) **→ WATCH**.
+- An untouched strong HTF zone still in the way → "HTF area not reached".
+
+**Direction, curve, opposite zones**
+- Raja table with ZV's +1 row (`InpDirTable=3` + `InpDirPlus1`): **H4 → D1 → W1 (+ MN)**, D1 → W1 → MN, W1 → MN → 3M,
+  MN → 3M. Only a **FULL** direction trades: REDUCED (the +1 row or the entry TF disagrees = a correction) **→ WATCH**
+  (L5, L102: H4 and below impulses only; Kevin: set and forget only when HTF and ETF trends agree).
+- Curve: low 25% buys only, high 25% sells only, up to 50% confirmation (L4, Feb 10); owner ATH / ATL rule.
+- **Never buy inside / next to a supply** (L50, L4 course 3): the zone must not sit within one zone height of a
+  not-removed opposite zone of **any** higher TF (ZV checks one level up; *stricter*: all), and price must not sit
+  inside any not-removed opposite zone (fresh **or tested**) of the zone's TF or higher; a fresh HTF opposite zone
+  around price locks the side.
+
+**Trendlines (L4, L8, L102-L107)**
+- Limit orders only at **a WOW (open run ≥ 3x the stop), a fresh arrival zone, or a zone right at its trendline**
+  (L104 "blind entries"); any other strong zone **→ WATCH 'confirm'**.
+- The own-side trendline touched 3x already: the next (4th) touch usually breaks (L4, L102, L103) → fail. A zone
+  **more than 25 pips** from its trendline often breaks (L4 Jun 25, L107; ZV `InpRjFarFromLinePips=25`; *stricter*:
+  25 not 30) → fail (H4 / D1).
+- **Out of trendline** (L8, L52, L106): the own-side line the zone was built on was crossed after it formed, or the zone
+  formed beyond an already crossed own-side line without an arrival since → fail.
+
+**Room, plan, costs**
+- Target = **7 pips** (`FX_TP_OFFSET_PIPS`, ZV `InpTpOffsetPips=7`; Raja 5-10 pips, L7, L9, L106) before the
+  **nearest not-removed opposite zone of any TF** (lower and higher, tested ones too: L9 "nearest opposing level",
+  Baker "never buy with supply overhead"); none → Raja's 250% projection (L5). **Room ≥ 2x the stop** (L7, L53); no
+  target → no trade (L101).
+- Entry / stop / target are on the bid chart with the spread on the ask side: **BUY limit = proximal + spread**,
+  buy stop = distal − % of the height; **SELL limit = proximal**, sell stop = distal + % + spread, sell target + spread
+  (Kevin L6). Stop % of the zone height: H4 15, D1 10, W1 5, MN 3 (min 3 pips). R:R on these levels.
+- Spread ≤ 10% of the stop (`FX_MAX_SPREAD_FRAC`).
+- **Pips as on Pepperstone MT5**: gold / platinum / palladium 0.1, silver 0.01 (ZV `InpPipXAU=0.1`), JPY 0.01, else
+  0.0001 (OANDA `pipLocation`).
+
+**Markets and timeframes**
+- **BUY / SELL limits only on H4 and D1**: W1 / MN zones are areas for direction and location (L6, L7, L53 seven-step
+  board: "a monthly zone with a 1,000-pip stop is a mistake") **→ WATCH 'area'** (drill down).
+- No XAU_USD on H4 (L53, L107: use XAU_AUD). Indices / CFDs daily and above, TRY pairs weekly and above (L53 Feb 18,
+  Apr 7) → fail on lower TFs.
+- **Context only (WATCH 'context', never an order)**: USDX (synthetic spot DXY; Pepperstone USDX follows the ICE futures,
+  wicks are an upper bound) and the futures-based CFDs (BCO, WTICO, NATGAS, XCU, CORN, WHEAT, SOYBN, SUGAR: OANDA and
+  Pepperstone roll on different dates and may quote in different units).
+- No new H4 set and forget from Friday 12:00 server time (weekend gap; L53 Apr 30, L7 Jun 25) **→ WATCH**.
+
+**Not implemented (documented gaps)**: news calendar (L2 Apr 30, L103, Kevin L12), the P-vs-CP and stacked-zone
+choice (L102, L104, L6), the gap rule (L6, L55), nested curves (L4 Feb 10), the MN → 3M → 6M direction chain. These
+can only make the scanner stricter later; none of them can create a signal today.
+
+**Positive test**: `tests/test_fx_rules.py` builds the textbook chain by hand (`fixtures/textbook_fx.py`: MN, W1 and D1
+demands nested and touched for the first time, an H4 arrival zone 10 pips below price) and requires exactly one H4
+BUY (and the mirrored SELL); each fix above has a negative test.
+
+- Outputs: **BUY** at a located demand, **SELL** at a located supply, **WATCH** (`watch_kind`: `new` = new located zone
+  with price still away, `tested` = 2nd / 3rd touch, `confirm` = confirmation entry only, `area` = W1 / MN area,
+  `context` = context-only instrument). Lists per side: **in / approaching / left** (left = touched
   in the last 6 H4 bars and closed back out).
 
 ## Telegram (only news)
 
 - Every instrument: a **new BUY / SELL**; a **cancelled** signal with the reason (zone removed, stop level hit, entry
-  touched, a rule failing now).
+  touched, a rule failing now). No "Cancelled" for an instrument without data this run (fetch error, time budget,
+  `--only`): it is carried over silently. A signal whose only failing rule is "price not near the entry" stays
+  (a limit order does not expire with distance), and a cancelled signal is not re-announced for `FX_DEDUPE_HOURS`.
+- When Telegram fails, the alert state is not advanced: the same events are sent again by the next run.
 - Watchlist instruments also: a **new WATCH**, and price newly **entering / approaching a located strong zone**
   (each zone at most every `FX_DEDUPE_HOURS`, 24 h).
 - **Daily summary** with the first run after the D1 close (21:05 UTC summer / 22:05 UTC winter): signals (entry /
   stop / target / R:R / pips / chain), then in / approaching / left per side, watchlist sections first, then classes.
 - The dedupe state lives in `.cache/state.json` (actions/cache). With no state (first run, lost cache) one "started"
   message + the summary is sent instead of replaying every event.
-- Failures (no token, OANDA unreachable, < 50% of the instruments with data): at most one message per day, nothing
-  published, the run is red.
+- Failures (no token, OANDA unreachable, < 50% of the instruments with data, **a failing unit test**): at most one
+  message per day, nothing published, the run is red. A candle off the server-time grid (H4 / D1 / W1 not on a
+  boundary, MN more than 12 h off the 1st) drops that instrument for the run (`fxcfg.Misaligned`).
 
 Preview without sending: `python3 tools/fx_scanner/fxscan.py --preview-telegram`.
 
@@ -124,7 +193,8 @@ python3 -m unittest discover -s tools/fx_scanner/tests
 ```
 
 Env (defaults): `OANDA_ENV` (practice), `FX_INCLUDE_CFD` (false), `FX_WATCHLIST`, `FX_SOFT_REACH_PCT` (5),
-`FX_APPROACH_H` (1.0), `FX_NEAR_H` (1.0), `FX_LEFT_BARS` (6), `FX_NEW_BARS` (6), `FX_TP_OFFSET_PCT` (0.05),
+`FX_APPROACH_H` (1.0), `FX_NEAR_H` (1.0), `FX_LEFT_BARS` (6), `FX_NEW_BARS` (6), `FX_TP_OFFSET_PIPS` (7),
+`FX_MIN_LEG_X` (2), `FX_TL_FAR_PIPS` (25), `FX_TL_MAX_TOUCHES` (3), `FX_HOST_MAX_DEPTH` (75), `FX_WEEKEND_FROM_H` (12),
 `FX_MAX_SPREAD_FRAC` (0.10), `FX_GOLD_USD_MIN_TF` (D1), `FX_DEDUPE_HOURS` (24), `FX_BUDGET_MIN` (25),
 `FX_MIN_COVERAGE` (0.5), `FX_WORKERS` (4), `FX_TELEGRAM_LIST_CAP` (12), `FX_APP_URL`, `FX_CACHE`.
 Network: OANDA allows ~120 requests/s; we pace ~16/s per host, with the stock scanner's time budget and circuit

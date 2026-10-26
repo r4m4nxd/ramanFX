@@ -11,13 +11,15 @@ export const OFF_LIST = 'NOT ON WATCHLIST';
 export type FxKind = 'BUY' | 'SELL' | 'WATCH';
 export type FxSide = 'demand' | 'supply';
 export type FxSec = 'in' | 'left' | 'near';
+export type FxWatchKind = 'new' | 'tested' | 'confirm' | 'area' | 'context';
+const WATCH_KINDS: readonly string[] = ['new', 'tested', 'confirm', 'area', 'context'];
 export interface FxRule { status: string; text: string; ref: string; short: string }
 
 /** Instrument fields shared by Signal / Item / Row / Detail. */
 export interface FxInst { sym: string; oanda: string; cls: string; group: string; wl: boolean; tv: string; digits: number; pip: number; exotic: boolean }
 
 export interface FxSignal extends FxInst {
-  kind: FxKind; watch_kind: 'new' | 'tested' | null; tf: string; side: FxSide; zone_type: string; pattern: string;
+  kind: FxKind; watch_kind: FxWatchKind | null; tf: string; side: FxSide; zone_type: string; pattern: string;
   proximal: number | null; distal: number | null; touches: number; made: string;
   entry: number | null; stop: number | null; target: number | null; target_kind: string | null; rr: number | null;
   stop_pips: number | null; target_pips: number | null; height_pips: number | null; price: number | null; to_entry_pips: number | null;
@@ -72,7 +74,7 @@ function inst(o: J): FxInst {
 export function parseSignal(v: unknown): FxSignal {
   const o = obj(v);
   return {
-    ...inst(o), kind: kind(o.kind) ?? 'WATCH', watch_kind: o.watch_kind === 'new' || o.watch_kind === 'tested' ? o.watch_kind : null,
+    ...inst(o), kind: kind(o.kind) ?? 'WATCH', watch_kind: typeof o.watch_kind === 'string' && WATCH_KINDS.includes(o.watch_kind) ? (o.watch_kind as FxWatchKind) : null,
     tf: str(o.tf), side: side(o.side), zone_type: str(o.zone_type), pattern: str(o.pattern), proximal: num(o.proximal), distal: num(o.distal),
     touches: int(o.touches), made: str(o.made), entry: num(o.entry), stop: num(o.stop), target: num(o.target), target_kind: str(o.target_kind) || null,
     rr: num(o.rr), stop_pips: num(o.stop_pips), target_pips: num(o.target_pips), height_pips: num(o.height_pips), price: num(o.price),

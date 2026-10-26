@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { bucketText, groupBySection, OFF_LIST, parseDetail, parseFx, pepperSymbol, tvLink, wideSpread, fxPx } from './fx';
+import { bucketText, groupBySection, OFF_LIST, parseDetail, parseFx, parseSignal, pepperSymbol, tvLink, wideSpread, fxPx } from './fx';
 
 const SAMPLE = 'tools/fx_scanner/fixtures/sample';
 const read = (p: string) => JSON.parse(readFileSync(p, 'utf8'));
@@ -24,6 +24,11 @@ describe('fx helpers', () => {
   it('groups rows by watchlist section in file order, off-list last', () => {
     const rows = [{ group: 'METALS', wl: true }, { group: '', wl: false }, { group: 'FX MAJORS', wl: true }, { group: 'FX CROSSES', wl: true }];
     expect(groupBySection(rows, ['FX MAJORS', 'METALS']).map(g => g.section)).toEqual(['FX MAJORS', 'METALS', 'FX CROSSES', OFF_LIST]);
+  });
+
+  it('keeps the known WATCH kinds only', () => {
+    for (const k of ['new', 'tested', 'confirm', 'area', 'context']) expect(parseSignal({ kind: 'WATCH', watch_kind: k }).watch_kind).toBe(k);
+    expect(parseSignal({ kind: 'WATCH', watch_kind: 'odd' }).watch_kind).toBeNull();
   });
 
   it('tolerates junk and the placeholder', () => {

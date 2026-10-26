@@ -7,7 +7,8 @@ Written by `tools/fx_scanner/fxscan.py` every run that saw a new H4 candle. Samp
 Conventions: `sym` = Pepperstone symbol (shown everywhere), `oanda` = OANDA instrument (data source only, tooltip).
 Times / bar labels = Pepperstone server time (`'YYYY-MM-DDTHH:MM'`, GMT+2 winter / GMT+3 summer: day = 17:00 New
 York close, H4 bars at 00/04/08/12/16/20). Prices are rounded to `digits`; pip distances use `pip` (10^pipLocation;
-gold 0.01, index CFDs 1). `side` = `demand` | `supply`; `tf` = `H4` | `D1` | `W1` | `MN` (`3M` = context only).
+metals as on Pepperstone MT5: gold / platinum / palladium 0.1, silver 0.01; index CFDs 1). Prices are BID (the MT4 / MT5
+chart); a BUY `entry` already includes the spread (fills on the ask), a SELL `stop` / `target` too. `side` = `demand` | `supply`; `tf` = `H4` | `D1` | `W1` | `MN` (`3M` = context only).
 `cls` = `major` | `cross` | `exotic` | `metal` | `cfd`. `group` = the owner's TradingView watchlist section
 (`''` when not on the watchlist), `wl` = on the watchlist.
 
@@ -23,7 +24,7 @@ gold 0.01, index CFDs 1). `side` = `demand` | `supply`; `tf` = `H4` | `D1` | `W1
   "broker": "Pepperstone", "feed": "OANDA practice", "clock": "Pepperstone server time (...)",
   "config": { "chain": ["MN","W1","D1","H4"], "context": "3M", "sl_pct": {"H4":15,"D1":10,"W1":5,"MN":3,"3M":2},
               "approach_h": 1.0, "near_h": 1.0, "left_bars": 6, "max_spread_frac": 0.1, "soft_reach_pct": 5.0,
-              "gold_usd_min_tf": "D1" },
+              "gold_usd_min_tf": "D1", "tp_offset_pips": 7.0, "signal_tfs": ["H4","D1"] },
   "counts": { "instruments": 112, "BUY": 2, "SELL": 1, "WATCH": 2, "errors": 0 },
   "classes": [ { "id": "major", "label": "Majors", "n": 7 }, ... ],          // only classes present
   "groups":  [ { "name": "FX MAJORS", "symbols": ["AUDUSD","EURUSD"] }, ... ], // watchlist sections, file order
@@ -47,7 +48,9 @@ gold 0.01, index CFDs 1). `side` = `demand` | `supply`; `tf` = `H4` | `D1` | `W1
 
 ```jsonc
 {
-  "kind": "BUY" | "SELL" | "WATCH", "watch_kind": "new" | "tested",     // watch_kind only on WATCH
+  "kind": "BUY" | "SELL" | "WATCH",              // BUY / SELL only on H4 / D1 (signal_tfs)
+  "watch_kind": "new" | "tested" | "confirm" | "area" | "context",   // only on WATCH: new zone, 2nd / 3rd touch,
+                                                // confirmation entry only, W1 / MN area, context-only instrument
   "sym": "EURUSD", "oanda": "EUR_USD", "cls": "major", "group": "FX MAJORS", "wl": true,
   "tv": "PEPPERSTONE:EURUSD", "digits": 5, "pip": 0.0001, "exotic": false,
   "tf": "W1", "side": "demand", "zone_type": "ARR|WOW|STR|...", "pattern": "DBR|RBR|RBD|DBD",
@@ -71,7 +74,9 @@ gold 0.01, index CFDs 1). `side` = `demand` | `supply`; `tf` = `H4` | `D1` | `W1
 ```
 
 Rule `short` keys (first = the owner's top-down location rule): `location`, `leg`, `fresh`, `strong`, `direction`,
-`curve`, `HTF opposite`, `room`, `sideways`, `no 3rd CP`, `not used`, `clean`, `near entry`, `spread`, `gold TF`.
+`reduced`, `curve`, `HTF opposite`, `room`, `sideways`, `no 3rd CP`, `not used`, `clean`, `out of TL`, `trendline`,
+`host tested`, `blind`, `market TF`, `near entry`, `spread`, `gold TF`, `weekend` (H4), `area` (W1 / MN), `context`
+(context-only instruments). `touches` counts the H4 bars of the forming HTF bar too.
 
 ### Item (lists, and `Row.z`)
 
