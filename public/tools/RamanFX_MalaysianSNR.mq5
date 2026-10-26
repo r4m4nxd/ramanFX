@@ -1480,6 +1480,7 @@ void ProcessEvents()
       if(gEv[e].kind == 0 && !InpUseClassic) continue;
       if(gEv[e].kind == 1 && !InpUseAdvanced) continue;
       BOut best, first, o;
+      ZeroMemory(best); ZeroMemory(first); ZeroMemory(o);
       bool have = false, haveFirst = false;
       for(int m = 0; m < gMapN[ls]; m++)
         {
