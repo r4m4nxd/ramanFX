@@ -52,18 +52,30 @@ jobs:
             fx-data-
 
       - name: Unit tests
+        id: tests
         run: python -m unittest discover -s tools/fx_scanner/tests
+
+      # a failing unit test skips the scan: say so on Telegram (at most one failure message per day)
+      - name: Notify unit test failure
+        if: ${{ failure() && steps.tests.outcome == 'failure' }}
+        run: python tools/fx_scanner/fxscan.py --notify-failure "unit tests failed: no scan this run (see the Actions log)"
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
       - name: Scan + notify
         id: scan
         timeout-minutes: 30
         run: |
-          ARGS=""
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then ARGS="--force"; fi
-          if [ -n "${{ github.event.inputs.only }}" ]; then ARGS="$ARGS --only ${{ github.event.inputs.only }}"; fi
-          if [ "${{ github.event.inputs.summary }}" = "true" ]; then ARGS="$ARGS --summary"; fi
-          python tools/fx_scanner/fxscan.py $ARGS
+          ARGS=()
+          if [ "$EVENT" = "workflow_dispatch" ]; then ARGS+=(--force); fi
+          if [ -n "$ONLY" ]; then ARGS+=(--only "$ONLY"); fi
+          if [ "$SUMMARY" = "true" ]; then ARGS+=(--summary); fi
+          python tools/fx_scanner/fxscan.py "${ARGS[@]}"
         env:
+          EVENT: ${{ github.event_name }}
+          ONLY: ${{ github.event.inputs.only }}
+          SUMMARY: ${{ github.event.inputs.summary }}
           OANDA_API_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}

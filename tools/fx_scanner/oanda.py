@@ -2,7 +2,8 @@
 
     host      api-fxpractice.oanda.com (OANDA_ENV=practice, default) or api-fxtrade.oanda.com (OANDA_ENV=live)
     auth      Authorization: Bearer <OANDA_API_TOKEN>  (never logged, never written)
-    candles   GET /v3/instruments/{name}/candles?granularity=H4|D|W|M&price=M (H4: MBA, for the spread)
+    candles   GET /v3/instruments/{name}/candles?granularity=H4|D|W|M&price=BA (BID bars, like the owner's MT4 / MT5
+              chart, which plots bid; ask - bid at the close = the spread)
               &alignmentTimezone=America/New_York&dailyAlignment=17&weeklyAlignment=Friday
               cold: count=5000; update: from=<newest cached candle>&count=5000 (re-reads it to verify the overlap)
     accounts  GET /v3/accounts -> the first account id; GET /v3/accounts/{id}/instruments (cached weekly)
@@ -35,6 +36,7 @@ for _h in HOSTS.values():
     SD.HOST_PAUSE.setdefault(_h, 0.06)          # ~16 requests/s; OANDA allows far more (be polite)
 ALIGN = {'alignmentTimezone': 'America/New_York', 'dailyAlignment': '17', 'weeklyAlignment': 'Friday'}
 INSTRUMENTS_MAX_AGE_D = 7
+PRICE = 'B'                                     # cache format: bars are BID (older caches held mid: re-fetched cold)
 
 
 class NoToken(RuntimeError):
@@ -64,20 +66,22 @@ def default_get(url: str) -> bytes:
 
 
 def candles_url(name: str, tf: str, count: int = C.COLD_COUNT, frm: Optional[str] = None) -> str:
-    q = {'granularity': C.GRAN[tf], 'price': 'MBA' if tf == 'H4' else 'M', 'count': str(count), **ALIGN}
+    q = {'granularity': C.GRAN[tf], 'price': 'BA', 'count': str(count), **ALIGN}
     if frm:
         q['from'] = frm
     return f'https://{host()}/v3/instruments/{urllib.parse.quote(name)}/candles?' + urllib.parse.urlencode(q)
 
 
-def parse_candles(raw: bytes, tf: str) -> List[Tuple[str, Bar, Optional[float], str]]:
-    """[(label, Bar(mid), spread or None, utc time)] of the COMPLETE candles, oldest first."""
+def parse_candles(raw: bytes, tf: str, strict: bool = True) -> List[Tuple[str, Bar, Optional[float], str]]:
+    """[(label, Bar(bid), spread or None, utc time)] of the COMPLETE candles, oldest first. The bars are BID prices
+    (Pepperstone MT4 / MT5 charts and ZoneVision plot bid); a candle with no bid side falls back to mid. A candle off
+    the server-time grid raises fxcfg.Misaligned (the instrument is dropped this run, never silently relabelled)."""
     js = json.loads(raw)
     out = []
     for c in js.get('candles') or []:
         if not c.get('complete'):
             continue
-        m = c.get('mid') or {}
+        m = c.get('bid') or c.get('mid') or {}
         try:
             o, h, l, cl = (float(m[k]) for k in ('o', 'h', 'l', 'c'))
         except (KeyError, TypeError, ValueError):
@@ -89,7 +93,7 @@ def parse_candles(raw: bytes, tf: str) -> List[Tuple[str, Bar, Optional[float], 
             except (KeyError, TypeError, ValueError):
                 sp = None
         t = str(c.get('time') or '')
-        lbl = C.label(t, tf)
+        lbl = C.label(t, tf, strict)
         out.append((lbl, Bar(lbl, o, h, l, cl, float(c.get('volume') or 0)), sp, t[:19] + 'Z'))
     return out
 
@@ -147,12 +151,15 @@ def update(name: str, tf: str, get: Getter = None, log=None) -> Tuple[List[Bar],
     """Bars of one instrument / TF from the cache, topped up from OANDA (only when a newer candle can exist)."""
     get = get or default_get
     rec = load(name, tf)
+    if rec is not None and rec.get('price') != PRICE:
+        rec = None                                  # an old mid-price cache: re-fetch bid bars cold
     rows = (rec or {}).get('bars') or []
     frm = (rec or {}).get('last_utc') if rows else None
     if frm and tf in C.TF_HOURS:
-        # nothing new can have completed yet: skip the request
+        # nothing new can have completed yet: skip the request. -1 h: the week (or day) in which New York changes
+        # its clock is an hour shorter, so the next close can come 1 h before start + 2 x the bar length.
         import datetime as dt
-        nxt = C.parse_utc(frm) + dt.timedelta(hours=2 * C.TF_HOURS[tf])
+        nxt = C.parse_utc(frm) + dt.timedelta(hours=2 * C.TF_HOURS[tf] - 1)
         if dt.datetime.now(dt.timezone.utc).replace(tzinfo=None) < nxt:
             return to_bars(rec), rec
     got, utc = _rows(get(candles_url(name, tf, C.COLD_COUNT, frm)), tf)
@@ -163,7 +170,7 @@ def update(name: str, tf: str, get: Getter = None, log=None) -> Tuple[List[Bar],
         got, utc = _rows(get(candles_url(name, tf)), tf)
         merged = got
     merged = merged[-C.KEEP_BARS.get(tf, 1500):]
-    rec = {'bars': merged, 'last_utc': utc[-1] if utc else (rec or {}).get('last_utc'), 'fetched': time.time()}
+    rec = {'bars': merged, 'last_utc': utc[-1] if utc else (rec or {}).get('last_utc'), 'fetched': time.time(), 'price': PRICE}
     save(name, tf, rec)
     return to_bars(rec), rec
 

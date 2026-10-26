@@ -74,7 +74,9 @@ def universe(instruments: List[Dict], wl: Dict, include_cfd: Optional[bool] = No
 def synth_usdx(parts: Dict[str, Dict[str, List[Bar]]]) -> Dict[str, List[Bar]]:
     """ICE dollar index from OANDA pairs: 50.14348112 x EURUSD^-0.576 x USDJPY^0.136 x GBPUSD^-0.119 x USDCAD^0.091
     x USDSEK^0.042 x USDCHF^0.036, per bar label present in every part. Open / close exact; high / low the bound of
-    the parts' extremes (each part's high or low, by the sign of its weight)."""
+    the parts' extremes (each part's high or low, by the sign of its weight). D1 / W1 / MN bars that the H4 history
+    covers from their start take the high / low of their synthetic H4 bars instead (a much tighter bound: the parts'
+    extremes rarely fall in the same 4 hours). Still an approximation: USDX is context only (fxcfg.CONTEXT_ONLY)."""
     out: Dict[str, List[Bar]] = {}
     for tf in ('H4', 'D1', 'W1', 'MN'):
         maps = {n: {b.d: b for b in parts[n].get(tf, [])} for n in USDX_PARTS}
@@ -90,6 +92,21 @@ def synth_usdx(parts: Dict[str, Dict[str, List[Bar]]]) -> Dict[str, List[Bar]]:
             h, l = val(lambda w: 'h' if w > 0 else 'l'), val(lambda w: 'l' if w > 0 else 'h')
             bars.append(Bar(lbl, o, max(h, o, c), min(l, o, c), c))
         out[tf] = bars
+    h4 = out.get('H4') or []
+    if h4:
+        first = h4[0].d
+        for tf in ('D1', 'W1', 'MN'):
+            groups: Dict = {}
+            for b in h4:
+                groups.setdefault(C.period_key(tf, b.d), []).append(b)
+            fixed = []
+            for b in out[tf]:
+                g = groups.get(C.period_key(tf, b.d))
+                if g and b.d >= first:
+                    hh, ll = max(x.h for x in g), min(x.l for x in g)
+                    b = Bar(b.d, b.o, max(hh, b.o, b.c), min(ll, b.o, b.c), b.c)
+                fixed.append(b)
+            out[tf] = fixed
     return out
 
 
@@ -171,7 +188,7 @@ def detail(an: F.FxAnalysis, hits: List[Dict], sigs: List[Dict]) -> Dict:
             continue
         for z in r.zones:
             x = an.dna.get(z.zid)
-            if x is None or x.n_tests > C.MAX_TOUCHES:
+            if x is None or F.tests(an, z, x) > C.MAX_TOUCHES:
                 continue
             lc = F.loc_of(an, z) if tf in C.ENTRY_TFS else None
             zs.append({**F.zone_dict(an, z, x), 'pips': round(abs(an.price - z.prox) / an.pip, 1),
@@ -307,41 +324,97 @@ def gone_reason(res: Dict, old: Dict) -> str:
     x = an.dna.get(z.zid)
     if x is None:
         return 'zone no longer on the right side of price'
-    if x.n_tests > 0:
+    if F.tests(an, z, x) > 0:
         return 'price reached the entry (zone tested): limit filled or touched — manage the trade on the platform'
     fb = F.first_block(F.zone_rules(an, z, x))
     return f"rule failing now: {F.BLOCK_LABEL.get(fb, fb)}" if fb else 'replaced by a nearer zone'
 
 
+KEEP_WHEN_FAILING = ('near entry',)     # a limit order stays valid while price drifts away: no cancel / re-send churn
+
+
+def still_pending(res: Dict, old: Dict) -> bool:
+    """The old signal's zone is still there and only KEEP_WHEN_FAILING rules fail (price moved away from the entry,
+    on the right side): keep the order quietly instead of 'Cancelled' now and 'NEW' again at the next approach."""
+    an = res['analyses'].get(old['sym'])
+    if an is None:
+        return False
+    r = an.rows.get(old['tf'])
+    z = next((z for z in (r.zones if r and r.ok else []) if z.base_start == old['base_start'] and F.SIDE[z.dir] == old['side']), None)
+    if z is None or z.removed or z.zid not in an.dna:
+        return False
+    x = an.dna[z.zid]
+    if F.tests(an, z, x) > 0 or z.dir * (an.price - z.prox) <= 0:
+        return False
+    fails = {k.short for k in F.zone_rules(an, z, x) if k.status == F.FAIL}
+    return bool(fails) and fails <= set(KEEP_WHEN_FAILING)
+
+
 def events(res: Dict, state: Dict, now: dt.datetime) -> Tuple[Dict, Dict]:
     """(events, new_state). New BUY / SELL (all), cancelled signals (all), new WATCH and zone in / near of LOCATED
-    strong zones (watchlist only, re-sent per zone at most every DEDUPE_HOURS)."""
+    strong zones (watchlist only, re-sent per zone at most every DEDUPE_HOURS).
+    Instruments without an analysis this run (fetch error, time budget, --only) are carried over silently: no
+    'Cancelled' for missing data. A signal whose only failing rule is 'near entry' stays (hysteresis). A cancelled
+    signal is not re-announced as NEW for DEDUPE_HOURS (cooldown)."""
     prev_sig = state.get('signals') or {}
     prev_watch = set(state.get('watch') or [])
     prev_zone = set(state.get('zones_now') or [])
     sent = dict(state.get('zones_sent') or {})
+    cancelled = dict(state.get('cancelled') or {})
+    have = set(res['analyses'])
+    cutoff = (now - dt.timedelta(hours=C.DEDUPE_HOURS)).isoformat()
     cur = {sig_key(s): s for s in res['signals']}
+    held = {k for k in cur if k not in prev_sig and cancelled.get(k, '') >= cutoff}
+    for k in held:
+        cur.pop(k)
     ev = {'signals': [s for k, s in cur.items() if k not in prev_sig], 'gone': [], 'watch': [], 'zones': []}
+    carry: Dict[str, Dict] = {}
     for k, old in prev_sig.items():
-        if k not in cur:
-            ev['gone'].append({**old, 'reason': gone_reason(res, old)})
+        if k in cur:
+            continue
+        if old.get('sym') not in have or still_pending(res, old):
+            carry[k] = old                                  # no data this run / only drifted away: say nothing
+            continue
+        ev['gone'].append({**old, 'reason': gone_reason(res, old)})
+        cancelled[k] = now.isoformat()
     wkeys = {sig_key(s): s for s in res['watch'] if s.get('wl')}
     ev['watch'] = [s for k, s in wkeys.items() if k not in prev_watch]
+    sym_of = lambda key: key.split('|', 1)[0]  # noqa: E731
+    wcarry = [k for k in prev_watch if sym_of(k) not in have]
     zkeys = {}
     for sym, hh in res['hits'].items():
         for h in hh:
             if h.get('wl') and h['loc_ok'] and h['section'] in ('in', 'near'):
                 zkeys[zone_key(h)] = h
-    cutoff = (now - dt.timedelta(hours=C.DEDUPE_HOURS)).isoformat()
     for k, h in zkeys.items():
         if k not in prev_zone and sent.get(k, '') < cutoff:
             ev['zones'].append({**h, 'sec': h['section']})
             sent[k] = now.isoformat()
     sent = {k: v for k, v in sent.items() if v >= (now - dt.timedelta(days=7)).isoformat()}
     keep = ('sym', 'kind', 'tf', 'side', 'base_start', 'entry', 'stop', 'digits')
-    new = {**state, 'signals': {k: {f: s.get(f) for f in keep} for k, s in cur.items()}, 'watch': sorted(wkeys),
-           'zones_now': sorted(zkeys), 'zones_sent': sent}
+    week = (now - dt.timedelta(days=7)).isoformat()
+    new = {**state, 'signals': {**carry, **{k: {f: s.get(f) for f in keep} for k, s in cur.items()}},
+           'watch': sorted(set(wkeys) | set(wcarry)),
+           'zones_now': sorted(set(zkeys) | {k for k in prev_zone if sym_of(k) not in have}), 'zones_sent': sent,
+           'cancelled': {k: v for k, v in cancelled.items() if v >= week}}
     return ev, new
+
+
+ALERT_KEYS = ('signals', 'watch', 'zones_now', 'zones_sent', 'cancelled')
+
+
+def telegram_configured() -> bool:
+    return bool(os.environ.get('TELEGRAM_BOT_TOKEN') and os.environ.get('TELEGRAM_CHAT_ID'))
+
+
+def unsent_state(new_state: Dict, old_state: Dict) -> Dict:
+    """The state to save when the Telegram send failed: the alert keys of the OLD state (so the next run sends the
+    same events again), everything else (last_h4, summary day) from the new one."""
+    out = {k: v for k, v in new_state.items() if k not in ALERT_KEYS and k != 'summary_d1'}
+    for k in ALERT_KEYS + ('summary_d1',):
+        if k in old_state:
+            out[k] = old_state[k]
+    return out
 
 
 def state_path() -> str:
@@ -383,8 +456,10 @@ def oanda_bars(i: Dict) -> Tuple[Dict[str, List[Bar]], Optional[float]]:
 
 
 # ---- selftest --------------------------------------------------------------------------------------------------------
-SELFTEST = [  # (Pepperstone symbol, OANDA name, type, start price, vol, seed, watchlist group): seeds found by a search
-    ('EURUSD', 'EUR_USD', 'CURRENCY', 1.10, 0.0016, 15, 'FX MAJORS'), ('GBPJPY', 'GBP_JPY', 'CURRENCY', 185.0, 0.0016, 827, 'FX CROSSES'),
+SELFTEST = [  # (Pepperstone symbol, OANDA name, type, start price, vol, seed, watchlist group); seed 'tb+' / 'tb-' = the
+    # hand-built textbook BUY / SELL (fixtures/textbook_fx.py), the others random walks (seeds found by a search)
+    ('EURUSD', 'EUR_USD', 'CURRENCY', 1.10, 0.0016, 'tb+', 'FX MAJORS'), ('GBPUSD', 'GBP_USD', 'CURRENCY', 1.2, 0.0016, 'tb-', 'FX MAJORS'),
+    ('GBPJPY', 'GBP_JPY', 'CURRENCY', 185.0, 0.0016, 827, 'FX CROSSES'),
     ('AUDUSD', 'AUD_USD', 'CURRENCY', 0.68, 0.0016, 63, ''), ('EURCAD', 'EUR_CAD', 'CURRENCY', 1.48, 0.0016, 506, ''),
     ('USDZAR', 'USD_ZAR', 'CURRENCY', 18.2, 0.0016, 72, ''), ('XAUAUD', 'XAU_AUD', 'METAL', 3900.0, 0.0016, 636, 'METALS'),
     ('XAUUSD', 'XAU_USD', 'METAL', 2600.0, 0.0016, 1077, 'METALS'), ('US500', 'SPX500_USD', 'CFD', 5600.0, 0.0016, 4, 'INDICES'),
@@ -393,13 +468,15 @@ SELFTEST = [  # (Pepperstone symbol, OANDA name, type, start price, vol, seed, w
 
 def selftest_universe(seeds: Optional[Dict[str, int]] = None):
     import synth_fx
+    import textbook_fx
     insts, data = [], {}
     for sym, name, kind, start, vol, seed, grp in SELFTEST:
         seed = (seeds or {}).get(sym, seed)
         i = {'name': name, 'type': kind, 'pipLocation': -2 if name.endswith('JPY') or name.startswith('XAU') else (0 if kind == 'CFD' else -4),
              'displayPrecision': 3 if name.endswith('JPY') else (2 if name.startswith('XAU') or kind == 'CFD' else 5)}
         insts.append(i)
-        data[name] = synth_fx.instrument(seed, start=start, vol=vol)
+        data[name] = (textbook_fx.textbook(1 if seed == 'tb+' else -1) if isinstance(seed, str)
+                      else synth_fx.instrument(seed, start=start, vol=vol))
     wl = {'names': [n for (_, n, *_r, g) in SELFTEST if g], 'sections': {n: g for (_, n, *_r, g) in SELFTEST if g},
           'items': [{'symbol': f'PEPPERSTONE:{s}', 'instrument': n, 'section': g} for (s, n, *_r, g) in SELFTEST if g],
           'unmapped': [{'symbol': 'PEPPERSTONE:VIX', 'section': 'INDICES', 'note': 'not on OANDA'}], 'source': 'selftest'}
@@ -440,7 +517,11 @@ def main(argv=None) -> int:
     ap.add_argument('--selftest', action='store_true')
     ap.add_argument('--preview-telegram', action='store_true')
     ap.add_argument('--workers', type=int, default=int(os.environ.get('FX_WORKERS') or 4))
+    ap.add_argument('--notify-failure', default='', help='send one "FX scan failed" Telegram message (workflow steps)')
     a = ap.parse_args(argv)
+    if a.notify_failure:
+        notify_failure(a.notify_failure, load_state(), True)
+        return 0
     if a.selftest:
         return selftest(os.path.join(HERE, 'fixtures', 'sample'))
     if a.preview_telegram:
@@ -486,6 +567,9 @@ def main(argv=None) -> int:
     res = run(uni, oanda_bars, workers=a.workers)
     have = len(res['analyses'])
     print(f'analysed {have}/{len(uni)} in {time.time() - t0:.0f}s; {len(res["errors"])} errors')
+    if C.MISALIGNED_MN:
+        print(f'warning: {len(C.MISALIGNED_MN)} MN candle(s) not at the 1st 00:00 server time (accepted within 12 h), e.g. '
+              + ', '.join(sorted(C.MISALIGNED_MN)[:3]))
     for s, e in list(res['errors'].items())[:15]:
         print(f'  {s}: {e}')
     if have < max(1, C.MIN_COVERAGE * len(uni)):
@@ -506,17 +590,23 @@ def main(argv=None) -> int:
                     f"{pub['counts']['SELL']} SELL now. From here on only new events are sent, plus a daily summary.")
     else:
         msgs += N.alert_messages({**ev, 'h4': h4})
-    if a.summary or bootstrap or (d1 and d1 != state.get('summary_d1')):
+    if a.summary or (not a.only and (bootstrap or (d1 and d1 != state.get('summary_d1')))):
         msgs += N.summary_messages(pub)
         new_state['summary_d1'] = d1
+    ok = True
     if notify and msgs:
-        N.send(msgs)
+        ok = N.send(msgs) or not telegram_configured()
     elif msgs:
         for m in msgs:
             print(m + '\n' + '-' * 40)
-    if not a.only:
+    if not ok:
+        print('Telegram send failed: alert state kept, the events are sent again next run')
+        new_state = unsent_state(new_state, state)
+    if a.only:
+        new_state['last_h4'] = state.get('last_h4')        # a partial run never marks the H4 bar as scanned
+    else:
         new_state['last_h4'] = h4
-        save_state(new_state)
+    save_state(new_state)
     print(f'done in {time.time() - t0:.0f}s: {len(ev["signals"])} new signals, {len(ev["gone"])} cancelled, '
           f'{len(ev["zones"])} zone alerts, {len(msgs)} message(s)')
     return 0

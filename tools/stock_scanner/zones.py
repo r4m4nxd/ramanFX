@@ -182,6 +182,8 @@ def detect(S: Series, p=RAJA) -> List[Zone]:
             k += 1
         if k == 0 or max_base <= 0:
             continue
+        if p.get('base_strict') and k == p['max_base'] and L + 1 + k < S.n and S.basing(L + 1 + k):
+            continue                                   # L55: more than 6 base candles = not a zone (opt-in, FX)
         ratio = lr / max_base
         if ratio < p['min_leg_ratio']:
             continue
@@ -804,9 +806,12 @@ class Direction:
         return ('LONG' if self.side > 0 else 'SHORT') + (' - FULL' if self.q == 2 else ' - REDUCED')
 
 
-def dir_combine(e: Optional[Row], i: Optional[Row], h: Optional[Row], curve: Curve, p=RAJA) -> Direction:
+def dir_combine(e: Optional[Row], i: Optional[Row], h: Optional[Row], curve: Curve, p=RAJA, p1: Optional[Row] = None) -> Direction:
     """DirCombine for the Raja table (InpDirTable=3), one chain per entry TF: W1 entry = ETF W1, ITF MN, HTF 3M;
-    MN entry = MN, 3M, 3M; 3M entry = 3M, -, 3M (no Higher+1 row)."""
+    MN entry = MN, 3M, 3M; 3M entry = 3M, -, 3M (no Higher+1 row).
+    p1 = the optional Higher+1 row (InpDirPlus1, FX: MN for an H4 entry): its fresh zone locks the side when the HTF
+    row has none, and its trend against the side makes the direction REDUCED (MQH:1549, 1566-1570). None = the old
+    behaviour (stock scanner)."""
     D = Direction(curve=curve)
     side, q, realign = 0, 2, False
     h_side = trend_side(h)
@@ -816,6 +821,12 @@ def dir_combine(e: Optional[Row], i: Optional[Row], h: Optional[Row], curve: Cur
         if h_side == -side:
             q = 1
         D.notes.append(f"inside a fresh {h.tf} {'demand' if h.in_z > 0 else 'supply'}")
+    elif p1 is not None and p1.ok and p1.in_z != 0:
+        D.lock = p1.in_z
+        side = p1.in_z
+        if h_side == -side or trend_side(p1) == -side:
+            q = 1
+        D.notes.append(f"inside a fresh {p1.tf} {'demand' if p1.in_z > 0 else 'supply'}")
     if curve.ok:
         cv = -1 if curve.value >= p['curve_high'] else (1 if curve.value <= p['curve_low'] else 0)
         if cv < 0 and ath_curve_ok(curve, i, h):
@@ -846,6 +857,9 @@ def dir_combine(e: Optional[Row], i: Optional[Row], h: Optional[Row], curve: Cur
         if e is not None and e.cp >= 3 and e.cp_dir == side and q > 0:
             q -= 1
             D.notes.append(f'{e.tf} CP x{e.cp} in a row: do not chase')
+        if p1 is not None and q > 0 and row_side(p1) == -side:
+            q = min(q, 1)
+            D.notes.append(f'{p1.tf} {p1.state_name} disagrees')
     D.side, D.q, D.realign = side, (0 if side == 0 else q), realign
     D.dir = side if D.q > 0 else 0
     return D
@@ -921,10 +935,14 @@ def stop_buffer(h: float, tf: str, p=RAJA) -> float:
 
 
 def dna(S: Series, zs: List[Zone], i: int, tl: TLState, higher: List[Row], htf_opp_zones: List[Zone], curve: Curve,
-        htf_row: Optional[Row], tp_off_frac: float = 0.005, p=RAJA) -> DNA:
+        htf_row: Optional[Row], tp_off_frac: float = 0.005, p=RAJA, tp_off_abs: Optional[float] = None) -> DNA:
     """DNA of zs[i] on its own timeframe (treated as the chart TF, so the Raja arrival uses its own trendlines).
     higher = the rows above it in the stack (opposing fresh zones for the room), htf_opp_zones = the HtfOf zones for
-    the 'strong zone inside / next to an opposite HTF zone' veto."""
+    the 'strong zone inside / next to an opposite HTF zone' veto.
+    Opt-in (FX, default off = the stock scanner's behaviour): p['room_any'] counts every NOT REMOVED opposite zone of
+    the `higher` rows (tested ones too; the caller may pass lower rows as well) for the room; p['emo_touch'] counts an
+    emotional (news) candle's tap as a test (it is still ignored for removal); tp_off_abs = the target offset in price
+    units (FX: 7 pips) instead of tp_off_frac x the target."""
     z = zs[i]
     x = DNA()
     d, L, h, sa = z.dir, z.leg_bar, z.h, z.sa_bar
@@ -937,7 +955,7 @@ def dna(S: Series, zs: List[Zone], i: int, tl: TLState, higher: List[Row], htf_o
         a = adv(j)
         touch = a <= z.prox if d > 0 else a >= z.prox
         dep = d * (z.prox - a) / h * 100.0 if h > 0 else 0.0
-        if touch and S.emotional(j, p['emo_atr']):
+        if touch and not p.get('emo_touch') and S.emotional(j, p['emo_atr']):
             continue
         if touch:
             if not in_t and away:
@@ -986,7 +1004,7 @@ def dna(S: Series, zs: List[Zone], i: int, tl: TLState, higher: List[Row], htf_o
         if r is None or not r.ok:
             continue
         for o in r.zones:
-            if o.dir == d or not fresh_at(r.S, o):
+            if o.dir == d or (o.removed if p.get('room_any') else not fresh_at(r.S, o)):
                 continue
             if d * (o.prox - z.prox) <= 0:
                 continue
@@ -995,7 +1013,7 @@ def dna(S: Series, zs: List[Zone], i: int, tl: TLState, higher: List[Row], htf_o
     x.has_opp_htf, x.opp_htf, x.opp_htf_tf, x.opp_htf_dist = oh > 0, oh, oh_tf, oh_d
 
     def room(target):
-        off = tp_off_frac * target
+        off = tp_off_abs if tp_off_abs is not None else tp_off_frac * target
         return max(0.0, (d * (target - z.prox) - off) / risk)
     x.room_r = 99.0
     if x.has_opp:
@@ -1045,7 +1063,7 @@ def dna(S: Series, zs: List[Zone], i: int, tl: TLState, higher: List[Row], htf_o
     x.impulse = hsd == d
     x.code = ('ARR' if x.arrival else 'WOW' if x.wow else 'STR' if x.strong else 'OVL' if x.overlap
               else 'FLP' if x.flip else 'TST' if x.n_tests >= 1 else 'WK')
-    x.tp_off = tp_off_frac
+    x.tp_off = tp_off_frac if tp_off_abs is None else tp_off_abs
     # 250% projection (L5): only a target while the run-out has not reached it yet (after ~2.5x price corrects again)
     pj, hh = projection(S, z)
     if pj and d * (x.runout_px - pj) < 0:
@@ -1144,6 +1162,23 @@ def visit_touched(z: Zone, d1: Optional[Series], htf: Series, away: float = LOC_
     return False
 
 
+def forming_touched(z: Zone, fine: Optional[Series], htf: Series, key=None) -> bool:
+    """True when the HTF zone z was reached by a fine (lower-TF) CLOSED bar of the HTF period that is still forming,
+    or when price is inside it now. dna() counts tests on the zone TF's CLOSED bars only (shift 0 is a phantom bar),
+    so without this a D1 / W1 / MN zone hit this day / week / month still looks fresh (L1, L2, L52: fresh = first
+    touch only). `key(tf, date)` buckets a date into the zone's TF period (default period_key)."""
+    if z.removed or fine is None:
+        return False
+    k = key or period_key
+    last = k(z.tf, htf.T[1]) if htf.n > 1 else None
+    for j in range(1, fine.n):                         # newest closed fine bar first
+        if last is not None and k(z.tf, fine.T[j]) <= last:
+            break
+        if (fine.L[j] <= z.prox) if z.dir > 0 else (fine.H[j] >= z.prox):
+            return True
+    return z.lo <= fine.price <= z.hi
+
+
 @dataclass
 class Loc:
     ok: bool                 # the zone may give BUY / WATCH (a supply: an EXIT / short-side warning)
@@ -1182,7 +1217,7 @@ def chain_text(chain: List[dict]) -> str:
 
 
 def location(z: Zone, rows: dict, price: float, eligible, touched, tol: float = LOC_TOL, p=RAJA, htf_of=None,
-             soft_tfs=None, reach_pct=None, nd: int = 2) -> Loc:
+             soft_tfs=None, reach_pct=None, nd: int = 2, strict_chain: bool = False) -> Loc:
     """Owner's top-down rule (both sides mirrored): a W1 zone trades only inside an MN area, an MN zone only inside a
     3M area, a 3M zone is the top level.
       inside     the nearest eligible (strong ARR / WOW / STR, <= 3 touches, not removed) HTF zone of the same side
@@ -1197,7 +1232,10 @@ def location(z: Zone, rows: dict, price: float, eligible, touched, tol: float = 
       top        3M zone -> ok
     eligible(row, i) -> bool and touched(row, zone) -> bool are given by the caller (DNA type / visit touch).
     htf_of / soft_tfs / reach_pct / nd: another TF chain (FX: H4 -> D1 -> W1 -> MN, 3M context), its context levels,
-    their reach (% of price) and the price decimals of the texts; the defaults are the stock scanner's."""
+    their reach (% of price) and the price decimals of the texts; the defaults are the stock scanner's.
+    strict_chain (FX): the host's own location must succeed too, all the way up: a host with no strong HTF zone of
+    its own ('none') or no HTF history ('unknown') blocks instead of ending the chain (owner: MN -> W1 -> D1 -> H4,
+    every level touched). Default False = the stock scanner's behaviour."""
     htf_of = HTF_OF if htf_of is None else htf_of
     soft_tfs = SOFT_TFS if soft_tfs is None else soft_tfs
     reach_pct = SOFT_REACH_PCT if reach_pct is None else reach_pct
@@ -1237,9 +1275,10 @@ def location(z: Zone, rows: dict, price: float, eligible, touched, tol: float = 
     word = 'down' if d > 0 else 'up'
     tl_txt = f'; the {z.tf} {word} trendline is not crossed yet' if tl_open else ''
     if host is not None and host_t:
-        up = location(host, rows, price, eligible, touched, tol, p, htf_of, soft_tfs, reach_pct, nd)
-        chain = (up.chain[:-1] if up.code in ('inside', 'below', 'above', 'untouched') else []) + [_step(host, True, False, nd), me]
-        if up.code in ('below', 'above', 'untouched'):
+        up = location(host, rows, price, eligible, touched, tol, p, htf_of, soft_tfs, reach_pct, nd, strict_chain)
+        stops = ('below', 'above', 'untouched') + (('none', 'unknown') if strict_chain else ())
+        chain = (up.chain[:-1] if up.code in ('inside',) + stops else []) + [_step(host, True, False, nd), me]
+        if up.code in stops:
             return Loc(False, up.code, f'inside the touched {htf} {side} {f(host.prox)}–{f(host.dist)}, but {up.text}',
                        chain, host, up.pending, up.pending_pct, up.tl_open)
         return Loc(True, 'inside', f'inside the touched {htf} {side} {f(host.prox)}–{f(host.dist)}', chain, host)

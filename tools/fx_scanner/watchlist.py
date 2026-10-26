@@ -32,21 +32,22 @@ ALIAS = {
     'US30': 'US30_USD', 'DJI': 'US30_USD', 'NAS100': 'NAS100_USD', 'US100': 'NAS100_USD', 'NDX': 'NAS100_USD',
     'US500': 'SPX500_USD', 'SPX500': 'SPX500_USD', 'SPX': 'SPX500_USD', 'US2000': 'US2000_USD',
     'GER40': 'DE30_EUR', 'GER30': 'DE30_EUR', 'DE40': 'DE30_EUR', 'FRA40': 'FR40_EUR', 'EUSTX50': 'EU50_EUR',
-    'EU50': 'EU50_EUR', 'UK100': 'UK100_GBP', 'JPN225': 'JP225_USD', 'JP225': 'JP225_USD', 'AUS200': 'AU200_AUD',
+    'EU50': 'EU50_EUR', 'UK100': 'UK100_GBP', 'JPN225': ('JP225Y_JPY', 'JP225_USD'), 'JP225': ('JP225Y_JPY', 'JP225_USD'),
+    'AUS200': 'AU200_AUD', 'CHINAH': 'CHINAH_HKD',
     'HK50': 'HK33_HKD', 'CN50': 'CN50_USD', 'NETH25': 'NL25_EUR', 'SPA35': 'ESPIX_EUR', 'SWI20': 'CH20_CHF',
     # crypto (OANDA offers crypto only in some regions; checked against the account's list)
     'BTCUSD': 'BTC_USD', 'ETHUSD': 'ETH_USD', 'LTCUSD': 'LTC_USD', 'BCHUSD': 'BCH_USD',
     # the dollar index: computed from OANDA pairs (ICE formula, see synth_usdx in fxscan.py)
     'USDX': 'USDX', 'DXY': 'USDX',
     # not on OANDA
-    'CA60': None, 'CHINAH': None, 'SCI25': None, 'VIX': None, 'CATTLE': None, 'COCOA': None, 'COFFEE': None,
+    'CA60': None, 'SCI25': None, 'VIX': None, 'CATTLE': None, 'COCOA': None, 'COFFEE': None,
     'COTTON': None, 'LDSUGAR': None, 'GASOLINE': None, 'EURX': None, 'JPYX': None,
 }
 SYNTHETIC = {'USDX'}
 _REV: dict = {}
 for _k, _v in ALIAS.items():
-    if _v:
-        _REV.setdefault(_v, _k)
+    for _x in ((_v,) if isinstance(_v, str) else (_v or ())):
+        _REV.setdefault(_x, _k)
 
 
 def pepper_symbol(name: str) -> str:
@@ -97,20 +98,21 @@ def tv_ticker(sym: str) -> str:
 
 
 def map_symbol(sym: str, known: Optional[set] = None) -> Optional[str]:
-    """TradingView symbol -> OANDA instrument name, None when unmapped. `known` (names on the account) checks it and
-    tries the reversed pair."""
+    """TradingView symbol -> OANDA instrument name, None when unmapped. `known` (names on the account) checks it. The
+    reversed pair (SGD_CHF for CHFSGD) is NEVER used: its prices are the reciprocal, so demand / supply and BUY / SELL
+    would be inverted (see inverse_only)."""
     t = tv_ticker(sym)
     cands: List[str] = []
     if t in ALIAS:
-        if ALIAS[t] is None:
+        a = ALIAS[t]
+        if a is None:
             return None
-        if ALIAS[t] in SYNTHETIC:
-            return ALIAS[t]
-        cands.append(ALIAS[t])
+        if a in SYNTHETIC:
+            return a
+        cands.extend((a,) if isinstance(a, str) else a)
     m = re.fullmatch(r'([A-Z]{3})([A-Z]{3})', t)
     if m and m.group(1) in CURRENCIES and m.group(2) in CURRENCIES:
         cands.append(f'{m.group(1)}_{m.group(2)}')
-        cands.append(f'{m.group(2)}_{m.group(1)}')
     m3 = re.fullmatch(r'([A-Z]{3,5})(USD)', t)
     if m3 and not cands:
         cands.append(f'{m3.group(1)}_USD')               # crypto / other X-USD CFDs (checked against `known`)
@@ -124,6 +126,12 @@ def map_symbol(sym: str, known: Optional[set] = None) -> Optional[str]:
     return next((c for c in cands if c in known), None)
 
 
+def inverse_only(sym: str, known: Optional[set]) -> bool:
+    """The pair is not on the account but its inverse is (CHFSGD -> SGD_CHF)."""
+    m = re.fullmatch(r'([A-Z]{3})([A-Z]{3})', tv_ticker(sym))
+    return bool(known and m and f'{m.group(2)}_{m.group(1)}' in known and f'{m.group(1)}_{m.group(2)}' not in known)
+
+
 def load(known: Optional[set] = None) -> Dict:
     """{'source', 'items': [{section, symbol, instrument}], 'unmapped': [{symbol, section, note}], 'names': [instrument],
     'sections': {instrument: section}} (an instrument listed twice keeps its first section)."""
@@ -133,7 +141,8 @@ def load(known: Optional[set] = None) -> Dict:
         inst = map_symbol(sym, known)
         items.append({'section': sec, 'symbol': sym, 'instrument': inst})
         if inst is None:
-            unmapped.append({'symbol': sym, 'section': sec, 'note': 'not on OANDA'})
+            unmapped.append({'symbol': sym, 'section': sec,
+                             'note': 'only the inverse pair on OANDA (not used: levels would be inverted)' if inverse_only(sym, known) else 'not on OANDA'})
         else:
             sections.setdefault(inst, sec)
     return {'source': src, 'items': items, 'unmapped': unmapped, 'names': list(sections), 'sections': sections}

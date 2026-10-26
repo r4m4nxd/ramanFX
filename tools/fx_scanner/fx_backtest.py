@@ -108,6 +108,10 @@ class Q:
         return Bar(self.d, (self.bo + self.ao) / 2, (self.bh + self.ah) / 2, (self.bl + self.al) / 2, (self.bc + self.ac) / 2)
 
     @property
+    def bid(self) -> Bar:
+        return Bar(self.d, self.bo, self.bh, self.bl, self.bc)
+
+    @property
     def spread(self) -> float:
         return self.ac - self.bc
 
@@ -256,7 +260,7 @@ def run_instrument(inst: Dict, h4: List[Q], htf: Dict[str, List[Bar]], start: st
     expiry = expiry or EXPIRY_DAYS
     pip = C.pip_of(inst)
     ends = {tf: [bar_end(b.d, tf) for b in htf.get(tf, [])] for tf in ('D1', 'W1', 'MN')}
-    mids = [q.mid for q in h4]
+    bids = [q.bid for q in h4]                   # zones on BID bars, as the live scanner (MT4 / MT5 charts plot bid)
     sps = [q.spread for q in h4]
     seen = {v: set() for v in variants}
     active: Dict[str, List[Order]] = {v: [] for v in variants}
@@ -277,7 +281,7 @@ def run_instrument(inst: Dict, h4: List[Q], htf: Dict[str, List[Bar]], start: st
             partial = True
             break
         t = bar_end(q.d, 'H4')                   # the close of bar j = "now"
-        bars = {'H4': mids[max(0, j + 1 - C.KEEP_BARS['H4']):j + 1]}
+        bars = {'H4': bids[max(0, j + 1 - C.KEEP_BARS['H4']):j + 1]}
         for tf in ('D1', 'W1', 'MN'):
             k = bisect.bisect_right(ends[tf], t)
             bars[tf] = htf.get(tf, [])[max(0, k - C.KEEP_BARS[tf]):k]
@@ -420,18 +424,18 @@ def _parse_h4(raw: bytes) -> List[Tuple[list, str]]:
             continue
         try:
             b, a = c['bid'], c['ask']
-            row = [C.label(str(c['time']), 'H4')] + [float(b[k]) for k in 'ohlc'] + [float(a[k]) for k in 'ohlc']
+            row = [C.label(str(c['time']), 'H4', strict=False)] + [float(b[k]) for k in 'ohlc'] + [float(a[k]) for k in 'ohlc']
         except (KeyError, TypeError, ValueError):
             m = c.get('mid')
             if not m:
                 continue
-            row = [C.label(str(c['time']), 'H4')] + [float(m[k]) for k in 'ohlc'] * 2
+            row = [C.label(str(c['time']), 'H4', strict=False)] + [float(m[k]) for k in 'ohlc'] * 2
         out.append((row, str(c['time'])[:19] + 'Z'))
     return out
 
 
 def _parse_htf(raw: bytes, tf: str) -> List[Tuple[list, str]]:
-    return [([lbl, b.o, b.h, b.l, b.c], u) for lbl, b, _sp, u in O.parse_candles(raw, tf)]
+    return [([lbl, b.o, b.h, b.l, b.c], u) for lbl, b, _sp, u in O.parse_candles(raw, tf, strict=False)]
 
 
 def fetch_history(name: str, tf: str, get=None, start: str = HISTORY_START, log=None, max_pages: int = 40) -> List[list]:

@@ -37,8 +37,12 @@ ENTRY_TFS = ('H4', 'D1', 'W1', 'MN')                    # zone / entry timeframe
 CONTEXT_TFS = ('3M',)                                   # context level: blocks only when a strong zone is within reach
 HTF_OF = {'H4': 'D1', 'D1': 'W1', 'W1': 'MN', 'MN': '3M', '3M': None}
 LOWER_OF = {'MN': 'W1', 'W1': 'D1', 'D1': 'H4', 'H4': None}
-# Direction chain per entry TF (entry, intermediate, higher), one level up each: H4 -> D1 -> W1, ..., MN -> 3M -> 3M
-DIR_CHAIN = {'H4': ('H4', 'D1', 'W1'), 'D1': ('D1', 'W1', 'MN'), 'W1': ('W1', 'MN', '3M'), 'MN': ('MN', '3M', '3M')}
+# Direction chain per entry TF (entry, intermediate, higher[, higher+1]): Raja's table with ZoneVision's +1 row
+# (InpDirTable=3 + InpDirPlus1): H4 -> D1 -> W1 -> MN, D1 -> W1 -> MN, W1 -> MN -> 3M, MN -> 3M -> 3M
+DIR_CHAIN = {'H4': ('H4', 'D1', 'W1', 'MN'), 'D1': ('D1', 'W1', 'MN'), 'W1': ('W1', 'MN', '3M'), 'MN': ('MN', '3M', '3M')}
+# Set-and-forget limit orders only on these TFs (Raja L6 / L7 / L53: HTF zones are areas for direction and
+# location; enter on D1 / H4). A W1 / MN zone that passes every rule is a WATCH 'area' (drill down to D1 / H4).
+SIGNAL_TFS = ('H4', 'D1')
 GRAN = {'H4': 'H4', 'D1': 'D', 'W1': 'W', 'MN': 'M'}   # OANDA granularity
 TF_HOURS = {'H4': 4, 'D1': 24, 'W1': 168}
 # Stops: distal + % of the zone height per TF (owner's rule, extended to the FX chain)
@@ -51,12 +55,30 @@ APPROACH_H = _f('FX_APPROACH_H', 1.0)                   # BUY / SELL: price with
 NEAR_H = _f('FX_NEAR_H', 1.0)                           # lists: "approaching" = within 1.0x the zone height
 LEFT_BARS = int(_f('FX_LEFT_BARS', 6))                  # lists: "left" = touched in the last 6 H4 bars (one day)
 NEW_BARS = int(_f('FX_NEW_BARS', 6))                    # WATCH 'new': zone known within the last 6 H4 bars
-TP_OFFSET = _f('FX_TP_OFFSET_PCT', 0.05) / 100.0        # target 0.05% of price before the opposite proximal
+TP_OFFSET_PIPS = _f('FX_TP_OFFSET_PIPS', 7.0)           # target 7 pips before the opposite proximal (ZV InpTpOffsetPips)
+MIN_LEG_X = _f('FX_MIN_LEG_X', 2.0)                     # Raja L55: departure >= 2x the base for set and forget
+TL_FAR_PIPS = _f('FX_TL_FAR_PIPS', 25.0)                # Raja L4 / L107: a zone > 25 pips from its trendline breaks
+TL_MAX_TOUCHES = int(_f('FX_TL_MAX_TOUCHES', 3))        # the own trendline already touched 3x: the next (4th) breaks
+# HTF host: earlier visits allowed before the current one (Raja: MN 2nd / 3rd confirm, 4th breaks; D1 / W1 3rd
+# risky; ZoneVision RjA_TouchCap 2). Stricter reading: D1 / W1 1 earlier visit, MN / 3M 2.
+HOST_MAX_PRIOR = {'D1': 1, 'W1': 1, 'MN': 2, '3M': 2}
+HOST_MAX_DEPTH = _f('FX_HOST_MAX_DEPTH', 75.0)          # Kevin L13: a host penetrated > 75% of its height is out
+WEEKEND_FROM_H = int(_f('FX_WEEKEND_FROM_H', 12))       # Raja L53 / L7: no new H4 set and forget from Friday 12:00
+# Instruments that never get a BUY / SELL (levels not reliable enough vs Pepperstone): WATCH 'context' only
+CONTEXT_ONLY = {
+    'USDX': 'synthetic spot dollar index (OANDA pairs, wicks are an upper bound): Pepperstone USDX follows the ICE '
+            'futures, levels differ by a few tenths: context only',
+}
+FUTURES_CFD = ('BCO_USD', 'WTICO_USD', 'NATGAS_USD', 'XCU_USD', 'CORN_USD', 'WHEAT_USD', 'SOYBN_USD', 'SUGAR_USD')
+FUTURES_NOTE = ('futures-based CFD: OANDA and Pepperstone roll on different dates (and may quote in different units), '
+                'so roll gaps make false zones: context only until the levels are checked against Pepperstone')
+for _n in FUTURES_CFD:
+    CONTEXT_ONLY.setdefault(_n, FUTURES_NOTE)
 MAX_SPREAD_FRAC = _f('FX_MAX_SPREAD_FRAC', 0.10)        # skip a signal when spread > 10% of the stop distance
 INCLUDE_CFD = _b('FX_INCLUDE_CFD', False)               # OANDA CFDs (indices, commodities, bonds): off
 GOLD_USD_MIN_TF = os.environ.get('FX_GOLD_USD_MIN_TF') or 'D1'   # Raja: no XAU_USD on low TFs (H4 blocked)
 DEDUPE_HOURS = _f('FX_DEDUPE_HOURS', 24)                # a zone event (enter / approach) is re-sent at most daily
-MAX_TOUCHES = 3
+MAX_TOUCHES = 3                                         # lists / detail only (a host uses HOST_MAX_PRIOR)
 STRONG = ('ARR', 'WOW', 'STR')
 
 # ---- data ------------------------------------------------------------------------------------------------------------
@@ -100,13 +122,22 @@ def digits_of(inst: Dict) -> int:
     return 3 if name.endswith('_JPY') else 5
 
 
+# Metal pips as on Pepperstone MT4 / MT5 and ZoneVision (InpPipXAU=0.1): OANDA's pipLocation says 0.01 for gold
+# and 0.0001 for silver, which made the 3-pip minimum stop $0.03 on gold and the "pips" 10x / 100x the chart's.
+PIP_OVERRIDE = {'XAU': 0.1, 'XAG': 0.01, 'XPT': 0.1, 'XPD': 0.1}
+
+
 def pip_of(inst: Dict) -> float:
-    """Pip size = 10 ** pipLocation (OANDA): 0.0001 for most pairs, 0.01 for JPY quotes and gold."""
+    """Pip size: metals as on Pepperstone MT5 (gold 0.1, silver 0.01, XAU_JPY = 10 ** pipLocation); otherwise
+    10 ** pipLocation (OANDA): 0.0001 for most pairs, 0.01 for JPY quotes."""
+    n = inst['name']
+    a, _, b = n.partition('_')
+    if a in PIP_OVERRIDE and b not in ('JPY',):
+        return PIP_OVERRIDE[a]
     pl = inst.get('pipLocation')
     if isinstance(pl, int):
         return 10.0 ** pl
-    n = inst['name']
-    return 0.01 if n.endswith('_JPY') or n.startswith(('XAU_', 'XPT_', 'XPD_')) else 0.0001
+    return 0.01 if n.endswith('_JPY') else 0.0001
 
 
 def pips(diff: float, inst: Dict) -> float:
@@ -170,10 +201,38 @@ def fx_time(utc: dt.datetime) -> dt.datetime:
     return utc + dt.timedelta(hours=ny_offset(utc) + 7)
 
 
-def label(utc_s: str, tf: str) -> str:
-    """The bar label of an OANDA candle time: forex time, snapped to the period start (robust to the alignment OANDA
-    uses for weeks and months)."""
+class Misaligned(ValueError):
+    """An OANDA candle that does not start on a Pepperstone server-time boundary (its content would differ)."""
+
+
+MISALIGNED_MN: set = set()          # MN candle times seen off the 1st 00:00 (accepted within 12 h, logged once)
+
+
+def label(utc_s: str, tf: str, strict: bool = True) -> str:
+    """The bar label of an OANDA candle time: forex time, snapped to the period start. strict (default): H4 / D1 / W1
+    candles must start exactly on a server-time boundary (H4 00/04/../20, D1 00:00, W1 Saturday 00:00 = Friday 17:00
+    New York) and MN within 12 h of the 1st 00:00, else Misaligned is raised (the bar would not match the Pepperstone
+    bar; the caller drops the instrument). An MN start off by less than 12 h is accepted and remembered in
+    MISALIGNED_MN."""
     t = fx_time(parse_utc(utc_s))
+    if strict:
+        off = None
+        if tf == 'H4' and (t.minute or t.second or t.hour % 4):
+            off = 'H4'
+        elif tf == 'D1' and (t.hour or t.minute or t.second):
+            off = 'D1'
+        elif tf == 'W1' and (t.weekday() != 5 or t.hour or t.minute or t.second):
+            off = 'W1'
+        elif tf == 'MN':
+            s = t + dt.timedelta(hours=12)
+            start = dt.datetime(s.year, s.month, 1)
+            gap = abs((t - start).total_seconds())
+            if gap > 12 * 3600:
+                off = 'MN'
+            elif gap:
+                MISALIGNED_MN.add(str(utc_s)[:19])
+        if off:
+            raise Misaligned(f'{tf} candle at {str(utc_s)[:19]}Z = server time {t:%Y-%m-%d %H:%M} is not on a {tf} boundary')
     if tf == 'MN':
         t = t + dt.timedelta(days=3)
         return f'{t.year:04d}-{t.month:02d}-01T00:00'

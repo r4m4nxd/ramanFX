@@ -87,7 +87,7 @@ class Instruments(unittest.TestCase):
         self.assertEqual(W.map_symbol('PEPPERSTONE:SPOTCRUDE'), 'WTICO_USD')
         self.assertEqual(W.map_symbol('PEPPERSTONE:GER40'), 'DE30_EUR')
         self.assertIsNone(W.map_symbol('PEPPERSTONE:VIX'))
-        self.assertEqual(W.map_symbol('FX:USDEUR', {'EUR_USD'}), 'EUR_USD')       # reversed pair on the account
+        self.assertIsNone(W.map_symbol('FX:USDEUR', {'EUR_USD'}))                 # the reversed pair is never used
         self.assertIsNone(W.map_symbol('PEPPERSTONE:ADAUSD', {'EUR_USD'}))
         self.assertEqual(W.pepper_symbol('WTICO_USD'), 'SPOTCRUDE')
         self.assertEqual(W.pepper_symbol('EUR_USD'), 'EURUSD')
@@ -136,7 +136,7 @@ class Oanda(unittest.TestCase):
         rows = O.parse_candles(raw, 'H4')
         self.assertEqual(len(rows), 1)
         lbl, b, sp, utc = rows[0]
-        self.assertEqual((lbl, b.c), ('2026-10-26T04:00', 1.15))
+        self.assertEqual((lbl, b.c), ('2026-10-26T04:00', 1.14995))              # BID bars (the MT4 / MT5 chart)
         self.assertAlmostEqual(sp, 0.0001)
 
     def test_url_alignment(self):
@@ -144,7 +144,7 @@ class Oanda(unittest.TestCase):
         q = dict(urllib.parse.parse_qsl(u.query))
         self.assertEqual(u.netloc, 'api-fxpractice.oanda.com')
         self.assertEqual((q['granularity'], q['price'], q['alignmentTimezone'], q['dailyAlignment'], q['weeklyAlignment']),
-                         ('H4', 'MBA', 'America/New_York', '17', 'Friday'))
+                         ('H4', 'BA', 'America/New_York', '17', 'Friday'))
         self.assertEqual(q['from'], '2026-10-26T01:00:00Z')
         self.assertEqual(dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(O.candles_url('EUR_USD', 'MN')).query))['granularity'], 'M')
         os.environ['OANDA_ENV'] = 'live'
@@ -171,7 +171,7 @@ class Oanda(unittest.TestCase):
 
     def test_skip_when_nothing_new(self):
         recent = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=1)).strftime('%Y-%m-%dT%H:00:00Z')
-        O.save('EUR_USD', 'H4', {'bars': [['2026-10-26T04:00', 1, 1, 1, 1, 0]], 'last_utc': recent})
+        O.save('EUR_USD', 'H4', {'bars': [['2026-10-26T04:00', 1, 1, 1, 1, 0]], 'last_utc': recent, 'price': O.PRICE})
         bars, _ = O.update('EUR_USD', 'H4', self.fake([]))
         self.assertEqual(len(bars), 1)
         self.assertEqual(self.urls, [])
@@ -207,15 +207,18 @@ class Rules(unittest.TestCase):
 
     def test_located_buy_and_stop_rule(self):
         s = next(s for s in self.res['signals'] if s['sym'] == 'EURUSD' and s['kind'] == 'BUY')
-        self.assertEqual(s['tf'], 'W1')
+        self.assertEqual(s['tf'], 'H4')
         self.assertTrue(s['loc_ok'])
         self.assertEqual(s['loc'], 'inside')
-        self.assertIn('MN demand', s['chain_text'])
-        self.assertIn('touched ✓', s['chain_text'])
+        for tf in ('MN demand', 'W1 demand', 'D1 demand'):
+            self.assertIn(tf + ' ', s['chain_text'])
+        self.assertEqual(s['chain_text'].count('touched ✓'), 3)
         h = s['proximal'] - s['distal']
-        self.assertAlmostEqual(s['stop'], round(s['distal'] - max(0.05 * h, 3 * 0.0001), 5), places=5)   # W1: 5% of the height, min 3 pips
+        self.assertAlmostEqual(s['stop'], round(s['distal'] - max(0.15 * h, 3 * 0.0001), 5), places=5)   # H4: 15% of the height, min 3 pips
+        self.assertAlmostEqual(s['entry'], round(s['proximal'] + 0.6 * 0.0001, 5), places=5)         # buy limit = proximal + spread
         self.assertEqual(s['rules'][0]['short'], 'location')
         self.assertTrue(all(r['status'] != 'fail' for r in s['rules']))
+        self.assertTrue(all(x['tf'] in C.SIGNAL_TFS for x in self.res['signals']))   # never a W1 / MN limit
 
     def test_sell_side(self):
         s = next(s for s in self.res['signals'] if s['kind'] == 'SELL')
