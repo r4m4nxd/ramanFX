@@ -73,10 +73,10 @@ function SyncPill() {
   const syncNow = useStore(s => s.syncNow);
   const v = useSyncView();
   const nav = useNavigate();
-  if (!user) return <button className="btn-ghost h-9 w-9 px-0 text-ink3" aria-label="Local only — sign in to sync" title="Local only" onClick={() => nav('/settings')}><Icon name="cloud" size={16} /></button>;
+  if (!user) return <button className="btn-ghost h-9 w-9 touch:h-11 touch:w-11 px-0 text-ink3" aria-label="Local only — sign in to sync" title="Local only" onClick={() => nav('/settings')}><Icon name="cloud" size={16} /></button>;
   const loud = v.kind === 'error';
   return (
-    <button className={cx('btn-ghost h-9 text-xs', loud ? 'px-3' : 'w-9 px-0', v.tone)} aria-label={v.label} title={syncTitle(sync)} onClick={() => syncNow()}>
+    <button className={cx('btn-ghost h-9 touch:h-11 text-xs', loud ? 'px-3' : 'w-9 touch:w-11 px-0', v.tone)} aria-label={v.label} title={syncTitle(sync)} onClick={() => syncNow()}>
       <span className="relative inline-flex">
         <Icon name={v.icon} size={16} className={cx(v.kind === 'syncing' && 'animate-spin motion-reduce:animate-none')} />
         {v.kind === 'ok' && <span className="absolute -right-0.5 -bottom-0.5 w-1.5 h-1.5 rounded-full bg-profit ring-2 ring-bg" />}
@@ -372,8 +372,8 @@ export function Shell({ children }: { children: ReactNode }) {
                 {scoped && <><AccountPicker /><RangePicker className="shrink-0 min-w-[132px]" /></>}
               </div>
               <span className="md:hidden land:hidden"><SyncPill /></span>
-              <button className="btn-ghost w-9 px-0" aria-label={privacy ? 'Show amounts' : 'Hide amounts'} aria-pressed={privacy} onClick={togglePrivacy}><Icon name={privacy ? 'eyeOff' : 'eye'} /></button>
-              <button className="btn-ghost w-9 px-0" aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}><Icon name={theme === 'dark' ? 'sun' : 'moon'} /></button>
+              <button className="btn-ghost w-9 touch:w-11 touch:h-11 px-0" aria-label={privacy ? 'Show amounts' : 'Hide amounts'} aria-pressed={privacy} onClick={togglePrivacy}><Icon name={privacy ? 'eyeOff' : 'eye'} /></button>
+              <button className="btn-ghost w-9 touch:w-11 touch:h-11 px-0" aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}><Icon name={theme === 'dark' ? 'sun' : 'moon'} /></button>
               {/* Quiet once there's a journal: importing is occasional, so the accent stays for each page's own main action. */}
               {/* Morph: the button grows into the import panel and shrinks back into it on close. */}
               {importOpen

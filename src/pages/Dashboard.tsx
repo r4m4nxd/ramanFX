@@ -122,7 +122,7 @@ function Checklist() {
   const done = items.filter(i => today[i]).length;
   return (
     <Card>
-      <CardHead title="Pre-session checklist" sub={`${done} of ${items.length} done today`} right={<Link to="/risk" className="text-xs text-accent hover:underline inline-block py-2 -my-2">Edit</Link>} />
+      <CardHead title="Pre-session checklist" sub={`${done} of ${items.length} done today`} right={<Link to="/risk" className="text-xs text-accent hover:underline inline-flex items-center min-h-11 px-3 -mx-3 -my-3">Edit</Link>} />
       <Bar value={items.length ? done / items.length : 0} className="mb-3" />
       <ul className="flex flex-col">
         {items.map(it => {

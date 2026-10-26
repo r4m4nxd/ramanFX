@@ -292,15 +292,15 @@ export default function Learn() {
         <aside className={cx('min-w-0 flex flex-col gap-3 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)]', lesson && 'max-lg:hidden')}>
           <Card>
             <div className="label mb-2">Mentor</div>
-            <div role="radiogroup" aria-label="Mentor" className="flex flex-col gap-1">
+            <div role="radiogroup" aria-label="Mentor" className="grid grid-cols-2 gap-1 lg:flex lg:flex-col">
               {opts.map(({ k, short, count }) => (
                 <button key={k} type="button" role="radio" aria-checked={k === src} onClick={() => { setQ(''); setSp(k === 'course' ? {} : { src: k }); }}
-                  className={cx('flex items-center justify-between w-full px-3 py-2 rounded-lg text-[13px] text-left transition-colors', k === 'glossary' && 'mt-1 border-t border-line rounded-t-none pt-2.5', k === src ? 'bg-accent/15 text-ink font-semibold ring-1 ring-accent/40' : 'text-ink2 hover:bg-raised/60')}>
-                  <span className="inline-flex items-center gap-2">{k === 'glossary' && <Icon name="search" size={13} className="text-ink3" />}{short}</span><span className="num text-[12px] text-ink3">{count}</span>
+                  className={cx('flex items-center justify-between gap-2 min-w-0 w-full px-3 py-2 touch:min-h-11 rounded-lg text-[13px] text-left transition-colors', k === 'glossary' && 'col-span-2 lg:mt-1 lg:border-t lg:border-line lg:rounded-t-none lg:pt-2.5', k === src ? 'bg-accent/15 text-ink font-semibold ring-1 ring-accent/40' : 'text-ink2 hover:bg-raised/60')}>
+                  <span className="inline-flex items-center gap-2 min-w-0">{k === 'glossary' && <Icon name="search" size={13} className="text-ink3 shrink-0" />}<span className="leading-snug">{short}</span></span><span className="num text-[12px] text-ink3">{count}</span>
                 </button>
               ))}
               <button type="button" role="radio" aria-checked={review} onClick={() => { setQ(''); setSp({ src: 'review' }); }}
-                className={cx('flex items-center justify-between w-full px-3 py-2 rounded-lg text-[13px] text-left transition-colors', review ? 'bg-accent/15 text-ink font-semibold ring-1 ring-accent/40' : 'text-ink2 hover:bg-raised/60')}>
+                className={cx('col-span-2 flex items-center justify-between w-full px-3 py-2 touch:min-h-11 rounded-lg text-[13px] text-left transition-colors', review ? 'bg-accent/15 text-ink font-semibold ring-1 ring-accent/40' : 'text-ink2 hover:bg-raised/60')}>
                 <span className="inline-flex items-center gap-2"><Icon name="layers" size={13} className="text-ink3" />Review flashcards</span>
                 <span className={cx('num text-[11.5px] rounded-full px-2 h-5 inline-flex items-center', due ? 'bg-accent text-on-accent font-semibold' : 'text-ink3')}>{due} due</span>
               </button>

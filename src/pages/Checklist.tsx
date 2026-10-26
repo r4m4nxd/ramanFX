@@ -74,8 +74,8 @@ function StageJump({ list, jump }: { list: Checklist; jump: (id: string) => void
   return (
     <nav aria-label="Jump to stage" className="flex flex-wrap gap-1.5">
       {list.stages.map(s => (
-        <button key={s.id} type="button" onClick={() => jump(s.id)} title={s.title}
-          className={cx('press h-9 min-w-9 px-2.5 rounded-full text-[12.5px] font-semibold border transition-colors', s.kind === 'never' ? 'border-loss/30 text-loss bg-loss/5' : s.kind === 'visual' ? 'border-violet/30 text-violet bg-violet/5' : 'border-line2 text-ink2 bg-raised/50')}>
+        <button key={s.id} type="button" onClick={() => jump(s.id)} title={s.title} aria-label={`Jump to ${stageLabel(s)}`}
+          className={cx('press h-9 min-w-9 touch:h-11 touch:min-w-11 px-2.5 rounded-full text-[12.5px] font-semibold border transition-colors', s.kind === 'never' ? 'border-loss/30 text-loss bg-loss/5' : s.kind === 'visual' ? 'border-violet/30 text-violet bg-violet/5' : 'border-line2 text-ink2 bg-raised/50')}>
           {s.kind === 'never' ? 'Never' : s.kind === 'visual' ? 'See it' : s.n}
         </button>
       ))}

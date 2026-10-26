@@ -68,8 +68,8 @@ export function MonthCalendar({ days, onDay, compact = false, initial, onMonthCh
           </div>
         </div>
         <div className="flex gap-1 shrink-0">
-          <button className="btn w-9 px-0" aria-label="Previous month" onClick={() => setCursor(new Date(y, m - 1, 1))}><Icon name="chevronLeft" size={15} /></button>
-          <button className="btn w-9 px-0" aria-label="Next month" onClick={() => setCursor(new Date(y, m + 1, 1))}><Icon name="chevronRight" size={15} /></button>
+          <button className="btn w-9 touch:w-11 touch:h-11 px-0" aria-label="Previous month" onClick={() => setCursor(new Date(y, m - 1, 1))}><Icon name="chevronLeft" size={15} /></button>
+          <button className="btn w-9 touch:w-11 touch:h-11 px-0" aria-label="Next month" onClick={() => setCursor(new Date(y, m + 1, 1))}><Icon name="chevronRight" size={15} /></button>
         </div>
       </div>
       <div className={cx('grid', small ? 'gap-1' : 'gap-1.5')} style={{ gridTemplateColumns: `repeat(${cols + (small ? 0 : 1)}, minmax(0, 1fr))` }}>

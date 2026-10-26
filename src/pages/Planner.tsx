@@ -344,7 +344,7 @@ function Wizard({ initial, onDone }: { initial: Plan; onDone: (p: Plan | null) =
       <Card className="p-0">
         <div className="px-5 pt-4 pb-3 border-b border-line rounded-t-xl">
           <div className="flex items-center gap-2">
-            <button className="btn-ghost h-8 w-8 px-0 -ml-2" onClick={() => onDone(null)} aria-label="Close planner"><Icon name="x" size={16} /></button>
+            <button className="btn-ghost h-8 w-8 touch:h-11 touch:w-11 px-0 -ml-2" onClick={() => onDone(null)} aria-label="Close planner"><Icon name="x" size={16} /></button>
             <div className="font-semibold min-w-0 truncate">{initial.retro ? 'Grade this trade' : 'Plan a trade'}{p.symbol && <span className="text-ink3 font-normal"> · {p.symbol} {p.side === 'buy' ? 'long' : 'short'}</span>}</div>
             <span className="ml-auto text-xs text-ink3 num shrink-0">{step + 1}/{STEPS.length}</span>
           </div>
