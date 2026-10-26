@@ -1,14 +1,1 @@
-{
- "version": 1,
- "fixture": false,
- "date": "",
- "generated_at": "",
- "universe": 0,
- "scanned": 0,
- "errors": 0,
- "rules": "Raja (ZoneVision Raja template): D1 / W1 zones, direction D1 -> W1 -> MN, curve, room. Kevin second.",
- "disclaimer": "Rule-based scan, not financial advice. Untested on stocks until the backtest says otherwise.",
- "counts": {"BUY": 0, "WATCH": 0, "EXIT": 0},
- "signals": [],
- "exits": []
-}
+{"version":1,"fixture":false,"date":"","generated_at":"2026-10-26T07:49:22Z","universe":518,"scanned":0,"errors":518,"rules":"Raja (ZoneVision Raja template): D1 / W1 zones, direction D1 -> W1 -> MN, curve, room. Kevin second.","disclaimer":"Rule-based scan, not financial advice. Untested on stocks until the backtest says otherwise.","counts":{"BUY":0,"WATCH":0,"EXIT":0},"universes":["DJI","NDX","SPX"],"index_sizes":{"SPX":503,"NDX":101,"DJI":30,"RUT":0},"filtered_liquidity":0,"liquidity_rule":"Russell 2000-only names need price >= $5 and 20-day average dollar volume >= $5M","rut_snapshot":"","partial":false,"regime":[],"rfx_index":null,"signals":[],"bars":{},"exits":[]}
