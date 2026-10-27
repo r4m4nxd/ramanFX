@@ -188,8 +188,8 @@ class OutputTest(unittest.TestCase):
         with contextlib.redirect_stdout(buf):
             self.assertEqual(selftest.main(), 0)
         out = buf.getvalue()
-        self.assertIn('BUY <b>SYN', out)
-        self.assertIn('Not financial advice', out)
+        self.assertIn('  BUY ', out)
+        self.assertIn('not advice', out)
 
 
 if __name__ == '__main__':

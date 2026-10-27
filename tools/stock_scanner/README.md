@@ -51,7 +51,7 @@ Standard library only (Python 3.10+). No `pip install`.
      (data.sec.gov, the fundamentals) works without it; `www.sec.gov/files/company_tickers.json` (CIKs the index
      lists do not give) answers 403 without a contact, so without `SEC_UA` that lookup is
      skipped with a one-line hint and those tickers show fundamentals n/a. Read from the secret only, never written.
-3. Optional repository **variables**: `SCANNER_UNIVERSES` (default `SPX,NDX,DJI,TSX60,TSX`), `TELEGRAM_TOP_N` (default 5),
+3. Optional repository **variables**: `SCANNER_UNIVERSES` (default `SPX,NDX,DJI,TSX60,TSX`), `TELEGRAM_TOP_N` (trade cards, default and max 3),
    `SCANNER_TSX_FEED` (empty; `eodhd` + the secret `EODHD_API_KEY` switches the paid TSX feed on, see Canada).
 4. Actions tab → **Stock scan** → *Run workflow* once to test. The first run downloads up to 20 years for every ticker (Alpaca serves from 2016: ~43 quarterly and ~21 half-year bars; MN / 3M zones need the long history)
    from Alpaca in batches of 100 symbols (~10,000 bars per page, a few hundred requests, a few minutes at Alpaca's
@@ -77,9 +77,10 @@ status (BUY / WATCH, or the first rule that blocks a BUY on that zone; supply: t
 `mb` (bucket code IS / AS / LS / M / LD / AD / ID), `mz` ([tf, type, score, touches, %, proximal]), `mr` (status) and `ml` ([location code, location text], the zone's
 top-down HTF location; list items carry `loc` / `loc_text`, signals `loc`, `loc_ok`, `loc_text`, `chain`,
 `chain_text`, `m3`, `m6`, `ctx6`; details `m3`, `m6`, `ctx6`, `tfs`, `curve_tf`, zones `loc` / `loc_text`);
-older files without them fall back to `dz` / `sz` / `br` (nearest fresh zones, no "left" buckets). Telegram sends a
-DEMAND and a SUPPLY message every day: top `TELEGRAM_LIST_CAP` (15) per section by zone score, grouped by sector,
-"+N more on the app" linking to `/scanner?view=map&b=<bucket>`. Preview without sending:
+older files without them fall back to `dz` / `sz` / `br` (nearest fresh zones, no "left" buckets). Telegram sends ONE
+calm message a day: the answer first (`1 BUY · 3 WATCH · nothing to exit`), at most 3 two-line trade cards in plain
+words, the zone lists / market / "why not more" in one collapsed expandable quote (≤ 15 short lines, "+N more in the
+app"), a chart button per card and "Open scanner". Preview without sending:
 `python tools/stock_scanner/scan.py --preview-telegram` (reads `public/scanner`, rebuilds the lists from the shards
 when the file predates them).
 
@@ -113,7 +114,7 @@ Env: `ALPACA_KEY_ID`, `ALPACA_SECRET_KEY` (without them: Yahoo / Stooq only, whi
 `ALPACA_BATCH_COLD` (100), `ALPACA_BATCH_UPDATE` (200), `SCANNER_MIN_COVERAGE` (0.5),
 `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `HOLDINGS_JSON`, `WATCHLIST`, `WATCHLIST_APPROACH_PCT`, `SEC_UA`, `SCANNER_UNIVERSES`, `SCANNER_WORKERS`,
 `SCANNER_PAUSE` (seconds between requests per host, default 0.15), `SCANNER_DIAG_PCT` (5), `SCANNER_TSX_FEED`,
-`EODHD_API_KEY`, `TELEGRAM_TOP_N` (5), `SCANNER_APP_URL`.
+`EODHD_API_KEY`, `TELEGRAM_TOP_N` (3), `SCANNER_APP_URL`.
 
 **Bounded runtime**: `SCANNER_BUDGET_MIN` (50) is a global time budget: after it no new download starts, queued
 tickers use their stale cache and the scan, write and notify go on with what there is (`latest.json` gets

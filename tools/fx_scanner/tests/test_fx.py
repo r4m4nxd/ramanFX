@@ -283,7 +283,7 @@ class Rules(unittest.TestCase):
         self.assertEqual(len(ev3['gone']), 1)
         self.assertTrue(ev3['gone'][0]['reason'])
         msgs = N.alert_messages({**ev3, 'h4': '2026-10-23T16:00'})
-        self.assertTrue(msgs and 'Cancelled' in msgs[0])
+        self.assertTrue(len(msgs) == 1 and '🚪 <b>' in msgs[0] and ' cancel ' in msgs[0])
 
     def test_zone_alerts_watchlist_only(self):
         ev, _ = X.events(self.res, {'signals': {}}, dt.datetime(2026, 10, 23, 21, 5))
@@ -294,24 +294,61 @@ class Rules(unittest.TestCase):
         pub, _ = X.public(self.res, '2026-10-23T16:00')
         msgs = N.summary_messages(pub)
         self.assertTrue(msgs)
+        self.assertEqual(len(msgs), 1)
         self.assertTrue(all(N.u16(m) <= 4096 for m in msgs))
-        self.assertIn('Chain:', msgs[0])
+        vis = N.SN.visible(msgs[0])
+        self.assertLessEqual(vis.count(' R:R '), 3)
+        for tok in N.SN.JARGON:
+            self.assertNotIn(tok, vis)
+        self.assertEqual(msgs[0].count('<blockquote expandable>'), 1)
 
 
     def test_h4_digest(self):
         pub, _ = X.public(self.res, '2026-10-26T20:00')
         ev, _ = X.events(self.res, {'signals': {}}, dt.datetime(2026, 10, 26, 21, 5))
         m = N.digest_message(pub, ev)
-        self.assertIn('FX H4 digest', m)
-        self.assertIn('Tue 00:00 server', m)
-        self.assertIn('Mon 17:00 Toronto', m)
-        self.assertLess(len(m), 1500)
-        quiet = N.digest_message(pub, {})
-        self.assertIn('No new setups', quiet)
-        wl = [r for side in pub['lists'].values() for sec in ('in', 'near') for r in side[sec] if r['wl'] and r['loc_ok']]
-        self.assertLessEqual(quiet.count('pips from') + quiet.count(' inside '), 5)
-        if not wl:
-            self.assertIn('No watchlist instrument', quiet)
+        self.assertTrue(m.startswith('🕐 <b>4H check · 17:00 Toronto</b>'))   # Tue 00:00 server = Mon 17:00 EDT
+        vis = N.SN.visible(m)
+        self.assertLessEqual(vis.count(' R:R '), 3)
+        self.assertIn(' new', vis.split('\n')[1])
+        for tok in N.SN.JARGON:
+            self.assertNotIn(tok, vis)
+        self.assertLess(N.u16(m), 4096)
+        self.assertLessEqual(len(m.buttons), 2)
+        self.assertTrue(all(b['url'].startswith('https://www.tradingview.com/chart/?symbol=PEPPERSTONE:') for b in m.buttons[0]))
+        self.assertEqual(m.buttons[-1][0]['url'], C.APP_URL)
+        self.assertEqual(len({b['text'] for b in m.buttons[0]}), len(m.buttons[0]))   # one chart per symbol
+
+    def test_h4_digest_quiet_is_four_lines(self):
+        pub, _ = X.public(self.res, '2026-10-26T20:00')
+        quiet = dict(pub, signals=[], watch=[], counts=dict(pub['counts'], BUY=0, SELL=0, WATCH=0))
+        m = N.digest_message(quiet, {})
+        vis = N.SN.visible(m).strip()
+        self.assertLessEqual(len(vis.split('\n')), 4)
+        self.assertIn('No new setups · ', vis)
+        self.assertRegex(vis, r'(\d+ near a good zone ⏳|nothing close yet)')
+        self.assertEqual(m.count('<blockquote expandable>'), 1)
+
+    def test_instant_alert_is_one_short_message(self):
+        ev, _ = X.events(self.res, {'signals': {}}, dt.datetime(2026, 10, 23, 21, 5))
+        msgs = N.alert_messages({**ev, 'h4': '2026-10-23T16:00'})
+        self.assertEqual(len(msgs), 1)
+        vis = N.SN.visible(msgs[0])
+        self.assertTrue(vis.startswith('⚡ <b>New: '))
+        self.assertLessEqual(vis.count(' R:R '), 3)
+        for tok in N.SN.JARGON:
+            self.assertNotIn(tok, vis)
+        zones_only = N.alert_messages({'zones': ev['zones'][:2], 'h4': '2026-10-23T16:00'})
+        if ev['zones']:
+            self.assertEqual(len(zones_only), 1)
+            self.assertNotIn('<blockquote', zones_only[0].split('FX · 4H')[1].split('\n\n')[1])
+        self.assertEqual(N.alert_messages({'h4': 'x'}), [])
+
+    def test_preview_messages(self):
+        pub, _ = X.public(self.res, '2026-10-23T16:00')
+        out = N.preview_messages(pub)
+        self.assertEqual(set(out), {'instant alert', 'H4 digest (everything new)', 'H4 digest (nothing new)', 'daily summary'})
+        self.assertTrue(all(len(v) <= 1 for v in out.values()))
 
 
 class Schedule(unittest.TestCase):

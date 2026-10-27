@@ -220,17 +220,78 @@ class NotifyTest(unittest.TestCase):
                 'target': 9.0, 'rr': 6.4, 'curve': 10.0, 'direction': 'LONG - FULL', 'w1': 'UP', 'mn': 'UP', 'score': i % 10,
                 'rules': [{'status': 'pass', 'text': 'x' * 50, 'ref': 'L1', 'short': 'fresh'}] * 13}
 
-    def test_grouped_by_sector_capped_and_escaped(self):
-        res = {'date': '2026-10-23', 'scanned': 500, 'signals': [self.sig(i, kind='BUY') for i in range(30)] + [self.sig(i, 'Utilities') for i in range(3)], 'exits': []}
+    def test_one_calm_message_max_three_cards(self):
+        res = {'date': '2026-10-23', 'generated_at': '2026-10-23T21:05:00Z', 'scanned': 500,
+               'signals': [dict(self.sig(i, kind='BUY'), chart=f'https://tv/T{i}') for i in range(30)] + [self.sig(i, 'Utilities') for i in range(3)],
+               'exits': [], 'blocked': {'reasons': [{'rule': 'location', 'label': 'HTF area not reached', 'count': 9}]}}
         msgs = notify.build_messages(res, top=5)
-        self.assertIn('BUYs by sector: Energy 30', msgs[0])
-        energy = [m for m in msgs if '<b>Energy</b>' in m]
-        self.assertEqual(sum(m.count('🟢 BUY') for m in energy), 5)          # top 5 by score
-        self.assertIn('+25 more: full list', ''.join(energy))
-        self.assertIn('score 9/10', energy[0])
-        self.assertIn('A&lt;B &amp; Co', ''.join(msgs))
-        self.assertTrue(msgs[-1].startswith('full list: https://'))
-        self.assertIn('Not financial advice — zone rules only.', msgs[-1])
+        self.assertEqual(len(msgs), 1)
+        m = msgs[0]
+        vis = notify.visible(m)
+        self.assertTrue(vis.startswith('📈 <b>30 BUY · 3 WATCH · nothing to exit</b>'))
+        self.assertIn('17:05 Toronto', vis)                                   # EDT in October
+        self.assertEqual(vis.count('</b>  BUY '), 3)                          # max 3 cards even with top=5
+        self.assertIn('score 9/10', vis)
+        self.assertEqual(m.count('<blockquote expandable>'), 1)
+        self.assertIn('Also: ', m)
+        self.assertLess(notify.u16(m), 4096)
+        for tok in notify.JARGON:
+            self.assertNotIn(tok, vis)
+        self.assertEqual(len(m.buttons), 2)
+        self.assertEqual([b['text'] for b in m.buttons[0]], ['📈 T9', '📈 T19', '📈 T29'])
+        self.assertEqual(m.buttons[1][0]['url'], notify.FULL_LIST)
+
+    def test_escaped_and_quote_capped(self):
+        rows = [{'s': f'S{i}', 'pct': 1.0} for i in range(9)]
+        zl = {'demand': {sec: rows for sec in ('in', 'near', 'left')}, 'supply': {sec: rows for sec in ('in', 'near', 'left')}}
+        res = {'date': '2026-10-23', 'scanned': 5, 'exits': [{'symbol': 'A&B', 'reasons': ['stop']}],
+               'signals': [dict(self.sig(1), name='A<B & Co', symbol='X<Y')], 'zone_lists': zl,
+               'watch_alerts': [{'kind': 'APPROACH', 'text': f'W{i}: near the W1 demand'} for i in range(12)]}
+        m = notify.build_messages(res)[0]
+        self.assertIn('X&lt;Y', m)
+        self.assertIn('🚪 <b>A&amp;B</b>  EXIT · stop hit by the close', m)
+        q = m.split('<blockquote expandable>')[1].split('</blockquote>')[0].split('\n')
+        self.assertLessEqual(len(q), notify.QUOTE_LINES)
+        big = notify.quote([f'line {i}' for i in range(20)]).split('\n')
+        self.assertEqual(len(big), notify.QUOTE_LINES)
+        self.assertEqual(big[-1], '+6 more in the app</blockquote>')
+        self.assertNotIn('W1', ''.join(q))                                   # timeframes in words
+
+    def test_quiet_day_headline(self):
+        m = notify.build_messages({'date': '2026-10-23', 'signals': [], 'exits': []})[0]
+        self.assertTrue(m.startswith('📈 <b>No new setups</b>'))
+        self.assertLessEqual(len(notify.visible(m).strip().split('\n')), 4)
+
+    def test_long_detail_is_trimmed_to_fit(self):
+        long = [('x' * 300) for _ in range(40)]
+        m = notify.compose(['<b>t</b>'], ['card'], long, cap=40)
+        self.assertLessEqual(notify.u16(m), notify.SAFE)
+        self.assertIn('</blockquote>', m)
+
+    def test_send_falls_back_to_a_plain_blockquote(self):
+        calls = []
+
+        def fake(token, fields):
+            calls.append(dict(fields))
+            if '<blockquote expandable>' in fields['text']:
+                return {'ok': False, 'code': 400, 'desc': "Bad Request: can't parse entities: unsupported start tag"}
+            return {'ok': True, 'code': 200}
+        old_post, env = notify._post, {k: os.environ.get(k) for k in ('TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID')}
+        os.environ.update(TELEGRAM_BOT_TOKEN='t', TELEGRAM_CHAT_ID='1')
+        notify._post = fake
+        try:
+            m = notify.Msg('<b>x</b>\n<blockquote expandable>a</blockquote>', [[notify.button('Open', 'https://a')]])
+            self.assertTrue(notify.send([m], pause=0))
+        finally:
+            notify._post = old_post
+            for k, v in env.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+        self.assertEqual(len(calls), 2)
+        self.assertIn('<blockquote>a</blockquote>', calls[1]['text'])
+        self.assertIn('inline_keyboard', calls[1]['reply_markup'])
 
     def test_messages_fit_and_split_between_cards(self):
         cards = [f'card {i}\n' + 'é' * 300 for i in range(40)]

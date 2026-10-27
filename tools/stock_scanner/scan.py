@@ -1379,7 +1379,7 @@ def main(argv=None) -> int:
     ap.add_argument('--universes', help='e.g. SPX,NDX,DJI,TSX60,TSX (default env SCANNER_UNIVERSES or all)')
     ap.add_argument('--limit', type=int, default=0, help='first N tickers only')
     ap.add_argument('--workers', type=int, default=int(os.environ.get('SCANNER_WORKERS', '6')), help='download threads')
-    ap.add_argument('--top', type=int, default=int(os.environ.get('TELEGRAM_TOP_N', '5')), help='Telegram: top N per sector')
+    ap.add_argument('--top', type=int, default=int(os.environ.get('TELEGRAM_TOP_N', '3')), help='Telegram: trade cards (max 3)')
     ap.add_argument('--offline', action='store_true', help='use cached data only')
     ap.add_argument('--no-sec', action='store_true', help='skip the SEC fundamentals refresh (use the cache)')
     ap.add_argument('--sec-per-run', type=int, default=int(os.environ.get('SCANNER_SEC_PER_RUN', '600')),

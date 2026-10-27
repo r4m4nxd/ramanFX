@@ -5,7 +5,7 @@
     python tools/fx_scanner/fxscan.py --check            # seconds: is there an unscanned complete H4 candle?
     python tools/fx_scanner/fxscan.py --only EURUSD,XAUAUD --no-notify
     python tools/fx_scanner/fxscan.py --selftest         # synthetic data end to end, prints the Telegram text
-    python tools/fx_scanner/fxscan.py --preview-telegram # the daily summary of the published public/fx/latest.json
+    python tools/fx_scanner/fxscan.py --preview-telegram # alert / H4 digest / daily summary of public/fx/latest.json
 
 Outputs (contract: tools/fx_scanner/SCHEMA.md): public/fx/latest.json and public/fx/d/<class>.json (per-instrument
 detail with bars for the charts). Dedupe state for Telegram: <cache>/state.json (actions/cache); the schedule state
@@ -554,7 +554,9 @@ def main(argv=None) -> int:
     ap.add_argument('--no-write', action='store_true')
     ap.add_argument('--summary', action='store_true', help='send the daily summary now')
     ap.add_argument('--selftest', action='store_true')
-    ap.add_argument('--preview-telegram', action='store_true')
+    ap.add_argument('--preview-telegram', action='store_true',
+                    help='print the alert, H4 digest and daily summary of the published public/fx/latest.json; sends nothing')
+    ap.add_argument('--preview-from', default='', help='--preview-telegram: another latest.json (e.g. fixtures/sample)')
     ap.add_argument('--workers', type=int, default=int(os.environ.get('FX_WORKERS') or 4))
     ap.add_argument('--notify-failure', default='', help='send one "FX scan failed" Telegram message (workflow steps)')
     ap.add_argument('--check', action='store_true',
@@ -579,15 +581,15 @@ def main(argv=None) -> int:
     if a.selftest:
         return selftest(os.path.join(HERE, 'fixtures', 'sample'))
     if a.preview_telegram:
-        try:
-            with open(os.path.join(C.OUT_DIR, 'latest.json')) as f:
-                pub = json.load(f)
-        except OSError:
-            with open(os.path.join(HERE, 'fixtures', 'sample', 'latest.json')) as f:
-                pub = json.load(f)
-        for m in N.summary_messages(pub):
-            print(m)
-            print('\n' + '-' * 40 + '\n')
+        src = a.preview_from or os.path.join(C.OUT_DIR, 'latest.json')
+        if not os.path.exists(src):
+            src = os.path.join(HERE, 'fixtures', 'sample', 'latest.json')
+        with open(src) as f:
+            pub = json.load(f)
+        print(f'(from {os.path.relpath(src)})')
+        for kind, msgs in N.preview_messages(pub).items():
+            print(f'===== {kind} =====')
+            N.SN.print_messages(msgs) if msgs else print('(nothing to send)')
         return 0
     t0 = time.time()
     SD.set_budget(C.BUDGET_MIN)
@@ -647,11 +649,13 @@ def main(argv=None) -> int:
                     f"{pub['counts']['SELL']} SELL now. From here on only new events are sent, plus a daily summary.")
     else:
         msgs += N.alert_messages({**ev, 'h4': h4})
-    if a.summary or (not a.only and (bootstrap or (d1 and d1 != state.get('summary_d1')))):
+    summary = a.summary or (not a.only and (bootstrap or (d1 and d1 != state.get('summary_d1'))))
+    if summary:
         msgs += N.summary_messages(pub)
         new_state['summary_d1'] = d1
     if C.H4_DIGEST and not a.only and (a.force or h4 != state.get('digest_h4')):
-        msgs.append(N.digest_message(pub, ev if not bootstrap else {}))
+        if not summary:                                    # the daily summary already is this candle's overview
+            msgs.append(N.digest_message(pub, ev if not bootstrap else {}))
         new_state['digest_h4'] = h4
     ok = True
     if notify and msgs:

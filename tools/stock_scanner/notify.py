@@ -1,23 +1,26 @@
-"""Telegram messages for the daily scan (Bot API sendMessage, parse_mode HTML, <>& escaped), grouped by SECTOR.
+"""Telegram messages for the daily scan: ONE calm message per run, made to be read at a glance on a phone.
 
-1) Header: date, regime (SPY / QQQ / IWM vs the 200-day average + curve), counts, sectors ranked by BUYs.
-2) Signals first, when there are any: one message per sector (emoji + bold name): BUY cards (top N by Raja score),
-   WATCH cards, EXIT cards. Fixed labels on every card so it reads (and parses) the same each day.
-3) Every day, the zone lists (lists.py; the same lists as latest.json zone_lists and the app's market map), W1 / MN /
-   3M zones only (owner: never below W1), grouped by sector, top TELEGRAM_LIST_CAP per section by zone score, the rest "+N more on the app":
-     DEMAND  🟢 In demand now · ⬇️ Approaching demand (close <= 3% above the proximal) · ↗️ Left demand (bounced)
-     SUPPLY  🔴 In supply · ⬆️ Approaching supply · ↘️ Left supply (rejected)
-   Each line: TICKER (TSX:… when Canadian) price · zone TF type score · % to the zone · Raja status (BUY or the first
-   rule that blocks a BUY; supply: the direction) · the HTF location (📍 in touched MN / ⏳ MN still below -8%).
-   Signal cards carry the top-down chain (3M demand … touched ✓ → MN demand … touched ✓ → W1 entry …) and the 6M context.
-4) Every message < 4000 UTF-16 units, split only between blocks. >= 1.1 s between sends; a 429 waits retry_after.
-5) Last line: link to the full list in the app. Footer: "Not financial advice — zone rules only."
+    📈 1 BUY · 3 WATCH · nothing to exit             <- the answer first (or "No new setups")
+    Stocks · Mon 26 Oct · 20:49 Toronto
 
-Env: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (unset -> printed instead). TELEGRAM_TOP_N (default 5), TELEGRAM_LIST_CAP (15).
+    🟢 XPEV  BUY 8.06 → 16.12 · R:R 5.4              <- at most 3 trade cards, 2 lines each, plain words
+    stop 6.56 · monthly demand · score 10/10
+
+    ▸ (collapsed quote) market, more setups, zone lists, why nothing else passed, +N more in the app
+    [📈 XPEV] [📈 BXP] [📈 AVGO]                       <- inline keyboard: a chart per card,
+    [Open scanner]                                      then the app
+
+Legend (both scanners): 🟢 buy · 🔴 sell · 👀 watch · 🚪 exit · ⏳ approaching. HTML parse mode, <>& escaped, every
+message < 4096 UTF-16 units (the collapsed detail is trimmed first). The detail sits in an expandable blockquote
+(Bot API 7.4+); if Telegram rejects it, send() retries with a plain blockquote. >= 1.1 s between sends; a 429 waits
+retry_after.
+
+Env: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (unset -> printed instead), TELEGRAM_TOP_N (cards, max 3).
 Preview without sending: python tools/stock_scanner/scan.py --preview-telegram (reads the published JSON).
 """
 from __future__ import annotations
 
+import datetime as dt
 import html
 import json
 import os
@@ -27,306 +30,235 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Sequence
 
 import lists as L
 
 LIMIT = 4096
 SAFE = 4000
 FULL_LIST = os.environ.get('SCANNER_APP_URL', 'https://raman-fx.vercel.app/scanner')
-FOOTER = 'Not financial advice — zone rules only. Untested on stocks until the backtest says otherwise.'
-SECTOR_EMOJI = {'Information Technology': '💻', 'Health Care': '🩺', 'Financials': '🏦', 'Consumer Discretionary': '🛍️',
-                'Consumer Staples': '🛒', 'Industrials': '🏭', 'Energy': '🛢️', 'Materials': '⛏️', 'Utilities': '💡',
-                'Real Estate': '🏠', 'Communication Services': '📡', 'Other': '📦'}
-SECTOR_SHORT = {'Information Technology': 'Tech', 'Health Care': 'Health', 'Financials': 'Financials', 'Consumer Discretionary': 'Discretionary',
-                'Consumer Staples': 'Staples', 'Industrials': 'Industrials', 'Energy': 'Energy', 'Materials': 'Materials',
-                'Utilities': 'Utilities', 'Real Estate': 'Real estate', 'Communication Services': 'Comms', 'Other': 'Other'}
-LIST_CAP = int(os.environ.get('TELEGRAM_LIST_CAP') or '15')
-ICON = {'pass': '✓', 'fail': '✗', 'warn': '!', 'unknown': '?', 'info': '·'}
+LOCAL_TZ = os.environ.get('SCANNER_LOCAL_TZ') or 'America/Toronto'
+MAX_CARDS = 3
+QUOTE_LINES = 15
+FOOTER = 'not advice'
+ICON = {'BUY': '🟢', 'SELL': '🔴', 'WATCH': '👀', 'EXIT': '🚪', 'NEAR': '⏳'}
+TF_WORD = {'H1': '1-hour', 'H4': '4-hour', 'D1': 'daily', 'W1': 'weekly', 'MN': 'monthly', '3M': 'quarterly', '6M': '6-month'}
+# rule labels / keys -> plain words (the visible text never carries rule jargon)
+PLAIN = {'HTF area not reached': 'bigger zone not reached yet', 'location': 'bigger zone not reached yet',
+         'high on curve': 'price high in its range', 'curve': 'wrong end of the range',
+         'wrong side of the curve': 'wrong end of the range',
+         'direction not long': 'trend not up', 'HTF align': 'trend not up', 'direction against': 'trend against it',
+         'direction': 'trend against it', 'direction reduced (correction)': 'trend in a pullback', 'reduced': 'trend in a pullback',
+         'monthly supply on top': 'monthly supply overhead', 'no HTF supply': 'bigger supply overhead',
+         'opposite HTF zone on top': 'bigger opposite zone in the way', 'HTF opposite': 'bigger opposite zone in the way',
+         'sideways market': 'sideways market', 'not sideways': 'sideways market', 'sideways': 'sideways market',
+         'weak zone type': 'weak zone', 'strong': 'weak zone', 'zone already tested': 'zone used before', 'fresh': 'zone used before',
+         'overlap / flip zone': 'messy zone', 'clean': 'messy zone', 'zone already did its job': 'zone already played out',
+         'not used': 'zone already played out', '3rd CP in a row': 'third pullback in a row', 'no 3rd CP': 'third pullback in a row',
+         'room < 2x the stop (supply or 250% projection)': 'not enough room to the target', 'room': 'not enough room to the target',
+         'departure < 2x the base': 'weak move away from the zone', 'departure < 2x': 'weak move away from the zone',
+         'leg': 'weak move away from the zone', 'price not near the entry': 'price still far', 'near entry': 'price still far'}
+JARGON = ('HTF', 'ARR', 'WOW', ' STR', '1st touch', '2nd touch', '✗', '✓', 'proximal', 'distal', 'Raja', 'Seiden', 'PZ1',
+          'L5', 'curve', 'CP ')
 
 
 def esc(s) -> str: return html.escape(str(s), quote=False)
 def u16(s: str) -> int: return len(s.encode('utf-16-le')) // 2
 def _f(v, nd=2) -> str: return 'n/a' if v is None else f'{v:,.{nd}f}'
+def tf_word(tf: str) -> str: return TF_WORD.get(tf or '', tf or '')
 
 
-def _idx(s: Dict) -> str:
-    ix = [i for i in (s.get('indexes') or []) if i]
-    return f" · [{' '.join(ix)}]" if ix else ''
+def words(text: str) -> str:
+    """Free text with the timeframe codes spelled out ('2.1% above the W1 demand' -> '... the weekly demand')."""
+    return re.sub(r'\b(H1|H4|D1|W1|MN|3M|6M)\b', lambda m: TF_WORD[m.group(1)], text or '').replace('HTF', 'bigger-timeframe')
 
 
-def _fund_row(s: Dict) -> str:
-    f = s.get('fundamentals') or {}
-    if not f:
+def plain(label: str) -> str:
+    """A rule label or key in plain words; unknown labels pass through with 'HTF' spelled out."""
+    lab = (label or '').strip()
+    if lab.startswith('dir '):
+        return 'trend ' + ('down' if 'SHORT' in lab else 'up' if 'LONG' in lab else 'unclear')
+    return PLAIN.get(lab) or lab.replace('HTF', 'bigger-timeframe')
+
+
+class Msg(str):
+    """A message text that also carries its inline keyboard (rows of {'text', 'url'} buttons)."""
+    buttons: List[List[Dict]]
+
+    def __new__(cls, text: str, buttons: Optional[List[List[Dict]]] = None):
+        m = super().__new__(cls, text)
+        m.buttons = [r for r in (buttons or []) if r][:2]
+        return m
+
+
+def button(text: str, url: str) -> Dict: return {'text': text, 'url': url}
+
+
+def keyboard(charts: Sequence[Dict], open_label: str, open_url: str) -> List[List[Dict]]:
+    """Max 2 rows: a chart button per card (at most 3), then the app."""
+    return [list(charts)[:MAX_CARDS], [button(open_label, open_url)]]
+
+
+def local_time(iso_utc: str, fmt: str = '%H:%M', tz: str = LOCAL_TZ) -> str:
+    """'2026-10-27T00:49:18Z' -> '20:49' in Toronto (fmt is strftime); '' when unparsable, UTC without tzdata."""
+    try:
+        t = dt.datetime.strptime((iso_utc or '')[:19], '%Y-%m-%dT%H:%M:%S').replace(tzinfo=dt.timezone.utc)
+    except ValueError:
         return ''
-    def pct(v): return 'n/a' if v is None else f'{v * 100:+.0f}%'
-    pe = f"{f['pe']:.0f}" if f.get('pe') else ('neg' if f.get('eps_ttm') is not None and f['eps_ttm'] <= 0 else 'n/a')
-    de = f"{f['debt_to_equity']:.1f}" if f.get('debt_to_equity') is not None else 'n/a'
-    mc = f.get('market_cap')
-    mcs = 'n/a' if not mc else (f'${mc / 1e12:.1f}T' if mc >= 1e12 else f'${mc / 1e9:.0f}B' if mc >= 1e9 else f'${mc / 1e6:.0f}M')
-    return f"Fund: <pre>P/E {pe} · Rev YoY {pct(f.get('revenue_yoy'))} · EPS YoY {pct(f.get('eps_yoy'))} · Debt/Eq {de} · Mcap {mcs}</pre>"
+    try:
+        from zoneinfo import ZoneInfo
+        return t.astimezone(ZoneInfo(tz)).strftime(fmt)
+    except Exception:  # noqa: BLE001
+        return t.strftime(fmt) + ' UTC'
 
 
-def _curve_word(c) -> str:
-    if c is None:
-        return 'n/a'
-    word = 'low' if c <= 25 else 'high' if c >= 75 else 'mid'
-    return f'{word} {int(round(c)) + 0}%'
+def card(icon: str, sym: str, kind: str, entry: str, target: str, rr, line2: str, tag: str = '') -> str:
+    """🟢 <b>XPEV</b>  BUY 8.06 → 16.12 · R:R 5.4 / stop 6.56 · monthly demand · score 10/10."""
+    top = f"{icon} <b>{esc(sym)}</b>{esc(tag)}  {esc(kind)} {esc(entry)}" + (f" → {esc(target)}" if target else '')
+    if rr:
+        top += f" · R:R {rr:.0f}" if rr >= 10 else f" · R:R {rr:.1f}"
+    return top + '\n' + esc(line2)
 
 
-def _curve_owner(s: Dict) -> bool:
-    """The curve rule passed by the owner's ATH rule (no MN supply overhead, W1 + MN trend up)."""
-    return any(r.get('short') == 'curve' and 'owner rule' in (r.get('text') or '') for r in s.get('rules') or [])
+def names(rows: Sequence[Dict], key: str, n: int = 4, extra=None) -> str:
+    """'ALB, BURL, PCG, NEE +12' (the first n by the list order, i.e. zone score)."""
+    shown = [esc(r[key]) + (f' {extra(r)}' if extra else '') for r in rows[:n]]
+    return ', '.join(shown) + (f' +{len(rows) - n}' if len(rows) > n else '')
 
 
-HTF_OF = {'W1': 'MN', 'MN': '3M', '3M': '6M'}
-
-
-def loc_short(r: Dict) -> str:
-    """Compact HTF location of a list row / signal: '📍 in touched MN', '⏳ MN still below -8.0%', '⏳ MN not touched',
-    '✗ no MN area', '🔝 top TF'; '' when the row has none (older files)."""
-    code, txt = r.get('loc') or '', r.get('loc_text') or ''
-    h = HTF_OF.get(r.get('tf') or '', 'HTF')
-    m = re.search(r'\(([+-]\d+(?:\.\d+)?)%\)', txt)
-    pct = f' {m.group(1)}%' if m else ''
-    if code == 'inside':
-        return f'📍 in touched {h}'
-    if code in ('below', 'above'):
-        lvl = re.search(r'strong (\w+) (?:demand|supply)', txt)
-        return f"⏳ {lvl.group(1) if lvl else h} still {code}{pct}"
-    if code == 'untouched':
-        return f'⏳ {h} not touched{pct}'
-    if code == 'none':
-        return f'✗ no {h} area'
-    if code == 'top':
-        return '🔝 top TF'
-    if code == 'unknown':
-        return f'? {h} n/a'
-    return ''
-
-
-def _rules_short(s: Dict) -> str:
-    out = []
-    for r in s['rules']:
-        if r.get('short') in ('leg',) and r['status'] == 'pass':
-            continue
-        out.append(f"{ICON[r['status']]}{r.get('short') or r['ref']}")
-    return ' '.join(out)
-
-
-def _pz_line(s: Dict) -> str:
-    parts = [f"{k.upper()} {_f(s.get(k))} ({_f(s.get('rr_' + k), 1)}R)" for k in ('pz1', 'pz2', 'pz3') if s.get(k) is not None]
-    return 'Targets: ' + (' · '.join(parts) if parts else 'n/a')
-
-
-def _flags(s: Dict) -> str:
-    f = []
-    if s.get('fv_inside'):
-        f.append('inside fair value')
-    elif s.get('fv_dist_atr') is not None and s['fv_dist_atr'] >= 1:
-        f.append(f"{s['fv_dist_atr']:.1f} ATR below FV")
-    if s.get('index_aligned'):
-        f.append('index aligned')
-    elif s.get('index_state') == 'supply':
-        f.append('⚠ index in supply')
-    return (' · ' + ' · '.join(f)) if f else ''
-
-
-def index_text(ix) -> str:
-    if not ix:
+def quote(lines: Sequence[str], cap: int = QUOTE_LINES) -> str:
+    """One collapsed expandable blockquote; past `cap` lines: '+N more in the app'."""
+    lines = [x for x in lines if x]
+    if not lines:
         return ''
-    def z(k):
-        v = ix.get(k)
-        return f"{k} {v['pct']:.1f}% {'below' if k == 'demand' else 'above'}" if v else f'no {k}'
-    return f"RFX index (SPY·QQQ·IWM·DIA) {ix['price']:.2f}: {ix['state'].upper() if ix['state'] != 'middle' else 'middle'} · {z('demand')} · {z('supply')} · {ix['direction']}"
+    if len(lines) > cap:
+        lines = lines[:cap - 1] + [f'+{len(lines) - cap + 1} more in the app']
+    return '<blockquote expandable>' + '\n'.join(lines) + '</blockquote>'
 
 
-def watch_block(alerts) -> str:
-    if not alerts:
-        return ''
-    icon = {'APPROACH': '🔔', 'IN ZONE': '🎯', 'IN SUPPLY': '⛔', 'INDEX': '🌐'}
-    return '⭐ <b>Watchlist alerts</b>\n' + '\n'.join(f"{icon.get(a['kind'], '•')} {esc(a['kind'])} · {esc(a['text'])}" for a in alerts)
+def compose(head: Sequence[str], cards: Sequence[str], detail: Sequence[str], buttons=None, limit: int = SAFE,
+            cap: int = QUOTE_LINES) -> Msg:
+    """Headline lines, a blank line, the cards (blank line between), then the collapsed detail; the detail is trimmed
+    (from the end) until the message fits `limit` UTF-16 units."""
+    detail = [x for x in detail if x]
+    while True:
+        parts = ['\n'.join(head)] + list(cards)
+        q = quote(detail, cap=cap) if len(detail) > 1 else ''.join(f'<i>{x}</i>' for x in detail if x)
+        if q:
+            parts.append(q)
+        text = '\n\n'.join(p for p in parts if p)
+        if u16(text) <= limit or not detail:
+            break
+        detail = detail[:-2] + ['+ more in the app'] if len(detail) > 1 else []
+    if u16(text) > limit:
+        text = _cut(text, limit)
+    return Msg(text, buttons)
 
 
-def signal_card(s: Dict) -> str:
+def visible(m: str) -> str:
+    """The part of a message shown before tapping the collapsed quote (for tests and previews)."""
+    return re.sub(r'<blockquote expandable>.*?</blockquote>', '', m, flags=re.S)
+
+
+# ---- stocks ------------------------------------------------------------------------------------------------------------
+def stock_card(s: Dict) -> str:
     kind = s['kind']
-    head = ('🟢 BUY' if kind == 'BUY' else '🟡 WATCH') + f" <b>{esc(s['symbol'])}</b> · {esc(s.get('name', ''))}{esc(_idx(s))}"
-    if s.get('home'):
-        head += f" · {esc(s['home'].replace(':', ': '))} · {esc(s.get('listing_label') or 'US listing · ' + (s.get('currency') or 'USD'))}"
-    state = 'fresh' if s['touches'] == 0 else f"touch {s['touches'] + 1}"
-    lines = [head,
-             f"Zone: {s['tf']} demand {s['proximal']:.2f}–{s['distal']:.2f} ({state}, {s['zone_type']} type, score {s.get('score', 0)}/10)",
-             f"Entry {_f(s['entry'])} · Stop {_f(s['stop'])} · Target {_f(s['target'])}"
-             + (' (250% projection, no supply above, L5)' if s.get('target_kind') == 'projection' else '') + f" · R:R {_f(s['rr'], 1)}",
-             _pz_line(s),
-             f"Scores: Raja {s.get('score', 0)}/10 · Seiden odds {_f(s.get('seiden_score'), 1)}/10" + _flags(s),
-             f"Curve: {_curve_word(s.get('curve'))}" + (' (ATH area, HTFs up: allowed)' if _curve_owner(s) else '')
-             + f" · Trend: {esc(s['direction'])} (W1 {esc(s['w1'])}, MN {esc(s['mn'])}, 3M {esc(s.get('m3') or 'n/a')})",
-             'Location: ' + esc(s.get('chain_text') or s.get('loc_text') or 'n/a'),
-             'Context: ' + esc(s.get('ctx6') or '6M: n/a'),
-             'Rules: ' + esc(_rules_short(s))]
-    if kind == 'WATCH':
-        lines.append('Note: ' + esc('new zone, price still far' if s.get('watch') == 'new' else 'tested: needs a lower-TF confirmation'))
-    fr = _fund_row(s)
-    if fr:
-        lines.append(fr)
-    if s.get('earnings'):
-        lines.append(f"Next earnings {esc(s['earnings'])} (information only)")
-    if s.get('chart'):
-        lines.append(f"<a href=\"{esc(s['chart'])}\">Chart{' (US listing · USD)' if s.get('chart_home') else ''}</a>"
-                     + (f" · <a href=\"{esc(s['chart_home'])}\">{esc(s.get('chart_home_label') or 'TSX chart (CAD)')}</a>" if s.get('chart_home') else ''))
-    return '\n'.join(lines)
+    tag = f" ({s['home']})" if s.get('home') else ''
+    zone = f"{tf_word(s.get('tf'))} demand"
+    if kind == 'BUY':
+        extra = f"score {s.get('score', 0)}/10"
+    else:
+        extra = 'price still far' if s.get('watch') == 'new' else 'confirm first'
+    return card(ICON[kind], s['symbol'], kind, _f(s.get('entry')), _f(s.get('target')), s.get('rr'),
+                f"stop {_f(s.get('stop'))} · {zone} · {extra}", tag)
 
 
-EXIT_WORDS = {'stop': 'stop hit by the close', 'demand_broken': 'demand under the entry broken by a close',
+EXIT_WORDS = {'stop': 'stop hit by the close', 'demand_broken': 'demand under the entry broke',
               'near_supply': 'near the next supply', 'in_supply': 'inside a supply',
-              'trail': 'trail the stop behind a new demand (L3)', 'trail_broken': 'trail demand broken by a close (L3)',
-              'trend_change': 'direction changed down', 'currency': 'holding currency differs from the scanned listing'}
+              'trail': 'trail the stop up', 'trail_broken': 'trail zone broke',
+              'trend_change': 'trend turned down', 'currency': 'holding currency differs from the listing'}
 
 
 def exit_card(e: Dict) -> str:
-    if 'warnings' not in e:                  # the published file keeps only the warning kinds (no position data)
-        words = EXIT_WORDS
-        return f"🔴 EXIT <b>{esc(e['symbol'])}</b> · " + esc(' · '.join(words.get(r, r) for r in e.get('reasons') or []))
-    parts = []
-    for w in e['warnings']:
-        if w['reason'] in ('near_supply', 'in_supply'):
-            parts.append(f"{'near' if w['reason'] == 'near_supply' else 'inside'} {w['tf']} supply {w['lo']:.2f}–{w['hi']:.2f} · distance {w['dist_pct']:.1f}%")
-        else:
-            parts.append(EXIT_WORDS.get(w['reason'], w['reason']))
-    pos = ', '.join(x for x in (f"entry {e['entry']}" if e.get('entry') is not None else '', f"stop {e['stop']}" if e.get('stop') is not None else '',
-                                f"{e['shares']} sh" if e.get('shares') is not None else '') if x)
-    return (f"🔴 EXIT <b>{esc(e['symbol'])}</b> · " + esc(' · '.join(parts)) + f"\nPrice {e['price']:.2f}" + (f' ({esc(pos)})' if pos else '')
-            + '\n' + '\n'.join('⚠ ' + esc(w['text']) for w in e['warnings']))
+    reasons = [w['reason'] for w in e['warnings']] if 'warnings' in e else list(e.get('reasons') or [])
+    words = [EXIT_WORDS.get(r, r) for r in reasons] or ['check the position']
+    pos = [f"price {_f(e.get('price'))}" if e.get('price') is not None else '',
+           f"entry {_f(e.get('entry'))}" if e.get('entry') is not None else '',
+           f"stop {_f(e.get('stop'))}" if e.get('stop') is not None else '']
+    line2 = ' · '.join([x for x in pos if x] + words[1:2]) or 'check the position'
+    return f"{ICON['EXIT']} <b>{esc(e['symbol'])}</b>  EXIT · {esc(words[0])}\n{esc(line2)}"
 
 
-def regime_text(res: Dict) -> str:
-    out = []
-    for r in res.get('regime') or []:
-        a = r.get('above200')
-        side = 'above' if a else ('below' if a is not None else 'n/a vs')
-        out.append(f"{r['symbol']} {side} 200D · {r.get('curve_tf') or 'MN'} curve {_curve_word(r.get('curve'))} · {r['direction']}")
-    return '\n'.join(esc(x) for x in out) if out else 'Regime: n/a'
+def headline(nb: int, nw: int, ne: int, sell: Optional[int] = None) -> str:
+    if not (nb or nw or ne or sell):
+        return 'No new setups'
+    parts = [f'{nb} BUY'] + ([f'{sell} SELL'] if sell is not None else []) + [f'{nw} WATCH']
+    return ' · '.join(parts) + (' · nothing to exit' if not ne else f' · {ne} to exit')
 
 
-def by_sector(res: Dict) -> Dict[str, Tuple[List[Dict], List[Dict], List[Dict]]]:
-    g: Dict[str, Tuple[List[Dict], List[Dict], List[Dict]]] = {}
-    for s in res.get('signals', []):
-        g.setdefault(s.get('sector') or 'Other', ([], [], []))[0 if s['kind'] == 'BUY' else 1].append(s)
-    for e in res.get('exits', []):
-        g.setdefault(e.get('sector') or 'Other', ([], [], []))[2].append(e)
-    key = lambda s: (-s.get('score', 0), -(s.get('rr') or 0))
-    for b, w, _ in g.values():
-        b.sort(key=key)
-        w.sort(key=key)
-    return dict(sorted(g.items(), key=lambda kv: (-len(kv[1][0]), -len(kv[1][2]), -len(kv[1][1]), kv[0])))
+SECTION_WORD = {('demand', 'in'): 'In demand', ('demand', 'near'): '⏳ Close to demand', ('demand', 'left'): 'Bounced off demand',
+                ('supply', 'in'): 'In supply', ('supply', 'near'): '⏳ Close to supply', ('supply', 'left'): 'Turned down at supply'}
+SECTION_ORDER = (('demand', 'near'), ('demand', 'in'), ('demand', 'left'), ('supply', 'near'), ('supply', 'in'), ('supply', 'left'))
 
 
-def build_messages(res: Dict, top: int = 5, cap: int = LIST_CAP) -> List[str]:
+def regime_line(res: Dict) -> str:
+    rg = res.get('regime') or []
+    up = [r['symbol'] for r in rg if r.get('above200')]
+    dn = [r['symbol'] for r in rg if r.get('above200') is False]
+    if not rg:
+        return ''
+    bits = [f"{', '.join(up)} above 200-day" if up else '', f"{', '.join(dn)} below" if dn else '']
+    return 'Market: ' + esc(', '.join(b for b in bits if b))
+
+
+def why_line(reasons: Sequence[Dict], n: int = 3) -> str:
+    if not reasons:
+        return ''
+    return 'Why not more: ' + esc(', '.join(f"{plain(r.get('label') or r.get('rule') or '')} ({r['count']})" for r in reasons[:n]))
+
+
+def build_messages(res: Dict, top: int = MAX_CARDS, cap: int = QUOTE_LINES) -> List[Msg]:
+    """The daily scan as ONE message (a list, for send())."""
     sigs = res.get('signals', [])
-    buys = [s for s in sigs if s['kind'] == 'BUY']
-    watch = [s for s in sigs if s['kind'] == 'WATCH']
+    key = lambda s: (-s.get('score', 0), -(s.get('rr') or 0))  # noqa: E731
+    buys = sorted([s for s in sigs if s['kind'] == 'BUY'], key=key)
+    watch = sorted([s for s in sigs if s['kind'] == 'WATCH'], key=key)
     exits = res.get('exits', [])
-    groups = by_sector(res)
-    ranked = ' · '.join(f"{SECTOR_SHORT.get(k, k)} {len(v[0])}" for k, v in groups.items() if v[0]) or 'none'
-    idx_counts = {}
-    for s in buys:
-        for i in s.get('indexes') or []:
-            idx_counts[i] = idx_counts.get(i, 0) + 1
-    title = '🧪 SELFTEST (synthetic data) · ' if res.get('fixture') else ''
-    header = (f"{title}<b>RamanFX stock scan · {esc(res.get('date', ''))}</b>\n"
-              f"{regime_text(res)}\n"
-              + (esc(index_text(res.get('rfx_index'))) + '\n' if res.get('rfx_index') else '')
-              + f"<b>{len(buys)}</b> BUY · {len(watch)} WATCH · {len(exits)} EXIT · {res.get('scanned', 0)} stocks scanned"
-              + (f" · {len(res['uncovered'])} TSX-only names need a TSX data feed" if res.get('uncovered') else '') + '\n'
-              + f"BUYs by sector: {esc(ranked)}"
-              + (f"\nBy index: {esc(' · '.join(f'{k} {v}' for k, v in sorted(idx_counts.items())))}" if idx_counts else '')
-              + '\nRaja rules (ZoneVision Raja template), Kevin second.'
-              + (f"\n⚠️ <b>{esc(res['data_warning'])}</b>" if res.get('data_warning') else ''))
-    msgs = [header]
-    wb = watch_block(res.get('watch_alerts') or [])
-    if wb:
-        msgs.extend(pack_cards(wb.split('\n', 1)[0], ['\n'.join(wb.split('\n')[1:])]))
-    for sector, (b, w, e) in groups.items():
-        cards = [signal_card(s) for s in b[:top]] + [signal_card(s) for s in w[:top]] + [exit_card(x) for x in e]
-        more = max(0, len(b) - top) + max(0, len(w) - top)
-        title = f"{SECTOR_EMOJI.get(sector, '📦')} <b>{esc(sector)}</b> · {len(b)} BUY · {len(w)} WATCH · {len(e)} EXIT"
-        tail = f'+{more} more: full list {FULL_LIST}' if more else ''
-        msgs.extend(pack_cards(title, cards, tail))
+    n = max(0, min(top, MAX_CARDS))
+    picked = ([('EXIT', e) for e in exits] + [('SIG', s) for s in buys] + [('SIG', s) for s in watch])[:n]
+    cards = [exit_card(x) if k == 'EXIT' else stock_card(x) for k, x in picked]
+    rest = [x for k, x in ([('EXIT', e) for e in exits] + [('SIG', s) for s in buys + watch])[n:]]
+    day = ''
+    try:
+        day = dt.date.fromisoformat(res.get('date') or '').strftime('%a %d %b')
+    except ValueError:
+        day = res.get('date') or ''
+    when = local_time(res.get('generated_at') or '')
+    icon = '🧪' if res.get('fixture') else '📈'
+    head = [f"{icon} <b>{esc(headline(len(buys), len(watch), len(exits)))}</b>",
+            f"Stocks · {esc(day)}" + (f" · {esc(when)} Toronto" if when else '')]
+    if res.get('fixture'):
+        head[1] += ' · sample data'
+    if res.get('data_warning'):
+        head.append('⚠️ ' + esc(res['data_warning']))
+    detail = [regime_line(res)]
+    for a in (res.get('watch_alerts') or [])[:2]:
+        detail.append('Watchlist: ' + esc(words(a['text'])))
+    if rest:
+        detail.append('Also: ' + ', '.join(f"{ICON.get(x.get('kind') or 'EXIT', '•')} {esc(x['symbol'])}" for x in rest[:5])
+                      + (f' +{len(rest) - 5}' if len(rest) > 5 else ''))
     zl = res.get('zone_lists') or L.zone_lists(res.get('details') or {})
-    msgs.extend(list_messages(zl, cap=cap))
+    for side, sec in SECTION_ORDER:
+        rows = (zl.get(side) or {}).get(sec) or []
+        if rows:
+            extra = (lambda r: f"{r['pct']:.1f}%") if sec == 'near' else None
+            detail.append(f"{SECTION_WORD[(side, sec)]} ({len(rows)}): " + names(rows, 's', 2 if extra else 3, extra))
     if not buys:
-        why = ', '.join(f"{r['label']} ({r['count']})" for r in ((res.get('blocked') or {}).get('reasons') or [])[:4])
-        msgs.append('No BUY setup passed every rule today. No zone, no trade.' + (f'\nTop reasons: {esc(why)}' if why else ''))
-    msgs.append(f'full list: {FULL_LIST}\n<i>{esc(FOOTER)}</i>')
-    return msgs
-
-
-STRONG_CAP = 10
-MAP_URL = FULL_LIST + '?view=map'
-SIDE_HEAD = {'demand': '🟢 <b>DEMAND</b> · W1 / MN / 3M zones', 'supply': '🔴 <b>SUPPLY</b> · W1 / MN / 3M zones'}
-SECTION_HEAD = {('demand', 'in'): '🟢 <b>In demand now</b>', ('demand', 'near'): '⬇️ <b>Approaching demand</b>',
-                ('demand', 'left'): '↗️ <b>Left demand</b>', ('supply', 'in'): '🔴 <b>In supply</b>',
-                ('supply', 'near'): '⬆️ <b>Approaching supply</b>', ('supply', 'left'): '↘️ <b>Left supply</b>'}
-SECTION_NOTE = {'in': 'close inside the zone', 'near': 'close within {near}% of the proximal',
-                'left': 'touched in the last {n} sessions, closed back {way} the proximal'}
-SECTION_ORDER = ('in', 'near', 'left')
-
-
-def touch_word(r: Dict) -> str:
-    """fresh / 2x tested; inside or just off the zone the count includes this touch: '1st touch'."""
-    n = int(r.get('touches') or 0)
-    if n == 0:
-        return 'fresh'
-    if r.get('section') in ('in', 'left'):
-        return {1: '1st touch', 2: '2nd touch', 3: '3rd touch'}.get(n, f'touch {n}')
-    return f'{n}x tested'
-
-
-def list_line(r: Dict) -> str:
-    """AAPL 347.73 · W1 STR 7/10 fresh · +2.1% · ✗ high on curve (one stock of a zone list)."""
-    name = f"<b>{esc(r['s'])}</b>" + (f" ({esc(r['h'])})" if r.get('h') else '')
-    zone = f"{r['tf']} {r['type']}" + (f" {r['score']}/10" if r.get('score') is not None else '') + ' ' + touch_word(r)
-    if r['section'] == 'in':
-        where = 'in zone'
-    else:
-        where = f"{r['pct']:.1f}% {'above' if r['side'] == 'demand' else 'below'}"
-    st, lab = r.get('status') or '', r.get('label') or ''
-    stat = '✅ BUY' if st == 'BUY' else '🟡 WATCH' if st == 'WATCH' else '✓ rules pass' if st == 'ok' else (lab if st == 'dir' else f'✗ {lab}' if lab else '')
-    ls = loc_short(r)
-    return f"{name} {_f(r.get('px'))} · {esc(zone)} · {where}" + (f' · {esc(stat)}' if stat else '') + (f' · {esc(ls)}' if ls else '')
-
-
-def section_blocks(zl: Dict, side: str, sec: str, cap: int = LIST_CAP) -> List[str]:
-    """[header, one block per sector (emoji + short name, then a line per stock), '+N more' link]: the top `cap` by
-    zone score, grouped by sector (most stocks first)."""
-    rows = (zl.get(side) or {}).get(sec) or []
-    note = SECTION_NOTE[sec].format(near=f"{zl.get('near_pct', L.NEAR_PCT):g}", n=zl.get('left_sessions', L.LEFT_SESSIONS),
-                                    way='above' if side == 'demand' else 'below')
-    head = f"{SECTION_HEAD[(side, sec)]} · {len(rows)}" + (f' (top {cap})' if len(rows) > cap else '') + f"\n<i>{esc(note)}</i>"
-    if not rows:
-        return [head + '\nnone today']
-    top = rows[:cap]
-    by: Dict[str, List[Dict]] = {}
-    for r in top:
-        by.setdefault(r.get('sec') or 'Other', []).append(r)
-    blocks = [head]
-    for k, v in sorted(by.items(), key=lambda kv: (-len(kv[1]), kv[0])):
-        blocks.append(f"{SECTOR_EMOJI.get(k, '📦')} <b>{esc(SECTOR_SHORT.get(k, k))}</b>\n" + '\n'.join(list_line(r) for r in v))
-    if len(rows) > cap:
-        blocks.append(f'+{len(rows) - cap} more on the app: {MAP_URL}&b={sec}_{side}')
-    return blocks
-
-
-def list_messages(zl: Dict, cap: int = LIST_CAP) -> List[str]:
-    """One DEMAND and one SUPPLY message (split when long), every section present even when empty."""
-    out: List[str] = []
-    for side in ('demand', 'supply'):
-        blocks: List[str] = []
-        for sec in SECTION_ORDER:
-            blocks.extend(section_blocks(zl, side, sec, cap))
-        out.extend(pack_cards(SIDE_HEAD[side], blocks))
-    return out
+        detail.append(why_line((res.get('blocked') or {}).get('reasons') or []))
+    if res.get('scanned'):
+        detail.append(f"{res['scanned']} stocks scanned · {FOOTER}")
+    charts = [button(f"📈 {x['symbol']}", x['chart']) for k, x in picked if k == 'SIG' and x.get('chart')]
+    return [compose(head, cards, detail, keyboard(charts, 'Open scanner', FULL_LIST), cap=cap)]
 
 
 def load_published(out_dir: str) -> Dict:
@@ -351,28 +283,19 @@ def load_published(out_dir: str) -> Dict:
     return res
 
 
-def preview(out_dir: str, top: int = 5, cap: int = LIST_CAP, out=sys.stdout) -> List[str]:
-    """Print the exact messages of the published scan, never sending (the length of each in UTF-16 units)."""
-    msgs = build_messages(load_published(out_dir), top=top, cap=cap)
+def print_messages(msgs: Sequence[str], out=sys.stdout) -> None:
     for k, m in enumerate(msgs):
         print(f'----- message {k + 1}/{len(msgs)} · {u16(m)} UTF-16 units -----', file=out)
         print(m, file=out)
+        for row in getattr(m, 'buttons', None) or []:
+            print('  ' + '  '.join(f"[{b['text']}]({b['url']})" for b in row), file=out)
+
+
+def preview(out_dir: str, top: int = MAX_CARDS, cap: int = QUOTE_LINES, out=sys.stdout) -> List[Msg]:
+    """Print the exact message of the published scan (and its buttons), never sending."""
+    msgs = build_messages(load_published(out_dir), top=top, cap=cap)
+    print_messages(msgs, out)
     return msgs
-
-
-def strong_block(rows: List[Dict], cap: int = STRONG_CAP) -> List[str]:
-    """[title, one line per sector]: tickers inside a fresh strong demand that the rules block (top `cap` by Raja
-    score), 'TICKER (reason)' grouped by sector."""
-    if not rows:
-        return []
-    top = sorted(rows, key=lambda r: (-(r.get('score') or 0), r['symbol']))[:cap]
-    by: Dict[str, List[Dict]] = {}
-    for r in top:
-        by.setdefault(r.get('sector') or 'Other', []).append(r)
-    title = f"🧲 <b>In strong demand (rules blocked)</b> · {len(rows)}" + (f' (top {cap})' if len(rows) > cap else '')
-    return [title] + [f"{SECTOR_EMOJI.get(k, '📦')} {esc(SECTOR_SHORT.get(k, k))}: " + ', '.join(
-        f"{esc(r['symbol'])} ({esc(r.get('label') or r.get('rule') or '?')})" for r in v)
-        for k, v in sorted(by.items(), key=lambda kv: (-len(kv[1]), kv[0]))]
 
 
 def pack_cards(title: str, cards: List[str], tail: str = '', limit: int = SAFE) -> List[str]:
@@ -400,6 +323,23 @@ def _cut(card: str, limit: int) -> str:
     return '\n'.join(keep) + '\n…'
 
 
+def _post(token: str, fields: Dict) -> Dict:
+    """One sendMessage call: {'ok': bool, 'code': http code, 'retry': seconds, 'desc': description}."""
+    body = urllib.parse.urlencode(fields).encode()
+    req = urllib.request.Request(f'https://api.telegram.org/bot{token}/sendMessage', data=body)
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return {'ok': bool(json.loads(r.read()).get('ok', False)), 'code': 200}
+    except urllib.error.HTTPError as e:
+        info: Dict = {}
+        try:
+            info = json.loads(e.read())
+        except Exception:  # noqa: BLE001
+            pass
+        return {'ok': False, 'code': e.code, 'retry': int((info.get('parameters') or {}).get('retry_after') or 0),
+                'desc': str(info.get('description') or '')}
+
+
 def send(messages: List[str], pause: float = 1.1) -> bool:
     token, chat = os.environ.get('TELEGRAM_BOT_TOKEN'), os.environ.get('TELEGRAM_CHAT_ID')
     if not token or not chat:
@@ -412,27 +352,31 @@ def send(messages: List[str], pause: float = 1.1) -> bool:
     for k, m in enumerate(messages):
         if k:
             time.sleep(pause)
-        body = urllib.parse.urlencode({'chat_id': chat, 'text': m, 'parse_mode': 'HTML', 'disable_web_page_preview': 'true'}).encode()
-        for attempt in range(4):
-            req = urllib.request.Request(f'https://api.telegram.org/bot{token}/sendMessage', data=body)
+        fields = {'chat_id': chat, 'text': str(m), 'parse_mode': 'HTML', 'disable_web_page_preview': 'true'}
+        rows = getattr(m, 'buttons', None)
+        if rows:
+            fields['reply_markup'] = json.dumps({'inline_keyboard': rows})
+        sent = False
+        for attempt in range(5):
             try:
-                with urllib.request.urlopen(req, timeout=15) as r:
-                    ok = ok and json.loads(r.read()).get('ok', False)
-                break
-            except urllib.error.HTTPError as e:
-                wait = 0
-                try:
-                    wait = int(json.loads(e.read()).get('parameters', {}).get('retry_after', 0))
-                except Exception:  # noqa: BLE001
-                    pass
-                if e.code == 429 and attempt < 3:
-                    time.sleep(min(max(wait, 1), 30) + 0.5)
-                    continue
-                print(f'Telegram send failed: HTTP {e.code}', file=sys.stderr)   # never print the token / URL
-                ok = False
-                break
+                r = _post(token, fields)
             except Exception as e:  # noqa: BLE001
                 print(f'Telegram send failed: {type(e).__name__}', file=sys.stderr)
-                ok = False
                 break
+            if r['ok']:
+                sent = True
+                break
+            if r['code'] == 429 and attempt < 4:
+                time.sleep(min(max(r.get('retry', 0), 1), 30) + 0.5)
+                continue
+            desc = r.get('desc', '').lower()
+            if r['code'] == 400 and '<blockquote expandable>' in fields['text'] and ('parse' in desc or 'entit' in desc or 'tag' in desc):
+                fields['text'] = fields['text'].replace('<blockquote expandable>', '<blockquote>')   # older clients / API
+                continue
+            if r['code'] == 400 and 'reply_markup' in fields and ('button' in desc or 'markup' in desc or 'url' in desc):
+                fields.pop('reply_markup')
+                continue
+            print(f"Telegram send failed: HTTP {r['code']}", file=sys.stderr)   # never print the token / URL
+            break
+        ok = ok and sent
     return ok

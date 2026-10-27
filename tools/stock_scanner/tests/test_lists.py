@@ -94,14 +94,14 @@ class TelegramListsTest(unittest.TestCase):
             zs = [dz(100, 95)] if i % 2 else [sz(100, 105)]
             ds[f'T{i:02d}'] = detail(zs, bars, symbol=f'T{i:02d}', sector=['Energy', 'Financials', 'Utilities'][i % 3],
                                      home='TSX:T' if i == 1 else '')
-        msgs = notify.list_messages(L.zone_lists(ds), cap=15)
-        txt = '\n'.join(msgs)
-        for head in ('In demand now', 'Approaching demand', 'Left demand', 'In supply', 'Approaching supply', 'Left supply'):
+        msgs = notify.build_messages({'date': '2026-10-23', 'scanned': 60, 'signals': [], 'exits': [], 'zone_lists': L.zone_lists(ds)})
+        self.assertEqual(len(msgs), 1)
+        txt = msgs[0]
+        self.assertIn('No new setups', notify.visible(txt))
+        for head in ('In demand (', 'Close to supply (' if 'Close to supply' in txt else 'In supply ('):
             self.assertIn(head, txt)
-        self.assertIn('+15 more on the app', txt)
-        self.assertIn('none today', txt)
-        self.assertIn('(TSX:T)', txt)
-        self.assertTrue(all(notify.u16(m) < notify.SAFE for m in msgs))
+        self.assertRegex(txt, r'\+\d+</blockquote>|\+\d+\n')                # '+N' past the first names
+        self.assertLess(notify.u16(txt), notify.SAFE)
         self.assertEqual(txt.count('<b>') - txt.count('</b>'), 0)
 
     def test_preview_of_the_published_scan(self):
@@ -111,8 +111,9 @@ class TelegramListsTest(unittest.TestCase):
         msgs = notify.preview(PUB, out=out)
         self.assertTrue(all(notify.u16(m) < notify.SAFE for m in msgs))
         txt = out.getvalue()
-        self.assertIn('In demand now', txt)
-        self.assertIn('Left supply', txt)
+        self.assertEqual(len(msgs), 1)
+        self.assertIn('<blockquote expandable>', txt)
+        self.assertIn('[Open scanner](https://', txt)
         self.assertIn('----- message 1/', txt)
 
     def test_scan_writes_lists_into_both_files(self):

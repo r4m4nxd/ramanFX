@@ -35,7 +35,7 @@ jobs:
       SCANNER_TOP_MIN_DV: ${{ vars.SCANNER_TOP_MIN_DV || '50e6' }}   # TOP: 20-day median dollar volume floor (USD/day)
       SCANNER_TOP_MAX: ${{ vars.SCANNER_TOP_MAX || '300' }}
       SCANNER_WORKERS: '6'
-      TELEGRAM_TOP_N: ${{ vars.TELEGRAM_TOP_N || '5' }}
+      TELEGRAM_TOP_N: ${{ vars.TELEGRAM_TOP_N || '3' }}
       SCANNER_SEC_PER_RUN: '600'
       SCANNER_SEC_COLD_CAP: '150'     # never-cached companies per run: a cold SEC cache fills over a few runs
       SCANNER_BUDGET_MIN: '50'        # no new download after 50 min: the scan goes on with what it has

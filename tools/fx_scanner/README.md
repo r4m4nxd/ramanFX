@@ -157,15 +157,20 @@ BUY (and the mirrored SELL); each fix above has a negative test.
 - When Telegram fails, the alert state is not advanced: the same events are sent again by the next run.
 - Watchlist instruments also: a **new WATCH**, and price newly **entering / approaching a located strong zone**
   (each zone at most every `FX_DEDUPE_HOURS`, 24 h).
-- **Daily summary** with the first run after the D1 close (21:05 UTC summer / 22:05 UTC winter): signals (entry /
-  stop / target / R:R / pips / chain), then in / approaching / left per side, watchlist sections first, then classes.
+- **Layout** (calm, one message per event; same as the stock scanner): the answer first, at most 3 two-line trade
+  cards (`🟢 EURUSD  BUY 1.20806 → 1.24794 · R:R 21` / `stop 1.20620 · 4-hour demand · score 10/10`),
+  everything else in one collapsed expandable quote, a chart button per card + "Open scanner". Legend 🟢 buy ·
+  🔴 sell · 👀 watch · 🚪 cancel / exit · ⏳ approaching. Times in Toronto.
+- **H4 check** after every new H4 candle (≤ 4 visible lines when nothing is new) and a **daily summary** with the
+  first run after the D1 close (21:05 UTC summer / 22:05 UTC winter; that run sends no H4 check).
 - The dedupe state lives in `.cache/state.json` (actions/cache). With no state (first run, lost cache) one "started"
   message + the summary is sent instead of replaying every event.
 - Failures (no token, OANDA unreachable, < 50% of the instruments with data, **a failing unit test**): at most one
   message per day, nothing published, the run is red. A candle off the server-time grid (H4 / D1 / W1 not on a
   boundary, MN more than 12 h off the 1st) drops that instrument for the run (`fxcfg.Misaligned`).
 
-Preview without sending: `python3 tools/fx_scanner/fxscan.py --preview-telegram`.
+Preview without sending: `python3 tools/fx_scanner/fxscan.py --preview-telegram` (alert, H4 check, daily summary of
+`public/fx/latest.json`; `--preview-from tools/fx_scanner/fixtures/sample/latest.json` for a busy day).
 
 ## Files
 
@@ -198,7 +203,7 @@ Env (defaults): `OANDA_ENV` (practice), `FX_INCLUDE_CFD` (false), `FX_WATCHLIST`
 `FX_APPROACH_H` (1.0), `FX_NEAR_H` (1.0), `FX_LEFT_BARS` (6), `FX_NEW_BARS` (6), `FX_TP_OFFSET_PIPS` (7),
 `FX_MIN_LEG_X` (2), `FX_TL_FAR_PIPS` (25), `FX_TL_MAX_TOUCHES` (3), `FX_HOST_MAX_DEPTH` (75), `FX_WEEKEND_FROM_H` (12),
 `FX_MAX_SPREAD_FRAC` (0.10), `FX_GOLD_USD_MIN_TF` (D1), `FX_DEDUPE_HOURS` (24), `FX_BUDGET_MIN` (25),
-`FX_MIN_COVERAGE` (0.5), `FX_WORKERS` (4), `FX_TELEGRAM_LIST_CAP` (12), `FX_APP_URL`, `FX_CACHE`.
+`FX_MIN_COVERAGE` (0.5), `FX_WORKERS` (4), `FX_APP_URL`, `FX_CACHE`.
 Network: OANDA allows ~120 requests/s; we pace ~16/s per host, with the stock scanner's time budget and circuit
 breaker (401 / 403 open it at once; 429 / 5xx one short retry).
 

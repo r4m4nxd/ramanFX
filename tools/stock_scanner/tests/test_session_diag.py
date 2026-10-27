@@ -140,7 +140,7 @@ class DiagnosticsTest(unittest.TestCase):
         res = dict(self.res, signals=[s for s in self.res['signals'] if s['kind'] != 'BUY'],
                    blocked={'candidates': 2, 'within_pct': 5, 'reasons': [{'rule': 'curve', 'label': 'high on curve', 'count': 2}]})
         txt = '\n'.join(notify.build_messages(res))
-        self.assertIn('Top reasons: high on curve (2)', txt)
+        self.assertIn('Why not more: price high in its range (2)', txt)
 
 
 class MarketMapTest(unittest.TestCase):
@@ -173,20 +173,11 @@ class MarketMapTest(unittest.TestCase):
         self.assertIsNone(scan.strong_in_demand(dict(row, dz=['D1', 'WK', 3, 0]), {}))
         self.assertIsNone(scan.strong_in_demand(dict(row, sig='BUY'), {}))
 
-    def test_telegram_strong_block_capped_by_sector(self):
+    def test_telegram_zone_lists_in_the_collapsed_detail(self):
         import notify
-        rows = [{'symbol': f'S{i:02d}', 'sector': 'Energy' if i % 2 else 'Financials', 'score': i, 'label': 'high on curve'} for i in range(14)]
-        b = notify.strong_block(rows)
-        self.assertIn('In strong demand (rules blocked)', b[0])
-        self.assertIn('(top 10)', b[0])
-        body = '\n'.join(b[1:])
-        self.assertEqual(body.count('(high on curve)'), 10)
-        self.assertIn('S13 (high on curve)', body)
-        self.assertNotIn('S03', body)
-        self.assertEqual(len(b), 3)                                   # one line per sector
-        self.assertEqual(notify.strong_block([]), [])
-        txt = '\n'.join(notify.build_messages(self.res))
-        self.assertIn('In demand now', txt)                          # the zone lists replace the strong block
+        msgs = notify.build_messages(self.res)
+        self.assertEqual(len(msgs), 1)
+        self.assertIn('In demand (', msgs[0].split('<blockquote expandable>')[1])
 
     def test_universe_meta_and_uncovered(self):
         pub = scan.public_json(self.res)
@@ -199,9 +190,8 @@ class MarketMapTest(unittest.TestCase):
         self.assertIn('symbol=NYSE:SYNE', sig['chart'])          # the US chart: the levels are its USD prices
         self.assertIn('symbol=TSX:SYE', sig['chart_home'])
         import notify
-        card = notify.signal_card(sig)
-        self.assertIn('TSX: SYE · US listing · USD', card)
-        self.assertIn('TSX chart (CAD)', card)
+        card = notify.stock_card(sig)
+        self.assertIn('<b>SYNE</b> (TSX:SYE)', card)                # levels are the US listing's (USD)
 
 
 if __name__ == '__main__':
