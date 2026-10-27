@@ -92,13 +92,14 @@ jobs:
       - name: Refresh index lists (Mondays, or on request)
         if: ${{ steps.check.outputs.scan == 'true' && (github.event.inputs.refresh_universe == 'true' || github.event_name == 'schedule') }}
         run: |
-          if [ "$(date -u +%u)" = "1" ] || [ "${{ github.event.inputs.refresh_universe }}" = "true" ]; then
+          if [ "$(date -u +%u)" = "1" ] || [ "$IN_REFRESH" = "true" ]; then
             python tools/stock_scanner/universe.py --force
           else
             echo "not Monday: keeping the committed universe.csv"
           fi
         env:
           SEC_UA: ${{ secrets.SEC_UA }}
+          IN_REFRESH: ${{ github.event.inputs.refresh_universe }}
           ALPACA_KEY_ID: ${{ secrets.ALPACA_KEY_ID }}
           ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
 
@@ -108,13 +109,14 @@ jobs:
         if: ${{ steps.check.outputs.scan == 'true' }}
         timeout-minutes: 70
         run: |
-          ARGS=""
-          if [ -n "${{ github.event.inputs.tickers }}" ]; then ARGS="--tickers ${{ github.event.inputs.tickers }}"; fi
-          python tools/stock_scanner/scan.py $ARGS
+          ARGS=()
+          if [ -n "$IN_TICKERS" ]; then ARGS=(--tickers "$IN_TICKERS"); fi
+          python tools/stock_scanner/scan.py "${ARGS[@]}"
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           HOLDINGS_JSON: ${{ secrets.HOLDINGS_JSON }}
+          IN_TICKERS: ${{ github.event.inputs.tickers }}
           WATCHLIST: ${{ secrets.WATCHLIST }}
           WATCHLIST_APPROACH_PCT: ${{ vars.WATCHLIST_APPROACH_PCT || '3' }}
           # Daily zone lists (Telegram + app): approaching = close within X% of a proximal, left = touched in the last

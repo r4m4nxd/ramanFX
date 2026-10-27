@@ -184,9 +184,11 @@ class OutputTest(unittest.TestCase):
     def test_selftest_ok(self):
         import contextlib
         import io
+        import tempfile
         buf = io.StringIO()
-        with contextlib.redirect_stdout(buf):
-            self.assertEqual(selftest.main(), 0)
+        # write to a temp dir: the committed fixtures/sample is the app's demo data, not a test output
+        with tempfile.TemporaryDirectory() as out, contextlib.redirect_stdout(buf):
+            self.assertEqual(selftest.main(out_dir=out), 0)
         out = buf.getvalue()
         self.assertIn('  BUY ', out)
         self.assertIn('not advice', out)

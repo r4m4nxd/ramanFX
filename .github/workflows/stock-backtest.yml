@@ -56,14 +56,18 @@ jobs:
         id: bt
         timeout-minutes: 280
         run: |
-          ARGS="--years ${{ github.event.inputs.years || '10' }} --limit ${{ github.event.inputs.max_tickers || '0' }}"
-          if [ -n "${{ github.event.inputs.tickers }}" ]; then ARGS="$ARGS --tickers ${{ github.event.inputs.tickers }}"; fi
-          python tools/stock_scanner/backtest.py $ARGS --workers "$(nproc)" --budget-min 260 \
+          # inputs arrive via env, never pasted into the script
+          ARGS=(--years "${IN_YEARS:-10}" --limit "${IN_MAX:-0}")
+          if [ -n "$IN_TICKERS" ]; then ARGS+=(--tickers "$IN_TICKERS"); fi
+          python tools/stock_scanner/backtest.py "${ARGS[@]}" --workers "$(nproc)" --budget-min 260 \
             --public public/scanner/backtest.json --md docs/research/Stock_Backtest.md | tee backtest_log.txt
         env:
           ALPACA_KEY_ID: ${{ secrets.ALPACA_KEY_ID }}
           ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
           SCANNER_TSX_FEED: ${{ vars.SCANNER_TSX_FEED || '' }}
+          IN_YEARS: ${{ github.event.inputs.years }}
+          IN_MAX: ${{ github.event.inputs.max_tickers }}
+          IN_TICKERS: ${{ github.event.inputs.tickers }}
           EODHD_API_KEY: ${{ secrets.EODHD_API_KEY }}
 
       - name: Summary

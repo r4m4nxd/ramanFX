@@ -14,8 +14,10 @@ export function safeSvg(markup: string): string | null {
   if (/<script/i.test(s)) return null;
   if (/\son[a-z]+\s*=/i.test(s)) return null;
   if (/foreignObject/i.test(s)) return null;
-  if (/href\s*=\s*["']?\s*(https?:|javascript:|data:|\/\/)/i.test(s)) return null;
-  if (/<(iframe|embed|object|use|image|style)\b/i.test(s)) return null;
+  // Figures never link anywhere, so any href (encoded or not), entity, animation or non-local url() is refused.
+  if (/href\s*=/i.test(s) || /&#|&[a-z]+;/i.test(s.replace(/&(amp|lt|gt|quot|apos);/gi, ''))) return null;
+  if (/url\(\s*["']?\s*(?!#)/i.test(s)) return null;
+  if (/<(iframe|embed|object|use|image|style|a|animate\w*|set|discard)\b/i.test(s)) return null;
   return s;
 }
 

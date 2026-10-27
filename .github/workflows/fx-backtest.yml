@@ -57,13 +57,17 @@ jobs:
       - name: Backtest
         timeout-minutes: 320
         run: |
-          ARGS="--years ${{ github.event.inputs.years || 'max' }} --max-instruments ${{ github.event.inputs.max_instruments || '0' }} --budget-min 270"
-          if [ -n "${{ github.event.inputs.instruments }}" ]; then ARGS="$ARGS --instruments ${{ github.event.inputs.instruments }}"; fi
-          if [ "$FX_INCLUDE_CFD" = "true" ]; then ARGS="$ARGS --include-cfd"; fi
-          python tools/fx_scanner/fx_backtest.py $ARGS
+          # inputs arrive via env, never pasted into the script
+          ARGS=(--years "${IN_YEARS:-max}" --max-instruments "${IN_MAX:-0}" --budget-min 270)
+          if [ -n "$IN_INSTRUMENTS" ]; then ARGS+=(--instruments "$IN_INSTRUMENTS"); fi
+          if [ "$FX_INCLUDE_CFD" = "true" ]; then ARGS+=(--include-cfd); fi
+          python tools/fx_scanner/fx_backtest.py "${ARGS[@]}"
         env:
           OANDA_API_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
           FX_WATCHLIST: ${{ secrets.FX_WATCHLIST }}
+          IN_YEARS: ${{ github.event.inputs.years }}
+          IN_MAX: ${{ github.event.inputs.max_instruments }}
+          IN_INSTRUMENTS: ${{ github.event.inputs.instruments }}
 
       - name: Save candle cache
         if: ${{ always() && hashFiles('tools/fx_scanner/.cache/**') != '' }}
