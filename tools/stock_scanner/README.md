@@ -29,7 +29,7 @@ Standard library only (Python 3.10+). No `pip install`.
 | `selftest.py` | Whole pipeline on synthetic fixtures (`scan.py --selftest`). |
 | `holdings.json` | Your positions for EXIT warnings (or the `HOLDINGS_JSON` secret, preferred). |
 | `fixtures/` | Synthetic price generator, a hand-made SEC companyfacts file, `latest.sample.json` (app demo data). |
-| `../../.github/workflows/stock-scan.yml` | Weekdays 21:45 UTC: tests, scan, Telegram, commit `public/scanner/*.json`. |
+| `../../.github/workflows/stock-scan.yml` | Weekdays 21:37 UTC + backup 23:37 UTC (skipped when today's scan is already published): tests, scan, Telegram, commit `public/scanner/*.json`. |
 
 ## Setup (once)
 

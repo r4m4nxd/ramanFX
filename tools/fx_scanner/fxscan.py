@@ -2,12 +2,14 @@
 
     python tools/fx_scanner/fxscan.py                    # scan if a new H4 candle closed, write public/fx, Telegram
     python tools/fx_scanner/fxscan.py --force            # scan even without a new H4 candle
+    python tools/fx_scanner/fxscan.py --check            # seconds: is there an unscanned complete H4 candle?
     python tools/fx_scanner/fxscan.py --only EURUSD,XAUAUD --no-notify
     python tools/fx_scanner/fxscan.py --selftest         # synthetic data end to end, prints the Telegram text
     python tools/fx_scanner/fxscan.py --preview-telegram # the daily summary of the published public/fx/latest.json
 
 Outputs (contract: tools/fx_scanner/SCHEMA.md): public/fx/latest.json and public/fx/d/<class>.json (per-instrument
-detail with bars for the charts). Dedupe state for Telegram: <cache>/state.json (actions/cache).
+detail with bars for the charts). Dedupe state for Telegram: <cache>/state.json (actions/cache); the schedule state
+(last scanned H4, last daily summary, last H4 digest) is also committed as public/fx/state.json.
 """
 from __future__ import annotations
 
@@ -422,12 +424,48 @@ def state_path() -> str:
     return os.path.join(C.CACHE, 'state.json')
 
 
-def load_state() -> Dict:
+SCHEDULE_KEYS = ('last_h4', 'summary_d1', 'digest_h4')
+
+
+def _read(path: str) -> Dict:
     try:
-        with open(state_path()) as f:
-            return json.load(f)
+        with open(path) as f:
+            v = json.load(f)
+        return v if isinstance(v, dict) else {}
     except (OSError, ValueError):
         return {}
+
+
+def load_state(public_path: Optional[str] = None) -> Dict:
+    """The cache state (alert dedupe) merged with the committed schedule state (public/fx/state.json): for each of
+    SCHEDULE_KEYS the newer value wins, so a lost or evicted actions cache never re-scans / re-sends a summary."""
+    st = _read(state_path())
+    pub = _read(public_path or C.PUBLIC_STATE)
+    for k in SCHEDULE_KEYS:
+        if isinstance(pub.get(k), str) and pub[k] > str(st.get(k) or ''):
+            st[k] = pub[k]
+    return st
+
+
+def save_public_state(st: Dict, path: Optional[str] = None) -> None:
+    """The small committed schedule state (no alert data)."""
+    path = path or C.PUBLIC_STATE
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    _dump(path, {**{k: st.get(k) for k in SCHEDULE_KEYS}, 'updated': now_utc().strftime('%Y-%m-%dT%H:%M:%SZ')})
+
+
+def needs_scan(h4: Optional[str], state: Dict) -> bool:
+    """True when the newest complete H4 candle has not been scanned yet (catch-up: a late or dropped cron run is
+    picked up by the next one)."""
+    return bool(h4) and h4 != state.get('last_h4')
+
+
+def gh_output(**kv) -> None:
+    p = os.environ.get('GITHUB_OUTPUT')
+    if p:
+        with open(p, 'a') as f:
+            for k, v in kv.items():
+                f.write(f'{k}={v}\n')
 
 
 def save_state(st: Dict) -> None:
@@ -519,7 +557,22 @@ def main(argv=None) -> int:
     ap.add_argument('--preview-telegram', action='store_true')
     ap.add_argument('--workers', type=int, default=int(os.environ.get('FX_WORKERS') or 4))
     ap.add_argument('--notify-failure', default='', help='send one "FX scan failed" Telegram message (workflow steps)')
+    ap.add_argument('--check', action='store_true',
+                    help='only check whether a new H4 candle needs scanning (prints it, sets the GitHub output scan=true/false)')
     a = ap.parse_args(argv)
+    if a.check:
+        try:
+            O.token()
+            h4 = O.latest_h4()
+        except Exception as e:  # noqa: BLE001  (no token / OANDA down: let the full run report it, once a day)
+            print(f'check failed ({type(e).__name__}): running the scan step to report it')
+            gh_output(scan='true')
+            return 0
+        st = load_state()
+        need = needs_scan(h4, st)
+        print(f"newest H4 {h4} server time, last scanned {st.get('last_h4')}: " + ('scan' if need else 'nothing to do'))
+        gh_output(scan='true' if need else 'false', h4=h4 or '')
+        return 0
     if a.notify_failure:
         notify_failure(a.notify_failure, load_state(), True)
         return 0
@@ -552,7 +605,7 @@ def main(argv=None) -> int:
     if not h4:
         print('no complete H4 candle returned')
         return 0
-    if h4 == state.get('last_h4') and not (a.force or a.summary or a.only):
+    if not needs_scan(h4, state) and not (a.force or a.summary or a.only):
         print(f'no new H4 candle since {h4} (server time): nothing to do')
         return 0
     instruments, src = O.account_instruments(log=print)
@@ -597,6 +650,9 @@ def main(argv=None) -> int:
     if a.summary or (not a.only and (bootstrap or (d1 and d1 != state.get('summary_d1')))):
         msgs += N.summary_messages(pub)
         new_state['summary_d1'] = d1
+    if C.H4_DIGEST and not a.only and (a.force or h4 != state.get('digest_h4')):
+        msgs.append(N.digest_message(pub, ev if not bootstrap else {}))
+        new_state['digest_h4'] = h4
     ok = True
     if notify and msgs:
         ok = N.send(msgs) or not telegram_configured()
@@ -611,6 +667,8 @@ def main(argv=None) -> int:
     else:
         new_state['last_h4'] = h4
     save_state(new_state)
+    if not a.no_write and not a.only:
+        save_public_state(new_state)
     print(f'done in {time.time() - t0:.0f}s: {len(ev["signals"])} new signals, {len(ev["gone"])} cancelled, '
           f'{len(ev["zones"])} zone alerts, {len(msgs)} message(s)')
     return 0

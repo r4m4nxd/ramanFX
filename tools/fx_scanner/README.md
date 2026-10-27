@@ -2,8 +2,10 @@
 
 Automated forex (and watchlist CFD) zone scan with **the same Raja rules and the same top-down nesting as the stock
 scanner** (`tools/stock_scanner/zones.py` is imported, not copied), on the chain **MN → W1 → D1 → H4** with 3M as
-the top context. Runs every 4 hours on GitHub Actions and sends **Telegram messages only when something new
-happens**, plus one daily summary, so you do not have to watch charts during the day job. Results also go to the app
+the top context. Runs after every H4 close on GitHub Actions (polled at :17 / :47 each hour; a run with no unscanned
+H4 candle stops in seconds, a dropped run is caught up by the next) and sends **instant Telegram alerts when something
+new happens**, one compact **H4 digest** after every new H4 candle (`FX_H4_DIGEST`, default `true`: counts, top 5
+watchlist instruments in / near located zones, or "No new setups"), plus one daily summary, so you do not have to watch charts during the day job. Results also go to the app
 at `/scanner/fx` (Stocks | Forex switch on the scanner page).
 
 **Broker: Pepperstone. Data: OANDA.** Pepperstone has no public REST price API, so prices come from OANDA's free

@@ -1,4 +1,5 @@
-"""FX Telegram: instant alerts only when something NEW happens, plus one daily summary after the NY close.
+"""FX Telegram: instant alerts only when something NEW happens, one compact H4 digest after every new H4 candle
+(FX_H4_DIGEST, default on), plus one daily summary after the NY close.
 
 Alerts (deduped with the state kept in the cache, so the owner is not spammed every 4 hours):
     every instrument   a NEW BUY / SELL signal; a signal that disappeared (invalidated: zone removed, stop level hit,
@@ -126,3 +127,68 @@ def summary_messages(pub: Dict) -> List[str]:
 
 def failure_message(reason: str) -> str:
     return f'⚠️ <b>FX scan failed</b>\n{esc(reason)}'
+
+
+def _local(close_utc: str) -> str:
+    """'2026-10-26T21:00:00Z' -> '17:00 Toronto' (C.LOCAL_TZ); UTC when the time zone database is missing."""
+    import datetime as dt
+    try:
+        t = dt.datetime.strptime(close_utc[:19], '%Y-%m-%dT%H:%M:%S').replace(tzinfo=dt.timezone.utc)
+    except (TypeError, ValueError):
+        return ''
+    try:
+        from zoneinfo import ZoneInfo
+        loc = t.astimezone(ZoneInfo(C.LOCAL_TZ))
+        return loc.strftime('%a %H:%M ') + C.LOCAL_TZ.split('/')[-1].replace('_', ' ')
+    except Exception:  # noqa: BLE001
+        return t.strftime('%a %H:%M UTC')
+
+
+DIGEST_MAX = 1500
+
+
+def digest_message(pub: Dict, ev: Dict, top: int = 5) -> str:
+    """The compact H4 digest (one message, < 1500 characters), sent after every new H4 candle scan: close time (server +
+    local), counts, the top watchlist instruments in / approaching a LOCATED zone, and what is new."""
+    import datetime as dt
+    h4 = pub.get('h4') or ''
+    try:
+        srv = (dt.datetime.strptime(h4[:16], '%Y-%m-%dT%H:%M') + dt.timedelta(hours=4)).strftime('%a %H:%M')
+    except ValueError:
+        srv = h4
+    loc = _local(pub.get('h4_close_utc') or '')
+    c = pub.get('counts') or {}
+    zl = pub.get('lists') or {}
+    n = lambda side, sec: len((zl.get(side) or {}).get(sec) or [])  # noqa: E731
+    lines = [f"🕓 <b>FX H4 digest</b> · candle closed {esc(srv)} server" + (f" · {esc(loc)}" if loc else ''),
+             f"{c.get('BUY', 0)} BUY · {c.get('SELL', 0)} SELL · {c.get('WATCH', 0)} WATCH",
+             f"In demand {n('demand', 'in')} · in supply {n('supply', 'in')} · approaching "
+             f"{n('demand', 'near') + n('supply', 'near')} ({n('demand', 'near')} demand / {n('supply', 'near')} supply)"]
+    new = [f"{len(ev.get('signals') or [])} BUY/SELL", f"{len(ev.get('watch') or [])} WATCH",
+           f"{len(ev.get('gone') or [])} cancelled"]
+    if ev.get('signals') or ev.get('watch') or ev.get('gone'):
+        lines.append('New: ' + ' · '.join(new) + ' (see the alerts)')
+    else:
+        lines.append('No new setups')
+    items = [{**r, 'side': side} for side in ('demand', 'supply') for sec in ('in', 'near')
+             for r in ((zl.get(side) or {}).get(sec) or []) if r.get('wl') and r.get('loc_ok')]
+    items.sort(key=lambda r: (r.get('sec') != 'in', r.get('pips') or 0, -(r.get('score') or 0)))
+    seen, best = set(), []
+    for r in items:
+        if r.get('sym') not in seen:
+            seen.add(r.get('sym'))
+            best.append(r)
+    if best:
+        lines.append('⭐ <b>Watchlist at located zones</b>')
+        for r in best[:top]:
+            word = 'inside' if r.get('sec') == 'in' else f"{(r.get('pips') or 0):.0f} pips from"
+            lines.append(f"{'🟢' if r['side'] == 'demand' else '🔴'} {esc(r['sym'])} {word} {esc(r.get('tf') or '')} "
+                         f"{esc(r['side'])} {_px(r.get('prox'), r)}" + (f" ({esc(r['label'])})" if r.get('label') else ''))
+    else:
+        lines.append('No watchlist instrument in or near a located zone.')
+    lines.append(f"<a href=\"{C.APP_URL}\">Open the app</a>")
+    msg = '\n'.join(lines)
+    while len(msg) > DIGEST_MAX and len(lines) > 5:
+        lines.pop(-2)
+        msg = '\n'.join(lines)
+    return msg

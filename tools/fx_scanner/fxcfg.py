@@ -87,6 +87,10 @@ COLD_COUNT = 5000                                       # OANDA maximum candles 
 CACHE = os.environ.get('FX_CACHE') or os.path.join(HERE, '.cache')
 OUT_DIR = os.path.join(ROOT, 'public', 'fx')
 APP_URL = os.environ.get('FX_APP_URL', 'https://raman-fx.vercel.app/scanner/fx')
+# Committed schedule state (last scanned H4, last daily summary, last digest): survives a lost / evicted actions cache
+PUBLIC_STATE = os.path.join(OUT_DIR, 'state.json')
+H4_DIGEST = _b('FX_H4_DIGEST', True)                    # one compact Telegram digest after every new H4 scan
+LOCAL_TZ = os.environ.get('FX_LOCAL_TZ') or 'America/Toronto'
 BUDGET_MIN = _f('FX_BUDGET_MIN', 25)
 MIN_COVERAGE = _f('FX_MIN_COVERAGE', 0.5)
 

@@ -1,11 +1,14 @@
 name: Stock scan
 
-# Weekdays after the US close (21:45 UTC), or by hand. Scans S&P 500 + Nasdaq-100 + Dow 30 + S&P/TSX 60 + S&P/TSX Composite (US listings of the TSX names)
+# Weekdays after the US close, or by hand. GitHub delays / drops scheduled runs (worst near the top of the hour), so it
+# runs at off-peak minutes: 21:37 UTC and a backup at 23:37 UTC; a scheduled run stops in seconds when
+# public/scanner/latest.json was already generated after the latest 20:30 UTC (the daily message went out). Scans S&P 500 + Nasdaq-100 + Dow 30 + S&P/TSX 60 + S&P/TSX Composite (US listings of the TSX names)
 # + Global leaders (curated US-listed ADRs, adr_list.csv) + US top liquid (top_liquid.csv, rebuilt on the Monday refresh)
 # (switch universes with the SCANNER_UNIVERSES repository variable), sends Telegram, commits public/scanner/*.json.
 on:
   schedule:
-    - cron: '45 21 * * 1-5'
+    - cron: '37 21 * * 1-5'
+    - cron: '37 23 * * 1-5'
   workflow_dispatch:
     inputs:
       tickers:
@@ -37,16 +40,44 @@ jobs:
       SCANNER_SEC_COLD_CAP: '150'     # never-cached companies per run: a cold SEC cache fills over a few runs
       SCANNER_BUDGET_MIN: '50'        # no new download after 50 min: the scan goes on with what it has
     steps:
+      # the branch tip at run time, so the backup run sees the primary run's committed latest.json
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
 
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
+      # Scheduled runs only: skip when this close's scan is already published (generated after the last 20:30 UTC).
+      - name: Already scanned today?
+        id: check
+        run: |
+          if [ "$EVENT" != "schedule" ]; then echo "scan=true" >> "$GITHUB_OUTPUT"; echo "manual run: scan"; exit 0; fi
+          python - <<'PY'
+          import datetime as dt, json, os
+          now = dt.datetime.now(dt.timezone.utc)   # a run delayed past midnight UTC still belongs to yesterday's close
+          cut = now.replace(hour=20, minute=30, second=0, microsecond=0)
+          if now < cut:
+              cut -= dt.timedelta(days=1)
+          cut = cut.strftime('%Y-%m-%dT%H:%M')
+          try:
+              gen = json.load(open('public/scanner/latest.json')).get('generated_at') or ''
+          except (OSError, ValueError):
+              gen = ''
+          done = gen >= cut
+          print(f'latest.json generated_at {gen or "n/a"}: ' + ('already scanned today, nothing to do' if done else 'scan'))
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"scan={'false' if done else 'true'}\n")
+          PY
+        env:
+          EVENT: ${{ github.event_name }}
+
       # Price + SEC cache between runs: after the first full download only the last month is fetched per ticker.
       # restore + an explicit save with always(): actions/cache's own post step saves only when the job succeeds, so a
       # failed or timed-out cold run would throw away everything it downloaded and the next run would be cold again.
       - name: Restore data cache
+        if: ${{ steps.check.outputs.scan == 'true' }}
         uses: actions/cache/restore@v4
         with:
           path: tools/stock_scanner/.cache
@@ -55,10 +86,11 @@ jobs:
             scanner-data-
 
       - name: Unit tests
+        if: ${{ steps.check.outputs.scan == 'true' }}
         run: python -m unittest discover tools/stock_scanner/tests
 
       - name: Refresh index lists (Mondays, or on request)
-        if: ${{ github.event.inputs.refresh_universe == 'true' || github.event_name == 'schedule' }}
+        if: ${{ steps.check.outputs.scan == 'true' && (github.event.inputs.refresh_universe == 'true' || github.event_name == 'schedule') }}
         run: |
           if [ "$(date -u +%u)" = "1" ] || [ "${{ github.event.inputs.refresh_universe }}" = "true" ]; then
             python tools/stock_scanner/universe.py --force
@@ -73,6 +105,7 @@ jobs:
       # Step timeout < job timeout, so the cache save and the commit below still run if the scan hangs.
       - name: Scan + notify
         id: scan
+        if: ${{ steps.check.outputs.scan == 'true' }}
         timeout-minutes: 70
         run: |
           ARGS=""
@@ -102,7 +135,7 @@ jobs:
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
 
       - name: Save data cache
-        if: ${{ always() && hashFiles('tools/stock_scanner/.cache/daily/*.json') != '' }}
+        if: ${{ always() && steps.check.outputs.scan == 'true' && hashFiles('tools/stock_scanner/.cache/daily/*.json') != '' }}
         uses: actions/cache/save@v4
         with:
           path: tools/stock_scanner/.cache
@@ -113,7 +146,7 @@ jobs:
       # tickers had data the scan writes nothing (exit 2), so there is nothing to commit and the app keeps the last
       # good results.
       - name: Commit results
-        if: ${{ !cancelled() && hashFiles('public/scanner/latest.json') != '' }}
+        if: ${{ !cancelled() && steps.check.outputs.scan == 'true' && hashFiles('public/scanner/latest.json') != '' }}
         run: |
           git config user.name "ramanfx-scanner[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

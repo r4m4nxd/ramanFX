@@ -298,6 +298,43 @@ class Rules(unittest.TestCase):
         self.assertIn('Chain:', msgs[0])
 
 
+    def test_h4_digest(self):
+        pub, _ = X.public(self.res, '2026-10-26T20:00')
+        ev, _ = X.events(self.res, {'signals': {}}, dt.datetime(2026, 10, 26, 21, 5))
+        m = N.digest_message(pub, ev)
+        self.assertIn('FX H4 digest', m)
+        self.assertIn('Tue 00:00 server', m)
+        self.assertIn('Mon 17:00 Toronto', m)
+        self.assertLess(len(m), 1500)
+        quiet = N.digest_message(pub, {})
+        self.assertIn('No new setups', quiet)
+        wl = [r for side in pub['lists'].values() for sec in ('in', 'near') for r in side[sec] if r['wl'] and r['loc_ok']]
+        self.assertLessEqual(quiet.count('pips from') + quiet.count(' inside '), 5)
+        if not wl:
+            self.assertIn('No watchlist instrument', quiet)
+
+
+class Schedule(unittest.TestCase):
+    def test_state_merge_and_catch_up(self):
+        with tempfile.TemporaryDirectory() as d:
+            old = C.CACHE
+            C.CACHE = os.path.join(d, 'cache')
+            try:
+                pub = os.path.join(d, 'state.json')
+                X.save_state({'last_h4': '2026-10-26T16:00', 'summary_d1': '2026-10-23T00:00', 'signals': {}})
+                X.save_public_state({'last_h4': '2026-10-26T20:00', 'summary_d1': '2026-10-26T00:00'}, pub)
+                st = X.load_state(pub)
+                self.assertEqual(st['last_h4'], '2026-10-26T20:00')     # the committed state is newer
+                self.assertEqual(st['summary_d1'], '2026-10-26T00:00')
+                self.assertIn('signals', st)                            # alert state from the cache kept
+                self.assertFalse(X.needs_scan('2026-10-26T20:00', st))
+                self.assertTrue(X.needs_scan('2026-10-27T00:00', st))   # a missed cron: the next run catches up
+                self.assertFalse(X.needs_scan(None, st))
+                with open(pub) as f:
+                    self.assertNotIn('signals', json.load(f))
+            finally:
+                C.CACHE = old
+
 class Usdx(unittest.TestCase):
     def test_formula(self):
         v = {'EUR_USD': 1.08, 'USD_JPY': 150.0, 'GBP_USD': 1.27, 'USD_CAD': 1.36, 'USD_SEK': 10.5, 'USD_CHF': 0.88}
