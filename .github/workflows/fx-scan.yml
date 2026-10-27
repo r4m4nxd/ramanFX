@@ -2,7 +2,7 @@ name: FX scan
 
 # Forex zone scan (Raja rules, top-down MN -> W1 -> D1 -> H4, 3M context), Pepperstone symbols, OANDA data.
 # GitHub drops or delays scheduled runs (worst near the top of the hour), so the scan is NOT tied to the H4 close
-# minute: it is polled twice an hour at off-peak minutes (:17 and :47) Monday-Friday UTC, plus Saturday 00-05 UTC to
+# minute: it is polled every 10 minutes (off the :00 peak) Monday-Friday UTC, plus Saturday 00-05 UTC to
 # catch the Friday close (forex week: Sunday 17:00 New York -> Friday 17:00 New York). Each run first asks OANDA for
 # the newest complete H4 candle (`fxscan.py --check`, seconds) and compares it with the last scanned one
 # (public/fx/state.json, committed, + the actions cache): already scanned -> the run stops there; not yet -> full scan,
@@ -10,8 +10,8 @@ name: FX scan
 # the first scan after the D1 close (17:00 New York), however late. Manual runs always scan (--force).
 on:
   schedule:
-    - cron: '17,47 * * * 1-5'
-    - cron: '17,47 0-5 * * 6'
+    - cron: '7,17,27,37,47,57 * * * 1-5'
+    - cron: '7,17,27,37,47,57 0-5 * * 6'
   workflow_dispatch:
     inputs:
       only:
