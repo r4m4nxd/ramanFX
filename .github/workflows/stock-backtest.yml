@@ -77,6 +77,16 @@ jobs:
           path: tools/stock_scanner/.cache
           key: scanner-data-${{ github.run_id }}
 
+      - name: Upload results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: stock-backtest-${{ github.run_id }}
+          path: |
+            public/scanner/backtest.json
+            docs/research/Stock_Backtest.md
+          if-no-files-found: ignore
+
       - name: Commit results
         if: ${{ !cancelled() && hashFiles('public/scanner/backtest.json') != '' }}
         run: |
@@ -85,4 +95,5 @@ jobs:
           git add public/scanner/backtest.json docs/research/Stock_Backtest.md
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
           git commit -m "scanner: stock backtest $(date -u +%Y-%m-%d)"
-          for i in 1 2 3 4 5; do git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && break; sleep $((i * 5)); done
+          ok=0; for i in 1 2 3 4 5; do git rebase --abort 2>/dev/null; git pull --rebase -X theirs --autostash origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && ok=1 && break; sleep $((i * 5)); done
+          [ "$ok" = 1 ] || { echo "::error::results not pushed (see the uploaded artifact)"; exit 1; }
