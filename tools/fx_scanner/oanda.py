@@ -36,6 +36,8 @@ for _h in HOSTS.values():
     SD.HOST_PAUSE.setdefault(_h, 0.06)          # ~16 requests/s; OANDA allows far more (be polite)
 ALIGN = {'alignmentTimezone': 'America/New_York', 'dailyAlignment': '17', 'weeklyAlignment': 'Friday'}
 INSTRUMENTS_MAX_AGE_D = 7
+STRICT_DAYS = 730                               # a misaligned candle older than this is dropped (logged), newer ones fail
+DROPPED: Dict[str, int] = {}                    # 'name tf' -> old misaligned candles dropped this run
 PRICE = 'B'                                     # cache format: bars are BID (older caches held mid: re-fetched cold)
 
 
@@ -72,7 +74,7 @@ def candles_url(name: str, tf: str, count: int = C.COLD_COUNT, frm: Optional[str
     return f'https://{host()}/v3/instruments/{urllib.parse.quote(name)}/candles?' + urllib.parse.urlencode(q)
 
 
-def parse_candles(raw: bytes, tf: str, strict: bool = True) -> List[Tuple[str, Bar, Optional[float], str]]:
+def parse_candles(raw: bytes, tf: str, strict: bool = True, name: str = '') -> List[Tuple[str, Bar, Optional[float], str]]:
     """[(label, Bar(bid), spread or None, utc time)] of the COMPLETE candles, oldest first. The bars are BID prices
     (Pepperstone MT4 / MT5 charts and ZoneVision plot bid); a candle with no bid side falls back to mid. A candle off
     the server-time grid raises fxcfg.Misaligned (the instrument is dropped this run, never silently relabelled)."""
@@ -93,7 +95,17 @@ def parse_candles(raw: bytes, tf: str, strict: bool = True) -> List[Tuple[str, B
             except (KeyError, TypeError, ValueError):
                 sp = None
         t = str(c.get('time') or '')
-        lbl = C.label(t, tf, strict)
+        try:
+            lbl = C.label(t, tf, strict)
+        except C.Misaligned:
+            # history: drop only the offending old candle (never fail an instrument for it); recent ones still fail
+            import datetime as dt
+            age = dt.datetime.now(dt.timezone.utc).replace(tzinfo=None) - C.parse_utc(t)
+            if age.days <= STRICT_DAYS:
+                raise
+            k = f'{name} {tf}'.strip()
+            DROPPED[k] = DROPPED.get(k, 0) + 1
+            continue
         out.append((lbl, Bar(lbl, o, h, l, cl, float(c.get('volume') or 0)), sp, t[:19] + 'Z'))
     return out
 
@@ -142,8 +154,8 @@ def _merge(old: List[list], new: List[list], tol: float) -> Optional[List[list]]
     return keep + new
 
 
-def _rows(raw: bytes, tf: str) -> Tuple[List[list], List[str]]:
-    pc = parse_candles(raw, tf)
+def _rows(raw: bytes, tf: str, name: str = '') -> Tuple[List[list], List[str]]:
+    pc = parse_candles(raw, tf, name=name)
     return [[lbl, b.o, b.h, b.l, b.c, b.v] + ([round(sp, 6)] if sp is not None else []) for lbl, b, sp, _ in pc], [u for *_, u in pc]
 
 
@@ -162,12 +174,12 @@ def update(name: str, tf: str, get: Getter = None, log=None) -> Tuple[List[Bar],
         nxt = C.parse_utc(frm) + dt.timedelta(hours=2 * C.TF_HOURS[tf] - 1)
         if dt.datetime.now(dt.timezone.utc).replace(tzinfo=None) < nxt:
             return to_bars(rec), rec
-    got, utc = _rows(get(candles_url(name, tf, C.COLD_COUNT, frm)), tf)
+    got, utc = _rows(get(candles_url(name, tf, C.COLD_COUNT, frm)), tf, name)
     merged = _merge(rows, got, tol=max(1e-9, (rows[-1][4] if rows else 1) * 2e-4)) if frm else got
     if merged is None:
         if log:
             log(f'{name} {tf}: overlap mismatch, full re-fetch')
-        got, utc = _rows(get(candles_url(name, tf)), tf)
+        got, utc = _rows(get(candles_url(name, tf)), tf, name)
         merged = got
     merged = merged[-C.KEEP_BARS.get(tf, 1500):]
     rec = {'bars': merged, 'last_utc': utc[-1] if utc else (rec or {}).get('last_utc'), 'fetched': time.time(), 'price': PRICE}

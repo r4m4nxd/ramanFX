@@ -179,12 +179,33 @@ def _nth_sunday(y: int, m: int, n: int) -> dt.date:
     return d + dt.timedelta(weeks=n - 1)
 
 
+def _last_sunday(y: int, m: int) -> dt.date:
+    d = dt.date(y + (m == 12), m % 12 + 1, 1) - dt.timedelta(days=1)
+    return d - dt.timedelta(days=(d.weekday() + 1) % 7)
+
+
+try:
+    from zoneinfo import ZoneInfo
+    _NY = ZoneInfo('America/New_York')
+except Exception:  # noqa: BLE001  (no tz database: the rule-based fallback below)
+    _NY = None
+
+
 def ny_offset(utc: dt.datetime) -> int:
-    """New York's UTC offset in hours (-4 EDT, second Sunday of March 07:00 UTC -> first Sunday of November 06:00 UTC)."""
-    y = utc.year
-    start = dt.datetime.combine(_nth_sunday(y, 3, 2), dt.time(7))
-    end = dt.datetime.combine(_nth_sunday(y, 11, 1), dt.time(6))
+    """New York's UTC offset in hours (-4 EDT / -5 EST) with the HISTORICAL rules (tz database America/New_York):
+    since 2007 second Sunday of March -> first Sunday of November; 1987-2006 first Sunday of April -> last Sunday of
+    October (02:00 local). Without a tz database the same rules are applied by hand."""
     u = utc.replace(tzinfo=None)
+    if _NY is not None:
+        off = u.replace(tzinfo=dt.timezone.utc).astimezone(_NY).utcoffset()
+        return int(off.total_seconds() // 3600)
+    y = u.year
+    if y >= 2007:
+        start = dt.datetime.combine(_nth_sunday(y, 3, 2), dt.time(7))
+        end = dt.datetime.combine(_nth_sunday(y, 11, 1), dt.time(6))
+    else:
+        start = dt.datetime.combine(_nth_sunday(y, 4, 1), dt.time(7))
+        end = dt.datetime.combine(_last_sunday(y, 10), dt.time(6))
     return -4 if start <= u < end else -5
 
 

@@ -413,6 +413,56 @@ class Data(unittest.TestCase):
         self.assertAlmostEqual(out['D1'][0].h, max(b.h for b in out['H4']), places=9)
 
 
+class HistoricalDst(unittest.TestCase):
+    """Before 2007 US DST ended on the last Sunday of October (and began on the first Sunday of April): old candles
+    are aligned at 17:00 New York with THOSE rules (live run 40421601450 failed 102 instruments on 2002 / 2004 weeks)."""
+
+    def test_pre_2007_weeks_and_days(self):
+        for t in ('2002-11-01T22:00:00Z', '2004-11-05T22:00:00Z', '2006-11-03T22:00:00Z'):   # Friday 17:00 EST
+            lbl = C.label(t, 'W1')
+            self.assertEqual(dt.date.fromisoformat(lbl[:10]).weekday(), 5, t)
+            self.assertEqual(lbl[11:], '00:00')
+        self.assertEqual(C.label('2006-10-27T21:00:00Z', 'W1'), '2006-10-28T00:00')          # last EDT week of 2006
+        self.assertEqual(C.label('2006-04-02T21:00:00Z', 'D1'), '2006-04-03T00:00')          # 1st Sunday of April: EDT
+        self.assertEqual(C.label('2006-03-12T22:00:00Z', 'D1'), '2006-03-13T00:00')          # still EST in 2006
+        self.assertEqual(C.label('2006-11-01T22:00:00Z', 'H4'), '2006-11-02T00:00')
+
+    def test_2007_change(self):
+        self.assertEqual(C.label('2007-03-11T21:00:00Z', 'D1'), '2007-03-12T00:00')          # 2nd Sunday of March: EDT
+        self.assertEqual(C.label('2007-11-02T21:00:00Z', 'W1'), '2007-11-03T00:00')          # 1st Sunday of Nov 2007
+        self.assertEqual(C.label('2007-11-09T22:00:00Z', 'W1'), '2007-11-10T00:00')
+        for y, u, off in ((2002, dt.datetime(2002, 10, 28, 12), -5), (2006, dt.datetime(2006, 11, 1, 12), -5),
+                          (2007, dt.datetime(2007, 11, 1, 12), -4), (2007, dt.datetime(2007, 3, 20, 12), -4),
+                          (2006, dt.datetime(2006, 3, 20, 12), -5)):
+            self.assertEqual(C.ny_offset(u), off, u)
+
+    def test_rule_fallback_matches_the_tz_database(self):
+        ny = C._NY
+        try:
+            got = []
+            for u in (dt.datetime(2002, 11, 1, 22), dt.datetime(2006, 4, 3, 1), dt.datetime(2007, 3, 12, 1),
+                      dt.datetime(2026, 11, 1, 5), dt.datetime(2026, 11, 1, 7)):
+                C._NY = ny
+                a = C.ny_offset(u)
+                C._NY = None
+                got.append((a, C.ny_offset(u)))
+        finally:
+            C._NY = ny
+        self.assertTrue(all(a == b for a, b in got), got)
+
+    def test_old_misaligned_candle_dropped_recent_fails(self):
+        def raw(*times):
+            return json.dumps({'candles': [{'time': t, 'complete': True, 'volume': 1,
+                                            'bid': {'o': '1', 'h': '1', 'l': '1', 'c': '1'}} for t in times]}).encode()
+        O.DROPPED.clear()
+        rows = O.parse_candles(raw('2003-01-03T20:00:00Z', '2003-01-10T22:00:00Z'), 'W1', name='EUR_USD')
+        self.assertEqual([r[0] for r in rows], ['2003-01-11T00:00'])
+        self.assertEqual(O.DROPPED, {'EUR_USD W1': 1})
+        recent = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=10)).strftime('%Y-%m-%dT%H:30:00Z')
+        with self.assertRaises(C.Misaligned):
+            O.parse_candles(raw(recent), 'H4')
+
+
 class Backwards(unittest.TestCase):
     """zones.py changes are opt-in: the stock scanner's defaults behave as before."""
 

@@ -568,6 +568,9 @@ def main(argv=None) -> int:
     res = run(uni, oanda_bars, workers=a.workers)
     have = len(res['analyses'])
     print(f'analysed {have}/{len(uni)} in {time.time() - t0:.0f}s; {len(res["errors"])} errors')
+    if O.DROPPED:
+        print(f'warning: dropped {sum(O.DROPPED.values())} misaligned candle(s) older than {O.STRICT_DAYS} days: '
+              + ', '.join(f'{k} x{v}' for k, v in sorted(O.DROPPED.items())[:5]))
     if C.MISALIGNED_MN:
         print(f'warning: {len(C.MISALIGNED_MN)} MN candle(s) not at the 1st 00:00 server time (accepted within 12 h), e.g. '
               + ', '.join(sorted(C.MISALIGNED_MN)[:3]))
