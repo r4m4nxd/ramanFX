@@ -206,7 +206,7 @@ function CommandPalette({ open, onClose, actions, instant }: { open: boolean; on
 function SideLink({ n }: { n: (typeof NAV)[number] }) {
   const nav = useNavigate();
   return (
-    <NavLink to={n.to} end={n.to === '/'} {...prefetchProps(n.to)} onClick={softClick(() => nav(n.to))} className={({ isActive }) => cx('relative flex items-center gap-3 h-10 short:h-9 px-3 rounded-xl text-[13.5px] font-medium transition-colors shrink-0', isActive ? 'text-ink' : 'text-ink3 hover:text-ink2 hover:bg-raised/60')}>
+    <NavLink to={n.to} end={n.to === '/'} {...prefetchProps(n.to)} onClick={softClick(() => nav(n.to))} className={({ isActive }) => cx('relative flex items-center gap-3 h-10 short:h-8 px-3 rounded-xl text-[13.5px] font-medium transition-colors shrink-0', isActive ? 'text-ink' : 'text-ink3 hover:text-ink2 hover:bg-raised/60')}>
       {({ isActive }) => (<>
         {isActive && <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-xl side-on" transition={spring} />}
         <Icon name={n.icon} size={16} className={cx('relative', isActive && 'text-accent')} /><span className="relative">{n.label}</span>
@@ -327,6 +327,12 @@ export function Shell({ children }: { children: ReactNode }) {
   ], [privacy, theme, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const groups: Group[] = ['Today', 'Review', 'Plan & tools'];
+  // Keep the current page's link in view when the nav scrolls (deep pages like Lessons sit below the fold on short screens).
+  const sideNav = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = sideNav.current?.querySelector<HTMLElement>('a[aria-current="page"]');
+    el?.scrollIntoView?.({ block: 'nearest' });
+  }, [loc.pathname]);
   return (
     <MotionConfig reducedMotion="user">
     <div className="min-h-screen min-h-dvh flex land:pl-[calc(80px+env(safe-area-inset-left))]">
@@ -339,16 +345,18 @@ export function Shell({ children }: { children: ReactNode }) {
           <img src="/icon.svg" alt="" className="w-8 h-8 rounded-[9px] ring-1 ring-line" />
           <div className="font-bold text-[16px] tracking-tight">RamanFX</div>
         </div>
-        <nav aria-label="Main" className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 flex flex-col">
-          {groups.map(g => (
-            <div key={g} className="flex flex-col gap-0.5 mb-3 short:mb-2">
+        {/* Help scrolls with the rest (pinning its 8 links left the main nav ~400px on a 900px screen, hiding Scanner and the tools);
+            only Settings and Search stay pinned. The bottom fade says there's more below. */}
+        <nav ref={sideNav} aria-label="Main" className="side-nav flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 pb-6 flex flex-col">
+          {[...groups, 'Help' as Group].map(g => (
+            <div key={g} className="flex flex-col gap-0.5 short:gap-0 mb-3 short:mb-1.5">
               <div className="label px-3 pb-1 pt-1">{g}</div>
-              {NAV.filter(n => n.group === g).map(n => <SideLink key={n.to} n={n} />)}
+              {NAV.filter(n => n.group === g && n.to !== '/settings').map(n => <SideLink key={n.to} n={n} />)}
             </div>
           ))}
         </nav>
         <div className="shrink-0 border-t border-line mx-3 pt-2 flex flex-col gap-0.5">
-          {NAV.filter(n => n.group === 'Help').map(n => <SideLink key={n.to} n={n} />)}
+          {NAV.filter(n => n.to === '/settings').map(n => <SideLink key={n.to} n={n} />)}
           <div className="flex flex-col gap-0.5 mt-1">
             <button className="btn-ghost h-8 px-3 justify-start gap-3 text-ink3 text-xs font-medium whitespace-nowrap" onClick={openCmd} aria-label={`Search (shortcut / or ${MOD.trim()}+K)`}><Icon name="search" size={14} />Search<kbd className="ml-auto text-[10px] border border-line2 rounded px-1 whitespace-nowrap">{MOD}K</kbd></button>
             <a href="/legacy.html" className="btn-ghost h-8 px-3 justify-start gap-3 text-ink3 text-xs font-medium whitespace-nowrap"><Icon name="link" size={14} />Classic app</a>

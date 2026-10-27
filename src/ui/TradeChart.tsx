@@ -167,14 +167,14 @@ const KIND: Record<DrawKind, string> = { hline: 'Line', trend: 'Trend', rect: 'Z
 export function TradeChart({ t, levels, drawings = [], onDrawings }: { t: EnrichedTrade; levels: ChartLevels; drawings?: Drawing[]; onDrawings?: (d: Drawing[]) => void }) {
   const [tool, setTool] = useState<DrawKind | null>(null);
   const [colorVar, setColorVar] = useState(COLORS[0]);
-  const { loading, series } = useTradeBars(t.account, t.symbol);
+  const { loading, series, error, retry } = useTradeBars(t.account, t.symbol);
   const have = TFS.filter(x => series[x]);
   const [tf, setTf] = useState<Tf | null>(null);
   const [full, setFull] = useState(false);
   const [view, setView] = useState<'mine' | 'tv' | null>(null);
   const mobile = useIsMobile();
   const active = tf && series[tf] ? tf : pickTf(t.holdSec, have);
-  const mode = view ?? (active || loading ? 'mine' : 'tv');
+  const mode = view ?? (active || loading || error ? 'mine' : 'tv');
   const tvTf: Tf = tf ?? active ?? pickTf(t.holdSec, [...TFS]) ?? 'H1';
   const lv = useMemo<Lv>(() => ({ ...levels, sl: lvl(levels.sl), tp: lvl(levels.tp), initSl: lvl(levels.initSl) ?? lvl(levels.sl) }), [JSON.stringify(levels)]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setTf(null); setView(null); setTool(null); }, [t.id]);
@@ -196,7 +196,18 @@ export function TradeChart({ t, levels, drawings = [], onDrawings }: { t: Enrich
       </div>
       <span className="absolute left-4 top-3 text-[12px] text-ink3">Loading candles…</span>
     </div>
-    : !active ? (
+    : !active && error ? (
+      <div className="rounded-xl bg-raised/50 border border-line p-4 text-[13px] text-ink2 leading-relaxed" role="alert">
+        <div className="font-semibold text-ink mb-1">{error === 'offline' ? "You're offline" : "Couldn't load candles"}</div>
+        {error === 'offline'
+          ? `This device has no candles for ${t.symbol}, and the cloud copy needs a connection. Reconnect and they'll load, or import the CSV on this device.`
+          : `The cloud didn't answer for ${t.symbol}. Check your connection and try again.`}
+        <div className="flex gap-2 flex-wrap mt-3">
+          <button className="btn h-9" onClick={retry}><Icon name="refresh" size={14} />Try again</button>
+          <button className="btn-ghost h-9 text-accent" onClick={() => setView('tv')}>Use TradingView</button>
+        </div>
+      </div>
+    ) : !active ? (
       <div className="rounded-xl bg-raised/50 border border-line p-4 text-[13px] text-ink2 leading-relaxed">
         <div className="font-semibold text-ink mb-1">No candles for {t.symbol} yet</div>
         Run the RamanFX_Charts script in the terminal this trade came from, then import the CSV it saves. It exports your broker's own candles around every trade, so your entry, exit, stop and target are drawn on exact prices.

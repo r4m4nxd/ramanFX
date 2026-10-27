@@ -124,11 +124,14 @@
   .pill-on::after, .side-on::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; opacity: var(--iris, .45);
     background: conic-gradient(from 200deg, #ff5f6d, #ffc371, #a8ff78, #4facfe, #b06ab3, #ff5f6d);
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
-  [data-theme='light'] .pill-on + span, [data-theme='light'] .pill-on ~ * { color: rgb(var(--pill-on-ink)); }
+  /* Only the label riding on a lens pill: a plain `~ *` also whitened later sibling tabs (e.g. "Forex"). */
+  [data-theme='light'] .pill-on.absolute ~ * { color: rgb(var(--pill-on-ink)); }
   [data-theme='light'] .pill-on.text-ink { color: rgb(var(--pill-on-ink)); }
   /* Sidebar location: a quiet raised row (no glow) in dark, a white card in light. */
   .side-on { background: radial-gradient(120% 90% at 50% 0%, rgb(255 255 255 / .10), transparent 70%), var(--lens-tint); box-shadow: inset 0 1px 0 var(--glass-spec), 0 4px 12px -6px rgb(0 0 0 / .35); --iris: .3; }
   [data-theme='light'] .side-on { background: rgb(255 255 255 / .85); box-shadow: inset 0 1px 0 #fff, 0 2px 10px rgb(17 17 17 / .08); }
+  /* Sidebar nav: fade the last rows so a clipped list reads as scrollable. */
+  .side-nav { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent); }
   [data-theme='light'] .luxe-border { --violet: 229 96 61; }
   [data-theme='light'] .btn-primary { background: rgb(var(--accent)); box-shadow: 0 4px 14px rgb(var(--accent) / .25); }
   /* Hover only where a pointer can hover: a tap on a phone must not leave the button stuck in its hover fill. */
