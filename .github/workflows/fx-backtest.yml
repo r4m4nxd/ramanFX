@@ -90,5 +90,5 @@ jobs:
           git add public/fx/backtest.json docs/research/FX_Backtest.md
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
           git commit -m "fx: backtest $(date -u +%Y-%m-%dT%H:%MZ)"
-          ok=0; for i in 1 2 3; do git rebase --abort 2>/dev/null; git pull --rebase -X theirs --autostash origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && ok=1 && break; sleep 5; done
+          ok=0; for i in 1 2 3; do git rebase --abort 2>/dev/null || true; git pull --rebase -X theirs --autostash origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && ok=1 && break; sleep 5; done
           [ "$ok" = 1 ] || { echo "::error::results not pushed (see the uploaded artifact)"; exit 1; }
