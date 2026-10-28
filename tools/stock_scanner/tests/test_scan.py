@@ -181,6 +181,15 @@ class OutputTest(unittest.TestCase):
         self.assertEqual(pub['counts']['EXIT'], len(res['exits']))
         self.assertIn('not financial advice', pub['disclaimer'])
 
+    def test_live_public_json_never_names_holdings(self):
+        # the live file is committed to a public repo and served without sign-in: exit alerts go to Telegram only
+        res = selftest.run_fixture()
+        self.assertTrue(res['exits'])
+        pub = scan.public_json(res, fixture=False)
+        self.assertEqual(pub['exits'], [])
+        self.assertEqual(pub['counts']['EXIT'], 0)
+        self.assertNotIn('demand_broken', json.dumps(pub))   # no exit warning kinds either
+
     def test_selftest_ok(self):
         import contextlib
         import io

@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useEnriched } from '@/data/derived';
 import { useStore } from '@/data/store';
 import { compressImage, uploadImage } from '@/data/cloud';
+import { useAttachmentSrcs } from '@/data/attachments';
 import { measuredUnitValues, pipsBetween, specFor, unitValue } from '@/core/instruments';
 import { alignmentPlays, TIMEFRAME_COMBOS } from '@/core/playbook';
 import { fmtHold } from '@/core/time';
@@ -23,6 +24,8 @@ import { ALL_MISTAKE_TAGS as LESSON_MISTAKE_TAGS } from '@/core/lessonLinks';
 import { RuleCheck } from '@/ui/RuleCheck';
 import { useRuleChecks, useRuleScore } from '@/data/ruleChecks';
 import { autoMarks, type RuleMarks } from '@/core/ruleScore';
+
+const NO_ATTS: Attachment[] = [];
 
 const EMOTIONS = ['calm', 'focused', 'confident', 'anxious', 'fomo', 'greedy', 'revenge', 'tired', 'bored'];
 const TRENDS: [Trend, string, string][] = [['up', '↑', 'Uptrend'], ['down', '↓', 'Downtrend'], ['side', '✖', 'Sideways']];
@@ -119,6 +122,7 @@ export default function TradeDetail() {
     window.addEventListener('paste', onPaste);
     return () => window.removeEventListener('paste', onPaste);
   });
+  const srcs = useAttachmentSrcs((t && attachments[t.id]) || NO_ATTS);
 
   if (!t || !spec || !uv) return <Empty icon="search" title="Trade not found" action={<Link className="btn" to="/trades">Back to trades</Link>}>It may belong to another account, or the date filter hides it.</Empty>;
 
@@ -277,7 +281,7 @@ export default function TradeDetail() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {atts.map((a, ai) => (
                   <motion.div key={a.id} layout className="group relative aspect-video rounded-xl overflow-hidden border border-line bg-raised">
-                    <button className="absolute inset-0" onClick={() => setLightbox(ai)} aria-label={`Open ${a.name}`}><img src={a.storageUrl ?? a.dataUrl} alt={a.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" /></button>
+                    <button className="absolute inset-0" onClick={() => setLightbox(ai)} aria-label={`Open ${a.name}`}><img src={srcs[a.id] || undefined} alt={a.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" /></button>
                     <button className={cx('absolute top-1.5 right-1.5 h-8 rounded-lg text-white grid place-items-center transition-opacity', confirmDel === a.id ? 'px-2.5 bg-loss text-xs font-semibold opacity-100' : 'w-8 bg-black/60 opacity-0 touch:opacity-100 group-hover:opacity-100 focus:opacity-100')} aria-label={confirmDel === a.id ? `Confirm remove ${a.name}` : `Remove ${a.name}`} onClick={() => removeAtt(a.id)} onBlur={() => setConfirmDel(c => (c === a.id ? null : c))}>{confirmDel === a.id ? 'Remove?' : <Icon name="trash" size={14} />}</button>
                   </motion.div>
                 ))}
@@ -414,7 +418,7 @@ export default function TradeDetail() {
         </div>
       </div>
 
-      <Lightbox images={atts.map(x => ({ src: x.storageUrl ?? x.dataUrl ?? '', name: x.name }))} index={lightbox} onClose={() => setLightbox(null)} />
+      <Lightbox images={atts.map(x => ({ src: srcs[x.id] ?? '', name: x.name }))} index={lightbox} onClose={() => setLightbox(null)} />
     </Page>
   );
 }

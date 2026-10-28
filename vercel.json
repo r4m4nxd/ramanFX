@@ -25,8 +25,34 @@
           "value": "SAMEORIGIN"
         },
         {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+        },
+        {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "same-origin"
+        }
+      ]
+    },
+    {
+      "source": "/((?!legacy\\.html).*)",
+      "headers": [
+        {
           "key": "Content-Security-Policy",
-          "value": "frame-ancestors 'self'"
+          "value": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'sha256-I94oiD4epkirPmiPsBtoAgbB8qaz6vvSvsVf3w+Y9p8=' https://s3.tradingview.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://dqjzufofmblerslcynzr.supabase.co https://*.tradingview.com; media-src 'self' blob: https://dqjzufofmblerslcynzr.supabase.co; connect-src 'self' blob: data: https://dqjzufofmblerslcynzr.supabase.co wss://dqjzufofmblerslcynzr.supabase.co https://api.frankfurter.app https://huggingface.co https://*.huggingface.co https://*.hf.co; frame-src https://*.tradingview.com https://*.tradingview-widget.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests"
+        }
+      ]
+    },
+    {
+      "source": "/legacy.html",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://dqjzufofmblerslcynzr.supabase.co; connect-src 'self' https://dqjzufofmblerslcynzr.supabase.co wss://dqjzufofmblerslcynzr.supabase.co https://api.openai.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests"
         }
       ]
     },

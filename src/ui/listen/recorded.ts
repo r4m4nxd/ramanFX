@@ -15,8 +15,17 @@ async function token(): Promise<string> {
   const { data } = await supa().auth.getSession();
   return data.session?.access_token ?? '';
 }
-export async function streamUrl(key: string) {
-  return `${FN}?k=${encodeURIComponent(key)}&t=${encodeURIComponent(await token())}`;
+/** An <audio> src for one lesson: a 6-hour signed link from the function (the access token never goes in a URL). */
+const signed = new Map<string, { url: string; exp: number }>();
+export async function streamUrl(key: string, fresh = false) {
+  const c = signed.get(key);
+  if (!fresh && c && c.exp > Date.now() / 1000 + 600) return c.url;
+  const r = await fetch(`${FN}?sign=${encodeURIComponent(key)}`, { headers: { Authorization: `Bearer ${await token()}` } });
+  if (!r.ok) throw new Error(r.status === 401 ? 'Sign in again to listen.' : `Audio unavailable (${r.status}).`);
+  const j = await r.json() as { query: string; expires: number };
+  const url = `${FN}?${j.query}`;
+  signed.set(key, { url, exp: j.expires });
+  return url;
 }
 
 const caches_ = () => (typeof caches !== 'undefined' ? caches.open(CACHE) : Promise.reject(new Error('no cache storage')));

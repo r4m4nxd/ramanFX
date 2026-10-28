@@ -1232,7 +1232,10 @@ def strong_in_demand(row: Dict, u: Dict) -> Optional[Dict]:
 
 
 def public_json(res: Dict, fixture: bool = False) -> Dict:
-    """What the app may read: signals + fundamentals; holdings only as symbols and warning kinds (no sizes, no prices)."""
+    """What the app may read: signals + fundamentals. The live file is public (repo + site, no sign-in), so held symbols
+    never go in it: exit alerts go to Telegram only. The fixture (demo data) keeps sample exits as symbols + warning kinds."""
+    pub_exits = [{'symbol': e['symbol'], 'sector': e.get('sector', ''), 'indexes': e.get('indexes', []),
+                  'reasons': sorted({w['reason'] for w in e['warnings']})} for e in res['exits']] if fixture else []
     return {
         'version': 1, 'fixture': fixture, 'date': res['date'], 'generated_at': res['generated_at'],
         'universe': res['universe'], 'scanned': res['scanned'], 'errors': len(res['errors']),
@@ -1242,7 +1245,7 @@ def public_json(res: Dict, fixture: bool = False) -> Dict:
                  'entry HTF, room. Earnings information only. Kevin second.',
         'tfs': list(TRADE_TFS),
         'disclaimer': DISCLAIMER,
-        'counts': {k: sum(1 for s in res['signals'] if s['kind'] == k) for k in ('BUY', 'WATCH')} | {'EXIT': len(res['exits'])},
+        'counts': {k: sum(1 for s in res['signals'] if s['kind'] == k) for k in ('BUY', 'WATCH')} | {'EXIT': len(pub_exits)},
         'universes': res.get('universes', []), 'index_meta': res.get('index_meta', []), 'index_sizes': res.get('index_sizes', {}),
         'coverage': res.get('coverage', {}), 'uncovered': res.get('uncovered', []),
         'partial': bool(res.get('partial')),
@@ -1258,8 +1261,7 @@ def public_json(res: Dict, fixture: bool = False) -> Dict:
         'signals': res['signals'],
         'zone_lists': res.get('zone_lists') or L.zone_lists(res.get('details') or {}),
         'bars': res.get('bars', {}),
-        'exits': [{'symbol': e['symbol'], 'sector': e.get('sector', ''), 'indexes': e.get('indexes', []),
-                   'reasons': sorted({w['reason'] for w in e['warnings']})} for e in res['exits']],
+        'exits': pub_exits,
     }
 
 

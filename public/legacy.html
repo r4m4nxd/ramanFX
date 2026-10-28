@@ -15,26 +15,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700;800&family=Source+Code+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
-<script crossorigin src="https://unpkg.com/recharts@2.10.3/umd/Recharts.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-<script>
-// Fallback loaders: if a primary CDN (unpkg) was blocked, pull the same lib from jsDelivr synchronously.
-(function () {
-  function loadSync(url) { document.write('<script src="' + url + '"><\/script>'); }
-  if (typeof React === 'undefined') loadSync('https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js');
-  if (typeof ReactDOM === 'undefined') loadSync('https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js');
-  if (typeof PropTypes === 'undefined') loadSync('https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js');
-  if (typeof Recharts === 'undefined') loadSync('https://cdn.jsdelivr.net/npm/recharts@2.10.3/umd/Recharts.js');
-})();
-</script>
-<script src="https://unpkg.com/@babel/standalone@7.23.2/babel.min.js"></script>
-<script>
-if (typeof Babel === 'undefined') document.write('<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.2/babel.min.js"><\/script>');
-</script>
+<!-- Libraries are self-hosted at exact versions (public/vendor): no third-party CDN can change what runs here. -->
+<script src="/vendor/react-18.2.0.min.js"></script>
+<script src="/vendor/react-dom-18.2.0.min.js"></script>
+<script src="/vendor/prop-types-15.8.1.min.js"></script>
+<script src="/vendor/recharts-2.10.3.js"></script>
+<script src="/vendor/supabase-js-2.118.0.js"></script>
+<script src="/vendor/lucide-1.62.0.min.js"></script>
+<script src="/vendor/babel-standalone-7.23.2.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   /* ── DARK THEME (default) ──
@@ -1886,6 +1874,29 @@ function getSupa() {
   return _supa;
 }
 let _supaUser = null;
+// Screenshots are in the private `attachments` bucket: show them through 1-hour signed URLs (cached per path).
+const _signed = {};
+function attPath(url) {
+  const m = /\/storage\/v1\/object\/(?:public|sign|authenticated)\/attachments\/([^?#]+)/.exec(url || '');
+  if (!m || url.indexOf(SUPA_URL + '/storage/') !== 0) return null;
+  try { return decodeURIComponent(m[1]); } catch (e) { return null; }
+}
+async function signedAttUrl(url) {
+  const p = attPath(url);
+  if (!p) return url;
+  const c = _signed[p];
+  if (c && c.exp > Date.now() + 300000) return c.url;
+  const r = await getSupa().storage.from('attachments').createSignedUrl(p, 3600);
+  if (!r.data || !r.data.signedUrl) return '';
+  _signed[p] = { url: r.data.signedUrl, exp: Date.now() + 3600000 };
+  return r.data.signedUrl;
+}
+function AttImg(props) {
+  const { att, ...rest } = props;
+  const [src, setSrc] = React.useState(att.storageUrl ? '' : att.dataUrl);
+  React.useEffect(() => { let live = true; if (att.storageUrl) signedAttUrl(att.storageUrl).then(u => { if (live) setSrc(u); }); return () => { live = false; }; }, [att.storageUrl]);
+  return src ? <img src={src} {...rest} /> : <div style={{ ...(rest.style || {}), background: 'var(--bg3, rgba(127,127,127,.15))' }} />;
+}
 
 async function supaSignIn(email, password) {
   const sb = getSupa(); if (!sb) return { error: 'Supabase not loaded' };
@@ -4911,7 +4922,7 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 12 }}>
                     {tradeAttachments.map(a => (
                       <div key={a.id} style={{ position: 'relative', borderRadius: 'var(--r-md)', overflow: 'hidden', background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)' }}>
-                        <img src={a.storageUrl || a.dataUrl} alt={a.name} style={{ width: '100%', height: 130, objectFit: 'cover', display: 'block', cursor: 'pointer' }} onClick={() => setLightbox(a)} />
+                        <AttImg att={a} alt={a.name} style={{ width: '100%', height: 130, objectFit: 'cover', display: 'block', cursor: 'pointer' }} onClick={() => setLightbox(a)} />
                         <div style={{ padding: '6px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
                           <div style={{ fontSize: 11, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={a.name}>{a.name}</div>
                           <button onClick={() => { if (confirm('Remove this attachment?')) removeAttachment(a.id); }} style={{ background: 'transparent', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 12, padding: 0 }} title="Remove"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>
@@ -4938,7 +4949,7 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button style={{ ...btnStyle('secondary') }} onClick={async () => {
-                    const url = lightbox.storageUrl || lightbox.dataUrl;
+                    const url = lightbox.storageUrl ? await signedAttUrl(lightbox.storageUrl) : lightbox.dataUrl;
                     try {
                       const res = await fetch(url);
                       const blob = await res.blob();
@@ -4959,7 +4970,7 @@ function DetailedTradePage({ trade, note, strategies, attachments, allNotes, onS
               </div>
             </div>
             <div style={{ padding: 16, background: 'var(--bg)', overflow: 'auto', WebkitOverflowScrolling: 'touch', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
-              <img src={lightbox.storageUrl || lightbox.dataUrl} alt={lightbox.name} style={{ maxWidth: '100%', height: 'auto', objectFit: 'contain', borderRadius: 'var(--r-md)', boxShadow: '0 8px 32px rgba(0,0,0,0.6)', display: 'block' }} />
+              <AttImg att={lightbox} alt={lightbox.name} style={{ maxWidth: '100%', height: 'auto', objectFit: 'contain', borderRadius: 'var(--r-md)', boxShadow: '0 8px 32px rgba(0,0,0,0.6)', display: 'block' }} />
             </div>
           </Fragment>
         )}
@@ -7843,8 +7854,8 @@ const ICON_MAP = {
 function renderIcon(icon, size) {
   if (!icon) return null;
   const sz = size || 14;
-  const html = ICON_MAP[icon] || (icon.startsWith('<svg') ? icon : null);
-  if (!html) return React.createElement('span', { style: { fontSize: sz } }, icon);
+  const html = Object.prototype.hasOwnProperty.call(ICON_MAP, icon) ? ICON_MAP[icon] : null; // never raw markup from journal data
+  if (!html) return React.createElement('span', { style: { fontSize: sz } }, icon.startsWith('<') ? '' : icon);
   const scaled = html.replace(/width=["']\d+["']/, 'width="' + sz + '"').replace(/height=["']\d+["']/, 'height="' + sz + '"');
   return React.createElement('span', {
     style: { display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', flexShrink: 0 },

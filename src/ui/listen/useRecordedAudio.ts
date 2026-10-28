@@ -42,9 +42,9 @@ class Ctl {
     a.onerror = async () => {
       this.set({ loading: false });
       if (this.blobUrl || retried) { this.set({ playing: false, err: navigator.onLine ? 'Could not play the recording. Try again, or use the device voice.' : 'You are offline and this lesson is not saved on this device.' }); return; }
-      retried = true; // the stream link carries a sign-in token that expires: get a fresh one and carry on
+      retried = true; // the signed stream link expires: get a fresh one and carry on
       const at = a.currentTime || this.st.t;
-      a.src = await streamUrl(k); a.currentTime = at; a.play().catch(() => this.set({ playing: false }));
+      try { a.src = await streamUrl(k, true); } catch (e) { this.set({ playing: false, err: (e as Error).message }); return; } a.currentTime = at; a.play().catch(() => this.set({ playing: false }));
     };
     if ('mediaSession' in navigator && this.meta) {
       navigator.mediaSession.metadata = new MediaMetadata(this.meta);
@@ -63,7 +63,8 @@ class Ctl {
   toggle = async () => {
     this.set({ err: null });
     if (!this.a) this.set({ loading: true });
-    const a = await this.ensure();
+    let a: HTMLAudioElement;
+    try { a = await this.ensure(); } catch (e) { this.set({ loading: false, err: (e as Error).message || 'Could not load the recording.' }); return; }
     if (a.paused) a.play().catch(e => { this.set({ loading: false }); if (e?.name !== 'AbortError') this.set({ err: 'Tap play again to start.' }); });
     else a.pause();
   };
@@ -72,7 +73,9 @@ class Ctl {
     s = Math.min(Math.max(0, s), this.dur - 0.5);
     this.set({ t: s }); safeStorage.set(K_POS + this.k, String(s));
     if (!this.a && !play) return;
-    const a = await this.ensure(); a.currentTime = s;
+    const a = await this.ensure().catch(() => null);
+    if (!a) return;
+    a.currentTime = s;
     if (play && a.paused) a.play().catch(() => {});
   };
   curT = () => this.a?.currentTime ?? this.st.t;
