@@ -1,14 +1,14 @@
 name: Stock scan
 
 # Weekdays after the US close, or by hand. GitHub delays / drops scheduled runs (worst near the top of the hour), so it
-# runs at off-peak minutes: 21:37 UTC and a backup at 23:37 UTC; a scheduled run stops in seconds when
+# polls every 30 min at off-peak minutes from 21:07 to 03:37 UTC; a scheduled run stops in seconds when
 # public/scanner/latest.json was already generated after the latest 20:30 UTC (the daily message went out). Scans S&P 500 + Nasdaq-100 + Dow 30 + S&P/TSX 60 + S&P/TSX Composite (US listings of the TSX names)
 # + Global leaders (curated US-listed ADRs, adr_list.csv) + US top liquid (top_liquid.csv, rebuilt on the Monday refresh)
 # (switch universes with the SCANNER_UNIVERSES repository variable), sends Telegram, commits public/scanner/*.json.
 on:
   schedule:
-    - cron: '37 21 * * 1-5'
-    - cron: '37 23 * * 1-5'
+    - cron: '7,37 21-23 * * 1-5'
+    - cron: '7,37 0-3 * * 2-6'
   workflow_dispatch:
     inputs:
       tickers:

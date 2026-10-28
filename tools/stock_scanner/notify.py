@@ -120,9 +120,14 @@ def card(icon: str, sym: str, kind: str, entry: str, target: str, rr, line2: str
     return top + '\n' + esc(line2)
 
 
+TF_SHORT = {'H1': '1H', 'H4': '4H', 'D1': 'D1', 'W1': 'W1', 'MN': 'MN', '3M': '3M', '6M': '6M'}
+
+
 def names(rows: Sequence[Dict], key: str, n: int = 4, extra=None) -> str:
-    """'ALB, BURL, PCG, NEE +12' (the first n by the list order, i.e. zone score)."""
-    shown = [esc(r[key]) + (f' {extra(r)}' if extra else '') for r in rows[:n]]
+    """'ALB W1, BURL MN, PCG 3M +12' (the first n by the list order, i.e. zone score). Every name carries the
+    timeframe of the zone it is near / in / left (owner rule)."""
+    shown = [esc(r[key]) + (f" {TF_SHORT.get(r['tf'], r['tf'])}" if r.get('tf') else '') + (f' {extra(r)}' if extra else '')
+             for r in rows[:n]]
     return ', '.join(shown) + (f' +{len(rows) - n}' if len(rows) > n else '')
 
 
@@ -245,7 +250,8 @@ def build_messages(res: Dict, top: int = MAX_CARDS, cap: int = QUOTE_LINES) -> L
     for a in (res.get('watch_alerts') or [])[:2]:
         detail.append('Watchlist: ' + esc(words(a['text'])))
     if rest:
-        detail.append('Also: ' + ', '.join(f"{ICON.get(x.get('kind') or 'EXIT', '•')} {esc(x['symbol'])}" for x in rest[:5])
+        detail.append('Also: ' + ', '.join(f"{ICON.get(x.get('kind') or 'EXIT', '•')} {esc(x['symbol'])}"
+                                         + (f" {TF_SHORT.get(x['tf'], x['tf'])}" if x.get('tf') else '') for x in rest[:5])
                       + (f' +{len(rest) - 5}' if len(rest) > 5 else ''))
     zl = res.get('zone_lists') or L.zone_lists(res.get('details') or {})
     for side, sec in SECTION_ORDER:

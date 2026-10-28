@@ -395,3 +395,16 @@ class Selftest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class ListTimeframeTest(unittest.TestCase):
+    """Every market in the near / in / left lists says which timeframe's zone it is at (owner rule)."""
+
+    def test_list_lines_carry_the_timeframe(self):
+        pub = {'lists': {'demand': {'near': [{'sym': 'CORN', 'tf': 'D1', 'side': 'demand', 'pips': 5}],
+                                    'in': [{'sym': 'USDNOK', 'tf': 'MN', 'side': 'demand'}, {'sym': 'AUDCAD', 'tf': 'H4', 'side': 'demand'}]},
+                         'supply': {'left': [{'sym': 'USDJPY', 'tf': 'W1', 'side': 'supply'}]}}}
+        txt = '\n'.join(N._lists_detail(pub))
+        self.assertIn('Close to demand (1): CORN D1 5p', txt)
+        self.assertIn('In demand (2): USDNOK MN, AUDCAD 4H', txt)
+        self.assertIn('Turned down at supply (1): USDJPY W1', txt)

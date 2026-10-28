@@ -196,3 +196,24 @@ class MarketMapTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class ListTimeframeTest(unittest.TestCase):
+    """Every symbol in the near / in / left lists says which timeframe's zone it is at (owner rule)."""
+
+    def test_names_carry_the_timeframe(self):
+        import notify
+        rows = [{'s': 'BXP', 'tf': 'MN', 'pct': 1.45}, {'s': 'DAR', 'tf': 'W1', 'pct': 2.82}, {'s': 'CAVA', 'tf': '3M'}]
+        self.assertEqual(notify.names(rows, 's', 2, lambda r: f"{r['pct']:.1f}%"), 'BXP MN 1.4%, DAR W1 2.8% +1')
+        self.assertEqual(notify.names(rows[2:], 's', 3), 'CAVA 3M')
+        self.assertEqual(notify.names([{'s': 'USDJPY', 'tf': 'H4'}], 's'), 'USDJPY 4H')
+        self.assertEqual(notify.names([{'s': 'X'}], 's'), 'X')   # rows without a timeframe stay as they were
+
+    def test_published_message_lists_show_timeframes(self):
+        import notify
+        res = notify.load_published(os.path.join(helpers.PKG, '..', '..', 'public', 'scanner'))
+        quote_part = notify.build_messages(res)[0].split('<blockquote expandable>')[1]
+        for line in quote_part.split('\n'):
+            if line.startswith(('In demand (', '⏳ Close to demand (', 'Bounced off demand (')):
+                first = line.split(': ', 1)[1].split(', ')[0]
+                self.assertRegex(first, r'^\S+ (W1|MN|3M)\b', line)
