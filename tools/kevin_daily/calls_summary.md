@@ -1,6 +1,6 @@
 # Kevin daily breakdowns - calls summary
 
-Source: 60 daily breakdown recordings (Jul 8 - Oct 22, 2026), each a plan for the next trading day (`plan_for`). 798 calls recorded in `calls.json` (386 with a proximal price read from the chart or said aloud; 284 tied to a saved chart frame). Prices are only what was visible or spoken; null means not stated.
+Source: 62 daily breakdown recordings (Jul 8 - Oct 27, 2026), each a plan for the next trading day (`plan_for`). 854 calls recorded in `calls.json` (413 with a proximal price read from the chart or said aloud; 308 tied to a saved chart frame). Prices are only what was visible or spoken; null means not stated.
 
 Outcomes come only from what Kevin reports in later sessions (from the plan day onward). Nothing here is back-tested against price data.
 
@@ -8,39 +8,39 @@ Outcomes come only from what Kevin reports in later sessions (from the plan day 
 
 | Symbol | Calls |
 |---|---|
-| AUDUSD | 78 |
-| EURUSD | 77 |
-| XAUUSD | 68 |
-| SPX500 | 65 |
-| GBPUSD | 59 |
-| USDCHF | 57 |
-| USDCAD | 55 |
-| WTICOUSD | 53 |
-| NATGAS | 47 |
-| DXY | 47 |
-| EURGBP | 43 |
-| USDJPY | 41 |
-| CADJPY | 38 |
-| GBPJPY | 35 |
-| EURJPY | 34 |
+| EURUSD | 81 |
+| AUDUSD | 80 |
+| XAUUSD | 74 |
+| SPX500 | 73 |
+| GBPUSD | 63 |
+| USDCHF | 61 |
+| USDCAD | 57 |
+| WTICOUSD | 56 |
+| NATGAS | 50 |
+| DXY | 49 |
+| EURGBP | 48 |
+| USDJPY | 46 |
+| CADJPY | 40 |
+| GBPJPY | 39 |
+| EURJPY | 36 |
 | UK100 | 1 |
 
 ## Direction
 
 | Direction | Calls |
 |---|---|
-| long | 456 |
-| short | 339 |
-| neutral | 3 |
+| long | 476 |
+| short | 373 |
+| neutral | 5 |
 
 ## Zone timeframe
 
 | Zone TF | Calls |
 |---|---|
-| none (trend line / context) | 342 |
-| 4H | 220 |
-| 1H | 205 |
-| D | 22 |
+| none (trend line / context) | 370 |
+| 4H | 238 |
+| 1H | 212 |
+| D | 25 |
 | W | 7 |
 | M | 1 |
 | 5m | 1 |
@@ -49,12 +49,12 @@ Outcomes come only from what Kevin reports in later sessions (from the plan day 
 
 | TF | Calls |
 |---|---|
-| 1H | 445 |
-| 4H | 409 |
-| 15m | 130 |
-| 5m | 120 |
-| D | 78 |
-| W | 24 |
+| 1H | 470 |
+| 4H | 438 |
+| 15m | 140 |
+| 5m | 130 |
+| D | 87 |
+| W | 26 |
 | M | 6 |
 | 12M | 1 |
 
@@ -62,17 +62,17 @@ Outcomes come only from what Kevin reports in later sessions (from the plan day 
 
 | Zone type | Calls |
 |---|---|
-| demand | 310 |
-| none (trend line / context) | 245 |
-| supply | 243 |
+| demand | 319 |
+| none (trend line / context) | 271 |
+| supply | 264 |
 
 ## Entry type
 
 | Entry | Calls |
 |---|---|
-| limit at proximal | 468 |
-| confirmation / LTF trend-line entry | 267 |
-| none (context only) | 62 |
+| limit at proximal | 490 |
+| confirmation / LTF trend-line entry | 293 |
+| none (context only) | 70 |
 | set and forget | 1 |
 
 ## Most frequent rules
@@ -81,62 +81,63 @@ Counted as the number of sessions in which the rule is stated or applied (exampl
 
 | Rule | Sessions | Examples |
 |---|---|---|
-| Counter-trend (against the daily/HTF trend) zones are tradeable only with aggressive management (1:1 / break-even early). | 35 | 2026-07-15, 2026-07-21, 2026-07-22 |
-| Prefer a liquidity trap / reaction off liquidity in front of the zone before it is taken. | 31 | 2026-07-09, 2026-07-10, 2026-07-28 |
+| Counter-trend (against the daily/HTF trend) zones are tradeable only with aggressive management (1:1 / break-even early). | 37 | 2026-07-15, 2026-07-21, 2026-07-22 |
+| Prefer a liquidity trap / reaction off liquidity in front of the zone before it is taken. | 32 | 2026-07-09, 2026-07-10, 2026-07-28 |
 | Losses and missed trades: accept, move on, keep taking the same good setups. | 21 | 2026-07-09, 2026-07-10, 2026-07-24 |
+| LTF zone nested just above/inside an HTF zone: wait for the HTF zone, or put the stop beyond / halfway into it (wide stop). | 21 | 2026-07-15, 2026-07-16, 2026-07-21 |
 | Zones sitting at old support/resistance (old resistance = new support) are low odds; prefer the lower zone where stops sit. | 20 | 2026-07-14, 2026-07-17, 2026-08-05 |
-| LTF zone nested just above/inside an HTF zone: wait for the HTF zone, or put the stop beyond / halfway into it (wide stop). | 20 | 2026-07-15, 2026-07-16, 2026-07-21 |
-| No trend line and no fresh zone = no trade. | 17 | 2026-07-10, 2026-07-22, 2026-07-28 |
-| Use wider stops (beyond the HTF zone or liquidity) when the location calls for it. | 17 | 2026-07-14, 2026-07-15, 2026-07-16 |
-| Take partials / move to break-even at about 1:1; a break-even on a second test is a fine result. | 15 | 2026-07-22, 2026-07-23, 2026-08-07 |
-| Trade LTF confirmation zones that form inside / off an HTF zone in control. | 15 | 2026-07-24, 2026-08-19, 2026-08-21 |
-| He rarely shorts indices; any index short is very aggressive management only. | 14 | 2026-07-14, 2026-07-21, 2026-07-24 |
+| No trend line and no fresh zone = no trade. | 18 | 2026-07-10, 2026-07-22, 2026-07-28 |
+| Use wider stops (beyond the HTF zone or liquidity) when the location calls for it. | 18 | 2026-07-14, 2026-07-15, 2026-07-16 |
+| Trade LTF confirmation zones that form inside / off an HTF zone in control. | 17 | 2026-07-24, 2026-08-19, 2026-08-21 |
+| Take partials / move to break-even at about 1:1; a break-even on a second test is a fine result. | 16 | 2026-07-22, 2026-07-23, 2026-08-07 |
+| He rarely shorts indices; any index short is very aggressive management only. | 16 | 2026-07-14, 2026-07-21, 2026-07-24 |
+| Trend line drawing: no cutting through candles, not too horizontal, adjust to the true peaks. | 13 | 2026-07-14, 2026-07-15, 2026-07-21 |
 | A tested zone is not a setup on its own (supply and demand, not support and resistance). | 12 | 2026-07-09, 2026-07-15, 2026-07-17 |
-| Trend line drawing: no cutting through candles, not too horizontal, adjust to the true peaks. | 12 | 2026-07-14, 2026-07-15, 2026-07-21 |
-| Older zones get aggressive management. | 11 | 2026-07-09, 2026-07-30, 2026-08-18 |
-| Trail stops toward HTF targets when the trend supports it. | 11 | 2026-07-15, 2026-07-22, 2026-07-23 |
+| Older zones get aggressive management. | 12 | 2026-07-09, 2026-07-30, 2026-08-18 |
+| Trail stops toward HTF targets when the trend supports it. | 12 | 2026-07-15, 2026-07-22, 2026-07-23 |
 | With the weekly trend on side, aim for larger R:R. | 11 | 2026-08-04, 2026-08-05, 2026-09-03 |
-| Trend lines as day-trade guides: 1H trend line -> 5m entries, 4H trend line -> 15m entries. | 10 | 2026-07-09, 2026-07-10, 2026-07-16 |
-| Overextended: wait for a pullback toward the trend line or skip. | 9 | 2026-07-16, 2026-07-17, 2026-08-07 |
+| Trend lines as day-trade guides: 1H trend line -> 5m entries, 4H trend line -> 15m entries. | 11 | 2026-07-09, 2026-07-10, 2026-07-16 |
+| Overextended: wait for a pullback toward the trend line or skip. | 10 | 2026-07-16, 2026-07-17, 2026-08-07 |
 | Channel tool: only buy below / sell above the channel 50%; 50% as a target. | 9 | 2026-07-24, 2026-08-21, 2026-08-25 |
-| Hybrid management when HTF trends conflict (part aggressive, part runner). | 8 | 2026-08-27, 2026-09-02, 2026-09-09 |
+| Hybrid management when HTF trends conflict (part aggressive, part runner). | 9 | 2026-08-27, 2026-09-02, 2026-09-09 |
+| no htf trend small rr | 8 | 2026-09-02, 2026-09-03, 2026-09-09 |
 | lower zone below liquidity | 7 | 2026-07-10, 2026-08-05, 2026-08-18 |
 | move away quality | 7 | 2026-07-17, 2026-07-21, 2026-07-22 |
 | commodities aggressive | 7 | 2026-08-04, 2026-08-05, 2026-08-11 |
+| wait pullback to tl | 7 | 2026-07-23, 2026-08-12, 2026-08-20 |
+| follow htf control | 7 | 2026-07-30, 2026-08-06, 2026-08-13 |
 | removal zone strong | 6 | 2026-07-09, 2026-07-10, 2026-07-14 |
 | be when overextended | 6 | 2026-07-09, 2026-07-21, 2026-07-28 |
 | zone scale still valid | 6 | 2026-07-09, 2026-07-14, 2026-08-07 |
 | counter bias aggressive mgmt | 6 | 2026-07-10, 2026-07-17, 2026-07-22 |
 | basing too big | 6 | 2026-07-15, 2026-07-16, 2026-07-24 |
-| wait pullback to tl | 6 | 2026-07-23, 2026-08-12, 2026-08-20 |
-| follow htf control | 6 | 2026-07-30, 2026-08-06, 2026-08-13 |
 | When many pairs pull into the same zone on one dollar move, the trades are correlated - caution. | 6 | 2026-08-04, 2026-09-17, 2026-09-24 |
 | zone touched conservative | 6 | 2026-08-04, 2026-08-12, 2026-08-13 |
-| no htf trend small rr | 6 | 2026-09-02, 2026-09-03, 2026-09-09 |
-| confirmation removes tl | 5 | 2026-07-14, 2026-08-05, 2026-09-30 |
+| confirmation removes tl | 6 | 2026-07-14, 2026-08-05, 2026-09-30 |
+| prefer htf zone | 6 | 2026-07-30, 2026-08-14, 2026-08-20 |
 | htf zone in control | 5 | 2026-07-21, 2026-07-23, 2026-09-29 |
 | no zone no trade | 5 | 2026-07-24, 2026-08-28, 2026-09-30 |
-| prefer htf zone | 5 | 2026-07-30, 2026-08-14, 2026-08-20 |
 | full candle close | 5 | 2026-08-18, 2026-08-19, 2026-08-20 |
 | Single-candle basing with a strong move away is his favourite zone. | 5 | 2026-09-03, 2026-09-15, 2026-10-02 |
 | stay away gap | 5 | 2026-09-03, 2026-09-29, 2026-10-07 |
 | outside chain lower grade | 4 | 2026-07-09, 2026-07-10, 2026-08-20 |
-| A 4H trend line beats a 1H trend line when they conflict. | 3 | 2026-07-09, 2026-08-18, 2026-10-07 |
+| A 4H trend line beats a 1H trend line when they conflict. | 4 | 2026-07-09, 2026-08-18, 2026-10-07 |
 | Zones created by news spikes tend to fail. | 3 | 2026-08-05, 2026-09-17, 2026-09-18 |
 | trend change phases | 3 | 2026-08-12, 2026-08-13, 2026-08-27 |
 | cut risk bad fill | 3 | 2026-08-18, 2026-08-28, 2026-09-02 |
 | let winners run htf | 3 | 2026-09-04, 2026-09-22, 2026-09-23 |
+| wicks in basing | 3 | 2026-09-25, 2026-09-29, 2026-10-27 |
 
 ## Later-reported outcomes
 
-All trade reviews Kevin gives (183): won 112, lost 42, breakeven 8, triggered 16, cancelled 5. "won" includes moves he reports off called zones that he did not take himself; "triggered" = filled/reacting, result not yet given.
+All trade reviews Kevin gives (187): won 112, lost 43, breakeven 8, triggered 19, cancelled 5. "won" includes moves he reports off called zones that he did not take himself; "triggered" = filled/reacting, result not yet given.
 
 | Symbol | won | lost | breakeven | triggered | cancelled |
 |---|---|---|---|---|---|
 | AUDUSD | 15 | 5 | 0 | 6 | 1 |
 | CADJPY | 7 | 1 | 0 | 0 | 0 |
-| DXY | 4 | 2 | 0 | 0 | 0 |
-| EURGBP | 10 | 1 | 0 | 0 | 1 |
+| DXY | 4 | 2 | 0 | 1 | 0 |
+| EURGBP | 10 | 1 | 0 | 1 | 1 |
 | EURJPY | 4 | 2 | 0 | 1 | 0 |
 | EURUSD | 5 | 3 | 2 | 3 | 0 |
 | GBPJPY | 5 | 2 | 0 | 0 | 0 |
@@ -146,11 +147,11 @@ All trade reviews Kevin gives (183): won 112, lost 42, breakeven 8, triggered 16
 | US30 | 0 | 1 | 0 | 0 | 0 |
 | USDCAD | 10 | 4 | 1 | 3 | 0 |
 | USDCHF | 4 | 1 | 0 | 0 | 0 |
-| USDJPY | 3 | 1 | 0 | 0 | 0 |
+| USDJPY | 3 | 1 | 0 | 1 | 0 |
 | WTICOUSD | 8 | 2 | 0 | 1 | 1 |
-| XAUUSD | 16 | 7 | 4 | 1 | 2 |
+| XAUUSD | 16 | 8 | 4 | 1 | 2 |
 
-Reviews linked back to a specific earlier call in `calls.json` (`status_in_later_sessions`, latest status): 117 calls - won 67, lost 34, breakeven 5, triggered 8, cancelled 3. The remaining reviews concern zones drawn the same day or not called beforehand.
+Reviews linked back to a specific earlier call in `calls.json` (`status_in_later_sessions`, latest status): 119 calls - won 67, lost 35, breakeven 4, triggered 10, cancelled 3. The remaining reviews concern zones drawn the same day or not called beforehand.
 
 ### Reported losses
 
@@ -196,4 +197,5 @@ Reviews linked back to a specific earlier call in `calls.json` (`status_in_later
 - 2026-10-23 SPX500: A nice-looking long setup was blasted through - tough month.
 - 2026-10-23 GBPJPY: Price wicked through the zone - a wider stop might have survived.
 - 2026-10-23 EURGBP: Older demand zone broke - not surprising.
+- 2026-10-27 XAUUSD: Both daily demands and their two 1H confirmations broke - a great little daily zone; some members caught 2:1 trades first.
 
