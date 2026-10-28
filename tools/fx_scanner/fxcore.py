@@ -1,5 +1,12 @@
-"""FX rules: the stock scanner's Raja logic (tools/stock_scanner/zones.py) on the chain MN -> W1 -> D1 -> H4, both
-directions (BUY at a located demand, SELL at a located supply), 3M as the top context.
+"""FX rules: the stock scanner's Raja logic (tools/stock_scanner/zones.py) on the chain MN -> W1 -> D1 -> H4 -> H1,
+both directions (BUY at a located demand, SELL at a located supply), 3M as the top context.
+
+H1 (owner 2026-10-28, scanned after every H1 close): the lowest entry TF, nested exactly like every other level (an H1
+zone counts only inside a touched strong H4 zone, that H4 zone inside a touched D1 zone, ... up to MN). The analysis
+base is the newest closed H1 bar: the H1 bars after the last closed H4 bar form the forming H4 bar of the price
+checks (touches in the forming D1 / W1 / MN bar, an H4 zone touched by this 4-hour bar's H1 bars). At an H4 close
+there is no such bar, so H4 / D1 / W1 / MN give exactly what they gave before H1 was added (H1 zones are not used as
+room / target for the higher TFs either).
 
 Top-down (zones.location with strict_chain, the owner's key rule, first in every rule list): an H4 zone counts only
 once price has touched, in the current visit, a strong (ARR / WOW / STR, not overlap / flip / done, at most
@@ -9,10 +16,11 @@ level and the 3M level only blocks it when a strong untouched 3M zone is within 
 untouched HTF zone still in the way -> blocked "HTF area not reached". Supply mirrored for shorts. The H4 bars (the
 lowest TF) are the price checks (touches in the current visit and in the forming HTF bar, approach, left).
 
-Direction (Raja table + ZoneVision's +1 row): H4 entry = H4 -> D1 -> W1 (+1 MN), D1 = D1 -> W1 -> MN, W1 = W1 -> MN
+Direction (Raja table + ZoneVision's +1 row): H1 entry = H1 -> H4 -> D1 (+1 W1), H4 entry = H4 -> D1 -> W1 (+1 MN), D1 = D1 -> W1 -> MN, W1 = W1 -> MN
 -> 3M, MN = MN -> 3M. Only a FULL direction gives BUY / SELL (REDUCED = a correction: WATCH). The curve is measured on
-the chain's top row. Stops = distal + % of the zone height (H4 15, D1 10, W1 5, MN 3). Zones are built on BID bars;
-entry / stop / target add the spread on the ask side. BUY / SELL limits only on H4 / D1 (W1 / MN = WATCH 'area').
+the chain's top row. Stops = distal + % of the zone height (H1 20, H4 15, D1 10, W1 5, MN 3). Zones are built on BID
+bars; entry / stop / target add the spread on the ask side. BUY / SELL limits only on H1 / H4 / D1 (W1 / MN = WATCH
+'area').
 The rules and their lesson citations: README.md "Rules".
 """
 from __future__ import annotations
@@ -35,7 +43,7 @@ import zones as Z  # noqa: E402
 from zones import RAJA, Bar, Series  # noqa: E402
 
 PASS, FAIL, WARN, UNKNOWN, INFO = 'pass', 'fail', 'warn', 'unknown', 'info'
-ROW_TFS = C.ENTRY_TFS + C.CONTEXT_TFS                 # H4, D1, W1, MN, 3M
+ROW_TFS = C.ENTRY_TFS + C.CONTEXT_TFS                 # H1, H4, D1, W1, MN, 3M
 SIDE = {1: 'demand', -1: 'supply'}
 KIND = {1: 'BUY', -1: 'SELL'}
 
@@ -49,7 +57,7 @@ BLOCK_LABEL = {'location': 'HTF area not reached', 'curve': 'wrong side of the c
                'leg': 'departure < 2x', 'clean': 'overlap / flip zone', 'not used': 'zone already did its job',
                'no 3rd CP': '3rd CP in a row', 'out of TL': 'out of the trendline', 'trendline': 'trendline far / 4th touch',
                'host tested': 'HTF area tested before', 'blind': 'confirmation entry only', 'room': 'room < 2x the stop',
-               'gold TF': 'no XAU_USD on H4 (Raja)', 'spread': 'spread > 10% of the stop', 'market TF': 'not on this TF (Raja)',
+               'gold TF': 'no XAU_USD on H1 / H4 (Raja)', 'spread': 'spread > 10% of the stop', 'market TF': 'not on this TF (Raja)',
                'context': 'context only (levels unreliable)', 'area': 'W1 / MN area: enter on D1 / H4',
                'weekend': 'weekend gap risk', 'near entry': 'price not near the entry'}
 # failing rules that turn a strong zone into a WATCH (confirm one TF lower / wait) instead of dropping it
@@ -85,7 +93,7 @@ class FxAnalysis:
     price: float
     date: str                                   # label of the newest closed H4 bar
     rows: Dict[str, Z.Row]
-    fine: Series                                # H4 bars: price checks
+    fine: Series                                # H4 bars (+ the forming H4 bar from H1 bars): price checks
     dirs: Dict[str, Z.Direction]
     curves: Dict[str, Z.Curve]
     crows: Dict[str, Optional[Z.Row]]
@@ -95,6 +103,12 @@ class FxAnalysis:
     dna: Dict[str, Z.DNA] = field(default_factory=dict)
     memo: Dict = field(default_factory=dict)
     h4_dates: List[str] = field(default_factory=list)
+    h1x: List[Bar] = field(default_factory=list)    # closed H1 bars after the newest closed H4 bar (forming H4)
+    asof: str = ''                              # the newest closed bar: an H1 label mid-H4, else the H4 label
+    asof_h: int = 4                             # its length in hours
+
+    def __post_init__(self):
+        self.asof = self.asof or self.date
 
     @property
     def nd(self) -> int: return C.digits_of(self.inst)
@@ -108,19 +122,39 @@ def typical_spread(sp: List[float], n: int = 50) -> Optional[float]:
     return statistics.median(xs) if xs else None
 
 
+def forming_h4(h1x: List[Bar]) -> List[Bar]:
+    """The H1 bars after the newest closed H4 bar, aggregated per H4 bucket (normally one forming H4 bar)."""
+    out: List[Bar] = []
+    for b in h1x:
+        k = C.h4_bucket(b.d)
+        if out and out[-1].d == k:
+            x = out[-1]
+            out[-1] = Bar(k, x.o, max(x.h, b.h), min(x.l, b.l), b.c, x.v + b.v)
+        else:
+            out.append(Bar(k, b.o, b.h, b.l, b.c, b.v))
+    return out
+
+
 def analyse(inst: Dict, bars: Dict[str, List[Bar]], spread: Optional[float] = None) -> FxAnalysis:
-    """Everything the rules need at the newest CLOSED H4 bar. bars = {'H4', 'D1', 'W1', 'MN': closed bars, oldest
-    first}; 3M = closed quarters built from MN."""
+    """Everything the rules need at the newest CLOSED H1 bar. bars = {'H1', 'H4', 'D1', 'W1', 'MN': closed bars,
+    oldest first} ('H1' optional: without it the analysis is the H4 one); 3M = closed quarters built from MN.
+    Price = the newest H1 close when H1 bars closed after the newest H4 bar (mid-H4), else the H4 close (exactly the
+    pre-H1 analysis). H1 bars that end before the newest H4 bar (stale feed) are not used."""
     p = params(inst)
     h4 = bars['H4'][-C.KEEP_BARS['H4']:]
-    px = h4[-1].c
-    fine = Series(h4, px, 'H4')
+    h1 = (bars.get('H1') or [])[-C.KEEP_BARS['H1']:]
+    last4 = h4[-1].d
+    if h1 and C.h4_bucket(h1[-1].d) < last4:
+        h1 = []                                     # stale H1 history: no H1 row this run
+    h1x = [b for b in h1 if C.h4_bucket(b.d) > last4]
+    px = h1x[-1].c if h1x else h4[-1].c
+    fine = Series(h4 + forming_h4(h1x), px, 'H4')
 
     def row(bs, tf):
         if not bs:
             return Z.Row(tf=tf, S=Series([Bar('', px, px, px, px)], px, tf))
         return Z.eval_row(Series(bs, px, tf), p)
-    rows = {'H4': row(h4, 'H4')}
+    rows = {'H1': row(h1, 'H1'), 'H4': row(h4, 'H4')}
     for tf in ('D1', 'W1', 'MN'):
         rows[tf] = row(bars.get(tf, [])[-C.KEEP_BARS[tf]:], tf)
     rows['3M'] = row(Z.to_quarters(bars.get('MN', [])), '3M')
@@ -133,8 +167,9 @@ def analyse(inst: Dict, bars: Dict[str, List[Bar]], spread: Optional[float] = No
         cv = Z.dir_curve(crow, px)
         curves[tf], crows[tf] = cv, crow
         dirs[tf] = Z.dir_combine(e, i, h, cv, p, p1=p1)
-    an = FxAnalysis(inst=inst, price=px, date=h4[-1].d, rows=rows, fine=fine, dirs=dirs, curves=curves, crows=crows,
-                    p=p, spread=spread, h4_dates=[b.d for b in h4])
+    an = FxAnalysis(inst=inst, price=px, date=last4, rows=rows, fine=fine, dirs=dirs, curves=curves, crows=crows,
+                    p=p, spread=spread, h4_dates=[b.d for b in h4], h1x=h1x,
+                    asof=h1x[-1].d if h1x else last4, asof_h=1 if h1x else 4)
     an.sideways = {tf: Z.sideways(r.S, p) if r.ok else False for tf, r in rows.items()}
     for tf in C.ENTRY_TFS:
         r = rows[tf]
@@ -156,8 +191,10 @@ def tp_off(an: FxAnalysis) -> float:
 
 def other_rows(an: FxAnalysis, tf: str) -> List[Z.Row]:
     """Every other row (lower AND higher, 3M included) for the room / target: Raja L9 'the target is the NEAREST
-    opposing level', Baker 'never buy with supply directly overhead' (with p['room_any'] tested zones count too)."""
-    return [an.rows[t] for t in ROW_TFS if t != tf and an.rows[t].ok]
+    opposing level', Baker 'never buy with supply directly overhead' (with p['room_any'] tested zones count too).
+    H1 zones count only for H1 zones (an H1 zone is no target / room limit for an H4+ trade: the H4+ plan stays as
+    it was before H1 was added)."""
+    return [an.rows[t] for t in ROW_TFS if t != tf and an.rows[t].ok and (t != 'H1' or tf == 'H1')]
 
 
 def htf_opp(an: FxAnalysis, tf: str) -> List[Z.Zone]:
@@ -179,10 +216,13 @@ def dna_of(an: FxAnalysis, r: Z.Row, i: int) -> Z.DNA:
 
 
 def forming_touched(an: FxAnalysis, z: Z.Zone) -> bool:
-    """A D1 / W1 / MN zone reached by an H4 bar of its still-forming bar (or price inside it now): zones.dna counts
-    only the zone TF's closed bars, so this touch is otherwise invisible (Raja L1 / L2 / L52: fresh = first touch)."""
-    if z.tf == 'H4':
+    """A D1 / W1 / MN zone reached by an H4 bar of its still-forming bar (or price inside it now), an H4 zone reached
+    by an H1 bar of the forming H4 bar: zones.dna counts only the zone TF's closed bars, so this touch is otherwise
+    invisible (Raja L1 / L2 / L52: fresh = first touch). H1 is the lowest TF (closed bars only)."""
+    if z.tf == 'H1':
         return False
+    if z.tf == 'H4':
+        return not z.removed and any((b.l <= z.prox) if z.dir > 0 else (b.h >= z.prox) for b in an.h1x)
     k = ('ftouch', z.zid)
     if k not in an.memo:
         an.memo[k] = Z.forming_touched(z, an.fine, an.rows[z.tf].S, key=C.period_key)
@@ -329,7 +369,8 @@ def zone_rules(an: FxAnalysis, z: Z.Zone, x: Z.DNA) -> List[Rule]:
                   + ('' if z.leg_ratio >= lx else f' (< {lx:g}x: the lesson asks 2x; confirmation only)'), 'L55', 'leg'))
     nt = tests(an, z, x)
     fresh = nt == 0 and not z.removed
-    ftxt = ' (incl. this ' + {'D1': 'day', 'W1': 'week', 'MN': 'month'}.get(z.tf, 'bar') + "'s H4 bars)" if forming_touched(an, z) else ''
+    ftxt = (' (incl. this ' + {'H4': '4-hour bar', 'D1': 'day', 'W1': 'week', 'MN': 'month'}.get(z.tf, 'bar')
+            + f"'s {'H1' if z.tf == 'H4' else 'H4'} bars)") if forming_touched(an, z) else ''
     R.append(Rule(PASS if fresh else FAIL, 'Fresh: price has not come back yet (first touch = set and forget)' if fresh
                   else f'Tested {nt}x{ftxt}: confirmation only, no set and forget', 'L1 · L2 · L52', 'fresh'))
     strong = x.code in C.STRONG
@@ -387,7 +428,7 @@ def zone_rules(an: FxAnalysis, z: Z.Zone, x: Z.DNA) -> List[Rule]:
     R.append(Rule(FAIL if oot else PASS, f'Out of the {z.tf} trendline: the trend it belonged to is broken; use the HTF realignment zone'
                   if oot else 'Not out of its trendline', 'L8 · L52 · L106', 'out of TL'))
     t, ntl, gp = own_line(an, z)
-    pips_tf = z.tf in ('H4', 'D1')                       # pips are meaningless on W1 / MN zones
+    pips_tf = z.tf in C.LOW_TFS                          # pips are meaningless on W1 / MN zones
     far = t is not None and pips_tf and gp is not None and gp > C.TL_FAR_PIPS
     worn = t is not None and ntl >= C.TL_MAX_TOUCHES
     line = f"{z.tf} {'up' if d > 0 else 'down'} trendline"
@@ -416,7 +457,7 @@ def zone_rules(an: FxAnalysis, z: Z.Zone, x: Z.DNA) -> List[Rule]:
                   else f'{x.code} zone not at a WOW / arrival / near-trendline place: confirmation entry only (confirm one TF lower)',
                   'L102 · L104', 'blind'))
     try_pair = 'TRY' in inst['name'].split('_')
-    bad_tf = (inst.get('cls') == 'cfd' and z.tf == 'H4') or (try_pair and z.tf in ('H4', 'D1'))
+    bad_tf = (inst.get('cls') == 'cfd' and z.tf in ('H1', 'H4')) or (try_pair and z.tf in ('H1', 'H4', 'D1'))
     R.append(Rule(FAIL if bad_tf else PASS, ('Indices / CFDs: daily and above only' if not try_pair else 'TRY pairs: weekly and above only')
                   if bad_tf else f'{z.tf} allowed for this market', 'L53 (Feb 18, Apr 7)', 'market TF'))
     gap = d * (px - z.prox)
@@ -435,10 +476,10 @@ def zone_rules(an: FxAnalysis, z: Z.Zone, x: Z.DNA) -> List[Rule]:
     if inst['name'] == 'XAU_USD':
         low = C.ENTRY_TFS.index(z.tf) < C.ENTRY_TFS.index(C.GOLD_USD_MIN_TF) if C.GOLD_USD_MIN_TF in C.ENTRY_TFS else False
         R.append(Rule(FAIL if low else INFO, 'Raja: no XAU_USD on the low timeframes; use XAU_AUD' if low else C.GOLD_NOTE, 'Raja', 'gold TF'))
-    if z.tf == 'H4' and len(an.date) >= 13:
-        wd = dt.date.fromisoformat(an.date[:10]).weekday()
-        late = wd == 4 and int(an.date[11:13]) + 4 >= C.WEEKEND_FROM_H
-        R.append(Rule(FAIL if late else PASS, 'Friday afternoon: no new H4 set and forget into the weekend gap' if late
+    if z.tf in ('H1', 'H4') and len(an.asof) >= 13:
+        wd = dt.date.fromisoformat(an.asof[:10]).weekday()
+        late = wd == 4 and int(an.asof[11:13]) + an.asof_h >= C.WEEKEND_FROM_H     # the newest bar closed at / after 12:00
+        R.append(Rule(FAIL if late else PASS, f'Friday afternoon: no new {z.tf} set and forget into the weekend gap' if late
                       else 'Not into the weekend', 'L53 (Apr 30) · L7 (Jun 25)', 'weekend'))
     if z.tf not in C.SIGNAL_TFS:
         R.append(Rule(FAIL, f'{z.tf} zone = an area for direction and location: drill down to a D1 / H4 zone inside it',
@@ -475,12 +516,13 @@ def zone_dict(an: FxAnalysis, z: Z.Zone, x: Z.DNA) -> Dict:
 
 
 LOWER_CONFIRM = {'MN': 'MN -> W1: trendline cross + opposite zone removed', 'W1': 'W1 -> D1: trendline cross + opposite zone removed',
-                 'D1': 'D1 -> H4: trendline cross + opposite zone removed', 'H4': 'an H4 close back beyond the proximal'}
+                 'D1': 'D1 -> H4: trendline cross + opposite zone removed', 'H4': 'an H4 close back beyond the proximal',
+                 'H1': 'an H1 close back beyond the proximal'}
 
 
 def signals(an: FxAnalysis) -> List[Dict]:
     """BUY / SELL / WATCH of one instrument (one BUY / SELL per TF and side: the zone nearest to price).
-    BUY / SELL = every rule passes (H4 / D1 only). WATCH = a strong zone whose only failing rules are confirmation-only
+    BUY / SELL = every rule passes (H1 / H4 / D1 only). WATCH = a strong zone whose only failing rules are confirmation-only
     (CONFIRM_ONLY): 'tested' (2nd / 3rd touch, price near), 'new' (just made, price away), 'confirm' (departure < 2x,
     REDUCED direction, tested HTF area, no WOW / arrival / trendline place, weekend), 'area' (a W1 / MN zone that
     passes: drill down) or 'context' (an instrument whose levels are not reliable enough for orders)."""
@@ -558,7 +600,9 @@ SECTIONS = ('in', 'left', 'near')
 
 def zone_hits(an: FxAnalysis) -> List[Dict]:
     """Every strong (ARR / WOW / STR), <= 3 touches (forming-bar touches included), not removed entry-TF zone that price is in, has just left (touched
-    in the last LEFT_BARS H4 bars, closed back beyond the proximal) or is approaching (within NEAR_H x its height)."""
+    in the last LEFT_BARS H4 bars, closed back beyond the proximal) or is approaching (within NEAR_H x its height).
+    H1 zones only when located (inside a touched H4 zone): unlocated H1 noise would hide the HTF zones in the
+    one-bucket-per-instrument lists."""
     px, S = an.price, an.fine
     n = min(C.LEFT_BARS, S.n - 1)
     lo = min(S.L[1:n + 1]) if n > 0 else px
@@ -589,6 +633,8 @@ def zone_hits(an: FxAnalysis) -> List[Dict]:
             else:
                 continue
             lc = loc_of(an, z)
+            if tf == 'H1' and not lc.ok:
+                continue                                 # H1 is listed only inside a touched H4 zone (calm lists)
             rules = zone_rules(an, z, x)
             fb = first_block(rules)
             out.append({'tf': tf, 'side': SIDE[d], 'section': sec, 'zid': z.zid, 'type': x.code, 'touches': nt,

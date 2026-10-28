@@ -50,6 +50,15 @@ describe('engine sample (SCHEMA.md)', () => {
     for (const s of [...f.signals, ...f.watch]) { expect(s.sym).toMatch(/^[A-Z0-9]+$/); expect(['BUY', 'SELL', 'WATCH']).toContain(s.kind); }
     for (const r of f.map) expect(r.k).toBeTruthy();
   });
+  it('carries the hourly H1 base and H1 rows', () => {
+    expect(f.h1).toMatch(/^\d{4}-\d\d-\d\dT\d\d:00$/);
+    expect(f.h1_close_utc).toMatch(/Z$/);
+    for (const r of f.map) expect(Object.keys(r.dir)).toEqual(expect.arrayContaining(['H1', 'H4', 'D1', 'W1', 'MN']));
+    const js = read(`${SAMPLE}/d/cross.json`);
+    const d = parseDetail(js, 'GBPJPY')!;
+    expect(d.bars.H1.length).toBeGreaterThan(1);
+    expect(d.h4).toBeTruthy();
+  });
   it('parses every detail shard', () => {
     for (const file of readdirSync(`${SAMPLE}/d`)) {
       const js = read(`${SAMPLE}/d/${file}`);

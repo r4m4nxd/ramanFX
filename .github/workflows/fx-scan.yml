@@ -1,17 +1,21 @@
 name: FX scan
 
-# Forex zone scan (Raja rules, top-down MN -> W1 -> D1 -> H4, 3M context), Pepperstone symbols, OANDA data.
-# GitHub drops or delays scheduled runs (worst near the top of the hour), so the scan is NOT tied to the H4 close
-# minute: it is polled every 10 minutes (off the :00 peak) Monday-Friday UTC, plus Saturday 00-05 UTC to
-# catch the Friday close (forex week: Sunday 17:00 New York -> Friday 17:00 New York). Each run first asks OANDA for
-# the newest complete H4 candle (`fxscan.py --check`, seconds) and compares it with the last scanned one
-# (public/fx/state.json, committed, + the actions cache): already scanned -> the run stops there; not yet -> full scan,
-# so a dropped run is caught up by the next one. The H4 digest goes out after every new H4 scan; the daily summary with
-# the first scan after the D1 close (17:00 New York), however late. Manual runs always scan (--force).
+# Forex zone scan (Raja rules, top-down MN -> W1 -> D1 -> H4 -> H1, 3M context), Pepperstone symbols, OANDA data.
+# Hourly: a full scan after every H1 close. GitHub drops or delays scheduled runs (worst near the top of the hour), so
+# the scan is NOT tied to the close minute: it is polled every 10 minutes (off the :00 peak) Monday-Friday UTC, plus
+# Saturday 00-05 UTC to catch the Friday close and Sunday 21-23 UTC for the first hours of the week (forex week:
+# Sunday 17:00 New York -> Friday 17:00 New York). Each run first asks OANDA for the newest complete H1 candle
+# (`fxscan.py --check`, seconds) and compares it with the last scanned one (public/fx/state.json, committed, + the
+# actions cache): already scanned -> the run stops there; not yet -> full scan, so a dropped run is caught up by the
+# next one. Telegram stays calm: an hourly scan sends only the instant alert when something is new; the H4 digest goes
+# out once per new H4 candle; the daily summary with the first scan after the D1 close (17:00 New York), however late.
+# Only the new candles are fetched (cache): an hourly run inside an H4 bar asks OANDA for one H1 request per
+# instrument. Manual runs always scan (--force).
 on:
   schedule:
     - cron: '7,17,27,37,47,57 * * * 1-5'
     - cron: '7,17,27,37,47,57 0-5 * * 6'
+    - cron: '7,17,27,37,47,57 21-23 * * 0'
   workflow_dispatch:
     inputs:
       only:
@@ -50,8 +54,8 @@ jobs:
         with:
           python-version: '3.12'
 
-      # Seconds: is there a complete H4 candle that was not scanned yet? Manual runs always scan.
-      - name: New H4 candle?
+      # Seconds: is there a complete H1 candle that was not scanned yet? Manual runs always scan.
+      - name: New H1 candle?
         id: check
         run: |
           if [ "$EVENT" = "workflow_dispatch" ]; then echo "scan=true" >> "$GITHUB_OUTPUT"; echo "manual run: scan"; exit 0; fi

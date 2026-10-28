@@ -1,15 +1,18 @@
-"""Automated FX zone scanner (Raja rules, top-down MN -> W1 -> D1 -> H4, 3M context), Pepperstone symbols, OANDA data.
+"""Automated FX zone scanner (Raja rules, top-down MN -> W1 -> D1 -> H4 -> H1, 3M context), Pepperstone symbols, OANDA data.
 
-    python tools/fx_scanner/fxscan.py                    # scan if a new H4 candle closed, write public/fx, Telegram
-    python tools/fx_scanner/fxscan.py --force            # scan even without a new H4 candle
-    python tools/fx_scanner/fxscan.py --check            # seconds: is there an unscanned complete H4 candle?
+    python tools/fx_scanner/fxscan.py                    # scan if a new H1 candle closed, write public/fx, Telegram
+    python tools/fx_scanner/fxscan.py --force            # scan even without a new H1 candle
+    python tools/fx_scanner/fxscan.py --check            # seconds: is there an unscanned complete H1 candle?
     python tools/fx_scanner/fxscan.py --only EURUSD,XAUAUD --no-notify
     python tools/fx_scanner/fxscan.py --selftest         # synthetic data end to end, prints the Telegram text
     python tools/fx_scanner/fxscan.py --preview-telegram # alert / H4 digest / daily summary of public/fx/latest.json
 
 Outputs (contract: tools/fx_scanner/SCHEMA.md): public/fx/latest.json and public/fx/d/<class>.json (per-instrument
 detail with bars for the charts). Dedupe state for Telegram: <cache>/state.json (actions/cache); the schedule state
-(last scanned H4, last daily summary, last H4 digest) is also committed as public/fx/state.json.
+(last scanned H1 / H4, last daily summary, last H4 digest) is also committed as public/fx/state.json.
+
+Hourly: every new H1 candle is a full scan; Telegram then gets ONLY the instant alert when something is new. The H4
+digest goes out once per new H4 candle, the daily summary once per new D1 candle (as before H1 was added).
 """
 from __future__ import annotations
 
@@ -40,7 +43,7 @@ from zones import Bar  # noqa: E402
 
 DISCLAIMER = ('Rule-based scan, not financial advice. Levels come from the OANDA feed; Pepperstone quotes can differ by '
               'a few pips: check on your Pepperstone chart (ZoneVision MT5) before placing.')
-CHART_BARS = {'H4': 80, 'D1': 80, 'W1': 52}
+CHART_BARS = {'H1': 80, 'H4': 80, 'D1': 80, 'W1': 52}
 USDX_PARTS = {'EUR_USD': -0.576, 'USD_JPY': 0.136, 'GBP_USD': -0.119, 'USD_CAD': 0.091, 'USD_SEK': 0.042, 'USD_CHF': 0.036}
 USDX_K = 50.14348112
 USDX_META = {'name': 'USDX', 'type': 'INDEX', 'displayName': 'US Dollar Index (synthetic)', 'pipLocation': -2, 'displayPrecision': 3}
@@ -80,7 +83,7 @@ def synth_usdx(parts: Dict[str, Dict[str, List[Bar]]]) -> Dict[str, List[Bar]]:
     covers from their start take the high / low of their synthetic H4 bars instead (a much tighter bound: the parts'
     extremes rarely fall in the same 4 hours). Still an approximation: USDX is context only (fxcfg.CONTEXT_ONLY)."""
     out: Dict[str, List[Bar]] = {}
-    for tf in ('H4', 'D1', 'W1', 'MN'):
+    for tf in ('H1', 'H4', 'D1', 'W1', 'MN'):
         maps = {n: {b.d: b for b in parts[n].get(tf, [])} for n in USDX_PARTS}
         common = sorted(set.intersection(*(set(m) for m in maps.values()))) if maps else []
         bars = []
@@ -196,13 +199,13 @@ def detail(an: F.FxAnalysis, hits: List[Dict], sigs: List[Dict]) -> Dict:
             zs.append({**F.zone_dict(an, z, x), 'pips': round(abs(an.price - z.prox) / an.pip, 1),
                        'loc': lc.code if lc else 'context', 'loc_ok': lc.ok if lc else None, 'loc_text': lc.text if lc else '3M context level'})
     zs.sort(key=lambda z: z['pips'])
-    return {**inst_fields(i), 'price': round(an.price, nd), 'date': an.date,
+    return {**inst_fields(i), 'price': round(an.price, nd), 'date': an.asof, 'h4': an.date,
             'spread_pips': round(an.spread / an.pip, 1) if an.spread is not None else None,
             'states': {t: an.rows[t].state_name for t in F.ROW_TFS}, 'dirs': {t: an.dirs[t].head for t in C.ENTRY_TFS},
             'curves': {t: round(an.curves[t].value, 1) for t in C.ENTRY_TFS if an.curves[t].ok},
             'ctx3': F.six(an.rows['3M'], an.price, nd), 'zones': zs[:16], 'hits': hits, 'checks': F.nearest_checks(an),
             'signals': [s['kind'] + ' ' + s['tf'] for s in sigs],
-            'bars': {tf: pack(_closed(an, tf), n, nd) for tf, n in CHART_BARS.items()}}
+            'bars': {tf: pack(_closed(an, tf), n, nd) for tf, n in CHART_BARS.items() if an.rows[tf].S.T[-1]}}
 
 
 def _closed(an: F.FxAnalysis, tf: str) -> List[Bar]:
@@ -228,8 +231,9 @@ def _item(h: Dict) -> Dict:
     return {**{k: h.get(k) for k in keep}, 'sec': h['section']}
 
 
-def public(res: Dict, h4: str, fixture: bool = False, partial: bool = False, extra: Optional[Dict] = None) -> Tuple[Dict, Dict[str, Dict]]:
-    """(latest.json, {class: detail shard})."""
+def public(res: Dict, h4: str, fixture: bool = False, partial: bool = False, extra: Optional[Dict] = None,
+           h1: Optional[str] = None) -> Tuple[Dict, Dict[str, Dict]]:
+    """(latest.json, {class: detail shard}). h1 = the newest closed H1 bar (the scan's base; None = the H4 bar)."""
     zl = lists(res)
     sig_of = {}
     for s in res['signals'] + res['watch']:
@@ -261,9 +265,10 @@ def public(res: Dict, h4: str, fixture: bool = False, partial: bool = False, ext
     pub = {
         'version': 1, 'generated': now_utc().strftime('%Y-%m-%dT%H:%M:%SZ'), 'h4': h4,
         'h4_close_utc': C.h4_close_utc(h4).strftime('%Y-%m-%dT%H:%M:%SZ') if h4 else None,
+        'h1': h1 or None, 'h1_close_utc': C.h1_close_utc(h1).strftime('%Y-%m-%dT%H:%M:%SZ') if h1 else None,
         'fixture': fixture, 'partial': partial, 'broker': 'Pepperstone', 'feed': 'OANDA ' + (os.environ.get('OANDA_ENV') or 'practice'),
         'clock': 'Pepperstone server time (GMT+2 winter / GMT+3 summer, day closes 17:00 New York)',
-        'config': {'chain': ['MN', 'W1', 'D1', 'H4'], 'context': '3M', 'sl_pct': C.SL_PCT, 'approach_h': C.APPROACH_H,
+        'config': {'chain': ['MN', 'W1', 'D1', 'H4', 'H1'], 'context': '3M', 'sl_pct': C.SL_PCT, 'approach_h': C.APPROACH_H,
                    'near_h': C.NEAR_H, 'left_bars': C.LEFT_BARS, 'max_spread_frac': C.MAX_SPREAD_FRAC,
                    'soft_reach_pct': C.SOFT_REACH_PCT, 'gold_usd_min_tf': C.GOLD_USD_MIN_TF,
                    'tp_offset_pips': C.TP_OFFSET_PIPS, 'signal_tfs': list(C.SIGNAL_TFS)},
@@ -424,7 +429,7 @@ def state_path() -> str:
     return os.path.join(C.CACHE, 'state.json')
 
 
-SCHEDULE_KEYS = ('last_h4', 'summary_d1', 'digest_h4')
+SCHEDULE_KEYS = ('last_h1', 'last_h4', 'summary_d1', 'digest_h4')
 
 
 def _read(path: str) -> Dict:
@@ -454,10 +459,15 @@ def save_public_state(st: Dict, path: Optional[str] = None) -> None:
     _dump(path, {**{k: st.get(k) for k in SCHEDULE_KEYS}, 'updated': now_utc().strftime('%Y-%m-%dT%H:%M:%SZ')})
 
 
-def needs_scan(h4: Optional[str], state: Dict) -> bool:
-    """True when the newest complete H4 candle has not been scanned yet (catch-up: a late or dropped cron run is
-    picked up by the next one)."""
-    return bool(h4) and h4 != state.get('last_h4')
+def needs_scan(bar: Optional[str], state: Dict, key: str = 'last_h4') -> bool:
+    """True when the newest complete candle (H1 for the hourly scan: key 'last_h1') has not been scanned yet
+    (catch-up: a late or dropped cron run is picked up by the next one)."""
+    return bool(bar) and bar != state.get(key)
+
+
+def needs_digest(h4: Optional[str], state: Dict, force: bool = False) -> bool:
+    """The H4 digest: once per new H4 candle (an hourly scan inside the same H4 bar sends none)."""
+    return bool(h4) and (force or h4 != state.get('digest_h4'))
 
 
 def gh_output(**kv) -> None:
@@ -527,11 +537,12 @@ def selftest(out_dir: Optional[str] = None, send: bool = False) -> int:
     uni, data, wl = selftest_universe()
     res = run(uni, lambda i: (data[i['name']], 0.6 * C.pip_of(i)), log=None)
     h4 = max(b['H4'][-1].d for b in data.values())
-    pub, shards = public(res, h4, fixture=True, extra={'unmapped': wl['unmapped'], 'watchlist_source': 'selftest'})
+    h1 = max((b['H1'][-1].d for b in data.values() if b.get('H1')), default=None)
+    pub, shards = public(res, h4, fixture=True, extra={'unmapped': wl['unmapped'], 'watchlist_source': 'selftest'}, h1=h1)
     if out_dir:
         write(pub, shards, out_dir)
     ev, st = events(res, {'signals': {}}, now_utc())
-    msgs = N.alert_messages({**ev, 'h4': h4}) + N.summary_messages(pub)
+    msgs = N.alert_messages({**ev, 'h4': h4, 'h1': h1}) + N.summary_messages(pub)
     for m in msgs:
         print(m)
         print('\n' + '-' * 40 + '\n')
@@ -548,7 +559,7 @@ def selftest(out_dir: Optional[str] = None, send: bool = False) -> int:
 # ---- main ------------------------------------------------------------------------------------------------------------
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--force', action='store_true', help='scan even when no new H4 candle closed')
+    ap.add_argument('--force', action='store_true', help='scan even when no new H1 candle closed')
     ap.add_argument('--only', default='', help='comma-separated Pepperstone symbols or OANDA names')
     ap.add_argument('--no-notify', action='store_true')
     ap.add_argument('--no-write', action='store_true')
@@ -560,20 +571,20 @@ def main(argv=None) -> int:
     ap.add_argument('--workers', type=int, default=int(os.environ.get('FX_WORKERS') or 4))
     ap.add_argument('--notify-failure', default='', help='send one "FX scan failed" Telegram message (workflow steps)')
     ap.add_argument('--check', action='store_true',
-                    help='only check whether a new H4 candle needs scanning (prints it, sets the GitHub output scan=true/false)')
+                    help='only check whether a new H1 candle needs scanning (prints it, sets the GitHub output scan=true/false)')
     a = ap.parse_args(argv)
     if a.check:
         try:
             O.token()
-            h4 = O.latest_h4()
+            h1 = O.latest_h1()
         except Exception as e:  # noqa: BLE001  (no token / OANDA down: let the full run report it, once a day)
             print(f'check failed ({type(e).__name__}): running the scan step to report it')
             gh_output(scan='true')
             return 0
         st = load_state()
-        need = needs_scan(h4, st)
-        print(f"newest H4 {h4} server time, last scanned {st.get('last_h4')}: " + ('scan' if need else 'nothing to do'))
-        gh_output(scan='true' if need else 'false', h4=h4 or '')
+        need = needs_scan(h1, st, 'last_h1')
+        print(f"newest H1 {h1} server time, last scanned {st.get('last_h1')}: " + ('scan' if need else 'nothing to do'))
+        gh_output(scan='true' if need else 'false', h1=h1 or '')
         return 0
     if a.notify_failure:
         notify_failure(a.notify_failure, load_state(), True)
@@ -598,6 +609,7 @@ def main(argv=None) -> int:
     try:
         O.token()
         h4 = O.latest_h4()
+        h1 = O.latest_h1()
     except O.NoToken as e:
         notify_failure(str(e), state, notify)
         return 2
@@ -607,8 +619,10 @@ def main(argv=None) -> int:
     if not h4:
         print('no complete H4 candle returned')
         return 0
-    if not needs_scan(h4, state) and not (a.force or a.summary or a.only):
-        print(f'no new H4 candle since {h4} (server time): nothing to do')
+    if h1 and C.h4_bucket(h1) < h4:
+        h1 = None                                           # an H1 answer older than the H4 one: scan on H4
+    if not needs_scan(h1 or h4, state, 'last_h1' if h1 else 'last_h4') and not (a.force or a.summary or a.only):
+        print(f'no new H1 candle since {h1 or h4} (server time): nothing to do')
         return 0
     instruments, src = O.account_instruments(log=print)
     known = {i['name'] for i in instruments} if src != 'fallback' else None
@@ -619,7 +633,7 @@ def main(argv=None) -> int:
     if a.only:
         want = {s.strip().upper() for s in a.only.split(',') if s.strip()}
         uni = [i for i in uni if i['sym'].upper() in want or i['name'].upper() in want]
-    print(f'{len(uni)} instruments ({src} list, watchlist {len(wl["names"])} from {wl["source"]}), newest H4 {h4} server time')
+    print(f'{len(uni)} instruments ({src} list, watchlist {len(wl["names"])} from {wl["source"]}), newest H1 {h1}, H4 {h4} server time')
     res = run(uni, oanda_bars, workers=a.workers)
     have = len(res['analyses'])
     print(f'analysed {have}/{len(uni)} in {time.time() - t0:.0f}s; {len(res["errors"])} errors')
@@ -635,7 +649,7 @@ def main(argv=None) -> int:
         notify_failure(f'only {have}/{len(uni)} instruments have data; nothing published', state, notify)
         return 2
     pub, shards = public(res, h4, partial=SD.over_budget(), extra={
-        'unmapped': wl['unmapped'], 'watchlist_source': wl['source'], 'instrument_source': src})
+        'unmapped': wl['unmapped'], 'watchlist_source': wl['source'], 'instrument_source': src}, h1=h1)
     bootstrap = 'signals' not in state
     ev, new_state = events(res, state, now_utc())
     pub['invalidated'] = [{k: g.get(k) for k in ('sym', 'kind', 'tf', 'side', 'entry', 'reason')} for g in ev['gone']]
@@ -648,12 +662,14 @@ def main(argv=None) -> int:
         msgs.append(f"✅ <b>FX scanner started</b>: {len(uni)} instruments, {pub['counts']['BUY']} BUY / "
                     f"{pub['counts']['SELL']} SELL now. From here on only new events are sent, plus a daily summary.")
     else:
-        msgs += N.alert_messages({**ev, 'h4': h4})
+        msgs += N.alert_messages({**ev, 'h4': h4, 'h1': h1})
     summary = a.summary or (not a.only and (bootstrap or (d1 and d1 != state.get('summary_d1'))))
     if summary:
         msgs += N.summary_messages(pub)
         new_state['summary_d1'] = d1
-    if C.H4_DIGEST and not a.only and (a.force or h4 != state.get('digest_h4')):
+    # hourly scans inside the same H4 bar: the instant alert only (above, [] when nothing is new); the digest once
+    # per new H4 candle, the daily summary once per new D1 candle
+    if C.H4_DIGEST and not a.only and needs_digest(h4, state, a.force):
         if not summary:                                    # the daily summary already is this candle's overview
             msgs.append(N.digest_message(pub, ev if not bootstrap else {}))
         new_state['digest_h4'] = h4
@@ -667,9 +683,11 @@ def main(argv=None) -> int:
         print('Telegram send failed: alert state kept, the events are sent again next run')
         new_state = unsent_state(new_state, state)
     if a.only:
-        new_state['last_h4'] = state.get('last_h4')        # a partial run never marks the H4 bar as scanned
+        new_state['last_h4'] = state.get('last_h4')        # a partial run never marks the H1 / H4 bar as scanned
+        new_state['last_h1'] = state.get('last_h1')
     else:
         new_state['last_h4'] = h4
+        new_state['last_h1'] = h1 or state.get('last_h1')
     save_state(new_state)
     if not a.no_write and not a.only:
         save_public_state(new_state)

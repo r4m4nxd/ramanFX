@@ -20,9 +20,10 @@ export function FxDetail({ row }: { row: FxRow }) {
   const tv = <a href={tvLink(row.tv)} target="_blank" rel="noreferrer" className="text-[12.5px] font-semibold text-accent hover:underline underline-offset-4">Open {row.sym} on TradingView ↗</a>;
   if (d === null) return <p className="text-[12px] text-ink3 py-2">Loading…</p>;
   if (d === 'err') return <div className="py-2 flex flex-col gap-1"><p className="text-[12px] text-ink3">Detail not available.</p>{tv}</div>;
-  const tf = (['D1', 'H4', 'W1'] as const).find(t => (d.bars[t]?.length ?? 0) > 1);
-  const bars = tf ? d.bars[tf] : [];
   const z = row.z;
+  // the listed zone's own timeframe when its bars are there (H1 / H4 / D1 / W1), else D1 -> H4 -> H1 -> W1
+  const tf = [z?.tf, 'D1', 'H4', 'H1', 'W1'].find((t): t is string => !!t && (d.bars[t]?.length ?? 0) > 1);
+  const bars = tf ? d.bars[tf] : [];
   return (
     <div className="flex flex-col gap-2 py-2">
       {bars.length > 1 && <>

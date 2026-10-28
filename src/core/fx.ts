@@ -1,4 +1,5 @@
 // Forex scan files written by tools/fx_scanner (contract: tools/fx_scanner/SCHEMA.md, v1).
+// Scanned after every H1 close (timeframes H1 / H4 / D1 / W1 / MN, 3M context).
 // /fx/latest.json = the list views; /fx/d/<class>.json = per-instrument detail (bars, zones, checks).
 // Parsed defensively: a missing or odd field falls back instead of throwing.
 
@@ -9,6 +10,8 @@ export const FX_DATA_NOTE = 'Levels from OANDA feed — check on your Pepperston
 export const OFF_LIST = 'NOT ON WATCHLIST';
 
 export type FxKind = 'BUY' | 'SELL' | 'WATCH';
+/** Zone / entry timeframes, lowest first (3M = context only). */
+export const FX_TFS = ['H1', 'H4', 'D1', 'W1', 'MN'] as const;
 export type FxSide = 'demand' | 'supply';
 export type FxSec = 'in' | 'left' | 'near';
 export type FxWatchKind = 'new' | 'tested' | 'confirm' | 'area' | 'context';
@@ -34,7 +37,7 @@ export interface FxRow extends FxInst { px: number | null; b: string; z: FxItem 
 export interface FxUnmapped { symbol: string; section: string; note: string }
 export interface FxInvalidated { sym: string; kind: string; tf: string; side: string; entry: number | null; reason: string }
 export interface FxFile {
-  version: number; generated: string; h4: string; h4_close_utc: string; fixture: boolean; partial: boolean; broker: string; feed: string; clock: string;
+  version: number; generated: string; h4: string; h4_close_utc: string; h1: string; h1_close_utc: string; fixture: boolean; partial: boolean; broker: string; feed: string; clock: string;
   counts: { instruments: number; BUY: number; SELL: number; WATCH: number; errors: number };
   classes: { id: string; label: string; n: number }[]; groups: { name: string; symbols: string[] }[];
   signals: FxSignal[]; watch: FxSignal[]; invalidated: FxInvalidated[]; map: FxRow[]; unmapped: FxUnmapped[];
@@ -43,7 +46,7 @@ export interface FxFile {
 export type MiniBar = [string, number, number, number, number];
 export interface FxZone { tf: string; side: FxSide; zone_type: string; proximal: number; distal: number; touches: number; pips: number | null; loc: string; loc_text: string }
 export interface FxDetail extends FxInst {
-  price: number | null; date: string; spread_pips: number | null; states: Record<string, string>; dirs: Record<string, string>;
+  price: number | null; date: string; h4: string; spread_pips: number | null; states: Record<string, string>; dirs: Record<string, string>;
   ctx3: string; zones: FxZone[]; checks: (FxZone & { label: string; entry: number | null; stop: number | null; target: number | null; rr: number | null })[];
   signals: string[]; bars: Record<string, MiniBar[]>;
 }
@@ -97,7 +100,7 @@ export function parseFx(js: unknown): FxFile | null {
   if (!Object.keys(o).length) return null;
   const c = obj(o.counts);
   return {
-    version: int(o.version, 1), generated: str(o.generated), h4: str(o.h4), h4_close_utc: str(o.h4_close_utc), fixture: o.fixture === true, partial: o.partial === true,
+    version: int(o.version, 1), generated: str(o.generated), h4: str(o.h4), h4_close_utc: str(o.h4_close_utc), h1: str(o.h1), h1_close_utc: str(o.h1_close_utc), fixture: o.fixture === true, partial: o.partial === true,
     broker: str(o.broker) || 'Pepperstone', feed: str(o.feed), clock: str(o.clock),
     counts: { instruments: int(c.instruments), BUY: int(c.BUY), SELL: int(c.SELL), WATCH: int(c.WATCH), errors: int(c.errors) },
     classes: arr(o.classes).map(x => { const y = obj(x); return { id: str(y.id), label: str(y.label), n: int(y.n) }; }).filter(x => x.id),
@@ -123,7 +126,7 @@ export function parseDetail(js: unknown, sym: string): FxDetail | null {
   const o = obj(obj(obj(js).instruments)[sym]);
   if (!Object.keys(o).length) return null;
   return {
-    ...inst(o), price: num(o.price), date: str(o.date), spread_pips: num(o.spread_pips), states: strMap(o.states), dirs: strMap(o.dirs), ctx3: str(o.ctx3),
+    ...inst(o), price: num(o.price), date: str(o.date), h4: str(o.h4, o.date), spread_pips: num(o.spread_pips), states: strMap(o.states), dirs: strMap(o.dirs), ctx3: str(o.ctx3),
     zones: arr(o.zones).map(zone).filter((z): z is FxZone => !!z),
     checks: arr(o.checks).map(x => { const z = zone(x); const y = obj(x); return z && { ...z, label: str(y.label, y.block), entry: num(y.entry), stop: num(y.stop), target: num(y.target), rr: num(y.rr) }; }).filter((x): x is NonNullable<typeof x> => !!x),
     signals: arr(o.signals).filter((s): s is string => typeof s === 'string'),

@@ -58,7 +58,7 @@ BT_CACHE = os.path.join(C.CACHE, 'bt')
 OUT_JSON = os.path.join(C.OUT_DIR, 'backtest.json')
 OUT_MD = os.path.join(C.ROOT, 'docs', 'research', 'FX_Backtest.md')
 HISTORY_START = '2005-01-01T00:00:00Z'
-EXPIRY_DAYS = {'H4': 5, 'D1': 15, 'W1': 45, 'MN': 120}
+EXPIRY_DAYS = {'H1': 2, 'H4': 5, 'D1': 15, 'W1': 45, 'MN': 120}   # H1: the live scanner only (H4-based replay)
 VARIANTS = {'full': (), 'no_nesting': ('location',), 'no_spread': ('spread',)}
 VARIANT_LABEL = {'full': '(a) full rules', 'no_nesting': '(b) without top-down nesting',
                  'no_spread': '(c) without spread filter', 'watchlist_majors': '(d) watchlist majors only'}

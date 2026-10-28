@@ -5,7 +5,7 @@ default below. The zone / direction / location logic itself is tools/stock_scann
 
 Forex clock: OANDA candles are asked with alignmentTimezone=America/New_York, dailyAlignment=17 and
 weeklyAlignment=Friday, so a trading day runs 17:00 -> 17:00 New York. Every bar is labelled in "forex time" = New
-York time + 7 h: the day then starts at 00:00, H4 bars at 00 / 04 / 08 / 12 / 16 / 20, a week on Saturday 00:00
+York time + 7 h: the day then starts at 00:00, H1 bars on the hour, H4 bars at 00 / 04 / 08 / 12 / 16 / 20, a week on Saturday 00:00
 (= Friday 17:00 NY, the start of the Sunday session) and a month on the 1st. Labels are 'YYYY-MM-DDTHH:MM' strings,
 which sort in time order and keep the month / quarter maths of zones.py (period_key, to_quarters) working.
 """
@@ -32,21 +32,26 @@ def _b(name: str, default: bool) -> bool:
     return default if not v else v in ('1', 'true', 'yes', 'on')
 
 
-# ---- timeframes: the owner's chain (Raja's table H4 -> D1 -> W1 -> MN), 3M = top context built from MN ---------------
-ENTRY_TFS = ('H4', 'D1', 'W1', 'MN')                    # zone / entry timeframes, lowest first
+# ---- timeframes: the owner's chain (Raja's table H4 -> D1 -> W1 -> MN, + H1 one level below, owner 2026-10-28:
+# "catch the moves earlier on lower time frames"), 3M = top context built from MN ---------------------------------------
+ENTRY_TFS = ('H1', 'H4', 'D1', 'W1', 'MN')              # zone / entry timeframes, lowest first
 CONTEXT_TFS = ('3M',)                                   # context level: blocks only when a strong zone is within reach
-HTF_OF = {'H4': 'D1', 'D1': 'W1', 'W1': 'MN', 'MN': '3M', '3M': None}
-LOWER_OF = {'MN': 'W1', 'W1': 'D1', 'D1': 'H4', 'H4': None}
+HTF_OF = {'H1': 'H4', 'H4': 'D1', 'D1': 'W1', 'W1': 'MN', 'MN': '3M', '3M': None}
+LOWER_OF = {'MN': 'W1', 'W1': 'D1', 'D1': 'H4', 'H4': 'H1', 'H1': None}
 # Direction chain per entry TF (entry, intermediate, higher[, higher+1]): Raja's table with ZoneVision's +1 row
-# (InpDirTable=3 + InpDirPlus1): H4 -> D1 -> W1 -> MN, D1 -> W1 -> MN, W1 -> MN -> 3M, MN -> 3M -> 3M
-DIR_CHAIN = {'H4': ('H4', 'D1', 'W1', 'MN'), 'D1': ('D1', 'W1', 'MN'), 'W1': ('W1', 'MN', '3M'), 'MN': ('MN', '3M', '3M')}
+# (InpDirTable=3 + InpDirPlus1): H1 -> H4 -> D1 -> W1 (the H4 pattern one level down), H4 -> D1 -> W1 -> MN,
+# D1 -> W1 -> MN, W1 -> MN -> 3M, MN -> 3M -> 3M
+DIR_CHAIN = {'H1': ('H1', 'H4', 'D1', 'W1'), 'H4': ('H4', 'D1', 'W1', 'MN'), 'D1': ('D1', 'W1', 'MN'),
+             'W1': ('W1', 'MN', '3M'), 'MN': ('MN', '3M', '3M')}
 # Set-and-forget limit orders only on these TFs (Raja L6 / L7 / L53: HTF zones are areas for direction and
-# location; enter on D1 / H4). A W1 / MN zone that passes every rule is a WATCH 'area' (drill down to D1 / H4).
-SIGNAL_TFS = ('H4', 'D1')
-GRAN = {'H4': 'H4', 'D1': 'D', 'W1': 'W', 'MN': 'M'}   # OANDA granularity
-TF_HOURS = {'H4': 4, 'D1': 24, 'W1': 168}
-# Stops: distal + % of the zone height per TF (owner's rule, extended to the FX chain)
-SL_PCT = {'H4': 15.0, 'D1': 10.0, 'W1': 5.0, 'MN': 3.0, '3M': 2.0}
+# location; enter on D1 / H4 / H1). A W1 / MN zone that passes every rule is a WATCH 'area' (drill down to D1 / H4).
+SIGNAL_TFS = ('H1', 'H4', 'D1')
+LOW_TFS = ('H1', 'H4', 'D1')                            # pips are meaningful (trendline distance), Raja's 'low TFs'
+GRAN = {'H1': 'H1', 'H4': 'H4', 'D1': 'D', 'W1': 'W', 'MN': 'M'}   # OANDA granularity
+TF_HOURS = {'H1': 1, 'H4': 4, 'D1': 24, 'W1': 168}
+# Stops: distal + % of the zone height per TF (owner's rule, extended to the FX chain). H1 20 = one step looser than
+# H4 15 (an H1 zone is thin: the same wick noise is a bigger share of its height); owner to confirm.
+SL_PCT = {'H1': 20.0, 'H4': 15.0, 'D1': 10.0, 'W1': 5.0, 'MN': 3.0, '3M': 2.0}
 SL_MIN_PIPS = 3.0                                       # InpSlMinPips=3
 
 # ---- rule knobs ------------------------------------------------------------------------------------------------------
@@ -54,16 +59,16 @@ SOFT_REACH_PCT = _f('FX_SOFT_REACH_PCT', 5.0)           # a 3M context zone coun
 APPROACH_H = _f('FX_APPROACH_H', 1.0)                   # BUY / SELL: price within 1.0x the zone height of the proximal
 NEAR_H = _f('FX_NEAR_H', 1.0)                           # lists: "approaching" = within 1.0x the zone height
 LEFT_BARS = int(_f('FX_LEFT_BARS', 6))                  # lists: "left" = touched in the last 6 H4 bars (one day)
-NEW_BARS = int(_f('FX_NEW_BARS', 6))                    # WATCH 'new': zone known within the last 6 H4 bars
+NEW_BARS = int(_f('FX_NEW_BARS', 6))                    # WATCH 'new': zone known within the last 6 H4 bars (H1 too)
 TP_OFFSET_PIPS = _f('FX_TP_OFFSET_PIPS', 7.0)           # target 7 pips before the opposite proximal (ZV InpTpOffsetPips)
 MIN_LEG_X = _f('FX_MIN_LEG_X', 2.0)                     # Raja L55: departure >= 2x the base for set and forget
 TL_FAR_PIPS = _f('FX_TL_FAR_PIPS', 25.0)                # Raja L4 / L107: a zone > 25 pips from its trendline breaks
 TL_MAX_TOUCHES = int(_f('FX_TL_MAX_TOUCHES', 3))        # the own trendline already touched 3x: the next (4th) breaks
 # HTF host: earlier visits allowed before the current one (Raja: MN 2nd / 3rd confirm, 4th breaks; D1 / W1 3rd
-# risky; ZoneVision RjA_TouchCap 2). Stricter reading: D1 / W1 1 earlier visit, MN / 3M 2.
-HOST_MAX_PRIOR = {'D1': 1, 'W1': 1, 'MN': 2, '3M': 2}
+# risky; ZoneVision RjA_TouchCap 2). Stricter reading: H4 / D1 / W1 1 earlier visit, MN / 3M 2.
+HOST_MAX_PRIOR = {'H4': 1, 'D1': 1, 'W1': 1, 'MN': 2, '3M': 2}   # H4 hosts an H1 zone: as strict as D1
 HOST_MAX_DEPTH = _f('FX_HOST_MAX_DEPTH', 75.0)          # Kevin L13: a host penetrated > 75% of its height is out
-WEEKEND_FROM_H = int(_f('FX_WEEKEND_FROM_H', 12))       # Raja L53 / L7: no new H4 set and forget from Friday 12:00
+WEEKEND_FROM_H = int(_f('FX_WEEKEND_FROM_H', 12))       # Raja L53 / L7: no new H4 / H1 set and forget from Friday 12:00
 # Instruments that never get a BUY / SELL (levels not reliable enough vs Pepperstone): WATCH 'context' only
 CONTEXT_ONLY = {
     'USDX': 'synthetic spot dollar index (OANDA pairs, wicks are an upper bound): Pepperstone USDX follows the ICE '
@@ -76,20 +81,21 @@ for _n in FUTURES_CFD:
     CONTEXT_ONLY.setdefault(_n, FUTURES_NOTE)
 MAX_SPREAD_FRAC = _f('FX_MAX_SPREAD_FRAC', 0.10)        # skip a signal when spread > 10% of the stop distance
 INCLUDE_CFD = _b('FX_INCLUDE_CFD', False)               # OANDA CFDs (indices, commodities, bonds): off
-GOLD_USD_MIN_TF = os.environ.get('FX_GOLD_USD_MIN_TF') or 'D1'   # Raja: no XAU_USD on low TFs (H4 blocked)
+GOLD_USD_MIN_TF = os.environ.get('FX_GOLD_USD_MIN_TF') or 'D1'   # Raja: no XAU_USD on low TFs (H1 / H4 blocked)
 DEDUPE_HOURS = _f('FX_DEDUPE_HOURS', 24)                # a zone event (enter / approach) is re-sent at most daily
 MAX_TOUCHES = 3                                         # lists / detail only (a host uses HOST_MAX_PRIOR)
 STRONG = ('ARR', 'WOW', 'STR')
 
 # ---- data ------------------------------------------------------------------------------------------------------------
-KEEP_BARS = {'H4': 1500, 'D1': 1500, 'W1': 1500, 'MN': 600}   # cached / analysed history per TF
+KEEP_BARS = {'H1': 1500, 'H4': 1500, 'D1': 1500, 'W1': 1500, 'MN': 600}   # cached / analysed history per TF (H1 ~ 3 months)
 COLD_COUNT = 5000                                       # OANDA maximum candles per request
+COLD_TF = {'H1': 2000}                                  # cold fetch per TF when smaller (H1: KEEP_BARS + margin)
 CACHE = os.environ.get('FX_CACHE') or os.path.join(HERE, '.cache')
 OUT_DIR = os.path.join(ROOT, 'public', 'fx')
 APP_URL = os.environ.get('FX_APP_URL', 'https://raman-fx.vercel.app/scanner/fx')
-# Committed schedule state (last scanned H4, last daily summary, last digest): survives a lost / evicted actions cache
+# Committed schedule state (last scanned H1 / H4, last daily summary, last digest): survives a lost / evicted actions cache
 PUBLIC_STATE = os.path.join(OUT_DIR, 'state.json')
-H4_DIGEST = _b('FX_H4_DIGEST', True)                    # one compact Telegram digest after every new H4 scan
+H4_DIGEST = _b('FX_H4_DIGEST', True)                    # one compact Telegram digest per new H4 candle (not hourly)
 LOCAL_TZ = os.environ.get('FX_LOCAL_TZ') or 'America/Edmonton'   # the owner's clock (Calgary)
 BUDGET_MIN = _f('FX_BUDGET_MIN', 25)
 MIN_COVERAGE = _f('FX_MIN_COVERAGE', 0.5)
@@ -235,14 +241,16 @@ MISALIGNED_MN: set = set()          # MN candle times seen off the 1st 00:00 (ac
 
 def label(utc_s: str, tf: str, strict: bool = True) -> str:
     """The bar label of an OANDA candle time: forex time, snapped to the period start. strict (default): H4 / D1 / W1
-    candles must start exactly on a server-time boundary (H4 00/04/../20, D1 00:00, W1 Saturday 00:00 = Friday 17:00
+    candles must start exactly on a server-time boundary (H1 on the hour, H4 00/04/../20, D1 00:00, W1 Saturday 00:00 = Friday 17:00
     New York) and MN within 12 h of the 1st 00:00, else Misaligned is raised (the bar would not match the Pepperstone
     bar; the caller drops the instrument). An MN start off by less than 12 h is accepted and remembered in
     MISALIGNED_MN."""
     t = fx_time(parse_utc(utc_s))
     if strict:
         off = None
-        if tf == 'H4' and (t.minute or t.second or t.hour % 4):
+        if tf == 'H1' and (t.minute or t.second):
+            off = 'H1'
+        elif tf == 'H4' and (t.minute or t.second or t.hour % 4):
             off = 'H4'
         elif tf == 'D1' and (t.hour or t.minute or t.second):
             off = 'D1'
@@ -268,14 +276,16 @@ def label(utc_s: str, tf: str, strict: bool = True) -> str:
     if tf == 'D1':
         return (t + dt.timedelta(hours=12)).date().isoformat() + 'T00:00'
     t = t + dt.timedelta(minutes=30)
+    if tf == 'H1':
+        return t.replace(minute=0).strftime('%Y-%m-%dT%H:%M')
     return t.replace(hour=t.hour - t.hour % 4, minute=0).strftime('%Y-%m-%dT%H:%M')
 
 
 def period_key(tf: str, d: str):
-    """The bucket of a forex-time label on tf (for zones.visit_touched): H4 the bar, D1 the day, W1 the Saturday the
+    """The bucket of a forex-time label on tf (for zones.visit_touched): H1 / H4 the bar, D1 the day, W1 the Saturday the
     week starts on, MN / 3M / 6M the month / quarter / half (zones.period_key)."""
     import zones as Z
-    if tf == 'H4':
+    if tf in ('H1', 'H4'):
         return d[:16]
     if tf == 'D1':
         return d[:10]
@@ -285,9 +295,20 @@ def period_key(tf: str, d: str):
     return Z.period_key(tf, d)
 
 
-def h4_close_utc(lbl: str) -> dt.datetime:
-    """UTC close time of the H4 bar with forex-time label lbl."""
-    t = dt.datetime.strptime(lbl[:16], '%Y-%m-%dT%H:%M') + dt.timedelta(hours=4)
+def h4_bucket(lbl: str) -> str:
+    """The label of the H4 bar that holds the H1 (or H4) bar `lbl` (server time: H4 bars start at 00/04/../20)."""
+    h = int(lbl[11:13])
+    return f'{lbl[:11]}{h - h % 4:02d}:00'
+
+
+def h1_close_utc(lbl: str) -> dt.datetime:
+    """UTC close time of the H1 bar with forex-time label lbl."""
+    return h4_close_utc(lbl, 1)
+
+
+def h4_close_utc(lbl: str, hours: int = 4) -> dt.datetime:
+    """UTC close time of the H4 bar (hours=1: the H1 bar) with forex-time label lbl."""
+    t = dt.datetime.strptime(lbl[:16], '%Y-%m-%dT%H:%M') + dt.timedelta(hours=hours)
     for off in (-4, -5):
         u = t - dt.timedelta(hours=off + 7)
         if ny_offset(u) == off:

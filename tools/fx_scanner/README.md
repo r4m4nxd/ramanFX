@@ -1,11 +1,12 @@
 # RamanFX FX scanner
 
 Automated forex (and watchlist CFD) zone scan with **the same Raja rules and the same top-down nesting as the stock
-scanner** (`tools/stock_scanner/zones.py` is imported, not copied), on the chain **MN → W1 → D1 → H4** with 3M as
-the top context. Runs after every H4 close on GitHub Actions (polled at :17 / :47 each hour; a run with no unscanned
-H4 candle stops in seconds, a dropped run is caught up by the next) and sends **instant Telegram alerts when something
-new happens**, one compact **H4 digest** after every new H4 candle (`FX_H4_DIGEST`, default `true`: counts, top 5
-watchlist instruments in / near located zones, or "No new setups"), plus one daily summary, so you do not have to watch charts during the day job. Results also go to the app
+scanner** (`tools/stock_scanner/zones.py` is imported, not copied), on the chain **MN → W1 → D1 → H4 → H1** with 3M
+as the top context. Runs **after every H1 close** on GitHub Actions (owner 2026-10-28: "catch the moves earlier on
+lower time frames"; polled every 10 minutes; a run with no unscanned H1 candle stops in seconds, a dropped run is
+caught up by the next) and sends **instant Telegram alerts when something new happens** (the only message of an
+hourly scan, nothing when nothing is new), one compact **H4 digest** per new H4 candle (`FX_H4_DIGEST`, default
+`true`: counts, top 5 watchlist instruments in / near located zones, or "No new setups"; never hourly), plus one daily summary, so you do not have to watch charts during the day job. Results also go to the app
 at `/scanner/fx` (Stocks | Forex switch on the scanner page).
 
 **Broker: Pepperstone. Data: OANDA.** Pepperstone has no public REST price API, so prices come from OANDA's free
@@ -32,7 +33,8 @@ Standard library only (Python 3.10+).
    paste the file's content (comma-separated or one per line, `###Section` headers, `PEPPERSTONE:EURUSD`, `OANDA:…`,
    `FX:…`, `TVC:GOLD` all work). Sections become the groups in Telegram and the app.
 4. Actions → **FX scan** → *Run workflow* once. The first run downloads the history (one request per instrument and
-   timeframe: H4 5,000 bars ≈ 3 years, D1 ≈ 19 years, W1 / MN all); later runs fetch only the new candles.
+   timeframe: H1 2,000 bars ≈ 4 months, H4 5,000 bars ≈ 3 years, D1 ≈ 19 years, W1 / MN all); later runs fetch only
+   the new candles (an hourly run inside an H4 bar: one H1 request per instrument, H4 / D1 / W1 / MN skipped).
 
 ## What gets scanned
 
@@ -59,7 +61,7 @@ Standard library only (Python 3.10+).
 
 Candles are asked with `alignmentTimezone=America/New_York&dailyAlignment=17&weeklyAlignment=Friday`, i.e. the day
 closes at 17:00 New York = Pepperstone's MT4 / MT5 server midnight (GMT+2 winter / GMT+3 summer). Every bar is
-labelled in server time (`fxcfg.label`, New York + 7 h): H4 bars start at 00/04/08/12/16/20 server time
+labelled in server time (`fxcfg.label`, New York + 7 h): H1 bars on the hour, H4 bars start at 00/04/08/12/16/20 server time
 (= 17/21/01/05/09/13 New York), days at 00:00, weeks on the Sunday-evening open, months on the 1st (server-time
 month). Only `complete: true` candles are used. Crypto CFDs trade at weekends: their weekend candles are kept, but the
 workflow does not run on Saturdays.
@@ -78,25 +80,25 @@ template). A BUY / SELL needs **every** rule below to pass; a strong zone that f
   the wicks (L55). Removed only by a candle **close** beyond the distal (L4, L50, L54, L106).
 - **Departure ≥ 2x the biggest base candle** for set and forget (L55; ZV accepts 1.2x) **→ WATCH**.
 - **Fresh = first touch only** (L1, L2, L52). A touch is any bar reaching the proximal on the zone's TF **or by an H4
-  bar of the HTF bar that is still forming** (a W1 zone hit on Tuesday is tested, not fresh), price inside the zone
+  (for H4 zones: H1) bar of the HTF bar that is still forming** (a W1 zone hit on Tuesday is tested, not fresh), price inside the zone
   counts as a touch, and a news (emotional) candle's tap counts too (*stricter*; it is still ignored for removal,
   L2 Apr 30). 2nd / 3rd touch **→ WATCH 'tested'**; more = dropped.
 - Zone type ARR / WOW / STR (L1, L51); overlap / flip = confirmation only, never set and forget (L2, L52, L104); not
   a zone that already did its job (L5, Feb 18); not the 3rd CP in a row (L8, Kevin L13); never sideways (L8, L101).
 
 **Top-down location (owner + L6, L7)**
-- An H4 zone needs a **touched D1 host**, that D1 host a **touched W1 host**, that W1 host a **touched MN host**:
-  the **full chain MN → W1 → D1 → H4**, no gap (a host with no strong zone above it blocks; *stricter*,
+- An H1 zone needs a **touched H4 host**, an H4 zone a **touched D1 host**, that D1 host a **touched W1 host**, that
+  W1 host a **touched MN host**: the **full chain MN → W1 → D1 → H4 → H1**, no gap (a host with no strong zone above it blocks; *stricter*,
   `zones.location(strict_chain=True)`). 3M is context: it blocks only with a strong untouched 3M zone within 5%.
 - A host must be strong (ARR / WOW / STR), not overlap / flip / done, penetrated ≤ 75% (Kevin L13), and **at most 1
-  earlier visit on D1 / W1, 2 on MN** (Raja: MN 2nd / 3rd confirm, 4th breaks; D1 / W1 3rd touch risky, L2, L52,
+  earlier visit on H4 / D1 / W1, 2 on MN** (Raja: MN 2nd / 3rd confirm, 4th breaks; D1 / W1 3rd touch risky, L2, L52,
   L102, Mar 5; ZV cap 2; *stricter*: D1 / W1 1). A host visited before is only confirmed by an **arrival** entry
   zone (L2, L52, L105) **→ WATCH**.
 - An untouched strong HTF zone still in the way → "HTF area not reached".
 
 **Direction, curve, opposite zones**
-- Raja table with ZV's +1 row (`InpDirTable=3` + `InpDirPlus1`): **H4 → D1 → W1 (+ MN)**, D1 → W1 → MN, W1 → MN → 3M,
-  MN → 3M. Only a **FULL** direction trades: REDUCED (the +1 row or the entry TF disagrees = a correction) **→ WATCH**
+- Raja table with ZV's +1 row (`InpDirTable=3` + `InpDirPlus1`): **H1 → H4 → D1 (+ W1)**, **H4 → D1 → W1 (+ MN)**,
+  D1 → W1 → MN, W1 → MN → 3M, MN → 3M. Only a **FULL** direction trades: REDUCED (the +1 row or the entry TF disagrees = a correction) **→ WATCH**
   (L5, L102: H4 and below impulses only; Kevin: set and forget only when HTF and ETF trends agree).
 - Curve: low 25% buys only, high 25% sells only, up to 50% confirmation (L4, Feb 10); owner ATH / ATL rule.
 - **Never buy inside / next to a supply** (L50, L4 course 3): the zone must not sit within one zone height of a
@@ -109,7 +111,7 @@ template). A BUY / SELL needs **every** rule below to pass; a strong zone that f
   (L104 "blind entries"); any other strong zone **→ WATCH 'confirm'**.
 - The own-side trendline touched 3x already: the next (4th) touch usually breaks (L4, L102, L103) → fail. A zone
   **more than 25 pips** from its trendline often breaks (L4 Jun 25, L107; ZV `InpRjFarFromLinePips=25`; *stricter*:
-  25 not 30) → fail (H4 / D1).
+  25 not 30) → fail (H1 / H4 / D1).
 - **Out of trendline** (L8, L52, L106): the own-side line the zone was built on was crossed after it formed, or the zone
   formed beyond an already crossed own-side line without an arrival since → fail.
 
@@ -120,20 +122,31 @@ template). A BUY / SELL needs **every** rule below to pass; a strong zone that f
   target → no trade (L101).
 - Entry / stop / target are on the bid chart with the spread on the ask side: **BUY limit = proximal + spread**,
   buy stop = distal − % of the height; **SELL limit = proximal**, sell stop = distal + % + spread, sell target + spread
-  (Kevin L6). Stop % of the zone height: H4 15, D1 10, W1 5, MN 3 (min 3 pips). R:R on these levels.
+  (Kevin L6). Stop % of the zone height: **H1 20** (config value, one step looser than H4: owner to confirm),
+  H4 15, D1 10, W1 5, MN 3 (min 3 pips). R:R on these levels.
 - Spread ≤ 10% of the stop (`FX_MAX_SPREAD_FRAC`).
 - **Pips as on Pepperstone MT5**: gold / platinum / palladium 0.1, silver 0.01 (ZV `InpPipXAU=0.1`), JPY 0.01, else
   0.0001 (OANDA `pipLocation`).
 
 **Markets and timeframes**
-- **BUY / SELL limits only on H4 and D1**: W1 / MN zones are areas for direction and location (L6, L7, L53 seven-step
+- **BUY / SELL limits only on H1, H4 and D1**: W1 / MN zones are areas for direction and location (L6, L7, L53 seven-step
   board: "a monthly zone with a 1,000-pip stop is a mistake") **→ WATCH 'area'** (drill down).
-- No XAU_USD on H4 (L53, L107: use XAU_AUD). Indices / CFDs daily and above, TRY pairs weekly and above (L53 Feb 18,
-  Apr 7) → fail on lower TFs.
+- No XAU_USD on H1 / H4 (L53, L107: use XAU_AUD). Indices / CFDs daily and above, TRY pairs weekly and above (L53
+  Feb 18, Apr 7) → fail on lower TFs.
 - **Context only (WATCH 'context', never an order)**: USDX (synthetic spot DXY; Pepperstone USDX follows the ICE futures,
   wicks are an upper bound) and the futures-based CFDs (BCO, WTICO, NATGAS, XCU, CORN, WHEAT, SOYBN, SUGAR: OANDA and
   Pepperstone roll on different dates and may quote in different units).
-- No new H4 set and forget from Friday 12:00 server time (weekend gap; L53 Apr 30, L7 Jun 25) **→ WATCH**.
+- No new H1 / H4 set and forget from Friday 12:00 server time (weekend gap; L53 Apr 30, L7 Jun 25) **→ WATCH**.
+
+**H1 (hourly scan)**
+- The analysis base is the **newest closed H1 bar**. Its H1 bars after the last closed H4 bar form the forming H4 bar
+  of the price checks: an H4 zone hit by this 4-hour bar's H1 bars is tested (not fresh), and a D1 / W1 / MN touch
+  this hour counts at once. **At an H4 close the H4 / D1 / W1 / MN results are exactly the pre-H1 ones** (regression
+  test `tests/test_fx_h1.py`); H1 zones are not used as room / target of H4+ trades.
+- H1 zones are listed (in / approaching / left, Telegram zone alerts) only once located inside a touched H4 zone.
+- H1 config (owner to confirm): stop 20% of the zone height, history 1,500 H1 bars (≈ 3 months), host H4 at most 1
+  earlier visit, approach / near / left / new as for H4 (1x the zone height; 6 H4 bars), XAU_USD / CFDs / TRY blocked.
+- The backtest (`fx_backtest.py`) stays H4-based (an H1 walk-forward is 4x the evaluations; not added).
 
 **Not implemented (documented gaps)**: news calendar (L2 Apr 30, L103, Kevin L12), the P-vs-CP and stacked-zone
 choice (L102, L104, L6), the gap rule (L6, L55), nested curves (L4 Feb 10), the MN → 3M → 6M direction chain. These
@@ -161,8 +174,8 @@ BUY (and the mirrored SELL); each fix above has a negative test.
   cards (`🟢 EURUSD  BUY 1.20806 → 1.24794 · R:R 21` / `stop 1.20620 · 4-hour demand · score 10/10`),
   everything else in one collapsed expandable quote, a chart button per card + "Open scanner". Legend 🟢 buy ·
   🔴 sell · 👀 watch · 🚪 cancel / exit · ⏳ approaching. Times in Toronto.
-- **H4 check** after every new H4 candle (≤ 4 visible lines when nothing is new) and a **daily summary** with the
-  first run after the D1 close (21:05 UTC summer / 22:05 UTC winter; that run sends no H4 check).
+- **Hourly (H1) scans**: only the instant alert above, and only when something is new. **H4 check** once per new H4
+  candle (≤ 4 visible lines when nothing is new) and a **daily summary** with the first run after the D1 close (21:05 UTC summer / 22:05 UTC winter; that run sends no H4 check).
 - The dedupe state lives in `.cache/state.json` (actions/cache). With no state (first run, lost cache) one "started"
   message + the summary is sent instead of replaying every event.
 - Failures (no token, OANDA unreachable, < 50% of the instruments with data, **a failing unit test**): at most one
@@ -184,10 +197,10 @@ Preview without sending: `python3 tools/fx_scanner/fxscan.py --preview-telegram`
 | `fxscan.py` | CLI, run, outputs, events / dedupe, USDX, `--selftest`, `--preview-telegram` |
 | `SCHEMA.md` | the `public/fx/*.json` contract used by the app |
 | `instruments.json` | fallback instrument list |
-| `fixtures/` | synthetic H4 generator, `sample/` = selftest output (app demo data) |
+| `fixtures/` | synthetic H4 generator (+ H1 split), textbook chain, `sample/` = selftest output (app demo data) |
 | `../../.github/workflows/fx-scan.yml` | the schedule |
 
-Outputs: `public/fx/latest.json`, `public/fx/d/<class>.json` (per-instrument detail with H4 / D1 / W1 bars).
+Outputs: `public/fx/latest.json`, `public/fx/d/<class>.json` (per-instrument detail with H1 / H4 / D1 / W1 bars).
 
 ## Run locally
 

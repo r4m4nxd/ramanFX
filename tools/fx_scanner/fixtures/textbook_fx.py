@@ -70,10 +70,15 @@ def shape(prox: float, dist: float, warm: int, end_frac: float, dep_x: float = 3
 
 
 def labels(tf: str, n: int, end: str = END) -> List[str]:
-    """n CLOSED bar labels of tf before the bar holding the H4 bar `end` (H4: ending with `end`)."""
+    """n CLOSED bar labels of tf before the bar holding the H4 bar `end` (H4 / H1: ending with `end`)."""
     t = dt.datetime.strptime(end, '%Y-%m-%dT%H:%M')
     out: List[str] = []
-    if tf == 'H4':
+    if tf == 'H1':
+        while len(out) < n:
+            if t.weekday() < 5:
+                out.append(t.strftime('%Y-%m-%dT%H:%M'))
+            t -= dt.timedelta(hours=1)
+    elif tf == 'H4':
         while len(out) < n:
             if t.weekday() < 5:
                 out.append(t.strftime('%Y-%m-%dT%H:%M'))
@@ -114,4 +119,23 @@ def textbook(side: int = 1, end: str = END, levels: Optional[Dict] = None, dep_x
     for tf, (px, ds, warm, ef) in (levels or LEVELS).items():
         rows = shape(px, ds, warm, ef, (dep_x or {}).get(tf, 3.0))
         out[tf] = to_bars(tf, rows, side, end)
+    return out
+
+
+# H1 on top of the H4 textbook (tests of the H1 nesting): an H1 demand inside the H4 demand 1.2080-1.2065
+H1_IN = (1.2078, 1.2071, 30, 0.667)
+H1_OUT = (1.2098, 1.2092, 30, 0.667)                # above the H4 zone (inside the D1 zone only)
+
+
+def with_h1(side: int = 1, level: tuple = H1_IN, touch_h4: bool = True, end: str = END) -> Dict[str, List[Bar]]:
+    """The textbook + H1 bars of the same shape on `level`, ending in the H4 bar after `end` (two H1 bars of the
+    forming H4 bar: mid-H4, the hourly scan). touch_h4: the last H1 bar's wick reaches the H4 proximal (the H4 host is
+    touched in the current visit), staying above the H1 proximal."""
+    out = textbook(side, end)
+    t = dt.datetime.strptime(end, '%Y-%m-%dT%H:%M') + dt.timedelta(hours=5)       # the 2nd H1 bar of the next H4 bar
+    rows = shape(*level)
+    if touch_h4:
+        o, h, l, c = rows[-1]
+        rows[-1] = (o, h, min(l, LEVELS['H4'][0] - 0.00002), c)
+    out['H1'] = to_bars('H1', rows, side, t.strftime('%Y-%m-%dT%H:%M'))
     return out

@@ -1,5 +1,6 @@
 """Synthetic forex bars for the selftest and the unit tests (no network): an H4 random walk made of trending legs
-(Monday-Friday in forex time, 6 bars a day), aggregated into D1 / W1 / MN exactly like the scanner buckets them."""
+(Monday-Friday in forex time, 6 bars a day), aggregated into D1 / W1 / MN exactly like the scanner buckets them, and
+split into four H1 bars each (open -> one extreme -> the other -> close: they aggregate back to the H4 bar exactly)."""
 from __future__ import annotations
 
 import datetime as dt
@@ -68,6 +69,27 @@ def aggregate(h4: List[Bar], tf: str) -> List[Bar]:
     return out                                     # the forming bucket (cur) is left out
 
 
+def split_h1(h4: List[Bar], seed: int = 0) -> List[Bar]:
+    """Four H1 bars per H4 bar (labels hh:00 .. hh+3:00): open -> mid -> first extreme -> second extreme -> close,
+    the low first on an up bar, wicks inside the H4 range; max(high) / min(low) / first open / last close = the H4 bar."""
+    rnd = random.Random(seed)
+    out: List[Bar] = []
+    for b in h4:
+        lo_first = b.c >= b.o
+        e1, e2 = (b.l, b.h) if lo_first else (b.h, b.l)
+        mid = b.o + rnd.uniform(0.2, 0.8) * (e1 - b.o)
+        w = [b.o, mid, e1, e2, b.c]
+        t = dt.datetime.strptime(b.d, '%Y-%m-%dT%H:%M')
+        for k in range(4):
+            o, c = w[k], w[k + 1]
+            hi = max(o, c) + rnd.uniform(0.0, 0.6) * (b.h - max(o, c))      # wicks inside the H4 range
+            lo = min(o, c) - rnd.uniform(0.0, 0.6) * (min(o, c) - b.l)
+            out.append(Bar((t + dt.timedelta(hours=k)).strftime('%Y-%m-%dT%H:%M'), o, hi, lo, c))
+    return out
+
+
 def instrument(seed: int, start: float = 1.10, end: str = '2026-10-23T16:00', vol: float = 0.0016) -> Dict[str, List[Bar]]:
     h4 = h4_walk(seed, end, start=start, vol=vol)
-    return {'H4': h4[-C.KEEP_BARS['H4']:], 'D1': aggregate(h4, 'D1'), 'W1': aggregate(h4, 'W1'), 'MN': aggregate(h4, 'MN')}
+    h1 = split_h1(h4[-(C.KEEP_BARS['H1'] // 4 + 1):], seed)
+    return {'H1': h1[-C.KEEP_BARS['H1']:], 'H4': h4[-C.KEEP_BARS['H4']:], 'D1': aggregate(h4, 'D1'),
+            'W1': aggregate(h4, 'W1'), 'MN': aggregate(h4, 'MN')}

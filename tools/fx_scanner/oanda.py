@@ -2,10 +2,10 @@
 
     host      api-fxpractice.oanda.com (OANDA_ENV=practice, default) or api-fxtrade.oanda.com (OANDA_ENV=live)
     auth      Authorization: Bearer <OANDA_API_TOKEN>  (never logged, never written)
-    candles   GET /v3/instruments/{name}/candles?granularity=H4|D|W|M&price=BA (BID bars, like the owner's MT4 / MT5
+    candles   GET /v3/instruments/{name}/candles?granularity=H1|H4|D|W|M&price=BA (BID bars, like the owner's MT4 / MT5
               chart, which plots bid; ask - bid at the close = the spread)
               &alignmentTimezone=America/New_York&dailyAlignment=17&weeklyAlignment=Friday
-              cold: count=5000; update: from=<newest cached candle>&count=5000 (re-reads it to verify the overlap)
+              cold: count=5000 (H1 2000); update: from=<newest cached candle>&count=5000 (re-reads it to verify the overlap)
     accounts  GET /v3/accounts -> the first account id; GET /v3/accounts/{id}/instruments (cached weekly)
 
 Only complete candles (complete=true) are kept. Network etiquette, the time budget and the per-host circuit breaker
@@ -67,7 +67,8 @@ def default_get(url: str) -> bytes:
     return SD.http_get(url, accept='application/json', expect=SD.looks_json, headers=_headers(), max_retry_after=10)
 
 
-def candles_url(name: str, tf: str, count: int = C.COLD_COUNT, frm: Optional[str] = None) -> str:
+def candles_url(name: str, tf: str, count: Optional[int] = None, frm: Optional[str] = None) -> str:
+    count = count or C.COLD_TF.get(tf, C.COLD_COUNT)
     q = {'granularity': C.GRAN[tf], 'price': 'BA', 'count': str(count), **ALIGN}
     if frm:
         q['from'] = frm
@@ -169,9 +170,10 @@ def update(name: str, tf: str, get: Getter = None, log=None) -> Tuple[List[Bar],
     frm = (rec or {}).get('last_utc') if rows else None
     if frm and tf in C.TF_HOURS:
         # nothing new can have completed yet: skip the request. -1 h: the week (or day) in which New York changes
-        # its clock is an hour shorter, so the next close can come 1 h before start + 2 x the bar length.
+        # its clock is an hour shorter, so the next close can come 1 h before start + 2 x the bar length (H1 bars are
+        # always one hour long in UTC).
         import datetime as dt
-        nxt = C.parse_utc(frm) + dt.timedelta(hours=2 * C.TF_HOURS[tf] - 1)
+        nxt = C.parse_utc(frm) + dt.timedelta(hours=2 * C.TF_HOURS[tf] - (0 if tf == 'H1' else 1))
         if dt.datetime.now(dt.timezone.utc).replace(tzinfo=None) < nxt:
             return to_bars(rec), rec
     got, utc = _rows(get(candles_url(name, tf, C.COLD_COUNT, frm)), tf, name)
@@ -222,8 +224,17 @@ def account_instruments(get: Getter = None, max_age_days: float = INSTRUMENTS_MA
         return C.load_fallback(), 'fallback'
 
 
-def latest_h4(get: Getter = None, name: str = 'EUR_USD') -> Optional[str]:
-    """Label of the newest complete H4 candle of `name` (the skip check: no new H4 candle -> nothing to do)."""
+def latest(tf: str = 'H4', get: Getter = None, name: str = 'EUR_USD') -> Optional[str]:
+    """Label of the newest complete `tf` candle of `name` (the skip check: no new candle -> nothing to do)."""
     get = get or default_get
-    rows = parse_candles(get(candles_url(name, 'H4', 3)), 'H4')
+    rows = parse_candles(get(candles_url(name, tf, 3)), tf)
     return rows[-1][0] if rows else None
+
+
+def latest_h4(get: Getter = None, name: str = 'EUR_USD') -> Optional[str]:
+    return latest('H4', get, name)
+
+
+def latest_h1(get: Getter = None, name: str = 'EUR_USD') -> Optional[str]:
+    """Newest complete H1 candle: the hourly scan's trigger."""
+    return latest('H1', get, name)
