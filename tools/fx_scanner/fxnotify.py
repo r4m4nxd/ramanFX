@@ -1,9 +1,10 @@
 """FX Telegram, calm and glanceable (same layout and legend as the stock scanner, see stock_scanner/notify.py):
 
-    instant alert   ONE short message when something NEW happens (deduped with the state in the cache):
+    instant alert   ONE short message when something NEW happens (deduped with the state in the cache); the only
+                    message of an hourly (H1) scan inside an H4 bar, nothing when nothing is new:
                     every instrument: a NEW BUY / SELL, a signal that disappeared (🚪 cancel the order);
                     watchlist only: a NEW WATCH, price newly entering / approaching a located strong zone
-    H4 digest       ONE message after every new H4 candle (FX_H4_DIGEST, default on), <= 4 visible lines when quiet:
+    H4 digest       ONE message per new H4 candle (FX_H4_DIGEST, default on; not hourly), <= 4 visible lines when quiet:
                         🕐 4H check · 11:00 PM
                         No new setups. 2 near a good zone ⏳
                         ▸ collapsed detail
@@ -110,9 +111,17 @@ def charts_of(items: Sequence[Dict]) -> List[Dict]:
     return out
 
 
-def _when(h4: str, fmt: str = SN.CLOCK) -> str:
+def _closes(lbl: str, hours: int):
     try:
-        return SN.local_time(C.h4_close_utc(h4).strftime('%Y-%m-%dT%H:%M:%S'), fmt, C.LOCAL_TZ)
+        return C.h4_close_utc(lbl, hours)
+    except (TypeError, ValueError):
+        return None
+
+
+def _when(h4: str, fmt: str = SN.CLOCK, hours: int = 4) -> str:
+    """Local close time of the H4 bar (hours=1: the H1 bar) with label h4."""
+    try:
+        return SN.local_time(C.h4_close_utc(h4, hours).strftime('%Y-%m-%dT%H:%M:%S'), fmt, C.LOCAL_TZ)
     except (TypeError, ValueError):
         return ''
 
@@ -136,8 +145,10 @@ def alert_messages(ev: Dict) -> List[Msg]:
     n_in = sum((z.get('sec') or z.get('section')) == 'in' for z in zones)
     zwords = ' · '.join(w for w in (f'{n_in} in a zone' if n_in else '', f'{len(zones) - n_in} getting close' if len(zones) > n_in else '') if w)
     title = ('New: ' + ' · '.join(words)) if words else zwords
-    when = _when(ev.get('h4') or '')
-    head = [f"⚡ <b>{esc(title)}</b>", 'FX · 4H candle' + (f" closed {esc(when)}" if when else '')]
+    h1, h4 = ev.get('h1') or '', ev.get('h4') or ''
+    hourly = bool(h1) and _closes(h1, 1) != _closes(h4, 4)       # an hourly scan: an H1 close inside an H4 bar
+    when = _when(h1, hours=1) if hourly else _when(h4)
+    head = [f"⚡ <b>{esc(title)}</b>", f"FX · {'1H' if hourly else '4H'} candle" + (f" closed {esc(when)}" if when else '')]
     shown = items[:SN.MAX_CARDS]
     cards = [signal_card(x) if k == 's' else gone_card(x) for k, x in shown]
     zl = [zone_line(z) for z in zones]
