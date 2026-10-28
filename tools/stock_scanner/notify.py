@@ -1,7 +1,7 @@
 """Telegram messages for the daily scan: ONE calm message per run, made to be read at a glance on a phone.
 
     📈 1 BUY · 3 WATCH · nothing to exit             <- the answer first (or "No new setups")
-    Stocks · Mon 26 Oct · 20:49 Toronto
+    Stocks · Mon 26 Oct · 6:49 PM
 
     🟢 XPEV  BUY 8.06 → 16.12 · R:R 5.4              <- at most 3 trade cards, 2 lines each, plain words
     stop 6.56 · monthly demand · score 10/10
@@ -37,7 +37,8 @@ import lists as L
 LIMIT = 4096
 SAFE = 4000
 FULL_LIST = os.environ.get('SCANNER_APP_URL', 'https://raman-fx.vercel.app/scanner')
-LOCAL_TZ = os.environ.get('SCANNER_LOCAL_TZ') or 'America/Toronto'
+LOCAL_TZ = os.environ.get('SCANNER_LOCAL_TZ') or 'America/Edmonton'   # the owner's clock (Calgary)
+CLOCK = '%-I:%M %p'                                                   # '3:00 PM', like the phone
 MAX_CARDS = 3
 QUOTE_LINES = 15
 FOOTER = 'not advice'
@@ -100,7 +101,7 @@ def keyboard(charts: Sequence[Dict], open_label: str, open_url: str) -> List[Lis
 
 
 def local_time(iso_utc: str, fmt: str = '%H:%M', tz: str = LOCAL_TZ) -> str:
-    """'2026-10-27T00:49:18Z' -> '20:49' in Toronto (fmt is strftime); '' when unparsable, UTC without tzdata."""
+    """'2026-10-27T00:49:18Z' -> '6:49 PM' on the owner's clock with CLOCK (fmt is strftime); '' when unparsable."""
     try:
         t = dt.datetime.strptime((iso_utc or '')[:19], '%Y-%m-%dT%H:%M:%S').replace(tzinfo=dt.timezone.utc)
     except ValueError:
@@ -123,10 +124,32 @@ def card(icon: str, sym: str, kind: str, entry: str, target: str, rr, line2: str
 TF_SHORT = {'H1': '1H', 'H4': '4H', 'D1': 'D1', 'W1': 'W1', 'MN': 'MN', '3M': '3M', '6M': '6M'}
 
 
+def away(pct) -> str:
+    """Distance in plain words: '0.4% away · very close' (< 0.5%), '1.9% away · close' (< 2%), '3.3% away'."""
+    p = abs(float(pct or 0))
+    tag = ' · very close' if p < 0.5 else ' · close' if p < 2 else ''
+    return f'{short_pct(p)} away{tag}'
+
+
+def short_pct(p) -> str:
+    """'1.4%', and '<0.1%' rather than a misleading '0.0%'."""
+    p = abs(float(p or 0))
+    return '<0.1%' if p < 0.05 else f'{p:.1f}%'
+
+
+def section(title: str, rows: Sequence[Dict], key: str, n: int = 3, extra=None) -> List[str]:
+    """Two short lines: a heading 'In demand (5)' and the items 'USDNOK MN · AUDCAD 4H · EURGBP W1 +2'."""
+    if not rows:
+        return []
+    items = [esc(r[key]) + (f" {TF_SHORT.get(r['tf'], r['tf'])}" if r.get('tf') else '') + (f' {esc(extra(r))}' if extra else '')
+             for r in rows[:n]]
+    return [f'<b>{esc(title)}</b> ({len(rows)})', ' · '.join(items) + (f' +{len(rows) - n}' if len(rows) > n else '')]
+
+
 def names(rows: Sequence[Dict], key: str, n: int = 4, extra=None) -> str:
     """'ALB W1, BURL MN, PCG 3M +12' (the first n by the list order, i.e. zone score). Every name carries the
     timeframe of the zone it is near / in / left (owner rule)."""
-    shown = [esc(r[key]) + (f" {TF_SHORT.get(r['tf'], r['tf'])}" if r.get('tf') else '') + (f' {extra(r)}' if extra else '')
+    shown = [esc(r[key]) + (f" {TF_SHORT.get(r['tf'], r['tf'])}" if r.get('tf') else '') + (f' {esc(extra(r))}' if extra else '')
              for r in rows[:n]]
     return ', '.join(shown) + (f' +{len(rows) - n}' if len(rows) > n else '')
 
@@ -238,10 +261,10 @@ def build_messages(res: Dict, top: int = MAX_CARDS, cap: int = QUOTE_LINES) -> L
         day = dt.date.fromisoformat(res.get('date') or '').strftime('%a %d %b')
     except ValueError:
         day = res.get('date') or ''
-    when = local_time(res.get('generated_at') or '')
+    when = local_time(res.get('generated_at') or '', CLOCK)
     icon = '🧪' if res.get('fixture') else '📈'
     head = [f"{icon} <b>{esc(headline(len(buys), len(watch), len(exits)))}</b>",
-            f"Stocks · {esc(day)}" + (f" · {esc(when)} Toronto" if when else '')]
+            f"Stocks · {esc(day)}" + (f" · {esc(when)}" if when else '')]
     if res.get('fixture'):
         head[1] += ' · sample data'
     if res.get('data_warning'):
@@ -255,14 +278,13 @@ def build_messages(res: Dict, top: int = MAX_CARDS, cap: int = QUOTE_LINES) -> L
                       + (f' +{len(rest) - 5}' if len(rest) > 5 else ''))
     zl = res.get('zone_lists') or L.zone_lists(res.get('details') or {})
     for side, sec in SECTION_ORDER:
+        if sec == 'left':
+            continue                     # bounced / turned down: in the app only (keeps the message short)
         rows = (zl.get(side) or {}).get(sec) or []
-        if rows:
-            extra = (lambda r: f"{r['pct']:.1f}%") if sec == 'near' else None
-            detail.append(f"{SECTION_WORD[(side, sec)]} ({len(rows)}): " + names(rows, 's', 2 if extra else 3, extra))
-    if not buys:
-        detail.append(why_line((res.get('blocked') or {}).get('reasons') or []))
+        extra = (lambda r: short_pct(r.get('pct'))) if sec == 'near' else None
+        detail += section(SECTION_WORD[(side, sec)].replace('⏳ ', ''), rows, 's', 3, extra)
     if res.get('scanned'):
-        detail.append(f"{res['scanned']} stocks scanned · {FOOTER}")
+        detail.append(f"{res['scanned']} stocks · {FOOTER}")
     charts = [button(f"📈 {x['symbol']}", x['chart']) for k, x in picked if k == 'SIG' and x.get('chart')]
     return [compose(head, cards, detail, keyboard(charts, 'Open scanner', FULL_LIST), cap=cap)]
 

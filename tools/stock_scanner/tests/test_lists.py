@@ -98,7 +98,7 @@ class TelegramListsTest(unittest.TestCase):
         self.assertEqual(len(msgs), 1)
         txt = msgs[0]
         self.assertIn('No new setups', notify.visible(txt))
-        for head in ('In demand (', 'Close to supply (' if 'Close to supply' in txt else 'In supply ('):
+        for head in ('<b>In demand</b> (', '<b>Close to supply</b> (' if 'Close to supply' in txt else '<b>In supply</b> ('):
             self.assertIn(head, txt)
         self.assertRegex(txt, r'\+\d+</blockquote>|\+\d+\n')                # '+N' past the first names
         self.assertLess(notify.u16(txt), notify.SAFE)

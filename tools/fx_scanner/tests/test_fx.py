@@ -307,7 +307,7 @@ class Rules(unittest.TestCase):
         pub, _ = X.public(self.res, '2026-10-26T20:00')
         ev, _ = X.events(self.res, {'signals': {}}, dt.datetime(2026, 10, 26, 21, 5))
         m = N.digest_message(pub, ev)
-        self.assertTrue(m.startswith('🕐 <b>4H check · 17:00 Toronto</b>'))   # Tue 00:00 server = Mon 17:00 EDT
+        self.assertTrue(m.startswith('🕐 <b>4H check · 3:00 PM</b>'))   # Tue 00:00 server = Mon 17:00 EDT = 15:00 Calgary
         vis = N.SN.visible(m)
         self.assertLessEqual(vis.count(' R:R '), 3)
         self.assertIn(' new', vis.split('\n')[1])
@@ -325,8 +325,8 @@ class Rules(unittest.TestCase):
         m = N.digest_message(quiet, {})
         vis = N.SN.visible(m).strip()
         self.assertLessEqual(len(vis.split('\n')), 4)
-        self.assertIn('No new setups · ', vis)
-        self.assertRegex(vis, r'(\d+ near a good zone ⏳|nothing close yet)')
+        self.assertIn('No new trades · ', vis)
+        self.assertRegex(vis, r'(\d+ worth watching|nothing close yet)')
         self.assertEqual(m.count('<blockquote expandable>'), 1)
 
     def test_instant_alert_is_one_short_message(self):
@@ -401,10 +401,11 @@ class ListTimeframeTest(unittest.TestCase):
     """Every market in the near / in / left lists says which timeframe's zone it is at (owner rule)."""
 
     def test_list_lines_carry_the_timeframe(self):
-        pub = {'lists': {'demand': {'near': [{'sym': 'CORN', 'tf': 'D1', 'side': 'demand', 'pips': 5}],
+        pub = {'lists': {'demand': {'near': [{'sym': 'CORN', 'tf': 'D1', 'side': 'demand', 'px': 4.24, 'prox': 4.20}],
                                     'in': [{'sym': 'USDNOK', 'tf': 'MN', 'side': 'demand'}, {'sym': 'AUDCAD', 'tf': 'H4', 'side': 'demand'}]},
                          'supply': {'left': [{'sym': 'USDJPY', 'tf': 'W1', 'side': 'supply'}]}}}
         txt = '\n'.join(N._lists_detail(pub))
-        self.assertIn('Close to demand (1): CORN D1 5p', txt)
-        self.assertIn('In demand (2): USDNOK MN, AUDCAD 4H', txt)
-        self.assertIn('Turned down at supply (1): USDJPY W1', txt)
+        self.assertIn('<b>Close to demand</b> (1)\nCORN D1 0.9%', txt)
+        self.assertIn('<b>In demand</b> (2)\nUSDNOK MN · AUDCAD 4H', txt)
+        self.assertNotIn('pips', txt)
+        self.assertNotIn('USDJPY', txt)                 # turned down at supply: in the app only

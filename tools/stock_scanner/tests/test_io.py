@@ -229,7 +229,7 @@ class NotifyTest(unittest.TestCase):
         m = msgs[0]
         vis = notify.visible(m)
         self.assertTrue(vis.startswith('📈 <b>30 BUY · 3 WATCH · nothing to exit</b>'))
-        self.assertIn('17:05 Toronto', vis)                                   # EDT in October
+        self.assertIn('3:05 PM', vis)                                         # 17:05 EDT = 15:05 Calgary
         self.assertEqual(vis.count('</b>  BUY '), 3)                          # max 3 cards even with top=5
         self.assertIn('score 9/10', vis)
         self.assertEqual(m.count('<blockquote expandable>'), 1)

@@ -90,7 +90,7 @@ APP_URL = os.environ.get('FX_APP_URL', 'https://raman-fx.vercel.app/scanner/fx')
 # Committed schedule state (last scanned H4, last daily summary, last digest): survives a lost / evicted actions cache
 PUBLIC_STATE = os.path.join(OUT_DIR, 'state.json')
 H4_DIGEST = _b('FX_H4_DIGEST', True)                    # one compact Telegram digest after every new H4 scan
-LOCAL_TZ = os.environ.get('FX_LOCAL_TZ') or 'America/Toronto'
+LOCAL_TZ = os.environ.get('FX_LOCAL_TZ') or 'America/Edmonton'   # the owner's clock (Calgary)
 BUDGET_MIN = _f('FX_BUDGET_MIN', 25)
 MIN_COVERAGE = _f('FX_MIN_COVERAGE', 0.5)
 

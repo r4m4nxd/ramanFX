@@ -140,7 +140,7 @@ class DiagnosticsTest(unittest.TestCase):
         res = dict(self.res, signals=[s for s in self.res['signals'] if s['kind'] != 'BUY'],
                    blocked={'candidates': 2, 'within_pct': 5, 'reasons': [{'rule': 'curve', 'label': 'high on curve', 'count': 2}]})
         txt = '\n'.join(notify.build_messages(res))
-        self.assertIn('Why not more: price high in its range (2)', txt)
+        self.assertNotIn('Why not', txt)              # the blocked-rule reasons live in the app, not in Telegram
 
 
 class MarketMapTest(unittest.TestCase):
@@ -177,7 +177,7 @@ class MarketMapTest(unittest.TestCase):
         import notify
         msgs = notify.build_messages(self.res)
         self.assertEqual(len(msgs), 1)
-        self.assertIn('In demand (', msgs[0].split('<blockquote expandable>')[1])
+        self.assertIn('<b>In demand</b> (', msgs[0].split('<blockquote expandable>')[1])
 
     def test_universe_meta_and_uncovered(self):
         pub = scan.public_json(self.res)
@@ -213,7 +213,8 @@ class ListTimeframeTest(unittest.TestCase):
         import notify
         res = notify.load_published(os.path.join(helpers.PKG, '..', '..', 'public', 'scanner'))
         quote_part = notify.build_messages(res)[0].split('<blockquote expandable>')[1]
-        for line in quote_part.split('\n'):
-            if line.startswith(('In demand (', '⏳ Close to demand (', 'Bounced off demand (')):
-                first = line.split(': ', 1)[1].split(', ')[0]
+        lines = quote_part.split('\n')
+        for k, line in enumerate(lines):
+            if line.startswith(('<b>In demand</b> (', '<b>Close to demand</b> (')):
+                first = lines[k + 1].split(' · ')[0]
                 self.assertRegex(first, r'^\S+ (W1|MN|3M)\b', line)
