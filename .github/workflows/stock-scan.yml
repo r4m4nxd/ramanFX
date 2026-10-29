@@ -18,6 +18,10 @@ on:
         description: 'Refresh the index lists now'
         type: boolean
         default: false
+      scheduled:
+        description: 'Behave like a scheduled run (the trader-coach scheduler sets it): the already-scanned check decides'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -54,7 +58,7 @@ jobs:
       - name: Already scanned today?
         id: check
         run: |
-          if [ "$EVENT" != "schedule" ]; then echo "scan=true" >> "$GITHUB_OUTPUT"; echo "manual run: scan"; exit 0; fi
+          if [ "$EVENT" != "schedule" ] && [ "$SCHEDULED" != "true" ]; then echo "scan=true" >> "$GITHUB_OUTPUT"; echo "manual run: scan"; exit 0; fi
           python - <<'PY'
           import datetime as dt, json, os
           now = dt.datetime.now(dt.timezone.utc)   # a run delayed past midnight UTC still belongs to yesterday's close
@@ -73,6 +77,7 @@ jobs:
           PY
         env:
           EVENT: ${{ github.event_name }}
+          SCHEDULED: ${{ github.event.inputs.scheduled }}
 
       # Price + SEC cache between runs: after the first full download only the last month is fetched per ticker.
       # restore + an explicit save with always(): actions/cache's own post step saves only when the job succeeds, so a
@@ -97,7 +102,7 @@ jobs:
         run: python -m unittest discover tools/stock_scanner/tests
 
       - name: Refresh index lists (Mondays, or on request)
-        if: ${{ steps.check.outputs.scan == 'true' && (github.event.inputs.refresh_universe == 'true' || github.event_name == 'schedule') }}
+        if: ${{ steps.check.outputs.scan == 'true' && (github.event.inputs.refresh_universe == 'true' || github.event_name == 'schedule' || github.event.inputs.scheduled == 'true') }}
         run: |
           if [ "$(date -u +%u)" = "1" ] || [ "$IN_REFRESH" = "true" ]; then
             python tools/stock_scanner/universe.py --force

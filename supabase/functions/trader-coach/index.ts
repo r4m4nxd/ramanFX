@@ -9,16 +9,21 @@
 //   2. a new trade or open position -> one '📝 ... why did you take it? Reply to this message.' (the bot's journal.ts
 //      saves the reply as the trade's note);
 //   3. Sunday 6 PM Calgary: the weekly report card (R multiples; $ only when rfx_coach_config.show_amounts);
-//   4. re-applies a bot journal write (note / plan) that a concurrent app sync overwrote (rfx_coach_writes, 24 h).
+//   4. re-applies a bot journal write (note / plan) that a concurrent app sync overwrote (rfx_coach_writes, 24 h);
+//   5. scheduler for the GitHub workflows (scheduler.ts): with the OPTIONAL secret GITHUB_DISPATCH_TOKEN it dispatches
+//      fx-scan / stock-scan / briefing / reminders as scheduled-equivalent runs, once per slot, skipping a slot a GitHub
+//      run already covers. Without the token: nothing (logs 'dispatch token not set' once per day).
 // Sending: OPTIONAL function secrets TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID (the owner adds them in the dashboard).
 // Without them it logs 'telegram secrets not set' and only records the events (so nothing floods in later).
 // Logs: event kinds and counts only, never message text, chat ids, journal data or secrets.
-import { askCandidates, askText, COLS, fromRow, guardEvents, reportCard, reportDue, restDb, saveWhyNote, savePlan, utcRuntime, weekOf, writeLost, type Card, type JournalWrite } from './core.ts';
+import { covered, dispatchRequest, dueDispatches, latestRunUrl, type Dispatch } from './scheduler.ts';
+import { isoDay, askCandidates, askText, COLS, fromRow, guardEvents, reportCard, reportDue, restDb, saveWhyNote, savePlan, utcRuntime, weekOf, writeLost, type Card, type JournalWrite } from './core.ts';
 
 const SB_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SB_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') ?? '';
 const TG_CHAT = Deno.env.get('TELEGRAM_CHAT_ID') ?? '';
+const GH_TOKEN = Deno.env.get('GITHUB_DISPATCH_TOKEN') ?? '';
 const MAX_ASKS = 3;
 
 const H = (): Record<string, string> => ({ apikey: SB_KEY, 'Content-Type': 'application/json', ...(SB_KEY.startsWith('eyJ') ? { Authorization: `Bearer ${SB_KEY}` } : {}) });
@@ -37,8 +42,8 @@ function same(a: string, b: string): boolean {
   return x === 0;
 }
 
-interface Cfg { cron_secret: string; enabled: boolean; show_amounts: boolean; last_journal_at: string | null }
-const getCfg = async () => (await q<Cfg>('rfx_coach_config?id=eq.1&select=cron_secret,enabled,show_amounts,last_journal_at'))[0] ?? null;
+interface Cfg { cron_secret: string; enabled: boolean; show_amounts: boolean; last_journal_at: string | null; dispatch: Record<string, unknown> | null }
+const getCfg = async () => (await q<Cfg>('rfx_coach_config?id=eq.1&select=cron_secret,enabled,show_amounts,last_journal_at,dispatch'))[0] ?? null;
 
 /** Claim an event key; true only for the first caller (the dedupe that keeps every message to once). */
 async function claim(key: string, kind: string): Promise<boolean> {
@@ -64,6 +69,42 @@ async function send(text: string, markup?: unknown): Promise<number | null> {
 }
 const cardMarkup = (c: Card) => ({ inline_keyboard: c.buttons });
 
+// ---- GitHub workflow scheduler ------------------------------------------------------------------------------------
+const ghHeaders = () => ({ Authorization: `Bearer ${GH_TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'ramanfx-coach' });
+async function latestRun(d: Dispatch): Promise<number | null> {
+  const r = await fetch(latestRunUrl(d), { headers: ghHeaders(), signal: AbortSignal.timeout(6000) });
+  if (!r.ok) { await r.body?.cancel(); throw new Error(`runs ${r.status}`); }
+  const j = await r.json();
+  const t = Date.parse(j?.workflow_runs?.[0]?.created_at ?? '');
+  return Number.isFinite(t) ? t : null;
+}
+async function schedule(cfg: Cfg, now: number): Promise<string[]> {
+  const due = dueDispatches(now);
+  if (!due.length) return [];
+  if (!GH_TOKEN) {
+    if (await claim(`nodispatch:${isoDay(now)}`, 'nodispatch')) log({ ev: 'dispatch token not set' });
+    return [];
+  }
+  const done: string[] = [];
+  const record: Record<string, unknown> = { ...(cfg.dispatch ?? {}) };
+  for (const d of due) {
+    const key = `dispatch:${d.slot}`;
+    if ((await q(`rfx_coach_events?key=eq.${encodeURIComponent(key)}&select=key`)).length) continue;
+    try {
+      if (covered(d, await latestRun(d))) { await claim(key, 'dispatch-covered'); log({ ev: 'dispatch_skip', wf: d.wf, why: 'github ran' }); continue; }
+      if (!(await claim(key, 'dispatch'))) continue;
+      const { url, init } = dispatchRequest(d, GH_TOKEN);
+      const r = await fetch(url, { ...init, signal: AbortSignal.timeout(8000) });
+      await r.body?.cancel();
+      if (r.ok) { done.push(d.wf); record[d.wf] = { slot: d.slot, at: new Date().toISOString() }; }
+      else { await q(`rfx_coach_events?key=eq.${encodeURIComponent(key)}`, { method: 'DELETE' }); }   // retried next tick
+      log({ ev: 'dispatch', wf: d.wf, status: r.status });
+    } catch (e) { log({ ev: 'dispatch_error', wf: d.wf, err: (e as Error).message.slice(0, 60) }); }
+  }
+  if (done.length) await q('rfx_coach_config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ dispatch: record }) });
+  return done;
+}
+
 async function readJournal() {
   const rows = await q(`rfx_journal?user_id=eq.67967f02-d6fb-45f1-9edf-d14c3d3fcf12&select=${COLS.map(c => c[1]).join(',')},updated_at`);
   return rows[0] ? { j: fromRow(rows[0]), updatedAt: String(rows[0].updated_at) } : null;
@@ -86,6 +127,9 @@ async function run(reason: string, dry: string | null): Promise<Record<string, u
     return { ok: true, sent: !!id };
   }
 
+  let dispatched: string[] = [];
+  try { dispatched = await schedule(cfg, now); } catch (e) { log({ ev: 'schedule_error', err: (e as Error).message.slice(0, 80) }); }
+
   const head = await q<{ updated_at: string }>('rfx_journal?user_id=eq.67967f02-d6fb-45f1-9edf-d14c3d3fcf12&select=updated_at');
   if (!head[0]) return { ok: true, idle: 'no journal row' };
   const changed = head[0].updated_at !== cfg.last_journal_at;
@@ -93,7 +137,7 @@ async function run(reason: string, dry: string | null): Promise<Record<string, u
   const due = reportDue(now) && !(await q(`rfx_coach_events?key=eq.week:${week}&select=key`)).length;
   const since = now - 86400000;
   const writes = await q<JournalWrite & { id: number; healed: number }>(`rfx_coach_writes?at=gt.${since}&healed=lt.3&select=id,kind,trade_id,text,plan,at,healed`);
-  if (!changed && !due && !writes.length) return { ok: true, idle: true };
+  if (!changed && !due && !writes.length) return { ok: true, idle: true, dispatched };
 
   const jr = await readJournal();
   if (!jr) return { ok: true, idle: 'no journal row' };
@@ -137,7 +181,7 @@ async function run(reason: string, dry: string | null): Promise<Record<string, u
     }
   }
   await q('rfx_coach_config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ last_journal_at: jr.updatedAt, updated_at: new Date().toISOString() }) });
-  const out = { ok: true, reason, sent, recorded, healed };
+  const out = { ok: true, reason, sent, recorded, healed, dispatched };
   log({ ev: 'run', ...out });
   return out;
 }

@@ -1,7 +1,8 @@
 -- Trader coach (supabase/functions/trader-coach): the owner's own discipline rules, sent to Telegram.
 -- Every table is service-role only (RLS on, no policies, no grants to anon / authenticated).
 --   rfx_coach_config  one row: the random cron secret (sent by pg_cron / the journal trigger in x-coach-secret),
---                     show_amounts (weekly report shows $ only when true; default R multiples), last journal seen.
+--                     show_amounts (weekly report shows $ only when true; default R multiples), last journal seen,
+--                     the last GitHub workflow dispatch per workflow (the coach's tick doubles as a reliable scheduler).
 --   rfx_coach_events  dedupe: one row per sent event ('2026-10-29:stop', 'ask:<trade id>', 'week:2026-10-26', ...).
 --   rfx_coach_prompts the "why did you take it?" messages: Telegram message_id -> trade id (the bot matches replies).
 --   rfx_coach_writes  journal writes the bot made (notes, /took plans), re-checked by the coach for a day.
@@ -11,6 +12,7 @@ create table if not exists public.rfx_coach_config (
   enabled boolean not null default true,
   show_amounts boolean not null default false,
   last_journal_at timestamptz,
+  dispatch jsonb not null default '{}'::jsonb,   -- last GitHub workflow dispatch per workflow file (scheduler.ts)
   updated_at timestamptz not null default now()
 );
 insert into public.rfx_coach_config (id) values (1) on conflict (id) do nothing;
@@ -82,6 +84,6 @@ create trigger rfx_coach_journal_changed
   for each row when (new.user_id = '67967f02-d6fb-45f1-9edf-d14c3d3fcf12'::uuid)
   execute function private.rfx_coach_journal_changed();
 
--- Safety net + the Sunday 6 PM Calgary report (the function decides what is due; it exits early when nothing changed).
+-- Safety net, the Sunday 6 PM Calgary report and the GitHub workflow scheduler (the function decides what is due).
 select cron.unschedule('rfx-coach-tick') where exists (select 1 from cron.job where jobname = 'rfx-coach-tick');
 select cron.schedule('rfx-coach-tick', '*/10 * * * *', $$select private.rfx_coach_ping('tick')$$);

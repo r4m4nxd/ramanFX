@@ -14,6 +14,7 @@ import {
   tookPlan, utcOfWall, wallMs, weekOf, withPlan, withWhyNote, writeLost, type CoachJournal, type Db,
 } from '../../supabase/functions/trader-coach/core';
 import { journalRoute } from '../../supabase/functions/telegram-bot/journal';
+import { covered, dispatchRequest, dueDispatches, fxBarCloses } from '../../supabase/functions/trader-coach/scheduler';
 
 process.env.TZ = 'UTC';
 afterEach(() => { process.env.TZ = 'UTC'; });
@@ -282,5 +283,80 @@ describe('generated app-core.js', () => {
     const script = path.resolve('scripts/build-coach-core.mjs');
     const mod = await import(/* @vite-ignore */ script);
     expect(readFileSync(path.resolve('supabase/functions/trader-coach/app-core.js'), 'utf8')).toBe(await mod.bundle());
+  });
+});
+
+describe('GitHub workflow scheduler', () => {
+  const at = (iso: string) => Date.parse(iso);
+  const wfs = (iso: string) => dueDispatches(at(iso)).map(d => `${d.wf} ${d.slot}`);
+  /** Every 10-min tick over a span: the slots dispatched (deduped like rfx_coach_events). */
+  function ticks(fromIso: string, hours: number) {
+    const seen = new Map<string, string>();
+    for (let t = at(fromIso); t < at(fromIso) + hours * 3600000; t += 600000)
+      for (const d of dueDispatches(t)) if (!seen.has(d.slot)) seen.set(d.slot, new Date(t).toISOString().slice(0, 16));
+    return seen;
+  }
+
+  it('FX: once per H1 close at :05-:25, forex week Sun 17:00 -> Fri 17:00 New York', () => {
+    expect(wfs('2026-10-28T14:10:00Z')).toContain('fx-scan.yml fx:2026-10-28T14');
+    expect(wfs('2026-10-28T14:20:00Z')).toContain('fx-scan.yml fx:2026-10-28T14');   // same slot: deduped
+    expect(wfs('2026-10-28T14:00:00Z').some(x => x.startsWith('fx'))).toBe(false);
+    expect(wfs('2026-10-28T14:30:00Z').some(x => x.startsWith('fx'))).toBe(false);
+    const day = [...ticks('2026-10-28T00:00:00Z', 24).keys()].filter(k => k.startsWith('fx:'));
+    expect(day).toHaveLength(24);
+    // EDT week (before 2026-11-01): Friday 17:00 NY = 21:00 UTC is the last close, Sunday 22:00 UTC the first
+    expect(fxBarCloses(at('2026-10-30T21:00:00Z'))).toBe(true);
+    expect(fxBarCloses(at('2026-10-30T22:00:00Z'))).toBe(false);
+    expect(fxBarCloses(at('2026-10-31T12:00:00Z'))).toBe(false);
+    // EST from 2026-11-01: the week opens Sunday 17:00 NY = 22:00 UTC (first close 23:00 UTC), closes Friday 22:00 UTC
+    expect(fxBarCloses(at('2026-11-01T22:00:00Z'))).toBe(false);
+    expect(fxBarCloses(at('2026-11-01T23:00:00Z'))).toBe(true);
+    expect(fxBarCloses(at('2026-11-06T22:00:00Z'))).toBe(true);
+    expect(fxBarCloses(at('2026-11-06T23:00:00Z'))).toBe(false);
+    const weekend = [...ticks('2026-10-31T00:00:00Z', 24).keys()].filter(k => k.startsWith('fx:'));
+    expect(weekend).toEqual([]);
+  });
+
+  it('stocks: weekdays 30 min after the US close (20:30 UTC summer, 21:30 UTC winter) + one retry', () => {
+    const wed = [...ticks('2026-10-28T12:00:00Z', 18)].filter(([k]) => k.startsWith('stock'));
+    expect(wed).toEqual([['stock:2026-10-28:a', '2026-10-28T20:30'], ['stock:2026-10-28:b', '2026-10-28T23:30']]);
+    const winter = [...ticks('2026-11-02T12:00:00Z', 18)].filter(([k]) => k.startsWith('stock'));
+    expect(winter).toEqual([['stock:2026-11-02:a', '2026-11-02T21:30'], ['stock:2026-11-02:b', '2026-11-03T00:30']]);
+    expect([...ticks('2026-10-31T01:00:00Z', 47).keys()].some(k => k.startsWith('stock'))).toBe(false);   // Sat + Sun (New York)
+  });
+
+  it('brief at 5:55-6:30 AM Calgary and reminders every 30 min 4 AM-2 PM, weekdays, UTC-6 both sides of 2026-11-01', () => {
+    for (const d of ['2026-10-30', '2026-11-02', '2027-01-15']) {
+      const s = ticks(`${d}T06:00:00Z`, 18);
+      expect(s.get(`brief:${d}`)).toBe(`${d}T12:00`);                // 6:00 AM Calgary = 12:00 UTC all year now
+      const rem = [...s].filter(([k]) => k.startsWith('rem:'));
+      expect(rem).toHaveLength(20);
+      expect(rem[0]).toEqual([`rem:${d}T04:00`, `${d}T10:00`]);
+      expect(rem[19][0]).toBe(`rem:${d}T13:30`);
+    }
+    expect([...ticks('2026-10-31T06:00:00Z', 18).keys()].filter(k => k.startsWith('brief') || k.startsWith('rem'))).toEqual([]);
+  });
+
+  it('payloads: scheduled-equivalent inputs, ref main; a GitHub run inside the slot covers it', () => {
+    const fx = dueDispatches(at('2026-10-28T14:10:00Z')).find(d => d.wf === 'fx-scan.yml')!;
+    const r = dispatchRequest(fx, 'tok');
+    expect(r.url).toBe('https://api.github.com/repos/r4m4nxd/ramanFX/actions/workflows/fx-scan.yml/dispatches');
+    expect(JSON.parse(String(r.init.body))).toEqual({ ref: 'main', inputs: { scheduled: 'true' } });
+    expect((r.init.headers as Record<string, string>).Authorization).toBe('Bearer tok');
+    const brief = dueDispatches(at('2026-10-30T12:00:00Z')).find(d => d.wf === 'briefing.yml')!;
+    expect(JSON.parse(String(dispatchRequest(brief, 't').init.body)).inputs).toEqual({ test: 'false' });
+    const rem = dueDispatches(at('2026-10-30T12:10:00Z')).find(d => d.wf === 'reminders.yml')!;
+    expect(JSON.parse(String(dispatchRequest(rem, 't').init.body)).inputs).toEqual({});
+    expect(covered(fx, at('2026-10-28T14:07:00Z'))).toBe(true);
+    expect(covered(fx, at('2026-10-28T13:57:00Z'))).toBe(false);
+    expect(covered(fx, null)).toBe(false);
+    expect(covered(rem, at('2026-10-30T12:00:30Z'))).toBe(true);
+  });
+
+  it('the workflows accept the scheduled input and keep cron semantics for it', () => {
+    const fx = readFileSync('.github/workflows/fx-scan.yml', 'utf8'), st = readFileSync('.github/workflows/stock-scan.yml', 'utf8');
+    for (const y of [fx, st]) { expect(y).toMatch(/\n      scheduled:\n/); expect(y).toContain('SCHEDULED: ${{ github.event.inputs.scheduled }}'); }
+    expect(fx).toContain('if [ "$EVENT" = "workflow_dispatch" ] && [ "$SCHEDULED" != "true" ]; then ARGS+=(--force); fi');
+    expect(readFileSync('.github/workflows/briefing.yml', 'utf8')).toMatch(/\n      test:\n/);
   });
 });

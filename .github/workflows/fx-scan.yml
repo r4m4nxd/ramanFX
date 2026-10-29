@@ -10,7 +10,8 @@ name: FX scan
 # next one. Telegram stays calm: an hourly scan sends only the instant alert when something is new; the H4 digest goes
 # out once per new H4 candle; the daily summary with the first scan after the D1 close (17:00 New York), however late.
 # Only the new candles are fetched (cache): an hourly run inside an H4 bar asks OANDA for one H1 request per
-# instrument. Manual runs always scan (--force).
+# instrument. Manual runs always scan (--force), except a dispatch with scheduled=true (the trader-coach edge function's
+# reliable 10-minute scheduler, supabase/functions/trader-coach/scheduler.ts), which behaves exactly like a cron run.
 on:
   schedule:
     - cron: '7,17,27,37,47,57 * * * 1-5'
@@ -23,6 +24,10 @@ on:
         required: false
       summary:
         description: 'Send the daily summary now'
+        type: boolean
+        default: false
+      scheduled:
+        description: 'Behave like a scheduled run (the trader-coach scheduler sets it): --check decides, no --force'
         type: boolean
         default: false
 
@@ -59,10 +64,11 @@ jobs:
       - name: New H1 candle?
         id: check
         run: |
-          if [ "$EVENT" = "workflow_dispatch" ]; then echo "scan=true" >> "$GITHUB_OUTPUT"; echo "manual run: scan"; exit 0; fi
+          if [ "$EVENT" = "workflow_dispatch" ] && [ "$SCHEDULED" != "true" ]; then echo "scan=true" >> "$GITHUB_OUTPUT"; echo "manual run: scan"; exit 0; fi
           python tools/fx_scanner/fxscan.py --check
         env:
           EVENT: ${{ github.event_name }}
+          SCHEDULED: ${{ github.event.inputs.scheduled }}
           OANDA_API_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
 
       # Candles + the Telegram dedupe state between runs (restore + explicit save with always(), like the stock scan).
@@ -101,12 +107,13 @@ jobs:
         timeout-minutes: 30
         run: |
           ARGS=()
-          if [ "$EVENT" = "workflow_dispatch" ]; then ARGS+=(--force); fi
+          if [ "$EVENT" = "workflow_dispatch" ] && [ "$SCHEDULED" != "true" ]; then ARGS+=(--force); fi
           if [ -n "$ONLY" ]; then ARGS+=(--only "$ONLY"); fi
           if [ "$SUMMARY" = "true" ]; then ARGS+=(--summary); fi
           python tools/fx_scanner/fxscan.py "${ARGS[@]}"
         env:
           EVENT: ${{ github.event_name }}
+          SCHEDULED: ${{ github.event.inputs.scheduled }}
           ONLY: ${{ github.event.inputs.only }}
           SUMMARY: ${{ github.event.inputs.summary }}
           OANDA_API_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
