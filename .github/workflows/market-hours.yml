@@ -80,7 +80,7 @@ jobs:
         timeout-minutes: 320
         run: |
           python tools/research/market_hours/deep.py fx --shard ${{ matrix.shard }} --shards 2 --cal cal.json \
-            --out out/fx_${{ matrix.shard }}.json --only "${IN_ONLY}" --max "${IN_MAX:-0}" --budget-min 290
+            --out out/fx_${{ matrix.shard }}.json --only "${IN_ONLY}" --max "${IN_MAX:-0}" --budget-min 300
         env:
           OANDA_API_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
           FX_WATCHLIST: ${{ secrets.FX_WATCHLIST }}
@@ -127,7 +127,7 @@ jobs:
         timeout-minutes: 320
         run: |
           python tools/research/market_hours/deep.py stocks --shard ${{ matrix.shard }} --shards 4 --cal cal.json \
-            --out out/stocks_${{ matrix.shard }}.json --only "${IN_ONLY}" --max "${IN_MAX:-0}" --budget-min 290
+            --out out/stocks_${{ matrix.shard }}.json --only "${IN_ONLY}" --max "${IN_MAX:-0}" --budget-min 300
         env:
           ALPACA_KEY_ID: ${{ secrets.ALPACA_KEY_ID }}
           ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}

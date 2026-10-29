@@ -152,6 +152,8 @@ def fomc_from_pages(pages: Dict[str, str]) -> List[str]:
     for txt in pages.values():
         for m in re.finditer(r'pressreleases/monetary(\d{8})a\.htm', txt):
             out.add(m.group(1))
+        for m in re.finditer(r'/press/monetary/(\d{8})a\.htm', txt):
+            out.add(m.group(1))
         for m in re.finditer(r'boarddocs/press/monetary/\d{4}/(\d{8})/', txt):
             out.add(m.group(1))
     days = []
@@ -320,41 +322,65 @@ def fx_universe() -> List[Dict]:
     return out
 
 
-def fetch_oanda(name: str, end: dt.datetime):
+def _oanda_get(name: str, frm: dt.datetime, count: int) -> Dict:
     import oanda
+    q = {'granularity': 'M30', 'price': 'M', 'count': str(count), 'from': frm.strftime('%Y-%m-%dT%H:%M:%SZ')}
+    url = f'https://{oanda.host()}/v3/instruments/{urllib.parse.quote(name)}/candles?' + urllib.parse.urlencode(q)
+    return json.loads(oanda.default_get(url))
+
+
+def fetch_oanda(name: str, end: dt.datetime):
+    """M30 candles from the cached last bar (or 2005). A 5xx / timeout / open breaker is retried with a back-off and
+    a smaller page; whatever arrived is saved to the cache even when the instrument finally fails (the next run
+    continues from there)."""
     old = load_cache('fx', name)
     frm = dt.datetime.fromtimestamp(int(old[0][-1]) + 1, UTC) if old is not None and len(old[0]) else FX_FROM
     end_ts = int(end.timestamp())
     rows: Dict[int, Tuple[float, float, float]] = {}
     req = 0
-    while frm.timestamp() < end_ts:
-        q = {'granularity': 'M30', 'price': 'M', 'count': '5000', 'from': frm.strftime('%Y-%m-%dT%H:%M:%SZ')}
-        url = f'https://{oanda.host()}/v3/instruments/{urllib.parse.quote(name)}/candles?' + urllib.parse.urlencode(q)
-        js = json.loads(oanda.default_get(url))
-        req += 1
-        cs = js.get('candles') or []
-        last = None
-        for c in cs:
-            t = _epoch(str(c.get('time')))
-            last = t
-            if not c.get('complete') or t >= end_ts:
-                continue
-            m = c.get('mid') or {}
-            try:
-                rows[t] = (float(c.get('volume') or 0), float(m['h']), float(m['l']))
-            except (KeyError, TypeError, ValueError):
-                continue
-        if last is None:
-            frm = frm + dt.timedelta(seconds=5000 * SLOT)          # before the instrument's history: jump ahead
-        else:
-            nxt = dt.datetime.fromtimestamp(last + 1, UTC)
-            if nxt <= frm:
-                break
-            frm = nxt
-            if last >= end_ts:
-                break
-    t, v, h, l = merge(old, rows)
-    save_cache('fx', name, t, v, h, l)
+    count = 5000
+    try:
+        while frm.timestamp() < end_ts:
+            for k in range(7):
+                try:
+                    js = _oanda_get(name, frm, count)
+                    break
+                except urllib.error.HTTPError as e:
+                    if e.code not in (429, 500, 502, 503, 504) or k == 6:
+                        raise
+                except (SD.HostDown, urllib.error.URLError, TimeoutError, ConnectionError) as e:
+                    if k == 6:
+                        raise
+                    del e
+                count = max(500, count // 2)
+                time.sleep(min(90, 10 * (k + 1)))
+            req += 1
+            cs = js.get('candles') or []
+            last = None
+            for c in cs:
+                t = _epoch(str(c.get('time')))
+                last = t
+                if not c.get('complete') or t >= end_ts:
+                    continue
+                m = c.get('mid') or {}
+                try:
+                    rows[t] = (float(c.get('volume') or 0), float(m['h']), float(m['l']))
+                except (KeyError, TypeError, ValueError):
+                    continue
+            if last is None:
+                frm = frm + dt.timedelta(seconds=count * SLOT)          # before the instrument's history: jump ahead
+            else:
+                nxt = dt.datetime.fromtimestamp(last + 1, UTC)
+                if nxt <= frm:
+                    break
+                frm = nxt
+                if last >= end_ts:
+                    break
+            count = min(5000, count * 2)
+    finally:
+        t, v, h, l = merge(old, rows)
+        if len(t):
+            save_cache('fx', name, t, v, h, l)
     return (t, v, h, l), req
 
 
@@ -385,6 +411,26 @@ def fetch_alpaca(names: List[str], end: dt.datetime) -> Tuple[Dict[str, tuple], 
     rows: Dict[str, Dict[int, Tuple[float, float, float]]] = {n: {} for n in names}
     token = ''
     pages = 0
+
+    def flush():
+        out = {}
+        for n in names:
+            t, v, h, l = merge(olds[n], rows[n])
+            if len(t) and rows[n]:
+                save_cache('stk', n, t, v, h, l)
+            out[n] = (t, v, h, l)
+        return out
+    try:
+        pages = _alpaca_pages(asked, start, end, rows)
+    except Exception:
+        flush()              # keep what arrived: the next run resumes each symbol from its last bar
+        raise
+    return flush(), pages
+
+
+def _alpaca_pages(asked: Dict[str, str], start: dt.datetime, end: dt.datetime, rows) -> int:
+    token = ''
+    pages = 0
     while True:
         def url_of(feed, t=token):
             q = {'symbols': ','.join(sorted(asked)), 'timeframe': '30Min', 'start': start.strftime('%Y-%m-%dT%H:%M:%SZ'),
@@ -408,13 +454,7 @@ def fetch_alpaca(names: List[str], end: dt.datetime) -> Tuple[Dict[str, tuple], 
         token = js.get('next_page_token') or ''
         if not token:
             break
-    out = {}
-    for n in names:
-        t, v, h, l = merge(olds[n], rows[n])
-        if len(t):
-            save_cache('stk', n, t, v, h, l)
-        out[n] = (t, v, h, l)
-    return out, pages
+    return pages
 
 
 # ---- statistics helpers ----------------------------------------------------------------------------------------------
@@ -642,7 +682,14 @@ def analyse(meta: Dict, t, v, h, l, stock: bool, ev: Events) -> Optional[Dict]:
         ib = int(b[:2]) * 2 + int(b[3:]) // 30
         d = abs(ia - ib)
         return min(d, NS - d)
-    drift = bool((sp_pp is not None and sp_pp < 0.8) or sdist(tpre, tpost) > 1 or (sp_r is not None and sp_r < 0.8))
+    def lost(pa, pb, ta):
+        # the earlier era's peak half-hour is now clearly below the new maximum (not a near-tie between two peaks)
+        if pa is None or pb is None or ta is None:
+            return False
+        i = int(ta[:2]) * 2 + int(ta[3:]) // 30
+        return bool(np.isfinite(pb[i]) and pb[i] < 0.9 * np.nanmax(pb))
+    drift = bool((sp_pp is not None and sp_pp < 0.8) or (sp_r is not None and sp_r < 0.8)
+                 or (sdist(tpre, tpost) > 1 and lost(pre, post, tpre)))
     # weekdays (trading days; forex day = 17:00 -> 17:00 New York, stocks = regular session)
     if stock:
         dmask = regular
@@ -787,7 +834,10 @@ def run_shard(kind: str, args) -> int:
             list(ex.map(job, mine))
     else:
         SD.HOST_PAUSE['data.alpaca.markets'] = 0.31 * max(1, args.shards)     # all shards share 200 req/min
-        batches = [mine[i:i + args.batch] for i in range(0, len(mine), args.batch)]
+        warm = [m for m in mine if os.path.exists(cache_path('stk', m['name']))]
+        cold = [m for m in mine if not os.path.exists(cache_path('stk', m['name']))]
+        batches = [warm[i:i + 50] for i in range(0, len(warm), 50)] + [cold[i:i + args.batch] for i in range(0, len(cold), args.batch)]
+        log(f'stocks: {len(warm)} cached (incremental), {len(cold)} cold')
 
         def job(batch):
             names = [m['name'] for m in batch]
