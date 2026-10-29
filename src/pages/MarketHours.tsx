@@ -117,7 +117,7 @@ function Detail({ s }: { s: MhSymbol }) {
             <caption className="sr-only">Best times of {s.sym}</caption>
             <thead><tr className="text-left text-[11px] text-ink3 uppercase tracking-wide">
               <th scope="col" className="font-medium py-1.5 pr-2 max-sm:hidden">#</th><th scope="col" className="font-medium py-1.5 pr-2">Calgary</th><th scope="col" className="font-medium py-1.5 pr-2">NY</th>
-              <th scope="col" className="font-medium py-1.5 pr-2 text-right">Activity</th><th scope="col" className="font-medium py-1.5 text-right"><span className="sm:hidden">Big moves</span><span className="max-sm:hidden">Big-move days</span></th>
+              <th scope="col" className="font-medium py-1.5 pr-2 text-right">Activity</th><th scope="col" className="font-medium py-1.5 pr-2 text-right">Range</th><th scope="col" className="font-medium py-1.5 text-right"><span className="sm:hidden">Big moves</span><span className="max-sm:hidden">Big-move days</span></th>
             </tr></thead>
             <tbody>
               {s.windows.map((x, i) => (
@@ -126,6 +126,7 @@ function Detail({ s }: { s: MhSymbol }) {
                   <td className="py-2 pr-2 num"><b>{x.mt}</b><span className="text-ink3 text-[11.5px] block">{x.from}–{x.to}</span></td>
                   <td className="py-2 pr-2 num text-ink2">{x.ny}</td>
                   <td className="py-2 pr-2 num text-right font-semibold">{fmtX(x.activity)}</td>
+                  <td className="py-2 pr-2 num text-right text-ink2">{fmtX(x.range, 1)}</td>
                   <td className="py-2 num text-right text-ink2">{x.bigPct != null ? `${x.bigPct}%` : '–'}</td>
                 </tr>
               ))}
@@ -237,7 +238,7 @@ export default function MarketHours() {
           </div>
         </Card>
         {selected && <Detail key={selected.sym} s={selected} />}
-        <p className="text-[11.5px] text-ink3 px-1 leading-relaxed">Activity = volume × range of a half-hour relative to a typical half-hour of the same month (geometric mean). Forex volume is OANDA tick volume; stock volume is consolidated (SIP). “Weak” = within noise: the two halves of the history disagree. Descriptive only, not financial advice.</p>
+        <p className="text-[11.5px] text-ink3 px-1 leading-relaxed">Activity = volume and range of a half-hour together (geometric mean), relative to a typical half-hour of the same month; Range = price movement alone (a stock's 13:30 close is mostly volume). Forex volume is OANDA tick volume; stock volume is consolidated (SIP). “Weak” = within noise: the two halves of the history disagree. Descriptive only, not financial advice.</p>
       </>}
     </Page>
   );

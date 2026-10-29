@@ -117,7 +117,7 @@ def compact(r: Dict) -> Dict:
         's': r['sym'], 'n': r['name'], 'k': r['cls'], 'g': r.get('group') or '', 'd': r.get('display') or '',
         'i': r.get('idx') or '', 'wl': bool(r.get('wl')),
         'y': [r['from'], r['to'], r['years']],
-        't': [[x['mt'], x['ny'], x['from'], x['to'], x['a'], x['big']] for x in r.get('top') or []],
+        't': [[x['mt'], x['ny'], x['from'], x['to'], x['a'], x['big'], x.get('v'), x.get('r')] for x in r.get('top') or []],
         'tr': r.get('win_rel'), 'th': r.get('win_halves_spearman'),
         'w': [w.get('best'), w.get('quiet'), w.get('x'), (w.get('ci') or [None, None])[0], (w.get('ci') or [None, None])[1], w.get('rel')] if w else None,
         'dd': [(r.get('days') or {}).get(x) for x in WD[:5]],
@@ -476,7 +476,8 @@ def build_stocks_md(R: Dict, sr: List[Dict], synthetic: bool) -> str:
     L.append(md_table(['Sector', 'Stocks', 'Group peaks (Calgary)', 'Day activity Mon-Fri', 'NFP open ratio',
                        'FOMC 12:30 ratio', 'Shifted era'], rows))
     L.append('## Every stock, by sector\n')
-    L.append('Columns: the three best half-hour windows (Calgary, peak in bold, activity x typical); best and quietest '
+    L.append('Columns: the three best half-hour windows (Calgary, peak in bold, activity x typical, and the range alone - '
+             'a close-of-day peak is mostly volume with an ordinary range); best and quietest '
              'weekday with the ratio and its 95% CI; reliability of times / days ("weak" = within noise); NFP = range of '
              'the 07:30 Calgary opening half-hour on NFP Fridays vs other Fridays; FOMC = 12:30 Calgary half-hour on FOMC '
              'days vs other Wednesdays; era = before vs since 2020.\n')
@@ -488,7 +489,7 @@ def build_stocks_md(R: Dict, sr: List[Dict], synthetic: bool) -> str:
             w = r.get('weekday') or {}
             e = r.get('era') or {}
             rows.append([f"**{r['sym']}**", (r.get('display') or '')[:28], r['years'],
-                         *[f"{x['from']}-{x['to']} **{x['mt']}** {fx(x['a'])}" if i < len(t) else '-' for i, x in enumerate(t + [{}] * (3 - len(t))) if i < 3],
+                         *[f"{x['from']}-{x['to']} **{x['mt']}** {fx(x['a'])} (range {fx(x.get('r'))})" if i < len(t) else '-' for i, x in enumerate(t + [{}] * (3 - len(t))) if i < 3],
                          f"{w.get('best', '-')} / {w.get('quiet', '-')} {fx(w.get('x'))} ({(w.get('ci') or ['-', '-'])[0]}-{(w.get('ci') or ['-', '-'])[1]})" if w else '-',
                          f"{r.get('win_rel')} / {w.get('rel', '-')}",
                          fx((r.get('nfp') or {}).get('x')), fx((r.get('fomc_1230') or {}).get('x')),

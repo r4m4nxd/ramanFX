@@ -11,7 +11,7 @@ export type MhFilter = 'all' | 'fx' | 'metal' | 'cfd' | 'stock';
 export type Reliability = 'reliable' | 'weak';
 
 /** One best window: Calgary peak half-hour, its window, activity multiple and the share of big-move days. */
-export interface MhWindow { mt: string; ny: string; from: string; to: string; activity: number | null; bigPct: number | null }
+export interface MhWindow { mt: string; ny: string; from: string; to: string; activity: number | null; bigPct: number | null; volume: number | null; range: number | null }
 export interface MhWeekday { best: string; quiet: string; ratio: number | null; ciLo: number | null; ciHi: number | null; rel: Reliability }
 export interface MhEvent { ratio: number; days: number; bigPct: number | null; bigCtrlPct: number | null }
 export interface MhEra { recentVsAll: number | null; prePost: number | null; peakPre: string | null; peakPost: string | null; peakRecent: string | null; shifted: boolean }
@@ -52,7 +52,7 @@ export function parseSymbol(v: unknown): MhSymbol | null {
   const windows = arr(o.t).map(x => {
     const a = arr(x);
     const mt = hhmm(a[0]);
-    return mt ? { mt, ny: hhmm(a[1]) ?? '', from: hhmm(a[2]) ?? mt, to: hhmm(a[3]) ?? mt, activity: num(a[4]), bigPct: num(a[5]) } : null;
+    return mt ? { mt, ny: hhmm(a[1]) ?? '', from: hhmm(a[2]) ?? mt, to: hhmm(a[3]) ?? mt, activity: num(a[4]), bigPct: num(a[5]), volume: num(a[6]), range: num(a[7]) } : null;
   }).filter((x): x is MhWindow => !!x);
   const profile = arr(o.p).slice(0, MH_SLOTS).map(x => { const n = num(x); return n == null ? null : n / 100; });
   while (profile.length < MH_SLOTS) profile.push(null);
