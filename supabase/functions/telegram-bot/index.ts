@@ -239,7 +239,7 @@ const imageUrl = (sym: string, view: string, v: string) => `${FN_URL}?img=${enco
 
 async function chartPng(url: URL): Promise<Response> {
   const sym = (url.searchParams.get('img') ?? '').slice(0, 20), view = (url.searchParams.get('tf') ?? 'Q').toUpperCase();
-  if (!/^[A-Za-z0-9._-]{1,20}$/.test(sym) || !/^(Q|MN|W1|D1|H4|H1|M15|3M)$/.test(view)) return empty(400);
+  if (!/^[A-Za-z0-9._-]{1,20}$/.test(sym) || !/^(Q|Q?(MN|W1|D1|H4|H1|3M)|M15)$/.test(view)) return empty(400);
   const cd = await chartData(sym, view, { load, now: new Date(), live });
   if (!cd) return empty(404);
   const key = `${cd.sym}|${view}|${cd.v}`;

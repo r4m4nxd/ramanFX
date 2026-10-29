@@ -189,3 +189,16 @@ describe('stock 4H from 30-minute bars', () => {
     expect(out).toEqual([b('2026-10-28T09:30', 10, 15, 9, 14), b('2026-10-28T13:30', 14, 16, 12, 15), b('2026-10-29T09:30', 15, 15, 14, 14)]);
   });
 });
+
+describe('4 views from a chosen timeframe', () => {
+  it('takes the chosen TF and the 3 below, shifted up near the bottom', async () => {
+    const { quadTfs } = await import('../../supabase/functions/telegram-bot/logic');
+    const live = { live: { fx: async () => null, stock: async () => null } } as unknown as Ctx;
+    expect(quadTfs('stock', '3M', live)).toEqual(['3M', 'MN', 'W1', 'D1']);
+    expect(quadTfs('stock', 'MN', live)).toEqual(['MN', 'W1', 'D1', 'H4']);
+    expect(quadTfs('stock', 'H1', live)).toEqual(['D1', 'H4', 'H1', 'M15']);
+    expect(quadTfs('fx', 'W1', live)).toEqual(['W1', 'D1', 'H4', 'H1']);
+    expect(quadTfs('fx', 'H4', live)).toEqual(['D1', 'H4', 'H1', 'M15']);
+    expect(quadTfs('stock', 'H4', {} as Ctx)).toEqual([]);
+  });
+});
