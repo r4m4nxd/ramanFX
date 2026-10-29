@@ -9,7 +9,7 @@ import { bestQuote, buildIndex, lessonPath, mentorOf, search as askSearch, type 
 import { newsButton, newsText, symbolNews, withLatest, withTopHeadlines, loadHeadlines } from './news.ts';
 import { MAX_ALERTS, MAX_WATCH, parseDuration, parsePrice, parseQuiet, parseTap, type Alert, type Prefs, type PrefsStore } from './prefs.ts';
 import { aggregate, monthKey, quarterKey, tfLabel, weekKey, type Band, type Bar, type ChartModel, type Panel, type TLine } from './chart.ts';
-import { fxZonesOf, nextBusinessDay, stockZonesOf, tfZonesOf, type LiveZone, type ZBar } from './zonecore.ts';
+import { fxZonesOf, nextBusinessDay, RAJA, Series, stockZonesOf, tfZonesOf, type LiveZone, type ZBar } from './zonecore.ts';
 import { panelTrendlines, type PubLine, type TlSeries } from './trendcore.ts';
 import { atrPct, isWide, nestNote, refineOf, verdict } from './chartnotes.ts';
 import type { LiveFx, LiveSource, LiveStock } from './live.ts';
@@ -677,7 +677,8 @@ function photoButtons(sym: string, market: 'fx' | 'stock', view: string, ctx: Ct
     ...(scan.length ? [scan] : [])];
 }
 
-interface Zn { tf: string; side: 'demand' | 'supply'; prox: number; dist: number }
+/** t0 = the zone's base start (its oldest base candle, ZoneVision's box start), made = its stay-away candle. */
+interface Zn { tf: string; side: 'demand' | 'supply'; prox: number; dist: number; t0?: string; made?: string }
 const overlaps = (a: Zn, b: Zn) => Math.max(Math.min(a.prox, a.dist), Math.min(b.prox, b.dist)) <= Math.min(Math.max(a.prox, a.dist), Math.max(b.prox, b.dist));
 const zDist = (price: number, z: Zn) => placement(price, z.prox, z.dist).p;
 const toBars = (rows: unknown): Bar[] => arr(rows).filter(r => Array.isArray(r) && r.length >= 5).map(r => ({ t: String(r[0]), o: +r[1], h: +r[2], l: +r[3], c: +r[4] }))
@@ -699,6 +700,22 @@ export function withRecent(real: Bar[], derived: Bar[], key: (t: string) => stri
   const last = key(real[real.length - 1].t);
   return [...real, ...derived.filter(b => key(b.t) > last)];
 }
+/** A zone's base start from its stay-away candle (rows without base_start: the stock scan): the bar before the
+ *  stay-away one is the leg-out, the basing candles before it (body < 50% of the range, at most RAJA.max_base) are the
+ *  base, exactly as zonecore.detect finds them; the oldest one is the base start. undefined = made not in the bars. */
+export function baseStartOf(bars: Bar[] | undefined, made: string | undefined, tf: string): string | undefined {
+  if (!bars?.length || !made) return undefined;
+  const S = new Series(bars.map(b => ({ d: b.t, o: b.o, h: b.h, l: b.l, c: b.c })), null, tf);
+  let sa = -1;
+  for (let i = 1; i < S.n; i++) if (S.T[i].slice(0, made.length) <= made) { sa = i; break; }   // newest bar at / before made
+  if (sa < 1 || sa + 2 >= S.n) return undefined;
+  const L = sa + 1;
+  let k = 0;
+  while (k < RAJA.max_base && L + 1 + k < S.n && S.basing(L + 1 + k)) k++;
+  return S.T[L + Math.max(k, 1)];
+}
+const withBase = (zones: Zn[], bars: Record<string, Bar[]>): Zn[] => zones.map(z => (z.t0 ? z : { ...z, t0: baseStartOf(bars[z.tf], z.made, z.tf) }));
+
 function zoneList(rows: unknown[], merge = false): Zn[] {
   const out: Zn[] = [], rank: number[] = [], seen = new Set<string>();
   for (const r of rows as J[]) {
@@ -707,7 +724,9 @@ function zoneList(rows: unknown[], merge = false): Zn[] {
     const k = `${r.tf}:${r.side}:${prox}`;
     if (seen.has(k)) continue;
     seen.add(k);
-    const z: Zn = { tf: r.tf, side: r.side, prox, dist };
+    const zid = typeof r.zid === 'string' ? r.zid.split(':').slice(2).join(':') : '';
+    const t0 = typeof r.base_start === 'string' && r.base_start ? r.base_start : zid || undefined;
+    const z: Zn = { tf: r.tf, side: r.side, prox, dist, ...(t0 ? { t0 } : {}), ...(typeof r.made === 'string' && r.made ? { made: r.made } : {}) };
     // fresher, then stronger (score), then fewer touches
     const rk = (r.fresh === false ? 0 : 1000) + (num(r.score) ?? 0) * 10 - Math.min(9, num(r.touches) ?? 0);
     const dup = merge ? out.findIndex(o => sameArea(o, z)) : -1;
@@ -829,6 +848,40 @@ export function buildPanels(tfs: string[], bars: Record<string, Bar[]>, zones: Z
 }
 
 /** Mark the panels whose last candle is still forming (drawn hollow). */
+const t16 = (t: string) => (t.length >= 16 ? t.slice(0, 16) : `${t.slice(0, 10)}T00:00`);
+/** The drawn bar index where a zone's box starts (ZoneVision DrawZones: t1 = the time of the oldest base candle, the box
+ *  runs from there to the right edge): its own TF = that candle; a higher TF's zone = the first panel bar inside the
+ *  higher-TF base candle (each panel bar belongs to the newest higher-TF bar that started at / before it, as the
+ *  trendline projection does); -1 = the base is older than the first drawn bar; undefined = unknown (full width). */
+export function baseIndex(t0: string | undefined, panelBars: Bar[], htfBars?: Bar[]): number | undefined {
+  if (!t0 || !panelBars.length) return undefined;
+  const t = t16(t0);
+  if (t < t16(panelBars[0].t)) {
+    // a higher-TF base candle that started before the first drawn bar but still covers it: the box starts at bar 0
+    if (htfBars?.length) {
+      const j = htfBars.findIndex(b => t16(b.t) === t);
+      const end = j >= 0 && j + 1 < htfBars.length ? t16(htfBars[j + 1].t) : null;
+      if (end && t16(panelBars[0].t) < end) return 0;
+    }
+    return -1;
+  }
+  if (htfBars?.length) {
+    const ht = htfBars.map(b => t16(b.t));
+    let j = -1;
+    for (let i = 0; i < ht.length; i++) if (ht[i] <= t) j = i;
+    if (j >= 0) {
+      for (let k = 0, h = -1; k < panelBars.length; k++) {
+        const pt = t16(panelBars[k].t);
+        while (h + 1 < ht.length && ht[h + 1] <= pt) h++;
+        if (h >= j) return k;
+      }
+    }
+  }
+  const k = panelBars.findIndex(b => t16(b.t) >= t);
+  return k < 0 ? panelBars.length - 1 : k;
+}
+const withBaseX = <P extends { tf: string; bars: Bar[]; zones: Band[] }>(ps: P[], bars: Record<string, Bar[]>): P[] => ps.map(p => ({ ...p,
+  zones: p.zones.map(z => { const k0 = baseIndex(z.t0, p.bars, z.tf !== p.tf ? bars[z.tf] : undefined); return k0 == null ? z : { ...z, k0 }; }) }));
 const withForming2 = <P extends { tf: string }>(ps: P[], forming: Record<string, boolean>): P[] => ps.map(p => ({ ...p, forming: !!forming[p.tf] }));
 /** The chart's one-line verdict (chartnotes.verdict): the signal's TF when the scanner has one, else the lowest
  *  panel's zone TF; the trend from the lowest panel. */
@@ -870,7 +923,7 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
     const digits0 = digitsOf(d.digits != null ? d : hit.row);
     // the 15m view (live only): its own zones on the 15m candles, the scanners' filters (zonecore.tfZonesOf)
     const m15 = view === 'M15' && lv?.fx?.closed.M15?.length ? tfZonesOf(lv.fx.closed.M15, 'M15', digits0, price) : [];
-    const zones = lv ? zoneList([...lv.zones, ...m15], true) : zoneList([...arr(d.zones), ...arr(d.hits)], true);
+    const zones = withBase(lv ? zoneList([...lv.zones, ...m15], true) : zoneList([...arr(d.zones), ...arr(d.hits)], true), bars);
     const s = fxSetups(fx).find(x => x.sym === hit.sym);
     const near = arr(d.hits).filter(h => h.section !== 'left').sort((a, z) => (num(a.pips) ?? 1e9) - (num(z.pips) ?? 1e9))[0];
     const rel = s?.tf ?? near?.tf ?? null;
@@ -882,7 +935,7 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
     const t = parseUtc(fx.h1_close_utc ?? fx.generated);
     const when = chartWhen('fx', ctx.now, { px: price.toFixed(digits), live: !!lv, scanAt: t, crypto: hit.row.cls === 'crypto' || hit.row.k === 'crypto' });
     return { market: 'fx', sym: hit.sym, view, v: lv ? liveVersion(lv) : String(fx.generated ?? '').replace(/[^0-9]/g, '').slice(0, 14), when, live: !!lv, note: liveNote(hit, ctx, lv),
-      model: withVerdict({ sym: hit.sym, digits, price, layout, title: `${hit.sym} · ${when}`, panels: withForming2(buildPanels(tfs, bars, zones, price, digits, sig, layout, t => t, { forming, htf: FX_HTF, pub: lv ? undefined : obj(d.tls) }), forming) }, zones, 'fx', sig) };
+      model: withVerdict({ sym: hit.sym, digits, price, layout, title: `${hit.sym} · ${when}`, panels: withBaseX(withForming2(buildPanels(tfs, bars, zones, price, digits, sig, layout, t => t, { forming, htf: FX_HTF, pub: lv ? undefined : obj(d.tls) }), forming), bars) }, zones, 'fx', sig) };
   }
   const [sh, st] = [obj(await ctx.load(`scanner/t/${hit.row.k}.json`)), obj(await ctx.load('scanner/latest.json'))];
   const d = obj(obj(sh.tickers)[hit.sym]);
@@ -913,10 +966,10 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
   const layout = isQuad(view) ? 'quad' : 'single';
   const lastDay = lv?.st ? (lv.st.partial?.d ?? lv.st.daily[lv.st.daily.length - 1]?.d) : d.date ? String(d.date) : undefined;
   const when = chartWhen('stock', ctx.now, { px: price.toFixed(2), live: !!lv, lastDay, sessionToday: lv?.st ? !!lv.st.partial || lastDay === isoDay(ctx.now, NY) : undefined });
-  const zones = zoneList(lv ? lv.zones : arr(d.zones), true);
+  const zones = withBase(zoneList(lv ? lv.zones : arr(d.zones), true), bars);
   return { market: 'stock', sym: hit.sym, view, v: lv ? liveVersion(lv) : String(st.generated_at ?? '').replace(/[^0-9]/g, '').slice(0, 14), when, live: !!lv, note: liveNote(hit, ctx, lv),
     model: withVerdict({ sym: hit.sym, digits: 2, price, layout, title: `${hit.sym} · ${when}`,
-      panels: withForming2(buildPanels(tfs, bars, zones, price, 2, sig, layout, stockZoneTf, { forming, htf: STOCK_HTF, pub: lv ? undefined : obj(d.tls) }), forming) }, zones, 'stock', sig, stockZoneTf) };
+      panels: withBaseX(withForming2(buildPanels(tfs, bars, zones, price, 2, sig, layout, stockZoneTf, { forming, htf: STOCK_HTF, pub: lv ? undefined : obj(d.tls) }), forming), bars) }, zones, 'stock', sig, stockZoneTf) };
 }
 
 async function cmdChart(q: string, tfArg: string, ctx: Ctx, mode = ''): Promise<Reply> {

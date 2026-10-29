@@ -4,7 +4,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { axisTicks, boxes, dateLabel, geom, headerLines, nearestZones, renderSvg, stack, zoneRange, type Bar, type Band, type ChartModel, type Panel } from '../../supabase/functions/telegram-bot/chart';
-import { chartData, chartWhen, type Ctx } from '../../supabase/functions/telegram-bot/logic';
+import { baseIndex, baseStartOf, chartData, chartWhen, type Ctx } from '../../supabase/functions/telegram-bot/logic';
 
 const read = (p: string) => (existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : null);
 const ctx = (now = '2026-10-29T15:00:00Z'): Ctx => ({ now: new Date(now), imageUrl: () => 'x', async load(p: string) { return p === 'events.json' ? { kinds: {} } : read(`public/${p}`); } });
@@ -182,5 +182,56 @@ describe('candles (issues 12, 14)', () => {
     const cd = await chartData('BABA', 'Q', ctx());
     for (const p of cd!.model.panels) expect(typeof p.forming).toBe('boolean');
     expect(cd!.model.panels.find(p => p.tf === 'D1')!.forming).toBe(false);
+  });
+});
+
+describe('zone boxes start at the base, like ZoneVision (DrawZones: t1 = oldest base candle, t2 = right edge)', () => {
+  const d1 = bars(60, '2026-08-03', 1);
+  it('own TF: box x0 = the base candle slot; a base before the window = left edge + an arrow', () => {
+    const zone: Band = { tf: 'D1', side: 'demand', prox: 99, dist: 97, key: true, k0: 40 };
+    const p = panel({ tf: 'D1', bars: d1, zones: [zone] });
+    const g = geom(p, boxes('single', 1)[0], 99.53, 2);
+    const svg = renderSvg(model([p]));
+    const m = /class="zone demand key"[^>]* x="([\d.]+)" y="[\d.]+" width="([\d.]+)"/.exec(svg)!;
+    expect(+m[1]).toBeCloseTo(g.plot.x + g.step * 40, 0);
+    expect(+m[1] + +m[2]).toBeCloseTo(g.plot.x + g.plot.w, 0);                // runs to the right edge
+    expect(svg).not.toContain('class="offleft"');
+    const old = renderSvg(model([panel({ tf: 'D1', bars: d1, zones: [{ ...zone, k0: -1 }] })]));
+    expect(/class="zone demand key"[^>]* x="([\d.]+)"/.exec(old)![1]).toBe(String(g.plot.x));
+    expect(old).toContain('class="offleft"');
+    const none = renderSvg(model([panel({ tf: 'D1', bars: d1, zones: [{ ...zone, k0: undefined }] })]));
+    expect(/class="zone demand key"[^>]* x="([\d.]+)"/.exec(none)![1]).toBe(String(g.plot.x));   // unknown base: full width
+  });
+  it('baseIndex: same TF = the base candle, higher TF = the first panel bar inside the HTF base candle, older = -1', () => {
+    expect(baseIndex('2026-08-20', d1)).toBe(17);
+    expect(baseIndex('2026-08-20T00:00', d1)).toBe(17);
+    expect(baseIndex('2026-07-01', d1)).toBe(-1);
+    expect(baseIndex(undefined, d1)).toBeUndefined();
+    const w1 = bars(20, '2026-06-01', 7, 100, 'W1');                          // Mondays
+    expect(baseIndex('2026-08-17', d1, w1)).toBe(14);                          // week of Mon Aug 17 -> D1 Aug 17
+    const mn = bars(6, '2026-05-01', 31);                                         // 05-01, 06-01, 07-02, 08-02, 09-02 ...
+    expect(baseIndex(mn[3].t, d1, mn)).toBe(0);                                // the HTF base candle covers the first D1 bar    // a month that covers the first D1 bar: bar 0
+    const h4 = Array.from({ length: 30 }, (_, i) => ({ t: new Date(Date.parse('2026-10-26T00:00:00Z') + i * 4 * 3600000).toISOString().slice(0, 16), o: 1, h: 2, l: 0.5, c: 1.5 }));
+    expect(baseIndex('2026-10-27', h4, bars(10, '2026-10-20', 1))).toBe(6);   // D1 base on the 4H axis: Oct 27 00:00
+  });
+  it('baseStartOf mirrors zonecore.detect: stay-away -> leg-out -> the basing candles before it', () => {
+    const b: Bar[] = [
+      { t: '2026-01-01', o: 10, h: 11, l: 9, c: 10.5 }, { t: '2026-01-02', o: 10, h: 11, l: 9.9, c: 10.9 },     // trend (body 0.9 / range 1.1: not basing)
+      { t: '2026-01-05', o: 10.6, h: 11, l: 10.2, c: 10.7 },                                                  // base 1 (body 0.1 / range 0.8)
+      { t: '2026-01-06', o: 10.7, h: 11, l: 10.3, c: 10.65 },                                                 // base 2
+      { t: '2026-01-07', o: 10.7, h: 13, l: 10.6, c: 12.9 },                                                  // leg-out
+      { t: '2026-01-08', o: 12.9, h: 13.5, l: 12.5, c: 13.4 },                                                // stay-away = made
+      ...Array.from({ length: 5 }, (_, i) => ({ t: `2026-01-${12 + i}`, o: 13.4, h: 14, l: 13, c: 13.8 })),
+    ];
+    expect(baseStartOf(b, '2026-01-08', 'D1')).toBe('2026-01-05');
+    expect(baseStartOf(b, '2025-01-01', 'D1')).toBeUndefined();
+  });
+  it('chartData: zones carry their base start and box index (BABA published + EURUSD)', async () => {
+    const st = await chartData('BABA', 'Q', ctx());
+    const all = st!.model.panels.flatMap(p => p.zones);
+    expect(all.some(z => typeof z.t0 === 'string')).toBe(true);
+    expect(all.some(z => typeof z.k0 === 'number')).toBe(true);
+    const fx = await chartData('EURUSD', 'Q', ctx());
+    for (const p of fx!.model.panels) for (const z of p.zones) if (z.k0 != null && z.k0 >= 0 && z.tf === p.tf) expect(p.bars[z.k0].t.slice(0, 16)).toBe((z.t0!.length >= 16 ? z.t0!.slice(0, 16) : `${z.t0}T00:00`.slice(0, 16)).slice(0, p.bars[z.k0].t.length));
   });
 });

@@ -21,6 +21,8 @@ export interface Band {
   host?: boolean;    // hosts the next-lower panel's key zone: outlined in violet (the nesting chain)
   light?: boolean;   // a zone of another TF drawn for context (higher TF in the single view, W1 on stock D1 / intraday)
   wide?: boolean;    // too tall to be a precise level: lighter, dashed, tagged 'wide'
+  t0?: string;       // base start: time of the zone's oldest base candle (ZoneVision's box start)
+  k0?: number;       // drawn bar index where the box starts (-1 = before the first drawn bar); undefined = full width
   label?: string;
 }
 export interface Lines { entry?: number | null; stop?: number | null; target?: number | null; kind?: string }
@@ -316,6 +318,8 @@ function panelSvg(p: Panel, b: Box, m: ChartModel, i: number): string {
     out.push(`<text class="nest" x="${f1(b.x + 16)}" y="${f1(b.y + 16 + hs + g.head.length * (hs + 8) - 4)}" font-size="20" fill="${C.amber}">${x(fitText(p.nestNote, b.w - 32, 20))}</text>`);
   }
   const yPrice = Math.min(Math.max(g.y(m.price), plot.y), bottom);
+  // zone boxes start at the zone's base (ZoneVision: the oldest base candle) and run to the right edge
+  const boxX = (z: Band) => (z.k0 == null || z.k0 < 0 ? plot.x : Math.min(plot.x + step * z.k0, right - step));
   // zone bands (context zones first, the key / host on top)
   const parts: string[] = [];
   const zs = [...g.zones].sort((a, z) => z.pri - a.pri);
@@ -325,7 +329,12 @@ function panelSvg(p: Panel, b: Box, m: ChartModel, i: number): string {
     const col = z.side === 'demand' ? C.demand : C.supply;
     const op = z.wide ? 0.07 : z.light ? 0.10 : z.key || z.host ? 0.28 : 0.15;
     const stroke = z.host ? ` stroke="${C.violet}" stroke-width="3"` : z.key && !z.wide ? ` stroke="${col}" stroke-opacity="0.9" stroke-width="2"` : z.wide ? ` stroke="${col}" stroke-opacity="0.55" stroke-width="1.5" stroke-dasharray="8 6"` : '';
-    parts.push(`<rect class="zone ${z.side}${z.key ? ' key' : ''}${z.host ? ' host' : ''}${z.wide ? ' wide' : ''}${z.light ? ' light' : ''}" data-tf="${x(z.tf)}" x="${f1(plot.x)}" y="${f1(yt)}" width="${f1(plot.w)}" height="${f1(Math.max(2, yb - yt))}" fill="${col}" fill-opacity="${op}"${stroke}/>`);
+    const x0 = boxX(z);
+    parts.push(`<rect class="zone ${z.side}${z.key ? ' key' : ''}${z.host ? ' host' : ''}${z.wide ? ' wide' : ''}${z.light ? ' light' : ''}" data-tf="${x(z.tf)}" x="${f1(x0)}" y="${f1(yt)}" width="${f1(right - x0)}" height="${f1(Math.max(2, yb - yt))}" fill="${col}" fill-opacity="${op}"${stroke}/>`);
+    if (z.k0 != null && z.k0 < 0) {   // the base formed before the first drawn candle: a small arrow at the left edge
+      const ym = (yt + yb) / 2, hh = Math.min(7, Math.max(3, (yb - yt) / 2 - 1));
+      parts.push(`<path class="offleft" d="M${f1(plot.x + 2)} ${f1(ym)}L${f1(plot.x + 2 + hh * 1.4)} ${f1(ym - hh)}L${f1(plot.x + 2 + hh * 1.4)} ${f1(ym + hh)}Z" fill="${z.side === 'demand' ? C.demandTxt : C.supplyTxt}"/>`);
+    }
   }
   out.push(`<g clip-path="url(#${cid})">${parts.join('')}`);
   // grid lines (behind the candles)
@@ -387,21 +396,27 @@ function panelSvg(p: Panel, b: Box, m: ChartModel, i: number): string {
   });
   const all = [...want, ...g.edges.map(e => (e.up ? plot.y : bottom))];
   const ys = stack(all, CHIP_H + 2, plot.y + CHIP_H / 2 + 2, bottom - CHIP_H / 2 - 2);
+  const chipX = (z: Band, label: string) => {
+    const w = textW(fitText(label, maxW - 16, fsz), fsz) * (z.key ? 1.07 : 1) + 16;
+    const x0 = boxX(z) + (z.k0 != null && z.k0 < 0 ? 18 : 6);
+    // a box that starts too far right for its chip: the chip ends where the box starts (keeps the newest candles clear)
+    return x0 + w <= right - 6 ? x0 : Math.max(plot.x + 6, boxX(z) - 6 - w);
+  };
   g.zones.forEach((d, k) => {
     const dem = d.z.side === 'demand';
-    out.push(chip(plot.x + 6, ys[k], d.label, dem ? C.demandTxt : C.supplyTxt, d.z.host ? C.violet : dem ? C.demand : C.supply, fsz, maxW, `zlabel ${d.z.side}`, !!d.z.key));
+    out.push(chip(chipX(d.z, d.label), ys[k], d.label, dem ? C.demandTxt : C.supplyTxt, d.z.host ? C.violet : dem ? C.demand : C.supply, fsz, maxW, `zlabel ${d.z.side}`, !!d.z.key));
   });
   g.edges.forEach((e, k) => {
     const dem = e.z.side === 'demand';
     out.push(chip(plot.x + 6, ys[g.zones.length + k], e.label, dem ? C.demandTxt : C.supplyTxt, C.border, fsz, maxW, `zlabel edge ${e.z.side}`));
   });
   // trade chips: right-aligned, clear of the zone chips they would overlap and of each other
-  const zoneChips = [...g.zones.map((d, k) => ({ y: ys[k], w: textW(fitText(d.label, maxW - 16, fsz), fsz) + 16 })),
-    ...g.edges.map((e, k) => ({ y: ys[g.zones.length + k], w: textW(fitText(e.label, maxW - 16, fsz), fsz) + 16 }))];
+  const zoneChips = [...g.zones.map((d, k) => ({ y: ys[k], r: chipX(d.z, d.label) + textW(fitText(d.label, maxW - 16, fsz), fsz) * 1.07 + 16 })),
+    ...g.edges.map((e, k) => ({ y: ys[g.zones.length + k], r: plot.x + 6 + textW(fitText(e.label, maxW - 16, fsz), fsz) + 16 }))];
   const placed: number[] = [];
   for (const t of trades) {
     const w = textW(t.text, fsz) + 16, xl = right - 6 - w;
-    const taken = [...placed, ...zoneChips.filter(c => plot.x + 6 + c.w > xl - 4).map(c => c.y)];
+    const taken = [...placed, ...zoneChips.filter(c => c.r > xl - 4).map(c => c.y)];
     const yy = freeSlot(t.y, taken, CHIP_H + 2, plot.y + CHIP_H / 2 + 2, bottom - CHIP_H / 2 - 2);
     if (yy == null) continue;
     placed.push(yy);
