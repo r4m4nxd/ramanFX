@@ -1,6 +1,6 @@
 # Market hours: when does each market move? (Calgary time)
 
-Generated 2026-10-29 12:17 UTC by `tools/research/market_hours/deep.py` + `report.py` (workflow `market-hours.yml`). Coverage: **123 forex / metal / CFD instruments** (OANDA M30, 2005-01-01 to 2026-10-29, median 21.8 years each) and **1012 US stocks / ETFs** (Alpaca 30-minute, feed sip, median 10.8 years). Stocks have their own file: [Market_Hours_Stocks.md](Market_Hours_Stocks.md); every symbol is searchable in the app (Market hours page). All times are **Calgary (America/Edmonton)**; New York is always 2 h ahead. Descriptive statistics only - no trading signal, no profit claim.
+Generated 2026-10-29 12:20 UTC by `tools/research/market_hours/deep.py` + `report.py` (workflow `market-hours.yml`). Coverage: **123 forex / metal / CFD instruments** (OANDA M30, 2005-01-01 to 2026-10-29, median 21.8 years each) and **1012 US stocks / ETFs** (Alpaca 30-minute, feed sip, median 10.8 years). Stocks have their own file: [Market_Hours_Stocks.md](Market_Hours_Stocks.md); every symbol is searchable in the app (Market hours page). All times are **Calgary (America/Edmonton)**; New York is always 2 h ahead. Descriptive statistics only - no trading signal, no profit claim.
 
 ## In plain words
 
@@ -22,7 +22,7 @@ Activity = sqrt(volume x range) of a half-hour relative to a typical half-hour o
 | 00:00-05:00 | Forex currencies | **01:00** | 03:00 ET | 1.60x | 1.72x | 1.49x | 23.9% | London open 08:00 (normal weeks) |
 | 00:00-05:00 | Metals | **01:00** | 03:00 ET | 1.32x | 1.42x | 1.25x | 14.4% | London open 08:00 (normal weeks) |
 | 01:00-03:30 | Index / commodity CFDs | **01:00** | 03:00 ET | 1.40x | 1.46x | 1.29x | 15.9% | London open 08:00 (normal weeks) |
-| 05:30-07:00 | Forex currencies | **06:30** | 08:30 ET | 1.81x | 2.04x | 1.58x | 32.2% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| 05:30-07:00 | Forex currencies | **06:30** | 08:30 ET | 1.81x | 2.04x | 1.58x | 32.3% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 | 06:00-07:00 | Metals | **06:30** | 08:30 ET | 2.13x | 2.36x | 1.99x | 49.4% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 | 07:00-10:00 | Forex currencies | **08:00** | 10:00 ET | 1.98x | 2.33x | 1.67x | 34.5% | 10:00 ET data (ISM, JOLTS, sentiment) |
 | 07:00-09:30 | Metals | **07:30** | 09:30 ET | 2.37x | 2.72x | 2.08x | 53.6% | NYSE open 09:30 ET |
@@ -35,7 +35,7 @@ Activity = sqrt(volume x range) of a half-hour relative to a typical half-hour o
 
 ## Era check: has the pattern drifted?
 
-For every instrument the Mon-Fri half-hour profile of the last 2 years is compared with its whole history, and before 2020 with 2020 and later (Spearman rank correlation of the 48 half-hours; 1.0 = same shape). "Shifted" = rho below 0.8 or the peak half-hour moved by more than 30 minutes.
+For every instrument the Mon-Fri half-hour profile of the last 2 years is compared with its whole history, and before 2020 with 2020 and later (Spearman rank correlation of the 48 half-hours; 1.0 = same shape). "Shifted" = rho below 0.8, or the peak half-hour moved by more than 30 minutes and the old peak is now more than 10% below the new one (a swap between two near-equal peaks does not count).
 
 | Group | Instruments | Median rho last 2 y vs all | Median rho pre vs post 2020 | Shifted | Group peak before 2020 | Group peak since 2020 |
 |---|---|---|---|---|---|---|
@@ -80,7 +80,7 @@ Asian evening (Sun-Thu) by Calgary season: Calgary on MST (Nov-Mar) vs MDT (Mar-
 
 ## NFP and FOMC dates
 
-- FOMC statement dates: 182 (federalreserve.gov statement links).
+- FOMC statement dates: 182 (federalreserve.gov statement links; includes the unscheduled statements of 2008 and 2020).
 - NFP (Employment Situation) release dates: 273 (BLS release rule (third Friday after the week containing the 12th) + known 2025-26 moves (bls.gov not reachable)).
 - Ratio = median range of the event half-hour on event days / the same half-hour on control days (NFP: other Fridays; FOMC: other days of the same weekday). Group medians:
 
@@ -119,7 +119,7 @@ Asian evening (Sun-Thu) by Calgary season: Calgary on MST (Nov-Mar) vs MDT (Mar-
 | Sector: ETF | NFP | 1.15x | 1.14x-1.19x | 4 | 123 |
 | Sector: ETF | FOMC 12:00 | 2.62x | 2.59x-2.64x | 4 | 92 |
 | Sector: ETF | FOMC 12:30 | 2.83x | 2.80x-2.89x | 4 | 92 |
-| Sector: Energy | NFP | 1.13x | 1.06x-1.18x | 45 | 123 |
+| Sector: Energy | NFP | 1.13x | 1.06x-1.17x | 45 | 123 |
 | Sector: Energy | FOMC 12:00 | 1.69x | 1.57x-1.77x | 45 | 92 |
 | Sector: Energy | FOMC 12:30 | 1.78x | 1.69x-1.97x | 45 | 92 |
 | Sector: Financials | NFP | 1.07x | 1.04x-1.11x | 108 | 123 |
@@ -153,7 +153,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### AUDUSD (AUD_USD) - Majors - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,168 half-hours). Best times: **reliable** (first vs second half rho 0.95).
+2005-01-02 to 2026-10-29 (21.8 years, 275,176 half-hours). Best times: **reliable** (first vs second half rho 0.95).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -163,7 +163,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.21x the quietest (Mon), 95% CI 1.18-1.24, 5660 days - **weak** |
+| Best weekday | **Thu**: 1.21x the quietest (Mon), 95% CI 1.18-1.24, 5661 days - **weak** |
 | Day activity Mon-Fri | Mon 0.88x / Tue 1.00x / Wed 1.04x / Thu 1.06x / Fri 1.01x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.9x other Fridays (259 NFP days; big moves 93.1% vs 34.9%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.81x a normal Wednesday (182 FOMC days; big moves 88.5% vs 5.3%) |
@@ -172,7 +172,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### EURUSD (EUR_USD) - Majors - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,443 half-hours). Best times: **reliable** (first vs second half rho 0.98).
+2005-01-02 to 2026-10-29 (21.8 years, 275,451 half-hours). Best times: **reliable** (first vs second half rho 0.98).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -182,7 +182,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.2x the quietest (Mon), 95% CI 1.17-1.24, 5658 days - **reliable** |
+| Best weekday | **Thu**: 1.2x the quietest (Mon), 95% CI 1.17-1.24, 5659 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.89x / Tue 0.98x / Wed 1.02x / Thu 1.07x / Fri 1.03x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.94x other Fridays (259 NFP days; big moves 95.4% vs 49.5%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 5.55x a normal Wednesday (182 FOMC days; big moves 91.8% vs 6.7%) |
@@ -191,7 +191,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### GBPUSD (GBP_USD) - Majors - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,122 half-hours). Best times: **reliable** (first vs second half rho 0.98).
+2005-01-02 to 2026-10-29 (21.8 years, 275,130 half-hours). Best times: **reliable** (first vs second half rho 0.98).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -201,7 +201,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.12-1.17, 5659 days - **weak** |
+| Best weekday | **Thu**: 1.15x the quietest (Mon), 95% CI 1.12-1.17, 5660 days - **weak** |
 | Day activity Mon-Fri | Mon 0.90x / Tue 0.99x / Wed 1.03x / Thu 1.03x / Fri 1.02x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.52x other Fridays (259 NFP days; big moves 93.4% vs 44.3%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.58x a normal Wednesday (182 FOMC days; big moves 88.5% vs 5.2%) |
@@ -210,7 +210,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### NZDUSD (NZD_USD) - Majors - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 274,921 half-hours). Best times: **reliable** (first vs second half rho 0.93).
+2005-01-02 to 2026-10-29 (21.8 years, 274,929 half-hours). Best times: **reliable** (first vs second half rho 0.93).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -220,7 +220,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.22x the quietest (Mon), 95% CI 1.18-1.24, 5659 days - **weak** |
+| Best weekday | **Thu**: 1.22x the quietest (Mon), 95% CI 1.18-1.24, 5660 days - **weak** |
 | Day activity Mon-Fri | Mon 0.88x / Tue 1.00x / Wed 1.06x / Thu 1.07x / Fri 1.00x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.88x other Fridays (259 NFP days; big moves 93.1% vs 33.9%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.7x a normal Wednesday (182 FOMC days; big moves 83.0% vs 5.3%) |
@@ -229,7 +229,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### USDCAD (USD_CAD) - Majors - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 274,897 half-hours). Best times: **reliable** (first vs second half rho 0.94).
+2005-01-02 to 2026-10-29 (21.8 years, 274,905 half-hours). Best times: **reliable** (first vs second half rho 0.94).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -239,7 +239,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Fri**: 1.19x the quietest (Mon), 95% CI 1.16-1.22, 5659 days - **reliable** |
+| Best weekday | **Fri**: 1.19x the quietest (Mon), 95% CI 1.16-1.23, 5660 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.89x / Tue 1.00x / Wed 1.03x / Thu 1.03x / Fri 1.06x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.2x other Fridays (259 NFP days; big moves 93.8% vs 62.3%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.79x a normal Wednesday (182 FOMC days; big moves 88.5% vs 8.9%) |
@@ -248,7 +248,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### USDCHF (USD_CHF) - Majors - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,186 half-hours). Best times: **reliable** (first vs second half rho 0.97).
+2005-01-02 to 2026-10-29 (21.8 years, 275,194 half-hours). Best times: **reliable** (first vs second half rho 0.97).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -258,7 +258,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.19x the quietest (Mon), 95% CI 1.16-1.23, 5659 days - **reliable** |
+| Best weekday | **Thu**: 1.19x the quietest (Mon), 95% CI 1.16-1.22, 5660 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.90x / Tue 0.98x / Wed 1.02x / Thu 1.08x / Fri 1.04x |
 | NFP 08:30 ET (06:30 Calgary) | range 3.06x other Fridays (259 NFP days; big moves 94.2% vs 47.7%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 5.04x a normal Wednesday (182 FOMC days; big moves 90.7% vs 6.5%) |
@@ -267,7 +267,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### USDJPY (USD_JPY) - Majors - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,318 half-hours). Best times: **reliable** (first vs second half rho 0.97).
+2005-01-02 to 2026-10-29 (21.8 years, 275,326 half-hours). Best times: **reliable** (first vs second half rho 0.97).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -277,7 +277,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.15x the quietest (Mon), 95% CI 1.13-1.18, 5659 days - **reliable** |
+| Best weekday | **Thu**: 1.15x the quietest (Mon), 95% CI 1.13-1.18, 5660 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.98x / Wed 1.03x / Thu 1.04x / Fri 1.03x |
 | NFP 08:30 ET (06:30 Calgary) | range 3.31x other Fridays (259 NFP days; big moves 93.4% vs 43.1%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 5.4x a normal Wednesday (182 FOMC days; big moves 86.8% vs 7.0%) |
@@ -286,7 +286,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### AUDCAD (AUD_CAD) - Crosses - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,064 half-hours). Best times: **reliable** (first vs second half rho 0.90).
+2005-01-02 to 2026-10-29 (21.8 years, 275,072 half-hours). Best times: **reliable** (first vs second half rho 0.90).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -296,8 +296,8 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.2x the quietest (Mon), 95% CI 1.18-1.22, 5657 days - **reliable** |
-| Day activity Mon-Fri | Mon 0.88x / Tue 0.99x / Wed 1.03x / Thu 1.05x / Fri 1.03x |
+| Best weekday | **Thu**: 1.2x the quietest (Mon), 95% CI 1.18-1.22, 5658 days - **reliable** |
+| Day activity Mon-Fri | Mon 0.88x / Tue 0.99x / Wed 1.04x / Thu 1.05x / Fri 1.03x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.25x other Fridays (259 NFP days; big moves 90.0% vs 42.3%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.32x a normal Wednesday (182 FOMC days; big moves 74.2% vs 3.0%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.51x a normal Wednesday (182 FOMC days; big moves 58.8% vs 2.7%) |
@@ -305,7 +305,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### AUDCHF (AUD_CHF) - Crosses - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,410 half-hours). Best times: **reliable** (first vs second half rho 0.93).
+2005-01-02 to 2026-10-29 (21.8 years, 275,418 half-hours). Best times: **reliable** (first vs second half rho 0.93).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -315,16 +315,16 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.19x the quietest (Mon), 95% CI 1.16-1.21, 5660 days - **reliable** |
+| Best weekday | **Thu**: 1.19x the quietest (Mon), 95% CI 1.16-1.21, 5661 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.90x / Tue 1.00x / Wed 1.03x / Thu 1.07x / Fri 1.01x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.41x other Fridays (259 NFP days; big moves 88.0% vs 25.9%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.13x a normal Wednesday (182 FOMC days; big moves 68.1% vs 3.7%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.55x a normal Wednesday (182 FOMC days; big moves 54.9% vs 3.3%) |
-| Era check | last 2 y vs all rho 0.91; before vs since 2020 rho 0.95; peak 08:00 -> 08:00 (last 2 y 08:00) - **stable** |
+| Era check | last 2 y vs all rho 0.92; before vs since 2020 rho 0.95; peak 08:00 -> 08:00 (last 2 y 08:00) - **stable** |
 
 ### AUDJPY (AUD_JPY) - Crosses - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,237 half-hours). Best times: **reliable** (first vs second half rho 0.95).
+2005-01-02 to 2026-10-29 (21.8 years, 275,245 half-hours). Best times: **reliable** (first vs second half rho 0.95).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -334,7 +334,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.17x the quietest (Mon), 95% CI 1.14-1.2, 5659 days - **reliable** |
+| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.14-1.19, 5660 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.90x / Tue 1.01x / Wed 1.02x / Thu 1.05x / Fri 1.01x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.46x other Fridays (259 NFP days; big moves 88.8% vs 24.3%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.32x a normal Wednesday (182 FOMC days; big moves 68.1% vs 5.2%) |
@@ -343,7 +343,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### AUDNZD (AUD_NZD) - Crosses - watchlist
 
-2005-01-01 to 2026-10-29 (21.8 years, 275,023 half-hours). Best times: **reliable** (first vs second half rho 0.87).
+2005-01-01 to 2026-10-29 (21.8 years, 275,031 half-hours). Best times: **reliable** (first vs second half rho 0.87).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -353,7 +353,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.17x the quietest (Mon), 95% CI 1.14-1.2, 5658 days - **weak** |
+| Best weekday | **Thu**: 1.17x the quietest (Mon), 95% CI 1.14-1.19, 5659 days - **weak** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.99x / Wed 1.06x / Thu 1.06x / Fri 0.99x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.33x other Fridays (259 NFP days; big moves 78.8% vs 13.8%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.77x a normal Wednesday (182 FOMC days; big moves 55.5% vs 1.9%) |
@@ -362,7 +362,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### CADCHF (CAD_CHF) - Crosses - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,292 half-hours). Best times: **reliable** (first vs second half rho 0.97).
+2005-01-02 to 2026-10-29 (21.8 years, 275,300 half-hours). Best times: **reliable** (first vs second half rho 0.97).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -372,7 +372,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Fri**: 1.16x the quietest (Mon), 95% CI 1.13-1.18, 5659 days - **weak** |
+| Best weekday | **Fri**: 1.16x the quietest (Mon), 95% CI 1.13-1.18, 5660 days - **weak** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.98x / Wed 1.02x / Thu 1.04x / Fri 1.05x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.22x other Fridays (259 NFP days; big moves 92.3% vs 55.9%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.84x a normal Wednesday (182 FOMC days; big moves 73.6% vs 5.6%) |
@@ -381,7 +381,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### CADJPY (CAD_JPY) - Crosses - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,325 half-hours). Best times: **reliable** (first vs second half rho 0.94).
+2005-01-02 to 2026-10-29 (21.8 years, 275,333 half-hours). Best times: **reliable** (first vs second half rho 0.94).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -391,7 +391,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Fri**: 1.18x the quietest (Mon), 95% CI 1.15-1.21, 5659 days - **reliable** |
+| Best weekday | **Fri**: 1.18x the quietest (Mon), 95% CI 1.15-1.21, 5660 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.90x / Tue 0.99x / Wed 1.02x / Thu 1.04x / Fri 1.06x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.27x other Fridays (259 NFP days; big moves 92.7% vs 49.7%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.94x a normal Wednesday (182 FOMC days; big moves 73.6% vs 6.5%) |
@@ -400,7 +400,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### CHFJPY (CHF_JPY) - Crosses - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,181 half-hours). Best times: **reliable** (first vs second half rho 0.98).
+2005-01-02 to 2026-10-29 (21.8 years, 275,189 half-hours). Best times: **reliable** (first vs second half rho 0.98).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -410,8 +410,8 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.17, 5659 days - **reliable** |
-| Day activity Mon-Fri | Mon 0.92x / Tue 1.00x / Wed 1.01x / Thu 1.05x / Fri 1.02x |
+| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.16, 5660 days - **reliable** |
+| Day activity Mon-Fri | Mon 0.93x / Tue 1.00x / Wed 1.01x / Thu 1.05x / Fri 1.02x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.28x other Fridays (259 NFP days; big moves 86.1% vs 29.6%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.19x a normal Wednesday (182 FOMC days; big moves 67.0% vs 3.4%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.24x a normal Wednesday (182 FOMC days; big moves 44.0% vs 2.6%) |
@@ -419,7 +419,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### EURAUD (EUR_AUD) - Crosses - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,201 half-hours). Best times: **reliable** (first vs second half rho 0.96).
+2005-01-02 to 2026-10-29 (21.8 years, 275,209 half-hours). Best times: **reliable** (first vs second half rho 0.96).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -429,7 +429,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.17x the quietest (Mon), 95% CI 1.15-1.2, 5659 days - **reliable** |
+| Best weekday | **Thu**: 1.17x the quietest (Mon), 95% CI 1.15-1.2, 5660 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 1.00x / Wed 1.02x / Thu 1.06x / Fri 1.00x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.37x other Fridays (259 NFP days; big moves 87.3% vs 25.6%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.07x a normal Wednesday (182 FOMC days; big moves 71.4% vs 3.2%) |
@@ -438,7 +438,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### EURCAD (EUR_CAD) - Crosses - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,350 half-hours). Best times: **reliable** (first vs second half rho 0.98).
+2005-01-02 to 2026-10-29 (21.8 years, 275,358 half-hours). Best times: **reliable** (first vs second half rho 0.98).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -448,7 +448,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.16, 5660 days - **weak** |
+| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.16, 5661 days - **weak** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.99x / Wed 1.02x / Thu 1.04x / Fri 1.04x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.21x other Fridays (259 NFP days; big moves 94.2% vs 57.3%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.94x a normal Wednesday (182 FOMC days; big moves 81.9% vs 5.4%) |
@@ -457,7 +457,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### EURCHF (EUR_CHF) - Crosses - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,043 half-hours). Best times: **reliable** (first vs second half rho 0.97).
+2005-01-02 to 2026-10-29 (21.8 years, 275,051 half-hours). Best times: **reliable** (first vs second half rho 0.97).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -467,7 +467,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.17, 5659 days - **reliable** |
+| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.17, 5660 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 0.98x / Wed 1.01x / Thu 1.06x / Fri 1.02x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.01x other Fridays (259 NFP days; big moves 86.1% vs 30.0%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.89x a normal Wednesday (182 FOMC days; big moves 67.0% vs 5.3%) |
@@ -476,7 +476,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### EURGBP (EUR_GBP) - Crosses - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,268 half-hours). Best times: **reliable** (first vs second half rho 0.97).
+2005-01-02 to 2026-10-29 (21.8 years, 275,276 half-hours). Best times: **reliable** (first vs second half rho 0.97).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -486,7 +486,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.15x the quietest (Mon), 95% CI 1.12-1.18, 5659 days - **reliable** |
+| Best weekday | **Thu**: 1.15x the quietest (Mon), 95% CI 1.12-1.17, 5660 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.99x / Wed 1.01x / Thu 1.05x / Fri 1.01x |
 | NFP 08:30 ET (06:30 Calgary) | range 1.95x other Fridays (259 NFP days; big moves 89.2% vs 35.4%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.92x a normal Wednesday (182 FOMC days; big moves 67.0% vs 3.2%) |
@@ -495,7 +495,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### EURJPY (EUR_JPY) - Crosses - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,346 half-hours). Best times: **reliable** (first vs second half rho 0.98).
+2005-01-02 to 2026-10-29 (21.8 years, 275,354 half-hours). Best times: **reliable** (first vs second half rho 0.98).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -505,7 +505,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.13x the quietest (Mon), 95% CI 1.1-1.16, 5660 days - **reliable** |
+| Best weekday | **Thu**: 1.13x the quietest (Mon), 95% CI 1.1-1.16, 5661 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 0.99x / Wed 1.00x / Thu 1.06x / Fri 1.02x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.3x other Fridays (259 NFP days; big moves 88.0% vs 34.5%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.3x a normal Wednesday (182 FOMC days; big moves 71.4% vs 4.0%) |
@@ -514,7 +514,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### EURNZD (EUR_NZD) - Crosses - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,184 half-hours). Best times: **reliable** (first vs second half rho 0.94).
+2005-01-02 to 2026-10-29 (21.8 years, 275,192 half-hours). Best times: **reliable** (first vs second half rho 0.94).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -524,7 +524,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.19x the quietest (Mon), 95% CI 1.17-1.22, 5656 days - **reliable** |
+| Best weekday | **Thu**: 1.19x the quietest (Mon), 95% CI 1.17-1.22, 5657 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.90x / Tue 0.99x / Wed 1.04x / Thu 1.07x / Fri 1.00x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.41x other Fridays (259 NFP days; big moves 86.5% vs 25.3%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.13x a normal Wednesday (182 FOMC days; big moves 67.0% vs 3.1%) |
@@ -533,7 +533,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### GBPAUD (GBP_AUD) - Crosses - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,416 half-hours). Best times: **reliable** (first vs second half rho 0.96).
+2005-01-02 to 2026-10-29 (21.8 years, 275,424 half-hours). Best times: **reliable** (first vs second half rho 0.96).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -543,7 +543,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Wed**: 1.16x the quietest (Mon), 95% CI 1.13-1.18, 5660 days - **weak** |
+| Best weekday | **Wed**: 1.16x the quietest (Mon), 95% CI 1.13-1.18, 5661 days - **weak** |
 | Day activity Mon-Fri | Mon 0.90x / Tue 1.00x / Wed 1.05x / Thu 1.05x / Fri 0.98x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.22x other Fridays (259 NFP days; big moves 84.2% vs 22.4%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.12x a normal Wednesday (182 FOMC days; big moves 63.2% vs 2.7%) |
@@ -552,7 +552,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### GBPCAD (GBP_CAD) - Crosses - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,046 half-hours). Best times: **reliable** (first vs second half rho 0.98).
+2005-01-02 to 2026-10-29 (21.8 years, 275,054 half-hours). Best times: **reliable** (first vs second half rho 0.98).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -562,7 +562,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.16, 5656 days - **weak** |
+| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.12-1.16, 5657 days - **weak** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 1.00x / Wed 1.03x / Thu 1.03x / Fri 1.03x |
 | NFP 08:30 ET (06:30 Calgary) | range 1.9x other Fridays (259 NFP days; big moves 90.3% vs 55.8%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.47x a normal Wednesday (182 FOMC days; big moves 67.0% vs 4.1%) |
@@ -571,7 +571,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### GBPCHF (GBP_CHF) - Crosses - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,191 half-hours). Best times: **reliable** (first vs second half rho 0.98).
+2005-01-02 to 2026-10-29 (21.8 years, 275,199 half-hours). Best times: **reliable** (first vs second half rho 0.98).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -581,7 +581,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.13x the quietest (Mon), 95% CI 1.11-1.15, 5659 days - **reliable** |
+| Best weekday | **Thu**: 1.13x the quietest (Mon), 95% CI 1.11-1.15, 5660 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.92x / Tue 1.00x / Wed 1.02x / Thu 1.04x / Fri 1.00x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.1x other Fridays (259 NFP days; big moves 86.9% vs 33.5%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.76x a normal Wednesday (182 FOMC days; big moves 62.1% vs 3.5%) |
@@ -590,7 +590,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### GBPJPY (GBP_JPY) - Crosses - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,272 half-hours). Best times: **reliable** (first vs second half rho 0.99).
+2005-01-02 to 2026-10-29 (21.8 years, 275,280 half-hours). Best times: **reliable** (first vs second half rho 0.99).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -600,7 +600,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.17, 5659 days - **reliable** |
+| Best weekday | **Thu**: 1.13x the quietest (Mon), 95% CI 1.11-1.16, 5660 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.92x / Tue 1.00x / Wed 1.02x / Thu 1.04x / Fri 1.02x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.29x other Fridays (259 NFP days; big moves 84.9% vs 31.0%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.93x a normal Wednesday (182 FOMC days; big moves 65.4% vs 3.8%) |
@@ -609,7 +609,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### GBPNZD (GBP_NZD) - Crosses - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,272 half-hours). Best times: **reliable** (first vs second half rho 0.94).
+2005-01-02 to 2026-10-29 (21.8 years, 275,280 half-hours). Best times: **reliable** (first vs second half rho 0.94).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -619,7 +619,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.17x the quietest (Mon), 95% CI 1.14-1.21, 5659 days - **weak** |
+| Best weekday | **Thu**: 1.17x the quietest (Mon), 95% CI 1.14-1.2, 5660 days - **weak** |
 | Day activity Mon-Fri | Mon 0.90x / Tue 0.99x / Wed 1.05x / Thu 1.05x / Fri 0.99x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.24x other Fridays (259 NFP days; big moves 85.7% vs 23.9%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.06x a normal Wednesday (182 FOMC days; big moves 61.5% vs 3.1%) |
@@ -628,7 +628,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### NZDCAD (NZD_CAD) - Crosses - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 274,963 half-hours). Best times: **reliable** (first vs second half rho 0.91).
+2005-01-02 to 2026-10-29 (21.8 years, 274,971 half-hours). Best times: **reliable** (first vs second half rho 0.91).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -638,7 +638,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Wed**: 1.18x the quietest (Mon), 95% CI 1.16-1.21, 5656 days - **weak** |
+| Best weekday | **Wed**: 1.18x the quietest (Mon), 95% CI 1.16-1.21, 5657 days - **weak** |
 | Day activity Mon-Fri | Mon 0.89x / Tue 0.99x / Wed 1.05x / Thu 1.04x / Fri 1.02x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.3x other Fridays (259 NFP days; big moves 88.8% vs 39.4%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.15x a normal Wednesday (182 FOMC days; big moves 67.6% vs 3.2%) |
@@ -647,7 +647,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### NZDCHF (NZD_CHF) - Crosses - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,260 half-hours). Best times: **reliable** (first vs second half rho 0.89).
+2005-01-02 to 2026-10-29 (21.8 years, 275,268 half-hours). Best times: **reliable** (first vs second half rho 0.89).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -657,7 +657,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.19x the quietest (Mon), 95% CI 1.16-1.21, 5659 days - **reliable** |
+| Best weekday | **Thu**: 1.19x the quietest (Mon), 95% CI 1.16-1.21, 5660 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.90x / Tue 0.99x / Wed 1.04x / Thu 1.07x / Fri 1.00x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.34x other Fridays (259 NFP days; big moves 87.6% vs 24.8%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.11x a normal Wednesday (182 FOMC days; big moves 63.2% vs 3.7%) |
@@ -666,7 +666,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### NZDJPY (NZD_JPY) - Crosses - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,174 half-hours). Best times: **reliable** (first vs second half rho 0.93).
+2005-01-02 to 2026-10-29 (21.8 years, 275,182 half-hours). Best times: **reliable** (first vs second half rho 0.93).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -676,7 +676,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.18x the quietest (Mon), 95% CI 1.14-1.21, 5656 days - **reliable** |
+| Best weekday | **Thu**: 1.18x the quietest (Mon), 95% CI 1.15-1.21, 5657 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.90x / Tue 1.00x / Wed 1.03x / Thu 1.05x / Fri 1.01x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.56x other Fridays (259 NFP days; big moves 87.6% vs 23.9%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.2x a normal Wednesday (182 FOMC days; big moves 69.8% vs 4.2%) |
@@ -685,7 +685,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### AUDSGD (AUD_SGD) - Exotics - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,176 half-hours). Best times: **reliable** (first vs second half rho 0.95).
+2005-01-02 to 2026-10-29 (21.8 years, 275,184 half-hours). Best times: **reliable** (first vs second half rho 0.95).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -695,7 +695,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.18x the quietest (Mon), 95% CI 1.16-1.22, 5660 days - **reliable** |
+| Best weekday | **Thu**: 1.18x the quietest (Mon), 95% CI 1.16-1.21, 5661 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.89x / Tue 0.99x / Wed 1.04x / Thu 1.06x / Fri 1.01x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.65x other Fridays (259 NFP days; big moves 91.1% vs 27.2%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.32x a normal Wednesday (182 FOMC days; big moves 84.1% vs 4.0%) |
@@ -704,7 +704,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### EURCZK (EUR_CZK) - Exotics - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 265,012 half-hours). Best times: **reliable** (first vs second half rho 0.93).
+2005-01-02 to 2026-10-29 (21.8 years, 265,020 half-hours). Best times: **reliable** (first vs second half rho 0.93).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -714,7 +714,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.08x the quietest (Tue), 95% CI 1.05-1.11, 5657 days - **reliable** |
+| Best weekday | **Thu**: 1.08x the quietest (Tue), 95% CI 1.05-1.11, 5658 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.97x / Tue 0.97x / Wed 1.01x / Thu 1.04x / Fri 1.00x |
 | NFP 08:30 ET (06:30 Calgary) | range 1.57x other Fridays (259 NFP days; big moves 77.6% vs 48.5%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.92x a normal Wednesday (182 FOMC days; big moves 37.4% vs 9.7%) |
@@ -723,7 +723,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### EURHUF (EUR_HUF) - Exotics - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 266,657 half-hours). Best times: **reliable** (first vs second half rho 0.95).
+2005-01-02 to 2026-10-29 (21.8 years, 266,665 half-hours). Best times: **reliable** (first vs second half rho 0.95).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -732,7 +732,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.1x the quietest (Mon), 95% CI 1.07-1.13, 5641 days - **reliable** |
+| Best weekday | **Thu**: 1.1x the quietest (Mon), 95% CI 1.07-1.13, 5642 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.95x / Tue 1.00x / Wed 1.00x / Thu 1.04x / Fri 1.00x |
 | NFP 08:30 ET (06:30 Calgary) | range 1.93x other Fridays (258 NFP days; big moves 86.8% vs 49.0%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.2x a normal Wednesday (181 FOMC days; big moves 48.1% vs 9.1%) |
@@ -741,7 +741,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### EURNOK (EUR_NOK) - Exotics - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 273,315 half-hours). Best times: **reliable** (first vs second half rho 0.95).
+2005-01-02 to 2026-10-29 (21.8 years, 273,323 half-hours). Best times: **reliable** (first vs second half rho 0.95).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -750,7 +750,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.08x the quietest (Mon), 95% CI 1.05-1.1, 5658 days - **weak** |
+| Best weekday | **Thu**: 1.08x the quietest (Mon), 95% CI 1.05-1.1, 5659 days - **weak** |
 | Day activity Mon-Fri | Mon 0.96x / Tue 0.99x / Wed 1.02x / Thu 1.03x / Fri 1.00x |
 | NFP 08:30 ET (06:30 Calgary) | range 1.67x other Fridays (259 NFP days; big moves 76.1% vs 33.1%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.5x a normal Wednesday (182 FOMC days; big moves 52.7% vs 6.5%) |
@@ -759,16 +759,16 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### EURPLN (EUR_PLN) - Exotics - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 269,598 half-hours). Best times: **reliable** (first vs second half rho 0.95).
+2005-01-02 to 2026-10-29 (21.8 years, 269,606 half-hours). Best times: **reliable** (first vs second half rho 0.95).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
-| Best window 1 | 03:30-10:00 (peak **08:00**) | 10:00 ET | 2.33x | 2.81x | 1.92x | 47.0% | 10:00 ET data (ISM, JOLTS, sentiment) |
+| Best window 1 | 03:30-10:00 (peak **08:00**) | 10:00 ET | 2.32x | 2.81x | 1.92x | 47.0% | 10:00 ET data (ISM, JOLTS, sentiment) |
 | Best window 2 | 00:00-03:30 (peak **01:00**) | 03:00 ET | 2.31x | 2.41x | 2.22x | 58.2% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.07x the quietest (Mon), 95% CI 1.04-1.11, 5659 days - **reliable** |
+| Best weekday | **Thu**: 1.07x the quietest (Mon), 95% CI 1.05-1.11, 5660 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.97x / Tue 0.98x / Wed 1.01x / Thu 1.03x / Fri 1.00x |
 | NFP 08:30 ET (06:30 Calgary) | range 1.82x other Fridays (259 NFP days; big moves 83.4% vs 44.6%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.03x a normal Wednesday (182 FOMC days; big moves 48.9% vs 7.5%) |
@@ -777,7 +777,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### EURSEK (EUR_SEK) - Exotics - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 273,577 half-hours). Best times: **reliable** (first vs second half rho 0.96).
+2005-01-02 to 2026-10-29 (21.8 years, 273,585 half-hours). Best times: **reliable** (first vs second half rho 0.96).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -786,7 +786,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.08x the quietest (Mon), 95% CI 1.07-1.11, 5659 days - **reliable** |
+| Best weekday | **Thu**: 1.08x the quietest (Mon), 95% CI 1.07-1.11, 5660 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.95x / Tue 1.00x / Wed 1.01x / Thu 1.03x / Fri 1.01x |
 | NFP 08:30 ET (06:30 Calgary) | range 1.7x other Fridays (259 NFP days; big moves 71.8% vs 32.6%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.38x a normal Wednesday (182 FOMC days; big moves 48.4% vs 5.1%) |
@@ -795,7 +795,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### EURSGD (EUR_SGD) - Exotics - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,486 half-hours). Best times: **reliable** (first vs second half rho 0.98).
+2005-01-02 to 2026-10-29 (21.8 years, 275,494 half-hours). Best times: **reliable** (first vs second half rho 0.98).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -805,7 +805,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.17x the quietest (Mon), 95% CI 1.14-1.2, 5659 days - **reliable** |
+| Best weekday | **Thu**: 1.17x the quietest (Mon), 95% CI 1.14-1.19, 5660 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.98x / Wed 1.00x / Thu 1.06x / Fri 1.04x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.76x other Fridays (259 NFP days; big moves 93.4% vs 35.9%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.82x a normal Wednesday (182 FOMC days; big moves 87.9% vs 4.4%) |
@@ -814,7 +814,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### EURTRY (EUR_TRY) - Exotics - watchlist
 
-2007-02-12 to 2026-10-29 (19.7 years, 237,671 half-hours). Best times: **reliable** (first vs second half rho 0.99).
+2007-02-12 to 2026-10-29 (19.7 years, 237,679 half-hours). Best times: **reliable** (first vs second half rho 0.99).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -833,7 +833,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### EURZAR (EUR_ZAR) - Exotics - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,515 half-hours). Best times: **reliable** (first vs second half rho 0.98).
+2005-01-02 to 2026-10-29 (21.8 years, 275,523 half-hours). Best times: **reliable** (first vs second half rho 0.98).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -843,7 +843,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.16, 5659 days - **reliable** |
+| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.16, 5660 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 0.98x / Wed 1.01x / Thu 1.05x / Fri 1.02x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.22x other Fridays (259 NFP days; big moves 90.7% vs 36.8%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.24x a normal Wednesday (182 FOMC days; big moves 72.0% vs 6.2%) |
@@ -852,7 +852,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### GBPSGD (GBP_SGD) - Exotics - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,012 half-hours). Best times: **reliable** (first vs second half rho 0.98).
+2005-01-02 to 2026-10-29 (21.8 years, 275,020 half-hours). Best times: **reliable** (first vs second half rho 0.98).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -862,7 +862,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.12x the quietest (Mon), 95% CI 1.09-1.15, 5659 days - **weak** |
+| Best weekday | **Thu**: 1.12x the quietest (Mon), 95% CI 1.09-1.15, 5660 days - **weak** |
 | Day activity Mon-Fri | Mon 0.92x / Tue 0.99x / Wed 1.03x / Thu 1.03x / Fri 1.02x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.26x other Fridays (259 NFP days; big moves 89.2% vs 32.3%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.71x a normal Wednesday (182 FOMC days; big moves 77.5% vs 3.1%) |
@@ -871,7 +871,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### SGDJPY (SGD_JPY) - Exotics - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,227 half-hours). Best times: **reliable** (first vs second half rho 0.97).
+2005-01-02 to 2026-10-29 (21.8 years, 275,235 half-hours). Best times: **reliable** (first vs second half rho 0.97).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -881,7 +881,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Fri**: 1.14x the quietest (Mon), 95% CI 1.11-1.17, 5659 days - **weak** |
+| Best weekday | **Fri**: 1.14x the quietest (Mon), 95% CI 1.11-1.17, 5660 days - **weak** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.98x / Wed 1.02x / Thu 1.04x / Fri 1.04x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.87x other Fridays (259 NFP days; big moves 92.3% vs 32.1%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.04x a normal Wednesday (182 FOMC days; big moves 81.3% vs 4.9%) |
@@ -890,7 +890,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### USDCNH (USD_CNH) - Exotics - watchlist
 
-2011-02-06 to 2026-10-29 (15.7 years, 179,953 half-hours). Best times: **reliable** (first vs second half rho 0.90).
+2011-02-06 to 2026-10-29 (15.7 years, 179,961 half-hours). Best times: **reliable** (first vs second half rho 0.90).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -900,7 +900,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Wed**: 1.11x the quietest (Mon), 95% CI 1.07-1.15, 3740 days - **weak** |
+| Best weekday | **Wed**: 1.11x the quietest (Mon), 95% CI 1.07-1.15, 3741 days - **weak** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 0.98x / Wed 1.03x / Thu 1.03x / Fri 1.03x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.87x other Fridays (149 NFP days; big moves 81.9% vs 25.1%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.8x a normal Wednesday (128 FOMC days; big moves 68.0% vs 8.6%) |
@@ -909,7 +909,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### USDCZK (USD_CZK) - Exotics - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 274,584 half-hours). Best times: **reliable** (first vs second half rho 0.99).
+2005-01-02 to 2026-10-29 (21.8 years, 274,592 half-hours). Best times: **reliable** (first vs second half rho 0.99).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -919,7 +919,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.13-1.19, 5653 days - **reliable** |
+| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.13-1.2, 5654 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.99x / Wed 1.02x / Thu 1.06x / Fri 1.02x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.67x other Fridays (259 NFP days; big moves 95.0% vs 47.9%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.94x a normal Wednesday (182 FOMC days; big moves 89.0% vs 6.4%) |
@@ -928,7 +928,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### USDHKD (USD_HKD) - Exotics - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 268,626 half-hours). Best times: **weak** (first vs second half rho 0.75).
+2005-01-02 to 2026-10-29 (21.8 years, 268,634 half-hours). Best times: **weak** (first vs second half rho 0.75).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -938,7 +938,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Fri**: 1.11x the quietest (Mon), 95% CI 1.07-1.14, 5619 days - **reliable** |
+| Best weekday | **Fri**: 1.11x the quietest (Mon), 95% CI 1.07-1.14, 5620 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.96x / Tue 0.97x / Wed 0.99x / Thu 1.03x / Fri 1.06x |
 | NFP 08:30 ET (06:30 Calgary) | range 1.45x other Fridays (258 NFP days; big moves 34.1% vs 19.0%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 1.69x a normal Wednesday (181 FOMC days; big moves 26.5% vs 11.4%) |
@@ -947,7 +947,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### USDHUF (USD_HUF) - Exotics - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 274,621 half-hours). Best times: **reliable** (first vs second half rho 0.99).
+2005-01-02 to 2026-10-29 (21.8 years, 274,629 half-hours). Best times: **reliable** (first vs second half rho 0.99).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -957,7 +957,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.13-1.2, 5653 days - **reliable** |
+| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.13-1.19, 5654 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.99x / Wed 1.01x / Thu 1.06x / Fri 1.02x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.51x other Fridays (258 NFP days; big moves 95.0% vs 53.6%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.88x a normal Wednesday (182 FOMC days; big moves 87.4% vs 6.1%) |
@@ -966,7 +966,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### USDMXN (USD_MXN) - Exotics - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 263,003 half-hours). Best times: **reliable** (first vs second half rho 0.93).
+2005-01-02 to 2026-10-29 (21.8 years, 263,011 half-hours). Best times: **reliable** (first vs second half rho 0.93).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -976,7 +976,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.15x the quietest (Mon), 95% CI 1.12-1.17, 5656 days - **reliable** |
+| Best weekday | **Thu**: 1.15x the quietest (Mon), 95% CI 1.12-1.17, 5657 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.92x / Tue 0.99x / Wed 1.03x / Thu 1.05x / Fri 1.01x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.31x other Fridays (259 NFP days; big moves 93.8% vs 58.3%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.75x a normal Wednesday (182 FOMC days; big moves 85.2% vs 21.8%) |
@@ -985,7 +985,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### USDNOK (USD_NOK) - Exotics - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 274,542 half-hours). Best times: **reliable** (first vs second half rho 0.98).
+2005-01-02 to 2026-10-29 (21.8 years, 274,550 half-hours). Best times: **reliable** (first vs second half rho 0.98).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -995,16 +995,16 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.13x the quietest (Mon), 95% CI 1.11-1.16, 5659 days - **weak** |
+| Best weekday | **Thu**: 1.13x the quietest (Mon), 95% CI 1.11-1.16, 5660 days - **weak** |
 | Day activity Mon-Fri | Mon 0.92x / Tue 1.00x / Wed 1.03x / Thu 1.04x / Fri 1.02x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.51x other Fridays (259 NFP days; big moves 93.4% vs 41.7%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.51x other Fridays (259 NFP days; big moves 93.4% vs 41.6%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.13x a normal Wednesday (182 FOMC days; big moves 86.8% vs 5.9%) |
 | FOMC 14:30 ET press conf. (12:30) | range 3.52x a normal Wednesday (182 FOMC days; big moves 75.3% vs 3.9%) |
 | Era check | last 2 y vs all rho 0.92; before vs since 2020 rho 0.96; peak 08:00 -> 08:00 (last 2 y 08:00) - **stable** |
 
 ### USDPLN (USD_PLN) - Exotics - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,138 half-hours). Best times: **reliable** (first vs second half rho 0.99).
+2005-01-02 to 2026-10-29 (21.8 years, 275,146 half-hours). Best times: **reliable** (first vs second half rho 0.99).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1014,7 +1014,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.12-1.17, 5659 days - **reliable** |
+| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.12-1.17, 5660 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.92x / Tue 0.99x / Wed 1.02x / Thu 1.05x / Fri 1.02x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.5x other Fridays (259 NFP days; big moves 93.8% vs 51.0%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 5.14x a normal Wednesday (182 FOMC days; big moves 88.5% vs 6.2%) |
@@ -1023,7 +1023,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### USDSEK (USD_SEK) - Exotics - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 274,697 half-hours). Best times: **reliable** (first vs second half rho 0.99).
+2005-01-02 to 2026-10-29 (21.8 years, 274,705 half-hours). Best times: **reliable** (first vs second half rho 0.99).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1033,7 +1033,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.17, 5656 days - **reliable** |
+| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.12-1.17, 5657 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.92x / Tue 1.00x / Wed 1.02x / Thu 1.04x / Fri 1.02x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.66x other Fridays (259 NFP days; big moves 94.6% vs 42.0%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.52x a normal Wednesday (182 FOMC days; big moves 88.5% vs 5.5%) |
@@ -1042,7 +1042,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### USDSGD (USD_SGD) - Exotics - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 273,469 half-hours). Best times: **reliable** (first vs second half rho 0.95).
+2005-01-02 to 2026-10-29 (21.8 years, 273,477 half-hours). Best times: **reliable** (first vs second half rho 0.95).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1052,8 +1052,8 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.17, 5656 days - **weak** |
-| Day activity Mon-Fri | Mon 0.91x / Tue 0.97x / Wed 1.03x / Thu 1.04x / Fri 1.03x |
+| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.12-1.17, 5657 days - **weak** |
+| Day activity Mon-Fri | Mon 0.91x / Tue 0.98x / Wed 1.03x / Thu 1.04x / Fri 1.03x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.99x other Fridays (259 NFP days; big moves 88.4% vs 29.5%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.67x a normal Wednesday (182 FOMC days; big moves 76.9% vs 4.9%) |
 | FOMC 14:30 ET press conf. (12:30) | range 4.0x a normal Wednesday (182 FOMC days; big moves 67.0% vs 4.3%) |
@@ -1061,7 +1061,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### USDTHB (USD_THB) - Exotics - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 245,731 half-hours). Best times: **reliable** (first vs second half rho 0.87).
+2005-01-02 to 2026-10-29 (21.8 years, 245,739 half-hours). Best times: **reliable** (first vs second half rho 0.87).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1071,7 +1071,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Wed**: 1.12x the quietest (Mon), 95% CI 1.09-1.15, 5425 days - **weak** |
+| Best weekday | **Wed**: 1.12x the quietest (Mon), 95% CI 1.09-1.15, 5426 days - **weak** |
 | Day activity Mon-Fri | Mon 0.92x / Tue 0.98x / Wed 1.03x / Thu 1.02x / Fri 1.02x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.77x other Fridays (251 NFP days; big moves 71.7% vs 24.8%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.77x a normal Wednesday (172 FOMC days; big moves 51.2% vs 5.2%) |
@@ -1080,7 +1080,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### USDTRY (USD_TRY) - Exotics - watchlist
 
-2007-02-15 to 2026-10-29 (19.7 years, 230,158 half-hours). Best times: **weak** (first vs second half rho 0.94).
+2007-02-15 to 2026-10-29 (19.7 years, 230,166 half-hours). Best times: **weak** (first vs second half rho 0.94).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1099,7 +1099,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### USDZAR (USD_ZAR) - Exotics - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 271,919 half-hours). Best times: **reliable** (first vs second half rho 0.97).
+2005-01-02 to 2026-10-29 (21.8 years, 271,927 half-hours). Best times: **reliable** (first vs second half rho 0.97).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1109,7 +1109,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.13-1.18, 5654 days - **reliable** |
+| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.13-1.18, 5655 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.99x / Wed 1.03x / Thu 1.06x / Fri 1.00x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.29x other Fridays (259 NFP days; big moves 93.4% vs 47.3%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.4x a normal Wednesday (182 FOMC days; big moves 69.2% vs 7.3%) |
@@ -1118,7 +1118,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### ZARJPY (ZAR_JPY) - Exotics - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 274,546 half-hours). Best times: **reliable** (first vs second half rho 0.96).
+2005-01-02 to 2026-10-29 (21.8 years, 274,554 half-hours). Best times: **reliable** (first vs second half rho 0.96).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1128,7 +1128,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.18x the quietest (Mon), 95% CI 1.14-1.21, 5659 days - **weak** |
+| Best weekday | **Thu**: 1.18x the quietest (Mon), 95% CI 1.14-1.21, 5660 days - **weak** |
 | Day activity Mon-Fri | Mon 0.90x / Tue 0.99x / Wed 1.01x / Thu 1.06x / Fri 1.03x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.47x other Fridays (259 NFP days; big moves 92.3% vs 37.2%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.25x a normal Wednesday (182 FOMC days; big moves 67.6% vs 6.0%) |
@@ -1137,7 +1137,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### XAGAUD (XAG_AUD) - Metals - watchlist
 
-2006-03-18 to 2026-10-29 (20.6 years, 251,367 half-hours). Best times: **reliable** (first vs second half rho 0.90).
+2006-03-18 to 2026-10-29 (20.6 years, 251,375 half-hours). Best times: **reliable** (first vs second half rho 0.90).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1147,7 +1147,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.18, 5329 days - **weak** |
+| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.18, 5330 days - **weak** |
 | Day activity Mon-Fri | Mon 0.92x / Tue 0.99x / Wed 1.01x / Thu 1.05x / Fri 1.03x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.03x other Fridays (240 NFP days; big moves 90.8% vs 49.7%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.47x a normal Wednesday (173 FOMC days; big moves 73.4% vs 6.9%) |
@@ -1156,7 +1156,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### XAGEUR (XAG_EUR) - Metals - watchlist
 
-2006-03-18 to 2026-10-29 (20.6 years, 251,502 half-hours). Best times: **reliable** (first vs second half rho 0.95).
+2006-03-18 to 2026-10-29 (20.6 years, 251,510 half-hours). Best times: **reliable** (first vs second half rho 0.95).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1166,7 +1166,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.13-1.19, 5328 days - **weak** |
+| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.13-1.18, 5329 days - **weak** |
 | Day activity Mon-Fri | Mon 0.92x / Tue 0.99x / Wed 1.00x / Thu 1.07x / Fri 1.04x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.0x other Fridays (240 NFP days; big moves 93.3% vs 55.3%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.46x a normal Wednesday (173 FOMC days; big moves 75.7% vs 8.1%) |
@@ -1175,17 +1175,17 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### XAGUSD (XAG_USD) - Metals - watchlist
 
-2006-03-19 to 2026-10-29 (20.6 years, 247,475 half-hours). Best times: **reliable** (first vs second half rho 0.91).
+2006-03-19 to 2026-10-29 (20.6 years, 247,483 half-hours). Best times: **reliable** (first vs second half rho 0.91).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 06:00-09:30 (peak **07:30**) | 09:30 ET | 2.91x | 3.71x | 2.28x | 62.4% | NYSE open 09:30 ET |
-| Best window 2 | 10:30-12:00 (peak **11:00**) | 13:00 ET | 1.50x | 1.67x | 1.35x | 22.4% |  |
+| Best window 2 | 10:30-12:00 (peak **11:00**) | 13:00 ET | 1.50x | 1.67x | 1.34x | 22.3% |  |
 | Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.31x | 1.36x | 1.27x | 16.3% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.11x the quietest (Mon), 95% CI 1.08-1.16, 5321 days - **weak** |
+| Best weekday | **Thu**: 1.11x the quietest (Mon), 95% CI 1.08-1.16, 5322 days - **weak** |
 | Day activity Mon-Fri | Mon 0.94x / Tue 0.98x / Wed 1.00x / Thu 1.04x / Fri 1.03x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.2x other Fridays (240 NFP days; big moves 93.8% vs 57.9%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.9x a normal Wednesday (173 FOMC days; big moves 79.2% vs 8.8%) |
@@ -1194,7 +1194,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### XAUAUD (XAU_AUD) - Metals - watchlist
 
-2006-03-18 to 2026-10-29 (20.6 years, 251,426 half-hours). Best times: **reliable** (first vs second half rho 0.92).
+2006-03-18 to 2026-10-29 (20.6 years, 251,434 half-hours). Best times: **reliable** (first vs second half rho 0.92).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1204,7 +1204,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.13-1.19, 5329 days - **reliable** |
+| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.13-1.2, 5330 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 1.00x / Wed 1.01x / Thu 1.05x / Fri 1.03x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.23x other Fridays (240 NFP days; big moves 91.7% vs 38.7%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.19x a normal Wednesday (173 FOMC days; big moves 73.4% vs 5.6%) |
@@ -1213,7 +1213,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### XAUCHF (XAU_CHF) - Metals - watchlist
 
-2006-03-18 to 2026-10-29 (20.6 years, 251,417 half-hours). Best times: **reliable** (first vs second half rho 0.97).
+2006-03-18 to 2026-10-29 (20.6 years, 251,425 half-hours). Best times: **reliable** (first vs second half rho 0.97).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1223,7 +1223,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.15x the quietest (Mon), 95% CI 1.12-1.18, 5328 days - **weak** |
+| Best weekday | **Thu**: 1.15x the quietest (Mon), 95% CI 1.12-1.18, 5329 days - **weak** |
 | Day activity Mon-Fri | Mon 0.92x / Tue 0.99x / Wed 0.99x / Thu 1.06x / Fri 1.03x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.2x other Fridays (240 NFP days; big moves 93.8% vs 48.5%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.32x a normal Wednesday (173 FOMC days; big moves 76.3% vs 7.1%) |
@@ -1232,7 +1232,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### XAUEUR (XAU_EUR) - Metals - watchlist
 
-2006-03-18 to 2026-10-29 (20.6 years, 251,617 half-hours). Best times: **reliable** (first vs second half rho 0.97).
+2006-03-18 to 2026-10-29 (20.6 years, 251,625 half-hours). Best times: **reliable** (first vs second half rho 0.97).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1242,7 +1242,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.15x the quietest (Mon), 95% CI 1.12-1.17, 5328 days - **reliable** |
+| Best weekday | **Thu**: 1.15x the quietest (Mon), 95% CI 1.12-1.17, 5329 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.92x / Tue 0.98x / Wed 0.99x / Thu 1.06x / Fri 1.03x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.27x other Fridays (240 NFP days; big moves 93.3% vs 47.7%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.36x a normal Wednesday (173 FOMC days; big moves 75.1% vs 7.4%) |
@@ -1251,7 +1251,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### XAUGBP (XAU_GBP) - Metals - watchlist
 
-2006-03-18 to 2026-10-29 (20.6 years, 251,375 half-hours). Best times: **reliable** (first vs second half rho 0.97).
+2006-03-18 to 2026-10-29 (20.6 years, 251,383 half-hours). Best times: **reliable** (first vs second half rho 0.97).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1261,7 +1261,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.12-1.17, 5329 days - **reliable** |
+| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.12-1.17, 5330 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 1.00x / Wed 1.01x / Thu 1.04x / Fri 1.02x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.17x other Fridays (240 NFP days; big moves 92.9% vs 45.5%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.21x a normal Wednesday (173 FOMC days; big moves 75.1% vs 6.8%) |
@@ -1270,7 +1270,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### XAUJPY (XAU_JPY) - Metals - watchlist
 
-2006-03-18 to 2026-10-29 (20.6 years, 251,463 half-hours). Best times: **reliable** (first vs second half rho 0.93).
+2006-03-18 to 2026-10-29 (20.6 years, 251,471 half-hours). Best times: **reliable** (first vs second half rho 0.93).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1280,7 +1280,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.16, 5328 days - **weak** |
+| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.16, 5329 days - **weak** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 0.98x / Wed 1.00x / Thu 1.05x / Fri 1.03x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.29x other Fridays (240 NFP days; big moves 92.1% vs 46.3%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.54x a normal Wednesday (173 FOMC days; big moves 79.2% vs 7.4%) |
@@ -1289,7 +1289,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### XAUUSD (XAU_USD) - Metals - watchlist
 
-2006-03-19 to 2026-10-29 (20.6 years, 248,350 half-hours). Best times: **reliable** (first vs second half rho 0.93).
+2006-03-19 to 2026-10-29 (20.6 years, 248,358 half-hours). Best times: **reliable** (first vs second half rho 0.93).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1299,16 +1299,16 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.13-1.19, 5323 days - **weak** |
-| Day activity Mon-Fri | Mon 0.91x / Tue 0.99x / Wed 1.01x / Thu 1.06x / Fri 1.04x |
+| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.13-1.19, 5324 days - **weak** |
+| Day activity Mon-Fri | Mon 0.91x / Tue 0.99x / Wed 1.01x / Thu 1.05x / Fri 1.04x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.54x other Fridays (240 NFP days; big moves 94.2% vs 57.2%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.72x a normal Wednesday (173 FOMC days; big moves 88.4% vs 10.1%) |
 | FOMC 14:30 ET press conf. (12:30) | range 4.36x a normal Wednesday (173 FOMC days; big moves 76.3% vs 6.4%) |
-| Era check | last 2 y vs all rho 0.86; before vs since 2020 rho 0.91; peak 08:00 -> 07:30 (last 2 y 07:30) - **stable** |
+| Era check | last 2 y vs all rho 0.87; before vs since 2020 rho 0.91; peak 08:00 -> 07:30 (last 2 y 07:30) - **stable** |
 
 ### XPDUSD (XPD_USD) - Metals - watchlist
 
-2005-01-03 to 2026-10-29 (21.8 years, 233,976 half-hours). Best times: **weak** (first vs second half rho 0.79).
+2005-01-03 to 2026-10-29 (21.8 years, 233,984 half-hours). Best times: **weak** (first vs second half rho 0.79).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1318,7 +1318,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.1x the quietest (Mon), 95% CI 1.07-1.13, 5260 days - **reliable** |
+| Best weekday | **Thu**: 1.1x the quietest (Mon), 95% CI 1.07-1.13, 5261 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.94x / Tue 1.00x / Wed 1.01x / Thu 1.03x / Fri 1.01x |
 | NFP 08:30 ET (06:30 Calgary) | range 1.44x other Fridays (236 NFP days; big moves 70.8% vs 51.9%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.14x a normal Wednesday (174 FOMC days; big moves 50.0% vs 16.0%) |
@@ -1327,7 +1327,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### XPTUSD (XPT_USD) - Metals - watchlist
 
-2005-01-03 to 2026-10-29 (21.8 years, 244,546 half-hours). Best times: **weak** (first vs second half rho 0.73).
+2005-01-03 to 2026-10-29 (21.8 years, 244,554 half-hours). Best times: **weak** (first vs second half rho 0.73).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1337,7 +1337,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.12x the quietest (Mon), 95% CI 1.09-1.15, 5344 days - **weak** |
+| Best weekday | **Thu**: 1.12x the quietest (Mon), 95% CI 1.09-1.15, 5345 days - **weak** |
 | Day activity Mon-Fri | Mon 0.92x / Tue 1.00x / Wed 1.02x / Thu 1.03x / Fri 1.02x |
 | NFP 08:30 ET (06:30 Calgary) | range 1.65x other Fridays (246 NFP days; big moves 66.7% vs 42.8%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.52x a normal Wednesday (179 FOMC days; big moves 57.0% vs 14.7%) |
@@ -1346,7 +1346,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### AUS200 (AU200_AUD) - Index / commodity CFDs - watchlist
 
-2005-01-03 to 2026-10-29 (21.8 years, 205,033 half-hours). Best times: **reliable** (first vs second half rho 0.84).
+2005-01-03 to 2026-10-29 (21.8 years, 205,041 half-hours). Best times: **reliable** (first vs second half rho 0.84).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1356,8 +1356,8 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.15x the quietest (Mon), 95% CI 1.11-1.18, 4915 days - **reliable** |
-| Day activity Mon-Fri | Mon 0.92x / Tue 1.00x / Wed 1.02x / Thu 1.06x / Fri 1.00x |
+| Best weekday | **Thu**: 1.15x the quietest (Mon), 95% CI 1.11-1.18, 4916 days - **reliable** |
+| Day activity Mon-Fri | Mon 0.92x / Tue 1.00x / Wed 1.02x / Thu 1.05x / Fri 1.00x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.37x other Fridays (176 NFP days; big moves 58.0% vs 8.1%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.79x a normal Wednesday (148 FOMC days; big moves 56.1% vs 5.6%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.72x a normal Wednesday (148 FOMC days; big moves 52.7% vs 5.3%) |
@@ -1365,7 +1365,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### CHINAH (CHINAH_HKD) - Index / commodity CFDs - watchlist
 
-2021-11-01 to 2026-10-29 (5.0 years, 39,948 half-hours). Best times: **reliable** (first vs second half rho 0.97).
+2021-11-01 to 2026-10-29 (5.0 years, 39,955 half-hours). Best times: **reliable** (first vs second half rho 0.97).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1375,7 +1375,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.1x the quietest (Wed), 95% CI 1.04-1.15, 1210 days - **weak** |
+| Best weekday | **Thu**: 1.1x the quietest (Wed), 95% CI 1.04-1.15, 1211 days - **weak** |
 | Day activity Mon-Fri | Mon 0.99x / Tue 1.00x / Wed 0.96x / Thu 1.05x / Fri 1.04x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.74x other Fridays (54 NFP days; big moves 51.9% vs 10.6%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.79x a normal Wednesday (27 FOMC days; big moves 33.3% vs 1.0%) |
@@ -1384,7 +1384,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### CN50 (CN50_USD) - Index / commodity CFDs - watchlist
 
-2011-08-29 to 2026-10-29 (15.2 years, 136,423 half-hours). Best times: **reliable** (first vs second half rho 0.90).
+2011-08-29 to 2026-10-29 (15.2 years, 136,430 half-hours). Best times: **reliable** (first vs second half rho 0.90).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1394,7 +1394,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Fri**: 1.07x the quietest (Wed), 95% CI 1.04-1.12, 3740 days - **weak** |
+| Best weekday | **Fri**: 1.07x the quietest (Wed), 95% CI 1.04-1.12, 3741 days - **weak** |
 | Day activity Mon-Fri | Mon 1.01x / Tue 0.97x / Wed 0.96x / Thu 1.01x / Fri 1.03x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.21x other Fridays (163 NFP days; big moves 38.7% vs 6.5%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.78x a normal Wednesday (84 FOMC days; big moves 41.7% vs 2.4%) |
@@ -1403,7 +1403,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### COPPER (XCU_USD) - Index / commodity CFDs - watchlist
 
-2005-01-03 to 2026-10-29 (21.8 years, 232,336 half-hours). Best times: **reliable** (first vs second half rho 0.95).
+2005-01-03 to 2026-10-29 (21.8 years, 232,344 half-hours). Best times: **reliable** (first vs second half rho 0.95).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1413,7 +1413,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.11x the quietest (Mon), 95% CI 1.08-1.14, 5087 days - **reliable** |
+| Best weekday | **Thu**: 1.11x the quietest (Mon), 95% CI 1.08-1.14, 5088 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 1.00x / Wed 0.99x / Thu 1.03x / Fri 1.00x |
 | NFP 08:30 ET (06:30 Calgary) | range 1.76x other Fridays (238 NFP days; big moves 80.7% vs 35.5%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.84x a normal Wednesday (168 FOMC days; big moves 51.2% vs 5.7%) |
@@ -1422,7 +1422,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### CORN (CORN_USD) - Index / commodity CFDs - watchlist
 
-2005-01-03 to 2026-10-29 (21.8 years, 176,613 half-hours). Best times: **weak** (first vs second half rho 0.92).
+2005-01-03 to 2026-10-29 (21.8 years, 176,621 half-hours). Best times: **weak** (first vs second half rho 0.92).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1432,7 +1432,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.04x the quietest (Fri), 95% CI 1.02-1.07, 5308 days - **weak** |
+| Best weekday | **Thu**: 1.04x the quietest (Fri), 95% CI 1.01-1.07, 5309 days - **weak** |
 | Day activity Mon-Fri | Mon 1.01x / Tue 0.98x / Wed 0.99x / Thu 1.01x / Fri 0.97x |
 | NFP 08:30 ET (06:30 Calgary) | range 1.29x other Fridays (160 NFP days; big moves 18.8% vs 11.2%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 1.0x a normal Wednesday (182 FOMC days; big moves 51.6% vs 51.0%) |
@@ -1441,7 +1441,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### EUSTX50 (EU50_EUR) - Index / commodity CFDs - watchlist
 
-2005-01-03 to 2026-10-29 (21.8 years, 167,806 half-hours). Best times: **reliable** (first vs second half rho 0.97).
+2005-01-03 to 2026-10-29 (21.8 years, 167,814 half-hours). Best times: **reliable** (first vs second half rho 0.97).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1460,7 +1460,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### FRA40 (FR40_EUR) - Index / commodity CFDs - watchlist
 
-2005-01-03 to 2026-10-29 (21.8 years, 151,724 half-hours). Best times: **reliable** (first vs second half rho 0.98).
+2005-01-03 to 2026-10-29 (21.8 years, 151,732 half-hours). Best times: **reliable** (first vs second half rho 0.98).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1479,7 +1479,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### GER40 (DE30_EUR) - Index / commodity CFDs - watchlist
 
-2005-01-03 to 2026-10-29 (21.8 years, 179,204 half-hours). Best times: **reliable** (first vs second half rho 0.98).
+2005-01-03 to 2026-10-29 (21.8 years, 179,212 half-hours). Best times: **reliable** (first vs second half rho 0.98).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1494,11 +1494,11 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 | NFP 08:30 ET (06:30 Calgary) | range 2.14x other Fridays (252 NFP days; big moves 75.0% vs 18.6%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.84x a normal Wednesday (172 FOMC days; big moves 51.2% vs 3.5%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.44x a normal Wednesday (172 FOMC days; big moves 41.3% vs 3.1%) |
-| Era check | last 2 y vs all rho 0.98; before vs since 2020 rho 0.98; peak 01:00 -> 01:00 (last 2 y 01:00) - **stable** |
+| Era check | last 2 y vs all rho 0.99; before vs since 2020 rho 0.98; peak 01:00 -> 01:00 (last 2 y 01:00) - **stable** |
 
 ### HK50 (HK33_HKD) - Index / commodity CFDs - watchlist
 
-2005-01-03 to 2026-10-29 (21.8 years, 121,428 half-hours). Best times: **weak** (first vs second half rho 0.82).
+2005-01-03 to 2026-10-29 (21.8 years, 121,435 half-hours). Best times: **weak** (first vs second half rho 0.82).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1508,7 +1508,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.05x the quietest (Wed), 95% CI 1.01-1.08, 3219 days - **weak** |
+| Best weekday | **Thu**: 1.05x the quietest (Wed), 95% CI 1.01-1.08, 3220 days - **weak** |
 | Day activity Mon-Fri | Mon 0.98x / Tue 0.99x / Wed 0.98x / Thu 1.03x / Fri 1.02x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.46x other Fridays (144 NFP days; big moves 38.2% vs 5.1%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.53x a normal Wednesday (44 FOMC days; big moves 31.8% vs 1.4%) |
@@ -1517,7 +1517,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### JPN225 (JP225Y_JPY) - Index / commodity CFDs - watchlist
 
-2005-01-03 to 2026-10-29 (21.8 years, 224,131 half-hours). Best times: **reliable** (first vs second half rho 0.89).
+2005-01-03 to 2026-10-29 (21.8 years, 224,139 half-hours). Best times: **reliable** (first vs second half rho 0.89).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1527,8 +1527,8 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.13-1.21, 5384 days - **reliable** |
-| Day activity Mon-Fri | Mon 0.91x / Tue 1.00x / Wed 1.01x / Thu 1.06x / Fri 1.04x |
+| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.13-1.2, 5385 days - **reliable** |
+| Day activity Mon-Fri | Mon 0.91x / Tue 1.00x / Wed 1.01x / Thu 1.05x / Fri 1.04x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.82x other Fridays (249 NFP days; big moves 71.1% vs 12.3%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.49x a normal Wednesday (180 FOMC days; big moves 64.4% vs 9.3%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.37x a normal Wednesday (181 FOMC days; big moves 61.3% vs 8.0%) |
@@ -1536,7 +1536,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### NAS100 (NAS100_USD) - Index / commodity CFDs - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 258,103 half-hours). Best times: **reliable** (first vs second half rho 0.97).
+2005-01-02 to 2026-10-29 (21.8 years, 258,111 half-hours). Best times: **reliable** (first vs second half rho 0.97).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1546,7 +1546,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.17, 5622 days - **reliable** |
+| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.18, 5623 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.92x / Tue 0.99x / Wed 1.02x / Thu 1.05x / Fri 0.98x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.86x other Fridays (258 NFP days; big moves 91.1% vs 30.2%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.54x a normal Wednesday (182 FOMC days; big moves 89.6% vs 43.1%) |
@@ -1555,7 +1555,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### NATGAS (NATGAS_USD) - Index / commodity CFDs - watchlist
 
-2005-01-03 to 2026-10-29 (21.8 years, 247,201 half-hours). Best times: **weak** (first vs second half rho 0.92).
+2005-01-03 to 2026-10-29 (21.8 years, 247,209 half-hours). Best times: **weak** (first vs second half rho 0.92).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1565,7 +1565,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.23x the quietest (Fri), 95% CI 1.19-1.26, 5610 days - **reliable** |
+| Best weekday | **Thu**: 1.22x the quietest (Fri), 95% CI 1.19-1.26, 5611 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.99x / Tue 0.99x / Wed 0.98x / Thu 1.14x / Fri 0.93x |
 | NFP 08:30 ET (06:30 Calgary) | range 1.12x other Fridays (252 NFP days; big moves 72.2% vs 68.6%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 1.0x a normal Wednesday (182 FOMC days; big moves 74.2% vs 69.4%) |
@@ -1574,7 +1574,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### NETH25 (NL25_EUR) - Index / commodity CFDs - watchlist
 
-2008-01-18 to 2026-10-29 (18.8 years, 128,669 half-hours). Best times: **reliable** (first vs second half rho 0.97).
+2008-01-18 to 2026-10-29 (18.8 years, 128,677 half-hours). Best times: **reliable** (first vs second half rho 0.97).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1593,7 +1593,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### SOYBEANS (SOYBN_USD) - Index / commodity CFDs - watchlist
 
-2005-01-03 to 2026-10-29 (21.8 years, 187,860 half-hours). Best times: **weak** (first vs second half rho 0.89).
+2005-01-03 to 2026-10-29 (21.8 years, 187,868 half-hours). Best times: **weak** (first vs second half rho 0.89).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1603,7 +1603,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.03x the quietest (Wed), 95% CI 1.0-1.06, 5433 days - **weak** |
+| Best weekday | **Thu**: 1.03x the quietest (Wed), 95% CI 1.0-1.06, 5434 days - **weak** |
 | Day activity Mon-Fri | Mon 1.01x / Tue 1.01x / Wed 0.98x / Thu 1.01x / Fri 0.99x |
 | NFP 08:30 ET (06:30 Calgary) | range 1.3x other Fridays (160 NFP days; big moves 15.0% vs 6.5%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 1.03x a normal Wednesday (182 FOMC days; big moves 46.2% vs 42.8%) |
@@ -1612,7 +1612,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### SPA35 (ESPIX_EUR) - Index / commodity CFDs - watchlist
 
-2016-12-01 to 2026-10-29 (9.9 years, 52,558 half-hours). Best times: **weak** (first vs second half rho 0.78).
+2016-12-01 to 2026-10-29 (9.9 years, 52,566 half-hours). Best times: **weak** (first vs second half rho 0.78).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1621,16 +1621,16 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.09x the quietest (Mon), 95% CI 1.07-1.12, 2508 days - **weak** |
+| Best weekday | **Thu**: 1.09x the quietest (Mon), 95% CI 1.06-1.13, 2509 days - **weak** |
 | Day activity Mon-Fri | Mon 0.94x / Tue 1.00x / Wed 1.00x / Thu 1.03x / Fri 1.02x |
 | NFP 08:30 ET (06:30 Calgary) | range 1.89x other Fridays (114 NFP days; big moves 38.6% vs 7.0%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 1.57x a normal Wednesday (9 FOMC days; big moves 0.0% vs 6.4%) |
 | FOMC 14:30 ET press conf. (12:30) | range 4.22x a normal Wednesday (9 FOMC days; big moves 55.6% vs 0.0%) |
-| Era check | last 2 y vs all rho 0.96; before vs since 2020 rho 0.86; peak 01:00 -> 01:00 (last 2 y 01:00) - **stable** |
+| Era check | last 2 y vs all rho 0.95; before vs since 2020 rho 0.86; peak 01:00 -> 01:00 (last 2 y 01:00) - **stable** |
 
 ### SPOTBRENT (BCO_USD) - Index / commodity CFDs - watchlist
 
-2005-01-04 to 2026-10-29 (21.8 years, 235,642 half-hours). Best times: **reliable** (first vs second half rho 0.97).
+2005-01-04 to 2026-10-29 (21.8 years, 235,650 half-hours). Best times: **reliable** (first vs second half rho 0.97).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1640,7 +1640,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Wed**: 1.09x the quietest (Mon), 95% CI 1.07-1.11, 5551 days - **reliable** |
+| Best weekday | **Wed**: 1.09x the quietest (Mon), 95% CI 1.07-1.11, 5552 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.96x / Tue 0.99x / Wed 1.04x / Thu 1.01x / Fri 0.97x |
 | NFP 08:30 ET (06:30 Calgary) | range 1.57x other Fridays (248 NFP days; big moves 58.9% vs 24.4%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 1.22x a normal Wednesday (181 FOMC days; big moves 66.3% vs 50.8%) |
@@ -1649,18 +1649,18 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### SPOTCRUDE (WTICO_USD) - Index / commodity CFDs - watchlist
 
-2005-01-03 to 2026-10-29 (21.8 years, 258,657 half-hours). Best times: **reliable** (first vs second half rho 0.95).
+2005-01-03 to 2026-10-29 (21.8 years, 258,665 half-hours). Best times: **reliable** (first vs second half rho 0.95).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 07:00-10:00 (peak **08:30**) | 10:30 ET | 3.60x | 5.43x | 2.38x | 63.7% | first stock hour |
 | Best window 2 | 12:00-12:30 (peak **12:00**) | 14:00 ET | 3.56x | 5.49x | 2.31x | 61.7% | US 14:00 ET (FOMC days; oil settles 14:30 ET) |
-| Best window 3 | 01:30-05:00 (peak **02:00**) | 04:00 ET | 1.48x | 1.65x | 1.33x | 16.0% | London 2nd hour / London open in DST-mismatch weeks |
+| Best window 3 | 01:30-05:00 (peak **02:00**) | 04:00 ET | 1.48x | 1.65x | 1.33x | 15.9% | London 2nd hour / London open in DST-mismatch weeks |
 
 |  |  |
 |---|---|
-| Best weekday | **Wed**: 1.1x the quietest (Mon), 95% CI 1.06-1.12, 5619 days - **reliable** |
-| Day activity Mon-Fri | Mon 0.96x / Tue 0.99x / Wed 1.06x / Thu 1.02x / Fri 0.97x |
+| Best weekday | **Wed**: 1.1x the quietest (Mon), 95% CI 1.06-1.12, 5620 days - **reliable** |
+| Day activity Mon-Fri | Mon 0.97x / Tue 0.99x / Wed 1.06x / Thu 1.02x / Fri 0.97x |
 | NFP 08:30 ET (06:30 Calgary) | range 1.59x other Fridays (252 NFP days; big moves 69.8% vs 37.9%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 1.27x a normal Wednesday (182 FOMC days; big moves 73.6% vs 61.3%) |
 | FOMC 14:30 ET press conf. (12:30) | range 1.4x a normal Wednesday (171 FOMC days; big moves 24.0% vs 6.3%) |
@@ -1668,7 +1668,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### SUGAR (SUGAR_USD) - Index / commodity CFDs - watchlist
 
-2005-01-03 to 2026-10-28 (21.8 years, 103,385 half-hours). Best times: **weak** (first vs second half rho 0.82).
+2005-01-03 to 2026-10-29 (21.8 years, 103,391 half-hours). Best times: **weak** (first vs second half rho 0.82).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1687,7 +1687,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### SWI20 (CH20_CHF) - Index / commodity CFDs - watchlist
 
-2005-01-03 to 2026-10-29 (21.8 years, 126,228 half-hours). Best times: **reliable** (first vs second half rho 0.87).
+2005-01-03 to 2026-10-29 (21.8 years, 126,236 half-hours). Best times: **reliable** (first vs second half rho 0.87).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1706,7 +1706,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### UK100 (UK100_GBP) - Index / commodity CFDs - watchlist
 
-2005-01-04 to 2026-10-29 (21.8 years, 180,184 half-hours). Best times: **reliable** (first vs second half rho 0.97).
+2005-01-04 to 2026-10-29 (21.8 years, 180,192 half-hours). Best times: **reliable** (first vs second half rho 0.97).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1716,7 +1716,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.11x the quietest (Mon), 95% CI 1.08-1.14, 4641 days - **reliable** |
+| Best weekday | **Thu**: 1.11x the quietest (Mon), 95% CI 1.08-1.14, 4642 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 1.00x / Wed 1.01x / Thu 1.04x / Fri 1.02x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.02x other Fridays (250 NFP days; big moves 62.4% vs 11.5%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.38x a normal Wednesday (153 FOMC days; big moves 45.8% vs 4.1%) |
@@ -1725,7 +1725,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### US2000 (US2000_USD) - Index / commodity CFDs - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 249,361 half-hours). Best times: **reliable** (first vs second half rho 0.95).
+2005-01-02 to 2026-10-29 (21.8 years, 249,369 half-hours). Best times: **reliable** (first vs second half rho 0.95).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1735,7 +1735,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.1-1.18, 5612 days - **reliable** |
+| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.1-1.18, 5613 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 1.00x / Wed 1.03x / Thu 1.06x / Fri 1.00x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.94x other Fridays (259 NFP days; big moves 91.9% vs 28.4%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.43x a normal Wednesday (182 FOMC days; big moves 92.3% vs 44.4%) |
@@ -1744,7 +1744,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### US30 (US30_USD) - Index / commodity CFDs - watchlist
 
-2005-01-03 to 2026-10-29 (21.8 years, 255,258 half-hours). Best times: **reliable** (first vs second half rho 0.98).
+2005-01-03 to 2026-10-29 (21.8 years, 255,266 half-hours). Best times: **reliable** (first vs second half rho 0.98).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1754,7 +1754,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.15x the quietest (Mon), 95% CI 1.12-1.19, 5608 days - **reliable** |
+| Best weekday | **Thu**: 1.15x the quietest (Mon), 95% CI 1.12-1.18, 5609 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 1.00x / Wed 1.01x / Thu 1.04x / Fri 1.01x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.85x other Fridays (258 NFP days; big moves 90.3% vs 28.0%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.61x a normal Wednesday (182 FOMC days; big moves 89.6% vs 40.2%) |
@@ -1763,7 +1763,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### US500 (SPX500_USD) - Index / commodity CFDs - watchlist
 
-2005-01-02 to 2026-10-29 (21.8 years, 258,133 half-hours). Best times: **reliable** (first vs second half rho 0.96).
+2005-01-02 to 2026-10-29 (21.8 years, 258,141 half-hours). Best times: **reliable** (first vs second half rho 0.96).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1773,7 +1773,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.11-1.2, 5622 days - **reliable** |
+| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.12-1.2, 5623 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.90x / Tue 0.99x / Wed 1.01x / Thu 1.05x / Fri 1.01x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.94x other Fridays (258 NFP days; big moves 91.9% vs 28.2%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.78x a normal Wednesday (182 FOMC days; big moves 91.8% vs 39.2%) |
@@ -1782,7 +1782,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### WHEAT (WHEAT_USD) - Index / commodity CFDs - watchlist
 
-2005-01-03 to 2026-10-29 (21.8 years, 179,057 half-hours). Best times: **weak** (first vs second half rho 0.95).
+2005-01-03 to 2026-10-29 (21.8 years, 179,065 half-hours). Best times: **weak** (first vs second half rho 0.95).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1792,7 +1792,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.04x the quietest (Fri), 95% CI 1.02-1.07, 5128 days - **weak** |
+| Best weekday | **Thu**: 1.04x the quietest (Fri), 95% CI 1.02-1.07, 5129 days - **weak** |
 | Day activity Mon-Fri | Mon 1.00x / Tue 0.99x / Wed 1.00x / Thu 1.01x / Fri 0.97x |
 | NFP 08:30 ET (06:30 Calgary) | range 1.33x other Fridays (160 NFP days; big moves 14.4% vs 9.3%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 1.13x a normal Wednesday (177 FOMC days; big moves 60.5% vs 54.7%) |
@@ -1801,7 +1801,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### AUDHKD (AUD_HKD) - Exotics
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,191 half-hours). Best times: **reliable** (first vs second half rho 0.94).
+2005-01-02 to 2026-10-29 (21.8 years, 275,199 half-hours). Best times: **reliable** (first vs second half rho 0.94).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1811,7 +1811,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.2x the quietest (Mon), 95% CI 1.17-1.23, 5660 days - **reliable** |
+| Best weekday | **Thu**: 1.2x the quietest (Mon), 95% CI 1.17-1.23, 5661 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.88x / Tue 1.00x / Wed 1.04x / Thu 1.06x / Fri 1.02x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.91x other Fridays (259 NFP days; big moves 93.4% vs 34.4%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.77x a normal Wednesday (182 FOMC days; big moves 87.9% vs 5.3%) |
@@ -1820,7 +1820,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### CADHKD (CAD_HKD) - Exotics
 
-2005-01-02 to 2026-10-29 (21.8 years, 274,852 half-hours). Best times: **reliable** (first vs second half rho 0.95).
+2005-01-02 to 2026-10-29 (21.8 years, 274,860 half-hours). Best times: **reliable** (first vs second half rho 0.95).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1830,16 +1830,16 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Fri**: 1.19x the quietest (Mon), 95% CI 1.16-1.22, 5658 days - **reliable** |
+| Best weekday | **Fri**: 1.19x the quietest (Mon), 95% CI 1.16-1.22, 5659 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.89x / Tue 0.99x / Wed 1.04x / Thu 1.02x / Fri 1.06x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.13x other Fridays (259 NFP days; big moves 93.8% vs 60.8%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.76x a normal Wednesday (182 FOMC days; big moves 87.4% vs 8.6%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.88x a normal Wednesday (182 FOMC days; big moves 76.4% vs 7.0%) |
-| Era check | last 2 y vs all rho 0.92; before vs since 2020 rho 0.94; peak 08:30 -> 07:30 (last 2 y 08:00) - **stable** |
+| Era check | last 2 y vs all rho 0.93; before vs since 2020 rho 0.94; peak 08:30 -> 07:30 (last 2 y 08:00) - **stable** |
 
 ### CADSGD (CAD_SGD) - Exotics
 
-2005-01-02 to 2026-10-29 (21.8 years, 274,885 half-hours). Best times: **reliable** (first vs second half rho 0.96).
+2005-01-02 to 2026-10-29 (21.8 years, 274,893 half-hours). Best times: **reliable** (first vs second half rho 0.96).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1849,16 +1849,16 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Fri**: 1.18x the quietest (Mon), 95% CI 1.15-1.21, 5659 days - **reliable** |
+| Best weekday | **Fri**: 1.18x the quietest (Mon), 95% CI 1.15-1.21, 5660 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.98x / Wed 1.02x / Thu 1.03x / Fri 1.07x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.05x other Fridays (259 NFP days; big moves 92.7% vs 53.6%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.06x a normal Wednesday (182 FOMC days; big moves 75.3% vs 5.8%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.26x a normal Wednesday (182 FOMC days; big moves 54.9% vs 4.5%) |
-| Era check | last 2 y vs all rho 0.76; before vs since 2020 rho 0.95; peak 08:00 -> 07:30 (last 2 y 07:30) - **shifted** |
+| Era check | last 2 y vs all rho 0.77; before vs since 2020 rho 0.95; peak 08:00 -> 07:30 (last 2 y 07:30) - **shifted** |
 
 ### CHFHKD (CHF_HKD) - Exotics
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,116 half-hours). Best times: **reliable** (first vs second half rho 0.98).
+2005-01-02 to 2026-10-29 (21.8 years, 275,124 half-hours). Best times: **reliable** (first vs second half rho 0.98).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1868,7 +1868,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.18x the quietest (Mon), 95% CI 1.15-1.21, 5659 days - **reliable** |
+| Best weekday | **Thu**: 1.18x the quietest (Mon), 95% CI 1.15-1.21, 5660 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.98x / Wed 1.02x / Thu 1.07x / Fri 1.04x |
 | NFP 08:30 ET (06:30 Calgary) | range 3.05x other Fridays (259 NFP days; big moves 94.2% vs 47.7%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 5.0x a normal Wednesday (182 FOMC days; big moves 90.1% vs 6.3%) |
@@ -1877,7 +1877,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### CHFZAR (CHF_ZAR) - Exotics
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,191 half-hours). Best times: **reliable** (first vs second half rho 0.98).
+2005-01-02 to 2026-10-29 (21.8 years, 275,199 half-hours). Best times: **reliable** (first vs second half rho 0.98).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1887,7 +1887,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.12-1.16, 5659 days - **reliable** |
+| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.12-1.16, 5660 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 0.98x / Wed 1.02x / Thu 1.06x / Fri 1.01x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.23x other Fridays (259 NFP days; big moves 91.5% vs 37.2%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.83x a normal Wednesday (182 FOMC days; big moves 68.1% vs 6.0%) |
@@ -1896,7 +1896,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### EURDKK (EUR_DKK) - Exotics
 
-2005-01-02 to 2026-10-29 (21.8 years, 257,017 half-hours). Best times: **reliable** (first vs second half rho 0.87).
+2005-01-02 to 2026-10-29 (21.8 years, 257,025 half-hours). Best times: **reliable** (first vs second half rho 0.87).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1906,26 +1906,26 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Fri**: 1.06x the quietest (Mon), 95% CI 1.03-1.09, 5653 days - **reliable** |
+| Best weekday | **Fri**: 1.06x the quietest (Mon), 95% CI 1.03-1.09, 5654 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.98x / Tue 0.98x / Wed 1.01x / Thu 1.02x / Fri 1.04x |
 | NFP 08:30 ET (06:30 Calgary) | range 1.13x other Fridays (259 NFP days; big moves 35.5% vs 31.0%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 1.57x a normal Wednesday (182 FOMC days; big moves 35.7% vs 19.5%) |
 | FOMC 14:30 ET press conf. (12:30) | range 1.46x a normal Wednesday (179 FOMC days; big moves 25.1% vs 18.4%) |
-| Era check | last 2 y vs all rho 0.65; before vs since 2020 rho 0.79; peak 09:00 -> 08:30 (last 2 y 08:30) - **shifted** |
+| Era check | last 2 y vs all rho 0.64; before vs since 2020 rho 0.79; peak 09:00 -> 08:30 (last 2 y 08:30) - **shifted** |
 
 ### EURHKD (EUR_HKD) - Exotics
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,508 half-hours). Best times: **reliable** (first vs second half rho 0.99).
+2005-01-02 to 2026-10-29 (21.8 years, 275,516 half-hours). Best times: **reliable** (first vs second half rho 0.99).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 2.19x | 2.47x | 1.95x | 47.1% | 10:00 ET data (ISM, JOLTS, sentiment) |
-| Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 1.97x | 2.12x | 1.83x | 44.0% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 1.97x | 2.12x | 1.83x | 43.9% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 | Best window 3 | 00:00-05:30 (peak **01:00**) | 03:00 ET | 1.75x | 1.88x | 1.63x | 30.8% | London open 08:00 (normal weeks) |
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.2x the quietest (Mon), 95% CI 1.17-1.23, 5659 days - **reliable** |
+| Best weekday | **Thu**: 1.19x the quietest (Mon), 95% CI 1.17-1.22, 5660 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.89x / Tue 0.98x / Wed 1.02x / Thu 1.07x / Fri 1.04x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.94x other Fridays (259 NFP days; big moves 95.4% vs 48.2%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 5.5x a normal Wednesday (182 FOMC days; big moves 90.7% vs 6.7%) |
@@ -1934,7 +1934,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### GBPHKD (GBP_HKD) - Exotics
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,153 half-hours). Best times: **reliable** (first vs second half rho 0.98).
+2005-01-02 to 2026-10-29 (21.8 years, 275,161 half-hours). Best times: **reliable** (first vs second half rho 0.98).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1944,7 +1944,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.15x the quietest (Mon), 95% CI 1.12-1.18, 5659 days - **weak** |
+| Best weekday | **Thu**: 1.15x the quietest (Mon), 95% CI 1.12-1.18, 5660 days - **weak** |
 | Day activity Mon-Fri | Mon 0.90x / Tue 0.99x / Wed 1.03x / Thu 1.04x / Fri 1.02x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.5x other Fridays (259 NFP days; big moves 93.1% vs 43.6%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.5x a normal Wednesday (182 FOMC days; big moves 88.5% vs 5.1%) |
@@ -1953,7 +1953,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### GBPPLN (GBP_PLN) - Exotics
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,203 half-hours). Best times: **reliable** (first vs second half rho 0.97).
+2005-01-02 to 2026-10-29 (21.8 years, 275,211 half-hours). Best times: **reliable** (first vs second half rho 0.97).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1963,7 +1963,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.12x the quietest (Mon), 95% CI 1.08-1.15, 5659 days - **reliable** |
+| Best weekday | **Thu**: 1.12x the quietest (Mon), 95% CI 1.08-1.15, 5660 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 0.99x / Wed 1.02x / Thu 1.05x / Fri 1.02x |
 | NFP 08:30 ET (06:30 Calgary) | range 1.91x other Fridays (259 NFP days; big moves 84.9% vs 36.8%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.98x a normal Wednesday (182 FOMC days; big moves 59.9% vs 3.9%) |
@@ -1972,7 +1972,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### GBPZAR (GBP_ZAR) - Exotics
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,101 half-hours). Best times: **reliable** (first vs second half rho 0.97).
+2005-01-02 to 2026-10-29 (21.8 years, 275,109 half-hours). Best times: **reliable** (first vs second half rho 0.97).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -1982,7 +1982,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.16, 5659 days - **reliable** |
+| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.12-1.16, 5660 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.92x / Tue 0.98x / Wed 1.03x / Thu 1.04x / Fri 1.00x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.19x other Fridays (259 NFP days; big moves 88.8% vs 36.4%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.92x a normal Wednesday (182 FOMC days; big moves 63.7% vs 5.7%) |
@@ -1991,7 +1991,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### HKDJPY (HKD_JPY) - Exotics
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,075 half-hours). Best times: **reliable** (first vs second half rho 0.96).
+2005-01-02 to 2026-10-29 (21.8 years, 275,083 half-hours). Best times: **reliable** (first vs second half rho 0.96).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -2001,16 +2001,16 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.15x the quietest (Mon), 95% CI 1.12-1.18, 5659 days - **weak** |
+| Best weekday | **Thu**: 1.15x the quietest (Mon), 95% CI 1.11-1.18, 5660 days - **weak** |
 | Day activity Mon-Fri | Mon 0.90x / Tue 0.98x / Wed 1.03x / Thu 1.04x / Fri 1.04x |
 | NFP 08:30 ET (06:30 Calgary) | range 3.27x other Fridays (259 NFP days; big moves 93.4% vs 42.5%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 5.08x a normal Wednesday (182 FOMC days; big moves 85.7% vs 7.1%) |
 | FOMC 14:30 ET press conf. (12:30) | range 3.66x a normal Wednesday (182 FOMC days; big moves 73.1% vs 5.2%) |
-| Era check | last 2 y vs all rho 0.99; before vs since 2020 rho 0.99; peak 08:00 -> 08:00 (last 2 y 08:00) - **stable** |
+| Era check | last 2 y vs all rho 0.99; before vs since 2020 rho 0.98; peak 08:00 -> 08:00 (last 2 y 08:00) - **stable** |
 
 ### NZDHKD (NZD_HKD) - Exotics
 
-2008-06-07 to 2026-10-29 (18.4 years, 230,971 half-hours). Best times: **reliable** (first vs second half rho 0.94).
+2008-06-07 to 2026-10-29 (18.4 years, 230,979 half-hours). Best times: **reliable** (first vs second half rho 0.94).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -2020,7 +2020,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.22x the quietest (Mon), 95% CI 1.19-1.25, 4768 days - **weak** |
+| Best weekday | **Thu**: 1.22x the quietest (Mon), 95% CI 1.19-1.25, 4769 days - **weak** |
 | Day activity Mon-Fri | Mon 0.88x / Tue 0.99x / Wed 1.06x / Thu 1.07x / Fri 1.02x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.99x other Fridays (217 NFP days; big moves 92.6% vs 33.1%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 5.14x a normal Wednesday (153 FOMC days; big moves 84.3% vs 5.4%) |
@@ -2029,7 +2029,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### NZDSGD (NZD_SGD) - Exotics
 
-2008-06-07 to 2026-10-29 (18.4 years, 231,058 half-hours). Best times: **reliable** (first vs second half rho 0.95).
+2008-06-07 to 2026-10-29 (18.4 years, 231,066 half-hours). Best times: **reliable** (first vs second half rho 0.95).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -2039,7 +2039,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.18x the quietest (Mon), 95% CI 1.16-1.21, 4768 days - **weak** |
+| Best weekday | **Thu**: 1.18x the quietest (Mon), 95% CI 1.16-1.21, 4769 days - **weak** |
 | Day activity Mon-Fri | Mon 0.89x / Tue 1.00x / Wed 1.05x / Thu 1.06x / Fri 1.03x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.83x other Fridays (217 NFP days; big moves 90.3% vs 27.9%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.41x a normal Wednesday (153 FOMC days; big moves 79.1% vs 4.0%) |
@@ -2048,7 +2048,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### SGDCHF (SGD_CHF) - Exotics
 
-2005-01-02 to 2026-10-29 (21.8 years, 275,228 half-hours). Best times: **reliable** (first vs second half rho 0.97).
+2005-01-02 to 2026-10-29 (21.8 years, 275,236 half-hours). Best times: **reliable** (first vs second half rho 0.97).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -2058,7 +2058,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.13-1.18, 5659 days - **reliable** |
+| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.13-1.18, 5660 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.92x / Tue 0.99x / Wed 1.00x / Thu 1.07x / Fri 1.04x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.71x other Fridays (259 NFP days; big moves 92.3% vs 35.1%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.02x a normal Wednesday (182 FOMC days; big moves 85.2% vs 4.4%) |
@@ -2067,12 +2067,12 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### TRYJPY (TRY_JPY) - Exotics
 
-2007-02-12 to 2026-10-29 (19.7 years, 237,079 half-hours). Best times: **reliable** (first vs second half rho 0.98).
+2007-02-12 to 2026-10-29 (19.7 years, 237,085 half-hours). Best times: **reliable** (first vs second half rho 0.98).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 07:00-10:00 (peak **08:00**) | 10:00 ET | 1.98x | 2.35x | 1.66x | 34.8% | 10:00 ET data (ISM, JOLTS, sentiment) |
-| Best window 2 | 05:00-07:00 (peak **06:30**) | 08:30 ET | 1.83x | 2.16x | 1.55x | 32.4% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 2 | 05:00-07:00 (peak **06:30**) | 08:30 ET | 1.83x | 2.16x | 1.55x | 32.5% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 | Best window 3 | 00:00-05:00 (peak **01:00**) | 03:00 ET | 1.77x | 2.01x | 1.56x | 29.0% | London open 08:00 (normal weeks) |
 
 |  |  |
@@ -2082,11 +2082,11 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 | NFP 08:30 ET (06:30 Calgary) | range 2.97x other Fridays (232 NFP days; big moves 90.1% vs 34.8%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.04x a normal Wednesday (154 FOMC days; big moves 80.5% vs 8.3%) |
 | FOMC 14:30 ET press conf. (12:30) | range 3.14x a normal Wednesday (154 FOMC days; big moves 63.0% vs 6.0%) |
-| Era check | last 2 y vs all rho 0.71; before vs since 2020 rho 0.89; peak 08:00 -> 08:00 (last 2 y 08:00) - **shifted** |
+| Era check | last 2 y vs all rho 0.70; before vs since 2020 rho 0.89; peak 08:00 -> 08:00 (last 2 y 08:00) - **shifted** |
 
 ### USDDKK (USD_DKK) - Exotics
 
-2005-01-02 to 2026-10-29 (21.8 years, 274,942 half-hours). Best times: **reliable** (first vs second half rho 0.99).
+2005-01-02 to 2026-10-29 (21.8 years, 274,950 half-hours). Best times: **reliable** (first vs second half rho 0.99).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -2096,7 +2096,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.19x the quietest (Mon), 95% CI 1.16-1.22, 5657 days - **reliable** |
+| Best weekday | **Thu**: 1.19x the quietest (Mon), 95% CI 1.16-1.22, 5658 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.89x / Tue 0.99x / Wed 1.02x / Thu 1.06x / Fri 1.03x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.94x other Fridays (259 NFP days; big moves 95.4% vs 48.5%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 5.54x a normal Wednesday (182 FOMC days; big moves 91.2% vs 6.7%) |
@@ -2105,17 +2105,17 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### XAGCAD (XAG_CAD) - Metals
 
-2006-03-19 to 2026-10-29 (20.6 years, 251,086 half-hours). Best times: **reliable** (first vs second half rho 0.94).
+2006-03-19 to 2026-10-29 (20.6 years, 251,094 half-hours). Best times: **reliable** (first vs second half rho 0.94).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
 | Best window 1 | 07:00-09:30 (peak **07:30**) | 09:30 ET | 2.50x | 2.81x | 2.22x | 58.9% | NYSE open 09:30 ET |
-| Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 2.27x | 2.44x | 2.11x | 54.1% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
+| Best window 2 | 06:00-07:00 (peak **06:30**) | 08:30 ET | 2.27x | 2.44x | 2.11x | 54.0% | US data 08:30 ET (NFP, CPI, retail sales, claims) |
 | Best window 3 | 10:30-13:00 (peak **11:00**) | 13:00 ET | 1.37x | 1.39x | 1.35x | 22.0% |  |
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.12x the quietest (Mon), 95% CI 1.08-1.15, 5328 days - **weak** |
+| Best weekday | **Thu**: 1.12x the quietest (Mon), 95% CI 1.09-1.15, 5329 days - **weak** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 0.99x / Wed 1.01x / Thu 1.04x / Fri 1.03x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.02x other Fridays (240 NFP days; big moves 92.5% vs 62.1%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.41x a normal Wednesday (173 FOMC days; big moves 76.3% vs 7.9%) |
@@ -2124,7 +2124,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### XAGCHF (XAG_CHF) - Metals
 
-2006-03-18 to 2026-10-29 (20.6 years, 251,338 half-hours). Best times: **reliable** (first vs second half rho 0.94).
+2006-03-18 to 2026-10-29 (20.6 years, 251,346 half-hours). Best times: **reliable** (first vs second half rho 0.94).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -2134,16 +2134,16 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.17, 5328 days - **reliable** |
+| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.17, 5329 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 0.99x / Wed 1.01x / Thu 1.06x / Fri 1.03x |
 | NFP 08:30 ET (06:30 Calgary) | range 1.95x other Fridays (240 NFP days; big moves 93.8% vs 53.2%) |
-| FOMC 14:00 ET (12:00 Calgary) | range 3.41x a normal Wednesday (173 FOMC days; big moves 75.1% vs 8.1%) |
+| FOMC 14:00 ET (12:00 Calgary) | range 3.41x a normal Wednesday (173 FOMC days; big moves 74.6% vs 8.1%) |
 | FOMC 14:30 ET press conf. (12:30) | range 3.2x a normal Wednesday (173 FOMC days; big moves 66.5% vs 5.7%) |
 | Era check | last 2 y vs all rho 0.88; before vs since 2020 rho 0.92; peak 08:00 -> 07:30 (last 2 y 07:30) - **stable** |
 
 ### XAGGBP (XAG_GBP) - Metals
 
-2006-03-18 to 2026-10-29 (20.6 years, 251,243 half-hours). Best times: **reliable** (first vs second half rho 0.95).
+2006-03-18 to 2026-10-29 (20.6 years, 251,251 half-hours). Best times: **reliable** (first vs second half rho 0.95).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -2153,7 +2153,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.17, 5329 days - **reliable** |
+| Best weekday | **Thu**: 1.13x the quietest (Mon), 95% CI 1.11-1.17, 5330 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 0.99x / Wed 1.01x / Thu 1.05x / Fri 1.02x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.0x other Fridays (240 NFP days; big moves 92.9% vs 53.2%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.49x a normal Wednesday (173 FOMC days; big moves 74.6% vs 7.8%) |
@@ -2162,7 +2162,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### XAGHKD (XAG_HKD) - Metals
 
-2008-06-07 to 2026-10-29 (18.4 years, 222,054 half-hours). Best times: **reliable** (first vs second half rho 0.89).
+2008-06-07 to 2026-10-29 (18.4 years, 222,062 half-hours). Best times: **reliable** (first vs second half rho 0.89).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -2172,7 +2172,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.12x the quietest (Mon), 95% CI 1.09-1.15, 4752 days - **weak** |
+| Best weekday | **Thu**: 1.12x the quietest (Mon), 95% CI 1.09-1.15, 4753 days - **weak** |
 | Day activity Mon-Fri | Mon 0.94x / Tue 0.99x / Wed 1.00x / Thu 1.05x / Fri 1.04x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.33x other Fridays (213 NFP days; big moves 93.4% vs 55.6%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.25x a normal Wednesday (153 FOMC days; big moves 83.7% vs 9.1%) |
@@ -2181,7 +2181,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### XAGJPY (XAG_JPY) - Metals
 
-2006-03-18 to 2026-10-29 (20.6 years, 251,357 half-hours). Best times: **reliable** (first vs second half rho 0.93).
+2006-03-18 to 2026-10-29 (20.6 years, 251,365 half-hours). Best times: **reliable** (first vs second half rho 0.93).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -2191,16 +2191,16 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.1-1.18, 5328 days - **weak** |
+| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.1-1.17, 5329 days - **weak** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 0.98x / Wed 1.01x / Thu 1.05x / Fri 1.04x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.04x other Fridays (240 NFP days; big moves 92.1% vs 52.5%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.48x a normal Wednesday (173 FOMC days; big moves 78.0% vs 7.9%) |
 | FOMC 14:30 ET press conf. (12:30) | range 3.28x a normal Wednesday (173 FOMC days; big moves 65.9% vs 5.5%) |
-| Era check | last 2 y vs all rho 0.90; before vs since 2020 rho 0.91; peak 07:30 -> 07:30 (last 2 y 07:30) - **stable** |
+| Era check | last 2 y vs all rho 0.91; before vs since 2020 rho 0.91; peak 07:30 -> 07:30 (last 2 y 07:30) - **stable** |
 
 ### XAGNZD (XAG_NZD) - Metals
 
-2006-03-19 to 2026-10-29 (20.6 years, 250,670 half-hours). Best times: **reliable** (first vs second half rho 0.89).
+2006-03-19 to 2026-10-29 (20.6 years, 250,678 half-hours). Best times: **reliable** (first vs second half rho 0.89).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -2210,16 +2210,16 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.18, 5325 days - **reliable** |
+| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.18, 5326 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 0.99x / Wed 1.02x / Thu 1.06x / Fri 1.01x |
-| NFP 08:30 ET (06:30 Calgary) | range 2.05x other Fridays (239 NFP days; big moves 92.1% vs 49.1%) |
+| NFP 08:30 ET (06:30 Calgary) | range 2.04x other Fridays (239 NFP days; big moves 92.1% vs 49.1%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.31x a normal Wednesday (173 FOMC days; big moves 70.5% vs 6.3%) |
 | FOMC 14:30 ET press conf. (12:30) | range 2.9x a normal Wednesday (173 FOMC days; big moves 61.8% vs 5.2%) |
 | Era check | last 2 y vs all rho 0.90; before vs since 2020 rho 0.89; peak 07:30 -> 07:30 (last 2 y 07:30) - **stable** |
 
 ### XAGSGD (XAG_SGD) - Metals
 
-2008-06-07 to 2026-10-29 (18.4 years, 222,405 half-hours). Best times: **reliable** (first vs second half rho 0.94).
+2008-06-07 to 2026-10-29 (18.4 years, 222,413 half-hours). Best times: **reliable** (first vs second half rho 0.94).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -2229,7 +2229,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.17, 4752 days - **weak** |
+| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.11-1.17, 4753 days - **weak** |
 | Day activity Mon-Fri | Mon 0.93x / Tue 0.99x / Wed 1.01x / Thu 1.06x / Fri 1.04x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.15x other Fridays (213 NFP days; big moves 93.9% vs 53.6%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.95x a normal Wednesday (153 FOMC days; big moves 81.7% vs 8.8%) |
@@ -2238,7 +2238,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### XAUCAD (XAU_CAD) - Metals
 
-2006-03-19 to 2026-10-29 (20.6 years, 251,198 half-hours). Best times: **reliable** (first vs second half rho 0.95).
+2006-03-19 to 2026-10-29 (20.6 years, 251,206 half-hours). Best times: **reliable** (first vs second half rho 0.95).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -2248,7 +2248,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.12-1.17, 5328 days - **weak** |
+| Best weekday | **Thu**: 1.14x the quietest (Mon), 95% CI 1.12-1.17, 5329 days - **weak** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.99x / Wed 1.01x / Thu 1.05x / Fri 1.04x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.06x other Fridays (240 NFP days; big moves 93.8% vs 62.4%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.3x a normal Wednesday (173 FOMC days; big moves 80.3% vs 8.0%) |
@@ -2257,7 +2257,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### XAUHKD (XAU_HKD) - Metals
 
-2008-06-07 to 2026-10-29 (18.4 years, 222,142 half-hours). Best times: **reliable** (first vs second half rho 0.93).
+2008-06-07 to 2026-10-29 (18.4 years, 222,150 half-hours). Best times: **reliable** (first vs second half rho 0.93).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -2267,7 +2267,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.12-1.19, 4752 days - **weak** |
+| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.13-1.19, 4753 days - **weak** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 0.99x / Wed 1.00x / Thu 1.06x / Fri 1.05x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.71x other Fridays (213 NFP days; big moves 93.9% vs 56.2%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.92x a normal Wednesday (153 FOMC days; big moves 89.5% vs 9.8%) |
@@ -2276,7 +2276,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### XAUNZD (XAU_NZD) - Metals
 
-2006-03-19 to 2026-10-29 (20.6 years, 250,795 half-hours). Best times: **reliable** (first vs second half rho 0.92).
+2006-03-19 to 2026-10-29 (20.6 years, 250,803 half-hours). Best times: **reliable** (first vs second half rho 0.92).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -2286,7 +2286,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.13-1.19, 5325 days - **reliable** |
+| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.13-1.19, 5326 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.91x / Tue 1.00x / Wed 1.02x / Thu 1.05x / Fri 1.01x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.17x other Fridays (239 NFP days; big moves 91.6% vs 36.1%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.34x a normal Wednesday (173 FOMC days; big moves 72.3% vs 5.3%) |
@@ -2295,7 +2295,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### XAUSGD (XAU_SGD) - Metals
 
-2008-06-07 to 2026-10-29 (18.4 years, 222,558 half-hours). Best times: **reliable** (first vs second half rho 0.96).
+2008-06-07 to 2026-10-29 (18.4 years, 222,566 half-hours). Best times: **reliable** (first vs second half rho 0.96).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -2305,7 +2305,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.13x the quietest (Mon), 95% CI 1.1-1.17, 4752 days - **weak** |
+| Best weekday | **Thu**: 1.13x the quietest (Mon), 95% CI 1.1-1.17, 4753 days - **weak** |
 | Day activity Mon-Fri | Mon 0.92x / Tue 0.99x / Wed 1.00x / Thu 1.05x / Fri 1.05x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.48x other Fridays (213 NFP days; big moves 94.4% vs 49.9%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.35x a normal Wednesday (153 FOMC days; big moves 86.9% vs 8.5%) |
@@ -2314,7 +2314,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### XAUXAG (XAU_XAG) - Metals
 
-2006-03-19 to 2026-10-29 (20.6 years, 247,710 half-hours). Best times: **reliable** (first vs second half rho 0.91).
+2006-03-19 to 2026-10-29 (20.6 years, 247,718 half-hours). Best times: **reliable** (first vs second half rho 0.91).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -2324,7 +2324,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.1x the quietest (Mon), 95% CI 1.07-1.13, 5320 days - **weak** |
+| Best weekday | **Thu**: 1.1x the quietest (Mon), 95% CI 1.07-1.13, 5321 days - **weak** |
 | Day activity Mon-Fri | Mon 0.95x / Tue 0.99x / Wed 1.01x / Thu 1.04x / Fri 1.03x |
 | NFP 08:30 ET (06:30 Calgary) | range 1.92x other Fridays (239 NFP days; big moves 89.5% vs 47.7%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 3.0x a normal Wednesday (173 FOMC days; big moves 73.4% vs 6.8%) |
@@ -2333,7 +2333,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### DE10YBEUR (DE10YB_EUR) - Index / commodity CFDs
 
-2005-01-03 to 2026-10-29 (21.8 years, 178,800 half-hours). Best times: **reliable** (first vs second half rho 0.98).
+2005-01-03 to 2026-10-29 (21.8 years, 178,808 half-hours). Best times: **reliable** (first vs second half rho 0.98).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -2352,7 +2352,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### JPN225 (JP225_USD) - Index / commodity CFDs
 
-2005-01-03 to 2026-10-29 (21.8 years, 225,041 half-hours). Best times: **reliable** (first vs second half rho 0.89).
+2005-01-03 to 2026-10-29 (21.8 years, 225,049 half-hours). Best times: **reliable** (first vs second half rho 0.89).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -2362,7 +2362,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.13-1.21, 5406 days - **weak** |
+| Best weekday | **Thu**: 1.16x the quietest (Mon), 95% CI 1.12-1.21, 5407 days - **weak** |
 | Day activity Mon-Fri | Mon 0.90x / Tue 1.00x / Wed 1.01x / Thu 1.05x / Fri 1.04x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.82x other Fridays (250 NFP days; big moves 70.8% vs 12.1%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.5x a normal Wednesday (180 FOMC days; big moves 65.6% vs 9.3%) |
@@ -2371,7 +2371,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### SG30SGD (SG30_SGD) - Index / commodity CFDs
 
-2005-01-03 to 2026-10-29 (21.8 years, 177,853 half-hours). Best times: **reliable** (first vs second half rho 0.81).
+2005-01-03 to 2026-10-29 (21.8 years, 177,861 half-hours). Best times: **reliable** (first vs second half rho 0.81).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -2381,7 +2381,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.09x the quietest (Mon), 95% CI 1.05-1.11, 4486 days - **reliable** |
+| Best weekday | **Thu**: 1.09x the quietest (Mon), 95% CI 1.05-1.12, 4487 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.94x / Tue 0.98x / Wed 1.00x / Thu 1.02x / Fri 0.99x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.37x other Fridays (227 NFP days; big moves 45.8% vs 8.8%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 2.65x a normal Wednesday (85 FOMC days; big moves 49.4% vs 5.2%) |
@@ -2390,7 +2390,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### UK10YBGBP (UK10YB_GBP) - Index / commodity CFDs
 
-2005-01-04 to 2026-10-28 (21.8 years, 109,756 half-hours). Best times: **reliable** (first vs second half rho 0.96).
+2005-01-04 to 2026-10-29 (21.8 years, 109,763 half-hours). Best times: **reliable** (first vs second half rho 0.96).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -2407,7 +2407,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### USB02YUSD (USB02Y_USD) - Index / commodity CFDs
 
-2005-01-03 to 2026-10-29 (21.8 years, 215,189 half-hours). Best times: **reliable** (first vs second half rho 0.95).
+2005-01-03 to 2026-10-29 (21.8 years, 215,197 half-hours). Best times: **reliable** (first vs second half rho 0.95).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -2417,7 +2417,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Fri**: 1.32x the quietest (Mon), 95% CI 1.27-1.38, 5333 days - **reliable** |
+| Best weekday | **Fri**: 1.32x the quietest (Mon), 95% CI 1.27-1.38, 5334 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.83x / Tue 0.95x / Wed 1.06x / Thu 1.06x / Fri 1.09x |
 | NFP 08:30 ET (06:30 Calgary) | range 3.93x other Fridays (257 NFP days; big moves 96.5% vs 57.5%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 7.55x a normal Wednesday (182 FOMC days; big moves 89.0% vs 15.0%) |
@@ -2426,7 +2426,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### USB05YUSD (USB05Y_USD) - Index / commodity CFDs
 
-2005-01-03 to 2026-10-29 (21.8 years, 246,501 half-hours). Best times: **reliable** (first vs second half rho 0.95).
+2005-01-03 to 2026-10-29 (21.8 years, 246,509 half-hours). Best times: **reliable** (first vs second half rho 0.95).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -2436,7 +2436,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.3x the quietest (Mon), 95% CI 1.26-1.35, 5597 days - **reliable** |
+| Best weekday | **Thu**: 1.3x the quietest (Mon), 95% CI 1.26-1.35, 5598 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.83x / Tue 0.96x / Wed 1.06x / Thu 1.08x / Fri 1.06x |
 | NFP 08:30 ET (06:30 Calgary) | range 3.56x other Fridays (259 NFP days; big moves 96.1% vs 66.2%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 5.66x a normal Wednesday (182 FOMC days; big moves 94.0% vs 17.1%) |
@@ -2445,7 +2445,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### USB10YUSD (USB10Y_USD) - Index / commodity CFDs
 
-2005-01-03 to 2026-10-29 (21.8 years, 250,786 half-hours). Best times: **reliable** (first vs second half rho 0.94).
+2005-01-03 to 2026-10-29 (21.8 years, 250,794 half-hours). Best times: **reliable** (first vs second half rho 0.94).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -2455,7 +2455,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.32x the quietest (Mon), 95% CI 1.28-1.36, 5601 days - **weak** |
+| Best weekday | **Thu**: 1.32x the quietest (Mon), 95% CI 1.28-1.36, 5602 days - **weak** |
 | Day activity Mon-Fri | Mon 0.82x / Tue 0.96x / Wed 1.06x / Thu 1.08x / Fri 1.06x |
 | NFP 08:30 ET (06:30 Calgary) | range 3.38x other Fridays (259 NFP days; big moves 96.1% vs 65.0%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.94x a normal Wednesday (182 FOMC days; big moves 93.4% vs 16.2%) |
@@ -2464,7 +2464,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 ### USB30YUSD (USB30Y_USD) - Index / commodity CFDs
 
-2005-01-03 to 2026-10-29 (21.8 years, 247,990 half-hours). Best times: **reliable** (first vs second half rho 0.92).
+2005-01-03 to 2026-10-29 (21.8 years, 247,998 half-hours). Best times: **reliable** (first vs second half rho 0.92).
 
 |  | Calgary | Peak NY | Activity | Volume | Range | Big-move days | What happens then |
 |---|---|---|---|---|---|---|---|
@@ -2474,7 +2474,7 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 |  |  |
 |---|---|
-| Best weekday | **Thu**: 1.28x the quietest (Mon), 95% CI 1.26-1.33, 5597 days - **reliable** |
+| Best weekday | **Thu**: 1.28x the quietest (Mon), 95% CI 1.25-1.33, 5598 days - **reliable** |
 | Day activity Mon-Fri | Mon 0.84x / Tue 0.97x / Wed 1.05x / Thu 1.08x / Fri 1.05x |
 | NFP 08:30 ET (06:30 Calgary) | range 2.93x other Fridays (259 NFP days; big moves 96.1% vs 69.0%) |
 | FOMC 14:00 ET (12:00 Calgary) | range 4.04x a normal Wednesday (182 FOMC days; big moves 92.9% vs 19.0%) |
@@ -2494,19 +2494,19 @@ One table per instrument (watchlist first). "reliable" = the first and second ha
 
 | Data | Shard | Asked | Analysed | Missing | API requests | Time | Feed |
 |---|---|---|---|---|---|---|---|
-| fx | 0/2 | 64 | 64 | 0 | 64 | 1 min | - |
+| fx | 0/2 | 64 | 64 | 0 | 64 | 0 min | - |
 | fx | 1/2 | 59 | 59 | 0 | 59 | 0 min | - |
-| stocks | 0/4 | 248 | 246 | 2 | 11226 | 232 min | sip |
-| stocks | 1/4 | 236 | 236 | 0 | 10384 | 215 min | sip |
-| stocks | 2/4 | 257 | 255 | 2 | 10666 | 220 min | sip |
-| stocks | 3/4 | 275 | 275 | 0 | 12378 | 256 min | sip |
+| stocks | 0/4 | 248 | 246 | 2 | 5 | 0 min | sip |
+| stocks | 1/4 | 236 | 236 | 0 | 9 | 0 min | sip |
+| stocks | 2/4 | 257 | 255 | 2 | 6 | 0 min | sip |
+| stocks | 3/4 | 275 | 275 | 0 | 6 | 0 min | sip |
 
 Missing instruments (first 25 per shard):
 
-- stocks FDXF: too little data (1874 bars)
-- stocks VYLR: too little data (385 bars)
-- stocks HONA: too little data (1949 bars)
-- stocks TEVA: too little data (788 bars)
+- stocks FDXF: too little data (1875 bars)
+- stocks VYLR: too little data (386 bars)
+- stocks HONA: too little data (1955 bars)
+- stocks TEVA: too little data (791 bars)
 
 ## Caveats
 
