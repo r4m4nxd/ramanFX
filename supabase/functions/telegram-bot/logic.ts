@@ -5,6 +5,7 @@
 // Layout = the scanners' calm Telegram style: a bold heading, short lines, a timeframe per symbol (MN W1 D1 4H 1H),
 // distances in percent (never pips), Calgary 12-hour times (America/Edmonton zone rules), HTML escaped, < 4096 chars.
 
+import { buildIndex, lessonPath, mentorOf, search as askSearch, type AskIndex } from './ask.ts';
 import { aggregate, monthKey, quarterKey, tfLabel, weekKey, type Band, type Bar, type ChartModel, type Panel } from './chart.ts';
 
 export type Button = { text: string; url: string } | { text: string; callback_data: string };
@@ -25,7 +26,9 @@ export interface Ctx {
 }
 
 /** The command list: Telegram's Menu (setMyCommands reads commands.json, kept equal by a test), /help and the pin. */
-export const COMMANDS: { command: string; description: string; group: 'Markets' | 'Symbol lookup' | 'Times'; usage: string; help: string }[] = [
+export type Group = 'Markets' | 'Symbol lookup' | 'Times' | 'Learn';
+export const GROUPS: Group[] = ['Markets', 'Symbol lookup', 'Times', 'Learn'];
+export const COMMANDS: { command: string; description: string; group: Group; usage: string; help: string }[] = [
   { command: 'fx', description: 'Open FX setups + getting close', group: 'Markets', usage: '/fx', help: 'open FX setups, getting close, in a zone' },
   { command: 'stocks', description: "Today's stock BUY / WATCH", group: 'Markets', usage: '/stocks', help: "today's stock BUY / WATCH, close to a zone" },
   { command: 'signals', description: 'Every open BUY / SELL / WATCH', group: 'Markets', usage: '/signals', help: 'every open BUY / SELL / WATCH, both markets' },
@@ -36,7 +39,8 @@ export const COMMANDS: { command: string; description: string; group: 'Markets' 
   { command: 'hours', description: 'Best times / days for a symbol', group: 'Symbol lookup', usage: '/hours XAUUSD', help: 'best Calgary times and weekdays' },
   { command: 'times', description: "Today's key Calgary times", group: 'Times', usage: '/times', help: "today's key Calgary times" },
   { command: 'next', description: 'Next NFP, CPI and Fed decision', group: 'Times', usage: '/next', help: 'next jobs report, CPI, Fed decision' },
-  { command: 'help', description: 'This list', group: 'Times', usage: '/help', help: 'this list' },
+  { command: 'ask', description: 'Ask the lessons a question', group: 'Learn', usage: '/ask what is a proximal line', help: "the mentors' own words (or end any message with ?)" },
+  { command: 'help', description: 'This list', group: 'Learn', usage: '/help', help: 'this list' },
 ];
 
 export const APP = 'https://raman-fx.vercel.app';
@@ -218,7 +222,7 @@ const cbOk = (d: string) => new TextEncoder().encode(d).length <= 64;
 // ---- commands ------------------------------------------------------------------------------------------------------
 export function helpText(): string {
   const lines = ['🤖 <b>RamanFX bot · commands</b>', 'Type a command, or just send a symbol (EURUSD, XAUUSD, NVDA).'];
-  for (const g of ['Markets', 'Symbol lookup', 'Times'] as const) {
+  for (const g of GROUPS) {
     lines.push('', `<b>${g}</b>`);
     for (const c of COMMANDS.filter(x => x.group === g)) lines.push(`${esc(c.usage)} · ${esc(c.help)}`);
   }
@@ -646,12 +650,44 @@ export async function handleCallback(data: string, ctx: Ctx): Promise<Reply> {
   return { cmd: 'callback?', text: HINT };
 }
 
+// ---- /ask (lesson passages, BM25) ----------------------------------------------------------------------------------
+let askIx: { src: unknown; ix: AskIndex | null } | null = null;
+function trimQuote(t: string, n: number): string {
+  const s = t.replace(/\s+/g, ' ').trim();
+  if (s.length <= n) return s;
+  const cut = s.slice(0, n);
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), n - 20))}…`;
+}
+async function cmdAsk(q: string, ctx: Ctx): Promise<Reply> {
+  const question = q.trim().slice(0, 300);
+  if (!question) return { cmd: 'ask', text: 'Ask after it, e.g. <b>/ask what is a proximal line</b>, or end any message with <b>?</b>' };
+  const js = await ctx.load('ask/passages.json');
+  if (!askIx || askIx.src !== js) askIx = { src: js, ix: buildIndex(js) };
+  const ix = askIx.ix;
+  if (!ix) return { cmd: 'ask', text: '⚠️ <b>Lessons unavailable</b>\nThe lesson passages did not load. Try again in a minute.' };
+  const hits = askSearch(ix, question, 3);
+  if (!hits.length) return { cmd: 'ask', text: `💬 <b>${esc(trimQuote(question, 120))}</b>\nNothing in the lessons matches those words. Try other words, or the Ask page.`, buttons: kb('Open Ask', '/ask') };
+  for (const qlen of [420, 300, 200, 140]) {
+    const lines = [`💬 <b>${esc(trimQuote(question, 120))}</b>`, 'From the lessons, in their own words:'];
+    hits.forEach((h, i) => {
+      const title = h.lesson.src === 'glossary' ? 'Glossary' : `${mentorOf(h.lesson.src)} · ${h.lesson.n}. ${h.lesson.title}`;
+      lines.push('', `<b>${i + 1}. ${esc(title)}</b>`, `<i>“${esc(trimQuote(h.p.t, qlen))}”</i>`);
+    });
+    lines.push('', FOOT);
+    const text = lines.join('\n');
+    if (text.length <= 1500 || qlen === 140) {
+      return { cmd: 'ask', text: text.slice(0, 1500), buttons: hits.map(h => [{ text: `📖 Open ${h.lesson.src === 'glossary' ? 'glossary' : `${h.lesson.n}. ${trimQuote(h.lesson.title, 34)}`}`, url: `${APP}${lessonPath(h.lesson.src, h.lesson.n)}` }]) };
+    }
+  }
+  return { cmd: 'ask', text: HINT };
+}
+
 // ---- dispatch ------------------------------------------------------------------------------------------------------
-export function parseCommand(text: string): { cmd: string; arg: string; arg2: string } | null {
+export function parseCommand(text: string): { cmd: string; arg: string; arg2: string; rest: string } | null {
   const m = /^\/([A-Za-z_]+)(?:@\w+)?(?:\s+([\s\S]*))?$/.exec(text.trim());
   if (!m) return null;
   const a = (m[2] ?? '').trim().split(/\s+/);
-  return { cmd: m[1].toLowerCase(), arg: a[0] ?? '', arg2: a[1] ?? '' };
+  return { cmd: m[1].toLowerCase(), arg: a[0] ?? '', arg2: a[1] ?? '', rest: (m[2] ?? '').trim() };
 }
 const SYMBOLISH = /^[A-Za-z][A-Za-z0-9.\/_:-]{0,14}$/;
 const HINT = 'Not sure what that means. Send /help for the list, or just a symbol like <b>EURUSD</b> or <b>NVDA</b>.';
@@ -659,11 +695,12 @@ const HINT = 'Not sure what that means. Send /help for the list, or just a symbo
 export async function handle(text: string, ctx: Ctx): Promise<Reply> {
   const t = (text ?? '').trim();
   const quick = QUICK_MAP.get(t.toLowerCase());
-  const c = quick ? { cmd: quick, arg: '', arg2: '' } : parseCommand(t);
+  const c = quick ? { cmd: quick, arg: '', arg2: '', rest: '' } : parseCommand(t);
   if (c) {
     switch (c.cmd) {
       case 'start': case 'help': return { cmd: c.cmd, text: helpText(), keyboard: true };
       case 'chart': return cmdChart(c.arg, c.arg2, ctx);
+      case 'ask': return cmdAsk(c.rest, ctx);
       case 'fx': return cmdFx(ctx);
       case 'stocks': return cmdStocks(ctx);
       case 'signals': return cmdSignals(ctx);
@@ -676,6 +713,7 @@ export async function handle(text: string, ctx: Ctx): Promise<Reply> {
       default: return { cmd: 'unknown', text: HINT };
     }
   }
+  if (t.endsWith('?') && t.length > 3) return cmdAsk(t, ctx);
   if (SYMBOLISH.test(t)) {
     const { hit, suggest } = await resolve(t, ctx);
     if (hit) return hit.market === 'fx' ? fxZones(hit, ctx) : stockZones(hit, ctx);

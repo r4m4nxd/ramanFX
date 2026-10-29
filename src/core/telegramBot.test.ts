@@ -36,8 +36,8 @@ describe('telegram bot', () => {
   });
 
   it('parses commands, @bot suffixes and arguments', () => {
-    expect(parseCommand('/zones EURUSD')).toEqual({ cmd: 'zones', arg: 'EURUSD', arg2: '' });
-    expect(parseCommand('/Zones@RamanFXBot  nvda more')).toEqual({ cmd: 'zones', arg: 'nvda', arg2: 'more' });
+    expect(parseCommand('/zones EURUSD')).toEqual({ cmd: 'zones', arg: 'EURUSD', arg2: '', rest: 'EURUSD' });
+    expect(parseCommand('/Zones@RamanFXBot  nvda more')).toEqual({ cmd: 'zones', arg: 'nvda', arg2: 'more', rest: 'nvda more' });
     expect(parseCommand('EURUSD')).toBeNull();
     expect(lev('EURUDS', 'EURUSD')).toBe(2);
     expect(esc(shortPct(0.01))).toBe('&lt;0.1%');
@@ -250,6 +250,24 @@ describe('telegram bot', () => {
     const q = renderSvg((await chartData('EURUSD', 'Q', c))!.model);
     expect(q).toContain('W1 up trendline (broken)');
     expect((q.match(/class="tl /g) ?? []).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('/ask and questions ending with ?: lesson quotes (BM25), <= 1500 chars, open-lesson buttons', async () => {
+    const r = await handle('/ask what is a proximal line', ctx());
+    expect(r.cmd).toBe('ask');
+    expect(r.text.length).toBeLessThanOrEqual(1500);
+    expect(r.text).toMatch(/<b>1\. /);
+    expect(r.text.toLowerCase()).toContain('proximal');
+    expect(r.text).toContain('not advice');
+    const urls = (r.buttons ?? []).flat().map(b => ('url' in b ? b.url : ''));
+    expect(urls.length).toBeGreaterThanOrEqual(2);
+    for (const u of urls) expect(u).toMatch(/^https:\/\/raman-fx\.vercel\.app\/learn\?/);
+    noRawLt(r.text);
+    const q = await handle('How many base candles?', ctx());
+    expect(q.cmd).toBe('ask');
+    expect(q.text.toLowerCase()).toMatch(/base|candle/);
+    expect((await handle('/ask', ctx())).text).toContain('/ask what is a proximal line');
+    expect((await handle('/ask zzqqxx', ctx())).text).toContain('Nothing in the lessons');
   });
 });
 

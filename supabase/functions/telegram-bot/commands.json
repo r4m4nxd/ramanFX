@@ -9,5 +9,6 @@
   {"command": "hours", "description": "Best times / days for a symbol"},
   {"command": "times", "description": "Today's key Calgary times"},
   {"command": "next", "description": "Next NFP, CPI and Fed decision"},
+  {"command": "ask", "description": "Ask the lessons a question"},
   {"command": "help", "description": "This list"}
 ]
