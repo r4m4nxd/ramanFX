@@ -594,10 +594,10 @@ def peaks(bt: List[dict], thr: float = 1.25, frac: float = 0.67) -> List[dict]:
         if (i > 0 and sc[i - 1] > sc[i]) or (i + 1 < len(bt) and sc[i + 1] > sc[i]):
             continue
         lo = hi = i
-        while lo - 1 >= 0 and lo - 1 not in used and sc[lo - 1] >= frac * sc[i] and sc[lo - 1] <= sc[i] \
+        while lo - 1 >= 0 and lo - 1 not in used and sc[lo - 1] >= frac * sc[i] and sc[lo - 1] <= 1.05 * sc[lo] \
                 and _mins(bt[lo]['mt']) - _mins(bt[lo - 1]['mt']) == 30:
             lo -= 1
-        while hi + 1 < len(bt) and hi + 1 not in used and sc[hi + 1] >= frac * sc[i] and sc[hi + 1] <= sc[i] \
+        while hi + 1 < len(bt) and hi + 1 not in used and sc[hi + 1] >= frac * sc[i] and sc[hi + 1] <= 1.05 * sc[hi] \
                 and _mins(bt[hi + 1]['mt']) - _mins(bt[hi]['mt']) == 30:
             hi += 1
         used |= set(range(lo, hi + 1))
@@ -666,11 +666,13 @@ def fx(x, suf='x'):
 
 
 EVENT_NOTE = {
-    '17:00': 'Tokyo open (winter, Nov-Mar)', '18:00': 'Tokyo open (summer, Mar-Nov) / Tokyo first hour',
+    '17:00': 'Tokyo open (winter, Nov-Mar)', '18:00': 'Asia morning: Tokyo 09:00-10:00 JST (Tokyo fix 09:55), China / Australia data',
     '01:00': 'London open (normal weeks)', '02:00': 'London open (US/UK DST-mismatch weeks) / Frankfurt+London 2nd hour',
     '06:30': 'US data 08:30 ET (NFP, CPI, retail sales, claims)', '07:30': 'NYSE open 09:30 ET',
     '08:00': '10:00 ET data (ISM, JOLTS, sentiment) / first stock hour', '09:00': 'London 16:00 close + WM/R fix (normal weeks)',
-    '12:00': '14:00 ET: FOMC statement (8 days a year)', '14:00': 'NYSE close 16:00 ET', '13:30': 'last stock half-hour',
+    '12:00': '14:00 ET: FOMC statement (8 days a year)', '14:00': 'NYSE close 16:00 ET: closing-auction prints (volume, not range)',
+    '13:30': 'last regular half-hour (MOC imbalances, index rebalancing)',
+    '18:30': 'Asia morning', '19:00': 'Asia morning (Tokyo / China / Australia data)',
     '15:00': 'FX rollover 17:00 ET (spreads widen)', '07:00': 'stock pre-market last half-hour / 09:00 ET',
 }
 
@@ -695,7 +697,7 @@ def build_md(R: dict) -> str:
              'days on which the peak half-hour\'s range was more than 2x typical. The window around each peak keeps at '
              'least 2/3 of the peak\'s activity. Listed in clock order of a Calgary trading day (Tokyo evening first).\n')
     rows = []
-    for lab, part in (('Forex + gold', fxr), ('US stocks', sk)):
+    for lab, part in (('Forex + gold', fxr), ('Index / oil CFDs', R.get('cfd') or {}), ('US stocks', sk)):
         for w in part.get('peaks') or []:
             rows.append([f"{w['from_mt']}-{w['to_mt']}", f"{w['from_ny']}-{w['to_ny']}", lab, f"**{w['peak_mt']}**",
                          EVENT_NOTE.get(w['peak_mt'], ''), fx(w['peak_rv']), fx(w['peak_rr']), f"{w['peak_big_pct']}%"])
@@ -858,47 +860,74 @@ def build_md(R: dict) -> str:
     return '\n'.join(L)
 
 
+def _spread(bt: Dict[str, dict]) -> str:
+    sc = [b['score'] for b in bt.values() if b.get('score')]
+    return f'{max(sc) / min(sc):.0f}' if sc else '-'
+
+
 def narrative(R: dict) -> str:
-    """Plain-English summary built from the measured numbers."""
-    fxr, sk = R.get('forex') or {}, R.get('stocks') or {}
-    out = []
+    """Plain-English daily routine built from the measured numbers (every number below is computed, not typed)."""
+    fxr, cfd, sk = R.get('forex') or {}, R.get('cfd') or {}, R.get('stocks') or {}
     bt = {b['mt']: b for b in fxr.get('by_time') or []}
+    cbt = {b['mt']: b for b in cfd.get('by_time') or []}
     sbt = {b['mt']: b for b in sk.get('by_time') or []}
 
     def g(d, k, f='score'):
-        return (d.get(k) or {}).get(f)
+        v = (d.get(k) or {}).get(f)
+        return '-' if v is None else f'{v:g}x' if isinstance(v, (int, float)) and f != 'big_pct' else f'{v}%'
+    sch = lambda part, k: (part.get('scheduled') or {}).get(k) or {}
+    nfp, fomc, fpc = sch(fxr, 'nfp_0830'), sch(fxr, 'fomc_1400'), sch(fxr, 'fomc_1430')
+    snfp, sfpc = sch(sk, 'nfp_0830'), sch(sk, 'fomc_1430')
+    out = ['**The routine, in plain words** (activity = sqrt(volume x range) vs a typical half-hour; 1.0x = typical):']
     if bt:
-        best = sorted(bt.values(), key=lambda b: -b['score'])[:3]
-        quiet = sorted(bt.values(), key=lambda b: b['score'])[:3]
-        out.append('**Forex + gold.** The busiest half-hours (Mon-Fri) start at '
-                   + ', '.join(f"{b['mt']} ({b['score']}x)" for b in best)
-                   + ' Calgary. London open 01:00 scores ' + str(g(bt, '01:00')) + 'x, the 06:30 US-data half-hour '
-                   + str(g(bt, '06:30')) + 'x, 07:30 (NY stock open) ' + str(g(bt, '07:30')) + 'x, 09:00 (London close / '
-                   'fix) ' + str(g(bt, '09:00')) + 'x. Quietest: ' + ', '.join(b['mt'] for b in quiet) + ' Calgary.')
+        out.append(f"1. **06:00-10:00 Calgary = the main window, every weekday.** Forex + gold activity climbs from "
+                   f"{g(bt, '06:00')} at 06:00 to {g(bt, '06:30')} at 06:30 (US data at 08:30 ET), {g(bt, '07:30')} at 07:30 "
+                   f"(NYSE open) and peaks at **08:00 ({g(bt, '08:00')}; {g(bt, '08:00', 'big_pct')} of days have a "
+                   f"big move in that half-hour)**, then fades through 09:00 (London close / fix, {g(bt, '09:00')}) to "
+                   f"{g(bt, '10:00')} at 10:00. Index CFDs (US500 / US30 / NAS100) explode at **07:30: "
+                   f"{g(cbt, '07:30')}** ({g(cbt, '07:30', 'big_pct')} big-move days). Stocks: **07:30 = {g(sbt, '07:30')}**, "
+                   f"08:00 {g(sbt, '08:00')}, 08:30 {g(sbt, '08:30')}.")
+        out.append(f"2. **00:30-02:00 Calgary = London open (01:00).** A smaller forex peak: {g(bt, '01:00')} at 01:00 "
+                   f"({g(bt, '01:00', 'big_pct')} big-move days). In the US/UK DST-mismatch weeks it moves to 02:00 "
+                   f"(see the daylight-saving table). Worth an alarm only if you trade the London open.")
+    if nfp:
+        out.append(f"3. **NFP Fridays (first Friday) at 06:30 Calgary:** the 06:30 half-hour range is "
+                   f"**{nfp['range_ratio_med']}x** the same half-hour on other Fridays (forex + gold, every instrument "
+                   f"between {nfp['range_ratio_min']}x and {nfp['range_ratio_max']}x; big-move days "
+                   f"{nfp['big_event_pct_med']}% vs {nfp['big_ctrl_pct_med']}%; {nfp['n_event_med']} NFP days)."
+                   + (f" Stocks pre-market at 06:30: {snfp['range_ratio_med']}x." if snfp else ''))
+    if fomc:
+        out.append(f"4. **FOMC days (8 a year, Wednesdays) at 12:00-13:00 Calgary:** the 12:00 statement half-hour range "
+                   f"is **{fomc['range_ratio_med']}x** a normal Wednesday and the 12:30 press-conference half-hour "
+                   f"**{fpc.get('range_ratio_med')}x** (big-move days {fpc.get('big_event_pct_med')}% vs "
+                   f"{fpc.get('big_ctrl_pct_med')}%; {fomc['n_event_med']} FOMC days). On other days 12:00 is quiet "
+                   f"({g(bt, '12:00')})." + (f" Stocks at 12:30 on FOMC days: {sfpc['range_ratio_med']}x." if sfpc else ''))
     if sbt:
-        best = sorted(sbt.values(), key=lambda b: -b['score'])[:3]
-        out.append('**US stocks.** The open dominates: ' + ', '.join(f"{b['mt']} ({b['score']}x)" for b in best)
-                   + ' Calgary; the 13:30 last half-hour scores ' + str(g(sbt, '13:30')) + 'x and the midday 10:30-11:30 '
-                   'lull about ' + str(g(sbt, '11:00')) + 'x. Pre-market 06:30 (08:30 ET data) scores '
-                   + str(g(sbt, '06:30')) + 'x.')
+        out.append(f"5. **13:30-14:00 Calgary = stock close.** The last regular half-hour has {g(sbt, '13:30', 'rv')} "
+                   f"volume but only {g(sbt, '13:30', 'rr')} range: lots of volume (closing orders), not much price "
+                   f"travel. The 14:00 bucket's volume ({g(sbt, '14:00', 'rv')}) is mostly closing-auction prints. "
+                   f"Index CFDs at 13:30: {g(cbt, '13:30')}.")
+    if bt:
+        out.append(f"6. **18:00-19:30 Calgary = Asia morning** (Sun-Thu evenings): a mild pickup, {g(bt, '18:00')} at "
+                   f"18:00 and {g(bt, '19:00')} at 19:00. Measured at 18:00 in both seasons (see the daylight-saving "
+                   f"table).")
+        out.append(f"7. **Quiet: 11:30-17:30 Calgary.** Forex drops below typical from 11:30 ({g(bt, '11:30')}), is "
+                   f"lowest at 15:00 ({g(bt, '15:00')}: the 17:00 ET rollover, when spreads widen - avoid entries "
+                   f"then) and stays quiet until the Asian morning.")
     dw = fxr.get('day_of_week') or []
+    sd = sk.get('day_of_week') or []
     if dw:
         s = sorted(dw, key=lambda d: -(d['rel_day_range'] or 0))
-        out.append('**Weekdays (forex).** Biggest day ranges: ' + ', '.join(f"{d['weekday']} {d['rel_day_range']}x" for d in s[:2])
-                   + '; smallest: ' + ', '.join(f"{d['weekday']} {d['rel_day_range']}x" for d in s[-2:]) + '.')
-    sd = sk.get('day_of_week') or []
-    if sd:
-        s = sorted(sd, key=lambda d: -(d['rel_day_volume'] or 0))
-        out.append('**Weekdays (stocks).** Highest day volume: ' + ', '.join(f"{d['weekday']} {d['rel_day_volume']}x" for d in s[:2])
-                   + '; lowest: ' + ', '.join(f"{d['weekday']} {d['rel_day_volume']}x" for d in s[-2:]) + '.')
-    n = (fxr.get('scheduled') or {}).get('nfp_0830') or {}
-    f_ = (fxr.get('scheduled') or {}).get('fomc_1400') or {}
-    if n:
-        out.append(f"**NFP Fridays.** The 06:30 Calgary half-hour range is {n['range_ratio_med']}x the same half-hour "
-                   f"on other Fridays (forex + gold, {n['n_event_med']} NFP days).")
-    if f_:
-        out.append(f"**FOMC days.** The 12:00 Calgary half-hour range is {f_['range_ratio_med']}x the same half-hour on "
-                   f"other {('Wednesdays')} ({f_['n_event_med']} FOMC days).")
+        out.append('\n**Weekdays matter much less than the clock.** Forex + gold day range: '
+                   + ', '.join(f"{d['weekday']} {d['rel_day_range']}x" for d in dw)
+                   + f" (busiest {s[0]['weekday']} / {s[1]['weekday']}, about {round(100 * (s[0]['rel_day_range'] - s[-1]['rel_day_range']))}% "
+                   f"between the busiest and the quietest day, against {_spread(bt)}x between the busiest and the "
+                   'quietest half-hour of the day).'
+                   + (' Stocks day volume: ' + ', '.join(f"{d['weekday']} {d['rel_day_volume']}x" for d in sd) + '.' if sd else ''))
+    top = (fxr.get('top_windows') or [])[:3]
+    if top:
+        out.append('Busiest single weekday x half-hour cells, forex + gold: '
+                   + '; '.join(f"{c['weekday']} {c['mt']} ({c['score']}x, {c['big_pct']}% big-move days)" for c in top) + '.')
     return '\n\n'.join(out)
 
 
