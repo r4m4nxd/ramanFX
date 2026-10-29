@@ -25,6 +25,8 @@
 // Prefs API for the scanners (README.md): GET ?op=prefs / POST ?op=alert-fired with header X-RFX-Key = hex
 // sha256(bot token + ':prefs'), computed by the scanners inside GitHub Actions. The function keeps only sha256(key)
 // (rfx_bot_config.prefs_key_hash), registered by the setup workflow over the webhook-authenticated channel.
+// Headlines (/news, /news SYM, the [📰 News] button, '📰 latest' lines): headlines.ts, Alpaca News with the Alpaca keys
+// above + public RSS feeds; a failing source logs {ev:'headlines_src', src, status} only.
 // Logs: the command name and timing only, never message text, chat ids or secrets.
 import { initWasm, Resvg } from 'npm:@resvg/resvg-wasm@2.6.2';
 import { renderSvg } from './chart.ts';
@@ -32,6 +34,8 @@ import { chartData, handle, handleCallback, MAIN_KEYBOARD, type Reply, type Scan
 import { alpacaSource, oandaSource, type LiveSource } from './live.ts';
 import { journalRoute } from './journal.ts';   // trader coach: 'why did you take it?' replies + /took (journal.ts)
 import { keyOk, restStore } from './prefs.ts';
+import { headlineLoader } from './headlines.ts';
+import { restDb } from '../trader-coach/core.ts';
 
 const SB_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SB_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -138,6 +142,9 @@ async function tvCalendar(): Promise<unknown> {
 // rebuilt only when this object changes). A failed load (null) is kept for TTL only, then retried.
 const TTL_OF: Record<string, number> = { 'news.json': 15 * 60_000, 'ask/passages.json': 6 * 3600_000 };
 TTL_OF['fundamentals/fx.json'] = TTL_OF['fundamentals/stocks.json'] = 30 * 60_000;   // nightly files (fundamentals.ts)
+// Headlines (headlines.ts): 'headlines/top' and 'headlines/sym/<SYM>', Alpaca News (the Alpaca keys) + RSS feeds; the
+// loader keeps its own 5-minute cache per source, so these paths skip the 60 s cache here.
+const headlines = headlineLoader({ fetch: (u, i) => fetch(u, i), alpaca: ALPACA_ID && ALPACA_SECRET ? { id: ALPACA_ID, secret: ALPACA_SECRET } : undefined, log: o => console.log(JSON.stringify(o)) });
 function remember(path: string, v: Promise<unknown>): void {
   const e = { t: Date.now(), v };
   cache.set(path, e);
@@ -147,6 +154,7 @@ function remember(path: string, v: Promise<unknown>): void {
 function load(path: string): Promise<unknown> {
   const hit = cache.get(path);
   if (hit && Date.now() - hit.t < (TTL_OF[path] ?? TTL)) return hit.v;
+  if (path.startsWith('headlines/')) return headlines(path).catch(() => null);
   if (path === 'news.json') {
     const v = tvCalendar().catch(() => null);
     remember(path, v);
@@ -251,9 +259,9 @@ async function prefsApi(req: Request, op: string): Promise<Response> {
   if (!await keyOk(req.headers.get('x-rfx-key'), h)) { badKeys.push(now); console.log(JSON.stringify({ ev: 'prefs_denied' })); return empty(401); }
   try {
     if (op === 'prefs' && req.method === 'GET') {
-      const p = await prefs.get(new Date());
+      const [p, open] = await Promise.all([prefs.get(new Date()), openSymbols()]);
       console.log(JSON.stringify({ ev: 'prefs', alerts: p.alerts.length, mutes: p.mutes.length, watch: p.watch.length }));
-      return new Response(JSON.stringify(p), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
+      return new Response(JSON.stringify({ ...p, open }), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
     }
     if (op === 'alert-fired' && req.method === 'POST') {
       let id: unknown;
@@ -268,6 +276,16 @@ async function prefsApi(req: Request, op: string): Promise<Response> {
     return empty(503);
   }
   return empty(405);
+}
+
+/** Symbols of the owner's open positions (journal, rfx_journal.open_positions) for the scanners' news alerts; [] on error. */
+async function openSymbols(): Promise<string[]> {
+  if (!SB_URL || !SB_KEY) return [];
+  try {
+    const r = await restDb(SB_URL, SB_KEY, undefined, (u, i) => fetch(u, { ...i, signal: AbortSignal.timeout(5000) })).read(['open_positions']);
+    const rows = Array.isArray(r?.row?.open_positions) ? r!.row.open_positions as { symbol?: unknown }[] : [];
+    return [...new Set(rows.map(x => String(x?.symbol ?? '').toUpperCase().replace(/[^A-Z0-9.]/g, '').replace(/^([A-Z0-9]{5,})\.[A-Z0-9]{1,4}$/, '$1')).filter(s => s.length >= 1 && s.length <= 20))].slice(0, 30);
+  } catch { return []; }
 }
 
 // ---- replies -------------------------------------------------------------------------------------------------------

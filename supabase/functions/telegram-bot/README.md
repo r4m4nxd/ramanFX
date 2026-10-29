@@ -2,7 +2,7 @@
 
 Two-way RamanFX Telegram bot. Telegram POSTs each update to this function; the reply goes back in the HTTP response
 body, so the function never needs the bot token. Source: `index.ts` (HTTP, auth, database), `logic.ts` (commands,
-pure), `prefs.ts` (alerts / mutes / quiet hours / watchlist), `chart.ts`, `ask.ts`, `news.ts`. Deployed through
+pure), `prefs.ts` (alerts / mutes / quiet hours / watchlist), `chart.ts`, `ask.ts`, `news.ts`, `headlines.ts`. Deployed through
 `tools/telegram_bot/deploy_entry.ts` (imports this folder at one pinned commit). Setup: `.github/workflows/telegram-webhook.yml`.
 
 ## Owner preferences (Telegram commands)
@@ -46,7 +46,8 @@ print(f'::add-mask::{key}')
     {"id": 14, "sym": "GBPJPY", "kind": "pct", "pct": 0.2, "level": 191.42}
   ],
   "quiet":  {"from": "22:00", "to": "06:00", "tz": "America/Edmonton"},
-  "watch":  ["AUDNZD", "AMD"]
+  "watch":  ["AUDNZD", "AMD"],
+  "open":   ["XAUUSD"]
 }
 ```
 
@@ -129,7 +130,39 @@ York via the trader-coach scheduler + a backup cron), cached 30 min: `public/fun
 `tools/movers/movers.py` (`.github/workflows/movers.yml`): ONE message per hour when something moved >= 2x its
 20-hour average range (FX: every scanner instrument, OANDA H1; stocks 7:00 AM-5:00 PM New York: every scanner stock,
 Alpaca IEX 1-hour bars), with the zone context of the latest scans and `[📊 SYM]` buttons (`c:SYM`). Muted symbols
-are left out, quiet hours make it silent, nothing qualifies = no message.
+are left out, quiet hours make it silent, nothing qualifies = no message. A mover with a headline in the last 3 h
+gets one more line under it: `📰 why: <headline> · 40m ago` (`tools/news/headlines.py`).
+
+### Headlines (`headlines.ts`): `/news`, `/news SYM`, [📰 News], `📰 latest`
+
+Free sources, no new keys. **Alpaca News API** (Benzinga, real time, tagged per symbol; stocks, ETFs and crypto as
+`BTCUSD`) with the existing `ALPACA_KEY_ID` / `ALPACA_SECRET_KEY`; **RSS** for forex / macro / markets: investingLive
+(ex-ForexLive) news, Investing.com forex + economic indicators + stock market news, CNBC top news, CoinDesk (all
+answered from Supabase; FXStreet's RSS returns 403 there). Feed text is untrusted: tags stripped, entities decoded,
+clipped, HTML-escaped, only `http(s)` links; link previews off. Cached 5 min per source per instance; a failing source
+logs `{ev: 'headlines_src', src, status}` only. Symbol -> keywords (`TERMS`, mirrored in
+`tools/news/headline_terms.json` for the Python jobs): FX pairs = both currencies' words (EURUSD: euro, ECB, Lagarde,
+Germany... + dollar, Fed, Powell, payrolls...), the pair name itself counts most, quote-currency-only matches only
+fill in; metals (XAUUSD: gold, bullion + Alpaca tag GLD), indices (US30: Dow + DIA, US500: S&P + SPY, NAS100: Nasdaq +
+QQQ, GER40: DAX...), oil (SPOTCRUDE: oil, crude, OPEC + USO), crypto (BTCUSD: bitcoin + tag BTCUSD), stocks: the
+Alpaca tag.
+
+- `/news`: the calendar as before, plus `📰 Top headlines` after the key events: the 5 most market-moving of the last
+  6 h (macro words, market words, mega caps, source weight, minus noise like price targets / options activity /
+  'stocks moving' lists, minus age; near-duplicates merged; at most 3 per source).
+- `/news SYM` and the [📰 News] button (callback `n:SYM`, on zones and chart replies): the last ~6 headlines of 3 days
+  with time ago + Calgary clock, source, a one-line summary, the link.
+- Zones / symbol / chart replies: one line `📰 latest: <headline> · 2h ago` when there is one from the last 24 h
+  (fetched alongside the reply, never waits more than 3.5 s).
+- Pushed, calm (no new message types except the optional breaking alert): the hourly big moves add `📰 why:` lines; the
+  6 AM brief adds `📰 Overnight headlines` (top 5 of ~14 h) + `Your symbols` (newest headline per held / watched
+  symbol, from the prefs API `open` + `watch`).
+- **Breaking alert** (`supabase/functions/trader-coach/breaking.ts`, on the coach's 10-minute tick): ONE message when
+  Alpaca tags a fresh article (last 30 min, at most 3 tickers, not noise) with a symbol on the `/watch` list or an open
+  journal position. Max 1 per symbol per 3 h and 6 a Calgary day (dedupe in `rfx_coach_events`, kind `news`); muted
+  symbols skipped; nothing during quiet hours (that news lands in the 6 AM brief). Plain FX pairs have no Alpaca tag,
+  so they get none; metals / US indices / oil go through their ETF tag. Buttons: [📰 More SYM] [📊 Chart SYM].
+- Sample: `.github/workflows/telegram-preview.yml` with `headlines: true` sends ONE `🧪 Sample headlines` message.
 
 ## Journal (trader coach) — `journal.ts`
 

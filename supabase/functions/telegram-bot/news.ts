@@ -3,7 +3,8 @@
 // fetched by index.ts as 'news.json' = yesterday .. +2 days) plus the verified NFP / CPI / FOMC dates of
 // tools/reminders/events.json. Pure: the caller passes the loaded JSON, the parsed key events and the time.
 
-import { clock, day, esc, isoDay, parts, CAL } from './logic.ts';
+import { clock, day, esc, fit, isoDay, parts, resolve, symButtons, CAL, type Button, type Ctx, type Reply } from './logic.ts';
+import { latestLine, SOURCES, symbolLines, topLines } from './headlines.ts';
 
 export const FLAG: Record<string, string> = { US: '🇺🇸', EU: '🇪🇺', GB: '🇬🇧', JP: '🇯🇵', AU: '🇦🇺', NZ: '🇳🇿', CA: '🇨🇦', CH: '🇨🇭', CN: '🇨🇳', DE: '🇩🇪', FR: '🇫🇷', IT: '🇮🇹' };
 export interface NewsRow { t: Date; c: string; title: string; high: boolean }
@@ -73,4 +74,52 @@ export function newsText(js: unknown, key: KeyEvent[], now: Date, foot = 'not ad
   if (tmrRows.length) lines.push('', `<b>Tomorrow morning · ${esc(day(tmrRows[0].t))}</b>`, ...groupLines(tmrRows, now));
   lines.push('', `Price often jumps around these times; spreads widen. Source: TradingView calendar · ${foot}`);
   return lines;
+}
+
+// ---- headlines (headlines.ts: Alpaca News + RSS; loaded by index.ts as 'headlines/top' and 'headlines/sym/<SYM>') ----
+const HEADLINE_WAIT_MS = 5000;    // a slow feed never holds a reply longer than this
+/** ctx.load(path) for headlines, null after HEADLINE_WAIT_MS or on any error. */
+export function loadHeadlines(ctx: Ctx, path: string, waitMs = HEADLINE_WAIT_MS): Promise<unknown> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<null>(r => { timer = setTimeout(() => r(null), waitMs); });
+  return Promise.race([ctx.load(path).catch(() => null), late]).finally(() => clearTimeout(timer));
+}
+/** The calendar lines with the '📰 Top headlines' block after the key events (before the 'Today' section). */
+export function withTopHeadlines(lines: string[], list: unknown, now: Date): string[] {
+  const top = topLines(list, now.getTime());
+  if (!top.length) return lines;
+  const at = lines.findIndex((l, i) => i > 0 && l === '');
+  const i = at < 0 ? lines.length : at;
+  return [...lines.slice(0, i), '', ...top, ...lines.slice(i)];
+}
+/** [📰 News] under symbol / chart replies (callback 'n:SYM'). */
+export function newsButton(sym: string): Button[] {
+  const d = `n:${sym}`;
+  return new TextEncoder().encode(d).length <= 64 ? [{ text: '📰 News', callback_data: d }] : [];
+}
+/** /news SYM and the [📰 News] button: the symbol's last ~6 headlines. */
+export async function symbolNews(q: string, ctx: Ctx, foot = 'not advice'): Promise<Reply> {
+  const { hit, suggest } = await resolve(q, ctx);
+  const sym = hit?.sym ?? (/^[A-Za-z][A-Za-z0-9.]{0,9}$/.test(q) && !suggest.length ? q.toUpperCase() : '');
+  if (!sym) return { cmd: 'news', text: `Not sure which symbol <b>${esc(q)}</b> is.${suggest.length ? ` Did you mean ${suggest.map(s => `/news ${esc(s)}`).join(', ')}?` : ''}` };
+  const list = await loadHeadlines(ctx, `headlines/sym/${sym}`);
+  const lines = symbolLines(sym, list, ctx.now.getTime());
+  lines.push('', `Times: Calgary clock · ${SOURCES} · ${foot}`);
+  return { cmd: 'news', text: fit(lines), buttons: hit ? symButtons([hit.sym], 1) : undefined };
+}
+/** A symbol / chart reply plus one '📰 latest: ...' line (a headline from the last 24 h), fetched alongside the reply.
+ *  Text replies: before the closing footer block; photo captions: before the last line (caption <= 1024). */
+export async function withLatest(sym: string, ctx: Ctx, reply: Promise<Reply>): Promise<Reply> {
+  const [r, list] = await Promise.all([reply, loadHeadlines(ctx, `headlines/sym/${sym}`, 3500)]);
+  const line = latestLine(sym, list, ctx.now.getTime());
+  if (!line || r.text.includes('📰 latest:')) return r;
+  const lines = r.text.split('\n');
+  if (r.photo) {
+    if (r.text.length + line.length + 1 > 1024) return r;
+    lines.splice(Math.max(1, lines.length - 1), 0, line);
+    return { ...r, text: lines.join('\n') };
+  }
+  const blank = lines.lastIndexOf('');
+  lines.splice(blank > 0 ? blank : lines.length, 0, ...(blank > 0 ? ['', line] : [line]));
+  return { ...r, text: lines.join('\n').replace(/\n{3,}/g, '\n\n') };
 }

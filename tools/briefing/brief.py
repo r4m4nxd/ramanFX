@@ -715,6 +715,78 @@ def earnings_lines(day: dt.date, mine: Dict[str, str], fund: Optional[Dict], n: 
     return out
 
 
+# ---- headlines (tools/news/headlines.py: Alpaca News + RSS) ---------------------------------------------------------
+HEADLINES_TOP = 5
+HEADLINES_MINE = 5
+OVERNIGHT_H = 14                                  # since ~4 PM Calgary the day before
+
+
+def _headlines_mod():
+    tools = os.path.join(ROOT, 'tools')
+    if tools not in sys.path:
+        sys.path.append(tools)                    # appended, never tools/news itself
+    from news import headlines as NH              # noqa: WPS433
+    return NH
+
+
+def my_symbols(prefs: Optional[Dict]) -> List[str]:
+    """The owner's held (journal open positions) then watched (bot /watch) symbols, from the bot's prefs API."""
+    out: List[str] = []
+    for s in list((prefs or {}).get('open') or []) + list((prefs or {}).get('watch') or []):
+        s = str(s).upper()
+        if s and s not in out:
+            out.append(s)
+    return out
+
+
+def headline_block(now: dt.datetime, log=print, prefs: Optional[Dict] = None, NH=None) -> str:
+    """'📰 <b>Overnight headlines</b>' (top 5 market-moving of the last ~14 h) + '<b>Your symbols</b>' (the newest
+    headline per held / watched symbol, overnight). '' when the feeds gave nothing. Never raises."""
+    try:
+        NH = NH or _headlines_mod()
+        if prefs is None:
+            import prefs as P                     # noqa: WPS433  (tools/stock_scanner/prefs.py)
+            prefs = P.fetch(log=log)
+        mine = my_symbols(prefs)[:12]
+        rss = NH.pool(log=log)
+        general = NH.alpaca([], log=log)
+        tagged = NH.alpaca(NH.tags_for(mine), log=log) if NH.tags_for(mine) else []
+        items = general + rss
+        top = NH.top(items, now, HEADLINES_TOP, hours=OVERNIGHT_H)
+        lines = [f'• {NH.line_for(h, now, 110)}' for h in top]
+        seen = {h['id'] for h in top}
+        own = []
+        for sym in mine:
+            h = NH.latest_for(tagged + rss, sym, now, hours=OVERNIGHT_H)
+            if h and h['id'] not in seen:
+                seen.add(h['id'])
+                own.append(f"<b>{SN.esc(sym)}</b> · {NH.line_for(h, now, 90, source=False)}")
+            if len(own) >= HEADLINES_MINE:
+                break
+        if not lines and not own:
+            return ''
+        block = ['📰 <b>Overnight headlines</b>'] + lines
+        if own:
+            block += ['<b>Your symbols</b>'] + own
+        return '\n'.join(block)
+    except Exception as e:  # noqa: BLE001
+        if log:
+            log(f'headlines: skipped ({type(e).__name__})')
+        return ''
+
+
+def with_headlines(msg: SN.Msg, block: str) -> SN.Msg:
+    """The brief with the headline block before its '<b>Today</b>' part (dropped when the message would get too long)."""
+    if not block:
+        return msg
+    text = str(msg)
+    i = text.find('\n\n<b>Today</b>')
+    new = text[:i] + '\n\n' + block + text[i:] if i >= 0 else text + '\n\n' + block
+    if SN.u16(new) > SN.SAFE:
+        return msg
+    return SN.Msg(new, getattr(msg, 'buttons', None), silent=bool(getattr(msg, 'silent', False)))
+
+
 def todays_events(day: dt.date, log=print) -> List[Dict]:
     cal = news_calendar(day, log)
     if not cal:                                # absent, or [] (that module returns [] when its fetch fails)
@@ -733,6 +805,7 @@ def make_messages(now: dt.datetime, st: Dict, sample: bool, log=print) -> Tuple[
         log('lessons: no export (tools/briefing/.cache/lessons.json): Kevin plan from the TS fallback, no lesson')
     earn = earnings_lines(day, my_stocks(), load_json(os.path.join(ROOT, 'public', 'fundamentals', 'stocks.json'), None))
     brief = build_brief(day, fx, stocks, evs, plan, callbacks=os.path.exists(CHART_TS), sample=sample, earnings=earn)
+    brief = with_headlines(brief, headline_block(now, log))
     msgs = [brief]
     les = next_lesson((export or {}).get('pool') or [], st.setdefault('lessons', {}))
     if les:

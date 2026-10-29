@@ -22,6 +22,8 @@ Markets
 Zone context from the latest scans (public files): 'into W1 demand' = price inside that zone now, 'near D1 supply' =
 within 0.5% of its proximal; ⭐ = the zone is in Kevin's plan; 'BUY setup' = an open scanner signal on the symbol.
 Bot preferences (stock_scanner/prefs.py): muted symbols are left out; quiet hours send the message silently.
+News: '📰 why: <headline> · 40m ago' under a mover with a headline in the last 3 h (tools/news/headlines.py: Alpaca
+News tagged with the symbol / its ETF, or an FX / macro RSS headline naming its currencies); none -> no extra line.
 Dedupe: one message per hour (tools/movers/.cache/state.json, kept by the workflow's actions cache).
 --test: '🧪 Sample big moves': the top 3 of the hour whatever their size (sample lines when no data at all); no
 dedupe state is touched.
@@ -290,20 +292,59 @@ def line(m: Dict, ctx: str) -> str:
     return f"<b>{SN.esc(m['sym'])}</b> 1H · " + SN.esc(' · '.join(bits))
 
 
+# ---- headlines: '📰 why: <the latest headline of the last 3 h>' under a mover (tools/news/headlines.py) --------------
+WHY_H = 3
+
+
+def news_why(movers: Sequence[Dict], now: dt.datetime, log=print) -> Dict[str, str]:
+    """{sym: '📰 why: <a href>headline</a> · 40m ago'} for movers with a headline in the last WHY_H hours. Alpaca News
+    for stocks / crypto / ETF-tagged CFDs, the RSS pool for FX + macro. Never raises; {} on any failure."""
+    if not movers:
+        return {}
+    try:
+        tools = os.path.join(ROOT, 'tools')
+        if tools not in sys.path:
+            sys.path.append(tools)
+        from news import headlines as NH  # noqa: WPS433
+        syms = [m['sym'] for m in movers]
+        tags = NH.tags_for(syms)
+        items = NH.alpaca(tags, start=now - dt.timedelta(hours=WHY_H), log=log) if tags else []
+        if any(m['market'] == 'fx' for m in movers):
+            items += NH.pool(log=log)
+        out = {}
+        for s in syms:
+            h = NH.latest_for(items, s, now, hours=WHY_H)
+            if h:
+                out[s] = f"   📰 why: {NH.line_for(h, now, 90, source=False)}"
+        return out
+    except Exception as e:  # noqa: BLE001
+        if log:
+            log(f'headlines: skipped ({type(e).__name__})')
+        return {}
+
+
 def build(fx: List[Dict], st: List[Dict], start: dt.datetime, end: dt.datetime, ctx_of: Callable[[Dict], str],
-          test: bool = False, stock_feed: str = 'IEX real-time', silent: bool = False) -> Optional[SN.Msg]:
+          test: bool = False, stock_feed: str = 'IEX real-time', silent: bool = False,
+          why: Optional[Dict[str, str]] = None) -> Optional[SN.Msg]:
     if not fx and not st:
         return None
     title = '🧪 Sample big moves' if test else '⚡ Big moves'
     lines = [f'<b>{title} · last hour ({SN.esc(hour_label(start, end))})</b>']
+    why = why or {}
+
+    def rows(ms):
+        return [x for m in ms for x in [line(m, ctx_of(m))] + ([why[m['sym']]] if why.get(m['sym']) else [])]
     if fx:
-        lines += ['', '<b>FX</b>'] + [line(m, ctx_of(m)) for m in fx]
+        lines += ['', '<b>FX</b>'] + rows(fx)
     if st:
-        lines += ['', f'<b>Stocks</b> · {SN.esc(stock_feed)}'] + [line(m, ctx_of(m)) for m in st]
+        lines += ['', f'<b>Stocks</b> · {SN.esc(stock_feed)}'] + rows(st)
     lines += ['', 'Hour range vs its 20-hour average · ⭐ Kevin zone' if any('⭐' in x for x in lines) else 'Hour range vs its 20-hour average', FOOT]
     top = sorted(fx + st, key=lambda m: -m['x'])[:BUTTONS]
     btn = [[SN.cb(f"📊 {m['sym']}", f"c:{m['sym']}") for m in top if SN._cb_ok(f"c:{m['sym']}")]]
-    return SN.Msg('\n'.join(lines)[:4000], btn, silent=silent)
+    text = '\n'.join(lines)
+    if SN.u16(text) > SN.SAFE and why:                       # long headlines: keep the moves, drop the 'why' lines
+        return build(fx, st, start, end, ctx_of, test, stock_feed, silent)
+    return SN.Msg(text[:4000], btn, silent=silent)
 
 
 SAMPLE = [{'sym': 'XAUUSD', 'market': 'fx', 'x': 2.6, 'pct': 0.9, 'range_pct': 1.1, 'close': 0.0},
@@ -364,7 +405,8 @@ def run(now: dt.datetime, get: Getter = get_json, test: bool = False, notify: bo
         except Exception:  # noqa: BLE001
             return ''
     quiet = P.in_quiet(prefs, now)
-    msg = build(fx_q, st_q, start, end, ctx_of, test=test, silent=quiet)
+    why = news_why(fx_q + st_q, now, log) if (fx_q or st_q) and get is get_json else {}   # offline tests: no news
+    msg = build(fx_q, st_q, start, end, ctx_of, test=test, silent=quiet, why=why)
     if msg is None:
         log(f'{key}: nothing qualifies (>= {MIN_X:g}x the 20-hour average): no message')
         return None

@@ -1,0 +1,345 @@
+{
+ "_note": "Generated from TERMS in supabase/functions/telegram-bot/headlines.ts (src/core/telegramHeadlines.test.ts keeps them equal): keywords per currency / asset, lower case, matched on word boundaries.",
+ "terms": {
+  "USD": [
+   "usd",
+   "dollar",
+   "greenback",
+   "dxy",
+   "fed",
+   "fomc",
+   "powell",
+   "federal reserve",
+   "treasury yields",
+   "treasuries",
+   "nonfarm",
+   "payrolls",
+   "nfp",
+   "us cpi",
+   "us inflation",
+   "us gdp",
+   "pce",
+   "jobless claims",
+   "u.s. economy",
+   "us economy"
+  ],
+  "EUR": [
+   "eur",
+   "euro",
+   "eurozone",
+   "euro area",
+   "ecb",
+   "lagarde",
+   "germany",
+   "german",
+   "bund",
+   "bunds"
+  ],
+  "GBP": [
+   "gbp",
+   "sterling",
+   "pound",
+   "cable",
+   "boe",
+   "bank of england",
+   "bailey",
+   "uk",
+   "u.k.",
+   "britain",
+   "british",
+   "gilts"
+  ],
+  "JPY": [
+   "jpy",
+   "yen",
+   "boj",
+   "bank of japan",
+   "ueda",
+   "japan",
+   "japanese",
+   "jgb"
+  ],
+  "AUD": [
+   "aud",
+   "aussie",
+   "rba",
+   "reserve bank of australia",
+   "bullock",
+   "australia",
+   "australian"
+  ],
+  "NZD": [
+   "nzd",
+   "kiwi",
+   "rbnz",
+   "new zealand"
+  ],
+  "CAD": [
+   "cad",
+   "loonie",
+   "boc",
+   "bank of canada",
+   "macklem",
+   "canada",
+   "canadian"
+  ],
+  "CHF": [
+   "chf",
+   "swiss franc",
+   "franc",
+   "snb",
+   "swiss national bank",
+   "switzerland",
+   "swiss"
+  ],
+  "CNH": [
+   "cnh",
+   "cny",
+   "yuan",
+   "renminbi",
+   "pboc",
+   "china",
+   "chinese",
+   "beijing"
+  ],
+  "HKD": [
+   "hkd",
+   "hong kong"
+  ],
+  "SGD": [
+   "sgd",
+   "singapore"
+  ],
+  "MXN": [
+   "mxn",
+   "peso",
+   "banxico",
+   "mexico",
+   "mexican"
+  ],
+  "ZAR": [
+   "zar",
+   "rand",
+   "sarb",
+   "south africa"
+  ],
+  "TRY": [
+   "lira",
+   "turkey",
+   "turkish",
+   "cbrt"
+  ],
+  "SEK": [
+   "sek",
+   "krona",
+   "riksbank",
+   "sweden",
+   "swedish"
+  ],
+  "NOK": [
+   "nok",
+   "norges bank",
+   "norway",
+   "norwegian"
+  ],
+  "DKK": [
+   "dkk",
+   "danish",
+   "denmark"
+  ],
+  "PLN": [
+   "pln",
+   "zloty",
+   "poland",
+   "polish"
+  ],
+  "HUF": [
+   "huf",
+   "forint",
+   "hungary",
+   "hungarian"
+  ],
+  "CZK": [
+   "czk",
+   "koruna",
+   "czech"
+  ],
+  "THB": [
+   "thb",
+   "baht",
+   "thailand"
+  ],
+  "XAU": [
+   "gold",
+   "xau",
+   "bullion"
+  ],
+  "XAG": [
+   "silver",
+   "xag"
+  ],
+  "XPT": [
+   "platinum"
+  ],
+  "XPD": [
+   "palladium"
+  ],
+  "XCU": [
+   "copper"
+  ],
+  "OIL": [
+   "oil",
+   "crude",
+   "wti",
+   "brent",
+   "opec",
+   "opec+"
+  ],
+  "NATGAS": [
+   "natural gas",
+   "natgas",
+   "lng"
+  ],
+  "CORN": [
+   "corn",
+   "grains"
+  ],
+  "WHEAT": [
+   "wheat",
+   "grains"
+  ],
+  "SOYBEANS": [
+   "soybeans",
+   "soybean",
+   "soy"
+  ],
+  "SUGAR": [
+   "sugar"
+  ],
+  "US30": [
+   "dow",
+   "dow jones",
+   "djia",
+   "wall street"
+  ],
+  "US500": [
+   "s&p 500",
+   "s&p",
+   "spx",
+   "wall street",
+   "us stocks",
+   "stocks"
+  ],
+  "NAS100": [
+   "nasdaq",
+   "tech stocks",
+   "wall street"
+  ],
+  "US2000": [
+   "russell 2000",
+   "russell",
+   "small caps",
+   "small-cap"
+  ],
+  "GER40": [
+   "dax",
+   "german stocks"
+  ],
+  "UK100": [
+   "ftse",
+   "ftse 100"
+  ],
+  "JPN225": [
+   "nikkei",
+   "japanese stocks"
+  ],
+  "HK50": [
+   "hang seng"
+  ],
+  "CHINAH": [
+   "hang seng",
+   "chinese stocks",
+   "h-shares"
+  ],
+  "CN50": [
+   "china a50",
+   "chinese stocks",
+   "csi 300"
+  ],
+  "AUS200": [
+   "asx",
+   "asx 200"
+  ],
+  "FRA40": [
+   "cac",
+   "cac 40"
+  ],
+  "EUSTX50": [
+   "euro stoxx",
+   "stoxx"
+  ],
+  "SPA35": [
+   "ibex"
+  ],
+  "NETH25": [
+   "aex"
+  ],
+  "SWI20": [
+   "smi",
+   "swiss stocks"
+  ],
+  "BTC": [
+   "bitcoin",
+   "btc"
+  ],
+  "ETH": [
+   "ethereum",
+   "ether",
+   "eth"
+  ],
+  "SOL": [
+   "solana"
+  ],
+  "XRP": [
+   "xrp",
+   "ripple"
+  ],
+  "ADA": [
+   "cardano"
+  ],
+  "DOGE": [
+   "dogecoin",
+   "doge"
+  ],
+  "AVAX": [
+   "avalanche",
+   "avax"
+  ],
+  "BNB": [
+   "bnb",
+   "binance coin"
+  ],
+  "DOT": [
+   "polkadot"
+  ],
+  "LINK": [
+   "chainlink"
+  ],
+  "LTC": [
+   "litecoin"
+  ],
+  "BCH": [
+   "bitcoin cash"
+  ],
+  "UNI": [
+   "uniswap"
+  ],
+  "XLM": [
+   "stellar",
+   "xlm"
+  ],
+  "XTZ": [
+   "tezos"
+  ]
+ }
+}

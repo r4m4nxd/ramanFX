@@ -3,6 +3,11 @@ name: Telegram layout test
 # Manual: sends the published FX alert + daily summary and the stock message once, in the current layout.
 on:
   workflow_dispatch:
+    inputs:
+      headlines:
+        description: "Only ONE '🧪 Sample headlines' message (live news feeds)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -16,7 +21,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python tools/telegram_preview.py
+      - run: python tools/telegram_preview.py ${{ github.event.inputs.headlines == 'true' && '--headlines' || '' }}
         env:
+          ALPACA_KEY_ID: ${{ secrets.ALPACA_KEY_ID }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}

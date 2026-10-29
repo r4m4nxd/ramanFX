@@ -10,6 +10,8 @@
 //      saves the reply as the trade's note);
 //   3. Sunday 6 PM Calgary: the weekly report card (R multiples; $ only when rfx_coach_config.show_amounts);
 //   4. re-applies a bot journal write (note / plan) that a concurrent app sync overwrote (rfx_coach_writes, 24 h);
+//   6. breaking news (breaking.ts, ticks only, needs the Alpaca keys): one calm alert when Alpaca tags a fresh article
+//      with a watched / held symbol (1 per symbol per 3 h, 6 a day, not in quiet hours, muted symbols skipped);
 //   5. scheduler for the GitHub workflows (scheduler.ts): with the OPTIONAL secret GITHUB_DISPATCH_TOKEN it dispatches
 //      fx-scan / stock-scan / briefing / reminders / movers (hourly big moves) as scheduled-equivalent runs, once per slot, skipping a slot a GitHub
 //      run already covers. Without the token: nothing (logs 'dispatch token not set' once per day).
@@ -17,6 +19,9 @@
 // Without them it logs 'telegram secrets not set' and only records the events (so nothing floods in later).
 // Logs: event kinds and counts only, never message text, chat ids, journal data or secrets.
 import { covered, dispatchRequest, dueDispatches, latestRunMs, latestRunUrl, type Dispatch } from './scheduler.ts';
+import { breakingMarkup, breakingText, inQuiet, pickBreaking, watchedTags } from './breaking.ts';
+import { ALPACA_NEWS, parseAlpaca } from '../telegram-bot/headlines.ts';
+import { restStore } from '../telegram-bot/prefs.ts';
 import { isoDay, askCandidates, askText, COLS, fromRow, guardEvents, reportCard, reportDue, restDb, saveWhyNote, savePlan, utcRuntime, weekOf, writeLost, type Card, type JournalWrite } from './core.ts';
 
 const SB_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -25,6 +30,7 @@ const TG_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') ?? '';
 const TG_CHAT = Deno.env.get('TELEGRAM_CHAT_ID') ?? '';
 const GH_TOKEN = Deno.env.get('GITHUB_DISPATCH_TOKEN') ?? '';
 const MAX_ASKS = 3;
+const ALPACA_ID = Deno.env.get('ALPACA_KEY_ID') ?? '', ALPACA_SECRET = Deno.env.get('ALPACA_SECRET_KEY') ?? '';
 
 const H = (): Record<string, string> => ({ apikey: SB_KEY, 'Content-Type': 'application/json', ...(SB_KEY.startsWith('eyJ') ? { Authorization: `Bearer ${SB_KEY}` } : {}) });
 const rest = (path: string) => `${SB_URL}/rest/v1/${path}`;
@@ -103,6 +109,35 @@ async function schedule(cfg: Cfg, now: number): Promise<string[]> {
   return done;
 }
 
+// ---- breaking news (breaking.ts): watched / held symbols, Alpaca-tagged articles, calm limits ------------------------
+async function breaking(now: number): Promise<number> {
+  if (!ALPACA_ID || !ALPACA_SECRET || !hasTelegram()) return 0;
+  const p = await restStore(SB_URL, H(), (u, i) => fetch(u, { ...i, signal: AbortSignal.timeout(6000) })).get(new Date(now));
+  if (inQuiet(p.quiet, now)) return 0;
+  const jr = await q<{ open_positions: unknown }>('rfx_journal?user_id=eq.67967f02-d6fb-45f1-9edf-d14c3d3fcf12&select=open_positions');
+  const pos = Array.isArray(jr[0]?.open_positions) ? jr[0].open_positions as { symbol?: unknown }[] : [];
+  const open = pos.map(x => String(x?.symbol ?? '').toUpperCase().replace(/[^A-Z0-9.]/g, '').replace(/^([A-Z0-9]{5,})\.[A-Z0-9]{1,4}$/, '$1')).filter(Boolean);
+  const tags = watchedTags(p.watch, open, p, now);
+  if (!tags.size) return 0;
+  const qs = new URLSearchParams({ symbols: [...tags.keys()].slice(0, 50).join(','), limit: '50', sort: 'desc', include_content: 'false', exclude_contentless: 'true',
+    start: new Date(now - 40 * 60_000).toISOString().replace(/\.\d{3}Z$/, 'Z') });
+  const r = await fetch(`${ALPACA_NEWS}?${qs}`, { headers: { 'APCA-API-KEY-ID': ALPACA_ID, 'APCA-API-SECRET-KEY': ALPACA_SECRET, Accept: 'application/json' }, signal: AbortSignal.timeout(6000) });
+  if (!r.ok) { await r.body?.cancel(); log({ ev: 'breaking_src', status: r.status }); return 0; }
+  const items = parseAlpaca(await r.json().catch(() => null));
+  if (!items.length) return 0;
+  const sentRows = await q<{ key: string; created_at: string }>(`rfx_coach_events?kind=eq.news&created_at=gte.${encodeURIComponent(new Date(now - 26 * 3600_000).toISOString())}&select=key,created_at`);
+  const sent = sentRows.map(x => ({ sym: x.key.split(':')[1] ?? '', at: Date.parse(x.created_at) }));
+  const seen = new Set(sentRows.map(x => x.key));
+  let n = 0;
+  for (const pk of pickBreaking(items, tags, sent, now, false)) {
+    if (seen.has(pk.key) || !(await claim(pk.key, 'news'))) continue;
+    const id = await send(breakingText(pk, now, open.includes(pk.sym) ? 'open' : 'watch'), breakingMarkup(pk.sym));
+    if (id) { await markSent(pk.key, id); n++; }
+  }
+  if (n) log({ ev: 'breaking', sent: n });
+  return n;
+}
+
 async function readJournal() {
   const rows = await q(`rfx_journal?user_id=eq.67967f02-d6fb-45f1-9edf-d14c3d3fcf12&select=${COLS.map(c => c[1]).join(',')},updated_at`);
   return rows[0] ? { j: fromRow(rows[0]), updatedAt: String(rows[0].updated_at) } : null;
@@ -127,6 +162,7 @@ async function run(reason: string, dry: string | null): Promise<Record<string, u
 
   let dispatched: string[] = [];
   try { dispatched = await schedule(cfg, now); } catch (e) { log({ ev: 'schedule_error', err: (e as Error).message.slice(0, 80) }); }
+  if (reason === 'tick') { try { await breaking(now); } catch (e) { log({ ev: 'breaking_error', err: (e as Error).message.slice(0, 80) }); } }
 
   const head = await q<{ updated_at: string }>('rfx_journal?user_id=eq.67967f02-d6fb-45f1-9edf-d14c3d3fcf12&select=updated_at');
   if (!head[0]) return { ok: true, idle: 'no journal row' };

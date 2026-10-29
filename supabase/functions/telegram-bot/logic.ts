@@ -6,7 +6,7 @@
 // distances in percent (never pips), Calgary 12-hour times (America/Edmonton zone rules), HTML escaped, < 4096 chars.
 
 import { bestQuote, buildIndex, lessonPath, mentorOf, search as askSearch, type AskIndex } from './ask.ts';
-import { newsText } from './news.ts';
+import { newsButton, newsText, symbolNews, withLatest, withTopHeadlines, loadHeadlines } from './news.ts';
 import { MAX_ALERTS, MAX_WATCH, parseDuration, parsePrice, parseQuiet, parseTap, type Alert, type Prefs, type PrefsStore } from './prefs.ts';
 import { aggregate, monthKey, quarterKey, tfLabel, weekKey, type Band, type Bar, type ChartModel, type Panel, type TLine } from './chart.ts';
 import { fxZonesOf, nextBusinessDay, stockZonesOf, tfZonesOf, type LiveZone, type ZBar } from './zonecore.ts';
@@ -63,7 +63,7 @@ export const COMMANDS: { command: string; description: string; group: Group; usa
   { command: 'unwatch', description: 'Remove a watchlist symbol', group: 'Alerts', usage: '/unwatch AUDNZD', help: 'take it off the extra watchlist' },
   { command: 'times', description: "Today's key Calgary times", group: 'Times', usage: '/times', help: "today's key Calgary times" },
   { command: 'next', description: 'Next NFP, CPI and Fed decision', group: 'Times', usage: '/next', help: 'next jobs report, CPI, Fed decision' },
-  { command: 'news', description: "Today's high-impact news", group: 'Times', usage: '/news', help: "today's high-impact news (all major currencies)" },
+  { command: 'news', description: 'Calendar + top market headlines', group: 'Times', usage: '/news', help: "today's high-impact events + top headlines (/news NVDA: one symbol's headlines)" },
   { command: 'took', description: 'Log a trade you took as a plan', group: 'Journal', usage: '/took EURUSD buy 1.0850 sl 1.0820 tp 1.0910', help: 'adds it to the Planner; reply to a 📝 prompt to save why' },
   { command: 'ask', description: 'Ask the lessons a question', group: 'Learn', usage: '/ask what is a proximal line', help: "the mentors' own words (or end any message with ?)" },
   { command: 'help', description: 'This list', group: 'Learn', usage: '/help', help: 'this list' },
@@ -450,7 +450,7 @@ async function fxZones(r: Resolved, ctx: Ctx): Promise<Reply> {
   lines.push('', `Nearest ${zones.length} zones · check levels on Pepperstone · ${FOOT}`);
   const note = liveNote(r, ctx, lv);
   if (note) lines.push(note);
-  return { cmd: 'zones', text: fit(lines), buttons: [...chartButtons(r.sym, 'fx', ctx), [{ text: `📈 ${r.sym} on TradingView`, url: `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(d.tv || `PEPPERSTONE:${r.sym}`)}` }, ...scanButton(r.sym, ctx)], ...prefsButtons(r.sym, ctx)] };
+  return { cmd: 'zones', text: fit(lines), buttons: [...chartButtons(r.sym, 'fx', ctx), [{ text: `📈 ${r.sym} on TradingView`, url: `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(d.tv || `PEPPERSTONE:${r.sym}`)}` }, ...scanButton(r.sym, ctx), ...newsButton(r.sym)], ...prefsButtons(r.sym, ctx)] };
 }
 
 async function stockZones(r: Resolved, ctx: Ctx): Promise<Reply> {
@@ -492,14 +492,14 @@ async function stockZones(r: Resolved, ctx: Ctx): Promise<Reply> {
   const note = liveNote(r, ctx, lv);
   if (note) lines.push(note);
   const slug = String(r.sym).replace(/\./g, '-');
-  return { cmd: 'zones', text: fit(lines), buttons: [...chartButtons(r.sym, 'stock', ctx), [...(d.chart ? [{ text: `📈 ${r.sym}`, url: String(d.chart) }] : []), { text: 'Open in scanner', url: `${APP}/scanner/${encodeURIComponent(slug)}` }, ...scanButton(r.sym, ctx)], ...prefsButtons(r.sym, ctx)] };
+  return { cmd: 'zones', text: fit(lines), buttons: [...chartButtons(r.sym, 'stock', ctx), [...(d.chart ? [{ text: `📈 ${r.sym}`, url: String(d.chart) }] : []), { text: 'Open in scanner', url: `${APP}/scanner/${encodeURIComponent(slug)}` }, ...scanButton(r.sym, ctx), ...newsButton(r.sym)], ...prefsButtons(r.sym, ctx)] };
 }
 
 async function cmdZones(q: string, ctx: Ctx): Promise<Reply> {
   if (!q) return { cmd: 'zones', text: 'Send a symbol after it, e.g. <b>/zones EURUSD</b> or <b>/zones NVDA</b>. Just the symbol works too.' };
   const { hit, suggest } = await resolve(q, ctx);
   if (!hit) return { cmd: 'zones', text: notFound(q, suggest) };
-  return hit.market === 'fx' ? fxZones(hit, ctx) : stockZones(hit, ctx);
+  return withLatest(hit.sym, ctx, hit.market === 'fx' ? fxZones(hit, ctx) : stockZones(hit, ctx));
 }
 
 // ---- times ---------------------------------------------------------------------------------------------------------
@@ -622,7 +622,7 @@ export function chartButtons(sym: string, market: 'fx' | 'stock', ctx?: Ctx): Bu
 }
 function photoButtons(sym: string, market: 'fx' | 'stock', view: string, ctx: Ctx): Button[][] {
   const tfs = viewTfs(market, ctx);
-  const scan = scanButton(sym, ctx);
+  const scan = [...scanButton(sym, ctx), ...newsButton(sym)];
   return [tfs.map(t => ({ text: t === view ? `• ${tfLabel(t)}` : tfLabel(t), callback_data: `c:${sym}:${t}` })),
     [{ text: view === 'Q' ? '• 4 views' : '🔲 4 views', callback_data: `c:${sym}:Q` }, { text: `🔎 Zones ${sym}`, callback_data: `z:${sym}` }, { text: '⏳ Near', callback_data: 'n' }],
     ...(scan.length ? [scan] : [])];
@@ -799,13 +799,15 @@ async function cmdChart(q: string, tfArg: string, ctx: Ctx): Promise<Reply> {
   const tfs = cd.model.panels.map(p => tfLabel(p.tf)).join(' ');
   const caption = `<b>${esc(cd.sym)}</b> · ${esc(cd.view === 'Q' ? `${tfs} (top-down)` : tfs)}${cd.when ? ` · ${esc(cd.when)}` : ''}\n`
     + `${cd.live ? 'zones + price live · signals from the last scan · ' : ''}${cd.market === 'fx' ? 'check levels on Pepperstone · ' : ''}${FOOT}${cd.note ? `\n${cd.note}` : ''}`;
-  return { cmd: 'chart', text: caption, photo: ctx.imageUrl(cd.sym, cd.view, cd.v), buttons: photoButtons(cd.sym, cd.market, cd.view, ctx) };
+  return withLatest(cd.sym, ctx, Promise.resolve({ cmd: 'chart', text: caption, photo: ctx.imageUrl(cd.sym, cd.view, cd.v), buttons: photoButtons(cd.sym, cd.market, cd.view, ctx) }));
 }
 
 const CB_CMDS: Record<string, string> = { n: '/near', f: '/fx', s: '/stocks', g: '/signals', t: '/times', x: '/next', h: '/help' };
 /** A tapped inline button (callback_query.data): 'z:SYM' zones, 'c:SYM' 4-view chart, 'c:SYM:TF' one TF, short codes. */
 export async function handleCallback(data: string, ctx: Ctx): Promise<Reply> {
   const m = /^([zcs]):([A-Za-z0-9._-]{1,20})(?::([A-Za-z0-9]{1,3}))?$/.exec(data ?? '');
+  const nw = /^n:([A-Za-z0-9._-]{1,20})$/.exec(data ?? '');
+  if (nw) return symbolNews(nw[1], ctx, FOOT);
   if (m && m[1] === 'z') return cmdZones(m[2], ctx);
   if (m && m[1] === 's' && !m[3]) return scanOne(m[2], ctx);
   if (m && m[1] === 'c') return { ...(await cmdChart(m[2], m[3] ?? '', ctx)), edit: !!m[3] };
@@ -980,10 +982,11 @@ async function prefsTap(t: NonNullable<ReturnType<typeof parseTap>>, ctx: Ctx): 
 }
 
 // ---- /news (TradingView economic calendar, loaded as 'news.json' = yesterday .. +2 days; formatting in news.ts) ----
-async function cmdNews(ctx: Ctx): Promise<Reply> {
-  const [cal, evs] = await Promise.all([ctx.load('news.json'), ctx.load('events.json')]);
+async function cmdNews(arg: string, ctx: Ctx): Promise<Reply> {
+  if (arg) return symbolNews(arg, ctx, FOOT);   // /news SYM: that symbol's headlines (news.ts + headlines.ts)
+  const [cal, evs, top] = await Promise.all([ctx.load('news.json'), ctx.load('events.json'), loadHeadlines(ctx, 'headlines/top')]);
   const key = eventsOf(evs).filter(e => e.verified).map(e => ({ name: KIND_NAME[e.kind], t: zoned(e.date, e.et, NY), verified: e.verified }));
-  return { cmd: 'news', text: fit(newsText(cal, key, ctx.now, FOOT)) };
+  return { cmd: 'news', text: fit(withTopHeadlines(newsText(cal, key, ctx.now, FOOT), top, ctx.now)) };
 }
 
 // ---- /ask (lesson passages, BM25) ----------------------------------------------------------------------------------
@@ -1037,7 +1040,7 @@ export async function handle(text: string, ctx: Ctx): Promise<Reply> {
       case 'start': case 'help': return { cmd: c.cmd, text: helpText(), keyboard: true };
       case 'chart': return cmdChart(c.arg, c.arg2, ctx);
       case 'ask': return cmdAsk(c.rest, ctx);
-      case 'news': return cmdNews(ctx);
+      case 'news': return cmdNews(c.arg, ctx);
       case 'fx': return cmdFx(ctx);
       case 'stocks': return cmdStocks(ctx);
       case 'signals': return cmdSignals(ctx);
@@ -1063,7 +1066,7 @@ export async function handle(text: string, ctx: Ctx): Promise<Reply> {
   if (t.endsWith('?') && t.length > 3) return cmdAsk(t, ctx);
   if (SYMBOLISH.test(t)) {
     const { hit, suggest } = await resolve(t, ctx);
-    if (hit) return hit.market === 'fx' ? fxZones(hit, ctx) : stockZones(hit, ctx);
+    if (hit) return withLatest(hit.sym, ctx, hit.market === 'fx' ? fxZones(hit, ctx) : stockZones(hit, ctx));
     if (suggest.length) return { cmd: 'symbol?', text: notFound(t, suggest) };
   }
   return { cmd: 'text', text: HINT };

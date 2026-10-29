@@ -38,7 +38,7 @@ export function decode(s: string): string {
 export function plainText(s: unknown, max = 300): string {
   let t = String(s ?? '').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1');
   t = t.replace(/<(script|style)[\s\S]*?<\/\1>/gi, ' ').replace(/<[^>]*>/g, ' ');
-  t = decode(t).replace(/<[^>]*>/g, ' ').replace(/[\u0000-\u001f\u007f\u200b-\u200f\u2028\u2029]/g, ' ');
+  t = decode(t).replace(/<(script|style)[\s\S]*?<\/\1>/gi, ' ').replace(/<[^>]*>/g, ' ').replace(/[\u0000-\u001f\u007f\u200b-\u200f\u2028\u2029]/g, ' ');
   t = t.replace(/\s+/g, ' ').trim();
   return clip(t, max);
 }
@@ -205,7 +205,7 @@ const MACRO = /\b(fed|fomc|powell|rate (cut|hike|decision)|cuts? rates|hikes? ra
 const MARKET = /\b(stocks?|s&p|nasdaq|dow|wall street|dollar|yen|euro|sterling|pound|gold|silver|oil|crude|bitcoin|ether(eum)?|crypto|yields?|bonds?|earnings|guidance|forecast|record|plunge[sd]?|surge[sd]?|soar(s|ed)?|tumble[sd]?|crash(es|ed)?|rall(y|ies|ied)|slump(s|ed)?|sell-?off|rout|jumps?|slides?|sinks?|spikes?)\b/i;
 const MEGA = /\b(apple|microsoft|nvidia|alphabet|google|amazon|meta|tesla|broadcom|berkshire|jpmorgan|openai|netflix)\b/i;
 const MEGA_TAGS = new Set(['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'GOOG', 'AMZN', 'META', 'TSLA', 'AVGO', 'BRK.B', 'JPM', 'NFLX', 'SPY', 'QQQ']);
-const NOISE = /(price prediction|should you buy|stocks? to (watch|buy)|analyst ratings?|options? activity|unusual options|whale|short interest|price target|insider (buy|sell)|here'?s why|what'?s going on|top (gainers|losers|movers)|mid-?day movers|pre-?market movers|shares are trading|these \d+ stocks|stocks moving|earnings preview|ratings? (update|change)|\bETF\b.*\b(inflows|outflows)\b|sponsored|podcast|webinar|newsletter|quiz|how to|explained|\bvs\.? \d|cramer)/i;
+export const NOISE = /(price prediction|should you buy|stocks? to (watch|buy)|analyst ratings?|options? activity|unusual options|whale|short interest|price target|insider (buy|sell)|here'?s why|what'?s going on|top (gainers|losers|movers)|mid-?day movers|pre-?market movers|shares are trading|these \d+ stocks|stocks moving|earnings preview|ratings? (update|change)|\bETF\b.*\b(inflows|outflows)\b|sponsored|podcast|webinar|newsletter|quiz|how to|explained|\bvs\.? \d|cramer)/i;
 const SRC_W: Record<string, number> = { investingLive: 1.2, 'Investing.com': 1, CNBC: 1, CoinDesk: 0.4, Benzinga: 0 };
 
 /** Market-moving score (higher = more important): macro words, market words, mega caps, source, minus noise + age. */
@@ -373,7 +373,7 @@ export function headlineLoader(d: LoaderDeps): (path: string) => Promise<Headlin
     const m = /^headlines\/(top|sym\/([A-Za-z0-9._-]{1,20}))$/.exec(path);
     if (!m) return null;
     const tags = m[2] ? symMap(m[2]).tags : [];
-    const [p, a] = await Promise.all([m[2] && symMap(m[2]).kind === 'stock' ? Promise.resolve([] as Headline[]) : pool(), m[2] && !tags.length ? Promise.resolve([] as Headline[]) : alpaca(tags)]);
+    const [p, a] = await Promise.all([m[2] && symMap(m[2]).kind === 'stock' ? Promise.resolve(null) : pool(), m[2] && !tags.length ? Promise.resolve(null) : alpaca(tags)]);
     if (p == null && a == null) return null;
     return [...(a ?? []), ...(p ?? [])];
   };
