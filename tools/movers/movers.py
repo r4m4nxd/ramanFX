@@ -942,7 +942,30 @@ def run(now: dt.datetime, get: Getter = get_json, test: bool = False, notify: bo
     log('sent' if ok else 'NOT sent (Telegram not configured or refused)')
     if ok:
         done(ok_events)
+        if not test:
+            to_guests(out, prefs, now, log)
     return msg
+
+
+GUEST_MARKET = {'fx': 'fx', 'idx': 'indices', 'crypto': 'crypto', 'stock': 'stocks'}   # GROUPS -> guests.py MARKETS
+
+
+def guest_message(g: Dict, secs: Sequence[Dict], now: Optional[dt.datetime] = None) -> List:
+    """One guest's big moves (stock_scanner/guests.py): only the lines of their markets, not their mutes, silent in their
+    quiet hours (sent right away, never held)."""
+    import guests as G                                   # noqa: WPS433
+    mu = G.muted(g, now=now)
+    mine = [{**s, 'rows': [r for r in s['rows'] if r['sym'] not in mu and G.wants(g, GUEST_MARKET.get(r.get('group'), G.market_of(r['sym'])))]} for s in secs if s.get('rows')]
+    m = build(mine, silent=P.in_quiet(g, now))
+    return [m] if m is not None else []
+
+
+def to_guests(secs: Sequence[Dict], prefs: Optional[Dict], now: dt.datetime, log=print) -> None:
+    try:
+        import guests as G                               # noqa: WPS433
+        G.broadcast(lambda g: guest_message(g, secs, now), prefs, log=log, what='big moves')
+    except Exception as e:  # noqa: BLE001
+        log(f'guests: big moves skipped ({type(e).__name__})')
 
 
 def main(argv=None) -> int:

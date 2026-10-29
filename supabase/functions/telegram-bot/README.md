@@ -28,6 +28,32 @@ Alpaca, Telegram), the GitHub token's expiry date and any open problem. Reads on
 | `/scan SYM` / `[🔄 Live scan]` | on-demand scan of one symbol (callback `s:SYM`); `/scan` alone: every market |
 | buttons on symbol cards | `[🔕 Mute 1w]` = callback `m:SYM:7` (days); `[⏰ 0.2%]` = callback `r:SYM:0.2` (pct alert) |
 
+## Guests (sharing the bot) — `guests.ts`
+
+Up to 5 people (family) get the market side of the bot; the owner's data stays private.
+
+1. They send `/start` to the bot: an unknown chat gets only "Ask the owner to add you. Your ID: <id>" (at most once per
+   10 min per chat, 30 an hour overall; every other message from an unknown chat is ignored, its id never stored).
+2. The owner sends `/adduser <id> Name` (`… Name all` = every market), `/removeuser <id>`, `/users`. Stored in
+   `public.rfx_bot_guests` (migration `20261029090000_rfx_bot_guests.sql`; service role only). The new guest gets a
+   welcome + the quick keyboard (the one `sendMessage` this function makes itself, `TELEGRAM_BOT_TOKEN` secret).
+3. A guest gets every market command and button (`/fx /stocks /signals /near /zones /chart /hours /fund /news /times
+   /next /ask /guide /help`, `/scan`: 3 an hour each, inside the global 6) with `ctx.role = 'guest'` and their OWN prefs
+   store (`rfx_bot_guests.prefs`: `/alert /alerts /unalert /mute /unmute /quiet /watch /unwatch`, and `/markets`:
+   which markets' automatic messages they get, stocks only by default). Refused: `OWNER_ONLY` in `logic.ts`
+   (`/took`, `/health`, the admin commands); journal replies (📝) are never routed for them. The Mini App menu button is
+   set for the owner's chat only. `/ask` is the local BM25 search (no paid API), so guests have it.
+4. Menus: the default command scope (everyone = guests) is `commands.json` without `commands_owner.json`
+   `hide_from_guests`; the owner's chat scope adds `/adduser /removeuser /users` (`tools/telegram_bot/setup.py`).
+5. Pushes: `?op=prefs` adds `guests: [{id (12 hex of sha256(chat id)), chat_id, name, markets, mutes, alerts, quiet,
+   watch}]`; the jobs send each guest their share after the owner's message (`tools/stock_scanner/guests.py`): FX
+   alerts / summary / digest, stock scan (no holdings exits, no watchlist lines), big moves, the morning brief without
+   'Your symbols', held / watched earnings and (without forex) Kevin's plan, reminders, plus their own fired alerts.
+   Never: coach, breaking news on the owner's positions, health alerts, the owner's alerts. `POST ?op=guest-inactive
+   {guest}` (they blocked the bot: Telegram 403) and `POST ?op=guest-alert-fired {guest, id}`, same `X-RFX-Key`.
+   On-demand `/scan` from a guest dispatches with the workflow input `to=<guest id>`: the card goes to them.
+   Note: the FX alerts cover the owner's watchlist (incl. `/watch` extras), as for the owner.
+
 ## Scanner contract (prefs API)
 
 The scanners (GitHub Actions) read the owner's preferences and report fired alerts.

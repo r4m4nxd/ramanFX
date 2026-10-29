@@ -211,6 +211,50 @@ class JobShareTest(unittest.TestCase):
             self.assertIn("Kevin's plan", text)
         self.assertEqual(B.guest_brief(g, {}), [])
 
+    def test_movers_share(self):
+        sys.path.insert(0, os.path.join(ROOT, 'tools', 'movers'))
+        import movers as M
+        close = '2026-10-29T17:00:00+00:00'
+        rows = [{'sym': 'XAUUSD', 'group': 'fx', 'tf': 'H1', 'x': 2.4, 'pct': 1.1, 'ctx': ''},
+                {'sym': 'NVDA', 'group': 'stock', 'tf': 'H1', 'x': 3.1, 'pct': -2.4, 'ctx': ''},
+                {'sym': 'BTCUSD', 'group': 'crypto', 'tf': 'H1', 'x': 2.2, 'pct': 3.0, 'ctx': ''}]
+        secs = [{'tf': 'H1', 'close': close, 'fams': ['fx', 'stock'], 'feed': 'IEX real-time', 'rows': rows}]
+        g = G.of({'guests': [raw_guest()]})[0]
+        out = M.guest_message(g, secs, NOON)
+        self.assertEqual(len(out), 1)
+        self.assertIn('NVDA', out[0])
+        self.assertNotIn('XAUUSD', out[0])
+        self.assertNotIn('BTCUSD', out[0])
+        self.assertNotIn('Forex', out[0])
+        muted = G.of({'guests': [raw_guest(mutes=[{'sym': 'NVDA', 'until_utc': '2099-01-01T00:00:00Z'}])]})[0]
+        self.assertEqual(M.guest_message(muted, secs, NOON), [])                  # nothing left for them: no message
+        quiet = G.of({'guests': [raw_guest(markets=['crypto'], quiet={'from': '00:00', 'to': '23:59'})]})[0]
+        q = M.guest_message(quiet, secs, NOON)
+        self.assertIn('BTCUSD', q[0])
+        self.assertTrue(q[0].silent)
+        self.assertEqual(len(secs[0]['rows']), 3)                                 # the owner's sections untouched
+
+    def test_movers_owner_message_identical_with_guests(self):
+        import tempfile
+        sys.path.insert(0, os.path.join(ROOT, 'tools', 'movers'))
+        sys.path.insert(0, os.path.join(ROOT, 'tools', 'movers', 'tests'))
+        import movers as M
+        import test_movers as TM
+        outs, guest = [], []
+        for prefs in (None, {'guests': [raw_guest()]}):
+            with tempfile.TemporaryDirectory() as d:
+                sent = []
+                get, mod = TM.fake(TM.FRI)
+                with mock.patch.object(M, '_crypto_mod', lambda: mod), mock.patch.dict(os.environ, {**ENV, **TM.ENV}), \
+                        mock.patch.object(G, 'send_to', side_effect=lambda c, ms, **k: guest.append([str(m) for m in ms]) or 'ok'):
+                    M.run(TM.FRI, get=get, prefs=prefs, state_path=os.path.join(d, 's.json'), latest_path=os.path.join(d, 'l.json'),
+                          send=lambda ms: sent.extend(ms) or True, log=lambda *_: None)
+                outs.append([(str(m), m.buttons, m.silent) for m in sent])
+        self.assertEqual(outs[0], outs[1])                       # byte-identical for the owner
+        self.assertEqual(len(guest), 1)
+        self.assertIn('NVDA', guest[0][0])
+        self.assertNotIn('XAUUSD', guest[0][0])                  # stocks-only guest
+
     def test_reminders_go_to_every_guest(self):
         sys.path.insert(0, os.path.join(ROOT, 'tools', 'reminders'))
         import reminders as R
