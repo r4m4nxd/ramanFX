@@ -183,6 +183,12 @@ export function publishedFiles(now: Date): Map<string, unknown> {
     signals: [{ symbol: 'BRK.B', tf: 'W1', kind: 'BUY', entry: brk.price * 0.99, stop: brk.price * 0.97, target: brk.price * 1.06, rr: 3, score: 8, to_entry_pct: 1 }],
     zone_lists: { demand: { in: [], near: [{ s: 'PENY', tf: 'W1', pct: 0.4 }], left: [] }, supply: { in: [], near: [], left: [] } } });
   files.set('events.json', { kinds: {} });
+  // hostile headlines (headlines.ts Headline shape) and economic calendar rows
+  const evil = ['<script>alert(1)</script> & "quotes" \'single\'', 'Ünïcödé 💥🚀 中文 headline', `Long ${'word '.repeat(900)}`, '<b>unclosed', '&amp; already escaped &lt;', ''];
+  const heads = evil.map((title, i) => ({ id: `h${i}`, t: now.getTime() - i * 3600000, title, summary: i % 2 ? `<i>${title}</i>` : '', url: ['javascript:alert(1)', 'https://example.test/a?b=1&c=<2>', '', 'ftp://x', 'https://ok.test/', 'http://x'][i], source: `<Src&${i}>`, syms: ['PENY', 'EURUSD', 'BRK.B'] }));
+  files.set('headlines/top', heads);
+  for (const s of [...ST_FIX.map(x => x.sym), ...FX_FIX.map(x => x.sym)]) files.set(`headlines/sym/${s}`, heads);
+  files.set('news.json', { result: evil.map((title, i) => ({ importance: i % 2, date: new Date(now.getTime() + (i - 2) * 1800000).toISOString(), title, country: ['US', '<X>', 'EU', '💥', 'JP', ''][i] })) });
   return files;
 }
 const isoDay = (t: Date) => t.toISOString().slice(0, 10);

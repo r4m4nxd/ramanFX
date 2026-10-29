@@ -104,10 +104,10 @@ describe('live sources: HTTP failures give null (never throw)', () => {
 });
 
 // ---- commands -------------------------------------------------------------------------------------------------------
-const HUGE = 'A'.repeat(4000);
+const HUGE = 'A'.repeat(4000), HUGE_LT = '<'.repeat(4000);   // '<' grows 4x when escaped
 const ARGS = ['', 'EURUSD', 'eurusd', 'brk.b', 'BRK-B', 'BRK.B', 'bf-b.x', 'NOPE', 'LONGNAMEXYZ', 'ABCDEFGHIJKLMNOPQRSTUV', '<script>alert(1)</script>', '&amp; "quoted" \'x\'',
   '💥🚀', 'ÉÜßЖ中文', '<b>bold', '../../etc/passwd', 'EURUSD H4', 'EURUSD QXX', 'EURUSD 15m', 'BRK.B 1H', 'BRK.B MN 4', 'BRK.B 1M+', 'PENY 0.0000001', 'PENY 1e9', 'PENY -5',
-  'PENY 0', 'PENY nan', 'PENY 1,000,000.5', 'SHIBUSD 0.00001300', 'XAUUSD zone', 'XAUUSD 2650 extra args', '12', '#3', '-1', '99999999999999999999', '22:00-06:00', '25:00-06:00', 'off', '1w', '91d', HUGE, `EURUSD ${HUGE}`];
+  'PENY 0', 'PENY nan', 'PENY 1,000,000.5', 'SHIBUSD 0.00001300', 'XAUUSD zone', 'XAUUSD 2650 extra args', '12', '#3', '-1', '99999999999999999999', '22:00-06:00', '25:00-06:00', 'off', '1w', '91d', HUGE, HUGE_LT, `EURUSD ${HUGE}`, `EURUSD ${HUGE_LT}`, `PENY ${HUGE_LT}`];
 const CMDS = [...new Set([...COMMANDS.map(c => c.command), ...OWNER_COMMANDS.map(c => c.command), 'start', 'zone', 'status', 'howto', 'fundamentals', 'delalert', 'nope'])];
 
 describe('commands: every command with hostile arguments', () => {
@@ -257,4 +257,14 @@ describe('commands: every command with hostile arguments', () => {
     }
     expect(bad).toEqual([]);
   }, 60_000);
+
+  it('hostile headlines / calendar rows: escaped, no empty bullet, no javascript: link', async () => {
+    const ctx = breakCtx(NOW, 'ok');
+    for (const q of ['/news', '/news PENY', '/zones PENY', '/chart PENY', 'PENY']) {
+      const r = await handle(q, ctx);
+      expect(replyIssues(r), q).toEqual([]);
+      expect(r.text, q).not.toMatch(/<script|javascript:|href="(?!https?:)/);
+      expect(r.text, q).not.toMatch(/^• *$/m);
+    }
+  });
 });

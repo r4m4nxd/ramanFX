@@ -273,7 +273,7 @@ export function latestFor(list: unknown, sym: string, now: number, hours = 24): 
 }
 function asList(list: unknown): Headline[] {
   if (!Array.isArray(list)) return [];
-  return (list as Headline[]).filter(h => h && typeof h.title === 'string' && Number.isFinite(h.t))
+  return (list as Headline[]).filter(h => h && typeof h.title === 'string' && !!h.title.trim() && Number.isFinite(h.t))
     .map(h => ({ ...h, syms: Array.isArray(h.syms) ? h.syms : [], summary: typeof h.summary === 'string' ? h.summary : '', url: safeUrl(h.url), source: String(h.source ?? '') }));
 }
 

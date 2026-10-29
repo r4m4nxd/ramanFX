@@ -3,7 +3,7 @@
 // fetched by index.ts as 'news.json' = yesterday .. +2 days) plus the verified NFP / CPI / FOMC dates of
 // tools/reminders/events.json. Pure: the caller passes the loaded JSON, the parsed key events and the time.
 
-import { clock, day, esc, fit, isoDay, parts, resolve, symButtons, CAL, type Button, type Ctx, type Reply } from './logic.ts';
+import { clock, day, echo, esc, fit, isoDay, parts, resolve, symButtons, CAL, type Button, type Ctx, type Reply } from './logic.ts';
 import { latestLine, SOURCES, symbolLines, topLines } from './headlines.ts';
 import { withInsiders } from './insiders.ts';
 
@@ -102,7 +102,7 @@ export function newsButton(sym: string): Button[] {
 export async function symbolNews(q: string, ctx: Ctx, foot = 'not advice'): Promise<Reply> {
   const { hit, suggest } = await resolve(q, ctx);
   const sym = hit?.sym ?? (/^[A-Za-z][A-Za-z0-9.]{0,9}$/.test(q) && !suggest.length ? q.toUpperCase() : '');
-  if (!sym) return { cmd: 'news', text: `Not sure which symbol <b>${esc(q)}</b> is.${suggest.length ? ` Did you mean ${suggest.map(s => `/news ${esc(s)}`).join(', ')}?` : ''}` };
+  if (!sym) return { cmd: 'news', text: `Not sure which symbol <b>${echo(q)}</b> is.${suggest.length ? ` Did you mean ${suggest.map(s => `/news ${esc(s)}`).join(', ')}?` : ''}` };
   const list = await loadHeadlines(ctx, `headlines/sym/${sym}`);
   const lines = symbolLines(sym, list, ctx.now.getTime());
   lines.push('', `Times: Calgary clock · ${SOURCES} · ${foot}`);
