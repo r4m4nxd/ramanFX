@@ -136,7 +136,8 @@ class HourlySchedule(unittest.TestCase):
                 for newest, want in (('2026-10-26T13:00', 'false'), ('2026-10-26T14:00', 'true')):
                     open(out, 'w').close()
                     with mock.patch.dict(os.environ, env), mock.patch.object(O, 'latest_h1', return_value=newest), \
-                            contextlib.redirect_stdout(io.StringIO()):
+                            mock.patch.object(X, 'crypto_latest_h1', return_value=None), \
+                            contextlib.redirect_stdout(io.StringIO()):   # no network: crypto check off here (test_fx_sources)
                         self.assertEqual(X.main(['--check']), 0)
                     with open(out) as f:
                         self.assertIn(f'scan={want}', f.read())
