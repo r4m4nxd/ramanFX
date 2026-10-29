@@ -231,6 +231,7 @@ class NotifyTest(unittest.TestCase):
         self.assertTrue(vis.startswith('📈 <b>30 BUY · 3 WATCH · nothing to exit</b>'))
         self.assertIn('3:05 PM', vis)                                         # 17:05 EDT = 15:05 Calgary
         self.assertEqual(vis.count('</b>  BUY '), 3)                          # max 3 cards even with top=5
+        self.assertEqual(vis.count('<i>why: '), 3)                            # one plain 'why' line per card
         self.assertIn('score 9/10', vis)
         self.assertEqual(m.count('<blockquote expandable>'), 1)
         self.assertIn('Also: ', m)
@@ -323,6 +324,18 @@ class NotifyTest(unittest.TestCase):
                     os.environ[k] = v
 
 
+class ReasonLineTest(unittest.TestCase):
+    def test_reason_line(self):
+        s = {'tf': 'H4', 'side': 'demand', 'chain': [{'tf': 'MN', 'side': 'demand'}, {'tf': 'H4', 'side': 'demand'}],
+             'direction': 'LONG - REDUCED', 'touches': 0, 'score': 8}
+        self.assertEqual(notify.reason_line(s, score=True), 'why: 4-hour zone inside monthly demand · trend up, pulling back · untouched zone · score 8/10')
+        self.assertEqual(notify.reason_line({'tf': 'MN', 'loc': 'top', 'side': 'demand', 'direction': 'WAIT', 'touches': 2}),
+                         'why: monthly demand is the top zone · trend unclear · zone touched 2x')
+        self.assertEqual(notify.reason_line({}), '')
+        for tok in notify.JARGON:
+            self.assertNotIn(tok, notify.reason_line(s, score=True))
+
+
 if __name__ == '__main__':
     unittest.main()
 
@@ -356,3 +369,4 @@ class SecCacheTest(unittest.TestCase):
 
     def test_sec_pace(self):
         self.assertGreaterEqual(DATA.HOST_PAUSE['data.sec.gov'], 0.2)   # <= 5 requests a second
+

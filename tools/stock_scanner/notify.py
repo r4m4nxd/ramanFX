@@ -197,6 +197,38 @@ def visible(m: str) -> str:
     return re.sub(r'<blockquote expandable>.*?</blockquote>', '', m, flags=re.S)
 
 
+# ---- the 'why' line under every alert card (both scanners) -----------------------------------------------------------
+def trend_words(direction: str) -> str:
+    """'LONG - FULL' -> 'trend up', 'SHORT - REDUCED' -> 'trend down, pulling back', 'WAIT ...' -> 'trend unclear'."""
+    d = (direction or '').upper()
+    base = 'trend up' if d.startswith('LONG') else 'trend down' if d.startswith('SHORT') else 'trend unclear'
+    return base + (', pulling back' if 'REDUCED' in d else '')
+
+
+def reason_line(s: Dict, score: bool = False) -> str:
+    """One short plain line from what the scanner already computed: where the zone sits (the nesting chain), the trend,
+    first touch or not, optionally the score: 'why: 4-hour zone inside monthly demand · trend up · untouched zone'."""
+    ch = [c for c in (s.get('chain') or []) if isinstance(c, dict)]
+    side = s.get('side') or (ch[-1].get('side') if ch else '') or 'demand'
+    tfw = tf_word(s.get('tf'))
+    bits = []
+    if len(ch) > 1:
+        host = ch[0]
+        bits.append(f"{tfw} zone inside {tf_word(host.get('tf'))} {host.get('side') or side}")
+    elif s.get('loc') == 'top' or ch:
+        bits.append(f'{tfw} {side} is the top zone')
+    elif s.get('loc_ok') is False:
+        bits.append('no bigger zone behind it')
+    if s.get('direction'):
+        bits.append(trend_words(s['direction']))
+    t = s.get('touches')
+    if t is not None:
+        bits.append('untouched zone' if t == 0 else f'zone touched {t}x')
+    if score and s.get('score') is not None:
+        bits.append(f"score {s['score']}/10")
+    return ('why: ' + ' · '.join(bits)) if bits else ''
+
+
 # ---- stocks ------------------------------------------------------------------------------------------------------------
 def stock_card(s: Dict) -> str:
     kind = s['kind']
@@ -206,8 +238,10 @@ def stock_card(s: Dict) -> str:
         extra = f"score {s.get('score', 0)}/10"
     else:
         extra = 'price still far' if s.get('watch') == 'new' else 'confirm first'
-    return card(ICON[kind], s['symbol'], kind, _f(s.get('entry')), _f(s.get('target')), s.get('rr'),
-                f"stop {_f(s.get('stop'))} · {zone} · {extra}", tag)
+    c = card(ICON[kind], s['symbol'], kind, _f(s.get('entry')), _f(s.get('target')), s.get('rr'),
+             f"stop {_f(s.get('stop'))} · {zone} · {extra}", tag)
+    why = reason_line({**s, 'side': 'demand'})
+    return c + (f'\n<i>{esc(why)}</i>' if why else '') + (f"\n{esc(s['news'])}" if s.get('news') else '')
 
 
 EXIT_WORDS = {'stop': 'stop hit by the close', 'demand_broken': 'demand under the entry broke',

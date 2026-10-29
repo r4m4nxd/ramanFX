@@ -54,8 +54,10 @@ def signal_card(s: Dict) -> str:
             f"{SN.tf_word(s.get('tf'))} {s.get('side', '')}"]
     if kind == 'WATCH':
         bits[-1] = 'price still far' if s.get('watch_kind') == 'new' else 'confirm first'
-    return SN.card(ICON.get(kind, '•'), s['sym'], kind, _px(s.get('entry'), s),
-                   _px(s.get('target'), s) if s.get('target') else '', None, ' · '.join(b for b in bits if b))
+    c = SN.card(ICON.get(kind, '•'), s['sym'], kind, _px(s.get('entry'), s),
+                _px(s.get('target'), s) if s.get('target') else '', None, ' · '.join(b for b in bits if b))
+    why = SN.reason_line(s, score=True)
+    return c + (f'\n<i>{esc(why)}</i>' if why else '') + (f"\n{esc(s['news'])}" if s.get('news') else '')
 
 
 def gone_reason(reason: str) -> str:
@@ -90,8 +92,27 @@ def zone_line(z: Dict) -> str:
     sec = z.get('sec') or z.get('section')
     where = f"{SN.tf_word(z.get('tf'))} {z['side']}"
     if sec == 'near':
-        return f"{ICON['NEAR']} <b>{esc(z['sym'])}</b> near {esc(where)}\n{esc(SN.away(pct(z)))}"
-    return f"{ICON['WATCH']} <b>{esc(z['sym'])}</b> entered {esc(where)}\nat {_px(z.get('prox'), z)}"
+        out = f"{ICON['NEAR']} <b>{esc(z['sym'])}</b> near {esc(where)}\n{esc(SN.away(pct(z)))}"
+    else:
+        out = f"{ICON['WATCH']} <b>{esc(z['sym'])}</b> entered {esc(where)}\nat {_px(z.get('prox'), z)}"
+    why = zone_why(z)
+    return out + (f'\n<i>{esc(why)}</i>' if why else '') + (f"\n{esc(z['news'])}" if z.get('news') else '')
+
+
+def zone_why(z: Dict) -> str:
+    """'why: sits inside a bigger zone · not a trade yet: trend against it' (what the scanner already decided)."""
+    bits = []
+    if z.get('loc_ok'):
+        bits.append('top-timeframe zone' if z.get('loc') == 'top' else 'sits inside a bigger zone')
+    st = z.get('status') or ''
+    if st in ('BUY', 'SELL'):
+        bits.append(f'{st} setup')
+    elif st:
+        bits.append('not a trade yet: ' + SN.plain(z.get('label') or st))
+    t = z.get('touches')
+    if t is not None:
+        bits.append('untouched zone' if t == 0 else f'zone touched {t}x')
+    return ('why: ' + ' · '.join(bits)) if bits else ''
 
 
 def also(items: Sequence[Dict], n: int = 5) -> str:
