@@ -674,7 +674,7 @@ EVENT_NOTE = {
     '01:00': 'London open (normal weeks)', '02:00': 'London open (US/UK DST-mismatch weeks) / Frankfurt+London 2nd hour',
     '06:30': 'US data 08:30 ET (NFP, CPI, retail sales, claims)', '07:30': 'NYSE open 09:30 ET',
     '08:00': '10:00 ET data (ISM, JOLTS, sentiment) / first stock hour', '09:00': 'London 16:00 close + WM/R fix (normal weeks)',
-    '12:00': '14:00 ET: FOMC statement (8 days a year)', '14:00': 'NYSE close 16:00 ET: closing-auction prints (volume, not range)',
+    '12:00': '14:00 ET: US afternoon (NYMEX oil settles 14:30 ET; FOMC statement on 8 days a year)', '14:00': 'NYSE close 16:00 ET: closing-auction prints (volume, not range)',
     '13:30': 'last regular half-hour (MOC imbalances, index rebalancing)',
     '18:30': 'Asia morning', '19:00': 'Asia morning (Tokyo / China / Australia data)',
     '15:00': 'FX rollover 17:00 ET (spreads widen)', '07:00': 'stock pre-market last half-hour / 09:00 ET',
@@ -693,6 +693,9 @@ def build_md(R: dict) -> str:
              'Calgary (both use US daylight-saving dates). Descriptive statistics only - nothing here is a trading '
              'signal or a profit claim.\n')
 
+    if m.get('alpaca_feed') and m.get('alpaca_feed') != 'sip':
+        L.append('> **Warning:** Alpaca served IEX-only bars this run (feed=iex): stock volumes are a small slice of the '
+                 'market and many pre / post-market buckets are empty. Re-run the workflow.\n')
     # --- schedule
     L.append('## When to open the charts (Calgary time)\n')
     L.append('Each row is a peak of activity on a normal weekday (Mon-Fri pooled, 30-minute buckets). Volume and range '
@@ -891,7 +894,7 @@ def narrative(R: dict) -> str:
                    f"{g(bt, '10:00')} at 10:00. Index CFDs (US500 / US30 / NAS100) explode at **07:30: "
                    f"{g(cbt, '07:30')}** ({g(cbt, '07:30', 'big_pct')} big-move days). Stocks: **07:30 = {g(sbt, '07:30')}**, "
                    f"08:00 {g(sbt, '08:00')}, 08:30 {g(sbt, '08:30')}.")
-        out.append(f"2. **00:30-02:00 Calgary = London open (01:00).** A smaller forex peak: {g(bt, '01:00')} at 01:00 "
+        out.append(f"2. **Around 01:00 Calgary = London open.** A smaller forex peak: {g(bt, '01:00')} at 01:00 "
                    f"({g(bt, '01:00', 'big_pct')} big-move days). In the US/UK DST-mismatch weeks it moves to 02:00 "
                    f"(see the daylight-saving table). Worth an alarm only if you trade the London open.")
     if nfp:
