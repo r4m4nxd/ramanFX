@@ -46,7 +46,7 @@ export async function journalRoute(msg: Record<string, any>, env: JournalEnv): P
   }
 
   const pr = await f(rest(`rfx_coach_prompts?message_id=eq.${replyTo}&select=trade_id,label`), { headers: h });
-  if (!pr.ok) { await pr.body?.cancel(); throw new Error(`prompts ${pr.status}`); }
+  if (!pr.ok) { await pr.body?.cancel(); return null; }   // coach tables missing / unavailable: normal handling
   const rows = await pr.json();
   const prompt = Array.isArray(rows) ? rows[0] : null;
   if (!prompt?.trade_id) return null;   // a reply to some other message: normal handling
