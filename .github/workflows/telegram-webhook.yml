@@ -1,0 +1,44 @@
+name: Telegram bot webhook
+
+# Points the bot's webhook at the Supabase edge function `telegram-bot` (two-way commands), sets the Menu commands
+# and pins the command list (tools/telegram_bot/setup.py). The function never gets the bot token: it replies in the
+# webhook response. Re-runs with the same label are idempotent (same secret). Rotating the secret: open a window
+#   update public.rfx_bot_config set rotate_until = now() + interval '15 minutes' where id = 1;
+# then run this workflow with a new label (v2, v3, ...) within 15 minutes.
+on:
+  workflow_dispatch:
+    inputs:
+      label:
+        description: 'Secret label (change only to rotate, after opening the rotation window)'
+        required: false
+        default: 'v1'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/functions/telegram-bot/**'
+      - 'tools/telegram_bot/**'
+      - '.github/workflows/telegram-webhook.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: telegram-webhook
+  cancel-in-progress: false
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Set webhook, menu and pinned list
+        run: python tools/telegram_bot/setup.py
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          LABEL: ${{ github.event.inputs.label || vars.TELEGRAM_WEBHOOK_LABEL || 'v1' }}
+          EVENT: ${{ github.event_name }}

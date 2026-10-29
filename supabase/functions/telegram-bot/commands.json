@@ -1,0 +1,12 @@
+[
+  { "command": "fx", "description": "Open FX setups + getting close" },
+  { "command": "stocks", "description": "Today's stock BUY / WATCH" },
+  { "command": "signals", "description": "Every open BUY / SELL / WATCH" },
+  { "command": "near", "description": "Everything within 1% of a zone" },
+  { "command": "scan", "description": "Run a fresh scan now" },
+  { "command": "zones", "description": "Every zone of a symbol" },
+  { "command": "hours", "description": "Best times / days for a symbol" },
+  { "command": "times", "description": "Today's key Calgary times" },
+  { "command": "next", "description": "Next NFP, CPI and Fed decision" },
+  { "command": "help", "description": "This list" }
+]
