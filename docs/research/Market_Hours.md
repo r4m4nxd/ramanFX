@@ -1,6 +1,6 @@
 # Market hours study: when do volume and price action spike? (Calgary time)
 
-Generated 2026-10-29 00:22 UTC by `tools/research/market_hours/market_hours.py` (workflow `market-hours.yml`). Sample: 2024-10-29 to 2026-10-28. All times are **Calgary (America/Edmonton)** with New York in brackets; New York is always 2 h ahead of Calgary (both use US daylight-saving dates). Descriptive statistics only - nothing here is a trading signal or a profit claim.
+Generated 2026-10-29 00:33 UTC by `tools/research/market_hours/market_hours.py` (workflow `market-hours.yml`). Sample: 2024-10-29 to 2026-10-28. All times are **Calgary (America/Edmonton)** with New York in brackets; New York is always 2 h ahead of Calgary (both use US daylight-saving dates). Descriptive statistics only - nothing here is a trading signal or a profit claim.
 
 ## When to open the charts (Calgary time)
 
@@ -14,7 +14,7 @@ Each row is a peak of activity on a normal weekday (Mon-Fri pooled, 30-minute bu
 | 06:00-10:00 | 08:00-12:00 | Forex + gold | **08:00** | 10:00 ET data (ISM, JOLTS, sentiment) / first stock hour | 2.20x | 1.83x | 41.6% |
 | 07:30-08:30 | 09:30-10:30 | Index / oil CFDs | **07:30** | NYSE open 09:30 ET | 6.74x | 3.17x | 86.7% |
 | 07:30-08:00 | 09:30-10:00 | US stocks | **07:30** | NYSE open 09:30 ET | 2.61x | 2.83x | 82.2% |
-| 11:30-12:30 | 13:30-14:30 | Index / oil CFDs | **12:00** | 14:00 ET: FOMC statement (8 days a year) | 2.40x | 1.40x | 29.0% |
+| 11:30-12:30 | 13:30-14:30 | Index / oil CFDs | **12:00** | 14:00 ET: US afternoon (NYMEX oil settles 14:30 ET; FOMC statement on 8 days a year) | 2.40x | 1.40x | 29.0% |
 | 12:30-14:00 | 14:30-16:00 | Index / oil CFDs | **13:30** | last regular half-hour (MOC imbalances, index rebalancing) | 2.87x | 1.80x | 41.0% |
 | 13:30-14:30 | 15:30-16:30 | US stocks | **13:30** | last regular half-hour (MOC imbalances, index rebalancing) | 2.31x | 1.04x | 6.9% |
 
@@ -22,7 +22,7 @@ Each row is a peak of activity on a normal weekday (Mon-Fri pooled, 30-minute bu
 
 1. **06:00-10:00 Calgary = the main window, every weekday.** Forex + gold activity climbs from 1.39x at 06:00 to 1.64x at 06:30 (US data at 08:30 ET), 1.94x at 07:30 (NYSE open) and peaks at **08:00 (2.01x; 41.6% of days have a big move in that half-hour)**, then fades through 09:00 (London close / fix, 1.64x) to 1.23x at 10:00. Index CFDs (US500 / US30 / NAS100) explode at **07:30: 4.62x** (86.7% big-move days). Stocks: **07:30 = 2.71x**, 08:00 1.59x, 08:30 1.25x.
 
-2. **00:30-02:00 Calgary = London open (01:00).** A smaller forex peak: 1.41x at 01:00 (15.8% big-move days). In the US/UK DST-mismatch weeks it moves to 02:00 (see the daylight-saving table). Worth an alarm only if you trade the London open.
+2. **Around 01:00 Calgary = London open.** A smaller forex peak: 1.41x at 01:00 (15.8% big-move days). In the US/UK DST-mismatch weeks it moves to 02:00 (see the daylight-saving table). Worth an alarm only if you trade the London open.
 
 3. **NFP Fridays (first Friday) at 06:30 Calgary:** the 06:30 half-hour range is **2.75x** the same half-hour on other Fridays (forex + gold, every instrument between 2.09x and 3.15x; big-move days 79.2% vs 31.2%; 24 NFP days). Stocks pre-market at 06:30: 1.8x.
 
@@ -392,10 +392,10 @@ Score = sqrt(volume x range), both relative to typical. "Top-10% in" = how many 
 | META | Stock | 2024-10-29 - 2026-10-28 | 15997 | 07:30 (2.91x vol, 2.92x range); 08:00 (1.63x vol, 1.65x range); 13:30 (2.07x vol, 1.08x range) | 02:30 |
 | TSLA | Stock | 2024-10-29 - 2026-10-28 | 16002 | 07:30 (2.61x vol, 2.56x range); 08:00 (1.74x vol, 1.69x range); 08:30 (1.36x vol, 1.3x range) | 03:30 |
 | BAC | Stock | 2024-10-29 - 2026-10-28 | 15868 | 07:30 (2.2x vol, 2.89x range); 13:30 (2.7x vol, 1.07x range); 08:00 (1.38x vol, 1.67x range) | 03:30 |
-| JPM | Stock | 2024-10-29 - 2026-10-28 | 15267 | 07:30 (2.26x vol, 2.83x range); 13:30 (2.83x vol, 1.04x range); 14:00 (5.14x vol, 0.52x range) | 02:30 |
+| JPM | Stock | 2024-10-29 - 2026-10-28 | 15268 | 07:30 (2.26x vol, 2.83x range); 13:30 (2.83x vol, 1.04x range); 14:00 (5.14x vol, 0.52x range) | 02:30 |
 | LLY | Stock | 2024-10-29 - 2026-10-28 | 14957 | 07:30 (2.48x vol, 3.07x range); 13:30 (2.65x vol, 1.06x range); 08:00 (1.45x vol, 1.71x range) | 02:30 |
 | NFLX | Stock | 2024-10-29 - 2026-10-28 | 15371 | 07:30 (2.6x vol, 3.02x range); 08:00 (1.52x vol, 1.67x range); 13:30 (2.35x vol, 1.05x range) | 03:00 |
-| UNH | Stock | 2024-10-29 - 2026-10-28 | 15242 | 07:30 (2.29x vol, 3.16x range); 13:30 (2.51x vol, 1.07x range); 08:00 (1.38x vol, 1.61x range) | 02:30 |
+| UNH | Stock | 2024-10-29 - 2026-10-28 | 15243 | 07:30 (2.29x vol, 3.16x range); 13:30 (2.51x vol, 1.07x range); 08:00 (1.38x vol, 1.61x range) | 02:30 |
 | XOM | Stock | 2024-10-29 - 2026-10-28 | 15737 | 07:30 (2.07x vol, 2.85x range); 13:30 (3.68x vol, 1.13x range); 14:00 (4.5x vol, 0.53x range) | 02:30 |
 | BA | Stock | 2024-10-29 - 2026-10-28 | 15820 | 07:30 (2.3x vol, 2.65x range); 08:00 (1.49x vol, 1.64x range); 13:30 (2.48x vol, 0.97x range) | 02:30 |
 | COST | Stock | 2024-10-29 - 2026-10-28 | 13853 | 07:30 (2.35x vol, 2.78x range); 13:30 (3.06x vol, 1.12x range); 08:00 (1.58x vol, 1.71x range) | 02:30 |
