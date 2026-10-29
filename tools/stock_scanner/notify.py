@@ -86,10 +86,18 @@ class Msg(str):
     """A message text that also carries its inline keyboard (rows of {'text', 'url'} buttons)."""
     buttons: List[List[Dict]]
 
-    def __new__(cls, text: str, buttons: Optional[List[List[Dict]]] = None):
+    silent: bool
+
+    def __new__(cls, text: str, buttons: Optional[List[List[Dict]]] = None, silent: bool = False):
         m = super().__new__(cls, text)
         m.buttons = [r for r in (buttons or []) if r][:5]
+        m.silent = silent                   # disable_notification (quiet hours, non-urgent)
         return m
+
+
+def silenced(m: str, silent: bool = True) -> 'Msg':
+    """The same message (text + buttons), sent silently when `silent`."""
+    return Msg(str(m), getattr(m, 'buttons', None), silent=silent or bool(getattr(m, 'silent', False)))
 
 
 def button(text: str, url: str) -> Dict: return {'text': text, 'url': url}
@@ -107,6 +115,53 @@ def keyboard(charts: Sequence[Dict], open_label: str, open_url: str) -> List[Lis
 
 
 def cb(text: str, data: str) -> Dict: return {'text': text, 'callback_data': data}
+
+
+def _cb_ok(data: str) -> bool: return len(data.encode()) <= 64
+
+
+def alert_keyboard(charts: Sequence[Dict], open_label: str, open_url: str, remind: bool = True) -> List[List[Dict]]:
+    """The instant-alert keyboard, at most 3 rows. One symbol: [📈 SYM (TradingView)] [📊 4Q chart] [🔎 Zones] /
+    [🔕 Mute 1w] [⏰ 0.2%] / [Open scanner]. Two or three symbols: [📊 SYM] per symbol / [🔕 SYM] per symbol /
+    [⏰ SYM] per symbol (remind=False: [Open scanner] instead; bot callbacks: c:SYM chart, m:SYM:7 mute 7 days,
+    r:SYM:0.2 remind at 0.2%)."""
+    charts = list(charts)[:MAX_CARDS]
+    syms = [c['text'].split(' ', 1)[-1] for c in charts if c.get('text')]
+    syms = [x for x in syms if _cb_ok(f'r:{x}:0.2')]
+    if not syms:
+        return [r for r in [charts] if r] + [[button(open_label, open_url)]]
+    if len(syms) == 1:
+        x = syms[0]
+        return [charts[:1] + [cb('📊 4Q chart', f'c:{x}'), cb('🔎 Zones', f'z:{x}')],
+                [cb('🔕 Mute 1w', f'm:{x}:7'), cb('⏰ 0.2%', f'r:{x}:0.2')], [button(open_label, open_url)]]
+    last = [cb(f'⏰ {x} 0.2%', f'r:{x}:0.2') for x in syms] if remind else [button(open_label, open_url)]
+    return [[cb(f'📊 {x}', f'c:{x}') for x in syms], [cb(f'🔕 {x} 1w', f'm:{x}:7') for x in syms], last]
+
+
+def kevin_line(s: Dict) -> str:
+    """'⭐ also in Kevin's plan (Oct 28: 1H demand 4024–4041)' when the scan matched the card to Kevin's plan."""
+    k = s.get('kevin')
+    return f"⭐ also in Kevin's plan ({esc(k)})" if k else ''
+
+
+def fired_alert_message(f: Dict, market: str = 'fx', bar_word: str = '') -> 'Msg':
+    """ONE calm message for a fired user alert: what happened, the price, the why line, the 4-quarter chart button."""
+    a, sym, nd = f['alert'], f['sym'], int(f.get('digits') or 2)
+    fmt = lambda v: 'n/a' if v is None else f'{v:,.{nd}f}'  # noqa: E731
+    if a['kind'] == 'price':
+        what = f"reached your level {fmt(a.get('level'))}"
+    else:
+        z = f.get('zone') or {}
+        what = (f"near the {tf_word(z.get('tf'))} {z.get('side', 'zone')}" if a.get('pct') and z.get('sec') != 'in'
+                else f"in the {tf_word(z.get('tf'))} {z.get('side', 'zone')}")
+        if z.get('prox') is not None:
+            what += f" {fmt(min(z['prox'], z.get('dist', z['prox'])))}–{fmt(max(z['prox'], z.get('dist', z['prox'])))}"
+    lines = [f"🔔 <b>{esc(sym)}</b> {esc(what)}",
+             f"price {fmt(f.get('price'))}" + (f" · {esc(bar_word)}" if bar_word else '') + ' · your alert']
+    if f.get('why'):
+        lines.append(f"<i>why: {esc(f['why'])}</i>")
+    kb = [[cb(f'📊 {sym} chart', f'c:{sym}')]] if _cb_ok(f'c:{sym}') else []
+    return Msg('\n'.join(lines), kb)
 
 
 def local_time(iso_utc: str, fmt: str = '%H:%M', tz: str = LOCAL_TZ) -> str:
@@ -315,13 +370,15 @@ def why_line(reasons: Sequence[Dict], n: int = 3) -> str:
     return 'Why not more: ' + esc(', '.join(f"{plain(r.get('label') or r.get('rule') or '')} ({r['count']})" for r in reasons[:n]))
 
 
-def build_messages(res: Dict, top: int = MAX_CARDS, cap: int = QUOTE_LINES) -> List[Msg]:
-    """The daily scan as ONE message (a list, for send())."""
-    sigs = res.get('signals', [])
+def build_messages(res: Dict, top: int = MAX_CARDS, cap: int = QUOTE_LINES, muted: Optional[set] = None) -> List[Msg]:
+    """The daily scan as ONE message (a list, for send()). muted = symbols muted in the bot: no card (they stay in
+    the lists below)."""
+    muted = muted or set()
+    sigs = [s for s in res.get('signals', []) if s.get('symbol') not in muted]
     key = lambda s: (-s.get('score', 0), -(s.get('rr') or 0))  # noqa: E731
     buys = sorted([s for s in sigs if s['kind'] == 'BUY'], key=key)
     watch = sorted([s for s in sigs if s['kind'] == 'WATCH'], key=key)
-    exits = res.get('exits', [])
+    exits = [e for e in res.get('exits', []) if e.get('symbol') not in muted]
     n = max(0, min(top, MAX_CARDS))
     picked = ([('EXIT', e) for e in exits] + [('SIG', s) for s in buys] + [('SIG', s) for s in watch])[:n]
     cards = [exit_card(x) if k == 'EXIT' else stock_card(x) for k, x in picked]
@@ -359,7 +416,7 @@ def build_messages(res: Dict, top: int = MAX_CARDS, cap: int = QUOTE_LINES) -> L
     if res.get('scanned'):
         detail.append(f"{res['scanned']} stocks · {FOOTER}")
     charts = [button(f"📈 {x['symbol']}", x['chart']) for k, x in picked if k == 'SIG' and x.get('chart')]
-    return [compose(head, cards, detail, keyboard(charts, 'Open scanner', FULL_LIST), cap=cap)]
+    return [compose(head, cards, detail, alert_keyboard(charts, 'Open scanner', FULL_LIST, remind=False), cap=cap)]
 
 
 def load_published(out_dir: str) -> Dict:
@@ -455,6 +512,8 @@ def send(messages: List[str], pause: float = 1.1) -> bool:
             time.sleep(pause)
         fields = {'chat_id': chat, 'text': str(m), 'parse_mode': 'HTML', 'disable_web_page_preview': 'true'}
         rows = getattr(m, 'buttons', None)
+        if getattr(m, 'silent', False):
+            fields['disable_notification'] = 'true'
         if rows:
             fields['reply_markup'] = json.dumps({'inline_keyboard': rows})
         sent = False

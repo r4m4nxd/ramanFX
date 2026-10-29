@@ -39,6 +39,7 @@ jobs:
       SCANNER_SEC_PER_RUN: '600'
       SCANNER_SEC_COLD_CAP: '150'     # never-cached companies per run: a cold SEC cache fills over a few runs
       SCANNER_BUDGET_MIN: '50'        # no new download after 50 min: the scan goes on with what it has
+      PYTHONTZPATH: ''                # zoneinfo: the pip tzdata (step 'Current time-zone data')
     steps:
       # the branch tip at run time, so the backup run sees the primary run's committed latest.json
       - uses: actions/checkout@v4
@@ -84,6 +85,12 @@ jobs:
           key: scanner-data-${{ github.run_id }}
           restore-keys: |
             scanner-data-
+
+      # The PyPI tzdata (Alberta's permanent UTC-6 from 2026-11-01, tzdata 2026c+): the Calgary clock in the message
+      # and the bot's quiet hours (PYTHONTZPATH='' above makes zoneinfo use it).
+      - name: Current time-zone data
+        if: ${{ steps.check.outputs.scan == 'true' }}
+        run: python -m pip install --quiet --upgrade tzdata
 
       - name: Unit tests
         if: ${{ steps.check.outputs.scan == 'true' }}

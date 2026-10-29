@@ -564,29 +564,62 @@ def fetch_fx(log=print) -> List[Dict]:
         log('fx: OANDA_API_TOKEN not set, skipping')
         return []
     uni = fx_universe()
+    raw: Dict[str, Tuple[list, list]] = {}
 
-    def one(ins):
-        try:
-            d = O.parse_candles(O.default_get(O.candles_url(ins['oanda'], 'D1', ATR_N + 6)), 'D1', strict=False)
-            h = O.parse_candles(O.default_get(O.candles_url(ins['oanda'], 'H4', ATR_N + 12)), 'H4', strict=False)
-        except Exception as e:  # noqa: BLE001
-            return None, f"{ins['sym']}: {type(e).__name__}"
+    def candles(name):
+        if name not in raw:
+            raw[name] = (O.parse_candles(O.default_get(O.candles_url(name, 'D1', ATR_N + 6)), 'D1', strict=False),
+                         O.parse_candles(O.default_get(O.candles_url(name, 'H4', ATR_N + 12)), 'H4', strict=False))
+        return raw[name]
+
+    def measure(ins, d, h):
         if not d:
-            return None, None
+            return None
         d_end = C.parse_utc(d[-1][3]).replace(tzinfo=UTC) + dt.timedelta(hours=24)
         m = fx_mover(ins['sym'], [x[1] for x in d], [x[1] for x in h], [x[3] for x in h], d_end, ins['zones'])
         if m:
             m['tv'] = ins['tv']
-        return m, None
+        return m
+
+    def one(ins):
+        if ins['oanda'] in SYNTHETIC:
+            return None, None                        # built from its parts below (not an OANDA instrument)
+        try:
+            d, h = candles(ins['oanda'])
+        except Exception as e:  # noqa: BLE001
+            return None, f"{ins['sym']}: {type(e).__name__}"
+        return measure(ins, d, h), None
 
     with ThreadPoolExecutor(6) as ex:
         res = list(ex.map(one, uni))
+    for ins in uni:
+        if ins['oanda'] in SYNTHETIC:
+            try:
+                d, h = synthetic(ins['oanda'], candles)
+                res.append((measure(ins, d, h), None))
+            except Exception as e:  # noqa: BLE001
+                log(f"fx: {ins['sym']} (synthetic) skipped ({type(e).__name__})")
     errs = [e for _, e in res if e]
     if errs:
         log(f'fx: {len(errs)} instruments failed, e.g. {errs[:3]}')
     out = [m for m, _ in res if m]
     log(f'fx: {len(out)}/{len(uni)} instruments measured')
     return out
+
+
+SYNTHETIC = ('USDX',)          # the FX scanner's synthetic dollar index (fxscan.synth_usdx): no OANDA candles of its own
+
+
+def synthetic(name: str, candles) -> Tuple[list, list]:
+    """(D1, H4) candles [(label, Bar, None, utc)] of a synthetic index from its OANDA parts (candles(name) -> (D1, H4)),
+    on the labels every part has; raises when a part is unavailable (the caller skips it)."""
+    import fxscan as X
+    parts = {n: candles(n) for n in X.USDX_PARTS}
+    syn = X.synth_usdx({n: {'D1': [x[1] for x in d], 'H4': [x[1] for x in h]} for n, (d, h) in parts.items()})
+    ref_d, ref_h = parts['EUR_USD']
+    utc_d, utc_h = {x[0]: x[3] for x in ref_d}, {x[0]: x[3] for x in ref_h}
+    return ([(b.d, b, None, utc_d[b.d]) for b in syn.get('D1') or [] if b.d in utc_d],
+            [(b.d, b, None, utc_h[b.d]) for b in syn.get('H4') or [] if b.d in utc_h])
 
 
 def stock_universe() -> Tuple[List[str], Dict[str, Dict]]:

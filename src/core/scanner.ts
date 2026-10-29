@@ -319,6 +319,8 @@ export interface TickerDetail {
   home?: string; currency?: string; country?: string; chart_home?: string; chart_home_label?: string; signal: SignalKind | null; direction: string; d1: string; w1: string; mn: string; curve: number | null; curve_raja: boolean;
   zones: DetailZone[]; nearest_demand: NearZone | null; nearest_supply: NearZone | null; check: DetailCheck | null;
   fundamentals_rows: [string, string][]; bars: { t0: string; dt: number[]; b: [number, number, number, number][] };
+  /** Newer scans, listed / signalled / watched tickers only: higher-TF chart bars (forming period included), same packing as bars. */
+  hb?: Partial<Record<'W1' | 'MN' | '3M', { t0: string; dt: number[]; b: [number, number, number, number][] }>>;
   gauge?: { state: GaugeState; demand: GaugeZone | null; supply: GaugeZone | null };
   fv?: { lo: number; hi: number; method: string } | null;
   /** Newer scans: 3M / 6M states, 6M context, the zone timeframes and the curve timeframe. */

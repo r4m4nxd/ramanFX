@@ -239,11 +239,45 @@ class NotifyTest(unittest.TestCase):
         self.assertLess(notify.u16(m), 4096)
         for tok in notify.JARGON:
             self.assertNotIn(tok, vis)
-        self.assertEqual(len(m.buttons), 4)
-        self.assertEqual([b['text'] for b in m.buttons[0]], ['📈 T9', '📈 T19', '📈 T29'])
-        self.assertEqual([b['callback_data'] for b in m.buttons[1]], ['z:T9', 'z:T19', 'z:T29'])   # bot: zones
-        self.assertEqual([b['callback_data'] for b in m.buttons[2]], ['c:T9', 'c:T19', 'c:T29'])   # bot: 4-TF chart
-        self.assertEqual(m.buttons[3][0]['url'], notify.FULL_LIST)
+        self.assertEqual(len(m.buttons), 3)                                   # owner: <= 3 keyboard rows
+        self.assertEqual([b['callback_data'] for b in m.buttons[0]], ['c:T9', 'c:T19', 'c:T29'])   # bot: 4-TF chart
+        self.assertEqual([b['callback_data'] for b in m.buttons[1]], ['m:T9:7', 'm:T19:7', 'm:T29:7'])   # mute 1w
+        self.assertEqual(m.buttons[2][0]['url'], notify.FULL_LIST)
+
+    def test_muted_symbols_get_no_card(self):
+        res = {'date': '2026-10-23', 'generated_at': '2026-10-23T21:05:00Z', 'scanned': 500,
+               'signals': [dict(self.sig(i, kind='BUY'), chart=f'https://tv/T{i}') for i in range(3)], 'exits': []}
+        m = notify.build_messages(res, muted={'T1'})[0]
+        vis = notify.visible(m)
+        self.assertNotIn('<b>T1</b>', vis)
+        self.assertIn('<b>T2</b>', vis)
+        self.assertTrue(vis.startswith('📈 <b>2 BUY'))
+
+    def test_one_symbol_keyboard_and_silent_send(self):
+        kb = notify.alert_keyboard([notify.button('📈 EURUSD', 'https://tv')], 'Open scanner', 'https://app')
+        self.assertLessEqual(len(kb), 3)
+        self.assertEqual([b.get('callback_data') for b in kb[1]], ['m:EURUSD:7', 'r:EURUSD:0.2'])
+        self.assertEqual([b['text'] for b in kb[1]], ['🔕 Mute 1w', '⏰ 0.2%'])
+        self.assertEqual(kb[0][1]['callback_data'], 'c:EURUSD')
+        kb3 = notify.alert_keyboard([notify.button(f'📈 S{i}', 'https://tv') for i in range(3)], 'Open', 'https://app')
+        self.assertEqual(len(kb3), 3)
+        self.assertEqual(kb3[2][0]['callback_data'], 'r:S0:0.2')
+        m = notify.silenced(notify.Msg('hi', kb), True)
+        self.assertTrue(m.silent)
+        self.assertEqual(m.buttons, kb)
+        sent = []
+        orig = notify._post
+        notify._post = lambda token, fields: sent.append(fields) or {'ok': True, 'code': 200}
+        env = dict(os.environ)
+        os.environ.update(TELEGRAM_BOT_TOKEN='t', TELEGRAM_CHAT_ID='1')
+        try:
+            notify.send([m, notify.Msg('loud')], pause=0)
+        finally:
+            notify._post = orig
+            os.environ.clear()
+            os.environ.update(env)
+        self.assertEqual(sent[0].get('disable_notification'), 'true')
+        self.assertNotIn('disable_notification', sent[1])
 
     def test_escaped_and_quote_capped(self):
         rows = [{'s': f'S{i}', 'pct': 1.0} for i in range(9)]

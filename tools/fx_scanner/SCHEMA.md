@@ -69,6 +69,8 @@ chart); a BUY `entry` already includes the spread (fills on the ask), a SELL `st
              { "tf": "W1", "side": "demand", "proximal": 0.76049, "distal": 0.75758, "touched": null, "entry": true, "nd": 5 } ],
   "chain_text": "MN demand 0.76082–0.75754 touched ✓ → W1 entry 0.76049–0.75758",
   "spread_pips": 0.6 | null, "ctx3": "3M: middle · trend TURNING UP",
+  "kevin": "Oct 28: 1H demand 4024–4041",      // only when the zone overlaps a level of Kevin's newest 3 daily plans
+                                                // (tools/kevin_daily/calls.json, same side, ±0.1%; fxscan kevin.py)
   "note": "Set and forget: ...", "gold_note": "..." /* XAU_* only */,
   "rules": [ { "status": "pass|fail|warn|unknown|info", "text": "...", "ref": "L7 · L53", "short": "room" } ]
 }
@@ -87,7 +89,8 @@ H1 bars for H4).
   "tf": "MN", "side": "demand", "sec": "in|left|near", "b": "ID|AD|LD|IS|AS|LS",
   "type": "ARR", "touches": 0, "score": 8, "prox": 5009.54, "dist": 4820.45, "pips": 42.1,   // pips from close to proximal (0 inside)
   "loc": "top", "loc_ok": true, "loc_text": "...", "chain_text": "...",
-  "status": "BUY|SELL|<rule short>", "label": "BUY|SELL|<block label>" }
+  "status": "BUY|SELL|<rule short>", "label": "BUY|SELL|<block label>",
+  "kevin": "Oct 28: 4H supply 0.84209–0.84294" /* optional, as on Signal */ }
 ```
 
 Only strong zones (ARR / WOW / STR, ≤ 3 touches, not removed) on H1 / H4 / D1 / W1 / MN (H1 only when located). `in` = close inside, `left` =
@@ -118,7 +121,8 @@ Detail = the instrument fields of a Row (`sym`, `oanda`, `cls`, `group`, `wl`, `
   "hits": [Item-like, all zones in / left / near],
   "checks": [ nearest demand below + nearest supply above: zone fields + plan fields + "pips", "block", "label", "rules", "chain_text" ],
   "signals": ["BUY W1"],
-  "bars": { "H1": [...80], "H4": [["2026-10-23T16:00", o, h, l, c], ...80], "D1": [...80], "W1": [...52] },   // H1 only with H1 data   // ZoneMiniChart MiniBar
+  "bars": { "H1": [...80], "H4": [["2026-10-23T16:00", o, h, l, c], ...80], "D1": [...80], "W1": [...52], "MN": [...60] },   // H1 only with H1 data   // ZoneMiniChart MiniBar
+  // closed bars only; MN (label 'YYYY-MM-01T00:00') feeds the bot's 4-quarter chart (no MN built from W1 any more)
   "tls": { "H4": [ { "dir": 1, "p": 1.11402, "s": 0.00012, "n": 37, "t": "2026-10-28T20:00", "touches": 3, "x": false } ], ... } }
   // trendlines in force per TF (H1 H4 D1 W1 MN; zones.tl_export): dir +1 up / -1 down, p = price on the newest closed
   // bar (time t), s = change per bar towards newer bars, n = bars back to the first anchor, x = crossed (broken).

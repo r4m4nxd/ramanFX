@@ -37,14 +37,16 @@ import data as SD  # noqa: E402
 import fxcfg as C  # noqa: E402
 import fxcore as F  # noqa: E402
 import fxnotify as N  # noqa: E402
+import kevin as K  # noqa: E402
 import oanda as O  # noqa: E402
+import prefs as P  # noqa: E402  (stock_scanner/prefs.py: the owner's bot preferences)
 import watchlist as W  # noqa: E402
 import zones as Z  # noqa: E402
 from zones import Bar  # noqa: E402
 
 DISCLAIMER = ('Rule-based scan, not financial advice. Levels come from the OANDA feed; Pepperstone quotes can differ by '
               'a few pips: check on your Pepperstone chart (ZoneVision MT5) before placing.')
-CHART_BARS = {'H1': 80, 'H4': 80, 'D1': 80, 'W1': 52}
+CHART_BARS = {'H1': 80, 'H4': 80, 'D1': 80, 'W1': 52, 'MN': 60}   # MN: the bot's 4-quarter chart (not built from W1)
 USDX_PARTS = {'EUR_USD': -0.576, 'USD_JPY': 0.136, 'GBP_USD': -0.119, 'USD_CAD': 0.091, 'USD_SEK': 0.042, 'USD_CHF': 0.036}
 USDX_K = 50.14348112
 USDX_META = {'name': 'USDX', 'type': 'INDEX', 'displayName': 'US Dollar Index (synthetic)', 'pipLocation': -2, 'displayPrecision': 3}
@@ -230,7 +232,7 @@ def lists(res: Dict) -> Dict:
 def _item(h: Dict) -> Dict:
     keep = ('sym', 'oanda', 'cls', 'group', 'wl', 'px', 'digits', 'tf', 'side', 'type', 'touches', 'score', 'prox', 'dist',
             'pips', 'loc', 'loc_ok', 'loc_text', 'chain_text', 'status', 'label', 'b')
-    return {**{k: h.get(k) for k in keep}, 'sec': h['section']}
+    return {**{k: h.get(k) for k in keep}, 'sec': h['section'], **({'kevin': h['kevin']} if h.get('kevin') else {})}
 
 
 def public(res: Dict, h4: str, fixture: bool = False, partial: bool = False, extra: Optional[Dict] = None,
@@ -410,7 +412,45 @@ def events(res: Dict, state: Dict, now: dt.datetime) -> Tuple[Dict, Dict]:
     return ev, new
 
 
-ALERT_KEYS = ('signals', 'watch', 'zones_now', 'zones_sent', 'cancelled')
+ALERT_KEYS = ('signals', 'watch', 'zones_now', 'zones_sent', 'cancelled', 'fired_alerts')
+
+
+# ---- the owner's bot preferences (stock_scanner/prefs.py) and Kevin's plan ---------------------------------------------
+def merge_watch(wl: Dict, syms, known: Optional[set]) -> List[str]:
+    """Adds the bot's extra watch symbols (Pepperstone names) to the watchlist (section 'BOT WATCH'); returns the
+    OANDA names added. Only instruments on the account (known); stock tickers and unknown names are ignored."""
+    added = []
+    if not known:
+        return added
+    for sym in syms or []:
+        inst = W.map_symbol(f'PEPPERSTONE:{sym}', known)
+        if inst and inst not in wl['sections']:
+            wl['sections'][inst] = 'BOT WATCH'
+            wl['names'].append(inst)
+            wl['items'].append({'section': 'BOT WATCH', 'symbol': f'PEPPERSTONE:{sym}', 'instrument': inst})
+            added.append(inst)
+    return added
+
+
+def mark_kevin(res: Dict, lvls: List[Dict]) -> int:
+    """'kevin' on every signal / watch / zone hit that overlaps a level of Kevin's newest plans (kevin.py)."""
+    n = K.annotate(res['signals'] + res['watch'], lvls)
+    for hh in res['hits'].values():
+        n += K.annotate(hh, lvls, 'prox', 'dist', 'px')
+    return n
+
+
+def alert_inputs(res: Dict) -> Dict[str, Dict]:
+    """Per analysed symbol: the latest closed bar (H1, else H4), the located strong zones with their section, the
+    price: what prefs.evaluate needs."""
+    out = {}
+    for sym, an in res['analyses'].items():
+        S = an.rows['H1'].S if an.rows.get('H1') is not None and an.rows['H1'].S.n > 1 else an.fine
+        bar = {'h': S.H[1], 'l': S.L[1], 'c': S.C[1]} if S.n > 1 else None
+        zones = [{'tf': h['tf'], 'side': h['side'], 'prox': h['prox'], 'dist': h['dist'], 'sec': h['section'],
+                  'loc_ok': h.get('loc_ok')} for h in res['hits'].get(sym, []) if h.get('loc_ok')]
+        out[sym] = {'bar': bar, 'zones': zones, 'price': an.price, 'digits': an.nd}
+    return out
 
 
 def telegram_configured() -> bool:
@@ -629,6 +669,10 @@ def main(argv=None) -> int:
     instruments, src = O.account_instruments(log=print)
     known = {i['name'] for i in instruments} if src != 'fallback' else None
     wl = W.load(known)
+    prefs = P.fetch(log=print)                           # once per run; None = exactly as without the bot prefs
+    added = merge_watch(wl, P.watch_syms(prefs), known)
+    if added:
+        print(f"prefs: {len(added)} extra watch symbol(s) merged: {', '.join(added)}")
     if wl['unmapped']:
         print(f"watchlist ({wl['source']}): {len(wl['unmapped'])} not on OANDA: " + ', '.join(u['symbol'] for u in wl['unmapped']))
     uni = universe(instruments, wl)
@@ -650,6 +694,9 @@ def main(argv=None) -> int:
     if have < max(1, C.MIN_COVERAGE * len(uni)):
         notify_failure(f'only {have}/{len(uni)} instruments have data; nothing published', state, notify)
         return 2
+    nk = mark_kevin(res, K.load(log=print))
+    if nk:
+        print(f"kevin: {nk} scanner zone(s) / signal(s) also in Kevin's plan")
     pub, shards = public(res, h4, partial=SD.over_budget(), extra={
         'unmapped': wl['unmapped'], 'watchlist_source': wl['source'], 'instrument_source': src}, h1=h1)
     bootstrap = 'signals' not in state
@@ -662,20 +709,34 @@ def main(argv=None) -> int:
     msgs = []
     if notify and telegram_configured():
         N.SN.NEWS = N.SN.load_news('fx')                 # '⚠️ US CPI in 20 min' on the cards of affected pairs
+    muted, quiet = P.muted_set(prefs), P.in_quiet(prefs)
+    if prefs is not None:
+        print(f"prefs applied: {len(muted)} muted now{' (' + ', '.join(sorted(muted)[:8]) + ')' if muted else ''}, "
+              f"quiet hours {'ON (non-urgent messages silent)' if quiet else 'off'}")
+    hush = lambda ms, loud=False: [N.SN.silenced(m, quiet and not loud) for m in ms]  # noqa: E731
+    fired_before = dict(state.get('fired_alerts') or {})
+    fired = [] if a.only else P.evaluate(prefs, alert_inputs(res), fired_before)
     if bootstrap:
-        msgs.append(f"✅ <b>FX scanner started</b>: {len(uni)} instruments, {pub['counts']['BUY']} BUY / "
-                    f"{pub['counts']['SELL']} SELL now. From here on only new events are sent, plus a daily summary.")
+        msgs += hush([f"✅ <b>FX scanner started</b>: {len(uni)} instruments, {pub['counts']['BUY']} BUY / "
+                      f"{pub['counts']['SELL']} SELL now. From here on only new events are sent, plus a daily summary."])
     else:
-        msgs += N.alert_messages({**ev, 'h4': h4, 'h1': h1})
+        msgs += hush(N.alert_messages({**ev, 'h4': h4, 'h1': h1}, muted), N.urgent(ev, muted))
+    for f in fired:                                      # one calm message per fired user alert
+        msgs += hush(N.fired_messages([f], hourly=bool(h1)), f['alert']['kind'] == 'price')
+        fired_before[str(f['alert']['id'])] = now_utc().isoformat()
+    if fired:
+        print(f"prefs: {len(fired)} alert(s) fired: " + ', '.join(f"{f['sym']} {f['alert']['kind']}" for f in fired))
+    month = (now_utc() - dt.timedelta(days=30)).isoformat()
+    new_state['fired_alerts'] = {k: v for k, v in fired_before.items() if v >= month}
     summary = a.summary or (not a.only and (bootstrap or (d1 and d1 != state.get('summary_d1'))))
     if summary:
-        msgs += N.summary_messages(pub)
+        msgs += hush(N.summary_messages(pub))
         new_state['summary_d1'] = d1
     # hourly scans inside the same H4 bar: the instant alert only (above, [] when nothing is new); the digest once
     # per new H4 candle, the daily summary once per new D1 candle
     if C.H4_DIGEST and not a.only and needs_digest(h4, state, a.force):
         if not summary:                                    # the daily summary already is this candle's overview
-            msgs.append(N.digest_message(pub, ev if not bootstrap else {}))
+            msgs += hush([N.digest_message(pub, ev if not bootstrap else {})])
         new_state['digest_h4'] = h4
     ok = True
     if notify and msgs:
@@ -686,6 +747,9 @@ def main(argv=None) -> int:
     if not ok:
         print('Telegram send failed: alert state kept, the events are sent again next run')
         new_state = unsent_state(new_state, state)
+    elif notify and telegram_configured():
+        for f in fired:
+            P.alert_fired(f['alert']['id'], log=print)
     if a.only:
         new_state['last_h4'] = state.get('last_h4')        # a partial run never marks the H1 / H4 bar as scanned
         new_state['last_h1'] = state.get('last_h1')

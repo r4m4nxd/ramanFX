@@ -19,7 +19,7 @@ from __future__ import annotations
 import datetime as dt
 import os
 import sys
-from typing import Dict, List, Sequence
+from typing import Dict, List, Optional, Sequence
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 STOCK = os.path.join(os.path.dirname(HERE), 'stock_scanner')
@@ -58,7 +58,8 @@ def signal_card(s: Dict) -> str:
                 _px(s.get('target'), s) if s.get('target') else '', None, ' · '.join(b for b in bits if b))
     why = SN.reason_line(s, score=True)
     nw = SN.news_warning(s['sym'])
-    return c + (f'\n<i>{esc(why)}</i>' if why else '') + (f'\n{esc(nw)}' if nw else '')
+    kv = SN.kevin_line(s)
+    return c + (f'\n{kv}' if kv else '') + (f'\n<i>{esc(why)}</i>' if why else '') + (f'\n{esc(nw)}' if nw else '')
 
 
 def gone_reason(reason: str) -> str:
@@ -98,7 +99,8 @@ def zone_line(z: Dict) -> str:
         out = f"{ICON['WATCH']} <b>{esc(z['sym'])}</b> entered {esc(where)}\nat {_px(z.get('prox'), z)}"
     why = zone_why(z)
     nw = SN.news_warning(z['sym'])
-    return out + (f'\n<i>{esc(why)}</i>' if why else '') + (f'\n{esc(nw)}' if nw else '')
+    kv = SN.kevin_line(z)
+    return out + (f'\n{kv}' if kv else '') + (f'\n<i>{esc(why)}</i>' if why else '') + (f'\n{esc(nw)}' if nw else '')
 
 
 def zone_why(z: Dict) -> str:
@@ -154,9 +156,17 @@ def _local(close_utc: str, fmt: str = SN.CLOCK) -> str:
     return SN.local_time(close_utc or '', fmt, C.LOCAL_TZ)
 
 
-def alert_messages(ev: Dict) -> List[Msg]:
-    """ONE short message for the new events of a run ([] when nothing is new)."""
-    sig, gone, watch, zones = ev.get('signals') or [], ev.get('gone') or [], ev.get('watch') or [], ev.get('zones') or []
+def kevin_first(items: Sequence[Dict]) -> List[Dict]:
+    """Cards that are also in Kevin's plan first (stable: the scanner's order otherwise)."""
+    return sorted(items, key=lambda x: not x.get('kevin'))
+
+
+def alert_messages(ev: Dict, muted: Optional[set] = None) -> List[Msg]:
+    """ONE short message for the new events of a run ([] when nothing is new). muted = symbols muted in the bot: no
+    card for them (they stay in the lists and the app). Kevin-plan cards first."""
+    mu = muted or set()
+    keep = lambda xs: kevin_first([x for x in xs or [] if x.get('sym') not in mu])  # noqa: E731
+    sig, gone, watch, zones = keep(ev.get('signals')), keep(ev.get('gone')), keep(ev.get('watch')), keep(ev.get('zones'))
     if not (sig or gone or watch or zones):
         return []
     items = [('s', s) for s in sig] + [('g', g) for g in gone] + [('s', s) for s in watch]
@@ -182,7 +192,17 @@ def alert_messages(ev: Dict) -> List[Msg]:
     detail = [also([x if k == 's' else {**x, 'kind': 'EXIT'} for k, x in items[len(shown):]])]
     detail += rest_z + [FOOTER]
     charts = charts_of([x for k, x in shown if k == 's'] or zones[:room])
-    return [SN.compose(head, cards, detail, SN.keyboard(charts, 'Open scanner', C.APP_URL))]
+    return [SN.compose(head, cards, detail, SN.alert_keyboard(charts, 'Open scanner', C.APP_URL))]
+
+
+def urgent(ev: Dict, muted: Optional[set] = None) -> bool:
+    """A new BUY / SELL (not muted) in the events: stays audible in quiet hours."""
+    return any(s.get('kind') in ('BUY', 'SELL') and s.get('sym') not in (muted or set()) for s in ev.get('signals') or [])
+
+
+def fired_messages(fired: Sequence[Dict], hourly: bool = True) -> List[Msg]:
+    """One calm message per fired user alert (prefs.evaluate)."""
+    return [SN.fired_alert_message(f, 'fx', 'last closed 1H bar' if hourly else 'last closed 4H bar') for f in fired]
 
 
 SECTION_WORD = {k: v.replace('⏳ ', '') for k, v in SN.SECTION_WORD.items()}   # ⏳ marks the good zones line
@@ -236,8 +256,8 @@ def _close_count(pub: Dict) -> str:
 
 
 def _open_setups(pub: Dict) -> List[Dict]:
-    sig = sorted(pub.get('signals') or [], key=lambda s: (not s.get('wl'), -(s.get('score') or 0)))
-    wat = sorted([s for s in pub.get('watch') or [] if s.get('wl')], key=lambda s: -(s.get('score') or 0))
+    sig = sorted(pub.get('signals') or [], key=lambda s: (not s.get('kevin'), not s.get('wl'), -(s.get('score') or 0)))
+    wat = sorted([s for s in pub.get('watch') or [] if s.get('wl')], key=lambda s: (not s.get('kevin'), -(s.get('score') or 0)))
     return sig + wat
 
 

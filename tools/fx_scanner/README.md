@@ -176,6 +176,23 @@ BUY (and the mirrored SELL); each fix above has a negative test.
   🔴 sell · 👀 watch · 🚪 cancel / exit · ⏳ approaching. Times in Toronto.
 - **Hourly (H1) scans**: only the instant alert above, and only when something is new. **H4 check** once per new H4
   candle (≤ 4 visible lines when nothing is new) and a **daily summary** with the first run after the D1 close (21:05 UTC summer / 22:05 UTC winter; that run sends no H4 check).
+- **Bot preferences** (`stock_scanner/prefs.py`, read once per run from the telegram-bot function `?op=prefs`, header
+  `X-RFX-Key` = sha256(bot token + ':prefs'), 10 s timeout; any failure logs `prefs unavailable` and the run is
+  exactly as without them): a **muted** symbol gets no instant-alert card (it stays in the lists, digest detail and
+  app); **quiet hours** send the non-urgent messages silently (`disable_notification`), never drop them; a new BUY /
+  SELL and a fired price alert stay audible; the bot's extra **watch** symbols join the watchlist (section
+  `BOT WATCH`, account instruments only); **alerts**: price = the newest closed H1 bar's high / low crossed the level
+  (dir up / down / either; pct = within pct%), zone = price inside a located strong zone of that symbol (any TF),
+  zone + pct (the bot's `pct` kind) = within pct% of the nearest located zone's proximal. One calm 🔔 message per
+  fired alert with a [📊 SYM chart] button (`c:SYM`) and a why line, then `?op=alert-fired` (fired ids are also kept
+  in the state for 30 days, so a lost acknowledgement never repeats the message).
+- **Alert keyboard** (≤ 3 rows): one symbol `[📈 SYM] [📊 4Q chart] [🔎 Zones]` / `[🔕 Mute 1w] [⏰ 0.2%]` /
+  `[Open scanner]`; two or three: `[📊 SYM]…` / `[🔕 SYM 1w]…` / `[⏰ SYM 0.2%]…` (callbacks `c:SYM`, `m:SYM:7`,
+  `r:SYM:0.2`, handled by the bot).
+- **Kevin cross-check** (`kevin.py`): a signal / zone that overlaps a priced level of Kevin's newest 3 daily plans
+  (`tools/kevin_daily/calls.json`, same instrument and side, ranges overlapping within ±0.1% of price; DXY = USDX,
+  SPX500 = US500, WTICOUSD = SPOTCRUDE) gets `⭐ also in Kevin's plan (Oct 28: 1H demand 4024–4041)` on its card
+  (and `kevin` in latest.json) and comes first.
 - The dedupe state lives in `.cache/state.json` (actions/cache). With no state (first run, lost cache) one "started"
   message + the summary is sent instead of replaying every event.
 - Failures (no token, OANDA unreachable, < 50% of the instruments with data, **a failing unit test**): at most one

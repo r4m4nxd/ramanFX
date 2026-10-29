@@ -861,6 +861,37 @@ def pack_bars(bars: List[Bar], n: int = DETAIL_BARS) -> Dict:
             'b': [[round(b.o, nd), round(b.h, nd), round(b.l, nd), round(b.c, nd)] for b in bs]}
 
 
+HTF_BARS = {'W1': 104, 'MN': 60, '3M': 24}   # the bot's 4-quarter charts (W1 / MN / 3M panels), listed tickers only
+
+
+def _period(tf: str, d: str) -> str:
+    t = dt.date.fromisoformat(d)
+    if tf == 'W1':
+        return (t - dt.timedelta(days=t.weekday())).isoformat()
+    if tf == 'MN':
+        return d[:7]
+    return f'{t.year}-Q{(t.month - 1) // 3 + 1}'
+
+
+def htf_bars(bars: List[Bar], spec: Optional[Dict[str, int]] = None) -> Dict[str, Dict]:
+    """{'W1' | 'MN' | '3M': pack_bars(...)} built from the daily bars, the forming week / month / quarter included (a
+    chart shows it); each bar is labelled with its first session's date."""
+    out = {}
+    for tf, n in (spec or HTF_BARS).items():
+        agg: List[Bar] = []
+        key = None
+        for b in bars:
+            k = _period(tf, b.d)
+            if k != key:
+                agg.append(Bar(b.d, b.o, b.h, b.l, b.c))
+                key = k
+            else:
+                a = agg[-1]
+                agg[-1] = Bar(a.d, a.o, max(a.h, b.h), min(a.l, b.l), b.c)
+        out[tf] = pack_bars(agg, n)
+    return out
+
+
 def ticker_detail(sym: str, u: Dict, an: Analysis, bars: List[Bar], meta: Dict, fund_rows, signals: List[Dict],
                   block: Optional[Dict] = None) -> Tuple[Dict, Dict]:
     """(detail for the stock page, row for the search index). Every active W1 / MN / 3M zone with its Raja type (and,
@@ -939,6 +970,31 @@ def ticker_detail(sym: str, u: Dict, an: Analysis, bars: List[Bar], meta: Dict, 
            'h': u.get('home') or None, 'cur': u.get('currency') if u.get('currency') not in (None, '', 'USD') else None}
     row.update(L.row_fields(L.classify(detail, row=row)))
     return detail, {k: v for k, v in row.items() if v is not None}
+
+
+LOCATED = ('inside', 'top')       # zone location codes that may give a BUY / WATCH (zones.location)
+STRONG_TYPES = ('ARR', 'WOW', 'STR')
+
+
+def alert_inputs(res: Dict) -> Dict[str, Dict]:
+    """Per scanned ticker: the last closed daily bar, the located strong W1 / MN / 3M zones (sec 'in' when the close
+    is inside) and the price: what prefs.evaluate needs for the bot's price / zone alerts."""
+    out = {}
+    for sym, d in (res.get('details') or {}).items():
+        lb = L.last_bars(d, 1)
+        if not lb:
+            continue
+        _, _o, h, l, c = lb[-1]
+        px = d.get('price') or c
+        zs = []
+        for z in d.get('zones') or []:
+            if z.get('type') not in STRONG_TYPES or int(z.get('touches') or 0) > L.MAX_TOUCHES or z.get('loc') not in LOCATED:
+                continue
+            p, q = float(z['proximal']), float(z['distal'])
+            zs.append({'tf': z['tf'], 'side': z['side'], 'prox': p, 'dist': q, 'loc_ok': True,
+                       'sec': 'in' if min(p, q) <= px <= max(p, q) else None})
+        out[sym] = {'bar': {'h': h, 'l': l, 'c': c}, 'zones': zs, 'price': px, 'digits': 2 if px >= 1 else 4}
+    return out
 
 
 def map_fields(an: Analysis) -> Dict:
@@ -1083,6 +1139,7 @@ def run(universe: List[Dict], get_bars, get_cf, get_earnings, holdings: List[Dic
     strong_in: List[Dict] = []
     chart_bars: Dict[str, list] = {}
     details: Dict[str, Dict] = {}
+    hb_all: Dict[str, Dict] = {}
     index_rows: List[Dict] = []
     regime = []
     last_date = today or ''
@@ -1154,6 +1211,7 @@ def run(universe: List[Dict], get_bars, get_cf, get_earnings, holdings: List[Dic
         if sym in info:
             d, row = ticker_detail(sym, u, an, bars, meta, F.rows(fz) if cf else [], found, dr)
             details[sym] = d
+            hb_all[sym] = htf_bars(bars)
             index_rows.append(row)
             si = strong_in_demand(row, u)
             if si:
@@ -1191,12 +1249,17 @@ def run(universe: List[Dict], get_bars, get_cf, get_earnings, holdings: List[Dic
         top = ', '.join(f"{r['label']} ({r['count']})" for r in blocked['reasons'][:5]) or 'none'
         log(f"why no signal: {blocked['candidates']} candidates (fresh demand within {blocked['within_pct']:g}% or in it) "
             f"blocked; top reasons: {top}")
+    zl = L.zone_lists(details, {r['s']: r for r in index_rows})
+    listed = ({r['s'] for side in ('demand', 'supply') for sec in L.SECTIONS for r in zl[side][sec]}
+              | {s['symbol'] for s in sigs} | watch)
+    for sym in listed & set(hb_all):                     # higher-TF chart bars only for listed / signalled / watched
+        details[sym]['hb'] = hb_all[sym]
     return {'date': last_date, 'session': session, 'blocked': blocked, 'closest': closest, 'generated_at': dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
             'universe': len(universe), 'scanned': len(syms) - len(errors), 'errors': errors, 'notes': notes, 'signals': sigs, 'exits': exits,
             'feed_iex': bool(iex), 'iex_count': len(iex), 'data_warning': data_warning,
             'bars': chart_bars, 'details': details, 'index': index_rows, 'regime': regime, 'rfx_index': rfx, 'watch_alerts': walerts + index_alert(rfx) if watch else [],
             'strong_in_demand': sorted(strong_in, key=lambda r: (-r['score'], r['symbol'])),
-            'zone_lists': L.zone_lists(details, {r['s']: r for r in index_rows}),
+            'zone_lists': zl,
             **universe_meta(universe + uncovered, uncovered, feeds)}
 
 
@@ -1472,7 +1535,13 @@ def main(argv=None) -> int:
         log(f'SEC: {len(todo)} companies to refresh (cap {a.sec_per_run}, cold cap {a.sec_cold_cap})')
         F.refresh_bases(todo, workers=4, log=log, budget_s=a.sec_budget_min * 60)
         tp = phase('fundamentals', tp)
-    watchlist = load_watchlist()
+    import prefs as PR
+    prefs = PR.fetch(log=log)                            # once per run; None = exactly as without the bot prefs
+    known = {u['symbol'] for u in uni_all}
+    extra = [x for x in PR.watch_syms(prefs) if x in known]
+    watchlist = sorted(set(load_watchlist()) | set(extra))
+    if extra:
+        log(f'prefs: {len(extra)} extra watch ticker(s) merged: {", ".join(extra[:10])}')
     res = run(uni_all, get_bars, lambda c: F.cached_base(c)[0] if c else None,
               (lambda s: None) if a.offline else DATA.fetch_earnings, holdings, log=log, watchlist=watchlist, feeds=feeds)
     tp = phase('analyse', tp)
@@ -1503,11 +1572,32 @@ def main(argv=None) -> int:
     try:                      # a Telegram problem never fails the run (the results are already written)
         if not a.no_notify:
             notify.NEWS = notify.load_news('stock')          # a US high-impact event within the hour: under the headline
-        msgs = notify.build_messages(res, top=a.top)
+        muted, quiet = PR.muted_set(prefs), PR.in_quiet(prefs)
+        if prefs is not None:
+            log(f"prefs applied: {len(muted)} muted now, quiet hours {'ON (non-urgent messages silent)' if quiet else 'off'}")
+        loud = any(s['kind'] == 'BUY' and s.get('symbol') not in muted for s in res.get('signals') or [])
+        msgs = [notify.silenced(m, quiet and not loud) for m in notify.build_messages(res, top=a.top, muted=muted)]
+        fired_path = os.path.join(DATA.CACHE, 'prefs_fired.json')
+        try:
+            with open(fired_path) as fh:
+                fired_before = json.load(fh)
+        except (OSError, ValueError):
+            fired_before = {}
+        fired = [] if a.tickers else PR.evaluate(prefs, alert_inputs(res), fired_before)
+        for f in fired:
+            msgs.append(notify.silenced(notify.fired_alert_message(f, 'stock', 'last daily close'),
+                                        quiet and f['alert']['kind'] != 'price'))
+        if fired:
+            log(f"prefs: {len(fired)} alert(s) fired: " + ', '.join(f"{f['sym']} {f['alert']['kind']}" for f in fired))
         if a.no_notify:
             print('\n\n'.join(msgs))
-        else:
-            notify.send(msgs)
+        elif notify.send(msgs) and fired:
+            for f in fired:
+                fired_before[str(f['alert']['id'])] = dt.datetime.now(dt.timezone.utc).isoformat()
+                PR.alert_fired(f['alert']['id'], log=log)
+            os.makedirs(DATA.CACHE, exist_ok=True)
+            with open(fired_path, 'w') as fh:
+                json.dump(fired_before, fh)
     except Exception as e:  # noqa: BLE001
         log(f'notify failed: {type(e).__name__}')
     tp = phase('notify', tp)

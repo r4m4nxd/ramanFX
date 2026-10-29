@@ -224,6 +224,32 @@ class Schedule(unittest.TestCase):
             self.assertGreaterEqual(len(ok), 3, f'UTC-{off}: {sorted(slots)}')
 
 
+class SyntheticUsdx(unittest.TestCase):
+    def fake(self, name):
+        import fxscan as X
+        base = {'EUR_USD': 1.10, 'USD_JPY': 150.0, 'GBP_USD': 1.30, 'USD_CAD': 1.38, 'USD_SEK': 10.5, 'USD_CHF': 0.88}[name]
+        d = [(f'2026-10-{k + 1:02d}T00:00', Bar(f'2026-10-{k + 1:02d}T00:00', base, base * 1.004, base * 0.996, base * (1 + k / 1000)),
+              None, f'2026-10-{k + 1:02d}T21:00:00Z') for k in range(25)]
+        h = [(f'2026-10-25T{4 * k:02d}:00', Bar(f'2026-10-25T{4 * k:02d}:00', base, base * 1.001, base * 0.999, base), None,
+              f'2026-10-25T{4 * k + 1:02d}:00:00Z') for k in range(6)]
+        return d, h
+
+    def test_built_from_parts(self):
+        d, h = B.synthetic('USDX', self.fake)
+        self.assertEqual(len(d), 25)
+        self.assertEqual(len(h), 6)
+        self.assertTrue(80 < d[-1][1].c < 120)                   # a dollar-index level
+        self.assertEqual(d[-1][3], '2026-10-25T21:00:00Z')
+
+    def test_missing_part_raises(self):
+        def broken(name):
+            if name == 'USD_SEK':
+                raise OSError('HTTP 404')
+            return self.fake(name)
+        with self.assertRaises(OSError):
+            B.synthetic('USDX', broken)
+
+
 class Calendar(unittest.TestCase):
     TV = ('{"status":"ok","result":['
           '{"title":"GDP Growth Rate QoQ","country":"US","importance":1,"date":"2026-10-29T12:30:00.000Z"},'

@@ -66,7 +66,19 @@ failing hosts, the most common error) and exits 2 so the run shows red.
 
 Each run commits `public/scanner/latest.json` (signals), `public/scanner/history/<date>.json`,
 `public/scanner/index.json` (every ticker, for the app's search) and `public/scanner/t/<0-63>.json` (that redeploys
-the app).
+the app). Each shard ticker carries `bars` (the last 120 daily bars, packed `{t0, dt: day offsets, b: [[o, h, l, c]]}`);
+tickers in the zone lists, the signals or the watchlist also carry `hb` = `{W1: 104, MN: 60, 3M: 24}` bars in the same
+packing, built from the daily bars with the forming week / month / quarter included (each labelled with its first
+session's date), for the bot's 4-quarter charts (the other ~half of the tickers skip it: shard size).
+
+**Bot preferences** (`prefs.py`, shared with the FX scanner): once per run the scan reads the owner's Telegram bot
+prefs (`?op=prefs` of the telegram-bot function, `X-RFX-Key` = sha256(bot token + ':prefs'), 10 s timeout; any
+failure: 'prefs unavailable' in the log and the run is exactly as before). Muted symbols get no card (they stay in the
+lists); during quiet hours the message goes out silently unless it has a BUY; the bot's extra watch tickers join
+`WATCHLIST`; price alerts fire on the last daily bar's high / low, zone alerts when the close is inside a located
+strong W1 / MN / 3M zone (pct: within pct% of the nearest proximal): one calm 🔔 message each, then `?op=alert-fired`
+(fired ids are remembered in `.cache/prefs_fired.json`). The keyboard stays at 3 rows: [📊 SYM] (4-quarter chart),
+[🔕 SYM 1w] (mute 7 days), [Open scanner].
 
 **Zone lists** (`lists.py`; Telegram, `latest.json` `zone_lists`, the app's Market map: the same lists): every
 stock in ONE of seven buckets by where its close sits against its W1 / MN / 3M zones (fresh or tested, ≤ 3 touches):

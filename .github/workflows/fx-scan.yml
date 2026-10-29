@@ -44,6 +44,7 @@ jobs:
       FX_SOFT_REACH_PCT: ${{ vars.FX_SOFT_REACH_PCT || '5' }}
       FX_BUDGET_MIN: '25'
       FX_H4_DIGEST: ${{ vars.FX_H4_DIGEST || 'true' }}
+      PYTHONTZPATH: ''                 # zoneinfo: the pip tzdata (step 'Current time-zone data'), never a stale system copy
     steps:
       # the branch tip at run time (not the commit the schedule fired on): the latest committed public/fx/state.json
       - uses: actions/checkout@v4
@@ -73,6 +74,12 @@ jobs:
           key: fx-data-${{ github.run_id }}
           restore-keys: |
             fx-data-
+
+      # The PyPI tzdata (newest rules: Alberta's permanent UTC-6 from 2026-11-01, tzdata 2026c+) for the Calgary clock
+      # in the messages and the bot's quiet hours; PYTHONTZPATH='' on the steps below makes zoneinfo use it.
+      - name: Current time-zone data
+        if: ${{ steps.check.outputs.scan == 'true' }}
+        run: python -m pip install --quiet --upgrade tzdata
 
       - name: Unit tests
         id: tests
