@@ -1,0 +1,76 @@
+name: Event reminders
+
+# Calm Telegram reminders before the big US event times (tools/reminders/reminders.py, docs/research/Market_Hours.md):
+# NFP + CPI mornings (45 min before 8:30 ET), FOMC decision days (30 min before the 14:00 ET statement), and an
+# optional weekday nudge (repo variable REMINDER_DAILY=on; default off).
+# The cron is UTC and covers Calgary at both UTC-6 and UTC-7; the script decides by the Calgary clock, sends each
+# reminder once (state in tools/reminders/state.json), up to 40 min late, never after the event.
+# Official schedules (federalreserve.gov, bls.gov) are fetched every few days and cached in tools/reminders/events.json.
+on:
+  schedule:
+    - cron: '45 11,12 * * 1-5'      # 5:45 / 6:45 Calgary (morning reminders)
+    - cron: '0,15,30 12,13 * * 1-5' # later morning ticks (cron delays, daily nudge)
+    - cron: '30,45 17,18 * * 1-5'   # 11:30 / 12:30 Calgary (FOMC)
+  workflow_dispatch:
+    inputs:
+      test:
+        description: "Send ONE '🧪 Reminder test' preview of the next reminder (nothing else is sent)"
+        type: boolean
+        default: false
+      refresh:
+        description: 'Fetch the official schedules now'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: reminders
+  cancel-in-progress: false
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main                   # the latest sent-state, not the commit the schedule fired on
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Current time-zone data
+        run: python -m pip install --quiet --upgrade tzdata
+
+      - name: Tests (offline)
+        run: python -m unittest discover -s tools/reminders/tests
+        env:
+          PYTHONTZPATH: ''
+
+      - name: Remind
+        run: |
+          args=""
+          [ "${IN_TEST}" = "true" ] && args="$args --test"
+          [ "${IN_REFRESH}" = "true" ] && args="$args --refresh"
+          python tools/reminders/reminders.py $args
+        env:
+          PYTHONTZPATH: ''             # use the PyPI tzdata (newest rules), not the runner image's
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          REMINDER_DAILY: ${{ vars.REMINDER_DAILY || 'off' }}
+          IN_TEST: ${{ github.event.inputs.test }}
+          IN_REFRESH: ${{ github.event.inputs.refresh }}
+
+      - name: Save schedule cache + sent state
+        if: ${{ !cancelled() }}
+        run: |
+          git config user.name "ramanfx-scanner[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/reminders/events.json tools/reminders/state.json
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -q -m "reminders: state $(date -u +%Y-%m-%dT%H:%MZ)"
+          ok=0; for i in 1 2 3 4; do git rebase --abort 2>/dev/null || true; git pull -q --rebase -X theirs --autostash origin main && git push -q origin HEAD:main && ok=1 && break; sleep 5; done
+          [ "$ok" = 1 ] || { echo "::error::reminder state not pushed (a reminder may repeat)"; exit 1; }

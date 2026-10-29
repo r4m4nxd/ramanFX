@@ -1,0 +1,25 @@
+{
+ "kinds": {
+  "cpi": {
+   "error": null,
+   "events": [],
+   "fetched_at": null,
+   "source": null,
+   "tried_at": null
+  },
+  "fomc": {
+   "error": null,
+   "events": [],
+   "fetched_at": null,
+   "source": null,
+   "tried_at": null
+  },
+  "nfp": {
+   "error": null,
+   "events": [],
+   "fetched_at": null,
+   "source": null,
+   "tried_at": null
+  }
+ }
+}
