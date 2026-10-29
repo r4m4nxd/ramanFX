@@ -376,6 +376,21 @@ describe('GitHub workflow scheduler', () => {
     expect(readFileSync('.github/workflows/movers.yml', 'utf8')).toContain('python tools/movers/movers.py');
   });
 
+  it('fundamentals: weekdays 18:00-19:00 New York (22:00 UTC summer, 23:00 UTC winter), scheduled=true', () => {
+    const wed = [...ticks('2026-10-28T12:00:00Z', 18)].filter(([k]) => k.startsWith('fund'));
+    expect(wed).toEqual([['fund:2026-10-28', '2026-10-28T22:00']]);
+    const winter = [...ticks('2026-11-02T12:00:00Z', 18)].filter(([k]) => k.startsWith('fund'));
+    expect(winter).toEqual([['fund:2026-11-02', '2026-11-02T23:00']]);
+    expect([...ticks('2026-10-31T01:00:00Z', 47).keys()].some(k => k.startsWith('fund'))).toBe(false);   // Sat + Sun (New York)
+    const due = dueDispatches(at('2026-10-28T22:10:00Z')).find(d => d.wf === 'fundamentals.yml')!;
+    expect(due.since).toBe(at('2026-10-28T22:00:00Z'));
+    expect(JSON.parse(String(dispatchRequest(due, 't').init.body))).toEqual({ ref: 'main', inputs: { scheduled: 'true' } });
+    const y = readFileSync('.github/workflows/fundamentals.yml', 'utf8');
+    expect(y).toMatch(/\n      scheduled:\n/);
+    expect(y).toContain('python tools/fundamentals/build.py');
+    expect(y).toContain('SEC_CONTACT: ${{ vars.SEC_CONTACT }}');
+  });
+
   it("the bot's on-demand scans never cover a scheduled slot", () => {
     const js = { workflow_runs: [
       { created_at: '2026-10-29T14:07:00Z', display_title: 'FX on-demand scan EURUSD' },

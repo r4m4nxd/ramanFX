@@ -90,6 +90,8 @@ jobs:
           ALPACA_KEY_ID: ${{ secrets.ALPACA_KEY_ID }}
           ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
           REMINDER_CONTACT: ${{ vars.REMINDER_CONTACT }}
+          WATCHLIST: ${{ secrets.WATCHLIST }}          # earnings heads-up: watched + held stocks
+          HOLDINGS_JSON: ${{ secrets.HOLDINGS_JSON }}
 
       - name: Save sent state + lesson rotation
         if: ${{ !cancelled() && steps.due.outputs.go == 'true' && github.event.inputs.test != 'true' }}

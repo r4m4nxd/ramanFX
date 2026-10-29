@@ -1,0 +1,103 @@
+name: Fundamentals
+
+# Nightly fundamentals for the Telegram bot's /fund SYM (tools/fundamentals/build.py), weekdays after the US close:
+#   public/fundamentals/fx.json      policy rates / last + next decision / CPI / GDP / unemployment per currency
+#                                    (TradingView economic calendar + the FOMC dates of tools/reminders/events.json),
+#                                    carry and a one-line fundamental bias per scanner FX pair. Needs no secret.
+#   public/fundamentals/stocks.json  SEC EDGAR fundamentals (market cap, revenue / EPS TTM + YoY, margin, debt / equity,
+#                                    P/E, 8-K filings, last / next earnings) for every scanner stock. SEC is contacted only
+#                                    when the repository VARIABLE SEC_CONTACT (a contact SEC can reach, for its required
+#                                    User-Agent) is set; without it the step logs one line and uses cached data.
+#                                    Next earnings: Nasdaq's public earnings calendar when it answers, else estimated.
+# Primary trigger: the trader-coach scheduler (supabase/functions/trader-coach/scheduler.ts) at 18:00-19:00 New York
+# with scheduled=true; the cron below is the backup. A scheduled-equivalent run stops at once when today's (New York)
+# files are already built. Cache (actions cache): SEC companyfacts bases (weekly refresh), submissions (daily).
+on:
+  schedule:
+    - cron: '41 23 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      scheduled:
+        description: 'Behave like a scheduled run (the trader-coach scheduler sets it): skip when already built today'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fundamentals
+  cancel-in-progress: false
+
+jobs:
+  fundamentals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Already built today?
+        id: check
+        run: |
+          python - <<'EOF' >> "$GITHUB_OUTPUT"
+          import datetime as dt, json, os
+          from zoneinfo import ZoneInfo
+          sched = os.environ['EVENT'] == 'schedule' or os.environ.get('SCHEDULED') == 'true'
+          try:
+              g = json.load(open('public/fundamentals/stocks.json'))['generated_at']
+              built = dt.datetime.strptime(g[:19], '%Y-%m-%dT%H:%M:%S').replace(tzinfo=dt.timezone.utc).astimezone(ZoneInfo('America/New_York')).date()
+          except Exception:
+              built = None
+          today = dt.datetime.now(ZoneInfo('America/New_York')).date()
+          print('run=' + ('false' if sched and built == today else 'true'))
+          EOF
+          cat "$GITHUB_OUTPUT"
+        env:
+          EVENT: ${{ github.event_name }}
+          SCHEDULED: ${{ github.event.inputs.scheduled }}
+
+      - name: Restore cache
+        if: steps.check.outputs.run == 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: tools/fundamentals/.cache
+          key: fundamentals-${{ github.run_id }}
+          restore-keys: |
+            fundamentals-
+
+      - name: Unit tests
+        if: steps.check.outputs.run == 'true'
+        run: python -m unittest discover -s tools/fundamentals/tests
+
+      - name: Build
+        if: steps.check.outputs.run == 'true'
+        timeout-minutes: 35
+        run: python tools/fundamentals/build.py
+        env:
+          SEC_CONTACT: ${{ vars.SEC_CONTACT }}
+          FUND_SEC_BUDGET_MIN: '25'
+
+      - name: Save cache
+        if: ${{ always() && steps.check.outputs.run == 'true' && hashFiles('tools/fundamentals/.cache/**') != '' }}
+        uses: actions/cache/save@v4
+        with:
+          path: tools/fundamentals/.cache
+          key: fundamentals-${{ github.run_id }}
+
+      - name: Commit
+        if: ${{ !cancelled() && steps.check.outputs.run == 'true' && hashFiles('public/fundamentals/*.json') != '' }}
+        run: |
+          git config user.name "ramanfx-scanner[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/fundamentals
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "fundamentals: $(date -u +%Y-%m-%dT%H:%MZ)"
+          for i in 1 2 3; do git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && break; sleep 5; done

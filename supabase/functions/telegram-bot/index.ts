@@ -137,6 +137,7 @@ async function tvCalendar(): Promise<unknown> {
 // Longer caches: the calendar (15 min; TradingView rate-limits) and the 2.5 MB lesson passages (6 h; the BM25 index is
 // rebuilt only when this object changes). A failed load (null) is kept for TTL only, then retried.
 const TTL_OF: Record<string, number> = { 'news.json': 15 * 60_000, 'ask/passages.json': 6 * 3600_000 };
+TTL_OF['fundamentals/fx.json'] = TTL_OF['fundamentals/stocks.json'] = 30 * 60_000;   // nightly files (fundamentals.ts)
 function remember(path: string, v: Promise<unknown>): void {
   const e = { t: Date.now(), v };
   cache.set(path, e);

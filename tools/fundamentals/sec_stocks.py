@@ -284,7 +284,7 @@ def _r(v, n=4):
     return None if v is None else round(v, n) if abs(v) < 1e4 else round(v)
 
 
-def record(u: Dict, base: Optional[Dict], subs: Optional[Dict], cal: Optional[Dict], today: dt.date) -> Dict:
+def record(u: Dict, base: Optional[Dict], subs: Optional[Dict], cal: Optional[Dict], today: dt.date, ciks_known: bool = True) -> Dict:
     """One stock's entry in stocks.json."""
     out: Dict = {'n': u['n']}
     if u['tsx_only']:
@@ -301,7 +301,7 @@ def record(u: Dict, base: Optional[Dict], subs: Optional[Dict], cal: Optional[Di
                     'per': f.get('period') or 'TTM', 'src': 'SEC'})
         if f.get('pe_note'):
             out['pe_note'] = f['pe_note']
-    elif not u['cik']:
+    elif not u['cik'] and ciks_known:
         out['na'] = 'no SEC filer found for this ticker'
     if subs:
         out['er_last'] = last_release(subs.get('er') or [], subs.get('periodic') or [], today)
@@ -347,7 +347,7 @@ def build(now: dt.datetime, contact: str = '', earnings: bool = True, log=print,
     for u in uni:
         b = cache_get('facts', u['cik'])[0] if u['cik'] else None
         s = cache_get('subs', u['cik'])[0] if u['cik'] else None
-        stocks[u['s']] = record(u, b, s, cal, today)
+        stocks[u['s']] = record(u, b, s, cal, today, ciks_known=bool(tk))
     n_f = sum(1 for v in stocks.values() if v.get('src'))
     n_e = sum(1 for v in stocks.values() if v.get('er_next'))
     log(f'stocks.json: {len(stocks)} stocks, {n_f} with SEC numbers, {n_e} with a next earnings date '

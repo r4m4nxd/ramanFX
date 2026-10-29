@@ -123,18 +123,21 @@ class CalendarTest(unittest.TestCase):
         self.assertIn('hotter CPI', p['bias'])
         self.assertEqual(p['score'], -3)                                # rate -2, CPI -1; both banks cut this year: no point
         self.assertIn('EURJPY', fx['pairs'])
-        self.assertTrue(fx['pairs']['EURJPY']['bias'].startswith('EUR stronger'))
-        self.assertIn('pays no yield', fx['notes']['XAUUSD'])
-        self.assertIn('US real rate +1.0%', fx['notes']['XAUUSD'])
-        self.assertIn('Fed 4%', fx['notes']['US500'])
-        self.assertIn('Crypto', fx['notes']['BTCUSD'])
-        self.assertIn('Energy', fx['notes']['SPOTCRUDE'])
+        self.assertEqual(fx['pairs']['EURJPY']['bias'], 'Mixed: EUR (higher rate) vs JPY (ECB cutting, hotter CPI)')
+        self.assertIn('pays no yield', fx['notes']['XAUUSD']['text'])
+        self.assertIn('US real rate +1.0%', fx['notes']['XAUUSD']['text'])
+        self.assertIn('Fed 4%', fx['notes']['US500']['text'])
+        self.assertIn('Crypto', fx['notes']['BTCUSD']['text'])
+        self.assertIn('Energy', fx['notes']['SPOTCRUDE']['text'])
+        self.assertEqual(fx['notes']['XAUUSD']['ccys'], ['USD'])
+        self.assertEqual(FX.ccys_for('XAUEUR'), ['USD', 'EUR'])
+        self.assertEqual(FX.ccys_for('GER40'), ['EUR'])
         self.assertTrue(fx['context_only'])
         self.assertTrue(all(isinstance(x, str) for x in FX.summary(fx)))
 
     def test_bias_lines(self):
         self.assertEqual(FX.bias_line('EUR', 'USD', -3, {'EUR': [], 'USD': ['higher rate', 'hotter CPI']}), 'USD stronger: higher rate, hotter CPI')
-        self.assertEqual(FX.bias_line('EUR', 'USD', 0, {'EUR': ['stronger growth'], 'USD': ['hotter CPI']}), 'Mixed: EUR stronger growth · USD hotter CPI')
+        self.assertEqual(FX.bias_line('EUR', 'USD', 0, {'EUR': ['stronger growth'], 'USD': ['hotter CPI']}), 'Mixed: EUR (stronger growth) vs USD (hotter CPI)')
         self.assertTrue(FX.bias_line('EUR', 'USD', 0, {'EUR': [], 'USD': []}).startswith('Balanced'))
         self.assertIsNone(FX.pair_view('EUR', 'GBP', {}, NOW))
 

@@ -395,7 +395,7 @@ def chart_buttons(syms: Sequence[Tuple[str, str]], callbacks: bool) -> List[Dict
 
 
 def build_brief(day: dt.date, fx: List[Dict], stocks: List[Dict], evs: List[Dict], plan: Optional[Dict],
-                callbacks: bool = False, sample: bool = False, notes: Sequence[str] = ()) -> SN.Msg:
+                callbacks: bool = False, sample: bool = False, notes: Sequence[str] = (), earnings: Sequence[str] = ()) -> SN.Msg:
     head = f"☀️ <b>Morning brief · {day.strftime('%a %-d %b')}</b>"
     if sample:
         head = '🧪 <b>Sample</b> · ' + head
@@ -408,6 +408,8 @@ def build_brief(day: dt.date, fx: List[Dict], stocks: List[Dict], evs: List[Dict
         parts.append('<i>No candle data this morning (feeds unavailable).</i>')
     today = ['<b>Today</b>'] + (event_lines(evs) or ['No high-impact events.']) + [window_line(day)]
     parts.append('\n'.join(today))
+    if earnings:
+        parts.append('<b>📑 Earnings</b>\n' + '\n'.join(earnings))
     rows: List[List[Dict]] = []
     if plan:
         pd = plan.get('planFor') or ''
@@ -429,7 +431,7 @@ def build_brief(day: dt.date, fx: List[Dict], stocks: List[Dict], evs: List[Dict
     text = '\n\n'.join(parts)
     if SN.u16(text) > SN.SAFE and (fx or stocks):             # never in practice (lines are short): drop a mover
         fx, stocks = (fx, stocks[:-1]) if len(stocks) >= len(fx) else (fx[:-1], stocks)
-        return build_brief(day, fx, stocks, evs, plan, callbacks, sample, notes)
+        return build_brief(day, fx, stocks, evs, plan, callbacks, sample, notes, earnings)
     if SN.u16(text) > SN.SAFE:
         text = SN._cut(text, SN.SAFE)
     return SN.Msg(text, rows)
@@ -662,6 +664,57 @@ def fetch_stocks(now: dt.datetime, log=print) -> List[Dict]:
     return out
 
 
+# ---- earnings heads-up (public/fundamentals/stocks.json, tools/fundamentals/build.py) --------------------------------
+def my_stocks() -> Dict[str, str]:
+    """{symbol: 'held' | 'watched' | 'listed'}: HOLDINGS_JSON / holdings.json, env WATCHLIST, and today's scanner signals +
+    zone lists (public/scanner/latest.json)."""
+    out: Dict[str, str] = {}
+    try:
+        lst = load_json(os.path.join(ROOT, 'public', 'scanner', 'latest.json'), {}) or {}
+        for s in lst.get('signals') or []:
+            out.setdefault(str(s.get('symbol') or ''), 'listed')
+        for side in (lst.get('zone_lists') or {}).values():
+            for rows in (side or {}).values():
+                for r in rows or []:
+                    out.setdefault(str(r.get('s') or ''), 'listed')
+    except Exception:  # noqa: BLE001
+        pass
+    for s in re.split(r'[,;\s]+', os.environ.get('WATCHLIST', '')):
+        if s.strip():
+            out[s.strip().upper()] = 'watched'
+    try:
+        raw = os.environ.get('HOLDINGS_JSON')
+        held = json.loads(raw) if raw else load_json(os.path.join(ROOT, 'tools', 'stock_scanner', 'holdings.json'), [])
+        for h in held or []:
+            s = h.get('symbol') if isinstance(h, dict) else h
+            if s:
+                out[str(s).upper()] = 'held'
+    except Exception:  # noqa: BLE001
+        pass
+    out.pop('', None)
+    return out
+
+
+def earnings_lines(day: dt.date, mine: Dict[str, str], fund: Optional[Dict], n: int = 8) -> List[str]:
+    """'NVDA today after close · held' for held / watched / listed stocks reporting today or the next weekday."""
+    nxt = day + dt.timedelta(days=1)
+    while nxt.weekday() >= 5:
+        nxt += dt.timedelta(days=1)
+    when = {day.isoformat(): 'today', nxt.isoformat(): 'tomorrow' if (nxt - day).days == 1 else nxt.strftime('%a')}
+    rank = {'held': 0, 'watched': 1, 'listed': 2}
+    rows = []
+    for s, e in ((fund or {}).get('stocks') or {}).items():
+        w = when.get(str(e.get('er_next') or ''))
+        if w and s in mine:
+            est = ', estimated' if e.get('er_kind') == 'estimated' else ''
+            rows.append((w != 'today', rank[mine[s]], s, f"<b>{SN.esc(s)}</b> {w}{' ' + e['er_time'] if e.get('er_time') else ''}{est} · {mine[s]}"))
+    rows.sort()
+    out = [r[3] for r in rows[:n]]
+    if len(rows) > n:
+        out.append(f'+{len(rows) - n} more (/fund SYM)')
+    return out
+
+
 def todays_events(day: dt.date, log=print) -> List[Dict]:
     cal = news_calendar(day, log)
     if not cal:                                # absent, or [] (that module returns [] when its fetch fails)
@@ -678,7 +731,8 @@ def make_messages(now: dt.datetime, st: Dict, sample: bool, log=print) -> Tuple[
     plan = pick_plan(kevin_daily(export), day)
     if not export:
         log('lessons: no export (tools/briefing/.cache/lessons.json): Kevin plan from the TS fallback, no lesson')
-    brief = build_brief(day, fx, stocks, evs, plan, callbacks=os.path.exists(CHART_TS), sample=sample)
+    earn = earnings_lines(day, my_stocks(), load_json(os.path.join(ROOT, 'public', 'fundamentals', 'stocks.json'), None))
+    brief = build_brief(day, fx, stocks, evs, plan, callbacks=os.path.exists(CHART_TS), sample=sample, earnings=earn)
     msgs = [brief]
     les = next_lesson((export or {}).get('pool') or [], st.setdefault('lessons', {}))
     if les:

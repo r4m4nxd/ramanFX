@@ -106,6 +106,24 @@ the chart's candles (live: 250 closed bars, the scanners' 200-bar lookback); wit
 bars) the scanner's own published lines (`tls`) are used instead. Parity: the same fixtures +
 `src/core/telegramTrendParity.test.ts` (every line of every row identical).
 
+### Fundamentals (`fundamentals.ts`): `/fund SYM`, `/fundamentals SYM`, [📑 Fundamentals]
+
+Reads two nightly files of `tools/fundamentals/build.py` (`.github/workflows/fundamentals.yml`, weekdays 18:00 New
+York via the trader-coach scheduler + a backup cron), cached 30 min: `public/fundamentals/fx.json` and `stocks.json`.
+
+- **FX pair** (`/fund EURUSD`): each currency's central bank rate, last decision (hiked / cut / held, last move), next
+  meeting (Fed: federalreserve.gov dates), CPI y/y, GDP, unemployment (TradingView economic calendar actual values);
+  the rate gap and which side earns the carry; a one-line **fundamental bias** ("USD stronger: higher rate, hotter
+  CPI"), labelled context, not a signal. Metals / index CFDs / energy / crypto: a short note (US real rate, the
+  index's central bank, USD) with the currency block it follows. `/fund` alone: the 8 major central banks.
+- **Stock** (`/fund NVDA`): market cap, P/E, revenue + EPS TTM with YoY, net margin, debt / equity (SEC EDGAR
+  companyfacts), last / next earnings (Nasdaq calendar, else estimated from the 8-K 2.02 / 10-Q cadence), latest 8-K
+  titles, a [📄 SEC filings] link. Without an entry in `stocks.json`: the stock scanner's own fundamentals rows.
+  TSX-only names: n/a. SEC is only contacted when the repository variable `SEC_CONTACT` is set.
+- The [📑 Fundamentals] button (callback `f:SYM`) sits next to [🔄 Live scan] on zones and chart replies; stock zones
+  replies add `📑 next earnings: Nov 4 (in 6 days)` when a report is within 14 days. The 6 AM brief lists held /
+  watched / listed stocks reporting today or the next weekday.
+
 ### Big moves (hourly)
 
 `tools/movers/movers.py` (`.github/workflows/movers.yml`): ONE message per hour when something moved >= 2x its

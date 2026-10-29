@@ -311,8 +311,8 @@ def bias_line(base: str, quote: str, score: int, pts: Dict[str, List[str]]) -> s
     if score >= 2 or score <= -2:
         w = base if score > 0 else quote
         return f"{w} stronger: {', '.join(pts[w])}"
-    bits = [f"{c} {', '.join(p)}" for c, p in ((base, pts[base]), (quote, pts[quote])) if p]
-    return ('Mixed: ' + ' · '.join(bits)) if bits else 'Balanced: rates, inflation and growth about level'
+    bits = [f"{c} ({', '.join(p)})" for c, p in ((base, pts[base]), (quote, pts[quote])) if p]
+    return ('Mixed: ' + ' vs '.join(bits)) if bits else 'Balanced: rates, inflation and growth about level'
 
 
 # ---- non-FX notes -------------------------------------------------------------------------------------------------
@@ -345,6 +345,15 @@ def note_for(sym: str, cls: str, cur: Dict[str, Dict]) -> Optional[str]:
     if s in SOFTS:
         return f"Commodity: weather / supply first; priced in USD, so a firmer USD weighs on it. {real}"
     return None
+
+
+def ccys_for(sym: str) -> List[str]:
+    """The currencies whose data a non-FX instrument's card shows (metals / energy / crypto: USD + the quote currency)."""
+    s = sym.upper()
+    if s in CFD_CCY:
+        return [CFD_CCY[s]]
+    q = s[3:] if s[:3] in METALS else ''
+    return ['USD'] + ([q] if q in CCY and q != 'USD' else [])
 
 
 def _move_txt(d: Dict) -> str:
@@ -399,7 +408,7 @@ def build(now: dt.datetime, evs: Sequence[Dict], instruments: Sequence[Dict], fo
             continue
         n = note_for(sym, cls, cur)
         if n:
-            notes[sym] = n
+            notes[sym] = {'text': n, 'ccys': [c for c in ccys_for(sym) if c in cur]}
     return {'version': 1, 'generated_at': _iso(now), 'context_only': True,
             'source': 'TradingView economic calendar (actual / previous / forecast); FOMC dates: federalreserve.gov',
             'currencies': cur, 'pairs': pairs, 'notes': notes}

@@ -7,6 +7,7 @@
   {"command": "zones", "description": "Every zone of a symbol"},
   {"command": "chart", "description": "Chart: 4 timeframes, or one"},
   {"command": "hours", "description": "Best times / days for a symbol"},
+  {"command": "fund", "description": "Fundamentals: rates, CPI, P/E, earnings"},
   {"command": "alert", "description": "Alert at a price, or on a zone"},
   {"command": "alerts", "description": "Your alerts, mutes, quiet hours"},
   {"command": "unalert", "description": "Delete an alert"},

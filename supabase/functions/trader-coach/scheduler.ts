@@ -6,6 +6,7 @@
 //   fx-scan.yml / stock-scan.yml: input scheduled=true (the --check / 'already scanned today' step decides);
 //   briefing.yml: test=false (its Calgary-clock decide() + state.json dedupe);  reminders.yml: no inputs (its window logic);
 //   movers.yml: no inputs (hourly big moves, its own per-hour dedupe), with the FX slot of every forex-week hour.
+//   fundamentals.yml: input scheduled=true (skips when today's files are built), weekdays 18:00-19:00 New York.
 // The bot's on-demand scans (run name 'FX on-demand scan SYM' / 'Stock on-demand scan SYM') never cover a slot.
 // Pure: no Deno, no network (tests: src/core/traderCoach.test.ts).
 import { calParts } from './core.ts';
@@ -13,7 +14,7 @@ import { calParts } from './core.ts';
 export const REPO = 'r4m4nxd/ramanFX';
 export interface Dispatch {
   /** Workflow file in .github/workflows. */
-  wf: 'fx-scan.yml' | 'stock-scan.yml' | 'briefing.yml' | 'reminders.yml' | 'movers.yml';
+  wf: 'fx-scan.yml' | 'stock-scan.yml' | 'briefing.yml' | 'reminders.yml' | 'movers.yml' | 'fundamentals.yml';
   /** Dedupe key: one dispatch per slot (rfx_coach_events 'dispatch:<slot>'). */
   slot: string;
   /** Slot start (UTC ms): a GitHub run created at or after this already covers the slot. */
@@ -73,6 +74,8 @@ export function dueDispatches(nowUtc: number): Dispatch[] {
     const startOf = (hm: number) => nowUtc - (m - hm) * 60000 - (nowUtc % 60000);
     for (const [name, at] of [['a', 16 * 60 + 30], ['b', 19 * 60 + 30]] as const)
       if (m >= at && m < at + 60) out.push({ wf: 'stock-scan.yml', slot: `stock:${key(ny)}:${name}`, since: startOf(at), inputs: { scheduled: 'true' } });
+    // Fundamentals (bot /fund): after the first stock scan, 18:00-19:00 New York (prices of that day's scan).
+    if (m >= 18 * 60 && m < 19 * 60) out.push({ wf: 'fundamentals.yml', slot: `fund:${key(ny)}`, since: startOf(18 * 60), inputs: { scheduled: 'true' } });
   }
 
   // Calgary weekday mornings (zone rules incl. the permanent UTC-6 from 2026-11-01).

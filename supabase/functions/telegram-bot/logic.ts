@@ -12,6 +12,7 @@ import { aggregate, monthKey, quarterKey, tfLabel, weekKey, type Band, type Bar,
 import { fxZonesOf, nextBusinessDay, stockZonesOf, tfZonesOf, type LiveZone, type ZBar } from './zonecore.ts';
 import { panelTrendlines, type PubLine, type TlSeries } from './trendcore.ts';
 import type { LiveFx, LiveSource, LiveStock } from './live.ts';
+import { cmdFund, earningsLine, fundButton } from './fundamentals.ts';
 
 export type Button = { text: string; url: string } | { text: string; callback_data: string };
 export interface Reply {
@@ -51,6 +52,7 @@ export const COMMANDS: { command: string; description: string; group: Group; usa
   { command: 'zones', description: 'Every zone of a symbol', group: 'Symbol lookup', usage: '/zones EURUSD', help: 'every zone on every timeframe (or just send the symbol)' },
   { command: 'chart', description: 'Chart: 4 timeframes, or one', group: 'Symbol lookup', usage: '/chart EURUSD', help: 'one image, 4 timeframes (/chart EURUSD H4: one TF)' },
   { command: 'hours', description: 'Best times / days for a symbol', group: 'Symbol lookup', usage: '/hours XAUUSD', help: 'best Calgary times and weekdays' },
+  { command: 'fund', description: 'Fundamentals: rates, CPI, P/E, earnings', group: 'Symbol lookup', usage: '/fund EURUSD', help: 'rates + carry + bias (FX), P/E, revenue, earnings (stocks); /fund alone: central banks' },
   { command: 'alert', description: 'Alert at a price, or on a zone', group: 'Alerts', usage: '/alert XAUUSD 2650', help: 'one-shot price alert (/alert NVDA zone: price enters a strong zone)' },
   { command: 'alerts', description: 'Your alerts, mutes, quiet hours', group: 'Alerts', usage: '/alerts', help: 'your alerts (🗑 to delete), mutes, quiet hours, watchlist' },
   { command: 'unalert', description: 'Delete an alert', group: 'Alerts', usage: '/unalert 12', help: 'delete an alert by its number' },
@@ -409,7 +411,7 @@ export async function liveFor(r: Resolved, ctx: Ctx, digits: number): Promise<Li
 const liveNote = (r: Resolved, ctx: Ctx, lv: LiveView | null) => (lv ? '' : (r.market === 'fx' ? ctx.live?.fx : ctx.live?.stock) ? LIVE_DOWN : LIVE_HINT);
 const liveAt = (lv: LiveView) => `live · ${clock(new Date(lv.at))}`;
 /** [🔄 Live scan] (an on-demand scan of this symbol) when a GitHub token is set. */
-const scanButton = (sym: string, ctx: Ctx): Button[] => (ctx.scanOne && cbOk(`s:${sym}`) ? [{ text: '🔄 Live scan', callback_data: `s:${sym}` }] : []);
+const scanButton = (sym: string, ctx: Ctx): Button[] => [...(ctx.scanOne && cbOk(`s:${sym}`) ? [{ text: '🔄 Live scan', callback_data: `s:${sym}` }] : []), ...(cbOk(`f:${sym}`) ? [fundButton(sym)] : [])];   // + [📑 Fundamentals]
 
 async function fxZones(r: Resolved, ctx: Ctx): Promise<Reply> {
   const fx = obj(await ctx.load('fx/latest.json'));
@@ -466,6 +468,8 @@ async function stockZones(r: Resolved, ctx: Ctx): Promise<Reply> {
   if (lv) lines.push(esc(`zones + price live (Alpaca) · signals: scan of ${when(st.generated_at)}`));
   lines.push('Trend: ' + esc([['W1', d.w1], ['MN', d.mn], ['3M', d.m3]].filter(x => x[1] && x[1] !== 'n/a').map(([t, v]) => `${tf(t)} ${String(v).toLowerCase()}`).join(' · ')));
   if (d.signal) lines.push(`Open: ${esc(d.signal)} (see /stocks)`);
+  const earn = await earningsLine(r.sym, ctx);   // '📑 next earnings: Nov 4 (in 6 days)' within 14 days
+  if (earn) lines.push(earn);
   const zl = obj(st.zone_lists);
   const mine = ['demand', 'supply'].flatMap(side => ['in', 'near', 'left'].flatMap(sec => arr(obj(zl[side])[sec]).filter(x => x.s === r.sym).map(x => ({ ...x, side, section: sec }))));
   const zones = src.slice().sort((a, b) => TF_ORDER.indexOf(a.tf) - TF_ORDER.indexOf(b.tf) || (b.proximal - a.proximal));
@@ -805,6 +809,8 @@ export async function handleCallback(data: string, ctx: Ctx): Promise<Reply> {
   if (m && m[1] === 'z') return cmdZones(m[2], ctx);
   if (m && m[1] === 's' && !m[3]) return scanOne(m[2], ctx);
   if (m && m[1] === 'c') return { ...(await cmdChart(m[2], m[3] ?? '', ctx)), edit: !!m[3] };
+  const fd = /^f:([A-Za-z0-9._-]{1,20})$/.exec(data ?? '');
+  if (fd) return cmdFund(fd[1], ctx);
   if (CB_CMDS[data]) return handle(CB_CMDS[data], ctx);
   const tap = parseTap(data ?? '');
   if (tap) return prefsTap(tap, ctx);
@@ -1040,6 +1046,7 @@ export async function handle(text: string, ctx: Ctx): Promise<Reply> {
       case 'times': return cmdTimes(ctx);
       case 'next': return cmdNext(ctx);
       case 'hours': return cmdHours(c.arg, ctx);
+      case 'fund': case 'fundamentals': return cmdFund(c.arg, ctx);
       case 'scan': return cmdScan(c.arg, ctx);
       case 'took': return { cmd: 'took', text: 'Use: <code>/took EURUSD buy 1.0850 sl 1.0820 tp 1.0910</code>' };   // index.ts routes it to journal.ts first
       case 'alert': return cmdAlert(c.arg, c.arg2, ctx);
