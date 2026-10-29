@@ -31,8 +31,8 @@ export interface Ctx {
 }
 
 /** The command list: Telegram's Menu (setMyCommands reads commands.json, kept equal by a test), /help and the pin. */
-export type Group = 'Markets' | 'Symbol lookup' | 'Alerts' | 'Times' | 'Learn';
-export const GROUPS: Group[] = ['Markets', 'Symbol lookup', 'Alerts', 'Times', 'Learn'];
+export type Group = 'Markets' | 'Symbol lookup' | 'Alerts' | 'Times' | 'Journal' | 'Learn';
+export const GROUPS: Group[] = ['Markets', 'Symbol lookup', 'Alerts', 'Times', 'Journal', 'Learn'];
 export const COMMANDS: { command: string; description: string; group: Group; usage: string; help: string }[] = [
   { command: 'fx', description: 'Open FX setups + getting close', group: 'Markets', usage: '/fx', help: 'open FX setups, getting close, in a zone' },
   { command: 'stocks', description: "Today's stock BUY / WATCH", group: 'Markets', usage: '/stocks', help: "today's stock BUY / WATCH, close to a zone" },
@@ -53,6 +53,7 @@ export const COMMANDS: { command: string; description: string; group: Group; usa
   { command: 'times', description: "Today's key Calgary times", group: 'Times', usage: '/times', help: "today's key Calgary times" },
   { command: 'next', description: 'Next NFP, CPI and Fed decision', group: 'Times', usage: '/next', help: 'next jobs report, CPI, Fed decision' },
   { command: 'news', description: "Today's high-impact news", group: 'Times', usage: '/news', help: "today's high-impact news (all major currencies)" },
+  { command: 'took', description: 'Log a trade you took as a plan', group: 'Journal', usage: '/took EURUSD buy 1.0850 sl 1.0820 tp 1.0910', help: 'adds it to the Planner; reply to a 📝 prompt to save why' },
   { command: 'ask', description: 'Ask the lessons a question', group: 'Learn', usage: '/ask what is a proximal line', help: "the mentors' own words (or end any message with ?)" },
   { command: 'help', description: 'This list', group: 'Learn', usage: '/help', help: 'this list' },
 ];
@@ -896,6 +897,7 @@ export async function handle(text: string, ctx: Ctx): Promise<Reply> {
       case 'next': return cmdNext(ctx);
       case 'hours': return cmdHours(c.arg, ctx);
       case 'scan': return cmdScan(ctx);
+      case 'took': return { cmd: 'took', text: 'Use: <code>/took EURUSD buy 1.0850 sl 1.0820 tp 1.0910</code>' };   // index.ts routes it to journal.ts first
       case 'alert': return cmdAlert(c.arg, c.arg2, ctx);
       case 'alerts': return cmdAlerts(ctx);
       case 'unalert': case 'delalert': return cmdUnalert(c.arg, ctx);

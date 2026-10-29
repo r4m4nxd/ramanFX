@@ -18,6 +18,7 @@
   {"command": "times", "description": "Today's key Calgary times"},
   {"command": "next", "description": "Next NFP, CPI and Fed decision"},
   {"command": "news", "description": "Today's high-impact news"},
+  {"command": "took", "description": "Log a trade you took as a plan"},
   {"command": "ask", "description": "Ask the lessons a question"},
   {"command": "help", "description": "This list"}
 ]

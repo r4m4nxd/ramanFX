@@ -72,3 +72,19 @@ prefs": scan as usual, never fail the scan), `400` bad body. Time out after 10 s
 `TELEGRAM_BOT_TOKEN` as a Supabase function secret (added by the owner in the dashboard, never by tooling): when set,
 the function calls `answerCallbackQuery` on button taps (stops the spinner at once, shows a short toast). Without it
 everything still works through the webhook response.
+
+## Journal (trader coach) — `journal.ts`
+
+Owned by the trader coach (`supabase/functions/trader-coach`, see its README). `index.ts` calls
+`journalRoute(msg, { sbUrl, sbKey })` before `handle()` for every owner message; `null` = not a journal message.
+
+- A **reply** to the coach's `📝 EURUSD buy 1.0850 — why did you take it?` prompt (its `message_id` is in
+  `public.rfx_coach_prompts`) is saved as that trade's note in `public.rfx_journal` (`notes[tradeId].note`, `updatedAt`
+  like the app's `saveNote`, so the app's merge keeps it). Replies to any other message fall through to the commands.
+- **`/took EURUSD buy 1.0850 sl 1.0820 tp 1.0910`** adds a plan (the app's `Plan`, `status: 'planned'`) to the
+  journal's `plans`; it shows in the Planner after the app syncs.
+- Writes touch only the owner's row and one column, read-modify-write with optimistic concurrency on `updated_at`.
+- `journal.ts` imports `../trader-coach/core.ts` (and its generated `app-core.js`): the raw-GitHub deploy entry resolves
+  them; a file-list deploy must include `trader-coach/core.ts` and `trader-coach/app-core.js` too.
+- Token-free: replies go back in the webhook response. Only the coach's PROMPT is a push, which needs the optional
+  `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` function secrets.

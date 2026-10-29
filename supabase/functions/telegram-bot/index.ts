@@ -25,6 +25,7 @@
 import { initWasm, Resvg } from 'npm:@resvg/resvg-wasm@2.6.2';
 import { renderSvg } from './chart.ts';
 import { chartData, handle, handleCallback, MAIN_KEYBOARD, type Reply } from './logic.ts';
+import { journalRoute } from './journal.ts';   // trader coach: 'why did you take it?' replies + /took (journal.ts)
 import { keyOk, restStore } from './prefs.ts';
 
 const SB_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -334,7 +335,7 @@ Deno.serve(async (req: Request) => {
 
   let reply: Reply;
   try {
-    reply = await handle(text.slice(0, 200), ctx);
+    reply = (await journalRoute(msg, { sbUrl: SB_URL, sbKey: SB_KEY })) ?? await handle(text.slice(0, 200), ctx);
   } catch (e) {
     console.log(JSON.stringify({ ev: 'cmd_error', err: (e as Error).name }));
     reply = { cmd: 'error', text: '⚠️ Something went wrong reading the scanner data. Try again in a minute.' };
