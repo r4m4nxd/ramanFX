@@ -2,7 +2,7 @@ name: Event reminders
 
 # Calm Telegram reminders before the big US event times (tools/reminders/reminders.py, docs/research/Market_Hours.md):
 # NFP + CPI mornings (45 min before 8:30 ET), FOMC decision days (30 min before the 14:00 ET statement), and an
-# optional weekday nudge (repo variable REMINDER_DAILY=on; default off).
+# weekday morning nudge (on by owner request; repo variable REMINDER_DAILY=off turns it off).
 # The cron is UTC and covers Calgary at both UTC-6 and UTC-7; the script decides by the Calgary clock, sends each
 # reminder once (state in tools/reminders/state.json), up to 40 min late, never after the event.
 # Official schedules (federalreserve.gov, bls.gov) are fetched every few days and cached in tools/reminders/events.json.
@@ -60,7 +60,7 @@ jobs:
           PYTHONTZPATH: ''             # use the PyPI tzdata (newest rules), not the runner image's
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          REMINDER_DAILY: ${{ vars.REMINDER_DAILY || 'off' }}
+          REMINDER_DAILY: ${{ vars.REMINDER_DAILY || 'on' }}
           REMINDER_CONTACT: ${{ vars.REMINDER_CONTACT }}   # optional email for the bls.gov User-Agent
           IN_TEST: ${{ github.event.inputs.test }}
           IN_REFRESH: ${{ github.event.inputs.refresh }}
