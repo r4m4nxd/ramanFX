@@ -104,7 +104,7 @@ function cached<T>(ttl: number, now: () => number, lim: Limiter, load: (k: strin
 }
 async function getJson(f: Fetch, url: string, headers: Record<string, string>): Promise<{ status: number; js: J | null }> {
   const r = await f(url, { headers: { Accept: 'application/json', ...headers }, signal: AbortSignal.timeout(7000) });
-  if (!r.ok) { await r.body?.cancel(); return { status: r.status, js: null }; }
+  if (!r.ok) { await r.body?.cancel(); console.log(JSON.stringify({ ev: 'live_http', host: new URL(url).host, path: new URL(url).pathname.slice(0, 40), status: r.status })); return { status: r.status, js: null }; }
   try { return { status: r.status, js: await r.json() }; } catch { return { status: r.status, js: null }; }
 }
 
@@ -143,7 +143,7 @@ export function alpacaSource(keyId: string, secret: string, o: Opts = {}): (sym:
     if (!d.js && d.status === 403 && dailyFeed === 'sip') { dailyFeed = 'iex'; d = await daily('iex'); }
     if (!d.js) return null;
     const bars = parseAlpaca(d.js, sym);
-    if (bars.length < 60) return null;
+    if (bars.length < 60) { console.log(JSON.stringify({ ev: 'live_short', sym, bars: bars.length })); return null; }
     const { closed, partial } = splitPartial(bars, t);
     const h1 = h.js ? parseAlpaca(h.js, sym, true) : [];
     const last = Number(tr.js?.trades?.[sym]?.p);

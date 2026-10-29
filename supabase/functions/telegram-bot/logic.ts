@@ -402,7 +402,7 @@ export async function liveFor(r: Resolved, ctx: Ctx, digits: number): Promise<Li
     let v = liveMemo.get(d);
     if (!v) { v = { at: d.at, price: d.price, zones: stockZonesOf(d.daily, d.price), st: d, feed: d.feed }; liveMemo.set(d, v); }
     return v;
-  } catch { return null; }
+  } catch (e) { console.log(JSON.stringify({ ev: 'live_error', market: r.market, err: String((e as Error)?.name ?? e).slice(0, 40) })); return null; }
 }
 /** '' when live, else why not (no keys / fetch failed). */
 const liveNote = (r: Resolved, ctx: Ctx, lv: LiveView | null) => (lv ? '' : (r.market === 'fx' ? ctx.live?.fx : ctx.live?.stock) ? LIVE_DOWN : LIVE_HINT);
