@@ -345,7 +345,8 @@ def build_fx_md(R: Dict, fxr: List[Dict], cal: Dict, info: List[Dict], synthetic
     L.append('## Era check: has the pattern drifted?\n')
     L.append('For every instrument the Mon-Fri half-hour profile of the last 2 years is compared with its whole '
              'history, and before 2020 with 2020 and later (Spearman rank correlation of the 48 half-hours; 1.0 = same '
-             'shape). "Shifted" = rho below 0.8 or the peak half-hour moved by more than 30 minutes.\n')
+             'shape). "Shifted" = rho below 0.8, or the peak half-hour moved by more than 30 minutes and the old peak is now '
+             'more than 10% below the new one (a swap between two near-equal peaks does not count).\n')
     erows = []
     for lab, g in G.items():
         if not g:
@@ -376,7 +377,8 @@ def build_fx_md(R: Dict, fxr: List[Dict], cal: Dict, info: List[Dict], synthetic
                            ['18:00', fx(d.get('mst_18:00')), fx(d.get('mdt_18:00'))]]))
     # calendar
     L.append('## NFP and FOMC dates\n')
-    L.append(f"- FOMC statement dates: {len(cal.get('fomc') or [])} ({cal.get('fomc_source')}).\n"
+    L.append(f"- FOMC statement dates: {len(cal.get('fomc') or [])} ({cal.get('fomc_source')}; includes the unscheduled "
+             "statements of 2008 and 2020).\n"
              f"- NFP (Employment Situation) release dates: {len(cal.get('nfp') or [])} ({cal.get('nfp_source')}).\n"
              '- Ratio = median range of the event half-hour on event days / the same half-hour on control days (NFP: other '
              'Fridays; FOMC: other days of the same weekday). Group medians:\n')
@@ -547,6 +549,16 @@ def summaries(G: Dict, fxr: List[Dict], sr: List[Dict]) -> (List[str], List[str]
         outs.append(f"- **All {st_['n']} stocks:** strongest half-hours {best(st_)} Calgary. The 07:30 open: volume "
                     f"{fx(st_['vol'][15])}, range {fx(st_['range'][15])}, big-move days {st_['big_pct'][15]}%. The 13:30 last "
                     f"half-hour: volume {fx(st_['vol'][27])} but range {fx(st_['range'][27])}.")
+        rbest = {}
+        for r in sr:
+            pr = arr(r['heavy']['prof_r'])
+            if np.isfinite(pr).any():
+                k = slot_name(int(np.nanargmax(pr)))
+                rbest[k] = rbest.get(k, 0) + 1
+        rb = sorted(rbest.items(), key=lambda kv: -kv[1])[:3]
+        outs.append('- **Price movement alone (range):** the biggest half-hour range is at ' +
+                    ', '.join(f'{k} for {v} stocks' for k, v in rb) + ' - the open is where price travels; the 13:30 '
+                    'close is mostly volume.')
         tc = list((st_.get('top_slot_counts') or {}).items())[:3]
         outs.append('- **Each stock\'s own best half-hour:** ' + ', '.join(f'{k} for {v} stocks' for k, v in tc) +
                     f"; best times reliable for {st_.get('win_reliable_share')}% of stocks.")
