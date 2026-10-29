@@ -96,6 +96,10 @@ describe('telegram bot', () => {
     expect(r.text).toContain('7:30 AM · NYSE opens');
     const fomc = await handle('/times', ctx('2026-10-28T15:00:00Z'));
     expect(fomc.text).toContain('Fed decision (FOMC) today · 12:00 PM');
+    expect(clock(zoned('2026-11-02', '08:30', NY))).toBe('7:30 AM');   // EST + permanent Alberta UTC-6 (tzdata 2026c)
+    expect(clock(zoned('2026-10-30', '09:30', NY))).toBe('7:30 AM');
+    const nov = await handle('/times', ctx('2026-11-02T15:00:00Z'));
+    expect(nov.text).toContain('7:30 AM · US data');
     const sat = await handle('/times', ctx('2026-10-31T18:00:00Z'));
     expect(sat.text).toContain('Weekend');
   });
@@ -104,7 +108,8 @@ describe('telegram bot', () => {
     const r = await handle('/next', ctx('2026-10-29T15:00:00Z'));
     expect(r.text).toContain('Fed decision (FOMC)');
     expect(r.text).toContain('Dec 9');
-    expect(r.text).toContain('Nov 6');           // NFP fallback (not verified)
+    expect(r.text).toContain('Fri Nov 6 · 7:30 AM');   // NFP fallback (not verified); Calgary UTC-6 all year from Nov 1
+    expect(r.text).toContain('Wed Dec 9 · 1:00 PM');
     expect(r.text).toContain('date not verified');
   });
 

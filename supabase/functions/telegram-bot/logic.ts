@@ -100,10 +100,22 @@ export const plain = (label: unknown) => {
   return PLAIN[l] ?? l.replace(/HTF/g, 'bigger-timeframe');
 };
 
-// ---- time (zone rules via Intl: no hard-coded offsets) -----------------------------------------------------------------
+// ---- time (zone rules via Intl, plus the 2026c Alberta rule when the runtime lacks it) ----------------------------------
 interface Parts { y: number; m: number; d: number; h: number; mi: number; wd: string; mon: string }
 const fmtCache = new Map<string, Intl.DateTimeFormat>();
+// Alberta stays on UTC-6 all year from 2026-11-01 (tzdata 2026c: the 2026-11-01 08:00 UTC fall-back never happens).
+// Runtimes whose ICU predates 2026c (Deno Deploy / Node as of 2026-10) still apply the old MST rule; patch only then.
+const AB_PERMANENT = Date.UTC(2026, 10, 1, 8, 0);
+let abStale: boolean | null = null;
+const albertaStale = () => {
+  if (abStale == null) { const p = rawParts(new Date(AB_PERMANENT + 30 * 86400000), CAL); abStale = p.h !== 2; }   // 08:00 UTC Dec 1 = 2 AM at UTC-6
+  return abStale;
+};
 export function parts(t: Date, tz: string): Parts {
+  if (tz === CAL && t.getTime() >= AB_PERMANENT && albertaStale()) return rawParts(new Date(t.getTime() - 6 * 3600000), 'UTC');
+  return rawParts(t, tz);
+}
+function rawParts(t: Date, tz: string): Parts {
   let f = fmtCache.get(tz);
   if (!f) {
     f = new Intl.DateTimeFormat('en-US', { timeZone: tz, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', weekday: 'short', hourCycle: 'h23' });
