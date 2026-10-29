@@ -555,6 +555,23 @@ const overlaps = (a: Zn, b: Zn) => Math.max(Math.min(a.prox, a.dist), Math.min(b
 const zDist = (price: number, z: Zn) => placement(price, z.prox, z.dist).p;
 const toBars = (rows: unknown): Bar[] => arr(rows).filter(r => Array.isArray(r) && r.length >= 5).map(r => ({ t: String(r[0]), o: +r[1], h: +r[2], l: +r[3], c: +r[4] }))
   .filter(b => [b.o, b.h, b.l, b.c].every(Number.isFinite));
+/** Packed bars {t0: 'YYYY-MM-DD', dt: [day offsets], b: [[o, h, l, c]]} (stock shards: bars, hb.W1 / hb.MN / hb['3M']). */
+export function packedBars(pb: unknown): Bar[] {
+  const p = obj(pb);
+  if (typeof p.t0 !== 'string') return [];
+  const d0 = Date.parse(`${p.t0}T00:00:00Z`);
+  if (!Number.isFinite(d0)) return [];
+  return arr(p.b).filter(r => Array.isArray(r) && r.length >= 4)
+    .map((r, i) => ({ t: new Date(d0 + (num(arr(p.dt)[i]) ?? i) * 86400000).toISOString().slice(0, 10), o: +r[0], h: +r[1], l: +r[2], c: +r[3] }))
+    .filter(x => [x.o, x.h, x.l, x.c].every(Number.isFinite));
+}
+/** Real higher-TF bars, plus the derived bars of any later (current) period they do not cover; the derived ones alone
+ *  when there are no real bars. */
+export function withRecent(real: Bar[], derived: Bar[], key: (t: string) => string): Bar[] {
+  if (!real.length) return derived;
+  const last = key(real[real.length - 1].t);
+  return [...real, ...derived.filter(b => key(b.t) > last)];
+}
 function zoneList(rows: unknown[]): Zn[] {
   const out: Zn[] = [], seen = new Set<string>();
   for (const r of rows as J[]) {
@@ -607,7 +624,7 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
     if (!price) return null;
     const b = obj(d.bars), bars: Record<string, Bar[]> = {};
     for (const t of ['H1', 'H4', 'D1', 'W1']) bars[t] = toBars(b[t]);
-    bars.MN = aggregate(bars.W1, monthKey);
+    bars.MN = withRecent(toBars(b.MN), aggregate(bars.W1, monthKey), monthKey);   // real closed months + the current one
     const zones = zoneList([...arr(d.zones), ...arr(d.hits)]);
     const s = fxSetups(fx).find(x => x.sym === hit.sym);
     const near = arr(d.hits).filter(h => h.section !== 'left').sort((a, z) => (num(a.pips) ?? 1e9) - (num(z.pips) ?? 1e9))[0];
@@ -625,10 +642,10 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
   const d = obj(obj(sh.tickers)[hit.sym]);
   const price = num(d.price), pb = obj(d.bars);
   if (!price || !pb.t0) return null;
-  const d0 = Date.parse(`${pb.t0}T00:00:00Z`);
-  const daily: Bar[] = arr(pb.b).map((r, i) => ({ t: new Date(d0 + (num(arr(pb.dt)[i]) ?? i) * 86400000).toISOString().slice(0, 10), o: +r[0], h: +r[1], l: +r[2], c: +r[3] }))
-    .filter(x => [x.o, x.h, x.l, x.c].every(Number.isFinite));
-  const bars: Record<string, Bar[]> = { D1: daily, W1: aggregate(daily, weekKey), MN: aggregate(daily, monthKey), '3M': aggregate(daily, quarterKey) };
+  const daily = packedBars(pb), hb = obj(d.hb);
+  // Real higher-TF bars (hb, only for listed / signalled / watched tickers) when published; else rebuilt from D1.
+  const higher = (tf: string, key: (t: string) => string) => withRecent(packedBars(hb[tf]), aggregate(daily, key), key);
+  const bars: Record<string, Bar[]> = { D1: daily, W1: higher('W1', weekKey), MN: higher('MN', monthKey), '3M': higher('3M', quarterKey) };
   const tfs = view === 'Q' ? STOCK_TFS : [view];
   if (!tfs.every(t => STOCK_TFS.includes(t))) return null;
   const s = stockSetups(st).find(x => x.symbol === hit.sym);
