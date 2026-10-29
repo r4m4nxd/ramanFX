@@ -1,0 +1,1 @@
+{"version":1,"generated":"2026-10-29T23:14:11Z","source":"SEC EDGAR Form 4 (open-market purchases, code P)","sec":false,"days":30,"rules":{"min_n":2,"strong_n":3,"window":14,"solo_min":250000.0,"min_value":10000.0,"min_price":2.0,"min_mcap":50000000.0,"score_bar":5.0},"coverage":{"days":22,"done":0,"filings":0},"clusters":[],"buys":[],"by_sym":{},"alerted":{}}
