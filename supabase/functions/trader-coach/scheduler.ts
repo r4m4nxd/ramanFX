@@ -5,7 +5,8 @@
 //   (fx-scan also outside the forex week, slot 'fxc:<hour>': crypto trades 24/7, its --check runs a crypto-only scan)
 //   fx-scan.yml / stock-scan.yml: input scheduled=true (the --check / 'already scanned today' step decides);
 //   briefing.yml: test=false (its Calgary-clock decide() + state.json dedupe);  reminders.yml: no inputs (its window logic);
-//   movers.yml: no inputs (hourly big moves, its own per-hour dedupe), with the FX slot of every forex-week hour.
+//   movers.yml: no inputs, EVERY hour (crypto trades 24/7): movers.py works out which 1H / 4H / 1D / 1W candles closed
+//   (FX, crypto, stocks; stock 1D / 1W ride with the 17:00 New York slot) and dedupes per close itself.
 //   fundamentals.yml: input scheduled=true (skips when today's files are built), weekdays 18:00-19:00 New York.
 // The bot's on-demand scans (run name 'FX on-demand scan SYM' / 'Stock on-demand scan SYM') never cover a slot.
 // Pure: no Deno, no network (tests: src/core/traderCoach.test.ts).
@@ -55,10 +56,11 @@ export function dueDispatches(nowUtc: number): Dispatch[] {
   const mi = t.getUTCMinutes();
   if (mi >= FX_WINDOW[0] && mi < FX_WINDOW[1]) {
     const close = Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate(), t.getUTCHours());
+    // Big moves, every hour (weekends too: crypto); the script picks the timeframes that closed (1H/4H/1D/1W).
+    out.push({ wf: 'movers.yml', slot: `movers:${new Date(close).toISOString().slice(0, 13)}`, since: close, inputs: {} });
     if (fxBarCloses(close)) {
       const h = new Date(close).toISOString().slice(0, 13);
       out.push({ wf: 'fx-scan.yml', slot: `fx:${h}`, since: close, inputs: { scheduled: 'true' } });
-      out.push({ wf: 'movers.yml', slot: `movers:${h}`, since: close, inputs: {} });   // hourly big moves (FX + US stocks)
     } else {
       // Weekend: crypto trades 24/7. Same scheduled-equivalent dispatch; the workflow's --check finds the forex candle
       // already scanned and runs the crypto-only scan when a new crypto H1 candle closed.

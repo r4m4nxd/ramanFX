@@ -39,7 +39,14 @@ class Why(unittest.TestCase):
         self.assertEqual(calls[0][0], ['GLD', 'NVDA'])
         self.assertEqual(calls[0][1], NOW - dt.timedelta(hours=3))
         self.assertEqual(set(why), {'XAUUSD', 'NVDA'})                    # EURUSD: only a 20 h old one
-        self.assertEqual(why['NVDA'], '   📰 why: <a href="https://e.test/1">Nvidia &lt;falls&gt; after export curbs</a> · 30m ago')
+        self.assertEqual(why['NVDA']['line'], '   📰 why: <a href="https://e.test/1">Nvidia &lt;falls&gt; after export curbs</a> · 30m ago')
+        self.assertEqual(why['NVDA']['url'], 'https://e.test/1')
+        calls.clear()
+        with mock.patch.object(NH, 'alpaca', lambda tags, **k: calls.append((tags, k.get('start'))) or alp), \
+                mock.patch.object(NH, 'pool', lambda **k: rss):
+            week = M.news_why(MOVERS, NOW, log=None, hours=168)
+        self.assertEqual(calls[0][1], NOW - dt.timedelta(hours=168))            # the window matches the timeframe
+        self.assertIn('EURUSD', week)
 
     def test_failures_never_break_the_message(self):
         def boom(*a, **k):
@@ -49,15 +56,15 @@ class Why(unittest.TestCase):
         self.assertEqual(M.news_why([], NOW, log=None), {})
 
     def test_build_puts_the_why_line_under_its_mover(self):
-        s, e = M.last_hour(NOW)
-        msg = M.build(MOVERS[:2], MOVERS[2:], s, e, lambda m: '', why={'NVDA': '   📰 why: x · 30m ago'})
-        lines = str(msg).split('\n')
-        i = next(k for k, x in enumerate(lines) if x.startswith('<b>NVDA</b>'))
+        rows = [{**m, 'tf': 'H1', 'group': 'stock' if m['market'] == 'stock' else 'fx', 'tags': []} for m in MOVERS]
+        rows[2]['why'] = {'line': '   📰 why: x · 30m ago'}
+        sec = {'tf': 'H1', 'close': '2026-10-29T14:00:00+00:00', 'fams': ['fx', 'stock'], 'feed': 'IEX', 'rows': rows}
+        lines = str(M.build([sec])).split('\n')
+        i = next(k for k, x in enumerate(lines) if '<b>NVDA</b>' in x)
         self.assertEqual(lines[i + 1], '   📰 why: x · 30m ago')
         self.assertEqual(sum('📰' in x for x in lines), 1)
-        long = M.build(MOVERS[:2], MOVERS[2:], s, e, lambda m: '', why={'NVDA': 'y' * 5000})
-        self.assertNotIn('yyyy', str(long))                              # too long: the moves stay, the why goes
-
+        rows[2]['why'] = {'line': 'y' * 5000}
+        self.assertNotIn('yyyy', str(M.build([sec])))                      # too long: the moves stay, the why goes
 
 if __name__ == '__main__':
     unittest.main()

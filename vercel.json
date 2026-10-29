@@ -4,7 +4,7 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/((?!legacy\\.html|assets/|scanner/.*\\.json|fx/.*\\.json|research/.*\\.json).*)",
+      "source": "/((?!legacy\\.html|assets/|scanner/.*\\.json|fx/.*\\.json|movers/.*\\.json|research/.*\\.json).*)",
       "destination": "/index.html"
     }
   ],
@@ -67,6 +67,15 @@
     },
     {
       "source": "/fx/(.*)\\.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/movers/(.*)\\.json",
       "headers": [
         {
           "key": "Cache-Control",

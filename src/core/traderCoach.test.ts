@@ -363,7 +363,7 @@ describe('GitHub workflow scheduler', () => {
     expect(covered(rem, at('2026-10-30T12:00:30Z'))).toBe(true);
   });
 
-  it('movers: hourly big moves with every forex-week H1 slot (:05-:25), no inputs, deduped per hour', () => {
+  it('movers: every hour (:05-:25, weekends too for crypto), no inputs, deduped per hour', () => {
     const due = dueDispatches(at('2026-10-29T14:05:00Z')).find(d => d.wf === 'movers.yml')!;
     expect(due.slot).toBe('movers:2026-10-29T14');
     expect(due.since).toBe(at('2026-10-29T14:00:00Z'));
@@ -372,7 +372,13 @@ describe('GitHub workflow scheduler', () => {
     expect(wfs('2026-10-29T14:30:00Z').some(x => x.startsWith('movers'))).toBe(false);
     const day = [...ticks('2026-10-28T00:00:00Z', 24).keys()].filter(k => k.startsWith('movers:'));
     expect(day).toHaveLength(24);
-    expect([...ticks('2026-10-31T00:00:00Z', 24).keys()].filter(k => k.startsWith('movers:'))).toEqual([]);   // Saturday
+    const sat = [...ticks('2026-10-31T00:00:00Z', 24)].filter(([k]) => k.startsWith('movers:'));
+    expect(sat).toHaveLength(24);                                               // Saturday: crypto 1H / 4H / 1D / 1W
+    expect(sat[0]).toEqual(['movers:2026-10-31T00', '2026-10-31T00:10']);      // crypto 1D + 1W close (Saturday 00:00 UTC)
+    // the Friday 17:00 New York close (1H + 4H + 1D + 1W, stocks 1D / 1W) is ONE slot, in both DST regimes
+    expect(wfs('2026-10-30T21:10:00Z')).toContain('movers.yml movers:2026-10-30T21');
+    expect(wfs('2026-11-06T22:10:00Z')).toContain('movers.yml movers:2026-11-06T22');
+    expect(dueDispatches(at('2026-10-30T21:20:00Z')).filter(d => d.wf === 'movers.yml')).toHaveLength(1);
     expect(readFileSync('.github/workflows/movers.yml', 'utf8')).toContain('python tools/movers/movers.py');
   });
 

@@ -1,24 +1,29 @@
 name: Big moves
 
-# Hourly "big moves" message (tools/movers/movers.py): the last completed hour across every FX scanner instrument (OANDA
-# H1) and, 7:00 AM-5:00 PM New York on weekdays, every scanner stock (Alpaca 1-hour bars, IEX real-time feed). ONE calm
-# Telegram message when something qualifies (>= 2x its 20-hour average range), nothing otherwise; deduped per hour
-# (tools/movers/.cache/state.json in the actions cache). Primary trigger: the trader-coach edge function's 10-minute
-# scheduler (supabase/functions/trader-coach/scheduler.ts) dispatches it at :05-:25 past each forex-week hour when
-# GITHUB_DISPATCH_TOKEN is set; the cron below is the backup (GitHub drops many scheduled runs). test=true sends ONE
-# '🧪 Sample big moves' message (top 3 whatever their size) and touches no state.
+# "Big moves" on every timeframe (tools/movers/movers.py): ONE calm Telegram message an hour at most, sections per
+# timeframe that just closed, highest first (🟪 1W, 🟦 1D, 🟩 4H, ⬜ 1H), grouped Forex & metals / Indices &
+# commodities / Crypto / Stocks, EVERY qualifier one line (>= 2x its 20-candle average range + a minimum % per
+# timeframe and group). The script works out itself which candles closed: FX / metals / indices / commodities on OANDA
+# (NY-aligned 4H, 1D at 17:00 New York, 1W Friday 17:00), crypto 24/7 (UTC days, Saturday-Friday weeks), stocks 1H on
+# IEX and 1D / Friday 1W on SIP daily / weekly bars with the 17:00 New York run. Deduped per close
+# (tools/movers/.cache/state.json in the actions cache); 4H / 1D / 1W found in quiet hours are held and sent when they
+# end. public/movers/latest.json (the app's /moves page: every qualifier) is committed. Primary trigger: the
+# trader-coach edge function's 10-minute scheduler (supabase/functions/trader-coach/scheduler.ts) dispatches it at
+# :05-:25 past EVERY hour (crypto trades 24/7) when GITHUB_DISPATCH_TOKEN is set; the cron below is the backup (GitHub
+# drops many scheduled runs). test=true sends ONE '🧪 Sample big moves (all timeframes)' message from the last closed
+# 1H / 4H / 1D / 1W candles and touches no state.
 on:
   schedule:
-    - cron: '13 * * * 0-5'
+    - cron: '13 * * * *'
   workflow_dispatch:
     inputs:
       test:
-        description: "Send one '🧪 Sample big moves' message"
+        description: "Send one '🧪 Sample big moves (all timeframes)' message (the last closed 1H / 4H / 1D / 1W candles)"
         type: boolean
         default: false
 
 permissions:
-  contents: read
+  contents: write                 # public/movers/latest.json for the app
 
 concurrency:
   group: movers
@@ -56,7 +61,7 @@ jobs:
         run: python -m unittest discover -s tools/movers/tests
 
       - name: Big moves
-        timeout-minutes: 8
+        timeout-minutes: 10
         run: |
           ARGS=()
           if [ "$TEST" = "true" ]; then ARGS+=(--test); fi
@@ -75,3 +80,13 @@ jobs:
         with:
           path: tools/movers/.cache
           key: movers-${{ github.run_id }}
+
+      - name: Publish the app list
+        if: ${{ github.event.inputs.test != 'true' }}
+        run: |
+          git config user.name "ramanfx-movers[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/movers
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "movers: $(date -u +%Y-%m-%dT%H:%MZ)"
+          for i in 1 2 3; do git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && break; sleep 5; done
