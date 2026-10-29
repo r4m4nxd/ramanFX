@@ -2,7 +2,7 @@
 // back to rebuilding them from lower-TF bars when absent. Runs on the published public/ files.
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { chartData, packedBars, withRecent, type Ctx } from '../../supabase/functions/telegram-bot/logic';
+import { chartData, dropPartialHead, packedBars, withRecent, type Ctx } from '../../supabase/functions/telegram-bot/logic';
 import { aggregate, monthKey, quarterKey, weekKey } from '../../supabase/functions/telegram-bot/chart';
 
 const read = (p: string) => (existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : null);
@@ -59,7 +59,8 @@ describe('chart bars', () => {
     const noHb = stockShard(d => !d.hb);
     if (noHb) {
       const cd = await chartData(noHb.sym, 'MN', ctx);
-      expect(cd!.model.panels[0].bars.map(b => b.t)).toEqual(aggregate(packedBars(noHb.d.bars), monthKey).slice(-90).map(b => b.t));
+      const daily = packedBars(noHb.d.bars);   // rebuilt from the daily bars, a partial first month dropped
+      expect(cd!.model.panels[0].bars.map(b => b.t)).toEqual(dropPartialHead(aggregate(daily, monthKey), daily, monthKey).slice(-90).map(b => b.t));
     }
     expect(withHb || noHb).toBeTruthy();
   });

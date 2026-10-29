@@ -11,6 +11,7 @@ import { MAX_ALERTS, MAX_WATCH, parseDuration, parsePrice, parseQuiet, parseTap,
 import { aggregate, monthKey, quarterKey, tfLabel, weekKey, type Band, type Bar, type ChartModel, type Panel, type TLine } from './chart.ts';
 import { fxZonesOf, nextBusinessDay, stockZonesOf, tfZonesOf, type LiveZone, type ZBar } from './zonecore.ts';
 import { panelTrendlines, type PubLine, type TlSeries } from './trendcore.ts';
+import { atrPct, isWide, nestNote, refineOf, verdict } from './chartnotes.ts';
 import type { LiveFx, LiveSource, LiveStock } from './live.ts';
 import { cmdFund, earningsLine, fundButton } from './fundamentals.ts';
 
@@ -696,16 +697,40 @@ export function withRecent(real: Bar[], derived: Bar[], key: (t: string) => stri
   const last = key(real[real.length - 1].t);
   return [...real, ...derived.filter(b => key(b.t) > last)];
 }
-function zoneList(rows: unknown[]): Zn[] {
-  const out: Zn[] = [], seen = new Set<string>();
+function zoneList(rows: unknown[], merge = false): Zn[] {
+  const out: Zn[] = [], rank: number[] = [], seen = new Set<string>();
   for (const r of rows as J[]) {
     const prox = num(r?.proximal ?? r?.prox), dist = num(r?.distal ?? r?.dist);
     if (prox == null || dist == null || (r.side !== 'demand' && r.side !== 'supply') || typeof r.tf !== 'string') continue;
     const k = `${r.tf}:${r.side}:${prox}`;
-    if (!seen.has(k)) { seen.add(k); out.push({ tf: r.tf, side: r.side, prox, dist }); }
+    if (seen.has(k)) continue;
+    seen.add(k);
+    const z: Zn = { tf: r.tf, side: r.side, prox, dist };
+    // fresher, then stronger (score), then fewer touches
+    const rk = (r.fresh === false ? 0 : 1000) + (num(r.score) ?? 0) * 10 - Math.min(9, num(r.touches) ?? 0);
+    const dup = merge ? out.findIndex(o => sameArea(o, z)) : -1;
+    if (dup < 0) { out.push(z); rank.push(rk); } else if (rk > rank[dup]) { out[dup] = z; rank[dup] = rk; }
   }
   return out;
 }
+/** Chart only: two zones of the same TF and side that cover >= 50% of the smaller one's height are drawn as one
+ *  (the fresher, then higher-score, then less-touched one is kept; the scanners' lists and the alerts keep both). */
+function sameArea(a: Zn, b: Zn): boolean {
+  if (a.tf !== b.tf || a.side !== b.side) return false;
+  const ov = Math.min(Math.max(a.prox, a.dist), Math.max(b.prox, b.dist)) - Math.max(Math.min(a.prox, a.dist), Math.min(b.prox, b.dist));
+  return ov > 0 && ov >= 0.5 * Math.min(Math.abs(a.prox - a.dist), Math.abs(b.prox - b.dist));
+}
+/** Higher-TF bars built from daily bars whose history starts mid-period: the first, partial period dropped (a flat
+ *  3M candle of a few weeks would read as a real quarter). Partial = the business day before the first daily bar falls
+ *  in the same period. */
+export function dropPartialHead(derived: Bar[], daily: Bar[], key: (t: string) => string): Bar[] {
+  if (!derived.length || !daily.length) return derived;
+  const d0 = daily[0].t.slice(0, 10), t = new Date(`${d0}T12:00:00Z`);
+  do t.setUTCDate(t.getUTCDate() - 1); while (t.getUTCDay() === 0 || t.getUTCDay() === 6);
+  return key(t.toISOString().slice(0, 10)) === key(d0) && key(derived[0].t) === key(d0) ? derived.slice(1) : derived;
+}
+/** Panels with fewer candles than this get a 'short history' note (published stocks without real higher-TF bars). */
+export const SHORT_HISTORY = 12;
 
 /** Trendline inputs of a chart: per TF whether its last bar is still forming (TFs absent = no lines), and the next
  *  higher TF whose lines each panel also draws (gold dots); pub = the scanner's published lines per TF ('tls': used
@@ -753,7 +778,12 @@ export function chartWhen(market: 'fx' | 'stock', now: Date, o: { px: string; li
   return o.scanAt ? `${o.px} · scan ${now.getTime() - o.scanAt.getTime() > 20 * 3600000 ? `${day(o.scanAt)} ` : ''}${clock(o.scanAt)} MT` : o.px;
 }
 
-export interface ChartData { model: ChartModel; v: string; market: 'fx' | 'stock'; sym: string; view: string; when: string; live?: boolean; note?: string }
+/** The chart model with the display notes (chartnotes.ts): zones[i].wide (+ refine: the lower-TF zone inside a wide
+ *  one), panel.nestNote, model.verdict. */
+export type ZoneBand = Band & { wide: boolean; refine?: Zn | null };
+export type ChartPanel = Omit<Panel, 'zones'> & { zones: ZoneBand[]; nestNote: string | null };
+export type ChartModelX = Omit<ChartModel, 'panels'> & { panels: ChartPanel[]; verdict: string };
+export interface ChartData { model: ChartModelX; v: string; market: 'fx' | 'stock'; sym: string; view: string; when: string; live?: boolean; note?: string }
 const zb = (b: ZBar): Bar => ({ t: b.d, o: b.o, h: b.h, l: b.l, c: b.c });
 /** Closed candles (the last 250: the trendlines' 200-bar lookback, like the scanners) + the forming one, as chart bars. */
 const withForming = (closed: ZBar[], forming: ZBar | null): Bar[] => [...closed.slice(-250), ...(forming ? [forming] : [])].map(zb);
@@ -761,24 +791,28 @@ const withForming = (closed: ZBar[], forming: ZBar | null): Bar[] => [...closed.
 const liveVersion = (lv: LiveView) => `L${Math.floor(lv.at / 30000)}`;
 
 /** Panels for the given timeframes: key zone per TF (nearest), the host of the next-lower key zone outlined, trade
- *  lines on the entry TF, higher-TF zones lighter in the single view. */
+ *  lines on the entry TF, higher-TF zones lighter in the single view; every zone flagged wide or not (chartnotes.isWide
+ *  with the D1 ATR) and each panel's nesting note (its key zone against the next higher TF's zones; null when the
+ *  panel shows another TF's zones). */
 export function buildPanels(tfs: string[], bars: Record<string, Bar[]>, zones: Zn[], price: number, digits: number,
   sig: { tf: string; entry?: number; stop?: number; target?: number; kind?: string } | null, layout: 'quad' | 'single', zoneTfOf: (tf: string) => string = t => t,
-  tl?: TlSrc): Panel[] {
+  tl?: TlSrc): ChartPanel[] {
   const fmt = (v: number) => v.toFixed(digits);
+  const d1 = atrPct(bars.D1 ?? []);
+  const note = (z: Zn) => { const wide = isWide(z, price, d1); return wide ? { wide, refine: refineOf(z, zones, price) } : { wide }; };
   const keys = tfs.map(tf => zones.filter(z => z.tf === zoneTfOf(tf)).sort((a, b) => zDist(price, a) - zDist(price, b))[0] ?? null);
   return tfs.map((tf, i) => {
     const ztf = zoneTfOf(tf);
     const own = zones.filter(z => z.tf === ztf).sort((a, b) => zDist(price, a) - zDist(price, b)).slice(0, layout === 'quad' ? 6 : 8);
     const key = keys[i], lowerKey = keys[i + 1];
     const host = lowerKey && zoneTfOf(tfs[i + 1]) !== ztf ? own.find(z => z.side === lowerKey.side && overlaps(z, lowerKey)) ?? null : null;
-    const bands: Band[] = own.map(z => ({ ...z, key: z === key, host: z === host, light: ztf !== tf,
+    const bands: ZoneBand[] = own.map(z => ({ ...z, ...note(z), key: z === key, host: z === host, light: ztf !== tf,
       label: layout === 'single' ? `${tfLabel(z.tf)} ${z.side} ${fmt(z.prox)}–${fmt(z.dist)}` : undefined }));
     if (layout === 'single') {   // the higher TF's zones for context, lighter; the one hosting this TF's key zone outlined
       const hi = ORDER[ORDER.indexOf(ztf) - 1];
       const up = hi ? zones.filter(z => z.tf === hi).sort((a, b) => zDist(price, a) - zDist(price, b)).slice(0, 4) : [];
       const h = key ? up.find(z => z.side === key.side && overlaps(z, key)) : undefined;
-      bands.unshift(...up.map(z => ({ ...z, light: true, host: z === h, label: `${tfLabel(z.tf)} ${z.side} ${fmt(z.prox)}–${fmt(z.dist)}` })));
+      bands.unshift(...up.map(z => ({ ...z, ...note(z), light: true, host: z === h, label: `${tfLabel(z.tf)} ${z.side} ${fmt(z.prox)}–${fmt(z.dist)}` })));
     }
     const header = key ? `${ztf !== tf ? `${tfLabel(ztf)} ` : ''}${key.side} ${fmt(key.prox)}–${fmt(key.dist)} · ${zoneStatus(placement(price, key.prox, key.dist), key.side, '')}` : 'no zone in view';
     const lines = sig && sig.tf === tf ? { entry: sig.entry, stop: sig.stop, target: sig.target, kind: sig.kind } : null;
@@ -787,13 +821,27 @@ export function buildPanels(tfs: string[], bars: Record<string, Bar[]>, zones: Z
     const mine = ser(tf), up = tl?.htf[tf], hs = up ? ser(up) : null;
     let tls: TLine[] = [];
     try { tls = mine ? panelTrendlines(mine, shown.length, price, hs, 2) : []; } catch (e) { console.log(JSON.stringify({ ev: 'tl_error', tf, err: String((e as Error)?.message ?? e).slice(0, 60) })); }
-    return { tf, header, bars: shown, zones: bands, lines, tls,
-      note: ztf !== tf ? `no ${tfLabel(tf)} zones: ${tfLabel(ztf)} zones shown` : undefined };
+    return { tf, header, bars: shown, zones: bands, lines, tls, nestNote: ztf !== tf ? null : nestNote(key, zones),
+      note: ztf !== tf ? `no ${tfLabel(tf)} zones: ${tfLabel(ztf)} zones shown` : shown.length < SHORT_HISTORY ? `short history: ${shown.length} ${tfLabel(tf)} candles` : undefined };
   });
 }
 
 /** Mark the panels whose last candle is still forming (drawn hollow). */
-const withForming2 = (ps: Panel[], forming: Record<string, boolean>): Panel[] => ps.map(p => ({ ...p, forming: !!forming[p.tf] }));
+const withForming2 = <P extends { tf: string }>(ps: P[], forming: Record<string, boolean>): P[] => ps.map(p => ({ ...p, forming: !!forming[p.tf] }));
+/** The chart's one-line verdict (chartnotes.verdict): the signal's TF when the scanner has one, else the lowest
+ *  panel's zone TF; the trend from the lowest panel. */
+export function chartVerdict(panels: ChartPanel[], zones: Zn[], price: number, digits: number, market: 'fx' | 'stock',
+  sig: { tf: string; entry?: number; kind?: string } | null, zoneTfOf: (tf: string) => string = t => t): string {
+  const last = panels[panels.length - 1];
+  if (!last) return '';
+  const relTf = sig && zones.some(z => z.tf === sig.tf) ? sig.tf : zoneTfOf(last.tf);
+  return verdict({ price, digits, market, zones, relTf, trendTf: last.tf, trendLines: last.tls ?? [], trendBars: last.bars, sig });
+}
+
+/** Stocks: zones never below W1 (the D1 and intraday panels show the W1 zones). */
+const stockZoneTf = (t: string) => (t === 'D1' || t === 'H4' || t === 'H1' || t === 'M15' ? 'W1' : t);
+const withVerdict = (m: Omit<ChartModelX, 'verdict'>, zones: Zn[], market: 'fx' | 'stock', sig: Parameters<typeof chartVerdict>[5],
+  zoneTfOf?: (tf: string) => string): ChartModelX => ({ ...m, verdict: chartVerdict(m.panels, zones, m.price, m.digits, market, sig, zoneTfOf) });
 
 export async function chartData(q: string, view: string, ctx: Ctx): Promise<ChartData | null> {
   const { hit } = await resolve(q, ctx);
@@ -820,7 +868,7 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
     const digits0 = digitsOf(d.digits != null ? d : hit.row);
     // the 15m view (live only): its own zones on the 15m candles, the scanners' filters (zonecore.tfZonesOf)
     const m15 = view === 'M15' && lv?.fx?.closed.M15?.length ? tfZonesOf(lv.fx.closed.M15, 'M15', digits0, price) : [];
-    const zones = lv ? zoneList([...lv.zones, ...m15]) : zoneList([...arr(d.zones), ...arr(d.hits)]);
+    const zones = lv ? zoneList([...lv.zones, ...m15], true) : zoneList([...arr(d.zones), ...arr(d.hits)], true);
     const s = fxSetups(fx).find(x => x.sym === hit.sym);
     const near = arr(d.hits).filter(h => h.section !== 'left').sort((a, z) => (num(a.pips) ?? 1e9) - (num(z.pips) ?? 1e9))[0];
     const rel = s?.tf ?? near?.tf ?? null;
@@ -832,7 +880,7 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
     const t = parseUtc(fx.h1_close_utc ?? fx.generated);
     const when = chartWhen('fx', ctx.now, { px: price.toFixed(digits), live: !!lv, scanAt: t, crypto: hit.row.cls === 'crypto' || hit.row.k === 'crypto' });
     return { market: 'fx', sym: hit.sym, view, v: lv ? liveVersion(lv) : String(fx.generated ?? '').replace(/[^0-9]/g, '').slice(0, 14), when, live: !!lv, note: liveNote(hit, ctx, lv),
-      model: { sym: hit.sym, digits, price, layout, title: `${hit.sym} · ${when}`, panels: withForming2(buildPanels(tfs, bars, zones, price, digits, sig, layout, t => t, { forming, htf: FX_HTF, pub: lv ? undefined : obj(d.tls) }), forming) } };
+      model: withVerdict({ sym: hit.sym, digits, price, layout, title: `${hit.sym} · ${when}`, panels: withForming2(buildPanels(tfs, bars, zones, price, digits, sig, layout, t => t, { forming, htf: FX_HTF, pub: lv ? undefined : obj(d.tls) }), forming) }, zones, 'fx', sig) };
   }
   const [sh, st] = [obj(await ctx.load(`scanner/t/${hit.row.k}.json`)), obj(await ctx.load('scanner/latest.json'))];
   const d = obj(obj(sh.tickers)[hit.sym]);
@@ -843,14 +891,14 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
   if (lv?.st) {   // live: every session since 2016 + today's forming one; W1 / MN / 3M built from them; 1H from IEX
     const part = lv.st.partial ? { ...lv.st.partial, h: Math.max(lv.st.partial.h, price), l: Math.min(lv.st.partial.l, price), c: price } : null;
     const all = [...lv.st.daily, ...(part ? [part] : [])].map(zb);
-    bars = { D1: all, W1: aggregate(all, weekKey), MN: aggregate(all, monthKey), '3M': aggregate(all, quarterKey), H4: (lv.st.h4 ?? []).map(zb), H1: lv.st.h1.map(zb), M15: (lv.st.m15 ?? []).map(zb) };
+    bars = { D1: all, W1: dropPartialHead(aggregate(all, weekKey), all, weekKey), MN: dropPartialHead(aggregate(all, monthKey), all, monthKey), '3M': dropPartialHead(aggregate(all, quarterKey), all, quarterKey), H4: (lv.st.h4 ?? []).map(zb), H1: lv.st.h1.map(zb), M15: (lv.st.m15 ?? []).map(zb) };
     const lastDay = lv.st.daily[lv.st.daily.length - 1]?.d;
     forming = { D1: !!part, H4: true, H1: true, M15: true };
     for (const [t, key] of [['W1', weekKey], ['MN', monthKey], ['3M', quarterKey]] as const) forming[t] = !!part || periodOpen(bars[t], key, lastDay);
   } else {
     const daily = packedBars(pb), hb = obj(d.hb);
     // Real higher-TF bars (hb, only for listed / signalled / watched tickers) when published; else rebuilt from D1.
-    const higher = (tf: string, key: (t: string) => string) => withRecent(packedBars(hb[tf]), aggregate(daily, key), key);
+    const higher = (tf: string, key: (t: string) => string) => { const real = packedBars(hb[tf]); return withRecent(real, real.length ? aggregate(daily, key) : dropPartialHead(aggregate(daily, key), daily, key), key); };
     bars = { D1: daily, W1: higher('W1', weekKey), MN: higher('MN', monthKey), '3M': higher('3M', quarterKey) };
     const lastDay = daily[daily.length - 1]?.t;
     forming = { D1: false, W1: periodOpen(bars.W1, weekKey, lastDay), MN: periodOpen(bars.MN, monthKey, lastDay), '3M': periodOpen(bars['3M'], quarterKey, lastDay) };
@@ -863,9 +911,10 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
   const layout = isQuad(view) ? 'quad' : 'single';
   const lastDay = lv?.st ? (lv.st.partial?.d ?? lv.st.daily[lv.st.daily.length - 1]?.d) : d.date ? String(d.date) : undefined;
   const when = chartWhen('stock', ctx.now, { px: price.toFixed(2), live: !!lv, lastDay, sessionToday: lv?.st ? !!lv.st.partial || lastDay === isoDay(ctx.now, NY) : undefined });
+  const zones = zoneList(lv ? lv.zones : arr(d.zones), true);
   return { market: 'stock', sym: hit.sym, view, v: lv ? liveVersion(lv) : String(st.generated_at ?? '').replace(/[^0-9]/g, '').slice(0, 14), when, live: !!lv, note: liveNote(hit, ctx, lv),
-    model: { sym: hit.sym, digits: 2, price, layout, title: `${hit.sym} · ${when}`,
-      panels: withForming2(buildPanels(tfs, bars, zoneList(lv ? lv.zones : arr(d.zones)), price, 2, sig, layout, t => (t === 'D1' || t === 'H4' || t === 'H1' || t === 'M15' ? 'W1' : t), { forming, htf: STOCK_HTF, pub: lv ? undefined : obj(d.tls) }), forming) } };
+    model: withVerdict({ sym: hit.sym, digits: 2, price, layout, title: `${hit.sym} · ${when}`,
+      panels: withForming2(buildPanels(tfs, bars, zones, price, 2, sig, layout, stockZoneTf, { forming, htf: STOCK_HTF, pub: lv ? undefined : obj(d.tls) }), forming) }, zones, 'stock', sig, stockZoneTf) };
 }
 
 async function cmdChart(q: string, tfArg: string, ctx: Ctx, mode = ''): Promise<Reply> {

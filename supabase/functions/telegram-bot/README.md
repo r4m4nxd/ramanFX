@@ -142,6 +142,29 @@ the chart's candles (live: 250 closed bars, the scanners' 200-bar lookback); wit
 bars) the scanner's own published lines (`tls`) are used instead. Parity: the same fixtures +
 `src/core/telegramTrendParity.test.ts` (every line of every row identical).
 
+Chart-only additions (not the scanners' rule, never published, no signal reads them; tests
+`src/core/telegramChartNotes.test.ts`):
+- **Fallback line** (`fallbackLine`, `fallback: true` on the drawn line): when a row has no uncrossed house line one way
+  in view (e.g. BABA W1: the scanners' down line was removed by a spike, then price fell 190 -> 99, so the scanner
+  publishes `tls.W1 = []`), the most significant unbroken line: from a swing high (low) of the last 200 bars, the
+  tangent over every later high (low), house 'too flat' test, most touches then longest.
+- **No duplicates** (`sameLine`): two lines of one direction never further apart than max(0.5 ATR, 1.5% of the drawn
+  range) over their overlap are drawn once; the higher TF's line wins over an own-TF one.
+
+### Chart notes (`chartnotes.ts`, display only)
+
+- `zones[i].wide`: height > max(`WIDE_PCT[tf]` % of price, `WIDE_ATR[tf]` x the D1 ATR %) (W1 3% / 3x, MN 5% / 5x,
+  3M 8% / 7x ...). The engine caps a zone at 1.5 ATR of its own TF when it forms, so a 3M zone can be 28% of price;
+  `refine` = the nearest lower-TF same-side zone overlapping a wide one (where Kevin refines it).
+- `panel.nestNote`: the panel's key zone (nearest price) against the next higher TF's same-side zones: `nested in 3M
+  demand`, `overlaps ...`, `at ... (just outside)` (zones.py LOC_TOL 25%), `MN demand outside 3M demand (below)`,
+  `no 3M supply to nest in`; null when the panel shows another TF's zones or the higher TF has none.
+- `model.verdict` (<= 110 chars): price vs the nearest demand / supply of the signal's TF (else the lowest panel's zone
+  TF), the highest-TF zone price is inside, the lowest panel's trend (own house lines, else swing structure, else
+  fallback lines), `scanner: BUY W1 at 96.14` or `watch <zone>`, nesting, the other side; least important dropped first.
+- Same-TF same-side zones covering >= 50% of the smaller are drawn as one (fresher, then score, then fewer touches).
+- Higher-TF bars rebuilt from daily bars drop a partial first period; panels with < 12 candles say `short history`.
+
 ### Fundamentals (`fundamentals.ts`): `/fund SYM`, `/fundamentals SYM`, [📑 Fundamentals]
 
 Reads two nightly files of `tools/fundamentals/build.py` (`.github/workflows/fundamentals.yml`, weekdays 18:00 New
