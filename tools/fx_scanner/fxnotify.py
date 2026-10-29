@@ -57,7 +57,8 @@ def signal_card(s: Dict) -> str:
     c = SN.card(ICON.get(kind, '•'), s['sym'], kind, _px(s.get('entry'), s),
                 _px(s.get('target'), s) if s.get('target') else '', None, ' · '.join(b for b in bits if b))
     why = SN.reason_line(s, score=True)
-    return c + (f'\n<i>{esc(why)}</i>' if why else '') + (f"\n{esc(s['news'])}" if s.get('news') else '')
+    nw = SN.news_warning(s['sym'])
+    return c + (f'\n<i>{esc(why)}</i>' if why else '') + (f'\n{esc(nw)}' if nw else '')
 
 
 def gone_reason(reason: str) -> str:
@@ -96,7 +97,8 @@ def zone_line(z: Dict) -> str:
     else:
         out = f"{ICON['WATCH']} <b>{esc(z['sym'])}</b> entered {esc(where)}\nat {_px(z.get('prox'), z)}"
     why = zone_why(z)
-    return out + (f'\n<i>{esc(why)}</i>' if why else '') + (f"\n{esc(z['news'])}" if z.get('news') else '')
+    nw = SN.news_warning(z['sym'])
+    return out + (f'\n<i>{esc(why)}</i>' if why else '') + (f'\n{esc(nw)}' if nw else '')
 
 
 def zone_why(z: Dict) -> str:

@@ -660,6 +660,8 @@ def main(argv=None) -> int:
     eur = res['analyses'].get('EURUSD') or next(iter(res['analyses'].values()))
     d1 = eur.rows['D1'].S.T[1] if eur.rows['D1'].S.n > 1 else ''
     msgs = []
+    if notify and telegram_configured():
+        N.SN.NEWS = N.SN.load_news('fx')                 # '⚠️ US CPI in 20 min' on the cards of affected pairs
     if bootstrap:
         msgs.append(f"✅ <b>FX scanner started</b>: {len(uni)} instruments, {pub['counts']['BUY']} BUY / "
                     f"{pub['counts']['SELL']} SELL now. From here on only new events are sent, plus a daily summary.")

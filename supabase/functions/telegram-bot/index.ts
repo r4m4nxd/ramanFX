@@ -108,9 +108,24 @@ async function getJson(url: string): Promise<unknown> {
   const t = await r.text();
   try { return JSON.parse(t); } catch { return null; }
 }
+const TV_CAL = 'https://economic-calendar.tradingview.com/events';
+async function tvCalendar(): Promise<unknown> {
+  const d = new Date();
+  const day = (k: number) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + k)).toISOString();
+  const r = await fetch(`${TV_CAL}?from=${day(-1)}&to=${day(2)}&countries=US,EU,GB,JP,AU,NZ,CA,CH,CN`, {
+    headers: { Accept: 'application/json', Origin: 'https://www.tradingview.com', Referer: 'https://www.tradingview.com/', 'User-Agent': 'Mozilla/5.0 (compatible; RamanFX-bot/1.0)' },
+    signal: AbortSignal.timeout(8000) });
+  if (!r.ok) { await r.body?.cancel(); return null; }
+  try { return await r.json(); } catch { return null; }
+}
 function load(path: string): Promise<unknown> {
   const hit = cache.get(path);
   if (hit && Date.now() - hit.t < TTL) return hit.v;
+  if (path === 'news.json') {
+    const v = tvCalendar().catch(() => null);
+    cache.set(path, { t: Date.now(), v });
+    return v;
+  }
   const urls = path === 'events.json' ? [`${RAW}tools/reminders/events.json`] : [`${SITE}${path}`, `${RAW}public/${path}`];
   const v = (async () => {
     for (const u of urls) {

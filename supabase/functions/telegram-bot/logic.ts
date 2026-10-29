@@ -39,6 +39,7 @@ export const COMMANDS: { command: string; description: string; group: Group; usa
   { command: 'hours', description: 'Best times / days for a symbol', group: 'Symbol lookup', usage: '/hours XAUUSD', help: 'best Calgary times and weekdays' },
   { command: 'times', description: "Today's key Calgary times", group: 'Times', usage: '/times', help: "today's key Calgary times" },
   { command: 'next', description: 'Next NFP, CPI and Fed decision', group: 'Times', usage: '/next', help: 'next jobs report, CPI, Fed decision' },
+  { command: 'news', description: "Today's high-impact news", group: 'Times', usage: '/news', help: "today's high-impact news (all major currencies)" },
   { command: 'ask', description: 'Ask the lessons a question', group: 'Learn', usage: '/ask what is a proximal line', help: "the mentors' own words (or end any message with ?)" },
   { command: 'help', description: 'This list', group: 'Learn', usage: '/help', help: 'this list' },
 ];
@@ -650,6 +651,26 @@ export async function handleCallback(data: string, ctx: Ctx): Promise<Reply> {
   return { cmd: 'callback?', text: HINT };
 }
 
+// ---- /news (TradingView economic calendar, loaded as 'news.json' = yesterday .. +2 days) -------------------------
+async function cmdNews(ctx: Ctx): Promise<Reply> {
+  const js = obj(await ctx.load('news.json'));
+  if (!Array.isArray(js.result)) return { cmd: 'news', text: '⚠️ <b>Calendar unavailable</b>\nThe economic calendar did not load. Try again in a few minutes.' };
+  const today = isoDay(ctx.now);
+  const rows = arr(js.result).filter(r => Number(r?.importance) >= 1 && typeof r?.date === 'string')
+    .map(r => ({ t: new Date(String(r.date)), c: String(r.country ?? '').toUpperCase(), title: String(r.title ?? '').replace(/\s+/g, ' ').trim() }))
+    .filter(r => Number.isFinite(r.t.getTime()) && r.title && isoDay(r.t) === today)
+    .sort((a, b) => a.t.getTime() - b.t.getTime());
+  const lines = [`📰 <b>High-impact news · ${esc(day(ctx.now))}</b> (Calgary)`, ''];
+  for (const r of rows.slice(0, 25)) {
+    const past = r.t.getTime() < ctx.now.getTime() - 15 * 60000;
+    lines.push(`${past ? '<s>' : ''}${clock(r.t)} · <b>${esc(r.c)}</b> ${esc(r.title)}${past ? '</s>' : ''}`);
+  }
+  if (!rows.length) lines.push('No high-impact events today.');
+  if (rows.length > 25) lines.push(`+${rows.length - 25} more`);
+  lines.push('', `Big moves are likely around these times. Source: TradingView calendar · ${FOOT}`);
+  return { cmd: 'news', text: fit(lines) };
+}
+
 // ---- /ask (lesson passages, BM25) ----------------------------------------------------------------------------------
 let askIx: { src: unknown; ix: AskIndex | null } | null = null;
 function trimQuote(t: string, n: number): string {
@@ -701,6 +722,7 @@ export async function handle(text: string, ctx: Ctx): Promise<Reply> {
       case 'start': case 'help': return { cmd: c.cmd, text: helpText(), keyboard: true };
       case 'chart': return cmdChart(c.arg, c.arg2, ctx);
       case 'ask': return cmdAsk(c.rest, ctx);
+      case 'news': return cmdNews(ctx);
       case 'fx': return cmdFx(ctx);
       case 'stocks': return cmdStocks(ctx);
       case 'signals': return cmdSignals(ctx);

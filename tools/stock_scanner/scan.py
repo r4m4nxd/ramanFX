@@ -1501,6 +1501,8 @@ def main(argv=None) -> int:
         log(f'wrote {write_outputs(res, a.out)}')
         tp = phase('write', tp)
     try:                      # a Telegram problem never fails the run (the results are already written)
+        if not a.no_notify:
+            notify.NEWS = notify.load_news('stock')          # a US high-impact event within the hour: under the headline
         msgs = notify.build_messages(res, top=a.top)
         if a.no_notify:
             print('\n\n'.join(msgs))

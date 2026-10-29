@@ -197,6 +197,33 @@ def visible(m: str) -> str:
     return re.sub(r'<blockquote expandable>.*?</blockquote>', '', m, flags=re.S)
 
 
+# ---- news (tools/news/calendar.py): high-impact events near the alert ------------------------------------------------
+NEWS: List[Dict] = []          # set once per run by the scanner (load_news); empty in tests / previews
+
+
+def load_news(market: str = 'fx') -> List[Dict]:
+    """High-impact calendar events from 30 min ago to 70 min ahead (FX: every major currency; stocks: US). Never raises."""
+    try:
+        tools = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if tools not in sys.path:
+            sys.path.append(tools)
+        from news import calendar as NC
+        return NC.events(None, hours_ahead=70 / 60, hours_back=0.5, countries=NC.FX_COUNTRIES if market == 'fx' else ['US'])
+    except Exception:  # noqa: BLE001
+        return []
+
+
+def news_warning(symbol: str, market: str = 'fx') -> str:
+    """'⚠️ US CPI in 20 min' for the symbol (60 min ahead to 15 min after), '' when nothing (or no NEWS loaded)."""
+    if not NEWS:
+        return ''
+    try:
+        from news import calendar as NC
+        return NC.warning(symbol, NEWS, market=market)
+    except Exception:  # noqa: BLE001
+        return ''
+
+
 # ---- the 'why' line under every alert card (both scanners) -----------------------------------------------------------
 def trend_words(direction: str) -> str:
     """'LONG - FULL' -> 'trend up', 'SHORT - REDUCED' -> 'trend down, pulling back', 'WAIT ...' -> 'trend unclear'."""
@@ -241,7 +268,7 @@ def stock_card(s: Dict) -> str:
     c = card(ICON[kind], s['symbol'], kind, _f(s.get('entry')), _f(s.get('target')), s.get('rr'),
              f"stop {_f(s.get('stop'))} · {zone} · {extra}", tag)
     why = reason_line({**s, 'side': 'demand'})
-    return c + (f'\n<i>{esc(why)}</i>' if why else '') + (f"\n{esc(s['news'])}" if s.get('news') else '')
+    return c + (f'\n<i>{esc(why)}</i>' if why else '')
 
 
 EXIT_WORDS = {'stop': 'stop hit by the close', 'demand_broken': 'demand under the entry broke',
@@ -312,6 +339,9 @@ def build_messages(res: Dict, top: int = MAX_CARDS, cap: int = QUOTE_LINES) -> L
         head[1] += ' · sample data'
     if res.get('data_warning'):
         head.append('⚠️ ' + esc(res['data_warning']))
+    nw = news_warning('SPY', 'stock')                     # US events move every US stock: once, under the headline
+    if nw:
+        head.append(esc(nw))
     detail = [regime_line(res)]
     for a in (res.get('watch_alerts') or [])[:2]:
         detail.append('Watchlist: ' + esc(words(a['text'])))

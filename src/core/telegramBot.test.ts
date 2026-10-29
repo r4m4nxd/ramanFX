@@ -269,5 +269,21 @@ describe('telegram bot', () => {
     expect((await handle('/ask', ctx())).text).toContain('/ask what is a proximal line');
     expect((await handle('/ask zzqqxx', ctx())).text).toContain('Nothing in the lessons');
   });
+
+  it('/news: today\'s high-impact events in Calgary time; calm notice when the calendar is down', async () => {
+    const cal = { status: 'ok', result: [
+      { title: 'GDP Growth Rate QoQ', country: 'US', importance: 1, date: '2026-10-29T12:30:00.000Z' },
+      { title: 'ECB Interest Rate Decision', country: 'EU', importance: 1, date: '2026-10-29T13:15:00.000Z' },
+      { title: 'Retail Sales', country: 'AU', importance: 0, date: '2026-10-29T00:30:00.000Z' },
+      { title: 'Tomorrow thing', country: 'US', importance: 1, date: '2026-10-30T12:30:00.000Z' },
+    ] };
+    const r = await handle('/news', ctx('2026-10-29T13:00:00Z', { 'news.json': cal }));
+    expect(r.text).toContain('Thu Oct 29');
+    expect(r.text).toContain('<s>6:30 AM · <b>US</b> GDP Growth Rate QoQ</s>');   // passed
+    expect(r.text).toContain('7:15 AM · <b>EU</b> ECB Interest Rate Decision');
+    expect(r.text).not.toContain('Retail Sales');
+    expect(r.text).not.toContain('Tomorrow');
+    expect((await handle('/news', ctx(undefined, { 'news.json': null }))).text).toContain('Calendar unavailable');
+  });
 });
 

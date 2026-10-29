@@ -1,6 +1,7 @@
 """data / universe / fundamentals / notify: offline unit tests with small fixtures."""
 import json
 import os
+import sys
 import unittest
 
 import helpers  # noqa: F401
@@ -322,6 +323,25 @@ class NotifyTest(unittest.TestCase):
             for k, v in old.items():
                 if v is not None:
                     os.environ[k] = v
+
+
+class NewsWarningTest(unittest.TestCase):
+    def test_card_and_headline_warning(self):
+        import datetime as _dt
+        soon = (_dt.datetime.now(_dt.timezone.utc) + _dt.timedelta(minutes=20)).strftime('%Y-%m-%dT%H:%M:%SZ')
+        tools = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        if tools not in sys.path:
+            sys.path.append(tools)
+        old = notify.NEWS
+        try:
+            notify.NEWS = [{'time_utc': soon, 'country': 'US', 'title': 'CPI (YoY)', 'importance': 'high', 'currency': 'USD'}]
+            self.assertRegex(notify.news_warning('NVDA', 'stock'), r'^⚠️ US CPI in (19|20|21) min$')
+            self.assertEqual(notify.news_warning('EURGBP', 'fx'), '')
+            res = {'signals': [], 'date': '2026-10-28', 'generated_at': '2026-10-29T01:56:48Z'}
+            self.assertIn('⚠️ US CPI in', notify.build_messages(res)[0])
+        finally:
+            notify.NEWS = old
+        self.assertEqual(notify.news_warning('NVDA', 'stock'), '')
 
 
 class ReasonLineTest(unittest.TestCase):
