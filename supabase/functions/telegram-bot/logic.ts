@@ -649,7 +649,7 @@ export function parseTf(s: string): string | null {
 /** [📊 4 timeframes] + one button per timeframe (single large view). */
 /** The single-TF views of a market (FX + 15m with live OANDA data; stocks + 1H and 15m with live Alpaca data). */
 const viewTfs = (market: 'fx' | 'stock', ctx?: Ctx) => (market === 'fx' ? (ctx?.live?.fx ? [...FX_TFS, 'M15'] : FX_TFS)
-  : ctx?.live?.stock ? [...STOCK_TFS, 'H1', 'M15'] : STOCK_TFS);
+  : ctx?.live?.stock ? [...STOCK_TFS, 'H4', 'H1', 'M15'] : STOCK_TFS);
 export function chartButtons(sym: string, market: 'fx' | 'stock', ctx?: Ctx): Button[][] {
   const tfs = viewTfs(market, ctx);
   return [[{ text: `📊 Chart ${sym} (4 timeframes)`, callback_data: `c:${sym}` }], tfs.map(t => ({ text: tfLabel(t), callback_data: `c:${sym}:${t}` }))];
@@ -702,7 +702,7 @@ export interface TlSrc { forming: Record<string, boolean>; htf: Record<string, s
 const pubLines = (v: unknown): PubLine[] | undefined => (Array.isArray(v) ? (v as J[]).filter(t => num(t?.p) != null && num(t?.s) != null && num(t?.n) != null && typeof t?.t === 'string')
   .map(t => ({ dir: t.dir > 0 ? 1 : -1, p: t.p, s: t.s, n: t.n, t: t.t, touches: num(t.touches) ?? 0, x: !!t.x })) : undefined);
 const FX_HTF: Record<string, string | null> = { M15: 'H1', H1: 'H4', H4: 'D1', D1: 'W1', W1: 'MN', MN: '3M' };
-const STOCK_HTF: Record<string, string | null> = { M15: 'H1', H1: 'D1', D1: 'W1', W1: 'MN', MN: '3M', '3M': null };
+const STOCK_HTF: Record<string, string | null> = { M15: 'H1', H1: 'H4', H4: 'D1', D1: 'W1', W1: 'MN', MN: '3M', '3M': null };
 /** A stock bar built from daily bars is still forming unless its period ended with the newest daily bar. */
 const periodOpen = (bars: Bar[], key: (t: string) => string, lastDay: string | undefined) =>
   !!bars.length && !!lastDay && key(bars[bars.length - 1].t) === key(lastDay) && key(nextBusinessDay(lastDay)) === key(lastDay);
@@ -793,9 +793,9 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
   if (lv?.st) {   // live: every session since 2016 + today's forming one; W1 / MN / 3M built from them; 1H from IEX
     const part = lv.st.partial ? { ...lv.st.partial, h: Math.max(lv.st.partial.h, price), l: Math.min(lv.st.partial.l, price), c: price } : null;
     const all = [...lv.st.daily, ...(part ? [part] : [])].map(zb);
-    bars = { D1: all, W1: aggregate(all, weekKey), MN: aggregate(all, monthKey), '3M': aggregate(all, quarterKey), H1: lv.st.h1.map(zb), M15: (lv.st.m15 ?? []).map(zb) };
+    bars = { D1: all, W1: aggregate(all, weekKey), MN: aggregate(all, monthKey), '3M': aggregate(all, quarterKey), H4: (lv.st.h4 ?? []).map(zb), H1: lv.st.h1.map(zb), M15: (lv.st.m15 ?? []).map(zb) };
     const lastDay = lv.st.daily[lv.st.daily.length - 1]?.d;
-    forming = { D1: !!part, H1: true, M15: true };
+    forming = { D1: !!part, H4: true, H1: true, M15: true };
     for (const [t, key] of [['W1', weekKey], ['MN', monthKey], ['3M', quarterKey]] as const) forming[t] = !!part || periodOpen(bars[t], key, lastDay);
   } else {
     const daily = packedBars(pb), hb = obj(d.hb);
@@ -806,20 +806,20 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
     forming = { D1: false, W1: periodOpen(bars.W1, weekKey, lastDay), MN: periodOpen(bars.MN, monthKey, lastDay), '3M': periodOpen(bars['3M'], quarterKey, lastDay) };
   }
   const tfs = view === 'Q' ? STOCK_TFS : [view];
-  if (!tfs.every(t => viewTfs('stock', ctx).includes(t)) || ((view === 'H1' || view === 'M15') && !bars[view]?.length)) return null;
+  if (!tfs.every(t => viewTfs('stock', ctx).includes(t)) || ((view === 'H4' || view === 'H1' || view === 'M15') && !bars[view]?.length)) return null;
   const s = stockSetups(st).find(x => x.symbol === hit.sym);
   const sig = s ? { tf: s.tf, entry: num(s.entry) ?? undefined, stop: num(s.stop) ?? undefined, target: num(s.target) ?? undefined, kind: s.kind } : null;
   const layout = view === 'Q' ? 'quad' : 'single';
   const when = lv ? liveAt(lv) : d.date ? `${dayOfIso(String(d.date))} close` : '';
   return { market: 'stock', sym: hit.sym, view, v: lv ? liveVersion(lv) : String(st.generated_at ?? '').replace(/[^0-9]/g, '').slice(0, 14), when, live: !!lv, note: liveNote(hit, ctx, lv),
     model: { sym: hit.sym, digits: 2, price, layout, title: `${hit.sym} · ${price.toFixed(2)}${when ? ` · ${when}` : ''}`,
-      panels: buildPanels(tfs, bars, zoneList(lv ? lv.zones : arr(d.zones)), price, 2, sig, layout, t => (t === 'D1' || t === 'H1' || t === 'M15' ? 'W1' : t), { forming, htf: STOCK_HTF, pub: lv ? undefined : obj(d.tls) }) } };
+      panels: buildPanels(tfs, bars, zoneList(lv ? lv.zones : arr(d.zones)), price, 2, sig, layout, t => (t === 'D1' || t === 'H4' || t === 'H1' || t === 'M15' ? 'W1' : t), { forming, htf: STOCK_HTF, pub: lv ? undefined : obj(d.tls) }) } };
 }
 
 async function cmdChart(q: string, tfArg: string, ctx: Ctx): Promise<Reply> {
   if (!q) return { cmd: 'chart', text: 'Send a symbol after it, e.g. <b>/chart EURUSD</b> (4 timeframes) or <b>/chart EURUSD H4</b>.' };
   const view = tfArg ? parseTf(tfArg) : 'Q';
-  if (!view) return { cmd: 'chart', text: `Unknown timeframe <b>${esc(tfArg)}</b>. Use MN, W1, D1, 4H, 1H${ctx.live?.fx ? ' or 15m' : ''} (stocks: 3M, MN, W1, D1${ctx.live?.stock ? ', 1H, 15m' : ''}).` };
+  if (!view) return { cmd: 'chart', text: `Unknown timeframe <b>${esc(tfArg)}</b>. Use MN, W1, D1, 4H, 1H${ctx.live?.fx ? ' or 15m' : ''} (stocks: 3M, MN, W1, D1${ctx.live?.stock ? ', 4H, 1H, 15m' : ''}).` };
   const { hit, suggest } = await resolve(q, ctx);
   if (!hit) return { cmd: 'chart', text: notFound(q, suggest).replace(/\/zones /g, '/chart ') };
   if (!ctx.imageUrl) return { cmd: 'chart', text: 'Charts are not available right now.' };

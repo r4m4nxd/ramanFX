@@ -14,7 +14,7 @@ const COUNT: Record<string, number> = { M15: 300, H1: 400, H4: 400, D1: 400, W1:
 export const TTL_MS = 30_000;
 
 export interface LiveFx { closed: Record<string, ZBar[]>; forming: Record<string, ZBar | null>; price: number; at: number; feed: string }
-export interface LiveStock { daily: ZBar[]; partial: ZBar | null; h1: ZBar[]; m15?: ZBar[]; price: number; at: number; feed: string }
+export interface LiveStock { daily: ZBar[]; partial: ZBar | null; h1: ZBar[]; m15?: ZBar[]; h4?: ZBar[]; price: number; at: number; feed: string }
 export interface LiveSource {
   /** FX / metals / CFDs by OANDA name (EUR_USD); undefined = no OANDA_API_TOKEN. */
   fx?: (oanda: string) => Promise<LiveFx | null>;
@@ -71,6 +71,20 @@ export function parseAlpaca(js: J, sym: string, hourly = false): ZBar[] {
     const d = hourly && Number.isFinite(t) ? iso16(t + nyOffset(t) * 3600000) : String(r?.t ?? '').slice(0, 10);
     return { d, o: +r.o, h: +r.h, l: +r.l, c: +r.c };
   }).filter((b: ZBar) => b.d && [b.o, b.h, b.l, b.c].every(Number.isFinite) && b.c > 0);
+}
+/** Stock 4H candles from New York-labelled 30-minute bars: regular session only, two per day like TradingView
+ *  (09:30-13:30 and 13:30-16:00 New York), labelled with their start. */
+export function sessionH4(m30: ZBar[]): ZBar[] {
+  const out: ZBar[] = [];
+  for (const b of m30) {
+    const hm = b.d.slice(11, 16);
+    if (hm < '09:30' || hm >= '16:00') continue;
+    const d = `${b.d.slice(0, 10)}T${hm < '13:30' ? '09:30' : '13:30'}`;
+    const cur = out[out.length - 1];
+    if (cur && cur.d === d) { cur.h = Math.max(cur.h, b.h); cur.l = Math.min(cur.l, b.l); cur.c = b.c; }
+    else out.push({ d, o: b.o, h: b.h, l: b.l, c: b.c });
+  }
+  return out;
 }
 /** scan.drop_partial: today's daily bar (New York) is not a closed candle until 16:20 New York. */
 export function splitPartial(daily: ZBar[], nowMs: number): { closed: ZBar[]; partial: ZBar | null } {
@@ -135,11 +149,12 @@ export function alpacaSource(keyId: string, secret: string, o: Opts = {}): (sym:
     const s = encodeURIComponent(sym), t = now();
     const daily = async (feed: string) => getJson(f, `${base}/bars?symbols=${s}&timeframe=1Day&start=2006-01-01T00:00:00Z`
       + `&end=${new Date(t - 16 * 60000).toISOString()}&adjustment=split&feed=${feed}&limit=10000&sort=asc`, auth);
-    const [d0, h, tr, q] = await Promise.all([
+    const [d0, h, tr, q, h30] = await Promise.all([
       daily(dailyFeed),
       getJson(f, `${base}/bars?symbols=${s}&timeframe=1Hour&start=${new Date(t - 14 * 86400000).toISOString()}&adjustment=split&feed=iex&limit=1000&sort=asc`, auth),
       getJson(f, `${base}/trades/latest?symbols=${s}&feed=iex`, auth),
       getJson(f, `${base}/bars?symbols=${s}&timeframe=15Min&start=${new Date(t - 10 * 86400000).toISOString()}&adjustment=split&feed=iex&limit=2000&sort=asc`, auth),
+      getJson(f, `${base}/bars?symbols=${s}&timeframe=30Min&start=${new Date(t - 120 * 86400000).toISOString()}&adjustment=split&feed=iex&limit=10000&sort=asc`, auth),
     ]);
     let d = d0;
     if (!d.js && d.status === 403 && dailyFeed === 'sip') { dailyFeed = 'iex'; d = await daily('iex'); }
@@ -151,6 +166,7 @@ export function alpacaSource(keyId: string, secret: string, o: Opts = {}): (sym:
     const last = Number(tr.js?.trades?.[sym]?.p);
     const price = last > 0 ? last : (h1[h1.length - 1]?.c ?? bars[bars.length - 1].c);
     const m15 = q.js ? parseAlpaca(q.js, sym, true) : [];
-    return { daily: closed, partial, h1, m15, price, at: t, feed: `Alpaca · ${dailyFeed === 'sip' ? 'SIP daily' : 'IEX daily'} · IEX real-time` };
+    const h4 = h30?.js ? sessionH4(parseAlpaca(h30.js, sym, true)) : [];
+    return { daily: closed, partial, h1, m15, h4, price, at: t, feed: `Alpaca · ${dailyFeed === 'sip' ? 'SIP daily' : 'IEX daily'} · IEX real-time` };
   });
 }

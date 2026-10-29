@@ -179,3 +179,13 @@ describe('bot with live data', () => {
     expect(JSON.stringify((await handle('/zones EURUSD', ctx())).buttons)).not.toContain('s:EURUSD');
   });
 });
+
+describe('stock 4H from 30-minute bars', () => {
+  it('two regular-session candles a day, extended hours dropped', async () => {
+    const { sessionH4 } = await import('../../supabase/functions/telegram-bot/live.ts');
+    const b = (d: string, o: number, h: number, l: number, c: number) => ({ d, o, h, l, c });
+    const out = sessionH4([b('2026-10-28T08:00', 1, 9, 0, 1), b('2026-10-28T09:30', 10, 12, 9, 11), b('2026-10-28T13:00', 11, 15, 10, 14),
+      b('2026-10-28T13:30', 14, 14, 12, 13), b('2026-10-28T15:30', 13, 16, 13, 15), b('2026-10-28T16:00', 15, 20, 15, 19), b('2026-10-29T09:30', 15, 15, 14, 14)]);
+    expect(out).toEqual([b('2026-10-28T09:30', 10, 15, 9, 14), b('2026-10-28T13:30', 14, 16, 12, 15), b('2026-10-29T09:30', 15, 15, 14, 14)]);
+  });
+});
