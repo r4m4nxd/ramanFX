@@ -1086,7 +1086,10 @@ def main(argv=None) -> int:
                 log(f'  oanda {n}: FAILED {errors[n]}')
         if SD.alpaca_keys():
             try:
-                stb = fetch_alpaca(ETF + STOCKS, start, end)
+                # Alpaca's free SIP access excludes the latest 15 minutes: a request reaching into them is refused (403)
+                # and data.py would fall back to IEX-only volume. Stop the request 30 minutes before now.
+                st_end = min(end, dt.datetime.now(UTC) - dt.timedelta(minutes=30))
+                stb = fetch_alpaca(ETF + STOCKS, start, st_end)
                 for s in ETF + STOCKS:
                     log(f'  alpaca {s}: {len(stb.get(s, []))} 15Min bars')
             except (urllib.error.HTTPError, urllib.error.URLError, SD.HostDown, SD.BudgetExceeded, SD.BadBody,
