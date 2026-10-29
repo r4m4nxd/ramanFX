@@ -217,7 +217,8 @@ Pepperstone's crypto CFD prices (exchange-fed); BNB is quoted in USDT (≈ USD).
 
 **Yahoo** (`sources/yahoo.py`, the stock scanner's client: same UA, pacing, budget and circuit breaker):
 `v8/finance/chart/<sym>?interval=1h&range=720d` and `interval=1d&range=max` (updates `5d` / `1mo`; query2 when query1
-refuses). VIX → `^VIX` (the SPOT index; Pepperstone VIX follows the VIX futures), CA60 → `^TX60` (else the XIU.TO
+refuses; Yahoo's A3 consent cookie from fc.yahoo.com + the `getcrumb` crumb are fetched once per run, since a bare request
+from a GitHub runner gets 429 — first live run 2026-10-29: all 9 answered 429 without them). VIX → `^VIX` (the SPOT index; Pepperstone VIX follows the VIX futures), CA60 → `^TX60` (else the XIU.TO
 ETF, another scale), SCI25 (Pepperstone's Singapore 25 index) → closest `^STI` (Straits Times, 30 stocks), GASOLINE →
 `RB=F`, COCOA → `CC=F`, COFFEE → `KC=F`, COTTON → `CT=F`, CATTLE → `LE=F` (front-month continuous futures), LDSUGAR →
 **proxy** `SB=F` (NY raw sugar #11, cents/lb: London white sugar #5 is not on Yahoo). Labelled **unofficial feed** in

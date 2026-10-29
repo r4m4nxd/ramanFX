@@ -275,10 +275,22 @@ class Fallbacks(TmpCache):
         self.assertTrue(any('Yahoo' in m for m in logs))
         # the scanner records the instrument as an error, the scan goes on
         uni = [{'name': 'VIX', 'sym': 'VIX', 'cls': 'cfd', 'source': 'yahoo', 'type': 'CFD'}]
-        with mock.patch.object(SRC.yahoo, 'get_json', blocked):
+        with mock.patch.object(SRC.yahoo, 'yget', blocked):
             res = X.run(uni, X.make_getter(log=logs.append), workers=1, log=None)
         self.assertIn('VIX', res['errors'])
         self.assertEqual(res['analyses'], {})
+
+    def test_yahoo_session_crumb(self):
+        calls = []
+        with mock.patch.dict(SRC.yahoo._SESSION, {'done': True, 'cookie': 'A3=x', 'crumb': 'c/1'}, clear=True), \
+                mock.patch.object(SRC.yahoo, 'get_json', lambda u, headers=None: calls.append((u, headers)) or {}):
+            SRC.yahoo.yget('https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?interval=1d')
+        self.assertTrue(calls[0][0].endswith('&crumb=c%2F1'))
+        self.assertEqual(calls[0][1], {'Cookie': 'A3=x'})
+        with mock.patch.dict(SRC.yahoo._SESSION, {'done': True}, clear=True), \
+                mock.patch.object(SRC.yahoo, 'get_json', lambda u, headers=None: calls.append((u, headers)) or {}):
+            SRC.yahoo.yget('https://x/y?a=1')
+        self.assertEqual(calls[-1], ('https://x/y?a=1', None))
 
     def test_yahoo_second_candidate(self):
         def get(url):

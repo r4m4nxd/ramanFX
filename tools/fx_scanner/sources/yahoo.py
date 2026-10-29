@@ -13,15 +13,57 @@ remembered; a different symbol later re-fetches cold (no splice of two series).
 from __future__ import annotations
 
 import datetime as dt
+import threading
 import time
+import urllib.error
 import urllib.parse
+import urllib.request
 from typing import Callable, List, Optional
 
 from . import bars as B
-from .net import get_json
+from .net import SD, get_json
 
 Getter = Callable[[str], object]
 HOSTS = ('query1.finance.yahoo.com', 'query2.finance.yahoo.com')
+
+
+_SESSION: dict = {}
+_LOCK = threading.Lock()
+
+
+def session() -> dict:
+    """Yahoo's consent cookie + crumb, once per run (GitHub runners get 429 on a bare request: the stock scanner's
+    README). fc.yahoo.com answers 404 with the A3 cookie; /v1/test/getcrumb then gives the crumb. Any failure: {} and
+    the plain request is tried (it may still work from other networks)."""
+    with _LOCK:
+        if 'done' in _SESSION:
+            return _SESSION
+        _SESSION['done'] = True
+        try:
+            jar = []
+            try:
+                urllib.request.urlopen(urllib.request.Request('https://fc.yahoo.com/', headers={'User-Agent': SD.UA}), timeout=10)
+            except urllib.error.HTTPError as e:
+                jar = e.headers.get_all('Set-Cookie') or []
+            cookie = '; '.join(c.split(';', 1)[0] for c in jar if c)
+            if cookie:
+                req = urllib.request.Request('https://query1.finance.yahoo.com/v1/test/getcrumb',
+                                             headers={'User-Agent': SD.UA, 'Cookie': cookie})
+                with urllib.request.urlopen(req, timeout=10) as r:
+                    crumb = r.read().decode('utf-8', 'replace').strip()
+                if crumb and len(crumb) < 64 and '<' not in crumb:
+                    _SESSION.update(cookie=cookie, crumb=crumb)
+        except Exception:  # noqa: BLE001
+            pass
+        return _SESSION
+
+
+def yget(u: str):
+    """The default getter: the chart request with Yahoo's cookie + crumb when the session bootstrap worked."""
+    s = session()
+    if s.get('crumb'):
+        return get_json(u + '&crumb=' + urllib.parse.quote(s['crumb'], safe=''), headers={'Cookie': s['cookie']})
+    return get_json(u)
 
 
 def url(sym: str, tf: str, cold: bool, host: str = HOSTS[0]) -> str:
@@ -79,7 +121,7 @@ def _fetch(sym: str, tf: str, cold: bool, get: Getter, now: float) -> List[list]
 def update(spec: dict, get: Optional[Getter] = None, now: Optional[float] = None, log=None) -> dict:
     """Cached raw rows of one instrument topped up from Yahoo (spec['yahoo'] = candidate symbols). Raises when Yahoo
     gives nothing and nothing is cached (the scanner then logs it and skips the instrument: never a failed scan)."""
-    get = get or get_json
+    get = get or yget
     now = now or time.time()
     name = spec['name']
     rec = B.load(name)

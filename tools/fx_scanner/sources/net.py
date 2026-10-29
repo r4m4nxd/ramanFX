@@ -21,5 +21,5 @@ for _h, _s in PAUSE.items():
     SD.HOST_PAUSE.setdefault(_h, _s)
 
 
-def get_json(url: str):
-    return json.loads(SD.http_get(url, accept='application/json', expect=SD.looks_json, max_retry_after=10))
+def get_json(url: str, headers=None):
+    return json.loads(SD.http_get(url, accept='application/json', expect=SD.looks_json, max_retry_after=10, headers=headers))
