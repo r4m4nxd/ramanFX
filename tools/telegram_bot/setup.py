@@ -6,10 +6,13 @@
 
 1. ping the function with S + o (the first ping inside the SQL-opened window claims the row; see index.ts)
 2. a synthetic '/help' from the owner's chat: checks auth + owner + command end to end, and gives the list text
-3. setWebhook (secret_token=S, allowed_updates=['message'], drop_pending_updates) + setMyCommands (commands.json)
+3. setWebhook (secret_token=S, allowed_updates=['message', 'callback_query'], drop_pending_updates) + setMyCommands (commands.json)
 4. getWebhookInfo (pending count, last error)
 5. the command list as one message, pinned (silently); the previous pinned list (id kept in the function's table)
-   is unpinned, so re-runs replace the pin. On a push run the list is only re-sent when its text changed.
+   is unpinned, so re-runs replace the pin. On a push run the list is only re-sent when its text changed. The list
+   message carries the persistent quick-reply keyboard ([FX] [Stocks] [Near] / [Signals] [Times] [Next]).
+6. SAMPLE_CHART=true: one album with the 4-timeframe chart of EURUSD and of the top stock signal (the function's
+   /chart replies; the PNG route is fetched once first to check it renders).
 Logs only ok / false, HTTP codes and counts: never the token, chat id, secret, o or the webhook URL.
 """
 from __future__ import annotations
@@ -23,6 +26,7 @@ import time
 import urllib.error
 import urllib.request
 
+PNG_MAGIC = b'\x89PNG'
 FN = 'https://dqjzufofmblerslcynzr.supabase.co/functions/v1/telegram-bot'
 HERE = os.path.dirname(os.path.abspath(__file__))
 COMMANDS = os.path.join(HERE, '..', '..', 'supabase', 'functions', 'telegram-bot', 'commands.json')
@@ -86,7 +90,7 @@ def main() -> int:
     # 3. webhook + menu
     with open(COMMANDS) as f:
         commands = json.load(f)
-    _, r = tg('setWebhook', {'url': fn, 'secret_token': secret, 'allowed_updates': ['message'], 'drop_pending_updates': True, 'max_connections': 5})
+    _, r = tg('setWebhook', {'url': fn, 'secret_token': secret, 'allowed_updates': ['message', 'callback_query'], 'drop_pending_updates': True, 'max_connections': 5})
     ok_hook = bool((r or {}).get('ok'))
     print(f'setWebhook ok={ok_hook}')
     _, r = tg('setMyCommands', {'commands': commands})
@@ -103,7 +107,9 @@ def main() -> int:
     # 5. pinned command list
     text = rep['text']
     h = hashlib.sha256(text.encode()).hexdigest()
-    if event == 'push' and (st or {}).get('hash') == h and (st or {}).get('pinned'):
+    if os.environ.get('RESEND_LIST', 'true') != 'true':
+        print('command list: not re-sent (input)')
+    elif event == 'push' and (st or {}).get('hash') == h and (st or {}).get('pinned'):
         print('command list unchanged: not re-sent')
     else:
         msg = {'chat_id': chat, 'text': text, 'parse_mode': 'HTML', 'disable_web_page_preview': True, 'disable_notification': False}
@@ -121,7 +127,49 @@ def main() -> int:
             if prev and prev != mid:
                 _, r = tg('unpinChatMessage', {'chat_id': chat, 'message_id': prev})
                 print(f"unpin previous list ok={bool((r or {}).get('ok'))}")
-    return 0 if (ok_hook and ok_cmds) else 1
+    ok_chart = True
+    if os.environ.get('SAMPLE_CHART') == 'true':
+        ok_chart = sample_charts(fn, hdr, upd, chat, tg)
+    return 0 if (ok_hook and ok_cmds and ok_chart) else 1
+
+
+def top_stock() -> str:
+    try:
+        with open(os.path.join(HERE, '..', '..', 'public', 'scanner', 'latest.json')) as f:
+            sig = json.load(f).get('signals') or []
+    except (OSError, ValueError):
+        return 'NVDA'
+    sig = sorted(sig, key=lambda s: (s.get('kind') != 'BUY', -(s.get('score') or 0), -(s.get('rr') or 0)))
+    return sig[0]['symbol'] if sig else 'NVDA'
+
+
+def sample_charts(fn: str, hdr: dict, upd: dict, chat: str, tg) -> bool:
+    media = []
+    for sym in ('EURUSD', top_stock()):
+        code, rep = post(fn, {**upd, 'message': {**upd['message'], 'text': f'/chart {sym}'}}, hdr)
+        photo = (rep or {}).get('photo') if isinstance(rep, dict) else None
+        print(f"function /chart ({'FX' if sym == 'EURUSD' else 'top stock'}): HTTP {code} photo={bool(photo)}")
+        if not photo:
+            continue
+        try:
+            t0 = time.time()
+            with urllib.request.urlopen(photo, timeout=60) as r:
+                body = r.read()
+                is_png = body[:4] == PNG_MAGIC
+                print(f"chart PNG: HTTP {r.status} {r.headers.get('Content-Type')} {len(body)} bytes {time.time() - t0:.1f}s png={is_png}")
+        except Exception as e:  # noqa: BLE001
+            print(f'chart PNG fetch failed: {type(e).__name__} {getattr(e, "code", "")}')
+            continue
+        media.append({'type': 'photo', 'media': photo, 'caption': rep.get('caption') or '', 'parse_mode': 'HTML'})
+    if not media:
+        return False
+    if len(media) == 1:
+        _, r = tg('sendPhoto', {'chat_id': chat, 'photo': media[0]['media'], 'caption': media[0]['caption'], 'parse_mode': 'HTML'})
+    else:
+        _, r = tg('sendMediaGroup', {'chat_id': chat, 'media': media})
+    ok = bool((r or {}).get('ok'))
+    print(f'sample chart album sent ok={ok} ({len(media)} images)' + ('' if ok else f" desc={(r or {}).get('description', '')[:80]}"))
+    return ok
 
 
 if __name__ == '__main__':

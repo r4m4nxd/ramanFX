@@ -12,6 +12,14 @@ on:
         description: 'Secret label (change only to rotate, after opening the rotation window)'
         required: false
         default: 'v1'
+      sample_chart:
+        description: 'Send one sample chart album (EURUSD + the top stock signal)'
+        type: boolean
+        default: false
+      resend_list:
+        description: 'Re-send and pin the command list (with the quick-reply keyboard)'
+        type: boolean
+        default: true
   push:
     branches: [main]
     paths:
@@ -42,3 +50,5 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           LABEL: ${{ github.event.inputs.label || vars.TELEGRAM_WEBHOOK_LABEL || 'v1' }}
           EVENT: ${{ github.event_name }}
+          SAMPLE_CHART: ${{ github.event.inputs.sample_chart || 'false' }}
+          RESEND_LIST: ${{ github.event.inputs.resend_list || 'true' }}

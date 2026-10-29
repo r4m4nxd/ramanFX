@@ -237,9 +237,11 @@ class NotifyTest(unittest.TestCase):
         self.assertLess(notify.u16(m), 4096)
         for tok in notify.JARGON:
             self.assertNotIn(tok, vis)
-        self.assertEqual(len(m.buttons), 2)
+        self.assertEqual(len(m.buttons), 4)
         self.assertEqual([b['text'] for b in m.buttons[0]], ['📈 T9', '📈 T19', '📈 T29'])
-        self.assertEqual(m.buttons[1][0]['url'], notify.FULL_LIST)
+        self.assertEqual([b['callback_data'] for b in m.buttons[1]], ['z:T9', 'z:T19', 'z:T29'])   # bot: zones
+        self.assertEqual([b['callback_data'] for b in m.buttons[2]], ['c:T9', 'c:T19', 'c:T29'])   # bot: 4-TF chart
+        self.assertEqual(m.buttons[3][0]['url'], notify.FULL_LIST)
 
     def test_escaped_and_quote_capped(self):
         rows = [{'s': f'S{i}', 'pct': 1.0} for i in range(9)]

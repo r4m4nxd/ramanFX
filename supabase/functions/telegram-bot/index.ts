@@ -12,12 +12,27 @@
 //   then run the workflow with a new label: its ping (same o, new S) replaces the hash and closes the window.
 // Data: the public scanner files (raman-fx.vercel.app, raw GitHub as fallback), cached 60 s per instance.
 // Optional secret GITHUB_DISPATCH_TOKEN (fine-grained, Actions: write on r4m4nxd/ramanFX) turns /scan on.
+// Optional secret TELEGRAM_BOT_TOKEN: only used to answerCallbackQuery (stops the button spinner at once); everything
+// else still goes back in the webhook response, so buttons work without it.
+// Inline buttons (callback_query) are checked like messages: sha256(from.id) must equal o.
+// Charts: GET ?img=SYM&tf=Q|MN|W1|D1|H4|H1|3M&v=<scan time> renders a PNG from the PUBLIC scanner files only (no
+// secret needed: Telegram fetches it for sendPhoto); SVG (chart.ts) -> resvg-wasm with an Inter subset font; cached
+// per symbol / view / scan version, at most 30 renders a minute per instance.
 // Logs: the command name and timing only, never message text, chat ids or secrets.
-import { handle } from './logic.ts';
+import { initWasm, Resvg } from 'npm:@resvg/resvg-wasm@2.6.2';
+import { renderSvg } from './chart.ts';
+import { chartData, handle, handleCallback, MAIN_KEYBOARD, type Reply } from './logic.ts';
 
 const SB_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SB_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const GH_TOKEN = Deno.env.get('GITHUB_DISPATCH_TOKEN') ?? '';
+const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') ?? '';
+const FN_URL = 'https://dqjzufofmblerslcynzr.supabase.co/functions/v1/telegram-bot';
+const WASM = 'https://cdn.jsdelivr.net/npm/@resvg/resvg-wasm@2.6.2/index_bg.wasm';
+const FONTS = [
+  [`${'https://raw.githubusercontent.com/r4m4nxd/ramanFX/main/'}tools/telegram_bot/fonts/Inter-400Regular-subset.ttf`, 'https://cdn.jsdelivr.net/npm/@expo-google-fonts/inter@0.4.2/400Regular/Inter_400Regular.ttf'],
+  [`${'https://raw.githubusercontent.com/r4m4nxd/ramanFX/main/'}tools/telegram_bot/fonts/Inter-600SemiBold-subset.ttf`, 'https://cdn.jsdelivr.net/npm/@expo-google-fonts/inter@0.4.2/600SemiBold/Inter_600SemiBold.ttf'],
+];
 const REPO = 'r4m4nxd/ramanFX';
 const SITE = 'https://raman-fx.vercel.app/';
 const RAW = 'https://raw.githubusercontent.com/r4m4nxd/ramanFX/main/';
@@ -121,11 +136,73 @@ async function dispatchScans(): Promise<boolean> {
   return a || b;
 }
 
+// ---- charts (PNG) ------------------------------------------------------------------------------------------------
+let wasmReady: Promise<void> | null = null;
+let fontBufs: Promise<Uint8Array[]> | null = null;
+async function fetchBytes(urls: string[]): Promise<Uint8Array> {
+  for (const u of urls) {
+    try { const r = await fetch(u, { signal: AbortSignal.timeout(8000) }); if (r.ok) return new Uint8Array(await r.arrayBuffer()); await r.body?.cancel(); } catch { /* next */ }
+  }
+  throw new Error('font fetch failed');
+}
+const pngCache = new Map<string, Uint8Array>();
+let renders: number[] = [];
+const imageUrl = (sym: string, view: string, v: string) => `${FN_URL}?img=${encodeURIComponent(sym)}&tf=${encodeURIComponent(view)}&v=${encodeURIComponent(v)}`;
+
+async function chartPng(url: URL): Promise<Response> {
+  const sym = (url.searchParams.get('img') ?? '').slice(0, 20), view = (url.searchParams.get('tf') ?? 'Q').toUpperCase();
+  if (!/^[A-Za-z0-9._-]{1,20}$/.test(sym) || !/^(Q|MN|W1|D1|H4|H1|3M)$/.test(view)) return empty(400);
+  const cd = await chartData(sym, view, { load, now: new Date() });
+  if (!cd) return empty(404);
+  const key = `${cd.sym}|${view}|${cd.v}`;
+  let png = pngCache.get(key);
+  if (!png) {
+    const now = Date.now();
+    renders = renders.filter(t => now - t < 60_000);
+    if (renders.length >= 30) return empty(429);
+    renders.push(now);
+    wasmReady ??= initWasm(fetch(WASM));
+    fontBufs ??= Promise.all(FONTS.map(fetchBytes));
+    try { await wasmReady; } catch (e) { wasmReady = null; throw e; }
+    let fonts: Uint8Array[];
+    try { fonts = await fontBufs; } catch (e) { fontBufs = null; throw e; }
+    png = new Resvg(renderSvg(cd.model), { font: { fontBuffers: fonts, defaultFontFamily: 'Inter', loadSystemFonts: false } }).render().asPng();
+    pngCache.set(key, png);
+    if (pngCache.size > 40) pngCache.delete(pngCache.keys().next().value as string);
+    console.log(JSON.stringify({ ev: 'img', view, ms: Date.now() - now }));
+  }
+  return new Response(png, { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=3600' } });
+}
+
+// ---- replies -------------------------------------------------------------------------------------------------------
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function method(reply: Reply, chatId: unknown, tapped?: Record<string, any>): Record<string, unknown> {
+  const markup = reply.keyboard ? MAIN_KEYBOARD : reply.buttons?.length ? { inline_keyboard: reply.buttons } : undefined;
+  if (reply.photo && reply.edit && tapped && Array.isArray(tapped.photo)) {
+    return { method: 'editMessageMedia', chat_id: chatId, message_id: tapped.message_id,
+      media: { type: 'photo', media: reply.photo, caption: reply.text.slice(0, 1024), parse_mode: 'HTML' }, ...(markup ? { reply_markup: markup } : {}) };
+  }
+  if (reply.photo) return { method: 'sendPhoto', chat_id: chatId, photo: reply.photo, caption: reply.text.slice(0, 1024), parse_mode: 'HTML', ...(markup ? { reply_markup: markup } : {}) };
+  return { method: 'sendMessage', chat_id: chatId, text: reply.text, parse_mode: 'HTML', disable_web_page_preview: true, ...(markup ? { reply_markup: markup } : {}) };
+}
+async function answerCallback(id: string): Promise<void> {
+  if (!BOT_TOKEN || !id) return;
+  try {
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ callback_query_id: id }), signal: AbortSignal.timeout(2500) }).then(r => r.body?.cancel());
+  } catch { /* the spinner times out by itself */ }
+}
+
 // ---- handler -------------------------------------------------------------------------------------------------------
 const json = (v: unknown, status = 200) => new Response(JSON.stringify(v), { status, headers: { 'Content-Type': 'application/json' } });
 const empty = (status = 200) => new Response(null, { status });
 
 Deno.serve(async (req: Request) => {
+  if (req.method === 'GET') {
+    const url = new URL(req.url);
+    if (!url.searchParams.has('img')) return empty(404);
+    try { return await chartPng(url); } catch (e) { console.log(JSON.stringify({ ev: 'img_error', err: (e as Error).message.slice(0, 80) })); return empty(503); }
+  }
   if (req.method !== 'POST') return empty(405);
   const t0 = Date.now();
   const o = new URL(req.url).searchParams.get('o') ?? '';
@@ -153,22 +230,38 @@ Deno.serve(async (req: Request) => {
     return json({ ok: true, auth: state, pinned: cfg?.pinned_message_id ?? null, hash: cfg?.commands_hash ?? null });
   }
 
+  const ctx = { load, now: new Date(), dispatch: GH_TOKEN ? dispatchScans : undefined, imageUrl };
+  const cq = upd?.callback_query;
+  if (cq && typeof cq === 'object') {
+    const fromId = cq.from?.id;
+    if ((typeof fromId !== 'number' && typeof fromId !== 'string') || !same(await sha(String(fromId)), o)) { console.log(JSON.stringify({ ev: 'other_chat' })); return empty(200); }
+    const chat = cq.message?.chat?.id ?? fromId;
+    const answered = answerCallback(String(cq.id ?? ''));
+    let reply: Reply;
+    try {
+      reply = await handleCallback(String(cq.data ?? '').slice(0, 64), ctx);
+    } catch (e) {
+      console.log(JSON.stringify({ ev: 'cmd_error', err: (e as Error).name }));
+      reply = { cmd: 'error', text: '⚠️ Something went wrong reading the scanner data. Try again in a minute.' };
+    }
+    await answered;
+    console.log(JSON.stringify({ ev: 'tap', cmd: reply.cmd, ms: Date.now() - t0 }));
+    return json(method(reply, chat, cq.message));
+  }
+
   const msg = upd?.message;
   const text = typeof msg?.text === 'string' ? msg.text : '';
   const chatId = msg?.chat?.id;
   if (!text || (typeof chatId !== 'number' && typeof chatId !== 'string')) return empty(200);
   if (!same(await sha(String(chatId)), o)) { console.log(JSON.stringify({ ev: 'other_chat' })); return empty(200); }
 
-  let reply;
+  let reply: Reply;
   try {
-    reply = await handle(text.slice(0, 200), { load, now: new Date(), dispatch: GH_TOKEN ? dispatchScans : undefined });
+    reply = await handle(text.slice(0, 200), ctx);
   } catch (e) {
     console.log(JSON.stringify({ ev: 'cmd_error', err: (e as Error).name }));
     reply = { cmd: 'error', text: '⚠️ Something went wrong reading the scanner data. Try again in a minute.' };
   }
   console.log(JSON.stringify({ ev: 'cmd', cmd: reply.cmd, ms: Date.now() - t0 }));
-  return json({
-    method: 'sendMessage', chat_id: chatId, text: reply.text, parse_mode: 'HTML', disable_web_page_preview: true,
-    ...(reply.buttons?.length ? { reply_markup: { inline_keyboard: reply.buttons } } : {}),
-  });
+  return json(method(reply, chatId));
 });

@@ -88,7 +88,7 @@ class Msg(str):
 
     def __new__(cls, text: str, buttons: Optional[List[List[Dict]]] = None):
         m = super().__new__(cls, text)
-        m.buttons = [r for r in (buttons or []) if r][:2]
+        m.buttons = [r for r in (buttons or []) if r][:5]
         return m
 
 
@@ -96,8 +96,17 @@ def button(text: str, url: str) -> Dict: return {'text': text, 'url': url}
 
 
 def keyboard(charts: Sequence[Dict], open_label: str, open_url: str) -> List[List[Dict]]:
-    """Max 2 rows: a chart button per card (at most 3), then the app."""
-    return [list(charts)[:MAX_CARDS], [button(open_label, open_url)]]
+    """A chart link per card (at most 3), then the bot's own buttons for the same symbols (callback_data, handled by
+    the Supabase telegram-bot webhook): one row [🔎 Zones SYM] per symbol and one row [📊 Chart SYM] (4-timeframe
+    image), then the app."""
+    charts = list(charts)[:MAX_CARDS]
+    syms = [c['text'].split(' ', 1)[-1] for c in charts if c.get('text')]
+    syms = [x for x in syms if len(f'z:{x}'.encode()) <= 64]
+    rows = [charts, [cb(f'🔎 {x}', f'z:{x}') for x in syms], [cb(f'📊 {x}', f'c:{x}') for x in syms]]
+    return [r for r in rows if r] + [[button(open_label, open_url)]]
+
+
+def cb(text: str, data: str) -> Dict: return {'text': text, 'callback_data': data}
 
 
 def local_time(iso_utc: str, fmt: str = '%H:%M', tz: str = LOCAL_TZ) -> str:
@@ -316,7 +325,7 @@ def print_messages(msgs: Sequence[str], out=sys.stdout) -> None:
         print(f'----- message {k + 1}/{len(msgs)} · {u16(m)} UTF-16 units -----', file=out)
         print(m, file=out)
         for row in getattr(m, 'buttons', None) or []:
-            print('  ' + '  '.join(f"[{b['text']}]({b['url']})" for b in row), file=out)
+            print('  ' + '  '.join(f"[{b['text']}]({b.get('url') or 'tap: ' + b.get('callback_data', '')})" for b in row), file=out)
 
 
 def preview(out_dir: str, top: int = MAX_CARDS, cap: int = QUOTE_LINES, out=sys.stdout) -> List[Msg]:

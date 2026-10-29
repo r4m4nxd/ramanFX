@@ -5,13 +5,23 @@
 // Layout = the scanners' calm Telegram style: a bold heading, short lines, a timeframe per symbol (MN W1 D1 4H 1H),
 // distances in percent (never pips), Calgary 12-hour times (America/Edmonton zone rules), HTML escaped, < 4096 chars.
 
-export interface Button { text: string; url: string }
-export interface Reply { text: string; buttons?: Button[][]; cmd: string }
+import { aggregate, monthKey, quarterKey, tfLabel, weekKey, type Band, type Bar, type ChartModel, type Panel } from './chart.ts';
+
+export type Button = { text: string; url: string } | { text: string; callback_data: string };
+export interface Reply {
+  text: string; cmd: string;
+  buttons?: Button[][];   // inline keyboard
+  keyboard?: boolean;     // attach the persistent quick-reply keyboard instead (MAIN_KEYBOARD)
+  photo?: string;         // send a photo (URL) with `text` as its caption
+  edit?: boolean;         // a chart view switch: edit the tapped photo message when there is one
+}
 export interface Ctx {
   load(path: string): Promise<unknown>;
   now: Date;
   /** Starts the FX + stock scans (GitHub workflow_dispatch); undefined = no GITHUB_DISPATCH_TOKEN. */
   dispatch?: () => Promise<boolean>;
+  /** Public PNG URL of a chart view ('Q' = 4 timeframes, or a TF) for a scan version; undefined = no charts. */
+  imageUrl?: (sym: string, view: string, v: string) => string;
 }
 
 /** The command list: Telegram's Menu (setMyCommands reads commands.json, kept equal by a test), /help and the pin. */
@@ -22,6 +32,7 @@ export const COMMANDS: { command: string; description: string; group: 'Markets' 
   { command: 'near', description: 'Everything within 1% of a zone', group: 'Markets', usage: '/near', help: 'everything within 1% of a strong zone' },
   { command: 'scan', description: 'Run a fresh scan now', group: 'Markets', usage: '/scan', help: 'run a fresh FX + stock scan' },
   { command: 'zones', description: 'Every zone of a symbol', group: 'Symbol lookup', usage: '/zones EURUSD', help: 'every zone on every timeframe (or just send the symbol)' },
+  { command: 'chart', description: 'Chart: 4 timeframes, or one', group: 'Symbol lookup', usage: '/chart EURUSD', help: 'one image, 4 timeframes (/chart EURUSD H4: one TF)' },
   { command: 'hours', description: 'Best times / days for a symbol', group: 'Symbol lookup', usage: '/hours XAUUSD', help: 'best Calgary times and weekdays' },
   { command: 'times', description: "Today's key Calgary times", group: 'Times', usage: '/times', help: "today's key Calgary times" },
   { command: 'next', description: 'Next NFP, CPI and Fed decision', group: 'Times', usage: '/next', help: 'next jobs report, CPI, Fed decision' },
@@ -194,6 +205,16 @@ const fxList = (fx: J, side: string, sec: string) => arr(obj(obj(fx.lists)[side]
 const stList = (st: J, side: string, sec: string) => arr(obj(obj(st.zone_lists)[side])[sec]);
 const kb = (label: string, path: string): Button[][] => [[{ text: label, url: `${APP}${path}` }]];
 
+/** The persistent quick-reply keyboard (ReplyKeyboardMarkup); its button texts map to commands in handle(). */
+export const QUICK: [string, string][][] = [[['💱 FX', 'fx'], ['📈 Stocks', 'stocks'], ['⏳ Near', 'near']], [['📋 Signals', 'signals'], ['🕐 Times', 'times'], ['📅 Next', 'next']]];
+export const MAIN_KEYBOARD = { keyboard: QUICK.map(r => r.map(([text]) => ({ text }))), is_persistent: true, resize_keyboard: true };
+const QUICK_MAP = new Map<string, string>(QUICK.flat().flatMap(([label, cmd]) => [[label.toLowerCase(), cmd], [label.replace(/^\S+\s+/, '').toLowerCase(), cmd]] as [string, string][]));
+/** Callback buttons for symbols: [🔎 SYM] [📊 SYM] per symbol (callback_data <= 64 bytes). */
+export function symButtons(syms: string[], n = 3): Button[][] {
+  return [...new Set(syms)].slice(0, n).filter(s => cbOk(`z:${s}`)).map(s => [{ text: `🔎 Zones ${s}`, callback_data: `z:${s}` }, { text: `📊 Chart ${s}`, callback_data: `c:${s}` }]);
+}
+const cbOk = (d: string) => new TextEncoder().encode(d).length <= 64;
+
 // ---- commands ------------------------------------------------------------------------------------------------------
 export function helpText(): string {
   const lines = ['🤖 <b>RamanFX bot · commands</b>', 'Type a command, or just send a symbol (EURUSD, XAUUSD, NVDA).'];
@@ -223,7 +244,7 @@ async function cmdFx(ctx: Ctx): Promise<Reply> {
   lines.push(...section('In demand', fxList(fx, 'demand', 'in'), 'sym'), ...section('In supply', fxList(fx, 'supply', 'in'), 'sym'),
     ...section('Bounced off demand', fxList(fx, 'demand', 'left'), 'sym', 6), ...section('Turned down at supply', fxList(fx, 'supply', 'left'), 'sym', 6));
   lines.push('', `${c.instruments ?? arr(fx.map).length} markets · check levels on Pepperstone · ${FOOT}`);
-  return { cmd: 'fx', text: fit(lines), buttons: kb('Open FX scanner', '/scanner/fx') };
+  return { cmd: 'fx', text: fit(lines), buttons: [...symButtons([...setups.map(x => x.sym), ...close.map(r => r.sym)]), ...kb('Open FX scanner', '/scanner/fx')] };
 }
 
 async function cmdStocks(ctx: Ctx): Promise<Reply> {
@@ -240,7 +261,7 @@ async function cmdStocks(ctx: Ctx): Promise<Reply> {
     ...section('Close to supply', near('supply'), 's', 6, r => shortPct(stockPct(r))),
     ...section('In demand', stList(st, 'demand', 'in'), 's', 6));
   lines.push('', `${st.scanned ?? ''} stocks · ${FOOT}`.trim());
-  return { cmd: 'stocks', text: fit(lines), buttons: kb('Open stock scanner', '/scanner') };
+  return { cmd: 'stocks', text: fit(lines), buttons: [...symButtons([...s.map(x => x.symbol), ...near('demand').map(r => r.s)]), ...kb('Open stock scanner', '/scanner')] };
 }
 
 async function cmdSignals(ctx: Ctx): Promise<Reply> {
@@ -255,7 +276,7 @@ async function cmdSignals(ctx: Ctx): Promise<Reply> {
   lines.push('', `<b>Stocks</b>${Array.isArray(st.signals) ? ` · ${esc(st.date ? dayOfIso(st.date) : '')} close` : ' · data unavailable'}`);
   lines.push(...(s.length ? s.map(x => one(ICON[x.kind] ?? '•', x.symbol, x.tf, x.kind, stockPx(x.entry), num(x.to_entry_pct))) : ['none open']));
   lines.push('', `Details: /fx · /stocks · /zones SYMBOL · ${FOOT}`);
-  return { cmd: 'signals', text: fit(lines) };
+  return { cmd: 'signals', text: fit(lines), buttons: symButtons([...f.map(x => x.sym), ...s.map(x => x.symbol)], 4) };
 }
 
 async function cmdNear(ctx: Ctx): Promise<Reply> {
@@ -275,7 +296,7 @@ async function cmdNear(ctx: Ctx): Promise<Reply> {
   for (const r of rows) lines.push(`<b>${esc(r.sym)}</b> ${r.m === 'FX' ? 'FX' : 'stock'} · ${tf(r.tf)} ${esc(r.side)} · ${esc(away(r.p))}`);
   if (!rows.length) lines.push('Nothing within 1% right now.');
   lines.push('', `Already inside a zone: ${inFx} FX · ${inSt} stocks (/fx, /stocks)`, FOOT);
-  return { cmd: 'near', text: fit(lines) };
+  return { cmd: 'near', text: fit(lines), buttons: symButtons(rows.map(r => r.sym)) };
 }
 
 // ---- symbol lookup --------------------------------------------------------------------------------------------------
@@ -359,7 +380,7 @@ async function fxZones(r: Resolved, ctx: Ctx): Promise<Reply> {
     lines.push(`${z.side === 'demand' ? '🟩' : '🟥'} ${esc(z.side)} ${px(z.proximal, dg)}–${px(z.distal, dg)} · ${esc(zoneStatus(pl, z.side, extra))}`);
   }
   lines.push('', `Nearest ${zones.length} zones · check levels on Pepperstone · ${FOOT}`);
-  return { cmd: 'zones', text: fit(lines), buttons: [[{ text: `📈 ${r.sym}`, url: `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(d.tv || `PEPPERSTONE:${r.sym}`)}` }]] };
+  return { cmd: 'zones', text: fit(lines), buttons: [...chartButtons(r.sym, 'fx'), [{ text: `📈 ${r.sym} on TradingView`, url: `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(d.tv || `PEPPERSTONE:${r.sym}`)}` }]] };
 }
 
 async function stockZones(r: Resolved, ctx: Ctx): Promise<Reply> {
@@ -391,7 +412,7 @@ async function stockZones(r: Resolved, ctx: Ctx): Promise<Reply> {
   }
   lines.push('', `${zones.length} zones · long only (supply = where to take profit) · ${FOOT}`);
   const slug = String(r.sym).replace(/\./g, '-');
-  return { cmd: 'zones', text: fit(lines), buttons: [[...(d.chart ? [{ text: `📈 ${r.sym}`, url: String(d.chart) }] : []), { text: 'Open in scanner', url: `${APP}/scanner/${encodeURIComponent(slug)}` }]] };
+  return { cmd: 'zones', text: fit(lines), buttons: [...chartButtons(r.sym, 'stock'), [...(d.chart ? [{ text: `📈 ${r.sym}`, url: String(d.chart) }] : []), { text: 'Open in scanner', url: `${APP}/scanner/${encodeURIComponent(slug)}` }]] };
 }
 
 async function cmdZones(q: string, ctx: Ctx): Promise<Reply> {
@@ -490,20 +511,156 @@ async function cmdScan(ctx: Ctx): Promise<Reply> {
   return { cmd: 'scan', text: ok ? '🔄 <b>Scan started</b>, results in ~2 min (FX first, stocks a bit later).\nThe usual Telegram alerts follow if anything is new.' : '⚠️ <b>Scan did not start</b>\nGitHub refused or is busy. Try again in a few minutes.' };
 }
 
+// ---- charts --------------------------------------------------------------------------------------------------------
+const FX_TFS = ['MN', 'W1', 'D1', 'H4', 'H1'];
+const STOCK_TFS = ['3M', 'MN', 'W1', 'D1'];
+const ORDER = ['3M', 'MN', 'W1', 'D1', 'H4', 'H1'];
+export function parseTf(s: string): string | null {
+  const t = (s || '').toUpperCase();
+  const m: Record<string, string> = { H1: 'H1', '1H': 'H1', '60': 'H1', H4: 'H4', '4H': 'H4', D1: 'D1', D: 'D1', '1D': 'D1', W1: 'W1', W: 'W1', '1W': 'W1', MN: 'MN', M: 'MN', '1M': 'MN', MN1: 'MN', '3M': '3M', Q: 'Q' };
+  return m[t] ?? null;
+}
+/** [📊 4 timeframes] + one button per timeframe (single large view). */
+export function chartButtons(sym: string, market: 'fx' | 'stock'): Button[][] {
+  const tfs = market === 'fx' ? FX_TFS : STOCK_TFS;
+  return [[{ text: `📊 Chart ${sym} (4 timeframes)`, callback_data: `c:${sym}` }], tfs.map(t => ({ text: tfLabel(t), callback_data: `c:${sym}:${t}` }))];
+}
+function photoButtons(sym: string, market: 'fx' | 'stock', view: string): Button[][] {
+  const tfs = market === 'fx' ? FX_TFS : STOCK_TFS;
+  return [tfs.map(t => ({ text: t === view ? `• ${tfLabel(t)}` : tfLabel(t), callback_data: `c:${sym}:${t}` })),
+    [{ text: view === 'Q' ? '• 4 views' : '🔲 4 views', callback_data: `c:${sym}:Q` }, { text: `🔎 Zones ${sym}`, callback_data: `z:${sym}` }, { text: '⏳ Near', callback_data: 'n' }]];
+}
+
+interface Zn { tf: string; side: 'demand' | 'supply'; prox: number; dist: number }
+const overlaps = (a: Zn, b: Zn) => Math.max(Math.min(a.prox, a.dist), Math.min(b.prox, b.dist)) <= Math.min(Math.max(a.prox, a.dist), Math.max(b.prox, b.dist));
+const zDist = (price: number, z: Zn) => placement(price, z.prox, z.dist).p;
+const toBars = (rows: unknown): Bar[] => arr(rows).filter(r => Array.isArray(r) && r.length >= 5).map(r => ({ t: String(r[0]), o: +r[1], h: +r[2], l: +r[3], c: +r[4] }))
+  .filter(b => [b.o, b.h, b.l, b.c].every(Number.isFinite));
+function zoneList(rows: unknown[]): Zn[] {
+  const out: Zn[] = [], seen = new Set<string>();
+  for (const r of rows as J[]) {
+    const prox = num(r?.proximal ?? r?.prox), dist = num(r?.distal ?? r?.dist);
+    if (prox == null || dist == null || (r.side !== 'demand' && r.side !== 'supply') || typeof r.tf !== 'string') continue;
+    const k = `${r.tf}:${r.side}:${prox}`;
+    if (!seen.has(k)) { seen.add(k); out.push({ tf: r.tf, side: r.side, prox, dist }); }
+  }
+  return out;
+}
+
+export interface ChartData { model: ChartModel; v: string; market: 'fx' | 'stock'; sym: string; view: string; when: string }
+
+/** Panels for the given timeframes: key zone per TF (nearest), the host of the next-lower key zone outlined, trade
+ *  lines on the entry TF, higher-TF zones lighter in the single view. */
+export function buildPanels(tfs: string[], bars: Record<string, Bar[]>, zones: Zn[], price: number, digits: number,
+  sig: { tf: string; entry?: number; stop?: number; target?: number; kind?: string } | null, layout: 'quad' | 'single', zoneTfOf: (tf: string) => string = t => t): Panel[] {
+  const fmt = (v: number) => v.toFixed(digits);
+  const keys = tfs.map(tf => zones.filter(z => z.tf === zoneTfOf(tf)).sort((a, b) => zDist(price, a) - zDist(price, b))[0] ?? null);
+  return tfs.map((tf, i) => {
+    const ztf = zoneTfOf(tf);
+    const own = zones.filter(z => z.tf === ztf).sort((a, b) => zDist(price, a) - zDist(price, b)).slice(0, layout === 'quad' ? 6 : 8);
+    const key = keys[i], lowerKey = keys[i + 1];
+    const host = lowerKey && zoneTfOf(tfs[i + 1]) !== ztf ? own.find(z => z.side === lowerKey.side && overlaps(z, lowerKey)) ?? null : null;
+    const bands: Band[] = own.map(z => ({ ...z, key: z === key, host: z === host, light: ztf !== tf,
+      label: layout === 'single' ? `${tfLabel(z.tf)} ${z.side} ${fmt(z.prox)}–${fmt(z.dist)}` : undefined }));
+    if (layout === 'single') {   // the higher TF's zones for context, lighter; the one hosting this TF's key zone outlined
+      const hi = ORDER[ORDER.indexOf(ztf) - 1];
+      const up = hi ? zones.filter(z => z.tf === hi).sort((a, b) => zDist(price, a) - zDist(price, b)).slice(0, 4) : [];
+      const h = key ? up.find(z => z.side === key.side && overlaps(z, key)) : undefined;
+      bands.unshift(...up.map(z => ({ ...z, light: true, host: z === h, label: `${tfLabel(z.tf)} ${z.side} ${fmt(z.prox)}–${fmt(z.dist)}` })));
+    }
+    const header = key ? `${ztf !== tf ? `${tfLabel(ztf)} ` : ''}${key.side} ${fmt(key.prox)}–${fmt(key.dist)} · ${zoneStatus(placement(price, key.prox, key.dist), key.side, '')}` : 'no zone in view';
+    const lines = sig && sig.tf === tf ? { entry: sig.entry, stop: sig.stop, target: sig.target, kind: sig.kind } : null;
+    return { tf, header, bars: (bars[tf] ?? []).slice(layout === 'quad' ? -60 : -90), zones: bands, lines,
+      note: ztf !== tf ? `no ${tfLabel(tf)} zones: ${tfLabel(ztf)} zones shown` : undefined };
+  });
+}
+
+export async function chartData(q: string, view: string, ctx: Ctx): Promise<ChartData | null> {
+  const { hit } = await resolve(q, ctx);
+  if (!hit) return null;
+  if (hit.market === 'fx') {
+    const fx = obj(await ctx.load('fx/latest.json'));
+    const d = obj(obj(obj(await ctx.load(`fx/d/${hit.row.k ?? hit.row.cls}.json`)).instruments)[hit.sym]);
+    const price = num(d.price);
+    if (!price) return null;
+    const b = obj(d.bars), bars: Record<string, Bar[]> = {};
+    for (const t of ['H1', 'H4', 'D1', 'W1']) bars[t] = toBars(b[t]);
+    bars.MN = aggregate(bars.W1, monthKey);
+    const zones = zoneList([...arr(d.zones), ...arr(d.hits)]);
+    const s = fxSetups(fx).find(x => x.sym === hit.sym);
+    const near = arr(d.hits).filter(h => h.section !== 'left').sort((a, z) => (num(a.pips) ?? 1e9) - (num(z.pips) ?? 1e9))[0];
+    const rel = s?.tf ?? near?.tf ?? null;
+    const tfs = view !== 'Q' ? [view] : (rel === 'H1' || rel === 'H4') && bars.H1.length ? ['W1', 'D1', 'H4', 'H1'] : ['MN', 'W1', 'D1', 'H4'];
+    if (!tfs.every(t => FX_TFS.includes(t))) return null;
+    const digits = digitsOf(d), layout = view === 'Q' ? 'quad' : 'single';
+    const sig = s ? { tf: s.tf, entry: num(s.entry) ?? undefined, stop: num(s.stop) ?? undefined, target: num(s.target) ?? undefined, kind: s.kind } : null;
+    const t = parseUtc(fx.h1_close_utc ?? fx.generated);
+    const when = t ? clock(t) : '';
+    return { market: 'fx', sym: hit.sym, view, v: String(fx.generated ?? '').replace(/[^0-9]/g, '').slice(0, 14), when,
+      model: { sym: hit.sym, digits, price, layout, title: `${hit.sym} · ${price.toFixed(digits)}${when ? ` · ${when}` : ''}`, panels: buildPanels(tfs, bars, zones, price, digits, sig, layout) } };
+  }
+  const [sh, st] = [obj(await ctx.load(`scanner/t/${hit.row.k}.json`)), obj(await ctx.load('scanner/latest.json'))];
+  const d = obj(obj(sh.tickers)[hit.sym]);
+  const price = num(d.price), pb = obj(d.bars);
+  if (!price || !pb.t0) return null;
+  const d0 = Date.parse(`${pb.t0}T00:00:00Z`);
+  const daily: Bar[] = arr(pb.b).map((r, i) => ({ t: new Date(d0 + (num(arr(pb.dt)[i]) ?? i) * 86400000).toISOString().slice(0, 10), o: +r[0], h: +r[1], l: +r[2], c: +r[3] }))
+    .filter(x => [x.o, x.h, x.l, x.c].every(Number.isFinite));
+  const bars: Record<string, Bar[]> = { D1: daily, W1: aggregate(daily, weekKey), MN: aggregate(daily, monthKey), '3M': aggregate(daily, quarterKey) };
+  const tfs = view === 'Q' ? STOCK_TFS : [view];
+  if (!tfs.every(t => STOCK_TFS.includes(t))) return null;
+  const s = stockSetups(st).find(x => x.symbol === hit.sym);
+  const sig = s ? { tf: s.tf, entry: num(s.entry) ?? undefined, stop: num(s.stop) ?? undefined, target: num(s.target) ?? undefined, kind: s.kind } : null;
+  const layout = view === 'Q' ? 'quad' : 'single';
+  const when = d.date ? `${dayOfIso(String(d.date))} close` : '';
+  return { market: 'stock', sym: hit.sym, view, v: String(st.generated_at ?? '').replace(/[^0-9]/g, '').slice(0, 14), when,
+    model: { sym: hit.sym, digits: 2, price, layout, title: `${hit.sym} · ${price.toFixed(2)}${when ? ` · ${when}` : ''}`,
+      panels: buildPanels(tfs, bars, zoneList(arr(d.zones)), price, 2, sig, layout, t => (t === 'D1' ? 'W1' : t)) } };
+}
+
+async function cmdChart(q: string, tfArg: string, ctx: Ctx): Promise<Reply> {
+  if (!q) return { cmd: 'chart', text: 'Send a symbol after it, e.g. <b>/chart EURUSD</b> (4 timeframes) or <b>/chart EURUSD H4</b>.' };
+  const view = tfArg ? parseTf(tfArg) : 'Q';
+  if (!view) return { cmd: 'chart', text: `Unknown timeframe <b>${esc(tfArg)}</b>. Use MN, W1, D1, 4H or 1H (stocks: 3M, MN, W1, D1).` };
+  const { hit, suggest } = await resolve(q, ctx);
+  if (!hit) return { cmd: 'chart', text: notFound(q, suggest).replace(/\/zones /g, '/chart ') };
+  if (!ctx.imageUrl) return { cmd: 'chart', text: 'Charts are not available right now.' };
+  let cd = await chartData(hit.sym, view, ctx);
+  if (!cd && view !== 'Q') cd = await chartData(hit.sym, 'Q', ctx);
+  if (!cd) return { cmd: 'chart', text: `🔎 <b>${esc(hit.sym)}</b>\nNo chart data published for ${esc(view === 'Q' ? 'it' : tfLabel(view))} yet.` };
+  const tfs = cd.model.panels.map(p => tfLabel(p.tf)).join(' ');
+  const caption = `<b>${esc(cd.sym)}</b> · ${esc(cd.view === 'Q' ? `${tfs} (top-down)` : tfs)}${cd.when ? ` · ${esc(cd.when)}` : ''}\n${cd.market === 'fx' ? 'check levels on Pepperstone · ' : ''}${FOOT}`;
+  return { cmd: 'chart', text: caption, photo: ctx.imageUrl(cd.sym, cd.view, cd.v), buttons: photoButtons(cd.sym, cd.market, cd.view) };
+}
+
+const CB_CMDS: Record<string, string> = { n: '/near', f: '/fx', s: '/stocks', g: '/signals', t: '/times', x: '/next', h: '/help' };
+/** A tapped inline button (callback_query.data): 'z:SYM' zones, 'c:SYM' 4-view chart, 'c:SYM:TF' one TF, short codes. */
+export async function handleCallback(data: string, ctx: Ctx): Promise<Reply> {
+  const m = /^([zc]):([A-Za-z0-9._-]{1,20})(?::([A-Za-z0-9]{1,3}))?$/.exec(data ?? '');
+  if (m && m[1] === 'z') return cmdZones(m[2], ctx);
+  if (m && m[1] === 'c') return { ...(await cmdChart(m[2], m[3] ?? '', ctx)), edit: !!m[3] };
+  if (CB_CMDS[data]) return handle(CB_CMDS[data], ctx);
+  return { cmd: 'callback?', text: HINT };
+}
+
 // ---- dispatch ------------------------------------------------------------------------------------------------------
-export function parseCommand(text: string): { cmd: string; arg: string } | null {
+export function parseCommand(text: string): { cmd: string; arg: string; arg2: string } | null {
   const m = /^\/([A-Za-z_]+)(?:@\w+)?(?:\s+([\s\S]*))?$/.exec(text.trim());
-  return m ? { cmd: m[1].toLowerCase(), arg: (m[2] ?? '').trim().split(/\s+/)[0] ?? '' } : null;
+  if (!m) return null;
+  const a = (m[2] ?? '').trim().split(/\s+/);
+  return { cmd: m[1].toLowerCase(), arg: a[0] ?? '', arg2: a[1] ?? '' };
 }
 const SYMBOLISH = /^[A-Za-z][A-Za-z0-9.\/_:-]{0,14}$/;
 const HINT = 'Not sure what that means. Send /help for the list, or just a symbol like <b>EURUSD</b> or <b>NVDA</b>.';
 
 export async function handle(text: string, ctx: Ctx): Promise<Reply> {
   const t = (text ?? '').trim();
-  const c = parseCommand(t);
+  const quick = QUICK_MAP.get(t.toLowerCase());
+  const c = quick ? { cmd: quick, arg: '', arg2: '' } : parseCommand(t);
   if (c) {
     switch (c.cmd) {
-      case 'start': case 'help': return { cmd: c.cmd, text: helpText(), buttons: kb('Open RamanFX', '/') };
+      case 'start': case 'help': return { cmd: c.cmd, text: helpText(), keyboard: true };
+      case 'chart': return cmdChart(c.arg, c.arg2, ctx);
       case 'fx': return cmdFx(ctx);
       case 'stocks': return cmdStocks(ctx);
       case 'signals': return cmdSignals(ctx);

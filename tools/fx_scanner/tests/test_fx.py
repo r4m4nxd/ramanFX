@@ -314,10 +314,14 @@ class Rules(unittest.TestCase):
         for tok in N.SN.JARGON:
             self.assertNotIn(tok, vis)
         self.assertLess(N.u16(m), 4096)
-        self.assertLessEqual(len(m.buttons), 2)
+        self.assertLessEqual(len(m.buttons), 4)
         self.assertTrue(all(b['url'].startswith('https://www.tradingview.com/chart/?symbol=PEPPERSTONE:') for b in m.buttons[0]))
         self.assertEqual(m.buttons[-1][0]['url'], C.APP_URL)
         self.assertEqual(len({b['text'] for b in m.buttons[0]}), len(m.buttons[0]))   # one chart per symbol
+        if len(m.buttons) == 4:                                                         # bot buttons per card symbol
+            syms = [b['text'].split(' ', 1)[1] for b in m.buttons[0]]
+            self.assertEqual([b['callback_data'] for b in m.buttons[1]], [f'z:{x}' for x in syms])
+            self.assertEqual([b['callback_data'] for b in m.buttons[2]], [f'c:{x}' for x in syms])
 
     def test_h4_digest_quiet_is_four_lines(self):
         pub, _ = X.public(self.res, '2026-10-26T20:00')
