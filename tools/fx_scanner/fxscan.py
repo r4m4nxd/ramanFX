@@ -39,6 +39,7 @@ import fxcore as F  # noqa: E402
 import fxnotify as N  # noqa: E402
 import oanda as O  # noqa: E402
 import watchlist as W  # noqa: E402
+import zones as Z  # noqa: E402
 from zones import Bar  # noqa: E402
 
 DISCLAIMER = ('Rule-based scan, not financial advice. Levels come from the OANDA feed; Pepperstone quotes can differ by '
@@ -205,7 +206,8 @@ def detail(an: F.FxAnalysis, hits: List[Dict], sigs: List[Dict]) -> Dict:
             'curves': {t: round(an.curves[t].value, 1) for t in C.ENTRY_TFS if an.curves[t].ok},
             'ctx3': F.six(an.rows['3M'], an.price, nd), 'zones': zs[:16], 'hits': hits, 'checks': F.nearest_checks(an),
             'signals': [s['kind'] + ' ' + s['tf'] for s in sigs],
-            'bars': {tf: pack(_closed(an, tf), n, nd) for tf, n in CHART_BARS.items() if an.rows[tf].S.T[-1]}}
+            'bars': {tf: pack(_closed(an, tf), n, nd) for tf, n in CHART_BARS.items() if an.rows[tf].S.T[-1]},
+            'tls': {tf: Z.tl_export(an.rows[tf], nd) for tf in ('H1', 'H4', 'D1', 'W1', 'MN') if an.rows[tf].ok}}
 
 
 def _closed(an: F.FxAnalysis, tf: str) -> List[Bar]:

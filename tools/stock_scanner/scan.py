@@ -922,7 +922,8 @@ def ticker_detail(sym: str, u: Dict, an: Analysis, bars: List[Bar], meta: Dict, 
               'tfs': list(TRADE_TFS), 'curve_tf': an.curve.tf or None,
               'curve': round(an.curve.value, 1) if an.curve.ok else None, 'curve_raja': an.curve.raja,
               'zones': zl, 'nearest_demand': nz(near_d), 'nearest_supply': nz(near_s), 'check': check,
-              'fundamentals_rows': fund_rows or [], 'bars': pack_bars(bars)}
+              'fundamentals_rows': fund_rows or [], 'bars': pack_bars(bars),
+              'tls': {r.tf: Z.tl_export(r, 2) for r, _ in stack(an) if r.ok}}
     g = gauge(an)
     detail['gauge'] = {'state': g['state'], 'demand': g['demand'], 'supply': g['supply']}
     detail['fv'] = {'lo': round(an.fv.lo, 2), 'hi': round(an.fv.hi, 2), 'method': an.fv.method} if an.fv else None

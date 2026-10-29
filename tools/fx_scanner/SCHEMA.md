@@ -118,5 +118,9 @@ Detail = the instrument fields of a Row (`sym`, `oanda`, `cls`, `group`, `wl`, `
   "hits": [Item-like, all zones in / left / near],
   "checks": [ nearest demand below + nearest supply above: zone fields + plan fields + "pips", "block", "label", "rules", "chain_text" ],
   "signals": ["BUY W1"],
-  "bars": { "H1": [...80], "H4": [["2026-10-23T16:00", o, h, l, c], ...80], "D1": [...80], "W1": [...52] } }   // H1 only with H1 data   // ZoneMiniChart MiniBar
+  "bars": { "H1": [...80], "H4": [["2026-10-23T16:00", o, h, l, c], ...80], "D1": [...80], "W1": [...52] },   // H1 only with H1 data   // ZoneMiniChart MiniBar
+  "tls": { "H4": [ { "dir": 1, "p": 1.11402, "s": 0.00012, "n": 37, "t": "2026-10-28T20:00", "touches": 3, "x": false } ], ... } }
+  // trendlines in force per TF (H1 H4 D1 W1 MN; zones.tl_export): dir +1 up / -1 down, p = price on the newest closed
+  // bar (time t), s = change per bar towards newer bars, n = bars back to the first anchor, x = crossed (broken).
+  // The stock shards (public/scanner/t/<k>.json) carry the same "tls" for W1 / MN / 3M.
 ```

@@ -16,7 +16,7 @@ All functions are pure: they take a Series (and lists built from it) and return 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 # ---- settings: ZV_Template_Raja.set (only the inputs the ported functions read) -------------------------------
 RAJA = {
@@ -282,6 +282,23 @@ class TLState:
 
 
 def _line_at(p2, b, sl, j): return p2 + sl * (b - j)
+
+
+def tl_export(r, nd: int = 5) -> List[Dict]:
+    """A row's own trendlines (the latest up line under the valleys, down line over the peaks) for the chart images:
+    dir (+1 up / -1 down), p = the line's price on the newest closed bar, s = price change per bar (towards newer bars),
+    n = bars back from the newest closed bar to its first anchor, t = the newest closed bar's time, touches, x = crossed
+    (a closed break through it: the trend it held is over). [] when the row has none."""
+    out: List[Dict] = []
+    tl, S = getattr(r, 'tl', None), getattr(r, 'S', None)
+    if not getattr(r, 'ok', False) or tl is None or S is None or S.n < 3:
+        return out
+    for t, touches in ((tl.up, tl.up_touches), (tl.dn, tl.dn_touches)):
+        if t is None or t.removed or not 1 <= t.b < t.a < S.n:
+            continue
+        out.append({'dir': t.dir, 'p': round(t.at(1), nd), 's': round(t.slope(), nd + 3), 'n': t.a - 1, 't': S.T[1],
+                    'touches': touches, 'x': t.cross_bar >= 0})
+    return out
 
 
 def trendlines(S: Series, p=RAJA) -> TLState:

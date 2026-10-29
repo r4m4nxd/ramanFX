@@ -205,6 +205,19 @@ class Rules(unittest.TestCase):
         cls.uni, cls.data, cls.wl = X.selftest_universe()
         cls.res = X.run(cls.uni, lambda i: (cls.data[i['name']], 0.6 * C.pip_of(i)), log=None)
 
+    def test_detail_publishes_trendlines(self):
+        lines = []
+        for an in self.res['analyses'].values():
+            d = X.detail(an, [], [])
+            self.assertTrue(set(d['tls']) <= {'H1', 'H4', 'D1', 'W1', 'MN'})
+            lines += [t for v in d['tls'].values() for t in v]
+        self.assertTrue(lines, 'some trendline in force on the sample data')
+        for t in lines:
+            self.assertIn(t['dir'], (1, -1))
+            self.assertGreaterEqual(t['n'], 1)
+            self.assertEqual(set(t), {'dir', 'p', 's', 'n', 't', 'touches', 'x'})
+        json.dumps(d)
+
     def test_located_buy_and_stop_rule(self):
         s = next(s for s in self.res['signals'] if s['sym'] == 'EURUSD' and s['kind'] == 'BUY')
         self.assertEqual(s['tf'], 'H4')

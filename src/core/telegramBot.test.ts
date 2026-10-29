@@ -236,4 +236,20 @@ describe('telegram bot', () => {
     expect(one.match(/class="panel"/g)).toHaveLength(1);
     expect(one).toMatch(/class="zlabel"[^>]*>[^<]*4H (demand|supply) \d/);
   });
+
+  it('chart trendlines: drawn thin and labelled in their TF panel (from the shard tls)', async () => {
+    const shard = read('public/fx/d/major.json');
+    const eu = shard.instruments.EURUSD;
+    const h4 = eu.bars.H4 as [string, number, number, number, number][];
+    const last = h4[h4.length - 1];
+    eu.tls = { H4: [{ dir: -1, p: last[2] + 0.002, s: -0.0001, n: 40, t: last[0], touches: 2, x: false }], W1: [{ dir: 1, p: 1.10, s: 0.001, n: 30, t: eu.bars.W1.at(-1)[0], x: true }] };
+    const c = ctx(undefined, { 'fx/d/major.json': shard });
+    const one = renderSvg((await chartData('EURUSD', 'H4', c))!.model);
+    expect(one).toMatch(/class="tl down"/);
+    expect(one).toContain('4H down trendline');
+    const q = renderSvg((await chartData('EURUSD', 'Q', c))!.model);
+    expect(q).toContain('W1 up trendline (broken)');
+    expect((q.match(/class="tl /g) ?? []).length).toBeGreaterThanOrEqual(2);
+  });
 });
+

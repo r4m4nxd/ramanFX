@@ -13,11 +13,14 @@ export interface Band {
   label?: string;
 }
 export interface Lines { entry?: number | null; stop?: number | null; target?: number | null; kind?: string }
-export interface Panel { tf: string; header: string; bars: Bar[]; zones: Band[]; lines?: Lines | null; note?: string }
+/** A trendline in force (scanner rows: fxscan / scan.py 'tls'): price p on the newest closed bar (time t), s = change
+ *  per bar towards newer bars, n = bars back to its first anchor, x = already crossed. */
+export interface TLine { dir: number; p: number; s: number; n: number; t: string; x?: boolean; touches?: number }
+export interface Panel { tf: string; header: string; bars: Bar[]; zones: Band[]; lines?: Lines | null; note?: string; tls?: TLine[] }
 export interface ChartModel { sym: string; title: string; digits: number; price: number; panels: Panel[]; layout: 'quad' | 'single' }
 
 export const SIZE = 1280;
-const C = { bg: '#0B0C10', panel: '#11131A', border: '#232634', text: '#E5E7EB', mute: '#9CA3AF', violet: '#8B5CF6', demand: '#10B981', supply: '#EF4444', up: '#34D399', down: '#F87171', grid: '#1B1E2A' };
+const C = { bg: '#0B0C10', panel: '#11131A', border: '#232634', text: '#E5E7EB', mute: '#9CA3AF', violet: '#8B5CF6', demand: '#10B981', supply: '#EF4444', up: '#34D399', down: '#F87171', grid: '#1B1E2A', tl: '#C4B5FD' };
 const TF_SHORT: Record<string, string> = { H1: '1H', H4: '4H', D1: 'D1', W1: 'W1', MN: 'MN', '3M': '3M' };
 export const tfLabel = (tf: string) => TF_SHORT[tf] ?? tf;
 
@@ -93,8 +96,20 @@ function panelSvg(p: Panel, b: Box, m: ChartModel, i: number): string {
     if (lab && yb - yt >= 4) parts.push(`<text class="zlabel" x="${f1(plot.x + 8)}" y="${f1(Math.min(yb - 4, yt + 22))}" font-size="20" fill="${col}">${x(clip(lab, plot.w - 20))}</text>`);
   }
   out.push(`<g clip-path="url(#${cid})">${parts.join('')}`);
-  // candles
   const n = Math.max(p.bars.length, 1), step = plot.w / n, cw = Math.max(1.5, step * 0.62);
+  // trendlines (thin, lightly labelled)
+  for (const t of p.tls ?? []) {
+    let kLast = -1;
+    for (let k = 0; k < p.bars.length; k++) if (p.bars[k].t <= t.t) kLast = k;
+    if (kLast < 0 || !Number.isFinite(t.p) || !Number.isFinite(t.s)) continue;
+    const k0 = Math.max(0, kLast - Math.max(1, t.n)), k1 = p.bars.length - 1;
+    const xa = plot.x + step * (k0 + 0.5), xb = plot.x + step * (k1 + 1);
+    const ya = g.y(t.p + t.s * (k0 - kLast)), yb = g.y(t.p + t.s * (k1 + 0.5 - kLast));
+    out.push(`<line class="tl ${t.dir > 0 ? 'up' : 'down'}" x1="${f1(xa)}" y1="${f1(ya)}" x2="${f1(xb)}" y2="${f1(yb)}" stroke="${C.tl}" stroke-width="1.8" stroke-opacity="0.85"${t.x ? ' stroke-dasharray="8 6"' : ''}/>`);
+    const lx = Math.min(xb - 6, plot.x + plot.w - 6), ly = Math.min(Math.max(yb + (t.dir > 0 ? 24 : -8), plot.y + 20), plot.y + plot.h - 6);
+    out.push(`<text class="tllabel" x="${f1(lx)}" y="${f1(ly)}" font-size="20" text-anchor="end" fill="${C.tl}" fill-opacity="0.8">${x(`${tfLabel(p.tf)} ${t.dir > 0 ? 'up' : 'down'} trendline${t.x ? ' (broken)' : ''}`)}</text>`);
+  }
+  // candles
   for (let k = 0; k < p.bars.length; k++) {
     const r = p.bars[k];
     const cx = plot.x + step * (k + 0.5);
@@ -142,7 +157,7 @@ export function renderSvg(m: ChartModel): string {
     + `<text x="16" y="48" font-size="34" font-weight="600" fill="${C.text}">${x(m.title)}</text>`
     + `<text x="${SIZE - 16}" y="48" font-size="22" text-anchor="end" fill="${C.violet}">RamanFX</text>`
     + body
-    + `<text x="16" y="${SIZE - 14}" font-size="20" fill="${C.mute}">Shaded = zones (green demand, red supply) · violet outline = hosts the lower-TF zone · dashed violet = price</text>`
+    + `<text x="16" y="${SIZE - 14}" font-size="20" fill="${C.mute}">Shaded = zones · violet outline = hosts the lower-TF zone · dashed violet = price · thin lilac = trendline</text>`
     + `<text x="${SIZE - 16}" y="${SIZE - 14}" font-size="20" text-anchor="end" fill="${C.mute}">not advice</text>`
     + '</svg>';
 }

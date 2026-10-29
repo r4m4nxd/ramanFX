@@ -552,7 +552,8 @@ export interface ChartData { model: ChartModel; v: string; market: 'fx' | 'stock
 /** Panels for the given timeframes: key zone per TF (nearest), the host of the next-lower key zone outlined, trade
  *  lines on the entry TF, higher-TF zones lighter in the single view. */
 export function buildPanels(tfs: string[], bars: Record<string, Bar[]>, zones: Zn[], price: number, digits: number,
-  sig: { tf: string; entry?: number; stop?: number; target?: number; kind?: string } | null, layout: 'quad' | 'single', zoneTfOf: (tf: string) => string = t => t): Panel[] {
+  sig: { tf: string; entry?: number; stop?: number; target?: number; kind?: string } | null, layout: 'quad' | 'single', zoneTfOf: (tf: string) => string = t => t,
+  tls: Record<string, unknown> = {}): Panel[] {
   const fmt = (v: number) => v.toFixed(digits);
   const keys = tfs.map(tf => zones.filter(z => z.tf === zoneTfOf(tf)).sort((a, b) => zDist(price, a) - zDist(price, b))[0] ?? null);
   return tfs.map((tf, i) => {
@@ -570,7 +571,9 @@ export function buildPanels(tfs: string[], bars: Record<string, Bar[]>, zones: Z
     }
     const header = key ? `${ztf !== tf ? `${tfLabel(ztf)} ` : ''}${key.side} ${fmt(key.prox)}–${fmt(key.dist)} · ${zoneStatus(placement(price, key.prox, key.dist), key.side, '')}` : 'no zone in view';
     const lines = sig && sig.tf === tf ? { entry: sig.entry, stop: sig.stop, target: sig.target, kind: sig.kind } : null;
-    return { tf, header, bars: (bars[tf] ?? []).slice(layout === 'quad' ? -60 : -90), zones: bands, lines,
+    const tl = arr(tls[tf]).filter(t => num(t?.p) != null && num(t?.s) != null && num(t?.n) != null && typeof t?.t === 'string')
+      .map(t => ({ dir: t.dir > 0 ? 1 : -1, p: t.p, s: t.s, n: t.n, t: t.t, x: !!t.x }));
+    return { tf, header, bars: (bars[tf] ?? []).slice(layout === 'quad' ? -60 : -90), zones: bands, lines, tls: tl,
       note: ztf !== tf ? `no ${tfLabel(tf)} zones: ${tfLabel(ztf)} zones shown` : undefined };
   });
 }
@@ -597,7 +600,7 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
     const t = parseUtc(fx.h1_close_utc ?? fx.generated);
     const when = t ? clock(t) : '';
     return { market: 'fx', sym: hit.sym, view, v: String(fx.generated ?? '').replace(/[^0-9]/g, '').slice(0, 14), when,
-      model: { sym: hit.sym, digits, price, layout, title: `${hit.sym} · ${price.toFixed(digits)}${when ? ` · ${when}` : ''}`, panels: buildPanels(tfs, bars, zones, price, digits, sig, layout) } };
+      model: { sym: hit.sym, digits, price, layout, title: `${hit.sym} · ${price.toFixed(digits)}${when ? ` · ${when}` : ''}`, panels: buildPanels(tfs, bars, zones, price, digits, sig, layout, t => t, obj(d.tls)) } };
   }
   const [sh, st] = [obj(await ctx.load(`scanner/t/${hit.row.k}.json`)), obj(await ctx.load('scanner/latest.json'))];
   const d = obj(obj(sh.tickers)[hit.sym]);
@@ -615,7 +618,7 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
   const when = d.date ? `${dayOfIso(String(d.date))} close` : '';
   return { market: 'stock', sym: hit.sym, view, v: String(st.generated_at ?? '').replace(/[^0-9]/g, '').slice(0, 14), when,
     model: { sym: hit.sym, digits: 2, price, layout, title: `${hit.sym} · ${price.toFixed(2)}${when ? ` · ${when}` : ''}`,
-      panels: buildPanels(tfs, bars, zoneList(arr(d.zones)), price, 2, sig, layout, t => (t === 'D1' ? 'W1' : t)) } };
+      panels: buildPanels(tfs, bars, zoneList(arr(d.zones)), price, 2, sig, layout, t => (t === 'D1' ? 'W1' : t), obj(d.tls)) } };
 }
 
 async function cmdChart(q: string, tfArg: string, ctx: Ctx): Promise<Reply> {
