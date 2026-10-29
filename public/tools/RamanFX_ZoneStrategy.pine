@@ -1,0 +1,339 @@
+//@version=6
+// RamanFX Zone Strategy - automatic backtest of the ZoneVision / ZoneBot rules (Kevin + Sam Seiden supply & demand).
+// Limit order at the proximal line of a fresh, qualified zone with the HTF trend; stop beyond the distal; target the
+// nearest fresh opposing zone. Management: +1R stop to -0.5R, +2R break-even. Cancel if price runs 80% to target first.
+// Trendline-based checks (channel 50%, "at the trendline") are NOT in this backtest - they need the full chart history.
+strategy("RamanFX Zone Strategy", shorttitle="ZoneStrategy", overlay=true, initial_capital=10000, currency=currency.USD,
+     default_qty_type=strategy.fixed, pyramiding=0, process_orders_on_close=false, calc_on_every_tick=false,
+     slippage=2, commission_type=strategy.commission.cash_per_order, commission_value=0, max_boxes_count=100, max_lines_count=100, max_bars_back=2000)
+
+// ---------- inputs ----------
+gR = "Zone rules (same as ZoneVision)"
+legRatio   = input.float(1.5, "Move-away range / largest base candle", minval=1.0, step=0.1, group=gR)
+maxBase    = input.int(6, "Max basing candles", minval=1, maxval=6, group=gR)
+maxZoneATR = input.float(1.5, "Max zone height (x ATR14)", minval=0.2, step=0.1, group=gR)
+minDep     = input.float(1.5, "Departure: price must leave >= N x zone height", minval=0.0, step=0.1, group=gR)
+emoATR     = input.float(3.0, "Emotional candle (range > N x ATR): its wick does not remove a zone", minval=1, step=0.5, group=gR)
+onlyChain  = input.bool(true, "Only zones in the chain (removed an opposing zone or made a new high / low)", group=gR)
+minGap     = input.float(0.15, "Space under the stay-away candle (x zone height): below = not traded", minval=0, step=0.05, group=gR)
+minSizeMed = input.float(0.5, "Zone smaller than N x the median zone = not traded", minval=0, step=0.1, group=gR)
+maxAge     = input.int(300, "Ignore zones older than (bars)", minval=50, maxval=2000, group=gR)
+
+gT = "Trade rules"
+htfIn      = input.timeframe("", "HTF (empty = auto: 5m>1H, 15m>4H, 1H>D, 4H>W, D>M)", group=gT)
+withTrend  = input.bool(true, "Only with the HTF trend", group=gT)
+liveATR    = input.float(2.0, "Only zones within N x HTF ATR of price", minval=0.5, step=0.5, group=gT)
+minRR      = input.float(2.0, "Min reward : risk", minval=1.0, step=0.1, group=gT)
+gradeF     = input.string("All", "Grades to trade", options=["All", "A only", "A + B", "B only", "C only"], group=gT)
+riskPct    = input.float(1.0, "Risk per trade (% of equity)", minval=0.1, step=0.1, group=gT)
+halfC      = input.bool(true, "Half risk on grade C", group=gT)
+bufMult    = input.float(1.0, "Stop buffer multiplier (gold / oil get x2 automatically)", minval=0.5, step=0.5, group=gT)
+manage     = input.bool(true, "Kevin's management: +1R stop to -0.5R, +2R break-even", group=gT)
+cancel80   = input.bool(true, "Cancel the limit if price runs 80% to target before the fill", group=gT)
+showZones  = input.bool(true, "Draw the traded zone", group=gT)
+
+// ---------- helpers ----------
+atr = ta.atr(14)
+rng(i) => high[i] - low[i]
+bod(i) => math.abs(close[i] - open[i])
+basing(i) => rng(i) > 0 and bod(i) <= 0.5 * rng(i)
+cdir(i) => close[i] > open[i] ? 1 : close[i] < open[i] ? -1 : 0
+tfs = timeframe.in_seconds()
+autoHtf = tfs <= 60 ? "15" : tfs <= 300 ? "60" : tfs <= 900 ? "240" : tfs <= 3600 ? "D" : tfs <= 14400 ? "W" : tfs <= 86400 ? "M" : "12M"
+htf = htfIn == "" ? autoHtf : htfIn
+bufPips = tfs <= 60 ? 1.0 : tfs <= 300 ? 1.5 : tfs <= 900 ? 3.0 : tfs <= 3600 ? 5.0 : tfs <= 14400 ? 10.0 : tfs <= 86400 ? 20.0 : tfs <= 604800 ? 40.0 : 80.0
+pip = syminfo.mintick * (syminfo.type == "forex" ? 10 : 1)
+symU = str.upper(syminfo.ticker)
+metalOil = str.contains(symU, "XAU") or str.contains(symU, "GOLD") or str.contains(symU, "XAG") or str.contains(symU, "OIL") or str.contains(symU, "WTI") or str.contains(symU, "BRENT") or str.contains(symU, "XTI") or str.contains(symU, "XBR")
+// risk sizing in account money: price distance x point value, converted from the quote currency (e.g. JPY) to the account currency
+fxRate = nz(request.currency_rate(syminfo.currency, strategy.account_currency), 1.0)
+allHi = ta.max(high)
+allLo = ta.min(low)
+
+f_trend() =>
+    ph = ta.pivothigh(2, 2)
+    pl = ta.pivotlow(2, 2)
+    h1 = ta.valuewhen(not na(ph), ph, 0)
+    h2 = ta.valuewhen(not na(ph), ph, 1)
+    l1 = ta.valuewhen(not na(pl), pl, 0)
+    l2 = ta.valuewhen(not na(pl), pl, 1)
+    h1 > h2 and l1 > l2 ? 1 : h1 < h2 and l1 < l2 ? -1 : close > h1 ? 1 : close < l1 ? -1 : 0
+// [1] + lookahead_on = the last CLOSED HTF bar: no peeking into the future
+[htfTrend, htfHi, htfLo, htfAtr] = request.security(syminfo.tickerid, htf, [f_trend()[1], ta.highest(high, 100)[1], ta.lowest(low, 100)[1], ta.atr(14)[1]], lookahead=barmerge.lookahead_on)
+
+// ---------- zones (identical detection to ZoneVision) ----------
+type Zone
+    int dir
+    float prox
+    float dist
+    int t0
+    int legBar
+    int baseN
+    float ratio
+    bool erc
+    bool cont
+    bool tested
+    bool removed
+    int remBar
+    float pen
+    float far
+    bool back
+    float gap
+    bool ath
+    bool leg2
+    bool chain
+    bool chainDone
+    bool used
+
+var zones = array.new<Zone>()
+
+if barstate.isconfirmed
+    for z in zones
+        if not z.removed
+            h = math.abs(z.prox - z.dist)
+            if z.dir > 0
+                if close < z.dist or (low < z.dist and rng(0) <= emoATR * atr)
+                    z.removed := true
+                    z.remBar := bar_index
+                else if low <= z.prox and bar_index > z.legBar + 1
+                    z.tested := true
+                    z.back := true
+                    z.pen := math.max(z.pen, (z.prox - low) / h)
+                if not z.back
+                    z.far := math.max(z.far, high)
+            else
+                if close > z.dist or (high > z.dist and rng(0) <= emoATR * atr)
+                    z.removed := true
+                    z.remBar := bar_index
+                else if high >= z.prox and bar_index > z.legBar + 1
+                    z.tested := true
+                    z.back := true
+                    z.pen := math.max(z.pen, (high - z.prox) / h)
+                if not z.back
+                    z.far := math.min(z.far, low)
+    // chain rule, decided once, 5 bars after the move away: removed an opposing zone, or made a new high / low
+    for z in zones
+        if not z.chainDone and bar_index >= z.legBar + 5
+            bool q = z.ath
+            if not q
+                for o in zones
+                    if o.dir != z.dir and o.removed and not na(o.remBar) and o.remBar >= z.t0 and o.remBar <= z.legBar + 5
+                        q := true
+                        break
+            z.chain := q
+            z.chainDone := true
+
+// new zone: bar[1] = move away, bars[2..] = base, bar[0] = stay-away candle
+if barstate.isconfirmed and bar_index > 20
+    lr = rng(1)
+    d = cdir(1)
+    if lr > 0 and not basing(1) and d != 0
+        k = 0
+        mb = 0.0
+        for j = 2 to maxBase + 1
+            if basing(j)
+                k += 1
+                mb := math.max(mb, rng(j))
+            else
+                break
+        if k > 0 and mb > 0 and lr / mb >= legRatio
+            px = d > 0 ? -1e10 : 1e10
+            ds = d > 0 ? 1e10 : -1e10
+            for j = 2 to k + 1
+                if d > 0
+                    px := math.max(px, math.max(open[j], close[j]))
+                    ds := math.min(ds, low[j])
+                else
+                    px := math.min(px, math.min(open[j], close[j]))
+                    ds := math.max(ds, high[j])
+            ds := d > 0 ? math.min(ds, low[1]) : math.max(ds, high[1])
+            h = math.abs(px - ds)
+            stay = d > 0 ? low > px : high < px
+            if h > 0 and h <= maxZoneATR * atr[1] and stay
+                ercOk = bod(1) / lr >= 0.6 and (d > 0 ? (close[1] - low[1]) / lr >= 0.8 : (high[1] - close[1]) / lr >= 0.8)
+                zones.push(Zone.new(d, px, ds, bar_index - k - 1, bar_index - 1, k, lr / mb, ercOk, cdir(k + 2) == d, false, false, na, 0.0, d > 0 ? math.max(high, high[1]) : math.min(low, low[1]), false, (d > 0 ? low - px : px - high) / h, d > 0 ? math.max(high, high[1]) > allHi[2] : math.min(low, low[1]) < allLo[2], not basing(0) and cdir(0) == d and rng(0) >= mb * legRatio, false, false, false))
+                if zones.size() > 200
+                    zones.shift()
+
+dep(Zone z) => math.abs(z.far - z.prox) / math.max(math.abs(z.prox - z.dist), syminfo.mintick)
+usable(Zone z) => not z.removed and z.pen <= 0.25 and dep(z) >= minDep and z.legBar >= bar_index - maxAge and z.chainDone
+
+// planner points, same weights as ZoneVision (liquidity trap left out to keep the backtest fast)
+scoreZone(Zone z, float risk) =>
+    depth = htfHi > htfLo ? (z.dir > 0 ? (z.prox - htfLo) / (htfHi - htfLo) * 100 : (htfHi - z.prox) / (htfHi - htfLo) * 100) : 50.0
+    bool nearOpp = false
+    n = zones.size()
+    if n > 0
+        for i = n - 1 to math.max(0, n - 60)
+            o = zones.get(i)
+            if usable(o) and o.dir != z.dir and z.dir * (o.prox - z.prox) > 0 and z.dir * (o.prox - z.prox) < 1.5 * risk
+                nearOpp := true
+                break
+    aplus = z.erc and z.ratio >= 2.5
+    sc = (aplus ? 24 : 14) + (z.baseN <= 3 ? 14 : z.baseN <= 6 ? 4 : 0) + (z.baseN == 1 ? 2 : 0) + (z.chain ? 10 : 0) + (not z.tested ? 8 : 0) + (bar_index - z.legBar <= 100 ? 4 : 0)
+    sc += (htfTrend == z.dir ? 14 : htfTrend == 0 ? 5 : 0) + (nearOpp ? 0 : 6) + math.round(math.max(0, math.min(1, (100 - depth) / 100)) * 6) + (z.cont ? 0 : 4) + (dep(z) >= 2 ? 3 : 0)
+    sc += (z.gap >= 0.5 ? 4 : z.gap >= 0.25 ? 2 : 0) + (z.leg2 ? 3 : 0) + (z.ath ? 3 : 0)
+    math.min(100, sc)
+gradeOf(int sc) => sc >= 75 ? "A" : sc >= 60 ? "B" : "C"
+gradeOk(string g) => gradeF == "All" or (gradeF == "A only" and g == "A") or (gradeF == "A + B" and g != "C") or (gradeF == "B only" and g == "B") or (gradeF == "C only" and g == "C")
+
+// ---------- order state ----------
+var bool pending = false
+var int pDir = 0
+var float pEntry = na
+var float pStop = na
+var float pTp = na
+var float pRisk = na
+var string pGrade = ""
+var string pType = ""
+var int pZone = -1
+var float curStop = na
+var bool moved1 = false
+var bool moved2 = false
+var int lastClosed = 0
+// results by grade and by type: trades, wins, total R
+var statN = array.new<int>(5, 0)       // A, B, C, VP, CP
+var statW = array.new<int>(5, 0)
+var statR = array.new<float>(5, 0.0)
+var box zbox = na
+
+addStat(int i, float r) =>
+    statN.set(i, statN.get(i) + 1)
+    statW.set(i, statW.get(i) + (r > 0 ? 1 : 0))
+    statR.set(i, statR.get(i) + r)
+
+if barstate.isconfirmed
+    // a trade closed: record its R against the grade and type it was opened with
+    if strategy.closedtrades > lastClosed
+        for t = lastClosed to strategy.closedtrades - 1
+            ep = strategy.closedtrades.entry_price(t)
+            xp = strategy.closedtrades.exit_price(t)
+            r = pRisk > 0 ? pDir * (xp - ep) / pRisk : 0.0
+            addStat(pGrade == "A" ? 0 : pGrade == "B" ? 1 : 2, r)
+            addStat(pType == "VP" ? 3 : 4, r)
+        lastClosed := strategy.closedtrades
+        pending := false
+        moved1 := false
+        moved2 := false
+
+    if strategy.position_size != 0
+        pending := false
+        // Kevin's management on the open trade
+        if manage
+            best = pDir > 0 ? high - pEntry : pEntry - low
+            if not moved1 and best >= pRisk
+                curStop := pEntry - pDir * 0.5 * pRisk
+                moved1 := true
+            if not moved2 and best >= 2 * pRisk
+                curStop := pEntry
+                moved2 := true
+            strategy.exit("exit", from_entry="zone", stop=curStop, limit=pTp)
+    else if pending
+        // cancel: price ran 80% to target first, or the zone was removed
+        ran = pDir > 0 ? high >= pEntry + 0.8 * (pTp - pEntry) : low <= pEntry - 0.8 * (pEntry - pTp)
+        zoneGone = pZone >= 0 and pZone < zones.size() ? zones.get(pZone).removed : true
+        if (cancel80 and ran) or zoneGone
+            strategy.cancel("zone")
+            strategy.cancel("exit")
+            pending := false
+
+    // look for the best new setup when flat and nothing pending
+    if strategy.position_size == 0 and not pending and zones.size() > 0
+        float medZ = 0.0
+        hs = array.new<float>()
+        for z in zones
+            if not z.removed
+                hs.push(math.abs(z.prox - z.dist))
+        if hs.size() >= 4
+            medZ := hs.median()
+        int bi = -1
+        float bSc = -1.0
+        float bE = na
+        float bS = na
+        float bT = na
+        n = zones.size()
+        for i = n - 1 to math.max(0, n - 60)
+            z = zones.get(i)
+            if not usable(z) or z.used
+                continue
+            if onlyChain and not z.chain
+                continue
+            if z.gap < minGap or (medZ > 0 and math.abs(z.prox - z.dist) < minSizeMed * medZ)
+                continue
+            if withTrend and z.dir != htfTrend
+                continue
+            if z.dir > 0 ? close <= z.prox : close >= z.prox
+                continue
+            if na(htfAtr) or math.abs(close - z.prox) > liveATR * htfAtr
+                continue
+            buf = bufPips * pip * bufMult * (metalOil ? 2.0 : 1.0)
+            e = z.prox
+            s = z.dist - z.dir * buf
+            risk = math.abs(e - s)
+            // target: nearest fresh opposing zone beyond the entry
+            float tp = na
+            for j = n - 1 to math.max(0, n - 60)
+                o = zones.get(j)
+                if usable(o) and o.dir != z.dir and z.dir * (o.prox - e) > 0
+                    tp := na(tp) ? o.prox : (z.dir > 0 ? math.min(tp, o.prox) : math.max(tp, o.prox))
+            if na(tp) or risk <= 0 or math.abs(tp - e) / risk < minRR
+                continue
+            sc = scoreZone(z, risk)
+            if not gradeOk(gradeOf(sc))
+                continue
+            rank = sc + 10.0 * (1 - math.min(1, math.abs(close - z.prox) / (3 * atr)))
+            if rank > bSc
+                bSc := rank
+                bi := i
+                bE := e
+                bS := s
+                bT := tp
+        if bi >= 0
+            z = zones.get(bi)
+            g = gradeOf(scoreZone(z, math.abs(bE - bS)))
+            riskMoney = strategy.equity * riskPct / 100 * (halfC and g == "C" ? 0.5 : 1.0)
+            qty = riskMoney / (math.abs(bE - bS) * syminfo.pointvalue * fxRate)
+            if qty > 0
+                strategy.entry("zone", z.dir > 0 ? strategy.long : strategy.short, qty=qty, limit=bE, comment=(z.dir > 0 ? "BUY " : "SELL ") + g + (z.cont ? " CP" : " VP"))
+                strategy.exit("exit", from_entry="zone", stop=bS, limit=bT)
+                pending := true
+                pDir := z.dir
+                pEntry := bE
+                pStop := bS
+                pTp := bT
+                pRisk := math.abs(bE - bS)
+                pGrade := g
+                pType := z.cont ? "CP" : "VP"
+                pZone := bi
+                curStop := bS
+                moved1 := false
+                moved2 := false
+                z.used := true      // one attempt per zone
+                if showZones
+                    zbox := box.new(z.t0, z.prox, bar_index + 10, z.dist, border_color=z.dir > 0 ? color.new(#5FD08A, 30) : color.new(#FF8A7A, 30), bgcolor=z.dir > 0 ? color.new(#5FD08A, 85) : color.new(#FF8A7A, 85), text=g + (z.cont ? " CP" : " VP"), text_color=color.new(#C9CED8, 0), text_size=size.small)
+
+// the zones array shifts when it is full, so a pending zone index can move: re-find it by its prices
+if pending and pZone >= 0 and pZone < zones.size()
+    zz = zones.get(pZone)
+    if zz.prox != pEntry
+        pZone := -1
+        for i = 0 to zones.size() - 1
+            if zones.get(i).prox == pEntry
+                pZone := i
+                break
+
+// ---------- results by grade / type (the Strategy Tester tab has the overall numbers) ----------
+var table res = table.new(position.top_right, 5, 7, bgcolor=color.new(#000000, 70), frame_color=color.new(#C9CED8, 80), frame_width=1)
+if barstate.islast
+    hdr = array.from("", "Trades", "Win %", "Avg R", "Total R")
+    for c = 0 to 4
+        table.cell(res, c, 0, hdr.get(c), text_color=#7FB2FF, text_size=size.small)
+    names = array.from("Grade A", "Grade B", "Grade C", "VP zones", "CP zones")
+    for i = 0 to 4
+        nn = statN.get(i)
+        table.cell(res, 0, i + 1, names.get(i), text_color=#C9CED8, text_size=size.small, text_halign=text.align_left)
+        table.cell(res, 1, i + 1, str.tostring(nn), text_color=#C9CED8, text_size=size.small)
+        table.cell(res, 2, i + 1, nn > 0 ? str.tostring(100.0 * statW.get(i) / nn, "#") + "%" : "-", text_color=#C9CED8, text_size=size.small)
+        table.cell(res, 3, i + 1, nn > 0 ? str.tostring(statR.get(i) / nn, "#.00") : "-", text_color=statR.get(i) >= 0 ? #7EE0A0 : #FF8C8C, text_size=size.small)
+        table.cell(res, 4, i + 1, str.tostring(statR.get(i), "#.0"), text_color=statR.get(i) >= 0 ? #7EE0A0 : #FF8C8C, text_size=size.small)
+    table.cell(res, 0, 6, "HTF " + htf + " | risk " + str.tostring(riskPct) + "% | min 1:" + str.tostring(minRR), text_color=#8B94A5, text_size=size.tiny, text_halign=text.align_left)

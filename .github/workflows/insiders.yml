@@ -1,0 +1,96 @@
+name: Insider buys
+
+# Insider cluster buys (tools/insiders/insiders.py): SEC EDGAR Form 4 open-market purchases (code P) by 2+ insiders of
+# the same company within 14 days, or one CEO / CFO buy >= $250k, scored with the stock scanner's zone context. Every
+# 30 min on US weekdays 6:00-20:00 New York; the trader-coach edge function's 10-minute scheduler
+# (supabase/functions/trader-coach/scheduler.ts) dispatches the same slots (GitHub drops many scheduled runs).
+# SEC User-Agent: the SEC_UA secret, else the SEC_CONTACT repository variable; neither -> SEC is skipped (logged).
+# State (seen accession numbers, parsed buys, alerts) in the actions cache (tools/insiders/.cache). The output
+# public/insiders/latest.json is committed to the `data` branch only (never main: Vercel counts every main push, even
+# ignored builds); the app, the bot and the brief read it from raw.githubusercontent.com/.../data/public/insiders. sample=true sends ONE '🧪 Sample insider buys' message (the top
+# clusters) instead of alerts; backfill_min sets the daily-index backfill budget (minutes; the first runs fill 30 days).
+on:
+  schedule:
+    - cron: '7,37 10-23 * * 1-5'
+    - cron: '7,37 0 * * 2-6'
+  workflow_dispatch:
+    inputs:
+      sample:
+        description: "Send ONE '🧪 Sample insider buys' message (top clusters), no alerts"
+        type: boolean
+        default: false
+      backfill_min:
+        description: 'Minutes for the daily-index backfill (default 4; 50 fills the 30 days at once)'
+        required: false
+        default: '4'
+
+permissions:
+  contents: write                 # public/insiders/latest.json for the app and the bot
+
+concurrency:
+  group: insiders
+  cancel-in-progress: false
+
+jobs:
+  insiders:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      PYTHONTZPATH: ''
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Data (public/insiders, the scans, fundamentals) from the `data` branch, never main: scripts/data-branch.sh,
+      # .github/workflows/README.md.
+      - name: Data from the data branch
+        run: bash scripts/data-branch.sh pull
+
+      - name: Current time-zone data
+        run: python -m pip install --quiet --upgrade tzdata
+
+      - name: Restore state
+        uses: actions/cache/restore@v4
+        with:
+          path: tools/insiders/.cache
+          key: insiders-${{ github.run_id }}
+          restore-keys: |
+            insiders-
+
+      - name: Unit tests
+        run: python -m unittest discover -s tools/insiders/tests
+
+      - name: Insider buys
+        timeout-minutes: 65
+        run: |
+          ARGS=(--backfill-min "${BACKFILL_MIN:-4}")
+          if [ "$SAMPLE" = "true" ]; then ARGS+=(--sample); fi
+          python tools/insiders/insiders.py "${ARGS[@]}"
+        env:
+          SAMPLE: ${{ github.event.inputs.sample }}
+          BACKFILL_MIN: ${{ github.event.inputs.backfill_min }}
+          SEC_UA: ${{ secrets.SEC_UA }}
+          SEC_CONTACT: ${{ vars.SEC_CONTACT }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+      - name: Save state
+        if: ${{ always() && hashFiles('tools/insiders/.cache/state.json') != '' }}
+        uses: actions/cache/save@v4
+        with:
+          path: tools/insiders/.cache
+          key: insiders-${{ github.run_id }}
+
+      - name: Publish to the data branch
+        if: ${{ hashFiles('public/insiders/latest.json') != '' }}
+        run: |
+          git config user.name "ramanfx-insiders[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bash scripts/data-branch.sh push "insiders: $(date -u +%Y-%m-%dT%H:%MZ)" public/insiders \
+            || { echo "::error::insider buys not pushed"; exit 1; }

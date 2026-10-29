@@ -1,0 +1,671 @@
+[
+ {
+  "id": "p322-001",
+  "src": "/lessons/seiden/p322-001.jpg",
+  "mentor": "seiden",
+  "lesson": 321,
+  "title": "SPY: rally into stacked supply",
+  "maskX": 0.72,
+  "plot": {
+   "x0": 0.0,
+   "x1": 0.934,
+   "y0": 0.06,
+   "y1": 0.86
+  },
+  "axis": {
+   "y1": 0.217,
+   "p1": 119.0,
+   "y2": 0.785,
+   "p2": 118.0
+  },
+  "path": [
+   0.19,
+   0.33,
+   0.27,
+   0.36,
+   0.3,
+   0.45,
+   0.42,
+   0.62,
+   0.58,
+   0.86
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.205,
+   "sl": 0.065,
+   "tp": 0.557,
+   "why": "Price rallied straight into a supply level with a second supply level sitting right above it (levels on top of levels); the novice buyers there are the liquidity for a low-risk short with room down to the morning low."
+  },
+  "zone": {
+   "y0": 0.071,
+   "y1": 0.217,
+   "x0": 0.03
+  },
+  "pattern": "stacked-levels"
+ },
+ {
+  "id": "p325-003",
+  "src": "/lessons/seiden/p325-003.jpg",
+  "mentor": "seiden",
+  "lesson": 324,
+  "title": "S&P monthly: back to wholesale demand",
+  "maskX": 0.86,
+  "plot": {
+   "x0": 0.01,
+   "x1": 0.93,
+   "y0": 0.06,
+   "y1": 0.93
+  },
+  "axis": {
+   "y1": 0.136,
+   "p1": 1500,
+   "y2": 0.845,
+   "p2": 700
+  },
+  "path": [
+   0.87,
+   0.48,
+   0.56,
+   0.4
+  ],
+  "truth": {
+   "side": "buy",
+   "entry": 0.857,
+   "sl": 0.9,
+   "tp": 0.336,
+   "why": "The March 2009 collapse reached the monthly demand at the base of the 1990s rally - wholesale price on the worst news, with a huge profit margin up to the retail supply at the origin of the 2008 decline."
+  },
+  "zone": {
+   "y0": 0.857,
+   "y1": 0.89,
+   "x0": 0.01
+  },
+  "pattern": "other"
+ },
+ {
+  "id": "p329-008",
+  "src": "/lessons/seiden/p329-008.jpg",
+  "mentor": "seiden",
+  "lesson": 328,
+  "title": "RIMM: All Star short at supply",
+  "maskX": 0.823,
+  "plot": {
+   "x0": 0.02,
+   "x1": 0.885,
+   "y0": 0.08,
+   "y1": 0.89
+  },
+  "axis": {
+   "y1": 0.134,
+   "p1": 75.0,
+   "y2": 0.8,
+   "p2": 69.0
+  },
+  "path": [
+   0.22,
+   0.44,
+   0.4,
+   0.53
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.256,
+   "sl": 0.2,
+   "tp": 0.733,
+   "why": "Price spiked back into fresh supply from the 4/15 high and pierced the upper Bollinger Band with a big margin down to demand - the All Star short, stop just above supply, target the demand below."
+  },
+  "zone": {
+   "y0": 0.216,
+   "y1": 0.256,
+   "x0": 0.3
+  },
+  "pattern": "RBD"
+ },
+ {
+  "id": "p343-014",
+  "src": "/lessons/seiden/p343-014.jpg",
+  "mentor": "seiden",
+  "lesson": 340,
+  "title": "ES 6/21/10: fade the intervention rally",
+  "maskX": 0.46,
+  "plot": {
+   "x0": 0.03,
+   "x1": 0.8,
+   "y0": 0.1,
+   "y1": 0.57
+  },
+  "axis": {
+   "y1": 0.188,
+   "p1": 1125,
+   "y2": 0.464,
+   "p2": 1110
+  },
+  "path": [
+   0.15,
+   0.2,
+   0.17,
+   0.26,
+   0.24,
+   0.35,
+   0.32,
+   0.44,
+   0.54
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.155,
+   "sl": 0.12,
+   "tp": 0.24,
+   "why": "The Yuan-intervention news gapped the market up and price based at the high; Seiden sold the first retest of that retail supply, expecting the news-driven move to reverse."
+  },
+  "zone": {
+   "y0": 0.13,
+   "y1": 0.157,
+   "x0": 0.24
+  },
+  "pattern": "RBD"
+ },
+ {
+  "id": "p346-016",
+  "src": "/lessons/seiden/p346-016.jpg",
+  "mentor": "seiden",
+  "lesson": 345,
+  "title": "ES: two supply levels after the gap",
+  "maskX": 0.66,
+  "plot": {
+   "x0": 0.01,
+   "x1": 0.877,
+   "y0": 0.1,
+   "y1": 0.89
+  },
+  "axis": {
+   "y1": 0.176,
+   "p1": 1128,
+   "y2": 0.781,
+   "p2": 1110
+  },
+  "path": [
+   0.24,
+   0.34,
+   0.27,
+   0.4,
+   0.36,
+   0.52,
+   0.48,
+   0.62,
+   0.58,
+   0.84
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.243,
+   "sl": 0.16,
+   "tp": 0.37,
+   "why": "Two supply levels side by side at 1,126-1,128 after a news rally far up the curve; the weak departure was offset by the big profit margin down to the gap origin, so short the return."
+  },
+  "zone": {
+   "y0": 0.167,
+   "y1": 0.248,
+   "x0": 0.386
+  },
+  "pattern": "stacked-levels"
+ },
+ {
+  "id": "p352-020",
+  "src": "/lessons/seiden/p352-020.jpg",
+  "mentor": "seiden",
+  "lesson": 349,
+  "title": "INTC: great earnings into supply",
+  "maskX": 0.935,
+  "plot": {
+   "x0": 0.01,
+   "x1": 0.955,
+   "y0": 0.05,
+   "y1": 0.92
+  },
+  "axis": {
+   "y1": 0.109,
+   "p1": 24.0,
+   "y2": 0.864,
+   "p2": 13.0
+  },
+  "path": [
+   0.11,
+   0.2,
+   0.16,
+   0.28,
+   0.27
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.109,
+   "sl": 0.08,
+   "tp": 0.307,
+   "why": "Quadrupled earnings gapped price straight into the origin of the huge 2008 decline; good news at supply is an invitation to sell, with targets at the prior swing levels below."
+  },
+  "zone": {
+   "y0": 0.088,
+   "y1": 0.109,
+   "x0": 0.01
+  },
+  "pattern": "novice-gap"
+ },
+ {
+  "id": "p354-022",
+  "src": "/lessons/seiden/p354-022.jpg",
+  "mentor": "seiden",
+  "lesson": 352,
+  "title": "BP: oil-spill collapse into fresh demand",
+  "maskX": 0.915,
+  "plot": {
+   "x0": 0.01,
+   "x1": 0.928,
+   "y0": 0.08,
+   "y1": 0.885
+  },
+  "axis": {
+   "y1": 0.155,
+   "p1": 75.0,
+   "y2": 0.819,
+   "p2": 30.0
+  },
+  "path": [
+   0.845,
+   0.78,
+   0.8,
+   0.695
+  ],
+  "truth": {
+   "side": "buy",
+   "entry": 0.845,
+   "sl": 0.885,
+   "tp": 0.7,
+   "why": "The spill news drove price through the grey area (traded through many times, not fresh) down to the fresh monthly demand at the 1996 base - the lowest-risk buy on the worst news."
+  },
+  "zone": {
+   "y0": 0.845,
+   "y1": 0.882,
+   "x0": 0.01
+  },
+  "pattern": "other"
+ },
+ {
+  "id": "p362-027",
+  "src": "/lessons/seiden/p362-027.jpg",
+  "mentor": "seiden",
+  "lesson": 356,
+  "title": "INTC: short the earnings gap, scale out",
+  "maskX": 0.906,
+  "plot": {
+   "x0": 0.01,
+   "x1": 0.959,
+   "y0": 0.04,
+   "y1": 0.93
+  },
+  "axis": {
+   "y1": 0.116,
+   "p1": 24.0,
+   "y2": 0.862,
+   "p2": 13.0
+  },
+  "path": [
+   0.12,
+   0.22,
+   0.16,
+   0.3,
+   0.24,
+   0.4,
+   0.32
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.116,
+   "sl": 0.085,
+   "tp": 0.293,
+   "why": "The earnings gap delivered price to the supply at the origin of the big decline; the belief-free reading is to sell there and scale out at T1, T2 and T3 below."
+  },
+  "zone": {
+   "y0": 0.09,
+   "y1": 0.116,
+   "x0": 0.06
+  },
+  "pattern": "novice-gap"
+ },
+ {
+  "id": "p376-034",
+  "src": "/lessons/seiden/p376-034.jpg",
+  "mentor": "seiden",
+  "lesson": 373,
+  "title": "ES: four-candle supply, amateur buying",
+  "maskX": 0.47,
+  "plot": {
+   "x0": 0.01,
+   "x1": 0.873,
+   "y0": 0.08,
+   "y1": 0.88
+  },
+  "axis": {
+   "y1": 0.222,
+   "p1": 1210,
+   "y2": 0.705,
+   "p2": 1190
+  },
+  "path": [
+   0.29,
+   0.66,
+   0.62,
+   0.79,
+   0.74,
+   0.77,
+   0.6,
+   0.7,
+   0.66,
+   0.82
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.277,
+   "sl": 0.2,
+   "tp": 0.705,
+   "why": "A small four-candle base right before a drop means little time at the level and a big imbalance; the rally back to it is amateur buying and the short entry."
+  },
+  "zone": {
+   "y0": 0.206,
+   "y1": 0.277,
+   "x0": 0.26
+  },
+  "pattern": "DBD"
+ },
+ {
+  "id": "p378-037",
+  "src": "/lessons/seiden/p378-037.jpg",
+  "mentor": "seiden",
+  "lesson": 377,
+  "title": "10-year T-note: sideways supply in a decline",
+  "maskX": 0.22,
+  "plot": {
+   "x0": 0.01,
+   "x1": 0.456,
+   "y0": 0.09,
+   "y1": 0.77
+  },
+  "axis": {
+   "y1": 0.248,
+   "p1": 126.25,
+   "y2": 0.729,
+   "p2": 125.6875
+  },
+  "path": [
+   0.27,
+   0.4,
+   0.36,
+   0.6,
+   0.46,
+   0.73
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.31,
+   "sl": 0.235,
+   "tp": 0.7,
+   "why": "Price paused sideways in the decline (drop-base-drop supply) and dropped away; the first rally back into the box is the short with a tight stop above it."
+  },
+  "zone": {
+   "y0": 0.248,
+   "y1": 0.31,
+   "x0": 0.11
+  },
+  "pattern": "DBD"
+ },
+ {
+  "id": "p384-041",
+  "src": "/lessons/seiden/p384-041.jpg",
+  "mentor": "seiden",
+  "lesson": 381,
+  "title": "ES bull trap above the high",
+  "maskX": 0.77,
+  "plot": {
+   "x0": 0.03,
+   "x1": 0.924,
+   "y0": 0.04,
+   "y1": 0.53
+  },
+  "axis": {
+   "y1": 0.19,
+   "p1": 1184,
+   "y2": 0.525,
+   "p2": 1172
+  },
+  "path": [
+   0.25,
+   0.33,
+   0.27,
+   0.31,
+   0.28,
+   0.47
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.253,
+   "sl": 0.184,
+   "tp": 0.441,
+   "why": "Price broke above the obvious prior (Globex) high straight into fresh supply at 1,182-1,184; breakout buyers supply the liquidity for a short with a stop at 1,184.25 and targets at 1,179 and 1,175."
+  },
+  "zone": {
+   "y0": 0.195,
+   "y1": 0.253,
+   "x0": 0.04
+  },
+  "pattern": "bull-trap"
+ },
+ {
+  "id": "p390-047",
+  "src": "/lessons/seiden/p390-047.jpg",
+  "mentor": "seiden",
+  "lesson": 388,
+  "title": "RIMM: All Star with T1 and T2",
+  "maskX": 0.545,
+  "plot": {
+   "x0": 0.02,
+   "x1": 0.925,
+   "y0": 0.07,
+   "y1": 0.92
+  },
+  "axis": {
+   "y1": 0.103,
+   "p1": 75.0,
+   "y2": 0.808,
+   "p2": 67.0
+  },
+  "path": [
+   0.21,
+   0.52,
+   0.33,
+   0.47,
+   0.35,
+   0.48,
+   0.4,
+   0.66,
+   0.62,
+   0.86
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.21,
+   "sl": 0.165,
+   "tp": 0.655,
+   "why": "The spike from demand reached the 4/15 supply above the upper Bollinger Band; short with the stop just above supply, T1 at the band midline and T2 at the demand that launched the spike."
+  },
+  "zone": {
+   "y0": 0.175,
+   "y1": 0.21,
+   "x0": 0.16
+  },
+  "pattern": "RBD"
+ },
+ {
+  "id": "p393-049",
+  "src": "/lessons/seiden/p393-049.jpg",
+  "mentor": "seiden",
+  "lesson": 391,
+  "title": "Two-candle supply vs the long base",
+  "maskX": 0.918,
+  "plot": {
+   "x0": 0.0,
+   "x1": 0.947,
+   "y0": 0.0,
+   "y1": 0.93
+  },
+  "axis": {
+   "y1": 0.06,
+   "p1": 140,
+   "y2": 0.839,
+   "p2": 132
+  },
+  "path": [
+   0.35,
+   0.68,
+   0.62,
+   0.635
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.337,
+   "sl": 0.28,
+   "tp": 0.62,
+   "why": "Supply 2 had many candles (balance) and broke on the return; Supply 1 had just two candles, so little time and a big imbalance - short the first retrace into it."
+  },
+  "zone": {
+   "y0": 0.287,
+   "y1": 0.337,
+   "x0": 0.03
+  },
+  "pattern": "failed-level"
+ },
+ {
+  "id": "p395-051",
+  "src": "/lessons/seiden/p395-051.jpg",
+  "mentor": "seiden",
+  "lesson": 394,
+  "title": "S&P: buy B while the MA says downtrend",
+  "maskX": 0.706,
+  "plot": {
+   "x0": 0.0,
+   "x1": 0.94,
+   "y0": 0.0,
+   "y1": 0.95
+  },
+  "axis": {
+   "y1": 0.193,
+   "p1": 1220,
+   "y2": 0.881,
+   "p2": 1120
+  },
+  "path": [
+   0.675,
+   0.47,
+   0.57,
+   0.3,
+   0.36,
+   0.06
+  ],
+  "truth": {
+   "side": "buy",
+   "entry": 0.671,
+   "sl": 0.72,
+   "tp": 0.146,
+   "why": "The A base was a sideways area followed by a dramatic rally (demand); B is the first return - a low-risk buy even though price is below the 200 MA and the 20 MA slopes down."
+  },
+  "zone": {
+   "y0": 0.671,
+   "y1": 0.703,
+   "x0": 0.04
+  },
+  "pattern": "DBR"
+ },
+ {
+  "id": "p398-052",
+  "src": "/lessons/seiden/p398-052.jpg",
+  "mentor": "seiden",
+  "lesson": 394,
+  "title": "BP: bad news into monthly demand",
+  "maskX": 0.89,
+  "plot": {
+   "x0": 0.01,
+   "x1": 0.95,
+   "y0": 0.08,
+   "y1": 0.88
+  },
+  "axis": {
+   "y1": 0.136,
+   "p1": 75.0,
+   "y2": 0.866,
+   "p2": 25.0
+  },
+  "path": [
+   0.83,
+   0.65,
+   0.69,
+   0.6,
+   0.63,
+   0.49,
+   0.54
+  ],
+  "truth": {
+   "side": "buy",
+   "entry": 0.826,
+   "sl": 0.87,
+   "tp": 0.668,
+   "why": "Strong bad news drove sellers to exhaustion right at fresh monthly demand at $26-28; buy where the last seller sells, with the stop just below the level."
+  },
+  "zone": {
+   "y0": 0.826,
+   "y1": 0.857,
+   "x0": 0.03
+  },
+  "pattern": "other"
+ },
+ {
+  "id": "p400-053",
+  "src": "/lessons/seiden/p400-053.jpg",
+  "mentor": "seiden",
+  "lesson": 394,
+  "title": "EUR/USD: novice buyer at supply",
+  "maskX": 0.72,
+  "plot": {
+   "x0": 0.0,
+   "x1": 0.86,
+   "y0": 0.06,
+   "y1": 0.82
+  },
+  "axis": {
+   "y1": 0.067,
+   "p1": 1.386,
+   "y2": 0.796,
+   "p2": 1.36
+  },
+  "path": [
+   0.17,
+   0.32,
+   0.22,
+   0.36,
+   0.27,
+   0.4,
+   0.57
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.165,
+   "sl": 0.07,
+   "tp": 0.57,
+   "why": "The rally returned to the supply at the origin of the earlier drop; the novice buys the strength there and Seiden sells to him, targeting the move back down toward 1.3675."
+  },
+  "zone": {
+   "y0": 0.085,
+   "y1": 0.165,
+   "x0": 0.03
+  },
+  "pattern": "RBD"
+ }
+]

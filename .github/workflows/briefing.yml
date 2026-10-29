@@ -1,0 +1,107 @@
+name: Morning brief
+
+# 6 AM Calgary weekday Telegram brief (tools/briefing/brief.py): yesterday's biggest candles (range / 20-bar ATR) across
+# the FX scanner instruments (OANDA) and the scanner stocks (Alpaca) with their zone context, today's high-impact events
+# and the busy window in Calgary time, Kevin's newest daily plan; then a short lesson of the day from the mentors.
+# GitHub cron is UTC and often late: several slots cover 6:00 AM Calgary at UTC-6 (12:00Z; Alberta's permanent offset
+# from 2026-11-01, tzdata 2026c+) and UTC-7 (13:00Z). The script decides by the Calgary clock and sends once per day
+# (tools/briefing/state.json, on the `data` branch), up to 45 min late, never after 7:30 AM; weekends and NYSE holidays are skipped.
+on:
+  schedule:
+    - cron: '55 11 * * 1-5'            # 5:55 Calgary at UTC-6 (no-op unless due)
+    - cron: '5,15,25,35 12 * * 1-5'    # 6:05-6:35 at UTC-6
+    - cron: '0,10,20,30 13 * * 1-5'    # 6:00-6:30 at UTC-7 (if Alberta ever observes MST again); late ticks at UTC-6
+  workflow_dispatch:
+    inputs:
+      test:
+        description: "Send ONE '🧪 Sample' brief + lesson now (no state change)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: briefing
+  cancel-in-progress: false
+
+jobs:
+  brief:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OANDA_ENV: ${{ vars.OANDA_ENV || 'practice' }}
+      PYTHONTZPATH: ''                   # use the PyPI tzdata (newest rules), not the runner image's
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main                      # code; the latest sent-state and published scans: the data branch (below)
+
+      # Data (dedupe / schedule state, the previous outputs, the other jobs' outputs) from the `data` branch, never main:
+      # scripts/data-branch.sh, .github/workflows/README.md.
+      - name: Data from the data branch
+        run: bash scripts/data-branch.sh pull
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Current time-zone data
+        run: python -m pip install --quiet --upgrade tzdata
+
+      - name: Tests (offline)
+        run: python -m unittest discover -s tools/briefing/tests
+
+      - name: Due now?
+        id: due
+        run: |
+          if [ "${IN_TEST}" = "true" ]; then echo "go=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          python - <<'EOF' >> "$GITHUB_OUTPUT"
+          import sys; sys.path.insert(0, 'tools/briefing')
+          import datetime as dt, json, brief as B
+          st = B.load_json(B.STATE_PATH, {}) or {}
+          what, day = B.decide(dt.datetime.now(dt.timezone.utc), st.get('sent') or {})
+          print(f'go={"true" if what == "send" else "false"}')
+          print(f'brief: {what} ({day})', file=sys.stderr)
+          EOF
+        env:
+          IN_TEST: ${{ github.event.inputs.test }}
+
+      - uses: actions/setup-node@v4
+        if: steps.due.outputs.go == 'true'
+        with:
+          node-version: '22'
+
+      - name: Export lessons (esbuild, no npm install)
+        if: steps.due.outputs.go == 'true'
+        continue-on-error: true          # without it the brief still goes out (Kevin plan via the TS fallback)
+        run: |
+          npx -y esbuild@0.21.5 tools/briefing/export_lessons.ts --bundle --platform=node --format=esm \
+            --tsconfig=tsconfig.json --log-level=warning --outfile=tools/briefing/.cache/export.mjs
+          node tools/briefing/.cache/export.mjs tools/briefing/.cache/lessons.json
+
+      - name: Brief
+        if: steps.due.outputs.go == 'true'
+        timeout-minutes: 10
+        run: |
+          args=""
+          [ "${IN_TEST}" = "true" ] && args="--test"
+          python tools/briefing/brief.py $args
+        env:
+          IN_TEST: ${{ github.event.inputs.test }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          OANDA_API_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
+          ALPACA_KEY_ID: ${{ secrets.ALPACA_KEY_ID }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+          REMINDER_CONTACT: ${{ vars.REMINDER_CONTACT }}
+          WATCHLIST: ${{ secrets.WATCHLIST }}          # earnings heads-up: watched + held stocks
+          HOLDINGS_JSON: ${{ secrets.HOLDINGS_JSON }}
+
+      - name: Save sent state + lesson rotation
+        if: ${{ !cancelled() && steps.due.outputs.go == 'true' && github.event.inputs.test != 'true' }}
+        run: |
+          git config user.name "ramanfx-scanner[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bash scripts/data-branch.sh push "briefing: state $(date -u +%Y-%m-%dT%H:%MZ)" tools/briefing/state.json \
+            || { echo "::error::brief state not pushed (the brief may repeat)"; exit 1; }

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+  <meta name="theme-color" content="#0B0C10" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/favicon.ico" sizes="48x48" />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-title" content="RamanFX" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+    /* Opening animation: the demand base sweeps in, the candle rises, the R draws, the leg drops, the kick fires. */
+    #splash{position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:radial-gradient(120% 80% at 30% 20%,#171B3A 0%,#07080D 60%);transition:opacity .38s ease,visibility .38s}
+    #splash.out{opacity:0;visibility:hidden}
+    html.no-splash #splash{display:none}
+    #splash svg{width:128px;height:auto;overflow:visible}
+    #splash svg *{transform-box:fill-box}
+    #splash .m-pl{transform-origin:right center;transform:scaleX(0);animation:spo .55s .1s cubic-bezier(.2,.85,.25,1) forwards}
+    #splash .m-pr{transform-origin:left center;transform:scaleX(0);animation:spo .55s .1s cubic-bezier(.2,.85,.25,1) forwards}
+    #splash .m-ln{transform-origin:left center;transform:scaleX(0);animation:spo .35s ease-out forwards}
+    #splash .m-l1{animation-delay:.55s}#splash .m-l2{animation-delay:.68s}#splash .m-l3{animation-delay:.81s}
+    #splash .m-c1,#splash .m-c2{transform-origin:center bottom;transform:scaleY(0);animation:spo .45s cubic-bezier(.2,.9,.25,1.25) forwards}
+    #splash .m-c1{animation-delay:.85s}#splash .m-c2{animation-delay:1s}
+    #splash .sp-word{font:700 21px/1 Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:-.01em;color:#E8ECF1;opacity:0;transform:translateY(6px);animation:spw .45s 1.25s ease forwards}
+    #splash .sp-word b{font-weight:600;background:linear-gradient(90deg,#9B7BFF,#2AC4FF);-webkit-background-clip:text;background-clip:text;color:transparent}
+    @keyframes spo{to{transform:none}}@keyframes spx{to{transform:scaleX(1)}}@keyframes spy{to{transform:scaleY(1)}}@keyframes spf{to{opacity:1}}@keyframes spd{to{stroke-dashoffset:0}}
+    @keyframes spl{to{opacity:1;transform:none}}@keyframes spk{to{transform:scale(1)}}@keyframes spw{to{opacity:1;transform:none}}
+    @media (prefers-reduced-motion:reduce){#splash *{animation:none!important;opacity:1!important;transform:none!important;stroke-dashoffset:0!important}}
+  </style>
+  <title>RamanFX — Trading Journal</title>
+  <script>try{var t=JSON.parse(localStorage.getItem('ledger_theme'));document.documentElement.dataset.theme=t==='light'?'light':'dark';if(t==='light')document.querySelector('meta[name=theme-color]').content='#F2F2F2'}catch(e){}try{if(sessionStorage.getItem('rfx_splashed'))document.documentElement.classList.add('no-splash');sessionStorage.setItem('rfx_splashed','1')}catch(e){}</script>
+</head>
+<body>
+  <div id="splash" aria-hidden="true">
+    <svg viewBox="2 14 96 80" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="leg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#14D69B"/><stop offset="1" stop-color="#2AC4FF"/></linearGradient><linearGradient id="pageL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9B7BFF"/><stop offset="1" stop-color="#4B33E0"/></linearGradient><linearGradient id="pageR" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5C8BFF"/><stop offset="1" stop-color="#3B2BD9"/></linearGradient></defs><path class="m-pl" d="M6 24Q6 18 12 19L48 26V90L12 83Q6 82 6 76Z" fill="url(#pageL)" opacity=".95"/><path class="m-pr" d="M94 24Q94 18 88 19L52 26V90L88 83Q94 82 94 76Z" fill="url(#pageR)" opacity=".85"/><rect class="m-ln m-l1" x="14" y="38" width="26" height="5" rx="2.5" fill="#fff" opacity=".55"/><rect class="m-ln m-l2" x="14" y="49" width="20" height="5" rx="2.5" fill="#fff" opacity=".4"/><rect class="m-ln m-l3" x="14" y="60" width="24" height="5" rx="2.5" fill="#fff" opacity=".3"/><g class="m-c1"><rect x="60" y="54" width="8" height="18" rx="2.5" fill="url(#leg)"/><rect x="63" y="50" width="2" height="26" rx="1" fill="#2AC4FF" opacity=".7"/></g><g class="m-c2"><rect x="74" y="36" width="8" height="24" rx="2.5" fill="url(#leg)"/><rect x="77" y="30" width="2" height="34" rx="1" fill="#2AC4FF" opacity=".7"/></g></svg>
+    <div class="sp-word">Raman<b>FX</b></div>
+  </div>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>

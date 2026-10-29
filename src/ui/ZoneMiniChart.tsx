@@ -1,0 +1,129 @@
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
+
+/** One daily bar as the scanner writes it: [date, open, high, low, close]. */
+export type MiniBar = [string, number, number, number, number];
+
+export interface MiniLevels {
+  proximal?: number | null;      // the demand zone of the plan (green band)
+  distal?: number | null;
+  entry?: number | null;
+  stop?: number | null;
+  target?: number | null;
+  supply?: number | null;        // next supply proximal (red band)
+  supplyDistal?: number | null;
+  price: number;
+  /** Fair value band (20-bar value area). */
+  fvLo?: number | null;
+  fvHi?: number | null;
+  /** Profit zones; PZ3 = the target. */
+  pz1?: number | null;
+  pz2?: number | null;
+}
+
+/** Other zones to shade (the stock page shows every active zone). */
+export interface MiniZone { proximal: number; distal: number; side: 'demand' | 'supply' }
+
+const LABEL_W = 58;              // right gutter for the price labels, so they never sit on candles
+const PAD_T = 6, PAD_B = 6;
+const C = (v: string, a = 1) => `rgb(var(--${v}) / ${a})`;
+const fmt = (v: number) => (v >= 1000 ? v.toFixed(0) : v >= 100 ? v.toFixed(1) : v >= 1 ? v.toFixed(2) : v >= 0.1 ? v.toFixed(3) : v.toFixed(4));
+const num = (v: number | null | undefined): v is number => v != null && Number.isFinite(v);
+
+/** Fills its container's width (measured), fixed height. */
+export function ZoneMiniChart(props: { bars: MiniBar[]; levels: MiniLevels; zones?: MiniZone[]; height?: number; label: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [w, setW] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const set = () => setW(Math.round(el.clientWidth));
+    set();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(set);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return <div ref={ref} style={{ height: props.height ?? 120 }}>{w > 0 && props.bars.length > 0 && <ZoneSvg {...props} width={w} />}</div>;
+}
+
+/**
+ * Inline SVG candlestick for a zone: demand band (green), supply / target band (red), dashed entry / stop / target
+ * lines with right-edge labels, and a last-price marker. Colours come from the theme tokens (light and dark).
+ * Labels sit in a fixed right gutter, spaced so they never overlap. Extra zones far outside the bars' range are clipped.
+ */
+function ZoneSvg({ bars, levels, zones = [], height = 120, width, label }: { bars: MiniBar[]; levels: MiniLevels; zones?: MiniZone[]; height?: number; width: number; label: string }) {
+  const clip = useId().replace(/:/g, '');
+  const L = levels;
+  const g = useMemo(() => {
+    const bl = Math.min(...bars.map(b => b[3])), bh = Math.max(...bars.map(b => b[2]));
+    const span = bh - bl || bh * 0.05 || 1;
+    // plan levels always in view; other zones only when near the bars (within 35% of the range)
+    const vals = [L.proximal, L.distal, L.stop, L.price, L.target, L.supply, L.pz1, L.pz2].filter(num);
+    for (const v of [L.fvLo, L.fvHi]) if (num(v) && v > bl - span * 0.35 && v < bh + span * 0.35) vals.push(v);
+    for (const z of zones) for (const v of [z.proximal, z.distal]) if (v > bl - span * 0.35 && v < bh + span * 0.35) vals.push(v);
+    let lo = Math.min(bl, ...vals);
+    let hi = Math.max(bh, ...vals);
+    if (num(L.supplyDistal) && num(L.supply)) hi = Math.max(hi, Math.min(L.supplyDistal, L.supply + (L.supply - lo) * 0.15));
+    const pad = (hi - lo) * 0.04 || 1;
+    lo -= pad; hi += pad;
+    const plotW = width - LABEL_W;
+    const y = (v: number) => PAD_T + (hi - v) / (hi - lo) * (height - PAD_T - PAD_B);
+    const step = plotW / Math.max(bars.length, 1);
+    const bw = Math.max(1, Math.min(7, step * 0.62));
+    const raw: { k: string; v: number; tone: string }[] = [];
+    const pzs = num(L.pz1) || num(L.pz2);
+    if (num(L.target)) raw.push({ k: pzs ? 'PZ3' : 'T', v: L.target, tone: 'profit' });
+    if (num(L.pz2)) raw.push({ k: 'PZ2', v: L.pz2, tone: 'profit' });
+    if (num(L.pz1)) raw.push({ k: 'PZ1', v: L.pz1, tone: 'profit' });
+    if (num(L.entry)) raw.push({ k: 'E', v: L.entry, tone: 'accent' });
+    if (num(L.stop)) raw.push({ k: 'S', v: L.stop, tone: 'loss' });
+    raw.push({ k: 'P', v: L.price, tone: 'ink' });
+    const tags = raw.map(t => ({ ...t, y: y(t.v) })).sort((a, b) => a.y - b.y);
+    for (let i = 1; i < tags.length; i++) if (tags[i].y - tags[i - 1].y < 11) tags[i].y = tags[i - 1].y + 11;
+    const over = tags.length ? tags[tags.length - 1].y - (height - 5) : 0;
+    if (over > 0) tags.forEach(t => { t.y -= over; });
+    return { y, step, bw, plotW, tags };
+  }, [bars, L, zones, height, width]);
+
+  const band = (a: number, b: number) => ({ y: Math.min(g.y(a), g.y(b)), h: Math.max(1, Math.abs(g.y(a) - g.y(b))) });
+  const dz = num(L.proximal) && num(L.distal) ? band(L.proximal, L.distal) : null;
+  const sz = num(L.supply) ? band(L.supply, L.supplyDistal ?? L.supply) : null;
+  const hline = (v: number | null | undefined, tone: string) => num(v) && <line x1="0" x2={g.plotW} y1={g.y(v)} y2={g.y(v)} stroke={C(tone)} strokeDasharray="4 3" strokeWidth="1" />;
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} role="img" aria-label={label} className="block select-none">
+      <defs><clipPath id={clip}><rect x="0" y="0" width={g.plotW} height={height} /></clipPath></defs>
+      <g clipPath={`url(#${clip})`}>
+        {zones.map((z, i) => {
+          const b = band(z.proximal, z.distal);
+          const t = z.side === 'demand' ? 'profit' : 'loss';
+          return <rect key={i} x="0" y={b.y} width={g.plotW} height={b.h} fill={C(t, 0.08)} stroke={C(t, 0.3)} strokeWidth="0.5" strokeDasharray="2 2" />;
+        })}
+        {num(L.fvLo) && num(L.fvHi) && (() => { const b = band(L.fvHi!, L.fvLo!); return <g><rect x="0" y={b.y} width={g.plotW} height={b.h} fill={C('warn', 0.1)} stroke={C('warn', 0.35)} strokeWidth="0.5" /><text x="3" y={b.y + 9} fontSize="8.5" fontWeight={600} fill={C('warn', 0.9)}>FV</text></g>; })()}
+        {dz && <rect x="0" y={dz.y} width={g.plotW} height={dz.h} fill={C('profit', 0.16)} stroke={C('profit', 0.5)} strokeWidth="0.75" />}
+        {sz && <rect x="0" y={sz.y} width={g.plotW} height={sz.h} fill={C('loss', 0.14)} stroke={C('loss', 0.45)} strokeWidth="0.75" />}
+        {bars.map((b, i) => {
+          const x = g.step * i + g.step / 2;
+          const up = b[4] >= b[1];
+          const col = up ? C('profit', 0.9) : C('loss', 0.9);
+          const top = g.y(Math.max(b[1], b[4])), bot = g.y(Math.min(b[1], b[4]));
+          return (
+            <g key={b[0]}>
+              <line x1={x} x2={x} y1={g.y(b[2])} y2={g.y(b[3])} stroke={col} strokeWidth="1" />
+              <rect x={x - g.bw / 2} y={top} width={g.bw} height={Math.max(1, bot - top)} fill={up ? C('surface') : col} stroke={col} strokeWidth="1" />
+            </g>
+          );
+        })}
+        {hline(L.target, 'profit')}
+        {num(L.pz1) && <line x1="0" x2={g.plotW} y1={g.y(L.pz1)} y2={g.y(L.pz1)} stroke={C('profit', 0.6)} strokeDasharray="1 3" strokeWidth="1" />}
+        {num(L.pz2) && <line x1="0" x2={g.plotW} y1={g.y(L.pz2)} y2={g.y(L.pz2)} stroke={C('profit', 0.6)} strokeDasharray="1 3" strokeWidth="1" />}
+        {hline(L.entry, 'accent')}
+        {hline(L.stop, 'loss')}
+      </g>
+      <circle cx={g.plotW - 2} cy={g.y(L.price)} r="2.5" fill={C('ink')} />
+      {g.tags.map(t => (
+        <text key={t.k} x={width - 2} y={t.y + 3.5} textAnchor="end" fontSize="9.5" fontWeight={t.k === 'P' ? 700 : 600}
+          fill={C(t.tone)} className="num">{t.k} {fmt(t.v)}</text>
+      ))}
+    </svg>
+  );
+}

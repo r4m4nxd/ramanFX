@@ -1,0 +1,73 @@
+/* Book reader: Kindle-style paginated lesson. Colours come from the theme vars set on .rd-root. */
+.rd-root { background: var(--rb); color: var(--rt); -webkit-tap-highlight-color: transparent; }
+.rd-root ::selection { background: color-mix(in srgb, var(--ra) 28%, transparent); }
+.rd-panel { background: var(--rp); color: var(--rt); border: 1px solid var(--rl); box-shadow: 0 18px 50px -12px rgb(0 0 0 / 0.35); }
+.rd-bar { background: color-mix(in srgb, var(--rb) 88%, transparent); -webkit-backdrop-filter: saturate(1.4) blur(14px); backdrop-filter: saturate(1.4) blur(14px); }
+.rd-btn { color: var(--rt); border-radius: 9999px; display: inline-grid; place-items: center; min-width: 44px; height: 44px; transition: background-color .15s ease, opacity .15s ease; }
+.rd-btn:hover { background: color-mix(in srgb, var(--rt) 8%, transparent); }
+.rd-btn:focus-visible, .rd-seg button:focus-visible, .rd-root input:focus-visible { outline: 2px solid var(--ra); outline-offset: 2px; }
+.rd-mute { color: var(--rm); }
+.rd-seg { display: flex; padding: 3px; border-radius: 12px; background: color-mix(in srgb, var(--rt) 7%, transparent); }
+.rd-seg button { flex: 1; min-height: 40px; border-radius: 9px; font-size: 13px; font-weight: 500; color: var(--rm); transition: background-color .15s ease, color .15s ease; }
+.rd-seg button[aria-checked='true'] { background: var(--rb); color: var(--rt); box-shadow: 0 1px 3px rgb(0 0 0 / .18); font-weight: 600; }
+.rd-root .rd-range { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; margin: 0; padding: 0; border: 0; border-radius: 0; box-shadow: none; background: transparent; cursor: pointer; }
+.rd-range::-webkit-slider-runnable-track { height: 3px; border-radius: 3px; background: linear-gradient(to right, var(--rt) var(--fill, 0%), color-mix(in srgb, var(--rt) 18%, transparent) var(--fill, 0%)); }
+.rd-range::-moz-range-track { height: 3px; border-radius: 3px; background: color-mix(in srgb, var(--rt) 18%, transparent); }
+.rd-range::-moz-range-progress { height: 3px; border-radius: 3px; background: var(--rt); }
+.rd-range::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -7.5px; border-radius: 50%; background: var(--rb); border: 1.5px solid var(--rt); box-shadow: 0 1px 4px rgb(0 0 0 / .25); }
+.rd-range::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--rb); border: 1.5px solid var(--rt); }
+
+/* The book: one CSS column per page, the strip slides sideways. */
+.rd-book {
+  font-family: var(--rf); font-size: var(--rs); line-height: var(--rlh); color: var(--rt);
+  text-align: justify; -webkit-hyphens: auto; hyphens: auto; hyphenate-limit-chars: 6 3 2;
+  overflow-wrap: break-word; widows: 2; orphans: 2;
+  font-kerning: normal; font-variant-ligatures: common-ligatures; font-optical-sizing: auto;
+  text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased;
+  column-fill: auto; box-sizing: border-box; will-change: transform;
+}
+.rd-book section { display: block; }
+.rd-book h1, .rd-book h2, .rd-book h3 { text-align: left; -webkit-hyphens: manual; hyphens: manual; break-after: avoid; -webkit-column-break-after: avoid; page-break-after: avoid; }
+.rd-book h2 { font-size: 1.32em; line-height: 1.25; font-weight: 600; letter-spacing: -0.005em; margin: 1.9em 0 .75em; padding: .1em 0; border-radius: .2em; transition: background-color .5s ease, box-shadow .5s ease; }
+.rd-book section:first-of-type h2, .rd-book .rd-first h2 { margin-top: 0; }
+.rd-book h2[data-live] { background: color-mix(in srgb, var(--ra) 16%, transparent); box-shadow: 0 0 0 .3em color-mix(in srgb, var(--ra) 16%, transparent); }
+.rd-book .rd-kicker { display: block; font-family: var(--rsans); font-size: .62em; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--rm); margin: 2.6em 0 .5em; break-after: avoid; -webkit-column-break-after: avoid; }
+.rd-book .rd-kicker + h2 { margin-top: 0; }
+.rd-book p { margin: 0; text-indent: 1.5em; }
+.rd-book h2 + p, .rd-book .rd-noindent { text-indent: 0; }
+.rd-book h2 + p::first-letter { font-size: 2.9em; float: left; line-height: .82; padding: .07em .08em 0 0; font-weight: 600; color: var(--rt); }
+.rd-book ol, .rd-book ul { margin: .2em 0 0; padding: 0; list-style: none; }
+.rd-book li { position: relative; padding-left: 1.55em; margin: 0 0 .55em; }
+.rd-book li::before { position: absolute; left: 0; top: 0; color: var(--rm); font-family: var(--rsans); font-size: .82em; font-weight: 600; line-height: calc(var(--rlh) * 1.22em); }
+.rd-book ol.rd-num { counter-reset: rd; }
+.rd-book ol.rd-num > li { counter-increment: rd; }
+.rd-book ol.rd-num > li::before { content: counter(rd) '.'; font-variant-numeric: tabular-nums; }
+.rd-book ul.rd-dash > li::before { content: '\2014'; }
+.rd-book ul.rd-box > li::before { content: ''; width: .7em; height: .7em; top: .38em; border: 1.5px solid var(--rm); border-radius: .16em; line-height: normal; }
+.rd-book blockquote { margin: 0 0 1.1em; padding: 0 0 0 1.1em; border-left: 2px solid color-mix(in srgb, var(--ra) 70%, transparent); font-style: italic; text-align: left; -webkit-hyphens: manual; hyphens: manual; break-inside: avoid; }
+.rd-book blockquote::before { content: '\201C'; font-size: 1.8em; line-height: 0; vertical-align: -.35em; margin-right: .08em; color: var(--rm); }
+.rd-book blockquote::after { content: '\201D'; }
+.rd-book figure { margin: 1em 0 1.2em; break-inside: avoid; -webkit-column-break-inside: avoid; page-break-inside: avoid; text-align: center; }
+.rd-book figure img { display: block; margin: 0 auto; max-width: 100%; max-height: calc(var(--ph) - 7.5em); width: auto; height: auto; object-fit: contain; border-radius: 4px; cursor: zoom-in; }
+.rd-book figure .rd-plate { background: #0f141c; border-radius: 6px; padding: 4px; }
+.rd-book figure .rd-plate > svg { display: block; width: 100%; height: auto; max-height: calc(var(--ph) - 8em); }
+.rd-book figcaption { font-family: var(--rsans); font-size: .74em; line-height: 1.45; color: var(--rm); text-align: left; margin-top: .6em; -webkit-hyphens: manual; hyphens: manual; }
+.rd-book .rd-ex { margin: 0 0 1.1em; break-inside: avoid; }
+.rd-book .rd-ex b { font-family: var(--rsans); font-size: .78em; letter-spacing: .04em; text-transform: uppercase; color: var(--rm); font-weight: 600; }
+.rd-book .rd-q { font-weight: 600; text-indent: 0; margin-top: .9em; text-align: left; }
+.rd-book .rd-break { break-before: column; -webkit-column-break-before: always; }
+
+/* Title page */
+.rd-book .rd-title { padding-top: calc(var(--ph) * 0.12); text-align: center; break-after: column; -webkit-column-break-after: always; }
+.rd-book .rd-title .rd-kicker { margin: 0 0 1.4em; }
+.rd-book .rd-title h1 { text-align: center; font-size: 1.85em; line-height: 1.18; font-weight: 600; letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+.rd-book .rd-title .rd-orn { display: block; margin: 1.3em auto; width: 3.2em; height: 1px; background: var(--rm); opacity: .55; }
+.rd-book .rd-title .rd-sum { font-style: italic; text-align: center; text-indent: 0; -webkit-hyphens: manual; hyphens: manual; text-wrap: pretty; font-size: .96em; }
+.rd-book .rd-title .rd-meta { margin-top: 2.2em; font-family: var(--rsans); font-size: .66em; letter-spacing: .08em; text-transform: uppercase; color: var(--rm); text-indent: 0; text-align: center; }
+.rd-book .rd-end { break-before: column; -webkit-column-break-before: always; padding-top: calc(var(--ph) * 0.3); text-align: center; }
+.rd-book .rd-end .rd-orn { display: block; margin: 0 auto 1.6em; width: 3.2em; height: 1px; background: var(--rm); opacity: .55; }
+.rd-book .rd-end .rd-kicker { margin: 0 0 .8em; text-indent: 0; text-align: center; }
+.rd-book .rd-endtitle { font-style: italic; text-indent: 0; text-align: center; -webkit-hyphens: manual; hyphens: manual; text-wrap: balance; }
+.rd-book .rd-done { margin-top: 2em; min-height: 44px; padding: 0 1.4em; border-radius: 9999px; border: 1px solid var(--rl); font-family: var(--rsans); font-size: .72em; font-weight: 600; color: var(--rt); }
+.rd-book .rd-done:hover { background: color-mix(in srgb, var(--rt) 7%, transparent); }
+.rd-book .rd-endmark { text-align: center; color: var(--rm); margin: 2em 0 0; text-indent: 0; letter-spacing: .5em; }

@@ -1,0 +1,113 @@
+# Curated foreign large caps listed on NYSE / Nasdaq (ADRs or direct ordinary-share listings): the ADR universe.
+# Each row is checked at every universe refresh against Alpaca's asset list (active, tradable, exchange NYSE / NASDAQ /
+# ARCA / AMEX); OTC-only names (e.g. TCEHY, NSRGY, ABBNY, LVMUY, RHHBY) are left out on purpose.
+# sector = GICS sector name; country = ISO code of the issuer; cik = SEC CIK (blank = looked up from SEC when SEC_UA
+# is set; a curated CIK whose SEC entity name does not match is ignored); adr_ratio = ordinary shares per traded
+# share (ADS), 1 for direct listings; blank = unknown (P/E and market cap then n/a).
+symbol,name,country,sector,cik,adr_ratio
+TSM,Taiwan Semiconductor Manufacturing,TW,Information Technology,1046179,5
+ASML,ASML Holding,NL,Information Technology,937966,1
+SAP,SAP SE,DE,Information Technology,1000184,1
+ARM,Arm Holdings,GB,Information Technology,1973239,1
+INFY,Infosys,IN,Information Technology,1067491,1
+WIT,Wipro,IN,Information Technology,1123799,1
+UMC,United Microelectronics,TW,Information Technology,1033767,
+ASX,ASE Technology Holding,TW,Information Technology,,
+STM,STMicroelectronics,CH,Information Technology,932787,1
+NOK,Nokia,FI,Information Technology,924613,1
+ERIC,Ericsson,SE,Information Technology,717826,1
+CHKP,Check Point Software Technologies,IL,Information Technology,1015922,1
+SONY,Sony Group,JP,Consumer Discretionary,313838,1
+SPOT,Spotify Technology,SE,Communication Services,1639920,1
+SE,Sea Limited,SG,Consumer Discretionary,1703399,1
+GRAB,Grab Holdings,SG,Industrials,,1
+MELI,MercadoLibre,UY,Consumer Discretionary,1099590,1
+NU,Nu Holdings,BR,Financials,1691493,1
+BABA,Alibaba Group,CN,Consumer Discretionary,1577552,8
+PDD,PDD Holdings,CN,Consumer Discretionary,1737806,4
+JD,JD.com,CN,Consumer Discretionary,1549802,2
+BIDU,Baidu,CN,Communication Services,1329099,8
+NTES,NetEase,CN,Communication Services,1110646,5
+TCOM,Trip.com Group,CN,Consumer Discretionary,1269238,1
+BEKE,KE Holdings,CN,Real Estate,1809587,
+LI,Li Auto,CN,Consumer Discretionary,1791706,2
+NIO,NIO Inc.,CN,Consumer Discretionary,1736541,1
+XPEV,XPeng,CN,Consumer Discretionary,1810997,2
+TME,Tencent Music Entertainment,CN,Communication Services,1744676,
+ZTO,ZTO Express,CN,Industrials,1677250,1
+VIPS,Vipshop Holdings,CN,Consumer Discretionary,1529192,
+BILI,Bilibili,CN,Communication Services,1723690,1
+EDU,New Oriental Education & Technology,CN,Consumer Discretionary,1372920,
+YUMC,Yum China Holdings,CN,Consumer Discretionary,1673358,1
+TM,Toyota Motor,JP,Consumer Discretionary,1094517,10
+HMC,Honda Motor,JP,Consumer Discretionary,715153,
+MUFG,Mitsubishi UFJ Financial Group,JP,Financials,67088,1
+SMFG,Sumitomo Mitsui Financial Group,JP,Financials,1022837,
+MFG,Mizuho Financial Group,JP,Financials,1335730,
+NMR,Nomura Holdings,JP,Financials,1163653,1
+TAK,Takeda Pharmaceutical,JP,Health Care,1395064,0.5
+KB,KB Financial Group,KR,Financials,1445930,1
+SHG,Shinhan Financial Group,KR,Financials,1263043,1
+PKX,POSCO Holdings,KR,Materials,889132,
+KEP,Korea Electric Power,KR,Utilities,887225,
+HDB,HDFC Bank,IN,Financials,1144967,3
+IBN,ICICI Bank,IN,Financials,1103838,2
+RDY,Dr. Reddy's Laboratories,IN,Health Care,1135951,
+SHEL,Shell plc,GB,Energy,1306965,2
+AZN,AstraZeneca,GB,Health Care,901832,0.5
+HSBC,HSBC Holdings,GB,Financials,1089113,5
+UL,Unilever,GB,Consumer Staples,217410,1
+BP,BP plc,GB,Energy,313807,6
+GSK,GSK plc,GB,Health Care,1131399,2
+DEO,Diageo,GB,Consumer Staples,835403,4
+BTI,British American Tobacco,GB,Consumer Staples,1303523,1
+RIO,Rio Tinto,GB,Materials,863064,1
+LYG,Lloyds Banking Group,GB,Financials,1160106,
+BCS,Barclays,GB,Financials,312069,
+NWG,NatWest Group,GB,Financials,844150,
+RELX,RELX plc,GB,Industrials,929869,1
+VOD,Vodafone Group,GB,Communication Services,839923,10
+NGG,National Grid,GB,Utilities,1004315,5
+IHG,InterContinental Hotels Group,GB,Consumer Discretionary,858446,1
+HLN,Haleon,GB,Consumer Staples,1900304,
+SNN,Smith & Nephew,GB,Health Care,845982,
+CCEP,Coca-Cola Europacific Partners,GB,Consumer Staples,1650107,1
+NVO,Novo Nordisk,DK,Health Care,353278,1
+GMAB,Genmab,DK,Health Care,1434265,
+NVS,Novartis,CH,Health Care,1114448,1
+ALC,Alcon,CH,Health Care,1167379,1
+UBS,UBS Group,CH,Financials,1610520,1
+SNY,Sanofi,FR,Health Care,1121404,0.5
+TTE,TotalEnergies,FR,Energy,879764,1
+BUD,Anheuser-Busch InBev,BE,Consumer Staples,1668717,1
+ING,ING Groep,NL,Financials,1039765,1
+PHG,Koninklijke Philips,NL,Health Care,313216,1
+ARGX,argenx,NL,Health Care,1697862,1
+STLA,Stellantis,NL,Consumer Discretionary,1605484,1
+RACE,Ferrari,IT,Consumer Discretionary,1648416,1
+E,Eni,IT,Energy,1002242,
+SAN,Banco Santander,ES,Financials,891478,1
+BBVA,Banco Bilbao Vizcaya Argentaria,ES,Financials,842180,1
+DB,Deutsche Bank,DE,Financials,1159508,1
+EQNR,Equinor,NO,Energy,1140625,1
+TS,Tenaris,LU,Energy,1190723,
+AER,AerCap Holdings,IE,Industrials,1378789,1
+CRH,CRH plc,IE,Materials,849395,1
+FLUT,Flutter Entertainment,IE,Consumer Discretionary,,1
+TEVA,Teva Pharmaceutical Industries,IL,Health Care,818686,1
+BHP,BHP Group,AU,Materials,811809,2
+WDS,Woodside Energy Group,AU,Energy,844551,1
+VALE,Vale,BR,Materials,917851,1
+PBR,Petrobras,BR,Energy,1119639,2
+ITUB,Itau Unibanco Holding,BR,Financials,1132597,1
+BBD,Banco Bradesco,BR,Financials,1160330,1
+ABEV,Ambev,BR,Consumer Staples,1565025,1
+ERJ,Embraer,BR,Industrials,1355444,
+AMX,America Movil,MX,Communication Services,1129137,
+FMX,Fomento Economico Mexicano,MX,Consumer Staples,1061736,
+CX,Cemex,MX,Materials,1076378,
+BAP,Credicorp,PE,Financials,1001290,1
+GGAL,Grupo Financiero Galicia,AR,Financials,1114700,
+YPF,YPF,AR,Energy,904851,1
+SQM,Sociedad Quimica y Minera de Chile,CL,Materials,909037,1
+GFI,Gold Fields,ZA,Materials,1172724,1

@@ -1,0 +1,1105 @@
+[
+ {
+  "id": "p083-000",
+  "src": "/lessons/seiden/p083-000.jpg",
+  "mentor": "seiden",
+  "lesson": 82,
+  "title": "EURUSD 30m: basing under resistance",
+  "maskX": 0.87,
+  "plot": {
+   "x0": 0.005,
+   "x1": 0.935,
+   "y0": 0.07,
+   "y1": 0.88
+  },
+  "axis": {
+   "y1": 0.114,
+   "p1": 1.554,
+   "y2": 0.835,
+   "p2": 1.54
+  },
+  "path": [
+   0.4,
+   0.42,
+   0.155,
+   0.095,
+   0.13
+  ],
+  "truth": {
+   "side": "buy",
+   "entry": 0.385,
+   "sl": 0.465,
+   "tp": 0.12,
+   "why": "Three tests of 1.5485 with shrinking pullbacks, then price bases right under the line: the sellers there are used up, so buy the breakout with the stop under the small base."
+  },
+  "zone": {
+   "y0": 0.39,
+   "y1": 0.45,
+   "x0": 0.85
+  },
+  "pattern": "other"
+ },
+ {
+  "id": "p085-001",
+  "src": "/lessons/seiden/p085-001.jpg",
+  "mentor": "seiden",
+  "lesson": 82,
+  "title": "EURUSD 15m: down-trend line break",
+  "maskX": 0.43,
+  "plot": {
+   "x0": 0.005,
+   "x1": 0.94,
+   "y0": 0.06,
+   "y1": 0.86
+  },
+  "axis": {
+   "y1": 0.094,
+   "p1": 1.554,
+   "y2": 0.796,
+   "p2": 1.538
+  },
+  "path": [
+   0.74,
+   0.447,
+   0.566,
+   0.343,
+   0.09,
+   0.15
+  ],
+  "truth": {
+   "side": "buy",
+   "entry": 0.74,
+   "sl": 0.86,
+   "tp": 0.343,
+   "why": "The green candle breaks the two-point down-trend line, showing buyers now outnumber sellers; the logical target is the origin of the decline at 1.5483."
+  },
+  "pattern": "other"
+ },
+ {
+  "id": "p086-002",
+  "src": "/lessons/seiden/p086-002.jpg",
+  "mentor": "seiden",
+  "lesson": 82,
+  "title": "EURUSD 5m: up-trend line break",
+  "maskX": 0.59,
+  "plot": {
+   "x0": 0.005,
+   "x1": 0.935,
+   "y0": 0.07,
+   "y1": 0.865
+  },
+  "axis": {
+   "y1": 0.109,
+   "p1": 1.563,
+   "y2": 0.783,
+   "p2": 1.557
+  },
+  "path": [
+   0.255,
+   0.447,
+   0.32,
+   0.816,
+   0.68
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.255,
+   "sl": 0.075,
+   "tp": 0.805,
+   "why": "The red candle breaks the steep up-trend line, showing sellers now dominate; short the break and target the origin of the rally at 1.5567."
+  },
+  "pattern": "other"
+ },
+ {
+  "id": "p088-003",
+  "src": "/lessons/seiden/p088-003.jpg",
+  "mentor": "seiden",
+  "lesson": 87,
+  "title": "ES 60m: first return to pivot demand",
+  "maskX": 0.79,
+  "plot": {
+   "x0": 0.005,
+   "x1": 0.905,
+   "y0": 0.06,
+   "y1": 0.885
+  },
+  "axis": {
+   "y1": 0.091,
+   "p1": 1440,
+   "y2": 0.791,
+   "p2": 1370
+  },
+  "path": [
+   0.73,
+   0.76,
+   0.42,
+   0.516
+  ],
+  "truth": {
+   "side": "buy",
+   "entry": 0.75,
+   "sl": 0.79,
+   "tp": 0.52,
+   "why": "Area A is a pivot low price could not stay at (big imbalance); the first pullback into it is the low-risk buy, and cluster B above is weak and gets sliced."
+  },
+  "zone": {
+   "y0": 0.75,
+   "y1": 0.785,
+   "x0": 0.08
+  },
+  "pattern": "DBR"
+ },
+ {
+  "id": "p094-005",
+  "src": "/lessons/seiden/p094-005.jpg",
+  "mentor": "seiden",
+  "lesson": 93,
+  "title": "ES 15m: gap down into quality demand",
+  "maskX": 0.86,
+  "plot": {
+   "x0": 0.005,
+   "x1": 0.92,
+   "y0": 0.08,
+   "y1": 0.89
+  },
+  "axis": {
+   "y1": 0.149,
+   "p1": 1310,
+   "y2": 0.765,
+   "p2": 1270
+  },
+  "path": [
+   0.64,
+   0.675,
+   0.36,
+   0.4
+  ],
+  "truth": {
+   "side": "buy",
+   "entry": 0.636,
+   "sl": 0.71,
+   "tp": 0.402,
+   "why": "C is a quality pivot low price exploded from; a gap down into it after a decline is a novice seller, so buy with targets at the gap origin and the nearest pivot high."
+  },
+  "zone": {
+   "y0": 0.636,
+   "y1": 0.7,
+   "x0": 0.7
+  },
+  "pattern": "novice-gap"
+ },
+ {
+  "id": "p096-006",
+  "src": "/lessons/seiden/p096-006.jpg",
+  "mentor": "seiden",
+  "lesson": 95,
+  "title": "ES 30m: revisit of 1263-1264 demand",
+  "maskX": 0.675,
+  "plot": {
+   "x0": 0.005,
+   "x1": 0.925,
+   "y0": 0.07,
+   "y1": 0.85
+  },
+  "axis": {
+   "y1": 0.141,
+   "p1": 1300,
+   "y2": 0.761,
+   "p2": 1265
+  },
+  "path": [
+   0.75,
+   0.79,
+   0.41,
+   0.55,
+   0.14,
+   0.18
+  ],
+  "truth": {
+   "side": "buy",
+   "entry": 0.761,
+   "sl": 0.84,
+   "tp": 0.672,
+   "why": "Price could not stay at 1,262-1,265 the first time; the revisit after a decline is a buy from novice sellers, targeting 1,270 and higher."
+  },
+  "zone": {
+   "y0": 0.761,
+   "y1": 0.835,
+   "x0": 0.17
+  },
+  "pattern": "DBR"
+ },
+ {
+  "id": "p109-012",
+  "src": "/lessons/seiden/p109-012.jpg",
+  "mentor": "seiden",
+  "lesson": 108,
+  "title": "NASDAQ daily: gap up into supply in a downtrend",
+  "maskX": 0.735,
+  "plot": {
+   "x0": 0.005,
+   "x1": 0.9,
+   "y0": 0.08,
+   "y1": 0.84
+  },
+  "axis": {
+   "y1": 0.561,
+   "p1": 1800,
+   "y2": 0.741,
+   "p2": 1600
+  },
+  "path": [
+   0.59,
+   0.575,
+   0.6,
+   0.665
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.59,
+   "sl": 0.55,
+   "tp": 0.665,
+   "why": "Gap up after a rally, into supply, in a downtrend: the most potent novice signal, so sell to that buyer; demand is far lower."
+  },
+  "zone": {
+   "y0": 0.56,
+   "y1": 0.577,
+   "x0": 0.48
+  },
+  "pattern": "novice-gap"
+ },
+ {
+  "id": "p113-014",
+  "src": "/lessons/seiden/p113-014.jpg",
+  "mentor": "seiden",
+  "lesson": 110,
+  "title": "NQ 2m: strong rally into supply A",
+  "maskX": 0.59,
+  "plot": {
+   "x0": 0.01,
+   "x1": 0.9,
+   "y0": 0.09,
+   "y1": 0.86
+  },
+  "axis": {
+   "y1": 0.176,
+   "p1": 1175,
+   "y2": 0.8,
+   "p2": 1150
+  },
+  "path": [
+   0.207,
+   0.12,
+   0.405,
+   0.337,
+   0.59,
+   0.416,
+   0.78
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.207,
+   "sl": 0.085,
+   "tp": 0.7,
+   "why": "B is the first revisit of supply A (also the overnight high), reached by a rally with no demand levels in it; short the lower line, stop above the upper line, target C."
+  },
+  "zone": {
+   "y0": 0.093,
+   "y1": 0.207,
+   "x0": 0.14
+  },
+  "pattern": "RBD"
+ },
+ {
+  "id": "p115-016",
+  "src": "/lessons/seiden/p115-016.jpg",
+  "mentor": "seiden",
+  "lesson": 114,
+  "title": "EURGBP 10m: return to demand base",
+  "maskX": 0.65,
+  "plot": {
+   "x0": 0.005,
+   "x1": 0.895,
+   "y0": 0.09,
+   "y1": 0.87
+  },
+  "axis": {
+   "y1": 0.12,
+   "p1": 0.781,
+   "y2": 0.766,
+   "p2": 0.775
+  },
+  "path": [
+   0.75,
+   0.77,
+   0.4,
+   0.1,
+   0.28,
+   0.22
+  ],
+  "truth": {
+   "side": "buy",
+   "entry": 0.748,
+   "sl": 0.87,
+   "tp": 0.496,
+   "why": "Demand is the base price rallied hard from; when price drops back into it, demand exceeds supply again and price must rise toward the supply above."
+  },
+  "zone": {
+   "y0": 0.748,
+   "y1": 0.862,
+   "x0": 0.33
+  },
+  "pattern": "DBR"
+ },
+ {
+  "id": "p117-018",
+  "src": "/lessons/seiden/p117-018.jpg",
+  "mentor": "seiden",
+  "lesson": 114,
+  "title": "EURJPY 15m: return to bank demand",
+  "maskX": 0.745,
+  "plot": {
+   "x0": 0.435,
+   "x1": 0.89,
+   "y0": 0.15,
+   "y1": 0.72
+  },
+  "axis": {
+   "y1": 0.169,
+   "p1": 136.8,
+   "y2": 0.672,
+   "p2": 135.0
+  },
+  "path": [
+   0.6,
+   0.62,
+   0.485,
+   0.585,
+   0.335,
+   0.45,
+   0.118
+  ],
+  "truth": {
+   "side": "buy",
+   "entry": 0.635,
+   "sl": 0.7,
+   "tp": 0.47,
+   "why": "A is where the bank desk had too much to buy; B, the return to that zone, is the low-risk, high-reward buy for the astute speculator."
+  },
+  "zone": {
+   "y0": 0.635,
+   "y1": 0.691,
+   "x0": 0.605
+  },
+  "pattern": "DBR"
+ },
+ {
+  "id": "p122-020",
+  "src": "/lessons/seiden/p122-020.jpg",
+  "mentor": "seiden",
+  "lesson": 117,
+  "title": "USDCHF 30m: buyer at pivot-high supply",
+  "maskX": 0.815,
+  "plot": {
+   "x0": 0.005,
+   "x1": 0.95,
+   "y0": 0.06,
+   "y1": 0.905
+  },
+  "axis": {
+   "y1": 0.107,
+   "p1": 1.22,
+   "y2": 0.863,
+   "p2": 1.185
+  },
+  "path": [
+   0.13,
+   0.111,
+   0.25,
+   0.215,
+   0.31,
+   0.28,
+   0.37
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.123,
+   "sl": 0.08,
+   "tp": 0.6,
+   "why": "Candle B buys after an advance and into the pivot-high supply A, both novice mistakes; sell to that buyer with the stop above the zone."
+  },
+  "zone": {
+   "y0": 0.088,
+   "y1": 0.123,
+   "x0": 0.06
+  },
+  "pattern": "RBD"
+ },
+ {
+  "id": "p127-022",
+  "src": "/lessons/seiden/p127-022.jpg",
+  "mentor": "seiden",
+  "lesson": 125,
+  "title": "NQ 30m: sharp drop into demand, OCO",
+  "maskX": 0.335,
+  "plot": {
+   "x0": 0.01,
+   "x1": 0.88,
+   "y0": 0.08,
+   "y1": 0.86
+  },
+  "axis": {
+   "y1": 0.161,
+   "p1": 1245,
+   "y2": 0.824,
+   "p2": 1210
+  },
+  "path": [
+   0.47,
+   0.705,
+   0.55,
+   0.665,
+   0.3,
+   0.17,
+   0.53,
+   0.48
+  ],
+  "truth": {
+   "side": "buy",
+   "entry": 0.714,
+   "sl": 0.864,
+   "tp": 0.265,
+   "why": "Demand below and supply above were marked before the open; the sharp drop into demand is the buy, with stop below and the profit limit at the supply."
+  },
+  "zone": {
+   "y0": 0.714,
+   "y1": 0.845,
+   "x0": 0.01
+  },
+  "pattern": "DBR"
+ },
+ {
+  "id": "p128-023",
+  "src": "/lessons/seiden/p128-023.jpg",
+  "mentor": "seiden",
+  "lesson": 125,
+  "title": "Crude 15m: plunge back to demand",
+  "maskX": 0.835,
+  "plot": {
+   "x0": 0.005,
+   "x1": 0.925,
+   "y0": 0.07,
+   "y1": 0.865
+  },
+  "axis": {
+   "y1": 0.122,
+   "p1": 50.5,
+   "y2": 0.835,
+   "p2": 46.5
+  },
+  "path": [
+   0.51,
+   0.79,
+   0.7,
+   0.76,
+   0.39,
+   0.15,
+   0.3
+  ],
+  "truth": {
+   "side": "buy",
+   "entry": 0.788,
+   "sl": 0.86,
+   "tp": 0.387,
+   "why": "A severe big-red-candle decline into pre-drawn demand is exactly where novices sell; buy at the proximal line with an OCO bracket targeting the supply above."
+  },
+  "zone": {
+   "y0": 0.788,
+   "y1": 0.851,
+   "x0": 0.06
+  },
+  "pattern": "DBR"
+ },
+ {
+  "id": "p131-026",
+  "src": "/lessons/seiden/p131-026.jpg",
+  "mentor": "seiden",
+  "lesson": 130,
+  "title": "ES 20m: breakout buyers into supply trap",
+  "maskX": 0.637,
+  "plot": {
+   "x0": 0.015,
+   "x1": 0.71,
+   "y0": 0.235,
+   "y1": 0.8
+  },
+  "axis": {
+   "y1": 0.253,
+   "p1": 925,
+   "y2": 0.748,
+   "p2": 890
+  },
+  "path": [
+   0.42,
+   0.4,
+   0.46,
+   0.73,
+   0.78,
+   0.68,
+   0.73,
+   0.65
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.405,
+   "sl": 0.36,
+   "tp": 0.677,
+   "why": "Supply up and to the left at 914-917; the breakout rally delivers late buyers who buy after a rally into supply, so the pre-placed short fills. Short 914, stop 917, target 895."
+  },
+  "zone": {
+   "y0": 0.361,
+   "y1": 0.405,
+   "x0": 0.1
+  },
+  "pattern": "bull-trap"
+ },
+ {
+  "id": "p133-028",
+  "src": "/lessons/seiden/p133-028.jpg",
+  "mentor": "seiden",
+  "lesson": 130,
+  "title": "ES 5m: bait line breaks into demand",
+  "maskX": 0.155,
+  "plot": {
+   "x0": 0.01,
+   "x1": 0.61,
+   "y0": 0.1,
+   "y1": 0.71
+  },
+  "axis": {
+   "y1": 0.088,
+   "p1": 850,
+   "y2": 0.631,
+   "p2": 815
+  },
+  "path": [
+   0.6,
+   0.662,
+   0.59,
+   0.124,
+   0.41,
+   0.23
+  ],
+  "truth": {
+   "side": "buy",
+   "entry": 0.647,
+   "sl": 0.678,
+   "tp": 0.336,
+   "why": "Novices sell the break of the obvious 817.18 pivot line straight into the real demand zone below; buy 814 from them with the stop at 812 and targets 821, 827, 834."
+  },
+  "zone": {
+   "y0": 0.622,
+   "y1": 0.671,
+   "x0": 0.0
+  },
+  "pattern": "bear-trap"
+ },
+ {
+  "id": "p135-030",
+  "src": "/lessons/seiden/p135-030.jpg",
+  "mentor": "seiden",
+  "lesson": 134,
+  "title": "ES 15m: rally into supply zone",
+  "maskX": 0.6,
+  "plot": {
+   "x0": 0.01,
+   "x1": 0.865,
+   "y0": 0.09,
+   "y1": 0.89
+  },
+  "axis": {
+   "y1": 0.136,
+   "p1": 824,
+   "y2": 0.813,
+   "p2": 800
+  },
+  "path": [
+   0.4,
+   0.245,
+   0.8,
+   0.75
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.293,
+   "sl": 0.13,
+   "tp": 0.78,
+   "why": "The S&P rallies into its 818-824 supply zone; that index level is the timing signal for shorts in the market and in stocks at their own supply."
+  },
+  "zone": {
+   "y0": 0.137,
+   "y1": 0.293,
+   "x0": 0.01
+  },
+  "pattern": "other"
+ },
+ {
+  "id": "p136-031",
+  "src": "/lessons/seiden/p136-031.jpg",
+  "mentor": "seiden",
+  "lesson": 134,
+  "title": "GOOG 5m: rally back to supply with the index",
+  "maskX": 0.835,
+  "plot": {
+   "x0": 0.005,
+   "x1": 0.935,
+   "y0": 0.09,
+   "y1": 0.89
+  },
+  "axis": {
+   "y1": 0.126,
+   "p1": 300,
+   "y2": 0.839,
+   "p2": 284
+  },
+  "path": [
+   0.215,
+   0.165,
+   0.31,
+   0.27,
+   0.5,
+   0.47,
+   0.5
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.148,
+   "sl": 0.08,
+   "tp": 0.48,
+   "why": "Google rallies hard into its supply zone at the same moment the S&P reaches its supply; levels with a rapid move away carry high odds, so XLT sells short."
+  },
+  "zone": {
+   "y0": 0.087,
+   "y1": 0.148,
+   "x0": 0.04
+  },
+  "pattern": "other"
+ },
+ {
+  "id": "p137-032",
+  "src": "/lessons/seiden/p137-032.jpg",
+  "mentor": "seiden",
+  "lesson": 134,
+  "title": "RIMM 5m: short under supply, 3:1 to demand",
+  "maskX": 0.715,
+  "plot": {
+   "x0": 0.005,
+   "x1": 0.94,
+   "y0": 0.07,
+   "y1": 0.905
+  },
+  "axis": {
+   "y1": 0.167,
+   "p1": 52.0,
+   "y2": 0.775,
+   "p2": 49.5
+  },
+  "path": [
+   0.43,
+   0.21,
+   0.46,
+   0.28,
+   0.37,
+   0.27,
+   0.62,
+   0.5
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.245,
+   "sl": 0.14,
+   "tp": 0.615,
+   "why": "RIMM rallies into its supply box in step with the S&P; risk about $0.50 above the box to make about $1.50 at the demand box below."
+  },
+  "zone": {
+   "y0": 0.151,
+   "y1": 0.245,
+   "x0": 0.28
+  },
+  "pattern": "RBD"
+ },
+ {
+  "id": "p139-034",
+  "src": "/lessons/seiden/p139-034.jpg",
+  "mentor": "seiden",
+  "lesson": 137,
+  "title": "SPY 30m: novice gap onto support",
+  "maskX": 0.893,
+  "plot": {
+   "x0": 0.005,
+   "x1": 0.94,
+   "y0": 0.09,
+   "y1": 0.89
+  },
+  "axis": {
+   "y1": 0.119,
+   "p1": 87.5,
+   "y2": 0.866,
+   "p2": 81.5
+  },
+  "path": [
+   0.785,
+   0.85,
+   0.78,
+   0.8,
+   0.69,
+   0.74
+  ],
+  "truth": {
+   "side": "buy",
+   "entry": 0.84,
+   "sl": 0.9,
+   "tp": 0.7,
+   "why": "A gap down after a decline, in the same direction as the move, onto price support is a novice gap that tends to end the move; fade it with a buy toward the gap origin."
+  },
+  "zone": {
+   "y0": 0.86,
+   "y1": 0.89,
+   "x0": 0.01
+  },
+  "pattern": "novice-gap"
+ },
+ {
+  "id": "p141-036",
+  "src": "/lessons/seiden/p141-036.jpg",
+  "mentor": "seiden",
+  "lesson": 140,
+  "title": "QQQQ 30m: pro gap down at resistance",
+  "maskX": 0.51,
+  "plot": {
+   "x0": 0.005,
+   "x1": 0.95,
+   "y0": 0.07,
+   "y1": 0.88
+  },
+  "axis": {
+   "y1": 0.075,
+   "p1": 30.8,
+   "y2": 0.759,
+   "p2": 28.8
+  },
+  "path": [
+   0.29,
+   0.34,
+   0.2,
+   0.55,
+   0.27,
+   0.76,
+   0.48,
+   0.68
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.2,
+   "sl": 0.13,
+   "tp": 0.72,
+   "why": "In an uptrend, a gap down after the rally at resistance is a professional gap that ends the uptrend; sell the pullback toward the gap origin under resistance."
+  },
+  "pattern": "pro-gap"
+ },
+ {
+  "id": "p142-037",
+  "src": "/lessons/seiden/p142-037.jpg",
+  "mentor": "seiden",
+  "lesson": 140,
+  "title": "SPY 30m: novice gap up into resistance",
+  "maskX": 0.645,
+  "plot": {
+   "x0": 0.005,
+   "x1": 0.955,
+   "y0": 0.065,
+   "y1": 0.88
+  },
+  "axis": {
+   "y1": 0.11,
+   "p1": 106,
+   "y2": 0.787,
+   "p2": 86
+  },
+  "path": [
+   0.14,
+   0.3,
+   0.27,
+   0.4,
+   0.31,
+   0.74,
+   0.65
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.153,
+   "sl": 0.08,
+   "tp": 0.45,
+   "why": "A big gap up after a strong rally straight into resistance is the novice gap; professionals do not buy there, so fade it."
+  },
+  "zone": {
+   "y0": 0.084,
+   "y1": 0.153,
+   "x0": 0.06
+  },
+  "pattern": "novice-gap"
+ },
+ {
+  "id": "p146-040",
+  "src": "/lessons/seiden/p146-040.jpg",
+  "mentor": "seiden",
+  "lesson": 144,
+  "title": "SPY 60m: short at gap supply",
+  "maskX": 0.84,
+  "plot": {
+   "x0": 0.005,
+   "x1": 0.925,
+   "y0": 0.075,
+   "y1": 0.855
+  },
+  "axis": {
+   "y1": 0.094,
+   "p1": 77,
+   "y2": 0.779,
+   "p2": 68
+  },
+  "path": [
+   0.47,
+   0.35,
+   0.44,
+   0.4,
+   0.47
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.344,
+   "sl": 0.327,
+   "tp": 0.468,
+   "why": "The 3/11 gap up reaches the gap-supply line (origin of the earlier gap down); short there with a protective buy stop-market just above and target the gap demand at 72.1."
+  },
+  "zone": {
+   "y0": 0.335,
+   "y1": 0.344,
+   "x0": 0.12
+  },
+  "pattern": "novice-gap"
+ },
+ {
+  "id": "p147-041",
+  "src": "/lessons/seiden/p147-041.jpg",
+  "mentor": "seiden",
+  "lesson": 144,
+  "title": "SPY 10m: short and trail the stop",
+  "maskX": 0.385,
+  "plot": {
+   "x0": 0.005,
+   "x1": 0.925,
+   "y0": 0.08,
+   "y1": 0.855
+  },
+  "axis": {
+   "y1": 0.13,
+   "p1": 73.6,
+   "y2": 0.79,
+   "p2": 71.4
+  },
+  "path": [
+   0.15,
+   0.1,
+   0.32,
+   0.19,
+   0.43,
+   0.31,
+   0.55,
+   0.37,
+   0.655,
+   0.37
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.105,
+   "sl": 0.04,
+   "tp": 0.573,
+   "why": "Short at 60-min gap supply near 73.6-73.7; on the 10-min chart trail the buy stop above the origin of each strong red candle until the gap-demand target at 72.1."
+  },
+  "pattern": "novice-gap"
+ },
+ {
+  "id": "p152-044",
+  "src": "/lessons/seiden/p152-044.jpg",
+  "mentor": "seiden",
+  "lesson": 150,
+  "title": "NQ 60m: bad news into demand",
+  "maskX": 0.655,
+  "plot": {
+   "x0": 0.005,
+   "x1": 0.88,
+   "y0": 0.08,
+   "y1": 0.865
+  },
+  "axis": {
+   "y1": 0.201,
+   "p1": 1270,
+   "y2": 0.774,
+   "p2": 1210
+  },
+  "path": [
+   0.62,
+   0.72,
+   0.47,
+   0.52,
+   0.37,
+   0.4,
+   0.21,
+   0.26,
+   0.11
+  ],
+  "truth": {
+   "side": "buy",
+   "entry": 0.73,
+   "sl": 0.84,
+   "tp": 0.37,
+   "why": "The bad ADP number pushes price back into the pre-drawn drop-base-rally demand; sellers there are selling after a decline into demand, so buy from them."
+  },
+  "zone": {
+   "y0": 0.73,
+   "y1": 0.829,
+   "x0": 0.26
+  },
+  "pattern": "DBR"
+ },
+ {
+  "id": "p155-046",
+  "src": "/lessons/seiden/p155-046.jpg",
+  "mentor": "seiden",
+  "lesson": 154,
+  "title": "QM 60m: revisit C of origin A",
+  "maskX": 0.62,
+  "plot": {
+   "x0": 0.005,
+   "x1": 0.91,
+   "y0": 0.08,
+   "y1": 0.705
+  },
+  "axis": {
+   "y1": 0.124,
+   "p1": 52.5,
+   "y2": 0.672,
+   "p2": 47.5
+  },
+  "path": [
+   0.59,
+   0.625,
+   0.54,
+   0.642,
+   0.3,
+   0.36,
+   0.19,
+   0.28,
+   0.2,
+   0.5
+  ],
+  "truth": {
+   "side": "buy",
+   "entry": 0.622,
+   "sl": 0.71,
+   "tp": 0.176,
+   "why": "Start from the strong rally B, go back to its origin A and draw the zone; the first revisit C is the buy, targeting supply D at about 52."
+  },
+  "zone": {
+   "y0": 0.622,
+   "y1": 0.699,
+   "x0": 0.08
+  },
+  "pattern": "DBR"
+ },
+ {
+  "id": "p156-047",
+  "src": "/lessons/seiden/p156-047.jpg",
+  "mentor": "seiden",
+  "lesson": 154,
+  "title": "QCOM 60m: revisit C of supply origin A",
+  "maskX": 0.78,
+  "plot": {
+   "x0": 0.005,
+   "x1": 0.905,
+   "y0": 0.075,
+   "y1": 0.89
+  },
+  "axis": {
+   "y1": 0.106,
+   "p1": 42.0,
+   "y2": 0.705,
+   "p2": 39.5
+  },
+  "path": [
+   0.37,
+   0.205,
+   0.265,
+   0.25,
+   0.39
+  ],
+  "truth": {
+   "side": "sell",
+   "entry": 0.224,
+   "sl": 0.125,
+   "tp": 0.469,
+   "why": "The strong drop B came from base A at the top; when price rallies back into A (C) it is the short, targeting demand D at about 40.1-40.5."
+  },
+  "zone": {
+   "y0": 0.135,
+   "y1": 0.224,
+   "x0": 0.29
+  },
+  "pattern": "RBD"
+ },
+ {
+  "id": "p160-049",
+  "src": "/lessons/seiden/p160-049.jpg",
+  "mentor": "seiden",
+  "lesson": 157,
+  "title": "SPY 60m: gap down into unfilled gap origin",
+  "maskX": 0.705,
+  "plot": {
+   "x0": 0.005,
+   "x1": 0.92,
+   "y0": 0.09,
+   "y1": 0.85
+  },
+  "axis": {
+   "y1": 0.109,
+   "p1": 87.5,
+   "y2": 0.785,
+   "p2": 82.0
+  },
+  "path": [
+   0.57,
+   0.685,
+   0.49,
+   0.52,
+   0.28,
+   0.37,
+   0.254,
+   0.57,
+   0.48
+  ],
+  "truth": {
+   "side": "buy",
+   "entry": 0.695,
+   "sl": 0.75,
+   "tp": 0.33,
+   "why": "The 4/9 gap up left an unfilled gap origin at about 82.8 that acts as demand; the 4/21 gap down into it is a buy, as the index sits at demand."
+  },
+  "zone": {
+   "y0": 0.68,
+   "y1": 0.72,
+   "x0": 0.21
+  },
+  "pattern": "pro-gap"
+ }
+]

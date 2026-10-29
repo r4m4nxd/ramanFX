@@ -1,0 +1,82 @@
+[
+  {
+    "id": "p406-002",
+    "src": "/lessons/seiden/p406-002.jpg",
+    "mentor": "seiden",
+    "lesson": 403,
+    "title": "QQQ: short the return to supply",
+    "maskX": 0.815,
+    "plot": {"x0": 0.01, "x1": 0.938, "y0": 0.058, "y1": 0.88},
+    "axis": {"y1": 0.073, "p1": 57.90, "y2": 0.84, "p2": 57.00},
+    "path": [0.226, 0.37, 0.33, 0.86, 0.718],
+    "truth": {
+      "side": "sell",
+      "entry": 0.216,
+      "sl": 0.135,
+      "tp": 0.708,
+      "why": "Price fell hard away from the 57.73-57.81 base, so supply exceeded demand there; the gap-up rally back into it is a buyer buying after a rally into supply. Sell the proximal line, buy stop above the distal line, cover just above the demand base for roughly 6:1."
+    },
+    "zone": {"y0": 0.153, "y1": 0.216, "x0": 0.111},
+    "pattern": "RBD"
+  },
+  {
+    "id": "p412-006",
+    "src": "/lessons/seiden/p412-006.jpg",
+    "mentor": "seiden",
+    "lesson": 410,
+    "title": "USDCHF: sell supply in a downtrend",
+    "maskX": 0.712,
+    "plot": {"x0": 0.01, "x1": 0.935, "y0": 0.026, "y1": 0.89},
+    "axis": {"y1": 0.11, "p1": 0.884, "y2": 0.87, "p2": 0.868},
+    "path": [0.18, 0.46, 0.41, 0.595, 0.52, 0.815],
+    "truth": {
+      "side": "sell",
+      "entry": 0.15,
+      "sl": 0.029,
+      "tp": 0.775,
+      "why": "Both trends are down, so only supply is traded; this short base saw a fast drop and a long run to 0.8660 before returning. The buyer on the rally back makes three mistakes (after a rally, into supply, in a downtrend): about 25 ticks of risk for 100+ ticks."
+    },
+    "zone": {"y0": 0.062, "y1": 0.15, "x0": 0.054},
+    "pattern": "RBD"
+  },
+  {
+    "id": "p415-008",
+    "src": "/lessons/seiden/p415-008.jpg",
+    "mentor": "seiden",
+    "lesson": 414,
+    "title": "Gold: quality supply + no-basing margin",
+    "maskX": 0.36,
+    "plot": {"x0": 0.01, "x1": 0.407, "y0": 0.125, "y1": 0.79},
+    "axis": {"y1": 0.195, "p1": 1414, "y2": 0.653, "p2": 1404},
+    "path": [0.32, 0.5, 0.47, 0.677, 0.553],
+    "truth": {
+      "side": "sell",
+      "entry": 0.324,
+      "sl": 0.227,
+      "tp": 0.615,
+      "why": "Price left the supply quickly (quality), and the rally beneath it had no basing, so no buy orders sit there to stop a fall (margin). Sell the supply and take profits just above the demand that launched the rally: risk $400 to make $1,200."
+    },
+    "zone": {"y0": 0.24, "y1": 0.324, "x0": 0.324},
+    "pattern": "RBD"
+  },
+  {
+    "id": "p417-010",
+    "src": "/lessons/seiden/p417-010.jpg",
+    "mentor": "seiden",
+    "lesson": 414,
+    "title": "S&P daily: buy demand into bad news",
+    "maskX": 0.873,
+    "plot": {"x0": 0.505, "x1": 0.945, "y0": 0.115, "y1": 0.75},
+    "axis": {"y1": 0.169, "p1": 1330, "y2": 0.716, "p2": 1240},
+    "path": [0.66, 0.41, 0.43, 0.293, 0.342, 0.19, 0.205],
+    "truth": {
+      "side": "buy",
+      "entry": 0.637,
+      "sl": 0.724,
+      "tp": 0.198,
+      "why": "The March 2011 sell-off on Japan news collapsed into a fresh daily demand zone with a clear profit margin up to the prior high. Quality level plus margin means buy, regardless of the headlines and the short-term downtrend."
+    },
+    "zone": {"y0": 0.637, "y1": 0.713, "x0": 0.505},
+    "pattern": "RBR"
+  }
+]

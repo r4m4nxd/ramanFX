@@ -1,0 +1,188 @@
+name: Stock scan
+
+# Weekdays after the US close, or by hand. GitHub delays / drops scheduled runs (worst near the top of the hour), so it
+# polls every 30 min at off-peak minutes from 21:07 to 03:37 UTC; a scheduled run stops in seconds when
+# public/scanner/latest.json was already generated after the latest 20:30 UTC (the daily message went out). Scans S&P 500 + Nasdaq-100 + Dow 30 + S&P/TSX 60 + S&P/TSX Composite (US listings of the TSX names)
+# + Global leaders (curated US-listed ADRs, adr_list.csv) + US top liquid (top_liquid.csv, rebuilt on the Monday refresh)
+# (switch universes with the SCANNER_UNIVERSES repository variable), sends Telegram, commits public/scanner/*.json to the `data` branch.
+# On-demand (the bot's /scan SYM and [🔄 Live scan]): tickers=SYM + ondemand=true scans that ticker with every rule and
+# sends ONE result card; it writes nothing (no public files, no SEC refresh, no cache save), skips the unit tests and
+# runs beside a full scan (its own concurrency group).
+run-name: ${{ github.event.inputs.ondemand == 'true' && format('Stock on-demand scan {0}', github.event.inputs.tickers) || 'Stock scan' }}
+on:
+  schedule:
+    - cron: '7,37 21-23 * * 1-5'
+    - cron: '7,37 0-3 * * 2-6'
+  workflow_dispatch:
+    inputs:
+      tickers:
+        description: 'Optional comma-separated tickers (default: every enabled universe)'
+        required: false
+      refresh_universe:
+        description: 'Refresh the index lists now'
+        type: boolean
+        default: false
+      scheduled:
+        description: 'Behave like a scheduled run (the trader-coach scheduler sets it): the already-scanned check decides'
+        type: boolean
+        default: false
+      ondemand:
+        description: 'On-demand scan for the bot (with tickers=SYM): one result card, nothing written'
+        type: boolean
+        default: false
+      to:
+        description: 'On-demand only: the bot guest who asked (12-hex key, not a chat id): the card goes to them'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.event.inputs.ondemand == 'true' && 'stock-scan-ondemand' || 'stock-scan' }}
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      SCANNER_UNIVERSES: ${{ vars.SCANNER_UNIVERSES || 'SPX,NDX,DJI,TSX60,TSX,ADR,TOP' }}
+      SCANNER_TOP_MIN_DV: ${{ vars.SCANNER_TOP_MIN_DV || '50e6' }}   # TOP: 20-day median dollar volume floor (USD/day)
+      SCANNER_TOP_MAX: ${{ vars.SCANNER_TOP_MAX || '300' }}
+      SCANNER_WORKERS: '6'
+      TELEGRAM_TOP_N: ${{ vars.TELEGRAM_TOP_N || '3' }}
+      SCANNER_SEC_PER_RUN: '600'
+      SCANNER_SEC_COLD_CAP: '150'     # never-cached companies per run: a cold SEC cache fills over a few runs
+      SCANNER_BUDGET_MIN: '50'        # no new download after 50 min: the scan goes on with what it has
+      PYTHONTZPATH: ''                # zoneinfo: the pip tzdata (step 'Current time-zone data')
+    steps:
+      # code: the branch tip at run time; data (so the backup run sees the primary run's latest.json): the data branch
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      # Data (dedupe / schedule state, the previous outputs, the other jobs' outputs) from the `data` branch, never main:
+      # scripts/data-branch.sh, .github/workflows/README.md.
+      - name: Data from the data branch
+        run: bash scripts/data-branch.sh pull
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Scheduled runs only: skip when this close's scan is already published (generated after the last 20:30 UTC).
+      - name: Already scanned today?
+        id: check
+        run: |
+          if [ "$EVENT" != "schedule" ] && [ "$SCHEDULED" != "true" ]; then echo "scan=true" >> "$GITHUB_OUTPUT"; echo "manual run: scan"; exit 0; fi
+          python - <<'PY'
+          import datetime as dt, json, os
+          now = dt.datetime.now(dt.timezone.utc)   # a run delayed past midnight UTC still belongs to yesterday's close
+          cut = now.replace(hour=20, minute=30, second=0, microsecond=0)
+          if now < cut:
+              cut -= dt.timedelta(days=1)
+          cut = cut.strftime('%Y-%m-%dT%H:%M')
+          try:
+              gen = json.load(open('public/scanner/latest.json')).get('generated_at') or ''
+          except (OSError, ValueError):
+              gen = ''
+          done = gen >= cut
+          print(f'latest.json generated_at {gen or "n/a"}: ' + ('already scanned today, nothing to do' if done else 'scan'))
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"scan={'false' if done else 'true'}\n")
+          PY
+        env:
+          EVENT: ${{ github.event_name }}
+          SCHEDULED: ${{ github.event.inputs.scheduled }}
+
+      # Price + SEC cache between runs: after the first full download only the last month is fetched per ticker.
+      # restore + an explicit save with always(): actions/cache's own post step saves only when the job succeeds, so a
+      # failed or timed-out cold run would throw away everything it downloaded and the next run would be cold again.
+      - name: Restore data cache
+        if: ${{ steps.check.outputs.scan == 'true' }}
+        uses: actions/cache/restore@v4
+        with:
+          path: tools/stock_scanner/.cache
+          key: scanner-data-${{ github.run_id }}
+          restore-keys: |
+            scanner-data-
+
+      # The PyPI tzdata (Alberta's permanent UTC-6 from 2026-11-01, tzdata 2026c+): the Calgary clock in the message
+      # and the bot's quiet hours (PYTHONTZPATH='' above makes zoneinfo use it).
+      - name: Current time-zone data
+        if: ${{ steps.check.outputs.scan == 'true' }}
+        run: python -m pip install --quiet --upgrade tzdata
+
+      - name: Unit tests
+        if: ${{ steps.check.outputs.scan == 'true' && github.event.inputs.ondemand != 'true' }}
+        run: python -m unittest discover tools/stock_scanner/tests
+
+      - name: Refresh index lists (Mondays, or on request)
+        if: ${{ steps.check.outputs.scan == 'true' && github.event.inputs.ondemand != 'true' && (github.event.inputs.refresh_universe == 'true' || github.event_name == 'schedule' || github.event.inputs.scheduled == 'true') }}
+        run: |
+          if [ "$(date -u +%u)" = "1" ] || [ "$IN_REFRESH" = "true" ]; then
+            python tools/stock_scanner/universe.py --force
+          else
+            echo "not Monday: keeping the committed universe.csv"
+          fi
+        env:
+          SEC_UA: ${{ secrets.SEC_UA }}
+          IN_REFRESH: ${{ github.event.inputs.refresh_universe }}
+          ALPACA_KEY_ID: ${{ secrets.ALPACA_KEY_ID }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+
+      # Step timeout < job timeout, so the cache save and the commit below still run if the scan hangs.
+      - name: Scan + notify
+        id: scan
+        if: ${{ steps.check.outputs.scan == 'true' }}
+        timeout-minutes: 70
+        run: |
+          ARGS=()
+          if [ -n "$IN_TICKERS" ]; then ARGS=(--tickers "$IN_TICKERS"); fi
+          if [ "$IN_ONDEMAND" = "true" ] && [ -n "$IN_TICKERS" ]; then ARGS+=(--ondemand); fi
+          python tools/stock_scanner/scan.py "${ARGS[@]}"
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          HOLDINGS_JSON: ${{ secrets.HOLDINGS_JSON }}
+          IN_TICKERS: ${{ github.event.inputs.tickers }}
+          IN_ONDEMAND: ${{ github.event.inputs.ondemand }}
+          RFX_TO: ${{ github.event.inputs.ondemand == 'true' && github.event.inputs.to || '' }}
+          WATCHLIST: ${{ secrets.WATCHLIST }}
+          WATCHLIST_APPROACH_PCT: ${{ vars.WATCHLIST_APPROACH_PCT || '3' }}
+          # Daily zone lists (Telegram + app): approaching = close within X% of a proximal, left = touched in the last
+          # N sessions; top N per Telegram section.
+          SCANNER_NEAR_PCT: ${{ vars.SCANNER_NEAR_PCT || '3' }}
+          SCANNER_LEFT_SESSIONS: ${{ vars.SCANNER_LEFT_SESSIONS || '3' }}
+          TELEGRAM_LIST_CAP: ${{ vars.TELEGRAM_LIST_CAP || '15' }}
+          SEC_UA: ${{ secrets.SEC_UA }}
+          # Daily bars: Alpaca Market Data (free account, paper-trading keys). Without them the scan falls back to
+          # Yahoo / Stooq, which refuse GitHub runners: then the no-data guard fails the run and publishes nothing.
+          ALPACA_KEY_ID: ${{ secrets.ALPACA_KEY_ID }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+          # TSX-only names (no US listing) stay uncovered until a paid feed is switched on: repository variable
+          # SCANNER_TSX_FEED=eodhd + secret EODHD_API_KEY.
+          SCANNER_TSX_FEED: ${{ vars.SCANNER_TSX_FEED || '' }}
+          EODHD_API_KEY: ${{ secrets.EODHD_API_KEY }}
+          # Optional fundamentals fallback (Financial Modeling Prep, free tier) for companies without SEC XBRL data.
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+
+      - name: Save data cache
+        if: ${{ always() && steps.check.outputs.scan == 'true' && github.event.inputs.ondemand != 'true' && hashFiles('tools/stock_scanner/.cache/daily/*.json') != '' }}
+        uses: actions/cache/save@v4
+        with:
+          path: tools/stock_scanner/.cache
+          key: scanner-data-${{ github.run_id }}
+
+      # Runs even when the scan step failed or timed out (partial results written before the budget ran out are
+      # committed); skipped only when the run was cancelled or there is no output at all. When fewer than half of the
+      # tickers had data the scan writes nothing (exit 2), so there is nothing to commit and the app keeps the last
+      # good results.
+      - name: Commit results
+        if: ${{ !cancelled() && steps.check.outputs.scan == 'true' && github.event.inputs.ondemand != 'true' && hashFiles('public/scanner/latest.json') != '' }}
+        run: |
+          git config user.name "ramanfx-scanner[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bash scripts/data-branch.sh push "scanner: daily scan $(date -u +%Y-%m-%d)" \
+            public/scanner tools/stock_scanner/universe.csv tools/stock_scanner/top_liquid.csv --keep public/scanner/backtest.json

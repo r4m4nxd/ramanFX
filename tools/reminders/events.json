@@ -1,0 +1,128 @@
+{
+ "kinds": {
+  "cpi": {
+   "error": null,
+   "events": [
+    {
+     "date": "2026-11-10",
+     "et": "08:30",
+     "verified": true
+    }
+   ],
+   "fetched_at": "2026-10-29T04:17:37Z",
+   "source": "tradingview",
+   "tried_at": "2026-10-29T04:17:37Z"
+  },
+  "fomc": {
+   "error": null,
+   "events": [
+    {
+     "date": "2025-10-29",
+     "et": "14:00",
+     "verified": true
+    },
+    {
+     "date": "2025-12-10",
+     "et": "14:00",
+     "verified": true
+    },
+    {
+     "date": "2026-01-28",
+     "et": "14:00",
+     "verified": true
+    },
+    {
+     "date": "2026-03-18",
+     "et": "14:00",
+     "verified": true
+    },
+    {
+     "date": "2026-04-29",
+     "et": "14:00",
+     "verified": true
+    },
+    {
+     "date": "2026-06-17",
+     "et": "14:00",
+     "verified": true
+    },
+    {
+     "date": "2026-07-29",
+     "et": "14:00",
+     "verified": true
+    },
+    {
+     "date": "2026-09-16",
+     "et": "14:00",
+     "verified": true
+    },
+    {
+     "date": "2026-10-28",
+     "et": "14:00",
+     "verified": true
+    },
+    {
+     "date": "2026-12-09",
+     "et": "14:00",
+     "verified": true
+    },
+    {
+     "date": "2027-01-27",
+     "et": "14:00",
+     "verified": true
+    },
+    {
+     "date": "2027-03-17",
+     "et": "14:00",
+     "verified": true
+    },
+    {
+     "date": "2027-04-28",
+     "et": "14:00",
+     "verified": true
+    },
+    {
+     "date": "2027-06-09",
+     "et": "14:00",
+     "verified": true
+    },
+    {
+     "date": "2027-07-28",
+     "et": "14:00",
+     "verified": true
+    },
+    {
+     "date": "2027-09-15",
+     "et": "14:00",
+     "verified": true
+    },
+    {
+     "date": "2027-10-27",
+     "et": "14:00",
+     "verified": true
+    },
+    {
+     "date": "2027-12-08",
+     "et": "14:00",
+     "verified": true
+    }
+   ],
+   "fetched_at": "2026-10-29T04:17:37Z",
+   "source": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+   "tried_at": "2026-10-29T04:17:37Z"
+  },
+  "nfp": {
+   "error": null,
+   "events": [
+    {
+     "date": "2026-11-06",
+     "et": "08:30",
+     "verified": true
+    }
+   ],
+   "fetched_at": "2026-10-29T04:17:37Z",
+   "source": "tradingview",
+   "tried_at": "2026-10-29T04:17:37Z"
+  }
+ }
+}

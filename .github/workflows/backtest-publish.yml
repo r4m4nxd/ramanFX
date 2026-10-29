@@ -1,0 +1,46 @@
+name: Publish backtest artifact
+
+# Commit the results artifact of an earlier backtest run whose push failed (to the `data` branch, never main).
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Backtest run id
+        required: true
+      artifact:
+        description: Artifact name (fx-backtest-<run id> or stock-backtest-<run id>)
+        required: true
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Data (universe.csv, the published scans) from the `data` branch: scripts/data-branch.sh, .github/workflows/README.md.
+      - name: Data from the data branch
+        run: bash scripts/data-branch.sh pull
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact }}
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+          path: .
+      - name: Commit results
+        env:
+          IN_ARTIFACT: ${{ inputs.artifact }}
+        run: |
+          git config user.name "ramanfx-scanner[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          case "$IN_ARTIFACT" in
+            fx-backtest-*) paths=(public/fx/backtest.json docs/research/FX_Backtest.md) ;;
+            stock-backtest-*) paths=(public/scanner/backtest.json docs/research/Stock_Backtest.md) ;;
+            *) echo "::error::unknown artifact $IN_ARTIFACT (fx-backtest-<id> or stock-backtest-<id>)"; exit 1 ;;
+          esac
+          bash scripts/data-branch.sh push "backtest: publish $IN_ARTIFACT" "${paths[@]}" \
+            || { echo "::error::results not pushed"; exit 1; }

@@ -1,0 +1,104 @@
+name: Stock backtest
+
+# By hand only. Walk-forward backtest of the stock scanner's CURRENT rules (W1 / MN / 3M zones, top-down nesting,
+# ATH rule, 250% projection, W1 5% / MN 3% / 3M 2% stops) on Alpaca daily data, weekly cadence, 52-week holding,
+# ablations (no nesting, no ATH rule), a seeded random-entry baseline and SPY buy-and-hold.
+# Writes public/scanner/backtest.json + docs/research/Stock_Backtest.md and commits them to the `data` branch.
+on:
+  workflow_dispatch:
+    inputs:
+      years:
+        description: 'Signals of the last N years (0 = the whole cached history after warm-up)'
+        required: false
+        default: '10'
+      tickers:
+        description: 'Optional comma-separated tickers (default: every enabled universe)'
+        required: false
+      max_tickers:
+        description: 'At most this many tickers (0 = all)'
+        required: false
+        default: '0'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: stock-backtest
+  cancel-in-progress: false
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      SCANNER_UNIVERSES: ${{ vars.SCANNER_UNIVERSES || 'SPX,NDX,DJI,TSX60,TSX' }}
+      SCANNER_BUDGET_MIN: '40'        # downloads stop after 40 min (a warm cache needs a few)
+    steps:
+      - uses: actions/checkout@v4
+
+      # Data (universe.csv, the published scans) from the `data` branch: scripts/data-branch.sh, .github/workflows/README.md.
+      - name: Data from the data branch
+        run: bash scripts/data-branch.sh pull
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # The daily scan's price cache (stock-scan.yml): warm, only the last weeks are fetched.
+      - name: Restore data cache
+        uses: actions/cache/restore@v4
+        with:
+          path: tools/stock_scanner/.cache
+          key: scanner-data-${{ github.run_id }}
+          restore-keys: |
+            scanner-data-
+
+      - name: Unit tests
+        run: python -m unittest discover tools/stock_scanner/tests
+
+      - name: Backtest
+        id: bt
+        timeout-minutes: 280
+        run: |
+          # inputs arrive via env, never pasted into the script
+          ARGS=(--years "${IN_YEARS:-10}" --limit "${IN_MAX:-0}")
+          if [ -n "$IN_TICKERS" ]; then ARGS+=(--tickers "$IN_TICKERS"); fi
+          python tools/stock_scanner/backtest.py "${ARGS[@]}" --workers "$(nproc)" --budget-min 260 \
+            --public public/scanner/backtest.json --md docs/research/Stock_Backtest.md | tee backtest_log.txt
+        env:
+          ALPACA_KEY_ID: ${{ secrets.ALPACA_KEY_ID }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+          SCANNER_TSX_FEED: ${{ vars.SCANNER_TSX_FEED || '' }}
+          IN_YEARS: ${{ github.event.inputs.years }}
+          IN_MAX: ${{ github.event.inputs.max_tickers }}
+          IN_TICKERS: ${{ github.event.inputs.tickers }}
+          EODHD_API_KEY: ${{ secrets.EODHD_API_KEY }}
+
+      - name: Summary
+        if: ${{ always() && hashFiles('docs/research/Stock_Backtest.md') != '' }}
+        run: cat docs/research/Stock_Backtest.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Save data cache
+        if: ${{ always() && hashFiles('tools/stock_scanner/.cache/daily/*.json') != '' }}
+        uses: actions/cache/save@v4
+        with:
+          path: tools/stock_scanner/.cache
+          key: scanner-data-${{ github.run_id }}
+
+      - name: Upload results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: stock-backtest-${{ github.run_id }}
+          path: |
+            public/scanner/backtest.json
+            docs/research/Stock_Backtest.md
+          if-no-files-found: ignore
+
+      - name: Commit results
+        if: ${{ !cancelled() && hashFiles('public/scanner/backtest.json') != '' }}
+        run: |
+          git config user.name "ramanfx-scanner[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bash scripts/data-branch.sh push "scanner: stock backtest $(date -u +%Y-%m-%d)" public/scanner/backtest.json docs/research/Stock_Backtest.md \
+            || { echo "::error::results not pushed (see the uploaded artifact)"; exit 1; }

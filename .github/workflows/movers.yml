@@ -1,0 +1,94 @@
+name: Big moves
+
+# "Big moves" on every timeframe (tools/movers/movers.py): ONE calm Telegram message an hour at most, sections per
+# timeframe that just closed, highest first (🟪 1W, 🟦 1D, 🟩 4H, ⬜ 1H), grouped Forex & metals / Indices &
+# commodities / Crypto / Stocks, EVERY qualifier one line (>= 2x its 20-candle average range + a minimum % per
+# timeframe and group). The script works out itself which candles closed: FX / metals / indices / commodities on OANDA
+# (NY-aligned 4H, 1D at 17:00 New York, 1W Friday 17:00), crypto 24/7 (UTC days, Saturday-Friday weeks), stocks 1H on
+# IEX and 1D / Friday 1W on SIP daily / weekly bars with the 17:00 New York run. Deduped per close
+# (tools/movers/.cache/state.json in the actions cache); 4H / 1D / 1W found in quiet hours are held and sent when they
+# end. public/movers/latest.json (the app's /moves page: every qualifier) is committed to the `data` branch. Primary trigger: the
+# trader-coach edge function's 10-minute scheduler (supabase/functions/trader-coach/scheduler.ts) dispatches it at
+# :05-:25 past EVERY hour (crypto trades 24/7) when GITHUB_DISPATCH_TOKEN is set; the cron below is the backup (GitHub
+# drops many scheduled runs). test=true sends ONE '🧪 Sample big moves (all timeframes)' message from the last closed
+# 1H / 4H / 1D / 1W candles and touches no state.
+on:
+  schedule:
+    - cron: '13 * * * *'
+  workflow_dispatch:
+    inputs:
+      test:
+        description: "Send one '🧪 Sample big moves (all timeframes)' message (the last closed 1H / 4H / 1D / 1W candles)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write                 # public/movers/latest.json for the app (data branch)
+
+concurrency:
+  group: movers
+  cancel-in-progress: false
+
+jobs:
+  movers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONTZPATH: ''                 # zoneinfo: the pip tzdata (Calgary's permanent UTC-6 from 2026-11-01)
+      PYTHONUNBUFFERED: '1'
+      OANDA_ENV: ${{ vars.OANDA_ENV || 'practice' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      # Data (dedupe / schedule state, the previous outputs, the other jobs' outputs) from the `data` branch, never main:
+      # scripts/data-branch.sh, .github/workflows/README.md.
+      - name: Data from the data branch
+        run: bash scripts/data-branch.sh pull
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Current time-zone data
+        run: python -m pip install --quiet --upgrade tzdata
+
+      - name: Restore state
+        uses: actions/cache/restore@v4
+        with:
+          path: tools/movers/.cache
+          key: movers-${{ github.run_id }}
+          restore-keys: |
+            movers-
+
+      - name: Unit tests
+        run: python -m unittest discover -s tools/movers/tests
+
+      - name: Big moves
+        timeout-minutes: 10
+        run: |
+          ARGS=()
+          if [ "$TEST" = "true" ]; then ARGS+=(--test); fi
+          python tools/movers/movers.py "${ARGS[@]}"
+        env:
+          TEST: ${{ github.event.inputs.test }}
+          OANDA_API_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
+          ALPACA_KEY_ID: ${{ secrets.ALPACA_KEY_ID }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+      - name: Save state
+        if: ${{ always() && hashFiles('tools/movers/.cache/state.json') != '' && github.event.inputs.test != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: tools/movers/.cache
+          key: movers-${{ github.run_id }}
+
+      - name: Publish the app list
+        if: ${{ github.event.inputs.test != 'true' }}
+        run: |
+          git config user.name "ramanfx-movers[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bash scripts/data-branch.sh push "movers: $(date -u +%Y-%m-%dT%H:%MZ)" public/movers

@@ -1,0 +1,142 @@
+"""Parity fixtures for the bot's TypeScript zone port (supabase/functions/telegram-bot/zonecore.ts).
+
+Builds deterministic synthetic bars (the scanners' own fixture generators), runs the REAL Python engines on them and
+writes the bars + the zones the scanners would publish to fixtures.json next to this file:
+  FX     fxcore.analyse + the fxscan.detail() zone filter (full list, before its 16-zone cut; the cut list is checked
+         against fxscan.detail() itself), on H1 / H4 / D1 / W1 / MN bars with a forming H4 (closed H1 bars after the
+         newest closed H4 bar), several instruments (5-digit pair, JPY pair, gold);
+  stocks scan.analyse on data.closed_htf W1 / MN bars and scan.ticker_detail()['zones'] (W1 / MN / 3M).
+src/core/telegramZoneParity.test.ts runs the TS port on the same bars and requires identical zones
+(tf, side, proximal, distal, pattern, touches, order).
+Trendlines (zones.trendlines, Kevin's construction; ported to supabase/functions/telegram-bot/trendcore.ts): every
+line of every row the scanners evaluate (FX H1 / H4 / D1 / W1 / MN / 3M rows of fxcore.analyse; stocks D1 / W1 / MN /
+3M on closed bars), the up / down line in force and its touches: src/core/telegramTrendParity.test.ts.
+
+    python tools/telegram_bot/parity/make_fixtures.py          # rewrite fixtures.json
+    python tools/telegram_bot/parity/make_fixtures.py --check  # exit 1 when fixtures.json is out of date
+"""
+from __future__ import annotations
+
+import json
+import os
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
+FX = os.path.join(ROOT, 'tools', 'fx_scanner')
+ST = os.path.join(ROOT, 'tools', 'stock_scanner')
+for p in (FX, ST, os.path.join(FX, 'fixtures'), os.path.join(ST, 'fixtures')):
+    if p not in sys.path:
+        sys.path.insert(0, p)
+
+import fxcfg as C  # noqa: E402
+import fxcore as F  # noqa: E402
+import fxscan  # noqa: E402
+import synth_fx  # noqa: E402
+import synth  # noqa: E402
+import data as DATA  # noqa: E402
+import scan as SC  # noqa: E402
+import zones as Z  # noqa: E402
+from zones import Bar  # noqa: E402
+
+OUT = os.path.join(HERE, 'fixtures.json')
+FX_CASES = [  # (sym, inst, seed, start, vol)
+    ('EURUSD', {'name': 'EUR_USD', 'type': 'CURRENCY', 'displayPrecision': 5, 'pipLocation': -4}, 11, 1.10, 0.0016),
+    ('GBPJPY', {'name': 'GBP_JPY', 'type': 'CURRENCY', 'displayPrecision': 3, 'pipLocation': -2}, 23, 190.0, 0.0019),
+    ('XAUUSD', {'name': 'XAU_USD', 'type': 'METAL', 'displayPrecision': 3, 'pipLocation': -2}, 37, 2400.0, 0.0025),
+]
+STOCK_SEEDS = [3, 8, 21]
+
+
+def bar(b):
+    return [b.d, b.o, b.h, b.l, b.c]
+
+
+def rounded(bs, nd):
+    """Prices rounded to the quote's digits, like real feeds (smaller fixtures; the engines run on these bars)."""
+    return [Bar(b.d, round(b.o, nd), round(b.h, nd), round(b.l, nd), round(b.c, nd), b.v) for b in bs]
+
+
+def tl_dump(S, ok=True):
+    """zones.trendlines on one row's Series: every line + the in-force up / down line (index into lines) + touches."""
+    st = Z.trendlines(S) if ok else Z.TLState()
+    ln = [{'dir': t.dir, 'a': t.a, 'b': t.b, 'pa': t.pa, 'pb': t.pb, 'removed': t.removed, 'removed_bar': t.removed_bar,
+           'conf': t.conf, 'cross_bar': t.cross_bar} for t in st.lines]
+    ix = lambda t: next((i for i, x in enumerate(st.lines) if x is t), -1)  # noqa: E731
+    return {'n': S.n, 'ok': ok, 'lines': ln, 'up': ix(st.up), 'dn': ix(st.dn), 'up_touches': st.up_touches, 'dn_touches': st.dn_touches}
+
+
+def fx_case(sym, inst, seed, start, vol):
+    inst = {**inst, 'sym': sym, 'cls': C.fx_class(inst['name'], inst['type']), 'wl': True, 'group': ''}
+    nd = C.digits_of(inst)
+    h4 = rounded(synth_fx.h4_walk(seed, '2026-10-23T16:00', n=9000, start=start, vol=vol), nd)
+    h1 = rounded(synth_fx.split_h1(h4[-200:], seed), nd)
+    # the newest H4 bar is still forming: its first two H1 bars are closed (the bot sees the same mid-H4 state)
+    bars = {'H1': h1[:-2], 'H4': h4[-500:-1], 'D1': synth_fx.aggregate(h4[:-1], 'D1')[-400:],
+            'W1': synth_fx.aggregate(h4[:-1], 'W1'), 'MN': synth_fx.aggregate(h4[:-1], 'MN')}
+    an = F.analyse(inst, bars)
+    zs = []
+    for tf in C.ENTRY_TFS + C.CONTEXT_TFS:            # fxscan.detail(), before the 16-zone cut
+        r = an.rows[tf]
+        if not r.ok:
+            continue
+        for z in r.zones:
+            x = an.dna.get(z.zid)
+            if x is None or F.tests(an, z, x) > C.MAX_TOUCHES:
+                continue
+            zs.append({'tf': z.tf, 'side': F.SIDE[z.dir], 'proximal': round(z.prox, an.nd), 'distal': round(z.dist, an.nd),
+                       'pattern': z.pattern, 'touches': F.tests(an, z, x), 'pips': round(abs(an.price - z.prox) / an.pip, 1)})
+    zs.sort(key=lambda z: z['pips'])
+    det = fxscan.detail(an, [], [])['zones']
+    assert [(z['tf'], z['side'], z['proximal'], z['touches']) for z in det] == \
+        [(z['tf'], z['side'], z['proximal'], z['touches']) for z in zs[:16]], f'{sym}: detail() differs from the filter'
+    tls = {tf: tl_dump(r.S, r.ok) for tf, r in an.rows.items() if tf in ('H1', 'H4', 'D1', 'W1', 'MN', '3M')}
+    for tf, r in an.rows.items():                        # the row's own trendlines are the ones dumped
+        if r.ok and tf in tls:
+            assert [(t.a, t.b, t.dir) for t in r.tl.lines] == [(x['a'], x['b'], x['dir']) for x in tls[tf]['lines']]
+    return {'sym': sym, 'pip': an.pip, 'nd': an.nd, 'price': an.price, 'bars': {tf: [bar(b) for b in bs] for tf, bs in bars.items()},
+            'zones': [{k: v for k, v in z.items() if k != 'pips'} for z in zs], 'tls': tls}
+
+
+def stock_case(seed):
+    bars = rounded(synth.ticker(seed), 2)[-1600:]
+    an = SC.analyse(bars, DATA.closed_htf(bars, 'W1'), DATA.closed_htf(bars, 'MN'))
+    det = SC.ticker_detail(f'T{seed}', {'name': f'T{seed}'}, an, bars, {}, [], [])[0]
+    zs = [{'tf': z['tf'], 'side': z['side'], 'proximal': z['proximal'], 'distal': z['distal'], 'pattern': z['pattern'],
+           'touches': z['touches']} for z in det['zones']]
+    px = bars[-1].c
+    rows = {'D1': bars, 'W1': DATA.closed_htf(bars, 'W1'), 'MN': DATA.closed_htf(bars, 'MN')}
+    rows['3M'] = Z.to_quarters(rows['MN'])
+    tls = {}
+    for tf, bs in rows.items():
+        S = Z.Series(bs, px, tf)
+        tls[tf] = tl_dump(S, S.n >= Z.MIN_ROW_BARS.get(tf, 40) and S.atr(1) > 0)
+    return {'sym': f'T{seed}', 'price': an.price, 'daily': [bar(b) for b in bars], 'zones': zs, 'tls': tls}
+
+
+def build():
+    return {'note': 'generated by tools/telegram_bot/parity/make_fixtures.py: bars + the zones the Python scanners publish',
+            'fx': [fx_case(*c) for c in FX_CASES], 'stocks': [stock_case(s) for s in STOCK_SEEDS]}
+
+
+def main(argv=None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    text = json.dumps(build(), separators=(',', ':')) + '\n'
+    if '--check' in argv:
+        try:
+            with open(OUT) as f:
+                same = f.read() == text
+        except OSError:
+            same = False
+        print('fixtures.json up to date' if same else 'fixtures.json is OUT OF DATE: run make_fixtures.py')
+        return 0 if same else 1
+    with open(OUT, 'w') as f:
+        f.write(text)
+    js = json.loads(text)
+    print(f"wrote {os.path.relpath(OUT, ROOT)} ({len(text) // 1024} KB): "
+          + ', '.join(f"{c['sym']} {len(c['zones'])} zones {sum(len(t['lines']) for t in c['tls'].values())} lines" for c in js['fx'] + js['stocks']))
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

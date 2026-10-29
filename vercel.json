@@ -1,0 +1,147 @@
+{
+  "framework": "vite",
+  "buildCommand": "npm run build && rm -rf dist/fx dist/scanner dist/movers dist/fundamentals dist/insiders",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/fx/(.*)\\.json",
+      "destination": "https://raw.githubusercontent.com/r4m4nxd/ramanFX/data/public/fx/$1.json"
+    },
+    {
+      "source": "/scanner/(.*)\\.json",
+      "destination": "https://raw.githubusercontent.com/r4m4nxd/ramanFX/data/public/scanner/$1.json"
+    },
+    {
+      "source": "/movers/(.*)\\.json",
+      "destination": "https://raw.githubusercontent.com/r4m4nxd/ramanFX/data/public/movers/$1.json"
+    },
+    {
+      "source": "/insiders/(.*)\\.json",
+      "destination": "https://raw.githubusercontent.com/r4m4nxd/ramanFX/data/public/insiders/$1.json"
+    },
+    {
+      "source": "/((?!legacy\\.html|version\\.json|assets/|scanner/.*\\.json|fx/.*\\.json|movers/.*\\.json|insiders/.*\\.json|research/.*\\.json).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+        },
+        {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "same-origin"
+        }
+      ]
+    },
+    {
+      "source": "/((?!legacy\\.html).*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'sha256-I94oiD4epkirPmiPsBtoAgbB8qaz6vvSvsVf3w+Y9p8=' https://s3.tradingview.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://dqjzufofmblerslcynzr.supabase.co https://*.tradingview.com; media-src 'self' blob: https://dqjzufofmblerslcynzr.supabase.co; connect-src 'self' blob: data: https://dqjzufofmblerslcynzr.supabase.co wss://dqjzufofmblerslcynzr.supabase.co https://api.frankfurter.app https://huggingface.co https://*.huggingface.co https://*.hf.co; frame-src https://*.tradingview.com https://*.tradingview-widget.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self' https://web.telegram.org; upgrade-insecure-requests"
+        }
+      ]
+    },
+    {
+      "source": "/legacy.html",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://dqjzufofmblerslcynzr.supabase.co; connect-src 'self' https://dqjzufofmblerslcynzr.supabase.co wss://dqjzufofmblerslcynzr.supabase.co https://api.openai.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests"
+        }
+      ]
+    },
+    {
+      "source": "/scanner/(.*)\\.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/fx/(.*)\\.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/movers/(.*)\\.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/insiders/(.*)\\.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/index.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/version.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/(sandbox|lessons|ask|tools|scanner|fx)/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive"
+        }
+      ]
+    }
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "audio/*": false,
+      "claude/*": false,
+      "data": false
+    }
+  },
+  "ignoreCommand": "bash scripts/vercel-ignore.sh"
+}
