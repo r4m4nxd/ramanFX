@@ -1,11 +1,17 @@
 {
  "kinds": {
   "cpi": {
-   "error": "fetch failed: cpi.htm: HTTP 403; bls.ics: no dates parsed",
-   "events": [],
-   "fetched_at": null,
-   "source": null,
-   "tried_at": "2026-10-29T04:14:46Z"
+   "error": null,
+   "events": [
+    {
+     "date": "2026-11-10",
+     "et": "08:30",
+     "verified": true
+    }
+   ],
+   "fetched_at": "2026-10-29T04:17:37Z",
+   "source": "tradingview",
+   "tried_at": "2026-10-29T04:17:37Z"
   },
   "fomc": {
    "error": null,
@@ -101,16 +107,22 @@
      "verified": true
     }
    ],
-   "fetched_at": "2026-10-29T04:14:46Z",
+   "fetched_at": "2026-10-29T04:17:37Z",
    "source": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
-   "tried_at": "2026-10-29T04:14:46Z"
+   "tried_at": "2026-10-29T04:17:37Z"
   },
   "nfp": {
-   "error": "fetch failed: empsit.htm: HTTP 403; bls.ics: HTTP 403",
-   "events": [],
-   "fetched_at": null,
-   "source": null,
-   "tried_at": "2026-10-29T04:14:46Z"
+   "error": null,
+   "events": [
+    {
+     "date": "2026-11-06",
+     "et": "08:30",
+     "verified": true
+    }
+   ],
+   "fetched_at": "2026-10-29T04:17:37Z",
+   "source": "tradingview",
+   "tried_at": "2026-10-29T04:17:37Z"
   }
  }
 }
