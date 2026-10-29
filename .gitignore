@@ -11,3 +11,5 @@ tools/narration/drive_uploaded.json
 tools/stock_scanner/.cache/
 tools/stock_scanner/backtest_out/
 tools/fx_scanner/.cache/
+tools/research/market_hours/.cache/
+tools/research/market_hours/.selftest/

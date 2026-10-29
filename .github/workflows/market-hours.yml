@@ -1,16 +1,23 @@
 name: Market hours study
 
-# When do volume and price range spike, by weekday and Calgary clock time? (tools/research/market_hours/market_hours.py)
-# OANDA M15 (forex, gold, index / oil CFDs) + Alpaca 15Min (SPY / QQQ / IWM + 25 large caps), ~2 years.
-# Runs by hand, or on a push to main that changes the study script. Writes docs/research/Market_Hours.md,
-# docs/research/market_hours_{fx,stocks}.png and public/research/market_hours.json, and commits them.
+# Best Calgary clock times and weekdays for EVERY scanned instrument, full history (tools/research/market_hours/deep.py):
+#   calendar  FOMC / NFP dates from federalreserve.gov + bls.gov (fallbacks when unreachable)
+#   fx        OANDA M30 since 2005, every FX-scanner instrument (currencies, metals, CFDs), 2 shards
+#   stocks    Alpaca 30Min since 2016, every universe.csv stock with a US listing, 4 shards sharing 200 req/min
+#   report    merges the shards: public/research/market_hours_by_symbol.json (app), public/research/market_hours.json,
+#             docs/research/Market_Hours.md, Market_Hours_Stocks.md, heatmaps; commits them.
+# Raw bars are cached per shard (actions/cache) so later runs only download the new weeks.
 on:
   workflow_dispatch:
     inputs:
-      years:
-        description: 'Sample length in years back from today'
+      only:
+        description: 'Optional: comma-separated instruments / tickers (quick test); empty = everything'
         required: false
-        default: '2'
+        default: ''
+      max:
+        description: 'Optional: at most N instruments per shard (0 = all)'
+        required: false
+        default: '0'
   push:
     branches: [main]
     paths:
@@ -25,36 +32,137 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  study:
+  calendar:
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --quiet numpy matplotlib tzdata
+      - name: Self-test (synthetic data, no network)
+        run: python tools/research/market_hours/deep.py selftest --out /tmp/mh-selftest
+      - name: FOMC / NFP dates
+        run: python tools/research/market_hours/deep.py calendar --out cal.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mh-cal
+          path: cal.json
+
+  fx:
+    needs: calendar
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1]
     env:
       OANDA_ENV: ${{ vars.OANDA_ENV || 'practice' }}
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
-      - name: Install plotting
-        run: python -m pip install --quiet matplotlib tzdata
-
-      - name: Self-test (synthetic data, no network)
+      - run: python -m pip install --quiet numpy tzdata
+      - uses: actions/download-artifact@v4
+        with:
+          name: mh-cal
+      - name: Restore raw-bar cache
+        uses: actions/cache/restore@v4
+        with:
+          path: tools/research/market_hours/.cache
+          key: mh-fx-${{ matrix.shard }}-${{ github.run_id }}
+          restore-keys: |
+            mh-fx-${{ matrix.shard }}-
+      - name: Fetch + analyse
+        timeout-minutes: 320
         run: |
-          mkdir -p /tmp/mh
-          python tools/research/market_hours/market_hours.py --synthetic --years 0.5 \
-            --out-md /tmp/mh/m.md --out-json /tmp/mh/m.json --out-dir /tmp/mh
-
-      - name: Study
-        timeout-minutes: 60
-        run: python tools/research/market_hours/market_hours.py --years "${IN_YEARS:-2}" --budget-min 45
+          python tools/research/market_hours/deep.py fx --shard ${{ matrix.shard }} --shards 2 --cal cal.json \
+            --out out/fx_${{ matrix.shard }}.json --only "${IN_ONLY}" --max "${IN_MAX:-0}" --budget-min 290
         env:
           OANDA_API_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
+          FX_WATCHLIST: ${{ secrets.FX_WATCHLIST }}
+          IN_ONLY: ${{ github.event.inputs.only }}
+          IN_MAX: ${{ github.event.inputs.max }}
+      - name: Save raw-bar cache
+        if: ${{ always() && hashFiles('tools/research/market_hours/.cache/**') != '' }}
+        uses: actions/cache/save@v4
+        with:
+          path: tools/research/market_hours/.cache
+          key: mh-fx-${{ matrix.shard }}-${{ github.run_id }}
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: mh-fx-${{ matrix.shard }}
+          path: out/
+          if-no-files-found: ignore
+
+  stocks:
+    needs: calendar
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --quiet numpy tzdata
+      - uses: actions/download-artifact@v4
+        with:
+          name: mh-cal
+      - name: Restore raw-bar cache
+        uses: actions/cache/restore@v4
+        with:
+          path: tools/research/market_hours/.cache
+          key: mh-stk-${{ matrix.shard }}-${{ github.run_id }}
+          restore-keys: |
+            mh-stk-${{ matrix.shard }}-
+      - name: Fetch + analyse
+        timeout-minutes: 320
+        run: |
+          python tools/research/market_hours/deep.py stocks --shard ${{ matrix.shard }} --shards 4 --cal cal.json \
+            --out out/stocks_${{ matrix.shard }}.json --only "${IN_ONLY}" --max "${IN_MAX:-0}" --budget-min 290
+        env:
           ALPACA_KEY_ID: ${{ secrets.ALPACA_KEY_ID }}
           ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
-          IN_YEARS: ${{ github.event.inputs.years }}
+          IN_ONLY: ${{ github.event.inputs.only }}
+          IN_MAX: ${{ github.event.inputs.max }}
+      - name: Save raw-bar cache
+        if: ${{ always() && hashFiles('tools/research/market_hours/.cache/**') != '' }}
+        uses: actions/cache/save@v4
+        with:
+          path: tools/research/market_hours/.cache
+          key: mh-stk-${{ matrix.shard }}-${{ github.run_id }}
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: mh-stocks-${{ matrix.shard }}
+          path: out/
+          if-no-files-found: ignore
 
+  report:
+    needs: [calendar, fx, stocks]
+    if: ${{ !cancelled() && needs.calendar.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --quiet numpy matplotlib tzdata
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: mh-*
+          path: shards
+      - name: Report
+        run: python tools/research/market_hours/report.py --in shards --cal shards/mh-cal/cal.json
       - name: Upload results
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
@@ -62,19 +170,20 @@ jobs:
           name: market-hours-${{ github.run_id }}
           path: |
             docs/research/Market_Hours.md
-            docs/research/market_hours_fx.png
-            docs/research/market_hours_stocks.png
+            docs/research/Market_Hours_Stocks.md
+            docs/research/market_hours_*.png
             public/research/market_hours.json
+            public/research/market_hours_by_symbol.json
           if-no-files-found: ignore
-
       - name: Commit results
-        if: ${{ !cancelled() && hashFiles('public/research/market_hours.json') != '' }}
+        if: ${{ !cancelled() && hashFiles('public/research/market_hours_by_symbol.json') != '' }}
         run: |
           git config user.name "ramanfx-scanner[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/research/Market_Hours.md public/research/market_hours.json
-          git add docs/research/market_hours_fx.png docs/research/market_hours_stocks.png 2>/dev/null || true
+          git add docs/research/Market_Hours.md docs/research/Market_Hours_Stocks.md public/research/market_hours.json \
+            public/research/market_hours_by_symbol.json
+          git add docs/research/market_hours_fx.png docs/research/market_hours_stocks.png docs/research/market_hours_era.png 2>/dev/null || true
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
-          git commit -m "research: market hours study $(date -u +%Y-%m-%dT%H:%MZ)"
+          git commit -m "research: market hours deep study $(date -u +%Y-%m-%dT%H:%MZ)"
           ok=0; for i in 1 2 3; do git rebase --abort 2>/dev/null || true; git pull --rebase -X theirs --autostash origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && ok=1 && break; sleep 5; done
           [ "$ok" = 1 ] || { echo "::error::results not pushed (see the uploaded artifact)"; exit 1; }
