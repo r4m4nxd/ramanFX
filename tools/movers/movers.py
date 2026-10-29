@@ -59,6 +59,7 @@ TOP = int(os.environ.get('MOVERS_TOP') or 5)
 FX_MIN_PCT = float(os.environ.get('MOVERS_FX_MIN_PCT') or 0.15)
 STOCK_MIN_PCT = float(os.environ.get('MOVERS_STOCK_MIN_PCT') or 0.8)
 ATR_N = 20
+BUDGET_S = float(os.environ.get('MOVERS_BUDGET_S') or 300)   # no new request after this (the message still goes out)
 NEAR_PCT = 0.5
 BUTTONS = 3
 LOCAL_TZ = 'America/Edmonton'
@@ -74,7 +75,15 @@ Getter = Callable[[str, Dict[str, str]], Dict]
 
 
 # ---- network (tokens only in headers, never logged) --------------------------------------------------------------
+_T0 = [0.0]
+
+
 def get_json(url: str, headers: Dict[str, str], timeout: float = 15.0) -> Dict:
+    import time
+    if not _T0[0]:
+        _T0[0] = time.time()
+    if time.time() - _T0[0] > BUDGET_S:
+        raise RuntimeError('time budget spent')
     req = urllib.request.Request(url, headers={'Accept': 'application/json', 'User-Agent': 'RamanFX-movers/1.0', **headers})
     last: Optional[Exception] = None
     for _ in range(2):

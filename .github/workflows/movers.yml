@@ -30,6 +30,7 @@ jobs:
     timeout-minutes: 15
     env:
       PYTHONTZPATH: ''                 # zoneinfo: the pip tzdata (Calgary's permanent UTC-6 from 2026-11-01)
+      PYTHONUNBUFFERED: '1'
       OANDA_ENV: ${{ vars.OANDA_ENV || 'practice' }}
     steps:
       - uses: actions/checkout@v4
@@ -55,6 +56,7 @@ jobs:
         run: python -m unittest discover -s tools/movers/tests
 
       - name: Big moves
+        timeout-minutes: 8
         run: |
           ARGS=()
           if [ "$TEST" = "true" ]; then ARGS+=(--test); fi
