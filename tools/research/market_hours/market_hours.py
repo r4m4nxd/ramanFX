@@ -9,7 +9,7 @@ Data (re-uses the repo's clients, no new HTTP code):
                          (tools/stock_scanner/data.py: _alpaca_get = keys, pacing, sip -> iex fallback)
 
 Method (all clock times are America/Edmonton, DST per date, New York shown alongside):
-  * 15-min bars -> 30-min and 60-min buckets (UTC grid = Calgary grid: the offsets are whole hours).
+  * 15-min bars -> 30-min buckets (UTC grid = Calgary grid: the offsets are whole hours).
   * Normalisation per instrument and calendar month: rel_vol = bucket volume / the month's median bucket volume,
     rel_range = bucket (high - low) / the month's median bucket range. Forex: the median over all of the month's
     buckets (24 h); stocks: over the month's REGULAR-session buckets (9:30-16:00 ET), so 1.0 = a typical regular-hours
@@ -619,34 +619,38 @@ def _hhmm(m):
 
 
 # ---- heatmaps ------------------------------------------------------------------------------------------------------
-def heatmap(cells60: Dict[Tuple[int, str], dict], rows: List[int], hours: List[int], title: str, path: str) -> None:
+def heatmap(cells: Dict[Tuple[int, str], dict], rows: List[int], slots: List[str], title: str, path: str) -> None:
+    """Weekday x half-hour grid (30-min cells keep the :30 events - 06:30 data, 07:30 NYSE open - visible)."""
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     from matplotlib.colors import LinearSegmentedColormap
     cmap = LinearSegmentedColormap.from_list('seq', ['#f4f8fd', '#cde2fb', '#86b6ef', '#3987e5', '#1c5cab', '#0d366b'])
-    fig, axes = plt.subplots(2, 1, figsize=(max(9, 0.55 * len(hours) + 2), 2 * (0.45 * len(rows) + 1.6)), dpi=130)
+    fig, axes = plt.subplots(2, 1, figsize=(max(9, 0.3 * len(slots) + 2), 2 * (0.45 * len(rows) + 1.6)), dpi=130)
     for ax, key, lab in ((axes[0], 'rv', 'Volume vs a typical bucket (median, x)'),
                          (axes[1], 'rr', 'Range (high - low) vs a typical bucket (median, x)')):
-        grid = [[(cells60.get((wd, f'{h:02d}:00')) or {}).get(key) for h in hours] for wd in rows]
+        grid = [[(cells.get((wd, sl)) or {}).get(key) for sl in slots] for wd in rows]
         vals = [v for r in grid for v in r if v is not None]
         vmax = max(vals) if vals else 1
         m = [[float('nan') if v is None else v for v in r] for r in grid]
         cmap.set_bad('#e6e6e6')
         im = ax.imshow(m, aspect='auto', cmap=cmap, vmin=0, vmax=vmax)
         ax.set_yticks(range(len(rows)), [WD[w] for w in rows], fontsize=9)
-        ax.set_xticks(range(len(hours)), [f'{h:02d}\n{(h + 2) % 24:02d}' for h in hours], fontsize=7.5)
+        ticks = [i for i, sl in enumerate(slots) if sl.endswith(':00')]
+        ax.set_xticks([i - 0.5 for i in ticks], [f"{slots[i][:2]}\n{(int(slots[i][:2]) + 2) % 24:02d}" for i in ticks],
+                      fontsize=7.5)
         ax.set_title(lab, fontsize=10, loc='left', color='#222')
         ax.tick_params(length=0, colors='#444')
         for s in ax.spines.values():
             s.set_visible(False)
         flat = sorted(((v, i, j) for i, r in enumerate(grid) for j, v in enumerate(r) if v is not None), reverse=True)[:10]
         for v, i, j in flat:
-            ax.text(j, i, f'{v:.1f}', ha='center', va='center', fontsize=7, color='white' if v > 0.55 * vmax else '#111')
+            ax.text(j, i, f'{v:.1f}', ha='center', va='center', fontsize=6, color='white' if v > 0.55 * vmax else '#111')
         cb = fig.colorbar(im, ax=ax, fraction=0.025, pad=0.01)
         cb.ax.tick_params(labelsize=7)
         cb.outline.set_visible(False)
-    axes[1].set_xlabel('Hour starting (top: Calgary time, bottom: New York time)', fontsize=8.5, color='#444')
+    axes[1].set_xlabel('Half-hour cells; ticks at the full hour (top: Calgary time, bottom: New York time)', fontsize=8.5,
+                       color='#444')
     fig.suptitle(title, fontsize=11.5, x=0.01, ha='left', color='#111')
     fig.tight_layout()
     fig.savefig(path, facecolor='white')
@@ -833,7 +837,7 @@ def build_md(R: dict) -> str:
              'Stocks: Alpaca **15-minute bars**, feed ' + str(m.get('alpaca_feed')) + ', split-adjusted, pre-market '
              '(04:00 ET) to after-hours (20:00 ET); a missing 15-minute bar inside a trading day = no trade (0 '
              'volume, 0 range).\n'
-             '- Bars are summed into 30-minute buckets (tables) and 60-minute buckets (heatmaps) and labelled by the '
+             '- Bars are summed into 30-minute buckets (tables and heatmaps) and labelled by the '
              'Calgary clock time at which the bucket starts, with the weekday in Calgary.\n'
              '- Normalisation per instrument and calendar month (so a volatile month or a busy instrument does not '
              'dominate): relative volume = bucket volume / the month\'s median bucket volume; relative range = bucket '
@@ -937,10 +941,8 @@ def analyse_group(bars: Dict[str, List[Bar]], stock: bool, start: dt.datetime, e
     if not names:
         return {}, [], {}
     i30 = [Inst(n, bars[n], 30, stock) for n in names]
-    i60 = [Inst(n, bars[n], 60, stock) for n in names]
     min_inst = max(1, len(names) // 2)
     c30 = combine({i.name: i.cells() for i in i30}, min_inst)
-    c60 = combine({i.name: i.cells() for i in i60}, min_inst)
     bt = by_time(i30)
     top = sorted(c30.items(), key=lambda kv: -kv[1]['score'])[:20]
     a, b = start.date(), (end - dt.timedelta(days=1)).date()
@@ -980,7 +982,7 @@ def analyse_group(bars: Dict[str, List[Bar]], stock: bool, start: dt.datetime, e
         'stability': stability(i30, lo, (lo + hi) // 2, hi),
         'cells_30m': cells_json(c30),
     }
-    return part, i30, c60
+    return part, i30, c30
 
 
 def compare_window(insts: List[Inst], tz, hh, mm, nb: int, ev_dates, ctrl_dates) -> dict:
@@ -1096,7 +1098,7 @@ def main(argv=None) -> int:
     log(f'data in {time.time() - t0:.0f}s; analysing')
     R = {'meta': {'generated': dt.datetime.now(UTC).strftime('%Y-%m-%d %H:%M UTC'), 'start': start.date().isoformat(),
                   'end': (end - dt.timedelta(days=1)).date().isoformat(), 'synthetic': args.synthetic,
-                  'timezone': 'America/Edmonton', 'bucket_minutes': 30, 'heatmap_minutes': 60, 'big_move_x': BIG_X,
+                  'timezone': 'America/Edmonton', 'bucket_minutes': 30, 'heatmap_minutes': 30, 'big_move_x': BIG_X,
                   'oanda_env': (os.environ.get('OANDA_ENV') or 'practice'), 'alpaca_feed': SD.alpaca_feed() if stb else None,
                   'errors': errors, 'fomc_dates_source': 'hard-coded from the Federal Reserve 2024-2026 schedule (memory)',
                   'nfp_rule': 'first Friday of the month, holiday Fridays removed, plus known moved releases (memory)',
@@ -1112,13 +1114,16 @@ def main(argv=None) -> int:
     os.makedirs(os.path.dirname(args.out_json), exist_ok=True)
     os.makedirs(args.out_dir, exist_ok=True)
     try:
-        if fx_c60:
-            heatmap(fx_c60, [6, 0, 1, 2, 3, 4], list(range(24)),
-                    f"Forex + gold ({', '.join(fxb)}): activity by weekday and hour, Calgary time ({R['meta']['start']} to {R['meta']['end']})",
+        half = [f'{m // 60:02d}:{m % 60:02d}' for m in range(0, 1440, 30)]
+        if fx_part:
+            heatmap({(w, c['mt']): c for c in fx_part['cells_30m'] for w in [WD.index(c['weekday'])]},
+                    [6, 0, 1, 2, 3, 4], half,
+                    f"Forex + gold ({', '.join(fxb)}): activity by weekday and half-hour, Calgary time ({R['meta']['start']} to {R['meta']['end']})",
                     os.path.join(args.out_dir, 'market_hours_fx.png'))
-        if st_c60:
-            heatmap(st_c60, [0, 1, 2, 3, 4], list(range(2, 18)),
-                    f"US stocks ({len(stb)} symbols, pre + regular + post): weekday x hour, Calgary time",
+        if st_part:
+            heatmap({(w, c['mt']): c for c in st_part['cells_30m'] for w in [WD.index(c['weekday'])]},
+                    [0, 1, 2, 3, 4], half[4:36],
+                    f"US stocks ({len(stb)} symbols, pre + regular + post): weekday x half-hour, Calgary time",
                     os.path.join(args.out_dir, 'market_hours_stocks.png'))
     except ImportError as e:
         log(f'heatmaps skipped: {e}')
