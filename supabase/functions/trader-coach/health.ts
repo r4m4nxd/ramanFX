@@ -22,6 +22,13 @@
 //   key:*   GitHub token (API 200 on the runs list), OANDA (1 candle), Alpaca (latest AAPL trade), Telegram (getMe):
 //           401 / 403 = rejected (two checks in a row before a message); a missing secret or a network hiccup is
 //           not a problem. Edge secrets are project-wide, so the coach reads OANDA_API_TOKEN like the bot does.
+//   app     the web app (raman-fx.vercel.app, Vercel Hobby: 100 deployments a day). Live commit = its /version.json
+//           (written by the build); GitHub compare live...main finds the commits that change the app (appPaths.ts,
+//           the same rule as the Vercel ignore script: data / bot commits never deploy). The oldest such commit not
+//           live after 90 min = 'App not updating — Vercel may be rate-limited'. version.json or GitHub unreadable:
+//           skipped.
+//   app-data /fx/latest.json and /movers/latest.json fetched THROUGH the app (the vercel.json rewrite to GitHub):
+//           unreachable / not JSON, or `generated` 30+ min behind the raw GitHub file -> problem, two checks in a row.
 //   gh-exp-14 / gh-exp-3  the GitHub token's expiry (header github-authentication-token-expiration): ONE heads-up
 //           14 days and ONE 3 days before (never repeated).
 // Self-healing first: the scheduler (scheduler.ts) re-dispatches a missed slot every tick, so the grace windows above
@@ -32,10 +39,27 @@
 // Never logs or shows a secret value.
 import { calParts, clock, esc, isoDay, utcOfWall } from './core.ts';
 import { fxBarCloses, nyParts, REPO } from './scheduler.ts';
+import { isAppPath } from './appPaths.ts';
 
 export const MIN = 60_000, HOUR = 3_600_000, DAY = 86_400_000;
 export const FX_GRACE = 2 * HOUR + 20 * MIN, CRYPTO_GRACE = 3 * HOUR, MOVERS_GRACE = 3 * HOUR, STOCK_DUE = 150 * MIN;
 export const KEY_GRACE = 25 * MIN, FAIL_GRACE = 25 * MIN, REALERT = 6 * HOUR, PER_DAY = 4;
+export const APP_GRACE = 90 * MIN, APP_DATA_GRACE = 25 * MIN, APP_DATA_LAG = 30 * MIN;
+export const APP_URL = 'https://raman-fx.vercel.app';
+export type AppFile = 'fx' | 'movers';
+export const APP_FILES: AppFile[] = ['fx', 'movers'];
+/** The web app: live commit, the oldest app change not live yet, the data files through the app vs GitHub. */
+export interface AppSnap {
+  /** Commit in /version.json; null = unreadable. */
+  live: string | null;
+  /** Built time in /version.json (UTC ms). */
+  builtAt?: number | null;
+  /** Commit time of the oldest app-affecting commit on main that is not live; null = none; undefined = unknown. */
+  pendingSince?: number | null;
+  /** `generated` (UTC ms) per file: app = through raman-fx.vercel.app (undefined = unreachable / not JSON, null = no
+   *  `generated`), raw = raw.githubusercontent.com (undefined = could not read). */
+  data: Partial<Record<AppFile, { app?: number | null; raw?: number | null }>>;
+}
 
 export type WfFile = 'fx-scan.yml' | 'stock-scan.yml' | 'movers.yml' | 'briefing.yml' | 'fundamentals.yml';
 export const HEALTH_WFS: WfFile[] = ['fx-scan.yml', 'stock-scan.yml', 'movers.yml', 'briefing.yml', 'fundamentals.yml'];
@@ -63,6 +87,8 @@ export interface Snapshot {
   keys: Record<KeyName, KeyState>;
   /** GitHub token expiry (UTC ms); null = none reported; undefined = not read. */
   ghExpiry?: number | null;
+  /** The web app (gatherApp); undefined = not read. */
+  app?: AppSnap;
 }
 export type FileName = 'fx' | 'stock' | 'fund';
 export interface Check {
@@ -237,6 +263,9 @@ export function evaluate(s: Snapshot): Check[] {
     out.push({ id, label, status: 'problem', graceMs: FAIL_GRACE, text: `${WF_NAME[wf]} failed at ${when(done.at, now)}${link}` });
   }
 
+  // The web app: deploys stuck (Vercel limit) / data through the app's GitHub proxy
+  out.push(...appChecks(s));
+
   // Keys
   for (const k of KEYS) {
     const v = s.keys[k];
@@ -253,6 +282,30 @@ export function evaluate(s: Snapshot): Check[] {
     out.push({ id: 'gh-exp-14', label: 'GitHub token expiry', once: true, status: left <= 3 ? 'skip' : left <= 14 ? 'problem' : 'ok', text: left <= 14 ? msg : 'token renewed' });
     out.push({ id: 'gh-exp-3', label: 'GitHub token expiry', once: true, status: left <= 3 ? 'problem' : 'ok', text: left <= 3 ? msg : 'token renewed' });
   }
+  return out;
+}
+const age = (ms: number) => `${Math.max(1.5, Math.floor(ms / (HOUR / 2)) / 2)}h`;
+export function appChecks(s: Snapshot): Check[] {
+  const { now, app } = s;
+  const out: Check[] = [];
+  if (!app || !app.live || app.pendingSince === undefined) out.push({ id: 'app', label: 'App deploy', status: 'skip', text: '' });
+  else if (app.pendingSince == null || now - app.pendingSince <= APP_GRACE) out.push({ id: 'app', label: 'App deploy', status: 'ok', text: `live ${app.live.slice(0, 7)}` });
+  else out.push({ id: 'app', label: 'App deploy', status: 'problem',
+    text: `App not updating — Vercel may be rate-limited; latest app change not live for ${age(now - app.pendingSince)} (live ${esc(app.live.slice(0, 7))}, waiting since ${when(app.pendingSince, now)}).` });
+  if (!app) { out.push({ id: 'app-data', label: 'App data', status: 'skip', text: '' }); return out; }
+  const bad: string[] = [];
+  for (const k of APP_FILES) {
+    const d = app.data[k];
+    if (!d) continue;
+    const path = `/${k}/latest.json`;
+    if (d.app === undefined) bad.push(`${path} unreachable through the app`);
+    else if (typeof d.raw === 'number' && (d.app == null || d.app < d.raw - APP_DATA_LAG))
+      bad.push(`${path} through the app is ${d.app == null ? 'missing its time' : `from ${when(d.app, now)}`}, GitHub has ${when(d.raw, now)}`);
+  }
+  out.push(bad.length
+    ? { id: 'app-data', label: 'App data', status: 'problem', graceMs: APP_DATA_GRACE,
+      text: `App data not loading — ${bad.join('; ')}. Check the GitHub rewrites in vercel.json.` }
+    : { id: 'app-data', label: 'App data', status: APP_FILES.some(k => app.data[k]) ? 'ok' : 'skip', text: 'loads again' });
   return out;
 }
 /** Files that could still clear a problem (fetched only then, keeps the check cheap). */
@@ -311,14 +364,15 @@ export function healthText(problems: Check[], resolved: Check[]): string {
 }
 
 // ---- /health (the bot reads the last snapshot from rfx_coach_config.dispatch.health) --------------------------------
-export interface HealthSnap { at: number; checks: { id: string; label: string; status: Check['status']; text: string }[]; last: Partial<Record<WfFile, number | null>>; keys: Record<KeyName, KeyState>; ghExpiry: number | null }
+export interface HealthSnap { at: number; checks: { id: string; label: string; status: Check['status']; text: string }[]; last: Partial<Record<WfFile, number | null>>; keys: Record<KeyName, KeyState>; ghExpiry: number | null; app?: { live: string | null; builtAt: number | null; pendingSince: number | null } }
 export function snapOf(s: Snapshot, checks: Check[]): HealthSnap {
   const last: Partial<Record<WfFile, number | null>> = {};
   for (const wf of HEALTH_WFS) { const r = s.runs[wf]; if (r) last[wf] = lastOk(r); }
   const lf = checks.find(c => c.id === 'fx')?.last, ls = checks.find(c => c.id === 'stock')?.last;
   if (lf != null) last['fx-scan.yml'] = newest(last['fx-scan.yml'], lf);
   if (ls != null) last['stock-scan.yml'] = newest(last['stock-scan.yml'], ls);
-  return { at: s.now, checks: checks.map(c => ({ id: c.id, label: c.label, status: c.status, text: c.status === 'problem' ? c.text : '' })), last, keys: s.keys, ghExpiry: s.ghExpiry ?? null };
+  const app = s.app ? { live: s.app.live, builtAt: s.app.builtAt ?? null, pendingSince: s.app.pendingSince ?? null } : undefined;
+  return { at: s.now, checks: checks.map(c => ({ id: c.id, label: c.label, status: c.status, text: c.status === 'problem' ? c.text : '' })), last, keys: s.keys, ghExpiry: s.ghExpiry ?? null, ...(app ? { app } : {}) };
 }
 const KEY_ICON: Record<KeyState, string> = { ok: '✅', bad: '❌', absent: '—', error: '?' };
 export function healthSummary(snap: HealthSnap | null | undefined, now: number): string {
@@ -327,6 +381,11 @@ export function healthSummary(snap: HealthSnap | null | undefined, now: number):
   const out = [`🩺 <b>RamanFX health</b> · checked ${when(snap.at, now)}`];
   if (now - snap.at > 75 * MIN) out.push(`⚠️ last check was ${Math.round((now - snap.at) / HOUR)} h ago — is the trader coach running?`);
   out.push(line('fx-scan.yml'), line('stock-scan.yml'), `${line('movers.yml')} · brief ${snap.last?.['briefing.yml'] != null ? when(snap.last['briefing.yml'], now) : 'n/a'}`);
+  if (snap.app) {
+    const a = snap.app, data = (snap.checks ?? []).find(c => c.id === 'app-data')?.status;
+    out.push(`App: ${a.live ? `live ${esc(a.live.slice(0, 7))}${a.builtAt != null ? ` (built ${when(a.builtAt, now)})` : ''}` : 'version unreadable'}`
+      + `${a.pendingSince != null ? ` · app change waiting since ${when(a.pendingSince, now)}` : ''} · data ${data === 'ok' ? '✅' : data === 'problem' ? '❌' : '?'}`);
+  }
   out.push(`Keys: ${KEYS.map(k => `${KEY_LABEL[k]} ${KEY_ICON[snap.keys?.[k] ?? 'error']}`).join(' · ')}`);
   if (snap.ghExpiry != null) {
     const p = calParts(snap.ghExpiry);
@@ -403,6 +462,58 @@ export async function gatherFiles(need: FileName[], f: F): Promise<Partial<Recor
   }));
   return out;
 }
+// ---- the web app (public: no secret needed for the app / raw files; the GitHub token only for the compare API) ------
+const SHA = /^[0-9a-f]{40}$/;
+async function getJson(f: F, url: string, init: RequestInit = {}): Promise<unknown> {
+  const r = await f(url, { ...init, signal: AbortSignal.timeout(8000) });
+  if (!r.ok) { await r.body?.cancel(); throw new Error(String(r.status)); }
+  return await r.json();
+}
+const genOf = (js: unknown): number | null => { const t = Date.parse(String((js as { generated?: unknown })?.generated ?? '')); return Number.isFinite(t) ? t : null; };
+interface Cmp { status: string; files: string[]; truncated: boolean; commits: { sha: string; at: number }[] }
+const parseCmp = (js: unknown): Cmp => {
+  const o = (js ?? {}) as { status?: unknown; files?: unknown[]; commits?: unknown[] };
+  const files = (Array.isArray(o.files) ? o.files : []).map(x => String((x as { filename?: unknown })?.filename ?? ''));
+  const commits = (Array.isArray(o.commits) ? o.commits : []).map(x => {
+    const c = (x ?? {}) as { sha?: unknown; commit?: { committer?: { date?: unknown }; author?: { date?: unknown } } };
+    return { sha: String(c.sha ?? ''), at: Date.parse(String(c.commit?.committer?.date ?? c.commit?.author?.date ?? '')) };
+  }).filter(c => SHA.test(c.sha) && Number.isFinite(c.at));
+  return { status: String(o.status ?? ''), files, truncated: files.length >= 300, commits };
+};
+const touchesApp = (c: Cmp) => c.truncated || c.files.some(isAppPath);
+/** Commit time of the oldest commit after `live` on main that changes the app; null = none; undefined = unknown. */
+export async function pendingSince(f: F, gh: string, live: string): Promise<number | null | undefined> {
+  const headers = { Authorization: `Bearer ${gh}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'ramanfx-coach' };
+  const cmp = async (head: string) => parseCmp(await getJson(f, `https://api.github.com/repos/${REPO}/compare/${live}...${head}`, { headers }));
+  try {
+    const all = await cmp('main');
+    if (all.status === 'identical' || all.status === 'behind' || !all.commits.length || !touchesApp(all)) return null;
+    // the commits come oldest first (up to 250): binary search for the first one whose diff from `live` touches the app
+    // (<= 8 calls, only while an app change is waiting)
+    let lo = 0, hi = all.commits.length - 1, found = -1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if (touchesApp(await cmp(all.commits[mid].sha))) { found = mid; hi = mid - 1; } else lo = mid + 1;
+    }
+    return found < 0 ? undefined : all.commits[found].at;
+  } catch { return undefined; }
+}
+export async function gatherApp(f: F, gh: string): Promise<AppSnap> {
+  const raw = (k: AppFile) => `https://raw.githubusercontent.com/${REPO}/main/public/${k}/latest.json`;
+  const nc: RequestInit = { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } };
+  const [ver, ...data] = await Promise.all([
+    getJson(f, `${APP_URL}/version.json`, nc).catch(() => null),
+    ...APP_FILES.map(async k => {
+      const [a, r] = await Promise.all([getJson(f, `${APP_URL}/${k}/latest.json`, nc).then(genOf, () => undefined), getJson(f, raw(k)).then(genOf, () => undefined)]);
+      return [k, { app: a, raw: r }] as const;
+    }),
+  ]);
+  const v = (ver ?? {}) as { sha?: unknown; built_at?: unknown };
+  const live = typeof v.sha === 'string' && SHA.test(v.sha) ? v.sha : null;
+  const built = Date.parse(String(v.built_at ?? ''));
+  return { live, builtAt: Number.isFinite(built) ? built : null, pendingSince: live && gh ? await pendingSince(f, gh, live) : undefined, data: Object.fromEntries(data) };
+}
+
 /** Event-row helpers (rfx_coach_events keys). */
 export const tickKey = (now: number) => { const t = new Date(now); return `health:${t.toISOString().slice(0, 13)}:${t.getUTCMinutes() < 30 ? 0 : 1}`; };
 export const calMidnight = (now: number) => { const c = calParts(now); return calUtc(c.y, c.m, c.d, 0, 0); };

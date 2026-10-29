@@ -14,7 +14,8 @@
 //   6. breaking news (breaking.ts, ticks only, needs the Alpaca keys): one calm alert when Alpaca tags a fresh article
 //      with a watched / held symbol (1 per symbol per 3 h, 6 a day, not in quiet hours, muted symbols skipped);
 //   7. silent health watchdog (health.ts, ticks only, once per half hour): ONE calm message when a scan / brief / big
-//      moves / fundamentals run is missing or failing past its grace window, or a key is rejected; ONE '✅ resolved'
+//      moves / fundamentals run is missing or failing past its grace window, a key is rejected, or the web app stops
+//      updating (Vercel deploy limit) / loading its data; ONE '✅ resolved'
 //      when it clears; max 4 a day, held during quiet hours; nothing at all while everything works.
 //   5. scheduler for the GitHub workflows (scheduler.ts): with the OPTIONAL secret GITHUB_DISPATCH_TOKEN it dispatches
 //      fx-scan / stock-scan / briefing / reminders / movers (hourly big moves) as scheduled-equivalent runs, once per slot, skipping a slot a GitHub
@@ -26,7 +27,7 @@ import { covered, dispatchRequest, dueDispatches, latestRunMs, latestRunUrl, typ
 import { breakingMarkup, breakingText, inQuiet, pickBreaking, watchedTags } from './breaking.ts';
 import { ALPACA_NEWS, parseAlpaca } from '../telegram-bot/headlines.ts';
 import { restStore } from '../telegram-bot/prefs.ts';
-import { evaluate, gather, gatherFiles, needFiles, plan, snapOf, stateOf, tickKey } from './health.ts';
+import { evaluate, gather, gatherApp, gatherFiles, needFiles, plan, snapOf, stateOf, tickKey } from './health.ts';
 import { isoDay, askCandidates, askText, COLS, fromRow, guardEvents, reportCard, reportDue, restDb, saveWhyNote, savePlan, utcRuntime, weekOf, writeLost, type Card, type JournalWrite } from './core.ts';
 
 const SB_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -150,7 +151,8 @@ const inList = (keys: string[]) => encodeURIComponent(`in.(${keys.map(k => `"${k
 async function health(now: number, dry = false): Promise<Record<string, unknown> | null> {
   if (!dry && !(await claim(tickKey(now), 'health-tick'))) return null;     // once per half hour
   const env = { gh: GH_TOKEN, oanda: OANDA, oandaLive: OANDA_LIVE, alpacaId: ALPACA_ID, alpacaSecret: ALPACA_SECRET, tg: TG_TOKEN };
-  let snap = await gather(env, fetch, now);
+  const [base, app] = await Promise.all([gather(env, fetch, now), gatherApp(fetch, GH_TOKEN).catch(() => undefined)]);
+  let snap = { ...base, app };
   let checks = evaluate(snap);
   const need = needFiles(checks);
   if (need.length) { snap = { ...snap, files: await gatherFiles(need, fetch) }; checks = evaluate(snap); }

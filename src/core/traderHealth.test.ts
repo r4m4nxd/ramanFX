@@ -3,8 +3,8 @@
 // holidays, grace windows, dedupe, quiet hours, the daily cap and the one '✅ resolved'.
 import { describe, expect, it } from 'vitest';
 import {
-  evaluate, gather, gatherFiles, healthSummary, healthText, needFiles, nyseHolidays, parseExpiry, parseRuns, plan, snapOf, stateOf, stockDue, tickKey,
-  DAY, HOUR, MIN, PER_DAY, type Check, type KeyState, type Open, type Run, type Snapshot, type WfFile,
+  appChecks, evaluate, gather, gatherApp, gatherFiles, pendingSince, healthSummary, healthText, needFiles, nyseHolidays, parseExpiry, parseRuns, plan, snapOf, stateOf, stockDue, tickKey,
+  APP_URL, DAY, HOUR, MIN, PER_DAY, type AppSnap, type Check, type KeyState, type Open, type Run, type Snapshot, type WfFile,
 } from '../../supabase/functions/trader-coach/health';
 import { handle, type Ctx } from '../../supabase/functions/telegram-bot/logic';
 
@@ -316,5 +316,94 @@ describe('health: probes and /health', () => {
       expect(r.text).toBe('🩺 <b>RamanFX health</b> · ok');
     }
     expect((await handle('/health', { now: new Date(), load: async () => null })).text).toContain('needs the database');
+  });
+});
+
+describe('health: the web app (Vercel deploys, data through the app)', () => {
+  const now = at('2026-10-29T18:00:00Z');   // 12:00 PM Calgary
+  const LIVE = 'a'.repeat(40);
+  const A = (o: Partial<AppSnap> = {}): Snapshot => ({ ...S('2026-10-29T18:00:00Z', {}), app: { live: LIVE, builtAt: at('2026-10-29T15:00:00Z'), pendingSince: null, data: {}, ...o } });
+  const app = (s: Snapshot) => get(appChecks(s), 'app');
+  const data = (s: Snapshot) => get(appChecks(s), 'app-data');
+  it('deploy: nothing waiting or a change under 90 min is fine; older = App not updating', () => {
+    expect(app(A()).status).toBe('ok');
+    expect(app(A({ pendingSince: now - 89 * MIN })).status).toBe('ok');
+    const c = app(A({ pendingSince: now - 3 * HOUR - 10 * MIN }));
+    expect(c.status).toBe('problem');
+    expect(c.text).toBe('App not updating — Vercel may be rate-limited; latest app change not live for 3h (live aaaaaaa, waiting since 8:50 AM).');
+    expect(app(A({ pendingSince: now - 95 * MIN })).text).toContain('not live for 1.5h');
+    expect(get(evaluate(A({ pendingSince: now - 2 * HOUR })), 'app').status).toBe('problem');   // part of evaluate()
+  });
+  it('deploy: version.json or GitHub unreadable -> skipped, never a false alarm', () => {
+    expect(app(A({ live: null })).status).toBe('skip');
+    expect(app(A({ pendingSince: undefined })).status).toBe('skip');
+    expect(app(S('2026-10-29T18:00:00Z', {})).status).toBe('skip');
+    expect(data(S('2026-10-29T18:00:00Z', {})).status).toBe('skip');
+  });
+  it('data: unreachable, missing time or 30+ min behind GitHub is a problem after two checks; matching is ok', () => {
+    const fresh = { app: now - 10 * MIN, raw: now - 10 * MIN };
+    expect(data(A({ data: { fx: fresh, movers: { app: now - 40 * MIN, raw: now - 15 * MIN } } })).status).toBe('ok');
+    const down = data(A({ data: { fx: { app: undefined, raw: now }, movers: fresh } }));
+    expect(down).toMatchObject({ status: 'problem', graceMs: 25 * MIN });
+    expect(down.text).toBe('App data not loading — /fx/latest.json unreachable through the app. Check the GitHub rewrites in vercel.json.');
+    const stale = data(A({ data: { fx: fresh, movers: { app: at('2026-10-29T15:05:00Z'), raw: at('2026-10-29T17:13:00Z') } } }));
+    expect(stale.text).toContain('/movers/latest.json through the app is from 9:05 AM, GitHub has 11:13 AM');
+    expect(data(A({ data: { fx: { app: null, raw: now } } })).text).toContain('missing its time');
+    expect(data(A({ data: { fx: { app: now - 2 * HOUR, raw: undefined } } })).status).toBe('ok');   // GitHub down: reachability only
+    // two checks in a row before a message (grace), same dedupe as every check
+    const P = [data(A({ data: { fx: { app: undefined, raw: now } } }))];
+    expect(plan({ now, checks: P, open: [], lastAlert: {}, sentToday: 0, quiet: false })).toMatchObject({ add: ['app-data'], alert: [], text: null });
+    const second = plan({ now: now + 30 * MIN, checks: P, open: [{ id: 'app-data', since: now, alerted: false }], lastAlert: {}, sentToday: 0, quiet: false });
+    expect(second.alert).toEqual(['app-data']);
+    expect(second.text).toContain('⚠️ App data not loading');
+    expect(plan({ now, checks: [app(A({ pendingSince: now - 2 * HOUR }))], open: [], lastAlert: {}, sentToday: 0, quiet: true }).text).toBeNull();
+    const ok = plan({ now, checks: [app(A())], open: [{ id: 'app', since: now - 3 * HOUR, alerted: true }], lastAlert: {}, sentToday: 0, quiet: false });
+    expect(ok.text).toBe('✅ resolved: App deploy — live aaaaaaa');
+  });
+  it('/health shows the live commit, a waiting change and the data state', () => {
+    const s = A({ pendingSince: now - 2 * HOUR, data: { fx: { app: now, raw: now } } });
+    const t = healthSummary(snapOf(s, evaluate(s)), now);
+    expect(t).toContain('App: live aaaaaaa (built 9:00 AM) · app change waiting since 10:00 AM · data ✅');
+    expect(t).toContain('⚠️ App not updating');
+  });
+
+  // GitHub compare: commits oldest first, files = the whole diff
+  const C = (i: number) => String(i).padStart(40, 'c');
+  function gh(commits: { files: string[]; at: string }[], o: { live?: unknown; app?: Record<string, unknown>; status?: number } = {}) {
+    const calls: string[] = [];
+    const f = async (url: string) => {
+      calls.push(url);
+      if (url === `${APP_URL}/version.json`) return o.live === undefined ? new Response(JSON.stringify({ sha: LIVE, built_at: '2026-10-29T15:00:00Z' })) : new Response(String(o.live));
+      if (url.startsWith(APP_URL)) { const k = url.includes('/fx/') ? 'fx' : 'movers'; const v = o.app?.[k]; return v === 404 ? new Response('no', { status: 404 }) : new Response(typeof v === 'string' ? v : JSON.stringify({ generated: '2026-10-29T17:50:00Z' })); }
+      if (url.startsWith('https://raw.githubusercontent.com/')) return new Response(JSON.stringify({ generated: '2026-10-29T17:50:00Z' }));
+      const m = /compare\/([0-9a-f]{40})\.\.\.(\w+)$/.exec(url);
+      if (!m || o.status) return new Response('{}', { status: o.status ?? 404 });
+      const upto = m[2] === 'main' ? commits.length : commits.findIndex((_, i) => C(i) === m[2]) + 1;
+      const cs = commits.slice(0, upto);
+      return new Response(JSON.stringify({ status: cs.length ? 'ahead' : 'identical', commits: cs.map((c, i) => ({ sha: C(i), commit: { committer: { date: c.at } } })), files: [...new Set(cs.flatMap(c => c.files))].map(filename => ({ filename })) }));
+    };
+    return { f, calls };
+  }
+  it('pendingSince: data / bot / test commits never wait; the oldest app commit is found', async () => {
+    const data = (h: number) => ({ files: ['public/fx/latest.json', 'public/movers/latest.json', 'tools/briefing/state.json'], at: `2026-10-29T${String(h).padStart(2, '0')}:13:00Z` });
+    expect(await pendingSince(gh([]).f, 'tok', LIVE)).toBeNull();
+    expect(await pendingSince(gh([data(10), data(11), { files: ['supabase/functions/x.ts', 'src/core/a.test.ts', 'docs/x.md', '.github/workflows/a.yml'], at: '2026-10-29T12:00:00Z' }]).f, 'tok', LIVE)).toBeNull();
+    const list = [data(9), data(10), { files: ['src/pages/Home.tsx'], at: '2026-10-29T10:40:00Z' }, data(11), { files: ['vercel.json'], at: '2026-10-29T11:30:00Z' }, data(12), data(13)];
+    const { f, calls } = gh(list);
+    expect(await pendingSince(f, 'tok', LIVE)).toBe(at('2026-10-29T10:40:00Z'));
+    expect(calls.length).toBeLessThanOrEqual(1 + Math.ceil(Math.log2(list.length)) + 1);
+    expect(await pendingSince(gh(list, { status: 500 }).f, 'tok', LIVE)).toBeUndefined();
+  });
+  it('gatherApp: version, waiting change and data through the app vs GitHub', async () => {
+    const list = [{ files: ['public/index.html'], at: '2026-10-29T15:30:00Z' }];
+    const a = await gatherApp(gh(list, { app: { movers: 404 } }).f, 'tok');
+    expect(a).toEqual({ live: LIVE, builtAt: at('2026-10-29T15:00:00Z'), pendingSince: at('2026-10-29T15:30:00Z'),
+      data: { fx: { app: at('2026-10-29T17:50:00Z'), raw: at('2026-10-29T17:50:00Z') }, movers: { app: undefined, raw: at('2026-10-29T17:50:00Z') } } });
+    expect(get(appChecks({ ...S('2026-10-29T18:00:00Z', {}), app: a }), 'app').status).toBe('problem');
+    const html = await gatherApp(gh(list, { live: '<!doctype html>', app: { fx: '<!doctype html>' } }).f, 'tok');   // SPA fallback = not JSON
+    expect(html).toMatchObject({ live: null, pendingSince: undefined });
+    expect(html.data.fx!.app).toBeUndefined();
+    const noTok = await gatherApp(gh(list).f, '');
+    expect(noTok.pendingSince).toBeUndefined();
   });
 });
