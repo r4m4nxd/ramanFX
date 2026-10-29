@@ -360,7 +360,8 @@ def _move_txt(d: Dict) -> str:
     m = (d.get('rate') or {}).get('move')
     if not m:
         return ''
-    return f" (last move {m['chg']:+.2f} on {m['date'][:10]})"
+    when = dt.date.fromisoformat(m['date'][:10]).strftime('%b %Y')
+    return f" (last move {m['chg']:+.2f} in {when})"
 
 
 # ---- the file -----------------------------------------------------------------------------------------------------
