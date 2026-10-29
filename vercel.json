@@ -4,7 +4,7 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/((?!legacy\\.html|assets/|scanner/.*\\.json|fx/.*\\.json).*)",
+      "source": "/((?!legacy\\.html|assets/|scanner/.*\\.json|fx/.*\\.json|research/.*\\.json).*)",
       "destination": "/index.html"
     }
   ],
