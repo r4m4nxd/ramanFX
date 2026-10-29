@@ -719,6 +719,40 @@ const STOCK_HTF: Record<string, string | null> = { M15: 'H1', H1: 'H4', H4: 'D1'
 const periodOpen = (bars: Bar[], key: (t: string) => string, lastDay: string | undefined) =>
   !!bars.length && !!lastDay && key(bars[bars.length - 1].t) === key(lastDay) && key(nextBusinessDay(lastDay)) === key(lastDay);
 
+/** The chart title's market-clock part (owner review: 'live · 4:40 PM' after the US close was misleading). Times on
+ *  the Calgary clock with 'MT'. Stocks (New York regular session 09:30-16:00, pre-market from 04:00, after-hours to
+ *  20:00): live '99.53 · live · 1:23 PM MT', 'pre-market · last …', 'after-hours · last …', otherwise (night, weekend,
+ *  holiday = no session today in the live daily bars) 'closed · last 99.53 · Thu 2:00 PM MT' (the last close); the
+ *  scan's data 'last close 99.53 · Thu 2:00 PM MT'. FX (crypto never closes): the week runs Sun 17:00 - Fri 17:00
+ *  New York; closed = 'closed · last 1.11757 · Fri 3:00 PM MT'; the scan's data '1.11757 · scan 4:00 PM MT'. */
+export function chartWhen(market: 'fx' | 'stock', now: Date, o: { px: string; live: boolean; lastDay?: string; sessionToday?: boolean; scanAt?: Date | null; crypto?: boolean }): string {
+  const ny = parts(now, NY), mins = ny.h * 60 + ny.mi, wkend = ny.wd === 'Sat' || ny.wd === 'Sun';
+  const nyDay = `${ny.y}-${String(ny.m).padStart(2, '0')}-${String(ny.d).padStart(2, '0')}`;
+  const at = (t: Date) => {   // 'Thu 2:00 PM MT' within the last 6 days, else 'Thu Oct 22 2:00 PM MT'
+    const p = parts(t, CAL), age = now.getTime() - t.getTime();
+    return `${age > 6 * 86400000 ? day(t) : p.wd} ${clock(t)} MT`;
+  };
+  const prevWeekday = (d: string) => { let t = Date.parse(`${d}T12:00:00Z`); do t -= 86400000; while ([0, 6].includes(new Date(t).getUTCDay())); return new Date(t).toISOString().slice(0, 10); };
+  if (market === 'stock') {
+    if (!o.live) return o.lastDay ? `last close ${o.px} · ${at(zoned(o.lastDay, '16:00', NY))}` : o.px;
+    const today = !wkend && o.sessionToday !== false;
+    let closeDay = today && mins >= 16 * 60 ? nyDay : prevWeekday(nyDay);
+    if (o.lastDay && o.lastDay < closeDay) closeDay = o.lastDay;
+    if (today && mins >= 9 * 60 + 30 && mins < 16 * 60) return `${o.px} · live · ${clock(now)} MT`;
+    if (today && mins >= 4 * 60 && mins < 9 * 60 + 30) return `pre-market · last ${o.px} · ${clock(now)} MT`;
+    if (today && mins >= 16 * 60 && mins < 20 * 60) return `after-hours · last ${o.px} · ${clock(now)} MT`;
+    return `closed · last ${o.px} · ${at(zoned(closeDay, '16:00', NY))}`;
+  }
+  const closed = !o.crypto && ((ny.wd === 'Fri' && mins >= 17 * 60) || ny.wd === 'Sat' || (ny.wd === 'Sun' && mins < 17 * 60));
+  if (closed) {
+    let t = Date.parse(`${nyDay}T12:00:00Z`);
+    while (new Date(t).getUTCDay() !== 5) t -= 86400000;
+    return `closed · last ${o.px} · ${at(zoned(new Date(t).toISOString().slice(0, 10), '17:00', NY))}`;
+  }
+  if (o.live) return `${o.px} · live · ${clock(now)} MT`;
+  return o.scanAt ? `${o.px} · scan ${now.getTime() - o.scanAt.getTime() > 20 * 3600000 ? `${day(o.scanAt)} ` : ''}${clock(o.scanAt)} MT` : o.px;
+}
+
 export interface ChartData { model: ChartModel; v: string; market: 'fx' | 'stock'; sym: string; view: string; when: string; live?: boolean; note?: string }
 const zb = (b: ZBar): Bar => ({ t: b.d, o: b.o, h: b.h, l: b.l, c: b.c });
 /** Closed candles (the last 250: the trendlines' 200-bar lookback, like the scanners) + the forming one, as chart bars. */
@@ -758,6 +792,9 @@ export function buildPanels(tfs: string[], bars: Record<string, Bar[]>, zones: Z
   });
 }
 
+/** Mark the panels whose last candle is still forming (drawn hollow). */
+const withForming2 = (ps: Panel[], forming: Record<string, boolean>): Panel[] => ps.map(p => ({ ...p, forming: !!forming[p.tf] }));
+
 export async function chartData(q: string, view: string, ctx: Ctx): Promise<ChartData | null> {
   const { hit } = await resolve(q, ctx);
   if (!hit) return null;
@@ -793,9 +830,9 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
     const digits = digitsOf(d.digits != null ? d : hit.row), layout = isQuad(view) ? 'quad' : 'single';
     const sig = s ? { tf: s.tf, entry: num(s.entry) ?? undefined, stop: num(s.stop) ?? undefined, target: num(s.target) ?? undefined, kind: s.kind } : null;
     const t = parseUtc(fx.h1_close_utc ?? fx.generated);
-    const when = lv ? liveAt(lv) : t ? clock(t) : '';
+    const when = chartWhen('fx', ctx.now, { px: price.toFixed(digits), live: !!lv, scanAt: t, crypto: hit.row.cls === 'crypto' || hit.row.k === 'crypto' });
     return { market: 'fx', sym: hit.sym, view, v: lv ? liveVersion(lv) : String(fx.generated ?? '').replace(/[^0-9]/g, '').slice(0, 14), when, live: !!lv, note: liveNote(hit, ctx, lv),
-      model: { sym: hit.sym, digits, price, layout, title: `${hit.sym} · ${price.toFixed(digits)}${when ? ` · ${when}` : ''}`, panels: buildPanels(tfs, bars, zones, price, digits, sig, layout, t => t, { forming, htf: FX_HTF, pub: lv ? undefined : obj(d.tls) }) } };
+      model: { sym: hit.sym, digits, price, layout, title: `${hit.sym} · ${when}`, panels: withForming2(buildPanels(tfs, bars, zones, price, digits, sig, layout, t => t, { forming, htf: FX_HTF, pub: lv ? undefined : obj(d.tls) }), forming) } };
   }
   const [sh, st] = [obj(await ctx.load(`scanner/t/${hit.row.k}.json`)), obj(await ctx.load('scanner/latest.json'))];
   const d = obj(obj(sh.tickers)[hit.sym]);
@@ -824,10 +861,11 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
   const s = stockSetups(st).find(x => x.symbol === hit.sym);
   const sig = s ? { tf: s.tf, entry: num(s.entry) ?? undefined, stop: num(s.stop) ?? undefined, target: num(s.target) ?? undefined, kind: s.kind } : null;
   const layout = isQuad(view) ? 'quad' : 'single';
-  const when = lv ? liveAt(lv) : d.date ? `${dayOfIso(String(d.date))} close` : '';
+  const lastDay = lv?.st ? (lv.st.partial?.d ?? lv.st.daily[lv.st.daily.length - 1]?.d) : d.date ? String(d.date) : undefined;
+  const when = chartWhen('stock', ctx.now, { px: price.toFixed(2), live: !!lv, lastDay, sessionToday: lv?.st ? !!lv.st.partial || lastDay === isoDay(ctx.now, NY) : undefined });
   return { market: 'stock', sym: hit.sym, view, v: lv ? liveVersion(lv) : String(st.generated_at ?? '').replace(/[^0-9]/g, '').slice(0, 14), when, live: !!lv, note: liveNote(hit, ctx, lv),
-    model: { sym: hit.sym, digits: 2, price, layout, title: `${hit.sym} · ${price.toFixed(2)}${when ? ` · ${when}` : ''}`,
-      panels: buildPanels(tfs, bars, zoneList(lv ? lv.zones : arr(d.zones)), price, 2, sig, layout, t => (t === 'D1' || t === 'H4' || t === 'H1' || t === 'M15' ? 'W1' : t), { forming, htf: STOCK_HTF, pub: lv ? undefined : obj(d.tls) }) } };
+    model: { sym: hit.sym, digits: 2, price, layout, title: `${hit.sym} · ${when}`,
+      panels: withForming2(buildPanels(tfs, bars, zoneList(lv ? lv.zones : arr(d.zones)), price, 2, sig, layout, t => (t === 'D1' || t === 'H4' || t === 'H1' || t === 'M15' ? 'W1' : t), { forming, htf: STOCK_HTF, pub: lv ? undefined : obj(d.tls) }), forming) } };
 }
 
 async function cmdChart(q: string, tfArg: string, ctx: Ctx, mode = ''): Promise<Reply> {

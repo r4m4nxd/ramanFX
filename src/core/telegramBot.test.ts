@@ -246,7 +246,7 @@ describe('telegram bot', () => {
     expect(svg).not.toMatch(/[\u{1F300}-\u{1FAFF}]/u);                  // no emoji (no emoji font on the edge)
     const one = renderSvg((await chartData('EURUSD', 'H4', ctx()))!.model);
     expect(one.match(/class="panel"/g)).toHaveLength(1);
-    expect(one).toMatch(/class="zlabel"[^>]*>[^<]*4H (demand|supply) \d/);
+    expect(one).toMatch(/class="zlabel[^"]*"><rect[^>]*\/><text[^>]*>4H (demand|supply) \d/);
   });
 
   it('chart trendlines: own TF solid lilac + next higher TF gold dots, at most 2 + 2 per panel (shard tls on short bars)', async () => {
@@ -262,14 +262,14 @@ describe('telegram bot', () => {
     expect(one).toMatch(/class="tl ltf down" data-tf="H4"/);
     expect(one).toContain('>4H down</text>');
     const q = renderSvg((await chartData('EURUSD', 'Q', c))!.model);
-    expect(q).toContain('>W1 up (crossed)</text>');
+    expect(q).toContain('>W1 up ×</text>');
     expect(q).toMatch(/class="tl htf up" data-tf="W1"[^>]*stroke="#D4AF37"[^>]*stroke-dasharray/);   // W1 line on the D1 panel
     for (const p of (await chartData('EURUSD', 'Q', c))!.model.panels) {
       expect((p.tls ?? []).filter(t => !t.htf).length).toBeLessThanOrEqual(2);
       expect((p.tls ?? []).filter(t => t.htf).length).toBeLessThanOrEqual(2);
       expect((p.tls ?? []).every(t => t.htf ? t.tf !== p.tf : t.tf === p.tf)).toBe(true);
     }
-    expect(q).toContain('gold dots = higher-TF trendline');
+    expect(q).toContain('gold dots = higher-TF line');
   });
 
   it('/ask and questions ending with ?: lesson quotes (BM25), <= 1500 chars, open-lesson buttons', async () => {

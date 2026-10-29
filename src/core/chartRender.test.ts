@@ -74,14 +74,14 @@ describe('chart render smoke', () => {
     expect(bad).toEqual([]);
   });
 
-  // TODO(chart-fix): zones partly outside the y-range are clamped to the plot edge, so their real extent is cut off
-  it.fails('no zone is cut off by the y-range (fully inside or fully outside)', () => {
+  // fixed (owner issue 7): the y-range holds every zone it draws; a zone too far away gets an edge chip, not a band
+  it('no drawn zone is cut off by the y-range', () => {
     const bad: string[] = [];
     for (const r of renders) {
       const bx = boxes(r.model.layout, r.model.panels.length);
       r.model.panels.forEach((p, i) => {
-        const g = geom(p, bx[i], r.model.price);
-        for (const z of p.zones) {
+        const g = geom(p, bx[i], r.model.price, r.model.digits);
+        for (const { z } of g.zones) {
           const top = g.y(Math.max(z.prox, z.dist)), bot = g.y(Math.min(z.prox, z.dist));
           const visible = bot >= g.plot.y && top <= g.plot.y + g.plot.h;
           if (visible && (top < g.plot.y - 0.5 || bot > g.plot.y + g.plot.h + 0.5)) bad.push(`${r.name} ${p.tf} ${z.tf} ${z.side} ${z.prox}`);
@@ -91,8 +91,8 @@ describe('chart render smoke', () => {
     expect(bad).toEqual([]);
   });
 
-  // TODO(chart-fix): the newest candle sits flush against the price scale (no right margin)
-  it.fails(`>= ${MIN_GAP} px between the last candle and the price scale`, () => {
+  // fixed (owner issue 14): empty candle slots on the right
+  it(`>= ${MIN_GAP} px between the last candle and the price scale`, () => {
     const bad: string[] = [];
     for (const r of renders) for (const p of panels(r.svg)) {
       const right = Math.max(...[...p.body.matchAll(/<rect class="candle"([^>]*)\/>/g)].map(m => num(m[1], 'x') + num(m[1], 'width')));
@@ -101,8 +101,8 @@ describe('chart render smoke', () => {
     expect(bad).toEqual([]);
   });
 
-  // TODO(chart-fix): zone / trendline / trade-line labels collide with each other
-  it.fails('no two text labels overlap (bounding-box approximation)', () => {
+  // fixed (owner issues 7 / 10): zone, trendline and trade labels are stacked / placed clear of each other
+  it('no two text labels overlap (bounding-box approximation)', () => {
     const bad: string[] = [];
     for (const r of renders) {
       const ts = texts(r.svg);
