@@ -805,12 +805,47 @@ def make_messages(now: dt.datetime, st: Dict, sample: bool, log=print) -> Tuple[
         log('lessons: no export (tools/briefing/.cache/lessons.json): Kevin plan from the TS fallback, no lesson')
     earn = earnings_lines(day, my_stocks(), load_json(os.path.join(ROOT, 'public', 'fundamentals', 'stocks.json'), None))
     brief = build_brief(day, fx, stocks, evs, plan, callbacks=os.path.exists(CHART_TS), sample=sample, earnings=earn)
-    brief = with_headlines(brief, headline_block(now, log))
+    block = headline_block(now, log)
+    brief = with_headlines(brief, block)
     msgs = [brief]
+    _PARTS.clear()
+    _PARTS.update(day=day, fx=fx, stocks=stocks, evs=evs, plan=plan, block=block, sample=sample)
     les = next_lesson((export or {}).get('pool') or [], st.setdefault('lessons', {}))
     if les:
         msgs.append(build_lesson(les, sample=sample))
+        _PARTS['lesson'] = msgs[-1]
     return msgs, les
+
+
+# ---- the bot's guests (tools/stock_scanner/guests.py) ---------------------------------------------------------------
+_PARTS: Dict = {}
+
+
+def public_headlines(block: str) -> str:
+    """The headline block without the owner's '<b>Your symbols</b>' part (held / watched symbols)."""
+    return block.split('\n<b>Your symbols</b>')[0] if block else ''
+
+
+def guest_brief(g: Dict, parts: Optional[Dict] = None, mine: Optional[Dict[str, str]] = None, fund=None) -> List:
+    """A guest's morning brief: only the movers of their markets (guests.py), earnings of listed stocks (never the owner's
+    held / watched ones), Kevin's plan only with forex on, the top headlines without 'Your symbols', then the lesson."""
+    import guests as G                              # noqa: WPS433
+    p = parts if parts is not None else _PARTS
+    if not p:
+        return []
+    fx = [m for m in p['fx'] if G.wants(g, G.market_of(m['sym']))]
+    stocks = p['stocks'] if G.wants(g, 'stocks') else []
+    earn = []
+    if G.wants(g, 'stocks'):
+        mine = my_stocks() if mine is None else mine
+        fund = load_json(os.path.join(ROOT, 'public', 'fundamentals', 'stocks.json'), None) if fund is None else fund
+        earn = earnings_lines(p['day'], {s: 'listed' for s, v in mine.items()}, fund)
+    plan = p['plan'] if G.wants(g, 'fx') else None
+    brief = build_brief(p['day'], fx, stocks, p['evs'], plan, callbacks=os.path.exists(CHART_TS), sample=p.get('sample', False), earnings=earn)
+    out = [with_headlines(brief, public_headlines(p.get('block') or ''))]
+    if p.get('lesson') is not None:
+        out.append(p['lesson'])
+    return G.hush(out, g)
 
 
 def main(argv=None) -> int:
@@ -840,6 +875,14 @@ def main(argv=None) -> int:
         return 0
     ok = SN.send(msgs)
     print('brief', 'sent' if ok else 'NOT sent', f'({len(msgs)} messages, {[SN.u16(m) for m in msgs]} UTF-16 units)')
+    if ok and not a.test:
+        try:
+            import guests as G                    # noqa: WPS433
+            import prefs as P                     # noqa: WPS433
+            if G.enabled():
+                G.broadcast(guest_brief, P.fetch(log=None), what='morning brief')
+        except Exception as e:  # noqa: BLE001
+            print(f'guests: brief skipped ({type(e).__name__})')
     if a.test or not ok:
         return 0 if ok else 1
     day = now.astimezone(LOCAL).date()

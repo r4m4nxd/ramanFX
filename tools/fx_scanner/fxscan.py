@@ -40,6 +40,7 @@ import fxnotify as N  # noqa: E402
 import kevin as K  # noqa: E402
 import oanda as O  # noqa: E402
 import prefs as P  # noqa: E402  (stock_scanner/prefs.py: the owner's bot preferences)
+import guests as G  # noqa: E402  (stock_scanner/guests.py: the market messages to the bot's guests)
 import sources as SRC  # noqa: E402  (extra data sources: synthetic crosses, crypto, Yahoo)
 import watchlist as W  # noqa: E402
 import zones as Z  # noqa: E402
@@ -465,6 +466,33 @@ def alert_inputs(res: Dict) -> Dict[str, Dict]:
     return out
 
 
+def guest_messages(g: Dict, ev: Dict, h4, h1, pub: Optional[Dict], per_sym: Dict, fired_state: Dict, fired_out: List,
+                   bootstrap: bool = False, summary: bool = False, digest: bool = False, hourly: bool = True) -> List:
+    """One guest's share of a run (guests.py): the new-event alert without their muted / switched-off markets, their own
+    fired alerts, the daily summary / H4 digest when forex is on for them. Never the owner's alerts."""
+    gm = G.muted(g)
+    out = [] if bootstrap else G.hush(N.alert_messages({**ev, 'h4': h4, 'h1': h1}, gm), g, N.urgent(ev, gm))
+    for f in G.fired(g, per_sym, fired_state):
+        out += G.hush(N.fired_messages([f], hourly=hourly), g, f['alert']['kind'] == 'price')
+        fired_state[G.fired_key(g, f['alert']['id'])] = now_utc().isoformat()
+        fired_out.append((g, f['alert']['id']))
+    if pub is not None and G.wants(g, 'fx'):
+        if summary:
+            out += G.hush(N.summary_messages(pub), g)
+        elif digest:
+            out += G.hush([N.digest_message(pub, ev if not bootstrap else {})], g)
+    return out
+
+
+def to_guests(prefs: Optional[Dict], build, what: str) -> None:
+    """build(guest, fired_out) -> messages; then their fired alerts are acknowledged (only when sent)."""
+    fired_out: List = []
+    G.broadcast(lambda g: build(g, fired_out), prefs, what=what)
+    for g, aid in fired_out:
+        if g.get('_sent'):
+            G.alert_fired(g['id'], aid)
+
+
 def telegram_configured() -> bool:
     return bool(os.environ.get('TELEGRAM_BOT_TOKEN') and os.environ.get('TELEGRAM_CHAT_ID'))
 
@@ -670,6 +698,9 @@ def ondemand_messages(res: Dict, uni: List[Dict], only: str, h1: Optional[str], 
 def ondemand(res: Dict, uni: List[Dict], only: str, h1: Optional[str], h4: str, notify: bool) -> int:
     msgs = ondemand_messages(res, uni, only, h1, h4)
     if notify and telegram_configured():
+        mine = G.ondemand_send(msgs)                       # asked by a guest (input to): the cards go to them
+        if mine is not None:
+            return 0 if mine else 1
         ok = N.send(msgs)
         print(f'on-demand: {len(msgs)} card(s) ' + ('sent' if ok else 'NOT sent'))
         return 0 if ok else 1
@@ -801,6 +832,9 @@ def crypto_main(a) -> int:
     elif notify and telegram_configured():
         for f in fired:
             P.alert_fired(f['alert']['id'], log=print)
+    if notify and ok and not a.only and not bootstrap:
+        per_sym = alert_inputs(res)
+        to_guests(prefs, lambda g, fo: guest_messages(g, ev, h4, ch1, None, per_sym, new_state['fired_alerts'], fo), 'crypto scan')
     for k in ('last_h1', 'last_h4', 'summary_d1', 'digest_h4'):
         if k in state:
             new_state[k] = state[k]
@@ -979,7 +1013,8 @@ def main(argv=None) -> int:
         new_state['summary_d1'] = d1
     # hourly scans inside the same H4 bar: the instant alert only (above, [] when nothing is new); the digest once
     # per new H4 candle, the daily summary once per new D1 candle
-    if C.H4_DIGEST and not a.only and needs_digest(h4, state, a.force):
+    digest = bool(C.H4_DIGEST and not a.only and needs_digest(h4, state, a.force))
+    if digest:
         if not summary:                                    # the daily summary already is this candle's overview
             msgs += hush([N.digest_message(pub, ev if not bootstrap else {})])
         new_state['digest_h4'] = h4
@@ -995,6 +1030,10 @@ def main(argv=None) -> int:
     elif notify and telegram_configured():
         for f in fired:
             P.alert_fired(f['alert']['id'], log=print)
+    if notify and ok and not a.only:
+        per_sym = alert_inputs(res)
+        to_guests(prefs, lambda g, fo: guest_messages(g, ev, h4, h1, pub, per_sym, new_state['fired_alerts'], fo, bootstrap,
+                                                      bool(summary), digest, bool(h1)), 'FX scan')
     if a.only:
         new_state['last_h4'] = state.get('last_h4')        # a partial run never marks the H1 / H4 bar as scanned
         new_state['last_h1'] = state.get('last_h1')

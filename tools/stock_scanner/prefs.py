@@ -3,7 +3,8 @@
     GET  <bot>?op=prefs         header X-RFX-Key: hex sha256(TELEGRAM_BOT_TOKEN + ':prefs')
          -> {mutes: [{sym, until_utc}], alerts: [{id, sym, kind: 'price'|'zone'|'pct', level?, dir?: 'up'|'down'
              (also 'above'|'below'), pct?}],
-             quiet: {from: 'HH:MM', to: 'HH:MM', tz} | null, watch: [sym], open: [sym] (journal open positions)}
+             quiet: {from: 'HH:MM', to: 'HH:MM', tz} | null, watch: [sym], open: [sym] (journal open positions),
+             guests: [{id, chat_id, name, markets, mutes, alerts, quiet, watch}] (guests.py: the market-message broadcast)}
     POST <bot>?op=alert-fired   {id}, same header (the bot then drops / disarms the alert)
 
 Used by both scanners (FX hourly, stocks daily):
@@ -98,6 +99,8 @@ def normalize(raw) -> Dict:
     out = {'mutes': mutes, 'alerts': alerts, 'quiet': quiet, 'watch': watch}
     if raw.get('open'):                         # journal open positions (bot >= headlines): the brief's 'your symbols'
         out['open'] = sorted({_sym(s) for s in raw['open'] if _sym(s)})[:30]
+    if raw.get('guests'):                       # the bot's guests (guests.py broadcast; never part of the owner's view)
+        out['guests'] = [g for g in raw['guests'] if isinstance(g, dict)][:5]
     return out
 
 

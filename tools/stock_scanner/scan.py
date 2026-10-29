@@ -1453,9 +1453,30 @@ def ondemand_send(notify, msgs: List, no_notify: bool, log) -> int:
     if no_notify:
         print('\n\n'.join(msgs))
         return 0
+    import guests as G
+    mine = G.ondemand_send(msgs, log=log) if os.environ.get('TELEGRAM_BOT_TOKEN') and os.environ.get('TELEGRAM_CHAT_ID') else None
+    if mine is not None:                                 # asked by a guest (input to): the cards went to them
+        return 0 if mine else 1
     ok = notify.send(msgs)
     log(f"on-demand: {len(msgs)} card(s) {'sent' if ok else 'NOT sent'}")
     return 0 if ok else 1
+
+
+def guest_messages(g: Dict, res: Dict, top: int, per_sym: Dict, fired_state: Dict, fired_out: List, notify) -> List:
+    """One guest's daily scan message (guests.py): stocks on for them; without the owner's holdings exits and watchlist
+    lines; their mutes and quiet hours; their own fired alerts."""
+    import guests as G
+    out: List = []
+    if G.wants(g, 'stocks'):
+        gm = G.muted(g)
+        pub = {**res, 'exits': [], 'watch_alerts': []}
+        loud = any(s['kind'] == 'BUY' and s.get('symbol') not in gm for s in res.get('signals') or [])
+        out += G.hush(notify.build_messages(pub, top=top, muted=gm), g, loud)
+    for f in G.fired(g, per_sym, fired_state):
+        out += G.hush([notify.fired_alert_message(f, 'stock', 'last daily close')], g, f['alert']['kind'] == 'price')
+        fired_state[G.fired_key(g, f['alert']['id'])] = dt.datetime.now(dt.timezone.utc).isoformat()
+        fired_out.append((g, f['alert']['id']))
+    return out
 
 
 def main(argv=None) -> int:
@@ -1627,6 +1648,17 @@ def main(argv=None) -> int:
             os.makedirs(DATA.CACHE, exist_ok=True)
             with open(fired_path, 'w') as fh:
                 json.dump(fired_before, fh)
+        if not a.no_notify and not a.tickers:            # the bot's guests (guests.py): after the owner, never instead
+            import guests as G
+            per_sym, fired_out = alert_inputs(res), []
+            G.broadcast(lambda g: guest_messages(g, res, a.top, per_sym, fired_before, fired_out, notify), prefs, log=log, what='stock scan')
+            for g, aid in fired_out:
+                if g.get('_sent'):
+                    G.alert_fired(g['id'], aid, log=log)
+            if fired_out:
+                os.makedirs(DATA.CACHE, exist_ok=True)
+                with open(fired_path, 'w') as fh:
+                    json.dump(fired_before, fh)
     except Exception as e:  # noqa: BLE001
         log(f'notify failed: {type(e).__name__}')
     tp = phase('notify', tp)

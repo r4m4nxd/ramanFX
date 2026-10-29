@@ -1,0 +1,8 @@
+{
+  "hide_from_guests": ["took", "health"],
+  "commands": [
+    {"command": "adduser", "description": "Share the bot with someone (max 5)"},
+    {"command": "removeuser", "description": "Stop sharing with someone"},
+    {"command": "users", "description": "Who the bot is shared with"}
+  ]
+}

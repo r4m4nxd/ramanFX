@@ -464,6 +464,24 @@ def describe(r: Dict) -> str:
             + ('' if r['verified'] else '  [UNVERIFIED fallback date]'))
 
 
+_GUEST_PREFS: list = []
+
+
+def to_guests(msg) -> None:
+    """The same reminder to the bot's guests (stock_scanner/guests.py: US data moves stocks too, so every guest gets
+    it, in their quiet hours silently). Prefs fetched once per run; never raises."""
+    try:
+        import guests as G
+        import prefs as P
+        if not G.enabled():
+            return
+        if not _GUEST_PREFS:
+            _GUEST_PREFS.append(P.fetch(log=None))
+        G.broadcast(G.same([msg]), _GUEST_PREFS[0], what='reminder')
+    except Exception as e:  # noqa: BLE001
+        print(f'guests: reminder skipped ({type(e).__name__})')
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--test', action='store_true', help="send one '🧪 Reminder test' preview of the next reminder")
@@ -525,6 +543,7 @@ def main(argv=None) -> int:
         if SN.send([r['msg']]):
             sent[r['id']] = _iso(now)
             print('sent', r['id'])
+            to_guests(r['msg'])
         else:
             print('NOT sent', r['id'], '(will retry next tick while in the window)')
     state['sent'] = prune(sent, today)

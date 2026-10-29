@@ -39,7 +39,18 @@ export interface Ctx {
   scanOne?: (market: 'fx' | 'stock', sym: string) => Promise<ScanResult>;
   /** /health: the trader coach's last watchdog snapshot as text (trader-coach/health.ts); undefined = no database. */
   health?: () => Promise<string>;
+  /** Who is asking: the owner (default) or a guest the owner added (guests.ts: market commands, own prefs only). */
+  role?: Role;
 }
+export type Role = 'owner' | 'guest';
+/** Owner-only commands (journal, health, guest admin): hidden from guests' /help and menu, refused for guests (guests.ts). */
+export const OWNER_ONLY = new Set(['took', 'health', 'status', 'adduser', 'removeuser', 'deluser', 'users', 'guests']);
+/** The owner's guest admin commands (guests.ts), in the owner's /help and chat-scoped menu only (commands_owner.json). */
+export const OWNER_COMMANDS: { command: string; description: string; usage: string; help: string }[] = [
+  { command: 'adduser', description: 'Share the bot with someone (max 5)', usage: '/adduser 123456789 Name', help: 'they get the market commands + market messages, never your data' },
+  { command: 'removeuser', description: 'Stop sharing with someone', usage: '/removeuser 123456789', help: 'removes them and their settings' },
+  { command: 'users', description: 'Who the bot is shared with', usage: '/users', help: 'names, IDs, since when' },
+];
 export type ScanResult = 'ok' | 'limited' | 'fail';
 
 /** The command list: Telegram's Menu (setMyCommands reads commands.json, kept equal by a test), /help and the pin. */
@@ -63,6 +74,7 @@ export const COMMANDS: { command: string; description: string; group: Group; usa
   { command: 'quiet', description: 'Quiet hours (Calgary)', group: 'Alerts', usage: '/quiet 22:00-06:00', help: 'silent alerts overnight (/quiet off)' },
   { command: 'watch', description: 'Add a symbol to the watchlist', group: 'Alerts', usage: '/watch AUDNZD', help: 'extra watchlist symbol (/watch: the list)' },
   { command: 'unwatch', description: 'Remove a watchlist symbol', group: 'Alerts', usage: '/unwatch AUDNZD', help: 'take it off the extra watchlist' },
+  { command: 'markets', description: 'Which markets message you', group: 'Alerts', usage: '/markets', help: 'pick stocks / crypto / forex / indices for the automatic messages (shared users)' },
   { command: 'times', description: "Today's key Calgary times", group: 'Times', usage: '/times', help: "today's key Calgary times" },
   { command: 'next', description: 'Next NFP, CPI and Fed decision', group: 'Times', usage: '/next', help: 'next jobs report, CPI, Fed decision' },
   { command: 'news', description: 'Calendar + top market headlines', group: 'Times', usage: '/news', help: "today's high-impact events + top headlines (/news NVDA: one symbol's headlines)" },
@@ -250,23 +262,30 @@ export function symButtons(syms: string[], n = 3): Button[][] {
 const cbOk = (d: string) => new TextEncoder().encode(d).length <= 64;
 
 // ---- commands ------------------------------------------------------------------------------------------------------
-export function helpText(): string {
+export function helpText(role: Role = 'owner'): string {
   const lines = ['🤖 <b>RamanFX bot · commands</b>', 'Type a command, or just send a symbol (EURUSD, XAUUSD, NVDA).'];
   for (const g of GROUPS) {
+    const cs = COMMANDS.filter(x => x.group === g && (role === 'owner' || !OWNER_ONLY.has(x.command)));
+    if (!cs.length) continue;
     lines.push('', `<b>${g}</b>`);
-    for (const c of COMMANDS.filter(x => x.group === g)) lines.push(`${esc(c.usage)} · ${esc(c.help)}`);
+    for (const c of cs) lines.push(`${esc(c.usage)} · ${esc(c.help)}`);
+  }
+  if (role === 'owner') {
+    lines.push('', '<b>Sharing</b> (only you see these)');
+    for (const c of OWNER_COMMANDS) lines.push(`${esc(c.usage)} · ${esc(c.help)}`);
   }
   lines.push('', `Times on the Calgary clock · ${FOOT}`);
   return lines.join('\n');
 }
 
 /** /guide, /howto: a compact cheat sheet; the full how-to is the app's /guide page (src/content/guide.ts). */
-export function cmdGuide(): Reply {
+export function cmdGuide(role: Role = 'owner'): Reply {
   const text = ['📘 <b>RamanFX · quick guide</b>', 'Send a symbol (EURUSD, XAUUSD, NVDA): its zones, price and buttons.', '',
     '<b>Look</b> /fx · /stocks · /signals · /near', '<b>One symbol</b> /zones · /chart EURUSD 15m · /scan EURUSD · /fund · /news NVDA · /hours',
     '<b>Alerts</b> /alert XAUUSD 2650 · /alert NVDA zone · /alerts · /mute EURUSD 1w · /quiet 22:00-06:00 · /watch',
-    '<b>Day</b> /times · /next · /took EURUSD buy 1.0850 sl 1.0820 tp 1.0910', '<b>Learn</b> /ask what is a proximal line', '',
-    '<b>Comes by itself</b> (Calgary)', '6 AM brief + lesson · FX scan hourly (only when new) · big moves hourly · stock scan after the US close · breaking news on watched symbols · coach: rule guard, 📝 why?, Sunday 6 PM report', '',
+    role === 'owner' ? '<b>Day</b> /times · /next · /took EURUSD buy 1.0850 sl 1.0820 tp 1.0910' : '<b>Day</b> /times · /next', '<b>Learn</b> /ask what is a proximal line', '',
+    '<b>Comes by itself</b> (Calgary)', role === 'owner' ? '6 AM brief + lesson · FX scan hourly (only when new) · big moves hourly · stock scan after the US close · breaking news on watched symbols · coach: rule guard, 📝 why?, Sunday 6 PM report'
+      : '6 AM brief + lesson · FX scan hourly (only when new) · big moves hourly · stock scan after the US close · reminders before big US data', '',
     `All commands: /help · ${FOOT}`].join('\n');
   return { cmd: 'guide', text, buttons: [[{ text: '📘 Open the full guide', url: `${APP}/guide` }], [{ text: '🤖 Bot commands', url: `${APP}/guide#bot` }, { text: '🛠 If something breaks', url: `${APP}/guide#fix` }]] };
 }
@@ -1052,9 +1071,9 @@ export async function handle(text: string, ctx: Ctx): Promise<Reply> {
   const c = quick ? { cmd: quick, arg: '', arg2: '', rest: '' } : parseCommand(t);
   if (c) {
     switch (c.cmd) {
-      case 'start': case 'help': return { cmd: c.cmd, text: helpText(), keyboard: true };
-      case 'guide': case 'howto': return cmdGuide();
       case 'health': case 'status': return { cmd: 'health', text: ctx.health ? await ctx.health() : '🩺 Health status needs the database (Supabase secrets of the bot).' };
+      case 'start': case 'help': return { cmd: c.cmd, text: helpText(ctx.role), keyboard: true };
+      case 'guide': case 'howto': return cmdGuide(ctx.role);
       case 'chart': return cmdChart(c.arg, c.arg2, ctx);
       case 'ask': return cmdAsk(c.rest, ctx);
       case 'news': return cmdNews(c.arg, ctx);
@@ -1077,6 +1096,7 @@ export async function handle(text: string, ctx: Ctx): Promise<Reply> {
       case 'quiet': return cmdQuiet(c.rest, ctx);
       case 'watch': return cmdWatch(c.arg, ctx);
       case 'unwatch': return cmdUnwatch(c.arg, ctx);
+      case 'markets': return { cmd: 'markets', text: '📬 <b>/markets</b> is for the people you share the bot with (/adduser): they pick which markets\' automatic messages they get. You get everything.' };   // guests: guests.ts
       default: return { cmd: 'unknown', text: HINT };
     }
   }

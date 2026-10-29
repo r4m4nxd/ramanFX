@@ -30,6 +30,10 @@ on:
         description: 'On-demand scan for the bot (with tickers=SYM): one result card, nothing written'
         type: boolean
         default: false
+      to:
+        description: 'On-demand only: the bot guest who asked (12-hex key, not a chat id): the card goes to them'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -139,6 +143,7 @@ jobs:
           HOLDINGS_JSON: ${{ secrets.HOLDINGS_JSON }}
           IN_TICKERS: ${{ github.event.inputs.tickers }}
           IN_ONDEMAND: ${{ github.event.inputs.ondemand }}
+          RFX_TO: ${{ github.event.inputs.ondemand == 'true' && github.event.inputs.to || '' }}
           WATCHLIST: ${{ secrets.WATCHLIST }}
           WATCHLIST_APPROACH_PCT: ${{ vars.WATCHLIST_APPROACH_PCT || '3' }}
           # Daily zone lists (Telegram + app): approaching = close within X% of a proximal, left = touched in the last

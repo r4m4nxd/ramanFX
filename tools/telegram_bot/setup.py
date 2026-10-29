@@ -6,7 +6,9 @@
 
 1. ping the function with S + o (the first ping inside the SQL-opened window claims the row; see index.ts)
 2. a synthetic '/help' from the owner's chat: checks auth + owner + command end to end, and gives the list text
-3. setWebhook (secret_token=S, allowed_updates=['message', 'callback_query'], drop_pending_updates) + setMyCommands (commands.json)
+3. setWebhook (secret_token=S, allowed_updates=['message', 'callback_query'], drop_pending_updates) + setMyCommands: the
+   default menu (everyone, i.e. the bot's guests) = commands.json without commands_owner.json hide_from_guests, the
+   owner's chat (scope chat) = commands.json + the sharing commands (/adduser /removeuser /users)
    + setChatMenuButton (menu_button.json: the RamanFX Mini App, https://raman-fx.vercel.app/)
 4. getWebhookInfo (pending count, last error)
 4b. prefs key for the scanners: K = sha256(bot token + ':prefs') (hex); only sha256(K) is sent to the function (over
@@ -34,6 +36,7 @@ FN = 'https://dqjzufofmblerslcynzr.supabase.co/functions/v1/telegram-bot'
 HERE = os.path.dirname(os.path.abspath(__file__))
 COMMANDS = os.path.join(HERE, '..', '..', 'supabase', 'functions', 'telegram-bot', 'commands.json')
 MENU_BUTTON = os.path.join(HERE, 'menu_button.json')
+OWNER_COMMANDS = os.path.join(HERE, '..', '..', 'supabase', 'functions', 'telegram-bot', 'commands_owner.json')
 
 
 def post(url: str, body: dict, headers: dict | None = None, timeout: int = 30):
@@ -113,9 +116,19 @@ def main() -> int:
     _, r = tg('setWebhook', {'url': fn, 'secret_token': secret, 'allowed_updates': ['message', 'callback_query'], 'drop_pending_updates': True, 'max_connections': 5})
     ok_hook = bool((r or {}).get('ok'))
     print(f'setWebhook ok={ok_hook}')
-    _, r = tg('setMyCommands', {'commands': commands})
+    # default scope (every chat: the bot's guests) = the menu without the owner-only commands; the owner's own chat
+    # (scope chat) = the full menu + the sharing commands (commands_owner.json)
+    with open(OWNER_COMMANDS) as f:
+        own = json.load(f)
+    hide = set(own.get('hide_from_guests') or [])
+    public = [c for c in commands if c['command'] not in hide]
+    full = commands + [c for c in own.get('commands') or [] if c['command'] not in {x['command'] for x in commands}]
+    _, r = tg('setMyCommands', {'commands': public})
     ok_cmds = bool((r or {}).get('ok'))
-    print(f'setMyCommands ok={ok_cmds} ({len(commands)} commands)')
+    _, r = tg('setMyCommands', {'commands': full, 'scope': {'type': 'chat', 'chat_id': int(chat) if chat.lstrip('-').isdigit() else chat}})
+    ok_own = bool((r or {}).get('ok'))
+    print(f'setMyCommands ok={ok_cmds} ({len(public)} commands, everyone) owner scope ok={ok_own} ({len(full)} commands)')
+    ok_cmds = ok_cmds and ok_own
     with open(MENU_BUTTON) as f:
         menu_button = json.load(f)
     _, r = tg('setChatMenuButton', {'chat_id': chat, 'menu_button': menu_button})

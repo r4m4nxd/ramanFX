@@ -27,6 +27,12 @@
 // (rfx_bot_config.prefs_key_hash), registered by the setup workflow over the webhook-authenticated channel.
 // Headlines (/news, /news SYM, the [📰 News] button, '📰 latest' lines): headlines.ts, Alpaca News with the Alpaca keys
 // above + public RSS feeds; a failing source logs {ev:'headlines_src', src, status} only.
+// Guests (guests.ts, public.rfx_bot_guests, at most 5): chats the owner added with /adduser ID Name get the market
+// commands with their own prefs; owner-only commands and the owner's data are never reached from a guest chat. An
+// unknown chat's /start gets its ID back (rate-limited); everything else from it is ignored. The welcome message to a new
+// guest is the one sendMessage this function makes itself (TELEGRAM_BOT_TOKEN secret). ?op=prefs adds `guests` (the
+// GitHub jobs broadcast the market messages to them, tools/stock_scanner/guests.py); POST ?op=guest-inactive {guest}
+// (blocked the bot) and ?op=guest-alert-fired {guest, id}, same key.
 // Logs: the command name and timing only, never message text, chat ids or secrets.
 import { initWasm, Resvg } from 'npm:@resvg/resvg-wasm@2.6.2';
 import { renderSvg } from './chart.ts';
@@ -37,6 +43,7 @@ import { keyOk, restStore } from './prefs.ts';
 import { headlineLoader } from './headlines.ts';
 import { restDb } from '../trader-coach/core.ts';
 import { healthSummary, type HealthSnap } from '../trader-coach/health.ts';
+import { guestCallback, guestKey, guestMessage, guestStore, marketsOf, ownerAdmin, restGuests, strangerReply, type Guest, type GuestEnv, type WelcomeResult } from './guests.ts';
 
 const SB_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SB_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -199,19 +206,21 @@ async function dispatchScans(): Promise<boolean> {
 // At most 6 dispatches an hour per instance; the same symbol again within 2 min just says "scanning" (no new run).
 let oneScans: number[] = [];
 const recentOne = new Map<string, number>();
-async function dispatchOne(market: 'fx' | 'stock', sym: string): Promise<ScanResult> {
+// to = guestKey of a guest (guests.ts): the scanner sends the card to that guest instead of the owner.
+async function dispatchOne(market: 'fx' | 'stock', sym: string, to = ''): Promise<ScanResult> {
   const now = Date.now();
-  if (now - (recentOne.get(sym) ?? 0) < 120_000) return 'ok';
+  if (now - (recentOne.get(`${sym}|${to}`) ?? 0) < 120_000) return 'ok';
   oneScans = oneScans.filter(t => now - t < 3600_000);
   if (oneScans.length >= 6) return 'limited';
-  const [wf, inputs] = market === 'fx' ? ['fx-scan.yml', { only: sym, ondemand: 'true' }] : ['stock-scan.yml', { tickers: sym, ondemand: 'true' }];
+  const base = market === 'fx' ? { only: sym, ondemand: 'true' } : { tickers: sym, ondemand: 'true' };
+  const [wf, inputs] = [market === 'fx' ? 'fx-scan.yml' : 'stock-scan.yml', to ? { ...base, to } : base];
   const ok = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/${wf}/dispatches`, {
     method: 'POST', body: JSON.stringify({ ref: 'main', inputs }), signal: AbortSignal.timeout(8000),
     headers: { Authorization: `Bearer ${GH_TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'ramanfx-bot', 'Content-Type': 'application/json' },
   }).then(async r => { await r.body?.cancel(); console.log(JSON.stringify({ ev: 'scan_one', market, status: r.status })); return r.status === 204; }).catch(() => false);
   if (!ok) return 'fail';
   oneScans.push(now);
-  recentOne.set(sym, now);
+  recentOne.set(`${sym}|${to}`, now);
   return 'ok';
 }
 
@@ -270,9 +279,24 @@ async function prefsApi(req: Request, op: string): Promise<Response> {
   if (!await keyOk(req.headers.get('x-rfx-key'), h)) { badKeys.push(now); console.log(JSON.stringify({ ev: 'prefs_denied' })); return empty(401); }
   try {
     if (op === 'prefs' && req.method === 'GET') {
-      const [p, open] = await Promise.all([prefs.get(new Date()), openSymbols()]);
-      console.log(JSON.stringify({ ev: 'prefs', alerts: p.alerts.length, mutes: p.mutes.length, watch: p.watch.length }));
-      return new Response(JSON.stringify({ ...p, open }), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
+      const [p, open, guests] = await Promise.all([prefs.get(new Date()), openSymbols(), guestList()]);
+      console.log(JSON.stringify({ ev: 'prefs', alerts: p.alerts.length, mutes: p.mutes.length, watch: p.watch.length, guests: guests.length }));
+      return new Response(JSON.stringify({ ...p, open, guests }), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
+    }
+    if ((op === 'guest-inactive' || op === 'guest-alert-fired') && req.method === 'POST') {
+      let b: Record<string, unknown>;
+      try { b = await req.json(); } catch { return empty(400); }
+      const key = String(b?.guest ?? '');
+      if (!/^[0-9a-f]{12}$/.test(key)) return empty(400);
+      let g: Guest | undefined;
+      for (const x of await guestDb.list()) if (x.active && await guestKey(x.chat_id) === key) g = x;
+      if (!g) return json({ ok: false });
+      if (op === 'guest-inactive') { const ok = await guestDb.deactivate(g.chat_id); guestCache.clear(); console.log(JSON.stringify({ ev: 'guest_inactive', ok })); return json({ ok }); }
+      if (!Number.isInteger(b.id) || (b.id as number) <= 0) return empty(400);
+      const gg = g;
+      const ok = await guestStore(async () => gg.prefs, p => guestDb.setPrefs(gg.chat_id, p)).fired(b.id as number, new Date());
+      console.log(JSON.stringify({ ev: 'guest_alert_fired', ok }));
+      return json({ ok });
     }
     if (op === 'alert-fired' && req.method === 'POST') {
       let id: unknown;
@@ -288,6 +312,46 @@ async function prefsApi(req: Request, op: string): Promise<Response> {
   }
   return empty(405);
 }
+
+// ---- guests (guests.ts) ---------------------------------------------------------------------------------------------
+const guestDb = restGuests(SB_URL, dbHeaders(), (u, i) => fetch(u, { ...i, signal: AbortSignal.timeout(5000) }));
+const guestCache = new Map<string, { g: Guest | null; t: number }>();
+/** The active guest for a chat id (60 s cache, also of 'not a guest'); null on any error (table missing: no guests). */
+async function guestOf(chatId: string): Promise<Guest | null> {
+  if (!SB_URL || !SB_KEY) return null;
+  const hit = guestCache.get(chatId);
+  if (hit && Date.now() - hit.t < TTL) return hit.g;
+  let g: Guest | null = null;
+  try { g = await guestDb.get(chatId); } catch { /* no table yet / db down: not a guest */ }
+  guestCache.set(chatId, { g, t: Date.now() });
+  if (guestCache.size > 200) guestCache.delete(guestCache.keys().next().value as string);
+  return g;
+}
+/** The active guests for the GitHub jobs' broadcast: chat id, a key, their mutes / quiet hours / alerts / markets. */
+async function guestList(): Promise<unknown[]> {
+  if (!SB_URL || !SB_KEY) return [];
+  try {
+    const now = new Date();
+    return await Promise.all((await guestDb.list()).filter(g => g.active).map(async g => {
+      const p = await guestStore(async () => g.prefs, async () => {}).get(now);
+      return { id: await guestKey(g.chat_id), chat_id: g.chat_id, name: g.name, mutes: p.mutes, alerts: p.alerts, quiet: p.quiet, watch: p.watch, markets: marketsOf(g.prefs) };
+    }));
+  } catch { return []; }
+}
+async function welcome(chatId: number, text: string, markup: unknown): Promise<WelcomeResult> {
+  if (!BOT_TOKEN) return 'no-token';
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML', disable_web_page_preview: true, reply_markup: markup }), signal: AbortSignal.timeout(8000) });
+    await r.body?.cancel();
+    console.log(JSON.stringify({ ev: 'guest_welcome', status: r.status }));
+    return r.ok ? 'sent' : r.status === 403 || r.status === 400 ? 'blocked' : 'fail';
+  } catch { return 'fail'; }
+}
+const guestEnv = async (g: Guest): Promise<GuestEnv> => {
+  const to = await guestKey(g.chat_id);
+  return { db: guestDb, scanOneFor: GH_TOKEN ? (m, s) => dispatchOne(m, s, to) : undefined, dispatch: GH_TOKEN ? dispatchScans : undefined };
+};
 
 /** Symbols of the owner's open positions (journal, rfx_journal.open_positions) for the scanners' news alerts; [] on error. */
 async function openSymbols(): Promise<string[]> {
@@ -374,8 +438,20 @@ Deno.serve(async (req: Request) => {
   const cq = upd?.callback_query;
   if (cq && typeof cq === 'object') {
     const fromId = cq.from?.id;
-    if ((typeof fromId !== 'number' && typeof fromId !== 'string') || !same(await sha(String(fromId)), o)) { console.log(JSON.stringify({ ev: 'other_chat' })); return empty(200); }
+    if (typeof fromId !== 'number' && typeof fromId !== 'string') return empty(200);
     const chat = cq.message?.chat?.id ?? fromId;
+    if (!same(await sha(String(fromId)), o)) {
+      const g = await guestOf(String(fromId));
+      if (!g) { console.log(JSON.stringify({ ev: 'other_chat' })); return empty(200); }
+      let reply: Reply;
+      try { reply = await guestCallback(String(cq.data ?? '').slice(0, 64), g, ctx, await guestEnv(g)); } catch (e) {
+        console.log(JSON.stringify({ ev: 'cmd_error', err: (e as Error).name }));
+        reply = { cmd: 'error', text: '⚠️ Something went wrong reading the scanner data. Try again in a minute.' };
+      }
+      await answerCallback(String(cq.id ?? ''), reply.toast);
+      console.log(JSON.stringify({ ev: 'tap', cmd: reply.cmd, guest: true, ms: Date.now() - t0 }));
+      return json(method(reply, chat, cq.message));
+    }
     let reply: Reply;
     try {
       reply = await handleCallback(String(cq.data ?? '').slice(0, 64), ctx);
@@ -392,11 +468,26 @@ Deno.serve(async (req: Request) => {
   const text = typeof msg?.text === 'string' ? msg.text : '';
   const chatId = msg?.chat?.id;
   if (!text || (typeof chatId !== 'number' && typeof chatId !== 'string')) return empty(200);
-  if (!same(await sha(String(chatId)), o)) { console.log(JSON.stringify({ ev: 'other_chat' })); return empty(200); }
+  if (!same(await sha(String(chatId)), o)) {
+    const g = msg?.chat?.type === 'private' || msg?.chat?.type === undefined ? await guestOf(String(chatId)) : null;
+    if (!g) {
+      const r = msg?.chat?.type === 'private' ? strangerReply(text.slice(0, 64), chatId) : null;
+      console.log(JSON.stringify({ ev: 'other_chat', start: !!r }));
+      return r ? json(method(r, chatId)) : empty(200);
+    }
+    let reply: Reply;
+    try { reply = await guestMessage(text.slice(0, 200), g, ctx, await guestEnv(g)); } catch (e) {
+      console.log(JSON.stringify({ ev: 'cmd_error', err: (e as Error).name }));
+      reply = { cmd: 'error', text: '⚠️ Something went wrong reading the scanner data. Try again in a minute.' };
+    }
+    console.log(JSON.stringify({ ev: 'cmd', cmd: reply.cmd, guest: true, ms: Date.now() - t0 }));
+    return json(method(reply, chatId));
+  }
 
   let reply: Reply;
   try {
-    reply = (await journalRoute(msg, { sbUrl: SB_URL, sbKey: SB_KEY })) ?? await handle(text.slice(0, 200), ctx);
+    reply = (await ownerAdmin(text.slice(0, 200), { db: guestDb, isOwner: async id => same(await sha(id), o), welcome }).then(r => { if (r) guestCache.clear(); return r; }))
+      ?? (await journalRoute(msg, { sbUrl: SB_URL, sbKey: SB_KEY })) ?? await handle(text.slice(0, 200), ctx);
   } catch (e) {
     console.log(JSON.stringify({ ev: 'cmd_error', err: (e as Error).name }));
     reply = { cmd: 'error', text: '⚠️ Something went wrong reading the scanner data. Try again in a minute.' };
