@@ -7,8 +7,9 @@
 # build step) so several commits pushed together, or data commits on top of an app change, are all compared;
 # without it (first deploy of a branch) HEAD^.
 #
-# Not app-affecting (bot data and code that never reaches dist/): the scanner / fx / movers / insiders JSON (served live from
-# GitHub through the vercel.json rewrites), fundamentals (read by the bot from GitHub), tools/, supabase/, .github/,
+# Not app-affecting (bot data and code that never reaches dist/): the scanner / fx / movers / insiders JSON (served live
+# from GitHub's `data` branch through the vercel.json rewrites; the scheduled jobs commit there, never to main),
+# fundamentals (read by the bot from GitHub), tools/, supabase/, .github/,
 # docs/, unit tests. Keep this list in sync with APP_EXCLUDES in supabase/functions/trader-coach/appPaths.ts (a test
 # checks both).
 EXCLUDES=(

@@ -4,7 +4,7 @@ name: Stock scan
 # polls every 30 min at off-peak minutes from 21:07 to 03:37 UTC; a scheduled run stops in seconds when
 # public/scanner/latest.json was already generated after the latest 20:30 UTC (the daily message went out). Scans S&P 500 + Nasdaq-100 + Dow 30 + S&P/TSX 60 + S&P/TSX Composite (US listings of the TSX names)
 # + Global leaders (curated US-listed ADRs, adr_list.csv) + US top liquid (top_liquid.csv, rebuilt on the Monday refresh)
-# (switch universes with the SCANNER_UNIVERSES repository variable), sends Telegram, commits public/scanner/*.json.
+# (switch universes with the SCANNER_UNIVERSES repository variable), sends Telegram, commits public/scanner/*.json to the `data` branch.
 # On-demand (the bot's /scan SYM and [🔄 Live scan]): tickers=SYM + ondemand=true scans that ticker with every rule and
 # sends ONE result card; it writes nothing (no public files, no SEC refresh, no cache save), skips the unit tests and
 # runs beside a full scan (its own concurrency group).
@@ -57,10 +57,15 @@ jobs:
       SCANNER_BUDGET_MIN: '50'        # no new download after 50 min: the scan goes on with what it has
       PYTHONTZPATH: ''                # zoneinfo: the pip tzdata (step 'Current time-zone data')
     steps:
-      # the branch tip at run time, so the backup run sees the primary run's committed latest.json
+      # code: the branch tip at run time; data (so the backup run sees the primary run's latest.json): the data branch
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
+
+      # Data (dedupe / schedule state, the previous outputs, the other jobs' outputs) from the `data` branch, never main:
+      # scripts/data-branch.sh, .github/workflows/README.md.
+      - name: Data from the data branch
+        run: bash scripts/data-branch.sh pull
 
       - uses: actions/setup-python@v5
         with:
@@ -179,8 +184,5 @@ jobs:
         run: |
           git config user.name "ramanfx-scanner[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/scanner tools/stock_scanner/universe.csv
-          if [ -f tools/stock_scanner/top_liquid.csv ]; then git add tools/stock_scanner/top_liquid.csv; fi
-          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
-          git commit -m "scanner: daily scan $(date -u +%Y-%m-%d)"
-          for i in 1 2 3; do git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && break; sleep 5; done
+          bash scripts/data-branch.sh push "scanner: daily scan $(date -u +%Y-%m-%d)" \
+            public/scanner tools/stock_scanner/universe.csv tools/stock_scanner/top_liquid.csv --keep public/scanner/backtest.json

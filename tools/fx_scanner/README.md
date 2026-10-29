@@ -292,7 +292,8 @@ Preview without sending: `python3 tools/fx_scanner/fxscan.py --preview-telegram`
 | `fixtures/` | synthetic H4 generator (+ H1 split), textbook chain, `sample/` = selftest output (app demo data) |
 | `../../.github/workflows/fx-scan.yml` | the schedule |
 
-Outputs: `public/fx/latest.json`, `public/fx/d/<class>.json` (per-instrument detail with H1 / H4 / D1 / W1 bars).
+Outputs: `public/fx/latest.json`, `public/fx/d/<class>.json` (per-instrument detail with H1 / H4 / D1 / W1 bars), committed to the `data` branch
+(never main; `scripts/data-branch.sh`, `.github/workflows/README.md`).
 
 ## Run locally
 
@@ -330,7 +331,7 @@ rule, (c) without the spread filter, (d) watchlist majors only.
 
 Run it from GitHub: Actions -> **FX backtest** -> Run workflow (inputs `years` = `max` or a number, `instruments` =
 names or `watchlist`, `max_instruments`). It caches the full history (`fx-bt-*`), stops evaluating after 270 minutes
-(results then say `partial`) and commits `public/fx/backtest.json` + `docs/research/FX_Backtest.md`.
+(results then say `partial`) and commits `public/fx/backtest.json` + `docs/research/FX_Backtest.md` to the `data` branch.
 
 ```bash
 python3 tools/fx_scanner/fx_backtest.py --selftest                   # synthetic, no network

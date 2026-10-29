@@ -5,15 +5,15 @@
   "rewrites": [
     {
       "source": "/fx/(.*)\\.json",
-      "destination": "https://raw.githubusercontent.com/r4m4nxd/ramanFX/main/public/fx/$1.json"
+      "destination": "https://raw.githubusercontent.com/r4m4nxd/ramanFX/data/public/fx/$1.json"
     },
     {
       "source": "/scanner/(.*)\\.json",
-      "destination": "https://raw.githubusercontent.com/r4m4nxd/ramanFX/main/public/scanner/$1.json"
+      "destination": "https://raw.githubusercontent.com/r4m4nxd/ramanFX/data/public/scanner/$1.json"
     },
     {
       "source": "/movers/(.*)\\.json",
-      "destination": "https://raw.githubusercontent.com/r4m4nxd/ramanFX/main/public/movers/$1.json"
+      "destination": "https://raw.githubusercontent.com/r4m4nxd/ramanFX/data/public/movers/$1.json"
     },
     {
       "source": "/insiders/(.*)\\.json",
@@ -139,7 +139,8 @@
   "git": {
     "deploymentEnabled": {
       "audio/*": false,
-      "claude/*": false
+      "claude/*": false,
+      "data": false
     }
   },
   "ignoreCommand": "bash scripts/vercel-ignore.sh"

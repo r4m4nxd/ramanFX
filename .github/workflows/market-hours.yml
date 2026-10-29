@@ -109,6 +109,8 @@ jobs:
         shard: [0, 1, 2, 3]
     steps:
       - uses: actions/checkout@v4
+      - name: Data from the data branch    # the newest universe.csv (scripts/data-branch.sh); results stay on main
+        run: bash scripts/data-branch.sh pull
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'

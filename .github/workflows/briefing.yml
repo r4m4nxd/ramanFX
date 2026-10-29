@@ -5,7 +5,7 @@ name: Morning brief
 # and the busy window in Calgary time, Kevin's newest daily plan; then a short lesson of the day from the mentors.
 # GitHub cron is UTC and often late: several slots cover 6:00 AM Calgary at UTC-6 (12:00Z; Alberta's permanent offset
 # from 2026-11-01, tzdata 2026c+) and UTC-7 (13:00Z). The script decides by the Calgary clock and sends once per day
-# (tools/briefing/state.json), up to 45 min late, never after 7:30 AM; weekends and NYSE holidays are skipped.
+# (tools/briefing/state.json, on the `data` branch), up to 45 min late, never after 7:30 AM; weekends and NYSE holidays are skipped.
 on:
   schedule:
     - cron: '55 11 * * 1-5'            # 5:55 Calgary at UTC-6 (no-op unless due)
@@ -35,7 +35,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main                      # the latest sent-state and published scans
+          ref: main                      # code; the latest sent-state and published scans: the data branch (below)
+
+      # Data (dedupe / schedule state, the previous outputs, the other jobs' outputs) from the `data` branch, never main:
+      # scripts/data-branch.sh, .github/workflows/README.md.
+      - name: Data from the data branch
+        run: bash scripts/data-branch.sh pull
 
       - uses: actions/setup-python@v5
         with:
@@ -98,8 +103,5 @@ jobs:
         run: |
           git config user.name "ramanfx-scanner[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add tools/briefing/state.json
-          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
-          git commit -q -m "briefing: state $(date -u +%Y-%m-%dT%H:%MZ)"
-          ok=0; for i in 1 2 3 4; do git rebase --abort 2>/dev/null || true; git pull -q --rebase -X theirs --autostash origin main && git push -q origin HEAD:main && ok=1 && break; sleep 5; done
-          [ "$ok" = 1 ] || { echo "::error::brief state not pushed (the brief may repeat)"; exit 1; }
+          bash scripts/data-branch.sh push "briefing: state $(date -u +%Y-%m-%dT%H:%MZ)" tools/briefing/state.json \
+            || { echo "::error::brief state not pushed (the brief may repeat)"; exit 1; }

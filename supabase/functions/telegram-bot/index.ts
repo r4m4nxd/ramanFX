@@ -64,7 +64,9 @@ const FONTS = [
 const REPO = 'r4m4nxd/ramanFX';
 const SITE = 'https://raman-fx.vercel.app/';
 const RAW = 'https://raw.githubusercontent.com/r4m4nxd/ramanFX/main/';
-const RAW_DATA = 'https://raw.githubusercontent.com/r4m4nxd/ramanFX/data/';   // scheduled data commits (insiders.ts), main as fallback
+// Generated data (scans, movers, fundamentals, insiders, the reminders' events.json) is committed by the scheduled jobs
+// to the `data` branch, never main (scripts/data-branch.sh); main's copy is only the fallback for a file not on data.
+const RAW_DATA = 'https://raw.githubusercontent.com/r4m4nxd/ramanFX/data/';
 const REST = `${SB_URL}/rest/v1/rfx_bot_config`;
 const TTL = 60_000;
 
@@ -179,9 +181,7 @@ function load(path: string): Promise<unknown> {
     remember(path, v);
     return v;
   }
-  const urls = path === 'events.json' ? [`${RAW}tools/reminders/events.json`]
-    : path.startsWith('insiders/') ? [`${RAW_DATA}public/${path}`, `${RAW}public/${path}`]
-    : [`${SITE}${path}`, `${RAW}public/${path}`];
+  const urls = path === 'events.json' ? [`${RAW_DATA}tools/reminders/events.json`, `${RAW}tools/reminders/events.json`] : [`${SITE}${path}`, `${RAW_DATA}public/${path}`, `${RAW}public/${path}`];
   const v = (async () => {
     for (const u of urls) {
       try { const j = await getJson(u); if (j != null) return j; } catch { /* next source */ }

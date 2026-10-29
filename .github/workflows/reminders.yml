@@ -4,8 +4,8 @@ name: Event reminders
 # NFP + CPI mornings (45 min before 8:30 ET), FOMC decision days (30 min before the 14:00 ET statement), and an
 # weekday morning nudge (on by owner request; repo variable REMINDER_DAILY=off turns it off).
 # The cron is UTC and covers Calgary at both UTC-6 and UTC-7; the script decides by the Calgary clock, sends each
-# reminder once (state in tools/reminders/state.json), up to 40 min late, never after the event.
-# Official schedules (federalreserve.gov, bls.gov) are fetched every few days and cached in tools/reminders/events.json.
+# reminder once (state in tools/reminders/state.json, on the `data` branch), up to 40 min late, never after the event.
+# Official schedules (federalreserve.gov, bls.gov) are fetched every few days and cached in tools/reminders/events.json (data branch).
 on:
   schedule:
     - cron: '45 11,12 * * 1-5'      # 5:45 / 6:45 Calgary (morning reminders)
@@ -36,7 +36,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main                   # the latest sent-state, not the commit the schedule fired on
+          ref: main                   # code; the latest sent-state: the data branch (below)
+
+      # Data (dedupe / schedule state, the previous outputs, the other jobs' outputs) from the `data` branch, never main:
+      # scripts/data-branch.sh, .github/workflows/README.md.
+      - name: Data from the data branch
+        run: bash scripts/data-branch.sh pull
 
       - uses: actions/setup-python@v5
         with:
@@ -70,8 +75,5 @@ jobs:
         run: |
           git config user.name "ramanfx-scanner[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add tools/reminders/events.json tools/reminders/state.json
-          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
-          git commit -q -m "reminders: state $(date -u +%Y-%m-%dT%H:%MZ)"
-          ok=0; for i in 1 2 3 4; do git rebase --abort 2>/dev/null || true; git pull -q --rebase -X theirs --autostash origin main && git push -q origin HEAD:main && ok=1 && break; sleep 5; done
-          [ "$ok" = 1 ] || { echo "::error::reminder state not pushed (a reminder may repeat)"; exit 1; }
+          bash scripts/data-branch.sh push "reminders: state $(date -u +%Y-%m-%dT%H:%MZ)" tools/reminders/events.json tools/reminders/state.json \
+            || { echo "::error::reminder state not pushed (a reminder may repeat)"; exit 1; }

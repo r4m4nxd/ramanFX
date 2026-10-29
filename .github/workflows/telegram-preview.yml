@@ -18,6 +18,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+      - name: Data from the data branch      # the published scans (scripts/data-branch.sh)
+        run: bash scripts/data-branch.sh pull
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'

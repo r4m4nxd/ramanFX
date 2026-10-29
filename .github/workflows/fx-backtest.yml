@@ -2,7 +2,7 @@ name: FX backtest
 
 # Walk-forward backtest of the live FX rules (tools/fx_scanner/fx_backtest.py) on OANDA history: same signal code as
 # the scanner, limit fills on bid / ask, spread paid, stop-first within a candle, in-sample vs out-of-sample, ablations.
-# Manual only. Writes public/fx/backtest.json + docs/research/FX_Backtest.md and commits them. Stdlib only.
+# Manual only. Writes public/fx/backtest.json + docs/research/FX_Backtest.md and commits them to the `data` branch. Stdlib only.
 on:
   workflow_dispatch:
     inputs:
@@ -37,6 +37,10 @@ jobs:
       FX_SOFT_REACH_PCT: ${{ vars.FX_SOFT_REACH_PCT || '5' }}
     steps:
       - uses: actions/checkout@v4
+
+      # Data (universe.csv, the published scans) from the `data` branch: scripts/data-branch.sh, .github/workflows/README.md.
+      - name: Data from the data branch
+        run: bash scripts/data-branch.sh pull
 
       - uses: actions/setup-python@v5
         with:
@@ -91,8 +95,5 @@ jobs:
         run: |
           git config user.name "ramanfx-scanner[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/fx/backtest.json docs/research/FX_Backtest.md
-          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
-          git commit -m "fx: backtest $(date -u +%Y-%m-%dT%H:%MZ)"
-          ok=0; for i in 1 2 3; do git rebase --abort 2>/dev/null || true; git pull --rebase -X theirs --autostash origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && ok=1 && break; sleep 5; done
-          [ "$ok" = 1 ] || { echo "::error::results not pushed (see the uploaded artifact)"; exit 1; }
+          bash scripts/data-branch.sh push "fx: backtest $(date -u +%Y-%m-%dT%H:%MZ)" public/fx/backtest.json docs/research/FX_Backtest.md \
+            || { echo "::error::results not pushed (see the uploaded artifact)"; exit 1; }

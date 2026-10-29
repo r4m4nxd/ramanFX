@@ -444,10 +444,13 @@ export async function gather(env: HealthEnv, f: F, now: number): Promise<Snapsho
   ]);
   return { now, runs, keys: { github, oanda, alpaca, telegram }, ghExpiry: github === 'ok' ? ghExpiry ?? null : undefined };
 }
+// The scheduled jobs commit their data to the `data` branch, never main (scripts/data-branch.sh): the FX file check
+// (fresh within hours on a trading day) is therefore also the check that the data branch gets new commits.
+export const DATA_RAW = `https://raw.githubusercontent.com/${REPO}/data/public`;
 const FILE_URL: Record<FileName, [string, string]> = {
-  fx: [`https://raw.githubusercontent.com/${REPO}/main/public/fx/latest.json`, 'generated'],
-  stock: [`https://raw.githubusercontent.com/${REPO}/main/public/scanner/latest.json`, 'generated_at'],
-  fund: [`https://raw.githubusercontent.com/${REPO}/main/public/fundamentals/fx.json`, 'generated_at'],
+  fx: [`${DATA_RAW}/fx/latest.json`, 'generated'],
+  stock: [`${DATA_RAW}/scanner/latest.json`, 'generated_at'],
+  fund: [`${DATA_RAW}/fundamentals/fx.json`, 'generated_at'],
 };
 /** Generated times of the published files (public repo, no token). */
 export async function gatherFiles(need: FileName[], f: F): Promise<Partial<Record<FileName, number | null>>> {
@@ -499,7 +502,7 @@ export async function pendingSince(f: F, gh: string, live: string): Promise<numb
   } catch { return undefined; }
 }
 export async function gatherApp(f: F, gh: string): Promise<AppSnap> {
-  const raw = (k: AppFile) => `https://raw.githubusercontent.com/${REPO}/main/public/${k}/latest.json`;
+  const raw = (k: AppFile) => `${DATA_RAW}/${k}/latest.json`;   // what the app's vercel.json rewrites serve
   const nc: RequestInit = { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } };
   const [ver, ...data] = await Promise.all([
     getJson(f, `${APP_URL}/version.json`, nc).catch(() => null),

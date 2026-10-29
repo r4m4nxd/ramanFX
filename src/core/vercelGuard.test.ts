@@ -4,7 +4,9 @@
 //     deployments of the claude/* working branches, version.json for the health watchdog;
 //   - scripts/vercel-ignore.sh: exit 0 (skip) ONLY when nothing app-affecting changed since the last deploy; tested on
 //     real temp git repos incl. shallow clones;
-//   - the scheduled workflows commit only paths that never deploy.
+//   - the scheduled / automated workflows commit their data ONLY to the `data` branch (scripts/data-branch.sh), which
+//     never deploys (git.deploymentEnabled.data = false): a build cancelled by the ignore step still counts, so main
+//     gets only human / feature commits; every reader (rewrites, bot, watchdog) reads the data branch.
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -17,10 +19,9 @@ const SCRIPT = path.join(ROOT, 'scripts/vercel-ignore.sh');
 const vercel = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
 
 describe('vercel.json keeps the deployment budget setup', () => {
-  it('fx / scanner / movers / insiders JSON served live from GitHub, not from the build', () => {
-    const BRANCH: Record<string, string> = { insiders: 'data' };   // the insiders job commits to the data branch only
+  it('fx / scanner / movers / insiders JSON served live from the data branch on GitHub, not from the build', () => {
     for (const k of ['fx', 'scanner', 'movers', 'insiders']) {
-      expect(vercel.rewrites).toContainEqual({ source: `/${k}/(.*)\\.json`, destination: `https://raw.githubusercontent.com/r4m4nxd/ramanFX/${BRANCH[k] ?? 'main'}/public/${k}/$1.json` });
+      expect(vercel.rewrites).toContainEqual({ source: `/${k}/(.*)\\.json`, destination: `https://raw.githubusercontent.com/r4m4nxd/ramanFX/data/public/${k}/$1.json` });
       expect(vercel.buildCommand).toMatch(new RegExp(`rm -rf [^&|;]*dist/${k}(\\s|$)`));
     }
     expect(vercel.buildCommand).toMatch(/^npm run build && rm -rf /);
@@ -30,6 +31,11 @@ describe('vercel.json keeps the deployment budget setup', () => {
     expect(vercel.git.deploymentEnabled['claude/*']).toBe(false);
     expect(vercel.git.deploymentEnabled['audio/*']).toBe(false);
     expect(vercel.git.deploymentEnabled.main).not.toBe(false);
+  });
+  it('the data branch never deploys; no rewrite reads data from main', () => {
+    expect(vercel.git.deploymentEnabled.data).toBe(false);
+    for (const r of vercel.rewrites as { destination: string }[])
+      if (r.destination.includes('githubusercontent')) expect(r.destination).toMatch(/\/ramanFX\/data\/public\//);
   });
   it('version.json: outside the SPA rewrite, never cached', () => {
     const spa = vercel.rewrites.find((r: { destination: string }) => r.destination === '/index.html');
@@ -58,14 +64,47 @@ describe('app paths: the ignore script and the watchdog agree', () => {
     for (const p of ['public/fx/latest.json', 'public/scanner/a.json', 'public/movers/latest.json', 'public/insiders/latest.json', 'public/fundamentals/fx.json', 'tools/briefing/state.json', 'supabase/functions/x/index.ts', '.github/workflows/a.yml', 'docs/a.md', 'src/core/a.test.ts', 'src/x.test.tsx'])
       expect(isAppPath(p), p).toBe(false);
   });
-  it('scheduled workflows commit only paths that never deploy', () => {
-    const dir = path.join(ROOT, '.github/workflows');
-    for (const f of fs.readdirSync(dir)) {
-      const y = fs.readFileSync(path.join(dir, f), 'utf8');
-      if (!/^\s*schedule:/m.test(y)) continue;
-      const adds = [...y.matchAll(/git add ([^\n|&;]+)/g)].flatMap(m => m[1].replace(/\\$/, '').trim().split(/\s+/)).filter(p => p && !p.startsWith('-') && !p.startsWith('2>'));
-      for (const p of adds) expect(isAppPath(p.replace(/\/?$/, p.includes('.') ? '' : '/')), `${f}: git add ${p}`).toBe(false);
+  // Every workflow that writes data: no `git push` / `git commit` to main (or to the checked-out branch) at all, only
+  // scripts/data-branch.sh push with data paths; the only exception is the manual / research-code-triggered market
+  // hours study (its results are bundled into the app, so they must be on main to deploy).
+  const WF = path.join(ROOT, '.github/workflows');
+  const workflows = fs.readdirSync(WF).filter(f => /\.ya?ml$/.test(f)).map(f => [f, fs.readFileSync(path.join(WF, f), 'utf8')] as const);
+  const dataPaths = execFileSync('bash', [path.join(ROOT, 'scripts/data-branch.sh'), 'paths'], { encoding: 'utf8' }).trim().split('\n');
+  const MAIN_OK = new Set(['market-hours.yml']);
+  it('scheduled workflows never push to main: their data goes to the data branch', () => {
+    const scheduled = workflows.filter(([, y]) => /^\s*schedule:/m.test(y));
+    expect(scheduled.map(([f]) => f).sort()).toEqual(expect.arrayContaining(['briefing.yml', 'fundamentals.yml', 'fx-scan.yml', 'movers.yml', 'reminders.yml', 'stock-scan.yml']));
+    for (const [f, y] of scheduled) {
+      expect(y, `${f}: git push`).not.toMatch(/\bgit\s+(-\S+\s+)*push\b/);
+      expect(y, `${f}: git commit`).not.toMatch(/\bgit\s+(-\S+\s+)*commit\b/);
+      expect(y, `${f}: git add`).not.toMatch(/\bgit\s+add\b/);
+      expect(y, `${f}: reads the data branch`).toMatch(/bash scripts\/data-branch\.sh pull/);
     }
+  });
+  it('every workflow that commits uses scripts/data-branch.sh push with data paths only (market hours: app files on main)', () => {
+    let pushes = 0;
+    for (const [f, y] of workflows) {
+      if (!MAIN_OK.has(f)) expect(y, `${f}: git push`).not.toMatch(/\bgit\s+(-\S+\s+)*push\b/);
+      for (const m of y.matchAll(/bash scripts\/data-branch\.sh push "[^"]*"((?:\s*\\\n)?[^\n|]*)/g)) {
+        pushes++;
+        const args = m[1].replace(/\\\n/g, ' ').trim().split(/\s+/).filter(a => a && a !== '--keep' && a !== '\\' && !a.startsWith('"$'));
+        // "${paths[@]}": the paths=(...) arrays of the same step (backtest-publish.yml)
+        if (m[1].includes('"${paths[@]}"')) for (const a of y.matchAll(/paths=\(([^)]*)\)/g)) args.push(...a[1].trim().split(/\s+/));
+        expect(args.length, `${f}: ${m[0]}`).toBeGreaterThan(0);
+        for (const a of args) expect(dataPaths.some(d => a === d || a.startsWith(`${d}/`)), `${f}: ${a} is not a data path`).toBe(true);
+      }
+    }
+    expect(pushes).toBeGreaterThanOrEqual(8);
+  });
+  it('data paths never deploy, and readers use the data branch (bot, watchdog)', () => {
+    for (const p of dataPaths) expect(isAppPath(p.includes('.') ? p : `${p}/`), p).toBe(false);
+    const bot = fs.readFileSync(path.join(ROOT, 'supabase/functions/telegram-bot/index.ts'), 'utf8');
+    expect(bot).toContain("const RAW_DATA = 'https://raw.githubusercontent.com/r4m4nxd/ramanFX/data/';");
+    expect(bot).toMatch(/\$\{RAW_DATA\}public\/\$\{path\}`, `\$\{RAW\}public\/\$\{path\}`/);   // data first, main = fallback
+    expect(bot).toContain('`${RAW_DATA}tools/reminders/events.json`');
+    const health = fs.readFileSync(path.join(ROOT, 'supabase/functions/trader-coach/health.ts'), 'utf8');
+    expect(health).not.toMatch(/raw\.githubusercontent\.com\/\$\{REPO\}\/main\//);
+    expect(health).toContain('raw.githubusercontent.com/${REPO}/data/public');
   });
 });
 

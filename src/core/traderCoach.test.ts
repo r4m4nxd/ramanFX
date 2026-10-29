@@ -413,7 +413,7 @@ describe('GitHub workflow scheduler', () => {
     const y = readFileSync('.github/workflows/insiders.yml', 'utf8');
     expect(y).toContain('python tools/insiders/insiders.py');
     expect(y).toContain('SEC_UA: ${{ secrets.SEC_UA }}');
-    expect(y).toContain('git add public/insiders');
+    expect(y).toContain('bash scripts/data-branch.sh push "insiders: $(date -u +%Y-%m-%dT%H:%MZ)" public/insiders');
   });
 
   it("the bot's on-demand scans never cover a scheduled slot", () => {

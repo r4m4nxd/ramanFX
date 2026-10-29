@@ -5,7 +5,7 @@ name: FX scan
 # the scan is NOT tied to the close minute: it is polled every 10 minutes (off the :00 peak) Monday-Friday UTC, plus
 # Saturday 00-05 UTC to catch the Friday close and Sunday 21-23 UTC for the first hours of the week (forex week:
 # Sunday 17:00 New York -> Friday 17:00 New York). Each run first asks OANDA for the newest complete H1 candle
-# (`fxscan.py --check`, seconds) and compares it with the last scanned one (public/fx/state.json, committed, + the
+# (`fxscan.py --check`, seconds) and compares it with the last scanned one (public/fx/state.json on the `data` branch, + the
 # actions cache): already scanned -> the run stops there; not yet -> full scan, so a dropped run is caught up by the
 # next one. Telegram stays calm: an hourly scan sends only the instant alert when something is new; the H4 digest goes
 # out once per new H4 candle; the daily summary with the first scan after the D1 close (17:00 New York), however late.
@@ -72,10 +72,15 @@ jobs:
       FX_H4_DIGEST: ${{ vars.FX_H4_DIGEST || 'true' }}
       PYTHONTZPATH: ''                 # zoneinfo: the pip tzdata (step 'Current time-zone data'), never a stale system copy
     steps:
-      # the branch tip at run time (not the commit the schedule fired on): the latest committed public/fx/state.json
+      # code: the branch tip at run time (not the commit the schedule fired on)
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
+
+      # Data (dedupe / schedule state, the previous outputs, the other jobs' outputs) from the `data` branch, never main:
+      # scripts/data-branch.sh, .github/workflows/README.md.
+      - name: Data from the data branch
+        run: bash scripts/data-branch.sh pull
 
       - uses: actions/setup-python@v5
         with:
@@ -162,7 +167,4 @@ jobs:
         run: |
           git config user.name "ramanfx-scanner[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/fx
-          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
-          git commit -m "fx: scan $(date -u +%Y-%m-%dT%H:%MZ)"
-          for i in 1 2 3; do git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && break; sleep 5; done
+          bash scripts/data-branch.sh push "fx: scan $(date -u +%Y-%m-%dT%H:%MZ)" public/fx --keep public/fx/backtest.json

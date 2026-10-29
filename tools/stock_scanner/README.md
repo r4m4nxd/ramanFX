@@ -29,7 +29,7 @@ Standard library only (Python 3.10+). No `pip install`.
 | `selftest.py` | Whole pipeline on synthetic fixtures (`scan.py --selftest`). |
 | `holdings.json` | Your positions for EXIT warnings (or the `HOLDINGS_JSON` secret, preferred). |
 | `fixtures/` | Synthetic price generator, a hand-made SEC companyfacts file, `latest.sample.json` (app demo data). |
-| `../../.github/workflows/stock-scan.yml` | Weekdays 21:37 UTC + backup 23:37 UTC (skipped when today's scan is already published): tests, scan, Telegram, commit `public/scanner/*.json`. |
+| `../../.github/workflows/stock-scan.yml` | Weekdays 21:37 UTC + backup 23:37 UTC (skipped when today's scan is already published): tests, scan, Telegram, commit `public/scanner/*.json` to the `data` branch (never main; `scripts/data-branch.sh`). |
 
 ## Setup (once)
 
@@ -65,8 +65,9 @@ at most one short Telegram message per day ("scan failed: no price data" with th
 failing hosts, the most common error) and exits 2 so the run shows red.
 
 Each run commits `public/scanner/latest.json` (signals), `public/scanner/history/<date>.json`,
-`public/scanner/index.json` (every ticker, for the app's search) and `public/scanner/t/<0-63>.json` (that redeploys
-the app). Each shard ticker carries `bars` (the last 120 daily bars, packed `{t0, dt: day offsets, b: [[o, h, l, c]]}`);
+`public/scanner/index.json` (every ticker, for the app's search) and `public/scanner/t/<0-63>.json` to the `data`
+branch (never main, no redeploy: the app reads them live through the vercel.json rewrites;
+`.github/workflows/README.md`). Each shard ticker carries `bars` (the last 120 daily bars, packed `{t0, dt: day offsets, b: [[o, h, l, c]]}`);
 tickers in the zone lists, the signals or the watchlist also carry `hb` = `{W1: 104, MN: 60, 3M: 24}` bars in the same
 packing, built from the daily bars with the forming week / month / quarter included (each labelled with its first
 session's date), for the bot's 4-quarter charts (the other ~half of the tickers skip it: shard size).

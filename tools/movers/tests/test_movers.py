@@ -380,7 +380,7 @@ class Context(unittest.TestCase):
             y = f.read()
         self.assertIn('python tools/movers/movers.py', y)
         self.assertIn('test:', y)
-        self.assertIn('git add public/movers', y)
+        self.assertIn('bash scripts/data-branch.sh push "movers: $(date -u +%Y-%m-%dT%H:%MZ)" public/movers', y)
         with open(os.path.join(root, 'supabase', 'functions', 'trader-coach', 'scheduler.ts')) as f:
             self.assertIn("'movers.yml'", f.read())
 
