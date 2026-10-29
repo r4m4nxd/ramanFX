@@ -121,7 +121,7 @@ class CalendarTest(unittest.TestCase):
         self.assertNotIn('gdp_diff', p)                                 # y/y vs q/q annualised: not compared
         self.assertTrue(p['bias'].startswith('USD stronger: higher rate'), p['bias'])
         self.assertIn('hotter CPI', p['bias'])
-        self.assertEqual(p['score'], -2)                                # rate -2, CPI -1, the Fed cut while the ECB held +1
+        self.assertEqual(p['score'], -3)                                # rate -2, CPI -1; both banks cut this year: no point
         self.assertIn('EURJPY', fx['pairs'])
         self.assertTrue(fx['pairs']['EURJPY']['bias'].startswith('EUR stronger'))
         self.assertIn('pays no yield', fx['notes']['XAUUSD'])

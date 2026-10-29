@@ -164,7 +164,7 @@ const cleanSym = (s: string) => String(s ?? '').toUpperCase().replace(/[^A-Z0-9.
 export function symMap(sym: string): SymMap {
   const s = cleanSym(sym);
   const names = [new RegExp(`\\b${s.replace(/\./g, '\\.')}\\b`, 'i')];
-  if (CFD[s]) return { kind: 'cfd', main: CFD[s].k.filter(k => TERMS[k]).slice(0, 1).concat(CFD[s].k.slice(1).filter(k => TERMS[k] && !CFD[s].k.slice(0, 1).includes(k)).length && s.endsWith('X') ? [] : []), side: CFD[s].k.slice(1).filter(k => TERMS[k]), tags: CFD[s].tags ?? [], names };
+  if (CFD[s]) return { kind: 'cfd', main: CFD[s].k.slice(0, 1), side: CFD[s].k.slice(1), tags: CFD[s].tags ?? [], names };
   const m = /^([A-Z]{3,4})([A-Z]{3})$/.exec(s);
   if (m) {
     const [b, q] = [CCY_ALIAS[m[1]] ?? m[1], CCY_ALIAS[m[2]] ?? m[2]];
@@ -263,8 +263,8 @@ export function forSymbol(list: unknown, sym: string, now: number, n = 6, hours 
   const scored = fresh(asList(list), now, hours).map(h => [relevance(h, map), h] as const).filter(([r]) => r > 0);
   const byTime = (a: readonly [number, Headline], b: readonly [number, Headline]) => b[1].t - a[1].t;
   const strong = scored.filter(([r]) => r >= 2).sort(byTime);
-  const weak = strong.length >= 3 ? [] : scored.filter(([r]) => r < 2 && importance(r ? r && scored[0][1] : scored[0][1], now) > -99).sort(byTime);
-  const merged = [...strong, ...weak].map(x => x[1]).filter(h => !NOISE.test(h.title) || map.kind === 'stock');
+  const weak = strong.length >= 3 ? [] : scored.filter(([r]) => r < 2).sort(byTime);
+  const merged = [...strong, ...weak].map(x => x[1]).filter(h => map.kind === 'stock' || !NOISE.test(h.title));
   return dedupe(merged).slice(0, n);
 }
 /** The newest headline about `sym` in the last `hours` (default 24), or null. */
