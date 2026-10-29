@@ -4,7 +4,7 @@ Source: tools/kevin_daily/calls.json (in the repo; one row per call of a daily b
 = the recording, plan_for = the trading day it is for, symbol, direction long / short, zone_type, zone_tf, proximal,
 distal). Only calls with a price, from the newest 3 plan days (trading days), are used. A scanner zone matches a call
 of the same instrument and side when the price ranges overlap within ±0.1% of price (a call with only a proximal is a
-single price). The newest matching call wins; the card then says
+single price). Only his 1H and higher zones count (1H / 4H / D / W / M; no 15m / 5m, no trendline-only calls). The newest matching call wins; the card then says
     ⭐ also in Kevin's plan (Oct 28: 1H demand 4024–4041)
 (the recording day, his zone timeframe, side, his levels) and such cards come first.
 """
@@ -21,6 +21,7 @@ DAYS = 3
 TOL = 0.001                                      # ±0.1% of price
 SYM = {'DXY': 'USDX', 'SPX500': 'US500', 'SPX500USD': 'US500', 'WTICOUSD': 'SPOTCRUDE', 'WTI': 'SPOTCRUDE',
        'BCOUSD': 'SPOTBRENT', 'NAS100USD': 'NAS100', 'US30USD': 'US30', 'GOLD': 'XAUUSD'}   # Kevin -> Pepperstone
+HTF = ('1H', '4H', 'D', 'W', 'M')               # his zone timeframes used for the cross-check
 TF = {'1H': '1H', '4H': '4H', 'D': 'D1', 'W': 'W1', 'M': 'MN', '15m': '15m', '5m': '5m'}
 
 
@@ -51,8 +52,8 @@ def levels(calls: Iterable[Dict], today: Optional[dt.date] = None, days: int = D
         if c['plan_for'] not in plan_days:
             continue
         p, d, side = _f(c.get('proximal')), _f(c.get('distal')), _side(c)
-        if p is None or side is None:
-            continue
+        if p is None or side is None or (c.get('zone_tf') or '') not in HTF:
+            continue                                     # 1H and higher only (no 15m / 5m confirmation zones)
         sym = str(c.get('symbol') or '').upper().replace('/', '').replace('_', '')
         out.append({'sym': SYM.get(sym, sym), 'side': side, 'lo': min(p, d if d is not None else p),
                     'hi': max(p, d if d is not None else p), 'prox': p, 'dist': d, 'tf': TF.get(c.get('zone_tf') or '', c.get('zone_tf') or ''),

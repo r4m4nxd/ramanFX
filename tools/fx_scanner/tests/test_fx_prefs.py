@@ -129,7 +129,13 @@ class KevinTest(unittest.TestCase):
         {'session': '2026-10-20_1650', 'plan_for': '2026-10-21', 'symbol': 'AUDUSD', 'direction': 'long', 'zone_type': 'demand',
          'zone_tf': '4H', 'proximal': 0.69, 'distal': 0.68},                                    # older than 3 plan days
         {'session': '2026-10-28_1656', 'plan_for': '2026-10-29', 'symbol': 'EURUSD', 'direction': 'long', 'proximal': None},
+        {'session': '2026-10-28_1656', 'plan_for': '2026-10-29', 'symbol': 'USDJPY', 'direction': 'long', 'zone_type': 'demand',
+         'zone_tf': '15m', 'proximal': 152.1, 'distal': 151.9},                                # below 1H: ignored
     ]
+
+    def test_only_1h_and_higher(self):
+        self.assertIsNone(K.match(self.lv(), 'USDJPY', 'demand', 152.0, 151.95))
+        self.assertTrue(all(x['tf'] in ('1H', '4H', 'D1', 'W1', 'MN') for x in K.load(today=dt.date(2026, 10, 29))))
 
     def lv(self):
         return K.levels(self.CALLS, dt.date(2026, 10, 29))
