@@ -129,27 +129,33 @@ them with the usual nesting highlight. Not ported: zone DNA codes, location, dir
 latest scan run and are labelled so. Parity: `tools/telegram_bot/parity/make_fixtures.py` writes bars + the zones the
 Python engines publish on them; `src/core/telegramZoneParity.test.ts` requires identical zones from the port.
 
-### Chart trendlines (`trendcore.ts`)
+### Chart trendlines (`zvTrend.ts`: the owner's ZoneVision rule)
 
-A TypeScript port of the scanners' trendline construction (zones.py `trendlines`, `line_touches`, `cross_bar`:
-swing-2 valleys / peaks, anchors refitted within 0.05 ATR, too-flat lines dropped, confirmed once price runs past the
-swing between the anchors, removed when a bar lies fully beyond the line, crossed = a close through it with a body
->= 0.6 ATR). Each chart panel (each quarter of the 4-view image, and the single view) draws at most 2 lines of its own
-timeframe (solid lilac) and at most 2 of the next higher timeframe projected onto its candles (gold dots;
-15m -> H1 -> H4 -> D1 -> W1 -> MN -> 3M, stocks D1 -> W1 -> MN -> 3M). Picked: never removed, uncrossed first, the row's
-in-force up / down line first, most touches, nearest price; only lines that enter the drawn candles' range. Computed on
-the chart's candles (live: 250 closed bars, the scanners' 200-bar lookback); with the short published shards (80-120
-bars) the scanner's own published lines (`tls`) are used instead. Parity: the same fixtures +
-`src/core/telegramTrendParity.test.ts` (every line of every row identical).
-
-Chart-only additions (not the scanners' rule, never published, no signal reads them; tests
-`src/core/telegramChartNotes.test.ts`):
-- **Fallback line** (`fallbackLine`, `fallback: true` on the drawn line): when a row has no uncrossed house line one way
-  in view (e.g. BABA W1: the scanners' down line was removed by a spike, then price fell 190 -> 99, so the scanner
-  publishes `tls.W1 = []`), the most significant unbroken line: from a swing high (low) of the last 200 bars, the
-  tangent over every later high (low), house 'too flat' test, most touches then longest.
+The chart images draw the owner's ZoneVision indicator lines (public/tools/RFX_ZoneCore.mqh `ZigZag` / `Confirmed` /
+`TooFlat` / `RemovedAt`, cross-checked with RamanFX_ZoneVision.pine) with the owner's two-pivot rule, NOT the scanners'
+rule: "We draw from real valleys and real peaks. Real valleys are pivot points after which price made a new high; real
+peaks are pivot points after which price made a new lower low" and "we draw a trendline from the most recent TWO peaks
+or TWO valleys only".
+- Swing high / low: 2 bars each side (InpTLSwing), wicks, lookback 200 bars (InpLookback). A swing high is a REAL PEAK
+  once, before any higher high, a low breaks the most recent swing low before it (valleys mirrored).
+- Down line = the two most recent real peaks, wick to wick, the newer lower; up line = the two most recent real valleys,
+  the newer higher. Nothing that way when the pair is in the wrong order, too flat (< 0.015 ATR per bar or < 1.5 ATR
+  between the anchors), not confirmed (no move past the extreme between the anchors before a break) or broken (a full
+  closed candle beyond it). ZoneVision's FitAnchor, its 'overall' line and older anchors are not used (they replace a
+  pivot); a line that cuts candles between its two pivots is still drawn (`cuts` counts them).
+- Kevin's **momentum line** (lessons 5 / 14 / 19, `zvMomentum`): for a direction with no trend line, at most one per panel
+  - the current one-way leg (no real peak / valley in it) from its top (bottom), the tangent over the later highs
+  (lows); thin red dashes, labelled `D1 momentum`, never gold, never a trend for the bias.
+- Each panel: its own TF's up / down line (lilac) + the next higher TF's up / down line (gold dots; 15m -> H1 -> H4 ->
+  D1 -> W1 -> MN -> 3M), computed on the higher TF's bars and drawn straight in the panel's bar space between the panel
+  candles holding each HTF pivot's extreme (ZoneVision ChartBarIn; an anchor older than the panel's history is
+  extrapolated at the median bars per HTF bar), as MT5 draws an OBJ_TREND on a chart that skips weekends. A gold line on
+  top of an own line is dropped (ZoneVision DedupeTL keeps this chart's line). Max 2 own + 2 gold.
+- The scanners keep their own rule (`trendcore.ts` = parity port of zones.py `trendlines`, tested by
+  `src/core/telegramTrendParity.test.ts`; the scanners' published `tls` are no longer drawn). Tests:
+  `src/core/telegramZvTrend.test.ts`.
 - **No duplicates** (`sameLine`): two lines of one direction never further apart than max(0.5 ATR, 1.5% of the drawn
-  range) over their overlap are drawn once; the higher TF's line wins over an own-TF one.
+  range) over their overlap are drawn once.
 
 ### Chart notes (`chartnotes.ts`, display only)
 
@@ -160,8 +166,8 @@ Chart-only additions (not the scanners' rule, never published, no signal reads t
   demand`, `overlaps ...`, `at ... (just outside)` (zones.py LOC_TOL 25%), `MN demand outside 3M demand (below)`,
   `no 3M supply to nest in`; null when the panel shows another TF's zones or the higher TF has none.
 - `model.verdict` (<= 110 chars): price vs the nearest demand / supply of the signal's TF (else the lowest panel's zone
-  TF), the highest-TF zone price is inside, the lowest panel's trend (own house lines, else swing structure, else
-  fallback lines), `scanner: BUY W1 at 96.14` or `watch <zone>`, nesting, the other side; least important dropped first.
+  TF), the highest-TF zone price is inside, the lowest panel's trend (`D1 downtrend (trend line)` from its own trend lines, else `D1
+  momentum down (no trend line yet)`, else the swing structure), `scanner: BUY W1 at 96.14` or `watch <zone>`, nesting, the other side; least important dropped first.
 - Same-TF same-side zones covering >= 50% of the smaller are drawn as one (fresher, then score, then fewer touches).
 - Higher-TF bars rebuilt from daily bars drop a partial first period; panels with < 12 candles say `short history`.
 

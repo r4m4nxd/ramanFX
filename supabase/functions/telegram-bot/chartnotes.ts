@@ -11,7 +11,7 @@
 import { tfLabel, type Bar } from './chart.ts';
 
 export interface NZone { tf: string; side: 'demand' | 'supply'; prox: number; dist: number }
-export interface NLine { tf: string; htf: boolean; dir: number; crossed: boolean; fallback?: boolean }
+export interface NLine { tf: string; htf: boolean; dir: number; crossed: boolean; kind?: 'trend' | 'momentum' }
 export const ZONE_ORDER = ['6M', '3M', 'MN', 'W1', 'D1', 'H4', 'H1', 'M15'];
 
 const lo = (z: NZone) => Math.min(z.prox, z.dist), hi = (z: NZone) => Math.max(z.prox, z.dist);
@@ -107,13 +107,19 @@ export function structure(bars: Bar[], sw = 2): number {
   if (h2 < h1 && l2 < l1 && last < h2) return -1;
   return 0;
 }
-/** Trend of a panel: its own uncrossed house lines when they point one way, else the swing structure, else its own
- *  uncrossed fallback lines when they point one way; 0 = no clear trend. */
-export function trendOf(lines: NLine[], bars: Bar[]): number {
+/** Trend of a panel and where it comes from: 'line' = its own trend lines (the ZoneVision two-pivot lines) point one
+ *  way; else 'momentum' = only a momentum line (Kevin: a one-way leg without real peaks / valleys, no trend line yet);
+ *  else 'structure' = the swing structure; dir 0 = no clear trend. */
+export function trendInfo(lines: NLine[], bars: Bar[]): { dir: number; src: 'line' | 'momentum' | 'structure' } {
   const one = (ls: NLine[]) => { const d = new Set(ls.map(t => t.dir)); return d.size === 1 ? [...d][0] : 0; };
   const own = lines.filter(t => !t.htf && !t.crossed);
-  return one(own.filter(t => !t.fallback)) || structure(bars) || one(own.filter(t => t.fallback));
+  const tl = one(own.filter(t => t.kind !== 'momentum'));
+  if (tl) return { dir: tl, src: 'line' };
+  const mo = one(own.filter(t => t.kind === 'momentum'));
+  if (mo) return { dir: mo, src: 'momentum' };
+  return { dir: structure(bars), src: 'structure' };
 }
+export const trendOf = (lines: NLine[], bars: Bar[]): number => trendInfo(lines, bars).dir;
 
 // ---- verdict ----------------------------------------------------------------------------------------------------------
 export const VERDICT_MAX = 110;
@@ -153,8 +159,10 @@ export function verdict(v: VerdictIn): string {
     const z = v.zones.find(x => x.tf === t && gap(v.price, x) === 0);
     if (z) { contain = `inside ${name(t)} ${z.side}`; break; }
   }
-  const tr = trendOf(v.trendLines, v.trendBars);
-  const trend = tr > 0 ? `${name(v.trendTf)} uptrend` : tr < 0 ? `${name(v.trendTf)} downtrend` : `${name(v.trendTf)} no clear trend`;
+  const ti = trendInfo(v.trendLines, v.trendBars), T = name(v.trendTf);
+  const trend = ti.src === 'momentum' ? `${T} momentum ${ti.dir > 0 ? 'up' : 'down'} (no trend line yet)`
+    : ti.dir === 0 ? `${T} no clear trend`
+    : `${T} ${ti.dir > 0 ? 'uptrend' : 'downtrend'}${ti.src === 'line' ? ' (trend line)' : ''}`;
   const s = v.sig;
   const signal = s && s.kind ? `scanner: ${s.kind} ${name(s.tf)}${s.entry != null ? ` at ${fmt(s.entry)}` : ''}` : '';
   const watch = !signal && main && !inside ? `watch ${rng(main)}` : '';

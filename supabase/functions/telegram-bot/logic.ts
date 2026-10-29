@@ -10,7 +10,7 @@ import { newsButton, newsText, symbolNews, withLatest, withTopHeadlines, loadHea
 import { MAX_ALERTS, MAX_WATCH, parseDuration, parsePrice, parseQuiet, parseTap, type Alert, type Prefs, type PrefsStore } from './prefs.ts';
 import { aggregate, monthKey, quarterKey, tfLabel, weekKey, type Band, type Bar, type ChartModel, type Panel, type TLine } from './chart.ts';
 import { fxZonesOf, nextBusinessDay, RAJA, Series, stockZonesOf, tfZonesOf, type LiveZone, type ZBar } from './zonecore.ts';
-import { panelTrendlines, type PubLine, type TlSeries } from './trendcore.ts';
+import { panelTrendlines, type PubLine, type TlSeries } from './zvTrend.ts';
 import { atrPct, isWide, nestNote, refineOf, verdict } from './chartnotes.ts';
 import type { LiveFx, LiveSource, LiveStock } from './live.ts';
 import { cmdFund, earningsLine, fundButton } from './fundamentals.ts';
@@ -754,8 +754,8 @@ export function dropPartialHead(derived: Bar[], daily: Bar[], key: (t: string) =
 export const SHORT_HISTORY = 12;
 
 /** Trendline inputs of a chart: per TF whether its last bar is still forming (TFs absent = no lines), and the next
- *  higher TF whose lines each panel also draws (gold dots); pub = the scanner's published lines per TF ('tls': used
- *  for a TF whose chart bars are too few for the scanners' lookback, i.e. the published shards, never live candles). */
+ *  higher TF whose lines each panel also draws (gold dots); pub = the scanner's published lines per TF ('tls'): passed
+ *  through but not drawn (the chart draws the ZoneVision rule, zvTrend.ts, on the chart's own bars). */
 export interface TlSrc { forming: Record<string, boolean>; htf: Record<string, string | null>; pub?: Record<string, unknown> }
 const pubLines = (v: unknown): PubLine[] | undefined => (Array.isArray(v) ? (v as J[]).filter(t => num(t?.p) != null && num(t?.s) != null && num(t?.n) != null && typeof t?.t === 'string')
   .map(t => ({ dir: t.dir > 0 ? 1 : -1, p: t.p, s: t.s, n: t.n, t: t.t, touches: num(t.touches) ?? 0, x: !!t.x })) : undefined);

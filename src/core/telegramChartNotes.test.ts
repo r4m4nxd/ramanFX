@@ -1,13 +1,12 @@
 // Chart data fixes for the bot's chart images (owner review of a live BABA chart, price 99.53): duplicate trendlines,
-// missing own-TF / higher-TF lines (fallbackLine), wide zones (+ refine), nesting notes, the verdict line, same-TF zone
+// trendlines (the ZoneVision two-pivot rule, zvTrend.ts; tests in telegramZvTrend.test.ts), wide zones (+ refine), nesting notes, the verdict line, same-TF zone
 // merge, a partial first period, short-history notes. Input: synthetic bars + the BABA shard as published 2026-10-29
 // (tools/telegram_bot/parity/baba_2026-10-29.json).
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { aggregate, quarterKey, weekKey, monthKey, type Bar } from '../../supabase/functions/telegram-bot/chart';
 import { buildPanels, chartData, dropPartialHead, type Ctx } from '../../supabase/functions/telegram-bot/logic';
-import { Series } from '../../supabase/functions/telegram-bot/zonecore';
-import { fallbackLine, panelTrendlines, rowTrendlines, sameLine, tlAt, type ChartTl } from '../../supabase/functions/telegram-bot/trendcore';
+import { sameLine, type ChartTl } from '../../supabase/functions/telegram-bot/zvTrend';
 import { atrPct, compact, isWide, nestNote, refineOf, structure, verdict, VERDICT_MAX, type NZone } from '../../supabase/functions/telegram-bot/chartnotes';
 
 const BABA = JSON.parse(readFileSync('tools/telegram_bot/parity/baba_2026-10-29.json', 'utf8'));
@@ -21,14 +20,14 @@ const babaCtx = (): Ctx => {
 };
 
 /** Business days from 2024-11-04: a clear downtrend 200 -> 100 with 25-day swings (lower highs, lower lows). */
-function downtrend(n = 500, from = 200, to = 100): Bar[] {
+function downtrend(n = 500, from = 200, to = 100, period = 25): Bar[] {
   const out: Bar[] = [];
   const t = new Date('2024-11-04T00:00:00Z');
   let prev = from;
   for (let i = 0; i < n; i++) {
     while (t.getUTCDay() === 0 || t.getUTCDay() === 6) t.setUTCDate(t.getUTCDate() + 1);
     const base = from + (to - from) * i / (n - 1);
-    const c = base * (1 + 0.06 * Math.sin(i * 2 * Math.PI / 25));
+    const c = base * (1 + 0.06 * Math.sin(i * 2 * Math.PI / period));
     const o = prev, h = Math.max(o, c) * 1.006, l = Math.min(o, c) * 0.994;
     out.push({ t: t.toISOString().slice(0, 10), o, h, l, c });
     prev = c;
@@ -38,7 +37,7 @@ function downtrend(n = 500, from = 200, to = 100): Bar[] {
 }
 
 describe('trendlines on the chart: duplicates', () => {
-  const line = (dir: number, pts: [number, number][], htf = false): ChartTl => ({ tf: htf ? 'W1' : 'D1', htf, dir, touches: 2, crossed: false, pts });
+  const line = (dir: number, pts: [number, number][], htf = false): ChartTl => ({ tf: htf ? 'W1' : 'D1', htf, dir, touches: 2, crossed: false, pts, anchors: pts, kind: 'trend' });
   it('sameLine: same direction and within the tolerance over the overlap; else not', () => {
     expect(sameLine(line(-1, [[10, 130.62], [59.5, 107.63]]), line(-1, [[32, 120.40], [59.5, 107.22]]), 1.5)).toBe(true);   // the owner's BABA D1 pair
     expect(sameLine(line(-1, [[10, 130]], ), line(-1, [[10, 130], [59.5, 107]]), 1.5)).toBe(false);
@@ -47,70 +46,30 @@ describe('trendlines on the chart: duplicates', () => {
     expect(sameLine(line(-1, [[0, 130], [20, 120]]), line(-1, [[40, 110], [59.5, 100]]), 50)).toBe(false);   // no overlap
   });
 
-  it('two published lines that are the same line are drawn once', () => {
-    const d = downtrend(120);
-    const last = d[d.length - 1];
-    const pub = [{ dir: -1, p: last.h * 1.02, s: -0.4, n: 60, t: last.t, touches: 3 }, { dir: -1, p: last.h * 1.02 + 0.05, s: -0.401, n: 40, t: last.t, touches: 2 }];
-    const got = panelTrendlines({ tf: 'D1', bars: d, forming: false, pub }, 60, last.c, null);
-    expect(got.filter(t => t.dir < 0 && !t.htf)).toHaveLength(1);
-  });
-
-  it('BABA as published: the D1 panel draws its down line once', async () => {
+  it('BABA as published: no two drawn lines on top of each other, at most one line per TF and direction', async () => {
     const cd = await chartData('BABA', 'Q', babaCtx());
-    const d1 = cd!.model.panels.find(p => p.tf === 'D1')!;
-    const tls = d1.tls ?? [];
-    for (let i = 0; i < tls.length; i++) for (let j = i + 1; j < tls.length; j++) expect(sameLine(tls[i], tls[j], 1.0)).toBe(false);
-    expect(tls.filter(t => !t.htf && t.dir < 0)).toHaveLength(1);
+    for (const p of cd!.model.panels) {
+      const tls = p.tls ?? [];
+      for (let i = 0; i < tls.length; i++) for (let j = i + 1; j < tls.length; j++) expect(sameLine(tls[i], tls[j], 1.0)).toBe(false);
+      for (const tf of new Set(tls.map(t => t.tf))) for (const d of [-1, 1]) expect(tls.filter(t => t.tf === tf && t.dir === d).length).toBeLessThanOrEqual(1);
+    }
   });
 });
 
-describe('trendlines on the chart: missing lines', () => {
-  it('fallbackLine: a clear W1 downtrend gets a down line from a swing high; never crossed, never above a later high', () => {
-    const w1 = aggregate(downtrend(), weekKey);
-    const S = new Series(w1.map(b => ({ d: b.t, o: b.o, h: b.h, l: b.l, c: b.c })), w1[w1.length - 1].c, 'W1');
-    const t = fallbackLine(S, -1)!;
-    expect(t).not.toBeNull();
-    expect(t.dir).toBe(-1);
-    expect(t.fb).toBe(true);
-    expect(t.crossBar).toBe(-1);
-    expect(t.pb).toBeLessThan(t.pa);
-    for (let j = t.a - 3; j >= 1; j--) expect(S.H[j]).toBeLessThanOrEqual(tlAt(t, j) + 1e-9);
-    expect(fallbackLine(S, 1)).toBeNull();               // the lowest low is the newest: no up line in a downtrend
-    expect(fallbackLine(new Series(S.T.slice(1, 6).map((d, i) => ({ d, o: 1, h: 2, l: 0.5, c: 1 + i })), 1, 'W1'), -1)).toBeNull();   // < 8 bars
-  });
-
-  it('BABA W1 as the scanner sees it: the house down line was removed (spike above), the fallback finds the fall from 181', () => {
-    const hb = BABA.ticker.hb.W1;
-    const d0 = Date.parse(`${hb.t0}T00:00:00Z`);
-    const w1 = hb.b.slice(0, -1).map((r: number[], i: number) => ({ d: new Date(d0 + hb.dt[i] * 86400000).toISOString().slice(0, 10), o: r[0], h: r[1], l: r[2], c: r[3] }));
-    const S = new Series(w1, BABA.ticker.price, 'W1');
-    const st = rowTrendlines(S);
-    expect(st.lines.filter(t => t.dir < 0 && !t.removed)).toHaveLength(0);   // the house rule: none in force
-    const t = fallbackLine(S, -1)!;
-    expect(S.H[t.a]).toBeCloseTo(181.1, 1);
-    expect(tlAt(t, 0)).toBeGreaterThan(BABA.ticker.price);
-    expect(tlAt(t, 0)).toBeLessThan(130);
-  });
-
-  it('a synthetic W1 downtrend with no published W1 line: a gold W1 line on the D1 panel and a W1 line on the W1 panel', () => {
-    const d = downtrend();
+describe('trendlines on the chart: synthetic W1 downtrend', () => {
+  it('a gold W1 down line on the D1 panel (straight: 2 points) and the W1 down line on the W1 panel', () => {
+    const d = downtrend(500, 200, 100, 100);
     const bars = { D1: d, W1: aggregate(d, weekKey), MN: aggregate(d, monthKey), '3M': aggregate(d, quarterKey) };
     const price = d[d.length - 1].c;
     const panels = buildPanels(['MN', 'W1', 'D1'], bars, [], price, 2, null, 'quad', t => t,
-      { forming: { D1: false, W1: false, MN: false, '3M': false }, htf: { D1: 'W1', W1: 'MN', MN: '3M' }, pub: { W1: [], MN: [], '3M': [] } });
+      { forming: { D1: false, W1: false, MN: false, '3M': false }, htf: { D1: 'W1', W1: 'MN', MN: '3M' } });
     const d1 = panels.find(p => p.tf === 'D1')!, w1 = panels.find(p => p.tf === 'W1')!;
     const gold = (d1.tls ?? []).filter(t => t.htf && t.tf === 'W1' && t.dir < 0);
     expect(gold.length).toBe(1);
-    expect((w1.tls ?? []).some(t => t.dir < 0)).toBe(true);
+    expect(gold[0].pts).toHaveLength(2);
+    expect((w1.tls ?? []).some(t => !t.htf && t.dir < 0)).toBe(true);
+    expect((d1.tls ?? []).some(t => t.htf && t.dir > 0)).toBe(false);   // lower lows: no real-valley up line
     for (const p of panels) for (const t of p.tls ?? []) for (const [, y] of t.pts) expect(Number.isFinite(y)).toBe(true);
-  });
-
-  it('BABA as published (scanner tls empty): lines on 3M / MN / W1 and a gold W1 line on D1', async () => {
-    const cd = await chartData('BABA', 'Q', babaCtx());
-    const p = Object.fromEntries(cd!.model.panels.map(x => [x.tf, x]));
-    for (const tf of ['3M', 'MN', 'W1']) expect((p[tf].tls ?? []).length).toBeGreaterThan(0);
-    expect((p.D1.tls ?? []).some(t => t.htf && t.tf === 'W1' && t.dir < 0)).toBe(true);
-    expect((p.W1.tls ?? []).some(t => t.dir < 0)).toBe(true);
   });
 });
 
@@ -202,8 +161,14 @@ describe('verdict', () => {
   const down: Bar[] = downtrend(60, 130, 100);
   it('the owner\'s BABA reading, deterministic, <= 110 chars', () => {
     const v = verdict({ price: 99.53, digits: 2, market: 'stock', zones: zs, relTf: 'W1', trendTf: 'D1', trendLines: [{ tf: 'D1', htf: false, dir: -1, crossed: false }], trendBars: down });
-    expect(v).toBe('Price 3.4% above W1 demand (96.14–94.36), inside 3M demand · D1 downtrend · watch 96.14–94.36');
+    expect(v).toBe('Price 3.4% above W1 demand (96.14–94.36), inside 3M demand · D1 downtrend (trend line) · watch 96.14–94.36');
     expect(v.length).toBeLessThanOrEqual(VERDICT_MAX);
+  });
+  it('trend wording: a trend line, a momentum line only, the swing structure', () => {
+    const base = { price: 99.53, digits: 2, market: 'stock' as const, zones: zs, relTf: 'W1', trendTf: 'D1', trendBars: down };
+    expect(verdict({ ...base, trendLines: [{ tf: 'D1', htf: false, dir: -1, crossed: false, kind: 'trend' }] })).toContain('D1 downtrend (trend line)');
+    expect(verdict({ ...base, trendLines: [{ tf: 'D1', htf: false, dir: -1, crossed: false, kind: 'momentum' }] })).toContain('D1 momentum down (no trend line yet)');
+    expect(verdict({ ...base, trendLines: [{ tf: 'W1', htf: true, dir: 1, crossed: false, kind: 'trend' }] })).toContain('D1 downtrend ·');   // gold lines never set the panel's trend
   });
   it('a scanner signal replaces the watch; long parts dropped least important first', () => {
     const v = verdict({ price: 99.53, digits: 2, market: 'stock', zones: zs, relTf: 'W1', trendTf: 'D1', trendLines: [], trendBars: down, sig: { tf: 'W1', kind: 'BUY', entry: 96.14 } });
@@ -223,7 +188,7 @@ describe('verdict', () => {
   });
   it('BABA chart model carries the verdict', async () => {
     const m = (await chartData('BABA', 'Q', babaCtx()))!.model;
-    expect(m.verdict).toMatch(/^Price 3\.\d% above W1 demand \(96\.14–94\.36\), inside 3M demand · D1 downtrend/);
+    expect(m.verdict).toMatch(/^Price 3\.\d% above W1 demand \(96\.14–94\.36\), inside 3M demand · D1 momentum down \(no trend line yet\)/);
     expect(m.verdict.length).toBeLessThanOrEqual(VERDICT_MAX);
   });
 });

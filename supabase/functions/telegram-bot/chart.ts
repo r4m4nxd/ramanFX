@@ -26,9 +26,9 @@ export interface Band {
   label?: string;
 }
 export interface Lines { entry?: number | null; stop?: number | null; target?: number | null; kind?: string }
-/** A trendline to draw (trendcore.ts panelTrendlines): pts = [drawn bar index (centres 0 .. n-1), price]; htf = the next
+/** A trendline to draw (zvTrend.ts panelTrendlines): pts = [drawn bar index (centres 0 .. n-1), price]; htf = the next
  *  higher timeframe's line projected onto this panel (gold dots), else the panel's own timeframe (solid lilac). */
-export interface TLine { tf: string; htf: boolean; dir: number; touches: number; crossed: boolean; pts: [number, number][] }
+export interface TLine { tf: string; htf: boolean; dir: number; touches: number; crossed: boolean; pts: [number, number][]; kind?: 'trend' | 'momentum' }
 export interface Panel {
   tf: string; header: string; bars: Bar[]; zones: Band[]; lines?: Lines | null; note?: string; tls?: TLine[];
   forming?: boolean;          // the last bar is still forming (drawn hollow)
@@ -40,7 +40,7 @@ export const SIZE = 1280;
 const C = {
   bg: '#0B0C10', panel: '#11131A', border: '#232634', text: '#E5E7EB', mute: '#9CA3AF', violet: '#8B5CF6', tag: '#7C3AED',
   demand: '#10B981', supply: '#EF4444', demandTxt: '#34D399', supplyTxt: '#FCA5A5', up: '#34D399', down: '#F87171',
-  grid: '#1B1E2A', tl: '#C4B5FD', gold: '#D4AF37', amber: '#FBBF24', verdict: '#D1D5DB',
+  grid: '#1B1E2A', tl: '#C4B5FD', gold: '#D4AF37', momentum: '#F87171', amber: '#FBBF24', verdict: '#D1D5DB',
 };
 const TF_SHORT: Record<string, string> = { M15: '15m', H1: '1H', H4: '4H', D1: 'D1', W1: 'W1', MN: 'MN', '3M': '3M' };
 export const tfLabel = (tf: string) => TF_SHORT[tf] ?? tf;
@@ -352,12 +352,13 @@ function panelSvg(p: Panel, b: Box, m: ChartModel, i: number): string {
     const kEnd = g.slots - 0.5;
     if (k2 < kEnd && k2 > k1) pts.push([kEnd, v2 + (v2 - v1) * (kEnd - k2) / (k2 - k1)]);
     const xy = pts.map(([k, v]) => [plot.x + step * (k + 0.5), g.y(v)] as const);
-    const col = t.htf ? C.gold : C.tl;
+    const mom = t.kind === 'momentum' && !t.htf;   // Kevin's red momentum line: thin red dashes, never gold
+    const col = mom ? C.momentum : t.htf ? C.gold : C.tl;
     const dpath = xy.map(([px, py], j) => `${j ? 'L' : 'M'}${f1(px)} ${f1(py)}`).join('');
-    out.push(`<path class="tl ${t.htf ? 'htf' : 'ltf'} ${t.dir > 0 ? 'up' : 'down'}" data-tf="${x(t.tf)}" d="${dpath}" fill="none" stroke="${col}"`
-      + (t.htf ? ' stroke-width="5.5" stroke-linecap="round" stroke-dasharray="0.5 11"' : ' stroke-width="2.6"')
+    out.push(`<path class="tl ${mom ? 'mom' : t.htf ? 'htf' : 'ltf'} ${t.dir > 0 ? 'up' : 'down'}" data-tf="${x(t.tf)}" d="${dpath}" fill="none" stroke="${col}"`
+      + (mom ? ' stroke-width="1.8" stroke-dasharray="9 7"' : t.htf ? ' stroke-width="5.5" stroke-linecap="round" stroke-dasharray="0.5 11"' : ' stroke-width="2.6"')
       + ` stroke-opacity="${t.crossed ? 0.6 : 0.95}"/>`);
-    const text = `${tfLabel(t.tf)} ${t.dir > 0 ? 'up' : 'down'}${t.crossed ? ' ×' : ''}`;
+    const text = mom ? `${tfLabel(t.tf)} momentum` : `${tfLabel(t.tf)} ${t.dir > 0 ? 'up' : 'down'}${t.crossed ? ' ×' : ''}`;
     const yEnd = xy[xy.length - 1][1];
     if (yEnd >= plot.y && yEnd <= bottom) tlLabels.push({ y: yEnd, text, col, inside: null });
     else {   // the line leaves the plot before the right edge: label at its last point inside
@@ -437,7 +438,8 @@ function panelSvg(p: Panel, b: Box, m: ChartModel, i: number): string {
     const yy = freeSlot(t.y, busy, 28, plot.y + 10, bottom - 4);
     if (yy == null) continue;
     busy.push(yy);
-    out.push(`<text class="tllabel" x="${f1(right + 8)}" y="${f1(yy + 7)}" font-size="20" font-weight="600" fill="${t.col}">${x(fitText(t.text, g.axisW - 12, 20))}</text>`);
+    const fs = Math.max(12, Math.min(20, Math.floor(20 * (g.axisW - 12) / Math.max(1, textW(t.text, 20)))));   // 'W1 momentum' shrinks to fit
+    out.push(`<text class="tllabel" x="${f1(right + 8)}" y="${f1(yy + 7)}" font-size="${fs}" font-weight="600" fill="${t.col}">${x(fitText(t.text, g.axisW - 12, fs))}</text>`);
   }
   for (const t of tlLabels.filter(t => t.inside)) {
     const [lx, ly] = t.inside!;
@@ -462,7 +464,7 @@ function panelSvg(p: Panel, b: Box, m: ChartModel, i: number): string {
   return `<g class="panel" data-tf="${x(p.tf)}">${out.join('')}</g>`;
 }
 
-export const LEGEND = 'violet outline = hosts lower-TF zone · gold dots = higher-TF line · hollow = forming · × crossed';
+export const LEGEND = 'lilac = trend line · red dashed = momentum line · gold dots = higher-TF trend line · hollow = forming';
 export function renderSvg(m: ChartModel): string {
   const top = m.verdict ? 104 : 72;
   const bx = boxes(m.layout, m.panels.length, top);

@@ -1,4 +1,5 @@
-// Trendlines for the bot's chart images: a TypeScript port of the scanners' trendline construction (Kevin's lines, used
+// The SCANNERS' trendline rule (parity port; NOT what the chart images draw - those use the owner's ZoneVision rule,
+// zvTrend.ts): a TypeScript port of the scanners' trendline construction (Kevin's lines, used
 // by the Raja rules), line by line from tools/stock_scanner/zones.py trendlines() + line_touches() + cross_bar() (the FX
 // scanner calls the same functions through fxcore.analyse -> zones.eval_row). Settings = zones.RAJA: swing 2 (a valley
 // = a low below the 2 bars each side, a peak mirrored), lookback 200 bars, a cross = a close beyond the line by a candle
@@ -15,7 +16,7 @@
 // the scanners' tl_export publishes those two. (The scanners' 25-pip rule, fxcfg.TL_FAR_PIPS, is a trade rule about a
 // zone's gap to its line, not part of the line itself.) Index convention as zonecore.ts: shift 0 = the phantom forming
 // bar, 1 = the newest closed bar, larger = older. Parity: src/core/telegramTrendParity.test.ts. Pure.
-import { RAJA, rowOk, Series, type ZBar } from './zonecore.ts';
+import { RAJA, rowOk, Series } from './zonecore.ts';
 
 const TL_SWING = 2, DEPART_ATR = 0.6;
 
@@ -23,7 +24,6 @@ export interface TrendLine {
   dir: number;        // +1 up line (under the valleys), -1 down line (over the peaks)
   a: number; b: number; pa: number; pb: number;   // anchors (shifts, a older) and the line's price there
   removed: boolean; removedBar: number; conf: boolean; crossBar: number;
-  fb?: boolean;       // a chart-only fallback line (fallbackLine), not the scanners' rule
 }
 export const tlSlope = (t: TrendLine) => (t.pb - t.pa) / Math.max(1, t.a - t.b);
 /** The line's price at shift j (fractional shifts allowed: the chart projects lines onto other timeframes). */
@@ -232,215 +232,4 @@ export function pickLines(S: Series, st: TLState, max: number, visible: (t: Tren
   const gap = (p: PickedLine) => Math.abs(tlAt(p.line, 1) - S.price);
   cand.sort((x, y) => Number(x.crossed) - Number(y.crossed) || Number(y.inForce) - Number(x.inForce) || y.touches - x.touches || gap(x) - gap(y));
   return cand.slice(0, max);
-}
-
-// ---- chart-only fallback line (NOT the scanners' rule: no parity, never published, never read by a signal) ----------
-/**
- * The most significant recent unbroken line one way, for a chart row where the house rule has none in view (e.g. the
- * scanners' W1 down line was removed by a spike above it, then price fell again from 190 to 99). Candidates: every
- * swing high (a down line; swing lows for an up line, the trendlines' 2-bar swing) of the last 200 closed bars and the
- * window's extreme; from each, the tangent over ALL later bars (the steepest line no later high rises above: second
- * anchor = the bar that bounds it, >= 3 bars later; the 2 bars right after the anchor, part of the same top / bottom,
- * may pierce it by up to 0.25 ATR). So it is never removed or crossed by construction. The house 'too flat' test applies (>= 0.015 ATR per bar
- * and >= 1.5 ATR of fall / rise between the anchors). Best = most touches (lineTouches), then the longest. conf false,
- * fb true; null = none (fewer than 8 closed bars, or no candidate passes).
- */
-export function fallbackLine(S: Series, d: number): TrendLine | null {
-  const bars = Math.min(RAJA.lookback, S.n - 1), sw = TL_SWING;
-  if (bars < 8) return null;
-  const P = (j: number) => (d > 0 ? S.L[j] : S.H[j]);
-  const beyond = (x: number, y: number) => (d > 0 ? x < y : x > y);   // x more extreme than y
-  const swing = (i: number) => {
-    for (let k = 1; k <= sw; k++) if (i - k < 1 || i + k >= S.n || beyond(P(i + k), P(i)) || !beyond(P(i), P(i - k))) return false;
-    return true;
-  };
-  const ext = d > 0 ? lowest(S, bars, 1) : highest(S, bars, 1);
-  const tol = 0.25 * S.atr(1);
-  let best: TrendLine | null = null, bestT = -1;
-  for (let A = bars; A >= 4; A--) {
-    if (A !== ext && !swing(A)) continue;
-    let b = -1, sl = 0;
-    for (let j = A - 3; j >= 1; j--) {           // price change per bar towards newer bars, through bar j
-      const s = (P(j) - P(A)) / (A - j);
-      if (b < 0 || (d < 0 ? s > sl : s < sl)) { b = j; sl = s; }
-    }
-    if (b < 0 || d * sl <= 0) continue;          // a down line must fall, an up line rise
-    let ok = true;
-    for (let j = A - 1; j > A - 3; j--) { const lv = P(A) + sl * (A - j); if ((d > 0 ? lv - P(j) : P(j) - lv) > tol) ok = false; }
-    if (!ok) continue;
-    const atr = Math.max(S.atr(b), 1e-9), pb = P(A) + sl * (A - b);
-    if (Math.abs(sl) < 0.015 * atr || Math.abs(pb - P(A)) < 1.5 * atr) continue;
-    const t: TrendLine = { dir: d, a: A, b, pa: P(A), pb, removed: false, removedBar: -1, conf: false, crossBar: -1, fb: true };
-    const n = lineTouches(S, t);
-    if (n > bestT) { best = t; bestT = n; }       // A runs oldest first: ties keep the longer line
-  }
-  if (best) best.crossBar = crossBar(S, best);
-  return best;
-}
-
-/** The chart pick: pickLines(), plus fallbackLine() for a direction without an uncrossed house line in view. */
-function pickChart(S: Series, st: TLState, visible: (t: TrendLine) => boolean): PickedLine[] {
-  const got = pickLines(S, st, Infinity, visible);
-  for (const d of [-1, 1]) {
-    if (got.some(p => p.dir === d && !p.crossed)) continue;
-    const f = fallbackLine(S, d);
-    if (f && visible(f)) got.push({ dir: d, line: f, touches: lineTouches(S, f), crossed: f.crossBar >= 0, inForce: false });
-  }
-  return got.sort((x, y) => Number(x.crossed) - Number(y.crossed));   // stable: house lines before a fallback
-}
-
-/** Two drawn lines that look like one: same direction, x-ranges overlapping by >= 2 bars, and never further apart
- *  than `tol` over the overlap (sampled at every bar and both ends). */
-export function sameLine(a: ChartTl, b: ChartTl, tol: number): boolean {
-  if (a.dir !== b.dir || a.pts.length < 2 || b.pts.length < 2) return false;
-  const x0 = Math.max(a.pts[0][0], b.pts[0][0]), x1 = Math.min(a.pts[a.pts.length - 1][0], b.pts[b.pts.length - 1][0]);
-  if (x1 - x0 < 2) return false;
-  const at = (p: [number, number][], x: number) => {
-    for (let i = 1; i < p.length; i++) if (x <= p[i][0] || i === p.length - 1) {
-      const [xa, ya] = p[i - 1], [xb, yb] = p[i];
-      return xb === xa ? yb : ya + (yb - ya) * (x - xa) / (xb - xa);
-    }
-    return p[p.length - 1][1];
-  };
-  for (let x = x0; ; x = Math.min(x1, Math.floor(x) + 1)) {
-    if (Math.abs(at(a.pts, x) - at(b.pts, x)) > tol) return false;
-    if (x >= x1) return true;
-  }
-}
-
-// ---- chart lines: the panel's own TF + the next higher TF projected onto the panel's time axis ----------------------
-export interface CBar { t: string; o: number; h: number; l: number; c: number }
-/** A line the scanner published for this TF (zones.tl_export: price p on the newest closed bar at time t, s = change per
- *  bar, n = bars back to the first anchor, x = crossed). */
-export interface PubLine { dir: number; p: number; s: number; n: number; t: string; touches?: number; x?: boolean }
-/** One timeframe's bars as the chart has them (oldest first); forming = the last bar is still forming; pub = the
- *  scanner's own lines for it (used when the chart has fewer bars than the scanners' 200-bar lookback). */
-export interface TlSeries { tf: string; bars: CBar[]; forming: boolean; pub?: PubLine[] }
-/** Closed bars the scanners' trendlines see: the 200-bar lookback + the 20 bars the window keeps clear (+ the phantom). */
-export const FULL_TL_BARS = RAJA.lookback + 20;
-/** A trendline to draw: pts = [drawn bar index (bar centres at 0 .. n-1, edges -0.5 / n-0.5), price]. */
-export interface ChartTl { tf: string; htf: boolean; dir: number; touches: number; crossed: boolean; pts: [number, number][]; fallback?: boolean }
-
-const tms = (t: string) => Date.parse(t.length >= 16 ? `${t.slice(0, 16)}:00Z` : `${t.slice(0, 10)}T00:00:00Z`);
-const toZ = (b: CBar[]): ZBar[] => b.map(r => ({ d: r.t, o: r.o, h: r.h, l: r.l, c: r.c }));
-
-/** The row's lines: computed here (trendlines()) on the chart's closed bars; with a short history (published shards
- *  carry 80-120 bars) the scanner's own lines for this TF instead, re-anchored on the chart bars by time. */
-function rowOf(s: TlSeries, price: number) {
-  const closed = s.forming ? s.bars.slice(0, -1) : s.bars;
-  const S = new Series(toZ(closed), price, s.tf);
-  const nc = closed.length;
-  if (!s.pub || nc >= FULL_TL_BARS) return { S, st: rowTrendlines(S), nClosed: nc };
-  const st: TLState = { lines: [], up: null, dn: null, upTouches: 0, dnTouches: 0 };
-  for (const q of s.pub) {
-    if (![q.p, q.s, q.n].every(Number.isFinite) || q.n < 1) continue;
-    let it = -1;
-    for (let i = 0; i < nc; i++) if (closed[i].t <= q.t) it = i;
-    if (it < 0) continue;
-    const t: TrendLine = { dir: q.dir > 0 ? 1 : -1, a: nc - (it - q.n), b: nc - it, pb: q.p, pa: q.p - q.s * q.n, removed: false, removedBar: -1,
-      conf: true, crossBar: q.x ? 0 : -1 };
-    st.lines.push(t);
-    if (t.dir > 0 && !st.up) { st.up = t; st.upTouches = q.touches ?? 0; }
-    if (t.dir < 0 && !st.dn) { st.dn = t; st.dnTouches = q.touches ?? 0; }
-  }
-  return { S, st, nClosed: nc };
-}
-/** The [lo, hi] a line must enter to be worth drawing: the drawn candles' range (padded a little). */
-function rangeOf(bars: CBar[]): [number, number] {
-  let lo = Infinity, hi = -Infinity;
-  for (const b of bars) { lo = Math.min(lo, b.l); hi = Math.max(hi, b.h); }
-  const pad = (hi - lo) * 0.03;
-  return [lo - pad, hi + pad];
-}
-const enters = (pts: [number, number][], lo: number, hi: number) =>
-  pts.some(([, p], i) => (p >= lo && p <= hi) || (i > 0 && Math.min(p, pts[i - 1][1]) <= hi && Math.max(p, pts[i - 1][1]) >= lo));
-
-/**
- * The trendlines of one chart panel: at most `max` of its own timeframe (from the line's first anchor to the right edge)
- * and at most `max` of the next higher timeframe, projected onto this panel's candles (each higher-TF bar spread evenly
- * over the panel bars inside it, so an HTF anchor sits mid-way through its period). Only lines that enter the drawn
- * candles' price range; the pick is pickLines() (in force, uncrossed, most touches, nearest price), plus fallbackLine()
- * for a direction the house rule has no uncrossed line in view. Duplicates dropped (sameLine within 0.5 ATR of the
- * panel's TF or 1.5% of the drawn range): the higher TF's line wins over an own one that looks the same, else the first
- * in pick order.
- */
-export function panelTrendlines(own: TlSeries, nDrawn: number, price: number, higher: TlSeries | null, max = 2): ChartTl[] {
-  const B = own.bars, nD = Math.min(nDrawn, B.length), i0 = B.length - nD;
-  if (nD < 2) return [];
-  const [lo, hi] = rangeOf(B.slice(i0));
-  const mine: ChartTl[] = [];
-  let tol = 0.015 * (hi - lo);
-  // own timeframe: straight from the anchor (or the left edge) to the right edge
-  {
-    const { S, st, nClosed } = rowOf(own, price);
-    tol = Math.max(tol, 0.5 * S.atr(1));
-    const shift = (k: number) => nClosed - (i0 + k);
-    const ptsOf = (t: TrendLine): [number, number][] => {
-      const ks = Math.max(-0.5, nClosed - t.a - i0), ke = nD - 0.5;
-      return ks > ke ? [] : [[ks, tlAt(t, shift(ks))], [ke, tlAt(t, shift(ke))]];
-    };
-    for (const p of pickChart(S, st, t => { const q = ptsOf(t); return q.length > 0 && enters(q, lo, hi); }))
-      mine.push({ tf: own.tf, htf: false, dir: p.dir, touches: p.touches, crossed: p.crossed, pts: ptsOf(p.line), ...(p.line.fb ? { fallback: true } : {}) });
-  }
-  const keep = (cands: ChartTl[], kept: ChartTl[]) => {
-    const out: ChartTl[] = [];
-    for (const c of cands) if (out.length < max && ![...kept, ...out].some(k => sameLine(c, k, tol))) out.push(c);
-    return out;
-  };
-  const up = higher && higher.bars.length >= 2 ? higherLines(B, nD, i0, lo, hi, price, higher) : [];
-  const hk = keep(up, []);
-  return [...keep(mine, hk), ...hk];
-}
-
-/** The next higher timeframe's lines (pickChart order) projected onto the panel's drawn candles. */
-function higherLines(B: CBar[], nD: number, i0: number, lo: number, hi: number, price: number, higher: TlSeries): ChartTl[] {
-  const out: ChartTl[] = [];
-  // next higher timeframe: map every panel bar to a fractional higher-TF bar index
-  const HB = higher.bars, ht = HB.map(b => tms(b.t));
-  const kb = new Array<number>(B.length).fill(-1);
-  for (let i = 0, k = -1; i < B.length; i++) {
-    const t = tms(B[i].t);
-    while (k + 1 < HB.length && ht[k + 1] <= t) k++;
-    kb[i] = k;
-  }
-  const cnt = new Map<number, number>();
-  for (const k of kb) if (k >= 0) cnt.set(k, (cnt.get(k) ?? 0) + 1);
-  const full = [...cnt.entries()].filter(([k]) => k !== kb.find(x => x >= 0) && k !== HB.length - 1).map(([, c]) => c).sort((a, b) => a - b);
-  const med = full.length ? full[Math.floor(full.length / 2)] : Math.max(1, ...cnt.values());
-  const firstK = kb.find(x => x >= 0) ?? -1;
-  const u: number[] = new Array<number>(nD).fill(NaN);
-  const pos = new Map<number, number>();
-  for (let i = 0; i < B.length; i++) {
-    const k = kb[i];
-    if (k < 0) continue;
-    const c = cnt.get(k) ?? 1, p = pos.get(k) ?? 0;
-    pos.set(k, p + 1);
-    if (i < i0) continue;
-    const n = k === HB.length - 1 || k === firstK ? Math.max(c, med) : c;
-    const off = k === firstK && c < med ? med - c : 0;   // a partial first period: the missing bars came before
-    u[i - i0] = k + (p + off + 0.5) / n - 0.5;
-  }
-  const { S, st, nClosed } = rowOf(higher, price);
-  // [k, higher-TF shift] at every panel bar + both edges (extrapolated from the neighbours)
-  const sp: [number, number][] = [];
-  for (let k = 0; k < nD; k++) if (Number.isFinite(u[k])) sp.push([k, nClosed - u[k]]);
-  if (sp.length < 2) return out;
-  const ext = (a: [number, number], b: [number, number], k: number): [number, number] => [k, a[1] + (b[1] - a[1]) * (k - a[0]) / (b[0] - a[0])];
-  if (sp[0][0] === 0) sp.unshift(ext(sp[0], sp[1], -0.5));
-  sp.push(ext(sp[sp.length - 2], sp[sp.length - 1], nD - 0.5));
-  const ptsOf = (t: TrendLine): [number, number][] => {
-    const q: [number, number][] = [];
-    sp.forEach(([k, j], i) => {
-      if (j > t.a) return;                                  // before the line's first anchor
-      if (!q.length && i > 0 && sp[i - 1][1] > t.a) {        // start exactly at the anchor
-        const [k0, j0] = sp[i - 1], f = (j0 - t.a) / (j0 - j);
-        q.push([k0 + (k - k0) * f, t.pa]);
-      }
-      q.push([k, tlAt(t, j)]);
-    });
-    return q.length >= 2 ? q : [];
-  };
-  for (const p of pickChart(S, st, t => { const q = ptsOf(t); return q.length > 0 && enters(q, lo, hi); }))
-    out.push({ tf: higher.tf, htf: true, dir: p.dir, touches: p.touches, crossed: p.crossed, pts: ptsOf(p.line), ...(p.line.fb ? { fallback: true } : {}) });
-  return out;
 }

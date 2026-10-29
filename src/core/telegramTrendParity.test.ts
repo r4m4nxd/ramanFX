@@ -1,11 +1,11 @@
-// Parity: the bot's TypeScript trendline port (trendcore.ts, drawn on the chart images, live candles included) against
+// Parity: the SCANNERS' trendline rule ported to TypeScript (trendcore.ts; the chart images draw the owner's ZoneVision rule, zvTrend.ts) against
 // the Python scanners' zones.trendlines(). The fixture (tools/telegram_bot/parity/make_fixtures.py) holds synthetic bars
 // and every line the real Python engine builds on each row (FX: the fxcore.analyse rows H1 .. MN + 3M; stocks: D1 / W1 /
 // MN / 3M on closed bars), the in-force up / down line and its touches. Lines must be identical.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { closedHtf, Series, toQuarters, type ZBar } from '../../supabase/functions/telegram-bot/zonecore';
-import { panelTrendlines, pickLines, rowTrendlines, tlAt, type TLState } from '../../supabase/functions/telegram-bot/trendcore';
+import { pickLines, rowTrendlines, tlAt, type TLState } from '../../supabase/functions/telegram-bot/trendcore';
 
 type Row = [string, number, number, number, number];
 interface PyLine { dir: number; a: number; b: number; pa: number; pb: number; removed: boolean; removed_bar: number; conf: boolean; cross_bar: number }
@@ -66,27 +66,5 @@ describe('trendline pick for the charts', () => {
     for (const t of [st.up, st.dn]) if (t && t.crossBar < 0) expect(got.some(p => p.line === t)).toBe(true);
     expect(Number.isFinite(tlAt(got[0].line, 0.5))).toBe(true);
     expect(pickLines(S, st, 2, () => false)).toEqual([]);
-  });
-
-  it('panel lines (live candles): <= 2 own + <= 2 higher TF, anchored on real swing lows / highs', () => {
-    let own = 0, htf = 0;
-    for (const c of fx.fx) for (const [tf, up] of [['H1', 'H4'], ['H4', 'D1'], ['D1', 'W1'], ['W1', 'MN']]) {
-      const cb = (rows: Row[]) => rows.map(([t, o, h, l, cl]) => ({ t, o, h, l, c: cl }));
-      const B = cb(c.bars[tf]).slice(-251), H = cb(c.bars[up]);
-      const got = panelTrendlines({ tf, bars: B, forming: false }, 90, c.price, { tf: up, bars: H, forming: false });
-      const mine = got.filter(t => !t.htf), hi = got.filter(t => t.htf);
-      expect(mine.length).toBeLessThanOrEqual(2);
-      expect(hi.length).toBeLessThanOrEqual(2);
-      own += mine.length; htf += hi.length;
-      const shown = B.slice(-90);
-      for (const t of mine) {
-        const [k, p] = t.pts[0];
-        if (k > -0.5) expect(p).toBeCloseTo(t.dir > 0 ? shown[k].l : shown[k].h, 9);   // the first anchor = a swing low / high
-        expect(t.pts[t.pts.length - 1][0]).toBe(89.5);
-      }
-      for (const t of hi) expect(t.tf).toBe(up);
-    }
-    expect(own).toBeGreaterThan(3);
-    expect(htf).toBeGreaterThan(1);
   });
 });
