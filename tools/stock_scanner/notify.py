@@ -540,3 +540,49 @@ def send(messages: List[str], pause: float = 1.1) -> bool:
             break
         ok = ok and sent
     return ok
+
+
+# ---- on-demand scan of one ticker (the bot's /scan SYM and [🔄 Live scan]) ---------------------------------------------
+def _zone_where(px: float, z: Dict) -> str:
+    lo, hi = min(z['proximal'], z['distal']), max(z['proximal'], z['distal'])
+    if lo <= px <= hi:
+        return 'price in it'
+    return away(abs(px - z['proximal']) / px * 100) if px else ''
+
+
+def ondemand_card(det: Optional[Dict], sigs: Sequence[Dict], sym: str, why_missing: str = '') -> Msg:
+    """ONE card for an on-demand scan of one ticker (every scanner rule, on the last closed session): its BUY / WATCH
+    (max 3 cards), the nearest demand below / in and supply above with the scanner's verdict, the trend. Buttons: the
+    chart link, [📊 Chart] [🔎 Zones] (bot callbacks)."""
+    if not det:
+        return Msg(f'🔄 <b>{esc(sym)}</b> · on-demand scan\nNo result: {esc(why_missing or "no daily bars")}.\n{FOOTER}')
+    px = det.get('price') or 0
+    when = det.get('date') or ''
+    try:
+        when = dt.date.fromisoformat(when).strftime('%a %b %-d') + ' close'
+    except ValueError:
+        pass
+    head = [f"🔄 <b>{esc(sym)}</b> · on-demand scan", f"price {_f(px)} · {esc(when)} · every scanner rule"]
+    cards = [stock_card(s) for s in list(sigs)[:MAX_CARDS]] or ['No BUY / WATCH on it right now.']
+    zs = det.get('zones') or []
+    below = sorted([z for z in zs if z['side'] == 'demand' and min(z['proximal'], z['distal']) <= px], key=lambda z: -z['proximal'])[:2]
+    above = sorted([z for z in zs if z['side'] == 'supply' and max(z['proximal'], z['distal']) >= px], key=lambda z: z['proximal'])[:2]
+    lines: List[str] = []
+    if below or above:
+        lines.append('<b>Nearest zones</b>')
+    for z in below + above:
+        sq = '🟩' if z['side'] == 'demand' else '🟥'
+        bits = [_zone_where(px, z), 'untouched' if z.get('fresh') else f"used {z.get('touches') or 1}x"]
+        br = z.get('br')
+        if z['side'] == 'demand' and br:
+            bits.append('blocked: ' + plain(L.BLOCK_LABEL.get(br, br)))
+        lines.append(f"{sq} {esc(tf_word(z['tf']))} {esc(z['side'])} {_f(z['proximal'])}–{_f(z['distal'])} · {esc(' · '.join(b for b in bits if b))}")
+    trend = ' · '.join(f'{t} {str(v).lower()}' for t, v in (('W1', det.get('w1')), ('MN', det.get('mn')), ('3M', det.get('m3'))) if v and v != 'n/a')
+    if trend:
+        lines.append(f'Trend: {esc(trend)}')
+    lines.append(f'on-demand scan · long only · {FOOTER}')
+    rows = [[button(f'📈 {sym}', det['chart'])]] if det.get('chart') else []
+    if _cb_ok(f'c:{sym}'):
+        rows.append([cb(f'📊 Chart {sym}', f'c:{sym}'), cb(f'🔎 Zones {sym}', f'z:{sym}')])
+    text = '\n'.join(head) + '\n\n' + '\n\n'.join(cards) + ('\n\n' + '\n'.join(lines) if lines else '')
+    return Msg(_cut(text, SAFE) if u16(text) > SAFE else text, rows)

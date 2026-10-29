@@ -319,3 +319,63 @@ def preview_messages(pub: Dict) -> Dict[str, List[Msg]]:
 
 def failure_message(reason: str) -> str:
     return f'⚠️ <b>FX scan failed</b>\n{esc(reason)}'
+
+
+# ---- on-demand scan of one symbol (the bot's /scan SYM and [🔄 Live scan]) --------------------------------------------
+STATE_WORD = {'UP': 'up', 'DOWN': 'down'}
+
+
+def _zpct(price: float, prox: float, dist: float) -> str:
+    lo, hi = min(prox, dist), max(prox, dist)
+    if lo <= price <= hi:
+        return 'price in it'
+    return SN.away(abs(price - prox) / price * 100)
+
+
+def ondemand_card(det: Dict, sigs: Sequence[Dict], h1: str = '', h4: str = '') -> Msg:
+    """ONE card for an on-demand scan of one instrument (every scanner rule, on the newest closed candle): its open
+    BUY / SELL / WATCH (max 3 cards), the strong zones the scanner located for it and their verdict, the nearest other
+    zones, the trend per TF. Buttons: TradingView, [📊 Chart] [🔎 Zones] (bot callbacks)."""
+    sym, nd = det['sym'], det.get('digits', 5)
+    f = lambda v: 'n/a' if v is None else f'{v:.{nd}f}'  # noqa: E731
+    when = _when(h1, hours=1) if h1 else _when(h4)
+    head = [f"🔄 <b>{esc(sym)}</b> · on-demand scan",
+            f"price {f(det.get('price'))} · {'1H' if h1 else '4H'} candle" + (f' closed {esc(when)}' if when else '') + ' · every scanner rule']
+    cards = [signal_card(s) for s in list(sigs)[:SN.MAX_CARDS]]
+    if not cards:
+        cards = ['No BUY / SELL / WATCH on it right now.']
+    px = det.get('price') or 0
+    hits = det.get('hits') or []
+    lines: List[str] = []
+    if hits:
+        lines.append('<b>Zones the scanner located</b>')
+        for h in hits[:5]:
+            sq = '🟩' if h['side'] == 'demand' else '🟥'
+            why = zone_why(h).replace('why: ', '')
+            lines.append(f"{sq} {esc(SN.tf_word(h['tf']))} {esc(h['side'])} {f(h.get('prox'))}–{f(h.get('dist'))} · "
+                         f"{esc(_zpct(px, h['prox'], h['dist']) if px else '')}" + (f'\n<i>{esc(why)}</i>' if why else ''))
+    seen = {(h['tf'], h['side'], h.get('prox')) for h in hits}
+    other = [z for z in det.get('zones') or [] if (z['tf'], z['side'], z['proximal']) not in seen][:4]
+    if other:
+        lines.append('<b>Nearest other zones</b>')
+        for z in other:
+            sq = '🟩' if z['side'] == 'demand' else '🟥'
+            t = z.get('touches') or 0
+            lines.append(f"{sq} {esc(SN.tf_word(z['tf']))} {esc(z['side'])} {f(z['proximal'])}–{f(z['distal'])} · "
+                         f"{esc(_zpct(px, z['proximal'], z['distal']) if px else '')} · {'untouched' if not t else f'touched {t}x'}")
+    st = det.get('states') or {}
+    trend = ' · '.join(f"{'4H' if t == 'H4' else '1H' if t == 'H1' else t} {str(st[t]).lower()}" for t in ('MN', 'W1', 'D1', 'H4', 'H1') if st.get(t))
+    if trend:
+        lines.append(f'Trend: {esc(trend)}')
+    lines.append(f'on-demand scan · {FOOTER}')
+    rows = [[SN.button(f'📈 {sym}', TV + (det.get('tv') or f'PEPPERSTONE:{sym}'))]]
+    if SN._cb_ok(f'c:{sym}'):
+        rows.append([SN.cb(f'📊 Chart {sym}', f'c:{sym}'), SN.cb(f'🔎 Zones {sym}', f'z:{sym}')])
+    text = '\n'.join(head) + '\n\n' + '\n\n'.join(cards) + '\n\n' + '\n'.join(lines)
+    if u16(text) > SN.SAFE:
+        text = SN._cut(text, SN.SAFE)
+    return Msg(text, rows)
+
+
+def ondemand_missing(sym: str, why: str) -> Msg:
+    return Msg(f'🔄 <b>{esc(sym)}</b> · on-demand scan\nNo result: {esc(why)}.\n{FOOTER}')

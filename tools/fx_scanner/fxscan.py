@@ -598,6 +598,33 @@ def selftest(out_dir: Optional[str] = None, send: bool = False) -> int:
     return 0 if ok else 1
 
 
+# ---- on-demand (bot /scan SYM) -----------------------------------------------------------------------------------------
+def ondemand_messages(res: Dict, uni: List[Dict], only: str, h1: Optional[str], h4: str) -> List:
+    """One card per asked symbol (at most 3): the full rule set on the newest closed candle, nothing written."""
+    if not uni:
+        return [N.ondemand_missing(only.split(',')[0].strip().upper() or '?', 'not an instrument the FX scanner covers')]
+    out = []
+    for i in uni[:3]:
+        an = res['analyses'].get(i['sym'])
+        if an is None:
+            out.append(N.ondemand_missing(i['sym'], res['errors'].get(i['sym']) or 'no candles from OANDA'))
+            continue
+        sigs = [s for s in res['signals'] + res['watch'] if s['sym'] == i['sym']]
+        out.append(N.ondemand_card(detail(an, res['hits'].get(i['sym'], []), sigs), sigs, h1 or '', h4))
+    return out
+
+
+def ondemand(res: Dict, uni: List[Dict], only: str, h1: Optional[str], h4: str, notify: bool) -> int:
+    msgs = ondemand_messages(res, uni, only, h1, h4)
+    if notify and telegram_configured():
+        ok = N.send(msgs)
+        print(f'on-demand: {len(msgs)} card(s) ' + ('sent' if ok else 'NOT sent'))
+        return 0 if ok else 1
+    for m in msgs:
+        print(m + '\n' + '-' * 40)
+    return 0
+
+
 # ---- main ------------------------------------------------------------------------------------------------------------
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -605,6 +632,9 @@ def main(argv=None) -> int:
     ap.add_argument('--only', default='', help='comma-separated Pepperstone symbols or OANDA names')
     ap.add_argument('--no-notify', action='store_true')
     ap.add_argument('--no-write', action='store_true')
+    ap.add_argument('--ondemand', action='store_true',
+                    help='with --only: the bot asked for this scan (/scan SYM): send ONE result card per symbol, write and '
+                         'mark nothing (no public files, no alert state, no prefs alerts)')
     ap.add_argument('--summary', action='store_true', help='send the daily summary now')
     ap.add_argument('--selftest', action='store_true')
     ap.add_argument('--preview-telegram', action='store_true',
@@ -691,6 +721,8 @@ def main(argv=None) -> int:
               + ', '.join(sorted(C.MISALIGNED_MN)[:3]))
     for s, e in list(res['errors'].items())[:15]:
         print(f'  {s}: {e}')
+    if a.ondemand:
+        return ondemand(res, uni, a.only, h1, h4, notify)
     if have < max(1, C.MIN_COVERAGE * len(uni)):
         notify_failure(f'only {have}/{len(uni)} instruments have data; nothing published', state, notify)
         return 2

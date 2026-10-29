@@ -12,6 +12,10 @@ name: FX scan
 # Only the new candles are fetched (cache): an hourly run inside an H4 bar asks OANDA for one H1 request per
 # instrument. Manual runs always scan (--force), except a dispatch with scheduled=true (the trader-coach edge function's
 # reliable 10-minute scheduler, supabase/functions/trader-coach/scheduler.ts), which behaves exactly like a cron run.
+# On-demand (the bot's /scan SYM and [🔄 Live scan]): only=SYM + ondemand=true scans that symbol with every rule and sends
+# ONE result card; it writes nothing (no public files, no alert state, no cache save), skips the unit tests and runs
+# beside a full scan (its own concurrency group), so the card comes in about a minute.
+run-name: ${{ github.event.inputs.ondemand == 'true' && format('FX on-demand scan {0}', github.event.inputs.only) || 'FX scan' }}
 on:
   schedule:
     - cron: '7,17,27,37,47,57 * * * 1-5'
@@ -30,12 +34,16 @@ on:
         description: 'Behave like a scheduled run (the trader-coach scheduler sets it): --check decides, no --force'
         type: boolean
         default: false
+      ondemand:
+        description: 'On-demand scan for the bot (with only=SYM): one result card, nothing written'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
 
 concurrency:
-  group: fx-scan
+  group: ${{ github.event.inputs.ondemand == 'true' && 'fx-scan-ondemand' || 'fx-scan' }}
   cancel-in-progress: false
 
 jobs:
@@ -89,7 +97,7 @@ jobs:
 
       - name: Unit tests
         id: tests
-        if: ${{ steps.check.outputs.scan == 'true' }}
+        if: ${{ steps.check.outputs.scan == 'true' && github.event.inputs.ondemand != 'true' }}
         run: python -m unittest discover -s tools/fx_scanner/tests
 
       # a failing unit test skips the scan: say so on Telegram (at most one failure message per day)
@@ -110,26 +118,28 @@ jobs:
           if [ "$EVENT" = "workflow_dispatch" ] && [ "$SCHEDULED" != "true" ]; then ARGS+=(--force); fi
           if [ -n "$ONLY" ]; then ARGS+=(--only "$ONLY"); fi
           if [ "$SUMMARY" = "true" ]; then ARGS+=(--summary); fi
+          if [ "$ONDEMAND" = "true" ] && [ -n "$ONLY" ]; then ARGS+=(--ondemand --no-write); fi
           python tools/fx_scanner/fxscan.py "${ARGS[@]}"
         env:
           EVENT: ${{ github.event_name }}
           SCHEDULED: ${{ github.event.inputs.scheduled }}
           ONLY: ${{ github.event.inputs.only }}
           SUMMARY: ${{ github.event.inputs.summary }}
+          ONDEMAND: ${{ github.event.inputs.ondemand }}
           OANDA_API_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           FX_WATCHLIST: ${{ secrets.FX_WATCHLIST }}
 
       - name: Save data cache
-        if: ${{ always() && steps.check.outputs.scan == 'true' && hashFiles('tools/fx_scanner/.cache/**') != '' }}
+        if: ${{ always() && steps.check.outputs.scan == 'true' && github.event.inputs.ondemand != 'true' && hashFiles('tools/fx_scanner/.cache/**') != '' }}
         uses: actions/cache/save@v4
         with:
           path: tools/fx_scanner/.cache
           key: fx-data-${{ github.run_id }}
 
       - name: Commit results
-        if: ${{ !cancelled() && steps.check.outputs.scan == 'true' && hashFiles('public/fx/latest.json') != '' }}
+        if: ${{ !cancelled() && steps.check.outputs.scan == 'true' && github.event.inputs.ondemand != 'true' && hashFiles('public/fx/latest.json') != '' }}
         run: |
           git config user.name "ramanfx-scanner[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

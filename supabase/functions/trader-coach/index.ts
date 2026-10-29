@@ -11,12 +11,12 @@
 //   3. Sunday 6 PM Calgary: the weekly report card (R multiples; $ only when rfx_coach_config.show_amounts);
 //   4. re-applies a bot journal write (note / plan) that a concurrent app sync overwrote (rfx_coach_writes, 24 h);
 //   5. scheduler for the GitHub workflows (scheduler.ts): with the OPTIONAL secret GITHUB_DISPATCH_TOKEN it dispatches
-//      fx-scan / stock-scan / briefing / reminders as scheduled-equivalent runs, once per slot, skipping a slot a GitHub
+//      fx-scan / stock-scan / briefing / reminders / movers (hourly big moves) as scheduled-equivalent runs, once per slot, skipping a slot a GitHub
 //      run already covers. Without the token: nothing (logs 'dispatch token not set' once per day).
 // Sending: OPTIONAL function secrets TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID (the owner adds them in the dashboard).
 // Without them it logs 'telegram secrets not set' and only records the events (so nothing floods in later).
 // Logs: event kinds and counts only, never message text, chat ids, journal data or secrets.
-import { covered, dispatchRequest, dueDispatches, latestRunUrl, type Dispatch } from './scheduler.ts';
+import { covered, dispatchRequest, dueDispatches, latestRunMs, latestRunUrl, type Dispatch } from './scheduler.ts';
 import { isoDay, askCandidates, askText, COLS, fromRow, guardEvents, reportCard, reportDue, restDb, saveWhyNote, savePlan, utcRuntime, weekOf, writeLost, type Card, type JournalWrite } from './core.ts';
 
 const SB_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -74,9 +74,7 @@ const ghHeaders = () => ({ Authorization: `Bearer ${GH_TOKEN}`, Accept: 'applica
 async function latestRun(d: Dispatch): Promise<number | null> {
   const r = await fetch(latestRunUrl(d), { headers: ghHeaders(), signal: AbortSignal.timeout(6000) });
   if (!r.ok) { await r.body?.cancel(); throw new Error(`runs ${r.status}`); }
-  const j = await r.json();
-  const t = Date.parse(j?.workflow_runs?.[0]?.created_at ?? '');
-  return Number.isFinite(t) ? t : null;
+  return latestRunMs(await r.json());
 }
 async function schedule(cfg: Cfg, now: number): Promise<string[]> {
   const due = dueDispatches(now);

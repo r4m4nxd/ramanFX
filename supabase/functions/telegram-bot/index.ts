@@ -11,7 +11,11 @@
 //     update public.rfx_bot_config set rotate_until = now() + interval '15 minutes' where id = 1;
 //   then run the workflow with a new label: its ping (same o, new S) replaces the hash and closes the window.
 // Data: the public scanner files (raman-fx.vercel.app, raw GitHub as fallback), cached 60 s per instance.
-// Optional secret GITHUB_DISPATCH_TOKEN (fine-grained, Actions: write on r4m4nxd/ramanFX) turns /scan on.
+// Optional secret GITHUB_DISPATCH_TOKEN (fine-grained, Actions: write on r4m4nxd/ramanFX) turns /scan on (all markets, or
+// /scan SYM + the [🔄 Live scan] button: one symbol, the scanner sends the result card; 6 an hour).
+// Optional secrets OANDA_API_TOKEN (practice) and ALPACA_KEY_ID + ALPACA_SECRET_KEY: live candles at request time for
+// /chart, /zones and symbol messages (live.ts, 30 s cache), zones computed on them (zonecore.ts); signals stay those
+// of the latest scan. Without them: the published scan data, plus a one-line hint.
 // Optional secret TELEGRAM_BOT_TOKEN: only used to answerCallbackQuery (stops the button spinner at once); everything
 // else still goes back in the webhook response, so buttons work without it.
 // Inline buttons (callback_query) are checked like messages: sha256(from.id) must equal o.
@@ -24,7 +28,8 @@
 // Logs: the command name and timing only, never message text, chat ids or secrets.
 import { initWasm, Resvg } from 'npm:@resvg/resvg-wasm@2.6.2';
 import { renderSvg } from './chart.ts';
-import { chartData, handle, handleCallback, MAIN_KEYBOARD, type Reply } from './logic.ts';
+import { chartData, handle, handleCallback, MAIN_KEYBOARD, type Reply, type ScanResult } from './logic.ts';
+import { alpacaSource, oandaSource, type LiveSource } from './live.ts';
 import { journalRoute } from './journal.ts';   // trader coach: 'why did you take it?' replies + /took (journal.ts)
 import { keyOk, restStore } from './prefs.ts';
 
@@ -32,6 +37,12 @@ const SB_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SB_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const GH_TOKEN = Deno.env.get('GITHUB_DISPATCH_TOKEN') ?? '';
 const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') ?? '';
+const OANDA = Deno.env.get('OANDA_API_TOKEN') ?? '';
+const ALPACA_ID = Deno.env.get('ALPACA_KEY_ID') ?? '', ALPACA_SECRET = Deno.env.get('ALPACA_SECRET_KEY') ?? '';
+const live: LiveSource = {
+  fx: OANDA ? oandaSource(OANDA, { host: (Deno.env.get('OANDA_ENV') ?? '').toLowerCase() === 'live' ? 'api-fxtrade.oanda.com' : 'api-fxpractice.oanda.com' }) : undefined,
+  stock: ALPACA_ID && ALPACA_SECRET ? alpacaSource(ALPACA_ID, ALPACA_SECRET) : undefined,
+};
 const FN_URL = 'https://dqjzufofmblerslcynzr.supabase.co/functions/v1/telegram-bot';
 const WASM = 'https://cdn.jsdelivr.net/npm/@resvg/resvg-wasm@2.6.2/index_bg.wasm';
 const FONTS = [
@@ -164,6 +175,25 @@ async function dispatchScans(): Promise<boolean> {
   if (a || b) lastScan = Date.now();
   return a || b;
 }
+// One symbol, on demand (inputs only= / tickers= + ondemand=true: the scan sends a single-symbol card, writes nothing).
+// At most 6 dispatches an hour per instance; the same symbol again within 2 min just says "scanning" (no new run).
+let oneScans: number[] = [];
+const recentOne = new Map<string, number>();
+async function dispatchOne(market: 'fx' | 'stock', sym: string): Promise<ScanResult> {
+  const now = Date.now();
+  if (now - (recentOne.get(sym) ?? 0) < 120_000) return 'ok';
+  oneScans = oneScans.filter(t => now - t < 3600_000);
+  if (oneScans.length >= 6) return 'limited';
+  const [wf, inputs] = market === 'fx' ? ['fx-scan.yml', { only: sym, ondemand: 'true' }] : ['stock-scan.yml', { tickers: sym, ondemand: 'true' }];
+  const ok = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/${wf}/dispatches`, {
+    method: 'POST', body: JSON.stringify({ ref: 'main', inputs }), signal: AbortSignal.timeout(8000),
+    headers: { Authorization: `Bearer ${GH_TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'ramanfx-bot', 'Content-Type': 'application/json' },
+  }).then(async r => { await r.body?.cancel(); console.log(JSON.stringify({ ev: 'scan_one', market, status: r.status })); return r.status === 204; }).catch(() => false);
+  if (!ok) return 'fail';
+  oneScans.push(now);
+  recentOne.set(sym, now);
+  return 'ok';
+}
 
 // ---- charts (PNG) ------------------------------------------------------------------------------------------------
 let wasmReady: Promise<void> | null = null;
@@ -181,7 +211,7 @@ const imageUrl = (sym: string, view: string, v: string) => `${FN_URL}?img=${enco
 async function chartPng(url: URL): Promise<Response> {
   const sym = (url.searchParams.get('img') ?? '').slice(0, 20), view = (url.searchParams.get('tf') ?? 'Q').toUpperCase();
   if (!/^[A-Za-z0-9._-]{1,20}$/.test(sym) || !/^(Q|MN|W1|D1|H4|H1|3M)$/.test(view)) return empty(400);
-  const cd = await chartData(sym, view, { load, now: new Date() });
+  const cd = await chartData(sym, view, { load, now: new Date(), live });
   if (!cd) return empty(404);
   const key = `${cd.sym}|${view}|${cd.v}`;
   let png = pngCache.get(key);
@@ -198,7 +228,7 @@ async function chartPng(url: URL): Promise<Response> {
     png = new Resvg(renderSvg(cd.model), { font: { fontBuffers: fonts, defaultFontFamily: 'Inter', loadSystemFonts: false } }).render().asPng();
     pngCache.set(key, png);
     if (pngCache.size > 40) pngCache.delete(pngCache.keys().next().value as string);
-    console.log(JSON.stringify({ ev: 'img', view, ms: Date.now() - now }));
+    console.log(JSON.stringify({ ev: 'img', view, live: !!cd.live, ms: Date.now() - now }));
   }
   return new Response(png, { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=3600' } });
 }
@@ -309,7 +339,8 @@ Deno.serve(async (req: Request) => {
     return json({ ok: true, auth: state, pinned: cfg?.pinned_message_id ?? null, hash: cfg?.commands_hash ?? null, prefs_key: prefsKey });
   }
 
-  const ctx = { load, now: new Date(), dispatch: GH_TOKEN ? dispatchScans : undefined, imageUrl, prefs: SB_URL && SB_KEY ? prefs : undefined };
+  const ctx = { load, now: new Date(), dispatch: GH_TOKEN ? dispatchScans : undefined, imageUrl, prefs: SB_URL && SB_KEY ? prefs : undefined,
+    live, scanOne: GH_TOKEN ? dispatchOne : undefined };
   const cq = upd?.callback_query;
   if (cq && typeof cq === 'object') {
     const fromId = cq.from?.id;

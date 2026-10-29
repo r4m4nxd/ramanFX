@@ -16,6 +16,7 @@ pure), `prefs.ts` (alerts / mutes / quiet hours / watchlist), `chart.ts`, `ask.t
 | `/mute SYM [1d\|1w]` / `/unmute SYM` | no scanner alerts for SYM until then (default 1d) |
 | `/quiet 22:00-06:00` / `/quiet off` | quiet hours, Calgary clock (America/Edmonton) |
 | `/watch SYM` / `/unwatch SYM` | extra watchlist symbols |
+| `/scan SYM` / `[🔄 Live scan]` | on-demand scan of one symbol (callback `s:SYM`); `/scan` alone: every market |
 | buttons on symbol cards | `[🔕 Mute 1w]` = callback `m:SYM:7` (days); `[⏰ 0.2%]` = callback `r:SYM:0.2` (pct alert) |
 
 ## Scanner contract (prefs API)
@@ -67,11 +68,37 @@ stops being listed). Send it right after the alert message was delivered.
 **Errors.** `401` wrong / missing key, `503` key not registered yet or database unavailable (treat both as "no
 prefs": scan as usual, never fail the scan), `400` bad body. Time out after 10 s.
 
-## Optional secret
+## Function secrets (the owner adds them in the Supabase dashboard; tooling never reads, copies or logs them)
 
-`TELEGRAM_BOT_TOKEN` as a Supabase function secret (added by the owner in the dashboard, never by tooling): when set,
-the function calls `answerCallbackQuery` on button taps (stops the spinner at once, shows a short toast). Without it
-everything still works through the webhook response.
+Every secret is optional: without it the bot works exactly as before from the published scanner files, and says what
+is missing in one line (e.g. `(live data needs OANDA/Alpaca keys in Supabase)`).
+
+| Secret | Used by | Unlocks |
+| --- | --- | --- |
+| `OANDA_API_TOKEN` (practice account) | telegram-bot | **Live FX / metals / CFDs**: `/chart`, `/zones` and a bare symbol fetch the latest OANDA BID candles at request time (H1 / H4 / D1 / W1 / MN, the forming candle included, 30 s cache; Pepperstone names mapped to OANDA through the scan's `oanda` field). Price and zones are live (`live · 7:42 AM`); BUY / SELL / WATCH stay those of the latest scan. `OANDA_ENV=live` switches to the live host. |
+| `ALPACA_KEY_ID` + `ALPACA_SECRET_KEY` | telegram-bot | **Live stocks**: daily bars since 2016 (split adjusted; SIP history, IEX when the plan refuses SIP), W1 / MN / 3M built from them, 1-hour bars + the latest trade from the free real-time IEX feed. Adds the 1H stock chart view. |
+| `GITHUB_DISPATCH_TOKEN` (fine-grained, Actions: write on r4m4nxd/ramanFX) | telegram-bot, trader-coach | **`/scan`** (every market) and **`/scan SYM` / [🔄 Live scan]**: one symbol, `fx-scan.yml only=SYM` / `stock-scan.yml tickers=SYM` with `ondemand=true`; the scanner sends ONE result card (`🔄 SYM · on-demand scan`, every rule) in about a minute and writes nothing. 6 on-demand scans an hour. In trader-coach: the reliable 10-minute scheduler for the scans, the brief, the reminders and the hourly **big moves** (`movers.yml`, at :05). |
+| `TELEGRAM_BOT_TOKEN` | telegram-bot, trader-coach | Bot: `answerCallbackQuery` (stops the button spinner at once, short toast); replies still go back in the webhook response without it. Coach: needed (with the chat id) to push its prompts. |
+| `TELEGRAM_CHAT_ID` | trader-coach | Where the coach pushes (`📝 … why did you take it?`, the weekly card). |
+
+The GitHub Actions jobs (scanners, brief, big moves) use their own repository secrets (`OANDA_API_TOKEN`,
+`ALPACA_*`, `TELEGRAM_*`), not these.
+
+### Live zones (`zonecore.ts`)
+
+A TypeScript port of the scanners' zone DETECTION (zones.py `detect`, the `dna()` test count, `to_quarters`,
+`forming_touched`; the zone filters of fxscan `detail()` and scan.py `ticker_detail()`): base + departure zones,
+proximal / distal, demand / supply, the pattern, fresh / tested. The bot computes them on the live candles and draws
+them with the usual nesting highlight. Not ported: zone DNA codes, location, direction, rules: signals come from the
+latest scan run and are labelled so. Parity: `tools/telegram_bot/parity/make_fixtures.py` writes bars + the zones the
+Python engines publish on them; `src/core/telegramZoneParity.test.ts` requires identical zones from the port.
+
+### Big moves (hourly)
+
+`tools/movers/movers.py` (`.github/workflows/movers.yml`): ONE message per hour when something moved >= 2x its
+20-hour average range (FX: every scanner instrument, OANDA H1; stocks 7:00 AM-5:00 PM New York: every scanner stock,
+Alpaca IEX 1-hour bars), with the zone context of the latest scans and `[📊 SYM]` buttons (`c:SYM`). Muted symbols
+are left out, quiet hours make it silent, nothing qualifies = no message.
 
 ## Journal (trader coach) — `journal.ts`
 

@@ -9,6 +9,8 @@ import { bestQuote, buildIndex, lessonPath, mentorOf, search as askSearch, type 
 import { newsText } from './news.ts';
 import { MAX_ALERTS, MAX_WATCH, parseDuration, parsePrice, parseQuiet, parseTap, type Alert, type Prefs, type PrefsStore } from './prefs.ts';
 import { aggregate, monthKey, quarterKey, tfLabel, weekKey, type Band, type Bar, type ChartModel, type Panel } from './chart.ts';
+import { fxZonesOf, stockZonesOf, type LiveZone, type ZBar } from './zonecore.ts';
+import type { LiveFx, LiveSource, LiveStock } from './live.ts';
 
 export type Button = { text: string; url: string } | { text: string; callback_data: string };
 export interface Reply {
@@ -28,7 +30,13 @@ export interface Ctx {
   imageUrl?: (sym: string, view: string, v: string) => string;
   /** Owner preferences (alerts, mutes, quiet hours, watchlist); undefined = no database. */
   prefs?: PrefsStore;
+  /** Live candles at request time (live.ts): fx with OANDA_API_TOKEN, stock with the Alpaca keys; undefined = none. */
+  live?: LiveSource;
+  /** On-demand scan of ONE symbol (fx-scan.yml only= / stock-scan.yml tickers=, with ondemand=true): the scanner
+   *  sends the result card itself. undefined = no GITHUB_DISPATCH_TOKEN. */
+  scanOne?: (market: 'fx' | 'stock', sym: string) => Promise<ScanResult>;
 }
+export type ScanResult = 'ok' | 'limited' | 'fail';
 
 /** The command list: Telegram's Menu (setMyCommands reads commands.json, kept equal by a test), /help and the pin. */
 export type Group = 'Markets' | 'Symbol lookup' | 'Alerts' | 'Times' | 'Journal' | 'Learn';
@@ -38,7 +46,7 @@ export const COMMANDS: { command: string; description: string; group: Group; usa
   { command: 'stocks', description: "Today's stock BUY / WATCH", group: 'Markets', usage: '/stocks', help: "today's stock BUY / WATCH, close to a zone" },
   { command: 'signals', description: 'Every open BUY / SELL / WATCH', group: 'Markets', usage: '/signals', help: 'every open BUY / SELL / WATCH, both markets' },
   { command: 'near', description: 'Everything within 1% of a zone', group: 'Markets', usage: '/near', help: 'everything within 1% of a strong zone' },
-  { command: 'scan', description: 'Run a fresh scan now', group: 'Markets', usage: '/scan', help: 'run a fresh FX + stock scan' },
+  { command: 'scan', description: 'Fresh scan of a symbol (or all)', group: 'Markets', usage: '/scan EURUSD', help: 'fresh scan of one symbol, result in ~1 min (/scan alone: every market)' },
   { command: 'zones', description: 'Every zone of a symbol', group: 'Symbol lookup', usage: '/zones EURUSD', help: 'every zone on every timeframe (or just send the symbol)' },
   { command: 'chart', description: 'Chart: 4 timeframes, or one', group: 'Symbol lookup', usage: '/chart EURUSD', help: 'one image, 4 timeframes (/chart EURUSD H4: one TF)' },
   { command: 'hours', description: 'Best times / days for a symbol', group: 'Symbol lookup', usage: '/hours XAUUSD', help: 'best Calgary times and weekdays' },
@@ -368,20 +376,58 @@ function zoneStatus(pl: ReturnType<typeof placement>, side: string, extra: strin
   return [where, extra].filter(Boolean).join(' · ');
 }
 
+// ---- live data (live.ts candles at request time + zonecore.ts zones) -----------------------------------------------
+export const LIVE_HINT = '(live data needs OANDA/Alpaca keys in Supabase)';
+const LIVE_DOWN = '(live data did not load just now: latest scan shown)';
+export interface LiveView { at: number; price: number; zones: LiveZone[]; fx?: LiveFx; st?: LiveStock; feed: string }
+const liveMemo = new WeakMap<object, LiveView>();
+/** Live candles + zones computed on them (cached with the candles); null = no keys or the fetch failed. */
+export async function liveFor(r: Resolved, ctx: Ctx, digits: number): Promise<LiveView | null> {
+  try {
+    if (r.market === 'fx') {
+      if (!ctx.live?.fx || !r.row.oanda) return null;
+      const d = await ctx.live.fx(String(r.row.oanda));
+      if (!d) return null;
+      let v = liveMemo.get(d);
+      if (!v) {
+        const pip = num(r.row.pip) ?? (digits >= 4 ? 1e-4 : 0.01);
+        v = { at: d.at, price: d.price, zones: fxZonesOf(d.closed, pip, digits, d.price), fx: d, feed: d.feed };
+        liveMemo.set(d, v);
+      }
+      return v;
+    }
+    if (!ctx.live?.stock) return null;
+    const d = await ctx.live.stock(String(r.sym));
+    if (!d) return null;
+    let v = liveMemo.get(d);
+    if (!v) { v = { at: d.at, price: d.price, zones: stockZonesOf(d.daily, d.price), st: d, feed: d.feed }; liveMemo.set(d, v); }
+    return v;
+  } catch { return null; }
+}
+/** '' when live, else why not (no keys / fetch failed). */
+const liveNote = (r: Resolved, ctx: Ctx, lv: LiveView | null) => (lv ? '' : (r.market === 'fx' ? ctx.live?.fx : ctx.live?.stock) ? LIVE_DOWN : LIVE_HINT);
+const liveAt = (lv: LiveView) => `live · ${clock(new Date(lv.at))}`;
+/** [🔄 Live scan] (an on-demand scan of this symbol) when a GitHub token is set. */
+const scanButton = (sym: string, ctx: Ctx): Button[] => (ctx.scanOne && cbOk(`s:${sym}`) ? [{ text: '🔄 Live scan', callback_data: `s:${sym}` }] : []);
+
 async function fxZones(r: Resolved, ctx: Ctx): Promise<Reply> {
   const fx = obj(await ctx.load('fx/latest.json'));
   const shard = obj(await ctx.load(`fx/d/${r.row.k ?? r.row.cls}.json`));
   const d = obj(obj(shard.instruments)[r.sym]);
-  const price = num(d.price) ?? num(r.row.px);
-  if (!price || !Array.isArray(d.zones)) return { cmd: 'zones', text: `🔎 <b>${esc(r.sym)}</b>\nNo zone detail published for it yet. ${FOOT}` };
-  const dg = digitsOf(d);
-  const lines = [`🔎 <b>${esc(r.sym)}</b> · FX · price ${px(price, dg)}`, `${tf('H1')} candle closed ${esc(when(fx.h1_close_utc ?? fx.generated))}`];
+  const dg = digitsOf(d.digits != null ? d : r.row);
+  const lv = await liveFor(r, ctx, dg);
+  const price = lv?.price ?? num(d.price) ?? num(r.row.px);
+  const src: J[] | null = lv ? lv.zones.slice(0, 16) : Array.isArray(d.zones) ? d.zones : null;   // the scan's 16 nearest
+  if (!price || !src) return { cmd: 'zones', text: `🔎 <b>${esc(r.sym)}</b>\nNo zone detail published for it yet. ${FOOT}\n${liveNote(r, ctx, lv)}`.trim() };
+  const scanned = `${tf('H1')} candle closed ${when(fx.h1_close_utc ?? fx.generated)}`;
+  const lines = [`🔎 <b>${esc(r.sym)}</b> · FX · price ${px(price, dg)}${lv ? ` · ${esc(liveAt(lv))}` : ''}`,
+    lv ? esc(`zones + price live (OANDA) · signals: scan of the ${scanned.replace(' candle closed ', ' candle ')}`) : esc(scanned)];
   const st = obj(d.states);
   lines.push('Trend: ' + esc(['MN', 'W1', 'D1', 'H4', 'H1'].filter(t => st[t]).map(t => `${tf(t)} ${String(st[t]).toLowerCase()}`).join(' · ')));
   const sigs = arr(d.signals);
   if (sigs.length) lines.push(`Open: ${esc(sigs.join(', '))}`);
   const hits = arr(d.hits), checks = arr(d.checks);
-  const zones = arr(d.zones).slice().sort((a, b) => TF_ORDER.indexOf(a.tf) - TF_ORDER.indexOf(b.tf) || (b.proximal - a.proximal));
+  const zones = src.slice().sort((a, b) => TF_ORDER.indexOf(a.tf) - TF_ORDER.indexOf(b.tf) || (b.proximal - a.proximal));
   let cur = '';
   for (const z of zones) {
     if (z.tf !== cur) { cur = z.tf; lines.push('', `<b>${esc(tf(cur))}</b>`); }
@@ -399,21 +445,29 @@ async function fxZones(r: Resolved, ctx: Ctx): Promise<Reply> {
     lines.push(`${z.side === 'demand' ? '🟩' : '🟥'} ${esc(z.side)} ${px(z.proximal, dg)}–${px(z.distal, dg)} · ${esc(zoneStatus(pl, z.side, extra))}`);
   }
   lines.push('', `Nearest ${zones.length} zones · check levels on Pepperstone · ${FOOT}`);
-  return { cmd: 'zones', text: fit(lines), buttons: [...chartButtons(r.sym, 'fx'), [{ text: `📈 ${r.sym} on TradingView`, url: `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(d.tv || `PEPPERSTONE:${r.sym}`)}` }], ...prefsButtons(r.sym, ctx)] };
+  const note = liveNote(r, ctx, lv);
+  if (note) lines.push(note);
+  return { cmd: 'zones', text: fit(lines), buttons: [...chartButtons(r.sym, 'fx', ctx), [{ text: `📈 ${r.sym} on TradingView`, url: `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(d.tv || `PEPPERSTONE:${r.sym}`)}` }, ...scanButton(r.sym, ctx)], ...prefsButtons(r.sym, ctx)] };
 }
 
 async function stockZones(r: Resolved, ctx: Ctx): Promise<Reply> {
   const [sh, st] = [obj(await ctx.load(`scanner/t/${r.row.k}.json`)), obj(await ctx.load('scanner/latest.json'))];
   const d = obj(obj(sh.tickers)[r.sym]);
-  const price = num(d.price) ?? num(r.row.px);
-  if (!price || !Array.isArray(d.zones)) return { cmd: 'zones', text: `🔎 <b>${esc(r.sym)}</b>\nNo zone detail published for it yet. ${FOOT}` };
+  const lv = await liveFor(r, ctx, 2);
+  const price = lv?.price ?? num(d.price) ?? num(r.row.px);
+  const old = arr(d.zones);
+  // live zones keep the scan's verdict ('br': the first rule blocking a BUY) when the scan has the same zone
+  const src: J[] | null = lv ? lv.zones.map(z => ({ ...z, br: old.find(o => o.tf === z.tf && o.side === z.side && o.proximal === z.proximal)?.br })) : Array.isArray(d.zones) ? d.zones : null;
+  if (!price || !src) return { cmd: 'zones', text: `🔎 <b>${esc(r.sym)}</b>\nNo zone detail published for it yet. ${FOOT}\n${liveNote(r, ctx, lv)}`.trim() };
   const ccy = d.levels_ccy && d.levels_ccy !== 'USD' ? ` ${d.levels_ccy}` : '';
-  const lines = [`🔎 <b>${esc(r.sym)}</b> · ${esc(d.name ?? r.row.n ?? '')}`, `price ${stockPx(price)}${esc(ccy)} · ${esc(d.date ? dayOfIso(d.date) : '')} close · scanned ${esc(when(st.generated_at))}`];
+  const lines = [`🔎 <b>${esc(r.sym)}</b> · ${esc(d.name ?? r.row.n ?? '')}`,
+    lv ? `price ${stockPx(price)} · ${esc(liveAt(lv))}` : `price ${stockPx(price)}${esc(ccy)} · ${esc(d.date ? dayOfIso(d.date) : '')} close · scanned ${esc(when(st.generated_at))}`];
+  if (lv) lines.push(esc(`zones + price live (Alpaca) · signals: scan of ${when(st.generated_at)}`));
   lines.push('Trend: ' + esc([['W1', d.w1], ['MN', d.mn], ['3M', d.m3]].filter(x => x[1] && x[1] !== 'n/a').map(([t, v]) => `${tf(t)} ${String(v).toLowerCase()}`).join(' · ')));
   if (d.signal) lines.push(`Open: ${esc(d.signal)} (see /stocks)`);
   const zl = obj(st.zone_lists);
   const mine = ['demand', 'supply'].flatMap(side => ['in', 'near', 'left'].flatMap(sec => arr(obj(zl[side])[sec]).filter(x => x.s === r.sym).map(x => ({ ...x, side, section: sec }))));
-  const zones = arr(d.zones).slice().sort((a, b) => TF_ORDER.indexOf(a.tf) - TF_ORDER.indexOf(b.tf) || (b.proximal - a.proximal));
+  const zones = src.slice().sort((a, b) => TF_ORDER.indexOf(a.tf) - TF_ORDER.indexOf(b.tf) || (b.proximal - a.proximal));
   let cur = '';
   for (const z of zones) {
     if (z.tf !== cur) { cur = z.tf; lines.push('', `<b>${esc(tf(cur))}</b>`); }
@@ -430,8 +484,10 @@ async function stockZones(r: Resolved, ctx: Ctx): Promise<Reply> {
     lines.push(`${z.side === 'demand' ? '🟩' : '🟥'} ${esc(z.side)} ${stockPx(z.proximal)}–${stockPx(z.distal)} · ${esc(zoneStatus(pl, z.side, bits.join(' · ')))}`);
   }
   lines.push('', `${zones.length} zones · long only (supply = where to take profit) · ${FOOT}`);
+  const note = liveNote(r, ctx, lv);
+  if (note) lines.push(note);
   const slug = String(r.sym).replace(/\./g, '-');
-  return { cmd: 'zones', text: fit(lines), buttons: [...chartButtons(r.sym, 'stock'), [...(d.chart ? [{ text: `📈 ${r.sym}`, url: String(d.chart) }] : []), { text: 'Open in scanner', url: `${APP}/scanner/${encodeURIComponent(slug)}` }], ...prefsButtons(r.sym, ctx)] };
+  return { cmd: 'zones', text: fit(lines), buttons: [...chartButtons(r.sym, 'stock', ctx), [...(d.chart ? [{ text: `📈 ${r.sym}`, url: String(d.chart) }] : []), { text: 'Open in scanner', url: `${APP}/scanner/${encodeURIComponent(slug)}` }, ...scanButton(r.sym, ctx)], ...prefsButtons(r.sym, ctx)] };
 }
 
 async function cmdZones(q: string, ctx: Ctx): Promise<Reply> {
@@ -524,10 +580,22 @@ async function cmdHours(q: string, ctx: Ctx): Promise<Reply> {
   return { cmd: 'hours', text: fit(lines), buttons: kb('Open Market hours', '/market-hours') };
 }
 
-async function cmdScan(ctx: Ctx): Promise<Reply> {
+async function cmdScan(q: string, ctx: Ctx): Promise<Reply> {
+  if (q) return scanOne(q, ctx);
   if (!ctx.dispatch) return { cmd: 'scan', text: '🔒 <b>/scan needs a GitHub token (not set up yet)</b>\nThe scanners still run on their own schedule.' };
   const ok = await ctx.dispatch().catch(() => false);
   return { cmd: 'scan', text: ok ? '🔄 <b>Scan started</b>, results in ~2 min (FX first, stocks a bit later).\nThe usual Telegram alerts follow if anything is new.' : '⚠️ <b>Scan did not start</b>\nGitHub refused or is busy. Try again in a few minutes.' };
+}
+
+/** /scan SYM and [🔄 Live scan]: an on-demand scan of one symbol; the scanner itself sends the result card. */
+async function scanOne(q: string, ctx: Ctx): Promise<Reply> {
+  const { hit, suggest } = await resolve(q, ctx);
+  if (!hit) return { cmd: 'scan', text: notFound(q, suggest).replace(/\/zones /g, '/scan ') };
+  if (!ctx.scanOne) return { cmd: 'scan', text: `🔒 <b>/scan ${esc(hit.sym)} needs a GitHub token (not set up yet)</b>\nLive zones now: /zones ${esc(hit.sym)}`, toast: 'needs a GitHub token' };
+  const r = await ctx.scanOne(hit.market, hit.sym).catch((): ScanResult => 'fail');
+  if (r === 'limited') return { cmd: 'scan', text: `⏳ <b>On-demand scan limit reached</b> (6 an hour).\nTry again a bit later; live zones now: /zones ${esc(hit.sym)}`, toast: 'limit reached' };
+  if (r === 'fail') return { cmd: 'scan', text: '⚠️ <b>Scan did not start</b>\nGitHub refused or is busy. Try again in a few minutes.', toast: 'did not start' };
+  return { cmd: 'scan', text: `🔄 <b>Scanning ${esc(hit.sym)}…</b> ~1 min\nThe ${hit.market === 'fx' ? 'FX' : 'stock'} scanner sends the fresh result card here (on-demand scan, all its rules).`, toast: `scanning ${hit.sym}…` };
 }
 
 // ---- charts --------------------------------------------------------------------------------------------------------
@@ -540,14 +608,18 @@ export function parseTf(s: string): string | null {
   return m[t] ?? null;
 }
 /** [📊 4 timeframes] + one button per timeframe (single large view). */
-export function chartButtons(sym: string, market: 'fx' | 'stock'): Button[][] {
-  const tfs = market === 'fx' ? FX_TFS : STOCK_TFS;
+/** The single-TF views of a market (stocks: + 1H with live Alpaca data). */
+const viewTfs = (market: 'fx' | 'stock', ctx?: Ctx) => (market === 'fx' ? FX_TFS : ctx?.live?.stock ? [...STOCK_TFS, 'H1'] : STOCK_TFS);
+export function chartButtons(sym: string, market: 'fx' | 'stock', ctx?: Ctx): Button[][] {
+  const tfs = viewTfs(market, ctx);
   return [[{ text: `📊 Chart ${sym} (4 timeframes)`, callback_data: `c:${sym}` }], tfs.map(t => ({ text: tfLabel(t), callback_data: `c:${sym}:${t}` }))];
 }
-function photoButtons(sym: string, market: 'fx' | 'stock', view: string): Button[][] {
-  const tfs = market === 'fx' ? FX_TFS : STOCK_TFS;
+function photoButtons(sym: string, market: 'fx' | 'stock', view: string, ctx: Ctx): Button[][] {
+  const tfs = viewTfs(market, ctx);
+  const scan = scanButton(sym, ctx);
   return [tfs.map(t => ({ text: t === view ? `• ${tfLabel(t)}` : tfLabel(t), callback_data: `c:${sym}:${t}` })),
-    [{ text: view === 'Q' ? '• 4 views' : '🔲 4 views', callback_data: `c:${sym}:Q` }, { text: `🔎 Zones ${sym}`, callback_data: `z:${sym}` }, { text: '⏳ Near', callback_data: 'n' }]];
+    [{ text: view === 'Q' ? '• 4 views' : '🔲 4 views', callback_data: `c:${sym}:Q` }, { text: `🔎 Zones ${sym}`, callback_data: `z:${sym}` }, { text: '⏳ Near', callback_data: 'n' }],
+    ...(scan.length ? [scan] : [])];
 }
 
 interface Zn { tf: string; side: 'demand' | 'supply'; prox: number; dist: number }
@@ -583,7 +655,12 @@ function zoneList(rows: unknown[]): Zn[] {
   return out;
 }
 
-export interface ChartData { model: ChartModel; v: string; market: 'fx' | 'stock'; sym: string; view: string; when: string }
+export interface ChartData { model: ChartModel; v: string; market: 'fx' | 'stock'; sym: string; view: string; when: string; live?: boolean; note?: string }
+const zb = (b: ZBar): Bar => ({ t: b.d, o: b.o, h: b.h, l: b.l, c: b.c });
+/** Closed candles (the last 120) + the forming one, as chart bars. */
+const withForming = (closed: ZBar[], forming: ZBar | null): Bar[] => [...closed.slice(-120), ...(forming ? [forming] : [])].map(zb);
+/** The image version of a live chart: a new one every 30 s (Telegram caches photo URLs). */
+const liveVersion = (lv: LiveView) => `L${Math.floor(lv.at / 30000)}`;
 
 /** Panels for the given timeframes: key zone per TF (nearest), the host of the next-lower key zone outlined, trade
  *  lines on the entry TF, higher-TF zones lighter in the single view. */
@@ -620,47 +697,59 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
   if (hit.market === 'fx') {
     const fx = obj(await ctx.load('fx/latest.json'));
     const d = obj(obj(obj(await ctx.load(`fx/d/${hit.row.k ?? hit.row.cls}.json`)).instruments)[hit.sym]);
-    const price = num(d.price);
+    const lv = await liveFor(hit, ctx, digitsOf(d.digits != null ? d : hit.row));
+    const price = lv?.price ?? num(d.price);
     if (!price) return null;
     const b = obj(d.bars), bars: Record<string, Bar[]> = {};
-    for (const t of ['H1', 'H4', 'D1', 'W1']) bars[t] = toBars(b[t]);
-    bars.MN = withRecent(toBars(b.MN), aggregate(bars.W1, monthKey), monthKey);   // real closed months + the current one
-    const zones = zoneList([...arr(d.zones), ...arr(d.hits)]);
+    if (lv?.fx) {   // live: the closed candles + the one forming now
+      for (const t of FX_TFS) bars[t] = withForming(lv.fx.closed[t], lv.fx.forming[t]);
+    } else {
+      for (const t of ['H1', 'H4', 'D1', 'W1']) bars[t] = toBars(b[t]);
+      bars.MN = withRecent(toBars(b.MN), aggregate(bars.W1, monthKey), monthKey);   // real closed months + the current one
+    }
+    const zones = lv ? zoneList(lv.zones) : zoneList([...arr(d.zones), ...arr(d.hits)]);
     const s = fxSetups(fx).find(x => x.sym === hit.sym);
     const near = arr(d.hits).filter(h => h.section !== 'left').sort((a, z) => (num(a.pips) ?? 1e9) - (num(z.pips) ?? 1e9))[0];
     const rel = s?.tf ?? near?.tf ?? null;
     const tfs = view !== 'Q' ? [view] : (rel === 'H1' || rel === 'H4') && bars.H1.length ? ['W1', 'D1', 'H4', 'H1'] : ['MN', 'W1', 'D1', 'H4'];
     if (!tfs.every(t => FX_TFS.includes(t))) return null;
-    const digits = digitsOf(d), layout = view === 'Q' ? 'quad' : 'single';
+    const digits = digitsOf(d.digits != null ? d : hit.row), layout = view === 'Q' ? 'quad' : 'single';
     const sig = s ? { tf: s.tf, entry: num(s.entry) ?? undefined, stop: num(s.stop) ?? undefined, target: num(s.target) ?? undefined, kind: s.kind } : null;
     const t = parseUtc(fx.h1_close_utc ?? fx.generated);
-    const when = t ? clock(t) : '';
-    return { market: 'fx', sym: hit.sym, view, v: String(fx.generated ?? '').replace(/[^0-9]/g, '').slice(0, 14), when,
+    const when = lv ? liveAt(lv) : t ? clock(t) : '';
+    return { market: 'fx', sym: hit.sym, view, v: lv ? liveVersion(lv) : String(fx.generated ?? '').replace(/[^0-9]/g, '').slice(0, 14), when, live: !!lv, note: liveNote(hit, ctx, lv),
       model: { sym: hit.sym, digits, price, layout, title: `${hit.sym} · ${price.toFixed(digits)}${when ? ` · ${when}` : ''}`, panels: buildPanels(tfs, bars, zones, price, digits, sig, layout, t => t, obj(d.tls)) } };
   }
   const [sh, st] = [obj(await ctx.load(`scanner/t/${hit.row.k}.json`)), obj(await ctx.load('scanner/latest.json'))];
   const d = obj(obj(sh.tickers)[hit.sym]);
-  const price = num(d.price), pb = obj(d.bars);
-  if (!price || !pb.t0) return null;
-  const daily = packedBars(pb), hb = obj(d.hb);
-  // Real higher-TF bars (hb, only for listed / signalled / watched tickers) when published; else rebuilt from D1.
-  const higher = (tf: string, key: (t: string) => string) => withRecent(packedBars(hb[tf]), aggregate(daily, key), key);
-  const bars: Record<string, Bar[]> = { D1: daily, W1: higher('W1', weekKey), MN: higher('MN', monthKey), '3M': higher('3M', quarterKey) };
+  const lv = await liveFor(hit, ctx, 2);
+  const price = lv?.price ?? num(d.price), pb = obj(d.bars);
+  if (!price || (!pb.t0 && !lv)) return null;
+  let bars: Record<string, Bar[]>;
+  if (lv?.st) {   // live: every session since 2016 + today's forming one; W1 / MN / 3M built from them; 1H from IEX
+    const all = withForming(lv.st.daily, lv.st.partial ? { ...lv.st.partial, h: Math.max(lv.st.partial.h, price), l: Math.min(lv.st.partial.l, price), c: price } : null);
+    bars = { D1: all, W1: aggregate(all, weekKey), MN: aggregate(all, monthKey), '3M': aggregate(all, quarterKey), H1: lv.st.h1.map(zb) };
+  } else {
+    const daily = packedBars(pb), hb = obj(d.hb);
+    // Real higher-TF bars (hb, only for listed / signalled / watched tickers) when published; else rebuilt from D1.
+    const higher = (tf: string, key: (t: string) => string) => withRecent(packedBars(hb[tf]), aggregate(daily, key), key);
+    bars = { D1: daily, W1: higher('W1', weekKey), MN: higher('MN', monthKey), '3M': higher('3M', quarterKey) };
+  }
   const tfs = view === 'Q' ? STOCK_TFS : [view];
-  if (!tfs.every(t => STOCK_TFS.includes(t))) return null;
+  if (!tfs.every(t => viewTfs('stock', ctx).includes(t)) || (view === 'H1' && !bars.H1?.length)) return null;
   const s = stockSetups(st).find(x => x.symbol === hit.sym);
   const sig = s ? { tf: s.tf, entry: num(s.entry) ?? undefined, stop: num(s.stop) ?? undefined, target: num(s.target) ?? undefined, kind: s.kind } : null;
   const layout = view === 'Q' ? 'quad' : 'single';
-  const when = d.date ? `${dayOfIso(String(d.date))} close` : '';
-  return { market: 'stock', sym: hit.sym, view, v: String(st.generated_at ?? '').replace(/[^0-9]/g, '').slice(0, 14), when,
+  const when = lv ? liveAt(lv) : d.date ? `${dayOfIso(String(d.date))} close` : '';
+  return { market: 'stock', sym: hit.sym, view, v: lv ? liveVersion(lv) : String(st.generated_at ?? '').replace(/[^0-9]/g, '').slice(0, 14), when, live: !!lv, note: liveNote(hit, ctx, lv),
     model: { sym: hit.sym, digits: 2, price, layout, title: `${hit.sym} · ${price.toFixed(2)}${when ? ` · ${when}` : ''}`,
-      panels: buildPanels(tfs, bars, zoneList(arr(d.zones)), price, 2, sig, layout, t => (t === 'D1' ? 'W1' : t), obj(d.tls)) } };
+      panels: buildPanels(tfs, bars, zoneList(lv ? lv.zones : arr(d.zones)), price, 2, sig, layout, t => (t === 'D1' || t === 'H1' ? 'W1' : t), obj(d.tls)) } };
 }
 
 async function cmdChart(q: string, tfArg: string, ctx: Ctx): Promise<Reply> {
   if (!q) return { cmd: 'chart', text: 'Send a symbol after it, e.g. <b>/chart EURUSD</b> (4 timeframes) or <b>/chart EURUSD H4</b>.' };
   const view = tfArg ? parseTf(tfArg) : 'Q';
-  if (!view) return { cmd: 'chart', text: `Unknown timeframe <b>${esc(tfArg)}</b>. Use MN, W1, D1, 4H or 1H (stocks: 3M, MN, W1, D1).` };
+  if (!view) return { cmd: 'chart', text: `Unknown timeframe <b>${esc(tfArg)}</b>. Use MN, W1, D1, 4H or 1H (stocks: 3M, MN, W1, D1${ctx.live?.stock ? ', 1H' : ''}).` };
   const { hit, suggest } = await resolve(q, ctx);
   if (!hit) return { cmd: 'chart', text: notFound(q, suggest).replace(/\/zones /g, '/chart ') };
   if (!ctx.imageUrl) return { cmd: 'chart', text: 'Charts are not available right now.' };
@@ -668,15 +757,17 @@ async function cmdChart(q: string, tfArg: string, ctx: Ctx): Promise<Reply> {
   if (!cd && view !== 'Q') cd = await chartData(hit.sym, 'Q', ctx);
   if (!cd) return { cmd: 'chart', text: `🔎 <b>${esc(hit.sym)}</b>\nNo chart data published for ${esc(view === 'Q' ? 'it' : tfLabel(view))} yet.` };
   const tfs = cd.model.panels.map(p => tfLabel(p.tf)).join(' ');
-  const caption = `<b>${esc(cd.sym)}</b> · ${esc(cd.view === 'Q' ? `${tfs} (top-down)` : tfs)}${cd.when ? ` · ${esc(cd.when)}` : ''}\n${cd.market === 'fx' ? 'check levels on Pepperstone · ' : ''}${FOOT}`;
-  return { cmd: 'chart', text: caption, photo: ctx.imageUrl(cd.sym, cd.view, cd.v), buttons: photoButtons(cd.sym, cd.market, cd.view) };
+  const caption = `<b>${esc(cd.sym)}</b> · ${esc(cd.view === 'Q' ? `${tfs} (top-down)` : tfs)}${cd.when ? ` · ${esc(cd.when)}` : ''}\n`
+    + `${cd.live ? 'zones + price live · signals from the last scan · ' : ''}${cd.market === 'fx' ? 'check levels on Pepperstone · ' : ''}${FOOT}${cd.note ? `\n${cd.note}` : ''}`;
+  return { cmd: 'chart', text: caption, photo: ctx.imageUrl(cd.sym, cd.view, cd.v), buttons: photoButtons(cd.sym, cd.market, cd.view, ctx) };
 }
 
 const CB_CMDS: Record<string, string> = { n: '/near', f: '/fx', s: '/stocks', g: '/signals', t: '/times', x: '/next', h: '/help' };
 /** A tapped inline button (callback_query.data): 'z:SYM' zones, 'c:SYM' 4-view chart, 'c:SYM:TF' one TF, short codes. */
 export async function handleCallback(data: string, ctx: Ctx): Promise<Reply> {
-  const m = /^([zc]):([A-Za-z0-9._-]{1,20})(?::([A-Za-z0-9]{1,3}))?$/.exec(data ?? '');
+  const m = /^([zcs]):([A-Za-z0-9._-]{1,20})(?::([A-Za-z0-9]{1,3}))?$/.exec(data ?? '');
   if (m && m[1] === 'z') return cmdZones(m[2], ctx);
+  if (m && m[1] === 's' && !m[3]) return scanOne(m[2], ctx);
   if (m && m[1] === 'c') return { ...(await cmdChart(m[2], m[3] ?? '', ctx)), edit: !!m[3] };
   if (CB_CMDS[data]) return handle(CB_CMDS[data], ctx);
   const tap = parseTap(data ?? '');
@@ -913,7 +1004,7 @@ export async function handle(text: string, ctx: Ctx): Promise<Reply> {
       case 'times': return cmdTimes(ctx);
       case 'next': return cmdNext(ctx);
       case 'hours': return cmdHours(c.arg, ctx);
-      case 'scan': return cmdScan(ctx);
+      case 'scan': return cmdScan(c.arg, ctx);
       case 'took': return { cmd: 'took', text: 'Use: <code>/took EURUSD buy 1.0850 sl 1.0820 tp 1.0910</code>' };   // index.ts routes it to journal.ts first
       case 'alert': return cmdAlert(c.arg, c.arg2, ctx);
       case 'alerts': return cmdAlerts(ctx);

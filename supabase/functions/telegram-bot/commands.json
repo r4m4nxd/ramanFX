@@ -3,7 +3,7 @@
   {"command": "stocks", "description": "Today's stock BUY / WATCH"},
   {"command": "signals", "description": "Every open BUY / SELL / WATCH"},
   {"command": "near", "description": "Everything within 1% of a zone"},
-  {"command": "scan", "description": "Run a fresh scan now"},
+  {"command": "scan", "description": "Fresh scan of a symbol (or all)"},
   {"command": "zones", "description": "Every zone of a symbol"},
   {"command": "chart", "description": "Chart: 4 timeframes, or one"},
   {"command": "hours", "description": "Best times / days for a symbol"},

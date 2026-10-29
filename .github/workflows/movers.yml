@@ -1,0 +1,75 @@
+name: Big moves
+
+# Hourly "big moves" message (tools/movers/movers.py): the last completed hour across every FX scanner instrument (OANDA
+# H1) and, 7:00 AM-5:00 PM New York on weekdays, every scanner stock (Alpaca 1-hour bars, IEX real-time feed). ONE calm
+# Telegram message when something qualifies (>= 2x its 20-hour average range), nothing otherwise; deduped per hour
+# (tools/movers/.cache/state.json in the actions cache). Primary trigger: the trader-coach edge function's 10-minute
+# scheduler (supabase/functions/trader-coach/scheduler.ts) dispatches it at :05-:25 past each forex-week hour when
+# GITHUB_DISPATCH_TOKEN is set; the cron below is the backup (GitHub drops many scheduled runs). test=true sends ONE
+# '🧪 Sample big moves' message (top 3 whatever their size) and touches no state.
+on:
+  schedule:
+    - cron: '13 * * * 0-5'
+  workflow_dispatch:
+    inputs:
+      test:
+        description: "Send one '🧪 Sample big moves' message"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: movers
+  cancel-in-progress: false
+
+jobs:
+  movers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONTZPATH: ''                 # zoneinfo: the pip tzdata (Calgary's permanent UTC-6 from 2026-11-01)
+      OANDA_ENV: ${{ vars.OANDA_ENV || 'practice' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Current time-zone data
+        run: python -m pip install --quiet --upgrade tzdata
+
+      - name: Restore state
+        uses: actions/cache/restore@v4
+        with:
+          path: tools/movers/.cache
+          key: movers-${{ github.run_id }}
+          restore-keys: |
+            movers-
+
+      - name: Unit tests
+        run: python -m unittest discover -s tools/movers/tests
+
+      - name: Big moves
+        run: |
+          ARGS=()
+          if [ "$TEST" = "true" ]; then ARGS+=(--test); fi
+          python tools/movers/movers.py "${ARGS[@]}"
+        env:
+          TEST: ${{ github.event.inputs.test }}
+          OANDA_API_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
+          ALPACA_KEY_ID: ${{ secrets.ALPACA_KEY_ID }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+      - name: Save state
+        if: ${{ always() && hashFiles('tools/movers/.cache/state.json') != '' && github.event.inputs.test != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: tools/movers/.cache
+          key: movers-${{ github.run_id }}

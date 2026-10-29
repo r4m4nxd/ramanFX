@@ -3,14 +3,16 @@
 // (POST /actions/workflows/<file>/dispatches, ref main) unless a GitHub run already started inside the slot.
 // Every dispatch is "scheduled-equivalent": the workflow's own checks decide exactly as on a cron run
 //   fx-scan.yml / stock-scan.yml: input scheduled=true (the --check / 'already scanned today' step decides);
-//   briefing.yml: test=false (its Calgary-clock decide() + state.json dedupe);  reminders.yml: no inputs (its window logic).
+//   briefing.yml: test=false (its Calgary-clock decide() + state.json dedupe);  reminders.yml: no inputs (its window logic);
+//   movers.yml: no inputs (hourly big moves, its own per-hour dedupe), with the FX slot of every forex-week hour.
+// The bot's on-demand scans (run name 'FX on-demand scan SYM' / 'Stock on-demand scan SYM') never cover a slot.
 // Pure: no Deno, no network (tests: src/core/traderCoach.test.ts).
 import { calParts } from './core.ts';
 
 export const REPO = 'r4m4nxd/ramanFX';
 export interface Dispatch {
   /** Workflow file in .github/workflows. */
-  wf: 'fx-scan.yml' | 'stock-scan.yml' | 'briefing.yml' | 'reminders.yml';
+  wf: 'fx-scan.yml' | 'stock-scan.yml' | 'briefing.yml' | 'reminders.yml' | 'movers.yml';
   /** Dedupe key: one dispatch per slot (rfx_coach_events 'dispatch:<slot>'). */
   slot: string;
   /** Slot start (UTC ms): a GitHub run created at or after this already covers the slot. */
@@ -51,7 +53,11 @@ export function dueDispatches(nowUtc: number): Dispatch[] {
   const mi = t.getUTCMinutes();
   if (mi >= FX_WINDOW[0] && mi < FX_WINDOW[1]) {
     const close = Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate(), t.getUTCHours());
-    if (fxBarCloses(close)) out.push({ wf: 'fx-scan.yml', slot: `fx:${new Date(close).toISOString().slice(0, 13)}`, since: close, inputs: { scheduled: 'true' } });
+    if (fxBarCloses(close)) {
+      const h = new Date(close).toISOString().slice(0, 13);
+      out.push({ wf: 'fx-scan.yml', slot: `fx:${h}`, since: close, inputs: { scheduled: 'true' } });
+      out.push({ wf: 'movers.yml', slot: `movers:${h}`, since: close, inputs: {} });   // hourly big moves (FX + US stocks)
+    }
   }
 
   // Stocks: weekdays (New York), 30 min after the 16:00 NY close (20:30 UTC in summer, 21:30 UTC in winter), and a
@@ -94,4 +100,11 @@ export function dispatchRequest(d: Dispatch, token: string): { url: string; init
     },
   };
 }
-export const latestRunUrl = (d: Dispatch) => `https://api.github.com/repos/${REPO}/actions/workflows/${d.wf}/runs?per_page=1`;
+export const latestRunUrl = (d: Dispatch) => `https://api.github.com/repos/${REPO}/actions/workflows/${d.wf}/runs?per_page=10`;
+/** Created time (UTC ms) of the newest run that is not one of the bot's on-demand scans (they scan one symbol). */
+export function latestRunMs(js: unknown): number | null {
+  const runs = (js as { workflow_runs?: { created_at?: string; display_title?: string; name?: string }[] })?.workflow_runs;
+  const r = (Array.isArray(runs) ? runs : []).find(x => !/on-demand/i.test(String(x?.display_title ?? '')));
+  const t = Date.parse(r?.created_at ?? '');
+  return Number.isFinite(t) ? t : null;
+}

@@ -14,7 +14,7 @@ import {
   tookPlan, utcOfWall, wallMs, weekOf, withPlan, withWhyNote, writeLost, type CoachJournal, type Db,
 } from '../../supabase/functions/trader-coach/core';
 import { journalRoute } from '../../supabase/functions/telegram-bot/journal';
-import { covered, dispatchRequest, dueDispatches, fxBarCloses } from '../../supabase/functions/trader-coach/scheduler';
+import { covered, dispatchRequest, dueDispatches, fxBarCloses, latestRunMs } from '../../supabase/functions/trader-coach/scheduler';
 
 process.env.TZ = 'UTC';
 afterEach(() => { process.env.TZ = 'UTC'; });
@@ -351,6 +351,29 @@ describe('GitHub workflow scheduler', () => {
     expect(covered(fx, at('2026-10-28T13:57:00Z'))).toBe(false);
     expect(covered(fx, null)).toBe(false);
     expect(covered(rem, at('2026-10-30T12:00:30Z'))).toBe(true);
+  });
+
+  it('movers: hourly big moves with every forex-week H1 slot (:05-:25), no inputs, deduped per hour', () => {
+    const due = dueDispatches(at('2026-10-29T14:05:00Z')).find(d => d.wf === 'movers.yml')!;
+    expect(due.slot).toBe('movers:2026-10-29T14');
+    expect(due.since).toBe(at('2026-10-29T14:00:00Z'));
+    expect(JSON.parse(String(dispatchRequest(due, 't').init.body))).toEqual({ ref: 'main', inputs: {} });
+    expect(wfs('2026-10-29T14:04:00Z').some(x => x.startsWith('movers'))).toBe(false);
+    expect(wfs('2026-10-29T14:30:00Z').some(x => x.startsWith('movers'))).toBe(false);
+    const day = [...ticks('2026-10-28T00:00:00Z', 24).keys()].filter(k => k.startsWith('movers:'));
+    expect(day).toHaveLength(24);
+    expect([...ticks('2026-10-31T00:00:00Z', 24).keys()].filter(k => k.startsWith('movers:'))).toEqual([]);   // Saturday
+    expect(readFileSync('.github/workflows/movers.yml', 'utf8')).toContain('python tools/movers/movers.py');
+  });
+
+  it("the bot's on-demand scans never cover a scheduled slot", () => {
+    const js = { workflow_runs: [
+      { created_at: '2026-10-29T14:07:00Z', display_title: 'FX on-demand scan EURUSD' },
+      { created_at: '2026-10-29T13:08:00Z', display_title: 'FX scan' }] };
+    expect(latestRunMs(js)).toBe(at('2026-10-29T13:08:00Z'));
+    expect(latestRunMs({ workflow_runs: [] })).toBeNull();
+    expect(latestRunMs(null)).toBeNull();
+    for (const f of ['fx-scan.yml', 'stock-scan.yml']) expect(readFileSync(`.github/workflows/${f}`, 'utf8')).toMatch(/run-name: .*on-demand scan/);
   });
 
   it('the workflows accept the scheduled input and keep cron semantics for it', () => {

@@ -1439,6 +1439,25 @@ def notify_failure(reason: str, today: str, log=print) -> bool:
         return False
 
 
+def ondemand_messages(res: Dict, tickers: List[str], notify) -> List:
+    """One card per asked ticker (at most 3), from the scan result (details + signals); nothing is written."""
+    out = []
+    for t in tickers[:3]:
+        det = (res.get('details') or {}).get(t)
+        why = next((e.split(': ', 1)[-1] for e in res.get('errors') or [] if e.startswith(f'{t}:')), 'not in the scan')
+        out.append(notify.ondemand_card(det, [s for s in res.get('signals') or [] if s.get('symbol') == t], t, why))
+    return out
+
+
+def ondemand_send(notify, msgs: List, no_notify: bool, log) -> int:
+    if no_notify:
+        print('\n\n'.join(msgs))
+        return 0
+    ok = notify.send(msgs)
+    log(f"on-demand: {len(msgs)} card(s) {'sent' if ok else 'NOT sent'}")
+    return 0 if ok else 1
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--tickers', help='comma-separated subset (default: every enabled universe in universe.csv)')
@@ -1458,11 +1477,16 @@ def main(argv=None) -> int:
                     help='max never-cached companies fetched from SEC per run (a cold cache fills over a few runs)')
     ap.add_argument('--no-notify', action='store_true')
     ap.add_argument('--no-write', action='store_true')
+    ap.add_argument('--ondemand', action='store_true',
+                    help='with --tickers: the bot asked for this scan (/scan SYM): ONE result card per ticker, nothing '
+                         'written, no SEC refresh, no prefs alerts')
     ap.add_argument('--out', default=os.path.join(ROOT, 'public', 'scanner'))
     ap.add_argument('--selftest', action='store_true', help='run the whole pipeline on synthetic fixtures')
     ap.add_argument('--preview-telegram', action='store_true',
                     help='print the exact Telegram messages of the published scan (--out, default public/scanner); sends nothing')
     a = ap.parse_args(argv)
+    if a.ondemand:
+        a.no_write, a.no_sec = True, True
     import notify
     if a.preview_telegram:
         notify.preview(a.out, top=a.top)
@@ -1508,6 +1532,9 @@ def main(argv=None) -> int:
     fetch_err = pre.pop('__errors__', {})
     tp = phase('fetch', tp)
     have, total = coverage(uni, pre)
+    if a.ondemand and not have:
+        return ondemand_send(notify, [notify.ondemand_card(None, [], t, failure_reason(fetch_err, have, total))
+                                      for t in sorted({u['symbol'] for u in uni})[:3] or [a.tickers or '?']], a.no_notify, log)
     if total and have < MIN_COVERAGE * total:
         # A data outage, not a market without signals: the published files (latest / index / shards / history) stay
         # as they are, no signal is sent, the run fails so it shows red.
@@ -1545,6 +1572,8 @@ def main(argv=None) -> int:
     res = run(uni_all, get_bars, lambda c: F.cached_base(c)[0] if c else None,
               (lambda s: None) if a.offline else DATA.fetch_earnings, holdings, log=log, watchlist=watchlist, feeds=feeds)
     tp = phase('analyse', tp)
+    if a.ondemand:
+        return ondemand_send(notify, ondemand_messages(res, sorted({u['symbol'] for u in uni}), notify), a.no_notify, log)
     if DATA.over_budget() or any('time budget' in str(e) for e in fetch_err.values()):
         res['partial'] = True
         res['notes'].append('time budget spent: some tickers were not refreshed (stale cache) or are missing')

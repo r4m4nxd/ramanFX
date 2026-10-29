@@ -5,6 +5,10 @@ name: Stock scan
 # public/scanner/latest.json was already generated after the latest 20:30 UTC (the daily message went out). Scans S&P 500 + Nasdaq-100 + Dow 30 + S&P/TSX 60 + S&P/TSX Composite (US listings of the TSX names)
 # + Global leaders (curated US-listed ADRs, adr_list.csv) + US top liquid (top_liquid.csv, rebuilt on the Monday refresh)
 # (switch universes with the SCANNER_UNIVERSES repository variable), sends Telegram, commits public/scanner/*.json.
+# On-demand (the bot's /scan SYM and [🔄 Live scan]): tickers=SYM + ondemand=true scans that ticker with every rule and
+# sends ONE result card; it writes nothing (no public files, no SEC refresh, no cache save), skips the unit tests and
+# runs beside a full scan (its own concurrency group).
+run-name: ${{ github.event.inputs.ondemand == 'true' && format('Stock on-demand scan {0}', github.event.inputs.tickers) || 'Stock scan' }}
 on:
   schedule:
     - cron: '7,37 21-23 * * 1-5'
@@ -22,12 +26,16 @@ on:
         description: 'Behave like a scheduled run (the trader-coach scheduler sets it): the already-scanned check decides'
         type: boolean
         default: false
+      ondemand:
+        description: 'On-demand scan for the bot (with tickers=SYM): one result card, nothing written'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
 
 concurrency:
-  group: stock-scan
+  group: ${{ github.event.inputs.ondemand == 'true' && 'stock-scan-ondemand' || 'stock-scan' }}
   cancel-in-progress: false
 
 jobs:
@@ -98,11 +106,11 @@ jobs:
         run: python -m pip install --quiet --upgrade tzdata
 
       - name: Unit tests
-        if: ${{ steps.check.outputs.scan == 'true' }}
+        if: ${{ steps.check.outputs.scan == 'true' && github.event.inputs.ondemand != 'true' }}
         run: python -m unittest discover tools/stock_scanner/tests
 
       - name: Refresh index lists (Mondays, or on request)
-        if: ${{ steps.check.outputs.scan == 'true' && (github.event.inputs.refresh_universe == 'true' || github.event_name == 'schedule' || github.event.inputs.scheduled == 'true') }}
+        if: ${{ steps.check.outputs.scan == 'true' && github.event.inputs.ondemand != 'true' && (github.event.inputs.refresh_universe == 'true' || github.event_name == 'schedule' || github.event.inputs.scheduled == 'true') }}
         run: |
           if [ "$(date -u +%u)" = "1" ] || [ "$IN_REFRESH" = "true" ]; then
             python tools/stock_scanner/universe.py --force
@@ -123,12 +131,14 @@ jobs:
         run: |
           ARGS=()
           if [ -n "$IN_TICKERS" ]; then ARGS=(--tickers "$IN_TICKERS"); fi
+          if [ "$IN_ONDEMAND" = "true" ] && [ -n "$IN_TICKERS" ]; then ARGS+=(--ondemand); fi
           python tools/stock_scanner/scan.py "${ARGS[@]}"
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           HOLDINGS_JSON: ${{ secrets.HOLDINGS_JSON }}
           IN_TICKERS: ${{ github.event.inputs.tickers }}
+          IN_ONDEMAND: ${{ github.event.inputs.ondemand }}
           WATCHLIST: ${{ secrets.WATCHLIST }}
           WATCHLIST_APPROACH_PCT: ${{ vars.WATCHLIST_APPROACH_PCT || '3' }}
           # Daily zone lists (Telegram + app): approaching = close within X% of a proximal, left = touched in the last
@@ -149,7 +159,7 @@ jobs:
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
 
       - name: Save data cache
-        if: ${{ always() && steps.check.outputs.scan == 'true' && hashFiles('tools/stock_scanner/.cache/daily/*.json') != '' }}
+        if: ${{ always() && steps.check.outputs.scan == 'true' && github.event.inputs.ondemand != 'true' && hashFiles('tools/stock_scanner/.cache/daily/*.json') != '' }}
         uses: actions/cache/save@v4
         with:
           path: tools/stock_scanner/.cache
@@ -160,7 +170,7 @@ jobs:
       # tickers had data the scan writes nothing (exit 2), so there is nothing to commit and the app keeps the last
       # good results.
       - name: Commit results
-        if: ${{ !cancelled() && steps.check.outputs.scan == 'true' && hashFiles('public/scanner/latest.json') != '' }}
+        if: ${{ !cancelled() && steps.check.outputs.scan == 'true' && github.event.inputs.ondemand != 'true' && hashFiles('public/scanner/latest.json') != '' }}
         run: |
           git config user.name "ramanfx-scanner[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

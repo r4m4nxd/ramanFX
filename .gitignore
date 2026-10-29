@@ -14,3 +14,4 @@ tools/fx_scanner/.cache/
 tools/research/market_hours/.cache/
 tools/research/market_hours/.selftest/
 tools/news/.cache/
+tools/movers/.cache/
