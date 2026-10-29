@@ -215,4 +215,28 @@ describe('commands: every command with hostile arguments', () => {
     }
     expect((await owner.get(NOW)).alerts.length).toBe(1);   // the guest's 'd:1' did not delete the owner's alert
   });
+
+  it('/times on a NYSE holiday says the market is closed (Thanksgiving, July 3rd observed)', async () => {
+    for (const iso of ['2026-11-26T15:00:00Z', '2026-07-03T15:00:00Z']) {
+      const r = await handle('/times', breakCtx(new Date(iso)));
+      expect(r.text, iso).toContain('NYSE closed');
+      expect(r.text, iso).not.toContain('NYSE opens');
+    }
+    expect((await handle('/times', breakCtx(new Date('2026-11-27T15:00:00Z')))).text).toContain('NYSE opens');
+  });
+
+  it('/alerts prints levels as typed (no exponent, grouped thousands)', async () => {
+    const ctx = breakCtx(NOW);
+    await handle('/alert SHIBUSD 0.0000130', ctx);
+    await handle('/alert BRK.A 900000', ctx);
+    const t = (await handle('/alerts', ctx)).text;
+    expect(t).toContain('0.000013');
+    expect(t).toContain('900,000');
+    expect(t).not.toMatch(/\de-\d/);
+  });
+
+  it('a ticker with a dash resolves to itself', async () => {
+    const r = await handle('/chart bf-b.x', breakCtx(NOW));
+    expect(r.photo).toContain('img=BF-B.X');
+  });
 });

@@ -14,6 +14,7 @@ import { panelTrendlines, type PubLine, type TlSeries } from './zvTrend.ts';
 import { atrPct, isWide, nestNote, refineOf, verdict } from './chartnotes.ts';
 import type { LiveFx, LiveSource, LiveStock } from './live.ts';
 import { cmdFund, earningsLine, fundButton } from './fundamentals.ts';
+import { nyseHolidays } from '../trader-coach/health.ts';
 import { cmdInsiders } from './insiders.ts';
 
 export type Button = { text: string; url: string } | { text: string; callback_data: string };
@@ -379,7 +380,7 @@ export async function resolve(q: string, ctx: Ctx): Promise<{ hit: Resolved | nu
   const k = norm(q), ks = normStock(q);
   const f = fxRows.find(r => r.sym === k || String(r.oanda ?? '').replace(/_/g, '') === k);
   if (f) return { hit: { market: 'fx', sym: f.sym, row: f }, suggest: [] };
-  const s = stRows.find(r => String(r.s).toUpperCase() === ks || String(r.s).toUpperCase().replace(/\./g, '') === k);
+  const s = stRows.find(r => String(r.s).toUpperCase() === ks || String(r.s).toUpperCase() === k || String(r.s).toUpperCase().replace(/\./g, '') === k);
   if (s) return { hit: { market: 'stock', sym: s.s, row: s }, suggest: [] };
   const all: string[] = [...fxRows.map(r => String(r.sym)), ...stRows.map(r => String(r.s))];
   const scored = all.map(c => [c.startsWith(k) && k.length >= 2 ? 0.5 : lev(k, c.toUpperCase().replace(/\./g, '')), c] as const)
@@ -563,6 +564,8 @@ async function cmdTimes(ctx: Ctx): Promise<Reply> {
   const lines = [`🕐 <b>Today · ${esc(day(ctx.now))}</b> (Calgary)`];
   if (wd === 'Sat' || wd === 'Sun') {
     lines.push('Weekend: stock markets closed.', wd === 'Sun' ? `Forex reopens ${esc(at('17:00'))} (5:00 PM New York).` : 'Forex reopens Sunday 5:00 PM New York time.');
+  } else if (nyseHolidays(Number(today.slice(0, 4))).has(today)) {   // Thanksgiving, July 4th ...: no US session
+    lines.push('US holiday: NYSE closed, no US data.', `${at('08:00')}–${at('12:00')} · forex / gold still trade (thin)`, `${at('17:00')} · forex day rolls over (new daily candle)`);
   } else {
     lines.push(`${at('08:30')} · US data (8:30 AM New York)`, `${at('09:30')} · NYSE opens`,
       `${at('08:00')}–${at('12:00')} · busiest window for forex, gold, indices (peak ${at('10:00')})`,
@@ -1045,10 +1048,12 @@ async function quote(q: string, ctx: Ctx): Promise<{ quote: Quote | null; sugges
 }
 const fmtLevel = (v: number, q: Quote) => (q.hit.market === 'fx' ? px(v, q.digits) : stockPx(v));
 const untilText = (iso: string | Date) => { const t = new Date(iso); return `${day(t)} · ${clock(t)}`; };
+/** A stored level as typed: grouped thousands, no exponent ('1e-8' for a 0.00000001 coin), no float noise. */
+const lvl = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v.toLocaleString('en-US', { maximumFractionDigits: 10 }) : String(v ?? ''));
 function alertLine(a: Alert): string {
-  if (a.kind === 'price') return `#${a.id} <b>${esc(a.sym)}</b> ${a.dir === 'above' ? '↑ above' : '↓ below'} ${esc(String(a.level))}`;
+  if (a.kind === 'price') return `#${a.id} <b>${esc(a.sym)}</b> ${a.dir === 'above' ? '↑ above' : '↓ below'} ${esc(lvl(a.level))}`;
   if (a.kind === 'zone') return `#${a.id} <b>${esc(a.sym)}</b> · enters a strong zone`;
-  return `#${a.id} <b>${esc(a.sym)}</b> · within ${esc(String(a.pct))}% of the nearest zone${a.level != null ? ` (${esc(String(a.level))})` : ''}`;
+  return `#${a.id} <b>${esc(a.sym)}</b> · within ${esc(String(a.pct))}% of the nearest zone${a.level != null ? ` (${esc(lvl(a.level))})` : ''}`;
 }
 
 async function withPrefs(cmd: string, ctx: Ctx, f: (p: PrefsStore) => Promise<Reply>): Promise<Reply> {
