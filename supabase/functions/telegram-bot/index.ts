@@ -118,12 +118,21 @@ async function tvCalendar(): Promise<unknown> {
   if (!r.ok) { await r.body?.cancel(); return null; }
   try { return await r.json(); } catch { return null; }
 }
+// Longer caches: the calendar (15 min; TradingView rate-limits) and the 2.5 MB lesson passages (6 h; the BM25 index is
+// rebuilt only when this object changes). A failed load (null) is kept for TTL only, then retried.
+const TTL_OF: Record<string, number> = { 'news.json': 15 * 60_000, 'ask/passages.json': 6 * 3600_000 };
+function remember(path: string, v: Promise<unknown>): void {
+  const e = { t: Date.now(), v };
+  cache.set(path, e);
+  const long = TTL_OF[path];
+  if (long) v.then(x => { if (x == null) e.t -= long - TTL; }, () => {});
+}
 function load(path: string): Promise<unknown> {
   const hit = cache.get(path);
-  if (hit && Date.now() - hit.t < TTL) return hit.v;
+  if (hit && Date.now() - hit.t < (TTL_OF[path] ?? TTL)) return hit.v;
   if (path === 'news.json') {
     const v = tvCalendar().catch(() => null);
-    cache.set(path, { t: Date.now(), v });
+    remember(path, v);
     return v;
   }
   const urls = path === 'events.json' ? [`${RAW}tools/reminders/events.json`] : [`${SITE}${path}`, `${RAW}public/${path}`];
@@ -133,7 +142,7 @@ function load(path: string): Promise<unknown> {
     }
     return null;
   })();
-  cache.set(path, { t: Date.now(), v });
+  remember(path, v);
   if (cache.size > 120) cache.delete(cache.keys().next().value as string);
   return v;
 }

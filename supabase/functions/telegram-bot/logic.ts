@@ -5,7 +5,8 @@
 // Layout = the scanners' calm Telegram style: a bold heading, short lines, a timeframe per symbol (MN W1 D1 4H 1H),
 // distances in percent (never pips), Calgary 12-hour times (America/Edmonton zone rules), HTML escaped, < 4096 chars.
 
-import { buildIndex, lessonPath, mentorOf, search as askSearch, type AskIndex } from './ask.ts';
+import { bestQuote, buildIndex, lessonPath, mentorOf, search as askSearch, type AskIndex } from './ask.ts';
+import { newsText } from './news.ts';
 import { aggregate, monthKey, quarterKey, tfLabel, weekKey, type Band, type Bar, type ChartModel, type Panel } from './chart.ts';
 
 export type Button = { text: string; url: string } | { text: string; callback_data: string };
@@ -651,24 +652,11 @@ export async function handleCallback(data: string, ctx: Ctx): Promise<Reply> {
   return { cmd: 'callback?', text: HINT };
 }
 
-// ---- /news (TradingView economic calendar, loaded as 'news.json' = yesterday .. +2 days) -------------------------
+// ---- /news (TradingView economic calendar, loaded as 'news.json' = yesterday .. +2 days; formatting in news.ts) ----
 async function cmdNews(ctx: Ctx): Promise<Reply> {
-  const js = obj(await ctx.load('news.json'));
-  if (!Array.isArray(js.result)) return { cmd: 'news', text: '⚠️ <b>Calendar unavailable</b>\nThe economic calendar did not load. Try again in a few minutes.' };
-  const today = isoDay(ctx.now);
-  const rows = arr(js.result).filter(r => Number(r?.importance) >= 1 && typeof r?.date === 'string')
-    .map(r => ({ t: new Date(String(r.date)), c: String(r.country ?? '').toUpperCase(), title: String(r.title ?? '').replace(/\s+/g, ' ').trim() }))
-    .filter(r => Number.isFinite(r.t.getTime()) && r.title && isoDay(r.t) === today)
-    .sort((a, b) => a.t.getTime() - b.t.getTime());
-  const lines = [`📰 <b>High-impact news · ${esc(day(ctx.now))}</b> (Calgary)`, ''];
-  for (const r of rows.slice(0, 25)) {
-    const past = r.t.getTime() < ctx.now.getTime() - 15 * 60000;
-    lines.push(`${past ? '<s>' : ''}${clock(r.t)} · <b>${esc(r.c)}</b> ${esc(r.title)}${past ? '</s>' : ''}`);
-  }
-  if (!rows.length) lines.push('No high-impact events today.');
-  if (rows.length > 25) lines.push(`+${rows.length - 25} more`);
-  lines.push('', `Big moves are likely around these times. Source: TradingView calendar · ${FOOT}`);
-  return { cmd: 'news', text: fit(lines) };
+  const [cal, evs] = await Promise.all([ctx.load('news.json'), ctx.load('events.json')]);
+  const key = eventsOf(evs).filter(e => e.verified).map(e => ({ name: KIND_NAME[e.kind], t: zoned(e.date, e.et, NY), verified: e.verified }));
+  return { cmd: 'news', text: fit(newsText(cal, key, ctx.now, FOOT)) };
 }
 
 // ---- /ask (lesson passages, BM25) ----------------------------------------------------------------------------------
@@ -687,16 +675,16 @@ async function cmdAsk(q: string, ctx: Ctx): Promise<Reply> {
   const ix = askIx.ix;
   if (!ix) return { cmd: 'ask', text: '⚠️ <b>Lessons unavailable</b>\nThe lesson passages did not load. Try again in a minute.' };
   const hits = askSearch(ix, question, 3);
-  if (!hits.length) return { cmd: 'ask', text: `💬 <b>${esc(trimQuote(question, 120))}</b>\nNothing in the lessons matches those words. Try other words, or the Ask page.`, buttons: kb('Open Ask', '/ask') };
-  for (const qlen of [420, 300, 200, 140]) {
+  if (!hits.length) return { cmd: 'ask', text: `💬 <b>${esc(trimQuote(question, 120))}</b>\nNothing in the lessons matches those words. Try other words, the Ask page, or /help for the commands.`, buttons: kb('Open Ask', '/ask') };
+  for (const qlen of [300, 230, 170, 120]) {
     const lines = [`💬 <b>${esc(trimQuote(question, 120))}</b>`, 'From the lessons, in their own words:'];
     hits.forEach((h, i) => {
       const title = h.lesson.src === 'glossary' ? 'Glossary' : `${mentorOf(h.lesson.src)} · ${h.lesson.n}. ${h.lesson.title}`;
-      lines.push('', `<b>${i + 1}. ${esc(title)}</b>`, `<i>“${esc(trimQuote(h.p.t, qlen))}”</i>`);
+      lines.push('', `<b>${i + 1}. ${esc(title)}</b>`, `<i>“${esc(bestQuote(h.p.t, question, qlen))}”</i>`);
     });
     lines.push('', FOOT);
     const text = lines.join('\n');
-    if (text.length <= 1500 || qlen === 140) {
+    if (text.length <= 1500 || qlen === 120) {
       return { cmd: 'ask', text: text.slice(0, 1500), buttons: hits.map(h => [{ text: `📖 Open ${h.lesson.src === 'glossary' ? 'glossary' : `${h.lesson.n}. ${trimQuote(h.lesson.title, 34)}`}`, url: `${APP}${lessonPath(h.lesson.src, h.lesson.n)}` }]) };
     }
   }

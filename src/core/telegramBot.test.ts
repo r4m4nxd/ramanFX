@@ -279,10 +279,10 @@ describe('telegram bot', () => {
     ] };
     const r = await handle('/news', ctx('2026-10-29T13:00:00Z', { 'news.json': cal }));
     expect(r.text).toContain('Thu Oct 29');
-    expect(r.text).toContain('<s>6:30 AM · <b>US</b> GDP Growth Rate QoQ</s>');   // passed
-    expect(r.text).toContain('7:15 AM · <b>EU</b> ECB Interest Rate Decision');
-    expect(r.text).not.toContain('Retail Sales');
-    expect(r.text).not.toContain('Tomorrow');
+    expect(r.text).toContain('<s><b>6:30 AM</b> · 🇺🇸 US GDP Growth Rate QoQ</s>');   // passed
+    expect(r.text).toContain('<b>7:15 AM</b> · 🇪🇺 EU ECB Interest Rate Decision');
+    expect(r.text).toContain('<b>Tomorrow morning · Fri Oct 30</b>');               // 6:30 AM Fri
+    expect(r.text).not.toContain('Retail Sales');                                   // Oct 28 6:30 PM Calgary
     expect((await handle('/news', ctx(undefined, { 'news.json': null }))).text).toContain('Calendar unavailable');
   });
 });

@@ -76,3 +76,27 @@ export function lessonPath(src: string, n: number): string {
   if (src === 'course') return `/learn?l=${n}`;
   return `/learn?src=${encodeURIComponent(src)}&l=${n}`;
 }
+
+/** ~n chars of a passage around its best-matching sentence (most distinct query terms), with … where it was cut. */
+export function bestQuote(text: string, q: string, n = 300): string {
+  const s = String(text ?? '').replace(/\s+/g, ' ').trim();
+  if (s.length <= n) return s;
+  const qs = new Set(terms(q));
+  const sents = s.match(/[^.!?]+(?:[.!?]+["”’)]*\s*|$)/g) ?? [s];
+  const score = (x: string) => new Set(terms(x).filter(t => qs.has(t))).size;
+  let best = 0;
+  sents.forEach((x, i) => { if (score(x) > score(sents[best])) best = i; });
+  let a = best, b = best + 1, len = sents[best].length;
+  for (;;) {                                     // grow forward first (the explanation usually follows), then back
+    if (b < sents.length && len + sents[b].length <= n) { len += sents[b++].length; continue; }
+    if (a > 0 && len + sents[a - 1].length <= n) { len += sents[--a].length; continue; }
+    break;
+  }
+  let out = sents.slice(a, b).join('').trim(), tail = b < sents.length;
+  if (out.length > n) {                          // one long sentence: cut at a word
+    const cut = out.slice(0, n);
+    out = cut.slice(0, Math.max(cut.lastIndexOf(' '), n - 20)).replace(/[,;:\s]+$/, '');
+    tail = true;
+  }
+  return `${a > 0 ? '…' : ''}${out}${tail ? '…' : ''}`;
+}
