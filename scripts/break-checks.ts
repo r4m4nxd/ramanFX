@@ -98,6 +98,7 @@ export function replyIssues(r: Reply): string[] {
   if (/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(r.text)) bad.push('lone surrogate (half an emoji) in the text');
   if (r.photo ? r.text.length > 1024 : r.text.length > 4096) bad.push(`${r.photo ? 'caption' : 'text'} too long: ${r.text.length}`);
   bad.push(...htmlIssues(r.text));
+  for (const row of r.buttons ?? []) if (row.length > 8) bad.push(`button row of ${row.length} (Telegram: 8 max)`);
   for (const row of r.buttons ?? []) for (const b of row) {
     if ('callback_data' in b) {
       const n = new TextEncoder().encode(b.callback_data).length;

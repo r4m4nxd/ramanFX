@@ -11,7 +11,7 @@ import { renderSvg } from '../../supabase/functions/telegram-bot/chart';
 import { alpacaSource, oandaSource, type Fetch } from '../../supabase/functions/telegram-bot/live';
 import { guestCallback, guestMessage, memoryGuests, type Guest } from '../../supabase/functions/telegram-bot/guests';
 import { memoryStore } from '../../supabase/functions/telegram-bot/prefs';
-import { ALL_FIX, breakCtx, VIEWS_ALL } from '../../scripts/break-ctx';
+import { ALL_FIX, breakCtx, publishedFiles, VIEWS_ALL } from '../../scripts/break-ctx';
 import { chartIssues, htmlIssues, replyIssues } from '../../scripts/break-checks';
 
 beforeAll(() => { vi.spyOn(console, 'log').mockImplementation(() => {}); });
@@ -239,4 +239,22 @@ describe('commands: every command with hostile arguments', () => {
     const r = await handle('/chart bf-b.x', breakCtx(NOW));
     expect(r.photo).toContain('img=BF-B.X');
   });
+
+  it('corrupt published files (numbers as strings, negative numbers, null fields, missing files) never throw', async () => {
+    const files = publishedFiles(NOW);
+    const mangle = (v: unknown, mode: string): unknown => {
+      if (Array.isArray(v)) return v.map(x => mangle(x, mode));
+      if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, mode === 'null' && typeof x !== 'object' ? null : mangle(x, mode)]));
+      return typeof v === 'number' ? (mode === 'str' ? String(v) : mode === 'neg' ? -v : v) : v;
+    };
+    const bad: string[] = [];
+    for (const mode of ['missing', 'str', 'neg', 'null']) {
+      const ctx = breakCtx(NOW, 'none', { load: async (p: string) => (mode === 'missing' || !files.has(p) ? null : mangle(structuredClone(files.get(p)), mode)) });
+      for (const c of COMMANDS.map(x => x.command)) for (const a of ['', 'EURUSD', 'BRK.B', 'EURUSD H4', 'PENY 0.7']) {
+        const q = `/${c} ${a}`.trim();
+        try { for (const i of replyIssues(await handle(q, ctx))) bad.push(`${mode} ${q}: ${i}`); } catch (e) { bad.push(`${mode} ${q}: threw ${(e as Error).message}`); }
+      }
+    }
+    expect(bad).toEqual([]);
+  }, 60_000);
 });

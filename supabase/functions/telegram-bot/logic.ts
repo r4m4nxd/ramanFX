@@ -216,7 +216,8 @@ const NO_DATA = '⚠️ <b>Scanner data unavailable</b>\nThe published files did
 const fxPct = (z: J) => { const p = num(z.px), prox = num(z.prox); if (!p || prox == null || (z.sec ?? z.section) === 'in') return 0; return Math.abs(p - prox) / p * 100; };
 const stockPct = (z: J) => ((z.sec ?? z.section) === 'in' ? 0 : Math.abs(num(z.pct) ?? 0));
 const fxSigPct = (s: J) => { const p = num(s.price), e = num(s.entry); return p && e != null ? Math.abs(p - e) / p * 100 : null; };
-const digitsOf = (s: J) => num(s.digits) ?? 5;
+/** Price decimals of an instrument: an integer 0..10 (a corrupt value would make toFixed throw and break /fx for all). */
+const digitsOf = (s: J) => { const d = num(s.digits); return d == null ? 5 : Math.min(10, Math.max(0, Math.round(d))); };
 
 function fxSignalLines(s: J): string[] {
   const d = digitsOf(s), k = String(s.kind);
@@ -239,11 +240,12 @@ const names = (rows: J[], key: string, n: number, extra?: (r: J) => string) =>
 function section(title: string, rows: J[], key: string, n = 8, extra?: (r: J) => string): string[] {
   return rows.length ? [`<b>${esc(title)}</b> (${rows.length})`, names(rows, key, n, extra)] : [];
 }
-const fxSetups = (fx: J) => [...arr(fx.signals).sort((a, b) => Number(!a.wl) - Number(!b.wl) || (b.score ?? 0) - (a.score ?? 0)),
-  ...arr(fx.watch).sort((a, b) => Number(!a.wl) - Number(!b.wl) || (b.score ?? 0) - (a.score ?? 0))];
+const okSig = (k: string) => (r: J) => !!r && typeof r[k] === 'string' && !!r[k] && typeof r.kind === 'string';   // a malformed row is skipped, not printed as 'null'
+const fxSetups = (fx: J) => [...arr(fx.signals).filter(okSig('sym')).sort((a, b) => Number(!a.wl) - Number(!b.wl) || (b.score ?? 0) - (a.score ?? 0)),
+  ...arr(fx.watch).filter(okSig('sym')).sort((a, b) => Number(!a.wl) - Number(!b.wl) || (b.score ?? 0) - (a.score ?? 0))];
 const stockSetups = (st: J) => {
   const key = (a: J, b: J) => (b.score ?? 0) - (a.score ?? 0) || (b.rr ?? 0) - (a.rr ?? 0);
-  const s = arr(st.signals);
+  const s = arr(st.signals).filter(okSig('symbol'));
   return [...s.filter(x => x.kind === 'BUY').sort(key), ...s.filter(x => x.kind === 'WATCH').sort(key)];
 };
 function fxCloseRows(fx: J): J[] {
