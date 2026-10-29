@@ -54,6 +54,18 @@ describe('telegram bot', () => {
     expect(helpText().length).toBeLessThan(4096);
   });
 
+  it('/guide and /howto: a short cheat sheet with link buttons to the app guide', async () => {
+    for (const t of ['/guide', '/howto']) {
+      const r = await handle(t, ctx());
+      expect(r.cmd).toBe('guide');
+      expect(r.text.length).toBeLessThan(1500);
+      noRawLt(r.text);
+      const urls = (r.buttons ?? []).flat().map(b => ('url' in b ? b.url : ''));
+      expect(urls).toContain('https://raman-fx.vercel.app/guide');
+      for (const u of urls) expect(u).toMatch(/^https:\/\/raman-fx\.vercel\.app\/guide/);
+    }
+  });
+
   it('/fx, /stocks, /signals, /near fit one message and use percent, never pips', async () => {
     for (const t of ['/fx', '/stocks', '/signals', '/near']) {
       const r = await handle(t, ctx());

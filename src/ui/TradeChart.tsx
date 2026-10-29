@@ -214,7 +214,7 @@ export function TradeChart({ t, levels, drawings = [], onDrawings }: { t: Enrich
         <div className="flex gap-2 flex-wrap mt-3">
           <a className="btn h-9" href="/tools/RamanFX_Charts.mq5" download><Icon name="download" size={14} />MT5 script</a>
           <a className="btn h-9" href="/tools/RamanFX_Charts.mq4" download><Icon name="download" size={14} />MT4 script</a>
-          <a className="btn-ghost h-9 text-accent" href="/guide?s=charts">How to</a>
+          <a className="btn-ghost h-9 text-accent" href="/guide#charts">How to</a>
         </div>
       </div>
     ) : <Chart key={`${t.id}${active}${full}`} t={t} s={series[active]!} tf={active} levels={lv} full={full} drawings={drawings} tool={tool} color={rgb(colorVar)}

@@ -41,13 +41,13 @@ export const NAV: { to: string; label: string; short?: string; icon: IconName; m
   { to: '/chart', label: 'Advanced chart', short: 'Chart', icon: 'sliders', group: 'Plan & tools', hint: 'Live TradingView chart' },
   { to: '/news', label: 'Economic news', short: 'News', icon: 'clock', group: 'Plan & tools', hint: 'Economic calendar and headlines' },
   { to: '/notebook', label: 'Notebook', icon: 'notebook', group: 'Plan & tools', hint: 'Free-form notes' },
+  { to: '/guide', label: 'Guide & how-to', short: 'Guide', icon: 'info', group: 'Help', hint: 'How every feature, the Telegram bot, alerts and keys work; what to do when something breaks' },
   { to: '/learn', label: 'Lessons', icon: 'playbook', group: 'Help', hint: 'Every mentor lesson as notes, plus the glossary' },
   { to: '/checklist', label: 'Checklist', icon: 'check', group: 'Help', hint: 'Cradle-to-grave trade checklist per mentor: tick, memorize, save as PDF' },
   { to: '/ask', label: 'Ask your mentors', short: 'Ask', icon: 'sparkles', group: 'Help', hint: 'Search every lesson by meaning, on your device' },
   { to: '/practice', label: 'Sandbox', icon: 'grid', group: 'Help', hint: 'Blind chart tests, drawing tools and pattern drills' },
   { to: '/tools', label: 'Tools', icon: 'wrench', group: 'Help', hint: 'Every MT5, MT4 and TradingView download, with presets' },
   { to: '/bot-guide', label: 'Bot guide', icon: 'target', group: 'Help', hint: 'How to use the MT4 ZoneBot and ZoneVision' },
-  { to: '/guide', label: 'Guide', icon: 'info', group: 'Help', hint: 'How the app and the strategy work' },
   { to: '/settings', label: 'Settings', icon: 'settings', group: 'Help', hint: 'Sync, accounts, time zone, backup' },
 ];
 const isOn = (path: string, to: string) => (to === '/' ? path === '/' : path === to || path.startsWith(`${to}/`));

@@ -118,7 +118,7 @@ export const TOOLS: Tool[] = [
       'Drag it onto any chart → OK. It saves a CSV in MQL5\\Files.',
       'Here: Import → drop the CSV.',
     ],
-    guide: { to: '/guide?s=charts', label: 'How to' },
+    guide: { to: '/guide#charts', label: 'How to' },
   },
 
   // ─── MT4 ────────────────────────────────────────────────────────────
@@ -179,7 +179,7 @@ export const TOOLS: Tool[] = [
       'Drag it onto any chart → OK. It saves a CSV in MQL4\\Files.',
       'Here: Import → drop the CSV.',
     ],
-    guide: { to: '/guide?s=charts', label: 'How to' },
+    guide: { to: '/guide#charts', label: 'How to' },
   },
 
   // ─── TradingView ────────────────────────────────────────────────────

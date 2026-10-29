@@ -66,6 +66,7 @@ export const COMMANDS: { command: string; description: string; group: Group; usa
   { command: 'news', description: 'Calendar + top market headlines', group: 'Times', usage: '/news', help: "today's high-impact events + top headlines (/news NVDA: one symbol's headlines)" },
   { command: 'took', description: 'Log a trade you took as a plan', group: 'Journal', usage: '/took EURUSD buy 1.0850 sl 1.0820 tp 1.0910', help: 'adds it to the Planner; reply to a 📝 prompt to save why' },
   { command: 'ask', description: 'Ask the lessons a question', group: 'Learn', usage: '/ask what is a proximal line', help: "the mentors' own words (or end any message with ?)" },
+  { command: 'guide', description: 'How-to cheat sheet + the full guide', group: 'Learn', usage: '/guide', help: 'short how-to + a link to the full guide in the app' },
   { command: 'help', description: 'This list', group: 'Learn', usage: '/help', help: 'this list' },
 ];
 
@@ -254,6 +255,17 @@ export function helpText(): string {
   }
   lines.push('', `Times on the Calgary clock · ${FOOT}`);
   return lines.join('\n');
+}
+
+/** /guide, /howto: a compact cheat sheet; the full how-to is the app's /guide page (src/content/guide.ts). */
+export function cmdGuide(): Reply {
+  const text = ['📘 <b>RamanFX · quick guide</b>', 'Send a symbol (EURUSD, XAUUSD, NVDA): its zones, price and buttons.', '',
+    '<b>Look</b> /fx · /stocks · /signals · /near', '<b>One symbol</b> /zones · /chart EURUSD 15m · /scan EURUSD · /fund · /news NVDA · /hours',
+    '<b>Alerts</b> /alert XAUUSD 2650 · /alert NVDA zone · /alerts · /mute EURUSD 1w · /quiet 22:00-06:00 · /watch',
+    '<b>Day</b> /times · /next · /took EURUSD buy 1.0850 sl 1.0820 tp 1.0910', '<b>Learn</b> /ask what is a proximal line', '',
+    '<b>Comes by itself</b> (Calgary)', '6 AM brief + lesson · FX scan hourly (only when new) · big moves hourly · stock scan after the US close · breaking news on watched symbols · coach: rule guard, 📝 why?, Sunday 6 PM report', '',
+    `All commands: /help · ${FOOT}`].join('\n');
+  return { cmd: 'guide', text, buttons: [[{ text: '📘 Open the full guide', url: `${APP}/guide` }], [{ text: '🤖 Bot commands', url: `${APP}/guide#bot` }, { text: '🛠 If something breaks', url: `${APP}/guide#fix` }]] };
 }
 
 async function cmdFx(ctx: Ctx): Promise<Reply> {
@@ -1038,6 +1050,7 @@ export async function handle(text: string, ctx: Ctx): Promise<Reply> {
   if (c) {
     switch (c.cmd) {
       case 'start': case 'help': return { cmd: c.cmd, text: helpText(), keyboard: true };
+      case 'guide': case 'howto': return cmdGuide();
       case 'chart': return cmdChart(c.arg, c.arg2, ctx);
       case 'ask': return cmdAsk(c.rest, ctx);
       case 'news': return cmdNews(c.arg, ctx);

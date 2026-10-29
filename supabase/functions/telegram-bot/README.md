@@ -5,6 +5,11 @@ body, so the function never needs the bot token. Source: `index.ts` (HTTP, auth,
 pure), `prefs.ts` (alerts / mutes / quiet hours / watchlist), `chart.ts`, `ask.ts`, `news.ts`, `headlines.ts`. Deployed through
 `tools/telegram_bot/deploy_entry.ts` (imports this folder at one pinned commit). Setup: `.github/workflows/telegram-webhook.yml`.
 
+**`/guide`** (alias `/howto`): a compact cheat sheet (the main commands, what arrives by itself) with link buttons to the
+app's full how-to page, https://raman-fx.vercel.app/guide (`#bot`, `#fix`). The page's content is
+`src/content/guide.ts`; `src/content/guide.test.ts` fails when a command in `commands.json` has no row there, so add
+one whenever a command is added.
+
 ## Owner preferences (Telegram commands)
 
 | Command | Effect |
