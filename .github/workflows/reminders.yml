@@ -60,7 +60,7 @@ jobs:
           PYTHONTZPATH: ''             # use the PyPI tzdata (newest rules), not the runner image's
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          REMINDER_DAILY: ${{ vars.REMINDER_DAILY || 'on' }}
+          REMINDER_DAILY: ${{ vars.REMINDER_DAILY || 'off' }}
           REMINDER_CONTACT: ${{ vars.REMINDER_CONTACT }}   # optional email for the bls.gov User-Agent
           IN_TEST: ${{ github.event.inputs.test }}
           IN_REFRESH: ${{ github.event.inputs.refresh }}
