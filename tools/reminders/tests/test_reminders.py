@@ -58,6 +58,29 @@ class Parsing(unittest.TestCase):
     def test_bls_wrong_page(self):
         self.assertEqual(R.parse_bls(BLS_EMP, 'Consumer Price Index'), [])
 
+    def test_ics(self):
+        ics = ('BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nDTSTART;TZID=US-Eastern:20261106T083000\r\n'
+               'SUMMARY:Employment Situation for Oc\r\n tober 2026\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\n'
+               'DTSTART;TZID=US-Eastern:20261110T083000\r\nSUMMARY:Consumer Price Index for October 2026\r\n'
+               'END:VEVENT\r\nBEGIN:VEVENT\r\nDTSTART;TZID=US-Eastern:20261112T083000\r\n'
+               'SUMMARY:Producer Price Index for October 2026\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n')
+        self.assertEqual(R.parse_ics(ics, 'Employment Situation'), [('2026-11-06', '08:30')])
+        self.assertEqual(R.parse_kind('cpi', ics), [{'date': '2026-11-10', 'et': '08:30'}])
+
+    def test_page_fails_ics_used(self):
+        ics = ('BEGIN:VCALENDAR\nBEGIN:VEVENT\nDTSTART:20261106T083000\nSUMMARY:Employment Situation for October 2026'
+               '\nEND:VEVENT\nEND:VCALENDAR\n')
+
+        def fetcher(url):
+            if url == R.ICS:
+                return ics
+            raise OSError('403')
+        cache = R.empty_cache()
+        R.refresh(cache, dt.datetime(2026, 10, 29, 18, tzinfo=UTC), fetcher=fetcher, log=lambda *_: None)
+        self.assertEqual([e['date'] for e in cache['kinds']['nfp']['events']], ['2026-11-06'])
+        self.assertEqual(cache['kinds']['nfp']['source'], R.ICS)
+        self.assertIn('no dates parsed', cache['kinds']['cpi']['error'])
+
     def test_plausible(self):
         today = dt.date(2026, 10, 29)
         self.assertTrue(R.plausible('nfp', ['2026-11-06', '2026-12-04'], today))

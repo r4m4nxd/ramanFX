@@ -28,7 +28,8 @@ data only: dates are pulled out with regular expressions, nothing in them is fol
     python tools/reminders/reminders.py --refresh    # force a schedule fetch
 
 Env: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (unset -> printed instead), REMINDER_DAILY (on/off, default off),
-REMINDER_NOW (ISO UTC time, for dry runs), SCANNER_APP_URL.
+REMINDER_NOW (ISO UTC time, for dry runs), REMINDER_CONTACT (an email for the fetch User-Agent;
+bls.gov may refuse anonymous automated requests), SCANNER_APP_URL.
 """
 from __future__ import annotations
 
@@ -39,6 +40,7 @@ import json
 import os
 import re
 import sys
+import urllib.error
 import urllib.request
 from typing import Dict, List, Optional, Tuple
 from zoneinfo import ZoneInfo
@@ -60,6 +62,8 @@ KEEP_DAYS = 45                           # sent-state and past events older than
 URLS = {'fomc': 'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm',
         'nfp': 'https://www.bls.gov/schedule/news_release/empsit.htm',
         'cpi': 'https://www.bls.gov/schedule/news_release/cpi.htm'}
+ICS = 'https://www.bls.gov/schedule/news_release/bls.ics'   # BLS's own release calendar: tried when a page fails
+TITLE = {'nfp': 'Employment Situation', 'cpi': 'Consumer Price Index'}
 ET_TIME = {'nfp': '08:30', 'cpi': '08:30', 'fomc': '14:00'}        # release / statement time, US Eastern
 LEAD = {'morning': dt.timedelta(minutes=45), 'fomc': dt.timedelta(minutes=30)}   # 6:30 -> 5:45, 12:00 -> 11:30
 DAILY_LEAD = dt.timedelta(minutes=20)    # 8:30 ET - 20 min (6:10 AM Calgary when Calgary is ET-2)
@@ -156,6 +160,21 @@ def parse_bls(page: str, title: str) -> List[Tuple[str, str]]:
     return sorted(out.items())
 
 
+def parse_ics(text: str, title: str) -> List[Tuple[str, str]]:
+    """BLS release calendar (iCalendar) -> [(ISO date, 'HH:MM' ET)] of the events whose SUMMARY starts with `title`
+    ('Employment Situation for October 2026'); 'Consumer Price Index' excludes other price indexes by the prefix."""
+    text = re.sub(r'\r?\n[ \t]', '', text)                    # unfold continuation lines
+    out = {}
+    for ev in re.findall(r'(?s)BEGIN:VEVENT(.*?)END:VEVENT', text):
+        sm = re.search(r'(?m)^SUMMARY[^:]*:(.*)$', ev)
+        dm = re.search(r'(?m)^DTSTART[^:]*:(\d{8})(?:T(\d{2})(\d{2}))?', ev)
+        if not (sm and dm) or not sm.group(1).strip().lower().startswith(title.lower() + ' for '):
+            continue
+        d = dm.group(1)
+        out[f'{d[:4]}-{d[4:6]}-{d[6:]}'] = f'{dm.group(2)}:{dm.group(3)}' if dm.group(2) else '08:30'
+    return sorted(out.items())
+
+
 def plausible(kind: str, dates: List[str], today: dt.date) -> bool:
     """A sanity check on a parsed list: weekdays only, near today, a sensible count per year, something upcoming."""
     if not dates:
@@ -171,9 +190,16 @@ def plausible(kind: str, dates: List[str], today: dt.date) -> bool:
 
 
 # ---- fetching + cache --------------------------------------------------------------------------------------------------
+def user_agent() -> str:
+    """An honest, identifying User-Agent (bls.gov asks automated clients for contact details: set the repo variable
+    REMINDER_CONTACT to an email to add one)."""
+    contact = (os.environ.get('REMINDER_CONTACT') or '').strip()
+    return 'RamanFX-reminders/1.0 (+https://github.com/r4m4nxd/ramanFX' + (f'; {contact}' if contact else '') + ')'
+
+
 def fetch(url: str, timeout: int = 25) -> str:
     req = urllib.request.Request(url, headers={
-        'User-Agent': 'Mozilla/5.0 (compatible; RamanFX-reminders/1.0; +https://github.com/r4m4nxd/ramanFX)',
+        'User-Agent': user_agent(),
         'Accept': 'text/html,application/xhtml+xml', 'Accept-Language': 'en-US,en;q=0.8'})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return r.read(3_000_000).decode('utf-8', 'replace')
@@ -182,8 +208,12 @@ def fetch(url: str, timeout: int = 25) -> str:
 def parse_kind(kind: str, page: str) -> List[Dict]:
     if kind == 'fomc':
         return [{'date': d, 'et': ET_TIME['fomc']} for d in parse_fomc(page)]
-    title = 'Employment Situation' if kind == 'nfp' else 'Consumer Price Index'
-    return [{'date': d, 'et': t} for d, t in parse_bls(page, title)]
+    rows = parse_ics(page, TITLE[kind]) if 'BEGIN:VCALENDAR' in page[:2000] else parse_bls(page, TITLE[kind])
+    return [{'date': d, 'et': t} for d, t in rows]
+
+
+def _why(e: Exception) -> str:
+    return f'HTTP {e.code}' if isinstance(e, urllib.error.HTTPError) else type(e).__name__
 
 
 def load_json(path: str, default):
@@ -210,6 +240,7 @@ def refresh(cache: Dict, now: dt.datetime, force: bool = False, fetcher=fetch, l
     cached list (past dates within KEEP_DAYS kept); a failed one keeps the last good list. True when anything changed."""
     changed = False
     today = now.astimezone(LOCAL).date()
+    ics_page: Dict[str, object] = {}
     for kind, url in URLS.items():
         k = cache['kinds'].setdefault(kind, {'events': [], 'source': None, 'fetched_at': None, 'tried_at': None, 'error': None})
         tried = k.get('tried_at')
@@ -217,10 +248,27 @@ def refresh(cache: Dict, now: dt.datetime, force: bool = False, fetcher=fetch, l
             continue
         k['tried_at'] = _iso(now)
         changed = True
-        try:
-            evs = parse_kind(kind, fetcher(url))
-        except Exception as e:  # noqa: BLE001
-            k['error'] = f'fetch failed: {type(e).__name__}'
+        evs, errs = [], []
+        for src in ([url] + ([ICS] if kind in TITLE else [])):
+            try:
+                if src == ICS:
+                    if 'page' not in ics_page:
+                        ics_page['page'] = fetcher(ICS)
+                    page = ics_page['page']
+                else:
+                    page = fetcher(src)
+                evs = parse_kind(kind, page)
+            except Exception as e:  # noqa: BLE001
+                if src == ICS:
+                    ics_page['page'] = ''
+                errs.append(f'{src.rsplit("/", 1)[-1]}: {_why(e)}')
+                continue
+            if evs:
+                url = src
+                break
+            errs.append(f'{src.rsplit("/", 1)[-1]}: no dates parsed')
+        if not evs and errs:
+            k['error'] = 'fetch failed: ' + '; '.join(errs)
             log(f'{kind}: {k["error"]} - keeping {len(k["events"])} cached dates')
             continue
         lo, hi = (today - dt.timedelta(days=400)).isoformat(), (today + dt.timedelta(days=800)).isoformat()
@@ -407,7 +455,7 @@ def main(argv=None) -> int:
     if a.list:
         return 0
     if a.test:
-        nxt = next((r for r in rems if r['kinds'] != ['daily']), None)
+        nxt = next((r for r in rems if r['kinds'] != ['daily'] and r['send_at'] > now.astimezone(LOCAL)), None)
         if not nxt:
             print('no upcoming event reminder to preview')
             return 1
