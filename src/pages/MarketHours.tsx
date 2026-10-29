@@ -108,7 +108,7 @@ function Detail({ s }: { s: MhSymbol }) {
         <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
           <div className="min-w-0">
             <h2 className="text-xl font-semibold tracking-tight">{s.sym}<span className="text-ink3 font-normal text-[14px] ml-2">{s.display && s.display !== s.sym ? s.display : s.name !== s.sym ? s.name : ''}</span></h2>
-            <p className="text-[12px] text-ink3 mt-1 num">{KIND_LABEL[s.kind]}{s.group ? ` · ${s.group}` : ''} · {s.from} → {s.to} ({s.years ?? '–'} years)</p>
+            <p className="text-[12px] text-ink3 mt-1 num">{KIND_LABEL[s.kind]}{s.group && s.group !== KIND_LABEL[s.kind] ? ` · ${s.group}` : ''} · {s.from} → {s.to} ({s.years ?? '–'} years)</p>
           </div>
           <div className="flex flex-wrap gap-1.5"><RelBadge rel={s.timesRel} what="Times" />{w && <RelBadge rel={w.rel} what="Days" />}{s.era.shifted ? <Badge tone="warn" className="!h-5 !px-2 !text-[10.5px]">Era: shifted</Badge> : <Badge className="!h-5 !px-2 !text-[10.5px]">Era: stable</Badge>}</div>
         </div>
