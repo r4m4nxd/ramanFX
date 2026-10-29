@@ -15,7 +15,7 @@ import { ALL_FIX, breakCtx, publishedFiles, VIEWS_ALL } from '../../scripts/brea
 import { chartIssues, htmlIssues, replyIssues } from '../../scripts/break-checks';
 
 beforeAll(() => { vi.spyOn(console, 'log').mockImplementation(() => {}); });
-const bends: string[] = [];   // higher-TF lines drawn bent (owned by the ZoneVision trendline port: see the it.fails below)
+const bends: string[] = [];   // trendlines drawn bent (checked in their own test)
 const NOW = new Date('2026-10-29T15:00:00Z');   // Thursday, New York session open (forming candles)
 
 async function allCharts(ctx: Ctx, tag: string, syms = ALL_FIX): Promise<{ bad: string[]; n: number }> {
@@ -60,9 +60,8 @@ describe('charts: adversarial fixtures', () => {
     expect(bad).toEqual([]);
   }, 240_000);
 
-  // TODO(trendline port): the higher-TF line projected on a panel goes through a per-period index map and bends; the
-  // agent porting the ZoneVision trendline rule fixes it. Flip to it() then.
-  it.fails('trendlines are straight on every panel (collinear points)', () => { expect(bends).toEqual([]); });
+  // every trendline drawn straight (the higher-TF projection used to bend through a per-period index map)
+  it('trendlines are straight on every panel (collinear points)', () => { expect(bends).toEqual([]); });
 
   it('live source failing (null / throws) falls back to the published scan with a note', async () => {
     for (const mode of ['null', 'throw'] as const) {
