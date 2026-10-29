@@ -21,4 +21,13 @@ describe('Content-Security-Policy', () => {
     expect(script).not.toContain("'unsafe-eval'");
     expect(app).toContain("object-src 'none'");
   });
+
+  it('lets Telegram Web frame the app as a Mini App (not legacy.html)', () => {
+    const fa = (v: string) => v.split(';').map(d => d.trim()).find(d => d.startsWith('frame-ancestors'))!;
+    expect(fa(app)).toBe("frame-ancestors 'self' https://web.telegram.org");
+    const legacy = csp.find(c => c.source === '/legacy.html')!.value;
+    expect(fa(legacy)).toBe("frame-ancestors 'self'");
+    const xfo = vercel.headers.filter(b => b.headers.some(h => h.key === 'X-Frame-Options')).map(b => b.source);
+    expect(xfo).toEqual(['/legacy.html']);   // a site-wide X-Frame-Options would block the Mini App
+  });
 });

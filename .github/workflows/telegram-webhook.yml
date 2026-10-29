@@ -1,8 +1,9 @@
 name: Telegram bot webhook
 
 # Points the bot's webhook at the Supabase edge function `telegram-bot` (two-way commands), sets the Menu commands
-# and pins the command list (tools/telegram_bot/setup.py). The function never gets the bot token: it replies in the
-# webhook response. Re-runs with the same label are idempotent (same secret). Rotating the secret: open a window
+# and pins the command list (tools/telegram_bot/setup.py), sets the Menu button to the RamanFX Mini App and registers
+# sha256 of the scanners' prefs key (supabase/functions/telegram-bot/README.md). The function never gets the bot token:
+# it replies in the webhook response. Re-runs with the same label are idempotent (same secret). Rotating the secret: open a window
 #   update public.rfx_bot_config set rotate_until = now() + interval '15 minutes' where id = 1;
 # then run this workflow with a new label (v2, v3, ...) within 15 minutes.
 on:

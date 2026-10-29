@@ -18,10 +18,14 @@
 // Charts: GET ?img=SYM&tf=Q|MN|W1|D1|H4|H1|3M&v=<scan time> renders a PNG from the PUBLIC scanner files only (no
 // secret needed: Telegram fetches it for sendPhoto); SVG (chart.ts) -> resvg-wasm with an Inter subset font; cached
 // per symbol / view / scan version, at most 30 renders a minute per instance.
+// Prefs API for the scanners (README.md): GET ?op=prefs / POST ?op=alert-fired with header X-RFX-Key = hex
+// sha256(bot token + ':prefs'), computed by the scanners inside GitHub Actions. The function keeps only sha256(key)
+// (rfx_bot_config.prefs_key_hash), registered by the setup workflow over the webhook-authenticated channel.
 // Logs: the command name and timing only, never message text, chat ids or secrets.
 import { initWasm, Resvg } from 'npm:@resvg/resvg-wasm@2.6.2';
 import { renderSvg } from './chart.ts';
 import { chartData, handle, handleCallback, MAIN_KEYBOARD, type Reply } from './logic.ts';
+import { keyOk, restStore } from './prefs.ts';
 
 const SB_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SB_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -56,11 +60,11 @@ function same(a: string, b: string): boolean {
 }
 
 // ---- config row ----------------------------------------------------------------------------------------------------
-interface Cfg { secret_hash: string; owner_hash: string; rotate_until: string | null; pinned_message_id: number | null; commands_hash: string | null }
+interface Cfg { secret_hash: string; owner_hash: string; rotate_until: string | null; pinned_message_id: number | null; commands_hash: string | null; prefs_key_hash: string | null }
 let cfgCache: { v: Cfg; t: number } | null = null;
 
 async function getCfg(): Promise<Cfg | null> {
-  const r = await fetch(`${REST}?id=eq.1&select=secret_hash,owner_hash,rotate_until,pinned_message_id,commands_hash`, { headers: dbHeaders() });
+  const r = await fetch(`${REST}?id=eq.1&select=secret_hash,owner_hash,rotate_until,pinned_message_id,commands_hash,prefs_key_hash`, { headers: dbHeaders() });
   if (!r.ok) throw new Error(`config read ${r.status}`);
   const rows = await r.json();
   return Array.isArray(rows) && rows[0] ? rows[0] as Cfg : null;
@@ -198,6 +202,42 @@ async function chartPng(url: URL): Promise<Response> {
   return new Response(png, { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=3600' } });
 }
 
+// ---- prefs API (scanners) ------------------------------------------------------------------------------------------
+const prefs = restStore(SB_URL, dbHeaders(), (u, i) => fetch(u, { ...i, signal: AbortSignal.timeout(8000) }));
+let badKeys: number[] = [];
+let keyCache: { h: string; t: number } | null = null;
+async function prefsApi(req: Request, op: string): Promise<Response> {
+  const now = Date.now();
+  badKeys = badKeys.filter(t => now - t < 60_000);
+  if (badKeys.length >= 20) return empty(429);
+  let h: string | null;
+  try {
+    if (keyCache && now - keyCache.t < TTL) h = keyCache.h;
+    else { h = (await getCfg())?.prefs_key_hash ?? null; if (h) keyCache = { h, t: now }; }
+  } catch { return empty(503); }
+  if (!h) return empty(503);
+  if (!await keyOk(req.headers.get('x-rfx-key'), h)) { badKeys.push(now); console.log(JSON.stringify({ ev: 'prefs_denied' })); return empty(401); }
+  try {
+    if (op === 'prefs' && req.method === 'GET') {
+      const p = await prefs.get(new Date());
+      console.log(JSON.stringify({ ev: 'prefs', alerts: p.alerts.length, mutes: p.mutes.length, watch: p.watch.length }));
+      return new Response(JSON.stringify(p), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
+    }
+    if (op === 'alert-fired' && req.method === 'POST') {
+      let id: unknown;
+      try { id = (await req.json())?.id; } catch { return empty(400); }
+      if (!Number.isInteger(id) || (id as number) <= 0) return empty(400);
+      const ok = await prefs.fired(id as number, new Date());
+      console.log(JSON.stringify({ ev: 'alert_fired', ok }));
+      return json({ ok });
+    }
+  } catch (e) {
+    console.log(JSON.stringify({ ev: 'prefs_error', err: (e as Error).message.slice(0, 80) }));
+    return empty(503);
+  }
+  return empty(405);
+}
+
 // ---- replies -------------------------------------------------------------------------------------------------------
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function method(reply: Reply, chatId: unknown, tapped?: Record<string, any>): Record<string, unknown> {
@@ -206,14 +246,18 @@ function method(reply: Reply, chatId: unknown, tapped?: Record<string, any>): Re
     return { method: 'editMessageMedia', chat_id: chatId, message_id: tapped.message_id,
       media: { type: 'photo', media: reply.photo, caption: reply.text.slice(0, 1024), parse_mode: 'HTML' }, ...(markup ? { reply_markup: markup } : {}) };
   }
+  if (reply.edit && !reply.photo && tapped && typeof tapped.text === 'string' && tapped.message_id) {
+    return { method: 'editMessageText', chat_id: chatId, message_id: tapped.message_id, text: reply.text, parse_mode: 'HTML', disable_web_page_preview: true,
+      reply_markup: markup ?? { inline_keyboard: [] } };
+  }
   if (reply.photo) return { method: 'sendPhoto', chat_id: chatId, photo: reply.photo, caption: reply.text.slice(0, 1024), parse_mode: 'HTML', ...(markup ? { reply_markup: markup } : {}) };
   return { method: 'sendMessage', chat_id: chatId, text: reply.text, parse_mode: 'HTML', disable_web_page_preview: true, ...(markup ? { reply_markup: markup } : {}) };
 }
-async function answerCallback(id: string): Promise<void> {
+async function answerCallback(id: string, text?: string): Promise<void> {
   if (!BOT_TOKEN || !id) return;
   try {
     await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ callback_query_id: id }), signal: AbortSignal.timeout(2500) }).then(r => r.body?.cancel());
+      body: JSON.stringify({ callback_query_id: id, ...(text ? { text: text.slice(0, 190) } : {}) }), signal: AbortSignal.timeout(2500) }).then(r => r.body?.cancel());
   } catch { /* the spinner times out by itself */ }
 }
 
@@ -222,6 +266,8 @@ const json = (v: unknown, status = 200) => new Response(JSON.stringify(v), { sta
 const empty = (status = 200) => new Response(null, { status });
 
 Deno.serve(async (req: Request) => {
+  const op = new URL(req.url).searchParams.get('op');
+  if (op === 'prefs' || op === 'alert-fired') return prefsApi(req, op);
   if (req.method === 'GET') {
     const url = new URL(req.url);
     if (!url.searchParams.has('img')) return empty(404);
@@ -251,16 +297,23 @@ Deno.serve(async (req: Request) => {
     if (setup.op === 'swap' && Number.isInteger(setup.pinned)) {
       await patchCfg({ pinned_message_id: setup.pinned, commands_hash: typeof setup.hash === 'string' ? setup.hash.slice(0, 64) : null });
     }
-    return json({ ok: true, auth: state, pinned: cfg?.pinned_message_id ?? null, hash: cfg?.commands_hash ?? null });
+    let prefsKey = !!cfg?.prefs_key_hash;
+    if (setup.op === 'prefs-key') {   // sha256(prefs key) only; the key and the token never reach the function here
+      if (typeof setup.hash !== 'string' || !/^[0-9a-f]{64}$/.test(setup.hash)) return empty(400);
+      if (cfg?.prefs_key_hash !== setup.hash) await patchCfg({ prefs_key_hash: setup.hash });
+      keyCache = null;
+      prefsKey = true;
+      console.log(JSON.stringify({ ev: 'prefs_key_registered' }));
+    }
+    return json({ ok: true, auth: state, pinned: cfg?.pinned_message_id ?? null, hash: cfg?.commands_hash ?? null, prefs_key: prefsKey });
   }
 
-  const ctx = { load, now: new Date(), dispatch: GH_TOKEN ? dispatchScans : undefined, imageUrl };
+  const ctx = { load, now: new Date(), dispatch: GH_TOKEN ? dispatchScans : undefined, imageUrl, prefs: SB_URL && SB_KEY ? prefs : undefined };
   const cq = upd?.callback_query;
   if (cq && typeof cq === 'object') {
     const fromId = cq.from?.id;
     if ((typeof fromId !== 'number' && typeof fromId !== 'string') || !same(await sha(String(fromId)), o)) { console.log(JSON.stringify({ ev: 'other_chat' })); return empty(200); }
     const chat = cq.message?.chat?.id ?? fromId;
-    const answered = answerCallback(String(cq.id ?? ''));
     let reply: Reply;
     try {
       reply = await handleCallback(String(cq.data ?? '').slice(0, 64), ctx);
@@ -268,7 +321,7 @@ Deno.serve(async (req: Request) => {
       console.log(JSON.stringify({ ev: 'cmd_error', err: (e as Error).name }));
       reply = { cmd: 'error', text: '⚠️ Something went wrong reading the scanner data. Try again in a minute.' };
     }
-    await answered;
+    await answerCallback(String(cq.id ?? ''), reply.toast);
     console.log(JSON.stringify({ ev: 'tap', cmd: reply.cmd, ms: Date.now() - t0 }));
     return json(method(reply, chat, cq.message));
   }

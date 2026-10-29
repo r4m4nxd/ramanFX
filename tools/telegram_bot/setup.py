@@ -7,13 +7,16 @@
 1. ping the function with S + o (the first ping inside the SQL-opened window claims the row; see index.ts)
 2. a synthetic '/help' from the owner's chat: checks auth + owner + command end to end, and gives the list text
 3. setWebhook (secret_token=S, allowed_updates=['message', 'callback_query'], drop_pending_updates) + setMyCommands (commands.json)
+   + setChatMenuButton (menu_button.json: the RamanFX Mini App, https://raman-fx.vercel.app/)
 4. getWebhookInfo (pending count, last error)
+4b. prefs key for the scanners: K = sha256(bot token + ':prefs') (hex); only sha256(K) is sent to the function (over
+   this webhook-authenticated channel), then GET ?op=prefs with X-RFX-Key: K checks it end to end (counts only).
 5. the command list as one message, pinned (silently); the previous pinned list (id kept in the function's table)
    is unpinned, so re-runs replace the pin. On a push run the list is only re-sent when its text changed. The list
    message carries the persistent quick-reply keyboard ([FX] [Stocks] [Near] / [Signals] [Times] [Next]).
 6. SAMPLE_CHART=true: one album with the 4-timeframe chart of EURUSD and of the top stock signal (the function's
    /chart replies; the PNG route is fetched once first to check it renders).
-Logs only ok / false, HTTP codes and counts: never the token, chat id, secret, o or the webhook URL.
+Logs only ok / false, HTTP codes and counts: never the token, chat id, secret, o, the prefs key or the webhook URL.
 """
 from __future__ import annotations
 
@@ -30,6 +33,7 @@ PNG_MAGIC = b'\x89PNG'
 FN = 'https://dqjzufofmblerslcynzr.supabase.co/functions/v1/telegram-bot'
 HERE = os.path.dirname(os.path.abspath(__file__))
 COMMANDS = os.path.join(HERE, '..', '..', 'supabase', 'functions', 'telegram-bot', 'commands.json')
+MENU_BUTTON = os.path.join(HERE, 'menu_button.json')
 
 
 def post(url: str, body: dict, headers: dict | None = None, timeout: int = 30):
@@ -39,6 +43,22 @@ def post(url: str, body: dict, headers: dict | None = None, timeout: int = 30):
         with urllib.request.urlopen(req, timeout=timeout) as r:
             raw = r.read()
             code = r.status
+    except urllib.error.HTTPError as e:
+        raw, code = e.read(), e.code
+    except Exception as e:  # noqa: BLE001
+        return 0, {'error': type(e).__name__}
+    try:
+        return code, json.loads(raw) if raw else None
+    except ValueError:
+        return code, None
+
+
+def get(url: str, headers: dict | None = None, timeout: int = 30):
+    """(http code, parsed JSON or None) for a GET; never raises on HTTP errors."""
+    req = urllib.request.Request(url, headers=headers or {})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            raw, code = r.read(), r.status
     except urllib.error.HTTPError as e:
         raw, code = e.read(), e.code
     except Exception as e:  # noqa: BLE001
@@ -96,6 +116,12 @@ def main() -> int:
     _, r = tg('setMyCommands', {'commands': commands})
     ok_cmds = bool((r or {}).get('ok'))
     print(f'setMyCommands ok={ok_cmds} ({len(commands)} commands)')
+    with open(MENU_BUTTON) as f:
+        menu_button = json.load(f)
+    _, r = tg('setChatMenuButton', {'chat_id': chat, 'menu_button': menu_button})
+    ok_menu = bool((r or {}).get('ok'))
+    print(f"setChatMenuButton (Mini App) ok={ok_menu}" + ('' if ok_menu else f" desc={(r or {}).get('description', '')[:80]}"))
+    ok_cmds = ok_cmds and ok_menu
 
     # 4. status
     time.sleep(2)
@@ -103,6 +129,18 @@ def main() -> int:
     info = (r or {}).get('result') or {}
     print(f"getWebhookInfo ok={bool((r or {}).get('ok'))} url_set={bool(info.get('url'))} url_matches={info.get('url') == fn} "
           f"pending_update_count={info.get('pending_update_count')} last_error_message={info.get('last_error_message') or 'none'}")
+
+    # 4b. prefs key (the scanners derive the same K from TELEGRAM_BOT_TOKEN; the function stores sha256(K) only)
+    key = hashlib.sha256((token + ':prefs').encode()).hexdigest()
+    print(f'::add-mask::{key}')
+    code, pk = post(fn, {'rfx_setup': {'op': 'prefs-key', 'hash': hashlib.sha256(key.encode()).hexdigest()}}, hdr)
+    print(f"prefs key hash registered: HTTP {code} ok={bool((pk or {}).get('prefs_key'))}")
+    code, pr = get(f'{FN}?op=prefs', {'X-RFX-Key': key})
+    if code == 200 and isinstance(pr, dict):
+        print(f"prefs API: HTTP 200 alerts={len(pr.get('alerts') or [])} mutes={len(pr.get('mutes') or [])} "
+              f"watch={len(pr.get('watch') or [])} quiet={'on' if pr.get('quiet') else 'off'}")
+    else:
+        print(f'::warning::prefs API: HTTP {code} (the deployed function may predate the prefs API)')
 
     # 5. pinned command list
     text = rep['text']

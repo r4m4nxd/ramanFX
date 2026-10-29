@@ -7,6 +7,7 @@
 
 import { bestQuote, buildIndex, lessonPath, mentorOf, search as askSearch, type AskIndex } from './ask.ts';
 import { newsText } from './news.ts';
+import { MAX_ALERTS, MAX_WATCH, parseDuration, parsePrice, parseQuiet, parseTap, type Alert, type Prefs, type PrefsStore } from './prefs.ts';
 import { aggregate, monthKey, quarterKey, tfLabel, weekKey, type Band, type Bar, type ChartModel, type Panel } from './chart.ts';
 
 export type Button = { text: string; url: string } | { text: string; callback_data: string };
@@ -15,7 +16,8 @@ export interface Reply {
   buttons?: Button[][];   // inline keyboard
   keyboard?: boolean;     // attach the persistent quick-reply keyboard instead (MAIN_KEYBOARD)
   photo?: string;         // send a photo (URL) with `text` as its caption
-  edit?: boolean;         // a chart view switch: edit the tapped photo message when there is one
+  edit?: boolean;         // a chart view switch / list refresh: edit the tapped message when there is one
+  toast?: string;         // short answerCallbackQuery text (only when the optional TELEGRAM_BOT_TOKEN secret is set)
 }
 export interface Ctx {
   load(path: string): Promise<unknown>;
@@ -24,11 +26,13 @@ export interface Ctx {
   dispatch?: () => Promise<boolean>;
   /** Public PNG URL of a chart view ('Q' = 4 timeframes, or a TF) for a scan version; undefined = no charts. */
   imageUrl?: (sym: string, view: string, v: string) => string;
+  /** Owner preferences (alerts, mutes, quiet hours, watchlist); undefined = no database. */
+  prefs?: PrefsStore;
 }
 
 /** The command list: Telegram's Menu (setMyCommands reads commands.json, kept equal by a test), /help and the pin. */
-export type Group = 'Markets' | 'Symbol lookup' | 'Times' | 'Learn';
-export const GROUPS: Group[] = ['Markets', 'Symbol lookup', 'Times', 'Learn'];
+export type Group = 'Markets' | 'Symbol lookup' | 'Alerts' | 'Times' | 'Learn';
+export const GROUPS: Group[] = ['Markets', 'Symbol lookup', 'Alerts', 'Times', 'Learn'];
 export const COMMANDS: { command: string; description: string; group: Group; usage: string; help: string }[] = [
   { command: 'fx', description: 'Open FX setups + getting close', group: 'Markets', usage: '/fx', help: 'open FX setups, getting close, in a zone' },
   { command: 'stocks', description: "Today's stock BUY / WATCH", group: 'Markets', usage: '/stocks', help: "today's stock BUY / WATCH, close to a zone" },
@@ -38,6 +42,14 @@ export const COMMANDS: { command: string; description: string; group: Group; usa
   { command: 'zones', description: 'Every zone of a symbol', group: 'Symbol lookup', usage: '/zones EURUSD', help: 'every zone on every timeframe (or just send the symbol)' },
   { command: 'chart', description: 'Chart: 4 timeframes, or one', group: 'Symbol lookup', usage: '/chart EURUSD', help: 'one image, 4 timeframes (/chart EURUSD H4: one TF)' },
   { command: 'hours', description: 'Best times / days for a symbol', group: 'Symbol lookup', usage: '/hours XAUUSD', help: 'best Calgary times and weekdays' },
+  { command: 'alert', description: 'Alert at a price, or on a zone', group: 'Alerts', usage: '/alert XAUUSD 2650', help: 'one-shot price alert (/alert NVDA zone: price enters a strong zone)' },
+  { command: 'alerts', description: 'Your alerts, mutes, quiet hours', group: 'Alerts', usage: '/alerts', help: 'your alerts (🗑 to delete), mutes, quiet hours, watchlist' },
+  { command: 'unalert', description: 'Delete an alert', group: 'Alerts', usage: '/unalert 12', help: 'delete an alert by its number' },
+  { command: 'mute', description: 'Mute a symbol (1d or 1w)', group: 'Alerts', usage: '/mute EURUSD 1w', help: 'no scanner alerts for it (1d default, 1w, 12h)' },
+  { command: 'unmute', description: 'Unmute a symbol', group: 'Alerts', usage: '/unmute EURUSD', help: 'alerts back on for it' },
+  { command: 'quiet', description: 'Quiet hours (Calgary)', group: 'Alerts', usage: '/quiet 22:00-06:00', help: 'silent alerts overnight (/quiet off)' },
+  { command: 'watch', description: 'Add a symbol to the watchlist', group: 'Alerts', usage: '/watch AUDNZD', help: 'extra watchlist symbol (/watch: the list)' },
+  { command: 'unwatch', description: 'Remove a watchlist symbol', group: 'Alerts', usage: '/unwatch AUDNZD', help: 'take it off the extra watchlist' },
   { command: 'times', description: "Today's key Calgary times", group: 'Times', usage: '/times', help: "today's key Calgary times" },
   { command: 'next', description: 'Next NFP, CPI and Fed decision', group: 'Times', usage: '/next', help: 'next jobs report, CPI, Fed decision' },
   { command: 'news', description: "Today's high-impact news", group: 'Times', usage: '/news', help: "today's high-impact news (all major currencies)" },
@@ -386,7 +398,7 @@ async function fxZones(r: Resolved, ctx: Ctx): Promise<Reply> {
     lines.push(`${z.side === 'demand' ? '🟩' : '🟥'} ${esc(z.side)} ${px(z.proximal, dg)}–${px(z.distal, dg)} · ${esc(zoneStatus(pl, z.side, extra))}`);
   }
   lines.push('', `Nearest ${zones.length} zones · check levels on Pepperstone · ${FOOT}`);
-  return { cmd: 'zones', text: fit(lines), buttons: [...chartButtons(r.sym, 'fx'), [{ text: `📈 ${r.sym} on TradingView`, url: `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(d.tv || `PEPPERSTONE:${r.sym}`)}` }]] };
+  return { cmd: 'zones', text: fit(lines), buttons: [...chartButtons(r.sym, 'fx'), [{ text: `📈 ${r.sym} on TradingView`, url: `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(d.tv || `PEPPERSTONE:${r.sym}`)}` }], ...prefsButtons(r.sym, ctx)] };
 }
 
 async function stockZones(r: Resolved, ctx: Ctx): Promise<Reply> {
@@ -418,7 +430,7 @@ async function stockZones(r: Resolved, ctx: Ctx): Promise<Reply> {
   }
   lines.push('', `${zones.length} zones · long only (supply = where to take profit) · ${FOOT}`);
   const slug = String(r.sym).replace(/\./g, '-');
-  return { cmd: 'zones', text: fit(lines), buttons: [...chartButtons(r.sym, 'stock'), [...(d.chart ? [{ text: `📈 ${r.sym}`, url: String(d.chart) }] : []), { text: 'Open in scanner', url: `${APP}/scanner/${encodeURIComponent(slug)}` }]] };
+  return { cmd: 'zones', text: fit(lines), buttons: [...chartButtons(r.sym, 'stock'), [...(d.chart ? [{ text: `📈 ${r.sym}`, url: String(d.chart) }] : []), { text: 'Open in scanner', url: `${APP}/scanner/${encodeURIComponent(slug)}` }], ...prefsButtons(r.sym, ctx)] };
 }
 
 async function cmdZones(q: string, ctx: Ctx): Promise<Reply> {
@@ -649,7 +661,171 @@ export async function handleCallback(data: string, ctx: Ctx): Promise<Reply> {
   if (m && m[1] === 'z') return cmdZones(m[2], ctx);
   if (m && m[1] === 'c') return { ...(await cmdChart(m[2], m[3] ?? '', ctx)), edit: !!m[3] };
   if (CB_CMDS[data]) return handle(CB_CMDS[data], ctx);
+  const tap = parseTap(data ?? '');
+  if (tap) return prefsTap(tap, ctx);
   return { cmd: 'callback?', text: HINT };
+}
+
+// ---- preferences: alerts, mutes, quiet hours, watchlist (prefs.ts) ------------------------------------------------
+const NO_PREFS = '⚠️ <b>Alerts are not available right now</b>\nThe settings database did not answer. Try again in a minute.';
+/** [🔕 Mute 1w] [⏰ 0.2%] under a symbol card (only with a database). */
+export function prefsButtons(sym: string, ctx: Ctx): Button[][] {
+  if (!ctx.prefs || !cbOk(`m:${sym}:7`) || !cbOk(`r:${sym}:0.2`)) return [];
+  return [[{ text: '🔕 Mute 1w', callback_data: `m:${sym}:7` }, { text: '⏰ 0.2%', callback_data: `r:${sym}:0.2` }]];
+}
+interface Quote { hit: Resolved; price: number | null; digits: number; zones: Zn[] }
+/** A symbol's canonical name, current price and strong zones (FX: not the 3M context zones). */
+async function quote(q: string, ctx: Ctx): Promise<{ quote: Quote | null; suggest: string[] }> {
+  const { hit, suggest } = await resolve(q, ctx);
+  if (!hit) return { quote: null, suggest };
+  if (hit.market === 'fx') {
+    const d = obj(obj(obj(await ctx.load(`fx/d/${hit.row.k ?? hit.row.cls}.json`)).instruments)[hit.sym]);
+    return { quote: { hit, price: num(d.price) ?? num(hit.row.px), digits: digitsOf(d.digits != null ? d : hit.row), zones: zoneList(arr(d.zones)).filter(z => z.tf !== '3M') }, suggest };
+  }
+  const d = obj(obj(obj(await ctx.load(`scanner/t/${hit.row.k}.json`)).tickers)[hit.sym]);
+  return { quote: { hit, price: num(d.price) ?? num(hit.row.px), digits: 2, zones: zoneList(arr(d.zones)) }, suggest };
+}
+const fmtLevel = (v: number, q: Quote) => (q.hit.market === 'fx' ? px(v, q.digits) : stockPx(v));
+const untilText = (iso: string | Date) => { const t = new Date(iso); return `${day(t)} · ${clock(t)}`; };
+function alertLine(a: Alert): string {
+  if (a.kind === 'price') return `#${a.id} <b>${esc(a.sym)}</b> ${a.dir === 'above' ? '↑ above' : '↓ below'} ${esc(String(a.level))}`;
+  if (a.kind === 'zone') return `#${a.id} <b>${esc(a.sym)}</b> · enters a strong zone`;
+  return `#${a.id} <b>${esc(a.sym)}</b> · within ${esc(String(a.pct))}% of the nearest zone${a.level != null ? ` (${esc(String(a.level))})` : ''}`;
+}
+
+async function withPrefs(cmd: string, ctx: Ctx, f: (p: PrefsStore) => Promise<Reply>): Promise<Reply> {
+  if (!ctx.prefs) return { cmd, text: NO_PREFS };
+  try { return await f(ctx.prefs); } catch { return { cmd, text: NO_PREFS }; }
+}
+const unknownSym = (cmd: string, q: string, sug: string[]): Reply => ({ cmd, text: notFound(q, sug).replace(/\/zones /g, `/${cmd} `) });
+
+async function cmdAlert(a1: string, a2: string, ctx: Ctx): Promise<Reply> {
+  if (!a1 || !a2) return { cmd: 'alert', text: 'Send a symbol and a price, e.g. <b>/alert XAUUSD 2650</b>, or <b>/alert NVDA zone</b> (price enters any strong zone). /alerts lists them.' };
+  return withPrefs('alert', ctx, async p => {
+    const { quote: q, suggest } = await quote(a1, ctx);
+    if (!q) return unknownSym('alert', a1, suggest);
+    const cur = await p.get(ctx.now);
+    if (cur.alerts.length >= MAX_ALERTS) return { cmd: 'alert', text: `You have ${cur.alerts.length} alerts, the most allowed. Delete some in /alerts first.` };
+    const sym = q.hit.sym;
+    if (/^zones?$/i.test(a2)) {
+      const dup = cur.alerts.find(a => a.sym === sym && a.kind === 'zone');
+      if (dup) return { cmd: 'alert', text: `⏰ Already set: ${alertLine(dup)}` };
+      const id = await p.addAlert({ sym, kind: 'zone' });
+      return { cmd: 'alert', text: [`⏰ <b>Alert #${id} set</b>`, `<b>${esc(sym)}</b>: when price enters any strong zone (any timeframe).`, `${q.zones.length} zones located now · checked on every scan · one-shot`].join('\n') };
+    }
+    const level = parsePrice(a2);
+    if (level == null) return { cmd: 'alert', text: `<b>${esc(a2)}</b> is not a price. E.g. <b>/alert ${esc(sym)} ${q.price != null ? esc(fmtLevel(q.price, q).replace(/,/g, '')) : '1.2345'}</b> or <b>/alert ${esc(sym)} zone</b>.` };
+    if (q.price == null) return { cmd: 'alert', text: `No current price published for <b>${esc(sym)}</b>, so the direction is unknown. Try again after the next scan.` };
+    if (Math.abs(level - q.price) / q.price > 0.5) return { cmd: 'alert', text: `<b>${esc(fmtLevel(level, q))}</b> is more than 50% from the price (${esc(fmtLevel(q.price, q))}). Check the number.` };
+    if (level === q.price) return { cmd: 'alert', text: `Price is at ${esc(fmtLevel(level, q))} already.` };
+    const dir = level > q.price ? 'above' : 'below';
+    const id = await p.addAlert({ sym, kind: 'price', level, dir });
+    return { cmd: 'alert', text: [`⏰ <b>Alert #${id} set</b>`, `<b>${esc(sym)}</b> ${dir === 'above' ? '↑ above' : '↓ below'} ${esc(fmtLevel(level, q))}`,
+      `now ${esc(fmtLevel(q.price, q))} · ${esc(shortPct(Math.abs(level - q.price) / q.price * 100))} away · checked on every scan · one-shot`].join('\n') };
+  });
+}
+
+async function cmdAlerts(ctx: Ctx, edit = false): Promise<Reply> {
+  return withPrefs('alerts', ctx, async p => {
+    const pr: Prefs = await p.get(ctx.now);
+    const lines = [`⏰ <b>Alerts · ${pr.alerts.length}</b>`];
+    lines.push(...(pr.alerts.length ? pr.alerts.map(alertLine) : ['none set (/alert XAUUSD 2650, /alert NVDA zone)']));
+    lines.push('', `🔕 <b>Muted · ${pr.mutes.length}</b>`);
+    lines.push(...(pr.mutes.length ? pr.mutes.map(m => `<b>${esc(m.sym)}</b> until ${esc(untilText(m.until_utc))}`) : ['nothing muted (/mute EURUSD 1w)']));
+    lines.push('', `🌙 <b>Quiet hours</b> · ${pr.quiet ? `${esc(pr.quiet.from)}–${esc(pr.quiet.to)} Calgary (/quiet off)` : 'off (/quiet 22:00-06:00)'}`);
+    lines.push('', `👀 <b>Extra watchlist · ${pr.watch.length}</b>`, pr.watch.length ? esc(pr.watch.join(' · ')) : 'empty (/watch AUDNZD)');
+    lines.push('', `The scanners check these on every run · ${FOOT}`);
+    const buttons: Button[][] = [];
+    const del = pr.alerts.slice(0, 20).map(a => ({ text: `🗑 #${a.id} ${a.sym}`, callback_data: `d:${a.id}` }));
+    for (let i = 0; i < del.length; i += 3) buttons.push(del.slice(i, i + 3));
+    const um = pr.mutes.slice(0, 6).filter(m => cbOk(`u:${m.sym}`)).map(m => ({ text: `🔔 ${m.sym}`, callback_data: `u:${m.sym}` }));
+    for (let i = 0; i < um.length; i += 3) buttons.push(um.slice(i, i + 3));
+    return { cmd: 'alerts', text: fit(lines), buttons, edit };
+  });
+}
+
+async function cmdUnalert(a: string, ctx: Ctx): Promise<Reply> {
+  const id = Number(a.replace(/^#/, ''));
+  if (!a || !Number.isInteger(id) || id <= 0) return { cmd: 'unalert', text: 'Send the alert number, e.g. <b>/unalert 12</b> (numbers in /alerts).' };
+  return withPrefs('unalert', ctx, async p => ({ cmd: 'unalert', text: (await p.delAlert(id)) ? `🗑 Alert #${id} deleted.` : `No open alert #${id} (/alerts).` }));
+}
+
+async function doMute(q: string, ms: number, ctx: Ctx, p: PrefsStore): Promise<Reply> {
+  const { hit, suggest } = await resolve(q, ctx);
+  if (!hit) return unknownSym('mute', q, suggest);
+  const until = new Date(ctx.now.getTime() + ms);
+  await p.mute(hit.sym, until, ctx.now);
+  return { cmd: 'mute', text: `🔕 <b>${esc(hit.sym)}</b> muted until ${esc(untilText(until))} (Calgary).\nNo scanner alerts for it until then · /unmute ${esc(hit.sym)}`, toast: `${hit.sym} muted` };
+}
+async function cmdMute(a1: string, a2: string, ctx: Ctx): Promise<Reply> {
+  if (!a1) return { cmd: 'mute', text: 'Send a symbol, e.g. <b>/mute EURUSD 1w</b> (1d by default; 12h, 3d, 2w work too).' };
+  const ms = parseDuration(a2);
+  if (ms == null) return { cmd: 'mute', text: `<b>${esc(a2)}</b> is not a duration. Use 1d, 1w, 12h (up to 90d).` };
+  return withPrefs('mute', ctx, p => doMute(a1, ms, ctx, p));
+}
+async function cmdUnmute(a: string, ctx: Ctx): Promise<Reply> {
+  if (!a) return { cmd: 'unmute', text: 'Send a symbol, e.g. <b>/unmute EURUSD</b>.' };
+  return withPrefs('unmute', ctx, async p => {
+    const { hit } = await resolve(a, ctx);
+    const sym = hit?.sym ?? a.toUpperCase();
+    return { cmd: 'unmute', text: (await p.unmute(sym)) ? `🔔 <b>${esc(sym)}</b> unmuted.` : `<b>${esc(sym)}</b> was not muted.`, toast: `${sym} unmuted` };
+  });
+}
+async function cmdQuiet(a: string, ctx: Ctx): Promise<Reply> {
+  return withPrefs('quiet', ctx, async p => {
+    if (!a) {
+      const q = (await p.get(ctx.now)).quiet;
+      return { cmd: 'quiet', text: q ? `🌙 Quiet hours ${esc(q.from)}–${esc(q.to)} Calgary. /quiet off to stop.` : '🌙 Quiet hours are off. Set them with <b>/quiet 22:00-06:00</b> (Calgary clock).' };
+    }
+    const q = parseQuiet(a);
+    if (q === undefined) return { cmd: 'quiet', text: 'Use <b>/quiet 22:00-06:00</b> (Calgary clock) or <b>/quiet off</b>.' };
+    await p.setQuiet(q);
+    return { cmd: 'quiet', text: q ? `🌙 <b>Quiet hours ${esc(q.from)}–${esc(q.to)}</b> (Calgary)\nScanner alerts in that window come silently. /quiet off to stop.` : '🌙 Quiet hours off.' };
+  });
+}
+async function cmdWatch(a: string, ctx: Ctx): Promise<Reply> {
+  return withPrefs('watch', ctx, async p => {
+    const cur = (await p.get(ctx.now)).watch;
+    if (!a) return { cmd: 'watch', text: `👀 <b>Extra watchlist · ${cur.length}</b>\n${cur.length ? esc(cur.join(' · ')) : 'empty'}\nAdd: <b>/watch AUDNZD</b> · remove: /unwatch` };
+    const { hit, suggest } = await resolve(a, ctx);
+    if (!hit) return unknownSym('watch', a, suggest);
+    if (cur.includes(hit.sym)) return { cmd: 'watch', text: `👀 <b>${esc(hit.sym)}</b> is on the watchlist already.` };
+    if (cur.length >= MAX_WATCH) return { cmd: 'watch', text: `The extra watchlist is full (${cur.length}). /unwatch some first.` };
+    await p.watch(hit.sym);
+    return { cmd: 'watch', text: `👀 <b>${esc(hit.sym)}</b> added to the watchlist (${cur.length + 1}). The scanners report it like a watchlist symbol.` };
+  });
+}
+async function cmdUnwatch(a: string, ctx: Ctx): Promise<Reply> {
+  if (!a) return { cmd: 'unwatch', text: 'Send a symbol, e.g. <b>/unwatch AUDNZD</b>.' };
+  return withPrefs('unwatch', ctx, async p => {
+    const { hit } = await resolve(a, ctx);
+    const sym = hit?.sym ?? a.toUpperCase();
+    return { cmd: 'unwatch', text: (await p.unwatch(sym)) ? `👀 <b>${esc(sym)}</b> removed from the watchlist.` : `<b>${esc(sym)}</b> is not on the extra watchlist.` };
+  });
+}
+
+/** A tapped prefs button (prefs.ts parseTap). */
+async function prefsTap(t: NonNullable<ReturnType<typeof parseTap>>, ctx: Ctx): Promise<Reply> {
+  if (t.op === 'mute') return withPrefs('mute', ctx, p => doMute(t.sym, t.days * 86400000, ctx, p));
+  if (t.op === 'unmute') return { ...(await cmdUnmute(t.sym, ctx)), cmd: 'unmute' };
+  if (t.op === 'del') {
+    return withPrefs('unalert', ctx, async p => {
+      const ok = await p.delAlert(t.id);
+      return { ...(await cmdAlerts(ctx, true)), cmd: 'unalert', toast: ok ? `Alert #${t.id} deleted` : `Alert #${t.id} was already gone` };
+    });
+  }
+  return withPrefs('alert', ctx, async p => {
+    const { quote: q } = await quote(t.sym, ctx);
+    if (!q) return { cmd: 'alert', text: notFound(t.sym, []) };
+    const near = q.price != null ? q.zones.slice().sort((a, b) => zDist(q.price as number, a) - zDist(q.price as number, b))[0] : undefined;
+    const cur = await p.get(ctx.now);
+    const dup = cur.alerts.find(a => a.sym === q.hit.sym && a.kind === 'pct' && a.pct === t.pct);
+    if (dup) return { cmd: 'alert', text: `⏰ Already set: ${alertLine(dup)}`, toast: 'Already set' };
+    if (cur.alerts.length >= MAX_ALERTS) return { cmd: 'alert', text: `You have ${cur.alerts.length} alerts, the most allowed. Delete some in /alerts first.` };
+    const id = await p.addAlert({ sym: q.hit.sym, kind: 'pct', pct: t.pct, ...(near ? { level: near.prox } : {}) });
+    const where = near ? `nearest zone now: ${tf(near.tf)} ${near.side} ${fmtLevel(near.prox, q)}–${fmtLevel(near.dist, q)}${q.price != null ? ` (${shortPct(zDist(q.price, near))} away)` : ''}` : 'no zone located right now';
+    return { cmd: 'alert', text: [`⏰ <b>Alert #${id} set</b>`, `<b>${esc(q.hit.sym)}</b>: price within ${esc(String(t.pct))}% of the nearest strong zone's proximal line.`, esc(where), 'checked on every scan · one-shot · /alerts'].join('\n'), toast: `Alert #${id} set` };
+  });
 }
 
 // ---- /news (TradingView economic calendar, loaded as 'news.json' = yesterday .. +2 days; formatting in news.ts) ----
@@ -720,6 +896,14 @@ export async function handle(text: string, ctx: Ctx): Promise<Reply> {
       case 'next': return cmdNext(ctx);
       case 'hours': return cmdHours(c.arg, ctx);
       case 'scan': return cmdScan(ctx);
+      case 'alert': return cmdAlert(c.arg, c.arg2, ctx);
+      case 'alerts': return cmdAlerts(ctx);
+      case 'unalert': case 'delalert': return cmdUnalert(c.arg, ctx);
+      case 'mute': return cmdMute(c.arg, c.arg2, ctx);
+      case 'unmute': return cmdUnmute(c.arg, ctx);
+      case 'quiet': return cmdQuiet(c.rest, ctx);
+      case 'watch': return cmdWatch(c.arg, ctx);
+      case 'unwatch': return cmdUnwatch(c.arg, ctx);
       default: return { cmd: 'unknown', text: HINT };
     }
   }
