@@ -29,6 +29,7 @@ from typing import Dict, List, Optional
 
 BOT_URL = os.environ.get('RFX_BOT_URL') or 'https://dqjzufofmblerslcynzr.supabase.co/functions/v1/telegram-bot'
 TIMEOUT = 10.0
+_MASKED: list = []
 
 
 def key(token: str) -> str:
@@ -39,6 +40,9 @@ def _req(op: str, body: Optional[Dict] = None, timeout: float = TIMEOUT) -> Dict
     token = os.environ.get('TELEGRAM_BOT_TOKEN') or ''
     if not token:
         raise RuntimeError('no TELEGRAM_BOT_TOKEN')
+    if os.environ.get('GITHUB_ACTIONS') == 'true' and not _MASKED:
+        print(f'::add-mask::{key(token)}', flush=True)     # never shown in the Actions log
+        _MASKED.append(True)
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(f'{BOT_URL}?op={op}', data=data, method='POST' if body is not None else 'GET',
                                  headers={'X-RFX-Key': key(token), 'Content-Type': 'application/json',
