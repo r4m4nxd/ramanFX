@@ -11,6 +11,7 @@ Telegram. Edge function, `verify_jwt: false`: it checks its own secret (`x-coach
 | `app-core.js` | GENERATED: the app's own `src/core` (enrich, riskStatus, rule score, plans) bundled by `scripts/build-coach-core.mjs`. Re-run `node scripts/build-coach-core.mjs` after changing those files; `src/core/traderCoach.test.ts` fails while it is stale. |
 | `app-core.d.ts` | types for tsc only |
 | `scheduler.ts` | which GitHub workflow slots are due (pure) |
+| `health.ts` | the silent health watchdog: checks (pure) + the GitHub / key probes (injected fetch) + `/health` text |
 | `deploy_entry.ts` | the deployed file: imports `index.ts` from raw GitHub at one commit SHA |
 
 ## What it sends
@@ -40,6 +41,27 @@ Telegram. Edge function, `verify_jwt: false`: it checks its own secret (`x-coach
    One dispatch per slot (`rfx_coach_events` `dispatch:<slot>`, last one per workflow in `rfx_coach_config.dispatch`);
    a slot is skipped when the workflow's latest GitHub run was created inside it. A failed dispatch is retried next tick.
    Without the token: nothing, and `dispatch token not set` is logged once per day. The token is never logged.
+
+6. **Health watchdog** (`health.ts`, on a tick at most once per half hour): silent while everything works. ONE calm
+   message when something stays broken past its grace window, e.g. `⚠️ FX scan missed 2 hours — last good scan 1:05 PM.`,
+   again at most every 6 h while it lasts, and ONE `✅ resolved: FX scan — last good scan 3:05 PM` when it clears.
+   Several problems found together share one message; max 4 health messages a Calgary day; during the owner's quiet
+   hours (`/quiet`) nothing is sent and what is still broken goes out in one message when they end. Checks:
+   - FX scan: forex week, a successful `fx-scan.yml` run (not the bot's `FX on-demand scan …`) or `public/fx/latest.json`
+     `generated` within 2 h 20 min; weekend: a crypto-only run within 3 h;
+   - stock scan: each NYSE trading day (NYSE holidays skipped: the scanner has no "market closed" mark, it would just
+     rescan the last session), a successful run or `public/scanner/latest.json` after the 4 PM New York close, due 2.5 h
+     after it (a run in progress is not a problem yet);
+   - big moves (`movers.yml`) within 3 h in the forex week; morning brief by 6:45 AM Calgary (weekdays); fundamentals
+     by 21:00 New York (weekdays);
+   - a failed run (`failure` / `timed_out`) of any of these, still the newest at the next check → named with a link;
+   - keys: GitHub token (runs list 200; `github-authentication-token-expiration` header → one heads-up at 14 days and
+     one at 3 days), OANDA (1 candle; Edge secrets are project-wide, so `OANDA_API_TOKEN` is read like the bot does),
+     Alpaca (latest AAPL trade), Telegram (`getMe`). Only 401 / 403 counts (twice in a row); a missing secret or a
+     network hiccup is not a problem. No secret value is ever logged.
+   The grace windows are longer than the scheduler's own retries (self-healing first). State in `rfx_coach_events`
+   (`hopen:` / `halert:` / `hmsg:` / `health:` keys), the last snapshot in `rfx_coach_config.dispatch.health` (the bot's
+   `/health`). Evaluation only, nothing sent: body `{"dry":"health"}`. Log line per check: `{"ev":"health",…}` (ids only).
 
 ## Triggers
 

@@ -24,7 +24,7 @@ export interface Dispatch {
 
 // ---- New York clock (forex week, US close) -------------------------------------------------------------------------
 let nyFmt: Intl.DateTimeFormat | null = null;
-function nyParts(ms: number) {
+export function nyParts(ms: number) {
   nyFmt ??= new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', weekday: 'short', hourCycle: 'h23' });
   const p: Record<string, string> = {};
   for (const x of nyFmt.formatToParts(new Date(ms))) p[x.type] = x.value;

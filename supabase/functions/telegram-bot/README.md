@@ -10,6 +10,10 @@ app's full how-to page, https://raman-fx.vercel.app/guide (`#bot`, `#fix`). The 
 `src/content/guide.ts`; `src/content/guide.test.ts` fails when a command in `commands.json` has no row there, so add
 one whenever a command is added.
 
+**`/health`** (alias `/status`): the trader coach's last watchdog snapshot (`rfx_coach_config.dispatch.health`, written
+every 30 min by `trader-coach/health.ts`): last good FX scan / stock scan / big moves / brief, keys OK (GitHub, OANDA,
+Alpaca, Telegram), the GitHub token's expiry date and any open problem. Reads one row; no live calls.
+
 ## Owner preferences (Telegram commands)
 
 | Command | Effect |

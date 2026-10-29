@@ -3,6 +3,7 @@
 //   - the trigger on public.rfx_journal (owner row changed: app sync or a bot note)  body {"reason":"journal"}
 //   - pg_cron every 10 min (safety net, Sunday 6 PM Calgary weekly report)          body {"reason":"tick"}
 //   - by hand, once: the sample report                                              body {"dry":"report"}
+//   - by hand: the health evaluation only (nothing sent, nothing stored)              body {"dry":"health"}
 // What it does (core.ts has the rules; the maths is the app's own code in app-core.js):
 //   1. rule guard: daily loss limit / max trades -> one 'Stop trading today' per day, 70% -> one heads-up,
 //      N losses in a row -> the cooldown pause with the next look time;
@@ -12,6 +13,9 @@
 //   4. re-applies a bot journal write (note / plan) that a concurrent app sync overwrote (rfx_coach_writes, 24 h);
 //   6. breaking news (breaking.ts, ticks only, needs the Alpaca keys): one calm alert when Alpaca tags a fresh article
 //      with a watched / held symbol (1 per symbol per 3 h, 6 a day, not in quiet hours, muted symbols skipped);
+//   7. silent health watchdog (health.ts, ticks only, once per half hour): ONE calm message when a scan / brief / big
+//      moves / fundamentals run is missing or failing past its grace window, or a key is rejected; ONE '✅ resolved'
+//      when it clears; max 4 a day, held during quiet hours; nothing at all while everything works.
 //   5. scheduler for the GitHub workflows (scheduler.ts): with the OPTIONAL secret GITHUB_DISPATCH_TOKEN it dispatches
 //      fx-scan / stock-scan / briefing / reminders / movers (hourly big moves) as scheduled-equivalent runs, once per slot, skipping a slot a GitHub
 //      run already covers. Without the token: nothing (logs 'dispatch token not set' once per day).
@@ -22,6 +26,7 @@ import { covered, dispatchRequest, dueDispatches, latestRunMs, latestRunUrl, typ
 import { breakingMarkup, breakingText, inQuiet, pickBreaking, watchedTags } from './breaking.ts';
 import { ALPACA_NEWS, parseAlpaca } from '../telegram-bot/headlines.ts';
 import { restStore } from '../telegram-bot/prefs.ts';
+import { evaluate, gather, gatherFiles, needFiles, plan, snapOf, stateOf, tickKey } from './health.ts';
 import { isoDay, askCandidates, askText, COLS, fromRow, guardEvents, reportCard, reportDue, restDb, saveWhyNote, savePlan, utcRuntime, weekOf, writeLost, type Card, type JournalWrite } from './core.ts';
 
 const SB_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -31,6 +36,8 @@ const TG_CHAT = Deno.env.get('TELEGRAM_CHAT_ID') ?? '';
 const GH_TOKEN = Deno.env.get('GITHUB_DISPATCH_TOKEN') ?? '';
 const MAX_ASKS = 3;
 const ALPACA_ID = Deno.env.get('ALPACA_KEY_ID') ?? '', ALPACA_SECRET = Deno.env.get('ALPACA_SECRET_KEY') ?? '';
+// Edge secrets are project-wide: the bot's OANDA key, read here only for the health watchdog's 1-candle key check.
+const OANDA = Deno.env.get('OANDA_API_TOKEN') ?? '', OANDA_LIVE = (Deno.env.get('OANDA_ENV') ?? '').toLowerCase() === 'live';
 
 const H = (): Record<string, string> => ({ apikey: SB_KEY, 'Content-Type': 'application/json', ...(SB_KEY.startsWith('eyJ') ? { Authorization: `Bearer ${SB_KEY}` } : {}) });
 const rest = (path: string) => `${SB_URL}/rest/v1/${path}`;
@@ -138,6 +145,44 @@ async function breaking(now: number): Promise<number> {
   return n;
 }
 
+// ---- health watchdog (health.ts): silent while healthy, one calm message per problem, one when it clears ------------
+const inList = (keys: string[]) => encodeURIComponent(`in.(${keys.map(k => `"${k}"`).join(',')})`);
+async function health(now: number, dry = false): Promise<Record<string, unknown> | null> {
+  if (!dry && !(await claim(tickKey(now), 'health-tick'))) return null;     // once per half hour
+  const env = { gh: GH_TOKEN, oanda: OANDA, oandaLive: OANDA_LIVE, alpacaId: ALPACA_ID, alpacaSecret: ALPACA_SECRET, tg: TG_TOKEN };
+  let snap = await gather(env, fetch, now);
+  let checks = evaluate(snap);
+  const need = needFiles(checks);
+  if (need.length) { snap = { ...snap, files: await gatherFiles(need, fetch) }; checks = evaluate(snap); }
+  const problems = checks.filter(c => c.status === 'problem').map(c => c.id);
+  if (dry) return { ok: true, problems, keys: snap.keys, checks: checks.map(c => `${c.id}:${c.status}`) };
+  const rows = await q<{ key: string; kind: string; sent: boolean; created_at: string }>(
+    `rfx_coach_events?or=(kind.eq.health-open,and(kind.in.(health-alert,health-msg),created_at.gte.${encodeURIComponent(`"${new Date(now - 26 * 3600_000).toISOString()}"`)}))&select=key,kind,sent,created_at`);
+  const st = stateOf(rows, now);
+  let quiet = false;
+  try { quiet = inQuiet((await restStore(SB_URL, H(), (u, i) => fetch(u, { ...i, signal: AbortSignal.timeout(6000) })).get(new Date(now))).quiet, now); } catch { /* no prefs: not quiet */ }
+  const p = plan({ now, checks, ...st, quiet });
+  for (const id of p.add) await claim(`hopen:${id}`, 'health-open');
+  let sent = false, close = p.close;
+  if (p.text) {
+    const id = hasTelegram() ? await send(p.text) : null;
+    if (id || !hasTelegram()) {         // without the secrets: recorded only (nothing floods in later)
+      sent = !!id;
+      if (p.alert.length) {
+        await q(`rfx_coach_events?key=${inList(p.alert.map(a => `hopen:${a}`))}`, { method: 'PATCH', body: JSON.stringify({ sent: true }) });
+        await q('rfx_coach_events', { method: 'POST', headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' }, body: JSON.stringify(p.alert.map(a => ({ key: `halert:${a}:${now}`, kind: 'health-alert' }))) });
+      }
+      if (id) await q('rfx_coach_events', { method: 'POST', headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' }, body: JSON.stringify([{ key: `hmsg:${now}`, kind: 'health-msg', sent: true, message_id: id }]) });
+    } else close = close.filter(c => !p.resolved.includes(c));   // the '✅ resolved' did not go out: try again next check
+  }
+  if (close.length) await q(`rfx_coach_events?key=${inList(close.map(c => `hopen:${c}`))}`, { method: 'DELETE' });
+  const cfg = await getCfg();
+  if (cfg) await q('rfx_coach_config?id=eq.1', { method: 'PATCH', body: JSON.stringify({ dispatch: { ...(cfg.dispatch ?? {}), health: snapOf(snap, checks) } }) });
+  const out = { ev: 'health', problems, opened: p.add, alerted: p.alert, resolved: p.resolved, closed: close, sent, quiet, keys: snap.keys };
+  log(out);
+  return out;
+}
+
 async function readJournal() {
   const rows = await q(`rfx_journal?user_id=eq.67967f02-d6fb-45f1-9edf-d14c3d3fcf12&select=${COLS.map(c => c[1]).join(',')},updated_at`);
   return rows[0] ? { j: fromRow(rows[0]), updatedAt: String(rows[0].updated_at) } : null;
@@ -160,9 +205,12 @@ async function run(reason: string, dry: string | null): Promise<Record<string, u
     return { ok: true, sent: !!id };
   }
 
+  if (dry === 'health') return (await health(now, true)) ?? { ok: false };   // evaluation only: nothing sent or stored
+
   let dispatched: string[] = [];
   try { dispatched = await schedule(cfg, now); } catch (e) { log({ ev: 'schedule_error', err: (e as Error).message.slice(0, 80) }); }
   if (reason === 'tick') { try { await breaking(now); } catch (e) { log({ ev: 'breaking_error', err: (e as Error).message.slice(0, 80) }); } }
+  if (reason === 'tick') { try { await health(now); } catch (e) { log({ ev: 'health_error', err: (e as Error).message.slice(0, 80) }); } }
 
   const head = await q<{ updated_at: string }>('rfx_journal?user_id=eq.67967f02-d6fb-45f1-9edf-d14c3d3fcf12&select=updated_at');
   if (!head[0]) return { ok: true, idle: 'no journal row' };
@@ -233,7 +281,7 @@ Deno.serve(async (req: Request) => {
   let body: Record<string, unknown> = {};
   try { body = await req.json(); } catch { /* empty body = tick */ }
   const reason = typeof body.reason === 'string' ? body.reason.slice(0, 20) : 'tick';
-  const dry = body.dry === 'report' ? 'report' : null;
+  const dry = body.dry === 'report' ? 'report' : body.dry === 'health' ? 'health' : null;
   try {
     return json(await run(reason, dry));
   } catch (e) {

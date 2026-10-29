@@ -36,6 +36,7 @@ import { journalRoute } from './journal.ts';   // trader coach: 'why did you tak
 import { keyOk, restStore } from './prefs.ts';
 import { headlineLoader } from './headlines.ts';
 import { restDb } from '../trader-coach/core.ts';
+import { healthSummary, type HealthSnap } from '../trader-coach/health.ts';
 
 const SB_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SB_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -73,6 +74,16 @@ function same(a: string, b: string): boolean {
   let x = 0;
   for (let i = 0; i < a.length; i++) x |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return x === 0;
+}
+
+// ---- /health: the trader coach's last watchdog snapshot (rfx_coach_config.dispatch.health, trader-coach/health.ts) ---
+async function healthText(): Promise<string> {
+  let snap: HealthSnap | null = null;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/rfx_coach_config?id=eq.1&select=dispatch`, { headers: dbHeaders(), signal: AbortSignal.timeout(5000) });
+    if (r.ok) snap = ((await r.json())?.[0]?.dispatch?.health ?? null) as HealthSnap | null; else await r.body?.cancel();
+  } catch { /* shown as 'no check yet' */ }
+  return healthSummary(snap, Date.now());
 }
 
 // ---- config row ----------------------------------------------------------------------------------------------------
@@ -359,7 +370,7 @@ Deno.serve(async (req: Request) => {
   }
 
   const ctx = { load, now: new Date(), dispatch: GH_TOKEN ? dispatchScans : undefined, imageUrl, prefs: SB_URL && SB_KEY ? prefs : undefined,
-    live, scanOne: GH_TOKEN ? dispatchOne : undefined };
+    live, scanOne: GH_TOKEN ? dispatchOne : undefined, health: SB_URL && SB_KEY ? healthText : undefined };
   const cq = upd?.callback_query;
   if (cq && typeof cq === 'object') {
     const fromId = cq.from?.id;

@@ -37,6 +37,8 @@ export interface Ctx {
   /** On-demand scan of ONE symbol (fx-scan.yml only= / stock-scan.yml tickers=, with ondemand=true): the scanner
    *  sends the result card itself. undefined = no GITHUB_DISPATCH_TOKEN. */
   scanOne?: (market: 'fx' | 'stock', sym: string) => Promise<ScanResult>;
+  /** /health: the trader coach's last watchdog snapshot as text (trader-coach/health.ts); undefined = no database. */
+  health?: () => Promise<string>;
 }
 export type ScanResult = 'ok' | 'limited' | 'fail';
 
@@ -66,6 +68,7 @@ export const COMMANDS: { command: string; description: string; group: Group; usa
   { command: 'news', description: 'Calendar + top market headlines', group: 'Times', usage: '/news', help: "today's high-impact events + top headlines (/news NVDA: one symbol's headlines)" },
   { command: 'took', description: 'Log a trade you took as a plan', group: 'Journal', usage: '/took EURUSD buy 1.0850 sl 1.0820 tp 1.0910', help: 'adds it to the Planner; reply to a 📝 prompt to save why' },
   { command: 'ask', description: 'Ask the lessons a question', group: 'Learn', usage: '/ask what is a proximal line', help: "the mentors' own words (or end any message with ?)" },
+  { command: 'health', description: 'Are the scans and keys OK?', group: 'Learn', usage: '/health', help: 'last FX / stock scan, keys OK (the watchdog messages only when something breaks)' },
   { command: 'guide', description: 'How-to cheat sheet + the full guide', group: 'Learn', usage: '/guide', help: 'short how-to + a link to the full guide in the app' },
   { command: 'help', description: 'This list', group: 'Learn', usage: '/help', help: 'this list' },
 ];
@@ -1051,6 +1054,7 @@ export async function handle(text: string, ctx: Ctx): Promise<Reply> {
     switch (c.cmd) {
       case 'start': case 'help': return { cmd: c.cmd, text: helpText(), keyboard: true };
       case 'guide': case 'howto': return cmdGuide();
+      case 'health': case 'status': return { cmd: 'health', text: ctx.health ? await ctx.health() : '🩺 Health status needs the database (Supabase secrets of the bot).' };
       case 'chart': return cmdChart(c.arg, c.arg2, ctx);
       case 'ask': return cmdAsk(c.rest, ctx);
       case 'news': return cmdNews(c.arg, ctx);

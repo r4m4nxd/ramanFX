@@ -21,6 +21,7 @@
   {"command": "news", "description": "Calendar + top market headlines"},
   {"command": "took", "description": "Log a trade you took as a plan"},
   {"command": "ask", "description": "Ask the lessons a question"},
+  {"command": "health", "description": "Are the scans and keys OK?"},
   {"command": "guide", "description": "How-to cheat sheet + the full guide"},
   {"command": "help", "description": "This list"}
 ]
