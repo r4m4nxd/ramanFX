@@ -395,7 +395,8 @@ def chart_buttons(syms: Sequence[Tuple[str, str]], callbacks: bool) -> List[Dict
 
 
 def build_brief(day: dt.date, fx: List[Dict], stocks: List[Dict], evs: List[Dict], plan: Optional[Dict],
-                callbacks: bool = False, sample: bool = False, notes: Sequence[str] = (), earnings: Sequence[str] = ()) -> SN.Msg:
+                callbacks: bool = False, sample: bool = False, notes: Sequence[str] = (), earnings: Sequence[str] = (),
+                insiders: Sequence[str] = ()) -> SN.Msg:
     head = f"☀️ <b>Morning brief · {day.strftime('%a %-d %b')}</b>"
     if sample:
         head = '🧪 <b>Sample</b> · ' + head
@@ -410,6 +411,8 @@ def build_brief(day: dt.date, fx: List[Dict], stocks: List[Dict], evs: List[Dict
     parts.append('\n'.join(today))
     if earnings:
         parts.append('<b>📑 Earnings</b>\n' + '\n'.join(earnings))
+    if insiders:
+        parts.append('<b>🕵️ Insider buys</b>\n' + '\n'.join(insiders))
     rows: List[List[Dict]] = []
     if plan:
         pd = plan.get('planFor') or ''
@@ -431,7 +434,7 @@ def build_brief(day: dt.date, fx: List[Dict], stocks: List[Dict], evs: List[Dict
     text = '\n\n'.join(parts)
     if SN.u16(text) > SN.SAFE and (fx or stocks):             # never in practice (lines are short): drop a mover
         fx, stocks = (fx, stocks[:-1]) if len(stocks) >= len(fx) else (fx[:-1], stocks)
-        return build_brief(day, fx, stocks, evs, plan, callbacks, sample, notes, earnings)
+        return build_brief(day, fx, stocks, evs, plan, callbacks, sample, notes, earnings, insiders)
     if SN.u16(text) > SN.SAFE:
         text = SN._cut(text, SN.SAFE)
     return SN.Msg(text, rows)
@@ -804,17 +807,31 @@ def make_messages(now: dt.datetime, st: Dict, sample: bool, log=print) -> Tuple[
     if not export:
         log('lessons: no export (tools/briefing/.cache/lessons.json): Kevin plan from the TS fallback, no lesson')
     earn = earnings_lines(day, my_stocks(), load_json(os.path.join(ROOT, 'public', 'fundamentals', 'stocks.json'), None))
-    brief = build_brief(day, fx, stocks, evs, plan, callbacks=os.path.exists(CHART_TS), sample=sample, earnings=earn)
+    ins = insider_lines(now, day, log)
+    brief = build_brief(day, fx, stocks, evs, plan, callbacks=os.path.exists(CHART_TS), sample=sample, earnings=earn, insiders=ins)
     block = headline_block(now, log)
     brief = with_headlines(brief, block)
     msgs = [brief]
     _PARTS.clear()
-    _PARTS.update(day=day, fx=fx, stocks=stocks, evs=evs, plan=plan, block=block, sample=sample)
+    _PARTS.update(day=day, fx=fx, stocks=stocks, evs=evs, plan=plan, block=block, sample=sample, insiders=ins)
     les = next_lesson((export or {}).get('pool') or [], st.setdefault('lessons', {}))
     if les:
         msgs.append(build_lesson(les, sample=sample))
         _PARTS['lesson'] = msgs[-1]
     return msgs, les
+
+
+def insider_lines(now: dt.datetime, day: dt.date, log=print) -> List[str]:
+    """'🕵️ Insider buys': the top 3 of tools/insiders (public/insiders/latest.json, data branch), ⭐ first; [] on any problem."""
+    try:
+        import importlib.util                      # noqa: WPS433
+        spec = importlib.util.spec_from_file_location('insiders_mod', os.path.join(ROOT, 'tools', 'insiders', 'insiders.py'))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)               # type: ignore[union-attr]
+        return mod.brief_lines(mod.load_published(now), day)
+    except Exception as e:  # noqa: BLE001
+        log(f'insiders: skipped ({type(e).__name__})')
+        return []
 
 
 # ---- the bot's guests (tools/stock_scanner/guests.py) ---------------------------------------------------------------
@@ -841,7 +858,8 @@ def guest_brief(g: Dict, parts: Optional[Dict] = None, mine: Optional[Dict[str, 
         fund = load_json(os.path.join(ROOT, 'public', 'fundamentals', 'stocks.json'), None) if fund is None else fund
         earn = earnings_lines(p['day'], {s: 'listed' for s, v in mine.items()}, fund)
     plan = p['plan'] if G.wants(g, 'fx') else None
-    brief = build_brief(p['day'], fx, stocks, p['evs'], plan, callbacks=os.path.exists(CHART_TS), sample=p.get('sample', False), earnings=earn)
+    ins = (p.get('insiders') or []) if G.wants(g, 'stocks') else []
+    brief = build_brief(p['day'], fx, stocks, p['evs'], plan, callbacks=os.path.exists(CHART_TS), sample=p.get('sample', False), earnings=earn, insiders=ins)
     out = [with_headlines(brief, public_headlines(p.get('block') or ''))]
     if p.get('lesson') is not None:
         out.append(p['lesson'])

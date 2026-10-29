@@ -9,6 +9,7 @@
 // Context only, never a signal. Pure: the caller passes the loaded JSON through ctx (vitest: telegramFundamentals.test.ts).
 
 import { clock, day, esc, fit, isoDay, resolve, type Button, type Ctx, type Reply } from './logic.ts';
+import { insiderLine } from './insiders.ts';
 
 type J = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 const obj = (v: unknown): J => (v && typeof v === 'object' && !Array.isArray(v) ? (v as J) : {});
@@ -160,6 +161,8 @@ async function stockFund(sym: string, row: J, ctx: Ctx): Promise<Reply> {
       .filter(l => l.startsWith('📅') || l.startsWith('•') || l === '<b>Latest 8-K filings</b>');
     if (er.length) lines.push(...er);
   }
+  const ins = await insiderLine(sym, ctx).catch(() => '');   // '🕵️ insiders bought $X in last 30d' (insiders.ts)
+  if (ins) lines.push('', ins);
   lines.push(`<i>${FOOT_ST}</i>`);
   return { cmd: 'fund', text: fit(lines), buttons };
 }

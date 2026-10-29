@@ -17,9 +17,10 @@ const SCRIPT = path.join(ROOT, 'scripts/vercel-ignore.sh');
 const vercel = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
 
 describe('vercel.json keeps the deployment budget setup', () => {
-  it('fx / scanner / movers JSON served live from GitHub, not from the build', () => {
-    for (const k of ['fx', 'scanner', 'movers']) {
-      expect(vercel.rewrites).toContainEqual({ source: `/${k}/(.*)\\.json`, destination: `https://raw.githubusercontent.com/r4m4nxd/ramanFX/main/public/${k}/$1.json` });
+  it('fx / scanner / movers / insiders JSON served live from GitHub, not from the build', () => {
+    const BRANCH: Record<string, string> = { insiders: 'data' };   // the insiders job commits to the data branch only
+    for (const k of ['fx', 'scanner', 'movers', 'insiders']) {
+      expect(vercel.rewrites).toContainEqual({ source: `/${k}/(.*)\\.json`, destination: `https://raw.githubusercontent.com/r4m4nxd/ramanFX/${BRANCH[k] ?? 'main'}/public/${k}/$1.json` });
       expect(vercel.buildCommand).toMatch(new RegExp(`rm -rf [^&|;]*dist/${k}(\\s|$)`));
     }
     expect(vercel.buildCommand).toMatch(/^npm run build && rm -rf /);
@@ -36,6 +37,7 @@ describe('vercel.json keeps the deployment budget setup', () => {
     expect(re.test('/version.json')).toBe(false);
     expect(re.test('/fx/latest.json')).toBe(false);
     expect(re.test('/movers/latest.json')).toBe(false);
+    expect(re.test('/insiders/latest.json')).toBe(false);
     expect(re.test('/scanner')).toBe(true);
     const h = vercel.headers.find((x: { source: string }) => x.source === '/version.json');
     expect(h.headers).toContainEqual({ key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' });
@@ -53,7 +55,7 @@ describe('app paths: the ignore script and the watchdog agree', () => {
   it('isAppPath', () => {
     for (const p of ['src/pages/Home.tsx', 'src/content/guide.ts', 'public/research/x.json', 'public/lessons/a.jpg', 'index.html', 'vercel.json', 'package.json', 'vite.config.ts', 'scripts/vercel-ignore.sh'])
       expect(isAppPath(p), p).toBe(true);
-    for (const p of ['public/fx/latest.json', 'public/scanner/a.json', 'public/movers/latest.json', 'public/fundamentals/fx.json', 'tools/briefing/state.json', 'supabase/functions/x/index.ts', '.github/workflows/a.yml', 'docs/a.md', 'src/core/a.test.ts', 'src/x.test.tsx'])
+    for (const p of ['public/fx/latest.json', 'public/scanner/a.json', 'public/movers/latest.json', 'public/insiders/latest.json', 'public/fundamentals/fx.json', 'tools/briefing/state.json', 'supabase/functions/x/index.ts', '.github/workflows/a.yml', 'docs/a.md', 'src/core/a.test.ts', 'src/x.test.tsx'])
       expect(isAppPath(p), p).toBe(false);
   });
   it('scheduled workflows commit only paths that never deploy', () => {

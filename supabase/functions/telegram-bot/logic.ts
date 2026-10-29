@@ -14,6 +14,7 @@ import { panelTrendlines, type PubLine, type TlSeries } from './trendcore.ts';
 import { atrPct, isWide, nestNote, refineOf, verdict } from './chartnotes.ts';
 import type { LiveFx, LiveSource, LiveStock } from './live.ts';
 import { cmdFund, earningsLine, fundButton } from './fundamentals.ts';
+import { cmdInsiders } from './insiders.ts';
 
 export type Button = { text: string; url: string } | { text: string; callback_data: string };
 export interface Reply {
@@ -62,6 +63,7 @@ export const COMMANDS: { command: string; description: string; group: Group; usa
   { command: 'stocks', description: "Today's stock BUY / WATCH", group: 'Markets', usage: '/stocks', help: "today's stock BUY / WATCH, close to a zone" },
   { command: 'signals', description: 'Every open BUY / SELL / WATCH', group: 'Markets', usage: '/signals', help: 'every open BUY / SELL / WATCH, both markets' },
   { command: 'near', description: 'Everything within 1% of a zone', group: 'Markets', usage: '/near', help: 'everything within 1% of a strong zone' },
+  { command: 'insiders', description: 'Insider cluster buys (SEC Form 4)', group: 'Markets', usage: '/insiders', help: 'latest insider cluster buys, ⭐ first (/insiders NVDA: one stock\'s buys / sells)' },
   { command: 'scan', description: 'Fresh scan of a symbol (or all)', group: 'Markets', usage: '/scan EURUSD', help: 'fresh scan of one symbol, result in ~1 min (/scan alone: every market)' },
   { command: 'zones', description: 'Every zone of a symbol', group: 'Symbol lookup', usage: '/zones EURUSD', help: 'every zone on every timeframe (or just send the symbol)' },
   { command: 'chart', description: 'Chart: 4 timeframes, or one', group: 'Symbol lookup', usage: '/chart EURUSD', help: 'one image, 4 timeframes (/chart EURUSD H4: one TF; /chart EURUSD MN 4: 4 views from MN down)' },
@@ -1191,6 +1193,7 @@ export async function handle(text: string, ctx: Ctx): Promise<Reply> {
       case 'hours': return cmdHours(c.arg, ctx);
       case 'fund': case 'fundamentals': return cmdFund(c.arg, ctx);
       case 'scan': return cmdScan(c.arg, ctx);
+      case 'insiders': case 'insider': return cmdInsiders(c.arg, ctx);
       case 'took': return { cmd: 'took', text: 'Use: <code>/took EURUSD buy 1.0850 sl 1.0820 tp 1.0910</code>' };   // index.ts routes it to journal.ts first
       case 'alert': return cmdAlert(c.arg, c.arg2, ctx);
       case 'alerts': return cmdAlerts(ctx);

@@ -8,6 +8,7 @@
 //   movers.yml: no inputs, EVERY hour (crypto trades 24/7): movers.py works out which 1H / 4H / 1D / 1W candles closed
 //   (FX, crypto, stocks; stock 1D / 1W ride with the 17:00 New York slot) and dedupes per close itself.
 //   fundamentals.yml: input scheduled=true (skips when today's files are built), weekdays 18:00-19:00 New York.
+//   insiders.yml: no inputs, every 30 min on weekdays 6:00-20:00 New York (SEC Form 4 insider buys; dedupes itself).
 // The bot's on-demand scans (run name 'FX on-demand scan SYM' / 'Stock on-demand scan SYM') never cover a slot.
 // Pure: no Deno, no network (tests: src/core/traderCoach.test.ts).
 import { calParts } from './core.ts';
@@ -15,7 +16,7 @@ import { calParts } from './core.ts';
 export const REPO = 'r4m4nxd/ramanFX';
 export interface Dispatch {
   /** Workflow file in .github/workflows. */
-  wf: 'fx-scan.yml' | 'stock-scan.yml' | 'briefing.yml' | 'reminders.yml' | 'movers.yml' | 'fundamentals.yml';
+  wf: 'fx-scan.yml' | 'stock-scan.yml' | 'briefing.yml' | 'reminders.yml' | 'movers.yml' | 'fundamentals.yml' | 'insiders.yml';
   /** Dedupe key: one dispatch per slot (rfx_coach_events 'dispatch:<slot>'). */
   slot: string;
   /** Slot start (UTC ms): a GitHub run created at or after this already covers the slot. */
@@ -78,6 +79,11 @@ export function dueDispatches(nowUtc: number): Dispatch[] {
       if (m >= at && m < at + 60) out.push({ wf: 'stock-scan.yml', slot: `stock:${key(ny)}:${name}`, since: startOf(at), inputs: { scheduled: 'true' } });
     // Fundamentals (bot /fund): after the first stock scan, 18:00-19:00 New York (prices of that day's scan).
     if (m >= 18 * 60 && m < 19 * 60) out.push({ wf: 'fundamentals.yml', slot: `fund:${key(ny)}`, since: startOf(18 * 60), inputs: { scheduled: 'true' } });
+    // Insider buys (SEC Form 4): every 30 min, 6:00-20:00 New York (filings arrive all day, most after the close).
+    if (m >= 6 * 60 && m < 20 * 60) {
+      const b = m - (m % 30);
+      out.push({ wf: 'insiders.yml', slot: `ins:${key(ny)}T${p2(Math.floor(b / 60))}:${p2(b % 60)}`, since: startOf(b), inputs: {} });
+    }
   }
 
   // Calgary weekday mornings (zone rules incl. the permanent UTC-6 from 2026-11-01).

@@ -5,6 +5,7 @@
 
 import { clock, day, esc, fit, isoDay, parts, resolve, symButtons, CAL, type Button, type Ctx, type Reply } from './logic.ts';
 import { latestLine, SOURCES, symbolLines, topLines } from './headlines.ts';
+import { withInsiders } from './insiders.ts';
 
 export const FLAG: Record<string, string> = { US: '🇺🇸', EU: '🇪🇺', GB: '🇬🇧', JP: '🇯🇵', AU: '🇦🇺', NZ: '🇳🇿', CA: '🇨🇦', CH: '🇨🇭', CN: '🇨🇳', DE: '🇩🇪', FR: '🇫🇷', IT: '🇮🇹' };
 export interface NewsRow { t: Date; c: string; title: string; high: boolean }
@@ -110,7 +111,7 @@ export async function symbolNews(q: string, ctx: Ctx, foot = 'not advice'): Prom
 /** A symbol / chart reply plus one '📰 latest: ...' line (a headline from the last 24 h), fetched alongside the reply.
  *  Text replies: before the closing footer block; photo captions: before the last line (caption <= 1024). */
 export async function withLatest(sym: string, ctx: Ctx, reply: Promise<Reply>): Promise<Reply> {
-  const [r, list] = await Promise.all([reply, loadHeadlines(ctx, `headlines/sym/${sym}`, 3500)]);
+  const [r, list] = await Promise.all([withInsiders(sym, ctx, reply), loadHeadlines(ctx, `headlines/sym/${sym}`, 3500)]);   // + '🕵️ insiders bought' (insiders.ts)
   const line = latestLine(sym, list, ctx.now.getTime());
   if (!line || r.text.includes('📰 latest:')) return r;
   const lines = r.text.split('\n');

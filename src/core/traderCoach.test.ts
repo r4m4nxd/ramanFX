@@ -397,6 +397,25 @@ describe('GitHub workflow scheduler', () => {
     expect(y).toContain('SEC_CONTACT: ${{ vars.SEC_CONTACT }}');
   });
 
+  it('insiders: every 30 min on weekdays 6:00-20:00 New York (both DST regimes), no inputs', () => {
+    const wed = [...ticks('2026-10-28T00:00:00Z', 24)].filter(([k]) => k.startsWith('ins:'));
+    expect(wed).toHaveLength(28);
+    expect(wed[0]).toEqual(['ins:2026-10-28T06:00', '2026-10-28T10:00']);     // 6:00 AM EDT = 10:00 UTC
+    expect(wed[27]).toEqual(['ins:2026-10-28T19:30', '2026-10-28T23:30']);
+    const winter = [...ticks('2026-11-02T00:00:00Z', 26)].filter(([k]) => k.startsWith('ins:'));
+    expect(winter).toHaveLength(28);
+    expect(winter[0]).toEqual(['ins:2026-11-02T06:00', '2026-11-02T11:00']);  // EST
+    expect([...ticks('2026-10-31T04:00:00Z', 48).keys()].some(k => k.startsWith('ins:'))).toBe(false);   // weekend
+    const due = dueDispatches(at('2026-10-28T14:40:00Z')).find(d => d.wf === 'insiders.yml')!;
+    expect(due.slot).toBe('ins:2026-10-28T10:30');
+    expect(due.since).toBe(at('2026-10-28T14:30:00Z'));
+    expect(JSON.parse(String(dispatchRequest(due, 't').init.body))).toEqual({ ref: 'main', inputs: {} });
+    const y = readFileSync('.github/workflows/insiders.yml', 'utf8');
+    expect(y).toContain('python tools/insiders/insiders.py');
+    expect(y).toContain('SEC_UA: ${{ secrets.SEC_UA }}');
+    expect(y).toContain('git add public/insiders');
+  });
+
   it("the bot's on-demand scans never cover a scheduled slot", () => {
     const js = { workflow_runs: [
       { created_at: '2026-10-29T14:07:00Z', display_title: 'FX on-demand scan EURUSD' },

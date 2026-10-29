@@ -50,13 +50,14 @@ export const Stock = lazyPage(() => import('@/pages/Stock'));
 export const Fx = lazyPage(() => import('@/pages/Fx'));
 export const MarketHours = lazyPage(() => import('@/pages/MarketHours'));
 export const Moves = lazyPage(() => import('@/pages/Moves'));
+export const Insiders = lazyPage(() => import('@/pages/Insiders'));
 
 /** First path segment → page, for prefetching on hover / touch-down / focus of a link. */
 const BY_PATH: Record<string, LazyPage> = {
   journal: Journal, trades: Trades, reports: Reports, design: DesignSystem, learn: Learn, checklist: ChecklistPage, ask: Ask,
   practice: Sandbox, 'bot-guide': BotGuide, tools: Tools, calendar: CalendarPage, heatmaps: Heatmaps, plan: Planner, guru: Guru,
   guide: Guide, news: News, chart: ChartPage, playbook: Playbook, calculator: Calculator, risk: Risk, strategies: Strategies,
-  notebook: Notebook, exits: Exits, settings: Settings, zones: Zones, scanner: Scanner, 'market-hours': MarketHours, moves: Moves,
+  notebook: Notebook, exits: Exits, settings: Settings, zones: Zones, scanner: Scanner, 'market-hours': MarketHours, moves: Moves, insiders: Insiders,
 };
 
 /** Start downloading the page behind `to` (no-op for the dashboard, which ships in the main bundle). */
