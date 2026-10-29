@@ -75,8 +75,8 @@ is missing in one line (e.g. `(live data needs OANDA/Alpaca keys in Supabase)`).
 
 | Secret | Used by | Unlocks |
 | --- | --- | --- |
-| `OANDA_API_TOKEN` (practice account) | telegram-bot | **Live FX / metals / CFDs**: `/chart`, `/zones` and a bare symbol fetch the latest OANDA BID candles at request time (H1 / H4 / D1 / W1 / MN, the forming candle included, 30 s cache; Pepperstone names mapped to OANDA through the scan's `oanda` field). Price and zones are live (`live · 7:42 AM`); BUY / SELL / WATCH stay those of the latest scan. `OANDA_ENV=live` switches to the live host. |
-| `ALPACA_KEY_ID` + `ALPACA_SECRET_KEY` | telegram-bot | **Live stocks**: daily bars since 2016 (split adjusted; SIP history, IEX when the plan refuses SIP), W1 / MN / 3M built from them, 1-hour bars + the latest trade from the free real-time IEX feed. Adds the 1H stock chart view. |
+| `OANDA_API_TOKEN` (practice account) | telegram-bot | **Live FX / metals / CFDs**: `/chart`, `/zones` and a bare symbol fetch the latest OANDA BID candles at request time (H1 / H4 / D1 / W1 / MN + M15 for the live-only **15m** chart view with its own 15m zones and 1H gold trendlines, the forming candle included, 30 s cache; Pepperstone names mapped to OANDA through the scan's `oanda` field). Price and zones are live (`live · 7:42 AM`); BUY / SELL / WATCH stay those of the latest scan. `OANDA_ENV=live` switches to the live host. |
+| `ALPACA_KEY_ID` + `ALPACA_SECRET_KEY` | telegram-bot | **Live stocks**: daily bars since 2016 (split adjusted; SIP history, IEX when the plan refuses SIP), W1 / MN / 3M built from them, 1-hour and 15-minute bars (last 10 days) + the latest trade from the free real-time IEX feed. Adds the 1H and 15m stock chart views (W1 zones, trendlines). |
 | `GITHUB_DISPATCH_TOKEN` (fine-grained, Actions: write on r4m4nxd/ramanFX) | telegram-bot, trader-coach | **`/scan`** (every market) and **`/scan SYM` / [🔄 Live scan]**: one symbol, `fx-scan.yml only=SYM` / `stock-scan.yml tickers=SYM` with `ondemand=true`; the scanner sends ONE result card (`🔄 SYM · on-demand scan`, every rule) in about a minute and writes nothing. 6 on-demand scans an hour. In trader-coach: the reliable 10-minute scheduler for the scans, the brief, the reminders and the hourly **big moves** (`movers.yml`, at :05). |
 | `TELEGRAM_BOT_TOKEN` | telegram-bot, trader-coach | Bot: `answerCallbackQuery` (stops the button spinner at once, short toast); replies still go back in the webhook response without it. Coach: needed (with the chat id) to push its prompts. |
 | `TELEGRAM_CHAT_ID` | trader-coach | Where the coach pushes (`📝 … why did you take it?`, the weekly card). |
@@ -100,7 +100,7 @@ swing-2 valleys / peaks, anchors refitted within 0.05 ATR, too-flat lines droppe
 swing between the anchors, removed when a bar lies fully beyond the line, crossed = a close through it with a body
 >= 0.6 ATR). Each chart panel (each quarter of the 4-view image, and the single view) draws at most 2 lines of its own
 timeframe (solid lilac) and at most 2 of the next higher timeframe projected onto its candles (gold dots;
-H1 -> H4 -> D1 -> W1 -> MN -> 3M, stocks D1 -> W1 -> MN -> 3M). Picked: never removed, uncrossed first, the row's
+15m -> H1 -> H4 -> D1 -> W1 -> MN -> 3M, stocks D1 -> W1 -> MN -> 3M). Picked: never removed, uncrossed first, the row's
 in-force up / down line first, most touches, nearest price; only lines that enter the drawn candles' range. Computed on
 the chart's candles (live: 250 closed bars, the scanners' 200-bar lookback); with the short published shards (80-120
 bars) the scanner's own published lines (`tls`) are used instead. Parity: the same fixtures +

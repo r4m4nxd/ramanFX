@@ -272,3 +272,20 @@ export function stockZonesOf(daily: ZBar[], price?: number | null): LiveZone[] {
   }
   return out.sort((a, b) => b.proximal - a.proximal);
 }
+
+// ---- one extra low timeframe (the bot's live 15-minute view) ---------------------------------------------------------
+/** Zones of one timeframe the scanners do not scan (15m), with fxZonesOf's filters: not removed, departure within 200
+ *  bars, on its own side of price, tested <= 3x on the closed bars. bars = CLOSED bars, oldest first. */
+export function tfZonesOf(bars: ZBar[], tf: string, nd: number, price: number, p: ZParams = FX_PARAMS): LiveZone[] {
+  const S = new Series(bars, price, tf);
+  const out: LiveZone[] = [];
+  for (const z of rowZones(S, p)) {
+    if (z.removed || z.legBar > p.max_zone_age) continue;
+    if (!((z.dir > 0 && z.dist < price) || (z.dir < 0 && z.dist > price))) continue;
+    const n = tests(S, z, p).n;
+    if (n > FX_MAX_TOUCHES) continue;
+    out.push({ tf, side: z.dir > 0 ? 'demand' : 'supply', proximal: roundTo(z.prox, nd), distal: roundTo(z.dist, nd), pattern: pattern(z),
+      touches: n, fresh: n === 0, made: z.made, base_start: z.baseStart });
+  }
+  return out.sort((a, b) => Math.abs(price - a.proximal) - Math.abs(price - b.proximal));
+}

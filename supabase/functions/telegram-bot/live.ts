@@ -8,13 +8,13 @@
 import type { ZBar } from './zonecore.ts';
 
 export type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
-export const FX_TFS = ['H1', 'H4', 'D1', 'W1', 'MN'] as const;
-const GRAN: Record<string, string> = { H1: 'H1', H4: 'H4', D1: 'D', W1: 'W', MN: 'M' };
-const COUNT: Record<string, number> = { H1: 400, H4: 400, D1: 400, W1: 400, MN: 400 };
+export const FX_TFS = ['M15', 'H1', 'H4', 'D1', 'W1', 'MN'] as const;
+const GRAN: Record<string, string> = { M15: 'M15', H1: 'H1', H4: 'H4', D1: 'D', W1: 'W', MN: 'M' };
+const COUNT: Record<string, number> = { M15: 300, H1: 400, H4: 400, D1: 400, W1: 400, MN: 400 };
 export const TTL_MS = 30_000;
 
 export interface LiveFx { closed: Record<string, ZBar[]>; forming: Record<string, ZBar | null>; price: number; at: number; feed: string }
-export interface LiveStock { daily: ZBar[]; partial: ZBar | null; h1: ZBar[]; price: number; at: number; feed: string }
+export interface LiveStock { daily: ZBar[]; partial: ZBar | null; h1: ZBar[]; m15?: ZBar[]; price: number; at: number; feed: string }
 export interface LiveSource {
   /** FX / metals / CFDs by OANDA name (EUR_USD); undefined = no OANDA_API_TOKEN. */
   fx?: (oanda: string) => Promise<LiveFx | null>;
@@ -42,6 +42,7 @@ export function fxLabel(utcMs: number, tf: string): string {
     return `${new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - ((wd - 5 + 7) % 7) * 86400000).toISOString().slice(0, 10)}T00:00`;
   }
   if (tf === 'D1') return `${iso16(t + 12 * 3600000).slice(0, 10)}T00:00`;
+  if (tf === 'M15') { const q = Math.round(t / 900000) * 900000; return iso16(q); }
   const u = new Date(t + 30 * 60000);
   const h = tf === 'H4' ? u.getUTCHours() - (u.getUTCHours() % 4) : u.getUTCHours();
   return `${u.toISOString().slice(0, 11)}${String(h).padStart(2, '0')}:00`;
@@ -62,7 +63,7 @@ export function parseOanda(js: J, tf: string): { closed: ZBar[]; forming: ZBar |
   }
   return { closed, forming };
 }
-/** Alpaca /v2/stocks/bars (one symbol) -> bars, labelled with the session date (1Day) or the New York hour (1Hour). */
+/** Alpaca /v2/stocks/bars (one symbol) -> bars, labelled with the session date (1Day) or the New York time (1Hour / 15Min). */
 export function parseAlpaca(js: J, sym: string, hourly = false): ZBar[] {
   const rows = js?.bars?.[sym];
   return (Array.isArray(rows) ? rows : []).map((r: J) => {
@@ -115,9 +116,9 @@ export function oandaSource(token: string, o: Opts = {}): (oanda: string) => Pro
     if (!/^[A-Z0-9]{2,12}_[A-Z0-9]{2,12}$/.test(name)) return null;
     const res = await Promise.all(FX_TFS.map(tf => getJson(f, `https://${host}/v3/instruments/${name}/candles?granularity=${GRAN[tf]}&price=B&count=${COUNT[tf]}`
       + '&alignmentTimezone=America%2FNew_York&dailyAlignment=17&weeklyAlignment=Friday', auth)));
-    if (res.some(r => !r.js)) return null;
+    if (res.some((r, i) => !r.js && FX_TFS[i] !== 'M15')) return null;   // 15m is optional (only its own view needs it)
     const closed: Record<string, ZBar[]> = {}, forming: Record<string, ZBar | null> = {};
-    FX_TFS.forEach((tf, i) => { const p = parseOanda(res[i].js as J, tf); closed[tf] = p.closed; forming[tf] = p.forming; });
+    FX_TFS.forEach((tf, i) => { const p = parseOanda(res[i].js ?? {}, tf); closed[tf] = p.closed; forming[tf] = p.forming; });
     const price = forming.H1?.c ?? closed.H1[closed.H1.length - 1]?.c;
     if (!(price > 0) || closed.H4.length < 60) return null;
     return { closed, forming, price, at: now(), feed: 'OANDA practice · bid' };
@@ -134,10 +135,11 @@ export function alpacaSource(keyId: string, secret: string, o: Opts = {}): (sym:
     const s = encodeURIComponent(sym), t = now();
     const daily = async (feed: string) => getJson(f, `${base}/bars?symbols=${s}&timeframe=1Day&start=2006-01-01T00:00:00Z`
       + `&end=${new Date(t - 16 * 60000).toISOString()}&adjustment=split&feed=${feed}&limit=10000&sort=asc`, auth);
-    const [d0, h, tr] = await Promise.all([
+    const [d0, h, tr, q] = await Promise.all([
       daily(dailyFeed),
       getJson(f, `${base}/bars?symbols=${s}&timeframe=1Hour&start=${new Date(t - 14 * 86400000).toISOString()}&adjustment=split&feed=iex&limit=1000&sort=asc`, auth),
       getJson(f, `${base}/trades/latest?symbols=${s}&feed=iex`, auth),
+      getJson(f, `${base}/bars?symbols=${s}&timeframe=15Min&start=${new Date(t - 10 * 86400000).toISOString()}&adjustment=split&feed=iex&limit=2000&sort=asc`, auth),
     ]);
     let d = d0;
     if (!d.js && d.status === 403 && dailyFeed === 'sip') { dailyFeed = 'iex'; d = await daily('iex'); }
@@ -148,6 +150,7 @@ export function alpacaSource(keyId: string, secret: string, o: Opts = {}): (sym:
     const h1 = h.js ? parseAlpaca(h.js, sym, true) : [];
     const last = Number(tr.js?.trades?.[sym]?.p);
     const price = last > 0 ? last : (h1[h1.length - 1]?.c ?? bars[bars.length - 1].c);
-    return { daily: closed, partial, h1, price, at: t, feed: `Alpaca · ${dailyFeed === 'sip' ? 'SIP daily' : 'IEX daily'} · IEX real-time` };
+    const m15 = q.js ? parseAlpaca(q.js, sym, true) : [];
+    return { daily: closed, partial, h1, m15, price, at: t, feed: `Alpaca · ${dailyFeed === 'sip' ? 'SIP daily' : 'IEX daily'} · IEX real-time` };
   });
 }

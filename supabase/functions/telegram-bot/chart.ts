@@ -21,7 +21,7 @@ export interface ChartModel { sym: string; title: string; digits: number; price:
 
 export const SIZE = 1280;
 const C = { bg: '#0B0C10', panel: '#11131A', border: '#232634', text: '#E5E7EB', mute: '#9CA3AF', violet: '#8B5CF6', demand: '#10B981', supply: '#EF4444', up: '#34D399', down: '#F87171', grid: '#1B1E2A', tl: '#C4B5FD', gold: '#D4AF37' };
-const TF_SHORT: Record<string, string> = { H1: '1H', H4: '4H', D1: 'D1', W1: 'W1', MN: 'MN', '3M': '3M' };
+const TF_SHORT: Record<string, string> = { M15: '15m', H1: '1H', H4: '4H', D1: 'D1', W1: 'W1', MN: 'MN', '3M': '3M' };
 export const tfLabel = (tf: string) => TF_SHORT[tf] ?? tf;
 
 const x = (s: unknown) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -32,6 +32,7 @@ function dateLabel(t: string, tf: string): string {
   if (!m) return t.slice(0, 10);
   const mon = MON[Number(m[2]) - 1];
   if (tf === 'MN' || tf === '3M') return `${mon} ${m[1].slice(2)}`;
+  if (tf === 'M15' && m[4]) return `${mon} ${Number(m[3])} ${m[4]}:${m[5]}`;
   if ((tf === 'H1' || tf === 'H4') && m[4]) return `${mon} ${Number(m[3])} ${m[4]}h`;
   return `${mon} ${Number(m[3])}`;
 }
