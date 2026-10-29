@@ -237,19 +237,27 @@ describe('telegram bot', () => {
     expect(one).toMatch(/class="zlabel"[^>]*>[^<]*4H (demand|supply) \d/);
   });
 
-  it('chart trendlines: drawn thin and labelled in their TF panel (from the shard tls)', async () => {
+  it('chart trendlines: own TF solid lilac + next higher TF gold dots, at most 2 + 2 per panel (shard tls on short bars)', async () => {
     const shard = read('public/fx/d/major.json');
     const eu = shard.instruments.EURUSD;
     const h4 = eu.bars.H4 as [string, number, number, number, number][];
-    const last = h4[h4.length - 1];
-    eu.tls = { H4: [{ dir: -1, p: last[2] + 0.002, s: -0.0001, n: 40, t: last[0], touches: 2, x: false }], W1: [{ dir: 1, p: 1.10, s: 0.001, n: 30, t: eu.bars.W1.at(-1)[0], x: true }] };
+    const last = h4[h4.length - 1], d1 = eu.bars.D1 as [string, number, number, number, number][];
+    const lowD1 = Math.min(...d1.slice(-30).map(r => r[3]));
+    eu.tls = { H4: [{ dir: -1, p: last[2] + 0.002, s: -0.0001, n: 40, t: last[0], touches: 2, x: false }],
+      W1: [{ dir: 1, p: lowD1 - 0.001, s: 0.0005, n: 30, t: eu.bars.W1.at(-1)[0], x: true }], D1: [], MN: [] };
     const c = ctx(undefined, { 'fx/d/major.json': shard });
     const one = renderSvg((await chartData('EURUSD', 'H4', c))!.model);
-    expect(one).toMatch(/class="tl down"/);
-    expect(one).toContain('4H down trendline');
+    expect(one).toMatch(/class="tl ltf down" data-tf="H4"/);
+    expect(one).toContain('>4H down</text>');
     const q = renderSvg((await chartData('EURUSD', 'Q', c))!.model);
-    expect(q).toContain('W1 up trendline (broken)');
-    expect((q.match(/class="tl /g) ?? []).length).toBeGreaterThanOrEqual(2);
+    expect(q).toContain('>W1 up (crossed)</text>');
+    expect(q).toMatch(/class="tl htf up" data-tf="W1"[^>]*stroke="#D4AF37"[^>]*stroke-dasharray/);   // W1 line on the D1 panel
+    for (const p of (await chartData('EURUSD', 'Q', c))!.model.panels) {
+      expect((p.tls ?? []).filter(t => !t.htf).length).toBeLessThanOrEqual(2);
+      expect((p.tls ?? []).filter(t => t.htf).length).toBeLessThanOrEqual(2);
+      expect((p.tls ?? []).every(t => t.htf ? t.tf !== p.tf : t.tf === p.tf)).toBe(true);
+    }
+    expect(q).toContain('gold dots = higher-TF trendline');
   });
 
   it('/ask and questions ending with ?: lesson quotes (BM25), <= 1500 chars, open-lesson buttons', async () => {

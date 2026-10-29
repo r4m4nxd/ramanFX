@@ -13,14 +13,14 @@ export interface Band {
   label?: string;
 }
 export interface Lines { entry?: number | null; stop?: number | null; target?: number | null; kind?: string }
-/** A trendline in force (scanner rows: fxscan / scan.py 'tls'): price p on the newest closed bar (time t), s = change
- *  per bar towards newer bars, n = bars back to its first anchor, x = already crossed. */
-export interface TLine { dir: number; p: number; s: number; n: number; t: string; x?: boolean; touches?: number }
+/** A trendline to draw (trendcore.ts panelTrendlines): pts = [drawn bar index (centres 0 .. n-1), price]; htf = the next
+ *  higher timeframe's line projected onto this panel (gold dots), else the panel's own timeframe (solid lilac). */
+export interface TLine { tf: string; htf: boolean; dir: number; touches: number; crossed: boolean; pts: [number, number][] }
 export interface Panel { tf: string; header: string; bars: Bar[]; zones: Band[]; lines?: Lines | null; note?: string; tls?: TLine[] }
 export interface ChartModel { sym: string; title: string; digits: number; price: number; panels: Panel[]; layout: 'quad' | 'single' }
 
 export const SIZE = 1280;
-const C = { bg: '#0B0C10', panel: '#11131A', border: '#232634', text: '#E5E7EB', mute: '#9CA3AF', violet: '#8B5CF6', demand: '#10B981', supply: '#EF4444', up: '#34D399', down: '#F87171', grid: '#1B1E2A', tl: '#C4B5FD' };
+const C = { bg: '#0B0C10', panel: '#11131A', border: '#232634', text: '#E5E7EB', mute: '#9CA3AF', violet: '#8B5CF6', demand: '#10B981', supply: '#EF4444', up: '#34D399', down: '#F87171', grid: '#1B1E2A', tl: '#C4B5FD', gold: '#D4AF37' };
 const TF_SHORT: Record<string, string> = { H1: '1H', H4: '4H', D1: 'D1', W1: 'W1', MN: 'MN', '3M': '3M' };
 export const tfLabel = (tf: string) => TF_SHORT[tf] ?? tf;
 
@@ -97,17 +97,25 @@ function panelSvg(p: Panel, b: Box, m: ChartModel, i: number): string {
   }
   out.push(`<g clip-path="url(#${cid})">${parts.join('')}`);
   const n = Math.max(p.bars.length, 1), step = plot.w / n, cw = Math.max(1.5, step * 0.62);
-  // trendlines (thin, lightly labelled)
-  for (const t of p.tls ?? []) {
-    let kLast = -1;
-    for (let k = 0; k < p.bars.length; k++) if (p.bars[k].t <= t.t) kLast = k;
-    if (kLast < 0 || !Number.isFinite(t.p) || !Number.isFinite(t.s)) continue;
-    const k0 = Math.max(0, kLast - Math.max(1, t.n)), k1 = p.bars.length - 1;
-    const xa = plot.x + step * (k0 + 0.5), xb = plot.x + step * (k1 + 1);
-    const ya = g.y(t.p + t.s * (k0 - kLast)), yb = g.y(t.p + t.s * (k1 + 0.5 - kLast));
-    out.push(`<line class="tl ${t.dir > 0 ? 'up' : 'down'}" x1="${f1(xa)}" y1="${f1(ya)}" x2="${f1(xb)}" y2="${f1(yb)}" stroke="${C.tl}" stroke-width="1.8" stroke-opacity="0.85"${t.x ? ' stroke-dasharray="8 6"' : ''}/>`);
-    const lx = Math.min(xb - 6, plot.x + plot.w - 6), ly = Math.min(Math.max(yb + (t.dir > 0 ? 24 : -8), plot.y + 20), plot.y + plot.h - 6);
-    out.push(`<text class="tllabel" x="${f1(lx)}" y="${f1(ly)}" font-size="20" text-anchor="end" fill="${C.tl}" fill-opacity="0.8">${x(`${tfLabel(p.tf)} ${t.dir > 0 ? 'up' : 'down'} trendline${t.x ? ' (broken)' : ''}`)}</text>`);
+  // trendlines: the panel's own TF solid lilac, the next higher TF gold dots; a small label at the right end
+  const labels: number[] = [], tlText: string[] = [];
+  for (const t of [...(p.tls ?? [])].sort((a, z) => Number(z.htf) - Number(a.htf))) {
+    const xy = t.pts.map(([k, v]) => [plot.x + step * (k + 0.5), g.y(v)] as const);
+    if (xy.length < 2) continue;
+    const col = t.htf ? C.gold : C.tl;
+    const d = xy.map(([px, py], j) => `${j ? 'L' : 'M'}${f1(px)} ${f1(py)}`).join('');
+    out.push(`<path class="tl ${t.htf ? 'htf' : 'ltf'} ${t.dir > 0 ? 'up' : 'down'}" data-tf="${x(t.tf)}" d="${d}" fill="none" stroke="${col}"`
+      + (t.htf ? ' stroke-width="5.5" stroke-linecap="round" stroke-dasharray="0.5 11"' : ' stroke-width="2.6"')
+      + ` stroke-opacity="${t.crossed ? 0.6 : 0.95}"/>`);
+    // label at the rightmost point inside the plot, nudged off the other labels
+    const inside = xy.filter(([, py]) => py >= plot.y + 22 && py <= plot.y + plot.h - 8);
+    if (!inside.length) continue;
+    const [lx0, ly0] = inside[inside.length - 1];
+    let ly = ly0 + (t.dir > 0 ? 24 : -10);
+    for (let k = 0; k < 3 && labels.some(v => Math.abs(v - ly) < 22); k++) ly += t.dir > 0 ? 22 : -22;
+    ly = Math.min(Math.max(ly, plot.y + 22), plot.y + plot.h - 8);
+    labels.push(ly);
+    tlText.push(`<text class="tllabel" x="${f1(Math.min(lx0, plot.x + plot.w) - 6)}" y="${f1(ly)}" font-size="20" text-anchor="end" fill="${col}" stroke="${C.panel}" stroke-width="5" stroke-linejoin="round" paint-order="stroke">${x(`${tfLabel(t.tf)} ${t.dir > 0 ? 'up' : 'down'}${t.crossed ? ' (crossed)' : ''}`)}</text>`);
   }
   // candles
   for (let k = 0; k < p.bars.length; k++) {
@@ -118,6 +126,7 @@ function panelSvg(p: Panel, b: Box, m: ChartModel, i: number): string {
     out.push(`<line class="wick" x1="${f1(cx)}" x2="${f1(cx)}" y1="${f1(g.y(r.h))}" y2="${f1(g.y(r.l))}" stroke="${col}" stroke-width="1.5"/>`);
     out.push(`<rect class="candle" x="${f1(cx - cw / 2)}" y="${f1(Math.min(yo, yc))}" width="${f1(cw)}" height="${f1(Math.max(1.5, Math.abs(yc - yo)))}" fill="${col}"/>`);
   }
+  out.push(...tlText);   // trendline labels above the candles
   // trade lines (entry TF only)
   const L = p.lines;
   if (L) {
@@ -157,7 +166,7 @@ export function renderSvg(m: ChartModel): string {
     + `<text x="16" y="48" font-size="34" font-weight="600" fill="${C.text}">${x(m.title)}</text>`
     + `<text x="${SIZE - 16}" y="48" font-size="22" text-anchor="end" fill="${C.violet}">RamanFX</text>`
     + body
-    + `<text x="16" y="${SIZE - 14}" font-size="20" fill="${C.mute}">Shaded = zones · violet outline = hosts the lower-TF zone · dashed violet = price · thin lilac = trendline</text>`
+    + `<text x="16" y="${SIZE - 14}" font-size="20" fill="${C.mute}">Shaded = zones · violet outline = hosts lower-TF zone · lilac = trendline · gold dots = higher-TF trendline</text>`
     + `<text x="${SIZE - 16}" y="${SIZE - 14}" font-size="20" text-anchor="end" fill="${C.mute}">not advice</text>`
     + '</svg>';
 }

@@ -8,8 +8,9 @@
 import { bestQuote, buildIndex, lessonPath, mentorOf, search as askSearch, type AskIndex } from './ask.ts';
 import { newsText } from './news.ts';
 import { MAX_ALERTS, MAX_WATCH, parseDuration, parsePrice, parseQuiet, parseTap, type Alert, type Prefs, type PrefsStore } from './prefs.ts';
-import { aggregate, monthKey, quarterKey, tfLabel, weekKey, type Band, type Bar, type ChartModel, type Panel } from './chart.ts';
-import { fxZonesOf, stockZonesOf, type LiveZone, type ZBar } from './zonecore.ts';
+import { aggregate, monthKey, quarterKey, tfLabel, weekKey, type Band, type Bar, type ChartModel, type Panel, type TLine } from './chart.ts';
+import { fxZonesOf, nextBusinessDay, stockZonesOf, type LiveZone, type ZBar } from './zonecore.ts';
+import { panelTrendlines, type PubLine, type TlSeries } from './trendcore.ts';
 import type { LiveFx, LiveSource, LiveStock } from './live.ts';
 
 export type Button = { text: string; url: string } | { text: string; callback_data: string };
@@ -655,10 +656,22 @@ function zoneList(rows: unknown[]): Zn[] {
   return out;
 }
 
+/** Trendline inputs of a chart: per TF whether its last bar is still forming (TFs absent = no lines), and the next
+ *  higher TF whose lines each panel also draws (gold dots); pub = the scanner's published lines per TF ('tls': used
+ *  for a TF whose chart bars are too few for the scanners' lookback, i.e. the published shards, never live candles). */
+export interface TlSrc { forming: Record<string, boolean>; htf: Record<string, string | null>; pub?: Record<string, unknown> }
+const pubLines = (v: unknown): PubLine[] | undefined => (Array.isArray(v) ? (v as J[]).filter(t => num(t?.p) != null && num(t?.s) != null && num(t?.n) != null && typeof t?.t === 'string')
+  .map(t => ({ dir: t.dir > 0 ? 1 : -1, p: t.p, s: t.s, n: t.n, t: t.t, touches: num(t.touches) ?? 0, x: !!t.x })) : undefined);
+const FX_HTF: Record<string, string | null> = { H1: 'H4', H4: 'D1', D1: 'W1', W1: 'MN', MN: '3M' };
+const STOCK_HTF: Record<string, string | null> = { H1: 'D1', D1: 'W1', W1: 'MN', MN: '3M', '3M': null };
+/** A stock bar built from daily bars is still forming unless its period ended with the newest daily bar. */
+const periodOpen = (bars: Bar[], key: (t: string) => string, lastDay: string | undefined) =>
+  !!bars.length && !!lastDay && key(bars[bars.length - 1].t) === key(lastDay) && key(nextBusinessDay(lastDay)) === key(lastDay);
+
 export interface ChartData { model: ChartModel; v: string; market: 'fx' | 'stock'; sym: string; view: string; when: string; live?: boolean; note?: string }
 const zb = (b: ZBar): Bar => ({ t: b.d, o: b.o, h: b.h, l: b.l, c: b.c });
-/** Closed candles (the last 120) + the forming one, as chart bars. */
-const withForming = (closed: ZBar[], forming: ZBar | null): Bar[] => [...closed.slice(-120), ...(forming ? [forming] : [])].map(zb);
+/** Closed candles (the last 250: the trendlines' 200-bar lookback, like the scanners) + the forming one, as chart bars. */
+const withForming = (closed: ZBar[], forming: ZBar | null): Bar[] => [...closed.slice(-250), ...(forming ? [forming] : [])].map(zb);
 /** The image version of a live chart: a new one every 30 s (Telegram caches photo URLs). */
 const liveVersion = (lv: LiveView) => `L${Math.floor(lv.at / 30000)}`;
 
@@ -666,7 +679,7 @@ const liveVersion = (lv: LiveView) => `L${Math.floor(lv.at / 30000)}`;
  *  lines on the entry TF, higher-TF zones lighter in the single view. */
 export function buildPanels(tfs: string[], bars: Record<string, Bar[]>, zones: Zn[], price: number, digits: number,
   sig: { tf: string; entry?: number; stop?: number; target?: number; kind?: string } | null, layout: 'quad' | 'single', zoneTfOf: (tf: string) => string = t => t,
-  tls: Record<string, unknown> = {}): Panel[] {
+  tl?: TlSrc): Panel[] {
   const fmt = (v: number) => v.toFixed(digits);
   const keys = tfs.map(tf => zones.filter(z => z.tf === zoneTfOf(tf)).sort((a, b) => zDist(price, a) - zDist(price, b))[0] ?? null);
   return tfs.map((tf, i) => {
@@ -684,9 +697,12 @@ export function buildPanels(tfs: string[], bars: Record<string, Bar[]>, zones: Z
     }
     const header = key ? `${ztf !== tf ? `${tfLabel(ztf)} ` : ''}${key.side} ${fmt(key.prox)}–${fmt(key.dist)} · ${zoneStatus(placement(price, key.prox, key.dist), key.side, '')}` : 'no zone in view';
     const lines = sig && sig.tf === tf ? { entry: sig.entry, stop: sig.stop, target: sig.target, kind: sig.kind } : null;
-    const tl = arr(tls[tf]).filter(t => num(t?.p) != null && num(t?.s) != null && num(t?.n) != null && typeof t?.t === 'string')
-      .map(t => ({ dir: t.dir > 0 ? 1 : -1, p: t.p, s: t.s, n: t.n, t: t.t, x: !!t.x }));
-    return { tf, header, bars: (bars[tf] ?? []).slice(layout === 'quad' ? -60 : -90), zones: bands, lines, tls: tl,
+    const shown = (bars[tf] ?? []).slice(layout === 'quad' ? -60 : -90);
+    const ser = (t: string): TlSeries | null => (tl && tl.forming[t] != null && bars[t]?.length ? { tf: t, bars: bars[t], forming: tl.forming[t], pub: pubLines(tl.pub?.[t]) } : null);
+    const mine = ser(tf), up = tl?.htf[tf], hs = up ? ser(up) : null;
+    let tls: TLine[] = [];
+    try { tls = mine ? panelTrendlines(mine, shown.length, price, hs, 2) : []; } catch (e) { console.log(JSON.stringify({ ev: 'tl_error', tf, err: String((e as Error)?.message ?? e).slice(0, 60) })); }
+    return { tf, header, bars: shown, zones: bands, lines, tls,
       note: ztf !== tf ? `no ${tfLabel(tf)} zones: ${tfLabel(ztf)} zones shown` : undefined };
   });
 }
@@ -701,12 +717,18 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
     const price = lv?.price ?? num(d.price);
     if (!price) return null;
     const b = obj(d.bars), bars: Record<string, Bar[]> = {};
+    const forming: Record<string, boolean> = {};
     if (lv?.fx) {   // live: the closed candles + the one forming now
-      for (const t of FX_TFS) bars[t] = withForming(lv.fx.closed[t], lv.fx.forming[t]);
+      for (const t of FX_TFS) { bars[t] = withForming(lv.fx.closed[t], lv.fx.forming[t]); forming[t] = !!lv.fx.forming[t]; }
     } else {
-      for (const t of ['H1', 'H4', 'D1', 'W1']) bars[t] = toBars(b[t]);
-      bars.MN = withRecent(toBars(b.MN), aggregate(bars.W1, monthKey), monthKey);   // real closed months + the current one
+      for (const t of ['H1', 'H4', 'D1', 'W1']) { bars[t] = toBars(b[t]); forming[t] = false; }
+      const mn = toBars(b.MN);
+      bars.MN = withRecent(mn, aggregate(bars.W1, monthKey), monthKey);   // real closed months + the current one
+      forming.MN = bars.MN.length > mn.length;
     }
+    bars['3M'] = aggregate(bars.MN, quarterKey);   // only for the MN panel's higher-TF trendlines
+    const lastMn = bars.MN[bars.MN.length - 1]?.t ?? '';
+    forming['3M'] = forming.MN || Number(lastMn.slice(5, 7)) % 3 !== 0;
     const zones = lv ? zoneList(lv.zones) : zoneList([...arr(d.zones), ...arr(d.hits)]);
     const s = fxSetups(fx).find(x => x.sym === hit.sym);
     const near = arr(d.hits).filter(h => h.section !== 'left').sort((a, z) => (num(a.pips) ?? 1e9) - (num(z.pips) ?? 1e9))[0];
@@ -718,22 +740,28 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
     const t = parseUtc(fx.h1_close_utc ?? fx.generated);
     const when = lv ? liveAt(lv) : t ? clock(t) : '';
     return { market: 'fx', sym: hit.sym, view, v: lv ? liveVersion(lv) : String(fx.generated ?? '').replace(/[^0-9]/g, '').slice(0, 14), when, live: !!lv, note: liveNote(hit, ctx, lv),
-      model: { sym: hit.sym, digits, price, layout, title: `${hit.sym} · ${price.toFixed(digits)}${when ? ` · ${when}` : ''}`, panels: buildPanels(tfs, bars, zones, price, digits, sig, layout, t => t, obj(d.tls)) } };
+      model: { sym: hit.sym, digits, price, layout, title: `${hit.sym} · ${price.toFixed(digits)}${when ? ` · ${when}` : ''}`, panels: buildPanels(tfs, bars, zones, price, digits, sig, layout, t => t, { forming, htf: FX_HTF, pub: lv ? undefined : obj(d.tls) }) } };
   }
   const [sh, st] = [obj(await ctx.load(`scanner/t/${hit.row.k}.json`)), obj(await ctx.load('scanner/latest.json'))];
   const d = obj(obj(sh.tickers)[hit.sym]);
   const lv = await liveFor(hit, ctx, 2);
   const price = lv?.price ?? num(d.price), pb = obj(d.bars);
   if (!price || (!pb.t0 && !lv)) return null;
-  let bars: Record<string, Bar[]>;
+  let bars: Record<string, Bar[]>, forming: Record<string, boolean>;
   if (lv?.st) {   // live: every session since 2016 + today's forming one; W1 / MN / 3M built from them; 1H from IEX
-    const all = withForming(lv.st.daily, lv.st.partial ? { ...lv.st.partial, h: Math.max(lv.st.partial.h, price), l: Math.min(lv.st.partial.l, price), c: price } : null);
+    const part = lv.st.partial ? { ...lv.st.partial, h: Math.max(lv.st.partial.h, price), l: Math.min(lv.st.partial.l, price), c: price } : null;
+    const all = [...lv.st.daily, ...(part ? [part] : [])].map(zb);
     bars = { D1: all, W1: aggregate(all, weekKey), MN: aggregate(all, monthKey), '3M': aggregate(all, quarterKey), H1: lv.st.h1.map(zb) };
+    const lastDay = lv.st.daily[lv.st.daily.length - 1]?.d;
+    forming = { D1: !!part, H1: true };
+    for (const [t, key] of [['W1', weekKey], ['MN', monthKey], ['3M', quarterKey]] as const) forming[t] = !!part || periodOpen(bars[t], key, lastDay);
   } else {
     const daily = packedBars(pb), hb = obj(d.hb);
     // Real higher-TF bars (hb, only for listed / signalled / watched tickers) when published; else rebuilt from D1.
     const higher = (tf: string, key: (t: string) => string) => withRecent(packedBars(hb[tf]), aggregate(daily, key), key);
     bars = { D1: daily, W1: higher('W1', weekKey), MN: higher('MN', monthKey), '3M': higher('3M', quarterKey) };
+    const lastDay = daily[daily.length - 1]?.t;
+    forming = { D1: false, W1: periodOpen(bars.W1, weekKey, lastDay), MN: periodOpen(bars.MN, monthKey, lastDay), '3M': periodOpen(bars['3M'], quarterKey, lastDay) };
   }
   const tfs = view === 'Q' ? STOCK_TFS : [view];
   if (!tfs.every(t => viewTfs('stock', ctx).includes(t)) || (view === 'H1' && !bars.H1?.length)) return null;
@@ -743,7 +771,7 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
   const when = lv ? liveAt(lv) : d.date ? `${dayOfIso(String(d.date))} close` : '';
   return { market: 'stock', sym: hit.sym, view, v: lv ? liveVersion(lv) : String(st.generated_at ?? '').replace(/[^0-9]/g, '').slice(0, 14), when, live: !!lv, note: liveNote(hit, ctx, lv),
     model: { sym: hit.sym, digits: 2, price, layout, title: `${hit.sym} · ${price.toFixed(2)}${when ? ` · ${when}` : ''}`,
-      panels: buildPanels(tfs, bars, zoneList(lv ? lv.zones : arr(d.zones)), price, 2, sig, layout, t => (t === 'D1' || t === 'H1' ? 'W1' : t), obj(d.tls)) } };
+      panels: buildPanels(tfs, bars, zoneList(lv ? lv.zones : arr(d.zones)), price, 2, sig, layout, t => (t === 'D1' || t === 'H1' ? 'W1' : t), { forming, htf: STOCK_HTF, pub: lv ? undefined : obj(d.tls) }) } };
 }
 
 async function cmdChart(q: string, tfArg: string, ctx: Ctx): Promise<Reply> {

@@ -93,6 +93,19 @@ them with the usual nesting highlight. Not ported: zone DNA codes, location, dir
 latest scan run and are labelled so. Parity: `tools/telegram_bot/parity/make_fixtures.py` writes bars + the zones the
 Python engines publish on them; `src/core/telegramZoneParity.test.ts` requires identical zones from the port.
 
+### Chart trendlines (`trendcore.ts`)
+
+A TypeScript port of the scanners' trendline construction (zones.py `trendlines`, `line_touches`, `cross_bar`:
+swing-2 valleys / peaks, anchors refitted within 0.05 ATR, too-flat lines dropped, confirmed once price runs past the
+swing between the anchors, removed when a bar lies fully beyond the line, crossed = a close through it with a body
+>= 0.6 ATR). Each chart panel (each quarter of the 4-view image, and the single view) draws at most 2 lines of its own
+timeframe (solid lilac) and at most 2 of the next higher timeframe projected onto its candles (gold dots;
+H1 -> H4 -> D1 -> W1 -> MN -> 3M, stocks D1 -> W1 -> MN -> 3M). Picked: never removed, uncrossed first, the row's
+in-force up / down line first, most touches, nearest price; only lines that enter the drawn candles' range. Computed on
+the chart's candles (live: 250 closed bars, the scanners' 200-bar lookback); with the short published shards (80-120
+bars) the scanner's own published lines (`tls`) are used instead. Parity: the same fixtures +
+`src/core/telegramTrendParity.test.ts` (every line of every row identical).
+
 ### Big moves (hourly)
 
 `tools/movers/movers.py` (`.github/workflows/movers.yml`): ONE message per hour when something moved >= 2x its

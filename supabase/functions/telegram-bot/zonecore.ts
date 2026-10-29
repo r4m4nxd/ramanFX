@@ -235,7 +235,7 @@ export function fxZonesOf(bars: Record<string, ZBar[]>, pip: number, nd: number,
 }
 
 // ---- stocks: data.closed_htf + scan.analyse + scan.ticker_detail ---------------------------------------------------
-const nextBusinessDay = (d: string) => { let n = addDays(d, 1); while (isoDow(n) >= 5) n = addDays(n, 1); return n; };
+export const nextBusinessDay = (d: string) => { let n = addDays(d, 1); while (isoDow(n) >= 5) n = addDays(n, 1); return n; };
 /** data.aggregate + closed_htf: ISO-week / calendar-month bars from daily bars, the forming bucket dropped. */
 export function closedHtf(daily: ZBar[], tf: 'W1' | 'MN' | '3M'): ZBar[] {
   if (tf === '3M') return toQuarters(closedHtf(daily, 'MN'));

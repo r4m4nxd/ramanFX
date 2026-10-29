@@ -8,6 +8,9 @@ writes the bars + the zones the scanners would publish to fixtures.json next to 
   stocks scan.analyse on data.closed_htf W1 / MN bars and scan.ticker_detail()['zones'] (W1 / MN / 3M).
 src/core/telegramZoneParity.test.ts runs the TS port on the same bars and requires identical zones
 (tf, side, proximal, distal, pattern, touches, order).
+Trendlines (zones.trendlines, Kevin's construction; ported to supabase/functions/telegram-bot/trendcore.ts): every
+line of every row the scanners evaluate (FX H1 / H4 / D1 / W1 / MN / 3M rows of fxcore.analyse; stocks D1 / W1 / MN /
+3M on closed bars), the up / down line in force and its touches: src/core/telegramTrendParity.test.ts.
 
     python tools/telegram_bot/parity/make_fixtures.py          # rewrite fixtures.json
     python tools/telegram_bot/parity/make_fixtures.py --check  # exit 1 when fixtures.json is out of date
@@ -33,6 +36,7 @@ import synth_fx  # noqa: E402
 import synth  # noqa: E402
 import data as DATA  # noqa: E402
 import scan as SC  # noqa: E402
+import zones as Z  # noqa: E402
 from zones import Bar  # noqa: E402
 
 OUT = os.path.join(HERE, 'fixtures.json')
@@ -51,6 +55,15 @@ def bar(b):
 def rounded(bs, nd):
     """Prices rounded to the quote's digits, like real feeds (smaller fixtures; the engines run on these bars)."""
     return [Bar(b.d, round(b.o, nd), round(b.h, nd), round(b.l, nd), round(b.c, nd), b.v) for b in bs]
+
+
+def tl_dump(S, ok=True):
+    """zones.trendlines on one row's Series: every line + the in-force up / down line (index into lines) + touches."""
+    st = Z.trendlines(S) if ok else Z.TLState()
+    ln = [{'dir': t.dir, 'a': t.a, 'b': t.b, 'pa': t.pa, 'pb': t.pb, 'removed': t.removed, 'removed_bar': t.removed_bar,
+           'conf': t.conf, 'cross_bar': t.cross_bar} for t in st.lines]
+    ix = lambda t: next((i for i, x in enumerate(st.lines) if x is t), -1)  # noqa: E731
+    return {'n': S.n, 'ok': ok, 'lines': ln, 'up': ix(st.up), 'dn': ix(st.dn), 'up_touches': st.up_touches, 'dn_touches': st.dn_touches}
 
 
 def fx_case(sym, inst, seed, start, vol):
@@ -77,8 +90,12 @@ def fx_case(sym, inst, seed, start, vol):
     det = fxscan.detail(an, [], [])['zones']
     assert [(z['tf'], z['side'], z['proximal'], z['touches']) for z in det] == \
         [(z['tf'], z['side'], z['proximal'], z['touches']) for z in zs[:16]], f'{sym}: detail() differs from the filter'
+    tls = {tf: tl_dump(r.S, r.ok) for tf, r in an.rows.items() if tf in ('H1', 'H4', 'D1', 'W1', 'MN', '3M')}
+    for tf, r in an.rows.items():                        # the row's own trendlines are the ones dumped
+        if r.ok and tf in tls:
+            assert [(t.a, t.b, t.dir) for t in r.tl.lines] == [(x['a'], x['b'], x['dir']) for x in tls[tf]['lines']]
     return {'sym': sym, 'pip': an.pip, 'nd': an.nd, 'price': an.price, 'bars': {tf: [bar(b) for b in bs] for tf, bs in bars.items()},
-            'zones': [{k: v for k, v in z.items() if k != 'pips'} for z in zs]}
+            'zones': [{k: v for k, v in z.items() if k != 'pips'} for z in zs], 'tls': tls}
 
 
 def stock_case(seed):
@@ -87,7 +104,14 @@ def stock_case(seed):
     det = SC.ticker_detail(f'T{seed}', {'name': f'T{seed}'}, an, bars, {}, [], [])[0]
     zs = [{'tf': z['tf'], 'side': z['side'], 'proximal': z['proximal'], 'distal': z['distal'], 'pattern': z['pattern'],
            'touches': z['touches']} for z in det['zones']]
-    return {'sym': f'T{seed}', 'price': an.price, 'daily': [bar(b) for b in bars], 'zones': zs}
+    px = bars[-1].c
+    rows = {'D1': bars, 'W1': DATA.closed_htf(bars, 'W1'), 'MN': DATA.closed_htf(bars, 'MN')}
+    rows['3M'] = Z.to_quarters(rows['MN'])
+    tls = {}
+    for tf, bs in rows.items():
+        S = Z.Series(bs, px, tf)
+        tls[tf] = tl_dump(S, S.n >= Z.MIN_ROW_BARS.get(tf, 40) and S.atr(1) > 0)
+    return {'sym': f'T{seed}', 'price': an.price, 'daily': [bar(b) for b in bars], 'zones': zs, 'tls': tls}
 
 
 def build():
@@ -110,7 +134,7 @@ def main(argv=None) -> int:
         f.write(text)
     js = json.loads(text)
     print(f"wrote {os.path.relpath(OUT, ROOT)} ({len(text) // 1024} KB): "
-          + ', '.join(f"{c['sym']} {len(c['zones'])} zones" for c in js['fx'] + js['stocks']))
+          + ', '.join(f"{c['sym']} {len(c['zones'])} zones {sum(len(t['lines']) for t in c['tls'].values())} lines" for c in js['fx'] + js['stocks']))
     return 0
 
 
