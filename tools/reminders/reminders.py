@@ -63,6 +63,12 @@ URLS = {'fomc': 'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm
         'nfp': 'https://www.bls.gov/schedule/news_release/empsit.htm',
         'cpi': 'https://www.bls.gov/schedule/news_release/cpi.htm'}
 ICS = 'https://www.bls.gov/schedule/news_release/bls.ics'   # BLS's own release calendar: tried when a page fails
+# TradingView's public economic calendar (no key; the JSON its own web page uses, so not a documented API): tried
+# after the official pages, which block GitHub's cloud IPs (bls.gov answers 403 even with a contact User-Agent).
+TV = 'https://economic-calendar.tradingview.com/events'
+TV_TITLE = {'nfp': re.compile(r'^non[ -]?farm payrolls$', re.I),
+            'cpi': re.compile(r'^(inflation rate (mom|yoy)|cpi)$', re.I),
+            'fomc': re.compile(r'^fed interest rate decision$', re.I)}
 TITLE = {'nfp': 'Employment Situation', 'cpi': 'Consumer Price Index'}
 ET_TIME = {'nfp': '08:30', 'cpi': '08:30', 'fomc': '14:00'}        # release / statement time, US Eastern
 LEAD = {'morning': dt.timedelta(minutes=45), 'fomc': dt.timedelta(minutes=30)}   # 6:30 -> 5:45, 12:00 -> 11:30
@@ -205,6 +211,37 @@ def fetch(url: str, timeout: int = 25) -> str:
         return r.read(3_000_000).decode('utf-8', 'replace')
 
 
+def parse_tv(text: str, kind: str) -> List[Dict]:
+    """TradingView calendar JSON -> [{'date', 'et'}] for one kind (US events only; the release time in US Eastern)."""
+    try:
+        rows = json.loads(text).get('result') or []
+    except (ValueError, AttributeError):
+        return []
+    out = {}
+    for r in rows:
+        if (r.get('country') or '').upper() != 'US' or not TV_TITLE[kind].match((r.get('title') or '').strip()):
+            continue
+        try:
+            t = dt.datetime.strptime((r.get('date') or '')[:19], '%Y-%m-%dT%H:%M:%S').replace(tzinfo=UTC).astimezone(ET)
+        except ValueError:
+            continue
+        out.setdefault(t.date().isoformat(), t.strftime('%H:%M'))
+    return [{'date': d, 'et': et} for d, et in sorted(out.items())]
+
+
+def tv_url(now: dt.datetime) -> str:
+    a = (now - dt.timedelta(days=7)).strftime('%Y-%m-%dT00:00:00.000Z')
+    b = (now + dt.timedelta(days=200)).strftime('%Y-%m-%dT00:00:00.000Z')
+    return f'{TV}?from={a}&to={b}&countries=US'
+
+
+def fetch_tv(url: str, timeout: int = 25) -> str:
+    req = urllib.request.Request(url, headers={'User-Agent': user_agent(), 'Accept': 'application/json',
+                                               'Origin': 'https://www.tradingview.com', 'Referer': 'https://www.tradingview.com/'})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return r.read(5_000_000).decode('utf-8', 'replace')
+
+
 def parse_kind(kind: str, page: str) -> List[Dict]:
     if kind == 'fomc':
         return [{'date': d, 'et': ET_TIME['fomc']} for d in parse_fomc(page)]
@@ -235,7 +272,7 @@ def empty_cache() -> Dict:
                       for k in URLS}}
 
 
-def refresh(cache: Dict, now: dt.datetime, force: bool = False, fetcher=fetch, log=print) -> bool:
+def refresh(cache: Dict, now: dt.datetime, force: bool = False, fetcher=fetch, log=print, tv_fetcher=None) -> bool:
     """Fetch each kind whose last attempt is older than REFRESH_DAYS (or all with force). A good parse replaces the
     cached list (past dates within KEEP_DAYS kept); a failed one keeps the last good list. True when anything changed."""
     changed = False
@@ -249,8 +286,17 @@ def refresh(cache: Dict, now: dt.datetime, force: bool = False, fetcher=fetch, l
         k['tried_at'] = _iso(now)
         changed = True
         evs, errs = [], []
-        for src in ([url] + ([ICS] if kind in TITLE else [])):
+        for src in ([url] + ([ICS] if kind in TITLE else []) + [TV]):
             try:
+                if src == TV:
+                    if 'tv' not in ics_page:
+                        ics_page['tv'] = (tv_fetcher or (fetch_tv if fetcher is fetch else fetcher))(tv_url(now))
+                    evs = parse_tv(ics_page['tv'], kind)
+                    if evs:
+                        url = 'tradingview'
+                        break
+                    errs.append('tradingview: no dates parsed')
+                    continue
                 if src == ICS:
                     if 'page' not in ics_page:
                         ics_page['page'] = fetcher(ICS)
@@ -261,6 +307,8 @@ def refresh(cache: Dict, now: dt.datetime, force: bool = False, fetcher=fetch, l
             except Exception as e:  # noqa: BLE001
                 if src == ICS:
                     ics_page['page'] = ''
+                if src == TV:
+                    ics_page['tv'] = ''
                 errs.append(f'{src.rsplit("/", 1)[-1]}: {_why(e)}')
                 continue
             if evs:

@@ -1,6 +1,7 @@
 """Offline tests for tools/reminders/reminders.py: schedule-page parsing, Calgary local-time windows across DST (and
 Alberta's permanent UTC-6 from 2026-11-01 in tzdata 2026c+), the 40-minute late window, dedupe, cache fallback."""
 import datetime as dt
+import json
 import os
 import sys
 import unittest
@@ -214,3 +215,37 @@ class Windows(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TradingViewSourceTest(unittest.TestCase):
+    """TradingView's calendar fills NFP / CPI when bls.gov refuses the request (403 from GitHub's cloud IPs)."""
+    TV_JSON = json.dumps({'status': 'ok', 'result': [
+        {'title': 'Non Farm Payrolls', 'country': 'US', 'date': '2026-12-04T13:30:00.000Z'},
+        {'title': 'Inflation Rate YoY', 'country': 'US', 'date': '2026-12-10T13:30:00.000Z'},
+        {'title': 'Inflation Rate MoM', 'country': 'US', 'date': '2026-12-10T13:30:00.000Z'},
+        {'title': 'Fed Interest Rate Decision', 'country': 'US', 'date': '2026-12-09T19:00:00.000Z'},
+        {'title': 'Non Farm Payrolls', 'country': 'CA', 'date': '2026-12-04T13:30:00.000Z'},
+        {'title': 'Non Farm Payrolls', 'country': 'US', 'date': '2027-01-08T13:30:00.000Z'},
+        {'title': 'Non Farm Payrolls', 'country': 'US', 'date': '2027-02-05T13:30:00.000Z'},
+    ]})
+
+    def test_parse(self):
+        self.assertEqual(R.parse_tv(self.TV_JSON, 'nfp'), [{'date': '2026-12-04', 'et': '08:30'}, {'date': '2027-01-08', 'et': '08:30'},
+                                                          {'date': '2027-02-05', 'et': '08:30'}])
+        self.assertEqual(R.parse_tv(self.TV_JSON, 'cpi'), [{'date': '2026-12-10', 'et': '08:30'}])
+        self.assertEqual(R.parse_tv(self.TV_JSON, 'fomc'), [{'date': '2026-12-09', 'et': '14:00'}])
+        self.assertEqual(R.parse_tv('not json', 'nfp'), [])
+
+    def test_refresh_falls_back_to_tradingview(self):
+        import urllib.error
+
+        def bls_blocked(url):
+            raise urllib.error.HTTPError(url, 403, 'Forbidden', None, None)
+
+        cache = R.empty_cache()
+        now = dt.datetime(2026, 11, 20, 12, 0, tzinfo=dt.timezone.utc)
+        R.refresh(cache, now, force=True, fetcher=bls_blocked, log=lambda *_: None, tv_fetcher=lambda url: self.TV_JSON)
+        nfp = cache['kinds']['nfp']
+        self.assertEqual(nfp['source'], 'tradingview')
+        self.assertEqual([e['date'] for e in nfp['events']][:2], ['2026-12-04', '2027-01-08'])
+        self.assertTrue(all(e['verified'] for e in nfp['events']))
