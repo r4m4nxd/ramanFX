@@ -18,8 +18,20 @@ export type FxWatchKind = 'new' | 'tested' | 'confirm' | 'area' | 'context';
 const WATCH_KINDS: readonly string[] = ['new', 'tested', 'confirm', 'area', 'context'];
 export interface FxRule { status: string; text: string; ref: string; short: string }
 
-/** Instrument fields shared by Signal / Item / Row / Detail. */
-export interface FxInst { sym: string; oanda: string; cls: string; group: string; wl: boolean; tv: string; digits: number; pip: number; exotic: boolean }
+/** Instrument classes, scanner order (crypto: the 24/7 coins from public exchange feeds). */
+export const FX_CLASSES = ['major', 'cross', 'exotic', 'metal', 'crypto', 'cfd'] as const;
+export type FxClass = (typeof FX_CLASSES)[number];
+const CLASS_LABEL: Record<string, string> = { major: 'Majors', cross: 'Crosses', exotic: 'Exotics', metal: 'Metals', crypto: 'Crypto', cfd: 'CFDs' };
+export const fxClassLabel = (c: string) => CLASS_LABEL[c] ?? c;
+/** Data source of an instrument OANDA does not serve ('' = OANDA). */
+export type FxSrc = '' | 'synthetic' | 'crypto' | 'yahoo';
+
+/** Instrument fields shared by Signal / Item / Row / Detail. `src` / `feed` / `unofficial` / `approx` / `pipMode`: only
+ * for the symbols OANDA does not serve (tools/fx_scanner/SCHEMA.md); `pipMode 'atr'` = `pip` is the volatility pip. */
+export interface FxInst {
+  sym: string; oanda: string; cls: string; group: string; wl: boolean; tv: string; digits: number; pip: number; exotic: boolean;
+  src: FxSrc; feed: string; unofficial: boolean; approx: boolean; pipMode: '' | 'atr';
+}
 
 export interface FxSignal extends FxInst {
   kind: FxKind; watch_kind: FxWatchKind | null; tf: string; side: FxSide; zone_type: string; pattern: string;
@@ -70,8 +82,27 @@ export const tvLink = (symOrTv: string) => `https://www.tradingview.com/chart/?s
 function inst(o: J): FxInst {
   const sym = pepperSymbol(str(o.sym, o.oanda));
   const cls = str(o.cls) || 'cfd';
+  const src = o.src === 'synthetic' || o.src === 'crypto' || o.src === 'yahoo' ? o.src : '';
   return { sym, oanda: str(o.oanda), cls, group: str(o.group).replace(/^#+/, '').trim().toUpperCase(), wl: o.wl === true, tv: str(o.tv) || `PEPPERSTONE:${sym}`,
-    digits: int(o.digits, 5), pip: num(o.pip) ?? 0.0001, exotic: o.exotic === true || cls === 'exotic' };
+    digits: int(o.digits, 5), pip: num(o.pip) ?? 0.0001, exotic: o.exotic === true || cls === 'exotic',
+    src, feed: str(o.feed), unofficial: o.unofficial === true, approx: o.approx === true, pipMode: o.pip_mode === 'atr' ? 'atr' : '' };
+}
+
+/** Short badge for a non-OANDA feed: 'unofficial feed' (Yahoo), 'approx. basket' (EURX / JPYX), 'synthetic' (crosses
+ * from OANDA legs); null for OANDA and the crypto exchange feeds. */
+export function feedBadge(x: Pick<FxInst, 'src' | 'unofficial' | 'approx'>): string | null {
+  if (x.unofficial) return 'unofficial feed';
+  if (x.approx) return 'approx. basket';
+  if (x.src === 'synthetic') return 'synthetic';
+  return null;
+}
+/** 'Data: OANDA EUR_USD' / 'Data: Yahoo ^VIX (unofficial feed)' / 'Data: Coinbase Exchange BTC-USD spot …'. */
+export const feedText = (x: Pick<FxInst, 'src' | 'feed' | 'oanda'>) => (x.src ? `Data: ${x.feed || x.src}` : `Data: OANDA ${x.oanda}`);
+/** Distance label: pips, or % of price where a pip means nothing (pipMode 'atr': crypto, indices, softs). */
+export function distLabel(pips: number | null, x: Pick<FxInst, 'pip' | 'pipMode'>, px: number | null): string {
+  if (pips == null) return '';
+  if (x.pipMode === 'atr') return px ? `${((pips * x.pip) / px * 100).toFixed(2)}%` : '';
+  return `${pips.toFixed(1)}p`;
 }
 
 export function parseSignal(v: unknown): FxSignal {

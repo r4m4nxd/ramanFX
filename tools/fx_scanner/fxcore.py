@@ -140,7 +140,6 @@ def analyse(inst: Dict, bars: Dict[str, List[Bar]], spread: Optional[float] = No
     oldest first} ('H1' optional: without it the analysis is the H4 one); 3M = closed quarters built from MN.
     Price = the newest H1 close when H1 bars closed after the newest H4 bar (mid-H4), else the H4 close (exactly the
     pre-H1 analysis). H1 bars that end before the newest H4 bar (stale feed) are not used."""
-    p = params(inst)
     h4 = bars['H4'][-C.KEEP_BARS['H4']:]
     h1 = (bars.get('H1') or [])[-C.KEEP_BARS['H1']:]
     last4 = h4[-1].d
@@ -148,6 +147,9 @@ def analyse(inst: Dict, bars: Dict[str, List[Bar]], spread: Optional[float] = No
         h1 = []                                     # stale H1 history: no H1 row this run
     h1x = [b for b in h1 if C.h4_bucket(b.d) > last4]
     px = h1x[-1].c if h1x else h4[-1].c
+    if inst.get('pip_mode') == 'atr':
+        inst = {**inst, 'pip': atr_pip(bars.get('D1') or [], px)}
+    p = params(inst)
     fine = Series(h4 + forming_h4(h1x), px, 'H4')
 
     def row(bs, tf):
@@ -182,6 +184,13 @@ def analyse(inst: Dict, bars: Dict[str, List[Bar]], spread: Optional[float] = No
                 an.dna[z.zid] = Z.dna(r.S, r.zones, i, r.tl, other_rows(an, tf), htf_opp(an, tf), curves[tf], crows[tf],
                                       0.0, p, tp_off_abs=tp_off(an))
     return an
+
+
+def atr_pip(d1: List[Bar], px: float, n: int = 14) -> float:
+    """The volatility pip of a `pip_mode: atr` instrument: D1 ATR(n) / fxcfg.ATR_PIP_REF (fallback 0.01% of price)."""
+    tr = [max(b.h, a.c) - min(b.l, a.c) for a, b in zip(d1[-n - 1:-1], d1[-n:])]
+    atr = sum(tr) / len(tr) if len(tr) >= 5 else 0.0
+    return atr / C.ATR_PIP_REF if atr > 0 else px * 1e-4
 
 
 def tp_off(an: FxAnalysis) -> float:
@@ -476,7 +485,7 @@ def zone_rules(an: FxAnalysis, z: Z.Zone, x: Z.DNA) -> List[Rule]:
     if inst['name'] == 'XAU_USD':
         low = C.ENTRY_TFS.index(z.tf) < C.ENTRY_TFS.index(C.GOLD_USD_MIN_TF) if C.GOLD_USD_MIN_TF in C.ENTRY_TFS else False
         R.append(Rule(FAIL if low else INFO, 'Raja: no XAU_USD on the low timeframes; use XAU_AUD' if low else C.GOLD_NOTE, 'Raja', 'gold TF'))
-    if z.tf in ('H1', 'H4') and len(an.asof) >= 13:
+    if z.tf in ('H1', 'H4') and len(an.asof) >= 13 and inst.get('cls') != 'crypto':   # crypto: no weekend gap
         wd = dt.date.fromisoformat(an.asof[:10]).weekday()
         late = wd == 4 and int(an.asof[11:13]) + an.asof_h >= C.WEEKEND_FROM_H     # the newest bar closed at / after 12:00
         R.append(Rule(FAIL if late else PASS, f'Friday afternoon: no new {z.tf} set and forget into the weekend gap' if late

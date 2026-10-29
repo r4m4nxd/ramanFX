@@ -40,6 +40,7 @@ import fxnotify as N  # noqa: E402
 import kevin as K  # noqa: E402
 import oanda as O  # noqa: E402
 import prefs as P  # noqa: E402  (stock_scanner/prefs.py: the owner's bot preferences)
+import sources as SRC  # noqa: E402  (extra data sources: synthetic crosses, crypto, Yahoo)
 import watchlist as W  # noqa: E402
 import zones as Z  # noqa: E402
 from zones import Bar  # noqa: E402
@@ -57,17 +58,18 @@ def now_utc() -> dt.datetime:
 
 
 # ---- universe --------------------------------------------------------------------------------------------------------
-def universe(instruments: List[Dict], wl: Dict, include_cfd: Optional[bool] = None) -> List[Dict]:
+def universe(instruments: List[Dict], wl: Dict, include_cfd: Optional[bool] = None, extra: Optional[List[Dict]] = None) -> List[Dict]:
     """CURRENCY + METAL (+ CFD with FX_INCLUDE_CFD) + every watchlist instrument (CFDs included), each with sym
-    (Pepperstone name), cls, group (watchlist section) and wl."""
-    by = {i['name']: i for i in instruments}
+    (Pepperstone name), cls, group (watchlist section) and wl. `extra` = the extra-source instruments
+    (sources.meta of instruments.json `extra`): only watchlist ones are scanned; an account instrument wins."""
+    by = {**{i['name']: i for i in (extra or [])}, **{i['name']: i for i in instruments}}
     pick = {i['name']: i for i in C.select(instruments, include_cfd)}
     for n in wl['names']:
         if n == 'USDX':
             pick[n] = {**USDX_META, 'cls': 'cfd'}
         elif n in by and n not in pick:
             i = by[n]
-            pick[n] = {**i, 'cls': C.fx_class(n, i.get('type') or 'CFD')}
+            pick[n] = {**i, 'cls': i.get('cls') or C.fx_class(n, i.get('type') or 'CFD')}
         elif n not in by and n not in pick and not by:
             pick[n] = {'name': n, 'type': 'CFD', 'cls': C.fx_class(n, 'CFD')}
     sym_of = {it['instrument']: W.tv_ticker(it['symbol']) for it in wl['items'] if it['instrument']}
@@ -166,7 +168,7 @@ def run(uni: List[Dict], get_bars: BarsGetter, workers: int = 4, log=print) -> D
             errors[i['sym']] = f'analysis: {type(e).__name__}: {e}'
             continue
         analyses[i['sym']] = an
-        meta = inst_fields(i)
+        meta = inst_fields(an.inst)
         for s in ss:
             s.update(meta)
             s['ctx3'] = F.six(an.rows['3M'], an.price, an.nd)
@@ -178,9 +180,19 @@ def run(uni: List[Dict], get_bars: BarsGetter, workers: int = 4, log=print) -> D
 
 
 def inst_fields(i: Dict) -> Dict:
-    return {'sym': i['sym'], 'oanda': i['name'], 'cls': i['cls'], 'group': i.get('group') or '', 'wl': bool(i.get('wl')),
-            'tv': i.get('tv') or f"PEPPERSTONE:{i['sym']}", 'digits': C.digits_of(i), 'pip': C.pip_of(i),
-            'exotic': i['cls'] == 'exotic'}
+    out = {'sym': i['sym'], 'oanda': i['name'], 'cls': i['cls'], 'group': i.get('group') or '', 'wl': bool(i.get('wl')),
+           'tv': i.get('tv') or f"PEPPERSTONE:{i['sym']}", 'digits': C.digits_of(i), 'pip': C.pip_of(i),
+           'exotic': i['cls'] == 'exotic'}
+    if i.get('source') not in (None, 'oanda'):           # extra sources only: OANDA rows are unchanged
+        out['src'] = i['source']
+        out['feed'] = i.get('feed') or i['source']
+        if i.get('unofficial'):
+            out['unofficial'] = True
+        if i.get('approximate'):
+            out['approx'] = True
+        if i.get('pip_mode'):
+            out['pip_mode'] = i['pip_mode']
+    return out
 
 
 def pack(bars: List[Bar], n: int, nd: int) -> List[list]:
@@ -249,7 +261,7 @@ def public(res: Dict, h4: str, fixture: bool = False, partial: bool = False, ext
             continue
         hh = res['hits'].get(i['sym'], [])
         b = F.bucket_of(hh)
-        rows.append({**{k: v for k, v in inst_fields(i).items() if k not in ('tv',)}, 'px': round(an.price, an.nd),
+        rows.append({**{k: v for k, v in inst_fields(an.inst).items() if k not in ('tv',)}, 'px': round(an.price, an.nd),
                      'b': b['b'] if b else 'M', 'z': _item(b) if b else None, 'dir': {t: an.dirs[t].head for t in C.ENTRY_TFS},
                      'states': {t: an.rows[t].state_name for t in F.ROW_TFS},
                      'sp': round(an.spread / an.pip, 1) if an.spread is not None else None, 'sig': sig_of.get(i['sym']), 'k': i['cls']})
@@ -471,7 +483,7 @@ def state_path() -> str:
     return os.path.join(C.CACHE, 'state.json')
 
 
-SCHEDULE_KEYS = ('last_h1', 'last_h4', 'summary_d1', 'digest_h4')
+SCHEDULE_KEYS = ('last_h1', 'last_h4', 'summary_d1', 'digest_h4', 'last_h1_crypto')
 
 
 def _read(path: str) -> Dict:
@@ -544,6 +556,47 @@ def oanda_bars(i: Dict) -> Tuple[Dict[str, List[Bar]], Optional[float]]:
         if tf == 'H4':
             sp = F.typical_spread(O.spreads(rec))
     return out, sp
+
+
+def make_getter(oanda: Callable[[Dict], Tuple[Dict[str, List[Bar]], Optional[float]]] = None, log=print, get=None) -> BarsGetter:
+    """The run's bars getter: OANDA instruments through `oanda` (memoised per run and locked per name, so a leg shared
+    by a synthetic cross and its own instrument is fetched once), extra-source instruments through sources/."""
+    oanda = oanda or oanda_bars
+    memo: Dict[str, Tuple] = {}
+    locks: Dict[str, threading.Lock] = {}
+    glock = threading.Lock()
+
+    def leg(name: str):
+        with glock:
+            lk = locks.setdefault(name, threading.Lock())
+        with lk:
+            if name not in memo:
+                memo[name] = oanda({'name': name, 'type': 'CURRENCY', 'sym': name.replace('_', '')})
+            return memo[name]
+
+    def bars_of(i: Dict):
+        if i.get('source') in (None, 'oanda'):
+            return leg(i['name'])
+        x = SRC.spec(i.get('sym') or i['name']) or SRC.spec(i['name'])
+        if x is None:
+            raise ValueError(f"{i['name']}: no source entry")
+        return SRC.fetch(x, leg=leg, log=log, get=get)
+    return bars_of
+
+
+def extra_meta() -> List[Dict]:
+    return [SRC.meta(x) for x in SRC.registry()]
+
+
+def attach_extra(wl: Dict, log=print) -> List[str]:
+    """Watchlist symbols OANDA does not serve -> their extra source (instruments.json `extra`)."""
+    added = W.attach_extra(wl, {x['sym']: x for x in SRC.registry()})
+    if added and log:
+        by = {x['name']: x['source'] for x in SRC.registry()}
+        n = {k: sum(by.get(a) == k for a in added) for k in ('synthetic', 'crypto', 'yahoo')}
+        log(f"extra sources: {len(added)} watchlist symbol(s) not on OANDA scanned from other feeds "
+            f"(synthetic {n['synthetic']}, crypto {n['crypto']}, yahoo {n['yahoo']})")
+    return added
 
 
 # ---- selftest --------------------------------------------------------------------------------------------------------
@@ -625,6 +678,151 @@ def ondemand(res: Dict, uni: List[Dict], only: str, h1: Optional[str], h4: str, 
     return 0
 
 
+# ---- crypto: 24/7 (weekends: a crypto-only run) ----------------------------------------------------------------------
+def crypto_latest_h1(get=None) -> Optional[str]:
+    """Server-time label of the newest complete BTCUSD H1 candle (the crypto check), None when no source answers."""
+    x = SRC.spec('BTCUSD')
+    t = SRC.crypto.latest_h1(x, get=get) if x else None
+    return C.label(str(int(t)), 'H1', strict=False) if t else None
+
+
+def needs_crypto_scan(h1: Optional[str], state: Dict) -> bool:
+    return needs_scan(h1, state, 'last_h1_crypto')
+
+
+def crypto_h1_of(res: Dict) -> Optional[str]:
+    """Newest H1 label among the analysed crypto instruments."""
+    xs = [an.asof for an in res['analyses'].values() if an.inst.get('cls') == 'crypto' and an.asof_h == 1]
+    xs += [an.rows['H1'].S.T[1] for an in res['analyses'].values() if an.inst.get('cls') == 'crypto' and an.rows['H1'].S.n > 1]
+    return max(xs) if xs else None
+
+
+def source_counts(res: Dict) -> Dict[str, int]:
+    out: Dict[str, int] = {}
+    for an in res['analyses'].values():
+        k = an.inst.get('source') or 'oanda'
+        out[k] = out.get(k, 0) + 1
+    return out
+
+
+def merge_public(old: Dict, new: Dict, syms: set) -> Dict:
+    """A crypto-only run's latest.json merged into the last full one: the crypto instruments' rows, signals, watch,
+    lists and errors replaced, everything else (forex, the H1 / H4 bars, the summary schedule) kept."""
+    if not old or old.get('version') != new.get('version'):
+        return new
+    keep = lambda xs: [x for x in xs or [] if x.get('sym') not in syms]  # noqa: E731
+    out = dict(old)
+    out['generated'] = new['generated']
+    out['partial'] = bool(old.get('partial'))
+    out['signals'] = sorted(keep(old.get('signals')) + new['signals'], key=lambda s: (not s['wl'], -s['score'], abs(s['to_entry_pips'])))
+    out['watch'] = sorted(keep(old.get('watch')) + new['watch'], key=lambda s: (not s['wl'], -s['score']))
+    out['invalidated'] = keep(old.get('invalidated')) + new.get('invalidated', [])
+    rows = {r['sym']: r for r in new['map']}
+    m = [rows.pop(r['sym']) if r['sym'] in rows else r for r in old.get('map') or []]
+    out['map'] = m + list(rows.values())
+    lists = {}
+    for side in ('demand', 'supply'):
+        lists[side] = {}
+        for sec in F.SECTIONS:
+            xs = keep(((old.get('lists') or {}).get(side) or {}).get(sec)) + new['lists'][side][sec]
+            lists[side][sec] = sorted(xs, key=lambda r: (not r['wl'], not r['loc_ok'], -r['score'], r['pips']))
+    out['lists'] = lists
+    out['errors'] = {**{k: v for k, v in (old.get('errors') or {}).items() if k not in syms}, **new['errors']}
+    cls_n = {c: sum(1 for r in out['map'] if r['cls'] == c) for c in C.CLASSES}
+    out['classes'] = [{'id': c, 'label': C.CLASS_LABEL[c], 'n': cls_n[c]} for c in C.CLASSES if cls_n[c]]
+    out['counts'] = {'instruments': len(out['map']), 'BUY': sum(s['kind'] == 'BUY' for s in out['signals']),
+                     'SELL': sum(s['kind'] == 'SELL' for s in out['signals']), 'WATCH': len(out['watch']), 'errors': len(out['errors'])}
+    out['crypto_h1'] = new.get('crypto_h1')
+    if not out.get('groups'):
+        out['groups'] = new.get('groups') or []
+    return out
+
+
+def crypto_universe(wl: Optional[Dict] = None) -> List[Dict]:
+    wl = wl or W.load(None)
+    attach_extra(wl, log=None)
+    return [i for i in universe([], wl, include_cfd=False, extra=extra_meta()) if i['cls'] == 'crypto']
+
+
+def crypto_main(a) -> int:
+    """Crypto-only scan (the forex market is closed; crypto trades 24/7): the crypto watchlist instruments, the
+    instant alerts only (no H4 digest / daily summary: those follow the forex candles), merged into public/fx."""
+    t0 = time.time()
+    SD.set_budget(C.BUDGET_MIN)
+    state = load_state()
+    notify = not a.no_notify
+    ch1 = crypto_latest_h1()
+    if not (a.force or a.only) and not needs_crypto_scan(ch1, state):
+        print(f'crypto: no new H1 candle since {ch1}: nothing to do')
+        return 0
+    uni = crypto_universe()
+    if a.only:
+        want = {s.strip().upper() for s in a.only.split(',') if s.strip()}
+        uni = [i for i in uni if i['sym'].upper() in want or i['name'].upper() in want]
+    print(f'crypto-only scan: {len(uni)} instruments, newest H1 {ch1} server time')
+    res = run(uni, make_getter(), workers=a.workers)
+    have = len(res['analyses'])
+    print(f'analysed {have}/{len(uni)} in {time.time() - t0:.0f}s; {len(res["errors"])} errors')
+    for s_, e in list(res['errors'].items())[:15]:
+        print(f'  {s_}: {e}')
+    if not uni or have < max(1, C.MIN_COVERAGE * len(uni)):
+        notify_failure(f'crypto: only {have}/{len(uni)} instruments have data; nothing published', state, notify)
+        return 2
+    prefs = P.fetch(log=print)
+    old = _read(os.path.join(C.OUT_DIR, 'latest.json'))
+    h4, h1 = old.get('h4') or res['analyses'][next(iter(res['analyses']))].date, old.get('h1')
+    pub, shards = public(res, h4, h1=h1, extra={'unmapped': old.get('unmapped') or [], 'crypto_h1': crypto_h1_of(res) or ch1,
+                                                 'sources': {**(old.get('sources') or {})}})
+    bootstrap = 'signals' not in state
+    ev, new_state = events(res, state, now_utc())
+    pub['invalidated'] = [{k: g.get(k) for k in ('sym', 'kind', 'tf', 'side', 'entry', 'reason')} for g in ev['gone']]
+    merged = merge_public(old, pub, set(res['analyses']))   # an instrument without data keeps its last full-scan rows
+    if not a.no_write and not a.only:
+        write_partial(merged, shards)
+        print('wrote', os.path.join(C.OUT_DIR, 'latest.json'), '(crypto merged)')
+    muted, quiet = P.muted_set(prefs), P.in_quiet(prefs)
+    hush = lambda ms, loud=False: [N.SN.silenced(m, quiet and not loud) for m in ms]  # noqa: E731
+    msgs = [] if bootstrap else hush(N.alert_messages({**ev, 'h4': h4, 'h1': ch1}, muted), N.urgent(ev, muted))
+    fired_before = dict(state.get('fired_alerts') or {})
+    fired = [] if a.only else P.evaluate(prefs, alert_inputs(res), fired_before)
+    for f in fired:
+        msgs += hush(N.fired_messages([f], hourly=True), f['alert']['kind'] == 'price')
+        fired_before[str(f['alert']['id'])] = now_utc().isoformat()
+    new_state['fired_alerts'] = fired_before
+    ok = True
+    if notify and msgs:
+        ok = N.send(msgs) or not telegram_configured()
+    elif msgs:
+        for m in msgs:
+            print(m + '\n' + '-' * 40)
+    if not ok:
+        print('Telegram send failed: alert state kept, the events are sent again next run')
+        new_state = unsent_state(new_state, state)
+    elif notify and telegram_configured():
+        for f in fired:
+            P.alert_fired(f['alert']['id'], log=print)
+    for k in ('last_h1', 'last_h4', 'summary_d1', 'digest_h4'):
+        if k in state:
+            new_state[k] = state[k]
+    if not a.only:
+        new_state['last_h1_crypto'] = max(crypto_h1_of(res) or '', ch1 or '') or state.get('last_h1_crypto')
+    save_state(new_state)
+    if not a.no_write and not a.only:
+        save_public_state(new_state)
+    print(f'crypto done in {time.time() - t0:.0f}s: {len(ev["signals"])} new signals, {len(ev["gone"])} cancelled, '
+          f'{len(ev["zones"])} zone alerts, {len(msgs)} message(s)')
+    return 0
+
+
+def write_partial(pub: Dict, shards: Dict[str, Dict], out_dir: Optional[str] = None) -> None:
+    """latest.json + only the given class shards (the others stay as the last full scan wrote them)."""
+    out_dir = out_dir or C.OUT_DIR
+    os.makedirs(os.path.join(out_dir, 'd'), exist_ok=True)
+    for c, js in shards.items():
+        _dump(os.path.join(out_dir, 'd', f'{c}.json'), js)
+    _dump(os.path.join(out_dir, 'latest.json'), pub)
+
+
 # ---- main ------------------------------------------------------------------------------------------------------------
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -643,20 +841,29 @@ def main(argv=None) -> int:
     ap.add_argument('--workers', type=int, default=int(os.environ.get('FX_WORKERS') or 4))
     ap.add_argument('--notify-failure', default='', help='send one "FX scan failed" Telegram message (workflow steps)')
     ap.add_argument('--check', action='store_true',
-                    help='only check whether a new H1 candle needs scanning (prints it, sets the GitHub output scan=true/false)')
+                    help='only check whether a new H1 candle needs scanning (prints it, sets the GitHub output scan=true/false, '
+                         'crypto=true when only the 24/7 crypto instruments have a new H1 candle: weekends)')
+    ap.add_argument('--crypto', action='store_true',
+                    help='crypto-only scan (weekends: the forex market is closed, crypto trades 24/7); merges into public/fx')
     a = ap.parse_args(argv)
     if a.check:
+        st = load_state()
         try:
             O.token()
             h1 = O.latest_h1()
         except Exception as e:  # noqa: BLE001  (no token / OANDA down: let the full run report it, once a day)
             print(f'check failed ({type(e).__name__}): running the scan step to report it')
-            gh_output(scan='true')
+            gh_output(scan='true', crypto='false')
             return 0
-        st = load_state()
         need = needs_scan(h1, st, 'last_h1')
         print(f"newest H1 {h1} server time, last scanned {st.get('last_h1')}: " + ('scan' if need else 'nothing to do'))
-        gh_output(scan='true' if need else 'false', h1=h1 or '')
+        if not need:
+            ch1 = crypto_latest_h1()
+            if needs_crypto_scan(ch1, st):
+                print(f"crypto: newest H1 {ch1} server time, last scanned {st.get('last_h1_crypto')}: crypto-only scan")
+                gh_output(scan='true', crypto='true', h1=ch1 or '')
+                return 0
+        gh_output(scan='true' if need else 'false', crypto='false', h1=h1 or '')
         return 0
     if a.notify_failure:
         notify_failure(a.notify_failure, load_state(), True)
@@ -674,6 +881,8 @@ def main(argv=None) -> int:
             print(f'===== {kind} =====')
             N.SN.print_messages(msgs) if msgs else print('(nothing to send)')
         return 0
+    if a.crypto:
+        return crypto_main(a)
     t0 = time.time()
     SD.set_budget(C.BUDGET_MIN)
     state = load_state()
@@ -703,14 +912,17 @@ def main(argv=None) -> int:
     added = merge_watch(wl, P.watch_syms(prefs), known)
     if added:
         print(f"prefs: {len(added)} extra watch symbol(s) merged: {', '.join(added)}")
+    attach_extra(wl)
     if wl['unmapped']:
         print(f"watchlist ({wl['source']}): {len(wl['unmapped'])} not on OANDA: " + ', '.join(u['symbol'] for u in wl['unmapped']))
-    uni = universe(instruments, wl)
+    else:
+        print(f"watchlist ({wl['source']}): 0 not on OANDA (every symbol has a feed)")
+    uni = universe(instruments, wl, extra=extra_meta())
     if a.only:
         want = {s.strip().upper() for s in a.only.split(',') if s.strip()}
         uni = [i for i in uni if i['sym'].upper() in want or i['name'].upper() in want]
     print(f'{len(uni)} instruments ({src} list, watchlist {len(wl["names"])} from {wl["source"]}), newest H1 {h1}, H4 {h4} server time')
-    res = run(uni, oanda_bars, workers=a.workers)
+    res = run(uni, make_getter(), workers=a.workers)
     have = len(res['analyses'])
     print(f'analysed {have}/{len(uni)} in {time.time() - t0:.0f}s; {len(res["errors"])} errors')
     if O.DROPPED:
@@ -730,7 +942,8 @@ def main(argv=None) -> int:
     if nk:
         print(f"kevin: {nk} scanner zone(s) / signal(s) also in Kevin's plan")
     pub, shards = public(res, h4, partial=SD.over_budget(), extra={
-        'unmapped': wl['unmapped'], 'watchlist_source': wl['source'], 'instrument_source': src}, h1=h1)
+        'unmapped': wl['unmapped'], 'watchlist_source': wl['source'], 'instrument_source': src,
+        'sources': source_counts(res), 'crypto_h1': crypto_h1_of(res) or state.get('last_h1_crypto')}, h1=h1)
     bootstrap = 'signals' not in state
     ev, new_state = events(res, state, now_utc())
     pub['invalidated'] = [{k: g.get(k) for k in ('sym', 'kind', 'tf', 'side', 'entry', 'reason')} for g in ev['gone']]
@@ -788,6 +1001,7 @@ def main(argv=None) -> int:
     else:
         new_state['last_h4'] = h4
         new_state['last_h1'] = h1 or state.get('last_h1')
+        new_state['last_h1_crypto'] = max(crypto_h1_of(res) or '', state.get('last_h1_crypto') or '') or None
     save_state(new_state)
     if not a.no_write and not a.only:
         save_public_state(new_state)

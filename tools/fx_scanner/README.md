@@ -48,9 +48,10 @@ Standard library only (Python 3.10+).
   names: SPOTCRUDE→WTICO_USD, SPOTBRENT→BCO_USD, NATGAS→NATGAS_USD, COPPER→XCU_USD, US500→SPX500_USD, US30, NAS100,
   US2000, GER40→DE30_EUR, FRA40→FR40_EUR, EUSTX50→EU50_EUR, UK100→UK100_GBP, JPN225→JP225Y_JPY (else JP225_USD), CHINAH→CHINAH_HKD, AUS200→AU200_AUD,
   HK50→HK33_HKD, CN50, NETH25→NL25_EUR, SPA35→ESPIX_EUR, SWI20→CH20_CHF, CORN, WHEAT, SOYBEANS→SOYBN_USD, SUGAR,
-  BTCUSD→BTC_USD …, each checked against the account's list. Not on OANDA (CA60, SCI25, VIX, CATTLE, COCOA,
-  COFFEE, COTTON, LDSUGAR, GASOLINE, EURX, JPYX, most crypto on OANDA Canada) → `unmapped` in `latest.json` ("not on
-  OANDA"). **USDX** is computed from OANDA pairs with the ICE formula
+  BTCUSD→BTC_USD …, each checked against the account's list. **Not on OANDA** (35 symbols of the committed
+  watchlist: 9 FX crosses, EURX / JPYX, 15 crypto, CA60, SCI25, VIX, GASOLINE and 5 softs / cattle) → scanned from the
+  **extra sources** below (owner 2026-10-29: "we cannot miss those"); only a symbol with no source at all stays in
+  `unmapped` ("not on OANDA"; the run logs `0 not on OANDA` when every symbol has a feed). **USDX** is computed from OANDA pairs with the ICE formula
   `50.14348112 × EURUSD^-0.576 × USDJPY^0.136 × GBPUSD^-0.119 × USDCAD^0.091 × USDSEK^0.042 × USDCHF^0.036`
   (open / close exact, wicks = the bound of the parts' extremes; D1 / W1 / MN wicks from the synthetic H4 bars where
   the H4 history covers them). USDX and the futures CFDs are **context only** (see Rules).
@@ -63,8 +64,13 @@ Candles are asked with `alignmentTimezone=America/New_York&dailyAlignment=17&wee
 closes at 17:00 New York = Pepperstone's MT4 / MT5 server midnight (GMT+2 winter / GMT+3 summer). Every bar is
 labelled in server time (`fxcfg.label`, New York + 7 h): H1 bars on the hour, H4 bars start at 00/04/08/12/16/20 server time
 (= 17/21/01/05/09/13 New York), days at 00:00, weeks on the Sunday-evening open, months on the 1st (server-time
-month). Only `complete: true` candles are used. Crypto CFDs trade at weekends: their weekend candles are kept, but the
-workflow does not run on Saturdays.
+month). Only `complete: true` candles are used. **Crypto trades 24/7** and is scanned 24/7: with every forex H1 scan,
+and on weekends (forex closed) by a **crypto-only run**: `--check` finds the forex H1 candle already scanned, asks
+Coinbase for the newest BTC-USD H1 candle (state `last_h1_crypto`) and the workflow runs `fxscan.py --crypto` (the 15
+crypto instruments, instant alerts + bot price alerts only, no H4 digest / daily summary; merged into
+`public/fx/latest.json`, `d/crypto.json` rewritten, every other row kept). Weekend crons `12,42 6-23 * * 6` /
+`12,42 0-20 * * 0` plus the trader-coach dispatch (`fxc:` slots, every weekend H1 close) trigger it; manual: Run
+workflow with `crypto` = true.
 
 ## Rules
 
@@ -124,15 +130,22 @@ template). A BUY / SELL needs **every** rule below to pass; a strong zone that f
   buy stop = distal − % of the height; **SELL limit = proximal**, sell stop = distal + % + spread, sell target + spread
   (Kevin L6). Stop % of the zone height: **H1 20** (config value, one step looser than H4: owner to confirm),
   H4 15, D1 10, W1 5, MN 3 (min 3 pips). R:R on these levels.
-- Spread ≤ 10% of the stop (`FX_MAX_SPREAD_FRAC`).
+- Spread ≤ 10% of the stop (`FX_MAX_SPREAD_FRAC`). For the extra sources the spread is **Pepperstone's typical spread**
+  (instruments.json `spread` / `spread_pct`; an exchange's own spread is far tighter than Pepperstone's CFD spread), see
+  the table below.
 - **Pips as on Pepperstone MT5**: gold / platinum / palladium 0.1, silver 0.01 (ZV `InpPipXAU=0.1`), JPY 0.01, else
-  0.0001 (OANDA `pipLocation`).
+  0.0001 (OANDA `pipLocation`). **Where a pip means nothing** (crypto, the Yahoo indices / VIX / softs, EURX / JPYX:
+  `pip_mode: atr`) one pip = **D1 ATR(14) / 70** (`FX_ATR_PIP_REF`: a pip's share of EURUSD's ~70-pip day), recomputed
+  every scan, so every pip rule scales with the market: the 25-pip trendline rule = 0.36 D1 ATR, the 7-pip target
+  offset = 0.1 ATR, the 3-pip minimum stop = 0.04 ATR (the spread rule is already a % of the stop). `pip` / `*_pips` in
+  latest.json are these units for those instruments.
 
 **Markets and timeframes**
 - **BUY / SELL limits only on H1, H4 and D1**: W1 / MN zones are areas for direction and location (L6, L7, L53 seven-step
   board: "a monthly zone with a 1,000-pip stop is a mistake") **→ WATCH 'area'** (drill down).
 - No XAU_USD on H1 / H4 (L53, L107: use XAU_AUD). Indices / CFDs daily and above, TRY pairs weekly and above (L53
-  Feb 18, Apr 7) → fail on lower TFs.
+  Feb 18, Apr 7) → fail on lower TFs. Crypto (class `crypto`) is not an index CFD here: H1 / H4 / D1 like FX, and the
+  Friday-afternoon weekend-gap rule does not apply to it (no weekend gap; owner to confirm).
 - **Context only (WATCH 'context', never an order)**: USDX (synthetic spot DXY; Pepperstone USDX follows the ICE futures,
   wicks are an upper bound) and the futures-based CFDs (BCO, WTICO, NATGAS, XCU, CORN, WHEAT, SOYBN, SUGAR: OANDA and
   Pepperstone roll on different dates and may quote in different units).
@@ -160,6 +173,66 @@ BUY (and the mirrored SELL); each fix above has a negative test.
   with price still away, `tested` = 2nd / 3rd touch, `confirm` = confirmation entry only, `area` = W1 / MN area,
   `context` = context-only instrument). Lists per side: **in / approaching / left** (left = touched
   in the last 6 H4 bars and closed back out).
+
+## Extra sources (symbols OANDA does not serve)
+
+Code: `sources/` (Python package, reusable by the bot / movers): `sources.candles(symbol, granularity, count=None,
+frm=None, leg=None) -> [zones.Bar]` (closed bars, oldest first, server-time labels; `granularity` H1 / H4 / D1 / W1 /
+MN; `frm` = first label; `leg` = an OANDA getter, only for synthetic symbols) and `sources.fetch(spec)` (all TFs + the
+typical spread). The **mapping is data**: `instruments.json` → `extra` (one entry per Pepperstone symbol: `name`,
+`source`, `legs` / `providers` / `yahoo` symbols, `displayPrecision`, `pipLocation` or `pip_mode`, `cls`, `spread` /
+`spread_pct` + `spread_ref`, `feed`, `unofficial`, `context_only`). The TradingView link stays `PEPPERSTONE:<SYM>`.
+
+| Group | Symbols | Source | Signals |
+|---|---|---|---|
+| FX crosses (9) | CHFSGD, EURMXN, GBPMXN, GBPNOK, GBPSEK, GBPTRY, NOKJPY, NOKSEK, SEKJPY | synthetic from OANDA legs (CHFSGD = 1 / SGD_CHF, EURMXN = EUR_USD x USD_MXN, NOKJPY = USD_JPY / USD_NOK ...) | yes (exotic rules; GBPTRY weekly+) |
+| Currency indices (2) | EURX, JPYX | synthetic basket from OANDA legs, **approximate** | context only |
+| Crypto (15) | BTC, ETH, ADA, AVAX, BCH, BNB, DOGE, DOT, LINK, LTC, SOL, UNI, XLM, XRP, XTZ (USD) | Coinbase Exchange public candles → Kraken; BNB: Binance.US → OKX (BNB-USDT) | yes, 24/7 |
+| Yahoo (9) | VIX, CA60, SCI25, GASOLINE, COCOA, COFFEE, COTTON, LDSUGAR, CATTLE | Yahoo chart API, **unofficial feed** | context only |
+
+**Synthetic crosses** (`sources/synthetic.py`): `value = k x PRODUCT(leg ^ w)` per bar label present in every leg
+(OANDA BID candles, same server-time grid). Open / close are exact. High / low are an **upper bound** (each leg's high
+or low by the sign of its weight): the legs' extremes rarely fall in the same minute, so the wick is overstated by at
+most the smaller leg's range in that bar, never understated (the distal sits a little further out = a slightly wider
+stop, the proximal on the bodies is exact). To keep it small, H4 bars take the extremes of their four synthetic H1 bars
+and D1 / W1 / MN the extremes of their synthetic H4 bars wherever every leg has all the finer bars (typical
+overstatement on H1: 0.01-0.05% of price). Bid: a product of bids is the cross's bid; a division gives bid / bid, one
+divisor spread too high, so crosses are multiplied by (1 - the divisor's typical relative spread). Spread = the
+combined legs: value x SUM(|w| x leg spread / leg price). The legs are fetched once per run (shared with the legs' own
+scan).
+
+**EURX / JPYX**: Pepperstone's product pages (not reachable from here; their spread page lists EURX / JPYX with a
+1.0 average spread and pip size 1) do not publish the basket. EURX uses the NYBOT / ICE Euro Currency Index (2006)
+weights `34.38805726 x EURUSD^0.3155 x EURGBP^0.3056 x EURJPY^0.1891 x EURCHF^0.1113 x EURSEK^0.0785`; JPYX an
+equal-weight yen basket `10000 x (USDJPY x EURJPY x AUDJPY x NZDJPY)^-0.25` (FXCM / Dow Jones style; rises when the
+yen strengthens; level normalised). Both **approximate** (shape, not Pepperstone's level): **context only**.
+
+**Crypto** (`sources/crypto.py`): H1 = complete UTC hours (Coinbase 300 candles per request, 4,200 hours cold ≈ 1,050
+H4 bars; Kraken returns only the newest 720); H4 = the H1 bars per server-time H4 bucket (exactly the FX grid, so the
+H1 → forming-H4 logic is unchanged; the New York fall-back hour, which repeats a server-time label, is merged into one
+bar); **D1 = UTC days** (the exchanges' daily candles: older history only exists that way), i.e. a crypto day starts
+2-3 h after the server-time midnight of the FX bars; W1 = Saturday-Friday UTC weeks (the scanner's W1 key), MN =
+calendar months; closed bars only. A provider switch re-fetches cold (no splice of two exchanges). Exchange prices ≈
+Pepperstone's crypto CFD prices (exchange-fed); BNB is quoted in USDT (≈ USD).
+
+**Yahoo** (`sources/yahoo.py`, the stock scanner's client: same UA, pacing, budget and circuit breaker):
+`v8/finance/chart/<sym>?interval=1h&range=720d` and `interval=1d&range=max` (updates `5d` / `1mo`; query2 when query1
+refuses). VIX → `^VIX` (the SPOT index; Pepperstone VIX follows the VIX futures), CA60 → `^TX60` (else the XIU.TO
+ETF, another scale), SCI25 (Pepperstone's Singapore 25 index) → closest `^STI` (Straits Times, 30 stocks), GASOLINE →
+`RB=F`, COCOA → `CC=F`, COFFEE → `KC=F`, COTTON → `CT=F`, CATTLE → `LE=F` (front-month continuous futures), LDSUGAR →
+**proxy** `SB=F` (NY raw sugar #11, cents/lb: London white sugar #5 is not on Yahoo). Labelled **unofficial feed** in
+latest.json (`unofficial`, `feed`), the app and Telegram (`data: unofficial feed (Yahoo ^VIX)`), and **context only**
+(levels differ from the Pepperstone CFDs: futures rolls, spot vs futures, proxies). Yahoo blocked → that instrument is
+skipped with a log line (`VIX: Yahoo ...`), the cached bars are used when there are any; a scan never fails for it.
+Exchange-hours series (VIX, CA60, SCI25) have H1 bars at :30 (labelled the nearest hour) and partial H4 buckets; they
+are daily-and-above instruments anyway (index rule).
+
+**Typical spreads used by the spread rule** (Pepperstone where a figure was found, else conservative per class):
+BTCUSD 34 (Pepperstone average 33.74), ETHUSD 3.0 (average 3.02), other crypto 0.25% of price, synthetic crosses =
+combined OANDA legs, EURX / JPYX 0.02%, CA60 0.05%, SCI25 0.1%, VIX 0.5%, GASOLINE 0.15%, softs / cattle 0.3%.
+
+Network per run: crypto ≈ 2 requests per coin (H1 every hour, D1 once a day; cold ≈ 28 per coin, once), Yahoo 1-2
+per instrument (H1 at most every 30 min, D1 every 4 h), synthetic none (legs already fetched).
 
 ## Telegram (only news)
 
@@ -208,12 +281,13 @@ Preview without sending: `python3 tools/fx_scanner/fxscan.py --preview-telegram`
 |---|---|
 | `fxcfg.py` | settings (env), chain, stop table, classes, pips, the server-time clock |
 | `oanda.py` | OANDA v20 client: candles (cold 5000 / incremental `from=`), account instruments; cache in `.cache/candles` |
-| `watchlist.py`, `watchlist.txt` | TradingView export → OANDA instruments, Pepperstone names |
+| `watchlist.py`, `watchlist.txt` | TradingView export → OANDA instruments, Pepperstone names (+ `attach_extra`: extra sources) |
+| `sources/` | extra data sources: `synthetic.py` (OANDA legs), `crypto.py` (Coinbase / Kraken / Binance.US / OKX), `yahoo.py`, `bars.py` (grid + cache), `candles()` |
 | `fxcore.py` | the rules (zones.py on the FX chain), signals, lists, checks |
 | `fxnotify.py` | Telegram cards, alerts, the daily summary (uses the stock scanner's sender) |
 | `fxscan.py` | CLI, run, outputs, events / dedupe, USDX, `--selftest`, `--preview-telegram` |
 | `SCHEMA.md` | the `public/fx/*.json` contract used by the app |
-| `instruments.json` | fallback instrument list |
+| `instruments.json` | fallback instrument list (`instruments`) + the extra-source mapping (`extra`) |
 | `fixtures/` | synthetic H4 generator (+ H1 split), textbook chain, `sample/` = selftest output (app demo data) |
 | `../../.github/workflows/fx-scan.yml` | the schedule |
 
@@ -225,6 +299,8 @@ Outputs: `public/fx/latest.json`, `public/fx/d/<class>.json` (per-instrument det
 export OANDA_API_TOKEN=...            # never commit it
 python3 tools/fx_scanner/fxscan.py --force --no-notify
 python3 tools/fx_scanner/fxscan.py --only EURUSD,XAUAUD --no-notify
+python3 tools/fx_scanner/fxscan.py --crypto --force --no-notify     # crypto-only (weekend) scan
+python3 -c "import sys; sys.path[:0]=['tools/fx_scanner','tools/stock_scanner']; import sources; print(sources.candles('BTCUSD','H4',count=3))"
 python3 tools/fx_scanner/fxscan.py --selftest
 python3 -m unittest discover -s tools/fx_scanner/tests
 ```

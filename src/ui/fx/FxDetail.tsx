@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ZoneMiniChart } from '@/ui/ZoneMiniChart';
-import { fxDetailUrl, fxPx, parseDetail, tvLink, type FxDetail as D, type FxRow } from '@/core/fx';
+import { feedText, fxDetailUrl, fxPx, parseDetail, tvLink, type FxDetail as D, type FxRow } from '@/core/fx';
 
 // One fetch per class shard per page visit.
 const cache = new Map<string, Promise<unknown>>();
@@ -35,6 +35,7 @@ export function FxDetail({ row }: { row: FxRow }) {
       {z && <p className="text-[12px] text-ink2 [overflow-wrap:anywhere]">{z.tf} {z.side} {z.type} {fxPx(z.prox, row.digits)}–{fxPx(z.dist, row.digits)} · {z.label}{z.chain_text ? ` · ${z.chain_text}` : ''}</p>}
       {d.ctx3 && <p className="text-[12px] text-ink3">{d.ctx3}</p>}
       {d.checks.map((c, i) => <p key={i} className="text-[12px] text-ink3">Nearest {c.side}: {c.tf} {c.zone_type} {fxPx(c.proximal, row.digits)} · {c.label || 'passes'}</p>)}
+      {row.src && <p className={row.unofficial ? 'text-[12px] text-warn' : 'text-[12px] text-ink3'}>{feedText(row)}{row.cls === 'crypto' ? ' · 24/7, D1 = UTC days' : ''}</p>}
       {tv}
     </div>
   );

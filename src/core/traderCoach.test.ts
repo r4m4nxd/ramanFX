@@ -315,6 +315,16 @@ describe('GitHub workflow scheduler', () => {
     expect(fxBarCloses(at('2026-11-06T23:00:00Z'))).toBe(false);
     const weekend = [...ticks('2026-10-31T00:00:00Z', 24).keys()].filter(k => k.startsWith('fx:'));
     expect(weekend).toEqual([]);
+    // crypto trades 24/7: every weekend H1 close gets one scheduled-equivalent fx-scan dispatch (crypto-only via --check)
+    const crypto = [...ticks('2026-10-31T00:00:00Z', 24).keys()].filter(k => k.startsWith('fxc:'));
+    expect(crypto).toHaveLength(24);
+    expect([...ticks('2026-10-28T00:00:00Z', 24).keys()].some(k => k.startsWith('fxc:'))).toBe(false);
+    const sat = dueDispatches(at('2026-10-31T12:10:00Z')).find(d => d.slot === 'fxc:2026-10-31T12')!;
+    expect(sat.wf).toBe('fx-scan.yml');
+    expect(sat.inputs).toEqual({ scheduled: 'true' });
+    // the Friday close hour itself is still a forex slot; the next hour is the first crypto one
+    expect(wfs('2026-10-30T21:10:00Z')).toContain('fx-scan.yml fx:2026-10-30T21');
+    expect(wfs('2026-10-30T22:10:00Z')).toContain('fx-scan.yml fxc:2026-10-30T22');
   });
 
   it('stocks: weekdays 30 min after the US close (20:30 UTC summer, 21:30 UTC winter) + one retry', () => {

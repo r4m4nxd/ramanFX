@@ -103,8 +103,13 @@ MIN_COVERAGE = _f('FX_MIN_COVERAGE', 0.5)
 # ---- instruments -----------------------------------------------------------------------------------------------------
 G8 = ('USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF')
 METALS = ('XAU', 'XAG', 'XPT', 'XPD')
-CLASSES = ('major', 'cross', 'exotic', 'metal', 'cfd')
-CLASS_LABEL = {'major': 'Majors', 'cross': 'Crosses', 'exotic': 'Exotics', 'metal': 'Metals', 'cfd': 'CFDs'}
+CLASSES = ('major', 'cross', 'exotic', 'metal', 'crypto', 'cfd')
+CLASS_LABEL = {'major': 'Majors', 'cross': 'Crosses', 'exotic': 'Exotics', 'metal': 'Metals', 'crypto': 'Crypto', 'cfd': 'CFDs'}
+# Markets where a fixed pip means nothing (crypto, the Yahoo indices / softs, the EURX / JPYX baskets: instruments.json
+# `pip_mode: atr`): one "pip" = the D1 ATR(14) / ATR_PIP_REF, i.e. the share of a day's range one pip is on EURUSD
+# (~70-pip ATR). Every pip rule then scales with the market's volatility: the 7-pip target offset = 0.1 ATR, the
+# 3-pip minimum stop = 0.04 ATR, the 25-pip trendline distance = 0.36 ATR. The spread rule is relative (% of the stop).
+ATR_PIP_REF = _f('FX_ATR_PIP_REF', 70.0)
 GOLD_NOTE = 'Gold: Raja trades XAU_AUD rather than XAU_USD on the lower timeframes (XAU_USD is too fast there).'
 EXOTIC_TAG = 'exotic · wide spread'
 
@@ -140,6 +145,8 @@ PIP_OVERRIDE = {'XAU': 0.1, 'XAG': 0.01, 'XPT': 0.1, 'XPD': 0.1}
 def pip_of(inst: Dict) -> float:
     """Pip size: metals as on Pepperstone MT5 (gold 0.1, silver 0.01, XAU_JPY = 10 ** pipLocation); otherwise
     10 ** pipLocation (OANDA): 0.0001 for most pairs, 0.01 for JPY quotes."""
+    if inst.get('pip'):
+        return float(inst['pip'])                       # set per scan for `pip_mode: atr` instruments (fxcore.analyse)
     n = inst['name']
     a, _, b = n.partition('_')
     if a in PIP_OVERRIDE and b not in ('JPY',):

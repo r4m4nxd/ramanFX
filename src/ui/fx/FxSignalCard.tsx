@@ -1,5 +1,5 @@
 import { Badge, Card, cx } from '@/ui/kit';
-import { fxPx, tvLink, wideSpread, type FxSignal } from '@/core/fx';
+import { feedBadge, feedText, fxPx, tvLink, wideSpread, type FxSignal } from '@/core/fx';
 
 const n1 = (v: number | null) => (v == null ? '—' : v.toFixed(1));
 
@@ -15,8 +15,9 @@ export function FxSignalCard({ s }: { s: FxSignal }) {
             <h3 className="text-[18px] font-semibold tracking-tight">{s.sym}</h3>
             {s.tf && <Badge>{s.tf}{s.zone_type ? ` · ${s.zone_type}` : ''}</Badge>}
             {wideSpread(s) && <Badge tone="warn">{s.exotic ? 'exotic · wide spread' : 'wide spread'}</Badge>}
+            {feedBadge(s) && <Badge tone="warn">{feedBadge(s)}</Badge>}
           </div>
-          <p className="text-[12px] text-ink3 mt-0.5"><span title={`OANDA ${s.oanda}`}>{s.group || 'Not on watchlist'}</span>{s.direction ? ` · ${s.direction}` : ''}</p>
+          <p className="text-[12px] text-ink3 mt-0.5"><span title={feedText(s)}>{s.group || 'Not on watchlist'}</span>{s.direction ? ` · ${s.direction}` : ''}</p>
         </div>
         {s.price != null && <div className="num text-[15px] font-semibold shrink-0">{p(s.price)}</div>}
       </div>
@@ -32,6 +33,7 @@ export function FxSignalCard({ s }: { s: FxSignal }) {
       {s.ctx3 && <p className="text-[11.5px] text-ink3">{s.ctx3}</p>}
       {s.note && <p className="text-[11.5px] text-ink3">{s.note}</p>}
       {s.gold_note && <p className="text-[11.5px] text-warn">{s.gold_note}</p>}
+      {s.src && <p className={cx('text-[11.5px]', s.unofficial ? 'text-warn' : 'text-ink3')}>{feedText(s)}</p>}
       <a href={tvLink(s.tv)} target="_blank" rel="noreferrer" className="self-start text-[12.5px] font-semibold text-accent hover:underline underline-offset-4">Open {s.sym} on TradingView ↗</a>
     </Card>
   );

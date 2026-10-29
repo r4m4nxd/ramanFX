@@ -2,6 +2,7 @@
 // 10-minute pg_cron tick asks dueDispatches(now) which workflow slots are due; index.ts dispatches each slot once
 // (POST /actions/workflows/<file>/dispatches, ref main) unless a GitHub run already started inside the slot.
 // Every dispatch is "scheduled-equivalent": the workflow's own checks decide exactly as on a cron run
+//   (fx-scan also outside the forex week, slot 'fxc:<hour>': crypto trades 24/7, its --check runs a crypto-only scan)
 //   fx-scan.yml / stock-scan.yml: input scheduled=true (the --check / 'already scanned today' step decides);
 //   briefing.yml: test=false (its Calgary-clock decide() + state.json dedupe);  reminders.yml: no inputs (its window logic);
 //   movers.yml: no inputs (hourly big moves, its own per-hour dedupe), with the FX slot of every forex-week hour.
@@ -57,6 +58,10 @@ export function dueDispatches(nowUtc: number): Dispatch[] {
       const h = new Date(close).toISOString().slice(0, 13);
       out.push({ wf: 'fx-scan.yml', slot: `fx:${h}`, since: close, inputs: { scheduled: 'true' } });
       out.push({ wf: 'movers.yml', slot: `movers:${h}`, since: close, inputs: {} });   // hourly big moves (FX + US stocks)
+    } else {
+      // Weekend: crypto trades 24/7. Same scheduled-equivalent dispatch; the workflow's --check finds the forex candle
+      // already scanned and runs the crypto-only scan when a new crypto H1 candle closed.
+      out.push({ wf: 'fx-scan.yml', slot: `fxc:${new Date(close).toISOString().slice(0, 13)}`, since: close, inputs: { scheduled: 'true' } });
     }
   }
 

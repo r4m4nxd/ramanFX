@@ -59,7 +59,20 @@ def signal_card(s: Dict) -> str:
     why = SN.reason_line(s, score=True)
     nw = SN.news_warning(s['sym'])
     kv = SN.kevin_line(s)
-    return c + (f'\n{kv}' if kv else '') + (f'\n<i>{esc(why)}</i>' if why else '') + (f'\n{esc(nw)}' if nw else '')
+    fd = feed_line(s)
+    return (c + (f'\n{kv}' if kv else '') + (f'\n<i>{esc(why)}</i>' if why else '') + (f'\n{esc(nw)}' if nw else '')
+            + (f'\n<i>{esc(fd)}</i>' if fd else ''))
+
+
+def feed_line(s: Dict) -> str:
+    """'data: unofficial feed (Yahoo ^VIX)' / 'data: synthetic (OANDA EUR_USD x USD_MXN)' for the instruments OANDA
+    does not serve; '' for OANDA and crypto exchange feeds (official public APIs)."""
+    feed = s.get('feed') or ''
+    if s.get('unofficial'):
+        return 'data: unofficial feed (' + feed.replace(' (unofficial feed)', '') + ')'
+    if s.get('src') == 'synthetic':
+        return ('data: approximate basket' if s.get('approx') else 'data: synthetic') + ' (' + feed.replace('synthetic: ', '') + ')'
+    return ''
 
 
 def gone_reason(reason: str) -> str:
@@ -100,7 +113,9 @@ def zone_line(z: Dict) -> str:
     why = zone_why(z)
     nw = SN.news_warning(z['sym'])
     kv = SN.kevin_line(z)
-    return out + (f'\n{kv}' if kv else '') + (f'\n<i>{esc(why)}</i>' if why else '') + (f'\n{esc(nw)}' if nw else '')
+    fd = feed_line(z)
+    return (out + (f'\n{kv}' if kv else '') + (f'\n<i>{esc(why)}</i>' if why else '') + (f'\n{esc(nw)}' if nw else '')
+            + (f'\n<i>{esc(fd)}</i>' if fd else ''))
 
 
 def zone_why(z: Dict) -> str:

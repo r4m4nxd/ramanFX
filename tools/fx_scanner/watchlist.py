@@ -146,3 +146,28 @@ def load(known: Optional[set] = None) -> Dict:
         else:
             sections.setdefault(inst, sec)
     return {'source': src, 'items': items, 'unmapped': unmapped, 'names': list(sections), 'sections': sections}
+
+
+def attach_extra(wl: Dict, extra: Dict[str, Dict]) -> List[str]:
+    """Moves the unmapped watchlist symbols that have an extra data source (instruments.json `extra`, keyed by
+    Pepperstone symbol: synthetic crosses, crypto, Yahoo) into the scan, in file order. Returns the instrument names
+    added; whatever stays in wl['unmapped'] has no source at all."""
+    added = []
+    for it in wl['items']:
+        x = extra.get(tv_ticker(it['symbol'])) if it['instrument'] is None else None
+        if x:
+            it['instrument'] = x['name']
+            added.append(x['name'])
+    if not added:
+        return added
+    keep = set(added)
+    wl['unmapped'] = [u for u in wl['unmapped'] if not (extra.get(tv_ticker(u['symbol'])) and extra[tv_ticker(u['symbol'])]['name'] in keep)]
+    sections: Dict[str, str] = {}
+    for it in wl['items']:
+        if it['instrument']:
+            sections.setdefault(it['instrument'], it['section'])
+    for k, v in wl['sections'].items():           # e.g. the bot's BOT WATCH symbols, merged earlier
+        sections.setdefault(k, v)
+    wl['sections'] = sections
+    wl['names'] = list(sections)
+    return added

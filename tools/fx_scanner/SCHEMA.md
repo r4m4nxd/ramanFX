@@ -9,8 +9,17 @@ Times / bar labels = Pepperstone server time (`'YYYY-MM-DDTHH:MM'`, GMT+2 winter
 York close, H1 bars on the hour, H4 bars at 00/04/08/12/16/20). Prices are rounded to `digits`; pip distances use `pip` (10^pipLocation;
 metals as on Pepperstone MT5: gold / platinum / palladium 0.1, silver 0.01; index CFDs 1). Prices are BID (the MT4 / MT5
 chart); a BUY `entry` already includes the spread (fills on the ask), a SELL `stop` / `target` too. `side` = `demand` | `supply`; `tf` = `H1` | `H4` | `D1` | `W1` | `MN` (`3M` = context only).
-`cls` = `major` | `cross` | `exotic` | `metal` | `cfd`. `group` = the owner's TradingView watchlist section
+`cls` = `major` | `cross` | `exotic` | `metal` | `crypto` | `cfd`. `group` = the owner's TradingView watchlist section
 (`''` when not on the watchlist), `wl` = on the watchlist.
+
+Instruments OANDA does not serve (README "Extra sources") carry, on every row / signal / item / detail:
+`src` = `synthetic` | `crypto` | `yahoo`, `feed` (e.g. `"Yahoo ^VIX (unofficial feed)"`, `"synthetic: OANDA EUR_USD x
+USD_MXN"`, `"Coinbase Exchange BTC-USD spot (Kraken fallback)"`), `unofficial: true` (Yahoo), `approx: true` (EURX /
+JPYX baskets) and `pip_mode: "atr"` when `pip` is the volatility pip (D1 ATR(14) / 70, recomputed every scan: crypto,
+Yahoo instruments, baskets); `oanda` is then the internal name (`BTC_USD`, `EUR_MXN`, `VIX`), not an OANDA instrument.
+OANDA instruments have none of these keys. latest.json also has `sources` (`{"oanda": 120, "synthetic": 11, ...}`
+analysed per source) and `crypto_h1` (newest crypto H1 bar scanned; weekend crypto-only runs update only the crypto
+rows / signals / lists and `d/crypto.json`, everything else stays from the last full scan).
 
 ## public/fx/latest.json
 
