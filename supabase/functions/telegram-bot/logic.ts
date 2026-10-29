@@ -104,6 +104,8 @@ const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFi
 
 // ---- text helpers --------------------------------------------------------------------------------------------------
 export const esc = (s: unknown) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+/** A user's own word echoed back (escaped, at most 30 characters: the reply never balloons with a pasted essay). */
+export const echo = (s: unknown) => { const t = [...String(s ?? '')]; return esc(t.length > 30 ? `${t.slice(0, 29).join('')}…` : t.join('')); };
 export const u16 = (s: string) => s.length; // JS strings are UTF-16 already
 export const tf = (t: unknown) => TF_SHORT[String(t ?? '')] ?? String(t ?? '');
 /** '1.4%', and '<0.1%' rather than a misleading '0.0%' (escape before sending). */
@@ -400,7 +402,7 @@ export function lev(a: string, b: string): number {
   }
   return d[b.length];
 }
-const notFound = (q: string, sug: string[]) => `🔎 <b>${esc(q.toUpperCase())}</b> not found` + (sug.length ? `\nDid you mean: ${sug.map(s => `/zones ${esc(s)}`).join(' · ')}` : '\nSend a Pepperstone FX name (EURUSD, XAUUSD, US500) or a stock ticker (NVDA, BRK.B).');
+const notFound = (q: string, sug: string[]) => `🔎 <b>${echo(q.toUpperCase())}</b> not found` + (sug.length ? `\nDid you mean: ${sug.map(s => `/zones ${esc(s)}`).join(' · ')}` : '\nSend a Pepperstone FX name (EURUSD, XAUUSD, US500) or a stock ticker (NVDA, BRK.B).');
 
 /** Where price is against a zone: 'in it', or the percent to its nearer edge. */
 function placement(price: number, a: number, b: number): { inside: boolean; p: number; dir: 'above' | 'below' | 'in' } {
@@ -602,7 +604,7 @@ async function cmdHours(q: string, ctx: Ctx): Promise<Reply> {
   const s = rows.find(r => String(r.s).toUpperCase() === k || String(r.s).toUpperCase() === ks || String(r.n ?? '').toUpperCase().replace(/_/g, '') === k);
   if (!s) {
     const sug = rows.map(r => String(r.s)).map(c => [lev(k, c.toUpperCase()), c] as const).filter(([d]) => d <= 2).sort((a, b) => a[0] - b[0]).slice(0, 4).map(x => x[1]);
-    return { cmd: 'hours', text: `🕐 <b>${esc(q.toUpperCase())}</b> is not in the study` + (sug.length ? `\nDid you mean: ${sug.map(x => `/hours ${esc(x)}`).join(' · ')}` : '') };
+    return { cmd: 'hours', text: `🕐 <b>${echo(q.toUpperCase())}</b> is not in the study` + (sug.length ? `\nDid you mean: ${sug.map(x => `/hours ${esc(x)}`).join(' · ')}` : '') };
   }
   const today = isoDay(ctx.now);
   const cal = (ny: string, mt: string) => (/^\d{2}:\d{2}$/.test(ny) ? clock(zoned(today, ny, NY)) : mt);
@@ -655,6 +657,11 @@ const viewTfs = (market: 'fx' | 'stock', ctx?: Ctx) => (market === 'fx' ? (ctx?.
   : ctx?.live?.stock ? [...STOCK_TFS, 'H4', 'H1', 'M15'] : STOCK_TFS);
 /** '4 views from TF': view 'Q' + TF (e.g. 'QMN') = that TF and the 3 below it (shifted up when fewer exist). */
 export const isQuad = (view: string) => view[0] === 'Q';
+/** The chart views the image endpoint (index.ts ?img=SYM&tf=VIEW) renders: 'Q', a TF, or 'Q' + a TF (4 views from it). */
+/** Chart decimals: the instrument's digits, but never fewer than 4 significant figures of the price (a 0.0000123 coin
+ *  with 5 digits would print every level as 0.00001). */
+export const chartDigits = (price: number, digits: number) => Math.min(10, Math.max(digits, 3 - Math.floor(Math.log10(price))));
+export const IMG_VIEW = /^(Q|Q?(3M|MN|W1|D1|H4|H1|M15))$/;
 export function quadTfs(market: 'fx' | 'stock', anchor: string, ctx?: Ctx): string[] {
   const all = ORDER.filter(t => viewTfs(market, ctx).includes(t));
   const i = all.indexOf(anchor);
@@ -681,8 +688,12 @@ function photoButtons(sym: string, market: 'fx' | 'stock', view: string, ctx: Ct
 interface Zn { tf: string; side: 'demand' | 'supply'; prox: number; dist: number; t0?: string; made?: string }
 const overlaps = (a: Zn, b: Zn) => Math.max(Math.min(a.prox, a.dist), Math.min(b.prox, b.dist)) <= Math.min(Math.max(a.prox, a.dist), Math.max(b.prox, b.dist));
 const zDist = (price: number, z: Zn) => placement(price, z.prox, z.dist).p;
+/** A drawable bar: every price finite and > 0 (a 0 / negative / NaN print would squash or break the chart's scale),
+ *  high / low widened to hold the open and close. */
+export const sane = (b: Bar): boolean => [b.o, b.h, b.l, b.c].every(v => Number.isFinite(v) && v > 0);
+const fixHl = (b: Bar): Bar => ({ ...b, h: Math.max(b.h, b.o, b.c, b.l), l: Math.min(b.l, b.o, b.c, b.h) });
 const toBars = (rows: unknown): Bar[] => arr(rows).filter(r => Array.isArray(r) && r.length >= 5).map(r => ({ t: String(r[0]), o: +r[1], h: +r[2], l: +r[3], c: +r[4] }))
-  .filter(b => [b.o, b.h, b.l, b.c].every(Number.isFinite));
+  .filter(sane).map(fixHl);
 /** Packed bars {t0: 'YYYY-MM-DD', dt: [day offsets], b: [[o, h, l, c]]} (stock shards: bars, hb.W1 / hb.MN / hb['3M']). */
 export function packedBars(pb: unknown): Bar[] {
   const p = obj(pb);
@@ -691,7 +702,7 @@ export function packedBars(pb: unknown): Bar[] {
   if (!Number.isFinite(d0)) return [];
   return arr(p.b).filter(r => Array.isArray(r) && r.length >= 4)
     .map((r, i) => ({ t: new Date(d0 + (num(arr(p.dt)[i]) ?? i) * 86400000).toISOString().slice(0, 10), o: +r[0], h: +r[1], l: +r[2], c: +r[3] }))
-    .filter(x => [x.o, x.h, x.l, x.c].every(Number.isFinite));
+    .filter(sane).map(fixHl);
 }
 /** Real higher-TF bars, plus the derived bars of any later (current) period they do not cover; the derived ones alone
  *  when there are no real bars. */
@@ -805,9 +816,10 @@ export type ZoneBand = Band & { wide: boolean; refine?: Zn | null };
 export type ChartPanel = Omit<Panel, 'zones'> & { zones: ZoneBand[]; nestNote: string | null };
 export type ChartModelX = Omit<ChartModel, 'panels'> & { panels: ChartPanel[]; verdict: string };
 export interface ChartData { model: ChartModelX; v: string; market: 'fx' | 'stock'; sym: string; view: string; when: string; live?: boolean; note?: string }
-const zb = (b: ZBar): Bar => ({ t: b.d, o: b.o, h: b.h, l: b.l, c: b.c });
+const zb = (b: ZBar): Bar => fixHl({ t: b.d, o: b.o, h: b.h, l: b.l, c: b.c });
+const zbs = (bs: ZBar[]): Bar[] => bs.map(zb).filter(sane);
 /** Closed candles (the last 250: the trendlines' 200-bar lookback, like the scanners) + the forming one, as chart bars. */
-const withForming = (closed: ZBar[], forming: ZBar | null): Bar[] => [...closed.slice(-250), ...(forming ? [forming] : [])].map(zb);
+const withForming = (closed: ZBar[], forming: ZBar | null): Bar[] => zbs([...closed.slice(-250), ...(forming ? [forming] : [])]);
 /** The image version of a live chart: a new one every 30 s (Telegram caches photo URLs). */
 const liveVersion = (lv: LiveView) => `L${Math.floor(lv.at / 30000)}`;
 
@@ -843,7 +855,7 @@ export function buildPanels(tfs: string[], bars: Record<string, Bar[]>, zones: Z
     let tls: TLine[] = [];
     try { tls = mine ? panelTrendlines(mine, shown.length, price, hs, 2) : []; } catch (e) { console.log(JSON.stringify({ ev: 'tl_error', tf, err: String((e as Error)?.message ?? e).slice(0, 60) })); }
     return { tf, header, bars: shown, zones: bands, lines, tls, nestNote: ztf !== tf ? null : nestNote(key, zones),
-      note: ztf !== tf ? `no ${tfLabel(tf)} zones: ${tfLabel(ztf)} zones shown` : shown.length < SHORT_HISTORY ? `short history: ${shown.length} ${tfLabel(tf)} candles` : undefined };
+      note: ztf !== tf ? `no ${tfLabel(tf)} zones: ${tfLabel(ztf)} zones shown` : shown.length < SHORT_HISTORY ? `short history: ${shown.length} ${tfLabel(tf)} candle${shown.length === 1 ? '' : 's'}` : undefined };
   });
 }
 
@@ -906,7 +918,7 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
     const d = obj(obj(obj(await ctx.load(`fx/d/${hit.row.k ?? hit.row.cls}.json`)).instruments)[hit.sym]);
     const lv = await liveFor(hit, ctx, digitsOf(d.digits != null ? d : hit.row));
     const price = lv?.price ?? num(d.price);
-    if (!price) return null;
+    if (price == null || !(price > 0)) return null;
     const b = obj(d.bars), bars: Record<string, Bar[]> = {};
     const forming: Record<string, boolean> = {};
     if (lv?.fx) {   // live: the closed candles + the one forming now
@@ -930,7 +942,7 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
     const tfs = !isQuad(view) ? [view] : view.length > 1 ? quadTfs('fx', view.slice(1), ctx) : (rel === 'H1' || rel === 'H4') && bars.H1.length ? ['W1', 'D1', 'H4', 'H1'] : ['MN', 'W1', 'D1', 'H4'];
     if (!tfs.length) return null;
     if (!tfs.every(t => FX_TFS.includes(t) || (t === 'M15' && bars.M15?.length))) return null;   // 15m: live candles only
-    const digits = digitsOf(d.digits != null ? d : hit.row), layout = isQuad(view) ? 'quad' : 'single';
+    const digits = chartDigits(price, digitsOf(d.digits != null ? d : hit.row)), layout = isQuad(view) ? 'quad' : 'single';
     const sig = s ? { tf: s.tf, entry: num(s.entry) ?? undefined, stop: num(s.stop) ?? undefined, target: num(s.target) ?? undefined, kind: s.kind } : null;
     const t = parseUtc(fx.h1_close_utc ?? fx.generated);
     const when = chartWhen('fx', ctx.now, { px: price.toFixed(digits), live: !!lv, scanAt: t, crypto: hit.row.cls === 'crypto' || hit.row.k === 'crypto' });
@@ -941,12 +953,12 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
   const d = obj(obj(sh.tickers)[hit.sym]);
   const lv = await liveFor(hit, ctx, 2);
   const price = lv?.price ?? num(d.price), pb = obj(d.bars);
-  if (!price || (!pb.t0 && !lv)) return null;
+  if (price == null || !(price > 0) || (!pb.t0 && !lv)) return null;
   let bars: Record<string, Bar[]>, forming: Record<string, boolean>;
   if (lv?.st) {   // live: every session since 2016 + today's forming one; W1 / MN / 3M built from them; 1H from IEX
     const part = lv.st.partial ? { ...lv.st.partial, h: Math.max(lv.st.partial.h, price), l: Math.min(lv.st.partial.l, price), c: price } : null;
-    const all = [...lv.st.daily, ...(part ? [part] : [])].map(zb);
-    bars = { D1: all, W1: dropPartialHead(aggregate(all, weekKey), all, weekKey), MN: dropPartialHead(aggregate(all, monthKey), all, monthKey), '3M': dropPartialHead(aggregate(all, quarterKey), all, quarterKey), H4: (lv.st.h4 ?? []).map(zb), H1: lv.st.h1.map(zb), M15: (lv.st.m15 ?? []).map(zb) };
+    const all = zbs([...lv.st.daily, ...(part ? [part] : [])]);
+    bars = { D1: all, W1: dropPartialHead(aggregate(all, weekKey), all, weekKey), MN: dropPartialHead(aggregate(all, monthKey), all, monthKey), '3M': dropPartialHead(aggregate(all, quarterKey), all, quarterKey), H4: zbs(lv.st.h4 ?? []), H1: zbs(lv.st.h1), M15: zbs(lv.st.m15 ?? []) };
     const lastDay = lv.st.daily[lv.st.daily.length - 1]?.d;
     forming = { D1: !!part, H4: true, H1: true, M15: true };
     for (const [t, key] of [['W1', weekKey], ['MN', monthKey], ['3M', quarterKey]] as const) forming[t] = !!part || periodOpen(bars[t], key, lastDay);
@@ -977,8 +989,8 @@ async function cmdChart(q: string, tfArg: string, ctx: Ctx, mode = ''): Promise<
   const tf1 = tfArg ? parseTf(tfArg.replace(/\+$/, '')) : 'Q';
   // '/chart INTC 1M 4' or '/chart INTC 1M+' = 4 views from 1M down; 'Q<TF>' from the buttons
   const four = /\+$/.test(tfArg) || /^(4|4v|q|quad|4views)$/i.test(mode);
-  const view = /^Q(3M|MN|W1|D1|H4|H1)$/i.test(tfArg) ? tfArg.toUpperCase() : tf1 && four && tf1 !== 'Q' ? `Q${tf1}` : tf1;
-  if (!view) return { cmd: 'chart', text: `Unknown timeframe <b>${esc(tfArg)}</b>. Use MN, W1, D1, 4H, 1H${ctx.live?.fx ? ' or 15m' : ''} (stocks: 3M, MN, W1, D1${ctx.live?.stock ? ', 4H, 1H, 15m' : ''}).` };
+  const view = /^Q(3M|MN|W1|D1|H4|H1|M15)$/i.test(tfArg) ? tfArg.toUpperCase() : tf1 && four && tf1 !== 'Q' ? `Q${tf1}` : tf1;
+  if (!view) return { cmd: 'chart', text: `Unknown timeframe <b>${echo(tfArg)}</b>. Use MN, W1, D1, 4H, 1H${ctx.live?.fx ? ' or 15m' : ''} (stocks: 3M, MN, W1, D1${ctx.live?.stock ? ', 4H, 1H, 15m' : ''}).` };
   const { hit, suggest } = await resolve(q, ctx);
   if (!hit) return { cmd: 'chart', text: notFound(q, suggest).replace(/\/zones /g, '/chart ') };
   if (!ctx.imageUrl) return { cmd: 'chart', text: 'Charts are not available right now.' };
@@ -998,7 +1010,7 @@ async function cmdChart(q: string, tfArg: string, ctx: Ctx, mode = ''): Promise<
 const CB_CMDS: Record<string, string> = { n: '/near', f: '/fx', s: '/stocks', g: '/signals', t: '/times', x: '/next', h: '/help' };
 /** A tapped inline button (callback_query.data): 'z:SYM' zones, 'c:SYM' 4-view chart, 'c:SYM:TF' one TF, short codes. */
 export async function handleCallback(data: string, ctx: Ctx): Promise<Reply> {
-  const m = /^([zcs]):([A-Za-z0-9._-]{1,20})(?::([A-Za-z0-9]{1,3}))?$/.exec(data ?? '');
+  const m = /^([zcs]):([A-Za-z0-9._-]{1,20})(?::([A-Za-z0-9]{1,4}))?$/.exec(data ?? '');   // TF up to 4 chars: 'QM15'
   const nw = /^n:([A-Za-z0-9._-]{1,20})$/.exec(data ?? '');
   if (nw) return symbolNews(nw[1], ctx, FOOT);
   if (m && m[1] === 'z') return cmdZones(m[2], ctx);
@@ -1060,7 +1072,7 @@ async function cmdAlert(a1: string, a2: string, ctx: Ctx): Promise<Reply> {
       return { cmd: 'alert', text: [`⏰ <b>Alert #${id} set</b>`, `<b>${esc(sym)}</b>: when price enters any strong zone (any timeframe).`, `${q.zones.length} zones located now · checked on every scan · one-shot`].join('\n') };
     }
     const level = parsePrice(a2);
-    if (level == null) return { cmd: 'alert', text: `<b>${esc(a2)}</b> is not a price. E.g. <b>/alert ${esc(sym)} ${q.price != null ? esc(fmtLevel(q.price, q).replace(/,/g, '')) : '1.2345'}</b> or <b>/alert ${esc(sym)} zone</b>.` };
+    if (level == null) return { cmd: 'alert', text: `<b>${echo(a2)}</b> is not a price. E.g. <b>/alert ${esc(sym)} ${q.price != null ? esc(fmtLevel(q.price, q).replace(/,/g, '')) : '1.2345'}</b> or <b>/alert ${esc(sym)} zone</b>.` };
     if (q.price == null) return { cmd: 'alert', text: `No current price published for <b>${esc(sym)}</b>, so the direction is unknown. Try again after the next scan.` };
     if (Math.abs(level - q.price) / q.price > 0.5) return { cmd: 'alert', text: `<b>${esc(fmtLevel(level, q))}</b> is more than 50% from the price (${esc(fmtLevel(q.price, q))}). Check the number.` };
     if (level === q.price) return { cmd: 'alert', text: `Price is at ${esc(fmtLevel(level, q))} already.` };
@@ -1106,14 +1118,14 @@ async function doMute(q: string, ms: number, ctx: Ctx, p: PrefsStore): Promise<R
 async function cmdMute(a1: string, a2: string, ctx: Ctx): Promise<Reply> {
   if (!a1) return { cmd: 'mute', text: 'Send a symbol, e.g. <b>/mute EURUSD 1w</b> (1d by default; 12h, 3d, 2w work too).' };
   const ms = parseDuration(a2);
-  if (ms == null) return { cmd: 'mute', text: `<b>${esc(a2)}</b> is not a duration. Use 1d, 1w, 12h (up to 90d).` };
+  if (ms == null) return { cmd: 'mute', text: `<b>${echo(a2)}</b> is not a duration. Use 1d, 1w, 12h (up to 90d).` };
   return withPrefs('mute', ctx, p => doMute(a1, ms, ctx, p));
 }
 async function cmdUnmute(a: string, ctx: Ctx): Promise<Reply> {
   if (!a) return { cmd: 'unmute', text: 'Send a symbol, e.g. <b>/unmute EURUSD</b>.' };
   return withPrefs('unmute', ctx, async p => {
     const { hit } = await resolve(a, ctx);
-    const sym = hit?.sym ?? a.toUpperCase();
+    const sym = hit?.sym ?? [...a.toUpperCase()].slice(0, 20).join('');
     return { cmd: 'unmute', text: (await p.unmute(sym)) ? `🔔 <b>${esc(sym)}</b> unmuted.` : `<b>${esc(sym)}</b> was not muted.`, toast: `${sym} unmuted` };
   });
 }
@@ -1145,7 +1157,7 @@ async function cmdUnwatch(a: string, ctx: Ctx): Promise<Reply> {
   if (!a) return { cmd: 'unwatch', text: 'Send a symbol, e.g. <b>/unwatch AUDNZD</b>.' };
   return withPrefs('unwatch', ctx, async p => {
     const { hit } = await resolve(a, ctx);
-    const sym = hit?.sym ?? a.toUpperCase();
+    const sym = hit?.sym ?? [...a.toUpperCase()].slice(0, 20).join('');
     return { cmd: 'unwatch', text: (await p.unwatch(sym)) ? `👀 <b>${esc(sym)}</b> removed from the watchlist.` : `<b>${esc(sym)}</b> is not on the extra watchlist.` };
   });
 }

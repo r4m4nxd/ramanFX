@@ -36,7 +36,7 @@
 // Logs: the command name and timing only, never message text, chat ids or secrets.
 import { initWasm, Resvg } from 'npm:@resvg/resvg-wasm@2.6.2';
 import { renderSvg } from './chart.ts';
-import { chartData, handle, handleCallback, MAIN_KEYBOARD, type Reply, type ScanResult } from './logic.ts';
+import { chartData, handle, handleCallback, IMG_VIEW, MAIN_KEYBOARD, type Reply, type ScanResult } from './logic.ts';
 import { alpacaSource, oandaSource, type LiveSource } from './live.ts';
 import { journalRoute } from './journal.ts';   // trader coach: 'why did you take it?' replies + /took (journal.ts)
 import { keyOk, restStore } from './prefs.ts';
@@ -242,7 +242,7 @@ const imageUrl = (sym: string, view: string, v: string) => `${FN_URL}?img=${enco
 
 async function chartPng(url: URL): Promise<Response> {
   const sym = (url.searchParams.get('img') ?? '').slice(0, 20), view = (url.searchParams.get('tf') ?? 'Q').toUpperCase();
-  if (!/^[A-Za-z0-9._-]{1,20}$/.test(sym) || !/^(Q|Q?(MN|W1|D1|H4|H1|3M)|M15)$/.test(view)) return empty(400);
+  if (!/^[A-Za-z0-9._-]{1,20}$/.test(sym) || !IMG_VIEW.test(view)) return empty(400);
   const cd = await chartData(sym, view, { load, now: new Date(), live });
   if (!cd) return empty(404);
   const key = `${cd.sym}|${view}|${cd.v}`;
@@ -390,6 +390,8 @@ async function answerCallback(id: string, text?: string): Promise<void> {
 }
 
 // ---- handler -------------------------------------------------------------------------------------------------------
+/** The first n code points (never half an emoji: a lone surrogate makes Telegram refuse the reply). */
+const cut = (s: string, n: number) => [...s].slice(0, n).join('');
 const json = (v: unknown, status = 200) => new Response(JSON.stringify(v), { status, headers: { 'Content-Type': 'application/json' } });
 const empty = (status = 200) => new Response(null, { status });
 
@@ -447,7 +449,7 @@ Deno.serve(async (req: Request) => {
       const g = await guestOf(String(fromId));
       if (!g) { console.log(JSON.stringify({ ev: 'other_chat' })); return empty(200); }
       let reply: Reply;
-      try { reply = await guestCallback(String(cq.data ?? '').slice(0, 64), g, ctx, await guestEnv(g)); } catch (e) {
+      try { reply = await guestCallback(cut(String(cq.data ?? ''), 64), g, ctx, await guestEnv(g)); } catch (e) {
         console.log(JSON.stringify({ ev: 'cmd_error', err: (e as Error).name }));
         reply = { cmd: 'error', text: '⚠️ Something went wrong reading the scanner data. Try again in a minute.' };
       }
@@ -457,7 +459,7 @@ Deno.serve(async (req: Request) => {
     }
     let reply: Reply;
     try {
-      reply = await handleCallback(String(cq.data ?? '').slice(0, 64), ctx);
+      reply = await handleCallback(cut(String(cq.data ?? ''), 64), ctx);
     } catch (e) {
       console.log(JSON.stringify({ ev: 'cmd_error', err: (e as Error).name }));
       reply = { cmd: 'error', text: '⚠️ Something went wrong reading the scanner data. Try again in a minute.' };
@@ -474,12 +476,12 @@ Deno.serve(async (req: Request) => {
   if (!same(await sha(String(chatId)), o)) {
     const g = msg?.chat?.type === 'private' || msg?.chat?.type === undefined ? await guestOf(String(chatId)) : null;
     if (!g) {
-      const r = msg?.chat?.type === 'private' ? strangerReply(text.slice(0, 64), chatId) : null;
+      const r = msg?.chat?.type === 'private' ? strangerReply(cut(text, 64), chatId) : null;
       console.log(JSON.stringify({ ev: 'other_chat', start: !!r }));
       return r ? json(method(r, chatId)) : empty(200);
     }
     let reply: Reply;
-    try { reply = await guestMessage(text.slice(0, 200), g, ctx, await guestEnv(g)); } catch (e) {
+    try { reply = await guestMessage(cut(text, 200), g, ctx, await guestEnv(g)); } catch (e) {
       console.log(JSON.stringify({ ev: 'cmd_error', err: (e as Error).name }));
       reply = { cmd: 'error', text: '⚠️ Something went wrong reading the scanner data. Try again in a minute.' };
     }
@@ -489,8 +491,8 @@ Deno.serve(async (req: Request) => {
 
   let reply: Reply;
   try {
-    reply = (await ownerAdmin(text.slice(0, 200), { db: guestDb, isOwner: async id => same(await sha(id), o), welcome }).then(r => { if (r) guestCache.clear(); return r; }))
-      ?? (await journalRoute(msg, { sbUrl: SB_URL, sbKey: SB_KEY })) ?? await handle(text.slice(0, 200), ctx);
+    reply = (await ownerAdmin(cut(text, 200), { db: guestDb, isOwner: async id => same(await sha(id), o), welcome }).then(r => { if (r) guestCache.clear(); return r; }))
+      ?? (await journalRoute(msg, { sbUrl: SB_URL, sbKey: SB_KEY })) ?? await handle(cut(text, 200), ctx);
   } catch (e) {
     console.log(JSON.stringify({ ev: 'cmd_error', err: (e as Error).name }));
     reply = { cmd: 'error', text: '⚠️ Something went wrong reading the scanner data. Try again in a minute.' };

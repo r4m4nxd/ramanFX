@@ -175,7 +175,7 @@ export async function cmdFund(q: string, ctx: Ctx): Promise<Reply> {
     return overview(fx);
   }
   const { hit, suggest } = await resolve(q, ctx);
-  if (!hit) return { cmd: 'fund', text: `📑 <b>${esc(q.toUpperCase())}</b> not found` + (suggest.length ? `\nDid you mean: ${suggest.map(s => `/fund ${esc(s)}`).join(' · ')}` : '') };
+  if (!hit) return { cmd: 'fund', text: `📑 <b>${esc([...q.toUpperCase()].slice(0, 30).join(''))}</b> not found` + (suggest.length ? `\nDid you mean: ${suggest.map(s => `/fund ${esc(s)}`).join(' · ')}` : '') };
   if (hit.market === 'stock') return stockFund(hit.sym, hit.row, ctx);
   const fx = obj(await ctx.load('fundamentals/fx.json'));
   const cur = obj(fx.currencies);

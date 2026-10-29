@@ -141,6 +141,9 @@ export function axisTicks(bars: Bar[], tf: string, slotPx: number, plotW: number
     if (best.length >= want) break;
   }
   if (best.length < 2) best = fit([0, Math.floor(n / 4), Math.floor(n / 2), Math.floor(3 * n / 4), n - 1].filter((v, i, a) => a.indexOf(v) === i));
+  // a few bars inside one month ('Oct 2026' three times): day labels instead, then no repeats at all
+  if (new Set(best.map(b => b[1])).size < best.length) best = best.map(([i]) => [i, INTRA.has(tf) ? dateLabel(bars[i].t, tf) : dateLabel(bars[i].t, 'D1', true)]);
+  best = best.filter((b, k) => !best.slice(0, k).some(o => o[1] === b[1]));
   return best.length ? best : [[n - 1, dateLabel(bars[n - 1].t, tf, true)]];
 }
 
@@ -395,8 +398,11 @@ function panelSvg(p: Panel, b: Box, m: ChartModel, i: number): string {
     const yt = Math.max(g.y(d.hi), plot.y), yb = Math.min(g.y(d.lo), bottom);
     return yb - yt > CHIP_H + 6 ? yt + CHIP_H / 2 + 3 : (yt + yb) / 2;
   });
+  // the panel note ('short history: 5 MN candles') sits at the plot's bottom-left: the chips stay above it
+  const note = p.note && p.bars.length && !/^no .* zones: .* zones shown$/.test(p.note) ? p.note : '';
+  const chipBottom = bottom - CHIP_H / 2 - 2 - (note ? 30 : 0);
   const all = [...want, ...g.edges.map(e => (e.up ? plot.y : bottom))];
-  const ys = stack(all, CHIP_H + 2, plot.y + CHIP_H / 2 + 2, bottom - CHIP_H / 2 - 2);
+  const ys = stack(all, CHIP_H + 2, plot.y + CHIP_H / 2 + 2, chipBottom);
   const chipX = (z: Band, label: string) => {
     const w = textW(fitText(label, maxW - 16, fsz), fsz) * (z.key ? 1.07 : 1) + 16;
     const x0 = boxX(z) + (z.k0 != null && z.k0 < 0 ? 18 : 6);
@@ -415,12 +421,18 @@ function panelSvg(p: Panel, b: Box, m: ChartModel, i: number): string {
   const zoneChips = [...g.zones.map((d, k) => ({ y: ys[k], r: chipX(d.z, d.label) + textW(fitText(d.label, maxW - 16, fsz), fsz) * 1.07 + 16 })),
     ...g.edges.map((e, k) => ({ y: ys[g.zones.length + k], r: plot.x + 6 + textW(fitText(e.label, maxW - 16, fsz), fsz) + 16 }))];
   const placed: number[] = [];
+  // boxes the trendline labels inside the plot must stay off: zone / edge / trade chips, the note
+  const taken2: { x0: number; x1: number; y0: number; y1: number }[] = [
+    ...g.zones.map((d, k) => { const x0 = chipX(d.z, d.label); return { x0, x1: x0 + textW(fitText(d.label, maxW - 16, fsz), fsz) * 1.07 + 16, y0: ys[k] - CHIP_H / 2, y1: ys[k] + CHIP_H / 2 }; }),
+    ...g.edges.map((e, k) => ({ x0: plot.x + 6, x1: plot.x + 22 + textW(fitText(e.label, maxW - 16, fsz), fsz), y0: ys[g.zones.length + k] - CHIP_H / 2, y1: ys[g.zones.length + k] + CHIP_H / 2 })),
+    ...(note ? [{ x0: plot.x + 8, x1: plot.x + 8 + textW(note, 20), y0: bottom - 28, y1: bottom - 4 }] : [])];
   for (const t of trades) {
     const w = textW(t.text, fsz) + 16, xl = right - 6 - w;
     const taken = [...placed, ...zoneChips.filter(c => c.r > xl - 4).map(c => c.y)];
-    const yy = freeSlot(t.y, taken, CHIP_H + 2, plot.y + CHIP_H / 2 + 2, bottom - CHIP_H / 2 - 2);
+    const yy = freeSlot(t.y, taken, CHIP_H + 2, plot.y + CHIP_H / 2 + 2, chipBottom);
     if (yy == null) continue;
     placed.push(yy);
+    taken2.push({ x0: xl, x1: xl + w, y0: yy - CHIP_H / 2, y1: yy + CHIP_H / 2 });
     out.push(chip(xl, yy, t.text, t.fg, t.col, fsz, w + 1, 'tradelabel'));
   }
   out.push('</g>');
@@ -441,13 +453,20 @@ function panelSvg(p: Panel, b: Box, m: ChartModel, i: number): string {
     const fs = Math.max(12, Math.min(20, Math.floor(20 * (g.axisW - 12) / Math.max(1, textW(t.text, 20)))));   // 'W1 momentum' shrinks to fit
     out.push(`<text class="tllabel" x="${f1(right + 8)}" y="${f1(yy + 7)}" font-size="${fs}" font-weight="600" fill="${t.col}">${x(fitText(t.text, g.axisW - 12, fs))}</text>`);
   }
-  for (const t of tlLabels.filter(t => t.inside)) {
+  for (const t of tlLabels.filter(t => t.inside)) {   // off the chips and each other (nudged up / down, else left out)
     const [lx, ly] = t.inside!;
-    out.push(`<text class="tllabel" x="${f1(Math.max(plot.x + 60, lx - 6))}" y="${f1(ly - 8)}" font-size="20" font-weight="600" text-anchor="end" fill="${t.col}" stroke="${C.panel}" stroke-width="5" stroke-linejoin="round" paint-order="stroke">${x(t.text)}</text>`);
+    const w = textW(t.text, 20) * 1.07, xr = Math.max(plot.x + 8 + w, lx - 6);
+    const yy = [0, -26, 26, -52, 52].map(d => ly - 8 + d).find(y => y - 16 >= plot.y && y + 4 <= bottom
+      && !taken2.some(b => b.x0 < xr + 2 && b.x1 > xr - w - 2 && b.y0 < y + 5 && b.y1 > y - 17));
+    if (yy == null) continue;
+    taken2.push({ x0: xr - w, x1: xr, y0: yy - 17, y1: yy + 5 });
+    out.push(`<text class="tllabel" x="${f1(xr)}" y="${f1(yy)}" font-size="20" font-weight="600" text-anchor="end" fill="${t.col}" stroke="${C.panel}" stroke-width="5" stroke-linejoin="round" paint-order="stroke">${x(t.text)}</text>`);
   }
+  const shown = new Set<string>();   // a step finer than the digits would repeat a label: each text once
   for (const v of ticks) {
     const yy = g.y(v);
-    if (yy < plot.y + 12 || yy > bottom - 4 || busy.some(u => Math.abs(u - yy) < 28)) continue;
+    if (yy < plot.y + 12 || yy > bottom - 4 || busy.some(u => Math.abs(u - yy) < 28) || shown.has(v.toFixed(nt.dec))) continue;
+    shown.add(v.toFixed(nt.dec));
     out.push(`<text class="tick" x="${f1(right + 8)}" y="${f1(yy + 7)}" font-size="20" fill="${C.mute}">${v.toFixed(nt.dec)}</text>`);
   }
   out.push(tag);
@@ -457,10 +476,11 @@ function panelSvg(p: Panel, b: Box, m: ChartModel, i: number): string {
       out.push(`<text class="date" x="${f1(cx(k))}" y="${f1(bottom + 30)}" font-size="20" text-anchor="middle" fill="${C.mute}">${x(s)}</text>`);
     }
   } else {
-    out.push(`<text x="${f1(plot.x + plot.w / 2)}" y="${f1(plot.y + plot.h / 2)}" font-size="22" text-anchor="middle" fill="${C.mute}">no candles published for ${x(tfLabel(p.tf))}</text>`);
+    const ym = plot.y + plot.h / 2 + (Math.abs(plot.y + plot.h / 2 - yPrice) < 30 ? 44 : 0);   // off the price line
+    out.push(`<text x="${f1(plot.x + plot.w / 2)}" y="${f1(ym)}" font-size="22" text-anchor="middle" fill="${C.mute}">no candles published for ${x(tfLabel(p.tf))}</text>`);
   }
   // the old 'no D1 zones: W1 zones shown' note is redundant with the header's 'W1 zones:' (owner review): other notes only
-  if (p.note && !/^no .* zones: .* zones shown$/.test(p.note)) out.push(`<text x="${f1(plot.x + 8)}" y="${f1(bottom - 10)}" font-size="20" fill="${C.mute}">${x(p.note)}</text>`);
+  if (note) out.push(`<text class="note" x="${f1(plot.x + 8)}" y="${f1(bottom - 10)}" font-size="20" fill="${C.mute}">${x(fitText(note, plot.w - 16, 20))}</text>`);
   return `<g class="panel" data-tf="${x(p.tf)}">${out.join('')}</g>`;
 }
 
