@@ -412,7 +412,9 @@ const keyState = (status: number): KeyState => (status >= 200 && status < 300 ? 
 async function probe(f: F, url: string, init: RequestInit, bad404 = false): Promise<KeyState> {
   try {
     const r = await f(url, { ...init, signal: AbortSignal.timeout(6000) });
-    await r.body?.cancel();
+    const body = r.ok ? '' : (await r.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 120);
+    if (!r.ok) console.log(JSON.stringify({ ev: 'probe', host: new URL(url).host, status: r.status, body }));
+    else await r.body?.cancel();
     return bad404 && r.status === 404 ? 'bad' : keyState(r.status);
   } catch { return 'error'; }
 }
