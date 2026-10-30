@@ -35,7 +35,7 @@
 //|   2026.10.17 12:30,USD   (UTC time, currency)                    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.63"
+#property version   "1.64"
 #property strict
 
 enum BotMode   { MODE_SCANNER = 0, MODE_APPROVE = 1, MODE_AUTO = 2 };
@@ -1293,6 +1293,9 @@ bool GradeAllowed(string g)
 #define RX_Q      129600   // virtual 3M (quarter) in minutes; real TFs are their minutes (M15 15 ... MN 43200)
 #define RX_SWING  2        // ZV.swing (InpTLSwing)
 #define RX_LOOK   200      // ZV.lookback (InpLookback)
+#define RX_FIT_TOL   0.05  // ZV.fitTol: a candle may poke through a line by this x ATR(1) before the anchor moves
+#define RX_MIN_SLOPE 0.015 // ZV.minSlope: least |slope| per bar (x ATR at the newer pivot), else too flat
+#define RX_MIN_RISE  1.0   // ZV.minRise: least rise / fall between the anchors (x ATR at the newer pivot), else too flat
 #define RX_MAXREM 32
 #define RX_MAXW   64
 
@@ -1357,8 +1360,8 @@ void RxSlice(RxSer &src, int L, RxSer &dst)
 
 // ---- zvTrend.ts ----
 struct ZvPivot { int bar; double p; int t; };                       // t: -1 real valley, +1 real peak
-struct ZvLine  { int dir; int a; int b; double pa; double pb; int cuts; };
-struct ZvResult { bool hasUp; bool hasDn; bool hasMom; ZvLine up; ZvLine dn; ZvLine mom; string whyUp; string whyDn; };
+struct ZvLine  { int dir; int a; int b; double pa; double pb; int cuts; int brokenAt; };   // brokenAt: the candle that closed beyond it (-1 live)
+struct ZvResult { bool hasUp; bool hasDn; bool hasMom; bool hasUpX; bool hasDnX; ZvLine up; ZvLine dn; ZvLine mom; ZvLine upX; ZvLine dnX; string whyUp; string whyDn; };
 double zvSlope(ZvLine &t) { return (t.pb - t.pa) / MathMax(1, t.a - t.b); }                 // TS 40
 double zvAt(ZvLine &t, double j) { return t.pb + zvSlope(t) * (t.b - j); }                    // TS 42
 
@@ -1383,7 +1386,7 @@ int zvPivots(RxSer &S, int bars, ZvPivot &out[])
 // TS 79-90: wick re-anchoring - the candle poking furthest through the line (oldest on a tie) becomes the older anchor
 int zvFitAnchor(RxSer &S, int A, int b2, double p2, int d)
   {
-   double tol = 0.05 * S.zvAtr(1);
+   double tol = RX_FIT_TOL * S.zvAtr(1);
    int a = A;
    for(int it = 0; it < 50; it++)
      {
@@ -1395,46 +1398,90 @@ int zvFitAnchor(RxSer &S, int A, int b2, double p2, int d)
      }
    return a;
   }
-void RxSetWhy(ZvResult &res, int d, string why) { if(d > 0) { res.whyUp = why; res.hasUp = false; } else { res.whyDn = why; res.hasDn = false; } }
-// TS 93-140: the two lines of one TF (+ at most one momentum line); piv = the pivots (out)
+// TS zvPair: the line o (older) -> n (newer), FitAnchor re-anchored (clean anchors); false when in the wrong order or too
+// flat (< RX_MIN_SLOPE ATR per bar or < RX_MIN_RISE ATR between the anchors; ATR at the newer pivot)
+bool zvPair(RxSer &S, ZvPivot &o, ZvPivot &n, int d, ZvLine &t)
+  {
+   if(d > 0 ? !(n.p > o.p) : !(n.p < o.p)) return false;
+   int a = zvFitAnchor(S, o.bar, n.bar, n.p, d);
+   t.dir = d; t.a = a; t.b = n.bar; t.pa = d > 0 ? S.L[a] : S.H[a]; t.pb = n.p; t.cuts = 0; t.brokenAt = -1;
+   if(d > 0 ? !(t.pb > t.pa) : !(t.pb < t.pa)) return false;
+   double ab = MathMax(S.zvAtr(t.b), 1e-12);
+   if(MathAbs(zvSlope(t)) < RX_MIN_SLOPE * ab || MathAbs(t.pb - t.pa) < RX_MIN_RISE * ab) return false;
+   return true;
+  }
+bool RxBeyond(RxSer &S, ZvLine &t, int d, int j) { return d > 0 ? S.C[j] < zvAt(t, j) : S.C[j] > zvAt(t, j); }   // a CLOSE beyond the line
+bool RxAbove(int d, double x, double y) { return d > 0 ? x < y : x > y; }                     // further from the line's side
+// TS zvLines: the owner's structure state machine per direction (down; up mirrored), in bar order - the TOP (highest
+// high wick) is never a pivot; pivot 1 = the first lower real peak after it (one at / above it: structure change);
+// pivot 2 = the tangent from pivot 1 over the lower highs since it (FitAnchor, not too flat; the next in tangent order
+// otherwise); the line is KEPT until a candle CLOSES beyond it (-> upX / dnX, brokenAt), then the next lower high
+// re-anchors from the same pivot 1. + at most one momentum line, only for a direction without a live line.
 void zvLines(RxSer &S, ZvResult &res, ZvPivot &piv[])
   {
-   res.hasUp = false; res.hasDn = false; res.hasMom = false; res.whyUp = "too few bars"; res.whyDn = "too few bars";
+   res.hasUp = false; res.hasDn = false; res.hasMom = false; res.hasUpX = false; res.hasDnX = false; res.whyUp = "too few bars"; res.whyDn = "too few bars";
    ArrayResize(piv, 0);
-   int bars = MathMin(RX_LOOK, S.n - 1 - RX_SWING);                                            // TS 98
+   int bars = MathMin(RX_LOOK, S.n - 1 - RX_SWING);
    if(bars <= RX_SWING + 2) return;
    zvPivots(S, bars, piv);
-   for(int d = 1; d >= -1; d -= 2)                                                             // TS 102: [1, -1]
+   int np = ArraySize(piv);
+   for(int d = 1; d >= -1; d -= 2)
      {
-      int want = d > 0 ? -1 : 1, io = -1, inw = -1, np = ArraySize(piv);
-      for(int k = 0; k < np; k++) if(piv[k].t == want) { io = inw; inw = k; }                  // ps[len - 2], ps[len - 1]
-      if(io < 0) { RxSetWhy(res, d, d > 0 ? "fewer than two real valleys" : "fewer than two real peaks"); continue; }
-      if(d > 0 ? !(piv[inw].p > piv[io].p) : !(piv[inw].p < piv[io].p)) { RxSetWhy(res, d, d > 0 ? "newer valley not higher" : "newer peak not lower"); continue; }
-      int a = zvFitAnchor(S, piv[io].bar, piv[inw].bar, piv[inw].p, d);                         // TS 111
-      ZvLine t; t.dir = d; t.a = a; t.b = piv[inw].bar; t.pa = d > 0 ? S.L[a] : S.H[a]; t.pb = piv[inw].p; t.cuts = 0;
-      if(d > 0 ? !(t.pb > t.pa) : !(t.pb < t.pa)) { RxSetWhy(res, d, d > 0 ? "newer valley not higher" : "newer peak not lower"); continue; }
-      double sl = zvSlope(t);
-      double ab = MathMax(S.zvAtr(t.b), 1e-12);                                                // TS 116-117 TooFlat
-      if(MathAbs(sl) < 0.015 * ab || MathAbs(t.pb - t.pa) < 1.5 * ab) { RxSetWhy(res, d, "too flat"); continue; }
-      double ext = d > 0 ? -DBL_MAX : DBL_MAX;                                                   // TS 119-127 Confirmed
-      for(int j = t.a - 1; j > t.b; j--) ext = d > 0 ? MathMax(ext, S.H[j]) : MathMin(ext, S.L[j]);
-      bool conf = false;
-      if(ext != DBL_MAX && ext != -DBL_MAX)
-         for(int j = t.b - 1; j >= 1; j--)
+      int want = d > 0 ? -1 : 1, k = 0, extBar = -1, nSeen = 0;
+      double extP = 0;
+      int seen[];
+      ArrayResize(seen, np);
+      bool hasP1 = false, hasLive = false, hasBrk = false;
+      ZvPivot p1; ZeroMemory(p1);
+      ZvLine live, brk; ZeroMemory(live); ZeroMemory(brk);
+      string why = d > 0 ? "no real valleys" : "no real peaks";
+      for(int j = bars; j >= 1; j--)
+        {
+         if(hasLive && j < live.b && RxBeyond(S, live, d, j)) { live.brokenAt = j; brk = live; hasBrk = true; hasLive = false; why = "broken at shift " + IntegerToString(j); }
+         double xj = d > 0 ? S.L[j] : S.H[j];
+         if(extBar < 0 || RxAbove(d, xj, extP))
            {
-            double lv = zvAt(t, j);
-            if((d > 0 && S.H[j] < lv) || (d < 0 && S.L[j] > lv)) break;
-            if((d > 0 && S.H[j] > ext) || (d < 0 && S.L[j] < ext)) { conf = true; break; }
+            if(hasLive) { live.brokenAt = j; brk = live; hasBrk = true; hasLive = false; }
+            extBar = j; extP = xj; hasP1 = false; nSeen = 0;
+            why = d > 0 ? "no higher low after the bottom" : "no lower high after the top";
            }
-      if(!conf) { RxSetWhy(res, d, "not confirmed"); continue; }
-      int rm = -1;                                                                               // TS 129-131 RemovedAt
-      for(int j = t.b - 1; j >= 1; j--) { double lv = zvAt(t, j); if((d > 0 && S.H[j] < lv) || (d < 0 && S.L[j] > lv)) { rm = j; break; } }
-      if(rm >= 0) { RxSetWhy(res, d, "broken at shift " + IntegerToString(rm)); continue; }
-      double tol = 0.05 * S.zvAtr(1);                                                          // TS 132-133 cuts
-      for(int j = t.a - 1; j > t.b; j--) if((d > 0 ? zvAt(t, j) - S.L[j] : S.H[j] - zvAt(t, j)) > tol) t.cuts++;
-      if(d > 0) { res.up = t; res.hasUp = true; res.whyUp = "ok"; } else { res.dn = t; res.hasDn = true; res.whyDn = "ok"; }
+         for(; k < np && piv[k].bar >= j; k++)
+           {
+            if(piv[k].t != want || !RxAbove(d, extP, piv[k].p)) continue;   // at the top's level (the top itself): never a pivot
+            if(!hasP1 || !RxAbove(d, p1.p, piv[k].p))
+              {
+               if(hasLive) { live.brokenAt = piv[k].bar; brk = live; hasBrk = true; hasLive = false; }
+               p1 = piv[k]; hasP1 = true; nSeen = 0;
+               why = d > 0 ? "one higher low so far" : "one lower high so far";
+               continue;
+              }
+            seen[nSeen++] = k;
+            if(hasLive) continue;
+            // pivot 2: the tangent order from pivot 1 (flattest first, the newer on a tie), the first valid zvPair
+            int tried[]; ArrayResize(tried, nSeen); ArrayInitialize(tried, 0);
+            bool got = false; ZvLine t; ZeroMemory(t);
+            for(int r = 0; r < nSeen && !got; r++)
+              {
+               int bi = -1; double bs = 0;
+               for(int x = 0; x < nSeen; x++)
+                 {
+                  if(tried[x] != 0) continue;
+                  double s = (piv[seen[x]].p - p1.p) / (p1.bar - piv[seen[x]].bar);
+                  if(bi < 0 || (d > 0 ? s < bs : s > bs) || (s == bs && piv[seen[x]].bar < piv[seen[bi]].bar)) { bi = x; bs = s; }
+                 }
+               tried[bi] = 1;
+               got = zvPair(S, p1, piv[seen[bi]], d, t);
+              }
+            if(!got) { why = "too flat"; continue; }
+            int bj = -1;
+            for(int x = t.b - 1; x >= j; x--) if(RxBeyond(S, t, d, x)) { bj = x; break; }
+            if(bj >= 0) { t.brokenAt = bj; brk = t; hasBrk = true; why = "broken at shift " + IntegerToString(bj); continue; }
+            live = t; hasLive = true; why = "ok";
+           }
+        }
+      if(d > 0) { res.hasUp = hasLive; res.up = live; res.hasUpX = hasBrk; res.upX = brk; res.whyUp = why; }
+      else      { res.hasDn = hasLive; res.dn = live; res.hasDnX = hasBrk; res.dnX = brk; res.whyDn = why; }
      }
-   // TS 136-138: a momentum line only for a direction without a trend line; the leg whose extreme is the newest
    int bestE = -1;
    for(int d = 1; d >= -1; d -= 2)
      {
@@ -1480,7 +1527,7 @@ bool zvMomentum(RxSer &S, ZvPivot &piv[], int bars, int d, ZvLine &out, int &e)
    if(b < 0 || A - E < 3 || d * sl <= 0) return false;
    double pb = RxP(S, d, A) + sl * (A - b), ab = MathMax(S.zvAtr(b), 1e-12);
    if(MathAbs(sl) < 0.015 * ab || MathAbs(sl) * (A - 1) < 1.5 * ab) return false;
-   out.dir = d; out.a = A; out.b = b; out.pa = RxP(S, d, A); out.pb = pb; out.cuts = 0; e = E;
+   out.dir = d; out.a = A; out.b = b; out.pa = RxP(S, d, A); out.pb = pb; out.cuts = 0; out.brokenAt = -1; e = E;
    return true;
   }
 // TS 190-199: separate visits within 0.1 ATR of the line

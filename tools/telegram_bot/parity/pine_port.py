@@ -211,6 +211,8 @@ def run_case(ns, c):
                         'removed': [Z(zs.get(y), k) for y in a.rem], 'strong': a.strong, 'valley': a.valley}
     Lr = R.lines
     lines = {'up': ({'a': Lr.up.a, 'b': Lr.up.b, 'pa': Lr.up.pa, 'pb': Lr.up.pb} if Lr.hasUp else None),
+             'upX': ({'a': Lr.upX.a, 'b': Lr.upX.b, 'pa': Lr.upX.pa, 'pb': Lr.upX.pb} if Lr.hasUpX else None),
+             'dnX': ({'a': Lr.dnX.a, 'b': Lr.dnX.b, 'pa': Lr.dnX.pa, 'pb': Lr.dnX.pb} if Lr.hasDnX else None),
              'dn': ({'a': Lr.dn.a, 'b': Lr.dn.b, 'pa': Lr.dn.pa, 'pb': Lr.dn.pb} if Lr.hasDn else None), 'why': {'up': Lr.whyUp, 'dn': Lr.whyDn}}
     plan = None
     if R.hasPlan:

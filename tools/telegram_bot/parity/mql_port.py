@@ -20,6 +20,7 @@ from pathlib import Path
 
 DBL_MAX = sys.float_info.max
 RX_MAXB, RX_Q, RX_SWING, RX_LOOK, RX_MAXREM, RX_MAXW = 460, 129600, 2, 200, 32, 64
+RX_FIT_TOL, RX_MIN_SLOPE, RX_MIN_RISE = 0.05, 0.015, 1.0   # ZV.fitTol / minSlope / minRise (RFX_ZoneCore.mqh RX_*)
 RX_SL_ATRFRAC, RX_SL_HTFBUF = 0.1, 2
 TF_MIN = {'M15': 15, 'H1': 60, 'H4': 240, 'D1': 1440, 'W1': 10080, 'MN': 43200, '3M': RX_Q}
 
@@ -91,7 +92,7 @@ class S_: # struct helper
     def cp(self): return copy.deepcopy(self)
 
 
-def ZvLine(): return S_(dir=0, a=0, b=0, pa=0.0, pb=0.0, cuts=0)
+def ZvLine(): return S_(dir=0, a=0, b=0, pa=0.0, pb=0.0, cuts=0, brokenAt=-1)
 
 
 def zvSlope(t): return (t.pb - t.pa) / max(1, t.a - t.b)
@@ -129,7 +130,7 @@ def zvPivots(S, bars, out):
 
 
 def zvFitAnchor(S, A, b2, p2, d):
-    tol = 0.05 * S.zvAtr(1)
+    tol = RX_FIT_TOL * S.zvAtr(1)
     a = A
     for _ in range(50):
         sl = (p2 - (S.L[a] if d > 0 else S.H[a])) / (a - b2)
@@ -142,50 +143,72 @@ def zvFitAnchor(S, A, b2, p2, d):
     return a
 
 
-def RxSetWhy(res, d, why):
-    if d > 0: res.whyUp = why; res.hasUp = False
-    else: res.whyDn = why; res.hasDn = False
+def zvPair(S, o, n, d, t):
+    if (not (n.p > o.p)) if d > 0 else (not (n.p < o.p)): return False
+    a = zvFitAnchor(S, o.bar, n.bar, n.p, d)
+    t.dir = d; t.a = a; t.b = n.bar; t.pa = S.L[a] if d > 0 else S.H[a]; t.pb = n.p; t.cuts = 0; t.brokenAt = -1
+    if (not (t.pb > t.pa)) if d > 0 else (not (t.pb < t.pa)): return False
+    ab = max(S.zvAtr(t.b), 1e-12)
+    if abs(zvSlope(t)) < RX_MIN_SLOPE * ab or abs(t.pb - t.pa) < RX_MIN_RISE * ab: return False
+    return True
+
+
+def RxBeyond(S, t, d, j): return S.C[j] < zvAt(t, j) if d > 0 else S.C[j] > zvAt(t, j)
+def RxAbove(d, x, y): return x < y if d > 0 else x > y
 
 
 def zvLines(S, res, piv):
-    res.hasUp = False; res.hasDn = False; res.hasMom = False; res.whyUp = 'too few bars'; res.whyDn = 'too few bars'
+    res.hasUp = False; res.hasDn = False; res.hasMom = False; res.hasUpX = False; res.hasDnX = False
+    res.whyUp = 'too few bars'; res.whyDn = 'too few bars'
     piv.clear()
     bars = min(RX_LOOK, S.n - 1 - RX_SWING)
     if bars <= RX_SWING + 2: return
     zvPivots(S, bars, piv)
+    np_ = len(piv)
     for d in (1, -1):
-        want = -1 if d > 0 else 1; io = -1; inw = -1; np_ = len(piv)
-        for k in range(np_):
-            if piv[k].t == want: io = inw; inw = k
-        if io < 0: RxSetWhy(res, d, 'fewer than two real valleys' if d > 0 else 'fewer than two real peaks'); continue
-        if (not (piv[inw].p > piv[io].p)) if d > 0 else (not (piv[inw].p < piv[io].p)):
-            RxSetWhy(res, d, 'newer valley not higher' if d > 0 else 'newer peak not lower'); continue
-        a = zvFitAnchor(S, piv[io].bar, piv[inw].bar, piv[inw].p, d)
-        t = S_(dir=d, a=a, b=piv[inw].bar, pa=S.L[a] if d > 0 else S.H[a], pb=piv[inw].p, cuts=0)
-        if (not (t.pb > t.pa)) if d > 0 else (not (t.pb < t.pa)):
-            RxSetWhy(res, d, 'newer valley not higher' if d > 0 else 'newer peak not lower'); continue
-        sl = zvSlope(t)
-        ab = max(S.zvAtr(t.b), 1e-12)
-        if abs(sl) < 0.015 * ab or abs(t.pb - t.pa) < 1.5 * ab: RxSetWhy(res, d, 'too flat'); continue
-        ext = -DBL_MAX if d > 0 else DBL_MAX
-        for j in range(t.a - 1, t.b, -1): ext = max(ext, S.H[j]) if d > 0 else min(ext, S.L[j])
-        conf = False
-        if ext != DBL_MAX and ext != -DBL_MAX:
-            for j in range(t.b - 1, 0, -1):
-                lv = zvAt(t, j)
-                if (d > 0 and S.H[j] < lv) or (d < 0 and S.L[j] > lv): break
-                if (d > 0 and S.H[j] > ext) or (d < 0 and S.L[j] < ext): conf = True; break
-        if not conf: RxSetWhy(res, d, 'not confirmed'); continue
-        rm = -1
-        for j in range(t.b - 1, 0, -1):
-            lv = zvAt(t, j)
-            if (d > 0 and S.H[j] < lv) or (d < 0 and S.L[j] > lv): rm = j; break
-        if rm >= 0: RxSetWhy(res, d, 'broken at shift ' + str(rm)); continue
-        tol = 0.05 * S.zvAtr(1)
-        for j in range(t.a - 1, t.b, -1):
-            if ((zvAt(t, j) - S.L[j]) if d > 0 else (S.H[j] - zvAt(t, j))) > tol: t.cuts += 1
-        if d > 0: res.up = t; res.hasUp = True; res.whyUp = 'ok'
-        else: res.dn = t; res.hasDn = True; res.whyDn = 'ok'
+        want = -1 if d > 0 else 1; k = 0; extBar = -1; nSeen = 0; extP = 0.0
+        seen = [0] * np_
+        hasP1 = False; hasLive = False; hasBrk = False
+        p1 = S_(bar=0, p=0.0, t=0); live = ZvLine(); brk = ZvLine()
+        why = 'no real valleys' if d > 0 else 'no real peaks'
+        for j in range(bars, 0, -1):
+            if hasLive and j < live.b and RxBeyond(S, live, d, j):
+                live.brokenAt = j; brk = live.cp(); hasBrk = True; hasLive = False; why = 'broken at shift ' + str(j)
+            xj = S.L[j] if d > 0 else S.H[j]
+            if extBar < 0 or RxAbove(d, xj, extP):
+                if hasLive: live.brokenAt = j; brk = live.cp(); hasBrk = True; hasLive = False
+                extBar = j; extP = xj; hasP1 = False; nSeen = 0
+                why = 'no higher low after the bottom' if d > 0 else 'no lower high after the top'
+            while k < np_ and piv[k].bar >= j:
+                pk = piv[k]
+                if pk.t != want or not RxAbove(d, extP, pk.p): k += 1; continue
+                if not hasP1 or not RxAbove(d, p1.p, pk.p):
+                    if hasLive: live.brokenAt = pk.bar; brk = live.cp(); hasBrk = True; hasLive = False
+                    p1 = pk.cp(); hasP1 = True; nSeen = 0
+                    why = 'one higher low so far' if d > 0 else 'one lower high so far'
+                    k += 1; continue
+                seen[nSeen] = k; nSeen += 1
+                if hasLive: k += 1; continue
+                tried = [False] * nSeen
+                got = False; t = ZvLine()
+                for r in range(nSeen):
+                    if got: break
+                    bi = -1; bs = 0.0
+                    for x in range(nSeen):
+                        if tried[x]: continue
+                        sv = (piv[seen[x]].p - p1.p) / (p1.bar - piv[seen[x]].bar)
+                        if bi < 0 or (sv < bs if d > 0 else sv > bs) or (sv == bs and piv[seen[x]].bar < piv[seen[bi]].bar): bi = x; bs = sv
+                    tried[bi] = True
+                    got = zvPair(S, p1, piv[seen[bi]], d, t)
+                if not got: why = 'too flat'; k += 1; continue
+                bj = -1
+                for x in range(t.b - 1, j - 1, -1):
+                    if RxBeyond(S, t, d, x): bj = x; break
+                if bj >= 0: t.brokenAt = bj; brk = t.cp(); hasBrk = True; why = 'broken at shift ' + str(bj); k += 1; continue
+                live = t.cp(); hasLive = True; why = 'ok'
+                k += 1
+        if d > 0: res.hasUp = hasLive; res.up = live; res.hasUpX = hasBrk; res.upX = brk; res.whyUp = why
+        else: res.hasDn = hasLive; res.dn = live; res.hasDnX = hasBrk; res.dnX = brk; res.whyDn = why
     bestE = -1
     for d in (1, -1):
         if (res.hasUp if d > 0 else res.hasDn): continue
@@ -233,7 +256,7 @@ def zvMomentum(S, piv, bars, d, out, e):
     if b < 0 or A - E < 3 or d * sl <= 0: return False
     pb = RxP(S, d, A) + sl * (A - b); ab = max(S.zvAtr(b), 1e-12)
     if abs(sl) < 0.015 * ab or abs(sl) * (A - 1) < 1.5 * ab: return False
-    out.dir = d; out.a = A; out.b = b; out.pa = RxP(S, d, A); out.pb = pb; out.cuts = 0; e[0] = E
+    out.dir = d; out.a = A; out.b = b; out.pa = RxP(S, d, A); out.pb = pb; out.cuts = 0; out.brokenAt = -1; e[0] = E
     return True
 
 
@@ -476,6 +499,8 @@ def run_case(c):
                         'removed': [Z(zs[y], k) for y in a.rem], 'strong': a.strong, 'valley': a.valley}
     lines = {'up': ({'a': R.lines.up.a, 'b': R.lines.up.b, 'pa': R.lines.up.pa, 'pb': R.lines.up.pb} if R.lines.hasUp else None),
              'dn': ({'a': R.lines.dn.a, 'b': R.lines.dn.b, 'pa': R.lines.dn.pa, 'pb': R.lines.dn.pb} if R.lines.hasDn else None),
+             'upX': ({'a': R.lines.upX.a, 'b': R.lines.upX.b, 'pa': R.lines.upX.pa, 'pb': R.lines.upX.pb} if R.lines.hasUpX else None),
+             'dnX': ({'a': R.lines.dnX.a, 'b': R.lines.dnX.b, 'pa': R.lines.dnX.pa, 'pb': R.lines.dnX.pb} if R.lines.hasDnX else None),
              'why': {'up': R.lines.whyUp, 'dn': R.lines.whyDn}}
     plan = None
     if R.hasPlan:

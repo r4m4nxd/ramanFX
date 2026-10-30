@@ -5,10 +5,9 @@ realignment alerts (arrival.py) read these lines, so the alert and the bot's cha
 
     real peak   swing high (2 bars each side, wicks) followed by a LOWER LOW before any later high goes above it
     real valley swing low followed by a HIGHER HIGH before any later low goes below it
-    down line   the two most recent real peaks (newer lower), wick to wick; a candle between them poking through the
-                line by > 0.05 ATR becomes the older anchor (FitAnchor, repeated)
-    dropped     too flat (|slope| < 0.015 ATR / bar or < 1.5 ATR between the anchors), not confirmed (no new low below
-                everything between the anchors before a full candle crossed it), or broken (a full closed candle beyond it)
+    down line   the owner's state machine (zv_lines): the top is never a pivot; the first lower high after it -> the next
+                lower high, FitAnchor re-anchored (clean anchors), not too flat; KEPT until a candle closes above it
+    broken      a close beyond it -> broken_dn (stopped there), the structure restarts. Arrivals read the live lines only.
 
 Index convention as zones.Series: shift 0 = the phantom forming bar, 1 = the newest closed bar, larger = older. Pure.
 Parity: tools/telegram_bot/parity/arrival_fixtures.json (tests/test_arrival.py) against the TypeScript.
@@ -19,7 +18,8 @@ import math
 from dataclasses import dataclass, field
 from typing import Callable, List, Optional
 
-ZV = {'swing': 2, 'lookback': 200, 'tl_history': 3}
+# the trend-line rule's tunable parameters (= zvTrend.ts ZV; the owner trains them later, keep the ports in step)
+ZV = {'swing': 2, 'lookback': 200, 'tl_history': 3, 'fit_tol': 0.05, 'min_slope': 0.015, 'min_rise': 1.0}
 VIRTUAL = ('3M', '6M', '12M')
 
 
@@ -28,6 +28,7 @@ class ZvPivot:
     bar: int
     p: float
     t: int              # -1 real valley, +1 real peak
+    conf: int = 0       # shift at which it became known
 
 
 @dataclass
@@ -88,7 +89,8 @@ def zv_atr(S) -> Callable[[int], float]:
 
 
 def zv_pivots(S, bars: int, sw: int = ZV['swing']) -> List[ZvPivot]:
-    """MQL ZigZag(bars): real valleys / peaks, oldest first."""
+    """zvPivots: real valleys / peaks, oldest first. A swing high is a real PEAK when, before any later high goes above
+    it, a later low goes below the most recent swing low before it; valleys mirrored. conf = the shift it became known."""
     Lo, Hi = S.L, S.H
     out: List[ZvPivot] = []
 
@@ -111,14 +113,14 @@ def zv_pivots(S, bars: int, sw: int = ZV['swing']) -> List[ZvPivot]:
                 if Lo[j] < Lo[i]:
                     break
                 if Hi[j] > Hi[fH]:
-                    out.append(ZvPivot(i, Lo[i], -1))
+                    out.append(ZvPivot(i, Lo[i], -1, min(j, i - sw)))
                     break
         if hi and fL > 0:
             for j in range(i - 1, 0, -1):
                 if Hi[j] > Hi[i]:
                     break
                 if Lo[j] < Lo[fL]:
-                    out.append(ZvPivot(i, Hi[i], 1))
+                    out.append(ZvPivot(i, Hi[i], 1, min(j, i - sw)))
                     break
         if lo:
             fL = i
@@ -130,7 +132,7 @@ def zv_pivots(S, bars: int, sw: int = ZV['swing']) -> List[ZvPivot]:
 def zv_fit_anchor(S, A: int, b2: int, p2: float, d: int, atr: Optional[Callable[[int], float]] = None) -> int:
     """MQL FitAnchor(A, b2, p2, d): while a candle strictly between the anchors pokes through the line (A's wick ->
     (b2, p2)) by more than 0.05 x ATR(1), the candle poking furthest becomes the new older anchor; at most 50 rounds."""
-    tol = 0.05 * (atr or zv_atr(S))(1)
+    tol = ZV['fit_tol'] * (atr or zv_atr(S))(1)
     a = A
     for _ in range(50):
         sl = (p2 - (S.L[a] if d > 0 else S.H[a])) / (a - b2)
@@ -146,73 +148,101 @@ def zv_fit_anchor(S, A: int, b2: int, p2: float, d: int, atr: Optional[Callable[
     return a
 
 
+def zv_pair(S, o: ZvPivot, n: ZvPivot, d: int, atr=None) -> Optional[ZvLine]:
+    """zvPair: the line o (older) -> n (newer), FitAnchor re-anchored (clean anchors); None when in the wrong order or
+    too flat (< 0.015 ATR per bar or < ZV['min_rise'] ATR between the anchors, ATR at the newer pivot)."""
+    atr = atr or zv_atr(S)
+    if not (n.p > o.p if d > 0 else n.p < o.p):
+        return None
+    a = zv_fit_anchor(S, o.bar, n.bar, n.p, d, atr)
+    t = ZvLine(d, a, n.bar, S.L[a] if d > 0 else S.H[a], n.p)
+    if not (t.pb > t.pa if d > 0 else t.pb < t.pa):
+        return None
+    ab = max(atr(t.b), 1e-12)
+    if abs(t.slope()) < ZV['min_slope'] * ab or abs(t.pb - t.pa) < ZV['min_rise'] * ab:
+        return None
+    return t
+
+
 def zv_lines(S) -> ZvResult:
-    """The chart's two lines of one timeframe (closed bars + the phantom in S)."""
+    """zvLines: the owner's state machine over the real pivots in bar order (down line; up mirrored): the top is never a
+    pivot; pivot 1 = the first lower real peak after it (a higher one under the top replaces it, one above the top is
+    the new top); pivot 2 = the next peak lower than pivot 1 -> zv_pair. The line is kept until a candle CLOSES beyond
+    it -> broken (broken_at; the structure restarts: the next peak is the new top). up / dn = live, broken_up /
+    broken_dn = the most recent broken line. Arrivals read the live lines only."""
     res = ZvResult()
     bars = min(ZV['lookback'], S.n - 1 - ZV['swing'])
     if bars <= ZV['swing'] + 2:
         return res
-    Lo, Hi = S.L, S.H
     atr = zv_atr(S)
+    C = S.C
     piv = res.pivots = zv_pivots(S, bars)
     for d in (1, -1):
-        def put(why: str, t: Optional[ZvLine] = None, d=d):
-            if d > 0:
-                res.why_up, res.up = why, t
-            else:
-                res.why_dn, res.dn = why, t
-        ps = [p for p in piv if p.t == (-1 if d > 0 else 1)]
-        if len(ps) < 2:
-            put(f"fewer than two real {'valleys' if d > 0 else 'peaks'}")
-            continue
-        o, nw = ps[-2], ps[-1]
-        if not (nw.p > o.p if d > 0 else nw.p < o.p):
-            put('newer valley not higher' if d > 0 else 'newer peak not lower')
-            continue
-        a = zv_fit_anchor(S, o.bar, nw.bar, nw.p, d, atr)
-        t = ZvLine(d, a, nw.bar, Lo[a] if d > 0 else Hi[a], nw.p)
-        if not (t.pb > t.pa if d > 0 else t.pb < t.pa):
-            put('newer valley not higher' if d > 0 else 'newer peak not lower')
-            continue
-        sl = t.slope()
-        ab = max(atr(t.b), 1e-12)
-        if abs(sl) < 0.015 * ab or abs(t.pb - t.pa) < 1.5 * ab:
-            put('too flat')
-            continue
-        ext = -math.inf if d > 0 else math.inf
-        for j in range(t.a - 1, t.b, -1):
-            ext = max(ext, Hi[j]) if d > 0 else min(ext, Lo[j])
-        conf = False
-        if math.isfinite(ext):
-            for j in range(t.b - 1, 0, -1):
-                lv = t.at(j)
-                if (d > 0 and Hi[j] < lv) or (d < 0 and Lo[j] > lv):
-                    break
-                if (d > 0 and Hi[j] > ext) or (d < 0 and Lo[j] < ext):
-                    conf = True
-                    break
-        if not conf:
-            put('not confirmed')
-            continue
-        rm = -1
-        for j in range(t.b - 1, 0, -1):
-            lv = t.at(j)
-            if (d > 0 and Hi[j] < lv) or (d < 0 and Lo[j] > lv):
-                rm = j
-                break
-        if rm >= 0:
-            put(f'broken at shift {rm}')
-            t.broken_at = rm
-            if d > 0:
-                res.broken_up = t
-            else:
-                res.broken_dn = t
-            continue
-        tol = 0.05 * atr(1)
-        for j in range(t.a - 1, t.b, -1):
-            if (t.at(j) - Lo[j] if d > 0 else Hi[j] - t.at(j)) > tol:
-                t.cuts += 1
-        put('ok', t)
+        ps = sorted([p for p in piv if p.t == (-1 if d > 0 else 1)], key=lambda p: -p.bar)
+
+        def beyond(t, j, d=d):
+            return C[j] < t.at(j) if d > 0 else C[j] > t.at(j)
+
+        def above(x, y, d=d):
+            return x < y if d > 0 else x > y
+        st = {'ext': None, 'p1': None, 'live': None, 'brk': None, 'seen': []}
+        k = 0
+        why = f"no real {'valleys' if d > 0 else 'peaks'}"
+
+        def kill(at, st=st):
+            if st['live'] is not None:
+                st['live'].broken_at = at
+                st['brk'], st['live'] = st['live'], None
+        for j in range(bars, 0, -1):
+            live = st['live']
+            if live is not None and j < live.b and beyond(live, j):
+                kill(j)
+                why = f'broken at shift {j}'
+            xj = S.L[j] if d > 0 else S.H[j]
+            if st['ext'] is None or above(xj, st['ext'].p):        # the TOP: the highest high (wick), any candle
+                kill(j)
+                st['ext'], st['p1'], st['seen'] = ZvPivot(j, xj, -1 if d > 0 else 1, j), None, []
+                why = f"no {'higher low' if d > 0 else 'lower high'} after the {'bottom' if d > 0 else 'top'}"
+            while k < len(ps) and ps[k].bar >= j:
+                p = ps[k]
+                k += 1
+                if not above(st['ext'].p, p.p):                    # at the top's level (the top itself): never a pivot
+                    continue
+                p1 = st['p1']
+                if p1 is None or not above(p1.p, p.p):               # at / beyond pivot 1: structure change
+                    kill(p.bar)
+                    st['p1'], st['seen'] = p, []
+                    why = f"one {'higher low' if d > 0 else 'lower high'} so far"
+                    continue
+                st['seen'].append(p)
+                if st['live'] is not None:
+                    continue
+                sl = lambda x, p1=p1: (x.p - p1.p) / (p1.bar - x.bar)  # noqa: E731
+                order = sorted(st['seen'], key=lambda x: ((sl(x) if d > 0 else -sl(x)), x.bar))
+                t = None
+                for q in order:
+                    t = zv_pair(S, p1, q, d, atr)
+                    if t is not None:
+                        break
+                if t is None:
+                    why = 'too flat'
+                    continue
+                bj = -1
+                for x in range(t.b - 1, j - 1, -1):
+                    if beyond(t, x):
+                        bj = x
+                        break
+                if bj >= 0:
+                    t.broken_at = bj
+                    st['brk'] = t
+                    why = f'broken at shift {bj}'
+                    continue
+                st['live'], why = t, 'ok'
+        live, brk = st['live'], st['brk']
+        if d > 0:
+            res.up, res.broken_up, res.why_up = live, brk, why
+        else:
+            res.dn, res.broken_dn, res.why_dn = live, brk, why
     return res
 
 

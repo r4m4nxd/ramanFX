@@ -1,39 +1,42 @@
-// Trendlines for the bot's chart images: the owner's ZoneVision indicator rule (public/tools/RFX_ZoneCore.mqh ZigZag /
-// LineAt / RemovedAt / Confirmed / TooFlat, cross-checked with public/tools/RamanFX_ZoneVision.pine), with the owner's
-// two-pivot rule on top. NOT the scanners' rule: tools/stock_scanner/zones.py trendlines() (ported in trendcore.ts for
-// parity, used by the Raja signals) keeps its anchor search and 'overall' line; only the chart draws these.
+// Trendlines for the bot's chart images: the owner's STRUCTURE METHOD (owner-approved Oct 2026, from his XAUUSD D1 / W1
+// drawings), ported 1:1 to tools/stock_scanner/zvtrend.py, public/tools/RFX_ZoneCore.mqh (the arrival engine zvLines +
+// ZoneVision TwoPivotLines), RamanFX_ZoneVision.mq4 and the Pine scripts. NOT the scanners' rule: tools/stock_scanner/
+// zones.py trendlines() (trendcore.ts, the Raja signals) keeps its own construction; only the chart and arrivals use these.
 //
 // Owner: "We draw from real valleys and real peaks. Real valleys are pivot points after which price made a new high;
-// real peaks are pivot points after which price made a new lower low, on that timeframe." and "We draw a trendline from
-// the most recent TWO peaks or TWO valleys only."
-//   1. Swing low (FrLow, InpTLSwing = 2): a low <= the 2 older lows and < the 2 newer lows (swing high mirrored), within
-//      the newest min(InpLookback = 200, closed bars - InpTLSwing) bars (MQL: SBars - 20, see zvLines), low / high = the candle's wick (SL / SH = iLow / iHigh).
-//   2. ZigZag: a swing low is a REAL VALLEY when, before any later low goes below it, a later high goes above the most
-//      recent swing high before it (a new higher high). A swing high is a REAL PEAK when, before any later high goes
-//      above it, a later low goes below the most recent swing low before it (a new lower low).
-//   3. Up line = the two most recent real valleys, the newer one higher; down line = the two most recent real peaks, the
-//      newer one lower, through the two wicks; when a candle between them pokes through the line the OLDER anchor moves
-//      to that candle's wick (ZoneVision FitAnchor, tol 0.05 ATR, owner-approved Oct 2026; the overall line / older
-//      anchors are still not used). Dropped (nothing drawn that way) when the pair is in the
-//      wrong order, TooFlat (< 0.015 ATR per bar, or < 1.5 ATR between the anchors; ATR(14) at the newer pivot), not
-//      Confirmed (price never went beyond the extreme between the anchors before a full candle crossed the line) or
-//      removed (RemovedAt: a full closed candle beyond it - an up line with a later high below it).
-//   4. `cuts` = candles between the anchors the final line still cuts by more than 0.05 ATR (0 after FitAnchor).
+// real peaks are pivot points after which price made a new lower low, on that timeframe."
+//   1. Swing low (FrLow, ZV.swing = 2): a low <= the 2 older lows and < the 2 newer lows (swing high mirrored), within the
+//      newest min(ZV.lookback = 200, closed bars - ZV.swing) bars, wicks. A swing high is a REAL PEAK when, before any
+//      later high goes above it, a later low goes below the most recent swing low before it (valleys mirrored).
+//   2. Down line (up mirrored), a state machine in bar order (zvLines): the TOP (highest high wick) is never a pivot;
+//      pivot 1 = the first lower real peak after it; pivot 2 = the tangent from pivot 1 over the lower highs since it
+//      (clean anchors: FitAnchor, ZV.fitTol; not too flat: ZV.minSlope / ZV.minRise).
+//   3. The line is KEPT (later peaks are touches) until a candle CLOSES beyond it: broken (dnX, drawn faint up to that
+//      candle); the next lower high re-anchors from the same pivot 1; a peak at / above pivot 1 ends the structure.
+//   4. Momentum line (zvMomentum) only for a direction without a live line. Arrivals read the live lines only.
+// The tunable parameters are in ZV (one place; the owner trains them later).
 // Index convention as zonecore.ts Series: shift 0 = the phantom forming bar, 1 = the newest closed bar, larger = older
 // (MQL index semantics). Pure.
 import { Series, type ZBar } from './zonecore.ts';
 
-export const ZV = { swing: 2, lookback: 200, tlHistory: 3 } as const;   // InpTLSwing, InpLookback, InpTLHistory (RamanFX_ZoneVision.mq5)
+// The trend-line rule's tunable parameters, in ONE place (the owner trains them later; keep the ports in step:
+// zvtrend.py ZV, RFX_ZoneCore.mqh RX_* / ZoneVision Inp*, the Pine RX_* constants). swing / lookback / tlHistory =
+// InpTLSwing, InpLookback, InpTLHistory (RamanFX_ZoneVision.mq5); fitTol = how far (x ATR(1)) a candle may poke
+// through a line before the anchor moves (clean anchors); minSlope = the least |slope| per bar and minRise = the least
+// rise / fall between the anchors (x ATR at the newer pivot), else too flat.
+export const ZV = { swing: 2, lookback: 200, tlHistory: 3, fitTol: 0.05, minSlope: 0.015, minRise: 1.0 } as const;
 
-export interface ZvPivot { bar: number; p: number; t: number }    // t: -1 real valley, +1 real peak; bar = shift
+export interface ZvPivot { bar: number; p: number; t: number; conf?: number }   // t: -1 real valley, +1 real peak; bar = shift; conf = shift it became known
 export interface ZvLine {
   dir: number;                 // +1 up line (under two valleys), -1 down line (over two peaks)
   a: number; b: number;        // shifts of the older / newer pivot
   pa: number; pb: number;      // the pivots' low (up) / high (down)
   cuts: number;                // candles between the anchors cut by more than 0.05 ATR
+  brokenAt?: number;           // shift of the first full closed candle beyond the line (-1 / absent = live)
 }
 export interface ZvResult {
   pivots: ZvPivot[]; up: ZvLine | null; dn: ZvLine | null; why: { up: string; dn: string };
+  upX: ZvLine | null; dnX: ZvLine | null;   // the most recent line a candle CLOSED beyond (brokenAt; drawn faint up to there)
   mom: ZvLine | null;          // at most one momentum line (zvMomentum), only for a direction without a trend line
 }
 
@@ -57,7 +60,10 @@ export function zvAtr(S: Series): (i: number) => number {
   return i => (i >= 0 && i < n ? a[i] : 0);
 }
 
-/** MQL ZigZag(bars): real valleys / peaks, oldest first. */
+/** MQL ZigZag(bars): real valleys / peaks, oldest first. A swing high (2-bar fractal) is a REAL PEAK when, before any
+ *  later high goes above it, a later low goes below the most recent swing low before it (a new lower low); valleys
+ *  mirrored. conf = the shift at which it became known: the bar that made the lower low (higher high), never before the
+ *  fractal's own InpTLSwing newer bars closed. */
 export function zvPivots(S: Series, bars: number, sw: number = ZV.swing): ZvPivot[] {
   const Lo = S.L, Hi = S.H, out: ZvPivot[] = [];
   const frLow = (i: number) => { for (let k = 1; k <= sw; k++) if (i - k < 1 || Lo[i] > Lo[i + k] || Lo[i] >= Lo[i - k]) return false; return true; };
@@ -65,8 +71,8 @@ export function zvPivots(S: Series, bars: number, sw: number = ZV.swing): ZvPivo
   let fH = -1, fL = -1;
   for (let i = bars; i > sw; i--) {
     const lo = frLow(i), hi = frHigh(i);
-    if (lo && fH > 0) for (let j = i - 1; j >= 1; j--) { if (Lo[j] < Lo[i]) break; if (Hi[j] > Hi[fH]) { out.push({ bar: i, p: Lo[i], t: -1 }); break; } }
-    if (hi && fL > 0) for (let j = i - 1; j >= 1; j--) { if (Hi[j] > Hi[i]) break; if (Lo[j] < Lo[fL]) { out.push({ bar: i, p: Hi[i], t: 1 }); break; } }
+    if (lo && fH > 0) for (let j = i - 1; j >= 1; j--) { if (Lo[j] < Lo[i]) break; if (Hi[j] > Hi[fH]) { out.push({ bar: i, p: Lo[i], t: -1, conf: Math.min(j, i - sw) }); break; } }
+    if (hi && fL > 0) for (let j = i - 1; j >= 1; j--) { if (Hi[j] > Hi[i]) break; if (Lo[j] < Lo[fL]) { out.push({ bar: i, p: Hi[i], t: 1, conf: Math.min(j, i - sw) }); break; } }
     if (lo) fL = i;
     if (hi) fH = i;
   }
@@ -77,7 +83,7 @@ export function zvPivots(S: Series, bars: number, sw: number = ZV.swing): ZvPivo
  *  line (A's wick -> (b2, p2)) by more than 0.05 x ATR(1), the candle poking furthest (the oldest on a tie) becomes the
  *  new older anchor; at most 50 rounds. Returns the older anchor's shift. */
 export function zvFitAnchor(S: Series, A: number, b2: number, p2: number, d: number): number {
-  const tol = 0.05 * zvAtr(S)(1);
+  const tol = ZV.fitTol * zvAtr(S)(1);
   let a = A;
   for (let it = 0; it < 50; it++) {
     const sl = (p2 - (d > 0 ? S.L[a] : S.H[a])) / (a - b2);
@@ -89,49 +95,76 @@ export function zvFitAnchor(S: Series, A: number, b2: number, p2: number, d: num
   return a;
 }
 
-/** The chart's two lines of one timeframe (closed bars + the phantom in S). */
+/** A line from the real pivot `o` (older) to `n` (newer): FitAnchor re-anchored (clean anchors: no candle between them
+ *  cut by more than 0.05 ATR); null when in the wrong order or too flat (< 0.015 ATR per bar, or less than ZV.minRise
+ *  ATR between the anchors; ATR(14) at the newer pivot). */
+export function zvPair(S: Series, o: ZvPivot, n: ZvPivot, d: number, atr: (i: number) => number = zvAtr(S)): ZvLine | null {
+  if (d > 0 ? !(n.p > o.p) : !(n.p < o.p)) return null;
+  const a = zvFitAnchor(S, o.bar, n.bar, n.p, d);
+  const t: ZvLine = { dir: d, a, b: n.bar, pa: d > 0 ? S.L[a] : S.H[a], pb: n.p, cuts: 0, brokenAt: -1 };
+  if (d > 0 ? !(t.pb > t.pa) : !(t.pb < t.pa)) return null;
+  const ab = Math.max(atr(t.b), 1e-12);
+  if (Math.abs(zvSlope(t)) < ZV.minSlope * ab || Math.abs(t.pb - t.pa) < ZV.minRise * ab) return null;
+  return t;
+}
+
+/**
+ * The owner's lines of one timeframe (closed bars + the phantom in S): a chronological state machine over the real
+ * pivots (bar order; only pivots this series' own bars confirmed). Down line (up mirrored):
+ *   - the TOP (the highest high wick of the structure, any candle; a higher one is a new top) is never a pivot;
+ *   - pivot 1 = the first real peak after the top that is lower (one at / above it but under the top replaces it, one
+ *     above the top is the new top: either is a structure change that ends the down line);
+ *   - pivot 2 = when a lower high is confirmed: the TANGENT from pivot 1 over the lower highs since it (the line passes
+ *     above every one of them, touching the anchor) -> zvPair (clean anchors via FitAnchor, not too flat);
+ *   - the line is KEPT (later peaks are touches, never a redraw) until a candle CLOSES beyond it: then it is broken
+ *     (brokenAt; drawn faint, stopped there) while the structure stays bearish: the next lower high re-anchors the line
+ *     from the SAME pivot 1 (Kevin's re-anchored line).
+ * up / dn = the live lines, upX / dnX = the most recent broken one. Arrivals read the live lines only.
+ */
 export function zvLines(S: Series): ZvResult {
-  const res: ZvResult = { pivots: [], up: null, dn: null, why: { up: 'too few bars', dn: 'too few bars' }, mom: null };
+  const res: ZvResult = { pivots: [], up: null, dn: null, upX: null, dnX: null, why: { up: 'too few bars', dn: 'too few bars' }, mom: null };
   // MQL: bars = MathMin(InpLookback, SBars - 20). MT5 always holds far more than 220 bars, so there the 20-bar margin
   // never binds; the bot's charts often have 60-120 bars (published shards), so the window here only keeps the swing
   // test's InpTLSwing older bars inside the series (shift 0 = the phantom forming bar).
   const bars = Math.min(ZV.lookback, S.n - 1 - ZV.swing);
   if (bars <= ZV.swing + 2) return res;
-  const Lo = S.L, Hi = S.H, atr = zvAtr(S);
+  const atr = zvAtr(S), C = S.C;
   const piv = res.pivots = zvPivots(S, bars);
   for (const d of [1, -1]) {
-    const set = (why: string, t: ZvLine | null = null) => { if (d > 0) { res.why.up = why; res.up = t; } else { res.why.dn = why; res.dn = t; } };
-    const ps = piv.filter(p => p.t === (d > 0 ? -1 : 1));
-    if (ps.length < 2) { set(`fewer than two real ${d > 0 ? 'valleys' : 'peaks'}`); continue; }
-    const o = ps[ps.length - 2], n = ps[ps.length - 1];
-    if (d > 0 ? !(n.p > o.p) : !(n.p < o.p)) { set(d > 0 ? 'newer valley not higher' : 'newer peak not lower'); continue; }
-    // FitAnchor (RFX_ZoneCore.mqh): a candle between the anchors poking through the line by more than 0.05 ATR
-    // (down: a high above it; up: a low below it) becomes the new OLDER anchor (its wick), the worst one first; repeat
-    // until none is cut (owner-approved wick re-anchoring, Oct 2026).
-    const a = zvFitAnchor(S, o.bar, n.bar, n.p, d);
-    const t: ZvLine = { dir: d, a, b: n.bar, pa: d > 0 ? Lo[a] : Hi[a], pb: n.p, cuts: 0 };
-    if (d > 0 ? !(t.pb > t.pa) : !(t.pb < t.pa)) { set(d > 0 ? 'newer valley not higher' : 'newer peak not lower'); continue; }
-    const sl = zvSlope(t), at = (j: number) => zvAt(t, j);
-    // TooFlat (ATR at the newer pivot)
-    const ab = Math.max(atr(t.b), 1e-12);
-    if (Math.abs(sl) < 0.015 * ab || Math.abs(t.pb - t.pa) < 1.5 * ab) { set('too flat'); continue; }
-    // Confirmed: beyond the extreme between the anchors before a full candle crosses the line
-    let ext = d > 0 ? -Infinity : Infinity;
-    for (let j = t.a - 1; j > t.b; j--) ext = d > 0 ? Math.max(ext, Hi[j]) : Math.min(ext, Lo[j]);
-    let conf = false;
-    if (Number.isFinite(ext)) for (let j = t.b - 1; j >= 1; j--) {
-      const lv = at(j);
-      if ((d > 0 && Hi[j] < lv) || (d < 0 && Lo[j] > lv)) break;
-      if ((d > 0 && Hi[j] > ext) || (d < 0 && Lo[j] < ext)) { conf = true; break; }
+    // the structure is read in bar order (a pivot is placed at its own bar); the series holds only pivots its own bars
+    // confirmed, so a truncated series (arrival.ts: the bars before a leg-out) never sees a later one
+    const ps = piv.filter(p => p.t === (d > 0 ? -1 : 1)).sort((x, y) => y.bar - x.bar);
+    const beyond = (t: ZvLine, j: number) => (d > 0 ? C[j] < zvAt(t, j) : C[j] > zvAt(t, j));   // a CLOSE beyond the line
+    const above = (x: number, y: number) => (d > 0 ? x < y : x > y);                         // further from the line's side (higher peak / lower valley)
+    let ext: ZvPivot = null!, p1: ZvPivot | null = null, live: ZvLine | null = null, brk: ZvLine | null = null, k = 0;
+    let seen: ZvPivot[] = [];                                         // the lower highs after pivot 1, oldest first
+    let why = `no real ${d > 0 ? 'valleys' : 'peaks'}`;
+    const kill = (at: number) => { if (live) { live.brokenAt = at; brk = live; live = null; } };
+    for (let j = bars; j >= 1; j--) {
+      // a CLOSE beyond the live line breaks it; the structure (top, pivot 1) stays: the next lower high re-anchors from pivot 1
+      if (live && j < live.b && beyond(live, j)) { kill(j); why = `broken at shift ${j}`; }
+      // the TOP = the highest high (wick) of the structure, any candle: a new one ends the down structure
+      const xj = d > 0 ? S.L[j] : S.H[j];
+      if (!ext || above(xj, ext.p)) { kill(j); ext = { bar: j, p: xj, t: d > 0 ? -1 : 1 }; p1 = null; seen = []; why = `no ${d > 0 ? 'higher low' : 'lower high'} after the ${d > 0 ? 'bottom' : 'top'}`; }
+      for (; k < ps.length && ps[k].bar >= j; k++) {
+        const p = ps[k];
+        if (!above(ext.p, p.p)) continue;                            // at the top's level (the top itself): never a pivot of the line
+        if (!p1 || !above(p1.p, p.p)) { kill(p.bar); p1 = p; seen = []; why = `one ${d > 0 ? 'higher low' : 'lower high'} so far`; continue; }   // at / beyond pivot 1: structure change, the line dies
+        seen.push(p);
+        if (live) continue;                                          // the line is kept: later pivots are touches
+        // pivot 2 = the tangent from pivot 1 over the lower highs since it (the line stays above every one of them)
+        // (when FitAnchor makes that line too flat, the next one down the tangent order)
+        const sl = (x: ZvPivot) => (x.p - p1!.p) / (p1!.bar - x.bar);
+        let t: ZvLine | null = null;
+        for (const q of [...seen].sort((x, y) => (d > 0 ? sl(x) - sl(y) : sl(y) - sl(x)) || x.bar - y.bar)) if ((t = zvPair(S, p1, q, d, atr))) break;
+        if (!t) { why = 'too flat'; continue; }
+        let bj = -1;
+        for (let x = t.b - 1; x >= j; x--) if (beyond(t, x)) { bj = x; break; }
+        if (bj >= 0) { t.brokenAt = bj; brk = t; why = `broken at shift ${bj}`; continue; }
+        live = t; why = 'ok';
+      }
     }
-    if (!conf) { set('not confirmed'); continue; }
-    // RemovedAt: a full closed candle beyond the line
-    let rm = -1;
-    for (let j = t.b - 1; j >= 1; j--) { const lv = at(j); if ((d > 0 && Hi[j] < lv) || (d < 0 && Lo[j] > lv)) { rm = j; break; } }
-    if (rm >= 0) { set(`broken at shift ${rm}`); continue; }
-    const tol = 0.05 * atr(1);
-    for (let j = t.a - 1; j > t.b; j--) if ((d > 0 ? at(j) - Lo[j] : Hi[j] - at(j)) > tol) t.cuts++;
-    set('ok', t);
+    if (d > 0) { res.up = live; res.upX = brk; res.why.up = why; } else { res.dn = live; res.dnX = brk; res.why.dn = why; }
   }
   const cands = ([1, -1] as const).filter(d => !(d > 0 ? res.up : res.dn)).map(d => zvMomentum(S, piv, bars, d)).filter((m): m is ZvLine & { e: number } => !!m);
   cands.sort((x, y) => x.e - y.e);                    // the leg whose extreme is the newest
@@ -183,7 +216,7 @@ export function zvMomentum(S: Series, piv: ZvPivot[], bars: number, d: number): 
   if (b < 0 || A - E < 3 || d * sl <= 0) return null;
   const pb = P(A) + sl * (A - b), ab = Math.max(atr(b), 1e-12);
   if (Math.abs(sl) < 0.015 * ab || Math.abs(sl) * (A - 1) < 1.5 * ab) return null;   // steep: >= 1.5 ATR over the leg
-  return { dir: d, a: A, b, pa: P(A), pb, cuts: 0, e: E };
+  return { dir: d, a: A, b, pa: P(A), pb, cuts: 0, brokenAt: -1, e: E };
 }
 
 /** RjA_LineTouches: separate visits within 0.1 ATR of the line, from the older anchor to the newest closed bar. */
@@ -205,11 +238,13 @@ export interface PubLine { dir: number; p: number; s: number; n: number; t: stri
 /** One timeframe's bars as the chart has them (oldest first); forming = the last bar is still forming. */
 export interface TlSeries { tf: string; bars: CBar[]; forming: boolean; pub?: PubLine[] }
 /** A trendline to draw: pts = [drawn bar index (bar centres 0 .. n-1, edges -0.5 / n-0.5), price]; always 2 points
- *  (straight in the panel's bar-index space). crossed is always false (a broken line is not drawn). */
+ *  (straight in the panel's bar-index space). crossed is always false (broken lines carry `broken`). */
 export interface ChartTl {
   tf: string; htf: boolean; dir: number; touches: number; crossed: boolean; pts: [number, number][];
   anchors: [number, number][];            // the two anchor points [drawn bar index, price]
   kind: 'trend' | 'momentum';             // momentum = Kevin's red line (zvMomentum): own TF only, never a trend line
+  broken?: boolean;                       // own TF's newest valid line a full closed candle broke (zvLines upX / dnX):
+                                          // faint dots from the older anchor to the candle that closed beyond it
 }
 
 const tms = (t: string) => Date.parse(t.length >= 16 ? `${t.slice(0, 16)}:00Z` : `${t.slice(0, 10)}T00:00:00Z`);
@@ -219,7 +254,8 @@ const closedOf = (s: TlSeries) => (s.forming ? s.bars.slice(0, -1) : s.bars);
 export function seriesLines(s: TlSeries, price: number) {
   const closed = closedOf(s);
   const S = new Series(toZ(closed), price, s.tf);
-  return { S, r: zvLines(S), nClosed: closed.length };
+  const out = { S, r: zvLines(S), nClosed: closed.length };
+  return out;
 }
 
 /** Two drawn lines that look like one: same direction, x-ranges overlapping by >= 2 bars, and never further apart
@@ -307,6 +343,14 @@ export function panelTrendlines(own: TlSeries, nDrawn: number, price: number, hi
     if (pts.length && enters(pts, lo, hi)) mine.push({ tf: own.tf, htf: false, dir: t.dir, touches: zvTouches(S, t), crossed: false, pts, anchors: [[ka, t.pa], [kb, t.pb]], kind: 'trend' });
   }
   const out = mine.slice(0, max);
+  for (const t of [r.dnX, r.upX]) {       // broken lines (information: a possible trend change), own TF only
+    if (!t || (t.brokenAt ?? -1) < 0) continue;
+    const ka = nClosed - t.a - i0, kb = nClosed - t.b - i0, ke = Math.min(nD - 0.5, nClosed - t.brokenAt! - i0 + 0.5);   // stops at the candle that closed beyond it
+    if (!(kb > ka) || ke <= Math.max(-0.5, ka)) continue;
+    const sl = (t.pb - t.pa) / (kb - ka), ks = Math.max(-0.5, ka);
+    const pts: [number, number][] = [[ks, t.pa + sl * (ks - ka)], [ke, t.pa + sl * (ke - ka)]];
+    if (enters(pts, lo, hi)) out.push({ tf: own.tf, htf: false, dir: t.dir, touches: zvTouches(S, t), crossed: false, pts, anchors: [[ka, t.pa], [kb, t.pb]], kind: 'trend', broken: true });
+  }
   if (r.mom) {
     const t = r.mom, ka = nClosed - t.a - i0, kb = nClosed - t.b - i0, pts = segment(ka, t.pa, kb, t.pb, nD);
     if (pts.length && enters(pts, lo, hi)) out.push({ tf: own.tf, htf: false, dir: t.dir, touches: zvTouches(S, t), crossed: false, pts, anchors: [[ka, t.pa], [kb, t.pb]], kind: 'momentum' });
@@ -326,4 +370,17 @@ export function panelTrendlines(own: TlSeries, nDrawn: number, price: number, hi
     out.push(...got);
   }
   return out;
+}
+
+/** Debug overlay (render harness only, off in production): the real pivots this panel's TF sees (the zigzag, in bar
+ *  order) and the anchors of its own lines, as [drawn bar index, price]. */
+export const ZV_DEBUG = { on: false };
+export function panelZigzag(own: TlSeries, nDrawn: number, price: number): { zz: [number, number][]; used: [number, number][] } {
+  const B = own.bars, nD = Math.min(nDrawn, B.length), i0 = B.length - nD;
+  const { r, nClosed } = seriesLines(own, price);
+  const k = (sh: number) => nClosed - sh - i0;
+  const zz = [...r.pivots].sort((a, b) => b.bar - a.bar).map(p => [k(p.bar), p.p] as [number, number]).filter(([x]) => x >= -0.5);
+  const used: [number, number][] = [];
+  for (const t of [r.up, r.dn, r.upX, r.dnX]) if (t) used.push([k(t.a), t.pa], [k(t.b), t.pb]);
+  return { zz, used: used.filter(([x]) => x >= -0.5) };
 }

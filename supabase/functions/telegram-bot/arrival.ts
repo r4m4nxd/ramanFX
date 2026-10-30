@@ -3,8 +3,9 @@
 // tools/telegram_bot/parity/arrival_fixtures.json (src/core/telegramArrival.test.ts checks this file against it).
 //
 // Per timeframe, on CLOSED bars (shift convention of zonecore.ts: 0 = phantom bar at the price, 1 = newest closed bar):
-//   lines   zvLines (zvTrend.ts): the two most recent real peaks (down) / valleys (up), wick to wick, re-anchored by
-//           FitAnchor; Confirmed, not TooFlat, not broken by a full closed candle.
+//   lines   zvLines (zvTrend.ts): the owner's structure method (the top is not a pivot; the first lower high after it ->
+//           the tangent over the later lower highs, clean anchors; kept until a candle CLOSES beyond it); LIVE lines only
+//           (the chart's faint "x broken" line is never an arrival line).
 //   zones   zonecore.detect(S, p) - every zone, removed ones included (p = RAJA for stocks, FX_PARAMS for FX).
 //   ARRIVAL a zone z (dir d: +1 demand, -1 supply) whose leg-out crosses the trend line against it and removes >= 1
 //           opposite zone:

@@ -4,8 +4,8 @@ fixture tools/telegram_bot/parity/arrival_fixtures.json (tests/test_arrival.py).
 (arrival_alerts.py: FX fxarrival.py / realign.py, stocks stock_arrivals.py).
 
 Per timeframe, on CLOSED bars (zones.Series shifts: 0 = phantom bar, 1 = newest closed bar, larger = older):
-  lines    zvtrend.zv_lines: the two most recent real peaks (down) / valleys (up), wick to wick, FitAnchor re-anchored,
-           confirmed, not too flat, not broken by a full closed candle.
+  lines    zvtrend.zv_lines: the owner's structure method (top not a pivot; first lower high -> tangent over the later
+           lower highs, clean anchors; kept until a candle closes beyond it); live lines only.
   ARRIVAL  a zone z (dir d) whose leg-out crosses the trend line against it and removes >= 1 opposite zone:
            1. leg-out = z.leg_bar, then up to 2 newer bars while each closes in direction d and is not basing (shift >= 1)
            2. the line = zv_lines on the closed bars older than the leg-out (shifts >= leg_bar + 1, phantom = their

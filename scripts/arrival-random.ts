@@ -114,7 +114,7 @@ export function randomCases(count: number, seed: number) {
     cases.push({
       name: `rnd${k}`, about: `random ${tf}`, market, tf, htf, ltf, price, spread, bars: b,
       momentum: r.mom ? { a: r.mom.a, b: r.mom.b, pa: r.mom.pa, pb: r.mom.pb, dir: r.mom.dir } : null,
-      expected: JSON.parse(JSON.stringify({ lines: { up: o(r.up), dn: o(r.dn), why: r.why }, arrivals: a.arrivals,
+      expected: JSON.parse(JSON.stringify({ lines: { up: o(r.up), dn: o(r.dn), upX: o(r.upX), dnX: o(r.dnX), why: r.why }, arrivals: a.arrivals,
         current: a.current ? a.arrivals.indexOf(a.current) : -1, plan: a.plan, confirm: a.confirm, pending: a.pending })),
     });
   }
@@ -141,7 +141,7 @@ export function jitterCases(fixture: { cases: any[] }, copies: number, seed: num
     const o = (t: typeof r.up) => (t ? { a: t.a, b: t.b, pa: t.pa, pb: t.pb } : null);
     cases.push({ ...c, name: `${c.name}~${k}`, price, spread, bars,
       momentum: r.mom ? { a: r.mom.a, b: r.mom.b, pa: r.mom.pa, pb: r.mom.pb, dir: r.mom.dir } : null,
-      expected: JSON.parse(JSON.stringify({ lines: { up: o(r.up), dn: o(r.dn), why: r.why }, arrivals: a.arrivals,
+      expected: JSON.parse(JSON.stringify({ lines: { up: o(r.up), dn: o(r.dn), upX: o(r.upX), dnX: o(r.dnX), why: r.why }, arrivals: a.arrivals,
         current: a.current ? a.arrivals.indexOf(a.current) : -1, plan: a.plan, confirm: a.confirm, pending: a.pending })) });
   }
   return { cases };

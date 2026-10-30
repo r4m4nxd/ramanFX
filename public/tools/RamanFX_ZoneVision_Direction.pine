@@ -9,7 +9,7 @@
 // v2.1 B parts (Raja TF table, nested curve, realignment areas, 250% projection, sideways check) and the Raja v2.1 C
 // chart-only parts (confirmation / management alerts, wick-fill marks, gold note, trendline touch labels).
 //@version=6
-indicator("RamanFX ZoneVision 2.13 - Direction", shorttitle = "ZV Dir", overlay = true, max_lines_count = 150, max_labels_count = 300, max_boxes_count = 200)
+indicator("RamanFX ZoneVision 2.14 - Direction", shorttitle = "ZV Dir", overlay = true, max_lines_count = 150, max_labels_count = 300, max_boxes_count = 200)
 // ---- Raja v2.1 (MT5 2.10 groups "Raja (v2.1 A / B / C)"): every default = 2.00. Preset Raja = ZV_Template_Raja.set.
 G0 = "Raja v2.1"
 PR = input.string("Custom", "Preset", options = ["Custom", "Raja"], group = G0, tooltip = "Pine has no .set files. Raja = the MT5 template ZV_Template_Raja.set: forces TF stack 3, Raja departure 0.6 ATR, Raja removal, WOW ladder + WOW alert, and every Raja v2.1 switch below ON (removal 1, stop mode 1, sideways on the zone TF or the HTF). The inputs below are then ignored where forced. Custom = every input as set. Use the same preset in ZoneVision.") == "Raja"
@@ -435,6 +435,10 @@ Detect(Ser s, bool wantRej, array<Rej> rej) =>
 
 // ---------------------------------------------------------------------------------------------------------------
 // Trendlines - Kevin's way (MQL ZigZag / FitAnchor / RemovedAt / AddTL / Confirmed / TooFlat / Trendlines)
+// the owner trend-line rule's tunable parameters (= zvTrend.ts ZV fitTol / minSlope / minRise)
+ZV_FIT_TOL = 0.05
+ZV_MIN_SLOPE = 0.015
+ZV_MIN_RISE = 1.0
 // ---------------------------------------------------------------------------------------------------------------
 type TLCtx
     array<TLine> tl
@@ -508,7 +512,7 @@ type Fit
 FitAnchor(Ser s, int A, int b2, float p2, int d) =>
     array<float> q = d > 0 ? s.l : s.h
     Fit f = Fit.new(A, 0.0)
-    float tol = 0.05 * s.atr(1)
+    float tol = ZV_FIT_TOL * s.atr(1)
     bool done = false
     int it = 0
     while it < 50 and not done
@@ -576,26 +580,126 @@ Trendlines(Ser s) =>
     int bars = math.min(InpLookback, s.n - 20)
     Piv pv = ZigZag(s, bars)
     int npv = pv.bar.size()
-    // owner rule (Oct 2026 = the bot's zvTrend.ts zvLines 102-134): ONE line per direction through the 2 MOST RECENT real
-    // valleys (up) / peaks (down), newer higher / lower, wick to wick, FitAnchor (wick re-anchoring), not TooFlat (flat =
-    // no line), Confirmed; RemovedAt marks a broken line (kept for TLBias / the break alert, not drawn). No overall line,
-    // no anchoring at the window extreme, no older-leg lines (2.10 lines removed).
+    // owner rule (Oct 2026 = the bot's zvTrend.ts zvLines, the structure method) per direction, in bar order: the TOP
+    // (highest high wick) is never a pivot; pivot 1 = the first lower real peak after it (one at / above it: structure
+    // change, the line dies); pivot 2 = the tangent from pivot 1 over the lower highs since it (the first that is valid:
+    // FitAnchor clean anchors, not too flat - ZV_MIN_SLOPE / ZV_MIN_RISE); the line is KEPT until a candle CLOSES beyond
+    // it, then the next lower high re-anchors from the same pivot 1. x.tl = the most recent broken line (removed: drawn
+    // faint up to the break on this TF; TLBias / the break alert read it) and the live one.
     for d = -1 to 1 by 2
-        int io = -1
-        int inw = -1
-        for q = 0 to npv - 1
-            if npv == 0
-                break
-            if pv.t.get(q) == -d
-                io := inw
-                inw := q
-        if io >= 0
-            int b2 = pv.bar.get(inw)
-            float p2 = pv.p.get(inw)
-            if d * (p2 - pv.p.get(io)) > 0
-                Fit f = FitAnchor(s, pv.bar.get(io), b2, p2, d)
-                if d * (p2 - s.ad(d, f.a)) > 0 and not TooFlat(s, f.a, b2, p2, f.sl) and Confirmed(s, f.a, b2, p2, f.sl, d)
-                    AddTL(s, x.tl, d, f.a, b2, p2, f.sl, false)
+        int k = 0
+        int extBar = -1
+        float extP = 0.0
+        int p1 = -1
+        array<int> seen = array.new<int>()
+        int la = -1
+        int lb = 0
+        float lp = 0.0
+        float lsl = 0.0
+        int ba = -1
+        int bb = 0
+        float bp = 0.0
+        float bsl = 0.0
+        int bbr = -1
+        for j = math.max(bars, 1) to 1
+            if la >= 0 and j < lb and d * (LineAt(lp, lb, lsl, j) - s.c.get(j)) > 0
+                ba := la
+                bb := lb
+                bp := lp
+                bsl := lsl
+                bbr := j
+                la := -1
+            float xj = s.ad(d, j)
+            if extBar < 0 or d * (extP - xj) > 0
+                if la >= 0
+                    ba := la
+                    bb := lb
+                    bp := lp
+                    bsl := lsl
+                    bbr := j
+                    la := -1
+                extBar := j
+                extP := xj
+                p1 := -1
+                seen.clear()
+            int kb = -1
+            if k < npv
+                kb := pv.bar.get(k)
+            while kb >= j
+                int pk = k
+                k += 1
+                kb := -1
+                if k < npv
+                    kb := pv.bar.get(k)
+                if pv.t.get(pk) != -d or d * (pv.p.get(pk) - extP) <= 0          // at the top's level (the top itself): never a pivot
+                    continue
+                if p1 < 0 or d * (pv.p.get(pk) - pv.p.get(math.max(p1, 0))) <= 0
+                    if la >= 0
+                        ba := la
+                        bb := lb
+                        bp := lp
+                        bsl := lsl
+                        bbr := pv.bar.get(pk)
+                        la := -1
+                    p1 := pk
+                    seen.clear()
+                    continue
+                seen.push(pk)
+                if la >= 0
+                    continue
+                int nS = seen.size()
+                array<bool> tried = array.new<bool>(nS, false)
+                bool got = false
+                int fa = -1
+                float fsl = 0.0
+                int q = -1
+                for r = 1 to nS
+                    if got
+                        break
+                    int bi = -1
+                    float bs = 0.0
+                    for xx = 0 to nS - 1
+                        if not tried.get(xx)
+                            int sx = seen.get(xx)
+                            float sv = (pv.p.get(sx) - pv.p.get(p1)) / (pv.bar.get(p1) - pv.bar.get(sx))
+                            if bi < 0 or d * (bs - sv) > 0 or (sv == bs and pv.bar.get(sx) < pv.bar.get(seen.get(math.max(bi, 0))))
+                                bi := xx
+                                bs := sv
+                    tried.set(bi, true)
+                    q := seen.get(bi)
+                    float q2 = pv.p.get(q)
+                    Fit f = FitAnchor(s, pv.bar.get(p1), pv.bar.get(q), q2, d)
+                    float pa = s.ad(d, f.a)
+                    float atr = math.max(s.atr(pv.bar.get(q)), gPt)
+                    if d * (q2 - pv.p.get(p1)) > 0 and d * (q2 - pa) > 0 and not (math.abs(f.sl) < ZV_MIN_SLOPE * atr or math.abs(q2 - pa) < ZV_MIN_RISE * atr)
+                        got := true
+                        fa := f.a
+                        fsl := f.sl
+                if got
+                    int b2 = pv.bar.get(q)
+                    float p2 = pv.p.get(q)
+                    int bj = -1
+                    int y = b2
+                    while y > j
+                        y -= 1
+                        if d * (LineAt(p2, b2, fsl, y) - s.c.get(y)) > 0
+                            bj := y
+                            break
+                    if bj >= 0
+                        ba := fa
+                        bb := b2
+                        bp := p2
+                        bsl := fsl
+                        bbr := bj
+                    else
+                        la := fa
+                        lb := b2
+                        lp := p2
+                        lsl := fsl
+        if ba >= 0
+            x.tl.push(TLine.new(d, ba, bb, LineAt(bp, bb, bsl, ba), bp, true, bbr, true))
+        if la >= 0
+            x.tl.push(TLine.new(d, la, lb, LineAt(lp, lb, lsl, la), lp, false, -1, true))
     // per direction: the newest confirmed line, the line used by the channel checks, and the channel width
     int nt = x.tl.size()
     for dd = -1 to 1 by 2

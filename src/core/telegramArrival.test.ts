@@ -49,7 +49,7 @@ describe('arrival parity fixture', () => {
       const a = arrivalTf(bars, c.tf, c.price, c.market === 'fx' ? FX_PARAMS : RAJA, c.htf ? zb(c.bars[c.htf]) : null, c.ltf ? zb(c.bars[c.ltf]) : null, c.htf, c.ltf, c.spread ?? 0);
       const r = zvLines(new Series(bars, bars[bars.length - 1].c, c.tf));
       const o = (t: typeof r.up) => (t ? { a: t.a, b: t.b, pa: t.pa, pb: t.pb } : null);
-      const got = JSON.parse(JSON.stringify({ lines: { up: o(r.up), dn: o(r.dn), why: r.why }, arrivals: a.arrivals,
+      const got = JSON.parse(JSON.stringify({ lines: { up: o(r.up), dn: o(r.dn), upX: o(r.upX), dnX: o(r.dnX), why: r.why }, arrivals: a.arrivals,
         current: a.current ? a.arrivals.indexOf(a.current) : -1, plan: a.plan, confirm: a.confirm, pending: a.pending }));
       close(got, c.expected);
     });
@@ -62,12 +62,12 @@ describe('A: trend line wick re-anchoring (FitAnchor)', () => {
   it('a candle between the two real peaks poking above the line becomes the older anchor (its wick)', () => {
     const s = SCEN.reanchor, n = s.bars.length, r = zvLines(new Series(s.bars, s.price, s.tf));
     const peaks = r.pivots.filter(p => p.t > 0);
-    expect(peaks.length).toBe(2);                       // the poking candle is a swing high but not a real peak
+    expect(peaks.length).toBe(3);                       // top 136, pivot 1 = 132, pivot 2 = 122; the poking candle is not a real peak
     expect(r.dn).not.toBeNull();
-    expect(r.dn!.a).toBeLessThan(peaks[0].bar);          // re-anchored newer than the older real peak
-    expect(n - r.dn!.a).toBe(31);                        // the wick candle (bar index 31, high 130.5)
+    expect(r.dn!.a).toBeLessThan(peaks[1].bar);          // re-anchored newer than pivot 1
+    expect(n - r.dn!.a).toBe(s.bars.findIndex(b => b.h === 130.5));   // the wick candle (high 130.5)
     expect(r.dn!.pa).toBe(130.5);
-    expect(r.dn!.b).toBe(peaks[1].bar);
+    expect(r.dn!.b).toBe(peaks[2].bar);
     expect(r.dn!.cuts).toBe(0);
   });
 });

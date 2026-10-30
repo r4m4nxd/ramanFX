@@ -2,7 +2,7 @@
 // through the bot's own code (logic.ts chartData -> chart.ts renderSvg -> resvg with the bot's Inter subset fonts).
 //
 //   npx tsx scripts/render-charts.ts [--out DIR] [--tag before|after] [--sym BABA,EURUSD] [--views Q,D1]
-//                                    [--modes pub,live] [--now 2026-10-29T15:00:00Z] [--svg]
+//                                    [--modes pub,live] [--now 2026-10-29T15:00:00Z] [--svg] [--debug-tl]
 //
 // Modes (scripts/chart-ctx.ts): pub = the published scan (no live source), live = a SIMULATED live source built from the
 // published bars (zones recomputed, forming candles, H4 / H1 / M15). A render that uses synthetic bars (FX 15m, stock
@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { Resvg } from '@resvg/resvg-js';
 import { chartData } from '../supabase/functions/telegram-bot/logic.ts';
 import { renderSvg } from '../supabase/functions/telegram-bot/chart.ts';
+import { ZV_DEBUG } from '../supabase/functions/telegram-bot/zvTrend.ts';
 import { harnessCtx, readJson, VIEWS } from './chart-ctx.ts';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -28,6 +29,7 @@ const TAG = opt('tag', 'before').replace(/[^A-Za-z0-9-]/g, '');
 const NOW = new Date(opt('now', new Date().toISOString()));
 const MODES = opt('modes', 'pub,live').split(',') as ('pub' | 'live')[];
 const SAVE_SVG = args.includes('--svg');
+if (args.includes('--debug-tl')) ZV_DEBUG.on = true;   // yellow zigzag of the real pivots + circles on the anchors used
 
 function defaultSyms(): string[] {
   const ix = (readJson(ROOT, 'public/scanner/index.json') as { tickers: { s: string; ix?: string[] }[] }).tickers;

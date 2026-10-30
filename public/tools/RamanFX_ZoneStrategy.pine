@@ -5,6 +5,7 @@
 // Trendline-based checks (channel 50%, "at the trendline") are NOT in this backtest - they need the full chart history.
 // 1.1 (owner rules Oct 2026, OFF by default): Entry mode "Arrival zone limit" / "Realignment + LTF confirmation" - the
 // Telegram bot's ARRIVAL engine (RFX_ARRIVAL_PINE, = arrival.ts) with its stop rule; the zone entries above are off then.
+// 1.2: the arrival engine's trend lines = the owner's structure method (zvTrend.ts zvLines).
 strategy("RamanFX Zone Strategy", shorttitle="ZoneStrategy", overlay=true, initial_capital=10000, currency=currency.USD,
      default_qty_type=strategy.fixed, pyramiding=0, process_orders_on_close=false, calc_on_every_tick=false,
      slippage=2, commission_type=strategy.commission.cash_per_order, commission_value=0, max_boxes_count=100, max_lines_count=100, max_bars_back=2000)
@@ -85,6 +86,9 @@ f_trend() =>
 RX_Q = 129600
 RX_SWING = 2
 RX_LOOK = 200
+RX_FIT_TOL = 0.05
+RX_MIN_SLOPE = 0.015
+RX_MIN_RISE = 1.0
 RX_MAXB = 460
 RX_MAXW = 64
 RX_DBLMAX = 1.7976931348623157e308
@@ -124,6 +128,7 @@ type ZvLine
     float pa = 0.0
     float pb = 0.0
     int cuts = 0
+    int brokenAt = -1
 
 type ZvResult
     bool hasUp = false
@@ -135,6 +140,10 @@ type ZvResult
     string whyUp = "too few bars"
     string whyDn = "too few bars"
     array<ZvPivot> piv
+    bool hasUpX = false
+    bool hasDnX = false
+    ZvLine upX
+    ZvLine dnX
 
 type RxZone
     int dir = 0
@@ -383,7 +392,7 @@ zvPivots(RxSer S, int bars) =>
     out
 // zvTrend.ts 79-90: wick re-anchoring - the candle poking furthest through the line (oldest on a tie) = the older anchor
 zvFitAnchor(RxSer S, int A, int b2, float p2, int d) =>
-    float tol = 0.05 * rxZvAtr(S, 1)
+    float tol = RX_FIT_TOL * rxZvAtr(S, 1)
     int a = A
     bool done = false
     int it = 0
@@ -473,95 +482,142 @@ zvMomentum(RxSer S, array<ZvPivot> piv, int bars, int d, array<int> e) =>
                     out := ZvLine.new(d, A, b, rxP(S, d, A), pb, 0)
                     e.set(0, E)
     out
-rxSetWhy(ZvResult zr, int d, string why) =>
-    if d > 0
-        zr.whyUp := why
-        zr.hasUp := false
-    else
-        zr.whyDn := why
-        zr.hasDn := false
-    zr
-// zvTrend.ts 93-140: the two lines of one TF (+ at most one momentum line); zr.piv = the pivots
+// zvTrend.ts zvPair: the line o (older) -> n (newer), FitAnchor re-anchored (clean anchors); dir 0 = in the wrong order
+// or too flat (< RX_MIN_SLOPE ATR per bar or < RX_MIN_RISE ATR between the anchors; ATR at the newer pivot)
+zvPair(RxSer S, ZvPivot o, ZvPivot n, int d) =>
+    ZvLine out = ZvLine.new()
+    if d > 0 ? n.p > o.p : n.p < o.p
+        int a = zvFitAnchor(S, o.bar, n.bar, n.p, d)
+        ZvLine t = ZvLine.new(d, a, n.bar, d > 0 ? S.l.get(a) : S.h.get(a), n.p, 0, -1)
+        float ab = math.max(rxZvAtr(S, t.b), 1e-12)
+        if (d > 0 ? t.pb > t.pa : t.pb < t.pa) and not (math.abs(zvSlope(t)) < RX_MIN_SLOPE * ab or math.abs(t.pb - t.pa) < RX_MIN_RISE * ab)
+            out := t
+    out
+rxBeyond(RxSer S, ZvLine t, int d, int j) => d > 0 ? S.c.get(j) < zvAt(t, j) : S.c.get(j) > zvAt(t, j)
+rxAbove(int d, float x, float y) => d > 0 ? x < y : x > y
+// zvTrend.ts zvLines: the owner's structure state machine per direction (down; up mirrored), in bar order - the TOP
+// (highest high wick) is never a pivot; pivot 1 = the first lower real peak after it (one at / above it: structure
+// change, the line dies); pivot 2 = the tangent from pivot 1 over the lower highs since it (the first valid zvPair in
+// tangent order); the line is KEPT until a candle CLOSES beyond it (-> upX / dnX), then the next lower high re-anchors
+// from the same pivot 1; + at most one momentum line, only for a direction without a live line; zr.piv = the pivots
 zvLines(RxSer S) =>
-    ZvResult zr = ZvResult.new(false, false, false, ZvLine.new(), ZvLine.new(), ZvLine.new(), "too few bars", "too few bars", array.new<ZvPivot>())
+    ZvResult zr = ZvResult.new(false, false, false, ZvLine.new(), ZvLine.new(), ZvLine.new(), "too few bars", "too few bars", array.new<ZvPivot>(), false, false, ZvLine.new(), ZvLine.new())
     int bars = math.min(RX_LOOK, S.n - 1 - RX_SWING)
     if bars > RX_SWING + 2
         zr.piv := zvPivots(S, bars)
         array<ZvPivot> piv = zr.piv
+        int np = piv.size()
         int d = 3
         while d > -1
             d -= 2
             int want = d > 0 ? -1 : 1
-            int io = -1
-            int inw = -1
-            int np = piv.size()
-            int k = -1
-            while k < np - 1
-                k += 1
-                if piv.get(k).t == want
-                    io := inw
-                    inw := k
-            if io < 0
-                rxSetWhy(zr, d, d > 0 ? "fewer than two real valleys" : "fewer than two real peaks")
-                continue
-            if d > 0 ? not (piv.get(inw).p > piv.get(io).p) : not (piv.get(inw).p < piv.get(io).p)
-                rxSetWhy(zr, d, d > 0 ? "newer valley not higher" : "newer peak not lower")
-                continue
-            int a = zvFitAnchor(S, piv.get(io).bar, piv.get(inw).bar, piv.get(inw).p, d)
-            ZvLine t = ZvLine.new(d, a, piv.get(inw).bar, d > 0 ? S.l.get(a) : S.h.get(a), piv.get(inw).p, 0)
-            if d > 0 ? not (t.pb > t.pa) : not (t.pb < t.pa)
-                rxSetWhy(zr, d, d > 0 ? "newer valley not higher" : "newer peak not lower")
-                continue
-            float sl = zvSlope(t)
-            float ab = math.max(rxZvAtr(S, t.b), 1e-12)
-            if math.abs(sl) < 0.015 * ab or math.abs(t.pb - t.pa) < 1.5 * ab
-                rxSetWhy(zr, d, "too flat")
-                continue
-            float ext = d > 0 ? -RX_DBLMAX : RX_DBLMAX
-            int j = t.a
-            while j > t.b + 1
-                j -= 1
-                ext := d > 0 ? math.max(ext, S.h.get(j)) : math.min(ext, S.l.get(j))
-            bool conf = false
-            if ext != RX_DBLMAX and ext != -RX_DBLMAX
-                j := t.b
-                while j > 1
-                    j -= 1
-                    float lv = zvAt(t, j)
-                    if (d > 0 and S.h.get(j) < lv) or (d < 0 and S.l.get(j) > lv)
-                        break
-                    if (d > 0 and S.h.get(j) > ext) or (d < 0 and S.l.get(j) < ext)
-                        conf := true
-                        break
-            if not conf
-                rxSetWhy(zr, d, "not confirmed")
-                continue
-            int rm = -1
-            j := t.b
+            int k = 0
+            int extBar = -1
+            float extP = 0.0
+            int p1 = -1
+            array<int> seen = array.new<int>()
+            ZvLine live = ZvLine.new()
+            ZvLine brk = ZvLine.new()
+            bool hasLive = false
+            bool hasBrk = false
+            string why = d > 0 ? "no real valleys" : "no real peaks"
+            int j = bars + 1
             while j > 1
                 j -= 1
-                float lv2 = zvAt(t, j)
-                if (d > 0 and S.h.get(j) < lv2) or (d < 0 and S.l.get(j) > lv2)
-                    rm := j
-                    break
-            if rm >= 0
-                rxSetWhy(zr, d, "broken at shift " + str.tostring(rm))
-                continue
-            float tol = 0.05 * rxZvAtr(S, 1)
-            j := t.a
-            while j > t.b + 1
-                j -= 1
-                if (d > 0 ? zvAt(t, j) - S.l.get(j) : S.h.get(j) - zvAt(t, j)) > tol
-                    t.cuts += 1
+                if hasLive and j < live.b and rxBeyond(S, live, d, j)
+                    live.brokenAt := j
+                    brk := live
+                    hasBrk := true
+                    hasLive := false
+                    why := "broken at shift " + str.tostring(j)
+                float xj = d > 0 ? S.l.get(j) : S.h.get(j)
+                if extBar < 0 or rxAbove(d, xj, extP)
+                    if hasLive
+                        live.brokenAt := j
+                        brk := live
+                        hasBrk := true
+                        hasLive := false
+                    extBar := j
+                    extP := xj
+                    p1 := -1
+                    seen.clear()
+                    why := d > 0 ? "no higher low after the bottom" : "no lower high after the top"
+                int kb = -1
+                if k < np
+                    kb := piv.get(k).bar
+                while kb >= j
+                    ZvPivot pk = piv.get(k)
+                    k += 1
+                    kb := -1
+                    if k < np
+                        kb := piv.get(k).bar
+                    if pk.t != want or not rxAbove(d, extP, pk.p)
+                        continue
+                    if p1 < 0 or not rxAbove(d, piv.get(math.max(p1, 0)).p, pk.p)
+                        if hasLive
+                            live.brokenAt := pk.bar
+                            brk := live
+                            hasBrk := true
+                            hasLive := false
+                        p1 := k - 1
+                        seen.clear()
+                        why := d > 0 ? "one higher low so far" : "one lower high so far"
+                        continue
+                    seen.push(k - 1)
+                    if hasLive
+                        continue
+                    ZvPivot P1 = piv.get(p1)
+                    int nS = seen.size()
+                    array<bool> tried = array.new<bool>(nS, false)
+                    ZvLine t = ZvLine.new()
+                    int r = 0
+                    while r < nS and t.dir == 0
+                        r += 1
+                        int bi = -1
+                        float bs = 0.0
+                        int x = -1
+                        while x < nS - 1
+                            x += 1
+                            if not tried.get(x)
+                                ZvPivot qx = piv.get(seen.get(x))
+                                float sv = (qx.p - P1.p) / (P1.bar - qx.bar)
+                                if bi < 0 or (d > 0 ? sv < bs : sv > bs) or (sv == bs and qx.bar < piv.get(seen.get(math.max(bi, 0))).bar)
+                                    bi := x
+                                    bs := sv
+                        tried.set(bi, true)
+                        t := zvPair(S, P1, piv.get(seen.get(bi)), d)
+                    if t.dir == 0
+                        why := "too flat"
+                        continue
+                    int bj = -1
+                    int y = t.b
+                    while y > j
+                        y -= 1
+                        if rxBeyond(S, t, d, y)
+                            bj := y
+                            break
+                    if bj >= 0
+                        t.brokenAt := bj
+                        brk := t
+                        hasBrk := true
+                        why := "broken at shift " + str.tostring(bj)
+                        continue
+                    live := t
+                    hasLive := true
+                    why := "ok"
             if d > 0
-                zr.up := t
-                zr.hasUp := true
-                zr.whyUp := "ok"
+                zr.hasUp := hasLive
+                zr.up := live
+                zr.hasUpX := hasBrk
+                zr.upX := brk
+                zr.whyUp := why
             else
-                zr.dn := t
-                zr.hasDn := true
-                zr.whyDn := "ok"
-        // zvTrend.ts 136-138: a momentum line only for a direction without a trend line; the leg whose end is the newest
+                zr.hasDn := hasLive
+                zr.dn := live
+                zr.hasDnX := hasBrk
+                zr.dnX := brk
+                zr.whyDn := why
+        // zvTrend.ts: a momentum line only for a direction without a live line; the leg whose end is the newest
         int bestE = -1
         int dm = 3
         while dm > -1

@@ -11,7 +11,7 @@ import { MAX_ALERTS, MAX_WATCH, parseDuration, parsePrice, parseQuiet, parseTap,
 import { aggregate, monthKey, quarterKey, tfLabel, weekKey, type ArrTp, type Band, type Bar, type ChartModel, type Panel, type TLine } from './chart.ts';
 import { FX_PARAMS, fxZonesOf, nextBusinessDay, RAJA, Series, stockZonesOf, tfZonesOf, type LiveZone, type ZBar } from './zonecore.ts';
 import { arrivalTf, CONFIRM_TF, HIGHER_TF, stockSpread, type ArrivalTf, type ArrZone } from './arrival.ts';
-import { panelTrendlines, type PubLine, type TlSeries } from './zvTrend.ts';
+import { panelTrendlines, panelZigzag, ZV_DEBUG, type PubLine, type TlSeries } from './zvTrend.ts';
 import { arrivalLine, atrPct, isWide, nestNote, refineOf, verdict } from './chartnotes.ts';
 import type { LiveFx, LiveSource, LiveStock } from './live.ts';
 import { cmdFund, earningsLine, fundButton } from './fundamentals.ts';
@@ -886,6 +886,7 @@ function decorate(bands: ZoneBand[], tls: TLine[], r: ArrRead, ztf: string, tf: 
   const ka = r.I(ln.a) - i0, kc = r.I(cur.crossBar) - i0;
   if (kc > ka && kc >= 0) {
     const at = (k: number) => ln.pa + sl * (k - ka), k1 = Math.max(-0.5, ka);
+    for (let i = tls.length - 1; i >= 0; i--) if (tls[i].broken && !tls[i].htf && tls[i].dir === ln.dir) tls.splice(i, 1);   // the crossed line says it
     tls.push({ tf: ztf, htf: false, dir: ln.dir, touches: 0, crossed: true, pts: [[k1, at(k1)], [kc + 0.5, at(kc + 0.5)]], kind: 'trend' });
   }
   const H = a.htf ? tfLabel(a.htf) : '';
@@ -932,7 +933,8 @@ export function buildPanels(tfs: string[], bars: Record<string, Bar[]>, zones: Z
     const dz = ar ? decorate(bands, tls, ar, ztf, tf, fmt, (bars[tf] ?? []).length, shown.length) : null;
     // the scanner's own trade lines win: the arrival SL chip only when the panel has no signal stop
     const tp = dz?.tp ?? null, sl = dz && !(lines && typeof lines.stop === 'number') ? dz.sl : null;
-    return { tf, header, bars: shown, zones: bands, lines, tls, arr, tp, sl, nestNote: ztf !== tf ? null : nestNote(key, zones),
+    const dbgZz = ZV_DEBUG.on && mine ? panelZigzag(mine, shown.length, price) : undefined;
+    return { tf, header, bars: shown, zones: bands, lines, tls, dbgZz, arr, tp, sl, nestNote: ztf !== tf ? null : nestNote(key, zones),
       note: ztf !== tf ? `no ${tfLabel(tf)} zones: ${tfLabel(ztf)} zones shown` : shown.length < SHORT_HISTORY ? `short history: ${shown.length} ${tfLabel(tf)} candle${shown.length === 1 ? '' : 's'}` : undefined };
   });
 }

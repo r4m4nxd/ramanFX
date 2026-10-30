@@ -41,9 +41,12 @@
 //| the zones removed, weak zones, realignment area, stop rule,      |
 //| TP / ceiling, lower-TF confirmation) + alerts: input group       |
 //| "ARRIVAL". Logic = the bot's arrival.ts (RFX_ARRIVAL_ENGINE).    |
+//| v2.14: trend lines = the owner's structure method (the top is    |
+//| not a pivot; first lower high -> tangent over the later lower    |
+//| highs; kept until a CLOSE beyond; broken = faint up to the break)|
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "2.13"
+#property version   "2.14"
 #property indicator_chart_window
 #property indicator_buffers 0
 #property indicator_plots   0
@@ -60,7 +63,7 @@ input bool   InpLblWow        = true;   // WOW ladder text (targets)
 input bool   InpLblRaja       = true;   // Raja extras text: nested curve, realignment areas, wick 50%
 input bool   InpLblHalfway    = true;   // "halfway alert" text
 input group "== ARRIVAL zones + trend lines (owner rules, Oct 2026; = the Telegram bot) =="
-input bool   InpTLTwoPivot    = true;   // Trend lines: ONE line each way through the 2 most recent real peaks / valleys, wick re-anchored, gone once a full candle closes beyond (false = v2.12 lines)
+input bool   InpTLTwoPivot    = true;   // Trend lines: the owner structure method (first lower high after the top -> tangent, kept until a close beyond; broken = faint) (false = v2.12 lines)
 input bool   InpArrShow       = true;   // ARRIVAL zone: bold box + tag (its leg-out closed beyond the trend line and removed opposite zones; 2+ = STRONG)
 input bool   InpArrShowRemoved= true;   // Zones the arrival removed: dotted box with an X
 input bool   InpArrShowWeak   = true;   // Same-TF opposite zones made WEAK by the arrival: dashed, "weak - no limit"

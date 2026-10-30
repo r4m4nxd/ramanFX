@@ -27,13 +27,15 @@ const mirror = (bs: ZBar[]): ZBar[] => bs.map(b => ({ d: b.d, o: 200 - b.o, h: 2
 const affine = (bs: ZBar[], a: number, k: number): ZBar[] => bs.map(b => ({ d: b.d, o: a + k * (b.o - 96), h: a + k * (b.h - 96), l: a + k * (b.l - 96), c: a + k * (b.c - 96) }))
   .map(b => ({ d: b.d, o: +b.o.toFixed(6), h: +b.h.toFixed(6), l: +b.l.toFixed(6), c: +b.c.toFixed(6) }));
 
-/** Weekly HTF bars with a down line through two real peaks (145 at bar 10, 131 at bar 30: -0.7 per bar), ending at `px`. */
+/** Weekly HTF bars with a down line (the owner's structure method: the top 150 at bar 5 is not a pivot) through the
+ *  first two lower highs (145 at bar 15, 131 at bar 35: -0.7 per bar), ending at `px`. */
 function htfDown(px: number, n = 10): ZBar[] {
-  const t = new Tape(130, '2023-11-01', 7 * 1440);
-  t.move(5, 120).move(5, 145).move(10, 118).move(10, 131).move(6, 108).move(n, px);
+  const t = new Tape(130, '2023-09-01', 7 * 1440);
+  t.move(5, 150).move(5, 125).move(5, 145).move(10, 118).move(10, 131).move(6, 108).move(n, px);
   return t.bars;
 }
 const last = (bs: ZBar[]) => bs[bs.length - 1].c;
+const HTF_UP = 2;   // the W1 bars of confirm / pending end this far above the price: no CLOSE below the W1 up line (owner: close = broken)
 
 const dem2 = downThenLeg(2, [103, 109.5, 116], t => t.base(2, 1.2).leg(112).move(2, 113));
 const dem1 = downThenLeg(1, [103, 109.5, 116], t => t.base(2, 1.2).leg(112).move(2, 113));
@@ -48,9 +50,9 @@ const ltf = affine(mirror(mirror(downThenLeg(2, [103, 109.5, 116], () => {}, ltf
 
 export const SCEN: Record<string, Scenario> = {
   reanchor: {
-    about: 'wick re-anchoring: a candle between the two real peaks pokes above the line - it becomes the older anchor',
+    about: 'wick re-anchoring: a candle between the two real peaks pokes above the line - it becomes the older anchor (top 136 not a pivot)',
     market: 'fx', tf: 'D1', price: 113,
-    bars: (() => { const t = new Tape(125, '2025-01-01'); t.move(8, 120).move(8, 132).move(10, 110).move(5, 120).wick(119, 130.5, 118.5).move(3, 116).move(6, 122).move(8, 112).move(3, 113); return t.bars; })(),
+    bars: (() => { const t = new Tape(125, '2025-01-01'); t.move(8, 120).move(8, 136).move(6, 124).move(6, 132).move(10, 110).move(5, 120).wick(119, 130.5, 118.5).move(3, 116).move(6, 122).move(8, 112).move(3, 113); return t.bars; })(),
   },
   dem2: { about: 'demand arrival: the leg-out crosses the D1 down line and removes 2 supplies (strong); no HTF', market: 'fx', tf: 'D1', price: last(dem2.bars), bars: dem2.bars },
   dem1: { about: 'demand arrival removing 1 supply', market: 'fx', tf: 'D1', price: last(dem1.bars), bars: dem1.bars },
@@ -58,8 +60,8 @@ export const SCEN: Record<string, Scenario> = {
   ceiling: { about: 'demand arrival with the W1 down line still intact above: TP capped below the W1 line', market: 'fx', tf: 'D1', price: last(dem2.bars), bars: dem2.bars, htfTf: 'W1', htf: htfDown(last(dem2.bars)) },
   extend: { about: 'demand arrival with the W1 down line crossed: TP extends to the W1 supply', market: 'fx', tf: 'D1', price: last(dem2.bars), bars: dem2.bars, htfTf: 'W1', htf: (() => { const t = new Tape(150, '2023-09-01', 7 * 1440); t.move(8, 140).move(5, 135).base(2, 2).leg(126).move(6, 112).move(8, last(dem2.bars)); return t.bars; })() },
   supply: { about: 'supply arrival at the top of an uptrend: same-TF demands weak, realignment = the demand nearest the W1 up line', market: 'fx', tf: 'D1', price: last(sup), bars: sup, htfTf: 'W1', htf: mirror(htfDown(200 - last(sup))) },
-  confirm: { about: 'supply arrival, price inside the realignment demand, a 1H demand arrival there = the confirmed buy', market: 'fx', tf: 'D1', price: last(ltf), bars: supC, htfTf: 'W1', htf: mirror(htfDown(200 - last(supC), 11)), ltfTf: 'H1', ltf },
+  confirm: { about: 'supply arrival, price inside the realignment demand, a 1H demand arrival there = the confirmed buy', market: 'fx', tf: 'D1', price: last(ltf), bars: supC, htfTf: 'W1', htf: mirror(htfDown(200 - last(supC) - HTF_UP, 11)), ltfTf: 'H1', ltf },
   nested: { about: 'stop rule: the D1 arrival demand sits inside a W1 demand - stop 2 buffers below the W1 distal (buffer = the spread floor > 0.1 ATR)', market: 'fx', tf: 'D1', price: last(dem2.bars), bars: dem2.bars, htfTf: 'W1', spread: 0.4,
     htf: (() => { const t = new Tape(112, '2023-09-01', 7 * 1440); t.move(8, 104).move(6, 97).base(2, 3).leg(105).move(4, 101).move(6, last(dem2.bars)); return t.bars; })() },
-  pending: { about: 'supply arrival, price inside the realignment demand, no 1H arrival yet = pending', market: 'fx', tf: 'D1', price: last(supC), bars: supC, htfTf: 'W1', htf: mirror(htfDown(200 - last(supC), 11)), ltfTf: 'H1', ltf: ltf.slice(0, -8) },
+  pending: { about: 'supply arrival, price inside the realignment demand, no 1H arrival yet = pending', market: 'fx', tf: 'D1', price: last(supC), bars: supC, htfTf: 'W1', htf: mirror(htfDown(200 - last(supC) - HTF_UP, 11)), ltfTf: 'H1', ltf: ltf.slice(0, -8) },
 };

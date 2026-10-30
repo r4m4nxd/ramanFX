@@ -46,19 +46,19 @@ describe('trendlines on the chart: duplicates', () => {
     expect(sameLine(line(-1, [[0, 130], [20, 120]]), line(-1, [[40, 110], [59.5, 100]]), 50)).toBe(false);   // no overlap
   });
 
-  it('BABA as published: no two drawn lines on top of each other, at most one line per TF and direction', async () => {
+  it('BABA as published: no two drawn lines on top of each other, at most one live and one broken line per TF and direction', async () => {
     const cd = await chartData('BABA', 'Q', babaCtx());
     for (const p of cd!.model.panels) {
       const tls = p.tls ?? [];
       for (let i = 0; i < tls.length; i++) for (let j = i + 1; j < tls.length; j++) expect(sameLine(tls[i], tls[j], 1.0)).toBe(false);
-      for (const tf of new Set(tls.map(t => t.tf))) for (const d of [-1, 1]) expect(tls.filter(t => t.tf === tf && t.dir === d).length).toBeLessThanOrEqual(1);
+      for (const tf of new Set(tls.map(t => t.tf))) for (const d of [-1, 1]) for (const b of [false, true]) expect(tls.filter(t => t.tf === tf && t.dir === d && !!t.broken === b).length).toBeLessThanOrEqual(1);
     }
   });
 });
 
 describe('trendlines on the chart: synthetic W1 downtrend', () => {
   it('a gold W1 down line on the D1 panel (straight: 2 points) and the W1 down line on the W1 panel', () => {
-    const d = downtrend(500, 200, 100, 100);
+    const d = downtrend(500, 200, 100, 90);   // a live W1 down line off the D1 one (the D1 line here is broken)
     const bars = { D1: d, W1: aggregate(d, weekKey), MN: aggregate(d, monthKey), '3M': aggregate(d, quarterKey) };
     const price = d[d.length - 1].c;
     const panels = buildPanels(['MN', 'W1', 'D1'], bars, [], price, 2, null, 'quad', t => t,
@@ -188,7 +188,7 @@ describe('verdict', () => {
   });
   it('BABA chart model carries the verdict', async () => {
     const m = (await chartData('BABA', 'Q', babaCtx()))!.model;
-    expect(m.verdict).toMatch(/^Price 3\.\d% above W1 demand \(96\.14–94\.36\), inside 3M demand · D1 momentum down \(no trend line yet\)/);
+    expect(m.verdict).toMatch(/^Price 3\.\d% above W1 demand \(96\.14–94\.36\), inside 3M demand · D1 downtrend \(trend line\)/);   // the D1 down line Aug 20 -> Sep 22
     expect(m.verdict.length).toBeLessThanOrEqual(VERDICT_MAX);
   });
 });

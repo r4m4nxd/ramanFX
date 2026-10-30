@@ -12,7 +12,7 @@ import { tfLabel, type Bar } from './chart.ts';
 import type { ArrivalTf } from './arrival.ts';
 
 export interface NZone { tf: string; side: 'demand' | 'supply'; prox: number; dist: number }
-export interface NLine { tf: string; htf: boolean; dir: number; crossed: boolean; kind?: 'trend' | 'momentum' }
+export interface NLine { tf: string; htf: boolean; dir: number; crossed: boolean; kind?: 'trend' | 'momentum'; broken?: boolean }
 export const ZONE_ORDER = ['6M', '3M', 'MN', 'W1', 'D1', 'H4', 'H1', 'M15'];
 
 const lo = (z: NZone) => Math.min(z.prox, z.dist), hi = (z: NZone) => Math.max(z.prox, z.dist);
@@ -113,7 +113,7 @@ export function structure(bars: Bar[], sw = 2): number {
  *  else 'structure' = the swing structure; dir 0 = no clear trend. */
 export function trendInfo(lines: NLine[], bars: Bar[]): { dir: number; src: 'line' | 'momentum' | 'structure' } {
   const one = (ls: NLine[]) => { const d = new Set(ls.map(t => t.dir)); return d.size === 1 ? [...d][0] : 0; };
-  const own = lines.filter(t => !t.htf && !t.crossed);
+  const own = lines.filter(t => !t.htf && !t.crossed && !t.broken);
   const tl = one(own.filter(t => t.kind !== 'momentum'));
   if (tl) return { dir: tl, src: 'line' };
   const mo = one(own.filter(t => t.kind === 'momentum'));

@@ -433,7 +433,7 @@ def case_js(c):
     r = ZV.zv_lines(S)
     res = A.arrival_tf(S, tf, c['price'], p, H, Lt, htf=htf, ltf=ltf, spread=c.get('spread') or 0.0)
     ab = lambda t: {k: getattr(t, k) for k in ('a', 'b', 'pa', 'pb')} if t is not None else None  # noqa: E731
-    out = {'lines': {'up': ab(r.up), 'dn': ab(r.dn), 'why': {'up': r.why_up, 'dn': r.why_dn}},
+    out = {'lines': {'up': ab(r.up), 'dn': ab(r.dn), 'upX': ab(r.broken_up), 'dnX': ab(r.broken_dn), 'why': {'up': r.why_up, 'dn': r.why_dn}},
            'arrivals': [arrival_js(S, a) for a in res.arrivals],
            'current': res.arrivals.index(res.current) if res.current is not None else -1,
            'plan': None, 'confirm': None, 'pending': res.pending}

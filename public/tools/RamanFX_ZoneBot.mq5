@@ -46,7 +46,7 @@
 //|   2026.10.17 12:30,USD   (UTC time, currency)                    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.65"
+#property version   "1.66"
 
 #include <Trade\Trade.mqh>
 #include <Trade\PositionInfo.mqh>

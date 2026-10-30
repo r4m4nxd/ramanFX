@@ -37,11 +37,13 @@ export interface Band {
 export interface Lines { entry?: number | null; stop?: number | null; target?: number | null; kind?: string }
 /** A trendline to draw (zvTrend.ts panelTrendlines): pts = [drawn bar index (centres 0 .. n-1), price]; htf = the next
  *  higher timeframe's line projected onto this panel (gold dots), else the panel's own timeframe (solid lilac). */
-export interface TLine { tf: string; htf: boolean; dir: number; touches: number; crossed: boolean; pts: [number, number][]; kind?: 'trend' | 'momentum' }
+export interface TLine { tf: string; htf: boolean; dir: number; touches: number; crossed: boolean; pts: [number, number][]; kind?: 'trend' | 'momentum'; broken?: boolean }
 /** The arrival plan's take-profit on a panel: amber dashed line, chip text e.g. 'TP 117.6 · below W1 line'. */
 export interface ArrTp { px: number; text: string }
 export interface Panel {
-  tf: string; header: string; bars: Bar[]; zones: Band[]; lines?: Lines | null; note?: string; tls?: TLine[]; tp?: ArrTp | null; sl?: ArrTp | null;
+  tf: string; header: string; bars: Bar[]; zones: Band[]; lines?: Lines | null; note?: string; tls?: TLine[];
+  dbgZz?: { zz: [number, number][]; used: [number, number][] };   // debug overlay (harness only): zigzag of the real pivots + the anchors used
+  tp?: ArrTp | null; sl?: ArrTp | null;
   forming?: boolean;          // the last bar is still forming (drawn hollow)
   nestNote?: string | null;   // e.g. 'MN zone outside 3M zone' (amber, under the header)
 }
@@ -407,17 +409,19 @@ function panelSvg(p: Panel, b: Box, m: ChartModel, i: number): string {
     const pts = [...t.pts];
     const [k1, v1] = pts[pts.length - 2], [k2, v2] = pts[pts.length - 1];
     const kEnd = g.slots - 0.5;
-    if (!t.crossed && k2 < kEnd && k2 > k1) pts.push([kEnd, v2 + (v2 - v1) * (kEnd - k2) / (k2 - k1)]);
+    const brk = !!t.broken && !t.htf && t.kind !== 'momentum';   // a broken own-TF line: faint dots, ends past its breaking candle
+    if (!t.crossed && !brk && k2 < kEnd && k2 > k1) pts.push([kEnd, v2 + (v2 - v1) * (kEnd - k2) / (k2 - k1)]);
     const xy = pts.map(([k, v]) => [plot.x + step * (k + 0.5), g.y(v)] as const);
     const mom = t.kind === 'momentum' && !t.htf;   // Kevin's red momentum line: thin red dashes, never gold
     const col = mom ? C.momentum : t.htf ? C.gold : C.tl;
     const dpath = xy.map(([px, py], j) => `${j ? 'L' : 'M'}${f1(px)} ${f1(py)}`).join('');
-    out.push(`<path class="tl ${mom ? 'mom' : t.htf ? 'htf' : 'ltf'} ${t.dir > 0 ? 'up' : 'down'}" data-tf="${x(t.tf)}" d="${dpath}" fill="none" stroke="${col}"`
-      + (mom ? ' stroke-width="1.8" stroke-dasharray="9 7"' : t.htf ? ' stroke-width="5.5" stroke-linecap="round" stroke-dasharray="0.5 11"' : ' stroke-width="2.6"')
-      + ` stroke-opacity="${t.crossed ? 0.6 : 0.95}"${t.crossed && !mom && !t.htf ? ' stroke-dasharray="10 6"' : ''}/>`);
-    const text = mom ? `${tfLabel(t.tf)} momentum` : `${tfLabel(t.tf)} ${t.dir > 0 ? 'up' : 'down'}${t.crossed ? ' ×' : ''}`;
+    out.push(`<path class="tl ${mom ? 'mom' : t.htf ? 'htf' : brk ? 'ltf broken' : 'ltf'} ${t.dir > 0 ? 'up' : 'down'}" data-tf="${x(t.tf)}" d="${dpath}" fill="none" stroke="${col}"`
+      + (mom ? ' stroke-width="1.8" stroke-dasharray="9 7"' : t.htf ? ' stroke-width="5.5" stroke-linecap="round" stroke-dasharray="0.5 11"'
+        : brk ? ' stroke-width="3" stroke-linecap="round" stroke-dasharray="0.5 7"' : ' stroke-width="2.6"')
+      + ` stroke-opacity="${brk ? 0.5 : t.crossed ? 0.6 : 0.95}"${t.crossed && !mom && !t.htf ? ' stroke-dasharray="10 6"' : ''}/>`);
+    const text = mom ? `${tfLabel(t.tf)} momentum` : `${tfLabel(t.tf)} ${t.dir > 0 ? 'up' : 'down'}${t.crossed ? ' ×' : brk ? ' × broken' : ''}`;
     const yEnd = xy[xy.length - 1][1];
-    if (t.crossed) {   // the line an arrival's leg-out crossed: ends at the crossing candle, labelled there
+    if (t.crossed || brk) {   // the line an arrival's leg-out crossed: ends at the crossing candle, labelled there
       const ins = xy.filter(([, py]) => py >= plot.y + 16 && py <= bottom - 16);
       if (ins.length) tlLabels.push({ y: ins[ins.length - 1][1], text, col, inside: [ins[ins.length - 1][0], ins[ins.length - 1][1]] });
     } else if (yEnd >= plot.y && yEnd <= bottom) tlLabels.push({ y: yEnd, text, col, inside: null });
@@ -425,6 +429,12 @@ function panelSvg(p: Panel, b: Box, m: ChartModel, i: number): string {
       const ins = xy.filter(([, py]) => py >= plot.y + 16 && py <= bottom - 16);
       if (ins.length) tlLabels.push({ y: ins[ins.length - 1][1], text, col, inside: [ins[ins.length - 1][0], ins[ins.length - 1][1]] });
     }
+  }
+  if (p.dbgZz) {   // debug overlay (render harness --debug-tl): the zigzag of the real pivots + the anchors the lines use
+    const P = (k: number, v: number) => `${f1(plot.x + step * (k + 0.5))} ${f1(g.y(v))}`;
+    if (p.dbgZz.zz.length > 1) out.push(`<path class="dbg-zz" d="${p.dbgZz.zz.map(([k, v], j) => `${j ? 'L' : 'M'}${P(k, v)}`).join('')}" fill="none" stroke="#ffd60a" stroke-width="1.6" stroke-opacity="0.85"/>`);
+    for (const [k, v] of p.dbgZz.zz) out.push(`<circle cx="${f1(plot.x + step * (k + 0.5))}" cy="${f1(g.y(v))}" r="2.5" fill="#ffd60a"/>`);
+    for (const [k, v] of p.dbgZz.used) out.push(`<circle cx="${f1(plot.x + step * (k + 0.5))}" cy="${f1(g.y(v))}" r="7" fill="none" stroke="#ffd60a" stroke-width="2"/>`);
   }
   // candles (the forming one hollow)
   for (let k = 0; k < p.bars.length; k++) {
