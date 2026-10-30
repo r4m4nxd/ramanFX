@@ -48,11 +48,6 @@ export function firstCloseBreak(bars: TBar[], l: Pick<MLine, 'a' | 'b' | 'dir'>)
   for (let j = l.b.i + 1; j < bars.length; j++) { const v = lineAt(l, j); if (l.dir > 0 ? bars[j].c < v : bars[j].c > v) return j; }
   return null;
 }
-/** First bar after the newer anchor fully beyond the line (the engine's RemovedAt: up line = its high below it). */
-export function firstFullBreak(bars: TBar[], l: Pick<MLine, 'a' | 'b' | 'dir'>): number | null {
-  for (let j = l.b.i + 1; j < bars.length; j++) { const v = lineAt(l, j); if (l.dir > 0 ? bars[j].h < v : bars[j].l > v) return j; }
-  return null;
-}
 
 /** Candles strictly between the anchors that the line cuts by more than tol (price units). */
 export function lineCuts(bars: TBar[], l: Pick<MLine, 'a' | 'b' | 'dir'>, tol: number): number {

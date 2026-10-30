@@ -55,6 +55,26 @@ describe('training structure helpers', () => {
   });
 });
 
+describe('engine lines = zvLines (one source of truth with the bot / ZoneVision)', () => {
+  it('each engine line ends where zvLines says (the owner rule: a candle CLOSING beyond it, or the structure change)', () => {
+    const ls = engineLines(real, 'D1');
+    expect(ls.length).toBeGreaterThan(0);
+    for (const l of ls) {
+      if (l.brk == null) continue;
+      const c = firstCloseBreak(real, l);
+      expect(c).not.toBeNull();
+      expect(c!).toBeLessThanOrEqual(l.brk);           // never later than the first close beyond it
+    }
+  });
+  it('XAUUSD D1 (the owner\'s acceptance chart): the live down line Sep 3 -> Sep 18 is in the replay, unbroken', async () => {
+    const X = (await import('../../../tools/telegram_bot/parity/xauusd_d1_2026-10-29.json')).default as unknown as { D1: [string, number, number, number, number][] };
+    const bars = toTBars(X.D1.slice(0, -1));
+    const l = engineLines(bars, 'D1').find(x => x.dir < 0 && bars[x.a.i].t.startsWith('2026-09-03') && bars[x.b.i].t.startsWith('2026-09-18'));
+    expect(l).toBeDefined();
+    expect(l!.brk).toBeNull();
+  });
+});
+
 describe('training score (honest agreement)', () => {
   const bars = zigzag(90);
   it('the engine agrees 100% with itself (real EURUSD D1 bars)', () => {
