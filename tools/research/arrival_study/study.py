@@ -219,7 +219,7 @@ def study_tf(sym: str, market: str, tf: str, data: Dict[str, TF], htf: Optional[
              spread: float, p: Dict, start: Optional[str]) -> Tuple[List[Dict], Dict]:
     """Arrival + confirmation trades of one instrument / TF."""
     T = data[tf]
-    cnt = {'candidates': 0, 'verified': 0, 'not_current': 0, 'no_target': 0}
+    cnt = {'candidates': 0, 'verified': 0, 'not_current': 0, 'no_target': 0, 'realign': 0, 'ltf_checked': 0, 'confirmed': 0}
     if len(T) < 60:
         return [], cnt
     S = A.series_of(T.bars, tf)
@@ -256,16 +256,19 @@ def study_tf(sym: str, market: str, tf: str, data: Dict[str, TF], htf: Optional[
                 't': t0, 'removed': len(cur.removed), 'strict': strict_at_valley(St, cur),
                 'target_kind': 'capped' if pl.capped else ('extended' if pl.extended else ('plain' if pl.tp is not None else 'none')),
                 'nested': pl.host is not None, 'basis': pl.basis, 'entry': pl.entry, 'stop': pl.stop, 'tp': pl.tp,
-                'rr': pl.rr, 'buffer': pl.buffer, 'kind': 'arrival'}
+                'rr': pl.rr, 'buffer': pl.buffer, 'kind': 'arrival', 'realign': pl.realign is not None}
+        if pl.realign is not None:
+            cnt['realign'] += 1
         if pl.tp is None:
             cnt['no_target'] += 1
             trades.append({**base, 'outcome': 'no target', 'R': None})
-            continue
-        cost = sp if market == 'fx' else pl.entry * STOCK_COST_BPS / 1e4
-        expire = T.ends[min(k - 1 + EXPIRY, n - 1)]
-        res = simulate(a.dir, pl.entry, pl.stop, pl.tp, cur.zone.dist, sim, t0, expire, HOLD, T, cost)
-        old = simulate(a.dir, pl.entry, cur.zone.dist, pl.tp, cur.zone.dist, sim, t0, expire, HOLD, T, cost)
-        trades.append({**base, **res, 'old_R': old['R'], 'old_outcome': old['outcome']})
+        else:
+            cost = sp if market == 'fx' else pl.entry * STOCK_COST_BPS / 1e4
+            expire = T.ends[min(k - 1 + EXPIRY, n - 1)]
+            res = simulate(a.dir, pl.entry, pl.stop, pl.tp, cur.zone.dist, sim, t0, expire, HOLD, T, cost)
+            old = simulate(a.dir, pl.entry, cur.zone.dist, pl.tp, cur.zone.dist, sim, t0, expire, HOLD, T, cost)
+            fx2 = simulate(a.dir, pl.entry, pl.stop, pl.entry + 2 * (pl.entry - pl.stop), cur.zone.dist, sim, t0, expire, HOLD, T, cost)
+            trades.append({**base, **res, 'old_R': old['R'], 'old_outcome': old['outcome'], 'fix2_R': fx2['R'], 'fix2_outcome': fx2['outcome']})
         # realignment + LTF confirmation
         if pl.realign is None or L is None or len(L) < 60 or r.swing is None:
             continue
@@ -277,6 +280,7 @@ def study_tf(sym: str, market: str, tf: str, data: Dict[str, TF], htf: Optional[
         nl = len(L)
         if nl and L.ends[0] > t0:
             continue                         # no LTF history at that time
+        cnt['ltf_checked'] += 1
         ar = pl.realign
         lo_, hi_ = ar.lo, ar.hi
         watch_end = T.ends[min(k - 1 + WATCH, n - 1)]
@@ -296,6 +300,7 @@ def study_tf(sym: str, market: str, tf: str, data: Dict[str, TF], htf: Optional[
         if best is None:
             continue
         c, ct, ck = best
+        cnt['confirmed'] += 1
         LSt = _series(L, ck, None, 300)
         st = A.stop_of(LSt, c.dir, c.valley, ar.dist, sp)
         tgt = r.swing
@@ -546,12 +551,15 @@ def report(trades: List[Dict], meta: Dict) -> str:
     L += table('Strict vs loose by market', groups_by(tradable, lambda t: f"{t['market']} {'strict' if t['strict'] else 'not strict'}"))
     L += table('Stop rule vs the old stop (zone distal), same entries / targets', [('new stop rule', tradable)])
     L += table('', [('old stop = distal', tradable)], key='old_R', okey='old_outcome')
+    L += table('Same entries / stops, fixed 2R target instead of the plan\'s target (is there an entry edge?)', [('plan target', tradable)])
+    L += table('', [('fixed 2R target', tradable)], key='fix2_R', okey='fix2_outcome')
+    L += table('Fixed 2R target by timeframe', groups_by(tradable, lambda t: f"{t['market']} {t['tf']}", [f'{m} {tf}' for m in ('fx', 'stock') for tf in TF_ORDER]), key='fix2_R', okey='fix2_outcome')
     L += table('Planned R:R bucket', groups_by(tradable, lambda t: '< 1' if (t['rr'] or 0) < 1 else '1-2' if t['rr'] < 2 else '2-4' if t['rr'] < 4 else '4+', ['< 1', '1-2', '2-4', '4+']))
     L += ['## Realignment + lower-TF confirmation trades', '']
     L += table('By TF pair', groups_by(conf, lambda t: f"{t['market']} {t['tf']}"))
     L += table('Stop basis', groups_by(conf, lambda t: t['basis']))
     L += table('Old stop (the LTF zone distal)', [('confirmations', conf)], key='old_R', okey='old_outcome')
-    L += ['## Data / counts', '', '| instrument TF | candidates | verified current | not current at that bar | no target |', '|---|---|---|---|---|']
+    L += ['## Data / counts', '', '| instrument TF | candidates | verified current | not current at that bar | no target | with a realignment area | area with LTF data | LTF confirmation found |', '|---|---|---|---|---|---|---|---|']
     agg: Dict[str, Dict[str, int]] = {}
     for c in meta['counts']:
         for tf, x in c['counts'].items():
@@ -561,7 +569,8 @@ def report(trades: List[Dict], meta: Dict) -> str:
                 a[kk] = a.get(kk, 0) + v
     for k in sorted(agg):
         a = agg[k]
-        L.append(f"| {k} | {a.get('candidates', 0)} | {a.get('verified', 0)} | {a.get('not_current', 0)} | {a.get('no_target', 0)} |")
+        L.append(f"| {k} | {a.get('candidates', 0)} | {a.get('verified', 0)} | {a.get('not_current', 0)} | {a.get('no_target', 0)} | "
+                 f"{a.get('realign', 0)} | {a.get('ltf_checked', 0)} | {a.get('confirmed', 0)} |")
     L += ['', '**No-look-ahead check** (the live reading at every closed bar vs the candidate pass; same arrival on the '
           'same bar):', '', '| instrument | TF | bars walked | walk-forward arrivals | candidate pass | same arrival, same bar | walk only | candidates only |',
           '|---|---|---|---|---|---|---|---|']
@@ -613,6 +622,10 @@ def conclusions(trades: List[Dict]) -> List[str]:
     out.append(line('Nested in an HTF zone', [t for t in arr if t['nested']]))
     out.append(line('Not nested', [t for t in arr if not t['nested']]))
     out.append(line('Confirmation trades', conf))
+    f2 = stats(arr, 'fix2_R', 'fix2_outcome')
+    if f2['closed'] >= 30:
+        out.append(f"- Same entries with a fixed 2R target: {f2['closed']} closed, win {100 * f2['win_rate']:.0f}% (break-even ~34% "
+                   f"after costs), avg {f2['avg_R']:+.2f}R.")
     new, old = stats(arr), stats(arr, 'old_R', 'old_outcome')
     if new['closed'] >= 30 and old['closed'] >= 30:
         out.append(f"- Stop rule vs the old distal stop on the same arrivals: win {100 * new['win_rate']:.0f}% vs "
@@ -784,9 +797,11 @@ def main(argv=None) -> int:
         how = 'GitHub Actions, OANDA practice + Alpaca'
     print(f'{len(jobs)} instruments, data ready in {time.time() - t0:.0f}s', flush=True)
     vals = []
-    for j in [j for j in jobs if j['market'] == 'fx'][:3] + [j for j in jobs if j['market'] == 'stock'][:2]:
+    fxj = [j for j in jobs if j['market'] == 'fx']
+    picks = [(j, 'D1', 1500) for j in fxj[:8]] + [(j, 'H4', 1500) for j in fxj[:2]] + [(j, 'W1', 250) for j in jobs if j['market'] == 'stock'][:4]
+    for j, vtf, nb in picks:
         try:
-            v = validate(j, 'D1' if j['market'] == 'fx' else 'W1', 600 if j['market'] == 'fx' else 250)
+            v = validate(j, vtf, nb)
         except Exception as e:  # noqa: BLE001
             v = {'sym': j['sym'], 'error': str(e)[:80]}
         if v:
