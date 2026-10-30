@@ -309,6 +309,21 @@ A pivot is not "a swing low". It is the end of a REAL correction of the leg befo
   box is Q-free but unmarked): 4020 sits near 48% = middle.
 - **Not this.** A curve measured wick to wick or across one zone.
 
+### 1.14 Zone reasons (owner 2026-10-30)
+
+- **Rule.** Every zone the owner draws has a reason; a zone without one is not drawn. A supply / demand zone qualifies only
+  when its leg-out (from the leg-out candle until price first comes back to the proximal) does at least one of:
+  (R1) **BREAK**: closes beyond the previous swing (for a demand: the newest confirmed real peak before the base; supply
+  mirrored) = break of structure; (R2) **DIRECTION**: closes through a live opposite trend line of the TF (or flips the
+  trend state of an intermediate TF; ZoneVision 2.16 implements the trend-line part); (R3) **REMOVAL**: closes through at
+  least one older opposite zone (the Raja arrival "removes" test). The reasons are stored on the zone (break / direction /
+  removal + the broken pivot and the removed zones); MT5 shows them compactly (`BOS`, `CHoCH`, `x2 removed`). Strength
+  ranks by the number of reasons; all three = the arrival zone (the strongest).
+- **Sources.** [O] 2026-10-30 (owner, stated directly); owner SpotCrude MN examples (MT5 screenshot): the 2026 demand
+  61-68 (broke the down line, removed 3 supplies, broke the previous highs: all three), the 2022 supply 107-123 (broke the
+  2020-22 up line: direction), the Jan 2025 supply 72-80 (closed through the 2021 demand and made a lower low: removal +
+  break).
+
 ---
 
 ## 2. The top-down algorithm
@@ -524,6 +539,27 @@ W1 sideways call and the WOW are V). The MN bias (UP, HL expected at 0.64206-0.6
 
 ## 5. Acceptance tests: XAUUSD (owner's TradingView / MT5 examples; qa/bars; pinned to the D1 close 2026-10-29, 4020.10)
 
+**Owner gold marks 2026-10-30 (MN / W1 / D1 / H4 / H1 on the Train page, now in `src/core/training/fixtures/marks.json`)
+override the rows below where they differ** (the executable rows are `src/core/structure/rows.ts`):
+- MN: the live up line is **2022-10 1617.14 -> 2023-10 1810.32** (replaces G-MN-L's 2023-10 -> 2024-02); a live down line
+  2026-01 5599.73 -> 2026-03 5419.41; the purple realignment zone is the **MN demand 2025-06..08 3241.91-3453.63**; momentum
+  lines 2025-01 -> 2025-08, 2025-09 -> 2026-01, 2026-03 -> 2026-06.
+- W1: down 2026-01-24 5599.73 -> 2026-02-28 5419.41 broken 2026-08-15; **down 2026-02-28 -> 2026-05-09 4773.23 broken
+  2026-08-01** (the next line chains from pivot 2 while the first is still live; replaces G-W1-L1's live Feb 28 -> Aug 22);
+  up 2026-07-11 3959.48 -> 2026-08-01 4018.97 broken 2026-09-26; live momentum 2026-08-29 -> 2026-09-19. The W1 window of the
+  marks starts 2025-10-25, so the 2023 W1 up line (G-W1-L2) stays as written.
+- D1: **a down TREND line from the top exists: Aug 25 4696.81 -> Sep 10 4434.80, broken Sep 17** (replaces G-D1-X1); the live
+  line is Sep 3 -> Sep 18 (G-D1-L1); up Jul 17 -> Jul 29 broken Sep 28 (Q2 = a); a second up line Aug 4 4042.42 -> Aug 19
+  4324.24 broken Aug 28; owner pivots P 07-10, V 07-17, P 07-22, V 07-29, P 08-13, V 08-14, P 08-25, V 09-02, P 09-03,
+  V 09-16, P 09-18, **V 10-07 4066.16**, P 10-12, V 10-23, P 10-28 (replaces G-D1-P's V Sep 28); many momentum lines, one per
+  impulse leg (all kept in the model for scoring; MT5 shows the live one + the one broken within 5 bars).
+- H4: live down Oct 16 16:00 4198.96 -> Oct 19 08:00 4190.21 (nearly flat); up Oct 27 08:00 -> Oct 28 20:00 broken Oct 29
+  08:00. H1: up Oct 27 13:00 -> Oct 28 22:00 broken Oct 29 08:00; live down Oct 28 23:00 4082.47 -> Oct 29 23:00 4032.40.
+- H1 note: "when the bullish trendline crosses and the 1-2 demand zones are removed, we don't look to buy with limit order,
+  we wait for confirmation for trend reversal, however we can sell as limit order on short side from potential supply
+  zones" -> the DIRECTION NOW of a correction reads `SELL correction trades only on <TFs> (sell limits at supply, no buy
+  limits), TP before <edge>`, and at the target `WAIT at <zone>: BUY on <LTF> confirmation (no buy limits)`.
+
 ### 5.1 Gold MN / 3M
 
 | ID | item | expected | tag |
@@ -652,6 +688,7 @@ rule it breaks:
 | brokenShow | 20 bars | gold D1/W1 old top lines hidden |
 | rangeBaseMax / rangeBaseATR | 20 candles / 2.5 ATR | gold W1 Apr-Aug 2025 base (18 candles, ~1.6 ATR by bodies) |
 | targetGap | 1.0 ATR of C | target zone search around the line value |
+| p1Retrace | 0.50 | Q1 "retrace" option only (2.16 input InpZmP1Retrace); fit counts at 0.38 / 0.45 / 0.50 / 0.60 in ZV216.md |
 
 ---
 
@@ -693,7 +730,13 @@ rule it breaks:
   start at the first lower high instead: Feb 2023 0.71571 -> Oct 2024, broken Jan 2026. Answer **"spec"** (keep the
   gold rule everywhere; A-MN-L5 is a trend line, A-MN-L6 dropped) or **"major"** (add one major line per TF from the
   absolute extreme to the newest confirmed lower high, and label the steep first-leg line momentum). Default: spec.
-- **Q2. Gold D1 up line.** The July bottom is Jul 17 3959.48; the first higher low Jul 29 3995.86 (82% pullback). A
+  A third option was added for testing (coordinator, 2026-10-30, not yet owner-confirmed): **"retrace"** = the extreme anchors
+  Line 1 only when the first correction after it retraces >= {p1Retrace = 0.50} of the first leg, else extreme -> C1 is a
+  momentum line and the trend line starts at C1 (gold MN 85% / gold D1 55% from the top, AUDUSD MN Apr -> Aug 2022 46% =
+  momentum). The SPEC's own rule (2.2 step 2) decides by the clean-line test, not by depth. On the owner's AUDUSD + gold line
+  rows it fits fewer rows than "spec" (docs/training/ZV216.md), so the default stays "spec".
+- **Q2. Gold D1 up line. ANSWERED (owner gold marks 2026-10-30): option (a), Jul 17 3959.48 -> Jul 29 3995.86, broken
+  Sep 28; G-D1-L2 is enabled.** The original question: The July bottom is Jul 17 3959.48; the first higher low Jul 29 3995.86 (82% pullback). A
   line Jul 17 -> Jul 29 is clean and rises 0.43 ATR, so the spec draws it (it breaks Sep 28). You said the up line starts
   at the first higher low. From Jul 29 the only clean line touches Aug 3 4018.97 (nearly flat; breaks Sep 16 by 1.5
   points); the clean line of the August rally is Aug 3 -> Aug 19 4324.24 (breaks Aug 28). Which one is your up line:

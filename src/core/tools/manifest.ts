@@ -39,15 +39,15 @@ const pineSteps = (name: string, preset = true) => [
 export const TOOLS: Tool[] = [
   // ─── MT5 ────────────────────────────────────────────────────────────
   {
-    id: 'zv5', platform: 'mt5', name: 'ZoneVision', version: '2.15', kind: 'Indicator',
-    purpose: 'Draws the zones, trendlines, Direction box and mentor grades exactly as the ZoneBot sees them. 2.15: the owner\'s teaching - trend lines between REAL pivots (ends of real corrections), red dashed momentum lines, impulse / correction per TF; 2.14: trend lines: owner\'s structure method; ARRIVAL zones with weak zones, realignment area, stop rule, TP / ceiling and lower-TF confirmation + alerts, the same engine as the Telegram bot. Never trades.',
+    id: 'zv5', platform: 'mt5', name: 'ZoneVision', version: '2.16', kind: 'Indicator',
+    purpose: 'Draws the zones, trendlines, Direction box and mentor grades exactly as the ZoneBot sees them. 2.16: ONE structure model (docs/training/SPEC.md) drives everything on the chart - the STRUCTURE line from 3M down to the chart TF (impulse / correction against the parent TF), the single DIRECTION message, the realignment target (purple box), higher-TF lines, real pivots, trend + momentum lines, and zones drawn only with a reason (BOS / CHoCH / removed).',
     files: [{ file: 'RamanFX_ZoneVision.mq5' }, { file: 'RFX_ZoneCore.mqh', note: 'shared core, same folder' }],
     install: [
       'MT5: File → Open Data Folder → MQL5 → Indicators.',
       'Put RamanFX_ZoneVision.mq5 and RFX_ZoneCore.mqh in that same folder.',
       mt5Compile,
       'Drag it onto a chart → Inputs → Load → pick a template (Raja first).',
-      'Updating to 2.15: copy BOTH files again (the core changed), compile, re-attach.',
+      'Updating to 2.16: copy BOTH files again (the core changed), compile, re-attach.',
       "2.15: the owner's teaching (Train page marks): REAL pivots = the end of a real correction (back ~38-50% of the impulse or to the base that started it; dots on the chart), trend lines between them (the extreme is pivot 1 unless an impulse leaves it; kept until a close beyond it, re-anchored while the structure continues), red dashed MOMENTUM line out of an impulse, and a bottom-left STRUCTURE line: impulse / correction per TF top-down with where correction trades end. Inputs InpRealLines / InpRealPivots / InpRealPhase / InpRealRC (off = the 2.14 lines).",
       "2.14: trend lines: owner's structure method (the top is not a pivot; first lower high after it -> tangent over the later lower highs, clean anchors; kept until a candle closes beyond it, then faint up to the break).",
     ],

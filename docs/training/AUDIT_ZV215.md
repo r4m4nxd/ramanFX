@@ -701,3 +701,8 @@ throw-away worktree scored with `npx vitest run src/core/trainingFixtures.test.t
 - The v1 `Detect` with wick removal (only `zcDetect` is ported; both reject the 2025 W1 base for the same reason).
 - MT5 object behaviour: Labels OFF, alerts, history loading, drawing in bar space. These come from reading the code.
 - Pepperstone's own prices. qa/bars is OANDA BID in Pepperstone time.
+
+## 2.16 (2026-10-30)
+
+The architecture of section 9 is built: one structure model (`zvModel.ts` = `RFX_MODEL`), every chart consumer rewired,
+the 2.14 engines off by default. Changes, results, remaining gaps and the SPEC issues found: `docs/training/ZV216.md`.

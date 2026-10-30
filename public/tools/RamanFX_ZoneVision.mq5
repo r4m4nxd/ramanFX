@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| RamanFX_ZoneVision.mq5 v2.10 (MT5; v1 part = port of the .mq4 1.99)|
+//| RamanFX_ZoneVision.mq5 v2.16 (MT5; v1 part = port of the .mq4 1.99)|
 //| See the chart through the ZoneBot's eyes. Uses the SAME zone     |
 //| rules and defaults as RamanFX_ZoneBot so you can spot where      |
 //| the bot disagrees with you (and with the mentor).                |
@@ -44,9 +44,14 @@
 //| v2.14: trend lines = the owner's structure method (the top is    |
 //| not a pivot; first lower high -> tangent over the later lower    |
 //| highs; kept until a CLOSE beyond; broken = faint up to the break)|
+//| v2.16: ONE structure model (RFX_MODEL = zvModel.ts = SPEC.md):   |
+//| STRUCTURE, DIRECTION, Bias, zone notes, HTF lines, the REALIGN   |
+//| target, zone reasons and break alerts all read it; 3M .. chart   |
+//| TF always (no 4-TF cap, loading TFs retried); the 2.14 HTF lines,|
+//| TL bias, TL alerts and arrival overlay are off by default.       |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "2.15"
+#property version   "2.16"
 #property indicator_chart_window
 #property indicator_buffers 0
 #property indicator_plots   0
@@ -63,21 +68,30 @@ input bool   InpLblWow        = true;   // WOW ladder text (targets)
 input bool   InpLblRaja       = true;   // Raja extras text: nested curve, realignment areas, wick 50%
 input bool   InpLblHalfway    = true;   // "halfway alert" text
 input group "== ARRIVAL zones + trend lines (owner rules, Oct 2026; = the Telegram bot) =="
-input bool   InpRealLines     = true;   // v2.15 owner's teaching: trend lines between REAL pivots (ends of real corrections) + red dashed momentum lines; replaces this TF's structure-method lines
-input bool   InpRealPivots    = true;   // v2.15: small dots on the REAL peaks (RBD) / valleys (DBR)
-input bool   InpRealPhase     = true;   // v2.15: bottom-left STRUCTURE line: impulse / correction per TF (top-down) + where correction trades end
-input double InpRealRC        = 0.38;   // v2.15: a correction is REAL when it retraces this much of the impulse (owner ~0.5; his marks fit 0.38)
+input bool   InpRealLines     = true;   // 2.16 model: this TF's trend lines (real pivots), momentum line, higher-TF lines + the target line
+input bool   InpRealPivots    = true;   // 2.16 model: small dots on the REAL peaks / valleys (ends of real corrections)
+input bool   InpRealPhase     = true;   // 2.16 model: bottom-left STRUCTURE line, 3M down to this TF (impulse / correction vs the parent TF)
+input double InpRealRC        = 0.45;   // 2.16 model (SPEC rc): a correction is REAL when it retraces this much of the leg (or trades back to its origin base)
+input bool   InpZmOn          = true;   // 2.16: the ONE structure model drives STRUCTURE, DIRECTION, Bias, zone notes, HTF lines, REALIGN (off = 2.14 engines)
+input int    InpZmQ1          = 0;      // 2.16 Q1, where Line 1 starts: 0 = spec (clean line from the extreme), 1 = retrace (extreme only after a >= 50% first correction), 2 = major (one line from the absolute extreme)
+input int    InpZmQ2          = 0;      // 2.16 Q2, anchor 1 of Line 1: 0 = (a) the extreme, 1 = (b) the first counter-pivot, 2 = (c) the second
+input double InpZmP1Retrace   = 0.50;   // 2.16 Q1 retrace: the first correction must retrace this share of the first leg for the extreme to anchor Line 1
+input bool   InpZmHtfLines    = true;   // 2.16: draw the higher-TF live lines on this chart (gold dotted; the realignment target line purple dashed)
+input bool   InpZmRealign     = true;   // 2.16: draw the realignment target (purple box) on every TF
+input bool   InpZmZoneFilter  = true;   // 2.16 (owner): draw a zone only when its leg-out gave a reason (BOS / CHoCH / removed an opposite zone)
+input bool   InpZmAlertBreak  = true;   // 2.16: alert when a trend line of this chart breaks on the last closed candle
+input bool   InpZmDebug       = false;  // 2.16 debug: every model line of this TF (history) as thin grey dots
 input bool   InpTLTwoPivot    = true;   // Trend lines: the owner structure method (first lower high after the top -> tangent, kept until a close beyond; broken = faint) (false = v2.12 lines)
-input bool   InpArrShow       = true;   // ARRIVAL zone: bold box + tag (its leg-out closed beyond the trend line and removed opposite zones; 2+ = STRONG)
-input bool   InpArrShowRemoved= true;   // Zones the arrival removed: dotted box with an X
-input bool   InpArrShowWeak   = true;   // Same-TF opposite zones made WEAK by the arrival: dashed, "weak - no limit"
-input bool   InpArrShowRealign= true;   // Realignment area: the weak zone nearest the higher-TF trend line (gold)
-input bool   InpArrShowPlan   = true;   // Plan lines: entry, SL (stop rule), TP (capped at the HTF line / extended to the HTF zone), ceiling
-input bool   InpArrShowConfirm= true;   // Lower-TF confirmation (H4 -> M15, D1 -> H1, W1 -> H4, MN -> D1): its zone, entry, SL, target
-input bool   InpArrShowMomentum = true; // Kevin's momentum line: thin red dashed, only when there is no trend line that way (never a trend line)
-input bool   InpArrAlertNew   = true;   // Alert: a new arrival zone on this chart's timeframe
+input bool   InpArrShow       = false;   // ARRIVAL zone: bold box + tag (its leg-out closed beyond the trend line and removed opposite zones; 2+ = STRONG)
+input bool   InpArrShowRemoved= false;   // Zones the arrival removed: dotted box with an X
+input bool   InpArrShowWeak   = false;   // Same-TF opposite zones made WEAK by the arrival: dashed, "weak - no limit"
+input bool   InpArrShowRealign= false;   // Realignment area: the weak zone nearest the higher-TF trend line (gold)
+input bool   InpArrShowPlan   = false;   // Plan lines: entry, SL (stop rule), TP (capped at the HTF line / extended to the HTF zone), ceiling
+input bool   InpArrShowConfirm= false;   // Lower-TF confirmation (H4 -> M15, D1 -> H1, W1 -> H4, MN -> D1): its zone, entry, SL, target
+input bool   InpArrShowMomentum = false; // Kevin's momentum line: thin red dashed, only when there is no trend line that way (never a trend line)
+input bool   InpArrAlertNew   = false;   // Alert: a new arrival zone on this chart's timeframe
 input bool   InpArrAlertRealign = false; // Alert: price entered the realignment area
-input bool   InpArrAlertConfirm = true;  // Alert: lower-TF confirmation (an arrival inside the realignment area)
+input bool   InpArrAlertConfirm = false;  // Alert: lower-TF confirmation (an arrival inside the realignment area)
 input bool   InpArrPush       = false;  // Also push the arrival alerts to the phone (MetaQuotes ID)
 input int    InpArrMarket     = 0;      // Arrival zone settings: 0 = FX (Raja, 7+ candle base = no zone, the bot's FX scan), 1 = stocks (Raja)
 input double InpArrSpreadPips = 0;      // Stop-rule spread floor in pips (0 = the live spread); buffer = max(0.1 x ATR14, spread)
@@ -108,9 +122,9 @@ input bool   InpShowBrokenTL  = false;  // Also draw broken trendlines
 input int    InpTrendSwing    = 3;      // Swing strength for liquidity-trap levels (bars each side)
 input int    InpTLHistory     = 3;      // Trendlines drawn each way: the newest N (broken ones end where they broke)
 input bool   InpShowChannel   = false;  // Draw the channel 50% helper line (the overextension check works either way)
-input bool   InpShowHTFLines  = true;   // Also draw the higher-timeframe trendlines on this chart (precision on the entry TF)
+input bool   InpShowHTFLines  = false;   // Also draw the higher-timeframe trendlines on this chart (precision on the entry TF)
 input int    InpHTFLevels     = 4;      // Higher timeframes whose trendlines are drawn here (M15 chart: H1, H4, D1, W1); top-down like your analysis
-input bool   InpTLBias        = true;   // Bias from the newest HTF trendline break (a broken daily downtrend line = bullish for H4 / H1)
+input bool   InpTLBias        = false;   // Bias from the newest HTF trendline break (a broken daily downtrend line = bullish for H4 / H1)
 input color  InpHtfTL         = C'200,150,40';   // higher-timeframe lines still respected (thin dotted)
 input color  InpHtfTLBroken   = C'228,205,150';  // higher-timeframe lines already broken (lighter, end where they broke)
 input bool   InpRefineHTF     = true;   // Re-anchor HTF lines on this chart's candles (exact top-most / bottom-most touch, no cut candles)
@@ -140,7 +154,7 @@ input bool   InpCompactPanel  = true;   // Panel as a compact box (click its hea
 input bool   InpPanelRight    = true;   // Panel + Direction box in the top-RIGHT corner (false = top-left, as v1)
 input bool   InpPanelSeeThru  = true;   // Panel boxes drawn behind the candles, so candles stay visible through them
 input bool   InpAlertStrong   = true;   // Alert when price reaches a fresh STRONG zone (once per zone)
-input bool   InpAlertTL       = true;   // Alert when a drawn trendline (this chart or HTF) breaks on the last closed candle
+input bool   InpAlertTL       = false;   // Alert when a drawn trendline (this chart or HTF) breaks on the last closed candle
 input bool   InpPush          = false;  // Also send alerts as push notifications (set up MetaQuotes ID in Tools > Options > Notifications)
 input bool   InpRedrawOnHTF   = true;   // Also redraw when a higher-timeframe candle opens (not only this chart's)
 input bool   InpExtraTF       = true;   // Support MT5-only timeframes (M2..M20, H2, H3, H6, H8, H12) via the nearest standard TF
@@ -697,11 +711,16 @@ void RxaRealignTick()
   }
 // ==== RFX_ARRIVAL_CHART END ====
 
-// ==== RFX_STRUCT_CHART BEGIN ====
-// The owner's teaching on the chart (RFX_STRUCT in RFX_ZoneCore.mqh = zvReal.ts): this TF's trend lines from REAL
-// pivots (live: InpTrend solid; broken: InpMuted dotted, ending at the candle that closed beyond it), the newest
-// momentum line (red dashed), small dots on the real pivots, and the top-down phase line (bottom-left).
+// ==== RFX_MODEL_CHART BEGIN ====
+// ZoneVision 2.16: the ONE structure model (RFX_MODEL in RFX_ZoneCore.mqh = supabase/functions/telegram-bot/zvModel.ts =
+// docs/training/SPEC.md) on the chart. Drawn from it: this TF's live trend lines (InpTrend, solid; width 2 = the target
+// line) and the ones broken within 20 bars (InpMuted dotted, ending AT the candle that closed beyond); the newest live
+// momentum line (red dashed); the higher-TF live lines (gold dotted, evaluated by time) and the target line (purple
+// dashed); the realignment target box (purple); real pivots (dots); the STRUCTURE line (bottom-left). The DIRECTION box,
+// the Bias rows, the zone notes' HTF side, the zone filter / reason tags, the break alerts and the export read the same
+// model (ZmApply). Debug overlay (every line of the model, pivots of every TF) only with InpZmDebug.
 #define RQ_PFX "RFXV2_Q"
+color cZmPurple = C'128,64,192';
 void RqLine(string nm, datetime t1, double p1, datetime t2, double p2, color c, int style, int width, string tip)
   {
    ObjectCreate(0, nm, OBJ_TREND, 0, t1, p1, t2, p2);
@@ -718,91 +737,170 @@ void RqLabel(string nm, int y, string txt, color c)
    ObjectSetString(0, nm, OBJPROP_TEXT, txt); ObjectSetString(0, nm, OBJPROP_FONT, "Arial"); ObjectSetInteger(0, nm, OBJPROP_FONTSIZE, 8);
    ObjectSetInteger(0, nm, OBJPROP_COLOR, c); ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
   }
-void RqDrawLine(RxSer &S, ZrLine &t, string nm, string tfn)
+// a model line of TF t on this chart: anchors by their bar TIMES (an HTF line is drawn by time, its value at the chart's
+// last bar = the HTF line's value at the HTF bar holding it); broken lines end at the breaking candle
+double ZmValueAtTime(ZmTfR &t, ZmLine &l, datetime when)
   {
-   if(t.a < 1 || t.a >= S.n || t.b < 1 || t.b >= S.n) return;
-   bool mom = t.kind == 1, brk = t.brokenAt >= 1;
-   datetime t1 = S.T[t.a];
-   datetime t2 = brk ? S.T[t.brokenAt] : iTime(_Symbol, PERIOD_CURRENT, 0) + PeriodSeconds() * 3;
-   double p2 = brk ? zrAt(t, t.brokenAt) : zrAt(t, -3);
-   color c = mom ? clrRed : (brk ? InpMuted : InpTrend);
-   int style = mom ? STYLE_DASH : (brk ? STYLE_DOT : STYLE_SOLID);
-   string tip = tfn + (mom ? " MOMENTUM line (from the leg's extreme along the impulse; its break ends the impulse, not the trend)"
-                           : (t.dir > 0 ? " uptrend line: two REAL valleys (ends of real corrections)" : " downtrend line: two REAL peaks (ends of real corrections)"))
-              + (brk ? " | broken: a candle CLOSED " + (t.dir > 0 ? "below" : "above") + " it on " + TimeToString(S.T[t.brokenAt], TIME_DATE | TIME_MINUTES) : " | respected so far");
-   RqLine(nm, t1, t.pa, t2, p2, c, style, 1, tip);
-   if(mom && !brk) RxaText(nm + "t", t2, p2, " momentum", clrRed, 7, ANCHOR_LEFT, false, tip);
+   int sh = iBarShift(_Symbol, RxTfEnum(t.m == RX_Q ? 43200 : t.m), when, false);   // the TF bar holding `when` (3M: by months, approx.)
+   if(t.m == RX_Q) { double mo = (double)(t.S.T[1] > 0 ? (when - t.S.T[1]) : 0) / (86400.0 * 91.0); return ZmAt(l, 1 - mo); }
+   return ZmAt(l, (double)MathMax(sh, 0) - (sh == 0 ? (double)(when - iTime(_Symbol, RxTfEnum(t.m), 0)) / PeriodSeconds(RxTfEnum(t.m)) : 0));
   }
-void RqRun()
+void ZmDrawLine(ZmTfR &t, ZmLine &l, string nm, color c, int style, int width, string tip)
+  {
+   if(l.a < 1 || l.a >= t.S.n || l.b < 1 || l.b >= t.S.n) return;
+   bool brk = l.brokenAt >= 1;
+   datetime t1 = t.S.T[l.a];
+   datetime t2 = brk ? t.S.T[l.brokenAt] : iTime(_Symbol, PERIOD_CURRENT, 0) + PeriodSeconds() * 3;
+   double p2 = brk ? ZmAt(l, l.brokenAt) : ZmValueAtTime(t, l, t2);
+   RqLine(nm, t1, l.pa, t2, p2, c, style, width, tip);
+  }
+bool ZmStale(ZmTfR &t, ZmLine &l)            // SPEC 3: a live line price left >= 30 bars ago and >= 3 ATR away
+  {
+   if(l.brokenAt >= 0) return false;
+   for(int j = 1; j <= MathMin(30, l.b - 1); j++) { double x = l.dir > 0 ? t.S.L[j] : t.S.H[j]; if(MathAbs(x - ZmAt(l, j)) < 3 * t.A.At(j)) return false; }
+   return l.b > 30;
+  }
+bool ZmIsTarget(int ti, int li) { return gZmHasTarget && ti == gZmTgtLineTf && li == gZmTgtLine; }
+string ZmWhyWord(int w) { return w == 0 ? "Line 1 from the extreme" : (w == 1 ? "Line 1 (anchor shifted 1 bar: clean)" : (w == 2 ? "Line 1 from the first counter-pivot" : (w == 3 ? "chain from the broken line's pivot 2" : (w == 4 ? "rotated after a fake cross" : "line")))); }
+void ZmDrawChart()
   {
    ObjectsDeleteAll(0, RQ_PFX);
-   if(!(InpRealLines || InpRealPivots || InpRealPhase)) return;
-   int m = RxTfMin(PERIOD_CURRENT);
-   RxSer S;
-   if(!RxLoad(_Symbol, m, 0, S)) return;
-   ZrRes r; ZrPivot piv[]; ZrLine hist[];
-   zrLines(S, r, piv, hist);
-   string tfn = RxTfName(m);
+   if(!gZmOk || gZmChartIdx < 0) { if(gZmOk) RqLabel(RQ_PFX + "ph", 92, "STRUCTURE " + gZmStructure, InpText); return; }
+   int ci = gZmChartIdx;
+   string tfn = gZmT[ci].name;
    if(InpRealLines)
      {
-      if(r.hasUp) RqDrawLine(S, r.up, RQ_PFX + "up", tfn);
-      if(r.hasDn) RqDrawLine(S, r.dn, RQ_PFX + "dn", tfn);
-      if(r.hasUpX && !(r.hasUp && r.up.a == r.upX.a)) RqDrawLine(S, r.upX, RQ_PFX + "upx", tfn);
-      if(r.hasDnX && !(r.hasDn && r.dn.a == r.dnX.a)) RqDrawLine(S, r.dnX, RQ_PFX + "dnx", tfn);
-      if(r.hasMom) RqDrawLine(S, r.mom, RQ_PFX + "mom", tfn);
+      for(int dd = 0; dd < 2; dd++)
+        {
+         int d = dd == 0 ? 1 : -1, lv = -1, bk = -1;
+         for(int i = 0; i < ArraySize(gZmT[ci].lines); i++)
+           {
+            ZmLine l = gZmT[ci].lines[i];
+            if(l.dir != d || l.kind == 1) continue;
+            if(l.brokenAt < 0 && (ZmIsTarget(gZmChartIdx, i) || !ZmStale(gZmT[ci], l)) && (lv < 0 || l.born < gZmT[ci].lines[lv].born)) lv = i;
+            if(l.kind == 0 && l.brokenAt >= 0 && l.brokenAt <= ZM_brokenShow && (bk < 0 || l.brokenAt < gZmT[ci].lines[bk].brokenAt)) bk = i;
+           }
+         string up = d > 0 ? "up" : "down";
+         if(lv >= 0) ZmDrawLine(gZmT[ci], gZmT[ci].lines[lv], RQ_PFX + (d > 0 ? "up" : "dn"), InpTrend, STYLE_SOLID, ZmIsTarget(gZmChartIdx, lv) ? 2 : 1,
+                                tfn + " " + up + " trend line (" + ZmWhyWord(gZmT[ci].lines[lv].why) + ") T" + IntegerToString(gZmT[ci].lines[lv].touches) + (gZmT[ci].lines[lv].touches >= 4 ? " - 4th touch: break likely" : "") + " | live");
+         if(bk >= 0) ZmDrawLine(gZmT[ci], gZmT[ci].lines[bk], RQ_PFX + (d > 0 ? "upx" : "dnx"), InpMuted, STYLE_DOT, 1,
+                                tfn + " " + up + " trend line broken: a candle CLOSED " + (d > 0 ? "below" : "above") + " it on " + TimeToString(gZmT[ci].S.T[gZmT[ci].lines[bk].brokenAt], TIME_DATE | TIME_MINUTES));
+        }
+      int mv = -1, mb = -1;
+      for(int i = 0; i < ArraySize(gZmT[ci].lines); i++)
+        {
+         if(gZmT[ci].lines[i].kind != 1) continue;
+         if(gZmT[ci].lines[i].brokenAt < 0 && (mv < 0 || gZmT[ci].lines[i].a < gZmT[ci].lines[mv].a)) mv = i;
+         if(gZmT[ci].lines[i].brokenAt >= 0 && gZmT[ci].lines[i].brokenAt <= 5 && (mb < 0 || gZmT[ci].lines[i].brokenAt < gZmT[ci].lines[mb].brokenAt)) mb = i;
+        }
+      string mtip = tfn + " MOMENTUM line (from the impulse's extreme along its next bars; its break ends the impulse, not the trend)";
+      if(mv >= 0) { ZmDrawLine(gZmT[ci], gZmT[ci].lines[mv], RQ_PFX + "mom", clrRed, STYLE_DASH, 1, mtip); RxaText(RQ_PFX + "momt", iTime(_Symbol, PERIOD_CURRENT, 0) + PeriodSeconds() * 3, ZmValueAtTime(gZmT[ci], gZmT[ci].lines[mv], iTime(_Symbol, PERIOD_CURRENT, 0) + PeriodSeconds() * 3), " momentum", clrRed, 7, ANCHOR_LEFT, false, mtip); }
+      if(mb >= 0) ZmDrawLine(gZmT[ci], gZmT[ci].lines[mb], RQ_PFX + "momx", clrRed, STYLE_DOT, 1, mtip + " | broken");
+      // the higher TFs' live lines on this chart (gold dotted; the target line purple dashed)
+      if(InpZmHtfLines)
+         for(int k = 0; k < gZmN; k++)
+           {
+            int ti = gZmIdx[k];
+            if(ti >= gZmChartIdx || ti == 0) continue;
+            for(int i = 0; i < ArraySize(gZmT[ti].lines); i++)
+              {
+               ZmLine l = gZmT[ti].lines[i];
+               if(l.kind == 1 || l.brokenAt >= 0) continue;
+               bool tg = ZmIsTarget(ti, i);
+               if(!tg && ZmStale(gZmT[ti], l)) continue;
+               if(!tg && ZmLiveLine(gZmT[ti], l.dir) != i) continue;
+               ZmDrawLine(gZmT[ti], l, RQ_PFX + "h" + IntegerToString(ti) + "_" + IntegerToString(i), tg ? cZmPurple : InpHtfTL, tg ? STYLE_DASH : STYLE_DOT, 1,
+                          gZmT[ti].name + " " + (l.dir > 0 ? "up" : "down") + " line" + (tg ? " = the realignment target line" : ""));
+               if(tg) RxaText(RQ_PFX + "h" + IntegerToString(ti) + "_" + IntegerToString(i) + "t", iTime(_Symbol, PERIOD_CURRENT, 0) + PeriodSeconds() * 3, gZmTgtValue,
+                              " " + gZmT[ti].name + " " + (l.dir > 0 ? "up" : "down") + " line " + DoubleToString(gZmTgtValue, _Digits), cZmPurple, 7, ANCHOR_LEFT, false, "");
+              }
+           }
+     }
+   // the realignment target (purple box) on every TF of the chain
+   if(InpZmRealign && gZmHasTarget)
+     {
+      ZmZone z = gZmT[gZmTgtTf].zones[gZmTgtZone];
+      datetime t1 = gZmT[gZmTgtTf].S.T[MathMin(z.base1, gZmT[gZmTgtTf].S.n - 1)], t2 = iTime(_Symbol, PERIOD_CURRENT, 0) + PeriodSeconds() * 10;
+      string nm = RQ_PFX + "rz";
+      ObjectCreate(0, nm, OBJ_RECTANGLE, 0, t1, ZmHi(z), t2, ZmLo(z));
+      ObjectSetInteger(0, nm, OBJPROP_COLOR, cZmPurple); ObjectSetInteger(0, nm, OBJPROP_STYLE, STYLE_SOLID); ObjectSetInteger(0, nm, OBJPROP_WIDTH, 2);
+      ObjectSetInteger(0, nm, OBJPROP_FILL, false); ObjectSetInteger(0, nm, OBJPROP_BACK, false); ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
+      string lab = "REALIGN " + gZmT[gZmTgtTf].name + " " + DoubleToString(ZmLo(z), _Digits) + "-" + DoubleToString(ZmHi(z), _Digits)
+                 + (gZmTgtLine >= 0 ? " (" + gZmT[gZmTgtLineTf].name + " " + (gZmT[gZmTgtLineTf].lines[gZmTgtLine].dir > 0 ? "up" : "down") + " line " + DoubleToString(gZmTgtValue, _Digits) + ")" : "");
+      ObjectSetString(0, nm, OBJPROP_TOOLTIP, lab + ": where the " + (gZmC >= 0 ? gZmT[gZmIdx[gZmC]].name : "") + " correction is expected to end; " + (gZmT[gZmTgtTf].zones[gZmTgtZone].touches > 0 ? "tapped: confirmation only" : "fresh"));
+      RxaText(nm + "t", t1, ZmHi(z), lab, cZmPurple, 8, ANCHOR_LEFT_LOWER, false, "");
      }
    if(InpRealPivots)
-     for(int i = 0; i < ArraySize(piv); i++)
-       {
-        if(piv[i].bar < 1 || piv[i].bar >= S.n) continue;
-        string nm = RQ_PFX + "p" + IntegerToString(i);
-        ObjectCreate(0, nm, OBJ_ARROW, 0, S.T[piv[i].bar], piv[i].p);
-        ObjectSetInteger(0, nm, OBJPROP_ARROWCODE, 159);
-        ObjectSetInteger(0, nm, OBJPROP_COLOR, piv[i].t > 0 ? InpSupplyLine : InpDemandLine);
-        ObjectSetInteger(0, nm, OBJPROP_ANCHOR, piv[i].t > 0 ? ANCHOR_BOTTOM : ANCHOR_TOP);
-        ObjectSetInteger(0, nm, OBJPROP_WIDTH, 1);
-        ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
-        ObjectSetString(0, nm, OBJPROP_TOOLTIP, tfn + (piv[i].t > 0 ? " REAL peak (RBD: the end of a real correction)" : " REAL valley (DBR: the end of a real correction)"));
-       }
-   if(InpRealPhase)
-     {
-      // top-down: the chart TF and up to 3 higher TFs (highest first); a TF in a correction -> the note for its LTF
-      int tfs[4]; int nt = 0, x = m;
-      while(nt < 4 && x > 0) { tfs[nt++] = x; x = RxHigherTf(x); }
-      string line = "", note = "";
-      for(int i = nt - 1; i >= 0; i--)
+      for(int i = 0; i < ArraySize(gZmT[ci].piv); i++)
         {
-         RxSer H;
-         bool ok = i == 0 ? true : RxLoad(_Symbol, tfs[i], 0, H);
-         if(!ok) continue;
-         ZrRes hr; ZrPivot hp[]; ZrLine hh[]; ZrPhase ph;
-         if(i == 0) { hr = r; zrPhase(S, hr, piv, ph); }
-         else { zrLines(H, hr, hp, hh); zrPhase(H, hr, hp, ph); }
-         line += (line == "" ? "" : "  |  ") + zrPhaseText(RxTfName(tfs[i]), ph, _Digits);
-         if(ph.phase == 2 && i > 0 && note == "")
-            note = "correction trades only on " + RxTfName(tfs[i - 1]) + (ph.hasTarget ? " until " + DoubleToString(ph.target, _Digits) : "") + " (" + RxTfName(tfs[i]) + " trend " + zrDirWord(ph.trend) + ")";
+         if(gZmT[ci].piv[i].conf < 0 || gZmT[ci].piv[i].bar < 1 || gZmT[ci].piv[i].bar >= gZmT[ci].S.n) continue;
+         string nm = RQ_PFX + "p" + IntegerToString(i);
+         ObjectCreate(0, nm, OBJ_ARROW, 0, gZmT[ci].S.T[gZmT[ci].piv[i].bar], gZmT[ci].piv[i].p);
+         ObjectSetInteger(0, nm, OBJPROP_ARROWCODE, 159);
+         ObjectSetInteger(0, nm, OBJPROP_COLOR, gZmT[ci].piv[i].t > 0 ? InpSupplyLine : InpDemandLine);
+         ObjectSetInteger(0, nm, OBJPROP_ANCHOR, gZmT[ci].piv[i].t > 0 ? ANCHOR_BOTTOM : ANCHOR_TOP);
+         ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
+         ObjectSetString(0, nm, OBJPROP_TOOLTIP, tfn + (gZmT[ci].piv[i].t > 0 ? " REAL peak (the end of a real correction)" : " REAL valley (the end of a real correction)"));
         }
-      RqLabel(RQ_PFX + "ph", 92, "STRUCTURE " + line, InpText);
-      if(note != "") RqLabel(RQ_PFX + "nt", 76, note, clrDarkGoldenrod);
-     }
+   if(InpZmDebug)                                       // every model line of this TF (history), thin grey
+      for(int i = 0; i < ArraySize(gZmT[ci].lines); i++) ZmDrawLine(gZmT[ci], gZmT[ci].lines[i], RQ_PFX + "dbg" + IntegerToString(i), clrSilver, STYLE_DOT, 1, "debug: model line " + IntegerToString(i));
+   if(InpRealPhase) RqLabel(RQ_PFX + "ph", 92, "STRUCTURE " + gZmStructure, InpText);
   }
+// one model reading (all chain TFs) + the consumers: Bias / Direction / zone notes read it from here on
 datetime gRqT0 = 0, gRqTH = 0;
 int      gRqTries = 0;
-// the host calls this after RxaTick on every OnCalculate: a full reading when a bar opened on this chart or its HTF
+bool     gZmAlertArmed = false;
+void ZmRun()
+  {
+   ZM_rc = InpRealRC; ZM_q1 = InpZmQ1; ZM_q2 = InpZmQ2; ZM_p1Retrace = InpZmP1Retrace;
+   gZmZoneFilter = false; gZmChartIdx = -1;
+   if(!InpZmOn) { gZmOk = false; return; }
+   int cm = RxTfMin(PERIOD_CURRENT);
+   bool full = ZmModelRun(_Symbol, cm, SymbolInfoDouble(_Symbol, SYMBOL_BID), _Digits);
+   gRqTries = full ? 0 : gRqTries + 1;                  // a TF still loading: RqTick reads again (never dropped silently)
+   if(!gZmOk) return;
+   int cp = ZmChartPos(cm);                             // MT5-only TFs (H2 / H3 / H6 / H8 / H12 / M20 ...) draw the nearest chain TF by time
+   for(int k = 0; k < gZmN; k++) if(gZmIdx[k] == cp) gZmChartIdx = gZmIdx[k];
+   gZmZoneFilter = InpZmZoneFilter;
+  }
+// the old direction writers read the model (2.16): Bias = the model's bias, DIRECTION box = the model's message
+void ZmApply()
+  {
+   if(!gZmOk) return;
+   gTrend = gZmBias; gHBias = 0; gHBiasTxt = "";
+   gDirOk = true; gDir = gZmBias; gDirQ = gZmBias != 0 ? 2 : 0; gDirSide = gZmBias;
+   gDirHead = "DIRECTION: " + gZmBiasTxt;
+   gDirTxt[0] = "NOW: " + gZmNow; gDirTxt[1] = "TARGET: " + gZmTarget; gDirTxt[2] = "THEN: " + gZmThen; gDirTxt[3] = "FLIP: " + gZmFlip;
+   drN = 0; gWowN = 0;
+  }
+// break alerts from the model: this chart's live lines broken on the last closed candle (never on load)
+void ZmAlerts()
+  {
+   if(!gZmOk || gZmChartIdx < 0 || !InpZmAlertBreak) { gZmAlertArmed = true; return; }
+   if(gZmAlertArmed)
+      for(int i = 0; i < ArraySize(gZmT[gZmChartIdx].lines); i++)
+        {
+         ZmLine l = gZmT[gZmChartIdx].lines[i];
+         if(l.kind != 0 || l.brokenAt != 1) continue;
+         string msg = _Symbol + " " + gZmT[gZmChartIdx].name + ": " + (l.dir > 0 ? "up" : "down") + " trend line broken (close " + (l.dir > 0 ? "below" : "above") + " " + DoubleToString(ZmAt(l, 1), _Digits) + ")";
+         Alert(msg); if(InpPush) SendNotification(msg);
+        }
+   gZmAlertArmed = true;
+  }
+// the host calls this on every OnCalculate: a full reading when a bar opened on this chart or its HTF, or a TF was loading
 void RqTick()
   {
-   if(InpRealLines) { ObjectDelete(0, RXA_PFX + "mom"); ObjectDelete(0, RXA_PFX + "momt"); }   // the RFX_STRUCT momentum line replaces Kevin's
-   if(!(InpRealLines || InpRealPivots || InpRealPhase)) return;
+   if(InpRealLines) { ObjectDelete(0, RXA_PFX + "mom"); ObjectDelete(0, RXA_PFX + "momt"); }   // the model's momentum line replaces Kevin's
    int hm = RxHigherTf(RxTfMin(PERIOD_CURRENT));
    datetime t0 = iTime(_Symbol, PERIOD_CURRENT, 0), th = hm > 0 ? iTime(_Symbol, RxTfEnum(hm), 0) : 0;
-   if(t0 == gRqT0 && th == gRqTH) return;
+   bool retry = gRqTries > 0 && gRqTries < 30;
+   if(t0 == gRqT0 && th == gRqTH && !retry) return;
    gRqT0 = t0; gRqTH = th;
-   RqRun();
-   if(ObjectFind(0, RQ_PFX + "ph") < 0 && gRqTries < 30) { gRqTries++; gRqT0 = 0; }   // history still loading: read again
-   else gRqTries = 0;
+   if(retry) { ZmRun(); ZmApply(); DrawDirBox(); }
+   ZmDrawChart();
    ChartRedraw();
   }
-// ==== RFX_STRUCT_CHART END ====
+// ==== RFX_MODEL_CHART END ====
 
 
 // v2 per drawn zone, parallel to zKey[] (filled by RegZone + V2Zones): Z index, the v1 ZoneNotes counts, DNA, lenses
@@ -1006,7 +1104,8 @@ int OnInit()
    RjA_RmMode = InpRemovalMode; RjA_StrongRun = InpRjAStrongRun; RjA_ArrDepart = InpRjAArrClose; RjA_TouchTF = InpRjATouchTF;
    RjA_ShowTested = InpRjAShowTested; RjA_Adjacent = InpRjAAdjacent; RjA_FlipTL = InpRjAFlipTL; RjA_OppHtfVeto = InpRjAOppHtfVeto;
    RjA_TLTouch = InpRjATLTouches; RjA_NearLine = InpRjANearLine; RjA_FarPips = InpRjFarFromLinePips; RjA_Lens8 = InpRjALens8;
-   gRsHideOld = InpRealLines; RS_RC = InpRealRC;                    // v2.15 the owner's teaching (RFX_STRUCT)
+   gRsHideOld = InpRealLines || InpZmOn;                             // 2.16: the model's lines replace the old chart-TF lines
+   gRqT0 = 0; gRqTH = 0; gRqTries = 0; gZmAlertArmed = false;
    ZvTwoPivot = InpTLTwoPivot;                                       // v2.13: owner trend-line rule (core default false = ZoneBot)
    gRxaT0 = 0; gRxaArmed = false;
    ApplyTheme();
@@ -1296,7 +1395,7 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
       CheckTouch();
       V2CheckAlerts();
       RxaTick(false);                                                 // v2.13 arrival: re-read only when a chart / HTF / LTF bar opened
-      RqTick();                                                       // v2.15 the owner's teaching (RFX_STRUCT)
+      RqTick();                                                       // 2.16 the structure model (RFX_MODEL)
       return rates_total;
      }
    if(!DataReady() && gTries < 30) { gTries++; return 0; }    // MT5 still loading the HTF history / ATR: try again next tick
@@ -1335,11 +1434,14 @@ void Redraw()
           }
      if(h > 0 && gHTF == 0) { gTF = h; Trendlines(_Symbol, h); TLBias(); CopyHtfLine(h); } }
    if(InpTLBias && gHBias != 0) gTrend = gHBias;                    // a broken HTF trendline sets the bias (the newest break wins)
+   ZmRun();                                                          // 2.16: the ONE structure model (all chain TFs)
+   if(gZmOk) { gTrend = gZmBias; gHBias = 0; gHBiasTxt = ""; }       // Bias + zone notes read the model
    gTF = CTF;
    Trendlines(_Symbol, CTF);                                         // this chart: chain + channel use it; drawn only if InpShowTrendlines
    DedupeTL();
    Qualify();
-   DirRun();                                                         // v2 Direction engine: reads the v1 results, draws nothing itself
+   DirRun();                                                         // v2 Direction engine (curve, WOW); its text is replaced by the model below
+   ZmApply();                                                        // 2.16: DIRECTION box / alerts / export = the model's ONE message
    if(InpBiasSource == 1 && gDirOk) gTrend = gDir;                   // off by default: v1 gTrend drives the zone notes
    if(InpShowHTF) { ENUM_TIMEFRAMES h = HtfOf(CTF); if(h > 0) { Detect(_Symbol, h, HZ, false); DrawZones(HZ, true); } }   // HTF band first, underneath
    RjC_PrepareHide();                                                // Raja v2.1 C: InpRjOnlyStrongArrival (off by default: nothing hidden)
@@ -1359,6 +1461,7 @@ void Redraw()
    V2WowAlert();
    RjC_Alerts();                                                     // Raja v2.1 C: confirmation + management alerts (off by default)
    if(InpExportGV) V2ExportGV();                                     // v2 M10: ZoneBot export (off by default)
+   ZmDrawChart(); ZmAlerts();                                        // 2.16: the model's lines, target box, pivots, STRUCTURE + break alerts
    gArmed = true;
    LblButton(); LblApply();                                          // v2.11: Labels group + ON/OFF button, after every redraw
    ChartRedraw();
@@ -1451,7 +1554,7 @@ void Panel()
    double spread = SAsk() - SBid();
    string L = StringFormat("ZoneVision  %s %s  ->  bias from %s\n", _Symbol, TfName(CTF), htf > 0 ? TfName(htf) : "-");
    L += "Bias: " + (trend > 0 ? "UP - buys only" : (trend < 0 ? "DOWN - sells only" : "unclear - bot waits")) + "\n";
-   L += "Structure: " + StructureNow() + "\n";
+   L += "Structure: " + (gZmOk ? gZmStructure : StructureNow()) + "\n";
    if(InpShowLegend) L += "Key: VP = valley/peak (reversal), CP = continuation, clear space = gap under the stay-away candle,\n      ATR = average candle size, HTF = higher timeframe, x = deal-breaker, - = weakness, + = strength\n";
    if(gHBiasTxt != "") L += "Trendline bias: " + (gHBias > 0 ? "UP - " : "DOWN - ") + gHBiasTxt + "\n";
    if(RjC_GoldLTF()) L += "Raja: prefer XAUAUD on LTF (gold hunts stops below H1)\n";   // Raja v2.1 C
@@ -1566,10 +1669,10 @@ void DrawCompact()
    if(gPanelOpen)
      {
       string bias = gTrend > 0 ? "UP - buys only" : (gTrend < 0 ? "DOWN - sells only" : "unclear - bot waits");
-      string why = gTrend == 0 ? "no clear HTF structure" : ((InpTLBias && gHBias != 0 && gHBias == gTrend) ? gHBiasTxt : (htf > 0 ? TfName(htf) + " swing highs / lows" : "-"));
+      string why = gZmOk ? gZmBiasTxt : (gTrend == 0 ? "no clear HTF structure" : ((InpTLBias && gHBias != 0 && gHBias == gTrend) ? gHBiasTxt : (htf > 0 ? TfName(htf) + " swing highs / lows" : "-")));
       SRow("Bias: " + bias, gTrend > 0 ? cDemandLine : (gTrend < 0 ? cSupplyLine : cPopFg));
       SRow("   why: " + why, cPopFg);
-      SRow("Structure: " + StructureNow(), cPopFg);
+      SRow("Structure: " + (gZmOk ? gZmStructure : StructureNow()), cPopFg);
       int bd = -1, bs = -1, act = 0, fr = 0;
       for(int k = 0; k < ArraySize(zKey); k++)
         {

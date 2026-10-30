@@ -796,7 +796,36 @@ def run_struct(path: str, out_json: bool = False) -> int:
     return bad
 
 
+def run_model(path: str, out_json: bool = False) -> int:
+    """Replay ZoneVision 2.16 model cases ({cases: [{name, sym, chart, price, digits, bars: {tf: rows}, expected}]},
+    src/core/zvModelParity.test.ts) through the RFX_MODEL port (mql_model.py) and compare every number / string."""
+    import mql_model as MM
+    fx = json.loads(Path(path).read_text())
+    bad, errs = 0, []
+    K = lambda t: {'dir': t.dir, 'kind': t.kind, 'a': t.a, 'b': t.b, 'pa': t.pa, 'pb': t.pb, 'born': t.born, 'brokenAt': t.brokenAt, 'p2': t.p2, 'touches': t.touches, 'why': t.why}
+    Z = lambda z: {'dir': z.dir, 'prox': z.prox, 'dist': z.dist, 'base0': z.base0, 'base1': z.base1, 'legBar': z.legBar, 'pattern': z.pattern, 'range': z.range,
+                   'touches': z.touches, 'removed': z.removed, 'removedBar': z.removedBar, 'reasons': z.reasons, 'nRemoved': z.nRemoved}
+    for c in fx['cases']:
+        try:
+            for k, v in c.get('params', {}).items(): MM.P[k] = v
+            m = MM.ZmModel(c['sym'], c['chart'], c['bars'], float(c['price']), int(c['digits']))
+            got = {'tfs': [{'tf': t.name, 'pivots': [{'bar': p.bar, 'p': p.p, 't': p.t, 'conf': p.conf} for p in t.piv], 'lines': [K(l) for l in t.lines],
+                            'zones': [Z(z) for z in t.zones], 'st': {'trend': t.st.trend, 'ext': t.st.ext, 'extBar': t.st.extBar, 'sl': t.st.sl, 'slBar': t.st.slBar, 'lo': t.st.lo, 'hi': t.st.hi},
+                            'leg': t.leg} for t in m.T],
+                   'structure': m.structure, 'direction': m.direction, 'allowed': m.allowed}
+            close(got, c['expected']); msg = 'ok'
+        except (AssertionError, IndexError) as e:
+            bad += 1; msg = f'MISMATCH {e}'; errs.append(f"{c['name']}: {e}")
+        finally:
+            MM.P.update(dict(MM.P_DEFAULT))
+        if not out_json: print(f"{c['name']:<28} {msg[:160]}")
+    if out_json: print(json.dumps({'bad': bad, 'errors': errs[:5], 'cases': len(fx['cases'])}))
+    else: print(f"{len(fx['cases']) - bad}/{len(fx['cases'])} model cases match the RFX_MODEL port")
+    return bad
+
+
 if __name__ == '__main__':
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
+    if '--model' in sys.argv: sys.exit(1 if run_model(args[0], out_json='--json' in sys.argv) else 0)
     if '--struct' in sys.argv: sys.exit(1 if run_struct(args[0], out_json='--json' in sys.argv) else 0)
     sys.exit(1 if run_fixtures(args[0] if args else None, out_json='--json' in sys.argv) else 0)

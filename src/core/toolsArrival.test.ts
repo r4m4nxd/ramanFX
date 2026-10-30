@@ -108,11 +108,11 @@ describe('tool files (static checks; compile in MetaEditor / TradingView)', () =
       for (const [o, c] of [['(', ')'], ['[', ']'], ['{', '}']]) expect(code.split(o).length, `${f} ${o}${c}`).toBe(code.split(c).length);
     }
   });
-  it('the inputs, alerts and hooks of the rules are there (defaults: drawing on, alerts for arrival + confirmation)', () => {
+  it('the inputs, alerts and hooks of the rules are there (defaults: drawing on, alerts for arrival + confirmation; MT5 2.16: off, the structure model replaces the 2.14 arrival overlay)', () => {
     for (const f of ['RamanFX_ZoneVision.mq5', 'RamanFX_ZoneVision.mq4']) {
-      const t = T(f);
-      for (const [k, v] of [['InpArrShow', 'true'], ['InpArrShowRemoved', 'true'], ['InpArrShowWeak', 'true'], ['InpArrShowRealign', 'true'], ['InpArrShowPlan', 'true'],
-        ['InpArrShowConfirm', 'true'], ['InpArrShowMomentum', 'true'], ['InpArrAlertNew', 'true'], ['InpArrAlertConfirm', 'true'], ['InpArrAlertRealign', 'false'], ['InpTLTwoPivot', 'true']])
+      const t = T(f), on = f.endsWith('.mq4') ? 'true' : 'false';
+      for (const [k, v] of [['InpArrShow', on], ['InpArrShowRemoved', on], ['InpArrShowWeak', on], ['InpArrShowRealign', on], ['InpArrShowPlan', on],
+        ['InpArrShowConfirm', on], ['InpArrShowMomentum', on], ['InpArrAlertNew', on], ['InpArrAlertConfirm', on], ['InpArrAlertRealign', 'false'], ['InpTLTwoPivot', 'true']])
         expect(t, `${f} ${k}`).toMatch(new RegExp(`^input bool\\s+${k}\\s*=\\s*${v};`, 'm'));
       expect(t).toMatch(/RxaTick\(false\)/);
     }
