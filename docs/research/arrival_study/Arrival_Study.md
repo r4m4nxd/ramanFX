@@ -1,6 +1,6 @@
 # Arrival study (Raja arrival rules, walk-forward on full history)
 
-Generated 2026-10-30 13:38 UTC by `tools/research/arrival_study/study.py` (GitHub Actions, OANDA practice + Alpaca). 115 FX instruments (OANDA), 92 stocks (Alpaca, daily since 2016). Runtime 6 min.
+Generated 2026-10-30 13:48 UTC by `tools/research/arrival_study/study.py` (GitHub Actions, OANDA practice + Alpaca). 115 FX instruments (OANDA), 92 stocks (Alpaca, daily since 2016). Runtime 3 min.
 
 ## Method (short)
 
@@ -13,7 +13,7 @@ Generated 2026-10-30 13:38 UTC by `tools/research/arrival_study/study.py` (GitHu
 ## Headline
 
 - Verified arrivals: **779** (726 with a target; 53 had none). Filled: 313 (43%), closed 298.
-- Arrival trades: win rate **16%**, avg **-0.29R** per closed trade (95% CI -0.51 … -0.01), profit factor 0.68, total -85R.
+- Arrival trades: win rate **16%**, avg **-0.29R** per closed trade (95% CI -0.52 … -0.01), profit factor 0.68, total -85R.
 - Confirmation trades (realignment + LTF arrival): 0 found, 0 closed, win rate –%, avg –R.
 
 ## Conclusions (plain English)
@@ -34,6 +34,7 @@ Generated 2026-10-30 13:38 UTC by `tools/research/arrival_study/study.py` (GitHu
 - Nested in an HTF zone: 47 closed, win 21%, avg -0.25R, PF 0.70 -> expectancy not distinguishable from zero.
 - Not nested: 251 closed, win 15%, avg -0.29R, PF 0.68 -> expectancy not distinguishable from zero.
 - Confirmation trades: too few closed trades (0) to say anything.
+- Same entries with a fixed 2R target: 159 closed, win 35% (break-even ~34% after costs), avg -0.01R.
 - Stop rule vs the old distal stop on the same arrivals: win 16% vs 13%, avg -0.29R vs -0.16R (R is smaller per point with the wider stop, so compare the win rate and the sum).
 
 ## Arrival trades
@@ -44,8 +45,8 @@ Generated 2026-10-30 13:38 UTC by `tools/research/arrival_study/study.py` (GitHu
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | fx MN | 15 | 5 | 5 | 20 | -0.56 | n < 20 | 0.30 | -2.8 | 4 | 2 | 0.34 / 1.05 |
 | fx W1 | 90 | 54 | 53 | 9 | -0.36 | -0.87 … +0.27 | 0.61 | -19.1 | 6 | 7 | 0.92 / 1.08 |
-| fx D1 | 335 | 135 | 125 | 20 | -0.24 | -0.53 … +0.11 | 0.72 | -30.0 | 6 | 6 | 0.99 / 1.20 |
-| fx H4 | 269 | 113 | 111 | 15 | -0.26 | -0.71 … +0.32 | 0.73 | -29.4 | 6 | 6 | 0.66 / 1.24 |
+| fx D1 | 335 | 135 | 125 | 20 | -0.24 | -0.53 … +0.09 | 0.72 | -30.0 | 6 | 6 | 0.99 / 1.20 |
+| fx H4 | 269 | 113 | 111 | 15 | -0.26 | -0.72 … +0.32 | 0.73 | -29.4 | 6 | 6 | 0.66 / 1.24 |
 | stock MN | 2 | 2 | 1 | 0 | -1.01 | n < 20 | 0.00 | -1.0 | 5 | 4 | 1.65 / 0.75 |
 | stock W1 | 15 | 4 | 3 | 0 | -1.01 | n < 20 | 0.00 | -3.0 | 11 | 8 | 1.92 / 1.03 |
 
@@ -53,15 +54,15 @@ Generated 2026-10-30 13:38 UTC by `tools/research/arrival_study/study.py` (GitHu
 
 | group | arrivals | filled | closed | win % | avg R | 95% CI | PF | sum R | med. bars to fill | med. bars in trade | med. MFE / MAE (R) |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| fx | 709 | 307 | 294 | 16 | -0.28 | -0.51 … +0.01 | 0.69 | -81.4 | 6 | 6 | 0.81 / 1.17 |
+| fx | 709 | 307 | 294 | 16 | -0.28 | -0.52 … -0.00 | 0.69 | -81.4 | 6 | 6 | 0.81 / 1.17 |
 | stock | 17 | 6 | 4 | 0 | -1.01 | n < 20 | 0.00 | -4.0 | 7 | 7 | 1.65 / 1.02 |
 
 **Demand vs supply**
 
 | group | arrivals | filled | closed | win % | avg R | 95% CI | PF | sum R | med. bars to fill | med. bars in trade | med. MFE / MAE (R) |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| fx demand | 298 | 105 | 100 | 22 | +0.21 | -0.36 … +0.82 | 1.24 | +20.7 | 7 | 8 | 1.25 / 1.12 |
-| fx supply | 411 | 202 | 194 | 13 | -0.53 | -0.75 … -0.29 | 0.44 | -102.1 | 6 | 5 | 0.61 / 1.20 |
+| fx demand | 298 | 105 | 100 | 22 | +0.21 | -0.37 … +0.86 | 1.24 | +20.7 | 7 | 8 | 1.25 / 1.12 |
+| fx supply | 411 | 202 | 194 | 13 | -0.53 | -0.74 … -0.29 | 0.44 | -102.1 | 6 | 5 | 0.61 / 1.20 |
 | stock demand | 10 | 4 | 3 | 0 | -1.01 | n < 20 | 0.00 | -3.0 | 7 | 8 | 2.27 / 1.04 |
 | stock supply | 7 | 2 | 1 | 0 | -1.01 | n < 20 | 0.00 | -1.0 | 10 | 6 | 1.10 / 0.73 |
 
@@ -69,7 +70,7 @@ Generated 2026-10-30 13:38 UTC by `tools/research/arrival_study/study.py` (GitHu
 
 | group | arrivals | filled | closed | win % | avg R | 95% CI | PF | sum R | med. bars to fill | med. bars in trade | med. MFE / MAE (R) |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 removed | 632 | 283 | 269 | 16 | -0.29 | -0.52 … -0.02 | 0.68 | -77.2 | 6 | 6 | 0.91 / 1.17 |
+| 1 removed | 632 | 283 | 269 | 16 | -0.29 | -0.52 … -0.01 | 0.68 | -77.2 | 6 | 6 | 0.91 / 1.17 |
 | 2+ removed (strong) | 94 | 30 | 29 | 17 | -0.28 | -0.97 … +0.56 | 0.70 | -8.3 | 6 | 6 | 0.49 / 1.10 |
 
 **Target type**
@@ -77,30 +78,30 @@ Generated 2026-10-30 13:38 UTC by `tools/research/arrival_study/study.py` (GitHu
 | group | arrivals | filled | closed | win % | avg R | 95% CI | PF | sum R | med. bars to fill | med. bars in trade | med. MFE / MAE (R) |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | capped below / above the HTF line | 34 | 19 | 18 | 17 | -0.39 | n < 20 | 0.56 | -7.1 | 6 | 6 | 0.77 / 1.19 |
-| extended to the HTF zone | 459 | 200 | 188 | 15 | -0.34 | -0.64 … +0.04 | 0.64 | -63.2 | 7 | 6 | 0.93 / 1.19 |
-| plain (same-TF weak zone) | 233 | 94 | 92 | 18 | -0.17 | -0.57 … +0.31 | 0.81 | -15.2 | 6 | 5 | 0.56 / 1.10 |
+| extended to the HTF zone | 459 | 200 | 188 | 15 | -0.34 | -0.63 … +0.05 | 0.64 | -63.2 | 7 | 6 | 0.93 / 1.19 |
+| plain (same-TF weak zone) | 233 | 94 | 92 | 18 | -0.17 | -0.56 … +0.32 | 0.81 | -15.2 | 6 | 5 | 0.56 / 1.10 |
 
 **Nested in a same-side HTF zone (stop rule)**
 
 | group | arrivals | filled | closed | win % | avg R | 95% CI | PF | sum R | med. bars to fill | med. bars in trade | med. MFE / MAE (R) |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | nested, valley stop further | 46 | 18 | 18 | 11 | -0.67 | n < 20 | 0.32 | -12.0 | 7 | 6 | 1.04 / 1.20 |
-| nested: stop beyond the HTF zone | 86 | 31 | 29 | 28 | +0.00 | -0.65 … +0.78 | 1.01 | +0.1 | 8 | 22 | 1.30 / 1.09 |
-| not nested: valley stop | 594 | 264 | 251 | 15 | -0.29 | -0.57 … +0.02 | 0.68 | -73.6 | 6 | 5 | 0.73 / 1.17 |
+| nested: stop beyond the HTF zone | 86 | 31 | 29 | 28 | +0.00 | -0.64 … +0.78 | 1.01 | +0.1 | 8 | 22 | 1.30 / 1.09 |
+| not nested: valley stop | 594 | 264 | 251 | 15 | -0.29 | -0.56 … +0.01 | 0.68 | -73.6 | 6 | 5 | 0.73 / 1.17 |
 
 **Loose (live rule) vs strict (at a valley)**
 
 | group | arrivals | filled | closed | win % | avg R | 95% CI | PF | sum R | med. bars to fill | med. bars in trade | med. MFE / MAE (R) |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| loose: every arrival | 726 | 313 | 298 | 16 | -0.29 | -0.51 … -0.01 | 0.68 | -85.4 | 6 | 6 | 0.90 / 1.17 |
-| strict: at a valley | 537 | 224 | 212 | 15 | -0.38 | -0.62 … -0.13 | 0.58 | -80.7 | 6 | 6 | 0.65 / 1.13 |
-| loose but not at a valley | 189 | 89 | 86 | 19 | -0.05 | -0.64 … +0.66 | 0.94 | -4.7 | 6 | 7 | 0.99 / 1.20 |
+| loose: every arrival | 726 | 313 | 298 | 16 | -0.29 | -0.52 … -0.01 | 0.68 | -85.4 | 6 | 6 | 0.90 / 1.17 |
+| strict: at a valley | 537 | 224 | 212 | 15 | -0.38 | -0.63 … -0.12 | 0.58 | -80.7 | 6 | 6 | 0.65 / 1.13 |
+| loose but not at a valley | 189 | 89 | 86 | 19 | -0.05 | -0.64 … +0.65 | 0.94 | -4.7 | 6 | 7 | 0.99 / 1.20 |
 
 **Strict vs loose by market**
 
 | group | arrivals | filled | closed | win % | avg R | 95% CI | PF | sum R | med. bars to fill | med. bars in trade | med. MFE / MAE (R) |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| fx not strict | 184 | 88 | 86 | 19 | -0.05 | -0.64 … +0.66 | 0.94 | -4.7 | 6 | 7 | 0.99 / 1.20 |
+| fx not strict | 184 | 88 | 86 | 19 | -0.05 | -0.64 … +0.65 | 0.94 | -4.7 | 6 | 7 | 0.99 / 1.20 |
 | fx strict | 525 | 219 | 208 | 15 | -0.37 | -0.60 … -0.10 | 0.59 | -76.7 | 6 | 6 | 0.64 / 1.13 |
 | stock not strict | 5 | 1 | 0 | – | – | n < 20 | – | +0.0 | 5 | – | 1.66 / 0.46 |
 | stock strict | 12 | 5 | 4 | 0 | -1.01 | n < 20 | 0.00 | -4.0 | 9 | 7 | 1.63 / 1.03 |
@@ -109,22 +110,45 @@ Generated 2026-10-30 13:38 UTC by `tools/research/arrival_study/study.py` (GitHu
 
 | group | arrivals | filled | closed | win % | avg R | 95% CI | PF | sum R | med. bars to fill | med. bars in trade | med. MFE / MAE (R) |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| new stop rule | 726 | 313 | 298 | 16 | -0.29 | -0.51 … -0.01 | 0.68 | -85.4 | 6 | 6 | 0.90 / 1.17 |
+| new stop rule | 726 | 313 | 298 | 16 | -0.29 | -0.52 … -0.01 | 0.68 | -85.4 | 6 | 6 | 0.90 / 1.17 |
 
 ****
 
 | group | arrivals | filled | closed | win % | avg R | 95% CI | PF | sum R | med. bars to fill | med. bars in trade | med. MFE / MAE (R) |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| old stop = distal | 726 | 313 | 304 | 13 | -0.16 | -0.49 … +0.19 | 0.84 | -48.9 | 6 | 6 | 0.90 / 1.17 |
+| old stop = distal | 726 | 313 | 304 | 13 | -0.16 | -0.49 … +0.18 | 0.84 | -48.9 | 6 | 6 | 0.90 / 1.17 |
+
+**Same entries / stops, fixed 2R target instead of the plan's target (is there an entry edge?)**
+
+| group | arrivals | filled | closed | win % | avg R | 95% CI | PF | sum R | med. bars to fill | med. bars in trade | med. MFE / MAE (R) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| plan target | 726 | 313 | 298 | 16 | -0.29 | -0.52 … -0.01 | 0.68 | -85.4 | 6 | 6 | 0.90 / 1.17 |
+
+****
+
+| group | arrivals | filled | closed | win % | avg R | 95% CI | PF | sum R | med. bars to fill | med. bars in trade | med. MFE / MAE (R) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| fixed 2R target | 726 | 165 | 159 | 35 | -0.01 | -0.22 … +0.20 | 0.98 | -2.2 | 4 | 8 | 0.99 / 1.08 |
+
+**Fixed 2R target by timeframe**
+
+| group | arrivals | filled | closed | win % | avg R | 95% CI | PF | sum R | med. bars to fill | med. bars in trade | med. MFE / MAE (R) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| fx MN | 15 | 3 | 3 | 33 | -0.00 | n < 20 | 1.00 | -0.0 | 1 | 4 | 0.91 / 0.57 |
+| fx W1 | 90 | 27 | 26 | 15 | -0.56 | -0.91 … -0.09 | 0.36 | -14.4 | 4 | 8 | 0.77 / 1.07 |
+| fx D1 | 335 | 77 | 74 | 38 | +0.09 | -0.23 … +0.42 | 1.15 | +7.0 | 4 | 9 | 1.05 / 1.09 |
+| fx H4 | 269 | 55 | 54 | 39 | +0.08 | -0.30 … +0.47 | 1.12 | +4.3 | 4 | 10 | 0.95 / 1.14 |
+| stock MN | 2 | 1 | 0 | – | – | n < 20 | – | +0.0 | 5 | – | 1.66 / 0.46 |
+| stock W1 | 15 | 2 | 2 | 50 | +0.49 | n < 20 | 1.98 | +1.0 | 11 | 36 | 2.94 / 0.81 |
 
 **Planned R:R bucket**
 
 | group | arrivals | filled | closed | win % | avg R | 95% CI | PF | sum R | med. bars to fill | med. bars in trade | med. MFE / MAE (R) |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | < 1 | 12 | 5 | 5 | 80 | +0.42 | n < 20 | 2.96 | +2.1 | 2 | 6 | 0.99 / 0.39 |
-| 1-2 | 78 | 29 | 29 | 31 | -0.26 | -0.66 … +0.17 | 0.64 | -7.6 | 4 | 6 | 0.60 / 1.08 |
+| 1-2 | 78 | 29 | 29 | 31 | -0.26 | -0.64 … +0.17 | 0.64 | -7.6 | 4 | 6 | 0.60 / 1.08 |
 | 2-4 | 162 | 69 | 66 | 26 | -0.07 | -0.45 … +0.34 | 0.91 | -4.9 | 6 | 7 | 0.96 / 1.08 |
-| 4+ | 474 | 210 | 198 | 9 | -0.38 | -0.69 … +0.00 | 0.62 | -75.1 | 7 | 5 | 0.91 / 1.27 |
+| 4+ | 474 | 210 | 198 | 9 | -0.38 | -0.70 … +0.02 | 0.62 | -75.1 | 7 | 5 | 0.91 / 1.27 |
 
 ## Realignment + lower-TF confirmation trades
 
@@ -145,22 +169,29 @@ Generated 2026-10-30 13:38 UTC by `tools/research/arrival_study/study.py` (GitHu
 
 ## Data / counts
 
-| instrument TF | candidates | verified current | not current at that bar | no target |
-|---|---|---|---|---|
-| fx D1 | 356 | 356 | 0 | 21 |
-| fx H4 | 282 | 281 | 1 | 12 |
-| fx MN | 20 | 20 | 0 | 5 |
-| fx W1 | 98 | 98 | 0 | 8 |
-| stock MN | 4 | 4 | 0 | 2 |
-| stock W1 | 20 | 20 | 0 | 5 |
+| instrument TF | candidates | verified current | not current at that bar | no target | with a realignment area | area with LTF data | LTF confirmation found |
+|---|---|---|---|---|---|---|---|
+| fx D1 | 356 | 356 | 0 | 21 | 45 | 6 | 0 |
+| fx H4 | 282 | 281 | 1 | 12 | 38 | 0 | 0 |
+| fx MN | 20 | 20 | 0 | 5 | 2 | 2 | 0 |
+| fx W1 | 98 | 98 | 0 | 8 | 18 | 5 | 0 |
+| stock MN | 4 | 4 | 0 | 2 | 0 | 0 | 0 |
+| stock W1 | 20 | 20 | 0 | 5 | 1 | 0 | 0 |
 
 **No-look-ahead check** (the live reading at every closed bar vs the candidate pass; same arrival on the same bar):
 
 | instrument | TF | bars walked | walk-forward arrivals | candidate pass | same arrival, same bar | walk only | candidates only |
 |---|---|---|---|---|---|---|---|
-| AUDUSD | D1 | 600 | 1 | 1 | 1 | 0 | 0 |
-| EURUSD | D1 | 600 | 0 | 0 | 0 | 0 | 0 |
-| GBPUSD | D1 | 600 | 0 | 0 | 0 | 0 | 0 |
+| AUDUSD | D1 | 1500 | 1 | 1 | 1 | 0 | 0 |
+| EURUSD | D1 | 1500 | 0 | 0 | 0 | 0 | 0 |
+| GBPUSD | D1 | 1500 | 0 | 0 | 0 | 0 | 0 |
+| USDCAD | D1 | 1500 | 0 | 0 | 0 | 0 | 0 |
+| USDCHF | D1 | 1500 | 4 | 4 | 4 | 0 | 0 |
+| USDJPY | D1 | 1500 | 1 | 1 | 1 | 0 | 0 |
+| AUDCAD | D1 | 1500 | 0 | 0 | 0 | 0 | 0 |
+| AUDCHF | D1 | 1500 | 0 | 0 | 0 | 0 | 0 |
+| AUDUSD | H4 | 1500 | 0 | 0 | 0 | 0 | 0 |
+| EURUSD | H4 | 1500 | 1 | 1 | 1 | 0 | 0 |
 
 ## Caveats
 
