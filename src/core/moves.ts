@@ -52,7 +52,12 @@ export function fmtPct(p: number): string {
 }
 
 /** Sections of one timeframe, newest close first. */
-export const sectionsOf = (f: MovesFile, tf: MoveTf) => f.sections.filter(s => s.tf === tf).sort((a, b) => (a.close < b.close ? 1 : -1));
+/** How far back the page (and latest.json) keeps closes. */
+export const KEEP_DAYS = 3;
+/** Sections of one timeframe whose candle closed within the last KEEP_DAYS, newest first. */
+export const sectionsOf = (f: MovesFile, tf: MoveTf, now = Date.now()) => f.sections
+  .filter(s => s.tf === tf && now - Date.parse(s.close) <= KEEP_DAYS * 86_400_000)
+  .sort((a, b) => (a.close < b.close ? 1 : -1));
 
 /** Rows of a section by group, in the file's order (best first). */
 export function grouped(s: MoveSection): [MoveGroup, MoveRow[]][] {

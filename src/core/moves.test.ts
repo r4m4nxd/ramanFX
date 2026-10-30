@@ -37,3 +37,13 @@ describe('big moves file (public/movers/latest.json)', () => {
     expect(v).toContain('movers/.*\\\\.json');
   });
 });
+
+describe('3-day window', () => {
+  it('keeps only closes from the last 3 days', async () => {
+    const { sectionsOf } = await import('./moves');
+    const now = Date.parse('2026-10-30T12:00:00Z');
+    const sec = (close: string) => ({ tf: 'H1' as const, close, label: '', fams: [], feed: '', rows: [] });
+    const f = { generated: '', sections: [sec('2026-10-30T11:00:00Z'), sec('2026-10-27T13:00:00Z'), sec('2026-10-27T11:00:00Z')] } as never;
+    expect(sectionsOf(f, 'H1', now).map(s => s.close)).toEqual(['2026-10-30T11:00:00Z', '2026-10-27T13:00:00Z']);
+  });
+});
