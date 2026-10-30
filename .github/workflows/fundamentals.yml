@@ -87,7 +87,7 @@ jobs:
         timeout-minutes: 35
         run: python tools/fundamentals/build.py
         env:
-          SEC_CONTACT: ${{ vars.SEC_CONTACT }}
+          SEC_CONTACT: ${{ secrets.SEC_CONTACT || vars.SEC_CONTACT }}
           FUND_SEC_BUDGET_MIN: '25'
 
       - name: Save cache

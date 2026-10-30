@@ -4,7 +4,7 @@ name: Insider buys
 # the same company within 14 days, or one CEO / CFO buy >= $250k, scored with the stock scanner's zone context. Every
 # 30 min on US weekdays 6:00-20:00 New York; the trader-coach edge function's 10-minute scheduler
 # (supabase/functions/trader-coach/scheduler.ts) dispatches the same slots (GitHub drops many scheduled runs).
-# SEC User-Agent: the SEC_UA secret, else the SEC_CONTACT repository variable; neither -> SEC is skipped (logged).
+# SEC User-Agent: the SEC_UA secret, else the SEC_CONTACT secret (preferred: masked in the public logs) or repository variable; neither -> SEC is skipped (logged).
 # State (seen accession numbers, parsed buys, alerts) in the actions cache (tools/insiders/.cache). The output
 # public/insiders/latest.json is committed to the `data` branch only (never main: Vercel counts every main push, even
 # ignored builds); the app, the bot and the brief read it from raw.githubusercontent.com/.../data/public/insiders. sample=true sends ONE '🧪 Sample insider buys' message (the top
@@ -76,7 +76,7 @@ jobs:
           SAMPLE: ${{ github.event.inputs.sample }}
           BACKFILL_MIN: ${{ github.event.inputs.backfill_min }}
           SEC_UA: ${{ secrets.SEC_UA }}
-          SEC_CONTACT: ${{ vars.SEC_CONTACT }}
+          SEC_CONTACT: ${{ secrets.SEC_CONTACT || vars.SEC_CONTACT }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
