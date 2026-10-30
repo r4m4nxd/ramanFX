@@ -1,0 +1,92 @@
+name: Arrival study
+
+# Historical study of the Raja ARRIVAL rules (tools/research/arrival_study/study.py): every verified arrival on full
+# OANDA FX history + ~100 liquid scanner stocks (Alpaca), limit entry / stop rule / plan target, plus the realignment +
+# lower-TF confirmation trades. Manual only. Writes docs/research/arrival_study/ (report, trades.json, PNG charts) to
+# the `data` branch (never main: the owner decides) and uploads it as an artifact. Stdlib + matplotlib for the charts.
+on:
+  workflow_dispatch:
+    inputs:
+      fx:
+        description: 'First N FX instruments (0 = every scanned instrument)'
+        required: false
+        default: '0'
+      stocks:
+        description: 'Number of liquid stocks (0 = none)'
+        required: false
+        default: '100'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: arrival-study
+  cancel-in-progress: false
+
+jobs:
+  study:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    env:
+      OANDA_ENV: ${{ vars.OANDA_ENV || 'practice' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Data (top_liquid.csv, universe) from the `data` branch: scripts/data-branch.sh, .github/workflows/README.md.
+      - name: Data from the data branch
+        run: bash scripts/data-branch.sh pull
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Charts library
+        run: python -m pip install --quiet matplotlib==3.9.2
+
+      # The FX backtest's full-history candle cache (tools/fx_scanner/.cache/bt) when there is one.
+      - name: Restore candle cache
+        uses: actions/cache/restore@v4
+        with:
+          path: tools/fx_scanner/.cache
+          key: fx-bt-${{ github.run_id }}
+          restore-keys: |
+            fx-bt-
+
+      - name: Arrival unit tests
+        run: python -m unittest discover -s tools/stock_scanner/tests -p 'test_arrival.py'
+
+      - name: Study
+        timeout-minutes: 300
+        run: |
+          python tools/research/arrival_study/study.py --fx "${IN_FX:-0}" --stocks "${IN_STOCKS:-100}" --budget-min 240 \
+            --out docs/research/arrival_study
+        env:
+          OANDA_API_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
+          ALPACA_KEY_ID: ${{ secrets.ALPACA_KEY_ID }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+          FX_WATCHLIST: ${{ secrets.FX_WATCHLIST }}
+          IN_FX: ${{ github.event.inputs.fx }}
+          IN_STOCKS: ${{ github.event.inputs.stocks }}
+
+      - name: Save candle cache
+        if: ${{ always() && hashFiles('tools/fx_scanner/.cache/**') != '' }}
+        uses: actions/cache/save@v4
+        with:
+          path: tools/fx_scanner/.cache
+          key: fx-bt-${{ github.run_id }}
+
+      - name: Upload results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: arrival-study-${{ github.run_id }}
+          path: docs/research/arrival_study
+          if-no-files-found: ignore
+
+      - name: Commit results
+        if: ${{ !cancelled() && hashFiles('docs/research/arrival_study/Arrival_Study.md') != '' }}
+        run: |
+          git config user.name "ramanfx-scanner[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bash scripts/data-branch.sh push "research: arrival study $(date -u +%Y-%m-%dT%H:%MZ)" docs/research/arrival_study \
+            || { echo "::error::results not pushed (see the uploaded artifact)"; exit 1; }

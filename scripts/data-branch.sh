@@ -37,6 +37,7 @@ DATA_PATHS=(
   tools/stock_scanner/top_liquid.csv
   docs/research/FX_Backtest.md
   docs/research/Stock_Backtest.md
+  docs/research/arrival_study
 )
 
 is_data_path() {
