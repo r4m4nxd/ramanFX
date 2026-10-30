@@ -445,6 +445,7 @@ def study_instrument(job: Dict) -> Dict:
                 out['rows'] += control_tf(job, data, tf, htf, cnt)
                 out['counts'][f'ctrl {tf}'] = cnt
         out['fine_fail'] = fine.fail
+        out['requests'] = OF.STATS['requests']
     except Exception as e:  # noqa: BLE001
         import traceback
         out['error'] = f'{type(e).__name__}: {str(e)[:160]} | {traceback.format_exc()[-400:]}'
@@ -528,7 +529,8 @@ def run(jobs: List[Dict], workers: int, budget_min: float, log=print) -> Tuple[L
     try:
         for k, r in enumerate(it):
             rows += r['rows']
-            counts.append({'sym': r['sym'], 'counts': r['counts'], 'error': r['error'], 'fine_fail': r.get('fine_fail', 0)})
+            counts.append({'sym': r['sym'], 'counts': r['counts'], 'error': r['error'], 'fine_fail': r.get('fine_fail', 0),
+                           'requests': r.get('requests', 0)})
             log(f"  [{k + 1}/{len(jobs)}] {r['sym']}: {len(r['rows'])} rows, {r['secs']}s" + (f" ERROR {r['error']}" if r['error'] else ''), flush=True)
             if budget_min and time.time() - t0 > budget_min * 60 and k + 1 < len(jobs):
                 partial = True
@@ -782,7 +784,9 @@ def report(rows: List[Dict], K: Optional[Dict], meta: Dict) -> Tuple[str, Dict]:
     L = ['# Arrival study, round 2: what is missing vs the mentor?', '',
          f"Generated {meta['generated']} by `tools/research/arrival_study/round2.py` ({meta['how']}). "
          f"{meta['n_fx']} FX / CFD instruments (OANDA), runtime {meta['minutes']:.0f} min."
-         + (' **PARTIAL** (time budget).' if meta.get('partial') else ''), '', '<!--ANSWER-->', '']
+         + (' **PARTIAL** (time budget).' if meta.get('partial') else ''), '',
+         'The plain-English answer, the recommended rules and the alert changes are in [Round2.md](Round2.md); this file is '
+         'the generated evidence (every table), rebuilt on each run.', '']
     ksum = {}
     if K:
         kl, ksum = kevin_section(K)
@@ -1085,7 +1089,7 @@ def main(argv=None) -> int:
     errors += [f"{c['sym']}: {c['error'][:160]}" for c in counts if c['error']]
     meta = {'generated': dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%d %H:%M UTC'), 'how': how, 'partial': partial,
             'n_fx': len(jobs), 'minutes': (time.time() - t0) / 60, 'errors': errors, 'counts': counts,
-            'requests': OF.STATS['requests'], 'cached': OF.STATS['cached'], 'fine_errors': sum(c.get('fine_fail', 0) for c in counts)}
+            'requests': OF.STATS['requests'] + sum(c.get('requests', 0) for c in counts), 'cached': OF.STATS['cached'], 'fine_errors': sum(c.get('fine_fail', 0) for c in counts)}
     os.makedirs(a.out, exist_ok=True)
     md, summary = report(rows, K, meta)
     summary['best'] = pick_best(summary)
