@@ -61,7 +61,7 @@ describe('app paths: the ignore script and the watchdog agree', () => {
   it('isAppPath', () => {
     for (const p of ['src/pages/Home.tsx', 'src/content/guide.ts', 'public/research/x.json', 'public/lessons/a.jpg', 'index.html', 'vercel.json', 'package.json', 'vite.config.ts', 'scripts/vercel-ignore.sh'])
       expect(isAppPath(p), p).toBe(true);
-    for (const p of ['public/fx/latest.json', 'public/scanner/a.json', 'public/movers/latest.json', 'public/insiders/latest.json', 'public/fundamentals/fx.json', 'tools/briefing/state.json', 'supabase/functions/x/index.ts', '.github/workflows/a.yml', 'docs/a.md', 'src/core/a.test.ts', 'src/x.test.tsx'])
+    for (const p of ['public/fx/latest.json', 'public/scanner/a.json', 'public/movers/latest.json', 'public/insiders/latest.json', 'public/fundamentals/fx.json', 'tools/briefing/state.json', 'supabase/functions/x/index.ts', '.github/workflows/a.yml', 'docs/a.md', 'qa/bars/XAUUSD/D1.json', 'src/core/a.test.ts', 'src/x.test.tsx'])
       expect(isAppPath(p), p).toBe(false);
   });
   // Every workflow that writes data: no `git push` / `git commit` to main (or to the checked-out branch) at all, only

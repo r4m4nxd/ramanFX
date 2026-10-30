@@ -7,7 +7,7 @@
 #       Overlays the newest copy of EVERY data path (DATA_PATHS below) from the data branch onto the working tree of
 #       the main checkout, so a job reads its previous state (dedupe state, last latest.json) and the other jobs'
 #       outputs (brief.py: fx / scanner / fundamentals; movers: fx / scanner; fundamentals: fx / events.json / scanner
-#       index / universe.csv) at the usual paths. A path the data branch does not have keeps main's copy (fallback).
+#       index / universe.csv) at the usual paths (except PULL_SKIP: qa/bars). A path the data branch does not have keeps main's copy (fallback).
 #       Only the working tree changes (never main's index); nothing is ever committed to main.
 #
 #   bash scripts/data-branch.sh push "commit message" PATH... [--keep PATH...]
@@ -38,7 +38,11 @@ DATA_PATHS=(
   docs/research/FX_Backtest.md
   docs/research/Stock_Backtest.md
   docs/research/arrival_study
+  qa/bars
 )
+# Data paths `pull` leaves alone: no job reads them back, and they are large (qa/bars: the long-history QA bar sets of
+# qa-bars.yml, ~10 MB, read by chart QA from a local checkout of the data branch, scripts/qa-bars.ts).
+PULL_SKIP=(qa/bars)
 
 is_data_path() {
   local p="${1%/}" d
@@ -54,6 +58,7 @@ pull() {
   local tip p n=0
   tip=$(git rev-parse FETCH_HEAD)
   for p in "${DATA_PATHS[@]}"; do
+    [[ " ${PULL_SKIP[*]} " == *" $p "* ]] && continue
     if git cat-file -e "$tip:$p" 2>/dev/null; then
       rm -rf "$p"
       git archive --format=tar "$tip" -- "$p" | tar -xf - || { echo "::error::data-branch: could not read $p from $BRANCH"; return 1; }

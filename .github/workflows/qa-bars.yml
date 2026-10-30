@@ -1,0 +1,92 @@
+name: QA bars (long history)
+
+# Long-history BID bar sets for chart QA (tools/fx_scanner/qa_bars.py): the owner checks ZoneVision on MT5 (Pepperstone)
+# with long histories, the published scan keeps ~80 bars per TF, so a QA render needs these to show the same window.
+# OANDA (practice by default, vars.OANDA_ENV) is only reachable from Actions. Paged from / to (OANDA: 5000 candles per
+# request max). Candles: price=BA, the BID side kept (scanner convention: MT5 charts plot bid), aligned like the
+# scanner (alignmentTimezone=America/New_York, dailyAlignment=17, weeklyAlignment=Friday) = Pepperstone server time
+# (GMT+2 / GMT+3, 00:00 = 17:00 New York), labelled in server time. Ranges: MN since 2005, W1 since 2015, D1 since 2018,
+# H4 2 years, H1 6 months, M15 6 weeks.
+# Output: qa/bars/<SYM>/<TF>.json + qa/bars/index.json on the `data` branch (scripts/data-branch.sh; `pull` skips it).
+# Read it with scripts/qa-bars.ts loadQaBars(sym, tf) from a local checkout of the data branch.
+on:
+  workflow_dispatch:
+    inputs:
+      syms:
+        description: 'MT5 symbols (comma separated; empty = all 11)'
+        type: string
+        default: ''
+      tfs:
+        description: 'Timeframes (MN,W1,D1,H4,H1,M15; empty = all)'
+        type: string
+        default: ''
+
+permissions:
+  contents: write                 # qa/bars on the data branch
+
+concurrency:
+  group: qa-bars
+  cancel-in-progress: false
+
+jobs:
+  qa-bars:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      OANDA_ENV: ${{ vars.OANDA_ENV || 'practice' }}
+      PYTHONTZPATH: ''
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Current time-zone data
+        run: python -m pip install --quiet --upgrade tzdata
+
+      - name: Unit tests
+        run: python -m unittest discover -s tools/fx_scanner/tests -p test_qa_bars.py
+
+      - name: Keep the other bar sets (partial run)
+        if: ${{ github.event.inputs.syms != '' || github.event.inputs.tfs != '' }}
+        run: |
+          if git fetch -q --depth=1 origin data && git cat-file -e FETCH_HEAD:qa/bars 2>/dev/null; then
+            git archive --format=tar FETCH_HEAD -- qa/bars | tar -xf -
+          fi
+
+      - name: Fetch the bars
+        run: |
+          ARGS=()
+          if [ -n "$SYMS" ]; then ARGS+=(--syms "$SYMS"); fi
+          if [ -n "$TFS" ]; then ARGS+=(--tfs "$TFS"); fi
+          python tools/fx_scanner/qa_bars.py --out qa/bars "${ARGS[@]}"
+        env:
+          SYMS: ${{ github.event.inputs.syms }}
+          TFS: ${{ github.event.inputs.tfs }}
+          OANDA_API_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
+
+      - name: Summary
+        if: ${{ !cancelled() && hashFiles('qa/bars/index.json') != '' }}
+        run: |
+          python - <<'EOF' | tee -a "$GITHUB_STEP_SUMMARY"
+          import json
+          ix = json.load(open('qa/bars/index.json'))
+          tfs = ['MN', 'W1', 'D1', 'H4', 'H1', 'M15']
+          print(f"### QA bars ({ix['price']}, {ix['source']}, {ix['generated']})\n")
+          print('| sym | ' + ' | '.join(tfs) + ' |')
+          print('|---' * (len(tfs) + 1) + '|')
+          for s, e in ix['symbols'].items():
+              cell = lambda t: (f"{e['tfs'][t]['n']} · {e['tfs'][t]['first'][:10]} → {e['tfs'][t]['last'][:16]}" if t in e['tfs'] else '—')
+              print(f'| {s} | ' + ' | '.join(cell(t) for t in tfs) + ' |')
+          print(f"\nfiles: {sum(len(e['tfs']) for e in ix['symbols'].values())}, errors: {ix['errors'] or 'none'}")
+          EOF
+          du -sh qa/bars
+
+      - name: Publish to the data branch
+        if: ${{ !cancelled() && hashFiles('qa/bars/index.json') != '' }}
+        run: |
+          git config user.name "ramanfx-scanner[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bash scripts/data-branch.sh push "qa-bars: $(date -u +%Y-%m-%dT%H:%MZ)" qa/bars \
+            || { echo "::error::qa bars not pushed"; exit 1; }

@@ -10,8 +10,8 @@
 # Not app-affecting (bot data and code that never reaches dist/): the scanner / fx / movers / insiders JSON (served live
 # from GitHub's `data` branch through the vercel.json rewrites; the scheduled jobs commit there, never to main),
 # fundamentals (read by the bot from GitHub), tools/, supabase/, .github/,
-# docs/, unit tests. Keep this list in sync with APP_EXCLUDES in supabase/functions/trader-coach/appPaths.ts (a test
-# checks both).
+# docs/, qa/ (chart-QA bar sets, data branch only), unit tests. Keep this list in sync with APP_EXCLUDES in
+# supabase/functions/trader-coach/appPaths.ts (a test checks both).
 EXCLUDES=(
   ':(exclude)public/fx'
   ':(exclude)public/scanner'
@@ -22,6 +22,7 @@ EXCLUDES=(
   ':(exclude)supabase'
   ':(exclude).github'
   ':(exclude)docs'
+  ':(exclude)qa'
   ':(glob,exclude)src/**/*.test.ts'
   ':(glob,exclude)src/**/*.test.tsx'
 )
