@@ -1114,9 +1114,10 @@ def blocked_summary(rows: List[Dict], pct: float = DIAG_PCT, n: int = CLOSEST_N)
 
 def run(universe: List[Dict], get_bars, get_cf, get_earnings, holdings: List[Dict], today: Optional[str] = None,
         log=print, watchlist: Optional[List[str]] = None, now: Optional[dt.datetime] = None,
-        feeds: Tuple[str, ...] = ()) -> Dict:
+        feeds: Tuple[str, ...] = (), arrivals=None) -> Dict:
     """Scan every ticker. get_bars(sym) -> (daily bars, meta); get_cf(cik) -> companyfacts or None;
-    get_earnings(sym) -> ISO date or None. Returns the full result (holdings details included)."""
+    get_earnings(sym) -> ISO date or None. Returns the full result (holdings details included). arrivals = a
+    stock_arrivals.Collector: every universe ticker's analysis is handed to it (Raja arrival / realignment alerts)."""
     import data as DATA
     import fundamentals as F
     raw_bars, dropped = get_bars, set()
@@ -1182,6 +1183,8 @@ def run(universe: List[Dict], get_bars, get_cf, get_earnings, holdings: List[Dic
         u0 = info.get(sym)
         an = analyse(bars, DATA.closed_htf(bars, 'W1'), DATA.closed_htf(bars, 'MN'))
         an.index = rfx
+        if arrivals is not None and sym in info:
+            arrivals.add(sym, an, wl=sym in watch)
         if sym in watch:
             walerts.extend(watch_alerts(sym, an, bars[-1]))
         u = info.get(sym, {'symbol': sym, 'name': sym, 'sector': '', 'cik': ''})
@@ -1590,8 +1593,11 @@ def main(argv=None) -> int:
     watchlist = sorted(set(load_watchlist()) | set(extra))
     if extra:
         log(f'prefs: {len(extra)} extra watch ticker(s) merged: {", ".join(extra[:10])}')
+    import stock_arrivals as SA
+    arrivals = None if (a.ondemand or a.tickers) else SA.Collector(os.path.join(a.out, 'arrivals.json'))
     res = run(uni_all, get_bars, lambda c: F.cached_base(c)[0] if c else None,
-              (lambda s: None) if a.offline else DATA.fetch_earnings, holdings, log=log, watchlist=watchlist, feeds=feeds)
+              (lambda s: None) if a.offline else DATA.fetch_earnings, holdings, log=log, watchlist=watchlist, feeds=feeds,
+              arrivals=arrivals)
     tp = phase('analyse', tp)
     if a.ondemand:
         return ondemand_send(notify, ondemand_messages(res, sorted({u['symbol'] for u in uni}), notify), a.no_notify, log)
@@ -1661,6 +1667,13 @@ def main(argv=None) -> int:
                     json.dump(fired_before, fh)
     except Exception as e:  # noqa: BLE001
         log(f'notify failed: {type(e).__name__}')
+    if arrivals is not None:                             # Raja arrival / realignment alerts (own state, own day cap)
+        try:
+            if not a.offline:
+                arrivals.intraday(lambda syms: DATA.alpaca_intraday(syms, log=log), us_eastern, log=log)
+            arrivals.finish(prefs, notify.send, notify=not a.no_notify, write=not a.no_write, log=log)
+        except Exception as e:  # noqa: BLE001
+            log(f'arrivals failed: {type(e).__name__}: {str(e)[:120]}')
     tp = phase('notify', tp)
     log(f"done in {time.time() - t0:.0f}s: {res['scanned']} scanned, {len(res.get('uncovered') or [])} uncovered (TSX feed off), "
         f"{len(res['errors'])} without data{' (PARTIAL: time budget spent)' if res.get('partial') else ''}; "

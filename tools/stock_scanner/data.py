@@ -18,7 +18,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 from zones import Bar
 
@@ -353,16 +353,16 @@ def reset_alpaca_state() -> None:
         _feed = None
 
 
-def alpaca_url(symbols: List[str], start: str, end: str, feed: str, page_token: str = '') -> str:
-    q = {'symbols': ','.join(symbols), 'timeframe': '1Day', 'start': start, 'end': end, 'adjustment': ADJUSTMENT,
+def alpaca_url(symbols: List[str], start: str, end: str, feed: str, page_token: str = '', timeframe: str = '1Day') -> str:
+    q = {'symbols': ','.join(symbols), 'timeframe': timeframe, 'start': start, 'end': end, 'adjustment': ADJUSTMENT,
          'feed': feed, 'limit': str(ALPACA_LIMIT), 'sort': 'asc'}
     if page_token:
         q['page_token'] = page_token
     return ALPACA_BARS + '?' + urllib.parse.urlencode(q, safe=',:')
 
 
-def parse_alpaca(raw: bytes) -> Tuple[Dict[str, List[Bar]], str]:
-    """({symbol: bars}, next_page_token) of one page of /v2/stocks/bars."""
+def parse_alpaca(raw: bytes, intraday: bool = False) -> Tuple[Dict[str, List[Bar]], str]:
+    """({symbol: bars}, next_page_token) of one page of /v2/stocks/bars (intraday: Bar.d = 'YYYY-MM-DDTHH:MM' UTC)."""
     js = json.loads(raw)
     out: Dict[str, List[Bar]] = {}
     for sym, rows in (js.get('bars') or {}).items():
@@ -373,7 +373,7 @@ def parse_alpaca(raw: bytes) -> Tuple[Dict[str, List[Bar]], str]:
                 continue
             if c <= 0:
                 continue
-            out.setdefault(sym, []).append(Bar(str(r['t'])[:10], o, h, l, c, float(r.get('v') or 0)))
+            out.setdefault(sym, []).append(Bar(str(r['t'])[:16 if intraday else 10], o, h, l, c, float(r.get('v') or 0)))
     return out, js.get('next_page_token') or ''
 
 
@@ -418,6 +418,36 @@ def alpaca_bars(symbols: List[str], start: str, end: str, log=None) -> Dict[str,
         if e.code in (401, 403):            # keys rejected (or no data permission at all): stop using Alpaca now
             report_bad(ALPACA_BARS, trip=True)
         raise
+    return {back[k]: dedupe(v) for k, v in got.items() if k in back}
+
+
+def alpaca_intraday(symbols: List[str], timeframe: str = '1Hour', days: int = 120, log=None,
+                    get: Optional[Callable[[str], bytes]] = None) -> Dict[str, List[Bar]]:
+    """Intraday bars (Bar.d = UTC 'YYYY-MM-DDTHH:MM') of a FEW symbols from Alpaca's IEX feed (free plan; the arrival
+    alerts' W1 -> H4 confirmations only). Best effort: {} without keys or on any error (logged)."""
+    if not symbols or not alpaca_keys():
+        return {}
+    import datetime as _dt
+    end = _dt.datetime.now(_dt.timezone.utc)
+    start = (end - _dt.timedelta(days=days)).strftime('%Y-%m-%dT%H:%M:%SZ')
+    stop = (end - _dt.timedelta(minutes=16)).strftime('%Y-%m-%dT%H:%M:%SZ')   # free plan: no bars of the last 15 min
+    back = {alpaca_symbol(s): s for s in symbols}
+    got: Dict[str, List[Bar]] = {}
+    try:
+        token = ''
+        while True:
+            url = alpaca_url(sorted(back), start, stop, 'iex', token, timeframe)
+            raw = get(url) if get else http_get(url, headers=_alpaca_headers(), accept='application/json', expect=looks_json,
+                                                retries=2, max_retry_after=ALPACA_MAX_WAIT)
+            page, token = parse_alpaca(raw, intraday=True)
+            for k, v in page.items():
+                got.setdefault(k, []).extend(v)
+            if not token:
+                break
+    except Exception as e:  # noqa: BLE001
+        if log:
+            log(f'alpaca intraday unavailable ({type(e).__name__}): no H4 confirmations this run')
+        return {}
     return {back[k]: dedupe(v) for k, v in got.items() if k in back}
 
 

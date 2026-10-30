@@ -416,6 +416,30 @@ describe('GitHub workflow scheduler', () => {
     expect(y).toContain('bash scripts/data-branch.sh push "insiders: $(date -u +%Y-%m-%dT%H:%MZ)" public/insiders');
   });
 
+  it('realign: every 15-min close of the forex week, one slot each, no inputs; backup cron on the workflow', () => {
+    const wed = [...ticks('2026-10-28T00:00:00Z', 24)].filter(([k]) => k.startsWith('realign:'));
+    expect(wed).toHaveLength(96);                                               // 4 per hour, every slot reached by a tick
+    expect(wed[0]).toEqual(['realign:2026-10-28T00:00', '2026-10-28T00:00']);
+    expect(wed[1]).toEqual(['realign:2026-10-28T00:15', '2026-10-28T00:20']);
+    const due = dueDispatches(at('2026-10-28T14:40:00Z')).find(d => d.wf === 'realign.yml')!;
+    expect(due.slot).toBe('realign:2026-10-28T14:30');
+    expect(due.since).toBe(at('2026-10-28T14:30:00Z'));
+    expect(JSON.parse(String(dispatchRequest(due, 't').init.body))).toEqual({ ref: 'main', inputs: {} });
+    expect(covered(due, at('2026-10-28T14:33:00Z'))).toBe(true);
+    expect(covered(due, at('2026-10-28T14:29:00Z'))).toBe(false);
+    // forex week only: the Friday 17:00 New York close is the last slot, the Sunday 17:15 close the first (EDT / EST)
+    expect(wfs('2026-10-30T21:05:00Z')).toContain('realign.yml realign:2026-10-30T21:00');
+    expect(wfs('2026-10-30T21:20:00Z').some(x => x.startsWith('realign'))).toBe(false);
+    expect([...ticks('2026-10-31T00:00:00Z', 24).keys()].some(k => k.startsWith('realign:'))).toBe(false);   // Saturday
+    expect(wfs('2026-11-01T22:10:00Z').some(x => x.startsWith('realign'))).toBe(false);                      // 17:10 EST
+    expect(wfs('2026-11-01T22:20:00Z')).toContain('realign.yml realign:2026-11-01T22:15');
+    const y = readFileSync('.github/workflows/realign.yml', 'utf8');
+    expect(y).toContain("cron: '3,18,33,48 * * * 1-5'");
+    expect(y).toContain('python tools/fx_scanner/realign.py');
+    expect(y).toContain('bash scripts/data-branch.sh push "realign: $(date -u +%Y-%m-%dT%H:%MZ)" public/fx/realign.json');
+    expect(readFileSync('.github/workflows/fx-scan.yml', 'utf8')).toContain('--keep public/fx/backtest.json public/fx/realign.json');
+  });
+
   it("the bot's on-demand scans never cover a scheduled slot", () => {
     const js = { workflow_runs: [
       { created_at: '2026-10-29T14:07:00Z', display_title: 'FX on-demand scan EURUSD' },

@@ -167,4 +167,4 @@ jobs:
         run: |
           git config user.name "ramanfx-scanner[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          bash scripts/data-branch.sh push "fx: scan $(date -u +%Y-%m-%dT%H:%MZ)" public/fx --keep public/fx/backtest.json
+          bash scripts/data-branch.sh push "fx: scan $(date -u +%Y-%m-%dT%H:%MZ)" public/fx --keep public/fx/backtest.json public/fx/realign.json

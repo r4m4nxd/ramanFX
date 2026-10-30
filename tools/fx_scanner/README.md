@@ -273,6 +273,23 @@ per instrument (H1 at most every 30 min, D1 every 4 h), synthetic none (legs alr
   message per day, nothing published, the run is red. A candle off the server-time grid (H4 / D1 / W1 not on a
   boundary, MN more than 12 h off the 1st) drops that instrument for the run (`fxcfg.Misaligned`).
 
+### Raja arrival / realignment alerts (`fxarrival.py`, `realign.py`, rules in `stock_scanner/arrival.py`)
+
+The owner-approved arrival rules, ported 1:1 from the bot chart's `supabase/functions/telegram-bot/arrival.ts` /
+`zvTrend.ts` (parity: `tools/telegram_bot/parity/arrival_fixtures.json`, `stock_scanner/tests/test_arrival.py`).
+Three calm alerts, at most 8 messages a Calgary day over the FX, realignment and stock jobs together, one message
+per kind per run, mutes / quiet hours / the guests' markets honoured, [📊 Chart] [🔎 Zones] buttons:
+- **⚡ New arrival zone** (hourly scan, 3M / MN / W1 / D1 / H4 / H1): a zone whose leg-out closed through the trend
+  line against it and removed 1 (2+ = strong) opposite zone, on the newest closed bar of that TF; target = the
+  realignment zone / nearest weak zone, capped by the higher-TF line (or extended to the HTF zone).
+- **🔁 Realignment watch** (hourly scan): price enters the TF's weak zone nearest the higher-TF line (once per arrival).
+- **✅ Confirmation**: a lower-TF arrival inside that area (W1 → H4, MN → D1, 3M → W1 in the hourly scan; H1 / H4 →
+  M15 and D1 → H1 in `realign.yml`, every 15 min, only for the areas price is in): entry, stop, target, R:R.
+State: `public/fx/arrivals.json` (this scan) and `public/fx/realign.json` (the 15-min job), on the `data` branch. The
+first run seeds the state and sends nothing. Dry run on the published bars: `python3 tools/fx_scanner/fxarrival.py
+--dir public/fx` (stocks: `python3 tools/stock_scanner/stock_arrivals.py --dir public/scanner`); the 15-min job:
+`python3 tools/fx_scanner/realign.py --dry-run` (or the workflow's `dry_run` input).
+
 Preview without sending: `python3 tools/fx_scanner/fxscan.py --preview-telegram` (alert, H4 check, daily summary of
 `public/fx/latest.json`; `--preview-from tools/fx_scanner/fixtures/sample/latest.json` for a busy day).
 
@@ -287,6 +304,7 @@ Preview without sending: `python3 tools/fx_scanner/fxscan.py --preview-telegram`
 | `fxcore.py` | the rules (zones.py on the FX chain), signals, lists, checks |
 | `fxnotify.py` | Telegram cards, alerts, the daily summary (uses the stock scanner's sender) |
 | `fxscan.py` | CLI, run, outputs, events / dedupe, USDX, `--selftest`, `--preview-telegram` |
+| `fxarrival.py`, `realign.py` | Raja arrival / realignment alerts (hourly pass; the 15-minute confirmation job `realign.yml`) |
 | `SCHEMA.md` | the `public/fx/*.json` contract used by the app |
 | `instruments.json` | fallback instrument list (`instruments`) + the extra-source mapping (`extra`) |
 | `fixtures/` | synthetic H4 generator (+ H1 split), textbook chain, `sample/` = selftest output (app demo data) |

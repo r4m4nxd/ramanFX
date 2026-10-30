@@ -9,6 +9,9 @@
 //   (FX, crypto, stocks; stock 1D / 1W ride with the 17:00 New York slot) and dedupes per close itself.
 //   fundamentals.yml: input scheduled=true (skips when today's files are built), weekdays 18:00-19:00 New York.
 //   insiders.yml: no inputs, every 30 min on weekdays 6:00-20:00 New York (SEC Form 4 insider buys; dedupes itself).
+//   realign.yml: no inputs, every 15 min in the forex week (one slot per 15-min close): the Raja realignment
+//   confirmations on 15-min / 1-hour candles; it reads the open areas of the hourly FX scan and ends in seconds when
+//   price is in none of them.
 // The bot's on-demand scans (run name 'FX on-demand scan SYM' / 'Stock on-demand scan SYM') never cover a slot.
 // Pure: no Deno, no network (tests: src/core/traderCoach.test.ts).
 import { calParts } from './core.ts';
@@ -16,7 +19,7 @@ import { calParts } from './core.ts';
 export const REPO = 'r4m4nxd/ramanFX';
 export interface Dispatch {
   /** Workflow file in .github/workflows. */
-  wf: 'fx-scan.yml' | 'stock-scan.yml' | 'briefing.yml' | 'reminders.yml' | 'movers.yml' | 'fundamentals.yml' | 'insiders.yml';
+  wf: 'fx-scan.yml' | 'stock-scan.yml' | 'briefing.yml' | 'reminders.yml' | 'movers.yml' | 'fundamentals.yml' | 'insiders.yml' | 'realign.yml';
   /** Dedupe key: one dispatch per slot (rfx_coach_events 'dispatch:<slot>'). */
   slot: string;
   /** Slot start (UTC ms): a GitHub run created at or after this already covers the slot. */
@@ -49,6 +52,9 @@ export function fxBarCloses(closeMs: number): boolean {
 /** Minutes after each H1 close in which the coach dispatches the FX scan (two 10-min ticks land in it). */
 export const FX_WINDOW: [number, number] = [5, 25];
 
+/** Realignment check slot length: one dispatch per 15-min candle close. */
+export const REALIGN_MS = 15 * 60000;
+
 export function dueDispatches(nowUtc: number): Dispatch[] {
   const out: Dispatch[] = [];
   const t = new Date(nowUtc);
@@ -68,6 +74,10 @@ export function dueDispatches(nowUtc: number): Dispatch[] {
       out.push({ wf: 'fx-scan.yml', slot: `fxc:${new Date(close).toISOString().slice(0, 13)}`, since: close, inputs: { scheduled: 'true' } });
     }
   }
+
+  // Realignment check: every 15-min close of the forex week (each 15-min slot gets one or two 10-min ticks).
+  const q = nowUtc - (nowUtc % REALIGN_MS);
+  if (fxBarCloses(q)) out.push({ wf: 'realign.yml', slot: `realign:${new Date(q).toISOString().slice(0, 16)}`, since: q, inputs: {} });
 
   // Stocks: weekdays (New York), 30 min after the 16:00 NY close (20:30 UTC in summer, 21:30 UTC in winter), and a
   // second try 3 h later (the scan's 'already scanned today' check makes it a no-op when the first one ran).

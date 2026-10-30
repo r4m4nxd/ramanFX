@@ -1,0 +1,75 @@
+name: Realignment check
+
+# Raja realignment confirmations on the low timeframes (tools/fx_scanner/realign.py): every 15 minutes in the forex week
+# (Sunday 17:00 -> Friday 17:00 New York). The hourly FX scan keeps the open realignment areas in public/fx/arrivals.json
+# and flags the ones price is in; this job checks ONLY those whose lower TF is 15-min (4-hour areas) or 1-hour (daily
+# areas), one OANDA request each (no area inside -> no OANDA call, the run ends in seconds), and sends the ✅
+# Confirmation (the A+ trade) when a lower-TF arrival zone formed inside the area. State + the shared 8-a-day cap:
+# public/fx/realign.json on the `data` branch (scripts/data-branch.sh, .github/workflows/README.md); fx-scan keeps it
+# (--keep). The trader-coach edge function's 10-minute scheduler (supabase/functions/trader-coach/scheduler.ts) dispatches
+# each 15-minute slot (GitHub drops many scheduled runs); the cron below is the backup.
+# dry_run=true prints the would-be messages and sends / writes nothing.
+on:
+  schedule:
+    - cron: '3,18,33,48 * * * 1-5'
+    - cron: '3,18,33,48 21-23 * * 0'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Print the would-be confirmations; send and write nothing'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write                 # public/fx/realign.json on the data branch
+
+concurrency:
+  group: realign
+  cancel-in-progress: false
+
+jobs:
+  realign:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      OANDA_ENV: ${{ vars.OANDA_ENV || 'practice' }}
+      PYTHONTZPATH: ''
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Data from the data branch
+        run: bash scripts/data-branch.sh pull
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Current time-zone data
+        run: python -m pip install --quiet --upgrade tzdata
+
+      - name: Unit tests
+        run: |
+          python -m unittest discover -s tools/fx_scanner/tests -p test_realign.py
+          python -m unittest discover -s tools/stock_scanner/tests -p test_arrival.py
+
+      - name: Realignment check
+        timeout-minutes: 6
+        run: |
+          ARGS=()
+          if [ "$DRY_RUN" = "true" ]; then ARGS+=(--dry-run); fi
+          python tools/fx_scanner/realign.py "${ARGS[@]}"
+        env:
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+          OANDA_API_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+      - name: Publish to the data branch
+        if: ${{ !cancelled() && github.event.inputs.dry_run != 'true' && hashFiles('public/fx/realign.json') != '' }}
+        run: |
+          git config user.name "ramanfx-scanner[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bash scripts/data-branch.sh push "realign: $(date -u +%Y-%m-%dT%H:%MZ)" public/fx/realign.json \
+            || { echo "::error::realign state not pushed"; exit 1; }

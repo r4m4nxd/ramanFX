@@ -47,7 +47,7 @@ DIR_CHAIN = {'H1': ('H1', 'H4', 'D1', 'W1'), 'H4': ('H4', 'D1', 'W1', 'MN'), 'D1
 # location; enter on D1 / H4 / H1). A W1 / MN zone that passes every rule is a WATCH 'area' (drill down to D1 / H4).
 SIGNAL_TFS = ('H1', 'H4', 'D1')
 LOW_TFS = ('H1', 'H4', 'D1')                            # pips are meaningful (trendline distance), Raja's 'low TFs'
-GRAN = {'H1': 'H1', 'H4': 'H4', 'D1': 'D', 'W1': 'W', 'MN': 'M'}   # OANDA granularity
+GRAN = {'M15': 'M15', 'H1': 'H1', 'H4': 'H4', 'D1': 'D', 'W1': 'W', 'MN': 'M'}   # OANDA granularity (M15: realign.py only)
 TF_HOURS = {'H1': 1, 'H4': 4, 'D1': 24, 'W1': 168}
 # Stops: distal + % of the zone height per TF (owner's rule, extended to the FX chain). H1 20 = one step looser than
 # H4 15 (an H1 zone is thin: the same wick noise is a bigger share of its height); owner to confirm.
@@ -255,7 +255,9 @@ def label(utc_s: str, tf: str, strict: bool = True) -> str:
     t = fx_time(parse_utc(utc_s))
     if strict:
         off = None
-        if tf == 'H1' and (t.minute or t.second):
+        if tf == 'M15' and (t.minute % 15 or t.second):
+            off = 'M15'
+        elif tf == 'H1' and (t.minute or t.second):
             off = 'H1'
         elif tf == 'H4' and (t.minute or t.second or t.hour % 4):
             off = 'H4'
@@ -282,6 +284,9 @@ def label(utc_s: str, tf: str, strict: bool = True) -> str:
         return d.isoformat() + 'T00:00'
     if tf == 'D1':
         return (t + dt.timedelta(hours=12)).date().isoformat() + 'T00:00'
+    if tf == 'M15':                                       # the realignment check (realign.py) only
+        t = t + dt.timedelta(minutes=7)
+        return t.replace(minute=t.minute - t.minute % 15, second=0).strftime('%Y-%m-%dT%H:%M')
     t = t + dt.timedelta(minutes=30)
     if tf == 'H1':
         return t.replace(minute=0).strftime('%Y-%m-%dT%H:%M')

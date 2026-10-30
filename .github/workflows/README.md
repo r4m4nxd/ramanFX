@@ -46,9 +46,10 @@ steps:
 
 | Workflow | Trigger | Pushes to `data` | Reads back (from `data`) |
 | --- | --- | --- | --- |
-| `fx-scan.yml` | every 10 min (+ coach) | `public/fx` (keeps `backtest.json`) | `public/fx/state.json`, `latest.json`, `d/*` (crypto merge) |
+| `fx-scan.yml` | every 10 min (+ coach) | `public/fx` (keeps `backtest.json`, `realign.json`; incl. `arrivals.json`: the Raja arrival alerts' state + open realignment areas) | `public/fx/state.json`, `latest.json`, `d/*` (crypto merge), `arrivals.json`, `realign.json` |
+| `realign.yml` | every 15 min in the forex week (+ coach) | `public/fx/realign.json` (the M15 / H1 confirmations sent) | `public/fx/arrivals.json` (areas price is in), `public/scanner/arrivals.json` (shared daily cap) |
 | `movers.yml` | hourly (+ coach) | `public/movers` | `public/fx/latest.json`, `public/scanner/{latest,index,t/*}.json` |
-| `stock-scan.yml` | weekdays after the close | `public/scanner` (keeps `backtest.json`), `tools/stock_scanner/{universe,top_liquid}.csv` | `public/scanner/latest.json` (already scanned?), `universe.csv`, `public/fx/latest.json` |
+| `stock-scan.yml` | weekdays after the close | `public/scanner` (keeps `backtest.json`; incl. `arrivals.json`: stock arrival alerts' state), `tools/stock_scanner/{universe,top_liquid}.csv` | `public/scanner/latest.json` (already scanned?), `universe.csv`, `public/fx/latest.json` |
 | `fundamentals.yml` | nightly | `public/fundamentals` | `public/fundamentals/stocks.json`, `public/fx/latest.json`, `public/scanner/index.json`, `universe.csv`, `tools/reminders/events.json` |
 | `briefing.yml` | weekday mornings | `tools/briefing/state.json` | that state, `public/fx/d/*`, `public/scanner/*`, `public/fundamentals/stocks.json`, `tools/reminders/events.json` |
 | `reminders.yml` | weekday ticks | `tools/reminders/{events,state}.json` | the same |

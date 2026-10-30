@@ -35,6 +35,7 @@ for _p in (HERE, STOCK, os.path.join(HERE, 'fixtures')):
 
 import data as SD  # noqa: E402
 import fxcfg as C  # noqa: E402
+import fxarrival as FA  # noqa: E402  (Raja arrival / realignment alerts)
 import fxcore as F  # noqa: E402
 import fxnotify as N  # noqa: E402
 import kevin as K  # noqa: E402
@@ -1034,6 +1035,8 @@ def main(argv=None) -> int:
         per_sym = alert_inputs(res)
         to_guests(prefs, lambda g, fo: guest_messages(g, ev, h4, h1, pub, per_sym, new_state['fired_alerts'], fo, bootstrap,
                                                       bool(summary), digest, bool(h1)), 'FX scan')
+    if not a.only:                                       # Raja arrival / realignment alerts (own state, own day cap)
+        FA.run(res, prefs, N.send, notify=notify, write=not a.no_write)
     if a.only:
         new_state['last_h4'] = state.get('last_h4')        # a partial run never marks the H1 / H4 bar as scanned
         new_state['last_h1'] = state.get('last_h1')
