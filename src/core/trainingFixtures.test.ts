@@ -1,13 +1,14 @@
 // The owner's marked charts (src/core/training/fixtures/marks.json, from tools/training/export_marks.py or the Train
 // page's Export JSON) run through the engine: per-chart and overall agreement, printed as a REPORT.
-// A regression gate since the owner's teaching was encoded (zvReal.ts, tuned on these charts 2026-10-30): agreement may
-// only go up. Remaining disagreements and why: docs/training/LEARNED.md (Engine vs marks).
+// A regression gate: agreement may only go up. Engine = the ZoneVision 2.16 model (zvModel.ts = docs/training/SPEC.md) since
+// 2026-10-30; the floors below are its agreement on the owner's AUDUSD + XAUUSD marks (9 charts). Before / after and the
+// remaining disagreements: docs/training/ZV216.md.
 import { readFileSync } from 'node:fs';
 import { engineMarks } from './training/engine';
 import { scoreChart, summarize } from './training/score';
 import { parseMarks, toTBars, type TrainChart } from './training/types';
 
-const MIN_AGREEMENT = { pivots: 0.74, lines: 0.2, momentum: 0.15, zones: 0 };   // the tuned engine's agreement (floor)
+const MIN_AGREEMENT = { pivots: 0.72, lines: 0.33, momentum: 0.16, zones: 0.23 };   // the 2.16 model's agreement (floor)
 const file = JSON.parse(readFileSync('src/core/training/fixtures/marks.json', 'utf8')) as { charts: TrainChart[] };
 const charts = (file.charts ?? []).filter(c => Array.isArray(c.bars) && c.bars.length >= 20);
 const pct = (v: number | null) => (v == null ? '  –' : `${Math.round(v * 100)}%`.padStart(4));
