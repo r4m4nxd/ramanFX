@@ -4,9 +4,15 @@ name: Arrival study
 # OANDA FX history + ~100 liquid scanner stocks (Alpaca), limit entry / stop rule / plan target, plus the realignment +
 # lower-TF confirmation trades. Manual only. Writes docs/research/arrival_study/ (report, trades.json, PNG charts) to
 # the `data` branch (never main: the owner decides) and uploads it as an artifact. Stdlib + matplotlib for the charts.
+# round = 2: tools/research/arrival_study/round2.py (Kevin's real calls back-tested on M5, arrivals on finer bars with
+# management variants, LTF confirmation entries, every-zone control, walk-forward) -> docs/research/arrival_study/round2/.
 on:
   workflow_dispatch:
     inputs:
+      round:
+        description: 'Study round (1 = arrival study, 2 = Kevin calls + filters / management / LTF confirmation)'
+        required: false
+        default: '1'
       fx:
         description: 'First N FX instruments (0 = every scanned instrument)'
         required: false
@@ -53,9 +59,12 @@ jobs:
             fx-bt-
 
       - name: Arrival unit tests
-        run: python -m unittest discover -s tools/stock_scanner/tests -p 'test_arrival.py'
+        run: |
+          python -m unittest discover -s tools/stock_scanner/tests -p 'test_arrival.py'
+          python -m unittest discover -s tools/research/arrival_study/tests
 
       - name: Study
+        if: ${{ github.event.inputs.round != '2' }}
         timeout-minutes: 300
         run: |
           python tools/research/arrival_study/study.py --fx "${IN_FX:-0}" --stocks "${IN_STOCKS:-100}" --budget-min 240 \
@@ -67,6 +76,18 @@ jobs:
           FX_WATCHLIST: ${{ secrets.FX_WATCHLIST }}
           IN_FX: ${{ github.event.inputs.fx }}
           IN_STOCKS: ${{ github.event.inputs.stocks }}
+
+      - name: Study, round 2
+        if: ${{ github.event.inputs.round == '2' }}
+        timeout-minutes: 300
+        run: |
+          python tools/research/arrival_study/round2.py --fx "${IN_FX:-0}" --budget-min 240 \
+            --out docs/research/arrival_study/round2 --dump "$RUNNER_TEMP/round2_rows.json.gz"
+          cp "$RUNNER_TEMP/round2_rows.json.gz" docs/research/arrival_study/round2/ 2>/dev/null || true
+        env:
+          OANDA_API_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
+          FX_WATCHLIST: ${{ secrets.FX_WATCHLIST }}
+          IN_FX: ${{ github.event.inputs.fx }}
 
       - name: Save candle cache
         if: ${{ always() && hashFiles('tools/fx_scanner/.cache/**') != '' }}
@@ -84,9 +105,19 @@ jobs:
           if-no-files-found: ignore
 
       - name: Commit results
-        if: ${{ !cancelled() && hashFiles('docs/research/arrival_study/Arrival_Study.md') != '' }}
+        if: ${{ !cancelled() && github.event.inputs.round != '2' && hashFiles('docs/research/arrival_study/Arrival_Study.md') != '' }}
         run: |
           git config user.name "ramanfx-scanner[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           bash scripts/data-branch.sh push "research: arrival study $(date -u +%Y-%m-%dT%H:%MZ)" docs/research/arrival_study \
+            || { echo "::error::results not pushed (see the uploaded artifact)"; exit 1; }
+
+      # Round 2: only its own folder (the per-setup dump stays in the artifact).
+      - name: Commit round-2 results
+        if: ${{ !cancelled() && github.event.inputs.round == '2' && hashFiles('docs/research/arrival_study/round2/Round2_data.md') != '' }}
+        run: |
+          rm -f docs/research/arrival_study/round2/round2_rows.json.gz
+          git config user.name "ramanfx-scanner[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bash scripts/data-branch.sh push "research: arrival study round 2 $(date -u +%Y-%m-%dT%H:%MZ)" docs/research/arrival_study/round2 \
             || { echo "::error::results not pushed (see the uploaded artifact)"; exit 1; }
