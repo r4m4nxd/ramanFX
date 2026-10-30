@@ -2,7 +2,7 @@
 
 Generated 2026-10-30 16:11 UTC by `tools/research/arrival_study/round2.py` (GitHub Actions, OANDA practice). 115 FX / CFD instruments (OANDA), runtime 8 min.
 
-<!--ANSWER-->
+The plain-English answer, the recommended rules and the alert changes are in [Round2.md](Round2.md); this file is the generated evidence (every table), rebuilt on each run.
 
 ## 1. Kevin's real calls, back-tested
 
