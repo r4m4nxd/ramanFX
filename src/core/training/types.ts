@@ -11,7 +11,11 @@ export type PivotKind = 'peak' | 'valley';
 export interface MPivot { i: number; kind: PivotKind; p: number; note?: string }
 export interface Anchor { i: number; p: number }
 /** Trend line from anchor a (older) to b (newer); brk = the bar whose CLOSE went beyond it (the line stops there). */
-export interface MLine { id: string; a: Anchor; b: Anchor; dir: 1 | -1; brk: number | null; note?: string }
+export type LineKind = 'trend' | 'momentum';
+/** kind: a TREND line (both anchors real pivots) or a MOMENTUM line (from a leg's extreme along its impulse; its break
+ *  ends the impulse, not the trend). Older marks without kind: note 'momentum line' = momentum, else trend. */
+export interface MLine { id: string; a: Anchor; b: Anchor; dir: 1 | -1; brk: number | null; note?: string; kind?: LineKind }
+export const lineKind = (l: Pick<MLine, 'kind' | 'note'>): LineKind => (l.kind === 'momentum' || (!l.kind && /momentum/i.test(l.note ?? '')) ? 'momentum' : 'trend');
 /** Zone from its base candles s..e (s = start, the box extends right from there); proximal / distal prices. */
 export interface MZone { id: string; side: 'demand' | 'supply'; s: number; e: number; prox: number; dist: number; note?: string; /** engine: removed at this bar */ end?: number | null }
 export interface Marks { v: 1; pivots: MPivot[]; lines: MLine[]; zones: MZone[] }
@@ -42,7 +46,7 @@ export function parseMarks(js: unknown): Marks {
   const n = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
   const pivots = (Array.isArray(o.pivots) ? o.pivots : []).filter(p => p && n(p.i) && n(p.p) && (p.kind === 'peak' || p.kind === 'valley'));
   const lines = (Array.isArray(o.lines) ? o.lines : []).filter(l => l && l.a && l.b && n(l.a.i) && n(l.a.p) && n(l.b.i) && n(l.b.p))
-    .map(l => ({ ...l, id: String(l.id ?? `${l.a.i}-${l.b.i}`), dir: (l.b.p >= l.a.p ? 1 : -1) as 1 | -1, brk: n(l.brk) ? l.brk : null }));
+    .map(l => ({ ...l, id: String(l.id ?? `${l.a.i}-${l.b.i}`), dir: (l.b.p >= l.a.p ? 1 : -1) as 1 | -1, brk: n(l.brk) ? l.brk : null, kind: lineKind(l) }));
   const zones = (Array.isArray(o.zones) ? o.zones : []).filter(z => z && n(z.s) && n(z.e) && n(z.prox) && n(z.dist) && (z.side === 'demand' || z.side === 'supply'))
     .map(z => ({ ...z, id: String(z.id ?? `${z.side}-${z.s}`) }));
   return { v: 1, pivots, lines, zones };

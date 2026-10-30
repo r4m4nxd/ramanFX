@@ -7,7 +7,7 @@ import { CLASS_LABEL, CLASS_ORDER, deleteChart, listCharts, loadBars, loadSymbol
 import { engineMarks } from '@/core/training/engine';
 import { scoreChart, summarize, type ChartScore, type TypeScore } from '@/core/training/score';
 import { firstCloseBreak, labelPivots, lineCuts, atrSeries, regimeOf, zoneEdges, zoneRemovedAt } from '@/core/training/structure';
-import { barsHash, emptyMarks, fromTBars, toTBars, TRAIN_TFS, type Marks, type MLine, type MPivot, type MZone, type TBar, type TrainChart, type TrainExport, type TrainTf } from '@/core/training/types';
+import { barsHash, emptyMarks, fromTBars, lineKind, toTBars, TRAIN_TFS, type Marks, type MLine, type MPivot, type MZone, type TBar, type TrainChart, type TrainExport, type TrainTf } from '@/core/training/types';
 
 type Tab = 'mark' | 'score';
 const pct = (v: number | null) => (v == null ? '–' : `${Math.round(v * 100)}%`);
@@ -346,6 +346,11 @@ function Selected({ bars, marks, id, onChange, onDone, onBreakTap }: { bars: TBa
           })}
           <div>Cuts {lineCuts(bars, ln, 0.05 * (atr[ln.b.i] || 0))} candle{lineCuts(bars, ln, 0.05 * (atr[ln.b.i] || 0)) === 1 ? '' : 's'} between the anchors (more than 0.05 ATR). Drag an anchor on the chart to move it.</div>
           <div className="flex flex-wrap items-center gap-2">
+            <span>Kind:</span>
+            <Segmented size="sm" label="Line kind" value={lineKind(ln)} onChange={v => setL({ ...ln, kind: v })} options={[{ value: 'trend', label: 'Trend' }, { value: 'momentum', label: 'Momentum' }]} />
+            <span className="text-ink3">{lineKind(ln) === 'momentum' ? 'From the extreme along the impulse; its break ends the impulse, not the trend.' : 'Both anchors are real pivots.'}</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
             <span>Break: {ln.brk == null ? 'none' : shortDate(bars[ln.brk].t)}</span>
             <button type="button" className="btn h-7 text-[12px]" onClick={() => onBreakTap(ln.id)}>Tap the break</button>
             {(() => { const a = firstCloseBreak(bars, ln); return a != null && a !== ln.brk ? <button type="button" className="btn h-7 text-[12px]" onClick={() => setL({ ...ln, brk: a })}>First close beyond ({shortDate(bars[a].t)})</button> : null; })()}
@@ -391,7 +396,7 @@ function MarkList({ marks, bars, onSelect }: { marks: Marks; bars: TBar[]; onSel
   return (
     <div className="flex flex-col gap-2 text-[12.5px]">
       {lab.length > 0 && <div><span className="label">Structure · {lab.length}</span><div className="flex flex-wrap gap-1.5 mt-1">{lab.map(({ p, label }) => <button key={`${p.i}${p.kind}`} type="button" className="chip" onClick={() => onSelect(`p${p.i}${p.kind}`)} title={p.note}>{label} {t(p.i)}{p.note ? ' ✎' : ''}</button>)}</div></div>}
-      {marks.lines.length > 0 && <div><span className="label">Trend lines · {marks.lines.length}</span><div className="flex flex-wrap gap-1.5 mt-1">{marks.lines.map(l => <button key={l.id} type="button" className="chip" onClick={() => onSelect(l.id)}>{l.dir > 0 ? '↗' : '↘'} {t(l.a.i)} → {t(l.b.i)}{l.brk != null ? ` × ${t(l.brk)}` : ''}{l.note ? ' ✎' : ''}</button>)}</div></div>}
+      {marks.lines.length > 0 && <div><span className="label">Trend lines · {marks.lines.length}</span><div className="flex flex-wrap gap-1.5 mt-1">{marks.lines.map(l => <button key={l.id} type="button" className="chip" onClick={() => onSelect(l.id)}>{lineKind(l) === 'momentum' ? <span className="text-loss">M</span> : null} {l.dir > 0 ? '↗' : '↘'} {t(l.a.i)} → {t(l.b.i)}{l.brk != null ? ` × ${t(l.brk)}` : ''}{l.note ? ' ✎' : ''}</button>)}</div></div>}
       {marks.zones.length > 0 && <div><span className="label">Zones · {marks.zones.length}</span><div className="flex flex-wrap gap-1.5 mt-1">{marks.zones.map(z => <button key={z.id} type="button" className="chip" onClick={() => onSelect(z.id)}><span className={z.side === 'demand' ? 'text-profit' : 'text-loss'}>{z.side === 'demand' ? 'D' : 'S'}</span> {t(z.s)} · {fmtPx(z.prox)}–{fmtPx(z.dist)}{z.note ? ' ✎' : ''}</button>)}</div></div>}
     </div>
   );
@@ -422,6 +427,7 @@ function ScoreCard({ s }: { s: ChartScore }) {
       <p className="text-[11.5px] text-ink3 mb-2">Agreement = 2 × matched ÷ (yours + engine's). Recall = how many of yours the engine found; precision = how many of the engine's you agree with. Only the element types you marked count toward the total.</p>
       <TypeRow name="Pivots" s={s.pivots} hint="Same type, within ±1 bar" />
       <TypeRow name="Trend lines" s={s.lines} hint="Both anchors within ±1 bar and 0.1 ATR" />
+      <TypeRow name="Momentum lines" s={s.momentum} hint="Scored apart from trend lines, same tolerances" />
       <TypeRow name="Breaks (of matched lines)" s={s.breaks} hint="Both unbroken, or broken within ±1 bar" />
       <TypeRow name="Zones" s={s.zones} hint="Same side, start ±1 bar, price IoU ≥ 0.6" />
       {s.misses.length > 0 && (
@@ -453,6 +459,7 @@ function ScoreTab({ charts, onOpen, onExport }: { charts: TrainChart[]; onOpen: 
         <p className="text-[11.5px] text-ink3 mb-2">Totals over every chart where you marked that element type. {sum.charts < 30 ? `${30 - sum.charts} more charts before tuning (see docs/training/README.md).` : 'Enough charts to tune: export and run the tuning split.'}</p>
         <TypeRow name="Pivots" s={sum.pivots} hint="±1 bar" />
         <TypeRow name="Trend lines" s={sum.lines} hint="anchors ±1 bar, 0.1 ATR" />
+        <TypeRow name="Momentum lines" s={sum.momentum} hint="scored apart from trend lines" />
         <TypeRow name="Breaks" s={sum.breaks} hint="of matched lines, ±1 bar" />
         <TypeRow name="Zones" s={sum.zones} hint="start ±1 bar, IoU ≥ 0.6" />
         <button type="button" className="btn h-8 mt-3" onClick={onExport}><Icon name="download" size={14} /> Export JSON</button>
@@ -467,7 +474,7 @@ function ScoreTab({ charts, onOpen, onExport }: { charts: TrainChart[]; onOpen: 
                   <b>{c.symbol}</b><span className="text-ink3">{c.tf} · to {shortDate(c.as_of)}</span>
                   <span className="num ml-auto font-semibold">{pct(score.overall)}</span>
                 </span>
-                <span className="text-[11.5px] text-ink3 num">pivots {pct(score.pivots.f1)} · lines {pct(score.lines.f1)} · zones {pct(score.zones.f1)}{c.note ? ` · “${c.note.slice(0, 60)}”` : ''}</span>
+                <span className="text-[11.5px] text-ink3 num">pivots {pct(score.pivots.f1)} · lines {pct(score.lines.f1)} · momentum {pct(score.momentum.f1)} · zones {pct(score.zones.f1)}{c.note ? ` · “${c.note.slice(0, 60)}”` : ''}</span>
                 {score.misses[0] && <span className="text-[11.5px] text-ink2 truncate">{score.misses[0].text}{score.misses.length > 1 ? ` (+${score.misses.length - 1})` : ''}</span>}
               </button>
             </li>

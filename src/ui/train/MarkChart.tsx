@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import { candleLevels, labelPivots, lineAt, lineDir, snapPivot, snapWick, zoneEdges, zoneFromDrag } from '@/core/training/structure';
-import type { Anchor, Marks, MLine, MZone, TBar } from '@/core/training/types';
+import { lineKind, type Anchor, type Marks, type MLine, type MZone, type TBar } from '@/core/training/types';
 
 export type Tool = 'pivot' | 'line' | 'zone' | 'select';
 /** A line being drawn: first anchor placed, or both placed and waiting for the (optional) break tap. */
@@ -129,7 +129,7 @@ function ChartSvg({ bars, marks, engine, tool, view, height, width, selected, pe
       if (an.i === pending.a.i) { onPending({ stage: 'a', a: an }); return; }
       const [a, b] = an.i > pending.a.i ? [pending.a, an] : [an, pending.a];
       const id = `l${Date.now().toString(36)}`;
-      onChange({ ...marks, lines: [...marks.lines, { id, a, b, dir: lineDir(a, b), brk: null }] });
+      onChange({ ...marks, lines: [...marks.lines, { id, a, b, dir: lineDir(a, b), brk: null, kind: 'trend' }] });
       onSelect(id);
       onPending({ stage: 'brk', id });
       return;
@@ -226,10 +226,11 @@ function ChartSvg({ bars, marks, engine, tool, view, height, width, selected, pe
   const lineSeg = (l: MLine, tone: 'own' | 'eng') => {
     const end = l.brk ?? last;
     const sel = selected === l.id;
-    const col = tone === 'own' ? C(OWN) : C(ENG, 0.95);
+    const mom = lineKind(l) === 'momentum';   // momentum lines: thin red (dashed for the engine), as on the bot's charts
+    const col = mom ? C('loss', tone === 'own' ? 1 : 0.85) : tone === 'own' ? C(OWN) : C(ENG, 0.95);
     return (
       <g key={l.id}>
-        <line x1={x(l.a.i)} y1={g.y(l.a.p)} x2={x(end)} y2={g.y(lineAt(l, end))} stroke={col} strokeWidth={sel ? 2.4 : 1.6} strokeDasharray={tone === 'eng' ? '6 4' : undefined} />
+        <line x1={x(l.a.i)} y1={g.y(l.a.p)} x2={x(end)} y2={g.y(lineAt(l, end))} stroke={col} strokeWidth={sel ? 2.4 : mom ? 1.2 : 1.6} strokeDasharray={tone === 'eng' ? '6 4' : mom ? '3 3' : undefined} />
         {l.brk != null && <path d={cross(x(l.brk), g.y(lineAt(l, l.brk)), 5)} stroke={col} strokeWidth="2" />}
         {tone === 'own' && [l.a, l.b].map((an, k) => (
           <g key={k}>

@@ -46,7 +46,7 @@
 //| highs; kept until a CLOSE beyond; broken = faint up to the break)|
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "2.14"
+#property version   "2.15"
 #property indicator_chart_window
 #property indicator_buffers 0
 #property indicator_plots   0
@@ -63,6 +63,10 @@ input bool   InpLblWow        = true;   // WOW ladder text (targets)
 input bool   InpLblRaja       = true;   // Raja extras text: nested curve, realignment areas, wick 50%
 input bool   InpLblHalfway    = true;   // "halfway alert" text
 input group "== ARRIVAL zones + trend lines (owner rules, Oct 2026; = the Telegram bot) =="
+input bool   InpRealLines     = true;   // v2.15 owner's teaching: trend lines between REAL pivots (ends of real corrections) + red dashed momentum lines; replaces this TF's structure-method lines
+input bool   InpRealPivots    = true;   // v2.15: small dots on the REAL peaks (RBD) / valleys (DBR)
+input bool   InpRealPhase     = true;   // v2.15: bottom-left STRUCTURE line: impulse / correction per TF (top-down) + where correction trades end
+input double InpRealRC        = 0.38;   // v2.15: a correction is REAL when it retraces this much of the impulse (owner ~0.5; his marks fit 0.38)
 input bool   InpTLTwoPivot    = true;   // Trend lines: the owner structure method (first lower high after the top -> tangent, kept until a close beyond; broken = faint) (false = v2.12 lines)
 input bool   InpArrShow       = true;   // ARRIVAL zone: bold box + tag (its leg-out closed beyond the trend line and removed opposite zones; 2+ = STRONG)
 input bool   InpArrShowRemoved= true;   // Zones the arrival removed: dotted box with an X
@@ -693,6 +697,113 @@ void RxaRealignTick()
   }
 // ==== RFX_ARRIVAL_CHART END ====
 
+// ==== RFX_STRUCT_CHART BEGIN ====
+// The owner's teaching on the chart (RFX_STRUCT in RFX_ZoneCore.mqh = zvReal.ts): this TF's trend lines from REAL
+// pivots (live: InpTrend solid; broken: InpMuted dotted, ending at the candle that closed beyond it), the newest
+// momentum line (red dashed), small dots on the real pivots, and the top-down phase line (bottom-left).
+#define RQ_PFX "RFXV2_Q"
+void RqLine(string nm, datetime t1, double p1, datetime t2, double p2, color c, int style, int width, string tip)
+  {
+   ObjectCreate(0, nm, OBJ_TREND, 0, t1, p1, t2, p2);
+   ObjectSetInteger(0, nm, OBJPROP_RAY_RIGHT, false);
+   ObjectSetInteger(0, nm, OBJPROP_COLOR, c); ObjectSetInteger(0, nm, OBJPROP_STYLE, style); ObjectSetInteger(0, nm, OBJPROP_WIDTH, width);
+   ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
+   ObjectSetString(0, nm, OBJPROP_TOOLTIP, tip);
+  }
+void RqLabel(string nm, int y, string txt, color c)
+  {
+   ObjectCreate(0, nm, OBJ_LABEL, 0, 0, 0);
+   ObjectSetInteger(0, nm, OBJPROP_CORNER, CORNER_LEFT_LOWER); ObjectSetInteger(0, nm, OBJPROP_ANCHOR, ANCHOR_LEFT_LOWER);
+   ObjectSetInteger(0, nm, OBJPROP_XDISTANCE, 8); ObjectSetInteger(0, nm, OBJPROP_YDISTANCE, y);
+   ObjectSetString(0, nm, OBJPROP_TEXT, txt); ObjectSetString(0, nm, OBJPROP_FONT, "Arial"); ObjectSetInteger(0, nm, OBJPROP_FONTSIZE, 8);
+   ObjectSetInteger(0, nm, OBJPROP_COLOR, c); ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
+  }
+void RqDrawLine(RxSer &S, ZrLine &t, string nm, string tfn)
+  {
+   if(t.a < 1 || t.a >= S.n || t.b < 1 || t.b >= S.n) return;
+   bool mom = t.kind == 1, brk = t.brokenAt >= 1;
+   datetime t1 = S.T[t.a];
+   datetime t2 = brk ? S.T[t.brokenAt] : iTime(_Symbol, PERIOD_CURRENT, 0) + PeriodSeconds() * 3;
+   double p2 = brk ? zrAt(t, t.brokenAt) : zrAt(t, -3);
+   color c = mom ? clrRed : (brk ? InpMuted : InpTrend);
+   int style = mom ? STYLE_DASH : (brk ? STYLE_DOT : STYLE_SOLID);
+   string tip = tfn + (mom ? " MOMENTUM line (from the leg's extreme along the impulse; its break ends the impulse, not the trend)"
+                           : (t.dir > 0 ? " uptrend line: two REAL valleys (ends of real corrections)" : " downtrend line: two REAL peaks (ends of real corrections)"))
+              + (brk ? " | broken: a candle CLOSED " + (t.dir > 0 ? "below" : "above") + " it on " + TimeToString(S.T[t.brokenAt], TIME_DATE | TIME_MINUTES) : " | respected so far");
+   RqLine(nm, t1, t.pa, t2, p2, c, style, 1, tip);
+   if(mom && !brk) RxaText(nm + "t", t2, p2, " momentum", clrRed, 7, ANCHOR_LEFT, false, tip);
+  }
+void RqRun()
+  {
+   ObjectsDeleteAll(0, RQ_PFX);
+   if(!(InpRealLines || InpRealPivots || InpRealPhase)) return;
+   int m = RxTfMin(PERIOD_CURRENT);
+   RxSer S;
+   if(!RxLoad(_Symbol, m, 0, S)) return;
+   ZrRes r; ZrPivot piv[]; ZrLine hist[];
+   zrLines(S, r, piv, hist);
+   string tfn = RxTfName(m);
+   if(InpRealLines)
+     {
+      if(r.hasUp) RqDrawLine(S, r.up, RQ_PFX + "up", tfn);
+      if(r.hasDn) RqDrawLine(S, r.dn, RQ_PFX + "dn", tfn);
+      if(r.hasUpX && !(r.hasUp && r.up.a == r.upX.a)) RqDrawLine(S, r.upX, RQ_PFX + "upx", tfn);
+      if(r.hasDnX && !(r.hasDn && r.dn.a == r.dnX.a)) RqDrawLine(S, r.dnX, RQ_PFX + "dnx", tfn);
+      if(r.hasMom) RqDrawLine(S, r.mom, RQ_PFX + "mom", tfn);
+     }
+   if(InpRealPivots)
+     for(int i = 0; i < ArraySize(piv); i++)
+       {
+        if(piv[i].bar < 1 || piv[i].bar >= S.n) continue;
+        string nm = RQ_PFX + "p" + IntegerToString(i);
+        ObjectCreate(0, nm, OBJ_ARROW, 0, S.T[piv[i].bar], piv[i].p);
+        ObjectSetInteger(0, nm, OBJPROP_ARROWCODE, 159);
+        ObjectSetInteger(0, nm, OBJPROP_COLOR, piv[i].t > 0 ? InpSupplyLine : InpDemandLine);
+        ObjectSetInteger(0, nm, OBJPROP_ANCHOR, piv[i].t > 0 ? ANCHOR_BOTTOM : ANCHOR_TOP);
+        ObjectSetInteger(0, nm, OBJPROP_WIDTH, 1);
+        ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
+        ObjectSetString(0, nm, OBJPROP_TOOLTIP, tfn + (piv[i].t > 0 ? " REAL peak (RBD: the end of a real correction)" : " REAL valley (DBR: the end of a real correction)"));
+       }
+   if(InpRealPhase)
+     {
+      // top-down: the chart TF and up to 3 higher TFs (highest first); a TF in a correction -> the note for its LTF
+      int tfs[4]; int nt = 0, x = m;
+      while(nt < 4 && x > 0) { tfs[nt++] = x; x = RxHigherTf(x); }
+      string line = "", note = "";
+      for(int i = nt - 1; i >= 0; i--)
+        {
+         RxSer H;
+         bool ok = i == 0 ? true : RxLoad(_Symbol, tfs[i], 0, H);
+         if(!ok) continue;
+         ZrRes hr; ZrPivot hp[]; ZrLine hh[]; ZrPhase ph;
+         if(i == 0) { hr = r; zrPhase(S, hr, piv, ph); }
+         else { zrLines(H, hr, hp, hh); zrPhase(H, hr, hp, ph); }
+         line += (line == "" ? "" : "  |  ") + zrPhaseText(RxTfName(tfs[i]), ph, _Digits);
+         if(ph.phase == 2 && i > 0 && note == "")
+            note = "correction trades only on " + RxTfName(tfs[i - 1]) + (ph.hasTarget ? " until " + DoubleToString(ph.target, _Digits) : "") + " (" + RxTfName(tfs[i]) + " trend " + zrDirWord(ph.trend) + ")";
+        }
+      RqLabel(RQ_PFX + "ph", 92, "STRUCTURE " + line, InpText);
+      if(note != "") RqLabel(RQ_PFX + "nt", 76, note, clrDarkGoldenrod);
+     }
+  }
+datetime gRqT0 = 0, gRqTH = 0;
+int      gRqTries = 0;
+// the host calls this after RxaTick on every OnCalculate: a full reading when a bar opened on this chart or its HTF
+void RqTick()
+  {
+   if(InpRealLines) { ObjectDelete(0, RXA_PFX + "mom"); ObjectDelete(0, RXA_PFX + "momt"); }   // the RFX_STRUCT momentum line replaces Kevin's
+   if(!(InpRealLines || InpRealPivots || InpRealPhase)) return;
+   int hm = RxHigherTf(RxTfMin(PERIOD_CURRENT));
+   datetime t0 = iTime(_Symbol, PERIOD_CURRENT, 0), th = hm > 0 ? iTime(_Symbol, RxTfEnum(hm), 0) : 0;
+   if(t0 == gRqT0 && th == gRqTH) return;
+   gRqT0 = t0; gRqTH = th;
+   RqRun();
+   if(ObjectFind(0, RQ_PFX + "ph") < 0 && gRqTries < 30) { gRqTries++; gRqT0 = 0; }   // history still loading: read again
+   else gRqTries = 0;
+   ChartRedraw();
+  }
+// ==== RFX_STRUCT_CHART END ====
+
 
 // v2 per drawn zone, parallel to zKey[] (filled by RegZone + V2Zones): Z index, the v1 ZoneNotes counts, DNA, lenses
 int      zZi[], zNP[], zNM[], zNC[];
@@ -895,6 +1006,7 @@ int OnInit()
    RjA_RmMode = InpRemovalMode; RjA_StrongRun = InpRjAStrongRun; RjA_ArrDepart = InpRjAArrClose; RjA_TouchTF = InpRjATouchTF;
    RjA_ShowTested = InpRjAShowTested; RjA_Adjacent = InpRjAAdjacent; RjA_FlipTL = InpRjAFlipTL; RjA_OppHtfVeto = InpRjAOppHtfVeto;
    RjA_TLTouch = InpRjATLTouches; RjA_NearLine = InpRjANearLine; RjA_FarPips = InpRjFarFromLinePips; RjA_Lens8 = InpRjALens8;
+   gRsHideOld = InpRealLines; RS_RC = InpRealRC;                    // v2.15 the owner's teaching (RFX_STRUCT)
    ZvTwoPivot = InpTLTwoPivot;                                       // v2.13: owner trend-line rule (core default false = ZoneBot)
    gRxaT0 = 0; gRxaArmed = false;
    ApplyTheme();
@@ -1184,6 +1296,7 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
       CheckTouch();
       V2CheckAlerts();
       RxaTick(false);                                                 // v2.13 arrival: re-read only when a chart / HTF / LTF bar opened
+      RqTick();                                                       // v2.15 the owner's teaching (RFX_STRUCT)
       return rates_total;
      }
    if(!DataReady() && gTries < 30) { gTries++; return 0; }    // MT5 still loading the HTF history / ATR: try again next tick
@@ -1192,6 +1305,7 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
    CheckTouch();
    V2CheckAlerts();
    RxaTick(false);
+   RqTick();
    return rates_total;
   }
 void CopyHtfLine(ENUM_TIMEFRAMES h)

@@ -59,6 +59,7 @@ int    RjA_HUpT = 0, RjA_HDnT = 0;   // the same for the HtfOf(chart) lines (set
 bool   ZvTwoPivot       = false;
 // the owner trend-line rule's tunable parameters (= zvTrend.ts ZV fitTol / minSlope / minRise; the arrival engine: RX_FIT_TOL ...)
 double ZvFitTol = 0.05, ZvMinSlope = 0.015, ZvMinRise = 1.0;
+bool   gRsHideOld       = false;  // ZoneVision MT5 InpRealLines: the owner's teaching lines (RFX_STRUCT) replace these lines on the chart TF
 
 //+------------------------------------------------------------------+
 //| Virtual timeframes: 3M / 6M / 12M built from MN1 bars            |
@@ -735,7 +736,7 @@ void Trendlines(string s, ENUM_TIMEFRAMES tf)
               }
            }
          datetime tTouch = rTouch > 0 ? rTouch : iTime(_Symbol, gTF, TL[i].b);
-         if(InpShowTrendlines) { ObjectCreate(0, nm, OBJ_TREND, 0, x1, y1, x2, pe); RegTL(nm, x1, tTouch, d, TL[i].removed, gTF == CTF ? 0 : (int)gTF); }
+         if(InpShowTrendlines && !(gRsHideOld && gTF == CTF)) { ObjectCreate(0, nm, OBJ_TREND, 0, x1, y1, x2, pe); RegTL(nm, x1, tTouch, d, TL[i].removed, gTF == CTF ? 0 : (int)gTF); }
          ObjectSetInteger(0, nm, OBJPROP_RAY_RIGHT, false);
          ObjectSetInteger(0, nm, OBJPROP_COLOR, c);
          ObjectSetInteger(0, nm, OBJPROP_STYLE, TL[i].removed || gTF != CTF ? STYLE_DOT : STYLE_SOLID);   // HTF lines: thin dotted gold
@@ -4062,5 +4063,260 @@ bool RxRead(string sym, int m, RxParams &p, double price, double spread, RxReadi
    return true;
   }
 // ==== RFX_ARRIVAL_ENGINE END ====
+
+// ==== RFX_STRUCT BEGIN ====
+//+------------------------------------------------------------------+
+//| RFX structure engine 1.0 - the owner's teaching (Train page      |
+//| marks, AUDUSD MN / W1 / D1 / H4, Oct 30 2026). MT5 only (drawn   |
+//| by RamanFX_ZoneVision.mq5); the arrival engine above is not      |
+//| changed. A line-by-line mirror of the canonical TypeScript       |
+//| supabase/functions/telegram-bot/zvReal.ts (zrAtr, zrOrigin,      |
+//| zrPivots, zrPair, zrImpulse, zrMomentum, zrLines, zrPhase);      |
+//| conformance: tools/telegram_bot/parity/mql_port.py --struct.     |
+//|  - REAL pivots = the end of a REAL correction: after an impulse  |
+//|    of >= RS_MinLeg ATR, price retraces >= RS_RC of it or comes   |
+//|    back within RS_Near ATR of the base that started it (RBD peak |
+//|    / DBR valley); pullbacks inside an impulse = CP levels.       |
+//|  - TREND lines between real pivots (the extreme is pivot 1 when  |
+//|    its leg out is no impulse), kept until the first CLOSE beyond |
+//|    it; re-anchored from pivot 1 while the structure continues.   |
+//|  - MOMENTUM lines from a pivot whose leg out is an impulse, along|
+//|    its next RS_MomBars bars (red dashed).                        |
+//|  - PHASE per TF: impulse (with the trend) / correction (against  |
+//|    it, target = the trend line) / range.                         |
+//| Index convention = RxSer: 0 phantom, 1 newest closed, larger =   |
+//| older.                                                           |
+//+------------------------------------------------------------------+
+#define RS_VER 100
+double RS_RC = 0.38, RS_Near = 0.25, RS_MinLeg = 1.25, RS_MinSlope = 0.015, RS_MinRise = 0.25, RS_MomEff = 0.6;
+int    RS_Osw = 2, RS_MomBars = 4, RS_Look = 200;
+
+struct ZrPivot { int bar; double p; int t; int conf; };                       // t: -1 real valley, +1 real peak; conf = shift that confirmed it
+struct ZrLine  { int dir; int a; int b; double pa; double pb; int brokenAt; int kind; };   // kind 0 = trend, 1 = momentum
+struct ZrRes   { bool hasUp; bool hasDn; bool hasUpX; bool hasDnX; bool hasMom; ZrLine up; ZrLine dn; ZrLine upX; ZrLine dnX; ZrLine mom; };
+struct ZrPhase { int trend; int leg; int phase; bool hasTarget; double target; };   // phase 0 range, 1 impulse, 2 correction
+
+double zrSlope(ZrLine &t) { return (t.pb - t.pa) / MathMax(1, t.a - t.b); }
+double zrAt(ZrLine &t, double j) { return t.pb + zrSlope(t) * (t.b - j); }
+int    zrAtrLast(RxSer &S) { int last = 0; for(int i = 1; i < S.n; i++) if(S.zvAtr(i) > 0) last = i; return last; }
+double zrA(RxSer &S, int i, int al) { return MathMax(S.zvAtr(MathMin(i, al)), 1e-12); }
+bool   zrOut(int d, double x, double y) { return d > 0 ? x < y : x > y; }     // x further out than y (lower low / higher high)
+bool   zrBeyond(RxSer &S, ZrLine &t, int d, int j) { return d > 0 ? S.C[j] < zrAt(t, j) : S.C[j] > zrAt(t, j); }   // a CLOSE beyond
+
+int zrOrigin(RxSer &S, int x, int f, bool up)
+  {
+   int o = x;
+   for(int j = x + 1; j <= f; j++)
+     {
+      if(up ? S.L[j] < S.L[o] : S.H[j] > S.H[o]) o = j;
+      if(o != j) continue;
+      bool sw = true;
+      for(int k = 1; k <= RS_Osw && sw; k++)
+        {
+         if(j + k <= f && (up ? S.L[j] > S.L[j + k] : S.H[j] < S.H[j + k])) sw = false;
+         if(j - k >= 1 && (up ? S.L[j] >= S.L[j - k] : S.H[j] <= S.H[j - k])) sw = false;
+        }
+      if(sw) return j;
+     }
+   return o;
+  }
+void zrAddPiv(ZrPivot &out[], int b, double p, int t, int c) { int m = ArraySize(out); ArrayResize(out, m + 1); out[m].bar = b; out[m].p = p; out[m].t = t; out[m].conf = c; }
+int zrPivots(RxSer &S, int bars, int al, ZrPivot &out[])
+  {
+   ArrayResize(out, 0);
+   if(bars < 3) return 0;
+   int d = 0, hi = bars, lo = bars;
+   for(int j = bars - 1; j >= 1; j--)
+     {
+      if(d >= 0 && S.H[j] > S.H[hi]) hi = j;
+      if(d <= 0 && S.L[j] < S.L[lo]) lo = j;
+      int m0 = ArraySize(out);
+      int f = m0 > 0 ? out[m0 - 1].bar : bars;
+      if(d >= 0 && hi > j)
+        {
+         int o = zrOrigin(S, hi, f, true);
+         double leg = S.H[hi] - S.L[o], m = DBL_MAX;
+         for(int k = hi - 1; k >= j; k--) m = MathMin(m, S.L[k]);
+         double need = MathMax(0.0, MathMin(RS_RC * leg, S.H[hi] - MathMax(S.O[o], S.C[o]) - RS_Near * zrA(S, hi, al)));
+         if(leg >= RS_MinLeg * zrA(S, hi, al) && S.H[hi] - m >= need)
+           {
+            if(m0 == 0 && o > hi) zrAddPiv(out, o, S.L[o], -1, j);
+            zrAddPiv(out, hi, S.H[hi], 1, j); d = -1; lo = hi - 1;
+            for(int k = hi - 1; k >= j; k--) if(S.L[k] <= S.L[lo]) lo = k;
+            continue;
+           }
+        }
+      if(d <= 0 && lo > j)
+        {
+         int o = zrOrigin(S, lo, f, false);
+         double leg = S.H[o] - S.L[lo], m = -DBL_MAX;
+         for(int k = lo - 1; k >= j; k--) m = MathMax(m, S.H[k]);
+         double need = MathMax(0.0, MathMin(RS_RC * leg, MathMin(S.O[o], S.C[o]) - S.L[lo] - RS_Near * zrA(S, lo, al)));
+         if(leg >= RS_MinLeg * zrA(S, lo, al) && m - S.L[lo] >= need)
+           {
+            if(m0 == 0 && o > lo) zrAddPiv(out, o, S.H[o], 1, j);
+            zrAddPiv(out, lo, S.L[lo], -1, j); d = 1; hi = lo - 1;
+            for(int k = lo - 1; k >= j; k--) if(S.H[k] >= S.H[hi]) hi = k;
+            continue;
+           }
+        }
+      int m1 = ArraySize(out);
+      if(d == -1 && m1 > 0 && S.H[j] > out[m1 - 1].p) { ArrayResize(out, m1 - 1); d = 1; hi = j; }
+      else if(d == 1 && m1 > 0 && S.L[j] < out[m1 - 1].p) { ArrayResize(out, m1 - 1); d = -1; lo = j; }
+     }
+   return ArraySize(out);
+  }
+// a trend line o (older) -> n (newer): FitAnchor clean older anchor; false when in the wrong order or too flat
+bool zrPair(RxSer &S, ZrPivot &o, ZrPivot &n, int d, int al, ZrLine &t)
+  {
+   if(d > 0 ? !(n.p > o.p) : !(n.p < o.p)) return false;
+   int a = zvFitAnchor(S, o.bar, n.bar, n.p, d);
+   t.dir = d; t.a = a; t.b = n.bar; t.pa = d > 0 ? S.L[a] : S.H[a]; t.pb = n.p; t.brokenAt = -1; t.kind = 0;
+   if(d > 0 ? !(t.pb > t.pa) : !(t.pb < t.pa)) return false;
+   double ab = zrA(S, t.b, al);
+   if(MathAbs(zrSlope(t)) < RS_MinSlope * ab || MathAbs(t.pb - t.pa) < RS_MinRise * ab) return false;
+   return true;
+  }
+bool zrImpulse(RxSer &S, int pb, int pt, int al)
+  {
+   int e = pb - RS_MomBars;
+   if(e < 1) return false;
+   int d = -pt;
+   double r0 = d < 0 ? S.H[pb] : S.L[pb], fx = r0;
+   for(int j = pb - 1; j >= e; j--) fx = d < 0 ? MathMin(fx, S.L[j]) : MathMax(fx, S.H[j]);
+   return d * (fx - r0) >= RS_MomEff * RS_MomBars * zrA(S, pb, al);
+  }
+bool zrMomentum(RxSer &S, int pb, int pt, int al, ZrLine &t)
+  {
+   if(!zrImpulse(S, pb, pt, al)) return false;
+   int d = -pt, A = pb, e = A - RS_MomBars, b = -1;
+   double sl = 0, pA = d > 0 ? S.L[A] : S.H[A];
+   for(int j = A - 1; j >= e; j--) { double s = ((d > 0 ? S.L[j] : S.H[j]) - pA) / (A - j); if(b < 0 || (d > 0 ? s < sl : s > sl)) { b = j; sl = s; } }
+   if(b < 0 || d * sl <= 0) return false;
+   t.dir = d; t.a = A; t.b = b; t.pa = pA; t.pb = d > 0 ? S.L[b] : S.H[b]; t.brokenAt = -1; t.kind = 1;
+   for(int j = e - 1; j >= 1; j--) if(zrBeyond(S, t, d, j)) { t.brokenAt = j; break; }
+   return true;
+  }
+void zrHistPush(ZrLine &h[], ZrLine &t) { int m = ArraySize(h); ArrayResize(h, m + 1); h[m] = t; }
+void zrHistDel(ZrLine &h[], int i) { int m = ArraySize(h); for(int x = i; x < m - 1; x++) h[x] = h[x + 1]; ArrayResize(h, m - 1); }
+// the owner's lines of one TF: hist = every line drawn (trend + momentum), newest older-anchor first
+void zrLines(RxSer &S, ZrRes &res, ZrPivot &piv[], ZrLine &hist[])
+  {
+   res.hasUp = false; res.hasDn = false; res.hasUpX = false; res.hasDnX = false; res.hasMom = false;
+   ArrayResize(piv, 0); ArrayResize(hist, 0);
+   int bars = MathMin(RS_Look, S.n - 1 - RS_Osw);
+   if(bars <= RS_Osw + 2) return;
+   int al = zrAtrLast(S);
+   zrPivots(S, bars, al, piv);
+   int np = ArraySize(piv);
+   for(int d = 1; d >= -1; d -= 2)
+     {
+      int want = d > 0 ? -1 : 1, k = 0, extBar = -1, nSeen = 0, liveIdx = -1, brkIdx = -1;
+      double extP = 0;
+      int seen[]; ArrayResize(seen, np + 1);
+      bool hasP1 = false, hasPend = false, hasLast = false, hasBrk = false;
+      ZrPivot p1, pend, lastB; ZeroMemory(p1); ZeroMemory(pend); ZeroMemory(lastB);
+      ZrLine brk; ZeroMemory(brk);
+      for(int j = bars; j >= 1; j--)
+        {
+         if(liveIdx >= 0 && j < hist[liveIdx].b && zrBeyond(S, hist[liveIdx], d, j)) { hist[liveIdx].brokenAt = j; brk = hist[liveIdx]; hasBrk = true; brkIdx = liveIdx; liveIdx = -1; }
+         double xj = d > 0 ? S.L[j] : S.H[j];
+         if(extBar < 0 || zrOut(d, xj, extP))
+           {
+            if(liveIdx >= 0) { hist[liveIdx].brokenAt = j; brk = hist[liveIdx]; hasBrk = true; brkIdx = liveIdx; liveIdx = -1; }
+            extBar = j; extP = xj; hasP1 = false; nSeen = 0; hasLast = false; hasPend = false;
+           }
+         if(hasPend && !hasP1 && pend.bar - RS_MomBars >= j)
+           {
+            if(!zrImpulse(S, pend.bar, pend.t, al)) { p1 = pend; hasP1 = true; nSeen = 0; hasLast = false; }
+            hasPend = false;
+           }
+         for(; k < np && piv[k].conf >= j; k++)
+           {
+            if(piv[k].t != want) continue;
+            if(piv[k].bar == extBar) { pend = piv[k]; hasPend = true; continue; }
+            if(!zrOut(d, extP, piv[k].p)) continue;
+            if(!hasP1 || !zrOut(d, p1.p, piv[k].p) || (hasLast && liveIdx < 0 && zrOut(d, piv[k].p, lastB.p)))
+              {
+               if(liveIdx >= 0) { hist[liveIdx].brokenAt = piv[k].bar; brk = hist[liveIdx]; hasBrk = true; brkIdx = liveIdx; liveIdx = -1; }
+               p1 = piv[k]; hasP1 = true; nSeen = 0; hasLast = false;
+               continue;
+              }
+            seen[nSeen++] = k;
+            if(liveIdx >= 0) continue;
+            // pivot 2: the tangent order from pivot 1 (flattest first, the newer on a tie), the first valid zrPair
+            int tried[]; ArrayResize(tried, nSeen); ArrayInitialize(tried, 0);
+            bool got = false; int q = -1; ZrLine t; ZeroMemory(t);
+            for(int r = 0; r < nSeen && !got; r++)
+              {
+               int bi = -1; double bs = 0;
+               for(int x = 0; x < nSeen; x++)
+                 {
+                  if(tried[x] != 0) continue;
+                  double s = (piv[seen[x]].p - p1.p) / (p1.bar - piv[seen[x]].bar);
+                  if(bi < 0 || (d > 0 ? s < bs : s > bs) || (s == bs && piv[seen[x]].bar < piv[seen[bi]].bar)) { bi = x; bs = s; }
+                 }
+               tried[bi] = 1; q = seen[bi];
+               got = zrPair(S, p1, piv[q], d, al, t);
+              }
+            if(!got) { if(nSeen == 1) { p1 = piv[k]; nSeen = 0; } continue; }   // equal lows: the newer is the base
+            if(brkIdx >= 0 && brk.a == t.a) { zrHistDel(hist, brkIdx); brkIdx = -1; }   // re-anchored from pivot 1: replaces it
+            lastB = piv[q]; hasLast = true;
+            int bj = -1;
+            for(int x = t.b - 1; x >= j; x--) if(zrBeyond(S, t, d, x)) { bj = x; break; }
+            zrHistPush(hist, t);
+            if(bj >= 0) { hist[ArraySize(hist) - 1].brokenAt = bj; brk = hist[ArraySize(hist) - 1]; hasBrk = true; brkIdx = ArraySize(hist) - 1; continue; }
+            liveIdx = ArraySize(hist) - 1;
+           }
+        }
+      if(d > 0) { res.hasUp = liveIdx >= 0; if(liveIdx >= 0) res.up = hist[liveIdx]; res.hasUpX = hasBrk; res.upX = brk; }
+      else      { res.hasDn = liveIdx >= 0; if(liveIdx >= 0) res.dn = hist[liveIdx]; res.hasDnX = hasBrk; res.dnX = brk; }
+     }
+   for(int i = 0; i < np; i++) { ZrLine m; ZeroMemory(m); if(zrMomentum(S, piv[i].bar, piv[i].t, al, m)) zrHistPush(hist, m); }
+   // stable sort by (a, b) ascending, then reversed (= the TS sort().reverse())
+   int nh = ArraySize(hist);
+   for(int i = 1; i < nh; i++)
+     {
+      ZrLine v = hist[i]; int x = i - 1;
+      while(x >= 0 && (hist[x].a > v.a || (hist[x].a == v.a && hist[x].b > v.b))) { hist[x + 1] = hist[x]; x--; }
+      hist[x + 1] = v;
+     }
+   for(int i = 0; i < nh / 2; i++) { ZrLine v = hist[i]; hist[i] = hist[nh - 1 - i]; hist[nh - 1 - i] = v; }
+   if(np > 0) for(int i = 0; i < nh; i++) if(hist[i].kind == 1 && hist[i].a == piv[np - 1].bar) { res.mom = hist[i]; res.hasMom = true; break; }
+  }
+// the TF's phase now: trend from the last two peaks / valleys (a close beyond the last HL / LH = no trend), the leg
+// from the last pivot; a correction's target = the live trend line now, else the HL / LH that holds the trend
+void zrPhase(RxSer &S, ZrRes &r, ZrPivot &piv[], ZrPhase &ph)
+  {
+   int np = ArraySize(piv), pk1 = -1, pk2 = -1, vl1 = -1, vl2 = -1;
+   for(int i = np - 1; i >= 0; i--)
+     {
+      if(piv[i].t > 0) { if(pk1 < 0) pk1 = i; else if(pk2 < 0) pk2 = i; }
+      else             { if(vl1 < 0) vl1 = i; else if(vl2 < 0) vl2 = i; }
+     }
+   int trend = 0;
+   if(pk2 >= 0 && vl2 >= 0)
+     {
+      if(piv[pk1].p > piv[pk2].p && piv[vl1].p > piv[vl2].p) trend = 1;
+      else if(piv[pk1].p < piv[pk2].p && piv[vl1].p < piv[vl2].p) trend = -1;
+     }
+   if(trend > 0 && S.C[1] < piv[vl1].p) trend = 0;
+   if(trend < 0 && S.C[1] > piv[pk1].p) trend = 0;
+   int leg = np > 0 ? -piv[np - 1].t : 0;
+   ph.trend = trend; ph.leg = leg; ph.phase = (trend == 0 || leg == 0) ? 0 : (leg == trend ? 1 : 2); ph.hasTarget = false; ph.target = 0;
+   if(ph.phase != 2) return;
+   if(trend > 0 && r.hasUp) { ph.hasTarget = true; ph.target = zrAt(r.up, 0); }
+   else if(trend < 0 && r.hasDn) { ph.hasTarget = true; ph.target = zrAt(r.dn, 0); }
+   else if(trend > 0) { ph.hasTarget = true; ph.target = piv[vl1].p; }
+   else { ph.hasTarget = true; ph.target = piv[pk1].p; }
+  }
+string zrDirWord(int d) { return d > 0 ? "up" : (d < 0 ? "down" : "sideways"); }
+string zrPhaseText(string tfn, ZrPhase &p, int digits)
+  {
+   if(p.phase == 0) return tfn + " range";
+   if(p.phase == 1) return tfn + " impulse " + zrDirWord(p.trend);
+   return tfn + " correction (" + zrDirWord(p.leg) + ")" + (p.hasTarget ? " -> " + tfn + " " + zrDirWord(p.trend) + " trend " + DoubleToString(p.target, digits) : "");
+  }
+// ==== RFX_STRUCT END ====
 
 #endif // RFX_ZONECORE_MQH

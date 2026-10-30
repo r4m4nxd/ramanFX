@@ -7,6 +7,7 @@ Runs in GitHub Actions only (.github/workflows/training-export.yml): the service
 
   SUPABASE_URL=https://dqjzufofmblerslcynzr.supabase.co SUPABASE_SERVICE_ROLE_KEY=... python3 tools/training/export_marks.py
   python3 tools/training/export_marks.py --from training-marks-2026-10-30.json   # from the page's Export JSON instead
+  python3 tools/training/export_marks.py --rows rows.json   # raw table rows (Supabase MCP: select json_agg(r) ...)
 """
 import argparse
 import json
@@ -46,9 +47,12 @@ def pull(url, key):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--from', dest='src', help="the Train page's Export JSON file instead of the database")
+    ap.add_argument('--rows', help='raw rfx_training_marks rows as JSON (e.g. select json_agg(r) via the Supabase MCP)')
     ap.add_argument('--out', default=str(OUT))
     a = ap.parse_args()
-    if a.src:
+    if a.rows:
+        charts = from_rows(json.loads(Path(a.rows).read_text()))
+    elif a.src:
         charts = json.loads(Path(a.src).read_text())['charts']
     else:
         key = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
