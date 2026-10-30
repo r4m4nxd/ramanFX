@@ -394,7 +394,7 @@ describe('GitHub workflow scheduler', () => {
     const y = readFileSync('.github/workflows/fundamentals.yml', 'utf8');
     expect(y).toMatch(/\n      scheduled:\n/);
     expect(y).toContain('python tools/fundamentals/build.py');
-    expect(y).toContain('SEC_CONTACT: ${{ vars.SEC_CONTACT }}');
+    expect(y).toContain('SEC_CONTACT: ${{ secrets.SEC_CONTACT || vars.SEC_CONTACT }}');
   });
 
   it('insiders: every 30 min on weekdays 6:00-20:00 New York (both DST regimes), no inputs', () => {
