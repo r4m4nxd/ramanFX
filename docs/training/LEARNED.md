@@ -45,3 +45,13 @@ cites the chart it came from. Update as more charts are marked; the engine is tu
 - Rally-Base-Rally (RBR) and Drop-Base-Drop (DBD) are CP levels (continuation zones the market creates on the way).
 - With RBR / DBD (continuation) the MOMENTUM lines happen; with RBD / DBR (reversal) the TREND lines happen.
 - So trend-line anchors = RBD peaks (down lines) / DBR valleys (up lines); momentum lines run along RBR / DBD legs.
+
+## Fractal structure: impulse vs correction across timeframes (owner + Raja, 2026-10-30)
+- The HTF keeps making HH/HL (or LH/LL). Its CORRECTIONS, seen on the LTF, are themselves a full opposite trend
+  (LL/LH inside an HTF uptrend's pullback), while on the HTF they look like a sideways pause. Structure nests like
+  cells → atoms → particles: read top-down.
+- The biggest picture gives the direction and tells whether the HTF is in an IMPULSE or a CORRECTION right now.
+- Trade WITH the HTF impulse. Correction trades are allowed only on the LTF of that HTF, and only until price reaches
+  the HTF trend line or the HTF zone near the trend line (where the HTF impulse is expected to resume).
+- Engine implication: classify each TF's current leg as impulse / correction relative to its HTF; LTF trend lines
+  inside an HTF correction point against the HTF trend and end at the HTF line/zone.
