@@ -51,13 +51,14 @@ export const Fx = lazyPage(() => import('@/pages/Fx'));
 export const MarketHours = lazyPage(() => import('@/pages/MarketHours'));
 export const Moves = lazyPage(() => import('@/pages/Moves'));
 export const Insiders = lazyPage(() => import('@/pages/Insiders'));
+export const Train = lazyPage(() => import('@/pages/Train'));
 
 /** First path segment → page, for prefetching on hover / touch-down / focus of a link. */
 const BY_PATH: Record<string, LazyPage> = {
   journal: Journal, trades: Trades, reports: Reports, design: DesignSystem, learn: Learn, checklist: ChecklistPage, ask: Ask,
   practice: Sandbox, 'bot-guide': BotGuide, tools: Tools, calendar: CalendarPage, heatmaps: Heatmaps, plan: Planner, guru: Guru,
   guide: Guide, news: News, chart: ChartPage, playbook: Playbook, calculator: Calculator, risk: Risk, strategies: Strategies,
-  notebook: Notebook, exits: Exits, settings: Settings, zones: Zones, scanner: Scanner, 'market-hours': MarketHours, moves: Moves, insiders: Insiders,
+  notebook: Notebook, exits: Exits, settings: Settings, zones: Zones, scanner: Scanner, 'market-hours': MarketHours, moves: Moves, insiders: Insiders, train: Train,
 };
 
 /** Start downloading the page behind `to` (no-op for the dashboard, which ships in the main bundle). */
@@ -71,4 +72,4 @@ export function prefetchRoute(to: string) {
 export const prefetchProps = (to: string) => ({ onPointerEnter: () => prefetchRoute(to), onPointerDown: () => prefetchRoute(to), onFocus: () => prefetchRoute(to) });
 
 /** Idle preload order: the pages a phone user reaches first, then the rest; heavy reading pages last. */
-export const PRELOAD: LazyPage[] = [Journal, Trades, TradeDetail, Planner, Reports, CalendarPage, Heatmaps, Guru, Playbook, Calculator, Risk, Strategies, Notebook, Exits, Zones, Scanner, Stock, Fx, MarketHours, Moves, Settings, ChecklistPage, Tools, Guide, News, ChartPage, Ask, BotGuide, Sandbox, Learn];
+export const PRELOAD: LazyPage[] = [Journal, Trades, TradeDetail, Planner, Reports, CalendarPage, Heatmaps, Guru, Playbook, Calculator, Risk, Strategies, Notebook, Exits, Zones, Scanner, Stock, Fx, MarketHours, Moves, Settings, ChecklistPage, Tools, Train, Guide, News, ChartPage, Ask, BotGuide, Sandbox, Learn];

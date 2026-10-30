@@ -1,0 +1,33 @@
+name: Training marks export
+
+# "Train my eye": pull the owner's marked charts (Supabase rfx_training_marks) into
+# src/core/training/fixtures/marks.json and print the engine-vs-owner agreement report
+# (src/core/trainingFixtures.test.ts). The fixture comes back as the `training-marks` artifact: commit it to main by
+# hand (workflows never push app files; src/core/vercelGuard.test.ts). The service-role key lives only in this job's environment.
+# Needs the repo secret SUPABASE_SERVICE_ROLE_KEY (Supabase → Project settings → API → service_role).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Pull marks
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 tools/training/export_marks.py
+      - name: Agreement report
+        run: npx vitest run src/core/trainingFixtures.test.ts --reporter=verbose
+      - uses: actions/upload-artifact@v4
+        with:
+          name: training-marks
+          path: src/core/training/fixtures/marks.json

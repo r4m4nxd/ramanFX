@@ -57,6 +57,7 @@ steps:
 | `arrival-study.yml` | manual | `docs/research/arrival_study/` (report, trades.json, PNG charts; also an artifact) | `top_liquid.csv` |
 | `telegram-preview.yml` | manual | nothing | the published scans |
 | `market-hours.yml` | manual / research code push | **main** (the only exception): `public/research/*` is bundled into the app, so it must deploy | `universe.csv` |
+| `training-export.yml` | manual | nothing: `src/core/training/fixtures/marks.json` comes back as an artifact, committed by hand (it is a test fixture) | Supabase `rfx_training_marks` (service key secret `SUPABASE_SERVICE_ROLE_KEY`) |
 
 Caches that are not files in git (candles, Telegram dedupe, SEC data) stay in the actions cache as before.
 
