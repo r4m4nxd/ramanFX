@@ -33,6 +33,9 @@ cites the chart it came from. Update as more charts are marked; the engine is tu
 ## Structure calls
 - W1 AUDUSD: HH (May) → HL (Jun) → LH (Sep) = sideways ("no HH or LL forming").
 
-## Open questions to the owner
-- How big must the correction be for a "proper" peak/valley (time and size)?
-- Are short steep lines inside a leg (W1 Jul 25 → Sep 5 lows; Sep 5 → Sep 19 highs) momentum lines?
+## Real pivots = the end of a REAL correction (owner, 2026-10-30)
+- After a fast momentum move, the real correction comes back NEAR THE ZONE THAT STARTED THE MOMENTUM, or about HALFWAY
+  (≈50%) of the impulse. It can come right away, or after a base / sideways section first.
+- The END of that correction is the real peak (in a down move) / valley (in an up move) — the actual pivot of the trend
+  line. Small pullbacks inside the impulse are NOT pivots.
+- The momentum line can be drawn right away, from the extreme along the impulse; the trend line waits for real pivots.
