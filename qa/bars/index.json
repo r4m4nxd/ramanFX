@@ -1,0 +1,598 @@
+{
+ "generated": "2026-10-30T20:40:56Z",
+ "price": "bid",
+ "clock": "server time = New York + 7 h (Pepperstone MT5 GMT+2 / GMT+3, 00:00 = 17:00 New York)",
+ "align": {
+  "alignmentTimezone": "America/New_York",
+  "dailyAlignment": "17",
+  "weeklyAlignment": "Friday"
+ },
+ "source": "OANDA api-fxpractice.oanda.com",
+ "format": "[label, o, h, l, c], oldest first; label = server time YYYY-MM-DDTHH:MM (W1: Saturday 00:00; MT5 shows Sunday)",
+ "symbols": {
+  "XAUUSD": {
+   "oanda": "XAU_USD",
+   "tfs": {
+    "MN": {
+     "n": 247,
+     "first": "2006-04-01T00:00",
+     "last": "2026-10-01T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "W1": {
+     "n": 618,
+     "first": "2014-12-27T00:00",
+     "last": "2026-10-24T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "D1": {
+     "n": 2297,
+     "first": "2018-01-02T00:00",
+     "last": "2026-10-30T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "H4": {
+     "n": 3094,
+     "first": "2024-10-30T20:00",
+     "last": "2026-10-30T20:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "H1": {
+     "n": 3002,
+     "first": "2026-04-30T23:00",
+     "last": "2026-10-30T23:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "M15": {
+     "n": 2761,
+     "first": "2026-09-18T23:30",
+     "last": "2026-10-30T23:30",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    }
+   }
+  },
+  "AUDUSD": {
+   "oanda": "AUD_USD",
+   "tfs": {
+    "MN": {
+     "n": 262,
+     "first": "2005-01-01T00:00",
+     "last": "2026-10-01T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "W1": {
+     "n": 618,
+     "first": "2014-12-27T00:00",
+     "last": "2026-10-24T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "D1": {
+     "n": 2291,
+     "first": "2018-01-02T00:00",
+     "last": "2026-10-30T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "H4": {
+     "n": 3109,
+     "first": "2024-10-30T20:00",
+     "last": "2026-10-30T20:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "H1": {
+     "n": 3145,
+     "first": "2026-04-30T23:00",
+     "last": "2026-10-30T23:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "M15": {
+     "n": 2881,
+     "first": "2026-09-18T23:30",
+     "last": "2026-10-30T23:30",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    }
+   }
+  },
+  "EURUSD": {
+   "oanda": "EUR_USD",
+   "tfs": {
+    "MN": {
+     "n": 262,
+     "first": "2005-01-01T00:00",
+     "last": "2026-10-01T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "W1": {
+     "n": 618,
+     "first": "2014-12-27T00:00",
+     "last": "2026-10-24T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "D1": {
+     "n": 2292,
+     "first": "2018-01-02T00:00",
+     "last": "2026-10-30T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "H4": {
+     "n": 3109,
+     "first": "2024-10-30T20:00",
+     "last": "2026-10-30T20:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "H1": {
+     "n": 3145,
+     "first": "2026-04-30T23:00",
+     "last": "2026-10-30T23:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "M15": {
+     "n": 2881,
+     "first": "2026-09-18T23:30",
+     "last": "2026-10-30T23:30",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    }
+   }
+  },
+  "GBPUSD": {
+   "oanda": "GBP_USD",
+   "tfs": {
+    "MN": {
+     "n": 262,
+     "first": "2005-01-01T00:00",
+     "last": "2026-10-01T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "W1": {
+     "n": 618,
+     "first": "2014-12-27T00:00",
+     "last": "2026-10-24T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "D1": {
+     "n": 2296,
+     "first": "2018-01-02T00:00",
+     "last": "2026-10-30T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "H4": {
+     "n": 3109,
+     "first": "2024-10-30T20:00",
+     "last": "2026-10-30T20:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "H1": {
+     "n": 3145,
+     "first": "2026-04-30T23:00",
+     "last": "2026-10-30T23:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "M15": {
+     "n": 2881,
+     "first": "2026-09-18T23:30",
+     "last": "2026-10-30T23:30",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    }
+   }
+  },
+  "GBPJPY": {
+   "oanda": "GBP_JPY",
+   "tfs": {
+    "MN": {
+     "n": 262,
+     "first": "2005-01-01T00:00",
+     "last": "2026-10-01T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "W1": {
+     "n": 618,
+     "first": "2014-12-27T00:00",
+     "last": "2026-10-24T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "D1": {
+     "n": 2297,
+     "first": "2018-01-02T00:00",
+     "last": "2026-10-30T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "H4": {
+     "n": 3109,
+     "first": "2024-10-30T20:00",
+     "last": "2026-10-30T20:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "H1": {
+     "n": 3145,
+     "first": "2026-04-30T23:00",
+     "last": "2026-10-30T23:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "M15": {
+     "n": 2881,
+     "first": "2026-09-18T23:30",
+     "last": "2026-10-30T23:30",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    }
+   }
+  },
+  "USDJPY": {
+   "oanda": "USD_JPY",
+   "tfs": {
+    "MN": {
+     "n": 262,
+     "first": "2005-01-01T00:00",
+     "last": "2026-10-01T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "W1": {
+     "n": 618,
+     "first": "2014-12-27T00:00",
+     "last": "2026-10-24T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "D1": {
+     "n": 2309,
+     "first": "2018-01-02T00:00",
+     "last": "2026-10-30T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "H4": {
+     "n": 3109,
+     "first": "2024-10-30T20:00",
+     "last": "2026-10-30T20:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "H1": {
+     "n": 3145,
+     "first": "2026-04-30T23:00",
+     "last": "2026-10-30T23:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "M15": {
+     "n": 2881,
+     "first": "2026-09-18T23:30",
+     "last": "2026-10-30T23:30",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    }
+   }
+  },
+  "NZDUSD": {
+   "oanda": "NZD_USD",
+   "tfs": {
+    "MN": {
+     "n": 262,
+     "first": "2005-01-01T00:00",
+     "last": "2026-10-01T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "W1": {
+     "n": 618,
+     "first": "2014-12-27T00:00",
+     "last": "2026-10-24T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "D1": {
+     "n": 2307,
+     "first": "2018-01-02T00:00",
+     "last": "2026-10-30T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "H4": {
+     "n": 3109,
+     "first": "2024-10-30T20:00",
+     "last": "2026-10-30T20:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "H1": {
+     "n": 3145,
+     "first": "2026-04-30T23:00",
+     "last": "2026-10-30T23:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "M15": {
+     "n": 2881,
+     "first": "2026-09-18T23:30",
+     "last": "2026-10-30T23:30",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    }
+   }
+  },
+  "USDCAD": {
+   "oanda": "USD_CAD",
+   "tfs": {
+    "MN": {
+     "n": 262,
+     "first": "2005-01-01T00:00",
+     "last": "2026-10-01T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "W1": {
+     "n": 618,
+     "first": "2014-12-27T00:00",
+     "last": "2026-10-24T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "D1": {
+     "n": 2317,
+     "first": "2018-01-02T00:00",
+     "last": "2026-10-30T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "H4": {
+     "n": 3109,
+     "first": "2024-10-30T20:00",
+     "last": "2026-10-30T20:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "H1": {
+     "n": 3145,
+     "first": "2026-04-30T23:00",
+     "last": "2026-10-30T23:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "M15": {
+     "n": 2881,
+     "first": "2026-09-18T23:30",
+     "last": "2026-10-30T23:30",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    }
+   }
+  },
+  "XAGUSD": {
+   "oanda": "XAG_USD",
+   "tfs": {
+    "MN": {
+     "n": 247,
+     "first": "2006-04-01T00:00",
+     "last": "2026-10-01T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "W1": {
+     "n": 618,
+     "first": "2014-12-27T00:00",
+     "last": "2026-10-24T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "D1": {
+     "n": 2295,
+     "first": "2018-01-02T00:00",
+     "last": "2026-10-30T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "H4": {
+     "n": 3094,
+     "first": "2024-10-30T20:00",
+     "last": "2026-10-30T20:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "H1": {
+     "n": 3002,
+     "first": "2026-04-30T23:00",
+     "last": "2026-10-30T23:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "M15": {
+     "n": 2761,
+     "first": "2026-09-18T23:30",
+     "last": "2026-10-30T23:30",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    }
+   }
+  },
+  "US30": {
+   "oanda": "US30_USD",
+   "tfs": {
+    "MN": {
+     "n": 262,
+     "first": "2005-01-01T00:00",
+     "last": "2026-10-01T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "W1": {
+     "n": 618,
+     "first": "2014-12-27T00:00",
+     "last": "2026-10-24T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "D1": {
+     "n": 2286,
+     "first": "2018-01-02T00:00",
+     "last": "2026-10-30T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "H4": {
+     "n": 3086,
+     "first": "2024-10-30T20:00",
+     "last": "2026-10-30T20:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "H1": {
+     "n": 2998,
+     "first": "2026-04-30T23:00",
+     "last": "2026-10-30T23:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "M15": {
+     "n": 2761,
+     "first": "2026-09-18T23:30",
+     "last": "2026-10-30T23:30",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    }
+   }
+  },
+  "NAS100": {
+   "oanda": "NAS100_USD",
+   "tfs": {
+    "MN": {
+     "n": 262,
+     "first": "2005-01-01T00:00",
+     "last": "2026-10-01T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "W1": {
+     "n": 618,
+     "first": "2014-12-27T00:00",
+     "last": "2026-10-24T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "D1": {
+     "n": 2283,
+     "first": "2018-01-02T00:00",
+     "last": "2026-10-30T00:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "H4": {
+     "n": 3086,
+     "first": "2024-10-30T20:00",
+     "last": "2026-10-30T20:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "H1": {
+     "n": 2998,
+     "first": "2026-04-30T23:00",
+     "last": "2026-10-30T23:00",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "M15": {
+     "n": 2761,
+     "first": "2026-09-18T23:30",
+     "last": "2026-10-30T23:30",
+     "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    }
+   }
+  }
+ },
+ "errors": []
+}
