@@ -9,6 +9,7 @@
 //            the higher-TF zone price is inside, the trend, the scanner signal or the zone to watch, nesting.
 // Text is ASCII + the few symbols the chart font has (· – no check marks). Pure.
 import { tfLabel, type Bar } from './chart.ts';
+import type { ArrivalTf } from './arrival.ts';
 
 export interface NZone { tf: string; side: 'demand' | 'supply'; prox: number; dist: number }
 export interface NLine { tf: string; htf: boolean; dir: number; crossed: boolean; kind?: 'trend' | 'momentum' }
@@ -182,4 +183,38 @@ export function verdict(v: VerdictIn): string {
   }
   const out = build(ps);
   return out.length > VERDICT_MAX ? out.slice(0, VERDICT_MAX) : out;
+}
+
+// ---- arrival ----------------------------------------------------------------------------------------------------------
+export const ARRIVAL_MAX = 112;
+/** The arrival line under the verdict (drawn after a bolt icon), from arrival.ts: e.g.
+ *  'D1 arrival demand 96.74–96.02 (crossed D1 down line, removed 2 supplies: strong) · target D1 supply 116.00'
+ *  'D1 arrival demand 96.74–96.02 · W1 down line intact at 121.22 → TP below it · sell only after 1H arrival'
+ *  'W1 arrival supply 86.16–87.51 · realignment 79.82 (near MN up line) · buy only after 4H arrival'
+ *  'D1 arrival supply 103.26–103.98 · 1H arrival demand in realignment: buy 77.66, stop 77.60, target 103.98'.
+ *  Parts dropped (least important first) until it fits ARRIVAL_MAX characters. */
+export function arrivalLine(a: ArrivalTf, digits: number, market: 'fx' | 'stock'): string | null {
+  const cur = a.current, p = a.plan;
+  if (!cur || !p) return null;
+  const fmt = (x: number) => compact(x, digits, market === 'fx');
+  const T = name(a.tf), H = a.htf ? name(a.htf) : '', L = a.ltf ? name(a.ltf) : '';
+  const dem = cur.zone.dir > 0, side = dem ? 'demand' : 'supply', opp = dem ? 'supply' : 'demand', opps = dem ? 'supplies' : 'demands';
+  const n = cur.removed.length;
+  const head = `${T} arrival ${side} ${fmt(cur.zone.prox)}–${fmt(cur.zone.dist)}`;
+  const why = `(crossed ${T} ${dem ? 'down' : 'up'} line, removed ${n} ${n === 1 ? opp : opps}${n >= 2 ? ': strong' : ''})`;
+  const weak = p.weak.length ? `${T} ${opps} weak – no limit ${dem ? 'sells' : 'buys'}` : '';
+  const realign = p.realign ? `realignment ${fmt(p.realign.prox)} (near ${H} ${dem ? 'down' : 'up'} line)` : '';
+  const tp = p.tp == null ? '' : p.capped ? `${H} ${dem ? 'down' : 'up'} line intact at ${fmt(p.ceiling!)} → TP ${dem ? 'below' : 'above'} it`
+    : p.extended ? `${H} line crossed → TP ${H} ${opp} ${fmt(p.tp)}` : '';
+  const target = p.capped || p.extended ? '' : p.target ? `target ${T} ${opp} ${fmt(p.target.prox)}` : `no ${T} ${opp} ${dem ? 'above' : 'below'}`;
+  const c = a.confirm;
+  const conf = c ? `${name(c.tf)} arrival ${c.zone.dir > 0 ? 'demand' : 'supply'} in realignment: ${c.zone.dir > 0 ? 'buy' : 'sell'} ${fmt(c.zone.prox)}, stop ${fmt(c.zone.dist)}${c.target != null ? `, target ${fmt(c.target)}` : ''}`
+    : a.pending ? `${dem ? 'sell' : 'buy'} only after ${L} arrival` : '';
+  const parts: { t: string; pri: number }[] = [
+    { t: head, pri: 9 }, { t: why, pri: 4 }, { t: weak, pri: 3 }, { t: target, pri: 6 }, { t: tp, pri: 7 }, { t: realign, pri: 5 }, { t: conf, pri: c ? 8 : 6 },
+  ].filter(q => q.t);
+  const build = (ps: typeof parts) => ps.map((q, i) => (i === 0 ? q.t : q.t.startsWith('(') ? ` ${q.t}` : ` · ${q.t}`)).join('');
+  let ps = parts;
+  while (build(ps).length > ARRIVAL_MAX && ps.length > 1) { const low = ps.reduce((m, q) => (q.pri < m.pri ? q : m)); ps = ps.filter(q => q !== low); }
+  return build(ps);
 }

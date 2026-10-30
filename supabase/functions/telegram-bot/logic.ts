@@ -8,10 +8,11 @@
 import { bestQuote, buildIndex, lessonPath, mentorOf, search as askSearch, type AskIndex } from './ask.ts';
 import { newsButton, newsText, symbolNews, withLatest, withTopHeadlines, loadHeadlines } from './news.ts';
 import { MAX_ALERTS, MAX_WATCH, parseDuration, parsePrice, parseQuiet, parseTap, type Alert, type Prefs, type PrefsStore } from './prefs.ts';
-import { aggregate, monthKey, quarterKey, tfLabel, weekKey, type Band, type Bar, type ChartModel, type Panel, type TLine } from './chart.ts';
-import { fxZonesOf, nextBusinessDay, RAJA, Series, stockZonesOf, tfZonesOf, type LiveZone, type ZBar } from './zonecore.ts';
+import { aggregate, monthKey, quarterKey, tfLabel, weekKey, type ArrTp, type Band, type Bar, type ChartModel, type Panel, type TLine } from './chart.ts';
+import { FX_PARAMS, fxZonesOf, nextBusinessDay, RAJA, Series, stockZonesOf, tfZonesOf, type LiveZone, type ZBar } from './zonecore.ts';
+import { arrivalTf, CONFIRM_TF, HIGHER_TF, type ArrivalTf, type ArrZone } from './arrival.ts';
 import { panelTrendlines, type PubLine, type TlSeries } from './zvTrend.ts';
-import { atrPct, isWide, nestNote, refineOf, verdict } from './chartnotes.ts';
+import { arrivalLine, atrPct, isWide, nestNote, refineOf, verdict } from './chartnotes.ts';
 import type { LiveFx, LiveSource, LiveStock } from './live.ts';
 import { cmdFund, earningsLine, fundButton } from './fundamentals.ts';
 import { nyseHolidays } from '../trader-coach/health.ts';
@@ -772,7 +773,7 @@ export const SHORT_HISTORY = 12;
 /** Trendline inputs of a chart: per TF whether its last bar is still forming (TFs absent = no lines), and the next
  *  higher TF whose lines each panel also draws (gold dots); pub = the scanner's published lines per TF ('tls'): passed
  *  through but not drawn (the chart draws the ZoneVision rule, zvTrend.ts, on the chart's own bars). */
-export interface TlSrc { forming: Record<string, boolean>; htf: Record<string, string | null>; pub?: Record<string, unknown> }
+export interface TlSrc { forming: Record<string, boolean>; htf: Record<string, string | null>; pub?: Record<string, unknown>; market?: 'fx' | 'stock' }
 const pubLines = (v: unknown): PubLine[] | undefined => (Array.isArray(v) ? (v as J[]).filter(t => num(t?.p) != null && num(t?.s) != null && num(t?.n) != null && typeof t?.t === 'string')
   .map(t => ({ dir: t.dir > 0 ? 1 : -1, p: t.p, s: t.s, n: t.n, t: t.t, touches: num(t.touches) ?? 0, x: !!t.x })) : undefined);
 const FX_HTF: Record<string, string | null> = { M15: 'H1', H1: 'H4', H4: 'D1', D1: 'W1', W1: 'MN', MN: '3M' };
@@ -818,7 +819,7 @@ export function chartWhen(market: 'fx' | 'stock', now: Date, o: { px: string; li
 /** The chart model with the display notes (chartnotes.ts): zones[i].wide (+ refine: the lower-TF zone inside a wide
  *  one), panel.nestNote, model.verdict. */
 export type ZoneBand = Band & { wide: boolean; refine?: Zn | null };
-export type ChartPanel = Omit<Panel, 'zones'> & { zones: ZoneBand[]; nestNote: string | null };
+export type ChartPanel = Omit<Panel, 'zones'> & { zones: ZoneBand[]; nestNote: string | null; arr?: ArrivalTf | null };
 export type ChartModelX = Omit<ChartModel, 'panels'> & { panels: ChartPanel[]; verdict: string };
 export interface ChartData { model: ChartModelX; v: string; market: 'fx' | 'stock'; sym: string; view: string; when: string; live?: boolean; note?: string }
 const zb = (b: ZBar): Bar => fixHl({ t: b.d, o: b.o, h: b.h, l: b.l, c: b.c });
@@ -827,6 +828,69 @@ const zbs = (bs: ZBar[]): Bar[] => bs.map(zb).filter(sane);
 const withForming = (closed: ZBar[], forming: ZBar | null): Bar[] => zbs([...closed.slice(-250), ...(forming ? [forming] : [])]);
 /** The image version of a live chart: a new one every 30 s (Telegram caches photo URLs). */
 const liveVersion = (lv: LiveView) => `L${Math.floor(lv.at / 30000)}`;
+
+/** The arrival reading (arrival.ts) of a zone TF on the chart's bars (closed ones: a forming last bar dropped), with its
+ *  higher TF (the ceiling / realignment line) and its confirmation TF; memoised per TF. Shown only when the arrival's
+ *  leg-out is inside the drawn candles (`drawn` newest bars of the zone TF); null = nothing to show. Stocks: only the
+ *  zone TFs (W1 / MN / 3M) get one (zones never below W1); the D1 / H4 confirmation TF is read only for the
+ *  'confirm on' / 'arrival: buy' tag. T(shift) = the time of a closed bar of the zone TF. */
+type ArrRead = { a: ArrivalTf; T: (shift: number) => string; I: (shift: number) => number };   // I: index into the TF's bars (oldest 0)
+function arrivalReader(bars: Record<string, Bar[]>, price: number, tl?: TlSrc): (ztf: string, drawn: number) => ArrRead | null {
+  const memo = new Map<string, ArrRead | null>();
+  const closed = (t: string | null): ZBar[] | null => {
+    if (!t || !bars[t]?.length) return null;
+    const b = tl?.forming[t] ? bars[t].slice(0, -1) : bars[t];
+    return b.map(r => ({ d: r.t, o: r.o, h: r.h, l: r.l, c: r.c }));
+  };
+  return (ztf, drawn) => {
+    if (!tl?.market || (tl.market === 'stock' && !['W1', 'MN', '3M'].includes(ztf))) return null;
+    if (!memo.has(ztf)) {
+      let r: ArrRead | null = null;
+      try {
+        const own = closed(ztf);
+        if (own) r = { a: arrivalTf(own, ztf, price, tl.market === 'fx' ? FX_PARAMS : RAJA, closed(HIGHER_TF[ztf] ?? null), closed(CONFIRM_TF[ztf] ?? null)), T: k => own[own.length - k]?.d ?? '', I: k => own.length - k };
+      } catch (e) { console.log(JSON.stringify({ ev: 'arrival_error', tf: ztf, err: String((e as Error)?.message ?? e).slice(0, 60) })); }
+      memo.set(ztf, r);
+    }
+    const r = memo.get(ztf) ?? null;
+    return r?.a.current && r.a.current.zone.legBar <= drawn ? r : null;
+  };
+}
+const zn = (z: ArrZone, tf: string): Zn => ({ tf, side: z.dir > 0 ? 'demand' : 'supply', prox: z.prox, dist: z.dist, t0: z.t0, made: z.made });
+/** Flag a panel's bands from its zone TF's arrival reading: the arrival zone (added when the scan's list lacks it), the
+ *  weak zones, the realignment area (added when missing; tag 'confirm on 15m' / '15m arrival: buy') and, on the zone
+ *  TF's own panel, the opposite zones its leg-out removed (faint, crossed out, box up to the removing candle).
+ *  Returns the panel's TP line (own TF only). */
+function decorate(bands: ZoneBand[], tls: TLine[], r: ArrRead, ztf: string, tf: string, fmt: (v: number) => string, nAll: number, nShown: number): ArrTp | null {
+  const a = r.a, cur = a.current!, plan = a.plan!;
+  const find = (z: ArrZone) => bands.find(b => !b.light && !b.removed && sameArea(b, zn(z, ztf)));
+  const upsert = (z: ArrZone, extra: Partial<ZoneBand>) => {
+    const b = find(z);
+    if (b) Object.assign(b, extra);
+    else bands.push({ ...zn(z, ztf), wide: false, light: ztf !== tf, ...extra });
+  };
+  upsert(cur.zone, { arrival: true, strong: cur.strong, removedN: cur.removed.length, weak: false });
+  for (const w of plan.weak) { const b = find(w); if (b && !b.arrival) b.weak = true; }
+  const tag = a.confirm ? `${tfLabel(a.confirm.tf)} arrival: ${plan.dir < 0 ? 'buy' : 'sell'}` : a.ltf ? `confirm on ${tfLabel(a.ltf)}` : '';
+  if (plan.realign) upsert(plan.realign, { realign: true, weak: false, tag });
+  if (ztf !== tf) return null;
+  for (const x of cur.removed) {   // a removed zone still in the scan's list (scanned before the leg-out) is redrawn as removed
+    const b = find(x);
+    if (b) Object.assign(b, { removed: true, key: false, host: false, t1: r.T(x.removedBar) });
+    else bands.push({ ...zn(x, ztf), wide: false, removed: true, t1: r.T(x.removedBar) });
+  }
+  // the line the leg-out crossed: from its older anchor to the crossing candle (dashed, '×')
+  const ln = cur.line, sl = (ln.pb - ln.pa) / Math.max(1, ln.a - ln.b), i0 = nAll - nShown;
+  const ka = r.I(ln.a) - i0, kc = r.I(cur.crossBar) - i0;
+  if (kc > ka && kc >= 0) {
+    const at = (k: number) => ln.pa + sl * (k - ka), k1 = Math.max(-0.5, ka);
+    tls.push({ tf: ztf, htf: false, dir: ln.dir, touches: 0, crossed: true, pts: [[k1, at(k1)], [kc + 0.5, at(kc + 0.5)]], kind: 'trend' });
+  }
+  if (plan.tp == null) return null;
+  const H = a.htf ? tfLabel(a.htf) : '';
+  const why = plan.capped ? ` · ${plan.dir > 0 ? 'below' : 'above'} ${H} line` : plan.extended ? ` · ${H} ${plan.dir > 0 ? 'supply' : 'demand'}` : '';
+  return { px: plan.tp, text: `TP ${fmt(plan.tp)}${why}` };
+}
 
 /** Panels for the given timeframes: key zone per TF (nearest), the host of the next-lower key zone outlined, trade
  *  lines on the entry TF, higher-TF zones lighter in the single view; every zone flagged wide or not (chartnotes.isWide
@@ -839,6 +903,7 @@ export function buildPanels(tfs: string[], bars: Record<string, Bar[]>, zones: Z
   const d1 = atrPct(bars.D1 ?? []);
   const note = (z: Zn) => { const wide = isWide(z, price, d1); return wide ? { wide, refine: refineOf(z, zones, price) } : { wide }; };
   const keys = tfs.map(tf => zones.filter(z => z.tf === zoneTfOf(tf)).sort((a, b) => zDist(price, a) - zDist(price, b))[0] ?? null);
+  const arrOf = arrivalReader(bars, price, tl);
   return tfs.map((tf, i) => {
     const ztf = zoneTfOf(tf);
     const own = zones.filter(z => z.tf === ztf).sort((a, b) => zDist(price, a) - zDist(price, b)).slice(0, layout === 'quad' ? 6 : 8);
@@ -852,6 +917,7 @@ export function buildPanels(tfs: string[], bars: Record<string, Bar[]>, zones: Z
       const h = key ? up.find(z => z.side === key.side && overlaps(z, key)) : undefined;
       bands.unshift(...up.map(z => ({ ...z, ...note(z), light: true, host: z === h, label: `${tfLabel(z.tf)} ${z.side} ${fmt(z.prox)}–${fmt(z.dist)}` })));
     }
+    const ar = arrOf(ztf, layout === 'quad' ? 60 : 90), arr = ar?.a ?? null;
     const header = key ? `${ztf !== tf ? `${tfLabel(ztf)} ` : ''}${key.side} ${fmt(key.prox)}–${fmt(key.dist)} · ${zoneStatus(placement(price, key.prox, key.dist), key.side, '')}` : 'no zone in view';
     const lines = sig && sig.tf === tf ? { entry: sig.entry, stop: sig.stop, target: sig.target, kind: sig.kind } : null;
     const shown = (bars[tf] ?? []).slice(layout === 'quad' ? -60 : -90);
@@ -859,7 +925,8 @@ export function buildPanels(tfs: string[], bars: Record<string, Bar[]>, zones: Z
     const mine = ser(tf), up = tl?.htf[tf], hs = up ? ser(up) : null;
     let tls: TLine[] = [];
     try { tls = mine ? panelTrendlines(mine, shown.length, price, hs, 2) : []; } catch (e) { console.log(JSON.stringify({ ev: 'tl_error', tf, err: String((e as Error)?.message ?? e).slice(0, 60) })); }
-    return { tf, header, bars: shown, zones: bands, lines, tls, nestNote: ztf !== tf ? null : nestNote(key, zones),
+    const tp = ar ? decorate(bands, tls, ar, ztf, tf, fmt, (bars[tf] ?? []).length, shown.length) : null;
+    return { tf, header, bars: shown, zones: bands, lines, tls, arr, tp, nestNote: ztf !== tf ? null : nestNote(key, zones),
       note: ztf !== tf ? `no ${tfLabel(tf)} zones: ${tfLabel(ztf)} zones shown` : shown.length < SHORT_HISTORY ? `short history: ${shown.length} ${tfLabel(tf)} candle${shown.length === 1 ? '' : 's'}` : undefined };
   });
 }
@@ -898,7 +965,10 @@ export function baseIndex(t0: string | undefined, panelBars: Bar[], htfBars?: Ba
   return k < 0 ? panelBars.length - 1 : k;
 }
 const withBaseX = <P extends { tf: string; bars: Bar[]; zones: Band[] }>(ps: P[], bars: Record<string, Bar[]>): P[] => ps.map(p => ({ ...p,
-  zones: p.zones.map(z => { const k0 = baseIndex(z.t0, p.bars, z.tf !== p.tf ? bars[z.tf] : undefined); return k0 == null ? z : { ...z, k0 }; }) }));
+  zones: p.zones.map(z => {
+    const k0 = baseIndex(z.t0, p.bars, z.tf !== p.tf ? bars[z.tf] : undefined), k1 = z.t1 ? baseIndex(z.t1, p.bars) : undefined;
+    return { ...z, ...(k0 == null ? {} : { k0 }), ...(k1 == null ? {} : { k1 }) };
+  }) }));
 const withForming2 = <P extends { tf: string }>(ps: P[], forming: Record<string, boolean>): P[] => ps.map(p => ({ ...p, forming: !!forming[p.tf] }));
 /** The chart's one-line verdict (chartnotes.verdict): the signal's TF when the scanner has one, else the lowest
  *  panel's zone TF; the trend from the lowest panel. */
@@ -906,6 +976,9 @@ export function chartVerdict(panels: ChartPanel[], zones: Zn[], price: number, d
   sig: { tf: string; entry?: number; kind?: string } | null, zoneTfOf: (tf: string) => string = t => t): string {
   const last = panels[panels.length - 1];
   if (!last) return '';
+  // zones an arrival's leg-out removed (still in a scan list made before it) are left out
+  const gone = panels.flatMap(p => p.zones.filter(z => z.removed));
+  zones = zones.filter(z => !gone.some(g => g.tf === z.tf && g.side === z.side && sameArea(g, z)));
   const relTf = sig && zones.some(z => z.tf === sig.tf) ? sig.tf : zoneTfOf(last.tf);
   return verdict({ price, digits, market, zones, relTf, trendTf: last.tf, trendLines: last.tls ?? [], trendBars: last.bars, sig });
 }
@@ -913,7 +986,15 @@ export function chartVerdict(panels: ChartPanel[], zones: Zn[], price: number, d
 /** Stocks: zones never below W1 (the D1 and intraday panels show the W1 zones). */
 const stockZoneTf = (t: string) => (t === 'D1' || t === 'H4' || t === 'H1' || t === 'M15' ? 'W1' : t);
 const withVerdict = (m: Omit<ChartModelX, 'verdict'>, zones: Zn[], market: 'fx' | 'stock', sig: Parameters<typeof chartVerdict>[5],
-  zoneTfOf?: (tf: string) => string): ChartModelX => ({ ...m, verdict: chartVerdict(m.panels, zones, m.price, m.digits, market, sig, zoneTfOf) });
+  zoneTfOf?: (tf: string) => string): ChartModelX => ({ ...m, verdict: chartVerdict(m.panels, zones, m.price, m.digits, market, sig, zoneTfOf),
+  arrival: chartArrival(m.panels, m.digits, market, sig?.tf ?? null) });
+/** The chart's arrival line (chartnotes.arrivalLine): the signal TF's arrival when it has one, else the lowest panel's
+ *  zone TF with an arrival (the most actionable); null = none on the chart. */
+export function chartArrival(panels: ChartPanel[], digits: number, market: 'fx' | 'stock', sigTf: string | null): string | null {
+  const withA = panels.filter(p => p.arr?.current);
+  const p = withA.find(q => q.arr!.tf === sigTf) ?? withA[withA.length - 1];
+  return p ? arrivalLine(p.arr!, digits, market) : null;
+}
 
 export async function chartData(q: string, view: string, ctx: Ctx): Promise<ChartData | null> {
   const { hit } = await resolve(q, ctx);
@@ -952,7 +1033,7 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
     const t = parseUtc(fx.h1_close_utc ?? fx.generated);
     const when = chartWhen('fx', ctx.now, { px: price.toFixed(digits), live: !!lv, scanAt: t, crypto: hit.row.cls === 'crypto' || hit.row.k === 'crypto' });
     return { market: 'fx', sym: hit.sym, view, v: lv ? liveVersion(lv) : String(fx.generated ?? '').replace(/[^0-9]/g, '').slice(0, 14), when, live: !!lv, note: liveNote(hit, ctx, lv),
-      model: withVerdict({ sym: hit.sym, digits, price, layout, title: `${hit.sym} · ${when}`, panels: withBaseX(withForming2(buildPanels(tfs, bars, zones, price, digits, sig, layout, t => t, { forming, htf: FX_HTF, pub: lv ? undefined : obj(d.tls) }), forming), bars) }, zones, 'fx', sig) };
+      model: withVerdict({ sym: hit.sym, digits, price, layout, title: `${hit.sym} · ${when}`, panels: withBaseX(withForming2(buildPanels(tfs, bars, zones, price, digits, sig, layout, t => t, { forming, htf: FX_HTF, pub: lv ? undefined : obj(d.tls), market: 'fx' }), forming), bars) }, zones, 'fx', sig) };
   }
   const [sh, st] = [obj(await ctx.load(`scanner/t/${hit.row.k}.json`)), obj(await ctx.load('scanner/latest.json'))];
   const d = obj(obj(sh.tickers)[hit.sym]);
@@ -986,7 +1067,7 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
   const zones = withBase(zoneList(lv ? lv.zones : arr(d.zones), true), bars);
   return { market: 'stock', sym: hit.sym, view, v: lv ? liveVersion(lv) : String(st.generated_at ?? '').replace(/[^0-9]/g, '').slice(0, 14), when, live: !!lv, note: liveNote(hit, ctx, lv),
     model: withVerdict({ sym: hit.sym, digits: 2, price, layout, title: `${hit.sym} · ${when}`,
-      panels: withBaseX(withForming2(buildPanels(tfs, bars, zones, price, 2, sig, layout, stockZoneTf, { forming, htf: STOCK_HTF, pub: lv ? undefined : obj(d.tls) }), forming), bars) }, zones, 'stock', sig, stockZoneTf) };
+      panels: withBaseX(withForming2(buildPanels(tfs, bars, zones, price, 2, sig, layout, stockZoneTf, { forming, htf: STOCK_HTF, pub: lv ? undefined : obj(d.tls), market: 'stock' }), forming), bars) }, zones, 'stock', sig, stockZoneTf) };
 }
 
 async function cmdChart(q: string, tfArg: string, ctx: Ctx, mode = ''): Promise<Reply> {

@@ -12,13 +12,13 @@
 //      recent swing high before it (a new higher high). A swing high is a REAL PEAK when, before any later high goes
 //      above it, a later low goes below the most recent swing low before it (a new lower low).
 //   3. Up line = the two most recent real valleys, the newer one higher; down line = the two most recent real peaks, the
-//      newer one lower. The line runs through the two wicks exactly (ZoneVision's FitAnchor / overall line / older
-//      anchors are NOT used: they would replace a pivot). Dropped (nothing drawn that way) when the pair is in the
+//      newer one lower, through the two wicks; when a candle between them pokes through the line the OLDER anchor moves
+//      to that candle's wick (ZoneVision FitAnchor, tol 0.05 ATR, owner-approved Oct 2026; the overall line / older
+//      anchors are still not used). Dropped (nothing drawn that way) when the pair is in the
 //      wrong order, TooFlat (< 0.015 ATR per bar, or < 1.5 ATR between the anchors; ATR(14) at the newer pivot), not
 //      Confirmed (price never went beyond the extreme between the anchors before a full candle crossed the line) or
 //      removed (RemovedAt: a full closed candle beyond it - an up line with a later high below it).
-//   4. `cuts` = candles between the anchors the straight line cuts by more than 0.05 ATR (where ZoneVision's FitAnchor
-//      would have moved the older anchor); reported, never changes the line.
+//   4. `cuts` = candles between the anchors the final line still cuts by more than 0.05 ATR (0 after FitAnchor).
 // Index convention as zonecore.ts Series: shift 0 = the phantom forming bar, 1 = the newest closed bar, larger = older
 // (MQL index semantics). Pure.
 import { Series, type ZBar } from './zonecore.ts';
@@ -73,6 +73,22 @@ export function zvPivots(S: Series, bars: number, sw: number = ZV.swing): ZvPivo
   return out;
 }
 
+/** MQL FitAnchor(A, b2, p2, d): from the older anchor A, while a candle strictly between the anchors pokes through the
+ *  line (A's wick -> (b2, p2)) by more than 0.05 x ATR(1), the candle poking furthest (the oldest on a tie) becomes the
+ *  new older anchor; at most 50 rounds. Returns the older anchor's shift. */
+export function zvFitAnchor(S: Series, A: number, b2: number, p2: number, d: number): number {
+  const tol = 0.05 * zvAtr(S)(1);
+  let a = A;
+  for (let it = 0; it < 50; it++) {
+    const sl = (p2 - (d > 0 ? S.L[a] : S.H[a])) / (a - b2);
+    let worst = -1, ex = tol;
+    for (let j = a - 1; j > b2; j--) { const lv = p2 + sl * (b2 - j), e = d > 0 ? lv - S.L[j] : S.H[j] - lv; if (e > ex) { ex = e; worst = j; } }
+    if (worst < 0) return a;
+    a = worst;
+  }
+  return a;
+}
+
 /** The chart's two lines of one timeframe (closed bars + the phantom in S). */
 export function zvLines(S: Series): ZvResult {
   const res: ZvResult = { pivots: [], up: null, dn: null, why: { up: 'too few bars', dn: 'too few bars' }, mom: null };
@@ -89,7 +105,12 @@ export function zvLines(S: Series): ZvResult {
     if (ps.length < 2) { set(`fewer than two real ${d > 0 ? 'valleys' : 'peaks'}`); continue; }
     const o = ps[ps.length - 2], n = ps[ps.length - 1];
     if (d > 0 ? !(n.p > o.p) : !(n.p < o.p)) { set(d > 0 ? 'newer valley not higher' : 'newer peak not lower'); continue; }
-    const t: ZvLine = { dir: d, a: o.bar, b: n.bar, pa: o.p, pb: n.p, cuts: 0 };
+    // FitAnchor (RFX_ZoneCore.mqh): a candle between the anchors poking through the line by more than 0.05 ATR
+    // (down: a high above it; up: a low below it) becomes the new OLDER anchor (its wick), the worst one first; repeat
+    // until none is cut (owner-approved wick re-anchoring, Oct 2026).
+    const a = zvFitAnchor(S, o.bar, n.bar, n.p, d);
+    const t: ZvLine = { dir: d, a, b: n.bar, pa: d > 0 ? Lo[a] : Hi[a], pb: n.p, cuts: 0 };
+    if (d > 0 ? !(t.pb > t.pa) : !(t.pb < t.pa)) { set(d > 0 ? 'newer valley not higher' : 'newer peak not lower'); continue; }
     const sl = zvSlope(t), at = (j: number) => zvAt(t, j);
     // TooFlat (ATR at the newer pivot)
     const ab = Math.max(atr(t.b), 1e-12);

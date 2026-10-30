@@ -157,8 +157,16 @@ describe('higher-TF lines on a lower-TF panel: straight in the panel\'s bar spac
     }
     // every trend line's anchors are real pivots by the brute-force definition: own D1 lines on the D1 bars, the W1 line on W1
     const realD = realPivots(d), realW = realPivots(w), hw = zvLines(ser(w, 'W1'));
-    for (const t of tls.filter(x => !x.htf && x.kind === 'trend')) for (const [k] of t.anchors) expect(realD.some(q => q.i === i0 + k && q.t === -t.dir)).toBe(true);
-    for (const t of [hw.up, hw.dn]) if (t) for (const sh of [t.a, t.b]) expect(realW.some(q => q.i === w.length - sh && q.t === -t.dir)).toBe(true);
+    // (the newer anchor always; the older one is a real pivot or the FitAnchor candle after the older real pivot)
+    const okOlder = (real: { i: number; t: number }[], i: number, j: number, dir: number) => real.some(q => q.t === -dir && (q.i === i || (q.i < i && i < j)));
+    for (const t of tls.filter(x => !x.htf && x.kind === 'trend')) {
+      expect(realD.some(q => q.i === i0 + t.anchors[1][0] && q.t === -t.dir)).toBe(true);
+      expect(okOlder(realD, i0 + t.anchors[0][0], i0 + t.anchors[1][0], t.dir)).toBe(true);
+    }
+    for (const t of [hw.up, hw.dn]) if (t) {
+      expect(realW.some(q => q.i === w.length - t.b && q.t === -t.dir)).toBe(true);
+      expect(okOlder(realW, w.length - t.a, w.length - t.b, t.dir)).toBe(true);
+    }
     expect(hw.dn).not.toBeNull();
     // the rendered SVG path of every gold line is straight too
     const svg = renderSvg({ sym: 'TEST', digits: 2, price: d[d.length - 1].c, layout: 'single', title: 'TEST', verdict: '',

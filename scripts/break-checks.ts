@@ -1,6 +1,6 @@
 // Geometry / text checks on a rendered bot chart SVG (chart.ts renderSvg) and on bot replies (logic.ts Reply). Shared by
 // src/core/botBreak.test.ts and scripts/render-break.ts. Text boxes are approximated (Inter ~0.56 em per character).
-import { boxes, SIZE, textW as chartW, type ChartModel } from '../supabase/functions/telegram-bot/chart.ts';
+import { boxes, SIZE, textW as chartW, topOf, type ChartModel } from '../supabase/functions/telegram-bot/chart.ts';
 import type { Reply } from '../supabase/functions/telegram-bot/logic.ts';
 
 const num = (s: string, k: string) => { const m = new RegExp(`(?:^|\\s)${k}="([^"]*)"`).exec(s); return m ? Number(m[1]) : NaN; };
@@ -31,7 +31,7 @@ export function panels(svg: string): PanelSvg[] {
 export function chartIssues(model: ChartModel, svg: string): string[] {
   const bad: string[] = [];
   if (/NaN|undefined|Infinity|null/.test(svg)) bad.push('NaN / undefined / Infinity / null in the SVG');
-  const bx = boxes(model.layout, model.panels.length, model.verdict ? 104 : 72);
+  const bx = boxes(model.layout, model.panels.length, topOf(model));
   const ps = panels(svg);
   // every text inside the canvas; panel texts inside their panel box
   for (const t of texts(svg)) if (t.x0 < -1 || t.x1 > SIZE + 1 || t.y0 < -1 || t.y1 > SIZE + 1) bad.push(`text off the image: "${t.s}"`);

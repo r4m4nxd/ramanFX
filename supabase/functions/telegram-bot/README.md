@@ -141,8 +141,9 @@ or TWO valleys only".
 - Down line = the two most recent real peaks, wick to wick, the newer lower; up line = the two most recent real valleys,
   the newer higher. Nothing that way when the pair is in the wrong order, too flat (< 0.015 ATR per bar or < 1.5 ATR
   between the anchors), not confirmed (no move past the extreme between the anchors before a break) or broken (a full
-  closed candle beyond it). ZoneVision's FitAnchor, its 'overall' line and older anchors are not used (they replace a
-  pivot); a line that cuts candles between its two pivots is still drawn (`cuts` counts them).
+  closed candle beyond it). **Wick re-anchoring** (owner-approved Oct 2026, ZoneVision FitAnchor): a candle between the
+  two anchors poking through the line by more than 0.05 ATR becomes the new OLDER anchor (its wick), repeated until no
+  candle between is cut. ZoneVision's 'overall' line and older anchors are still not used.
 - Kevin's **momentum line** (lessons 5 / 14 / 19, `zvMomentum`): for a direction with no trend line, at most one per panel
   - the current one-way leg (no real peak / valley in it) from its top (bottom), the tangent over the later highs
   (lows); thin red dashes, labelled `D1 momentum`, never gold, never a trend for the bias.
@@ -156,6 +157,26 @@ or TWO valleys only".
   `src/core/telegramZvTrend.test.ts`.
 - **No duplicates** (`sameLine`): two lines of one direction never further apart than max(0.5 ATR, 1.5% of the drawn
   range) over their overlap are drawn once.
+
+### Arrival zones (`arrival.ts`: owner-approved Raja / Kevin rules, Oct 2026)
+
+Per zone TF (FX every TF 15m ... MN; stocks W1 / MN / 3M only, zones never below W1), on the chart's closed bars:
+- **Arrival**: a demand whose leg-out (the departure candle + up to 2 more strong candles the same way) closes above the
+  TF's down trend line (as it stood before the leg) AND removes >= 1 supply (the engine's removal: a close beyond its
+  distal) - the TF reverses up; supply mirrored. 2+ removed = strong. The newest not-removed one is current.
+- **Plan**: entry the arrival zone; target the realignment zone (else the nearest weak zone); the higher TF's line
+  against it still intact beyond price caps the TP (`W1 down line intact at 118 → TP below it`); with that line crossed
+  the TP extends to the higher TF's zone.
+- After an arrival every same-TF zone of the other side is **weak** ("no limit buys / sells"); the **realignment** area
+  = the weak zone nearest the higher TF's line; trades the other way only after an **arrival on the confirmation TF**
+  inside it (H1 / H4 -> 15m, D1 -> 1H, W1 -> 4H, MN -> D1, 3M -> W1; stocks read D1 / 4H only for that tag).
+- Chart: arrival zone bold with a drawn bolt (the Inter subset has no ⚡ / ✕), the line it crossed dashed to the
+  crossing candle (`D1 down ×`), removed zones faint and crossed out up to the removing candle, weak zones dashed
+  (`weak – no limit`), realignment gold (`realignment … · confirm on 15m` / `15m arrival: buy`), TP amber dashed; an
+  amber arrival line under the verdict (`chartnotes.arrivalLine`). Shown when the arrival's leg-out is on the chart.
+- Parity: `tools/telegram_bot/parity/arrival_fixtures.json` (`scripts/make-arrival-fixtures.ts`; the Python alert side
+  tests against it), rule tests + scenarios `src/core/telegramArrival.test.ts`, `scripts/arrival-scenarios.ts`;
+  `npx tsx scripts/arrival-demo.ts` renders the scenarios, `npx tsx scripts/arrival-qa.ts` lists charts with arrivals.
 
 ### Chart notes (`chartnotes.ts`, display only)
 
