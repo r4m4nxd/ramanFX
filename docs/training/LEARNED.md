@@ -55,3 +55,36 @@ cites the chart it came from. Update as more charts are marked; the engine is tu
   the HTF trend line or the HTF zone near the trend line (where the HTF impulse is expected to resume).
 - Engine implication: classify each TF's current leg as impulse / correction relative to its HTF; LTF trend lines
   inside an HTF correction point against the HTF trend and end at the HTF line/zone.
+
+## Engine vs marks (zvReal.ts / MT5 ZoneVision 2.15 RFX_STRUCT, tuned 2026-10-30)
+Scored by src/core/trainingFixtures.test.ts (Train page scorer; trend and momentum lines scored apart).
+
+| chart | pivots before -> after | trend lines | momentum lines | overall |
+|---|---|---|---|---|
+| AUDUSD D1 | 67% -> 100% (13/13) | 57% -> 80% (2/3) | - (owner none; engine 6) | 47% -> 66% |
+| AUDUSD H4 | 58% -> 73% | 0% -> 0% | - (owner none; engine 9) | 19% -> 24% |
+| AUDUSD MN | 46% -> 63% | 0% -> 29% (Oct 2023 -> Aug 2024) | 0% -> 80% (both, breaks exact) | 23% -> 54% |
+| AUDUSD W1 | 33% -> 71% | 0% -> 0% | - | 17% -> 30% |
+
+Choices (agreement decided; the knobs stay in ZR / RS_* / InpReal*):
+- Real-correction ratio 0.38, not 0.5: the corrections the owner calls real on MN / W1 / H4 retrace 36-45%; D1 then
+  matches all 13 marked pivots. "Near the origin zone" (0.25 ATR of the origin candle's body) is kept; using the
+  zone engine's bases as the impulse origin made W1 / H4 worse (bases inside an impulse start too many legs).
+- The extreme is pivot 1 unless its leg out is an impulse (then the momentum line plays that role): keeps gold D1
+  (Aug 25 top skipped, live Sep 3 -> Sep 18) and MN Apr 2025 -> Nov 2025 style lines.
+- After a break the next line re-anchors from pivot 1 and replaces the broken one (D1 Jul 29 -> Sep 2). Chaining from
+  pivot 2 (W1 Nov 22 -> Jan 17 -> Mar 28) is implemented as an option but OFF: it lowered agreement (it needs the W1
+  Jan 17 valley, a 28% pullback the real-correction rule does not see).
+- minRise 0.25 ATR (structure method: 1.0): the owner's MN Oct 2023 -> Aug 2024 line rises 0.3 ATR.
+
+Still disagreeing, and why:
+- W1 Nov 22 -> Jan 17 -> Mar 28 chain and MN Apr 2025 -> Nov 2025: Jan 17 / Nov 2025 are shallow pullbacks (28% / 36%)
+  - below the real-correction threshold, so they are no pivots for the engine.
+- MN Apr 2022 -> Oct 2024 (the long line from the top): the engine re-anchors it to Feb 2023 -> Dec 2023, which a
+  close broke in Aug 2024; the owner keeps the top line through a 0.5 ATR close beyond it.
+- H4 Oct 15 -> Oct 21 and Oct 20 -> Oct 27: the engine also sees the Oct 16 pullback (42% of the leg) as real, so it
+  starts the up line there.
+- D1 Sep 9 -> Sep 23: anchor 2 is a candle touching the line, not a real pivot; the engine anchors Sep 21.
+- Short extreme -> next-bars lines the owner labelled trend (H4 Oct 14 -> Oct 15, W1 Sep 5 -> Sep 19) are momentum
+  lines for the engine (scored apart), and the engine draws momentum lines on every impulse while the owner marked
+  them on MN only.

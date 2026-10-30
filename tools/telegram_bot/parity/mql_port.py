@@ -558,6 +558,245 @@ def run_fixtures(path: str | None = None, out_json: bool = False) -> int:
     return bad
 
 
+# ==== RFX_STRUCT (RFX_ZoneCore.mqh, MT5 only; mirror of zvReal.ts) ====
+RS_RC, RS_Near, RS_MinLeg, RS_MinSlope, RS_MinRise, RS_MomEff = 0.38, 0.25, 1.25, 0.015, 0.25, 0.6
+RS_Osw, RS_MomBars, RS_Look = 2, 4, 200
+
+
+def ZrPivot(): return S_(bar=0, p=0.0, t=0, conf=0)
+def ZrLine(): return S_(dir=0, a=0, b=0, pa=0.0, pb=0.0, brokenAt=-1, kind=0)
+def zrSlope(t): return (t.pb - t.pa) / max(1, t.a - t.b)
+def zrAt(t, j): return t.pb + zrSlope(t) * (t.b - j)
+def zrAtrLast(S):
+    last = 0
+    for i in range(1, S.n):
+        if S.zvAtr(i) > 0: last = i
+    return last
+def zrA(S, i, al): return max(S.zvAtr(min(i, al)), 1e-12)
+def zrOut(d, x, y): return x < y if d > 0 else x > y
+def zrBeyond(S, t, d, j): return S.C[j] < zrAt(t, j) if d > 0 else S.C[j] > zrAt(t, j)
+
+
+def zrOrigin(S, x, f, up):
+    o = x
+    for j in range(x + 1, f + 1):
+        if (S.L[j] < S.L[o]) if up else (S.H[j] > S.H[o]): o = j
+        if o != j: continue
+        sw = True
+        k = 1
+        while k <= RS_Osw and sw:
+            if j + k <= f and ((S.L[j] > S.L[j + k]) if up else (S.H[j] < S.H[j + k])): sw = False
+            if j - k >= 1 and ((S.L[j] >= S.L[j - k]) if up else (S.H[j] <= S.H[j - k])): sw = False
+            k += 1
+        if sw: return j
+    return o
+
+
+def zrAddPiv(out, b, p, t, c): out.append(S_(bar=b, p=p, t=t, conf=c))
+
+
+def zrPivots(S, bars, al, out):
+    del out[:]
+    if bars < 3: return 0
+    d, hi, lo = 0, bars, bars
+    for j in range(bars - 1, 0, -1):
+        if d >= 0 and S.H[j] > S.H[hi]: hi = j
+        if d <= 0 and S.L[j] < S.L[lo]: lo = j
+        m0 = len(out)
+        f = out[m0 - 1].bar if m0 > 0 else bars
+        if d >= 0 and hi > j:
+            o = zrOrigin(S, hi, f, True)
+            leg = S.H[hi] - S.L[o]; m = DBL_MAX
+            for k in range(hi - 1, j - 1, -1): m = min(m, S.L[k])
+            need = max(0.0, min(RS_RC * leg, S.H[hi] - max(S.O[o], S.C[o]) - RS_Near * zrA(S, hi, al)))
+            if leg >= RS_MinLeg * zrA(S, hi, al) and S.H[hi] - m >= need:
+                if m0 == 0 and o > hi: zrAddPiv(out, o, S.L[o], -1, j)
+                zrAddPiv(out, hi, S.H[hi], 1, j); d = -1; lo = hi - 1
+                for k in range(hi - 1, j - 1, -1):
+                    if S.L[k] <= S.L[lo]: lo = k
+                continue
+        if d <= 0 and lo > j:
+            o = zrOrigin(S, lo, f, False)
+            leg = S.H[o] - S.L[lo]; m = -DBL_MAX
+            for k in range(lo - 1, j - 1, -1): m = max(m, S.H[k])
+            need = max(0.0, min(RS_RC * leg, min(S.O[o], S.C[o]) - S.L[lo] - RS_Near * zrA(S, lo, al)))
+            if leg >= RS_MinLeg * zrA(S, lo, al) and m - S.L[lo] >= need:
+                if m0 == 0 and o > lo: zrAddPiv(out, o, S.H[o], 1, j)
+                zrAddPiv(out, lo, S.L[lo], -1, j); d = 1; hi = lo - 1
+                for k in range(lo - 1, j - 1, -1):
+                    if S.H[k] >= S.H[hi]: hi = k
+                continue
+        m1 = len(out)
+        if d == -1 and m1 > 0 and S.H[j] > out[m1 - 1].p: del out[m1 - 1]; d = 1; hi = j
+        elif d == 1 and m1 > 0 and S.L[j] < out[m1 - 1].p: del out[m1 - 1]; d = -1; lo = j
+    return len(out)
+
+
+def zrPair(S, o, n, d, al, t):
+    if (not (n.p > o.p)) if d > 0 else (not (n.p < o.p)): return False
+    a = zvFitAnchor(S, o.bar, n.bar, n.p, d)
+    t.dir = d; t.a = a; t.b = n.bar; t.pa = S.L[a] if d > 0 else S.H[a]; t.pb = n.p; t.brokenAt = -1; t.kind = 0
+    if (not (t.pb > t.pa)) if d > 0 else (not (t.pb < t.pa)): return False
+    ab = zrA(S, t.b, al)
+    if abs(zrSlope(t)) < RS_MinSlope * ab or abs(t.pb - t.pa) < RS_MinRise * ab: return False
+    return True
+
+
+def zrImpulse(S, pb, pt, al):
+    e = pb - RS_MomBars
+    if e < 1: return False
+    d = -pt
+    r0 = S.H[pb] if d < 0 else S.L[pb]; fx = r0
+    for j in range(pb - 1, e - 1, -1): fx = min(fx, S.L[j]) if d < 0 else max(fx, S.H[j])
+    return d * (fx - r0) >= RS_MomEff * RS_MomBars * zrA(S, pb, al)
+
+
+def zrMomentum(S, pb, pt, al, t):
+    if not zrImpulse(S, pb, pt, al): return False
+    d = -pt; A = pb; e = A - RS_MomBars; b = -1
+    sl = 0.0; pA = S.L[A] if d > 0 else S.H[A]
+    for j in range(A - 1, e - 1, -1):
+        s = ((S.L[j] if d > 0 else S.H[j]) - pA) / (A - j)
+        if b < 0 or ((s < sl) if d > 0 else (s > sl)): b = j; sl = s
+    if b < 0 or d * sl <= 0: return False
+    t.dir = d; t.a = A; t.b = b; t.pa = pA; t.pb = S.L[b] if d > 0 else S.H[b]; t.brokenAt = -1; t.kind = 1
+    for j in range(e - 1, 0, -1):
+        if zrBeyond(S, t, d, j): t.brokenAt = j; break
+    return True
+
+
+def zrLines(S, res, piv, hist):
+    res.hasUp = res.hasDn = res.hasUpX = res.hasDnX = res.hasMom = False
+    res.up = ZrLine(); res.dn = ZrLine(); res.upX = ZrLine(); res.dnX = ZrLine(); res.mom = ZrLine()
+    del piv[:]; del hist[:]
+    bars = min(RS_Look, S.n - 1 - RS_Osw)
+    if bars <= RS_Osw + 2: return
+    al = zrAtrLast(S)
+    zrPivots(S, bars, al, piv)
+    np_ = len(piv)
+    for d in (1, -1):
+        want = -1 if d > 0 else 1; k = 0; extBar = -1; nSeen = 0; liveIdx = -1; brkIdx = -1
+        extP = 0.0
+        seen = Arr([0] * (np_ + 1))
+        hasP1 = hasPend = hasLast = hasBrk = False
+        p1 = ZrPivot(); pend = ZrPivot(); lastB = ZrPivot(); brk = ZrLine()
+        for j in range(bars, 0, -1):
+            if liveIdx >= 0 and j < hist[liveIdx].b and zrBeyond(S, hist[liveIdx], d, j):
+                hist[liveIdx].brokenAt = j; brk = hist[liveIdx].cp(); hasBrk = True; brkIdx = liveIdx; liveIdx = -1
+            xj = S.L[j] if d > 0 else S.H[j]
+            if extBar < 0 or zrOut(d, xj, extP):
+                if liveIdx >= 0: hist[liveIdx].brokenAt = j; brk = hist[liveIdx].cp(); hasBrk = True; brkIdx = liveIdx; liveIdx = -1
+                extBar = j; extP = xj; hasP1 = False; nSeen = 0; hasLast = False; hasPend = False
+            if hasPend and not hasP1 and pend.bar - RS_MomBars >= j:
+                if not zrImpulse(S, pend.bar, pend.t, al): p1 = pend.cp(); hasP1 = True; nSeen = 0; hasLast = False
+                hasPend = False
+            while k < np_ and piv[k].conf >= j:
+                pk = piv[k]
+                if pk.t != want: k += 1; continue
+                if pk.bar == extBar: pend = pk.cp(); hasPend = True; k += 1; continue
+                if not zrOut(d, extP, pk.p): k += 1; continue
+                if not hasP1 or not zrOut(d, p1.p, pk.p) or (hasLast and liveIdx < 0 and zrOut(d, pk.p, lastB.p)):
+                    if liveIdx >= 0: hist[liveIdx].brokenAt = pk.bar; brk = hist[liveIdx].cp(); hasBrk = True; brkIdx = liveIdx; liveIdx = -1
+                    p1 = pk.cp(); hasP1 = True; nSeen = 0; hasLast = False
+                    k += 1; continue
+                seen[nSeen] = k; nSeen += 1
+                if liveIdx >= 0: k += 1; continue
+                tried = Arr([0] * nSeen)
+                got = False; q = -1; t = ZrLine()
+                r = 0
+                while r < nSeen and not got:
+                    bi = -1; bs = 0.0
+                    for x in range(nSeen):
+                        if tried[x] != 0: continue
+                        s = (piv[seen[x]].p - p1.p) / (p1.bar - piv[seen[x]].bar)
+                        if bi < 0 or ((s < bs) if d > 0 else (s > bs)) or (s == bs and piv[seen[x]].bar < piv[seen[bi]].bar): bi = x; bs = s
+                    tried[bi] = 1; q = seen[bi]
+                    got = zrPair(S, p1, piv[q], d, al, t)
+                    r += 1
+                if not got:
+                    if nSeen == 1: p1 = piv[k].cp(); nSeen = 0
+                    k += 1; continue
+                if brkIdx >= 0 and brk.a == t.a: del hist[brkIdx]; brkIdx = -1
+                lastB = piv[q].cp(); hasLast = True
+                bj = -1
+                for x in range(t.b - 1, j - 1, -1):
+                    if zrBeyond(S, t, d, x): bj = x; break
+                hist.append(t.cp())
+                if bj >= 0:
+                    hist[len(hist) - 1].brokenAt = bj; brk = hist[len(hist) - 1].cp(); hasBrk = True; brkIdx = len(hist) - 1
+                    k += 1; continue
+                liveIdx = len(hist) - 1
+                k += 1
+        if d > 0:
+            res.hasUp = liveIdx >= 0
+            if liveIdx >= 0: res.up = hist[liveIdx].cp()
+            res.hasUpX = hasBrk; res.upX = brk.cp()
+        else:
+            res.hasDn = liveIdx >= 0
+            if liveIdx >= 0: res.dn = hist[liveIdx].cp()
+            res.hasDnX = hasBrk; res.dnX = brk.cp()
+    for i in range(np_):
+        m = ZrLine()
+        if zrMomentum(S, piv[i].bar, piv[i].t, al, m): hist.append(m)
+    nh = len(hist)
+    for i in range(1, nh):
+        v = hist[i]; x = i - 1
+        while x >= 0 and (hist[x].a > v.a or (hist[x].a == v.a and hist[x].b > v.b)): hist[x + 1] = hist[x]; x -= 1
+        hist[x + 1] = v
+    for i in range(nh // 2): hist[i], hist[nh - 1 - i] = hist[nh - 1 - i], hist[i]
+    if np_ > 0:
+        for i in range(nh):
+            if hist[i].kind == 1 and hist[i].a == piv[np_ - 1].bar: res.mom = hist[i].cp(); res.hasMom = True; break
+
+
+def zrPhase(S, r, piv, ph):
+    np_ = len(piv); pk1 = pk2 = vl1 = vl2 = -1
+    for i in range(np_ - 1, -1, -1):
+        if piv[i].t > 0:
+            if pk1 < 0: pk1 = i
+            elif pk2 < 0: pk2 = i
+        else:
+            if vl1 < 0: vl1 = i
+            elif vl2 < 0: vl2 = i
+    trend = 0
+    if pk2 >= 0 and vl2 >= 0:
+        if piv[pk1].p > piv[pk2].p and piv[vl1].p > piv[vl2].p: trend = 1
+        elif piv[pk1].p < piv[pk2].p and piv[vl1].p < piv[vl2].p: trend = -1
+    if trend > 0 and S.C[1] < piv[vl1].p: trend = 0
+    if trend < 0 and S.C[1] > piv[pk1].p: trend = 0
+    leg = -piv[np_ - 1].t if np_ > 0 else 0
+    ph.trend = trend; ph.leg = leg; ph.phase = 0 if (trend == 0 or leg == 0) else (1 if leg == trend else 2); ph.hasTarget = False; ph.target = 0.0
+    if ph.phase != 2: return
+    if trend > 0 and r.hasUp: ph.hasTarget = True; ph.target = zrAt(r.up, 0)
+    elif trend < 0 and r.hasDn: ph.hasTarget = True; ph.target = zrAt(r.dn, 0)
+    elif trend > 0: ph.hasTarget = True; ph.target = piv[vl1].p
+    else: ph.hasTarget = True; ph.target = piv[pk1].p
+
+
+def run_struct(path: str, out_json: bool = False) -> int:
+    """Replay struct cases ({cases: [{name, tf, bars, expected}]}, scripts/struct-cases.ts) through the RFX_STRUCT port."""
+    fx = json.loads(Path(path).read_text())
+    bad, errs = 0, []
+    L = lambda t: {'dir': t.dir, 'a': t.a, 'b': t.b, 'pa': t.pa, 'pb': t.pb, 'brokenAt': t.brokenAt, 'kind': 'momentum' if t.kind == 1 else 'trend'}
+    for c in fx['cases']:
+        S = ser_of(c['bars'], c['tf'], c.get('price'), {})
+        res = S_(); piv = []; hist = []; ph = S_()
+        try:
+            zrLines(S, res, piv, hist); zrPhase(S, res, piv, ph)
+            got = {'pivots': [{'bar': p.bar, 'p': p.p, 't': p.t, 'conf': p.conf} for p in piv], 'hist': [L(t) for t in hist],
+                   'up': L(res.up) if res.hasUp else None, 'dn': L(res.dn) if res.hasDn else None,
+                   'upX': L(res.upX) if res.hasUpX else None, 'dnX': L(res.dnX) if res.hasDnX else None, 'mom': L(res.mom) if res.hasMom else None,
+                   'phase': {'trend': ph.trend, 'leg': ph.leg, 'phase': ['range', 'impulse', 'correction'][ph.phase], 'target': ph.target if ph.hasTarget else None}}
+            close(got, c['expected']); msg = 'ok'
+        except (AssertionError, IndexError) as e:
+            bad += 1; msg = f'MISMATCH {e}'; errs.append(f"{c['name']}: {e}")
+        if not out_json: print(f"{c['name']:<14} {c['tf']:<3} {msg}")
+    if out_json: print(json.dumps({'bad': bad, 'errors': errs[:5], 'cases': len(fx['cases'])}))
+    else: print(f"{len(fx['cases']) - bad}/{len(fx['cases'])} struct cases match the RFX_STRUCT port")
+    return bad
+
+
 if __name__ == '__main__':
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
+    if '--struct' in sys.argv: sys.exit(1 if run_struct(args[0], out_json='--json' in sys.argv) else 0)
     sys.exit(1 if run_fixtures(args[0] if args else None, out_json='--json' in sys.argv) else 0)
