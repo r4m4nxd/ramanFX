@@ -39,3 +39,9 @@ cites the chart it came from. Update as more charts are marked; the engine is tu
 - The END of that correction is the real peak (in a down move) / valley (in an up move) — the actual pivot of the trend
   line. Small pullbacks inside the impulse are NOT pivots.
 - The momentum line can be drawn right away, from the extreme along the impulse; the trend line waits for real pivots.
+
+## Pivots come from REVERSAL zones (owner, 2026-10-30)
+- Rally-Base-Drop (RBD) = the actual PEAK. Drop-Base-Rally (DBR) = the proper VALLEY.
+- Rally-Base-Rally (RBR) and Drop-Base-Drop (DBD) are CP levels (continuation zones the market creates on the way).
+- With RBR / DBD (continuation) the MOMENTUM lines happen; with RBD / DBR (reversal) the TREND lines happen.
+- So trend-line anchors = RBD peaks (down lines) / DBR valleys (up lines); momentum lines run along RBR / DBD legs.
