@@ -47,3 +47,13 @@ describe('3-day window', () => {
     expect(sectionsOf(f, 'H1', now).map(s => s.close)).toEqual(['2026-10-30T11:00:00Z', '2026-10-27T13:00:00Z']);
   });
 });
+
+describe('3-week window for 1D / 1W', () => {
+  it('keeps daily closes up to 21 days', async () => {
+    const { sectionsOf } = await import('./moves');
+    const now = Date.parse('2026-10-30T12:00:00Z');
+    const sec = (close: string) => ({ tf: 'D1' as const, close, label: '', fams: [], feed: '', rows: [] });
+    const f = { generated: '', sections: [sec('2026-10-20T21:00:00Z'), sec('2026-10-08T21:00:00Z')] } as never;
+    expect(sectionsOf(f, 'D1', now).map(s => s.close)).toEqual(['2026-10-20T21:00:00Z']);
+  });
+});

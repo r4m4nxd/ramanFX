@@ -76,7 +76,7 @@ export default function Moves() {
       <Card className="luxe-border">
         <div className="flex flex-col gap-2">
           <h2 className="text-xl font-semibold tracking-tight">Big moves</h2>
-          <p className="text-[13px] text-ink2 leading-relaxed max-w-[64ch]">Every pair, index, coin and stock whose candle just closed at 2× (or more) its 20-candle average range, per timeframe. The Telegram message shows the top 8 per group; this page lists them all for the last 3 days. Calgary time.</p>
+          <p className="text-[13px] text-ink2 leading-relaxed max-w-[64ch]">Every pair, index, coin and stock whose candle just closed at 2× (or more) its 20-candle average range, per timeframe. The Telegram message shows the top 8 per group; this page lists them all: 1H / 4H for 3 days, 1D / 1W for 3 weeks. Calgary time.</p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink3">
             {file ? <span className="inline-flex items-center gap-1.5"><Icon name="clock" size={13} />Updated {calgary(file.generated)}</span>
               : load.state === 'loading' ? <span>Loading…</span> : null}

@@ -53,10 +53,10 @@ export function fmtPct(p: number): string {
 
 /** Sections of one timeframe, newest close first. */
 /** How far back the page (and latest.json) keeps closes. */
-export const KEEP_DAYS = 3;
-/** Sections of one timeframe whose candle closed within the last KEEP_DAYS, newest first. */
+export const KEEP_DAYS: Record<MoveTf, number> = { H1: 3, H4: 3, D1: 21, W1: 21 };
+/** Sections of one timeframe whose candle closed within its window (1H/4H 3 days, 1D/1W 3 weeks), newest first. */
 export const sectionsOf = (f: MovesFile, tf: MoveTf, now = Date.now()) => f.sections
-  .filter(s => s.tf === tf && now - Date.parse(s.close) <= KEEP_DAYS * 86_400_000)
+  .filter(s => s.tf === tf && now - Date.parse(s.close) <= KEEP_DAYS[tf] * 86_400_000)
   .sort((a, b) => (a.close < b.close ? 1 : -1));
 
 /** Rows of a section by group, in the file's order (best first). */

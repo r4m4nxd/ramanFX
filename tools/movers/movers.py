@@ -786,8 +786,8 @@ def save_state(st: Dict, path: str = STATE) -> None:
         json.dump({**st, 'sent': sent}, f)
 
 
-KEEP = {'H1': 72, 'H4': 18, 'D1': 3, 'W1': 1}               # sections per timeframe kept in latest.json (3 days)
-KEEP_DAYS = 3
+KEEP = {'H1': 72, 'H4': 18, 'D1': 21, 'W1': 3}               # sections per timeframe kept in latest.json
+KEEP_DAYS = {'H1': 3, 'H4': 3, 'D1': 21, 'W1': 21}             # 1H / 4H: 3 days, 1D / 1W: 3 weeks
 
 
 def _app_row(r: Dict) -> Dict:
@@ -824,8 +824,8 @@ def write_latest(secs: Sequence[Dict], now: dt.datetime, path: str = LATEST) -> 
         keep[(s['tf'], s['close'])] = {'tf': s['tf'], 'close': s['close'], 'fams': fams, 'feed': s.get('feed') or (prev or {}).get('feed', ''),
                                        'label': span_label(s['tf'], _t(s['close']), fams), 'rows': rows}
     out = []
-    cutoff = now - dt.timedelta(days=KEEP_DAYS)                 # the app shows the last 3 days only; older closes are dropped
-    for tf in TFS:
+    for tf in TFS:                                           # older than the app's window: dropped
+        cutoff = now - dt.timedelta(days=KEEP_DAYS[tf])
         out += sorted((s for s in keep.values() if s['tf'] == tf and _t(s['close']) >= cutoff), key=lambda s: s['close'], reverse=True)[:KEEP[tf]]
     os.makedirs(os.path.dirname(path), exist_ok=True)
     body = {'version': 1, 'generated': now.astimezone(UTC).strftime('%Y-%m-%dT%H:%M:%SZ'), 'min_x': MIN_X, 'min_pct': MIN_PCT,
