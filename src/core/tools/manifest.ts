@@ -39,14 +39,15 @@ const pineSteps = (name: string, preset = true) => [
 export const TOOLS: Tool[] = [
   // ─── MT5 ────────────────────────────────────────────────────────────
   {
-    id: 'zv5', platform: 'mt5', name: 'ZoneVision', version: '2.12', kind: 'Indicator',
-    purpose: 'Draws the zones, trendlines, Direction box and mentor grades exactly as the ZoneBot sees them. Never trades.',
+    id: 'zv5', platform: 'mt5', name: 'ZoneVision', version: '2.13', kind: 'Indicator',
+    purpose: 'Draws the zones, trendlines, Direction box and mentor grades exactly as the ZoneBot sees them. 2.13: the owner trend-line rule (2 most recent real peaks / valleys, wick re-anchored), ARRIVAL zones with weak zones, realignment area, stop rule, TP / ceiling and lower-TF confirmation + alerts, the same engine as the Telegram bot. Never trades.',
     files: [{ file: 'RamanFX_ZoneVision.mq5' }, { file: 'RFX_ZoneCore.mqh', note: 'shared core, same folder' }],
     install: [
       'MT5: File → Open Data Folder → MQL5 → Indicators.',
       'Put RamanFX_ZoneVision.mq5 and RFX_ZoneCore.mqh in that same folder.',
       mt5Compile,
       'Drag it onto a chart → Inputs → Load → pick a template (Raja first).',
+      'Updating to 2.13: copy BOTH files again (the core changed), compile, re-attach. The ARRIVAL input group is on by default (alerts: new arrival + LTF confirmation).',
     ],
     presets: [
       {
@@ -63,7 +64,7 @@ export const TOOLS: Tool[] = [
     guide: { to: '/bot-guide?t=vision', label: 'ZoneVision guide' },
   },
   {
-    id: 'bot5', platform: 'mt5', name: 'ZoneBot', version: '1.64', kind: 'Expert Advisor', demoOnly: true,
+    id: 'bot5', platform: 'mt5', name: 'ZoneBot', version: '1.65', kind: 'Expert Advisor', demoOnly: true,
     purpose: "Expert Advisor built from your mentor's rules: fresh zones with the HTF trend, 1% risk, always a stop. Needs a hedging account for the hedging presets.",
     files: [{ file: 'RamanFX_ZoneBot.mq5' }, { file: 'RFX_ZoneCore.mqh', note: 'shared core, same folder' }],
     install: [
@@ -71,6 +72,7 @@ export const TOOLS: Tool[] = [
       'Put RamanFX_ZoneBot.mq5 and RFX_ZoneCore.mqh in that same folder.',
       mt5Compile,
       'Drag it onto one chart, allow Algo Trading, Inputs → Load a preset. Demo account only.',
+      '1.65: optional arrival entries (Arrival zone limit / Realignment + LTF confirmation, the bot\'s stop rule), off by default; the two Arrival presets test them on demo.',
     ],
     presets: [
       {
@@ -81,6 +83,13 @@ export const TOOLS: Tool[] = [
           { file: 'MT5_ZoneBot_TopDown.set', note: 'Top-down variant of Zones 3R' },
           { file: 'MT5_ZoneBot_Breakout.set', note: "Kevin's stop order beyond the opposing zone" },
           { file: 'MT5_ZoneBot_Impulse.set', note: 'Market order after an impulse candle' },
+        ],
+      },
+      {
+        title: 'Arrival presets (demo)', note: 'Owner arrival rules, only the arrival entries trade.',
+        files: [
+          { file: 'MT5_ZoneBot_ArrivalLimit.set', note: 'Arrival zone limit, H1 / H4 / D1' },
+          { file: 'MT5_ZoneBot_ArrivalRealign.set', note: 'Realignment + LTF confirmation, H4 / D1 / W1' },
         ],
       },
       {
@@ -123,8 +132,8 @@ export const TOOLS: Tool[] = [
 
   // ─── MT4 ────────────────────────────────────────────────────────────
   {
-    id: 'zv4', platform: 'mt4', name: 'ZoneVision', version: '1.99', kind: 'Indicator',
-    purpose: 'The v1 indicator: zones with their 4 parts labelled, trendlines, HTF zones and the trade the bot would take.',
+    id: 'zv4', platform: 'mt4', name: 'ZoneVision', version: '2.00', kind: 'Indicator',
+    purpose: 'The v1 indicator: zones with their 4 parts labelled, trendlines, HTF zones and the trade the bot would take. 2.00: the owner trend-line rule and the ARRIVAL zones (weak zones, realignment, stop rule, lower-TF confirmation) + alerts, as MT5 2.13.',
     files: [{ file: 'RamanFX_ZoneVision.mq4' }],
     install: [
       'MT4: File → Open Data Folder → MQL4 → Indicators. Put the file there.',
@@ -134,7 +143,7 @@ export const TOOLS: Tool[] = [
     guide: { to: '/bot-guide?t=vision', label: 'ZoneVision guide' },
   },
   {
-    id: 'bot4', platform: 'mt4', name: 'ZoneBot', version: '1.62', kind: 'Expert Advisor', demoOnly: true,
+    id: 'bot4', platform: 'mt4', name: 'ZoneBot', version: '1.63', kind: 'Expert Advisor', demoOnly: true,
     purpose: "Expert Advisor built from your mentor's rules. Logs every setup and a replay of every take-profit and break-even variant.",
     files: [{ file: 'RamanFX_ZoneBot.mq4' }],
     install: [
@@ -152,6 +161,13 @@ export const TOOLS: Tool[] = [
           { file: 'RamanFX_ZoneBot_TopDown.set', note: 'Top-down' },
           { file: 'RamanFX_ZoneBot_Breakout.set', note: 'Breakout stop order' },
           { file: 'RamanFX_ZoneBot_Impulse.set', note: 'Impulse candle' },
+        ],
+      },
+      {
+        title: 'Arrival presets (demo)', note: '1.63: owner arrival rules, only the arrival entries trade.',
+        files: [
+          { file: 'RamanFX_ZoneBot_ArrivalLimit.set', note: 'Arrival zone limit, H1 / H4 / D1' },
+          { file: 'RamanFX_ZoneBot_ArrivalRealign.set', note: 'Realignment + LTF confirmation, H4 / D1 / W1' },
         ],
       },
     ],
@@ -184,21 +200,32 @@ export const TOOLS: Tool[] = [
 
   // ─── TradingView ────────────────────────────────────────────────────
   {
-    id: 'zvtv', platform: 'tv', name: 'ZoneVision', version: '2.10', kind: 'Indicator',
-    purpose: 'Port of the MT5 ZoneVision 2.10: same zones, Kevin trendlines, HTF trend, mentor lenses, potential trades and alerts.',
+    id: 'zvtv', platform: 'tv', name: 'ZoneVision', version: '2.13', kind: 'Indicator',
+    purpose: 'Port of the MT5 ZoneVision: same zones, trendlines (2.13: the owner two-pivot rule), HTF trend, mentor lenses, potential trades and alerts. ARRIVAL zones: add ZoneVision Arrival.',
     files: [{ file: 'RamanFX_ZoneVision.pine' }],
     install: pineSteps('ZoneVision'),
     guide: { to: '/bot-guide?t=vision', label: 'ZoneVision guide' },
   },
   {
-    id: 'zvdirtv', platform: 'tv', name: 'ZoneVision Direction', version: '2.10', kind: 'Indicator',
+    id: 'zvdirtv', platform: 'tv', name: 'ZoneVision Direction', version: '2.13', kind: 'Indicator',
     purpose: 'Companion of ZoneVision: the top-down Direction box, Raja curve 25 / 50 / 75, the WOW ladder and Direction alerts.',
     files: [{ file: 'RamanFX_ZoneVision_Direction.pine' }],
     install: pineSteps('ZoneVision'),
   },
   {
-    id: 'stratv', platform: 'tv', name: 'Zone Strategy', version: 'Pine v6', kind: 'Strategy',
-    purpose: 'Automatic backtest of the ZoneVision / ZoneBot zone rules in the Strategy Tester (no trendline checks).',
+    id: 'zvarrtv', platform: 'tv', name: 'ZoneVision Arrival', version: '2.13', kind: 'Indicator',
+    purpose: "Companion of ZoneVision: the owner ARRIVAL rules (the Telegram bot's engine) - arrival zone, the zones it removed (X), weak zones, realignment area, stop rule, TP / ceiling, lower-TF confirmation, momentum line, 3 alert conditions.",
+    files: [{ file: 'RamanFX_ZoneVision_Arrival.pine' }],
+    install: [
+      ...pineSteps('ZoneVision', false),
+      'With RamanFX ZoneVision on the same chart, switch this one\'s trend lines off (Inputs: This TF\'s two trend lines) - ZoneVision draws them.',
+      'Alerts: Create alert → Condition ZV Arrival → Any alert() function call (or one of its 3 conditions).',
+    ],
+    guide: { to: '/bot-guide?t=vision', label: 'ZoneVision guide' },
+  },
+  {
+    id: 'stratv', platform: 'tv', name: 'Zone Strategy', version: '1.1', kind: 'Strategy',
+    purpose: 'Automatic backtest of the ZoneVision / ZoneBot zone rules in the Strategy Tester (no trendline checks). 1.1: optional Entry mode Arrival zone limit / Realignment + LTF confirmation (the bot\'s arrival engine and stop rule), off by default.',
     files: [{ file: 'RamanFX_ZoneStrategy.pine' }],
     install: [
       'Tap Copy code (or View → Copy).',

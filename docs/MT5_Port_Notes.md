@@ -141,3 +141,27 @@ Not applied (left for later A/B work): departure / bars-away gate, curve filter 
 - MT5 has no `IsTradeContextBusy`; requests are synchronous (`SetAsyncMode(false)`).
 - `OrdersTotal()` is still used, but as the MQL5 function (pending orders only).
 - Not compiled here (no MetaEditor): checked for ASCII, bracket balance after stripping strings / comments, no MT4-only calls, no local hiding a global, every called function defined.
+
+## ZoneVision 2.13 / ZoneBot 1.65 (MT4 2.00 / 1.63): owner trend-line + ARRIVAL rules (Oct 2026)
+
+- **Canonical:** `supabase/functions/telegram-bot/zvTrend.ts` (lines) and `arrival.ts` (arrival zones, weak zones,
+  realignment, HTF ceiling / extension, LTF confirmation, the stop rule). The fixture
+  `tools/telegram_bot/parity/arrival_fixtures.json` is shared with the Python alert side.
+- **Shared blocks** (byte-identical, `node scripts/sync-arrival-mql.mjs`, checked by `src/core/toolsArrival.test.ts`):
+  `RFX_ARRIVAL_ENGINE` (in `RFX_ZoneCore.mqh`, copied into the two .mq4 files; compiles as MQL4 and MQL5: series are
+  copied into arrays with index 0 = a phantom bar at the price, so no ArraySetAsSeries / CopyRates differences),
+  `RFX_ARRIVAL_CHART` (ZoneVision .mq5 -> .mq4: drawing + alerts) and `RFX_ARRIVAL_BOT` (ZoneBot .mq5 -> .mq4: the two
+  entry modes; the only platform split is `RxbCancelStale`, two whole functions under `#ifdef __MQL5__`).
+- **Core trend lines:** `ZvTwoPivot` (core global, default false so ZoneBot's presets keep their lines; ZoneVision sets
+  it from `InpTLTwoPivot = true`) switches `Trendlines()` to `TwoPivotLines()` (= zvLines 102-134 on the existing
+  ZigZag / FitAnchor / TooFlat / Confirmed / RemovedAt), hides broken lines (`ZvBreakAlert` still alerts) and draws HTF
+  lines straight between `ChartBarIn` anchors. MT4 ZoneVision: the same with its own `InpTLTwoPivot`.
+- **Conformance (no MetaTrader here):** `tools/telegram_bot/parity/mql_port.py` is a statement-by-statement Python
+  port of the engine block (MQL index semantics; an out-of-range index raises, as MQL's "array out of range"). It
+  reproduces the 20 fixture cases, seeded random multi-TF cases and jittered fixture copies (every rule reached:
+  strong arrivals, weak zones, realignment, HTF-host stops, ceiling / extension, LTF confirmations), all numbers within
+  1e-9 of the TS, momentum lines included.
+- **Owner checks in MetaEditor:** compile ZoneVision.mq5 + ZoneBot.mq5 (with the new core next to both) and the two
+  .mq4 files: 0 errors. Visual: GBPNZD H4 (Oct 2026) - the bot's strong arrival demand 2.34361 - 2.33811 (leg-out
+  2026-10-28 04:00) with 2 X-marked supplies, the stop 2 buffers below the D1 host demand. ZoneBot: load
+  `MT5_ZoneBot_ArrivalLimit.set` / `..._ArrivalRealign.set` on a DEMO account.

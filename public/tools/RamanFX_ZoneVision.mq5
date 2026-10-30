@@ -35,9 +35,15 @@
 //| unchanged (golden master: InpDumpObjects).                       |
 //| v2.10: Raja inputs ("Raja (v2.1 ...)" groups), all off = v2.00. |
 //| v2.11: Labels ON/OFF button. v2.12: "LABELS" input group.        |
+//| v2.13 (owner rules, Oct 2026): trend lines through the 2 most    |
+//| recent real peaks / valleys (wick re-anchored, broken = gone, no |
+//| overall line), Kevin's red momentum line, ARRIVAL zones (X on    |
+//| the zones removed, weak zones, realignment area, stop rule,      |
+//| TP / ceiling, lower-TF confirmation) + alerts: input group       |
+//| "ARRIVAL". Logic = the bot's arrival.ts (RFX_ARRIVAL_ENGINE).    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "2.12"
+#property version   "2.13"
 #property indicator_chart_window
 #property indicator_buffers 0
 #property indicator_plots   0
@@ -53,6 +59,21 @@ input bool   InpLblCurve      = true;   // Curve text: "D1 curve 25% / 50% / 75%
 input bool   InpLblWow        = true;   // WOW ladder text (targets)
 input bool   InpLblRaja       = true;   // Raja extras text: nested curve, realignment areas, wick 50%
 input bool   InpLblHalfway    = true;   // "halfway alert" text
+input group "== ARRIVAL zones + trend lines (owner rules, Oct 2026; = the Telegram bot) =="
+input bool   InpTLTwoPivot    = true;   // Trend lines: ONE line each way through the 2 most recent real peaks / valleys, wick re-anchored, gone once a full candle closes beyond (false = v2.12 lines)
+input bool   InpArrShow       = true;   // ARRIVAL zone: bold box + tag (its leg-out closed beyond the trend line and removed opposite zones; 2+ = STRONG)
+input bool   InpArrShowRemoved= true;   // Zones the arrival removed: dotted box with an X
+input bool   InpArrShowWeak   = true;   // Same-TF opposite zones made WEAK by the arrival: dashed, "weak - no limit"
+input bool   InpArrShowRealign= true;   // Realignment area: the weak zone nearest the higher-TF trend line (gold)
+input bool   InpArrShowPlan   = true;   // Plan lines: entry, SL (stop rule), TP (capped at the HTF line / extended to the HTF zone), ceiling
+input bool   InpArrShowConfirm= true;   // Lower-TF confirmation (H4 -> M15, D1 -> H1, W1 -> H4, MN -> D1): its zone, entry, SL, target
+input bool   InpArrShowMomentum = true; // Kevin's momentum line: thin red dashed, only when there is no trend line that way (never a trend line)
+input bool   InpArrAlertNew   = true;   // Alert: a new arrival zone on this chart's timeframe
+input bool   InpArrAlertRealign = false; // Alert: price entered the realignment area
+input bool   InpArrAlertConfirm = true;  // Alert: lower-TF confirmation (an arrival inside the realignment area)
+input bool   InpArrPush       = false;  // Also push the arrival alerts to the phone (MetaQuotes ID)
+input int    InpArrMarket     = 0;      // Arrival zone settings: 0 = FX (Raja, 7+ candle base = no zone, the bot's FX scan), 1 = stocks (Raja)
+input double InpArrSpreadPips = 0;      // Stop-rule spread floor in pips (0 = the live spread); buffer = max(0.1 x ATR14, spread)
 input group "-- Settings --"
 input string Sep1             = "-- Zone rules (keep equal to ZoneBot) --"; // -----
 input double InpMinLegRatio   = 1.2;    // Move-away range / largest base candle
@@ -240,6 +261,7 @@ input bool     InpExportGV    = false;  // Export the drawn zones (nearest first
 input int      InpExportN     = 8;      // Zones exported at most (never more than the zones drawn, InpMaxZones)
 
 #define PFX "RFXV_"
+#define RXA_PFX "RFXV2_A"                // arrival objects (RFX_ARRIVAL_CHART); the Labels button hides their text too
 #define RFX_RJC                         // Raja v2.1 C: this host has the InpSl* / InpRj* inputs (RFX_ZoneCore.mqh uses them)
 #define RJC_CONF_WIN 10                 // Raja v2.1 C: LTF trendline cross + opposite removal within this many bars
 #define MAXTF 12
@@ -429,6 +451,245 @@ TLine  svTL[];
 //| (moved unchanged) + series accessors + Direction engine          |
 //+------------------------------------------------------------------+
 #include "RFX_ZoneCore.mqh"
+
+// ==== RFX_ARRIVAL_CHART BEGIN ====
+//+------------------------------------------------------------------+
+//| Arrival drawing + alerts (ZoneVision). SHARED VERBATIM by        |
+//| RamanFX_ZoneVision.mq5 and RamanFX_ZoneVision.mq4 (edit the .mq5 |
+//| copy, then `node scripts/sync-arrival-mql.mjs`). Reads the       |
+//| engine (RFX_ARRIVAL_ENGINE) for this chart's TF, its next higher |
+//| TF (ceiling / realignment line) and its confirmation TF (H4 ->   |
+//| M15, D1 -> H1, W1 -> H4, MN -> D1, H1 -> M15). Host contract:    |
+//| #define RXA_PFX, the InpArr* inputs, InpDemandLine, InpSupplyLine,|
+//| InpMuted; the host calls RxaTick(false) from OnCalculate and     |
+//| ObjectsDeleteAll(0, RXA_PFX) in OnDeinit.                        |
+//| Draws: the ARRIVAL zone (bold box + tag), the zones its leg-out  |
+//| removed (X), the trend line it crossed (dotted), the same-TF     |
+//| opposite zones made WEAK (dashed, "weak - no limit"), the        |
+//| realignment area (gold), entry / SL (stop rule) / TP / ceiling   |
+//| lines, the lower-TF confirmation zone and its plan, and Kevin's  |
+//| momentum line (thin red dashed: never a trend line).             |
+//+------------------------------------------------------------------+
+RxReading gRxa;
+bool      gRxaOk = false, gRxaArmed = false, gRxaIn = false;
+string    gRxaSeen[];
+datetime  gRxaT0 = 0, gRxaTL = 0, gRxaTH = 0;
+int       gRxaTries = 0;
+double    gRxaRLo = 0, gRxaRHi = 0;
+string    gRxaRKey = "", gRxaRTxt = "";
+
+bool   RxaSeen(string k) { for(int i = 0; i < ArraySize(gRxaSeen); i++) if(gRxaSeen[i] == k) return true; return false; }
+void   RxaMark(string k) { int n = ArraySize(gRxaSeen); if(n > 300) { ArrayResize(gRxaSeen, 0); n = 0; } ArrayResize(gRxaSeen, n + 1); gRxaSeen[n] = k; }
+void   RxaNotify(string m) { Alert(m); if(InpArrPush) SendNotification(StringLen(m) > 250 ? StringSubstr(m, 0, 250) : m); }
+double RxaPip() { return (_Digits == 3 || _Digits == 5) ? _Point * 10 : _Point; }
+string RxaPx(double p) { return DoubleToString(p, _Digits); }
+datetime RxaRight() { return iTime(_Symbol, PERIOD_CURRENT, 0) + PeriodSeconds() * 6; }
+string RxaZTxt(RxZone &z) { return (z.dir > 0 ? "demand " : "supply ") + RxaPx(z.prox) + " - " + RxaPx(z.dist); }
+void RxaBox(string nm, datetime t1, double p1, datetime t2, double p2, color c, int style, int width, bool fill, string tip)
+  {
+   ObjectCreate(0, nm, OBJ_RECTANGLE, 0, t1, p1, t2, p2);
+   ObjectSetInteger(0, nm, OBJPROP_COLOR, c); ObjectSetInteger(0, nm, OBJPROP_STYLE, style); ObjectSetInteger(0, nm, OBJPROP_WIDTH, width);
+   ObjectSetInteger(0, nm, OBJPROP_BACK, fill);                    // MT4: a background rectangle is filled, a foreground one an outline
+#ifdef __MQL5__
+   ObjectSetInteger(0, nm, OBJPROP_FILL, fill);
+#endif
+   ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
+   ObjectSetString(0, nm, OBJPROP_TOOLTIP, tip);
+  }
+void RxaText(string nm, datetime t, double p, string txt, color c, int size, int anchor, bool bold, string tip)
+  {
+   ObjectCreate(0, nm, OBJ_TEXT, 0, t, p);
+   ObjectSetString(0, nm, OBJPROP_TEXT, txt); ObjectSetString(0, nm, OBJPROP_FONT, bold ? "Arial Bold" : "Arial");
+   ObjectSetInteger(0, nm, OBJPROP_FONTSIZE, size); ObjectSetInteger(0, nm, OBJPROP_COLOR, c); ObjectSetInteger(0, nm, OBJPROP_ANCHOR, anchor);
+   ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
+   ObjectSetString(0, nm, OBJPROP_TOOLTIP, tip);
+  }
+void RxaLine(string nm, datetime t1, double p1, datetime t2, double p2, color c, int style, int width, string tip)
+  {
+   ObjectCreate(0, nm, OBJ_TREND, 0, t1, p1, t2, p2);
+   ObjectSetInteger(0, nm, OBJPROP_RAY_RIGHT, false);
+   ObjectSetInteger(0, nm, OBJPROP_COLOR, c); ObjectSetInteger(0, nm, OBJPROP_STYLE, style); ObjectSetInteger(0, nm, OBJPROP_WIDTH, width);
+   ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
+   ObjectSetString(0, nm, OBJPROP_TOOLTIP, tip);
+  }
+void RxaHL(string nm, datetime t1, datetime t2, double p, color c, int style, string txt, string tip)
+  {
+   RxaLine(nm, t1, p, t2, p, c, style, 1, tip);
+   if(txt != "") RxaText(nm + "t", t2, p, " " + txt, c, 7, ANCHOR_LEFT, false, tip);
+  }
+
+// the host calls this on every OnCalculate: a full reading only when a bar opened on this chart, its HTF or its LTF
+void RxaTick(bool force)
+  {
+   if(!(InpArrShow || InpArrShowMomentum || InpArrAlertNew || InpArrAlertRealign || InpArrAlertConfirm)) return;
+   int m = RxTfMin(PERIOD_CURRENT), hm = RxHigherTf(m), lm = RxConfirmTf(m);
+   datetime t0 = iTime(_Symbol, PERIOD_CURRENT, 0);
+   datetime th = hm > 0 ? iTime(_Symbol, RxTfEnum(hm), 0) : 0, tl = lm > 0 ? iTime(_Symbol, RxTfEnum(lm), 0) : 0;
+   if(force || t0 != gRxaT0 || th != gRxaTH || tl != gRxaTL)
+     {
+      gRxaT0 = t0; gRxaTH = th; gRxaTL = tl;
+      RxaRun();
+      // the terminal may still be loading the HTF / LTF history: read again on the next ticks
+      if((!gRxaOk || (gRxa.htf > 0 && !gRxa.hasH) || (gRxa.ltf > 0 && !gRxa.hasL)) && gRxaTries < 30) { gRxaTries++; gRxaT0 = 0; }
+      else gRxaTries = 0;
+     }
+   RxaRealignTick();
+  }
+void RxaRun()
+  {
+   ObjectsDeleteAll(0, RXA_PFX);
+   RxParams p; if(InpArrMarket == 1) RxParamsRaja(p); else RxParamsFX(p);
+   double bid = SymbolInfoDouble(_Symbol, SYMBOL_BID), ask = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
+   double spread = InpArrSpreadPips > 0 ? InpArrSpreadPips * RxaPip() : MathMax(0, ask - bid);
+   gRxaOk = bid > 0 && RxRead(_Symbol, RxTfMin(PERIOD_CURRENT), p, bid, spread, gRxa);
+   if(!gRxaOk) return;
+   RxaDraw();
+   RxaAlerts(bid);
+   gRxaArmed = true;
+   ChartRedraw();
+  }
+void RxaDraw()
+  {
+   string tfn = RxTfName(gRxa.tf), htn = gRxa.htf > 0 ? RxTfName(gRxa.htf) : "HTF", ltn = gRxa.ltf > 0 ? RxTfName(gRxa.ltf) : "LTF";
+   datetime right = RxaRight();
+   string sum = "ARRIVAL " + tfn + ": ";
+   // Kevin's momentum line: only for a direction with no trend line on the newest leg, never a trend line
+   if(InpArrShowMomentum && gRxa.lines.hasMom)
+     {
+      ZvLine mo = gRxa.lines.mom;
+      string tip = tfn + " momentum line (Kevin): a steep one-way leg with no real " + (mo.dir > 0 ? "valley" : "peak") + " - its break is often a false breakout; NOT a trend line";
+      RxaLine(RXA_PFX + "mom", gRxa.S.T[mo.a], mo.pa, right, zvAt(mo, -6), clrRed, STYLE_DASH, 1, tip);
+      RxaText(RXA_PFX + "momt", right, zvAt(mo, -6), " momentum", clrRed, 7, ANCHOR_LEFT, false, tip);
+     }
+   if(!InpArrShow) return;
+   if(gRxa.cur < 0) sum += "none";
+   else
+     {
+      RxArrival A = gRxa.arr[gRxa.cur];
+      color c = A.zone.dir > 0 ? InpDemandLine : InpSupplyLine;
+      string kind = A.zone.dir > 0 ? "demand" : "supply";
+      string tip = StringFormat("%s ARRIVAL %s: the leg-out closed %s the %s %s trend line and removed %d opposite zone(s)%s", tfn, kind, A.zone.dir > 0 ? "above" : "below", tfn,
+                                A.zone.dir > 0 ? "down" : "up", A.nRem, A.strong ? " = STRONG" : "");
+      RxaBox(RXA_PFX + "az", A.zone.baseStart, A.zone.prox, right, A.zone.dist, c, STYLE_SOLID, 3, false, tip);
+      RxaText(RXA_PFX + "azt", A.zone.baseStart, A.zone.prox, "ARRIVAL " + kind + (A.strong ? StringFormat(" STRONG (%d removed)", A.nRem) : " (1 removed)"), c, 9,
+              A.zone.dir > 0 ? ANCHOR_LEFT_LOWER : ANCHOR_LEFT_UPPER, true, tip);
+      RxaLine(RXA_PFX + "al", A.line.ta, A.line.pa, gRxa.S.T[A.crossBar], A.crossPx, InpMuted, STYLE_DOT, 1, tfn + " trend line the arrival's leg-out closed beyond");
+      sum += (A.strong ? "STRONG " : "") + RxaZTxt(A.zone);
+      if(InpArrShowRemoved)
+         for(int q = 0; q < MathMin(A.nRem, RX_MAXREM); q++)
+           {
+            RxZone y = gRxa.zones[A.rem[q]];
+            string nm = RXA_PFX + "rx" + IntegerToString(q), yt = "Removed by the arrival's leg-out: " + RxaZTxt(y);
+            RxaBox(nm, y.baseStart, y.prox, gRxa.S.T[y.removedBar], y.dist, InpMuted, STYLE_DOT, 1, false, yt);
+            RxaText(nm + "x", gRxa.S.T[y.removedBar], (y.prox + y.dist) / 2, "X", y.dir > 0 ? InpDemandLine : InpSupplyLine, 12, ANCHOR_CENTER, true, yt);
+           }
+     }
+   if(gRxa.hasPlan)
+     {
+      RxPlan P = gRxa.plan;
+      RxArrival A2 = gRxa.arr[gRxa.cur];
+      if(InpArrShowWeak)
+         for(int q = 0; q < P.nWeak; q++)
+           {
+            if(P.weak[q] == P.realign && InpArrShowRealign) continue;
+            RxZone z = gRxa.zones[P.weak[q]];
+            string nm = RXA_PFX + "wk" + IntegerToString(q);
+            string wt = StringFormat("WEAK after the %s arrival (Raja): no limit %s on %s - wait for a lower-TF arrival", P.dir > 0 ? "demand" : "supply", z.dir > 0 ? "buys" : "sells", tfn);
+            RxaBox(nm, z.baseStart, z.prox, right, z.dist, z.dir > 0 ? InpDemandLine : InpSupplyLine, STYLE_DASH, 1, false, wt);
+            RxaText(nm + "t", z.baseStart, z.prox, "weak - no limit", InpMuted, 7, z.dir > 0 ? ANCHOR_LEFT_LOWER : ANCHOR_LEFT_UPPER, false, wt);
+           }
+      if(InpArrShowRealign && P.realign >= 0)
+        {
+         RxZone z = gRxa.zones[P.realign];
+         string rt = StringFormat("REALIGNMENT area: the weak %s zone nearest the %s trend line (now %s). Trade it only after a %s arrival inside it.", tfn, htn, RxaPx(P.lineNow), ltn);
+         RxaBox(RXA_PFX + "rl", z.baseStart, z.prox, right, z.dist, C'255,226,140', STYLE_SOLID, 1, true, rt);
+         RxaBox(RXA_PFX + "rlb", z.baseStart, z.prox, right, z.dist, clrGoldenrod, STYLE_SOLID, 2, false, rt);
+         RxaText(RXA_PFX + "rlt", z.baseStart, z.prox, "REALIGN area (" + htn + " line " + RxaPx(P.lineNow) + ")" + (gRxa.pending ? " - waiting for a " + ltn + " arrival" : ""), clrDarkGoldenrod, 8,
+                 z.dir > 0 ? ANCHOR_LEFT_LOWER : ANCHOR_LEFT_UPPER, true, rt);
+         sum += " | realign " + RxaPx(z.prox) + (gRxa.pending ? " (waiting " + ltn + ")" : "");
+        }
+      if(InpArrShowPlan)
+        {
+         datetime t1 = gRxa.S.T[A2.zone.legBar];
+         string bt = P.basis == 1 ? StringFormat("2 buffers beyond the %s %s zone's distal (%s)", htn, P.dir > 0 ? "demand" : "supply", RxaPx(P.host.dist)) : "the valley " + RxaPx(P.valley) + " - 1 buffer";
+         RxaHL(RXA_PFX + "pe", t1, right, P.entry, P.dir > 0 ? InpDemandLine : InpSupplyLine, STYLE_SOLID, "entry " + RxaPx(P.entry), "Arrival entry: the zone's proximal");
+         RxaHL(RXA_PFX + "ps", t1, right, P.stop, clrRed, STYLE_DASH, "SL " + RxaPx(P.stop) + (P.basis == 1 ? " (" + htn + " zone)" : " (valley)"),
+               StringFormat("Stop rule: %s; buffer = max(0.1 x ATR14 %s, spread) = %s", bt, tfn, RxaPx(P.buffer)));
+         if(P.hasTp)
+            RxaHL(RXA_PFX + "pt", t1, right, P.tp, clrForestGreen, STYLE_DASH, "TP " + RxaPx(P.tp) + (P.capped ? " (capped: " + htn + " line)" : (P.extended ? " (" + htn + " zone)" : "")) + (P.hasRR ? StringFormat(" 1:%.1f", P.rr) : ""),
+                  P.capped ? "Target capped before the intact " + htn + " trend line (the ceiling)" : (P.extended ? "The " + htn + " line is crossed: target extended to the " + htn + " zone" : "Target: the weak zone's proximal"));
+         if(P.hasCeiling && !P.capped)
+            RxaHL(RXA_PFX + "pc", t1, right, P.ceiling, clrGoldenrod, STYLE_DOT, htn + " line (ceiling)", "The intact " + htn + " trend line against the arrival, now");
+         sum += " | SL " + RxaPx(P.stop) + (P.basis == 1 ? " " + htn : " valley") + " | TP " + (P.hasTp ? RxaPx(P.tp) : "-");
+        }
+     }
+   if(InpArrShowConfirm && gRxa.hasConfirm)
+     {
+      RxConfirm K = gRxa.conf;
+      color cc = K.zone.dir > 0 ? InpDemandLine : InpSupplyLine;
+      string ct = StringFormat("%s CONFIRMATION: a %s arrival %s inside the realignment area - the %s", ltn, ltn, RxaZTxt(K.zone), K.zone.dir > 0 ? "buy" : "sell");
+      RxaBox(RXA_PFX + "cz", K.zone.baseStart, K.zone.prox, right, K.zone.dist, cc, STYLE_SOLID, 2, false, ct);
+      RxaText(RXA_PFX + "czt", K.zone.baseStart, K.zone.dist, ltn + " CONFIRMATION " + (K.zone.dir > 0 ? "BUY" : "SELL") + (K.inArea ? " (price in the area)" : ""), cc, 8,
+              K.zone.dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER, true, ct);
+      datetime tc = K.zone.made;
+      RxaHL(RXA_PFX + "ce", tc, right, K.entry, cc, STYLE_SOLID, ltn + " entry " + RxaPx(K.entry), ct);
+      RxaHL(RXA_PFX + "cs", tc, right, K.stop, clrRed, STYLE_DASH, ltn + " SL " + RxaPx(K.stop) + (K.basis == 1 ? " (realign zone)" : " (valley)"), "Stop rule on the " + ltn + " (host = the realignment zone)");
+      if(K.hasTarget) RxaHL(RXA_PFX + "ct", tc, right, K.target, clrForestGreen, STYLE_DASH, ltn + " target " + RxaPx(K.target) + (K.hasRR ? StringFormat(" 1:%.1f", K.rr) : ""), "Target: the " + tfn + " newest real " + (K.zone.dir > 0 ? "peak's high" : "valley's low"));
+      sum += " | " + ltn + " CONFIRMED " + (K.zone.dir > 0 ? "buy " : "sell ") + RxaPx(K.entry);
+     }
+   string sn = RXA_PFX + "sum";
+   ObjectCreate(0, sn, OBJ_LABEL, 0, 0, 0);
+   ObjectSetInteger(0, sn, OBJPROP_CORNER, CORNER_LEFT_LOWER); ObjectSetInteger(0, sn, OBJPROP_ANCHOR, ANCHOR_LEFT_LOWER);
+   ObjectSetInteger(0, sn, OBJPROP_XDISTANCE, 8); ObjectSetInteger(0, sn, OBJPROP_YDISTANCE, 58);
+   ObjectSetString(0, sn, OBJPROP_TEXT, sum); ObjectSetString(0, sn, OBJPROP_FONT, "Arial"); ObjectSetInteger(0, sn, OBJPROP_FONTSIZE, 8);
+   ObjectSetInteger(0, sn, OBJPROP_COLOR, InpMuted); ObjectSetInteger(0, sn, OBJPROP_SELECTABLE, false);
+  }
+// new arrival / LTF confirmation: once each (never for what is already on the chart when it loads)
+void RxaAlerts(double bid)
+  {
+   string tfn = RxTfName(gRxa.tf), ltn = gRxa.ltf > 0 ? RxTfName(gRxa.ltf) : "LTF";
+   if(gRxa.cur >= 0)
+     {
+      RxArrival A = gRxa.arr[gRxa.cur];
+      string key = "A|" + tfn + "|" + IntegerToString((long)A.zone.tLeg);
+      if(!RxaSeen(key))
+        {
+         RxaMark(key);
+         if(gRxaArmed && InpArrAlertNew)
+            RxaNotify(StringFormat("ZoneVision %s %s: new %sARRIVAL %s (leg-out crossed the %s trend line, %d opposite zone(s) removed)%s", _Symbol, tfn, A.strong ? "STRONG " : "", RxaZTxt(A.zone), tfn, A.nRem,
+                                   gRxa.hasPlan ? " | entry " + RxaPx(gRxa.plan.entry) + " SL " + RxaPx(gRxa.plan.stop) + (gRxa.plan.hasTp ? " TP " + RxaPx(gRxa.plan.tp) : "") : ""));
+        }
+     }
+   if(gRxa.hasConfirm)
+     {
+      string key = "C|" + ltn + "|" + IntegerToString((long)gRxa.conf.zone.tLeg);
+      if(!RxaSeen(key))
+        {
+         RxaMark(key);
+         if(gRxaArmed && InpArrAlertConfirm)
+            RxaNotify(StringFormat("ZoneVision %s %s: %s CONFIRMATION %s inside the realignment area | entry %s SL %s%s", _Symbol, tfn, ltn, gRxa.conf.zone.dir > 0 ? "BUY" : "SELL", RxaPx(gRxa.conf.entry), RxaPx(gRxa.conf.stop),
+                                   gRxa.conf.hasTarget ? " target " + RxaPx(gRxa.conf.target) : ""));
+        }
+     }
+   gRxaRKey = "";
+   if(gRxa.hasPlan && gRxa.plan.realign >= 0)
+     {
+      RxZone z = gRxa.zones[gRxa.plan.realign];
+      gRxaRLo = RxLo(z); gRxaRHi = RxHi(z); gRxaRKey = "R|" + tfn + "|" + IntegerToString((long)z.tLeg);
+      gRxaRTxt = StringFormat("ZoneVision %s %s: price entered the realignment area %s - wait for a %s arrival inside it", _Symbol, tfn, RxaZTxt(z), ltn);
+      if(!gRxaArmed) gRxaIn = bid >= gRxaRLo && bid <= gRxaRHi;      // already inside at load: no alert
+     }
+  }
+void RxaRealignTick()
+  {
+   if(gRxaRKey == "") { gRxaIn = false; return; }
+   double bid = SymbolInfoDouble(_Symbol, SYMBOL_BID);
+   bool in = bid >= gRxaRLo && bid <= gRxaRHi;
+   if(in && !gRxaIn && !RxaSeen(gRxaRKey)) { RxaMark(gRxaRKey); if(gRxaArmed && InpArrAlertRealign) RxaNotify(gRxaRTxt); }
+   gRxaIn = in;
+  }
+// ==== RFX_ARRIVAL_CHART END ====
+
 
 // v2 per drawn zone, parallel to zKey[] (filled by RegZone + V2Zones): Z index, the v1 ZoneNotes counts, DNA, lenses
 int      zZi[], zNP[], zNM[], zNC[];
@@ -631,6 +892,8 @@ int OnInit()
    RjA_RmMode = InpRemovalMode; RjA_StrongRun = InpRjAStrongRun; RjA_ArrDepart = InpRjAArrClose; RjA_TouchTF = InpRjATouchTF;
    RjA_ShowTested = InpRjAShowTested; RjA_Adjacent = InpRjAAdjacent; RjA_FlipTL = InpRjAFlipTL; RjA_OppHtfVeto = InpRjAOppHtfVeto;
    RjA_TLTouch = InpRjATLTouches; RjA_NearLine = InpRjANearLine; RjA_FarPips = InpRjFarFromLinePips; RjA_Lens8 = InpRjALens8;
+   ZvTwoPivot = InpTLTwoPivot;                                       // v2.13: owner trend-line rule (core default false = ZoneBot)
+   gRxaT0 = 0; gRxaArmed = false;
    ApplyTheme();
    aCap = MathMax(InpLookback, 20) + 80;
    ArrayResize(aV, MAXTF * aCap);
@@ -917,6 +1180,7 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
       if(InpShowBotOrders && TimeLocal() - lastNotes >= 20) { lastNotes = TimeLocal(); BotNotes(); }   // bot notes file read every 20s
       CheckTouch();
       V2CheckAlerts();
+      RxaTick(false);                                                 // v2.13 arrival: re-read only when a chart / HTF / LTF bar opened
       return rates_total;
      }
    if(!DataReady() && gTries < 30) { gTries++; return 0; }    // MT5 still loading the HTF history / ATR: try again next tick
@@ -924,6 +1188,7 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
    Redraw();
    CheckTouch();
    V2CheckAlerts();
+   RxaTick(false);
    return rates_total;
   }
 void CopyHtfLine(ENUM_TIMEFRAMES h)

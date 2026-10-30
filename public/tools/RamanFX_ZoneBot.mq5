@@ -46,7 +46,7 @@
 //|   2026.10.17 12:30,USD   (UTC time, currency)                    |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.64"
+#property version   "1.65"
 
 #include <Trade\Trade.mqh>
 #include <Trade\PositionInfo.mqh>
@@ -148,6 +148,16 @@ input int       InpSimDays       = 5;            // Variant replay horizon (days
 input int       InpMagic         = 770100;       // Magic number base
 input bool      InpLogSkips      = false;        // Also log skipped zones to the CSV (off = orders only)
 input bool      InpAlerts        = true;         // Pop-up alert for new setups
+input string    SepArr           = "-- Arrival entries (owner rules Oct 2026 = the Telegram bot; OFF by default) --"; // -----
+input bool      InpArrLimit      = false;        // Arrival zone limit: limit at the ARRIVAL zone (leg-out closed beyond the TF trend line + removed opposite zones), stop rule, plan TP
+input bool      InpArrRealign    = false;        // Realignment + LTF confirmation: limit on the lower-TF arrival inside the realignment area (H4->M15, D1->H1, W1->H4, H1->M15)
+input bool      InpArrOnly       = false;        // Only the arrival entries (the preset's own zone entries off) - for demo tests
+input bool      InpArrBlockWeak  = false;        // The preset's own limit orders skip zones made WEAK by an arrival (Raja: no limit orders there)
+input bool      InpArrStrongOnly = false;        // Arrival zone limit: only STRONG arrivals (2+ opposite zones removed)
+input double    InpArrMinRR      = 2.0;          // Arrival entries: minimum reward:risk
+input double    InpArrFallbackRR = 3.0;          // Arrival entries: target = N x risk when the plan has no target
+input int       InpArrMarket     = 0;            // Arrival zone settings: 0 = FX (Raja, 7+ candle base = no zone), 1 = stocks (Raja)
+input double    InpArrSpreadPips = 0;            // Stop rule: spread floor in pips (0 = the live spread); buffer = max(0.1 x ATR14, spread)
 input string    SepT             = "-- Strategy Tester (only used in the tester) --"; // -----
 input int       InpTesterGMT     = 2;            // Tester: broker server time offset from GMT (most brokers 2, or 3 in summer) for Friday / Asian rules
 input bool      InpTesterNews    = false;        // Tester: use RamanFX_News.csv (only if it holds the PAST news for the test period)
@@ -2058,6 +2068,156 @@ string V2Line(BotV2 &o, string why)
 //+------------------------------------------------------------------+
 //| Scan one symbol / entry timeframe                                |
 //+------------------------------------------------------------------+
+// ==== RFX_ARRIVAL_BOT BEGIN ====
+//+------------------------------------------------------------------+
+//| Arrival entries (owner rules Oct 2026, OFF by default). SHARED   |
+//| VERBATIM by RamanFX_ZoneBot.mq5 and RamanFX_ZoneBot.mq4 (edit    |
+//| the .mq5 copy, then `node scripts/sync-arrival-mql.mjs`).        |
+//| Reads the arrival engine (RFX_ARRIVAL_ENGINE = the Telegram      |
+//| bot's arrival.ts) on each new bar of an entry TF:                |
+//|  1) InpArrLimit   "Arrival zone limit": a limit at the current   |
+//|     arrival zone's proximal, stop = the STOP RULE (a buffer      |
+//|     beyond the HTF host zone's distal when the zone sits inside  |
+//|     a same-side HTF zone, else beyond the zone's valley / peak;  |
+//|     buffer = max(0.1 x ATR14, spread)), TP = the plan's target   |
+//|     (capped before an intact HTF trend line / extended to the    |
+//|     HTF zone).                                                   |
+//|  2) InpArrRealign "Realignment + LTF confirmation": after an     |
+//|     arrival, the limit on the lower-TF arrival inside the        |
+//|     realignment area (H4 -> M15, D1 -> H1, W1 -> H4, MN -> D1,   |
+//|     H1 -> M15), the stop rule on the LTF (host = the realignment |
+//|     zone), target = the TF's newest real peak / valley.          |
+//|  InpArrBlockWeak: the presets' own limit orders skip a zone made |
+//|     WEAK by an arrival (Raja: no limit orders there).            |
+//| Orders go through the host's ActX -> Place (risk %, lots, checks,|
+//| management), method "ARR" / "RLN", one per zone (ZpIdx). Host   |
+//| contract: the InpArr* bot inputs, gMode / MODE_*, TF_E, ActX,    |
+//| Place, HasOrder, ZpIdx, AddZonePlacement, Say, Count, InpMagic.  |
+//+------------------------------------------------------------------+
+RxReading gRxb;
+bool      gRxbOk = false;
+string    gRxbSeen[];
+bool   RxbSeen(string k) { for(int i = 0; i < ArraySize(gRxbSeen); i++) if(gRxbSeen[i] == k) return true; return false; }
+void   RxbMark(string k) { int n = ArraySize(gRxbSeen); if(n > 500) { ArrayResize(gRxbSeen, 0); n = 0; } ArrayResize(gRxbSeen, n + 1); gRxbSeen[n] = k; }
+double RxbPip(string s) { int dg = (int)SymbolInfoInteger(s, SYMBOL_DIGITS); double pt = SymbolInfoDouble(s, SYMBOL_POINT); return pt * ((dg == 3 || dg == 5) ? 10 : 1); }
+bool   RxbOn() { return InpArrLimit || InpArrRealign || InpArrBlockWeak; }
+// a zone of direction dir (prox .. dist) overlapping a zone the last reading (same symbol / TF) made WEAK
+bool RxbWeak(int dir, double prox, double dist)
+  {
+   if(!InpArrBlockWeak || !gRxbOk || !gRxb.hasPlan) return false;
+   double lo = MathMin(prox, dist), hi = MathMax(prox, dist);
+   for(int q = 0; q < gRxb.plan.nWeak; q++)
+     {
+      RxZone w = gRxb.zones[gRxb.plan.weak[q]];
+      if(w.dir == dir && RxLo(w) <= hi && RxHi(w) >= lo) return true;
+     }
+   return false;
+  }
+// our pending ARR / RLN limits on (s, k) whose entry is no longer a live plan: deleted (the arrival was removed or
+// replaced, the confirmation went away)
+#ifdef __MQL5__
+void RxbCancelStale(string s, int k, double keepA, double keepR)
+  {
+   double pt = SymbolInfoDouble(s, SYMBOL_POINT);
+   for(int i = OrdersTotal() - 1; i >= 0; i--)
+     {
+      ulong tk = OrderGetTicket(i);
+      if(tk == 0 || OrderGetString(ORDER_SYMBOL) != s) continue;
+      long mg = OrderGetInteger(ORDER_MAGIC);
+      int ty = (int)OrderGetInteger(ORDER_TYPE);
+      if(mg != InpMagic + k || (ty != (int)ORDER_TYPE_BUY_LIMIT && ty != (int)ORDER_TYPE_SELL_LIMIT)) continue;
+      string cm = OrderGetString(ORDER_COMMENT); double op = OrderGetDouble(ORDER_PRICE_OPEN);
+      bool isA = StringFind(cm, " ARR ") >= 0, isR = StringFind(cm, " RLN ") >= 0;
+      if(!isA && !isR) continue;
+      double keep = isA ? keepA : keepR;
+      if(keep > 0 && MathAbs(op - keep) <= 3 * pt) continue;
+      if(DelOrder(tk)) Print("ZoneBot arrival: cancelled ", s, " ", TF_N[k], " #", tk, " - its ", isA ? "arrival zone" : "LTF confirmation", " is no longer the live plan");
+     }
+  }
+#else
+void RxbCancelStale(string s, int k, double keepA, double keepR)
+  {
+   double pt = SymbolInfoDouble(s, SYMBOL_POINT);
+   for(int i = OrdersTotal() - 1; i >= 0; i--)
+     {
+      if(!OrderSelect(i, SELECT_BY_POS, MODE_TRADES) || OrderSymbol() != s) continue;
+      int ty = OrderType();
+      if(OrderMagicNumber() != InpMagic + k || (ty != OP_BUYLIMIT && ty != OP_SELLLIMIT)) continue;
+      int tk = OrderTicket(); string cm = OrderComment(); double op = OrderOpenPrice();
+      bool isA = StringFind(cm, " ARR ") >= 0, isR = StringFind(cm, " RLN ") >= 0;
+      if(!isA && !isR) continue;
+      double keep = isA ? keepA : keepR;
+      if(keep > 0 && MathAbs(op - keep) <= 3 * pt) continue;
+      if(OrderDelete(tk)) Print("ZoneBot arrival: cancelled ", s, " ", TF_N[k], " #", tk, " - its ", isA ? "arrival zone" : "LTF confirmation", " is no longer the live plan");
+     }
+  }
+#endif
+// one setup: checks, then the host's ActX (alert / propose / order, as the Mode input says)
+void RxbAct(string s, int k, int dir, double entry, double sl, double tp, double prox, double dist, datetime tZone, string method, string what, string key)
+  {
+   int digits = (int)SymbolInfoInteger(s, SYMBOL_DIGITS);
+   double bid = SymbolInfoDouble(s, SYMBOL_BID), ask = SymbolInfoDouble(s, SYMBOL_ASK);
+   double risk = MathAbs(entry - sl), rr = risk > 0 ? MathAbs(tp - entry) / risk : 0;
+   string reason = "";
+   if(risk <= 0 || (dir > 0 ? sl >= entry : sl <= entry)) reason = "arrival: stop on the wrong side";
+   else if(dir > 0 ? tp <= entry : tp >= entry) reason = "arrival: target on the wrong side of the entry";
+   else if(rr < InpArrMinRR) reason = StringFormat("arrival: R:R 1:%.1f below %.1f", rr, InpArrMinRR);
+   else if(dir > 0 ? ask <= entry : bid >= entry) reason = "arrival: price already at / through the entry";
+   else if(ZpIdx(s, dir, prox, dist) >= 0) reason = "arrival: zone already traded";
+   else if(HasOrder(s, k)) reason = "arrival: a bot order on this TF already";
+   if(reason != "") { if(!RxbSeen(key + "|skip")) { RxbMark(key + "|skip"); Say(s, k, "skip - " + reason + " (" + what + ")"); } Count(reason); return; }
+   if(gMode != MODE_AUTO && RxbSeen(key)) return;                     // scanner / approve: once per setup
+   RxbMark(key);
+   string decision = gMode == MODE_AUTO ? "ORDER" : (gMode == MODE_APPROVE ? "PROPOSE" : "ALERT");
+   string info = StringFormat("%s %s %s %s | entry %s SL %s TP %s 1:%.1f\nWhy: %s", dir > 0 ? "BUY" : "SELL", TF_N[k], method == "ARR" ? "arrival zone limit" : "realignment + LTF confirmation",
+                              "LIMIT", DoubleToString(entry, digits), DoubleToString(sl, digits), DoubleToString(tp, digits), rr, what);
+   string tag = StringFormat("%s %s %s %s 1:%.1f", s, TF_N[k], method, dir > 0 ? "BUY LIMIT" : "SELL LIMIT", rr);
+   ActX(s, k, dir, entry, sl, tp, rr, method, decision, "A", info, prox, dist, tZone, tag);
+   if(gMode == MODE_AUTO && HasOrder(s, k) && ZpIdx(s, dir, prox, dist) < 0) AddZonePlacement(s, dir, prox, dist);
+  }
+// called by Scan(s, k) on each new entry-TF bar, before the preset logic
+void ArrScan(string s, int k)
+  {
+   gRxbOk = false;
+   if(!RxbOn()) return;
+   RxParams p; if(InpArrMarket == 1) RxParamsRaja(p); else RxParamsFX(p);
+   double bid = SymbolInfoDouble(s, SYMBOL_BID), ask = SymbolInfoDouble(s, SYMBOL_ASK);
+   if(bid <= 0 || ask <= 0) return;
+   double spread = InpArrSpreadPips > 0 ? InpArrSpreadPips * RxbPip(s) : ask - bid;
+   gRxbOk = RxRead(s, RxTfMin((ENUM_TIMEFRAMES)TF_E[k]), p, bid, spread, gRxb);
+   if(!gRxbOk) return;
+   int digits = (int)SymbolInfoInteger(s, SYMBOL_DIGITS);
+   string tfn = RxTfName(gRxb.tf), htn = gRxb.htf > 0 ? RxTfName(gRxb.htf) : "HTF", ltn = gRxb.ltf > 0 ? RxTfName(gRxb.ltf) : "LTF";
+   double keepA = 0, keepR = 0;
+   if(InpArrLimit && gRxb.hasPlan && (!InpArrStrongOnly || gRxb.arr[gRxb.cur].strong))
+     {
+      RxPlan P = gRxb.plan; RxArrival A = gRxb.arr[gRxb.cur];
+      int dir = P.dir;
+      double entry = P.entry + (dir > 0 ? ask - bid : 0);           // a buy limit fills on the ask (the bot's convention)
+      double tp = P.hasTp ? P.tp : entry + dir * InpArrFallbackRR * MathAbs(entry - P.stop);
+      string what = StringFormat("%s%s ARRIVAL %s %s-%s: leg-out crossed the %s trend line, %d opposite zone(s) removed; stop %s (%s); TP %s",
+                                 A.strong ? "STRONG " : "", tfn, dir > 0 ? "demand" : "supply", DoubleToString(A.zone.prox, digits), DoubleToString(A.zone.dist, digits), tfn, A.nRem,
+                                 DoubleToString(P.stop, digits), P.basis == 1 ? "2 buffers beyond the " + htn + " zone" : "valley - buffer",
+                                 P.hasTp ? (P.capped ? "capped at the " + htn + " line" : (P.extended ? htn + " zone" : "weak zone")) : StringFormat("none - 1:%.1f", InpArrFallbackRR));
+      RxbAct(s, k, dir, entry, P.stop, tp, A.zone.prox, A.zone.dist, A.zone.baseStart, "ARR", what, "A|" + s + "|" + tfn + "|" + IntegerToString((long)A.zone.tLeg));
+      keepA = NormalizeDouble(entry, digits);
+     }
+   if(InpArrRealign && gRxb.hasConfirm)
+     {
+      RxConfirm K = gRxb.conf;
+      int dir = K.zone.dir;
+      double entry = K.entry + (dir > 0 ? ask - bid : 0);
+      double tp = K.hasTarget ? K.target : entry + dir * InpArrFallbackRR * MathAbs(entry - K.stop);
+      string what = StringFormat("%s arrival %s %s-%s inside the %s realignment area (after the %s %s arrival); stop %s (%s); target the %s newest real %s",
+                                 ltn, dir > 0 ? "demand" : "supply", DoubleToString(K.zone.prox, digits), DoubleToString(K.zone.dist, digits), tfn, tfn, dir > 0 ? "supply" : "demand",
+                                 DoubleToString(K.stop, digits), K.basis == 1 ? "realignment zone distal + 2 buffers" : "valley - buffer", tfn, dir > 0 ? "peak" : "valley");
+      RxbAct(s, k, dir, entry, K.stop, tp, K.zone.prox, K.zone.dist, K.zone.baseStart, "RLN", what, "R|" + s + "|" + ltn + "|" + IntegerToString((long)K.zone.tLeg));
+      keepR = NormalizeDouble(entry, digits);
+     }
+   if(gMode == MODE_AUTO) RxbCancelStale(s, k, keepA, keepR);
+  }
+// ==== RFX_ARRIVAL_BOT END ====
+
 void Scan(string s, int k)
   {
    int etf = TF_E[k], htf = TF_H[k];
@@ -2094,6 +2254,8 @@ void Scan(string s, int k)
       ArrayResize(vzR, 0); ArrayResize(vzC, 0);
       VizTrendlines(s, etf, htf);
      }
+   ArrScan(s, k);                                                        // owner arrival entries (InpArr*, off by default)
+   if(InpArrOnly) { ClearWatch(s, k); return; }                          // demo test: only the arrival entries
    KevinPendings(s, k, etf, z, n, hz, hn);                               // Kevin: remove limits / stops whose context changed
    if(IsBo())  { ClearWatch(s, k); ScanBreakout(s, k, z, n, sel, ns, hz, hn, trend); return; }   // Kevin's breakout stop order
    if(IsImp()) { ClearWatch(s, k); ScanImpulse(s, k, z, n, hz, hn, trend); return; }            // impulse candle -> market order
@@ -2105,6 +2267,7 @@ void Scan(string s, int k)
    for(int q = 0; q < ns; q++)
      {
       int i = sel[q];
+      if(RxbWeak(z[i].dir, z[i].prox, z[i].dist)) { Count("weak after an arrival - no limit"); continue; }   // InpArrBlockWeak (off by default)
       if(!IsZ3() && !z[i].cont && !EffTradeVP()) continue;          // VP (reversal) zones only when enabled
       if(gMode == MODE_APPROVE && IsDismissed(s, k, z[i].prox, false)) { Count("denied by you"); continue; }   // next-best zone gets advised
       int dir = z[i].dir;
@@ -2691,6 +2854,7 @@ void KevinPendings(string s, int k, int etf, BZone &z[], int n, BZone &hz[], int
       ulong tk = a[i].ticket; int si = StIdx(a[i].id);
       int ok = si >= 0 ? stK[si] : KOf(a[i].magic);
       if(ok != k) continue;
+      if(si >= 0 && (stM[si] == "ARR" || stM[si] == "RLN")) continue;   // arrival orders: ArrScan cancels them
       int dir = ODir(a[i]);                                               // BUY_LIMIT / BUY_STOP are even
       double op = a[i].op, dist = si >= 0 ? stDist[si] : 0;
       double zk = ZKey(si, op);                                           // a stop order: its basing zone, else the entry
@@ -3070,6 +3234,7 @@ bool Place(string s, int k, int dir, double entry, double sl, double tp, double 
    if(trap && StringLen(cm) <= 26) cm += " trap";
    if(isBo || isImp) cm = StringFormat("%d %s %s %s, %s", k + 1, TF_N[k], isBo ? "BO" : "IMP", isBo ? (dir > 0 ? "buy stop" : "sell stop") : (dir > 0 ? "buy" : "sell"), tp > 0 ? StringFormat("1:%.1f", rr) : "no TP");   // " BO " / " IMP " name the entry type in the report
    if(gtCs != "" && (isBo || isImp)) cm = GtCm(cm, gtCs);
+   if(method == "ARR" || method == "RLN") cm = StringFormat("%d %s %s %s 1:%.1f", k + 1, TF_N[k], method, dir > 0 ? "buy" : "sell", rr);   // " ARR " / " RLN ": ArrScan finds its orders
    int type = isImp ? (int)(dir > 0 ? ORDER_TYPE_BUY : ORDER_TYPE_SELL) : (isBo ? (int)(dir > 0 ? ORDER_TYPE_BUY_STOP : ORDER_TYPE_SELL_STOP) : (int)(dir > 0 ? ORDER_TYPE_BUY_LIMIT : ORDER_TYPE_SELL_LIMIT));
    ulong t = SendOrder(s, type, lots, entry, isImp ? 10 : 3, sl, tp, cm, MagicFor(k, method));
    if(t == 0) { Print("Order send failed ", s, " retcode ", RetTxt()); placeErr = "broker rejected the order (retcode " + IntegerToString(gLastRet) + ")"; Count(placeErr); return false; }

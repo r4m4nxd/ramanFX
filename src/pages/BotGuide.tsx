@@ -48,7 +48,7 @@ function Install() {
         <>In MT4: <b>File → Open Data Folder → MQL4</b>. Put <K>RamanFX_ZoneBot.mq4</K> in <b>Experts</b> and <K>RamanFX_ZoneVision.mq4</K> in <b>Indicators</b>.</>,
         <>Open each file in MetaEditor (F4) and press <b>F7</b> to compile. It must say <b>0 errors</b>. Warnings are fine.</>,
         <>Back in MT4, right-click <b>Navigator → Refresh</b>. Both show up under Expert Advisors and Indicators.</>,
-        <>MT5 (ZoneVision 2.00, ZoneBot 1.63): put <K>RFX_ZoneCore.mqh</K> in the <b>same folder</b> as each .mq5 that uses it (Indicators for ZoneVision, Experts for ZoneBot), then compile. Both files read the same core, so the bot and the indicator find the same zones.</>,
+        <>MT5 (ZoneVision 2.13, ZoneBot 1.65): put <K>RFX_ZoneCore.mqh</K> in the <b>same folder</b> as each .mq5 that uses it (Indicators for ZoneVision, Experts for ZoneBot), then compile. Both files read the same core, so the bot and the indicator find the same zones.</>,
         <>Updating to a new version: download again, overwrite, compile, then <b>remove the bot from the chart and drag it on again</b>. MT4 keeps your old settings if you only recompile, so new defaults would not load.</>,
       ]} />
     </Section>
@@ -171,7 +171,7 @@ function ZoneBot() {
           ['InpTF_M1 … InpTF_W1', 'Switch timeframes on/off (D1/W1 need more history to load).'],
           ['InpMinRR', 'Minimum reward:risk (2).'],
           ['InpMaxDistATR', 'How far a zone may be from price, in HTF ATR (2). ATR = average size of the last 14 HTF candles. A zone 2.5 x weekly ATR away needs about 3 weeks of one-way move, and price often turns first.'],
-          ['InpTLSwing', 'Trendlines like Kevin draws them. A valley is REAL only when price then makes a higher high (above the last peak) before breaking it; a peak is real only when price then makes a lower low. Like your drills: the newest line runs from the previous real valley (or, if that is too flat, from the lowest point) to the newest one; the overall line runs from the very bottom (top) of the move to the real valley (peak) that keeps the others above it. The anchor moves only if a candle pokes through by more than a hair (0.05 ATR), the same as ZoneVision. Only respected lines are used. The HTF lines are drawn on the entry chart in gold, and a zone within 1 ATR of a respected line is marked “at the trendline”. N = bars each side of a swing point (2).'],
+          ['InpTLSwing', 'Trendlines like Kevin draws them. A valley is REAL only when price then makes a higher high (above the last peak) before breaking it; a peak is real only when price then makes a lower low. Like your drills: the newest line runs from the previous real valley (or, if that is too flat, from the lowest point) to the newest one; the overall line runs from the very bottom (top) of the move to the real valley (peak) that keeps the others above it. The anchor moves only if a candle pokes through by more than a hair (0.05 ATR), the same as ZoneVision. Only respected lines are used. The HTF lines are drawn on the entry chart in gold, and a zone within 1 ATR of a respected line is marked “at the trendline”. N = bars each side of a swing point (2). These are the preset logic\'s own lines (unchanged); the arrival entries use the owner two-pivot rule (see Arrival entries).'],
           ['Arrival zone', 'The strongest zone (Kevin + your first mentor): its move away broke the trendline AND took out the previous high / low, an opposing zone or made a new high / low - usually one big candle that breaks everything and leaves an imbalance. Labelled ARRIVAL, ranked first, +8 planner points.'],
           ['InpTLBias', 'Bias from the newest higher-timeframe trendline break, the way you read it: a broken daily downtrend line = bullish for H4 / H1, a broken uptrend line = bearish. Your own drawn lines still win. Zones get +3 when price can reach them without crossing a trendline and -5 when it must break one first.'],
           ['InpBlockOverext', 'No advice for a zone beyond the 50% line of the trendline channel (overextended). Kevin buys / sells only in the golden area between the trendline and 50%. A zone whose move broke a trendline now also counts as in the chain.'],
@@ -199,6 +199,26 @@ function ZoneBot() {
           ['InpEntryByLens', 'Default 0 = v1 entries. 1 = Raja: set and forget only on a strong, fresh zone, otherwise a confirmation entry is needed. 2 = Seiden: 9-10 points limit, 8 points confirmation, less = skip.'],
           ['InpUseDirection', 'Off by default. Use the ZoneVision Direction engine instead of the v1 bias: WAIT or BLOCKED = skip, REDUCED = half risk.'],
           ['InpDirTable / InpWKevin ... InpWBaker / InpUseCalWeights / InpCalFile', 'Keep these equal to ZoneVision: the Direction timeframe stack (1 = Kevin lesson 4, D1 to 1M to 3M), the consensus weights, and the calibration file. They only matter when a v2 input above is on.'],
+        ]} />
+      </Section>
+
+      <Section title="Arrival entries (MT5 1.65 / MT4 1.63, off by default)">
+        <div className="text-[13px] text-ink2 mb-3">The owner-approved Raja / Kevin arrival rules of Oct 2026, the same engine as the Telegram bot and ZoneVision 2.13 (its ARRIVAL zones). Both entry modes are <b>off by default</b>; the presets below switch one on for a <b>demo</b> test (AUTO mode, only the arrival entries trade, Kevin best capital protection).</div>
+        <div className="flex flex-wrap gap-2 mb-3">
+          <a className="btn" href="/tools/MT5_ZoneBot_ArrivalLimit.set" download><Icon name="download" size={14} />MT5_ZoneBot_ArrivalLimit.set</a>
+          <a className="btn" href="/tools/MT5_ZoneBot_ArrivalRealign.set" download><Icon name="download" size={14} />MT5_ZoneBot_ArrivalRealign.set</a>
+          <a className="btn" href="/tools/RamanFX_ZoneBot_ArrivalLimit.set" download><Icon name="download" size={14} />MT4 ArrivalLimit</a>
+          <a className="btn" href="/tools/RamanFX_ZoneBot_ArrivalRealign.set" download><Icon name="download" size={14} />MT4 ArrivalRealign</a>
+        </div>
+        <Table head={['Input', 'What it does']} rows={[
+          ['InpArrLimit', 'Arrival zone limit: on each new candle of an entry timeframe, a limit at the proximal of the current ARRIVAL zone (its leg-out, the departure plus up to 2 more strong candles, closed beyond that timeframe\'s trend line and removed at least one opposite zone). Stop = the stop rule below. Target = the plan: the weak zone (or the one nearest the higher-TF line), capped before an intact opposite higher-TF trend line, extended to the higher-TF zone once that line is crossed.'],
+          ['InpArrRealign', 'Realignment + LTF confirmation: after an arrival, the realignment area is the weak same-TF zone nearest the higher-TF trend line. When a lower-TF arrival forms inside it (H4 to M15, D1 to H1, W1 to H4, MN to D1, H1 to M15), a limit at that lower-TF zone, stop by the stop rule on the lower TF (host = the realignment zone), target = the newest real peak (buys) / valley (sells) of the arrival timeframe.'],
+          ['Stop rule', 'Entry zone inside a same-side higher-TF zone: 2 buffers beyond that zone\'s distal (but never inside the valley stop). Otherwise 1 buffer beyond the zone\'s valley / peak (the extreme of the leg-out candle, its base and the 2 candles before it). Buffer = the larger of 0.1 x ATR14 of the entry TF and the spread (InpArrSpreadPips, 0 = live spread).'],
+          ['InpArrOnly', 'Only the arrival entries trade (the preset\'s own zone entries are skipped). On in the two arrival presets.'],
+          ['InpArrBlockWeak', 'Off by default. The preset\'s own limit orders skip zones an arrival made WEAK (Raja: after a supply arrival no limit buys on that timeframe).'],
+          ['InpArrStrongOnly / InpArrMinRR / InpArrFallbackRR', 'Only STRONG arrivals (2+ opposite zones removed); minimum R:R (2); target = N x risk when the plan has none (3).'],
+          ['InpArrMarket', '0 = FX zone settings (Raja, a 7+ candle base is no zone, as the bot\'s FX scan), 1 = stocks (Raja).'],
+          ['Orders', 'Comment like 5 H4 ARR buy 1:2.6 or 5 H4 RLN sell 1:3.0. One order per zone (and the bot\'s one-order-per-symbol-and-TF rule). A pending ARR / RLN limit is cancelled when its zone is no longer the live plan; break-even and the other management follow the preset.'],
         ]} />
       </Section>
 
@@ -238,6 +258,28 @@ function ZoneVision() {
         ]} tone="accent" />
       </Section>
 
+      <Section title="ARRIVAL zones and trend lines (MT5 2.13, MT4 2.00, TradingView Arrival)">
+        <div className="text-[13px] text-ink2 mb-3">The owner-approved Raja / Kevin rules of Oct 2026, computed by the same engine as the Telegram bot (its charts and arrival alerts), so the indicator and the bot show the same arrival zones on the same candles. On TradingView they are in the companion <b>RamanFX ZoneVision Arrival</b> (the main script is at the Pine size limit).</div>
+        <div className="flex flex-wrap gap-2 mb-3"><a className="btn" href="/tools/RamanFX_ZoneVision_Arrival.pine" download><Icon name="download" size={14} />RamanFX_ZoneVision_Arrival.pine</a></div>
+        <Table head={['On chart', 'Meaning']} rows={[
+          ['Dark line', 'Trend line: through the 2 most recent real peaks (down line, each followed by a lower low, the newer one lower) or real valleys (up line, each followed by a higher high, the newer one higher), wick to wick. A candle between the two that pokes through becomes the older anchor (wick re-anchoring). A near-flat line is no line. The line is gone once a full closed candle is beyond it. No overall line, no older lines.'],
+          ['Thin red dashed line', 'Kevin\'s momentum line: a steep one-way leg with no real peak / valley. Only when there is no trend line that way, and never used as a trend line (its break is often a false breakout).'],
+          ['Bold box + ARRIVAL tag', 'Arrival zone: its leg-out (the departure plus up to 2 more strong candles) closed beyond the trend line and removed at least one opposite zone. 2 or more removed = STRONG. The dotted line is the trend line it crossed.'],
+          ['Dotted box with an X', 'An opposite zone the arrival removed.'],
+          ['Dashed box, weak - no limit', 'After the arrival, the same-TF opposite zones are weak: no limit orders there (Raja).'],
+          ['Gold box, REALIGN area', 'The weak zone nearest the higher-TF trend line: where a counter-trade is allowed, only after a lower-TF arrival inside it.'],
+          ['entry / SL / TP lines', 'Entry = the zone proximal. SL = stop rule: 2 buffers beyond the same-side higher-TF zone the zone sits in, else 1 buffer beyond its valley / peak (buffer = max(0.1 x ATR14, spread)). TP capped before an intact higher-TF line (gold dotted ceiling) or extended to the higher-TF zone once that line is crossed.'],
+          ['CONFIRMATION box', 'The lower-TF arrival inside the realignment area (H4 to M15, D1 to H1, W1 to H4, MN to D1, H1 to M15) with its own entry, SL and target.'],
+          ['Bottom-left line', 'ARRIVAL summary: zone, SL basis, TP, realignment and confirmation status.'],
+        ]} />
+        <div className="mt-3"><Table head={['Input', 'What it does']} rows={[
+          ['InpTLTwoPivot', 'On (default): the trend-line rule above. Off = the old lines (MT5 / MT4 only).'],
+          ['InpArrShow / InpArrShowRemoved / InpArrShowWeak / InpArrShowRealign / InpArrShowPlan / InpArrShowConfirm / InpArrShowMomentum', 'Each drawing on / off (all on by default).'],
+          ['InpArrAlertNew / InpArrAlertConfirm / InpArrAlertRealign', 'Alerts (push too with InpArrPush): a new arrival and a lower-TF confirmation are on, realignment area entered is off. Never fired for what is already on the chart when it loads. TradingView: Create alert, condition ZV Arrival, Any alert() function call (or one of its three alert conditions).'],
+          ['InpArrMarket / InpArrSpreadPips', 'Zone settings (0 = FX, 1 = stocks) and the spread floor of the stop buffer (0 = the live spread; TradingView has no spread, so it is an input there).'],
+        ]} /></div>
+      </Section>
+
       <Section title="TradingView version">
         <div className="flex flex-wrap gap-2 mb-3"><a className="btn" href="/tools/RamanFX_ZoneVision.pine" download><Icon name="download" size={14} />RamanFX_ZoneVision.pine</a><Link to="/tools?p=tv" className="btn"><Icon name="copy" size={14} />Copy code on a phone</Link></div>
         <Steps items={[
@@ -264,7 +306,7 @@ function ZoneVision() {
           ['Faded box', 'Removed zone (price closed beyond distal). Only shown if InpShowRemoved is on.'],
           ['Purple bar', 'Liquidity trap in front of the zone.'],
           ['Yellow band', 'Closest HTF zone above and below: where the bigger picture is in control.'],
-          ['Dark line', 'Newest intact trendline each way.'],
+          ['Dark line', 'Trend line each way through the 2 most recent real peaks / valleys (see ARRIVAL zones and trend lines above). The thin red dashed line is a momentum line, not a trend line.'],
           ['Blue / red / green lines', "The bot's planned entry, stop and target for the best setup (InpShowPlan)."],
           ['Top-left panel', 'Timeframe pair (e.g. H1 → D1), bias, structure, and what the bot is watching or waiting for.'],
           ['Bottom-right text', 'Why the bot placed its live order on this pair.'],

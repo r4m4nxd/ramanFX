@@ -195,3 +195,28 @@ Use the same symbol and timeframe on both (for example EURUSD H1, a broker whose
 3. **Bias text.** The panel lines `Bias:`, `why:` (for example `D1 downtrend trendline broken on 2026.10.14`), `Structure:` and the Direction header (`DIRECTION: LONG - REDUCED | sells BLOCKED`) must match. So must the ETF / ITF / HTF / +1 rows (`HTF D1  CHANGED UP  T+1 S-1 R2  curve 31%`) and the zone tags (`A | K+ S8 R:ARR B7 | C78`).
 
 If 1 matches but 2 does not, check that the HTF candles are the same (point 4 under Deliberate differences). If the HTF candles differ, the HTF lines will differ too.
+
+## 2.13: owner trend-line + ARRIVAL rules (Oct 2026, = the Telegram bot)
+
+- **Trend lines (ZoneVision + Direction):** `Trendlines()` now keeps ONE line per direction through the 2 most recent
+  real valleys / peaks (newer higher / lower), `FitAnchor` wick re-anchoring, `TooFlat` = no line, `Confirmed`; a line
+  with a full closed candle beyond it is kept for `TLBias` / the break alert but not drawn (`alive = false`). The 2.10
+  per-pivot / overall / older-leg lines and `RefineOnChart` are gone (HTF lines: straight between the chart candles
+  that hold the HTF anchors, `ChartBarIn` = the bot's `htfBarIndex`). StructureNow says "no intact trendline" (flat is
+  not "momentum"). Canonical: `supabase/functions/telegram-bot/zvTrend.ts` zvLines.
+- **ARRIVAL zones:** new companion `RamanFX_ZoneVision_Arrival.pine` (the main script is at the token limit). Its
+  `RFX_ARRIVAL_PINE` block is the engine (zvPivots, zvFitAnchor, zvLines, zvMomentum, zcDetect, arrArrivals,
+  arrArrivalTf, arrStopOf, arrRrOf), copied verbatim into `RamanFX_ZoneStrategy.pine` (`node scripts/sync-arrival-mql.mjs`).
+  Data: the chart's closed candles (var arrays), the next higher TF by `request.security` with the closed-bar pack
+  (`f_apack`, as `f_pack`), the confirmation TF by `request.security_lower_tf` (closed intrabars). Runs on each closed
+  candle and, in realtime, when a lower-TF candle closes (alerts only; drawings on the closed candle). Alert state is
+  `varip` (no repeat after a realtime rollback). Three `alertcondition`s + `alert()` messages.
+- **Verification without TradingView:** `tools/telegram_bot/parity/pine_port.py` translates the Pine engine block
+  itself to Python (one statement per line, `?:` -> `if/else`, UDTs -> classes, arrays raise on out-of-range like
+  `array.get`) and replays the shared fixture + seeded random + jittered cases against the canonical TS
+  (`src/core/toolsArrival.test.ts`): all match, momentum lines included. Pine-specific choices made for the runtime:
+  no ternary that could index out of range if evaluated eagerly, the cheap "removed an opposite zone" test before the
+  trend-line work (same result), native `slice` for the older-bars series.
+- **Check on TradingView:** compile all four scripts (token limit of the main one), add ZV Arrival to GBPNZD H4 and
+  look for the strong arrival demand 2.34361 - 2.33811 (leg-out 2026-10-28 04:00 server time; TradingView FX candles
+  are New York-close based, so the candle times / prices can differ slightly from MT5).

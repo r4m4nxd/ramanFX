@@ -1,6 +1,9 @@
-// RamanFX ZoneVision 2.10 for TradingView (Pine Script v6)
+// RamanFX ZoneVision 2.13 for TradingView (Pine Script v6)
+// 2.13 (owner rules, Oct 2026 = the Telegram bot zvTrend.ts): trend lines through the 2 MOST RECENT real peaks / valleys
+// (wick re-anchoring, flat = no line, gone once a full candle closes beyond; no overall / older lines; HTF lines straight
+// between the chart candles holding the HTF anchors). ARRIVAL zones: the companion RamanFX_ZoneVision_Arrival.pine.
 // Port of public/tools/RamanFX_ZoneVision.mq5 (2.10) + its core RFX_ZoneCore.mqh. Same zone rules, the same Kevin
-// trendlines (real pivots, FitAnchor, TooFlat, Confirmed, overall line, HTF levels, RefineOnChart, DedupeTL), TLBias,
+// trendlines (real pivots, FitAnchor, TooFlat, Confirmed, HTF levels, DedupeTL; 2.13: the owner two-pivot rule), TLBias,
 // Qualify, ZoneNotes (grade / verdict / plan), FindTrap, HTF trend + curve, the v2 Direction engine (Kevin table
 // lesson 4 by default), Zone DNA, the four mentor lenses and the consensus tag (A | K+ S8 R:ARR B7 | C78).
 //
@@ -29,7 +32,7 @@
 //    projection / sideways box row, the confirmation / management alerts, the wick-fill marks and the gold note are in
 //    ZV Direction; the full tooltip's DNA / PLANS sections are one compact line each and its conflict lines are gone.
 //@version=6
-indicator("RamanFX ZoneVision 2.10", shorttitle = "ZoneVision", overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500)
+indicator("RamanFX ZoneVision 2.13", shorttitle = "ZoneVision", overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500)
 
 // ---------------------------------------------------------------------------------------------------------------
 // Inputs: same names, defaults and groups as the MT5 indicator (MT5-only inputs are left out)
@@ -97,7 +100,6 @@ InpHTFLevels       = input.int(4, "Higher timeframes whose trendlines are drawn 
 InpTLBias          = input.bool(true, "Bias from the newest HTF trendline break (a broken daily downtrend line = bullish for H4 / H1)", group = G2)
 InpHtfTL           = input.color(#C89628, "Higher-timeframe lines still respected (thin dotted)", group = G2)
 InpHtfTLBroken     = input.color(#E4CD96, "Higher-timeframe lines already broken (lighter, end where they broke)", group = G2)
-InpRefineHTF       = input.bool(true, "Re-anchor HTF lines on this chart's candles (exact top-most / bottom-most touch, no cut candles)", group = G2)
 InpTLSwing         = input.int(2, "Trendlines: swing points need N bars each side; REAL only after a new higher high / lower low", minval = 1, group = G2)
 InpShowPlan        = input.bool(true, "Bot's planned entry / SL / TP", group = G2)
 InpShowPanel       = input.bool(true, "Compact info panel", group = G2)
@@ -698,66 +700,26 @@ Trendlines(Ser s) =>
     int bars = math.min(InpLookback, s.n - 20)
     Piv pv = ZigZag(s, bars)
     int npv = pv.bar.size()
+    // owner rule (Oct 2026 = the bot's zvTrend.ts zvLines 102-134): ONE line per direction through the 2 MOST RECENT real
+    // valleys (up) / peaks (down), newer higher / lower, wick to wick, FitAnchor (wick re-anchoring), not TooFlat (flat =
+    // no line), Confirmed; RemovedAt marks a broken line (kept for TLBias / the break alert, not drawn). No overall line,
+    // no anchoring at the window extreme, no older-leg lines (2.10 lines removed).
     for d = -1 to 1 by 2
-        int prevB = -1
-        int lastA = -1
-        float prevP = 0.0
-        int k = 0
-        while k < npv
-            int kk = k
-            k += 1
-            if pv.t.get(kk) != -d
-                continue
-            int b2 = pv.bar.get(kk)
-            float p2 = pv.p.get(kk)
-            float sl = 0.0
-            int pb = prevB
-            float pp = prevP
-            prevB := b2
-            prevP := p2
-            int a = -1
-            int A = SExt(s, d < 0, bars - b2, b2 + 1)
-            // 1) the bottom / top of the move, 2) the previous real valley / peak, 3) the line's original start
-            for q = 0 to 2
-                if a < 0
-                    int cand = q == 0 ? A : (q == 1 ? pb : lastA)
-                    if q == 1 ? (pb > 0 and d * (pp - p2) < 0) : (cand > b2 and d * (s.ad(d, cand) - p2) < 0)
-                        Fit f = FitAnchor(s, cand, b2, p2, d)
-                        a := TooFlat(s, f.a, b2, p2, f.sl) ? -1 : f.a
-                        sl := f.sl
-            if a < 0 or not Confirmed(s, a, b2, p2, sl, d)
-                continue
-            int n = x.tl.size()
-            if n > 0
-                if x.tl.get(n - 1).dir == d and x.tl.get(n - 1).a == a
-                    x.tl.pop()
-            AddTL(s, x.tl, d, a, b2, p2, sl, false)
-            lastA := a
-        // overall line from the very bottom / top of the window
-        int O = SExt(s, d < 0, bars, 1)
-        float ov = O < 0 ? 0.0 : s.ad(d, O)
-        float bs = 0.0
-        int bk = -1
+        int io = -1
+        int inw = -1
         for q = 0 to npv - 1
             if npv == 0
                 break
-            if pv.t.get(q) != -d or pv.bar.get(q) >= O - 1
-                continue
-            float s0 = (pv.p.get(q) - ov) / (O - pv.bar.get(q))
-            if d * s0 > 0 and (bk < 0 or d * (s0 - bs) < 0)
-                bk := q
-                bs := s0
-        if bk >= 0
-            int b2 = pv.bar.get(bk)
-            float p2 = pv.p.get(bk)
-            Fit f = FitAnchor(s, O, b2, p2, d)
-            bool dup = false
-            for t in x.tl
-                if t.dir == d and (t.a == f.a or t.b == b2)
-                    dup := true
-            if not dup and not TooFlat(s, f.a, b2, p2, f.sl) and Confirmed(s, f.a, b2, p2, f.sl, d)
-                if AddTL(s, x.tl, d, f.a, b2, p2, f.sl, true).removed
-                    x.tl.pop()
+            if pv.t.get(q) == -d
+                io := inw
+                inw := q
+        if io >= 0
+            int b2 = pv.bar.get(inw)
+            float p2 = pv.p.get(inw)
+            if d * (p2 - pv.p.get(io)) > 0
+                Fit f = FitAnchor(s, pv.bar.get(io), b2, p2, d)
+                if d * (p2 - s.ad(d, f.a)) > 0 and not TooFlat(s, f.a, b2, p2, f.sl) and Confirmed(s, f.a, b2, p2, f.sl, d)
+                    AddTL(s, x.tl, d, f.a, b2, p2, f.sl, false)
     // per direction: the newest confirmed line, the line used by the channel checks, and the channel width
     int nt = x.tl.size()
     for dd = -1 to 1 by 2
@@ -810,7 +772,7 @@ Trendlines(Ser s) =>
                 x.dnPa := t.pa
     x
 
-// "Momentum" = no valid trendline on the newest structure (MQL StructureNow)
+// no valid trendline on the newest structure (MQL StructureNow; flat / broken = no line, not "momentum")
 StructureNow(TLCtx x) =>
     int up = 0
     int dn = 0
@@ -818,7 +780,7 @@ StructureNow(TLCtx x) =>
         if not t.removed
             up += t.dir > 0 ? 1 : 0
             dn += t.dir > 0 ? 0 : 1
-    up > 0 and dn == 0 ? "uptrend (trendline intact)" : dn > 0 and up == 0 ? "downtrend (trendline intact)" : up > 0 and dn > 0 ? "mixed trendlines" : "momentum / no intact trendline"
+    up > 0 and dn == 0 ? "uptrend (trendline intact)" : dn > 0 and up == 0 ? "downtrend (trendline intact)" : up > 0 and dn > 0 ? "mixed trendlines" : "no intact trendline"
 
 // ---------------------------------------------------------------------------------------------------------------
 // Drawing part of MQL Trendlines(): which lines are shown, their anchors (HTF lines refined on this chart) and the
@@ -856,43 +818,6 @@ ChartBarIn(Ser c, Ser hs, int d, int hb) =>
             if j0 - j1 + 1 >= 1
                 r := SExt(c, d < 0, j0 - j1 + 1, j1)
     r
-// HTF line on this chart (MQL RefineOnChart): ok, ca (anchor), cb (touch), csl (slope), ce (break bar, -1 = respected)
-type Refine
-    bool ok = false
-    int ca = -1
-    int cb = -1
-    float csl = 0.0
-    int ce = -1
-RefineOnChart(Ser c, Ser hs, int d, int aH, int bH, int endH) =>
-    Refine r = Refine.new(false, ChartBarIn(c, hs, d, aH))
-    int ph = ChartBarIn(c, hs, d, bH)
-    array<float> qa = d > 0 ? c.l : c.h
-    if not (r.ca < 0 or ph < 0 or ph >= r.ca)
-        float pa = qa.get(r.ca)
-        for j = r.ca - 1 to ph
-            float s0 = (qa.get(j) - pa) / (r.ca - j)
-            if d * s0 > 0 and (r.cb < 0 or d * (s0 - r.csl) < 0)
-                r.cb := j
-                r.csl := s0
-        if r.cb >= 0
-            r.ok := true
-            int stop = endH >= 0 ? math.max(1, BarShift(c, hs.sT(endH)) - 1) : 1
-            int q = ph
-            while q > 1
-                q -= 1
-                float lv = qa.get(r.cb) + r.csl * (r.cb - q)
-                if d * (c.ex(d, q) - lv) < 0
-                    r.ce := q
-                    break
-                if q < stop
-                    break
-                if q > InpTLSwing and d * (qa.get(q) - lv) < 0 and Fr(c, q, d, false)
-                    float s1 = (qa.get(q) - pa) / (r.ca - q)
-                    if d * s1 > 0
-                        r.cb := q
-                        r.csl := s1
-    r
-
 tlPlan(TLCtx x, Ser s, Ser c, array<TLDraw> out) =>
     bool isChart = s.tf == c.tf
     int nt = x.tl.size()
@@ -909,15 +834,17 @@ tlPlan(TLCtx x, Ser s, Ser c, array<TLDraw> out) =>
             float sl = (t.pb - t.pa) / math.max(1, t.a - t.b)
             int end = t.removed ? t.removedBar : 0
             TLDraw r = TLDraw.new(s.sT(t.a), t.pa, t.removed ? s.sT(end) : s.sT(0) + s.tf * 1000 * 3, LineAt(t.pb, t.b, sl, end - (t.removed ? 0 : 3)), d, t.removed, isChart ? 0 : s.tf, s.sT(t.b), s.tf, t.conf, true, t.removed and t.removedBar == 1, s.sT(t.a), s.sT(1))
-            if not isChart and InpRefineHTF
-                Refine f = RefineOnChart(c, s, d, t.a, t.b, t.removed ? t.removedBar : -1)
-                if f.ok
-                    r.x1 := c.sT(f.ca)
-                    r.y1 := c.ad(d, f.ca)
-                    int ce2 = t.removed and f.ce < 0 ? BarShift(c, s.sT(end)) : f.ce
-                    r.x2 := ce2 >= 0 ? c.sT(ce2) : c.sT(0) + c.tf * 1000 * 3
-                    r.y2 := c.ad(d, f.cb) + f.csl * (f.cb - (ce2 >= 0 ? ce2 : -3))
-                    r.tTouch := c.sT(f.cb)
+            // owner rule: a broken line is not drawn (its break alert still fires); HTF lines straight between the chart
+            // candles holding the HTF anchors (ChartBarIn = the bot's htfBarIndex), at the HTF prices
+            r.alive := not t.removed
+            if not isChart
+                int ca = ChartBarIn(c, s, d, t.a)
+                int cb = ChartBarIn(c, s, d, t.b)
+                if ca >= 0 and cb >= 0 and ca > cb
+                    r.x1 := c.sT(ca)
+                    r.x2 := c.sT(0) + c.tf * 1000 * 3
+                    r.y2 := t.pb + (t.pb - t.pa) / (ca - cb) * (cb + 3)
+                    r.tTouch := c.sT(cb)
             out.push(r)
     out.size()
 

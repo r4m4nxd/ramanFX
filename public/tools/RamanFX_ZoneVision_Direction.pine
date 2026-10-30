@@ -1,4 +1,7 @@
-// RamanFX ZoneVision 2.10 - Direction (TradingView, Pine Script v6). Companion of RamanFX_ZoneVision.pine: the
+// RamanFX ZoneVision 2.13 - Direction (TradingView, Pine Script v6). Companion of RamanFX_ZoneVision.pine: the
+// 2.13 (owner rules, Oct 2026 = the Telegram bot zvTrend.ts): trend lines through the 2 MOST RECENT real peaks / valleys
+// (wick re-anchoring, flat = no line, gone once a full candle closes beyond; no overall / older lines; HTF lines straight
+// between the chart candles holding the HTF anchors). ARRIVAL zones: the companion RamanFX_ZoneVision_Arrival.pine.
 // top-down Direction box of the MT5 ZoneVision 2.10 (ETF -> ITF -> HTF -> Higher+1 states, the conflict rules, Raja's
 // curve 25 / 50 / 75 lines, the WOW ladder and the Direction / WOW alerts). Same core code as the main indicator
 // (newest-first arrays, closed candles, HTF packs); see docs/Pine_Port_Notes.md. Keep its inputs equal to the main one.
@@ -6,7 +9,7 @@
 // v2.1 B parts (Raja TF table, nested curve, realignment areas, 250% projection, sideways check) and the Raja v2.1 C
 // chart-only parts (confirmation / management alerts, wick-fill marks, gold note, trendline touch labels).
 //@version=6
-indicator("RamanFX ZoneVision 2.10 - Direction", shorttitle = "ZV Dir", overlay = true, max_lines_count = 150, max_labels_count = 300, max_boxes_count = 200)
+indicator("RamanFX ZoneVision 2.13 - Direction", shorttitle = "ZV Dir", overlay = true, max_lines_count = 150, max_labels_count = 300, max_boxes_count = 200)
 // ---- Raja v2.1 (MT5 2.10 groups "Raja (v2.1 A / B / C)"): every default = 2.00. Preset Raja = ZV_Template_Raja.set.
 G0 = "Raja v2.1"
 PR = input.string("Custom", "Preset", options = ["Custom", "Raja"], group = G0, tooltip = "Pine has no .set files. Raja = the MT5 template ZV_Template_Raja.set: forces TF stack 3, Raja departure 0.6 ATR, Raja removal, WOW ladder + WOW alert, and every Raja v2.1 switch below ON (removal 1, stop mode 1, sideways on the zone TF or the HTF). The inputs below are then ignored where forced. Custom = every input as set. Use the same preset in ZoneVision.") == "Raja"
@@ -573,66 +576,26 @@ Trendlines(Ser s) =>
     int bars = math.min(InpLookback, s.n - 20)
     Piv pv = ZigZag(s, bars)
     int npv = pv.bar.size()
+    // owner rule (Oct 2026 = the bot's zvTrend.ts zvLines 102-134): ONE line per direction through the 2 MOST RECENT real
+    // valleys (up) / peaks (down), newer higher / lower, wick to wick, FitAnchor (wick re-anchoring), not TooFlat (flat =
+    // no line), Confirmed; RemovedAt marks a broken line (kept for TLBias / the break alert, not drawn). No overall line,
+    // no anchoring at the window extreme, no older-leg lines (2.10 lines removed).
     for d = -1 to 1 by 2
-        int prevB = -1
-        int lastA = -1
-        float prevP = 0.0
-        int k = 0
-        while k < npv
-            int kk = k
-            k += 1
-            if pv.t.get(kk) != -d
-                continue
-            int b2 = pv.bar.get(kk)
-            float p2 = pv.p.get(kk)
-            float sl = 0.0
-            int pb = prevB
-            float pp = prevP
-            prevB := b2
-            prevP := p2
-            int a = -1
-            int A = SExt(s, d < 0, bars - b2, b2 + 1)
-            // 1) the bottom / top of the move, 2) the previous real valley / peak, 3) the line's original start
-            for q = 0 to 2
-                if a < 0
-                    int cand = q == 0 ? A : (q == 1 ? pb : lastA)
-                    if q == 1 ? (pb > 0 and d * (pp - p2) < 0) : (cand > b2 and d * (s.ad(d, cand) - p2) < 0)
-                        Fit f = FitAnchor(s, cand, b2, p2, d)
-                        a := TooFlat(s, f.a, b2, p2, f.sl) ? -1 : f.a
-                        sl := f.sl
-            if a < 0 or not Confirmed(s, a, b2, p2, sl, d)
-                continue
-            int n = x.tl.size()
-            if n > 0
-                if x.tl.get(n - 1).dir == d and x.tl.get(n - 1).a == a
-                    x.tl.pop()
-            AddTL(s, x.tl, d, a, b2, p2, sl, false)
-            lastA := a
-        // overall line from the very bottom / top of the window
-        int O = SExt(s, d < 0, bars, 1)
-        float ov = O < 0 ? 0.0 : s.ad(d, O)
-        float bs = 0.0
-        int bk = -1
+        int io = -1
+        int inw = -1
         for q = 0 to npv - 1
             if npv == 0
                 break
-            if pv.t.get(q) != -d or pv.bar.get(q) >= O - 1
-                continue
-            float s0 = (pv.p.get(q) - ov) / (O - pv.bar.get(q))
-            if d * s0 > 0 and (bk < 0 or d * (s0 - bs) < 0)
-                bk := q
-                bs := s0
-        if bk >= 0
-            int b2 = pv.bar.get(bk)
-            float p2 = pv.p.get(bk)
-            Fit f = FitAnchor(s, O, b2, p2, d)
-            bool dup = false
-            for t in x.tl
-                if t.dir == d and (t.a == f.a or t.b == b2)
-                    dup := true
-            if not dup and not TooFlat(s, f.a, b2, p2, f.sl) and Confirmed(s, f.a, b2, p2, f.sl, d)
-                if AddTL(s, x.tl, d, f.a, b2, p2, f.sl, true).removed
-                    x.tl.pop()
+            if pv.t.get(q) == -d
+                io := inw
+                inw := q
+        if io >= 0
+            int b2 = pv.bar.get(inw)
+            float p2 = pv.p.get(inw)
+            if d * (p2 - pv.p.get(io)) > 0
+                Fit f = FitAnchor(s, pv.bar.get(io), b2, p2, d)
+                if d * (p2 - s.ad(d, f.a)) > 0 and not TooFlat(s, f.a, b2, p2, f.sl) and Confirmed(s, f.a, b2, p2, f.sl, d)
+                    AddTL(s, x.tl, d, f.a, b2, p2, f.sl, false)
     // per direction: the newest confirmed line, the line used by the channel checks, and the channel width
     int nt = x.tl.size()
     for dd = -1 to 1 by 2

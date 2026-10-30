@@ -1,0 +1,1216 @@
+// RamanFX ZoneVision 2.13 - Arrival, for TradingView (Pine Script v6). Companion of RamanFX_ZoneVision.pine (that script
+// is at Pine's compiled-token limit): the owner-approved Raja / Kevin ARRIVAL rules of Oct 2026, the same engine as
+// the Telegram bot (supabase/functions/telegram-bot/arrival.ts) and MT5 / MT4 ZoneVision 2.13 / 2.00 (RFX_ARRIVAL_ENGINE).
+//  * Trend lines: the 2 most recent real peaks (down) / valleys (up), newer lower / higher, wick to wick, wick
+//    re-anchoring, not too flat, Confirmed, gone once a full closed candle is beyond it (no overall line).
+//  * ARRIVAL zone: its leg-out (the departure + up to 2 more strong candles) closes beyond the TF trend line and removes
+//    >= 1 opposite zone (2+ = STRONG). Drawn bold with a tag; the zones it removed get an X; the line it crossed dotted.
+//  * After a supply arrival (demand mirrored): the same-TF demands are WEAK (dashed, "weak - no limit"); the
+//    realignment area = the weak zone nearest the higher-TF up line (gold); TP capped before an intact opposite HTF
+//    line (the ceiling) or extended to the HTF zone once that line is crossed; confirmation = a lower-TF arrival inside
+//    the realignment area (H4 -> M15, D1 -> H1, W1 -> H4, M -> D, 3M -> W; H1 -> M15).
+//  * Stop rule: entry zone inside a same-side HTF zone -> 2 buffers beyond that zone's distal, else a buffer beyond the
+//    zone's valley / peak; buffer = max(0.1 x ATR14, spread).
+//  * Kevin's momentum line: thin red dashed, only when there is no trend line that way; never a trend line.
+// Data: the chart's closed candles; the next higher TF via request.security with the documented non-repainting pack
+// (closed HTF bars built with [1] offsets inside the HTF context, lookahead_on only for the bar still forming, which
+// is used once it has closed); the confirmation TF via request.security_lower_tf (closed intrabars only). The analysis
+// runs on each closed candle (the last confirmed history bar on load, then every confirmed realtime bar) and again
+// when a lower-TF candle closes in realtime. Spread: Pine has no bid / ask, so the stop-rule floor is an input.
+// Alerts: alertcondition() "ZoneVision: new ARRIVAL zone" / "realignment area entered" / "LTF confirmation", plus
+// alert() messages with the prices (Create alert -> Any alert() function call). Nothing fires for what is already on
+// the chart when it loads.
+//@version=6
+indicator("RamanFX ZoneVision 2.13 - Arrival", shorttitle = "ZV Arrival", overlay = true, max_lines_count = 150, max_labels_count = 150, max_boxes_count = 90)
+
+G1 = "ARRIVAL zones + trend lines (owner rules, Oct 2026)"
+InpArrShow         = input.bool(true, "ARRIVAL zone: bold box + tag", group = G1, tooltip = "Its leg-out (departure + up to 2 more strong candles) closed beyond this TF's trend line and removed opposite zones (2+ = STRONG).")
+InpArrShowRemoved  = input.bool(true, "Zones the arrival removed: dotted box with an X", group = G1)
+InpArrShowWeak     = input.bool(true, "Same-TF opposite zones made WEAK: dashed, 'weak - no limit'", group = G1)
+InpArrShowRealign  = input.bool(true, "Realignment area: the weak zone nearest the higher-TF trend line (gold)", group = G1)
+InpArrShowPlan     = input.bool(true, "Plan lines: entry, SL (stop rule), TP, HTF ceiling", group = G1)
+InpArrShowConfirm  = input.bool(true, "Lower-TF confirmation: its zone, entry, SL, target", group = G1)
+InpArrShowMomentum = input.bool(true, "Kevin's momentum line (thin red dashed; never a trend line)", group = G1)
+InpArrShowLines    = input.bool(true, "This TF's two trend lines (two-pivot rule)", group = G1, tooltip = "Off when RamanFX ZoneVision is on the same chart (it draws them too).")
+InpArrAlertNew     = input.bool(true, "Alert: a new arrival zone on this chart's timeframe", group = G1)
+InpArrAlertRealign = input.bool(false, "Alert: price entered the realignment area", group = G1)
+InpArrAlertConfirm = input.bool(true, "Alert: lower-TF confirmation inside the realignment area", group = G1)
+InpArrMarket       = input.int(0, "Zone settings: 0 = FX (Raja, 7+ candle base = no zone), 1 = stocks (Raja)", minval = 0, maxval = 1, group = G1)
+InpArrSpread       = input.float(0.0, "Stop-rule spread floor (price units; Pine has no live spread)", minval = 0, group = G1)
+InpDemandLine      = input.color(color.rgb(46, 139, 87), "Demand", group = G1)
+InpSupplyLine      = input.color(color.rgb(200, 60, 60), "Supply", group = G1)
+InpMuted           = input.color(color.rgb(150, 150, 150), "Muted", group = G1)
+
+// ==== RFX_ARRIVAL_PINE BEGIN ====
+// RFX arrival engine 1.0 for Pine v6 (owner-approved Raja / Kevin rules, Oct 2026). SHARED VERBATIM by
+// RamanFX_ZoneVision_Arrival.pine and RamanFX_ZoneStrategy.pine (edit the Arrival copy, then
+// `node scripts/sync-arrival-mql.mjs`). A statement-by-statement mirror of the MQL block RFX_ARRIVAL_ENGINE
+// (public/tools/RFX_ZoneCore.mqh), itself the mirror of the canonical TypeScript supabase/functions/telegram-bot/
+// zvTrend.ts (zvPivots, zvFitAnchor, zvLines, zvMomentum), zonecore.ts (Series, detect) and arrival.ts (arrivals,
+// arrivalTf, stopOf, rrOf). Same names (rx* for the MQL RxSer methods). Series are newest-first arrays: index 0 = a
+// PHANTOM bar at the price, 1 = the newest CLOSED bar (MQL / TS shift). Times in ms. Written in a strict subset
+// (while loops, no tuples, flags instead of na) that tools/telegram_bot/parity/pine_port.py translates to Python
+// and replays on tools/telegram_bot/parity/arrival_fixtures.json.
+RX_Q = 129600
+RX_SWING = 2
+RX_LOOK = 200
+RX_MAXB = 460
+RX_MAXW = 64
+RX_DBLMAX = 1.7976931348623157e308
+
+type RxParams
+    float min_leg_ratio = 1.2
+    int max_base = 6
+    float max_zone_atr = 1.5
+    int lookback = 200
+    int max_zone_age = 200
+    float emo_atr = 3.0
+    int removal_mode = 1
+    bool base_strict = false
+
+type RxSer
+    int n = 0
+    int tf = 0
+    float price = 0.0
+    bool virt = false
+    array<float> o
+    array<float> h
+    array<float> l
+    array<float> c
+    array<int> t
+    array<float> a
+    array<float> wa
+
+type ZvPivot
+    int bar = 0
+    float p = 0.0
+    int t = 0
+
+type ZvLine
+    int dir = 0
+    int a = 0
+    int b = 0
+    float pa = 0.0
+    float pb = 0.0
+    int cuts = 0
+
+type ZvResult
+    bool hasUp = false
+    bool hasDn = false
+    bool hasMom = false
+    ZvLine up
+    ZvLine dn
+    ZvLine mom
+    string whyUp = "too few bars"
+    string whyDn = "too few bars"
+    array<ZvPivot> piv
+
+type RxZone
+    int dir = 0
+    float prox = 0.0
+    float dist = 0.0
+    int legBar = 0
+    int baseN = 0
+    int saBar = 0
+    float legRatio = 0.0
+    bool cont = false
+    bool tested = false
+    int testedBar = -1
+    bool removed = false
+    int removedBar = -1
+    int baseStart = 0
+    int made = 0
+    int tLeg = 0
+
+type ArrLine
+    int dir = 0
+    int a = 0
+    int b = 0
+    float pa = 0.0
+    float pb = 0.0
+    int ta = 0
+    int tb = 0
+
+type RxArrival
+    RxZone zone
+    ArrLine line
+    array<int> legs
+    int crossBar = 0
+    float crossPx = 0.0
+    array<int> rem
+    int nRem = 0
+    bool strong = false
+    float valley = 0.0
+
+type ArrStop
+    float stop = 0.0
+    float buffer = 0.0
+    float atr = 0.0
+    int basis = 0
+    float valley = 0.0
+    bool hasHost = false
+    RxZone host
+
+type RxPlan
+    int dir = 0
+    float entry = 0.0
+    float stop = 0.0
+    float buffer = 0.0
+    float atr = 0.0
+    int basis = 0
+    float valley = 0.0
+    bool hasHost = false
+    RxZone host
+    bool hasRR = false
+    float rr = 0.0
+    bool hasCeiling = false
+    float ceiling = 0.0
+    bool hasLineNow = false
+    float lineNow = 0.0
+    ArrLine ceilingLine
+    array<int> weak
+    int nWeak = 0
+    int realign = -1
+    int target = -1
+    bool hasTargetPx = false
+    float targetPx = 0.0
+    bool hasHtfZone = false
+    RxZone htfZone
+    bool hasTp = false
+    float tp = 0.0
+    bool capped = false
+    bool extended = false
+
+type RxConfirm
+    RxZone zone
+    int arr = -1
+    bool hasTarget = false
+    float target = 0.0
+    bool inArea = false
+    float entry = 0.0
+    float stop = 0.0
+    float buffer = 0.0
+    float atr = 0.0
+    int basis = 0
+    bool hasRR = false
+    float rr = 0.0
+
+type RxReading
+    int tf = 0
+    int htf = 0
+    int ltf = 0
+    RxSer S
+    RxSer H
+    RxSer LS
+    bool hasH = false
+    bool hasL = false
+    array<RxZone> zones
+    array<RxZone> hz
+    array<RxZone> lz
+    array<RxArrival> arr
+    array<RxArrival> larr
+    int nArr = 0
+    int cur = -1
+    bool hasPlan = false
+    RxPlan plan
+    bool hasConfirm = false
+    RxConfirm conf
+    bool pending = false
+    ZvResult lines
+
+rxParamsFX() =>
+    RxParams p = RxParams.new()
+    p.base_strict := true
+    p
+rxParamsRaja() =>
+    RxParams p = RxParams.new()
+    p
+
+// an empty series of TF tf (minutes; RX_Q = 3M): push the closed bars newest first, then rxFinish(S, price)
+rxNew(int tf) =>
+    RxSer S = RxSer.new(0, tf, 0.0, tf == RX_Q, array.new<float>(1, 0.0), array.new<float>(1, 0.0), array.new<float>(1, 0.0), array.new<float>(1, 0.0), array.new<int>(1, 0), array.new<float>(), array.new<float>())
+    S
+rxPush(RxSer S, int t, float o, float h, float l, float c) =>
+    S.t.push(t)
+    S.o.push(o)
+    S.h.push(h)
+    S.l.push(l)
+    S.c.push(c)
+    S
+// MQL RxSer.Finish: the phantom bar at p, MT5 iATR(14) (a), Wilder ATR(14) on the virtual 3M (wa)
+rxFinish(RxSer S, float p) =>
+    int n = S.c.size()
+    S.n := n
+    S.price := p
+    S.o.set(0, p)
+    S.h.set(0, p)
+    S.l.set(0, p)
+    S.c.set(0, p)
+    if n > 1
+        S.t.set(0, S.t.get(1))
+    array<float> tr = array.new<float>(n, 0.0)
+    S.a := array.new<float>(n, 0.0)
+    S.wa := array.new<float>(n, 0.0)
+    int i = -1
+    while i < n - 2
+        i += 1
+        float pc = S.c.get(i + 1)
+        tr.set(i, math.max(S.h.get(i), pc) - math.min(S.l.get(i), pc))
+    float s = 0.0
+    i := n - 1
+    while i > 0
+        i -= 1
+        s += tr.get(i)
+        if i + 14 <= n - 2
+            s -= tr.get(i + 14)
+        if i + 14 <= n - 1
+            S.a.set(i, s / 14)
+    if S.virt
+        float sm = 0.0
+        int cnt = 0
+        i := n
+        while i > 0
+            i -= 1
+            float tv = S.h.get(i) - S.l.get(i)
+            if i < n - 1
+                tv := math.max(tv, math.max(math.abs(S.h.get(i) - S.c.get(i + 1)), math.abs(S.l.get(i) - S.c.get(i + 1))))
+            cnt += 1
+            if cnt < 14
+                sm += tv
+            else if cnt == 14
+                sm += tv
+                S.wa.set(i, sm / 14)
+            else
+                S.wa.set(i, (S.wa.get(i + 1) * 13 + tv) / 14)
+    S
+rxAtr(RxSer S, int i) => i >= 0 and i < S.n ? S.a.get(i) : 0.0
+rxZvAtr(RxSer S, int i) => not S.virt ? rxAtr(S, i) : (i >= 0 and i < S.n ? S.wa.get(i) : 0.0)
+rxRng(RxSer S, int i) => S.h.get(i) - S.l.get(i)
+rxBasing(RxSer S, int i) => rxRng(S, i) > 0 and math.abs(S.c.get(i) - S.o.get(i)) / rxRng(S, i) < 0.5
+rxCdir(RxSer S, int i) => S.c.get(i) > S.o.get(i) ? 1 : (S.c.get(i) < S.o.get(i) ? -1 : 0)
+rxEmotional(RxSer S, int i, float emo) => rxAtr(S, i + 1) > 0 and rxRng(S, i) > emo * rxAtr(S, i + 1)
+// arrival.ts 131: the closed bars older than shift L (shift i >= 1 = src shift i + L), phantom = their newest close
+rxSlice(RxSer src, int L) =>
+    // = rxPush of src shifts L + 1 .. n - 1 + rxFinish(newest close): the ATR of a shift depends only on that bar and the
+    // older ones, so the shifted ATR arrays are the same numbers (index 0 = the phantom, never read)
+    float pc = src.c.get(L + 1)
+    RxSer T = RxSer.new(src.n - L, src.tf, pc, src.virt, array.new<float>(1, pc).concat(src.o.slice(L + 1, src.n)), array.new<float>(1, pc).concat(src.h.slice(L + 1, src.n)), array.new<float>(1, pc).concat(src.l.slice(L + 1, src.n)), array.new<float>(1, pc).concat(src.c.slice(L + 1, src.n)), array.new<int>(1, src.t.get(L + 1)).concat(src.t.slice(L + 1, src.n)), array.new<float>(1, 0.0).concat(src.a.slice(L + 1, src.n)), array.new<float>(1, 0.0).concat(src.wa.slice(L + 1, src.n)))
+    T
+
+// ---- zvTrend.ts ----
+zvSlope(ZvLine t) => (t.pb - t.pa) / math.max(1, t.a - t.b)
+zvAt(ZvLine t, float j) => t.pb + zvSlope(t) * (t.b - j)
+rxFrLow(RxSer S, int i, int sw) =>
+    bool ok = true
+    int k = 0
+    while k < sw and ok
+        k += 1
+        if i - k < 1 or S.l.get(i) > S.l.get(i + k) or S.l.get(i) >= S.l.get(i - k)
+            ok := false
+    ok
+rxFrHigh(RxSer S, int i, int sw) =>
+    bool ok = true
+    int k = 0
+    while k < sw and ok
+        k += 1
+        if i - k < 1 or S.h.get(i) < S.h.get(i + k) or S.h.get(i) <= S.h.get(i - k)
+            ok := false
+    ok
+// zvTrend.ts 61-74: real valleys (t -1) / peaks (t +1), oldest first
+zvPivots(RxSer S, int bars) =>
+    array<ZvPivot> out = array.new<ZvPivot>()
+    int sw = RX_SWING
+    int fH = -1
+    int fL = -1
+    int i = bars + 1
+    while i > sw + 1
+        i -= 1
+        bool lo = rxFrLow(S, i, sw)
+        bool hi = rxFrHigh(S, i, sw)
+        if lo and fH > 0
+            int j = i
+            while j > 1
+                j -= 1
+                if S.l.get(j) < S.l.get(i)
+                    break
+                if S.h.get(j) > S.h.get(fH)
+                    out.push(ZvPivot.new(i, S.l.get(i), -1))
+                    break
+        if hi and fL > 0
+            int j = i
+            while j > 1
+                j -= 1
+                if S.h.get(j) > S.h.get(i)
+                    break
+                if S.l.get(j) < S.l.get(fL)
+                    out.push(ZvPivot.new(i, S.h.get(i), 1))
+                    break
+        if lo
+            fL := i
+        if hi
+            fH := i
+    out
+// zvTrend.ts 79-90: wick re-anchoring - the candle poking furthest through the line (oldest on a tie) = the older anchor
+zvFitAnchor(RxSer S, int A, int b2, float p2, int d) =>
+    float tol = 0.05 * rxZvAtr(S, 1)
+    int a = A
+    bool done = false
+    int it = 0
+    while it < 50 and not done
+        it += 1
+        float sl = (p2 - (d > 0 ? S.l.get(a) : S.h.get(a))) / (a - b2)
+        int worst = -1
+        float ex = tol
+        int j = a
+        while j > b2 + 1
+            j -= 1
+            float lv = p2 + sl * (b2 - j)
+            float e = d > 0 ? lv - S.l.get(j) : S.h.get(j) - lv
+            if e > ex
+                ex := e
+                worst := j
+        if worst < 0
+            done := true
+        else
+            a := worst
+    a
+rxP(RxSer S, int d, int j) => d > 0 ? S.l.get(j) : S.h.get(j)
+rxQ(RxSer S, int d, int j) => d > 0 ? S.h.get(j) : S.l.get(j)
+rxMore(int d, float x, float y) => d > 0 ? x > y : x < y
+// zvTrend.ts 155-187: Kevin's MOMENTUM line (never a trend line); dir 0 = none; e[0] = the leg's end E
+zvMomentum(RxSer S, array<ZvPivot> piv, int bars, int d, array<int> e) =>
+    ZvLine out = ZvLine.new()
+    int lim = math.min(bars, S.n - 1)
+    if lim >= 8
+        int E = 1
+        int j = 1
+        while j < math.min(5, lim)
+            j += 1
+            if rxMore(d, rxQ(S, d, j), rxQ(S, d, E))
+                E := j
+        int k = E + 1
+        while k <= lim and not rxMore(d, rxQ(S, d, k), rxQ(S, d, E))
+            k += 1
+        int lastPiv = -1
+        int q = piv.size()
+        while q > 0
+            q -= 1
+            if piv.get(q).t == (d > 0 ? -1 : 1)
+                lastPiv := q
+                break
+        int frm = lastPiv >= 0 and piv.get(lastPiv).bar < k and piv.get(lastPiv).bar > E ? piv.get(lastPiv).bar : k - 1
+        int A = -1
+        j := E
+        while j < frm
+            j += 1
+            if A < 0 or rxMore(d, rxP(S, d, A), rxP(S, d, j))
+                A := j
+        if A >= 0 and A - E >= 3
+            float tol = 0.25 * rxZvAtr(S, 1)
+            int b = -1
+            float sl = 0.0
+            int it = 0
+            bool stop = false
+            while it < 10 and A - E >= 3 and not stop
+                it += 1
+                b := -1
+                j := A - 2
+                while j > 1
+                    j -= 1
+                    float s = (rxP(S, d, j) - rxP(S, d, A)) / (A - j)
+                    if b < 0 or (d > 0 ? s < sl : s > sl)
+                        b := j
+                        sl := s
+                int worst = -1
+                float ex = tol
+                j := A
+                while j > A - 2
+                    j -= 1
+                    float x = d > 0 ? rxP(S, d, A) + sl * (A - j) - rxP(S, d, j) : rxP(S, d, j) - rxP(S, d, A) - sl * (A - j)
+                    if x > ex
+                        ex := x
+                        worst := j
+                if worst < 0
+                    stop := true
+                else
+                    A := worst
+                    b := -1
+            if not (b < 0 or A - E < 3 or d * sl <= 0)
+                float pb = rxP(S, d, A) + sl * (A - b)
+                float ab = math.max(rxZvAtr(S, b), 1e-12)
+                if not (math.abs(sl) < 0.015 * ab or math.abs(sl) * (A - 1) < 1.5 * ab)
+                    out := ZvLine.new(d, A, b, rxP(S, d, A), pb, 0)
+                    e.set(0, E)
+    out
+rxSetWhy(ZvResult zr, int d, string why) =>
+    if d > 0
+        zr.whyUp := why
+        zr.hasUp := false
+    else
+        zr.whyDn := why
+        zr.hasDn := false
+    zr
+// zvTrend.ts 93-140: the two lines of one TF (+ at most one momentum line); zr.piv = the pivots
+zvLines(RxSer S) =>
+    ZvResult zr = ZvResult.new(false, false, false, ZvLine.new(), ZvLine.new(), ZvLine.new(), "too few bars", "too few bars", array.new<ZvPivot>())
+    int bars = math.min(RX_LOOK, S.n - 1 - RX_SWING)
+    if bars > RX_SWING + 2
+        zr.piv := zvPivots(S, bars)
+        array<ZvPivot> piv = zr.piv
+        int d = 3
+        while d > -1
+            d -= 2
+            int want = d > 0 ? -1 : 1
+            int io = -1
+            int inw = -1
+            int np = piv.size()
+            int k = -1
+            while k < np - 1
+                k += 1
+                if piv.get(k).t == want
+                    io := inw
+                    inw := k
+            if io < 0
+                rxSetWhy(zr, d, d > 0 ? "fewer than two real valleys" : "fewer than two real peaks")
+                continue
+            if d > 0 ? not (piv.get(inw).p > piv.get(io).p) : not (piv.get(inw).p < piv.get(io).p)
+                rxSetWhy(zr, d, d > 0 ? "newer valley not higher" : "newer peak not lower")
+                continue
+            int a = zvFitAnchor(S, piv.get(io).bar, piv.get(inw).bar, piv.get(inw).p, d)
+            ZvLine t = ZvLine.new(d, a, piv.get(inw).bar, d > 0 ? S.l.get(a) : S.h.get(a), piv.get(inw).p, 0)
+            if d > 0 ? not (t.pb > t.pa) : not (t.pb < t.pa)
+                rxSetWhy(zr, d, d > 0 ? "newer valley not higher" : "newer peak not lower")
+                continue
+            float sl = zvSlope(t)
+            float ab = math.max(rxZvAtr(S, t.b), 1e-12)
+            if math.abs(sl) < 0.015 * ab or math.abs(t.pb - t.pa) < 1.5 * ab
+                rxSetWhy(zr, d, "too flat")
+                continue
+            float ext = d > 0 ? -RX_DBLMAX : RX_DBLMAX
+            int j = t.a
+            while j > t.b + 1
+                j -= 1
+                ext := d > 0 ? math.max(ext, S.h.get(j)) : math.min(ext, S.l.get(j))
+            bool conf = false
+            if ext != RX_DBLMAX and ext != -RX_DBLMAX
+                j := t.b
+                while j > 1
+                    j -= 1
+                    float lv = zvAt(t, j)
+                    if (d > 0 and S.h.get(j) < lv) or (d < 0 and S.l.get(j) > lv)
+                        break
+                    if (d > 0 and S.h.get(j) > ext) or (d < 0 and S.l.get(j) < ext)
+                        conf := true
+                        break
+            if not conf
+                rxSetWhy(zr, d, "not confirmed")
+                continue
+            int rm = -1
+            j := t.b
+            while j > 1
+                j -= 1
+                float lv2 = zvAt(t, j)
+                if (d > 0 and S.h.get(j) < lv2) or (d < 0 and S.l.get(j) > lv2)
+                    rm := j
+                    break
+            if rm >= 0
+                rxSetWhy(zr, d, "broken at shift " + str.tostring(rm))
+                continue
+            float tol = 0.05 * rxZvAtr(S, 1)
+            j := t.a
+            while j > t.b + 1
+                j -= 1
+                if (d > 0 ? zvAt(t, j) - S.l.get(j) : S.h.get(j) - zvAt(t, j)) > tol
+                    t.cuts += 1
+            if d > 0
+                zr.up := t
+                zr.hasUp := true
+                zr.whyUp := "ok"
+            else
+                zr.dn := t
+                zr.hasDn := true
+                zr.whyDn := "ok"
+        // zvTrend.ts 136-138: a momentum line only for a direction without a trend line; the leg whose end is the newest
+        int bestE = -1
+        int dm = 3
+        while dm > -1
+            dm -= 2
+            if dm > 0 ? zr.hasUp : zr.hasDn
+                continue
+            array<int> e = array.new<int>(1, -1)
+            ZvLine m = zvMomentum(S, piv, bars, dm, e)
+            if m.dir == 0
+                continue
+            if bestE < 0 or e.get(0) < bestE
+                bestE := e.get(0)
+                zr.mom := m
+                zr.hasMom := true
+    zr
+// zvTrend.ts 190-199: separate visits within 0.1 ATR of the line
+zvTouches(RxSer S, ZvLine t) =>
+    float tol = 0.1 * rxZvAtr(S, 1)
+    int m = 0
+    bool inT = false
+    int j = t.a + 1
+    while j > 1
+        j -= 1
+        float lv = zvAt(t, j)
+        bool touch = t.dir > 0 ? S.l.get(j) <= lv + tol : S.h.get(j) >= lv - tol
+        if touch and not inT
+            m += 1
+        inT := touch
+    m
+
+// ---- zonecore.ts detect (66-110) ----
+zcDetect(RxSer S, RxParams p) =>
+    array<RxZone> out = array.new<RxZone>()
+    int bars = math.min(p.lookback, S.n - p.max_base - 3)
+    int L = bars + 1
+    while L > 2
+        L -= 1
+        float lr = rxRng(S, L)
+        if lr <= 0 or rxBasing(S, L)
+            continue
+        int d = rxCdir(S, L)
+        if d == 0
+            continue
+        int k = 0
+        float maxBase = 0.0
+        while k < p.max_base and rxBasing(S, L + 1 + k)
+            maxBase := math.max(maxBase, rxRng(S, L + 1 + k))
+            k += 1
+        if k == 0 or maxBase <= 0
+            continue
+        if p.base_strict and k == p.max_base and L + 1 + k < S.n and rxBasing(S, L + 1 + k)
+            continue
+        float ratio = lr / maxBase
+        if ratio < p.min_leg_ratio
+            continue
+        bool cont = rxCdir(S, L + 1 + k) == d
+        float prox = 0.0
+        float dist = 0.0
+        int b = L
+        if d > 0
+            prox := -RX_DBLMAX
+            float m = RX_DBLMAX
+            while b < L + k
+                b += 1
+                prox := math.max(prox, math.max(S.o.get(b), S.c.get(b)))
+                m := math.min(m, S.l.get(b))
+            dist := math.min(m, S.l.get(L))
+        else
+            prox := RX_DBLMAX
+            float m = -RX_DBLMAX
+            while b < L + k
+                b += 1
+                prox := math.min(prox, math.min(S.o.get(b), S.c.get(b)))
+                m := math.max(m, S.h.get(b))
+            dist := math.max(m, S.h.get(L))
+        float h = math.abs(prox - dist)
+        float av = rxAtr(S, L)
+        if h <= 0
+            continue
+        if av > 0 and h > p.max_zone_atr * av
+            continue
+        int sa = L - 1
+        if (d > 0 and S.l.get(sa) <= prox) or (d < 0 and S.h.get(sa) >= prox)
+            continue
+        RxZone z = RxZone.new(d, prox, dist, L, k, sa, ratio, cont, false, -1, false, -1, S.t.get(L + k), S.t.get(sa), S.t.get(L))
+        bool wick = p.removal_mode == 0
+        int j = sa
+        while j > 1
+            j -= 1
+            if d > 0
+                if S.c.get(j) < dist or (wick and S.l.get(j) < dist and not rxEmotional(S, j, p.emo_atr))
+                    z.removed := true
+                    z.removedBar := j
+                    break
+                if not z.tested and S.l.get(j) <= prox and not rxEmotional(S, j, p.emo_atr)
+                    z.tested := true
+                    z.testedBar := j
+            else
+                if S.c.get(j) > dist or (wick and S.h.get(j) > dist and not rxEmotional(S, j, p.emo_atr))
+                    z.removed := true
+                    z.removedBar := j
+                    break
+                if not z.tested and S.h.get(j) >= prox and not rxEmotional(S, j, p.emo_atr)
+                    z.tested := true
+                    z.testedBar := j
+        out.push(z)
+    out
+
+// ---- arrival.ts ----
+rxLo(RxZone z) => math.min(z.prox, z.dist)
+rxHi(RxZone z) => math.max(z.prox, z.dist)
+rxGap(float v, RxZone z) => v < rxLo(z) ? rxLo(z) - v : (v > rxHi(z) ? v - rxHi(z) : 0.0)
+rxConfirmTf(int m) => m == 60 or m == 240 ? 15 : m == 1440 ? 60 : m == 10080 ? 240 : m == 43200 ? 1440 : m == RX_Q ? 10080 : 0
+rxHigherTf(int m) => m == 15 ? 60 : m == 60 ? 240 : m == 240 ? 1440 : m == 1440 ? 10080 : m == 10080 ? 43200 : m == 43200 ? RX_Q : 0
+rxTfName(int m) => m == RX_Q ? "3M" : m == 15 ? "M15" : m == 60 ? "H1" : m == 240 ? "H4" : m == 1440 ? "D1" : m == 10080 ? "W1" : m == 43200 ? "MN" : str.tostring(m) + "m"
+// arrival.ts 105-113: the STOP RULE (basis 1 = 'htf', 0 = 'valley')
+arrStopOf(RxSer S, int d, float valley, bool hasHost, RxZone host, float spread) =>
+    float av = rxAtr(S, 1)
+    float buffer = math.max(0.1 * av, spread > 0 ? spread : 0.0)
+    float vs = valley - d * buffer
+    ArrStop o = ArrStop.new(vs, buffer, av, 0, valley, hasHost, host)
+    if hasHost
+        float hs = host.dist - d * 2 * buffer
+        if d > 0 ? hs <= vs : hs >= vs
+            o.stop := hs
+            o.basis := 1
+    o
+// arrival.ts 114-118: rr[0] = the reward:risk; false = none
+arrRrOf(float entry, float stop, bool hasTarget, float target, array<float> rr) =>
+    rr.set(0, 0.0)
+    bool ok = false
+    if hasTarget and entry != stop
+        float r = (target - entry) / (entry - stop)
+        if r > 0
+            rr.set(0, r)
+            ok := true
+    ok
+// arrival.ts 122-147: every arrival of one TF, newest first (zones = every detect() zone, filled here)
+arrArrivals(RxSer S, RxParams p, array<RxZone> zs) =>
+    array<RxArrival> out = array.new<RxArrival>()
+    zs.clear()
+    if S.n > p.max_base + 4
+        zs.concat(zcDetect(S, p))
+    int nz = zs.size()
+    int nb = S.n - 1
+    int zi = -1
+    while zi < nz - 1
+        zi += 1
+        int L = zs.get(zi).legBar
+        int d = zs.get(zi).dir
+        array<int> legs = array.from(L)
+        int j = L - 1
+        while j >= 1 and legs.size() < 3 and rxCdir(S, j) == d and not rxBasing(S, j)
+            legs.push(j)
+            j -= 1
+        if nb - L < 2 * RX_SWING + 6
+            continue
+        // the removed opposite zs first (cheap; arrival.ts tests them last - all three conditions must hold, so the
+        // order does not change the result), then the older bars' trend line and its cross
+        int newest = legs.get(legs.size() - 1)
+        array<int> rem = array.new<int>()
+        int y = -1
+        while y < nz - 1
+            y += 1
+            RxZone zy = zs.get(y)
+            if zy.dir == -d and zy.removed and zy.removedBar <= L and zy.removedBar >= newest
+                rem.push(y)
+        if rem.size() == 0
+            continue
+        RxSer T = rxSlice(S, L)
+        ZvResult r = zvLines(T)
+        if d > 0 ? not r.hasDn : not r.hasUp
+            continue
+        ZvLine t = d > 0 ? r.dn : r.up
+        int cross = -1
+        int q = -1
+        while q < legs.size() - 1
+            q += 1
+            int jj = legs.get(q)
+            if d > 0 ? S.c.get(jj) > zvAt(t, jj - L) : S.c.get(jj) < zvAt(t, jj - L)
+                cross := jj
+                break
+        if cross < 0
+            continue
+        float valley = d > 0 ? RX_DBLMAX : -RX_DBLMAX
+        int j1 = math.min(L + zs.get(zi).baseN + RX_SWING, S.n - 1)
+        j := L - 1
+        while j < j1
+            j += 1
+            valley := d > 0 ? math.min(valley, S.l.get(j)) : math.max(valley, S.h.get(j))
+        ArrLine ln = ArrLine.new(t.dir, t.a + L, t.b + L, t.pa, t.pb, T.t.get(t.a), T.t.get(t.b))
+        out.push(RxArrival.new(zs.get(zi), ln, legs, cross, zvAt(t, cross - L), rem, rem.size(), rem.size() >= 2, valley))
+    // arrival.ts 145: stable sort by legBar ascending
+    int m = out.size()
+    int i = 0
+    while i < m - 1
+        i += 1
+        RxArrival x = out.get(i)
+        int k = i - 1
+        while k >= 0 and out.get(k).zone.legBar > x.zone.legBar
+            out.set(k + 1, out.get(k))
+            k -= 1
+        out.set(k + 1, x)
+    out
+rxReading(int tfm, int hm, int lm) =>
+    RxReading R = RxReading.new(tfm, hm, lm, rxNew(tfm), rxNew(hm), rxNew(lm), false, false, array.new<RxZone>(), array.new<RxZone>(), array.new<RxZone>(), array.new<RxArrival>(), array.new<RxArrival>(), 0, -1, false, RxPlan.new(), false, RxConfirm.new(), false, ZvResult.new())
+    R
+// arrival.ts 152-209. R.S = closed bars + phantom at the newest close; R.H (R.hasH) = closed HTF bars + phantom at the
+// live price; R.LS (R.hasL) = closed LTF bars + phantom at the newest close. price = the live price; spread = the stop
+// rule's buffer floor (price units).
+arrArrivalTf(RxReading R, float price, RxParams p, float spread) =>
+    int i = -1
+    R.nArr := 0
+    R.cur := -1
+    R.hasPlan := false
+    R.hasConfirm := false
+    R.pending := false
+    R.lines := zvLines(R.S)
+    if R.S.n - 1 >= 20
+        R.arr := arrArrivals(R.S, p, R.zones)
+        R.nArr := R.arr.size()
+        while i < R.nArr - 1
+            i += 1
+            if not R.arr.get(i).zone.removed
+                R.cur := i
+                break
+    if R.cur >= 0
+        RxZone cz = R.arr.get(R.cur).zone
+        int d = cz.dir
+        bool hasCeil = false
+        bool hasLN = false
+        bool Hon = false
+        float ceiling = 0.0
+        float lineNow = 0.0
+        ArrLine cl = ArrLine.new()
+        R.hz.clear()
+        if R.htf > 0 and R.hasH and R.H.n - 1 >= 10
+            Hon := true
+            ZvResult hr = zvLines(R.H)
+            if d > 0 ? hr.hasDn : hr.hasUp
+                ZvLine t = d > 0 ? hr.dn : hr.up
+                lineNow := zvAt(t, 0)
+                hasLN := true
+                cl := ArrLine.new(t.dir, t.a, t.b, t.pa, t.pb, R.H.t.get(t.a), R.H.t.get(t.b))
+                if d > 0 ? lineNow > price : lineNow < price
+                    ceiling := lineNow
+                    hasCeil := true
+            if R.H.n > p.max_base + 4
+                R.hz.concat(zcDetect(R.H, p))
+        RxPlan P = RxPlan.new()
+        P.weak := array.new<int>()
+        int nz = R.zones.size()
+        i := -1
+        while i < nz - 1
+            i += 1
+            RxZone zw = R.zones.get(i)
+            if zw.dir == -d and not zw.removed and zw.legBar <= p.max_zone_age and (d > 0 ? rxHi(zw) > price : rxLo(zw) < price)
+                if P.nWeak < RX_MAXW
+                    P.weak.push(i)
+                    P.nWeak += 1
+        if hasLN and P.nWeak > 0
+            int q = -1
+            while q < P.nWeak - 1
+                q += 1
+                int wi = P.weak.get(q)
+                if P.realign < 0
+                    P.realign := wi
+                    continue
+                float g1 = rxGap(lineNow, R.zones.get(wi))
+                float g0 = rxGap(lineNow, R.zones.get(P.realign))
+                if g1 < g0 or (g1 == g0 and rxGap(price, R.zones.get(wi)) < rxGap(price, R.zones.get(P.realign)))
+                    P.realign := wi
+        P.target := P.realign
+        if P.target < 0
+            int q = -1
+            while q < P.nWeak - 1
+                q += 1
+                int wi = P.weak.get(q)
+                if P.target < 0 or rxGap(price, R.zones.get(wi)) < rxGap(price, R.zones.get(P.target))
+                    P.target := wi
+        P.hasTargetPx := P.target >= 0
+        P.targetPx := 0.0
+        if P.hasTargetPx
+            P.targetPx := R.zones.get(P.target).prox
+        P.hasTp := P.hasTargetPx
+        P.tp := P.targetPx
+        P.capped := false
+        P.extended := false
+        P.hasHtfZone := false
+        if hasCeil
+            P.tp := not P.hasTargetPx ? ceiling : (d > 0 ? math.min(P.targetPx, ceiling) : math.max(P.targetPx, ceiling))
+            P.hasTp := true
+            P.capped := P.tp == ceiling
+        else if Hon
+            int c = -1
+            int nh = R.hz.size()
+            i := -1
+            while i < nh - 1
+                i += 1
+                RxZone zh = R.hz.get(i)
+                if not (zh.dir == -d and not zh.removed and zh.legBar <= p.max_zone_age and (d > 0 ? rxLo(zh) > price : rxHi(zh) < price))
+                    continue
+                if c < 0 or rxGap(price, zh) < rxGap(price, R.hz.get(c))
+                    c := i
+            if c >= 0
+                P.htfZone := R.hz.get(c)
+                P.hasHtfZone := true
+                if not P.hasTargetPx or (d > 0 ? R.hz.get(c).prox > P.targetPx : R.hz.get(c).prox < P.targetPx)
+                    P.tp := R.hz.get(c).prox
+                    P.hasTp := true
+                    P.extended := true
+        int hostI = -1
+        int nh2 = R.hz.size()
+        i := -1
+        while i < nh2 - 1
+            i += 1
+            RxZone zo = R.hz.get(i)
+            if not (zo.dir == d and not zo.removed and rxLo(zo) <= rxHi(cz) and rxHi(zo) >= rxLo(cz))
+                continue
+            if hostI < 0 or zo.legBar < R.hz.get(hostI).legBar
+                hostI := i
+        RxZone hz0 = cz
+        if hostI >= 0
+            hz0 := R.hz.get(hostI)
+        ArrStop st = arrStopOf(R.S, d, R.arr.get(R.cur).valley, hostI >= 0 and Hon, hz0, spread)
+        P.dir := d
+        P.entry := cz.prox
+        P.stop := st.stop
+        P.buffer := st.buffer
+        P.atr := st.atr
+        P.basis := st.basis
+        P.valley := st.valley
+        P.hasHost := st.hasHost
+        if st.hasHost
+            P.host := st.host
+        array<float> rr = array.new<float>(1, 0.0)
+        P.hasRR := arrRrOf(cz.prox, st.stop, P.hasTp, P.tp, rr)
+        P.rr := rr.get(0)
+        P.hasCeiling := hasCeil
+        P.ceiling := ceiling
+        P.hasLineNow := hasLN
+        P.lineNow := lineNow
+        P.ceilingLine := cl
+        R.plan := P
+        R.hasPlan := true
+        if P.realign >= 0 and R.ltf > 0
+            R.pending := true
+            if R.hasL and R.LS.n - 1 >= 20
+                R.larr := arrArrivals(R.LS, p, R.lz)
+                int nl = R.larr.size()
+                RxZone rz = R.zones.get(P.realign)
+                int t0 = cz.tLeg - cz.tLeg % 60000
+                int c = -1
+                i := -1
+                while i < nl - 1
+                    i += 1
+                    RxZone a = R.larr.get(i).zone
+                    if a.dir == -d and not a.removed and rxLo(a) <= rxHi(rz) and rxHi(a) >= rxLo(rz) and a.tLeg - a.tLeg % 60000 >= t0
+                        c := i
+                        break
+                if c >= 0
+                    array<ZvPivot> ap = zvPivots(R.S, math.min(RX_LOOK, R.S.n - 1 - RX_SWING))
+                    int np = ap.size()
+                    int want = d < 0 ? 1 : -1
+                    int last = -1
+                    int q = -1
+                    while q < np - 1
+                        q += 1
+                        if ap.get(q).t == want
+                            last := q
+                    ArrStop cs = arrStopOf(R.LS, -d, R.larr.get(c).valley, true, rz, spread)
+                    float pv = 0.0
+                    if last >= 0
+                        pv := ap.get(last).p
+                    RxConfirm K = RxConfirm.new(R.larr.get(c).zone, c, last >= 0, pv, rxGap(price, rz) == 0)
+                    K.entry := K.zone.prox
+                    K.stop := cs.stop
+                    K.buffer := cs.buffer
+                    K.atr := cs.atr
+                    K.basis := cs.basis
+                    array<float> rr2 = array.new<float>(1, 0.0)
+                    K.hasRR := arrRrOf(K.zone.prox, cs.stop, K.hasTarget, K.target, rr2)
+                    K.rr := rr2.get(0)
+                    R.conf := K
+                    R.hasConfirm := true
+                    R.pending := false
+    R
+// ==== RFX_ARRIVAL_PINE END ====
+
+// ---------------------------------------------------------------------------------------------------------------
+// GLUE: data in, drawing out, alerts. Everything in the engine block above is pure.
+// ---------------------------------------------------------------------------------------------------------------
+chartMin = timeframe.isminutes ? timeframe.multiplier : timeframe.isdaily ? 1440 * timeframe.multiplier : timeframe.isweekly ? 10080 * timeframe.multiplier : timeframe.ismonthly ? (timeframe.multiplier == 3 ? RX_Q : 43200 * timeframe.multiplier) : 0
+tvTf(int m) => m == 15 ? "15" : m == 60 ? "60" : m == 240 ? "240" : m == 1440 ? "D" : m == 10080 ? "W" : m == 43200 ? "M" : m == RX_Q ? "3M" : timeframe.period
+hMin = rxHigherTf(chartMin)
+lMin = rxConfirmTf(chartMin)
+
+// HTF pack (runs in the HTF context): [m, curTimeClose, cur t, o, h, l, c, then m closed bars newest first: t, o, h, l, c]
+f_apack() =>
+    var array<float> bt = array.new<float>()
+    var array<float> bo = array.new<float>()
+    var array<float> bh = array.new<float>()
+    var array<float> bl = array.new<float>()
+    var array<float> bc = array.new<float>()
+    if bar_index > 0
+        bt.unshift(time[1])
+        bo.unshift(open[1])
+        bh.unshift(high[1])
+        bl.unshift(low[1])
+        bc.unshift(close[1])
+        if bt.size() > RX_MAXB
+            bt.pop()
+            bo.pop()
+            bh.pop()
+            bl.pop()
+            bc.pop()
+    array<float> out = array.new<float>()
+    if time_close >= last_bar_time
+        out := array.from(float(bt.size()), float(time_close), float(time), open, high, low, close)
+        out.concat(bt)
+        out.concat(bo)
+        out.concat(bh)
+        out.concat(bl)
+        out.concat(bc)
+    out
+hp = request.security(syminfo.tickerid, tvTf(hMin), f_apack(), lookahead = barmerge.lookahead_on)
+[lt, lo_, lh, ll, lc] = request.security_lower_tf(syminfo.tickerid, tvTf(lMin), [time, open, high, low, close])
+
+// the chart's closed candles and the confirmation TF's closed candles, newest first (kept bar by bar)
+var array<int> cT = array.new<int>()
+var array<float> cO = array.new<float>()
+var array<float> cH = array.new<float>()
+var array<float> cL = array.new<float>()
+var array<float> cC = array.new<float>()
+var array<int> qT = array.new<int>()
+var array<float> qO = array.new<float>()
+var array<float> qH = array.new<float>()
+var array<float> qL = array.new<float>()
+var array<float> qC = array.new<float>()
+if barstate.isconfirmed
+    cT.unshift(time)
+    cO.unshift(open)
+    cH.unshift(high)
+    cL.unshift(low)
+    cC.unshift(close)
+    if cT.size() > RX_MAXB
+        cT.pop()
+        cO.pop()
+        cH.pop()
+        cL.pop()
+        cC.pop()
+    if lMin > 0 and lt.size() > 0
+        for k = 0 to lt.size() - 1
+            qT.unshift(int(lt.get(k)))
+            qO.unshift(lo_.get(k))
+            qH.unshift(lh.get(k))
+            qL.unshift(ll.get(k))
+            qC.unshift(lc.get(k))
+        while qT.size() > RX_MAXB
+            qT.pop()
+            qO.pop()
+            qH.pop()
+            qL.pop()
+            qC.pop()
+
+serOf(int tf, array<int> t, array<float> o, array<float> h, array<float> l, array<float> c, float price) =>
+    RxSer S = rxNew(tf)
+    int n = math.min(t.size(), RX_MAXB)
+    if n > 0
+        for i = 0 to n - 1
+            rxPush(S, t.get(i), o.get(i), h.get(i), l.get(i), c.get(i))
+    float p = price
+    if p <= 0
+        p := close
+        if n > 0
+            p := c.get(0)
+    rxFinish(S, p)
+// HTF closed bars from the pack; the bar still forming counts once this chart candle closed it (as MT5 at the next tick)
+htfSer(array<float> p, int tf, float price, bool chartClosed) =>
+    RxSer S = rxNew(tf)
+    if not na(p) and p.size() >= 7
+        int m = int(p.get(0))
+        if chartClosed and int(p.get(1)) <= time_close
+            rxPush(S, int(p.get(2)), p.get(3), p.get(4), p.get(5), p.get(6))
+        if m > 0
+            for j = 0 to m - 1
+                if S.c.size() > RX_MAXB
+                    break
+                rxPush(S, int(p.get(7 + j)), p.get(7 + m + j), p.get(7 + 2 * m + j), p.get(7 + 3 * m + j), p.get(7 + 4 * m + j))
+    rxFinish(S, price)
+
+// ---- objects of the last run (deleted and drawn again, as MT5 ObjectsDeleteAll)
+var array<line> gL = array.new<line>()
+var array<box> gB = array.new<box>()
+var array<label> gT = array.new<label>()
+var table gSum = na
+// alert state: varip, so a realtime tick that fires an alert is not rolled back (no repeat on the next tick)
+varip string gSeen = "|"
+varip bool gArmed = false
+varip float gRLo = na
+varip float gRHi = na
+varip string gRKey = ""
+varip string gRTxt = ""
+varip bool gIn = false
+varip int gLtfN = 0
+aL(int x1, float y1, int x2, float y2, color c, string st, int w, string tip) =>
+    line ln = line.new(x1, y1, x2, y2, xloc = xloc.bar_time, color = c, style = st, width = w)
+    gL.push(ln)
+    ln
+aT(int t, float p, string txt, color c, string st, string tip, string sz) => gT.push(label.new(t, p, txt, xloc = xloc.bar_time, style = st, color = color.new(color.white, 100), textcolor = c, size = sz, tooltip = tip))
+aB(int t1, float p1, int t2, float p2, color c, string st, int w, color fill, string tip) => gB.push(box.new(t1, math.max(p1, p2), t2, math.min(p1, p2), border_color = c, border_width = w, border_style = st, bgcolor = fill, xloc = xloc.bar_time))
+aHL(int t1, int t2, float p, color c, string st, string txt, string tip) =>
+    aL(t1, p, t2, p, c, st, 1, tip)
+    if txt != ""
+        aT(t2, p, txt, c, label.style_label_left, tip, size.small)
+px(float p) => str.tostring(p, format.mintick)
+zTxt(RxZone z) => (z.dir > 0 ? "demand " : "supply ") + px(z.prox) + " - " + px(z.dist)
+seen(string k) => str.contains(gSeen, "|" + k + "|")
+
+bool acNew = false
+bool acRealign = false
+bool acConfirm = false
+bool chartClosed = barstate.isconfirmed and (barstate.islastconfirmedhistory or barstate.isrealtime)
+int ltfClosedNow = lMin > 0 and barstate.isrealtime and not barstate.isconfirmed ? math.max(lt.size() - 1, 0) : 0
+bool ltfNew = lMin > 0 and barstate.isrealtime and not barstate.isconfirmed and ltfClosedNow > gLtfN
+gLtfN := barstate.isconfirmed ? 0 : ltfClosedNow
+if chartMin > 0 and (chartClosed or ltfNew)
+    RxParams P0 = InpArrMarket == 1 ? rxParamsRaja() : rxParamsFX()
+    RxReading R = rxReading(chartMin, hMin, lMin)
+    R.S := serOf(chartMin, cT, cO, cH, cL, cC, 0.0)
+    if hMin > 0
+        R.H := htfSer(hp, hMin, close, chartClosed)
+        R.hasH := R.H.n > 1
+    if lMin > 0
+        // the confirmation TF: the closed intrabars of the candles before + this candle's closed intrabars
+        array<int> t2 = qT.copy()
+        array<float> o2 = qO.copy()
+        array<float> h2 = qH.copy()
+        array<float> l2 = qL.copy()
+        array<float> c2 = qC.copy()
+        int nNow = ltfNew ? ltfClosedNow : 0
+        if nNow > 0
+            for k = 0 to nNow - 1
+                t2.unshift(int(lt.get(k)))
+                o2.unshift(lo_.get(k))
+                h2.unshift(lh.get(k))
+                l2.unshift(ll.get(k))
+                c2.unshift(lc.get(k))
+        R.LS := serOf(lMin, t2, o2, h2, l2, c2, 0.0)
+        R.hasL := R.LS.n > 1
+    arrArrivalTf(R, close, P0, InpArrSpread)
+    string tfn = rxTfName(chartMin)
+    string htn = hMin > 0 ? rxTfName(hMin) : "HTF"
+    string ltn = lMin > 0 ? rxTfName(lMin) : "LTF"
+    // drawings only on a closed candle (a realtime lower-TF run only updates the alerts)
+    if chartClosed
+        for o in gL
+            o.delete()
+        for o in gB
+            o.delete()
+        for o in gT
+            o.delete()
+        gL.clear()
+        gB.clear()
+        gT.clear()
+        int per = timeframe.in_seconds() * 1000
+        int right = time + 6 * per
+        string sum = "ARRIVAL " + tfn + ": "
+        // this TF's trend lines (two-pivot rule) and Kevin's momentum line
+        if InpArrShowLines
+            for d = -1 to 1 by 2
+                if d > 0 ? R.lines.hasUp : R.lines.hasDn
+                    ZvLine t = d > 0 ? R.lines.up : R.lines.dn
+                    aL(R.S.t.get(t.a), t.pa, right, zvAt(t, -6), color.black, line.style_solid, 1, tfn + (d > 0 ? " up line: the 2 most recent real valleys" : " down line: the 2 most recent real peaks") + " (wick re-anchored)")
+        if InpArrShowMomentum and R.lines.hasMom
+            ZvLine mo = R.lines.mom
+            string mt = tfn + " momentum line (Kevin): a steep one-way leg with no real " + (mo.dir > 0 ? "valley" : "peak") + " - its break is often a false breakout; NOT a trend line"
+            aL(R.S.t.get(mo.a), mo.pa, right, zvAt(mo, -6), color.red, line.style_dashed, 1, mt)
+            aT(right, zvAt(mo, -6), "momentum", color.red, label.style_label_left, mt, size.tiny)
+        if InpArrShow
+            if R.cur < 0
+                sum += "none"
+            else
+                RxArrival A = R.arr.get(R.cur)
+                color c = A.zone.dir > 0 ? InpDemandLine : InpSupplyLine
+                string kind = A.zone.dir > 0 ? "demand" : "supply"
+                string tip = tfn + " ARRIVAL " + kind + ": the leg-out closed " + (A.zone.dir > 0 ? "above" : "below") + " the " + tfn + (A.zone.dir > 0 ? " down" : " up") + " trend line and removed " + str.tostring(A.nRem) + " opposite zone(s)" + (A.strong ? " = STRONG" : "")
+                aB(A.zone.baseStart, A.zone.prox, right, A.zone.dist, c, line.style_solid, 3, color.new(c, 85), tip)
+                aT(A.zone.baseStart, A.zone.dir > 0 ? A.zone.prox : A.zone.dist, "ARRIVAL " + kind + (A.strong ? " STRONG (" + str.tostring(A.nRem) + " removed)" : " (1 removed)"), c, label.style_label_lower_left, tip, size.normal)
+                aL(A.line.ta, A.line.pa, R.S.t.get(A.crossBar), A.crossPx, InpMuted, line.style_dotted, 1, tfn + " trend line the arrival's leg-out closed beyond")
+                sum += (A.strong ? "STRONG " : "") + zTxt(A.zone)
+                if InpArrShowRemoved and A.rem.size() > 0
+                    for q = 0 to A.rem.size() - 1
+                        RxZone y = R.zones.get(A.rem.get(q))
+                        string yt = "Removed by the arrival's leg-out: " + zTxt(y)
+                        aB(y.baseStart, y.prox, R.S.t.get(y.removedBar), y.dist, InpMuted, line.style_dotted, 1, color.new(InpMuted, 100), yt)
+                        aT(R.S.t.get(y.removedBar), (y.prox + y.dist) / 2, "X", y.dir > 0 ? InpDemandLine : InpSupplyLine, label.style_label_center, yt, size.large)
+            if R.hasPlan
+                RxPlan P = R.plan
+                RxArrival A2 = R.arr.get(R.cur)
+                if InpArrShowWeak and P.nWeak > 0
+                    for q = 0 to P.nWeak - 1
+                        if P.weak.get(q) == P.realign and InpArrShowRealign
+                            continue
+                        if q >= 20
+                            break
+                        RxZone z = R.zones.get(P.weak.get(q))
+                        string wt = "WEAK after the " + (P.dir > 0 ? "demand" : "supply") + " arrival (Raja): no limit " + (z.dir > 0 ? "buys" : "sells") + " on " + tfn + " - wait for a lower-TF arrival"
+                        color zc = z.dir > 0 ? InpDemandLine : InpSupplyLine
+                        aB(z.baseStart, z.prox, right, z.dist, zc, line.style_dashed, 1, color.new(zc, 100), wt)
+                        aT(z.baseStart, z.prox, "weak - no limit", InpMuted, z.dir > 0 ? label.style_label_lower_left : label.style_label_upper_left, wt, size.tiny)
+                if InpArrShowRealign and P.realign >= 0
+                    RxZone z = R.zones.get(P.realign)
+                    string rt = "REALIGNMENT area: the weak " + tfn + " zone nearest the " + htn + " trend line (now " + px(P.lineNow) + "). Trade it only after a " + ltn + " arrival inside it."
+                    aB(z.baseStart, z.prox, right, z.dist, color.rgb(218, 165, 32), line.style_solid, 2, color.new(color.rgb(255, 226, 140), 55), rt)
+                    aT(z.baseStart, z.prox, "REALIGN area (" + htn + " line " + px(P.lineNow) + ")" + (R.pending ? " - waiting for a " + ltn + " arrival" : ""), color.rgb(184, 134, 11), z.dir > 0 ? label.style_label_lower_left : label.style_label_upper_left, rt, size.small)
+                    sum += " | realign " + px(z.prox) + (R.pending ? " (waiting " + ltn + ")" : "")
+                if InpArrShowPlan
+                    int t1 = R.S.t.get(A2.zone.legBar)
+                    string bt = "the valley " + px(P.valley) + " - 1 buffer"
+                    if P.basis == 1 and P.hasHost
+                        bt := "2 buffers beyond the " + htn + " " + (P.dir > 0 ? "demand" : "supply") + " zone's distal (" + px(P.host.dist) + ")"
+                    aHL(t1, right, P.entry, P.dir > 0 ? InpDemandLine : InpSupplyLine, line.style_solid, "entry " + px(P.entry), "Arrival entry: the zone's proximal")
+                    aHL(t1, right, P.stop, color.red, line.style_dashed, "SL " + px(P.stop) + (P.basis == 1 ? " (" + htn + " zone)" : " (valley)"), "Stop rule: " + bt + "; buffer = max(0.1 x ATR14 " + tfn + ", spread) = " + px(P.buffer))
+                    if P.hasTp
+                        aHL(t1, right, P.tp, color.rgb(34, 139, 34), line.style_dashed, "TP " + px(P.tp) + (P.capped ? " (capped: " + htn + " line)" : P.extended ? " (" + htn + " zone)" : "") + (P.hasRR ? " 1:" + str.tostring(P.rr, "0.0") : ""), P.capped ? "Target capped before the intact " + htn + " trend line (the ceiling)" : P.extended ? "The " + htn + " line is crossed: target extended to the " + htn + " zone" : "Target: the weak zone's proximal")
+                    if P.hasCeiling and not P.capped
+                        aHL(t1, right, P.ceiling, color.rgb(218, 165, 32), line.style_dotted, htn + " line (ceiling)", "The intact " + htn + " trend line against the arrival, now")
+                    sum += " | SL " + px(P.stop) + (P.basis == 1 ? " " + htn : " valley") + " | TP " + (P.hasTp ? px(P.tp) : "-")
+            if InpArrShowConfirm and R.hasConfirm
+                RxConfirm K = R.conf
+                color cc = K.zone.dir > 0 ? InpDemandLine : InpSupplyLine
+                string ct = ltn + " CONFIRMATION: a " + ltn + " arrival " + zTxt(K.zone) + " inside the realignment area - the " + (K.zone.dir > 0 ? "buy" : "sell")
+                aB(K.zone.baseStart, K.zone.prox, right, K.zone.dist, cc, line.style_solid, 2, color.new(cc, 80), ct)
+                aT(K.zone.baseStart, K.zone.dist, ltn + " CONFIRMATION " + (K.zone.dir > 0 ? "BUY" : "SELL") + (K.inArea ? " (price in the area)" : ""), cc, K.zone.dir > 0 ? label.style_label_upper_left : label.style_label_lower_left, ct, size.small)
+                aHL(K.zone.made, right, K.entry, cc, line.style_solid, ltn + " entry " + px(K.entry), ct)
+                aHL(K.zone.made, right, K.stop, color.red, line.style_dashed, ltn + " SL " + px(K.stop) + (K.basis == 1 ? " (realign zone)" : " (valley)"), "Stop rule on the " + ltn + " (host = the realignment zone)")
+                if K.hasTarget
+                    aHL(K.zone.made, right, K.target, color.rgb(34, 139, 34), line.style_dashed, ltn + " target " + px(K.target) + (K.hasRR ? " 1:" + str.tostring(K.rr, "0.0") : ""), "Target: the " + tfn + " newest real " + (K.zone.dir > 0 ? "peak's high" : "valley's low"))
+                sum += " | " + ltn + " CONFIRMED " + (K.zone.dir > 0 ? "buy " : "sell ") + px(K.entry)
+        if na(gSum)
+            gSum := table.new(position.bottom_left, 1, 1, bgcolor = color.new(color.white, 100))
+        gSum.cell(0, 0, sum, text_color = InpMuted, text_size = size.small, text_halign = text.align_left)
+    // ---- alerts: once each, never for what is already on the chart when it loads
+    if R.cur >= 0
+        RxArrival A = R.arr.get(R.cur)
+        string key = "A" + tfn + str.tostring(A.zone.tLeg)
+        if not seen(key)
+            gSeen += key + "|"
+            if gArmed and InpArrAlertNew
+                acNew := true
+                alert("ZoneVision " + syminfo.ticker + " " + tfn + ": new " + (A.strong ? "STRONG " : "") + "ARRIVAL " + zTxt(A.zone) + " (" + str.tostring(A.nRem) + " opposite zone(s) removed)" + (R.hasPlan ? " | entry " + px(R.plan.entry) + " SL " + px(R.plan.stop) + (R.plan.hasTp ? " TP " + px(R.plan.tp) : "") : ""), alert.freq_all)
+    if R.hasConfirm
+        string key = "C" + ltn + str.tostring(R.conf.zone.tLeg)
+        if not seen(key)
+            gSeen += key + "|"
+            if gArmed and InpArrAlertConfirm
+                acConfirm := true
+                alert("ZoneVision " + syminfo.ticker + " " + tfn + ": " + ltn + " CONFIRMATION " + (R.conf.zone.dir > 0 ? "BUY" : "SELL") + " inside the realignment area | entry " + px(R.conf.entry) + " SL " + px(R.conf.stop) + (R.conf.hasTarget ? " target " + px(R.conf.target) : ""), alert.freq_all)
+    gRKey := ""
+    if R.hasPlan and R.plan.realign >= 0
+        RxZone z = R.zones.get(R.plan.realign)
+        gRLo := rxLo(z)
+        gRHi := rxHi(z)
+        gRKey := "R" + tfn + str.tostring(z.tLeg)
+        gRTxt := "ZoneVision " + syminfo.ticker + " " + tfn + ": price entered the realignment area " + zTxt(z) + " - wait for a " + ltn + " arrival inside it"
+        if not gArmed
+            gIn := close >= gRLo and close <= gRHi
+    if str.length(gSeen) > 3000
+        gSeen := "|"
+    gArmed := true
+// realignment area entered (every realtime tick)
+if gRKey != ""
+    bool inNow = close >= gRLo and close <= gRHi
+    if inNow and not gIn and not seen(gRKey)
+        gSeen += gRKey + "|"
+        if gArmed and InpArrAlertRealign and barstate.isrealtime
+            acRealign := true
+            alert(gRTxt, alert.freq_all)
+    gIn := inNow
+alertcondition(acNew, "ZoneVision: new ARRIVAL zone", "ZoneVision: a new arrival zone on this chart's timeframe")
+alertcondition(acRealign, "ZoneVision: realignment area entered", "ZoneVision: price entered the realignment area after an arrival")
+alertcondition(acConfirm, "ZoneVision: LTF confirmation", "ZoneVision: lower-TF arrival inside the realignment area (the confirmed entry)")

@@ -175,7 +175,7 @@ export const GUIDE: GuideSection[] = [
       { id: 'a-practice', title: 'Sandbox', to: '/practice',
         body: 'Blind chart tests, drawing tools and pattern drills.' },
       { id: 'a-tools', title: 'Tools & Bot guide', to: '/tools',
-        body: 'Every MT5 / MT4 / TradingView download (ZoneVision, ZoneBot, chart and excursion scripts) with presets. Bot guide (/bot-guide): install and use the MT4 / MT5 ZoneBot and ZoneVision.' },
+        body: 'Every MT5 / MT4 / TradingView download (ZoneVision, ZoneBot, chart and excursion scripts) with presets. ZoneVision 2.13 (MT4 2.00, TradingView ZV Arrival) draws the same ARRIVAL zones, weak zones, realignment area, stop rule and lower-TF confirmation as the bot, with alerts; ZoneBot has the optional arrival entries (off by default, demo presets). Bot guide (/bot-guide): install and use the MT4 / MT5 ZoneBot and ZoneVision.' },
       { id: 'a-notebook', title: 'Notebook', to: '/notebook',
         body: 'Free-form notes in folders, with templates; collects day reviews and trade notes.' },
       { id: 'a-settings', title: 'Settings', to: '/settings',

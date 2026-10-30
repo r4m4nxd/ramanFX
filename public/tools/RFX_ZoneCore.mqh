@@ -29,7 +29,7 @@
 #ifndef RFX_ZONECORE_MQH
 #define RFX_ZONECORE_MQH
 
-#define RFX_CORE_VER 210
+#define RFX_CORE_VER 213
 
 // ---- Raja v2.1 (A) ----
 // Settings of the Raja v2.1 (A) rules. Plain globals (not inputs) so ZoneBot, which includes this core and never sets
@@ -49,6 +49,13 @@ double RjA_FarPips      = 25;     // far from the trendline: more than this many
 bool   RjA_Lens8        = false;  // Raja lens: 3 CPs in a row = skip, P vs CP note, "zone already did its job"
 int    RjA_UpT = 0, RjA_DnT = 0;     // touches of the chart's newest respected up / down line (0 = none / not counted)
 int    RjA_HUpT = 0, RjA_HDnT = 0;   // the same for the HtfOf(chart) lines (set by the host with the gHUp* copy)
+// ---- owner-approved trendline rule (Oct 2026, = supabase/functions/telegram-bot/zvTrend.ts zvLines) ----
+// true: ONE line per direction through the 2 MOST RECENT real peaks (down) / valleys (up), newer lower / higher, wick to
+// wick, wick re-anchoring (FitAnchor), not TooFlat, Confirmed; a line with a full closed candle beyond it is kept for
+// TLBias / the break alert but never drawn. No 'overall' line, no anchoring at the window extreme, no older-leg lines;
+// HTF lines drawn straight between the chart candles holding the HTF anchors (ChartBarIn, the bot's htfBarIndex).
+// false = the v2.12 lines. ZoneVision sets it from InpTLTwoPivot (default true); ZoneBot keeps false (its presets).
+bool   ZvTwoPivot       = false;
 
 //+------------------------------------------------------------------+
 //| Virtual timeframes: 3M / 6M / 12M built from MN1 bars            |
@@ -521,11 +528,42 @@ bool Confirmed(int a, int b2, double p2, double sl, int d)
      }
    return false;
   }
-// Kevin: a near-horizontal line is not a trendline (it is momentum). Needs a visible angle.
+// Kevin: a near-horizontal line is not a trendline - and not a momentum line either: flat = NO line. Needs a visible angle
+// (Kevin's momentum line is a separate, steep red line: zvMomentum in the arrival engine).
 bool TooFlat(int a, int b2, double p2, double sl)
   {
    double atr = MathMax(ATR(gTF, b2), _Point);
    return MathAbs(sl) < 0.015 * atr || MathAbs(p2 - LineAt(p2, b2, sl, a)) < 1.5 * atr;
+  }
+
+// owner rule (ZvTwoPivot): zvTrend.ts zvLines lines 102-134 on gTF through the core accessors - the two most recent real
+// valleys (up) / peaks (down) of the ZigZag, newer higher / lower, FitAnchor (wick re-anchoring), not TooFlat, Confirmed
+void TwoPivotLines()
+  {
+   for(int d = -1; d <= 1; d += 2)
+     {
+      int want = d > 0 ? -1 : 1, io = -1, inw = -1;
+      for(int k = 0; k < ArraySize(pvBar); k++) if(pvT[k] == want) { io = inw; inw = k; }
+      if(io < 0) continue;                                             // fewer than two real valleys / peaks
+      int b2 = pvBar[inw]; double p2 = pvP[inw], sl = 0;
+      if(d > 0 ? !(p2 > pvP[io]) : !(p2 < pvP[io])) continue;          // newer valley not higher / peak not lower
+      int a = FitAnchor(pvBar[io], b2, p2, d, sl);
+      double pa = d > 0 ? Lo(a) : Hi(a);
+      if(d > 0 ? !(p2 > pa) : !(p2 < pa)) continue;
+      if(TooFlat(a, b2, p2, sl)) continue;                             // flat = no line
+      if(!Confirmed(a, b2, p2, sl, d)) continue;
+      AddTL(d, a, b2, p2, sl, false);                                  // RemovedAt sets removed: kept for TLBias / alert, not drawn
+     }
+  }
+// a two-pivot line broken by the last closed candle of its TF: one alert (the line itself is no longer drawn)
+void ZvBreakAlert(int i)
+  {
+   if(gQuiet || !InpAlertTL || !TL[i].removed || TL[i].removedBar != 1) return;
+   bool up = TL[i].dir > 0;
+   string key = "L" + TfName(gTF) + IntegerToString(TL[i].dir) + IntegerToString((long)iTime(_Symbol, gTF, TL[i].a)) + "_" + IntegerToString((long)iTime(_Symbol, gTF, 1));
+   if(Alerted(key)) return;
+   MarkAlerted(key);
+   if(gArmed) Notify(StringFormat("ZoneVision %s %s: %s %s trendline broken - a full candle closed %s it", _Symbol, TfName(CTF), TfName(gTF), up ? "uptrend" : "downtrend", up ? "below" : "above"));
   }
 
 // Kevin's lines: every real valley (peak) gets a line from the previous real one - or, if that is too flat, from the
@@ -537,7 +575,8 @@ void Trendlines(string s, ENUM_TIMEFRAMES tf)
    RjA_UpT = 0; RjA_DnT = 0;                                          // Raja v2.1 (A): touches of the newest respected lines
    int bars = MathMin(InpLookback, SBars(_Symbol, gTF) - 20);
    ZigZag(bars);
-   for(int d = -1; d <= 1; d += 2)
+   if(ZvTwoPivot) TwoPivotLines();
+   for(int d = -1; d <= 1 && !ZvTwoPivot; d += 2)                     // v2.12 lines (ZvTwoPivot = false)
      {
       int want = d > 0 ? -1 : 1, prevB = -1, lastA = -1; double prevP = 0;
       for(int k = 0; k < ArraySize(pvBar); k++)
@@ -595,6 +634,7 @@ void Trendlines(string s, ENUM_TIMEFRAMES tf)
          if(gQuiet) break;                                              // research pass: lines are computed, never drawn or alerted
          if(TL[i].dir != d) continue;
          bool keep = i == newest || (!TL[i].conf && !TL[i].removed) || (TL[i].removed && newest >= 0 && TL[i].b > TL[newest].a);
+         if(ZvTwoPivot) { if(TL[i].removed) { ZvBreakAlert(i); continue; } keep = true; }   // owner rule: a broken line is not drawn
          if(!keep || shown >= InpTLHistory) continue;
          shown++;
          bool up = d > 0;
@@ -607,7 +647,16 @@ void Trendlines(string s, ENUM_TIMEFRAMES tf)
          double y1 = TL[i].pa; datetime rTouch = 0;
          // higher-timeframe line on this chart: re-anchor it on this chart's own candles - the top-most (bottom-most)
          // candle inside each HTF pivot, then moved so it cuts no candle of this chart (clean, exact touch points)
-         if(gTF != CTF && InpRefineHTF)
+         if(gTF != CTF && ZvTwoPivot)                                   // owner rule: straight, chart candles holding the HTF anchors
+           {
+            int ca = ChartBarIn(d, TL[i].a), cb = ChartBarIn(d, TL[i].b);
+            if(ca >= 0 && cb >= 0 && ca > cb)
+              {
+               double csl = (TL[i].pb - TL[i].pa) / (ca - cb);
+               x1 = cT(ca); y1 = TL[i].pa; x2 = cT(0) + PeriodSeconds() * 3; pe = TL[i].pb + csl * (cb + 3); rTouch = cT(cb);
+              }
+           }
+         else if(gTF != CTF && InpRefineHTF)
            {
             int ca = -1, cb = -1, ce = -1; double csl = 0;
             if(RefineOnChart(d, TL[i].a, TL[i].b, TL[i].removed ? TL[i].removedBar : -1, ca, cb, csl, ce))
@@ -743,7 +792,7 @@ string StructureNow()
    if(up && !dn) return "uptrend (trendline intact)";
    if(dn && !up) return "downtrend (trendline intact)";
    if(up && dn) return "mixed trendlines";
-   return "momentum / no intact trendline";
+   return "no intact trendline";                                       // v2.13: flat / broken = no line (not 'momentum')
   }
 
 //+------------------------------------------------------------------+
@@ -3328,5 +3377,578 @@ int CoreFind(int d, datetime tBase)
    for(int k = 0; k < ceN; k++) if(ceZ[k].dir == d && ceBase[k] == tBase) return k;
    return -1;
   }
+
+// ==== RFX_ARRIVAL_ENGINE BEGIN ====
+//+------------------------------------------------------------------+
+//| RFX arrival engine 1.0 (owner-approved Raja / Kevin rules, Oct   |
+//| 2026). SHARED VERBATIM by RFX_ZoneCore.mqh (MT5 ZoneVision +     |
+//| ZoneBot), RamanFX_ZoneVision.mq4 and RamanFX_ZoneBot.mq4 - edit  |
+//| it in RFX_ZoneCore.mqh and run `node scripts/sync-arrival-mql.mjs`|
+//| (src/core/toolsArrival.test.ts fails when the copies differ).    |
+//| Compiles as MQL4 and MQL5: series are copied into arrays, so it  |
+//| never depends on ArraySetAsSeries / CopyRates differences.       |
+//| A line-by-line mirror of the canonical TypeScript:               |
+//|   supabase/functions/telegram-bot/zvTrend.ts  (zvPivots,         |
+//|     zvFitAnchor, zvLines, zvMomentum, zvTouches, zvAtr)          |
+//|   supabase/functions/telegram-bot/zonecore.ts (Series, detect)   |
+//|   supabase/functions/telegram-bot/arrival.ts  (arrivals,         |
+//|     arrivalTf, stopOf, rrOf, CONFIRM_TF, HIGHER_TF)              |
+//| Same names (zvX kept; detect -> zcDetect, arrivals ->            |
+//| arrArrivals, arrivalTf -> arrArrivalTf, stopOf -> arrStopOf,     |
+//| rrOf -> arrRrOf); "TS n" comments = the line in that file.       |
+//| Index convention = the TS Series = MQL series: shift 0 = a       |
+//| PHANTOM bar at the price (o = h = l = c = price), 1 = the newest |
+//| CLOSED bar, larger = older. Conformance: tools/telegram_bot/     |
+//| parity/mql_port.py (a mechanical Python port of this block) must |
+//| reproduce tools/telegram_bot/parity/arrival_fixtures.json.       |
+//+------------------------------------------------------------------+
+#define RX_VER    100
+#define RX_MAXB   460      // closed bars loaded per TF: detect (200) + the leg-out's older line window (200) + ATR, so
+                           // more history never changes a reading
+#define RX_Q      129600   // virtual 3M (quarter) in minutes; real TFs are their minutes (M15 15 ... MN 43200)
+#define RX_SWING  2        // ZV.swing (InpTLSwing)
+#define RX_LOOK   200      // ZV.lookback (InpLookback)
+#define RX_MAXREM 32
+#define RX_MAXW   64
+
+// zonecore.ts ZParams; FX_PARAMS = RAJA + base_strict (+ emo_touch, used by tests() only, not here)
+struct RxParams { double min_leg_ratio; int max_base; double max_zone_atr; int lookback; int max_zone_age; double emo_atr; int removal_mode; bool base_strict; };
+void RxParamsRaja(RxParams &p) { p.min_leg_ratio = 1.2; p.max_base = 6; p.max_zone_atr = 1.5; p.lookback = 200; p.max_zone_age = 200; p.emo_atr = 3.0; p.removal_mode = 1; p.base_strict = false; }
+void RxParamsFX(RxParams &p) { RxParamsRaja(p); p.base_strict = true; }
+
+// zonecore.ts class Series (TS 25-50): bars oldest first + a phantom price -> newest-first arrays, MT5 iATR(14)
+class RxSer
+  {
+public:
+   int      n, tf;
+   double   price;
+   bool     virt;          // virtual 3M: zvAtr = Wilder ATR (zvTrend.ts 45-58)
+   double   O[], H[], L[], C[], a[], wa[];
+   datetime T[];
+   // caller: Alloc(nClosed), fill shifts 1..nClosed (O/H/L/C/T), then Finish(price)
+   void     Alloc(int nClosed, int tfm) { n = nClosed + 1; tf = tfm; virt = tfm == RX_Q; ArrayResize(O, n); ArrayResize(H, n); ArrayResize(L, n); ArrayResize(C, n); ArrayResize(T, n); ArrayResize(a, n); ArrayResize(wa, n); }
+   void     Finish(double p)
+     {
+      price = p; O[0] = p; H[0] = p; L[0] = p; C[0] = p; T[0] = n > 1 ? T[1] : 0;           // TS 31-33
+      double tr[]; ArrayResize(tr, n);
+      for(int i = 0; i < n; i++) { tr[i] = 0; a[i] = 0; wa[i] = 0; }
+      for(int i = 0; i < n - 1; i++) { double pc = C[i + 1]; tr[i] = MathMax(H[i], pc) - MathMin(L[i], pc); }   // TS 36
+      double s = 0;
+      for(int i = n - 2; i >= 0; i--)                                                         // TS 40-44
+        {
+         s += tr[i];
+         if(i + 14 <= n - 2) s -= tr[i + 14];
+         if(i + 14 <= n - 1) a[i] = s / 14;
+        }
+      if(virt)                                                                                 // zvTrend.ts 47-56
+        {
+         double sum = 0; int cnt = 0;
+         for(int i = n - 1; i >= 0; i--)
+           {
+            double t = H[i] - L[i];
+            if(i < n - 1) t = MathMax(t, MathMax(MathAbs(H[i] - C[i + 1]), MathAbs(L[i] - C[i + 1])));
+            cnt++;
+            if(cnt < 14) { sum += t; continue; }
+            if(cnt == 14) { sum += t; wa[i] = sum / 14; continue; }
+            wa[i] = (wa[i + 1] * 13 + t) / 14;
+           }
+        }
+     }
+   double   atr(int i)   { return i >= 0 && i < n ? a[i] : 0; }
+   double   zvAtr(int i) { if(!virt) return atr(i); return i >= 0 && i < n ? wa[i] : 0; }
+   double   rng(int i)   { return H[i] - L[i]; }
+   double   body(int i)  { return MathAbs(C[i] - O[i]); }
+   bool     basing(int i) { double r = rng(i); return r > 0 && body(i) / r < 0.5; }
+   int      cdir(int i)  { return C[i] > O[i] ? 1 : (C[i] < O[i] ? -1 : 0); }
+   bool     emotional(int i, double emo) { double x = atr(i + 1); return x > 0 && rng(i) > emo * x; }
+  };
+// TS arrival.ts 131: older = bars.slice(0, n - L) -> a Series whose shift i (>= 1) = src shift i + L, phantom = its newest close
+void RxSlice(RxSer &src, int L, RxSer &dst)
+  {
+   dst.Alloc(src.n - 1 - L, src.tf);
+   for(int i = 1; i < dst.n; i++) { dst.O[i] = src.O[i + L]; dst.H[i] = src.H[i + L]; dst.L[i] = src.L[i + L]; dst.C[i] = src.C[i + L]; dst.T[i] = src.T[i + L]; }
+   dst.Finish(dst.n > 1 ? dst.C[1] : 0);
+  }
+
+// ---- zvTrend.ts ----
+struct ZvPivot { int bar; double p; int t; };                       // t: -1 real valley, +1 real peak
+struct ZvLine  { int dir; int a; int b; double pa; double pb; int cuts; };
+struct ZvResult { bool hasUp; bool hasDn; bool hasMom; ZvLine up; ZvLine dn; ZvLine mom; string whyUp; string whyDn; };
+double zvSlope(ZvLine &t) { return (t.pb - t.pa) / MathMax(1, t.a - t.b); }                 // TS 40
+double zvAt(ZvLine &t, double j) { return t.pb + zvSlope(t) * (t.b - j); }                    // TS 42
+
+bool RxFrLow(RxSer &S, int i, int sw)  { for(int k = 1; k <= sw; k++) if(i - k < 1 || S.L[i] > S.L[i + k] || S.L[i] >= S.L[i - k]) return false; return true; }   // TS 63
+bool RxFrHigh(RxSer &S, int i, int sw) { for(int k = 1; k <= sw; k++) if(i - k < 1 || S.H[i] < S.H[i + k] || S.H[i] <= S.H[i - k]) return false; return true; }  // TS 64
+void RxAddPiv(ZvPivot &out[], int b, double p, int t) { int m = ArraySize(out); ArrayResize(out, m + 1); out[m].bar = b; out[m].p = p; out[m].t = t; }
+// TS 61-74: real valleys / peaks, oldest first
+int zvPivots(RxSer &S, int bars, ZvPivot &out[])
+  {
+   ArrayResize(out, 0);
+   int sw = RX_SWING, fH = -1, fL = -1;
+   for(int i = bars; i > sw; i--)
+     {
+      bool lo = RxFrLow(S, i, sw), hi = RxFrHigh(S, i, sw);
+      if(lo && fH > 0) for(int j = i - 1; j >= 1; j--) { if(S.L[j] < S.L[i]) break; if(S.H[j] > S.H[fH]) { RxAddPiv(out, i, S.L[i], -1); break; } }
+      if(hi && fL > 0) for(int j = i - 1; j >= 1; j--) { if(S.H[j] > S.H[i]) break; if(S.L[j] < S.L[fL]) { RxAddPiv(out, i, S.H[i], 1); break; } }
+      if(lo) fL = i;
+      if(hi) fH = i;
+     }
+   return ArraySize(out);
+  }
+// TS 79-90: wick re-anchoring - the candle poking furthest through the line (oldest on a tie) becomes the older anchor
+int zvFitAnchor(RxSer &S, int A, int b2, double p2, int d)
+  {
+   double tol = 0.05 * S.zvAtr(1);
+   int a = A;
+   for(int it = 0; it < 50; it++)
+     {
+      double sl = (p2 - (d > 0 ? S.L[a] : S.H[a])) / (a - b2);
+      int worst = -1; double ex = tol;
+      for(int j = a - 1; j > b2; j--) { double lv = p2 + sl * (b2 - j), e = d > 0 ? lv - S.L[j] : S.H[j] - lv; if(e > ex) { ex = e; worst = j; } }
+      if(worst < 0) return a;
+      a = worst;
+     }
+   return a;
+  }
+void RxSetWhy(ZvResult &res, int d, string why) { if(d > 0) { res.whyUp = why; res.hasUp = false; } else { res.whyDn = why; res.hasDn = false; } }
+// TS 93-140: the two lines of one TF (+ at most one momentum line); piv = the pivots (out)
+void zvLines(RxSer &S, ZvResult &res, ZvPivot &piv[])
+  {
+   res.hasUp = false; res.hasDn = false; res.hasMom = false; res.whyUp = "too few bars"; res.whyDn = "too few bars";
+   ArrayResize(piv, 0);
+   int bars = MathMin(RX_LOOK, S.n - 1 - RX_SWING);                                            // TS 98
+   if(bars <= RX_SWING + 2) return;
+   zvPivots(S, bars, piv);
+   for(int d = 1; d >= -1; d -= 2)                                                             // TS 102: [1, -1]
+     {
+      int want = d > 0 ? -1 : 1, io = -1, inw = -1, np = ArraySize(piv);
+      for(int k = 0; k < np; k++) if(piv[k].t == want) { io = inw; inw = k; }                  // ps[len - 2], ps[len - 1]
+      if(io < 0) { RxSetWhy(res, d, d > 0 ? "fewer than two real valleys" : "fewer than two real peaks"); continue; }
+      if(d > 0 ? !(piv[inw].p > piv[io].p) : !(piv[inw].p < piv[io].p)) { RxSetWhy(res, d, d > 0 ? "newer valley not higher" : "newer peak not lower"); continue; }
+      int a = zvFitAnchor(S, piv[io].bar, piv[inw].bar, piv[inw].p, d);                         // TS 111
+      ZvLine t; t.dir = d; t.a = a; t.b = piv[inw].bar; t.pa = d > 0 ? S.L[a] : S.H[a]; t.pb = piv[inw].p; t.cuts = 0;
+      if(d > 0 ? !(t.pb > t.pa) : !(t.pb < t.pa)) { RxSetWhy(res, d, d > 0 ? "newer valley not higher" : "newer peak not lower"); continue; }
+      double sl = zvSlope(t);
+      double ab = MathMax(S.zvAtr(t.b), 1e-12);                                                // TS 116-117 TooFlat
+      if(MathAbs(sl) < 0.015 * ab || MathAbs(t.pb - t.pa) < 1.5 * ab) { RxSetWhy(res, d, "too flat"); continue; }
+      double ext = d > 0 ? -DBL_MAX : DBL_MAX;                                                   // TS 119-127 Confirmed
+      for(int j = t.a - 1; j > t.b; j--) ext = d > 0 ? MathMax(ext, S.H[j]) : MathMin(ext, S.L[j]);
+      bool conf = false;
+      if(ext != DBL_MAX && ext != -DBL_MAX)
+         for(int j = t.b - 1; j >= 1; j--)
+           {
+            double lv = zvAt(t, j);
+            if((d > 0 && S.H[j] < lv) || (d < 0 && S.L[j] > lv)) break;
+            if((d > 0 && S.H[j] > ext) || (d < 0 && S.L[j] < ext)) { conf = true; break; }
+           }
+      if(!conf) { RxSetWhy(res, d, "not confirmed"); continue; }
+      int rm = -1;                                                                               // TS 129-131 RemovedAt
+      for(int j = t.b - 1; j >= 1; j--) { double lv = zvAt(t, j); if((d > 0 && S.H[j] < lv) || (d < 0 && S.L[j] > lv)) { rm = j; break; } }
+      if(rm >= 0) { RxSetWhy(res, d, "broken at shift " + IntegerToString(rm)); continue; }
+      double tol = 0.05 * S.zvAtr(1);                                                          // TS 132-133 cuts
+      for(int j = t.a - 1; j > t.b; j--) if((d > 0 ? zvAt(t, j) - S.L[j] : S.H[j] - zvAt(t, j)) > tol) t.cuts++;
+      if(d > 0) { res.up = t; res.hasUp = true; res.whyUp = "ok"; } else { res.dn = t; res.hasDn = true; res.whyDn = "ok"; }
+     }
+   // TS 136-138: a momentum line only for a direction without a trend line; the leg whose extreme is the newest
+   int bestE = -1;
+   for(int d = 1; d >= -1; d -= 2)
+     {
+      if(d > 0 ? res.hasUp : res.hasDn) continue;
+      ZvLine m; ZeroMemory(m); int e = -1;
+      if(!zvMomentum(S, piv, bars, d, m, e)) continue;
+      if(bestE < 0 || e < bestE) { bestE = e; res.mom = m; res.hasMom = true; }                  // stable sort by e: first on a tie
+     }
+  }
+double RxP(RxSer &S, int d, int j) { return d > 0 ? S.L[j] : S.H[j]; }                         // TS 156: the line's side
+double RxQ(RxSer &S, int d, int j) { return d > 0 ? S.H[j] : S.L[j]; }                         // TS 157: the leg's end side
+bool   RxMore(int d, double x, double y) { return d > 0 ? x > y : x < y; }                      // TS 158
+// TS 155-187: Kevin's MOMENTUM line (red, never a trend line); e = the leg's end E
+bool zvMomentum(RxSer &S, ZvPivot &piv[], int bars, int d, ZvLine &out, int &e)
+  {
+   int lim = MathMin(bars, S.n - 1);
+   if(lim < 8) return false;
+   int E = 1;
+   for(int j = 2; j <= MathMin(5, lim); j++) if(RxMore(d, RxQ(S, d, j), RxQ(S, d, E))) E = j;
+   int k = E + 1;
+   while(k <= lim && !RxMore(d, RxQ(S, d, k), RxQ(S, d, E))) k++;
+   int lastPiv = -1;
+   for(int q = ArraySize(piv) - 1; q >= 0; q--) if(piv[q].t == (d > 0 ? -1 : 1)) { lastPiv = q; break; }
+   int from = (lastPiv >= 0 && piv[lastPiv].bar < k && piv[lastPiv].bar > E) ? piv[lastPiv].bar : k - 1;
+   int A = -1;
+   for(int j = E + 1; j <= from; j++) if(A < 0 || RxMore(d, RxP(S, d, A), RxP(S, d, j))) A = j;
+   if(A < 0 || A - E < 3) return false;
+   double tol = 0.25 * S.zvAtr(1);
+   int b = -1; double sl = 0;
+   for(int it = 0; it < 10 && A - E >= 3; it++)
+     {
+      b = -1;
+      for(int j = A - 3; j >= 1; j--)
+        {
+         double s = (RxP(S, d, j) - RxP(S, d, A)) / (A - j);
+         if(b < 0 || (d > 0 ? s < sl : s > sl)) { b = j; sl = s; }
+        }
+      int worst = -1; double ex = tol;
+      for(int j = A - 1; j > A - 3; j--) { double x = d > 0 ? RxP(S, d, A) + sl * (A - j) - RxP(S, d, j) : RxP(S, d, j) - RxP(S, d, A) - sl * (A - j); if(x > ex) { ex = x; worst = j; } }
+      if(worst < 0) break;
+      A = worst; b = -1;
+     }
+   if(b < 0 || A - E < 3 || d * sl <= 0) return false;
+   double pb = RxP(S, d, A) + sl * (A - b), ab = MathMax(S.zvAtr(b), 1e-12);
+   if(MathAbs(sl) < 0.015 * ab || MathAbs(sl) * (A - 1) < 1.5 * ab) return false;
+   out.dir = d; out.a = A; out.b = b; out.pa = RxP(S, d, A); out.pb = pb; out.cuts = 0; e = E;
+   return true;
+  }
+// TS 190-199: separate visits within 0.1 ATR of the line
+int zvTouches(RxSer &S, ZvLine &t)
+  {
+   double tol = 0.1 * S.zvAtr(1);
+   int m = 0; bool inT = false;
+   for(int j = t.a; j >= 1; j--) { double lv = zvAt(t, j); bool touch = t.dir > 0 ? S.L[j] <= lv + tol : S.H[j] >= lv - tol; if(touch && !inT) m++; inT = touch; }
+   return m;
+  }
+
+// ---- zonecore.ts detect (TS 66-110) ----
+struct RxZone { int dir; double prox; double dist; int legBar; int baseN; int saBar; double legRatio; bool cont; bool tested; int testedBar; bool removed; int removedBar; datetime baseStart; datetime made; datetime tLeg; };
+int zcDetect(RxSer &S, RxParams &p, RxZone &out[])
+  {
+   ArrayResize(out, 0);
+   int bars = MathMin(p.lookback, S.n - p.max_base - 3);
+   for(int L = bars; L > 1; L--)
+     {
+      double lr = S.rng(L);
+      if(lr <= 0 || S.basing(L)) continue;
+      int d = S.cdir(L);
+      if(d == 0) continue;
+      int k = 0; double maxBase = 0;
+      while(k < p.max_base && S.basing(L + 1 + k)) { maxBase = MathMax(maxBase, S.rng(L + 1 + k)); k++; }
+      if(k == 0 || maxBase <= 0) continue;
+      if(p.base_strict && k == p.max_base && L + 1 + k < S.n && S.basing(L + 1 + k)) continue;
+      double ratio = lr / maxBase;
+      if(ratio < p.min_leg_ratio) continue;
+      bool cont = S.cdir(L + 1 + k) == d;
+      double prox, dist;
+      if(d > 0)
+        {
+         prox = -DBL_MAX; double m = DBL_MAX;
+         for(int b = L + 1; b <= L + k; b++) { prox = MathMax(prox, MathMax(S.O[b], S.C[b])); m = MathMin(m, S.L[b]); }
+         dist = MathMin(m, S.L[L]);
+        }
+      else
+        {
+         prox = DBL_MAX; double m = -DBL_MAX;
+         for(int b = L + 1; b <= L + k; b++) { prox = MathMin(prox, MathMin(S.O[b], S.C[b])); m = MathMax(m, S.H[b]); }
+         dist = MathMax(m, S.H[L]);
+        }
+      double h = MathAbs(prox - dist), atr = S.atr(L);
+      if(h <= 0) continue;
+      if(atr > 0 && h > p.max_zone_atr * atr) continue;
+      int sa = L - 1;
+      if((d > 0 && S.L[sa] <= prox) || (d < 0 && S.H[sa] >= prox)) continue;
+      RxZone z;
+      z.dir = d; z.prox = prox; z.dist = dist; z.legBar = L; z.baseN = k; z.saBar = sa; z.legRatio = ratio; z.cont = cont; z.tested = false; z.testedBar = -1;
+      z.removed = false; z.removedBar = -1; z.baseStart = S.T[L + k]; z.made = S.T[sa]; z.tLeg = S.T[L];
+      bool wick = p.removal_mode == 0;
+      for(int j = sa - 1; j > 0; j--)
+        {
+         if(d > 0)
+           {
+            if(S.C[j] < dist || (wick && S.L[j] < dist && !S.emotional(j, p.emo_atr))) { z.removed = true; z.removedBar = j; break; }
+            if(!z.tested && S.L[j] <= prox && !S.emotional(j, p.emo_atr)) { z.tested = true; z.testedBar = j; }
+           }
+         else
+           {
+            if(S.C[j] > dist || (wick && S.H[j] > dist && !S.emotional(j, p.emo_atr))) { z.removed = true; z.removedBar = j; break; }
+            if(!z.tested && S.H[j] >= prox && !S.emotional(j, p.emo_atr)) { z.tested = true; z.testedBar = j; }
+           }
+        }
+      int m2 = ArraySize(out); ArrayResize(out, m2 + 1); out[m2] = z;
+     }
+   return ArraySize(out);
+  }
+
+// ---- arrival.ts ----
+#define RX_SL_ATRFRAC 0.1   // SL.atrFrac
+#define RX_SL_HTFBUF  2     // SL.htfBuffers
+struct ArrLine { int dir; int a; int b; double pa; double pb; datetime ta; datetime tb; };
+struct RxArrival { RxZone zone; ArrLine line; int legs[3]; int nLegs; int crossBar; double crossPx; int rem[RX_MAXREM]; int nRem; bool strong; double valley; };
+struct ArrStop { double stop; double buffer; double atr; int basis; double valley; bool hasHost; RxZone host; };   // basis 1 'htf', 0 'valley'
+struct RxPlan
+  {
+   int dir; double entry; double stop; double buffer; double atr; int basis; double valley; bool hasHost; RxZone host; bool hasRR; double rr;
+   bool hasCeiling; double ceiling; bool hasLineNow; double lineNow; ArrLine ceilingLine;
+   int weak[RX_MAXW]; int nWeak; int realign; int target; bool hasTargetPx; double targetPx; bool hasHtfZone; RxZone htfZone;
+   bool hasTp; double tp; bool capped; bool extended;
+  };   // weak / realign / target = indices into RxReading.zones (-1 = none)
+struct RxConfirm { RxZone zone; int arr; bool hasTarget; double target; bool inArea; double entry; double stop; double buffer; double atr; int basis; bool hasRR; double rr; };   // arr = index into RxReading.larr
+
+double RxLo(RxZone &z) { return MathMin(z.prox, z.dist); }
+double RxHi(RxZone &z) { return MathMax(z.prox, z.dist); }
+double RxGap(double v, RxZone &z) { return v < RxLo(z) ? RxLo(z) - v : (v > RxHi(z) ? v - RxHi(z) : 0); }   // TS 97
+
+// TS 66-69: confirmation TF / next higher TF (minutes; 0 = none)
+int RxConfirmTf(int m) { if(m == 60 || m == 240) return 15; if(m == 1440) return 60; if(m == 10080) return 240; if(m == 43200) return 1440; if(m == RX_Q) return 10080; return 0; }
+int RxHigherTf(int m)  { if(m == 15) return 60; if(m == 60) return 240; if(m == 240) return 1440; if(m == 1440) return 10080; if(m == 10080) return 43200; if(m == 43200) return RX_Q; return 0; }
+string RxTfName(int m)
+  {
+   if(m == RX_Q) return "3M";
+   if(m == 1) return "M1"; if(m == 5) return "M5"; if(m == 15) return "M15"; if(m == 30) return "M30"; if(m == 60) return "H1";
+   if(m == 240) return "H4"; if(m == 1440) return "D1"; if(m == 10080) return "W1"; if(m == 43200) return "MN";
+   return IntegerToString(m) + "m";
+  }
+
+// TS 105-113: the STOP RULE
+void arrStopOf(RxSer &S, int d, double valley, bool hasHost, RxZone &host, double spread, ArrStop &o)
+  {
+   double atr = S.atr(1), buffer = MathMax(RX_SL_ATRFRAC * atr, spread > 0 ? spread : 0);
+   double vs = valley - d * buffer;
+   o.buffer = buffer; o.atr = atr; o.valley = valley; o.hasHost = hasHost; if(hasHost) o.host = host;
+   if(hasHost)
+     {
+      double hs = host.dist - d * RX_SL_HTFBUF * buffer;
+      if(d > 0 ? hs <= vs : hs >= vs) { o.stop = hs; o.basis = 1; return; }
+     }
+   o.stop = vs; o.basis = 0;
+  }
+// TS 114-118
+bool arrRrOf(double entry, double stop, bool hasTarget, double target, double &rr)
+  {
+   rr = 0;
+   if(!hasTarget || entry == stop) return false;
+   double r = (target - entry) / (entry - stop);
+   if(r > 0) { rr = r; return true; }
+   return false;
+  }
+
+// TS 122-147: every arrival zone of one TF, newest first. S = closed bars + phantom at the newest close.
+int arrArrivals(RxSer &S, RxParams &p, RxZone &zones[], RxArrival &out[])
+  {
+   ArrayResize(out, 0); ArrayResize(zones, 0);
+   if(S.n > p.max_base + 4) zcDetect(S, p, zones);
+   int nz = ArraySize(zones), nb = S.n - 1;
+   for(int zi = 0; zi < nz; zi++)
+     {
+      int L = zones[zi].legBar, d = zones[zi].dir;
+      int legs[3]; int nl = 0; legs[nl++] = L;
+      for(int j = L - 1; j >= 1 && nl < 3 && S.cdir(j) == d && !S.basing(j); j--) legs[nl++] = j;
+      if(nb - L < 2 * RX_SWING + 6) continue;                                                  // older.length < 10
+      // the removed opposite zones first (cheap; arrival.ts tests them last - all three conditions must hold, so the
+      // order does not change the result), then the older bars' trend line and its cross
+      int newest = legs[nl - 1];
+      RxArrival A; ZeroMemory(A); A.nRem = 0;
+      for(int y = 0; y < nz; y++)
+         if(zones[y].dir == -d && zones[y].removed && zones[y].removedBar <= L && zones[y].removedBar >= newest) { if(A.nRem < RX_MAXREM) A.rem[A.nRem] = y; A.nRem++; }
+      if(A.nRem == 0) continue;
+      RxSer T; RxSlice(S, L, T);
+      ZvResult r; ZvPivot pv[];
+      zvLines(T, r, pv);
+      if(d > 0 ? !r.hasDn : !r.hasUp) continue;
+      ZvLine t; if(d > 0) t = r.dn; else t = r.up;
+      int cross = -1;
+      for(int q = 0; q < nl; q++) { int j = legs[q]; if(d > 0 ? S.C[j] > zvAt(t, j - L) : S.C[j] < zvAt(t, j - L)) { cross = j; break; } }
+      if(cross < 0) continue;
+      double valley = d > 0 ? DBL_MAX : -DBL_MAX;
+      int j1 = MathMin(L + zones[zi].baseN + RX_SWING, S.n - 1);
+      for(int j = L; j <= j1; j++) valley = d > 0 ? MathMin(valley, S.L[j]) : MathMax(valley, S.H[j]);
+      A.zone = zones[zi];
+      A.line.dir = t.dir; A.line.a = t.a + L; A.line.b = t.b + L; A.line.pa = t.pa; A.line.pb = t.pb; A.line.ta = T.T[t.a]; A.line.tb = T.T[t.b];
+      for(int q = 0; q < 3; q++) A.legs[q] = q < nl ? legs[q] : -1;
+      A.nLegs = nl; A.crossBar = cross; A.crossPx = zvAt(t, cross - L); A.strong = A.nRem >= 2; A.valley = valley;
+      int m = ArraySize(out); ArrayResize(out, m + 1); out[m] = A;
+     }
+   // TS 145: stable sort by legBar ascending (detect gives one zone per legBar, oldest first)
+   int m = ArraySize(out);
+   for(int i = 1; i < m; i++) { RxArrival x = out[i]; int j = i - 1; while(j >= 0 && out[j].zone.legBar > x.zone.legBar) { out[j + 1] = out[j]; j--; } out[j + 1] = x; }
+   return m;
+  }
+
+// arrival.ts ArrivalTf: the inputs (S / H / LS filled by the caller) and the reading
+class RxReading
+  {
+public:
+   int       tf, htf, ltf;
+   RxSer     S, H, LS;
+   bool      hasH, hasL;
+   RxZone    zones[], hz[], lz[];
+   RxArrival arr[], larr[];
+   int       nArr, cur;          // cur = index into arr (-1 none)
+   bool      hasPlan; RxPlan plan;
+   bool      hasConfirm; RxConfirm conf;
+   bool      pending;
+   ZvResult  lines; ZvPivot piv[];   // this TF's own lines (zvLines on S), for the chart
+  };
+// TS 152-209. price = the live price, spread = the stop rule's buffer floor (price units). Requires R.S (closed bars +
+// phantom at the newest close), R.H (closed HTF bars + phantom at the live price) when R.hasH, R.LS when R.hasL.
+void arrArrivalTf(RxReading &R, double price, RxParams &p, double spread)
+  {
+   R.nArr = 0; R.cur = -1; R.hasPlan = false; R.hasConfirm = false; R.pending = false;
+   ArrayResize(R.arr, 0); ArrayResize(R.zones, 0); ArrayResize(R.hz, 0); ArrayResize(R.larr, 0); ArrayResize(R.lz, 0);
+   zvLines(R.S, R.lines, R.piv);
+   if(R.S.n - 1 < 20) return;                                                                  // TS 155
+   R.nArr = arrArrivals(R.S, p, R.zones, R.arr);
+   for(int i = 0; i < R.nArr; i++) if(!R.arr[i].zone.removed) { R.cur = i; break; }             // TS 158
+   if(R.cur < 0) return;
+   RxZone cz = R.arr[R.cur].zone;
+   int d = cz.dir;
+   bool hasCeil = false, hasLN = false, Hon = false; double ceiling = 0, lineNow = 0; ArrLine cl; cl.dir = 0; cl.a = 0; cl.b = 0; cl.pa = 0; cl.pb = 0; cl.ta = 0; cl.tb = 0;
+   if(R.htf > 0 && R.hasH && R.H.n - 1 >= 10)                                                  // TS 163-168
+     {
+      Hon = true;
+      ZvResult hr; ZvPivot hp[];
+      zvLines(R.H, hr, hp);
+      if(d > 0 ? hr.hasDn : hr.hasUp)
+        {
+         ZvLine t; if(d > 0) t = hr.dn; else t = hr.up;
+         lineNow = zvAt(t, 0); hasLN = true;
+         cl.dir = t.dir; cl.a = t.a; cl.b = t.b; cl.pa = t.pa; cl.pb = t.pb; cl.ta = R.H.T[t.a]; cl.tb = R.H.T[t.b];
+         if(d > 0 ? lineNow > price : lineNow < price) { ceiling = lineNow; hasCeil = true; }
+        }
+      if(R.H.n > p.max_base + 4) zcDetect(R.H, p, R.hz);
+     }
+   RxPlan P; ZeroMemory(P); P.nWeak = 0; P.realign = -1; P.target = -1;                                       // TS 170-171 weak
+   int nz = ArraySize(R.zones);
+   for(int i = 0; i < nz; i++)
+      if(R.zones[i].dir == -d && !R.zones[i].removed && R.zones[i].legBar <= p.max_zone_age && (d > 0 ? RxHi(R.zones[i]) > price : RxLo(R.zones[i]) < price))
+        { if(P.nWeak < RX_MAXW) P.weak[P.nWeak++] = i; }
+   if(hasLN && P.nWeak > 0)                                                                    // TS 173
+      for(int q = 0; q < P.nWeak; q++)
+        {
+         int i = P.weak[q];
+         if(P.realign < 0) { P.realign = i; continue; }
+         double g1 = RxGap(lineNow, R.zones[i]), g0 = RxGap(lineNow, R.zones[P.realign]);
+         if(g1 < g0 || (g1 == g0 && RxGap(price, R.zones[i]) < RxGap(price, R.zones[P.realign]))) P.realign = i;
+        }
+   P.target = P.realign;                                                                       // TS 174
+   if(P.target < 0) for(int q = 0; q < P.nWeak; q++) { int i = P.weak[q]; if(P.target < 0 || RxGap(price, R.zones[i]) < RxGap(price, R.zones[P.target])) P.target = i; }
+   P.hasTargetPx = P.target >= 0; P.targetPx = P.hasTargetPx ? R.zones[P.target].prox : 0;    // TS 175
+   P.hasTp = P.hasTargetPx; P.tp = P.targetPx; P.capped = false; P.extended = false; P.hasHtfZone = false;   // TS 176
+   if(hasCeil)                                                                                 // TS 177-179
+     {
+      P.tp = !P.hasTargetPx ? ceiling : (d > 0 ? MathMin(P.targetPx, ceiling) : MathMax(P.targetPx, ceiling));
+      P.hasTp = true; P.capped = P.tp == ceiling;
+     }
+   else if(Hon)                                                                                // TS 180-186
+     {
+      int c = -1, nh = ArraySize(R.hz);
+      for(int i = 0; i < nh; i++)
+        {
+         if(!(R.hz[i].dir == -d && !R.hz[i].removed && R.hz[i].legBar <= p.max_zone_age && (d > 0 ? RxLo(R.hz[i]) > price : RxHi(R.hz[i]) < price))) continue;
+         if(c < 0 || RxGap(price, R.hz[i]) < RxGap(price, R.hz[c])) c = i;
+        }
+      if(c >= 0)
+        {
+         P.htfZone = R.hz[c]; P.hasHtfZone = true;
+         if(!P.hasTargetPx || (d > 0 ? R.hz[c].prox > P.targetPx : R.hz[c].prox < P.targetPx)) { P.tp = R.hz[c].prox; P.hasTp = true; P.extended = true; }
+        }
+     }
+   int hostI = -1, nh2 = ArraySize(R.hz);                                                      // TS 187: same-side HTF host, newest
+   for(int i = 0; i < nh2; i++)
+     {
+      if(!(R.hz[i].dir == d && !R.hz[i].removed && RxLo(R.hz[i]) <= RxHi(cz) && RxHi(R.hz[i]) >= RxLo(cz))) continue;
+      if(hostI < 0 || R.hz[i].legBar < R.hz[hostI].legBar) hostI = i;
+     }
+   ArrStop st; ZeroMemory(st); RxZone hz0; if(hostI >= 0) hz0 = R.hz[hostI]; else hz0 = cz;
+   arrStopOf(R.S, d, R.arr[R.cur].valley, hostI >= 0 && Hon, hz0, spread, st);                // TS 188
+   P.dir = d; P.entry = cz.prox; P.stop = st.stop; P.buffer = st.buffer; P.atr = st.atr; P.basis = st.basis; P.valley = st.valley; P.hasHost = st.hasHost;
+   if(st.hasHost) P.host = st.host;
+   P.hasRR = arrRrOf(cz.prox, st.stop, P.hasTp, P.tp, P.rr);
+   P.hasCeiling = hasCeil; P.ceiling = ceiling; P.hasLineNow = hasLN; P.lineNow = lineNow; P.ceilingLine = cl;
+   R.plan = P; R.hasPlan = true;
+   if(P.realign >= 0 && R.ltf > 0)                                                             // TS 192-207
+     {
+      R.pending = true;
+      if(R.hasL && R.LS.n - 1 >= 20)
+        {
+         int nl = arrArrivals(R.LS, p, R.lz, R.larr);
+         RxZone rz = R.zones[P.realign];
+         datetime t0 = (datetime)(((long)cz.tLeg / 60) * 60);                                  // t16: compared to the minute
+         int c = -1;
+         for(int i = 0; i < nl; i++)
+           {
+            RxZone a = R.larr[i].zone;
+            if(a.dir == -d && !a.removed && RxLo(a) <= RxHi(rz) && RxHi(a) >= RxLo(rz) && (datetime)(((long)a.tLeg / 60) * 60) >= t0) { c = i; break; }
+           }
+         if(c >= 0)
+           {
+            ZvPivot ap[]; int np = zvPivots(R.S, MathMin(RX_LOOK, R.S.n - 1 - RX_SWING), ap);
+            int want = d < 0 ? 1 : -1, last = -1;
+            for(int q = 0; q < np; q++) if(ap[q].t == want) last = q;
+            ArrStop cs; ZeroMemory(cs); arrStopOf(R.LS, -d, R.larr[c].valley, true, rz, spread, cs);
+            RxConfirm K; ZeroMemory(K);
+            K.zone = R.larr[c].zone; K.arr = c; K.hasTarget = last >= 0; K.target = last >= 0 ? ap[last].p : 0; K.inArea = RxGap(price, rz) == 0;
+            K.entry = K.zone.prox; K.stop = cs.stop; K.buffer = cs.buffer; K.atr = cs.atr; K.basis = cs.basis;
+            K.hasRR = arrRrOf(K.zone.prox, cs.stop, K.hasTarget, K.target, K.rr);
+            R.conf = K; R.hasConfirm = true; R.pending = false;
+           }
+        }
+     }
+  }
+
+// ---- terminal loader (not in the TS: the bot gets its bars from the scanners' shards) ----
+ENUM_TIMEFRAMES RxTfEnum(int m)
+  {
+   if(m == 1) return PERIOD_M1; if(m == 5) return PERIOD_M5; if(m == 15) return PERIOD_M15; if(m == 30) return PERIOD_M30; if(m == 60) return PERIOD_H1;
+   if(m == 240) return PERIOD_H4; if(m == 1440) return PERIOD_D1; if(m == 10080) return PERIOD_W1; if(m == 43200 || m == RX_Q) return PERIOD_MN1;
+   return PERIOD_CURRENT;
+  }
+int RxTfMin(ENUM_TIMEFRAMES tf) { if(tf == PERIOD_CURRENT) tf = (ENUM_TIMEFRAMES)Period(); return PeriodSeconds(tf) / 60; }
+int RxMonthKey(datetime t) { MqlDateTime md; TimeToStruct(t, md); return md.year * 12 + md.mon - 1; }
+// closed bars of TF m (shift 1.. = the terminal's shift 1..), phantom = price (<= 0: the newest close). 3M = closed
+// quarters from closed MN1 bars (zonecore.toQuarters: a quarter without its last month is dropped, so is a partial first one).
+bool RxLoad(string sym, int m, double price, RxSer &S)
+  {
+   ENUM_TIMEFRAMES tf = RxTfEnum(m);
+   if(tf == PERIOD_CURRENT) return false;
+   int avail = iBars(sym, tf) - 1;
+   if(avail < 12) return false;
+   if(m != RX_Q)
+     {
+      int nc = MathMin(avail, RX_MAXB);
+      S.Alloc(nc, m);
+      for(int i = 1; i <= nc; i++)
+        {
+         S.O[i] = iOpen(sym, tf, i); S.H[i] = iHigh(sym, tf, i); S.L[i] = iLow(sym, tf, i); S.C[i] = iClose(sym, tf, i); S.T[i] = iTime(sym, tf, i);
+         if(S.T[i] == 0 || S.H[i] <= 0) return false;
+        }
+      S.Finish(price > 0 ? price : S.C[1]);
+      return true;
+     }
+   int nm = MathMin(avail, 1500);                                                              // oldest first: months nm .. 1
+   double qo[], qh[], ql[], qc[]; datetime qt[]; int qk[]; bool qLast[], qFirst[];
+   int nq = 0;
+   for(int i = nm; i >= 1; i--)
+     {
+      datetime t = iTime(sym, tf, i);
+      if(t == 0) return false;
+      int mk = RxMonthKey(t), key = mk / 3, mon = mk % 12;                                     // quarter key; mon 0 = Jan
+      if(nq == 0 || qk[nq - 1] != key)
+        {
+         nq++; ArrayResize(qo, nq); ArrayResize(qh, nq); ArrayResize(ql, nq); ArrayResize(qc, nq); ArrayResize(qt, nq); ArrayResize(qk, nq); ArrayResize(qLast, nq); ArrayResize(qFirst, nq);
+         qk[nq - 1] = key; qt[nq - 1] = t; qo[nq - 1] = iOpen(sym, tf, i); qh[nq - 1] = iHigh(sym, tf, i); ql[nq - 1] = iLow(sym, tf, i); qc[nq - 1] = iClose(sym, tf, i);
+         qLast[nq - 1] = false; qFirst[nq - 1] = false;
+        }
+      else { qh[nq - 1] = MathMax(qh[nq - 1], iHigh(sym, tf, i)); ql[nq - 1] = MathMin(ql[nq - 1], iLow(sym, tf, i)); qc[nq - 1] = iClose(sym, tf, i); }
+      if(mon % 3 == 2) qLast[nq - 1] = true;
+      if(mon % 3 == 0) qFirst[nq - 1] = true;
+     }
+   int keep[]; int nk = 0; ArrayResize(keep, nq);
+   for(int q = 0; q < nq; q++) { if(!qLast[q]) continue; if(q == 0 && !qFirst[q]) continue; keep[nk++] = q; }
+   if(nk < 12) return false;
+   int nc = MathMin(nk, RX_MAXB);
+   S.Alloc(nc, m);
+   for(int i = 1; i <= nc; i++) { int q = keep[nk - i]; S.O[i] = qo[q]; S.H[i] = qh[q]; S.L[i] = ql[q]; S.C[i] = qc[q]; S.T[i] = qt[q]; }
+   S.Finish(price > 0 ? price : S.C[1]);
+   return true;
+  }
+// one TF's full reading from the terminal: tf / its HTF / its confirmation TF (RxHigherTf / RxConfirmTf), live price
+bool RxRead(string sym, int m, RxParams &p, double price, double spread, RxReading &R)
+  {
+   R.tf = m; R.htf = RxHigherTf(m); R.ltf = RxConfirmTf(m); R.hasH = false; R.hasL = false;
+   if(!RxLoad(sym, m, 0, R.S)) return false;
+   if(R.htf > 0) R.hasH = RxLoad(sym, R.htf, price, R.H);
+   if(R.ltf > 0) R.hasL = RxLoad(sym, R.ltf, 0, R.LS);
+   arrArrivalTf(R, price, p, spread);
+   return true;
+  }
+// ==== RFX_ARRIVAL_ENGINE END ====
 
 #endif // RFX_ZONECORE_MQH
