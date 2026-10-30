@@ -47,7 +47,7 @@ import oanda as O  # noqa: E402
 SYMS: Dict[str, str] = {
     'XAUUSD': 'XAU_USD', 'AUDUSD': 'AUD_USD', 'EURUSD': 'EUR_USD', 'GBPUSD': 'GBP_USD', 'GBPJPY': 'GBP_JPY',
     'USDJPY': 'USD_JPY', 'NZDUSD': 'NZD_USD', 'USDCAD': 'USD_CAD', 'XAGUSD': 'XAG_USD', 'US30': 'US30_USD',
-    'NAS100': 'NAS100_USD',
+    'NAS100': 'NAS100_USD', 'SPOTCRUDE': 'WTICO_USD',
 }
 # TF -> (fixed start date, or None) / look-back days
 PLAN: Dict[str, Tuple[Optional[dt.datetime], Optional[int]]] = {
