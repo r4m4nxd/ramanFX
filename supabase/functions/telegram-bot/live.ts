@@ -97,7 +97,7 @@ export function splitPartial(daily: ZBar[], nowMs: number): { closed: ZBar[]; pa
 }
 
 // ---- sources -------------------------------------------------------------------------------------------------------
-interface Opts { fetch?: Fetch; now?: () => number; maxPerMin?: number; host?: string }
+interface Opts { fetch?: Fetch; now?: () => number; maxPerMin?: number; host?: string; retryMs?: number }
 class Limiter {
   private t: number[] = [];
   constructor(private max: number, private now: () => number) {}
@@ -124,12 +124,20 @@ async function getJson(f: Fetch, url: string, headers: Record<string, string>): 
 }
 
 export function oandaSource(token: string, o: Opts = {}): (oanda: string) => Promise<LiveFx | null> {
-  const f = o.fetch ?? fetch, now = o.now ?? Date.now, host = o.host ?? 'api-fxpractice.oanda.com';
+  const f = o.fetch ?? fetch, now = o.now ?? Date.now, host = o.host ?? 'api-fxpractice.oanda.com', retryMs = o.retryMs ?? 1200;
   const auth = { Authorization: `Bearer ${token}` };
   return cached(TTL_MS, now, new Limiter(o.maxPerMin ?? 40, now), async (name: string) => {
     if (!/^[A-Z0-9]{2,12}_[A-Z0-9]{2,12}$/.test(name)) return null;
-    const res = await Promise.all(FX_TFS.map(tf => getJson(f, `https://${host}/v3/instruments/${name}/candles?granularity=${GRAN[tf]}&price=B&count=${COUNT[tf]}`
-      + '&alignmentTimezone=America%2FNew_York&dailyAlignment=17&weeklyAlignment=Friday', auth)));
+    // OANDA practice answers a valid token with a sporadic 401 'Insufficient authorization' (Oct 2026): one retry
+    // (retryMs later) before the request counts as failed (-> the published data)
+    const get = async (url: string) => {
+      const r = await getJson(f, url, auth);
+      if (r.status !== 401) return r;
+      if (retryMs > 0) await new Promise(res => setTimeout(res, retryMs));
+      return getJson(f, url, auth);
+    };
+    const res = await Promise.all(FX_TFS.map(tf => get(`https://${host}/v3/instruments/${name}/candles?granularity=${GRAN[tf]}&price=B&count=${COUNT[tf]}`
+      + '&alignmentTimezone=America%2FNew_York&dailyAlignment=17&weeklyAlignment=Friday')));
     if (res.some((r, i) => !r.js && FX_TFS[i] !== 'M15')) return null;   // 15m is optional (only its own view needs it)
     const closed: Record<string, ZBar[]> = {}, forming: Record<string, ZBar | null> = {};
     FX_TFS.forEach((tf, i) => { const p = parseOanda(res[i].js ?? {}, tf); closed[tf] = p.closed; forming[tf] = p.forming; });

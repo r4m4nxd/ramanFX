@@ -16,7 +16,7 @@ const i = process.argv.indexOf('--out');
 const OUT = resolve(i > 0 ? process.argv[i + 1] : '/tmp/claude-0/-home-user/3ca4625b-e0ba-5998-9044-928583dca530/scratchpad/arrival_build');
 mkdirSync(OUT, { recursive: true });
 const cb = (b: ZBar[]): Bar[] => b.map(r => ({ t: r.d, o: r.o, h: r.h, l: r.l, c: r.c }));
-for (const name of ['dem2', 'ceiling', 'supply', 'confirm']) {
+for (const name of ['dem2', 'ceiling', 'supply', 'confirm', 'nested']) {
   const s = SCEN[name];
   const bars: Record<string, Bar[]> = { [s.tf]: cb(s.bars) };
   if (s.htfTf && s.htf) bars[s.htfTf] = cb(s.htf);
@@ -27,7 +27,7 @@ for (const name of ['dem2', 'ceiling', 'supply', 'confirm']) {
   const htf = { [s.tf]: s.htfTf ?? null, ...(s.ltfTf ? { [s.ltfTf]: s.tf } : {}) };
   const tfs = [s.tf, ...(s.ltfTf ? [s.ltfTf] : [])];
   for (const layout of ['single'] as const) {
-    const panels = buildPanels(tfs.slice(0, 1), bars, zones, s.price, 2, null, layout, t => t, { forming, htf, market: s.market })
+    const panels = buildPanels(tfs.slice(0, 1), bars, zones, s.price, 2, null, layout, t => t, { forming, htf, market: s.market, spread: s.spread ?? 0 })
       .map(p => ({ ...p, zones: p.zones.map(z => ({ ...z, k0: baseIndex(z.t0, p.bars), ...(z.t1 ? { k1: baseIndex(z.t1, p.bars) } : {}) })) }));
     const model = { sym: `DEMO ${name}`, title: `DEMO · ${name} (hand-built bars)`, digits: 2, price: s.price, layout, panels,
       verdict: chartVerdict(panels, zones, s.price, 2, s.market, null), arrival: chartArrival(panels, 2, s.market, null) };

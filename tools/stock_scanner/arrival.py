@@ -17,9 +17,16 @@ Per timeframe, on CLOSED bars (zones.Series shifts: 0 = phantom bar, 1 = newest 
            lineNow when beyond price; weak = the TF's not-removed opposite zones not wholly on the arrival's side of price
            (Raja: after a supply arrival no limit buys on that TF); realign = the weak zone nearest lineNow; target =
            realign, else the weak zone nearest price; tp = min / max(target, ceiling) (capped), or without a ceiling the
-           nearest opposite HTF zone wholly beyond price when further (extended); entry = proximal, stop = distal.
+           nearest opposite HTF zone wholly beyond price when further (extended); entry = proximal, stop = STOP RULE,
+           rr = (tp - entry) / (entry - stop) (None when <= 0 or no tp).
+  STOP     (owner, Oct 2026; arrival.ts header) buffer = max(0.1 x ATR14 of the entry TF at its newest closed bar, the
+           typical spread in price units: FX the instrument's spread, stocks 5 bps of the price); valley = the extreme
+           wick (demand low / supply high) of the leg-out candle, its base and the 2 candles before the base (shifts
+           leg_bar .. leg_bar + base_n + 2); host = the newest not-removed HIGHER-TF zone of the same side overlapping
+           the entry zone (plan: the HTF zones; confirmation: the realignment zone). stop = host.dist -/+ 2 buffers
+           (basis 'htf') unless the valley stop (valley -/+ 1 buffer, basis 'valley') is further.
   CONFIRM  on the LTF (CONFIRM_TF): an LTF arrival of the other side, not removed, overlapping the realign zone, with
-           its leg-out at / after the TF arrival's; entry its proximal, stop its distal, target = the TF's newest real
+           its leg-out at / after the TF arrival's; entry its proximal, stop = STOP RULE (host = the realign zone), target = the TF's newest real
            pivot on the arrival's side (supply arrival: the last real peak's high); pending = a realign zone waits.
 Alert-side extras (not in arrival.ts, never change the parity outputs): Arrival.known_bar (the bar on which the
 arrival became true: the alerts send only new ones) and Arrival.date.
@@ -39,6 +46,9 @@ FX_P = {**Z.RAJA, 'base_strict': True, 'emo_touch': True}           # zonecore.t
 NEW_BARS = {'M15': 2, 'H1': 2}   # alerts: an arrival is new when it became true on the newest closed bar (the 15-min /
                                  # 1-hour checks: the newest 2, a skipped run is caught up)
 INSIDE_NEAR = 0.5                # realign job: an area counts as "price inside" up to 50% of its height beyond it
+SL_ATR_FRAC = 0.1              # stop rule (arrival.ts SL): buffer = max(0.1 x ATR14 entry TF, spread)
+SL_HTF_BUFFERS = 2             # host stop = 2 buffers beyond the HTF zone's distal
+STOCK_SPREAD_BPS = 5.0         # a stock's typical spread (bps of the price)
 AS_OF_BARS = ZV.ZV['lookback'] + 60   # bars kept before the leg-out on real TFs (zv_lines reads the newest 200 + 2)
 
 
@@ -55,6 +65,7 @@ class Arrival:
     cross_bar: int
     cross_px: float
     removed: List[Z.Zone]
+    valley: float = 0.0           # stop rule: the base valley's low (demand) / peak's high (supply)
     t_leg: str = ''               # S.T[leg_bar]
     known_bar: int = 0            # alert extra: the shift on which the arrival became true
     date: str = ''                # alert extra: S.T[known_bar]
@@ -85,6 +96,12 @@ class Plan:
     tp: Optional[float] = None
     capped: bool = False
     extended: bool = False
+    buffer: float = 0.0
+    atr: float = 0.0
+    basis: str = 'valley'          # 'htf' | 'valley'
+    valley: float = 0.0
+    host: Optional[Z.Zone] = None  # the same-side HTF zone the entry zone sits in
+    rr: Optional[float] = None
 
 
 @dataclass
@@ -93,6 +110,14 @@ class Confirm:
     arrival: Arrival
     target: Optional[float]
     in_area: bool
+    stop: float = 0.0
+    buffer: float = 0.0
+    atr: float = 0.0
+    basis: str = 'valley'
+    rr: Optional[float] = None
+
+    @property
+    def entry(self) -> float: return self.arrival.zone.prox
 
     @property
     def zone(self) -> Z.Zone: return self.arrival.zone
@@ -123,6 +148,32 @@ def gap(v: float, z) -> float:
 
 def t16(t: str) -> str:
     return t[:16] if len(t) >= 16 else f'{t[:10]}T00:00'
+
+
+def stock_spread(price: float) -> float:
+    return price * STOCK_SPREAD_BPS / 1e4 if price and price > 0 else 0.0
+
+
+@dataclass
+class Stop:
+    stop: float
+    buffer: float
+    atr: float
+    basis: str
+    valley: float
+    host: Optional[object]
+
+
+def stop_of(S: Z.Series, d: int, valley: float, host_dist: Optional[float], spread: float = 0.0, host=None) -> Stop:
+    """arrival.ts stopOf: the stop rule for a zone of dir d on the entry TF's series S."""
+    atr = S.atr(1)
+    buf = max(SL_ATR_FRAC * atr, spread if spread and spread > 0 else 0.0)
+    vs = valley - d * buf
+    if host_dist is not None:
+        hs = host_dist - d * SL_HTF_BUFFERS * buf
+        if (hs <= vs) if d > 0 else (hs >= vs):
+            return Stop(hs, buf, atr, 'htf', valley, host)
+    return Stop(vs, buf, atr, 'valley', valley, host)
 
 
 def closed_series(S: Z.Series, k: int, tf: Optional[str] = None, keep: Optional[int] = None) -> Z.Series:
@@ -168,7 +219,9 @@ def find_arrivals(S: Z.Series, tf: str, p=FX_P, zones: Optional[List[Z.Zone]] = 
             continue
         line = ZV.ZvLine(t.dir, t.a + L, t.b + L, t.pa, t.pb, t.cuts)
         known = min(cross, max(y.removed_bar for y in rem), z.sa_bar)
-        out.append(Arrival(tf, z, line, legs, cross, t.at(cross - L), rem, t_leg=S.T[L], known_bar=known, date=S.T[known]))
+        j1 = min(L + z.base_n + ZV.ZV['swing'], S.n - 1)
+        valley = min(S.L[j] for j in range(L, j1 + 1)) if d > 0 else max(S.H[j] for j in range(L, j1 + 1))
+        out.append(Arrival(tf, z, line, legs, cross, t.at(cross - L), rem, valley=valley, t_leg=S.T[L], known_bar=known, date=S.T[known]))
     out.sort(key=lambda a: a.zone.leg_bar)
     return zones, out
 
@@ -176,9 +229,10 @@ def find_arrivals(S: Z.Series, tf: str, p=FX_P, zones: Optional[List[Z.Zone]] = 
 def arrival_tf(S: Z.Series, tf: str, price: float, p=FX_P, htf_S: Optional[Z.Series] = None,
                ltf_S: Optional[Z.Series] = None, htf: Optional[str] = '', ltf: Optional[str] = '',
                zones: Optional[List[Z.Zone]] = None, htf_zones: Optional[List[Z.Zone]] = None,
-               ltf_zones: Optional[List[Z.Zone]] = None) -> ArrivalTf:
+               ltf_zones: Optional[List[Z.Zone]] = None, spread: float = 0.0) -> ArrivalTf:
     """arrivalTf: the arrival reading of one TF. S / htf_S / ltf_S = series of CLOSED bars (htf_S: phantom = the live
-    price, as the TS builds it; S / ltf_S: any phantom). htf / ltf default to HIGHER_TF / CONFIRM_TF."""
+    price, as the TS builds it; S / ltf_S: any phantom). htf / ltf default to HIGHER_TF / CONFIRM_TF. spread = the
+    typical spread in price units (the stop rule's buffer floor)."""
     htf = HIGHER_TF.get(tf) if htf == '' else htf
     ltf = CONFIRM_TF.get(tf) if ltf == '' else ltf
     res = ArrivalTf(tf, htf, ltf, S)
@@ -221,8 +275,11 @@ def arrival_tf(S: Z.Series, tf: str, price: float, p=FX_P, htf_S: Optional[Z.Ser
             htf_zone = cand
             if target_px is None or (cand.prox > target_px if d > 0 else cand.prox < target_px):
                 tp, extended = cand.prox, True
-    res.plan = Plan(d, cur.zone.prox, cur.zone.dist, ceiling, line_now, ceiling_line, weak, realign, target, target_px,
-                    htf_zone, tp, capped, extended)
+    hosts = [z for z in hz if z.dir == d and not z.removed and lo(z) <= hi(cur.zone) and hi(z) >= lo(cur.zone)]
+    host = min(hosts, key=lambda z: z.leg_bar) if hosts else None
+    st = stop_of(S, d, cur.valley, host.dist if host is not None else None, spread, host)
+    res.plan = Plan(d, cur.zone.prox, st.stop, ceiling, line_now, ceiling_line, weak, realign, target, target_px,
+                    htf_zone, tp, capped, extended, st.buffer, st.atr, st.basis, st.valley, host, rr(cur.zone.prox, st.stop, tp))
     piv = [q for q in ZV.zv_pivots(S, min(ZV.ZV['lookback'], S.n - 1 - ZV.ZV['swing'])) if q.t == (1 if d < 0 else -1)]
     res.swing = piv[-1].p if piv else None
     if realign is not None and ltf:
@@ -230,7 +287,9 @@ def arrival_tf(S: Z.Series, tf: str, price: float, p=FX_P, htf_S: Optional[Z.Ser
         if ltf_S is not None and ltf_S.n - 1 >= 20:
             c = confirm_in(ltf_S, ltf, p, -d, lo(realign), hi(realign), cur.t_leg, ltf_zones)
             if c is not None:
-                res.confirm = Confirm(ltf, c, res.swing, gap(price, realign) == 0)
+                cs = stop_of(ltf_S, -d, c.valley, realign.dist, spread, realign)
+                res.confirm = Confirm(ltf, c, res.swing, gap(price, realign) == 0, cs.stop, cs.buffer, cs.atr, cs.basis,
+                                      rr(c.zone.prox, cs.stop, res.swing))
                 res.pending = False
     return res
 

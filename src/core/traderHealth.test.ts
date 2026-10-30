@@ -3,7 +3,7 @@
 // holidays, grace windows, dedupe, quiet hours, the daily cap and the one '✅ resolved'.
 import { describe, expect, it } from 'vitest';
 import {
-  appChecks, evaluate, gather, gatherApp, gatherFiles, pendingSince, healthSummary, healthText, needFiles, nyseHolidays, parseExpiry, parseRuns, plan, snapOf, stateOf, stockDue, tickKey,
+  appChecks, evaluate, gather, probeOanda, OANDA_KEY_GRACE, gatherApp, gatherFiles, pendingSince, healthSummary, healthText, needFiles, nyseHolidays, parseExpiry, parseRuns, plan, snapOf, stateOf, stockDue, tickKey,
   APP_URL, DAY, HOUR, MIN, PER_DAY, type AppSnap, type Check, type KeyState, type Open, type Run, type Snapshot, type WfFile,
 } from '../../supabase/functions/trader-coach/health';
 import { handle, type Ctx } from '../../supabase/functions/telegram-bot/logic';
@@ -15,6 +15,7 @@ const R = (iso: string, o: Partial<Run> = {}): Run => ({ id: ++seq, at: at(iso),
 const KEYS_OK: Record<'github' | 'oanda' | 'alpaca' | 'telegram', KeyState> = { github: 'ok', oanda: 'ok', alpaca: 'ok', telegram: 'ok' };
 const S = (nowIso: string, runs: Partial<Record<WfFile, Run[]>>, extra: Partial<Snapshot> = {}): Snapshot => ({ now: at(nowIso), runs, keys: KEYS_OK, ghExpiry: null, ...extra });
 const get = (cs: Check[], id: string) => cs.find(c => c.id === id)!;
+const noSleep = async () => {};
 const status = (s: Snapshot, id: string) => get(evaluate(s), id).status;
 
 describe('health: FX scan', () => {
@@ -274,11 +275,11 @@ describe('health: probes and /health', () => {
     expect(snap.last['fx-scan.yml']).toBe(at('2026-10-29T15:10:00Z'));
   });
   it('rejected keys -> bad; a rate limit or an outage is not a rejection; missing secrets -> absent', async () => {
-    const s = await gather(TOKENS, fake({ 'api.github.com': 401, 'api-fxpractice.oanda.com': 401, 'data.alpaca.markets': 403, 'api.telegram.org': 404 }).f, at('2026-10-29T15:40:00Z'));
+    const s = await gather(TOKENS, fake({ 'api.github.com': 401, 'api-fxpractice.oanda.com': 401, 'data.alpaca.markets': 403, 'api.telegram.org': 404 }).f, at('2026-10-29T15:40:00Z'), noSleep);
     expect(s.keys).toEqual({ github: 'bad', oanda: 'bad', alpaca: 'bad', telegram: 'bad' });
     expect(s.runs).toEqual({});
     expect(s.ghExpiry).toBeUndefined();
-    const down = await gather(TOKENS, fake({ 'api.github.com': 502, 'api-fxpractice.oanda.com': 503 }).f, at('2026-10-29T15:40:00Z'));
+    const down = await gather(TOKENS, fake({ 'api.github.com': 502, 'api-fxpractice.oanda.com': 503 }).f, at('2026-10-29T15:40:00Z'), noSleep);
     expect(down.keys.github).toBe('error');
     expect(down.keys.oanda).toBe('error');
     const limited = await gather(TOKENS, fake({ 'api.github.com': 403 }, { 'x-ratelimit-remaining': '0' }).f, at('2026-10-29T15:40:00Z'));
@@ -287,6 +288,44 @@ describe('health: probes and /health', () => {
     expect(none.keys).toEqual({ github: 'absent', oanda: 'absent', alpaca: 'absent', telegram: 'absent' });
     const thrown = await gather(TOKENS, async () => { throw new Error('net'); }, at('2026-10-29T15:40:00Z'));
     expect(thrown.keys).toEqual({ github: 'error', oanda: 'error', alpaca: 'error', telegram: 'error' });
+  });
+  it('OANDA: a 401 is retried twice (price=B, then M; 2.5 s apart) and is bad only when all three are rejected', async () => {
+    const waits: number[] = [];
+    const sleep = async (ms: number) => { waits.push(ms); };
+    const env = { oanda: 'tok', oandaLive: false };
+    const seq = (codes: number[]) => {
+      const urls: string[] = [];
+      const f = async (u: string) => { urls.push(u); const c = codes[urls.length - 1] ?? 200; return new Response(c === 200 ? '{"candles":[]}' : '{"errorMessage":"Insufficient authorization to perform request."}', { status: c }); };
+      return { f, urls };
+    };
+    let q = seq([401, 200]);
+    expect(await probeOanda(q.f, env, sleep)).toBe('ok');
+    expect(q.urls.map(u => u.slice(-7))).toEqual(['price=M', 'price=B']);
+    expect(waits).toEqual([2500]);
+    q = seq([401, 401, 200]);
+    expect(await probeOanda(q.f, env, sleep)).toBe('ok');
+    q = seq([401, 401, 401]);
+    expect(await probeOanda(q.f, env, sleep)).toBe('bad');
+    expect(q.urls.map(u => u.slice(-7))).toEqual(['price=M', 'price=B', 'price=M']);
+    q = seq([403, 503, 401]);
+    expect(await probeOanda(q.f, env, sleep)).toBe('error');   // not every try rejected: unknown, never an alert
+    q = seq([200]);
+    expect(await probeOanda(q.f, env, sleep)).toBe('ok');
+    expect(q.urls).toHaveLength(1);
+  });
+  it('OANDA key: three bad checks in a row before a message (the other keys: two)', () => {
+    const now = at('2026-10-29T15:40:00Z');
+    const cs = evaluate(S('2026-10-29T15:40:00Z', {}, { keys: { github: 'bad', oanda: 'bad', alpaca: 'ok', telegram: 'ok' } }));
+    const o = get(cs, 'key:oanda'), g = get(cs, 'key:github');
+    expect(o.graceMs).toBe(OANDA_KEY_GRACE);
+    expect(g.graceMs).toBe(25 * MIN);
+    const OK = (id: string): Check => ({ id, label: id, status: 'ok', text: '' });
+    const base = { now, lastAlert: {}, sentToday: 0, quiet: false };
+    const open = (min: number) => [{ id: 'key:oanda', since: now - min * MIN, alerted: false }];
+    expect(plan({ ...base, checks: [o], open: [] }).alert).toEqual([]);           // 1st bad check: opened
+    expect(plan({ ...base, checks: [o], open: open(30) }).alert).toEqual([]);     // 2nd
+    expect(plan({ ...base, checks: [o], open: open(60) }).alert).toEqual(['key:oanda']);   // 3rd: alert
+    expect(plan({ ...base, checks: [OK('key:oanda')], open: open(30) })).toMatchObject({ close: ['key:oanda'], text: null });   // a good check resets
   });
   it('published files only when needed', async () => {
     const { f, calls } = fake({});

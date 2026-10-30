@@ -63,7 +63,7 @@ describe('live.ts', () => {
       if (fail || (fail15 && u.includes('granularity=M15&'))) return new Response('no', { status: 401 });
       return new Response(JSON.stringify({ candles: [...Array.from({ length: 80 }, (_, i) => candle(i)), candle(80, false)] }));
     };
-    const src = oandaSource('tok', { fetch: f, now: () => t });
+    const src = oandaSource('tok', { fetch: f, now: () => t, retryMs: 0 });
     const a = await src('EUR_USD');
     expect(a?.price).toBe(1.08);
     expect(urls).toHaveLength(6);
@@ -79,6 +79,23 @@ describe('live.ts', () => {
     t += 31_000; fail = true;
     expect(await src('EUR_USD')).toBeNull();          // expired + refused: null (the bot falls back to the scan)
     expect(await src('bad name')).toBeNull();
+  });
+  it('oandaSource: a sporadic 401 is retried once before falling back', async () => {
+    const urls: string[] = [];
+    const seen = new Set<string>();
+    const candle = (i: number, complete = true) => ({ complete, time: new Date(Date.parse('2026-10-01T00:00:00Z') + i * 3600000).toISOString(), bid: { o: '1', h: '1.1', l: '0.9', c: String(1 + i / 1000) } });
+    let always = false;
+    const f = async (u: string) => {
+      urls.push(u);
+      if (always || !seen.has(u)) { seen.add(u); return new Response('{"errorMessage":"Insufficient authorization to perform request."}', { status: 401 }); }
+      return new Response(JSON.stringify({ candles: [...Array.from({ length: 80 }, (_, i) => candle(i)), candle(80, false)] }));
+    };
+    const a = await oandaSource('tok', { fetch: f, now: () => AT, retryMs: 1 })('EUR_USD');
+    expect(a?.price).toBe(1.08);                      // every TF: 401 then 200
+    expect(urls).toHaveLength(12);
+    always = true; urls.length = 0;
+    expect(await oandaSource('tok', { fetch: f, now: () => AT, retryMs: 0 })('GBP_USD')).toBeNull();
+    expect(urls).toHaveLength(12);                    // one retry per TF, then the fallback
   });
   it('alpacaSource: SIP daily (IEX when refused), IEX 1-hour + latest trade, today bar is not closed', async () => {
     const urls: string[] = [];

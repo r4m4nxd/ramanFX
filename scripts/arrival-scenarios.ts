@@ -6,6 +6,7 @@ import type { ZBar } from '../supabase/functions/telegram-bot/zonecore.ts';
 export interface Scenario {
   about: string; market: 'fx' | 'stock'; tf: string; price: number; bars: ZBar[];
   htfTf?: string | null; htf?: ZBar[] | null; ltfTf?: string | null; ltf?: ZBar[] | null;
+  spread?: number;   // the instrument's typical spread (price units): the stop rule's buffer floor
 }
 
 /** A downtrend: an RBD supply at the top (base at 132), real peaks P1 128 / P2 122 (an RBD supply base at P2), DBD
@@ -58,5 +59,7 @@ export const SCEN: Record<string, Scenario> = {
   extend: { about: 'demand arrival with the W1 down line crossed: TP extends to the W1 supply', market: 'fx', tf: 'D1', price: last(dem2.bars), bars: dem2.bars, htfTf: 'W1', htf: (() => { const t = new Tape(150, '2023-09-01', 7 * 1440); t.move(8, 140).move(5, 135).base(2, 2).leg(126).move(6, 112).move(8, last(dem2.bars)); return t.bars; })() },
   supply: { about: 'supply arrival at the top of an uptrend: same-TF demands weak, realignment = the demand nearest the W1 up line', market: 'fx', tf: 'D1', price: last(sup), bars: sup, htfTf: 'W1', htf: mirror(htfDown(200 - last(sup))) },
   confirm: { about: 'supply arrival, price inside the realignment demand, a 1H demand arrival there = the confirmed buy', market: 'fx', tf: 'D1', price: last(ltf), bars: supC, htfTf: 'W1', htf: mirror(htfDown(200 - last(supC), 11)), ltfTf: 'H1', ltf },
+  nested: { about: 'stop rule: the D1 arrival demand sits inside a W1 demand - stop 2 buffers below the W1 distal (buffer = the spread floor > 0.1 ATR)', market: 'fx', tf: 'D1', price: last(dem2.bars), bars: dem2.bars, htfTf: 'W1', spread: 0.4,
+    htf: (() => { const t = new Tape(112, '2023-09-01', 7 * 1440); t.move(8, 104).move(6, 97).base(2, 3).leg(105).move(4, 101).move(6, last(dem2.bars)); return t.bars; })() },
   pending: { about: 'supply arrival, price inside the realignment demand, no 1H arrival yet = pending', market: 'fx', tf: 'D1', price: last(supC), bars: supC, htfTf: 'W1', htf: mirror(htfDown(200 - last(supC), 11)), ltfTf: 'H1', ltf: ltf.slice(0, -8) },
 };

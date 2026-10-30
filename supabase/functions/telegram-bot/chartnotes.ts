@@ -191,7 +191,8 @@ export const ARRIVAL_MAX = 112;
  *  'D1 arrival demand 96.74–96.02 (crossed D1 down line, removed 2 supplies: strong) · target D1 supply 116.00'
  *  'D1 arrival demand 96.74–96.02 · W1 down line intact at 121.22 → TP below it · sell only after 1H arrival'
  *  'W1 arrival supply 86.16–87.51 · realignment 79.82 (near MN up line) · buy only after 4H arrival'
- *  'D1 arrival supply 103.26–103.98 · 1H arrival demand in realignment: buy 77.66, stop 77.60, target 103.98'.
+ *  'D1 arrival supply 103.26–103.98 · 1H arrival demand in realignment: buy 77.66, stop 77.23, target 103.98'.
+ *  The stop (and R:R) follow arrival.ts's stop rule: 'stop 95.75 (R:R 19.5)'.
  *  Parts dropped (least important first) until it fits ARRIVAL_MAX characters. */
 export function arrivalLine(a: ArrivalTf, digits: number, market: 'fx' | 'stock'): string | null {
   const cur = a.current, p = a.plan;
@@ -208,10 +209,11 @@ export function arrivalLine(a: ArrivalTf, digits: number, market: 'fx' | 'stock'
     : p.extended ? `${H} line crossed → TP ${H} ${opp} ${fmt(p.tp)}` : '';
   const target = p.capped || p.extended ? '' : p.target ? `target ${T} ${opp} ${fmt(p.target.prox)}` : `no ${T} ${opp} ${dem ? 'above' : 'below'}`;
   const c = a.confirm;
-  const conf = c ? `${name(c.tf)} arrival ${c.zone.dir > 0 ? 'demand' : 'supply'} in realignment: ${c.zone.dir > 0 ? 'buy' : 'sell'} ${fmt(c.zone.prox)}, stop ${fmt(c.zone.dist)}${c.target != null ? `, target ${fmt(c.target)}` : ''}`
+  const conf = c ? `${name(c.tf)} arrival ${c.zone.dir > 0 ? 'demand' : 'supply'} in realignment: ${c.zone.dir > 0 ? 'buy' : 'sell'} ${fmt(c.zone.prox)}, stop ${fmt(c.stop)}${c.target != null ? `, target ${fmt(c.target)}` : ''}`
     : a.pending ? `${dem ? 'sell' : 'buy'} only after ${L} arrival` : '';
+  const rr = c ? c.rr : p.rr, stop = c ? (rr != null ? `R:R ${rr.toFixed(1)}` : '') : `stop ${fmt(p.stop)}${rr != null ? ` (R:R ${rr.toFixed(1)})` : ''}`;
   const parts: { t: string; pri: number }[] = [
-    { t: head, pri: 9 }, { t: why, pri: 4 }, { t: weak, pri: 3 }, { t: target, pri: 6 }, { t: tp, pri: 7 }, { t: realign, pri: 5 }, { t: conf, pri: c ? 8 : 6 },
+    { t: head, pri: 9 }, { t: why, pri: 4 }, { t: stop, pri: c ? 2 : 5 }, { t: weak, pri: 3 }, { t: target, pri: 6 }, { t: tp, pri: 7 }, { t: realign, pri: 5 }, { t: conf, pri: c ? 8 : 6 },
   ].filter(q => q.t);
   const build = (ps: typeof parts) => ps.map((q, i) => (i === 0 ? q.t : q.t.startsWith('(') ? ` ${q.t}` : ` · ${q.t}`)).join('');
   let ps = parts;

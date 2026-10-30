@@ -10,7 +10,7 @@ import { newsButton, newsText, symbolNews, withLatest, withTopHeadlines, loadHea
 import { MAX_ALERTS, MAX_WATCH, parseDuration, parsePrice, parseQuiet, parseTap, type Alert, type Prefs, type PrefsStore } from './prefs.ts';
 import { aggregate, monthKey, quarterKey, tfLabel, weekKey, type ArrTp, type Band, type Bar, type ChartModel, type Panel, type TLine } from './chart.ts';
 import { FX_PARAMS, fxZonesOf, nextBusinessDay, RAJA, Series, stockZonesOf, tfZonesOf, type LiveZone, type ZBar } from './zonecore.ts';
-import { arrivalTf, CONFIRM_TF, HIGHER_TF, type ArrivalTf, type ArrZone } from './arrival.ts';
+import { arrivalTf, CONFIRM_TF, HIGHER_TF, stockSpread, type ArrivalTf, type ArrZone } from './arrival.ts';
 import { panelTrendlines, type PubLine, type TlSeries } from './zvTrend.ts';
 import { arrivalLine, atrPct, isWide, nestNote, refineOf, verdict } from './chartnotes.ts';
 import type { LiveFx, LiveSource, LiveStock } from './live.ts';
@@ -773,7 +773,7 @@ export const SHORT_HISTORY = 12;
 /** Trendline inputs of a chart: per TF whether its last bar is still forming (TFs absent = no lines), and the next
  *  higher TF whose lines each panel also draws (gold dots); pub = the scanner's published lines per TF ('tls'): passed
  *  through but not drawn (the chart draws the ZoneVision rule, zvTrend.ts, on the chart's own bars). */
-export interface TlSrc { forming: Record<string, boolean>; htf: Record<string, string | null>; pub?: Record<string, unknown>; market?: 'fx' | 'stock' }
+export interface TlSrc { forming: Record<string, boolean>; htf: Record<string, string | null>; pub?: Record<string, unknown>; market?: 'fx' | 'stock'; spread?: number }
 const pubLines = (v: unknown): PubLine[] | undefined => (Array.isArray(v) ? (v as J[]).filter(t => num(t?.p) != null && num(t?.s) != null && num(t?.n) != null && typeof t?.t === 'string')
   .map(t => ({ dir: t.dir > 0 ? 1 : -1, p: t.p, s: t.s, n: t.n, t: t.t, touches: num(t.touches) ?? 0, x: !!t.x })) : undefined);
 const FX_HTF: Record<string, string | null> = { M15: 'H1', H1: 'H4', H4: 'D1', D1: 'W1', W1: 'MN', MN: '3M' };
@@ -848,7 +848,9 @@ function arrivalReader(bars: Record<string, Bar[]>, price: number, tl?: TlSrc): 
       let r: ArrRead | null = null;
       try {
         const own = closed(ztf);
-        if (own) r = { a: arrivalTf(own, ztf, price, tl.market === 'fx' ? FX_PARAMS : RAJA, closed(HIGHER_TF[ztf] ?? null), closed(CONFIRM_TF[ztf] ?? null)), T: k => own[own.length - k]?.d ?? '', I: k => own.length - k };
+        // the stop rule's spread floor: FX = the shard's typical spread (spread_pips x pip), stocks = 5 bps of the price
+        const spread = tl.market === 'fx' ? tl.spread ?? 0 : stockSpread(price);
+        if (own) r = { a: arrivalTf(own, ztf, price, tl.market === 'fx' ? FX_PARAMS : RAJA, closed(HIGHER_TF[ztf] ?? null), closed(CONFIRM_TF[ztf] ?? null), HIGHER_TF[ztf] ?? null, CONFIRM_TF[ztf] ?? null, spread), T: k => own[own.length - k]?.d ?? '', I: k => own.length - k };
       } catch (e) { console.log(JSON.stringify({ ev: 'arrival_error', tf: ztf, err: String((e as Error)?.message ?? e).slice(0, 60) })); }
       memo.set(ztf, r);
     }
@@ -860,8 +862,8 @@ const zn = (z: ArrZone, tf: string): Zn => ({ tf, side: z.dir > 0 ? 'demand' : '
 /** Flag a panel's bands from its zone TF's arrival reading: the arrival zone (added when the scan's list lacks it), the
  *  weak zones, the realignment area (added when missing; tag 'confirm on 15m' / '15m arrival: buy') and, on the zone
  *  TF's own panel, the opposite zones its leg-out removed (faint, crossed out, box up to the removing candle).
- *  Returns the panel's TP line (own TF only). */
-function decorate(bands: ZoneBand[], tls: TLine[], r: ArrRead, ztf: string, tf: string, fmt: (v: number) => string, nAll: number, nShown: number): ArrTp | null {
+ *  Returns the panel's TP and SL lines (own TF only; SL = the stop rule: beyond the HTF host zone or the TF's valley). */
+function decorate(bands: ZoneBand[], tls: TLine[], r: ArrRead, ztf: string, tf: string, fmt: (v: number) => string, nAll: number, nShown: number): { tp: ArrTp | null; sl: ArrTp | null } | null {
   const a = r.a, cur = a.current!, plan = a.plan!;
   const find = (z: ArrZone) => bands.find(b => !b.light && !b.removed && sameArea(b, zn(z, ztf)));
   const upsert = (z: ArrZone, extra: Partial<ZoneBand>) => {
@@ -886,10 +888,12 @@ function decorate(bands: ZoneBand[], tls: TLine[], r: ArrRead, ztf: string, tf: 
     const at = (k: number) => ln.pa + sl * (k - ka), k1 = Math.max(-0.5, ka);
     tls.push({ tf: ztf, htf: false, dir: ln.dir, touches: 0, crossed: true, pts: [[k1, at(k1)], [kc + 0.5, at(kc + 0.5)]], kind: 'trend' });
   }
-  if (plan.tp == null) return null;
   const H = a.htf ? tfLabel(a.htf) : '';
-  const why = plan.capped ? ` · ${plan.dir > 0 ? 'below' : 'above'} ${H} line` : plan.extended ? ` · ${H} ${plan.dir > 0 ? 'supply' : 'demand'}` : '';
-  return { px: plan.tp, text: `TP ${fmt(plan.tp)}${why}` };
+  const dem = plan.dir > 0;
+  const slTp: ArrTp = { px: plan.stop, text: `SL ${fmt(plan.stop)} · ${dem ? 'below' : 'above'} ${plan.basis === 'htf' ? `${H} ${dem ? 'demand' : 'supply'}` : `${tfLabel(ztf)} ${dem ? 'valley' : 'peak'}`}` };
+  if (plan.tp == null) return { tp: null, sl: slTp };
+  const why = plan.capped ? ` · ${dem ? 'below' : 'above'} ${H} line` : plan.extended ? ` · ${H} ${dem ? 'supply' : 'demand'}` : '';
+  return { tp: { px: plan.tp, text: `TP ${fmt(plan.tp)}${why}${plan.rr != null ? ` · R:R ${plan.rr.toFixed(1)}` : ''}` }, sl: slTp };
 }
 
 /** Panels for the given timeframes: key zone per TF (nearest), the host of the next-lower key zone outlined, trade
@@ -925,8 +929,10 @@ export function buildPanels(tfs: string[], bars: Record<string, Bar[]>, zones: Z
     const mine = ser(tf), up = tl?.htf[tf], hs = up ? ser(up) : null;
     let tls: TLine[] = [];
     try { tls = mine ? panelTrendlines(mine, shown.length, price, hs, 2) : []; } catch (e) { console.log(JSON.stringify({ ev: 'tl_error', tf, err: String((e as Error)?.message ?? e).slice(0, 60) })); }
-    const tp = ar ? decorate(bands, tls, ar, ztf, tf, fmt, (bars[tf] ?? []).length, shown.length) : null;
-    return { tf, header, bars: shown, zones: bands, lines, tls, arr, tp, nestNote: ztf !== tf ? null : nestNote(key, zones),
+    const dz = ar ? decorate(bands, tls, ar, ztf, tf, fmt, (bars[tf] ?? []).length, shown.length) : null;
+    // the scanner's own trade lines win: the arrival SL chip only when the panel has no signal stop
+    const tp = dz?.tp ?? null, sl = dz && !(lines && typeof lines.stop === 'number') ? dz.sl : null;
+    return { tf, header, bars: shown, zones: bands, lines, tls, arr, tp, sl, nestNote: ztf !== tf ? null : nestNote(key, zones),
       note: ztf !== tf ? `no ${tfLabel(tf)} zones: ${tfLabel(ztf)} zones shown` : shown.length < SHORT_HISTORY ? `short history: ${shown.length} ${tfLabel(tf)} candle${shown.length === 1 ? '' : 's'}` : undefined };
   });
 }
@@ -1033,7 +1039,7 @@ export async function chartData(q: string, view: string, ctx: Ctx): Promise<Char
     const t = parseUtc(fx.h1_close_utc ?? fx.generated);
     const when = chartWhen('fx', ctx.now, { px: price.toFixed(digits), live: !!lv, scanAt: t, crypto: hit.row.cls === 'crypto' || hit.row.k === 'crypto' });
     return { market: 'fx', sym: hit.sym, view, v: lv ? liveVersion(lv) : String(fx.generated ?? '').replace(/[^0-9]/g, '').slice(0, 14), when, live: !!lv, note: liveNote(hit, ctx, lv),
-      model: withVerdict({ sym: hit.sym, digits, price, layout, title: `${hit.sym} · ${when}`, panels: withBaseX(withForming2(buildPanels(tfs, bars, zones, price, digits, sig, layout, t => t, { forming, htf: FX_HTF, pub: lv ? undefined : obj(d.tls), market: 'fx' }), forming), bars) }, zones, 'fx', sig) };
+      model: withVerdict({ sym: hit.sym, digits, price, layout, title: `${hit.sym} · ${when}`, panels: withBaseX(withForming2(buildPanels(tfs, bars, zones, price, digits, sig, layout, t => t, { forming, htf: FX_HTF, pub: lv ? undefined : obj(d.tls), market: 'fx', spread: (num(d.spread_pips) ?? 0) * (num(d.pip) ?? 0) }), forming), bars) }, zones, 'fx', sig) };
   }
   const [sh, st] = [obj(await ctx.load(`scanner/t/${hit.row.k}.json`)), obj(await ctx.load('scanner/latest.json'))];
   const d = obj(obj(sh.tickers)[hit.sym]);

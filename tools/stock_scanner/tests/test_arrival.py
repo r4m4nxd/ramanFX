@@ -171,7 +171,15 @@ class Plans(unittest.TestCase):
         self.assertGreater(pl.ceiling, r.S.C[1])
         self.assertEqual(pl.tp, min(pl.target_px, pl.ceiling) if pl.target_px is not None else pl.ceiling)
         self.assertEqual(pl.capped, pl.tp == pl.ceiling)
-        self.assertEqual((pl.entry, pl.stop), (r.current.zone.prox, r.current.zone.dist))
+        self.assertEqual(pl.entry, r.current.zone.prox)
+        # stop rule: never inside the valley stop; 'htf' = 2 buffers beyond a same-side W1 zone hosting the D1 demand
+        self.assertLessEqual(pl.stop, r.current.valley - pl.buffer + 1e-12)
+        self.assertAlmostEqual(pl.buffer, max(0.1 * pl.atr, 0.0))
+        if pl.basis == 'htf':
+            self.assertEqual(pl.host.dir, 1)
+            self.assertAlmostEqual(pl.stop, pl.host.dist - 2 * pl.buffer)
+        else:
+            self.assertAlmostEqual(pl.stop, r.current.valley - pl.buffer)
 
     def test_weak_zones_and_realign_nearest_the_htf_line(self):
         hb, _ = down_trend()
@@ -208,10 +216,27 @@ class Confirmation(unittest.TestCase):
         S = series(with_arrival(115, 0), 'H1')
         c = arr(S)[0]
         area = {'sym': 'XYZ', 'tf': 'D1', 'lo': 79.0, 'hi': 81.0, 'swing': 120.6, 'digits': 2, 'id': 'XYZ|D1:S:x'}
-        it = AA.confirm_item(area, c, 82.0)
-        self.assertEqual((it['entry'], it['stop'], it['target']), (round(c.zone.prox, 2), round(c.zone.dist, 2), 120.6))
-        self.assertAlmostEqual(it['rr'], round((120.6 - c.zone.prox) / (c.zone.prox - c.zone.dist), 1))
+        it = AA.confirm_item(area, c, 82.0)                              # no LTF series, no area distal: the valley
+        self.assertEqual((it['entry'], it['stop'], it['target']), (round(c.zone.prox, 2), round(c.valley, 2), 120.6))
+        self.assertAlmostEqual(it['rr'], round((120.6 - c.zone.prox) / (c.zone.prox - c.valley), 1))
         self.assertEqual(it['ltf'], 'H1')
+        # the stop rule: the H1 demand sits in the area (the D1 realignment demand, distal 79.0) -> 2 buffers below it
+        buf = max(0.1 * S.atr(1), 0.05)
+        it = AA.confirm_item({**area, 'dist': 79.0, 'spread': 0.05}, c, 82.0, S)
+        want = min(79.0 - 2 * buf, c.valley - buf)
+        self.assertEqual(it['stop'], round(want, 2))
+        self.assertEqual(it['sl_basis'], 'htf' if want == 79.0 - 2 * buf else 'valley')
+        it = AA.confirm_item({**area, 'dist': c.valley + 5, 'spread': 0.0}, c, 82.0, S)   # a host inside: the valley wins
+        self.assertEqual((it['stop'], it['sl_basis']), (round(c.valley - 0.1 * S.atr(1), 2), 'valley'))
+
+    def test_stop_rule_buffer_and_supply_mirror(self):
+        S = series(with_arrival(115, 0), 'H1')
+        st = A.stop_of(S, -1, 110.0, 111.0, spread=1.0)
+        self.assertEqual((st.buffer, st.basis, st.stop), (1.0, 'htf', 113.0))
+        st = A.stop_of(S, -1, 110.0, None)
+        self.assertEqual(st.basis, 'valley')
+        self.assertAlmostEqual(st.stop, 110.0 + 0.1 * S.atr(1))
+        self.assertAlmostEqual(A.stock_spread(200.0), 0.1)
 
 
 class SymbolPass(unittest.TestCase):
@@ -324,8 +349,12 @@ class Messages(unittest.TestCase):
     def test_arrival_card(self):
         it = {**item('arrival', 'EURUSD', digits=5), 'lo': 1.0812, 'hi': 1.083, 'price': 1.085, 'n_removed': 2,
               'target': 1.095, 'target_kind': 'ceiling', 'target_tf': 'D1', 'ceiling': 1.095, 'ceiling_tf': 'D1',
-              'area': {'tf': 'H4', 'dir': -1, 'lo': 1.1, 'hi': 1.102}}
+              'area': {'tf': 'H4', 'dir': -1, 'lo': 1.1, 'hi': 1.102}, 'entry': 1.083, 'stop': 1.0795, 'sl_basis': 'htf',
+              'sl_tf': 'D1', 'rr': 3.4}
         m = AA.messages([it], 'fx', NOW)[0]
+        self.assertIn('entry 1.08300 · stop 1.07950 (below the daily demand) · R:R 3.4', m)
+        m2 = AA.messages([{**it, 'sl_basis': 'valley', 'sl_tf': 'H4'}], 'fx', NOW)[0]
+        self.assertIn('stop 1.07950 (below the 4-hour valley)', m2)
         self.assertIn('⚡ <b>New arrival zone</b> · 2:00 PM', m)            # Calgary clock
         self.assertIn('4-hour arrival demand 1.08120–1.08300 · <b>strong</b>', m)
         self.assertIn('removed 2 supplies', m)
@@ -390,7 +419,7 @@ def line_js(t, S=None):
 def arrival_js(S, a):
     return {'zone': zone_js(S, a.zone), 'line': {**line_js(a.line), 'ta': S.T[a.line.a], 'tb': S.T[a.line.b]},
             'legs': a.legs, 'crossBar': a.cross_bar, 'crossPx': a.cross_px, 'removed': [zone_js(S, y) for y in a.removed],
-            'strong': a.strong}
+            'strong': a.strong, 'valley': a.valley}
 
 
 def case_js(c):
@@ -402,7 +431,7 @@ def case_js(c):
     H = A.series_of(bars[htf], htf, c['price']) if htf and htf in bars else None
     Lt = A.series_of(bars[ltf], ltf) if ltf and ltf in bars else None
     r = ZV.zv_lines(S)
-    res = A.arrival_tf(S, tf, c['price'], p, H, Lt, htf=htf, ltf=ltf)
+    res = A.arrival_tf(S, tf, c['price'], p, H, Lt, htf=htf, ltf=ltf, spread=c.get('spread') or 0.0)
     ab = lambda t: {k: getattr(t, k) for k in ('a', 'b', 'pa', 'pb')} if t is not None else None  # noqa: E731
     out = {'lines': {'up': ab(r.up), 'dn': ab(r.dn), 'why': {'up': r.why_up, 'dn': r.why_dn}},
            'arrivals': [arrival_js(S, a) for a in res.arrivals],
@@ -414,11 +443,13 @@ def case_js(c):
         out['plan'] = {'dir': pl.dir, 'entry': pl.entry, 'stop': pl.stop, 'ceiling': pl.ceiling, 'lineNow': pl.line_now,
                        'ceilingLine': line_js(pl.ceiling_line, H), 'weak': [zj(z) for z in pl.weak], 'realign': zj(pl.realign),
                        'target': zj(pl.target), 'targetPx': pl.target_px, 'htfZone': zone_js(H, pl.htf_zone) if pl.htf_zone else None,
-                       'tp': pl.tp, 'capped': pl.capped, 'extended': pl.extended}
+                       'tp': pl.tp, 'capped': pl.capped, 'extended': pl.extended, 'buffer': pl.buffer, 'atr': pl.atr,
+                       'basis': pl.basis, 'valley': pl.valley, 'host': zone_js(H, pl.host) if pl.host else None, 'rr': pl.rr}
     if res.confirm is not None:
         cf = res.confirm
         out['confirm'] = {'tf': cf.tf, 'zone': zone_js(Lt, cf.zone), 'arrival': arrival_js(Lt, cf.arrival), 'target': cf.target,
-                          'inArea': cf.in_area}
+                          'inArea': cf.in_area, 'entry': cf.entry, 'stop': cf.stop, 'buffer': cf.buffer, 'atr': cf.atr,
+                          'basis': cf.basis, 'rr': cf.rr}
     return out
 
 

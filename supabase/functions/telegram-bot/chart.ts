@@ -41,7 +41,7 @@ export interface TLine { tf: string; htf: boolean; dir: number; touches: number;
 /** The arrival plan's take-profit on a panel: amber dashed line, chip text e.g. 'TP 117.6 · below W1 line'. */
 export interface ArrTp { px: number; text: string }
 export interface Panel {
-  tf: string; header: string; bars: Bar[]; zones: Band[]; lines?: Lines | null; note?: string; tls?: TLine[]; tp?: ArrTp | null;
+  tf: string; header: string; bars: Bar[]; zones: Band[]; lines?: Lines | null; note?: string; tls?: TLine[]; tp?: ArrTp | null; sl?: ArrTp | null;
   forming?: boolean;          // the last bar is still forming (drawn hollow)
   nestNote?: string | null;   // e.g. 'MN zone outside 3M zone' (amber, under the header)
 }
@@ -237,6 +237,7 @@ export function geom(p: Panel, b: Box, price: number, digits = 5): PanelGeom {
   for (const r of p.bars) vals.push(r.h, r.l);
   for (const v of [p.lines?.entry, p.lines?.stop, p.lines?.target]) if (typeof v === 'number') vals.push(v);
   if (p.tp && p.tp.px > 0 && p.tp.px >= Math.min(...vals) - (Math.max(...vals) - Math.min(...vals)) && p.tp.px <= Math.max(...vals) + (Math.max(...vals) - Math.min(...vals))) vals.push(p.tp.px);
+  if (p.sl && p.sl.px > 0 && p.sl.px >= Math.min(...vals) - (Math.max(...vals) - Math.min(...vals)) && p.sl.px <= Math.max(...vals) + (Math.max(...vals) - Math.min(...vals))) vals.push(p.sl.px);
   let lo = Math.min(...vals), hi = Math.max(...vals);
   if (!(hi > lo)) { hi = lo * 1.01 + 1e-9; lo = lo * 0.99; }
   const span = hi - lo, limLo = lo - 0.6 * span, limHi = hi + 0.6 * span;
@@ -451,6 +452,13 @@ function panelSvg(p: Panel, b: Box, m: ChartModel, i: number): string {
     if (yy >= plot.y && yy <= bottom) {
       out.push(`<line class="trade tp" x1="${f1(plot.x)}" x2="${f1(right)}" y1="${f1(yy)}" y2="${f1(yy)}" stroke="${C.amber}" stroke-width="2.5" stroke-dasharray="12 7"/>`);
       trades.push({ y: yy, text: p.tp.text, fg: C.amber, col: C.amber });
+    }
+  }
+  if (p.sl && p.sl.px > 0) {   // the arrival plan's stop (stop rule): red dashed
+    const yy = g.y(p.sl.px);
+    if (yy >= plot.y && yy <= bottom) {
+      out.push(`<line class="trade sl" x1="${f1(plot.x)}" x2="${f1(right)}" y1="${f1(yy)}" y2="${f1(yy)}" stroke="${C.supply}" stroke-width="2.5" stroke-dasharray="12 7"/>`);
+      trades.push({ y: yy, text: p.sl.text, fg: C.supplyTxt, col: C.supply });
     }
   }
   // current price line

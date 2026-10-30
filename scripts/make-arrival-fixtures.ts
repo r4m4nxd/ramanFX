@@ -8,7 +8,7 @@
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { arrivalTf, CONFIRM_TF, HIGHER_TF, type ArrivalTf } from '../supabase/functions/telegram-bot/arrival.ts';
+import { arrivalTf, CONFIRM_TF, HIGHER_TF, stockSpread, type ArrivalTf } from '../supabase/functions/telegram-bot/arrival.ts';
 import { closedHtf, FX_PARAMS, RAJA, Series, type ZBar } from '../supabase/functions/telegram-bot/zonecore.ts';
 import { zvLines } from '../supabase/functions/telegram-bot/zvTrend.ts';
 import { packedBars } from '../supabase/functions/telegram-bot/logic.ts';
@@ -28,30 +28,30 @@ const expected = (a: ArrivalTf) => ({
   arrivals: a.arrivals, current: a.current ? a.arrivals.indexOf(a.current) : -1, plan: a.plan, confirm: a.confirm, pending: a.pending,
 });
 
-interface Case { name: string; about: string; market: 'fx' | 'stock'; tf: string; htf: string | null; ltf: string | null; price: number; bars: Record<string, Row[]>; expected: unknown }
+interface Case { name: string; about: string; market: 'fx' | 'stock'; tf: string; htf: string | null; ltf: string | null; price: number; spread: number; bars: Record<string, Row[]>; expected: unknown }
 const cases: Case[] = [];
-function add(name: string, about: string, market: 'fx' | 'stock', tf: string, price: number, bars: ZBar[], htf: string | null, hb: ZBar[] | null, ltf: string | null, lb: ZBar[] | null) {
+function add(name: string, about: string, market: 'fx' | 'stock', tf: string, price: number, bars: ZBar[], htf: string | null, hb: ZBar[] | null, ltf: string | null, lb: ZBar[] | null, spread = 0) {
   const p = market === 'fx' ? FX_PARAMS : RAJA;
-  const a = arrivalTf(bars, tf, price, p, hb, lb, htf, ltf);
+  const a = arrivalTf(bars, tf, price, p, hb, lb, htf, ltf, spread);
   const b: Record<string, Row[]> = { [tf]: rows(bars) };
   if (htf && hb) b[htf] = rows(hb);
   if (ltf && lb) b[ltf] = rows(lb);
-  cases.push({ name, about, market, tf, htf: htf && hb ? htf : null, ltf: ltf && lb ? ltf : null, price, bars: b,
+  cases.push({ name, about, market, tf, htf: htf && hb ? htf : null, ltf: ltf && lb ? ltf : null, price, spread, bars: b,
     expected: { lines: lineOut(bars, bars[bars.length - 1].c, tf), ...expected(a) } });
   return a;
 }
 
-for (const [name, s] of Object.entries(SCEN)) add(name, s.about, s.market, s.tf, s.price, s.bars, s.htfTf ?? null, s.htf ?? null, s.ltfTf ?? null, s.ltf ?? null);
+for (const [name, s] of Object.entries(SCEN)) add(name, s.about, s.market, s.tf, s.price, s.bars, s.htfTf ?? null, s.htf ?? null, s.ltfTf ?? null, s.ltf ?? null, s.spread ?? 0);
 
 // ---- real published bars ----------------------------------------------------------------------------------------
 const toZ = (v: unknown): ZBar[] => (Array.isArray(v) ? v : []).filter(r => Array.isArray(r) && r.length >= 5).map(r => ({ d: String(r[0]), o: +r[1], h: +r[2], l: +r[3], c: +r[4] }));
-const real: { name: string; about: string; market: 'fx' | 'stock'; tf: string; price: number; get: (t: string) => ZBar[] }[] = [];
+const real: { name: string; about: string; market: 'fx' | 'stock'; tf: string; price: number; spread: number; get: (t: string) => ZBar[] }[] = [];
 for (const f of readdirSync(join(ROOT, 'public/fx/d')).sort()) {
   const ins = JSON.parse(readFileSync(join(ROOT, 'public/fx/d', f), 'utf8')).instruments ?? {};
   for (const sym of Object.keys(ins).sort()) {
     const d = ins[sym], price = Number(d.price);
     if (!(price > 0)) continue;
-    for (const tf of ['H1', 'H4', 'D1', 'W1']) real.push({ name: `${sym}_${tf}`, about: `published ${sym} ${tf} bars`, market: 'fx', tf, price, get: t => toZ(d.bars?.[t]) });
+    for (const tf of ['H1', 'H4', 'D1', 'W1']) real.push({ name: `${sym}_${tf}`, about: `published ${sym} ${tf} bars`, market: 'fx', tf, price, spread: (Number(d.spread_pips) || 0) * (Number(d.pip) || 0), get: t => toZ(d.bars?.[t]) });
   }
 }
 for (const f of readdirSync(join(ROOT, 'public/scanner/t')).sort().slice(0, 40)) {
@@ -60,7 +60,7 @@ for (const f of readdirSync(join(ROOT, 'public/scanner/t')).sort().slice(0, 40))
     const d = tk[sym], price = Number(d.price), daily = packedBars(d.bars).map(b => ({ d: b.t, o: b.o, h: b.h, l: b.l, c: b.c }));
     if (!(price > 0) || daily.length < 60) continue;
     const hb = (t: string) => { const r = packedBars(d.hb?.[t]).map(b => ({ d: b.t, o: b.o, h: b.h, l: b.l, c: b.c })); return r.length ? r : closedHtf(daily, t as 'W1'); };
-    real.push({ name: `${sym}_W1`, about: `published ${sym} W1 (stock zones >= W1; H4 confirmation not in the shard)`, market: 'stock', tf: 'W1', price, get: t => (t === 'D1' ? daily : hb(t)) });
+    real.push({ name: `${sym}_W1`, about: `published ${sym} W1 (stock zones >= W1; H4 confirmation not in the shard)`, market: 'stock', tf: 'W1', price, spread: stockSpread(price), get: t => (t === 'D1' ? daily : hb(t)) });
   }
 }
 const want = { arrival: 6, plan: 4, none: 2 };
@@ -70,21 +70,21 @@ for (const r of real) {
   if (bars.length < 40) continue;
   const htf = HIGHER_TF[r.tf] ?? null, ltf = CONFIRM_TF[r.tf] ?? null;
   const hb = htf ? r.get(htf) : null, lb = ltf ? r.get(ltf) : null;
-  const a = arrivalTf(bars, r.tf, r.price, r.market === 'fx' ? FX_PARAMS : RAJA, hb?.length ? hb : null, lb?.length ? lb : null, htf, ltf);
+  const a = arrivalTf(bars, r.tf, r.price, r.market === 'fx' ? FX_PARAMS : RAJA, hb?.length ? hb : null, lb?.length ? lb : null, htf, ltf, r.spread);
   const take = a.plan && (a.plan.realign || a.plan.capped || a.confirm) ? nP++ < want.plan : a.arrivals.length ? nA++ < want.arrival : nN++ < want.none;
-  if (take) add(r.name, r.about, r.market, r.tf, r.price, bars, htf, hb?.length ? hb : null, ltf, lb?.length ? lb : null);
+  if (take) add(r.name, r.about, r.market, r.tf, r.price, bars, htf, hb?.length ? hb : null, ltf, lb?.length ? lb : null, r.spread);
 }
 
 const header = (f: string) => readFileSync(join(ROOT, f), 'utf8').split('\n').filter(l => l.startsWith('//')).map(l => l.slice(3));
 const src = readFileSync(join(ROOT, 'supabase/functions/telegram-bot/zvTrend.ts'), 'utf8');
 const fit = src.slice(src.indexOf('/** MQL FitAnchor'), src.indexOf('/** The chart\'s two lines'));
 const doc = {
-  rules: { arrival_ts_header: header('supabase/functions/telegram-bot/arrival.ts').slice(0, 80), zvTrend_header: header('supabase/functions/telegram-bot/zvTrend.ts').slice(0, 24), fitAnchor_ts: fit,
+  rules: { arrival_ts_header: header('supabase/functions/telegram-bot/arrival.ts').slice(0, 120), zvTrend_header: header('supabase/functions/telegram-bot/zvTrend.ts').slice(0, 24), fitAnchor_ts: fit,
     maps: { HIGHER_TF, CONFIRM_TF } },
   note: 'generated by scripts/make-arrival-fixtures.ts from supabase/functions/telegram-bot/arrival.ts (canonical). '
     + 'Rules: see the header of arrival.ts (A: zvTrend.zvLines with FitAnchor; B: arrival zones; C: weak / realignment / LTF confirmation). '
     + 'Bars = CLOSED bars, oldest first, [time, o, h, l, c]; shifts: 1 = newest closed bar (bars[-1]), larger = older; price = the live price '
-    + '(arrivalTf: the HTF lines use it as the phantom bar; the TF itself uses its newest close). params: fx = FX_PARAMS (base_strict, emo_touch), stock = RAJA. '
+    + '(arrivalTf: the HTF lines use it as the phantom bar; the TF itself uses its newest close); spread = the typical spread in price units (the buffer floor of the stop rule = the last argument of arrivalTf; fx = spread_pips x pip, stock = 5 bps of the price). params: fx = FX_PARAMS (base_strict, emo_touch), stock = RAJA. '
     + 'expected.lines = zvLines on the TF bars (phantom = newest close): shifts a (older anchor, after FitAnchor) / b, prices pa / pb. '
     + 'expected.arrivals = every arrival, newest first (zone.legBar ascending); current = index into it (-1 none); plan / confirm / pending as arrivalTf. '
     + 'Compare numbers with |x - y| <= 1e-9 * max(1, |x|).',

@@ -6,7 +6,7 @@
 //    the demands weak with the realignment demand at the HTF up line, the LTF confirmation inside it.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { arrivalTf } from '../../supabase/functions/telegram-bot/arrival';
+import { arrivalTf, rrOf, stopOf } from '../../supabase/functions/telegram-bot/arrival';
 import { FX_PARAMS, RAJA, Series, tfZonesOf, type ZBar } from '../../supabase/functions/telegram-bot/zonecore';
 import { baseIndex, buildPanels, chartArrival, chartVerdict } from '../../supabase/functions/telegram-bot/logic';
 import { renderSvg, type Bar } from '../../supabase/functions/telegram-bot/chart';
@@ -46,7 +46,7 @@ describe('arrival parity fixture', () => {
   for (const c of fx.cases) {
     it(`${c.name}: recomputes to the stored output`, () => {
       const bars = zb(c.bars[c.tf]);
-      const a = arrivalTf(bars, c.tf, c.price, c.market === 'fx' ? FX_PARAMS : RAJA, c.htf ? zb(c.bars[c.htf]) : null, c.ltf ? zb(c.bars[c.ltf]) : null, c.htf, c.ltf);
+      const a = arrivalTf(bars, c.tf, c.price, c.market === 'fx' ? FX_PARAMS : RAJA, c.htf ? zb(c.bars[c.htf]) : null, c.ltf ? zb(c.bars[c.ltf]) : null, c.htf, c.ltf, c.spread ?? 0);
       const r = zvLines(new Series(bars, bars[bars.length - 1].c, c.tf));
       const o = (t: typeof r.up) => (t ? { a: t.a, b: t.b, pa: t.pa, pb: t.pb } : null);
       const got = JSON.parse(JSON.stringify({ lines: { up: o(r.up), dn: o(r.dn), why: r.why }, arrivals: a.arrivals,
@@ -56,7 +56,7 @@ describe('arrival parity fixture', () => {
   }
 });
 
-const run = (k: string) => { const s = SCEN[k]; return arrivalTf(s.bars, s.tf, s.price, FX_PARAMS, s.htf ?? null, s.ltf ?? null, s.htfTf ?? null, s.ltfTf ?? null); };
+const run = (k: string) => { const s = SCEN[k]; return arrivalTf(s.bars, s.tf, s.price, FX_PARAMS, s.htf ?? null, s.ltf ?? null, s.htfTf ?? null, s.ltfTf ?? null, s.spread ?? 0); };
 
 describe('A: trend line wick re-anchoring (FitAnchor)', () => {
   it('a candle between the two real peaks poking above the line becomes the older anchor (its wick)', () => {
@@ -83,10 +83,39 @@ describe('B: arrival zones', () => {
     expect(x.line.dir).toBe(-1);
     expect(x.legs).toContain(x.crossBar);
     expect(a.plan!.entry).toBe(x.zone.prox);
-    expect(a.plan!.stop).toBe(x.zone.dist);
+    // stop rule, no HTF host: beyond the D1 valley (= the base low here) by 0.1 x ATR14 (no spread given)
+    expect(x.valley).toBe(x.zone.dist);
+    expect(a.plan!.basis).toBe('valley');
+    expect(a.plan!.buffer).toBeCloseTo(0.1 * a.plan!.atr, 12);
+    expect(a.plan!.stop).toBeCloseTo(x.valley - a.plan!.buffer, 12);
+    expect(a.plan!.rr).toBeCloseTo((116 - x.zone.prox) / (x.zone.prox - a.plan!.stop), 9);
     // no HTF: target = the nearest weak supply above
     expect(a.plan!.ceiling).toBeNull();
     expect(a.plan!.tp).toBe(116);
+  });
+  it('stop rule: the D1 demand nested in a W1 demand -> 2 buffers below the W1 distal; the spread floors the buffer', () => {
+    const a = run('nested'), pl = a.plan!;
+    expect(pl.host).not.toBeNull();
+    expect(pl.host!.dir).toBe(1);
+    expect(Math.min(pl.host!.prox, pl.host!.dist)).toBeLessThanOrEqual(Math.max(a.current!.zone.prox, a.current!.zone.dist));
+    expect(pl.buffer).toBe(0.4);                          // spread 0.4 > 0.1 x ATR (0.27)
+    expect(pl.basis).toBe('htf');
+    expect(pl.stop).toBeCloseTo(pl.host!.dist - 2 * 0.4, 12);
+    expect(pl.stop).toBeLessThan(a.current!.valley - pl.buffer);
+  });
+  it('stop rule (stopOf): a host whose distal is inside the valley stop never tightens it; supply mirrored', () => {
+    const S = new Series(SCEN.dem2.bars, SCEN.dem2.price, 'D1');
+    const host = { dir: 1, prox: 97, dist: 96.5, legBar: 5, saBar: 4, removed: false, removedBar: -1, tLeg: '', t0: '', made: '' };
+    const st = stopOf(S, 1, 96, host, 0);
+    expect(st.basis).toBe('valley');
+    expect(st.stop).toBeCloseTo(96 - 0.1 * S.atr(1), 12);
+    const sp = stopOf(S, -1, 110, { ...host, dir: -1, prox: 109, dist: 111 }, 1);
+    expect(sp.buffer).toBe(1);
+    expect(sp.basis).toBe('htf');
+    expect(sp.stop).toBe(113);
+    expect(rrOf(100, 98, 106)).toBe(3);
+    expect(rrOf(100, 98, 99)).toBeNull();
+    expect(rrOf(100, 98, null)).toBeNull();
   });
   it('demand arrival removing 1 supply: not strong', () => {
     const a = run('dem1');
@@ -159,7 +188,7 @@ describe('charts: arrival drawing + arrival line (logic.buildPanels -> chart.ren
     const zones = Object.entries(bars).flatMap(([tf, b]) => tfZonesOf(b.map(r => ({ d: r.t, o: r.o, h: r.h, l: r.l, c: r.c })), tf, 2, s.price)
       .map(z => ({ tf, side: z.side, prox: z.proximal, dist: z.distal, t0: z.base_start, made: z.made })));
     const forming = Object.fromEntries(Object.keys(bars).map(t => [t, false]));
-    const panels = buildPanels([s.tf], bars, zones, s.price, 2, null, 'single', t => t, { forming, htf: { [s.tf]: s.htfTf ?? null }, market: 'fx' })
+    const panels = buildPanels([s.tf], bars, zones, s.price, 2, null, 'single', t => t, { forming, htf: { [s.tf]: s.htfTf ?? null }, market: 'fx', spread: s.spread ?? 0 })
       .map(p => ({ ...p, zones: p.zones.map(z => ({ ...z, k0: baseIndex(z.t0, p.bars), ...(z.t1 ? { k1: baseIndex(z.t1, p.bars) } : {}) })) }));
     const model = { sym: 'T', title: 'T', digits: 2, price: s.price, layout: 'single' as const, panels, verdict: chartVerdict(panels, zones, s.price, 2, 'fx', null), arrival: chartArrival(panels, 2, 'fx', null) };
     return { model, svg: renderSvg(model as never) };
@@ -176,14 +205,23 @@ describe('charts: arrival drawing + arrival line (logic.buildPanels -> chart.ren
   });
   it('confirmed: the realignment chip and the arrival line name the 1H buy', () => {
     const { model, svg } = draw('confirm');
-    expect(model.arrival).toContain('1H arrival demand in realignment: buy 77.66, stop 77.60, target 103.98');
+    const c = run('confirm').confirm!;
+    expect(c.basis).toBe('htf');                          // the 1H demand sits in the D1 realignment demand: below its distal
+    expect(c.stop).toBeCloseTo(77.28 - 2 * c.buffer, 2);
+    expect(model.arrival).toContain(`1H arrival demand in realignment: buy 77.66, stop ${c.stop.toFixed(2)}, target 103.98`);
     expect(svg).toContain('1H arrival: buy');
     expect(chartIssues(model as never, svg)).toEqual([]);
   });
   it('demand arrival with the HTF ceiling: TP chip below the W1 line', () => {
     const { model, svg } = draw('ceiling');
     expect(model.arrival).toContain('W1 down line intact at 121.22 → TP below it');
-    expect(svg).toMatch(/TP 121\.22 · below W1 line/);
+    expect(svg).toMatch(/TP 121\.22 · below W1 line · R:R [\d.]+/);
+    expect(svg).toContain('trade sl');
+    expect(svg).toMatch(/SL 95\.75 · below D1 valley/);
+  });
+  it('nested demand: the SL chip names the W1 demand', () => {
+    const { svg } = draw('nested');
+    expect(svg).toMatch(/SL 95\.00 · below W1 demand/);
   });
   it('no arrival: no arrival line, nothing flagged', () => {
     const { model, svg } = draw('nocross');

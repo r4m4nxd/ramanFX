@@ -79,7 +79,7 @@ class Collector:
                 return views.get(tf)
             lo, hi = (min(S1.L[1], an.price), max(S1.H[1], an.price)) if S1.n > 1 else (an.price, an.price)
             out = AA.symbol_pass(sym, views, ALERT_TFS, AREA_TFS, 2, an.price, lo, hi, self.old, self.iso, p,
-                                 wl=wl, confirm_tfs=('D1', 'W1'), ltf_views=ltf)
+                                 wl=wl, confirm_tfs=('D1', 'W1'), ltf_views=ltf, spread=A.stock_spread(an.price))
         except Exception:  # noqa: BLE001
             self.errors += 1
             return
@@ -110,7 +110,7 @@ class Collector:
             S = A.series_of(h4, 'H4')
             c = A.confirm_in(S, 'H4', p, rec['dir'], rec['lo'], rec['hi'], rec['t_leg'])
             if c is not None and c.known_bar <= A.new_bars('H4'):
-                self.cands['confirm'].append(AA.confirm_item(rec, c, rec.get('price') or h4[-1].c))
+                self.cands['confirm'].append(AA.confirm_item(rec, c, rec.get('price') or h4[-1].c, S))
                 n += 1
         if log:
             log(f'arrivals: H4 check of {len(syms)} ticker(s) in a weekly realignment area: {n} confirmation(s)')

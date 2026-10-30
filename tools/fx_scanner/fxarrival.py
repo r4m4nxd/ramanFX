@@ -59,7 +59,8 @@ def scan(res: Dict, st: Dict, now: Optional[dt.datetime] = None, log=print, budg
             out = AA.symbol_pass(sym, views, ALERT_TFS, AREA_TFS, an.nd, an.price, lo, hi, old, iso, A.FX_P,
                                  wl=bool(an.inst.get('wl')), confirm_tfs=CONFIRM_TFS,
                                  extra={'oanda': an.inst.get('name') or '', 'src': an.inst.get('source') or '',
-                                        'pip': an.pip, 'price': round(an.price, an.nd)})
+                                        'pip': an.pip, 'price': round(an.price, an.nd)},
+                                 spread=float(getattr(an, 'spread', None) or 0.0))
         except Exception as e:  # noqa: BLE001
             log(f'arrivals: {sym} skipped ({type(e).__name__}: {str(e)[:80]})')
             continue
@@ -102,6 +103,7 @@ class _An:
         self.inst = {'sym': det['sym'], 'wl': det.get('wl'), 'name': det.get('oanda'), 'source': det.get('src')}
         self.rows, self.price, self.fine = rows, price, rows['H4'].S
         self.nd, self.pip = int(det.get('digits') or 5), float(det.get('pip') or 0.0001)
+        self.spread = float(det.get('spread_pips') or 0.0) * self.pip
 
 
 def published(out_dir: str = C.OUT_DIR, only: str = '') -> Dict:

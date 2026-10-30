@@ -87,9 +87,9 @@ describe('live sources: HTTP failures give null (never throw)', () => {
   };
   for (const [name, f] of Object.entries(answers)) {
     it(`${name}`, async () => {
-      expect(await oandaSource('t', { fetch: f })('EUR_USD')).toBeNull();
+      expect(await oandaSource('t', { fetch: f, retryMs: 0 })('EUR_USD')).toBeNull();
       expect(await alpacaSource('k', 's', { fetch: f })('AAPL')).toBeNull();
-      const ctx = breakCtx(NOW, 'none', { live: { fx: oandaSource('t', { fetch: f }), stock: alpacaSource('k', 's', { fetch: f }) } });
+      const ctx = breakCtx(NOW, 'none', { live: { fx: oandaSource('t', { fetch: f, retryMs: 0 }), stock: alpacaSource('k', 's', { fetch: f }) } });
       for (const q of ['/chart EURUSD', '/chart BRK.B H1', '/zones BTCUSD', 'PENY']) expect(replyIssues(await handle(q, ctx)), `${name} ${q}`).toEqual([]);
     });
   }

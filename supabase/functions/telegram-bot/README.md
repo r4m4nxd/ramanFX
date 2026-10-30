@@ -167,12 +167,18 @@ Per zone TF (FX every TF 15m ... MN; stocks W1 / MN / 3M only, zones never below
 - **Plan**: entry the arrival zone; target the realignment zone (else the nearest weak zone); the higher TF's line
   against it still intact beyond price caps the TP (`W1 down line intact at 118 → TP below it`); with that line crossed
   the TP extends to the higher TF's zone.
+- **Stop rule** (owner, Oct 2026; plans, confirmations, alerts, the chart's SL chip; R:R uses it): buffer =
+  max(0.1 x ATR14 of the entry TF, the instrument's typical spread: FX the scan's spread, stocks 5 bps). When the entry
+  zone sits inside (overlaps) a not-removed HIGHER-TF zone of the same side, the stop goes 2 buffers beyond that zone's
+  distal (`SL … · below W1 demand`); otherwise 1 buffer beyond the entry TF's valley / peak = the extreme wick of the
+  leg-out candle, its base and the 2 candles before it (`SL … · below D1 valley`). The HTF stop never sits inside the
+  valley stop. A confirmation's host is the realignment zone. Constants: `arrival.ts` `SL`.
 - After an arrival every same-TF zone of the other side is **weak** ("no limit buys / sells"); the **realignment** area
   = the weak zone nearest the higher TF's line; trades the other way only after an **arrival on the confirmation TF**
   inside it (H1 / H4 -> 15m, D1 -> 1H, W1 -> 4H, MN -> D1, 3M -> W1; stocks read D1 / 4H only for that tag).
 - Chart: arrival zone bold with a drawn bolt (the Inter subset has no ⚡ / ✕), the line it crossed dashed to the
   crossing candle (`D1 down ×`), removed zones faint and crossed out up to the removing candle, weak zones dashed
-  (`weak – no limit`), realignment gold (`realignment … · confirm on 15m` / `15m arrival: buy`), TP amber dashed; an
+  (`weak – no limit`), realignment gold (`realignment … · confirm on 15m` / `15m arrival: buy`), TP amber dashed (with R:R), SL red dashed; an
   amber arrival line under the verdict (`chartnotes.arrivalLine`). Shown when the arrival's leg-out is on the chart.
 - Parity: `tools/telegram_bot/parity/arrival_fixtures.json` (`scripts/make-arrival-fixtures.ts`; the Python alert side
   tests against it), rule tests + scenarios `src/core/telegramArrival.test.ts`, `scripts/arrival-scenarios.ts`;

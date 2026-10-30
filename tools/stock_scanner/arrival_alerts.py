@@ -61,16 +61,19 @@ def arrival_item(sym: str, r: A.ArrivalTf, price: float, nd: int, **extra) -> Di
             'target': _r(pl.tp, nd), 'target_kind': kind, 'target_tf': r.htf if kind in ('ceiling', 'htf zone') else a.tf,
             'ceiling': _r(pl.ceiling, nd), 'ceiling_tf': r.htf or '', 'htf_crossed': bool(r.htf) and pl.line_now is None,
             'area': ({'tf': a.tf, 'dir': ar.dir, 'lo': _r(ar.lo, nd), 'hi': _r(ar.hi, nd), 'id': ar.zid} if ar is not None else None),
+            'entry': _r(pl.entry, nd), 'stop': _r(pl.stop, nd), 'sl_basis': pl.basis, 'sl_tf': r.htf if pl.basis == 'htf' else a.tf,
+            'rr': round(pl.rr, 1) if pl.rr else None,
             'price': _r(price, nd), 'digits': nd, 'id': f'{sym}|{a.id}', 'date': a.date, **extra}
 
 
-def area_record(sym: str, r: A.ArrivalTf, nd: int, **extra) -> Dict:
+def area_record(sym: str, r: A.ArrivalTf, nd: int, spread: float = 0.0, **extra) -> Dict:
     """The open realignment area of a TF's current arrival (state; also the realign job's input)."""
     a, ar = r.current, r.plan.realign
     return {'sym': sym, 'tf': a.tf, 'dir': ar.dir, 'lo': _r(ar.lo, nd), 'hi': _r(ar.hi, nd), 'prox': _r(ar.prox, nd),
             'dist': _r(ar.dist, nd), 'zone': ar.zid, 'arr_dir': a.dir, 'arr_prox': _r(a.zone.prox, nd),
             'arr_lo': _r(a.zone.lo, nd), 'arr_hi': _r(a.zone.hi, nd), 'swing': _r(r.swing, nd), 'ltf': r.ltf,
-            'htf': r.htf or '', 'line': _r(r.plan.line_now, nd), 't_leg': a.t_leg, 'digits': nd, 'id': f'{sym}|{a.id}', **extra}
+            'htf': r.htf or '', 'line': _r(r.plan.line_now, nd), 't_leg': a.t_leg, 'digits': nd, 'id': f'{sym}|{a.id}',
+            'spread': spread, **extra}
 
 
 def watch_item(area: Dict, price: float) -> Dict:
@@ -78,16 +81,24 @@ def watch_item(area: Dict, price: float) -> Dict:
             'kind': 'watch', 'price': _r(price, area.get('digits', 5))}
 
 
-def confirm_item(area: Dict, c: A.Arrival, price: float) -> Dict:
-    """The ✅ item: entry = the LTF zone's proximal, stop = its distal (arrival.ts), target = the area TF's swing."""
+def confirm_item(area: Dict, c: A.Arrival, price: float, S: Optional[Z.Series] = None) -> Dict:
+    """The ✅ item: entry = the LTF zone's proximal, stop = the stop rule (arrival.ts stopOf on the LTF series S; host =
+    the area = the realignment zone: 2 buffers beyond its distal unless the LTF valley stop is further), target = the
+    area TF's swing. S None (no LTF series): buffer = the area's spread only."""
     nd = area.get('digits', 5)
     z = c.zone
     tgt = area.get('swing')
-    r = A.rr(z.prox, z.dist, tgt)
+    st = (A.stop_of(S, c.dir, c.valley, area.get('dist'), area.get('spread') or 0.0) if S is not None else
+          A.stop_of(_NoAtr(), c.dir, c.valley, area.get('dist'), area.get('spread') or 0.0))
+    r = A.rr(z.prox, st.stop, tgt)
     return {'kind': 'confirm', 'sym': area['sym'], 'tf': area['tf'], 'ltf': c.tf, 'dir': c.dir, 'entry': _r(z.prox, nd),
-            'stop': _r(z.dist, nd), 'target': tgt, 'rr': round(r, 1) if r else None,
+            'stop': _r(st.stop, nd), 'sl_basis': st.basis, 'target': tgt, 'rr': round(r, 1) if r else None,
             'lo': _r(z.lo, nd), 'hi': _r(z.hi, nd), 'n_removed': len(c.removed), 'area_lo': area['lo'], 'area_hi': area['hi'],
             'price': _r(price, nd), 'digits': nd, 'id': f"{area['id']}|{z.zid}", 'area_id': area['id'], 'date': c.date}
+
+
+class _NoAtr:
+    def atr(self, i: int) -> float: return 0.0
 
 
 # ---- messages -----------------------------------------------------------------------------------------------------
@@ -128,6 +139,11 @@ def arrival_card(it: Dict) -> str:
     else:
         bits.append(f"no strong {side(-d)} {'above' if d > 0 else 'below'}")
     line2 = ' · '.join(bits)
+    if it.get('stop') is not None:
+        where = (f"{'below' if d > 0 else 'above'} the {tfw(it.get('sl_tf'))} {side(d)}" if it.get('sl_basis') == 'htf'
+                 else f"{'below' if d > 0 else 'above'} the {tfw(it.get('sl_tf') or it['tf'])} {'valley' if d > 0 else 'peak'}")
+        line2 += (f"\nentry {_f(it.get('entry'), nd)} · stop {_f(it['stop'], nd)} ({where})"
+                  + (f" · R:R {it['rr']}" if it.get('rr') else ''))
     tk = it.get('target_kind')
     if tk == 'ceiling':
         cap = f"capped {'under' if d > 0 else 'above'} the {tfw(it.get('ceiling_tf'))} {'down' if d > 0 else 'up'} line"
@@ -355,31 +371,33 @@ def view_of(S: Z.Series, p) -> View:
     return View(S.tf, S, Z.detect(S, p) if S.n > p['max_base'] + 4 else [])
 
 
-def reading(views: Dict[str, View], tf: str, price: float, p) -> Optional[A.ArrivalTf]:
+def reading(views: Dict[str, View], tf: str, price: float, p, spread: float = 0.0) -> Optional[A.ArrivalTf]:
     v = views.get(tf)
     if v is None:
         return None
     h = views.get(A.HIGHER_TF.get(tf) or '')
-    return A.arrival_tf(v.S, tf, price, p, h.S if h else None, None, zones=v.zones, htf_zones=h.zones if h else None)
+    return A.arrival_tf(v.S, tf, price, p, h.S if h else None, None, zones=v.zones, htf_zones=h.zones if h else None,
+                        spread=spread)
 
 
 def symbol_pass(sym: str, views: Dict[str, View], alert_tfs: Sequence[str], area_tfs: Sequence[str], nd: int,
                 price: float, bar_lo: float, bar_hi: float, st_areas: Dict, now_iso: str, p, wl: bool = False,
-                confirm_tfs: Sequence[str] = (), ltf_views=None, extra: Optional[Dict] = None) -> Dict[str, List[Dict]]:
+                confirm_tfs: Sequence[str] = (), ltf_views=None, extra: Optional[Dict] = None,
+                spread: float = 0.0) -> Dict[str, List[Dict]]:
     """One symbol's run: the new arrival candidates (alert_tfs: the TF's current arrival, when it became true on the
     newest closed bar), the open realignment areas of area_tfs (state records, updated: entered / inside), 'watch'
     candidates (price entered an area) and 'confirm' candidates for the areas whose lower TF is in confirm_tfs (its
     view: ltf_views(tf) when callable - built only when needed -, else ltf_views[tf], else views[tf])."""
     out: Dict[str, List[Dict]] = {'arrival': [], 'watch': [], 'confirm': [], 'areas': []}
     for tf in sorted(set(alert_tfs) | set(area_tfs), key=lambda t: list(A.HIGHER_TF).index(t) if t in A.HIGHER_TF else 9):
-        r = reading(views, tf, price, p)
+        r = reading(views, tf, price, p, spread)
         if r is None or r.current is None:
             continue
         if tf in alert_tfs and r.current.known_bar <= A.new_bars(tf):
             out['arrival'].append(arrival_item(sym, r, price, nd, wl=wl))
         if tf not in area_tfs or r.plan.realign is None or not r.ltf:
             continue
-        rec = area_record(sym, r, nd, wl=wl, **(extra or {}))
+        rec = area_record(sym, r, nd, spread, wl=wl, **(extra or {}))
         old = st_areas.get(rec['id']) or {}
         rec['opened'] = old.get('opened') or now_iso
         rec['entered'] = old.get('entered')
@@ -395,7 +413,7 @@ def symbol_pass(sym: str, views: Dict[str, View], alert_tfs: Sequence[str], area
             if lv is not None:
                 c = A.confirm_in(lv.S, ltf, p, rec['dir'], rec['lo'], rec['hi'], rec['t_leg'], lv.zones)
                 if c is not None and c.known_bar <= A.new_bars(ltf):
-                    out['confirm'].append(confirm_item(rec, c, price))
+                    out['confirm'].append(confirm_item(rec, c, price, lv.S))
     return out
 
 

@@ -22,6 +22,11 @@
 //   key:*   GitHub token (API 200 on the runs list), OANDA (1 candle), Alpaca (latest AAPL trade), Telegram (getMe):
 //           401 / 403 = rejected (two checks in a row before a message); a missing secret or a network hiccup is
 //           not a problem. Edge secrets are project-wide, so the coach reads OANDA_API_TOKEN like the bot does.
+//           OANDA practice answers a valid token with a sporadic 401 'Insufficient authorization' (seen Oct 2026:
+//           flapping 401 / 200 on the same token while the GitHub scans worked): a 401 / 403 is retried twice,
+//           2.5 s apart (the retry asks price=B like the bot, then price=M again) and counts as rejected only when all
+//           three are; and the OANDA key needs THREE bad checks in a row (OANDA_KEY_GRACE 55 min, ~1-1.5 h) before a
+//           message. The other keys are unchanged.
 //   app     the web app (raman-fx.vercel.app, Vercel Hobby: 100 deployments a day). Live commit = its /version.json
 //           (written by the build); GitHub compare live...main finds the commits that change the app (appPaths.ts,
 //           the same rule as the Vercel ignore script: data / bot commits never deploy). The oldest such commit not
@@ -43,7 +48,7 @@ import { isAppPath } from './appPaths.ts';
 
 export const MIN = 60_000, HOUR = 3_600_000, DAY = 86_400_000;
 export const FX_GRACE = 2 * HOUR + 20 * MIN, CRYPTO_GRACE = 3 * HOUR, MOVERS_GRACE = 3 * HOUR, STOCK_DUE = 150 * MIN;
-export const KEY_GRACE = 25 * MIN, FAIL_GRACE = 25 * MIN, REALERT = 6 * HOUR, PER_DAY = 4;
+export const KEY_GRACE = 25 * MIN, OANDA_KEY_GRACE = 55 * MIN, OANDA_RETRY_MS = 2500, FAIL_GRACE = 25 * MIN, REALERT = 6 * HOUR, PER_DAY = 4;
 export const APP_GRACE = 90 * MIN, APP_DATA_GRACE = 25 * MIN, APP_DATA_LAG = 30 * MIN;
 export const APP_URL = 'https://raman-fx.vercel.app';
 export type AppFile = 'fx' | 'movers';
@@ -269,7 +274,7 @@ export function evaluate(s: Snapshot): Check[] {
   // Keys
   for (const k of KEYS) {
     const v = s.keys[k];
-    out.push({ id: `key:${k}`, label: `${KEY_LABEL[k]} key`, status: v === 'bad' ? 'problem' : v === 'ok' ? 'ok' : 'skip', graceMs: KEY_GRACE,
+    out.push({ id: `key:${k}`, label: `${KEY_LABEL[k]} key`, status: v === 'bad' ? 'problem' : v === 'ok' ? 'ok' : 'skip', graceMs: k === 'oanda' ? OANDA_KEY_GRACE : KEY_GRACE,
       text: v === 'bad' ? KEY_TEXT[k] : 'works again' });
   }
   // GitHub token expiry: one heads-up at 14 days, one at 3 days
@@ -418,7 +423,24 @@ async function probe(f: F, url: string, init: RequestInit, bad404 = false): Prom
     return bad404 && r.status === 404 ? 'bad' : keyState(r.status);
   } catch { return 'error'; }
 }
-export async function gather(env: HealthEnv, f: F, now: number): Promise<Snapshot> {
+/** The OANDA probe: 1 candle; a 401 / 403 is retried twice (`wait` ms apart: price=B, then price=M) and is 'bad' only
+ *  when every try is rejected; any 2xx = 'ok'; otherwise (5xx / network on a retry) 'error'. */
+export async function probeOanda(f: F, env: Pick<HealthEnv, 'oanda' | 'oandaLive'>, sleep: (ms: number) => Promise<void> = ms => new Promise(r => setTimeout(r, ms)),
+  wait = OANDA_RETRY_MS): Promise<KeyState> {
+  const url = (price: string) => `https://${env.oandaLive ? 'api-fxtrade' : 'api-fxpractice'}.oanda.com/v3/instruments/EUR_USD/candles?count=1&granularity=H1&price=${price}`;
+  const init = { headers: { Authorization: `Bearer ${env.oanda}` } };
+  const first = await probe(f, url('M'), init);
+  if (first !== 'bad') return first;
+  let unsure = false;
+  for (const price of ['B', 'M']) {
+    await sleep(wait);
+    const st = await probe(f, url(price), init);
+    if (st === 'ok') return 'ok';
+    if (st !== 'bad') unsure = true;
+  }
+  return unsure ? 'error' : 'bad';
+}
+export async function gather(env: HealthEnv, f: F, now: number, sleep?: (ms: number) => Promise<void>): Promise<Snapshot> {
   const runs: Snapshot['runs'] = {};
   let github = (env.gh ? 'error' : 'absent') as KeyState;
   let ghExpiry = undefined as number | null | undefined;
@@ -440,7 +462,7 @@ export async function gather(env: HealthEnv, f: F, now: number): Promise<Snapsho
     }));
   }
   const [oanda, alpaca, telegram] = await Promise.all([
-    env.oanda ? probe(f, `https://${env.oandaLive ? 'api-fxtrade' : 'api-fxpractice'}.oanda.com/v3/instruments/EUR_USD/candles?count=1&granularity=H1&price=M`, { headers: { Authorization: `Bearer ${env.oanda}` } }) : Promise.resolve<KeyState>('absent'),
+    env.oanda ? probeOanda(f, env, sleep) : Promise.resolve<KeyState>('absent'),
     env.alpacaId && env.alpacaSecret ? probe(f, 'https://data.alpaca.markets/v2/stocks/AAPL/trades/latest?feed=iex', { headers: { 'APCA-API-KEY-ID': env.alpacaId, 'APCA-API-SECRET-KEY': env.alpacaSecret, Accept: 'application/json' } }) : Promise.resolve<KeyState>('absent'),
     env.tg ? probe(f, `https://api.telegram.org/bot${env.tg}/getMe`, {}, true) : Promise.resolve<KeyState>('absent'),
   ]);

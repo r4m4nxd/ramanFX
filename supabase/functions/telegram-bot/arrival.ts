@@ -34,13 +34,28 @@
 //            beyond price (demand: min(prox, dist) > price; supply: max(prox, dist) < price), departure <= max_zone_age
 //            (htfZone; its proximal) when it is further than targetPx (or targetPx is null): tp = that, extended = true;
 //            else tp = targetPx.
-//   entry    the arrival zone's proximal; stop its distal.
+//   entry    the arrival zone's proximal; stop = the STOP RULE below; rr = (tp - entry) / (entry - stop) (null: no tp
+//            or <= 0).
+// STOP RULE (owner, Oct 2026; plans, confirmations, alerts, chart SL chip), d = the zone's dir:
+//   buffer   max(SL.atrFrac (0.1) x ATR14 of the entry TF at its newest closed bar (Series.atr(1)), the instrument's
+//            typical spread in price units (FX: the shard's spread_pips x pip; stocks: SL.stockSpreadBps (5) bps of
+//            the price; 0 when unknown)).
+//   valley   the low (demand) / high (supply) of the arrival leg's base valley: the extreme wick of the bars from the
+//            leg-out candle back through its base and the ZV.swing (2) candles before it (shifts legBar ..
+//            legBar + baseN + 2, clipped to the series) = the swing low / high that formed the zone.
+//   host     the HIGHER-TF zone of the same side the entry zone sits in: not removed, price ranges overlap; the newest
+//            (smallest legBar). Plan: the HTF detect() zones; confirmation: the realignment zone (the LTF zone's
+//            higher TF, same side by construction).
+//   stop     host: SL.htfBuffers (2) buffers beyond the host's distal (demand: host.dist - 2 x buffer), but never
+//            inside the valley stop (demand: min(that, valley - buffer); supply: max) -> basis 'htf'; no host (or
+//            the valley stop is further): valley - buffer (supply: + buffer) -> basis 'valley'.
 // Confirmation on the LTF (map CONFIRM_TF; only with a realign zone and LTF bars): the LTF arrivals of the other side
 //   (after a supply arrival: LTF demand arrivals) whose zone is not removed, overlaps the realign zone's price range
 //   and whose leg-out bar time >= the HTF arrival's leg-out bar time (times compared as 'YYYY-MM-DDTHH:MM'); the
-//   newest (smallest LTF legBar). Plan: entry its proximal, stop its distal, target = the TF's newest real pivot on
-//   the arrival's side (supply arrival: the newest real PEAK's high = the TF's last swing high; demand arrival: the
-//   newest real valley's low); null when none. inArea = price inside the realign zone.
+//   newest (smallest LTF legBar). Plan: entry its proximal, stop = the STOP RULE on the LTF (host = the realign zone),
+//   target = the TF's newest real pivot on the arrival's side (supply arrival: the newest real PEAK's high = the TF's
+//   last swing high; demand arrival: the newest real valley's low; null when none), rr on that target. inArea = price
+//   inside the realign zone.
 // Edge cases (parity): a TF with < 20 closed bars has no reading; detect() runs only when the series (closed bars +
 //   phantom) holds > max_base + 4 bars; a leg-out with < 10 older closed bars has no line; HTF readings need >= 10
 //   closed HTF bars, LTF ones >= 20. Every sort is stable (ties keep detect order: older departure first).
@@ -57,13 +72,22 @@ export interface ArrLine { dir: number; a: number; b: number; pa: number; pb: nu
 export interface ArrZone { dir: number; prox: number; dist: number; legBar: number; saBar: number; removed: boolean; removedBar: number; tLeg: string; t0: string; made: string }
 export interface Arrival {
   zone: ArrZone; line: ArrLine; legs: number[]; crossBar: number; crossPx: number; removed: ArrZone[]; strong: boolean;
+  valley: number;   // the stop rule's valley (demand: low; supply: high) of the zone's base
 }
+/** The stop rule (header): buffer = max(atrFrac x ATR14 entry TF, spread); host stop = htfBuffers buffers beyond the
+ *  same-side HTF zone's distal; stockSpreadBps = a stock's typical spread. */
+export const SL = { atrFrac: 0.1, htfBuffers: 2, stockSpreadBps: 5 } as const;
+export const stockSpread = (price: number) => (price > 0 ? (price * SL.stockSpreadBps) / 1e4 : 0);
+export interface ArrStop { stop: number; buffer: number; atr: number; basis: 'htf' | 'valley'; valley: number; host: ArrZone | null }
 export interface ArrPlan {
-  dir: number; entry: number; stop: number;
+  dir: number; entry: number; stop: number; buffer: number; atr: number; basis: 'htf' | 'valley'; valley: number; host: ArrZone | null; rr: number | null;
   ceiling: number | null; lineNow: number | null; ceilingLine: ArrLine | null; weak: ArrZone[]; realign: ArrZone | null;
   target: ArrZone | null; targetPx: number | null; htfZone: ArrZone | null; tp: number | null; capped: boolean; extended: boolean;
 }
-export interface ArrConfirm { tf: string; zone: ArrZone; arrival: Arrival; target: number | null; inArea: boolean }
+export interface ArrConfirm {
+  tf: string; zone: ArrZone; arrival: Arrival; target: number | null; inArea: boolean;
+  entry: number; stop: number; buffer: number; atr: number; basis: 'htf' | 'valley'; rr: number | null;
+}
 export interface ArrivalTf {
   tf: string; htf: string | null; ltf: string | null; arrivals: Arrival[]; current: Arrival | null; plan: ArrPlan | null;
   confirm: ArrConfirm | null; pending: boolean;   // pending = a realign zone waits for an LTF arrival
@@ -77,6 +101,21 @@ const zOf = (S: Series, z: Zone, off = 0): ArrZone => ({
   dir: z.dir, prox: z.prox, dist: z.dist, legBar: z.legBar + off, saBar: z.saBar + off, removed: z.removed, removedBar: z.removed ? z.removedBar + off : -1,
   tLeg: S.T[z.legBar], t0: z.baseStart, made: z.made,
 });
+/** The stop rule (header) for a zone of dir d: S = the entry TF's series, valley = its Arrival.valley. */
+export function stopOf(S: Series, d: number, valley: number, host: ArrZone | null, spread: number): ArrStop {
+  const atr = S.atr(1), buffer = Math.max(SL.atrFrac * atr, spread > 0 ? spread : 0);
+  const vs = valley - d * buffer;
+  if (host) {
+    const hs = host.dist - d * SL.htfBuffers * buffer;
+    if (d > 0 ? hs <= vs : hs >= vs) return { stop: hs, buffer, atr, basis: 'htf', valley, host };
+  }
+  return { stop: vs, buffer, atr, basis: 'valley', valley, host };
+}
+export const rrOf = (entry: number, stop: number, target: number | null): number | null => {
+  if (target == null || entry === stop) return null;
+  const r = (target - entry) / (entry - stop);
+  return r > 0 ? r : null;
+};
 const lineOf = (S: Series, t: ZvLine, off: number): ArrLine => ({ dir: t.dir, a: t.a + off, b: t.b + off, pa: t.pa, pb: t.pb, ta: S.T[t.a], tb: S.T[t.b] });
 
 /** Every arrival zone of one TF (closed bars oldest first), newest first. */
@@ -99,16 +138,19 @@ export function arrivals(bars: ZBar[], tf: string, p: ZParams): { S: Series; zon
     const newest = legs[legs.length - 1];
     const rem = zones.filter(y => y.dir === -d && y.removed && y.removedBar <= L && y.removedBar >= newest);
     if (!rem.length) continue;
-    out.push({ zone: zOf(S, z), line: lineOf(T, t, L), legs, crossBar: cross, crossPx: zvAt(t, cross - L), removed: rem.map(y => zOf(S, y)), strong: rem.length >= 2 });
+    let valley = d > 0 ? Infinity : -Infinity;
+    for (let j = L, j1 = Math.min(L + z.baseN + ZV.swing, S.n - 1); j <= j1; j++) valley = d > 0 ? Math.min(valley, S.L[j]) : Math.max(valley, S.H[j]);
+    out.push({ zone: zOf(S, z), line: lineOf(T, t, L), legs, crossBar: cross, crossPx: zvAt(t, cross - L), removed: rem.map(y => zOf(S, y)), strong: rem.length >= 2, valley });
   }
   out.sort((a, b) => a.zone.legBar - b.zone.legBar);
   return { S, zones, arrivals: out };
 }
 
 /** The arrival reading of one TF: its arrivals, the current one and its plan, the LTF confirmation. bars / htfBars /
- *  ltfBars = CLOSED bars oldest first; price = the live price. */
+ *  ltfBars = CLOSED bars oldest first; price = the live price; spread = the instrument's typical spread (price units;
+ *  the stop rule's buffer floor). */
 export function arrivalTf(bars: ZBar[], tf: string, price: number, p: ZParams, htfBars?: ZBar[] | null, ltfBars?: ZBar[] | null,
-  htf: string | null = HIGHER_TF[tf] ?? null, ltf: string | null = CONFIRM_TF[tf] ?? null): ArrivalTf {
+  htf: string | null = HIGHER_TF[tf] ?? null, ltf: string | null = CONFIRM_TF[tf] ?? null, spread = 0): ArrivalTf {
   const res: ArrivalTf = { tf, htf, ltf, arrivals: [], current: null, plan: null, confirm: null, pending: false };
   if (bars.length < 20) return res;
   const A = arrivals(bars, tf, p);
@@ -142,7 +184,10 @@ export function arrivalTf(bars: ZBar[], tf: string, price: number, p: ZParams, h
       if (targetPx == null || (d > 0 ? cand.prox > targetPx : cand.prox < targetPx)) { tp = cand.prox; extended = true; }
     }
   }
-  res.plan = { dir: d, entry: cur.zone.prox, stop: cur.zone.dist, ceiling, lineNow, ceilingLine, weak, realign, target, targetPx, htfZone, tp, capped, extended };
+  const hostZ = hz.filter(z => z.dir === d && !z.removed && lo(z) <= hi(cur.zone) && hi(z) >= lo(cur.zone)).sort((a, b) => a.legBar - b.legBar)[0];
+  const st = stopOf(A.S, d, cur.valley, hostZ && H ? zOf(H, hostZ) : null, spread);
+  res.plan = { dir: d, entry: cur.zone.prox, stop: st.stop, buffer: st.buffer, atr: st.atr, basis: st.basis, valley: st.valley, host: st.host,
+    rr: rrOf(cur.zone.prox, st.stop, tp), ceiling, lineNow, ceilingLine, weak, realign, target, targetPx, htfZone, tp, capped, extended };
   // LTF confirmation inside the realignment area
   if (realign && ltf) {
     res.pending = true;
@@ -153,7 +198,9 @@ export function arrivalTf(bars: ZBar[], tf: string, price: number, p: ZParams, h
       if (c) {
         const piv = zvPivots(A.S, Math.min(ZV.lookback, A.S.n - 1 - ZV.swing)).filter(q => q.t === (d < 0 ? 1 : -1));
         const pv = piv.length ? piv[piv.length - 1].p : null;
-        res.confirm = { tf: ltf, zone: c.zone, arrival: c, target: pv, inArea: gap(price, realign) === 0 };
+        const cs = stopOf(LA.S, -d, c.valley, realign, spread);
+        res.confirm = { tf: ltf, zone: c.zone, arrival: c, target: pv, inArea: gap(price, realign) === 0,
+          entry: c.zone.prox, stop: cs.stop, buffer: cs.buffer, atr: cs.atr, basis: cs.basis, rr: rrOf(c.zone.prox, cs.stop, pv) };
         res.pending = false;
       }
     }

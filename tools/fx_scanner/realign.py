@@ -4,7 +4,8 @@ The hourly FX scan (fxarrival.py) keeps the open realignment areas in public/fx/
 is in ('inside'). This job reads that file and ONLY for those areas whose lower TF is 15-min (H4 areas) or 1-hour (D1
 areas) asks OANDA for the newest 400 candles of that TF (one request per area: cheap), looks for a lower-TF arrival
 zone inside the area (arrival.confirm_in, as the bot chart: arrival.ts) and sends the A+ trade (entry = the LTF zone's
-proximal, stop = its distal, target = the area TF's newest real pivot, R:R). Nothing inside -> no OANDA call at all.
+proximal, stop = the stop rule: 2 buffers beyond the area's distal unless the LTF valley stop is further, buffer =
+max(0.1 x LTF ATR14, the instrument's spread), target = the area TF's newest real pivot, R:R). Nothing inside -> no OANDA call at all.
 State: public/fx/realign.json (data branch, this job only): the confirmations sent + the day's message count (the
 shared 8-a-day cap with the FX and stock arrival alerts).
 
@@ -60,7 +61,7 @@ def check(areas: List[Dict], bars_of: Callable[[str, str], List[Z.Bar]], log=pri
         S = A.series_of(bars, a['ltf'])
         c = A.confirm_in(S, a['ltf'], A.FX_P, a['dir'], a['lo'], a['hi'], a.get('t_leg') or '')
         if c is not None and c.known_bar <= A.new_bars(a['ltf']):
-            out.append(AA.confirm_item(a, c, bars[-1].c))
+            out.append(AA.confirm_item(a, c, bars[-1].c, S))
     return out
 
 
