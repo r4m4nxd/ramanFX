@@ -191,6 +191,75 @@ def ltf_confirm(d: int, zone: Z.Zone, L: R.TF, ltf: str, t0: str, watch_end: str
     return {'t': ct, 'entry': c.zone.prox, 'stop': st.stop, 'distal': c.zone.dist, 'k': lo0 + ck, 'removed': len(c.removed)}
 
 
+def ltf_choch(d: int, zone: Z.Zone, L: R.TF, ltf: str, t0: str, watch_end: str, spread: float, p: Dict) -> Optional[Dict]:
+    """Looser LTF confirmation (Kevin's '15m longs off the 4H zone'): after price first reaches the TF zone, the first LTF
+    close that REMOVES an opposite LTF zone (a supply above for a buy: the LTF structure breaks back in the trade's
+    direction) = the confirmation; entry = the newest same-side LTF zone known by then whose distal is not more than
+    half a TF-zone height beyond the TF zone (the LTF base that made the break), limit at its proximal, LTF stop rule."""
+    i = L.closed(t0)
+    touch_i = None
+    while i < len(L) and L.ends[i] <= watch_end:
+        b = L.bars[i]
+        if (b.c < zone.dist) if d > 0 else (b.c > zone.dist):
+            return None
+        if (b.l <= zone.prox) if d > 0 else (b.h >= zone.prox):
+            touch_i = i
+            break
+        i += 1
+    if touch_i is None:
+        return None
+    lo0 = max(0, touch_i - WIN)
+    hi0 = L.closed(watch_end)
+    sub = L.bars[lo0:hi0]
+    if len(sub) < 80:
+        return None
+    S = A.series_of(sub, ltf)
+    zs = Z.detect(S, {**p, 'lookback': 10 ** 6})
+    nl = len(sub)
+    ti = touch_i - lo0                                # index in sub of the touch bar
+    # the TF zone must not be removed (an LTF close beyond its distal) before the confirmation
+    gone = next((j for j in range(ti, nl) if ((sub[j].c < zone.dist) if d > 0 else (sub[j].c > zone.dist))), nl)
+    best = None
+    for y in zs:
+        if y.dir != -d or not y.removed:
+            continue
+        ri = nl - y.removed_bar                       # index of the removing close
+        mi = nl - y.sa_bar                            # index of the bar the zone became known on
+        if ri <= ti or ri >= gone or mi >= ri:
+            continue
+        if best is None or ri < best[0]:
+            best = (ri, y)
+    if best is None:
+        return None
+    ri, opp = best
+    h = zone.h
+    cands = []
+    for y in zs:
+        if y.dir != d:
+            continue
+        mi = nl - y.sa_bar
+        if mi > ri:
+            continue
+        if (y.dist < zone.dist - 0.5 * h) if d > 0 else (y.dist > zone.dist + 0.5 * h):
+            continue
+        if (y.prox > opp.prox) if d > 0 else (y.prox < opp.prox):
+            continue
+        if y.removed and nl - y.removed_bar <= ri:
+            continue
+        cands.append((mi, y))
+    if not cands:
+        return None
+    mi, y = max(cands, key=lambda c: c[0])
+    ck = ri + 1
+    Sk = A.series_of(sub[max(0, ck - 300):ck], ltf)
+    j1 = min(y.leg_bar + y.base_n + ZVT.ZV['swing'], S.n - 1)
+    valley = min(S.L[j] for j in range(y.leg_bar, j1 + 1)) if d > 0 else max(S.H[j] for j in range(y.leg_bar, j1 + 1))
+    st = A.stop_of(Sk, d, valley, None, spread)
+    if (y.prox - st.stop) * d <= 0:
+        return None
+    return {'t': L.ends[lo0 + ri], 'entry': y.prox, 'stop': st.stop, 'distal': y.dist, 'k': lo0 + ck, 'removed': 1}
+
+
 # ---- one instrument --------------------------------------------------------------------------------------------------
 def study_tf(job: Dict, data: Dict[str, R.TF], fine: Fine, tf: str, start: str, htf: str, cnt: Dict) -> List[Dict]:
     T = data.get(tf)
@@ -248,17 +317,20 @@ def study_tf(job: Dict, data: Dict[str, R.TF], fine: Fine, tf: str, start: str, 
         if ltf in ('M15', 'H1', 'H4') and fz is not None and fz.tf == ltf:
             cnt['ltf_checked'] = cnt.get('ltf_checked', 0) + 1
             watch_end = T.ends[min(k - 1 + EXPIRY + CONF_WATCH, n - 1)]
-            c = ltf_confirm(d, cur.zone, fz, ltf, t0, watch_end, sp, p)
-            if c is not None:
-                cnt['ltf_conf'] = cnt.get('ltf_conf', 0) + 1
+            for kind, fn in (('ltfconf', ltf_confirm), ('ltfchoch', ltf_choch)):
+                c = fn(d, cur.zone, fz, ltf, t0, watch_end, sp, p)
+                if c is None:
+                    continue
+                cnt[kind] = cnt.get(kind, 0) + 1
                 lexp = fz.ends[min(c['k'] - 1 + LTF_EXPIRY, len(fz) - 1)]
                 cres = run_variants(d, c['entry'], c['stop'], c['distal'], pl.tp, opp_tp, fz, c['t'], lexp, hold_end, sp)
-                wide = R.simulate(d, c['entry'], pl.stop, fz, c['t'], lexp, hold_end, c['distal'], sp, 'fixed',
-                                  c['entry'] + d * 2 * (c['entry'] - pl.stop) * d) if (c['entry'] - pl.stop) * d > 0 else {'outcome': 'bad', 'R': None}
+                wide = (R.simulate(d, c['entry'], pl.stop, fz, c['t'], lexp, hold_end, c['distal'], sp, 'fixed',
+                                   c['entry'] + 2 * (c['entry'] - pl.stop), cancel_at=c['entry'] + 2 * (c['entry'] - c['stop']))
+                        if (c['entry'] - pl.stop) * d > 0 else {'outcome': 'bad levels', 'R': None})
                 cres['2R_wide'] = wide
                 cf = dict(f)
                 cf['session'] = R.session_of(cres['2R'].get('fill_t'))
-                out.append({**base, 'kind': 'ltfconf', 'tf': f'{tf}->{ltf}', 't': c['t'], 'entry': c['entry'], 'stop': c['stop'],
+                out.append({**base, 'kind': kind, 'tf': f'{tf}->{ltf}', 't': c['t'], 'entry': c['entry'], 'stop': c['stop'],
                             'risk': (c['entry'] - c['stop']) * d, 'tight': (c['entry'] - c['stop']) * d / max(1e-12, base['risk']),
                             'sim': ltf, 'res': slim(cres), 'fill_t': cres['2R'].get('fill_t'), 'f': cf})
         # round-1 realignment confirmation (the other side, inside the realignment area), now with LTF data
@@ -702,6 +774,7 @@ def kevin_section(K: Dict) -> Tuple[List[str], Dict]:
 def report(rows: List[Dict], K: Optional[Dict], meta: Dict) -> Tuple[str, Dict]:
     arr = [r for r in rows if r['kind'] == 'arrival']
     conf = [r for r in rows if r['kind'] == 'ltfconf']
+    choch = [r for r in rows if r['kind'] == 'ltfchoch']
     real = [r for r in rows if r['kind'] == 'realign']
     ctrl = [r for r in rows if r['kind'] == 'zone' and not r.get('unfilled')]
     ctrl_all = [r for r in rows if r['kind'] == 'zone']
@@ -738,8 +811,15 @@ def report(rows: List[Dict], K: Optional[Dict], meta: Dict) -> Tuple[str, Dict]:
     L += R.table('LTF confirmation entries by management', [(cn[m], flat(conf, m)) for m in MGMT + ('2R_wide',)])
     L += R.table('LTF confirmation, fixed 2R, by TF pair', [(p, flat([r for r in conf if r['tf'] == p], '2R')) for p in sorted({r['tf'] for r in conf})])
     L += R.table('LTF confirmation, fixed 3R, by TF pair', [(p, flat([r for r in conf if r['tf'] == p], '3R')) for p in sorted({r['tf'] for r in conf})])
+    L += ['A strict LTF *arrival* (trend-line cross + removal) inside a few TF bars is rare, so a looser, Kevin-style '
+          'confirmation is tested too: after the touch, the first LTF close that removes an opposite LTF zone (LTF structure '
+          'breaks back in the trade direction), entry = the newest same-side LTF zone at the TF zone known by then.', '']
+    L += R.table('LTF structure-break (CHoCH) entries by management', [(cn[m], flat(choch, m)) for m in MGMT + ('2R_wide',)])
+    L += R.table('LTF structure-break entries, fixed 2R, by TF pair', [(p, flat([r for r in choch if r['tf'] == p], '2R')) for p in sorted({r['tf'] for r in choch})])
+    L += R.table('LTF structure-break entries, fixed 3R, by TF pair', [(p, flat([r for r in choch if r['tf'] == p], '3R')) for p in sorted({r['tf'] for r in choch})])
     L += R.table('Realignment + LTF confirmation (round-1 rule, the other side), target = the TF swing', [(p, flat([r for r in real if r['tf'] == p], 'plan')) for p in sorted({r['tf'] for r in real})] or [('none', [])])
     summary['ltfconf'] = {m: R.stats(flat(conf, m)) for m in MGMT}
+    summary['ltfchoch'] = {m: R.stats(flat(choch, m)) for m in MGMT}
     # control: every zone
     if ctrl_all:
         L += ['## 4. Control: every fresh zone (not only arrivals), majors / crosses / gold, D1 + H4 since 2010', '',
@@ -755,7 +835,7 @@ def report(rows: List[Dict], K: Optional[Dict], meta: Dict) -> Tuple[str, Dict]:
         import kevin_calls as KC
         kt = KC.trades(K['rows'], '2R')
         groups.append(('Kevin zone calls', kt))
-    groups += [('our arrivals', arr), ('LTF confirmations', conf)]
+    groups += [('our arrivals', arr), ('LTF arrival confirmations', conf), ('LTF structure-break entries', choch)]
     if ctrl_all:
         groups.append(('every zone (control)', ctrl_all))
     L += profile(groups)
@@ -788,14 +868,16 @@ def report(rows: List[Dict], K: Optional[Dict], meta: Dict) -> Tuple[str, Dict]:
     L += ['### Arrivals (limit at the zone)', ''] + tab
     wf_c, tab = walk_forward(conf, list(MGMT))
     L += ['### LTF confirmation entries', ''] + tab
+    wf_h, tab = walk_forward(choch, list(MGMT))
+    L += ['### LTF structure-break entries', ''] + tab
     wf_z = []
     if ctrl_all:
         wf_z, tab = walk_forward(ctrl_all, [m for m in MGMT if m != 'plan'])
         L += ['### Every zone (control)', ''] + tab
-    summary['wf'] = {'arrival': [_wf(x) for x in wf_a], 'ltfconf': [_wf(x) for x in wf_c], 'zone': [_wf(x) for x in wf_z]}
+    summary['wf'] = {'arrival': [_wf(x) for x in wf_a], 'ltfconf': [_wf(x) for x in wf_c], 'ltfchoch': [_wf(x) for x in wf_h], 'zone': [_wf(x) for x in wf_z]}
     # counts
-    L += ['## Data / counts', '', '| instrument TF | candidates | verified | not current | fine bars missing (fallback) | LTF checked | LTF confirmations | realign areas | realign confirmations | control zones | control unfilled |',
-          '|---|---|---|---|---|---|---|---|---|---|---|']
+    L += ['## Data / counts', '', '| instrument TF | candidates | verified | not current | fine bars missing (fallback) | LTF checked | LTF arrival conf. | LTF structure-break | realign areas | realign confirmations | control zones | control unfilled |',
+          '|---|---|---|---|---|---|---|---|---|---|---|---|']
     agg: Dict[str, Dict[str, int]] = {}
     for c in meta['counts']:
         for tf, x in (c.get('counts') or {}).items():
@@ -805,7 +887,7 @@ def report(rows: List[Dict], K: Optional[Dict], meta: Dict) -> Tuple[str, Dict]:
     for k in sorted(agg):
         a = agg[k]
         L.append(f"| {k} | {a.get('candidates', 0)} | {a.get('verified', 0)} | {a.get('not_current', 0)} | {a.get('fine_missing', 0)} | "
-                 f"{a.get('ltf_checked', 0)} | {a.get('ltf_conf', 0)} | {a.get('realign', 0)} | {a.get('realign_conf', 0)} | {a.get('ctrl', 0)} | {a.get('ctrl_unfilled', 0)} |")
+                 f"{a.get('ltf_checked', 0)} | {a.get('ltfconf', 0)} | {a.get('ltfchoch', 0)} | {a.get('realign', 0)} | {a.get('realign_conf', 0)} | {a.get('ctrl', 0)} | {a.get('ctrl_unfilled', 0)} |")
     L += ['', f"OANDA fine-bar requests: {meta.get('requests', 0)} (cached {meta.get('cached', 0)}, errors {meta.get('fine_errors', 0)}). "
           f"Errors: {len(meta['errors'])}" + (': ' + '; '.join(meta['errors'][:10]) if meta['errors'] else '') + '.', '']
     L += ['## Caveats', '',
@@ -845,13 +927,14 @@ def charts(rows: List[Dict], K: Optional[Dict], summary: Dict, out_dir: str) -> 
             ax.spines[s_].set_visible(False)
     arr = [r for r in rows if r['kind'] == 'arrival']
     conf = [r for r in rows if r['kind'] == 'ltfconf']
+    choch = [r for r in rows if r['kind'] == 'ltfchoch']
     ctrl = [r for r in rows if r['kind'] == 'zone']
     # 1) expectancy by population x management
     pops = []
     if K:
         import kevin_calls as KC
         pops.append(('Kevin calls', '#d97706', lambda m: KC.trades(K['rows'], m if m in KC.VARIANTS else '2R')))
-    pops += [('Our arrivals', '#2563eb', lambda m: flat(arr, m)), ('LTF confirmation', '#7c3aed', lambda m: flat(conf, m))]
+    pops += [('Our arrivals', '#2563eb', lambda m: flat(arr, m)), ('LTF structure-break', '#7c3aed', lambda m: flat(choch, m))]
     if ctrl:
         pops.append(('Every zone', '#6b7280', lambda m: flat(ctrl, m)))
     ms = ['2R', '3R', 'partial', 'trail', 'opp']
@@ -908,7 +991,7 @@ def charts(rows: List[Dict], K: Optional[Dict], summary: Dict, out_dir: str) -> 
     plt.close(fig)
     made.append(p)
     # 3) walk-forward train vs test for the picked variants
-    wf = [(k, x) for k in ('arrival', 'ltfconf', 'zone') for x in summary.get('wf', {}).get(k, []) if x['picked']]
+    wf = [(k, x) for k in ('arrival', 'ltfconf', 'ltfchoch', 'zone') for x in summary.get('wf', {}).get(k, []) if x['picked']]
     wf = sorted(wf, key=lambda kx: -(kx[1]['train']['avg_R'] or 0))[:16]
     if wf:
         fig, ax = plt.subplots(figsize=(11, 0.42 * len(wf) + 1.6), dpi=120)
@@ -929,10 +1012,10 @@ def charts(rows: List[Dict], K: Optional[Dict], summary: Dict, out_dir: str) -> 
         made.append(p)
     # 4) equity curves, test years
     fig, ax = plt.subplots(figsize=(10, 4.6), dpi=120)
-    lines = [('Arrivals, all, 2R', flat(arr, '2R'), '#2563eb'), ('LTF confirmation, 3R', flat(conf, '3R'), '#7c3aed')]
+    lines = [('Arrivals, all, 2R', flat(arr, '2R'), '#2563eb'), ('LTF structure-break, 2R', flat(choch, '2R'), '#7c3aed')]
     best = summary.get('best')
     if best:
-        src = {'arrival': arr, 'ltfconf': conf, 'zone': ctrl}[best['set']]
+        src = {'arrival': arr, 'ltfconf': conf, 'ltfchoch': choch, 'zone': ctrl}[best['set']]
         lines.append((f"Best holding: {best['set']} / {best['filter']} / {best['mgmt']}",
                       flat([r for r in src if filt(best['filter'])(r.get('f') or {})], best['mgmt']), '#059669'))
     for name, ts, col in lines:
@@ -960,7 +1043,7 @@ def charts(rows: List[Dict], K: Optional[Dict], summary: Dict, out_dir: str) -> 
 
 def pick_best(summary: Dict) -> Optional[Dict]:
     best = None
-    for k in ('arrival', 'ltfconf', 'zone'):
+    for k in ('arrival', 'ltfconf', 'ltfchoch', 'zone'):
         for x in summary.get('wf', {}).get(k, []):
             if not x.get('holds'):
                 continue

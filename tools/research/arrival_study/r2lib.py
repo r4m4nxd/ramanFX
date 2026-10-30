@@ -101,6 +101,8 @@ def simulate(d: int, entry: float, stop: float, fine: TF, t0: str, expire: str, 
         return out
     cancel_at = tp if cancel_at is None else cancel_at
     i = fine.closed(t0)
+    if cancel_at is not None and i > 0 and (cancel_at - fine.bars[i - 1].c) * d <= 0:
+        cancel_at = None              # price is already beyond the cancel level when the order is placed (far limit)
     fill_i = None
     while i < len(fine):
         if fine.ends[i] > expire:
