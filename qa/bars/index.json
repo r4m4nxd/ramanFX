@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-30T20:40:56Z",
+ "generated": "2026-10-30T23:08:31Z",
  "price": "bid",
  "clock": "server time = New York + 7 h (Pepperstone MT5 GMT+2 / GMT+3, 00:00 = 17:00 New York)",
  "align": {
@@ -588,6 +588,19 @@
      "first": "2026-09-18T23:30",
      "last": "2026-10-30T23:30",
      "forming": true,
+     "misaligned": 0,
+     "pages": 1
+    }
+   }
+  },
+  "SPOTCRUDE": {
+   "oanda": "WTICO_USD",
+   "tfs": {
+    "MN": {
+     "n": 262,
+     "first": "2005-01-01T00:00",
+     "last": "2026-10-01T00:00",
+     "forming": false,
      "misaligned": 0,
      "pages": 1
     }
