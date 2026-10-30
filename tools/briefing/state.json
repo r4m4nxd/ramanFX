@@ -1,7 +1,16 @@
 {
  "lessons": {
   "cycle": 1,
-  "used": []
+  "last": {
+   "date": "2026-10-30",
+   "key": "raja:1",
+   "title": "Strong Zones: CP Zones and Arrival Zones"
+  },
+  "used": [
+   "raja:1"
+  ]
  },
- "sent": {}
+ "sent": {
+  "2026-10-30": "2026-10-30T12:00:36Z"
+ }
 }
