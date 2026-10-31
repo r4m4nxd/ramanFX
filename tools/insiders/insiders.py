@@ -53,6 +53,7 @@ Output public/insiders/latest.json on the `data` branch (INSIDERS_DATA_ROOT; the
 /holders, /fund and zone lines, the morning brief): the clusters / early buys of the last 30 days, the recent qualifying buys,
 the recent big-ish sales, planned sales (Form 144), 13D filings, a per-ticker 30-day summary.
 State tools/insiders/.cache/state.json (actions cache): seen accession numbers, parsed buys / sells / 144 / 13D, days done, alerts.
+The first run on a latest.json written by the older job alerts only sales / 144 / 13D filed after it (`events_since` in the file).
 
     python tools/insiders/insiders.py                 # the scheduled run
     python tools/insiders/insiders.py --sample        # ONE '🧪 Sample insider buys' message (top clusters), no alerts
@@ -1186,9 +1187,9 @@ def to_alert(cls: Sequence[Dict], new_accs: Set[str], alerted: Dict, now: dt.dat
     return out
 
 
-def events_to_alert(items: Sequence[Dict], new_accs: Set[str], alerted: Dict, now: dt.datetime, cfg: Dict = CFG) -> List[Dict]:
-    """New big sales, planned sales and 13D filings (read this run, filed within new_hours) not sent before."""
-    return [c for c in items if c['key'] not in alerted and is_new(c, new_accs, now, cfg['new_hours'])]
+def events_to_alert(items: Sequence[Dict], new_accs: Set[str], alerted: Dict, now: dt.datetime, cfg: Dict = CFG, since: str = '') -> List[Dict]:
+    """New big sales, planned sales and 13D filings (read this run, filed within new_hours and after `since`) not sent before."""
+    return [c for c in items if c['key'] not in alerted and (c.get('filed') or '') >= since and is_new(c, new_accs, now, cfg['new_hours'])]
 
 
 RANK = {'cluster': 0, 'solo': 0, 'early': 0, 'act': 1, 'sell': 2, 'plan': 3}
@@ -1318,6 +1319,9 @@ def run(now: dt.datetime, get: Optional[Callable[[str], bytes]], sample: bool = 
     prev = load_json(latest_path, {}) or {}
     for k, v in (prev.get('alerted') or {}).items():             # the committed file outlives an evicted cache
         st['alerted'].setdefault(k, v)
+    # The first run of a file written by the older job (no 'plans' list yet): sales, Form 144 and 13D filings accepted before it were
+    # never alerted and must not flood the first message; only newer ones are. Kept in latest.json as `events_since`.
+    since = str(prev.get('events_since') or ('' if not prev or 'plans' in prev else now.strftime('%Y-%m-%dT%H:%M:%SZ')))
     today = now.astimezone(NYZ).date()
     new: Set[str] = set()
     if get is None:
@@ -1351,7 +1355,7 @@ def run(now: dt.datetime, get: Optional[Callable[[str], bytes]], sample: bool = 
         day = now.astimezone(CAL).date().isoformat()
         left = max(0, cfg['max_per_day'] - int(st['sent_day'].get(day, 0)))
         muted = P.muted_set(prefs, now)
-        found = to_alert(cls + early, new, st['alerted'], now, cfg) + events_to_alert(sells + plans + acts, new, st['alerted'], now, cfg)
+        found = to_alert(cls + early, new, st['alerted'], now, cfg) + events_to_alert(sells + plans + acts, new, st['alerted'], now, cfg, since)
         cand = [c for c in order_alerts(found) if c['sym'] not in muted]
         if len(cand) > left:
             log(f'{len(cand) - left} alert(s) over the daily cap ({cfg["max_per_day"]}): app only')
@@ -1377,7 +1381,10 @@ def run(now: dt.datetime, get: Optional[Callable[[str], bytes]], sample: bool = 
         else:
             log('no new insider alert at or above the bars: no message')
     save_state(st, state_path)
-    wrote = write_latest(build_latest(now, st, shown, ctx, get is not None, cfg), latest_path)
+    js = build_latest(now, st, shown, ctx, get is not None, cfg)
+    if since:
+        js['events_since'] = since
+    wrote = write_latest(js, latest_path)
     log('public/insiders/latest.json ' + ('written' if wrote else 'unchanged'))
     return msg
 

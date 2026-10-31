@@ -175,27 +175,43 @@ def scan_infotable(zf: zipfile.ZipFile) -> Iterable[Tuple[str, str, str, str, fl
 
 
 def issuer_names(zf: zipfile.ZipFile) -> Dict[str, Dict]:
-    """Pass 1: {cusip: {name, title, val}} (the biggest row's names, the dollars summed): what the map step matches against."""
+    """Pass 1: {cusip: {name, title, val}} (the names of the biggest row, the dollars summed): what the map step matches against.
+    Filers spell an issuer their own way ('APPLE INC', 'APPLEINC', 'APPLE INC COM'): the biggest position's spelling wins."""
     out: Dict[str, Dict] = {}
+    big: Dict[str, float] = {}
     for _, c, name, title, _, val in scan_infotable(zf):
         e = out.get(c)
         if e is None:
             out[c] = {'name': name, 'title': title, 'val': val}
+            big[c] = val
         else:
             e['val'] += val
+            if val > big[c]:
+                e['name'], e['title'], big[c] = name, title, val
     return out
 
 
 def holdings_of(zf: zipfile.ZipFile, accs: Dict[str, str], cusips: Set[str]) -> Dict[str, Dict[str, Tuple[float, float]]]:
     """Pass 2: {cusip: {manager cik: (shares, value)}} for the wanted CUSIPs and accessions."""
-    out: Dict[str, Dict[str, Tuple[float, float]]] = {}
+    return holdings_multi(zf, {'x': accs}, cusips)['x']
+
+
+def holdings_multi(zf: zipfile.ZipFile, groups: Dict[str, Dict[str, str]], cusips: Set[str]) -> Dict[str, Dict[str, Dict[str, Tuple[float, float]]]]:
+    """One pass for several selections at once: groups = {tag: {accession: manager cik}} -> {tag: {cusip: {cik: (shares, value)}}}.
+    (A quarter's filings are spread over the zips: the originals in one, later amendments in the next.)"""
+    where: Dict[str, List[Tuple[str, str]]] = {}
+    for tag, accs in groups.items():
+        for acc, cik in accs.items():
+            where.setdefault(acc, []).append((tag, cik))
+    out: Dict[str, Dict[str, Dict[str, Tuple[float, float]]]] = {tag: {} for tag in groups}
     for acc, c, _, _, sh, val in scan_infotable(zf):
-        cik = accs.get(acc)
-        if cik is None or c not in cusips:
+        hit = where.get(acc)
+        if not hit or c not in cusips:
             continue
-        d = out.setdefault(c, {})
-        a, b = d.get(cik, (0.0, 0.0))
-        d[cik] = (a + sh, b + val)
+        for tag, cik in hit:
+            d = out[tag].setdefault(c, {})
+            a, b = d.get(cik, (0.0, 0.0))
+            d[cik] = (a + sh, b + val)
     return out
 
 

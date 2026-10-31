@@ -1,0 +1,181 @@
+<SEC-DOCUMENT>0001964306-26-000484.txt : 20261030
+<SEC-HEADER>0001964306-26-000484.hdr.sgml : 20261030
+<ACCEPTANCE-DATETIME>20261030161353
+ACCESSION NUMBER:		0001964306-26-000484
+CONFORMED SUBMISSION TYPE:	144
+PUBLIC DOCUMENT COUNT:		1
+FILED AS OF DATE:		20261030
+DATE AS OF CHANGE:		20261030
+
+SUBJECT COMPANY:	
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			ACUITY INC. (DE)
+		CENTRAL INDEX KEY:			0001144215
+		STANDARD INDUSTRIAL CLASSIFICATION:	ELECTRIC LIGHTING & WIRING EQUIPMENT [3640]
+		ORGANIZATION NAME:           	04 Manufacturing
+		EIN:				582632672
+		STATE OF INCORPORATION:			DE
+		FISCAL YEAR END:			0831
+
+	FILING VALUES:
+		FORM TYPE:		144
+		SEC ACT:		1933 Act
+		SEC FILE NUMBER:	001-16583
+		FILM NUMBER:		261508195
+
+	BUSINESS ADDRESS:	
+		STREET 1:		1170 PEACHTREE STREET NE
+		STREET 2:		SUITE 1200
+		CITY:			ATLANTA
+		STATE:			GA
+		ZIP:			30309
+		BUSINESS PHONE:		404-853-1400
+
+	MAIL ADDRESS:	
+		STREET 1:		1170 PEACHTREE STREET NE
+		STREET 2:		SUITE 1200
+		CITY:			ATLANTA
+		STATE:			GA
+		ZIP:			30309
+
+	FORMER COMPANY:	
+		FORMER CONFORMED NAME:	ACUITY BRANDS INC
+		DATE OF NAME CHANGE:	20011108
+
+	FORMER COMPANY:	
+		FORMER CONFORMED NAME:	L&C SPINCO INC
+		DATE OF NAME CHANGE:	20010629
+
+REPORTING-OWNER:	
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			ASHE NEIL
+		CENTRAL INDEX KEY:			0001193485
+		ORGANIZATION NAME:           	
+
+	FILING VALUES:
+		FORM TYPE:		144
+
+	MAIL ADDRESS:	
+		STREET 1:		C/O ACUITY BRANDS, INC.
+		STREET 2:		1170 PEACHTREE STREET, NE, STE 1200
+		CITY:			ATLANTA
+		STATE:			GA
+		ZIP:			30309
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>144
+<SEQUENCE>1
+<FILENAME>primary_doc.xml
+<TEXT>
+<XML>
+<?xml version="1.0" encoding="UTF-8"?><edgarSubmission xmlns="http://www.sec.gov/edgar/ownership" xmlns:com="http://www.sec.gov/edgar/common">
+  <headerData>
+    <submissionType>144</submissionType>
+    <filerInfo>
+      <filer>
+        <filerCredentials>
+          <cik>0001193485</cik>
+          <ccc>XXXXXXXX</ccc>
+        </filerCredentials>
+      </filer>
+      <liveTestFlag>LIVE</liveTestFlag>
+
+
+
+    </filerInfo>
+  </headerData>
+  <formData>
+    <issuerInfo>
+      <issuerCik>0001144215</issuerCik>
+      <issuerName>ACUITY INC. (DE)</issuerName>
+      <secFileNumber>001-16583</secFileNumber>
+      <issuerAddress>
+        <com:street1>1170 PEACHTREE STREET NE</com:street1>
+        <com:street2>SUITE 1200</com:street2>
+        <com:city>ATLANTA</com:city>
+        <com:stateOrCountry>GA</com:stateOrCountry>
+        <com:zipCode>30309</com:zipCode>
+      </issuerAddress>
+      <issuerContactPhone>404-853-1400</issuerContactPhone>
+      <nameOfPersonForWhoseAccountTheSecuritiesAreToBeSold>ASHE NEIL</nameOfPersonForWhoseAccountTheSecuritiesAreToBeSold>
+      <relationshipsToIssuer>
+        <relationshipToIssuer>Officer</relationshipToIssuer>
+      </relationshipsToIssuer>
+    </issuerInfo>
+    <securitiesInformation>
+      <securitiesClassTitle>Common Stock</securitiesClassTitle>
+      <brokerOrMarketmakerDetails>
+        <name>Merrill Lynch</name>
+        <address>
+          <com:street1>225 Liberty Street</com:street1>
+          <com:street2>Floor 37</com:street2>
+          <com:city>New York</com:city>
+          <com:stateOrCountry>NY</com:stateOrCountry>
+          <com:zipCode>10281</com:zipCode>
+        </address>
+      </brokerOrMarketmakerDetails>
+      <noOfUnitsSold>9217</noOfUnitsSold>
+      <aggregateMarketValue>2936682.43</aggregateMarketValue>
+      <noOfUnitsOutstanding>29695521</noOfUnitsOutstanding>
+      <approxSaleDate>10/30/2026</approxSaleDate>
+      <securitiesExchangeName>NYSE</securitiesExchangeName>
+    </securitiesInformation>
+    <securitiesToBeSold>
+      <securitiesClassTitle>Common Stock</securitiesClassTitle>
+      <acquiredDate>10/24/2026</acquiredDate>
+      <natureOfAcquisitionTransaction>Vesting of performance share unit awards</natureOfAcquisitionTransaction>
+      <nameOfPersonfromWhomAcquired>ACUITY INC. (DE)</nameOfPersonfromWhomAcquired>
+      <isGiftTransaction>N</isGiftTransaction>
+      <amountOfSecuritiesAcquired>9217</amountOfSecuritiesAcquired>
+      <paymentDate>10/24/2026</paymentDate>
+      <natureOfPayment>Granted as part of issuer equity compensation plan</natureOfPayment>
+    </securitiesToBeSold>
+    <nothingToReportFlagOnSecuritiesSoldInPast3Months>N</nothingToReportFlagOnSecuritiesSoldInPast3Months>
+    <securitiesSoldInPast3Months>
+      <sellerDetails>
+        <name>Neil Ashe</name>
+        <address>
+          <com:street1>1170 PEACHTREE STREET NE</com:street1>
+          <com:street2>SUITE 1200</com:street2>
+          <com:city>ATLANTA</com:city>
+          <com:stateOrCountry>GA</com:stateOrCountry>
+          <com:zipCode>30309</com:zipCode>
+        </address>
+      </sellerDetails>
+      <securitiesClassTitle>Common Stock</securitiesClassTitle>
+      <saleDate>10/28/2026</saleDate>
+      <amountOfSecuritiesSold>22060</amountOfSecuritiesSold>
+      <grossProceeds>7000217.88</grossProceeds>
+    </securitiesSoldInPast3Months>
+    <securitiesSoldInPast3Months>
+      <sellerDetails>
+        <name>Neil Ashe</name>
+        <address>
+          <com:street1>1170 PEACHTREE STREET NE</com:street1>
+          <com:street2>SUITE 1200</com:street2>
+          <com:city>ATLANTA</com:city>
+          <com:stateOrCountry>GA</com:stateOrCountry>
+          <com:zipCode>30309</com:zipCode>
+        </address>
+      </sellerDetails>
+      <securitiesClassTitle>Common Stock</securitiesClassTitle>
+      <saleDate>10/29/2026</saleDate>
+      <amountOfSecuritiesSold>8187</amountOfSecuritiesSold>
+      <grossProceeds>2656199.78</grossProceeds>
+    </securitiesSoldInPast3Months>
+    <noticeSignature>
+      <noticeDate>10/30/2026</noticeDate>
+      <planAdoptionDates>
+        <planAdoptionDate>07/01/2026</planAdoptionDate>
+      </planAdoptionDates>
+      <signature>Neil Ashe</signature>
+    </noticeSignature>
+  </formData>
+</edgarSubmission>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>
+
