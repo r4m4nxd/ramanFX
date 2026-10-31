@@ -6,8 +6,9 @@ primary document, edgarSubmission); 'SC 13D', 'SC 13D/A', 'SC 13G', 'SC 13G/A' b
 patterns). Latest-filings feed type=SCHEDULE 13D / SCHEDULE 13G (the feed matches a type by its prefix, so '/A' comes with
 it); daily index form types as above.
 
-XML, by tag name (wherever the schema version nests it): issuerInfo (issuerCik, issuerCusip, issuerName), eventDateRequires
-FilingThisStatement (MM/DD/YYYY), per reporting person reportingPersonName + percentOfClass (13D) / classPercent (13G) +
+XML, by tag name (wherever the schema version nests it; names checked against real filings of Oct 2026, schema X0202):
+issuerInfo (issuerCik / issuerCIK, issuerCusips/issuerCusipNumber, issuerName), eventDateRequiresFilingThisStatement (13G) /
+dateOfEvent (13D) (MM/DD/YYYY), per reporting person reportingPersonName + percentOfClass (13D) / classPercent (13G) +
 aggregateAmountOwned (13D) / reportingPersonBeneficiallyOwnedAggregateNumberOfShares (13G); 13D Item 4 (purpose of the
 transaction): transactionPurpose. The SGML envelope (edgar.header) names the filer and the subject company either way.
 The biggest percentage among the reporting persons is the record's (a group's members repeat the group total).
@@ -61,7 +62,7 @@ def parse_xml(root: ET.Element) -> Dict:
     item4 = next(iter(E.iter_tag(root, 'item4')), None)
     purpose = E.first(root, 'transactionPurpose') or (' '.join(''.join(item4.itertext()).split()) if item4 is not None else '')
     return {'subject': {'cik': E.first(root, 'issuerCik').lstrip('0'), 'name': E.first(root, 'issuerName'),
-                        'cusip': E.first(root, 'issuerCusip', 'issuerCUSIP', 'cusip').replace(' ', '').upper()},
+                        'cusip': E.first(root, 'issuerCusipNumber', 'issuerCusip', 'cusip').replace(' ', '').upper()},
             'persons': persons, 'filer': (top.get('name') if top else '') or (persons[0]['name'] if persons else ''),
             'pct': pct, 'shares': sh, 'event': E.iso_date(E.first(root, 'eventDateRequiresFilingThisStatement', 'dateOfEvent')),
             'purpose': purpose_text(purpose)}
@@ -90,7 +91,7 @@ def parse_submission(raw: bytes) -> Dict:
     sub, fl = h['subject'] or {}, h['filer'] or {}
     doc['subject']['cik'] = doc['subject']['cik'] or sub.get('cik', '')
     doc['subject']['name'] = doc['subject']['name'] or sub.get('name', '')
-    doc['filer'] = fl.get('name') or doc['filer']
+    doc['filer'] = doc['filer'] or fl.get('name', '')         # the reporting person with the biggest stake, else the envelope's FILED BY
     doc['filer_cik'] = fl.get('cik', '')
     if kind == 'G':
         doc['purpose'] = ''
