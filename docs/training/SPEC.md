@@ -1,6 +1,7 @@
 # RamanFX chart-reading SPEC (single source of truth)
 
-Status: v1.1, 2026-10-31 (ZoneVision 2.17: sections 1.6, 1.7, 1.10, 1.11, 1.14, 2.2, 2.3, 3, 8, 9, 11 updated from the owner's
+Status: v1.2, 2026-10-31 (ZoneVision 2.18: sections 1.6, 1.13 (reversal zones), 2.2b, 2.3, 8, 11 updated from three rules
+inferred from the owner's marks - inferred, owner to confirm; logged with per-rule deltas in docs/training/ZV216.md "2.18"). v1.1, 2026-10-31 (ZoneVision 2.17: sections 1.6, 1.7, 1.10, 1.11, 1.14, 2.2, 2.3, 3, 8, 9, 11 updated from the owner's
 2026-10-30 marks and rules; every change is cited and logged in docs/training/ZV216.md section "2.17"). v1, 2026-10-30. Every engine and port (zvReal.ts, zvTrend.ts, arrival.ts, RFX_ZoneCore.mqh, RamanFX_ZoneVision.mq5,
 Pine, Python) is built from this file **line by line**. When code and this file disagree, the code is wrong. When this
 file and the owner disagree, this file is wrong: fix it here first, then the code.
@@ -149,7 +150,15 @@ A pivot is not "a swing low". It is the end of a REAL correction of the leg befo
   Anchor 1 = `E`'s extreme; anchor 2 = the steepest touch of the line along the leg's lows (up) / highs (down) up to `X`
   (the hull; `X`'s own candle counts only when its line-side extreme comes first in the OHLC path: a bullish candle's low,
   a bearish candle's high; a touch within {momTol = 0.03} x ATR counts). A leg flatter than {momMin = 0.15} x ATR per bar
-  is no impulse (no line). The line ends at its first close beyond. Its break ends the IMPULSE, not the trend; it is never
+  is no impulse (no line). **2.18 (inferred from the marks, owner to confirm; answers Q4 / Q5 in part):** the hull is taken over
+  the next {momBars = 5} bars after anchor 1 (the owner's anchor 2 is 1-5 bars on in 18 of 22 lines), and besides the pivot's
+  line every one-way RUN inside the impulse leg gets its own line: a run starts at a leg-direction departure candle right after
+  an opposite-coloured or basing candle, and only a run whose first candle has a body >= {momBody = 1.0} x ATR (an
+  above-average candle) gets a line; anchor 1 = that candle's extreme (owner gold D1 Aug 5 1.93 ATR, Aug 19 1.77, Aug 28 1.40,
+  W1 Aug 1 1.15; the run starts he skipped on gold D1 are 0.65 - 1.11 ATR). Tested and not kept: starting the PIVOT's line at
+  the first candle of the new colour (he starts at an opposite-coloured pivot candle on gold D1 Jul 22, AUDUSD MN 2022-10, gold
+  H4 Oct 28 20:00), and selecting runs by a break of structure (gold D1 Aug 28 breaks none). The line ends at its first close
+  beyond. Its break ends the IMPULSE, not the trend; it is never
   used for direction change, arrival or confirmation. (2.16 used the hull over a fixed {momBars = 4} bars from the pivot,
   only when the leg travelled 0.6 ATR per bar: lines that never broke stayed "live" for years, e.g. the gold W1 line from
   Feb 2024 under all the lows. Tested and NOT kept: moving anchor 1 one bar later when the line to the next bar is flat
@@ -332,6 +341,13 @@ A pivot is not "a swing low". It is the end of a REAL correction of the leg befo
   = the pivot's wick; pattern DBR / RBD; touches and removal as for any zone; drawn only with a reason (1.14). Owner: gold D1
   demand Jul 17-20 3959.48-4016.39 (= exactly the Jul 17 pivot candle + the Jul 20 basing candle; zonecore found only the Jul
   20 candle); AUDUSD W1 Nov 15 / Mar 28 / May 2, AUDUSD D1 Jul 13 / Sep 2 are pivot candles too.
+  **2.18 (inferred from the marks, owner to confirm):** when the pivot candle is the last LEG-IN candle (a departure coloured
+  into the extreme: a bullish candle making the peak, a bearish one making the valley), the zone is the basing candle(s) AFTER
+  it, before the leg-out (gold W1 Apr 11 peak -> the Apr 18 supply; gold D1 Sep 3 -> Sep 4); no basing candle after it: the
+  pivot candle. A pivot candle that is itself a base, or coloured like the leg-out (gold D1 Jul 17), keeps the 2.17 turn
+  (pivot + adjacent basing candles). Distal = the zone candles' own extreme wick (the owner's distal in 49 of 50 zones).
+  A pivot zone is dropped only when a detected base CONTAINS its candles (2.17 dropped it when any base touched the pivot
+  candle: AUDUSD W1 Nov 15 / May 2 were hidden behind zonecore boxes with other edges).
 
 ### 1.14 Zone reasons (owner 2026-10-30)
 
@@ -417,6 +433,13 @@ Owner 2026-10-30: "lines are built forward in time, as a trader draws them live.
 fixed, and the first close beyond it breaks it. A later pivot never rescues a line that a close already broke." Down lines
 described (up mirrored). Swings = the real pivots of 1.3.
 
+0. **2.18 line swings on W1 / MN / 3M (inferred, owner to confirm; replaces the "smaller swing" idea of Q6).** Besides the real
+   pivots, a swing is: after a real valley V, the first 1-bar swing high after V and the first bullish departure candle that
+   CLOSES above it; when that candle launches the leg (the candle before it is no bullish departure) and no real pivot lies
+   between V and it, its LOW is a line swing, confirmed at that candle (down lines mirrored). Owner: gold W1 Jul 11 -> **Aug 1**
+   4018.97 ("the big rally candle that is the first to break the prior swing high"), AUDUSD W1 May 9 -> **May 30** 0.71896. Not
+   on D1 / H4 (there it draws lines the owner did not, and breaks A-H4-L2, G-D1-L1, G-D1-L1x); not when the break comes on a
+   later candle of the run (the gold W1 2023 target line would become Sep 30 -> Nov 11 2023).
 1. **Confirmation of a lower high `s`** (every anchor 2, Line 1, chain and nested alike; 2.16 confirmed chain lines at the 1.3
    confirmation only): `s0` = the nearest swing high before `s` that is higher; `s` is confirmed at the first bar price
    TRADES below the lowest low strictly between `s0` and `s` (Kevin L5; `s`'s own candle counts when its high comes first,
@@ -431,7 +454,9 @@ described (up mirrored). Swings = the real pivots of 1.3.
    Jul 25 -> Sep 5; gold D1 Aug 4 -> Aug 19; SpotCrude Sep 2023 -> Jun 2025). If that is not clean: a new local structure
    from `s0` inside `L`.
 4. **No live line**: a waiting Line 1 from a counter swing (C1 -> C2), else a new structure: Line 1 from `s0` (p1Shift, clean,
-   too flat -> wait).
+   too flat -> wait). **2.18 (W1 / MN / 3M, inferred, owner to confirm):** when every p1Shift anchor is cut, anchor 1 = the
+   FIRST HIGHER LOW after `s0` (the lowest low between `s0` and `s`; mirrored), clean within fitTol ATR (gold W1: bottom Jun 27
+   3941.55, line from Jul 11 3959.48; AUDUSD W1: bottom Nov 15, line from Nov 22). On D1 / H4 it adds no owner line.
 5. **Anchor 2** = the hull touch up to the confirmation bar when a bar pokes beyond the line through `s` by more than
    {fitTol = 0.02} x ATR ([O] "Pivot 2 is where the line touches while resting above the swings in between": AUDUSD D1 Sep 9 ->
    Sep 23, not Sep 21 (0.05 ATR); 0.02 keeps gold D1 Sep 18 (0.002 ATR off Sep 23)). After the confirmation the line is FIXED.
@@ -442,7 +467,7 @@ Drawn (section 3): per direction the main live line (not nested) + the newest ne
 
 ### 2.3 Step 3, per TF: momentum line
 
-Section 1.6, one per impulse leg (all kept in the model for scoring). Drawn: the live ones of the last two legs + the most
+Section 1.6, one per impulse leg plus (2.18) one per >= 1 ATR one-way run inside it (all kept in the model for scoring). Drawn: the live ones of the last two legs + the most
 recently broken one.
 
 ### 2.4 Step 4, per TF: trend state
@@ -756,6 +781,9 @@ rule it breaks:
 | momTol / momMin (2.17) | 0.03 / 0.15 ATR per bar | gold D1 Jul 10 -> Jul 15 (Jul 14 pokes 0.02 ATR); owner momentum lines are >= 0.17 ATR / bar |
 | momShift (2.17) | 0 (off) | anchor 1 one bar later when the line to the next bar is flatter than this: owner H4 / W1 cases, but the 9-chart score drops |
 | pivZones / zoneSwing (2.17) | 2 / 2 | reversal zones with the turn's basing candles; BOS on a 2-bar swing (zone recall 9 -> 12 / 50) |
+| pivZones (2.18) | 3 | 3 = after a leg-in pivot candle, the base candles before the leg-out, distal at their own wick (zone recall 12 -> 15 / 50; holdout 2 -> 7 / 17) |
+| bosN / p1Low (2.18) | 1 / 1 | W1 / MN / 3M only: line swings at the candle that closes beyond the first 1-bar swing after a real pivot; the first higher low as anchor 1 (rows 12 -> 15 / 29) |
+| momRun / momBody / momBars (2.18) | 1 / 1.0 ATR / 5 bars | a momentum line per one-way run starting with a >= 1 ATR candle; the hull over 5 bars (momentum F1 16 -> 23) |
 | lineMode (2.17) | 1 | 1 = 2.2b forward time, 0 = 2.2 (2.16; Q1 / Q2 apply only there) |
 | momBars / momEff | removed in 2.17 | 2.16 momentum window / impulse test |
 
@@ -809,17 +837,26 @@ rule it breaks:
   and you kept it (rotated to Sep 2); gold W1 Aug 1 closed 1.48 ATR above the Feb 28 -> May 9 line and you broke it. Is a
   close within about half an ATR that the next candle takes back a fake cross? **yes** (2.17 default, vetoClose 0.5) / **no**
   (every close breaks; the AUDUSD D1 and MN rows become breaks).
-- **Q4 (2.17). Momentum anchor 1.** You start some momentum lines one bar after the pivot (H4 Oct 13 16:00, Oct 14 20:00; W1
+- **Q4 (2.17; 2.18: inferred from the marks, owner to confirm).** Data answer: yes for runs inside a leg (a run that starts
+  with a >= 1 ATR candle after a pause gets its own line from that candle: gold D1 Aug 5 / Aug 19 / Aug 28, W1 Aug 1); the
+  pivot's own line stays at the pivot. What the data cannot settle is Q4b below. The original question:
+  **Q4 (2.17). Momentum anchor 1.** You start some momentum lines one bar after the pivot (H4 Oct 13 16:00, Oct 14 20:00; W1
   Nov 22, Aug 29) and others at a base's leg-out candle inside a longer leg (D1 Aug 5, Aug 19, Aug 28). Should the momentum
   line start at the first candle of the one-way run (after the last opposite candle) instead of the pivot? **yes** / **no**
   (2.17 default: the pivot).
-- **Q5 (2.17). Momentum lines on every impulse leg?** On D1 gold you marked them on the Jul-Sep legs only, on H4 on 4 of 11
+- **Q5 (2.17; 2.18: inferred, owner to confirm).** Data answer: every impulse leg keeps the pivot's line; inside a leg only runs
+  that start with a >= 1 ATR candle get one. No feature of the pivot legs separates the ones you marked from the ones you did
+  not (momentum precision stays ~15%). The original question: **Q5 (2.17). Momentum lines on every impulse leg?** On D1 gold you marked them on the Jul-Sep legs only, on H4 on 4 of 11
   legs. Should every impulse leg (>= 0.15 ATR per bar) get one in the model (MT5 shows only the last two legs)? **yes** (2.17)
   / **no** (only legs with a continuation base, RBR / DBD, inside them).
-- **Q6 (2.17). Swing scale for line anchors.** Your W1 anchors Jan 17, Jul 25, May 30, Sep 19 (AUDUSD) and May 9, Jul 11, Aug 1
+- **Q6 (2.17; 2.18: narrowed).** The data say no to a smaller swing everywhere; 2.18 instead anchors W1 / MN lines at the candle
+  that first closes beyond the swing after a real pivot (gold W1 Aug 1, AUDUSD W1 May 30) and at the first higher low (gold W1
+  Jul 11). What it cannot settle is Q8 below. The original question: **Q6 (2.17). Swing scale for line anchors.** Your W1 anchors Jan 17, Jul 25, May 30, Sep 19 (AUDUSD) and May 9, Jul 11, Aug 1
   (gold) are 0.7-1.1 ATR pullbacks, below the real-pivot size (1.25 ATR). Using them everywhere adds lines you did not draw on
   D1 / H4. Should W1 / MN lines use a smaller swing than D1 / H4? **yes** / **no**.
-- **Q7 (2.17). Which zones.** 27 of your 50 zones are not found by the zone engine: pivot candles, the candle right after a
+- **Q7 (2.17; 2.18: narrowed).** 2.18 boxes the base candle(s) after a leg-in pivot candle (gold W1 Apr 18; gold D1 Sep 4 is boxed but its leg-out gives no reason).
+  Still open: the candle right after a pivot when it is itself a big departure (gold W1 Jan 3 = its body, Mar 7; AUDUSD D1
+  Oct 16; H4 Oct 29 08:00). The original question: **Q7 (2.17). Which zones.** 27 of your 50 zones are not found by the zone engine: pivot candles, the candle right after a
   pivot (gold W1 Jan 3 / Mar 7 / Apr 18, AUDUSD D1 Oct 16) and 1-candle bases. Should every real pivot's first leg-out candle
   also be a zone (body to the wick on the pivot side)? **yes** (more of yours found, many you did not draw) / **no** (2.17:
   the pivot candle + its basing candles only).
@@ -829,3 +866,14 @@ rule it breaks:
   at the first higher low. From Jul 29 the only clean line touches Aug 3 4018.97 (nearly flat; breaks Sep 16 by 1.5
   points); the clean line of the August rally is Aug 3 -> Aug 19 4324.24 (breaks Aug 28). Which one is your up line:
   (a) Jul 17 -> Jul 29, (b) Jul 29 -> Aug 3, (c) Aug 3 -> Aug 19? Default: (a), with G-D1-L2 disabled until answered.
+- **Q4b (2.18). Momentum line when the pivot candle is coloured against the new leg.** You start at that candle's extreme on gold
+  D1 Jul 22, AUDUSD MN 2022-10 and gold H4 Oct 28 20:00, but one candle later on gold H4 Oct 14 20:00 / Oct 22 00:00 and H1
+  Oct 30 12:00. Does the momentum line start at the pivot candle's extreme? **yes** (2.18) / **no** (at the first candle of the
+  new colour).
+- **Q8 (2.18). A one-candle dip inside a W1 rally.** Your AUDUSD W1 up line Nov 22 -> Jan 17 ignores the Dec 6 high / Dec 13 dip
+  (Dec 20 closed above Dec 6), while your gold W1 line Jul 11 -> Aug 1 uses the Jul 18 high / Jul 25 dip of the same size. Is a
+  dip that stays inside a CP base (Dec 13-20) no swing for the line? **yes** / **no** (2.18: it is a swing, so the model draws
+  Nov 22 -> Dec 20).
+- **Q9 (2.18). Trend or momentum.** On gold MN the same anchors 2026-03 5419.41 -> 2026-06 4545.89 are your MOMENTUM line, and
+  2.18 draws them as a TREND line (2026-06 is the candle that breaks the swing). On W1 you call Jul 11 -> Aug 1 a trend line. Is a
+  line whose anchor 2 is the swing-breaking candle a trend line on MN too? **yes** (2.18) / **no** (momentum on MN).

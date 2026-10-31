@@ -1,4 +1,4 @@
-"""Mechanical Python port of the MQL RFX_MODEL block (public/tools/RFX_ZoneCore.mqh, ZoneVision 2.17): the same functions,
+"""Mechanical Python port of the MQL RFX_MODEL block (public/tools/RFX_ZoneCore.mqh, ZoneVision 2.18): the same functions,
 the same loops, the same integer shifts (0 = phantom, 1 = newest closed bar), statement by statement, so the MQL logic can
 be replayed without MetaTrader. It reads the MQL text, never the TypeScript (supabase/functions/telegram-bot/zvModel.ts);
 src/core/zvModelParity.test.ts compares the two on the acceptance charts and random windows.
@@ -12,11 +12,12 @@ from decimal import ROUND_HALF_UP, Decimal
 from mql_port import DBL_MAX, RX_Q, RxParams, S_, ser_of, zcDetect
 
 
-def ZmInner(why): return why >= 10
+def ZmInner(why): return 10 <= why <= 15
 
 P = dict(rc=0.45, near=0.25, minLeg=1.25, fitTol=0.02, minRise=0.25, minSlope=0.015, vetoTol=0.05,
          rangeBaseATR=2.5, targetGap=1.0, p1Retrace=0.50, p1Shift=1, vetoBars=8, brokenShow=20, rangeBaseMax=20, q1=0, q2=0,
-         lineMode=1, vetoClose=0.5, nestGap=0.8, touchTol=0.15, momShift=0.0, momTol=0.03, momMin=0.15, pivZones=2, zoneSwing=2)
+         lineMode=1, vetoClose=0.5, nestGap=0.8, touchTol=0.15, momShift=0.0, momTol=0.03, momMin=0.15, pivZones=3, zoneSwing=2,
+         bosN=1, p1Low=1, momRun=1, momBars=5, momBody=1.0)
 P_DEFAULT = dict(P)
 
 
@@ -133,9 +134,13 @@ def ZmMX(S, d, j): return S.L[j] if d > 0 else S.H[j]
 def ZmMUse(S, d, j, xBar, hasQ): return j != xBar or not hasQ or ((S.C[j] >= S.O[j]) if d > 0 else (S.C[j] < S.O[j]))
 
 
+def ZmMomLim(a, xBar): return max(xBar, a - P['momBars']) if P['momBars'] > 0 else xBar
+
+
 def ZmMomHull(S, d, a, xBar, hasQ):
     b = -1; sl = 0.0
-    for j in range(a - 1, xBar - 1, -1):
+    lo = ZmMomLim(a, xBar)
+    for j in range(a - 1, lo - 1, -1):
         if not ZmMUse(S, d, j, xBar, hasQ): continue
         v = (ZmMX(S, d, j) - ZmMX(S, d, a)) / (a - j)
         if b < 0 or (v < sl if d > 0 else v > sl): b = j; sl = v
@@ -144,33 +149,46 @@ def ZmMomHull(S, d, a, xBar, hasQ):
 
 def ZmMomTol(S, A, d, a, xBar, hasQ, b, sl):
     if b < 0: return b, sl
-    for j in range(a - 1, xBar - 1, -1):
+    lo = ZmMomLim(a, xBar)
+    for j in range(a - 1, lo - 1, -1):
         if not ZmMUse(S, d, j, xBar, hasQ) or j == b: continue
         v = (ZmMX(S, d, j) - ZmMX(S, d, a)) / (a - j)
         if not (v > sl if d > 0 else v < sl): continue
         ok = True
         h = a - 1
-        while h >= xBar and ok:
+        while h >= lo and ok:
             if h != j and ZmMUse(S, d, h, xBar, hasQ) and d * (ZmMX(S, d, a) + v * (a - h) - ZmMX(S, d, h)) > P['momTol'] * A.At(h): ok = False
             h -= 1
         if ok and (v > sl if d > 0 else v < sl): b = j; sl = v
     return b, sl
 
 
-def ZmMomentum(S, A, piv, i):
-    hasQ = i + 1 < len(piv)
-    d = -piv[i].t; xBar = piv[i + 1].bar if hasQ else 1
-    if piv[i].bar - xBar < 1: return None
-    a = piv[i].bar
+def ZmMomLine(S, A, d, a, xBar, hasQ, p2, why):
     b, sl = ZmMomHull(S, d, a, xBar, hasQ)
-    if b == a - 1 and abs(sl) < P['momShift'] * A.At(a) and a - 1 > xBar:
-        a = a - 1; b, sl = ZmMomHull(S, d, a, xBar, hasQ)
     b, sl = ZmMomTol(S, A, d, a, xBar, hasQ, b, sl)
     if b < 0 or d * sl <= 0 or abs(sl) < P['momMin'] * A.At(a): return None
-    t = ZmMk(d, 1, a, b, ZmMX(S, d, a), ZmMX(S, d, b), b, piv[i].bar, 5)
+    t = ZmMk(d, 1, a, b, ZmMX(S, d, a), ZmMX(S, d, b), b, p2, why)
     for j in range(b - 1, 0, -1):
         if (S.C[j] < ZmAt(t, j)) if d > 0 else (S.C[j] > ZmAt(t, j)): t.brokenAt = j; break
     return t
+
+
+def ZmMomAdd(S, A, piv, i, out):
+    hasQ = i + 1 < len(piv)
+    d = -piv[i].t; xBar = piv[i + 1].bar if hasQ else 1
+    if piv[i].bar - xBar < 1: return
+    a = piv[i].bar
+    b, sl = ZmMomHull(S, d, a, xBar, hasQ)
+    if b == a - 1 and abs(sl) < P['momShift'] * A.At(a) and a - 1 > xBar: a = a - 1
+    t = ZmMomLine(S, A, d, a, xBar, hasQ, piv[i].bar, 5)
+    if t is not None: out.append(t)
+    if P['momRun'] == 0: return
+    for r in range(piv[i].bar - 1, xBar, -1):
+        dep = S.cdir(r) == d and not S.basing(r); dep1 = S.cdir(r + 1) == d and not S.basing(r + 1)
+        if not dep or dep1 or r == a: continue
+        if abs(S.C[r] - S.O[r]) < P['momBody'] * A.At(r): continue
+        u = ZmMomLine(S, A, d, r, xBar, hasQ, piv[i].bar, 16)
+        if u is not None: out.append(u)
 
 
 class ZmDirF:
@@ -183,6 +201,25 @@ class ZmDirF:
             v = side[i]; x = i - 1
             while x >= 0 and side[x].bar < v.bar: side[x + 1] = side[x]; x -= 1
             side[x + 1] = v
+        self.htf = S.tf in (10080, 43200, RX_Q)
+        if P['bosN'] > 0 and self.htf:
+            N = P['bosN']; nr = len(side)
+            for v in range(nr):
+                vb = side[v].bar; hb = -1; kk = -1
+                j = vb - 1
+                while j >= 1 and kk < 0:
+                    if j + N < vb and self.BosSwing(j + N, N): hb = j + N
+                    if hb >= 0 and j < hb and self.BosDep(j) and ((S.C[j] > self.Y(hb)) if d > 0 else (S.C[j] < self.Y(hb))): kk = j
+                    j -= 1
+                if kk < 0 or (kk + 1 < vb and self.BosDep(kk + 1)): continue
+                between = any(side[q].bar < vb and side[q].bar > kk for q in range(nr))
+                if between or not self.Out(side[v].p, self.X(kk)): continue
+                if any(q.bar == kk for q in side): continue
+                side.append(Piv(kk, self.X(kk), -d, kk))
+            for i in range(1, len(side)):
+                v2 = side[i]; x = i - 1
+                while x >= 0 and side[x].bar < v2.bar: side[x + 1] = side[x]; x -= 1
+                side[x + 1] = v2
         self.side = side
         ev = []
         for i in range(1, len(side)):
@@ -214,12 +251,19 @@ class ZmDirF:
     def Out(self, x, y): return x < y if self.d > 0 else x > y
     def Beyond(self, t, j): return self.S.C[j] < ZmAt(t, j) if self.d > 0 else self.S.C[j] > ZmAt(t, j)
     def Thru(self, j, ox): return self.Y(j) > ox if self.d > 0 else self.Y(j) < ox
+    def BosDep(self, j): return self.S.cdir(j) == self.d and not self.S.basing(j)
+
+    def BosSwing(self, i, N):
+        if i + N >= self.S.n - 1 or i - N < 1: return False
+        for h in range(1, N + 1):
+            if self.Out(self.Y(i), self.Y(i - h)) or self.Out(self.Y(i), self.Y(i + h)): return False
+        return True
 
     def SlopeOk(self, a, pa, b, pb):
         ab = self.A.At(b); rise = self.d * (pb - pa)
         return rise > 0 and rise >= P['minRise'] * ab and rise / max(1, a - b) >= P['minSlope'] * ab
 
-    def Build(self, a, b, to):
+    def Build(self, a, b, to, tol=0.0):
         d = self.d; X = self.X; A = self.A
         pa = X(a); bb = b; sl = (X(b) - pa) / (a - b); poke = False
         for j in range(b - 1, to - 1, -1):
@@ -230,8 +274,19 @@ class ZmDirF:
                 if s2 < sl if d > 0 else s2 > sl: sl = s2; bb = j
         pb = X(bb); clean = True
         for j in range(a - 1, bb, -1):
-            if d * (pa + ((pb - pa) / (a - bb)) * (a - j) - X(j)) > 1e-9 * abs(pa): clean = False; break
+            if d * (pa + ((pb - pa) / (a - bb)) * (a - j) - X(j)) > (tol * A.At(j) if tol > 0 else 1e-9 * abs(pa)): clean = False; break
         return S_(a=a, b=bb, pa=pa, pb=pb, clean=clean)
+
+    def Cands(self, a, sb, ext):
+        out = []
+        sh = 0
+        while sh <= P['p1Shift'] and a - sh > sb: out.append((a - sh, 0.0)); sh += 1
+        if ext and P['p1Low'] > 0 and self.htf and a - 1 > sb:
+            lo = a - 1
+            for c in range(a - 1, sb, -1):
+                if self.Out(self.X(c), self.X(lo)): lo = c
+            out.append((a, P['fitTol'])); out.append((lo, P['fitTol']))
+        return out
 
     def Slope(self, pa, pb, a, b): return (pb - pa) / max(1, a - b)
 
@@ -272,9 +327,8 @@ class ZmDirF:
         self.live.append(h)
 
     def LineFrom(self, a, s, j, why, whyShift, steeper):
-        for sh in range(0, P['p1Shift'] + 1):
-            if a - sh <= s.bar: return False
-            r = self.Build(a - sh, s.bar, j)
+        for ca, ct in self.Cands(a, s.bar, why == 0 or why == 12):
+            r = self.Build(ca, s.bar, j, ct)
             if not r.clean: continue
             if not self.SlopeOk(r.a, r.pa, r.b, r.pb): return False
             if steeper >= 0:
@@ -282,7 +336,7 @@ class ZmDirF:
                 s1 = self.Slope(r.pa, r.pb, r.a, r.b); s2 = self.Slope(L.pa, L.pb, L.a, L.b)
                 if not (s1 > s2 if self.d > 0 else s1 < s2): return False
             if self.Has(r.a, r.b): return True
-            self.Born(ZmMk(self.d, 0, r.a, r.b, r.pa, r.pb, j, s.bar, whyShift if sh > 0 else why), j)
+            self.Born(ZmMk(self.d, 0, r.a, r.b, r.pa, r.pb, j, s.bar, whyShift if ca != a else why), j)
             return True
         return False
 
@@ -327,15 +381,13 @@ class ZmDirF:
                 if s0.bar < w.bar and self.LineFrom(s0.bar, sv, j, 0, 1, -1): continue
                 self.waitP = sv; self.hasWait = True; continue
             made = False
-            for sh in range(0, P['p1Shift'] + 1):
-                if made: break
-                a = s0.bar - sh
-                if a <= sv.bar: break
-                r = self.Build(a, sv.bar, j)
+            for a, ct in self.Cands(s0.bar, sv.bar, True):
+                r = self.Build(a, sv.bar, j, ct)
                 if not r.clean: continue
                 if not self.SlopeOk(r.a, r.pa, r.b, r.pb): break
-                self.Born(ZmMk(d, 0, r.a, r.b, r.pa, r.pb, j, sv.bar, 1 if sh > 0 else 0), j)
+                self.Born(ZmMk(d, 0, r.a, r.b, r.pa, r.pb, j, sv.bar, 1 if a != s0.bar else 0), j)
                 made = True
+                break
             if not made: self.waitP = sv; self.hasWait = True
             confirmed = True
         return confirmed
@@ -546,9 +598,7 @@ def ZmLines(S, A, piv):
         if dn: U.EndStructure()
     if P['lineMode'] == 1: out = list(U.hist) + list(D.hist)
     else: out = [t for i, t in enumerate(U.hist) if not U.dele[i]] + [t for i, t in enumerate(D.hist) if not D.dele[i]]
-    for i in range(len(piv)):
-        t = ZmMomentum(S, A, piv, i)
-        if t is not None: out.append(t)
+    for i in range(len(piv)): ZmMomAdd(S, A, piv, i, out)
     for i in range(1, len(out)):                            # a desc, b desc, dir asc (stable)
         v = out[i]; x = i - 1
         while x >= 0 and (out[x].a < v.a or (out[x].a == v.a and (out[x].b < v.b or (out[x].b == v.b and out[x].dir > v.dir)))): out[x + 1] = out[x]; x -= 1
@@ -644,14 +694,22 @@ def ZmZones(S, A, lines, piv):
         for pv in piv:
             b = pv.bar; d = -pv.t
             if b < 2 or pv.conf < 0: continue
-            if any(q.dir == d and q.base1 >= b and q.base0 <= b for q in zs): continue
+            if P['pivZones'] != 3 and any(q.dir == d and q.base1 >= b and q.base0 <= b for q in zs): continue
             b0 = b; b1 = b
-            if P['pivZones'] > 1:
+            if P['pivZones'] == 3 and not S.basing(b) and S.cdir(b) == -d:
+                e = b
+                while e - 1 >= 2 and S.basing(e - 1) and b - e < 6: e -= 1
+                if e < b: b0 = e; b1 = b - 1
+            elif P['pivZones'] > 1:
                 while b1 + 1 < S.n - 1 and S.basing(b1 + 1) and b1 - b0 < 5: b1 += 1
                 while b0 - 1 >= 2 and S.basing(b0 - 1) and b1 - b0 < 5: b0 -= 1
+            if P['pivZones'] == 3 and any(q.dir == d and not q.range and q.base1 >= b1 and q.base0 <= b0 for q in zs): continue
             prox = -DBL_MAX if d > 0 else DBL_MAX
             for i in range(b0, b1 + 1): prox = max(prox, max(S.O[i], S.C[i])) if d > 0 else min(prox, min(S.O[i], S.C[i]))
             dist = S.L[b] if d > 0 else S.H[b]
+            if P['pivZones'] == 3:
+                dist = DBL_MAX if d > 0 else -DBL_MAX
+                for i in range(b0, b1 + 1): dist = min(dist, S.L[i]) if d > 0 else max(dist, S.H[i])
             if abs(prox - dist) <= 0: continue
             z = S_(dir=d, prox=prox, dist=dist, base0=b0, base1=b1, legBar=b0 - 1, pattern=1 if d > 0 else 3, range=False,
                    strong=False, arrival=False, touches=0, removed=False, removedBar=-1, reasons=0, nRemoved=0, brokePivot=-1, pivot=True)

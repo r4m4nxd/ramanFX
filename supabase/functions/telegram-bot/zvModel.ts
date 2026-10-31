@@ -1,5 +1,5 @@
-// ZoneVision 2.17 STRUCTURE MODEL: the ONE top-down chart reading of docs/training/SPEC.md, as a pure function of the bars.
-// Canonical TypeScript; the MT5 mirror is the RFX_MODEL block of public/tools/RFX_ZoneCore.mqh (ZoneVision 2.17), line by
+// ZoneVision 2.18 STRUCTURE MODEL: the ONE top-down chart reading of docs/training/SPEC.md, as a pure function of the bars.
+// Canonical TypeScript; the MT5 mirror is the RFX_MODEL block of public/tools/RFX_ZoneCore.mqh (ZoneVision 2.18), line by
 // line; conformance: tools/telegram_bot/parity/mql_port.py --model (src/core/zvModelParity.test.ts). Every consumer (the
 // STRUCTURE line, the DIRECTION message, the HTF lines on lower TFs, the REALIGN box, zone roles, break alerts, export)
 // reads THIS object; nothing else recomputes structure. Not used by the Telegram bot / Pine / MT4 yet (owner approval).
@@ -16,10 +16,14 @@
 //      confirmed when price trades past the opposite extreme between it and the nearest further-out swing (Kevin L5); the
 //      line drawn then (chain after a break / 3rd-touch line / nested line from the live line's pivot 2 / Line 1 from the
 //      local extreme, clean with p1Shift, anchor 2 at the hull touch up to the confirmation) is FIXED; the first CLOSE beyond
-//      breaks it (the fake-cross veto only for a close within vetoClose ATR).
-//   3. momentum lines (SPEC 1.6): one per impulse leg, the hull from the pivot along the leg to the next pivot (all kept).
-//   4. zones (SPEC 1.10): zonecore.detect + HTF range bases + reversal zones at the real pivots; pattern, strong, arrival,
-//      touches, removed; reasons BOS (nearest zoneSwing-bar swing) / CHoCH / removal.
+//      breaks it (the fake-cross veto only for a close within vetoClose ATR). 2.18 H1 (W1 / MN / 3M): the candle that closes
+//      beyond the first swing after a real pivot, when it launches the leg, is a line swing too; Line 1 from a cut local
+//      extreme starts at the first higher low after it.
+//   3. momentum lines (SPEC 1.6): one per impulse leg from the pivot, plus (2.18 H2) one per one-way run inside the leg that
+//      starts with a >= momBody ATR departure candle; the hull over the next momBars bars (all kept).
+//   4. zones (SPEC 1.10): zonecore.detect + HTF range bases + reversal zones at the real pivots (2.18 H3: after a leg-in
+//      pivot candle, the base candles before the leg-out); pattern, strong, arrival, touches, removed; reasons BOS (nearest
+//      zoneSwing-bar swing) / CHoCH / removal.
 //   5. trend state (SPEC 1.9): UP / DOWN / SIDEWAYS from HHH + SL (LLL + SH), closes beyond SL / SH.
 // Top-down (zmModel): leg + phase vs the PARENT's trend (1.8), bias TF, sideways TF, correcting TF C and its parent P,
 // the realignment target (1.11), the STRUCTURE line and ONE DIRECTION message (2.7), the allowed side per TF (2.6).
@@ -42,9 +46,20 @@ export const ZM = {
    *  the hull touches the next bar flatter than momShift ATR / bar; touches within momTol ATR count; flatter than momMin ATR
    *  per bar is no impulse. */
   momShift: 0, momTol: 0.03, momMin: 0.15,
-  /** 2.17 zones: pivZones 1 = each real pivot's candle is a reversal zone (2 = + the basing candles at the turn); zoneSwing N =
-   *  the BOS reason breaks the nearest N-bar swing before the base (0 = the newest real pivot). */
-  pivZones: 2, zoneSwing: 2,
+  /** 2.17 zones: pivZones 1 = each real pivot's candle is a reversal zone (2 = + the basing candles at the turn; 3 = 2.18 H3:
+   *  when the pivot candle is the last leg-in candle, a departure INTO the extreme, the zone is the basing candle(s) after it
+   *  before the leg-out, distal at their own extreme wick); zoneSwing N = the BOS reason breaks the nearest N-bar swing before
+   *  the base (0 = the newest real pivot). */
+  pivZones: 3, zoneSwing: 2,
+  /** 2.18 H1 (W1 / MN / 3M only; 0 = off): bosN = a trend-line anchor 2 is also the candle that CLOSES beyond the first
+   *  bosN-bar swing after a real pivot (Kevin V -> P -> break of P) when that candle launches the leg (the candle before it
+   *  is no leg-direction departure) and no real pivot lies between; p1Low 1 = when Line 1 from the local extreme is cut,
+   *  anchor 1 = the first higher low after it (the line-side extreme between), clean within fitTol ATR. */
+  bosN: 1, p1Low: 1,
+  /** 2.18 H2: momRun 1 = also one momentum line per one-way run inside an impulse leg that starts with a leg-direction
+   *  departure candle of body >= momBody ATR right after an opposite-coloured or basing candle; momBars = the momentum hull's
+   *  window, bars after anchor 1 (0 = up to the next pivot). */
+  momRun: 1, momBody: 1.0, momBars: 5,
 };
 export type ZmParams = typeof ZM;
 /** Q1: how Line 1 of a structure starts. 'spec' = the clean-line test (2.2 step 2); 'retrace' = the p1Retrace rule;
@@ -217,13 +232,21 @@ const mkLine = (dir: number, kind: ZmLineKind, a: number, b: number, pa: number,
  *  line-side extremes up to the next pivot (the hull, touches within momTol ATR allowed; the next pivot's own candle counts
  *  only when its line-side extreme comes before its extreme: bullish candle low first); an impulse is >= momMin ATR / bar. */
 export function zmMomentum(S: Series, piv: ZmPivot[], i: number, k: ZmParams, atr: (i: number) => number): ZmLine | null {
+  return zmMomentumAll(S, piv, i, k, atr).find(l => l.why === 'mom') ?? null;
+}
+/** Every momentum line of the leg out of piv[i]: the pivot's line (zmMomentum), then (2.18 H2, momRun) one line per one-way
+ *  run inside the leg: a run starts at a leg-direction departure candle with a body >= momBody ATR right after an
+ *  opposite-coloured or basing candle; anchor 1 = that candle's extreme, anchor 2 = the hull over the next momBars bars
+ *  (0 = up to the next pivot), touches within momTol, ending at the first close beyond. */
+export function zmMomentumAll(S: Series, piv: ZmPivot[], i: number, k: ZmParams, atr: (i: number) => number): ZmLine[] {
   const P = piv[i], Q = piv[i + 1] ?? null, d = -P.t, xBar = Q ? Q.bar : 1;
-  if (P.bar - xBar < 1) return null;
+  if (P.bar - xBar < 1) return [];
   const X = (j: number) => (d > 0 ? S.L[j] : S.H[j]);
   const use = (j: number) => j !== xBar || !Q || (d > 0 ? S.C[j] >= S.O[j] : S.C[j] < S.O[j]);
+  const lim = (a: number) => (k.momBars > 0 ? Math.max(xBar, a - k.momBars) : xBar);
   const hull = (a: number) => {
     let b = -1, sl = 0;
-    for (let j = a - 1; j >= xBar; j--) {
+    for (let j = a - 1; j >= lim(a); j--) {
       if (!use(j)) continue;
       const v = (X(j) - X(a)) / (a - j);
       if (b < 0 || (d > 0 ? v < sl : v > sl)) { b = j; sl = v; }
@@ -233,23 +256,39 @@ export function zmMomentum(S: Series, piv: ZmPivot[], i: number, k: ZmParams, at
   const tol = (a: number, h: { b: number; sl: number }) => {
     let { b, sl } = h;
     if (b < 0) return h;
-    for (let j = a - 1; j >= xBar; j--) {                       // the steepest touch within momTol of every other extreme
+    for (let j = a - 1; j >= lim(a); j--) {                     // the steepest touch within momTol of every other extreme
       if (!use(j) || j === b) continue;
       const v = (X(j) - X(a)) / (a - j);
       if (!(d > 0 ? v > sl : v < sl)) continue;
       let ok = true;
-      for (let h = a - 1; h >= xBar && ok; h--) if (h !== j && use(h) && d * (X(a) + v * (a - h) - X(h)) > k.momTol * atr(h)) ok = false;
+      for (let h = a - 1; h >= lim(a) && ok; h--) if (h !== j && use(h) && d * (X(a) + v * (a - h) - X(h)) > k.momTol * atr(h)) ok = false;
       if (ok && (d > 0 ? v > sl : v < sl)) { b = j; sl = v; }
     }
     return { b, sl };
   };
-  let a = P.bar, h = hull(a);
-  if (h.b === a - 1 && Math.abs(h.sl) < k.momShift * atr(a) && a - 1 > xBar) { a = a - 1; h = hull(a); }
-  h = tol(a, h);
-  if (h.b < 0 || d * h.sl <= 0 || Math.abs(h.sl) < k.momMin * atr(a)) return null;
-  const t = mkLine(d, 'momentum', a, h.b, X(a), X(h.b), h.b, P.bar, 'mom');
-  for (let j = h.b - 1; j >= 1; j--) if (d > 0 ? S.C[j] < zmAt(t, j) : S.C[j] > zmAt(t, j)) { t.brokenAt = j; break; }
-  return t;
+  const mk = (a: number, why: string): ZmLine | null => {
+    const h = tol(a, hull(a));
+    if (h.b < 0 || d * h.sl <= 0 || Math.abs(h.sl) < k.momMin * atr(a)) return null;
+    const t = mkLine(d, 'momentum', a, h.b, X(a), X(h.b), h.b, P.bar, why);
+    for (let j = h.b - 1; j >= 1; j--) if (d > 0 ? S.C[j] < zmAt(t, j) : S.C[j] > zmAt(t, j)) { t.brokenAt = j; break; }
+    return t;
+  };
+  const out: ZmLine[] = [];
+  let a = P.bar;
+  const h0 = hull(a);
+  if (h0.b === a - 1 && Math.abs(h0.sl) < k.momShift * atr(a) && a - 1 > xBar) a = a - 1;
+  const m0 = mk(a, 'mom');
+  if (m0) out.push(m0);
+  if (k.momRun) {
+    const dep = (j: number) => S.cdir(j) === d && !S.basing(j);
+    for (let r = P.bar - 1; r > xBar; r--) {
+      if (!dep(r) || dep(r + 1) || r === a) continue;
+      if (Math.abs(S.C[r] - S.O[r]) < k.momBody * atr(r)) continue;
+      const m = mk(r, 'run');
+      if (m && !out.some(o => o.a === m.a && o.b === m.b)) out.push(m);
+    }
+  }
+  return out;
 }
 
 interface ZmDir { d: number; hist: ZmLine[]; step: (j: number) => boolean; endStructure: () => void }
@@ -440,6 +479,26 @@ function zmDirF(S: Series, sw: ZmPivot[], d: number, k: ZmParams, atr: (i: numbe
   const beyond = (t: ZmLine, j: number) => (d > 0 ? C[j] < zmAt(t, j) : C[j] > zmAt(t, j));
   const hist: ZmLine[] = [];
   const side = sw.filter(p => p.t === -d && p.conf >= 0).sort((a, b) => b.bar - a.bar);    // oldest first
+  const htf = HTF_RANGE.includes(S.tf);
+  if (k.bosN > 0 && htf) {
+    // H1 (2.18, W1 / MN / 3M): after each real side pivot V, the first bosN-bar swing of the other side (a peak for up lines)
+    // and the first leg-direction departure candle that CLOSES beyond it; when that candle launches the leg (the candle
+    // before it is no leg-direction departure) and no real pivot lies between, its low is a line swing confirmed at itself
+    const N = k.bosN, real = side.slice();
+    const sw2 = (i: number) => { if (i + N >= S.n - 1 || i - N < 1) return false; for (let h = 1; h <= N; h++) if (out(Y(i), Y(i - h)) || out(Y(i), Y(i + h))) return false; return true; };
+    const dep = (j: number) => S.cdir(j) === d && !S.basing(j);
+    for (const V of real) {
+      let hb = -1, kk = -1;
+      for (let j = V.bar - 1; j >= 1 && kk < 0; j--) {
+        if (j + N < V.bar && sw2(j + N)) hb = j + N;                       // a swing confirmed at bar j (N bars after it)
+        if (hb >= 0 && j < hb && dep(j) && (d > 0 ? C[j] > Y(hb) : C[j] < Y(hb))) kk = j;
+      }
+      if (kk < 0 || (kk + 1 < V.bar && dep(kk + 1)) || real.some(p => p.bar < V.bar && p.bar > kk)) continue;
+      if (!out(V.p, X(kk)) || side.some(p => p.bar === kk)) continue;
+      side.push({ bar: kk, p: X(kk), t: -d, conf: kk });
+    }
+    side.sort((a, b) => b.bar - a.bar);
+  }
   // Kevin's confirmation of each side swing: the bar price trades beyond the opposite extreme between it and s0
   const ev: { s: ZmPivot; s0: ZmPivot; e: number }[] = [];
   for (let i = 1; i < side.length; i++) {
@@ -462,15 +521,29 @@ function zmDirF(S: Series, sw: ZmPivot[], d: number, k: ZmParams, atr: (i: numbe
     const ab = atr(b), rise = d * (pb - pa);
     return rise > 0 && rise >= k.minRise * ab && rise / Math.max(1, a - b) >= k.minSlope * ab;
   };
-  const build = (a: number, b: number, to: number) => {
+  const build = (a: number, b: number, to: number, tol = 0) => {
     const pa = X(a);
     let bb = b, sl = (X(b) - pa) / (a - b), poke = false;
     for (let j = b - 1; j >= to; j--) if (d * (pa + sl * (a - j) - X(j)) > k.fitTol * atr(j)) poke = true;
     if (poke) for (let j = b - 1; j >= to; j--) { const s2 = (X(j) - pa) / (a - j); if (d > 0 ? s2 < sl : s2 > sl) { sl = s2; bb = j; } }
     const pb = X(bb);
     let clean = true;
-    for (let j = a - 1; j > bb; j--) if (d * (pa + ((pb - pa) / (a - bb)) * (a - j) - X(j)) > 1e-9 * Math.abs(pa)) { clean = false; break; }
+    for (let j = a - 1; j > bb; j--) if (d * (pa + ((pb - pa) / (a - bb)) * (a - j) - X(j)) > (tol > 0 ? tol * atr(j) : 1e-9 * Math.abs(pa))) { clean = false; break; }
     return { a, b: bb, pa, pb, clean };
+  };
+  // anchor-1 candidates for a line from bar a to swing bar sb, in order, each with its clean tolerance (0 = strict):
+  // a .. a - p1Shift; then (2.18 H1 p1Low, W1 / MN / 3M, Line 1 from a local extreme only) a and the first higher low after
+  // it (the line-side extreme strictly between), clean within fitTol ATR
+  const p1Low = k.p1Low > 0 && htf;
+  const cands = (a: number, sb: number, ext: boolean): [number, number][] => {
+    const out2: [number, number][] = [];
+    for (let sh = 0; sh <= k.p1Shift && a - sh > sb; sh++) out2.push([a - sh, 0]);
+    if (ext && p1Low && a - 1 > sb) {
+      let lo = a - 1;
+      for (let c = a - 1; c > sb; c--) if (out(X(c), X(lo))) lo = c;
+      out2.push([a, k.fitTol], [lo, k.fitTol]);
+    }
+    return out2;
   };
   const slope = (t: { a: number; b: number; pa: number; pb: number }) => (t.pb - t.pa) / Math.max(1, t.a - t.b);
   // the fake-cross veto (1.7), only for a close within vetoClose ATR of the line
@@ -509,14 +582,13 @@ function zmDirF(S: Series, sw: ZmPivot[], d: number, k: ZmParams, atr: (i: numbe
   };
   // a line from bar a (or p1Shift bars after it, the first clean one) to swing s, anchor 2 at the hull touch up to j
   const lineFrom = (a: number, s: ZmPivot, j: number, why: string, steeperThan: ZmLine | null = null) => {
-    for (let sh = 0; sh <= k.p1Shift; sh++) {
-      if (a - sh <= s.bar) return false;
-      const r = build(a - sh, s.bar, j);
+    for (const [aa, tl] of cands(a, s.bar, why === 'g1' || why === 'inner')) {
+      const r = build(aa, s.bar, j, tl);
       if (!r.clean) continue;
       if (!slopeOk(r.a, r.pa, r.b, r.pb)) return false;
       if (steeperThan && !(d > 0 ? slope(r) > slope(steeperThan) : slope(r) < slope(steeperThan))) return false;
       if (hist.some(t => t.a === r.a && t.b === r.b)) return true;      // the same line already drawn
-      born(mkLine(d, 'trend', r.a, r.b, r.pa, r.pb, j, s.bar, sh ? `${why}-shift` : why), j);
+      born(mkLine(d, 'trend', r.a, r.b, r.pa, r.pb, j, s.bar, aa !== a ? `${why}-shift` : why), j);
       return true;
     }
     return false;
@@ -562,14 +634,13 @@ function zmDirF(S: Series, sw: ZmPivot[], d: number, k: ZmParams, atr: (i: numbe
       }
       // (4) a new structure from the local extreme s0
       let made = false;
-      for (let sh = 0; sh <= k.p1Shift && !made; sh++) {
-        const a = s0.bar - sh;
-        if (a <= s.bar) break;
-        const r = build(a, s.bar, j);
+      for (const [a, tl] of cands(s0.bar, s.bar, true)) {
+        const r = build(a, s.bar, j, tl);
         if (!r.clean) continue;
         if (!slopeOk(r.a, r.pa, r.b, r.pb)) break;
-        born(mkLine(d, 'trend', r.a, r.b, r.pa, r.pb, j, s.bar, sh ? 'g1-shift' : 'g1'), j);
+        born(mkLine(d, 'trend', r.a, r.b, r.pa, r.pb, j, s.bar, a !== s0.bar ? 'g1-shift' : 'g1'), j);
         made = true;
+        break;
       }
       if (!made) wait = s;
       confirmed = true;
@@ -596,7 +667,7 @@ export function zmTrendLines(S: Series, piv: ZmPivot[], k: ZmParams, q1: ZmQ1, q
 export function zmLines(S: Series, piv: ZmPivot[], k: ZmParams, q1: ZmQ1, q2: ZmQ2, atr = zmAtr(S)) {
   const { up, dn } = zmTrendLines(S, piv, k, q1, q2, atr);
   const mom: ZmLine[] = [];
-  for (let i = 0; i < piv.length; i++) { const m = zmMomentum(S, piv, i, k, atr); if (m) mom.push(m); }
+  for (let i = 0; i < piv.length; i++) for (const m of zmMomentumAll(S, piv, i, k, atr)) mom.push(m);
   // the live main line of the newest structure (orphans of an ended structure come after it; nested lines after the main)
   const live = (ls: ZmLine[]) => zmMainLine(ls, ls[0]?.dir ?? 1);
   const brk = (ls: ZmLine[]) => ls.filter(t => t.kind === 'trend' && t.brokenAt >= 0).sort((x, y) => x.brokenAt - y.brokenAt)[0] ?? null;
@@ -667,12 +738,20 @@ export function zmZones(S: Series, lines: ZmLine[], piv: ZmPivot[], k: ZmParams,
     for (const p of piv) {
       const b = p.bar, d = -p.t;
       if (b < 2 || p.conf < 0) continue;
-      if (zs.some(z => z.dir === d && z.base1 >= b && z.base0 <= b)) continue;
+      if (k.pivZones !== 3 && zs.some(z => z.dir === d && z.base1 >= b && z.base0 <= b)) continue;
       let b0 = b, b1 = b;                                   // pivZones 2: + the basing candles around it (the turn)
-      if (k.pivZones > 1) { while (b1 + 1 < S.n - 1 && S.basing(b1 + 1) && b1 - b0 < 5) b1++; while (b0 - 1 >= 2 && S.basing(b0 - 1) && b1 - b0 < 5) b0--; }
+      if (k.pivZones === 3 && !S.basing(b) && S.cdir(b) === -d) {
+        // H3 (2.18): the pivot candle is the last leg-in candle (a departure INTO the extreme: bearish into a valley): the
+        // zone is the basing candle(s) after it, before the leg-out (none: the pivot candle, as pivZones 2)
+        let e = b;
+        while (e - 1 >= 2 && S.basing(e - 1) && b - e < 6) e--;
+        if (e < b) { b0 = e; b1 = b - 1; }
+      } else if (k.pivZones > 1) { while (b1 + 1 < S.n - 1 && S.basing(b1 + 1) && b1 - b0 < 5) b1++; while (b0 - 1 >= 2 && S.basing(b0 - 1) && b1 - b0 < 5) b0--; }
+      if (k.pivZones === 3 && zs.some(z => z.dir === d && !z.range && z.base1 >= b1 && z.base0 <= b0)) continue;   // H3: a detected base holds it
       let prox = d > 0 ? -Infinity : Infinity;
       for (let i = b0; i <= b1; i++) prox = d > 0 ? Math.max(prox, S.O[i], S.C[i]) : Math.min(prox, S.O[i], S.C[i]);
-      const dist = d > 0 ? S.L[b] : S.H[b];
+      let dist = d > 0 ? S.L[b] : S.H[b];
+      if (k.pivZones === 3) { dist = d > 0 ? Infinity : -Infinity; for (let i = b0; i <= b1; i++) dist = d > 0 ? Math.min(dist, S.L[i]) : Math.max(dist, S.H[i]); }
       if (Math.abs(prox - dist) <= 0) continue;
       const z: ZmZone = { dir: d, prox, dist, base0: b0, base1: b1, legBar: b0 - 1, pattern: d > 0 ? 'DBR' : 'RBD', range: false, strong: false,
         arrival: false, touches: 0, removed: false, removedBar: -1, reasons: [], removedIds: [], brokePivot: -1, pivot: true };

@@ -54,9 +54,13 @@
 //| from pivot 2 while the older one is live; 3rd-touch lines),      |
 //| momentum along the impulse leg (one per leg, live + last broken),|
 //| reversal zones at the real pivots, DIRECTION rows wrapped.       |
+//| v2.18: W1 / MN line anchors at the candle that breaks the swing  |
+//| (and the first higher low), a momentum line per one-way run that |
+//| starts with a >= 1 ATR candle, zones = the base after a leg-in   |
+//| pivot candle (input InpZm218, off = the 2.17 reading).           |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "2.17"
+#property version   "2.18"
 #property indicator_chart_window
 #property indicator_buffers 0
 #property indicator_plots   0
@@ -82,6 +86,7 @@ input int    InpZmQ1          = 0;      // 2.16 Q1, where Line 1 starts: 0 = spe
 input int    InpZmQ2          = 0;      // 2.16 Q2, anchor 1 of Line 1: 0 = (a) the extreme, 1 = (b) the first counter-pivot, 2 = (c) the second
 input double InpZmP1Retrace   = 0.50;   // 2.16 Q1 retrace: the first correction must retrace this share of the first leg for the extreme to anchor Line 1
 input int    InpZmLineMode    = 1;      // 2.17 lines: 1 = forward time (owner: fixed at pivot 2, chain while live), 0 = the 2.16 machine (Q1 / Q2 apply only here)
+input bool   InpZm218         = true;   // 2.18 rules: W1/MN line anchors at the swing-breaking candle + first higher low, momentum per run, base zones (off = 2.17)
 input bool   InpZmHtfLines    = true;   // 2.16: draw the higher-TF live lines on this chart (gold dotted; the realignment target line purple dashed)
 input bool   InpZmRealign     = true;   // 2.16: draw the realignment target (purple box) on every TF
 input bool   InpZmZoneFilter  = true;   // 2.16 (owner): draw a zone only when its leg-out gave a reason (BOS / CHoCH / removed an opposite zone)
@@ -776,6 +781,7 @@ string ZmWhyWord(int w)
    if(w == 10 || w == 11) return "next line from the live line's pivot 2";
    if(w == 12 || w == 13) return "new swing structure inside the live line";
    if(w == 14 || w == 15) return "from the live line's 3rd touch";
+   if(w == 16) return "momentum of a one-way run";
    return "line";
   }
 void ZmDrawChart()
@@ -920,6 +926,7 @@ bool     gZmAlertArmed = false;
 void ZmRun()
   {
    ZM_rc = InpRealRC; ZM_q1 = InpZmQ1; ZM_q2 = InpZmQ2; ZM_p1Retrace = InpZmP1Retrace; ZM_lineMode = InpZmLineMode;
+   ZM_bosN = InpZm218 ? 1 : 0; ZM_p1Low = InpZm218 ? 1 : 0; ZM_momRun = InpZm218 ? 1 : 0; ZM_momBars = InpZm218 ? 5 : 0; ZM_pivZones = InpZm218 ? 3 : 2;
    gZmZoneFilter = false; gZmChartIdx = -1;
    if(!InpZmOn) { gZmOk = false; return; }
    int cm = RxTfMin(PERIOD_CURRENT);

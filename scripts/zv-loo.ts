@@ -13,11 +13,17 @@ const FIX = JSON.parse(readFileSync('src/core/structure/fixtures/qa_bars_2026-10
 const charts = (JSON.parse(readFileSync('src/core/training/fixtures/marks.json', 'utf8')) as { charts: TrainChart[] }).charts;
 const DEF = { ...ZM };
 const cart = (o: Record<string, number[]>) => Object.entries(o).reduce<Record<string, number>[]>((acc, [k, vs]) => acc.flatMap(a => vs.map(v => ({ ...a, [k]: v }))), [{}]);
-const GROUPS: { name: string; type: 'lines' | 'momentum' | 'zones'; grid: Record<string, number>[] }[] = [
+const ALL_GROUPS: { name: string; type: 'lines' | 'momentum' | 'zones'; grid: Record<string, number>[] }[] = [
   { name: 'lines', type: 'lines', grid: cart({ fitTol: [0, 0.02, 0.05, 0.1], vetoClose: [0, 0.3, 0.5, 1], nestGap: [0.5, 0.8, 1.2] }) },
   { name: 'momentum', type: 'momentum', grid: cart({ momShift: [0, 0.25, 0.3], momMin: [0.1, 0.15, 0.25], momTol: [0, 0.03, 0.06] }) },
-  { name: 'zones', type: 'zones', grid: cart({ pivZones: [0, 1, 2], zoneSwing: [0, 1, 2, 3] }) },
+  { name: 'zones', type: 'zones', grid: cart({ pivZones: [0, 1, 2, 3], zoneSwing: [0, 1, 2, 3] }) },
+  // 2.18: each hypothesis on / off (and its sizes), re-fitted on 8 charts
+  { name: 'H1', type: 'lines', grid: cart({ bosN: [0, 1, 2], p1Low: [0, 1] }) },
+  { name: 'H2', type: 'momentum', grid: cart({ momRun: [0, 1], momBody: [0.8, 1.0, 1.2, 1.4], momBars: [0, 5] }) },
+  { name: 'H3', type: 'zones', grid: cart({ pivZones: [2, 3] }) },
 ];
+const gi = process.argv.indexOf('--groups');
+const GROUPS = gi >= 0 ? ALL_GROUPS.filter(g => process.argv[gi + 1].split(',').includes(g.name)) : ALL_GROUPS;
 // per combo: per chart (owner, engine, matched) of the group's type
 const score = (p: Record<string, number>, type: 'lines' | 'momentum' | 'zones') => {
   Object.assign(ZM, DEF, p);

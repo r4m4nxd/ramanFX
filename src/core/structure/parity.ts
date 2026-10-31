@@ -6,7 +6,7 @@ import { toQuarters } from '../../../supabase/functions/telegram-bot/zonecore';
 export type Row = [string, number, number, number, number];
 const KIND = { trend: 0, momentum: 1, major: 2 } as const;
 const WHY: Record<string, number> = { g1: 0, 'g1-shift': 1, c1: 2, chain: 3, rot: 4, mom: 5, major: 6, p1mom: 7, 'c1-shift': 8, 'chain-shift': 9,
-  nest: 10, 'nest-shift': 11, inner: 12, 'inner-shift': 13, touch3: 14, 'touch3-shift': 15 };
+  nest: 10, 'nest-shift': 11, inner: 12, 'inner-shift': 13, touch3: 14, 'touch3-shift': 15, run: 16 };
 const PAT: Record<string, number> = { RBR: 0, DBR: 1, DBD: 2, RBD: 3 };
 const RS: Record<string, number> = { break: 1, direction: 2, removal: 4 };
 export interface ModelCase { name: string; sym: string; chart: string; price: number; digits: number; bars: Record<string, Row[]>; params?: Record<string, number>; expected: unknown }

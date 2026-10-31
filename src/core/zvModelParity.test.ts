@@ -1,4 +1,4 @@
-// ZoneVision 2.16 MT5 conformance: tools/telegram_bot/parity/mql_port.py --model (mql_model.py = a statement-by-statement
+// ZoneVision 2.18 MT5 conformance: tools/telegram_bot/parity/mql_port.py --model (mql_model.py = a statement-by-statement
 // Python port of the RFX_MODEL block of public/tools/RFX_ZoneCore.mqh, MQL index semantics) replays the acceptance charts,
 // every Q1 / Q2 option and seeded random windows of the long-history fixture; every pivot, line, zone, trend state, the
 // STRUCTURE line and the DIRECTION message must equal the canonical TypeScript (zvModel.ts). The 11-symbol run over qa/bars
@@ -27,6 +27,12 @@ describe.skipIf(!hasPy)('MT5 RFX_MODEL conformance (Python port of the MQL block
   for (const q2 of ['b', 'c'] as const) cases.push(modelCase(`AUDUSD W1 Q2 ${q2}`, 'AUDUSD', 'W1', pinned('AUDUSD', aPins, 400), 0.70346, 5, { q2, params: { lineMode: 0 } }));
   cases.push(modelCase('XAUUSD H1 acceptance, 2.16 lines', 'XAUUSD', 'H1', pinned('XAUUSD', gPins), 4020.10, 2, { params: { lineMode: 0 } }));
   cases.push(modelCase('AUDUSD H4 acceptance, 2.16 lines', 'AUDUSD', 'H4', pinned('AUDUSD', aPins), 0.70346, 5, { params: { lineMode: 0 } }));
+  // 2.18 rules switched off (= 2.17) and each on alone: the switches (H1 BOS line swings + first higher low, H2 run momentum
+  // lines, H3 base zones) on the W1 / MN charts they act on
+  const off218 = { bosN: 0, p1Low: 0, momRun: 0, momBars: 0, pivZones: 2 };
+  cases.push(modelCase('XAUUSD W1 acceptance, 2.18 rules off', 'XAUUSD', 'W1', pinned('XAUUSD', gPins), 4020.10, 2, { params: off218 }));
+  cases.push(modelCase('AUDUSD W1 acceptance, H1 only', 'AUDUSD', 'W1', pinned('AUDUSD', aPins), 0.70346, 5, { params: { ...off218, bosN: 1, p1Low: 1 } }));
+  cases.push(modelCase('XAUUSD D1 acceptance, H2 + H1 at bosN 2', 'XAUUSD', 'D1', pinned('XAUUSD', gPins), 4020.10, 2, { params: { ...off218, momRun: 1, momBars: 5, bosN: 2 } }));
   const R = rng(20261030);
   for (let k = 0; k < 24; k++) {                         // random windows: end date and length per TF
     const sym = R() < 0.5 ? 'XAUUSD' : 'AUDUSD', bars: Record<string, Row[]> = {};

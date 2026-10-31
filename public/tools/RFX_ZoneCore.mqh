@@ -4325,7 +4325,7 @@ string zrPhaseText(string tfn, ZrPhase &p, int digits)
 
 // ==== RFX_MODEL BEGIN ====
 //+------------------------------------------------------------------+
-//| ZoneVision 2.17 STRUCTURE MODEL: the ONE top-down reading of     |
+//| ZoneVision 2.18 STRUCTURE MODEL: the ONE top-down reading of     |
 //| docs/training/SPEC.md. A line-by-line mirror of the canonical    |
 //| TypeScript supabase/functions/telegram-bot/zvModel.ts (same      |
 //| function names, Zm instead of zm); conformance:                  |
@@ -4336,7 +4336,7 @@ string zrPhaseText(string tfn, ZrPhase &p, int digits)
 //| Index convention = RxSer: 0 phantom, 1 newest closed, larger =   |
 //| older.                                                           |
 //+------------------------------------------------------------------+
-#define ZM_VER 217
+#define ZM_VER 218
 #define ZM_MAXB 5000          // closed bars read per TF (all loaded history up to this; SPEC 2: no sliding window)
 double ZM_rc = 0.45, ZM_near = 0.25, ZM_minLeg = 1.25, ZM_fitTol = 0.02, ZM_minRise = 0.25, ZM_minSlope = 0.015;
 double ZM_vetoTol = 0.05, ZM_rangeBaseATR = 2.5, ZM_targetGap = 1.0, ZM_p1Retrace = 0.50;
@@ -4344,14 +4344,17 @@ int    ZM_p1Shift = 1, ZM_vetoBars = 8, ZM_brokenShow = 20, ZM_rangeBaseMax = 20
 // 2.17 (zvModel.ts ZM): the forward-time line machine, momentum along the impulse leg, reversal zones at the real pivots
 int    ZM_lineMode = 1;       // 1 = ZmDirF (forward time), 0 = the 2.16 ZmDir (Q1 / Q2 options)
 double ZM_vetoClose = 0.5, ZM_nestGap = 0.8, ZM_touchTol = 0.15, ZM_momShift = 0, ZM_momTol = 0.03, ZM_momMin = 0.15;
-int    ZM_pivZones = 2, ZM_zoneSwing = 2;
+int    ZM_pivZones = 3, ZM_zoneSwing = 2;   // 3 = 2.18 H3: after a leg-in pivot candle, the base candles before the leg-out
+// 2.18 (zvModel.ts ZM): H1 BOS line swings + the first higher low (W1 / MN / 3M), H2 one momentum line per one-way run
+int    ZM_bosN = 1, ZM_p1Low = 1, ZM_momRun = 1, ZM_momBars = 5;
+double ZM_momBody = 1.0;
 int    ZM_q1 = 0;             // Q1: 0 spec (clean-line test), 1 retrace (p1Retrace), 2 major
 int    ZM_q2 = 0;             // Q2: 0 (a) the extreme, 1 (b) C1, 2 (c) C2
 bool   gZmDebug = false;
 
 struct ZmPivot { int bar; double p; int t; int conf; };
-struct ZmLine  { int dir; int kind; int a; int b; double pa; double pb; int born; int brokenAt; int p2; int touches; int why; };   // kind 0 trend 1 momentum 2 major; why 0 g1 1 g1-shift 2 c1 3 chain 4 rot 5 mom 6 major 7 p1mom 8 c1-shift 9 chain-shift 10 nest 11 nest-shift 12 inner 13 inner-shift 14 touch3 15 touch3-shift
-bool ZmInner(int why) { return why >= 10; }              // drawn inside a live line of its structure (nested / inner / 3rd touch)
+struct ZmLine  { int dir; int kind; int a; int b; double pa; double pb; int born; int brokenAt; int p2; int touches; int why; };   // kind 0 trend 1 momentum 2 major; why 0 g1 1 g1-shift 2 c1 3 chain 4 rot 5 mom 6 major 7 p1mom 8 c1-shift 9 chain-shift 10 nest 11 nest-shift 12 inner 13 inner-shift 14 touch3 15 touch3-shift 16 run (2.18 momentum per run)
+bool ZmInner(int why) { return why >= 10 && why <= 15; } // drawn inside a live line of its structure (nested / inner / 3rd touch)
 struct ZmZone  { int dir; double prox; double dist; int base0; int base1; int legBar; int pattern; bool range; bool strong; bool arrival; int touches; bool removed; int removedBar; int reasons; int nRemoved; int brokePivot; bool pivot; };   // pattern 0 RBR 1 DBR 2 DBD 3 RBD; reasons 1 break 2 direction 4 removal; pivot = a 2.17 reversal zone at a real pivot
 struct ZmTrend { int trend; double ext; int extBar; double sl; int slBar; double lo; double hi; int from; };
 
@@ -4470,10 +4473,12 @@ int ZmPivots(RxSer &S, ZmAtrC &A, ZmPivot &out[])
 // the very next bar flatter than momShift ATR / bar, the steepest touch within momTol ATR, >= momMin ATR / bar
 double ZmMX(RxSer &S, int d, int j) { return d > 0 ? S.L[j] : S.H[j]; }
 bool   ZmMUse(RxSer &S, int d, int j, int xBar, bool hasQ) { return j != xBar || !hasQ || (d > 0 ? S.C[j] >= S.O[j] : S.C[j] < S.O[j]); }
+int    ZmMomLim(int a, int xBar) { return ZM_momBars > 0 ? MathMax(xBar, a - ZM_momBars) : xBar; }   // 2.18 H2: the hull window
 void   ZmMomHull(RxSer &S, int d, int a, int xBar, bool hasQ, int &b, double &sl)
   {
    b = -1; sl = 0;
-   for(int j = a - 1; j >= xBar; j--)
+   int lo = ZmMomLim(a, xBar);
+   for(int j = a - 1; j >= lo; j--)
      {
       if(!ZmMUse(S, d, j, xBar, hasQ)) continue;
       double v = (ZmMX(S, d, j) - ZmMX(S, d, a)) / (a - j);
@@ -4483,29 +4488,50 @@ void   ZmMomHull(RxSer &S, int d, int a, int xBar, bool hasQ, int &b, double &sl
 void   ZmMomTol(RxSer &S, ZmAtrC &A, int d, int a, int xBar, bool hasQ, int &b, double &sl)
   {
    if(b < 0) return;
-   for(int j = a - 1; j >= xBar; j--)
+   int lo = ZmMomLim(a, xBar);
+   for(int j = a - 1; j >= lo; j--)
      {
       if(!ZmMUse(S, d, j, xBar, hasQ) || j == b) continue;
       double v = (ZmMX(S, d, j) - ZmMX(S, d, a)) / (a - j);
       if(!(d > 0 ? v > sl : v < sl)) continue;
       bool ok = true;
-      for(int h = a - 1; h >= xBar && ok; h--) if(h != j && ZmMUse(S, d, h, xBar, hasQ) && d * (ZmMX(S, d, a) + v * (a - h) - ZmMX(S, d, h)) > ZM_momTol * A.At(h)) ok = false;
+      for(int h = a - 1; h >= lo && ok; h--) if(h != j && ZmMUse(S, d, h, xBar, hasQ) && d * (ZmMX(S, d, a) + v * (a - h) - ZmMX(S, d, h)) > ZM_momTol * A.At(h)) ok = false;
       if(ok && (d > 0 ? v > sl : v < sl)) { b = j; sl = v; }
      }
   }
-bool ZmMomentum(RxSer &S, ZmAtrC &A, ZmPivot &piv[], int i, ZmLine &t)
+// one momentum line from anchor a of the leg (pivot bar p2, next pivot xBar): the hull + momTol, >= momMin ATR / bar
+bool ZmMomLine(RxSer &S, ZmAtrC &A, int d, int a, int xBar, bool hasQ, int p2, int why, ZmLine &t)
+  {
+   int b = -1; double sl = 0;
+   ZmMomHull(S, d, a, xBar, hasQ, b, sl);
+   ZmMomTol(S, A, d, a, xBar, hasQ, b, sl);
+   if(b < 0 || d * sl <= 0 || MathAbs(sl) < ZM_momMin * A.At(a)) return false;
+   ZmMk(t, d, 1, a, b, ZmMX(S, d, a), ZmMX(S, d, b), b, p2, why);
+   for(int j = b - 1; j >= 1; j--) if(d > 0 ? S.C[j] < ZmAt(t, j) : S.C[j] > ZmAt(t, j)) { t.brokenAt = j; break; }
+   return true;
+  }
+// every momentum line of the leg out of piv[i], appended to out (zvModel.ts zmMomentumAll): the pivot's line, then (2.18 H2)
+// one per one-way run inside the leg: a leg-direction departure candle with a body >= momBody ATR right after an
+// opposite-coloured or basing candle
+void ZmMomAdd(RxSer &S, ZmAtrC &A, ZmPivot &piv[], int i, ZmLine &out[])
   {
    bool hasQ = i + 1 < ArraySize(piv);
    int d = -piv[i].t, xBar = hasQ ? piv[i + 1].bar : 1;
-   if(piv[i].bar - xBar < 1) return false;
+   if(piv[i].bar - xBar < 1) return;
    int a = piv[i].bar, b = -1; double sl = 0;
    ZmMomHull(S, d, a, xBar, hasQ, b, sl);
-   if(b == a - 1 && MathAbs(sl) < ZM_momShift * A.At(a) && a - 1 > xBar) { a = a - 1; ZmMomHull(S, d, a, xBar, hasQ, b, sl); }
-   ZmMomTol(S, A, d, a, xBar, hasQ, b, sl);
-   if(b < 0 || d * sl <= 0 || MathAbs(sl) < ZM_momMin * A.At(a)) return false;
-   ZmMk(t, d, 1, a, b, ZmMX(S, d, a), ZmMX(S, d, b), b, piv[i].bar, 5);
-   for(int j = b - 1; j >= 1; j--) if(d > 0 ? S.C[j] < ZmAt(t, j) : S.C[j] > ZmAt(t, j)) { t.brokenAt = j; break; }
-   return true;
+   if(b == a - 1 && MathAbs(sl) < ZM_momShift * A.At(a) && a - 1 > xBar) a = a - 1;
+   ZmLine t;
+   if(ZmMomLine(S, A, d, a, xBar, hasQ, piv[i].bar, 5, t)) { int m = ArraySize(out); ArrayResize(out, m + 1); out[m] = t; }
+   if(ZM_momRun == 0) return;
+   for(int r = piv[i].bar - 1; r > xBar; r--)
+     {
+      bool dep = S.cdir(r) == d && !S.basing(r), dep1 = S.cdir(r + 1) == d && !S.basing(r + 1);
+      if(!dep || dep1 || r == a) continue;
+      if(MathAbs(S.C[r] - S.O[r]) < ZM_momBody * A.At(r)) continue;
+      ZmLine u;
+      if(ZmMomLine(S, A, d, r, xBar, hasQ, piv[i].bar, 16, u)) { int m = ArraySize(out); ArrayResize(out, m + 1); out[m] = u; }
+     }
   }
 struct ZmBuilt { int a; int b; double pa; double pb; bool clean; };
 struct ZmPend  { ZmPivot e; ZmPivot c1; };
@@ -4734,6 +4760,14 @@ public:
    bool   Out(double x, double y) { return d > 0 ? x < y : x > y; }
    bool   Beyond(ZmLine &t, int j) { return d > 0 ? S.C[j] < ZmAt(t, j) : S.C[j] > ZmAt(t, j); }
    bool   Thru(int j, double ox) { return d > 0 ? Y(j) > ox : Y(j) < ox; }
+   bool   htf;                                             // W1 / MN / 3M (2.18 H1)
+   bool   BosDep(int j) { return S.cdir(j) == d && !S.basing(j); }
+   bool   BosSwing(int i, int N)                           // an N-bar swing of the other side at bar i (H1)
+     {
+      if(i + N >= S.n - 1 || i - N < 1) return false;
+      for(int h = 1; h <= N; h++) if(Out(Y(i), Y(i - h)) || Out(Y(i), Y(i + h))) return false;
+      return true;
+     }
    void Init(RxSer &s, ZmAtrC &a, ZmPivot &sw[], int dir)
      {
       S = GetPointer(s); A = GetPointer(a); d = dir;
@@ -4749,6 +4783,36 @@ public:
          ZmPivot v = side[i]; int x = i - 1;
          while(x >= 0 && side[x].bar < v.bar) { side[x + 1] = side[x]; x--; }
          side[x + 1] = v;
+        }
+      htf = S.tf == 10080 || S.tf == 43200 || S.tf == RX_Q;
+      if(ZM_bosN > 0 && htf)
+        {
+         // H1 (2.18, W1 / MN / 3M): after each real side pivot V, the first bosN-bar swing of the other side and the first
+         // leg-direction departure candle that CLOSES beyond it; when that candle launches the leg (the candle before it is
+         // no leg-direction departure) and no real pivot lies between, its extreme is a line swing confirmed at itself
+         int N = ZM_bosN, nr = ArraySize(side);
+         for(int v = 0; v < nr; v++)
+           {
+            int vb = side[v].bar, hb = -1, kk = -1;
+            for(int j = vb - 1; j >= 1 && kk < 0; j--)
+              {
+               if(j + N < vb && BosSwing(j + N, N)) hb = j + N;
+               if(hb >= 0 && j < hb && BosDep(j) && (d > 0 ? S.C[j] > Y(hb) : S.C[j] < Y(hb))) kk = j;
+              }
+            if(kk < 0 || (kk + 1 < vb && BosDep(kk + 1))) continue;
+            bool between = false, dup = false;
+            for(int q = 0; q < nr; q++) if(side[q].bar < vb && side[q].bar > kk) between = true;
+            if(between || !Out(side[v].p, X(kk))) continue;
+            for(int q = 0; q < ArraySize(side); q++) if(side[q].bar == kk) dup = true;
+            if(dup) continue;
+            int m = ArraySize(side); ArrayResize(side, m + 1); side[m].bar = kk; side[m].p = X(kk); side[m].t = -d; side[m].conf = kk;
+           }
+         for(int i = 1; i < ArraySize(side); i++)       // oldest first again (bar desc, stable)
+           {
+            ZmPivot v2 = side[i]; int x = i - 1;
+            while(x >= 0 && side[x].bar < v2.bar) { side[x + 1] = side[x]; x--; }
+            side[x + 1] = v2;
+           }
         }
       for(int i = 1; i < ArraySize(side); i++)
         {
@@ -4776,14 +4840,28 @@ public:
       double ab = A.At(b), rise = d * (pb - pa);
       return rise > 0 && rise >= ZM_minRise * ab && rise / MathMax(1, a - b) >= ZM_minSlope * ab;
      }
-   void Build(int a, int b, int to, ZmBuilt &r)
+   void Build(int a, int b, int to, ZmBuilt &r, double tol = 0)
      {
       double pa = X(a); int bb = b; double sl = (X(b) - pa) / (a - b); bool poke = false;
       for(int j = b - 1; j >= to; j--) if(d * (pa + sl * (a - j) - X(j)) > ZM_fitTol * A.At(j)) poke = true;
       if(poke) for(int j = b - 1; j >= to; j--) { double s2 = (X(j) - pa) / (a - j); if(d > 0 ? s2 < sl : s2 > sl) { sl = s2; bb = j; } }
       double pb = X(bb); bool clean = true;
-      for(int j = a - 1; j > bb; j--) if(d * (pa + ((pb - pa) / (a - bb)) * (a - j) - X(j)) > 1e-9 * MathAbs(pa)) { clean = false; break; }
+      for(int j = a - 1; j > bb; j--) if(d * (pa + ((pb - pa) / (a - bb)) * (a - j) - X(j)) > (tol > 0 ? tol * A.At(j) : 1e-9 * MathAbs(pa))) { clean = false; break; }
       r.a = a; r.b = bb; r.pa = pa; r.pb = pb; r.clean = clean;
+     }
+   // anchor-1 candidates for a line from bar a to swing bar sb, in order, each with its clean tolerance (0 = strict): a ..
+   // a - p1Shift; then (2.18 H1 p1Low, W1 / MN / 3M, Line 1 from a local extreme only) a and the first higher low after it
+   int Cands(int a, int sb, bool ext, int &ca[], double &ct[])
+     {
+      ArrayResize(ca, 0); ArrayResize(ct, 0);
+      for(int sh = 0; sh <= ZM_p1Shift && a - sh > sb; sh++) { int m = ArraySize(ca); ArrayResize(ca, m + 1); ArrayResize(ct, m + 1); ca[m] = a - sh; ct[m] = 0; }
+      if(ext && ZM_p1Low > 0 && htf && a - 1 > sb)
+        {
+         int lo = a - 1;
+         for(int c = a - 1; c > sb; c--) if(Out(X(c), X(lo))) lo = c;
+         int m = ArraySize(ca); ArrayResize(ca, m + 2); ArrayResize(ct, m + 2); ca[m] = a; ct[m] = ZM_fitTol; ca[m + 1] = lo; ct[m + 1] = ZM_fitTol;
+        }
+      return ArraySize(ca);
      }
    double Slope(double pa, double pb, int a, int b) { return (pb - pa) / MathMax(1, a - b); }
    bool Veto(int h, int kk)
@@ -4825,13 +4903,14 @@ public:
          if(Beyond(hist[h], x) && !Veto(h, x)) { hist[h].brokenAt = x; hasChain = true; chainBar = hist[h].p2; chainP = X(hist[h].p2); chainBrk = x; return; }
       int m = ArraySize(live); ArrayResize(live, m + 1); live[m] = h;
      }
-   // a line from bar a (or p1Shift bars after it, the first clean one) to swing s, anchor 2 at the hull touch up to j
+   // a line from bar a (or an anchor-1 candidate after it, the first clean one) to swing s, anchor 2 at the hull touch up to j
    bool LineFrom(int a, ZmPivot &s, int j, int why, int whyShift, int steeper)
      {
-      for(int sh = 0; sh <= ZM_p1Shift; sh++)
+      int ca[]; double ct[];
+      int nc = Cands(a, s.bar, why == 0 || why == 12, ca, ct);
+      for(int c = 0; c < nc; c++)
         {
-         if(a - sh <= s.bar) return false;
-         ZmBuilt r; Build(a - sh, s.bar, j, r);
+         ZmBuilt r; Build(ca[c], s.bar, j, r, ct[c]);
          if(!r.clean) continue;
          if(!SlopeOk(r.a, r.pa, r.b, r.pb)) return false;
          if(steeper >= 0)
@@ -4840,7 +4919,7 @@ public:
             if(!(d > 0 ? s1 > s2 : s1 < s2)) return false;
            }
          if(Has(r.a, r.b)) return true;
-         ZmLine t; ZmMk(t, d, 0, r.a, r.b, r.pa, r.pb, j, s.bar, sh > 0 ? whyShift : why); Born(t, j);
+         ZmLine t; ZmMk(t, d, 0, r.a, r.b, r.pa, r.pb, j, s.bar, ca[c] != a ? whyShift : why); Born(t, j);
          return true;
         }
       return false;
@@ -4894,15 +4973,17 @@ public:
             waitP = sv; hasWait = true; continue;
            }
          bool made = false;                                      // (4) a new structure from the local extreme s0
-         for(int sh = 0; sh <= ZM_p1Shift && !made; sh++)
+         int ca[]; double ct[];
+         int nc = Cands(s0.bar, sv.bar, true, ca, ct);
+         for(int c = 0; c < nc; c++)
            {
-            int a = s0.bar - sh;
-            if(a <= sv.bar) break;
-            ZmBuilt r; Build(a, sv.bar, j, r);
+            int a = ca[c];
+            ZmBuilt r; Build(a, sv.bar, j, r, ct[c]);
             if(!r.clean) continue;
             if(!SlopeOk(r.a, r.pa, r.b, r.pb)) break;
-            ZmLine t; ZmMk(t, d, 0, r.a, r.b, r.pa, r.pb, j, sv.bar, sh > 0 ? 1 : 0); Born(t, j);
+            ZmLine t; ZmMk(t, d, 0, r.a, r.b, r.pa, r.pb, j, sv.bar, a != s0.bar ? 1 : 0); Born(t, j);
             made = true;
+            break;
            }
          if(!made) { waitP = sv; hasWait = true; }
          confirmed = true;
@@ -4946,7 +5027,7 @@ int ZmLines(RxSer &S, ZmAtrC &A, ZmPivot &piv[], ZmLine &out[])
       for(int i = 0; i < ArraySize(U.hist); i++) if(!U.del[i]) { int m = ArraySize(out); ArrayResize(out, m + 1); out[m] = U.hist[i]; }
       for(int i = 0; i < ArraySize(D.hist); i++) if(!D.del[i]) { int m = ArraySize(out); ArrayResize(out, m + 1); out[m] = D.hist[i]; }
      }
-   for(int i = 0; i < ArraySize(piv); i++) { ZmLine t; if(ZmMomentum(S, A, piv, i, t)) { int m = ArraySize(out); ArrayResize(out, m + 1); out[m] = t; } }
+   for(int i = 0; i < ArraySize(piv); i++) ZmMomAdd(S, A, piv, i, out);
    int n = ArraySize(out);
    for(int i = 1; i < n; i++)                          // a desc, b desc, dir asc (stable)
      {
@@ -5069,17 +5150,33 @@ int ZmZones(RxSer &S, ZmAtrC &A, ZmLine &lines[], ZmPivot &piv[], ZmZone &zs[])
          int b = piv[k].bar, d = -piv[k].t;
          if(b < 2 || piv[k].conf < 0) continue;
          bool cov = false;
-         for(int q = 0; q < ArraySize(zs) && !cov; q++) if(zs[q].dir == d && zs[q].base1 >= b && zs[q].base0 <= b) cov = true;
+         if(ZM_pivZones != 3) for(int q = 0; q < ArraySize(zs) && !cov; q++) if(zs[q].dir == d && zs[q].base1 >= b && zs[q].base0 <= b) cov = true;
          if(cov) continue;
          int b0 = b, b1 = b;
-         if(ZM_pivZones > 1)
+         if(ZM_pivZones == 3 && !S.basing(b) && S.cdir(b) == -d)
+           {
+            // H3 (2.18): the pivot candle is the last leg-in candle (a departure INTO the extreme): the zone is the basing
+            // candle(s) after it, before the leg-out (none: the pivot candle)
+            int e = b;
+            while(e - 1 >= 2 && S.basing(e - 1) && b - e < 6) e--;
+            if(e < b) { b0 = e; b1 = b - 1; }
+           }
+         else if(ZM_pivZones > 1)
            {
             while(b1 + 1 < S.n - 1 && S.basing(b1 + 1) && b1 - b0 < 5) b1++;
             while(b0 - 1 >= 2 && S.basing(b0 - 1) && b1 - b0 < 5) b0--;
            }
+         if(ZM_pivZones == 3)                                  // H3: a detected base already holds that base
+            for(int q = 0; q < ArraySize(zs) && !cov; q++) if(zs[q].dir == d && !zs[q].range && zs[q].base1 >= b1 && zs[q].base0 <= b0) cov = true;
+         if(cov) continue;
          double prox = d > 0 ? -DBL_MAX : DBL_MAX;
          for(int i = b0; i <= b1; i++) prox = d > 0 ? MathMax(prox, MathMax(S.O[i], S.C[i])) : MathMin(prox, MathMin(S.O[i], S.C[i]));
          double dist = d > 0 ? S.L[b] : S.H[b];
+         if(ZM_pivZones == 3)                                  // H3: distal at the zone candles' own extreme wick
+           {
+            dist = d > 0 ? DBL_MAX : -DBL_MAX;
+            for(int i = b0; i <= b1; i++) dist = d > 0 ? MathMin(dist, S.L[i]) : MathMax(dist, S.H[i]);
+           }
          if(MathAbs(prox - dist) <= 0) continue;
          ZmZone z; z.dir = d; z.prox = prox; z.dist = dist; z.base0 = b0; z.base1 = b1; z.legBar = b0 - 1; z.pattern = d > 0 ? 1 : 3; z.range = false;
          z.strong = false; z.arrival = false; z.touches = 0; z.removed = false; z.removedBar = -1; z.reasons = 0; z.nRemoved = 0; z.brokePivot = -1; z.pivot = true;

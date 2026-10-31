@@ -120,7 +120,7 @@ for (const { sym, chart, to: TO, nb: NB, owner } of jobs) {
         zones: owner.marks.zones.map(z => ({ dir: z.side === 'demand' ? 1 : -1, t0: T(z.s), prox: z.prox, dist: z.dist })),
       };
     }
-    const title = `${sym} ${chart}  -  ZoneVision 2.17 model${owner ? ` (owner window ${owner.bars[0][0].slice(0, 10)} .. ${owner.bars[owner.bars.length - 1][0].slice(0, 10)}${WIDE !== 1 ? `, x${WIDE}` : ''})` : ''}${own ? '  |  owner marks in blue' : ''}`;
+    const title = `${sym} ${chart}  -  ZoneVision 2.18 model${owner ? ` (owner window ${owner.bars[0][0].slice(0, 10)} .. ${owner.bars[owner.bars.length - 1][0].slice(0, 10)}${WIDE !== 1 ? `, x${WIDE}` : ''})` : ''}${own ? '  |  owner marks in blue' : ''}`;
     const out = { sym, tf: chart, digits: t.digits, candles, lines, zones, target: tg, pivots, structure: m.structure, direction: m.direction, owner: own, title };
     const base = `${sym}_${chart}${SUFFIX}`;
     const file = join(OUT, `${base}.json`);
