@@ -59,14 +59,10 @@ jobs:
       - name: Inside the filing window?
         id: win
         run: |
-          python3 - <<'EOF' >> "$GITHUB_OUTPUT"
-          import datetime as dt, os
-          from zoneinfo import ZoneInfo
-          t = dt.datetime.now(ZoneInfo('America/New_York'))
-          m = t.hour * 60 + t.minute
-          ok = os.environ['EVENT'] != 'schedule' or (t.weekday() < 5 and 6 * 60 <= m <= 22 * 60 + 9)
-          print('run=' + ('true' if ok else 'false'))
-          EOF
+          # New York wall clock from the system zone database (PYTHONTZPATH above hides it from Python, so no Python here)
+          read -r dow hm < <(TZ=America/New_York date '+%u %H%M')
+          m=$((10#${hm:0:2} * 60 + 10#${hm:2:2}))
+          if [ "$EVENT" != "schedule" ] || { [ "$dow" -le 5 ] && [ "$m" -ge 360 ] && [ "$m" -le 1329 ]; }; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; fi
           cat "$GITHUB_OUTPUT"
         env:
           EVENT: ${{ github.event_name }}
