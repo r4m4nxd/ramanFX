@@ -36,6 +36,8 @@ commodities, crypto and ~1,000 US stocks. Runs on free tiers (GitHub Actions, Su
 | `/scan SYM` | Fresh full scan of one symbol in ~1 min (6/hour) |
 | `/signals` · `/fx` · `/stocks` | Open setups (all / FX / today's stock BUY & WATCH) |
 | `/near` | Everything within 1% of a zone |
+| `/holders SYM` | Who owns a stock (SEC filings): 5%+ holders (13D/13G) with their last move, top insiders & 10% owners (Form 4), top 13F funds with the quarter-over-quarter change (index funds marked), and its last 30 days of insider buys/sales, Form 144 and 13D. 13F is up to 45 days old; the card says the quarter. Guests allowed |
+| `/insiders [SYM]` | Insider cluster & early buys (⭐ first), big non-plan sales, planned sales (Form 144), activists (13D); with a symbol, that stock's 30 days |
 | `/fund SYM` | Fundamentals — stocks: P/E, market cap, revenue/EPS growth, margin, debt, next earnings; FX: both central-bank rates, carry, inflation & growth, one-line bias |
 | `/news [SYM]` | Today's economic calendar + top 5 market-moving headlines; per-symbol headlines |
 | `/hours SYM` | Best times of day and days of week for that symbol (from years of history) |
@@ -43,7 +45,7 @@ commodities, crypto and ~1,000 US stocks. Runs on free tiers (GitHub Actions, Su
 | `/ask question` | Answers from the trading lessons library |
 | `/guide` · `/help` | Cheat sheet + full in-app guide |
 
-Inline buttons on every reply: 📊 Chart · timeframe switches · 🔲 4 views / 🔳 1 view · 🔎 Zones · 🔄 Live scan · 📰 News · 📑 Fundamentals · 🔕 Mute 1w · ⏰ alert. Persistent quick keyboard and a Mini App button opening the web app.
+Inline buttons on every reply: 📊 Chart · timeframe switches · 🔲 4 views / 🔳 1 view · 🔎 Zones · 🔄 Live scan · 📰 News · 📑 Fundamentals · 👥 Holders · 🔕 Mute 1w · ⏰ alert. Persistent quick keyboard and a Mini App button opening the web app.
 
 ## 5. Alerts & personal controls
 - `/alert` — price alerts or "alert me when price reaches a zone"; `/alerts`, `/unalert`.
@@ -73,7 +75,8 @@ Inline buttons on every reply: 📊 Chart · timeframe switches · 🔲 4 views 
 
 ## 10. In progress
 - **Chart quality pass**: dedupe trendlines, higher-TF lines everywhere, tighter wide zones, nesting warnings, verdict line, "closed" vs "live" labels, dated axes, labelled supply zones, spacing before the price scale.
-- **Insider cluster buys** (SEC Form 4): alerts when several executives buy, ⭐ when price is at a weekly/monthly demand zone; `/insiders`.
+- **Insider alerts** (SEC EDGAR, every 10 min on US weekdays 6:00–22:00 New York, several in one message, 6 a day, mutes / quiet hours / guests as usual): the **first big buy** (CEO/CFO/President/COO/Chair $100k+, anyone $500k+: "early · 1 insider so far"), then the **cluster** when others join (⭐ at a weekly/monthly demand zone); **big sales** (CEO/CFO/President/COO/Chair/10% owner, not a 10b5-1 plan, $1M+ or 0.1% of the market cap); **Form 144** planned sales; **Schedule 13D** activists. Every line shows the trade date and "filed 35m ago". `/insiders`.
+- **Holders** (SEC 13D/13G, Form 4, 13F data sets; daily, 13F weekly): `/holders SYM`, the 👥 Holders button, and a Holders card on each stock page. Never an alert source; index funds are marked.
 - **Pepperstone cTrader feed** for exact broker prices on every symbol (awaiting app approval).
 
 ## Cost

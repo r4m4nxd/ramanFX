@@ -64,7 +64,7 @@ const FONTS = [
 const REPO = 'r4m4nxd/ramanFX';
 const SITE = 'https://raman-fx.vercel.app/';
 const RAW = 'https://raw.githubusercontent.com/r4m4nxd/ramanFX/main/';
-// Generated data (scans, movers, fundamentals, insiders, the reminders' events.json) is committed by the scheduled jobs
+// Generated data (scans, movers, fundamentals, insiders, holders, the reminders' events.json) is committed by the scheduled jobs
 // to the `data` branch, never main (scripts/data-branch.sh); main's copy is only the fallback for a file not on data.
 const RAW_DATA = 'https://raw.githubusercontent.com/r4m4nxd/ramanFX/data/';
 const REST = `${SB_URL}/rest/v1/rfx_bot_config`;
@@ -163,6 +163,7 @@ async function tvCalendar(): Promise<unknown> {
 // rebuilt only when this object changes). A failed load (null) is kept for TTL only, then retried.
 const TTL_OF: Record<string, number> = { 'news.json': 15 * 60_000, 'ask/passages.json': 6 * 3600_000 };
 TTL_OF['fundamentals/fx.json'] = TTL_OF['fundamentals/stocks.json'] = 30 * 60_000;   // nightly files (fundamentals.ts)
+for (const k of ['holders/index.json', ...[...'ABCDEFGHIJKLMNOPQRSTUVWXYZ_'].map(l => `holders/t/${l}.json`)]) TTL_OF[k] = 30 * 60_000;   // daily files (holders.ts)
 // Headlines (headlines.ts): 'headlines/top' and 'headlines/sym/<SYM>', Alpaca News (the Alpaca keys) + RSS feeds; the
 // loader keeps its own 5-minute cache per source, so these paths skip the 60 s cache here.
 const headlines = headlineLoader({ fetch: (u, i) => fetch(u, i), alpaca: ALPACA_ID && ALPACA_SECRET ? { id: ALPACA_ID, secret: ALPACA_SECRET } : undefined, log: o => console.log(JSON.stringify(o)) });

@@ -17,6 +17,7 @@ import type { LiveFx, LiveSource, LiveStock } from './live.ts';
 import { cmdFund, earningsLine, fundButton } from './fundamentals.ts';
 import { nyseHolidays } from '../trader-coach/health.ts';
 import { cmdInsiders } from './insiders.ts';
+import { cmdHolders, holdersButton } from './holders.ts';
 
 export type Button = { text: string; url: string } | { text: string; callback_data: string };
 export interface Reply {
@@ -65,12 +66,13 @@ export const COMMANDS: { command: string; description: string; group: Group; usa
   { command: 'stocks', description: "Today's stock BUY / WATCH", group: 'Markets', usage: '/stocks', help: "today's stock BUY / WATCH, close to a zone" },
   { command: 'signals', description: 'Every open BUY / SELL / WATCH', group: 'Markets', usage: '/signals', help: 'every open BUY / SELL / WATCH, both markets' },
   { command: 'near', description: 'Everything within 1% of a zone', group: 'Markets', usage: '/near', help: 'everything within 1% of a strong zone' },
-  { command: 'insiders', description: 'Insider cluster buys (SEC Form 4)', group: 'Markets', usage: '/insiders', help: 'latest insider cluster buys, ⭐ first (/insiders NVDA: one stock\'s buys / sells)' },
+  { command: 'insiders', description: 'Insider buys, sales, 144, 13D (SEC)', group: 'Markets', usage: '/insiders', help: 'latest insider cluster / early buys, ⭐ first, big sales, planned sales (Form 144), activists (13D); /insiders NVDA: one stock\'s buys / sells' },
   { command: 'scan', description: 'Fresh scan of a symbol (or all)', group: 'Markets', usage: '/scan EURUSD', help: 'fresh scan of one symbol, result in ~1 min (/scan alone: every market)' },
   { command: 'zones', description: 'Every zone of a symbol', group: 'Symbol lookup', usage: '/zones EURUSD', help: 'every zone on every timeframe (or just send the symbol)' },
   { command: 'chart', description: 'Chart: 4 timeframes, or one', group: 'Symbol lookup', usage: '/chart EURUSD', help: 'one image, 4 timeframes (/chart EURUSD H4: one TF; /chart EURUSD MN 4: 4 views from MN down)' },
   { command: 'hours', description: 'Best times / days for a symbol', group: 'Symbol lookup', usage: '/hours XAUUSD', help: 'best Calgary times and weekdays' },
   { command: 'fund', description: 'Fundamentals: rates, CPI, P/E, earnings', group: 'Symbol lookup', usage: '/fund EURUSD', help: 'rates + carry + bias (FX), P/E, revenue, earnings (stocks); /fund alone: central banks' },
+  { command: 'holders', description: 'Who owns a stock: 5%+, insiders, funds', group: 'Symbol lookup', usage: '/holders NVDA', help: '5%+ holders, insiders and the top 13F funds (index ones marked), plus its last 30 days of insider buys / sales, Form 144 and 13D' },
   { command: 'alert', description: 'Alert at a price, or on a zone', group: 'Alerts', usage: '/alert XAUUSD 2650', help: 'one-shot price alert (/alert NVDA zone: price enters a strong zone)' },
   { command: 'alerts', description: 'Your alerts, mutes, quiet hours', group: 'Alerts', usage: '/alerts', help: 'your alerts (🗑 to delete), mutes, quiet hours, watchlist' },
   { command: 'unalert', description: 'Delete an alert', group: 'Alerts', usage: '/unalert 12', help: 'delete an alert by its number' },
@@ -290,7 +292,7 @@ export function helpText(role: Role = 'owner'): string {
 /** /guide, /howto: a compact cheat sheet; the full how-to is the app's /guide page (src/content/guide.ts). */
 export function cmdGuide(role: Role = 'owner'): Reply {
   const text = ['📘 <b>RamanFX · quick guide</b>', 'Send a symbol (EURUSD, XAUUSD, NVDA): its zones, price and buttons.', '',
-    '<b>Look</b> /fx · /stocks · /signals · /near', '<b>One symbol</b> /zones · /chart EURUSD 15m · /scan EURUSD · /fund · /news NVDA · /hours',
+    '<b>Look</b> /fx · /stocks · /signals · /near', '<b>One symbol</b> /zones · /chart EURUSD 15m · /scan EURUSD · /fund · /holders NVDA · /news NVDA · /hours',
     '<b>Alerts</b> /alert XAUUSD 2650 · /alert NVDA zone · /alerts · /mute EURUSD 1w · /quiet 22:00-06:00 · /watch',
     role === 'owner' ? '<b>Day</b> /times · /next · /took EURUSD buy 1.0850 sl 1.0820 tp 1.0910' : '<b>Day</b> /times · /next', '<b>Learn</b> /ask what is a proximal line', '',
     '<b>Comes by itself</b> (Calgary)', role === 'owner' ? '6 AM brief + lesson · FX scan hourly (only when new) · big moves hourly · stock scan after the US close · breaking news on watched symbols · coach: rule guard, 📝 why?, Sunday 6 PM report'
@@ -454,6 +456,8 @@ export async function liveFor(r: Resolved, ctx: Ctx, digits: number): Promise<Li
 const liveNote = (r: Resolved, ctx: Ctx, lv: LiveView | null) => (lv ? '' : (r.market === 'fx' ? ctx.live?.fx : ctx.live?.stock) ? LIVE_DOWN : LIVE_HINT);
 const liveAt = (lv: LiveView) => `live · ${clock(new Date(lv.at))}`;
 /** [🔄 Live scan] (an on-demand scan of this symbol) when a GitHub token is set. */
+/** [👥 Holders] under a stock's reply (5%+ holders, insiders, 13F funds: holders.ts). */
+const holdersRow = (sym: string): Button[][] => (cbOk(`h:${sym}`) ? [[holdersButton(sym)]] : []);
 const scanButton = (sym: string, ctx: Ctx): Button[] => [...(ctx.scanOne && cbOk(`s:${sym}`) ? [{ text: '🔄 Live scan', callback_data: `s:${sym}` }] : []), ...(cbOk(`f:${sym}`) ? [fundButton(sym)] : [])];   // + [📑 Fundamentals]
 
 async function fxZones(r: Resolved, ctx: Ctx): Promise<Reply> {
@@ -535,7 +539,7 @@ async function stockZones(r: Resolved, ctx: Ctx): Promise<Reply> {
   const note = liveNote(r, ctx, lv);
   if (note) lines.push(note);
   const slug = String(r.sym).replace(/\./g, '-');
-  return { cmd: 'zones', text: fit(lines), buttons: [...chartButtons(r.sym, 'stock', ctx), [...(d.chart ? [{ text: `📈 ${r.sym}`, url: String(d.chart) }] : []), { text: 'Open in scanner', url: `${APP}/scanner/${encodeURIComponent(slug)}` }, ...scanButton(r.sym, ctx), ...newsButton(r.sym)], ...prefsButtons(r.sym, ctx)] };
+  return { cmd: 'zones', text: fit(lines), buttons: [...chartButtons(r.sym, 'stock', ctx), [...(d.chart ? [{ text: `📈 ${r.sym}`, url: String(d.chart) }] : []), { text: 'Open in scanner', url: `${APP}/scanner/${encodeURIComponent(slug)}` }, ...scanButton(r.sym, ctx), ...newsButton(r.sym)], ...holdersRow(r.sym), ...prefsButtons(r.sym, ctx)] };
 }
 
 async function cmdZones(q: string, ctx: Ctx): Promise<Reply> {
@@ -680,7 +684,7 @@ export function chartButtons(sym: string, market: 'fx' | 'stock', ctx?: Ctx): Bu
 }
 function photoButtons(sym: string, market: 'fx' | 'stock', view: string, ctx: Ctx): Button[][] {
   const tfs = viewTfs(market, ctx);
-  const scan = [...scanButton(sym, ctx), ...newsButton(sym)];
+  const scan = [...scanButton(sym, ctx), ...(market === 'stock' && cbOk(`h:${sym}`) ? [holdersButton(sym)] : []), ...newsButton(sym)];
   // In a 4-view chart the timeframe buttons pick the TOP timeframe of the 4; in a single view they pick the one shown.
   const quad = isQuad(view), top = quad && view.length > 1 ? view.slice(1) : '';
   return [tfs.map(t => quad
@@ -1102,7 +1106,8 @@ async function cmdChart(q: string, tfArg: string, ctx: Ctx, mode = ''): Promise<
 }
 
 const CB_CMDS: Record<string, string> = { n: '/near', f: '/fx', s: '/stocks', g: '/signals', t: '/times', x: '/next', h: '/help' };
-/** A tapped inline button (callback_query.data): 'z:SYM' zones, 'c:SYM' 4-view chart, 'c:SYM:TF' one TF, short codes. */
+/** A tapped inline button (callback_query.data): 'z:SYM' zones, 'c:SYM' 4-view chart, 'c:SYM:TF' one TF, 'f:SYM' fundamentals,
+ *  'h:SYM' holders, short codes. */
 export async function handleCallback(data: string, ctx: Ctx): Promise<Reply> {
   const m = /^([zcs]):([A-Za-z0-9._-]{1,20})(?::([A-Za-z0-9]{1,4}))?$/.exec(data ?? '');   // TF up to 4 chars: 'QM15'
   const nw = /^n:([A-Za-z0-9._-]{1,20})$/.exec(data ?? '');
@@ -1112,6 +1117,8 @@ export async function handleCallback(data: string, ctx: Ctx): Promise<Reply> {
   if (m && m[1] === 'c') return { ...(await cmdChart(m[2], m[3] ?? '', ctx)), edit: !!m[3] };
   const fd = /^f:([A-Za-z0-9._-]{1,20})$/.exec(data ?? '');
   if (fd) return cmdFund(fd[1], ctx);
+  const hd = /^h:([A-Za-z0-9._-]{1,20})$/.exec(data ?? '');
+  if (hd) return cmdHolders(hd[1], ctx);
   if (CB_CMDS[data]) return handle(CB_CMDS[data], ctx);
   const tap = parseTap(data ?? '');
   if (tap) return prefsTap(tap, ctx);
@@ -1355,6 +1362,7 @@ export async function handle(text: string, ctx: Ctx): Promise<Reply> {
       case 'fund': case 'fundamentals': return cmdFund(c.arg, ctx);
       case 'scan': return cmdScan(c.arg, ctx);
       case 'insiders': case 'insider': return cmdInsiders(c.arg, ctx);
+      case 'holders': case 'holder': return cmdHolders(c.arg, ctx);
       case 'took': return { cmd: 'took', text: 'Use: <code>/took EURUSD buy 1.0850 sl 1.0820 tp 1.0910</code>' };   // index.ts routes it to journal.ts first
       case 'alert': return cmdAlert(c.arg, c.arg2, ctx);
       case 'alerts': return cmdAlerts(ctx);
