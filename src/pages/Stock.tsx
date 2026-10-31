@@ -8,6 +8,7 @@ import { bucketTip, ctx6Text, locTip, curveTip, directionTip, distTip, freshTip,
 import { Icon } from '@/ui/Icon';
 import { ChainLine, ContextFlags, FundTable, IndexChips, loadIndex, PlanGrid, PzChips, RuleList, ScoreChips, StarButton, TfBadge, TickerSearch, TipStat, TypeBadge, useWatchlist, ZoneChart } from '@/ui/ScanParts';
 import { ZoneGauge } from '@/ui/ZoneGauge';
+import { HoldersCard } from '@/ui/HoldersCard';
 import type { MiniZone } from '@/ui/ZoneMiniChart';
 
 type Load = { state: 'loading' } | { state: 'missing' } | { state: 'error' } | { state: 'ok'; d: TickerDetail; row: IndexRow };
@@ -153,6 +154,7 @@ export default function Stock() {
           </Card>
 
           <FundTable rows={d.fundamentals_rows} open country={d.country} />
+          <HoldersCard symbol={d.symbol} />
           <p className="text-[12px] text-ink3">Rule-based scan, not financial advice. Untested on stocks until the backtest says otherwise.</p>
         </>
       )}
