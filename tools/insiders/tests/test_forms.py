@@ -235,10 +235,10 @@ class TestGrabFixtures(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             G.auto(get, dt.date(2026, 10, 30), say=lines.append, out=d)
             saved = sorted(os.listdir(d))
-        self.assertEqual(saved, ['form144.txt', 'form4_sale_open.txt', 'form4_sale_plan.txt', 'schedule13d_a.txt', 'schedule13g_a.txt'])
+        self.assertEqual(saved, ['form144.txt', 'form4_sale_box.txt', 'form4_sale_open.txt', 'schedule13d_a.txt', 'schedule13g_a.txt'])
         text = '\n'.join(lines)
         self.assertIn('=====FIXTURE form144.txt', text)
-        self.assertIn('parsed form4_sale_plan.txt: plan=True', text)
+        self.assertIn('parsed form4_sale_box.txt: plan=True box=True', text)
         self.assertIn('parsed form4_sale_open.txt: plan=False', text)
         self.assertIn('13F check:', text)                                            # the offline parts say so instead of raising
         self.assertEqual(sorted(G.index_refs(idx)), ['144', '4', 'SCHEDULE 13D/A', 'SCHEDULE 13G/A'])

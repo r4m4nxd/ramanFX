@@ -67,6 +67,35 @@ def emit(name: str, raw: bytes, say: Callable[[str], None], out: Optional[str] =
             f.write(data)
 
 
+def f13_slice(z: zipfile.ZipFile, cusip: str = '037833100', n: int = 8) -> List[str]:
+    """A self-consistent real slice of a 13F data set: the first n INFOTABLE rows of one CUSIP, and those filings' SUBMISSION and
+    COVERPAGE rows, each table with its header line (printed between FIXTURE markers)."""
+    def member(suffix):
+        return next(m for m in z.namelist() if m.upper().endswith(suffix))
+    out: List[str] = []
+    accs: List[str] = []
+    head = ''
+    rows: List[str] = []
+    with z.open(member('INFOTABLE.TSV')) as f:
+        head = next(f).decode('utf-8', 'replace').rstrip('\n')
+        for raw in f:
+            if cusip.encode() in raw:
+                line = raw.decode('utf-8', 'replace').rstrip('\n')
+                a = line.split('\t', 1)[0]
+                if a not in accs:
+                    accs.append(a)
+                    rows.append(line)
+                    if len(rows) >= n:
+                        break
+    out += ['=====FIXTURE INFOTABLE.tsv=====', head, *rows, '=====END INFOTABLE.tsv=====']
+    for suffix in ('SUBMISSION.TSV', 'COVERPAGE.TSV'):
+        with z.open(member(suffix)) as f:
+            h = next(f).decode('utf-8', 'replace').rstrip('\n')
+            got = [raw.decode('utf-8', 'replace').rstrip('\n') for raw in f if raw.split(b'\t', 1)[0].decode('latin-1') in accs]
+        out += [f'=====FIXTURE {suffix.split(".")[0]}.tsv=====', h, *got, f'=====END {suffix.split(".")[0]}.tsv=====']
+    return out
+
+
 def summary(d: Dict) -> str:
     return json.dumps({k: v for k, v in d.items() if k not in ('rows', 'footnotes', 'classes', 'persons', 'owners', 'holds')}, default=str, ensure_ascii=False)[:900]
 
@@ -95,8 +124,8 @@ def auto(get: Callable[[str], bytes], today: dt.date, say: Callable[[str], None]
                 say(f'parsed {name}: {summary(parse(raw))}')
             except Exception as e:  # noqa: BLE001
                 say(f'{name}: {type(e).__name__}: {str(e)[:120]}')
-    want = {'plan': 'form4_sale_plan.txt', 'open': 'form4_sale_open.txt'}
-    for r in (refs.get('4') or [])[:150]:
+    want = {'box': 'form4_sale_box.txt', 'note': 'form4_sale_note.txt', 'open': 'form4_sale_open.txt'}
+    for r in (refs.get('4') or [])[:400]:
         if not want:
             break
         try:
@@ -107,13 +136,28 @@ def auto(get: Callable[[str], bytes], today: dt.date, say: Callable[[str], None]
             continue
         if s is None:
             continue
-        key = 'plan' if s['plan'] else 'open'
+        key = 'box' if doc['plan'] else 'note' if s['plan'] else 'open'     # checkbox ticked / only a footnote names the plan / no plan
         if key in want:
             name = want.pop(key)
             emit(name, raw, say, out, 12_000)
             say(f"parsed {name}: plan={s['plan']} box={doc['plan']} cover={s['cover']} value={s['value']} role={s['role']} top={s['top']} holdings={F.holdings(doc)}")
     if want:
         say(f'no Form 4 sale found for: {sorted(want)}')
+    for d in (dt.date(2024, 2, 13), dt.date(2024, 2, 14)):                     # the old text forms (SC 13G / SC 13D), retired in Dec 2024
+        try:
+            old = index_refs(get(I.daily_url(d)).decode('latin-1'))
+        except Exception as e:  # noqa: BLE001
+            say(f'daily index {d}: not read ({type(e).__name__})')
+            continue
+        for form, name in (('SC 13G/A', 'sc13g_a_old.txt'), ('SC 13D/A', 'sc13d_a_old.txt'), ('SC 13G', 'sc13g_old.txt')):
+            for r in (old.get(form) or [])[:1]:
+                try:
+                    raw = fetch(r)
+                    emit(name, raw, say, out, 16_000)
+                    say(f'parsed {name}: {summary(S13.parse_submission(raw))}')
+                except Exception as e:  # noqa: BLE001
+                    say(f'{name}: {type(e).__name__}: {str(e)[:120]}')
+        break
     try:
         import f13 as T                                                                     # noqa: WPS433 (tools/holders)
         import holders as HD                                                                 # noqa: WPS433
@@ -126,13 +170,8 @@ def auto(get: Callable[[str], bytes], today: dt.date, say: Callable[[str], None]
                 say(f'13F zip {links[0][0].rsplit("/", 1)[-1]}: {n / 1e6:.0f} MB')
                 with zipfile.ZipFile(dest) as z:
                     say(f'13F members: {[(i.filename, i.file_size) for i in z.infolist()]}')
-                    for member in z.namelist():
-                        if member.upper().endswith(('SUBMISSION.TSV', 'COVERPAGE.TSV', 'INFOTABLE.TSV')):
-                            with z.open(member) as f:
-                                head = [next(f, b'').decode('utf-8', 'replace').rstrip('\n') for _ in range(6)]
-                            say(f'=====FIXTURE {member} (first rows)=====')
-                            say('\n'.join(head)[:3000])
-                            say(f'=====END {member}=====')
+                    for line in f13_slice(z):
+                        say(line)
     except Exception as e:  # noqa: BLE001
         say(f'13F check: {type(e).__name__}: {str(e)[:160]}')
     try:
