@@ -1,7 +1,8 @@
-// Insider buys (SEC EDGAR Form 4, tools/insiders/insiders.py -> public/insiders/latest.json, every 30 min on US
-// weekdays): /insiders (the latest clusters, ⭐ first), /insiders SYM (that stock's 30-day buys / sells summary) and
-// the one-line '🕵️ insiders bought $X in last 30d' under /fund and the stock zones / chart replies. Guests allowed.
-// Context only, never a signal. Pure: data through ctx.load (vitest: src/core/telegramInsiders.test.ts).
+// Insider activity (SEC EDGAR, tools/insiders/insiders.py -> public/insiders/latest.json, every 10 min on US weekdays 6:00-22:00
+// New York): /insiders (the latest clusters and early buys, ⭐ first, then big sales, planned sales (Form 144) and 13D
+// activists), /insiders SYM (that stock's 30-day buys / sales summary and filings) and the one-line '🕵️ insiders bought $X
+// in last 30d' under /fund and the stock zones / chart replies. Guests allowed. Context only, never a signal.
+// Pure: data through ctx.load (vitest: src/core/telegramInsiders.test.ts).
 
 import { clock, day, esc, fit, resolve, type Button, type Ctx, type Reply } from './logic.ts';
 
@@ -11,7 +12,7 @@ const arr = (v: unknown): J[] => (Array.isArray(v) ? v.filter(x => x && typeof x
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 export const INSIDERS_PATH = 'insiders/latest.json';
 const APP = 'https://raman-fx.vercel.app';
-const FOOT = 'SEC Form 4 open-market buys · context, not a signal · not advice';
+const FOOT = 'SEC Form 4 / Form 144 / Schedule 13D filings · context, not a signal · not advice';
 /** Published data older than this is not quoted under /fund and the zone / chart replies (a stalled job). */
 const STALE_MS = 4 * 86400_000;
 const LIST_N = 8;
@@ -46,10 +47,20 @@ function holdings(l: J): string {
   return p != null && p >= 0.5 ? `+${p.toFixed(0)}% holdings` : '';
 }
 
-/** One cluster, one line: '⭐ XYZ $12.40 · 3 insiders · $2.1M · CEO +18% holdings · inside W1 demand 11.90–12.60'. */
-export function clusterLine(c: J): string {
+/** '35m ago', '3h ago', '2d ago' from an ISO instant; '' when unknown or in the future. */
+export function ago(iso: unknown, now: Date): string {
+  const t = Date.parse(String(iso ?? ''));
+  if (!Number.isFinite(t)) return '';
+  const m = Math.floor((now.getTime() - t) / 60000);
+  if (m < -5) return '';
+  return m < 1 ? 'just now' : m < 60 ? `${m}m ago` : m < 48 * 60 ? `${Math.floor(m / 60)}h ago` : `${Math.floor(m / 1440)}d ago`;
+}
+
+/** One cluster, one line: '⭐ XYZ $12.40 · 3 insiders · $2.1M · CEO +18% holdings · inside W1 demand 11.90–12.60 · Oct 24–Oct 28 ·
+ *  newest filing 35m ago'. An early buy reads 'early · 1 insider so far'. */
+export function clusterLine(c: J, now?: Date): string {
   const bits = [`${c.star ? '⭐' : '🕵️'} <b>${esc(c.sym || c.name)}</b> ${price(c.px ?? c.price)}`.trim(),
-    c.kind === 'solo' ? 'big solo buy' : `${num(c.n) ?? 0} insiders`, usd(c.value)];
+    c.kind === 'solo' ? 'big solo buy' : c.kind === 'early' ? 'early · 1 insider so far' : `${num(c.n) ?? 0} insiders`, usd(c.value)];
   const l = obj(c.lead);
   const who = `${l.role ?? ''} ${holdings(l)}`.trim();
   if (who) bits.push(esc(who));
@@ -57,6 +68,8 @@ export function clusterLine(c: J): string {
   if (z) bits.push(esc(z));
   const span = c.first && c.first !== c.last ? `${mday(c.first)}–${mday(c.last)}` : mday(c.last);
   if (span) bits.push(span);
+  const a = now ? ago(c.filed, now) : '';
+  if (a) bits.push(`${c.kind === 'cluster' ? 'newest filing' : 'filed'} ${a}`);
   return bits.join(' · ');
 }
 
@@ -84,7 +97,7 @@ export async function insiderLine(sym: string, ctx: Ctx): Promise<string> {
   const e = k ? obj(obj(f.by_sym)[k]) : {};
   if (!k || !num(e.buy_value)) return '';
   const c = arr(f.clusters).find(x => x.sym === k);
-  const tag = c ? (c.star ? ' · ⭐ cluster' : c.kind === 'solo' ? ' · big CEO/CFO buy' : ' · cluster') : '';
+  const tag = c ? (c.star ? ' · ⭐ cluster' : c.kind === 'solo' ? ' · big CEO/CFO buy' : c.kind === 'early' ? ' · early big buy' : ' · cluster') : '';
   return `🕵️ insiders bought ${usd(e.buy_value)} in last 30d (${num(e.buyers) ?? 1} insider${num(e.buyers) === 1 ? '' : 's'}${tag}) · /insiders ${esc(k)}`;
 }
 
@@ -103,18 +116,53 @@ export async function withInsiders(sym: string, ctx: Ctx, reply: Promise<Reply>)
   return { ...r, text: lines.join('\n') };
 }
 
-function listReply(f: J): Reply {
+/** The stock's filings of the last 30 days from the file (buys: cluster / early; big sales; Form 144; 13D), one line each; [] when
+ *  the file is stale (a stalled job) or the stock has none. Used by /insiders SYM and /holders. */
+export function eventLines(f: J, sym: string, now: Date): string[] {
+  if (!fresh(f, now)) return [];
+  const cut = new Date(now.getTime() - 30 * 86400_000).toISOString().slice(0, 10);
+  const str = (v: unknown) => (typeof v === 'string' ? v : '');
+  const out: string[] = [];
+  for (const c of arr(f.clusters).filter(x => x.sym === sym && str(x.last) >= cut)) {
+    const what = c.kind === 'cluster' ? `${num(c.n) ?? 0} insiders bought (cluster${c.strong ? ', strong' : ''})` : c.kind === 'early' ? 'early insider buy (1 insider so far)' : 'big solo insider buy';
+    out.push(`🟢 ${mday(c.last)} · ${what} ${usd(c.value)}${c.star ? ' ⭐' : ''}`);
+  }
+  for (const s of arr(f.sells).filter(x => x.sym === sym && str(x.filed).slice(0, 10) >= cut).slice(0, 3))
+    out.push(`🔴 ${mday(s.date)} · ${esc(s.role)} ${esc(s.who)} sold ${usd(s.value)}${s.plan ? ' (10b5-1 plan)' : s.cover ? ' (tax withholding)' : s.big ? ' · big, no plan' : ''}`);
+  for (const p of arr(f.plans).filter(x => x.sym === sym && str(x.filed).slice(0, 10) >= cut).slice(0, 2))
+    out.push(`📋 ${mday(str(p.filed).slice(0, 10))} · Form 144: ${esc(p.who)} plans to sell ${usd(p.value)}${p.date ? ` about ${mday(p.date)}` : ''}${p.plan ? ' (10b5-1 plan)' : ''}`);
+  for (const a of arr(f.activists).filter(x => x.sym === sym && str(x.filed).slice(0, 10) >= cut).slice(0, 2))
+    out.push(`📣 ${mday(str(a.filed).slice(0, 10))} · ${esc(a.form)}: ${esc(a.who)} ${num(a.pct) != null ? `${(a.pct as number).toFixed(1)}%` : ''}${num(a.prev_pct) != null ? ` (was ${(a.prev_pct as number).toFixed(1)}%)` : ''}`);
+  return out;
+}
+
+/** The other filings under the cluster list: big sales, planned sales, activists (a few lines each, newest first). */
+function otherBlocks(f: J, now: Date): string[] {
+  const out: string[] = [];
+  const sells = arr(f.sells).filter(s => s.big), plans = arr(f.plans).filter(p => p.big), acts = arr(f.activists).filter(a => a.universe);
+  const age = (iso: unknown) => { const a = ago(iso, now); return a ? ` · filed ${a}` : ''; };
+  if (sells.length) out.push('', `<b>Big sales</b> <i>(CEO / CFO / President / COO / Chair / 10% owner, not a 10b5-1 plan, $1M+ or 0.1% of the cap)</i>`,
+    ...sells.slice(0, 4).map(s => `🔻 <b>${esc(s.sym)}</b> · ${esc(s.role)} ${esc(s.who)} sold ${usd(s.value)} · ${mday(s.date)}${esc(age(s.filed))}`));
+  if (plans.length) out.push('', `<b>Planned sales</b> <i>(Form 144, filed before the sale)</i>`,
+    ...plans.slice(0, 4).map(p => `📋 <b>${esc(p.sym)}</b> · ${esc(p.who)} plans to sell ${usd(p.value)}${p.date ? ` about ${mday(p.date)}` : ''}${esc(age(p.filed))}`));
+  if (acts.length) out.push('', `<b>Activists</b> <i>(Schedule 13D)</i>`,
+    ...acts.slice(0, 3).map(a => `📣 <b>${esc(a.sym)}</b> · ${esc(a.who)} ${num(a.pct) != null ? `${(a.pct as number).toFixed(1)}%` : ''} · ${esc(a.form)}${esc(age(a.filed))}`));
+  return out;
+}
+
+function listReply(f: J, now: Date): Reply {
   const cs = arr(f.clusters);
   const lines = [`🕵️ <b>Insider cluster buys · last ${num(f.days) ?? 30} days</b>`];
   if (!cs.length) {
-    lines.push('', 'None in the data yet: 2+ insiders buying the same stock within 14 days, or a CEO / CFO buy of $250k+.');
+    lines.push('', 'None in the data yet: 2+ insiders buying the same stock within 14 days, or a first big buy (a CEO / CFO / President / COO / Chair $100k+, anyone $500k+).');
   } else {
     const stars = cs.filter(c => c.star).length;
     lines.push(`${cs.length} found${stars ? ` · ${stars} ⭐ (3+ insiders at weekly / monthly demand)` : ''}`, '');
-    for (const c of cs.slice(0, LIST_N)) lines.push(clusterLine(c));
+    for (const c of cs.slice(0, LIST_N)) lines.push(clusterLine(c, now));
     if (cs.length > LIST_N) lines.push(`+${cs.length - LIST_N} more in the app`);
   }
-  lines.push('', 'Send <b>/insiders NVDA</b> for one stock.', `<i>${FOOT}</i>${updated(f) ? ` · ${esc(updated(f))}` : ''}`);
+  lines.push(...otherBlocks(f, now));
+  lines.push('', 'Send <b>/insiders NVDA</b> for one stock, <b>/holders NVDA</b> for who owns it.', `<i>${FOOT}</i>${updated(f) ? ` · ${esc(updated(f))}` : ''}`);
   const syms = cs.filter(c => c.universe).slice(0, 4).map(c => String(c.sym));
   const buttons: Button[][] = [];
   if (syms.length) buttons.push(syms.map(s => ({ text: `📊 ${s}`, callback_data: `c:${s}` })));
@@ -144,7 +192,7 @@ async function symReply(f: J, q: string, ctx: Ctx): Promise<Reply> {
   const c = arr(f.clusters).find(x => x.sym === k);
   const lines = [`🕵️ <b>${esc(k)}</b> · insiders · last ${num(f.days) ?? 30} days`, ''];
   if (c) {
-    lines.push(`${c.star ? '⭐ ' : ''}<b>${c.kind === 'solo' ? 'Big solo buy' : `${c.strong ? 'Strong cluster' : 'Cluster'} · ${num(c.n)} insiders`}</b> · ${usd(c.value)} · score ${esc(String(c.score ?? ''))}`);
+    lines.push(`${c.star ? '⭐ ' : ''}<b>${c.kind === 'solo' ? 'Big solo buy' : c.kind === 'early' ? 'Early buy · 1 insider so far' : `${c.strong ? 'Strong cluster' : 'Cluster'} · ${num(c.n)} insiders`}</b> · ${usd(c.value)} · score ${esc(String(c.score ?? ''))}`);
     const z = zoneText(c.zone, false);
     const ctxBits = [z, c.trend ? `trend ${c.trend}` : '', c.signal ? `scanner ${c.signal}` : '', num(c.pe) != null && c.pe > 0 ? `P/E ${(c.pe as number).toFixed(0)}` : '', c.er_next ? `earnings ${mday(c.er_next)}` : ''].filter(Boolean);
     if (ctxBits.length) lines.push(esc(ctxBits.join(' · ')));
@@ -156,9 +204,11 @@ async function symReply(f: J, q: string, ctx: Ctx): Promise<Reply> {
   else lines.push(e.universe ? 'Sold: none (open-market sales)' : 'Sold: tracked for scanner stocks only');
   const rows = arr(e.rows).length ? arr(e.rows) : arr(c?.insiders).map(i => ({ d: i.date, who: i.name, role: String(i.role ?? '').split(' · ')[0], code: 'P', value: i.value, price: i.price, pct: i.pct, url: i.url }));
   if (rows.length) lines.push('', ...rows.slice(0, 6).map(rowLine));
-  lines.push('', `<i>SEC Form 4 · context, not a signal · not advice</i>${updated(f) ? ` · ${esc(updated(f))}` : ''}`);
+  const filings = eventLines(f, k, ctx.now).filter(l => /^(📋|📣)/.test(l));          // Form 144 and 13D (the buys / sales are the rows above)
+  if (filings.length) lines.push('', ...filings);
+  lines.push('', `<i>SEC Form 4 / 144 / 13D · context, not a signal · not advice</i>${updated(f) ? ` · ${esc(updated(f))}` : ''}`);
   const buttons: Button[][] = [];
-  if (e.universe || c?.universe) buttons.push([{ text: `📊 Chart ${k}`, callback_data: `c:${k}` }, { text: '📑 Fundamentals', callback_data: `f:${k}` }]);
+  if (e.universe || c?.universe) buttons.push([{ text: `📊 Chart ${k}`, callback_data: `c:${k}` }, { text: '📑 Fundamentals', callback_data: `f:${k}` }, { text: '👥 Holders', callback_data: `h:${k}` }]);
   const u = secUrl(rows[0]?.url) || secUrl(c?.url);
   if (u) buttons.push([{ text: '🔗 SEC filing', url: u }]);
   return { cmd: 'insiders', text: fit(lines), buttons };
@@ -167,6 +217,6 @@ async function symReply(f: J, q: string, ctx: Ctx): Promise<Reply> {
 /** /insiders [SYM]. */
 export async function cmdInsiders(q: string, ctx: Ctx): Promise<Reply> {
   const f = await file(ctx);
-  if (!f) return { cmd: 'insiders', text: '🕵️ <b>Insider buys</b>\nNot published yet: the SEC Form 4 job fills it every 30 min on US weekdays. Try again later.' };
-  return q ? symReply(f, q, ctx) : listReply(f);
+  if (!f) return { cmd: 'insiders', text: '🕵️ <b>Insider buys</b>\nNot published yet: the SEC filings job fills it every 10 min on US weekdays. Try again later.' };
+  return q ? symReply(f, q, ctx) : listReply(f, ctx.now);
 }
