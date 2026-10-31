@@ -8,7 +8,10 @@
 //   movers.yml: no inputs, EVERY hour (crypto trades 24/7): movers.py works out which 1H / 4H / 1D / 1W candles closed
 //   (FX, crypto, stocks; stock 1D / 1W ride with the 17:00 New York slot) and dedupes per close itself.
 //   fundamentals.yml: input scheduled=true (skips when today's files are built), weekdays 18:00-19:00 New York.
-//   insiders.yml: no inputs, every 30 min on weekdays 6:00-20:00 New York (SEC Form 4 insider buys; dedupes itself).
+//   insiders.yml: no inputs, every 10 min on weekdays 6:00-22:00 New York (SEC Form 4 buys / sales, Form 144, Schedule 13D;
+//   EDGAR accepts filings until 22:00 ET; dedupes itself, so an input-less dispatch always notifies like a cron run).
+//   holders.yml: input scheduled=true, weekdays 5:00-6:00 New York (13D / 13G / Form 4 holdings for the stock page and the
+//   bot's /holders; the 13F quarter check inside it runs weekly; skips when today's files are built).
 //   realign.yml: no inputs, every 15 min in the forex week (one slot per 15-min close): the Raja realignment
 //   confirmations on 15-min / 1-hour candles; it reads the open areas of the hourly FX scan and ends in seconds when
 //   price is in none of them.
@@ -19,7 +22,7 @@ import { calParts } from './core.ts';
 export const REPO = 'r4m4nxd/ramanFX';
 export interface Dispatch {
   /** Workflow file in .github/workflows. */
-  wf: 'fx-scan.yml' | 'stock-scan.yml' | 'briefing.yml' | 'reminders.yml' | 'movers.yml' | 'fundamentals.yml' | 'insiders.yml' | 'realign.yml';
+  wf: 'fx-scan.yml' | 'stock-scan.yml' | 'briefing.yml' | 'reminders.yml' | 'movers.yml' | 'fundamentals.yml' | 'insiders.yml' | 'holders.yml' | 'realign.yml';
   /** Dedupe key: one dispatch per slot (rfx_coach_events 'dispatch:<slot>'). */
   slot: string;
   /** Slot start (UTC ms): a GitHub run created at or after this already covers the slot. */
@@ -51,6 +54,9 @@ export function fxBarCloses(closeMs: number): boolean {
 
 /** Minutes after each H1 close in which the coach dispatches the FX scan (two 10-min ticks land in it). */
 export const FX_WINDOW: [number, number] = [5, 25];
+
+/** Insiders slots, New York minutes of the day: every INSIDERS_EVERY min from 6:00 to 22:00 (the 22:00 slot included). */
+export const INSIDERS_FROM = 6 * 60, INSIDERS_TO = 22 * 60, INSIDERS_EVERY = 10;
 
 /** Realignment check slot length: one dispatch per 15-min candle close. */
 export const REALIGN_MS = 15 * 60000;
@@ -89,11 +95,15 @@ export function dueDispatches(nowUtc: number): Dispatch[] {
       if (m >= at && m < at + 60) out.push({ wf: 'stock-scan.yml', slot: `stock:${key(ny)}:${name}`, since: startOf(at), inputs: { scheduled: 'true' } });
     // Fundamentals (bot /fund): after the first stock scan, 18:00-19:00 New York (prices of that day's scan).
     if (m >= 18 * 60 && m < 19 * 60) out.push({ wf: 'fundamentals.yml', slot: `fund:${key(ny)}`, since: startOf(18 * 60), inputs: { scheduled: 'true' } });
-    // Insider buys (SEC Form 4): every 30 min, 6:00-20:00 New York (filings arrive all day, most after the close).
-    if (m >= 6 * 60 && m < 20 * 60) {
-      const b = m - (m % 30);
+    // Insider filings (SEC Form 4, Form 144, Schedule 13D): every 10 min, 6:00-22:00 New York (EDGAR accepts filings from
+    // 6:00 to 22:00 ET; most arrive after the close). New York wall-clock minutes, so both DST regimes are right.
+    if (m >= INSIDERS_FROM && m <= INSIDERS_TO) {
+      const b = m - (m % INSIDERS_EVERY);
       out.push({ wf: 'insiders.yml', slot: `ins:${key(ny)}T${p2(Math.floor(b / 60))}:${p2(b % 60)}`, since: startOf(b), inputs: {} });
     }
+    // Holders (13D / 13G, Form 4 holdings, weekly 13F quarter check): once a morning, 5:00-6:00 New York, before the
+    // insiders slots start; the daily index of the previous day is out by then.
+    if (m >= 5 * 60 && m < 6 * 60) out.push({ wf: 'holders.yml', slot: `holders:${key(ny)}`, since: startOf(5 * 60), inputs: { scheduled: 'true' } });
   }
 
   // Calgary weekday mornings (zone rules incl. the permanent UTC-6 from 2026-11-01).

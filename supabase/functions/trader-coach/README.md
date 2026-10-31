@@ -37,7 +37,10 @@ Telegram. Edge function, `verify_jwt: false`: it checks its own secret (`x-coach
    - `stock-scan.yml` weekdays 30 min after the US close (20:30 UTC summer / 21:30 UTC winter) plus a retry 3 h later,
      `scheduled=true` (its "already scanned today" check decides);
    - `briefing.yml` weekdays 5:55-6:30 AM Calgary, `test=false` (its decide() + state dedupe);
-   - `reminders.yml` every 30 min, 4:00 AM-2:00 PM Calgary weekdays (its window logic decides).
+   - `reminders.yml` every 30 min, 4:00 AM-2:00 PM Calgary weekdays (its window logic decides);
+   - `insiders.yml` every 10 min on weekdays 6:00-22:00 New York (EDGAR accepts filings until 22:00 ET), no inputs: a run that
+     notifies like a cron run (SEC Form 4 early buys / clusters / big sales, Form 144, Schedule 13D; it dedupes itself);
+   - `holders.yml` once a weekday 5:00-6:00 New York, `scheduled=true` (13D / 13G, Form 4 holdings, the weekly 13F check).
    One dispatch per slot (`rfx_coach_events` `dispatch:<slot>`, last one per workflow in `rfx_coach_config.dispatch`);
    a slot is skipped when the workflow's latest GitHub run was created inside it. A failed dispatch is retried next tick.
    Without the token: nothing, and `dispatch token not set` is logged once per day. The token is never logged.

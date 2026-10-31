@@ -37,7 +37,7 @@ steps:
   `public/fx/backtest.json` inside the FX scan's `public/fx`).
 - Each job pushes only the paths it owns; different jobs touch different paths, so they never undo each other.
 - A **new data path** (e.g. `public/insiders` for an insider-buys job): add it to `DATA_PATHS` in
-  `scripts/data-branch.sh` (`public/insiders` is already there), to the excludes of `scripts/vercel-ignore.sh` and
+  `scripts/data-branch.sh` (`public/insiders` and `public/holders` are already there), to the excludes of `scripts/vercel-ignore.sh` and
   `APP_EXCLUDES` in `supabase/functions/trader-coach/appPaths.ts`, and read it from
   `https://raw.githubusercontent.com/r4m4nxd/ramanFX/data/...` (the bot's `load()` already tries `data` first, then
   main). An app page reading it needs a `vercel.json` rewrite to `/data/public/...` like `/fx`, `/scanner`, `/movers`.
@@ -50,6 +50,8 @@ steps:
 | `realign.yml` | every 15 min in the forex week (+ coach) | `public/fx/realign.json` (the M15 / H1 confirmations sent) | `public/fx/arrivals.json` (areas price is in), `public/scanner/arrivals.json` (shared daily cap) |
 | `movers.yml` | hourly (+ coach) | `public/movers` | `public/fx/latest.json`, `public/scanner/{latest,index,t/*}.json` |
 | `stock-scan.yml` | weekdays after the close | `public/scanner` (keeps `backtest.json`; incl. `arrivals.json`: stock arrival alerts' state), `tools/stock_scanner/{universe,top_liquid}.csv` | `public/scanner/latest.json` (already scanned?), `universe.csv`, `public/fx/latest.json` |
+| `insiders.yml` | every 10 min on weekdays 6:00-22:00 New York (+ coach) | `public/insiders` (`latest.json`: clusters / early buys, sales, Form 144, 13D) | `public/insiders/latest.json` (alert dedupe), `public/scanner/*`, `public/fundamentals/stocks.json`; `notify=false` = a dry run that writes nothing |
+| `holders.yml` | weekday mornings 5:00-6:00 New York (+ coach); the 13F check weekly | `public/holders` (`index.json`, `t/<letter>.json`: 5%+ holders, insiders, 13F funds) | `public/holders/*` (13F blocks when the cache is gone), `public/scanner/index.json`, `public/fundamentals/stocks.json`, `tools/stock_scanner/universe.csv` |
 | `fundamentals.yml` | nightly | `public/fundamentals` | `public/fundamentals/stocks.json`, `public/fx/latest.json`, `public/scanner/index.json`, `universe.csv`, `tools/reminders/events.json` |
 | `briefing.yml` | weekday mornings | `tools/briefing/state.json` | that state, `public/fx/d/*`, `public/scanner/*`, `public/fundamentals/stocks.json`, `tools/reminders/events.json` |
 | `reminders.yml` | weekday ticks | `tools/reminders/{events,state}.json` | the same |
@@ -64,7 +66,7 @@ Caches that are not files in git (candles, Telegram dedupe, SEC data) stay in th
 
 ## Readers
 
-- App: `vercel.json` rewrites `/fx`, `/scanner`, `/movers` JSON to `raw.githubusercontent.com/r4m4nxd/ramanFX/data/public/...`.
+- App: `vercel.json` rewrites `/fx`, `/scanner`, `/movers`, `/insiders`, `/holders` JSON to `raw.githubusercontent.com/r4m4nxd/ramanFX/data/public/...`.
 - Bot (`supabase/functions/telegram-bot/index.ts` `load()`): the app URL, then `RAW_DATA` (data branch), then main;
   `events.json` from the data branch, then main.
 - Watchdog (`supabase/functions/trader-coach/health.ts`): file freshness and the app-data check read the data branch

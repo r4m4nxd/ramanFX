@@ -30,6 +30,7 @@ DATA_PATHS=(
   public/movers
   public/fundamentals
   public/insiders
+  public/holders
   tools/reminders/events.json
   tools/reminders/state.json
   tools/briefing/state.json
