@@ -120,6 +120,45 @@ class Test13F(unittest.TestCase):
             self.assertFalse(T.is_index(n), n)
 
 
+class TestReal13F(unittest.TestCase):
+    """A real slice of the SEC's 01jun2026-31aug2026 data set (the rows of one CUSIP, Apple, and those filings' SUBMISSION and
+    COVERPAGE rows; captured on 2026-10-31 by tools/insiders/grab_fixtures.py): the table layouts, amendments of older quarters
+    inside a newer data set, restatements, name spellings."""
+    def zip(self, d):
+        p = os.path.join(d, 'real.zip')
+        with zipfile.ZipFile(p, 'w') as z:
+            for t in ('SUBMISSION', 'COVERPAGE', 'INFOTABLE'):
+                z.writestr(f'{t}.tsv', read(FIX, f'real_{t}.tsv'))
+        return p
+
+    def test_layouts_periods_amendments_and_names(self):
+        with tempfile.TemporaryDirectory() as d, zipfile.ZipFile(self.zip(d)) as z:
+            meta = T.read_meta(z)
+            self.assertEqual(len(meta), 8)
+            self.assertEqual(T.dominant_period(meta), dt.date(2026, 6, 30))                       # 3 filings for Q2; the rest are older quarters
+            self.assertEqual(meta['0002110329-26-000015']['amend'], 'RESTATEMENT')
+            self.assertEqual(meta['0001172661-26-004258']['cik'], '2009486')                       # the zero-padded CIK, without its zeros
+            self.assertEqual(meta['0001172661-26-004258']['name'], 'Alternative Investment Advisors, LLC.')
+            self.assertEqual(meta['0001172661-26-004258']['filed'], dt.date(2026, 8, 31))
+            q2 = T.pick_accessions(meta, dt.date(2026, 6, 30))
+            self.assertEqual(sorted(q2), ['0001172661-26-004258', '0002098824-26-000005', '0002110329-26-000015'])
+            self.assertEqual(sorted(T.pick_accessions(meta, dt.date(2026, 3, 31))), ['0002110329-26-000014', '0002149091-26-000003'])   # a Q1 restatement sits in the Q2 data set
+            iss = T.issuer_names(z)
+            self.assertEqual(iss['037833100']['name'], 'APPLE INC')                                # the biggest position's spelling, not 'APPLEINC'
+            got = T.holdings_of(z, q2, {'037833100'})['037833100']
+            self.assertEqual(got, {'2009486': (7129.0, 2062964.0), '2110329': (7544.0, 2182932.0), '2098824': (18247.0, 5280074.0)})
+            multi = T.holdings_multi(z, {'cur': q2, 'prev': T.pick_accessions(meta, dt.date(2026, 3, 31))}, {'037833100'})
+            self.assertEqual(multi['prev']['037833100'], {'2110329': (6987.0, 1773231.0), '2149091': (797.0, 202187.0)})
+
+    def test_a_quarters_amendments_in_the_next_data_set_replace_the_original(self):
+        mk = lambda acc, cik, per, filed, typ, amend='': {'cik': cik, 'period': per, 'filed': filed, 'type': typ, 'name': 'M', 'amend': amend}      # noqa: E731
+        older = {'a1': mk('a1', '9', dt.date(2026, 3, 31), dt.date(2026, 5, 10), '13F-HR'), 'b1': mk('b1', '8', dt.date(2026, 3, 31), dt.date(2026, 5, 11), '13F-HR')}
+        newer = {'a2': mk('a2', '9', dt.date(2026, 3, 31), dt.date(2026, 8, 20), '13F-HR/A', 'RESTATEMENT'),
+                 'b2': mk('b2', '8', dt.date(2026, 3, 31), dt.date(2026, 8, 20), '13F-HR/A', 'NEW HOLDINGS')}
+        self.assertEqual(T.pick_accessions(older, dt.date(2026, 3, 31)), {'a1': '9', 'b1': '8'})
+        self.assertEqual(T.pick_accessions({**older, **newer}, dt.date(2026, 3, 31)), {'a2': '9', 'b1': '8', 'b2': '8'})
+
+
 class TestCusipMap(unittest.TestCase):
     ISS = {'98765A103': {'name': 'XYZ CORP', 'title': 'COM', 'val': 5e9}, '11111B104': {'name': 'OTHER CO', 'title': 'COM', 'val': 1e9},
            '02079K305': {'name': 'ALPHABET INC', 'title': 'CAP STK CL A', 'val': 9e9}, '02079K107': {'name': 'ALPHABET INC', 'title': 'CAP STK CL C', 'val': 8e9},

@@ -1,0 +1,200 @@
+<SEC-DOCUMENT>0000902664-26-004338.txt : 20261030
+<SEC-HEADER>0000902664-26-004338.hdr.sgml : 20261030
+<ACCEPTANCE-DATETIME>20261030213017
+ACCESSION NUMBER:		0000902664-26-004338
+CONFORMED SUBMISSION TYPE:	SCHEDULE 13D/A
+PUBLIC DOCUMENT COUNT:		2
+FILED AS OF DATE:		20261030
+DATE AS OF CHANGE:		20261030
+
+SUBJECT COMPANY:	
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			ALKAMI TECHNOLOGY, INC.
+		CENTRAL INDEX KEY:			0001529274
+		STANDARD INDUSTRIAL CLASSIFICATION:	SERVICES-PREPACKAGED SOFTWARE [7372]
+		ORGANIZATION NAME:           	06 Technology
+		EIN:				453060776
+		STATE OF INCORPORATION:			DE
+		FISCAL YEAR END:			1231
+
+	FILING VALUES:
+		FORM TYPE:		SCHEDULE 13D/A
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	005-93377
+		FILM NUMBER:		261509689
+
+	BUSINESS ADDRESS:	
+		STREET 1:		5601 GRANITE PARKWAY
+		STREET 2:		SUITE 120
+		CITY:			PLANO
+		STATE:			TX
+		ZIP:			75024
+		BUSINESS PHONE:		972-200-1937
+
+	MAIL ADDRESS:	
+		STREET 1:		5601 GRANITE PARKWAY
+		STREET 2:		SUITE 120
+		CITY:			PLANO
+		STATE:			TX
+		ZIP:			75024
+
+	FORMER COMPANY:	
+		FORMER CONFORMED NAME:	ALKAMI TECHNOLOGY, INC,
+		DATE OF NAME CHANGE:	20110906
+
+FILED BY:		
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			JANA Partners Management, LP
+		CENTRAL INDEX KEY:			0001998597
+		ORGANIZATION NAME:           	
+		EIN:				000000000
+		STATE OF INCORPORATION:			DE
+
+	FILING VALUES:
+		FORM TYPE:		SCHEDULE 13D/A
+
+	BUSINESS ADDRESS:	
+		STREET 1:		888 SEVENTH AVENUE
+		STREET 2:		24TH FLOOR
+		CITY:			NEW YORK
+		STATE:			NY
+		ZIP:			10106
+		BUSINESS PHONE:		212-455-0900
+
+	MAIL ADDRESS:	
+		STREET 1:		888 SEVENTH AVENUE
+		STREET 2:		24TH FLOOR
+		CITY:			NEW YORK
+		STATE:			NY
+		ZIP:			10106
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>SCHEDULE 13D/A
+<SEQUENCE>1
+<FILENAME>primary_doc.xml
+<TEXT>
+<XML>
+<?xml version="1.0" encoding="UTF-8"?><edgarSubmission xmlns="http://www.sec.gov/edgar/schedule13D" xmlns:com="http://www.sec.gov/edgar/common">
+  <schemaVersion>X0202</schemaVersion>
+<headerData>
+    <submissionType>SCHEDULE 13D/A</submissionType>
+    <filerInfo>
+      <filer>
+        <filerCredentials>
+          <!-- Field: Pseudo-Tag; ID: Name; Data: JANA Partners Management, LP -->
+          <cik>0001998597</cik>
+          <ccc>XXXXXXXX</ccc>
+        </filerCredentials>
+      </filer>
+      <liveTestFlag>LIVE</liveTestFlag>
+
+
+
+    </filerInfo>
+  </headerData>
+  <formData>
+    <coverPageHeader>
+      <amendmentNo>2</amendmentNo>
+      <securitiesClassTitle>Common Stock, par value $0.001 per share</securitiesClassTitle>
+      <dateOfEvent>10/28/2026</dateOfEvent>
+      <previouslyFiledFlag>false</previouslyFiledFlag>
+      <issuerInfo>
+        <issuerCIK>0001529274</issuerCIK>
+        <issuerCusips>
+          <issuerCusipNumber>01644J108</issuerCusipNumber>
+        </issuerCusips>
+        <issuerName>ALKAMI TECHNOLOGY, INC.</issuerName>
+        <address>
+          <com:street1>5601 GRANITE PARKWAY</com:street1>
+          <com:street2>SUITE 120</com:street2>
+          <com:city>PLANO</com:city>
+          <com:stateOrCountry>TX</com:stateOrCountry>
+          <com:zipCode>75024</com:zipCode>
+        </address>
+      </issuerInfo>
+      <authorizedPersons>
+        <notificationInfo>
+          <personName>Ele Klein &amp; Brandon Gold</personName>
+          <personPhoneNum>212-756-2000</personPhoneNum>
+          <personAddress>
+            <com:street1>McDermott Will &amp; Schulte LLP</com:street1>
+            <com:street2>919 Third Avenue</com:street2>
+            <com:city>New York</com:city>
+            <com:stateOrCountry>NY</com:stateOrCountry>
+            <com:zipCode>10022</com:zipCode>
+          </personAddress>
+        </notificationInfo>
+      </authorizedPersons>
+    </coverPageHeader>
+    <reportingPersons>
+      <reportingPersonInfo>
+        <reportingPersonCIK>0001998597</reportingPersonCIK>
+        <reportingPersonNoCIK>N</reportingPersonNoCIK>
+        <reportingPersonName>JANA Partners Management, LP</reportingPersonName>
+        <fundType>AF</fundType>
+        <legalProceedings>N</legalProceedings>
+        <citizenshipOrOrganization>DE</citizenshipOrOrganization>
+        <soleVotingPower>5335707.00</soleVotingPower>
+        <sharedVotingPower>0.00</sharedVotingPower>
+        <soleDispositivePower>5335707.00</soleDispositivePower>
+        <sharedDispositivePower>0.00</sharedDispositivePower>
+        <aggregateAmountOwned>5335707.00</aggregateAmountOwned>
+        <isAggregateExcludeShares>N</isAggregateExcludeShares>
+        <percentOfClass>4.98</percentOfClass>
+        <typeOfReportingPerson>IA</typeOfReportingPerson>
+        <typeOfReportingPerson>PN</typeOfReportingPerson>
+      </reportingPersonInfo>
+    </reportingPersons>
+    <items1To7>
+      <item1>
+        <securityTitle>Common Stock, par value $0.001 per share</securityTitle>
+        <issuerName>ALKAMI TECHNOLOGY, INC.</issuerName>
+        <issuerPrincipalAddress>
+          <com:street1>5601 GRANITE PARKWAY</com:street1>
+          <com:street2>SUITE 120</com:street2>
+          <com:city>PLANO</com:city>
+          <com:stateOrCountry>TX</com:stateOrCountry>
+          <com:zipCode>75024</com:zipCode>
+        </issuerPrincipalAddress>
+        <commentText>This Amendment No. 2 ("Amendment No. 2") amends the statement on Schedule 13D filed with the SEC on June 29, 2026 (as amended from time to time, the "Schedule 13D") with respect to the Shares of the Issuer. This Amendment No. 2 amends Items 4 and 5 as set forth below. Capitalized terms used herein and not otherwise defined in this Amendment No. 2 have the meanings set forth in the Schedule 13D.</commentText>
+      </item1>
+      <item4>
+        <transactionPurpose>Item 4 is hereby amended and supplemented as follows:
+
+The Reporting Person reduced its ownership of the Issuer to below the applicable reporting threshold, providing greater flexibility to engage in private discussions with the Board.</transactionPurpose>
+      </item4>
+      <item5>
+        <percentageOfClassSecurities>Item 5(a) is hereby amended and restated in its entirety as follows:
+
+See rows (11) and (13) of the cover page to this Schedule 13D for the aggregate number of Shares and percentage of Shares beneficially owned by the Reporting Person.  The percentage of Shares reported to be beneficially owned by the Reporting Person is based upon 107,042,319 Shares outstanding as of September 30, 2026, as reported in the Issuer's Quarterly Report on Form 10-Q for the quarterly period ended September 30, 2026, filed with the Securities and Exchange Commission on October 29, 2026.</percentageOfClassSecurities>
+        <numberOfShares>Item 5(b) is hereby amended and restated in its entirety as follows:
+
+See rows (7) through (10) of the cover page to this Schedule 13D for the number of Shares as to which the Reporting Person has the sole or shared power to vote or direct the vote and sole or shared power to dispose or to direct the disposition.</numberOfShares>
+        <transactionDesc>Item 5(c) is hereby amended and restated in its entirety as follows:
+
+All transactions in the Shares effected by the Reporting Person since the filing of Amendment No. 1, which were all in the open market, are set forth in Schedule A and are incorporated herein by reference.</transactionDesc>
+        <date5PercentOwnership>Item 5(e) is hereby amended and restated in its entirety as follows:
+
+October 28, 2026.</date5PercentOwnership>
+      </item5>
+    </items1To7>
+    <signatureInfo>
+      <signaturePerson>
+        <signatureReportingPerson>JANA Partners Management, LP</signatureReportingPerson>
+        <signatureDetails>
+          <signature>/s/ Jennifer Fanjiang</signature>
+          <title>Jennifer Fanjiang, Partner, Chief Legal Officer and Chief Compliance Officer</title>
+          <date>10/30/2026</date>
+        </signatureDetails>
+      </signaturePerson>
+    </signatureInfo>
+  </formData>
+
+</edgarSubmission>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>
+

@@ -379,9 +379,18 @@ def build_f13(newer: str, older: str, uni: Sequence[Dict], st: Dict, cm: 'T.Cusi
         log(f"13F: CUSIP map {len(cm.symbols())} mapped ({res['seeded']} from 13D/G, {res['figi']} from OpenFIGI, {res['unmapped']} unmapped, {res['requests']} OpenFIGI request(s))")
         cm.save()
         sym_of = cm.symbols()
-        acc1, acc0 = T.pick_accessions(ma, p1), T.pick_accessions(mb, p0)
+        everything = {**mb, **ma}                                   # a quarter's amendments can sit in the next data set
+        acc1, acc0 = T.pick_accessions(everything, p1), T.pick_accessions(everything, p0)
         wanted = set(sym_of)
-        cur, prev = T.holdings_of(za, acc1, wanted), T.holdings_of(zb, acc0, wanted)
+        cur, prev = {}, {}
+        for zf in (za, zb):
+            got = T.holdings_multi(zf, {'cur': acc1, 'prev': acc0}, wanted)
+            for dst, tag in ((cur, 'cur'), (prev, 'prev')):
+                for c, d in got[tag].items():
+                    t = dst.setdefault(c, {})
+                    for cik, (sh, v) in d.items():
+                        x = t.get(cik, (0.0, 0.0))
+                        t[cik] = (x[0] + sh, x[1] + v)
     names = {m['cik']: m['name'] for m in list(mb.values()) + list(ma.values()) if m['name']}
     filed = set(acc1.values())
     by_sym: Dict[str, Tuple[Dict, Dict]] = {}

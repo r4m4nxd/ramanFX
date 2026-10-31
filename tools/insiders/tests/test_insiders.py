@@ -705,6 +705,25 @@ class TestRunAllForms(unittest.TestCase):
                 self.assertIsNone(I.run(NOW2 + dt.timedelta(minutes=10), self.get_fn(calls), state_path=sp, latest_path=lp, ctx=self.ctx(), send=lambda m: sent.append(m) or True, backfill_s=1))
             self.assertEqual(sent, [])
 
+    def test_the_first_run_after_an_upgrade_does_not_flood(self):
+        calls, sent = [], []
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(I.Context, 'cik_map', lambda self: {'111111': 'XYZ'}):
+            sp, lp = os.path.join(d, 'state.json'), os.path.join(d, 'latest.json')
+            with open(lp, 'w') as f:
+                json.dump({'version': 1, 'generated': '2026-10-29T00:00:00Z', 'clusters': [], 'buys': [], 'by_sym': {}, 'alerted': {}}, f)       # the older job's file
+            I.run(NOW2, self.get_fn(calls), state_path=sp, latest_path=lp, ctx=self.ctx(), send=lambda m: sent.append(m) or True, feed_s=60, backfill_s=1)
+            self.assertEqual(sent, [])                                                  # everything was filed before the upgrade: nothing sent
+            js = I.load_json(lp, {})
+            self.assertEqual(js['events_since'], '2026-10-30T14:00:00Z')
+            self.assertEqual(len(js['sells']), 2)                                       # but all of it is in the app
+            os.remove(sp)
+            later = NOW2 + dt.timedelta(hours=5)
+            I.run(later, self.get_fn(calls), state_path=sp, latest_path=lp, ctx=self.ctx(), send=lambda m: sent.append(m) or True, feed_s=60, backfill_s=1)
+            self.assertEqual(sent, [])                                                  # still older than `events_since`
+            self.assertEqual(I.load_json(lp, {})['events_since'], '2026-10-30T14:00:00Z')
+            self.assertEqual(I.events_to_alert([{'key': 'k', 'acc': 'a', 'filed': '2026-10-30T15:00:00Z'}], {'a'}, {}, later, I.CFG, js['events_since']),
+                             [{'key': 'k', 'acc': 'a', 'filed': '2026-10-30T15:00:00Z'}])      # a filing after it alerts
+
     def test_mute_quiet_and_daily_cap_apply_to_every_type(self):
         calls = []
         with tempfile.TemporaryDirectory() as d, mock.patch.object(I.Context, 'cik_map', lambda self: {'111111': 'XYZ'}):

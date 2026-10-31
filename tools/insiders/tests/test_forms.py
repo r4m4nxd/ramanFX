@@ -149,6 +149,11 @@ class TestSchedule13(unittest.TestCase):
         self.assertEqual(d['kind'], 'D')
         self.assertEqual(d['purpose'], 'The Reporting Persons intend to seek board representation and may propose a merger.')
 
+    def test_an_amendments_boilerplate_lead_in_is_dropped(self):
+        self.assertEqual(S13.purpose_text('of the Original 13D is hereby amended and supplemented as follows: On October 28, 2026, the Company agreed to merge.'), 'On October 28, 2026, the Company agreed to merge.')
+        self.assertEqual(S13.purpose_text('Item 4 is hereby amended and supplemented by the addition of the following: The Reporting Persons sold shares.'), 'The Reporting Persons sold shares.')
+        self.assertEqual(S13.purpose_text('The Reporting Persons acquired the Shares for investment.'), 'The Reporting Persons acquired the Shares for investment.')
+
     def test_not_a_schedule(self):
         with self.assertRaises(ValueError):
             S13.parse_submission(fx('form144.txt'))

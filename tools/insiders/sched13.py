@@ -30,6 +30,7 @@ _CUSIP = re.compile(r'(?<![0-9A-Z])([0-9A-Z]{8}[0-9])\s*\(\s*CUSIP|CUSIP\s*(?:No
 _PCT_TXT = re.compile(r'PERCENT\s+OF\s+CLASS\s+REPRESENTED\s+BY\s+AMOUNT\s+IN\s+ROW\s*\(?\s*(?:9|11)\s*\)?\s*:?\s*([\d.]+)\s*%?', re.I)
 _SH_TXT = re.compile(r'AGGREGATE\s+AMOUNT\s+BENEFICIALLY\s+OWNED\s+BY\s+EACH\s+REPORTING\s+PERSON\s*:?\s*([\d,]{3,})', re.I)
 _EVENT_TXT = re.compile(r'([A-Z][a-z]+\.? \d{1,2}, \d{4}|\d{1,2}/\d{1,2}/\d{2,4})\s*\(?\s*Date of Event Which Requires Filing', re.I)
+_LEAD = re.compile(r'^(of the (original )?(schedule )?13D )?(is|are) hereby (amended|supplemented|amended and supplemented)( and (amended|supplemented))?( by the addition of the following)?( as follows)?\s*[:.\-–]\s*', re.I)
 _ITEM4 = re.compile(r'Item\s*4\.?\s*[:\-–]?\s*Purpose of Transaction\.?\s*(.*?)(?=\s*Item\s*5\b)', re.I | re.S)
 
 
@@ -42,6 +43,7 @@ def kind_of(form: str) -> str:
 def purpose_text(s: str, n: int = PURPOSE_CHARS) -> str:
     """The first ~n characters of Item 4 at a word boundary ('…' when cut); the item's own heading is dropped."""
     s = re.sub(r'^\s*(Item\s*4\.?\s*[:\-–]?\s*)?(Purpose of Transaction\.?\s*)?', '', ' '.join((s or '').split()), flags=re.I).strip()
+    s = _LEAD.sub('', s).strip()                       # an amendment's boilerplate: 'of the Original 13D is hereby amended and supplemented as follows:' 
     if len(s) <= n:
         return s
     cut = s[:n]
