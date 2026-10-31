@@ -49,9 +49,14 @@
 //| target, zone reasons and break alerts all read it; 3M .. chart   |
 //| TF always (no 4-TF cap, loading TFs retried); the 2.14 HTF lines,|
 //| TL bias, TL alerts and arrival overlay are off by default.       |
+//| v2.17: lines are built forward in time (a confirmed pivot 2 fixes|
+//| the line, its first close beyond breaks it; the next line chains |
+//| from pivot 2 while the older one is live; 3rd-touch lines),      |
+//| momentum along the impulse leg (one per leg, live + last broken),|
+//| reversal zones at the real pivots, DIRECTION rows wrapped.       |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "2.16"
+#property version   "2.17"
 #property indicator_chart_window
 #property indicator_buffers 0
 #property indicator_plots   0
@@ -76,6 +81,7 @@ input bool   InpZmOn          = true;   // 2.16: the ONE structure model drives 
 input int    InpZmQ1          = 0;      // 2.16 Q1, where Line 1 starts: 0 = spec (clean line from the extreme), 1 = retrace (extreme only after a >= 50% first correction), 2 = major (one line from the absolute extreme)
 input int    InpZmQ2          = 0;      // 2.16 Q2, anchor 1 of Line 1: 0 = (a) the extreme, 1 = (b) the first counter-pivot, 2 = (c) the second
 input double InpZmP1Retrace   = 0.50;   // 2.16 Q1 retrace: the first correction must retrace this share of the first leg for the extreme to anchor Line 1
+input int    InpZmLineMode    = 1;      // 2.17 lines: 1 = forward time (owner: fixed at pivot 2, chain while live), 0 = the 2.16 machine (Q1 / Q2 apply only here)
 input bool   InpZmHtfLines    = true;   // 2.16: draw the higher-TF live lines on this chart (gold dotted; the realignment target line purple dashed)
 input bool   InpZmRealign     = true;   // 2.16: draw the realignment target (purple box) on every TF
 input bool   InpZmZoneFilter  = true;   // 2.16 (owner): draw a zone only when its leg-out gave a reason (BOS / CHoCH / removed an opposite zone)
@@ -761,7 +767,17 @@ bool ZmStale(ZmTfR &t, ZmLine &l)            // SPEC 3: a live line price left >
    return l.b > 30;
   }
 bool ZmIsTarget(int ti, int li) { return gZmHasTarget && ti == gZmTgtLineTf && li == gZmTgtLine; }
-string ZmWhyWord(int w) { return w == 0 ? "Line 1 from the extreme" : (w == 1 ? "Line 1 (anchor shifted 1 bar: clean)" : (w == 2 ? "Line 1 from the first counter-pivot" : (w == 3 ? "chain from the broken line's pivot 2" : (w == 4 ? "rotated after a fake cross" : "line")))); }
+string ZmWhyWord(int w)
+  {
+   if(w == 0 || w == 1) return w == 0 ? "Line 1 from the extreme" : "Line 1 (anchor shifted 1 bar: clean)";
+   if(w == 2 || w == 8) return "Line 1 from the first counter-pivot";
+   if(w == 3 || w == 9) return "chain from the broken line's pivot 2";
+   if(w == 4) return "rotated after a fake cross";
+   if(w == 10 || w == 11) return "next line from the live line's pivot 2";
+   if(w == 12 || w == 13) return "new swing structure inside the live line";
+   if(w == 14 || w == 15) return "from the live line's 3rd touch";
+   return "line";
+  }
 void ZmDrawChart()
   {
    ObjectsDeleteAll(0, RQ_PFX);
@@ -772,29 +788,52 @@ void ZmDrawChart()
      {
       for(int dd = 0; dd < 2; dd++)
         {
-         int d = dd == 0 ? 1 : -1, lv = -1, bk = -1;
+         // 2.17: the main live line and the newest line nested inside it (owner: a new line while the older one is live)
+         int d = dd == 0 ? 1 : -1, lv = -1, lvAny = -1, inr = -1, bk = -1;
          for(int i = 0; i < ArraySize(gZmT[ci].lines); i++)
            {
             ZmLine l = gZmT[ci].lines[i];
             if(l.dir != d || l.kind == 1) continue;
-            if(l.brokenAt < 0 && (ZmIsTarget(gZmChartIdx, i) || !ZmStale(gZmT[ci], l)) && (lv < 0 || l.born < gZmT[ci].lines[lv].born)) lv = i;
+            if(l.brokenAt < 0 && (ZmIsTarget(gZmChartIdx, i) || !ZmStale(gZmT[ci], l)))
+              {
+               if(lvAny < 0 || l.born < gZmT[ci].lines[lvAny].born) lvAny = i;
+               if(!ZmInner(l.why) && (lv < 0 || l.born < gZmT[ci].lines[lv].born)) lv = i;
+              }
             if(l.kind == 0 && l.brokenAt >= 0 && l.brokenAt <= ZM_brokenShow && (bk < 0 || l.brokenAt < gZmT[ci].lines[bk].brokenAt)) bk = i;
            }
+         if(lv < 0) lv = lvAny;
+         if(lv >= 0)
+            for(int i = 0; i < ArraySize(gZmT[ci].lines); i++)
+              {
+               ZmLine l = gZmT[ci].lines[i];
+               if(i == lv || l.dir != d || l.kind == 1 || l.brokenAt >= 0 || !ZmInner(l.why) || l.born >= gZmT[ci].lines[lv].born) continue;
+               if(!ZmIsTarget(gZmChartIdx, i) && ZmStale(gZmT[ci], l)) continue;
+               if(inr < 0 || l.born < gZmT[ci].lines[inr].born) inr = i;
+              }
          string up = d > 0 ? "up" : "down";
          if(lv >= 0) ZmDrawLine(gZmT[ci], gZmT[ci].lines[lv], RQ_PFX + (d > 0 ? "up" : "dn"), InpTrend, STYLE_SOLID, ZmIsTarget(gZmChartIdx, lv) ? 2 : 1,
                                 tfn + " " + up + " trend line (" + ZmWhyWord(gZmT[ci].lines[lv].why) + ") T" + IntegerToString(gZmT[ci].lines[lv].touches) + (gZmT[ci].lines[lv].touches >= 4 ? " - 4th touch: break likely" : "") + " | live");
+         if(inr >= 0) ZmDrawLine(gZmT[ci], gZmT[ci].lines[inr], RQ_PFX + (d > 0 ? "upn" : "dnn"), InpTrend, STYLE_SOLID, ZmIsTarget(gZmChartIdx, inr) ? 2 : 1,
+                                tfn + " " + up + " trend line (" + ZmWhyWord(gZmT[ci].lines[inr].why) + ") T" + IntegerToString(gZmT[ci].lines[inr].touches) + " | live, drawn while the older line is live");
          if(bk >= 0) ZmDrawLine(gZmT[ci], gZmT[ci].lines[bk], RQ_PFX + (d > 0 ? "upx" : "dnx"), InpMuted, STYLE_DOT, 1,
                                 tfn + " " + up + " trend line broken: a candle CLOSED " + (d > 0 ? "below" : "above") + " it on " + TimeToString(gZmT[ci].S.T[gZmT[ci].lines[bk].brokenAt], TIME_DATE | TIME_MINUTES));
         }
-      int mv = -1, mb = -1;
+      // 2.17 momentum (owner): the live one(s) of the last two legs + the most recently broken one
+      int mb = -1, ncp = 0, from = INT_MAX;
+      for(int i = ArraySize(gZmT[ci].piv) - 1; i >= 0; i--) if(gZmT[ci].piv[i].conf >= 0) { ncp++; if(ncp == 2) { from = gZmT[ci].piv[i].bar; break; } }
+      string mtip = tfn + " MOMENTUM line (from the extreme of the impulse leg along its bars; its break ends the impulse, not the trend)";
       for(int i = 0; i < ArraySize(gZmT[ci].lines); i++)
         {
-         if(gZmT[ci].lines[i].kind != 1) continue;
-         if(gZmT[ci].lines[i].brokenAt < 0 && (mv < 0 || gZmT[ci].lines[i].a < gZmT[ci].lines[mv].a)) mv = i;
-         if(gZmT[ci].lines[i].brokenAt >= 0 && gZmT[ci].lines[i].brokenAt <= 5 && (mb < 0 || gZmT[ci].lines[i].brokenAt < gZmT[ci].lines[mb].brokenAt)) mb = i;
+         ZmLine l = gZmT[ci].lines[i];
+         if(l.kind != 1) continue;
+         if(l.brokenAt >= 0 && (mb < 0 || l.brokenAt < gZmT[ci].lines[mb].brokenAt || (l.brokenAt == gZmT[ci].lines[mb].brokenAt && l.a < gZmT[ci].lines[mb].a))) mb = i;
+         if(l.brokenAt < 0 && l.p2 <= from)
+           {
+            ZmDrawLine(gZmT[ci], l, RQ_PFX + "mom" + IntegerToString(i), clrRed, STYLE_DASH, 1, mtip);
+            datetime te = iTime(_Symbol, PERIOD_CURRENT, 0) + PeriodSeconds() * 3;
+            RxaText(RQ_PFX + "momt" + IntegerToString(i), te, ZmValueAtTime(gZmT[ci], l, te), " momentum", clrRed, 7, ANCHOR_LEFT, false, mtip);
+           }
         }
-      string mtip = tfn + " MOMENTUM line (from the impulse's extreme along its next bars; its break ends the impulse, not the trend)";
-      if(mv >= 0) { ZmDrawLine(gZmT[ci], gZmT[ci].lines[mv], RQ_PFX + "mom", clrRed, STYLE_DASH, 1, mtip); RxaText(RQ_PFX + "momt", iTime(_Symbol, PERIOD_CURRENT, 0) + PeriodSeconds() * 3, ZmValueAtTime(gZmT[ci], gZmT[ci].lines[mv], iTime(_Symbol, PERIOD_CURRENT, 0) + PeriodSeconds() * 3), " momentum", clrRed, 7, ANCHOR_LEFT, false, mtip); }
       if(mb >= 0) ZmDrawLine(gZmT[ci], gZmT[ci].lines[mb], RQ_PFX + "momx", clrRed, STYLE_DOT, 1, mtip + " | broken");
       // the higher TFs' live lines on this chart (gold dotted; the target line purple dashed)
       if(InpZmHtfLines)
@@ -815,6 +854,34 @@ void ZmDrawChart()
                               " " + gZmT[ti].name + " " + (l.dir > 0 ? "up" : "down") + " line " + DoubleToString(gZmTgtValue, _Digits), cZmPurple, 7, ANCHOR_LEFT, false, "");
               }
            }
+     }
+   // 2.17 reversal zones at the real pivots (owner: RBD = the peak, DBR = the valley) that have a reason: the zone engine
+   // draws its own bases, these come from the model; the 4 nearest to price, fresh or tested, not removed
+   if(InpZmZoneFilter)
+     {
+      double px = SymbolInfoDouble(_Symbol, SYMBOL_BID);
+      int pick[]; double pd[]; int np = 0;
+      for(int k = 0; k < ArraySize(gZmT[ci].zones); k++)
+        {
+         ZmZone z = gZmT[ci].zones[k];
+         if(!z.pivot || z.removed || z.reasons == 0 || z.base1 >= gZmT[ci].S.n || z.legBar > InpMaxZoneAge) continue;
+         ArrayResize(pick, np + 1); ArrayResize(pd, np + 1); pick[np] = k; pd[np] = MathMin(MathAbs(z.prox - px), MathAbs(z.dist - px)); np++;
+        }
+      for(int a = 0; a < np && a < 4; a++)
+        {
+         int bi = a;
+         for(int b = a + 1; b < np; b++) if(pd[b] < pd[bi]) bi = b;
+         int tk = pick[a]; pick[a] = pick[bi]; pick[bi] = tk; double td = pd[a]; pd[a] = pd[bi]; pd[bi] = td;
+         ZmZone z = gZmT[ci].zones[pick[a]];
+         string nm = RQ_PFX + "pz" + IntegerToString(a);
+         color zc = z.dir > 0 ? InpDemandLine : InpSupplyLine;
+         ObjectCreate(0, nm, OBJ_RECTANGLE, 0, gZmT[ci].S.T[z.base1], ZmHi(z), iTime(_Symbol, PERIOD_CURRENT, 0) + PeriodSeconds() * 10, ZmLo(z));
+         ObjectSetInteger(0, nm, OBJPROP_COLOR, zc); ObjectSetInteger(0, nm, OBJPROP_STYLE, STYLE_DOT); ObjectSetInteger(0, nm, OBJPROP_WIDTH, 1);
+         ObjectSetInteger(0, nm, OBJPROP_FILL, false); ObjectSetInteger(0, nm, OBJPROP_BACK, false); ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
+         string lab = ZmPattern(z.pattern) + " " + ZmReasonTag(z) + " T" + IntegerToString(z.touches);
+         ObjectSetString(0, nm, OBJPROP_TOOLTIP, tfn + " reversal zone at a real " + (z.dir > 0 ? "valley" : "peak") + ": " + lab);
+         RxaText(nm + "t", gZmT[ci].S.T[z.base1], z.dist, lab, zc, 7, z.dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER, false, "");
+        }
      }
    // the realignment target (purple box) on every TF of the chain
    if(InpZmRealign && gZmHasTarget)
@@ -852,7 +919,7 @@ int      gRqTries = 0;
 bool     gZmAlertArmed = false;
 void ZmRun()
   {
-   ZM_rc = InpRealRC; ZM_q1 = InpZmQ1; ZM_q2 = InpZmQ2; ZM_p1Retrace = InpZmP1Retrace;
+   ZM_rc = InpRealRC; ZM_q1 = InpZmQ1; ZM_q2 = InpZmQ2; ZM_p1Retrace = InpZmP1Retrace; ZM_lineMode = InpZmLineMode;
    gZmZoneFilter = false; gZmChartIdx = -1;
    if(!InpZmOn) { gZmOk = false; return; }
    int cm = RxTfMin(PERIOD_CURRENT);
@@ -890,7 +957,7 @@ void ZmAlerts()
 // the host calls this on every OnCalculate: a full reading when a bar opened on this chart or its HTF, or a TF was loading
 void RqTick()
   {
-   if(InpRealLines) { ObjectDelete(0, RXA_PFX + "mom"); ObjectDelete(0, RXA_PFX + "momt"); }   // the model's momentum line replaces Kevin's
+   if(InpRealLines) { ObjectDelete(0, RXA_PFX + "mom"); ObjectDelete(0, RXA_PFX + "momt"); }   // the model's momentum lines replace Kevin's
    int hm = RxHigherTf(RxTfMin(PERIOD_CURRENT));
    datetime t0 = iTime(_Symbol, PERIOD_CURRENT, 0), th = hm > 0 ? iTime(_Symbol, RxTfEnum(hm), 0) : 0;
    bool retry = gRqTries > 0 && gRqTries < 30;
@@ -1715,6 +1782,20 @@ void DrawCompact()
 void DAdd(string &a[], color &c[], string t, color k) { int n = ArraySize(a); ArrayResize(a, n + 1); ArrayResize(c, n + 1); a[n] = t; c[n] = k; }
 color DirSideColor(int d) { return d > 0 ? cDemandLine : (d < 0 ? cSupplyLine : cPopFg); }
 color WowColor() { return cWow; }
+// a DIRECTION row wrapped at word boundaries into lines of at most w characters (continuation lines indented)
+void DAddWrap(string &rw[], color &rc[], string txt, color c, int w)
+  {
+   string rest = txt; bool first = true;
+   while(StringLen(rest) > w)
+     {
+      int cut = -1;
+      for(int i = w; i > w / 2; i--) if(StringGetCharacter(rest, i) == ' ') { cut = i; break; }
+      if(cut < 0) cut = w;
+      DAdd(rw, rc, (first ? "" : "   ") + StringSubstr(rest, 0, cut), c);
+      rest = StringSubstr(rest, cut + 1); first = false;
+     }
+   DAdd(rw, rc, (first ? "" : "   ") + rest, c);
+  }
 void DrawDirBox()
   {
    ObjectsDeleteAll(0, "RFXV2_d");
@@ -1724,7 +1805,7 @@ void DrawDirBox()
    if(gDirOpen)
      {
       for(int r = 0; r < drN; r++) DAdd(rw, rc, DirRowLine(r), drRow[r].ok ? DirSideColor(DirRowSide(r)) : cMuted);
-      for(int k = 0; k < 4; k++) if(gDirTxt[k] != "") DAdd(rw, rc, gDirTxt[k], cPopFg);
+      for(int k = 0; k < 4; k++) if(gDirTxt[k] != "") DAddWrap(rw, rc, gDirTxt[k], cPopFg, 72);   // 2.17: wrapped, the box stays in its corner
       for(int k = 0; k < gWowN; k++) DAdd(rw, rc, gWowTxt[k], WowColor());
      }
    int n = ArraySize(rw);

@@ -13,7 +13,8 @@ import { modelCase, type ModelCase, type Row } from '../src/core/structure/parit
 const N = Number(process.argv[2] ?? 220), SEED = Number(process.argv[3] ?? 7);
 let s = SEED >>> 0 || 1;
 const R = () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
-const syms = Object.keys(qaBarsIndex().symbols);
+const IX = qaBarsIndex().symbols;
+const syms = Object.keys(IX).filter(k => ['MN', 'W1', 'D1', 'H4', 'H1'].every(tf => IX[k].tfs[tf]));   // symbols with every chain TF
 const cache = new Map<string, Row[]>();
 const all = (sym: string, tf: string) => {
   const k = `${sym}/${tf}`;

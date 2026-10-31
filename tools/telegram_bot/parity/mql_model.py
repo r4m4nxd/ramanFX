@@ -1,4 +1,4 @@
-"""Mechanical Python port of the MQL RFX_MODEL block (public/tools/RFX_ZoneCore.mqh, ZoneVision 2.16): the same functions,
+"""Mechanical Python port of the MQL RFX_MODEL block (public/tools/RFX_ZoneCore.mqh, ZoneVision 2.17): the same functions,
 the same loops, the same integer shifts (0 = phantom, 1 = newest closed bar), statement by statement, so the MQL logic can
 be replayed without MetaTrader. It reads the MQL text, never the TypeScript (supabase/functions/telegram-bot/zvModel.ts);
 src/core/zvModelParity.test.ts compares the two on the acceptance charts and random windows.
@@ -11,8 +11,12 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from mql_port import DBL_MAX, RX_Q, RxParams, S_, ser_of, zcDetect
 
-P = dict(rc=0.45, near=0.25, minLeg=1.25, fitTol=0.10, minRise=0.25, minSlope=0.015, vetoTol=0.05, momEff=0.6,
-         rangeBaseATR=2.5, targetGap=1.0, p1Retrace=0.50, p1Shift=1, vetoBars=8, momBars=4, brokenShow=20, rangeBaseMax=20, q1=0, q2=0)
+
+def ZmInner(why): return why >= 10
+
+P = dict(rc=0.45, near=0.25, minLeg=1.25, fitTol=0.02, minRise=0.25, minSlope=0.015, vetoTol=0.05,
+         rangeBaseATR=2.5, targetGap=1.0, p1Retrace=0.50, p1Shift=1, vetoBars=8, brokenShow=20, rangeBaseMax=20, q1=0, q2=0,
+         lineMode=1, vetoClose=0.5, nestGap=0.8, touchTol=0.15, momShift=0.0, momTol=0.03, momMin=0.15, pivZones=2, zoneSwing=2)
 P_DEFAULT = dict(P)
 
 
@@ -125,21 +129,220 @@ def ZmPivots(S, A):
 
 
 # ---- 2. lines ----
-def ZmMomentum(S, A, pv):
-    a = pv.bar; e = a - P['momBars']; d = -pv.t
-    if e < 1: return None
-    xa = S.L[a] if d > 0 else S.H[a]; ex = xa
-    for j in range(a - 1, e - 1, -1): ex = max(ex, S.H[j]) if d > 0 else min(ex, S.L[j])
-    if d * (ex - xa) < P['momEff'] * P['momBars'] * A.At(a): return None
+def ZmMX(S, d, j): return S.L[j] if d > 0 else S.H[j]
+def ZmMUse(S, d, j, xBar, hasQ): return j != xBar or not hasQ or ((S.C[j] >= S.O[j]) if d > 0 else (S.C[j] < S.O[j]))
+
+
+def ZmMomHull(S, d, a, xBar, hasQ):
     b = -1; sl = 0.0
-    for j in range(a - 1, e - 1, -1):
-        s = ((S.L[j] if d > 0 else S.H[j]) - xa) / (a - j)
-        if b < 0 or (s < sl if d > 0 else s > sl): b = j; sl = s
-    if b < 0 or d * sl <= 0: return None
-    t = ZmMk(d, 1, a, b, xa, S.L[b] if d > 0 else S.H[b], e, a, 5)
+    for j in range(a - 1, xBar - 1, -1):
+        if not ZmMUse(S, d, j, xBar, hasQ): continue
+        v = (ZmMX(S, d, j) - ZmMX(S, d, a)) / (a - j)
+        if b < 0 or (v < sl if d > 0 else v > sl): b = j; sl = v
+    return b, sl
+
+
+def ZmMomTol(S, A, d, a, xBar, hasQ, b, sl):
+    if b < 0: return b, sl
+    for j in range(a - 1, xBar - 1, -1):
+        if not ZmMUse(S, d, j, xBar, hasQ) or j == b: continue
+        v = (ZmMX(S, d, j) - ZmMX(S, d, a)) / (a - j)
+        if not (v > sl if d > 0 else v < sl): continue
+        ok = True
+        h = a - 1
+        while h >= xBar and ok:
+            if h != j and ZmMUse(S, d, h, xBar, hasQ) and d * (ZmMX(S, d, a) + v * (a - h) - ZmMX(S, d, h)) > P['momTol'] * A.At(h): ok = False
+            h -= 1
+        if ok and (v > sl if d > 0 else v < sl): b = j; sl = v
+    return b, sl
+
+
+def ZmMomentum(S, A, piv, i):
+    hasQ = i + 1 < len(piv)
+    d = -piv[i].t; xBar = piv[i + 1].bar if hasQ else 1
+    if piv[i].bar - xBar < 1: return None
+    a = piv[i].bar
+    b, sl = ZmMomHull(S, d, a, xBar, hasQ)
+    if b == a - 1 and abs(sl) < P['momShift'] * A.At(a) and a - 1 > xBar:
+        a = a - 1; b, sl = ZmMomHull(S, d, a, xBar, hasQ)
+    b, sl = ZmMomTol(S, A, d, a, xBar, hasQ, b, sl)
+    if b < 0 or d * sl <= 0 or abs(sl) < P['momMin'] * A.At(a): return None
+    t = ZmMk(d, 1, a, b, ZmMX(S, d, a), ZmMX(S, d, b), b, piv[i].bar, 5)
     for j in range(b - 1, 0, -1):
         if (S.C[j] < ZmAt(t, j)) if d > 0 else (S.C[j] > ZmAt(t, j)): t.brokenAt = j; break
     return t
+
+
+class ZmDirF:
+    """RFX_ZoneCore.mqh ZmDirF (zvModel.ts zmDirF): the forward-time line machine."""
+    def __init__(self, S, A, sw, d):
+        self.S, self.A, self.d = S, A, d
+        self.sideAll = [p for p in sw if p.t == -d]
+        side = [p for p in sw if p.t == -d and p.conf >= 0]
+        for i in range(1, len(side)):
+            v = side[i]; x = i - 1
+            while x >= 0 and side[x].bar < v.bar: side[x + 1] = side[x]; x -= 1
+            side[x + 1] = v
+        self.side = side
+        ev = []
+        for i in range(1, len(side)):
+            h0 = -1
+            for h in range(i - 1, -1, -1):
+                if self.Out(side[h].p, side[i].p): h0 = h; break
+            if h0 < 0 or side[h0].bar - side[i].bar < 2: continue
+            ox = self.Y(side[h0].bar - 1)
+            for j in range(side[h0].bar - 1, side[i].bar, -1): ox = max(ox, self.Y(j)) if d > 0 else min(ox, self.Y(j))
+            kb = -1; sb = side[i].bar
+            if ((S.C[sb] >= S.O[sb]) if d > 0 else (S.C[sb] < S.O[sb])) and self.Thru(sb, ox): kb = sb
+            j = sb - 1
+            while j >= 1 and kb < 0:
+                if self.Thru(j, ox): kb = j; break
+                j -= 1
+            if kb < 0: continue
+            ev.append(S_(s=side[i], s0=side[h0], e=min(kb, side[i].conf)))
+        for i in range(1, len(ev)):
+            v = ev[i]; x = i - 1
+            while x >= 0 and (ev[x].e < v.e or (ev[x].e == v.e and ev[x].s.bar < v.s.bar)): ev[x + 1] = ev[x]; x -= 1
+            ev[x + 1] = v
+        self.ev = ev
+        self.hist = []; self.live = []; self.orph = []; self.third = []
+        self.hasChain = False; self.chainBar = -1; self.chainBrk = -1; self.chainP = 0.0
+        self.hasWait = False; self.waitP = None; self.ei = 0
+
+    def X(self, j): return self.S.L[j] if self.d > 0 else self.S.H[j]
+    def Y(self, j): return self.S.H[j] if self.d > 0 else self.S.L[j]
+    def Out(self, x, y): return x < y if self.d > 0 else x > y
+    def Beyond(self, t, j): return self.S.C[j] < ZmAt(t, j) if self.d > 0 else self.S.C[j] > ZmAt(t, j)
+    def Thru(self, j, ox): return self.Y(j) > ox if self.d > 0 else self.Y(j) < ox
+
+    def SlopeOk(self, a, pa, b, pb):
+        ab = self.A.At(b); rise = self.d * (pb - pa)
+        return rise > 0 and rise >= P['minRise'] * ab and rise / max(1, a - b) >= P['minSlope'] * ab
+
+    def Build(self, a, b, to):
+        d = self.d; X = self.X; A = self.A
+        pa = X(a); bb = b; sl = (X(b) - pa) / (a - b); poke = False
+        for j in range(b - 1, to - 1, -1):
+            if d * (pa + sl * (a - j) - X(j)) > P['fitTol'] * A.At(j): poke = True
+        if poke:
+            for j in range(b - 1, to - 1, -1):
+                s2 = (X(j) - pa) / (a - j)
+                if s2 < sl if d > 0 else s2 > sl: sl = s2; bb = j
+        pb = X(bb); clean = True
+        for j in range(a - 1, bb, -1):
+            if d * (pa + ((pb - pa) / (a - bb)) * (a - j) - X(j)) > 1e-9 * abs(pa): clean = False; break
+        return S_(a=a, b=bb, pa=pa, pb=pb, clean=clean)
+
+    def Slope(self, pa, pb, a, b): return (pb - pa) / max(1, a - b)
+
+    def Veto(self, h, kk):
+        d = self.d; S = self.S; A = self.A; t = self.hist[h]
+        if kk - 1 < 1 or d * (ZmAt(t, kk) - S.C[kk]) > P['vetoClose'] * A.At(kk): return False
+        lv = ZmAt(t, kk - 1)
+        back = S.C[kk - 1] >= lv - P['vetoTol'] * A.At(kk - 1) if d > 0 else S.C[kk - 1] <= lv + P['vetoTol'] * A.At(kk - 1)
+        if not back: return False
+        pv = -1
+        for p in self.sideAll:
+            if (p.bar == kk or p.bar == kk - 1) and d * (ZmAt(t, p.bar) - p.p) > 0: pv = p.bar; break
+        if pv < 0: return False
+        ex = self.Y(t.a)
+        for j in range(t.a - 1, kk, -1): ex = max(ex, self.Y(j)) if d > 0 else min(ex, self.Y(j))
+        r = self.Build(t.a, pv, pv)
+        rl = ZmMk(d, 0, r.a, r.b, r.pa, r.pb, 0, pv, 4)
+        for x in range(kk - 1, max(1, kk - P['vetoBars']) - 1, -1):
+            if x < rl.b and self.Beyond(rl, x): return False
+            if self.Y(x) > ex if d > 0 else self.Y(x) < ex:
+                t.b = rl.b; t.pb = rl.pb; t.p2 = pv; t.why = 4; t.touches += 1; return True
+        return False
+
+    def Has(self, a, b): return any(h.a == a and h.b == b for h in self.hist)
+
+    def Broke(self, h, x):
+        self.hist[h].brokenAt = x
+        if h not in self.live: return
+        self.live.remove(h)
+        self.hasChain = True; self.chainBar = self.hist[h].p2; self.chainP = self.X(self.hist[h].p2); self.chainBrk = x
+
+    def Born(self, t, j):
+        if self.Has(t.a, t.b): return
+        h = len(self.hist); self.hist.append(t); self.third.append(-1)
+        for x in range(t.b - 1, j - 1, -1):
+            if self.Beyond(t, x) and not self.Veto(h, x):
+                t.brokenAt = x; self.hasChain = True; self.chainBar = t.p2; self.chainP = self.X(t.p2); self.chainBrk = x; return
+        self.live.append(h)
+
+    def LineFrom(self, a, s, j, why, whyShift, steeper):
+        for sh in range(0, P['p1Shift'] + 1):
+            if a - sh <= s.bar: return False
+            r = self.Build(a - sh, s.bar, j)
+            if not r.clean: continue
+            if not self.SlopeOk(r.a, r.pa, r.b, r.pb): return False
+            if steeper >= 0:
+                L = self.hist[steeper]
+                s1 = self.Slope(r.pa, r.pb, r.a, r.b); s2 = self.Slope(L.pa, L.pb, L.a, L.b)
+                if not (s1 > s2 if self.d > 0 else s1 < s2): return False
+            if self.Has(r.a, r.b): return True
+            self.Born(ZmMk(self.d, 0, r.a, r.b, r.pa, r.pb, j, s.bar, whyShift if sh > 0 else why), j)
+            return True
+        return False
+
+    def Step(self, j):
+        d = self.d; A = self.A
+        confirmed = False
+        for h in list(self.live):
+            t = self.hist[h]
+            if j >= t.b: continue
+            if self.Beyond(t, j):
+                if not self.Veto(h, j): self.Broke(h, j)
+            elif d * (ZmAt(t, j) - self.X(j)) > -P['fitTol'] * A.At(j): t.touches += 1
+        for h in self.orph:
+            t = self.hist[h]
+            if t.brokenAt < 0 and j < t.b and self.Beyond(t, j) and not self.Veto(h, j): t.brokenAt = j
+        while self.ei < len(self.ev) and self.ev[self.ei].e >= j:
+            sv = self.ev[self.ei].s; s0 = self.ev[self.ei].s0
+            self.ei += 1
+            if self.hasChain and not self.Out(self.chainP, sv.p): self.hasChain = False
+            if self.hasWait and not self.Out(self.waitP.p, sv.p): self.hasWait = False
+            if self.hasChain and sv.bar <= self.chainBrk:
+                cb = self.chainBar; self.hasChain = False
+                if self.LineFrom(cb, sv, j, 3, 9, -1): continue
+                if s0.bar < cb and self.LineFrom(s0.bar, sv, j, 0, 1, -1): continue
+                self.waitP = sv; self.hasWait = True; continue
+            L = -1
+            for h in self.live:
+                if L < 0 or self.hist[h].born < self.hist[L].born: L = h
+            gap = d * (sv.p - ZmAt(self.hist[L], sv.bar)) if L >= 0 else 0.0
+            if L >= 0 and sv.bar < self.hist[L].b and gap < P['touchTol'] * A.At(sv.bar):
+                if self.third[L] < 0: self.third[L] = sv.bar
+                continue
+            if L >= 0 and sv.bar < self.hist[L].b and gap > 0:
+                if self.third[L] >= 0 and sv.bar < self.third[L] and self.LineFrom(self.third[L], sv, j, 14, 15, -1): self.third[L] = -1; continue
+                if gap >= P['nestGap'] * A.At(sv.bar) and self.LineFrom(self.hist[L].p2, sv, j, 10, 11, L): continue
+                if s0.bar < self.hist[L].b and self.LineFrom(s0.bar, sv, j, 12, 13, -1): continue
+                continue
+            if L >= 0: continue
+            if self.hasWait and sv.bar < self.waitP.bar:
+                w = self.waitP; self.hasWait = False
+                if self.LineFrom(w.bar, sv, j, 2, 8, -1): continue
+                if s0.bar < w.bar and self.LineFrom(s0.bar, sv, j, 0, 1, -1): continue
+                self.waitP = sv; self.hasWait = True; continue
+            made = False
+            for sh in range(0, P['p1Shift'] + 1):
+                if made: break
+                a = s0.bar - sh
+                if a <= sv.bar: break
+                r = self.Build(a, sv.bar, j)
+                if not r.clean: continue
+                if not self.SlopeOk(r.a, r.pa, r.b, r.pb): break
+                self.Born(ZmMk(d, 0, r.a, r.b, r.pa, r.pb, j, sv.bar, 1 if sh > 0 else 0), j)
+                made = True
+            if not made: self.waitP = sv; self.hasWait = True
+            confirmed = True
+        return confirmed
+
+    def EndStructure(self):
+        self.hasWait = False; self.hasChain = False
+        self.orph.extend(self.live); self.live = []
 
 
 class ZmDir:
@@ -333,14 +536,18 @@ class ZmDir:
 
 
 def ZmLines(S, A, piv):
-    U = ZmDir(S, A, piv, 1); D = ZmDir(S, A, piv, -1)
+    if P['lineMode'] == 1:
+        U = ZmDirF(S, A, piv, 1); D = ZmDirF(S, A, piv, -1)
+    else:
+        U = ZmDir(S, A, piv, 1); D = ZmDir(S, A, piv, -1)
     for j in range(S.n - 2, 0, -1):
         u = U.Step(j); dn = D.Step(j)
         if u: D.EndStructure()
         if dn: U.EndStructure()
-    out = [t for i, t in enumerate(U.hist) if not U.dele[i]] + [t for i, t in enumerate(D.hist) if not D.dele[i]]
-    for p in piv:
-        t = ZmMomentum(S, A, p)
+    if P['lineMode'] == 1: out = list(U.hist) + list(D.hist)
+    else: out = [t for i, t in enumerate(U.hist) if not U.dele[i]] + [t for i, t in enumerate(D.hist) if not D.dele[i]]
+    for i in range(len(piv)):
+        t = ZmMomentum(S, A, piv, i)
         if t is not None: out.append(t)
     for i in range(1, len(out)):                            # a desc, b desc, dir asc (stable)
         v = out[i]; x = i - 1
@@ -378,9 +585,20 @@ def ZmReasons(S, zs, lines, piv):
         if sw < 0:
             for k, p in enumerate(piv):
                 if p.t == z.dir and p.bar > z.base1 and (sw < 0 or p.bar < piv[sw].bar): sw = k
-        if sw >= 0:
+        hasSw = sw >= 0; swP = piv[sw].p if hasSw else 0.0; swBar = piv[sw].bar if hasSw else -1
+        if P['zoneSwing'] > 0:
+            hasSw = False; N = P['zoneSwing']
+            for j in range(z.base1 + 1, S.n - 1 - N):
+                ok = True
+                h = 1
+                while h <= N and ok:
+                    xj = S.H[j] if z.dir > 0 else S.L[j]; xa = S.H[j - h] if z.dir > 0 else S.L[j - h]; xb = S.H[j + h] if z.dir > 0 else S.L[j + h]
+                    if (xa > xj or xb > xj) if z.dir > 0 else (xa < xj or xb < xj): ok = False
+                    h += 1
+                if ok: hasSw = True; swBar = j; swP = S.H[j] if z.dir > 0 else S.L[j]; break
+        if hasSw:
             for j in range(z.legBar, end - 1, -1):
-                if S.C[j] > piv[sw].p if z.dir > 0 else S.C[j] < piv[sw].p: z.reasons |= 1; z.brokePivot = piv[sw].bar; break
+                if S.C[j] > swP if z.dir > 0 else S.C[j] < swP: z.reasons |= 1; z.brokePivot = swBar; break
         for t in lines:
             if t.kind == 0 and t.dir == -z.dir and t.b > z.legBar and end <= t.brokenAt <= z.legBar: z.reasons |= 2; break
         for o in zs:
@@ -397,7 +615,7 @@ def ZmZones(S, A, lines, piv):
         for b in bz:
             zs.append(S_(dir=b.dir, prox=b.prox, dist=b.dist, base0=b.legBar + 1, base1=b.legBar + b.baseN, legBar=b.legBar,
                          pattern=(0 if b.cont else 1) if b.dir > 0 else (2 if b.cont else 3), range=False, strong=False, arrival=False,
-                         touches=ZmTests(S, b), removed=b.removed, removedBar=b.removedBar if b.removed else -1, reasons=0, nRemoved=0, brokePivot=-1))
+                         touches=ZmTests(S, b), removed=b.removed, removedBar=b.removedBar if b.removed else -1, reasons=0, nRemoved=0, brokePivot=-1, pivot=False))
     if S.tf in (10080, 43200, RX_Q):
         lastL = -1
         for L in range(S.n - 2, 0, -1):
@@ -413,7 +631,7 @@ def ZmZones(S, A, lines, piv):
                 if L == lastL: continue
                 z = S_(dir=d, prox=top if d > 0 else bot, dist=bot if d > 0 else top, base0=L + 1, base1=L + cnt, legBar=L,
                        pattern=(0 if S.cdir(L + cnt + 1) > 0 else 1) if d > 0 else (2 if S.cdir(L + cnt + 1) < 0 else 3), range=True,
-                       strong=False, arrival=False, touches=0, removed=False, removedBar=-1, reasons=0, nRemoved=0, brokePivot=-1)
+                       strong=False, arrival=False, touches=0, removed=False, removedBar=-1, reasons=0, nRemoved=0, brokePivot=-1, pivot=False)
                 away, inT = True, False
                 for j in range(L - 1, 0, -1):
                     if S.C[j] < z.dist if d > 0 else S.C[j] > z.dist: z.removed = True; z.removedBar = j; break
@@ -422,6 +640,29 @@ def ZmZones(S, A, lines, piv):
                         if not inT and away: z.touches += 1; inT = True; away = False
                     else: away = True; inT = False
                 zs.append(z); lastL = L
+    if P['pivZones'] > 0:
+        for pv in piv:
+            b = pv.bar; d = -pv.t
+            if b < 2 or pv.conf < 0: continue
+            if any(q.dir == d and q.base1 >= b and q.base0 <= b for q in zs): continue
+            b0 = b; b1 = b
+            if P['pivZones'] > 1:
+                while b1 + 1 < S.n - 1 and S.basing(b1 + 1) and b1 - b0 < 5: b1 += 1
+                while b0 - 1 >= 2 and S.basing(b0 - 1) and b1 - b0 < 5: b0 -= 1
+            prox = -DBL_MAX if d > 0 else DBL_MAX
+            for i in range(b0, b1 + 1): prox = max(prox, max(S.O[i], S.C[i])) if d > 0 else min(prox, min(S.O[i], S.C[i]))
+            dist = S.L[b] if d > 0 else S.H[b]
+            if abs(prox - dist) <= 0: continue
+            z = S_(dir=d, prox=prox, dist=dist, base0=b0, base1=b1, legBar=b0 - 1, pattern=1 if d > 0 else 3, range=False,
+                   strong=False, arrival=False, touches=0, removed=False, removedBar=-1, reasons=0, nRemoved=0, brokePivot=-1, pivot=True)
+            away, inT = False, False
+            for j in range(b0 - 1, 0, -1):
+                if S.C[j] < z.dist if d > 0 else S.C[j] > z.dist: z.removed = True; z.removedBar = j; break
+                touch = S.L[j] <= z.prox if d > 0 else S.H[j] >= z.prox
+                if touch:
+                    if not inT and away: z.touches += 1; inT = True; away = False
+                else: away = True; inT = False
+            zs.append(z)
     ZmReasons(S, zs, lines, piv)
     for i in range(1, len(zs)):
         v = zs[i]; x = i - 1
@@ -523,10 +764,21 @@ def Hi(z): return max(z.prox, z.dist)
 def Gap(v, z): return Lo(z) - v if v < Lo(z) else (v - Hi(z) if v > Hi(z) else 0.0)
 def ZoneOk(z, dirP): return z.dir == dirP and not z.removed and z.touches <= 1
 def LiveLine(t, d):
-    best = -1
+    best = -1; anyl = -1
     for i, l in enumerate(t.lines):
-        if l.kind == 0 and l.dir == d and l.brokenAt < 0 and (best < 0 or l.born < t.lines[best].born): best = i
-    return best
+        if l.kind != 0 or l.dir != d or l.brokenAt >= 0: continue
+        if anyl < 0 or l.born < t.lines[anyl].born: anyl = i
+        if not ZmInner(l.why) and (best < 0 or l.born < t.lines[best].born): best = i
+    return best if best >= 0 else anyl
+
+
+def TargetLine(t, d, slT, hasSl):
+    best = -1
+    if hasSl:
+        for i, l in enumerate(t.lines):
+            if l.kind != 0 or l.dir != d or l.brokenAt >= 0 or t.S.T[l.a] < slT: continue
+            if best < 0 or l.born > t.lines[best].born: best = i
+    return best if best >= 0 else LiveLine(t, d)
 
 
 def FindTarget(T, ci):
@@ -534,8 +786,9 @@ def FindTarget(T, ci):
     dirP = p.st.trend
     if dirP == 0: return None
     atrC = c.A.At(1)
+    hasSl = p.st.slBar >= 0; slT = p.S.T[p.st.slBar] if hasSl else 0
     for lt in (c, p):
-        li = LiveLine(lt, dirP)
+        li = TargetLine(lt, dirP, slT, hasSl)
         if li < 0: continue
         v = ZmAt(lt.lines[li], 0)
         for zt in (c, p):

@@ -1,6 +1,7 @@
 # RamanFX chart-reading SPEC (single source of truth)
 
-Status: v1, 2026-10-30. Every engine and port (zvReal.ts, zvTrend.ts, arrival.ts, RFX_ZoneCore.mqh, RamanFX_ZoneVision.mq5,
+Status: v1.1, 2026-10-31 (ZoneVision 2.17: sections 1.6, 1.7, 1.10, 1.11, 1.14, 2.2, 2.3, 3, 8, 9, 11 updated from the owner's
+2026-10-30 marks and rules; every change is cited and logged in docs/training/ZV216.md section "2.17"). v1, 2026-10-30. Every engine and port (zvReal.ts, zvTrend.ts, arrival.ts, RFX_ZoneCore.mqh, RamanFX_ZoneVision.mq5,
 Pine, Python) is built from this file **line by line**. When code and this file disagree, the code is wrong. When this
 file and the owner disagree, this file is wrong: fix it here first, then the code.
 
@@ -144,16 +145,25 @@ A pivot is not "a swing low". It is the end of a REAL correction of the leg befo
 
 ### 1.6 Momentum line
 
-- **Rule.** From the extreme `E` of an impulse: anchor 2 = the touch of the steepest line that no high (down) / low
-  (up) of the next {momBars = 4} bars crosses (the hull over those bars). Drawn only when the leg out of `E` is an
-  impulse: it travels `>= {momEff = 0.6} x momBars x ATR(E)` within those bars. Its break (first close beyond) ends the
-  IMPULSE, not the trend. It is never used for direction change, arrival or confirmation.
+- **Rule (2.17).** One per impulse leg: for every real pivot `E` (1.3), the leg out of it runs to the next real pivot `X`.
+  Anchor 1 = `E`'s extreme; anchor 2 = the steepest touch of the line along the leg's lows (up) / highs (down) up to `X`
+  (the hull; `X`'s own candle counts only when its line-side extreme comes first in the OHLC path: a bullish candle's low,
+  a bearish candle's high; a touch within {momTol = 0.03} x ATR counts). A leg flatter than {momMin = 0.15} x ATR per bar
+  is no impulse (no line). The line ends at its first close beyond. Its break ends the IMPULSE, not the trend; it is never
+  used for direction change, arrival or confirmation. (2.16 used the hull over a fixed {momBars = 4} bars from the pivot,
+  only when the leg travelled 0.6 ATR per bar: lines that never broke stayed "live" for years, e.g. the gold W1 line from
+  Feb 2024 under all the lows. Tested and NOT kept: moving anchor 1 one bar later when the line to the next bar is flat
+  {momShift}: the owner does it on H4 Oct 13 / Oct 14, W1 Nov 22 / Aug 29, but it lowers the score on the 9 charts.)
 - **Sources.** [O] LEARNED.md:11-14 "MOMENTUM line: drawn from the EXTREME of a leg along the very next bars of the
   same one-way impulse (anchor 2 is a bar 1-4 bars later, NOT a real pivot), steep ... Its break ends the impulse, not
   the trend." [K] media/lesson05.ts:23 "red = momentum line, black = trend line"; :38 "The Feb 13-14 rally breaks the
   red momentum line but stops at the black trend line. The momentum-line break was false"; [K] videoLessons.ts:632 (L5)
   "The real signal is the break of the proper trend line from further back". [R] partA.ts:706 "add an aggressive line
   only for impulses".
+- **Owner 2026-10-30.** "From the extreme of an impulse leg along its next 1-4 bars (RBR/DBD legs), one per impulse leg,
+  ending at its first close beyond. Production shows the live one(s) plus the most recent broken one." Owner gold D1 marks:
+  Jul 17 -> Jul 21, Jul 22 -> Jul 27, Sep 2 -> Sep 3 (= the hull to the next pivot); Aug 19 -> Aug 25, Aug 28 -> Sep 1, Aug 5 ->
+  Aug 12 start at the leg-out candle of a base inside a longer leg (not reproduced: the model's legs run pivot to pivot).
 - **Examples (owner, MN).** 2022-04 0.76607 -> 2022-08 0.71362, broken 2022-11 (the first close above). 2022-10 0.61695
   -> 2022-11 0.62717, broken **2023-04** (first close below; LEARNED.md:14 says "Mar 2023", which is one bar off: the
   owner's mark and the bars both say Apr 2023).
@@ -163,7 +173,10 @@ A pivot is not "a swing low". It is the end of a REAL correction of the leg befo
 ### 1.7 Break
 
 - **Rule.** A line is broken by the **first candle that CLOSES beyond it** (any body size). One exception, the
-  **fake-cross veto**: the close at bar `k` does not break the line when (a) bar `k+1` closes back inside the line or
+  **fake-cross veto**, only for a close within {vetoClose = 0.5} x ATR of the line (2.17: "a later pivot never rescues a line
+  that a close already broke": gold W1 Feb 28 -> May 9 closed 1.48 ATR beyond on Aug 1 = broken; the owner's own kept lines
+  were closed through by 0.22 ATR, AUDUSD D1 Sep 1, and about 0.5 ATR, AUDUSD MN 2022-04 -> 2024-10): the close at bar `k`
+  does not break the line when (a) bar `k+1` closes back inside the line or
   within `{vetoTol = 0.05} x ATR` of it, (b) bar `k` or `k+1` is a new real pivot of the line's kind whose extreme lies
   beyond the line, and (c) price then makes a new trend extreme (new HH for an up line) within `{vetoBars = 8}` bars
   without another close beyond the line rotated to that pivot (2.2 step 3b). A wick beyond the line is never a break.
@@ -276,6 +289,10 @@ A pivot is not "a swing low". It is the end of a REAL correction of the leg befo
   contains 3273.81: **target = the W1 demand ~3250-3480 (purple), entry side for the resumed impulse; shorts stop there.**
   AUDUSD: `C` = MN; its up line 2025-04 -> 2025-11 broke in 2026-06, so the fallback is the `SL` demand: **0.64206-0.66716**
   (owner MN note: "now the potential HL will be formed near above or inside the demand i have drawn").
+- **Which line (2.17).** With nested lines (2.2) a TF can have several live `P`-direction lines: the target line is the
+  OLDEST live one anchored at / after `P`'s structure low `SL` (1.9) - the line of `P`'s current impulse, so the W1 up lines
+  inside the 2024-26 MN rally qualify and the 2016 / 2020 lines do not -, else the newest main live line. Gold: the W1 up line
+  2024-11-09 -> 2024-12-28 at 3400.89, inside the same W1 range base 3203.62-3439.89 as the 2023 line (3273.81).
 - **Not the target.** The zone nearest PRICE (the 2.14 HTF band), a same-TF opposite "weak" zone (arrival.ts
   `realign`), or the old MN 2015 -> 2018 line value (~1508).
 - **Use.** Once tapped, confirmation only ([R] partA.ts L8 "After the realignment area has been retested once, he does
@@ -309,12 +326,21 @@ A pivot is not "a swing low". It is the end of a REAL correction of the leg befo
   box is Q-free but unmarked): 4020 sits near 48% = middle.
 - **Not this.** A curve measured wick to wick or across one zone.
 
+- **Reversal zones at the real pivots (2.17).** [O] LEARNED.md "Rally-Base-Drop (RBD) = the actual PEAK. Drop-Base-Rally
+  (DBR) = the proper VALLEY": every confirmed real pivot (1.3) whose candle no detected base covers gets a zone = the pivot
+  candle plus the basing candles right before / after it (the turn, at most 6 candles), proximal = the bodies' edge, distal
+  = the pivot's wick; pattern DBR / RBD; touches and removal as for any zone; drawn only with a reason (1.14). Owner: gold D1
+  demand Jul 17-20 3959.48-4016.39 (= exactly the Jul 17 pivot candle + the Jul 20 basing candle; zonecore found only the Jul
+  20 candle); AUDUSD W1 Nov 15 / Mar 28 / May 2, AUDUSD D1 Jul 13 / Sep 2 are pivot candles too.
+
 ### 1.14 Zone reasons (owner 2026-10-30)
 
 - **Rule.** Every zone the owner draws has a reason; a zone without one is not drawn. A supply / demand zone qualifies only
   when its leg-out (from the leg-out candle until price first comes back to the proximal) does at least one of:
-  (R1) **BREAK**: closes beyond the previous swing (for a demand: the newest confirmed real peak before the base; supply
-  mirrored) = break of structure; (R2) **DIRECTION**: closes through a live opposite trend line of the TF (or flips the
+  (R1) **BREAK**: closes beyond the previous swing = break of structure. 2.17: the previous swing = the nearest swing of the
+  TF before the base at a smaller scale than the real pivots: a high with {zoneSwing = 2} lower highs on each side (supply
+  mirrored), not the newest confirmed real peak (2.16) - the owner reads BOS on a smaller swing (tested on the 9 charts:
+  zone recall 11 -> 12 / 50 with it); (R2) **DIRECTION**: closes through a live opposite trend line of the TF (or flips the
   trend state of an intermediate TF; ZoneVision 2.16 implements the trend-line part); (R3) **REMOVAL**: closes through at
   least one older opposite zone (the Raja arrival "removes" test). The reasons are stored on the zone (break / direction /
   removal + the broken pivot and the removed zones); MT5 shows them compactly (`BOS`, `CHoCH`, `x2 removed`). Strength
@@ -385,10 +411,39 @@ Worked through the owner's lines (all reproduce, except Q1/Q2):
 | gold D1 Sep 3 -> Sep 18 (V) | top skipped (not clean); C1 -> C2 |
 | gold D1 up from Jul 29 (V) | G1 would be Jul 17 -> Jul 29 (rise 0.43 ATR, clean): **Q2** |
 
+### 2.2b The 2.17 life cycle: lines built forward in time (default; the 2.16 cycle above = input InpZmLineMode 0)
+
+Owner 2026-10-30: "lines are built forward in time, as a trader draws them live. Once pivot 2 is confirmed the line is
+fixed, and the first close beyond it breaks it. A later pivot never rescues a line that a close already broke." Down lines
+described (up mirrored). Swings = the real pivots of 1.3.
+
+1. **Confirmation of a lower high `s`** (every anchor 2, Line 1, chain and nested alike; 2.16 confirmed chain lines at the 1.3
+   confirmation only): `s0` = the nearest swing high before `s` that is higher; `s` is confirmed at the first bar price
+   TRADES below the lowest low strictly between `s0` and `s` (Kevin L5; `s`'s own candle counts when its high comes first,
+   a bearish candle). At that bar, in this order:
+2. **After a break**: the chain from the broken line's anchor-2 swing to `s` ([O] chaining "the next line starts at the
+   previous pivot 2"), if clean; if a newer swing cuts it, from `s0` (gold H4 Oct 16 16:00 -> Oct 19 08:00).
+3. **While a line `L` is live** (the newest one): `s` within {touchTol = 0.15} x ATR of `L` = a touch (the first one after the
+   anchors = the 3rd touch); a later `s` then starts the next, flatter line from that touch ([O] "after a line holds a third
+   touch, that touch becomes pivot 1 of the next, flatter line"). Else, `s` at least {nestGap = 0.8} x ATR inside `L`: the
+   NESTED line from `L`'s anchor-2 swing to `s`, when clean and steeper than `L`; both stay live, each breaks at its own
+   first close ([O] gold W1 Feb 28 -> May 9 4773.23 broken Aug 1 while Jan 24 -> Feb 28 was live until Aug 15; AUDUSD W1
+   Jul 25 -> Sep 5; gold D1 Aug 4 -> Aug 19; SpotCrude Sep 2023 -> Jun 2025). If that is not clean: a new local structure
+   from `s0` inside `L`.
+4. **No live line**: a waiting Line 1 from a counter swing (C1 -> C2), else a new structure: Line 1 from `s0` (p1Shift, clean,
+   too flat -> wait).
+5. **Anchor 2** = the hull touch up to the confirmation bar when a bar pokes beyond the line through `s` by more than
+   {fitTol = 0.02} x ATR ([O] "Pivot 2 is where the line touches while resting above the swings in between": AUDUSD D1 Sep 9 ->
+   Sep 23, not Sep 21 (0.05 ATR); 0.02 keeps gold D1 Sep 18 (0.002 ATR off Sep 23)). After the confirmation the line is FIXED.
+6. **Break** = the first close beyond (1.7, the veto only within vetoClose). A structure of the other direction ends this one
+   (its live lines stay until their own close beyond, no chain, no nesting).
+
+Drawn (section 3): per direction the main live line (not nested) + the newest nested one.
+
 ### 2.3 Step 3, per TF: momentum line
 
-Section 1.6, for the newest impulse only. If it coincides with that TF's Line 1 (same anchor 1, anchor 2 within
-fitTol), draw it once as the trend line.
+Section 1.6, one per impulse leg (all kept in the model for scoring). Drawn: the live ones of the last two legs + the most
+recently broken one.
 
 ### 2.4 Step 4, per TF: trend state
 
@@ -451,10 +506,13 @@ contradict the other (tests I1-I5).
 
 | object | when | style |
 |---|---|---|
-| live trend line (this TF) | max 1 up + 1 down | solid, InpTrend colour, width 2 for the line used by `C`'s target, else 1; extends 3 bars past the last bar |
+| live trend line (this TF) | per direction the main line + the newest line nested inside it (2.17) | solid, InpTrend colour, width 2 for the line used by `C`'s target, else 1; extends 3 bars past the last bar |
 | broken trend line (this TF) | max 1 per direction, only if broken within the last {brokenShow = 20} bars | dotted, InpMuted, ends AT the break candle (the first close beyond) |
-| momentum line | the newest impulse only; hidden 5 bars after its break | red, dashed, label `momentum` ([K] red = momentum) |
+| momentum line | 2.17: the live lines of the last two legs + the most recently broken one (red dotted) | red, dashed, label `momentum` ([K] red = momentum) |
 | HTF target line | on every LTF chart of `C` (the `P`-direction line of 1.11) | purple dashed, label `<TF> up line <value>` |
+| HTF lines (all) | the main live line per direction of every higher TF | gold dotted; ONE straight OBJ_TREND from anchor 1's time to the last bar + 3 at the line's HTF value there (MT5 ZmDrawLine; the render matches it) |
+| reversal zones (2.17) | the 4 nearest to price with a reason (1.10) | dotted box, demand / supply colour, label `DBR BOS ... T<n>` |
+| DIRECTION box | one message, rows wrapped at 72 characters (2.17) | the panel's corner; never wider than the wrapped rows |
 | real pivots | every confirmed real pivot of this TF | small dot: supply colour above peaks, demand colour below valleys |
 | zones | as now (proximal/distal box), label `<pattern> <type> T<n>` e.g. `RBR CP T1`, `DBR arrival T2`, `DBD weak-overlap` | weak zones dashed |
 | realignment target | on all TFs of the chain | purple box, label `REALIGN <TF> <lo>-<hi> (<TF> up line <value>)` |
@@ -580,6 +638,8 @@ override the rows below where they differ** (the executable rows are `src/core/s
 | G-W1-L1x | broken down line | `2026-01-24` 5599.73 -> `2026-02-28` 5419.41, broken `2026-08-15` (close 4602.22); hidden (broken > 20 bars ago) | I |
 | G-W1-L2 | live up line (the target line) | `2023-09-30` 1810.32 -> `2024-02-10` 1984.11, value **3273.81** at `2026-10-24`, unbroken; drawn width 2 and projected on D1/H4/H1 | V (owner: "long W1 up trend line from the Sep 2023 low") / I (anchor 2) |
 | G-W1-X | must NOT exist | a live down line from the `2026-01-24` top (e.g. top -> `2026-08-22`) | V (owner) |
+| G-W1-X2 (2.17) | must NOT exist | a live down line `2026-02-28` -> `2026-08-22`: the nested `2026-02-28` -> `2026-05-09` line broke `2026-08-01` and `2026-08-22` is not confirmed (the `2026-06-27` low 3941.55 never traded through) | V (owner 2026-10-30) |
+| G-W1-M (2.17) | momentum drawn | only the live momentum lines of the last two legs (not a 2024 line under all the lows) | V (owner 2026-10-30) |
 | G-W1-Z | realignment zone | W1 demand overlapping 3250-3480 by >= 50% (the `2025-04-19`..`2025-08-23` range base, bodies 3203.62-3439.89), pattern RBR / CP, fresh, label `REALIGN W1 ...` purple | V (owner purple ~3250-3480) |
 | G-W1-S | STRUCTURE segment | `W1 DOWN correction -> 3250.00-3480.00` (the detector's own box edges are acceptable within the overlap rule) | V |
 
@@ -592,6 +652,7 @@ override the rows below where they differ** (the executable rows are `src/core/s
 | G-D1-X1 | must NOT exist | any down line anchored at Aug 25 4696.81 (e.g. Aug 25 -> Oct 16, the full-history 2.15 output); the top's momentum line Aug 25 -> Aug 28 (broken Sep 17) may exist in history only | V (owner: top skipped) |
 | G-D1-L2 | up line | anchor 1 = Jul 29 3995.86 ("the first higher low after the July bottom" Jul 17 3959.48) | V / Q2 |
 | G-D1-S | STRUCTURE segment | `D1 DOWN impulse` (LLL Oct 23 3975.45, SH Oct 16 4198.96 not closed above) | I |
+| G-D1-Z (2.17) | demand drawn | Jul 17-20 3959.48-4016.39 (the Jul 17 pivot candle + the Jul 20 basing candle), a reason, not removed: price is in it | V (owner) |
 
 ### 5.4 Gold H4 / H1
 
@@ -689,6 +750,14 @@ rule it breaks:
 | rangeBaseMax / rangeBaseATR | 20 candles / 2.5 ATR | gold W1 Apr-Aug 2025 base (18 candles, ~1.6 ATR by bodies) |
 | targetGap | 1.0 ATR of C | target zone search around the line value |
 | p1Retrace | 0.50 | Q1 "retrace" option only (2.16 input InpZmP1Retrace); fit counts at 0.38 / 0.45 / 0.50 / 0.60 in ZV216.md |
+| fitTol (2.17) | 0.02 ATR (was 0.10) | AUDUSD D1 Sep 23 (0.05) must move the anchor (owner), gold D1 Sep 23 (0.002) must not |
+| vetoClose (2.17) | 0.5 ATR | AUDUSD D1 Sep 1 0.22 / AUDUSD MN ~0.5 vetoed (owner kept the lines); gold W1 Aug 1 1.48 broken (owner) |
+| nestGap / touchTol (2.17) | 0.8 / 0.15 ATR | gold W1 May 9 is 0.94 ATR inside the Jan 24 line (nested, owner); a 3rd touch within 0.15 ATR (no 9-chart evidence; SpotCrude holdout case) |
+| momTol / momMin (2.17) | 0.03 / 0.15 ATR per bar | gold D1 Jul 10 -> Jul 15 (Jul 14 pokes 0.02 ATR); owner momentum lines are >= 0.17 ATR / bar |
+| momShift (2.17) | 0 (off) | anchor 1 one bar later when the line to the next bar is flatter than this: owner H4 / W1 cases, but the 9-chart score drops |
+| pivZones / zoneSwing (2.17) | 2 / 2 | reversal zones with the turn's basing candles; BOS on a 2-bar swing (zone recall 9 -> 12 / 50) |
+| lineMode (2.17) | 1 | 1 = 2.2b forward time, 0 = 2.2 (2.16; Q1 / Q2 apply only there) |
+| momBars / momEff | removed in 2.17 | 2.16 momentum window / impulse test |
 
 ---
 
@@ -697,7 +766,8 @@ rule it breaks:
 | # | conflict | resolution |
 |---|---|---|
 | C1 | Where a line starts. [K] draws from the top (media/lesson05.ts:20 "From the Feb 2 top ... a shallower BLACK line"; zoomMedia/s06:19 "The first downtrend line from the top, slid down ... so wicks do not poke above it"). [O] gold: "from the first lower high". | Both, by geometry: the top anchors Line 1 only when the line is clean (Kevin's "slid so wicks do not poke"); otherwise, and after any real break, the line starts at the first lower high (owner). |
-| C2 | A real pivot poking through a live line. [K] L5 redraws from the newer valley (media/lesson05.ts:150, chain). [O] AUDUSD D1 keeps pivot 1 (Jul 29 -> Sep 2). | Owner: rotate about anchor 1 under the veto (2.2 step 3b). Kevin's chain is used after a real break. |
+| C2 | A real pivot poking through a live line. [K] L5 redraws from the newer valley (media/lesson05.ts:150, chain). [O] AUDUSD D1 keeps pivot 1 (Jul 29 -> Sep 2). [O] 2026-10-30: a later pivot never rescues a line a close already broke (gold W1). | Owner: rotate about anchor 1 under the veto (2.2 step 3b) ONLY for a close within vetoClose (0.5 ATR) taken back on the next bar (AUDUSD D1 Sep 1: 0.22 ATR); a bigger close breaks (gold W1 Aug 1: 1.48 ATR). Kevin's chain is used after a real break. Owner question Q3. |
+| C13 | A new line while an older one is live. [R] L4 "do not keep redrawing it with every new swing; keep the old one". [O] gold W1 Feb 28 -> May 9 while Jan 24 -> Feb 28 is live (both marked). | 2.17: keep the old one AND draw the nested line from its pivot 2 when the new swing is >= nestGap ATR inside it (both drawn, each breaks at its own close). |
 | C3 | Wick re-anchoring. [K] L14 (videoLessons.ts:1870) re-anchors to a lone wick. [O] W1 Sep 5 -> Sep 19 kept through a 0.20 ATR wick. | Owner + [R] private.ts L107: after confirmation a wick is a fake cross; only fitTol touches inside the confirmation window move anchor 2. |
 | C4 | What breaks a line. [R] L4/L54: a big departure candle. [O]: any first close (bodies 0.16-0.25 ATR count: MN 2023-04, W1 06-13, W1 07-25). | Owner: first close, plus the veto. |
 | C5 | Direction change. [R] L3: line crossed + 2 opposite zones. [O] AUDUSD W1: sideways without either. | 1.9: structure low/high decides UP vs not; Kevin's LH+LL or Raja's line+2 zones decides DOWN; else SIDEWAYS. |
@@ -735,6 +805,24 @@ rule it breaks:
   momentum line and the trend line starts at C1 (gold MN 85% / gold D1 55% from the top, AUDUSD MN Apr -> Aug 2022 46% =
   momentum). The SPEC's own rule (2.2 step 2) decides by the clean-line test, not by depth. On the owner's AUDUSD + gold line
   rows it fits fewer rows than "spec" (docs/training/ZV216.md), so the default stays "spec".
+- **Q3 (2.17). A close slightly beyond a line, taken back at once.** AUDUSD D1 Sep 1 closed 0.22 ATR under your Jul 29 line
+  and you kept it (rotated to Sep 2); gold W1 Aug 1 closed 1.48 ATR above the Feb 28 -> May 9 line and you broke it. Is a
+  close within about half an ATR that the next candle takes back a fake cross? **yes** (2.17 default, vetoClose 0.5) / **no**
+  (every close breaks; the AUDUSD D1 and MN rows become breaks).
+- **Q4 (2.17). Momentum anchor 1.** You start some momentum lines one bar after the pivot (H4 Oct 13 16:00, Oct 14 20:00; W1
+  Nov 22, Aug 29) and others at a base's leg-out candle inside a longer leg (D1 Aug 5, Aug 19, Aug 28). Should the momentum
+  line start at the first candle of the one-way run (after the last opposite candle) instead of the pivot? **yes** / **no**
+  (2.17 default: the pivot).
+- **Q5 (2.17). Momentum lines on every impulse leg?** On D1 gold you marked them on the Jul-Sep legs only, on H4 on 4 of 11
+  legs. Should every impulse leg (>= 0.15 ATR per bar) get one in the model (MT5 shows only the last two legs)? **yes** (2.17)
+  / **no** (only legs with a continuation base, RBR / DBD, inside them).
+- **Q6 (2.17). Swing scale for line anchors.** Your W1 anchors Jan 17, Jul 25, May 30, Sep 19 (AUDUSD) and May 9, Jul 11, Aug 1
+  (gold) are 0.7-1.1 ATR pullbacks, below the real-pivot size (1.25 ATR). Using them everywhere adds lines you did not draw on
+  D1 / H4. Should W1 / MN lines use a smaller swing than D1 / H4? **yes** / **no**.
+- **Q7 (2.17). Which zones.** 27 of your 50 zones are not found by the zone engine: pivot candles, the candle right after a
+  pivot (gold W1 Jan 3 / Mar 7 / Apr 18, AUDUSD D1 Oct 16) and 1-candle bases. Should every real pivot's first leg-out candle
+  also be a zone (body to the wick on the pivot side)? **yes** (more of yours found, many you did not draw) / **no** (2.17:
+  the pivot candle + its basing candles only).
 - **Q2. Gold D1 up line. ANSWERED (owner gold marks 2026-10-30): option (a), Jul 17 3959.48 -> Jul 29 3995.86, broken
   Sep 28; G-D1-L2 is enabled.** The original question: The July bottom is Jul 17 3959.48; the first higher low Jul 29 3995.86 (82% pullback). A
   line Jul 17 -> Jul 29 is clean and rises 0.43 ATR, so the spec draws it (it breaks Sep 28). You said the up line starts

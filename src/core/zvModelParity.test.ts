@@ -22,8 +22,11 @@ describe.skipIf(!hasPy)('MT5 RFX_MODEL conformance (Python port of the MQL block
   const pinned = (sym: string, pins: Record<string, string>, n = 700) => Object.fromEntries(Object.entries(pins).map(([tf, to]) => [tf, qaRows(sym, tf, to).slice(-n)])) as Record<string, Row[]>;
   cases.push(modelCase('XAUUSD H1 acceptance', 'XAUUSD', 'H1', pinned('XAUUSD', gPins), 4020.10, 2));
   cases.push(modelCase('AUDUSD H4 acceptance', 'AUDUSD', 'H4', pinned('AUDUSD', aPins), 0.70346, 5));
-  for (const q1 of ['retrace', 'major'] as const) cases.push(modelCase(`XAUUSD D1 Q1 ${q1}`, 'XAUUSD', 'D1', pinned('XAUUSD', gPins, 400), 4020.10, 2, { q1 }));
-  for (const q2 of ['b', 'c'] as const) cases.push(modelCase(`AUDUSD W1 Q2 ${q2}`, 'AUDUSD', 'W1', pinned('AUDUSD', aPins, 400), 0.70346, 5, { q2 }));
+  // Q1 / Q2 apply to the 2.16 line machine (lineMode 0, still an input); the 2.17 default machine on the same windows
+  for (const q1 of ['retrace', 'major'] as const) cases.push(modelCase(`XAUUSD D1 Q1 ${q1}`, 'XAUUSD', 'D1', pinned('XAUUSD', gPins, 400), 4020.10, 2, { q1, params: { lineMode: 0 } }));
+  for (const q2 of ['b', 'c'] as const) cases.push(modelCase(`AUDUSD W1 Q2 ${q2}`, 'AUDUSD', 'W1', pinned('AUDUSD', aPins, 400), 0.70346, 5, { q2, params: { lineMode: 0 } }));
+  cases.push(modelCase('XAUUSD H1 acceptance, 2.16 lines', 'XAUUSD', 'H1', pinned('XAUUSD', gPins), 4020.10, 2, { params: { lineMode: 0 } }));
+  cases.push(modelCase('AUDUSD H4 acceptance, 2.16 lines', 'AUDUSD', 'H4', pinned('AUDUSD', aPins), 0.70346, 5, { params: { lineMode: 0 } }));
   const R = rng(20261030);
   for (let k = 0; k < 24; k++) {                         // random windows: end date and length per TF
     const sym = R() < 0.5 ? 'XAUUSD' : 'AUDUSD', bars: Record<string, Row[]> = {};

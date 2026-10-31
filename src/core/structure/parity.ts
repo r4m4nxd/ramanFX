@@ -5,7 +5,8 @@ import { toQuarters } from '../../../supabase/functions/telegram-bot/zonecore';
 
 export type Row = [string, number, number, number, number];
 const KIND = { trend: 0, momentum: 1, major: 2 } as const;
-const WHY: Record<string, number> = { g1: 0, 'g1-shift': 1, c1: 2, chain: 3, rot: 4, mom: 5, major: 6, p1mom: 7 };
+const WHY: Record<string, number> = { g1: 0, 'g1-shift': 1, c1: 2, chain: 3, rot: 4, mom: 5, major: 6, p1mom: 7, 'c1-shift': 8, 'chain-shift': 9,
+  nest: 10, 'nest-shift': 11, inner: 12, 'inner-shift': 13, touch3: 14, 'touch3-shift': 15 };
 const PAT: Record<string, number> = { RBR: 0, DBR: 1, DBD: 2, RBD: 3 };
 const RS: Record<string, number> = { break: 1, direction: 2, removal: 4 };
 export interface ModelCase { name: string; sym: string; chart: string; price: number; digits: number; bars: Record<string, Row[]>; params?: Record<string, number>; expected: unknown }
@@ -28,5 +29,6 @@ export function modelCase(name: string, sym: string, chart: string, bars: Record
   const params: Record<string, number> = {};
   if (o.q1) params.q1 = { spec: 0, retrace: 1, major: 2 }[o.q1];
   if (o.q2) params.q2 = { a: 0, b: 1, c: 2 }[o.q2];
+  for (const [k, v] of Object.entries(o.params ?? {})) if (typeof v === 'number') params[k] = v;   // tunables (e.g. lineMode 0)
   return { name, sym, chart, price, digits, bars: b, params, expected };
 }

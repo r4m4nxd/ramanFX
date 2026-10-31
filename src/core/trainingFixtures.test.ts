@@ -8,7 +8,7 @@ import { engineMarks } from './training/engine';
 import { scoreChart, summarize } from './training/score';
 import { parseMarks, toTBars, type TrainChart } from './training/types';
 
-const MIN_AGREEMENT = { pivots: 0.72, lines: 0.33, momentum: 0.16, zones: 0.23 };   // the 2.16 model's agreement (floor)
+const MIN_AGREEMENT = { pivots: 0.72, lines: 0.38, momentum: 0.15, zones: 0.21 };   // the 2.17 model's agreement (floor)
 const file = JSON.parse(readFileSync('src/core/training/fixtures/marks.json', 'utf8')) as { charts: TrainChart[] };
 const charts = (file.charts ?? []).filter(c => Array.isArray(c.bars) && c.bars.length >= 20);
 const pct = (v: number | null) => (v == null ? '  –' : `${Math.round(v * 100)}%`.padStart(4));
