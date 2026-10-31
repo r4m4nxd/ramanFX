@@ -19,8 +19,8 @@ const SCRIPT = path.join(ROOT, 'scripts/vercel-ignore.sh');
 const vercel = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
 
 describe('vercel.json keeps the deployment budget setup', () => {
-  it('fx / scanner / movers / insiders JSON served live from the data branch on GitHub, not from the build', () => {
-    for (const k of ['fx', 'scanner', 'movers', 'insiders']) {
+  it('fx / scanner / movers / insiders / holders JSON served live from the data branch on GitHub, not from the build', () => {
+    for (const k of ['fx', 'scanner', 'movers', 'insiders', 'holders']) {
       expect(vercel.rewrites).toContainEqual({ source: `/${k}/(.*)\\.json`, destination: `https://raw.githubusercontent.com/r4m4nxd/ramanFX/data/public/${k}/$1.json` });
       expect(vercel.buildCommand).toMatch(new RegExp(`rm -rf [^&|;]*dist/${k}(\\s|$)`));
     }
@@ -44,6 +44,8 @@ describe('vercel.json keeps the deployment budget setup', () => {
     expect(re.test('/fx/latest.json')).toBe(false);
     expect(re.test('/movers/latest.json')).toBe(false);
     expect(re.test('/insiders/latest.json')).toBe(false);
+    expect(re.test('/holders/t/A.json')).toBe(false);
+    expect(re.test('/holders/index.json')).toBe(false);
     expect(re.test('/scanner')).toBe(true);
     const h = vercel.headers.find((x: { source: string }) => x.source === '/version.json');
     expect(h.headers).toContainEqual({ key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' });
@@ -61,7 +63,7 @@ describe('app paths: the ignore script and the watchdog agree', () => {
   it('isAppPath', () => {
     for (const p of ['src/pages/Home.tsx', 'src/content/guide.ts', 'public/research/x.json', 'public/lessons/a.jpg', 'index.html', 'vercel.json', 'package.json', 'vite.config.ts', 'scripts/vercel-ignore.sh'])
       expect(isAppPath(p), p).toBe(true);
-    for (const p of ['public/fx/latest.json', 'public/scanner/a.json', 'public/movers/latest.json', 'public/insiders/latest.json', 'public/fundamentals/fx.json', 'tools/briefing/state.json', 'supabase/functions/x/index.ts', '.github/workflows/a.yml', 'docs/a.md', 'qa/bars/XAUUSD/D1.json', 'src/core/a.test.ts', 'src/x.test.tsx'])
+    for (const p of ['public/fx/latest.json', 'public/scanner/a.json', 'public/movers/latest.json', 'public/insiders/latest.json', 'public/holders/t/A.json', 'public/holders/index.json', 'public/fundamentals/fx.json', 'tools/briefing/state.json', 'supabase/functions/x/index.ts', '.github/workflows/a.yml', 'docs/a.md', 'qa/bars/XAUUSD/D1.json', 'src/core/a.test.ts', 'src/x.test.tsx'])
       expect(isAppPath(p), p).toBe(false);
   });
   // Every workflow that writes data: no `git push` / `git commit` to main (or to the checked-out branch) at all, only

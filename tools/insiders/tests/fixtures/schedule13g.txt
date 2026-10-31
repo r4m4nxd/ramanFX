@@ -1,0 +1,81 @@
+<SEC-DOCUMENT>0000102909-26-000200.txt : 20261014
+<SEC-HEADER>0000102909-26-000200.hdr.sgml : 20261014
+<ACCEPTANCE-DATETIME>20261014153000
+ACCESSION NUMBER:		0000102909-26-000200
+CONFORMED SUBMISSION TYPE:	SCHEDULE 13G/A
+PUBLIC DOCUMENT COUNT:		1
+FILED AS OF DATE:		20261014
+DATE AS OF CHANGE:		20261014
+
+SUBJECT COMPANY:
+
+	COMPANY DATA:
+		COMPANY CONFORMED NAME:			XYZ Corp
+		CENTRAL INDEX KEY:			0000111111
+
+FILED BY:
+
+	COMPANY DATA:
+		COMPANY CONFORMED NAME:			Example Index Group Inc
+		CENTRAL INDEX KEY:			0000102909
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>SCHEDULE 13G/A
+<SEQUENCE>1
+<FILENAME>primary_doc.xml
+<TEXT>
+<XML>
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Reconstruction of the EDGAR Schedule 13G XML schema (SCHEDULE 13G/A, in force since December 2024); not a copy of a real filing. -->
+<edgarSubmission xmlns="http://www.sec.gov/edgar/schedule13g" xmlns:com="http://www.sec.gov/edgar/common">
+  <headerData>
+    <submissionType>SCHEDULE 13G/A</submissionType>
+  </headerData>
+  <formData>
+    <coverPageHeader>
+      <securitiesClassTitle>Common Stock</securitiesClassTitle>
+      <eventDateRequiresFilingThisStatement>09/30/2026</eventDateRequiresFilingThisStatement>
+      <issuerInfo>
+        <issuerCik>0000111111</issuerCik>
+        <issuerName>XYZ Corp</issuerName>
+        <issuerCusip>98765A103</issuerCusip>
+      </issuerInfo>
+      <designateRulesPursuantThisScheduleIsFiled>
+        <designateRulePursuantThisScheduleIsFiled>Rule 13d-1(b)</designateRulePursuantThisScheduleIsFiled>
+      </designateRulesPursuantThisScheduleIsFiled>
+    </coverPageHeader>
+    <coverPageHeaderReportingPersonDetails>
+      <reportingPersonName>Example Index Group Inc</reportingPersonName>
+      <citizenshipOrOrganization>PA</citizenshipOrOrganization>
+      <reportingPersonBeneficiallyOwnedNumberOfShares>
+        <soleVotingPower>0</soleVotingPower>
+        <sharedVotingPower>1500000</sharedVotingPower>
+        <soleDispositivePower>16800000</soleDispositivePower>
+        <sharedDispositivePower>420000</sharedDispositivePower>
+      </reportingPersonBeneficiallyOwnedNumberOfShares>
+      <reportingPersonBeneficiallyOwnedAggregateNumberOfShares>17220000</reportingPersonBeneficiallyOwnedAggregateNumberOfShares>
+      <classPercent>9.57</classPercent>
+      <typeOfReportingPerson>IA</typeOfReportingPerson>
+    </coverPageHeaderReportingPersonDetails>
+    <items>
+      <item1>
+        <issuerName>XYZ Corp</issuerName>
+      </item1>
+      <item4>
+        <amountBeneficiallyOwned>17220000</amountBeneficiallyOwned>
+        <classPercent>9.57</classPercent>
+      </item4>
+    </items>
+    <signatureInformation>
+      <reportingPersonName>Example Index Group Inc</reportingPersonName>
+      <signatureDetails>
+        <signature>/s/ Compliance Officer</signature>
+        <date>10/14/2026</date>
+      </signatureDetails>
+    </signatureInformation>
+  </formData>
+</edgarSubmission>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>

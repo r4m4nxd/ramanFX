@@ -1,0 +1,113 @@
+<SEC-DOCUMENT>0009876500-26-000007.txt : 20261030
+<SEC-HEADER>0009876500-26-000007.hdr.sgml : 20261030
+<ACCEPTANCE-DATETIME>20261030083012
+ACCESSION NUMBER:		0009876500-26-000007
+CONFORMED SUBMISSION TYPE:	SCHEDULE 13D/A
+PUBLIC DOCUMENT COUNT:		2
+FILED AS OF DATE:		20261030
+DATE AS OF CHANGE:		20261030
+GROUP MEMBERS:		Activist Partners II LP
+
+SUBJECT COMPANY:
+
+	COMPANY DATA:
+		COMPANY CONFORMED NAME:			XYZ Corp
+		CENTRAL INDEX KEY:			0000111111
+		STANDARD INDUSTRIAL CLASSIFICATION:	SERVICES-PREPACKAGED SOFTWARE [7372]
+
+FILED BY:
+
+	COMPANY DATA:
+		COMPANY CONFORMED NAME:			Activist Capital LP
+		CENTRAL INDEX KEY:			0001555555
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>SCHEDULE 13D/A
+<SEQUENCE>1
+<FILENAME>primary_doc.xml
+<TEXT>
+<XML>
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Reconstruction of the EDGAR Schedule 13D XML schema (SCHEDULE 13D/A, in force since December 2024); not a copy of a real filing. -->
+<edgarSubmission xmlns="http://www.sec.gov/edgar/schedule13D" xmlns:com="http://www.sec.gov/edgar/common">
+  <headerData>
+    <submissionType>SCHEDULE 13D/A</submissionType>
+    <filerInfo>
+      <filer>
+        <filerCredentials>
+          <cik>0001555555</cik>
+          <ccc>XXXXXXXX</ccc>
+        </filerCredentials>
+      </filer>
+    </filerInfo>
+  </headerData>
+  <formData>
+    <coverPageHeader>
+      <securitiesClassTitle>Common Stock, par value $0.01 per share</securitiesClassTitle>
+      <dateOfEvent>10/28/2026</dateOfEvent>
+      <previouslyFiledFlag>true</previouslyFiledFlag>
+      <issuerInfo>
+        <issuerCIK>0000111111</issuerCIK>
+        <issuerCUSIP>98765A103</issuerCUSIP>
+        <issuerName>XYZ Corp</issuerName>
+        <address>
+          <com:street1>1 MAIN STREET</com:street1>
+          <com:city>SAN JOSE</com:city>
+          <com:stateOrCountry>CA</com:stateOrCountry>
+          <com:zipCode>95110</com:zipCode>
+        </address>
+      </issuerInfo>
+      <amendmentNo>3</amendmentNo>
+    </coverPageHeader>
+    <reportingPersons>
+      <reportingPersonInfo>
+        <reportingPersonName>Activist Capital LP</reportingPersonName>
+        <memberOfGroup>a</memberOfGroup>
+        <citizenshipOrOrganization>DE</citizenshipOrOrganization>
+        <reportingPersonBeneficiallyOwnedNumberOfShares>
+          <soleVotingPower>0</soleVotingPower>
+          <sharedVotingPower>12600000</sharedVotingPower>
+          <soleDispositivePower>0</soleDispositivePower>
+          <sharedDispositivePower>12600000</sharedDispositivePower>
+        </reportingPersonBeneficiallyOwnedNumberOfShares>
+        <reportingPersonBeneficiallyOwnedAggregateNumberOfShares>12600000</reportingPersonBeneficiallyOwnedAggregateNumberOfShares>
+        <classPercent>7.0</classPercent>
+        <typeOfReportingPerson>PN</typeOfReportingPerson>
+      </reportingPersonInfo>
+      <reportingPersonInfo>
+        <reportingPersonName>Activist Partners II LP</reportingPersonName>
+        <memberOfGroup>a</memberOfGroup>
+        <citizenshipOrOrganization>DE</citizenshipOrOrganization>
+        <reportingPersonBeneficiallyOwnedAggregateNumberOfShares>9000000</reportingPersonBeneficiallyOwnedAggregateNumberOfShares>
+        <classPercent>5.0</classPercent>
+        <typeOfReportingPerson>PN</typeOfReportingPerson>
+      </reportingPersonInfo>
+    </reportingPersons>
+    <items1To7>
+      <item1>
+        <securityTitle>Common Stock, par value $0.01 per share</securityTitle>
+        <issuerName>XYZ Corp</issuerName>
+      </item1>
+      <item4>
+        <transactionPurpose>The Reporting Persons acquired the Shares because they believe the Issuer is undervalued. On October 28, 2026 the Reporting Persons delivered a letter to the Board of Directors urging it to explore strategic alternatives, including a sale of the Issuer, and to add two independent directors with operating experience. The Reporting Persons may engage in further discussions with management and other stockholders.</transactionPurpose>
+      </item4>
+      <item5>
+        <percentageOfClassSecurities>7.0</percentageOfClassSecurities>
+      </item5>
+    </items1To7>
+    <signatureInfo>
+      <signaturePerson>
+        <signatureReportingPerson>Activist Capital LP</signatureReportingPerson>
+        <signatureDetails>
+          <signature>/s/ A. Manager</signature>
+          <title>Managing Member</title>
+          <date>10/29/2026</date>
+        </signatureDetails>
+      </signaturePerson>
+    </signatureInfo>
+  </formData>
+</edgarSubmission>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>

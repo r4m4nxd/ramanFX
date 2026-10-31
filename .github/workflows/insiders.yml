@@ -1,18 +1,26 @@
 name: Insider buys
 
-# Insider cluster buys (tools/insiders/insiders.py): SEC EDGAR Form 4 open-market purchases (code P) by 2+ insiders of
-# the same company within 14 days, or one CEO / CFO buy >= $250k, scored with the stock scanner's zone context. Every
-# 30 min on US weekdays 6:00-20:00 New York; the trader-coach edge function's 10-minute scheduler
-# (supabase/functions/trader-coach/scheduler.ts) dispatches the same slots (GitHub drops many scheduled runs).
+# Insider filings (tools/insiders/insiders.py), SEC EDGAR only, scored with the stock scanner's zone context:
+#   Form 4 open-market buys (code P): the first big buy alerts at once ('early · 1 insider so far': a CEO / CFO / President /
+#   COO / Chair >= $100k, or anyone >= $500k), the cluster alert follows when 2+ insiders buy within 14 days; big non-plan
+#   sales (code S); Form 144 planned sales; Schedule 13D / 13D/A activists. Every 10 min on US weekdays 6:00-22:00 New York
+#   (EDGAR accepts filings until 22:00 ET); the trader-coach edge function's 10-minute scheduler
+#   (supabase/functions/trader-coach/scheduler.ts) dispatches the same slots (GitHub drops many scheduled runs).
+#   The cron below is the backup: UTC hours that cover 6:00-22:00 in both DST regimes (10:00-03:59 UTC), trimmed to the
+#   New York window by the first step.
 # SEC User-Agent: the SEC_UA secret, else the SEC_CONTACT secret (preferred: masked in the public logs) or repository variable; neither -> SEC is skipped (logged).
-# State (seen accession numbers, parsed buys, alerts) in the actions cache (tools/insiders/.cache). The output
+# State (seen accession numbers, parsed filings, alerts) in the actions cache (tools/insiders/.cache). The output
 # public/insiders/latest.json is committed to the `data` branch only (never main: Vercel counts every main push, even
 # ignored builds); the app, the bot and the brief read it from raw.githubusercontent.com/.../data/public/insiders. sample=true sends ONE '🧪 Sample insider buys' message (the top
 # clusters) instead of alerts; backfill_min sets the daily-index backfill budget (minutes; the first runs fill 30 days).
+# notify=false is a DRY RUN (a manual dispatch, e.g. on a feature branch): nothing is sent to Telegram, the alerts that would
+# go out are printed, the alert state is untouched, and neither the cache nor the data branch is written. Schedules and
+# dispatches without the input notify (the input defaults to true). fixtures=true (dev) only prints one real sample of each
+# SEC form and checks the readers against it (tools/insiders/grab_fixtures.py): nothing is sent or written.
 on:
   schedule:
-    - cron: '7,37 10-23 * * 1-5'
-    - cron: '7,37 0 * * 2-6'
+    - cron: '4-59/10 10-23 * * 1-5'
+    - cron: '4-59/10 0-3 * * 2-6'
   workflow_dispatch:
     inputs:
       sample:
@@ -23,6 +31,14 @@ on:
         description: 'Minutes for the daily-index backfill (default 4; 50 fills the 30 days at once)'
         required: false
         default: '4'
+      notify:
+        description: 'Send to Telegram (false = a dry run: print the alerts, change nothing)'
+        type: boolean
+        default: true
+      fixtures:
+        description: 'Dev: print one real sample of each SEC form (Form 4 sale, 144, 13D, 13G, 13F tables) and check the readers; nothing else runs'
+        type: boolean
+        default: false
 
 permissions:
   contents: write                 # public/insiders/latest.json for the app and the bot
@@ -39,23 +55,44 @@ jobs:
       PYTHONTZPATH: ''
       PYTHONUNBUFFERED: '1'
     steps:
+      # Scheduled (cron) runs only inside 6:00-22:00 New York on weekdays; the coach's dispatches and manual runs always go.
+      - name: Inside the filing window?
+        id: win
+        run: |
+          python3 - <<'EOF' >> "$GITHUB_OUTPUT"
+          import datetime as dt, os
+          from zoneinfo import ZoneInfo
+          t = dt.datetime.now(ZoneInfo('America/New_York'))
+          m = t.hour * 60 + t.minute
+          ok = os.environ['EVENT'] != 'schedule' or (t.weekday() < 5 and 6 * 60 <= m <= 22 * 60 + 9)
+          print('run=' + ('true' if ok else 'false'))
+          EOF
+          cat "$GITHUB_OUTPUT"
+        env:
+          EVENT: ${{ github.event_name }}
+
       - uses: actions/checkout@v4
+        if: steps.win.outputs.run == 'true'
         with:
           ref: ${{ github.ref_name }}
 
       - uses: actions/setup-python@v5
+        if: steps.win.outputs.run == 'true'
         with:
           python-version: '3.12'
 
       # Data (public/insiders, the scans, fundamentals) from the `data` branch, never main: scripts/data-branch.sh,
       # .github/workflows/README.md.
       - name: Data from the data branch
+        if: steps.win.outputs.run == 'true'
         run: bash scripts/data-branch.sh pull
 
       - name: Current time-zone data
+        if: steps.win.outputs.run == 'true'
         run: python -m pip install --quiet --upgrade tzdata
 
       - name: Restore state
+        if: steps.win.outputs.run == 'true'
         uses: actions/cache/restore@v4
         with:
           path: tools/insiders/.cache
@@ -64,16 +101,29 @@ jobs:
             insiders-
 
       - name: Unit tests
+        if: steps.win.outputs.run == 'true'
         run: python -m unittest discover -s tools/insiders/tests
 
-      - name: Insider buys
+      # Dev only (fixtures=true): real SEC samples for tools/insiders/tests/fixtures, printed in the log; sends and writes nothing.
+      - name: Real sample filings
+        if: steps.win.outputs.run == 'true' && github.event.inputs.fixtures == 'true'
+        timeout-minutes: 15
+        run: python tools/insiders/grab_fixtures.py --auto
+        env:
+          SEC_UA: ${{ secrets.SEC_UA }}
+          SEC_CONTACT: ${{ secrets.SEC_CONTACT || vars.SEC_CONTACT }}
+
+      - name: Insider filings
+        if: steps.win.outputs.run == 'true' && github.event.inputs.fixtures != 'true'
         timeout-minutes: 65
         run: |
           ARGS=(--backfill-min "${BACKFILL_MIN:-4}")
           if [ "$SAMPLE" = "true" ]; then ARGS+=(--sample); fi
+          if [ "$NOTIFY" = "false" ]; then ARGS+=(--no-notify); fi
           python tools/insiders/insiders.py "${ARGS[@]}"
         env:
           SAMPLE: ${{ github.event.inputs.sample }}
+          NOTIFY: ${{ github.event.inputs.notify }}
           BACKFILL_MIN: ${{ github.event.inputs.backfill_min }}
           SEC_UA: ${{ secrets.SEC_UA }}
           SEC_CONTACT: ${{ secrets.SEC_CONTACT || vars.SEC_CONTACT }}
@@ -81,14 +131,14 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
       - name: Save state
-        if: ${{ always() && hashFiles('tools/insiders/.cache/state.json') != '' }}
+        if: ${{ always() && steps.win.outputs.run == 'true' && github.event.inputs.notify != 'false' && github.event.inputs.fixtures != 'true' && hashFiles('tools/insiders/.cache/state.json') != '' }}
         uses: actions/cache/save@v4
         with:
           path: tools/insiders/.cache
           key: insiders-${{ github.run_id }}
 
       - name: Publish to the data branch
-        if: ${{ hashFiles('public/insiders/latest.json') != '' }}
+        if: ${{ steps.win.outputs.run == 'true' && github.event.inputs.notify != 'false' && github.event.inputs.fixtures != 'true' && hashFiles('public/insiders/latest.json') != '' }}
         run: |
           git config user.name "ramanfx-insiders[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

@@ -16,3 +16,4 @@ tools/research/market_hours/.selftest/
 tools/news/.cache/
 tools/movers/.cache/
 tools/insiders/.cache/
+tools/holders/.cache/

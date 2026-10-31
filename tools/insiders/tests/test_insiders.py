@@ -1,5 +1,6 @@
-"""Insider cluster buys (tools/insiders), offline: Form 4 XML parsing, clusters, score, dedupe / amendments, alerts,
-the Telegram message and one full run on fake SEC answers."""
+"""Insider activity (tools/insiders), offline: Form 4 XML parsing, clusters, early buys, score, dedupe / amendments, big
+sales, planned sales (Form 144), 13D, alerts, the Telegram message and full runs on fake SEC answers. The parsers and
+the committed fixtures: test_forms.py."""
 import datetime as dt
 import json
 import os
@@ -304,24 +305,40 @@ class TestAlerts(unittest.TestCase):
 
     def test_message_format(self):
         c = I.find_clusters([buy('A', '2026-10-24', 1_500_000, ceo=True, pct=18), buy('B', '2026-10-27', 300000),
-                             buy('C', '2026-10-28', 300000)], TODAY)
+                             buy('C', '2026-10-28', 300000, filed='2026-10-29T19:25:00Z')], TODAY)
         ctx = FakeCtx(rows={'XYZ': {'s': 'XYZ', 'k': 1}},
                       details={'XYZ': {'price': 12.4, 'zones': [{'tf': 'W1', 'side': 'demand', 'proximal': 12.6, 'distal': 11.9}]}},
                       fund={'XYZ': {'pe': 9.2, 'er_next': '2026-11-12'}})
         cs = I.enrich(c, ctx)
-        m = I.build_message(cs, TODAY)
+        m = I.build_message(cs, TODAY, now=NOW)
+        # the cluster span stays in the detail line; the head line names the latest trade and calls out the newest filing
         self.assertTrue(str(m).startswith('🕵️ Insider cluster buy · <b>XYZ</b> $12.40 · 3 insiders · $2.1M · CEO +18% holdings · '
+                                          'latest trade Oct 28 · newest filing 35m ago · '
                                           '⭐ inside W1 demand 11.90–12.60 · P/E 9 · earnings Nov 12'), str(m))
         self.assertIn('Oct 24–Oct 28', str(m))
-        self.assertEqual([b.get('callback_data') for b in m.buttons[0][:2]], ['c:XYZ', 'f:XYZ'])
-        self.assertTrue(m.buttons[0][2]['url'].startswith('https://www.sec.gov/'))
-        two = I.build_message(cs + I.enrich(I.find_clusters([buy('Q', '2026-10-28', 300000, cik='9', sym='OTC1', cfo=True)], TODAY), FakeCtx()), TODAY)
+        self.assertEqual([b.get('callback_data') for b in m.buttons[0][:3]], ['c:XYZ', 'f:XYZ', 'h:XYZ'])
+        self.assertEqual(m.buttons[0][3]['text'], '🔗 SEC')
+        self.assertTrue(m.buttons[0][3]['url'].startswith('https://www.sec.gov/'))
+        self.assertEqual(m.n_alerts, 1)
+        self.assertIn('latest trade Oct 28', I.line(cs[0], TODAY))                  # the brief has no clock: the date only
+        self.assertNotIn('ago', I.line(cs[0], TODAY))
+        two = I.build_message(cs + I.enrich(I.find_clusters([buy('Q', '2026-10-28', 300000, cik='9', sym='OTC1', cfo=True)], TODAY), FakeCtx()), TODAY, now=NOW)
         self.assertTrue(str(two).startswith('🕵️ <b>2 new insider buys</b>'))
         self.assertIn('Big solo buy · <b>OTC1</b>', str(two))
         self.assertEqual(len(two.buttons[1]), 1)                                  # not in the scanner: SEC link only
         s = I.build_message(cs, TODAY, sample=True)
         self.assertTrue(str(s).startswith('🧪 <b>Sample insider buys</b>'))
         self.assertIsNone(I.build_message([], TODAY))
+
+    def test_ago(self):
+        self.assertEqual(I.ago('2026-10-29T19:59:30Z', NOW), 'just now')
+        self.assertEqual(I.ago('2026-10-29T19:25:00Z', NOW), '35m ago')
+        self.assertEqual(I.ago('2026-10-29T16:50:00Z', NOW), '3h ago')
+        self.assertEqual(I.ago('2026-10-26T20:00:00Z', NOW), '3d ago')
+        self.assertEqual(I.ago('', NOW), '')
+        self.assertEqual(I.ago('2026-10-29T19:25:00Z', None), '')
+        self.assertEqual(I.fresh_s('bought', '2026-10-27', 'filed', '2026-10-29T16:50:00Z', NOW), 'bought Oct 27 · filed 3h ago')
+        self.assertEqual(I.fresh_s('bought', '2026-10-27', 'filed', '', None), 'bought Oct 27')
 
 
 class TestRun(unittest.TestCase):
@@ -427,3 +444,290 @@ class TestPublished(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+FIX = os.path.join(HERE, 'fixtures')
+
+
+def fixture(name: str) -> bytes:
+    with open(os.path.join(FIX, name), 'rb') as f:
+        return f.read()
+
+
+NOW2 = dt.datetime(2026, 10, 30, 14, 0, tzinfo=UTC)        # Fri 10:00 New York, after every fixture filing
+TODAY2 = dt.date(2026, 10, 30)
+
+
+def sale(owner, date, value, cik='111', sym='XYZ', ceo=False, cfo=False, top=False, ten=False, plan=False, cover=False, price=100.0,
+         acc=None, filed='2026-10-29T20:12:05Z', pct=-5.0):
+    return {'code': 'S', 'cik': cik, 'sym': sym, 'name': f'{sym} Corp', 'owner': owner, 'owner_cik': owner.lower(), 'role': 'CEO' if ceo else 'CFO' if cfo else 'Director',
+            'ceo': ceo, 'cfo': cfo, 'top': top, 'officer': ceo or cfo or top, 'director': not (ceo or cfo or top), 'ten': ten, 'joint': False,
+            'shares': value / price, 'price': price, 'value': value, 'date': date, 'first': date, 'after': 1000.0, 'pct': pct, 'new': False, 'n_tx': 1,
+            'plan': plan, 'cover': cover, 'note': '', 'form': '4', 'acc': acc or f'sell-{owner}-{date}', 'url': f'https://www.sec.gov/x/{owner}', 'filed': filed}
+
+
+class TestEarly(unittest.TestCase):
+    def test_thresholds(self):
+        e = I.is_early
+        self.assertTrue(e(buy('A', '2026-10-27', 100_000, ceo=True)))
+        self.assertFalse(e(buy('A', '2026-10-27', 99_999, ceo=True)))
+        self.assertTrue(e(buy('A', '2026-10-27', 150_000, cfo=True)))
+        top = dict(buy('A', '2026-10-27', 100_000), top=True)               # President / COO / Chair
+        self.assertTrue(e(top))
+        self.assertFalse(e(dict(top, value=99_000)))
+        self.assertFalse(e(buy('A', '2026-10-27', 499_999)))                # a director under $500k
+        self.assertTrue(e(buy('A', '2026-10-27', 500_000)))
+        self.assertTrue(e(dict(buy('A', '2026-10-27', 500_000), ten=True)))
+        self.assertFalse(e(dict(buy('A', '2026-10-27', 400_000), ten=True)))
+        self.assertTrue(e(buy('A', '2026-10-27', 60_000, ceo=True), dict(I.CFG, early_top_min=50_000)))   # env override
+
+    def test_find_early_one_item_per_issuer(self):
+        bs = [buy('A', '2026-10-20', 120_000, ceo=True), buy('B', '2026-10-21', 700_000), buy('C', '2026-10-22', 50_000, cik='2', sym='ABC', ceo=True)]
+        out = I.find_early(bs, TODAY)
+        self.assertEqual([(c['cik'], c['kind'], c['n'], c['value']) for c in out], [('111', 'early', 1, 700_000)])    # the biggest; ABC too small
+        self.assertEqual(I.find_early([buy('A', '2026-10-20', 900_000, price=1.5)], TODAY), [])                  # penny stock
+        self.assertEqual(I.find_early([buy('A', '2026-10-20', 900_000)], TODAY, mcap_of=lambda s: 20e6), [])      # tiny cap
+
+    def alerts(self, bs, new, alerted=None, now=NOW):
+        cls = I.enrich(I.find_clusters(bs, TODAY), FakeCtx())
+        early = I.enrich(I.find_early(bs, TODAY), FakeCtx())
+        return I.to_alert(cls + early, new, alerted or {}, now)
+
+    def test_alerts_at_once_without_the_score_bar(self):
+        a = buy('A', '2026-10-28', 120_000, ceo=True, filed='2026-10-29T19:25:00Z', acc='a1')
+        out = self.alerts([a], {'a1'})
+        self.assertEqual([c['kind'] for c in out], ['early'])
+        self.assertLess(out[0]['score'], I.CFG['score_bar'])                 # a lone $120k CEO buy scores 4: no cluster / solo alert
+        self.assertEqual(I.to_alert(I.enrich(I.find_clusters([a], TODAY), FakeCtx()), {'a1'}, {}, NOW), [])
+        m = I.build_message(out, TODAY, now=NOW)
+        self.assertTrue(str(m).startswith('🕵️ Insider buy · <b>XYZ</b> $12.00 · early · 1 insider so far · $120K · CEO +10% holdings · '
+                                          'bought Oct 28 · filed 35m ago'), str(m))
+        self.assertEqual(self.alerts([a], set()), [])                         # not read this run
+        self.assertEqual(self.alerts([a], {'a1'}, now=NOW + dt.timedelta(days=3)), [])   # filed days ago (a backfill): silent
+
+    def test_not_repeated_then_the_cluster_follows_when_others_join(self):
+        a = buy('A', '2026-10-27', 300_000, ceo=True, acc='a1')
+        sent = {'111': {'n': 1, 'kind': 'early', 'last': '2026-10-27', 'at': '2026-10-28T20:40:00Z'}}
+        self.assertEqual(self.alerts([a], {'a1'}, sent), [])                  # the same early buy again: nothing
+        a2 = buy('A', '2026-10-28', 500_000, ceo=True, acc='a2')              # the same insider buys more: still one insider
+        self.assertEqual(self.alerts([a, a2], {'a2'}, sent), [])
+        b = buy('B', '2026-10-29', 400_000, acc='b1', filed='2026-10-29T19:00:00Z')
+        out = self.alerts([a, a2, b], {'b1'}, sent)                           # a second insider: the cluster follows (existing growth rule)
+        self.assertEqual([(c['kind'], c['n']) for c in out], [('cluster', 2)])
+        sent2 = {'111': {'n': 2, 'kind': 'cluster', 'last': '2026-10-29', 'at': '2026-10-29T19:30:00Z'}}
+        self.assertEqual(self.alerts([a, a2, b], {'b1'}, sent2), [])          # no repeat at the same size
+        c = buy('C', '2026-10-29', 100_000, acc='c1', filed='2026-10-29T19:40:00Z')
+        self.assertEqual([(x['kind'], x['n']) for x in self.alerts([a, a2, b, c], {'c1'}, sent2)], [('cluster', 3)])
+
+    def test_cluster_and_early_in_one_run_send_the_cluster_only(self):
+        bs = [buy('A', '2026-10-28', 400_000, ceo=True, acc='a1'), buy('B', '2026-10-28', 400_000, acc='b1')]
+        out = self.alerts(bs, {'a1', 'b1'})
+        self.assertEqual([c['kind'] for c in out], ['cluster'])
+        # a cluster under the bar that holds an early buy still alerts as the early buy
+        bs2 = [buy('A', '2026-10-28', 120_000, ceo=True, acc='a1'), buy('B', '2026-10-28', 15_000, acc='b1')]
+        cl = I.enrich(I.find_clusters(bs2, TODAY), FakeCtx())
+        self.assertLess(cl[0]['score'], I.CFG['score_bar'])
+        self.assertEqual([c['kind'] for c in self.alerts(bs2, {'a1', 'b1'})], ['early'])
+
+    def test_env_overrides_exist(self):
+        import importlib.util
+        env = {'INSIDERS_EARLY_TOP_MIN': '5000', 'INSIDERS_EARLY_ANY_MIN': '7000', 'INSIDERS_SELL_MIN': '9', 'INSIDERS_SELL_PCT': '0.5',
+               'INSIDERS_144_MIN': '8', 'INSIDERS_144_PCT': '0.7', 'INSIDERS_SELL_COVER': '1'}
+        with mock.patch.dict(os.environ, env):                       # a fresh copy of the module reads them (the shared one is left alone)
+            spec = importlib.util.spec_from_file_location('insiders_env_copy', I.__file__)
+            m = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(m)
+        self.assertEqual((m.CFG['early_top_min'], m.CFG['early_any_min'], m.CFG['sell_min'], m.CFG['sell_pct'], m.CFG['p144_min'], m.CFG['p144_pct'], m.CFG['sell_cover']),
+                         (5000, 7000, 9, 0.5, 8, 0.7, 1))
+        self.assertEqual((I.CFG['early_top_min'], I.CFG['early_any_min'], I.CFG['sell_min'], I.CFG['p144_min']), (100_000, 500_000, 1_000_000, 1_000_000))
+
+
+class TestSells(unittest.TestCase):
+    def test_who_size_plan_and_cover(self):
+        ok = lambda r, mc=None, cfg=I.CFG: I.sell_check(r, cfg, lambda s: mc)           # noqa: E731
+        self.assertEqual(ok(sale('A', '2026-10-27', 1_200_000, ceo=True)), {'of_mcap': None})
+        self.assertIsNone(ok(sale('A', '2026-10-27', 900_000, ceo=True)))                   # under $1M, cap unknown
+        self.assertEqual(ok(sale('A', '2026-10-27', 400_000, cfo=True), 300e6), {'of_mcap': 0.133})    # >= 0.1% of the cap
+        self.assertIsNone(ok(sale('A', '2026-10-27', 400_000, cfo=True), 3e9))              # 0.013%
+        self.assertIsNotNone(ok(sale('A', '2026-10-27', 2_000_000, top=True)))              # President / COO / Chair
+        self.assertIsNotNone(ok(sale('A', '2026-10-27', 2_000_000, ten=True)))              # a 10% owner
+        self.assertIsNone(ok(sale('A', '2026-10-27', 9_000_000)))                           # a director: not one of the roles
+        self.assertIsNone(ok(sale('A', '2026-10-27', 5_000_000, ceo=True, plan=True)))      # 10b5-1 plan sale
+        self.assertIsNone(ok(sale('A', '2026-10-27', 5_000_000, ceo=True, cover=True)))     # sell to cover taxes
+        self.assertIsNotNone(ok(sale('A', '2026-10-27', 5_000_000, ceo=True, cover=True), cfg=dict(I.CFG, sell_cover=1)))
+        self.assertIsNone(ok(sale('A', '2026-10-27', 5_000_000, ceo=True, price=1.5)))      # penny stock
+        self.assertIsNotNone(ok(sale('A', '2026-10-27', 600_000, ceo=True), cfg=dict(I.CFG, sell_min=500_000)))   # env override
+        b = dict(buy('A', '2026-10-27', 5_000_000, ceo=True))
+        self.assertIsNone(ok(b))                                                            # a buy is not a sale
+
+    def test_items_alerts_and_the_line(self):
+        rs = [sale('A', '2026-10-27', 2_400_000, ceo=True, acc='s1', filed='2026-10-29T19:40:00Z'),
+              sale('B', '2026-10-27', 5_000_000, ceo=True, plan=True, acc='s2'), sale('C', '2026-10-27', 300_000, cfo=True, acc='s3'),
+              sale('D', '2026-08-01', 9_000_000, ceo=True, acc='s4')]
+        items = I.enrich_events(I.big_sells(rs, TODAY), FakeCtx(rows={'XYZ': {'s': 'XYZ', 'k': 1}},
+                                details={'XYZ': {'price': 100.0, 'zones': [{'tf': 'MN', 'side': 'demand', 'proximal': 101, 'distal': 95}]}}))
+        self.assertEqual([i['acc'] for i in items], ['s1'])                                 # plan, small and old ones are out
+        self.assertEqual(I.events_to_alert(items, {'s1'}, {}, NOW), items)
+        self.assertEqual(I.events_to_alert(items, set(), {}, NOW), [])
+        self.assertEqual(I.events_to_alert(items, {'s1'}, {'S:s1': {'at': 'x'}}, NOW), [])  # sent once
+        self.assertEqual(I.events_to_alert(items, {'s1'}, {}, NOW + dt.timedelta(days=2)), [])
+        t = str(I.build_message(items, TODAY, now=NOW))
+        self.assertTrue(t.startswith('🔻 Insider sale · <b>XYZ</b> $100.00 · CEO A sold $2.4M · 5% of holdings'), t)
+        self.assertIn('open market, not a 10b5-1 plan sale · sold Oct 27 · filed 20m ago · inside MN demand 95–101', t)
+        self.assertNotIn('⭐', t)                                                            # the ⭐ rule is a buy-cluster rule
+        self.assertIn('SEC Form 4 / Form 144 / Schedule 13D filings', t)
+
+    def test_recent_sells_for_the_app(self):
+        rs = [sale('A', '2026-10-27', 2_400_000, ceo=True, acc='s1'), sale('B', '2026-10-27', 5_000_000, ceo=True, plan=True, acc='s2'), sale('C', '2026-10-27', 100_000, ceo=True, acc='s3')]
+        out = I.recent_sells(rs, FakeCtx(), TODAY)
+        self.assertEqual([(x['who'], x['big'], x['plan']) for x in out], [('B', False, True), ('A', True, False)])    # $100k is under the list floor
+
+
+class TestPlannedSales(unittest.TestCase):
+    def rec(self, value, shares=50_000, outstanding=180e6, sym='XYZ', acc='f1', filed='2026-10-30T13:45:02Z'):
+        return {'type': 'f144', 'acc': acc, 'form': '144', 'cik': '111111', 'sym': sym, 'name': 'XYZ Corp', 'seller': 'Doe Jane', 'rel': 'Officer', 'shares': shares,
+                'value': value, 'price': value / shares if shares else None, 'outstanding': outstanding, 'date': '2026-11-02', 'plan': False, 'plan_dates': [],
+                'broker': '', 'url': 'https://www.sec.gov/f', 'filed': filed}
+
+    def test_dollar_or_percent_of_the_cap(self):
+        mc = lambda s: 4e9                                                                   # noqa: E731
+        self.assertEqual(len(I.plan_items([self.rec(1_200_000)], TODAY2, I.CFG, mc)), 1)
+        self.assertEqual(I.plan_items([self.rec(900_000)], TODAY2, I.CFG, mc), [])           # 0.02% of $4B
+        self.assertEqual(len(I.plan_items([self.rec(900_000)], TODAY2, I.CFG, lambda s: 500e6)), 1)    # 0.18% of $500M
+        # market cap unknown: the form's own shares outstanding decide (0.0278% here; 0.25% with 20M outstanding)
+        self.assertEqual(I.plan_items([self.rec(900_000)], TODAY2, I.CFG), [])
+        self.assertEqual(len(I.plan_items([self.rec(900_000, outstanding=20e6)], TODAY2, I.CFG)), 1)
+        self.assertEqual(I.plan_items([self.rec(5_000_000, sym='')], TODAY2, I.CFG), [])      # not a scanner stock
+        self.assertEqual(I.plan_items([self.rec(5_000_000, filed='2026-08-01T13:00:00Z')], TODAY2, I.CFG), [])
+
+    def test_line_says_planned_sale(self):
+        it = I.enrich_events(I.plan_items([self.rec(6_012_500)], TODAY2, I.CFG, lambda s: 4e9), FakeCtx(rows={'XYZ': {'s': 'XYZ', 'k': 1}}, details={'XYZ': {'price': 120.4}}))
+        t = str(I.build_message(it, TODAY2, now=NOW2))
+        self.assertTrue(t.startswith('📋 Planned sale (Form 144) · <b>XYZ</b> $120.40 · Doe Jane (Officer) plans to sell $6.0M (50K sh) · 0.15% of market cap · '
+                                     'sale about Nov 2 · filed 14m ago'), t)
+        self.assertIn('may be smaller, later or never', t)
+
+
+class TestActivists(unittest.TestCase):
+    def test_13d_alert_and_13g_never(self):
+        st = I.load_state('/nonexistent')
+        ciks = {'111111': 'XYZ'}
+        ref = {'acc': '0009876500-26-000007', 'cik': '1555555', 'form': 'SCHEDULE 13D/A'}
+        self.assertEqual(I.ingest(st, ref, fixture('schedule13d_a.txt'), {'XYZ'}, ciks), 1)
+        r = st['d13'][0]
+        self.assertEqual((r['sym'], r['filer'], r['pct'], r['event'], r['form']), ('XYZ', 'Activist Capital LP', 7.0, '2026-10-28', 'SCHEDULE 13D/A'))
+        self.assertTrue(r['filed'].startswith('2026-10-30T12:30'))                           # 08:30 New York (EDT)
+        self.assertEqual(I.ingest(st, {'acc': 'g', 'cik': '1', 'form': 'SCHEDULE 13G/A'}, fixture('schedule13g.txt'), {'XYZ'}, ciks), 0)
+        self.assertEqual(len(st['d13']), 1)                                                  # 13G is not an alert, not stored here
+        items = I.enrich_events(I.act_items(st['d13'], TODAY2), FakeCtx(rows={'XYZ': {'s': 'XYZ', 'k': 1}}, details={'XYZ': {'price': 120.4}}))
+        self.assertEqual(I.events_to_alert(items, {ref['acc']}, {}, NOW2), items)
+        t = str(I.build_message(items, TODAY2, now=NOW2))
+        self.assertTrue(t.startswith('📣 Activist · <b>XYZ</b> $120.40 · Activist Capital LP now holds 7.0% (12.6M sh) · 13D/A · event Oct 28 · filed 1h ago'), t)
+        self.assertIn('Item 4: “The Reporting Persons acquired the Shares because they believe the Issuer is undervalued.', t)
+        self.assertEqual(I.act_items([dict(r, sym='')], TODAY2), [])                         # not a scanner stock: no alert
+        self.assertEqual(len(I.act_items([dict(r, sym='')], TODAY2, universe_only=False)), 1)    # but listed in the app
+        # the same filer's next filing carries the change
+        later = dict(r, acc='z', filed='2026-11-02T12:00:00Z', pct=8.4)
+        st['d13'].append(later)
+        ref2 = {'acc': 'q', 'cik': '1555555', 'form': 'SCHEDULE 13D/A'}
+        raw = fixture('schedule13d_a.txt').replace(b'0009876500-26-000007', b'q').replace(b'20261030083012', b'20261104083012')
+        I.ingest(st, ref2, raw, {'XYZ'}, ciks)
+        self.assertEqual([x.get('prev_pct') for x in st['d13'] if x['acc'] == 'q'], [8.4])
+
+
+class TestRunAllForms(unittest.TestCase):
+    def feed(self, accs, form):
+        ents = ''.join(f'<entry><title>x</title><link rel="alternate" href="https://www.sec.gov/Archives/edgar/data/111111/{a.replace("-", "")}/{a}-index.htm"/>'
+                       f'<updated>2026-10-30T09:45:02-04:00</updated><category scheme="https://www.sec.gov/" label="form type" term="{form}"/>'
+                       f'<id>urn:tag:sec.gov,2008:accession-number={a}</id></entry>' for a in accs)
+        return f'<feed>{ents}</feed>'.encode()
+
+    def get_fn(self, calls):
+        subs = {'0001111111-26-000101': fixture('form4_sale_plan.txt'), '0001111111-26-000102': fixture('form4_sale_open.txt'),
+                '0001234500-26-000010': fixture('form144.txt'), '0009876500-26-000007': fixture('schedule13d_a.txt')}
+
+        def get(url):
+            calls.append(url)
+            if 'getcurrent' in url:
+                if 'start=0&' not in url:
+                    return b'<feed></feed>'
+                if 'type=144&' in url:
+                    return self.feed(['0001234500-26-000010'], '144')
+                if 'type=SCHEDULE+13D&' in url:
+                    return self.feed(['0009876500-26-000007'], 'SCHEDULE 13D/A')
+                return self.feed(['0001111111-26-000101', '0001111111-26-000102'], '4')
+            if 'daily-index' in url:
+                import urllib.error
+                raise urllib.error.HTTPError(url, 404, 'nf', {}, None)
+            return subs[url.rsplit('/', 1)[1][:-4]]
+        return get
+
+    def ctx(self):
+        return FakeCtx(rows={'XYZ': {'s': 'XYZ', 'k': 1}}, details={'XYZ': {'price': 121.0, 'zones': [{'tf': 'MN', 'side': 'demand', 'proximal': 125, 'distal': 118}]}},
+                       fund={'XYZ': {'mcap': 4e9, 'cik': '111111'}})
+
+    def test_one_message_with_every_alert_type_and_a_dry_run(self):
+        calls, sent = [], []
+        with tempfile.TemporaryDirectory() as d:
+            sp, lp = os.path.join(d, 'state.json'), os.path.join(d, 'latest.json')
+            with mock.patch.object(I.Context, 'cik_map', lambda self: {'111111': 'XYZ'}):
+                # a dry run first: prints, sends nothing, leaves the alert state alone
+                with mock.patch('builtins.print') as pr:
+                    I.run(NOW2, self.get_fn(calls), notify=False, state_path=sp, latest_path=lp, ctx=self.ctx(), send=lambda m: sent.append(m) or True, feed_s=60, backfill_s=1)
+                self.assertEqual(sent, [])
+                self.assertTrue(any('Activist' in str(c) for c in pr.call_args_list))
+                self.assertEqual(I.load_json(sp, {})['alerted'], {})
+                os.remove(sp)
+                msg = I.run(NOW2, self.get_fn(calls), state_path=sp, latest_path=lp, ctx=self.ctx(), send=lambda m: sent.append(m) or True, feed_s=60, backfill_s=1)
+            self.assertEqual(len(sent), 1)
+            t = str(sent[0][0])
+            self.assertTrue(t.startswith('🕵️ <b>3 new insider alerts</b>'), t)
+            self.assertLess(t.index('Activist'), t.index('Insider sale'))
+            self.assertLess(t.index('Insider sale'), t.index('Planned sale'))
+            self.assertIn('Roe Richard sold $1.5M', t.replace('CFO ', ''))
+            self.assertNotIn('Doe Jane sold', t)                                           # the 10b5-1 plan sale is not alerted
+            self.assertEqual(msg.n_alerts, 3)
+            self.assertEqual([b.get('callback_data') for b in msg.buttons[0][:3]], ['c:XYZ', 'f:XYZ', 'h:XYZ'])
+            self.assertEqual(len(msg.buttons), 2)                                           # ONE row for XYZ (3 alerts), then the app
+            st = I.load_json(sp, {})
+            self.assertEqual({k for k in st['alerted']}, {'S:0001111111-26-000102', 'F:0001234500-26-000010', 'D:0009876500-26-000007'})
+            self.assertEqual(st['sent_day']['2026-10-30'], 3)                              # the daily cap counts every type
+            js = I.load_json(lp, {})
+            self.assertEqual([x['who'] for x in js['sells']], ['Roe Richard', 'Doe Jane'])
+            self.assertEqual([(x['big'], x['plan']) for x in js['sells']], [(True, False), (False, True)])
+            self.assertEqual((js['plans'][0]['sym'], js['plans'][0]['big'], js['plans'][0]['of_mcap']), ('XYZ', True, 0.15))
+            self.assertEqual((js['activists'][0]['who'], js['activists'][0]['universe'], js['activists'][0]['pct']), ('Activist Capital LP', True, 7.0))
+            self.assertEqual((js['by_sym']['XYZ']['p144'], js['by_sym']['XYZ']['d13']), (1, 1))
+            self.assertEqual(js['rules']['sell_min'], 1_000_000)
+            # next run: nothing new, nothing sent
+            sent.clear()
+            with mock.patch.object(I.Context, 'cik_map', lambda self: {'111111': 'XYZ'}):
+                self.assertIsNone(I.run(NOW2 + dt.timedelta(minutes=10), self.get_fn(calls), state_path=sp, latest_path=lp, ctx=self.ctx(), send=lambda m: sent.append(m) or True, backfill_s=1))
+            self.assertEqual(sent, [])
+
+    def test_mute_quiet_and_daily_cap_apply_to_every_type(self):
+        calls = []
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(I.Context, 'cik_map', lambda self: {'111111': 'XYZ'}):
+            sp, lp = os.path.join(d, 'state.json'), os.path.join(d, 'latest.json')
+            sent = []
+            until = (NOW2 + dt.timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%SZ')
+            I.run(NOW2, self.get_fn(calls), prefs={'mutes': [{'sym': 'XYZ', 'until_utc': until}], 'alerts': [], 'quiet': None, 'watch': []}, state_path=sp, latest_path=lp,
+                  ctx=self.ctx(), send=lambda m: sent.append(m) or True, feed_s=60, backfill_s=1)
+            self.assertEqual(sent, [])                                                      # muted symbol: app only
+            os.remove(sp)
+            I.run(NOW2, self.get_fn(calls), state_path=sp, latest_path=lp, ctx=self.ctx(), send=lambda m: sent.append(m) or True, feed_s=60, backfill_s=1,
+                  cfg=dict(I.CFG, max_per_day=2))
+            self.assertEqual(str(sent[0][0]).count('Activist ·') + str(sent[0][0]).count('Insider sale ·') + str(sent[0][0]).count('Planned sale'), 2)   # capped at 2 in all
+            self.assertFalse(sent[0][0].silent)
+            os.remove(sp)
+            sent.clear()
+            quiet = {'mutes': [], 'alerts': [], 'quiet': {'from': '00:00', 'to': '23:59', 'tz': 'America/Edmonton'}, 'watch': []}
+            I.run(NOW2, self.get_fn(calls), prefs=quiet, state_path=sp, latest_path=lp, ctx=self.ctx(), send=lambda m: sent.append(m) or True, feed_s=60, backfill_s=1)
+            self.assertTrue(sent[0][0].silent)
+
+    def test_guests_with_stocks_get_the_same_alerts(self):
+        item = I.enrich_events(I.big_sells([sale('A', '2026-10-27', 2_400_000, ceo=True, acc='s1', filed='2026-10-30T13:00:00Z')], TODAY2), self.ctx())
+        g = {'markets': ['stocks'], 'mutes': [], 'alerts': [], 'quiet': None, 'watch': [], 'id': 'a' * 12, 'chat': '1'}
+        self.assertEqual(len(I.guest_message(g, item, TODAY2, NOW2)), 1)
+        self.assertEqual(I.guest_message(dict(g, markets=['fx']), item, TODAY2, NOW2), [])      # stocks off
+        self.assertEqual(I.guest_message(dict(g, mutes=[{'sym': 'XYZ', 'until_utc': '2030-01-01T00:00:00Z'}]), item, TODAY2, NOW2), [])

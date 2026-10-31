@@ -1,0 +1,120 @@
+name: Holders
+
+# Who owns a stock, for the ~1000 scanner stocks (tools/holders/holders.py), SEC EDGAR only, for the stock page's Holders card and
+# the Telegram bot's /holders (never an alert source):
+#   public/holders/t/<letter>.json   5%+ holders (the latest Schedule 13D / 13G of each filer, with the change vs the filer's
+#                                    previous filing), insiders and 10% owners (shares after their last Form 4), the top 10
+#                                    institutions of the latest quarter's 13F data set (change vs the quarter before, index funds
+#                                    marked), shares outstanding (SEC XBRL)
+#   public/holders/index.json        the 13F quarter, counts, shard list
+# Daily on weekdays: the trader-coach scheduler (supabase/functions/trader-coach/scheduler.ts) dispatches 5:00-6:00 New York with
+# scheduled=true; the cron below is the backup. A scheduled-equivalent run stops at once when today's (New York) files are built.
+# The 13F data-set page is checked once a week (or with f13=true); a new quarter downloads the two newest zips (~100 MB each).
+# The first runs fill the 13D / 13G and Form 4 history step by step (time budgets per phase, everything read is cached by accession).
+# SEC User-Agent: the SEC_UA secret, else the SEC_CONTACT secret / repository variable; neither -> SEC is skipped (logged), the
+# published files stay as they are. Optional secret OPENFIGI_API_KEY (free key, higher OpenFIGI limits). Output committed to the
+# `data` branch only (never main). Cache (actions cache): tools/holders/.cache (state, CUSIP map, the 13F result).
+on:
+  schedule:
+    - cron: '23 9,10 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      scheduled:
+        description: 'Behave like a scheduled run (the trader-coach scheduler sets it): skip when already built today'
+        type: boolean
+        default: false
+      f13:
+        description: 'Check the 13F data sets now (otherwise once a week)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: holders
+  cancel-in-progress: false
+
+jobs:
+  holders:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      PYTHONTZPATH: ''
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      # Data (the previous holders files, the scans, fundamentals) from the `data` branch, never main: scripts/data-branch.sh.
+      - name: Data from the data branch
+        run: bash scripts/data-branch.sh pull
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Current time-zone data
+        run: python -m pip install --quiet --upgrade tzdata
+
+      - name: Already built today?
+        id: check
+        run: |
+          python - <<'EOF' >> "$GITHUB_OUTPUT"
+          import datetime as dt, json, os
+          from zoneinfo import ZoneInfo
+          sched = os.environ['EVENT'] == 'schedule' or os.environ.get('SCHEDULED') == 'true'
+          try:
+              g = json.load(open('public/holders/index.json'))['generated']
+              built = dt.datetime.strptime(g[:19], '%Y-%m-%dT%H:%M:%S').replace(tzinfo=dt.timezone.utc).astimezone(ZoneInfo('America/New_York')).date()
+          except Exception:
+              built = None
+          today = dt.datetime.now(ZoneInfo('America/New_York')).date()
+          print('run=' + ('false' if sched and built == today else 'true'))
+          EOF
+          cat "$GITHUB_OUTPUT"
+        env:
+          EVENT: ${{ github.event_name }}
+          SCHEDULED: ${{ github.event.inputs.scheduled }}
+
+      - name: Restore cache
+        if: steps.check.outputs.run == 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: tools/holders/.cache
+          key: holders-${{ github.run_id }}
+          restore-keys: |
+            holders-
+
+      - name: Unit tests
+        if: steps.check.outputs.run == 'true'
+        run: python -m unittest discover -s tools/holders/tests
+
+      - name: Holders
+        if: steps.check.outputs.run == 'true'
+        timeout-minutes: 105
+        run: |
+          ARGS=()
+          if [ "$F13" = "true" ]; then ARGS+=(--f13); fi
+          python tools/holders/holders.py "${ARGS[@]}"
+        env:
+          F13: ${{ github.event.inputs.f13 }}
+          SEC_UA: ${{ secrets.SEC_UA }}
+          SEC_CONTACT: ${{ secrets.SEC_CONTACT || vars.SEC_CONTACT }}
+          OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
+
+      - name: Save cache
+        if: ${{ always() && steps.check.outputs.run == 'true' && hashFiles('tools/holders/.cache/**') != '' }}
+        uses: actions/cache/save@v4
+        with:
+          path: tools/holders/.cache
+          key: holders-${{ github.run_id }}
+
+      - name: Publish to the data branch
+        if: ${{ !cancelled() && steps.check.outputs.run == 'true' && hashFiles('public/holders/index.json') != '' }}
+        run: |
+          git config user.name "ramanfx-holders[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bash scripts/data-branch.sh push "holders: $(date -u +%Y-%m-%dT%H:%MZ)" public/holders \
+            || { echo "::error::holders not pushed"; exit 1; }

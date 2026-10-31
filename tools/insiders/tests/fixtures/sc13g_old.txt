@@ -1,0 +1,63 @@
+<SEC-DOCUMENT>0000102909-24-000050.txt : 20240213
+<SEC-HEADER>0000102909-24-000050.hdr.sgml : 20240213
+<ACCEPTANCE-DATETIME>20240213103015
+ACCESSION NUMBER:		0000102909-24-000050
+CONFORMED SUBMISSION TYPE:	SC 13G/A
+PUBLIC DOCUMENT COUNT:		1
+FILED AS OF DATE:		20240213
+DATE AS OF CHANGE:		20240213
+
+SUBJECT COMPANY:
+
+	COMPANY DATA:
+		COMPANY CONFORMED NAME:			XYZ Corp
+		CENTRAL INDEX KEY:			0000111111
+
+FILED BY:
+
+	COMPANY DATA:
+		COMPANY CONFORMED NAME:			Example Index Group Inc
+		CENTRAL INDEX KEY:			0000102909
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>SC 13G/A
+<SEQUENCE>1
+<FILENAME>xyz13ga.txt
+<TEXT>
+<PAGE>
+                                  UNITED STATES
+                       SECURITIES AND EXCHANGE COMMISSION
+                             Washington, D.C. 20549
+
+                                 SCHEDULE 13G
+                   Under the Securities Exchange Act of 1934
+                              (Amendment No. 9)*
+
+                                   XYZ Corp
+                                (Name of Issuer)
+
+                    Common Stock, par value $0.01 per share
+                         (Title of Class of Securities)
+
+                                   98765A103
+                                 (CUSIP Number)
+
+                                December 29, 2023
+            (Date of Event Which Requires Filing of this Statement)
+
+1.   NAMES OF REPORTING PERSONS
+     Example Index Group Inc
+2.   CHECK THE APPROPRIATE BOX IF A MEMBER OF A GROUP
+9.   AGGREGATE AMOUNT BENEFICIALLY OWNED BY EACH REPORTING PERSON
+     16,540,000
+11.  PERCENT OF CLASS REPRESENTED BY AMOUNT IN ROW (9)
+     9.2%
+12.  TYPE OF REPORTING PERSON
+     IA
+
+Item 1(a). Name of Issuer: XYZ Corp
+Item 4. Ownership.
+Item 5. Ownership of Five Percent or Less of a Class.
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>
