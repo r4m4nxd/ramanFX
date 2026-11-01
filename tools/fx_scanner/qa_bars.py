@@ -1,7 +1,7 @@
 """Long-history QA bar sets (qa-bars.yml, manual): the bars a chart-QA render needs to show the SAME windows the owner
 sees on MT5 (Pepperstone), where the published scan (public/fx/d/*.json) keeps only ~80 bars per timeframe.
 
-    python tools/fx_scanner/qa_bars.py [--out qa/bars] [--syms XAUUSD,US30] [--tfs MN,D1]
+    python tools/fx_scanner/qa_bars.py [--out qa/bars] [--syms XAUUSD,US30] [--tfs MN,D1] [--since 2005-01-01]
 
 Source: OANDA v20 candles (oanda.py: host / token / polite http_get), price=BA and the BID side kept, like the scanner
 (Pepperstone MT4 / MT5 charts and ZoneVision plot bid). Clock: the scanner's alignment (oanda.ALIGN:
@@ -15,7 +15,7 @@ is fetched: no other OANDA alignment matches MT5 better.
 
 Paging: OANDA returns at most 5000 candles per request, so each history is read in from / to windows of 4500 candles
 (the newest window: from + count=5000, since `to` may not be in the future); overlapping candles are de-duplicated by
-time. Ranges (now = run time): MN since 2005-01, W1 since 2005-01, D1 since 2005-01 (research: trend vs S/D back-test), H4 the last 730 days, H1 the last
+time. Ranges (now = run time): MN since 2005-01, W1 since 2015-01, D1 since 2018-01, H4 the last 730 days, H1 the last
 183 days, M15 the last 42 days.
 
 Output (compact JSON, one file per symbol and timeframe, MT5 symbol names):
@@ -52,8 +52,8 @@ SYMS: Dict[str, str] = {
 # TF -> (fixed start date, or None) / look-back days
 PLAN: Dict[str, Tuple[Optional[dt.datetime], Optional[int]]] = {
     'MN': (dt.datetime(2005, 1, 1), None),
-    'W1': (dt.datetime(2005, 1, 1), None),
-    'D1': (dt.datetime(2005, 1, 1), None),
+    'W1': (dt.datetime(2015, 1, 1), None),
+    'D1': (dt.datetime(2018, 1, 1), None),
     'H4': (None, 730),
     'H1': (None, 183),
     'M15': (None, 42),
@@ -126,7 +126,7 @@ def to_bars(cs: List[dict], tf: str) -> Tuple[List[list], bool, int]:
 
 
 def run(out_dir: str, syms: List[str], tfs: List[str], now: Optional[dt.datetime] = None,
-        get: Optional[Callable[[str], bytes]] = None) -> Dict:
+        get: Optional[Callable[[str], bytes]] = None, since: Optional[dt.datetime] = None) -> Dict:
     now = now or dt.datetime.now(dt.timezone.utc).replace(tzinfo=None, microsecond=0)
     get = get or O.default_get
     index: Dict = {'generated': rfc(now), 'price': 'bid', 'clock': CLOCK, 'align': O.ALIGN, 'source': f'OANDA {O.host()}',
@@ -142,7 +142,7 @@ def run(out_dir: str, syms: List[str], tfs: List[str], now: Optional[dt.datetime
         ent = index['symbols'].setdefault(sym, {'oanda': name, 'tfs': {}})
         for tf in tfs:
             fixed, days = PLAN[tf]
-            start = fixed or (now - dt.timedelta(days=days or 0))
+            start = since or fixed or (now - dt.timedelta(days=days or 0))
             try:
                 cs, pages = fetch(name, tf, start, now, get)
                 bars, forming, off = to_bars(cs, tf)
@@ -174,6 +174,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument('--out', default='qa/bars')
     ap.add_argument('--syms', default=','.join(SYMS))
     ap.add_argument('--tfs', default=','.join(PLAN))
+    ap.add_argument('--since', default='', help='YYYY-MM-DD: fetch every requested TF from this date instead of its default range (research)')
     a = ap.parse_args(argv)
     syms = [s.strip().upper() for s in a.syms.split(',') if s.strip()]
     tfs = [t.strip().upper() for t in a.tfs.split(',') if t.strip()]
@@ -181,7 +182,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     if bad:
         print(f'unknown symbol / TF: {bad} (symbols {list(SYMS)}, TFs {list(PLAN)})')
         return 2
-    index = run(a.out, syms, tfs)
+    since = dt.datetime.strptime(a.since, '%Y-%m-%d') if a.since else None
+    index = run(a.out, syms, tfs, since=since)
     got = sum(len(e['tfs']) for e in index['symbols'].values())
     print(f'qa-bars: {got} / {len(syms) * len(tfs)} files, {len(index["errors"])} errors')
     return 1 if index['errors'] else 0

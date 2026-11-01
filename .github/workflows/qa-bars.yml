@@ -5,7 +5,7 @@ name: QA bars (long history)
 # OANDA (practice by default, vars.OANDA_ENV) is only reachable from Actions. Paged from / to (OANDA: 5000 candles per
 # request max). Candles: price=BA, the BID side kept (scanner convention: MT5 charts plot bid), aligned like the
 # scanner (alignmentTimezone=America/New_York, dailyAlignment=17, weeklyAlignment=Friday) = Pepperstone server time
-# (GMT+2 / GMT+3, 00:00 = 17:00 New York), labelled in server time. Ranges: MN since 2005, W1 and D1 since 2005,
+# (GMT+2 / GMT+3, 00:00 = 17:00 New York), labelled in server time. Ranges: MN since 2005, W1 since 2015, D1 since 2018,
 # H4 2 years, H1 6 months, M15 6 weeks.
 # Output: qa/bars/<SYM>/<TF>.json + qa/bars/index.json on the `data` branch (scripts/data-branch.sh; `pull` skips it).
 # Read it with scripts/qa-bars.ts loadQaBars(sym, tf) from a local checkout of the data branch.
@@ -18,6 +18,10 @@ on:
         default: ''
       tfs:
         description: 'Timeframes (MN,W1,D1,H4,H1,M15; empty = all)'
+        type: string
+        default: ''
+      since:
+        description: 'YYYY-MM-DD: fetch the requested timeframes from this date instead of their default ranges (research, empty = default)'
         type: string
         default: ''
 
@@ -49,7 +53,7 @@ jobs:
         run: python -m unittest discover -s tools/fx_scanner/tests -p test_qa_bars.py
 
       - name: Keep the other bar sets (partial run)
-        if: ${{ github.event.inputs.syms != '' || github.event.inputs.tfs != '' }}
+        if: ${{ github.event.inputs.syms != '' || github.event.inputs.tfs != '' || github.event.inputs.since != '' }}
         run: |
           if git fetch -q --depth=1 origin data && git cat-file -e FETCH_HEAD:qa/bars 2>/dev/null; then
             git archive --format=tar FETCH_HEAD -- qa/bars | tar -xf -
@@ -60,10 +64,12 @@ jobs:
           ARGS=()
           if [ -n "$SYMS" ]; then ARGS+=(--syms "$SYMS"); fi
           if [ -n "$TFS" ]; then ARGS+=(--tfs "$TFS"); fi
+          if [ -n "$SINCE" ]; then ARGS+=(--since "$SINCE"); fi
           python tools/fx_scanner/qa_bars.py --out qa/bars "${ARGS[@]}"
         env:
           SYMS: ${{ github.event.inputs.syms }}
           TFS: ${{ github.event.inputs.tfs }}
+          SINCE: ${{ github.event.inputs.since }}
           OANDA_API_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
 
       - name: Summary
