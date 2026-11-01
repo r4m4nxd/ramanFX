@@ -38,7 +38,7 @@ export function qty(v: unknown): string {
 export function pct(v: unknown): string {
   const x = num(v);
   if (x == null) return '';
-  return Math.abs(x) < 0.01 ? '<0.01%' : Math.abs(x) < 1 ? `${x.toFixed(2)}%` : `${x.toFixed(1)}%`;
+  return Math.abs(x) < 0.01 ? '&lt;0.01%' : Math.abs(x) < 1 ? `${x.toFixed(2)}%` : `${x.toFixed(1)}%`;
 }
 /** 'Feb '24' from 'YYYY-MM-DD'. */
 const monYr = (s: unknown): string => { const m = mday(s); const y = /^(\d{4})/.exec(String(s ?? '')); return m && y ? `${m.split(' ')[0]} '${y[1].slice(2)}` : ''; };
