@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-30T23:08:31Z",
+ "generated": "2026-11-01T03:05:09Z",
  "price": "bid",
  "clock": "server time = New York + 7 h (Pepperstone MT5 GMT+2 / GMT+3, 00:00 = 17:00 New York)",
  "align": {
@@ -17,25 +17,25 @@
      "n": 247,
      "first": "2006-04-01T00:00",
      "last": "2026-10-01T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
      "pages": 1
     },
     "W1": {
-     "n": 618,
-     "first": "2014-12-27T00:00",
+     "n": 1075,
+     "first": "2006-03-25T00:00",
      "last": "2026-10-24T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
      "pages": 1
     },
     "D1": {
-     "n": 2297,
-     "first": "2018-01-02T00:00",
+     "n": 5702,
+     "first": "2006-03-20T00:00",
      "last": "2026-10-30T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
-     "pages": 1
+     "pages": 2
     },
     "H4": {
      "n": 3094,
@@ -70,25 +70,25 @@
      "n": 262,
      "first": "2005-01-01T00:00",
      "last": "2026-10-01T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
      "pages": 1
     },
     "W1": {
-     "n": 618,
-     "first": "2014-12-27T00:00",
+     "n": 1139,
+     "first": "2005-01-01T00:00",
      "last": "2026-10-24T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
      "pages": 1
     },
     "D1": {
-     "n": 2291,
-     "first": "2018-01-02T00:00",
+     "n": 6292,
+     "first": "2005-01-02T00:00",
      "last": "2026-10-30T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
-     "pages": 1
+     "pages": 2
     },
     "H4": {
      "n": 3109,
@@ -123,25 +123,25 @@
      "n": 262,
      "first": "2005-01-01T00:00",
      "last": "2026-10-01T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
      "pages": 1
     },
     "W1": {
-     "n": 618,
-     "first": "2014-12-27T00:00",
+     "n": 1139,
+     "first": "2005-01-01T00:00",
      "last": "2026-10-24T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
      "pages": 1
     },
     "D1": {
-     "n": 2292,
-     "first": "2018-01-02T00:00",
+     "n": 6337,
+     "first": "2005-01-02T00:00",
      "last": "2026-10-30T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
-     "pages": 1
+     "pages": 2
     },
     "H4": {
      "n": 3109,
@@ -176,25 +176,25 @@
      "n": 262,
      "first": "2005-01-01T00:00",
      "last": "2026-10-01T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
      "pages": 1
     },
     "W1": {
-     "n": 618,
-     "first": "2014-12-27T00:00",
+     "n": 1139,
+     "first": "2005-01-01T00:00",
      "last": "2026-10-24T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
      "pages": 1
     },
     "D1": {
-     "n": 2296,
-     "first": "2018-01-02T00:00",
+     "n": 6328,
+     "first": "2005-01-02T00:00",
      "last": "2026-10-30T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
-     "pages": 1
+     "pages": 2
     },
     "H4": {
      "n": 3109,
@@ -229,25 +229,25 @@
      "n": 262,
      "first": "2005-01-01T00:00",
      "last": "2026-10-01T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
      "pages": 1
     },
     "W1": {
-     "n": 618,
-     "first": "2014-12-27T00:00",
+     "n": 1139,
+     "first": "2005-01-01T00:00",
      "last": "2026-10-24T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
      "pages": 1
     },
     "D1": {
-     "n": 2297,
-     "first": "2018-01-02T00:00",
+     "n": 6354,
+     "first": "2005-01-02T00:00",
      "last": "2026-10-30T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
-     "pages": 1
+     "pages": 2
     },
     "H4": {
      "n": 3109,
@@ -282,25 +282,25 @@
      "n": 262,
      "first": "2005-01-01T00:00",
      "last": "2026-10-01T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
      "pages": 1
     },
     "W1": {
-     "n": 618,
-     "first": "2014-12-27T00:00",
+     "n": 1139,
+     "first": "2005-01-01T00:00",
      "last": "2026-10-24T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
      "pages": 1
     },
     "D1": {
-     "n": 2309,
-     "first": "2018-01-02T00:00",
+     "n": 6347,
+     "first": "2005-01-02T00:00",
      "last": "2026-10-30T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
-     "pages": 1
+     "pages": 2
     },
     "H4": {
      "n": 3109,
@@ -335,25 +335,25 @@
      "n": 262,
      "first": "2005-01-01T00:00",
      "last": "2026-10-01T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
      "pages": 1
     },
     "W1": {
-     "n": 618,
-     "first": "2014-12-27T00:00",
+     "n": 1139,
+     "first": "2005-01-01T00:00",
      "last": "2026-10-24T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
      "pages": 1
     },
     "D1": {
-     "n": 2307,
-     "first": "2018-01-02T00:00",
+     "n": 6293,
+     "first": "2005-01-02T00:00",
      "last": "2026-10-30T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
-     "pages": 1
+     "pages": 2
     },
     "H4": {
      "n": 3109,
@@ -388,25 +388,25 @@
      "n": 262,
      "first": "2005-01-01T00:00",
      "last": "2026-10-01T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
      "pages": 1
     },
     "W1": {
-     "n": 618,
-     "first": "2014-12-27T00:00",
+     "n": 1139,
+     "first": "2005-01-01T00:00",
      "last": "2026-10-24T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
      "pages": 1
     },
     "D1": {
-     "n": 2317,
-     "first": "2018-01-02T00:00",
+     "n": 6313,
+     "first": "2005-01-02T00:00",
      "last": "2026-10-30T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
-     "pages": 1
+     "pages": 2
     },
     "H4": {
      "n": 3109,
@@ -441,25 +441,25 @@
      "n": 247,
      "first": "2006-04-01T00:00",
      "last": "2026-10-01T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
      "pages": 1
     },
     "W1": {
-     "n": 618,
-     "first": "2014-12-27T00:00",
+     "n": 1075,
+     "first": "2006-03-25T00:00",
      "last": "2026-10-24T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
      "pages": 1
     },
     "D1": {
-     "n": 2295,
-     "first": "2018-01-02T00:00",
+     "n": 5623,
+     "first": "2006-03-20T00:00",
      "last": "2026-10-30T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
-     "pages": 1
+     "pages": 2
     },
     "H4": {
      "n": 3094,
@@ -494,25 +494,25 @@
      "n": 262,
      "first": "2005-01-01T00:00",
      "last": "2026-10-01T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
      "pages": 1
     },
     "W1": {
-     "n": 618,
-     "first": "2014-12-27T00:00",
+     "n": 1139,
+     "first": "2005-01-01T00:00",
      "last": "2026-10-24T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
      "pages": 1
     },
     "D1": {
-     "n": 2286,
-     "first": "2018-01-02T00:00",
+     "n": 5675,
+     "first": "2005-01-03T00:00",
      "last": "2026-10-30T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
-     "pages": 1
+     "pages": 2
     },
     "H4": {
      "n": 3086,
@@ -547,25 +547,25 @@
      "n": 262,
      "first": "2005-01-01T00:00",
      "last": "2026-10-01T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
      "pages": 1
     },
     "W1": {
-     "n": 618,
-     "first": "2014-12-27T00:00",
+     "n": 1139,
+     "first": "2005-01-01T00:00",
      "last": "2026-10-24T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
      "pages": 1
     },
     "D1": {
-     "n": 2283,
-     "first": "2018-01-02T00:00",
+     "n": 5685,
+     "first": "2005-01-03T00:00",
      "last": "2026-10-30T00:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
-     "pages": 1
+     "pages": 2
     },
     "H4": {
      "n": 3086,
@@ -603,6 +603,51 @@
      "forming": false,
      "misaligned": 0,
      "pages": 1
+    },
+    "W1": {
+     "n": 1139,
+     "first": "2005-01-01T00:00",
+     "last": "2026-10-24T00:00",
+     "forming": false,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "D1": {
+     "n": 5960,
+     "first": "2005-01-03T00:00",
+     "last": "2026-10-30T00:00",
+     "forming": false,
+     "misaligned": 0,
+     "pages": 2
+    }
+   }
+  },
+  "US500": {
+   "oanda": "SPX500_USD",
+   "tfs": {
+    "MN": {
+     "n": 262,
+     "first": "2005-01-01T00:00",
+     "last": "2026-10-01T00:00",
+     "forming": false,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "W1": {
+     "n": 1139,
+     "first": "2005-01-01T00:00",
+     "last": "2026-10-24T00:00",
+     "forming": false,
+     "misaligned": 0,
+     "pages": 1
+    },
+    "D1": {
+     "n": 5687,
+     "first": "2005-01-03T00:00",
+     "last": "2026-10-30T00:00",
+     "forming": false,
+     "misaligned": 0,
+     "pages": 2
     }
    }
   }
