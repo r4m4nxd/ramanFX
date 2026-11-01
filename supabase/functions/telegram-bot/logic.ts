@@ -108,6 +108,11 @@ const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFi
 
 // ---- text helpers --------------------------------------------------------------------------------------------------
 export const esc = (s: unknown) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+/** Last guard before Telegram: a stray '<' or '&' (not a tag / entity Telegram knows) makes it drop the whole reply silently
+ *  (webhook replies report no error), so escape them; real tags and entities pass unchanged. */
+export const tgSafe = (s: string) => s
+  .replace(/&(?!(?:amp|lt|gt|quot|#\d+|#x[0-9a-fA-F]+);)/g, '&amp;')
+  .replace(/<(?!\/?(?:b|i|u|s|em|strong|code|pre|a|blockquote|tg-spoiler)(?=[\s>]))/g, '&lt;');
 /** A user's own word echoed back (escaped, at most 30 characters: the reply never balloons with a pasted essay). */
 export const echo = (s: unknown) => { const t = [...String(s ?? '')]; return esc(t.length > 30 ? `${t.slice(0, 29).join('')}…` : t.join('')); };
 export const u16 = (s: string) => s.length; // JS strings are UTF-16 already

@@ -2,7 +2,7 @@
 // the 30-day filings of public/insiders/latest.json (tools/insiders/insiders.py).
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { handle, handleCallback, COMMANDS, OWNER_ONLY, type Ctx } from '../../supabase/functions/telegram-bot/logic';
+import { handle, handleCallback, COMMANDS, OWNER_ONLY, tgSafe, type Ctx } from '../../supabase/functions/telegram-bot/logic';
 import { guestCallback, guestMessage, memoryGuests, type Guest } from '../../supabase/functions/telegram-bot/guests';
 import { cmdHolders, holdersButton, holdersPath, pct, qty, shardOf } from '../../supabase/functions/telegram-bot/holders';
 
@@ -99,7 +99,7 @@ describe('telegram /holders', () => {
     expect(['XYZ', 'brk-b', 'BRK.B', '3M', '', 'Z'].map(shardOf)).toEqual(['X', 'B', 'B', '_', '_', 'Z']);
     expect(holdersPath('NVDA')).toBe('holders/t/N.json');
     expect([qty(2.2e9), qty(861e6), qty(24.8e6), qty(480e3), qty(950), qty(null)]).toEqual(['2.2B', '861M', '24.8M', '480K', '950', 'n/a']);
-    expect([pct(9.57), pct(0.42), pct(0.004), pct(null)]).toEqual(['9.6%', '0.42%', '<0.01%', '']);
+    expect([pct(9.57), pct(0.42), pct(0.004), pct(null)]).toEqual(['9.6%', '0.42%', '&lt;0.01%', '']);
   });
 
   it('missing, unknown, non-stock, stale and hostile input', async () => {
@@ -145,5 +145,19 @@ describe('the 👥 Holders button under stock replies', () => {
     if (chart.photo) expect(cbs(chart)).toContain(`h:${sym}`);
     expect(cbs(await handle('EURUSD', real())).some(c => c.startsWith('h:'))).toBe(false);
     expect(cbs(await handle('/fund EURUSD', real())).some(c => c.startsWith('h:'))).toBe(false);
+  });
+});
+
+describe('Telegram HTML safety (a stray < or & drops the whole webhook reply)', () => {
+  it('a holder under 0.01% (Apple / Nvidia insiders) leaves no raw <', async () => {
+    const tiny = { ...XYZ, ins: [{ w: 'Big Co Insider', role: 'COO', own: 1_000, pct: 0.004, d: '2026-10-01', code: 'S', mv: -10, px: 1 }],
+      h5x: [{ f: 'The Vanguard Group', form: '13G/A', d: '2026-03-26', pct: 0 }] };
+    const r = await cmdHolders('XYZ', ctx({ 'holders/t/X.json': { stocks: { XYZ: tiny } } }));
+    expect(r.text).toContain('&lt;0.01%');
+    noRawLt(r.text);
+  });
+  it('tgSafe escapes stray < and & but keeps real tags and entities', () => {
+    expect(tgSafe('<b>AT&T</b> <0.01% &amp; <i>x</i> <a href="u">l</a> &lt; 3 < 4')).toBe('<b>AT&amp;T</b> &lt;0.01% &amp; <i>x</i> <a href="u">l</a> &lt; 3 &lt; 4');
+    expect(tgSafe('<code>1</code> <pre>2</pre> &#39; <bold>')).toBe('<code>1</code> <pre>2</pre> &#39; &lt;bold>');
   });
 });
