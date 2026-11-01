@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-01T03:05:09Z",
+ "generated": "2026-11-01T03:10:04Z",
  "price": "bid",
  "clock": "server time = New York + 7 h (Pepperstone MT5 GMT+2 / GMT+3, 00:00 = 17:00 New York)",
  "align": {
@@ -38,12 +38,12 @@
      "pages": 2
     },
     "H4": {
-     "n": 3094,
-     "first": "2024-10-30T20:00",
+     "n": 29877,
+     "first": "2008-01-01T16:00",
      "last": "2026-10-30T20:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
-     "pages": 1
+     "pages": 10
     },
     "H1": {
      "n": 3002,
@@ -91,12 +91,12 @@
      "pages": 2
     },
     "H4": {
-     "n": 3109,
-     "first": "2024-10-30T20:00",
+     "n": 30188,
+     "first": "2008-01-01T20:00",
      "last": "2026-10-30T20:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
-     "pages": 1
+     "pages": 10
     },
     "H1": {
      "n": 3145,
@@ -144,12 +144,12 @@
      "pages": 2
     },
     "H4": {
-     "n": 3109,
-     "first": "2024-10-30T20:00",
+     "n": 30238,
+     "first": "2008-01-01T00:00",
      "last": "2026-10-30T20:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
-     "pages": 1
+     "pages": 10
     },
     "H1": {
      "n": 3145,
@@ -197,12 +197,12 @@
      "pages": 2
     },
     "H4": {
-     "n": 3109,
-     "first": "2024-10-30T20:00",
+     "n": 30178,
+     "first": "2008-01-01T00:00",
      "last": "2026-10-30T20:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
-     "pages": 1
+     "pages": 10
     },
     "H1": {
      "n": 3145,
@@ -250,12 +250,12 @@
      "pages": 2
     },
     "H4": {
-     "n": 3109,
-     "first": "2024-10-30T20:00",
+     "n": 30186,
+     "first": "2008-01-01T00:00",
      "last": "2026-10-30T20:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
-     "pages": 1
+     "pages": 10
     },
     "H1": {
      "n": 3145,
@@ -303,12 +303,12 @@
      "pages": 2
     },
     "H4": {
-     "n": 3109,
-     "first": "2024-10-30T20:00",
+     "n": 30205,
+     "first": "2008-01-01T00:00",
      "last": "2026-10-30T20:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
-     "pages": 1
+     "pages": 10
     },
     "H1": {
      "n": 3145,
@@ -356,12 +356,12 @@
      "pages": 2
     },
     "H4": {
-     "n": 3109,
-     "first": "2024-10-30T20:00",
+     "n": 30153,
+     "first": "2008-01-01T00:00",
      "last": "2026-10-30T20:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
-     "pages": 1
+     "pages": 10
     },
     "H1": {
      "n": 3145,
@@ -409,12 +409,12 @@
      "pages": 2
     },
     "H4": {
-     "n": 3109,
-     "first": "2024-10-30T20:00",
+     "n": 30176,
+     "first": "2008-01-01T00:00",
      "last": "2026-10-30T20:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
-     "pages": 1
+     "pages": 10
     },
     "H1": {
      "n": 3145,
@@ -462,12 +462,12 @@
      "pages": 2
     },
     "H4": {
-     "n": 3094,
-     "first": "2024-10-30T20:00",
+     "n": 29789,
+     "first": "2008-01-01T16:00",
      "last": "2026-10-30T20:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
-     "pages": 1
+     "pages": 10
     },
     "H1": {
      "n": 3002,
@@ -515,12 +515,12 @@
      "pages": 2
     },
     "H4": {
-     "n": 3086,
-     "first": "2024-10-30T20:00",
+     "n": 29110,
+     "first": "2008-01-02T00:00",
      "last": "2026-10-30T20:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
-     "pages": 1
+     "pages": 10
     },
     "H1": {
      "n": 2998,
@@ -568,12 +568,12 @@
      "pages": 2
     },
     "H4": {
-     "n": 3086,
-     "first": "2024-10-30T20:00",
+     "n": 29090,
+     "first": "2008-01-02T12:00",
      "last": "2026-10-30T20:00",
-     "forming": true,
+     "forming": false,
      "misaligned": 0,
-     "pages": 1
+     "pages": 10
     },
     "H1": {
      "n": 2998,
@@ -619,6 +619,14 @@
      "forming": false,
      "misaligned": 0,
      "pages": 2
+    },
+    "H4": {
+     "n": 29357,
+     "first": "2008-01-02T00:00",
+     "last": "2026-10-30T20:00",
+     "forming": false,
+     "misaligned": 0,
+     "pages": 10
     }
    }
   },
@@ -648,6 +656,14 @@
      "forming": false,
      "misaligned": 0,
      "pages": 2
+    },
+    "H4": {
+     "n": 29097,
+     "first": "2008-01-02T12:00",
+     "last": "2026-10-30T20:00",
+     "forming": false,
+     "misaligned": 0,
+     "pages": 10
     }
    }
   }
