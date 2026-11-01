@@ -32,8 +32,9 @@ Rules (env overrides in brackets):
                      a footnote naming the plan: form4.py) and not a tax-withholding 'sell to cover' [INSIDERS_SELL_COVER=1
                      keeps those], by a CEO / CFO / President / COO / Chair or a 10% owner, of >= $1M [INSIDERS_SELL_MIN] or
                      >= 0.1% of the market cap [INSIDERS_SELL_PCT]; scanner stocks
-    planned sale     a Form 144 (notice of a proposed sale, filed before it) of a scanner stock for >= $1M [INSIDERS_144_MIN] or
-                     >= 0.1% of the market cap [INSIDERS_144_PCT] (the form's own shares outstanding when the cap is unknown)
+    planned sale     a Form 144 (notice of a proposed sale, filed before it) of a scanner stock for >= 0.05% of the market cap
+                     [INSIDERS_144_PCT] (the form's own shares outstanding when the cap is unknown); neither known: >= $1M
+                     [INSIDERS_144_MIN] (a size floor alone let mega-cap notices of < 0.01% through)
     activist         a Schedule 13D or 13D/A on a scanner stock (percent of class, shares, Item 4 purpose, change vs the
                      filer's previous filing when known)
 Score of a buy cluster (simple, additive; documented in the app and the guide):
@@ -45,7 +46,7 @@ Score of a buy cluster (simple, additive; documented in the app and the guide):
     repeat buyer     +0.5
     ⭐               strong cluster (3+) AND inside / near a W1 or MN demand zone (buys only; the other alerts carry the same zone text)
 Telegram: only NEW items (read this run, filed within NEW_HOURS): clusters / big solo buys with score >= 5
-[INSIDERS_SCORE_BAR], early buys, big sales, planned sales, 13D filings; a cluster is re-sent only when it grows; at most 6
+[INSIDERS_SCORE_BAR], early buys, big sales, planned sales, 13D filings; a cluster is re-sent only when it grows; at most 10
 alerts a Calgary day in all [INSIDERS_MAX_PER_DAY]; several in ONE message, every line with the trade date and 'filed 35m ago';
 owner mutes, quiet hours silent; the bot's guests who have stocks on (tools/stock_scanner/guests.py).
 
@@ -134,12 +135,12 @@ CFG = {'min_n': int(_env('INSIDERS_MIN_N', 2)), 'strong_n': int(_env('INSIDERS_S
        'window': int(_env('INSIDERS_WINDOW', 14)), 'solo_min': _env('INSIDERS_SOLO_MIN', 250_000),
        'min_value': _env('INSIDERS_MIN_VALUE', 10_000), 'min_price': _env('INSIDERS_MIN_PRICE', 2.0),
        'min_mcap': _env('INSIDERS_MIN_MCAP', 50e6), 'score_bar': _env('INSIDERS_SCORE_BAR', 5.0),
-       'max_per_day': int(_env('INSIDERS_MAX_PER_DAY', 6)), 'days': int(_env('INSIDERS_DAYS', 30)),
+       'max_per_day': int(_env('INSIDERS_MAX_PER_DAY', 10)), 'days': int(_env('INSIDERS_DAYS', 30)),
        'new_hours': _env('INSIDERS_NEW_HOURS', 36), 'near_pct': 5.0, 'recent_days': 14, 'max_buys': 300,
        'early_top_min': _env('INSIDERS_EARLY_TOP_MIN', 100_000), 'early_any_min': _env('INSIDERS_EARLY_ANY_MIN', 500_000),
        'sell_min': _env('INSIDERS_SELL_MIN', 1_000_000), 'sell_pct': _env('INSIDERS_SELL_PCT', 0.1),
        'sell_cover': int(_env('INSIDERS_SELL_COVER', 0)), 'sell_list_min': 250_000, 'max_sells': 300,
-       'p144_min': _env('INSIDERS_144_MIN', 1_000_000), 'p144_pct': _env('INSIDERS_144_PCT', 0.1), 'max_plans': 300,
+       'p144_min': _env('INSIDERS_144_MIN', 1_000_000), 'p144_pct': _env('INSIDERS_144_PCT', 0.05), 'max_plans': 300,
        'd13_days': 60, 'max_acts': 150}
 
 
@@ -869,14 +870,15 @@ def plan_pct(r: Dict, mcap_of=lambda s: None) -> Optional[float]:
 
 
 def plan_items(f144: Sequence[Dict], today: dt.date, cfg: Dict = CFG, mcap_of=lambda s: None) -> List[Dict]:
-    """Form 144 notices of scanner stocks of the last `days` that are big: >= p144_min dollars or >= p144_pct percent."""
+    """Form 144 notices of scanner stocks of the last `days` that are big: >= p144_pct percent of the company (dollars
+    >= p144_min only when neither the market cap nor the form's shares outstanding is known)."""
     cut = (today - dt.timedelta(days=cfg['days'])).isoformat()
     out = []
     for r in f144:
         if not r.get('sym') or (r.get('filed') or '')[:10] < cut or r.get('value') is None:
             continue
         pct = plan_pct(r, mcap_of)
-        if r['value'] >= cfg['p144_min'] or (pct is not None and pct >= cfg['p144_pct']):
+        if (pct >= cfg['p144_pct']) if pct is not None else (r['value'] >= cfg['p144_min']):
             out.append({'kind': 'plan', 'key': f"F:{r['acc']}", 'acc': r['acc'], 'cik': r['cik'], 'sym': r['sym'], 'name': r.get('name', ''),
                         'who': r['seller'], 'role': r.get('rel', ''), 'value': r['value'], 'shares': r.get('shares'), 'price': r.get('price'),
                         'date': r.get('date', ''), 'filed': r.get('filed') or '', 'of_mcap': pct, 'plan': bool(r.get('plan')),

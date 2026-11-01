@@ -75,7 +75,7 @@ Inline buttons on every reply: 📊 Chart · timeframe switches · 🔲 4 views 
 
 ## 10. In progress
 - **Chart quality pass**: dedupe trendlines, higher-TF lines everywhere, tighter wide zones, nesting warnings, verdict line, "closed" vs "live" labels, dated axes, labelled supply zones, spacing before the price scale.
-- **Insider alerts** (SEC EDGAR, every 10 min on US weekdays 6:00–22:00 New York, several in one message, 6 a day, mutes / quiet hours / guests as usual): the **first big buy** (CEO/CFO/President/COO/Chair $100k+, anyone $500k+: "early · 1 insider so far"), then the **cluster** when others join (⭐ at a weekly/monthly demand zone); **big sales** (CEO/CFO/President/COO/Chair/10% owner, not a 10b5-1 plan, $1M+ or 0.1% of the market cap); **Form 144** planned sales; **Schedule 13D** activists. Every line shows the trade date and "filed 35m ago". `/insiders`.
+- **Insider alerts** (SEC EDGAR, every 10 min on US weekdays 6:00–22:00 New York, several in one message, 10 a day, mutes / quiet hours / guests as usual): the **first big buy** (CEO/CFO/President/COO/Chair $100k+, anyone $500k+: "early · 1 insider so far"), then the **cluster** when others join (⭐ at a weekly/monthly demand zone); **big sales** (CEO/CFO/President/COO/Chair/10% owner, not a 10b5-1 plan, $1M+ or 0.1% of the market cap); **Form 144** planned sales (0.05%+ of the market cap); **Schedule 13D** activists. Every line shows the trade date and "filed 35m ago". `/insiders`.
 - **Holders** (SEC 13D/13G, Form 4, 13F data sets; daily, 13F weekly): `/holders SYM`, the 👥 Holders button, and a Holders card on each stock page. Never an alert source; index funds are marked.
 - **Pepperstone cTrader feed** for exact broker prices on every symbol (awaiting app approval).
 

@@ -408,7 +408,7 @@ class TestRun(unittest.TestCase):
 
     def test_daily_cap(self):
         cs = []
-        for k in range(8):
+        for k in range(12):
             cs += I.find_clusters([buy('A', '2026-10-27', 400000, cik=str(k), sym=f'S{k}', ceo=True), buy('B', '2026-10-28', 400000, cik=str(k), sym=f'S{k}')], TODAY)
         accs = {a for c in cs for i in c['insiders'] for a in i['accs']}
         with tempfile.TemporaryDirectory() as d, mock.patch.object(I, 'find_clusters', return_value=cs), \
@@ -416,7 +416,7 @@ class TestRun(unittest.TestCase):
             sent = []
             I.run(NOW, lambda u: b'', state_path=os.path.join(d, 's.json'), latest_path=os.path.join(d, 'l.json'), ctx=FakeCtx(),
                   send=lambda m: sent.append(m) or True)
-            self.assertEqual(str(sent[0]).count('Insider cluster buy'), 6)
+            self.assertEqual(str(sent[0]).count('Insider cluster buy'), 10)
 
     def test_no_user_agent_skips_sec(self):
         with tempfile.TemporaryDirectory() as d, mock.patch('builtins.print') as pr:
@@ -591,7 +591,8 @@ class TestPlannedSales(unittest.TestCase):
 
     def test_dollar_or_percent_of_the_cap(self):
         mc = lambda s: 4e9                                                                   # noqa: E731
-        self.assertEqual(len(I.plan_items([self.rec(1_200_000)], TODAY2, I.CFG, mc)), 1)
+        self.assertEqual(I.plan_items([self.rec(1_200_000)], TODAY2, I.CFG, mc), [])         # $1.2M but 0.03% of $4B
+        self.assertEqual(len(I.plan_items([self.rec(2_500_000)], TODAY2, I.CFG, mc)), 1)    # 0.06% of $4B
         self.assertEqual(I.plan_items([self.rec(900_000)], TODAY2, I.CFG, mc), [])           # 0.02% of $4B
         self.assertEqual(len(I.plan_items([self.rec(900_000)], TODAY2, I.CFG, lambda s: 500e6)), 1)    # 0.18% of $500M
         # market cap unknown: the form's own shares outstanding decide (0.0278% here; 0.25% with 20M outstanding)

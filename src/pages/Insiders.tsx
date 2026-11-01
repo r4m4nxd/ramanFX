@@ -172,7 +172,7 @@ export default function Insiders() {
           <p className="text-[13px] text-ink2 leading-relaxed max-w-[64ch]">
             {tab === 'buys' && `Open-market purchases from SEC Form 4 filings: 2+ insiders buying the same stock within 14 days (3+ = strong), or the first big buy before others join ("early": a CEO / CFO / President / COO / Chair $100k+, anyone $500k+). Buys under $10k and stocks under $2 are left out. ⭐ = strong cluster with the price inside or near a weekly / monthly demand zone of the stock scanner. Last ${file?.days ?? 30} days, Calgary time.`}
             {tab === 'sells' && 'Open-market sales (Form 4 code S) of scanner stocks, $250k+, last 14 days. "Big · no plan" = a CEO / CFO / President / COO / Chair or 10% owner selling $1M+ or 0.1% of the market cap, not under a Rule 10b5-1 plan (those, and tax-withholding sales, are shown dimmer under All).'}
-            {tab === 'plans' && 'Form 144: the notice an insider files BEFORE selling restricted or control shares. A plan to sell, not a sale: it may be smaller, later or never. Scanner stocks only; "big" = $1M+ or 0.1% of the market cap.'}
+            {tab === 'plans' && 'Form 144: the notice an insider files BEFORE selling restricted or control shares. A plan to sell, not a sale: it may be smaller, later or never. Scanner stocks only; "big" = 0.05%+ of the market cap.'}
             {tab === 'activists' && 'Schedule 13D: a holder crossing 5% who may push for change (filed within 5 business days). Percent of the class, shares, the change vs the filer\'s previous filing, and the first words of Item 4 (purpose). Schedule 13G (passive holders) is on each stock\'s Holders card, never here.'}
           </p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink3">
@@ -200,7 +200,7 @@ export default function Insiders() {
       {tab === 'plans' && plans.length > 0 && <Card><ul>{plans.map((r, i) => <PlanRow key={`${r.sym}:${r.who}:${r.filed}:${i}`} r={r} now={now} />)}</ul></Card>}
       {file && tab === 'activists' && !acts.length && <Card><Empty icon="info" title="No 13D filings here">No Schedule 13D in the last 60 days matches.</Empty></Card>}
       {tab === 'activists' && acts.length > 0 && <Card><ul>{acts.map((r, i) => <ActivistRow key={`${r.sym}:${r.who}:${r.filed}:${i}`} r={r} now={now} />)}</ul></Card>}
-      <p className="text-[11.5px] text-ink3 px-1">Score: cluster size (2 → 2, 3 → 3.5, 4+ → 4.5; solo 1) + CEO / CFO 2 (both 3) + other top officer 0.5 + $ vs market cap up to 2 + holdings increase up to 1.5 + inside a W1 / MN / 3M demand 2 (within 5% above: 1) + repeat buyer 0.5. Early buys (first big buy) alert at once without the score. Telegram alerts new ones, big sales, planned sales and 13D filings together, at most 6 a day. Context, not a signal. Not advice.</p>
+      <p className="text-[11.5px] text-ink3 px-1">Score: cluster size (2 → 2, 3 → 3.5, 4+ → 4.5; solo 1) + CEO / CFO 2 (both 3) + other top officer 0.5 + $ vs market cap up to 2 + holdings increase up to 1.5 + inside a W1 / MN / 3M demand 2 (within 5% above: 1) + repeat buyer 0.5. Early buys (first big buy) alert at once without the score. Telegram alerts new ones, big sales, planned sales and 13D filings together, at most 10 a day. Context, not a signal. Not advice.</p>
     </Page>
   );
 }
