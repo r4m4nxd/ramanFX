@@ -1,0 +1,103 @@
+<SEC-DOCUMENT>0001234500-26-000010.txt : 20261030
+<SEC-HEADER>0001234500-26-000010.hdr.sgml : 20261030
+<ACCEPTANCE-DATETIME>20261030094502
+ACCESSION NUMBER:		0001234500-26-000010
+CONFORMED SUBMISSION TYPE:	144
+PUBLIC DOCUMENT COUNT:		1
+FILED AS OF DATE:		20261030
+DATE AS OF CHANGE:		20261030
+
+SUBJECT COMPANY:
+
+	COMPANY DATA:
+		COMPANY CONFORMED NAME:			XYZ Corp
+		CENTRAL INDEX KEY:			0000111111
+		STANDARD INDUSTRIAL CLASSIFICATION:	SERVICES-PREPACKAGED SOFTWARE [7372]
+
+FILED BY:
+
+	COMPANY DATA:
+		COMPANY CONFORMED NAME:			Doe Jane
+		CENTRAL INDEX KEY:			0000222222
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>144
+<SEQUENCE>1
+<FILENAME>primary_doc.xml
+<TEXT>
+<XML>
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Reconstruction of the EDGAR Form 144 XML schema (X0101); not a copy of a real filing. -->
+<edgarSubmission xmlns="http://www.sec.gov/edgar/ownership" xmlns:com="http://www.sec.gov/edgar/common">
+  <schemaVersion>X0101</schemaVersion>
+  <submissionType>144</submissionType>
+  <testOrLive>LIVE</testOrLive>
+  <headerData>
+    <filerInfo>
+      <filer>
+        <filerCredentials>
+          <cik>0000222222</cik>
+          <ccc>XXXXXXXX</ccc>
+        </filerCredentials>
+      </filer>
+    </filerInfo>
+  </headerData>
+  <formData>
+    <issuerInfo>
+      <issuerCik>0000111111</issuerCik>
+      <issuerName>XYZ Corp</issuerName>
+      <secFileNumber>001-12345</secFileNumber>
+      <issuerAddress>
+        <com:street1>1 MAIN STREET</com:street1>
+        <com:city>SAN JOSE</com:city>
+        <com:stateOrCountry>CA</com:stateOrCountry>
+        <com:zipCode>95110</com:zipCode>
+      </issuerAddress>
+      <issuerContactPhone>408-555-0100</issuerContactPhone>
+      <nameOfPersonForWhoseAccountTheSecuritiesAreToBeSold>Doe Jane</nameOfPersonForWhoseAccountTheSecuritiesAreToBeSold>
+      <relationshipsToIssuer>
+        <relationshipToIssuer>Officer</relationshipToIssuer>
+        <relationshipToIssuer>Director</relationshipToIssuer>
+      </relationshipsToIssuer>
+    </issuerInfo>
+    <securitiesInformation>
+      <securitiesClassTitle>Common</securitiesClassTitle>
+      <brokerOrMarketmakerDetails>
+        <name>Example Securities LLC</name>
+        <address>
+          <com:street1>200 EXAMPLE AVE</com:street1>
+          <com:city>NEW YORK</com:city>
+          <com:stateOrCountry>NY</com:stateOrCountry>
+          <com:zipCode>10001</com:zipCode>
+        </address>
+      </brokerOrMarketmakerDetails>
+      <noOfUnitsSold>50000</noOfUnitsSold>
+      <aggregateMarketValue>6012500.00</aggregateMarketValue>
+      <noOfUnitsOutstanding>180000000</noOfUnitsOutstanding>
+      <approxSaleDate>11/02/2026</approxSaleDate>
+      <securitiesExchangeName>NASDAQ</securitiesExchangeName>
+    </securitiesInformation>
+    <securitiesToBeSold>
+      <securitiesClassTitle>Common</securitiesClassTitle>
+      <acquiredDate>10/15/2026</acquiredDate>
+      <natureOfAcquisitionTransaction>Restricted Stock Vesting</natureOfAcquisitionTransaction>
+      <nameOfPersonfromWhomAcquired>Issuer</nameOfPersonfromWhomAcquired>
+      <isGiftTransaction>N</isGiftTransaction>
+      <amountOfSecuritiesAcquired>50000</amountOfSecuritiesAcquired>
+      <paymentDate>10/15/2026</paymentDate>
+      <natureOfPayment>Compensation</natureOfPayment>
+    </securitiesToBeSold>
+    <nothingToReportFlagOnSecuritiesSold>true</nothingToReportFlagOnSecuritiesSold>
+    <noticeSignature>
+      <noticeDate>10/30/2026</noticeDate>
+      <planAdoptionDates>
+        <planAdoptionDate>06/12/2026</planAdoptionDate>
+      </planAdoptionDates>
+      <signature>/s/ Doe Jane</signature>
+    </noticeSignature>
+  </formData>
+</edgarSubmission>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>

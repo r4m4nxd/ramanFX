@@ -14,7 +14,7 @@ import {
   tookPlan, utcOfWall, wallMs, weekOf, withPlan, withWhyNote, writeLost, type CoachJournal, type Db,
 } from '../../supabase/functions/trader-coach/core';
 import { journalRoute } from '../../supabase/functions/telegram-bot/journal';
-import { covered, dispatchRequest, dueDispatches, fxBarCloses, latestRunMs } from '../../supabase/functions/trader-coach/scheduler';
+import { covered, dispatchRequest, dueDispatches, fxBarCloses, INSIDERS_FROM, INSIDERS_TO, latestRunMs } from '../../supabase/functions/trader-coach/scheduler';
 
 process.env.TZ = 'UTC';
 afterEach(() => { process.env.TZ = 'UTC'; });
@@ -397,23 +397,53 @@ describe('GitHub workflow scheduler', () => {
     expect(y).toContain('SEC_CONTACT: ${{ secrets.SEC_CONTACT || vars.SEC_CONTACT }}');
   });
 
-  it('insiders: every 30 min on weekdays 6:00-20:00 New York (both DST regimes), no inputs', () => {
-    const wed = [...ticks('2026-10-28T00:00:00Z', 24)].filter(([k]) => k.startsWith('ins:'));
-    expect(wed).toHaveLength(28);
+  it('insiders: every 10 min on weekdays 6:00-22:00 New York (both DST regimes), no inputs', () => {
+    const wed = [...ticks('2026-10-28T04:00:00Z', 24)].filter(([k]) => k.startsWith('ins:'));
+    expect(wed).toHaveLength(97);                                              // 6:00, 6:10 ... 22:00
     expect(wed[0]).toEqual(['ins:2026-10-28T06:00', '2026-10-28T10:00']);     // 6:00 AM EDT = 10:00 UTC
-    expect(wed[27]).toEqual(['ins:2026-10-28T19:30', '2026-10-28T23:30']);
-    const winter = [...ticks('2026-11-02T00:00:00Z', 26)].filter(([k]) => k.startsWith('ins:'));
-    expect(winter).toHaveLength(28);
+    expect(wed[1]).toEqual(['ins:2026-10-28T06:10', '2026-10-28T10:10']);
+    expect(wed[96]).toEqual(['ins:2026-10-28T22:00', '2026-10-29T02:00']);    // the last slot: 22:00 EDT = 02:00 UTC next day
+    expect([...ticks('2026-10-29T02:10:00Z', 1).keys()].some(k => k.startsWith('ins:'))).toBe(false);   // 22:10 New York: over
+    expect([...ticks('2026-10-28T09:30:00Z', 0.5).keys()].some(k => k.startsWith('ins:'))).toBe(false);   // 5:30-5:59 New York: not yet
+    const winter = [...ticks('2026-11-02T05:00:00Z', 24)].filter(([k]) => k.startsWith('ins:'));
+    expect(winter).toHaveLength(97);
     expect(winter[0]).toEqual(['ins:2026-11-02T06:00', '2026-11-02T11:00']);  // EST
+    expect(winter[96]).toEqual(['ins:2026-11-02T22:00', '2026-11-03T03:00']);
     expect([...ticks('2026-10-31T04:00:00Z', 48).keys()].some(k => k.startsWith('ins:'))).toBe(false);   // weekend
-    const due = dueDispatches(at('2026-10-28T14:40:00Z')).find(d => d.wf === 'insiders.yml')!;
-    expect(due.slot).toBe('ins:2026-10-28T10:30');
-    expect(due.since).toBe(at('2026-10-28T14:30:00Z'));
-    expect(JSON.parse(String(dispatchRequest(due, 't').init.body))).toEqual({ ref: 'main', inputs: {} });
+    expect(INSIDERS_FROM).toBe(360);
+    expect(INSIDERS_TO).toBe(1320);
+    const due = dueDispatches(at('2026-10-28T14:47:00Z')).find(d => d.wf === 'insiders.yml')!;
+    expect(due.slot).toBe('ins:2026-10-28T10:40');
+    expect(due.since).toBe(at('2026-10-28T14:40:00Z'));
+    expect(JSON.parse(String(dispatchRequest(due, 't').init.body))).toEqual({ ref: 'main', inputs: {} });   // no inputs: a cron-equivalent run that notifies
+    expect(covered(due, at('2026-10-28T14:41:00Z'))).toBe(true);
+    expect(covered(due, at('2026-10-28T14:39:00Z'))).toBe(false);
     const y = readFileSync('.github/workflows/insiders.yml', 'utf8');
     expect(y).toContain('python tools/insiders/insiders.py');
     expect(y).toContain('SEC_UA: ${{ secrets.SEC_UA }}');
     expect(y).toContain('bash scripts/data-branch.sh push "insiders: $(date -u +%Y-%m-%dT%H:%MZ)" public/insiders');
+    // the workflow's own backup cron covers both DST regimes (UTC 10:00-03:59 = 6:00 EDT .. 22:59 EDT / 5:00 EST .. 22:59 EST) and a New York gate trims it to 6:00-22:00
+    expect(y).toMatch(/- cron: '\d+-59\/10 10-23 \* \* 1-5'/);
+    expect(y).toMatch(/- cron: '\d+-59\/10 0-3 \* \* 2-6'/);
+    expect(y).toContain('America/New_York');
+    // notify: a boolean input, true for schedules (no inputs) and dispatches without it; false = a dry run
+    expect(y).toMatch(/\n      notify:\n[^\n]*\n        type: boolean\n        default: true\n/);
+    expect(y).toContain("if [ \"$NOTIFY\" = \"false\" ]; then ARGS+=(--no-notify); fi");
+  });
+
+  it('holders: once a weekday morning 5:00-6:00 New York (both DST regimes), scheduled=true', () => {
+    const wed = [...ticks('2026-10-28T04:00:00Z', 24)].filter(([k]) => k.startsWith('holders:'));
+    expect(wed).toEqual([['holders:2026-10-28', '2026-10-28T09:00']]);        // 5:00 AM EDT = 09:00 UTC
+    const winter = [...ticks('2026-11-02T05:00:00Z', 24)].filter(([k]) => k.startsWith('holders:'));
+    expect(winter).toEqual([['holders:2026-11-02', '2026-11-02T10:00']]);
+    expect([...ticks('2026-10-31T04:00:00Z', 48).keys()].some(k => k.startsWith('holders:'))).toBe(false);
+    const due = dueDispatches(at('2026-10-28T09:20:00Z')).find(d => d.wf === 'holders.yml')!;
+    expect(due.since).toBe(at('2026-10-28T09:00:00Z'));
+    expect(JSON.parse(String(dispatchRequest(due, 't').init.body))).toEqual({ ref: 'main', inputs: { scheduled: 'true' } });
+    const y = readFileSync('.github/workflows/holders.yml', 'utf8');
+    expect(y).toMatch(/\n      scheduled:\n/);
+    expect(y).toContain('python tools/holders/holders.py');
+    expect(y).toContain('bash scripts/data-branch.sh push "holders: $(date -u +%Y-%m-%dT%H:%MZ)" public/holders');
   });
 
   it('realign: every 15-min close of the forex week, one slot each, no inputs; backup cron on the workflow', () => {

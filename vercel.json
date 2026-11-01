@@ -1,6 +1,6 @@
 {
   "framework": "vite",
-  "buildCommand": "npm run build && rm -rf dist/fx dist/scanner dist/movers dist/fundamentals dist/insiders",
+  "buildCommand": "npm run build && rm -rf dist/fx dist/scanner dist/movers dist/fundamentals dist/insiders dist/holders",
   "outputDirectory": "dist",
   "rewrites": [
     {
@@ -20,7 +20,11 @@
       "destination": "https://raw.githubusercontent.com/r4m4nxd/ramanFX/data/public/insiders/$1.json"
     },
     {
-      "source": "/((?!legacy\\.html|version\\.json|assets/|scanner/.*\\.json|fx/.*\\.json|movers/.*\\.json|insiders/.*\\.json|research/.*\\.json).*)",
+      "source": "/holders/(.*)\\.json",
+      "destination": "https://raw.githubusercontent.com/r4m4nxd/ramanFX/data/public/holders/$1.json"
+    },
+    {
+      "source": "/((?!legacy\\.html|version\\.json|assets/|scanner/.*\\.json|fx/.*\\.json|movers/.*\\.json|insiders/.*\\.json|holders/.*\\.json|research/.*\\.json).*)",
       "destination": "/index.html"
     }
   ],
@@ -101,6 +105,15 @@
     },
     {
       "source": "/insiders/(.*)\\.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/holders/(.*)\\.json",
       "headers": [
         {
           "key": "Cache-Control",

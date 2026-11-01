@@ -1,0 +1,188 @@
+<SEC-DOCUMENT>0001193125-26-442029.txt : 20261030
+<SEC-HEADER>0001193125-26-442029.hdr.sgml : 20261030
+<ACCEPTANCE-DATETIME>20261030182501
+ACCESSION NUMBER:		0001193125-26-442029
+CONFORMED SUBMISSION TYPE:	4
+PUBLIC DOCUMENT COUNT:		1
+CONFORMED PERIOD OF REPORT:	20261029
+FILED AS OF DATE:		20261030
+DATE AS OF CHANGE:		20261030
+
+REPORTING-OWNER:	
+
+	OWNER DATA:	
+		COMPANY CONFORMED NAME:			MUTCH JOHN
+		CENTRAL INDEX KEY:			0001228146
+		ORGANIZATION NAME:           	
+
+	FILING VALUES:
+		FORM TYPE:		4
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	000-05734
+		FILM NUMBER:		261509383
+
+	MAIL ADDRESS:	
+		STREET 1:		C/O PEREGRINE SYSTEMS, INC.
+		STREET 2:		3611 VALLEY CENTRE DRIVE
+		CITY:			SAN DIEGO
+		STATE:			CA
+		ZIP:			92130
+
+ISSUER:		
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			AGILYSYS INC
+		CENTRAL INDEX KEY:			0000078749
+		STANDARD INDUSTRIAL CLASSIFICATION:	SERVICES-COMPUTER INTEGRATED SYSTEMS DESIGN [7373]
+		ORGANIZATION NAME:           	06 Technology
+		EIN:				340907152
+		STATE OF INCORPORATION:			DE
+		FISCAL YEAR END:			0331
+
+	BUSINESS ADDRESS:	
+		STREET 1:		3655 BROOKSIDE PARKWAY
+		STREET 2:		SUITE 300
+		CITY:			ALPHARETTA
+		STATE:			GA
+		ZIP:			30022
+		BUSINESS PHONE:		7708107800
+
+	MAIL ADDRESS:	
+		STREET 1:		3655 BROOKSIDE PARKWAY
+		STREET 2:		SUITE 300
+		CITY:			ALPHARETTA
+		STATE:			GA
+		ZIP:			30022
+
+	FORMER COMPANY:	
+		FORMER CONFORMED NAME:	PIONEER STANDARD ELECTRONICS INC
+		DATE OF NAME CHANGE:	19920703
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>4
+<SEQUENCE>1
+<FILENAME>ownership.xml
+<DESCRIPTION>4
+<TEXT>
+<XML>
+<?xml version="1.0"?>
+<ownershipDocument>
+
+    <schemaVersion>X0609</schemaVersion>
+
+    <documentType>4</documentType>
+
+    <periodOfReport>2026-10-29</periodOfReport>
+
+    <issuer>
+        <issuerCik>0000078749</issuerCik>
+        <issuerName>AGILYSYS INC</issuerName>
+        <issuerTradingSymbol>AGYS</issuerTradingSymbol>
+        <issuerForeignTradingSymbol></issuerForeignTradingSymbol>
+    </issuer>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0001228146</rptOwnerCik>
+            <rptOwnerName>MUTCH JOHN</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerNonUSAddressFlag>false</rptOwnerNonUSAddressFlag>
+            <rptOwnerStreet1>C/O AGILYSYS, INC.</rptOwnerStreet1>
+            <rptOwnerStreet2>3655 BROOKSIDE PARKWAY, SUITE 300</rptOwnerStreet2>
+            <rptOwnerCity>ALPHARETTA</rptOwnerCity>
+            <rptOwnerState>GA</rptOwnerState>
+            <rptOwnerZipCode>30022</rptOwnerZipCode>
+            <rptOwnerStateDescription></rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>true</isDirector>
+            <isOfficer>false</isOfficer>
+            <isTenPercentOwner>false</isTenPercentOwner>
+            <isOther>false</isOther>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <aff10b5One>false</aff10b5One>
+
+    <nonDerivativeTable>
+        <nonDerivativeTransaction>
+            <securityTitle>
+                <value>Common Stock</value>
+            </securityTitle>
+            <transactionDate>
+                <value>2026-10-29</value>
+            </transactionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>S</transactionCode>
+                <equitySwapInvolved>false</equitySwapInvolved>
+            </transactionCoding>
+            <transactionAmounts>
+                <transactionShares>
+                    <value>500</value>
+                </transactionShares>
+                <transactionPricePerShare>
+                    <value>115.04</value>
+                </transactionPricePerShare>
+                <transactionAcquiredDisposedCode>
+                    <value>D</value>
+                </transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>31877</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>D</value>
+                </directOrIndirectOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+        <nonDerivativeTransaction>
+            <securityTitle>
+                <value>Common Stock</value>
+            </securityTitle>
+            <transactionDate>
+                <value>2026-10-29</value>
+            </transactionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>S</transactionCode>
+                <equitySwapInvolved>false</equitySwapInvolved>
+            </transactionCoding>
+            <transactionAmounts>
+                <transactionShares>
+                    <value>250</value>
+                </transactionShares>
+                <transactionPricePerShare>
+                    <value>114.81</value>
+                </transactionPricePerShare>
+                <transactionAcquiredDisposedCode>
+                    <value>D</value>
+                </transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>31627</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>D</value>
+                </directOrIndirectOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+    </nonDerivativeTable>
+
+    <ownerSignature>
+        <signatureName>/s/ Kyle C. Badger, Attorney-in-Fact</signatureName>
+        <signatureDate>2026-10-30</signatureDate>
+    </ownerSignature>
+</ownershipDocument>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>
+

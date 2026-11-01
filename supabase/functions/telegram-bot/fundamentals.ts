@@ -10,6 +10,7 @@
 
 import { clock, day, esc, fit, isoDay, resolve, type Button, type Ctx, type Reply } from './logic.ts';
 import { insiderLine } from './insiders.ts';
+import { holdersButton } from './holders.ts';
 
 type J = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 const obj = (v: unknown): J => (v && typeof v === 'object' && !Array.isArray(v) ? (v as J) : {});
@@ -141,7 +142,7 @@ async function stockFund(sym: string, row: J, ctx: Ctx): Promise<Reply> {
   const e = obj(obj(st.stocks)[sym]);
   const name = e.n ?? row.n ?? '';
   const lines = [`📑 <b>${esc(sym)}</b>${name ? ` · ${esc(name)}` : ''} · fundamentals`, ''];
-  const buttons: Button[][] = [[{ text: `🔎 Zones ${sym}`, callback_data: `z:${sym}` }, { text: `📊 Chart ${sym}`, callback_data: `c:${sym}` }]];
+  const buttons: Button[][] = [[{ text: `🔎 Zones ${sym}`, callback_data: `z:${sym}` }, { text: `📊 Chart ${sym}`, callback_data: `c:${sym}` }, holdersButton(sym)]];
   if (e.cik) buttons.push([{ text: '📄 SEC filings', url: `https://www.sec.gov/edgar/browse/?CIK=${encodeURIComponent(String(e.cik))}` }]);
   if (e.na) {
     lines.push(`n/a: ${esc(e.na)}`);
