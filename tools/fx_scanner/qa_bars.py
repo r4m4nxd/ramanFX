@@ -15,7 +15,7 @@ is fetched: no other OANDA alignment matches MT5 better.
 
 Paging: OANDA returns at most 5000 candles per request, so each history is read in from / to windows of 4500 candles
 (the newest window: from + count=5000, since `to` may not be in the future); overlapping candles are de-duplicated by
-time. Ranges (now = run time): MN since 2005-01, W1 since 2015-01, D1 since 2018-01, H4 the last 730 days, H1 the last
+time. Ranges (now = run time): MN since 2005-01, W1 since 2005-01, D1 since 2005-01 (research: trend vs S/D back-test), H4 the last 730 days, H1 the last
 183 days, M15 the last 42 days.
 
 Output (compact JSON, one file per symbol and timeframe, MT5 symbol names):
@@ -47,13 +47,13 @@ import oanda as O  # noqa: E402
 SYMS: Dict[str, str] = {
     'XAUUSD': 'XAU_USD', 'AUDUSD': 'AUD_USD', 'EURUSD': 'EUR_USD', 'GBPUSD': 'GBP_USD', 'GBPJPY': 'GBP_JPY',
     'USDJPY': 'USD_JPY', 'NZDUSD': 'NZD_USD', 'USDCAD': 'USD_CAD', 'XAGUSD': 'XAG_USD', 'US30': 'US30_USD',
-    'NAS100': 'NAS100_USD', 'SPOTCRUDE': 'WTICO_USD',
+    'NAS100': 'NAS100_USD', 'SPOTCRUDE': 'WTICO_USD', 'US500': 'SPX500_USD',
 }
 # TF -> (fixed start date, or None) / look-back days
 PLAN: Dict[str, Tuple[Optional[dt.datetime], Optional[int]]] = {
     'MN': (dt.datetime(2005, 1, 1), None),
-    'W1': (dt.datetime(2015, 1, 1), None),
-    'D1': (dt.datetime(2018, 1, 1), None),
+    'W1': (dt.datetime(2005, 1, 1), None),
+    'D1': (dt.datetime(2005, 1, 1), None),
     'H4': (None, 730),
     'H1': (None, 183),
     'M15': (None, 42),

@@ -5,7 +5,7 @@ name: QA bars (long history)
 # OANDA (practice by default, vars.OANDA_ENV) is only reachable from Actions. Paged from / to (OANDA: 5000 candles per
 # request max). Candles: price=BA, the BID side kept (scanner convention: MT5 charts plot bid), aligned like the
 # scanner (alignmentTimezone=America/New_York, dailyAlignment=17, weeklyAlignment=Friday) = Pepperstone server time
-# (GMT+2 / GMT+3, 00:00 = 17:00 New York), labelled in server time. Ranges: MN since 2005, W1 since 2015, D1 since 2018,
+# (GMT+2 / GMT+3, 00:00 = 17:00 New York), labelled in server time. Ranges: MN since 2005, W1 and D1 since 2005,
 # H4 2 years, H1 6 months, M15 6 weeks.
 # Output: qa/bars/<SYM>/<TF>.json + qa/bars/index.json on the `data` branch (scripts/data-branch.sh; `pull` skips it).
 # Read it with scripts/qa-bars.ts loadQaBars(sym, tf) from a local checkout of the data branch.
