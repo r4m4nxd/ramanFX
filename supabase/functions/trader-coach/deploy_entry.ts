@@ -1,4 +1,4 @@
 // Deploy entry for the edge function `trader-coach` (verify_jwt false; the function checks its own secret): it imports the
 // reviewed source at ONE commit of github.com/r4m4nxd/ramanFX, so the deployed code is exactly what is on GitHub.
 // To redeploy: push, put the new commit SHA below, deploy this file as index.ts (MCP deploy_edge_function).
-import 'https://raw.githubusercontent.com/r4m4nxd/ramanFX/6b0e7051960f22750f5e89bb498091a504400f4d/supabase/functions/trader-coach/index.ts';
+import 'https://raw.githubusercontent.com/r4m4nxd/ramanFX/6e12db8301d7249b7125fd885fd87ba8e9866fca/supabase/functions/trader-coach/index.ts';
