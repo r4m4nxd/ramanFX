@@ -30,8 +30,8 @@ if _CT not in sys.path:
     sys.path.insert(0, _CT)
 
 TFS = ('H1', 'H4', 'D1', 'W1', 'MN')
-PERIOD_S = {'H1': 3600, 'H4': 14400, 'D1': 86400, 'W1': 7 * 86400, 'MN': 31 * 86400}
-WINDOW_D = {'H1': 20, 'H4': 90, 'D1': 360, 'W1': 1800, 'MN': 1800}   # days per history request (under the API's caps)
+PERIOD_S = {'M15': 900, 'H1': 3600, 'H4': 14400, 'D1': 86400, 'W1': 7 * 86400, 'MN': 31 * 86400}
+WINDOW_D = {'M15': 7, 'H1': 20, 'H4': 90, 'D1': 360, 'W1': 1800, 'MN': 1800}   # days per history request (under the API's caps)
 PACE = 0.21                                                            # s between requests (5 / s)
 _LOCK = threading.RLock()
 _S: Dict = {}
@@ -197,6 +197,13 @@ def update(sym: str, tf: str, sid: int, now: Optional[float] = None) -> List[lis
     rows = rows[-keep:]
     _save(sym, tf, rows)
     return rows
+
+
+def recent(sym: str, tf: str, count: int = 400) -> List[Bar]:
+    """The newest `count` closed bars of one TF (M15 / H1 ...), no cache: the 15-minute realignment check (realign.py)."""
+    sid = symbol_id(sym)
+    rows = _history(sid, tf, None, count, time.time(), sym)
+    return [Bar(r[0], r[1], r[2], r[3], r[4], r[5]) for r in rows[-count:]]
 
 
 def bars(sym: str) -> Dict[str, List[Bar]]:

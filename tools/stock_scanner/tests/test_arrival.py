@@ -298,6 +298,10 @@ class StateAndCap(unittest.TestCase):
         self.assertEqual(AA.pick(c, st, 0, now=NOW), [])
         self.assertEqual(AA.pick([item('arrival', 'E')], {'seen': {}}, AA.DAY_CAP, now=NOW), [])
 
+    def test_confirmation_is_never_capped(self):
+        got = AA.pick([item('confirm', 'A'), item('arrival', 'B')], {'seen': {}}, AA.DAY_CAP, now=NOW)   # cap used up
+        self.assertEqual([g['kind'] for g in got], ['confirm'])
+
     def test_muted_symbols_never_sent(self):
         got = AA.pick([item('arrival', 'A'), item('arrival', 'B')], {'seen': {}}, 0, muted={'A'}, now=NOW)
         self.assertEqual([g['sym'] for g in got], ['B'])

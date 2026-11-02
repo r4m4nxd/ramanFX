@@ -34,11 +34,11 @@ LTFS = ('M15', 'H1')
 COUNT = 400
 
 
-def open_inside(areas: Dict[str, Dict], done: Dict[str, str]) -> List[Dict]:
+def open_inside(areas: Dict[str, Dict], done: Dict[str, str], ct: bool = False) -> List[Dict]:
     """The areas to check: entered, flagged inside by the hourly scan, not confirmed (here or there), lower TF M15 / H1,
-    an OANDA instrument (extra-source instruments have no OANDA candles)."""
+    an OANDA instrument (extra-source instruments have no OANDA candles) - or any symbol with the cTrader feed (ct)."""
     return [a for k, a in sorted(areas.items()) if a.get('ltf') in LTFS and a.get('entered') and a.get('inside')
-            and not a.get('confirmed') and k not in done and a.get('oanda') and not a.get('src')]
+            and not a.get('confirmed') and k not in done and a.get('oanda') and (ct or not a.get('src'))]
 
 
 def fetch_bars(name: str, tf: str, get: Optional[Callable[[str], bytes]] = None) -> List[Z.Bar]:
@@ -73,10 +73,21 @@ def run(argv=None, bars_of=None, send=None, prefs=None, now: Optional[dt.datetim
     now = now or dt.datetime.now(dt.timezone.utc)
     st = AA.load(path)
     done = st.setdefault('area_confirmed', {})
-    todo = open_inside((AA.load(fx_state).get('areas') or {}), done)
+    import sources.ctrader_feed as CTF
+    ct = CTF.enabled()
+    todo = open_inside((AA.load(fx_state).get('areas') or {}), done, ct)
     log(f"realign: {len(todo)} area(s) to check" + (': ' + ', '.join(f"{x['sym']} {x['tf']}->{x['ltf']}" for x in todo) if todo else ''))
     if not todo:
         return 0
+    if bars_of is None and ct:
+        # 2026-11: Pepperstone's own M15 / H1 bars (cTrader), OANDA only when the symbol is not listed there
+        sym_of = {x['oanda']: x['sym'] for x in todo}
+
+        def bars_of(name: str, tf: str) -> List[Z.Bar]:
+            try:
+                return CTF.recent(sym_of.get(name) or name.replace('_', ''), tf, COUNT)
+            except CTF.NotListed:
+                return fetch_bars(name, tf)
     if bars_of is None:
         import oanda as O
         O.token()

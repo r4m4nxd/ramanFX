@@ -47,7 +47,7 @@ jobs:
           python-version: '3.12'
 
       - name: Current time-zone data
-        run: python -m pip install --quiet --upgrade tzdata
+        run: python -m pip install --quiet --upgrade tzdata websocket-client==1.8.0   # websocket-client: the cTrader feed
 
       - name: Unit tests
         run: |
@@ -63,6 +63,12 @@ jobs:
         env:
           DRY_RUN: ${{ github.event.inputs.dry_run }}
           OANDA_API_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
+          # Pepperstone's own M15 / H1 bars (tools/fx_scanner/sources/ctrader_feed.py), OANDA as the fallback
+          CTRADER_CLIENT_ID: ${{ secrets.CTRADER_CLIENT_ID }}
+          CTRADER_CLIENT_SECRET: ${{ secrets.CTRADER_CLIENT_SECRET }}
+          CTRADER_ACCESS_TOKEN: ${{ secrets.CTRADER_ACCESS_TOKEN }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FX_FEED: ${{ vars.FX_FEED || 'ctrader' }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 

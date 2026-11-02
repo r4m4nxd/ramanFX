@@ -284,7 +284,10 @@ def pick(cands: Sequence[Dict], st: Dict, used_today: int, cap: int = DAY_CAP, m
         left = min(left, max_msgs)
     out: List[Dict] = []
     kinds = sorted({c['kind'] for c in fresh if c['sym'] not in (muted or set())}, key=lambda k: ORDER[k])
-    for k in kinds[:left]:
+    # 2026-11-02 (owner pick 'FX 1'): the confirmation (a lower-TF arrival inside a higher-TF area) is THE trade alert:
+    # it is never held back by the day's cap; the cap governs the other kinds
+    take = [k for k in kinds if k == 'confirm'] + [k for k in kinds if k != 'confirm'][:max(0, left - (1 if 'confirm' in kinds else 0))]
+    for k in take:
         out += [c for c in fresh if c['kind'] == k and c['sym'] not in (muted or set())]
     return out
 
