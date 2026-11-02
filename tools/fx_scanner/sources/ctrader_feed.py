@@ -43,7 +43,8 @@ class NotListed(KeyError):
 
 
 def enabled() -> bool:
-    return bool((os.environ.get('CTRADER_ACCESS_TOKEN') or '').strip()) and (os.environ.get('FX_FEED') or 'ctrader').strip().lower() != 'oanda'
+    has_token = bool((os.environ.get('CTRADER_ACCESS_TOKEN') or '').strip() or os.environ.get('SUPABASE_SERVICE_ROLE_KEY'))
+    return bool(os.environ.get('CTRADER_CLIENT_ID')) and has_token and (os.environ.get('FX_FEED') or 'ctrader').strip().lower() != 'oanda'
 
 
 def _connect() -> None:

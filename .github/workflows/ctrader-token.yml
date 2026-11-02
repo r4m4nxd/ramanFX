@@ -1,0 +1,27 @@
+name: cTrader token
+
+# Keeps the cTrader Open API access token alive (tools/ctrader/ct_token.py): weekly, refreshes it when fewer than 10
+# days are left (tokens last ~30 days) and stores the new access / refresh tokens in Supabase (rfx_ctrader_token,
+# service role only), where the FX scanner and the Telegram bot read them. Manual run with force = refresh now.
+on:
+  schedule:
+    - cron: '17 9 * * 1'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Refresh now, even when the token is still valid'
+        type: boolean
+        default: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/ctrader/ct_token.py refresh ${{ github.event.inputs.force == 'true' && '--force' || '' }}
+        env:
+          CTRADER_CLIENT_ID: ${{ secrets.CTRADER_CLIENT_ID }}
+          CTRADER_CLIENT_SECRET: ${{ secrets.CTRADER_CLIENT_SECRET }}
+          CTRADER_REFRESH_TOKEN: ${{ secrets.CTRADER_REFRESH_TOKEN }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

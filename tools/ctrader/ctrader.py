@@ -6,6 +6,9 @@ Secrets (env): CTRADER_CLIENT_ID, CTRADER_CLIENT_SECRET, CTRADER_ACCESS_TOKEN (C
 import json, os, sys, time, itertools
 import websocket  # pip install websocket-client
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import ct_token  # noqa: E402  (the newest access token: Supabase table, else the secret)
+
 HOSTS = {True: "wss://live.ctraderapi.com:5036", False: "wss://demo.ctraderapi.com:5036"}
 # payload types (OpenApiMessages.proto)
 APP_AUTH, APP_AUTH_RES = 2100, 2101
@@ -40,10 +43,10 @@ class CTrader:
         return self.call(APP_AUTH, {"clientId": os.environ["CTRADER_CLIENT_ID"], "clientSecret": os.environ["CTRADER_CLIENT_SECRET"]}, APP_AUTH_RES)
 
     def accounts(self):
-        return self.call(ACC_LIST, {"accessToken": os.environ["CTRADER_ACCESS_TOKEN"]}, ACC_LIST_RES).get("ctidTraderAccount", [])
+        return self.call(ACC_LIST, {"accessToken": ct_token.access_token()}, ACC_LIST_RES).get("ctidTraderAccount", [])
 
     def acc_auth(self, acc):
-        return self.call(ACC_AUTH, {"ctidTraderAccountId": acc, "accessToken": os.environ["CTRADER_ACCESS_TOKEN"]}, ACC_AUTH_RES)
+        return self.call(ACC_AUTH, {"ctidTraderAccountId": acc, "accessToken": ct_token.access_token()}, ACC_AUTH_RES)
 
     def symbols(self, acc):
         return self.call(SYMBOLS, {"ctidTraderAccountId": acc}, SYMBOLS_RES).get("symbol", [])
