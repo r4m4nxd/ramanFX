@@ -1,4 +1,4 @@
 // The file deployed as the Supabase edge function `telegram-bot` (MCP deploy_edge_function, verify_jwt false): it
 // imports the reviewed source at ONE commit of this repo, so the deployed code is exactly what is on GitHub.
 // To redeploy after a change to supabase/functions/telegram-bot/*: push, put the new commit SHA below, deploy this file.
-import 'https://raw.githubusercontent.com/r4m4nxd/ramanFX/403b2d55f8e990ba9295ba8acab8d4c88e04fa5d/supabase/functions/telegram-bot/index.ts';
+import 'https://raw.githubusercontent.com/r4m4nxd/ramanFX/c38bb864bcdfd2f186963f51d0947e845e63424c/supabase/functions/telegram-bot/index.ts';
