@@ -17,6 +17,8 @@ SYMBOLS, SYMBOLS_RES = 2114, 2115
 TRENDBARS, TRENDBARS_RES = 2137, 2138
 ACC_LIST, ACC_LIST_RES = 2149, 2150
 ERROR, HEARTBEAT = 2142, 51
+ASSET_CLASS, ASSET_CLASS_RES = 2153, 2154
+CATEGORY, CATEGORY_RES = 2160, 2161
 PERIOD = {"M1": 1, "M5": 5, "M15": 7, "M30": 8, "H1": 9, "H4": 10, "D1": 12, "W1": 13, "MN1": 14, "MN": 14}
 
 
@@ -77,6 +79,28 @@ class CTrader:
         return out[-count:]
 
 
+def inventory():
+    """Every enabled symbol of the live account grouped by asset class / category (names only, no secrets): which
+    Pepperstone symbols exist beyond the scanner's universe. Writes ctrader_symbols.json (uploaded as an artifact)."""
+    c = CTrader(live=True); c.app_auth()
+    a = next(x for x in c.accounts() if x.get("isLive"))
+    acc = a["ctidTraderAccountId"]; c.acc_auth(acc)
+    cls = {x["id"]: x.get("name", "") for x in c.call(ASSET_CLASS, {"ctidTraderAccountId": acc}, ASSET_CLASS_RES).get("assetClass", [])}
+    cat = {x["id"]: (cls.get(x.get("assetClassId"), "?"), x.get("name", "")) for x in c.call(CATEGORY, {"ctidTraderAccountId": acc}, CATEGORY_RES).get("symbolCategory", [])}
+    groups = {}
+    for s in c.symbols(acc):
+        if not s.get("enabled", True):
+            continue
+        k = cat.get(s.get("symbolCategoryId"), ("?", "?"))
+        groups.setdefault(f"{k[0]} / {k[1]}", []).append(s.get("symbolName"))
+    for k in sorted(groups):
+        names = sorted(groups[k])
+        print(f"{k}: {len(names)}" + (f"  {' '.join(names[:400])}" if not k.lower().startswith(("share", "stock", "etf")) else ""))
+    with open("ctrader_symbols.json", "w") as f:
+        json.dump(groups, f, indent=0)
+    return 0
+
+
 def mask(x):
     s = str(x)
     return "***" + s[-3:]
@@ -112,4 +136,4 @@ def check():
 
 
 if __name__ == "__main__":
-    sys.exit(check() if sys.argv[1:] == ["check"] else 2)
+    sys.exit(check() if sys.argv[1:] == ["check"] else inventory() if sys.argv[1:] == ["inventory"] else 2)

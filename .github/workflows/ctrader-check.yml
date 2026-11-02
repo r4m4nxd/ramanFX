@@ -4,6 +4,11 @@ name: cTrader check
 # symbol count, a few D1 candles), then compares cTrader bars with OANDA's for a few symbols (tools/ctrader/parity.py).
 on:
   workflow_dispatch:
+    inputs:
+      parity:
+        description: 'Also compare bars with OANDA (2-3 min)'
+        type: boolean
+        default: false
 
 jobs:
   check:
@@ -25,5 +30,12 @@ jobs:
           python-version: '3.12'
       - run: pip install -q websocket-client==1.8.0 tzdata
       - run: python tools/ctrader/ctrader.py check
+      - name: Symbol inventory (every enabled symbol by asset class / category)
+        run: python tools/ctrader/ctrader.py inventory
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ctrader-symbols
+          path: ctrader_symbols.json
       - name: Parity vs OANDA (a few symbols)
+        if: ${{ github.event.inputs.parity != 'false' }}
         run: python tools/ctrader/parity.py
