@@ -1,4 +1,4 @@
-// ZoneVision 2.16 structure model (supabase/functions/telegram-bot/zvModel.ts = docs/training/SPEC.md): every acceptance row
+// ZoneVision 2.19 structure model (supabase/functions/telegram-bot/zvModel.ts = docs/training/SPEC.md): every acceptance row
 // of SPEC sections 4 / 5 (src/core/structure/rows.ts, on the long-history qa/bars fixture), the invariants of section 6
 // (I1 - I5) and window independence (X1). A row the rules as written cannot produce is asserted as a KNOWN gap with its reason
 // (it fails loudly the day it starts passing, so the table is updated), never skipped silently.
@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { chart, model, qaRows } from './structure/acceptance';
 import { ROWS } from './structure/rows';
 import { Series } from '../../supabase/functions/telegram-bot/zonecore';
-import { zmAt, zmModel, zmPivots, zmTf, type ZmModel } from '../../supabase/functions/telegram-bot/zvModel';
+import { ZM, zmAt, zmModel, zmPivots, zmTf, type ZmLine, type ZmModel } from '../../supabase/functions/telegram-bot/zvModel';
 
 describe('SPEC acceptance rows (sections 4 + 5, owner gold marks 2026-10-30)', () => {
   for (const r of ROWS) {
@@ -58,12 +58,14 @@ describe('SPEC 6 invariants', () => {
     expect(m.structure).toContain('W1 loading');
     expect(m.structure.startsWith('3M ')).toBe(true);
   });
-  it('I5: a trend line ends at its first close beyond (or a veto rotation); no live line has a close beyond it now', () => {
+  it('I5 (2.19, owner Q1): a trend line ends at the first wick beyond it by more than wickTol ATR after its anchor 2; no live line has one', () => {
     for (const [sym, tf, to] of [['XAUUSD', 'D1', '2026-10-29'], ['XAUUSD', 'W1', '2026-10-17'], ['AUDUSD', 'D1', '2026-10-29'], ['AUDUSD', 'H4', '2026-10-30T16'], ['XAUUSD', 'H4', '2026-10-30T16']]) {
       const c = chart(sym, tf, to);
+      const cut = (t: ZmLine, j: number) => t.dir * (zmAt(t, j) - (t.dir > 0 ? c.S.L[j] : c.S.H[j])) > ZM.wickTol * c.atr(j);
       for (const t of c.t.lines.filter(l => l.kind !== 'momentum')) {
-        if (t.brokenAt >= 0) expect(t.dir > 0 ? c.S.C[t.brokenAt] < zmAt(t, t.brokenAt) : c.S.C[t.brokenAt] > zmAt(t, t.brokenAt), `${sym} ${tf} ${t.a}>${t.b}`).toBe(true);
-        else expect(t.dir > 0 ? c.S.C[1] >= zmAt(t, 1) : c.S.C[1] <= zmAt(t, 1), `${sym} ${tf} live ${t.a}>${t.b}`).toBe(true);
+        const end = t.brokenAt >= 0 ? t.brokenAt : 0;
+        for (let j = t.b - 1; j > end; j--) expect(cut(t, j), `${sym} ${tf} ${t.a}>${t.b}: a wick beyond at ${j} before the break`).toBe(false);
+        if (t.brokenAt >= 0) expect(cut(t, t.brokenAt), `${sym} ${tf} ${t.a}>${t.b} broken at ${t.brokenAt}`).toBe(true);
       }
     }
   });

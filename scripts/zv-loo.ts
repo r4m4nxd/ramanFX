@@ -21,6 +21,9 @@ const ALL_GROUPS: { name: string; type: 'lines' | 'momentum' | 'zones'; grid: Re
   { name: 'H1', type: 'lines', grid: cart({ bosN: [0, 1, 2], p1Low: [0, 1] }) },
   { name: 'H2', type: 'momentum', grid: cart({ momRun: [0, 1], momBody: [0.8, 1.0, 1.2, 1.4], momBars: [0, 5] }) },
   { name: 'H3', type: 'zones', grid: cart({ pivZones: [2, 3] }) },
+  // 2.19: the owner's Q1 (wick break, redraw after a new extreme) and Q2 (anchors anywhere in the valley / peak area) rules
+  { name: 'Q1', type: 'lines', grid: cart({ wickBrk: [0, 1], redraw: [0, 1] }) },
+  { name: 'Q2', type: 'lines', grid: cart({ vArea: [0, 0.25, 0.5] }) },
 ];
 const gi = process.argv.indexOf('--groups');
 const GROUPS = gi >= 0 ? ALL_GROUPS.filter(g => process.argv[gi + 1].split(',').includes(g.name)) : ALL_GROUPS;

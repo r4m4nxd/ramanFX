@@ -1,6 +1,7 @@
-// ZoneVision 2.18 STRUCTURE MODEL: the ONE top-down chart reading of docs/training/SPEC.md, as a pure function of the bars.
-// Canonical TypeScript; the MT5 mirror is the RFX_MODEL block of public/tools/RFX_ZoneCore.mqh (ZoneVision 2.18), line by
-// line; conformance: tools/telegram_bot/parity/mql_port.py --model (src/core/zvModelParity.test.ts). Every consumer (the
+// ZoneVision 2.19 STRUCTURE MODEL: the ONE top-down chart reading of docs/training/SPEC.md, as a pure function of the bars.
+// Canonical TypeScript; the MT5 mirror is the RFX_MODEL block of public/tools/RFX_ZoneCore.mqh (still ZoneVision 2.18: the
+// 2.19 rules wickBrk / redraw / vArea are not ported yet, the conformance compares with them off), line by line;
+// conformance: tools/telegram_bot/parity/mql_port.py --model (src/core/zvModelParity.test.ts). Every consumer (the
 // STRUCTURE line, the DIRECTION message, the HTF lines on lower TFs, the REALIGN box, zone roles, break alerts, export)
 // reads THIS object; nothing else recomputes structure. Not used by the Telegram bot / Pine / MT4 yet (owner approval).
 //
@@ -18,7 +19,9 @@
 //      local extreme, clean with p1Shift, anchor 2 at the hull touch up to the confirmation) is FIXED; the first CLOSE beyond
 //      breaks it (the fake-cross veto only for a close within vetoClose ATR). 2.18 H1 (W1 / MN / 3M): the candle that closes
 //      beyond the first swing after a real pivot, when it launches the leg, is a line swing too; Line 1 from a cut local
-//      extreme starts at the first higher low after it.
+//      extreme starts at the first higher low after it. 2.19 (owner 2026-11-01): the first WICK beyond breaks a line; a new
+//      extreme after it (before a departure candle closes beyond) redraws it from the same anchor 1 through the pullback
+//      (wickBrk / redraw); anchor 1 of every line = the first bar of its valley / peak area whose line cuts no candle (vArea).
 //   3. momentum lines (SPEC 1.6): one per impulse leg from the pivot, plus (2.18 H2) one per one-way run inside the leg that
 //      starts with a >= momBody ATR departure candle; the hull over the next momBars bars (all kept).
 //   4. zones (SPEC 1.10): zonecore.detect + HTF range bases + reversal zones at the real pivots (2.18 H3: after a leg-in
@@ -60,6 +63,20 @@ export const ZM = {
    *  departure candle of body >= momBody ATR right after an opposite-coloured or basing candle; momBars = the momentum hull's
    *  window, bars after anchor 1 (0 = up to the next pivot). */
   momRun: 1, momBody: 1.0, momBars: 5,
+  /** 2.19 owner Q1 (2026-11-01, "even a tiny wick will break the trendline"): wickBrk 1 = a trend line is broken by the first
+   *  candle whose wick crosses it by more than wickTol ATR (a poke within wickTol, invisible on the chart, is a touch: the
+   *  owner's live gold D1 Sep 3 -> Sep 18 line has 0.022 / 0.042 ATR pokes on Oct 16 / 19; replaces the first close + the
+   *  vetoClose veto); redraw 1 = after that break, a new extreme in the line's direction (a new high beyond the highest high
+   *  since anchor 1 for an up line, by more than wickTol ATR) before a departure candle of the break's colour closes beyond
+   *  the broken line (the break confirmed the other way) redraws the line from the same anchor 1 through the pullback's
+   *  touch (the old line is deleted); otherwise the break stands and the chain follows. */
+  wickBrk: 1, wickTol: 0.05, redraw: 1,
+  /** 2.19 owner Q2 (2026-11-01, "i would choose the pivot that doesn't cut any candles when drawing a trendline, given that
+   *  the pivot is in the area of that valley or peak"): vArea > 0 = anchor 1 of every line (Line 1, chain, nested, ...) may
+   *  be any bar of the valley (peak) area after its swing, up to the anchor-2 swing: its line-side extreme within vArea ATR
+   *  of the swing's; in time order the first whose line cuts no candle (a wick beyond it by more than wickTol ATR) = the
+   *  tangent over the area (replaces p1Shift / p1Low); 0 = the 2.18 candidates. */
+  vArea: 0.25,
 };
 export type ZmParams = typeof ZM;
 /** Q1: how Line 1 of a structure starts. 'spec' = the clean-line test (2.2 step 2); 'retrace' = the p1Retrace rule;
@@ -537,6 +554,14 @@ function zmDirF(S: Series, sw: ZmPivot[], d: number, k: ZmParams, atr: (i: numbe
   const p1Low = k.p1Low > 0 && htf;
   const cands = (a: number, sb: number, ext: boolean): [number, number][] => {
     const out2: [number, number][] = [];
+    if (k.vArea > 0) {
+      // Q2 (2.19, every TF / line): the valley area of a = the bars after it, before the anchor-2 swing sb, whose line-side
+      // extreme is within vArea ATR of a's; in time order, the first whose line cuts no candle (no wick beyond it by more
+      // than wickTol ATR, the break tolerance) = the tangent over the area
+      out2.push([a, k.wickTol]);
+      for (let c = a - 1; c > sb; c--) if (d * (X(c) - X(a)) <= k.vArea * atr(c)) out2.push([c, k.wickTol]);
+      return out2;
+    }
     for (let sh = 0; sh <= k.p1Shift && a - sh > sb; sh++) out2.push([a - sh, 0]);
     if (ext && p1Low && a - 1 > sb) {
       let lo = a - 1;
@@ -569,16 +594,62 @@ function zmDirF(S: Series, sw: ZmPivot[], d: number, k: ZmParams, atr: (i: numbe
   const orphans: ZmLine[] = [];
   const third = new Map<ZmLine, ZmPivot>();              // a live line's 3rd touch: pivot 1 of the next, flatter line
   let chain: { bar: number; p: number; brk: number } | null = null, wait: ZmPivot | null = null;
+  // Q1 (2.19): the break of a trend line at bar x. wickBrk: the first wick beyond wickTol ATR; else the first close (veto)
+  const wick = k.wickBrk > 0;
+  const cut = (t: ZmLine, x: number) => (wick ? d * (zmAt(t, x) - X(x)) > k.wickTol * atr(x) : beyond(t, x) && !veto(t, x));
+  // Q1 redraw: a wick-broken line waits for a visible new extreme (beyond the move since anchor 1) -> redrawn from anchor 1
+  // through the pullback's touch; a departure candle of the break's colour closing beyond the broken line first (SPEC 1.1:
+  // body >= 50% of its range; the break confirmed the other way) -> the break stands and the chain follows from the old
+  // anchor-2 swing
+  const pend: { t: ZmLine; k: number; ext: number }[] = [];
+  const stand = (t: ZmLine, x: number) => { chain = { bar: t.p2, p: X(t.p2), brk: x }; };
+  // bar h for a pending line: true = settled (redrawn or the break stands)
+  const settle = (p: { t: ZmLine; k: number; ext: number }, h: number): boolean => {
+    const t = p.t, sideFirst = d > 0 ? C[h] >= S.O[h] : C[h] < S.O[h];    // the OHLC path: the line-side extreme first
+    const newExt = h < p.k && d * (Y(h) - p.ext) > k.wickTol * atr(h);    // a visible new extreme (more than wickTol ATR)
+    const conf = beyond(t, h) && S.cdir(h) === -d && !S.basing(h);         // a departure candle closing beyond: confirmed
+    if (conf && !(newExt && !sideFirst)) { stand(t, p.k); return true; }
+    if (!newExt) return false;
+    let nb = -1, sl = 0;
+    for (let c = t.b - 1; c >= h; c--) {
+      if (c === h && !sideFirst) continue;
+      const s2 = (X(c) - t.pa) / (t.a - c);
+      if (nb < 0 || (d > 0 ? s2 < sl : s2 > sl)) { nb = c; sl = s2; }
+    }
+    if (nb < 0 || !slopeOk(t.a, t.pa, nb, X(nb))) { stand(t, p.k); return true; }
+    zmDebug.log?.(`d${d} redraw ${S.T[t.a]}>${S.T[t.b]} broken ${S.T[p.k]} -> ${S.T[t.a]}>${S.T[nb]} at ${S.T[h]}`);
+    t.b = nb; t.pb = X(nb); t.p2 = nb; t.brokenAt = -1; t.why = 'redraw'; t.touches++;   // the new pivot 2 (chain start)
+    live.push(t);
+    if (chain && chain.brk === p.k) chain = null;
+    return true;
+  };
+  // t broken at x (>= j): the break stands, or (redraw) it waits for a new extreme, bars x .. j already known
+  const pendOn = (t: ZmLine, x: number, j: number) => {
+    if (!(wick && k.redraw)) { stand(t, x); return; }
+    let ext = Y(t.a);
+    for (let h = t.a - 1; h >= x; h--) ext = d > 0 ? Math.max(ext, Y(h)) : Math.min(ext, Y(h));
+    const p = { t, k: x, ext };
+    for (let h = x; h >= j; h--) {
+      if (!settle(p, h)) continue;
+      if (t.brokenAt < 0 && h > j) { live.splice(live.indexOf(t), 1); run(t, h - 1, j); }   // redrawn: its own life up to j
+      return;
+    }
+    pend.push(p);
+  };
+  // the life of line t over bars from .. to (from older): live at the end, or broken (and pending / standing)
+  const run = (t: ZmLine, from: number, to: number) => {
+    for (let x = Math.min(from, t.b - 1); x >= to; x--) if (cut(t, x)) { t.brokenAt = x; pendOn(t, x, to); return; }
+    live.push(t);
+  };
   const broke = (t: ZmLine, x: number) => {
     t.brokenAt = x;
     const i = live.indexOf(t);
-    if (i >= 0) { live.splice(i, 1); chain = { bar: t.p2, p: X(t.p2), brk: x }; }
+    if (i >= 0) { live.splice(i, 1); pendOn(t, x, x); }
   };
   const born = (t: ZmLine, j: number) => {
     if (hist.some(h => h.a === t.a && h.b === t.b)) return;            // the same line already drawn
     hist.push(t);
-    for (let x = t.b - 1; x >= j; x--) if (beyond(t, x) && !veto(t, x)) { t.brokenAt = x; chain = { bar: t.p2, p: X(t.p2), brk: x }; return; }
-    live.push(t);
+    run(t, t.b - 1, j);
   };
   // a line from bar a (or p1Shift bars after it, the first clean one) to swing s, anchor 2 at the hull touch up to j
   const lineFrom = (a: number, s: ZmPivot, j: number, why: string, steeperThan: ZmLine | null = null) => {
@@ -596,12 +667,13 @@ function zmDirF(S: Series, sw: ZmPivot[], d: number, k: ZmParams, atr: (i: numbe
   let ei = 0;
   const step = (j: number): boolean => {
     let confirmed = false;
+    for (let i = 0; i < pend.length; i++) if (pend[i].k > j && settle(pend[i], j)) pend.splice(i--, 1);   // Q1: redraw or stand
     for (const t of [...live]) {
       if (j >= t.b) continue;
-      if (beyond(t, j)) { if (!veto(t, j)) broke(t, j); }
+      if (wick ? cut(t, j) : beyond(t, j)) { if (wick || !veto(t, j)) broke(t, j); }   // (a vetoed close rotated the line)
       else if (d * (zmAt(t, j) - X(j)) > -k.fitTol * atr(j)) t.touches++;
     }
-    for (const o of orphans) if (o.brokenAt < 0 && j < o.b && beyond(o, j) && !veto(o, j)) o.brokenAt = j;
+    for (const o of orphans) if (o.brokenAt < 0 && j < o.b && cut(o, j)) o.brokenAt = j;
     for (; ei < ev.length && ev[ei].e >= j; ei++) {
       const { s, s0 } = ev[ei];
       if (chain && !out(chain.p, s.p)) chain = null;                  // a swing at / beyond the chain anchor ends the chain
@@ -647,7 +719,7 @@ function zmDirF(S: Series, sw: ZmPivot[], d: number, k: ZmParams, atr: (i: numbe
     }
     return confirmed;
   };
-  const endStructure = () => { wait = null; chain = null; for (const t of live) orphans.push(t); live = []; };
+  const endStructure = () => { wait = null; chain = null; pend.length = 0; for (const t of live) orphans.push(t); live = []; };
   return { d, hist, step, endStructure };
 }
 
@@ -683,14 +755,19 @@ export function zmMainLine(lines: ZmLine[], d: number): ZmLine | null {
   return live.find(l => !zmInner(l)) ?? live[0] ?? null;
 }
 
-/** SPEC 3: a live swing line price left >= 30 bars ago and >= 3 ATR away is stale (hidden; the target line never is). */
+/** SPEC 3: a live swing line price left for >= 30 bars, >= 3 ATR away all that time, is stale (hidden; the target line
+ *  never is). 2.19: once left it stays dead ([K] L19 "price action must be seen around the trendline"): price coming back
+ *  near it years later does not revive it (2.18 only looked at the last 30 bars: the AUDUSD MN 2012 -> 2013 down line
+ *  showed live above price in 2026). */
 export function zmStale(S: Series, t: ZmLine, atr: (i: number) => number): boolean {
   if (t.brokenAt >= 0) return false;
-  for (let j = 1; j <= Math.min(30, t.b - 1); j++) {
+  let away = 0;
+  for (let j = t.b - 1; j >= 1; j--) {
     const x = t.dir > 0 ? S.L[j] : S.H[j];
-    if (Math.abs(x - zmAt(t, j)) < 3 * atr(j)) return false;
+    away = Math.abs(x - zmAt(t, j)) >= 3 * atr(j) ? away + 1 : 0;
+    if (away >= 30) return true;
   }
-  return t.b > 30;
+  return false;
 }
 
 // ---- 4. zones (SPEC 1.10) ---------------------------------------------------------------------------------------------
@@ -1022,8 +1099,8 @@ export const zmReasonTag = (z: ZmZone) => [z.reasons.includes('break') ? 'BOS' :
 
 // ---- what the chart draws (SPEC 3): <= 6 lines per chart ---------------------------------------------------------------
 export interface ZmDraw { line: ZmLine; tf: string; role: 'live' | 'broken' | 'momentum' | 'htf' | 'momentum-broken' }
-/** The lines a chart of TF t shows: per direction the live trend line (not stale, or the target line) and the newest line
- *  broken within brokenShow bars; the live momentum line(s) of the newest impulse and the newest momentum line broken within
+/** The lines a chart of TF t shows: per direction the live trend line (not stale, or the target line) and the current
+ *  (newest drawn) line when it broke within brokenShow bars; the live momentum line(s) of the newest impulse and the newest momentum line broken within
  *  5 bars; plus the HTF target line (drawn on every LTF chart of the correcting TF). */
 export function zmDrawLines(t: ZmTf, m: ZmModel | null, k: ZmParams = ZM): ZmDraw[] {
   const S = (t as ZmTf & { S: Series }).S, atr = zmAtr(S), out: ZmDraw[] = [];
@@ -1034,8 +1111,12 @@ export function zmDrawLines(t: ZmTf, m: ZmModel | null, k: ZmParams = ZM): ZmDra
     const main = lv.find(l => !zmInner(l)) ?? lv[0], inner = lv.find(l => zmInner(l) && l !== main && main && l.born < main.born);
     if (main) out.push({ line: main, tf: t.tf, role: 'live' });
     if (inner) out.push({ line: inner, tf: t.tf, role: 'live' });
-    const brk = t.lines.filter(l => l.kind === 'trend' && l.dir === d && l.brokenAt >= 0 && l.brokenAt <= k.brokenShow).sort((a, b) => a.brokenAt - b.brokenAt)[0];
-    if (brk) out.push({ line: brk, tf: t.tf, role: 'broken' });
+    // 2.19 (owner Q1: "we use and show only new pivot to pivot trendline"): the broken slot shows only the CURRENT line of
+    // the direction (the newest drawn), when it broke within brokenShow bars; an older broken line (of an ended structure
+    // or one a newer line followed) is not drawn (2.18 showed the most recently broken one, e.g. a 2025 gold W1 line over
+    // the owner's Jul 11 -> Aug 1)
+    const cur = t.lines.filter(l => l.kind === 'trend' && l.dir === d).sort((a, b) => a.born - b.born || a.b - b.b)[0];
+    if (cur && cur.brokenAt >= 0 && cur.brokenAt <= k.brokenShow) out.push({ line: cur, tf: t.tf, role: 'broken' });
   }
   // momentum (owner 2026-10-30): the live one(s) of the last two legs + the most recently broken one
   const mom = t.lines.filter(l => l.kind === 'momentum');
@@ -1045,4 +1126,23 @@ export function zmDrawLines(t: ZmTf, m: ZmModel | null, k: ZmParams = ZM): ZmDra
   if (brkM) out.push({ line: brkM, tf: t.tf, role: 'momentum-broken' });
   if (m?.target?.line && m.target.lineTf !== t.tf && zmChainOf(t.tf).includes(m.target.lineTf)) out.push({ line: m.target.line, tf: m.target.lineTf, role: 'htf' });
   return out;
+}
+
+/** The zones a chart of TF t draws (SPEC 3, 2.19): zones with a reason, not removed, not a range base, nearest to price first;
+ *  boxes never overlap: of two zones whose price ranges overlap the stronger one is kept (more reasons, then the nearer to
+ *  price), and none overlaps the REALIGN box (drawn with its own label); at most max zones. */
+export function zmDrawZones(t: ZmTf, m: ZmModel | null, max = 6): ZmZone[] {
+  const px = t.price, tz = m?.target?.zone ?? null;
+  const ov = (a: ZmZone, b: ZmZone) => Math.min(zHi(a), zHi(b)) > Math.max(zLo(a), zLo(b));
+  const nb = (t as ZmTf & { S: Series }).S.n - 1;
+  const cand = t.zones.filter(z => z.reasons.length > 0 && !z.removed && !z.range && z.legBar >= 1 && z.base1 <= nb && (!tz || !ov(z, tz)))
+    .sort((a, b) => zGap(px, a) - zGap(px, b) || b.legBar - a.legBar);
+  const keep: ZmZone[] = [];
+  for (const z of cand) {
+    const hit = keep.filter(o => ov(o, z));
+    if (hit.some(o => o.reasons.length >= z.reasons.length)) continue;          // an overlapping zone at least as strong
+    for (const o of hit) keep.splice(keep.indexOf(o), 1);
+    keep.push(z);
+  }
+  return keep.sort((a, b) => zGap(px, a) - zGap(px, b)).slice(0, max);
 }

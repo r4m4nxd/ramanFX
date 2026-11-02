@@ -4,7 +4,8 @@
 //   too), trend lines broken within 20 bars (grey dotted, ending at the breaking candle), the live momentum lines of the last
 //   two legs (red dashed) and the most recently broken one (red dotted), the higher-TF live lines (gold dotted) and the
 //   target line (purple dashed), the REALIGN target (purple box), zones that have a reason (demand green / supply red,
-//   label = pattern + BOS / CHoCH / xN removed + touches; reversal zones at the real pivots included), real pivots (dots),
+//   label = pattern + BOS / CHoCH / xN removed + touches; reversal zones at the real pivots included; zmDrawZones: boxes never
+//   overlap, the stronger one is kept), real pivots (dots),
 //   the STRUCTURE line (bottom-left) and the DIRECTION message (above the chart, wrapped: it never covers price).
 // Every line is drawn as MT5 draws it: ONE straight OBJ_TREND between two times on the chart's bar axis, the end at the
 // breaking candle or at the last bar + 3 with the line's value there (an HTF line: its HTF value at that time, ZmValueAtTime).
@@ -23,7 +24,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadQaBars } from './qa-bars.ts';
 import { readFileSync } from 'node:fs';
-import { zmAt, zmDrawLines, zmMainLine, zmModel, zmReasonTag, zmStale, zmAtr, type ZmLine, type ZmQ1, type ZmQ2, type ZmTf } from '../supabase/functions/telegram-bot/zvModel.ts';
+import { zmAt, zmDrawLines, zmDrawZones, zmMainLine, zmModel, zmReasonTag, zmStale, zmAtr, type ZmLine, type ZmQ1, type ZmQ2, type ZmTf } from '../supabase/functions/telegram-bot/zvModel.ts';
 import type { Series } from '../supabase/functions/telegram-bot/zonecore.ts';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -102,8 +103,7 @@ for (const { sym, chart, to: TO, nb: NB, owner } of jobs) {
         if (tg && tg !== live) lines.push(lineOut(h, tg, 'target'));
       }
     }
-    const zones = t.zones.filter(z => z.reasons.length && !z.removed && !z.range && z.legBar <= n - 1 && z.base1 <= n - from + 1)
-      .sort((a, b) => Math.abs(price - a.prox) - Math.abs(price - b.prox)).slice(0, 6)
+    const zones = zmDrawZones(t, m).filter(z => z.base1 <= n - from + 1)
       .map(z => ({ dir: z.dir, prox: z.prox, dist: z.dist, t0: time(t, z.base1), label: `${z.pattern} ${zmReasonTag(z)} T${z.touches}`.replace(/\s+/g, ' ') }));
     const tg = m.target ? { lo: Math.min(m.target.zone.prox, m.target.zone.dist), hi: Math.max(m.target.zone.prox, m.target.zone.dist), tf: m.target.tf,
       t0: time(m.tfs.find(x => x.tf === m.target!.tf)!, m.target.zone.base1), label: `REALIGN ${m.target.tf} ${Math.min(m.target.zone.prox, m.target.zone.dist).toFixed(t.digits)}-${Math.max(m.target.zone.prox, m.target.zone.dist).toFixed(t.digits)}${m.target.line ? ` (${m.target.lineTf} ${m.target.line.dir > 0 ? 'up' : 'down'} line ${m.target.value.toFixed(t.digits)})` : ''}` } : null;
@@ -120,7 +120,7 @@ for (const { sym, chart, to: TO, nb: NB, owner } of jobs) {
         zones: owner.marks.zones.map(z => ({ dir: z.side === 'demand' ? 1 : -1, t0: T(z.s), prox: z.prox, dist: z.dist })),
       };
     }
-    const title = `${sym} ${chart}  -  ZoneVision 2.18 model${owner ? ` (owner window ${owner.bars[0][0].slice(0, 10)} .. ${owner.bars[owner.bars.length - 1][0].slice(0, 10)}${WIDE !== 1 ? `, x${WIDE}` : ''})` : ''}${own ? '  |  owner marks in blue' : ''}`;
+    const title = `${sym} ${chart}  -  ZoneVision 2.19 model${owner ? ` (owner window ${owner.bars[0][0].slice(0, 10)} .. ${owner.bars[owner.bars.length - 1][0].slice(0, 10)}${WIDE !== 1 ? `, x${WIDE}` : ''})` : ''}${own ? '  |  owner marks in blue' : ''}`;
     const out = { sym, tf: chart, digits: t.digits, candles, lines, zones, target: tg, pivots, structure: m.structure, direction: m.direction, owner: own, title };
     const base = `${sym}_${chart}${SUFFIX}`;
     const file = join(OUT, `${base}.json`);

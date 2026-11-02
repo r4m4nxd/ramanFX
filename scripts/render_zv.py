@@ -36,7 +36,11 @@ tg = d.get('target')
 if tg and tg['hi'] >= lo - (hi - lo) * 2:
     x0 = xof(tg['t0']); x0 = 0 if x0 is None else x0
     ax.add_patch(Rectangle((x0, tg['lo']), n + 3 - x0, tg['hi'] - tg['lo'], facecolor=(0.5, 0.25, 0.75, 0.10), edgecolor=(0.5, 0.25, 0.75), lw=1.6, zorder=1))
-    ax.text(x0 + 0.5, tg['hi'], tg['label'], color=(0.5, 0.25, 0.75), fontsize=8, va='bottom', zorder=6)
+    # the label starts at the box's first bar; a box that starts in the right half has it right-aligned inside the chart
+    # (2.18 clipped it at the right edge)
+    lb = dict(facecolor='white', edgecolor='none', alpha=0.75, pad=1)
+    if x0 > n * 0.5: ax.text(n + 15, tg['hi'], tg['label'], color=(0.5, 0.25, 0.75), fontsize=8, va='bottom', ha='right', zorder=6, bbox=lb)
+    else: ax.text(x0 + 0.5, tg['hi'], tg['label'], color=(0.5, 0.25, 0.75), fontsize=8, va='bottom', zorder=6, bbox=lb)
     lo = min(lo, tg['lo']); hi = max(hi, tg['hi'])
 # zones with a reason
 for z in d['zones']:

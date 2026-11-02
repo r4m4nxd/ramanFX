@@ -11,7 +11,12 @@ const PAT: Record<string, number> = { RBR: 0, DBR: 1, DBD: 2, RBD: 3 };
 const RS: Record<string, number> = { break: 1, direction: 2, removal: 4 };
 export interface ModelCase { name: string; sym: string; chart: string; price: number; digits: number; bars: Record<string, Row[]>; params?: Record<string, number>; expected: unknown }
 
-export function modelCase(name: string, sym: string, chart: string, bars: Record<string, Row[]>, price: number, digits: number, o: ZmOpts = {}): ModelCase {
+/** The 2.19 rules (owner Q1 wick break + redraw, Q2 valley-area anchors) are not in the MQL port yet (RFX_ZoneCore.mqh /
+ *  mql_model.py = ZoneVision 2.18): the conformance compares the TypeScript model with them switched off, which is the 2.18
+ *  reading number for number. Remove when the port lands. */
+export const ZM_NOT_PORTED = { wickBrk: 0, redraw: 0, vArea: 0 };
+export function modelCase(name: string, sym: string, chart: string, bars: Record<string, Row[]>, price: number, digits: number, o0: ZmOpts = {}): ModelCase {
+  const o: ZmOpts = { ...o0, params: { ...ZM_NOT_PORTED, ...(o0.params ?? {}) } };
   const b: Record<string, Row[]> = { ...bars };
   const zb = (r: Row[]): ZBarLike[] => r.map(([d, oo, h, l, c]) => ({ d, o: oo, h, l, c }));
   if (!b['3M'] && b.MN) b['3M'] = toQuarters(zb(b.MN)).map(x => [x.d, x.o, x.h, x.l, x.c] as Row);
