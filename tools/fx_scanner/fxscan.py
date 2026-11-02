@@ -303,10 +303,31 @@ def public(res: Dict, h4: str, fixture: bool = False, partial: bool = False, ext
     return pub, {c: {'generated': gen, 'instruments': v} for c, v in shards.items() if v}
 
 
+def mt5_export(shards: Dict[str, Dict], out_dir: str) -> None:
+    """public/fx/mt5/<SYM>.txt: the bot's zones + trend lines of one symbol in a plain format the MT5 indicator
+    RamanFX_BotView.mq5 reads (no JSON parser in MQL). Lines, ';' separated, times = server-time labels:
+        G;<generated>
+        Z;tf;side;proximal;distal;base_start;touches
+        L;tf;dir;price_at_t;slope_per_bar;bars_back_to_anchor1;t;touches;crossed"""
+    d = os.path.join(out_dir, 'mt5')
+    os.makedirs(d, exist_ok=True)
+    for js in shards.values():
+        for sym, x in (js.get('instruments') or {}).items():
+            out = [f"G;{js.get('generated', '')}"]
+            for z in x.get('zones') or []:
+                out.append(f"Z;{z.get('tf')};{z.get('side')};{z.get('proximal')};{z.get('distal')};{z.get('base_start') or z.get('made') or ''};{z.get('touches', 0)}")
+            for tf, ls in (x.get('tls') or {}).items():
+                for t in ls or []:
+                    out.append(f"L;{tf};{t['dir']};{t['p']};{t['s']};{t['n']};{t['t']};{t.get('touches', 0)};{1 if t.get('x') else 0}")
+            with open(os.path.join(d, f'{sym}.txt'), 'w') as f:
+                f.write('\n'.join(out) + '\n')
+
+
 def write(pub: Dict, shards: Dict[str, Dict], out_dir: str = C.OUT_DIR) -> str:
     os.makedirs(os.path.join(out_dir, 'd'), exist_ok=True)
     for c, js in shards.items():
         _dump(os.path.join(out_dir, 'd', f'{c}.json'), js)
+    mt5_export(shards, out_dir)
     for c in C.CLASSES:
         if c not in shards and os.path.exists(os.path.join(out_dir, 'd', f'{c}.json')):
             os.remove(os.path.join(out_dir, 'd', f'{c}.json'))
@@ -887,6 +908,7 @@ def write_partial(pub: Dict, shards: Dict[str, Dict], out_dir: Optional[str] = N
     os.makedirs(os.path.join(out_dir, 'd'), exist_ok=True)
     for c, js in shards.items():
         _dump(os.path.join(out_dir, 'd', f'{c}.json'), js)
+    mt5_export(shards, out_dir)
     _dump(os.path.join(out_dir, 'latest.json'), pub)
 
 
