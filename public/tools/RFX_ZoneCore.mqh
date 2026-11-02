@@ -1125,7 +1125,9 @@ void DrawZones(Zone &zs[], bool htf)
       for(int j = 0; j < n; j++) if(idx[j] >= 0 && (best < 0 || dst[j] < dst[best])) best = j;
       if(best < 0) break;
       if(!htf && !zs[idx[best]].removed && zs[idx[best]].trapBar == -1) { int tb = -1; bool cr = false; Zone q = zs[idx[best]]; zs[idx[best]].trap = FindTrap(_Symbol, tf, q.dir, q.prox, q.dist, q.saBar, q.baseEnd, tb, cr); zs[idx[best]].trapBar = tb == -1 ? -2 : tb; zs[idx[best]].crowded = cr; }
+      if(!htf && ZmBoxOn() && !ZmBoxFree(zs[idx[best]].prox, zs[idx[best]].dist)) { idx[best] = -1; pick--; continue; }   // 2.19 / 2.20: no overlapping boxes
       int zi = idx[best]; Zone z = zs[zi]; string id = PFX + (htf ? "H" : "Z") + IntegerToString(zi); idx[best] = -1;
+      if(!htf && ZmBoxOn()) ZmBoxAdd(z.prox, z.dist);
       string verdict = "", shortWhy = "", full = htf ? "" : ZoneNotes(zs, zi, verdict, shortWhy);
       color fill = htf ? cHtfFill : (z.removed ? cRemFill : (z.dir > 0 ? cDemandFill : cSupplyFill));
       color line = z.removed ? cMuted : (z.dir > 0 ? cDemandLine : cSupplyLine);
@@ -4325,7 +4327,7 @@ string zrPhaseText(string tfn, ZrPhase &p, int digits)
 
 // ==== RFX_MODEL BEGIN ====
 //+------------------------------------------------------------------+
-//| ZoneVision 2.18 STRUCTURE MODEL: the ONE top-down reading of     |
+//| ZoneVision 2.20 STRUCTURE MODEL: the ONE top-down reading of     |
 //| docs/training/SPEC.md. A line-by-line mirror of the canonical    |
 //| TypeScript supabase/functions/telegram-bot/zvModel.ts (same      |
 //| function names, Zm instead of zm); conformance:                  |
@@ -4336,7 +4338,7 @@ string zrPhaseText(string tfn, ZrPhase &p, int digits)
 //| Index convention = RxSer: 0 phantom, 1 newest closed, larger =   |
 //| older.                                                           |
 //+------------------------------------------------------------------+
-#define ZM_VER 218
+#define ZM_VER 220
 #define ZM_MAXB 5000          // closed bars read per TF (all loaded history up to this; SPEC 2: no sliding window)
 double ZM_rc = 0.45, ZM_near = 0.25, ZM_minLeg = 1.25, ZM_fitTol = 0.02, ZM_minRise = 0.25, ZM_minSlope = 0.015;
 double ZM_vetoTol = 0.05, ZM_rangeBaseATR = 2.5, ZM_targetGap = 1.0, ZM_p1Retrace = 0.50;
@@ -4348,12 +4350,21 @@ int    ZM_pivZones = 3, ZM_zoneSwing = 2;   // 3 = 2.18 H3: after a leg-in pivot
 // 2.18 (zvModel.ts ZM): H1 BOS line swings + the first higher low (W1 / MN / 3M), H2 one momentum line per one-way run
 int    ZM_bosN = 1, ZM_p1Low = 1, ZM_momRun = 1, ZM_momBars = 5;
 double ZM_momBody = 1.0;
+// 2.19 (zvModel.ts ZM, owner 2026-11-01): Q1 a wick beyond wickTol ATR breaks a trend line, a new extreme after it redraws the
+// line from anchor 1 (redraw); Q2 anchor 1 anywhere in the valley / peak area (vArea ATR) whose line cuts no candle
+int    ZM_wickBrk = 1, ZM_redraw = 1;
+double ZM_wickTol = 0.05, ZM_vArea = 0.25;
+// 2.20 (zvModel.ts ZM): Q10 (owner 2026-11-02) the wick poke is provisional, the first close beyond is the break date once a
+// departure candle confirms it (brkConf); Q11 one-bar dips inside a run are W1 line swings (sw1 1; 2 = W1 / MN / 3M); Q12 the
+// swing-breaking candle in the valley area is anchor 2, cutting no candle by more than cutTol ATR (bos2)
+int    ZM_brkConf = 1, ZM_sw1 = 1, ZM_bos2 = 1;
+double ZM_cutTol = 0.12;
 int    ZM_q1 = 0;             // Q1: 0 spec (clean-line test), 1 retrace (p1Retrace), 2 major
 int    ZM_q2 = 0;             // Q2: 0 (a) the extreme, 1 (b) C1, 2 (c) C2
 bool   gZmDebug = false;
 
 struct ZmPivot { int bar; double p; int t; int conf; };
-struct ZmLine  { int dir; int kind; int a; int b; double pa; double pb; int born; int brokenAt; int p2; int touches; int why; };   // kind 0 trend 1 momentum 2 major; why 0 g1 1 g1-shift 2 c1 3 chain 4 rot 5 mom 6 major 7 p1mom 8 c1-shift 9 chain-shift 10 nest 11 nest-shift 12 inner 13 inner-shift 14 touch3 15 touch3-shift 16 run (2.18 momentum per run)
+struct ZmLine  { int dir; int kind; int a; int b; double pa; double pb; int born; int brokenAt; int p2; int touches; int why; };   // kind 0 trend 1 momentum 2 major; why 0 g1 1 g1-shift 2 c1 3 chain 4 rot 5 mom 6 major 7 p1mom 8 c1-shift 9 chain-shift 10 nest 11 nest-shift 12 inner 13 inner-shift 14 touch3 15 touch3-shift 16 run (2.18 momentum per run) 17 redraw (2.19)
 bool ZmInner(int why) { return why >= 10 && why <= 15; } // drawn inside a live line of its structure (nested / inner / 3rd touch)
 struct ZmZone  { int dir; double prox; double dist; int base0; int base1; int legBar; int pattern; bool range; bool strong; bool arrival; int touches; bool removed; int removedBar; int reasons; int nRemoved; int brokePivot; bool pivot; };   // pattern 0 RBR 1 DBR 2 DBD 3 RBD; reasons 1 break 2 direction 4 removal; pivot = a 2.17 reversal zone at a real pivot
 struct ZmTrend { int trend; double ext; int extBar; double sl; int slBar; double lo; double hi; int from; };
@@ -4743,7 +4754,8 @@ public:
 // the opposite extreme between it and the nearest further-out swing before it; at that bar: (1) the chain after a break,
 // (2) the 3rd-touch / nested / inner line while a line is live, (3) the waiting Line 1, (4) a new structure. A close
 // beyond breaks a line (the fake-cross veto only within vetoClose ATR).
-struct ZmEv { ZmPivot s; ZmPivot s0; int e; };
+struct ZmEv { ZmPivot s; ZmPivot s0; int e; int B; };   // B = the swing-breaking candle (2.20 Q12), -1 none
+struct ZmPendF { int h; int k; double ext; bool orph; int c; };   // 2.19 / 2.20: a wick-broken line (hist index h, poke k) waiting: redraw or stand; c = the first close beyond since the poke
 class ZmDirF
   {
 public:
@@ -4754,7 +4766,9 @@ public:
    int live[], orph[], third[];
    bool hasChain; int chainBar, chainBrk; double chainP;
    bool hasWait; ZmPivot waitP;
-   int ei;
+   int ei, evB;
+   bool wick, brkC;
+   ZmPendF pend[];
    double X(int j) { return d > 0 ? S.L[j] : S.H[j]; }
    double Y(int j) { return d > 0 ? S.H[j] : S.L[j]; }
    bool   Out(double x, double y) { return d > 0 ? x < y : x > y; }
@@ -4814,6 +4828,27 @@ public:
             side[x + 1] = v2;
            }
         }
+      if(ZM_sw1 > 0 && (ZM_sw1 == 1 ? S.tf == 10080 : (ZM_sw1 == 2 ? htf : true)))
+        {
+         // Q11 (2.20): a one-bar swing (the line-side extreme beyond both neighbours') is a line swing, confirmed by the next
+         // bar, when it is a dip INSIDE a one-way run: its candle and the one before it each trade beyond the previous candle's
+         // other extreme (AUDUSD W1 Jul 25 / Aug 29; not the gold W1 2023-11-11 low after two lower highs)
+         for(int i = S.n - 3; i >= 2; i--)
+           {
+            if(!(Out(X(i), X(i + 1)) && Out(X(i), X(i - 1)))) continue;
+            bool dup1 = false;
+            for(int q = 0; q < ArraySize(side); q++) if(side[q].bar == i) { dup1 = true; break; }
+            if(dup1) continue;
+            if(!(d > 0 ? (Y(i) > Y(i + 1) && Y(i + 1) > Y(i + 2)) : (Y(i) < Y(i + 1) && Y(i + 1) < Y(i + 2)))) continue;
+            int m = ArraySize(side); ArrayResize(side, m + 1); side[m].bar = i; side[m].p = X(i); side[m].t = -d; side[m].conf = i - 1;
+           }
+         for(int i = 1; i < ArraySize(side); i++)       // oldest first again (bar desc, stable)
+           {
+            ZmPivot v3 = side[i]; int x = i - 1;
+            while(x >= 0 && side[x].bar < v3.bar) { side[x + 1] = side[x]; x--; }
+            side[x + 1] = v3;
+           }
+        }
       for(int i = 1; i < ArraySize(side); i++)
         {
          int h0 = -1;
@@ -4825,7 +4860,9 @@ public:
          if((d > 0 ? S.C[sb] >= S.O[sb] : S.C[sb] < S.O[sb]) && Thru(sb, ox)) kb = sb;   // its own candle: extreme first
          for(int j = sb - 1; j >= 1 && kb < 0; j--) if(Thru(j, ox)) { kb = j; break; }
          if(kb < 0) continue;
-         int m = ArraySize(ev); ArrayResize(ev, m + 1); ev[m].s = side[i]; ev[m].s0 = side[h0]; ev[m].e = MathMin(kb, side[i].conf);
+         int e = MathMin(kb, side[i].conf), bB = -1;
+         for(int j = sb; j >= e && bB < 0; j--) if(S.cdir(j) == d && !S.basing(j) && (d > 0 ? S.C[j] > ox : S.C[j] < ox)) bB = j;   // Q12: the swing-breaking candle
+         int m = ArraySize(ev); ArrayResize(ev, m + 1); ev[m].s = side[i]; ev[m].s0 = side[h0]; ev[m].e = e; ev[m].B = bB;
         }
       for(int i = 1; i < ArraySize(ev); i++)            // e desc, then swing bar desc (stable)
         {
@@ -4833,27 +4870,47 @@ public:
          while(x >= 0 && (ev[x].e < v.e || (ev[x].e == v.e && ev[x].s.bar < v.s.bar))) { ev[x + 1] = ev[x]; x--; }
          ev[x + 1] = v;
         }
-      hasChain = false; chainBar = -1; chainBrk = -1; chainP = 0; hasWait = false; ei = 0;
+      hasChain = false; chainBar = -1; chainBrk = -1; chainP = 0; hasWait = false; ei = 0; evB = -1;
+      wick = ZM_wickBrk > 0; brkC = wick && ZM_brkConf > 0; ArrayResize(pend, 0);
      }
    bool SlopeOk(int a, double pa, int b, double pb)
      {
       double ab = A.At(b), rise = d * (pb - pa);
       return rise > 0 && rise >= ZM_minRise * ab && rise / MathMax(1, a - b) >= ZM_minSlope * ab;
      }
-   void Build(int a, int b, int to, ZmBuilt &r, double tol = 0)
+   void Build(int a, int b, int to, ZmBuilt &r, double tol = 0, int eB = -1)
      {
       double pa = X(a); int bb = b; double sl = (X(b) - pa) / (a - b); bool poke = false;
       for(int j = b - 1; j >= to; j--) if(d * (pa + sl * (a - j) - X(j)) > ZM_fitTol * A.At(j)) poke = true;
       if(poke) for(int j = b - 1; j >= to; j--) { double s2 = (X(j) - pa) / (a - j); if(d > 0 ? s2 < sl : s2 > sl) { sl = s2; bb = j; } }
+      // Q12 (2.20): the swing-breaking candle eB after the touch bb as anchor 2, when it lies in bb's valley area, its line cuts
+      // no candle by more than cutTol ATR and no bar after it up to `to` pokes beyond it by more than fitTol ATR
+      bool q12 = false;
+      if(ZM_bos2 > 0 && eB >= to && eB < bb && d * (X(eB) - X(bb)) >= 0 && d * (X(eB) - X(bb)) <= ZM_vArea * A.At(eB))
+        {
+         double s3 = (X(eB) - pa) / (a - eB); bool ok = true;
+         for(int j = a - 1; j >= to && ok; j--) if(j != eB && d * (pa + s3 * (a - j) - X(j)) > (j > eB ? ZM_cutTol : ZM_fitTol) * A.At(j)) ok = false;
+         if(ok) { bb = eB; q12 = true; }
+        }
       double pb = X(bb); bool clean = true;
-      for(int j = a - 1; j > bb; j--) if(d * (pa + ((pb - pa) / (a - bb)) * (a - j) - X(j)) > (tol > 0 ? tol * A.At(j) : 1e-9 * MathAbs(pa))) { clean = false; break; }
+      double cTol = q12 ? MathMax(tol, ZM_cutTol) : tol;
+      for(int j = a - 1; j > bb; j--) if(d * (pa + ((pb - pa) / (a - bb)) * (a - j) - X(j)) > (cTol > 0 ? cTol * A.At(j) : 1e-9 * MathAbs(pa))) { clean = false; break; }
       r.a = a; r.b = bb; r.pa = pa; r.pb = pb; r.clean = clean;
      }
-   // anchor-1 candidates for a line from bar a to swing bar sb, in order, each with its clean tolerance (0 = strict): a ..
-   // a - p1Shift; then (2.18 H1 p1Low, W1 / MN / 3M, Line 1 from a local extreme only) a and the first higher low after it
+   // anchor-1 candidates for a line from bar a to swing bar sb, in order, each with its clean tolerance (0 = strict): 2.19
+   // (vArea > 0): a and every bar of its valley / peak area before sb (line-side extreme within vArea ATR of a's), each clean
+   // within wickTol ATR; else a .. a - p1Shift; then (2.18 H1 p1Low, W1 / MN / 3M, Line 1 from a local extreme only) a and
+   // the first higher low after it
    int Cands(int a, int sb, bool ext, int &ca[], double &ct[])
      {
       ArrayResize(ca, 0); ArrayResize(ct, 0);
+      if(ZM_vArea > 0)
+        {
+         ArrayResize(ca, 1); ArrayResize(ct, 1); ca[0] = a; ct[0] = ZM_wickTol;
+         for(int c = a - 1; c > sb; c--)
+            if(d * (X(c) - X(a)) <= ZM_vArea * A.At(c)) { int m = ArraySize(ca); ArrayResize(ca, m + 1); ArrayResize(ct, m + 1); ca[m] = c; ct[m] = ZM_wickTol; }
+         return ArraySize(ca);
+        }
       for(int sh = 0; sh <= ZM_p1Shift && a - sh > sb; sh++) { int m = ArraySize(ca); ArrayResize(ca, m + 1); ArrayResize(ct, m + 1); ca[m] = a - sh; ct[m] = 0; }
       if(ext && ZM_p1Low > 0 && htf && a - 1 > sb)
         {
@@ -4885,23 +4942,75 @@ public:
       return false;
      }
    bool Has(int a, int b) { for(int i = 0; i < ArraySize(hist); i++) if(hist[i].a == a && hist[i].b == b) return true; return false; }
+   void LivePush(int h) { int m = ArraySize(live); ArrayResize(live, m + 1); live[m] = h; }
+   bool LiveRemove(int h)
+     {
+      int n = ArraySize(live), k = -1;
+      for(int i = 0; i < n; i++) if(live[i] == h) { k = i; break; }
+      if(k < 0) return false;
+      for(int i = k; i < n - 1; i++) live[i] = live[i + 1];
+      ArrayResize(live, n - 1);
+      return true;
+     }
+   // Q1 (2.19): the break of hist[h] at bar x. wickBrk: the first wick beyond wickTol ATR; else the first close (veto)
+   bool Cut(int h, int x) { return wick ? d * (ZmAt(hist[h], x) - X(x)) > ZM_wickTol * A.At(x) : (Beyond(hist[h], x) && !Veto(h, x)); }
+   // the break of p stands at bar hh (the poke p.k when the trend went on); Q10 (2.20): the break date = the first CLOSE
+   // beyond since the poke; a line of an ended structure (orph) gets no chain
+   void Stand(ZmPendF &p, int hh)
+     {
+      if(brkC) hist[p.h].brokenAt = (hh == p.k || p.c < 0) ? hh : p.c;
+      if(!p.orph) { hasChain = true; chainBar = hist[p.h].p2; chainP = X(hist[p.h].p2); chainBrk = ZM_brkConf == 2 ? hh : p.k; }
+     }
+   // bar hh for a pending line: true = settled (redrawn, or the break stands)
+   bool Settle(ZmPendF &p, int hh)
+     {
+      int h = p.h;
+      bool sideFirst = d > 0 ? S.C[hh] >= S.O[hh] : S.C[hh] < S.O[hh];          // the OHLC path: the line-side extreme first
+      bool newExt = hh < p.k && d * (Y(hh) - p.ext) > ZM_wickTol * A.At(hh);    // a visible new extreme
+      bool cf = Beyond(hist[h], hh) && S.cdir(hh) == -d && !S.basing(hh);      // a departure candle closing beyond: confirmed
+      if(p.c < 0 && Beyond(hist[h], hh)) p.c = hh;
+      if(cf && !(newExt && !sideFirst)) { Stand(p, hh); return true; }
+      if(!newExt) return false;
+      if(p.orph || ZM_redraw == 0) { Stand(p, p.k); return true; }            // the trend went on, no redraw: broken at the poke
+      int nb = -1; double sl = 0;
+      for(int c = hist[h].b - 1; c >= hh; c--)
+        {
+         if(c == hh && !sideFirst) continue;
+         double s2 = (X(c) - hist[h].pa) / (hist[h].a - c);
+         if(nb < 0 || (d > 0 ? s2 < sl : s2 > sl)) { nb = c; sl = s2; }
+        }
+      if(nb < 0 || !SlopeOk(hist[h].a, hist[h].pa, nb, X(nb))) { Stand(p, p.k); return true; }
+      hist[h].b = nb; hist[h].pb = X(nb); hist[h].p2 = nb; hist[h].brokenAt = -1; hist[h].why = 17; hist[h].touches++;   // redrawn: the new pivot 2
+      LivePush(h);
+      if(hasChain && chainBrk == p.k) hasChain = false;
+      return true;
+     }
+   void Run(int h, int from, int to);                    // defined after the class (PendOn and Run call each other)
+   // hist[h] broken at x (>= j): the break stands, or it waits for a new extreme / a confirming candle, bars x .. j known
+   void PendOn(int h, int x, int j, bool orphan)
+     {
+      double ext = Y(hist[h].a);
+      for(int q = hist[h].a - 1; q >= x; q--) ext = d > 0 ? MathMax(ext, Y(q)) : MathMin(ext, Y(q));
+      ZmPendF p; p.h = h; p.k = x; p.ext = ext; p.orph = orphan; p.c = -1;
+      if(!(wick && (ZM_redraw > 0 || brkC))) { Stand(p, x); return; }
+      for(int q = x; q >= j; q--)
+        {
+         if(!Settle(p, q)) continue;
+         if(hist[h].brokenAt < 0 && q > j) { LiveRemove(h); Run(h, q - 1, j); }   // redrawn: its own life up to j
+         return;
+        }
+      int m = ArraySize(pend); ArrayResize(pend, m + 1); pend[m] = p;
+     }
    void Broke(int h, int x)
      {
       hist[h].brokenAt = x;
-      int n = ArraySize(live), k = -1;
-      for(int i = 0; i < n; i++) if(live[i] == h) { k = i; break; }
-      if(k < 0) return;
-      for(int i = k; i < n - 1; i++) live[i] = live[i + 1];
-      ArrayResize(live, n - 1);
-      hasChain = true; chainBar = hist[h].p2; chainP = X(hist[h].p2); chainBrk = x;
+      if(LiveRemove(h)) PendOn(h, x, x, false);
      }
    void Born(ZmLine &t, int j)
      {
       if(Has(t.a, t.b)) return;                            // the same line already drawn
       int h = ArraySize(hist); ArrayResize(hist, h + 1); ArrayResize(third, h + 1); hist[h] = t; third[h] = -1;
-      for(int x = hist[h].b - 1; x >= j; x--)
-         if(Beyond(hist[h], x) && !Veto(h, x)) { hist[h].brokenAt = x; hasChain = true; chainBar = hist[h].p2; chainP = X(hist[h].p2); chainBrk = x; return; }
-      int m = ArraySize(live); ArrayResize(live, m + 1); live[m] = h;
+      Run(h, hist[h].b - 1, j);
      }
    // a line from bar a (or an anchor-1 candidate after it, the first clean one) to swing s, anchor 2 at the hull touch up to j
    bool LineFrom(int a, ZmPivot &s, int j, int why, int whyShift, int steeper)
@@ -4910,7 +5019,7 @@ public:
       int nc = Cands(a, s.bar, why == 0 || why == 12, ca, ct);
       for(int c = 0; c < nc; c++)
         {
-         ZmBuilt r; Build(ca[c], s.bar, j, r, ct[c]);
+         ZmBuilt r; Build(ca[c], s.bar, j, r, ct[c], evB);
          if(!r.clean) continue;
          if(!SlopeOk(r.a, r.pa, r.b, r.pb)) return false;
          if(steeper >= 0)
@@ -4927,19 +5036,32 @@ public:
    bool Step(int j)
      {
       bool confirmed = false;
+      for(int i = 0; i < ArraySize(pend); i++)              // Q1 / Q10: the waiting lines - redraw or stand
+        {
+         if(pend[i].k <= j) continue;
+         ZmPendF q = pend[i];
+         bool done = Settle(q, j);
+         pend[i] = q;
+         if(!done) continue;
+         int np = ArraySize(pend);
+         for(int x = i; x < np - 1; x++) pend[x] = pend[x + 1];
+         ArrayResize(pend, np - 1);
+         i--;
+        }
       int cp[]; ArrayCopy(cp, live);
       for(int i = 0; i < ArraySize(cp); i++)
         {
          int h = cp[i];
          if(j >= hist[h].b) continue;
-         if(Beyond(hist[h], j)) { if(!Veto(h, j)) Broke(h, j); }
+         if(wick ? Cut(h, j) : Beyond(hist[h], j)) { if(wick || !Veto(h, j)) Broke(h, j); }   // (a vetoed close rotated the line)
          else if(d * (ZmAt(hist[h], j) - X(j)) > -ZM_fitTol * A.At(j)) hist[h].touches++;
         }
-      for(int o = 0; o < ArraySize(orph); o++) { int h = orph[o]; if(hist[h].brokenAt < 0 && j < hist[h].b && Beyond(hist[h], j) && !Veto(h, j)) hist[h].brokenAt = j; }
+      for(int o = 0; o < ArraySize(orph); o++) { int h = orph[o]; if(hist[h].brokenAt < 0 && j < hist[h].b && Cut(h, j)) { hist[h].brokenAt = j; if(brkC) PendOn(h, j, j, true); } }
       for(; ei < ArraySize(ev) && ev[ei].e >= j; ei++)
         {
          ZmPivot sv = ev[ei].s;
          ZmPivot s0 = ev[ei].s0;
+         evB = ev[ei].B;
          if(hasChain && !Out(chainP, sv.p)) hasChain = false;     // a swing at / beyond the chain anchor ends the chain
          if(hasWait && !Out(waitP.p, sv.p)) hasWait = false;
          if(hasChain && sv.bar <= chainBrk)                      // (1) after a break: chain from the broken anchor 2
@@ -4978,7 +5100,7 @@ public:
          for(int c = 0; c < nc; c++)
            {
             int a = ca[c];
-            ZmBuilt r; Build(a, sv.bar, j, r, ct[c]);
+            ZmBuilt r; Build(a, sv.bar, j, r, ct[c], evB);
             if(!r.clean) continue;
             if(!SlopeOk(r.a, r.pa, r.b, r.pb)) break;
             ZmLine t; ZmMk(t, d, 0, r.a, r.b, r.pa, r.pb, j, sv.bar, a != s0.bar ? 1 : 0); Born(t, j);
@@ -4988,15 +5110,26 @@ public:
          if(!made) { waitP = sv; hasWait = true; }
          confirmed = true;
         }
+      evB = -1;
       return confirmed;
      }
    void EndStructure()
      {
       hasWait = false; hasChain = false;
+      if(brkC) { for(int i = 0; i < ArraySize(pend); i++) pend[i].orph = true; }   // Q10: they still wait (no redraw, no chain)
+      else ArrayResize(pend, 0);
       for(int i = 0; i < ArraySize(live); i++) { int m = ArraySize(orph); ArrayResize(orph, m + 1); orph[m] = live[i]; }
       ArrayResize(live, 0);
      }
+   // Q10: a line still waiting for its break to be confirmed (or redrawn) at the last bar is live (the poke is provisional)
+   void Finish() { if(brkC) for(int i = 0; i < ArraySize(pend); i++) hist[pend[i].h].brokenAt = -1; }
   };
+// the life of hist[h] over bars from .. to (from older): live at the end, or broken (and pending / standing)
+void ZmDirF::Run(int h, int from, int to)
+  {
+   for(int x = MathMin(from, hist[h].b - 1); x >= to; x--) if(Cut(h, x)) { hist[h].brokenAt = x; PendOn(h, x, to, false); return; }
+   LivePush(h);
+  }
 // both directions + every momentum line, sorted newest anchor first (zvModel.ts zmLines)
 int ZmLines(RxSer &S, ZmAtrC &A, ZmPivot &piv[], ZmLine &out[])
   {
@@ -5011,6 +5144,7 @@ int ZmLines(RxSer &S, ZmAtrC &A, ZmPivot &piv[], ZmLine &out[])
          if(u) D.EndStructure();
          if(dn) U.EndStructure();
         }
+      U.Finish(); D.Finish();
       for(int i = 0; i < ArraySize(U.hist); i++) { int m = ArraySize(out); ArrayResize(out, m + 1); out[m] = U.hist[i]; }
       for(int i = 0; i < ArraySize(D.hist); i++) { int m = ArraySize(out); ArrayResize(out, m + 1); out[m] = D.hist[i]; }
      }
@@ -5087,6 +5221,12 @@ void ZmReasons(RxSer &S, ZmZone &zs[], ZmLine &lines[], ZmPivot &piv[])
       if(zs[i].nRemoved > 0) zs[i].reasons |= 4;
       zs[i].strong = zs[i].nRemoved > 0;
       zs[i].arrival = zs[i].reasons == 7;
+      // Q10 (2.20, owner: "the bullish candle broke the trendline, and it is now kind of an arrival zone"): the zone whose
+      // leg-out candle is the candle that broke an opposite trend line (closing beyond it) is an arrival zone too
+      int lb = zs[i].legBar;
+      if(!zs[i].arrival && ZM_brkConf > 0 && ZM_wickBrk > 0 && lb >= 1)
+         for(int k = 0; k < ArraySize(lines); k++)
+            if(lines[k].kind == 0 && lines[k].dir == -zs[i].dir && lines[k].brokenAt == lb && (zs[i].dir > 0 ? S.C[lb] > ZmAt(lines[k], lb) : S.C[lb] < ZmAt(lines[k], lb))) { zs[i].arrival = true; break; }
      }
   }
 string ZmReasonTag(ZmZone &z)
@@ -5489,7 +5629,8 @@ void ZmTopDown(string sym, int chartPos, double price, int dg)
       string zt = DoubleToString(ZmLo(z), dg) + "-" + DoubleToString(ZmHi(z), dg);
       string cdW = cd > 0 ? "BUY" : "SELL";
       if(inTarget) gZmNow = "WAIT at " + zt + ": " + buyW + " on " + ZmNames(conf, ncf) + " confirmation (no " + (gZmBias > 0 ? "buy" : "sell") + " limits)";
-      else gZmNow = cdW + " correction trades only on " + (ncr > 0 ? ZmNames(corr, ncr) : "-") + " (" + (cd < 0 ? "sell limits at supply, no buy limits" : "buy limits at demand, no sell limits") + "), TP before " + DoubleToString(edge, dg);
+      else if(ncr > 0) gZmNow = cdW + " correction trades only on " + ZmNames(corr, ncr) + " (" + (cd < 0 ? "sell limits at supply, no buy limits" : "buy limits at demand, no sell limits") + "), TP before " + DoubleToString(edge, dg);
+      else gZmNow = "WAIT - no " + gZmT[gZmIdx[gZmC]].name + " / lower TF in a " + (cd < 0 ? "sell" : "buy") + " impulse yet (then " + cdW + " correction trades, TP before " + DoubleToString(edge, dg) + ")";   // 2.20: none qualifies (was "only on -")
       gZmTarget = zt + " (" + gZmT[gZmTgtTf].name + " " + ZmPattern(z.pattern) + (z.range ? " base" : "")
                 + (gZmTgtLine >= 0 ? " at the " + gZmT[gZmTgtLineTf].name + " " + (gZmT[gZmTgtLineTf].lines[gZmTgtLine].dir > 0 ? "up" : "down") + " line " + DoubleToString(gZmTgtValue, dg)
                                    : " at the " + gZmT[gZmIdx[gZmC]].name + " structure") + ")";
@@ -5543,3 +5684,23 @@ int ZmChartZone(ENUM_TIMEFRAMES tf, int dir, int legBar)
   }
 bool   ZmZoneHidden(ENUM_TIMEFRAMES tf, int dir, int legBar) { if(!gZmZoneFilter) return false; int k = ZmChartZone(tf, dir, legBar); return k >= 0 && gZmT[gZmChartIdx].zones[k].reasons == 0; }
 string ZmZoneTag(ENUM_TIMEFRAMES tf, int dir, int legBar) { int k = ZmChartZone(tf, dir, legBar); return k < 0 ? "" : ZmReasonTag(gZmT[gZmChartIdx].zones[k]); }
+// 2.19 / 2.20 (owner display rules): zone boxes never overlap. The price ranges of the boxes drawn this redraw: the REALIGN
+// box, the zone engine's boxes (DrawZones), then the model's reversal zones (ZmDrawChart, which runs on more ticks: it keeps
+// only the first gZmBoxBase entries before adding its own)
+double gZmBoxLo[], gZmBoxHi[];
+int    gZmBoxBase = 0;
+void   ZmBoxReset() { ArrayResize(gZmBoxLo, 0); ArrayResize(gZmBoxHi, 0); gZmBoxBase = 0; }
+void   ZmBoxSetBase() { gZmBoxBase = ArraySize(gZmBoxLo); }
+void   ZmBoxKeepBase() { int n = MathMin(gZmBoxBase, ArraySize(gZmBoxLo)); ArrayResize(gZmBoxLo, n); ArrayResize(gZmBoxHi, n); }
+bool   ZmBoxOn() { return gZmZoneFilter; }
+bool   ZmBoxFree(double a, double b)
+  {
+   double lo = MathMin(a, b), hi = MathMax(a, b);
+   for(int i = 0; i < ArraySize(gZmBoxLo); i++) if(MathMin(hi, gZmBoxHi[i]) > MathMax(lo, gZmBoxLo[i])) return false;
+   return true;
+  }
+void   ZmBoxAdd(double a, double b)
+  {
+   int m = ArraySize(gZmBoxLo); ArrayResize(gZmBoxLo, m + 1); ArrayResize(gZmBoxHi, m + 1);
+   gZmBoxLo[m] = MathMin(a, b); gZmBoxHi[m] = MathMax(a, b);
+  }

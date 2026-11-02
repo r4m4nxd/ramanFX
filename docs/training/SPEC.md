@@ -1,6 +1,8 @@
 # RamanFX chart-reading SPEC (single source of truth)
 
-Status: v1.3, 2026-11-02 (ZoneVision 2.19: the owner's answers of 2026-11-01 - a wick breaks a trend line, a new extreme
+Status: v1.4, 2026-11-02 (ZoneVision 2.20: the owner's Q10 answer - a wick poke is provisional, the first close beyond is
+the break once a full-bodied candle confirms it, that candle's zone is an arrival zone; Q11 / Q12 inferred from his Q2 rule,
+owner to confirm - sections 1.7, 2.2b, 3, 5, 8, 11; logged in docs/training/ZV216.md "2.20"). v1.3, 2026-11-02 (ZoneVision 2.19: the owner's answers of 2026-11-01 - a wick breaks a trend line, a new extreme
 after the break redraws it from the same pivot 1, anchors anywhere in the valley / peak area that cut no candle - sections 1.7,
 2.2b, 3, 4.4, 5, 8, 9 (C2 resolved, C3 / C4), 11; logged with per-rule deltas in docs/training/ZV216.md "2.19"). v1.2, 2026-10-31 (ZoneVision 2.18: sections 1.6, 1.13 (reversal zones), 2.2b, 2.3, 8, 11 updated from three rules
 inferred from the owner's marks - inferred, owner to confirm; logged with per-rule deltas in docs/training/ZV216.md "2.18"). v1.1, 2026-10-31 (ZoneVision 2.17: sections 1.6, 1.7, 1.10, 1.11, 1.14, 2.2, 2.3, 3, 8, 9, 11 updated from the owner's
@@ -203,6 +205,15 @@ A pivot is not "a swing low". It is the end of a REAL correction of the leg befo
      Sep 18**), AUDUSD W1 Mar 21 (bearish departure under Nov 22 -> Jan 17: chain **Jan 17 -> Mar 28**). Not by close size
      (the AUDUSD W1 Mar 21 / 28 closes are 0.41 / 0.48 ATR, the AUDUSD D1 Sep 1 one 0.22) nor by two closes (AUDUSD H4 Oct 26
      20:00 - Oct 27 04:00 closed beyond three times, 0.05 - 0.17 ATR, all basing candles: the owner redrew it).
+  4. **2.20 (owner Q10, 2026-11-02, verbatim in 11): the poke is provisional.** The wick candle is never the break date: a
+     new extreme (2) redraws the line; else the break stands when a departure candle closes beyond (3), and the break date is
+     the FIRST CLOSE beyond since the poke (any body; owner gold W1 Feb 28 -> May 9: Jul 18 / Jul 25 pokes, no new low, the big
+     bullish Aug 1 closes above -> broken **Aug 1**; AUDUSD W1 May 9 -> May 30: basing closes from Jul 25, the Aug 15 departure
+     confirms -> broken **Jul 25**; gold H4 Oct 27 08:00 -> Oct 28 20:00 -> **Oct 29 08:00**; AUDUSD H4 Oct 15 16:00 -> Oct 21
+     00:00 -> Oct 22 04:00, owner mark Oct 22 00:00, one bar before, the bullish Oct 22 00:00 candle closes back above). A line
+     still waiting at the last bar is LIVE. When the trend goes on and no redraw is possible (too flat, or a line of an ended
+     structure) the poke stays the break ("even a tiny wick breaks the trendline"). The confirmed breaking candle's zone (the
+     zone whose leg-out candle it is) is an **arrival** zone (ZmZone.arrival). Input brkConf (0 = 2.19: the poke bar is the break).
   Momentum lines keep the first close beyond (1.6). The 2.18 rule below is input wickBrk 0.
 - **Rule (2.18 and before; wickBrk 0).** A line is broken by the **first candle that CLOSES beyond it** (any body size). One exception, the
   **fake-cross veto**, only for a close within {vetoClose = 0.5} x ATR of the line (2.17: "a later pivot never rescues a line
@@ -486,10 +497,21 @@ described (up mirrored). Swings = the real pivots of 1.3.
    22**, gold MN 2022-10 -> **2022-11** 1616.55 on full history). The 2.18 rule: **2.18 (W1 / MN / 3M, inferred, owner to confirm):** when every p1Shift anchor is cut, anchor 1 = the
    FIRST HIGHER LOW after `s0` (the lowest low between `s0` and `s`; mirrored), clean within fitTol ATR (gold W1: bottom Jun 27
    3941.55, line from Jul 11 3959.48; AUDUSD W1: bottom Nov 15, line from Nov 22). On D1 / H4 it adds no owner line.
+4b. **2.20 Q11 (inferred from the owner's Q2 rule, owner to confirm):** on W1 a one-bar dip inside a one-way run (a low below
+   both neighbours' lows while the highs rise for two bars into it; mirrored) is a line swing too, confirmed by the next bar,
+   used when the line through it cuts no candle: AUDUSD W1 **Jun 27 -> Jul 25** (broken Sep 19) and **Jul 25 -> Sep 5** (the
+   nested line to the Aug 29 dip, hull touch Sep 5; broken Sep 19, owner Sep 12). Not on MN (adds gold MN 2022-11 -> 2023-03
+   instead of the owner's 2022-10 -> 2023-10), not after lower highs (gold W1 2023-11-11 would cut the 2023 target line).
 5. **Anchor 2** = the hull touch up to the confirmation bar when a bar pokes beyond the line through `s` by more than
    {fitTol = 0.02} x ATR ([O] "Pivot 2 is where the line touches while resting above the swings in between": AUDUSD D1 Sep 9 ->
    Sep 23, not Sep 21 (0.05 ATR); 0.02 keeps gold D1 Sep 18 (0.002 ATR off Sep 23)). After the confirmation the line is FIXED.
-6. **Break** = 2.19: the first wick beyond by more than wickTol ATR, then the redraw / stand of 1.7 (2.18: the first close
+5b. **2.20 Q12 (inferred from Q2, owner to confirm):** anchor 2 = the swing-breaking candle (the first leg-direction departure
+   candle from the swing on that CLOSES beyond the opposite extreme Kevin's confirmation uses) when its line-side extreme lies
+   in the touch's valley / peak area (within vArea ATR, not beyond it), its line cuts no candle by more than {cutTol = 0.12} x
+   ATR and no later bar up to the confirmation pokes beyond it by more than fitTol: gold H1 **Oct 27 13:00 -> Oct 28 22:00**
+   4026.89 over the Oct 28 21:00 wick 4024.44 (cut 0.11 ATR; 0.08 / 0.10 lose it).
+6. **Break** = 2.19: the first wick beyond by more than wickTol ATR, then the redraw / stand of 1.7 (2.20: the poke is
+   provisional, 1.7 step 4) (2.18: the first close
    beyond, the veto only within vetoClose). A structure of the other direction ends this one (its live lines stay until their
    own break, no chain, no nesting, no redraw).
 
@@ -561,13 +583,13 @@ contradict the other (tests I1-I5).
 
 | object | when | style |
 |---|---|---|
-| live trend line (this TF) | per direction the main line + the newest line nested inside it (2.17) | solid, InpTrend colour, width 2 for the line used by `C`'s target, else 1; extends 3 bars past the last bar |
-| broken trend line (this TF) | 2.19: per direction only the CURRENT line (the newest drawn; owner "show only new pivot to pivot trendline"), when it broke within the last {brokenShow = 20} bars; a line a redraw replaced no longer exists | dotted, InpMuted, ends AT the break candle (2.19: the first wick beyond) |
+| live trend line (this TF) | per direction the main live line + the newest line nested inside it (2.17; owner gold W1 Jan 24 -> Feb 28 with Feb 28 -> May 9, gold MN 2022-10 -> 2023-10), not stale | solid, InpTrend colour, width 2 for the line used by `C`'s target, else 1; extends 3 bars past the last bar |
+| broken trend line (this TF) | 2.20: not drawn (no broken or superseded lines; 2.19 drew the current line broken within brokenShow bars, dotted) | - |
 | momentum line | 2.17: the live lines of the last two legs + the most recently broken one (red dotted) | red, dashed, label `momentum` ([K] red = momentum) |
 | HTF target line | on every LTF chart of `C` (the `P`-direction line of 1.11) | purple dashed, label `<TF> up line <value>` |
 | HTF lines (all) | the main live line per direction of every higher TF | gold dotted; ONE straight OBJ_TREND from anchor 1's time to the last bar + 3 at the line's HTF value there (MT5 ZmDrawLine; the render matches it) |
 | reversal zones (2.17) | the 4 nearest to price with a reason (1.10) | dotted box, demand / supply colour, label `DBR BOS ... T<n>` |
-| zone boxes (2.19) | at most 6 with a reason, nearest to price; boxes never overlap: of two zones whose price ranges overlap the stronger one (more reasons, then the nearer) is drawn, none inside the REALIGN box (zmDrawZones) | one label per box |
+| zone boxes (2.19; MT5 2.20) | at most 6 with a reason, nearest to price; boxes never overlap (MT5: the REALIGN box, then the zone engine's boxes nearest first, then the model's reversal zones - a box overlapping one already drawn is skipped): of two zones whose price ranges overlap the stronger one (more reasons, then the nearer) is drawn, none inside the REALIGN box (zmDrawZones) | one label per box |
 | DIRECTION box | one message, rows wrapped at 72 characters (2.17) | the panel's corner; never wider than the wrapped rows |
 | real pivots | every confirmed real pivot of this TF | small dot: supply colour above peaks, demand colour below valleys |
 | zones | as now (proximal/distal box), label `<pattern> <type> T<n>` e.g. `RBR CP T1`, `DBR arrival T2`, `DBD weak-overlap` | weak zones dashed |
@@ -660,8 +682,8 @@ override the rows below where they differ** (the executable rows are `src/core/s
   2026-01 5599.73 -> 2026-03 5419.41; the purple realignment zone is the **MN demand 2025-06..08 3241.91-3453.63**; momentum
   lines 2025-01 -> 2025-08, 2025-09 -> 2026-01, 2026-03 -> 2026-06.
 - W1: down 2026-01-24 5599.73 -> 2026-02-28 5419.41 broken 2026-08-15; **down 2026-02-28 -> 2026-05-09 4773.23 broken
-  2026-08-01** (2.19, owner Q1 "even a tiny wick will break": the 2026-07-18 week high pokes 0.18 ATR above it, so the row
-  is broken 2026-07-18; open question Q10) (the next line chains from pivot 2 while the first is still live; replaces G-W1-L1's live Feb 28 -> Aug 22);
+  2026-08-01** (2.20, owner Q10: the 2026-07-18 / 07-25 wick pokes are provisional, the bullish 2026-08-01 candle is the break;
+  2.19 broke it at the 07-18 wick) (the next line chains from pivot 2 while the first is still live; replaces G-W1-L1's live Feb 28 -> Aug 22);
   up 2026-07-11 3959.48 -> 2026-08-01 4018.97 broken 2026-09-26; live momentum 2026-08-29 -> 2026-09-19. The W1 window of the
   marks starts 2025-10-25, so the 2023 W1 up line (G-W1-L2) stays as written.
 - D1: **a down TREND line from the top exists: Aug 25 4696.81 -> Sep 10 4434.80, broken Sep 17** (replaces G-D1-X1); the live
@@ -740,7 +762,7 @@ override the rows below where they differ** (the executable rows are `src/core/s
 | I2 | no FULL / REDUCED / "with direction" wording on a correction trade; one DIRECTION message per symbol |
 | I3 | STRUCTURE has at most one `->`, on the correcting TF; `impulse` never on a TF whose leg opposes its parent's trend |
 | I4 | the chain always starts at 3M (an H1 chart prints 6 segments; none dropped when an HTF loads late: retry, never skip) |
-| I5 | a line ends at its first close beyond (or veto); no live line has a close beyond it; no live line from an older anchor after a break (chain only) |
+| I5 | 2.20: a line breaks at a wick beyond by more than wickTol ATR (dated at the first close beyond once a departure candle confirms it, 1.7 step 4); no departure candle closes beyond a line before its break or beyond a live line; no live line from an older anchor after a break (chain only) |
 | X1 | window invariance: lines, pivots and labels for the last 80 bars are identical with 80, 200, 460 or all bars loaded (gold D1: 80-bar fixture and full qa/bars both give Sep 3 -> Sep 18) |
 | X2 | port parity: zvReal.ts, RFX_ZoneCore.mqh (via `tools/telegram_bot/parity/mql_port.py`) and the Python ports give the same model on the fixtures |
 | X3 | the score on the four AUDUSD charts (src/core/training scorer): pivot recall 100% (+-1 bar), trend-line recall 100% except Q-tagged rows, break bars exact or +-1 |
@@ -820,6 +842,9 @@ rule it breaks:
 | lineMode (2.17) | 1 | 1 = 2.2b forward time, 0 = 2.2 (2.16; Q1 / Q2 apply only there) |
 | wickBrk / wickTol (2.19) | 1 / 0.05 ATR | owner 2026-11-01 "even a tiny wick will break the trendline"; 0.05 = the visible poke: the owner's live gold D1 Sep 3 -> Sep 18 has 0.022 / 0.042 ATR pokes, his breaks poke >= 0.15 ATR (AUDUSD H4 Oct 21 20:00); wickBrk 0 = the 2.18 first close + veto (vetoClose / vetoTol / vetoBars then apply) |
 | redraw (2.19) | 1 | owner 2026-11-01: a new extreme after the break (> wickTol ATR) redraws from pivot 1; a departure candle closing beyond first = the break stands (no number) |
+| brkConf (2.20) | 1 | owner Q10: the poke is provisional, the break date = the first close beyond once a departure candle confirms; 0 = 2.19 (the poke bar). Rows +1 (gold W1 Feb 28 -> May 9 broken Aug 1); line F1 unchanged (breaks are scored apart); holdout zones 8 -> 7 / 17 (a CHoCH reason moves with the break) |
+| sw1 (2.20) | 1 (W1) | Q11 inferred: one-bar dips inside a run as line swings; 1 = W1, 2 = W1 / MN / 3M, 3 = every TF. 1: rows +2 (AUDUSD W1 Jun 27 -> Jul 25, Jul 25 -> Sep 5), window lines F1 60 -> 64; 2: gold MN loses 2022-10 -> 2023-10 (window rows 23 -> 22) |
+| bos2 / cutTol (2.20) | 1 / 0.12 ATR | Q12 inferred: the swing-breaking candle as anchor 2 when its line cuts no candle by more than cutTol ATR; gold H1 Oct 28 22:00 needs 0.11 (0.08 / 0.10 lose it); window rows +1, full-history line F1 -1 (an AUDUSD H4 line at the last bars) |
 | vArea (2.19) | 0.25 ATR | owner 2026-11-01 Q2: the valley / peak area of an anchor; gold W1 Jul 11 is 0.09 ATR above Jun 27, AUDUSD W1 Nov 22 0.15 above Nov 15; 0.15 and 0.25 score the same, 0.5 / 1.0 lower (window line F1 60 -> 56 / 55); replaces p1Shift / p1Low (0 = the 2.18 candidates) |
 | momBars / momEff | removed in 2.17 | 2.16 momentum window / impulse test |
 
@@ -869,15 +894,26 @@ rule it breaks:
     peak."** Implemented as 2.2b step 4 (2.19: vArea, every line and TF). The 2.18 swing-breaking candle as anchor 2 on W1 /
     MN (bosN) stays: switched off it loses 4 owner lines (AUDUSD W1 Nov 22 -> Jan 17, Jan 17 -> Mar 28, May 9 -> May 30, gold
     W1 Jul 11 -> Aug 1).
-- **Q10 (2.19). Gold W1 down line Feb 28 5419.41 -> May 9 4773.23.** The week of 2026-07-18 pokes 0.18 ATR above it (high
+- **Owner answer 2026-11-02 to Q10 (ANSWERED), verbatim:** **"if the trend continues in the same direction, then even a tiny
+  wick breaks the trendline, and we start looking for new pivot points which was responsible to make a new lower low for bearish
+  trend, and new higher high for bullish. but in your example, we already have two pivot points, but the bullish candle broke the
+  trendline, and it is now kind of an arrival zone for us, so that bullish candle is the break in the trendline."** Implemented as
+  1.7 step 4 (2.20, brkConf): the Jul 18 / Jul 25 wick pokes are provisional, no new low follows, the Aug 1 bullish candle is the
+  break (G-W1-L1 broken 2026-08-01) and its zone is an arrival zone.
+- **Q11 (2.20): inferred from the owner's Q2 rule, owner to confirm.** A one-week dip below both neighbours inside a rising run
+  (AUDUSD W1 Jul 25 0.69216) is a valid anchor when the line through it cuts no candle: 2.2b step 4b (W1 only).
+- **Q12 (2.20): inferred from the owner's Q2 rule, owner to confirm.** A small cut tolerance (cutTol 0.12 ATR, the smallest that
+  fits) and the swing-breaking candle as pivot 2 within the valley area (gold H1 Oct 27 13:00 -> Oct 28 22:00 4026.89 over the
+  21:00 wick): 2.2b step 5b.
+- **Q10 (2.19; ANSWERED 2026-11-02, see above). Gold W1 down line Feb 28 5419.41 -> May 9 4773.23.** The week of 2026-07-18 pokes 0.18 ATR above it (high
   4165.91 vs the line 4127.0, close back below), 2026-07-25 again; you marked the break on 2026-08-01, the big close. By your
   Q1 answer the 07-18 wick breaks it (2.19 draws the break there). Is the 2026-07-18 wick the break? **yes** (2.19) / **no**
   (a wick whose candle closes back inside is not a break; broken 2026-08-01).
-- **Q11 (2.19). AUDUSD W1 one-week dip as an anchor.** Your up lines Jun 27 -> **Jul 25** and Jul 25 -> Sep 5 use the Jul 25
+- **Q11 (2.19; 2.20: inferred from Q2, owner to confirm, see above). AUDUSD W1 one-week dip as an anchor.** Your up lines Jun 27 -> **Jul 25** and Jul 25 -> Sep 5 use the Jul 25
   week low 0.69216, a one-week dip (W1 highs rise every week from Jun 27 to Sep 5, so no swing high is broken). The model
   has no line there. Is a single candle whose low is below both neighbours (a 1-bar swing) a valid W1 anchor? **yes** (I
   would draw Jun 27 -> Jul 25 and Jul 25 -> Sep 5) / **no**.
-- **Q12 (2.19). Gold H1 up line Oct 27 13:00 -> Oct 28 22:00.** Your pivot 2 is the Oct 28 22:00 low 4026.89; the Oct 28 21:00
+- **Q12 (2.19; 2.20: inferred from Q2, owner to confirm, see above). Gold H1 up line Oct 27 13:00 -> Oct 28 22:00.** Your pivot 2 is the Oct 28 22:00 low 4026.89; the Oct 28 21:00
   wick goes lower (4024.44) and cuts your line by 0.14 ATR. By your Q2 rule the model draws Oct 27 13:00 -> Oct 28 21:00 (no
   candle cut). Should pivot 2 be the breakout candle Oct 28 22:00 even though the line cuts the 21:00 wick? **yes** / **no**
   (2.19: Oct 28 21:00).

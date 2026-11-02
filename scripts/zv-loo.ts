@@ -24,6 +24,11 @@ const ALL_GROUPS: { name: string; type: 'lines' | 'momentum' | 'zones'; grid: Re
   // 2.19: the owner's Q1 (wick break, redraw after a new extreme) and Q2 (anchors anywhere in the valley / peak area) rules
   { name: 'Q1', type: 'lines', grid: cart({ wickBrk: [0, 1], redraw: [0, 1] }) },
   { name: 'Q2', type: 'lines', grid: cart({ vArea: [0, 0.25, 0.5] }) },
+  // 2.20: owner Q10 (provisional wick poke, the first close is the break once a departure candle confirms it) and Q11 / Q12
+  // (inferred from Q2: one-bar dips inside a run as W1 / MN line swings, the swing-breaking candle as anchor 2)
+  { name: 'Q10', type: 'lines', grid: cart({ brkConf: [0, 1] }) },
+  { name: 'Q11', type: 'lines', grid: cart({ sw1: [0, 1, 2, 3] }) },
+  { name: 'Q12', type: 'lines', grid: cart({ bos2: [0, 1], cutTol: [0.08, 0.12, 0.15] }) },
 ];
 const gi = process.argv.indexOf('--groups');
 const GROUPS = gi >= 0 ? ALL_GROUPS.filter(g => process.argv[gi + 1].split(',').includes(g.name)) : ALL_GROUPS;

@@ -804,7 +804,7 @@ def run_model(path: str, out_json: bool = False) -> int:
     bad, errs = 0, []
     K = lambda t: {'dir': t.dir, 'kind': t.kind, 'a': t.a, 'b': t.b, 'pa': t.pa, 'pb': t.pb, 'born': t.born, 'brokenAt': t.brokenAt, 'p2': t.p2, 'touches': t.touches, 'why': t.why}
     Z = lambda z: {'dir': z.dir, 'prox': z.prox, 'dist': z.dist, 'base0': z.base0, 'base1': z.base1, 'legBar': z.legBar, 'pattern': z.pattern, 'range': z.range,
-                   'touches': z.touches, 'removed': z.removed, 'removedBar': z.removedBar, 'reasons': z.reasons, 'nRemoved': z.nRemoved}
+                   'touches': z.touches, 'removed': z.removed, 'removedBar': z.removedBar, 'reasons': z.reasons, 'nRemoved': z.nRemoved, 'arrival': z.arrival}
     for c in fx['cases']:
         try:
             for k, v in c.get('params', {}).items(): MM.P[k] = v

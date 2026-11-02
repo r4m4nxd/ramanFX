@@ -39,8 +39,21 @@ if tg and tg['hi'] >= lo - (hi - lo) * 2:
     # the label starts at the box's first bar; a box that starts in the right half has it right-aligned inside the chart
     # (2.18 clipped it at the right edge)
     lb = dict(facecolor='white', edgecolor='none', alpha=0.75, pad=1)
-    if x0 > n * 0.5: ax.text(n + 15, tg['hi'], tg['label'], color=(0.5, 0.25, 0.75), fontsize=8, va='bottom', ha='right', zorder=6, bbox=lb)
-    else: ax.text(x0 + 0.5, tg['hi'], tg['label'], color=(0.5, 0.25, 0.75), fontsize=8, va='bottom', zorder=6, bbox=lb)
+    # 2.20 (owner: labels never over candles): the label goes on the box top, else under the box bottom, at the box start or
+    # at its right end (the end first when the box starts in the right half), where no candle under the label's span reaches
+    # it; else above the candles at the preferred end (MT5 ZmDrawChart does the same)
+    span = int(len(tg['label']) * 7.2 / (1540.0 / (n + 18))) + 2
+    ends = [('R', C[max(0, n + 15 - span):]), ('L', C[x0:x0 + span])]
+    if x0 <= n * 0.5: ends.reverse()
+    pick = None
+    for side, cs in ends:
+        if not cs or max(c[2] for c in cs) <= tg['hi']: pick = (side, tg['hi'], 'bottom'); break
+        if min(c[3] for c in cs) >= tg['lo']: pick = (side, tg['lo'], 'top'); break
+    if pick is None: pick = (ends[0][0], max(c[2] for c in ends[0][1]), 'bottom')
+    side, y, va = pick
+    if side == 'R': ax.text(n + 15, y, tg['label'], color=(0.5, 0.25, 0.75), fontsize=8, va=va, ha='right', zorder=6, bbox=lb)
+    else: ax.text(x0 + 0.5, y, tg['label'], color=(0.5, 0.25, 0.75), fontsize=8, va=va, zorder=6, bbox=lb)
+    hi = max(hi, y + (hi - lo) * 0.04)
     lo = min(lo, tg['lo']); hi = max(hi, tg['hi'])
 # zones with a reason
 for z in d['zones']:

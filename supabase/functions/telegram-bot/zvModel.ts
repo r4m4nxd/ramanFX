@@ -1,6 +1,6 @@
-// ZoneVision 2.19 STRUCTURE MODEL: the ONE top-down chart reading of docs/training/SPEC.md, as a pure function of the bars.
-// Canonical TypeScript; the MT5 mirror is the RFX_MODEL block of public/tools/RFX_ZoneCore.mqh (still ZoneVision 2.18: the
-// 2.19 rules wickBrk / redraw / vArea are not ported yet, the conformance compares with them off), line by line;
+// ZoneVision 2.20 STRUCTURE MODEL: the ONE top-down chart reading of docs/training/SPEC.md, as a pure function of the bars.
+// Canonical TypeScript; the MT5 mirror is the RFX_MODEL block of public/tools/RFX_ZoneCore.mqh (ZoneVision 2.20, every rule),
+// line by line;
 // conformance: tools/telegram_bot/parity/mql_port.py --model (src/core/zvModelParity.test.ts). Every consumer (the
 // STRUCTURE line, the DIRECTION message, the HTF lines on lower TFs, the REALIGN box, zone roles, break alerts, export)
 // reads THIS object; nothing else recomputes structure. Not used by the Telegram bot / Pine / MT4 yet (owner approval).
@@ -22,6 +22,9 @@
 //      extreme starts at the first higher low after it. 2.19 (owner 2026-11-01): the first WICK beyond breaks a line; a new
 //      extreme after it (before a departure candle closes beyond) redraws it from the same anchor 1 through the pullback
 //      (wickBrk / redraw); anchor 1 of every line = the first bar of its valley / peak area whose line cuts no candle (vArea).
+//      2.20: the wick poke is provisional (owner Q10): the first close beyond is the break once a departure candle confirms
+//      it (brkConf); W1 / MN one-bar dips inside a run are line swings (sw1, Q11) and the swing-breaking candle in the valley
+//      area is anchor 2 (bos2 / cutTol, Q12) - Q11 / Q12 inferred from the owner's Q2 rule, owner to confirm.
 //   3. momentum lines (SPEC 1.6): one per impulse leg from the pivot, plus (2.18 H2) one per one-way run inside the leg that
 //      starts with a >= momBody ATR departure candle; the hull over the next momBars bars (all kept).
 //   4. zones (SPEC 1.10): zonecore.detect + HTF range bases + reversal zones at the real pivots (2.18 H3: after a leg-in
@@ -79,9 +82,10 @@ export const ZM = {
    *  poke, Aug 1 break); a line still waiting at the last bar is live; its leg-out zone is an arrival zone (ZmZone.arrival).
    *  0 = 2.19 (the poke bar is the break date). */
   brkConf: 1,
-  /** 2.20 Q11 (inferred from the owner's Q2 rule, owner to confirm): sw1 1 = on W1 / MN / 3M a one-bar swing (a low below
-   *  both neighbours' lows; highs mirrored) is a line swing too, used when the line through it cuts no candle (AUDUSD W1 Jul 25
-   *  0.69216: the owner's Jun 27 -> Jul 25 and Jul 25 -> Sep 5); 2 = on every TF; 0 = off. */
+  /** 2.20 Q11 (inferred from the owner's Q2 rule, owner to confirm): sw1 1 = on W1 a one-bar dip inside a one-way run (a low
+   *  below both neighbours' lows while the highs keep rising; mirrored) is a line swing too, used when the line through it cuts
+   *  no candle (AUDUSD W1 Jul 25 0.69216: the owner's Jun 27 -> Jul 25 and Jul 25 -> Sep 5); 2 = W1 / MN / 3M (MN adds the gold
+   *  2022-11 -> 2023-03 line instead of the owner's 2022-10 -> 2023-10: window rows 23 -> 22); 3 = every TF; 0 = off. */
   sw1: 1,
   /** 2.20 Q12 (inferred from Q2, owner to confirm): bos2 1 = anchor 2 is the swing-breaking candle (the first leg-direction
    *  departure candle closing beyond the opposite extreme that confirms the swing) when its line-side extreme lies in the
@@ -533,7 +537,7 @@ function zmDirF(S: Series, sw: ZmPivot[], d: number, k: ZmParams, atr: (i: numbe
     }
     side.sort((a, b) => b.bar - a.bar);
   }
-  if (k.sw1 > 0 && (htf || k.sw1 === 2)) {
+  if (k.sw1 > 0 && (k.sw1 === 1 ? S.tf === 'W1' : k.sw1 === 2 ? htf : true)) {
     // Q11 (2.20): a one-bar swing (the line-side extreme beyond both neighbours') is a line swing, confirmed by the next bar,
     // when it is a dip INSIDE a one-way run: its candle and the one before it each trade beyond the previous candle's other
     // extreme (AUDUSD W1 Jul 25 / Aug 29: "highs rise every week"; not the gold W1 2023-11-11 low after two lower highs)
@@ -1108,7 +1112,9 @@ export function zmModel(inp: ZmInput): ZmModel {
     const ltfConf = tfs.slice(ci + 2, ci + 4);
     const zt = `${fmt(zLo(z), dg)}-${fmt(zHi(z), dg)}`;
     if (inTarget) now = `WAIT at ${zt}: ${buy(bias)} on ${names(ltfConf.length ? ltfConf : tfs.slice(ci + 1))} confirmation (no ${buy(bias).toLowerCase()} limits)`;
-    else now = `${buy(cd)} correction trades only on ${names(corrTfs) || '-'} (${cd < 0 ? 'sell limits at supply, no buy limits' : 'buy limits at demand, no sell limits'}), TP before ${fmt(edge, dg)}`;
+    else if (corrTfs.length) now = `${buy(cd)} correction trades only on ${names(corrTfs)} (${cd < 0 ? 'sell limits at supply, no buy limits' : 'buy limits at demand, no sell limits'}), TP before ${fmt(edge, dg)}`;
+    // 2.20: no TF from C down qualifies (e.g. no lower-TF bars loaded): say so instead of "only on -"
+    else now = `WAIT - no ${C.tf} / lower TF in a ${cd < 0 ? 'sell' : 'buy'} impulse yet (then ${buy(cd)} correction trades, TP before ${fmt(edge, dg)})`;
     tgt = `${zt} (${target.tf} ${z.pattern}${z.range ? ' base' : ''}${target.line ? ` at the ${target.lineTf} ${target.line.dir > 0 ? 'up' : 'down'} line ${fmt(target.value, dg)}` : ` at the ${C.tf} structure`})`;
     then = `${buy(bias)} at ${zt} on ${names(ltfConf.length ? ltfConf : tfs.slice(ci + 1)) || C.tf} confirmation`;
   } else if (B) {
@@ -1167,24 +1173,21 @@ export const zmReasonTag = (z: ZmZone) => [z.reasons.includes('break') ? 'BOS' :
 
 // ---- what the chart draws (SPEC 3): <= 6 lines per chart ---------------------------------------------------------------
 export interface ZmDraw { line: ZmLine; tf: string; role: 'live' | 'broken' | 'momentum' | 'htf' | 'momentum-broken' }
-/** The lines a chart of TF t shows: per direction the live trend line (not stale, or the target line) and the current
- *  (newest drawn) line when it broke within brokenShow bars; the live momentum line(s) of the newest impulse and the newest momentum line broken within
- *  5 bars; plus the HTF target line (drawn on every LTF chart of the correcting TF). */
-export function zmDrawLines(t: ZmTf, m: ZmModel | null, k: ZmParams = ZM): ZmDraw[] {
+/** The lines a chart of TF t shows: per direction the main live trend line (not stale, or the target line) and the newest
+ *  line nested inside it, no broken line (2.20); the live momentum line(s) of the last two legs and the most recently broken
+ *  one; plus the HTF target line (drawn on every LTF chart of the correcting TF). */
+export function zmDrawLines(t: ZmTf, m: ZmModel | null): ZmDraw[] {
   const S = (t as ZmTf & { S: Series }).S, atr = zmAtr(S), out: ZmDraw[] = [];
   const tl = m?.target?.line ?? null;
   for (const d of [1, -1]) {
-    // the main live line and the newest line nested inside it (owner 2026-10-30: a new line while the older one is live)
+    // the main live line and the newest line nested inside it (owner 2026-10-30: a new line while the older one is live; gold
+    // W1 Jan 24 -> Feb 28 + Feb 28 -> May 9, gold MN 2022-10 -> 2023-10 under the 2024 line). 2.20 (owner Q1: "we use and show
+    // only new pivot to pivot trendline"): no broken or superseded line is drawn (2.19 still showed the current line broken
+    // within brokenShow bars, dotted); a redrawn line replaced its old self in the model
     const lv = t.lines.filter(l => l.kind !== 'momentum' && l.dir === d && l.brokenAt < 0 && (l === tl || !zmStale(S, l, atr))).sort((a, b) => a.born - b.born);
     const main = lv.find(l => !zmInner(l)) ?? lv[0], inner = lv.find(l => zmInner(l) && l !== main && main && l.born < main.born);
     if (main) out.push({ line: main, tf: t.tf, role: 'live' });
     if (inner) out.push({ line: inner, tf: t.tf, role: 'live' });
-    // 2.19 (owner Q1: "we use and show only new pivot to pivot trendline"): the broken slot shows only the CURRENT line of
-    // the direction (the newest drawn), when it broke within brokenShow bars; an older broken line (of an ended structure
-    // or one a newer line followed) is not drawn (2.18 showed the most recently broken one, e.g. a 2025 gold W1 line over
-    // the owner's Jul 11 -> Aug 1)
-    const cur = t.lines.filter(l => l.kind === 'trend' && l.dir === d).sort((a, b) => a.born - b.born || a.b - b.b)[0];
-    if (cur && cur.brokenAt >= 0 && cur.brokenAt <= k.brokenShow) out.push({ line: cur, tf: t.tf, role: 'broken' });
   }
   // momentum (owner 2026-10-30): the live one(s) of the last two legs + the most recently broken one
   const mom = t.lines.filter(l => l.kind === 'momentum');
