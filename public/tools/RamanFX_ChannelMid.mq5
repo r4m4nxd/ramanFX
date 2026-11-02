@@ -1,12 +1,12 @@
 //+------------------------------------------------------------------+
-//| RamanFX_ChannelMid.mq5 v1.00                                     |
+//| RamanFX_ChannelMid.mq5 v1.01                                     |
 //| Draw a channel with MT5's own Equidistant Channel tool (toolbar   |
 //| or Insert > Objects > Channels). This indicator adds a dotted 50%|
 //| line inside every channel and keeps it in place when you move,   |
 //| stretch or delete the channel. Display only.                     |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.00"
+#property version   "1.01"
 #property indicator_chart_window
 #property indicator_buffers 0
 #property indicator_plots   0
@@ -20,6 +20,15 @@ input bool  InpMidLabel = false;      // Small "50%" text at the line's right en
 
 bool IsMid(string nm) { return StringFind(nm, MID_SFX) > 0; }
 
+// a time as a bar position (older = smaller); a time right of the last bar counts on in whole periods
+double BarPos(datetime t)
+  {
+   datetime last = iTime(_Symbol, PERIOD_CURRENT, 0);
+   int n = iBars(_Symbol, PERIOD_CURRENT);
+   if(t > last) return (n - 1) + (double)(t - last) / PeriodSeconds();
+   return (n - 1) - iBarShift(_Symbol, PERIOD_CURRENT, t, false);
+  }
+
 // the dotted 50% line of channel ch: halfway between its two lines at both anchor times
 void MidUpdate(string ch)
   {
@@ -28,12 +37,14 @@ void MidUpdate(string ch)
      { ObjectDelete(0, mid); ObjectDelete(0, lab); return; }
    datetime t0 = (datetime)ObjectGetInteger(0, ch, OBJPROP_TIME, 0);
    datetime t1 = (datetime)ObjectGetInteger(0, ch, OBJPROP_TIME, 1);
-   if(t0 == t1) return;
-   // line 0 = the main line, line 1 = the parallel one; the value by time follows the chart's own bar spacing
-   double a0 = ObjectGetValueByTime(0, ch, t0, 0), b0 = ObjectGetValueByTime(0, ch, t0, 1);
-   double a1 = ObjectGetValueByTime(0, ch, t1, 0), b1 = ObjectGetValueByTime(0, ch, t1, 1);
-   if(a0 == 0 || b0 == 0 || a1 == 0 || b1 == 0) return;
-   double m0 = (a0 + b0) / 2, m1 = (a1 + b1) / 2;
+   datetime t2 = (datetime)ObjectGetInteger(0, ch, OBJPROP_TIME, 2);
+   double p0 = ObjectGetDouble(0, ch, OBJPROP_PRICE, 0), p1 = ObjectGetDouble(0, ch, OBJPROP_PRICE, 1), p2 = ObjectGetDouble(0, ch, OBJPROP_PRICE, 2);
+   // 1.01: point 3 sets the width. Width = point 3 minus the main line's value at point 3's bar (bar spacing, so weekends do not skew it);
+   // the 50% line = the main line shifted by half of it
+   double b0 = BarPos(t0), b1 = BarPos(t1), b2 = BarPos(t2);
+   if(b0 == b1) return;
+   double off = p2 - (p0 + (p1 - p0) * (b2 - b0) / (b1 - b0));
+   double m0 = p0 + off / 2, m1 = p1 + off / 2;
    if(ObjectFind(0, mid) < 0)
      {
       ObjectCreate(0, mid, OBJ_TREND, 0, t0, m0, t1, m1);
