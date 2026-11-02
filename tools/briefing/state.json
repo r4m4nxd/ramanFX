@@ -2,15 +2,17 @@
  "lessons": {
   "cycle": 1,
   "last": {
-   "date": "2026-10-30",
-   "key": "raja:1",
-   "title": "Strong Zones: CP Zones and Arrival Zones"
+   "date": "2026-11-02",
+   "key": "course:1",
+   "title": "Intro to Supply & Demand"
   },
   "used": [
-   "raja:1"
+   "raja:1",
+   "course:1"
   ]
  },
  "sent": {
-  "2026-10-30": "2026-10-30T12:00:36Z"
+  "2026-10-30": "2026-10-30T12:00:36Z",
+  "2026-11-02": "2026-11-02T12:00:32Z"
  }
 }
