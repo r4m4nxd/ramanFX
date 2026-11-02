@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| RamanFX_DrawReader.mq5 v1.01                                     |
+//| RamanFX_DrawReader.mq5 v1.02                                     |
 //| YOU draw the zones (rectangles) and trend lines. This indicator  |
 //| measures each one and writes a short note next to it: what the   |
 //| box edges sit on (wick / body), the base, the pattern, how far   |
@@ -12,7 +12,7 @@
 //| Display only. Objects of other RamanFX tools (RFX...) ignored.   |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.01"
+#property version   "1.02"
 #property indicator_chart_window
 #property indicator_buffers 0
 #property indicator_plots   0
@@ -27,7 +27,15 @@ input color  InpNoteColor = C'110,110,110'; // Note colour
 bool gShow = true;
 string gShort = "";   // 1.01: the chart note (MT5 shows ~63 characters of an OBJ_TEXT); the full one is the tooltip
 // "wick" / "body" / "~wick" (near) from an EdgeOf text
-string Kind(string e) { if(StringFind(e, "near ") == 0) return "~" + StringSubstr(e, 5, 4); return StringSubstr(e, 0, 4); }
+// a time as a bar shift: 0 = the newest candle, larger = older, negative = to the right of the newest candle (future)
+double Shift(datetime t)
+  {
+   datetime last = iTime(_Symbol, _Period, 0);
+   if(t > last) return -(double)(t - last) / PeriodSeconds();
+   int s = iBarShift(_Symbol, _Period, t, false);
+   return s < 0 ? iBars(_Symbol, _Period) - 1 : s;
+  }
+string Kind(string e) { if(e == "future") return e; if(StringFind(e, "near ") == 0) return "~" + StringSubstr(e, 5, 4); return StringSubstr(e, 0, 4); }
 
 double H(int s) { return iHigh(_Symbol, _Period, s); }
 double L(int s) { return iLow(_Symbol, _Period, s); }
@@ -141,20 +149,22 @@ string LineNote(string nm, string &row, datetime &tAt, double &pAt, int &anchor)
    datetime ta = (datetime)ObjectGetInteger(0, nm, OBJPROP_TIME, 0), tb = (datetime)ObjectGetInteger(0, nm, OBJPROP_TIME, 1);
    double pa = ObjectGetDouble(0, nm, OBJPROP_PRICE, 0), pb = ObjectGetDouble(0, nm, OBJPROP_PRICE, 1);
    if(ta > tb) { datetime t = ta; ta = tb; tb = t; double p = pa; pa = pb; pb = p; }
-   int s0 = iBarShift(_Symbol, _Period, ta, false), s1 = iBarShift(_Symbol, _Period, tb, false);
-   if(s0 < 0 || s1 < 0 || s0 <= s1) return "";
+   // 1.02: bar positions as numbers, so an anchor to the right of the last candle (future) works (negative = future)
+   double s0 = Shift(ta), s1 = Shift(tb);
+   if(s0 <= s1) { gShort = "line: both points on one candle"; row = "LINE;" + nm + ";same candle"; tAt = tb; pAt = pb; anchor = ANCHOR_LEFT_UPPER; return gShort; }
    bool up = pb > pa;
-   double slope = (pb - pa) / (s0 - s1), atr = Atr(s1);
+   double slope = (pb - pa) / (s0 - s1), atr = Atr(MathMax((int)MathRound(s1), 0));
    if(atr <= 0) return "";
    double tol = InpTolATR * atr;
+   int i0 = (int)MathRound(s0), i1 = (int)MathRound(s1);
    int b0 = -1, b1 = -1;
-   string a0 = EdgeOf(s0 + 1, MathMax(s0 - 1, 0), pa, !up, atr, b0);
-   string a1 = EdgeOf(s1 + 1, MathMax(s1 - 1, 0), pb, !up, atr, b1);
+   string a0 = EdgeOf(i0 + 1, MathMax(i0 - 1, 0), pa, !up, atr, b0);
+   string a1 = i1 >= 0 ? EdgeOf(i1 + 1, MathMax(i1 - 1, 0), pb, !up, atr, b1) : "future";
    int sw0 = b0 >= 0 ? MathMin(Strength(b0, up, true), Strength(b0, up, false)) : 0;
    int sw1 = b1 >= 0 ? MathMin(Strength(b1, up, true), Strength(b1, up, false)) : 0;
    // candles the line cuts between the anchors
    int bodyCut = 0, wickCut = 0;
-   for(int s = s0 - 1; s > s1; s--)
+   for(int s = i0 - 1; s > i1 && s >= 0; s--)
      {
       double v = pa + slope * (s0 - s);
       if(up) { if(MathMin(O(s), C(s)) < v - tol) bodyCut++; else if(L(s) < v - tol) wickCut++; }
@@ -162,21 +172,21 @@ string LineNote(string nm, string &row, datetime &tAt, double &pAt, int &anchor)
      }
    // after anchor 2: touches, the first wick poke, the first close beyond (the break)
    int touches = 0, sPoke = -1, sBrk = -1; bool was = false;
-   for(int s = s1 - 1; s >= 0; s--)
+   for(int s = i1 - 1; s >= 0; s--)
      {
       double v = pa + slope * (s0 - s);
       double near = up ? L(s) : H(s);
       if(up ? C(s) < v - tol : C(s) > v + tol) { sBrk = s; break; }
       if(sPoke < 0 && (up ? L(s) < v - tol : H(s) > v + tol)) sPoke = s;
       bool t = MathAbs(near - v) <= tol || (up ? L(s) < v : H(s) > v);
-      if(t && !was && s < s1 - 1) touches++;
+      if(t && !was && s < i1 - 1) touches++;
       was = t;
      }
    string brk = sBrk >= 0 ? "broken " + D(sBrk) + " (close)" + (sPoke >= 0 && sPoke > sBrk ? ", poke " + D(sPoke) : "") : (sPoke >= 0 ? "poked " + D(sPoke) + ", no close beyond" : "intact");
    string note = StringFormat("%s line | A1: %s, turn %d | A2: %s, turn %d | %d bars apart | cuts %d bodies, %d wicks | touches after A2: %d | %s | slope %.2f ATR/bar",
-                              up ? "Up" : "Down", a0, sw0, a1, sw1, s0 - s1, bodyCut, wickCut, touches, brk, MathAbs(slope) / atr);
+                              up ? "Up" : "Down", a0, sw0, a1, sw1, (int)MathRound(s0 - s1), bodyCut, wickCut, touches, brk, MathAbs(slope) / atr);
    row = StringFormat("LINE;%s;%s;%s;%s;%s;%s;%s;%d;%s;%d;%d;%d;%d;%d;%s;%s;%.3f", nm, TimeToString(ta), DoubleToString(pa, _Digits), TimeToString(tb), DoubleToString(pb, _Digits),
-                      up ? "up" : "down", a0, sw0, a1, sw1, s0 - s1, bodyCut, wickCut, touches, D(sPoke), D(sBrk), MathAbs(slope) / atr);
+                      up ? "up" : "down", a0, sw0, a1, sw1, (int)MathRound(s0 - s1), bodyCut, wickCut, touches, D(sPoke), D(sBrk), MathAbs(slope) / atr);
    gShort = StringFormat("%s | A1 %s t%d | A2 %s t%d | cuts %d/%d | %s", up ? "Up" : "Dn", Kind(a0), sw0, Kind(a1), sw1, bodyCut, wickCut,
                          sBrk >= 0 ? "broken" : (sPoke >= 0 ? "poked" : "intact"));
    tAt = tb; pAt = pb; anchor = up ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER;
@@ -242,9 +252,14 @@ void Refresh()
       string nm = ObjectName(0, i, 0, -1);
       if(StringFind(nm, "RFX") >= 0) continue;                       // other RamanFX tools' objects
       ENUM_OBJECT ty = (ENUM_OBJECT)ObjectGetInteger(0, nm, OBJPROP_TYPE);
-      if(ty != OBJ_RECTANGLE && ty != OBJ_TREND) continue;
+      if(ty != OBJ_RECTANGLE && ty != OBJ_TREND && ty != OBJ_TRENDBYANGLE) continue;
       string row = ""; datetime t = 0; double p = 0; int anc = 0;
       string note = ty == OBJ_RECTANGLE ? ZoneNote(nm, row, t, p, anc) : LineNote(nm, row, t, p, anc);
+      if(note == "" && ty != OBJ_RECTANGLE)                             // 1.02: never silent on a line
+        {
+         t = (datetime)ObjectGetInteger(0, nm, OBJPROP_TIME, 1); p = ObjectGetDouble(0, nm, OBJPROP_PRICE, 1); anc = ANCHOR_LEFT_UPPER;
+         note = gShort = "line: could not read (" + nm + ")";
+        }
       if(note == "") continue;
       rows += row + "\r\n";
       if(InpNotes) Note("n" + IntegerToString(k), t, p, note, anc);
