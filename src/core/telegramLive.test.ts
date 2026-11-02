@@ -144,6 +144,17 @@ describe('bot with live data', () => {
     const none = await handle('/zones QQQQX', onlyAdhoc);
     expect(none.text).toContain('not found');
   });
+  it('/tfsa: stocks at a W1 / MN / 3M demand zone (inside, just left, near), biggest timeframe first', async () => {
+    const st = { generated_at: '2026-11-02T21:00:00Z', zone_lists: { demand: {
+      in: [{ s: 'AAA', n: 'A Co', tf: 'W1', prox: 10, dist: 9, pct: 0, score: 5, section: 'in', cur: 'USD' }, { s: 'BBB', n: 'B Co', tf: 'MN', prox: 20, dist: 18, pct: 0, score: 3, section: 'in', cur: 'CAD' }, { s: 'CCC', tf: 'D1', prox: 1, dist: 0.9, pct: 0, section: 'in' }],
+      left: [{ s: 'DDD', n: 'D Co', tf: '3M', prox: 5, dist: 4, pct: 1.2, score: 8, section: 'left' }], near: [] } } };
+    const c = ctx({ async load(path: string) { return path === 'scanner/latest.json' ? st : null; } });
+    const r = await handle('/tfsa', c);
+    expect(r.text.indexOf('BBB')).toBeLessThan(r.text.indexOf('AAA'));   // MN before W1
+    expect(r.text).toContain('DDD');
+    expect(r.text).not.toContain('CCC');                                 // D1 is not a higher timeframe
+    expect((await handle('/tfsa ca', c)).text).not.toContain('AAA');
+  });
   it('without keys: as before, plus one hint line', async () => {
     const r = await handle('/zones EURUSD', ctx());
     expect(r.text.trim().endsWith(LIVE_HINT)).toBe(true);

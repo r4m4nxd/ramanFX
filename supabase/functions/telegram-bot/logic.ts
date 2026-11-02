@@ -67,6 +67,7 @@ export const COMMANDS: { command: string; description: string; group: Group; usa
   { command: 'fx', description: 'Open FX setups + getting close', group: 'Markets', usage: '/fx', help: 'open FX setups, getting close, in a zone' },
   { command: 'stocks', description: "Today's stock BUY / WATCH", group: 'Markets', usage: '/stocks', help: "today's stock BUY / WATCH, close to a zone" },
   { command: 'signals', description: 'Every open BUY / SELL / WATCH', group: 'Markets', usage: '/signals', help: 'every open BUY / SELL / WATCH, both markets' },
+  { command: 'tfsa', description: 'TFSA: stocks at a W1/MN/3M demand zone', group: 'Markets', usage: '/tfsa', help: 'TFSA buys at the best price: stocks inside, near or just leaving a W1 / MN / 3M demand zone (/tfsa ca: Canadian listings)' },
   { command: 'near', description: 'Everything within 1% of a zone', group: 'Markets', usage: '/near', help: 'everything within 1% of a strong zone' },
   { command: 'insiders', description: 'Insider buys, sales, 144, 13D (SEC)', group: 'Markets', usage: '/insiders', help: 'latest insider cluster / early buys, ⭐ first, big sales, planned sales (Form 144), activists (13D); /insiders NVDA: one stock\'s buys / sells' },
   { command: 'scan', description: 'Fresh scan of a symbol (or all)', group: 'Markets', usage: '/scan EURUSD', help: 'fresh scan of one symbol, result in ~1 min (/scan alone: every market)' },
@@ -379,6 +380,43 @@ async function cmdNear(ctx: Ctx): Promise<Reply> {
   if (!rows.length) lines.push('Nothing within 1% right now.');
   lines.push('', `Already inside a zone: ${inFx} FX · ${inSt} stocks (/fx, /stocks)`, FOOT);
   return { cmd: 'near', text: fit(lines), buttons: symButtons(rows.map(r => r.sym)) };
+}
+
+/** /tfsa (owner 2026-11-02: "for the TFSA I buy at the best price: near, inside or just left a higher-timeframe zone"):
+ *  long-only stocks at a W1 / MN / 3M demand zone from the stock scan - inside it, within the near band, or just left
+ *  it - the biggest timeframe first, then the strongest. 'ca' = Canadian-currency listings only. */
+export async function cmdTfsa(q: string, ctx: Ctx): Promise<Reply> {
+  const st = obj(await ctx.load('scanner/latest.json'));
+  if (!st.zone_lists) return { cmd: 'tfsa', text: NO_DATA };
+  const caOnly = /^(ca|cad|canada|tsx)$/i.test(q.trim());
+  const rank: Record<string, number> = { '3M': 0, MN: 1, W1: 2 };
+  const pick = (sec: string) => {
+    const best = new Map<string, J>();
+    for (const r of stList(st, 'demand', sec)) {
+      if (!(String(r.tf) in rank) || (caOnly && r.cur !== 'CAD')) continue;
+      const o = best.get(r.s);
+      if (!o || rank[r.tf] < rank[o.tf]) best.set(r.s, r);
+    }
+    return [...best.values()].sort((a, b) => rank[a.tf] - rank[b.tf] || (b.score ?? 0) - (a.score ?? 0) || (a.pct ?? 0) - (b.pct ?? 0));
+  };
+  const seen = new Set<string>();
+  const sections: [string, string, J[]][] = [['in', '🟩 <b>Inside</b> the zone (best price now)', pick('in')], ['left', '↗️ <b>Just left</b> it (bounced, still close)', pick('left')], ['near', '⏳ <b>Near</b> (coming down to it)', pick('near')]];
+  const lines = [`🏦 <b>TFSA · buy at the best price</b>`, `Stocks at a weekly / monthly / 3-month demand zone${caOnly ? ' · CAD listings' : ''}, biggest timeframe first.`];
+  const shown: string[] = [];
+  for (const [, title, rows] of sections) {
+    const rs = rows.filter(r => !seen.has(r.s)).slice(0, 10);
+    rs.forEach(r => seen.add(r.s));
+    if (!rs.length) continue;
+    lines.push('', title);
+    for (const r of rs) {
+      shown.push(String(r.s));
+      const where = r.section === 'in' ? 'in it' : r.section === 'left' ? `${(r.pct ?? 0).toFixed(1)}% above, just left` : `${(r.pct ?? 0).toFixed(1)}% away`;
+      lines.push(`<b>${esc(r.s)}</b>${r.cur === 'CAD' ? ' 🇨🇦' : ''} · ${tf(r.tf)} ${stockPx(r.prox)}–${stockPx(r.dist)} · ${esc(where)} · ${esc(String(r.n ?? '').slice(0, 26))}`);
+    }
+  }
+  if (!shown.length) lines.push('', 'No stock is at a weekly / monthly / 3-month demand zone right now.');
+  lines.push('', `Send a ticker for its zones and chart · /tfsa ca: Canadian listings only · scan of ${esc(when(st.generated_at))} · ${FOOT}`);
+  return { cmd: 'tfsa', text: fit(lines), buttons: symButtons(shown, 4) };
 }
 
 // ---- symbol lookup --------------------------------------------------------------------------------------------------
@@ -1386,6 +1424,7 @@ export async function handle(text: string, ctx: Ctx): Promise<Reply> {
       case 'stocks': return cmdStocks(ctx);
       case 'signals': return cmdSignals(ctx);
       case 'near': return cmdNear(ctx);
+      case 'tfsa': return cmdTfsa(c.arg, ctx);
       case 'zones': case 'zone': return cmdZones(c.arg, ctx);
       case 'times': return cmdTimes(ctx);
       case 'next': return cmdNext(ctx);
