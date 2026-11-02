@@ -434,7 +434,9 @@ def finalize(st: Dict, cands: Dict[str, List[Dict]], market: str, prefs: Optiona
         st['bootstrap_pending'] = True
     flat = cands.get('confirm', []) + cands.get('arrival', []) + cands.get('watch', [])
     used = sent_today(calgary_day(now), own=st, own_key=own_key)
-    picked = pick(flat, st, used, muted=P.muted_set(prefs), now=now)
+    # owner 2026-11-02: every FX arrival on every timeframe, both sides - no daily cap on forex (the cap was ours,
+    # not Telegram's); stocks too (their W1 / MN / 3M arrivals are few, and the shared count would let forex use theirs up)
+    picked = pick(flat, st, used, cap=10**6, muted=P.muted_set(prefs), now=now)
     st.pop('bootstrap_pending', None)
     for c in cands.get('confirm', []):
         if c.get('area_id') in (st.get('areas') or {}):
