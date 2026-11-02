@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| RamanFX_BotView.mq5 v1.00                                        |
+//| RamanFX_BotView.mq5 v1.01                                        |
 //| Draws on MT5 exactly what the Telegram bot draws: the bot's zones |
 //| and live trend lines from its latest hourly scan (Pepperstone     |
 //| prices). Nothing is computed here, so the chart always matches    |
@@ -9,7 +9,7 @@
 //| WebRequest for listed URL" and add https://raw.githubusercontent.com |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.00"
+#property version   "1.01"
 
 input string InpSymbol   = "";     // Bot symbol (empty = this chart's symbol, e.g. XAUUSD, US500, Soybeans)
 input bool   InpHtf      = true;   // Also the next higher timeframe: nearest zone each side (outline) + its lines (gold dotted)
@@ -162,7 +162,7 @@ void Draw()
    // live lines only (the bot does not draw crossed ones): this TF solid, the HTF gold dotted
    for(int i = 0; i < n; i++)
      {
-      if(StringSplit(rows[i], ';', f) < 10 || f[0] != "L" || f[9] == "1") continue;
+      if(StringSplit(rows[i], ';', f) < 9 || f[0] != "L" || f[8] == "1") continue;   // L;tf;dir;p;s;n;t;touches;crossed
       if(f[1] == tf) Line(PFX + "l" + IntegerToString(i), tf, StringToDouble(f[3]), StringToDouble(f[4]), (int)StringToInteger(f[5]), f[6], lineC, STYLE_SOLID);
       else if(htf != "" && f[1] == htf) Line(PFX + "l" + IntegerToString(i), htf, StringToDouble(f[3]), StringToDouble(f[4]), (int)StringToInteger(f[5]), f[6], gold, STYLE_DOT);
      }
