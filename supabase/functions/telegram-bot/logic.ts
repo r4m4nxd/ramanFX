@@ -476,7 +476,7 @@ async function fxZones(r: Resolved, ctx: Ctx): Promise<Reply> {
   if (!price || !src) return { cmd: 'zones', text: `🔎 <b>${esc(r.sym)}</b>\nNo zone detail published for it yet. ${FOOT}\n${liveNote(r, ctx, lv)}`.trim() };
   const scanned = `${tf('H1')} candle closed ${when(fx.h1_close_utc ?? fx.generated)}`;
   const lines = [`🔎 <b>${esc(r.sym)}</b> · FX · price ${px(price, dg)}${lv ? ` · ${esc(liveAt(lv))}` : ''}`,
-    lv ? esc(`zones + price live (OANDA) · signals: scan of the ${scanned.replace(' candle closed ', ' candle ')}`) : esc(scanned)];
+    lv ? esc(`zones + price live (${lv.feed.startsWith("Pepperstone") ? "Pepperstone" : "OANDA"}) · signals: scan of the ${scanned.replace(' candle closed ', ' candle ')}`) : esc(scanned)];
   const st = obj(d.states);
   lines.push('Trend: ' + esc(['MN', 'W1', 'D1', 'H4', 'H1'].filter(t => st[t]).map(t => `${tf(t)} ${String(st[t]).toLowerCase()}`).join(' · ')));
   const sigs = arr(d.signals);

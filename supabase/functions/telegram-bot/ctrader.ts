@@ -94,7 +94,7 @@ export function ctraderSource(cr: CtCreds, o: { now?: () => number; maxPerMin?: 
   let hits: number[] = [];
   const load = async (sym: string): Promise<LiveFx | null> => {
     const token = await cr.token();
-    if (!token) return null;
+    if (!token) { console.log(JSON.stringify({ ev: 'ct_no_token' })); return null; }
     let c = new Conn(acct?.live === false ? HOST.demo : HOST.live);
     try {
       await c.open;
@@ -131,7 +131,8 @@ export function ctraderSource(cr: CtCreds, o: { now?: () => number; maxPerMin?: 
         closed[tf] = p.closed; forming[tf] = p.forming;
       }
       const price = forming.H1?.c ?? closed.H1[closed.H1.length - 1]?.c;
-      if (!(price > 0) || closed.H4.length < 60) return null;
+      if (!(price > 0) || closed.H4.length < 60) { console.log(JSON.stringify({ ev: 'ct_short', sym, h4: closed.H4.length })); return null; }
+      console.log(JSON.stringify({ ev: 'ct_ok', sym, h4: closed.H4.length, ms: now() - t }));
       return { closed, forming, price, at: t, feed: 'Pepperstone cTrader · bid' };
     } catch (e) {
       console.log(JSON.stringify({ ev: 'ct_fail', sym, err: String((e as Error)?.message ?? e).slice(0, 80) }));
