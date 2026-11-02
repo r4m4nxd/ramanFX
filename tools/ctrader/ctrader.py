@@ -14,7 +14,7 @@ SYMBOLS, SYMBOLS_RES = 2114, 2115
 TRENDBARS, TRENDBARS_RES = 2137, 2138
 ACC_LIST, ACC_LIST_RES = 2149, 2150
 ERROR, HEARTBEAT = 2142, 51
-PERIOD = {"M1": 1, "M5": 5, "M15": 7, "M30": 8, "H1": 9, "H4": 10, "D1": 12, "W1": 13, "MN1": 14}
+PERIOD = {"M1": 1, "M5": 5, "M15": 7, "M30": 8, "H1": 9, "H4": 10, "D1": 12, "W1": 13, "MN1": 14, "MN": 14}
 
 
 class CTrader:
