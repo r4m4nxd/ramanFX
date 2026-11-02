@@ -114,7 +114,7 @@ jobs:
       # in the messages and the bot's quiet hours; PYTHONTZPATH='' on the steps below makes zoneinfo use it.
       - name: Current time-zone data
         if: ${{ steps.check.outputs.scan == 'true' }}
-        run: python -m pip install --quiet --upgrade tzdata
+        run: python -m pip install --quiet --upgrade tzdata websocket-client==1.8.0   # websocket-client: the cTrader feed
 
       - name: Unit tests
         id: tests
@@ -151,6 +151,11 @@ jobs:
           ONDEMAND: ${{ github.event.inputs.ondemand }}
           RFX_TO: ${{ github.event.inputs.ondemand == 'true' && github.event.inputs.to || '' }}
           OANDA_API_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
+          # Pepperstone bars (tools/fx_scanner/sources/ctrader_feed.py); unset or FX_FEED=oanda -> the old feeds
+          CTRADER_CLIENT_ID: ${{ secrets.CTRADER_CLIENT_ID }}
+          CTRADER_CLIENT_SECRET: ${{ secrets.CTRADER_CLIENT_SECRET }}
+          CTRADER_ACCESS_TOKEN: ${{ secrets.CTRADER_ACCESS_TOKEN }}
+          FX_FEED: ${{ vars.FX_FEED || 'ctrader' }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           FX_WATCHLIST: ${{ secrets.FX_WATCHLIST }}

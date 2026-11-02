@@ -186,7 +186,7 @@ def inst_fields(i: Dict) -> Dict:
     out = {'sym': i['sym'], 'oanda': i['name'], 'cls': i['cls'], 'group': i.get('group') or '', 'wl': bool(i.get('wl')),
            'tv': i.get('tv') or f"PEPPERSTONE:{i['sym']}", 'digits': C.digits_of(i), 'pip': C.pip_of(i),
            'exotic': i['cls'] == 'exotic'}
-    if i.get('source') not in (None, 'oanda'):           # extra sources only: OANDA rows are unchanged
+    if i.get('source') not in (None, 'oanda') and not i.get('ct'):   # extra sources only (a cTrader-fed symbol is Pepperstone's own: no note)
         out['src'] = i['source']
         out['feed'] = i.get('feed') or i['source']
         if i.get('unofficial'):
@@ -285,7 +285,7 @@ def public(res: Dict, h4: str, fixture: bool = False, partial: bool = False, ext
         'version': 1, 'generated': now_utc().strftime('%Y-%m-%dT%H:%M:%SZ'), 'h4': h4,
         'h4_close_utc': C.h4_close_utc(h4).strftime('%Y-%m-%dT%H:%M:%SZ') if h4 else None,
         'h1': h1 or None, 'h1_close_utc': C.h1_close_utc(h1).strftime('%Y-%m-%dT%H:%M:%SZ') if h1 else None,
-        'fixture': fixture, 'partial': partial, 'broker': 'Pepperstone', 'feed': 'OANDA ' + (os.environ.get('OANDA_ENV') or 'practice'),
+        'fixture': fixture, 'partial': partial, 'broker': 'Pepperstone', 'feed': ('Pepperstone cTrader (OANDA fallback)' if CTF.enabled() else 'OANDA ' + (os.environ.get('OANDA_ENV') or 'practice')),
         'clock': 'Pepperstone server time (GMT+2 winter / GMT+3 summer, day closes 17:00 New York)',
         'config': {'chain': ['MN', 'W1', 'D1', 'H4', 'H1'], 'context': '3M', 'sl_pct': C.SL_PCT, 'approach_h': C.APPROACH_H,
                    'near_h': C.NEAR_H, 'left_bars': C.LEFT_BARS, 'max_spread_frac': C.MAX_SPREAD_FRAC,
@@ -612,6 +612,7 @@ def make_getter(oanda: Callable[[Dict], Tuple[Dict[str, List[Bar]], Optional[flo
             try:
                 out = CTF.bars(sym)
                 if len(out.get('H4') or []) >= 50:
+                    i['ct'] = True                       # this symbol's bars are Pepperstone's own
                     return out, ct_spread(i, out)
                 log(f'{sym}: cTrader has too little H4 history - old feed')
             except CTF.NotListed:
@@ -821,6 +822,9 @@ def crypto_main(a) -> int:
         uni = [i for i in uni if i['sym'].upper() in want or i['name'].upper() in want]
     print(f'crypto-only scan: {len(uni)} instruments, newest H1 {ch1} server time')
     res = run(uni, make_getter(), workers=a.workers)
+    if CTF.enabled():
+        log_ct = sum(1 for i in uni if i.get('ct'))
+        print(f'cTrader feed: {log_ct}/{len(uni)} symbols from Pepperstone, {CTF.STATS}')
     have = len(res['analyses'])
     print(f'analysed {have}/{len(uni)} in {time.time() - t0:.0f}s; {len(res["errors"])} errors')
     for s_, e in list(res['errors'].items())[:15]:
@@ -986,6 +990,9 @@ def main(argv=None) -> int:
         uni = [i for i in uni if i['sym'].upper() in want or i['name'].upper() in want]
     print(f'{len(uni)} instruments ({src} list, watchlist {len(wl["names"])} from {wl["source"]}), newest H1 {h1}, H4 {h4} server time')
     res = run(uni, make_getter(), workers=a.workers)
+    if CTF.enabled():
+        log_ct = sum(1 for i in uni if i.get('ct'))
+        print(f'cTrader feed: {log_ct}/{len(uni)} symbols from Pepperstone, {CTF.STATS}')
     have = len(res['analyses'])
     print(f'analysed {have}/{len(uni)} in {time.time() - t0:.0f}s; {len(res["errors"])} errors')
     if O.DROPPED:
