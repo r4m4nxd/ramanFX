@@ -258,7 +258,7 @@ void Refresh()
       if(note == "" && ty != OBJ_RECTANGLE)                             // 1.02: never silent on a line
         {
          t = (datetime)ObjectGetInteger(0, nm, OBJPROP_TIME, 1); p = ObjectGetDouble(0, nm, OBJPROP_PRICE, 1); anc = ANCHOR_LEFT_UPPER;
-         note = gShort = "line: could not read (" + nm + ")";
+         gShort = "line: could not read (" + nm + ")"; note = gShort;
         }
       if(note == "") continue;
       rows += row + "\r\n";
