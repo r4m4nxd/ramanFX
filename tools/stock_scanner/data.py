@@ -492,11 +492,23 @@ EODHD_EOD = 'https://eodhd.com/api/eod/'
 
 
 def tsx_feed() -> str:
-    """The TSX data feed that is switched on ('' = none: TSX-only names stay uncovered). One adapter today: eodhd."""
+    """The TSX data feed that is switched on ('' = none: TSX-only names stay uncovered): eodhd when SCANNER_TSX_FEED=eodhd
+    and its key are set (paid), else Yahoo Finance's daily chart (free, unofficial; owner 2026-11-02: "free for all the
+    Canadian stocks"), off only with SCANNER_TSX_FEED=off."""
     want = os.environ.get('SCANNER_TSX_FEED', '').strip().lower()
     if want == 'eodhd' and os.environ.get('EODHD_API_KEY', '').strip():
         return 'eodhd'
-    return ''
+    if want == 'off':
+        return ''
+    return 'yahoo'
+
+
+def yahoo_tsx_url(sym: str, rng: str = 'max') -> str:
+    """RY.TO -> RY.TO, BBD.B.TO -> BBD-B.TO (Yahoo writes a share class with '-', keeps the exchange suffix)."""
+    base, _, ex = sym.rpartition('.')
+    ysym = f"{base.replace('.', '-')}.{ex}" if base else sym
+    return (f'https://query1.finance.yahoo.com/v8/finance/chart/{urllib.parse.quote(ysym)}?range={rng}&interval=1d'
+            '&includeAdjustedClose=true&events=div%2Csplit')
 
 
 def feeds_on() -> Tuple[str, ...]:
@@ -537,6 +549,13 @@ def fetch_tsx(sym: str, max_age_h: float = 12.0, offline: bool = False) -> Tuple
         raise RuntimeError(f'{sym}: no TSX feed switched on')
     start = (dt.date.today() - dt.timedelta(days=HISTORY_DAYS)).isoformat()
     try:
+        if tsx_feed() == 'yahoo':
+            bars, meta = parse_yahoo(http_get(yahoo_tsx_url(sym), expect=looks_json))
+            meta = {**meta, 'source': 'yahoo', 'exchange': 'TSX', 'currency': meta.get('currency') or 'CAD'}
+            if len(bars) < 60:
+                raise ValueError('too few bars')
+            save_cached(sym, bars, meta)
+            return bars, meta
         bars, meta = parse_eodhd(http_get(eodhd_url(sym, start), accept='application/json', expect=looks_json))
         if len(bars) < 60:
             raise ValueError('too few bars')

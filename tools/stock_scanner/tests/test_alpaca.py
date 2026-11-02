@@ -296,10 +296,13 @@ class TestSecAndTsxFeed(NetBase):
         self.assertEqual(U.fill_ciks(rows), 1)
 
     def test_eodhd_adapter_off_by_default_and_parses(self):
-        self.assertEqual(DATA.tsx_feed(), '')
-        self.assertEqual(DATA.feeds_on(), ())
+        self.assertEqual(DATA.tsx_feed(), 'yahoo')                       # 2026-11: the free Yahoo feed by default
+        self.assertIn('/chart/BBD-B.TO?', DATA.yahoo_tsx_url('BBD.B.TO'))
+        with mock.patch.dict(os.environ, {'SCANNER_TSX_FEED': 'off'}):
+            self.assertEqual(DATA.tsx_feed(), '')
+            self.assertEqual(DATA.feeds_on(), ())
         with mock.patch.dict(os.environ, {'SCANNER_TSX_FEED': 'eodhd'}):
-            self.assertEqual(DATA.tsx_feed(), '')                       # no key: still off
+            self.assertEqual(DATA.tsx_feed(), 'yahoo')                   # no key: the free feed
         with mock.patch.dict(os.environ, {'SCANNER_TSX_FEED': 'eodhd', 'EODHD_API_KEY': 'k'}):
             self.assertEqual(DATA.feeds_on(), ('tsx',))
             self.assertIn('/eod/RY.TO?', DATA.eodhd_url('RY.TO', '2020-01-01'))
@@ -309,7 +312,7 @@ class TestSecAndTsxFeed(NetBase):
         self.assertEqual(len(bars), 1)
         self.assertEqual((bars[0].o, bars[0].h, bars[0].c), (5.0, 6.0, 5.5))
         self.assertEqual(meta['currency'], 'CAD')
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(RuntimeError), mock.patch.dict(os.environ, {'SCANNER_TSX_FEED': 'off'}):
             DATA.fetch_tsx('ZZZ.TO')                                    # feed off, no cache
 
 
