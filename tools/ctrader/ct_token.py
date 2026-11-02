@@ -20,7 +20,9 @@ _CACHE = {}
 
 def _sb(method, url, body=None):
     key = os.environ.get('SUPABASE_SERVICE_ROLE_KEY') or ''
-    h = {'apikey': key, 'Authorization': f'Bearer {key}', 'Content-Type': 'application/json'}
+    h = {'apikey': key, 'Content-Type': 'application/json'}
+    if key.startswith('eyJ'):                       # a legacy JWT key; the new sb_secret_ keys go in apikey only (Bearer = 401)
+        h['Authorization'] = f'Bearer {key}'
     if method == 'POST':
         h['Prefer'] = 'resolution=merge-duplicates,return=minimal'
     req = urllib.request.Request(url, data=json.dumps(body).encode() if body is not None else None, headers=h, method=method)
@@ -58,6 +60,14 @@ def _refresh(rt):
 
 
 def refresh(force=False):
+    # the table must be readable AND writable before cTrader is asked: a refresh spends the old refresh token, so new
+    # tokens that cannot be stored are lost (2026-11-02: a 401 on the write after a successful refresh)
+    try:
+        _sb('GET', REST + '?id=eq.1&select=id')
+        _sb('PATCH', REST + '?id=eq.0', {'updated_at': dt.datetime.now(dt.timezone.utc).isoformat()})   # no row 0: a no-op write
+    except Exception as e:  # noqa: BLE001
+        print(f'cTrader token: Supabase table not reachable ({e}) - NOT refreshing')
+        return 1
     r = row()
     now = dt.datetime.now(dt.timezone.utc)
     if r and not force:
