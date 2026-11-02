@@ -148,8 +148,12 @@ describe('bot with live data', () => {
     const st = { generated_at: '2026-11-02T21:00:00Z', zone_lists: { demand: {
       in: [{ s: 'AAA', n: 'A Co', tf: 'W1', prox: 10, dist: 9, pct: 0, score: 5, section: 'in', cur: 'USD' }, { s: 'BBB', n: 'B Co', tf: 'MN', prox: 20, dist: 18, pct: 0, score: 3, section: 'in', cur: 'CAD' }, { s: 'CCC', tf: 'D1', prox: 1, dist: 0.9, pct: 0, section: 'in' }],
       left: [{ s: 'DDD', n: 'D Co', tf: '3M', prox: 5, dist: 4, pct: 1.2, score: 8, section: 'left' }], near: [] } } };
-    const c = ctx({ async load(path: string) { return path === 'scanner/latest.json' ? st : null; } });
+    const ins = { clusters: [{ sym: 'DDD', kind: 'cluster', n: 3, value: 2_500_000 }] };
+    const c = ctx({ async load(path: string) { return path === 'scanner/latest.json' ? st : path === 'insiders/latest.json' ? ins : null; } });
     const r = await handle('/tfsa', c);
+    expect(r.text).toContain('Insiders buying');
+    expect(r.text.indexOf('DDD')).toBeLessThan(r.text.indexOf('🟩'));   // the insider section comes first
+    expect(r.text).toContain('3 insiders bought $2.5M');
     expect(r.text.indexOf('BBB')).toBeLessThan(r.text.indexOf('AAA'));   // MN before W1
     expect(r.text).toContain('DDD');
     expect(r.text).not.toContain('CCC');                                 // D1 is not a higher timeframe

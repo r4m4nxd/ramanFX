@@ -39,6 +39,18 @@ const pineSteps = (name: string, preset = true) => [
 export const TOOLS: Tool[] = [
   // ─── MT5 ────────────────────────────────────────────────────────────
   {
+    id: 'botview5', platform: 'mt5', name: 'BotView', version: '1.02', kind: 'Expert Advisor',
+    purpose: 'Draws on MT5 exactly what the Telegram bot draws: its zones (this timeframe + the next higher one) and its live trend lines, from the bot\'s hourly scan on Pepperstone prices. Nothing is computed on the chart, so it always matches the bot.',
+    files: [{ file: 'RamanFX_BotView.mq5' }],
+    install: [
+      'MT5: File → Open Data Folder → MQL5 → Experts (an Expert Advisor: only EAs may download; it never trades).',
+      'Put RamanFX_BotView.mq5 there.',
+      mt5Compile,
+      'Tools → Options → Expert Advisors → tick "Allow WebRequest for listed URL" and add https://raw.githubusercontent.com.',
+      'Drag it onto a chart (one EA per chart). Symbols: the bot\'s watchlist and Pepperstone forex.',
+    ],
+  },
+  {
     id: 'zv5', platform: 'mt5', name: 'ZoneVision', version: '2.15', kind: 'Indicator',
     purpose: 'Draws the zones, trendlines, Direction box and mentor grades exactly as the ZoneBot sees them. 2.15: the owner\'s teaching - trend lines between REAL pivots (ends of real corrections), red dashed momentum lines, impulse / correction per TF; 2.14: trend lines: owner\'s structure method; ARRIVAL zones with weak zones, realignment area, stop rule, TP / ceiling and lower-TF confirmation + alerts, the same engine as the Telegram bot. Never trades.',
     files: [{ file: 'RamanFX_ZoneVision.mq5' }, { file: 'RFX_ZoneCore.mqh', note: 'shared core, same folder' }],

@@ -37,6 +37,7 @@ export const NAV: { to: string; label: string; short?: string; icon: IconName; m
   { to: '/risk', label: 'Risk rules', icon: 'shield', group: 'Plan & tools', hint: 'Daily loss and trade limits', scoped: true },
   { to: '/calculator', label: 'Calculator', icon: 'calculator', group: 'Plan & tools', hint: 'Lot size, pip value, R:R', scoped: true },
   { to: '/scanner', label: 'Stock scanner', short: 'Scanner', icon: 'search', group: 'Plan & tools', hint: 'Daily S&P 500 buy setups at fresh demand and exit warnings, by the Raja rules' },
+  { to: '/tfsa', label: 'TFSA buys', short: 'TFSA', icon: 'search', group: 'Plan & tools', hint: 'Stocks at a weekly / monthly / 3-month demand zone: inside, just left or near; insider buying first' },
   { to: '/insiders', label: 'Insider buys', short: 'Insiders', icon: 'eye', group: 'Plan & tools', hint: 'Insider cluster buys from SEC Form 4, with the scanner\'s zone context' },
   { to: '/moves', label: 'Big moves', short: 'Moves', icon: 'bolt', group: 'Plan & tools', hint: 'Every big 1W / 1D / 4H / 1H candle that just closed: forex, indices, crypto, stocks' },
   { to: '/train', label: 'Train my eye', short: 'Train', icon: 'eye', group: 'Plan & tools', hint: 'Mark pivots, trend lines and zones the way you read them; score the engine against your eye' },

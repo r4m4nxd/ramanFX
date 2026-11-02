@@ -73,6 +73,7 @@ describe('app paths: the ignore script and the watchdog agree', () => {
   const workflows = fs.readdirSync(WF).filter(f => /\.ya?ml$/.test(f)).map(f => [f, fs.readFileSync(path.join(WF, f), 'utf8')] as const);
   const dataPaths = execFileSync('bash', [path.join(ROOT, 'scripts/data-branch.sh'), 'paths'], { encoding: 'utf8' }).trim().split('\n');
   const MAIN_OK = new Set(['market-hours.yml']);
+  const NO_DATA = new Set(['ctrader-token.yml']);   // refreshes a token in Supabase: reads and writes no repo data
   it('scheduled workflows never push to main: their data goes to the data branch', () => {
     const scheduled = workflows.filter(([, y]) => /^\s*schedule:/m.test(y));
     expect(scheduled.map(([f]) => f).sort()).toEqual(expect.arrayContaining(['briefing.yml', 'fundamentals.yml', 'fx-scan.yml', 'movers.yml', 'reminders.yml', 'stock-scan.yml']));
@@ -80,7 +81,7 @@ describe('app paths: the ignore script and the watchdog agree', () => {
       expect(y, `${f}: git push`).not.toMatch(/\bgit\s+(-\S+\s+)*push\b/);
       expect(y, `${f}: git commit`).not.toMatch(/\bgit\s+(-\S+\s+)*commit\b/);
       expect(y, `${f}: git add`).not.toMatch(/\bgit\s+add\b/);
-      expect(y, `${f}: reads the data branch`).toMatch(/bash scripts\/data-branch\.sh pull/);
+      if (!NO_DATA.has(f)) expect(y, `${f}: reads the data branch`).toMatch(/bash scripts\/data-branch\.sh pull/);
     }
   });
   it('every workflow that commits uses scripts/data-branch.sh push with data paths only (market hours: app files on main)', () => {

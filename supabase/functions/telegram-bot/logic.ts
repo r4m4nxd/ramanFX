@@ -382,6 +382,7 @@ async function cmdNear(ctx: Ctx): Promise<Reply> {
   return { cmd: 'near', text: fit(lines), buttons: symButtons(rows.map(r => r.sym)) };
 }
 
+const usdShort = (v: unknown) => { const x = num(v); if (x == null) return ''; const a = Math.abs(x); return a >= 1e9 ? `$${(a / 1e9).toFixed(1)}B` : a >= 1e6 ? `$${(a / 1e6).toFixed(1)}M` : `$${(a / 1e3).toFixed(0)}K`; };
 /** /tfsa (owner 2026-11-02: "for the TFSA I buy at the best price: near, inside or just left a higher-timeframe zone"):
  *  long-only stocks at a W1 / MN / 3M demand zone from the stock scan - inside it, within the near band, or just left
  *  it - the biggest timeframe first, then the strongest. 'ca' = Canadian-currency listings only. */
@@ -397,12 +398,25 @@ export async function cmdTfsa(q: string, ctx: Ctx): Promise<Reply> {
       const o = best.get(r.s);
       if (!o || rank[r.tf] < rank[o.tf]) best.set(r.s, r);
     }
-    return [...best.values()].sort((a, b) => rank[a.tf] - rank[b.tf] || (b.score ?? 0) - (a.score ?? 0) || (a.pct ?? 0) - (b.pct ?? 0));
+    return [...best.values()].sort((a, b) => rank[a.tf] - rank[b.tf] || (num(b.score) ?? 0) - (num(a.score) ?? 0) || (num(a.pct) ?? 0) - (num(b.pct) ?? 0));
   };
   const seen = new Set<string>();
   const sections: [string, string, J[]][] = [['in', '🟩 <b>Inside</b> the zone (best price now)', pick('in')], ['left', '↗️ <b>Just left</b> it (bounced, still close)', pick('left')], ['near', '⏳ <b>Near</b> (coming down to it)', pick('near')]];
   const lines = [`🏦 <b>TFSA · buy at the best price</b>`, `Stocks at a weekly / monthly / 3-month demand zone${caOnly ? ' · CAD listings' : ''}, biggest timeframe first.`];
   const shown: string[] = [];
+  // Baker (owner pick 2026-11-02): insiders buying while the stock sits at a big demand zone = the top section
+  const ins = obj(await ctx.load('insiders/latest.json').catch(() => null));
+  const buys = new Map<string, J>(arr(ins.clusters).map(c => [String(c.sym), c] as [string, J]));
+  const top = sections.flatMap(([, , rows]) => rows).filter(r => buys.has(String(r.s)) && !seen.has(String(r.s)) && !!seen.add(String(r.s)));
+  if (top.length) {
+    lines.push('', '⭐ <b>Insiders buying</b> at the zone (last 30 days)');
+    for (const r of top.slice(0, 8)) {
+      const c = buys.get(String(r.s))!;
+      shown.push(String(r.s));
+      const who = c.kind === 'cluster' ? `${num(c.n) ?? 2} insiders` : c.kind === 'early' ? '1 insider (early)' : 'big solo buy';
+      lines.push(`<b>${esc(r.s)}</b>${r.cur === 'CAD' ? ' 🇨🇦' : ''} · ${tf(r.tf)} ${stockPx(r.prox)}–${stockPx(r.dist)} · ${r.section === 'in' ? 'in it' : `${(num(r.pct) ?? 0).toFixed(1)}% away`} · ${esc(who)} bought ${esc(usdShort(c.value))}`);
+    }
+  }
   for (const [, title, rows] of sections) {
     const rs = rows.filter(r => !seen.has(r.s)).slice(0, 10);
     rs.forEach(r => seen.add(r.s));
@@ -410,7 +424,7 @@ export async function cmdTfsa(q: string, ctx: Ctx): Promise<Reply> {
     lines.push('', title);
     for (const r of rs) {
       shown.push(String(r.s));
-      const where = r.section === 'in' ? 'in it' : r.section === 'left' ? `${(r.pct ?? 0).toFixed(1)}% above, just left` : `${(r.pct ?? 0).toFixed(1)}% away`;
+      const where = r.section === 'in' ? 'in it' : r.section === 'left' ? `${(num(r.pct) ?? 0).toFixed(1)}% above, just left` : `${(num(r.pct) ?? 0).toFixed(1)}% away`;
       lines.push(`<b>${esc(r.s)}</b>${r.cur === 'CAD' ? ' 🇨🇦' : ''} · ${tf(r.tf)} ${stockPx(r.prox)}–${stockPx(r.dist)} · ${esc(where)} · ${esc(String(r.n ?? '').slice(0, 26))}`);
     }
   }
