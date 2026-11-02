@@ -296,13 +296,15 @@ class TestSecAndTsxFeed(NetBase):
         self.assertEqual(U.fill_ciks(rows), 1)
 
     def test_eodhd_adapter_off_by_default_and_parses(self):
-        self.assertEqual(DATA.tsx_feed(), 'yahoo')                       # 2026-11: the free Yahoo feed by default
+        self.assertEqual(DATA.tsx_feed(), '')                            # off by default
+        with mock.patch.dict(os.environ, {'SCANNER_TSX_FEED': 'yahoo'}):
+            self.assertEqual(DATA.tsx_feed(), 'yahoo')
         self.assertIn('/chart/BBD-B.TO?', DATA.yahoo_tsx_url('BBD.B.TO'))
         with mock.patch.dict(os.environ, {'SCANNER_TSX_FEED': 'off'}):
             self.assertEqual(DATA.tsx_feed(), '')
             self.assertEqual(DATA.feeds_on(), ())
         with mock.patch.dict(os.environ, {'SCANNER_TSX_FEED': 'eodhd'}):
-            self.assertEqual(DATA.tsx_feed(), 'yahoo')                   # no key: the free feed
+            self.assertEqual(DATA.tsx_feed(), '')                        # no key: still off
         with mock.patch.dict(os.environ, {'SCANNER_TSX_FEED': 'eodhd', 'EODHD_API_KEY': 'k'}):
             self.assertEqual(DATA.feeds_on(), ('tsx',))
             self.assertIn('/eod/RY.TO?', DATA.eodhd_url('RY.TO', '2020-01-01'))

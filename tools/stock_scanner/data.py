@@ -493,14 +493,13 @@ EODHD_EOD = 'https://eodhd.com/api/eod/'
 
 def tsx_feed() -> str:
     """The TSX data feed that is switched on ('' = none: TSX-only names stay uncovered): eodhd when SCANNER_TSX_FEED=eodhd
-    and its key are set (paid), else Yahoo Finance's daily chart (free, unofficial; owner 2026-11-02: "free for all the
-    Canadian stocks"), off only with SCANNER_TSX_FEED=off."""
+    and its key are set (paid); yahoo (free, unofficial) only with SCANNER_TSX_FEED=yahoo: it refuses GitHub's runners (429)."""
     want = os.environ.get('SCANNER_TSX_FEED', '').strip().lower()
     if want == 'eodhd' and os.environ.get('EODHD_API_KEY', '').strip():
         return 'eodhd'
-    if want == 'off':
-        return ''
-    return 'yahoo'
+    if want == 'yahoo':                 # opt-in only: Yahoo answers GitHub's runners 429 (tested 2026-11-02)
+        return 'yahoo'
+    return ''
 
 
 def yahoo_tsx_url(sym: str, rng: str = 'max') -> str:
