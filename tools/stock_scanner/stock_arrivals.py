@@ -66,6 +66,23 @@ class Collector:
         self.done: set = set()
         self.cands: Dict[str, List[Dict]] = {'arrival': [], 'watch': [], 'confirm': []}
         self.errors = 0
+        self.turns: List[Dict] = []
+
+    def weekly_turn(self, sym: str, an, p=Z.RAJA) -> None:
+        """Stocks 3 (owner pick 2026-11-02): the WEEKLY down trend line broken by a close (Raja: turning up; 2 supply
+        zones removed = changed) AND a fresh DAILY arrival demand (its leg-out closed above the daily line and removed
+        supply) = a new up-move starting, caught early. The daily arrival is the trigger only (stock zones stay W1+)."""
+        r = an.w1
+        if r is None or not getattr(r, 'ok', False) or r.T <= 0 or not 1 <= r.t_bar <= 8 or r.st not in (Z.DST_TURN, Z.DST_PULL, Z.DST_CHG):
+            return
+        _, arr = A.find_arrivals(an.d1.S, 'D1', p)
+        fresh = [a for a in arr if a.zone.dir > 0 and a.known_bar <= 10 and not a.zone.removed]
+        if not fresh:
+            return
+        a = fresh[-1]
+        self.turns.append({'sym': sym, 'w1_cross': r.S.T[r.t_bar], 'w1_state': 'changed' if r.st == Z.DST_CHG else 'turning', 'w1_removed': r.rm,
+                           'd1_date': a.date, 'd1_lo': round(A.lo(a.zone), 2), 'd1_hi': round(A.hi(a.zone), 2), 'd1_removed': len(a.removed),
+                           'price': round(an.price, 2)})
 
     def add(self, sym: str, an, wl: bool = False, p=Z.RAJA) -> None:
         try:
@@ -84,6 +101,10 @@ class Collector:
             self.errors += 1
             return
         self.done.add(sym)
+        try:
+            self.weekly_turn(sym, an, p)
+        except Exception:  # noqa: BLE001
+            pass
         for k in self.cands:
             self.cands[k] += out[k]
         for rec in out['areas']:
@@ -116,11 +137,41 @@ class Collector:
             log(f'arrivals: H4 check of {len(syms)} ticker(s) in a weekly realignment area: {n} confirmation(s)')
         return n
 
+    def _turns_alert(self, prefs: Optional[Dict], send, notify: bool, log=print) -> None:
+        """Publish the weekly turns (st['weekly_turns']: the bot's /tfsa and the app) and alert the new ones once."""
+        try:
+            import prefs as P
+            import notify as SN
+            seen = self.st.setdefault('turns_seen', {})
+            new = [t for t in self.turns if f"{t['sym']}|{t['w1_cross']}" not in seen and t['sym'] not in P.muted_set(prefs)]
+            for t in self.turns:
+                seen.setdefault(f"{t['sym']}|{t['w1_cross']}", self.iso)
+            cut = (self.now - dt.timedelta(days=120)).isoformat()
+            self.st['turns_seen'] = {k: v for k, v in seen.items() if v >= cut}
+            self.st['weekly_turns'] = sorted(self.turns, key=lambda t: (t['w1_state'] != 'changed', t['sym']))
+            if new and not self.boot:
+                lines = ['🌱 <b>Weekly turn + fresh daily arrival</b> · a new up-move starting (stocks)', '']
+                for t in new[:12]:
+                    lines.append(f"<b>{SN.esc(t['sym'])}</b> · weekly down line broken {t['w1_cross'][:10]} ({t['w1_state']}, {t['w1_removed']} supply removed) · "
+                                 f"daily arrival demand {t['d1_lo']}-{t['d1_hi']} ({t['d1_date'][:10]})")
+                lines += ['', 'Buy from the daily arrival zone with the stop below it; the weekly target is the next supply. Not advice.']
+                msg = SN.silenced('\n'.join(lines), P.in_quiet(prefs))
+                if notify:
+                    send([msg])
+                else:
+                    print(msg)
+            if log:
+                log(f'weekly turns: {len(self.turns)} now, {len(new)} new')
+        except Exception as e:  # noqa: BLE001
+            if log:
+                log(f'weekly turns: skipped ({type(e).__name__}: {str(e)[:100]})')
+
     def finish(self, prefs: Optional[Dict], send, notify: bool = True, write: bool = True, log=print) -> int:
         for k, rec in self.old.items():
             if rec.get('sym') not in self.done and k not in self.areas:
                 self.areas[k] = rec
         self.st['areas'] = self.areas
+        self._turns_alert(prefs, send, notify, log)
         if self.errors and log:
             log(f'arrivals: {self.errors} ticker(s) skipped (errors)')
         try:

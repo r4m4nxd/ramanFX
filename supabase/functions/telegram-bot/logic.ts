@@ -464,6 +464,15 @@ export async function cmdTfsa(q: string, ctx: Ctx): Promise<Reply> {
       lines.push(`<b>${esc(r.s)}</b>${r.cur === 'CAD' ? ' 🇨🇦' : ''} · ${tf(r.tf)} ${stockPx(r.prox)}–${stockPx(r.dist)} · ${esc(where)} · ${esc(String(r.n ?? '').slice(0, 26))}`);
     }
   }
+  // Stocks 3 (owner pick): weekly down line broken + a fresh daily arrival demand (stock scan: scanner/arrivals.json)
+  const turns = caOnly ? [] : arr(obj(await ctx.load('scanner/arrivals.json').catch(() => null)).weekly_turns);
+  if (turns.length) {
+    lines.push('', '🌱 <b>Weekly turn</b> + fresh daily arrival (a new up-move starting)');
+    for (const t of turns.slice(0, 8)) {
+      shown.push(String(t.sym));
+      lines.push(`<b>${esc(t.sym)}</b> · weekly line broken ${esc(String(t.w1_cross ?? '').slice(0, 10))} (${esc(t.w1_state)}) · daily demand ${stockPx(t.d1_lo)}–${stockPx(t.d1_hi)}`);
+    }
+  }
   if (!shown.length) lines.push('', 'No stock is at a weekly / monthly / 3-month demand zone right now.');
   lines.push('', `Send a ticker for its zones and chart · /tfsa ca: Canadian listings only · scan of ${esc(when(st.generated_at))} · ${FOOT}`);
   return { cmd: 'tfsa', text: fit(lines), buttons: symButtons(shown, 4) };
