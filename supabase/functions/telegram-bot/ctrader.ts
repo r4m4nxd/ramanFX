@@ -5,10 +5,10 @@
 // ctrader-token workflow refreshes into public.rfx_ctrader_token (read here with the service role). Nothing is logged
 // but event names and counts. One socket per fetch (an edge instance is short-lived); history requests paced at 5 / s.
 import type { ZBar } from './zonecore.ts';
-import { FX_TFS, fxLabel, TTL_MS, type LiveFx } from './live.ts';
+import { FX_TFS, fxLabel, nyOffset, TTL_MS, type LiveFx } from './live.ts';
 
 const HOST = { live: 'wss://live.ctraderapi.com:5036', demo: 'wss://demo.ctraderapi.com:5036' };
-const T = { APP: 2100, APP_RES: 2101, ACC: 2102, ACC_RES: 2103, SYMS: 2114, SYMS_RES: 2115, BARS: 2137, BARS_RES: 2138, LIST: 2149, LIST_RES: 2150, ERR: 2142, HB: 51 };
+const T = { SPOTS: 2127, SPOTS_RES: 2128, SPOT: 2131, APP: 2100, APP_RES: 2101, ACC: 2102, ACC_RES: 2103, SYMS: 2114, SYMS_RES: 2115, BARS: 2137, BARS_RES: 2138, LIST: 2149, LIST_RES: 2150, ERR: 2142, HB: 51 };
 const PERIOD: Record<string, number> = { M15: 7, H1: 9, H4: 10, D1: 12, W1: 13, MN: 14 };
 // history per TF: [days per request, requests] (the API caps the range of one request)
 const SPAN: Record<string, [number, number]> = { M15: [5, 1], H1: [20, 1], H4: [90, 1], D1: [360, 2], W1: [1800, 2], MN: [1800, 2] };
@@ -50,7 +50,43 @@ export function ctSplit(raw: Raw[], tf: string, now: number): { closed: ZBar[]; 
   return { closed: [...by.keys()].sort().map(k => by.get(k)!), forming };
 }
 
+/** The forex-time label of the TF bar that CONTAINS the instant ms (fxLabel snaps a bar's own start; this floors). */
+export function floorLabel(ms: number, tf: string): string {
+  const f = new Date(ms + (nyOffset(ms) + 7) * 3_600_000);
+  const y = f.getUTCFullYear(), mo = f.getUTCMonth(), d = f.getUTCDate(), h = f.getUTCHours(), mi = f.getUTCMinutes();
+  const iso = (x: number) => new Date(x).toISOString().slice(0, 16);
+  if (tf === 'MN') return `${iso(Date.UTC(y, mo, 1)).slice(0, 7)}-01T00:00`;
+  if (tf === 'W1') { const wd = (f.getUTCDay() + 6) % 7; return iso(Date.UTC(y, mo, d) - ((wd - 5 + 7) % 7) * DAY); }
+  if (tf === 'D1') return iso(Date.UTC(y, mo, d));
+  if (tf === 'H4') return iso(Date.UTC(y, mo, d, h - (h % 4)));
+  if (tf === 'H1') return iso(Date.UTC(y, mo, d, h));
+  return iso(Date.UTC(y, mo, d, h, mi - (mi % 15)));     // M15
+}
+/** The forming bar of each TF, built bottom-up: M1 (closed) + the live price -> M15 / H1, closed H1 + forming H1 -> H4,
+ *  H4 -> D1, D1 -> W1 / MN. cTrader's history holds only finished bars, so the open bar is assembled here. */
+export function buildForming(rawClosed: Record<string, Raw[]>, m1: Raw[], price: number | null, now: number): Record<string, ZBar | null> {
+  const out: Record<string, ZBar | null> = {};
+  const fold = (tf: string, parts: Raw[], tail: ZBar | null, px: number | null): ZBar | null => {
+    const target = floorLabel(now, tf);
+    const add = (b: ZBar | null, o: number, h: number, l: number, c: number): ZBar =>
+      b ? { d: b.d, o: b.o, h: Math.max(b.h, h), l: Math.min(b.l, l), c } : { d: target, o, h, l, c };
+    let b: ZBar | null = null;
+    for (const [ms, o, h, l, c] of [...parts].sort((a, z) => a[0] - z[0])) if (floorLabel(ms, tf) === target) b = add(b, o, h, l, c);
+    if (tail) b = add(b, tail.o, tail.h, tail.l, tail.c);
+    if (px != null && px > 0) b = add(b, px, px, px, px);
+    return b;
+  };
+  out.M15 = fold('M15', m1, null, price);
+  out.H1 = fold('H1', m1, null, price);
+  out.H4 = fold('H4', rawClosed.H1 ?? [], out.H1, null);
+  out.D1 = fold('D1', rawClosed.H4 ?? [], out.H4, null);
+  out.W1 = fold('W1', rawClosed.D1 ?? [], out.D1, null);
+  out.MN = fold('MN', rawClosed.D1 ?? [], out.D1, null);
+  return out;
+}
+
 class Conn {
+  spot: ((p: J) => void) | null = null;
   private ws: WebSocket;
   private n = 0;
   private wait = new Map<string, { res: (p: J) => void; rej: (e: Error) => void }>();
@@ -65,6 +101,7 @@ class Conn {
     this.ws.onmessage = (e: MessageEvent) => {
       let m: J;
       try { m = JSON.parse(String(e.data)); } catch { return; }
+      if (m?.payloadType === T.SPOT) { this.spot?.(m.payload ?? {}); return; }
       const w = m?.clientMsgId ? this.wait.get(String(m.clientMsgId)) : undefined;
       if (!w) return;
       this.wait.delete(String(m.clientMsgId));
@@ -114,7 +151,7 @@ export function ctraderSource(cr: CtCreds, o: { now?: () => number; maxPerMin?: 
       }
       const sid = acct.syms.get(sym.toUpperCase());
       if (sid === undefined) { console.log(JSON.stringify({ ev: 'ct_not_listed', sym })); return null; }
-      const t = now(), closed: Record<string, ZBar[]> = {}, forming: Record<string, ZBar | null> = {};
+      const t = now(), closed: Record<string, ZBar[]> = {}, rawClosed: Record<string, Raw[]> = {};
       for (const tf of FX_TFS) {
         const [days, reqs] = SPAN[tf];
         const raw: Raw[] = [];
@@ -127,12 +164,23 @@ export function ctraderSource(cr: CtCreds, o: { now?: () => number; maxPerMin?: 
           }
           await sleep(PACE_MS);
         }
-        const p = ctSplit(raw, tf, t);
-        closed[tf] = p.closed; forming[tf] = p.forming;
+        rawClosed[tf] = raw.filter(r => ctClosed(r[0], tf, t));
+        closed[tf] = ctSplit(rawClosed[tf], tf, t).closed;
       }
-      const price = forming.H1?.c ?? closed.H1[closed.H1.length - 1]?.c;
+      // the open bars: 1-minute bars of the last ~4 h (finished ones) + the live quote
+      let m1: Raw[] = [];
+      try { m1 = ctBars(await c.call(T.BARS, { ctidTraderAccountId: acct.id, symbolId: sid, period: 1, fromTimestamp: t - 250 * 60_000, toTimestamp: t })).filter(r => r[0] + 60_000 <= t); }
+      catch { /* no minute bars: the forming bars come from H1 / H4 only */ }
+      const bid = await new Promise<number | null>(res => {
+        const to = setTimeout(() => res(null), 2500);
+        c.spot = p => { if (+p.symbolId === sid && +p.bid > 0) { clearTimeout(to); res(+p.bid / 1e5); } };
+        c.call(T.SPOTS, { ctidTraderAccountId: acct!.id, symbolId: [sid] }).catch(() => {});
+      });
+      const lastM1 = m1.length ? m1[m1.length - 1][4] : null;
+      const forming = buildForming(rawClosed, m1, bid ?? lastM1, t);
+      const price = bid ?? lastM1 ?? closed.H1[closed.H1.length - 1]?.c;
       if (!(price > 0) || closed.H4.length < 60) { console.log(JSON.stringify({ ev: 'ct_short', sym, h4: closed.H4.length })); return null; }
-      console.log(JSON.stringify({ ev: 'ct_ok', sym, h4: closed.H4.length, ms: now() - t }));
+      console.log(JSON.stringify({ ev: 'ct_ok', sym, h4: closed.H4.length, live: bid != null, m1: m1.length, ms: now() - t }));
       return { closed, forming, price, at: t, feed: 'Pepperstone cTrader · bid' };
     } catch (e) {
       console.log(JSON.stringify({ ev: 'ct_fail', sym, err: String((e as Error)?.message ?? e).slice(0, 80) }));

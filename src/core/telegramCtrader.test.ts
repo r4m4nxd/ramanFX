@@ -27,3 +27,29 @@ describe('cTrader live bars (bot)', () => {
     expect(s.forming?.d).toBe('2026-10-31T00:00');
   });
 });
+
+import { buildForming, floorLabel } from '../../supabase/functions/telegram-bot/ctrader';
+describe('cTrader forming bars (bot)', () => {
+  it('floors an instant to the bar that contains it (server time = New York + 7 h)', () => {
+    const t = Date.UTC(2026, 10, 2, 20, 47);                   // Mon 22:47 server time (EST: UTC+2)
+    expect(floorLabel(t, 'H1')).toBe('2026-11-02T22:00');
+    expect(floorLabel(t, 'H4')).toBe('2026-11-02T20:00');
+    expect(floorLabel(t, 'D1')).toBe('2026-11-02T00:00');
+    expect(floorLabel(t, 'W1')).toBe('2026-10-31T00:00');
+    expect(floorLabel(t, 'MN')).toBe('2026-11-01T00:00');
+    expect(floorLabel(t, 'M15')).toBe('2026-11-02T22:45');
+  });
+  it('builds H1 from minute bars + the live price, and chains it up', () => {
+    const now = Date.UTC(2026, 10, 2, 20, 47);
+    const m1: [number, number, number, number, number][] = [
+      [Date.UTC(2026, 10, 2, 19, 59), 1, 1, 1, 1],              // previous hour: ignored
+      [Date.UTC(2026, 10, 2, 20, 0), 10, 12, 9, 11],
+      [Date.UTC(2026, 10, 2, 20, 46), 11, 13, 10.5, 12],
+    ];
+    const h1Closed: [number, number, number, number, number][] = [[Date.UTC(2026, 10, 2, 18), 8, 9, 7, 8.5], [Date.UTC(2026, 10, 2, 19), 8.5, 10, 8, 10]];
+    const f = buildForming({ H1: h1Closed, H4: [], D1: [] }, m1, 12.5, now);
+    expect(f.H1).toEqual({ d: '2026-11-02T22:00', o: 10, h: 13, l: 9, c: 12.5 });
+    expect(f.H4).toEqual({ d: '2026-11-02T20:00', o: 8, h: 13, l: 7, c: 12.5 });   // 18:00 + 19:00 UTC closed H1 + the forming H1
+    expect(f.D1?.c).toBe(12.5);
+  });
+});
