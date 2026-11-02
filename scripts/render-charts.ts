@@ -3,6 +3,7 @@
 //
 //   npx tsx scripts/render-charts.ts [--out DIR] [--tag before|after] [--sym BABA,EURUSD] [--views Q,D1]
 //                                    [--modes pub,live] [--now 2026-10-29T15:00:00Z] [--svg] [--debug-tl]
+//                                    [--data DIR]   (a folder holding public/ and tools/reminders/, e.g. a `git archive origin/data` extract)
 //
 // Modes (scripts/chart-ctx.ts): pub = the published scan (no live source), live = a SIMULATED live source built from the
 // published bars (zones recomputed, forming candles, H4 / H1 / M15). A render that uses synthetic bars (FX 15m, stock
@@ -20,6 +21,7 @@ import { ZV_DEBUG } from '../supabase/functions/telegram-bot/zvTrend.ts';
 import { harnessCtx, readJson, VIEWS } from './chart-ctx.ts';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const DATA = resolve(process.argv.slice(2).includes('--data') ? process.argv[process.argv.indexOf('--data') + 1] : ROOT);   // where public/ is read from
 const FONTS = ['Inter-400Regular-subset.ttf', 'Inter-600SemiBold-subset.ttf'].map(f => join(ROOT, 'tools/telegram_bot/fonts', f));
 
 const args = process.argv.slice(2);
@@ -32,7 +34,7 @@ const SAVE_SVG = args.includes('--svg');
 if (args.includes('--debug-tl')) ZV_DEBUG.on = true;   // yellow zigzag of the real pivots + circles on the anchors used
 
 function defaultSyms(): string[] {
-  const ix = (readJson(ROOT, 'public/scanner/index.json') as { tickers: { s: string; ix?: string[] }[] }).tickers;
+  const ix = (readJson(DATA, 'public/scanner/index.json') as { tickers: { s: string; ix?: string[] }[] }).tickers;
   const have = new Set(ix.map(t => t.s));
   const tsx = ['RY', 'SHOP', 'TD', 'CNQ'].find(s => have.has(s) && ix.find(t => t.s === s)?.ix?.includes('TSX'))
     ?? ix.find(t => t.ix?.includes('TSX'))?.s;
@@ -40,7 +42,7 @@ function defaultSyms(): string[] {
 }
 const SYMS = opt('sym', '').split(',').filter(Boolean).map(s => s.toUpperCase());
 const syms = SYMS.length ? SYMS : defaultSyms();
-const fxSyms = new Set(((readJson(ROOT, 'public/fx/latest.json') as { map: { sym: string }[] }).map).map(r => r.sym));
+const fxSyms = new Set(((readJson(DATA, 'public/fx/latest.json') as { map: { sym: string }[] }).map).map(r => r.sym));
 
 interface Shot { sym: string; view: string; mode: string; file: string; ms: number }
 const shots: Shot[] = [], errors: string[] = [], warnings: string[] = [];
@@ -52,7 +54,7 @@ for (const sym of syms) {
   const market = fxSyms.has(sym) ? 'fx' : 'stock';
   const views = opt('views', '') ? opt('views', '').split(',') : [...VIEWS[market]];
   for (const mode of MODES) {
-    const { ctx, sim } = harnessCtx(ROOT, NOW, mode);
+    const { ctx, sim } = harnessCtx(DATA, NOW, mode);
     for (const view of views) {
       const t0 = Date.now();
       try {

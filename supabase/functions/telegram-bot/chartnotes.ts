@@ -8,7 +8,7 @@
 //   verdict  one plain-English line (<= 110 chars) from the data: price vs the nearest zone of the most relevant TF,
 //            the higher-TF zone price is inside, the trend, the scanner signal or the zone to watch, nesting.
 // Text is ASCII + the few symbols the chart font has (· – no check marks). Pure.
-import { tfLabel, type Bar } from './chart.ts';
+import { textW, tfLabel, type Bar } from './chart.ts';
 import type { ArrivalTf } from './arrival.ts';
 
 export interface NZone { tf: string; side: 'demand' | 'supply'; prox: number; dist: number }
@@ -137,7 +137,10 @@ export interface VerdictIn {
   trendTf: string; trendLines: NLine[]; trendBars: Bar[];
   sig?: { tf: string; kind?: string; entry?: number } | null;
 }
-export function verdict(v: VerdictIn): string {
+/** `fit` = the chart image's compact line (drawing only): the zone prices, the 'watch' range and the other side are left
+ *  out (the panel headers carry them), '(trend line)' is dropped, and parts go (least important first) until the text is
+ *  at most `px` wide at `size` px, so it reads as one short line on a phone. Without `fit`: the full line (<= VERDICT_MAX). */
+export function verdict(v: VerdictIn, fit?: { px: number; size: number }): string {
   const fmt = (x: number) => compact(x, v.digits, v.market === 'fx');
   const rng = (z: NZone) => `${fmt(z.prox)}–${fmt(z.dist)}`;
   const pct = (x: number) => `${(x / v.price * 100 < 0.05 ? 0.1 : x / v.price * 100).toFixed(1)}%`;
@@ -151,9 +154,10 @@ export function verdict(v: VerdictIn): string {
   const main = [dem, sup].filter((z): z is NZone => !!z).sort((a, b) => gap(v.price, a) - gap(v.price, b))[0] ?? null;
   const other = main === dem ? sup : dem;
   const inside = !!main && gap(v.price, main) === 0;
+  const at = (z: NZone) => (fit ? '' : ` (${rng(z)})`);
   const head = !main ? `Price ${fmt(v.price)}: no ${R} zone near`
-    : inside ? `Price inside ${R} ${main.side} (${rng(main)})`
-    : `Price ${pct(gap(v.price, main))} ${main.side === 'demand' ? 'above' : 'below'} ${R} ${main.side} (${rng(main)})`;
+    : inside ? `Price inside ${R} ${main.side}${at(main)}`
+    : `Price ${pct(gap(v.price, main))} ${main.side === 'demand' ? 'above' : 'below'} ${R} ${main.side}${at(main)}`;
   // the highest-TF zone price is inside (above the relevant TF)
   let contain = '';
   for (const t of ZONE_ORDER.slice(0, Math.max(0, ZONE_ORDER.indexOf(rel)))) {
@@ -161,28 +165,29 @@ export function verdict(v: VerdictIn): string {
     if (z) { contain = `inside ${name(t)} ${z.side}`; break; }
   }
   const ti = trendInfo(v.trendLines, v.trendBars), T = name(v.trendTf);
-  const trend = ti.src === 'momentum' ? `${T} momentum ${ti.dir > 0 ? 'up' : 'down'} (no trend line yet)`
+  const trend = ti.src === 'momentum' ? `${T} momentum ${ti.dir > 0 ? 'up' : 'down'}${fit ? '' : ' (no trend line yet)'}`
     : ti.dir === 0 ? `${T} no clear trend`
-    : `${T} ${ti.dir > 0 ? 'uptrend' : 'downtrend'}${ti.src === 'line' ? ' (trend line)' : ''}`;
+    : `${T} ${ti.dir > 0 ? 'uptrend' : 'downtrend'}${ti.src === 'line' && !fit ? ' (trend line)' : ''}`;
   const s = v.sig;
   const signal = s && s.kind ? `scanner: ${s.kind} ${name(s.tf)}${s.entry != null ? ` at ${fmt(s.entry)}` : ''}` : '';
-  const watch = !signal && main && !inside ? `watch ${rng(main)}` : '';
+  const watch = !fit && !signal && main && !inside ? `watch ${rng(main)}` : '';
   const n = main ? nestOf(main, v.zones) : null;
   const nest = !n ? '' : n.kind === 'nested' || n.kind === 'overlaps' || n.kind === 'at' ? `nested in ${name(n.htf)}` : `not nested in ${name(n.htf)}`;
-  const opp = other ? `${other.side} ${fmt(other.prox)} ${pct(gap(v.price, other))} ${other.side === 'supply' ? 'up' : 'down'}` : '';
+  const opp = !fit && other ? `${other.side} ${fmt(other.prox)} ${pct(gap(v.price, other))} ${other.side === 'supply' ? 'up' : 'down'}` : '';
   // parts in priority order; the least important dropped first until the line fits
   const parts: { t: string; pri: number; join: string }[] = [
     { t: head, pri: 9, join: '' }, { t: contain, pri: 4, join: ', ' }, { t: trend, pri: 6, join: ' · ' },
     { t: signal, pri: 8, join: ' · ' }, { t: watch, pri: 3, join: ' · ' }, { t: nest, pri: 2, join: ' · ' }, { t: opp, pri: 1, join: ' · ' },
   ].filter(p => p.t);
   const build = (ps: typeof parts) => ps.map((p, i) => (i ? p.join : '') + p.t).join('');
+  const tooLong = (t: string) => (fit ? textW(t, fit.size) > fit.px : t.length > VERDICT_MAX);
   let ps = parts;
-  while (build(ps).length > VERDICT_MAX && ps.length > 1) {
+  while (tooLong(build(ps)) && ps.length > 1) {
     const low = ps.reduce((m, p) => (p.pri < m.pri ? p : m));
     ps = ps.filter(p => p !== low);
   }
   const out = build(ps);
-  return out.length > VERDICT_MAX ? out.slice(0, VERDICT_MAX) : out;
+  return !fit && out.length > VERDICT_MAX ? out.slice(0, VERDICT_MAX) : out;
 }
 
 // ---- arrival ----------------------------------------------------------------------------------------------------------

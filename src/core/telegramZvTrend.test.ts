@@ -147,7 +147,7 @@ describe('momentum lines (Kevin lesson 5: a one-way leg with tiny pullbacks, no 
     const svg = renderSvg({ sym: 'TEST', digits: 2, price: b[b.length - 1].c, layout: 'single', title: 'TEST', verdict: '',
       panels: [{ tf: 'W1', header: '', bars: b, zones: [], lines: null, tls }] } as never);
     expect(svg).toContain('class="tl mom down"');
-    expect(svg).toContain('W1 momentum');
+    expect(svg).not.toContain('W1 momentum');   // no in-plot name; a gutter tag 'W1 mom' only when the line ends inside the plot
   });
   it('with a trend line that way, no momentum line', () => {
     const r = zvLines(ser(path([[0, 90], [4, 85], [10, 100], [20, 80], [30, 95], [40, 75], [50, 90], [60, 70], [65, 72]])));

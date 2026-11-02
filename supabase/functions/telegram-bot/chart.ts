@@ -2,54 +2,66 @@
 // resvg-wasm. Two layouts: 'quad' = ONE 1280x1280 image split 2x2 into four timeframes of the same symbol (highest TF
 // top-left, Kevin's top-down view), 'single' = one large TF. Dark theme like the app: bg #0B0C10, violet accent,
 // demand green, supply red. Text >= 20 px (legible on a phone at 1280 px). Font family 'Inter' (index.ts passes an
-// Inter SUBSET: Latin-1 + – — ’ … ↑ → ↓ − ≤ ≥, so no ▲▼ or emoji). Layout rules (owner review, Oct 2026):
-//   - title + an optional one-line verdict under it; each panel header = the nearest demand below AND the nearest
-//     supply above with % distance (two lines when one does not fit), an optional amber nesting note under it;
-//   - the y-range always holds every zone drawn (the nearest zone each side of price, the key / host zones and the
-//     zones crossing the candles, each extended at most 60% of the candle range; a nearest zone further out gets an
-//     edge chip '↑ MN supply 124–147 · 25%' instead); every drawn zone has a label chip (solid background, zone
-//     colour, stacked so none collide); a zone that cannot get a label is not drawn;
-//   - trendline labels sit at the line's end in the right margin; empty candle slots on the right (~8%) keep the last
-//     candle clear of the price scale; the forming candle is hollow with a violet tick under it;
-//   - date axis per TF: 3M / MN / W1 'Jan 2016', D1 'Sep 17' (+ "'25" on the first tick and at year changes),
-//     intraday 'Oct 29 09:30'.
+// Inter SUBSET: Latin-1 + – — ’ … ↑ → ↓ − ≤ ≥, so no ▲▼ or emoji; bold text names the 'Inter SemiBold' face, because
+// resvg matches the family name and the SemiBold file is not family 'Inter').
+//
+// DECLUTTER rules (owner review of the SOYBEANS 4-view, Nov 2026; drawing only, nothing here changes a zone or a line):
+//   1. no text inside the plot area, so none over the candles. A zone's prices are in the panel header and in a small
+//      solid tag in the right price gutter at the zone's level (like the price tag); tags are nudged off each other and
+//      off the price tag, the lower-priority one is dropped when it still collides.
+//   2. at most 2 zones per panel: the nearest supply above price and the nearest demand below (the zone price is inside
+//      takes its side's place), after merging overlapping / adjacent zones of the same side and TF into one box.
+//   3. only live lines: the own-TF trend line (lilac, one per direction), the momentum line (red dashed) and the
+//      higher-TF line (gold dots). A broken line ("× broken", the arrival's crossed line) is not drawn at all. Line names
+//      ('MN up', 'D1 down') are small gutter tags.
+//   4. one short header line per panel: 'W1 · ↑ 12.81–13.10 (+5.8%) · ↓ 11.74–11.48 (−3.1%)'; no nesting warning.
+//   5. title line 'SYMBOL price · time', one short verdict line (logic.chartVerdict -> chartnotes.verdict), an arrival
+//      line only on a chart that has an arrival.
+//   6. one short legend line.
+//   7. the y-range fits the candles (and the price); a drawn zone / trade line may stretch it by up to ~34% of the candle
+//      range in total (candles keep >= ~70% of the plot height), a zone further away is not drawn as a box: a tag
+//      '↑ 13.05–13.20 (+7.8%)' in a strip above / below the plot instead.
+//   8. fonts: header 22 px (single 27), tags / axis / dates 21 px, title 36 px; bold = the real SemiBold face.
+// Other rules kept from the owner reviews: empty candle slots on the right (~8%) keep the last candle clear of the
+// price scale; the forming candle is hollow with a violet tick under it; date axis per TF: 3M / MN / W1 'Jan 2016', D1
+// 'Sep 17' (+ "'25" on the first tick and at year changes), intraday 'Oct 29 09:30'.
 
 export interface Bar { t: string; o: number; h: number; l: number; c: number }
 export interface Band {
   tf: string; side: 'demand' | 'supply'; prox: number; dist: number;
-  key?: boolean;     // the panel's key zone (named in its header)
+  key?: boolean;     // the panel's key zone (the nearest one)
   host?: boolean;    // hosts the next-lower panel's key zone: outlined in violet (the nesting chain)
-  light?: boolean;   // a zone of another TF drawn for context (higher TF in the single view, W1 on stock D1 / intraday)
-  wide?: boolean;    // too tall to be a precise level: lighter, dashed, tagged 'wide'
+  light?: boolean;   // a zone of another TF drawn for context (W1 zones on a stock D1 / intraday panel)
+  wide?: boolean;    // too tall to be a precise level: lighter, dashed
   t0?: string;       // base start: time of the zone's oldest base candle (ZoneVision's box start)
   k0?: number;       // drawn bar index where the box starts (-1 = before the first drawn bar); undefined = full width
   label?: string;
   // ARRIVAL reading (arrival.ts, owner-approved Raja / Kevin rules): set by logic.ts buildPanels
-  arrival?: boolean; // an arrival zone: bold border, chip with a drawn bolt + 'arrival'
+  arrival?: boolean; // an arrival zone: bold border, tag with a drawn bolt
   strong?: boolean;  // its leg-out removed 2+ opposite zones
   removedN?: number; // how many opposite zones its leg-out removed
-  removed?: boolean; // an opposite zone that arrival removed: faint, crossed out, box ends at the removing bar (k1)
+  removed?: boolean; // an opposite zone that arrival removed: not a live zone, never drawn
   t1?: string; k1?: number;   // removed zones: the removing bar's time / drawn index
-  weak?: boolean;    // after an arrival: same-TF zones on the other side, dashed 'weak – no limit'
+  weak?: boolean;    // after an arrival: same-TF zones on the other side, dashed
   realign?: boolean; // the realignment area (the weak zone nearest the higher-TF line): gold outline
-  tag?: string;      // an extra chip note ('confirm on 15m')
+  tag?: string;      // an extra note ('confirm on 15m'), told by the arrival line, not drawn
 }
 export interface Lines { entry?: number | null; stop?: number | null; target?: number | null; kind?: string }
 /** A trendline to draw (zvTrend.ts panelTrendlines): pts = [drawn bar index (centres 0 .. n-1), price]; htf = the next
  *  higher timeframe's line projected onto this panel (gold dots), else the panel's own timeframe (solid lilac). */
 export interface TLine { tf: string; htf: boolean; dir: number; touches: number; crossed: boolean; pts: [number, number][]; kind?: 'trend' | 'momentum'; broken?: boolean }
-/** The arrival plan's take-profit on a panel: amber dashed line, chip text e.g. 'TP 117.6 · below W1 line'. */
+/** The arrival plan's take-profit on a panel: amber dashed line, tag text e.g. 'TP 117.6'. */
 export interface ArrTp { px: number; text: string }
 export interface Panel {
   tf: string; header: string; bars: Bar[]; zones: Band[]; lines?: Lines | null; note?: string; tls?: TLine[];
   dbgZz?: { zz: [number, number][]; used: [number, number][] };   // debug overlay (harness only): zigzag of the real pivots + the anchors used
   tp?: ArrTp | null; sl?: ArrTp | null;
   forming?: boolean;          // the last bar is still forming (drawn hollow)
-  nestNote?: string | null;   // e.g. 'MN zone outside 3M zone' (amber, under the header)
+  nestNote?: string | null;   // the nesting note (logic.ts sets it; no longer drawn: the verdict says 'not nested')
 }
 export interface ChartModel { sym: string; title: string; digits: number; price: number; panels: Panel[]; layout: 'quad' | 'single'; verdict?: string | null; arrival?: string | null }
 /** The title strip's height: title, + the verdict line, + the arrival line. */
-export const topOf = (m: Pick<ChartModel, 'verdict' | 'arrival'>) => 72 + (m.verdict ? 32 : 0) + (m.arrival ? 30 : 0);
+export const topOf = (m: Pick<ChartModel, 'verdict' | 'arrival'>) => 72 + (m.verdict ? 34 : 0) + (m.arrival ? 32 : 0);
 
 export const SIZE = 1280;
 const C = {
@@ -59,45 +71,63 @@ const C = {
 };
 const TF_SHORT: Record<string, string> = { M15: '15m', H1: '1H', H4: '4H', D1: 'D1', W1: 'W1', MN: 'MN', '3M': '3M' };
 export const tfLabel = (tf: string) => TF_SHORT[tf] ?? tf;
+/** Bold text: the SemiBold face (family 'Inter SemiBold' in the font files), falling back to Inter. */
+const SB = ' font-family="Inter SemiBold, Inter" font-weight="600"';
 
 const x = (s: unknown) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const f1 = (n: number) => (Math.round(n * 10) / 10).toString();
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-/** Approximate rendered width of Inter text (px) at a font size: per-glyph advance widths in em. */
-export function textW(s: string, size: number): number {
+// Inter advance widths (1/1000 em) of the bot's font files (tools/telegram_bot/fonts): ASCII 32..126, Regular / SemiBold.
+const W_REG = [
+  281, 288, 466, 633, 642, 982, 644, 300, 365, 365, 501, 662, 288, 460, 288, 360, 631, 407, 610,
+  618, 646, 593, 620, 566, 619, 620, 288, 302, 662, 662, 662, 511, 966, 690, 654, 730, 722, 601,
+  590, 746, 743, 269, 571, 672, 565, 903, 753, 765, 639, 765, 644, 642, 646, 744, 690, 985, 682,
+  679, 629, 365, 360, 365, 471, 456, 323, 562, 612, 571, 612, 583, 370, 613, 591, 242, 242, 549,
+  242, 876, 591, 600, 612, 612, 376, 528, 327, 591, 562, 818, 546, 562, 552, 426, 333, 426, 662];
+const W_SEMI = [
+  252, 321, 523, 644, 650, 1004, 663, 326, 373, 373, 540, 673, 319, 465, 319, 379, 660, 423, 623,
+  636, 666, 612, 640, 576, 640, 640, 319, 329, 673, 673, 673, 543, 999, 728, 659, 737, 722, 605,
+  588, 749, 746, 277, 580, 703, 565, 922, 759, 769, 645, 773, 652, 650, 660, 736, 728, 1020, 720,
+  713, 652, 373, 379, 373, 481, 469, 351, 574, 624, 583, 624, 591, 389, 625, 612, 262, 262, 569,
+  262, 900, 612, 609, 624, 624, 397, 549, 353, 612, 587, 839, 569, 588, 566, 455, 359, 455, 673];
+const W_SPECIAL: Record<string, [number, number]> = { '·': [288, 319], '–': [500, 500], '—': [1000, 1000], '’': [261, 294], '…': [864, 956], '↑': [834, 881], '↓': [834, 881], '→': [954, 954], '−': [662, 673], '≤': [662, 673], '≥': [662, 673], '×': [662, 673], '°': [456, 458], '±': [662, 673] };
+
+/** Rendered width of Inter text (px) at a font size, from the font's own advance widths (kerning ignored). */
+export function textW(s: string, size: number, bold = false): number {
+  const T = bold ? W_SEMI : W_REG;
   let w = 0;
   for (const ch of s) {
-    if (/[0-9]/.test(ch)) w += 0.62;
-    else if (/[a-z]/.test(ch)) w += /[ijlft]/.test(ch) ? 0.3 : /[mw]/.test(ch) ? 0.85 : 0.56;
-    else if (/[A-Z]/.test(ch)) w += /[MW]/.test(ch) ? 0.88 : /I/.test(ch) ? 0.3 : 0.68;
-    else if (ch === ' ') w += 0.28;
-    else if (/[.,:;'’·|]/.test(ch)) w += 0.3;
-    else if (ch === '%') w += 0.86;
-    else if (/[↑↓→]/.test(ch)) w += 0.75;
-    else w += 0.6;
+    const c = ch.codePointAt(0)!;
+    w += c >= 32 && c <= 126 ? T[c - 32] : W_SPECIAL[ch]?.[bold ? 1 : 0] ?? 600;
   }
-  return w * size;
+  return w * size / 1000;
 }
 /** Truncate text so it fits `px` pixels at a font size. */
-export function fitText(s: string, px: number, size: number): string {
-  if (textW(s, size) <= px) return s;
+export function fitText(s: string, px: number, size: number, bold = false): string {
+  if (textW(s, size, bold) <= px) return s;
   let t = s;
-  while (t.length > 4 && textW(`${t}…`, size) > px) t = t.slice(0, -1);
+  while (t.length > 4 && textW(`${t}…`, size, bold) > px) t = t.slice(0, -1);
   return `${t.trimEnd()}…`;
 }
 /** Truncate a header so it fits roughly `px` pixels at 20-22 px Inter. */
 export const clip = (s: string, px: number) => fitText(s, px, 21);
 
 // ---- numbers ---------------------------------------------------------------------------------------------------------
-/** A zone's prices with as many decimals as its height needs (2 significant digits of the height + `extra`, at most
- *  `digits`): 96.14–94.36 -> '96.1–94.4' (extra 0), 124.22–146.87 -> '124–147'; labels use extra 1 ('124.2–146.9'). */
-export function zoneRange(a: number, b: number, digits: number, extra = 0): string {
+/** Decimals a zone's prices need: 2 significant digits of its height + `extra`, at most `digits`. */
+const zoneDec = (a: number, b: number, digits: number, extra = 0) => {
   const h = Math.abs(a - b);
-  const dec = h > 0 ? Math.min(digits, Math.max(0, Math.ceil(-Math.log10(h)) + 1 + extra)) : digits;
+  return h > 0 ? Math.min(digits, Math.max(0, Math.ceil(-Math.log10(h)) + 1 + extra)) : digits;
+};
+/** A zone's prices with as many decimals as its height needs (2 significant digits of the height + `extra`, at most
+ *  `digits`): 96.14–94.36 -> '96.1–94.4' (extra 0), 124.22–146.87 -> '124–147'. */
+export function zoneRange(a: number, b: number, digits: number, extra = 0): string {
+  const dec = zoneDec(a, b, digits, extra);
   return `${a.toFixed(dec)}–${b.toFixed(dec)}`;
 }
 export const pctText = (p: number) => (p < 0.05 ? '<0.1%' : p < 10 ? `${p.toFixed(1)}%` : `${Math.round(p)}%`);
+/** A signed distance: '+5.8%' above price, '−3.1%' (a real minus sign, in the font subset) below it. */
+const sgnPct = (p: number, up: boolean) => (p < 0.05 ? pctText(p) : `${up ? '+' : '−'}${pctText(p)}`);
 const zlo = (z: Band) => Math.min(z.prox, z.dist), zhi = (z: Band) => Math.max(z.prox, z.dist);
 
 // ---- date axis -------------------------------------------------------------------------------------------------------
@@ -173,10 +203,44 @@ export function boxes(layout: 'quad' | 'single', n: number, top = 72): Box[] {
   return [0, 1, 2, 3].slice(0, n).map(i => ({ x: pad + (i % 2) * (w + gap), y: top + Math.floor(i / 2) * (h + gap), w, h }));
 }
 
-// ---- panel header ------------------------------------------------------------------------------------------------------
+// ---- which zones a panel draws -----------------------------------------------------------------------------------------
 interface Near { z: Band; pct: number; inside: boolean }
 /** The zone timeframe a panel's header talks about: its own TF, else the TF of its key zone (stock D1 -> W1). */
 const zoneTfOf = (p: Panel) => (p.zones.some(z => z.tf === p.tf) ? p.tf : p.zones.find(z => z.key)?.tf ?? p.zones.find(z => !z.light)?.tf ?? p.zones[0]?.tf ?? p.tf);
+const zh = (z: Band) => zhi(z) - zlo(z);
+/** One box for a run of overlapping / adjacent zones (same side and TF): the union of their prices, the strongest flags. */
+function joinZones(zs: Band[]): Band {
+  if (zs.length === 1) return zs[0];
+  const lo = Math.min(...zs.map(zlo)), hi = Math.max(...zs.map(zhi));
+  const base = zs.find(z => z.arrival) ?? zs.find(z => z.key) ?? zs.find(z => z.realign) ?? zs[0];
+  const dem = base.side === 'demand', k0s = zs.map(z => z.k0);
+  const arrival = zs.some(z => z.arrival);
+  return { ...base, prox: dem ? hi : lo, dist: dem ? lo : hi, key: zs.some(z => z.key), host: zs.some(z => z.host), arrival, realign: zs.some(z => z.realign),
+    light: zs.every(z => z.light), wide: zs.every(z => z.wide), weak: !arrival && zs.every(z => z.weak),
+    k0: k0s.some(k => k == null) ? undefined : Math.min(...(k0s as number[])) };
+}
+/** Merge zones of the same side and TF that overlap or sit next to each other (a gap of at most half the smaller zone's
+ *  height) into one box each: two stacked '4H supply' boxes become one. Order of the others is kept per group. */
+export function mergeZones(zs: Band[]): Band[] {
+  const groups = new Map<string, Band[]>();
+  for (const z of zs) { const k = `${z.tf}|${z.side}`; if (!groups.has(k)) groups.set(k, []); groups.get(k)!.push(z); }
+  const out: Band[] = [];
+  for (const g of groups.values()) {
+    g.sort((a, z) => zlo(a) - zlo(z));
+    let cur: Band[] = [], top = -Infinity, h = 0;
+    for (const z of g) {
+      if (cur.length && zlo(z) - top <= 0.5 * Math.min(zh(z), h) + 1e-9 * Math.abs(top)) {
+        cur.push(z);
+        if (zhi(z) > top) { top = zhi(z); h = zh(z); }
+      } else {
+        if (cur.length) out.push(joinZones(cur));
+        cur = [z]; top = zhi(z); h = zh(z);
+      }
+    }
+    if (cur.length) out.push(joinZones(cur));
+  }
+  return out;
+}
 /** Nearest demand at / below price and nearest supply at / above it among the panel's zones of `tf`. */
 export function nearestZones(zones: Band[], tf: string, price: number): { dem: Near | null; sup: Near | null } {
   let dem: Near | null = null, sup: Near | null = null;
@@ -194,95 +258,196 @@ export function nearestZones(zones: Band[], tf: string, price: number): { dem: N
   }
   return { dem, sup };
 }
-const nearText = (n: Near | null, side: 'demand' | 'supply', digits: number) => {
-  if (!n) return side === 'demand' ? '↓ no demand below' : '↑ no supply above';
-  const r = zoneRange(n.z.prox, n.z.dist, digits), w = n.z.wide ? ' (wide)' : '';
-  return n.inside ? `in ${side} ${r}${w}` : `${side === 'demand' ? '↓' : '↑'} ${side} ${r}${w} · ${pctText(n.pct)}`;
+/** The panel's zones: merged, then the nearest supply above price and the nearest demand below (a zone price is inside
+ *  takes its side's place). At most 2; every other zone of the panel is not drawn. Removed zones are never live. */
+export function pickZones(p: Panel, price: number): { ztf: string; dem: Near | null; sup: Near | null } {
+  const ztf = zoneTfOf(p);
+  const { dem, sup } = nearestZones(mergeZones(p.zones.filter(z => z.tf === ztf && !z.removed)), ztf, price);
+  return { ztf, dem, sup };
+}
+
+// ---- panel header ------------------------------------------------------------------------------------------------------
+const nearText = (n: Near | null, side: 'demand' | 'supply', digits: number, paren: boolean) => {
+  if (!n) return side === 'demand' ? '↓ no demand' : '↑ no supply';
+  const r = zoneRange(n.z.prox, n.z.dist, digits);
+  if (n.inside) return `in ${side} ${r}`;
+  const pc = sgnPct(n.pct, side === 'supply');
+  return `${side === 'demand' ? '↓' : '↑'} ${r} ${paren ? `(${pc})` : pc}`;
 };
-/** Header lines (after the TF tag): one line 'demand · | supply ·' when it fits, else demand / supply on two lines. */
+/** The panel header after the TF tag: ONE line, '↑ 12.81–13.10 (+5.8%) · ↓ 11.74–11.48 (−3.1%)' (a zone TF other than the
+ *  panel's is named first: 'W1 ↑ …'); the % in parentheses drops, then the dot, when the line does not fit `px`. */
 export function headerLines(p: Panel, price: number, digits: number, px: number, size: number): string[] {
   if (!p.zones.length) return [p.header || 'no zone in view'];
-  const ztf = zoneTfOf(p);
-  const { dem, sup } = nearestZones(p.zones, ztf, price);
-  const pre = ztf !== p.tf ? `${tfLabel(ztf)} zones: ` : '';
-  const d = nearText(dem, 'demand', digits), s = nearText(sup, 'supply', digits);
-  const one = `${pre}${d} | ${s}`;
-  if (textW(one, size) <= px) return [one];
-  return [fitText(`${pre}${s}`, px, size), fitText(d, px, size)];
+  const { ztf, dem, sup } = pickZones(p, price);
+  const pre = ztf !== p.tf ? `${tfLabel(ztf)} ` : '';
+  const v = [true, false].map(par => `${pre}${nearText(sup, 'supply', digits, par)} · ${nearText(dem, 'demand', digits, par)}`);
+  v.push(`${pre}${nearText(sup, 'supply', digits, false)}  ${nearText(dem, 'demand', digits, false)}`);
+  return [v.find(s => textW(s, size, true) <= px) ?? fitText(v[2], px, size, true)];
+}
+
+// ---- y-range ---------------------------------------------------------------------------------------------------------
+interface RItem { id: number; kind: 'zone' | 'line'; lo: number; hi: number }
+const EXT_NEAR = 0.5;      // an item further than this share of the candle range beyond the candles is "far"
+const EXT_BUDGET = 0.34;   // the range may grow by this share in total (both sides): candles keep >= 1 / (1 + 0.34 + 2 PAD) = 71% of the plot
+const PAD = 0.03, DEPTH = 0.05;
+/** The y-range: the candles (and the price) `lo0..hi0`, stretched for the zones / trade lines that are near (within
+ *  EXT_NEAR of the candle range, and the total stretch within EXT_BUDGET). `far` = the items that do not fit (id -> above
+ *  the candles). A near item is at least visible by DEPTH of the range, and shown whole when the budget allows. */
+export function fitRange(lo0: number, hi0: number, items: RItem[]): { lo: number; hi: number; far: Map<number, boolean> } {
+  if (!(hi0 > lo0)) { const m = lo0 || 1; hi0 = m * 1.01 + 1e-9; lo0 = m * 0.99; }
+  const R = hi0 - lo0, limHi = hi0 + EXT_NEAR * R, limLo = lo0 - EXT_NEAR * R, B = EXT_BUDGET * R;
+  const above = (i: RItem) => i.lo > hi0, below = (i: RItem) => i.hi < lo0;
+  const gap = (i: RItem) => (above(i) ? i.lo - hi0 : below(i) ? lo0 - i.hi : 0);
+  const upFull = (i: RItem) => Math.max(0, Math.min(i.hi, limHi) - hi0), dnFull = (i: RItem) => Math.max(0, lo0 - Math.max(i.lo, limLo));
+  const ext = { up: 0, dn: 0 }, far = new Map<number, boolean>(), ok: RItem[] = [];
+  for (const i of [...items].sort((a, z) => gap(a) - gap(z))) {   // pass 1, nearest first: what makes the item visible
+    const depth = i.kind === 'zone' ? Math.min(i.hi - i.lo, DEPTH * R) : 0;
+    const nu = Math.max(ext.up, above(i) ? Math.min(upFull(i), i.lo - hi0 + depth) : 0), nd = Math.max(ext.dn, below(i) ? Math.min(dnFull(i), lo0 - i.hi + depth) : 0);
+    if ((above(i) && i.lo > limHi) || (below(i) && i.hi < limLo) || nu + nd > B + 1e-12) { far.set(i.id, above(i)); continue; }
+    ext.up = nu; ext.dn = nd; ok.push(i);
+  }
+  for (const i of ok) {   // pass 2: the whole item while the budget lasts
+    ext.up = Math.max(ext.up, Math.min(upFull(i), B - ext.dn));
+    ext.dn = Math.max(ext.dn, Math.min(dnFull(i), B - ext.up));
+  }
+  return { lo: lo0 - ext.dn - PAD * R, hi: hi0 + ext.up + PAD * R, far };
+}
+
+// ---- lines -----------------------------------------------------------------------------------------------------------
+export interface LineDraw { t: TLine; kind: 'ltf' | 'htf' | 'mom'; pts: [number, number][]; col: string; text: string }
+/** The live lines to draw: per direction ONE own-TF trend line (lilac) and ONE higher-TF line (gold dots), plus ONE
+ *  momentum line (red dashed). A broken line (flagged broken, or the arrival's crossed line) is never drawn. Each line is
+ *  extended through the empty candle slots to the right edge (`kEnd`). The most touched line wins, then the newest. */
+export function drawnLines(tls: TLine[] | undefined, kEnd: number): LineDraw[] {
+  const live = (tls ?? []).filter(t => t.pts.length >= 2 && !t.broken && !t.crossed);
+  const end = (t: TLine) => t.pts[t.pts.length - 1][0];
+  const best = (xs: TLine[]) => xs.reduce<TLine | null>((m, t) => (!m || t.touches > m.touches || (t.touches === m.touches && end(t) > end(m)) ? t : m), null);
+  const picks: [TLine, LineDraw['kind']][] = [];
+  const add = (t: TLine | null, kind: LineDraw['kind']) => { if (t) picks.push([t, kind]); };
+  for (const dir of [-1, 1]) add(best(live.filter(t => t.htf && Math.sign(t.dir) === dir)), 'htf');
+  for (const dir of [-1, 1]) add(best(live.filter(t => !t.htf && t.kind !== 'momentum' && Math.sign(t.dir) === dir)), 'ltf');
+  add(best(live.filter(t => !t.htf && t.kind === 'momentum')), 'mom');
+  return picks.map(([t, kind]) => {
+    const pts = [...t.pts];
+    const [k1, v1] = pts[pts.length - 2], [k2, v2] = pts[pts.length - 1];
+    if (k2 < kEnd && k2 > k1) pts.push([kEnd, v2 + (v2 - v1) * (kEnd - k2) / (k2 - k1)]);
+    return { t, kind, pts, col: kind === 'mom' ? C.momentum : kind === 'htf' ? C.gold : C.tl,
+      text: kind === 'mom' ? `${tfLabel(t.tf)} mom` : `${tfLabel(t.tf)} ${t.dir > 0 ? 'up' : 'down'}` };
+  });
 }
 
 // ---- geometry -------------------------------------------------------------------------------------------------------
-interface DrawZone { z: Band; lo: number; hi: number; pri: number; label: string }
-interface EdgeChip { z: Band; up: boolean; label: string }
+const FS = 21;          // gutter / tag / axis / date text size
+const TAG_H = 28;       // gutter tag height
+const STRIP = 30;       // the strip above / below the plot that holds a far zone's tag
+const BOLT_W = 16;      // room a tag's bolt icon takes before its text
+const RIGHT_PAD = 0.08; // empty candle slots on the right, share of the drawn bars (>= 3)
+/** Right margin (price scale, price tag, tags): sized to the price's digits, at least 104 px; wider when a tag needs it. */
+export const axisWidth = (price: number, digits: number) => Math.max(104, Math.ceil(textW(price.toFixed(digits), FS, true) + 24));
+const tagW = (s: string, bolt = false) => Math.ceil(textW(s, FS, true)) + 16 + (bolt ? BOLT_W : 0);
+
+interface DrawZone { z: Band; lo: number; hi: number; label: string }
+interface EdgeTag { z: Band; up: boolean; label: string }
+interface TradeLine { k: 'entry' | 'stop' | 'target' | 'tp' | 'sl'; v: number; col: string; fg: string; dash: string; texts: string[] }
+/** A tag in the right gutter (never over candles): a zone's prices, a trade level, a line's name. y = the placed centre. */
+export interface Tag { kind: 'zone' | 'trade' | 'line'; cls: string; text: string; y: number; fg: string; fill?: string; stroke?: string; bolt?: boolean; dash?: boolean }
 export interface PanelGeom {
   plot: Box; lo: number; hi: number; y: (p: number) => number;
   head: string[]; headSize: number; slots: number; step: number; axisW: number;
-  zones: DrawZone[]; edges: EdgeChip[];
+  zones: DrawZone[]; edges: EdgeTag[]; tags: Tag[]; lines: LineDraw[]; trades: TradeLine[];
+  stripUp: number; stripDn: number; yPrice: number;
 }
-const RIGHT_PAD = 0.08;      // empty candle slots on the right, share of the drawn bars (>= 3)
-/** Right margin (price scale, price tag, trendline labels): sized to the price's digits, at least 108 px. */
-export const axisWidth = (price: number, digits: number) => Math.max(108, Math.ceil(textW(price.toFixed(digits), 20) * 1.08 + 22));
-const CHIP_H = 28;
-/** Plot box, price range and the zones to draw (see the file header for the rules). */
+const edgeText = (z: Band, up: boolean, price: number, digits: number) => {
+  const pct = up ? (zlo(z) - price) / price * 100 : (price - zhi(z)) / price * 100;
+  return `${up ? '↑' : '↓'} ${zoneRange(z.prox, z.dist, digits)} (${sgnPct(pct, up)})`;
+};
+/** The nearest y to `want` (searching outwards, `prefer` = 1 down / -1 up first) at least a tag height from every taken
+ *  tag, inside [top, bottom] and within `maxNudge` of `want`; null = no room (the tag is dropped). */
+function slotFor(want: number, h: number, taken: { y: number; h: number }[], top: number, bottom: number, maxNudge: number, prefer = 1): number | null {
+  const lo = top + h / 2, hi = bottom - h / 2, w0 = Math.min(Math.max(want, lo), hi);
+  for (let d = 0; d <= maxNudge + 1e-9; d += 4) {
+    for (const s of d ? [prefer, -prefer] : [1]) {
+      const y = w0 + s * d;
+      if (y < lo - 1e-9 || y > hi + 1e-9) continue;
+      if (taken.every(t => Math.abs(t.y - y) >= (t.h + h) / 2 + 1)) return y;
+    }
+  }
+  return null;
+}
+/** Plot box, price range, the zones to draw and every gutter tag (see the file header for the rules). */
 export function geom(p: Panel, b: Box, price: number, digits = 5): PanelGeom {
   const quad = b.w < SIZE / 2;
-  const headSize = quad ? 21 : 25;
-  const headPx = b.w - 32 - textW(tfLabel(p.tf), headSize) - 20;
-  const head = headerLines(p, price, digits, headPx, headSize);
-  const nLines = head.length + (p.nestNote ? 1 : 0);
-  const top = 16 + nLines * (headSize + 8) + 4;
-  const axisW = axisWidth(price, digits);
-  const plot = { x: b.x + 14, y: b.y + top, w: b.w - 14 - axisW, h: b.h - top - 36 };
-  const n = Math.max(p.bars.length, 1), slots = n + Math.max(3, Math.ceil(n * RIGHT_PAD)), step = plot.w / slots;
-  // base range: candles, price, trade lines
-  const vals: number[] = [price];
-  for (const r of p.bars) vals.push(r.h, r.l);
-  for (const v of [p.lines?.entry, p.lines?.stop, p.lines?.target]) if (typeof v === 'number') vals.push(v);
-  if (p.tp && p.tp.px > 0 && p.tp.px >= Math.min(...vals) - (Math.max(...vals) - Math.min(...vals)) && p.tp.px <= Math.max(...vals) + (Math.max(...vals) - Math.min(...vals))) vals.push(p.tp.px);
-  if (p.sl && p.sl.px > 0 && p.sl.px >= Math.min(...vals) - (Math.max(...vals) - Math.min(...vals)) && p.sl.px <= Math.max(...vals) + (Math.max(...vals) - Math.min(...vals))) vals.push(p.sl.px);
-  let lo = Math.min(...vals), hi = Math.max(...vals);
-  if (!(hi > lo)) { hi = lo * 1.01 + 1e-9; lo = lo * 0.99; }
-  const span = hi - lo, limLo = lo - 0.6 * span, limHi = hi + 0.6 * span;
-  const ztf = zoneTfOf(p);
-  const { dem, sup } = nearestZones(p.zones, ztf, price);
-  const required = new Set<Band>([dem?.z, sup?.z, ...p.zones.filter(z => (z.key || z.host || z.arrival || z.realign) && !z.removed)].filter((z): z is Band => !!z));
-  const cand: Band[] = [], edges: EdgeChip[] = [];
-  let lo2 = lo, hi2 = hi;
-  for (const z of p.zones) {
-    if (z.removed) continue;   // drawn faint behind the others, no chip (panelSvg)
-    const crosses = zlo(z) <= hi && zhi(z) >= lo;
-    if (!crosses && !required.has(z)) continue;
-    // a zone crossing the candles is drawn (extended up to the limit); any other is drawn only when it fits whole,
-    // else the nearest one each side gets an edge chip
-    if (!crosses && (zlo(z) < limLo || zhi(z) > limHi)) {
-      if (z === dem?.z || z === sup?.z || z.key || z.host) {
-        const pct = zlo(z) > price ? (zlo(z) - price) / price * 100 : (price - zhi(z)) / price * 100;
-        edges.push({ z, up: zlo(z) > price, label: `${zlo(z) > price ? '↑' : '↓'} ${tfLabel(z.tf)} ${z.side} ${zoneRange(z.prox, z.dist, digits)} · ${pctText(pct)}` });
-      }
-      continue;
-    }
-    cand.push(z);   // whole (a zone crossing the candles may stretch the range up to 2x the candle range each side)
-    lo2 = Math.min(lo2, Math.max(zlo(z), lo - 2 * span));
-    hi2 = Math.max(hi2, Math.min(zhi(z), hi + 2 * span));
+  const fmt = (v: number) => v.toFixed(digits);
+  // header: the biggest size at which the one line fits
+  const sizes = quad ? [22, 21, 20] : [27, 26, 25, 24];
+  const hpx = (s: number) => b.w - 32 - textW(`${tfLabel(p.tf)} · `, s, true);
+  let headSize = sizes[sizes.length - 1], head = headerLines(p, price, digits, hpx(headSize), headSize);
+  for (const s of sizes) {
+    const h = headerLines(p, price, digits, hpx(s), s);
+    if (textW(h[0], s, true) <= hpx(s)) { headSize = s; head = h; break; }
   }
-  const padv = (hi2 - lo2) * 0.06;
-  lo2 -= padv; hi2 += padv;
-  const yOf = (v: number) => plot.y + (hi2 - v) / (hi2 - lo2) * plot.h;
-  // labels: every drawn zone gets one; when the stack can not hold them all the least important zones are not drawn
-  const pri = (z: Band) => (z.arrival || z.realign ? -1 : required.has(z) ? 0 : 2) + (z.light ? 1 : 0);
-  const zl = cand.map(z => ({ z, lo: zlo(z), hi: zhi(z), pri: pri(z), label: zoneLabel(z, digits) }));
-  const cap = Math.max(1, Math.floor(plot.h / (CHIP_H + 2)) - edges.length);
-  const keep = [...zl].sort((a, z) => a.pri - z.pri || Math.abs((a.lo + a.hi) / 2 - price) - Math.abs((z.lo + z.hi) / 2 - price)).slice(0, cap);
-  return { plot, lo: lo2, hi: hi2, y: yOf, head, headSize, slots, step, axisW, zones: zl.filter(d => keep.includes(d)), edges };
-}
-
-/** A zone's chip text: 'D1 demand 96.14–94.36', + ' · wide'; arrival 'D1 arrival demand … · removed 2' (the chip
- *  draws a bolt before it), weak '… · weak – no limit', realignment 'realignment D1 demand …' + its tag. */
-export function zoneLabel(z: Band, digits: number): string {
-  const r = zoneRange(z.prox, z.dist, digits, 1);
-  if (z.arrival) return `${tfLabel(z.tf)} arrival ${z.side} ${zoneRange(z.prox, z.dist, digits)}${z.removedN ? ` · ${z.removedN} removed` : ''}`;
-  if (z.realign) return `realignment ${tfLabel(z.tf)} ${z.side} ${r}${z.tag ? ` · ${z.tag}` : ''}`;
-  return `${tfLabel(z.tf)} ${z.side} ${r}${z.wide ? ' · wide' : ''}${z.weak ? ' · weak – no limit' : ''}`;
+  const top = 16 + headSize + 12;
+  // the zones (<= 2) and the trade lines, then the y-range they may stretch
+  const { dem, sup } = pickZones(p, price);
+  const cands = [dem?.z, sup?.z].filter((z, i, a): z is Band => !!z && a.indexOf(z) === i);
+  const trades: TradeLine[] = [];
+  const L = p.lines;
+  if (L) {
+    for (const [k, v, col, fg, word, abbr, dash] of [['entry', L.entry, C.violet, C.tl, 'entry', 'E', '0'], ['stop', L.stop, C.supply, C.supplyTxt, 'stop', 'SL', '10 6'], ['target', L.target, C.demand, C.demandTxt, 'target', 'TP', '10 6']] as const) {
+      if (typeof v === 'number') trades.push({ k, v, col, fg, dash, texts: [`${word} ${fmt(v)}`, `${abbr} ${fmt(v)}`, fmt(v)] });
+    }
+  }
+  if (p.tp && p.tp.px > 0) trades.push({ k: 'tp', v: p.tp.px, col: C.amber, fg: C.amber, dash: '12 7', texts: [`TP ${fmt(p.tp.px)}`, fmt(p.tp.px)] });
+  if (p.sl && p.sl.px > 0) trades.push({ k: 'sl', v: p.sl.px, col: C.supply, fg: C.supplyTxt, dash: '12 7', texts: [`SL ${fmt(p.sl.px)}`, fmt(p.sl.px)] });
+  let lo0 = price, hi0 = price;
+  for (const r of p.bars) { lo0 = Math.min(lo0, r.l); hi0 = Math.max(hi0, r.h); }
+  const fit = fitRange(lo0, hi0, [...trades.map((t, i) => ({ id: i, kind: 'line' as const, lo: t.v, hi: t.v })), ...cands.map((z, i) => ({ id: 100 + i, kind: 'zone' as const, lo: zlo(z), hi: zhi(z) }))]);
+  const shownTrades = trades.filter((_, i) => !fit.far.has(i));
+  const edges: EdgeTag[] = cands.flatMap((z, i) => (fit.far.has(100 + i) ? [{ z, up: fit.far.get(100 + i)!, label: edgeText(z, fit.far.get(100 + i)!, price, digits) }] : []));
+  const stripUp = edges.some(e => e.up) ? STRIP : 0, stripDn = edges.some(e => !e.up) ? STRIP : 0;
+  // gutter width: the price tag and every zone / trade tag at full width, up to a cap (longer ones fall back to shorter texts)
+  const cap = quad ? 172 : 236;
+  const zoneTags = cands.filter((_, i) => !fit.far.has(100 + i)).map(z => ({ z, texts: [zoneRange(z.prox, z.dist, digits), z.prox.toFixed(zoneDec(z.prox, z.dist, digits))] }));
+  let inner = Math.max(axisWidth(price, digits) - 8, tagW(fmt(price)));
+  const choose = (texts: string[], bolt: boolean) => texts.find(s => tagW(s, bolt) <= cap - 8) ?? texts[texts.length - 1];
+  const zText = zoneTags.map(t => choose(t.texts, !!t.z.arrival)), tText = shownTrades.map(t => choose(t.texts, false));
+  zoneTags.forEach((t, i) => { inner = Math.max(inner, Math.min(cap - 8, tagW(zText[i], !!t.z.arrival))); });
+  shownTrades.forEach((_, i) => { inner = Math.max(inner, Math.min(cap - 8, tagW(tText[i]))); });
+  const axisW = inner + 8;
+  const plot = { x: b.x + 14, y: b.y + top + stripUp, w: b.w - 14 - axisW, h: b.h - top - stripUp - 36 - stripDn };
+  const n = Math.max(p.bars.length, 1), slots = n + Math.max(3, Math.ceil(n * RIGHT_PAD)), step = plot.w / slots;
+  const bottom = plot.y + plot.h;
+  const yOf = (v: number) => plot.y + (fit.hi - v) / (fit.hi - fit.lo) * plot.h;
+  const yPrice = Math.min(Math.max(yOf(price), plot.y), bottom);
+  const zones: DrawZone[] = zoneTags.map((t, i) => ({ z: t.z, lo: zlo(t.z), hi: zhi(t.z), label: zText[i] }));
+  const lines = drawnLines(p.tls, slots - 0.5);
+  // gutter tags, highest priority first: zones (arrival first, then the nearer one), trade levels, line names
+  const taken: { y: number; h: number }[] = [{ y: yPrice, h: 30 }];
+  const tags: Tag[] = [];
+  const zOrder = zones.map((d, i) => ({ d, i })).sort((a, z) => Number(!!z.d.z.arrival) - Number(!!a.d.z.arrival)
+    || Math.abs((a.d.lo + a.d.hi) / 2 - price) - Math.abs((z.d.lo + z.d.hi) / 2 - price));
+  for (const { d } of zOrder) {
+    const yt = Math.max(yOf(d.hi), plot.y), yb = Math.min(yOf(d.lo), bottom), z = d.z;
+    const y = slotFor((yt + yb) / 2, TAG_H, taken, plot.y, bottom, 2 * TAG_H, z.side === 'supply' ? -1 : 1);
+    if (y == null) continue;
+    taken.push({ y, h: TAG_H });
+    tags.push({ kind: 'zone', cls: `ztag ${z.side}${z.arrival ? ' arrival' : ''}`, text: d.label, y, fg: C.bg, fill: z.realign ? C.gold : z.side === 'demand' ? C.demand : C.supply, bolt: !!z.arrival });
+  }
+  shownTrades.forEach((t, i) => {
+    const y = slotFor(yOf(t.v), TAG_H, taken, plot.y, bottom, 2 * TAG_H);
+    if (y == null) return;
+    taken.push({ y, h: TAG_H });
+    tags.push({ kind: 'trade', cls: `tradelabel ${t.k}`, text: tText[i], y, fg: t.fg, stroke: t.col });
+  });
+  for (const l of lines) {
+    const ye = yOf(l.pts[l.pts.length - 1][1]);
+    if (ye < plot.y + 8 || ye > bottom - 8) continue;   // the line leaves the plot before its right edge: no name over the candles
+    const y = slotFor(ye, 24, taken, plot.y, bottom, 36);
+    if (y == null) continue;
+    taken.push({ y, h: 24 });
+    tags.push({ kind: 'line', cls: 'tllabel', text: l.text, y, fg: l.col });
+  }
+  return { plot, lo: fit.lo, hi: fit.hi, y: yOf, head, headSize, slots, step, axisW, zones, edges, tags, lines, trades: shownTrades, stripUp, stripDn, yPrice };
 }
 
 /** A lightning bolt (the font has no ⚡): a filled path in a w x h box at (x, y top-left). */
@@ -326,63 +491,39 @@ export function freeSlot(want: number, taken: number[], gap: number, top: number
   return null;
 }
 
-const BOLT_W = 16;
-   // room a chip's bolt icon takes before its text
-function chip(xl: number, yc: number, text: string, fg: string, stroke: string, size: number, maxW: number, cls: string, bold = false, bolt = false, dash = false): string {
-  const ib = bolt ? BOLT_W : 0;
-  const t = fitText(text, maxW - 16 - ib, size), w = textW(t, size) * (bold ? 1.07 : 1) + 16 + ib;
-  return `<g class="${cls}"><rect x="${f1(xl)}" y="${f1(yc - CHIP_H / 2)}" width="${f1(w)}" height="${CHIP_H}" rx="6" fill="${C.panel}" fill-opacity="0.92" stroke="${stroke}" stroke-width="${bolt ? 2.5 : 1.5}"${dash ? ' stroke-dasharray="6 4"' : ''}/>`
-    + (bolt ? boltPath(xl + 6, yc - 9, 18, C.amber) : '')
-    + `<text x="${f1(xl + 8 + ib)}" y="${f1(yc + size * 0.36)}" font-size="${size}"${bold ? ' font-weight="600"' : ''} fill="${fg}">${x(t)}</text></g>`;
+// ---- drawing ---------------------------------------------------------------------------------------------------------
+/** A solid / outlined tag: rect at (xl, yc - TAG_H / 2), w wide, text (SemiBold) left-aligned, an optional bolt first. */
+function tagSvg(xl: number, yc: number, w: number, t: { text: string; fg: string; fill?: string; stroke?: string; bolt?: boolean; dash?: boolean; h?: number }, cls: string): string {
+  const h = t.h ?? TAG_H, ib = t.bolt ? BOLT_W : 0, txt = fitText(t.text, w - 14 - ib, FS, true);
+  return `<g class="${cls}"><rect x="${f1(xl)}" y="${f1(yc - h / 2)}" width="${f1(w)}" height="${h}" rx="6" fill="${t.fill ?? C.panel}"${t.stroke ? ` stroke="${t.stroke}" stroke-width="2"` : ''}${t.dash ? ' stroke-dasharray="6 4"' : ''}/>`
+    + (t.bolt ? boltPath(xl + 6, yc - 9, 18, t.fg) : '')
+    + `<text x="${f1(xl + 8 + ib)}" y="${f1(yc + FS * 0.36)}" font-size="${FS}"${SB} fill="${t.fg}">${x(txt)}</text></g>`;
 }
-const chipW = (z: Band, label: string, size: number, maxW: number) => {
-  const ib = z.arrival ? BOLT_W : 0;
-  return textW(fitText(label, maxW - 16 - ib, size), size) * (z.key || z.arrival ? 1.07 : 1) + 16 + ib;
-};
 
 function panelSvg(p: Panel, b: Box, m: ChartModel, i: number): string {
   const g = geom(p, b, m.price, m.digits);
   const { plot, step } = g;
-  const fmt = (v: number) => v.toFixed(m.digits);
   const out: string[] = [];
   const cid = `c${i}`;
   const right = plot.x + plot.w, bottom = plot.y + plot.h;
   out.push(`<rect x="${f1(b.x)}" y="${f1(b.y)}" width="${f1(b.w)}" height="${f1(b.h)}" rx="14" fill="${C.panel}" stroke="${C.border}" stroke-width="2"/>`);
   out.push(`<clipPath id="${cid}"><rect x="${f1(plot.x)}" y="${f1(plot.y)}" width="${f1(plot.w)}" height="${f1(plot.h)}"/></clipPath>`);
-  // header: TF in violet, the nearest demand / supply; the nesting note in amber
+  // header: ONE line, the TF in violet then the nearest supply above / demand below
   const hs = g.headSize;
-  g.head.forEach((line, k) => {
-    const yy = b.y + 16 + hs + k * (hs + 8) - 4;
-    const tag = k === 0 ? `<tspan fill="${C.violet}">${x(tfLabel(p.tf))}</tspan> <tspan fill="${C.mute}">·</tspan> ` : '';
-    const indent = k === 0 ? 0 : textW(`${tfLabel(p.tf)} · `, hs);
-    out.push(`<text class="head" x="${f1(b.x + 16 + indent)}" y="${f1(yy)}" font-size="${hs}" font-weight="600" fill="${C.text}">${tag}${x(line)}</text>`);
-  });
-  if (p.nestNote) {
-    out.push(`<text class="nest" x="${f1(b.x + 16)}" y="${f1(b.y + 16 + hs + g.head.length * (hs + 8) - 4)}" font-size="20" fill="${C.amber}">${x(fitText(p.nestNote, b.w - 32, 20))}</text>`);
+  out.push(`<text class="head" x="${f1(b.x + 16)}" y="${f1(b.y + 16 + hs - 4)}" font-size="${hs}"${SB} fill="${C.text}"><tspan fill="${C.violet}">${x(tfLabel(p.tf))}</tspan> <tspan fill="${C.mute}">·</tspan> ${x(g.head[0])}</text>`);
+  // a far zone is no box: its tag sits in the strip above / below the plot
+  for (const e of g.edges) {
+    const w = tagW(e.label), yc = e.up ? plot.y - STRIP / 2 : bottom + STRIP / 2;
+    out.push(tagSvg(b.x + 16, yc, w, { text: e.label, fg: C.bg, fill: e.z.side === 'demand' ? C.demand : C.supply, h: 26 }, `ztag edge ${e.up ? 'up' : 'down'} ${e.z.side}`));
   }
-  const yPrice = Math.min(Math.max(g.y(m.price), plot.y), bottom);
   // zone boxes start at the zone's base (ZoneVision: the oldest base candle) and run to the right edge
   const boxX = (z: Band) => (z.k0 == null || z.k0 < 0 ? plot.x : Math.min(plot.x + step * z.k0, right - step));
-  // zone bands (context zones first, the key / host on top)
   const parts: string[] = [];
-  // zones an arrival's leg-out removed: faint box from the base to the removing candle, crossed out
-  for (const z of p.zones.filter(q => q.removed)) {
-    const yt = g.y(zhi(z)), yb = g.y(zlo(z));
-    if (yb < plot.y || yt > bottom) continue;
-    const x0 = boxX(z), x1 = z.k1 != null ? Math.min(right, plot.x + step * (z.k1 + 0.5)) : right;
-    if (!(x1 > x0 + 2)) continue;
-    const col = z.side === 'demand' ? C.demand : C.supply, ya = Math.max(yt, plot.y), yz = Math.min(yb, bottom);
-    parts.push(`<rect class="zone removed ${z.side}" data-tf="${x(z.tf)}" x="${f1(x0)}" y="${f1(ya)}" width="${f1(x1 - x0)}" height="${f1(Math.max(2, yz - ya))}" fill="${col}" fill-opacity="0.06" stroke="${col}" stroke-opacity="0.45" stroke-width="1.2" stroke-dasharray="3 4"/>`);
-    // the cross: an X of the box's height (at most 22 px) at its right end
-    const s = Math.min(11, Math.max(5, (yz - ya) / 2)), cxm = x1 - s - 3, cym = (ya + yz) / 2;
-    parts.push(`<path class="xmark" d="M${f1(cxm - s)} ${f1(cym - s)}L${f1(cxm + s)} ${f1(cym + s)}M${f1(cxm - s)} ${f1(cym + s)}L${f1(cxm + s)} ${f1(cym - s)}" stroke="${z.side === 'demand' ? C.demandTxt : C.supplyTxt}" stroke-opacity="0.85" stroke-width="2.5" stroke-linecap="round"/>`);
-  }
-  const zs = [...g.zones].sort((a, z) => z.pri - a.pri);
-  for (const d of zs) {
+  for (const d of g.zones) {
     const z = d.z;
     const yt = Math.max(g.y(d.hi), plot.y), yb = Math.min(g.y(d.lo), bottom);
     const col = z.side === 'demand' ? C.demand : C.supply;
-    const op = z.arrival ? 0.30 : z.wide || z.weak ? 0.07 : z.light ? 0.10 : z.key || z.host || z.realign ? 0.28 : 0.15;
+    const op = z.arrival ? 0.30 : z.wide || z.weak ? 0.07 : z.light ? 0.14 : z.key || z.host || z.realign ? 0.28 : 0.15;
     const stroke = z.arrival ? ` stroke="${z.side === 'demand' ? C.demandTxt : C.supplyTxt}" stroke-width="4"`
       : z.realign ? ` stroke="${C.gold}" stroke-width="3.5"`
       : z.host ? ` stroke="${C.violet}" stroke-width="3"`
@@ -402,33 +543,13 @@ function panelSvg(p: Panel, b: Box, m: ChartModel, i: number): string {
   for (const v of ticks) out.push(`<line class="grid" x1="${f1(plot.x)}" x2="${f1(right)}" y1="${f1(g.y(v))}" y2="${f1(g.y(v))}" stroke="${C.grid}" stroke-width="1"/>`);
   const cw = Math.max(1.5, step * 0.62);
   const cx = (k: number) => plot.x + step * (k + 0.5);
-  // trendlines: own TF solid lilac, the next higher TF gold dots; extended through the empty slots to the right edge
-  const tlLabels: { y: number; text: string; col: string; inside: [number, number] | null }[] = [];
-  for (const t of [...(p.tls ?? [])].sort((a, z) => Number(z.htf) - Number(a.htf))) {
-    if (t.pts.length < 2) continue;
-    const pts = [...t.pts];
-    const [k1, v1] = pts[pts.length - 2], [k2, v2] = pts[pts.length - 1];
-    const kEnd = g.slots - 0.5;
-    const brk = !!t.broken && !t.htf && t.kind !== 'momentum';   // a broken own-TF line: faint dots, ends past its breaking candle
-    if (!t.crossed && !brk && k2 < kEnd && k2 > k1) pts.push([kEnd, v2 + (v2 - v1) * (kEnd - k2) / (k2 - k1)]);
-    const xy = pts.map(([k, v]) => [plot.x + step * (k + 0.5), g.y(v)] as const);
-    const mom = t.kind === 'momentum' && !t.htf;   // Kevin's red momentum line: thin red dashes, never gold
-    const col = mom ? C.momentum : t.htf ? C.gold : C.tl;
+  // live trendlines only: own TF solid lilac, the next higher TF gold dots, momentum red dashes; through the empty slots to the right edge
+  for (const l of g.lines) {
+    const xy = l.pts.map(([k, v]) => [plot.x + step * (k + 0.5), g.y(v)] as const);
     const dpath = xy.map(([px, py], j) => `${j ? 'L' : 'M'}${f1(px)} ${f1(py)}`).join('');
-    out.push(`<path class="tl ${mom ? 'mom' : t.htf ? 'htf' : brk ? 'ltf broken' : 'ltf'} ${t.dir > 0 ? 'up' : 'down'}" data-tf="${x(t.tf)}" d="${dpath}" fill="none" stroke="${col}"`
-      + (mom ? ' stroke-width="1.8" stroke-dasharray="9 7"' : t.htf ? ' stroke-width="5.5" stroke-linecap="round" stroke-dasharray="0.5 11"'
-        : brk ? ' stroke-width="3" stroke-linecap="round" stroke-dasharray="0.5 7"' : ' stroke-width="2.6"')
-      + ` stroke-opacity="${brk ? 0.5 : t.crossed ? 0.6 : 0.95}"${t.crossed && !mom && !t.htf ? ' stroke-dasharray="10 6"' : ''}/>`);
-    const text = mom ? `${tfLabel(t.tf)} momentum` : `${tfLabel(t.tf)} ${t.dir > 0 ? 'up' : 'down'}${t.crossed ? ' ×' : brk ? ' × broken' : ''}`;
-    const yEnd = xy[xy.length - 1][1];
-    if (t.crossed || brk) {   // the line an arrival's leg-out crossed: ends at the crossing candle, labelled there
-      const ins = xy.filter(([, py]) => py >= plot.y + 16 && py <= bottom - 16);
-      if (ins.length) tlLabels.push({ y: ins[ins.length - 1][1], text, col, inside: [ins[ins.length - 1][0], ins[ins.length - 1][1]] });
-    } else if (yEnd >= plot.y && yEnd <= bottom) tlLabels.push({ y: yEnd, text, col, inside: null });
-    else {   // the line leaves the plot before the right edge: label at its last point inside
-      const ins = xy.filter(([, py]) => py >= plot.y + 16 && py <= bottom - 16);
-      if (ins.length) tlLabels.push({ y: ins[ins.length - 1][1], text, col, inside: [ins[ins.length - 1][0], ins[ins.length - 1][1]] });
-    }
+    out.push(`<path class="tl ${l.kind} ${l.t.dir > 0 ? 'up' : 'down'}" data-tf="${x(l.t.tf)}" d="${dpath}" fill="none" stroke="${l.col}"`
+      + (l.kind === 'mom' ? ' stroke-width="1.8" stroke-dasharray="9 7"' : l.kind === 'htf' ? ' stroke-width="5.5" stroke-linecap="round" stroke-dasharray="0.5 11"' : ' stroke-width="2.6"')
+      + ` stroke-opacity="0.95"/>`);
   }
   if (p.dbgZz) {   // debug overlay (render harness --debug-tl): the zigzag of the real pivots + the anchors the lines use
     const P = (k: number, v: number) => `${f1(plot.x + step * (k + 0.5))} ${f1(g.y(v))}`;
@@ -446,143 +567,74 @@ function panelSvg(p: Panel, b: Box, m: ChartModel, i: number): string {
     out.push(`<rect class="candle${forming ? ' forming' : ''}" x="${f1(cx(k) - cw / 2)}" y="${f1(Math.min(yo, yc))}" width="${f1(cw)}" height="${f1(Math.max(1.5, Math.abs(yc - yo)))}" `
       + (forming ? `fill="${col}" fill-opacity="0.18" stroke="${col}" stroke-width="2"/>` : `fill="${col}"/>`));
   }
-  // trade lines (entry TF only); their labels are chips placed with the zone chips below
-  const trades: { y: number; text: string; fg: string; col: string }[] = [];
-  const L = p.lines;
-  if (L) {
-    for (const [k, v, col] of [['entry', L.entry, C.violet], ['stop', L.stop, C.supply], ['target', L.target, C.demand]] as const) {
-      if (typeof v !== 'number') continue;
-      const yy = g.y(v);
-      out.push(`<line class="trade ${k}" x1="${f1(plot.x)}" x2="${f1(right)}" y1="${f1(yy)}" y2="${f1(yy)}" stroke="${col}" stroke-width="2.5" stroke-dasharray="${k === 'entry' ? '0' : '10 6'}"/>`);
-      trades.push({ y: yy, text: `${k === 'entry' && L.kind ? `${L.kind} ` : ''}${k} ${fmt(v)}`, fg: k === 'entry' ? C.tl : k === 'stop' ? C.supplyTxt : C.demandTxt, col });
-    }
-  }
-  if (p.tp && p.tp.px > 0) {   // the arrival plan's take-profit: amber dashed
-    const yy = g.y(p.tp.px);
-    if (yy >= plot.y && yy <= bottom) {
-      out.push(`<line class="trade tp" x1="${f1(plot.x)}" x2="${f1(right)}" y1="${f1(yy)}" y2="${f1(yy)}" stroke="${C.amber}" stroke-width="2.5" stroke-dasharray="12 7"/>`);
-      trades.push({ y: yy, text: p.tp.text, fg: C.amber, col: C.amber });
-    }
-  }
-  if (p.sl && p.sl.px > 0) {   // the arrival plan's stop (stop rule): red dashed
-    const yy = g.y(p.sl.px);
-    if (yy >= plot.y && yy <= bottom) {
-      out.push(`<line class="trade sl" x1="${f1(plot.x)}" x2="${f1(right)}" y1="${f1(yy)}" y2="${f1(yy)}" stroke="${C.supply}" stroke-width="2.5" stroke-dasharray="12 7"/>`);
-      trades.push({ y: yy, text: p.sl.text, fg: C.supplyTxt, col: C.supply });
-    }
+  // trade lines (entry TF only, the arrival plan's TP / SL): lines here, their tags in the gutter
+  for (const t of g.trades) {
+    const yy = g.y(t.v);
+    out.push(`<line class="trade ${t.k}" x1="${f1(plot.x)}" x2="${f1(right)}" y1="${f1(yy)}" y2="${f1(yy)}" stroke="${t.col}" stroke-width="2.5" stroke-dasharray="${t.dash}"/>`);
   }
   // current price line
-  out.push(`<line class="price" x1="${f1(plot.x)}" x2="${f1(right)}" y1="${f1(yPrice)}" y2="${f1(yPrice)}" stroke="${C.violet}" stroke-width="2" stroke-dasharray="6 5"/>`);
-  // zone label chips: left edge, solid background, stacked; the edge chips for far zones at the top / bottom
-  const fsz = 20, maxW0 = Math.min(plot.w - 12, 420);
-  const mw = (z: Band) => (z.arrival || z.realign || z.weak ? Math.min(plot.w - 12, 560) : maxW0);   // arrival / realignment chips carry more text
-  const want = g.zones.map(d => {
-    const yt = Math.max(g.y(d.hi), plot.y), yb = Math.min(g.y(d.lo), bottom);
-    return yb - yt > CHIP_H + 6 ? yt + CHIP_H / 2 + 3 : (yt + yb) / 2;
-  });
-  // the panel note ('short history: 5 MN candles') sits at the plot's bottom-left: the chips stay above it
-  const note = p.note && p.bars.length && !/^no .* zones: .* zones shown$/.test(p.note) ? p.note : '';
-  const chipBottom = bottom - CHIP_H / 2 - 2 - (note ? 30 : 0);
-  const all = [...want, ...g.edges.map(e => (e.up ? plot.y : bottom))];
-  const ys = stack(all, CHIP_H + 2, plot.y + CHIP_H / 2 + 2, chipBottom);
-  const chipX = (z: Band, label: string) => {
-    const w = chipW(z, label, fsz, mw(z));
-    const x0 = boxX(z) + (z.k0 != null && z.k0 < 0 ? 18 : 6);
-    // a box that starts too far right for its chip: the chip ends where the box starts (keeps the newest candles clear)
-    return x0 + w <= right - 6 ? x0 : Math.max(plot.x + 6, boxX(z) - 6 - w);
-  };
-  g.zones.forEach((d, k) => {
-    const dem = d.z.side === 'demand';
-    out.push(chip(chipX(d.z, d.label), ys[k], d.label, d.z.realign ? C.gold : dem ? C.demandTxt : C.supplyTxt, d.z.realign ? C.gold : d.z.host ? C.violet : dem ? C.demand : C.supply, fsz, mw(d.z),
-      `zlabel ${d.z.side}${d.z.arrival ? ' arrival' : ''}`, !!d.z.key || !!d.z.arrival, !!d.z.arrival, !!d.z.weak));
-  });
-  g.edges.forEach((e, k) => {
-    const dem = e.z.side === 'demand';
-    out.push(chip(plot.x + 6, ys[g.zones.length + k], e.label, dem ? C.demandTxt : C.supplyTxt, C.border, fsz, maxW0, `zlabel edge ${e.z.side}`));
-  });
-  // trade chips: right-aligned, clear of the zone chips they would overlap and of each other
-  const zoneChips = [...g.zones.map((d, k) => ({ y: ys[k], r: chipX(d.z, d.label) + chipW(d.z, d.label, fsz, mw(d.z)) })),
-    ...g.edges.map((e, k) => ({ y: ys[g.zones.length + k], r: plot.x + 6 + textW(fitText(e.label, maxW0 - 16, fsz), fsz) + 16 }))];
-  const placed: number[] = [];
-  // boxes the trendline labels inside the plot must stay off: zone / edge / trade chips, the note
-  const taken2: { x0: number; x1: number; y0: number; y1: number }[] = [
-    ...g.zones.map((d, k) => { const x0 = chipX(d.z, d.label); return { x0, x1: x0 + chipW(d.z, d.label, fsz, mw(d.z)), y0: ys[k] - CHIP_H / 2, y1: ys[k] + CHIP_H / 2 }; }),
-    ...g.edges.map((e, k) => ({ x0: plot.x + 6, x1: plot.x + 22 + textW(fitText(e.label, maxW0 - 16, fsz), fsz), y0: ys[g.zones.length + k] - CHIP_H / 2, y1: ys[g.zones.length + k] + CHIP_H / 2 })),
-    ...(note ? [{ x0: plot.x + 8, x1: plot.x + 8 + textW(note, 20), y0: bottom - 28, y1: bottom - 4 }] : [])];
-  for (const t of trades) {
-    const w = textW(t.text, fsz) + 16, xl = right - 6 - w;
-    const taken = [...placed, ...zoneChips.filter(c => c.r > xl - 4).map(c => c.y)];
-    const yy = freeSlot(t.y, taken, CHIP_H + 2, plot.y + CHIP_H / 2 + 2, chipBottom);
-    if (yy == null) continue;
-    placed.push(yy);
-    taken2.push({ x0: xl, x1: xl + w, y0: yy - CHIP_H / 2, y1: yy + CHIP_H / 2 });
-    out.push(chip(xl, yy, t.text, t.fg, t.col, fsz, w + 1, 'tradelabel'));
-  }
+  out.push(`<line class="price" x1="${f1(plot.x)}" x2="${f1(right)}" y1="${f1(g.yPrice)}" y2="${f1(g.yPrice)}" stroke="${C.violet}" stroke-width="2" stroke-dasharray="6 5"/>`);
   out.push('</g>');
   // forming tick under the last candle
   if (p.forming && p.bars.length) {
     const fx = cx(p.bars.length - 1);
     out.push(`<path class="formtick" d="M${f1(fx - 6)} ${f1(bottom + 12)}L${f1(fx + 6)} ${f1(bottom + 12)}L${f1(fx)} ${f1(bottom + 3)}Z" fill="${C.violet}"/>`);
   }
-  // right margin: price tag, trendline labels (stacked off the tag), price ticks where free
-  const tag = `<rect x="${f1(right + 2)}" y="${f1(yPrice - 15)}" width="${g.axisW - 8}" height="30" rx="6" fill="${C.tag}"/>`
-    + `<text class="plabel" x="${f1(right + 8)}" y="${f1(yPrice + 7)}" font-size="20" font-weight="600" fill="#FFFFFF">${fmt(m.price)}</text>`;
-  const margin = tlLabels.filter(t => !t.inside);
-  const busy: number[] = [yPrice];
-  for (const t of margin) {
-    const yy = freeSlot(t.y, busy, 28, plot.y + 10, bottom - 4);
-    if (yy == null) continue;
-    busy.push(yy);
-    const fs = Math.max(12, Math.min(20, Math.floor(20 * (g.axisW - 12) / Math.max(1, textW(t.text, 20)))));   // 'W1 momentum' shrinks to fit
-    out.push(`<text class="tllabel" x="${f1(right + 8)}" y="${f1(yy + 7)}" font-size="${fs}" font-weight="600" fill="${t.col}">${x(fitText(t.text, g.axisW - 12, fs))}</text>`);
-  }
-  for (const t of tlLabels.filter(t => t.inside)) {   // off the chips and each other (nudged up / down, else left out)
-    const [lx, ly] = t.inside!;
-    const w = textW(t.text, 20) * 1.07, xr = Math.max(plot.x + 8 + w, lx - 6);
-    const yy = [0, -26, 26, -52, 52].map(d => ly - 8 + d).find(y => y - 16 >= plot.y && y + 4 <= bottom
-      && !taken2.some(b => b.x0 < xr + 2 && b.x1 > xr - w - 2 && b.y0 < y + 5 && b.y1 > y - 17));
-    if (yy == null) continue;
-    taken2.push({ x0: xr - w, x1: xr, y0: yy - 17, y1: yy + 5 });
-    out.push(`<text class="tllabel" x="${f1(xr)}" y="${f1(yy)}" font-size="20" font-weight="600" text-anchor="end" fill="${t.col}" stroke="${C.panel}" stroke-width="5" stroke-linejoin="round" paint-order="stroke">${x(t.text)}</text>`);
+  // right gutter: zone / trade tags, line names, the price scale where free, the price tag on top
+  const tw = g.axisW - 8;
+  for (const t of g.tags) {
+    if (t.kind === 'line') {
+      const fs = Math.max(14, Math.min(FS, Math.floor(FS * (g.axisW - 12) / Math.max(1, textW(t.text, FS, true)))));
+      out.push(`<text class="${t.cls}" x="${f1(right + 8)}" y="${f1(t.y + 7)}" font-size="${fs}"${SB} fill="${t.fg}">${x(fitText(t.text, g.axisW - 12, fs, true))}</text>`);
+    } else out.push(tagSvg(right + 2, t.y, tw, t, t.cls));
   }
   const shown = new Set<string>();   // a step finer than the digits would repeat a label: each text once
   for (const v of ticks) {
     const yy = g.y(v);
-    if (yy < plot.y + 12 || yy > bottom - 4 || busy.some(u => Math.abs(u - yy) < 28) || shown.has(v.toFixed(nt.dec))) continue;
+    const busy = Math.abs(g.yPrice - yy) < 28 || g.tags.some(t => Math.abs(t.y - yy) < (t.kind === 'line' ? 24 : TAG_H) / 2 + 14);
+    if (yy < plot.y + 12 || yy > bottom - 4 || busy || shown.has(v.toFixed(nt.dec))) continue;
     shown.add(v.toFixed(nt.dec));
-    out.push(`<text class="tick" x="${f1(right + 8)}" y="${f1(yy + 7)}" font-size="20" fill="${C.mute}">${v.toFixed(nt.dec)}</text>`);
+    out.push(`<text class="tick" x="${f1(right + 8)}" y="${f1(yy + 7)}" font-size="${FS}" fill="${C.mute}">${v.toFixed(nt.dec)}</text>`);
   }
-  out.push(tag);
+  out.push(`<rect x="${f1(right + 2)}" y="${f1(g.yPrice - 15)}" width="${f1(tw)}" height="30" rx="6" fill="${C.tag}"/>`
+    + `<text class="plabel" x="${f1(right + 8)}" y="${f1(g.yPrice + 7)}" font-size="${FS}"${SB} fill="#FFFFFF">${m.price.toFixed(m.digits)}</text>`);
   // date axis
+  const dateY = b.y + b.h - 6;
+  const dates: { x0: number; x1: number }[] = [];
   if (p.bars.length) {
-    for (const [k, s] of axisTicks(p.bars, p.tf, step, plot.w)) {
-      out.push(`<text class="date" x="${f1(cx(k))}" y="${f1(bottom + 30)}" font-size="20" text-anchor="middle" fill="${C.mute}">${x(s)}</text>`);
+    for (const [k, s] of axisTicks(p.bars, p.tf, step, plot.w, FS)) {
+      out.push(`<text class="date" x="${f1(cx(k))}" y="${f1(dateY)}" font-size="${FS}" text-anchor="middle" fill="${C.mute}">${x(s)}</text>`);
+      dates.push({ x0: cx(k) - textW(s, FS) / 2, x1: cx(k) + textW(s, FS) / 2 });
     }
   } else {
-    const ym = plot.y + plot.h / 2 + (Math.abs(plot.y + plot.h / 2 - yPrice) < 30 ? 44 : 0);   // off the price line
-    out.push(`<text x="${f1(plot.x + plot.w / 2)}" y="${f1(ym)}" font-size="22" text-anchor="middle" fill="${C.mute}">no candles published for ${x(tfLabel(p.tf))}</text>`);
+    const ym = plot.y + plot.h / 2 + (Math.abs(plot.y + plot.h / 2 - g.yPrice) < 30 ? 44 : 0);   // off the price line
+    out.push(`<text class="nodata" x="${f1(plot.x + plot.w / 2)}" y="${f1(ym)}" font-size="22" text-anchor="middle" fill="${C.mute}">no candles published for ${x(tfLabel(p.tf))}</text>`);
   }
-  // the old 'no D1 zones: W1 zones shown' note is redundant with the header's 'W1 zones:' (owner review): other notes only
-  if (note) out.push(`<text class="note" x="${f1(plot.x + 8)}" y="${f1(bottom - 10)}" font-size="20" fill="${C.mute}">${x(fitText(note, plot.w - 16, 20))}</text>`);
+  // a panel note ('short history: 5 MN candles') sits right-aligned in the date band, only where no date label is
+  const note = p.note && p.bars.length && !/^no .* zones: .* zones shown$/.test(p.note) ? fitText(p.note, plot.w * 0.6, FS) : '';
+  if (note) {
+    const nx1 = right + g.axisW - 12, nx0 = nx1 - textW(note, FS);
+    if (!dates.some(d => d.x1 + 12 > nx0 && d.x0 < nx1)) out.push(`<text class="note" x="${f1(nx1)}" y="${f1(dateY)}" font-size="${FS}" text-anchor="end" fill="${C.mute}">${x(note)}</text>`);
+  }
   return `<g class="panel" data-tf="${x(p.tf)}">${out.join('')}</g>`;
 }
 
-export const LEGEND = 'lilac = trend line · red dashed = momentum line · gold dots = higher-TF trend line · hollow = forming';
-export const LEGEND_ARR = 'lilac = trend line · gold dots = higher-TF line · bold = arrival · × = removed · dashed = weak';
+export const LEGEND = 'lilac trend · red dashed momentum · gold dotted higher-TF · not advice';
+export const LEGEND_ARR = 'lilac trend · gold dotted higher-TF · bold box = arrival · not advice';
 export function renderSvg(m: ChartModel): string {
   const top = topOf(m);
   const bx = boxes(m.layout, m.panels.length, top);
   const body = m.panels.map((p, i) => panelSvg(p, bx[i], m, i)).join('');
+  const vs = m.verdict ? [26, 25, 24, 23, 22, 21, 20].find(s => textW(m.verdict!, s) <= SIZE - 32) ?? 20 : 0;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}" font-family="Inter">`
     + `<rect width="${SIZE}" height="${SIZE}" fill="${C.bg}"/>`
-    + `<text class="title" x="16" y="48" font-size="34" font-weight="600" fill="${C.text}">${x(fitText(m.title, SIZE - 190, 34))}</text>`
-    + `<text x="${SIZE - 16}" y="48" font-size="22" text-anchor="end" fill="${C.violet}">RamanFX</text>`
-    + (m.verdict ? `<text class="verdict" x="16" y="88" font-size="22" fill="${C.verdict}">${x(fitText(m.verdict, SIZE - 32, 22))}</text>` : '')
-    + (m.arrival ? (() => { const y = m.verdict ? 120 : 88; return boltPath(16, y - 17, 20, C.amber, 'bolt arrline')
-      + `<text class="arrival" x="${16 + BOLT_W}" y="${y}" font-size="21" font-weight="600" fill="${C.amber}">${x(fitText(m.arrival, SIZE - 32 - BOLT_W, 21))}</text>`; })() : '')
+    + `<text class="title" x="16" y="48" font-size="36"${SB} fill="${C.text}">${x(fitText(m.title, SIZE - 200, 36, true))}</text>`
+    + `<text x="${SIZE - 16}" y="46" font-size="22" text-anchor="end" fill="${C.violet}">RamanFX</text>`
+    + (m.verdict ? `<text class="verdict" x="16" y="${vs >= 24 ? 90 : 88}" font-size="${vs}" fill="${C.verdict}">${x(fitText(m.verdict, SIZE - 32, vs))}</text>` : '')
+    + (m.arrival ? (() => { const y = m.verdict ? 124 : 90; return boltPath(16, y - 17, 20, C.amber, 'bolt arrline')
+      + `<text class="arrival" x="${16 + BOLT_W}" y="${y}" font-size="22"${SB} fill="${C.amber}">${x(fitText(m.arrival, SIZE - 32 - BOLT_W, 22, true))}</text>`; })() : '')
     + body
-    + `<text x="16" y="${SIZE - 14}" font-size="20" fill="${C.mute}">${x(m.panels.some(p => p.zones.some(z => z.arrival)) ? LEGEND_ARR : LEGEND)}</text>`
-    + `<text x="${SIZE - 16}" y="${SIZE - 14}" font-size="20" text-anchor="end" fill="${C.mute}">not advice</text>`
+    + `<text class="legend" x="16" y="${SIZE - 14}" font-size="${FS}" fill="${C.mute}">${x(m.panels.some(p => p.zones.some(z => z.arrival && !z.removed)) ? LEGEND_ARR : LEGEND)}</text>`
     + '</svg>';
 }
 

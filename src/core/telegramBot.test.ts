@@ -2,7 +2,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { COMMANDS, clock, handle, handleCallback, helpText, lev, parseCommand, shortPct, zoned, esc, NY, MAIN_KEYBOARD, chartData, symButtons, parseTf, type Ctx } from '../../supabase/functions/telegram-bot/logic';
-import { renderSvg, boxes, geom, SIZE } from '../../supabase/functions/telegram-bot/chart';
+import { renderSvg, boxes, geom, topOf, LEGEND, SIZE } from '../../supabase/functions/telegram-bot/chart';
 
 const read = (p: string) => (existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : null);
 const EUR_HOURS = {
@@ -232,7 +232,7 @@ describe('telegram bot', () => {
     expect(svg.match(/class="price"/g)).toHaveLength(4);
     expect(svg).toContain('not advice');
     expect(svg).toContain(`EURUSD · ${cd!.model.price.toFixed(5)}`);
-    const bx = boxes('quad', 4);
+    const bx = boxes('quad', 4, topOf(cd!.model));
     cd!.model.panels.forEach((p, k) => {
       const g = geom(p, bx[k], cd!.model.price);
       const body = svg.split('<g class="panel"')[k + 1];
@@ -246,7 +246,7 @@ describe('telegram bot', () => {
     expect(svg).not.toMatch(/[\u{1F300}-\u{1FAFF}]/u);                  // no emoji (no emoji font on the edge)
     const one = renderSvg((await chartData('EURUSD', 'H4', ctx()))!.model);
     expect(one.match(/class="panel"/g)).toHaveLength(1);
-    expect(one).toMatch(/class="zlabel[^"]*"><rect[^>]*\/><text[^>]*>4H (demand|supply) \d/);
+    expect(one).toMatch(/class="ztag (demand|supply)[^"]*"><rect[^>]*\/><text[^>]*>\d\.\d+/);   // a zone's prices: a gutter tag, no in-plot label
   });
 
   it('chart trendlines (ZoneVision two-pivot rule, zvTrend.ts): own TF lilac / red momentum + next higher TF gold dots, <= 2 + 2 per panel; published scanner tls ignored', async () => {
@@ -272,7 +272,7 @@ describe('telegram bot', () => {
       expect((p.tls ?? []).every(t => t.htf ? t.tf !== p.tf && t.kind === 'trend' : t.tf === p.tf)).toBe(true);
       expect((p.tls ?? []).every(t => t.pts.length === 2)).toBe(true);
     }
-    expect(q).toContain('lilac = trend line · red dashed = momentum line · gold dots = higher-TF trend line');
+    expect(q).toContain(LEGEND);
   });
 
   it('/ask and questions ending with ?: lesson quotes (BM25), <= 1500 chars, open-lesson buttons', async () => {
