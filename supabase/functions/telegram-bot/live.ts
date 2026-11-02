@@ -16,8 +16,9 @@ export const TTL_MS = 30_000;
 export interface LiveFx { closed: Record<string, ZBar[]>; forming: Record<string, ZBar | null>; price: number; at: number; feed: string }
 export interface LiveStock { daily: ZBar[]; partial: ZBar | null; h1: ZBar[]; m15?: ZBar[]; h4?: ZBar[]; price: number; at: number; feed: string }
 export interface LiveSource {
-  /** FX / metals / CFDs by OANDA name (EUR_USD); undefined = no OANDA_API_TOKEN. */
-  fx?: (oanda: string) => Promise<LiveFx | null>;
+  /** FX / metals / CFDs by OANDA name (EUR_USD) and Pepperstone symbol (EURUSD: the cTrader feed, ctrader.ts);
+   *  undefined = no OANDA_API_TOKEN and no cTrader keys. */
+  fx?: (oanda: string, sym?: string) => Promise<LiveFx | null>;
   /** US stocks by ticker (BRK.B); undefined = no Alpaca keys. */
   stock?: (sym: string) => Promise<LiveStock | null>;
 }

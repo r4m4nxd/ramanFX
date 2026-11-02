@@ -38,6 +38,7 @@ import { initWasm, Resvg } from 'npm:@resvg/resvg-wasm@2.6.2';
 import { renderSvg } from './chart.ts';
 import { chartData, handle, handleCallback, IMG_VIEW, MAIN_KEYBOARD, tgSafe, type Reply, type ScanResult } from './logic.ts';
 import { alpacaSource, oandaSource, type LiveSource } from './live.ts';
+import { ctraderSource, tokenLoader } from './ctrader.ts';
 import { journalRoute } from './journal.ts';   // trader coach: 'why did you take it?' replies + /took (journal.ts)
 import { keyOk, restStore } from './prefs.ts';
 import { headlineLoader } from './headlines.ts';
@@ -51,8 +52,14 @@ const GH_TOKEN = Deno.env.get('GITHUB_DISPATCH_TOKEN') ?? '';
 const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') ?? '';
 const OANDA = Deno.env.get('OANDA_API_TOKEN') ?? '';
 const ALPACA_ID = Deno.env.get('ALPACA_KEY_ID') ?? '', ALPACA_SECRET = Deno.env.get('ALPACA_SECRET_KEY') ?? '';
+const CT_ID = Deno.env.get('CTRADER_CLIENT_ID') ?? '', CT_SECRET = Deno.env.get('CTRADER_CLIENT_SECRET') ?? '';
+const oandaFx = OANDA ? oandaSource(OANDA, { host: (Deno.env.get('OANDA_ENV') ?? '').toLowerCase() === 'live' ? 'api-fxtrade.oanda.com' : 'api-fxpractice.oanda.com' }) : undefined;
+// Pepperstone's own bars first (cTrader Open API, ctrader.ts; token refreshed into rfx_ctrader_token), OANDA when a symbol
+// is not listed there or the fetch fails
+const ctFx = CT_ID && CT_SECRET && SB_URL && SB_KEY
+  ? ctraderSource({ clientId: CT_ID, clientSecret: CT_SECRET, token: tokenLoader(SB_URL, () => dbHeaders()) }) : undefined;
 const live: LiveSource = {
-  fx: OANDA ? oandaSource(OANDA, { host: (Deno.env.get('OANDA_ENV') ?? '').toLowerCase() === 'live' ? 'api-fxtrade.oanda.com' : 'api-fxpractice.oanda.com' }) : undefined,
+  fx: ctFx || oandaFx ? async (name: string, sym?: string) => (ctFx && sym ? await ctFx(sym) : null) ?? (oandaFx ? await oandaFx(name) : null) : undefined,
   stock: ALPACA_ID && ALPACA_SECRET ? alpacaSource(ALPACA_ID, ALPACA_SECRET) : undefined,
 };
 const FN_URL = 'https://dqjzufofmblerslcynzr.supabase.co/functions/v1/telegram-bot';

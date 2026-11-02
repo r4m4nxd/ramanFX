@@ -439,7 +439,7 @@ export async function liveFor(r: Resolved, ctx: Ctx, digits: number): Promise<Li
   try {
     if (r.market === 'fx') {
       if (!ctx.live?.fx || !r.row.oanda) return null;
-      const d = await ctx.live.fx(String(r.row.oanda));
+      const d = await ctx.live.fx(String(r.row.oanda), r.row.sym ? String(r.row.sym) : undefined);
       if (!d) return null;
       let v = liveMemo.get(d);
       if (!v) {
