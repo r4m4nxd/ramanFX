@@ -27,3 +27,14 @@ jobs:
             -d '{"from":0,"size":3,"sort":"submitted_date","sortorder":"desc","keyword":"PDMR","criteriaObj":{"criteria":[{"name":"latest_flag","value":"Y"}],"dateCriteria":[]}}' \
             "https://api.data.fca.org.uk/search?index=fca-nsm-searchdata" || true
           head -c 1500 body; echo
+      - name: Probe FMP for TSX daily bars (the FMP_API_KEY secret)
+        env:
+          FMP: ${{ secrets.FMP_API_KEY }}
+        run: |
+          for s in RY.TO BBD-B.TO SHOP.TO; do
+            for u in "https://financialmodelingprep.com/stable/historical-price-eod/full?symbol=$s&from=2026-10-01" "https://financialmodelingprep.com/api/v3/historical-price-full/$s?from=2026-10-01"; do
+              echo "== ${u%%\?*} $s"
+              curl -sS -m 20 -o body -w "HTTP %{http_code} %{size_download}B\n" "$u&apikey=$FMP" || true
+              head -c 200 body; echo
+            done
+          done
