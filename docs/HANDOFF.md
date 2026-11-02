@@ -51,6 +51,16 @@ model for mechanical jobs (renders, ports, plumbing), do small things directly, 
   holders.yml (daily).
 - The chart images were decluttered (PR #3) and every reply passes tgSafe (HTML escape).
 
+## cTrader feed (live since 2026-11-02, on main)
+- Pepperstone's own bars via the cTrader Open API (read-only, live account). Scanner: tools/fx_scanner/sources/ctrader_feed.py
+  (113/151 symbols; crypto + unlisted names keep the old feeds; FX_FEED=oanda var turns it off). Bot: telegram-bot/ctrader.ts
+  (line says "live (Pepperstone)"), OANDA fallback. Client: tools/ctrader/ctrader.py; check workflow ctrader-check.yml.
+- Token: rfx_ctrader_token (Supabase, service role), refreshed weekly by ctrader-token.yml (checks the table is writable
+  BEFORE spending the refresh token). Secrets: GitHub CTRADER_* + SUPABASE_SERVICE_ROLE_KEY; Supabase CTRADER_CLIENT_ID/SECRET.
+- MT5 tools sent this session: RamanFX_ChannelMid.mq5 (50% line in channels), RamanFX_DrawReader.mq5 (owner draws zones /
+  lines, it measures them and saves RFX_Drawings_*.csv + RFX_Bars_*.csv to Common\Files: waiting for the owner's files to
+  learn his zone / line rules). ZoneVision 2.21 landed (b0c7cfa), owner compile result pending.
+
 ## Research
 - docs/research/TREND_VS_SD.md: over 18 years and 13 markets, supply & demand alone loses slightly, trend following is
   about break-even, and the combination is about break-even.
