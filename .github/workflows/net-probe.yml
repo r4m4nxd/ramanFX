@@ -10,6 +10,8 @@ jobs:
           for u in \
             "https://query1.finance.yahoo.com/v8/finance/chart/AAPL?range=1mo&interval=1d" \
             "https://query2.finance.yahoo.com/v8/finance/chart/AAPL?range=1mo&interval=1d" \
+            "https://query1.finance.yahoo.com/v8/finance/chart/RY.TO?range=1mo&interval=1d" \
+            "https://query1.finance.yahoo.com/v8/finance/chart/BBD-B.TO?range=1mo&interval=1d" \
             "https://stooq.com/q/d/l/?s=aapl.us&i=d" \
             "https://www.sec.gov/files/company_tickers.json" \
             "https://data.sec.gov/api/xbrl/companyfacts/CIK0000320193.json" \
