@@ -75,15 +75,23 @@ def universe(instruments: List[Dict], wl: Dict, include_cfd: Optional[bool] = No
             pick[n] = {**i, 'cls': i.get('cls') or C.fx_class(n, i.get('type') or 'CFD')}
         elif n not in by and n not in pick and not by:
             pick[n] = {'name': n, 'type': 'CFD', 'cls': C.fx_class(n, 'CFD')}
+    if CTF.enabled():
+        for sym in ct_fx_extra():                           # Pepperstone forex outside the watchlist (cTrader only)
+            n = f'{sym[:3]}_{sym[3:]}'
+            if n not in pick:
+                q = sym[3:]
+                loc = 0 if q in ('KRW', 'CLP', 'COP', 'IDR') else (-2 if q in ('JPY', 'HUF', 'INR', 'TWD') else -4)
+                pick[n] = {'name': n, 'type': 'CURRENCY', 'displayName': f'{sym[:3]}/{q}', 'pipLocation': loc,
+                           'displayPrecision': {0: 2, -2: 3}.get(loc, 5), 'source': 'ctrader', 'cls': C.fx_class(n, 'CURRENCY')}
     sym_of = {it['instrument']: W.tv_ticker(it['symbol']) for it in wl['items'] if it['instrument']}
     out = []
     for n, i in pick.items():
         sym = sym_of.get(n) or W.pepper_symbol(n)
-        out.append({**i, 'sym': sym, 'tv': f'PEPPERSTONE:{sym}', 'group': wl['sections'].get(n, ''), 'wl': n in wl['sections']})
+        out.append({**i, 'sym': sym, 'tv': f'PEPPERSTONE:{sym}', 'group': wl['sections'].get(n, '') or ('FX EXOTICS (Pepperstone)' if i.get('source') == 'ctrader' else ''), 'wl': n in wl['sections']})
     if CTF.enabled() and any(o['wl'] for o in out):
         # 2026-11 (owner): with Pepperstone's own feed the universe is exactly his TradingView watchlist; the OANDA-only
         # pairs outside it (AUDHKD, XAUCAD ...) are not Pepperstone symbols
-        out = [o for o in out if o['wl']]
+        out = [o for o in out if o['wl'] or o.get('source') == 'ctrader']
     order = {n: k for k, n in enumerate(wl['names'])}
     return sorted(out, key=lambda i: (not i['wl'], order.get(i['name'], 0), C.CLASSES.index(i['cls']), i['sym']))
 
@@ -661,6 +669,14 @@ def make_getter(oanda: Callable[[Dict], Tuple[Dict[str, List[Bar]], Optional[flo
             raise ValueError(f"{i['name']}: no source entry")
         return SRC.fetch(x, leg=leg, log=log, get=get)
     return bars_of
+
+
+def ct_fx_extra() -> List[str]:
+    try:
+        with open(os.path.join(C.HERE, 'instruments.json')) as f:
+            return list(json.load(f).get('ctrader_fx') or [])
+    except (OSError, ValueError):
+        return []
 
 
 def ct_spread(i: Dict, out: Dict[str, List[Bar]]) -> Optional[float]:
