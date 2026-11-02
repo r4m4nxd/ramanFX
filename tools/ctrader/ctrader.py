@@ -96,6 +96,11 @@ def inventory():
     for k in sorted(groups):
         names = sorted(groups[k])
         print(f"{k}: {len(names)}" + (f"  {' '.join(names[:400])}" if not k.lower().startswith(("share", "stock", "etf")) else ""))
+    import collections
+    suf = collections.Counter(n.rsplit(".", 1)[-1] for k, v in groups.items() if k.lower().startswith(("share", "stock", "etf")) for n in v if "." in n)
+    print("share / ETF listings by suffix:", dict(suf.most_common(20)))
+    ca = sorted(n for k, v in groups.items() for n in v if n.upper().endswith((".CA", ".TO", ".TSX")))
+    print(f"Canadian listings: {len(ca)}  {' '.join(ca[:300])}")
     with open("ctrader_symbols.json", "w") as f:
         json.dump(groups, f, indent=0)
     return 0
