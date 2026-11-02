@@ -80,6 +80,10 @@ def universe(instruments: List[Dict], wl: Dict, include_cfd: Optional[bool] = No
     for n, i in pick.items():
         sym = sym_of.get(n) or W.pepper_symbol(n)
         out.append({**i, 'sym': sym, 'tv': f'PEPPERSTONE:{sym}', 'group': wl['sections'].get(n, ''), 'wl': n in wl['sections']})
+    if CTF.enabled() and any(o['wl'] for o in out):
+        # 2026-11 (owner): with Pepperstone's own feed the universe is exactly his TradingView watchlist; the OANDA-only
+        # pairs outside it (AUDHKD, XAUCAD ...) are not Pepperstone symbols
+        out = [o for o in out if o['wl']]
     order = {n: k for k, n in enumerate(wl['names'])}
     return sorted(out, key=lambda i: (not i['wl'], order.get(i['name'], 0), C.CLASSES.index(i['cls']), i['sym']))
 
@@ -137,6 +141,15 @@ def run(uni: List[Dict], get_bars: BarsGetter, workers: int = 4, log=print) -> D
 
     def one(i):
         if i['name'] == 'USDX':
+            if CTF.enabled():                               # Pepperstone's own USDX first; the synthetic one below if not
+                try:
+                    b = CTF.bars('USDX')
+                    if len(b.get('H4') or []) >= 50:
+                        with lock:
+                            bars['USDX'], spread['USDX'] = b, None
+                        i['ct'] = True
+                except Exception:  # noqa: BLE001
+                    pass
             return
         try:
             b, sp = get_bars(i)
@@ -147,14 +160,14 @@ def run(uni: List[Dict], get_bars: BarsGetter, workers: int = 4, log=print) -> D
                 errors[i['sym']] = f'{type(e).__name__}: {str(e)[:120]}'
     with ThreadPoolExecutor(max_workers=max(1, workers)) as ex:
         list(ex.map(one, uni))
-    if any(i['name'] == 'USDX' for i in uni):
+    if any(i['name'] == 'USDX' for i in uni) and 'USDX' not in bars:
         missing = [n for n in USDX_PARTS if n not in bars]
         for n in missing:                                   # parts outside the universe: fetch them too
             try:
                 bars[n], _ = get_bars({'name': n, 'type': 'CURRENCY', 'sym': n.replace('_', '')})
             except Exception as e:  # noqa: BLE001
                 errors['USDX'] = f'part {n}: {type(e).__name__}'
-        if all(n in bars for n in USDX_PARTS):
+        if 'USDX' not in bars and all(n in bars for n in USDX_PARTS):
             bars['USDX'], spread['USDX'] = synth_usdx(bars), None
     analyses, sigs, watch, hits = {}, [], [], {}
     for i in uni:
@@ -628,7 +641,7 @@ def make_getter(oanda: Callable[[Dict], Tuple[Dict[str, List[Bar]], Optional[flo
     def bars_of(i: Dict):
         # 2026-11: Pepperstone's own bars (cTrader Open API) first, when the CTRADER_* secrets are set; a symbol the
         # account does not list, or a cTrader failure, falls back to the old feed (logged). Crypto stays on its feeds.
-        if CTF.enabled() and i.get('source') != 'crypto' and i['name'] != 'USDX':
+        if CTF.enabled() and i.get('source') != 'crypto':   # USDX too: Pepperstone lists it (no synthetic needed)
             sym = i.get('sym') or W.pepper_symbol(i['name'])
             try:
                 out = CTF.bars(sym)
