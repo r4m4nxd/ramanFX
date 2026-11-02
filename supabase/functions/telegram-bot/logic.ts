@@ -44,6 +44,8 @@ export interface Ctx {
   scanOne?: (market: 'fx' | 'stock', sym: string) => Promise<ScanResult>;
   /** /health: the trader coach's last watchdog snapshot as text (trader-coach/health.ts); undefined = no database. */
   health?: () => Promise<string>;
+  /** SEC EDGAR getter with the SEC User-Agent (url -> text, null on failure): /insiders SYM live; undefined = no SEC_UA. */
+  sec?: (url: string) => Promise<string | null>;
   /** Who is asking: the owner (default) or a guest the owner added (guests.ts: market commands, own prefs only). */
   role?: Role;
 }

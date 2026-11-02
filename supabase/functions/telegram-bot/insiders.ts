@@ -5,6 +5,7 @@
 // Pure: data through ctx.load (vitest: src/core/telegramInsiders.test.ts).
 
 import { clock, day, esc, fit, resolve, type Button, type Ctx, type Reply } from './logic.ts';
+import { liveInsiders, type LiveInsiders } from './insiderLive.ts';
 
 type J = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 const obj = (v: unknown): J => (v && typeof v === 'object' && !Array.isArray(v) ? (v as J) : {});
@@ -214,8 +215,42 @@ async function symReply(f: J, q: string, ctx: Ctx): Promise<Reply> {
   return { cmd: 'insiders', text: fit(lines), buttons };
 }
 
+/** /insiders SYM fetched live from SEC EDGAR (insiderLive.ts); the published file adds its cluster / ⭐ line. */
+export function liveReply(L: LiveInsiders, f: J | null, now: Date): Reply {
+  const buys = L.trades.filter(t => t.code === 'P'), sells = L.trades.filter(t => t.code === 'S');
+  const sum = (xs: typeof L.trades) => xs.reduce((a, t) => a + (t.value ?? 0), 0);
+  const who = (xs: typeof L.trades) => new Set(xs.map(t => t.who)).size;
+  const discretionary = sells.filter(t => !t.plan && !t.cover);
+  const lines = [`🕵️ <b>${esc(L.sym)}</b> · ${esc(L.name)} · insiders · last ${L.days} days`, '<i>live from SEC EDGAR</i>', ''];
+  const c = f ? arr(f.clusters).find(x => x.sym === L.sym) : null;
+  if (c) lines.push(`${c.star ? '⭐ ' : ''}<b>${c.kind === 'solo' ? 'Big solo buy' : c.kind === 'early' ? 'Early buy · 1 insider so far' : `${c.strong ? 'Strong cluster' : 'Cluster'} · ${num(c.n)} insiders`}</b> · ${usd(c.value)}`, '');
+  lines.push(buys.length ? `Bought: <b>${usd(sum(buys))}</b> · ${who(buys)} insider${who(buys) === 1 ? '' : 's'} · ${buys.length} filing${buys.length === 1 ? '' : 's'}` : 'Bought: none (open-market buys)');
+  lines.push(sells.length ? `Sold: <b>${usd(sum(sells))}</b> · ${who(sells)} insider${who(sells) === 1 ? '' : 's'} · ${sells.length} filing${sells.length === 1 ? '' : 's'}${discretionary.length < sells.length ? ` · ${usd(sum(discretionary))} not under a 10b5-1 plan` : ''}` : 'Sold: none (open-market sales)');
+  if (L.trades.length) {
+    lines.push('');
+    for (const t of L.trades.slice(0, 8))
+      lines.push(`${t.code === 'P' ? '🟢' : '🔴'} ${mday(t.date)} · ${esc(t.who)} (${esc(t.role)}) ${t.code === 'P' ? 'bought' : 'sold'} ${usd(t.value)}${t.price != null ? ` @ ${price(t.price)}` : ''}${t.plan ? ' · 10b5-1 plan' : t.cover ? ' · tax' : ''}`);
+    if (L.trades.length > 8) lines.push(`+${L.trades.length - 8} more`);
+  }
+  if (L.f144.length) lines.push('', `📋 Form 144 (planned sales): ${L.f144.length} · last ${mday(L.f144[0].date)}`);
+  if (L.f13.length) lines.push(`📣 ${esc(L.f13[0].form)}: ${mday(L.f13[0].date)}${L.f13.length > 1 ? ` (+${L.f13.length - 1} more 13D / 13G)` : ''}`);
+  if (L.f4n > L.read) lines.push('', `<i>read the newest ${L.read} of ${L.f4n} Form 4 filings (grants and option exercises are not shown)</i>`);
+  lines.push('', `<i>SEC Form 4 / 144 / 13D · context, not a signal · not advice · ${esc(clock(now))}</i>`);
+  const buttons: Button[][] = [[{ text: `📊 Chart ${L.sym}`, callback_data: `c:${L.sym}` }, { text: '👥 Holders', callback_data: `h:${L.sym}` }],
+    [{ text: '🔗 SEC filings', url: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${L.cik}&type=4&dateb=&owner=include&count=40` }]];
+  return { cmd: 'insiders', text: fit(lines), buttons };
+}
+
 /** /insiders [SYM]. */
 export async function cmdInsiders(q: string, ctx: Ctx): Promise<Reply> {
+  if (q && ctx.sec) {
+    try {
+      const L = await liveInsiders(q.trim(), ctx.sec, ctx.now);
+      if (L) return liveReply(L, await file(ctx).catch(() => null), ctx.now);
+    } catch (e) {
+      console.log(JSON.stringify({ ev: 'insider_live_fail', err: String((e as Error)?.message ?? e).slice(0, 80) }));
+    }
+  }
   const f = await file(ctx);
   if (!f) return { cmd: 'insiders', text: '🕵️ <b>Insider buys</b>\nNot published yet: the SEC filings job fills it every 10 min on US weekdays. Try again later.' };
   return q ? symReply(f, q, ctx) : listReply(f, ctx.now);

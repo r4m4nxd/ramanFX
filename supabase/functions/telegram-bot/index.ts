@@ -58,6 +58,15 @@ const oandaFx = OANDA ? oandaSource(OANDA, { host: (Deno.env.get('OANDA_ENV') ??
 // is not listed there or the fetch fails
 const ctFx = CT_ID && CT_SECRET && SB_URL && SB_KEY
   ? ctraderSource({ clientId: CT_ID, clientSecret: CT_SECRET, token: tokenLoader(SB_URL, () => dbHeaders()) }) : undefined;
+const SEC_UA = Deno.env.get('SEC_UA') ?? '';
+/** SEC EDGAR at request time (/insiders SYM): the SEC requires a User-Agent with a contact (the SEC_UA secret). */
+const secGet = async (url: string): Promise<string | null> => {
+  try {
+    const r = await fetch(url, { headers: { 'User-Agent': SEC_UA, Accept: 'application/json, text/xml, */*' }, signal: AbortSignal.timeout(8000) });
+    if (!r.ok) { await r.body?.cancel(); console.log(JSON.stringify({ ev: 'sec_http', status: r.status, path: new URL(url).pathname.slice(0, 40) })); return null; }
+    return await r.text();
+  } catch { return null; }
+};
 const live: LiveSource = {
   fx: ctFx || oandaFx ? async (name: string, sym?: string) => (ctFx && sym ? await ctFx(sym) : null) ?? (oandaFx ? await oandaFx(name) : null) : undefined,
   stock: ALPACA_ID && ALPACA_SECRET ? alpacaSource(ALPACA_ID, ALPACA_SECRET) : undefined,
@@ -448,7 +457,7 @@ Deno.serve(async (req: Request) => {
   }
 
   const ctx = { load, now: new Date(), dispatch: GH_TOKEN ? dispatchScans : undefined, imageUrl, prefs: SB_URL && SB_KEY ? prefs : undefined,
-    live, scanOne: GH_TOKEN ? dispatchOne : undefined, health: SB_URL && SB_KEY ? healthText : undefined };
+    live, sec: SEC_UA ? secGet : undefined, scanOne: GH_TOKEN ? dispatchOne : undefined, health: SB_URL && SB_KEY ? healthText : undefined };
   const cq = upd?.callback_query;
   if (cq && typeof cq === 'object') {
     const fromId = cq.from?.id;
