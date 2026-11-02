@@ -5,6 +5,7 @@ import { ScannerSwitch } from '@/ui/ScannerSwitch';
 import { FxSignalCard } from '@/ui/fx/FxSignalCard';
 import { FxMarketMap } from '@/ui/fx/FxMarketMap';
 import { FxUnmapped } from '@/ui/fx/FxUnmapped';
+import { FxAreas } from '@/ui/fx/FxAreas';
 import { FX_DATA_NOTE, FX_URL, parseFx, type FxFile } from '@/core/fx';
 
 type Load = { state: 'loading' } | { state: 'ok'; scan: FxFile | null } | { state: 'error' };
@@ -58,6 +59,7 @@ export default function Fx() {
             {watch.map((s, i) => <FxSignalCard key={`w-${s.sym}-${s.tf}-${i}`} s={s} />)}
           </>}
         </section>
+        <FxAreas />
         <section aria-label="Market map" className="flex flex-col gap-3">
           <h2 className="text-[15px] font-semibold px-1">Market map</h2>
           <FxMarketMap rows={scan!.map} order={scan!.groups.map(g => g.name)} />

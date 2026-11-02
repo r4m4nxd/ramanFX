@@ -67,6 +67,7 @@ export const COMMANDS: { command: string; description: string; group: Group; usa
   { command: 'fx', description: 'Open FX setups + getting close', group: 'Markets', usage: '/fx', help: 'open FX setups, getting close, in a zone' },
   { command: 'stocks', description: "Today's stock BUY / WATCH", group: 'Markets', usage: '/stocks', help: "today's stock BUY / WATCH, close to a zone" },
   { command: 'signals', description: 'Every open BUY / SELL / WATCH', group: 'Markets', usage: '/signals', help: 'every open BUY / SELL / WATCH, both markets' },
+  { command: 'areas', description: 'FX realignment areas (A+ trades)', group: 'Markets', usage: '/areas', help: 'where a higher-timeframe correction should end; the trade is the lower-TF arrival inside (✅ Confirmation alert)' },
   { command: 'tfsa', description: 'TFSA: stocks at a W1/MN/3M demand zone', group: 'Markets', usage: '/tfsa', help: 'TFSA buys at the best price: stocks inside, near or just leaving a W1 / MN / 3M demand zone (/tfsa ca: Canadian listings)' },
   { command: 'near', description: 'Everything within 1% of a zone', group: 'Markets', usage: '/near', help: 'everything within 1% of a strong zone' },
   { command: 'insiders', description: 'Insider buys, sales, 144, 13D (SEC)', group: 'Markets', usage: '/insiders', help: 'latest insider cluster / early buys, ⭐ first, big sales, planned sales (Form 144), activists (13D); /insiders NVDA: one stock\'s buys / sells' },
@@ -382,6 +383,24 @@ async function cmdNear(ctx: Ctx): Promise<Reply> {
   return { cmd: 'near', text: fit(lines), buttons: symButtons(rows.map(r => r.sym)) };
 }
 
+/** /areas (owner pick 'FX 1'): the open realignment areas of the hourly FX scan (public/fx/arrivals.json): where a
+ *  higher-TF correction should end; the trade is the lower-TF arrival inside it (the ✅ Confirmation alert). Price
+ *  inside first, then the nearest. */
+export async function cmdAreas(ctx: Ctx): Promise<Reply> {
+  const st = obj(await ctx.load('fx/arrivals.json'));
+  const rows = Object.values(obj(st.areas)).map(obj).filter(a => !a.confirmed && num(a.lo) != null && num(a.hi) != null && num(a.price) != null);
+  if (!rows.length) return { cmd: 'areas', text: '🎯 <b>Realignment areas</b>\nNone open right now. They appear when a higher-timeframe arrival leaves a weak zone near the bigger trend line.' };
+  const dist = (a: J) => { const p = a.price as number; return p >= a.lo && p <= a.hi ? 0 : Math.min(Math.abs(p - a.lo), Math.abs(p - a.hi)) / p * 100; };
+  rows.sort((a, b) => Number(!a.inside) - Number(!b.inside) || dist(a) - dist(b));
+  const lines = ['🎯 <b>Realignment areas</b> · the A+ trade comes from here', 'A higher-timeframe correction should end in the area; the entry is a lower-timeframe arrival inside it (you get a ✅ Confirmation alert).', ''];
+  for (const a of rows.slice(0, 15)) {
+    const d = dist(a), dg = num(a.digits) ?? 5;
+    lines.push(`${a.inside ? '🎯' : d < 1 ? '⏳' : '·'} <b>${esc(a.sym)}</b> ${tf(a.tf)} ${a.dir > 0 ? 'buy' : 'sell'} area ${(a.lo as number).toFixed(dg)}–${(a.hi as number).toFixed(dg)} · ${a.inside ? 'price inside: watching ' + tf(a.ltf) : d.toFixed(1) + '% away'}`);
+  }
+  if (rows.length > 15) lines.push(`+${rows.length - 15} more in the app`);
+  lines.push('', `🎯 inside (confirmation can come any bar) · ⏳ within 1% · ${FOOT}`);
+  return { cmd: 'areas', text: fit(lines), buttons: symButtons(rows.filter(a => a.inside || dist(a) < 1).map(a => String(a.sym)), 3) };
+}
 const usdShort = (v: unknown) => { const x = num(v); if (x == null) return ''; const a = Math.abs(x); return a >= 1e9 ? `$${(a / 1e9).toFixed(1)}B` : a >= 1e6 ? `$${(a / 1e6).toFixed(1)}M` : `$${(a / 1e3).toFixed(0)}K`; };
 /** /tfsa (owner 2026-11-02: "for the TFSA I buy at the best price: near, inside or just left a higher-timeframe zone"):
  *  long-only stocks at a W1 / MN / 3M demand zone from the stock scan - inside it, within the near band, or just left
@@ -1439,6 +1458,7 @@ export async function handle(text: string, ctx: Ctx): Promise<Reply> {
       case 'signals': return cmdSignals(ctx);
       case 'near': return cmdNear(ctx);
       case 'tfsa': return cmdTfsa(c.arg, ctx);
+      case 'areas': case 'realign': return cmdAreas(ctx);
       case 'zones': case 'zone': return cmdZones(c.arg, ctx);
       case 'times': return cmdTimes(ctx);
       case 'next': return cmdNext(ctx);
