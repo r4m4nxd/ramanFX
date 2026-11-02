@@ -616,7 +616,7 @@ def make_getter(oanda: Callable[[Dict], Tuple[Dict[str, List[Bar]], Optional[flo
                     return out, ct_spread(i, out)
                 log(f'{sym}: cTrader has too little H4 history - old feed')
             except CTF.NotListed:
-                pass
+                CTF.STATS.setdefault('not_listed', []).append(sym)
             except Exception as e:  # noqa: BLE001
                 CTF.STATS['errors'] += 1
                 log(f'{sym}: cTrader failed ({type(e).__name__}: {str(e)[:120]}) - old feed')
