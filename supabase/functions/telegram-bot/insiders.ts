@@ -241,8 +241,27 @@ export function liveReply(L: LiveInsiders, f: J | null, now: Date): Reply {
   return { cmd: 'insiders', text: fit(lines), buttons };
 }
 
+/** Canada / UK / India: no free automated insider feed (SEDI, NSE, BSE block bots), so links to read it yourself
+ *  (owner 2026-11-02: "just the button"). null = not one of those markets. */
+export function foreignInsiders(q: string): Reply | null {
+  const m = /^([A-Z0-9&-]+)[.:](TO|V|CN|NE|CA|L|LN|GB|UK|NS|BO|IN|NSE|BSE)$/i.exec(q.trim());
+  if (!m) return null;
+  const sym = m[1].toUpperCase(), x = m[2].toUpperCase(), e = encodeURIComponent(sym);
+  const ca = ['TO', 'V', 'CN', 'NE', 'CA'].includes(x), uk = ['L', 'LN', 'GB', 'UK'].includes(x);
+  const where = ca ? 'Canada' : uk ? 'UK' : 'India';
+  const buttons: Button[][] = ca
+    ? [[{ text: `🇨🇦 ${sym} insider trades`, url: `https://www.canadianinsider.com/node/7?menu_tickersearch=${e}` }], [{ text: 'SEDI (official search)', url: 'https://www.sedi.ca/sedi/SVTSelectSediInsider?menukey=15.03.00&locale=en_CA' }]]
+    : uk
+      ? [[{ text: `🇬🇧 ${sym} RNS announcements`, url: `https://www.investegate.co.uk/company/${e}` }], [{ text: 'FCA filings (official)', url: 'https://data.fca.org.uk/#/nsm/nationalstoragemechanism' }]]
+      : [[{ text: `🇮🇳 ${sym} insider trading (NSE)`, url: `https://www.nseindia.com/get-quotes/equity?symbol=${e}` }], [{ text: 'NSE insider filings', url: 'https://www.nseindia.com/companies-listing/corporate-filings-insider-trading' }, { text: 'BSE', url: 'https://www.bseindia.com/corporates/Insider_Trading_new.aspx' }]];
+  const how = ca ? 'insider reports are filed on SEDI' : uk ? 'director / PDMR dealings are RNS announcements ("Director/PDMR Shareholding") filed with the FCA' : 'insider trades (SEBI PIT) are filed with the NSE / BSE';
+  return { cmd: 'insiders', text: `🕵️ <b>${esc(sym)}</b> · ${where} · insiders\nIn ${where} ${esc(how)}. There is no free feed the bot can read, so open it here:`, buttons };
+}
+
 /** /insiders [SYM]. */
 export async function cmdInsiders(q: string, ctx: Ctx): Promise<Reply> {
+  const foreign = q ? foreignInsiders(q) : null;
+  if (foreign) return foreign;
   if (q && ctx.sec) {
     try {
       const L = await liveInsiders(q.trim(), ctx.sec, ctx.now);

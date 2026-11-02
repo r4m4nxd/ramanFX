@@ -38,3 +38,14 @@ describe('/insiders SYM live (SEC EDGAR)', () => {
     expect(r.text).toContain('live from SEC EDGAR');
   });
 });
+
+import { foreignInsiders } from '../../supabase/functions/telegram-bot/insiders';
+describe('/insiders for Canada / UK / India: link buttons', () => {
+  it('maps the suffix to the market and its pages', () => {
+    expect(JSON.stringify(foreignInsiders('SU.TO')?.buttons)).toContain('canadianinsider.com/node/7?menu_tickersearch=SU');
+    expect(JSON.stringify(foreignInsiders('BP.L')?.buttons)).toContain('investegate.co.uk/company/BP');
+    expect(JSON.stringify(foreignInsiders('RELIANCE.NS')?.buttons)).toContain('nseindia.com');
+    expect(foreignInsiders('NVDA')).toBeNull();
+    expect(foreignInsiders('BRK.B')).toBeNull();
+  });
+});
