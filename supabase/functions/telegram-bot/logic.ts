@@ -67,6 +67,7 @@ export const COMMANDS: { command: string; description: string; group: Group; usa
   { command: 'fx', description: 'Open FX setups + getting close', group: 'Markets', usage: '/fx', help: 'open FX setups, getting close, in a zone' },
   { command: 'stocks', description: "Today's stock BUY / WATCH", group: 'Markets', usage: '/stocks', help: "today's stock BUY / WATCH, close to a zone" },
   { command: 'signals', description: 'Every open BUY / SELL / WATCH', group: 'Markets', usage: '/signals', help: 'every open BUY / SELL / WATCH, both markets' },
+  { command: 'turns', description: 'FX daily / weekly direction changes', group: 'Markets', usage: '/turns', help: 'D1 / W1 trend line broken by a close, then 1 and 2 opposite zones removed (CHANGED): alerts at each step' },
   { command: 'areas', description: 'FX realignment areas (A+ trades)', group: 'Markets', usage: '/areas', help: 'where a higher-timeframe correction should end; the trade is the lower-TF arrival inside (✅ Confirmation alert)' },
   { command: 'tfsa', description: 'TFSA: stocks at a W1/MN/3M demand zone', group: 'Markets', usage: '/tfsa', help: 'TFSA buys at the best price: stocks inside, near or just leaving a W1 / MN / 3M demand zone (/tfsa ca: Canadian listings)' },
   { command: 'near', description: 'Everything within 1% of a zone', group: 'Markets', usage: '/near', help: 'everything within 1% of a strong zone' },
@@ -383,6 +384,22 @@ async function cmdNear(ctx: Ctx): Promise<Reply> {
   return { cmd: 'near', text: fit(lines), buttons: symButtons(rows.map(r => r.sym)) };
 }
 
+/** /turns (owner pick 'FX 2'): daily / weekly direction changes in progress (public/fx/trendchg.json 'current', the
+ *  hourly FX scan): a trend line broken by a close (⚠️), 1 opposite zone removed (🟡), CHANGED = 2 removed (🔄). */
+export async function cmdTurns(ctx: Ctx): Promise<Reply> {
+  const st = obj(await ctx.load('fx/trendchg.json'));
+  const cur = arr(st.current);
+  const icon: Record<string, string> = { break: '⚠️', removed1: '🟡', changed: '🔄' };
+  const lines = ['🧭 <b>Direction changes · daily / weekly</b>', "Raja: a trend line broken by a close, then 2 opposite zones removed = direction changed.", ''];
+  for (const x of cur.slice(0, 25)) {
+    const up = (num(x.side) ?? 0) > 0, opp = up ? 'supply' : 'demand';
+    const what = x.stage === 'changed' ? `CHANGED ${up ? 'up' : 'down'} · ${num(x.rm) ?? 2} ${opp} removed` : x.stage === 'removed1' ? `turning ${up ? 'up' : 'down'} · 1 of 2 ${opp} removed` : `line broken ${String(x.cross ?? '').slice(0, 10)} · turning ${up ? 'up' : 'down'}`;
+    lines.push(`${icon[String(x.stage)] ?? '·'} <b>${esc(x.sym)}</b> ${tf(x.tf)} · ${esc(what)}`);
+  }
+  if (!cur.length) lines.push('None in progress right now.');
+  lines.push('', `You get an alert at each step · ${FOOT}`);
+  return { cmd: 'turns', text: fit(lines), buttons: symButtons(cur.filter(x => x.stage === 'changed').map(x => String(x.sym)), 3) };
+}
 /** /areas (owner pick 'FX 1'): the open realignment areas of the hourly FX scan (public/fx/arrivals.json): where a
  *  higher-TF correction should end; the trade is the lower-TF arrival inside it (the ✅ Confirmation alert). Price
  *  inside first, then the nearest. */
@@ -1459,6 +1476,7 @@ export async function handle(text: string, ctx: Ctx): Promise<Reply> {
       case 'near': return cmdNear(ctx);
       case 'tfsa': return cmdTfsa(c.arg, ctx);
       case 'areas': case 'realign': return cmdAreas(ctx);
+      case 'turns': case 'turn': return cmdTurns(ctx);
       case 'zones': case 'zone': return cmdZones(c.arg, ctx);
       case 'times': return cmdTimes(ctx);
       case 'next': return cmdNext(ctx);

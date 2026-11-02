@@ -1123,6 +1123,8 @@ def main(argv=None) -> int:
                                                       bool(summary), digest, bool(h1)), 'FX scan')
     if not a.only:                                       # Raja arrival / realignment alerts (own state, own day cap)
         FA.run(res, prefs, N.send, notify=notify, write=not a.no_write)
+        import fxtrend as FT                             # FX 2: daily / weekly direction change (Raja L3)
+        FT.run(res, prefs, N.send, notify=notify, write=not a.no_write)
     if a.only:
         new_state['last_h4'] = state.get('last_h4')        # a partial run never marks the H1 / H4 bar as scanned
         new_state['last_h1'] = state.get('last_h1')

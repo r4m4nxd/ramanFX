@@ -2,6 +2,7 @@
   {"command": "fx", "description": "Open FX setups + getting close"},
   {"command": "stocks", "description": "Today's stock BUY / WATCH"},
   {"command": "signals", "description": "Every open BUY / SELL / WATCH"},
+  {"command": "turns", "description": "FX daily / weekly direction changes"},
   {"command": "areas", "description": "FX realignment areas (A+ trades)"},
   {"command": "tfsa", "description": "TFSA: stocks at a W1/MN/3M demand zone"},
   {"command": "near", "description": "Everything within 1% of a zone"},
