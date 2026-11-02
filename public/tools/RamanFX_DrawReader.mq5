@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| RamanFX_DrawReader.mq5 v1.00                                     |
+//| RamanFX_DrawReader.mq5 v1.01                                     |
 //| YOU draw the zones (rectangles) and trend lines. This indicator  |
 //| measures each one and writes a short note next to it: what the   |
 //| box edges sit on (wick / body), the base, the pattern, how far   |
@@ -12,7 +12,7 @@
 //| Display only. Objects of other RamanFX tools (RFX...) ignored.   |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.00"
+#property version   "1.01"
 #property indicator_chart_window
 #property indicator_buffers 0
 #property indicator_plots   0
@@ -25,6 +25,9 @@ input color  InpNoteColor = C'110,110,110'; // Note colour
 #define PFX "RFXDR_"
 #define BTN "RFXDR_btn"
 bool gShow = true;
+string gShort = "";   // 1.01: the chart note (MT5 shows ~63 characters of an OBJ_TEXT); the full one is the tooltip
+// "wick" / "body" / "~wick" (near) from an EdgeOf text
+string Kind(string e) { if(StringFind(e, "near ") == 0) return "~" + StringSubstr(e, 5, 4); return StringSubstr(e, 0, 4); }
 
 double H(int s) { return iHigh(_Symbol, _Period, s); }
 double L(int s) { return iLow(_Symbol, _Period, s); }
@@ -126,6 +129,8 @@ string ZoneNote(string nm, string &row, datetime &tAt, double &pAt, int &anchor)
                               kind, pat, n, D(s0), eTop, eBot, swL, swR, ext / atr, legBars, (hi - lo) / atr, state);
    row = StringFormat("ZONE;%s;%s;%s;%s;%s;%d;%s;%d;%s;%s;%d;%d;%.2f;%d;%.2f;%d;%s;%s", nm, TimeToString(tl), DoubleToString(hi, _Digits), DoubleToString(lo, _Digits),
                       kind, dir, pat, n, eTop, eBot, swL, swR, ext / atr, legBars, (hi - lo) / atr, touches, D(sBrk), D(s0));
+   gShort = StringFormat("%s %s b%d | top %s | bot %s | turn %d/%d | %s", dir > 0 ? "D" : (dir < 0 ? "S" : "?"), pat, n, Kind(eTop), Kind(eBot), swL, swR,
+                         sBrk >= 0 ? "broken" : (touches > 0 ? "tested " + IntegerToString(touches) : "fresh"));
    tAt = tl; pAt = dir < 0 ? hi : lo; anchor = dir < 0 ? ANCHOR_LEFT_LOWER : ANCHOR_LEFT_UPPER;
    return note;
   }
@@ -172,6 +177,8 @@ string LineNote(string nm, string &row, datetime &tAt, double &pAt, int &anchor)
                               up ? "Up" : "Down", a0, sw0, a1, sw1, s0 - s1, bodyCut, wickCut, touches, brk, MathAbs(slope) / atr);
    row = StringFormat("LINE;%s;%s;%s;%s;%s;%s;%s;%d;%s;%d;%d;%d;%d;%d;%s;%s;%.3f", nm, TimeToString(ta), DoubleToString(pa, _Digits), TimeToString(tb), DoubleToString(pb, _Digits),
                       up ? "up" : "down", a0, sw0, a1, sw1, s0 - s1, bodyCut, wickCut, touches, D(sPoke), D(sBrk), MathAbs(slope) / atr);
+   gShort = StringFormat("%s | A1 %s t%d | A2 %s t%d | cuts %d/%d | %s", up ? "Up" : "Dn", Kind(a0), sw0, Kind(a1), sw1, bodyCut, wickCut,
+                         sBrk >= 0 ? "broken" : (sPoke >= 0 ? "poked" : "intact"));
    tAt = tb; pAt = pb; anchor = up ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER;
    return note;
   }
@@ -179,11 +186,7 @@ string LineNote(string nm, string &row, datetime &tAt, double &pAt, int &anchor)
 void Note(string id, datetime t, double p, string txt, int anchor)
   {
    string nm = PFX + id;
-   // the chart shows the first part, the tooltip all of it
-   string shown = txt;
-   int cut = StringFind(txt, " | ", 0);
-   for(int k = 0; k < 3 && cut >= 0; k++) { int nx = StringFind(txt, " | ", cut + 3); if(nx < 0) break; cut = nx; }
-   if(cut > 0 && StringLen(txt) > 90) shown = StringSubstr(txt, 0, cut) + " ...";
+   string shown = gShort;
    ObjectCreate(0, nm, OBJ_TEXT, 0, t, p);
    ObjectSetString(0, nm, OBJPROP_TEXT, shown);
    ObjectSetString(0, nm, OBJPROP_FONT, "Arial");
