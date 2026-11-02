@@ -48,6 +48,18 @@ class CTrader:
     def symbols(self, acc):
         return self.call(SYMBOLS, {"ctidTraderAccountId": acc}, SYMBOLS_RES).get("symbol", [])
 
+    def trendbars(self, acc, symbol_id, period, frm_ms, to_ms):
+        """Raw trendbars [(start_utc_minutes, o, h, l, c, volume)] in [frm_ms, to_ms], oldest first (prices / 1e5)."""
+        p = self.call(TRENDBARS, {"ctidTraderAccountId": acc, "period": PERIOD[period], "symbolId": symbol_id,
+                                  "fromTimestamp": int(frm_ms), "toTimestamp": int(to_ms)}, TRENDBARS_RES)
+        out = []
+        for b in p.get("trendbar", []):
+            lo = b.get("low", 0)
+            out.append((b["utcTimestampInMinutes"], (lo + b.get("deltaOpen", 0)) / 1e5, (lo + b.get("deltaHigh", 0)) / 1e5,
+                        lo / 1e5, (lo + b.get("deltaClose", 0)) / 1e5, b.get("volume", 0)))
+        out.sort()
+        return out
+
     def bars(self, acc, symbol_id, period, count=10):
         now = int(time.time() * 1000)
         span = {"M1": 60, "M5": 300, "M15": 900, "M30": 1800, "H1": 3600, "H4": 14400, "D1": 86400, "W1": 604800, "MN1": 2678400}[period]

@@ -43,6 +43,7 @@ import oanda as O  # noqa: E402
 import prefs as P  # noqa: E402  (stock_scanner/prefs.py: the owner's bot preferences)
 import guests as G  # noqa: E402  (stock_scanner/guests.py: the market messages to the bot's guests)
 import sources as SRC  # noqa: E402  (extra data sources: synthetic crosses, crypto, Yahoo)
+import sources.ctrader_feed as CTF  # noqa: E402  (Pepperstone bars, cTrader Open API)
 import watchlist as W  # noqa: E402
 import zones as Z  # noqa: E402
 from zones import Bar  # noqa: E402
@@ -604,6 +605,20 @@ def make_getter(oanda: Callable[[Dict], Tuple[Dict[str, List[Bar]], Optional[flo
             return memo[name]
 
     def bars_of(i: Dict):
+        # 2026-11: Pepperstone's own bars (cTrader Open API) first, when the CTRADER_* secrets are set; a symbol the
+        # account does not list, or a cTrader failure, falls back to the old feed (logged). Crypto stays on its feeds.
+        if CTF.enabled() and i.get('source') != 'crypto' and i['name'] != 'USDX':
+            sym = i.get('sym') or W.pepper_symbol(i['name'])
+            try:
+                out = CTF.bars(sym)
+                if len(out.get('H4') or []) >= 50:
+                    return out, ct_spread(i, out)
+                log(f'{sym}: cTrader has too little H4 history - old feed')
+            except CTF.NotListed:
+                pass
+            except Exception as e:  # noqa: BLE001
+                CTF.STATS['errors'] += 1
+                log(f'{sym}: cTrader failed ({type(e).__name__}: {str(e)[:120]}) - old feed')
         if i.get('source') in (None, 'oanda'):
             return leg(i['name'])
         x = SRC.spec(i.get('sym') or i['name']) or SRC.spec(i['name'])
@@ -611,6 +626,19 @@ def make_getter(oanda: Callable[[Dict], Tuple[Dict[str, List[Bar]], Optional[flo
             raise ValueError(f"{i['name']}: no source entry")
         return SRC.fetch(x, leg=leg, log=log, get=get)
     return bars_of
+
+
+def ct_spread(i: Dict, out: Dict[str, List[Bar]]) -> Optional[float]:
+    """Typical spread for a cTrader-fed symbol: the OANDA cache's measured H4 spreads when there are any (no request),
+    else the instruments.json typical spread of an extra-source symbol, else None (the scanner's default)."""
+    if i.get('source') in (None, 'oanda'):
+        sp = F.typical_spread(O.spreads(O.load(i['name'], 'H4')))
+        if sp is not None:
+            return sp
+    x = SRC.spec(i.get('sym') or i['name'])
+    if x is not None:
+        return SRC.typical_spread(x, (out.get('H4') or [Bar('', 0, 0, 0, 0)])[-1].c)
+    return None
 
 
 def extra_meta() -> List[Dict]:
