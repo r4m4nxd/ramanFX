@@ -394,12 +394,35 @@ export async function resolve(q: string, ctx: Ctx): Promise<{ hit: Resolved | nu
   if (f) return { hit: { market: 'fx', sym: f.sym, row: f }, suggest: [] };
   const s = stRows.find(r => String(r.s).toUpperCase() === ks || String(r.s).toUpperCase() === k || String(r.s).toUpperCase().replace(/\./g, '') === k);
   if (s) return { hit: { market: 'stock', sym: s.s, row: s }, suggest: [] };
+  // 2026-11 (owner: "any ticker, like NVDA"): a ticker outside the scans is looked up live - a US stock through Alpaca, any
+  // other Pepperstone symbol (shares, ETFs, futures) through cTrader - and answered from its live candles (no signals)
+  const adhoc = await adhocResolve(q, ctx);
+  if (adhoc) return { hit: adhoc, suggest: [] };
   const all: string[] = [...fxRows.map(r => String(r.sym)), ...stRows.map(r => String(r.s))];
   const scored = all.map(c => [c.startsWith(k) && k.length >= 2 ? 0.5 : lev(k, c.toUpperCase().replace(/\./g, '')), c] as const)
     .filter(([d]) => d <= Math.max(1, Math.min(2, Math.floor(k.length / 3))))
     .sort((a, b) => a[0] - b[0] || a[1].length - b[1].length || a[1].localeCompare(b[1]));
   const byName = stRows.filter(r => k.length >= 3 && String(r.n ?? '').toUpperCase().split(/[\s.,&-]+/).some(w => w.startsWith(k))).map(r => String(r.s));
   return { hit: null, suggest: [...new Set([...scored.map(x => x[1]), ...byName])].slice(0, 4) };
+}
+/** A ticker the scans do not hold, found live: Alpaca (US stock) first, then cTrader (Pepperstone name). */
+async function adhocResolve(q: string, ctx: Ctx): Promise<Resolved | null> {
+  const raw = q.trim().toUpperCase().replace(/^[A-Z]+:/, '');
+  if (!/^[A-Z0-9][A-Z0-9.\-]{0,14}$/.test(raw)) return null;
+  try {
+    if (ctx.live?.stock && /^[A-Z][A-Z0-9.]{0,9}$/.test(raw)) {
+      const d = await ctx.live.stock(raw);
+      if (d) return { market: 'stock', sym: raw, row: { s: raw, adhoc: true } };
+    }
+    if (ctx.live?.fx) {
+      const d = await ctx.live.fx(raw, raw);
+      if (d) {
+        const p = d.price, digits = p >= 1000 ? 2 : p >= 10 ? 3 : 5;
+        return { market: 'fx', sym: raw, row: { sym: raw, oanda: raw, digits, pip: Math.pow(10, -(digits - 1)), adhoc: true } };
+      }
+    }
+  } catch (e) { console.log(JSON.stringify({ ev: 'adhoc_error', err: String((e as Error)?.message ?? e).slice(0, 60) })); }
+  return null;
 }
 export function lev(a: string, b: string): number {
   if (Math.abs(a.length - b.length) > 3) return 9;

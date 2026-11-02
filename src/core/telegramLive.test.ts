@@ -32,7 +32,8 @@ function ctx(extra: Partial<Ctx> = {}): Ctx {
   return { now: new Date(AT), imageUrl: (s, v, ver) => `https://img.test/?img=${s}&tf=${v}&v=${ver}`,
     async load(path: string) { return path === 'events.json' ? { kinds: {} } : read(`public/${path}`); }, ...extra };
 }
-const withLive = (scanOne?: Ctx['scanOne']) => ctx({ live: { fx: async () => liveFx(), stock: async () => liveStock() }, scanOne });
+// like the real feeds, the stand-ins know no typo ticker (EURUDS): a ticker outside the scans is looked up live first
+const withLive = (scanOne?: Ctx['scanOne']) => ctx({ live: { fx: async (n: string) => (n.includes('_') ? liveFx() : null), stock: async (s: string) => (s === 'EURUDS' ? null : liveStock()) }, scanOne });
 
 describe('live.ts', () => {
   it('forex-time labels (New York + 7 h) like fxcfg.label', () => {
@@ -131,6 +132,17 @@ describe('bot with live data', () => {
     const st = await handle('/zones XPEV', withLive());
     expect(st.text).toContain('zones + price live (Alpaca)');
     expect(st.text).toContain(stockZonesOf(liveStock().daily, liveStock().price)[0].proximal.toFixed(2));
+  });
+  it('a ticker outside the scans is found live (Alpaca stock first, else a cTrader symbol) and gets live zones', async () => {
+    const onlyAdhoc = ctx({ live: { stock: async (s: string) => (s === 'ZZZQ' ? liveStock() : null), fx: async (_n: string, sym?: string) => (sym === 'BMW.DE' ? liveFx() : null) } });
+    const st = await handle('/zones ZZZQ', onlyAdhoc);
+    expect(st.text).toContain('ZZZQ');
+    expect(st.text).toContain('zones + price live (Alpaca)');
+    const fx = await handle('/zones BMW.DE', onlyAdhoc);
+    expect(fx.text).toContain('BMW.DE');
+    expect(fx.text).toContain('live');
+    const none = await handle('/zones QQQQX', onlyAdhoc);
+    expect(none.text).toContain('not found');
   });
   it('without keys: as before, plus one hint line', async () => {
     const r = await handle('/zones EURUSD', ctx());
