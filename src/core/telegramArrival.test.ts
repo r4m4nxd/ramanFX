@@ -193,35 +193,37 @@ describe('charts: arrival drawing + arrival line (logic.buildPanels -> chart.ren
     const model = { sym: 'T', title: 'T', digits: 2, price: s.price, layout: 'single' as const, panels, verdict: chartVerdict(panels, zones, s.price, 2, 'fx', null), arrival: chartArrival(panels, 2, 'fx', null) };
     return { model, svg: renderSvg(model as never) };
   };
-  it('supply arrival: bold arrival zone with a bolt, removed demands crossed out, weak demands dashed, realignment, TP line', () => {
+  it('supply arrival: bold arrival zone with a bolt, TP line; removed / weak / realignment zones and the crossed line are not drawn', () => {
     const { model, svg } = draw('supply');
     expect(model.arrival).toMatch(/^D1 arrival supply 103\.26–103\.98 · W1 up line intact at [\d.]+ → TP above it · buy only after 1H arrival$/);
-    for (const cls of ['zone supply arrival', 'zone removed demand', 'class="xmark"', 'zone demand weak', 'realign', 'trade tp', 'class="bolt"', 'class="bolt arrline"', 'tl ltf up'])
+    for (const cls of ['zone supply arrival', 'trade tp', 'class="bolt"', 'class="bolt arrline"'])
       expect(svg).toContain(cls);
-    expect(svg).toContain('realignment D1 demand 78.00–77.28 · confirm on 1H');
-    expect(svg).toContain('weak – no limit');
+    expect([...svg.matchAll(/<rect class="zone /g)].length).toBeLessThanOrEqual(2);   // <= 2 zones per panel
+    for (const gone of ['zone removed', 'class="xmark"', 'zone demand weak', 'realignment', 'weak – no limit', 'confirm on', 'broken', '×'])
+      expect(svg).not.toContain(gone);
+    expect(svg).toMatch(/class="ztag supply arrival"><rect[^>]*\/><path class="bolt"[^>]*\/><text[^>]*>103\.26–103\.98</);   // the arrival's prices: a gutter tag with the bolt
     expect(svg).not.toMatch(/[✕⚡]/);                     // glyphs the Inter subset lacks are drawn as shapes
     expect(chartIssues(model as never, svg)).toEqual([]);
   });
-  it('confirmed: the realignment chip and the arrival line name the 1H buy', () => {
+  it('confirmed: the arrival line names the 1H buy', () => {
     const { model, svg } = draw('confirm');
     const c = run('confirm').confirm!;
     expect(c.basis).toBe('htf');                          // the 1H demand sits in the D1 realignment demand: below its distal
     expect(c.stop).toBeCloseTo(77.28 - 2 * c.buffer, 2);
     expect(model.arrival).toContain(`1H arrival demand in realignment: buy 77.66, stop ${c.stop.toFixed(2)}, target 103.98`);
-    expect(svg).toContain('1H arrival: buy');
+    expect(svg).not.toContain('1H arrival: buy');         // told by the arrival line, no in-plot chip any more
     expect(chartIssues(model as never, svg)).toEqual([]);
   });
-  it('demand arrival with the HTF ceiling: TP chip below the W1 line', () => {
+  it('demand arrival with the HTF ceiling: a TP tag in the gutter, the line says why', () => {
     const { model, svg } = draw('ceiling');
     expect(model.arrival).toContain('W1 down line intact at 121.22 → TP below it');
-    expect(svg).toMatch(/TP 121\.22 · below W1 line · R:R [\d.]+/);
+    expect(svg).toMatch(/class="tradelabel tp"><rect[^>]*\/><text[^>]*>TP 121\.22</);
     expect(svg).toContain('trade sl');
-    expect(svg).toMatch(/SL 95\.75 · below D1 valley/);
+    expect(svg).toMatch(/class="tradelabel sl"><rect[^>]*\/><text[^>]*>SL 95\.75</);
   });
-  it('nested demand: the SL chip names the W1 demand', () => {
+  it('nested demand: the SL tag', () => {
     const { svg } = draw('nested');
-    expect(svg).toMatch(/SL 95\.00 · below W1 demand/);
+    expect(svg).toMatch(/class="tradelabel sl"><rect[^>]*\/><text[^>]*>SL 95\.00</);
   });
   it('no arrival: no arrival line, nothing flagged', () => {
     const { model, svg } = draw('nocross');

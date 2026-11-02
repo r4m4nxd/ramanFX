@@ -997,7 +997,8 @@ export function chartVerdict(panels: ChartPanel[], zones: Zn[], price: number, d
   const gone = panels.flatMap(p => p.zones.filter(z => z.removed));
   zones = zones.filter(z => !gone.some(g => g.tf === z.tf && g.side === z.side && sameArea(g, z)));
   const relTf = sig && zones.some(z => z.tf === sig.tf) ? sig.tf : zoneTfOf(last.tf);
-  return verdict({ price, digits, market, zones, relTf, trendTf: last.tf, trendLines: last.tls ?? [], trendBars: last.bars, sig });
+  // the image's line: compact, one line at 24 px across the image (chart.ts shrinks / clips it only past that)
+  return verdict({ price, digits, market, zones, relTf, trendTf: last.tf, trendLines: last.tls ?? [], trendBars: last.bars, sig }, { px: 1280 - 32, size: 24 });
 }
 
 /** Stocks: zones never below W1 (the D1 and intraday panels show the W1 zones). */

@@ -3,7 +3,7 @@
 // labelled without collisions, demand + supply header, right padding, forming candle, no 'W1 zones shown' note.
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { axisTicks, boxes, dateLabel, geom, headerLines, nearestZones, renderSvg, stack, zoneRange, type Bar, type Band, type ChartModel, type Panel } from '../../supabase/functions/telegram-bot/chart';
+import { axisTicks, boxes, dateLabel, geom, headerLines, mergeZones, nearestZones, renderSvg, stack, textW, zoneRange, type Bar, type Band, type ChartModel, type Panel } from '../../supabase/functions/telegram-bot/chart';
 import { baseIndex, baseStartOf, chartData, chartWhen, type Ctx } from '../../supabase/functions/telegram-bot/logic';
 
 const read = (p: string) => (existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : null);
@@ -78,7 +78,7 @@ describe('date axis (issue 6)', () => {
   });
 });
 
-describe('zones: range, labels, header (issues 7-11)', () => {
+describe('zones: range, tags, header (declutter rules 1, 2, 4, 7)', () => {
   const zones: Band[] = [
     { tf: 'W1', side: 'demand', prox: 96.14, dist: 94.36, key: true },
     { tf: 'W1', side: 'demand', prox: 89.14, dist: 84.42 },
@@ -86,72 +86,100 @@ describe('zones: range, labels, header (issues 7-11)', () => {
     { tf: 'W1', side: 'supply', prox: 300, dist: 320 },
   ];
   const p = panel({ bars: bars(60, '2025-08-04', 7, 105), zones });
-  it('header: nearest demand below + nearest supply above with % distance', () => {
+  it('header: ONE line, nearest supply above + nearest demand below with the signed % distance', () => {
     const n = nearestZones(zones, 'W1', 99.53);
     expect(n.dem!.z.prox).toBe(96.14);
     expect(n.sup!.z.prox).toBe(120.4);
-    expect(headerLines(p, 99.53, 2, 2000, 22)).toEqual(['↓ demand 96.1–94.4 · 3.4% | ↑ supply 120–146 · 21%']);
-    expect(headerLines(p, 99.53, 2, 300, 22)).toHaveLength(2);
+    expect(headerLines(p, 99.53, 2, 2000, 22)).toEqual(['↑ 120–146 (+21%) · ↓ 96.1–94.4 (−3.4%)']);
+    expect(headerLines(p, 99.53, 2, 300, 22)).toHaveLength(1);          // never two lines: shorter forms, then clipped
+    expect(headerLines(p, 99.53, 2, 300, 22)[0].endsWith('…')).toBe(true);
+    expect(headerLines(p, 99.53, 2, textW('↑ 120–146 +21% · ↓ 96.1–94.4 −3.4%', 22, true) + 1, 22)[0]).toBe('↑ 120–146 +21% · ↓ 96.1–94.4 −3.4%');   // the parentheses go first
+    expect(headerLines(panel({ zones: [] , header: 'no zone in view' }), 99.53, 2, 2000, 22)).toEqual(['no zone in view']);
+    expect(headerLines(panel({ zones: [{ tf: 'W1', side: 'demand', prox: 101, dist: 98 }] }), 99.53, 2, 2000, 22)).toEqual(['↑ no supply · in demand 101.0–98.0']);
     expect(zoneRange(120.4, 145.5, 2, 1)).toBe('120.4–145.5');
     expect(zoneRange(1.11281, 1.11121, 5)).toBe('1.1128–1.1112');
   });
+  it('merge: overlapping or adjacent zones of the same side and TF become one box; others stay', () => {
+    const z = (tf: string, side: 'demand' | 'supply', prox: number, dist: number, o: Partial<Band> = {}): Band => ({ tf, side, prox, dist, ...o });
+    // the owner's two stacked 4H supplies (gap 0.007 vs heights 0.024 / 0.030)
+    const m = mergeZones([z('H4', 'supply', 12.544, 12.568), z('H4', 'supply', 12.507, 12.537)]);
+    expect(m).toHaveLength(1);
+    expect([m[0].prox, m[0].dist]).toEqual([12.507, 12.568]);
+    const d = mergeZones([z('W1', 'demand', 11.736, 11.484), z('W1', 'demand', 11.6, 11.2, { key: true })]);   // overlapping demands: prox = top, dist = bottom
+    expect(d).toHaveLength(1);
+    expect([d[0].prox, d[0].dist, d[0].key]).toEqual([11.736, 11.2, true]);
+    expect(mergeZones([z('W1', 'demand', 11.736, 11.484), z('W1', 'demand', 11.297, 10.953)])).toHaveLength(2);   // a real gap
+    expect(mergeZones([z('W1', 'supply', 12, 13), z('D1', 'supply', 12, 13), z('W1', 'demand', 12, 13)])).toHaveLength(3);   // other side / TF never merge
+    // a panel with two stacked supplies draws ONE box
+    const two = panel({ bars: bars(60, '2025-08-04', 7, 105), zones: [z('W1', 'supply', 110, 112), z('W1', 'supply', 112.5, 114.5)] });
+    expect([...renderSvg(model([two])).matchAll(/<rect class="zone /g)]).toHaveLength(1);
+  });
   const near: Band[] = [...zones.slice(0, 2), { tf: 'W1', side: 'supply', prox: 114, dist: 118.5 }, zones[3]];
   const pn = panel({ bars: bars(60, '2025-08-04', 7, 105), zones: near });
-  it('y-range holds every drawn zone whole (nearest each side) and each one has a label', () => {
+  it('<= 2 zones per panel: the nearest each side; the rest are not drawn, nothing is labelled over the plot', () => {
     const m = model([pn]);
     const g = geom(pn, boxes('single', 1)[0], m.price, 2);
     const drawn = g.zones.map(d => d.z.prox);
-    expect(drawn).toContain(96.14);
-    expect(drawn).toContain(114);
-    expect(drawn).not.toContain(300);                         // far and not nearest: not drawn
-    for (const d of g.zones) { expect(g.lo).toBeLessThanOrEqual(d.lo); expect(g.hi).toBeGreaterThanOrEqual(d.hi); }
+    expect(drawn.sort()).toEqual([114, 96.14].sort());
     const svg = renderSvg(m);
-    const rects = [...svg.matchAll(/class="zone [^"]*"/g)].length;
-    const labels = [...svg.matchAll(/class="zlabel [^"]*"/g)].length;
-    expect(labels).toBe(rects);
-    expect(svg).toContain('>W1 supply 114.00–118.50</text>');   // supply zones labelled like demand
-    expect(renderSvg(model([p]))).toContain('>↑ W1 supply 120–146 · 21%</text>');   // too far: an edge chip
+    expect([...svg.matchAll(/<rect class="zone /g)]).toHaveLength(2);
+    expect(svg).not.toContain('zlabel');
+    expect(svg).not.toContain('W1 supply');                                 // the old in-plot label text
+    // zone prices: a gutter tag at the zone's level, right of the plot
+    expect(g.tags.filter(t => t.kind === 'zone').map(t => t.text).sort()).toEqual(['114.0–118.5', '96.1–94.4'].sort());
+    for (const t of svg.matchAll(/<g class="ztag [^"]*"><rect x="([\d.]+)"/g)) expect(+t[1]).toBeGreaterThanOrEqual(g.plot.x + g.plot.w);
   });
-  it('a nearest zone too far for the range gets an edge chip instead of a clipped band', () => {
+  it('y-range: near zones stretch it (candles keep >= 70%), a far zone is a tag in a strip, never a box', () => {
+    const m = model([pn]);
+    const g = geom(pn, boxes('single', 1)[0], m.price, 2);
+    const hi = Math.max(...pn.bars.map(b => b.h)), lo = Math.min(...pn.bars.map(b => b.l));
+    expect((hi - lo) / (g.hi - g.lo)).toBeGreaterThanOrEqual(0.7);
+    const far = geom(p, boxes('single', 1)[0], 99.53, 2);                   // supply 120.4-145.5 is far above the candles
+    expect(far.zones.map(d => d.z.prox)).toEqual([96.14]);
+    expect(far.edges.map(e => e.label)).toEqual(['↑ 120–146 (+21%)']);
+    expect(far.stripUp).toBeGreaterThan(0);
+    const svg = renderSvg(model([p]));
+    expect(svg).toContain('class="ztag edge up supply"');
+    expect(svg).toContain('>↑ 120–146 (+21%)</text>');
+  });
+  it('a nearest zone too far for the range gets a strip tag instead of a clipped band', () => {
     const far = panel({ bars: bars(60, '2025-08-04', 7, 100), zones: [{ tf: 'W1', side: 'demand', prox: 45, dist: 40 }] });
     const g = geom(far, boxes('single', 1)[0], 99.53, 2);
     expect(g.zones).toHaveLength(0);
-    expect(g.edges[0].label).toBe('↓ W1 demand 45.0–40.0 · 55%');
-    expect(renderSvg(model([far]))).toContain('zlabel edge demand');
+    expect(g.edges[0].label).toBe('↓ 45.0–40.0 (−55%)');
+    expect(g.stripDn).toBeGreaterThan(0);
+    expect(renderSvg(model([far]))).toContain('ztag edge down demand');
   });
-  it('label chips stack without collisions', () => {
+  it('gutter tags are nudged off each other and the price tag, and dropped when there is no room', () => {
     const ys = stack([100, 105, 108, 400, 401], 30, 20, 500);
     const s = [...ys].sort((a, b) => a - b);
     for (let k = 1; k < s.length; k++) expect(s[k] - s[k - 1]).toBeGreaterThanOrEqual(30 - 1e-9);
-    const crowd = stack([490, 495, 499], 30, 20, 500);
-    expect(Math.max(...crowd)).toBeLessThanOrEqual(500);
-    // a crowded real panel: chip boxes never overlap
-    const many: Band[] = Array.from({ length: 8 }, (_, i) => ({ tf: 'W1', side: i % 2 ? 'supply' : 'demand', prox: 98 + i * 0.4, dist: 98.2 + i * 0.4 }));
-    const svg = renderSvg(model([panel({ zones: many })]));
-    const yy = [...svg.matchAll(/class="zlabel[^"]*"><rect x="[\d.]+" y="([\d.]+)"/g)].map(m => +m[1]).sort((a, b) => a - b);
-    expect(yy.length).toBeGreaterThan(3);
-    for (let k = 1; k < yy.length; k++) expect(yy[k] - yy[k - 1]).toBeGreaterThanOrEqual(28);
+    // a demand just below price, a supply just above: both tags + the price tag fit without overlap
+    const tight = panel({ bars: bars(60, '2025-08-04', 7, 100), zones: [{ tf: 'W1', side: 'demand', prox: 99.4, dist: 99.0 }, { tf: 'W1', side: 'supply', prox: 99.7, dist: 100.1 }] });
+    const g = geom(tight, boxes('quad', 4)[0], 99.53, 2);
+    const ys2 = [...g.tags.map(t => t.y), g.yPrice].sort((a, b) => a - b);
+    for (let k = 1; k < ys2.length; k++) expect(ys2[k] - ys2[k - 1]).toBeGreaterThanOrEqual(26);
+    expect(g.tags.length).toBeLessThanOrEqual(2);
   });
-  it('zone labels sit on a solid chip with a light text colour (contrast on the dark panel)', () => {
+  it('zone tags: solid zone colour with dark text', () => {
     const svg = renderSvg(model([pn]));
-    expect(svg).toMatch(/class="zlabel demand"><rect[^>]*fill="#11131A" fill-opacity="0.92"[^>]*\/><text[^>]*fill="#34D399"/);
-    expect(svg).toMatch(/class="zlabel supply"><rect[^>]*\/><text[^>]*fill="#FCA5A5"/);
+    expect(svg).toMatch(/class="ztag demand"><rect[^>]*fill="#10B981"[^>]*\/><text[^>]*fill="#0B0C10"/);
+    expect(svg).toMatch(/class="ztag supply"><rect[^>]*fill="#EF4444"[^>]*\/><text[^>]*fill="#0B0C10"/);
   });
-  it("stock D1: W1 zones light with a 'W1 zones:' header, no 'no D1 zones' note", async () => {
+  it("stock D1: W1 zones light, the header names the zone TF ('W1 ↑ …'), no 'no D1 zones' note", async () => {
     const cd = await chartData('BABA', 'Q', ctx());
     const svg = renderSvg(cd!.model);
     expect(svg).not.toContain('zones shown');
     const d1 = panelBody(svg, 3);
-    expect(d1).toContain('W1 zones:');
+    expect(d1).toMatch(/class="head"[^>]*>.*W1 [↑↓]/);
     expect(d1).toMatch(/class="zone [^"]*light/);
   });
-  it('wide zones lighter + tagged, nesting note and verdict rendered when the model has them', () => {
+  it('wide zones lighter + dashed; the verdict is drawn, the nesting note is not', () => {
     const wz = panel({ tf: '3M', zones: [{ tf: '3M', side: 'demand', prox: 132.75, dist: 95.73, key: true, wide: true }], nestNote: 'MN zone outside 3M zone' });
-    const svg = renderSvg(model([wz], { verdict: 'Price 3.4% above W1 demand · watch 96.1–94.4' }));
+    const svg = renderSvg(model([wz], { verdict: 'Price 3.4% above W1 demand' }));
     expect(svg).toMatch(/class="zone demand key wide"[^>]*fill-opacity="0.07"[^>]*stroke-dasharray/);
-    expect(svg).toContain('3M demand 132.8–95.7 · wide');
-    expect(svg).toContain('(wide)');
-    expect(svg).toMatch(/class="nest"[^>]*>MN zone outside 3M zone</);
+    expect(svg).not.toContain('class="nest"');
+    expect(svg).not.toContain('outside 3M zone');
     expect(svg).toMatch(/class="verdict"[^>]*>Price 3.4% above W1 demand/);
   });
 });

@@ -4,7 +4,7 @@
 // (tools/telegram_bot/parity/baba_2026-10-29.json).
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { aggregate, quarterKey, weekKey, monthKey, type Bar } from '../../supabase/functions/telegram-bot/chart';
+import { aggregate, quarterKey, weekKey, monthKey, textW, type Bar } from '../../supabase/functions/telegram-bot/chart';
 import { buildPanels, chartData, dropPartialHead, type Ctx } from '../../supabase/functions/telegram-bot/logic';
 import { sameLine, type ChartTl } from '../../supabase/functions/telegram-bot/zvTrend';
 import { atrPct, compact, isWide, nestNote, refineOf, structure, verdict, VERDICT_MAX, type NZone } from '../../supabase/functions/telegram-bot/chartnotes';
@@ -170,6 +170,11 @@ describe('verdict', () => {
     expect(verdict({ ...base, trendLines: [{ tf: 'D1', htf: false, dir: -1, crossed: false, kind: 'momentum' }] })).toContain('D1 momentum down (no trend line yet)');
     expect(verdict({ ...base, trendLines: [{ tf: 'W1', htf: true, dir: 1, crossed: false, kind: 'trend' }] })).toContain('D1 downtrend ·');   // gold lines never set the panel's trend
   });
+  it('compact (the chart image): no prices, no watch / other side, still one line', () => {
+    const v = verdict({ price: 99.53, digits: 2, market: 'stock', zones: zs, relTf: 'W1', trendTf: 'D1', trendLines: [{ tf: 'D1', htf: false, dir: -1, crossed: false, kind: 'trend' }], trendBars: down }, { px: 1248, size: 24 });
+    expect(v).toBe('Price 3.4% above W1 demand, inside 3M demand · D1 downtrend · not nested in MN');
+    expect(verdict({ price: 99.53, digits: 2, market: 'stock', zones: zs, relTf: 'W1', trendTf: 'D1', trendLines: [], trendBars: down }, { px: 300, size: 24 }).length).toBeLessThan(40);   // parts dropped to fit
+  });
   it('a scanner signal replaces the watch; long parts dropped least important first', () => {
     const v = verdict({ price: 99.53, digits: 2, market: 'stock', zones: zs, relTf: 'W1', trendTf: 'D1', trendLines: [], trendBars: down, sig: { tf: 'W1', kind: 'BUY', entry: 96.14 } });
     expect(v).toContain('scanner: BUY W1 at 96.14');
@@ -188,7 +193,9 @@ describe('verdict', () => {
   });
   it('BABA chart model carries the verdict', async () => {
     const m = (await chartData('BABA', 'Q', babaCtx()))!.model;
-    expect(m.verdict).toMatch(/^Price 3\.\d% above W1 demand \(96\.14–94\.36\), inside 3M demand · D1 downtrend \(trend line\)/);   // the D1 down line Aug 20 -> Sep 22
+    // the image's compact line: no zone prices (the panel headers have them), no '(trend line)'
+    expect(m.verdict).toMatch(/^Price 3\.\d% above W1 demand, inside 3M demand · D1 downtrend/);   // the D1 down line Aug 20 -> Sep 22
     expect(m.verdict.length).toBeLessThanOrEqual(VERDICT_MAX);
+    expect(textW(m.verdict, 24)).toBeLessThanOrEqual(1280 - 32);   // one line
   });
 });
