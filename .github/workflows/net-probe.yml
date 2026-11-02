@@ -18,3 +18,10 @@ jobs:
             curl -sS -m 20 -A "$UA" -o body -w "HTTP %{http_code} %{size_download}B %{content_type}\n" "$u" || true
             head -c 200 body | tr -d '\0' ; echo
           done
+      - name: Probe the FCA National Storage Mechanism (UK regulatory filings, official public search API)
+        run: |
+          curl -sS -m 25 -A 'RamanFX research bot (github.com/r4m4nxd/ramanFX)' -H 'Content-Type: application/json' -o body \
+            -w "HTTP %{http_code} %{size_download}B %{content_type}\n" \
+            -d '{"from":0,"size":3,"sort":"submitted_date","sortorder":"desc","keyword":"PDMR","criteriaObj":{"criteria":[{"name":"latest_flag","value":"Y"}],"dateCriteria":[]}}' \
+            "https://api.data.fca.org.uk/search?index=fca-nsm-searchdata" || true
+          head -c 1500 body; echo
