@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| RamanFX_ZoneVision.mq5 v2.16 (MT5; v1 part = port of the .mq4 1.99)|
+//| RamanFX_ZoneVision.mq5 v2.21 (MT5; v1 part = port of the .mq4 1.99)|
 //| See the chart through the ZoneBot's eyes. Uses the SAME zone     |
 //| rules and defaults as RamanFX_ZoneBot so you can spot where      |
 //| the bot disagrees with you (and with the mentor).                |
@@ -67,15 +67,21 @@
 //| to confirm). Drawn: one current line per direction (no broken or |
 //| superseded lines), no stale lines, no overlapping zone boxes     |
 //| (input InpZm220, off = the 2.18 reading).                        |
+//| v2.21 (display only, owner 2026-11-02): Panels + Dots buttons,   |
+//| compact 270 px info panels, every box / line width 1, pivot dots |
+//| off by default, short zone tags that never stack, Labels: OFF    |
+//| hides all text (also the arrival / model / bot-order texts).     |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "2.20"
+#property version   "2.21"
 #property indicator_chart_window
 #property indicator_buffers 0
 #property indicator_plots   0
 
 input group "== LABELS: show / hide each kind of text on the chart =="
 input bool   InpLabelButton   = true;   // Labels ON/OFF button (bottom-left): one click hides / shows ALL text below
+input bool   InpPanelButton   = true;   // 2.21 Panels ON/OFF button (next to Labels): one click hides / shows the two info panels (top-right)
+input bool   InpDotsButton    = true;   // 2.21 Dots ON/OFF button (next to Panels): the dots on the real peaks / valleys
 input bool   InpLblZonePrices = true;   // Zone prices: (1.23456) at each box's proximal / distal line
 input bool   InpShowNames     = true;   // Zone names inside the box (e.g. Rally Base Rally Demand (CP) | STRONG)
 input bool   InpLensTag       = true;   // Zone tags at the proximal: verdict, K+/K-, Seiden, Raja type, Baker, consensus
@@ -87,7 +93,7 @@ input bool   InpLblRaja       = true;   // Raja extras text: nested curve, reali
 input bool   InpLblHalfway    = true;   // "halfway alert" text
 input group "== ARRIVAL zones + trend lines (owner rules, Oct 2026; = the Telegram bot) =="
 input bool   InpRealLines     = true;   // 2.16 model: this TF's trend lines (real pivots), momentum line, higher-TF lines + the target line
-input bool   InpRealPivots    = true;   // 2.16 model: small dots on the REAL peaks / valleys (ends of real corrections)
+input bool   InpRealPivots    = false;  // 2.16 model: small dots on the REAL peaks / valleys (ends of real corrections); 2.21: off at start, the Dots button turns them on
 input bool   InpRealPhase     = true;   // 2.16 model: bottom-left STRUCTURE line, 3M down to this TF (impulse / correction vs the parent TF)
 input double InpRealRC        = 0.45;   // 2.16 model (SPEC rc): a correction is REAL when it retraces this much of the leg (or trades back to its origin base)
 input bool   InpZmOn          = true;   // 2.16: the ONE structure model drives STRUCTURE, DIRECTION, Bias, zone notes, HTF lines, REALIGN (off = 2.14 engines)
@@ -304,6 +310,7 @@ input int      InpExportN     = 8;      // Zones exported at most (never more th
 
 #define PFX "RFXV_"
 #define RXA_PFX "RFXV2_A"                // arrival objects (RFX_ARRIVAL_CHART); the Labels button hides their text too
+#define RFX_LBL_HOOK                    // 2.21: RxaText / the arrival summary call LblHook (this MT5 host only)
 #define RFX_RJC                         // Raja v2.1 C: this host has the InpSl* / InpRj* inputs (RFX_ZoneCore.mqh uses them)
 #define RJC_CONF_WIN 10                 // Raja v2.1 C: LTF trendline cross + opposite removal within this many bars
 #define MAXTF 12
@@ -381,6 +388,9 @@ string sR[]; color sC[];
 
 // compact panel
 bool   gPanelOpen = true;
+bool   gLblOff = false;      // Labels button state (OFF hides all text), remembered per chart
+bool   gPnlOff = false;      // 2.21 Panels button state (OFF hides both info panels), remembered per chart
+bool   gDotsOn = false;      // 2.21 Dots button state (ON draws the real peak / valley dots), remembered per chart; starts as InpRealPivots
 string gPanL = "", gPanPlan = "";
 int    gPanX = 0, gPanY = 0, gPanW = 0, gPanH = 0, gChartW = 0;
 // panel x: top-right (InpPanelRight) or v1 top-left
@@ -531,9 +541,11 @@ void RxaBox(string nm, datetime t1, double p1, datetime t2, double p2, color c, 
   {
    ObjectCreate(0, nm, OBJ_RECTANGLE, 0, t1, p1, t2, p2);
    ObjectSetInteger(0, nm, OBJPROP_COLOR, c); ObjectSetInteger(0, nm, OBJPROP_STYLE, style); ObjectSetInteger(0, nm, OBJPROP_WIDTH, width);
-   ObjectSetInteger(0, nm, OBJPROP_BACK, fill);                    // MT4: a background rectangle is filled, a foreground one an outline
 #ifdef __MQL5__
+   ObjectSetInteger(0, nm, OBJPROP_BACK, true);                    // 2.21: behind the candles, thin outline unless filled
    ObjectSetInteger(0, nm, OBJPROP_FILL, fill);
+#else
+   ObjectSetInteger(0, nm, OBJPROP_BACK, fill);                    // MT4: a background rectangle is filled, a foreground one an outline
 #endif
    ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
    ObjectSetString(0, nm, OBJPROP_TOOLTIP, tip);
@@ -545,6 +557,9 @@ void RxaText(string nm, datetime t, double p, string txt, color c, int size, int
    ObjectSetInteger(0, nm, OBJPROP_FONTSIZE, size); ObjectSetInteger(0, nm, OBJPROP_COLOR, c); ObjectSetInteger(0, nm, OBJPROP_ANCHOR, anchor);
    ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
    ObjectSetString(0, nm, OBJPROP_TOOLTIP, tip);
+#ifdef RFX_LBL_HOOK
+   LblHook(nm);                                                    // 2.21: Labels OFF hides this text at creation (MT5 host only)
+#endif
   }
 void RxaLine(string nm, datetime t1, double p1, datetime t2, double p2, color c, int style, int width, string tip)
   {
@@ -612,9 +627,9 @@ void RxaDraw()
       string kind = A.zone.dir > 0 ? "demand" : "supply";
       string tip = StringFormat("%s ARRIVAL %s: the leg-out closed %s the %s %s trend line and removed %d opposite zone(s)%s", tfn, kind, A.zone.dir > 0 ? "above" : "below", tfn,
                                 A.zone.dir > 0 ? "down" : "up", A.nRem, A.strong ? " = STRONG" : "");
-      RxaBox(RXA_PFX + "az", A.zone.baseStart, A.zone.prox, right, A.zone.dist, c, STYLE_SOLID, 3, false, tip);
-      RxaText(RXA_PFX + "azt", A.zone.baseStart, A.zone.prox, "ARRIVAL " + kind + (A.strong ? StringFormat(" STRONG (%d removed)", A.nRem) : " (1 removed)"), c, 9,
-              A.zone.dir > 0 ? ANCHOR_LEFT_LOWER : ANCHOR_LEFT_UPPER, true, tip);
+      RxaBox(RXA_PFX + "az", A.zone.baseStart, A.zone.prox, right, A.zone.dist, c, STYLE_SOLID, 1, false, tip);
+      RxaText(RXA_PFX + "azt", A.zone.baseStart, A.zone.prox, "Arrival " + (A.strong ? "STRONG " : "") + "x" + IntegerToString(A.nRem), c, 7,
+              A.zone.dir > 0 ? ANCHOR_LEFT_LOWER : ANCHOR_LEFT_UPPER, false, tip);
       RxaLine(RXA_PFX + "al", A.line.ta, A.line.pa, gRxa.S.T[A.crossBar], A.crossPx, InpMuted, STYLE_DOT, 1, tfn + " trend line the arrival's leg-out closed beyond");
       sum += (A.strong ? "STRONG " : "") + RxaZTxt(A.zone);
       if(InpArrShowRemoved)
@@ -623,7 +638,7 @@ void RxaDraw()
             RxZone y = gRxa.zones[A.rem[q]];
             string nm = RXA_PFX + "rx" + IntegerToString(q), yt = "Removed by the arrival's leg-out: " + RxaZTxt(y);
             RxaBox(nm, y.baseStart, y.prox, gRxa.S.T[y.removedBar], y.dist, InpMuted, STYLE_DOT, 1, false, yt);
-            RxaText(nm + "x", gRxa.S.T[y.removedBar], (y.prox + y.dist) / 2, "X", y.dir > 0 ? InpDemandLine : InpSupplyLine, 12, ANCHOR_CENTER, true, yt);
+            RxaText(nm + "x", gRxa.S.T[y.removedBar], (y.prox + y.dist) / 2, "X", y.dir > 0 ? InpDemandLine : InpSupplyLine, 9, ANCHOR_CENTER, false, yt);
            }
      }
    if(gRxa.hasPlan)
@@ -644,10 +659,9 @@ void RxaDraw()
         {
          RxZone z = gRxa.zones[P.realign];
          string rt = StringFormat("REALIGNMENT area: the weak %s zone nearest the %s trend line (now %s). Trade it only after a %s arrival inside it.", tfn, htn, RxaPx(P.lineNow), ltn);
-         RxaBox(RXA_PFX + "rl", z.baseStart, z.prox, right, z.dist, C'255,226,140', STYLE_SOLID, 1, true, rt);
-         RxaBox(RXA_PFX + "rlb", z.baseStart, z.prox, right, z.dist, clrGoldenrod, STYLE_SOLID, 2, false, rt);
-         RxaText(RXA_PFX + "rlt", z.baseStart, z.prox, "REALIGN area (" + htn + " line " + RxaPx(P.lineNow) + ")" + (gRxa.pending ? " - waiting for a " + ltn + " arrival" : ""), clrDarkGoldenrod, 8,
-                 z.dir > 0 ? ANCHOR_LEFT_LOWER : ANCHOR_LEFT_UPPER, true, rt);
+         RxaBox(RXA_PFX + "rl", z.baseStart, z.prox, right, z.dist, C'150,120,200', STYLE_SOLID, 1, false, rt);   // 2.21: a thin lavender outline, no fill
+         RxaText(RXA_PFX + "rlt", z.baseStart, z.prox, "REALIGN " + htn + (gRxa.pending ? " (wait " + ltn + ")" : ""), C'150,120,200', 7,
+                 z.dir > 0 ? ANCHOR_LEFT_LOWER : ANCHOR_LEFT_UPPER, false, rt);
          sum += " | realign " + RxaPx(z.prox) + (gRxa.pending ? " (waiting " + ltn + ")" : "");
         }
       if(InpArrShowPlan)
@@ -670,9 +684,9 @@ void RxaDraw()
       RxConfirm K = gRxa.conf;
       color cc = K.zone.dir > 0 ? InpDemandLine : InpSupplyLine;
       string ct = StringFormat("%s CONFIRMATION: a %s arrival %s inside the realignment area - the %s", ltn, ltn, RxaZTxt(K.zone), K.zone.dir > 0 ? "buy" : "sell");
-      RxaBox(RXA_PFX + "cz", K.zone.baseStart, K.zone.prox, right, K.zone.dist, cc, STYLE_SOLID, 2, false, ct);
-      RxaText(RXA_PFX + "czt", K.zone.baseStart, K.zone.dist, ltn + " CONFIRMATION " + (K.zone.dir > 0 ? "BUY" : "SELL") + (K.inArea ? " (price in the area)" : ""), cc, 8,
-              K.zone.dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER, true, ct);
+      RxaBox(RXA_PFX + "cz", K.zone.baseStart, K.zone.prox, right, K.zone.dist, cc, STYLE_SOLID, 1, false, ct);
+      RxaText(RXA_PFX + "czt", K.zone.baseStart, K.zone.dist, ltn + " confirm " + (K.zone.dir > 0 ? "BUY" : "SELL") + (K.inArea ? " (in area)" : ""), cc, 7,
+              K.zone.dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER, false, ct);
       datetime tc = K.zone.made;
       RxaHL(RXA_PFX + "ce", tc, right, K.entry, cc, STYLE_SOLID, ltn + " entry " + RxaPx(K.entry), ct);
       RxaHL(RXA_PFX + "cs", tc, right, K.stop, clrRed, STYLE_DASH, ltn + " SL " + RxaPx(K.stop) + (K.basis == 1 ? " (realign zone)" : " (valley)"), "Stop rule on the " + ltn + " (host = the realignment zone)");
@@ -685,6 +699,9 @@ void RxaDraw()
    ObjectSetInteger(0, sn, OBJPROP_XDISTANCE, 8); ObjectSetInteger(0, sn, OBJPROP_YDISTANCE, 58);
    ObjectSetString(0, sn, OBJPROP_TEXT, sum); ObjectSetString(0, sn, OBJPROP_FONT, "Arial"); ObjectSetInteger(0, sn, OBJPROP_FONTSIZE, 8);
    ObjectSetInteger(0, sn, OBJPROP_COLOR, InpMuted); ObjectSetInteger(0, sn, OBJPROP_SELECTABLE, false);
+#ifdef RFX_LBL_HOOK
+   LblHook(sn);
+#endif
   }
 // new arrival / LTF confirmation: once each (never for what is already on the chart when it loads)
 void RxaAlerts(double bid)
@@ -757,6 +774,7 @@ void RqLabel(string nm, int y, string txt, color c)
    ObjectSetInteger(0, nm, OBJPROP_XDISTANCE, 8); ObjectSetInteger(0, nm, OBJPROP_YDISTANCE, y);
    ObjectSetString(0, nm, OBJPROP_TEXT, txt); ObjectSetString(0, nm, OBJPROP_FONT, "Arial"); ObjectSetInteger(0, nm, OBJPROP_FONTSIZE, 8);
    ObjectSetInteger(0, nm, OBJPROP_COLOR, c); ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
+   LblHook(nm);                                                      // 2.21: Labels OFF hides the STRUCTURE line too
   }
 // a model line of TF t on this chart: anchors by their bar TIMES (an HTF line is drawn by time, its value at the chart's
 // last bar = the HTF line's value at the HTF bar holding it); broken lines end at the breaking candle
@@ -806,6 +824,7 @@ string ZmWhyWord(int w)
 void ZmDrawChart()
   {
    ObjectsDeleteAll(0, RQ_PFX);
+   TagKeepBase();                                       // 2.21: this redraw's tags start after the zone engine's / lens tags
    if(!gZmOk || gZmChartIdx < 0) { if(gZmOk) RqLabel(RQ_PFX + "ph", 92, "STRUCTURE " + gZmStructure, InpText); return; }
    int ci = gZmChartIdx;
    string tfn = gZmT[ci].name;
@@ -833,9 +852,9 @@ void ZmDrawChart()
                if(inr < 0 || gZmT[ci].lines[i].born < gZmT[ci].lines[inr].born) inr = i;
               }
          string up = d > 0 ? "up" : "down";
-         if(lv >= 0) ZmDrawLine(gZmT[ci], gZmT[ci].lines[lv], RQ_PFX + (d > 0 ? "up" : "dn"), InpTrend, STYLE_SOLID, ZmIsTarget(gZmChartIdx, lv) ? 2 : 1,
+         if(lv >= 0) ZmDrawLine(gZmT[ci], gZmT[ci].lines[lv], RQ_PFX + (d > 0 ? "up" : "dn"), InpTrend, STYLE_SOLID, 1,
                                 tfn + " " + up + " trend line (" + ZmWhyWord(gZmT[ci].lines[lv].why) + ") T" + IntegerToString(gZmT[ci].lines[lv].touches) + (gZmT[ci].lines[lv].touches >= 4 ? " - 4th touch: break likely" : "") + " | live");
-         if(inr >= 0) ZmDrawLine(gZmT[ci], gZmT[ci].lines[inr], RQ_PFX + (d > 0 ? "upn" : "dnn"), InpTrend, STYLE_SOLID, ZmIsTarget(gZmChartIdx, inr) ? 2 : 1,
+         if(inr >= 0) ZmDrawLine(gZmT[ci], gZmT[ci].lines[inr], RQ_PFX + (d > 0 ? "upn" : "dnn"), InpTrend, STYLE_SOLID, 1,
                                 tfn + " " + up + " trend line (" + ZmWhyWord(gZmT[ci].lines[inr].why) + ") T" + IntegerToString(gZmT[ci].lines[inr].touches) + " | live, drawn while the older line is live");
         }
       // 2.17 momentum (owner): the live one(s) of the last two legs + the most recently broken one
@@ -903,11 +922,15 @@ void ZmDrawChart()
          drawn++;
          color zc = z.dir > 0 ? InpDemandLine : InpSupplyLine;
          ObjectCreate(0, nm, OBJ_RECTANGLE, 0, gZmT[ci].S.T[z.base1], ZmHi(z), iTime(_Symbol, PERIOD_CURRENT, 0) + PeriodSeconds() * 10, ZmLo(z));
-         ObjectSetInteger(0, nm, OBJPROP_COLOR, zc); ObjectSetInteger(0, nm, OBJPROP_STYLE, STYLE_DOT); ObjectSetInteger(0, nm, OBJPROP_WIDTH, z.arrival ? 2 : 1);
-         ObjectSetInteger(0, nm, OBJPROP_FILL, false); ObjectSetInteger(0, nm, OBJPROP_BACK, false); ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
+         ObjectSetInteger(0, nm, OBJPROP_COLOR, zc); ObjectSetInteger(0, nm, OBJPROP_STYLE, STYLE_DOT); ObjectSetInteger(0, nm, OBJPROP_WIDTH, 1);
+         ObjectSetInteger(0, nm, OBJPROP_FILL, false); ObjectSetInteger(0, nm, OBJPROP_BACK, true); ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
          string lab = (z.arrival ? "ARRIVAL " : "") + ZmPattern(z.pattern) + " " + ZmReasonTag(z) + " T" + IntegerToString(z.touches);
          ObjectSetString(0, nm, OBJPROP_TOOLTIP, tfn + " reversal zone at a real " + (z.dir > 0 ? "valley" : "peak") + ": " + lab);
-         RxaText(nm + "t", gZmT[ci].S.T[z.base1], z.dist, lab, zc, 7, z.dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER, false, "");
+         // 2.21 (owner: tags short, never stacked): "Arrival x7" / "BOS CHoCH"; the full text stays in the tooltip; a tag that would sit on another one is skipped
+         string stag = ZmShortTag(z);
+         datetime tt = gZmT[ci].S.T[z.base1];
+         if(stag != "" && TagFree(tt, z.dist, stag))
+            RxaText(nm + "t", tt, z.dist, stag, zc, 7, z.dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER, false, lab);
         }
      }
    // the realignment target (purple box) on every TF of the chain
@@ -917,8 +940,8 @@ void ZmDrawChart()
       datetime t1 = gZmT[gZmTgtTf].S.T[MathMin(z.base1, gZmT[gZmTgtTf].S.n - 1)], t2 = iTime(_Symbol, PERIOD_CURRENT, 0) + PeriodSeconds() * 10;
       string nm = RQ_PFX + "rz";
       ObjectCreate(0, nm, OBJ_RECTANGLE, 0, t1, ZmHi(z), t2, ZmLo(z));
-      ObjectSetInteger(0, nm, OBJPROP_COLOR, cZmPurple); ObjectSetInteger(0, nm, OBJPROP_STYLE, STYLE_SOLID); ObjectSetInteger(0, nm, OBJPROP_WIDTH, 2);
-      ObjectSetInteger(0, nm, OBJPROP_FILL, false); ObjectSetInteger(0, nm, OBJPROP_BACK, false); ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
+      ObjectSetInteger(0, nm, OBJPROP_COLOR, cZmPurple); ObjectSetInteger(0, nm, OBJPROP_STYLE, STYLE_SOLID); ObjectSetInteger(0, nm, OBJPROP_WIDTH, 1);
+      ObjectSetInteger(0, nm, OBJPROP_FILL, false); ObjectSetInteger(0, nm, OBJPROP_BACK, true); ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);   // 2.21: thin outline behind the candles, no fill
       string lab = "REALIGN " + gZmT[gZmTgtTf].name + " " + DoubleToString(ZmLo(z), _Digits) + "-" + DoubleToString(ZmHi(z), _Digits)
                  + (gZmTgtLine >= 0 ? " (" + gZmT[gZmTgtLineTf].name + " " + (gZmT[gZmTgtLineTf].lines[gZmTgtLine].dir > 0 ? "up" : "down") + " line " + DoubleToString(gZmTgtValue, _Digits) + ")" : "");
       ObjectSetString(0, nm, OBJPROP_TOOLTIP, lab + ": where the " + (gZmC >= 0 ? gZmT[gZmIdx[gZmC]].name : "") + " correction is expected to end; " + (gZmT[gZmTgtTf].zones[gZmTgtZone].touches > 0 ? "tapped: confirmation only" : "fresh"));
@@ -929,7 +952,8 @@ void ZmDrawChart()
       int wpx = (int)ChartGetInteger(0, CHART_WIDTH_IN_PIXELS), nbars = iBars(_Symbol, PERIOD_CURRENT);
       int s1 = iBarShift(_Symbol, PERIOD_CURRENT, t1, false);
       double ppb = wb > 0 ? (double)wpx / wb : 6.0;
-      int span = (int)MathCeil(StringLen(lab) * 7.0 / MathMax(1.0, ppb)) + 1;
+      string vis = "REALIGN " + gZmT[gZmTgtTf].name + " " + DoubleToString(ZmLo(z), _Digits) + "-" + DoubleToString(ZmHi(z), _Digits);   // 2.21: the line part stays in the tooltip
+      int span = (int)MathCeil(StringLen(vis) * 7.0 / MathMax(1.0, ppb)) + 1;
       double hiR = ZmHi(z), loR = DBL_MAX, hiL = ZmHi(z), loL = DBL_MAX;   // the candles under the label at the right end / at the box start
       for(int q = 0; q <= span - 9 && q < nbars; q++) { hiR = MathMax(hiR, iHigh(_Symbol, PERIOD_CURRENT, q)); loR = MathMin(loR, iLow(_Symbol, PERIOD_CURRENT, q)); }
       for(int q = MathMin(MathMax(s1, 0), nbars - 1); q >= 0 && q >= s1 - span; q--) { hiL = MathMax(hiL, iHigh(_Symbol, PERIOD_CURRENT, q)); loL = MathMin(loL, iLow(_Symbol, PERIOD_CURRENT, q)); }
@@ -943,10 +967,10 @@ void ZmDrawChart()
          else if(ll >= ZmLo(z)) { side = sd; ly = ZmLo(z); under = true; }
         }
       if(side < 0) { side = rightFirst ? 0 : 1; ly = rightFirst ? hiR : hiL; under = false; }
-      if(side == 0) RxaText(nm + "t", iTime(_Symbol, PERIOD_CURRENT, 0) + PeriodSeconds() * 9, ly, lab, cZmPurple, 8, under ? ANCHOR_RIGHT_UPPER : ANCHOR_RIGHT_LOWER, false, "");
-      else RxaText(nm + "t", t1, ly, lab, cZmPurple, 8, under ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER, false, "");
+      if(side == 0) RxaText(nm + "t", iTime(_Symbol, PERIOD_CURRENT, 0) + PeriodSeconds() * 9, ly, vis, cZmPurple, 7, under ? ANCHOR_RIGHT_UPPER : ANCHOR_RIGHT_LOWER, false, lab);
+      else RxaText(nm + "t", t1, ly, vis, cZmPurple, 7, under ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER, false, lab);
      }
-   if(InpRealPivots)
+   if(gDotsOn)
       for(int i = 0; i < ArraySize(gZmT[ci].piv); i++)
         {
          if(gZmT[ci].piv[i].conf < 0 || gZmT[ci].piv[i].bar < 1 || gZmT[ci].piv[i].bar >= gZmT[ci].S.n) continue;
@@ -1145,7 +1169,7 @@ void ApplyTheme()
    // only colours still on their default are switched; your own colour choices are kept
    if(InpDemandFill == C'200,232,203') cDemandFill = C'26,70,42';
    if(InpSupplyFill == C'246,212,198') cSupplyFill = C'86,36,30';
-   if(InpHtfFill == C'224,216,250')    cHtfFill = C'58,50,96';
+   if(InpHtfFill == C'224,216,250')    cHtfFill = clrNONE;    // 2.21: no dark navy / purple block on a dark chart: the HTF band is a thin lavender outline (DrawZones)
    if(InpDemandLine == C'46,139,87')   cDemandLine = C'80,200,120';
    if(InpSupplyLine == C'200,60,60')   cSupplyLine = C'235,95,95';
    if(InpMuted == C'170,170,170')      cMuted = C'120,120,120';
@@ -1163,10 +1187,13 @@ void ApplyTheme()
 //+------------------------------------------------------------------+
 //| Init / deinit                                                    |
 //+------------------------------------------------------------------+
-//--- Labels ON/OFF button: hides every chart text label (zone names, tags, prices, trendline text) in one click
+//--- Labels ON/OFF button: hides every chart text (zone names, tags, prices, trendline text, momentum, plan / bot-order texts, stars) in one click
 #define LBL_BTN "RFXB_lbl"
-bool gLblOff = false;
+#define PNL_BTN "RFXZVB_pnl"      // 2.21: not RFXB_ (the ZoneBot reads RFXB_p* as its Approve buttons)
+#define DOT_BTN "RFXZVB_dot"
 string LblKey() { return "RFXZV_lblOff_" + IntegerToString(ChartID()); }
+string PnlKey() { return "RFXZV_pnlOff_" + IntegerToString(ChartID()); }
+string DotKey() { return "RFXZV_dotOn_" + IntegerToString(ChartID()); }
 bool LblOurs(string nm)
   {
    if(StringFind(nm, "RFXV2_d") == 0 || StringFind(nm, "RFXV2_P") == 0 || StringFind(nm, "RFXP2_") == 0 || StringFind(nm, "RFXS_") == 0) return(false);   // panels / click-box plan stay
@@ -1186,16 +1213,30 @@ bool LblWanted(string nm)
    if(StringFind(nm, "RFXV2_jB") == 0 || StringFind(nm, PFX + "rjw") == 0) return(InpLblRaja);
    return(true);                                                     // names / tags have their own draw switches (InpShowNames, InpLensTag)
   }
-// hides text objects: all of them while the button is OFF, otherwise only the kinds switched off in the Labels group
+// 2.21: true = this text-like object of ours (OBJ_TEXT, the emotional-candle stars, the bot-order / STRUCTURE / arrival-summary OBJ_LABELs)
+// is hidden right now: all of them while the button is OFF, otherwise only the kinds switched off in the Labels group
+bool LblHidden(string nm, ENUM_OBJECT ty)
+  {
+   bool ours = false;
+   if(ty == OBJ_TEXT) ours = LblOurs(nm);
+   else if(ty == OBJ_ARROW) ours = StringFind(nm, PFX + "emo") == 0;
+   else if(ty == OBJ_LABEL) ours = StringFind(nm, "RFXN_") == 0 || nm == "RFXV2_Qph" || nm == RXA_PFX + "sum";
+   if(!ours) return(false);
+   return(gLblOff || !LblWanted(nm));
+  }
+// 2.21: called right after a text-like object is created (Txt, RxaText, the labels), so a redraw that runs after the button never shows a hidden text again
+void LblHook(string nm)
+  {
+   if(LblHidden(nm, (ENUM_OBJECT)ObjectGetInteger(0, nm, OBJPROP_TYPE))) ObjectSetInteger(0, nm, OBJPROP_TIMEFRAMES, OBJ_NO_PERIODS);
+  }
+// hides every existing text-like object of ours that is switched off (a sweep after each full redraw and on the button click)
 void LblApply()
   {
    int n = ObjectsTotal(0, -1, -1);
    for(int i = n - 1; i >= 0; i--)
      {
       string nm = ObjectName(0, i, -1, -1);
-      if(!LblOurs(nm)) continue;
-      if((ENUM_OBJECT)ObjectGetInteger(0, nm, OBJPROP_TYPE) != OBJ_TEXT) continue;
-      if(gLblOff || !LblWanted(nm)) ObjectSetInteger(0, nm, OBJPROP_TIMEFRAMES, OBJ_NO_PERIODS);
+      if(LblHidden(nm, (ENUM_OBJECT)ObjectGetInteger(0, nm, OBJPROP_TYPE))) ObjectSetInteger(0, nm, OBJPROP_TIMEFRAMES, OBJ_NO_PERIODS);
      }
   }
 void LblButton()
@@ -1221,12 +1262,48 @@ void LblButton()
    ObjectSetInteger(0, LBL_BTN, OBJPROP_COLOR, clrWhite);
    ObjectSetInteger(0, LBL_BTN, OBJPROP_BORDER_COLOR, gLblOff ? C'70,70,70' : C'60,90,160');
   }
+// 2.21: a second / third button in the Labels button's style (bottom-left row): word = "Panels" / "Dots", on = the state shown
+void BtnMake(string nm, int x, int w, string word, bool on)
+  {
+   if(ObjectFind(0, nm) < 0)
+     {
+      ObjectCreate(0, nm, OBJ_BUTTON, 0, 0, 0);
+      ObjectSetInteger(0, nm, OBJPROP_CORNER, CORNER_LEFT_LOWER);
+      ObjectSetInteger(0, nm, OBJPROP_XDISTANCE, x);
+      ObjectSetInteger(0, nm, OBJPROP_YDISTANCE, 30);
+      ObjectSetInteger(0, nm, OBJPROP_XSIZE, w);
+      ObjectSetInteger(0, nm, OBJPROP_YSIZE, 22);
+      ObjectSetString(0, nm, OBJPROP_FONT, "Arial");
+      ObjectSetInteger(0, nm, OBJPROP_FONTSIZE, 8);
+      ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
+      ObjectSetInteger(0, nm, OBJPROP_HIDDEN, true);
+      ObjectSetInteger(0, nm, OBJPROP_ZORDER, 10);
+     }
+   ObjectSetString(0, nm, OBJPROP_TEXT, word + (on ? ": ON" : ": OFF"));
+   ObjectSetInteger(0, nm, OBJPROP_STATE, false);
+   ObjectSetInteger(0, nm, OBJPROP_BGCOLOR, on ? C'60,90,160' : C'70,70,70');
+   ObjectSetInteger(0, nm, OBJPROP_COLOR, clrWhite);
+   ObjectSetInteger(0, nm, OBJPROP_BORDER_COLOR, on ? C'60,90,160' : C'70,70,70');
+  }
+void PnlButton()
+  {
+   if(!InpPanelButton) { ObjectDelete(0, PNL_BTN); return; }
+   BtnMake(PNL_BTN, 108, 88, "Panels", !gPnlOff);
+  }
+void DotsButton()
+  {
+   if(!InpDotsButton) { ObjectDelete(0, DOT_BTN); return; }
+   BtnMake(DOT_BTN, 200, 80, "Dots", gDotsOn);
+  }
+void Buttons() { LblButton(); PnlButton(); DotsButton(); }
 
 int OnInit()
   {
    CTF = Period();
    gLblOff = GlobalVariableCheck(LblKey()) && GlobalVariableGet(LblKey()) > 0.5;   // remembered per chart (survives a timeframe change)
-   LblButton();
+   gPnlOff = InpPanelButton && GlobalVariableCheck(PnlKey()) && GlobalVariableGet(PnlKey()) > 0.5;   // 2.21: panels shown unless switched off on this chart
+   gDotsOn = (InpDotsButton && GlobalVariableCheck(DotKey())) ? (GlobalVariableGet(DotKey()) > 0.5) : InpRealPivots;   // 2.21: dots follow the input until the button is used
+   Buttons();
    // ---- Raja v2.1 (A) ---- inputs -> core switches (the core defaults = v2.00, which ZoneBot keeps)
    RjA_RmMode = InpRemovalMode; RjA_StrongRun = InpRjAStrongRun; RjA_ArrDepart = InpRjAArrClose; RjA_TouchTF = InpRjATouchTF;
    RjA_ShowTested = InpRjAShowTested; RjA_Adjacent = InpRjAAdjacent; RjA_FlipTL = InpRjAFlipTL; RjA_OppHtfVeto = InpRjAOppHtfVeto;
@@ -1255,7 +1332,7 @@ void OnDeinit(const int r)
    if(gRs) RsClose();
    ObjectsDeleteAll(0, PFX); ObjectsDeleteAll(0, "RFXN_"); ObjectsDeleteAll(0, "RFXP2_"); ObjectsDeleteAll(0, "RFXS_"); Comment("");
    ObjectsDeleteAll(0, "RFXV2_");
-   ObjectDelete(0, LBL_BTN);
+   ObjectDelete(0, LBL_BTN); ObjectDelete(0, PNL_BTN); ObjectDelete(0, DOT_BTN);
    if(InpExportGV) GlobalVariablesDeleteAll(RFX_GVPrefix(_Symbol, TfName(CTF)));   // v2 M10: no stale export
    for(int k = 0; k < aN; k++) if(aH[k] != INVALID_HANDLE) IndicatorRelease(aH[k]);
    aN = 0;
@@ -1474,7 +1551,25 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
   {
    if(id == CHARTEVENT_OBJECT_CLICK)
      {
-      if(sparam == LBL_BTN) { gLblOff = !gLblOff; GlobalVariableSet(LblKey(), gLblOff ? 1.0 : 0.0); LblButton(); if(gLblOff) LblApply(); else if(lastDraw > 0) Redraw(); ChartRedraw(); return; }
+      if(sparam == LBL_BTN)
+        {
+         gLblOff = !gLblOff; GlobalVariableSet(LblKey(), gLblOff ? 1.0 : 0.0); LblButton(); ObjectSetInteger(0, LBL_BTN, OBJPROP_STATE, false);
+         if(gLblOff) LblApply();
+         else { if(lastDraw > 0) Redraw(); RxaTick(true); }              // 2.21: the arrival texts are drawn by RxaRun, not by Redraw
+         ChartRedraw(); return;
+        }
+      if(sparam == PNL_BTN)                                                                  // 2.21: both info panels in one click
+        {
+         gPnlOff = !gPnlOff; GlobalVariableSet(PnlKey(), gPnlOff ? 1.0 : 0.0); PnlButton(); ObjectSetInteger(0, PNL_BTN, OBJPROP_STATE, false);
+         DrawCompact(); NoSelect("RFXS_"); DrawDirBox();
+         if(InpShowPanel && !InpCompactPanel) Comment(gPnlOff ? "" : gPanL + DirComment());
+         ChartRedraw(); return;
+        }
+      if(sparam == DOT_BTN)                                                                  // 2.21: the real peak / valley dots
+        {
+         gDotsOn = !gDotsOn; GlobalVariableSet(DotKey(), gDotsOn ? 1.0 : 0.0); DotsButton(); ObjectSetInteger(0, DOT_BTN, OBJPROP_STATE, false);
+         ZmDrawChart(); ChartRedraw(); return;
+        }
       if(sparam == "RFXS_h") { gPanelOpen = !gPanelOpen; DrawCompact(); NoSelect("RFXS_"); DrawDirBox(); ChartRedraw(); return; }
       if(sparam == "RFXV2_dh") { gDirOpen = !gDirOpen; DrawDirBox(); ChartRedraw(); return; }
       if(StringFind(sparam, "RFXV2_d") == 0) return;                                        // a click inside the Direction box keeps the click box open
@@ -1545,7 +1640,7 @@ void Redraw()
    AtrReset();
    for(int k = 0; k < aN; k++) aB0[k] = iTime(_Symbol, aTf[k], 0);
    ObjectsDeleteAll(0, PFX);
-   ClearReg();
+   ClearReg(); TagReset();                                           // 2.21: tags never stack (the HTF band's come first)
    { ENUM_TIMEFRAMES h0 = HtfOf(CTF); gTrend = h0 > 0 ? HtfTrend(_Symbol, h0) : 0; }
    Detect(_Symbol, CTF, Z, true);
    gHTF = PERIOD_CURRENT; gHUpOn = false; gHDnOn = false; gHBias = 0; gHBiasTxt = "";
@@ -1578,6 +1673,7 @@ void Redraw()
    DrawZones(Z, false);
    ZmBoxSetBase();
    V2Zones();                                                        // v2: DNA + lenses for the drawn zones, compact tags (RFXV2_t / RFXV2_m only)
+   TagSetBase();                                                     // 2.21: the model's tags (ZmDrawChart) start after these
    if(InpShowEmotional) MarkEmotional();
    if(InpRjWickFill) RjC_WickFill();                                 // Raja v2.1 C (off by default)
    if(InpShowPanel || InpShowPlan) Panel();
@@ -1593,7 +1689,7 @@ void Redraw()
    if(InpExportGV) V2ExportGV();                                     // v2 M10: ZoneBot export (off by default)
    ZmDrawChart(); ZmAlerts();                                        // 2.16: the model's lines, target box, pivots, STRUCTURE + break alerts
    gArmed = true;
-   LblButton(); LblApply();                                          // v2.11: Labels group + ON/OFF button, after every redraw
+   Buttons(); LblApply();                                            // v2.11 / 2.21: Labels, Panels and Dots buttons + the Labels group, after every redraw
    ChartRedraw();
    if(InpDumpObjects) DumpObjects();                                 // v2 M0 golden master (off by default)
   }
@@ -1615,6 +1711,7 @@ void MarkEmotional()
       ObjectSetInteger(0, nm, OBJPROP_COLOR, InpEmoColor);
       ObjectSetInteger(0, nm, OBJPROP_WIDTH, 1);
       ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
+      LblHook(nm);                                                   // 2.21: the stars are part of the Labels button
       ObjectSetString(0, nm, OBJPROP_TOOLTIP, StringFormat("Emotional candle: %.1f x ATR. Often news or a stop run. Its wick does not remove a zone - only a body close beyond the distal does.", x));
      }
   }
@@ -1648,6 +1745,7 @@ void Txt(string nm, datetime t, double p, string txt, color c, int size, int anc
    ObjectSetInteger(0, nm, OBJPROP_FONTSIZE, size);
    ObjectSetInteger(0, nm, OBJPROP_COLOR, c);
    ObjectSetInteger(0, nm, OBJPROP_ANCHOR, anchor);
+   LblHook(nm);                                                      // 2.21: Labels OFF hides every text at creation
   }
 void HLine(string nm, datetime t1, datetime t2, double p, color c, int style, int width)
   {
@@ -1668,7 +1766,7 @@ void Explain(Zone &z)
    double saEdge = z.dir > 0 ? cL(z.saBar) : cH(z.saBar);
    Txt(id + "s", cT(z.saBar), z.dir > 0 ? cH(z.saBar) : cL(z.saBar), "3 stay away", c, 7, z.dir > 0 ? ANCHOR_LOWER : ANCHOR_UPPER);
    ObjectCreate(0, id + "g", OBJ_TREND, 0, cT(z.saBar), saEdge, cT(z.saBar), z.prox);
-   ObjectSetInteger(0, id + "g", OBJPROP_RAY_RIGHT, false); ObjectSetInteger(0, id + "g", OBJPROP_COLOR, clrGoldenrod); ObjectSetInteger(0, id + "g", OBJPROP_WIDTH, 2);
+   ObjectSetInteger(0, id + "g", OBJPROP_RAY_RIGHT, false); ObjectSetInteger(0, id + "g", OBJPROP_COLOR, clrGoldenrod); ObjectSetInteger(0, id + "g", OBJPROP_WIDTH, 1);
    Txt(id + "gs", cT(z.saBar), (saEdge + z.prox) / 2, "  4 space", clrGoldenrod, 7, ANCHOR_LEFT);
   }
 
@@ -1755,7 +1853,7 @@ void Panel()
       if(InpShowPlan && why == "")
         {
          datetime t1 = cT(0) + PeriodSeconds() * 2, t2 = cT(0) + PeriodSeconds() * 18;
-         HLine(PFX + "pe", t1, t2, entry, cPlanEntry, STYLE_SOLID, 2); Txt(PFX + "pet", t2, entry, " entry", cPlanEntry, 7, ANCHOR_LEFT);
+         HLine(PFX + "pe", t1, t2, entry, cPlanEntry, STYLE_SOLID, 1); Txt(PFX + "pet", t2, entry, " entry", cPlanEntry, 7, ANCHOR_LEFT);
          HLine(PFX + "ps", t1, t2, sl, cSupplyLine, STYLE_DOT, 1);    Txt(PFX + "pst", t2, sl, " SL", cSupplyLine, 7, ANCHOR_LEFT);
          HLine(PFX + "pt", t1, t2, tp, cDemandLine, STYLE_DOT, 1);    Txt(PFX + "ptt", t2, tp, " TP", cDemandLine, 7, ANCHOR_LEFT);
         }
@@ -1772,14 +1870,14 @@ void Panel()
       ObjectCreate(0, PFX + "bias", OBJ_ARROW, 0, cT(0) + PeriodSeconds() * 8, y);
       ObjectSetInteger(0, PFX + "bias", OBJPROP_ARROWCODE, trend > 0 ? 233 : 234);
       ObjectSetInteger(0, PFX + "bias", OBJPROP_COLOR, trend > 0 ? cDemandLine : cSupplyLine);
-      ObjectSetInteger(0, PFX + "bias", OBJPROP_WIDTH, 3);
+      ObjectSetInteger(0, PFX + "bias", OBJPROP_WIDTH, 1);
       ObjectSetString(0, PFX + "bias", OBJPROP_TOOLTIP, "HTF bias " + (trend > 0 ? "up" : "down"));
      }
    gPanL = L; gPanPlan = plan;
    if(InpShowPanel)
      {
       if(InpCompactPanel) { Comment(""); DrawCompact(); }
-      else Comment(L + DirComment());
+      else Comment(gPnlOff ? "" : L + DirComment());
      }
   }
 
@@ -1787,11 +1885,16 @@ void Panel()
 //| MT5 compact panel (top-left, click the header to collapse)       |
 //+------------------------------------------------------------------+
 void SRow(string t, color c) { int n = ArraySize(sR); ArrayResize(sR, n + 1); ArrayResize(sC, n + 1); sR[n] = t; sC[n] = c; }
+// 2.21 (owner: the panels covered the chart): both info panels are PNL_W px wide, font 8, rows wrapped at PNL_WRAP characters
+#define PNL_W    270
+#define PNL_WRAP 36
+#define PNL_ROW  13
+bool PnlEmpty(string t) { return StringLen(t) == 0 || t == "-" || LblEnds(t, ": -"); }   // a row that says nothing ("TARGET: -") is dropped
 void DrawCompact()
   {
    ObjectsDeleteAll(0, "RFXS_");
    gPanW = 0; gPanH = 0;
-   if(!InpShowPanel || !InpCompactPanel) return;
+   if(!InpShowPanel || !InpCompactPanel || gPnlOff) return;
    ArrayResize(sR, 0); ArrayResize(sC, 0);
    ENUM_TIMEFRAMES htf = HtfOf(CTF), dtf = htf > 0 ? htf : CTF;
    double hatr = MathMax(ATR(dtf, 1), _Point), mid = Mid();
@@ -1800,9 +1903,11 @@ void DrawCompact()
      {
       string bias = gTrend > 0 ? "UP - buys only" : (gTrend < 0 ? "DOWN - sells only" : "unclear - bot waits");
       string why = gZmOk ? gZmBiasTxt : (gTrend == 0 ? "no clear HTF structure" : ((InpTLBias && gHBias != 0 && gHBias == gTrend) ? gHBiasTxt : (htf > 0 ? TfName(htf) + " swing highs / lows" : "-")));
-      SRow("Bias: " + bias, gTrend > 0 ? cDemandLine : (gTrend < 0 ? cSupplyLine : cPopFg));
-      SRow("   why: " + why, cPopFg);
-      SRow("Structure: " + (gZmOk ? gZmStructure : StructureNow()), cPopFg);
+      DAddWrap(sR, sC, "Bias: " + bias, gTrend > 0 ? cDemandLine : (gTrend < 0 ? cSupplyLine : cPopFg), PNL_WRAP);
+      if(!PnlEmpty(why)) DAddWrap(sR, sC, "why: " + why, cPopFg, PNL_WRAP);
+      string stc = gZmOk ? gZmStructure : StructureNow();                  // "3M UP impulse | MN UP corr | W1 DOWN corr"
+      StringReplace(stc, "  |  ", " | "); StringReplace(stc, " correction", " corr");
+      DAddWrap(sR, sC, "Structure: " + stc, cPopFg, PNL_WRAP);
       int bd = -1, bs = -1, act = 0, fr = 0;
       for(int k = 0; k < ArraySize(zKey); k++)
         {
@@ -1812,26 +1917,24 @@ void DrawCompact()
          if(zDir[k] > 0 && (bd < 0 || MathAbs(mid - zProx[k]) < MathAbs(mid - zProx[bd]))) bd = k;
          if(zDir[k] < 0 && (bs < 0 || MathAbs(mid - zProx[k]) < MathAbs(mid - zProx[bs]))) bs = k;
         }
-      SRow(bd >= 0 ? StringFormat("Strong demand: %s  (%.1f x %s ATR)", DoubleToString(zProx[bd], _Digits), MathAbs(mid - zProx[bd]) / hatr, TfName(dtf)) : "Strong demand: none in view", bd >= 0 ? cDemandLine : cPopFg);
-      SRow(bs >= 0 ? StringFormat("Strong supply: %s  (%.1f x %s ATR)", DoubleToString(zProx[bs], _Digits), MathAbs(mid - zProx[bs]) / hatr, TfName(dtf)) : "Strong supply: none in view", bs >= 0 ? cSupplyLine : cPopFg);
-      SRow(StringFormat("Zones in view: %d  (fresh %d)", act, fr), cPopFg);
-      if(RjC_Overext(1, mid)) SRow("Up channel OVEREXTENDED - no buys, wait", cBad);
-      if(RjC_Overext(-1, mid)) SRow("Down channel OVEREXTENDED - no sells, wait", cBad);
-      if(RjC_GoldLTF()) SRow("Raja: prefer XAUAUD on LTF", cBad);   // Raja v2.1 C
-      SRow(gPanPlan, StringFind(gPanPlan, "limit") >= 0 ? cPlanEntry : cPopHead);
+      if(bd >= 0) DAddWrap(sR, sC, StringFormat("Strong demand: %s (%.1f x %s ATR)", DoubleToString(zProx[bd], _Digits), MathAbs(mid - zProx[bd]) / hatr, TfName(dtf)), cDemandLine, PNL_WRAP);   // "none in view" rows are dropped
+      if(bs >= 0) DAddWrap(sR, sC, StringFormat("Strong supply: %s (%.1f x %s ATR)", DoubleToString(zProx[bs], _Digits), MathAbs(mid - zProx[bs]) / hatr, TfName(dtf)), cSupplyLine, PNL_WRAP);
+      if(act > 0) DAddWrap(sR, sC, StringFormat("Zones in view: %d (fresh %d)", act, fr), cPopFg, PNL_WRAP);
+      if(RjC_Overext(1, mid)) DAddWrap(sR, sC, "Up channel OVEREXTENDED - no buys, wait", cBad, PNL_WRAP);
+      if(RjC_Overext(-1, mid)) DAddWrap(sR, sC, "Down channel OVEREXTENDED - no sells, wait", cBad, PNL_WRAP);
+      if(RjC_GoldLTF()) DAddWrap(sR, sC, "Raja: prefer XAUAUD on LTF", cBad, PNL_WRAP);   // Raja v2.1 C
+      DAddWrap(sR, sC, gPanPlan, StringFind(gPanPlan, "limit") >= 0 ? cPlanEntry : cPopHead, PNL_WRAP);
      }
-   int rows = ArraySize(sR), w = StringLen(head);
-   for(int i = 0; i < rows; i++) w = MathMax(w, StringLen(sR[i]));
-   int bw = MathMax(w * 6 + 22, StringLen(head) * 7 + 22), x0 = PanelX(bw), y0 = 22, bh = 22 + 14 * rows + (rows > 0 ? 6 : 0);
+   int rows = ArraySize(sR), bw = PNL_W, x0 = PanelX(bw), y0 = 22, bh = 20 + PNL_ROW * rows + (rows > 0 ? 6 : 0);
    string tip = gPanL; if(StringLen(tip) > 900) tip = StringSubstr(tip, 0, 895) + "...";
    Box("RFXS_bg", x0, y0, bw, bh, cPopBg, cPopBorder); SeeThru("RFXS_bg");
    ObjectSetString(0, "RFXS_bg", OBJPROP_TOOLTIP, tip);
-   Lbl("RFXS_h", x0 + 8, y0 + 4, head, gTrend > 0 ? cDemandLine : (gTrend < 0 ? cSupplyLine : cPopHead), "Arial Bold", 9);
+   Lbl("RFXS_h", x0 + 8, y0 + 4, head, gTrend > 0 ? cDemandLine : (gTrend < 0 ? cSupplyLine : cPopHead), "Arial Bold", 8);
    ObjectSetString(0, "RFXS_h", OBJPROP_TOOLTIP, "Click to collapse / expand. Full panel:\n" + tip);
    ObjectSetInteger(0, "RFXS_h", OBJPROP_ZORDER, 10);
    for(int i = 0; i < rows; i++)
      {
-      Lbl("RFXS_" + IntegerToString(i), x0 + 8, y0 + 22 + 14 * i, sR[i], sC[i], "Arial", 8);
+      Lbl("RFXS_" + IntegerToString(i), x0 + 8, y0 + 20 + PNL_ROW * i, sR[i], sC[i], "Arial", 8);
       ObjectSetString(0, "RFXS_" + IntegerToString(i), OBJPROP_TOOLTIP, tip);
      }
    NoSelect("RFXS_");
@@ -1863,29 +1966,38 @@ void DrawDirBox()
   {
    ObjectsDeleteAll(0, "RFXV2_d");
    gDbX = 0; gDbY = 0; gDbW = 0; gDbH = 0;
-   if(!InpShowDirPanel || !gDirOk || !InpCompactPanel) return;
+   if(!InpShowDirPanel || !gDirOk || !InpCompactPanel || gPnlOff) return;
    string rw[]; color rc[];
+   string hd = gDirHead;
+   color dc = gDir > 0 ? cDemandLine : (gDir < 0 ? cSupplyLine : cPopHead);
    if(gDirOpen)
      {
-      for(int r = 0; r < drN; r++) DAdd(rw, rc, DirRowLine(r), drRow[r].ok ? DirSideColor(DirRowSide(r)) : cMuted);
-      for(int k = 0; k < 4; k++) if(gDirTxt[k] != "") DAddWrap(rw, rc, gDirTxt[k], cPopFg, 72);   // 2.17: wrapped, the box stays in its corner
-      for(int k = 0; k < gWowN; k++) DAdd(rw, rc, gWowTxt[k], WowColor());
+      if(StringLen(hd) > 28)                                              // 2.21: a long reading goes under a short header, wrapped
+        {
+         string rest = hd;
+         if(StringFind(rest, "DIRECTION: ") == 0) rest = StringSubstr(rest, 11);
+         hd = "DIRECTION";
+         DAddWrap(rw, rc, rest, dc, PNL_WRAP);
+        }
+      for(int r = 0; r < drN; r++) DAddWrap(rw, rc, DirRowLine(r), drRow[r].ok ? DirSideColor(DirRowSide(r)) : cMuted, PNL_WRAP);
+      for(int k = 0; k < 4; k++) if(!PnlEmpty(gDirTxt[k])) DAddWrap(rw, rc, gDirTxt[k], cPopFg, PNL_WRAP);   // 2.21: "TARGET: -" and empty rows are dropped
+      for(int k = 0; k < gWowN; k++) DAddWrap(rw, rc, gWowTxt[k], WowColor(), PNL_WRAP);
      }
+   else if(StringLen(hd) > 28) hd = StringSubstr(hd, 0, 25) + "...";
    int n = ArraySize(rw);
-   string head = gDirHead + (gDirOpen ? "   [-]" : "   [+]");
-   int bw = StringLen(head) * 7 + 22;
-   for(int i = 0; i < n; i++) bw = MathMax(bw, StringLen(rw[i]) * 6 + 22);
-   int x0 = PanelX(bw), y0 = gPanW > 0 ? gPanY + gPanH + 4 : 22, bh = 22 + 14 * n + (n > 0 ? 6 : 0);
+   string head = hd + (gDirOpen ? "   [-]" : "   [+]");
+   int bw = PNL_W;
+   int x0 = PanelX(bw), y0 = gPanW > 0 ? gPanY + gPanH + 4 : 22, bh = 20 + PNL_ROW * n + (n > 0 ? 6 : 0);
    string tip = "Top-down Direction (display only; the zone notes still use the v1 bias unless InpBiasSource = 1). Click the header to collapse / expand.";
    Box("RFXV2_dbg", x0, y0, bw, bh, cPopBg, cPopBorder); SeeThru("RFXV2_dbg");
    ObjectSetString(0, "RFXV2_dbg", OBJPROP_TOOLTIP, tip);
-   Lbl("RFXV2_dh", x0 + 8, y0 + 4, head, gDir > 0 ? cDemandLine : (gDir < 0 ? cSupplyLine : cPopHead), "Arial Bold", 9);
+   Lbl("RFXV2_dh", x0 + 8, y0 + 4, head, dc, "Arial Bold", 8);
    ObjectSetString(0, "RFXV2_dh", OBJPROP_TOOLTIP, tip);
    ObjectSetInteger(0, "RFXV2_dh", OBJPROP_ZORDER, 10);
    for(int i = 0; i < n; i++)
      {
       string nm = "RFXV2_dr" + IntegerToString(i);
-      Lbl(nm, x0 + 8, y0 + 22 + 14 * i, rw[i], rc[i], "Arial", 8);
+      Lbl(nm, x0 + 8, y0 + 20 + PNL_ROW * i, rw[i], rc[i], "Arial", 8);
       ObjectSetString(0, nm, OBJPROP_TOOLTIP, tip);
      }
    NoSelect("RFXV2_d");
@@ -2087,6 +2199,7 @@ void V2DrawTag(int k)
   {
    string t = V2TagText(k);
    if(t == "") return;
+   if(!TagFree(zT1[k], zProx[k], t)) return;                         // 2.21: never stacked on another tag
    string nm = V2TagName(k);
    bool mute = zLens[k].ok && zLens[k].vcode <= 1;                   // X or C
    Txt(nm, zT1[k], zProx[k], t, mute ? cMuted : cTag, 7, zDir[k] > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);   // proximal side, inside the zone
@@ -2926,6 +3039,7 @@ void BotNotes()
       ObjectSetInteger(0, nm, OBJPROP_FONTSIZE, 8);
       ObjectSetInteger(0, nm, OBJPROP_COLOR, i == 0 ? cPlanEntry : cPopFg);
       ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
+      LblHook(nm);                                                   // 2.21: LIMIT / SL / TP order notes follow the Labels button
      }
   }
 

@@ -1098,7 +1098,28 @@ bool RjA_HideTested(ENUM_TIMEFRAMES tf, Zone &z)
    return n < 1 || n > RjA_TouchCap(tf);
   }
 
-// The N zones closest to price, mentor style: light fill, solid border, prices at the right edge.
+// 2.21 (owner: tags must not stack): the pixel boxes of the tags drawn so far. A tag that would sit on another one (anchors within 12 px in
+// height, widths overlapping, about 6 px per character) is skipped. The zone engine's and the lens tags are the base (TagSetBase); the model's
+// reversal-zone tags come after and are rebuilt on every model redraw (TagKeepBase). Display only.
+int gTagX[], gTagY[], gTagW[];
+int gTagBase = 0;
+void TagReset() { ArrayResize(gTagX, 0); ArrayResize(gTagY, 0); ArrayResize(gTagW, 0); gTagBase = 0; }
+void TagSetBase() { gTagBase = ArraySize(gTagX); }
+void TagKeepBase() { int n = MathMin(gTagBase, ArraySize(gTagX)); ArrayResize(gTagX, n); ArrayResize(gTagY, n); ArrayResize(gTagW, n); }
+bool TagFree(datetime t, double p, string txt)
+  {
+   int x = 0, y = 0;
+   if(!ChartTimePriceToXY(0, 0, t, p, x, y)) return true;          // no chart (tester / not ready): never hide a tag on a guess
+   int w = StringLen(txt) * 6 + 4, n = ArraySize(gTagX);
+   for(int i = 0; i < n; i++)
+      if(MathAbs(gTagY[i] - y) < 12 && x < gTagX[i] + gTagW[i] && gTagX[i] < x + w) return false;
+   if(n > 400) return true;
+   ArrayResize(gTagX, n + 1); ArrayResize(gTagY, n + 1); ArrayResize(gTagW, n + 1);
+   gTagX[n] = x; gTagY[n] = y; gTagW[n] = w;
+   return true;
+  }
+
+// The N zones closest to price, mentor style: light fill, thin border, prices at the right edge.
 void DrawZones(Zone &zs[], bool htf)
   {
    ENUM_TIMEFRAMES tf = htf ? HtfOf(CTF) : CTF;
@@ -1134,15 +1155,17 @@ void DrawZones(Zone &zs[], bool htf)
       datetime t1 = iTime(_Symbol, tf, z.legBar + z.baseN);
       datetime t2 = z.removed ? iTime(_Symbol, tf, z.removedBar) : right;
       ObjectCreate(0, id, OBJ_RECTANGLE, 0, t1, z.prox, t2, z.dist);
-      ObjectSetInteger(0, id, OBJPROP_COLOR, fill); ObjectSetInteger(0, id, OBJPROP_BACK, true); ObjectSetInteger(0, id, OBJPROP_SELECTABLE, false);
-      ObjectSetInteger(0, id, OBJPROP_FILL, true);                     // MT5 rectangles are outlines unless filled
+      bool outl = (fill == clrNONE);                                   // 2.21: the host gives no fill (HTF band on a dark chart): a thin outline only
+      ObjectSetInteger(0, id, OBJPROP_COLOR, outl ? cTrap : fill); ObjectSetInteger(0, id, OBJPROP_BACK, true); ObjectSetInteger(0, id, OBJPROP_SELECTABLE, false);
+      ObjectSetInteger(0, id, OBJPROP_WIDTH, 1);
+      ObjectSetInteger(0, id, OBJPROP_FILL, !outl);                    // MT5 rectangles are outlines unless filled
       string state = z.removed ? "removed" : (z.tested ? "tested" : "fresh");
       ObjectSetString(0, id, OBJPROP_TOOLTIP, htf ? TfName(tf) + " " + ZoneName(z) : ZoneName(z) + " | " + verdict + " - click for details");
       if(!htf) RegZone(id, ZoneName(z) + "\n" + full, z, verdict, state, t1);
       if(!htf)
         {
-         HLine(id + "p", t1, t2, z.prox, line, STYLE_SOLID, z.arrival ? 2 : 1);
-         HLine(id + "d", t1, t2, z.dist, line, STYLE_SOLID, z.arrival ? 2 : 1);
+         HLine(id + "p", t1, t2, z.prox, line, STYLE_SOLID, 1);         // 2.21: every border width 1 (an arrival was 2)
+         HLine(id + "d", t1, t2, z.dist, line, STYLE_SOLID, 1);
         }
       PriceTag(id + "pp", t2, z.prox, htf ? cText : line);
       PriceTag(id + "dp", t2, z.dist, htf ? cText : line);
@@ -1158,8 +1181,19 @@ void DrawZones(Zone &zs[], bool htf)
         {
          string zr = htf ? "" : ZmZoneTag(tf, z.dir, z.legBar);         // 2.16: the model's reasons (BOS / CHoCH / xN removed)
          string nm = htf ? TfName(tf) + " " + (z.dir > 0 ? "demand" : "supply") : (z.arrival ? "ARRIVAL | " : "") + ZoneName(z) + (zr == "" ? "" : " | " + zr) + " | " + verdict + (shortWhy == "" ? "" : ": " + shortWhy);
-         Txt(id + "n", t1, z.dir > 0 ? z.dist : z.dist, nm, verdict == "WEAK" ? cMuted : cText, 7, z.dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
-         if(!htf) ObjectSetString(0, id + "n", OBJPROP_TOOLTIP, "click for details");
+         // 2.21 (owner: short tags that never stack): "Arrival x7" / "BOS CHoCH" / the verdict; the long text stays in the tooltip
+         string sh = nm;
+         if(!htf)
+           {
+            sh = ZmZoneShort(tf, z.dir, z.legBar);
+            if(z.arrival && StringFind(sh, "Arrival") != 0) sh = "Arrival" + (sh == "" ? "" : " " + sh);
+            if(sh == "") sh = verdict;
+           }
+         if(TagFree(t1, z.dist, sh))
+           {
+            Txt(id + "n", t1, z.dist, sh, verdict == "WEAK" ? cMuted : cText, 7, z.dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER);
+            if(!htf) ObjectSetString(0, id + "n", OBJPROP_TOOLTIP, nm + " - click for details");
+           }
         }
      }
   }
@@ -5684,6 +5718,18 @@ int ZmChartZone(ENUM_TIMEFRAMES tf, int dir, int legBar)
   }
 bool   ZmZoneHidden(ENUM_TIMEFRAMES tf, int dir, int legBar) { if(!gZmZoneFilter) return false; int k = ZmChartZone(tf, dir, legBar); return k >= 0 && gZmT[gZmChartIdx].zones[k].reasons == 0; }
 string ZmZoneTag(ENUM_TIMEFRAMES tf, int dir, int legBar) { int k = ZmChartZone(tf, dir, legBar); return k < 0 ? "" : ZmReasonTag(gZmT[gZmChartIdx].zones[k]); }
+// 2.21 display (owner: short zone tags): "Arrival x7" for an arrival zone, else "BOS" / "CHoCH" / "BOS CHoCH x3"; the reasons, not the pattern or touches
+string ZmShortTag(ZmZone &z)
+  {
+   string x = z.nRemoved > 0 ? "x" + IntegerToString(z.nRemoved) : "";
+   if(z.arrival) return "Arrival" + (x == "" ? "" : " " + x);
+   string t = "";
+   if((z.reasons & 1) != 0) t += "BOS";
+   if((z.reasons & 2) != 0) t += (t == "" ? "" : " ") + "CHoCH";
+   if(x != "") t += (t == "" ? "" : " ") + x;
+   return t;
+  }
+string ZmZoneShort(ENUM_TIMEFRAMES tf, int dir, int legBar) { int k = ZmChartZone(tf, dir, legBar); return k < 0 ? "" : ZmShortTag(gZmT[gZmChartIdx].zones[k]); }
 // 2.19 / 2.20 (owner display rules): zone boxes never overlap. The price ranges of the boxes drawn this redraw: the REALIGN
 // box, the zone engine's boxes (DrawZones), then the model's reversal zones (ZmDrawChart, which runs on more ticks: it keeps
 // only the first gZmBoxBase entries before adding its own)

@@ -794,9 +794,11 @@ void RxaBox(string nm, datetime t1, double p1, datetime t2, double p2, color c, 
   {
    ObjectCreate(0, nm, OBJ_RECTANGLE, 0, t1, p1, t2, p2);
    ObjectSetInteger(0, nm, OBJPROP_COLOR, c); ObjectSetInteger(0, nm, OBJPROP_STYLE, style); ObjectSetInteger(0, nm, OBJPROP_WIDTH, width);
-   ObjectSetInteger(0, nm, OBJPROP_BACK, fill);                    // MT4: a background rectangle is filled, a foreground one an outline
 #ifdef __MQL5__
+   ObjectSetInteger(0, nm, OBJPROP_BACK, true);                    // 2.21: behind the candles, thin outline unless filled
    ObjectSetInteger(0, nm, OBJPROP_FILL, fill);
+#else
+   ObjectSetInteger(0, nm, OBJPROP_BACK, fill);                    // MT4: a background rectangle is filled, a foreground one an outline
 #endif
    ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
    ObjectSetString(0, nm, OBJPROP_TOOLTIP, tip);
@@ -808,6 +810,9 @@ void RxaText(string nm, datetime t, double p, string txt, color c, int size, int
    ObjectSetInteger(0, nm, OBJPROP_FONTSIZE, size); ObjectSetInteger(0, nm, OBJPROP_COLOR, c); ObjectSetInteger(0, nm, OBJPROP_ANCHOR, anchor);
    ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
    ObjectSetString(0, nm, OBJPROP_TOOLTIP, tip);
+#ifdef RFX_LBL_HOOK
+   LblHook(nm);                                                    // 2.21: Labels OFF hides this text at creation (MT5 host only)
+#endif
   }
 void RxaLine(string nm, datetime t1, double p1, datetime t2, double p2, color c, int style, int width, string tip)
   {
@@ -875,9 +880,9 @@ void RxaDraw()
       string kind = A.zone.dir > 0 ? "demand" : "supply";
       string tip = StringFormat("%s ARRIVAL %s: the leg-out closed %s the %s %s trend line and removed %d opposite zone(s)%s", tfn, kind, A.zone.dir > 0 ? "above" : "below", tfn,
                                 A.zone.dir > 0 ? "down" : "up", A.nRem, A.strong ? " = STRONG" : "");
-      RxaBox(RXA_PFX + "az", A.zone.baseStart, A.zone.prox, right, A.zone.dist, c, STYLE_SOLID, 3, false, tip);
-      RxaText(RXA_PFX + "azt", A.zone.baseStart, A.zone.prox, "ARRIVAL " + kind + (A.strong ? StringFormat(" STRONG (%d removed)", A.nRem) : " (1 removed)"), c, 9,
-              A.zone.dir > 0 ? ANCHOR_LEFT_LOWER : ANCHOR_LEFT_UPPER, true, tip);
+      RxaBox(RXA_PFX + "az", A.zone.baseStart, A.zone.prox, right, A.zone.dist, c, STYLE_SOLID, 1, false, tip);
+      RxaText(RXA_PFX + "azt", A.zone.baseStart, A.zone.prox, "Arrival " + (A.strong ? "STRONG " : "") + "x" + IntegerToString(A.nRem), c, 7,
+              A.zone.dir > 0 ? ANCHOR_LEFT_LOWER : ANCHOR_LEFT_UPPER, false, tip);
       RxaLine(RXA_PFX + "al", A.line.ta, A.line.pa, gRxa.S.T[A.crossBar], A.crossPx, InpMuted, STYLE_DOT, 1, tfn + " trend line the arrival's leg-out closed beyond");
       sum += (A.strong ? "STRONG " : "") + RxaZTxt(A.zone);
       if(InpArrShowRemoved)
@@ -886,7 +891,7 @@ void RxaDraw()
             RxZone y = gRxa.zones[A.rem[q]];
             string nm = RXA_PFX + "rx" + IntegerToString(q), yt = "Removed by the arrival's leg-out: " + RxaZTxt(y);
             RxaBox(nm, y.baseStart, y.prox, gRxa.S.T[y.removedBar], y.dist, InpMuted, STYLE_DOT, 1, false, yt);
-            RxaText(nm + "x", gRxa.S.T[y.removedBar], (y.prox + y.dist) / 2, "X", y.dir > 0 ? InpDemandLine : InpSupplyLine, 12, ANCHOR_CENTER, true, yt);
+            RxaText(nm + "x", gRxa.S.T[y.removedBar], (y.prox + y.dist) / 2, "X", y.dir > 0 ? InpDemandLine : InpSupplyLine, 9, ANCHOR_CENTER, false, yt);
            }
      }
    if(gRxa.hasPlan)
@@ -907,10 +912,9 @@ void RxaDraw()
         {
          RxZone z = gRxa.zones[P.realign];
          string rt = StringFormat("REALIGNMENT area: the weak %s zone nearest the %s trend line (now %s). Trade it only after a %s arrival inside it.", tfn, htn, RxaPx(P.lineNow), ltn);
-         RxaBox(RXA_PFX + "rl", z.baseStart, z.prox, right, z.dist, C'255,226,140', STYLE_SOLID, 1, true, rt);
-         RxaBox(RXA_PFX + "rlb", z.baseStart, z.prox, right, z.dist, clrGoldenrod, STYLE_SOLID, 2, false, rt);
-         RxaText(RXA_PFX + "rlt", z.baseStart, z.prox, "REALIGN area (" + htn + " line " + RxaPx(P.lineNow) + ")" + (gRxa.pending ? " - waiting for a " + ltn + " arrival" : ""), clrDarkGoldenrod, 8,
-                 z.dir > 0 ? ANCHOR_LEFT_LOWER : ANCHOR_LEFT_UPPER, true, rt);
+         RxaBox(RXA_PFX + "rl", z.baseStart, z.prox, right, z.dist, C'150,120,200', STYLE_SOLID, 1, false, rt);   // 2.21: a thin lavender outline, no fill
+         RxaText(RXA_PFX + "rlt", z.baseStart, z.prox, "REALIGN " + htn + (gRxa.pending ? " (wait " + ltn + ")" : ""), C'150,120,200', 7,
+                 z.dir > 0 ? ANCHOR_LEFT_LOWER : ANCHOR_LEFT_UPPER, false, rt);
          sum += " | realign " + RxaPx(z.prox) + (gRxa.pending ? " (waiting " + ltn + ")" : "");
         }
       if(InpArrShowPlan)
@@ -933,9 +937,9 @@ void RxaDraw()
       RxConfirm K = gRxa.conf;
       color cc = K.zone.dir > 0 ? InpDemandLine : InpSupplyLine;
       string ct = StringFormat("%s CONFIRMATION: a %s arrival %s inside the realignment area - the %s", ltn, ltn, RxaZTxt(K.zone), K.zone.dir > 0 ? "buy" : "sell");
-      RxaBox(RXA_PFX + "cz", K.zone.baseStart, K.zone.prox, right, K.zone.dist, cc, STYLE_SOLID, 2, false, ct);
-      RxaText(RXA_PFX + "czt", K.zone.baseStart, K.zone.dist, ltn + " CONFIRMATION " + (K.zone.dir > 0 ? "BUY" : "SELL") + (K.inArea ? " (price in the area)" : ""), cc, 8,
-              K.zone.dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER, true, ct);
+      RxaBox(RXA_PFX + "cz", K.zone.baseStart, K.zone.prox, right, K.zone.dist, cc, STYLE_SOLID, 1, false, ct);
+      RxaText(RXA_PFX + "czt", K.zone.baseStart, K.zone.dist, ltn + " confirm " + (K.zone.dir > 0 ? "BUY" : "SELL") + (K.inArea ? " (in area)" : ""), cc, 7,
+              K.zone.dir > 0 ? ANCHOR_LEFT_UPPER : ANCHOR_LEFT_LOWER, false, ct);
       datetime tc = K.zone.made;
       RxaHL(RXA_PFX + "ce", tc, right, K.entry, cc, STYLE_SOLID, ltn + " entry " + RxaPx(K.entry), ct);
       RxaHL(RXA_PFX + "cs", tc, right, K.stop, clrRed, STYLE_DASH, ltn + " SL " + RxaPx(K.stop) + (K.basis == 1 ? " (realign zone)" : " (valley)"), "Stop rule on the " + ltn + " (host = the realignment zone)");
@@ -948,6 +952,9 @@ void RxaDraw()
    ObjectSetInteger(0, sn, OBJPROP_XDISTANCE, 8); ObjectSetInteger(0, sn, OBJPROP_YDISTANCE, 58);
    ObjectSetString(0, sn, OBJPROP_TEXT, sum); ObjectSetString(0, sn, OBJPROP_FONT, "Arial"); ObjectSetInteger(0, sn, OBJPROP_FONTSIZE, 8);
    ObjectSetInteger(0, sn, OBJPROP_COLOR, InpMuted); ObjectSetInteger(0, sn, OBJPROP_SELECTABLE, false);
+#ifdef RFX_LBL_HOOK
+   LblHook(sn);
+#endif
   }
 // new arrival / LTF confirmation: once each (never for what is already on the chart when it loads)
 void RxaAlerts(double bid)
