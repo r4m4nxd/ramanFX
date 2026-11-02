@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| RamanFX_BotView.mq5 v1.01                                        |
+//| RamanFX_BotView.mq5 v1.02                                        |
 //| Draws on MT5 exactly what the Telegram bot draws: the bot's zones |
 //| and live trend lines from its latest hourly scan (Pepperstone     |
 //| prices). Nothing is computed here, so the chart always matches    |
@@ -9,7 +9,7 @@
 //| WebRequest for listed URL" and add https://raw.githubusercontent.com |
 //+------------------------------------------------------------------+
 #property copyright "RamanFX"
-#property version   "1.01"
+#property version   "1.02"
 
 input string InpSymbol   = "";     // Bot symbol (empty = this chart's symbol, e.g. XAUUSD, US500, Soybeans)
 input bool   InpHtf      = true;   // Also the next higher timeframe: nearest zone each side (outline) + its lines (gold dotted)
@@ -185,6 +185,9 @@ void Draw()
 int OnInit()
   {
    gSym = InpSymbol != "" ? InpSymbol : _Symbol;
+   StringToUpper(gSym);                                       // the bot's files are upper case (Corn -> CORN)
+   int dot = StringFind(gSym, ".");                           // a broker suffix (EURUSD.a) is not part of the name
+   if(dot > 0) gSym = StringSubstr(gSym, 0, dot);
    Fetch();
    Draw();
    EventSetTimer(MathMax(1, InpRefreshMin) * 60);
