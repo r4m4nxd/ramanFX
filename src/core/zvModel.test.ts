@@ -1,4 +1,4 @@
-// ZoneVision 2.19 structure model (supabase/functions/telegram-bot/zvModel.ts = docs/training/SPEC.md): every acceptance row
+// ZoneVision 2.20 structure model (supabase/functions/telegram-bot/zvModel.ts = docs/training/SPEC.md): every acceptance row
 // of SPEC sections 4 / 5 (src/core/structure/rows.ts, on the long-history qa/bars fixture), the invariants of section 6
 // (I1 - I5) and window independence (X1). A row the rules as written cannot produce is asserted as a KNOWN gap with its reason
 // (it fails loudly the day it starts passing, so the table is updated), never skipped silently.
@@ -58,13 +58,14 @@ describe('SPEC 6 invariants', () => {
     expect(m.structure).toContain('W1 loading');
     expect(m.structure.startsWith('3M ')).toBe(true);
   });
-  it('I5 (2.19, owner Q1): a trend line ends at the first wick beyond it by more than wickTol ATR after its anchor 2; no live line has one', () => {
+  it('I5 (2.20, owner Q1 + Q10): a trend line breaks at a wick beyond it by more than wickTol ATR (a poke is provisional: the break date is the first close beyond once a departure candle confirms it); no departure candle closes beyond a line before its break, none beyond a live line', () => {
     for (const [sym, tf, to] of [['XAUUSD', 'D1', '2026-10-29'], ['XAUUSD', 'W1', '2026-10-17'], ['AUDUSD', 'D1', '2026-10-29'], ['AUDUSD', 'H4', '2026-10-30T16'], ['XAUUSD', 'H4', '2026-10-30T16']]) {
       const c = chart(sym, tf, to);
       const cut = (t: ZmLine, j: number) => t.dir * (zmAt(t, j) - (t.dir > 0 ? c.S.L[j] : c.S.H[j])) > ZM.wickTol * c.atr(j);
+      const depBeyond = (t: ZmLine, j: number) => c.S.cdir(j) === -t.dir && !c.S.basing(j) && t.dir * (zmAt(t, j) - c.S.C[j]) > ZM.wickTol * c.atr(j);
       for (const t of c.t.lines.filter(l => l.kind !== 'momentum')) {
         const end = t.brokenAt >= 0 ? t.brokenAt : 0;
-        for (let j = t.b - 1; j > end; j--) expect(cut(t, j), `${sym} ${tf} ${t.a}>${t.b}: a wick beyond at ${j} before the break`).toBe(false);
+        for (let j = t.b - 1; j > end; j--) expect(depBeyond(t, j), `${sym} ${tf} ${t.a}>${t.b}: a departure candle closes beyond at ${j} before the break`).toBe(false);
         if (t.brokenAt >= 0) expect(cut(t, t.brokenAt), `${sym} ${tf} ${t.a}>${t.b} broken at ${t.brokenAt}`).toBe(true);
       }
     }

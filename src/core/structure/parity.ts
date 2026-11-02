@@ -14,7 +14,7 @@ export interface ModelCase { name: string; sym: string; chart: string; price: nu
 /** The 2.19 rules (owner Q1 wick break + redraw, Q2 valley-area anchors) are not in the MQL port yet (RFX_ZoneCore.mqh /
  *  mql_model.py = ZoneVision 2.18): the conformance compares the TypeScript model with them switched off, which is the 2.18
  *  reading number for number. Remove when the port lands. */
-export const ZM_NOT_PORTED = { wickBrk: 0, redraw: 0, vArea: 0 };
+export const ZM_NOT_PORTED = { wickBrk: 0, redraw: 0, vArea: 0, brkConf: 0, sw1: 0, bos2: 0 };
 export function modelCase(name: string, sym: string, chart: string, bars: Record<string, Row[]>, price: number, digits: number, o0: ZmOpts = {}): ModelCase {
   const o: ZmOpts = { ...o0, params: { ...ZM_NOT_PORTED, ...(o0.params ?? {}) } };
   const b: Record<string, Row[]> = { ...bars };

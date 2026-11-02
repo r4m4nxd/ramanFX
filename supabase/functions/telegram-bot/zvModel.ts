@@ -71,6 +71,23 @@ export const ZM = {
    *  the broken line (the break confirmed the other way) redraws the line from the same anchor 1 through the pullback's
    *  touch (the old line is deleted); otherwise the break stands and the chain follows. */
   wickBrk: 1, wickTol: 0.05, redraw: 1,
+  /** 2.20 owner Q10 (2026-11-02, verbatim in SPEC 11: "if the trend continues in the same direction, then even a tiny wick
+   *  breaks the trendline, and we start looking for new pivot points ... but in your example, we already have two pivot
+   *  points, but the bullish candle broke the trendline ... so that bullish candle is the break in the trendline"): brkConf 1
+   *  = a wick poke is PROVISIONAL: a new extreme after it redraws the line (wickBrk / redraw), a departure candle of the
+   *  break's colour closing beyond it is the break AND the break date (the poke bar never is; gold W1 Feb 28 -> May 9: Jul 18
+   *  poke, Aug 1 break); a line still waiting at the last bar is live; its leg-out zone is an arrival zone (ZmZone.arrival).
+   *  0 = 2.19 (the poke bar is the break date). */
+  brkConf: 1,
+  /** 2.20 Q11 (inferred from the owner's Q2 rule, owner to confirm): sw1 1 = on W1 / MN / 3M a one-bar swing (a low below
+   *  both neighbours' lows; highs mirrored) is a line swing too, used when the line through it cuts no candle (AUDUSD W1 Jul 25
+   *  0.69216: the owner's Jun 27 -> Jul 25 and Jul 25 -> Sep 5); 2 = on every TF; 0 = off. */
+  sw1: 1,
+  /** 2.20 Q12 (inferred from Q2, owner to confirm): bos2 1 = anchor 2 is the swing-breaking candle (the first leg-direction
+   *  departure candle closing beyond the opposite extreme that confirms the swing) when its line-side extreme lies in the
+   *  swing's valley / peak area (vArea ATR) and its line cuts no candle by more than cutTol ATR (gold H1 Oct 28 22:00 4026.89
+   *  over the 21:00 wick 4024.44, which its line cuts by 0.11 ATR: 0.12 is the smallest that fits; 0.08 / 0.10 lose it). */
+  bos2: 1, cutTol: 0.12,
   /** 2.19 owner Q2 (2026-11-01, "i would choose the pivot that doesn't cut any candles when drawing a trendline, given that
    *  the pivot is in the area of that valley or peak"): vArea > 0 = anchor 1 of every line (Line 1, chain, nested, ...) may
    *  be any bar of the valley (peak) area after its swing, up to the anchor-2 swing: its line-side extreme within vArea ATR
@@ -308,7 +325,7 @@ export function zmMomentumAll(S: Series, piv: ZmPivot[], i: number, k: ZmParams,
   return out;
 }
 
-interface ZmDir { d: number; hist: ZmLine[]; step: (j: number) => boolean; endStructure: () => void }
+interface ZmDir { d: number; hist: ZmLine[]; step: (j: number) => boolean; endStructure: () => void; finish?: () => void }
 
 /** One direction's line machine (d +1 = up lines under lows, -1 = down lines over highs; SPEC 2.2). step(j) runs bar j
  *  (oldest first) and returns true when a NEW structure of this direction was confirmed there (its Line 1 confirmation),
@@ -501,7 +518,7 @@ function zmDirF(S: Series, sw: ZmPivot[], d: number, k: ZmParams, atr: (i: numbe
     // H1 (2.18, W1 / MN / 3M): after each real side pivot V, the first bosN-bar swing of the other side (a peak for up lines)
     // and the first leg-direction departure candle that CLOSES beyond it; when that candle launches the leg (the candle
     // before it is no leg-direction departure) and no real pivot lies between, its low is a line swing confirmed at itself
-    const N = k.bosN, real = side.slice();
+    const N = k.bosN, real = side.slice();   // (the real pivots only: the Q11 one-bar swings below are added after)
     const sw2 = (i: number) => { if (i + N >= S.n - 1 || i - N < 1) return false; for (let h = 1; h <= N; h++) if (out(Y(i), Y(i - h)) || out(Y(i), Y(i + h))) return false; return true; };
     const dep = (j: number) => S.cdir(j) === d && !S.basing(j);
     for (const V of real) {
@@ -516,8 +533,20 @@ function zmDirF(S: Series, sw: ZmPivot[], d: number, k: ZmParams, atr: (i: numbe
     }
     side.sort((a, b) => b.bar - a.bar);
   }
-  // Kevin's confirmation of each side swing: the bar price trades beyond the opposite extreme between it and s0
-  const ev: { s: ZmPivot; s0: ZmPivot; e: number }[] = [];
+  if (k.sw1 > 0 && (htf || k.sw1 === 2)) {
+    // Q11 (2.20): a one-bar swing (the line-side extreme beyond both neighbours') is a line swing, confirmed by the next bar,
+    // when it is a dip INSIDE a one-way run: its candle and the one before it each trade beyond the previous candle's other
+    // extreme (AUDUSD W1 Jul 25 / Aug 29: "highs rise every week"; not the gold W1 2023-11-11 low after two lower highs)
+    for (let i = S.n - 3; i >= 2; i--) {
+      if (!(out(X(i), X(i + 1)) && out(X(i), X(i - 1))) || side.some(p => p.bar === i)) continue;
+      if (!(d > 0 ? Y(i) > Y(i + 1) && Y(i + 1) > Y(i + 2) : Y(i) < Y(i + 1) && Y(i + 1) < Y(i + 2))) continue;
+      side.push({ bar: i, p: X(i), t: -d, conf: i - 1 });
+    }
+    side.sort((a, b) => b.bar - a.bar);
+  }
+  // Kevin's confirmation of each side swing: the bar price trades beyond the opposite extreme between it and s0; B = the
+  // swing-breaking candle (Q12: the first leg-direction departure candle from s on that CLOSES beyond that extreme)
+  const ev: { s: ZmPivot; s0: ZmPivot; e: number; B: number }[] = [];
   for (let i = 1; i < side.length; i++) {
     const s = side[i];
     let s0: ZmPivot | null = null;
@@ -531,21 +560,34 @@ function zmDirF(S: Series, sw: ZmPivot[], d: number, k: ZmParams, atr: (i: numbe
     if ((d > 0 ? C[s.bar] >= S.O[s.bar] : C[s.bar] < S.O[s.bar]) && thru(s.bar)) kb = s.bar;
     for (let j = s.bar - 1; j >= 1 && kb < 0; j--) if (thru(j)) { kb = j; break; }
     if (kb < 0) continue;
-    ev.push({ s, s0, e: Math.min(kb, s.conf) });
+    const e = Math.min(kb, s.conf);
+    let B = -1;
+    for (let j = s.bar; j >= e && B < 0; j--) if (S.cdir(j) === d && !S.basing(j) && (d > 0 ? C[j] > ox : C[j] < ox)) B = j;
+    ev.push({ s, s0, e, B });
   }
   ev.sort((a, b) => b.e - a.e || b.s.bar - a.s.bar);
   const slopeOk = (a: number, pa: number, b: number, pb: number) => {
     const ab = atr(b), rise = d * (pb - pa);
     return rise > 0 && rise >= k.minRise * ab && rise / Math.max(1, a - b) >= k.minSlope * ab;
   };
-  const build = (a: number, b: number, to: number, tol = 0) => {
+  const build = (a: number, b: number, to: number, tol = 0, evB = -1) => {
     const pa = X(a);
     let bb = b, sl = (X(b) - pa) / (a - b), poke = false;
     for (let j = b - 1; j >= to; j--) if (d * (pa + sl * (a - j) - X(j)) > k.fitTol * atr(j)) poke = true;
     if (poke) for (let j = b - 1; j >= to; j--) { const s2 = (X(j) - pa) / (a - j); if (d > 0 ? s2 < sl : s2 > sl) { sl = s2; bb = j; } }
+    // Q12 (2.20): the swing-breaking candle evB after the touch bb as anchor 2, when it lies in bb's valley area, its line cuts
+    // no candle by more than cutTol ATR and no bar after it up to `to` pokes beyond it by more than fitTol ATR
+    let q12 = false;
+    if (k.bos2 > 0 && evB >= to && evB < bb && d * (X(evB) - X(bb)) >= 0 && d * (X(evB) - X(bb)) <= k.vArea * atr(evB)) {
+      const s3 = (X(evB) - pa) / (a - evB);
+      let ok = true;
+      for (let j = a - 1; j >= to && ok; j--) if (j !== evB && d * (pa + s3 * (a - j) - X(j)) > (j > evB ? k.cutTol : k.fitTol) * atr(j)) ok = false;
+      if (ok) { bb = evB; q12 = true; }
+    }
     const pb = X(bb);
     let clean = true;
-    for (let j = a - 1; j > bb; j--) if (d * (pa + ((pb - pa) / (a - bb)) * (a - j) - X(j)) > (tol > 0 ? tol * atr(j) : 1e-9 * Math.abs(pa))) { clean = false; break; }
+    const ct = q12 ? Math.max(tol, k.cutTol) : tol;
+    for (let j = a - 1; j > bb; j--) if (d * (pa + ((pb - pa) / (a - bb)) * (a - j) - X(j)) > (ct > 0 ? ct * atr(j) : 1e-9 * Math.abs(pa))) { clean = false; break; }
     return { a, b: bb, pa, pb, clean };
   };
   // anchor-1 candidates for a line from bar a to swing bar sb, in order, each with its clean tolerance (0 = strict):
@@ -601,22 +643,34 @@ function zmDirF(S: Series, sw: ZmPivot[], d: number, k: ZmParams, atr: (i: numbe
   // through the pullback's touch; a departure candle of the break's colour closing beyond the broken line first (SPEC 1.1:
   // body >= 50% of its range; the break confirmed the other way) -> the break stands and the chain follows from the old
   // anchor-2 swing
-  const pend: { t: ZmLine; k: number; ext: number }[] = [];
-  const stand = (t: ZmLine, x: number) => { chain = { bar: t.p2, p: X(t.p2), brk: x }; };
+  // Q10 (2.20, brkConf): the poke is provisional; the departure candle that confirms it is the break date, a line still
+  // waiting at the last bar is live, a line of an ended structure (orph) waits too (no redraw, no chain)
+  const brkC = wick && k.brkConf > 0;
+  type Pend = { t: ZmLine; k: number; ext: number; orph: boolean; c: number };   // c = the first close beyond since the poke
+  const pend: Pend[] = [];
+  // the break of t stands at bar h (the poke p.k when the trend went on); Q10: the break date = the first CLOSE beyond since
+  // the poke (owner gold W1 Aug 1, AUDUSD W1 Jul 25, gold H4 Oct 29 08:00 - a basing close counts once a departure confirms)
+  const stand = (p: Pend, h: number) => {
+    if (brkC) p.t.brokenAt = h === p.k || p.c < 0 ? h : p.c;
+    if (!p.orph) chain = { bar: p.t.p2, p: X(p.t.p2), brk: k.brkConf === 2 ? h : p.k };
+  };
   // bar h for a pending line: true = settled (redrawn or the break stands)
-  const settle = (p: { t: ZmLine; k: number; ext: number }, h: number): boolean => {
+  const settle = (p: Pend, h: number): boolean => {
     const t = p.t, sideFirst = d > 0 ? C[h] >= S.O[h] : C[h] < S.O[h];    // the OHLC path: the line-side extreme first
     const newExt = h < p.k && d * (Y(h) - p.ext) > k.wickTol * atr(h);    // a visible new extreme (more than wickTol ATR)
     const conf = beyond(t, h) && S.cdir(h) === -d && !S.basing(h);         // a departure candle closing beyond: confirmed
-    if (conf && !(newExt && !sideFirst)) { stand(t, p.k); return true; }
+    if (p.c < 0 && beyond(t, h)) p.c = h;
+    if (conf && !(newExt && !sideFirst)) { stand(p, h); return true; }
     if (!newExt) return false;
+    // the trend went on (owner Q10: "even a tiny wick breaks the trendline"): redraw, or (no redraw possible) broken at the poke
+    if (p.orph || !k.redraw) { stand(p, p.k); return true; }
     let nb = -1, sl = 0;
     for (let c = t.b - 1; c >= h; c--) {
       if (c === h && !sideFirst) continue;
       const s2 = (X(c) - t.pa) / (t.a - c);
       if (nb < 0 || (d > 0 ? s2 < sl : s2 > sl)) { nb = c; sl = s2; }
     }
-    if (nb < 0 || !slopeOk(t.a, t.pa, nb, X(nb))) { stand(t, p.k); return true; }
+    if (nb < 0 || !slopeOk(t.a, t.pa, nb, X(nb))) { zmDebug.log?.(`d${d} redraw-fail ${S.T[t.a]}>${S.T[t.b]} poke ${S.T[p.k]} at ${S.T[h]}`); stand(p, p.k); return true; }
     zmDebug.log?.(`d${d} redraw ${S.T[t.a]}>${S.T[t.b]} broken ${S.T[p.k]} -> ${S.T[t.a]}>${S.T[nb]} at ${S.T[h]}`);
     t.b = nb; t.pb = X(nb); t.p2 = nb; t.brokenAt = -1; t.why = 'redraw'; t.touches++;   // the new pivot 2 (chain start)
     live.push(t);
@@ -624,11 +678,11 @@ function zmDirF(S: Series, sw: ZmPivot[], d: number, k: ZmParams, atr: (i: numbe
     return true;
   };
   // t broken at x (>= j): the break stands, or (redraw) it waits for a new extreme, bars x .. j already known
-  const pendOn = (t: ZmLine, x: number, j: number) => {
-    if (!(wick && k.redraw)) { stand(t, x); return; }
+  const pendOn = (t: ZmLine, x: number, j: number, orph = false) => {
     let ext = Y(t.a);
     for (let h = t.a - 1; h >= x; h--) ext = d > 0 ? Math.max(ext, Y(h)) : Math.min(ext, Y(h));
-    const p = { t, k: x, ext };
+    const p: Pend = { t, k: x, ext, orph, c: -1 };
+    if (!(wick && (k.redraw || brkC))) { stand(p, x); return; }
     for (let h = x; h >= j; h--) {
       if (!settle(p, h)) continue;
       if (t.brokenAt < 0 && h > j) { live.splice(live.indexOf(t), 1); run(t, h - 1, j); }   // redrawn: its own life up to j
@@ -654,7 +708,7 @@ function zmDirF(S: Series, sw: ZmPivot[], d: number, k: ZmParams, atr: (i: numbe
   // a line from bar a (or p1Shift bars after it, the first clean one) to swing s, anchor 2 at the hull touch up to j
   const lineFrom = (a: number, s: ZmPivot, j: number, why: string, steeperThan: ZmLine | null = null) => {
     for (const [aa, tl] of cands(a, s.bar, why === 'g1' || why === 'inner')) {
-      const r = build(aa, s.bar, j, tl);
+      const r = build(aa, s.bar, j, tl, evB);
       if (!r.clean) continue;
       if (!slopeOk(r.a, r.pa, r.b, r.pb)) return false;
       if (steeperThan && !(d > 0 ? slope(r) > slope(steeperThan) : slope(r) < slope(steeperThan))) return false;
@@ -664,7 +718,7 @@ function zmDirF(S: Series, sw: ZmPivot[], d: number, k: ZmParams, atr: (i: numbe
     }
     return false;
   };
-  let ei = 0;
+  let ei = 0, evB = -1;   // evB = the swing-breaking candle of the swing being confirmed (Q12)
   const step = (j: number): boolean => {
     let confirmed = false;
     for (let i = 0; i < pend.length; i++) if (pend[i].k > j && settle(pend[i], j)) pend.splice(i--, 1);   // Q1: redraw or stand
@@ -673,9 +727,10 @@ function zmDirF(S: Series, sw: ZmPivot[], d: number, k: ZmParams, atr: (i: numbe
       if (wick ? cut(t, j) : beyond(t, j)) { if (wick || !veto(t, j)) broke(t, j); }   // (a vetoed close rotated the line)
       else if (d * (zmAt(t, j) - X(j)) > -k.fitTol * atr(j)) t.touches++;
     }
-    for (const o of orphans) if (o.brokenAt < 0 && j < o.b && cut(o, j)) o.brokenAt = j;
+    for (const o of orphans) if (o.brokenAt < 0 && j < o.b && cut(o, j)) { o.brokenAt = j; if (brkC) pendOn(o, j, j, true); }
     for (; ei < ev.length && ev[ei].e >= j; ei++) {
       const { s, s0 } = ev[ei];
+      evB = ev[ei].B;
       if (chain && !out(chain.p, s.p)) chain = null;                  // a swing at / beyond the chain anchor ends the chain
       if (wait && !out(wait.p, s.p)) wait = null;
       if (chain && s.bar <= chain.brk) {                               // (1) after a break: chain from the broken anchor 2
@@ -707,7 +762,7 @@ function zmDirF(S: Series, sw: ZmPivot[], d: number, k: ZmParams, atr: (i: numbe
       // (4) a new structure from the local extreme s0
       let made = false;
       for (const [a, tl] of cands(s0.bar, s.bar, true)) {
-        const r = build(a, s.bar, j, tl);
+        const r = build(a, s.bar, j, tl, evB);
         if (!r.clean) continue;
         if (!slopeOk(r.a, r.pa, r.b, r.pb)) break;
         born(mkLine(d, 'trend', r.a, r.b, r.pa, r.pb, j, s.bar, a !== s0.bar ? 'g1-shift' : 'g1'), j);
@@ -717,10 +772,18 @@ function zmDirF(S: Series, sw: ZmPivot[], d: number, k: ZmParams, atr: (i: numbe
       if (!made) wait = s;
       confirmed = true;
     }
+    evB = -1;
     return confirmed;
   };
-  const endStructure = () => { wait = null; chain = null; pend.length = 0; for (const t of live) orphans.push(t); live = []; };
-  return { d, hist, step, endStructure };
+  const endStructure = () => {
+    wait = null; chain = null;
+    if (brkC) { for (const p of pend) p.orph = true; } else pend.length = 0;   // Q10: they still wait (as orphans: no redraw, no chain)
+    for (const t of live) orphans.push(t);
+    live = [];
+  };
+  // Q10: a line still waiting for its break to be confirmed (or redrawn) at the last bar is live (the poke is provisional)
+  const finish = () => { if (brkC) for (const p of pend) p.t.brokenAt = -1; };
+  return { d, hist, step, endStructure, finish };
 }
 
 /** Both directions' trend lines over all bars (SPEC 2.2), oldest bar first. */
@@ -731,6 +794,7 @@ export function zmTrendLines(S: Series, piv: ZmPivot[], k: ZmParams, q1: ZmQ1, q
     if (u) D.endStructure();
     if (dn) U.endStructure();
   }
+  U.finish?.(); D.finish?.();
   return { up: U.hist, dn: D.hist };
 }
 
@@ -1090,7 +1154,11 @@ export function zmReasons(S: Series, zs: ZmZone[], lines: ZmLine[], piv: ZmPivot
     for (const o of zs) if (o.dir === -z.dir && o.legBar > z.legBar && o.removed && o.removedBar <= z.legBar && o.removedBar >= end) z.removedIds.push(o.legBar);
     if (z.removedIds.length) z.reasons.push('removal');
     z.strong = z.removedIds.length > 0;
-    z.arrival = z.reasons.length === 3;
+    // Q10 (2.20, owner: "the bullish candle broke the trendline, and it is now kind of an arrival zone for us"): the zone whose
+    // leg-out candle is the candle that broke an opposite trend line (closing beyond it) is an arrival zone too
+    const lb = z.legBar;
+    z.arrival = z.reasons.length === 3 || (k.brkConf > 0 && k.wickBrk > 0 && lb >= 1 && lines.some(t => t.kind === 'trend' && t.dir === -z.dir && t.brokenAt === lb
+      && (z.dir > 0 ? S.C[lb] > zmAt(t, lb) : S.C[lb] < zmAt(t, lb))));
   }
 }
 /** The compact MT5 label of a zone's reasons: "BOS CHoCH x2 removed". */
