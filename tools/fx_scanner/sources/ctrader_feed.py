@@ -119,7 +119,9 @@ def _rows(raw: list, tf: str, sym: str, now: float) -> List[list]:
             continue
         iso = dt.datetime.utcfromtimestamp(m * 60).strftime('%Y-%m-%dT%H:%M:%S') + 'Z'
         try:
-            lbl = C.label(iso, tf, True)
+            # cTrader weeks open Monday 00:00 server time (Sunday 22:00 UTC); the scanner labels a week from its
+            # Saturday 00:00 (OANDA's Friday 17:00 New York alignment): same week, so W1 is snapped, not checked
+            lbl = C.label(iso, tf, tf != 'W1')
         except C.Misaligned:
             if now - m * 60 > 730 * 86400:                       # old history: drop the odd candle, as the OANDA reader does
                 continue
