@@ -98,6 +98,7 @@ export const COMMANDS: { command: string; description: string; group: Group; usa
   { command: 'took', description: 'Log a trade you took as a plan', group: 'Journal', usage: '/took EURUSD buy 1.0850 sl 1.0820 tp 1.0910', help: 'adds it to the Planner; reply to a 📝 prompt to save why' },
   { command: 'ask', description: 'Ask the lessons a question', group: 'Learn', usage: '/ask what is a proximal line', help: "the mentors' own words (or end any message with ?)" },
   { command: 'health', description: 'Are the scans and keys OK?', group: 'Learn', usage: '/health', help: 'last FX / stock scan, keys OK (the watchdog messages only when something breaks)' },
+  { command: 'learn', description: 'What the scanners learned from history', group: 'Learn', usage: '/learn', help: 'the rules the scanners tested on past years, what they now use, and how live ideas are doing' },
   { command: 'guide', description: 'How-to cheat sheet + the full guide', group: 'Learn', usage: '/guide', help: 'short how-to + a link to the full guide in the app' },
   { command: 'help', description: 'This list', group: 'Learn', usage: '/help', help: 'this list' },
 ];
@@ -345,6 +346,31 @@ export function welcome(thanks = false): Reply {
   return { cmd: 'welcome', text: [thanks ? "You're welcome." : '<b>Welcome to RamanFX</b>', 'Type any market or company in plain words, like <b>gold</b>, <b>apple</b> or <b>euro</b>, to get its one-page summary. Or tap below.',
     `<i>/help shows everything · ${FOOT}</i>`].join('\n'),
     buttons: [...popularButtons(), [{ text: "Today's ideas", callback_data: 'g' }, { text: 'Long-term buys', callback_data: 'm:tfsa' }, { text: 'Near a price', callback_data: 'n' }], [{ text: 'Help menu', callback_data: 'h' }]] };
+}
+
+/** /learn (owner 2026-11-03: "the bots should learn and improve by themselves"): public/learn/policy.json of the monthly
+ *  learner (tools/learn/learner.py) - the rule changes in use, waiting for a second confirmation, or not better - and
+ *  the live ideas' results (tools/learn/outcomes.py). */
+export async function cmdLearn(ctx: Ctx): Promise<Reply> {
+  const p = obj(await ctx.load('learn/policy.json').catch(() => null));
+  const head = '<b>What the scanners learned</b>';
+  if (!p.markets) return { cmd: 'learn', text: [head, 'Nothing yet. The first review runs after the monthly backtests (around the 5th). It tests each suggested rule on past years and only keeps what wins on recent data it was not tuned on.', '', `<i>${FOOT}</i>`].join('\n') };
+  const WORD: Record<string, string> = { fx: 'Currencies, metals & indices', stock: 'Stocks' };
+  const lines = [head, `<i>Reviewed ${esc(when(p.generated_at))} MT${p.mode === 'off' ? ' · learning is switched off' : ''}</i>`];
+  for (const m of ['fx', 'stock']) {
+    const x = obj(obj(p.markets)[m]);
+    const use = arr(x.adopted), cand = arr(x.candidates), rej = arr(x.rejected);
+    lines.push('', `<b>${esc(WORD[m])}</b> · ${num(x.tested) ?? 0} rules tested`);
+    const rows = [...use.map(a => `▲ In use: ${esc(a.desc ?? a.id)} · ${esc(a.why ?? '')}`), ...cand.map(c => `● Promising, checking again next month: ${esc(c.desc ?? c.id)} · ${esc(c.why ?? '')}`)];
+    if (!rows.length) rows.push(x.note ? `● ${esc(x.note)}` : '● No change beat the current rules yet');
+    const lv = obj(x.live);
+    if (num(lv.n)) rows.push(`● Live ideas, last 90 days: ${lv.n} · won ${Math.round((num(lv.win) ?? 0) * 100)}% · ${(num(lv.exp_r) ?? 0) >= 0 ? '+' : ''}${(num(lv.exp_r) ?? 0).toFixed(2)}R per idea`);
+    if (x.half_size) rows.push('▼ Live results are weak lately: the alerts say trade half size');
+    lines.push(qb(rows));
+    if (rej.length) lines.push(qb([`<b>Tested, not better</b> (${rej.length})`, ...rej.slice(0, 8).map(r => `${esc(r.desc ?? r.id)} · ${esc(r.why ?? '')}`)], true));
+  }
+  lines.push('', '<i>R = what you risked on a trade. +0.10R per trade means +$10 on average for every $100 risked.</i>', `<i>${FOOT}</i>`);
+  return { cmd: 'learn', text: fit(lines).replace(/&(?!amp;|lt;|gt;)/g, '&amp;') };
 }
 
 /** /guide, /howto: a compact cheat sheet; the full how-to is the app's /guide page (src/content/guide.ts). */
@@ -1731,6 +1757,7 @@ export async function handle(text: string, ctx: Ctx): Promise<Reply> {
       case 'start': return { ...welcome(), cmd: 'start', buttons: undefined, keyboard: true, text: welcome().text.replace('Or tap below.', 'Or tap a button at the bottom.') };
       case 'help': case 'menu': return helpMenu(ctx.role);
       case 'guide': case 'howto': return cmdGuide(ctx.role);
+      case 'learn': case 'learned': return cmdLearn(ctx);
       case 'c': case 'chart': return cmdChart(c.arg, c.arg2, ctx, c.rest.split(/\s+/)[2] ?? '');
       case 'ask': return cmdAsk(c.rest, ctx);
       case 'news': return cmdNews(c.arg, ctx);

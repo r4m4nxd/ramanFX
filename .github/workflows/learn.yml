@@ -1,0 +1,47 @@
+name: Learn
+
+# The auto-learner (tools/learn/learner.py): reads the monthly backtest experiments (fx-backtest.yml on the 2nd,
+# stock-backtest.yml on the 3rd) and the live outcomes (tools/learn/outcomes.py, every scan), adopts only rule changes
+# that beat the current rules on data they were not tuned on, writes public/learn/policy.json + report.md to the data
+# branch and messages the owner when something changed. LEARN_MODE (repo variable): auto (default) or off.
+on:
+  schedule:
+    - cron: '41 9 5 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: learn
+  cancel-in-progress: false
+
+jobs:
+  learn:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Data from the data branch
+        run: bash scripts/data-branch.sh pull
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Unit tests
+        run: python -m unittest discover -s tools/learn/tests
+
+      - name: Learn
+        env:
+          LEARN_MODE: ${{ vars.LEARN_MODE || 'auto' }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python tools/learn/learner.py
+
+      - name: Publish
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bash scripts/data-branch.sh push "learn: policy $(date -u +%Y-%m-%dT%H:%MZ)" public/learn/policy.json public/learn/report.md

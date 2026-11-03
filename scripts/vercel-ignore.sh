@@ -18,6 +18,7 @@ EXCLUDES=(
   ':(exclude)public/movers'
   ':(exclude)public/insiders'
   ':(exclude)public/holders'
+  ':(exclude)public/learn'
   ':(exclude)public/fundamentals'
   ':(exclude)tools'
   ':(exclude)supabase'

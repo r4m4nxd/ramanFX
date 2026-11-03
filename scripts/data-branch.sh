@@ -31,6 +31,7 @@ DATA_PATHS=(
   public/fundamentals
   public/insiders
   public/holders
+  public/learn
   tools/reminders/events.json
   tools/reminders/state.json
   tools/briefing/state.json
