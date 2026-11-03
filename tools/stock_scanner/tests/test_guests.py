@@ -186,7 +186,7 @@ class JobShareTest(unittest.TestCase):
         mv = lambda s: {'sym': s, 'tf': 'D1', 'pct': 1.2, 'ratio': 2.5, 'tv': 'https://x/' + s}  # noqa: E731
         parts = {'day': day, 'fx': [mv('EURUSD'), mv('BTCUSD')], 'stocks': [mv('NVDA')], 'evs': [], 'sample': False,
                  'plan': {'planFor': '2026-10-29', 'summary': 'Kevin likes gold.', 'n': 3},
-                 'block': '📰 <b>Overnight headlines</b>\n• Top story\n<b>Your symbols</b>\n<b>TSLA</b> · owner position news',
+                 'block': '<b>Overnight headlines</b>\n<blockquote>Top story\n<b>Your symbols</b>\n<b>TSLA</b> · owner position news</blockquote>',
                  'lesson': SN.Msg('📘 lesson')}
         fund = {'stocks': {'NVDA': {'er_next': '2026-10-29'}, 'TSLA': {'er_next': '2026-10-29'}}}
         mine = {'NVDA': 'listed', 'TSLA': 'held'}
@@ -197,8 +197,8 @@ class JobShareTest(unittest.TestCase):
             self.assertIn('NVDA', text)
             self.assertNotIn('EURUSD', text)
             self.assertNotIn('BTCUSD', text)
-            self.assertNotIn("Kevin's plan", text)
-            self.assertIn('Top story', text)
+            self.assertNotIn('trading plan', text)
+            self.assertIn('<blockquote>Top story</blockquote>', text)
             self.assertNotIn('Your symbols', text)
             self.assertNotIn('owner position', text)
             self.assertNotIn('held', text)
@@ -208,7 +208,7 @@ class JobShareTest(unittest.TestCase):
             self.assertIn('BTCUSD', text)
             self.assertIn('EURUSD', text)
             self.assertNotIn('NVDA', text)
-            self.assertIn("Kevin's plan", text)
+            self.assertIn("<b>Today's trading plan</b>", text)
         self.assertEqual(B.guest_brief(g, {}), [])
 
     def test_movers_share(self):

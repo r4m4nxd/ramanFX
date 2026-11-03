@@ -411,7 +411,7 @@ def load_news(market: str = 'fx') -> List[Dict]:
 
 
 def news_warning(symbol: str, market: str = 'fx') -> str:
-    """'● Big news: US CPI in 20 min' for the symbol (60 min ahead to 15 min after), '' when nothing (or no NEWS
+    """'● Big news: US inflation report in 20 min' for the symbol (60 min ahead to 15 min after), '' when nothing (or no NEWS
     loaded)."""
     if not NEWS:
         return ''
@@ -420,7 +420,7 @@ def news_warning(symbol: str, market: str = 'fx') -> str:
         w = NC.warning(symbol, NEWS, market=market)
     except Exception:  # noqa: BLE001
         return ''
-    w = re.sub(r'^\W+\s*', '', w or '').strip()       # the calendar's '⚠️ ' marker: plain text here
+    w = re.sub(r'^\W+\s*', '', w or '').strip()       # any leading marker: plain text here
     return f'● Big news: {w}' if w else ''
 
 

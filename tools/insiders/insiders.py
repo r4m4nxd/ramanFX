@@ -57,7 +57,7 @@ State tools/insiders/.cache/state.json (actions cache): seen accession numbers, 
 The first run on a latest.json written by the older job alerts only sales / 144 / 13D filed after it (`events_since` in the file).
 
     python tools/insiders/insiders.py                 # the scheduled run
-    python tools/insiders/insiders.py --sample        # ONE '🧪 Sample insider buys' message (top clusters), no alerts
+    python tools/insiders/insiders.py --sample        # ONE 'Sample insider buys' message (top clusters), no alerts
     python tools/insiders/insiders.py --no-notify     # a dry run: print instead of sending, alert state untouched
     python tools/insiders/insiders.py --backfill-min 50   # a longer backfill (one-time fill of the 30 days)
 """
@@ -66,6 +66,7 @@ from __future__ import annotations
 import argparse
 import csv
 import datetime as dt
+import html
 import json
 import os
 import re
@@ -984,18 +985,24 @@ def md(iso: str) -> str:
 
 
 def holdings_s(lead: Dict) -> str:
+    """'raised their holding by 18%' / 'bought for the first time' / '' (plain words)."""
     if lead.get('new'):
-        return 'new position'
+        return 'bought for the first time'
     p = lead.get('pct')
-    return f'+{p:.0f}% holdings' if isinstance(p, (int, float)) and p >= 0.5 else ''
+    return f'raised their holding by {p:.0f}%' if isinstance(p, (int, float)) and p >= 0.5 else ''
 
 
-def zone_s(z: Optional[Dict], star: bool) -> str:
+TF_PLAIN = {'W1': 'weekly', 'MN': 'monthly', '3M': '3-month', 'D1': 'daily', 'H4': '4-hour', 'H1': 'hourly'}
+
+
+def zone_s(z: Optional[Dict], star: bool = False) -> str:
+    """'the price is inside a weekly buy area 11.90–12.60' / 'the price is 3.0% above a monthly buy area ...'."""
     if not z:
         return ''
     rng = f"{z['lo']:,.2f}–{z['hi']:,.2f}" if z['hi'] < 100 else f"{z['lo']:,.0f}–{z['hi']:,.0f}"
-    t = f"inside {z['tf']} demand {rng}" if z['where'] == 'inside' else f"{z['dist']:.1f}% above {z['tf']} demand {rng}"
-    return ('⭐ ' if star else '') + t
+    tf = TF_PLAIN.get(z['tf'], z['tf'])
+    return (f'the price is inside a {tf} buy area {rng}' if z['where'] == 'inside'
+            else f"the price is {z['dist']:.1f}% above a {tf} buy area {rng}")
 
 
 def ago(iso: str, now: Optional[dt.datetime]) -> str:
@@ -1034,90 +1041,133 @@ def pct_s(v: Optional[float]) -> str:
 
 
 def tail(c: Dict, today: Optional[dt.date]) -> List[str]:
-    """The zone text (⭐ only on a strong buy cluster at a W1 / MN demand), P/E and the earnings date."""
+    """The buy-area text, the price-vs-profit ratio (P/E) and the results date, in plain words (escaped)."""
     bits = []
     z = zone_s(c.get('zone'), c.get('star', False))
     if z:
-        bits.append(SN.esc(z))
+        bits.append(SN.esc(z[:1].upper() + z[1:]))
     if c['kind'] in ('cluster', 'solo', 'early'):
         if isinstance(c.get('pe'), (int, float)) and c['pe'] > 0:
-            bits.append(f"P/E {c['pe']:.0f}")
+            bits.append(f"price vs profit (P/E) {c['pe']:.0f}")
         er = c.get('er_next')
         if er and today and 0 <= (dt.date.fromisoformat(er) - today).days <= 45:
-            bits.append(f"earnings {md(er)}{'?' if c.get('er_kind') == 'estimated' else ''}")
+            bits.append(f"results due {md(er)}{' (estimated)' if c.get('er_kind') == 'estimated' else ''}")
     return bits
 
 
+PHRASE = {'cluster': 'several insiders bought', 'early': 'a top insider bought early', 'solo': 'a big insider purchase',
+          'sell': 'a big insider sale', 'plan': 'an insider plans to sell', 'act': 'a big investor wants changes'}
+
+
+def _who_s(role: str) -> str:
+    r = (role or '').split(' · ')[0].strip()
+    return f'The {r}' if r in ('CEO', 'CFO', 'COO', 'President', 'Chair', 'Director', 'Officer') else (r or 'An insider')
+
+
+def _link(c: Dict) -> str:
+    u = c.get('url') or ''
+    return f'● <a href="{html.escape(u, quote=True)}">Read the filing</a>' if u.startswith('https://') else ''
+
+
+def head_of(c: Dict) -> str:
+    return f"{SN.title(c['sym'] or c['name'], c.get('name') or '', 'stock')} · {PHRASE.get(c['kind'], 'insider activity')}"
+
+
 def line(c: Dict, today: Optional[dt.date] = None, now: Optional[dt.datetime] = None) -> str:
-    """'🕵️ Insider cluster buy · XYZ $12.40 · 3 insiders · $2.1M · CEO +18% holdings · latest trade Oct 28 · newest filing 35m ago ·
-    ⭐ inside W1 demand 11.9–12.6 · P/E 9 · earnings Nov 12' (HTML). An early buy reads 'Insider buy · XYZ $12.40 · early ·
-    1 insider so far · $300K · CEO new position · bought Oct 27 · filed 35m ago'. Sales, planned sales and 13D have their own."""
+    """One insider item as a card (HTML), plain words:
+        <b>XYZ</b> · several insiders bought
+        <blockquote>▲ 3 insiders bought <code>$2.1M</code> of their own stock · price now <code>$12.40</code>
+        ● The CEO raised their holding by 18%
+        ● Latest purchase Oct 28 · newest filing 35m ago
+        ● The price is inside a weekly buy area 11.90–12.60 · price vs profit (P/E) 9 · results due Nov 12
+        ● Strong: 3 or more insiders, near a weekly or monthly buy area
+        ... (detail lines)</blockquote>
+    Sales, planned sales and activist filings have their own lines (event_line)."""
     if c['kind'] in ('sell', 'plan', 'act'):
         return event_line(c, today, now)
-    head = 'Insider cluster buy' if c['kind'] == 'cluster' else 'Insider buy' if c['kind'] == 'early' else 'Big solo buy'
-    bits = [f"{'🕵️'} {head} · <b>{SN.esc(c['sym'] or c['name'])}</b> {price_s(c.get('px') or c.get('price'))}"]
-    bits.append(f"{c['n']} insiders" if c['kind'] == 'cluster' else 'early · 1 insider so far' if c['kind'] == 'early' else '1 insider')
-    bits.append(money(c['value']))
+    who = f"{c['n']} insiders bought" if c['kind'] == 'cluster' else '1 insider so far bought' if c['kind'] == 'early' else '1 insider bought'
+    lines = [f"▲ {who} {SN.code(money(c['value']))} of their own stock · price now {SN.code(price_s(c.get('px') or c.get('price')))}"]
     h = holdings_s(c['lead'])
-    bits.append(SN.esc(f"{c['lead']['role']} {h}".strip()))
+    lines.append('● ' + SN.esc(f"{_who_s(c['lead'].get('role'))} {h}" if h else f"Biggest buyer: {_who_s(c['lead'].get('role')).replace('The ', 'the ')}"))
     if c['kind'] == 'cluster':
-        f = fresh_s('latest trade', c['last'], 'newest filing', c.get('filed', ''), now)
+        f = fresh_s('Latest purchase', c['last'], 'newest filing', c.get('filed', ''), now)
     else:
-        f = fresh_s('bought', c['last'], 'filed', c.get('filed', ''), now)
+        f = fresh_s('Bought', c['last'], 'filed', c.get('filed', ''), now)
     if f:
-        bits.append(f)
+        lines.append('● ' + f)
     if c.get('repeat'):
-        bits.append('repeat buyer')
-    return ' · '.join(bits + tail(c, today))
+        lines.append('● One insider bought more than once')
+    t = tail(c, today)
+    if t:
+        lines.append('● ' + ' · '.join(t))
+    if c.get('star'):
+        lines.append('● Strong: 3 or more insiders, near a weekly or monthly buy area')
+    return head_of(c) + '\n' + SN.block(lines + detail_lines(c))
 
 
 def event_line(c: Dict, today: Optional[dt.date], now: Optional[dt.datetime]) -> str:
-    sym = f"<b>{SN.esc(c['sym'] or c['name'])}</b> {price_s(c.get('px') or c.get('price'))}"
-    who = SN.esc(f"{c['role']} {c['who']}".strip() if c['kind'] == 'sell' else c['who'])
+    px = SN.code(price_s(c.get('px') or c.get('price')))
     if c['kind'] == 'sell':
-        bits = [f'🔻 Insider sale · {sym}', f"{who} sold {money(c['value'])}"]
+        who = SN.esc(f"{c['role']} {c['who']}".strip())
+        lines = [f"▼ {who} sold {SN.code(money(c['value']))} · price now {px}"]
+        bits = []
         if c.get('of_mcap') is not None:
-            bits.append(f"{pct_s(c['of_mcap'])}% of market cap")
+            bits.append(f"{pct_s(c['of_mcap'])}% of the company's value")
         if isinstance(c.get('pct'), (int, float)) and c['pct'] <= -0.5:
-            bits.append(f"{abs(c['pct']):.0f}% of holdings")
-        bits += ['open market, not a 10b5-1 plan sale', fresh_s('sold', c['date'], 'filed', c['filed'], now)]
+            bits.append(f"{abs(c['pct']):.0f}% of their holding")
+        if bits:
+            lines.append('● That is ' + SN.esc(' · '.join(bits)))
+        lines.append('● Sold on the open market, not a pre-planned sale · ' + fresh_s('sold', c['date'], 'filed', c['filed'], now))
     elif c['kind'] == 'plan':
-        bits = [f'📋 Planned sale (Form 144) · {sym}', f"{SN.esc(c['who'])}{SN.esc(' (' + c['role'] + ')' if c.get('role') else '')} plans to sell {money(c['value'])}"]
-        if c.get('shares'):
-            bits[-1] += f" ({sh_s(c['shares'])} sh)"
+        who = SN.esc(c['who'] + (f" ({c['role']})" if c.get('role') else ''))
+        amt = SN.code(money(c['value'])) + (f" ({sh_s(c['shares'])} shares)" if c.get('shares') else '')
+        lines = [f'▼ {who} plans to sell {amt} · price now {px}']
         if c.get('of_mcap') is not None:
-            bits.append(f"{pct_s(c['of_mcap'])}% of market cap")
+            lines.append(f"● That is {pct_s(c['of_mcap'])}% of the company's value")
         if c.get('plan'):
-            bits.append(f"10b5-1 plan adopted {md(c['plan_dates'][0])}" if c.get('plan_dates') else '10b5-1 plan')
-        bits.append(fresh_s('sale about', c['date'], 'filed', c['filed'], now))
+            lines.append(f"● Part of a pre-planned selling schedule set up {md(c['plan_dates'][0])}" if c.get('plan_dates')
+                         else '● Part of a pre-planned selling schedule')
+        lines.append('● ' + fresh_s('Sale expected around', c['date'], 'filed', c['filed'], now))
     else:
-        verb = 'now holds' if c.get('amend') else 'reports'
-        bits = [f"📣 Activist · {sym}", f"{who} {verb} {c['pct']:.1f}%" if c.get('pct') is not None else f'{who} filed']
+        who = SN.esc(c['who'])
+        has = f"{who} now owns {c['pct']:.1f}% of the company" if c.get('pct') is not None else f'{who} filed'
         if c.get('shares'):
-            bits[-1] += f" ({sh_s(c['shares'])} sh)"
+            has += f" ({sh_s(c['shares'])} shares)"
         if c.get('prev_pct') is not None and c.get('pct') is not None and abs(c['pct'] - c['prev_pct']) >= 0.05:
-            bits.append(f"from {c['prev_pct']:.1f}%")
-        bits += [f"{'13D/A' if c.get('amend') else 'new 13D'}", fresh_s('event', c['event'], 'filed', c['filed'], now)]
-    return ' · '.join([b for b in bits if b] + tail(c, today))
+            has += f", up from {c['prev_pct']:.1f}%" if c['pct'] > c['prev_pct'] else f", down from {c['prev_pct']:.1f}%"
+        lines = [f'● {has} · price now {px}',
+                 f"● {'Updated' if c.get('amend') else 'New'} activist filing · " + fresh_s('event', c['event'], 'filed', c['filed'], now)]
+    t = tail(c, today)
+    if t:
+        lines.append('● ' + ' · '.join(t))
+    return head_of(c) + '\n' + SN.block(lines + detail_lines(c))
+
+
+def detail_lines(c: Dict) -> List[str]:
+    """The quieter facts at the end of a card: who, when, how many shares; the filing link."""
+    name = SN.esc((c.get('name') or '')[:40])
+    if c['kind'] == 'sell':
+        out = [f"● {name} · {sh_s(c['shares'])} shares{' at ' + price_s(c['price']) if c.get('price') else ''} on {md(c['date'])}"]
+    elif c['kind'] == 'plan':
+        out = [f'● {name} · only a notice: the sale may be smaller, later or never']
+    elif c['kind'] == 'act':
+        out = [f"● {name} · their aim: “{SN.esc(c['purpose'])}”" if c.get('purpose') else f'● {name}']
+    else:
+        who = ', '.join(f"{SN.esc(i['name'])} ({SN.esc(short_role(i) if i.get('role') else 'insider')})" for i in c['insiders'][:3])
+        more = f" +{len(c['insiders']) - 3}" if len(c['insiders']) > 3 else ''
+        span = md(c['first']) if c['first'] == c['last'] else f"{md(c['first'])}–{md(c['last'])}"
+        out = [f"● Who: {who}{more} · {span} · insider score {c['score']:g}"]
+    return out + [_link(c)]
 
 
 def detail(c: Dict) -> str:
-    if c['kind'] == 'sell':
-        return f"<i>{SN.esc((c.get('name') or '')[:40])} · {SN.esc(c['who'])} ({SN.esc(c['role'])}) · {sh_s(c['shares'])} sh{' @ ' + price_s(c['price']) if c.get('price') else ''} · {md(c['date'])}</i>"
-    if c['kind'] == 'plan':
-        return f"<i>{SN.esc((c.get('name') or '')[:40])} · {SN.esc(c['who'])} · a notice of a proposed sale: it may be smaller, later or never</i>"
-    if c['kind'] == 'act':
-        why = f" · Item 4: “{SN.esc(c['purpose'])}”" if c.get('purpose') else ''
-        return f"<i>{SN.esc((c.get('name') or '')[:40])} · {SN.esc(c['who'])}{why}</i>"
-    who = ', '.join(f"{SN.esc(i['name'])} ({SN.esc(short_role(i) if i.get('role') else 'insider')})" for i in c['insiders'][:3])
-    more = f" +{len(c['insiders']) - 3}" if len(c['insiders']) > 3 else ''
-    span = md(c['first']) if c['first'] == c['last'] else f"{md(c['first'])}–{md(c['last'])}"
-    name = SN.esc(c['name'][:40]) if c.get('name') else ''
-    return f"<i>{name} · {who}{more} · {span} · score {c['score']:g}</i>"
+    """The detail lines as text (kept for callers of the older one-line layout)."""
+    return '\n'.join(x for x in detail_lines(c) if x)
 
 
 def buttons_for(cs: Sequence[Dict]) -> List[List[Dict]]:
-    """One row per stock (the first four): [📊 SYM] [📑 Fundamentals] [👥 Holders] [🔗 SEC], then the app."""
+    """One row per stock (the first four): [Chart SYM] [Facts SYM] [Owners SYM] (bot callbacks; a stock outside the
+    scanner: [Filing SYM], the SEC link), then the app. No emoji, at most 3 a row; each card links its filing."""
     rows, seen = [], set()
     for c in cs:
         s = c['sym']
@@ -1126,18 +1176,19 @@ def buttons_for(cs: Sequence[Dict]) -> List[List[Dict]]:
         seen.add(s)
         r = []
         if c.get('universe') and SN._cb_ok(f'c:{s}'):
-            r += [SN.cb(f'📊 {s}', f'c:{s}'), SN.cb('📑 Fundamentals', f'f:{s}')]
+            r += [SN.cb(f'Chart {s}', f'c:{s}'), SN.cb(f'Facts {s}', f'f:{s}')]
             if SN._cb_ok(f'h:{s}'):
-                r.append(SN.cb('👥 Holders', f'h:{s}'))
-        r.append(SN.button('🔗 SEC' if r else f'🔗 SEC filing · {s}', c['url']))
+                r.append(SN.cb(f'Owners {s}', f'h:{s}'))
+        else:
+            r.append(SN.button(f'Filing {s}'.strip(), c['url']))
         rows.append(r)
-    rows.append([SN.button('Open insiders', APP)])
+    rows.append([SN.button('Open app', APP)])
     return rows
 
 
 BUY_KINDS = ('cluster', 'solo', 'early')
-FOOT_BUYS = 'SEC Form 4 open-market buys · context, not a signal · not advice'
-FOOT_ALL = 'SEC Form 4 / Form 144 / Schedule 13D filings · context, not a signal · not advice'
+FOOT_BUYS = 'Source: official US insider filings (SEC), purchases on the open market · background, not a trade signal'
+FOOT_ALL = 'Source: official US insider and big-investor filings (SEC) · background, not a trade signal'
 
 
 def build_message(cs: Sequence[Dict], today: dt.date, sample: bool = False, silent: bool = False,
@@ -1147,15 +1198,17 @@ def build_message(cs: Sequence[Dict], today: dt.date, sample: bool = False, sile
     buys = all(c['kind'] in BUY_KINDS for c in cs)
     parts = []
     if sample:
-        parts.append('🧪 <b>Sample insider buys</b> · the top clusters of the last 30 days')
+        parts.append('<b>Sample insider buys</b> · the biggest groups of the last 30 days')
     elif len(cs) > 1:
-        parts.append(f"🕵️ <b>{len(cs)} new insider {'buys' if buys else 'alerts'}</b>")
+        parts.append(f"<b>{len(cs)} new insider {'buys' if buys else 'alerts'}</b>")
     for c in cs:
-        parts.append(line(c, today, now) + '\n' + detail(c))
-    parts.append(f"<i>{FOOT_BUYS if buys else FOOT_ALL}</i>")
-    text = '\n\n'.join(parts)
+        parts.append(line(c, today, now))
+    parts.append(FOOT_BUYS if buys else FOOT_ALL)
+    text = '\n\n'.join(parts) + '\n' + SN.footer()
     while SN.u16(text) > SN.SAFE and len(cs) > 1:
         return build_message(cs[:-1], today, sample, silent, now)
+    if SN.u16(text) > SN.SAFE:
+        text = SN._cut(text, SN.SAFE)
     m = SN.Msg(text, buttons_for(cs), silent=silent)
     m.n_alerts = len(cs)                                 # how many made it into the text (the rest wait for the app)
     return m
@@ -1242,14 +1295,21 @@ def load_published(now: dt.datetime, path: Optional[str] = None, fetch: Optional
 
 
 def brief_lines(js: Optional[Dict], today: dt.date, n: int = 3, days: int = 7) -> List[str]:
-    """The morning brief's '🕵️ Insider buys': the top n clusters / big solo buys of the last `days`, ⭐ first."""
+    """The morning brief's 'Insiders buying their own stock': the top n groups / big single buys of the last `days`,
+    the strong ones first, one plain line each: '▲ <b>XYZ</b> · 3 insiders bought $2.1M · latest Oct 28 · strong'."""
     cut = (today - dt.timedelta(days=days)).isoformat()
     cs = [c for c in (js or {}).get('clusters') or [] if isinstance(c, dict) and str(c.get('last') or '') >= cut]
     out = []
     for c in cs[:n]:
         try:
-            out.append(line(c, today).replace('🕵️ Insider cluster buy · ', '⭐ ' if c.get('star') else '').replace('🕵️ Big solo buy · ', 'solo · ')
-                       .replace('🕵️ Insider buy · ', 'early · '))
+            who = f"{c['n']} insiders bought" if c['kind'] == 'cluster' else '1 insider bought'
+            bits = [f"{who} {money(c['value'])}", f"latest {md(c['last'])}"]
+            z = zone_s(c.get('zone'))
+            if z:
+                bits.append(z.replace('the price is ', ''))
+            if c.get('star'):
+                bits.append('strong')
+            out.append(f"▲ {SN.title(c['sym'] or c['name'], c.get('name') or '', 'stock')} · " + SN.esc(' · '.join(bits)))
         except Exception:  # noqa: BLE001
             continue
     if len(cs) > n:
@@ -1347,8 +1407,8 @@ def run(now: dt.datetime, get: Optional[Callable[[str], bytes]], sample: bool = 
     if sample:
         msg = build_message(cls[:5], today, sample=True, now=now)
         if msg is None:
-            msg = SN.Msg('🧪 <b>Sample insider buys</b>\nNo insider cluster buys in the data yet (the 30-day backfill '
-                         'fills in over the first runs).', [[SN.button('Open insiders', APP)]])
+            msg = SN.Msg('<b>Sample insider buys</b>\n' + SN.block(['● No group insider buying in the data yet (the last 30 days '
+                         'fill in over the first runs)']) + '\n' + SN.footer(), [[SN.button('Open app', APP)]])
         if notify:
             log('sample ' + ('sent' if send([msg]) else 'NOT sent'))
         else:
@@ -1393,7 +1453,7 @@ def run(now: dt.datetime, get: Optional[Callable[[str], bytes]], sample: bool = 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    ap.add_argument('--sample', action='store_true', help="send ONE '🧪 Sample insider buys' message (top clusters), no alerts")
+    ap.add_argument('--sample', action='store_true', help="send ONE 'Sample insider buys' message (top clusters), no alerts")
     ap.add_argument('--no-notify', action='store_true', help='a dry run: print the message instead of sending it, alert state untouched')
     ap.add_argument('--backfill-min', type=float, default=4.0, help='minutes for the daily-index backfill (default 4)')
     ap.add_argument('--now', default='', help='pretend it is this UTC time (ISO)')

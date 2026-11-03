@@ -312,22 +312,24 @@ class TestAlerts(unittest.TestCase):
         cs = I.enrich(c, ctx)
         m = I.build_message(cs, TODAY, now=NOW)
         # the cluster span stays in the detail line; the head line names the latest trade and calls out the newest filing
-        self.assertTrue(str(m).startswith('🕵️ Insider cluster buy · <b>XYZ</b> $12.40 · 3 insiders · $2.1M · CEO +18% holdings · '
-                                          'latest trade Oct 28 · newest filing 35m ago · '
-                                          '⭐ inside W1 demand 11.90–12.60 · P/E 9 · earnings Nov 12'), str(m))
+        self.assertTrue(str(m).startswith('<b>XYZ</b> · several insiders bought\n<blockquote>▲ 3 insiders bought <code>$2.1M</code> of their own stock · '
+                                          'price now <code>$12.40</code>\n● The CEO raised their holding by 18%\n'
+                                          '● Latest purchase Oct 28 · newest filing 35m ago\n'
+                                          '● The price is inside a weekly buy area 11.90–12.60 · price vs profit (P/E) 9 · results due Nov 12\n'
+                                          '● Strong: 3 or more insiders'), str(m))
         self.assertIn('Oct 24–Oct 28', str(m))
-        self.assertEqual([b.get('callback_data') for b in m.buttons[0][:3]], ['c:XYZ', 'f:XYZ', 'h:XYZ'])
-        self.assertEqual(m.buttons[0][3]['text'], '🔗 SEC')
-        self.assertTrue(m.buttons[0][3]['url'].startswith('https://www.sec.gov/'))
+        self.assertEqual([b.get('callback_data') for b in m.buttons[0]], ['c:XYZ', 'f:XYZ', 'h:XYZ'])   # <= 3 a row
+        self.assertEqual([b['text'] for b in m.buttons[0]], ['Chart XYZ', 'Facts XYZ', 'Owners XYZ'])
+        self.assertIn('<a href="https://www.sec.gov/', str(m))                          # the filing link sits in the card
         self.assertEqual(m.n_alerts, 1)
-        self.assertIn('latest trade Oct 28', I.line(cs[0], TODAY))                  # the brief has no clock: the date only
+        self.assertIn('Latest purchase Oct 28', I.line(cs[0], TODAY))                  # the brief has no clock: the date only
         self.assertNotIn('ago', I.line(cs[0], TODAY))
         two = I.build_message(cs + I.enrich(I.find_clusters([buy('Q', '2026-10-28', 300000, cik='9', sym='OTC1', cfo=True)], TODAY), FakeCtx()), TODAY, now=NOW)
-        self.assertTrue(str(two).startswith('🕵️ <b>2 new insider buys</b>'))
-        self.assertIn('Big solo buy · <b>OTC1</b>', str(two))
+        self.assertTrue(str(two).startswith('<b>2 new insider buys</b>'))
+        self.assertIn('<b>OTC1</b> · a big insider purchase', str(two))
         self.assertEqual(len(two.buttons[1]), 1)                                  # not in the scanner: SEC link only
         s = I.build_message(cs, TODAY, sample=True)
-        self.assertTrue(str(s).startswith('🧪 <b>Sample insider buys</b>'))
+        self.assertTrue(str(s).startswith('<b>Sample insider buys</b>'))
         self.assertIsNone(I.build_message([], TODAY))
 
     def test_ago(self):
@@ -381,7 +383,8 @@ class TestRun(unittest.TestCase):
             self.assertIsNotNone(msg)
             self.assertEqual(len(sent), 1)
             self.assertIn('4 insiders', str(sent[0]))
-            self.assertIn('⭐ inside MN demand', str(sent[0]))
+            self.assertIn('The price is inside a monthly buy area', str(sent[0]))
+            self.assertIn('Strong: 3 or more insiders', str(sent[0]))
             js = I.load_json(lp, {})
             self.assertEqual(js['clusters'][0]['sym'], 'XYZ')
             self.assertEqual(js['by_sym']['XYZ']['buyers'], 4)
@@ -404,7 +407,7 @@ class TestRun(unittest.TestCase):
             # sample: ONE message, whatever was sent before
             m = I.run(NOW, None, sample=True, state_path=sp, latest_path=lp, ctx=ctx, send=lambda m: sent.append(m) or True)
             self.assertEqual(len(sent), 1)
-            self.assertTrue(str(m).startswith('🧪 <b>Sample insider buys</b>'))
+            self.assertTrue(str(m).startswith('<b>Sample insider buys</b>'))
 
     def test_daily_cap(self):
         cs = []
@@ -416,7 +419,7 @@ class TestRun(unittest.TestCase):
             sent = []
             I.run(NOW, lambda u: b'', state_path=os.path.join(d, 's.json'), latest_path=os.path.join(d, 'l.json'), ctx=FakeCtx(),
                   send=lambda m: sent.append(m) or True)
-            self.assertEqual(str(sent[0]).count('Insider cluster buy'), 10)
+            self.assertEqual(str(sent[0]).count('· several insiders bought'), 10)
 
     def test_no_user_agent_skips_sec(self):
         with tempfile.TemporaryDirectory() as d, mock.patch('builtins.print') as pr:
@@ -432,7 +435,8 @@ class TestPublished(unittest.TestCase):
         js = {'generated': '2026-10-29T19:00:00Z', 'clusters': [I._clean(c) for c in cs]}
         ls = I.brief_lines(js, TODAY)
         self.assertEqual(len(ls), 1)
-        self.assertTrue(ls[0].startswith('⭐ <b>XYZ</b> $12.40 · 3 insiders'), ls[0])
+        self.assertTrue(ls[0].startswith('▲ <b>XYZ</b> · 3 insiders bought $850K · latest Oct 28'), ls[0])
+        self.assertTrue(ls[0].endswith(' · strong'), ls[0])
         with tempfile.TemporaryDirectory() as d:
             p = os.path.join(d, 'l.json')
             with open(p, 'w') as f:
@@ -500,8 +504,9 @@ class TestEarly(unittest.TestCase):
         self.assertLess(out[0]['score'], I.CFG['score_bar'])                 # a lone $120k CEO buy scores 4: no cluster / solo alert
         self.assertEqual(I.to_alert(I.enrich(I.find_clusters([a], TODAY), FakeCtx()), {'a1'}, {}, NOW), [])
         m = I.build_message(out, TODAY, now=NOW)
-        self.assertTrue(str(m).startswith('🕵️ Insider buy · <b>XYZ</b> $12.00 · early · 1 insider so far · $120K · CEO +10% holdings · '
-                                          'bought Oct 28 · filed 35m ago'), str(m))
+        self.assertTrue(str(m).startswith('<b>XYZ</b> · a top insider bought early\n<blockquote>▲ 1 insider so far bought <code>$120K</code> of their own '
+                                          'stock · price now <code>$12.00</code>\n● The CEO raised their holding by 10%\n'
+                                          '● Bought Oct 28 · filed 35m ago'), str(m))
         self.assertEqual(self.alerts([a], set()), [])                         # not read this run
         self.assertEqual(self.alerts([a], {'a1'}, now=NOW + dt.timedelta(days=3)), [])   # filed days ago (a backfill): silent
 
@@ -572,10 +577,13 @@ class TestSells(unittest.TestCase):
         self.assertEqual(I.events_to_alert(items, {'s1'}, {'S:s1': {'at': 'x'}}, NOW), [])  # sent once
         self.assertEqual(I.events_to_alert(items, {'s1'}, {}, NOW + dt.timedelta(days=2)), [])
         t = str(I.build_message(items, TODAY, now=NOW))
-        self.assertTrue(t.startswith('🔻 Insider sale · <b>XYZ</b> $100.00 · CEO A sold $2.4M · 5% of holdings'), t)
-        self.assertIn('open market, not a 10b5-1 plan sale · sold Oct 27 · filed 20m ago · inside MN demand 95–101', t)
-        self.assertNotIn('⭐', t)                                                            # the ⭐ rule is a buy-cluster rule
-        self.assertIn('SEC Form 4 / Form 144 / Schedule 13D filings', t)
+        self.assertTrue(t.startswith('<b>XYZ</b> · a big insider sale\n<blockquote>▼ CEO A sold <code>$2.4M</code> · price now <code>$100.00</code>\n'
+                                     '● That is'), t)
+        self.assertIn('5% of their holding', t)
+        self.assertIn('● Sold on the open market, not a pre-planned sale · sold Oct 27 · filed 20m ago\n'
+                      '● The price is inside a monthly buy area 95–101', t)
+        self.assertNotIn('Strong:', t)                                                      # the strong rule is a buy-cluster rule
+        self.assertIn('official US insider and big-investor filings (SEC)', t)
 
     def test_recent_sells_for_the_app(self):
         rs = [sale('A', '2026-10-27', 2_400_000, ceo=True, acc='s1'), sale('B', '2026-10-27', 5_000_000, ceo=True, plan=True, acc='s2'), sale('C', '2026-10-27', 100_000, ceo=True, acc='s3')]
@@ -604,8 +612,9 @@ class TestPlannedSales(unittest.TestCase):
     def test_line_says_planned_sale(self):
         it = I.enrich_events(I.plan_items([self.rec(6_012_500)], TODAY2, I.CFG, lambda s: 4e9), FakeCtx(rows={'XYZ': {'s': 'XYZ', 'k': 1}}, details={'XYZ': {'price': 120.4}}))
         t = str(I.build_message(it, TODAY2, now=NOW2))
-        self.assertTrue(t.startswith('📋 Planned sale (Form 144) · <b>XYZ</b> $120.40 · Doe Jane (Officer) plans to sell $6.0M (50K sh) · 0.15% of market cap · '
-                                     'sale about Nov 2 · filed 14m ago'), t)
+        self.assertTrue(t.startswith('<b>XYZ</b> · an insider plans to sell\n<blockquote>▼ Doe Jane (Officer) plans to sell <code>$6.0M</code> (50K shares) · '
+                                     'price now <code>$120.40</code>\n● That is 0.15% of the company\'s value\n'
+                                     '● Sale expected around Nov 2 · filed 14m ago'), t)
         self.assertIn('may be smaller, later or never', t)
 
 
@@ -623,8 +632,9 @@ class TestActivists(unittest.TestCase):
         items = I.enrich_events(I.act_items(st['d13'], TODAY2), FakeCtx(rows={'XYZ': {'s': 'XYZ', 'k': 1}}, details={'XYZ': {'price': 120.4}}))
         self.assertEqual(I.events_to_alert(items, {ref['acc']}, {}, NOW2), items)
         t = str(I.build_message(items, TODAY2, now=NOW2))
-        self.assertTrue(t.startswith('📣 Activist · <b>XYZ</b> $120.40 · Activist Capital LP now holds 7.0% (12.6M sh) · 13D/A · event Oct 28 · filed 1h ago'), t)
-        self.assertIn('Item 4: “The Reporting Persons acquired the Shares because they believe the Issuer is undervalued.', t)
+        self.assertTrue(t.startswith('<b>XYZ</b> · a big investor wants changes\n<blockquote>● Activist Capital LP now owns 7.0% of the company (12.6M shares) · '
+                                     'price now <code>$120.40</code>\n● Updated activist filing · event Oct 28 · filed 1h ago'), t)
+        self.assertIn('their aim: “The Reporting Persons acquired the Shares because they believe the Issuer is undervalued.', t)
         self.assertEqual(I.act_items([dict(r, sym='')], TODAY2), [])                         # not a scanner stock: no alert
         self.assertEqual(len(I.act_items([dict(r, sym='')], TODAY2, universe_only=False)), 1)    # but listed in the app
         # the same filer's next filing carries the change
@@ -682,10 +692,10 @@ class TestRunAllForms(unittest.TestCase):
                 msg = I.run(NOW2, self.get_fn(calls), state_path=sp, latest_path=lp, ctx=self.ctx(), send=lambda m: sent.append(m) or True, feed_s=60, backfill_s=1)
             self.assertEqual(len(sent), 1)
             t = str(sent[0][0])
-            self.assertTrue(t.startswith('🕵️ <b>3 new insider alerts</b>'), t)
-            self.assertLess(t.index('Activist'), t.index('Insider sale'))
-            self.assertLess(t.index('Insider sale'), t.index('Planned sale'))
-            self.assertIn('Roe Richard sold $1.5M', t.replace('CFO ', ''))
+            self.assertTrue(t.startswith('<b>3 new insider alerts</b>'), t)
+            self.assertLess(t.index('a big investor wants changes'), t.index('a big insider sale'))
+            self.assertLess(t.index('a big insider sale'), t.index('an insider plans to sell'))
+            self.assertIn('Roe Richard sold <code>$1.5M</code>', t.replace('CFO ', ''))
             self.assertNotIn('Doe Jane sold', t)                                           # the 10b5-1 plan sale is not alerted
             self.assertEqual(msg.n_alerts, 3)
             self.assertEqual([b.get('callback_data') for b in msg.buttons[0][:3]], ['c:XYZ', 'f:XYZ', 'h:XYZ'])
@@ -737,7 +747,7 @@ class TestRunAllForms(unittest.TestCase):
             os.remove(sp)
             I.run(NOW2, self.get_fn(calls), state_path=sp, latest_path=lp, ctx=self.ctx(), send=lambda m: sent.append(m) or True, feed_s=60, backfill_s=1,
                   cfg=dict(I.CFG, max_per_day=2))
-            self.assertEqual(str(sent[0][0]).count('Activist ·') + str(sent[0][0]).count('Insider sale ·') + str(sent[0][0]).count('Planned sale'), 2)   # capped at 2 in all
+            self.assertEqual(str(sent[0][0]).count('· a big investor wants changes') + str(sent[0][0]).count('· a big insider sale') + str(sent[0][0]).count('· an insider plans to sell'), 2)   # capped at 2 in all
             self.assertFalse(sent[0][0].silent)
             os.remove(sp)
             sent.clear()

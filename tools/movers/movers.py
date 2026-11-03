@@ -1,17 +1,19 @@
 """Big moves on every timeframe: ONE calm Telegram message per hour when something moved a lot on a candle that just
 closed (owner 2026-10-29: "group tickers or pairs under each timeframe so that I know. Cannot miss any moves.").
 
-    ⚡ Big moves · 1W · 1D · 4H · 1H
-    🟪 1W · week closed Fri 3:00 PM
-    Forex & metals
-    ▲ GBPJPY +1.2% · 2.6× · into D1 supply
-    Stocks · SIP
-    ▼ NVDA -6.4% · 2.3× · gap ▼3.1% · broke W1 demand
-    +4 more → app
-    🟦 1D · day closed Fri 3:00 PM
+    <b>Big price moves</b> · weekly · daily · 4-hour · hourly
+    <b>Weekly candle</b> · week closed Fri 3:00 PM
+    <blockquote><i>Currencies and metals</i>
+    ▲ <b>British pound vs Japanese yen</b> (GBPJPY) +1.2% · 2.6× its usual size · into a daily sell area
+    <i>Stocks</i> · SIP
+    ▼ <b>NVDA</b> -6.4% · 2.3× its usual size · opened 3.1% lower · broke through a weekly buy area
+    +4 more in the app</blockquote>
+    <b>Daily candle</b> · day closed Fri 3:00 PM
     ...
-    ⬜ 1H · 2:00–3:00 PM
-    [📊 GBPJPY] [📊 NVDA] [📊 XAUUSD]
+    <b>Hourly candle</b> · 2:00–3:00 PM
+    Size = how big the candle was vs its average over the last 20 candles · times are Calgary time
+    <i>3:05 PM MT · For learning only, not financial advice</i>
+    [Chart GBPJPY] [Chart NVDA] [Chart XAUUSD]
 
 Which candles (movers.py works out itself which timeframes closed: the scheduler only dispatches it every hour)
     FX, metals, indices, commodities (OANDA BID, NY-aligned like the scanner: alignmentTimezone=America/New_York,
@@ -34,15 +36,15 @@ The % shown is close-to-close (vs the previous candle's close), never pips.
 Message: highest timeframe first ('🟪 1W', '🟦 1D', '🟩 4H', '⬜ 1H'), under each 'Forex & metals / Indices &
 commodities / Crypto / Stocks', EVERY qualifier one line; past TOP_LINES (8) per group '+N more → app' (the /moves
 page lists all from public/movers/latest.json, written by this job). Zone context from the latest scans: 'into W1
-demand' (inside), 'broke D1 supply' (the candle closed through it), 'near H4 supply' (within 0.5%), ⭐ = in Kevin's
-plan, 'BUY setup' = an open scanner signal. 📰 why: the latest headline in the TF's window (1H 3 h, 4H 8 h, 1D 26 h,
-1W 7 days) for the top 3 lines of each timeframe. [📊 SYM] buttons for the top 3 overall (highest TF first).
+demand' (inside), 'broke D1 supply' (the candle closed through it), 'near H4 supply' (within 0.5%), ⭐ = in the
+mentor's plan, 'BUY setup' = an open scanner signal; the message turns these into plain words (plain_ctx). Why: the latest headline in the TF's window (1H 3 h, 4H 8 h, 1D 26 h,
+1W 7 days) for the top 3 lines of each timeframe. [Chart SYM] buttons for the top 3 overall (highest TF first).
 Bot preferences: muted symbols are left out; quiet hours: a 1H-only message goes out silently, a 4H / 1D / 1W
 section is HELD and sent with the first run after quiet hours end (never dropped). Never more than one message an
 hour; dedupe per TF close in tools/movers/.cache/state.json (the workflow's actions cache).
 
     python tools/movers/movers.py            # the hourly run (movers.yml; dispatched by the trader-coach scheduler)
-    python tools/movers/movers.py --test     # ONE '🧪 Sample big moves (all timeframes)' from the last closed bars
+    python tools/movers/movers.py --test     # ONE 'Sample big moves (all timeframes)' from the last closed bars
     python tools/movers/movers.py --no-notify --test   # print instead of sending
 """
 from __future__ import annotations
@@ -51,6 +53,7 @@ import argparse
 import datetime as dt
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.parse
@@ -78,21 +81,21 @@ BUDGET_S = float(os.environ.get('MOVERS_BUDGET_S') or 300)   # no new request af
 NEAR_PCT = 0.5
 BUTTONS = 3
 TOP_LINES = 8                     # lines per group before '+N more → app'
-WHY_TOP = 3                       # '📰 why' lines per timeframe section
+WHY_TOP = 3                       # 'Why:' lines per timeframe section
 GAP_PCT = 3.0                     # stocks 1D gap
 LOCAL_TZ = 'America/Edmonton'
-FOOT = 'Calgary time · not advice'
+FOOT = 'Size = how big the candle was vs its average over the last 20 candles · times are Calgary time'
 UTC = dt.timezone.utc
 
 TFS = ('W1', 'D1', 'H4', 'H1')                                   # highest first
 RANK = {'W1': 3, 'D1': 2, 'H4': 1, 'H1': 0}
-HEAD = {'W1': '🟪 1W', 'D1': '🟦 1D', 'H4': '🟩 4H', 'H1': '⬜ 1H'}
-SHORT = {'W1': '1W', 'D1': '1D', 'H4': '4H', 'H1': '1H'}
+HEAD = {'W1': 'Weekly candle', 'D1': 'Daily candle', 'H4': '4-hour candle', 'H1': 'Hourly candle'}
+SHORT = {'W1': 'weekly', 'D1': 'daily', 'H4': '4-hour', 'H1': 'hourly'}
 SPAN_H = {'H1': 1, 'H4': 4, 'D1': 24, 'W1': 168}
 LOOKBACK_H = {'H1': 1, 'H4': 4, 'D1': 20, 'W1': 20}            # a run this long after a close still catches it
 WHY_H = {'H1': 3, 'H4': 8, 'D1': 26, 'W1': 168}
 GROUPS = ('fx', 'idx', 'crypto', 'stock')
-GROUP_NAME = {'fx': 'Forex & metals', 'idx': 'Indices & commodities', 'crypto': 'Crypto', 'stock': 'Stocks'}
+GROUP_NAME = {'fx': 'Currencies and metals', 'idx': 'Stock indices and commodities', 'crypto': 'Crypto', 'stock': 'Stocks'}
 # the candle's range as % of price, at least (and >= MIN_X its 20-candle average)
 MIN_PCT = {
     'fx': {'H1': float(os.environ.get('MOVERS_FX_MIN_PCT') or 0.15), 'H4': 0.3, 'D1': 0.6, 'W1': 1.2},
@@ -651,7 +654,7 @@ def context(m: Dict, fx_pub: Dict, st_pub: Dict, shard: Callable[[str], Dict]) -
 
 # ---- headlines: '📰 why: <the latest headline in the TF's window>' (tools/news/headlines.py) ------------------------
 def news_why(movers: Sequence[Dict], now: dt.datetime, log=print, hours: float = 3) -> Dict[str, Dict]:
-    """{sym: {'line': '   📰 why: <a href>headline</a> · 40m ago', 'title', 'url'}} for movers with a headline in the
+    """{sym: {'line': 'Why: <a href>headline</a> · 40m ago', 'title', 'url'}} for movers with a headline in the
     last `hours`. Alpaca News for stocks / crypto / ETF-tagged CFDs, the RSS pool for FX + macro. Never raises."""
     if not movers:
         return {}
@@ -669,7 +672,7 @@ def news_why(movers: Sequence[Dict], now: dt.datetime, log=print, hours: float =
         for s in syms:
             h = NH.latest_for(items, s, now, hours=hours)
             if h:
-                out[s] = {'line': f"   📰 why: {NH.line_for(h, now, 90, source=False)}", 'title': str(h.get('title') or '')[:200],
+                out[s] = {'line': f"Why: {NH.line_for(h, now, 90, source=False)}", 'title': str(h.get('title') or '')[:200],
                           'url': NH.safe_url(h.get('url'))}
         return out
     except Exception as e:  # noqa: BLE001
@@ -702,37 +705,67 @@ def _pct(p: float) -> str:
     return f"{'+' if p >= 0 else '-'}{a:.2f}%" if a < 1 else f"{'+' if p >= 0 else '-'}{a:.1f}%"
 
 
+def plain_tag(t: str) -> str:
+    """'gap ▼3.1%' -> 'opened 3.1% lower', 'big body' -> 'strong close' (no second marker on a line)."""
+    if t.startswith('gap '):
+        return f"opened {t[5:]} {'higher' if t[4] == '▲' else 'lower'}"
+    return {'big body': 'strong close'}.get(t, t)
+
+
+def plain_ctx(c: str) -> str:
+    """'into D1 supply ⭐ · BUY setup' -> 'into a daily sell area · in the trading plan · buy signal open'."""
+    out = []
+    for part in (c or '').split(' · '):
+        star = '⭐' in part
+        part = part.replace('⭐', '').strip()
+        m = re.match(r'^(into|broke|near) (\S+) (demand|supply)$', part)
+        if m:
+            where = SN.a(f"{SN.tf_word(m.group(2))} {SN.area(m.group(3))}")
+            part = {'into': 'into', 'broke': 'broke through', 'near': 'near'}[m.group(1)] + ' ' + where
+        elif part.endswith(' setup'):
+            k = part.split()[0]
+            part = {'BUY': 'buy signal open', 'SELL': 'sell signal open', 'WATCH': 'on the watch list'}.get(k, SN.words(part))
+        if part:
+            out.append(part)
+        if star:
+            out.append('in the trading plan')
+    return ' · '.join(out)
+
+
 def line(m: Dict) -> str:
-    """'▲ <b>GBPJPY</b> +1.2% · 2.6× · into D1 supply'."""
+    """'▲ <b>British pound vs Japanese yen</b> (GBPJPY) +1.2% · 2.6× its usual size · into a daily sell area'."""
     arrow = '▲' if m['pct'] >= 0 else '▼'
-    bits = [_pct(m['pct']), f"{m['x']:.1f}×"] + list(m.get('tags') or []) + ([m['ctx']] if m.get('ctx') else [])
-    return f"{arrow} <b>{SN.esc(m['sym'])}</b> " + SN.esc(' · '.join(bits))
+    bits = ([_pct(m['pct']), f"{m['x']:.1f}× its usual size"] + [plain_tag(t) for t in m.get('tags') or []]
+            + ([plain_ctx(m['ctx'])] if m.get('ctx') else []))
+    market = 'stock' if m.get('market') == 'stock' or m.get('group') == 'stock' else 'fx'
+    return f"{arrow} {SN.title(m['sym'], m.get('name') or '', market)} " + SN.esc(' · '.join(b for b in bits if b))
 
 
 def _render(secs: Sequence[Dict], title: str, cap: int, why: bool, h1_only: bool) -> List[str]:
     if h1_only:
         c = _t(secs[0]['close'])
-        lines = [f'<b>{SN.esc(title)} · last hour ({SN.esc(hour_label(c - dt.timedelta(hours=1), c))})</b>']
+        lines = [f'<b>{SN.esc(title)}</b> · last hour ({SN.esc(hour_label(c - dt.timedelta(hours=1), c))})']
     else:
         tfs = [SHORT[t] for t in TFS if any(s['tf'] == t for s in secs)]
-        lines = [f"<b>{SN.esc(title)} · {' · '.join(tfs)}</b>"]
+        lines = [f"<b>{SN.esc(title)}</b> · {' · '.join(tfs)}"]
     for s in secs:
         held = ' · held over quiet hours' if s.get('held') else ''
         lines += ['', f"<b>{HEAD[s['tf']]}</b> · {SN.esc(span_label(s['tf'], _t(s['close']), s['fams']))}{held}"]
+        body: List[str] = []
         for g in GROUPS:
             rs = [r for r in s['rows'] if r['group'] == g]
             if not rs:
                 continue
             feed = f" · {SN.esc(s.get('feed') or '')}" if g == 'stock' and s.get('feed') else ''
-            lines.append(f'<i>{GROUP_NAME[g]}</i>{feed}')
+            body.append(f'<i>{GROUP_NAME[g]}</i>{feed}')
             for r in rs[:cap]:
-                lines.append(line(r))
+                body.append(line(r))
                 if why and (r.get('why') or {}).get('line'):
-                    lines.append(r['why']['line'])
+                    body.append(r['why']['line'])
             if len(rs) > cap:
-                lines.append(f"+{len(rs) - cap} more → <a href=\"{APP}#{s['tf'].lower()}\">app</a>")
-    kev = any('⭐' in (r.get('ctx') or '') for s in secs for r in s['rows'])
-    lines += ['', 'Range vs its 20-candle average · ⭐ Kevin zone' if kev else 'Range vs its 20-candle average', FOOT]
+                body.append(f"+{len(rs) - cap} more in the <a href=\"{APP}#{s['tf'].lower()}\">app</a>")
+        lines.append(SN.block(body))
+    lines += ['', FOOT, SN.footer()]
     return lines
 
 
@@ -741,7 +774,7 @@ def build(secs: Sequence[Dict], test: bool = False, silent: bool = False) -> Opt
     secs = [s for s in secs if s['rows']]
     if not secs:
         return None
-    title = '🧪 Sample big moves (all timeframes)' if test else '⚡ Big moves'
+    title = 'Sample big moves (all timeframes)' if test else 'Big price moves'
     h1_only = not test and all(s['tf'] == 'H1' for s in secs) and len(secs) == 1
     text = ''
     for cap in (TOP_LINES, 5, 3, 2, 1):
@@ -758,8 +791,8 @@ def build(secs: Sequence[Dict], test: bool = False, silent: bool = False) -> Opt
             top.append(r)
         if len(top) == BUTTONS:
             break
-    btn = [[SN.cb(f"📊 {m['sym']}", f"c:{m['sym']}") for m in top]]
-    return SN.Msg(text[:4000], btn, silent=silent)
+    btn = [[SN.cb(f"Chart {m['sym']}", f"c:{m['sym']}") for m in top]]
+    return SN.Msg(text if SN.u16(text) <= SN.SAFE else SN._cut(text, SN.SAFE), btn, silent=silent)
 
 
 SAMPLE = [{'sym': 'XAUUSD', 'market': 'fx', 'group': 'fx', 'tf': 'W1', 'x': 2.4, 'pct': 3.1, 'range_pct': 4.2, 'ctx': 'into W1 demand ⭐'},
@@ -972,7 +1005,7 @@ def to_guests(secs: Sequence[Dict], prefs: Optional[Dict], now: dt.datetime, log
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--test', action='store_true', help="send ONE '🧪 Sample big moves (all timeframes)' message")
+    ap.add_argument('--test', action='store_true', help="send ONE 'Sample big moves (all timeframes)' message")
     ap.add_argument('--no-notify', action='store_true', help='print the message instead of sending it')
     ap.add_argument('--now', default='', help='pretend it is this UTC time (ISO), for a re-run')
     a = ap.parse_args(argv)

@@ -1,4 +1,4 @@
-"""Big moves + headlines: '📰 why:' lines under movers (tools/movers/movers.py news_why / build), offline."""
+"""Big moves + headlines: 'Why:' lines under movers (tools/movers/movers.py news_why / build), offline."""
 import datetime as dt
 import os
 import sys
@@ -39,7 +39,7 @@ class Why(unittest.TestCase):
         self.assertEqual(calls[0][0], ['GLD', 'NVDA'])
         self.assertEqual(calls[0][1], NOW - dt.timedelta(hours=3))
         self.assertEqual(set(why), {'XAUUSD', 'NVDA'})                    # EURUSD: only a 20 h old one
-        self.assertEqual(why['NVDA']['line'], '   📰 why: <a href="https://e.test/1">Nvidia &lt;falls&gt; after export curbs</a> · 30m ago')
+        self.assertEqual(why['NVDA']['line'], 'Why: <a href="https://e.test/1">Nvidia &lt;falls&gt; after export curbs</a> · 30m ago')
         self.assertEqual(why['NVDA']['url'], 'https://e.test/1')
         calls.clear()
         with mock.patch.object(NH, 'alpaca', lambda tags, **k: calls.append((tags, k.get('start'))) or alp), \
@@ -57,12 +57,12 @@ class Why(unittest.TestCase):
 
     def test_build_puts_the_why_line_under_its_mover(self):
         rows = [{**m, 'tf': 'H1', 'group': 'stock' if m['market'] == 'stock' else 'fx', 'tags': []} for m in MOVERS]
-        rows[2]['why'] = {'line': '   📰 why: x · 30m ago'}
+        rows[2]['why'] = {'line': 'Why: x · 30m ago'}
         sec = {'tf': 'H1', 'close': '2026-10-29T14:00:00+00:00', 'fams': ['fx', 'stock'], 'feed': 'IEX', 'rows': rows}
         lines = str(M.build([sec])).split('\n')
         i = next(k for k, x in enumerate(lines) if '<b>NVDA</b>' in x)
-        self.assertEqual(lines[i + 1], '   📰 why: x · 30m ago')
-        self.assertEqual(sum('📰' in x for x in lines), 1)
+        self.assertEqual(lines[i + 1].replace('</blockquote>', ''), 'Why: x · 30m ago')
+        self.assertEqual(sum('Why: ' in x for x in lines), 1)
         rows[2]['why'] = {'line': 'y' * 5000}
         self.assertNotIn('yyyy', str(M.build([sec])))                      # too long: the moves stay, the why goes
 

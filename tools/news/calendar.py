@@ -7,7 +7,7 @@ time_utc = 'YYYY-MM-DDTHH:MM:SSZ'; importance = 'high' | 'medium' | 'low'; count
 AU, NZ, CA, CH, CN). One fetch per process per window (in-memory cache, 30 min) plus an optional file cache
 (NEWS_CACHE_DIR, default tools/news/.cache) so several steps of one run share it. Never raises: a failed fetch gives [].
 
-    warning(symbol, evs, now, market='fx') -> '⚠️ US CPI in 20 min' | ''   (FX: the pair's currencies, index CFDs their
+    warning(symbol, evs, now, market='fx') -> 'US inflation report in 20 min' | ''   (FX: the pair's currencies, index CFDs their
     country, metals USD; stocks: US events) for a high-impact event in the next 60 min or the last 15.
 
 Import as `from news import calendar` with tools/ on sys.path (never put tools/news itself on sys.path: this module
@@ -140,15 +140,37 @@ def countries_of(symbol: str, market: str = 'fx') -> List[str]:
     return sorted({CCY_COUNTRY[c] for c in (s[:3], s[3:6]) if c in CCY_COUNTRY})
 
 
+COUNTRY_WORD = {'US': 'US', 'EU': 'Euro area', 'GB': 'UK', 'JP': 'Japan', 'AU': 'Australia', 'NZ': 'New Zealand',
+                'CA': 'Canada', 'CH': 'Switzerland', 'CN': 'China', 'DE': 'Germany', 'FR': 'France', 'IT': 'Italy'}
+# calendar titles -> plain words for readers with no trading knowledge (owner 2026-11-03): first match wins
+EVENT_WORD = [(r'non[- ]?farm (employment|payrolls)', 'jobs report'), (r'fomc minutes|fed minutes|meeting minutes', 'interest-rate meeting notes'),
+              (r'(fed |fomc |ecb |boe |boj |boc |rba |rbnz |snb |pboc )?(interest )?rate decision|fed decision|fomc', 'interest-rate decision'),
+              (r'core (cpi|inflation rate)', 'core inflation report'), (r'\bcpi\b|inflation rate|consumer price index', 'inflation report'),
+              (r'core pce|pce price index', 'inflation report (spending prices)'), (r'\bppi\b|producer price', 'factory prices report'),
+              (r'gdp', 'economic growth report'), (r'unemployment rate', 'unemployment rate'),
+              (r'(initial )?jobless claims', 'weekly jobless claims'), (r'retail sales', 'retail sales report'),
+              (r'\bpmi\b|\bism\b', 'business survey'), (r'press conference', 'central bank press conference')]
+
+
+def plain_event(title: str, country: str = '') -> str:
+    """'CPI (YoY)', 'US' -> 'US inflation report'; 'ECB Rate Decision', 'EU' -> 'Euro area interest-rate decision';
+    titles not in EVENT_WORD keep their words (without the (YoY) / (MoM) tags)."""
+    t = re.sub(r'\s*\((?:[A-Z]{3}|YoY|MoM|QoQ)\)\s*', ' ', title or '').strip()
+    for pat, word in EVENT_WORD:
+        if re.search(pat, t, re.I):
+            t = word
+            break
+    c = COUNTRY_WORD.get(country, country)
+    return f'{c} {t}'.strip()
+
+
 def short_title(title: str, country: str) -> str:
-    t = re.sub(r'\s*\((?:[A-Z]{3}|YoY|MoM|QoQ)\)\s*', ' ', title).strip()
-    t = {'Non Farm Payrolls': 'jobs report (NFP)', 'Nonfarm Payrolls': 'jobs report (NFP)', 'Fed Interest Rate Decision': 'Fed decision'}.get(t, t)
-    return f'{country} {t}'
+    return plain_event(title, country)
 
 
 def warning(symbol: str, evs: Sequence[Dict], now: Optional[dt.datetime] = None, market: str = 'fx',
             before_min: int = 60, after_min: int = 15) -> str:
-    """'⚠️ US CPI in 20 min' / '⚠️ EU ECB Rate Decision 5 min ago' for the soonest high-impact event that moves the
+    """'US inflation report in 20 min' / 'Euro area interest-rate decision 5 min ago' for the soonest high-impact event that moves the
     symbol, from 60 min ahead to 15 min after; '' when none."""
     now = (now or dt.datetime.now(UTC)).astimezone(UTC)
     want = set(countries_of(symbol, market))
@@ -165,4 +187,4 @@ def warning(symbol: str, evs: Sequence[Dict], now: Optional[dt.datetime] = None,
     mins, e = best
     m = int(round(mins))
     when = 'now' if m == 0 else f'in {m} min' if m > 0 else f'{-m} min ago'
-    return f"⚠️ {short_title(e['title'], e['country'])} {when}"
+    return f"{short_title(e['title'], e['country'])} {when}"

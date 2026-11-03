@@ -42,10 +42,10 @@ class CalendarTest(unittest.TestCase):
         self.assertEqual(N.countries_of('GER40'), ['EU'])
         self.assertEqual(N.countries_of('NVDA', 'stock'), ['US'])
         evs = N.parse(PAGE)
-        self.assertEqual(N.warning('USDJPY', evs, NOW), '⚠️ US CPI in 20 min')
-        self.assertEqual(N.warning('EURGBP', evs, NOW), '⚠️ EU ECB Rate Decision 10 min ago')
+        self.assertEqual(N.warning('USDJPY', evs, NOW), 'US inflation report in 20 min')
+        self.assertEqual(N.warning('EURGBP', evs, NOW), 'Euro area interest-rate decision 10 min ago')
         self.assertEqual(N.warning('AUDNZD', evs, NOW), '')
-        self.assertEqual(N.warning('NVDA', evs, NOW, market='stock'), '⚠️ US CPI in 20 min')
+        self.assertEqual(N.warning('NVDA', evs, NOW, market='stock'), 'US inflation report in 20 min')
         self.assertEqual(N.warning('USDJPY', evs, NOW + dt.timedelta(hours=2)), '')
 
 

@@ -1074,7 +1074,7 @@ def main(argv=None) -> int:
     d1 = eur.rows['D1'].S.T[1] if eur.rows['D1'].S.n > 1 else ''
     msgs = []
     if notify and telegram_configured():
-        N.SN.NEWS = N.SN.load_news('fx')                 # '⚠️ US CPI in 20 min' on the cards of affected pairs
+        N.SN.NEWS = N.SN.load_news('fx')                 # 'Big news: US inflation report in 20 min' on the cards of affected pairs
     muted, quiet = P.muted_set(prefs), P.in_quiet(prefs)
     if prefs is not None:
         print(f"prefs applied: {len(muted)} muted now{' (' + ', '.join(sorted(muted)[:8]) + ')' if muted else ''}, "

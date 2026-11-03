@@ -1,13 +1,14 @@
 """Calm Telegram reminders before the big US event times (docs/research/Market_Hours.md), on the owner's Calgary clock.
 
-    ⏰ <b>Jobs report today · 6:30 AM</b>                   <- NFP / CPI days: sent 45 min before 8:30 ET
-    Big moves likely on forex, gold and US indices.
-    Plan before 6:30, not during the first minutes.
-    [Open scanner]
+    <b>US jobs report</b> · today at 6:30 AM               <- NFP / CPI days: sent 45 min before 8:30 ET
+    <blockquote>● Big moves are likely on currencies, gold and US stock indices
+    ● Plan before 6:30, not during the first minutes</blockquote>
+    <i>For learning only, not financial advice</i>
+    [Open app]
 
-    ⏰ <b>Fed decision today · 12:00 PM, press conference 12:30 PM</b>   <- FOMC days: sent 30 min before 14:00 ET
+    <b>US interest-rate decision</b> · today at 12:00 PM   <- FOMC days: sent 30 min before 14:00 ET
 
-    ☀️ <b>Main window 6:30-10:00 today</b>                 <- optional weekday nudge 20 min before 8:30 ET
+    <b>Busiest hours today</b> · 6:30–10:00               <- optional weekday nudge 20 min before 8:30 ET
                                                           (REMINDER_DAILY, default off)
 
 All times are computed from the US Eastern release time into Calgary time with the IANA tz database, so they follow
@@ -23,7 +24,7 @@ last good list; with no cached list a kind falls back to FALLBACK below (from me
 data only: dates are pulled out with regular expressions, nothing in them is followed or executed.
 
     python tools/reminders/reminders.py              # the scheduled run: refresh if stale, send what is due
-    python tools/reminders/reminders.py --test       # send ONE '🧪 Reminder test' preview of the next reminder
+    python tools/reminders/reminders.py --test       # send ONE 'Reminder test' preview of the next reminder
     python tools/reminders/reminders.py --list       # print the upcoming reminders (no sending)
     python tools/reminders/reminders.py --refresh    # force a schedule fetch
 
@@ -378,28 +379,32 @@ def nyse_holidays(year: int) -> set:
     return out
 
 
-LINE_MOVES = 'Big moves likely on forex, gold and US indices.'
+LINE_MOVES = 'Big moves are likely on currencies, gold and US stock indices'
+NAMES = {'nfp': 'US jobs report', 'cpi': 'US inflation report'}
 
 
 def build(kinds: List[str], day: str, et_time: str) -> SN.Msg:
+    """'<b>US jobs report</b> · today at 6:30 AM' + a 2-line quote + the footer (plain words, no event codes)."""
     t = at_et(day, et_time)
     if kinds == ['fomc']:
         pc = t + dt.timedelta(minutes=30)
-        head = f'⏰ <b>Fed decision today · {clock(t)}, press conference {clock(pc)}</b>'
-        lines = [head, LINE_MOVES, f'The press conference at {short(pc)} usually moves most. Plan before {short(t)}.']
+        head = f'<b>US interest-rate decision</b> · today at {clock(t)}'
+        lines = [f'● Press conference at {SN.code(clock(pc))}, which usually moves prices most',
+                 f'● {LINE_MOVES}: plan before {short(t)}']
     else:
-        name = ' + '.join({'nfp': 'Jobs report', 'cpi': 'US inflation (CPI)'}[k] for k in kinds)
-        lines = [f'⏰ <b>{SN.esc(name)} today · {clock(t)}</b>', LINE_MOVES,
-                 f'Plan before {short(t)}, not during the first minutes.']
-    return SN.Msg('\n'.join(lines), SN.keyboard([], 'Open scanner', SN.FULL_LIST))
+        name = NAMES[kinds[0]] if len(kinds) == 1 else 'US jobs and inflation reports'
+        head = f'<b>{SN.esc(name)}</b> · today at {clock(t)}'
+        lines = [f'● {LINE_MOVES}', f'● Plan before {short(t)}, not during the first minutes']
+    return SN.Msg(head + '\n' + SN.block(lines) + '\n' + SN.footer('', ''), SN.keyboard([], 'Open app', SN.FULL_LIST))
 
 
 def build_daily(day: str) -> SN.Msg:
     a, b = (at_et(day, x) for x in DAILY_WINDOW)
     open_ = at_et(day, '09:30')
-    lines = [f'☀️ <b>Main window {short(a)}-{short(b)} today</b>',
-             f'US data {short(a)} · NYSE opens {short(open_)} · forex and gold busiest around {short(a + dt.timedelta(minutes=90))}.']
-    return SN.Msg('\n'.join(lines), SN.keyboard([], 'Open scanner', SN.FULL_LIST))
+    lines = [f'● US news comes out at {short(a)} · the New York stock market opens at {short(open_)}',
+             f'● Currencies and gold are usually busiest around {short(a + dt.timedelta(minutes=90))}']
+    return SN.Msg(f'<b>Busiest hours today</b> · {short(a)}–{short(b)}\n' + SN.block(lines) + '\n' + SN.footer('', ''),
+                  SN.keyboard([], 'Open app', SN.FULL_LIST))
 
 
 def schedule(evs: Dict[str, List[Dict]], start: dt.date, end: dt.date, daily: bool = False) -> List[Dict]:
@@ -484,7 +489,7 @@ def to_guests(msg) -> None:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    ap.add_argument('--test', action='store_true', help="send one '🧪 Reminder test' preview of the next reminder")
+    ap.add_argument('--test', action='store_true', help="send one 'Reminder test' preview of the next reminder")
     ap.add_argument('--list', action='store_true', help='print the upcoming reminders, send nothing')
     ap.add_argument('--refresh', action='store_true', help='fetch the official schedules now')
     ap.add_argument('--no-fetch', action='store_true', help='never fetch (offline)')
@@ -526,7 +531,7 @@ def main(argv=None) -> int:
             print('no upcoming event reminder to preview')
             return 1
         s = nxt['send_at']
-        head = (f"🧪 <b>Reminder test</b> · this is how it will look on {s.strftime('%a %-d %b')}, sent ~{clock(s)}"
+        head = (f"<b>Reminder test</b> · this is how it will look on {s.strftime('%a %-d %b')}, sent ~{clock(s)}"
                 + ('' if nxt['verified'] else ' (date not yet verified)'))
         msg = SN.Msg(head + '\n\n' + str(nxt['msg']), nxt['msg'].buttons)
         ok = SN.send([msg])

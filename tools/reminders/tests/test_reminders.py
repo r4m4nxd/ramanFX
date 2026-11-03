@@ -155,7 +155,7 @@ class Windows(unittest.TestCase):
     def test_one_combined_morning_message(self):
         r = [x for x in self.rems() if x['id'] == '2026-07-02:morning']
         self.assertEqual(len(r), 1)
-        self.assertIn('Jobs report + US inflation (CPI) today · 6:30 AM', r[0]['msg'])
+        self.assertIn('<b>US jobs and inflation reports</b> · today at 6:30 AM', r[0]['msg'])
         self.assertEqual(R.clock(r[0]['send_at']), '5:45 AM')
 
     def test_window(self):
@@ -191,13 +191,14 @@ class Windows(unittest.TestCase):
         self.assertNotIn('2026-07-04', days)        # Saturday
         d = [r for r in self.rems(daily=True) if r['id'] == '2026-06-29:daily'][0]
         self.assertEqual(R.clock(d['send_at']), '6:10 AM')
-        self.assertIn('Main window 6:30-10:00 today', d['msg'])
+        self.assertIn('<b>Busiest hours today</b> · 6:30–10:00', d['msg'])
 
     def test_fomc_text_and_button(self):
         f = [r for r in self.rems() if r['id'] == '2026-07-29:fomc'][0]
-        self.assertTrue(f['msg'].startswith('⏰ <b>Fed decision today · 12:00 PM, press conference 12:30 PM</b>'))
+        self.assertTrue(f['msg'].startswith('<b>US interest-rate decision</b> · today at 12:00 PM\n<blockquote>● Press conference at <code>12:30 PM</code>'))
+        self.assertTrue(f['msg'].endswith('<i>For learning only, not financial advice</i>'))
         self.assertLessEqual(len(f['msg'].split('\n')), 4)
-        self.assertEqual(f['msg'].buttons, [[{'text': 'Open scanner', 'url': R.SN.FULL_LIST}]])
+        self.assertEqual(f['msg'].buttons, [[{'text': 'Open app', 'url': R.SN.FULL_LIST}]])
         for bad in ('profit', 'guarantee', 'win'):
             self.assertNotIn(bad, f['msg'].lower())
 

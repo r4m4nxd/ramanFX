@@ -1,24 +1,26 @@
 """6 AM Telegram morning brief + lesson of the day for the owner (Calgary clock, America/Edmonton).
 
-    ☀️ <b>Morning brief · Thu 29 Oct</b>
+    <b>Good morning · Thu 29 Oct</b>
+    Your 6 AM market brief
 
-    <b>Big candles · forex, metals, indices</b>
-    XAUUSD D1 · 2.8× normal range · down 1.9% · closed in D1 demand
-    GBPJPY 4H overnight · 2.3× normal range · up 0.6%
-    ...
-    <b>Big candles · stocks</b>
-    NVDA D1 · 3.1× normal range · up 4.2% · broke through W1 supply
+    <b>Biggest price moves</b> · currencies, metals, indices
+    <blockquote>▼ <b>Gold (in US dollars)</b> (XAUUSD) · daily · down 1.9% · 2.8× its usual range · closed in a daily buy area
+    ▲ <b>British pound vs Japanese yen</b> (GBPJPY) · overnight 4-hour · up 0.6% · 2.3× its usual range</blockquote>
+
+    <b>Biggest price moves</b> · stocks
+    <blockquote>▲ <b>NVDA</b> · daily · up 4.2% · 3.1× its usual range · broke through a weekly sell area</blockquote>
     ...
     <b>Today</b>
-    6:30 AM · US GDP Growth Rate QoQ
-    Busy window 6:30-10:00 · NYSE opens 7:30
-    <b>Kevin's plan</b> · Thu 29 Oct
-    The dollar gave the move he predicted off the 4H supply ...
-    [📊 XAUUSD] [📊 GBPJPY] [📊 NVDA]  [Kevin's plan] [Open scanner]
+    <blockquote>● 6:30 AM · US economic growth report
+    ● Busiest hours 6:30–10:00 (US news at 6:30) · New York stock market opens 7:30</blockquote>
+    <b>Today's trading plan</b> · Thu 29 Oct
+    <blockquote>The dollar gave the move predicted off the 4-hour sell area ...</blockquote>
+    <i>6:00 AM MT · For learning only, not financial advice</i>
+    [Chart XAUUSD] [Chart GBPJPY] / [Chart NVDA] / [Trading plan] [Open app]
 
-    📘 <b>Lesson of the day</b> · Raja · Lesson 3        <- second message, right after the brief
+    <b>Lesson of the day</b> · Lesson 3                  <- second message, right after the brief (no mentor names)
     <b>Strong zones: ...</b>
-    • rule 1 / • rule 2 / • rule 3
+    <blockquote>● rule 1 / ● rule 2 / ● rule 3</blockquote>
     [Open lesson]
 
 Big candles: every FX scanner instrument (public/fx/d/*.json, OANDA bid candles) and every scanner stock
@@ -40,7 +42,7 @@ Schedule (.github/workflows/briefing.yml): several UTC cron slots per weekday; t
 holidays are skipped.
 
     python tools/briefing/brief.py               # the scheduled run
-    python tools/briefing/brief.py --test        # ONE '🧪 Sample' brief + lesson now (state untouched)
+    python tools/briefing/brief.py --test        # ONE 'Sample' brief + lesson now (state untouched)
     python tools/briefing/brief.py --dry         # build and print, never send (no state change)
 
 Env: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (unset -> printed), OANDA_API_TOKEN (+ OANDA_ENV), ALPACA_KEY_ID /
@@ -205,12 +207,21 @@ def stock_mover(sym: str, bars: Sequence, zones: List[Dict]) -> Optional[Dict]:
     return {'sym': sym, 'tf': 'D1', 'ratio': r[0], 'pct': pct(b.c, bars[-2].c), 'zone': zone_context(b, zones), 'note': ''}
 
 
-def mover_line(m: Dict) -> str:
-    tf = 'D1' if m['tf'] == 'D1' else '4H overnight'
+def zone_words(text: str) -> str:
+    """'closed in W1 demand' -> 'closed in a weekly buy area' (the zone note in plain words)."""
+    t = SN.words(text or '')
+    return re.sub(r'\b(in|through|at|off|into|near|broke)\s+((?:\S+ )?(?:buy|sell) area)\b', lambda m: f'{m.group(1)} {SN.a(m.group(2))}', t)
+
+
+def mover_line(m: Dict, market: str = '') -> str:
+    """'▼ <b>Gold (in US dollars)</b> (XAUUSD) · daily · down 1.9% · 2.8× its usual range · closed in a daily buy area'."""
+    tf = 'daily' if m['tf'] == 'D1' else 'overnight 4-hour'
     p = m['pct']
     move = f"{'up' if p >= 0 else 'down'} {abs(p):.1f}%" if abs(p) >= 0.05 else 'flat'
-    bits = [f"{m['ratio']:.1f}× normal range", move] + [x for x in (m.get('zone'), m.get('note')) if x]
-    return f"<b>{SN.esc(m['sym'])}</b> {tf} · " + SN.esc(' · '.join(bits))
+    mk = '▲' if p >= 0.05 else '▼' if p <= -0.05 else '●'
+    bits = [tf, move, f"{m['ratio']:.1f}× its usual range"] + [zone_words(x) for x in (m.get('zone'), m.get('note')) if x]
+    market = 'stock' if (market or m.get('market')) == 'stock' else 'fx'
+    return f"{mk} {SN.title(m['sym'], m.get('name') or '', market)} · " + SN.esc(' · '.join(bits))
 
 
 # ---- calendar ----------------------------------------------------------------------------------------------------------
@@ -303,7 +314,7 @@ def news_calendar(day: dt.date, log=print) -> Optional[List[Dict]]:
     return sorted(evs, key=lambda e: (e['at'], e['country'], e['title']))
 
 
-KIND_TITLE = {'nfp': 'Jobs report (NFP)', 'cpi': 'US inflation (CPI)', 'fomc': 'Fed decision (FOMC)'}
+KIND_TITLE = {'nfp': 'jobs report', 'cpi': 'inflation report', 'fomc': 'interest-rate decision'}
 
 
 def reminder_events(day: dt.date) -> List[Dict]:
@@ -331,18 +342,29 @@ def merge_events(cal: List[Dict], extra: List[Dict]) -> List[Dict]:
 def window_line(day: dt.date) -> str:
     a, b = R.at_et(day.isoformat(), '08:30'), R.at_et(day.isoformat(), '12:00')
     op = R.at_et(day.isoformat(), '09:30')
-    return f'Busy window {short(a)}-{short(b)} (US data {short(a)}) · NYSE opens {short(op)}'
+    return f'Busiest hours {short(a)}–{short(b)} (US news at {short(a)}) · New York stock market opens {short(op)}'
+
+
+def plain_event(title: str, country: str = '') -> str:
+    """The calendar title in plain words (tools/news/calendar.py plain_event: 'CPI', 'US' -> 'US inflation report')."""
+    try:
+        tools = os.path.join(ROOT, 'tools')
+        if tools not in sys.path:
+            sys.path.append(tools)
+        from news import calendar as NC        # noqa: WPS433
+        return NC.plain_event(title, country)
+    except Exception:  # noqa: BLE001
+        return f'{country} {title}'.strip()
 
 
 def event_lines(evs: List[Dict], n: int = MAX_EVENTS) -> List[str]:
-    lines = [f"{clock(e['at'])} · {SN.esc((e['country'] + ' ') if e.get('country') else '')}{SN.esc(e['title'])}"
-             for e in evs[:n]]
+    lines = [f"{clock(e['at'])} · {SN.esc(plain_event(e['title'], e.get('country') or ''))}" for e in evs[:n]]
     if len(evs) > n:
         lines.append(f'+{len(evs) - n} more')
     return lines
 
 
-# ---- Kevin's daily plan ------------------------------------------------------------------------------------------------
+# ---- the mentor's daily plan (shown as 'trading plan', no names) ---------------------------------------------------------------------------------------------
 def first_sentence(s: str, n: int = 230) -> str:
     s = re.sub(r'\s+', ' ', s or '').strip()
     m = re.match(r'(.+?[.!?])(\s|$)', s)
@@ -384,35 +406,35 @@ def pick_plan(rows: List[Dict], day: dt.date) -> Optional[Dict]:
 
 # ---- messages ----------------------------------------------------------------------------------------------------------
 def chart_buttons(syms: Sequence[Tuple[str, str]], callbacks: bool) -> List[Dict]:
-    """[📊 SYM] per top mover: the bot's 'c:SYM' callback when its chart handler is deployed, else TradingView."""
+    """[Chart SYM] per top mover: the bot's 'c:SYM' callback when its chart handler is deployed, else TradingView."""
     out = []
     for sym, tv in syms:
         if callbacks and len(f'c:{sym}'.encode()) <= 64:
-            out.append(SN.cb(f'📊 {sym}', f'c:{sym}'))
+            out.append(SN.cb(f'Chart {sym}', f'c:{sym}'))
         else:
-            out.append(SN.button(f'📊 {sym}', tv))
+            out.append(SN.button(f'Chart {sym}', tv))
     return out
 
 
 def build_brief(day: dt.date, fx: List[Dict], stocks: List[Dict], evs: List[Dict], plan: Optional[Dict],
                 callbacks: bool = False, sample: bool = False, notes: Sequence[str] = (), earnings: Sequence[str] = (),
                 insiders: Sequence[str] = ()) -> SN.Msg:
-    head = f"☀️ <b>Morning brief · {day.strftime('%a %-d %b')}</b>"
+    head = f"<b>Good morning · {day.strftime('%a %-d %b')}</b>\nYour 6 AM market brief"
     if sample:
-        head = '🧪 <b>Sample</b> · ' + head
+        head = '<b>Sample</b> · ' + head
     parts = [head + ''.join('\n' + SN.esc(n) for n in notes)]
     if fx:
-        parts.append('<b>Big candles · forex, metals, indices</b>\n' + '\n'.join(mover_line(m) for m in fx))
+        parts.append('<b>Biggest price moves</b> · currencies, metals, indices\n' + SN.block([mover_line(m) for m in fx]))
     if stocks:
-        parts.append('<b>Big candles · stocks</b>\n' + '\n'.join(mover_line(m) for m in stocks))
+        parts.append('<b>Biggest price moves</b> · stocks\n' + SN.block([mover_line(m, 'stock') for m in stocks]))
     if not fx and not stocks:
-        parts.append('<i>No candle data this morning (feeds unavailable).</i>')
-    today = ['<b>Today</b>'] + (event_lines(evs) or ['No high-impact events.']) + [window_line(day)]
-    parts.append('\n'.join(today))
+        parts.append('● No price data this morning (the feeds did not answer)')
+    today = (event_lines(evs) or ['No big news events today']) + [window_line(day)]
+    parts.append('<b>Today</b>\n' + SN.block(['● ' + x if not x.startswith('+') else x for x in today]))
     if earnings:
-        parts.append('<b>📑 Earnings</b>\n' + '\n'.join(earnings))
+        parts.append('<b>Company results</b>\n' + SN.block(earnings))
     if insiders:
-        parts.append('<b>🕵️ Insider buys</b>\n' + '\n'.join(insiders))
+        parts.append('<b>Insiders buying their own stock</b>\n' + SN.block(insiders))
     rows: List[List[Dict]] = []
     if plan:
         pd = plan.get('planFor') or ''
@@ -420,18 +442,19 @@ def build_brief(day: dt.date, fx: List[Dict], stocks: List[Dict], evs: List[Dict
             when = dt.date.fromisoformat(pd).strftime('%a %-d %b')
         except ValueError:
             when = pd
-        lab = "Kevin's plan" if pd == day.isoformat() else "Kevin's latest plan"
-        parts.append(f'<b>{lab}</b> · {SN.esc(when)}\n{SN.esc(first_sentence(plan.get("summary") or plan.get("title") or ""))}')
+        lab = "Today's trading plan" if pd == day.isoformat() else 'Latest trading plan'
+        summary = SN.words(first_sentence(plan.get("summary") or plan.get("title") or ""))
+        parts.append(f'<b>{lab}</b> · {SN.esc(when)}\n{SN.block([SN.esc(summary)])}')
     syms = [(m['sym'], m.get('tv') or TV_CHART + m['sym']) for m in (fx[:2] + stocks[:2])]
     btns = chart_buttons(syms, callbacks)
     if btns:
         rows += [btns[:2], btns[2:4]]
     last = []
     if plan and plan.get('n'):
-        last.append(SN.button("Kevin's plan", f"{APP}/learn?src=daily&l={plan['n']}"))
-    last.append(SN.button('Open scanner', SN.FULL_LIST))
+        last.append(SN.button('Trading plan', f"{APP}/learn?src=daily&l={plan['n']}"))
+    last.append(SN.button('Open app', SN.FULL_LIST))
     rows.append(last)
-    text = '\n\n'.join(parts)
+    text = '\n\n'.join(parts) + '\n' + SN.footer()
     if SN.u16(text) > SN.SAFE and (fx or stocks):             # never in practice (lines are short): drop a mover
         fx, stocks = (fx, stocks[:-1]) if len(stocks) >= len(fx) else (fx[:-1], stocks)
         return build_brief(day, fx, stocks, evs, plan, callbacks, sample, notes, earnings, insiders)
@@ -453,18 +476,20 @@ def clip(s: str, n: int) -> str:
 
 
 def build_lesson(e: Dict, sample: bool = False, npoints: int = 3) -> SN.Msg:
-    """📘 Lesson of the day · mentor · label / title / 3 key points (rules first) / [Open lesson]."""
+    """Lesson of the day · label / title / 3 key points (rules first) in a quote / footer / [Open lesson] (no mentor
+    names in the text, owner 2026-11-03)."""
     lab = LABEL.get(e['src'], 'Lesson')
     if e['src'] == 'raja' and int(e['n']) >= 101:
         lab = 'Private session'
     elif e['src'] != 'zoom':
         lab = f"{lab} {e['n']}"
-    head = f"📘 <b>Lesson of the day</b> · {SN.esc(e['mentor'])} · {SN.esc(lab)}"
+    head = f"<b>Lesson of the day</b> · {SN.esc(lab)}"
     if sample:
-        head = '🧪 <b>Sample</b> · ' + head
+        head = '<b>Sample</b> · ' + head
     pts = [p for p in (e.get('points') or []) if p][:npoints] or [first_sentence(e.get('summary') or '')]
-    lines = [head, f"<b>{SN.esc(clip(e['title'], 120))}</b>"] + [f'• {SN.esc(clip(p, 170))}' for p in pts]
-    return SN.Msg('\n'.join(lines), [[SN.button('Open lesson', lesson_url(e))]])
+    lines = [head, f"<b>{SN.esc(clip(e['title'], 120))}</b>",
+             SN.block([f'● {SN.esc(clip(SN.words(p), 170))}' for p in pts]), SN.footer('', '')]
+    return SN.Msg('\n'.join(x for x in lines if x), [[SN.button('Open lesson', lesson_url(e))]])
 
 
 # ---- lesson rotation ---------------------------------------------------------------------------------------------------
@@ -698,6 +723,9 @@ def my_stocks() -> Dict[str, str]:
     return out
 
 
+MINE_WORD = {'held': 'you own it', 'watched': 'on your watchlist', 'listed': 'in the scanner'}
+
+
 def earnings_lines(day: dt.date, mine: Dict[str, str], fund: Optional[Dict], n: int = 8) -> List[str]:
     """'NVDA today after close · held' for held / watched / listed stocks reporting today or the next weekday."""
     nxt = day + dt.timedelta(days=1)
@@ -709,12 +737,12 @@ def earnings_lines(day: dt.date, mine: Dict[str, str], fund: Optional[Dict], n: 
     for s, e in ((fund or {}).get('stocks') or {}).items():
         w = when.get(str(e.get('er_next') or ''))
         if w and s in mine:
-            est = ', estimated' if e.get('er_kind') == 'estimated' else ''
-            rows.append((w != 'today', rank[mine[s]], s, f"<b>{SN.esc(s)}</b> {w}{' ' + e['er_time'] if e.get('er_time') else ''}{est} · {mine[s]}"))
+            est = ', date estimated' if e.get('er_kind') == 'estimated' else ''
+            rows.append((w != 'today', rank[mine[s]], s, f"<b>{SN.esc(s)}</b> · {w}{' ' + SN.esc(e['er_time']) if e.get('er_time') else ''}{est} · {MINE_WORD[mine[s]]}"))
     rows.sort()
     out = [r[3] for r in rows[:n]]
     if len(rows) > n:
-        out.append(f'+{len(rows) - n} more (/fund SYM)')
+        out.append(f'+{len(rows) - n} more (type /fund and the symbol)')
     return out
 
 
@@ -743,7 +771,7 @@ def my_symbols(prefs: Optional[Dict]) -> List[str]:
 
 
 def headline_block(now: dt.datetime, log=print, prefs: Optional[Dict] = None, NH=None) -> str:
-    """'📰 <b>Overnight headlines</b>' (top 5 market-moving of the last ~14 h) + '<b>Your symbols</b>' (the newest
+    """'<b>Overnight headlines</b>' (top 5 market-moving of the last ~14 h) + '<b>Your symbols</b>' (the newest
     headline per held / watched symbol, overnight). '' when the feeds gave nothing. Never raises."""
     try:
         NH = NH or _headlines_mod()
@@ -756,7 +784,7 @@ def headline_block(now: dt.datetime, log=print, prefs: Optional[Dict] = None, NH
         tagged = NH.alpaca(NH.tags_for(mine), log=log) if NH.tags_for(mine) else []
         items = general + rss
         top = NH.top(items, now, HEADLINES_TOP, hours=OVERNIGHT_H)
-        lines = [f'• {NH.line_for(h, now, 110)}' for h in top]
+        lines = [NH.line_for(h, now, 110) for h in top]
         seen = {h['id'] for h in top}
         own = []
         for sym in mine:
@@ -768,10 +796,8 @@ def headline_block(now: dt.datetime, log=print, prefs: Optional[Dict] = None, NH
                 break
         if not lines and not own:
             return ''
-        block = ['📰 <b>Overnight headlines</b>'] + lines
-        if own:
-            block += ['<b>Your symbols</b>'] + own
-        return '\n'.join(block)
+        body = lines + (['<b>Your symbols</b>'] + own if own else [])
+        return '<b>Overnight headlines</b>\n' + SN.block(body)
     except Exception as e:  # noqa: BLE001
         if log:
             log(f'headlines: skipped ({type(e).__name__})')
@@ -822,7 +848,7 @@ def make_messages(now: dt.datetime, st: Dict, sample: bool, log=print) -> Tuple[
 
 
 def insider_lines(now: dt.datetime, day: dt.date, log=print) -> List[str]:
-    """'🕵️ Insider buys': the top 3 of tools/insiders (public/insiders/latest.json, data branch), ⭐ first; [] on any problem."""
+    """'Insiders buying their own stock': the top 3 of tools/insiders (public/insiders/latest.json, data branch), strong ones first; [] on any problem."""
     try:
         import importlib.util                      # noqa: WPS433
         spec = importlib.util.spec_from_file_location('insiders_mod', os.path.join(ROOT, 'tools', 'insiders', 'insiders.py'))
@@ -840,7 +866,12 @@ _PARTS: Dict = {}
 
 def public_headlines(block: str) -> str:
     """The headline block without the owner's '<b>Your symbols</b>' part (held / watched symbols)."""
-    return block.split('\n<b>Your symbols</b>')[0] if block else ''
+    if not block or '\n<b>Your symbols</b>' not in block:
+        return block or ''
+    head = block.split('\n<b>Your symbols</b>')[0]
+    if head.endswith('<blockquote>'):                     # only the owner's symbols: nothing public left
+        return ''
+    return head + '</blockquote>' if head.count('<blockquote>') > head.count('</blockquote>') else head
 
 
 def guest_brief(g: Dict, parts: Optional[Dict] = None, mine: Optional[Dict[str, str]] = None, fund=None) -> List:
@@ -868,7 +899,7 @@ def guest_brief(g: Dict, parts: Optional[Dict] = None, mine: Optional[Dict[str, 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    ap.add_argument('--test', action='store_true', help="send ONE '🧪 Sample' brief + lesson now (state untouched)")
+    ap.add_argument('--test', action='store_true', help="send ONE 'Sample' brief + lesson now (state untouched)")
     ap.add_argument('--dry', action='store_true', help='build and print, never send')
     a = ap.parse_args(argv)
     now = _ts(os.environ['BRIEF_NOW']) if os.environ.get('BRIEF_NOW') else dt.datetime.now(UTC)

@@ -373,10 +373,10 @@ class NewsWarningTest(unittest.TestCase):
         old = notify.NEWS
         try:
             notify.NEWS = [{'time_utc': soon, 'country': 'US', 'title': 'CPI (YoY)', 'importance': 'high', 'currency': 'USD'}]
-            self.assertRegex(notify.news_warning('NVDA', 'stock'), r'^● Big news: US CPI in (19|20|21) min$')
+            self.assertRegex(notify.news_warning('NVDA', 'stock'), r'^● Big news: US inflation report in (19|20|21) min$')
             self.assertEqual(notify.news_warning('EURGBP', 'fx'), '')
             res = {'signals': [], 'date': '2026-10-28', 'generated_at': '2026-10-29T01:56:48Z'}
-            self.assertIn('● Big news: US CPI in', notify.build_messages(res)[0])
+            self.assertIn('● Big news: US inflation report in', notify.build_messages(res)[0])
         finally:
             notify.NEWS = old
         self.assertEqual(notify.news_warning('NVDA', 'stock'), '')

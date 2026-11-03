@@ -67,7 +67,7 @@ class Ranking(unittest.TestCase):
         m = B.fx_mover('GBPJPY', d1, h4, utc, dt.datetime(2026, 10, 28, 21, tzinfo=UTC), [])
         self.assertEqual(m['tf'], 'H4')
         self.assertAlmostEqual(m['ratio'], 3.0)
-        self.assertIn('4H overnight', B.mover_line(m))
+        self.assertIn('· overnight 4-hour ·', B.mover_line(m))
 
     def test_fx_d1_with_h4_note(self):
         d1 = bars(25, 1.0, last=(100, 102, 99, 99.2))            # 3.0x
@@ -111,17 +111,20 @@ class Messages(unittest.TestCase):
                  'note': '', 'tv': 'https://www.tradingview.com/chart/?symbol=X'} for k in range(n)]
 
     def test_escaped_and_short(self):
-        evs = [{'at': dt.datetime(2026, 10, 29, 12, 30, tzinfo=UTC), 'title': 'GDP <QoQ> & more', 'country': 'US'}] * 9
+        evs = [{'at': dt.datetime(2026, 10, 29, 12, 30, tzinfo=UTC), 'title': 'Housing <starts> & more', 'country': 'US'}] * 9
         m = B.build_brief(DAY, self.movers(5), self.movers(5), evs, plan(), callbacks=True)
         self.assertLess(B.SN.u16(m), 4096)
         self.assertIn('A&lt;B&gt;&amp;C0', m)
-        self.assertIn('GDP &lt;QoQ&gt; &amp; more', m)
+        self.assertIn('US Housing &lt;starts&gt; &amp; more', m)
         self.assertIn('&lt;b&gt;moved&lt;/b&gt;', m)
-        self.assertNotIn('<QoQ>', m)
-        self.assertTrue(m.startswith('☀️ <b>Morning brief · Thu 29 Oct</b>'))
+        self.assertNotIn('<starts>', m)
+        self.assertTrue(m.startswith('<b>Good morning · Thu 29 Oct</b>'))
+        self.assertIn('closed in a weekly buy area', m)
+        self.assertTrue(m.endswith('For learning only, not financial advice</i>'))
         self.assertIn('+3 more', m)
         tags = re.findall(r'</?([a-z]+)[^>]*>', m)
-        self.assertTrue(set(tags) <= {'b', 'i'}, tags)
+        self.assertTrue(set(tags) <= {'b', 'i', 'blockquote'}, tags)
+        self.assertEqual(m.count('<blockquote>'), m.count('</blockquote>'))
         self.assertEqual(m.count('<b>'), m.count('</b>'))
         cbs = [b['callback_data'] for r in m.buttons for b in r if 'callback_data' in b]
         self.assertEqual(cbs[:2], ['c:A<B>&C0', 'c:A<B>&C1'])
@@ -137,10 +140,10 @@ class Messages(unittest.TestCase):
         mv = self.movers(5, 'X' * 900)
         m = B.build_brief(DAY, mv, mv, [], plan(), sample=True)
         self.assertLessEqual(B.SN.u16(m), B.SN.SAFE)
-        self.assertTrue(m.startswith('🧪 <b>Sample</b>'))
+        self.assertTrue(m.startswith('<b>Sample</b>'))
 
     def test_window_line_is_local(self):
-        self.assertEqual(B.window_line(DAY), 'Busy window 6:30-10:00 (US data 6:30) · NYSE opens 7:30')
+        self.assertEqual(B.window_line(DAY), 'Busiest hours 6:30–10:00 (US news at 6:30) · New York stock market opens 7:30')
 
     def test_lesson_message(self):
         e = {'key': 'raja:3', 'src': 'raja', 'n': 3, 'mentor': 'Raja', 'title': 'Curve <and> location',
@@ -205,7 +208,7 @@ class Schedule(unittest.TestCase):
             self.assertEqual(w, dt.timedelta(hours=-6))          # permanent UTC-6 from 2026-11-01
             self.assertEqual(B.local_at(dt.date(2027, 1, 15), (6, 0)).utcoffset(), dt.timedelta(hours=-6))
             # US winter: 8:30 ET (UTC-5) = 7:30 AM Calgary
-            self.assertEqual(B.window_line(dt.date(2026, 11, 3)), 'Busy window 7:30-11:00 (US data 7:30) · NYSE opens 8:30')
+            self.assertEqual(B.window_line(dt.date(2026, 11, 3)), 'Busiest hours 7:30–11:00 (US news at 7:30) · New York stock market opens 8:30')
         else:
             self.assertIn(w, (dt.timedelta(hours=-6), dt.timedelta(hours=-7)))
 
@@ -260,7 +263,7 @@ class Calendar(unittest.TestCase):
     def test_parse_and_lines(self):
         evs = B.parse_tv_calendar(self.TV, DAY)
         self.assertEqual([e['title'] for e in evs], ['ECB Interest Rate Decision', 'GDP Growth Rate QoQ'])
-        self.assertEqual(B.event_lines(evs), ['6:15 AM · EU ECB Interest Rate Decision', '6:30 AM · US GDP Growth Rate QoQ'])
+        self.assertEqual(B.event_lines(evs), ['6:15 AM · Euro area interest-rate decision', '6:30 AM · US economic growth report'])
         self.assertEqual(B.parse_tv_calendar('<html>', DAY), [])
 
     def test_merge_reminder_kinds(self):

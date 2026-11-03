@@ -39,7 +39,8 @@ class Block(unittest.TestCase):
         prefs = {'watch': ['NVDA', 'EURUSD'], 'open': ['XAUUSD']}
         block = B.headline_block(NOW, log=None, prefs=prefs, NH=fake_nh(general, rss, tagged))
         lines = block.split('\n')
-        self.assertEqual(lines[0], '📰 <b>Overnight headlines</b>')
+        self.assertEqual(lines[0], '<b>Overnight headlines</b>')
+        self.assertTrue(lines[1].startswith('<blockquote>') and lines[-1].endswith('</blockquote>'))
         self.assertTrue(any('Fed holds rates' in x for x in lines[1:3]))
         self.assertIn('<b>Your symbols</b>', lines)
         self.assertTrue(any(x.startswith('<b>NVDA</b> · <a href="https://e.test/1">Nvidia &lt;wins&gt; new AI contract</a> · 3h ago') for x in lines))

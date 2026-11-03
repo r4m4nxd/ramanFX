@@ -1,6 +1,6 @@
 """Send the Telegram messages of the currently published scans (public/fx, public/scanner) once, as a layout test.
 Run by .github/workflows/telegram-preview.yml (manual). Nothing is scanned; the bot token comes from the secrets.
---headlines: instead ONE '🧪 Sample headlines' message (tools/news/headlines.py, live Alpaca News + RSS)."""
+--headlines: instead ONE 'Sample headlines' message (tools/news/headlines.py, live Alpaca News + RSS)."""
 import json
 import os
 import sys
@@ -13,21 +13,23 @@ import notify as SN  # noqa: E402
 
 
 def headlines_sample() -> str:
-    """ONE '🧪 Sample headlines' message in the bot's /news style (top 5 + EURUSD and NVDA), live feeds."""
+    """ONE 'Sample headlines' message in the bot's /news style (top 5 + EURUSD and NVDA), live feeds."""
     import datetime as dt
     sys.path.append(os.path.join(ROOT, 'tools'))
     from news import headlines as NH
     now = dt.datetime.now(dt.timezone.utc)
     rss, general = NH.pool(), NH.alpaca([])
-    lines = ['🧪 <b>Sample headlines</b>', '', '📰 <b>Top headlines</b>']
-    lines += [f'• {NH.line_for(h, now, 120)}' for h in NH.top(general + rss, now)] or ['(no headlines loaded)']
+    top = [NH.line_for(h, now, 120) for h in NH.top(general + rss, now)] or ['(no headlines loaded)']
+    parts = ['<b>Sample headlines</b> · top market news\n' + SN.block(top)]
     for sym in ('EURUSD', 'XAUUSD', 'NVDA', 'BTCUSD'):
         items = (NH.alpaca(NH.tags_for([sym])) if NH.tags_for([sym]) else []) + rss
         hs = NH.for_symbol(items, sym, now, 2)
         if hs:
-            lines += ['', f'<b>{sym}</b> (/news {sym})'] + [f'• {NH.line_for(h, now, 110)}' for h in hs]
-    lines += ['', 'Sources: Benzinga via Alpaca, investingLive, Investing.com, CNBC, CoinDesk · Calgary time · not advice']
-    return '\n'.join(lines)[:4000]
+            parts.append(f"{SN.title(sym, '', 'stock' if sym == 'NVDA' else 'fx')} · /news {sym}\n"
+                         + SN.block([NH.line_for(h, now, 110) for h in hs]))
+    parts.append('Sources: Benzinga via Alpaca, investingLive, Investing.com, CNBC, CoinDesk')
+    text = '\n\n'.join(parts) + '\n' + SN.footer()
+    return text if SN.u16(text) <= SN.SAFE else SN._cut(text, SN.SAFE)
 
 
 if '--headlines' in sys.argv:

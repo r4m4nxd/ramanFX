@@ -185,21 +185,23 @@ class Message(unittest.TestCase):
                 self.sec('H1', [row('AAPL', 'stock', 'H1')], ('fx', 'stock'), feed='IEX real-time')]
         m = M.build(secs)
         t = str(m)
-        self.assertTrue(t.startswith('<b>⚡ Big moves · 1W · 1D · 4H · 1H</b>'))
-        pos = [t.index(h) for h in ('🟪 1W', '🟦 1D', '🟩 4H', '⬜ 1H')]
+        self.assertTrue(t.startswith('<b>Big price moves</b> · weekly · daily · 4-hour · hourly'))
+        pos = [t.index(h) for h in ('<b>Weekly candle</b>', '<b>Daily candle</b>', '<b>4-hour candle</b>', '<b>Hourly candle</b>')]
         self.assertEqual(pos, sorted(pos))
-        self.assertIn('<b>🟪 1W</b> · week closed Fri 3:00 PM', t)
-        self.assertIn('▲ <b>GBPJPY</b> +1.2% · 2.6× · into D1 supply', t)
-        self.assertIn('▼ <b>US500</b> -0.42% · 2.5×', t)
-        self.assertIn('▼ <b>NVDA</b> -6.4% · 2.5× · gap ▼3.1%', t)
+        self.assertIn('<b>Weekly candle</b> · week closed Fri 3:00 PM\n<blockquote>', t)
+        self.assertIn('▲ <b>British pound vs Japanese yen</b> (GBPJPY) +1.2% · 2.6× its usual size · into a daily sell area', t)
+        self.assertIn('▼ <b>US 500 index</b> (US500) -0.42% · 2.5× its usual size', t)
+        self.assertIn('▼ <b>NVDA</b> -6.4% · 2.5× its usual size · opened 3.1% lower', t)
+        self.assertIn('into a weekly buy area · in the trading plan', t)
         self.assertIn('<i>Stocks</i> · SIP', t)
-        lines = t.split('\n')
-        self.assertLess(lines.index('<i>Forex &amp; metals</i>') if '<i>Forex &amp; metals</i>' in lines else lines.index('<i>Forex & metals</i>'),
-                        lines.index('<i>Stocks</i> · SIP'))
-        self.assertIn('<i>Indices & commodities</i>', t)
+        lines = [x.replace('<blockquote>', '') for x in t.split('\n')]
+        self.assertLess(lines.index('<i>Currencies and metals</i>'), lines.index('<i>Stocks</i> · SIP'))
+        self.assertIn('<i>Stock indices and commodities</i>', t)
         self.assertIn('<i>Crypto</i>', t)
-        self.assertIn('⭐ Kevin zone', t)
-        self.assertIn('Calgary time · not advice', t)
+        self.assertNotIn('Kevin', t)
+        self.assertEqual(sum(x.count('▲') + x.count('▼') for x in lines if x.startswith('▼ <b>NVDA')), 1)   # one marker a line
+        self.assertIn('times are Calgary time', t)
+        self.assertTrue(t.endswith('For learning only, not financial advice</i>'))
         cbs = [b['callback_data'] for r in m.buttons for b in r]
         self.assertEqual(cbs, ['c:XAUUSD', 'c:NVDA', 'c:GBPJPY'])            # top 3, highest timeframe first
 
@@ -207,21 +209,22 @@ class Message(unittest.TestCase):
         rows = [row(f'S{i:03d}', 'stock', 'D1', x=10 - i / 100) for i in range(12)]
         t = str(M.build([self.sec('D1', rows, ('stock',))]))
         self.assertEqual(sum(1 for x in t.split('\n') if '<b>S0' in x), 8)
-        self.assertIn('+4 more → <a href="https://raman-fx.vercel.app/moves#d1">app</a>', t)
-        many = [self.sec(tf, [row(f'{g[:2].upper()}{i:03d}', g, tf, why={'line': '   📰 why: ' + 'w' * 80}) for g in M.GROUPS for i in range(40)])
+        self.assertIn('+4 more in the <a href="https://raman-fx.vercel.app/moves#d1">app</a></blockquote>', t)
+        many = [self.sec(tf, [row(f'{g[:2].upper()}{i:03d}', g, tf, why={'line': 'Why: ' + 'w' * 80}) for g in M.GROUPS for i in range(40)])
                 for tf in ('W1', 'D1', 'H4', 'H1')]
         big = M.build(many)
         self.assertLessEqual(M.SN.u16(str(big)), M.SN.SAFE)
-        self.assertIn('more → ', str(big))
-        for h in ('🟪 1W', '🟦 1D', '🟩 4H', '⬜ 1H'):
+        self.assertIn('more in the ', str(big))
+        self.assertEqual(str(big).count('<blockquote>'), str(big).count('</blockquote>'))
+        for h in ('Weekly candle', 'Daily candle', '4-hour candle', 'Hourly candle'):
             self.assertIn(h, str(big))                                         # every timeframe survives the trim
 
     def test_h1_only_keeps_the_hour_title_and_nothing_means_no_message(self):
         t = str(M.build([self.sec('H1', [row('EURUSD', 'fx', 'H1')], close='2026-10-29T14:00:00+00:00')]))
-        self.assertTrue(t.startswith('<b>⚡ Big moves · last hour (7:00–8:00 AM)</b>'))
+        self.assertTrue(t.startswith('<b>Big price moves</b> · last hour (7:00–8:00 AM)'))
         self.assertIsNone(M.build([self.sec('H1', [])]))
         s = str(M.build([self.sec('D1', [row('EURUSD', 'fx', 'D1')])], test=True))
-        self.assertTrue(s.startswith('<b>🧪 Sample big moves (all timeframes)'))
+        self.assertTrue(s.startswith('<b>Sample big moves (all timeframes)'))
 
 
 @mock.patch.dict(os.environ, ENV)
@@ -252,11 +255,11 @@ class Run(unittest.TestCase):
         m = self.go(seen=seen)
         self.assertEqual(len(self.sent), 1)
         t = str(m)
-        for h in ('🟪 1W', '🟦 1D', '🟩 4H', '⬜ 1H'):
+        for h in ('Weekly candle', 'Daily candle', '4-hour candle', 'Hourly candle'):
             self.assertIn(f'<b>{h}</b>', t)
-        self.assertIn('▲ <b>XAUUSD</b> +5.0% · 8.0×', t)
-        self.assertIn('▲ <b>NVDA</b> +5.0% · 8.0×', t)
-        self.assertIn('▲ <b>BTCUSD</b>', t)
+        self.assertIn('▲ <b>Gold (in US dollars)</b> (XAUUSD) +5.0% · 8.0× its usual size', t)
+        self.assertIn('▲ <b>NVDA</b> +5.0% · 8.0× its usual size', t)
+        self.assertIn('▲ <b>Bitcoin (in US dollars)</b> (BTCUSD)', t)
         self.assertNotIn('EURUSD', t)
         self.assertIn('<i>Stocks</i> · SIP', t)
         self.assertIn('<i>Stocks</i> · IEX real-time', t)
@@ -300,7 +303,7 @@ class Run(unittest.TestCase):
         self.assertTrue(m.silent)
         t = str(m)
         self.assertIn('last hour', t)                                           # the 1H part goes out silently
-        self.assertNotIn('🟪 1W', t)
+        self.assertNotIn('Weekly candle', t)
         with open(self.state) as f:
             st = json.load(f)
         self.assertEqual(sorted(s['tf'] for s in st['held'])[-3:], ['D1', 'H4', 'W1'])
@@ -310,8 +313,8 @@ class Run(unittest.TestCase):
         self.assertEqual(len(self.sent), 2)
         t2 = str(m2)
         self.assertFalse(m2.silent)
-        self.assertIn('<b>🟪 1W</b> · week closed Fri 3:00 PM · held over quiet hours', t2)
-        self.assertIn('<b>🟦 1D</b>', t2)
+        self.assertIn('<b>Weekly candle</b> · week closed Fri 3:00 PM · held over quiet hours', t2)
+        self.assertIn('<b>Daily candle</b>', t2)
         self.assertIn('XAUUSD', t2)
         with open(self.state) as f:
             self.assertEqual(json.load(f)['held'], [])
@@ -332,8 +335,8 @@ class Run(unittest.TestCase):
     def test_sample_all_timeframes_touches_no_state(self):
         m = self.go(now=dt.datetime(2026, 10, 31, 12, 5, tzinfo=UTC), test=True, big_fx=(), big_st=(), big_crypto=())
         t = str(m)
-        self.assertTrue(t.startswith('<b>🧪 Sample big moves (all timeframes)'))
-        for h in ('🟪 1W', '🟦 1D', '🟩 4H', '⬜ 1H'):
+        self.assertTrue(t.startswith('<b>Sample big moves (all timeframes)'))
+        for h in ('Weekly candle', 'Daily candle', '4-hour candle', 'Hourly candle'):
             self.assertIn(h, t)
         self.assertFalse(os.path.exists(self.state))
         self.assertFalse(os.path.exists(self.latest))
@@ -342,7 +345,7 @@ class Run(unittest.TestCase):
             with mock.patch.object(M, '_crypto_mod', lambda: (_ for _ in ()).throw(ImportError())):
                 s = M.run(FRI, get=get, test=True, state_path=self.state, latest_path=self.latest,
                           send=lambda ms: True, log=lambda *_: None)
-        self.assertIn('into W1 demand ⭐', str(s))                               # no data at all: the sample lines
+        self.assertIn('into a weekly buy area · in the trading plan', str(s))                             # no data at all: the sample lines
 
 
 class Context(unittest.TestCase):
