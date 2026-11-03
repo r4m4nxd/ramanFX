@@ -2,8 +2,14 @@ name: FX backtest
 
 # Walk-forward backtest of the live FX rules (tools/fx_scanner/fx_backtest.py) on OANDA history: same signal code as
 # the scanner, limit fills on bid / ask, spread paid, stop-first within a candle, in-sample vs out-of-sample, ablations.
-# Manual only. Writes public/fx/backtest.json + docs/research/FX_Backtest.md and commits them to the `data` branch. Stdlib only.
+# Monthly (the 2nd, 06:17 UTC: before learn.yml reads it) + manual. Writes public/fx/backtest.json,
+# docs/research/FX_Backtest.md, public/learn/fx_experiments.json (the experiment variants of
+# tools/fx_scanner/fxexperiments.py vs the chosen base rules, for the auto-learner tools/learn/learner.py) and
+# public/learn/fx_experiments_all.json (every base, research) and commits them to the `data` branch (only those two
+# files of public/learn: the other files there belong to other jobs). Stdlib only.
 on:
+  schedule:
+    - cron: '17 6 2 * *'
   workflow_dispatch:
     inputs:
       years:
@@ -87,6 +93,8 @@ jobs:
           name: fx-backtest-${{ github.run_id }}
           path: |
             public/fx/backtest.json
+            public/learn/fx_experiments.json
+            public/learn/fx_experiments_all.json
             docs/research/FX_Backtest.md
           if-no-files-found: ignore
 
@@ -95,5 +103,10 @@ jobs:
         run: |
           git config user.name "ramanfx-scanner[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          bash scripts/data-branch.sh push "fx: backtest $(date -u +%Y-%m-%dT%H:%MZ)" public/fx/backtest.json docs/research/FX_Backtest.md \
+          # fx_experiments(_all).json: this run's copy, else the one the data-branch pull restored (never deleted on a failed run)
+          paths=(public/fx/backtest.json docs/research/FX_Backtest.md)
+          for f in public/learn/fx_experiments.json public/learn/fx_experiments_all.json; do
+            if [ -f "$f" ]; then paths+=("$f"); fi
+          done
+          bash scripts/data-branch.sh push "fx: backtest $(date -u +%Y-%m-%dT%H:%MZ)" "${paths[@]}" \
             || { echo "::error::results not pushed (see the uploaded artifact)"; exit 1; }
