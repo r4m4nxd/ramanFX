@@ -39,7 +39,7 @@ with open(os.path.join(ROOT, 'public', 'fx', 'latest.json')) as f:
     fx = json.load(f)
 fxm = FN.preview_messages(fx)
 stock = SN.build_messages(SN.load_published(os.path.join(ROOT, 'public', 'scanner')))
-msgs = ['🧪 <b>Layout test</b>\nThe next messages are today\'s scans in the new format (nothing new was scanned).']
+msgs = ['<b>Layout test</b>\nThe next messages are today\'s scans in the new format (nothing new was scanned).']
 msgs += fxm['instant alert'][:1] + fxm['daily summary'][:1] + stock[:1]
 ok = SN.send(msgs)
 print('sent' if ok else 'not sent', len(msgs), 'messages')

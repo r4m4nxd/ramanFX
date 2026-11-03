@@ -1,17 +1,18 @@
 """Telegram alerts for the Raja arrival / realignment rules (arrival.py), shared by the FX and the stock scanner.
 
-Three calm alerts, at most DAY_CAP (8) messages a day over every job together (Calgary day), batched per run:
-    ⚡ New arrival zone       an arrival forms on 3M / MN / W1 / D1 / H4 (FX also H1): the entry zone, the zones it
+Three calm alerts, at most DAY_CAP (8) messages a day over every job together (Calgary day), batched per run, in
+plain words (owner 2026-11-03: 'new buy area', 'back in an area to watch', 'Buy signal, confirmed'; no emoji):
+    New arrival zone         an arrival forms on 3M / MN / W1 / D1 / H4 (FX also H1): the entry zone, the zones it
                              removed (1 or 2+ = strong), the target and the higher-TF line that caps it
-    🔁 Realignment watch     price ENTERS a realignment area (once per arrival)
-    ✅ Confirmation           a lower-TF arrival forms inside the area: the A+ trade (entry, stop, target, R:R)
+    Realignment watch        price ENTERS a realignment area (once per arrival)
+    Confirmation             a lower-TF arrival forms inside the area: the A+ trade (entry, stop, target, R:R)
 Items are plain dicts (JSON: they live in the state files on the data branch):
     arrival  {kind, sym, tf, dir, lo, hi, prox, dist, n_removed, target, target_kind, target_tf, ceiling, ceiling_tf,
               htf_crossed, area: {tf, dir, lo, hi} | None, price, digits, id, date}
     watch    {kind, sym, tf, dir (the area's side), lo, hi, arr_dir, arr_prox, ltf, htf, price, digits, id}
     confirm  {kind, sym, tf, ltf, dir, entry, stop, target, rr, lo, hi, n_removed, area_lo, area_hi, price, digits, id}
 Distances in % of price (never pips), times on the owner's clock (Calgary), the existing card style with the bot's
-[📊 Chart] [🔎 Zones] buttons. Mutes, quiet hours and the guests' markets through prefs / guests.
+[Chart] [Areas] buttons. Mutes, quiet hours and the guests' markets through prefs / guests.
 State files (each written by ONE job, read by the others for the shared daily cap):
     public/fx/arrivals.json      fx-scan (hourly): seen arrivals, realignment areas (entered / inside), H4+ confirmations
     public/fx/realign.json       realign.yml (15 min): the M15 / H1 confirmations it sent
@@ -40,7 +41,7 @@ STATE_FILES = {'fx': os.path.join(ROOT, 'public', 'fx', 'arrivals.json'),
                'realign': os.path.join(ROOT, 'public', 'fx', 'realign.json'),
                'stocks': os.path.join(ROOT, 'public', 'scanner', 'arrivals.json')}
 KEEP_DAYS = 120
-TFW = dict(SN.TF_WORD, M15='15-min')
+TFW = dict(SN.TF_WORD)
 TFS = dict(SN.TF_SHORT, M15='15m')
 ORDER = {'confirm': 0, 'arrival': 1, 'watch': 2}
 TF_RANK = {'3M': 0, 'MN': 1, 'W1': 2, 'D1': 3, 'H4': 4, 'H1': 5, 'M15': 6}
@@ -123,95 +124,108 @@ def sides(d: int, n: int = 2) -> str:
 
 
 def tfw(tf: str) -> str: return TFW.get(tf or '', tf or '')
+def _area(d: int, n: int = 1) -> str: return SN.area(side(d), n)
+def _rng(lo, hi, nd) -> str: return SN.code(f'{_f(lo, nd)}–{_f(hi, nd)}')
+def _cap(s: str) -> str: return s[:1].upper() + s[1:]
+def _market(market: str) -> str: return 'stock' if market == 'stocks' else 'fx'
 
 
-def arrival_card(it: Dict) -> str:
-    """🟢 EURUSD  4-hour arrival demand 1.08120–1.08300 · strong
-    removed 2 supplies · target 1.09500 (+1.2%) · capped under the daily down line"""
+def arrival_card(it: Dict, market: str = 'fx') -> str:
+    """<b>Euro vs US dollar</b> (EURUSD) · new 4-hour buy area, strong
+    <blockquote>▲ Area <code>1.08120–1.08300</code>
+    ● It broke through 2 sell areas on the way
+    ● Buy at ... · Exit if wrong ... (below the 4-hour low) · Possible gain 2.1× the risk
+    ● Take profit at <code>1.09500</code> (+1.2%)
+    ● Room is capped below the daily downtrend line</blockquote>"""
     nd, d = it.get('digits', 5), it['dir']
-    icon = '🟢' if d > 0 else '🔴'
-    head = (f"{icon} <b>{SN.esc(it['sym'])}</b>  {SN.esc(tfw(it['tf']))} arrival {side(d)} "
-            f"{_f(it['lo'], nd)}–{_f(it['hi'], nd)}" + (' · <b>strong</b>' if it.get('n_removed', 0) >= 2 else ''))
     n = it.get('n_removed', 0)
-    bits = [f"removed {n} {sides(-d, n)}"]
-    if it.get('target') is not None:
-        bits.append(f"target {_f(it['target'], nd)} ({_pct(it.get('price'), it['target'])})")
-    else:
-        bits.append(f"no strong {side(-d)} {'above' if d > 0 else 'below'}")
-    line2 = ' · '.join(bits)
+    phrase = f"new {tfw(it['tf'])} {_area(d)}" + (', strong' if n >= 2 else '')
+    lines = [f"{'▲' if d > 0 else '▼'} Area {_rng(it['lo'], it['hi'], nd)}",
+             f"● It broke through {n} {_area(-d, n)} on the way {'up' if d > 0 else 'down'}"]
     if it.get('stop') is not None:
-        where = (f"{'below' if d > 0 else 'above'} the {tfw(it.get('sl_tf'))} {side(d)}" if it.get('sl_basis') == 'htf'
-                 else f"{'below' if d > 0 else 'above'} the {tfw(it.get('sl_tf') or it['tf'])} {'valley' if d > 0 else 'peak'}")
-        line2 += (f"\nentry {_f(it.get('entry'), nd)} · stop {_f(it['stop'], nd)} ({where})"
-                  + (f" · R:R {it['rr']}" if it.get('rr') else ''))
-    tk = it.get('target_kind')
-    if tk == 'ceiling':
-        cap = f"capped {'under' if d > 0 else 'above'} the {tfw(it.get('ceiling_tf'))} {'down' if d > 0 else 'up'} line"
-    elif tk == 'htf zone':
-        cap = (f"no {tfw(it.get('target_tf'))} {'down' if d > 0 else 'up'} line in the way: target = the "
-               f"{tfw(it.get('target_tf'))} {side(-d)}")
-    elif it.get('ceiling') is not None:
-        cap = f"{tfw(it.get('ceiling_tf'))} line at {_f(it['ceiling'], nd)}"
+        where = (f"{'below' if d > 0 else 'above'} the {tfw(it.get('sl_tf'))} {_area(d)}" if it.get('sl_basis') == 'htf'
+                 else f"{'below' if d > 0 else 'above'} the last {tfw(it.get('sl_tf') or it['tf'])} {'low' if d > 0 else 'high'}")
+        plan = SN.plan_line(d > 0, _f(it.get('entry'), nd), _f(it['stop'], nd), '', it.get('rr'))
+        plan = plan.replace(f"Exit if wrong {SN.code(_f(it['stop'], nd))}", f"Exit if wrong {SN.code(_f(it['stop'], nd))} ({SN.esc(where)})")
+        lines.append(f'● {plan}')
+    if it.get('target') is not None:
+        pc = _pct(it.get('price'), it['target'])
+        lines.append(f"● Take profit at {SN.code(_f(it['target'], nd))}" + (f' ({pc})' if pc else ''))
     else:
-        cap = ''
-    out = head + '\n' + SN.esc(line2) + (f'\n{SN.esc(cap)}' if cap else '')
+        lines.append(f"● No strong {_area(-d)} {'above' if d > 0 else 'below'}")
+    tk = it.get('target_kind')
+    line_word = f"{tfw(it.get('ceiling_tf'))} {'downtrend' if d > 0 else 'uptrend'} line"
+    if tk == 'ceiling':
+        lines.append(f"● Room is capped {'below' if d > 0 else 'above'} the {SN.esc(line_word)}")
+    elif tk == 'htf zone':
+        lines.append(f"● No {SN.esc(tfw(it.get('target_tf')))} {'downtrend' if d > 0 else 'uptrend'} line in the way, so take "
+                     f"profit at the {SN.esc(tfw(it.get('target_tf')))} {_area(-d)}")
+    elif it.get('ceiling') is not None:
+        lines.append(f"● {SN.esc(_cap(line_word))} at {SN.code(_f(it['ceiling'], nd))}")
     ar = it.get('area')
     if ar:
-        out += (f"\n<i>{SN.esc(tfw(it['tf']))} {sides(-d)} {'below' if d < 0 else 'above'} are weak; realignment area "
-                f"{_f(ar['lo'], nd)}–{_f(ar['hi'], nd)}</i>")
-    return out
+        lines.append(f"● The {SN.esc(tfw(it['tf']))} {_area(-d, 2)} {'below' if d < 0 else 'above'} are weak · watch for a "
+                     f"{'buy' if ar.get('dir', -d) > 0 else 'sell'} back at {_rng(ar['lo'], ar['hi'], nd)}")
+    return f"{SN.title(it['sym'], it.get('name') or '', _market(market))} · {SN.esc(phrase)}\n{SN.block(lines)}"
 
 
-def watch_card(it: Dict) -> str:
+def watch_card(it: Dict, market: str = 'fx') -> str:
+    """<b>...</b> (SYM) · back in a 4-hour sell area / the area, why it matters, what comes next."""
     nd, d = it.get('digits', 5), it['dir']
-    head = f"👀 <b>{SN.esc(it['sym'])}</b> in the {SN.esc(tfw(it['tf']))} {side(d)} {_f(it['lo'], nd)}–{_f(it['hi'], nd)}"
-    why = (f"realignment area: the {side(d)} nearest the {tfw(it.get('htf'))} {'up' if d > 0 else 'down'} line, after the "
-           f"{tfw(it['tf'])} {side(-d)} arrival at {_f(it.get('arr_prox'), nd)}")
-    nxt = (f"wait for a {tfw(it.get('ltf'))} arrival {side(d)} inside it before {'buying' if d > 0 else 'selling'}"
-           if it.get('ltf') else f"no limit {'buys' if d > 0 else 'sells'}: wait for confirmation")
-    return head + '\n' + SN.esc(why) + f'\n<i>{SN.esc(nxt)}</i>'
+    lines = [f"{'▲' if d > 0 else '▼'} Area {_rng(it['lo'], it['hi'], nd)}",
+             f"● This is the {_area(d)} nearest the {SN.esc(tfw(it.get('htf')))} {'uptrend' if d > 0 else 'downtrend'} line, "
+             f"after {SN.esc(SN.a(tfw(it['tf'])))} {_area(-d)} formed at {SN.code(_f(it.get('arr_prox'), nd))}",
+             (f"● Next: wait for {SN.esc(SN.a(tfw(it.get('ltf'))))} {_area(d)} to form inside it before {'buying' if d > 0 else 'selling'}"
+              if it.get('ltf') else f"● Next: no early {'buy' if d > 0 else 'sell'} orders, wait for it to confirm")]
+    return (f"{SN.title(it['sym'], it.get('name') or '', _market(market))} · back in {SN.esc(SN.a(tfw(it['tf'])))} {_area(d)}\n"
+            + SN.block(lines))
 
 
-def confirm_card(it: Dict) -> str:
+def confirm_card(it: Dict, market: str = 'fx') -> str:
     nd, d = it.get('digits', 5), it['dir']
     kind = 'BUY' if d > 0 else 'SELL'
-    c = SN.card('🟢' if d > 0 else '🔴', it['sym'], kind, _f(it['entry'], nd),
-                _f(it['target'], nd) if it.get('target') is not None else '', it.get('rr'),
-                f"stop {_f(it['stop'], nd)} · {tfw(it['ltf'])} {side(d)} in the {tfw(it['tf'])} realignment area")
     n = it.get('n_removed', 0)
-    why = (f"{tfw(it['ltf'])} turned {'up' if d > 0 else 'down'} inside the area: its {'down' if d > 0 else 'up'} line "
-           f"broken, {n} {sides(-d, n)} removed · target = the {tfw(it['tf'])} swing "
-           f"{'high' if d > 0 else 'low'} ({_pct(it.get('entry'), it.get('target'))})")
-    return c + f'\n<i>{SN.esc(why)}</i>'
+    pc = _pct(it.get('entry'), it.get('target'))
+    why = (f"Why: the {tfw(it['ltf'])} trend turned {'up' if d > 0 else 'down'} inside the {tfw(it['tf'])} area to watch "
+           f"(its {'downtrend' if d > 0 else 'uptrend'} line broke and {n} {SN.area(side(-d), n)} gave way). Take profit "
+           f"is the last {tfw(it['tf'])} swing {'high' if d > 0 else 'low'}" + (f' ({pc})' if pc else '') + '.')
+    rng = f" {_rng(it['area_lo'], it['area_hi'], nd)}" if it.get('area_lo') is not None and it.get('area_hi') is not None else ''
+    line2 = (f"● A new {SN.esc(tfw(it['ltf']))} {_area(d)} inside the {SN.esc(tfw(it['tf']))} area to watch{rng}"
+             f"\n{SN.esc(why)}")
+    return SN.card('▲' if d > 0 else '▼', it['sym'], kind, _f(it['entry'], nd),
+                   _f(it['target'], nd) if it.get('target') is not None else '', it.get('rr'), line2,
+                   stop=_f(it['stop'], nd), long=d > 0, name=it.get('name') or '', market=_market(market),
+                   phrase=f"{'Buy' if d > 0 else 'Sell'} signal, confirmed")
 
 
 CARD = {'arrival': arrival_card, 'watch': watch_card, 'confirm': confirm_card}
-TITLE = {'arrival': '⚡ <b>New arrival zone</b>', 'watch': '🔁 <b>Realignment watch</b>', 'confirm': '✅ <b>Confirmation</b>'}
-FOOT = {'fx': 'check levels on Pepperstone · not advice', 'stocks': 'not advice'}
+TITLE = {'arrival': '<b>New price areas</b>', 'watch': '<b>Back in an area to watch</b>', 'confirm': '<b>Confirmed signals</b>'}
+SOURCE = {'fx': 'Pepperstone', 'stocks': ''}
 
 
 def buttons(syms: Sequence[str]) -> List[List[Dict]]:
-    """[📊 Chart SYM] [🔎 Zones SYM] per symbol (bot callbacks), at most 3 rows."""
+    """[Chart SYM] [Areas SYM] per symbol (bot callbacks), at most 3 rows."""
     rows = []
     for s in list(dict.fromkeys(syms))[:3]:
         if SN._cb_ok(f'c:{s}') and SN._cb_ok(f'z:{s}'):
-            rows.append([SN.cb(f'📊 Chart {s}', f'c:{s}'), SN.cb(f'🔎 Zones {s}', f'z:{s}')])
+            rows.append([SN.cb(f'Chart {s}', f'c:{s}'), SN.cb(f'Areas {s}', f'z:{s}')])
     return rows
 
 
 def messages(items: Sequence[Dict], market: str = 'fx', now: Optional[dt.datetime] = None, cards: int = SN.MAX_CARDS) -> List[SN.Msg]:
-    """One message per alert kind in the run (confirmations first): the title + Calgary time, up to `cards` cards,
-    the rest in one collapsed quote; buttons for the carded symbols."""
+    """One message per alert kind in the run (confirmations first): the title (a single item: its card is the
+    headline), up to `cards` cards, the rest in one collapsed quote, the footer with the Calgary time; buttons for the
+    carded symbols."""
     now = now or dt.datetime.now(dt.timezone.utc)
     when = SN.local_time(now.strftime('%Y-%m-%dT%H:%M:%S'), SN.CLOCK)
     out = []
     for kind in sorted({i['kind'] for i in items}, key=lambda k: ORDER[k]):
         its = sort_items([i for i in items if i['kind'] == kind])
         shown, rest = its[:cards], its[cards:]
-        head = [TITLE[kind] + (f' · {SN.esc(when)}' if when else '')]
-        detail = [f"{SN.esc(i['sym'])} {TFS.get(i['tf'], i['tf'])} {side(i['dir'])}" for i in rest]
-        detail.append(FOOT.get(market, 'not advice'))
-        out.append(SN.compose(head, [CARD[kind](i) for i in shown], detail, buttons([i['sym'] for i in shown])))
+        head = [TITLE[kind]] if len(its) > 1 else []
+        detail = [f"{SN.esc(i['sym'])} · {SN.esc(tfw(i['tf']))} {_area(i['dir'])}" for i in rest]
+        out.append(SN.compose(head, [CARD[kind](i, market) for i in shown], detail, buttons([i['sym'] for i in shown]),
+                              foot=SN.footer(SOURCE.get(market, ''), when)))
     return out
 
 

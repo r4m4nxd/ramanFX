@@ -296,7 +296,7 @@ class Rules(unittest.TestCase):
         self.assertEqual(len(ev3['gone']), 1)
         self.assertTrue(ev3['gone'][0]['reason'])
         msgs = N.alert_messages({**ev3, 'h4': '2026-10-23T16:00'})
-        self.assertTrue(len(msgs) == 1 and '🚪 <b>' in msgs[0] and ' cancel ' in msgs[0])
+        self.assertTrue(len(msgs) == 1 and ') · cancel the buy order\n' in msgs[0] and '<blockquote>● Planned buy at <code>' in msgs[0])
 
     def test_zone_alerts_watchlist_only(self):
         ev, _ = X.events(self.res, {'signals': {}}, dt.datetime(2026, 10, 23, 21, 5))
@@ -310,7 +310,7 @@ class Rules(unittest.TestCase):
         self.assertEqual(len(msgs), 1)
         self.assertTrue(all(N.u16(m) <= 4096 for m in msgs))
         vis = N.SN.visible(msgs[0])
-        self.assertLessEqual(vis.count(' R:R '), 3)
+        self.assertLessEqual(vis.count('Possible gain '), 3)
         for tok in N.SN.JARGON:
             self.assertNotIn(tok, vis)
         self.assertEqual(msgs[0].count('<blockquote expandable>'), 1)
@@ -320,9 +320,10 @@ class Rules(unittest.TestCase):
         pub, _ = X.public(self.res, '2026-10-26T20:00')
         ev, _ = X.events(self.res, {'signals': {}}, dt.datetime(2026, 10, 26, 21, 5))
         m = N.digest_message(pub, ev)
-        self.assertTrue(m.startswith('🕐 <b>4H check · 3:00 PM</b>'))   # Tue 00:00 server = Mon 17:00 EDT = 15:00 Calgary
+        self.assertTrue(m.startswith('<b>Forex · 4-hour check</b>'))
+        self.assertTrue(m.endswith('<i>Pepperstone prices · 3:00 PM MT · For learning only, not financial advice</i>'))   # Tue 00:00 server = Mon 17:00 EDT = 15:00 Calgary
         vis = N.SN.visible(m)
-        self.assertLessEqual(vis.count(' R:R '), 3)
+        self.assertLessEqual(vis.count('Possible gain '), 3)
         self.assertIn(' new', vis.split('\n')[1])
         for tok in N.SN.JARGON:
             self.assertNotIn(tok, vis)
@@ -351,14 +352,14 @@ class Rules(unittest.TestCase):
         msgs = N.alert_messages({**ev, 'h4': '2026-10-23T16:00'})
         self.assertEqual(len(msgs), 1)
         vis = N.SN.visible(msgs[0])
-        self.assertTrue(vis.startswith('⚡ <b>New: '))
-        self.assertLessEqual(vis.count(' R:R '), 3)
+        self.assertTrue(vis.startswith('<b>New: '))
+        self.assertLessEqual(vis.count('Possible gain '), 3)
         for tok in N.SN.JARGON:
             self.assertNotIn(tok, vis)
         zones_only = N.alert_messages({'zones': ev['zones'][:2], 'h4': '2026-10-23T16:00'})
         if ev['zones']:
             self.assertEqual(len(zones_only), 1)
-            self.assertNotIn('<blockquote', zones_only[0].split('FX · 4H')[1].split('\n\n')[1])
+            self.assertNotIn('<blockquote expandable', zones_only[0].split('Forex · 4-hour check')[1].split('\n\n')[1])
         self.assertEqual(N.alert_messages({'h4': 'x'}), [])
 
     def test_preview_messages(self):
@@ -422,7 +423,7 @@ class ListTimeframeTest(unittest.TestCase):
                                     'in': [{'sym': 'USDNOK', 'tf': 'MN', 'side': 'demand'}, {'sym': 'AUDCAD', 'tf': 'H4', 'side': 'demand'}]},
                          'supply': {'left': [{'sym': 'USDJPY', 'tf': 'W1', 'side': 'supply'}]}}}
         txt = '\n'.join(N._lists_detail(pub))
-        self.assertIn('<b>Close to demand</b> (1)\nCORN D1 0.9%', txt)
-        self.assertIn('<b>In demand</b> (2)\nUSDNOK MN · AUDCAD 4H', txt)
+        self.assertIn('<b>Close to a buy area</b> (1)\nCORN daily 0.9%', txt)
+        self.assertIn('<b>Inside a buy area</b> (2)\nUSDNOK monthly · AUDCAD 4-hour', txt)
         self.assertNotIn('pips', txt)
         self.assertNotIn('USDJPY', txt)                 # turned down at supply: in the app only

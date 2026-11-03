@@ -159,8 +159,9 @@ class HourlySchedule(unittest.TestCase):
               'tv': 'PEPPERSTONE:EURUSD', 'px': 1.1, 'wl': True, 'loc_ok': True}]
         hourly = N.SN.visible(N.alert_messages({'zones': z, 'h4': '2026-10-26T08:00', 'h1': '2026-10-26T09:00'})[0])
         at_h4 = N.SN.visible(N.alert_messages({'zones': z, 'h4': '2026-10-26T08:00', 'h1': '2026-10-26T11:00'})[0])
-        self.assertIn('FX · 1H candle', hourly)
-        self.assertIn('FX · 4H candle', at_h4)
+        self.assertIn('Forex · hourly check', hourly)
+        self.assertIn('Forex · 4-hour check', at_h4)
+        self.assertTrue(hourly.startswith('<b>Euro vs US dollar</b> (EURUSD) · now in an hourly buy area\nForex · hourly check\n<blockquote>'))
 
     def test_public_carries_h1(self):
         uni, data, wl = X.selftest_universe()

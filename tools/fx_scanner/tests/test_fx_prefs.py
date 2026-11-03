@@ -186,7 +186,8 @@ class FxIntegrationTest(unittest.TestCase):
                'hits': {k: [dict(h) for h in v] for k, v in self.res['hits'].items()}}
         self.assertGreaterEqual(X.mark_kevin(res, lv), 1)
         card = N.signal_card(res['signals'][0])
-        self.assertIn("⭐ also in Kevin's plan (Oct 28: 4H ", card)
+        self.assertIn('● Also in the trading plan: Oct 28, 4-hour ', card)
+        self.assertNotIn('Kevin', card)
 
     def test_alert_message_mutes_orders_and_keyboard(self):
         sig = [dict(s) for s in self.res['signals']]
@@ -195,13 +196,13 @@ class FxIntegrationTest(unittest.TestCase):
         ev = {'signals': sig, 'gone': [], 'watch': [], 'zones': [], 'h4': '2026-10-23T16:00'}
         m = N.alert_messages(ev)[0]
         vis = N.SN.visible(m)
-        self.assertLess(vis.index(f"<b>{sig[1]['sym']}</b>"), vis.index(f"<b>{sig[0]['sym']}</b>"))   # Kevin first
+        self.assertLess(vis.index(N.SN.title(sig[1]['sym'])), vis.index(N.SN.title(sig[0]['sym'])))   # plan cards first
         self.assertLessEqual(len(m.buttons), 3)
         datas = [b.get('callback_data') for r in m.buttons for b in r]
         self.assertIn(f"m:{sig[0]['sym']}:7", datas)
         self.assertIn(f"r:{sig[0]['sym']}:0.2", datas)
         muted = N.alert_messages(ev, muted={sig[0]['sym']})[0]
-        self.assertNotIn(f"<b>{sig[0]['sym']}</b>", N.SN.visible(muted))
+        self.assertNotIn(N.SN.title(sig[0]['sym']), N.SN.visible(muted))
         self.assertEqual(N.alert_messages({**ev, 'signals': sig[:1]}, muted={sig[0]['sym']}), [])
         self.assertTrue(N.urgent(ev))
         self.assertFalse(N.urgent(ev, muted={s['sym'] for s in sig}))
@@ -214,9 +215,9 @@ class FxIntegrationTest(unittest.TestCase):
         fired = P.evaluate({'alerts': [{'id': 9, 'sym': sym, 'kind': 'price', 'level': lvl, 'dir': 'down', 'pct': None}]}, per)
         self.assertEqual(len(fired), 1)
         m = N.fired_messages(fired)[0]
-        self.assertTrue(m.startswith(f'🔔 <b>{sym}</b> reached your level'))
-        self.assertIn('<i>why: ', m)
-        self.assertEqual(m.buttons, [[{'text': f'📊 {sym} chart', 'callback_data': f'c:{sym}'}]])
+        self.assertTrue(m.startswith(f'{N.SN.title(sym)} · reached your price\n<blockquote>● Your alert level <code>'))
+        self.assertIn('\nWhy: ', m)
+        self.assertEqual(m.buttons, [[{'text': 'Chart', 'callback_data': f'c:{sym}'}]])
 
     def test_merge_watch_only_known_instruments(self):
         wl = {'names': ['EUR_USD'], 'sections': {'EUR_USD': 'FX'}, 'items': []}

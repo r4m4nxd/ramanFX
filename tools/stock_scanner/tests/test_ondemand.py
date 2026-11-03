@@ -20,14 +20,14 @@ DET = {'symbol': 'NVDA', 'price': 181.48, 'date': '2026-10-28', 'chart': 'https:
 class OnDemand(unittest.TestCase):
     def test_card(self):
         m = notify.ondemand_card(DET, [], 'NVDA')
-        self.assertIn('🔄 <b>NVDA</b> · on-demand scan', m)
-        self.assertIn('Wed Oct 28 close', m)
-        self.assertIn('No BUY / WATCH', m)
-        self.assertIn('weekly demand 175.20–168.00', m)
-        self.assertIn('blocked: bigger zone not reached yet', m)
-        self.assertIn('weekly supply 190.00–196.00', m)
+        self.assertIn('<b>NVDA</b> · on-demand check', m)
+        self.assertIn('at the Wed Oct 28 close', m)
+        self.assertIn('No buy signal or watch', m)
+        self.assertIn('▲ Weekly buy area <code>175.20–168.00</code>', m)
+        self.assertIn('held back by: bigger area not reached yet', m)
+        self.assertIn('▼ Weekly sell area <code>190.00–196.00</code>', m)
         self.assertNotIn('120.00', m)                       # a supply below price is not "above"
-        self.assertIn('Trend: W1 up · MN turning up', m)
+        self.assertIn('Trend: weekly rising · monthly turning up', m)
         cbs = [b.get('callback_data') for r in m.buttons for b in r]
         self.assertEqual(cbs[-2:], ['c:NVDA', 'z:NVDA'])
 
@@ -36,8 +36,8 @@ class OnDemand(unittest.TestCase):
         res = {'details': {'NVDA': DET}, 'signals': [sig], 'errors': ['XYZ: no data']}
         msgs = scan.ondemand_messages(res, ['NVDA', 'XYZ'], notify)
         self.assertEqual(len(msgs), 2)
-        self.assertIn('BUY', msgs[0])
-        self.assertNotIn('No BUY', msgs[0])
+        self.assertIn('· Buy signal', msgs[0])
+        self.assertNotIn('No buy signal', msgs[0])
         self.assertIn('No result: no data', msgs[1])
 
     def test_workflow(self):

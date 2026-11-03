@@ -356,17 +356,17 @@ class Messages(unittest.TestCase):
               'area': {'tf': 'H4', 'dir': -1, 'lo': 1.1, 'hi': 1.102}, 'entry': 1.083, 'stop': 1.0795, 'sl_basis': 'htf',
               'sl_tf': 'D1', 'rr': 3.4}
         m = AA.messages([it], 'fx', NOW)[0]
-        self.assertIn('entry 1.08300 · stop 1.07950 (below the daily demand) · R:R 3.4', m)
+        self.assertIn('Buy at <code>1.08300</code> · Exit if wrong <code>1.07950</code> (below the daily buy area) · Possible gain 3.4× the risk', m)
         m2 = AA.messages([{**it, 'sl_basis': 'valley', 'sl_tf': 'H4'}], 'fx', NOW)[0]
-        self.assertIn('stop 1.07950 (below the 4-hour valley)', m2)
-        self.assertIn('⚡ <b>New arrival zone</b> · 2:00 PM', m)            # Calgary clock
-        self.assertIn('4-hour arrival demand 1.08120–1.08300 · <b>strong</b>', m)
-        self.assertIn('removed 2 supplies', m)
-        self.assertIn('target 1.09500 (+0.9%)', m)                       # % of price, never pips
-        self.assertIn('capped under the daily down line', m)
+        self.assertIn('Exit if wrong <code>1.07950</code> (below the last 4-hour low)', m2)
+        self.assertIn('<i>Pepperstone prices · 2:00 PM MT · For learning only, not financial advice</i>', m)   # Calgary clock
+        self.assertIn('<b>Euro vs US dollar</b> (EURUSD) · new 4-hour buy area, strong\n<blockquote>▲ Area <code>1.08120–1.08300</code>', m)
+        self.assertIn('It broke through 2 sell areas', m)
+        self.assertIn('Take profit at <code>1.09500</code> (+0.9%)', m)   # % of price, never pips
+        self.assertIn('capped below the daily downtrend line', m)
         self.assertNotIn('pip', m)
-        self.assertEqual(m.buttons, [[{'text': '📊 Chart EURUSD', 'callback_data': 'c:EURUSD'},
-                                      {'text': '🔎 Zones EURUSD', 'callback_data': 'z:EURUSD'}]])
+        self.assertEqual(m.buttons, [[{'text': 'Chart EURUSD', 'callback_data': 'c:EURUSD'},
+                                      {'text': 'Areas EURUSD', 'callback_data': 'z:EURUSD'}]])
 
     def test_batched_per_kind_rest_collapsed(self):
         its = [item('arrival', s) for s in ('A', 'B', 'C', 'D', 'E')] + [item('watch', 'F', arr_prox=1.3, ltf='M15', htf='D1')]
@@ -374,16 +374,18 @@ class Messages(unittest.TestCase):
         self.assertEqual(len(ms), 2)
         self.assertIn('<blockquote expandable>', ms[0])
         self.assertEqual(len(ms[0].buttons), 3)
-        self.assertIn('🔁 <b>Realignment watch</b>', ms[1])
-        self.assertIn('wait for a 15-min arrival demand inside it before buying', ms[1])
+        self.assertIn('<b>New price areas</b>', ms[0])
+        self.assertIn('<b>F</b> · back in a 4-hour buy area', ms[1])
+        self.assertIn('wait for a 15-minute buy area to form inside it before buying', ms[1])
 
     def test_confirmation_card(self):
         it = {**item('confirm', 'GBPUSD', digits=5), 'tf': 'H4', 'ltf': 'M15', 'entry': 1.2621, 'stop': 1.2598,
               'target': 1.278, 'rr': 6.9, 'n_removed': 1}
         m = AA.messages([it], 'fx', NOW)[0]
-        self.assertIn('✅ <b>Confirmation</b>', m)
-        self.assertIn('🟢 <b>GBPUSD</b>  BUY 1.26210 → 1.27800 · R:R 6.9', m)
-        self.assertIn('stop 1.25980 · 15-min demand in the 4-hour realignment area', m)
+        self.assertIn('· Buy signal, confirmed', m)
+        self.assertIn('<b>British pound vs US dollar</b> (GBPUSD) · Buy signal, confirmed\n<blockquote>▲ Buy at <code>1.26210</code> · Exit if wrong '
+                      '<code>1.25980</code> · Take profit at <code>1.27800</code> · Possible gain 6.9× the risk', m)
+        self.assertIn('A new 15-minute buy area inside the 4-hour area to watch', m)
         self.assertTrue(AA.is_loud([it]))
         self.assertFalse(AA.is_loud([item('arrival', 'X')]))
 

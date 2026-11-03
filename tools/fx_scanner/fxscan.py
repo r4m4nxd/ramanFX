@@ -1083,8 +1083,11 @@ def main(argv=None) -> int:
     fired_before = dict(state.get('fired_alerts') or {})
     fired = [] if a.only else P.evaluate(prefs, alert_inputs(res), fired_before)
     if bootstrap:
-        msgs += hush([f"✅ <b>FX scanner started</b>: {len(uni)} instruments, {pub['counts']['BUY']} BUY / "
-                      f"{pub['counts']['SELL']} SELL now. From here on only new events are sent, plus a daily summary."])
+        msgs += hush([f"<b>Forex scanner</b> · now running\n"
+                      + N.SN.block([f"● Watching {len(uni)} markets · {N.SN._n(pub['counts']['BUY'], 'buy signal', 'buy signals')}, "
+                                    f"{N.SN._n(pub['counts']['SELL'], 'sell signal', 'sell signals')} right now",
+                                    '● From here on you get only what is new, plus a daily summary'])
+                      + '\n' + N.foot()])
     else:
         msgs += hush(N.alert_messages({**ev, 'h4': h4, 'h1': h1}, muted), N.urgent(ev, muted))
     for f in fired:                                      # one calm message per fired user alert

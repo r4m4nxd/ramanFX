@@ -364,15 +364,15 @@ class Telegram(unittest.TestCase):
     def test_feed_lines(self):
         import fxnotify as N
         self.assertEqual(N.feed_line({'src': 'yahoo', 'unofficial': True, 'feed': 'Yahoo ^VIX (unofficial feed)'}),
-                         'data: unofficial feed (Yahoo ^VIX)')
+                         'Prices from an unofficial source (Yahoo ^VIX)')
         self.assertEqual(N.feed_line({'src': 'synthetic', 'feed': 'synthetic: OANDA EUR_USD x USD_MXN'}),
-                         'data: synthetic (OANDA EUR_USD x USD_MXN)')
-        self.assertTrue(N.feed_line({'src': 'synthetic', 'approx': True, 'feed': 'synthetic: OANDA legs'}).startswith('data: approximate basket'))
+                         'Prices built from other markets (OANDA EUR_USD x USD_MXN)')
+        self.assertTrue(N.feed_line({'src': 'synthetic', 'approx': True, 'feed': 'synthetic: OANDA legs'}).startswith('Prices approximated from a basket'))
         self.assertEqual(N.feed_line({'src': 'crypto', 'feed': 'Coinbase'}), '')
         self.assertEqual(N.feed_line({'sym': 'EURUSD'}), '')
         z = {'sym': 'VIX', 'tf': 'D1', 'side': 'demand', 'sec': 'in', 'prox': 15.2, 'digits': 2, 'src': 'yahoo', 'unofficial': True,
              'feed': 'Yahoo ^VIX (unofficial feed)', 'loc_ok': True, 'status': 'context', 'label': 'context only', 'touches': 0}
-        self.assertIn('unofficial feed (Yahoo ^VIX)', N.zone_line(z))
+        self.assertIn('● Prices from an unofficial source (Yahoo ^VIX)', N.zone_line(z))
 
 
 class Coverage(unittest.TestCase):

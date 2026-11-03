@@ -229,11 +229,12 @@ class NotifyTest(unittest.TestCase):
         self.assertEqual(len(msgs), 1)
         m = msgs[0]
         vis = notify.visible(m)
-        self.assertTrue(vis.startswith('📈 <b>30 BUY · 3 WATCH · nothing to exit</b>'))
-        self.assertIn('3:05 PM', vis)                                         # 17:05 EDT = 15:05 Calgary
-        self.assertEqual(vis.count('</b>  BUY '), 3)                          # max 3 cards even with top=5
-        self.assertEqual(vis.count('<i>why: '), 3)                            # one plain 'why' line per card
-        self.assertIn('score 9/10', vis)
+        self.assertTrue(vis.startswith('<b>30 buy signals · 3 watching · nothing to sell</b>'))
+        self.assertIn('3:05 PM MT · For learning only, not financial advice</i>', vis)   # 17:05 EDT = 15:05 Calgary
+        self.assertEqual(vis.count(') · Buy signal\n<blockquote>▲ Buy at <code>'), 3)   # max 3 cards even with top=5
+        self.assertEqual(vis.count('\nWhy: '), 3)                             # one plain 'why' line per card
+        self.assertIn('quality score 9/10', vis)
+        self.assertIn('Possible gain 6.4× the risk', vis)
         self.assertEqual(m.count('<blockquote expandable>'), 1)
         self.assertIn('Also: ', m)
         self.assertLess(notify.u16(m), 4096)
@@ -249,17 +250,18 @@ class NotifyTest(unittest.TestCase):
                'signals': [dict(self.sig(i, kind='BUY'), chart=f'https://tv/T{i}') for i in range(3)], 'exits': []}
         m = notify.build_messages(res, muted={'T1'})[0]
         vis = notify.visible(m)
-        self.assertNotIn('<b>T1</b>', vis)
-        self.assertIn('<b>T2</b>', vis)
-        self.assertTrue(vis.startswith('📈 <b>2 BUY'))
+        self.assertNotIn('(T1)', vis)
+        self.assertIn('(T2) · Buy signal', vis)
+        self.assertTrue(vis.startswith('<b>2 buy signals'))
 
     def test_one_symbol_keyboard_and_silent_send(self):
-        kb = notify.alert_keyboard([notify.button('📈 EURUSD', 'https://tv')], 'Open scanner', 'https://app')
+        kb = notify.alert_keyboard([notify.button('Live EURUSD', 'https://tv')], 'Open app', 'https://app')
         self.assertLessEqual(len(kb), 3)
         self.assertEqual([b.get('callback_data') for b in kb[1]], ['m:EURUSD:7', 'r:EURUSD:0.2'])
-        self.assertEqual([b['text'] for b in kb[1]], ['🔕 Mute 1w', '⏰ 0.2%'])
+        self.assertEqual([b['text'] for b in kb[1]], ['Snooze', 'Remind me'])
+        self.assertEqual([b['text'] for b in kb[0]], ['Live chart', 'Chart', 'Areas'])
         self.assertEqual(kb[0][1]['callback_data'], 'c:EURUSD')
-        kb3 = notify.alert_keyboard([notify.button(f'📈 S{i}', 'https://tv') for i in range(3)], 'Open', 'https://app')
+        kb3 = notify.alert_keyboard([notify.button(f'Live S{i}', 'https://tv') for i in range(3)], 'Open', 'https://app')
         self.assertEqual(len(kb3), 3)
         self.assertEqual(kb3[2][0]['callback_data'], 'r:S0:0.2')
         m = notify.silenced(notify.Msg('hi', kb), True)
@@ -287,17 +289,19 @@ class NotifyTest(unittest.TestCase):
                'watch_alerts': [{'kind': 'APPROACH', 'text': f'W{i}: near the W1 demand'} for i in range(12)]}
         m = notify.build_messages(res)[0]
         self.assertIn('X&lt;Y', m)
-        self.assertIn('🚪 <b>A&amp;B</b>  EXIT · stop hit by the close', m)
+        self.assertIn('<b>A&amp;B</b> · check your position\n<blockquote>▼ The price closed below your exit-if-wrong level', m)
         q = m.split('<blockquote expandable>')[1].split('</blockquote>')[0].split('\n')
         self.assertLessEqual(len(q), notify.QUOTE_LINES)
         big = notify.quote([f'line {i}' for i in range(20)]).split('\n')
         self.assertEqual(len(big), notify.QUOTE_LINES)
         self.assertEqual(big[-1], '+6 more in the app</blockquote>')
         self.assertNotIn('W1', ''.join(q))                                   # timeframes in words
+        self.assertNotIn('demand', ''.join(q))                               # areas in words
 
     def test_quiet_day_headline(self):
         m = notify.build_messages({'date': '2026-10-23', 'signals': [], 'exits': []})[0]
-        self.assertTrue(m.startswith('📈 <b>No new setups</b>'))
+        self.assertTrue(m.startswith('<b>No new trade ideas</b>'))
+        self.assertTrue(m.endswith('For learning only, not financial advice</i>'))
         self.assertLessEqual(len(notify.visible(m).strip().split('\n')), 4)
 
     def test_long_detail_is_trimmed_to_fit(self):
@@ -369,10 +373,10 @@ class NewsWarningTest(unittest.TestCase):
         old = notify.NEWS
         try:
             notify.NEWS = [{'time_utc': soon, 'country': 'US', 'title': 'CPI (YoY)', 'importance': 'high', 'currency': 'USD'}]
-            self.assertRegex(notify.news_warning('NVDA', 'stock'), r'^⚠️ US CPI in (19|20|21) min$')
+            self.assertRegex(notify.news_warning('NVDA', 'stock'), r'^● Big news: US CPI in (19|20|21) min$')
             self.assertEqual(notify.news_warning('EURGBP', 'fx'), '')
             res = {'signals': [], 'date': '2026-10-28', 'generated_at': '2026-10-29T01:56:48Z'}
-            self.assertIn('⚠️ US CPI in', notify.build_messages(res)[0])
+            self.assertIn('● Big news: US CPI in', notify.build_messages(res)[0])
         finally:
             notify.NEWS = old
         self.assertEqual(notify.news_warning('NVDA', 'stock'), '')
@@ -382,9 +386,11 @@ class ReasonLineTest(unittest.TestCase):
     def test_reason_line(self):
         s = {'tf': 'H4', 'side': 'demand', 'chain': [{'tf': 'MN', 'side': 'demand'}, {'tf': 'H4', 'side': 'demand'}],
              'direction': 'LONG - REDUCED', 'touches': 0, 'score': 8}
-        self.assertEqual(notify.reason_line(s, score=True), 'why: 4-hour zone inside monthly demand · trend up, pulling back · untouched zone · score 8/10')
+        self.assertEqual(notify.reason_line(s, score=True), 'Why: a 4-hour buy area inside a monthly buy area, the trend is up but dipping for now, '
+                         'first visit to this area, quality score 8/10.')
         self.assertEqual(notify.reason_line({'tf': 'MN', 'loc': 'top', 'side': 'demand', 'direction': 'WAIT', 'touches': 2}),
-                         'why: monthly demand is the top zone · trend unclear · zone touched 2x')
+                         'Why: a monthly buy area, the biggest timeframe checked, the trend is unclear, the price came back here '
+                         '2 times before.')
         self.assertEqual(notify.reason_line({}), '')
         for tok in notify.JARGON:
             self.assertNotIn(tok, notify.reason_line(s, score=True))

@@ -52,6 +52,33 @@ def h4_blocks(h1: List[Z.Bar], eastern: Callable[[dt.datetime], dt.datetime]) ->
     return out
 
 
+def _day(iso: str) -> str:
+    try:
+        return dt.date.fromisoformat((iso or '')[:10]).strftime('%b %-d')
+    except ValueError:
+        return (iso or '')[:10]
+
+
+def turns_message(new: List[Dict]) -> str:
+    """The weekly turns (a weekly downtrend line broken + a fresh daily buy area) in plain words: one card per stock
+    (at most 12; a single one: its card is the headline), what to do, the footer."""
+    import notify as SN
+    cards = []
+    for t in new[:12]:
+        rm = t.get('w1_removed') or 0
+        when = f" on {_day(t['d1_date'])}" if t.get('d1_date') else ''
+        rng = f"{t['d1_lo']}–{t['d1_hi']}"
+        lines = [f"▲ The weekly downtrend line broke on {SN.esc(_day(t['w1_cross']))}"
+                 + (', and the turn is confirmed' if t.get('w1_state') == 'changed' else ''),
+                 f"● Sellers lost {rm} of their last strongholds",
+                 f"● A fresh daily buy area formed{SN.esc(when)} · {SN.code(rng)}"]
+        cards.append(f"{SN.title(t['sym'], t.get('name') or '', 'stock')} · turning up\n{SN.block(lines)}")
+    head = ['<b>New uptrends starting</b> · stocks'] if len(cards) > 1 else []
+    tip = 'Idea: buy in the daily buy area, exit if wrong just below it, take profit at the next weekly sell area.'
+    text = '\n\n'.join(head + cards + [tip]) + '\n' + SN.footer()
+    return text if SN.u16(text) <= SN.SAFE else SN._cut(text, SN.SAFE)
+
+
 class Collector:
     """Built once per scan; add() per analysed ticker, intraday() for the W1 -> H4 checks, finish() to send."""
 
@@ -150,12 +177,7 @@ class Collector:
             self.st['turns_seen'] = {k: v for k, v in seen.items() if v >= cut}
             self.st['weekly_turns'] = sorted(self.turns, key=lambda t: (t['w1_state'] != 'changed', t['sym']))
             if new and not self.boot:
-                lines = ['🌱 <b>Weekly turn + fresh daily arrival</b> · a new up-move starting (stocks)', '']
-                for t in new[:12]:
-                    lines.append(f"<b>{SN.esc(t['sym'])}</b> · weekly down line broken {t['w1_cross'][:10]} ({t['w1_state']}, {t['w1_removed']} supply removed) · "
-                                 f"daily arrival demand {t['d1_lo']}-{t['d1_hi']} ({t['d1_date'][:10]})")
-                lines += ['', 'Buy from the daily arrival zone with the stop below it; the weekly target is the next supply. Not advice.']
-                msg = SN.silenced('\n'.join(lines), P.in_quiet(prefs))
+                msg = SN.silenced(turns_message(new), P.in_quiet(prefs))
                 if notify:
                     send([msg])
                 else:

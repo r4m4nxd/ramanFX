@@ -34,7 +34,11 @@ class DirectionChange(unittest.TestCase):
         r2 = res(('EURUSD', {'D1': row('D1', Z.DST_CHG, 1, 2, 2)}))
         new = FT.advances(FT.current(r2), st)
         self.assertEqual([x['stage'] for x in new], ['changed'])
-        self.assertIn('CHANGED up', FT.message(new))
+        msg = FT.message(new)
+        self.assertIn('<b>Euro vs US dollar</b> (EURUSD) · turning up\n<blockquote>▲ The daily downtrend ended on Oct 22', msg)
+        self.assertIn('Sellers lost both of their last strongholds · <code>2 of 2</code>', msg)
+        self.assertNotIn('Raja', msg)
+        self.assertTrue(msg.endswith('For learning only, not financial advice</i>'))
 
 
 if __name__ == '__main__':

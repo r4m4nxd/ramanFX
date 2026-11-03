@@ -2,11 +2,11 @@
 broken by a close = TURNING, then the opposite zones removed one by one, 2 removed = CHANGED (direction clear).
 
 Per analysed instrument (the rows the hourly scan already built: zones.eval_row, no extra requests), for D1 and W1:
-    break      the newest trend line cross is recent and no opposite zone is removed yet   ⚠️
-    removed1   1 opposite zone removed since the cross                                      🟡
-    changed    2+ removed: CHANGED (Raja's 'direction clear')                               🔄
+    break      the newest trend line cross is recent and no opposite zone is removed yet  'early sign of turning up'
+    removed1   1 opposite zone removed since the cross                                      'turning up', 1 of 2
+    changed    2+ removed: CHANGED (Raja's 'direction clear')                               'turning up', 2 of 2
 One Telegram message per run with every advance (a cross moves break -> removed1 -> changed, each stage once), owner
-only, mutes and quiet hours honoured. State + the current list: public/fx/trendchg.json (data branch; the bot's /turns
+only, mutes and quiet hours honoured; plain words, no mentor names (item_card). State + the current list: public/fx/trendchg.json (data branch; the bot's /turns
 and the app read 'current'). The first run only seeds the state. Never raises into the scan.
 """
 from __future__ import annotations
@@ -30,7 +30,6 @@ STATE = os.path.join(C.OUT_DIR, 'trendchg.json')
 TFS = ('D1', 'W1')
 RECENT = {'D1': 15, 'W1': 8}                  # a cross older than this many bars is not news any more
 STAGES = ('break', 'removed1', 'changed')
-ICON = {'break': '⚠️', 'removed1': '🟡', 'changed': '🔄'}
 KEEP_DAYS = 120
 
 
@@ -63,21 +62,65 @@ def current(res: Dict) -> List[Dict]:
     return sorted(out, key=lambda x: (-STAGES.index(x['stage']), x['tf'] != 'W1', x['sym']))
 
 
+def _day(iso: str) -> str:
+    """'2026-10-30T00:00' -> 'Oct 30' ('' when unparsable)."""
+    try:
+        return dt.date.fromisoformat((iso or '')[:10]).strftime('%b %-d')
+    except ValueError:
+        return (iso or '')[:10]
+
+
+def item_card(x: Dict) -> str:
+    """One direction change in plain words (owner 2026-11-03):
+        <b>British pound vs Japanese yen</b> (GBPJPY) · turning up
+        <blockquote>▲ The daily downtrend ended on Oct 30
+        ● Sellers lost both of their last strongholds · <code>2 of 2</code>
+        ● Next: a buy chance when the price dips into a fresh buy area</blockquote>"""
+    import notify as SN
+    up = x['side'] > 0
+    tfw = 'weekly' if x['tf'] == 'W1' else 'daily'
+    old = 'downtrend' if up else 'uptrend'
+    who = 'Sellers' if up else 'Buyers'
+    mk = '▲' if up else '▼'
+    day = _day(x.get('cross') or '')
+    on = f' on {day}' if day else ''
+    rm = int(x.get('rm') or 0)
+    if x['stage'] == 'break':
+        phrase = f"early sign of turning {'up' if up else 'down'}"
+        lines = [f'{mk} The {tfw} {old} line broke{on}',
+                 f'● {who} still hold their last 2 strongholds · {SN.code("0 of 2")} lost',
+                 '● Next: wait, 2 more steps before the turn is clear']
+    elif x['stage'] == 'removed1':
+        phrase = f"turning {'up' if up else 'down'}"
+        lines = [f'{mk} The {tfw} {old} line broke{on}',
+                 f'● {who} lost 1 of their last 2 strongholds · {SN.code("1 of 2")}',
+                 '● Next: wait, 1 more step before the turn is clear']
+    else:
+        phrase = f"turning {'up' if up else 'down'}"
+        lost = f'{who} lost both of their last strongholds · {SN.code("2 of 2")}' if rm <= 2 else \
+            f'{who} lost all of their last strongholds · {SN.code(f"{rm} lost")}'
+        lines = [f'{mk} The {tfw} {old} ended{on}', f'● {lost}',
+                 f"● Next: a {'buy' if up else 'sell'} chance when the price {'dips' if up else 'rises'} into a fresh "
+                 f"{'buy' if up else 'sell'} area"]
+    return f"{SN.title(x['sym'])} · {SN.esc(phrase)}\n{SN.block(lines)}"
+
+
 def message(items: List[Dict]) -> str:
-    word = lambda s: 'up' if s > 0 else 'down'                               # noqa: E731
-    lines = ['🧭 <b>Direction change</b> · daily / weekly (Raja: line broken by a close, then 2 opposite zones removed)', '']
-    for x in items:
-        opp = 'supply' if x['side'] > 0 else 'demand'
-        tfw = 'Weekly' if x['tf'] == 'W1' else 'Daily'
-        if x['stage'] == 'break':
-            what = f"{tfw} {'down' if x['side'] > 0 else 'up'} trend line broken by a close ({x['cross'][:10]}): turning {word(x['side'])} - 0 of 2 {opp} zones removed"
-        elif x['stage'] == 'removed1':
-            what = f"{tfw}: 1 of 2 {opp} zones removed since the break - turning {word(x['side'])}"
-        else:
-            what = f"{tfw} direction CHANGED {word(x['side'])}: {x['rm']} {opp} zones removed (direction clear)"
-        lines.append(f"{ICON[x['stage']]} <b>{x['sym']}</b> · {what}")
-    lines += ['', 'Next: trade it from a fresh zone in the new direction (/areas, /zones SYM). Not advice.']
-    return '\n'.join(lines)
+    """Every advance of the run in one message: one card per instrument and timeframe (a single advance: its card is
+    the headline), the italic footer; fits one Telegram message (the rest: '+N more in the app')."""
+    import notify as SN
+    cards = [item_card(x) for x in items]
+    head = '' if len(cards) == 1 else '<b>Trend changes</b> · daily and weekly'
+    foot = SN.footer('Pepperstone', None, C.LOCAL_TZ)
+    shown = list(cards)
+    while True:
+        more = len(cards) - len(shown)
+        body = '\n\n'.join(([head] if head else []) + shown + ([f'+{more} more in the app (/turns)'] if more else []))
+        text = body + '\n' + foot
+        if SN.u16(text) <= SN.SAFE or len(shown) <= 1:
+            break
+        shown = shown[:-1]
+    return text if SN.u16(text) <= SN.SAFE else SN._cut(text, SN.SAFE)
 
 
 def advances(cur: List[Dict], st: Dict) -> List[Dict]:

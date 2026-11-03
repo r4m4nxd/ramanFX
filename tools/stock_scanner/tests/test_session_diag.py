@@ -177,7 +177,7 @@ class MarketMapTest(unittest.TestCase):
         import notify
         msgs = notify.build_messages(self.res)
         self.assertEqual(len(msgs), 1)
-        self.assertIn('<b>In demand</b> (', msgs[0].split('<blockquote expandable>')[1])
+        self.assertIn('<b>Inside a buy area</b> (', msgs[0].split('<blockquote expandable>')[1])
 
     def test_universe_meta_and_uncovered(self):
         pub = scan.public_json(self.res)
@@ -191,7 +191,7 @@ class MarketMapTest(unittest.TestCase):
         self.assertIn('symbol=TSX:SYE', sig['chart_home'])
         import notify
         card = notify.stock_card(sig)
-        self.assertIn('<b>SYNE</b> (TSX:SYE)', card)                # levels are the US listing's (USD)
+        self.assertIn('(SYNE, TSX:SYE) · Buy signal', card)                # levels are the US listing's (USD)
 
 
 if __name__ == '__main__':
@@ -204,9 +204,9 @@ class ListTimeframeTest(unittest.TestCase):
     def test_names_carry_the_timeframe(self):
         import notify
         rows = [{'s': 'BXP', 'tf': 'MN', 'pct': 1.45}, {'s': 'DAR', 'tf': 'W1', 'pct': 2.82}, {'s': 'CAVA', 'tf': '3M'}]
-        self.assertEqual(notify.names(rows, 's', 2, lambda r: f"{r['pct']:.1f}%"), 'BXP MN 1.4%, DAR W1 2.8% +1')
-        self.assertEqual(notify.names(rows[2:], 's', 3), 'CAVA 3M')
-        self.assertEqual(notify.names([{'s': 'USDJPY', 'tf': 'H4'}], 's'), 'USDJPY 4H')
+        self.assertEqual(notify.names(rows, 's', 2, lambda r: f"{r['pct']:.1f}%"), 'BXP monthly 1.4%, DAR weekly 2.8% +1')
+        self.assertEqual(notify.names(rows[2:], 's', 3), 'CAVA 3-month')
+        self.assertEqual(notify.names([{'s': 'USDJPY', 'tf': 'H4'}], 's'), 'USDJPY 4-hour')
         self.assertEqual(notify.names([{'s': 'X'}], 's'), 'X')   # rows without a timeframe stay as they were
 
     def test_published_message_lists_show_timeframes(self):
@@ -215,6 +215,6 @@ class ListTimeframeTest(unittest.TestCase):
         quote_part = notify.build_messages(res)[0].split('<blockquote expandable>')[1]
         lines = quote_part.split('\n')
         for k, line in enumerate(lines):
-            if line.startswith(('<b>In demand</b> (', '<b>Close to demand</b> (')):
+            if line.startswith(('<b>Inside a buy area</b> (', '<b>Close to a buy area</b> (')):
                 first = lines[k + 1].split(' · ')[0]
-                self.assertRegex(first, r'^\S+ (W1|MN|3M)\b', line)
+                self.assertRegex(first, r'^\S+ (weekly|monthly|3-month)\b', line)

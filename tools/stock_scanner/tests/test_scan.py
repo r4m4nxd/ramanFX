@@ -199,8 +199,8 @@ class OutputTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as out, contextlib.redirect_stdout(buf):
             self.assertEqual(selftest.main(out_dir=out), 0)
         out = buf.getvalue()
-        self.assertIn('  BUY ', out)
-        self.assertIn('not advice', out)
+        self.assertIn(' · Buy signal\n<blockquote>▲ Buy at ', out)
+        self.assertIn('For learning only, not financial advice', out)
 
 
 if __name__ == '__main__':

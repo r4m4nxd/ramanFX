@@ -97,8 +97,8 @@ class TelegramListsTest(unittest.TestCase):
         msgs = notify.build_messages({'date': '2026-10-23', 'scanned': 60, 'signals': [], 'exits': [], 'zone_lists': L.zone_lists(ds)})
         self.assertEqual(len(msgs), 1)
         txt = msgs[0]
-        self.assertIn('No new setups', notify.visible(txt))
-        for head in ('<b>In demand</b> (', '<b>Close to supply</b> (' if 'Close to supply' in txt else '<b>In supply</b> ('):
+        self.assertIn('No new trade ideas', notify.visible(txt))
+        for head in ('<b>Inside a buy area</b> (', '<b>Close to a sell area</b> (' if 'Close to a sell area' in txt else '<b>Inside a sell area</b> ('):
             self.assertIn(head, txt)
         self.assertRegex(txt, r'\+\d+</blockquote>|\+\d+\n')                # '+N' past the first names
         self.assertLess(notify.u16(txt), notify.SAFE)
@@ -113,7 +113,7 @@ class TelegramListsTest(unittest.TestCase):
         txt = out.getvalue()
         self.assertEqual(len(msgs), 1)
         self.assertIn('<blockquote expandable>', txt)
-        self.assertIn('[Open scanner](https://', txt)
+        self.assertIn('[Open app](https://', txt)
         self.assertIn('----- message 1/', txt)
 
     def test_scan_writes_lists_into_both_files(self):

@@ -179,8 +179,8 @@ class ScanIntegrationTest(unittest.TestCase):
         msgs = notify.build_messages(self.res)
         txt = '\n'.join(msgs)
         self.assertEqual(len(msgs), 1)
-        self.assertTrue(any(w in txt for w in ('weekly demand', 'monthly demand', 'quarterly demand')))
-        self.assertNotIn('daily demand', txt)                         # stocks never trade below W1
+        self.assertTrue(any(w in txt for w in ('weekly buy area', 'monthly buy area', '3-month buy area')))
+        self.assertNotIn('daily buy area', txt)                         # stocks never trade below W1
 
 
 if __name__ == '__main__':

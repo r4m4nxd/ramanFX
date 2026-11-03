@@ -1,18 +1,22 @@
-"""FX Telegram, calm and glanceable (same layout and legend as the stock scanner, see stock_scanner/notify.py):
+"""FX Telegram, calm and glanceable, in plain words for a reader with no trading knowledge (same layout, words and
+markers as the stock scanner, see stock_scanner/notify.py):
 
     instant alert   ONE short message when something NEW happens (deduped with the state in the cache); the only
                     message of an hourly (H1) scan inside an H4 bar, nothing when nothing is new:
-                    every instrument: a NEW BUY / SELL, a signal that disappeared (🚪 cancel the order);
-                    watchlist only: a NEW WATCH, price newly entering / approaching a located strong zone
+                    every instrument: a NEW buy / sell signal, a signal that disappeared (cancel the order);
+                    watchlist only: a NEW watch, price newly entering / approaching a located strong area.
+                    One item: its card is the message ('<b>Euro vs US dollar</b> (EURUSD) · Buy signal').
     H4 digest       ONE message per new H4 candle (FX_H4_DIGEST, default on; not hourly), <= 4 visible lines when quiet:
-                        🕐 4H check · 11:00 PM
-                        No new setups. 2 near a good zone ⏳
+                        <b>4-hour check</b>
+                        No new trades · nothing close yet
                         ▸ collapsed detail
+                        <i>Pepperstone prices · 11:00 PM MT · For learning only, not financial advice</i>
     daily summary   ONE message after the NY close: open setups (max 3 cards), the rest collapsed.
 
-Each message: the answer first, at most 3 two-line trade cards, everything else in ONE collapsed expandable quote,
-and an inline keyboard (a TradingView PEPPERSTONE chart per card, then "Open scanner"). Times on the owner's clock (Calgary, 12-hour).
-Symbols are Pepperstone names; levels come from the OANDA feed (check them on the Pepperstone chart).
+Each message: the answer first, at most 3 trade cards (plain name + one phrase, then a quote with the plan), everything
+else in ONE collapsed expandable quote, the italic footer, and an inline keyboard (a TradingView PEPPERSTONE chart per
+card, then "Open app"; no emoji). Times on the owner's clock (Calgary, 12-hour). Symbols are Pepperstone names; levels
+come from the OANDA feed (check them on the Pepperstone chart).
 """
 from __future__ import annotations
 
@@ -32,8 +36,14 @@ import notify as SN  # noqa: E402  (stock scanner Telegram: escape, UTF-16 lengt
 
 esc, u16, send, pack_cards, Msg = SN.esc, SN.u16, SN.send, SN.pack_cards, SN.Msg
 ICON = SN.ICON
-FOOTER = 'check levels on Pepperstone · not advice'
+SOURCE = 'Pepperstone'
+FOOTER = SN.FOOTER
 TV = 'https://www.tradingview.com/chart/?symbol='
+
+
+def foot(when: Optional[str] = None) -> str:
+    """'<i>Pepperstone prices · 3:00 PM MT · For learning only, not financial advice</i>' (when=None: now)."""
+    return SN.footer(SOURCE, when, C.LOCAL_TZ)
 
 
 def _px(v, s: Dict) -> str:
@@ -41,56 +51,72 @@ def _px(v, s: Dict) -> str:
 
 
 def chart(s: Dict) -> Dict:
-    return SN.button(f"📈 {s['sym']}", TV + (s.get('tv') or f"PEPPERSTONE:{s['sym']}"))
+    return SN.button(f"Live {s['sym']}", TV + (s.get('tv') or f"PEPPERSTONE:{s['sym']}"))
+
+
+def _long(s: Dict) -> bool:
+    return s.get('kind') == 'BUY' or (s.get('kind') != 'SELL' and s.get('side') != 'supply')
+
+
+def _extras(s: Dict) -> List[str]:
+    """The plan / news / data-source lines every FX card can carry (escaped HTML)."""
+    nw = SN.news_warning(s['sym'])
+    fd = feed_line(s)
+    return [SN.kevin_line(s), esc(nw) if nw else '', f'● {esc(fd)}' if fd else '']
 
 
 def signal_card(s: Dict) -> str:
-    """🟢 EURUSD  BUY 1.20806 → 1.24794 / stop 1.20620 · R:R 21 · 4-hour demand. Five-digit prices do not leave room
-    for the R:R on line 1 of a phone screen, so it moves to line 2 (a WATCH says 'confirm first' instead of the zone
-    when the zone was tested)."""
+    """<b>Euro vs US dollar</b> (EURUSD) · Buy signal
+    <blockquote>▲ Buy at <code>1.20806</code> · Exit if wrong <code>1.20620</code> · Take profit at <code>1.24794</code> · Possible gain 21× the risk
+    Why: a 4-hour buy area inside a monthly buy area, the trend is up, first visit to this area, quality score 8/10.</blockquote>
+    (a watch says what it still waits for: the price to come closer, or to confirm first)."""
     kind = s['kind']
-    rr = s.get('rr')
-    bits = [f"stop {_px(s.get('stop'), s)}", (f"R:R {rr:.0f}" if rr >= 10 else f"R:R {rr:.1f}") if rr else '',
-            f"{SN.tf_word(s.get('tf'))} {s.get('side', '')}"]
+    lg = _long(s)
+    lines = []
     if kind == 'WATCH':
-        bits[-1] = 'price still far' if s.get('watch_kind') == 'new' else 'confirm first'
-    c = SN.card(ICON.get(kind, '•'), s['sym'], kind, _px(s.get('entry'), s),
-                _px(s.get('target'), s) if s.get('target') else '', None, ' · '.join(b for b in bits if b))
+        lines.append('● Not yet: ' + ('the price is still far' if s.get('watch_kind') == 'new' else 'wait for the price to confirm first'))
+    ex = _extras(s)
     why = SN.reason_line(s, score=True)
-    nw = SN.news_warning(s['sym'])
-    kv = SN.kevin_line(s)
-    fd = feed_line(s)
-    return (c + (f'\n{kv}' if kv else '') + (f'\n<i>{esc(why)}</i>' if why else '') + (f'\n{esc(nw)}' if nw else '')
-            + (f'\n<i>{esc(fd)}</i>' if fd else ''))
+    lines += [ex[0], esc(why) if why else '', ex[1], ex[2]]
+    phrase = SN.KIND_WORD.get(kind) if kind in ('BUY', 'SELL') else f"watching for a {'buy' if lg else 'sell'}"
+    return SN.card(ICON.get(kind, '●'), s['sym'], kind, _px(s.get('entry'), s),
+                   _px(s.get('target'), s) if s.get('target') else '', s.get('rr'), '\n'.join(x for x in lines if x),
+                   stop=_px(s.get('stop'), s) if s.get('stop') is not None else '', long=lg, name=s.get('name') or '',
+                   phrase=phrase)
 
 
 def feed_line(s: Dict) -> str:
-    """'data: unofficial feed (Yahoo ^VIX)' / 'data: synthetic (OANDA EUR_USD x USD_MXN)' for the instruments OANDA
-    does not serve; '' for OANDA and crypto exchange feeds (official public APIs)."""
+    """'Prices from an unofficial source (Yahoo ^VIX)' / 'Prices built from other markets (OANDA EUR_USD x USD_MXN)'
+    for the instruments OANDA does not serve; '' for OANDA and crypto exchange feeds (official public APIs)."""
     feed = s.get('feed') or ''
     if s.get('unofficial'):
-        return 'data: unofficial feed (' + feed.replace(' (unofficial feed)', '') + ')'
+        return 'Prices from an unofficial source (' + feed.replace(' (unofficial feed)', '') + ')'
     if s.get('src') == 'synthetic':
-        return ('data: approximate basket' if s.get('approx') else 'data: synthetic') + ' (' + feed.replace('synthetic: ', '') + ')'
+        return ('Prices approximated from a basket' if s.get('approx') else 'Prices built from other markets') + ' (' + feed.replace('synthetic: ', '') + ')'
     return ''
 
 
-def gone_reason(reason: str) -> str:
+def gone_reason(reason: str, long: bool = True) -> str:
     r = reason or ''
     if r.startswith('rule failing now:'):
-        return 'no longer valid: ' + SN.plain(r.split(':', 1)[1].strip())
+        return 'it no longer qualifies: ' + SN.plain(r.split(':', 1)[1].strip())
     if 'reached the entry' in r:
-        return 'price reached the entry: manage it on the platform'
+        return f"the price reached the {'buy' if long else 'sell'} price: manage it in your trading app"
     if 'beyond the stop' in r:
-        return 'price went past the stop'
+        return 'the price went past the exit-if-wrong level'
     if 'zone removed' in r:
-        return 'zone broken by a close'
+        return 'the price closed through the area, so it no longer holds'
     return SN.plain(r.split(':')[0])
 
 
 def gone_card(g: Dict) -> str:
-    return (f"{ICON['EXIT']} <b>{esc(g['sym'])}</b>  cancel {esc(g['kind'])} {_px(g.get('entry'), g)}\n"
-            f"{esc(gone_reason(g.get('reason') or ''))}")
+    """<b>Euro vs US dollar</b> (EURUSD) · cancel the buy order / ● the planned price / ● why."""
+    lg = _long(g)
+    word = 'buy' if lg else 'sell'
+    phrase = f'cancel the {word} order' if g.get('kind') in ('BUY', 'SELL') else 'no longer watching'
+    r = gone_reason(g.get('reason') or '', lg)
+    lines = [f"● Planned {word} at {SN.code(_px(g.get('entry'), g))} is off", f'● Why: {esc(r)}']
+    return f"{SN.title(g['sym'], g.get('name') or '')} · {phrase}\n{SN.block(lines)}"
 
 
 def pct(z: Dict) -> float:
@@ -103,43 +129,44 @@ def pct(z: Dict) -> float:
 
 
 def zone_line(z: Dict) -> str:
-    """⏳ EURPLN 1.9% away · close / from monthly demand  —  👀 USDNOK entered monthly demand / at 9.26070."""
+    """<b>Polish zloty ...</b> (EURPLN) · getting close to a monthly buy area / ● 1.9% away, close  —
+    <b>US dollar vs Norwegian krone</b> (USDNOK) · now in a monthly buy area / ▲ Area starts at <code>9.26070</code>."""
     sec = z.get('sec') or z.get('section')
-    where = f"{SN.tf_word(z.get('tf'))} {z['side']}"
+    where = f"{SN.tf_word(z.get('tf'))} {SN.area(z.get('side'))}".strip()
+    mk = '▲' if z.get('side') == 'demand' else '▼' if z.get('side') == 'supply' else '●'
     if sec == 'near':
-        out = f"{ICON['NEAR']} <b>{esc(z['sym'])}</b> near {esc(where)}\n{esc(SN.away(pct(z)))}"
+        head, first = f'getting close to {SN.a(where)}', f'● Distance: {esc(SN.away(pct(z)))}'
     else:
-        out = f"{ICON['WATCH']} <b>{esc(z['sym'])}</b> entered {esc(where)}\nat {_px(z.get('prox'), z)}"
+        head, first = f'now in {SN.a(where)}', f"{mk} Area starts at {SN.code(_px(z.get('prox'), z))}"
+    ex = _extras(z)
     why = zone_why(z)
-    nw = SN.news_warning(z['sym'])
-    kv = SN.kevin_line(z)
-    fd = feed_line(z)
-    return (out + (f'\n{kv}' if kv else '') + (f'\n<i>{esc(why)}</i>' if why else '') + (f'\n{esc(nw)}' if nw else '')
-            + (f'\n<i>{esc(fd)}</i>' if fd else ''))
+    lines = [first, ex[0], esc(why) if why else '', ex[1], ex[2]]
+    return f"{SN.title(z['sym'], z.get('name') or '')} · {esc(head)}\n{SN.block(lines)}"
 
 
 def zone_why(z: Dict) -> str:
-    """'why: sits inside a bigger zone · not a trade yet: trend against it' (what the scanner already decided)."""
+    """'Why: it sits inside a bigger area, not a trade yet (trend against it), first visit to this area.' (what the
+    scanner already decided)."""
     bits = []
     if z.get('loc_ok'):
-        bits.append('top-timeframe zone' if z.get('loc') == 'top' else 'sits inside a bigger zone')
+        bits.append('an area on the biggest timeframe checked' if z.get('loc') == 'top' else 'it sits inside a bigger area')
     st = z.get('status') or ''
     if st in ('BUY', 'SELL'):
-        bits.append(f'{st} setup')
+        bits.append(f"a {'buy' if st == 'BUY' else 'sell'} signal is set up")
     elif st:
-        bits.append('not a trade yet: ' + SN.plain(z.get('label') or st))
+        bits.append('not a trade yet (' + SN.plain(z.get('label') or st) + ')')
     t = z.get('touches')
     if t is not None:
-        bits.append('untouched zone' if t == 0 else f'zone touched {t}x')
-    return ('why: ' + ' · '.join(bits)) if bits else ''
+        bits.append('first visit to this area' if t == 0 else 'the price came back here once before' if t == 1
+                    else f'the price came back here {t} times before')
+    if not bits:
+        return ''
+    return 'Why: ' + ', '.join(bits) + '.'
 
 
 def also(items: Sequence[Dict], n: int = 5) -> str:
-    """'Also: 👀 EURUSD daily, 👀 GBPUSD weekly' (the setups that did not get a card)."""
-    if not items:
-        return ''
-    out = [f"{ICON.get(s.get('kind'), '•')} {esc(s['sym'])} {SN.tf_word(s.get('tf'))}".rstrip() for s in items[:n]]
-    return 'Also: ' + ', '.join(out) + (f' +{len(items) - n}' if len(items) > n else '')
+    """'Also: EURUSD (watching, daily), GBPUSD (buy signal, weekly)' (the setups that did not get a card)."""
+    return SN.also_line(items, 'sym', n)
 
 
 def charts_of(items: Sequence[Dict]) -> List[Dict]:
@@ -178,7 +205,8 @@ def kevin_first(items: Sequence[Dict]) -> List[Dict]:
 
 def alert_messages(ev: Dict, muted: Optional[set] = None) -> List[Msg]:
     """ONE short message for the new events of a run ([] when nothing is new). muted = symbols muted in the bot: no
-    card for them (they stay in the lists and the app). Kevin-plan cards first."""
+    card for them (they stay in the lists and the app). Plan cards first. A single event: its card is the message
+    (no summary headline above it)."""
     mu = muted or set()
     keep = lambda xs: kevin_first([x for x in xs or [] if x.get('sym') not in mu])  # noqa: E731
     sig, gone, watch, zones = keep(ev.get('signals')), keep(ev.get('gone')), keep(ev.get('watch')), keep(ev.get('zones'))
@@ -187,16 +215,16 @@ def alert_messages(ev: Dict, muted: Optional[set] = None) -> List[Msg]:
     items = [('s', s) for s in sig] + [('g', g) for g in gone] + [('s', s) for s in watch]
     nb = sum(s['kind'] == 'BUY' for s in sig)
     ns = sum(s['kind'] == 'SELL' for s in sig)
-    words = [f'{nb} BUY' if nb else '', f'{ns} SELL' if ns else '', f'{len(watch)} WATCH' if watch else '',
-             f'{len(gone)} to cancel' if gone else '']
+    words = [SN._n(nb, 'buy signal', 'buy signals') if nb else '', SN._n(ns, 'sell signal', 'sell signals') if ns else '',
+             f'{len(watch)} watching' if watch else '', f'{len(gone)} to cancel' if gone else '']
     words = [w for w in words if w]
     n_in = sum((z.get('sec') or z.get('section')) == 'in' for z in zones)
-    zwords = ' · '.join(w for w in (f'{n_in} in a zone' if n_in else '', f'{len(zones) - n_in} getting close' if len(zones) > n_in else '') if w)
+    zwords = ' · '.join(w for w in (f'{n_in} in a price area' if n_in else '', f'{len(zones) - n_in} getting close' if len(zones) > n_in else '') if w)
     title = ('New: ' + ' · '.join(words)) if words else zwords
     h1, h4 = ev.get('h1') or '', ev.get('h4') or ''
     hourly = bool(h1) and _closes(h1, 1) != _closes(h4, 4)       # an hourly scan: an H1 close inside an H4 bar
     when = _when(h1, hours=1) if hourly else _when(h4)
-    head = [f"⚡ <b>{esc(title)}</b>", f"FX · {'1H' if hourly else '4H'} candle" + (f" closed {esc(when)}" if when else '')]
+    head = [f"<b>{esc(title)}</b>", f"Forex · {'hourly' if hourly else '4-hour'} check"]
     shown = items[:SN.MAX_CARDS]
     cards = [signal_card(x) if k == 's' else gone_card(x) for k, x in shown]
     zl = [zone_line(z) for z in zones]
@@ -204,10 +232,13 @@ def alert_messages(ev: Dict, muted: Optional[set] = None) -> List[Msg]:
     visible_z, rest_z = (zl[:room], zl[room:]) if not cards else ([], zl)
     if visible_z:
         cards += visible_z
+    if len(items) + len(zones) == 1:                             # one event: its card is the headline, the check
+        t, _, rest = cards[0].partition('\n')                   # below it
+        cards, head = [f'{t}\n{head[1]}\n{rest}'], []
     detail = [also([x if k == 's' else {**x, 'kind': 'EXIT'} for k, x in items[len(shown):]])]
-    detail += rest_z + [FOOTER]
+    detail += [SN.flat(z) for z in rest_z]
     charts = charts_of([x for k, x in shown if k == 's'] or zones[:room])
-    return [SN.compose(head, cards, detail, SN.alert_keyboard(charts, 'Open scanner', C.APP_URL))]
+    return [SN.compose(head, cards, detail, SN.alert_keyboard(charts, 'Open app', C.APP_URL), foot=foot(when))]
 
 
 def urgent(ev: Dict, muted: Optional[set] = None) -> bool:
@@ -217,15 +248,15 @@ def urgent(ev: Dict, muted: Optional[set] = None) -> bool:
 
 def fired_messages(fired: Sequence[Dict], hourly: bool = True) -> List[Msg]:
     """One calm message per fired user alert (prefs.evaluate)."""
-    return [SN.fired_alert_message(f, 'fx', 'last closed 1H bar' if hourly else 'last closed 4H bar') for f in fired]
+    return [SN.fired_alert_message(f, 'fx', 'at the last hourly close' if hourly else 'at the last 4-hour close') for f in fired]
 
 
-SECTION_WORD = {k: v.replace('⏳ ', '') for k, v in SN.SECTION_WORD.items()}   # ⏳ marks the good zones line
+SECTION_WORD = dict(SN.SECTION_WORD)
 
 
 def _lists_detail(pub: Dict) -> List[str]:
-    """Per side: 'Close to demand (5)' / 'CORN D1 0.1% · GBPCAD D1 0.1% +3', then 'In demand' etc. (watchlist first,
-    then the closest); bounced / turned-down and 'why no trades' stay in the app; scan size + footer."""
+    """Per side: 'Close to a buy area (5)' / 'CORN daily 0.1% · GBPCAD daily 0.1% +3', then 'Inside a buy area' etc.
+    (watchlist first, then the closest); bounced / turned-down and 'why no trades' stay in the app; scan size."""
     zl = pub.get('lists') or {}
     out: List[str] = []
     for side, sec in SN.SECTION_ORDER:
@@ -235,18 +266,22 @@ def _lists_detail(pub: Dict) -> List[str]:
         extra = (lambda r: SN.short_pct(pct(r))) if sec == 'near' else None
         out += SN.section(SECTION_WORD[(side, sec)], rows, 'sym', 3, extra)
     c = pub.get('counts') or {}
-    out.append((f"{c['instruments']} markets · " if c.get('instruments') else '') + FOOTER)
+    if c.get('instruments'):
+        out.append(f"{c['instruments']} markets checked")
     return out
 
 
 def _close_block(pub: Dict) -> str:
-    """The visible 'worth watching' block: up to 3 watchlist markets nearing a located strong zone, one per line."""
+    """The visible 'worth watching' block: up to 3 watchlist markets nearing a located strong area, one per line."""
     close = _close_rows(pub)[:3]
     if not close:
         return ''
-    return f"{ICON['NEAR']} <b>Getting close</b>\n" + '\n'.join(
-        f"<b>{esc(r['sym'])}</b> · {esc(SN.TF_SHORT.get(r.get('tf'), r.get('tf') or ''))} {esc(r['side'])} · {esc(SN.away(pct(r)))}"
-        for r in close)
+    rows = []
+    for r in close:
+        mk = '▲' if r.get('side') == 'demand' else '▼'
+        rows.append(f"{mk} {SN.title(r['sym'], r.get('name') or '')} · {esc(SN.tf_word(r.get('tf')))} {esc(SN.area(r['side']))}"
+                    f" · {esc(SN.away(pct(r)))}")
+    return '<b>Getting close</b>\n' + SN.block(rows)
 
 
 def _close_rows(pub: Dict) -> List[Dict]:
@@ -263,7 +298,7 @@ def _close_rows(pub: Dict) -> List[Dict]:
 
 
 def _close_count(pub: Dict) -> str:
-    """'2 near a good zone ⏳' (watchlist, located zones, approaching) or 'Nothing close yet.'."""
+    """'2 worth watching' (watchlist, located areas, approaching) or 'nothing close yet'."""
     near = {r['sym']: r for r in _close_rows(pub)}
     if not near:
         return 'nothing close yet'
@@ -276,7 +311,7 @@ def _open_setups(pub: Dict) -> List[Dict]:
     return sig + wat
 
 
-def _overview(pub: Dict, head0: str, new: Sequence[Dict], show_close: bool = True) -> Msg:
+def _overview(pub: Dict, head0: str, new: Sequence[Dict], show_close: bool = True, when: Optional[str] = None) -> Msg:
     c = pub.get('counts') or {}
     setups = _open_setups(pub)
     keys = {(s['sym'], s['kind'], s.get('tf')) for s in new or []}
@@ -285,25 +320,25 @@ def _overview(pub: Dict, head0: str, new: Sequence[Dict], show_close: bool = Tru
     if not setups:
         sub = ('No new trades · ' if new is not None else 'No trades today · ') + _close_count(pub)
     else:
-        sub = SN.headline(c.get('BUY', 0), c.get('WATCH', 0), 0, c.get('SELL', 0)).replace(' · nothing to exit', '')
+        sub = SN.headline(c.get('BUY', 0), c.get('WATCH', 0), 0, c.get('SELL', 0)).replace(' · nothing to sell', '')
         if new is not None:
             sub += f" · {len(first)} new" if first else ' · nothing new'
     shown = order[:SN.MAX_CARDS]
-    detail = [also(order[len(shown):])] + ([] if show_close else [_close_block(pub)]) + _lists_detail(pub)
+    detail = [also(order[len(shown):])] + ([] if show_close else [SN.flat(_close_block(pub))]) + _lists_detail(pub)
     if pub.get('fixture'):
         sub += ' · sample data'
     cards = [signal_card(s) for s in shown]
     if show_close and len(cards) < SN.MAX_CARDS and _close_block(pub):
         cards.append(_close_block(pub))
     return SN.compose([head0, esc(sub) if '<' not in sub else sub], cards, detail,
-                      SN.keyboard(charts_of(shown), 'Open scanner', C.APP_URL))
+                      SN.keyboard(charts_of(shown), 'Open app', C.APP_URL), foot=foot(when))
 
 
 def digest_message(pub: Dict, ev: Dict, top: int = SN.MAX_CARDS) -> Msg:
     """The H4 check after every new H4 candle: one message, <= 4 visible lines when nothing new happened."""
     when = _local(pub.get('h4_close_utc') or '') or esc(pub.get('h4') or '')
     new = list((ev or {}).get('signals') or []) + list((ev or {}).get('watch') or [])
-    return _overview(pub, f"🕐 <b>4H check · {esc(when)}</b>", new, show_close=False)
+    return _overview(pub, '<b>Forex · 4-hour check</b>', new, show_close=False, when=when)
 
 
 def summary_messages(pub: Dict) -> List[Msg]:
@@ -312,7 +347,7 @@ def summary_messages(pub: Dict) -> List[Msg]:
         day = dt.datetime.strptime((pub.get('h4') or '')[:10], '%Y-%m-%d').strftime('%a %d %b')
     except ValueError:
         day = ''
-    m = _overview(pub, f"📊 <b>FX · {esc(day)}</b>" if day else "📊 <b>FX daily</b>", None)
+    m = _overview(pub, f"<b>Forex · {esc(day)}</b>" if day else "<b>Forex · daily summary</b>", None)
     return [m]
 
 
@@ -333,64 +368,72 @@ def preview_messages(pub: Dict) -> Dict[str, List[Msg]]:
 
 
 def failure_message(reason: str) -> str:
-    return f'⚠️ <b>FX scan failed</b>\n{esc(reason)}'
+    return (f'<b>Forex scanner</b> · could not run\n'
+            + SN.block([f'● Reason: {esc(reason)}', '● Nothing new was sent; the app still shows the last results'])
+            + '\n' + foot())
 
 
-# ---- on-demand scan of one symbol (the bot's /scan SYM and [🔄 Live scan]) --------------------------------------------
+# ---- on-demand scan of one symbol (the bot's /scan SYM and its live-scan button) --------------------------------------
 STATE_WORD = {'UP': 'up', 'DOWN': 'down'}
 
 
 def _zpct(price: float, prox: float, dist: float) -> str:
     lo, hi = min(prox, dist), max(prox, dist)
     if lo <= price <= hi:
-        return 'price in it'
+        return 'the price is in it'
     return SN.away(abs(price - prox) / price * 100)
+
+
+def _zone_row(side: str, tf: str, lo: str, hi: str, rest: str) -> str:
+    w = f'{SN.tf_word(tf)} {SN.area(side)}'
+    return (f"{'▲' if side == 'demand' else '▼'} {esc(w[:1].upper() + w[1:])} {SN.code(f'{lo}–{hi}')}"
+            + (f' · {esc(rest)}' if rest else ''))
 
 
 def ondemand_card(det: Dict, sigs: Sequence[Dict], h1: str = '', h4: str = '') -> Msg:
     """ONE card for an on-demand scan of one instrument (every scanner rule, on the newest closed candle): its open
-    BUY / SELL / WATCH (max 3 cards), the strong zones the scanner located for it and their verdict, the nearest other
-    zones, the trend per TF. Buttons: TradingView, [📊 Chart] [🔎 Zones] (bot callbacks)."""
+    buy / sell / watch cards (max 3), the strong areas the scanner located for it and their verdict, the nearest other
+    areas, the trend per timeframe. Buttons: TradingView, [Chart] [Areas] (bot callbacks)."""
     sym, nd = det['sym'], det.get('digits', 5)
     f = lambda v: 'n/a' if v is None else f'{v:.{nd}f}'  # noqa: E731
     when = _when(h1, hours=1) if h1 else _when(h4)
-    head = [f"🔄 <b>{esc(sym)}</b> · on-demand scan",
-            f"price {f(det.get('price'))} · {'1H' if h1 else '4H'} candle" + (f' closed {esc(when)}' if when else '') + ' · every scanner rule']
+    head = [f"{SN.title(sym, det.get('name') or '')} · on-demand check",
+            f"Price {SN.code(f(det.get('price')))} · at the last {'hourly' if h1 else '4-hour'} close · every scanner rule checked"]
     cards = [signal_card(s) for s in list(sigs)[:SN.MAX_CARDS]]
     if not cards:
-        cards = ['No BUY / SELL / WATCH on it right now.']
+        cards = ['No buy signal, sell signal or watch on it right now.']
     px = det.get('price') or 0
     hits = det.get('hits') or []
     lines: List[str] = []
     if hits:
-        lines.append('<b>Zones the scanner located</b>')
+        lines.append('<b>Price areas the scanner found</b>')
         for h in hits[:5]:
-            sq = '🟩' if h['side'] == 'demand' else '🟥'
-            why = zone_why(h).replace('why: ', '')
-            lines.append(f"{sq} {esc(SN.tf_word(h['tf']))} {esc(h['side'])} {f(h.get('prox'))}–{f(h.get('dist'))} · "
-                         f"{esc(_zpct(px, h['prox'], h['dist']) if px else '')}" + (f'\n<i>{esc(why)}</i>' if why else ''))
+            why = zone_why(h).replace('Why: ', '')
+            lines.append(_zone_row(h['side'], h['tf'], f(h.get('prox')), f(h.get('dist')), _zpct(px, h['prox'], h['dist']) if px else ''))
+            if why:
+                lines.append(f'Why: {esc(why)}')
     seen = {(h['tf'], h['side'], h.get('prox')) for h in hits}
     other = [z for z in det.get('zones') or [] if (z['tf'], z['side'], z['proximal']) not in seen][:4]
     if other:
-        lines.append('<b>Nearest other zones</b>')
+        lines.append('<b>Nearest other areas</b>')
         for z in other:
-            sq = '🟩' if z['side'] == 'demand' else '🟥'
             t = z.get('touches') or 0
-            lines.append(f"{sq} {esc(SN.tf_word(z['tf']))} {esc(z['side'])} {f(z['proximal'])}–{f(z['distal'])} · "
-                         f"{esc(_zpct(px, z['proximal'], z['distal']) if px else '')} · {'untouched' if not t else f'touched {t}x'}")
+            rest = ' · '.join(b for b in [_zpct(px, z['proximal'], z['distal']) if px else '',
+                                          'never tested' if not t else f'tested {t}x'] if b)
+            lines.append(_zone_row(z['side'], z['tf'], f(z['proximal']), f(z['distal']), rest))
     st = det.get('states') or {}
-    trend = ' · '.join(f"{'4H' if t == 'H4' else '1H' if t == 'H1' else t} {str(st[t]).lower()}" for t in ('MN', 'W1', 'D1', 'H4', 'H1') if st.get(t))
+    trend = SN.trend_text([(t, st[t]) for t in ('MN', 'W1', 'D1', 'H4', 'H1') if st.get(t)])
     if trend:
-        lines.append(f'Trend: {esc(trend)}')
-    lines.append(f'on-demand scan · {FOOTER}')
-    rows = [[SN.button(f'📈 {sym}', TV + (det.get('tv') or f'PEPPERSTONE:{sym}'))]]
+        lines.append(trend)
+    lines.append('On-demand check')
+    rows = [[SN.button('Live chart', TV + (det.get('tv') or f'PEPPERSTONE:{sym}'))]]
     if SN._cb_ok(f'c:{sym}'):
-        rows.append([SN.cb(f'📊 Chart {sym}', f'c:{sym}'), SN.cb(f'🔎 Zones {sym}', f'z:{sym}')])
-    text = '\n'.join(head) + '\n\n' + '\n\n'.join(cards) + '\n\n' + '\n'.join(lines)
+        rows.append([SN.cb('Chart', f'c:{sym}'), SN.cb('Areas', f'z:{sym}')])
+    text = '\n'.join(head) + '\n\n' + '\n\n'.join(cards) + '\n\n' + SN.block(lines) + '\n' + foot(when)
     if u16(text) > SN.SAFE:
         text = SN._cut(text, SN.SAFE)
     return Msg(text, rows)
 
 
 def ondemand_missing(sym: str, why: str) -> Msg:
-    return Msg(f'🔄 <b>{esc(sym)}</b> · on-demand scan\nNo result: {esc(why)}.\n{FOOTER}')
+    return Msg(f'{SN.title(sym)} · on-demand check\n' + SN.block([f'● No result: {esc(SN.words(why))}']) + '\n' + foot())

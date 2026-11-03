@@ -1431,8 +1431,10 @@ def notify_failure(reason: str, today: str, log=print) -> bool:
     except (OSError, ValueError):
         pass
     try:
-        notify.send(['<b>RamanFX scanner: scan failed: no price data</b>\n' + notify.esc(reason) +
-                     '\nNothing was published; the previous results stay in the app.'])
+        notify.send(['<b>Stock scanner</b> · could not run today\n'
+                     + notify.block(['● Reason: no price data · ' + notify.esc(reason),
+                                     '● Nothing new was published; the app still shows the last results'])
+                     + '\n' + notify.footer()])
         os.makedirs(DATA.CACHE, exist_ok=True)
         with open(sp, 'w') as fh:
             json.dump({'date': today}, fh)

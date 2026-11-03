@@ -87,7 +87,7 @@ class HourlyPass(unittest.TestCase):
                 AA.STATE_FILES.clear()
                 AA.STATE_FILES.update(files)
             self.assertEqual(len(sent), 1)
-            self.assertIn('🔁 <b>Realignment watch</b>', sent[0])
+            self.assertIn(') · back in a daily buy area\n<blockquote>▲ Area <code>', sent[0])
             self.assertIn('EURUSD', sent[0])
             self.assertEqual(AA.load(p)['sent'][AA.calgary_day(NOW)], 1)
 
@@ -135,8 +135,8 @@ class FifteenMinuteJob(unittest.TestCase):
                 AA.STATE_FILES.update(files)
         self.assertEqual(calls, [('EUR_USD', 'H1')])                 # one request, the inside area only; then nothing
         self.assertEqual(len(sent), 1)
-        self.assertIn('✅ <b>Confirmation</b>', sent[0])
-        self.assertIn('BUY', sent[0])
+        self.assertIn(') · Buy signal, confirmed\n<blockquote>▲ Buy at <code>', sent[0])
+        self.assertIn('Buy signal', sent[0])
         self.assertIn('EURUSD|D1:S:x', st['area_confirmed'])
         self.assertEqual(st['sent'][AA.calgary_day(NOW)], 1)
 

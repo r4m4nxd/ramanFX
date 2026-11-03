@@ -271,7 +271,8 @@ class TestNoDataGuard(NetBase):
         self.assertEqual((rc, rc2), (2, 2))
         self.assertEqual(os.listdir(out), [])
         self.assertEqual(len(sent), 1)                                  # one notice per day, no signals
-        self.assertIn('scan failed: no price data', sent[0][0])
+        self.assertIn('could not run today', sent[0][0])
+        self.assertIn('Reason: no price data', sent[0][0])
         self.assertIn('0/2 tickers with data', sent[0][0])
 
     def test_no_history_file_without_a_date(self):
