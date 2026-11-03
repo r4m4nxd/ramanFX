@@ -18,7 +18,7 @@ import { cmdFund, earningsLine, fundButton } from './fundamentals.ts';
 import { nyseHolidays } from '../trader-coach/health.ts';
 import { cmdInsiders, insiderLine } from './insiders.ts';
 import { symbolLines } from './headlines.ts';
-import { caption as cardCaption, plainFund, trendOf, type CardData, type CardZone } from './card.ts';
+import { caption as cardCaption, plainFund, plainName, trendOf, type CardData, type CardZone } from './card.ts';
 import { cmdHolders, holdersButton } from './holders.ts';
 
 export type Button = { text: string; url: string } | { text: string; callback_data: string };
@@ -103,7 +103,7 @@ export const COMMANDS: { command: string; description: string; group: Group; usa
 
 export const APP = 'https://raman-fx.vercel.app';
 const LIMIT = 4000;
-const FOOT = 'not advice';
+const FOOT = 'For learning only, not financial advice';
 const ICON: Record<string, string> = { BUY: '🟢', SELL: '🔴', WATCH: '👀', NEAR: '⏳' };
 const TF_SHORT: Record<string, string> = { M15: '15m', H1: '1H', H4: '4H', D1: 'D1', W1: 'W1', MN: 'MN', '3M': '3M', '6M': '6M' };
 const TF_ORDER = ['MN', 'W1', 'D1', 'H4', 'H1', 'M15', '3M', '6M'];
@@ -285,6 +285,12 @@ export function symButtons(syms: string[], n = 3): Button[][] {
   return [...new Set(syms)].slice(0, n).filter(s => cbOk(`z:${s}`)).map(s => [{ text: `🔎 Zones ${s}`, callback_data: `z:${s}` }, { text: `📊 Chart ${s}`, callback_data: `c:${s}` }]);
 }
 /** Buttons in rows of at most 3 (a phone shows ~3 labels per row before cutting them to '…'). */
+/** Every reply's buttons, premium style (owner 2026-11-03): no leading emoji, at most 3 per row. */
+export function polishButtons(rows: Button[][] | undefined): Button[][] | undefined {
+  if (!rows) return rows;
+  const clean = (b: Button): Button => ({ ...b, text: b.text.replace(/^(?:[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}\u2190-\u21FF\u2B00-\u2BFF][\uFE0F\u200D]*)+\s*/u, '').trim() || b.text });
+  return rows.flatMap(r => rows3(r.map(clean)));
+}
 export const rows3 = (bs: Button[]): Button[][] => { const out: Button[][] = []; for (let i = 0; i < bs.length; i += 3) out.push(bs.slice(i, i + 3)); return out; };
 const cbOk = (d: string) => new TextEncoder().encode(d).length <= 64;
 
@@ -708,23 +714,9 @@ async function summaryParts(hit: Resolved, ctx: Ctx): Promise<{ lines: string[];
     stock ? insiderLine(sym, ctx).catch(() => '') : Promise.resolve(''),
     ctx.social ? ctx.social(sym).catch(() => null) : Promise.resolve(null),
   ]);
-  const zl = (zr?.text ?? '').split('\n');
-  const cut = zl.indexOf('');
-  const head = cut > 0 ? zl.slice(0, cut) : zl.slice(0, 3);
+  type Z = ZRow;
+  const { head, zs } = parseZoneText(zr?.text ?? '');
   const lines = [...head];
-  // zones: per-TF headings '<b>TF</b>' then '🟩 demand a–b · 1.2% away · ...' lines
-  type Z = { tf: string; line: string; side: string; inside: boolean; left: boolean; away: number; lo: number; hi: number };
-  const zs: Z[] = [];
-  let tfh = '';
-  for (const l of zl.slice(Math.max(cut, 0))) {
-    const h = /^<b>([^<]{1,12})<\/b>$/.exec(l);
-    if (h) { tfh = h[1]; continue; }
-    if (!/^(🟩|🟥)/.test(l)) continue;
-    const side = l.startsWith('🟩') ? 'demand' : 'supply';
-    const m = /· ([\d.]+)% away/.exec(l), rg = /(demand|supply) ([\d,.]+)–([\d,.]+)/.exec(l);
-    const a = rg ? parseFloat(rg[2].replace(/,/g, '')) : NaN, b = rg ? parseFloat(rg[3].replace(/,/g, '')) : NaN;
-    zs.push({ tf: tfh, line: l, side, inside: / · in it/.test(l), left: /bounced|turned down/.test(l), away: m ? +m[1] : (/ · in it/.test(l) ? 0 : 999), lo: Math.min(a, b), hi: Math.max(a, b) });
-  }
   const order = (z: Z) => -TF_SHOW.indexOf(z.tf);
   const inside = zs.filter(z => z.inside).sort((a, b) => order(a) - order(b)).slice(0, 2);
   const left = zs.filter(z => z.left && !z.inside).sort((a, b) => order(a) - order(b)).slice(0, 1);
@@ -761,11 +753,88 @@ async function summaryParts(hit: Resolved, ctx: Ctx): Promise<{ lines: string[];
 }
 const TF_SHOW = ['15m', '1H', '4H', 'Daily', 'Weekly', 'Monthly', '3-month', 'M15', 'H1', 'H4', 'D1', 'W1', 'MN', '3M'];
 
+/** A zones reply's text (fxZones / stockZones) -> its header lines and one row per zone. */
+interface ZRow { tf: string; line: string; side: string; inside: boolean; left: boolean; away: number; lo: number; hi: number }
+function parseZoneText(text: string): { head: string[]; zs: ZRow[] } {
+  const zl = text.split('\n');
+  const cut = zl.indexOf('');
+  const head = cut > 0 ? zl.slice(0, cut) : zl.slice(0, 3);
+  const zs: ZRow[] = [];
+  let tfh = '';
+  for (const l of zl.slice(Math.max(cut, 0))) {
+    const h = /^<b>([^<]{1,12})<\/b>$/.exec(l);
+    if (h) { tfh = h[1]; continue; }
+    if (!/^(🟩|🟥)/.test(l)) continue;
+    const side = l.startsWith('🟩') ? 'demand' : 'supply';
+    const m = /· ([\d.]+)% away/.exec(l), rg = /(demand|supply) ([\d,.]+)–([\d,.]+)/.exec(l);
+    const a = rg ? parseFloat(rg[2].replace(/,/g, '')) : NaN, b = rg ? parseFloat(rg[3].replace(/,/g, '')) : NaN;
+    zs.push({ tf: tfh, line: l, side, inside: / · in it/.test(l), left: /bounced|turned down/.test(l), away: m ? +m[1] : (/ · in it/.test(l) ? 0 : 999), lo: Math.min(a, b), hi: Math.max(a, b) });
+  }
+  return { head, zs };
+}
+const TF_PLAIN: Record<string, string> = { '15m': '15-minute', '1H': 'Hourly', '4H': '4-hour', D1: 'Daily', W1: 'Weekly', MN: 'Monthly', '3M': '3-month' };
+const TF_RANK = ['15m', '1H', '4H', 'D1', 'W1', 'MN', '3M'];
+/** /zones and the [Buy & sell areas] button (owner 2026-11-03: "on charts it makes sense, on text it is just clutter"):
+ *  only the areas that matter now - up to 3 buy areas at or below the price and 3 sell areas above it, nearest first,
+ *  within 25% - in plain words; the chart button shows every area. */
+async function plainZones(hit: Resolved, ctx: Ctx): Promise<Reply> {
+  const raw = await (hit.market === 'stock' ? stockZones(hit, ctx) : fxZones(hit, ctx));
+  const { head, zs } = parseZoneText(raw.text);
+  if (!zs.length) return raw;
+  const strip = (t: string) => t.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
+  const h = strip(head.join(' · '));
+  const stock = hit.market === 'stock';
+  const nm = stock ? (/^\S*\s*\S+ · ([^·]+)/.exec(strip(head[0] ?? ''))?.[1] ?? '').trim() : '';
+  const name = plainName(hit.sym, nm, hit.market);
+  const pm = /price ([\d,.]+)/.exec(h);
+  const dg = pm && pm[1].includes('.') ? pm[1].split('.')[1].length : 2;
+  const money = (v: number) => `${stock ? '$' : ''}${v.toLocaleString('en-US', { minimumFractionDigits: dg, maximumFractionDigits: dg })}`;
+  const live = /live · ([\d:]+ [AP]M)/.exec(h);
+  const feed = /Pepperstone/.test(h) ? 'Pepperstone' : /OANDA/.test(h) ? 'OANDA' : /Questrade/.test(h) ? 'Questrade' : /Alpaca/.test(h) ? 'Alpaca' : '';
+  const pick = (side: string) => {
+    const ok = zs.filter(z => z.side === side && Number.isFinite(z.lo) && Number.isFinite(z.hi) && (z.inside || z.away <= 25)).sort((a, b) => a.away - b.away || TF_RANK.indexOf(b.tf) - TF_RANK.indexOf(a.tf));
+    const out: ZRow[] = [];
+    for (const z of ok) if (out.length < 3 && !out.some(o => z.lo <= o.hi && z.hi >= o.lo)) out.push(z);   // overlapping areas: keep one
+    return out;
+  };
+  const why = (z: ZRow) => {
+    if (/(BUY|SELL) setup/.test(z.line)) return 'signal ready';
+    if (/WATCH setup/.test(z.line)) return 'on watch';
+    return '';
+  };
+  const row = (z: ZRow) => {
+    const where = z.inside ? 'price is inside' : `${z.away.toFixed(1)}% ${z.side === 'demand' ? 'lower' : 'higher'}`;
+    const extra = [z.left ? (z.side === 'demand' ? 'just bounced' : 'just turned down') : '', why(z)].filter(Boolean).join(' · ');
+    return `● ${TF_PLAIN[z.tf] ?? esc(z.tf)} · <code>${money(z.lo)}–${money(z.hi)}</code> · ${where}${extra ? ` · ${extra}` : ''}`;
+  };
+  const buys = pick('demand'), sells = pick('supply');
+  const lines = [`<b>${esc(name)}</b>${name !== hit.sym ? ` (${esc(hit.sym)})` : ''}${pm ? ` · <code>${money(parseFloat(pm[1].replace(/,/g, '')))}</code>` : ''}`,
+    `<i>Buy &amp; sell areas${live ? ` · live ${live[1]} MT` : ''}</i>`, ''];
+  lines.push(`<blockquote><b>▲ Buy areas</b> (where buyers stepped in before)\n${buys.length ? buys.map(row).join('\n') : '● None near the price'}</blockquote>`);
+  lines.push(`<blockquote><b>▼ Sell areas</b> (where sellers took over before${stock ? ': a place to take profit' : ''})\n${sells.length ? sells.map(row).join('\n') : '● None near the price'}</blockquote>`);
+  const tr = trendOf(strip(head.find(l => l.startsWith('Trend:')) ?? ''));
+  if (tr.length) lines.push(tr.map(t => `${t.label[0]}${t.label.slice(1).toLowerCase()}: ${t.word.toLowerCase()}`).join(' · '));
+  const lead = stock ? (buys.find(z => z.inside) ?? buys[0]) : ([...buys, ...sells].find(z => /(BUY|SELL) setup/.test(z.line)) ?? [...buys, ...sells].find(z => z.inside) ?? buys[0]);
+  if (lead) {
+    const b = /blocked: ([^·]+)/.exec(lead.line)?.[1]?.trim().replace(/\bzone\b/g, 'area');
+    const ready = /(BUY|SELL) setup/.exec(lead.line)?.[1];
+    const what = stock ? 'buy signal' : 'trade signal';
+    lines.push(ready ? `● <b>${ready === 'BUY' ? 'Buy' : 'Sell'} signal ready</b> in the ${(TF_PLAIN[lead.tf] ?? lead.tf).toLowerCase()} area: see /signals for the plan`
+      : b ? `● No ${what} yet: ${esc(b)}` : `● No ${what} yet`);
+  }
+  const earn = strip(head.find(l => /earnings/.test(l)) ?? '');
+  if (earn) lines.push(`● ${esc(earn.replace(/^\S+\s*/, '').replace(/^next earnings/i, 'Next earnings report'))}`);
+  lines.push('', `<i>${[feed && `${feed} prices`, `${zs.length} areas on the chart`, 'For learning only, not financial advice'].filter(Boolean).join(' · ')}</i>`);
+  const note = raw.text.split('\n').find(l => l.startsWith('(live data'));
+  if (note) lines.push(note);
+  return { ...raw, text: fit(lines) };
+}
+
 async function cmdZones(q: string, ctx: Ctx): Promise<Reply> {
   if (!q) return { cmd: 'zones', text: 'Send a symbol after it, e.g. <b>/zones EURUSD</b> or <b>/zones NVDA</b>. Just the symbol works too.' };
   const { hit, suggest } = await resolve(q, ctx);
   if (!hit) return { cmd: 'zones', text: notFound(q, suggest) };
-  return withLatest(hit.sym, ctx, hit.market === 'fx' ? fxZones(hit, ctx) : stockZones(hit, ctx));
+  return withLatest(hit.sym, ctx, plainZones(hit, ctx));
 }
 
 // ---- times ---------------------------------------------------------------------------------------------------------

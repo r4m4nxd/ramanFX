@@ -26,7 +26,7 @@ function ctx(now = '2026-10-29T15:00:00Z', extra: Record<string, unknown> = {}, 
   };
 }
 const visibleLen = (s: string) => s.length;
-const noRawLt = (s: string) => expect(s.replace(/<\/?(b|i|code)>/g, '')).not.toMatch(/<(?!\/)/);
+const noRawLt = (s: string) => expect(s.replace(/<\/?(b|i|code|blockquote)>/g, '')).not.toMatch(/<(?!\/)/);
 
 describe('telegram bot', () => {
   it('menu list in commands.json matches the code', () => {
@@ -71,7 +71,7 @@ describe('telegram bot', () => {
       const r = await handle(t, ctx());
       expect(visibleLen(r.text)).toBeLessThan(4096);
       expect(r.text).not.toMatch(/pips?\b/i);
-      expect(r.text).toContain('not advice');
+      expect(r.text).toContain('not financial advice');
       expect(r.text).not.toContain('unavailable');
       noRawLt(r.text);
     }
@@ -84,9 +84,11 @@ describe('telegram bot', () => {
 
   it('/zones and a bare symbol show every timeframe with status', async () => {
     const fx = await handle('/zones eurusd', ctx());
-    expect(fx.text).toContain('<b>EURUSD</b> · FX');
-    expect(fx.text).toMatch(/<b>(MN|W1|D1|4H|1H)<\/b>/);
-    expect(fx.text).toMatch(/in it|away|above|below/);
+    expect(fx.text).toContain('<b>Euro vs US dollar</b> (EURUSD)');
+    expect(fx.text).toMatch(/(Monthly|Weekly|Daily|4-hour|Hourly) · <code>/);
+    expect(fx.text).toMatch(/price is inside|% lower|% higher/);
+    expect(fx.text).not.toMatch(/\b(demand|supply|W1|MN)\b/);
+    expect((fx.text.match(/^● .*<code>/gm) ?? []).length).toBeLessThanOrEqual(6);   // only the areas that matter
     expect(fx.text.length).toBeLessThan(4096);
     noRawLt(fx.text);
     const bare = await handle('XAUUSD', ctx());
@@ -102,7 +104,7 @@ describe('telegram bot', () => {
     expect(JSON.stringify(nv.buttons)).toContain('"callback_data":"z:NVDA"');
     expect(JSON.stringify(nv.buttons)).toContain('"callback_data":"i:NVDA"');
     const brk = await handle('/zones brk-b', ctx());
-    expect(brk.text).toContain('<b>BRK.B</b>');
+    expect(brk.text).toContain('(BRK.B)');
     const typo = await handle('/zones EURUDS', ctx());
     expect(typo.text).toContain('not found');
     expect(typo.text).toContain('/zones EURUSD');
@@ -185,7 +187,7 @@ describe('telegram bot', () => {
     const z = await handle('/zones EURUSD', ctx());
     const zb = (z.buttons ?? []).flat().map(b => ('callback_data' in b ? b.callback_data : ''));
     expect(zb).toEqual(expect.arrayContaining(['c:EURUSD', 'c:EURUSD:MN', 'c:EURUSD:W1', 'c:EURUSD:D1', 'c:EURUSD:H4', 'c:EURUSD:H1']));
-    expect((await handleCallback('z:EURUSD', ctx())).text).toContain('<b>EURUSD</b> · FX');
+    expect((await handleCallback('z:EURUSD', ctx())).text).toContain('(EURUSD)');
     const q = await handleCallback('c:EURUSD', ctx());
     expect(q.photo).toContain('tf=Q');
     expect(q.edit).toBe(false);
@@ -202,7 +204,7 @@ describe('telegram bot', () => {
     const r = await handle('/chart EURUSD', ctx());
     expect(r.photo).toMatch(/img=EURUSD&tf=Q&v=\d+/);
     expect(r.text).toContain('<b>EURUSD</b>');
-    expect(r.text).toContain('not advice');
+    expect(r.text).toContain('not financial advice');
     const one = await handle('/chart EURUSD 4h', ctx());
     expect(one.photo).toContain('tf=H4');
     const st = await handle('/chart XPEV', ctx());
@@ -288,7 +290,7 @@ describe('telegram bot', () => {
     expect(r.text.length).toBeLessThanOrEqual(1500);
     expect(r.text).toMatch(/<b>1\. /);
     expect(r.text.toLowerCase()).toContain('proximal');
-    expect(r.text).toContain('not advice');
+    expect(r.text).toContain('not financial advice');
     const urls = (r.buttons ?? []).flat().map(b => ('url' in b ? b.url : ''));
     expect(urls.length).toBeGreaterThanOrEqual(2);
     for (const u of urls) expect(u).toMatch(/^https:\/\/raman-fx\.vercel\.app\/learn\?/);

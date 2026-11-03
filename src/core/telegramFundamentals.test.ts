@@ -94,7 +94,7 @@ describe('telegram /fund', () => {
     expect(money(-2.5e9)).toBe('-$2.5B');
     expect(money(12e6, 'EUR')).toBe('EUR 12M');
     const z = await handle('/zones NVDA', ctx());
-    expect(z.text).toContain('📑 next earnings: Nov 4 after close (in 6 days)');
+    expect(z.text).toContain('Next earnings report: Nov 4 after close (in 6 days)');
     expect(z.buttons?.flat().some(b => 'callback_data' in b && b.callback_data === 'f:NVDA')).toBe(true);
     const z2 = await handle('/zones NVDA', ctx({ 'fundamentals/stocks.json': null }));
     expect(z2.text).not.toContain('next earnings');

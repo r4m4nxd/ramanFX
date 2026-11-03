@@ -124,20 +124,20 @@ describe('live.ts', () => {
 describe('bot with live data', () => {
   it('/zones: live price + zones computed on the live candles, labelled; signals still from the scan', async () => {
     const r = await handle('/zones EURUSD', withLive());
-    expect(r.text).toContain('live · 7:42 AM');
-    expect(r.text).toContain('zones + price live (OANDA)');
+    expect(r.text).toContain('live 7:42 AM MT');
+    expect(r.text).toContain('OANDA prices');
     expect(r.text).not.toContain(LIVE_HINT);
-    const z = fxZonesOf(liveFx().closed, 0.0001, 5, liveFx().price)[0];
-    expect(r.text).toContain(z.proximal.toFixed(5));
+    const zs = fxZonesOf(liveFx().closed, 0.0001, 5, liveFx().price);
+    expect(zs.some(z => r.text.includes(z.proximal.toFixed(5)) || r.text.includes(z.distal.toFixed(5)))).toBe(true);
     const st = await handle('/zones XPEV', withLive());
-    expect(st.text).toContain('zones + price live (Alpaca)');
-    expect(st.text).toContain(stockZonesOf(liveStock().daily, liveStock().price)[0].proximal.toFixed(2));
+    expect(st.text).toContain('Alpaca prices');
+    expect(stockZonesOf(liveStock().daily, liveStock().price).some(z => st.text.includes(z.proximal.toFixed(2)) || st.text.includes(z.distal.toFixed(2)))).toBe(true);
   });
   it('a ticker outside the scans is found live (Alpaca stock first, else a cTrader symbol) and gets live zones', async () => {
     const onlyAdhoc = ctx({ live: { stock: async (s: string) => (s === 'ZZZQ' ? liveStock() : null), fx: async (_n: string, sym?: string) => (sym === 'BMW.DE' ? liveFx() : null) } });
     const st = await handle('/zones ZZZQ', onlyAdhoc);
     expect(st.text).toContain('ZZZQ');
-    expect(st.text).toContain('zones + price live (Alpaca)');
+    expect(st.text).toContain('Alpaca prices');
     const fx = await handle('/zones BMW.DE', onlyAdhoc);
     expect(fx.text).toContain('BMW.DE');
     expect(fx.text).toContain('live');
