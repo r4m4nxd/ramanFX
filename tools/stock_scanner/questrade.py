@@ -94,8 +94,11 @@ def _get(path: str) -> Dict:
         if wait > 0:
             time.sleep(wait)
         _S['t'] = time.time()
-    with urllib.request.urlopen(req, timeout=20) as r:
-        return json.loads(r.read())
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            return json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"Questrade {path.split('?')[0]}: HTTP {e.code} {e.read()[:160]!r}") from None
 
 
 def symbol_id(sym: str) -> Optional[int]:
