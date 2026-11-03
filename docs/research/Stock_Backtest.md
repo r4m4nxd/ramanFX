@@ -1,6 +1,6 @@
 # Stock scanner backtest (real data, walk-forward)
 
-Generated 2026-11-03 04:47 UTC by `.github/workflows/stock-backtest.yml` (`tools/stock_scanner/backtest.py`). Tickers 736 of 736.
+Generated 2026-11-03 05:19 UTC by `.github/workflows/stock-backtest.yml` (`tools/stock_scanner/backtest.py`). Tickers 736 of 736.
 
 **Verdict:** NOT ENOUGH TRADES out of sample to judge (need 30+). Do not trust the scanner yet.
 
@@ -311,83 +311,91 @@ Rule: Half the shares at the proximal, half at the zone middle (proximal - 50% o
 
 ## TFSA study: buy at a demand zone and hold (no stop)
 
-**Verdict:** Buying at the first touch of a W1 / MN / 3M demand zone and holding 12 months (no stop) beat SPY by 4.6% on average (median -2.7%, 95% CI +3.1 to +6.3); 46% of 13546 buys beat SPY; vs buying the same stock on a random day: +2.8%. Worst drop during a hold -98% (median -16%). The edge over SPY holds in both the train (before 2022) and the test (2022 on) period.
+**Verdict:** Buying at the first touch of a W1 / MN / 3M demand zone and holding 12 months (no stop): +2.8% vs buying the same stock on a random day (95% CI by calendar month -3.7 to +10.6), +4.6% vs SPY (46% of 13546 buys beat SPY, 108 entry months); worst drop during a hold -98%. NOT proven: the edge over a random day is not clearly above zero (calendar-month CI) in both the train (before 2022) and the test (2022 on) period. No filter or combination holds in both periods. Survivorship: the universe is today's index members (stocks that later fell out or went bust are missing), which flatters every buy-and-hold result here.
 
-Every first touch of a W1 / MN / 3M demand zone (drawn on closed candles, as the live scanner does) on every ticker: buy and hold 3 / 6 / 12 months, no stop. "in" = limit at the proximal on the first touch; "near" = the first close within 3% above it before a touch; "left" = the first close back above it within 3 sessions of the touch (the /tfsa sections). Compared with SPY over the same dates (close to close) and with the same stock bought on a random day (seeded) for the same length. One buy per stock, section and day (the biggest timeframe). CI = 95% bootstrap resampling tickers. Survivorship: today's index members.
+Every first touch of a W1 / MN / 3M demand zone (drawn on closed candles, as the live scanner does) on every ticker: limit buy at the proximal and hold 3 / 6 / 12 months, no stop (the stop column: out at the first monthly close below the zone distal). Compared with the same stock bought on a random day (seeded) for the same length and with SPY over the same dates (close to close). One buy per stock and day (the biggest timeframe). "Holds" = the 95% CI of the excess over a random day, bootstrapped by CALENDAR MONTH (market-wide drops cluster in time), is above zero in BOTH train (entries before 2022) and test (2022 on). Buys / months = buys and distinct entry months (the effective sample). Survivorship: today's index members.
 
 Events: 38220 unique (39890 raw) on 718 tickers, 2016-11-03 to 2026-11-02.
 
-### 3m hold
+### 12m hold
 
-| | Buys | Avg return | Avg vs SPY (95% CI) | Median vs SPY | Beat SPY | Vs random day | Worst drop |
-|---|---|---|---|---|---|---|---|
-| section: in | 14780 | +5.8% | +1.3% (+0.8% to +1.7%) | -0.2% | 49% | +0.6% | -93% |
-| section: near | 11348 | +3.2% | -0.1% (-0.4% to +0.2%) | -0.6% | 48% | -0.5% | -93% |
-| section: left | 10935 | +5.5% | +1.0% (+0.6% to +1.5%) | -0.4% | 49% | +1.1% | -93% |
-| in, W1 | 12493 | +5.6% | +1.2% (+0.7% to +1.6%) | -0.5% | 49% | +0.3% | -93% |
-| in, MN | 2664 | +7.9% | +1.7% (+1.0% to +2.5%) | +0.6% | 52% | +3.5% | -92% |
-| in, 3M | 590 | +10.2% | +2.0% (+0.3% to +3.5%) | -0.0% | 50% | +4.8% | -91% |
-| in, market_regime | 10580 | +3.4% | +0.4% (+0.0% to +0.8%) | -0.7% | 48% | -2.1% | -93% |
-| in, not market_regime | 4200 | +12.0% | +3.3% (+2.5% to +4.2%) | +1.1% | 53% | +7.5% | -93% |
-| in, mom12 | 8949 | +5.0% | +1.2% (+0.7% to +1.7%) | -0.3% | 49% | +0.5% | -93% |
-| in, not mom12 | 5831 | +7.1% | +1.3% (+0.7% to +2.0%) | -0.2% | 50% | +0.9% | -90% |
-| in, not_top3 | 9734 | +7.3% | +1.6% (+0.9% to +2.1%) | -0.3% | 50% | +1.6% | -92% |
-| in, not not_top3 | 5046 | +3.1% | +0.7% (+0.2% to +1.1%) | -0.2% | 49% | -1.2% | -93% |
-| in, qualified | 10011 | +6.5% | +1.5% (+1.0% to +2.1%) | +0.0% | 50% | +1.0% | -93% |
-| in, not qualified | 4769 | +4.4% | +0.7% (+0.1% to +1.2%) | -0.7% | 48% | -0.2% | -90% |
-| in, all_four | 1849 | +4.6% | +1.4% (+0.3% to +2.6%) | -1.0% | 48% | -0.1% | -84% |
-| in, train | 7062 | +6.3% | +1.4% (+0.8% to +2.1%) | +0.3% | 51% | +0.1% | -93% |
-| in, test | 7718 | +5.4% | +1.1% (+0.6% to +1.6%) | -0.7% | 48% | +1.1% | -83% |
-| in, tickers_A | 7513 | +6.0% | +1.4% (+0.8% to +2.0%) | -0.2% | 49% | +1.4% | -93% |
-| in, tickers_B | 7267 | +5.7% | +1.1% (+0.5% to +1.7%) | -0.3% | 49% | -0.2% | -85% |
+| First-touch buys | Buys / months | Vs random day | Train vs random (month CI) | Test vs random (month CI) | Vs SPY | Avg return | With monthly-close stop | Holds |
+|---|---|---|---|---|---|---|---|---|
+| in | 13546 / 108 | +2.8% | +4.4% (-6.5 to +17.6) | +1.1% (-5.3 to +7.8) | +4.6% (46% beat) | +20.7% | +11.9% (64% stopped) | no |
+| tf_W1 | 10689 / 108 | +1.6% | +2.1% (-6.7 to +12.9) | +1.1% (-4.8 to +7.6) | +4.5% (46% beat) | +19.7% | +10.5% (68% stopped) | no |
+| tf_MN | 2342 / 102 | +6.7% | +11.9% (-4.9 to +28.8) | +1.4% (-6.4 to +8.0) | +4.3% (47% beat) | +22.7% | +15.2% (54% stopped) | no |
+| tf_3M | 515 / 75 | +9.9% | +23.8% (-18.9 to +45.9) | +1.1% (-18.2 to +16.9) | +7.5% (48% beat) | +31.6% | +25.7% (38% stopped) | no |
+| market_regime | 9438 / 97 | -2.7% | -5.7% (-10.2 to -0.7) | +1.2% (-5.1 to +7.1) | +3.2% (46% beat) | +15.9% | +7.7% (69% stopped) | no |
+| market_regime_fail | 4108 / 33 | +15.6% | +37.9% (+9.7 to +54.8) | +1.0% (-8.8 to +12.6) | +7.7% (48% beat) | +31.8% | +21.4% (54% stopped) | no |
+| mom12 | 8222 / 108 | -0.7% | -2.0% (-9.0 to +5.9) | +1.0% (-5.9 to +8.2) | +4.0% (47% beat) | +17.8% | +9.5% (66% stopped) | no |
+| mom12_fail | 5324 / 108 | +8.3% | +16.2% (-3.7 to +36.8) | +1.4% (-5.4 to +9.6) | +5.5% (46% beat) | +25.2% | +15.5% (61% stopped) | no |
+| not_top3 | 8849 / 108 | +7.6% | +12.2% (-3.9 to +28.3) | +3.3% (-4.0 to +10.7) | +5.7% (46% beat) | +25.1% | +15.1% (62% stopped) | no |
+| not_top3_fail | 4697 / 108 | -6.1% | -7.5% (-12.1 to -3.0) | -4.2% (-9.6 to +2.5) | +2.6% (48% beat) | +12.4% | +5.8% (69% stopped) | no |
+| qualified | 9175 / 108 | +3.8% | +5.4% (-7.8 to +20.0) | +1.8% (-5.7 to +9.4) | +5.5% (47% beat) | +22.0% | +12.9% (63% stopped) | no |
+| qualified_fail | 4371 / 108 | +0.8% | +1.7% (-6.6 to +11.8) | +0.0% (-5.1 to +6.0) | +2.7% (44% beat) | +17.8% | +9.8% (67% stopped) | no |
+| all_four | 1604 / 93 | -0.7% | -4.7% (-9.7 to +0.0) | +3.5% (-7.7 to +12.5) | +6.8% (46% beat) | +19.8% | +10.6% (68% stopped) | no |
+| tf_MN_3M | 2857 / 102 | +7.3% | +13.6% (-5.8 to +32.0) | +1.3% (-8.1 to +9.6) | +4.9% (47% beat) | +24.3% | +17.1% (51% stopped) | no |
+| tf_MN_3M+not_top3 | 2364 / 102 | +9.9% | +19.0% (-4.3 to +37.5) | +1.9% (-8.4 to +11.2) | +5.4% (47% beat) | +27.0% | +19.3% (49% stopped) | no |
+| tf_MN_3M+not_top3+regime_fail | 1212 / 29 | +21.0% | +39.5% (+1.9 to +54.0) | +3.5% (-11.0 to +17.8) | +9.6% (50% beat) | +38.8% | +29.0% (41% stopped) | no |
+| W1+not_top3 | 6485 / 108 | +6.7% | +9.8% (-4.3 to +24.4) | +3.8% (-2.9 to +11.0) | +5.8% (45% beat) | +24.4% | +13.5% (66% stopped) | no |
+| tf_MN_3M+mom12_fail | 1280 / 99 | +13.9% | +27.4% (-3.4 to +51.7) | +3.3% (-6.6 to +14.4) | +8.0% (49% beat) | +30.2% | +21.9% (48% stopped) | no |
+| any+not_top3+qualified | 5362 / 105 | +10.6% | +16.1% (-5.0 to +33.7) | +4.9% (-4.6 to +13.9) | +7.3% (47% beat) | +28.5% | +17.7% (59% stopped) | no |
 
 ### 6m hold
 
-| | Buys | Avg return | Avg vs SPY (95% CI) | Median vs SPY | Beat SPY | Vs random day | Worst drop |
-|---|---|---|---|---|---|---|---|
-| section: in | 14372 | +10.8% | +1.9% (+1.2% to +2.8%) | -1.1% | 48% | +1.6% | -95% |
-| section: near | 11039 | +6.4% | -0.3% (-0.9% to +0.2%) | -1.6% | 46% | -1.0% | -93% |
-| section: left | 10621 | +10.4% | +1.8% (+0.9% to +2.6%) | -1.3% | 47% | +0.5% | -93% |
-| in, W1 | 12160 | +10.5% | +1.9% (+1.1% to +2.7%) | -1.2% | 48% | +1.3% | -95% |
-| in, MN | 2593 | +13.3% | +2.3% (+0.9% to +3.7%) | -1.1% | 48% | +4.6% | -92% |
-| in, 3M | 567 | +16.2% | +2.2% (-0.4% to +5.1%) | -2.4% | 46% | +8.1% | -91% |
-| in, market_regime | 10172 | +7.9% | +1.0% (+0.3% to +1.8%) | -1.5% | 47% | -1.6% | -95% |
-| in, not market_regime | 4200 | +17.7% | +4.1% (+2.6% to +5.6%) | -0.3% | 49% | +9.4% | -93% |
-| in, mom12 | 8691 | +9.8% | +2.1% (+1.1% to +3.0%) | -0.9% | 48% | -0.3% | -93% |
-| in, not mom12 | 5681 | +12.2% | +1.7% (+0.5% to +3.0%) | -1.6% | 47% | +4.6% | -95% |
-| in, not_top3 | 9444 | +12.7% | +2.1% (+1.0% to +3.2%) | -1.6% | 47% | +3.7% | -95% |
-| in, not not_top3 | 4928 | +7.1% | +1.6% (+0.8% to +2.4%) | -0.3% | 49% | -2.4% | -93% |
-| in, qualified | 9752 | +12.0% | +2.5% (+1.6% to +3.4%) | -0.7% | 48% | +2.4% | -93% |
-| in, not qualified | 4620 | +8.2% | +0.7% (-0.3% to +1.6%) | -2.0% | 46% | +0.1% | -95% |
-| in, all_four | 1756 | +9.9% | +2.5% (+0.6% to +4.5%) | -1.7% | 47% | -3.0% | -84% |
-| in, train | 7062 | +11.6% | +2.0% (+1.0% to +3.0%) | -0.4% | 49% | +2.3% | -95% |
-| in, test | 7310 | +10.0% | +1.9% (+0.8% to +3.0%) | -1.8% | 46% | +1.0% | -87% |
-| in, tickers_A | 7312 | +11.3% | +2.5% (+1.3% to +3.8%) | -0.9% | 48% | +2.6% | -95% |
-| in, tickers_B | 7060 | +10.2% | +1.3% (+0.3% to +2.3%) | -1.4% | 47% | +0.6% | -90% |
+| First-touch buys | Buys / months | Vs random day | Train vs random (month CI) | Test vs random (month CI) | Vs SPY | Avg return | With monthly-close stop | Holds |
+|---|---|---|---|---|---|---|---|---|
+| in | 14372 / 115 | +1.6% | +2.3% (-4.6 to +9.7) | +1.0% (-4.0 to +5.7) | +1.9% (48% beat) | +10.8% | +7.1% (56% stopped) | no |
+| tf_W1 | 11318 / 115 | +0.7% | +1.4% (-4.6 to +7.6) | +0.1% (-4.5 to +4.2) | +1.8% (48% beat) | +10.0% | +6.1% (60% stopped) | no |
+| tf_MN | 2489 / 109 | +4.2% | +5.1% (-6.5 to +15.9) | +3.4% (-2.3 to +9.2) | +2.2% (48% beat) | +12.9% | +9.9% (43% stopped) | no |
+| tf_3M | 565 / 81 | +8.1% | +10.6% (-14.1 to +22.9) | +6.7% (-3.9 to +17.5) | +2.2% (46% beat) | +16.2% | +14.2% (31% stopped) | no |
+| market_regime | 10172 / 104 | -1.6% | -3.2% (-6.9 to +0.3) | +0.2% (-3.5 to +4.2) | +1.0% (47% beat) | +7.9% | +4.7% (59% stopped) | no |
+| market_regime_fail | 4200 / 35 | +9.4% | +20.5% (+2.8 to +30.3) | +2.4% (-6.5 to +12.5) | +4.1% (49% beat) | +17.7% | +12.9% (48% stopped) | no |
+| mom12 | 8691 / 115 | -0.3% | -0.7% (-6.4 to +5.1) | +0.1% (-5.1 to +4.9) | +2.1% (48% beat) | +9.8% | +6.3% (57% stopped) | no |
+| mom12_fail | 5681 / 115 | +4.6% | +7.9% (-1.8 to +17.7) | +2.1% (-2.8 to +7.5) | +1.7% (47% beat) | +12.2% | +8.2% (54% stopped) | no |
+| not_top3 | 9444 / 115 | +3.7% | +5.7% (-3.7 to +15.6) | +2.1% (-3.1 to +7.5) | +2.1% (47% beat) | +12.7% | +8.6% (54% stopped) | no |
+| not_top3_fail | 4928 / 115 | -2.4% | -2.8% (-7.9 to +0.9) | -1.7% (-6.6 to +3.0) | +1.6% (49% beat) | +7.1% | +4.1% (59% stopped) | no |
+| qualified | 9752 / 115 | +2.4% | +3.1% (-5.9 to +11.6) | +1.6% (-4.3 to +7.3) | +2.5% (48% beat) | +12.0% | +8.0% (54% stopped) | no |
+| qualified_fail | 4620 / 115 | +0.1% | +0.3% (-4.3 to +5.8) | -0.2% (-4.2 to +3.3) | +0.7% (46% beat) | +8.2% | +5.1% (58% stopped) | no |
+| all_four | 1756 / 99 | -3.0% | -7.2% (-12.4 to -2.9) | +0.9% (-5.6 to +6.7) | +2.5% (47% beat) | +9.9% | +6.7% (57% stopped) | no |
+| tf_MN_3M | 3054 / 109 | +5.0% | +5.9% (-6.9 to +17.0) | +4.1% (-2.5 to +10.8) | +2.2% (48% beat) | +13.5% | +10.7% (41% stopped) | no |
+| tf_MN_3M+not_top3 | 2539 / 109 | +6.4% | +8.1% (-8.1 to +19.7) | +5.0% (-2.1 to +12.6) | +2.4% (48% beat) | +14.9% | +11.8% (41% stopped) | no |
+| tf_MN_3M+not_top3+regime_fail | 1236 / 31 | +14.3% | +22.4% (-1.0 to +30.6) | +7.0% (-4.9 to +20.8) | +4.6% (50% beat) | +22.0% | +17.7% (36% stopped) | no |
+| W1+not_top3 | 6905 / 115 | +2.7% | +4.8% (-3.0 to +13.2) | +1.0% (-3.9 to +5.8) | +2.0% (47% beat) | +11.9% | +7.4% (59% stopped) | no |
+| tf_MN_3M+mom12_fail | 1389 / 106 | +8.2% | +11.6% (-5.5 to +23.5) | +5.8% (-0.5 to +13.1) | +2.0% (47% beat) | +14.6% | +11.4% (41% stopped) | no |
+| any+not_top3+qualified | 5755 / 112 | +5.5% | +8.2% (-4.8 to +19.7) | +3.1% (-4.1 to +10.5) | +3.0% (48% beat) | +15.2% | +10.6% (51% stopped) | no |
 
-### 12m hold
+### 3m hold
 
-| | Buys | Avg return | Avg vs SPY (95% CI) | Median vs SPY | Beat SPY | Vs random day | Worst drop |
-|---|---|---|---|---|---|---|---|
-| section: in | 13546 | +20.7% | +4.6% (+3.1% to +6.3%) | -2.7% | 46% | +2.8% | -98% |
-| section: near | 10436 | +13.2% | -0.1% (-1.2% to +0.9%) | -3.9% | 44% | -2.7% | -94% |
-| section: left | 10004 | +20.1% | +4.3% (+2.6% to +6.0%) | -2.8% | 46% | +1.8% | -98% |
-| in, W1 | 11485 | +20.3% | +4.5% (+2.9% to +6.3%) | -2.8% | 46% | +2.3% | -98% |
-| in, MN | 2438 | +23.4% | +4.4% (+2.2% to +6.9%) | -2.8% | 47% | +7.5% | -92% |
-| in, 3M | 517 | +31.7% | +7.5% (+2.0% to +13.4%) | -2.2% | 48% | +10.1% | -91% |
-| in, market_regime | 9438 | +15.9% | +3.2% (+1.8% to +4.7%) | -3.0% | 46% | -2.7% | -98% |
-| in, not market_regime | 4108 | +31.8% | +7.7% (+4.9% to +10.4%) | -1.6% | 48% | +15.6% | -94% |
-| in, mom12 | 8222 | +17.8% | +4.0% (+2.3% to +5.8%) | -2.2% | 47% | -0.7% | -98% |
-| in, not mom12 | 5324 | +25.2% | +5.5% (+3.1% to +7.9%) | -3.7% | 46% | +8.3% | -98% |
-| in, not_top3 | 8849 | +25.1% | +5.7% (+3.5% to +7.8%) | -3.7% | 46% | +7.6% | -98% |
-| in, not not_top3 | 4697 | +12.4% | +2.6% (+1.2% to +4.1%) | -1.0% | 48% | -6.1% | -98% |
-| in, qualified | 9175 | +22.0% | +5.5% (+3.8% to +7.2%) | -1.8% | 47% | +3.8% | -98% |
-| in, not qualified | 4371 | +17.8% | +2.7% (+0.6% to +4.5%) | -4.6% | 44% | +0.8% | -98% |
-| in, all_four | 1604 | +19.8% | +6.8% (+3.3% to +10.7%) | -3.1% | 46% | -0.7% | -84% |
-| in, train | 7062 | +21.3% | +5.5% (+3.8% to +7.3%) | -0.3% | 50% | +4.4% | -98% |
-| in, test | 6484 | +20.0% | +3.6% (+1.2% to +6.0%) | -5.0% | 43% | +1.1% | -98% |
-| in, tickers_A | 6886 | +21.9% | +5.8% (+3.3% to +8.2%) | -2.0% | 47% | +2.7% | -98% |
-| in, tickers_B | 6660 | +19.4% | +3.4% (+1.3% to +5.6%) | -3.2% | 45% | +3.0% | -93% |
+| First-touch buys | Buys / months | Vs random day | Train vs random (month CI) | Test vs random (month CI) | Vs SPY | Avg return | With monthly-close stop | Holds |
+|---|---|---|---|---|---|---|---|---|
+| in | 14780 / 118 | +0.6% | +0.1% (-6.9 to +6.6) | +1.1% (-1.7 to +3.7) | +1.3% (49% beat) | +5.8% | +4.2% (44% stopped) | no |
+| tf_W1 | 11636 / 118 | -0.2% | -0.8% (-8.0 to +5.4) | +0.4% (-2.0 to +2.7) | +1.1% (49% beat) | +5.2% | +3.6% (48% stopped) | no |
+| tf_MN | 2556 / 112 | +3.2% | +4.1% (-3.9 to +11.6) | +2.4% (-1.0 to +5.6) | +1.7% (52% beat) | +7.7% | +5.9% (31% stopped) | no |
+| tf_3M | 588 / 84 | +4.8% | +1.7% (-30.2 to +14.2) | +6.3% (-0.8 to +12.9) | +2.0% (50% beat) | +10.1% | +9.2% (22% stopped) | no |
+| market_regime | 10580 / 107 | -2.1% | -4.1% (-9.8 to +0.8) | -0.1% (-2.2 to +2.3) | +0.4% (48% beat) | +3.4% | +2.5% (47% stopped) | no |
+| market_regime_fail | 4200 / 35 | +7.5% | +14.1% (-1.6 to +21.6) | +3.3% (-1.8 to +9.6) | +3.3% (53% beat) | +12.0% | +8.6% (37% stopped) | no |
+| mom12 | 8949 / 118 | +0.5% | +0.4% (-3.0 to +4.4) | +0.6% (-2.2 to +3.2) | +1.2% (49% beat) | +5.0% | +3.7% (44% stopped) | no |
+| mom12_fail | 5831 / 118 | +0.9% | -0.3% (-18.4 to +11.2) | +1.7% (-1.2 to +4.6) | +1.3% (50% beat) | +7.1% | +5.1% (43% stopped) | no |
+| not_top3 | 9734 / 118 | +1.6% | +1.1% (-11.2 to +10.2) | +1.9% (-1.2 to +4.8) | +1.6% (50% beat) | +7.3% | +5.3% (43% stopped) | no |
+| not_top3_fail | 5046 / 118 | -1.2% | -1.4% (-3.8 to +1.0) | -0.9% (-3.0 to +1.4) | +0.7% (49% beat) | +3.1% | +2.3% (47% stopped) | no |
+| qualified | 10011 / 118 | +1.0% | +0.5% (-9.1 to +8.4) | +1.6% (-1.8 to +4.8) | +1.5% (50% beat) | +6.5% | +4.7% (43% stopped) | no |
+| qualified_fail | 4769 / 118 | -0.2% | -0.8% (-4.6 to +3.2) | +0.2% (-1.9 to +2.1) | +0.7% (48% beat) | +4.4% | +3.2% (46% stopped) | no |
+| all_four | 1849 / 103 | -0.1% | -2.0% (-5.3 to +1.6) | +1.5% (-2.0 to +4.7) | +1.4% (48% beat) | +4.6% | +3.4% (45% stopped) | no |
+| tf_MN_3M | 3144 / 112 | +3.5% | +3.8% (-5.8 to +11.9) | +3.3% (-0.7 to +6.9) | +1.8% (51% beat) | +8.1% | +6.5% (29% stopped) | no |
+| tf_MN_3M+not_top3 | 2618 / 112 | +4.2% | +5.1% (-7.1 to +13.9) | +3.5% (-0.8 to +7.3) | +1.9% (51% beat) | +8.9% | +7.1% (30% stopped) | no |
+| tf_MN_3M+not_top3+regime_fail | 1236 / 31 | +10.0% | +13.6% (-15.4 to +21.0) | +6.8% (-0.5 to +13.8) | +3.6% (55% beat) | +15.2% | +12.2% (26% stopped) | no |
+| W1+not_top3 | 7116 / 118 | +0.6% | -0.3% (-13.7 to +8.9) | +1.3% (-1.5 to +4.1) | +1.4% (49% beat) | +6.7% | +4.6% (47% stopped) | no |
+| tf_MN_3M+mom12_fail | 1431 / 109 | +4.6% | +5.5% (-10.4 to +16.2) | +4.0% (+0.3 to +8.6) | +1.9% (51% beat) | +9.1% | +7.1% (30% stopped) | no |
+| any+not_top3+qualified | 5927 / 115 | +2.5% | +2.0% (-20.1 to +12.8) | +3.0% (-1.3 to +7.0) | +2.1% (50% beat) | +8.8% | +6.4% (41% stopped) | no |
+
+### By section (12m, all years)
+
+| Section | Buys | Vs random day | Vs SPY | Beat SPY | Worst drop |
+|---|---|---|---|---|---|
+| in | 13546 | +2.8% | +4.6% | 46% | -98% |
+| near | 10436 | -2.7% | -0.1% | 44% | -94% |
+| left | 10004 | +1.8% | +4.3% | 46% | -98% |
 
 ## How to read this
 
