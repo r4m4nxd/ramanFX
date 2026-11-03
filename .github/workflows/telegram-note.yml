@@ -1,0 +1,36 @@
+name: Telegram note
+
+# Manual: send ONE message (Telegram HTML) to the owner's chat, e.g. a report written in a coding session.
+# The text goes through an env var (never into the shell command), split at 4000 characters.
+on:
+  workflow_dispatch:
+    inputs:
+      text:
+        description: 'Message (Telegram HTML: <b>, <i>, <code>)'
+        required: true
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Send
+        env:
+          TEXT: ${{ github.event.inputs.text }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.parse, urllib.request
+          t, tok, chat = os.environ['TEXT'], os.environ['TELEGRAM_BOT_TOKEN'], os.environ['TELEGRAM_CHAT_ID']
+          parts, cur = [], ''
+          for line in t.split('\n'):
+              if len(cur) + len(line) + 1 > 4000:
+                  parts.append(cur); cur = ''
+              cur += line + '\n'
+          parts.append(cur)
+          for p in parts:
+              body = urllib.parse.urlencode({'chat_id': chat, 'text': p, 'parse_mode': 'HTML', 'disable_web_page_preview': 'true'}).encode()
+              with urllib.request.urlopen(f'https://api.telegram.org/bot{tok}/sendMessage', body, timeout=20) as r:
+                  print('sent', json.loads(r.read()).get('ok'))
+          PY
