@@ -1,6 +1,6 @@
 # Stock scanner backtest (real data, walk-forward)
 
-Generated 2026-11-03 04:32 UTC by `.github/workflows/stock-backtest.yml` (`tools/stock_scanner/backtest.py`). Tickers 736 of 736.
+Generated 2026-11-03 04:47 UTC by `.github/workflows/stock-backtest.yml` (`tools/stock_scanner/backtest.py`). Tickers 736 of 736.
 
 **Verdict:** NOT ENOUGH TRADES out of sample to judge (need 30+). Do not trust the scanner yet.
 
@@ -120,9 +120,24 @@ Edge of the zones over random entries: -1.26R per trade (wick), -1.22R (close).
 
 ## Experiments (auto-learner input, `public/learn/stock_experiments.json`)
 
-Each variant = the current rules with ONE change (`tools/stock_scanner/experiments.py`, the same functions the live scanner will import when a variant is adopted). Same walk-forward, the same signals of each evaluation day (computed once and shared), wick stop (the live plan), the same costs, one position per ticker per variant (free again after its wick exit; the main report's current rules also wait for the close-stop exit, so its trade list can differ slightly). In sample = signals before 2024-06-28 (older 70% of the current fills), out of sample = from then on. Expectancy in R after costs, bootstrap 95% CI. MFE / MAE = best / worst price move from the fill to the exit in R.
+Each variant = the base rules with ONE change (`tools/stock_scanner/experiments.py`, the same functions the live scanner will import when a variant is adopted). Same walk-forward, the same signals of each evaluation day (computed once and shared), wick stop (the live plan), the same costs, one position per ticker per variant (free again after its wick exit; the main report's current rules also wait for the close-stop exit, so its trade list can differ slightly). In sample = signals before 2023-08-11 (older 70% of the base's own fills), out of sample = from then on. Expectancy in R after costs, bootstrap 95% CI. MFE / MAE = best / worst price move from the fill to the exit in R.
 
-Current trades' excursions (n 2): MFE p25 / p50 / p75 / p90 = 2.14 / 2.26 / 2.38 / 2.45R; MAE 0.44 / 0.62 / 0.81 / 0.93R.
+Bases: the matrix runs on each of current, no_nesting, loose; the learner file holds the strictest base with in-sample n >= 150 (else the one with most trades); every set is in `public/learn/stock_experiments_all.json`.
+
+- `current`: The live rules unchanged.
+- `no_nesting`: The live rules without the top-down location rule (a zone need not sit inside a touched higher-timeframe demand).
+- `loose`: The live rules without the top-down location rule, the curve rule (and its ATH exception) and the direction rule (HTF align): the three gates that block most live candidates. Zone type, freshness, room, sideways, CP and overlap rules stay.
+
+Chosen base: **`loose`**.
+
+- `current` in sample: 1 trades, win 100.0%, +2.49R / trade (95% CI n/a to n/a), PF n/a, MFE 2.50R, MAE 0.25R, 24.0 sessions, max DD 0.0R
+- `current` out of sample: 1 trades, win 0.0%, -1.01R / trade (95% CI n/a to n/a), PF 0.00, MFE 2.02R, MAE 1.00R, 80.0 sessions, max DD 1.0R
+- `no_nesting` in sample: 16 trades, win 25.0%, +0.17R / trade (95% CI -0.70 to +1.24), PF 1.26, MFE 1.11R, MAE 0.66R, 15.4 sessions, max DD 6.1R
+- `no_nesting` out of sample: 7 trades, win 14.3%, -0.85R / trade (95% CI -2.89 to +1.50), PF 0.45, MFE 2.46R, MAE 1.57R, 57.4 sessions, max DD 9.8R
+- `loose` in sample: 94 trades, win 23.4%, +0.72R / trade (95% CI -0.05 to +1.62), PF 1.93, MFE 2.04R, MAE 0.80R, 24.3 sessions, max DD 16.2R
+- `loose` out of sample: 40 trades, win 12.5%, -0.50R / trade (95% CI -1.16 to +0.23), PF 0.54, MFE 1.92R, MAE 1.10R, 25.7 sessions, max DD 23.4R
+
+Current trades' excursions (n 134): MFE p25 / p50 / p75 / p90 = 0.00 / 0.68 / 2.64 / 5.63R; MAE 0.72 / 1.00 / 1.00 / 1.00R.
 
 ### `current` (baseline)
 
@@ -130,8 +145,8 @@ The live rules unchanged (the baseline every variant is compared with).
 
 Rule: scan.analyse() + scan.symbol_signals() as live; limit at the proximal, wick stop and target in the market, 52-week time exit, one position per ticker.
 
-- In sample: 1 trades, win 100.0%, +2.49R / trade (95% CI n/a to n/a), PF n/a, MFE 2.50R, MAE 0.25R, 24.0 sessions, max DD 0.0R
-- Out of sample: 1 trades, win 0.0%, -1.01R / trade (95% CI n/a to n/a), PF 0.00, MFE 2.02R, MAE 1.00R, 80.0 sessions, max DD 1.0R
+- In sample: 94 trades, win 23.4%, +0.72R / trade (95% CI -0.05 to +1.62), PF 1.93, MFE 2.04R, MAE 0.80R, 24.3 sessions, max DD 16.2R
+- Out of sample: 40 trades, win 12.5%, -0.50R / trade (95% CI -1.16 to +0.23), PF 0.54, MFE 1.92R, MAE 1.10R, 25.7 sessions, max DD 23.4R
 
 ### `be_1r` (exit)
 
@@ -139,8 +154,8 @@ Move the stop to the fill price once a daily high has reached +1R.
 
 Rule: At the close of a session after the fill bar whose high reached fill + 1R, the stop becomes the fill price from the next session on (a gap below it exits at the open).
 
-- In sample: 1 trades, win 100.0%, +2.49R / trade (95% CI n/a to n/a), PF n/a, MFE 2.50R, MAE 0.25R, 24.0 sessions, max DD 0.0R
-- Out of sample: 1 trades, win 0.0%, -0.01R / trade (95% CI n/a to n/a), PF 0.00, MFE 2.02R, MAE 0.41R, 23.0 sessions, max DD 0.0R
+- In sample: 94 trades, win 17.0%, +0.56R / trade (95% CI -0.11 to +1.35), PF 1.95, MFE 1.83R, MAE 0.66R, 17.6 sessions, max DD 15.0R
+- Out of sample: 40 trades, win 5.0%, -0.52R / trade (95% CI -0.91 to -0.03), PF 0.28, MFE 1.52R, MAE 0.80R, 14.6 sessions, max DD 21.0R
 
 ### `be_2r` (exit)
 
@@ -148,8 +163,8 @@ Move the stop to the fill price once a daily high has reached +2R.
 
 Rule: As be_1r with the trigger at fill + 2R.
 
-- In sample: 1 trades, win 100.0%, +2.49R / trade (95% CI n/a to n/a), PF n/a, MFE 2.50R, MAE 0.25R, 24.0 sessions, max DD 0.0R
-- Out of sample: 1 trades, win 0.0%, -0.01R / trade (95% CI n/a to n/a), PF 0.00, MFE 2.02R, MAE 0.41R, 23.0 sessions, max DD 0.0R
+- In sample: 94 trades, win 18.1%, +0.46R / trade (95% CI -0.24 to +1.26), PF 1.62, MFE 1.86R, MAE 0.76R, 20.1 sessions, max DD 15.2R
+- Out of sample: 40 trades, win 10.0%, -0.30R / trade (95% CI -0.83 to +0.38), PF 0.60, MFE 1.87R, MAE 0.88R, 21.2 sessions, max DD 16.6R
 
 ### `be_struct` (exit)
 
@@ -157,8 +172,8 @@ After +1.5R, raise the stop to the lowest daily low since the fill (it only ever
 
 Rule: At the close of a session once a high after the fill bar reached fill + 1.5R, the stop becomes the lowest daily low from the fill bar up to that session, if that is higher than the stop (only tightens), from the next session on.
 
-- In sample: 1 trades, win 100.0%, +2.49R / trade (95% CI n/a to n/a), PF n/a, MFE 2.50R, MAE 0.25R, 24.0 sessions, max DD 0.0R
-- Out of sample: 1 trades, win 0.0%, -0.42R / trade (95% CI n/a to n/a), PF 0.00, MFE 2.02R, MAE 0.41R, 24.0 sessions, max DD 0.4R
+- In sample: 94 trades, win 19.1%, +0.58R / trade (95% CI -0.14 to +1.40), PF 1.82, MFE 1.90R, MAE 0.71R, 19.7 sessions, max DD 17.1R
+- Out of sample: 40 trades, win 12.5%, -0.26R / trade (95% CI -0.84 to +0.46), PF 0.70, MFE 1.92R, MAE 0.85R, 23.6 sessions, max DD 19.1R
 
 ### `time_stop` (exit)
 
@@ -166,8 +181,8 @@ Sell at the close of the 20th session after the fill if price has not reached +1
 
 Rule: If no high of the 20 sessions after the fill bar reached fill + 1R, exit at the close of the 20th session.
 
-- In sample: 1 trades, win 100.0%, +2.49R / trade (95% CI n/a to n/a), PF n/a, MFE 2.50R, MAE 0.25R, 24.0 sessions, max DD 0.0R
-- Out of sample: 1 trades, win 0.0%, -1.01R / trade (95% CI n/a to n/a), PF 0.00, MFE 2.02R, MAE 1.00R, 80.0 sessions, max DD 1.0R
+- In sample: 94 trades, win 24.5%, +0.74R / trade (95% CI -0.02 to +1.66), PF 1.99, MFE 2.03R, MAE 0.79R, 23.8 sessions, max DD 16.0R
+- Out of sample: 40 trades, win 12.5%, -0.52R / trade (95% CI -1.14 to +0.23), PF 0.51, MFE 1.79R, MAE 1.08R, 23.1 sessions, max DD 23.9R
 
 ### `tp_fixed3` (exit)
 
@@ -175,8 +190,8 @@ Take profit at exactly 3R instead of the next supply / projection.
 
 Rule: Target = entry + 3 x (entry - stop); the order is also cancelled when that target trades first.
 
-- In sample: 1 trades, win 100.0%, +2.99R / trade (95% CI n/a to n/a), PF n/a, MFE 3.00R, MAE 0.25R, 45.0 sessions, max DD 0.0R
-- Out of sample: 1 trades, win 0.0%, -1.01R / trade (95% CI n/a to n/a), PF 0.00, MFE 2.02R, MAE 1.00R, 80.0 sessions, max DD 1.0R
+- In sample: 85 trades, win 29.4%, +0.19R / trade (95% CI -0.22 to +0.58), PF 1.27, MFE 1.24R, MAE 0.75R, 13.2 sessions, max DD 16.7R
+- Out of sample: 37 trades, win 29.7%, +0.12R / trade (95% CI -0.61 to +0.84), PF 1.14, MFE 1.51R, MAE 0.92R, 14.5 sessions, max DD 8.3R
 
 ### `tp_zone` (exit)
 
@@ -184,8 +199,8 @@ Take profit just below the nearest not-removed supply zone above (W1, MN or 3M, 
 
 Rule: Target = 0.5% under the nearest proximal above the entry among the not-removed supply zones of the W1, MN and 3M rows of the signal-day analysis (tested ones and lower-TF ones too); no trade when that is < 2.5R; no supply above = the live target (250% projection).
 
-- In sample: 1 trades, win 100.0%, +2.51R / trade (95% CI n/a to n/a), PF n/a, MFE 2.52R, MAE 0.25R, 24.0 sessions, max DD 0.0R
-- Out of sample: 0 trades
+- In sample: 92 trades, win 22.8%, +0.70R / trade (95% CI -0.04 to +1.61), PF 1.91, MFE 2.04R, MAE 0.81R, 24.3 sessions, max DD 16.2R
+- Out of sample: 32 trades, win 9.4%, -0.44R / trade (95% CI -1.13 to +0.47), PF 0.58, MFE 2.05R, MAE 1.02R, 24.5 sessions, max DD 24.1R
 
 ### `fresh_body` (freshness)
 
@@ -193,8 +208,8 @@ A zone counts as used only once a daily candle CLOSED inside it (wick-only touch
 
 Rule: The freshness rule (L2 · L52) is replaced: a zone is used only once a daily close <= its proximal happened after its stay-away period. Tested zones (1-2 wick touches, not removed) whose ONLY failed rule is freshness become BUYs; one BUY per timeframe, the nearest.
 
-- In sample: 1 trades, win 100.0%, +2.49R / trade (95% CI n/a to n/a), PF n/a, MFE 2.50R, MAE 0.25R, 24.0 sessions, max DD 0.0R
-- Out of sample: 1 trades, win 0.0%, -1.01R / trade (95% CI n/a to n/a), PF 0.00, MFE 2.02R, MAE 1.00R, 80.0 sessions, max DD 1.0R
+- In sample: 94 trades, win 23.4%, +0.72R / trade (95% CI -0.05 to +1.62), PF 1.93, MFE 2.04R, MAE 0.80R, 24.3 sessions, max DD 16.2R
+- Out of sample: 40 trades, win 12.5%, -0.50R / trade (95% CI -1.16 to +0.23), PF 0.54, MFE 1.92R, MAE 1.10R, 25.7 sessions, max DD 23.4R
 
 ### `fresh_depth25` (freshness)
 
@@ -202,8 +217,8 @@ A zone counts as used only once price went at least 25% of the zone height insid
 
 Rule: As fresh_body, but used = a daily low <= proximal - 25% of the zone height.
 
-- In sample: 1 trades, win 100.0%, +2.49R / trade (95% CI n/a to n/a), PF n/a, MFE 2.50R, MAE 0.25R, 24.0 sessions, max DD 0.0R
-- Out of sample: 1 trades, win 0.0%, -1.01R / trade (95% CI n/a to n/a), PF 0.00, MFE 2.02R, MAE 1.00R, 80.0 sessions, max DD 1.0R
+- In sample: 94 trades, win 23.4%, +0.72R / trade (95% CI -0.05 to +1.62), PF 1.93, MFE 2.04R, MAE 0.80R, 24.3 sessions, max DD 16.2R
+- Out of sample: 40 trades, win 12.5%, -0.50R / trade (95% CI -1.16 to +0.23), PF 0.54, MFE 1.92R, MAE 1.10R, 25.7 sessions, max DD 23.4R
 
 ### `cont_off` (continuation)
 
@@ -211,8 +226,8 @@ Never buy continuation (rally-base-rally) zones.
 
 Rule: No BUY on a zone whose pattern is RBR (rally-base-rally continuation).
 
-- In sample: 0 trades
-- Out of sample: 0 trades
+- In sample: 56 trades, win 25.0%, +1.03R / trade (95% CI -0.10 to +2.37), PF 2.29, MFE 2.29R, MAE 0.84R, 27.1 sessions, max DD 9.2R
+- Out of sample: 15 trades, win 20.0%, +0.28R / trade (95% CI -1.22 to +2.02), PF 1.28, MFE 2.35R, MAE 1.05R, 22.1 sessions, max DD 14.0R
 
 ### `cont_nested` (continuation)
 
@@ -220,8 +235,8 @@ Buy a rally-base-rally zone only when it sits inside a touched higher-timeframe 
 
 Rule: An RBR zone gives a BUY only when its top-down location code is "inside" (inside a touched MN demand for W1, a touched 3M demand for MN); "top" (3M, or no HTF in reach) does not count as nested.
 
-- In sample: 1 trades, win 100.0%, +5.23R / trade (95% CI n/a to n/a), PF n/a, MFE 5.25R, MAE 0.25R, 24.0 sessions, max DD 0.0R
-- Out of sample: 0 trades
+- In sample: 57 trades, win 26.3%, +1.10R / trade (95% CI -0.04 to +2.37), PF 2.41, MFE 2.34R, MAE 0.83R, 27.0 sessions, max DD 9.2R
+- Out of sample: 15 trades, win 20.0%, +0.28R / trade (95% CI -1.22 to +2.02), PF 1.28, MFE 2.35R, MAE 1.05R, 22.1 sessions, max DD 14.0R
 
 ### `stop_atr` (stop)
 
@@ -229,8 +244,8 @@ Stop at the wider of the current stop and the distal minus one weekly ATR14 (R r
 
 Rule: Stop = min(live stop, distal - 1.0 x weekly ATR14) with ATR14 = mean true range of the last 14 CLOSED weekly bars; R and R:R use the new stop; no trade when the room falls under 2R (the live room rule).
 
-- In sample: 1 trades, win 100.0%, +2.06R / trade (95% CI n/a to n/a), PF n/a, MFE 2.06R, MAE 0.10R, 24.0 sessions, max DD 0.0R
-- Out of sample: 1 trades, win 100.0%, +2.16R / trade (95% CI n/a to n/a), PF n/a, MFE 2.17R, MAE 0.58R, 97.0 sessions, max DD 0.0R
+- In sample: 56 trades, win 44.6%, +0.68R / trade (95% CI +0.19 to +1.16), PF 2.34, MFE 1.58R, MAE 0.70R, 74.9 sessions, max DD 5.4R
+- Out of sample: 23 trades, win 39.1%, +0.38R / trade (95% CI -0.39 to +1.21), PF 1.58, MFE 1.67R, MAE 0.88R, 77.0 sessions, max DD 7.3R
 
 ### `arrive_stair` (filter)
 
@@ -238,8 +253,8 @@ Skip the trade when the last 10 sessions before the first touch were a slow stai
 
 Rule: At the first session that touches the proximal (low <= entry) the order is withdrawn when the 10 sessions before it were a stair-step approach: mean |close - open| < 0.5 x ATR14, or >= 2 small-range bases (runs of >= 2 consecutive bars each with high - low < 0.6 x ATR14); ATR14 = mean true range of the 14 sessions before the touch. A withdrawn first touch ends the setup.
 
-- In sample: 0 trades
-- Out of sample: 1 trades, win 0.0%, -1.01R / trade (95% CI n/a to n/a), PF 0.00, MFE 2.02R, MAE 1.00R, 80.0 sessions, max DD 1.0R
+- In sample: 36 trades, win 22.2%, +0.30R / trade (95% CI -0.52 to +1.31), PF 1.36, MFE 1.66R, MAE 0.86R, 16.8 sessions, max DD 17.8R
+- Out of sample: 15 trades, win 20.0%, -0.62R / trade (95% CI -1.74 to +0.58), PF 0.50, MFE 2.02R, MAE 1.29R, 27.7 sessions, max DD 15.3R
 
 ### `curve_top3` (filter)
 
@@ -247,8 +262,8 @@ No buy when the entry sits in the top third of the last 2 years' range.
 
 Rule: No BUY when the entry >= low + 2/3 x (high - low) of the last 504 daily bars up to the signal day.
 
-- In sample: 1 trades, win 100.0%, +2.49R / trade (95% CI n/a to n/a), PF n/a, MFE 2.50R, MAE 0.25R, 24.0 sessions, max DD 0.0R
-- Out of sample: 1 trades, win 0.0%, -1.01R / trade (95% CI n/a to n/a), PF 0.00, MFE 2.02R, MAE 1.00R, 80.0 sessions, max DD 1.0R
+- In sample: 78 trades, win 25.6%, +0.99R / trade (95% CI +0.09 to +2.01), PF 2.37, MFE 2.19R, MAE 0.76R, 25.6 sessions, max DD 13.8R
+- Out of sample: 37 trades, win 13.5%, -0.46R / trade (95% CI -1.18 to +0.35), PF 0.58, MFE 2.05R, MAE 1.11R, 27.3 sessions, max DD 22.3R
 
 ### `cancel_50` (filter)
 
@@ -256,8 +271,8 @@ Cancel the waiting order once price has gone half way to the target without fill
 
 Rule: Cancel the waiting order at the close of a session (before any fill) whose high reached entry + 50% of (target - entry).
 
-- In sample: 1 trades, win 100.0%, +2.49R / trade (95% CI n/a to n/a), PF n/a, MFE 2.50R, MAE 0.25R, 24.0 sessions, max DD 0.0R
-- Out of sample: 1 trades, win 0.0%, -1.01R / trade (95% CI n/a to n/a), PF 0.00, MFE 2.02R, MAE 1.00R, 80.0 sessions, max DD 1.0R
+- In sample: 85 trades, win 24.7%, +0.87R / trade (95% CI +0.04 to +1.81), PF 2.16, MFE 2.22R, MAE 0.79R, 26.6 sessions, max DD 14.1R
+- Out of sample: 37 trades, win 10.8%, -0.55R / trade (95% CI -1.27 to +0.27), PF 0.51, MFE 2.01R, MAE 1.13R, 26.9 sessions, max DD 24.1R
 
 ### `market_regime` (filter)
 
@@ -265,8 +280,8 @@ No new buy while SPY closes below its 200-day average.
 
 Rule: No BUY when SPY's close on the signal day is below the mean of its last 200 closes (fewer than 200 = allowed).
 
-- In sample: 1 trades, win 100.0%, +2.49R / trade (95% CI n/a to n/a), PF n/a, MFE 2.50R, MAE 0.25R, 24.0 sessions, max DD 0.0R
-- Out of sample: 1 trades, win 0.0%, -1.01R / trade (95% CI n/a to n/a), PF 0.00, MFE 2.02R, MAE 1.00R, 80.0 sessions, max DD 1.0R
+- In sample: 51 trades, win 17.6%, +0.03R / trade (95% CI -0.62 to +0.85), PF 1.03, MFE 1.58R, MAE 0.90R, 19.0 sessions, max DD 19.9R
+- Out of sample: 33 trades, win 9.1%, -0.88R / trade (95% CI -1.42 to -0.33), PF 0.24, MFE 1.60R, MAE 1.14R, 23.8 sessions, max DD 29.1R
 
 ### `earnings_skip` (filter)
 
@@ -282,8 +297,8 @@ Half size when the daily ATR14 is in the top 10% of its last 250 values.
 
 Rule: Half size (R x 0.5) when the daily ATR14 on the signal day is higher than at least 90% of its last 250 values.
 
-- In sample: 1 trades, win 100.0%, +2.49R / trade (95% CI n/a to n/a), PF n/a, MFE 2.50R, MAE 0.25R, 24.0 sessions, max DD 0.0R
-- Out of sample: 1 trades, win 0.0%, -1.01R / trade (95% CI n/a to n/a), PF 0.00, MFE 2.02R, MAE 1.00R, 80.0 sessions, max DD 1.0R
+- In sample: 94 trades, win 23.4%, +0.44R / trade (95% CI -0.09 to +1.01), PF 1.66, MFE 2.04R, MAE 0.80R, 24.3 sessions, max DD 13.8R
+- Out of sample: 40 trades, win 12.5%, -0.44R / trade (95% CI -0.99 to +0.25), PF 0.55, MFE 1.92R, MAE 1.10R, 25.7 sessions, max DD 21.9R
 
 ### `split_entry` (size)
 
@@ -291,8 +306,88 @@ Buy half at the proximal and half at the middle of the zone (same stop and targe
 
 Rule: Half the shares at the proximal, half at the zone middle (proximal - 50% of the height), same stop / target; the second order lives while the first half is open (order life 40 sessions, a close under the distal cancels it). R is in units of the full position at the proximal: 0.5 x R1 + 0.5 x R2 (R2 = 0 when not filled).
 
-- In sample: 1 trades, win 100.0%, +1.24R / trade (95% CI n/a to n/a), PF n/a, MFE 2.50R, MAE 0.25R, 24.0 sessions, max DD 0.0R
-- Out of sample: 1 trades, win 0.0%, -0.77R / trade (95% CI n/a to n/a), PF 0.00, MFE 2.02R, MAE 1.00R, 80.0 sessions, max DD 0.8R
+- In sample: 94 trades, win 23.4%, +0.62R / trade (95% CI -0.08 to +1.47), PF 2.03, MFE 2.04R, MAE 0.80R, 24.3 sessions, max DD 13.7R
+- Out of sample: 40 trades, win 12.5%, -0.24R / trade (95% CI -0.86 to +0.49), PF 0.71, MFE 1.92R, MAE 1.10R, 25.7 sessions, max DD 15.9R
+
+## TFSA study: buy at a demand zone and hold (no stop)
+
+**Verdict:** Buying at the first touch of a W1 / MN / 3M demand zone and holding 12 months (no stop) beat SPY by 4.6% on average (median -2.7%, 95% CI +3.1 to +6.3); 46% of 13546 buys beat SPY; vs buying the same stock on a random day: +2.8%. Worst drop during a hold -98% (median -16%). The edge over SPY holds in both the train (before 2022) and the test (2022 on) period.
+
+Every first touch of a W1 / MN / 3M demand zone (drawn on closed candles, as the live scanner does) on every ticker: buy and hold 3 / 6 / 12 months, no stop. "in" = limit at the proximal on the first touch; "near" = the first close within 3% above it before a touch; "left" = the first close back above it within 3 sessions of the touch (the /tfsa sections). Compared with SPY over the same dates (close to close) and with the same stock bought on a random day (seeded) for the same length. One buy per stock, section and day (the biggest timeframe). CI = 95% bootstrap resampling tickers. Survivorship: today's index members.
+
+Events: 38220 unique (39890 raw) on 718 tickers, 2016-11-03 to 2026-11-02.
+
+### 3m hold
+
+| | Buys | Avg return | Avg vs SPY (95% CI) | Median vs SPY | Beat SPY | Vs random day | Worst drop |
+|---|---|---|---|---|---|---|---|
+| section: in | 14780 | +5.8% | +1.3% (+0.8% to +1.7%) | -0.2% | 49% | +0.6% | -93% |
+| section: near | 11348 | +3.2% | -0.1% (-0.4% to +0.2%) | -0.6% | 48% | -0.5% | -93% |
+| section: left | 10935 | +5.5% | +1.0% (+0.6% to +1.5%) | -0.4% | 49% | +1.1% | -93% |
+| in, W1 | 12493 | +5.6% | +1.2% (+0.7% to +1.6%) | -0.5% | 49% | +0.3% | -93% |
+| in, MN | 2664 | +7.9% | +1.7% (+1.0% to +2.5%) | +0.6% | 52% | +3.5% | -92% |
+| in, 3M | 590 | +10.2% | +2.0% (+0.3% to +3.5%) | -0.0% | 50% | +4.8% | -91% |
+| in, market_regime | 10580 | +3.4% | +0.4% (+0.0% to +0.8%) | -0.7% | 48% | -2.1% | -93% |
+| in, not market_regime | 4200 | +12.0% | +3.3% (+2.5% to +4.2%) | +1.1% | 53% | +7.5% | -93% |
+| in, mom12 | 8949 | +5.0% | +1.2% (+0.7% to +1.7%) | -0.3% | 49% | +0.5% | -93% |
+| in, not mom12 | 5831 | +7.1% | +1.3% (+0.7% to +2.0%) | -0.2% | 50% | +0.9% | -90% |
+| in, not_top3 | 9734 | +7.3% | +1.6% (+0.9% to +2.1%) | -0.3% | 50% | +1.6% | -92% |
+| in, not not_top3 | 5046 | +3.1% | +0.7% (+0.2% to +1.1%) | -0.2% | 49% | -1.2% | -93% |
+| in, qualified | 10011 | +6.5% | +1.5% (+1.0% to +2.1%) | +0.0% | 50% | +1.0% | -93% |
+| in, not qualified | 4769 | +4.4% | +0.7% (+0.1% to +1.2%) | -0.7% | 48% | -0.2% | -90% |
+| in, all_four | 1849 | +4.6% | +1.4% (+0.3% to +2.6%) | -1.0% | 48% | -0.1% | -84% |
+| in, train | 7062 | +6.3% | +1.4% (+0.8% to +2.1%) | +0.3% | 51% | +0.1% | -93% |
+| in, test | 7718 | +5.4% | +1.1% (+0.6% to +1.6%) | -0.7% | 48% | +1.1% | -83% |
+| in, tickers_A | 7513 | +6.0% | +1.4% (+0.8% to +2.0%) | -0.2% | 49% | +1.4% | -93% |
+| in, tickers_B | 7267 | +5.7% | +1.1% (+0.5% to +1.7%) | -0.3% | 49% | -0.2% | -85% |
+
+### 6m hold
+
+| | Buys | Avg return | Avg vs SPY (95% CI) | Median vs SPY | Beat SPY | Vs random day | Worst drop |
+|---|---|---|---|---|---|---|---|
+| section: in | 14372 | +10.8% | +1.9% (+1.2% to +2.8%) | -1.1% | 48% | +1.6% | -95% |
+| section: near | 11039 | +6.4% | -0.3% (-0.9% to +0.2%) | -1.6% | 46% | -1.0% | -93% |
+| section: left | 10621 | +10.4% | +1.8% (+0.9% to +2.6%) | -1.3% | 47% | +0.5% | -93% |
+| in, W1 | 12160 | +10.5% | +1.9% (+1.1% to +2.7%) | -1.2% | 48% | +1.3% | -95% |
+| in, MN | 2593 | +13.3% | +2.3% (+0.9% to +3.7%) | -1.1% | 48% | +4.6% | -92% |
+| in, 3M | 567 | +16.2% | +2.2% (-0.4% to +5.1%) | -2.4% | 46% | +8.1% | -91% |
+| in, market_regime | 10172 | +7.9% | +1.0% (+0.3% to +1.8%) | -1.5% | 47% | -1.6% | -95% |
+| in, not market_regime | 4200 | +17.7% | +4.1% (+2.6% to +5.6%) | -0.3% | 49% | +9.4% | -93% |
+| in, mom12 | 8691 | +9.8% | +2.1% (+1.1% to +3.0%) | -0.9% | 48% | -0.3% | -93% |
+| in, not mom12 | 5681 | +12.2% | +1.7% (+0.5% to +3.0%) | -1.6% | 47% | +4.6% | -95% |
+| in, not_top3 | 9444 | +12.7% | +2.1% (+1.0% to +3.2%) | -1.6% | 47% | +3.7% | -95% |
+| in, not not_top3 | 4928 | +7.1% | +1.6% (+0.8% to +2.4%) | -0.3% | 49% | -2.4% | -93% |
+| in, qualified | 9752 | +12.0% | +2.5% (+1.6% to +3.4%) | -0.7% | 48% | +2.4% | -93% |
+| in, not qualified | 4620 | +8.2% | +0.7% (-0.3% to +1.6%) | -2.0% | 46% | +0.1% | -95% |
+| in, all_four | 1756 | +9.9% | +2.5% (+0.6% to +4.5%) | -1.7% | 47% | -3.0% | -84% |
+| in, train | 7062 | +11.6% | +2.0% (+1.0% to +3.0%) | -0.4% | 49% | +2.3% | -95% |
+| in, test | 7310 | +10.0% | +1.9% (+0.8% to +3.0%) | -1.8% | 46% | +1.0% | -87% |
+| in, tickers_A | 7312 | +11.3% | +2.5% (+1.3% to +3.8%) | -0.9% | 48% | +2.6% | -95% |
+| in, tickers_B | 7060 | +10.2% | +1.3% (+0.3% to +2.3%) | -1.4% | 47% | +0.6% | -90% |
+
+### 12m hold
+
+| | Buys | Avg return | Avg vs SPY (95% CI) | Median vs SPY | Beat SPY | Vs random day | Worst drop |
+|---|---|---|---|---|---|---|---|
+| section: in | 13546 | +20.7% | +4.6% (+3.1% to +6.3%) | -2.7% | 46% | +2.8% | -98% |
+| section: near | 10436 | +13.2% | -0.1% (-1.2% to +0.9%) | -3.9% | 44% | -2.7% | -94% |
+| section: left | 10004 | +20.1% | +4.3% (+2.6% to +6.0%) | -2.8% | 46% | +1.8% | -98% |
+| in, W1 | 11485 | +20.3% | +4.5% (+2.9% to +6.3%) | -2.8% | 46% | +2.3% | -98% |
+| in, MN | 2438 | +23.4% | +4.4% (+2.2% to +6.9%) | -2.8% | 47% | +7.5% | -92% |
+| in, 3M | 517 | +31.7% | +7.5% (+2.0% to +13.4%) | -2.2% | 48% | +10.1% | -91% |
+| in, market_regime | 9438 | +15.9% | +3.2% (+1.8% to +4.7%) | -3.0% | 46% | -2.7% | -98% |
+| in, not market_regime | 4108 | +31.8% | +7.7% (+4.9% to +10.4%) | -1.6% | 48% | +15.6% | -94% |
+| in, mom12 | 8222 | +17.8% | +4.0% (+2.3% to +5.8%) | -2.2% | 47% | -0.7% | -98% |
+| in, not mom12 | 5324 | +25.2% | +5.5% (+3.1% to +7.9%) | -3.7% | 46% | +8.3% | -98% |
+| in, not_top3 | 8849 | +25.1% | +5.7% (+3.5% to +7.8%) | -3.7% | 46% | +7.6% | -98% |
+| in, not not_top3 | 4697 | +12.4% | +2.6% (+1.2% to +4.1%) | -1.0% | 48% | -6.1% | -98% |
+| in, qualified | 9175 | +22.0% | +5.5% (+3.8% to +7.2%) | -1.8% | 47% | +3.8% | -98% |
+| in, not qualified | 4371 | +17.8% | +2.7% (+0.6% to +4.5%) | -4.6% | 44% | +0.8% | -98% |
+| in, all_four | 1604 | +19.8% | +6.8% (+3.3% to +10.7%) | -3.1% | 46% | -0.7% | -84% |
+| in, train | 7062 | +21.3% | +5.5% (+3.8% to +7.3%) | -0.3% | 50% | +4.4% | -98% |
+| in, test | 6484 | +20.0% | +3.6% (+1.2% to +6.0%) | -5.0% | 43% | +1.1% | -98% |
+| in, tickers_A | 6886 | +21.9% | +5.8% (+3.3% to +8.2%) | -2.0% | 47% | +2.7% | -98% |
+| in, tickers_B | 6660 | +19.4% | +3.4% (+1.3% to +5.6%) | -3.2% | 45% | +3.0% | -93% |
 
 ## How to read this
 
