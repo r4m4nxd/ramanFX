@@ -38,8 +38,8 @@ jobs:
           git config user.name "ramanfx-scanner[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           case "$IN_ARTIFACT" in
-            fx-backtest-*) paths=(public/fx/backtest.json docs/research/FX_Backtest.md) ;;
-            stock-backtest-*) paths=(public/scanner/backtest.json docs/research/Stock_Backtest.md) ;;
+            fx-backtest-*) paths=(public/fx/backtest.json docs/research/FX_Backtest.md public/learn/fx_experiments.json) ;;
+            stock-backtest-*) paths=(public/scanner/backtest.json docs/research/Stock_Backtest.md public/learn/stock_experiments.json) ;;
             *) echo "::error::unknown artifact $IN_ARTIFACT (fx-backtest-<id> or stock-backtest-<id>)"; exit 1 ;;
           esac
           bash scripts/data-branch.sh push "backtest: publish $IN_ARTIFACT" "${paths[@]}" \

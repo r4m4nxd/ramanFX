@@ -27,6 +27,13 @@ no_ath (the owner's ATH curve exception off: the Raja curve rule as before e49a1
 selected any more (D1 zones were removed from scan.analyse in da14866) and are reported as not run.
 Baselines: a random entry (seeded) on the same ticker with the same stop / target distances in %, and SPY buy-and-hold
 over the same period and over each trade's own holding window.
+
+Experiments (--experiments all, the default; --experiments-json public/learn/stock_experiments.json): the variants of
+experiments.py (each = current with ONE change: exits, freshness, continuation zones, stop, filters, size), run on the
+SAME analysis + signals of each evaluation day (computed once, shared); a variant only filters / re-plans and re-runs
+the cheap order + exit simulation (wick stop). Each keeps its own one-position-per-ticker state. In sample = the older
+70% of the `current` experiment's fills by signal date, out of sample = the newest 30%; bootstrap 95% CI of the
+expectancy. Every current trade also records its MFE / MAE in R (fill -> exit) and the sessions held.
 """
 from __future__ import annotations
 
@@ -50,6 +57,7 @@ ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
 sys.path.insert(0, HERE)
 
 import data as DATA  # noqa: E402
+import experiments as E  # noqa: E402
 import scan  # noqa: E402
 import zones as Z  # noqa: E402
 from zones import RAJA, Bar  # noqa: E402
@@ -110,17 +118,28 @@ def week_ends(bars: List[Bar]) -> set:
 MIN_HTF = {'W1': 60, 'MN': 40, '3M': 20}
 
 
-def candidates(bars: List[Bar], tfs=None) -> Dict[int, List[str]]:
+def candidates(bars: List[Bar], tfs=None, loose: Optional[Dict[int, List[str]]] = None) -> Dict[int, List[str]]:
     """Cheap pre-filter: days where some W1 / MN / 3M demand zone (found on the whole history, known by that day, not
     yet removed or tested by then) is within the approach distance under the daily close. analyse() then decides
-    for real on the bars known that day (the pre-filter only skips days that cannot give a BUY)."""
+    for real on the bars known that day (the pre-filter only skips days that cannot give a BUY).
+    loose (dict, filled when given): the same days plus those where a TESTED zone is near that the looser freshness
+    experiments (fresh_body / fresh_depth25) may still use: no daily close inside it, or no daily low 25% of the
+    height inside it, since it became known."""
     out: Dict[int, List[str]] = defaultdict(list)
     for tf in tuple(tfs or scan.TRADE_TFS):
-        _htf_candidates(bars, tf, out)
+        _htf_candidates(bars, tf, out, loose)
     return out
 
 
-def _htf_candidates(bars: List[Bar], tf: str, out) -> None:
+def _first_used(bars: List[Bar], k0: int, z) -> int:
+    """First daily index >= k0 from which BOTH loose freshness rules count zone z as used (len(bars) = never)."""
+    n = len(bars)
+    fb = next((i for i in range(k0, n) if bars[i].c <= z.prox), n)
+    fd = next((i for i in range(k0, n) if bars[i].l <= z.prox - E.FRESH_DEPTH * z.h), n)
+    return max(fb, fd)
+
+
+def _htf_candidates(bars: List[Bar], tf: str, out, loose=None) -> None:
     n = len(bars)
     w1, upto = htf_index(bars, tf)
     if len(w1) > MIN_HTF.get(tf, 20):
@@ -135,12 +154,27 @@ def _htf_candidates(bars: List[Bar], tf: str, out) -> None:
                 continue
             sa_w = nw - z.sa_bar
             dead_w = min(nw - z.removed_bar if z.removed else nw + 1, nw - z.tested_bar if z.tested else nw + 1)
-            for d in range(first_day.get(sa_w + 1, n), n):
+            d0 = first_day.get(sa_w + 1, n)
+            for d in range(d0, n):
                 if upto[d] - 1 >= dead_w or upto[d] - (nw - z.leg_bar) > RAJA['max_zone_age']:
                     break
                 c = bars[d].c
                 if d >= WARMUP and z.dist < c and c - z.prox <= max(scan.APPROACH_H * z.h, scan.APPROACH_PCT * c):
                     out[d].append(z.zid)
+                    if loose is not None:
+                        loose.setdefault(d, []).append(z.zid)
+            if loose is None or not z.tested:
+                continue
+            dead_rm = nw - z.removed_bar if z.removed else nw + 1
+            used = _first_used(bars, d0 + 1, z)
+            for d in range(max(d0, first_day.get(nw - z.tested_bar + 1, n) - 1), min(n, used)):
+                if upto[d] - 1 >= dead_rm or upto[d] - (nw - z.leg_bar) > RAJA['max_zone_age']:
+                    break
+                c = bars[d].c
+                if d >= WARMUP and z.dist < c and c - z.prox <= max(scan.APPROACH_H * z.h, scan.APPROACH_PCT * c):
+                    lz = loose.setdefault(d, [])
+                    if z.zid not in lz:
+                        lz.append(z.zid)
 
 
 _IDX_MEMO: Dict[str, Optional[Dict]] = {}
@@ -271,6 +305,7 @@ def simulate(bars: List[Bar], d: int, sig: Dict, cost_bps: float, slip_bps: floa
         ex_i, ex, why, gap = run_exit(bars, fill_i, fill, stop, target, v)
         _score_exit(res, bars, fill_i, fill, risk, cost_side, ex_i, ex, why, gap, v)
         if v == 'wick':
+            res['mfe_r'], res['mae_r'] = E.excursion(bars, fill_i, ex_i, fill, ex, why, risk)   # price only, >= 0
             hi = max((bars[i].h for i in range(fill_i + 1, ex_i)), default=0.0)
             for k in ('pz1', 'pz2'):
                 pv = sig.get(k)
@@ -308,38 +343,73 @@ def random_entries(sym: str, bars: List[Bar], t: Dict, days: List[int], cost_bps
     return out
 
 
+LOOSE = ('fresh_body', 'fresh_depth25')
+
+
 def backtest_ticker(sym: str, bars: List[Bar], sector: str = '', filings: Optional[List[str]] = None, cost_bps: float = 5.0,
                     indexes: str = 'SPX', index_bars: Optional[List[Bar]] = None, variants=('current',), start: str = '',
-                    slip_bps: float = 0.0, random_k: int = RANDOM_K, seed: int = 7) -> List[Dict]:
-    """Every BUY of one ticker per variant, evaluated weekly. Trades carry 'variant'; random baseline rows too."""
+                    slip_bps: float = 0.0, random_k: int = RANDOM_K, seed: int = 7, experiments=(),
+                    spy_bars: Optional[List[Bar]] = None) -> List[Dict]:
+    """Every BUY of one ticker per variant, evaluated weekly. Trades carry 'variant'; random baseline rows too.
+    experiments (experiments.VARIANTS ids): rows 'x:<id>' from the SAME analysis + signals of each evaluation day
+    (computed once, shared by every variant); each experiment keeps its own one-position-per-ticker state and only
+    re-runs the cheap plan / order / exit simulation (wick stop, the live plan)."""
     if len(bars) < WARMUP + 50:
         return []
     w1, w_upto = htf_index(bars, 'W1')
     mn, m_upto = htf_index(bars, 'MN')
-    cand = candidates(bars)
+    exps = tuple(x for x in experiments if x in E.VARIANTS and x not in E.SKIPPED)
+    loose_c: Optional[Dict[int, List[str]]] = {} if any(x in LOOSE for x in exps) else None
+    cand = candidates(bars, loose=loose_c)
     ends = week_ends(bars)
     eval_days = sorted(d for d in ends if d >= WARMUP and bars[d].d >= start)
     st = {v: {'evals': defaultdict(int), 'done': set(), 'busy': -1} for v in variants}
+    xs = {v: {'evals': defaultdict(int), 'done': set(), 'busy': -1} for v in exps}
+    spy_d = [b.d for b in spy_bars] if spy_bars else []
+    spy_c = [b.c for b in spy_bars] if spy_bars else []
+    cost_side = (cost_bps + slip_bps) / 1e4
     cache: dict = {}
     trades = []
-    for d in sorted(cand):
+    for d in sorted(set(cand) | set(loose_c or ())):
         if d not in ends or bars[d].d < start:
             continue
         ans: Dict[str, scan.Analysis] = {}
+        sig_memo: Dict[str, List[Dict]] = {}
+        known: List[E.Known] = []
+
+        def analysis(akey: str) -> scan.Analysis:
+            if akey not in ans:
+                an = scan.analyse(bars[:d + 1], w1[:w_upto[d]], mn[:m_upto[d]], row_cache=cache)
+                an.index = index_at(index_bars, bars[d].d) if index_bars else None
+                ans[akey] = an
+            return ans[akey]
+
+        def base_signals() -> List[Dict]:
+            if 'current' not in sig_memo:
+                sig_memo['current'] = scan.symbol_signals(analysis('base'), None)
+            return sig_memo['current']
+
+        def known_now() -> E.Known:
+            if not known:
+                an = analysis('base')
+                sup = [z.prox for r in scan.zone_rows(an) if r.ok for z in r.zones if z.dir < 0 and not z.removed]
+                k = bisect.bisect_right(spy_d, bars[d].d)
+                known.append(E.Known(bars[:d + 1], w1[:w_upto[d]], spy_c[max(0, k - 400):k], sup))
+            return known[0]
+        base_z = cand.get(d, [])
         for v in variants:
             S = st[v]
-            zids = [z for z in cand[d] if z not in S['done'] and S['evals'][z] < MAX_EVALS]
+            zids = [z for z in base_z if z not in S['done'] and S['evals'][z] < MAX_EVALS]
             if not zids or d <= S['busy']:
                 continue
             for z in zids:
                 S['evals'][z] += 1
             akey = 'no_ath' if v == 'no_ath' else 'base'
             with rule_variant(v):
-                if akey not in ans:
-                    an = scan.analyse(bars[:d + 1], w1[:w_upto[d]], mn[:m_upto[d]], row_cache=cache)
-                    an.index = index_at(index_bars, bars[d].d) if index_bars else None
-                    ans[akey] = an
-                sigs = scan.symbol_signals(ans[akey], None)
+                if v == 'current':
+                    sigs = base_signals()
+                else:
+                    sigs = scan.symbol_signals(analysis(akey), None)
             for s in sigs:
                 zid = f"{s['tf']}:D:{s['base_start']}"
                 if s['kind'] != 'BUY' or zid in S['done']:
@@ -363,11 +433,53 @@ def backtest_ticker(sym: str, bars: List[Bar], sector: str = '', filings: Option
                     if v == 'current' and random_k:
                         trades += random_entries(sym, bars, t, eval_days, cost_bps, slip_bps, random_k, seed)
                 break
+        for v in exps:
+            S = xs[v]
+            pool = (loose_c or {}).get(d, []) if v in LOOSE else base_z
+            zids = [z for z in pool if z not in S['done'] and S['evals'][z] < MAX_EVALS]
+            if not zids or d <= S['busy']:
+                continue
+            for z in zids:
+                S['evals'][z] += 1
+            sigs = base_signals()
+            if v in LOOSE:
+                if v not in sig_memo:
+                    sig_memo[v] = E.promote_fresh(sigs, known_now().bars, v) if any(s.get('watch') == 'tested' for s in sigs) else sigs
+                sigs = sig_memo[v]
+            for s in sigs:
+                zid = f"{s['tf']}:D:{s['base_start']}"
+                if s['kind'] != 'BUY' or zid in S['done']:
+                    continue
+                p = E.plan_for(v, s, known_now())
+                if p is None:
+                    continue                                # filtered today: the zone may pass on a later week
+                S['done'].add(zid)
+                sim = E.simulate(bars, d, p, cost_side)
+                if sim is None:
+                    continue
+                trades.append({'variant': 'x:' + v, 'symbol': sym, 'signal_date': bars[d].d, 'tf': s['tf'], 'zone_type': s['zone_type'],
+                               'pattern': s['pattern'], 'loc': s.get('loc'), 'entry': p['entry'], **sim,
+                               **({'promoted': True} if s.get('promoted') else {})})
+                if sim['status'] == 'filled':
+                    S['busy'] = max(S['busy'], sim['exit_i'])
+                break
     return trades
 
 
+_SPY: List[Optional[List[Bar]]] = []
+
+
+def spy_cached(offline: bool) -> Optional[List[Bar]]:
+    if not _SPY:
+        try:
+            _SPY.append(DATA.fetch_daily('SPY', offline=offline)[0] or None)
+        except Exception:  # noqa: BLE001
+            _SPY.append(None)
+    return _SPY[0]
+
+
 def _worker(args):
-    sym, sector, offline, cost, indexes, variants, start, slip, random_k = args
+    sym, sector, offline, cost, indexes, variants, start, slip, random_k, exps = args
     try:
         bars, _ = DATA.fetch_daily(sym, offline=offline)
     except Exception as e:  # noqa: BLE001
@@ -382,7 +494,8 @@ def _worker(args):
     except Exception:  # noqa: BLE001
         filings = None
     try:
-        return sym, backtest_ticker(sym, bars, sector, filings, cost, indexes, composite_cached(offline), variants, start, slip, random_k), ''
+        return sym, backtest_ticker(sym, bars, sector, filings, cost, indexes, composite_cached(offline), variants, start, slip, random_k,
+                                    experiments=exps, spy_bars=spy_cached(offline) if 'market_regime' in exps else None), ''
     except Exception as e:  # noqa: BLE001
         return sym, [], f'backtest error: {e!r}'
 
@@ -525,6 +638,68 @@ def spy_buy_hold(spy: List[Bar], start: str, end: str) -> Dict:
             'max_dd_pct': round(dd * 100, 1), 'note': 'SPY split-adjusted closes (dividends not included, same as the trades), no costs'}
 
 
+# ---- experiments (public/learn/stock_experiments.json, read by tools/learn/learner.py) ---------------------------------
+def xstats(rows: List[Dict]) -> Dict:
+    """STATS of one variant half: n, win share, expectancy (R / trade after costs) + bootstrap 95% CI, profit factor,
+    average MFE / MAE (R, >= 0), average sessions held, max drawdown in R (exit-date order)."""
+    tt = sorted(rows, key=lambda t: (t.get('exit_date') or '', t.get('symbol', '')))
+    rs = [t['r'] for t in tt]
+    n = len(rs)
+    if not n:
+        return {'n': 0, 'win': None, 'exp_r': None, 'ci': None, 'pf': None, 'avg_mfe_r': None, 'avg_mae_r': None,
+                'avg_bars': None, 'max_dd_r': None}
+    lo, hi = bootstrap_ci(rs)
+    gl = -sum(r for r in rs if r < 0)
+    avg = lambda k: round(sum(t[k] for t in tt) / n, 3)  # noqa: E731
+    return {'n': n, 'win': round(sum(1 for r in rs if r > 0) / n, 3), 'exp_r': round(sum(rs) / n, 4),
+            'ci': [round(lo, 4), round(hi, 4)] if lo is not None else None,
+            'pf': round(sum(r for r in rs if r > 0) / gl, 3) if gl > 0 else None,
+            'avg_mfe_r': avg('mfe_r'), 'avg_mae_r': avg('mae_r'), 'avg_bars': round(sum(t['bars'] for t in tt) / n, 1),
+            'max_dd_r': round(max_drawdown(rs), 2)}
+
+
+def _pctl(xs: List[float], q: float) -> Optional[float]:
+    if not xs:
+        return None
+    s = sorted(xs)
+    k = (len(s) - 1) * q
+    i = int(k)
+    return round(s[i] + (s[min(i + 1, len(s) - 1)] - s[i]) * (k - i), 3)
+
+
+def experiments_json(trades: List[Dict], exps, start: str = '', end: str = '') -> Dict:
+    """The auto-learner's input: every experiment variant's in-sample (older 70% of the signal dates of the
+    `current` experiment's fills) and out-of-sample (newest 30%) STATS, the skipped ones with a reason, and the MFE /
+    MAE distribution of the `current` trades."""
+    rows = defaultdict(list)
+    for t in trades:
+        v = t.get('variant') or ''
+        if v.startswith('x:'):
+            rows[v[2:]].append(t)
+    cur = rows.get('current', [])
+    split = _split_date(cur)
+    sig_dates = [t['signal_date'] for r in rows.values() for t in r]
+    out = {'schema': 1, 'market': 'stock', 'generated_at': dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+           'period': {'start': min(sig_dates) if sig_dates else (start or None), 'end': max(sig_dates) if sig_dates else (end or None),
+                      'split': split or None},
+           'baseline': 'current', 'variants': {}, 'skipped': {}}
+    for vid, meta in E.VARIANTS.items():
+        if vid in E.SKIPPED:
+            out['skipped'][vid] = E.SKIPPED[vid]
+            continue
+        if vid not in exps:
+            out['skipped'][vid] = 'not run in this backtest (--experiments)'
+            continue
+        sc = [t for t in rows.get(vid, []) if t.get('status') == 'filled' and t.get('why') != 'open']
+        out['variants'][vid] = {'group': meta['group'], 'desc': meta['desc'],
+                                'is': xstats([t for t in sc if split and t['signal_date'] < split]),
+                                'oos': xstats([t for t in sc if not split or t['signal_date'] >= split])}
+    sc = [t for t in cur if t.get('status') == 'filled' and t.get('why') != 'open']
+    q = lambda k: {f'p{int(p * 100)}': _pctl([t[k] for t in sc], p) for p in (0.25, 0.5, 0.75, 0.9)}  # noqa: E731
+    out['excursions'] = {'mfe_r': q('mfe_r'), 'mae_r': q('mae_r'), 'n': len(sc)}
+    return out
+
+
 def summarize(trades: List[Dict], spy: Optional[List[Bar]] = None) -> Dict:
     cur = [t for t in trades if t.get('variant', 'current') == 'current']
     out = _counts(cur)
@@ -653,7 +828,45 @@ HDR = ('| | Trades | Win | Avg R | 95% CI (R) | PF | Avg trade | Annualised | We
        '|---|---|---|---|---|---|---|---|---|---|---|')
 
 
-def render_md(summary: Dict, params: Dict) -> str:
+def _xrow(m: Dict) -> str:
+    if not m or not m.get('n'):
+        return '0 trades'
+    ci = m.get('ci') or [None, None]
+    return (f"{m['n']} trades, win {_fmt(m['win'] * 100, 1)}%, {_fmt(m['exp_r'], sign=True)}R / trade "
+            f"(95% CI {_fmt(ci[0], sign=True)} to {_fmt(ci[1], sign=True)}), PF {_fmt(m.get('pf'))}, "
+            f"MFE {_fmt(m.get('avg_mfe_r'))}R, MAE {_fmt(m.get('avg_mae_r'))}R, {_fmt(m.get('avg_bars'), 1)} sessions, max DD {_fmt(m.get('max_dd_r'), 1)}R")
+
+
+def render_experiments(exp: Optional[Dict]) -> List[str]:
+    """The experiments section: a short section per variant (definition + in-sample / out-of-sample results)."""
+    exp = exp or {}
+    per = exp.get('period') or {}
+    L = ['## Experiments (auto-learner input, `public/learn/stock_experiments.json`)', '',
+         'Each variant = the current rules with ONE change (`tools/stock_scanner/experiments.py`, the same functions the live '
+         'scanner will import when a variant is adopted). Same walk-forward, the same signals of each evaluation day (computed '
+         'once and shared), wick stop (the live plan), the same costs, one position per ticker per variant (free again after '
+         'its wick exit; the main report\'s current rules also wait for the close-stop exit, so its trade list can differ '
+         'slightly). In sample = signals '
+         f"before {per.get('split') or 'the split'} (older 70% of the current fills), out of sample = from then on. "
+         'Expectancy in R after costs, bootstrap 95% CI. MFE / MAE = best / worst price move from the fill to the exit in R.', '']
+    ex = exp.get('excursions') or {}
+    if ex.get('n'):
+        L += [f"Current trades' excursions (n {ex['n']}): MFE p25 / p50 / p75 / p90 = "
+              + ' / '.join(_fmt(ex['mfe_r'].get(k)) for k in ('p25', 'p50', 'p75', 'p90')) + 'R; MAE '
+              + ' / '.join(_fmt(ex['mae_r'].get(k)) for k in ('p25', 'p50', 'p75', 'p90')) + 'R.', '']
+    vs = exp.get('variants') or {}
+    for vid, meta in E.VARIANTS.items():
+        L += [f'### `{vid}` ({meta["group"]})', '', meta['desc'], '', f'Rule: {E.DEFINITIONS.get(vid, "")}', '']
+        if vid in vs:
+            L += [f"- In sample: {_xrow(vs[vid].get('is'))}", f"- Out of sample: {_xrow(vs[vid].get('oos'))}", '']
+        elif vid in (exp.get('skipped') or {}) or vid in E.SKIPPED:
+            L += [f"Not run: {(exp.get('skipped') or {}).get(vid) or E.SKIPPED.get(vid)}.", '']
+        else:
+            L += ['No results yet (the next monthly run of stock-backtest.yml fills them in).', '']
+    return L
+
+
+def render_md(summary: Dict, params: Dict, exp: Optional[Dict] = None) -> str:
     s = summary
     L = ['# Stock scanner backtest (real data, walk-forward)', '',
          f"Generated {dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC by `.github/workflows/stock-backtest.yml` "
@@ -716,6 +929,8 @@ def render_md(summary: Dict, params: Dict) -> str:
         L += ['## SPY buy and hold, same period', '',
               f"{bm['from']} to {bm['to']}: total {_fmt(bm['total_pct'], 1, pct=True)}, CAGR {_fmt(bm['cagr_pct'], 1, pct=True)}, "
               f"max drawdown {_fmt(bm['max_dd_pct'], 1, pct=True)} ({bm['note']}).", '']
+    if exp is not None:
+        L += render_experiments(exp)
     L += ['## How to read this', '',
           '- Avg R = expectancy per trade in units of the planned risk; trust needs the out-of-sample 95% CI above zero.',
           '- Win rate below 100% means losing signals exist: no rule set gives zero false signals. Plan the size so the '
@@ -768,11 +983,24 @@ def main(argv=None) -> int:
     ap.add_argument('--out', default=os.path.join(HERE, 'backtest_out'))
     ap.add_argument('--public', help='also write the public JSON here (e.g. public/scanner/backtest.json)')
     ap.add_argument('--md', help='also write the Markdown report here (e.g. docs/research/Stock_Backtest.md)')
+    ap.add_argument('--experiments', default='all', help=f"experiment variants: 'all', 'none' or a comma list of {tuple(E.VARIANTS)}")
+    ap.add_argument('--experiments-json', help='write the experiments here (e.g. public/learn/stock_experiments.json)')
     a = ap.parse_args(argv)
     t0 = time.time()
     variants = tuple(v for v in (x.strip() for x in a.variants.split(',')) if v)
     if 'current' not in variants:
         variants = ('current',) + variants
+    if a.experiments.strip().lower() in ('', 'none', '0', 'off'):
+        exps: Tuple[str, ...] = ()
+    elif a.experiments.strip().lower() == 'all':
+        exps = tuple(E.runnable())
+    else:
+        exps = tuple(x.strip() for x in a.experiments.split(',') if x.strip())
+        bad = [x for x in exps if x not in E.VARIANTS]
+        if bad:
+            ap.error(f'unknown experiment variants {bad}')
+    if exps and 'current' not in exps:
+        exps = ('current',) + exps
     start = (dt.date.today() - dt.timedelta(days=int(a.years * 365.25))).isoformat() if a.years else ''
     trades: List[Dict] = []
     spy: List[Bar] = []
@@ -786,7 +1014,7 @@ def main(argv=None) -> int:
         asked = done = a.limit or 12
         for seed in range(asked):
             trades += backtest_ticker(f'FX{seed}', synth.ticker(seed), 'Synthetic', None, a.cost_bps, ['SPX', 'NDX', 'DJI', 'TSX'][seed % 4],
-                                      comp, variants, start, a.slip_bps, a.random_k)
+                                      comp, variants, start, a.slip_bps, a.random_k, experiments=exps, spy_bars=spy)
     else:
         import universe as U
         if a.universes:
@@ -810,7 +1038,7 @@ def main(argv=None) -> int:
             spy = DATA.fetch_daily('SPY', offline=offline)[0]
         except Exception as e:  # noqa: BLE001
             print(f'SPY: {e}', file=sys.stderr)
-        jobs = [(u['symbol'], u['sector'], offline, a.cost_bps, u.get('indexes') or 'SPX', variants, start, a.slip_bps, a.random_k)
+        jobs = [(u['symbol'], u['sector'], offline, a.cost_bps, u.get('indexes') or 'SPX', variants, start, a.slip_bps, a.random_k, exps)
                 for u in uni]
         pool = Pool(a.workers)
         try:
@@ -831,9 +1059,14 @@ def main(argv=None) -> int:
     s = summarize(trades, spy or None)
     params = {'variants': list(variants), 'years': a.years or None, 'start': start or None, 'cost_bps': a.cost_bps, 'slip_bps': a.slip_bps,
               'cadence': 'weekly', 'order_life_sessions': ORDER_LIFE, 'hold_weeks': 52, 'random_k': a.random_k,
-              'tickers_asked': asked, 'tickers_done': done, 'partial': partial, 'fixture': a.fixture,
+              'tickers_asked': asked, 'tickers_done': done, 'partial': partial, 'fixture': a.fixture, 'experiments': list(exps),
               'runtime_min': round((time.time() - t0) / 60, 1)}
+    exp = experiments_json(trades, exps, start, spy[-1].d if spy else '') if exps else None
     write(trades, s, a.out)
+    if a.experiments_json and exp is not None:
+        os.makedirs(os.path.dirname(os.path.abspath(a.experiments_json)), exist_ok=True)
+        with open(a.experiments_json, 'w') as f:
+            json.dump(exp, f, indent=1)
     if a.public:
         os.makedirs(os.path.dirname(os.path.abspath(a.public)), exist_ok=True)
         with open(a.public, 'w') as f:
@@ -841,10 +1074,11 @@ def main(argv=None) -> int:
     if a.md:
         os.makedirs(os.path.dirname(os.path.abspath(a.md)), exist_ok=True)
         with open(a.md, 'w') as f:
-            f.write(render_md(s, params))
+            f.write(render_md(s, params, exp))
     print_summary(s)
     print(f"\n{done}/{asked} tickers in {params['runtime_min']} min -> {os.path.join(a.out, 'trades.csv')}, summary.json"
-          + (f', {a.public}' if a.public else '') + (f', {a.md}' if a.md else ''))
+          + (f', {a.public}' if a.public else '') + (f', {a.md}' if a.md else '')
+          + (f', {a.experiments_json}' if a.experiments_json and exp is not None else ''))
     return 0
 
 
