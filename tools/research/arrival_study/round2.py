@@ -261,17 +261,18 @@ def ltf_choch(d: int, zone: Z.Zone, L: R.TF, ltf: str, t0: str, watch_end: str, 
 
 
 # ---- one instrument --------------------------------------------------------------------------------------------------
-def study_tf(job: Dict, data: Dict[str, R.TF], fine: Fine, tf: str, start: str, htf: str, cnt: Dict) -> List[Dict]:
+def arrival_setups(job: Dict, data: Dict[str, R.TF], fine: Fine, tf: str, start: str, htf: str, cnt: Dict):
+    """Every verified arrival of the TF since `start` (candidate pass + live re-read at the bar it became true), with
+    its plan, its features at placement and its fine bars. Yields one dict per setup (shared by round 2 and round 3)."""
     T = data.get(tf)
     if T is None or len(T) < 80:
-        return []
+        return
     p = A.FX_P
     S = A.series_of(T.bars, tf)
     _, arrs = A.find_arrivals(S, tf, {**p, 'lookback': 10 ** 6})
     n = len(T)
     H = data.get(htf)
     sp = job['spread']
-    out = []
     for a in arrs:
         k = n - a.known_bar + 1
         t0 = T.ends[k - 1]
@@ -306,6 +307,17 @@ def study_tf(job: Dict, data: Dict[str, R.TF], fine: Fine, tf: str, start: str, 
         if fz is None or fz.closed(t0) >= len(fz) or (len(fz) and fz.ends[0] > t0):
             fz, res_on = data[R1_SIM[tf]], R1_SIM[tf] + ' (fallback)'
             cnt['fine_missing'] = cnt.get('fine_missing', 0) + 1
+        yield {'T': T, 'n': n, 'k': k, 't0': t0, 'price': price, 'St': St, 'Ht': Ht, 'r': r, 'cur': cur, 'pl': pl, 'd': d,
+               'hz': hz, 'f': f, 'expire': expire, 'hold_end': hold_end, 'base': base, 'opp_tp': opp_tp, 'fz': fz,
+               'res_on': res_on, 'sp': sp, 'p': p}
+
+
+def study_tf(job: Dict, data: Dict[str, R.TF], fine: Fine, tf: str, start: str, htf: str, cnt: Dict) -> List[Dict]:
+    out = []
+    for x in arrival_setups(job, data, fine, tf, start, htf, cnt):
+        T, n, k, t0, St, r, cur, pl, d = x['T'], x['n'], x['k'], x['t0'], x['St'], x['r'], x['cur'], x['pl'], x['d']
+        f, expire, hold_end, base, opp_tp, fz, res_on, sp, p = (x['f'], x['expire'], x['hold_end'], x['base'], x['opp_tp'],
+                                                                x['fz'], x['res_on'], x['sp'], x['p'])
         res = run_variants(d, pl.entry, pl.stop, cur.zone.dist, pl.tp, opp_tp, fz, t0, expire, hold_end, sp)
         r1 = (R.simulate(d, pl.entry, pl.stop, data[R1_SIM[tf]], t0, expire, hold_end, cur.zone.dist, sp, 'fixed', pl.tp)
               if pl.tp is not None and (pl.tp - pl.entry) * d > 0 else {'outcome': 'no target', 'R': None})
@@ -371,17 +383,17 @@ def study_tf(job: Dict, data: Dict[str, R.TF], fine: Fine, tf: str, start: str, 
     return out
 
 
-def control_tf(job: Dict, data: Dict[str, R.TF], tf: str, htf: str, cnt: Dict) -> List[Dict]:
-    """Every fresh zone of the TF since CTRL_START: limit at the proximal at the close of its stay-away candle."""
+def control_setups(job: Dict, data: Dict[str, R.TF], tf: str, htf: str, cnt: Dict):
+    """Every fresh zone of the TF since CTRL_START, as it stood at the close of its stay-away candle (the order is
+    placed then: limit at the proximal, the stop rule). Yields one dict per zone (shared by round 2 and round 3)."""
     T, H, sim = data.get(tf), data.get(htf), data.get('H4')
     if T is None or len(T) < 300 or sim is None:
-        return []
+        return
     p = A.FX_P
     S = A.series_of(T.bars, tf)
     zones = Z.detect(S, {**p, 'lookback': 10 ** 6})
     n = len(T)
     sp = job['spread']
-    out = []
     hcache: Dict[int, Tuple[Z.Series, List[Z.Zone]]] = {}
     for z in zones:
         k = n - z.sa_bar + 1
@@ -416,7 +428,16 @@ def control_tf(job: Dict, data: Dict[str, R.TF], tf: str, htf: str, cnt: Dict) -
         expire = T.ends[min(k - 1 + EXPIRY, n - 1)]
         hold_end = T.ends[k - 1 + HOLD + EXPIRY // 2] if k - 1 + HOLD + EXPIRY // 2 < n else None
         opp_tp = opp_target(zs, d, z.prox)
-        res = run_variants(d, z.prox, st.stop, z.dist, opp_tp, opp_tp, sim, t0, expire, hold_end, sp)
+        yield {'T': T, 'n': n, 'k': k, 't0': t0, 'z': z, 'zt': zt, 'St': St, 'Ht': Ht, 'hz': hz, 'zs': zs, 'st': st,
+               'd': d, 'price': price, 'f': f, 'expire': expire, 'hold_end': hold_end, 'opp_tp': opp_tp, 'sim': sim, 'sp': sp}
+
+
+def control_tf(job: Dict, data: Dict[str, R.TF], tf: str, htf: str, cnt: Dict) -> List[Dict]:
+    """Every fresh zone of the TF since CTRL_START: limit at the proximal at the close of its stay-away candle."""
+    out = []
+    for x in control_setups(job, data, tf, htf, cnt):
+        z, st, d, f, t0, sp = x['z'], x['st'], x['d'], x['f'], x['t0'], x['sp']
+        res = run_variants(d, z.prox, st.stop, z.dist, x['opp_tp'], x['opp_tp'], x['sim'], t0, x['expire'], x['hold_end'], sp)
         res.pop('plan', None)
         if not any(x.get('fill_t') for x in res.values()):
             # never reached: keep only a counter (keeps the dump small)
@@ -517,15 +538,18 @@ def synthetic_jobs() -> List[Dict]:
     return jobs
 
 
-def run(jobs: List[Dict], workers: int, budget_min: float, log=print) -> Tuple[List[Dict], List[Dict], bool]:
+def run(jobs: List[Dict], workers: int, budget_min: float, log=print, fn=None) -> Tuple[List[Dict], List[Dict], bool]:
+    """fn(job) -> {'sym', 'rows', 'counts', 'error', 'secs', ...} per instrument (default study_instrument; round 3
+    passes its own)."""
+    fn = fn or study_instrument
     t0 = time.time()
     rows, counts, partial = [], [], False
     if workers <= 1:
-        it, pool = map(study_instrument, jobs), None
+        it, pool = map(fn, jobs), None
     else:
         import multiprocessing as mp
         pool = mp.get_context('fork').Pool(workers, maxtasksperchild=4)
-        it = pool.imap_unordered(study_instrument, jobs)
+        it = pool.imap_unordered(fn, jobs)
     try:
         for k, r in enumerate(it):
             rows += r['rows']

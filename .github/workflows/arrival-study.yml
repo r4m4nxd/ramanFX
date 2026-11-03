@@ -6,11 +6,15 @@ name: Arrival study
 # the `data` branch (never main: the owner decides) and uploads it as an artifact. Stdlib + matplotlib for the charts.
 # round = 2: tools/research/arrival_study/round2.py (Kevin's real calls back-tested on M5, arrivals on finer bars with
 # management variants, LTF confirmation entries, every-zone control, walk-forward) -> docs/research/arrival_study/round2/.
+# round = 3: tools/research/arrival_study/round3.py (outside-evidence hypotheses: long-horizon trend, zone pattern,
+# volatility regime, session, stop width, exits, second-touch depth, a few pairs; walk-forward + instrument halves +
+# false-discovery check) -> docs/research/arrival_study/round3/ + public/learn/round3_summary.json. FX only (as round 2:
+# the stocks input is not used). Reuses round 2's candle / fine-window cache.
 on:
   workflow_dispatch:
     inputs:
       round:
-        description: 'Study round (1 = arrival study, 2 = Kevin calls + filters / management / LTF confirmation)'
+        description: 'Study round (1 = arrival study, 2 = Kevin calls + filters / management / LTF confirmation, 3 = outside-evidence hypotheses)'
         required: false
         default: '1'
       fx:
@@ -64,7 +68,7 @@ jobs:
           python -m unittest discover -s tools/research/arrival_study/tests
 
       - name: Study
-        if: ${{ github.event.inputs.round != '2' }}
+        if: ${{ github.event.inputs.round != '2' && github.event.inputs.round != '3' }}
         timeout-minutes: 300
         run: |
           python tools/research/arrival_study/study.py --fx "${IN_FX:-0}" --stocks "${IN_STOCKS:-100}" --budget-min 240 \
@@ -89,6 +93,19 @@ jobs:
           FX_WATCHLIST: ${{ secrets.FX_WATCHLIST }}
           IN_FX: ${{ github.event.inputs.fx }}
 
+      - name: Study, round 3
+        if: ${{ github.event.inputs.round == '3' }}
+        timeout-minutes: 300
+        run: |
+          python tools/research/arrival_study/round3.py --fx "${IN_FX:-0}" --budget-min 240 \
+            --out docs/research/arrival_study/round3 --json public/learn/round3_summary.json \
+            --dump "$RUNNER_TEMP/round3_rows.json.gz"
+          cp "$RUNNER_TEMP/round3_rows.json.gz" docs/research/arrival_study/round3/ 2>/dev/null || true
+        env:
+          OANDA_API_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
+          FX_WATCHLIST: ${{ secrets.FX_WATCHLIST }}
+          IN_FX: ${{ github.event.inputs.fx }}
+
       - name: Save candle cache
         if: ${{ always() && hashFiles('tools/fx_scanner/.cache/**') != '' }}
         uses: actions/cache/save@v4
@@ -105,7 +122,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Commit results
-        if: ${{ !cancelled() && github.event.inputs.round != '2' && hashFiles('docs/research/arrival_study/Arrival_Study.md') != '' }}
+        if: ${{ !cancelled() && github.event.inputs.round != '2' && github.event.inputs.round != '3' && hashFiles('docs/research/arrival_study/Arrival_Study.md') != '' }}
         run: |
           git config user.name "ramanfx-scanner[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -120,4 +137,14 @@ jobs:
           git config user.name "ramanfx-scanner[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           bash scripts/data-branch.sh push "research: arrival study round 2 $(date -u +%Y-%m-%dT%H:%MZ)" docs/research/arrival_study/round2 \
+            || { echo "::error::results not pushed (see the uploaded artifact)"; exit 1; }
+
+      # Round 3: only its own folder + its own learner file (the per-setup dump stays in the artifact).
+      - name: Commit round-3 results
+        if: ${{ !cancelled() && github.event.inputs.round == '3' && hashFiles('docs/research/arrival_study/round3/Round3.md') != '' }}
+        run: |
+          rm -f docs/research/arrival_study/round3/round3_rows.json.gz
+          git config user.name "ramanfx-scanner[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bash scripts/data-branch.sh push "research: arrival study round 3 $(date -u +%Y-%m-%dT%H:%MZ)" docs/research/arrival_study/round3 public/learn/round3_summary.json \
             || { echo "::error::results not pushed (see the uploaded artifact)"; exit 1; }

@@ -88,9 +88,16 @@ def add_time(t: str, **kw) -> str:
 # ---- simulation ------------------------------------------------------------------------------------------------------
 def simulate(d: int, entry: float, stop: float, fine: TF, t0: str, expire: str, hold_end: Optional[str], distal: float,
              cost: float = 0.0, mgmt: str = 'fixed', tp: Optional[float] = None, cancel_at: Optional[float] = None,
-             trail_r: float = 1.0) -> Dict:
+             trail_r: float = 1.0, be_at: Optional[float] = None, time_bars: Optional[int] = None, time_r: float = 1.0,
+             swings: Optional[Sequence[Tuple[str, float]]] = None, swing_after: float = 1.5) -> Dict:
     """One limit order placed at time t0 on the fine bars (module doc). cancel_at: the level whose trade before the fill
-    cancels the order (default tp)."""
+    cancels the order (default tp).
+    Round-3 options (all off by default; round 2 never sets them):
+      be_at       the stop moves to break-even once the trade has been +be_at R (any management)
+      time_bars   time stop: exit at the close of fine bar fill + time_bars when +time_r R was not reached by then
+      'swing'     management: once the trade has been +swing_after R, the stop trails behind the newest entry-TF
+                  swing (swings = [(time the swing is confirmed, level)], oldest first, lows for a buy / highs for a
+                  sell); a swing counts from the bar after its confirmation time. No target (tp, if given, is a cap)."""
     risk = (entry - stop) * d
     out = {'outcome': 'cancelled', 'why': 'expired', 'R': None, 'fill_t': None, 'exit_t': None, 'mfe': None, 'mae': None}
     if risk <= 0 or (tp is not None and (tp - entry) * d <= 0):
@@ -127,6 +134,7 @@ def simulate(d: int, entry: float, stop: float, fine: TF, t0: str, expire: str, 
     sl = stop
     banked, size = 0.0, 1.0           # partial: R already banked, open fraction
     best = 0.0                        # best favourable excursion so far (R), for the trail
+    sw_t = [x[0] for x in swings] if swings else []
     mfe = mae = 0.0
     be_moved = False
     for j in range(fill_i, len(fine)):
@@ -153,6 +161,8 @@ def simulate(d: int, entry: float, stop: float, fine: TF, t0: str, expire: str, 
                 size = 0.5
             r = banked + size * (tp - entry) * d / risk - c
             return _done(out, 'target', r, fine.ends[j], mfe, mae)
+        if time_bars is not None and j - fill_i >= time_bars and mfe < time_r:
+            return _done(out, 'time stop', banked + size * (b.c - entry) * d / risk - c, fine.ends[j], mfe, mae)
         # 3) management for the next bar
         if mgmt == 'partial' and size == 1.0 and fav >= 1.0:
             banked, size, sl, be_moved = 0.5 * 1.0, 0.5, entry, True
@@ -162,6 +172,16 @@ def simulate(d: int, entry: float, stop: float, fine: TF, t0: str, expire: str, 
                 be_moved = True
                 sl_new = entry + d * max(0.0, best - trail_r) * risk
                 sl = max(sl, sl_new) if d > 0 else min(sl, sl_new)
+        elif mgmt == 'swing':
+            best = max(best, fav)
+            if best >= swing_after and sw_t:
+                q = bisect.bisect_right(sw_t, fine.ends[j]) - 1     # newest swing confirmed by this bar's close
+                if q >= 0:
+                    lv = swings[q][1]
+                    if (lv - b.c) * d < 0 and (lv - sl) * d > 0:     # behind price and tighter than the stop now
+                        sl, be_moved = lv, True
+        if be_at is not None and not (sl - entry) * d >= 0 and mfe >= be_at:
+            sl, be_moved = entry, True
     b = fine.bars[-1]
     out.update(outcome='open', why='end of data', R=banked + size * (b.c - entry) * d / risk - c, exit_t=fine.ends[-1],
                mfe=round(mfe, 3), mae=round(min(mae, 99.0), 3))
@@ -191,26 +211,37 @@ def week_of(t: str) -> str:
     return f'{y}-{w:02d}'
 
 
-def _block_boot(ts: List[Dict], key: str, n: int = 1000, seed: int = 11) -> Optional[Tuple[float, float]]:
-    """Bootstrap by calendar week of the fill (correlated USD pairs filled the same week resample together)."""
+def _block_means(ts: List[Dict], key: str, n: int = 1000, seed: int = 11) -> Optional[List[float]]:
+    """The sorted bootstrap means of a calendar-week block bootstrap of the fill week (None when < 20 trades or < 8
+    weeks). Per-week sums are precomputed: the same draws (and the same result) as resampling the week lists."""
     if len(ts) < 20:
         return None
     blocks: Dict[str, List[float]] = {}
     for t in ts:
         blocks.setdefault(week_of(t.get('fill_t') or t['t']), []).append(t[key])
-    bl = list(blocks.values())
-    if len(bl) < 8:
+    if len(blocks) < 8:
         return None
+    sums = [sum(x) for x in blocks.values()]
+    lens = [len(x) for x in blocks.values()]
+    idx = list(range(len(sums)))
     rnd = random.Random(seed)
     ms = []
     for _ in range(n):
         s = c = 0
-        for _ in bl:
-            x = rnd.choice(bl)
-            s += sum(x)
-            c += len(x)
+        for _ in idx:
+            i = rnd.choice(idx)
+            s += sums[i]
+            c += lens[i]
         ms.append(s / c)
     ms.sort()
+    return ms
+
+
+def _block_boot(ts: List[Dict], key: str, n: int = 1000, seed: int = 11) -> Optional[Tuple[float, float]]:
+    """Bootstrap by calendar week of the fill (correlated USD pairs filled the same week resample together)."""
+    ms = _block_means(ts, key, n, seed)
+    if ms is None:
+        return None
     return ms[int(0.025 * n)], ms[int(0.975 * n) - 1]
 
 
