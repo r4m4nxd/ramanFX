@@ -39,6 +39,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
+          retention-days: 7
           name: load-test-${{ github.run_id }}
           path: |
             summary.json

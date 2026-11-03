@@ -47,6 +47,7 @@ jobs:
         run: python tools/research/market_hours/deep.py calendar --out cal.json
       - uses: actions/upload-artifact@v4
         with:
+          retention-days: 7
           name: mh-cal
           path: cal.json
 
@@ -95,6 +96,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
+          retention-days: 7
           name: mh-fx-${{ matrix.shard }}
           path: out/
           if-no-files-found: ignore
@@ -144,6 +146,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
+          retention-days: 7
           name: mh-stocks-${{ matrix.shard }}
           path: out/
           if-no-files-found: ignore
@@ -169,6 +172,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
+          retention-days: 7
           name: market-hours-${{ github.run_id }}
           path: |
             docs/research/Market_Hours.md

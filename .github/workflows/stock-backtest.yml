@@ -98,6 +98,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
+          retention-days: 7
           name: stock-backtest-${{ github.run_id }}
           path: |
             public/scanner/backtest.json

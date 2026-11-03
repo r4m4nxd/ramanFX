@@ -34,6 +34,7 @@ jobs:
         run: python tools/ctrader/ctrader.py inventory
       - uses: actions/upload-artifact@v4
         with:
+          retention-days: 7
           name: ctrader-symbols
           path: ctrader_symbols.json
       - name: Parity vs OANDA (a few symbols)
